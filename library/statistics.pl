@@ -115,10 +115,14 @@ show_profile(How, N) :-
 	prolog:show_profile_hook(How, N), !.
 show_profile(How, N) :-
 	prof_statistics(Stat),
+	prof_statistics(time, Stat, Time),
 	sort_on(How, SortKey),
 	findall(KeyedNode, prof_node(SortKey, KeyedNode), Nodes),
 	keysort(Nodes, Sorted),
 	reverse(Sorted, HighFirst), 
+	format('~61t~69|~n'),
+	format('Total time: ~2f seconds~n', [Time]),
+	format('~61t~69|~n'),
 	format('~w~t~w =~45|~t~w~60|~t~w~69|~n',
 	       [ 'Predicate', 'Box Entries', 'Calls+Redos', 'Time'
 	       ]),
