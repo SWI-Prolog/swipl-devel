@@ -438,6 +438,9 @@ A built_in_procedure	"built_in_procedure"
 A close_option		"close_option"
 A force			"force"
 A agc_margin		"agc_margin"
+A dde_error		"dde_error"
+A dde_handle		"dde_handle"
+A character_code	"character_code"
 
 F abs			1
 F acos			1
@@ -584,3 +587,4 @@ F var			1
 F warning		3
 F xor			2
 F xpceref		1
+F dde_error		2

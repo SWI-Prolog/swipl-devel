@@ -264,10 +264,20 @@ __pl_export int		PL_functor_arity(functor_t f);
 
 			/* Get C-values from Prolog terms */
 __pl_export int		PL_get_atom(term_t t, atom_t *a);
+__pl_export int		PL_get_bool(term_t t, int *value);
 __pl_export int		PL_get_atom_chars(term_t t, char **a);
 __pl_export int		PL_get_string(term_t t, char **s, int *len);
-__pl_export int		PL_get_list_chars(term_t l, char **s, unsigned flags);
-__pl_export int		PL_get_chars(term_t t, char **s, unsigned flags);
+__pl_export int		PL_get_chars(term_t t, char **s, unsigned int flags);
+__pl_export int		PL_get_list_chars(term_t l, char **s,
+					  unsigned int flags);
+__pl_export int		PL_get_atom_nchars(term_t t, char **a,
+					   unsigned int *length);
+__pl_export int		PL_get_list_nchars(term_t l, char **s,
+					   unsigned int *length,
+					   unsigned int flags);
+__pl_export int		PL_get_nchars(term_t t, char **s,
+				      unsigned int *length,
+				      unsigned int flags);
 __pl_export int		PL_get_integer(term_t t, int *i);
 __pl_export int		PL_get_long(term_t t, long *i);
 __pl_export int		PL_get_pointer(term_t t, void **ptr);
@@ -301,11 +311,17 @@ __pl_export void	PL_put_variable(term_t t);
 __pl_export void	PL_put_atom(term_t t, atom_t a);
 __pl_export void	PL_put_atom_chars(term_t t, const char *chars);
 __pl_export void	PL_put_string_chars(term_t t, const char *chars);
+__pl_export void	PL_put_list_chars(term_t t, const char *chars);
+__pl_export void	PL_put_list_codes(term_t t, const char *chars);
+__pl_export void	PL_put_atom_nchars(term_t t,
+					   unsigned int l, const char *chars);
 __pl_export void	PL_put_string_nchars(term_t t,
 					     unsigned int len,
 					     const char *chars);
-__pl_export void	PL_put_list_chars(term_t t, const char *chars);
-__pl_export void	PL_put_list_codes(term_t t, const char *chars);
+__pl_export void	PL_put_list_nchars(term_t t,
+					   unsigned int l, const char *chars);
+__pl_export void	PL_put_list_ncodes(term_t t,
+					   unsigned int l, const char *chars);
 __pl_export void	PL_put_integer(term_t t, long i);
 __pl_export void	PL_put_pointer(term_t t, void *ptr);
 __pl_export void	PL_put_float(term_t t, double f);
@@ -323,12 +339,15 @@ __pl_export void	PL_cons_list(term_t l, term_t h, term_t t);
 __pl_export int		PL_unify(term_t t1, term_t t2);
 __pl_export int		PL_unify_atom(term_t t, atom_t a);
 __pl_export int		PL_unify_atom_chars(term_t t, const char *chars);
-__pl_export int		PL_unify_atom_nchars(term_t t,
-					     unsigned int len,
-					     const char *chars);
 __pl_export int		PL_unify_list_chars(term_t t, const char *chars);
 __pl_export int		PL_unify_list_codes(term_t t, const char *chars);
 __pl_export int		PL_unify_string_chars(term_t t, const char *chars);
+__pl_export int		PL_unify_atom_nchars(term_t t,
+					     unsigned int l, const char *s);
+__pl_export int		PL_unify_list_ncodes(term_t t,
+					     unsigned int l, const char *s);
+__pl_export int		PL_unify_list_nchars(term_t t,
+					     unsigned int l, const char *s);
 __pl_export int		PL_unify_string_nchars(term_t t,
 					       unsigned int len,
 					       const char *chars);

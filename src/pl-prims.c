@@ -106,7 +106,7 @@ termHashValue(word term, long *hval)
 	*hval = atomValue(term)->hash_value;
         succeed;
       case TAG_STRING:
-	*hval = unboundStringHashValue(valString(term));
+	*hval = unboundStringHashValue(valString(term), sizeString(term));
         succeed;
       case TAG_INTEGER:
 	*hval = valInteger(term);
@@ -1233,11 +1233,12 @@ end_analysis:
 word
 pl_atom_length(term_t w, term_t n)
 { char *s;
+  int len;
 
-  if ( PL_get_chars(w, &s, CVT_ALL) )
-    return PL_unify_integer(n, strlen(s));
+  if ( PL_get_nchars_ex(w, &s, &len, CVT_ALL) )
+    return PL_unify_integer(n, len);
 
-  return warning("atom_length/2: instantiation fault");
+  fail;
 }
 
 
@@ -1394,30 +1395,31 @@ pl_format_number(term_t format, term_t number, term_t string)
 static word
 x_chars(const char *pred, term_t atom, term_t string, int how)
 { char *s;
+  unsigned int len;
 
-  if ( PL_get_chars(atom, &s, CVT_ATOMIC) ) /* atomic --> "list" */
+  if ( PL_get_nchars(atom, &s, &len, CVT_ATOMIC) ) /* atomic --> "list" */
   { if ( how & X_CHARS )
-      return PL_unify_list_chars(string, s);
+      return PL_unify_list_nchars(string, len, s);
     else
-      return PL_unify_list_codes(string, s);
+      return PL_unify_list_ncodes(string, len, s);
   }
 
   if ( PL_is_variable(atom) )
-  { if ( !PL_get_list_chars(string, &s, 0) )
+  { if ( !PL_get_list_nchars(string, &s, &len, 0) )
     { if ( !PL_is_list(string) )
 	return PL_error(pred, 2, NULL,
 			ERR_TYPE, ATOM_list, string);
       else
 	return PL_error(pred, 2, NULL,
 			ERR_REPRESENTATION,
-			lookupAtom("character_code"));
+			ATOM_character_code);
     }
 
     how &= X_MASK;
 
     switch(how)
     { case X_ATOM:
-	return PL_unify_atom_chars(atom, s);
+	return PL_unify_atom_nchars(atom, len, s);
       case X_AUTO:
       case X_NUMBER:
       default:
@@ -1431,11 +1433,9 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
 	    return PL_unify_float(atom, n.value.f);
 	}
 	if ( how == X_AUTO )
-	  return PL_unify_atom_chars(atom, s);
+	  return PL_unify_atom_nchars(atom, len, s);
 	else
-	  return PL_error(pred, 2, NULL,
-			  ERR_REPRESENTATION,
-			  lookupAtom("number"));
+	  return PL_error(pred, 2, NULL, ERR_REPRESENTATION, ATOM_number);
       }
     }
   }
@@ -1487,9 +1487,8 @@ pl_char_code(term_t atom, term_t chr)
   { if ( n >= 0 && n < 256 )
       return PL_unify_atom(atom, codeToAtom(n));
 
-    return PL_error("char_code", 2, NULL,
-		    ERR_REPRESENTATION,
-		    lookupAtom("character_code"));
+    return PL_error("char_code", 2, NULL, ERR_REPRESENTATION,
+		    ATOM_character_code);
   }
 
   return PL_error("char_code", 2, NULL, ERR_INSTANTIATION);
@@ -1523,60 +1522,49 @@ static word
 concat(const char *pred,
        term_t a1, term_t a2, term_t a3, 
        word ctx,
-       int (*out)(term_t, const char *))
+       int (*out)(term_t, unsigned int len, const char *))
 { char *s1 = NULL, *s2 = NULL, *s3 = NULL;
-  long l1, l2, l3;
+  unsigned int l1, l2, l3;
   char *tmp;
 
-  PL_get_chars(a1, &s1, CVT_ATOMIC|BUF_RING);
-  PL_get_chars(a2, &s2, CVT_ATOMIC|BUF_RING);
-  PL_get_chars(a3, &s3, CVT_ATOMIC|BUF_RING);
+  PL_get_nchars(a1, &s1, &l1, CVT_ATOMIC|BUF_RING);
+  PL_get_nchars(a2, &s2, &l2, CVT_ATOMIC|BUF_RING);
+  PL_get_nchars(a3, &s3, &l3, CVT_ATOMIC|BUF_RING);
 
   if ( !s1 && !PL_is_variable(a1) )
-    return PL_error(pred, 3, NULL, ERR_INSTANTIATION, ATOM_atomic, a1);
+    return PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a1);
   if ( !s2 && !PL_is_variable(a2) )
-    return PL_error(pred, 3, NULL, ERR_INSTANTIATION, ATOM_atomic, a1);
+    return PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a2);
   if ( !s3 && !PL_is_variable(a3) )
   { err3:
-    return PL_error(pred, 3, NULL, ERR_INSTANTIATION, ATOM_atomic, a1);
+    return PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a3);
   }
 
   if (s1 && s2)
-  { l1 = strlen(s1);
-    l2 = strlen(s2);
-    tmp = alloca(l1 + l2 + 1);
-    strcpy(tmp, s1);
-    strcpy(tmp+l1, s2);
-    return (*out)(a3, tmp);
+  { tmp = alloca(l1 + l2 + 1);
+    memcpy(tmp,    s1, l1);
+    memcpy(tmp+l1, s2, l2);
+    return (*out)(a3, l1+l2, tmp);
   }
 
   if ( !s3 ) 
     goto err3;
 
-  if ( s1 )
-  { if (isPrefix(s1, s3) )
-      return (*out)(a2, s3+strlen(s1));
+  if ( s1 )				/* +, -, + */
+  { if ( l1 <= l3 && memcmp(s1, s3, l1) == 0 )
+      return (*out)(a2, l3-l1, s3+l1);
     fail;
-  } else if ( s2 )
-  { int ld;				/* fixed 13/09/93 for: */
-    char *q;				/* concat(X, ' ', 'xxx  ') */
-
-    l2 = strlen(s2);
-    l3 = strlen(s3);
-    ld = l3 - l2;
-    if (l2 > l3 || !streq(s3+ld, s2) )
-      fail;
-    q = alloca(ld+1);
-    strncpy(q, s3, ld);
-    q[ld] = EOS;
-    return (*out)(a1, q);
+  } else if ( s2 )			/* -, +, + */
+  { if ( l2 <= l3 && memcmp(s2, s3+l3-l2, l2) == 0 )
+      return (*out)(a1, l3-l2, s3);
+    fail;
   } else				/* -, -, + */
   { int at_n;
     mark m;
 
     switch ( ForeignControl(ctx) )
     { case FRG_FIRST_CALL:
-        if ( !s3[0] )
+        if ( l3 == 0 )
 	  fail;				/* empty string */
 	at_n = 0;
         break;
@@ -1588,19 +1576,15 @@ concat(const char *pred,
     }
 
     Mark(m);
-    for(; s3[at_n]; at_n++)
-    { if ( (*out)(a2, s3+at_n) )
-      { char *q = alloca(at_n+1);
-	strncpy(q, s3, at_n);
-	q[at_n] = EOS;
-	if ( (*out)(a1, q) )
-	{ ForeignRedoInt(at_n+1);
-	} 
+    for(; at_n < l3; at_n++)
+    { if ( (*out)(a2, l3-at_n, s3+at_n) &&
+	   (*out)(a1, at_n,    s3) )
+      { ForeignRedoInt(at_n+1);
       }
 
       Undo(m);
     }
-    if ( (*out)(a1, s3) && (*out)(a2, "") )
+    if ( (*out)(a1, l3, s3) && (*out)(a2, 0, "") )
       succeed;
     fail;
   }    
@@ -1609,7 +1593,7 @@ concat(const char *pred,
 
 word
 pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx)
-{ return concat("atom_concat", a1, a2, a3, ctx, PL_unify_atom_chars);
+{ return concat("atom_concat", a1, a2, a3, ctx, PL_unify_atom_nchars);
 }
 
 
@@ -1648,13 +1632,14 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   }
 
   if ( PL_get_nil(l) )
-  { atom_t a;
+  { int rval;
+    unsigned int len = entriesBuffer(&b, char);
+    char *s = baseBuffer(&b, char);
 
-    addBuffer(&b, EOS, char);
-    a = lookupAtom(baseBuffer(&b, char));
+    rval = PL_unify_atom_nchars(atom, len, s);
     discardBuffer(&b);
-
-    return PL_unify_atom(atom, a);
+    
+    return rval;
   }
 
   discardBuffer(&b);
@@ -1751,9 +1736,12 @@ get_positive_integer_or_unbound(term_t t, int *v)
 
 
 
-foreign_t
-pl_sub_atom(term_t atom, term_t before, term_t len, term_t after, term_t sub,
-	    word h)
+static foreign_t
+sub_text(term_t atom,
+	 term_t before, term_t len, term_t after,
+	 term_t sub,
+	 word h,
+	 int (*out)(term_t h, unsigned int len, const char *s))
 { char *aa, *s = NULL;			/* the string */
   int b = -1, l = -1, a = -1;		/* the integers */
   int la;				/* length of `atom' */
@@ -1811,7 +1799,7 @@ pl_sub_atom(term_t atom, term_t before, term_t len, term_t after, term_t sub,
 	if ( l >= 0 )			/* len given */
 	{ if ( b+l <= la )		/* deterministic fit */
 	  { if ( PL_unify_integer(after, la-b-l) &&
-		 PL_unify_atom_nchars(sub, l, aa+b) )
+		 (*out)(sub, l, aa+b) )
 	      succeed;
 	  }
 	  fail;
@@ -1819,7 +1807,7 @@ pl_sub_atom(term_t atom, term_t before, term_t len, term_t after, term_t sub,
 	if ( a >= 0 )			/* after given */
 	{ if ( (l = la-a-b) >= 0 )
 	  { if ( PL_unify_integer(len, l) &&
-		 PL_unify_atom_nchars(sub, l, aa+b) )
+		 (*out)(sub, l, aa+b) )
 	      succeed;
 	  }
 
@@ -1837,7 +1825,7 @@ pl_sub_atom(term_t atom, term_t before, term_t len, term_t after, term_t sub,
       { if ( a >= 0 )			/* len and after */
 	{ if ( (b = la-a-l) >= 0 )
 	  { if ( PL_unify_integer(before, b) &&
-		 PL_unify_atom_nchars(sub, l, aa+b) )
+		 (*out)(sub, l, aa+b) )
 	      succeed;
 	  }
 
@@ -1907,7 +1895,7 @@ pl_sub_atom(term_t atom, term_t before, term_t len, term_t after, term_t sub,
       PL_unify_integer(len, l);
       PL_unify_integer(after, la-b-l);
     out:
-      PL_unify_atom_nchars(sub, l, aa+b);
+      (*out)(sub, l, aa+b);
       if ( b+l < la )
 	ForeignRedoPtr(state);
       else
@@ -1941,7 +1929,7 @@ pl_sub_atom(term_t atom, term_t before, term_t len, term_t after, term_t sub,
       PL_unify_integer(before, b);
       PL_unify_integer(len, l);
       PL_unify_integer(after, a);
-      PL_unify_atom_nchars(sub, l, aa+b);
+      (*out)(sub, l, aa+b);
       if ( a == 0 )
       { if ( b == la )
 	  goto exit_succeed;
@@ -1958,6 +1946,15 @@ exit_fail:
 }
 
 
+foreign_t
+pl_sub_atom(term_t atom,
+	    term_t before, term_t len, term_t after,
+	    term_t sub,
+	    word h)
+{ return sub_text(atom, before, len, after, sub, h, PL_unify_atom_nchars);
+}
+
+
 #if O_STRING
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Provisional String manipulation functions.
@@ -1966,12 +1963,11 @@ Provisional String manipulation functions.
 word
 pl_string_length(term_t str, term_t l)
 { char *s;
-  int i;
+  unsigned int len;
 
-  if ( PL_get_string(str, &s, &i) )
-    return PL_unify_integer(l, i);
-  if ( PL_get_chars(str, &s, CVT_ALL) )
-    return PL_unify_integer(l, strlen(s));
+  if ( PL_get_string(str, &s, &len) ||
+       PL_get_nchars(str, &s, &len, CVT_ALL) )
+    return PL_unify_integer(l, len);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_string, str);
 }
@@ -1979,87 +1975,76 @@ pl_string_length(term_t str, term_t l)
 
 word
 pl_string_concat(term_t a1, term_t a2, term_t a3, control_t h)
-{ return concat("string_concat", a1, a2, a3, h, PL_unify_string_chars);
+{ return concat("string_concat", a1, a2, a3, h, PL_unify_string_nchars);
 }
 
 
 word
 pl_string_to_atom(term_t str, term_t a)
 { char *s;
+  unsigned int len;
 
-  if ( PL_get_chars(str, &s, CVT_ALL) )
-    return PL_unify_atom_chars(a, s);
-  if ( PL_get_chars(a, &s, CVT_ALL) )
-    return PL_unify_string_chars(str, s);
+  if ( PL_get_nchars(str, &s, &len, CVT_ALL) )
+    return PL_unify_atom_nchars(a, len, s);
+  if ( PL_get_nchars(a, &s, &len, CVT_ALL) )
+    return PL_unify_string_nchars(str, len, s);
 
-  return warning("string_to_atom/2: instantiation fault");
+  return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 }
 
 
 word
 pl_string_to_list(term_t str, term_t list)
 { char *s;
+  unsigned int len;
 
-  if ( PL_get_chars(str, &s, CVT_ALL) )
-    return PL_unify_list_codes(list, s);
-  if ( PL_get_list_chars(list, &s, 0) )	/* string_to_list(S, []). */
-    return PL_unify_string_chars(str, s);
-  if ( PL_get_chars(list, &s, CVT_ALL) )
-    return PL_unify_string_chars(str, s);
+  if ( PL_get_nchars(str, &s, &len, CVT_ALL) )
+    return PL_unify_list_ncodes(list, len, s);
+  if ( PL_get_list_nchars(list, &s, &len, 0) )	/* string_to_list(S, []). */
+    return PL_unify_string_nchars(str, len, s);
+  if ( PL_get_nchars(list, &s, &len, CVT_ALL) )
+    return PL_unify_string_nchars(str, len, s);
 
-  return warning("string_to_list/2 instantiation fault");
+  return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 }
 
 
-word
-pl_substring(term_t str, term_t offset,
-	     term_t length, term_t sub)
-{ long off, l, size, end;
-  char *s, c;
-  word ss;
-
-  if ( !PL_get_chars(str, &s, CVT_ALL) ||
-       !PL_get_long(offset, &off) ||
-       !PL_get_long(length, &l) )
-    return warning("substring/4: instantiation fault");
-
-  size = strlen(s);
-  end = off + l - 1;
-  if ( off < 1 || off > size || l < 0 || end > size )
-    return warning("substring/4: index out of range");
-
-  c = s[end];
-  s[end] = EOS;
-  ss = globalString(&s[off-1]);
-  s[end] = c;
-
-  return _PL_unify_atomic(sub, ss);
+foreign_t
+pl_sub_string(term_t atom,
+	      term_t before, term_t len, term_t after,
+	      term_t sub,
+	      word h)
+{ return sub_text(atom, before, len, after, sub, h, PL_unify_string_nchars);
 }
+
 #endif /* O_STRING */
 
 
 word
 pl_write_on_string(term_t goal, term_t target)
-{ char buf[1024];
-  int bufsize = sizeof(buf);
-  char *string = buf;
-  bool rval;
+{ int size = 0;
+  char *str = NULL;
+  IOSTREAM *fd = Sopenmem(&str, &size, "w");
+  term_t tmp = PL_new_term_ref();
+  int rval;
+  term_t ex = 0;
 
-  tellString(&string, &bufsize);
-  rval = callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL);
-  toldString();
+  pushOutputContext();
+  Scurout = fd;
+  rval = callProlog(MODULE_user, goal,
+		    PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, &ex);
+  if ( rval )
+  { Sflush(fd);
+    PL_put_string_nchars(tmp, size, str);
+  }
+  Sclose(fd);
+  popOutputContext();
 
   if ( rval )
-#if O_STRING
-    rval = PL_unify_string_chars(target, string);
-#else
-    rval = PL_unify_list_codes(target, string);
-#endif
-
-  if ( string != buf )
-    free(string);
-
-  return rval;
+    return PL_unify(target, tmp);
+  if ( ex )
+    return PL_raise_exception(ex);
+  fail;
 }
 
 

@@ -197,8 +197,8 @@ registerAtom(Atom a)
 		 *******************************/
 
 word
-lookupAtom(const char *s)
-{ int v0 = unboundStringHashValue(s);
+lookupAtom(const char *s, unsigned int length)
+{ int v0 = unboundStringHashValue(s, length);
   int v = v0 & (atom_buckets-1);
   Atom a;
 
@@ -207,7 +207,8 @@ lookupAtom(const char *s)
 
   for(a = atomTable[v]; a; a = a->next)
   { DEBUG(0, cmps++);
-    if ( streq(s, a->name) )
+    if ( length == a->length &&
+	 memcmp(s, a->name, length) == 0 )
     { 
 #ifdef O_ATOMGC
       a->references++;
@@ -217,7 +218,10 @@ lookupAtom(const char *s)
     }
   }
   a = allocHeap(sizeof(struct atom));
-  a->name = store_string(s);
+  a->length = length;
+  a->name = allocHeap(length+1);
+  memcpy(a->name, s, length);
+  a->name[length] = EOS;
 #ifdef O_HASHTERM
   a->hash_value = v0;
 #endif
@@ -230,7 +234,8 @@ lookupAtom(const char *s)
   GD->statistics.atoms++;
 
 #ifdef O_ATOMGC
-  if ( GD->statistics.atoms == GD->atoms.request_at )
+  if ( GD->atoms.margin > 0 &&
+       GD->statistics.atoms == GD->atoms.non_garbage + GD->atoms.margin )
     LD->pending_signals |= (1L << (SIG_ATOM_GC-1));
 #endif
     
@@ -309,8 +314,8 @@ atoms each pass.
 
 void
 lockAtoms()
-{ GD->atoms.builtin    = entriesBuffer(&atom_array, Atom);
-  GD->atoms.request_at = GD->atoms.builtin + GD->atoms.margin;
+{ GD->atoms.builtin     = entriesBuffer(&atom_array, Atom);
+  GD->atoms.non_garbage = GD->atoms.builtin;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -368,8 +373,8 @@ collectAtoms()
       GD->statistics.atoms--;
       if ( holes++ == 0 )
 	GD->atoms.no_hole_before = n;
-      Sdprintf("atom-gc: deleted `%s'\n", a->name);
-      remove_string(a->name);
+      DEBUG(1, Sdprintf("atom-gc: deleted `%s'\n", a->name));
+      freeHeap(a->name, a->length);
       freeHeap(a, sizeof(*a));
     }
 
@@ -382,22 +387,29 @@ word
 pl_garbage_collect_atoms()
 { int verbose = trueFeature(TRACE_GC_FEATURE);
   long oldcollected = GD->atoms.collected;
+  real t;
 
   if ( verbose )
     printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "atom_gc", 1,
+		 PL_FUNCTOR_CHARS, "agc", 1,
 		   PL_CHARS, "start");
   LOCK();
+  t = CpuTime();
   markAtomsOnStacks(LD);
   collectAtoms();
-  GD->atoms.request_at = GD->atoms.margin + GD->statistics.atoms;
+  GD->atoms.non_garbage = GD->statistics.atoms;
+  t = CpuTime() - t;
+  GD->atoms.gc_time += t;
   UNLOCK();
+
+  
   if ( verbose )
     printMessage(ATOM_informational,
-		 PL_FUNCTOR_CHARS, "atom_gc", 1,
-		   PL_FUNCTOR_CHARS, "done", 2,
-		     GD->atoms.collected - oldcollected,
-		     GD->statistics.atoms);
+		 PL_FUNCTOR_CHARS, "agc", 1,
+		   PL_FUNCTOR_CHARS, "done", 3,
+		     PL_INTEGER, GD->atoms.collected - oldcollected,
+		     PL_INTEGER, GD->statistics.atoms,
+		     PL_FLOAT, t);
 
   succeed;
 }
@@ -484,10 +496,12 @@ registerBuiltinAtoms()
   GD->statistics.atoms = size;
 
   for(s = atoms; *s; s++, a++)
-  { int v0 = unboundStringHashValue(*s);
+  { int len = strlen(*s);
+    int v0 = unboundStringHashValue(*s, len);
     int v = v0 & (atom_buckets-1);
 
     a->name       = (char *)*s;
+    a->length     = len;
 #ifdef O_HASHTERM
     a->hash_value = v0;
 #endif

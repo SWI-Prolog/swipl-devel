@@ -225,7 +225,8 @@ __pl_export int		Sungetc(int c, IOSTREAM *s);
 __pl_export int		Sputw(int w, IOSTREAM *s);
 __pl_export int		Sgetw(IOSTREAM *s);
 __pl_export int		Sfread(void *data, int size, int elems, IOSTREAM *s);
-__pl_export int		Sfwrite(void *data, int size, int elems, IOSTREAM *s);
+__pl_export int		Sfwrite(const void *data, int size, int elems,
+				IOSTREAM *s);
 __pl_export int		Sfeof(IOSTREAM *s);
 __pl_export int		Sfpasteof(IOSTREAM *s);
 __pl_export int		Sferror(IOSTREAM *s);

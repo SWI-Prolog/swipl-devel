@@ -232,13 +232,16 @@ atom_handling(name-5) :-
 atom_handling(atom-1) :-
 	atom_length('hello', X), X == 5.
 atom_handling(concat-1) :-
-	concat(gnu, gnat, gnugnat).
+	atom_concat(gnu, gnat, gnugnat).
 atom_handling(concat-2) :-
-	concat(X, gnat, gnugnat), X == gnu.
+	atom_concat(X, gnat, gnugnat), X == gnu.
 atom_handling(concat-3) :-
-	concat(gnu, X, gnugnat), X == gnat.
+	atom_concat(gnu, X, gnugnat), X == gnat.
 atom_handling(concat-4) :-
-	concat('', X, ''), X == ''.
+	atom_concat('', X, ''), X == ''.
+atom_handling(concat-5) :-
+	findall(X-Y, atom_concat(X, Y, 'abc'), Pairs),
+	Pairs == [''-abc, a-bc, ab-c, abc-''].
 atom_handling(current-1) :-
 	findall(X, current_atom(X), Atoms),
 	checklist(atom, Atoms),

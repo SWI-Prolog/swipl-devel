@@ -371,7 +371,7 @@ static const struct foreign {
   FRG("string_length",		2, pl_string_length,		TRACE_ME),
   FRG("string_to_atom",		2, pl_string_to_atom,		TRACE_ME),
   FRG("string_to_list",		2, pl_string_to_list,		TRACE_ME),
-  FRG("substring",		4, pl_substring,		TRACE_ME),
+  FRG("sub_string",		5, pl_sub_string,	   NDET|TRACE_ME),
 #endif /* O_STRING */
 
   FRG("is_list",		1, pl_is_list,			TRACE_ME),
@@ -529,15 +529,16 @@ bindExtensions(const PL_extension *e)
 
   for(; e->predicate_name; e++)
   { short flags = TRACE_ME;
+    atom_t name = PL_new_atom(e->predicate_name);
 
     if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
     if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
     if ( e->flags & PL_FA_VARARGS )	     flags |= P_VARARG;
 
-    def = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
-					   e->arity), 
+    def = lookupProcedure(lookupFunctorDef(name, e->arity), 
 			  MODULE_user)->definition;
+    PL_unregister_atom(name);
     set(def, FOREIGN);
     set(def, flags);
     def->definition.function = e->function;
@@ -574,8 +575,10 @@ initBuildIns(void)
   Module m = MODULE_system;
 
   for(f = &foreigns[0]; f->name; f++)
-  { functor_t fdef = lookupFunctorDef(lookupAtom(f->name), f->arity);
+  { atom_t name	= PL_new_atom(f->name);
+    functor_t fdef = lookupFunctorDef(name, f->arity);
 
+    PL_unregister_atom(name);
     def = lookupProcedure(fdef, MODULE_system)->definition;
     set(def, FOREIGN|SYSTEM|LOCKED);
     clear(def, TRACE_ME);

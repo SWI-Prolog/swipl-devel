@@ -121,7 +121,8 @@ typedef struct
     int		no_hole_before;		/* You won't find a hole before here */
     int		collected;		/* # collected atoms */
     int		margin;			/* # atoms to grow before collect */
-    int		request_at;		/* # atoms for next request */
+    int		non_garbage;		/* # atoms for after last AGC */
+    real	gc_time;		/* Time spent on atom-gc */
 #endif
     atom_t	for_code[256];		/* code --> one-char-atom */
   } atoms;

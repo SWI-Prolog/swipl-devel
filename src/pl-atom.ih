@@ -427,3 +427,6 @@
 #define ATOM_close_option MK_ATOM(426)
 #define ATOM_force        MK_ATOM(427)
 #define ATOM_agc_margin   MK_ATOM(428)
+#define ATOM_dde_error    MK_ATOM(429)
+#define ATOM_dde_handle   MK_ATOM(430)
+#define ATOM_character_code MK_ATOM(431)

@@ -70,9 +70,9 @@ static functor_t FUNCTOR_dde_request4;
 static functor_t FUNCTOR_dde_execute3;
 static functor_t FUNCTOR_error1;
 
-static char *
+static const char *
 dde_error_message(int errn)
-{ char *err;
+{ const char *err;
 
   if ( errn <= 0 )
     errn = DdeGetLastError(ddeInst);
@@ -101,10 +101,10 @@ dde_error_message(int errn)
 
 
 static word
-dde_warning(char *cmd)
-{ char *err = dde_error_message(-1);
+dde_warning(const char *cmd)
+{ const char *err = dde_error_message(-1);
 
-  return warning("%s: DDE operation failed: %s", cmd, err);
+  return PL_error(NULL, 0, NULL, ERR_DDE_OP, cmd, err);
 }
 
 
@@ -124,7 +124,7 @@ hszToAtom(HSZ hsz)
       atom_t a;
       
       DdeQueryString(ddeInst, hsz, b2, len+1, CP_WINANSI);
-      a = lookupAtom(b2);
+      a = lookupAtom(b2, len);
       free(b2);
 
       return a;
@@ -133,7 +133,7 @@ hszToAtom(HSZ hsz)
     dde_warning("string handle");
   }
 
-  return lookupAtom(buf);
+  return lookupAtom(buf, len);
 }
 
 
@@ -143,9 +143,7 @@ unify_hdata(term_t t, HDDEDATA data)
   int len;
 
   if ( !(len=DdeGetData(data, buf, sizeof(buf)-1, 0)) )
-  { dde_warning("data handle");
-    fail;
-  }
+    return dde_warning("data handle");
 
   if ( len == sizeof(buf)-1 )
   { if ( (len=DdeGetData(data, NULL, 0, 0)) > 0 )
@@ -153,17 +151,16 @@ unify_hdata(term_t t, HDDEDATA data)
       int rval;
       
       DdeGetData(data, b2, len, 0);
-      b2[len] = '\0';
-      rval = PL_unify_list_codes(t, b2);
+      rval = PL_unify_list_ncodes(t, len, b2);
       free(b2);
 
       return rval;
     }
 
-    dde_warning("data handle");
+    return dde_warning("data handle");
   }
 
-  return PL_unify_list_codes(t, buf);
+  return PL_unify_list_ncodes(t, len, buf);
 }
 
 
@@ -179,7 +176,7 @@ get_hsz(term_t data, HSZ *rval)
     }
   }
 
-  fail;
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, data);
 }
 
 
@@ -330,20 +327,20 @@ dde_initialise()
       return dde_warning("initialise");
     }
 
-    MODULE_dde = lookupModule(lookupAtom("win_dde"));
+    MODULE_dde = lookupModule(PL_new_atom("win_dde"));
 
     FUNCTOR_dde_connect3  =
-	lookupFunctorDef(lookupAtom("$dde_connect"), 3);
+	lookupFunctorDef(PL_new_atom("$dde_connect"), 3);
     FUNCTOR_dde_connect_confirm3 =
-	lookupFunctorDef(lookupAtom("$dde_connect_confirm"), 3);
+	lookupFunctorDef(PL_new_atom("$dde_connect_confirm"), 3);
     FUNCTOR_dde_disconnect1 =
-        lookupFunctorDef(lookupAtom("$dde_disconnect"), 1);
+        lookupFunctorDef(PL_new_atom("$dde_disconnect"), 1);
     FUNCTOR_dde_request4  =
-	lookupFunctorDef(lookupAtom("$dde_request"), 4);
+	lookupFunctorDef(PL_new_atom("$dde_request"), 4);
     FUNCTOR_dde_execute3  =
-	lookupFunctorDef(lookupAtom("$dde_execute"), 3);
+	lookupFunctorDef(PL_new_atom("$dde_execute"), 3);
     FUNCTOR_error1        =
-        lookupFunctorDef(lookupAtom("error"), 1);
+        lookupFunctorDef(ATOM_error, 1);
   }
 
   succeed;
@@ -353,15 +350,16 @@ dde_initialise()
 word
 pl_dde_register_service(term_t topic, term_t onoff)
 { HSZ t;
-  atom_t a;
+  int a;
 
   TRY(dde_initialise());
 
-  if ( !get_hsz(topic, &t) ||
-       !PL_get_atom(onoff, &a) )
-    return warning("dde_register_topic/1: instantiation fault");
+  if ( !get_hsz(topic, &t) )
+    fail;
+  if ( !PL_get_bool(onoff, &a) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, onoff);
 
-  if ( a == ATOM_off )
+  if ( !a )
   { int rval = (int)DdeNameService(ddeInst, t, 0L, DNS_UNREGISTER);
     DdeFreeStringHandle(ddeInst, t);
     return rval ? TRUE : FALSE;
@@ -370,14 +368,13 @@ pl_dde_register_service(term_t topic, term_t onoff)
       succeed;				/* should we free too? */
 
     DdeFreeStringHandle(ddeInst, t);
-    return dde_warning("dde_register_request");
+    return dde_warning("register_request");
   }
 }
 
 
 word
-pl_open_dde_conversation(term_t service, term_t topic,
-			 term_t handle)
+pl_open_dde_conversation(term_t service, term_t topic, term_t handle)
 { UINT i;
   HSZ Hservice, Htopic;
 
@@ -386,7 +383,7 @@ pl_open_dde_conversation(term_t service, term_t topic,
 
   if ( !get_hsz(service, &Hservice) ||
        !get_hsz(topic, &Htopic) )
-    return warning("open_dde_conversation/3: instantion fault");
+    fail;
 
   /* Establish a connection and get a handle for it */
   for (i=0; i < MAX_CONVERSATIONS; i++)   /* Find an open slot */
@@ -410,15 +407,14 @@ static int
 get_conv_handle(term_t handle, int *theh)
 { int h;
 
-  if ( PL_get_integer(handle, &h) &&
-       h >= 0 && h < MAX_CONVERSATIONS &&
-       conv_handle[h] )
-  { *theh = h;
+  if ( !PL_get_integer(handle, &h) || h < 0 || h >= MAX_CONVERSATIONS )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_dde_handle, handle);
 
-    succeed;
-  }
+  if ( !conv_handle[h] )
+    return PL_error(NULL, 0, 0, ERR_EXISTENCE, ATOM_dde_handle, handle);
 
-  fail;
+  *theh = h;
+  succeed;
 }
 
 
@@ -427,7 +423,7 @@ pl_close_dde_conversation(term_t handle)
 { int hdl;
 
   if ( !get_conv_handle(handle, &hdl) )
-    return warning("close_dde_conversation/1: invalid handle");
+    fail;
 
   DdeDisconnect(conv_handle[hdl]);
   conv_handle[hdl] = (HCONV)NULL;
@@ -447,12 +443,11 @@ pl_dde_request(term_t handle, term_t item,
   HDDEDATA Hvalue;
   long tmo;
 
-  if ( !get_conv_handle(handle, &hdl) )
-    return warning("dde_request/4: invalid handle");
-  if ( !get_hsz(item, &Hitem) )
-    return warning("dde_request/4: invalid item");
+  if ( !get_conv_handle(handle, &hdl) ||
+       !get_hsz(item, &Hitem) )
+    fail;
   if ( !PL_get_long(timeout, &tmo) )
-    return warning("dde_request/4: invalid timeout");
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, timeout);
 
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;
@@ -493,7 +488,7 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
   long tmo;
 
   if ( !get_conv_handle(handle, &hdl) )
-    return warning("dde_execute/3: invalid handle");
+    fail;
   if ( !PL_get_chars(command, &cmdstr, CVT_ALL) )
     return warning("dde_execute/3: invalid command");
   if ( !PL_get_long(timeout, &tmo) )
@@ -512,7 +507,7 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
   if ( Hvalue )
     succeed;
 
-  return dde_warning("dde_execute/2");
+  return dde_warning("execute");
 }
 
 
@@ -524,14 +519,13 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
   HSZ Hitem;
   long tmo;
 
-  if ( !get_conv_handle(handle, &hdl) )
-    return warning("dde_poke/4: invalid handle");
-  if ( !get_hsz(item, &Hitem) )
-    return warning("dde_poke/4: invalid item");
+  if ( !get_conv_handle(handle, &hdl) ||
+       !get_hsz(item, &Hitem) )
+    fail;
   if ( !PL_get_chars(data, &datastr, CVT_ALL) )
-    return warning("dde_poke/4: invalid data");
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, data);
   if ( !PL_get_long(timeout, &tmo) )
-    return warning("dde_poke/4: invalid timeout");
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, timeout);
 
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;
@@ -539,8 +533,9 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
   Hvalue = DdeClientTransaction(datastr, strlen(datastr)+1,
 				conv_handle[hdl], Hitem, CF_TEXT,
 				XTYP_POKE, (DWORD)tmo, NULL);
+
   if ( !Hvalue )
-    return dde_warning("dde_poke/2");
+    return dde_warning("poke");
 
   succeed;
 }

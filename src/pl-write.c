@@ -46,29 +46,30 @@ varName(term_t t, char *name)
 
 static int
 atomType(atom_t a)
-{ char *s = stringAtom(a);
+{ Atom atom = atomValue(a);
+  char *s = atom->name;
+  int len = atom->length;
+
+  if ( len == 0 )
+    return AT_QUOTE;
 
   if ( isLower(*s) )
-  { char *s2;
-
-    for(s2 = s; *s2 && isAlpha(*s2); )
-      s2++;
-    return *s2 == EOS ? AT_LOWER : AT_QUOTE;
+  { for(++s; --len > 0 && isAlpha(*s); s++)
+      ;
+    return len == 0 ? AT_LOWER : AT_QUOTE;
   }
 
   if ( a == ATOM_dot )
     return AT_FULLSTOP;
   
-  if (isSymbol(*s))
-  { char *s2;
-
-    for(s2 = s; *s2 && isSymbol(*s2); )
-      s2++;
-    return *s2 == EOS ? AT_SYMBOL : AT_QUOTE;
+  if ( isSymbol(*s) )
+  { for(++s; --len > 0 && isSymbol(*s); s++)
+      ;
+    return len == 0 ? AT_SYMBOL : AT_QUOTE;
   }
 
 					/* % should be quoted! */
-  if ((isSolo(*s) || *s == ',') && s[1] == EOS && s[0] != '%' )
+  if ( (isSolo(*s) || *s == ',') && len == 1 && s[0] != '%' )
     return AT_SOLO;
 
   if ( a == ATOM_nil || a == ATOM_curl )
@@ -91,6 +92,12 @@ Putc(int c, IOSTREAM *s)
 static bool
 PutString(const char *str, IOSTREAM *s)
 { return Sfputs(str, s) == EOF ? FALSE : TRUE;
+}
+
+
+static bool
+PutStringN(const char *str, unsigned int len, IOSTREAM *s)
+{ return Sfwrite(str, 1, len, s) == len ? TRUE : FALSE;
 }
 
 
@@ -124,6 +131,15 @@ PutToken(const char *s, IOSTREAM *stream)
 }
 
 
+static bool
+PutTokenN(const char *s, unsigned int len, IOSTREAM *stream)
+{ if ( s[0] )
+    return PutOpenToken(s[0], stream) && PutStringN(s, len, stream);
+
+  return TRUE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PutOpenBrace()/PutCloseBrace() are used to put  additional braces around
 a term to avoid an operator  precedence   problem.  If  the last emitted
@@ -146,7 +162,9 @@ PutCloseBrace(IOSTREAM *s)
 
 static bool
 writeAtom(atom_t a, write_options *options)
-{ unsigned char *s = stringAtom(a);
+{ Atom atom = atomValue(a);
+  unsigned char *s = atom->name;
+  unsigned int len = atom->length;
   IOSTREAM *stream = options->out;
 
   if ( true(options, PL_WRT_QUOTED) )
@@ -162,8 +180,10 @@ writeAtom(atom_t a, write_options *options)
       { int c;
 
 	TRY(Putc('\'', stream));
-	while( (c = *s++) != EOS )
-	{ if ( true(options, PL_WRT_CHARESCAPES) )
+	while(len-- > 0)
+	{ c = *s++;
+
+	  if ( true(options, PL_WRT_CHARESCAPES) )
 	  { if ( c >= ' ' && c != 127 && c != '\'' && c != '\\' )
 	    { TRY(Putc(c, stream));
 	    } else
@@ -218,7 +238,7 @@ writeAtom(atom_t a, write_options *options)
       }
     }
   } else
-    return PutToken(s, stream);
+    return PutTokenN(s, len, stream);
 }
 
 #if !defined(HAVE_ISNAN) && defined(NaN)

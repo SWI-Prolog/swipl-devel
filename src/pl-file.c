@@ -640,7 +640,7 @@ pushInputContext()
 }
 
 
-static void
+void
 popInputContext()
 { InputContext c = input_context_stack;
 
@@ -655,7 +655,7 @@ popInputContext()
 }
 
 
-static void
+void
 pushOutputContext()
 { OutputContext c = allocHeap(sizeof(struct output_context));
 
@@ -665,7 +665,7 @@ pushOutputContext()
 }
 
 
-static void
+void
 popOutputContext()
 { OutputContext c = output_context_stack;
 

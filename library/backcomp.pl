@@ -21,7 +21,8 @@
 	    read_variables/2,
 	    read_variables/3,
 	    feature/2,
-	    set_feature/2
+	    set_feature/2,
+	    substring/4
 	  ]).
 
 '$arch'(Arch, unknown) :-
@@ -82,3 +83,8 @@ set_feature(Key, Value) :-
 atom_char(Char, Code) :-
 	char_code(Char, Code).
 
+
+%	substring(+String, +Offset, +Length, -Sub)
+
+substring(String, Offset, Length, Sub) :-
+	sub_string(String, Offset, Length, _After, Sub).

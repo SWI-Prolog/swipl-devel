@@ -46,11 +46,11 @@ void	growBuffer(Buffer, long);
   
 #define addMultipleBuffer(b, ptr, times, type) \
 	do \
-	{ int len = sizeof(type) * (times); \
-	  if ( (b)->top + len > (b)->max ) \
-	    growBuffer((Buffer)b, len); \
-	  memcpy((b)->top, ptr, len); \
-          (b)->top += len; \
+	{ int _len = sizeof(type) * (times); \
+	  if ( (b)->top + _len > (b)->max ) \
+	    growBuffer((Buffer)b, _len); \
+	  memcpy((b)->top, ptr, _len); \
+          (b)->top += _len; \
 	} while(0)
   
 #define baseBuffer(b, type)	 ((type *) (b)->base)

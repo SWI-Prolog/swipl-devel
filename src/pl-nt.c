@@ -105,7 +105,7 @@ again:
 		     (LPTSTR) &msg,
 		     0,				/* size */
 		     NULL) )			/* arguments */
-  { atom_t a = lookupAtom(msg);
+  { atom_t a = PL_new_atom(msg);
 
     LocalFree(msg);
     lang_initialised = 1;

@@ -232,7 +232,7 @@ PL_new_atom(const char *s)
 { if ( !GD->initialised )
     initAtoms();
 
-  return (atom_t) lookupAtom(s);
+  return (atom_t) lookupAtom(s, strlen(s));
 }
 
 
@@ -529,6 +529,25 @@ PL_get_term_value(term_t t, term_value_t *val)
 
 
 int
+PL_get_bool(term_t t, int *b)
+{ GET_LD
+  word w = valHandle(t);
+
+  if ( isAtom(w) )
+  { if ( w == ATOM_true || w == ATOM_on )
+    { *b = TRUE;
+      succeed;
+    } else if ( w == ATOM_false || w == ATOM_off )
+    { *b = FALSE;
+      succeed;
+    }
+  }
+
+  fail;
+}
+
+
+int
 PL_get_atom(term_t t, atom_t *a)
 { GET_LD
   word w = valHandle(t);
@@ -552,6 +571,25 @@ PL_get_atom_chars(term_t t, char **s)
   }
   fail;
 }
+
+
+int
+PL_get_atom_nchars(term_t t, char **s, unsigned int *len)
+{ GET_LD
+  word w = valHandle(t);
+
+  if ( isAtom(w) )
+  { Atom a = atomValue(w);
+
+    *s   = a->name;
+    *len = a->length;
+
+    succeed;
+  }
+
+  fail;
+}
+
 
 #ifdef O_STRING
 int
@@ -615,28 +653,15 @@ unfindBuffer(int flags)
 }
 
 
-static char *
-malloc_string(const char *s)
-{ char *c;
-  int len = strlen(s)+1;
-
-  if ( (c = malloc(len)) )
-  { memcpy(c, s, len);
-    return c;
-  }
-
-  outOfCore();
-  return NULL;
-}
-
-
 int
-PL_get_list_chars(term_t l, char **s, unsigned flags)
+PL_get_list_nchars(term_t l, char **s,
+		   unsigned int *length, unsigned int flags)
 { GET_LD
   Buffer b = findBuffer(flags);
   word list = valHandle(l);
   Word arg, tail;
   char *r;
+  unsigned int len;
 
   while( isList(list) && !isNil(list) )
   { int c = -1;
@@ -662,12 +687,18 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
   if (!isNil(list))
     return unfindBuffer(flags);
 
+  len = entriesBuffer(b, char);
+
+  if ( length )
+    *length = len;
   addBuffer(b, EOS, char);
   r = baseBuffer(b, char);
 
   if ( flags & BUF_MALLOC )
-    *s = malloc_string(r);
-  else
+  { *s = xmalloc(len+1);
+    memcpy(*s, r, len+1);
+    unfindBuffer(flags);
+  } else
     *s = r;
 
   succeed;
@@ -675,19 +706,28 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
 
 
 int
-PL_get_chars(term_t l, char **s, unsigned flags)
+PL_get_list_chars(term_t l, char **s, unsigned flags)
+{ return PL_get_list_nchars(l, s, NULL, flags);
+}
+
+
+int
+PL_get_nchars(term_t l, char **s, unsigned int *length, unsigned flags)
 { GET_LD
   word w = valHandle(l);
   char tmp[100];
   char *r;
   int type;
   IOSTREAM *fd = NULL;
+  unsigned int len = ~0;
 
   DEBUG(7, pl_write(l); pl_nl());
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
-  { type = PL_ATOM;
-    r = stringAtom(w);
+  { Atom a = atomValue(w);
+    type = PL_ATOM;
+    r = a->name;
+    len = a->length;
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { type = PL_INTEGER;
     Ssprintf(tmp, "%ld", valInteger(w) );
@@ -700,15 +740,15 @@ PL_get_chars(term_t l, char **s, unsigned flags)
   } else if ( (flags & CVT_STRING) && isString(w) )
   { type = PL_STRING;
     r = valString(w);
+    len = sizeString(w);
 #endif
   } else if ( (flags & CVT_LIST) &&
 	      (isList(w) || isNil(w)) &&
-	      PL_get_list_chars(l, s, flags) )
+	      PL_get_list_nchars(l, s, length, flags) )
   { DEBUG(7, Sdprintf("--> %s\n", *s));
     succeed;
   } else if ( (flags & CVT_VARIABLE) && isVar(w) )
-  { trap_gdb();
-    type = PL_VARIABLE;
+  { type = PL_VARIABLE;
     r = varName(l, tmp);
   } else if ( (flags & CVT_WRITE) )
   { int size = 0;
@@ -721,6 +761,7 @@ PL_get_chars(term_t l, char **s, unsigned flags)
     r = NULL;
     fd = Sopenmem(&r, &size, "w");
     PL_write_term(fd, l, 1200, 0);
+    len = size;
     Sputc(EOS, fd);
     Sflush(fd);
   } else
@@ -729,18 +770,22 @@ PL_get_chars(term_t l, char **s, unsigned flags)
   }
     
   DEBUG(7, Sdprintf("--> %s\n", r));
+  if ( len == ~0 )
+    len = strlen(r);
+  if ( length )
+    *length = len;
 
   if ( flags & BUF_MALLOC )
-  { *s = malloc_string(r);
+  { *s = xmalloc(len+1);
+    memcpy(*s, r, len+1);
     if ( fd )
       Sclose(fd);
   } else if ( ((flags & BUF_RING) && type != PL_ATOM) || /* never atoms */
 	      (type == PL_STRING) ||	/* always buffer strings */
 	      r == tmp )		/* always buffer tmp */
   { Buffer b = findBuffer(flags);
-    int l = strlen(r) + 1;
 
-    addMultipleBuffer(b, r, l, char);
+    addMultipleBuffer(b, r, len+1, char);
     *s = baseBuffer(b, char);
     if ( fd )
       Sclose(fd);
@@ -748,6 +793,12 @@ PL_get_chars(term_t l, char **s, unsigned flags)
     *s = r;
 
   succeed;
+}
+
+
+int
+PL_get_chars(term_t t, char **s, unsigned flags)
+{ return PL_get_nchars(t, s, NULL, flags);
 }
 
 
@@ -1210,7 +1261,17 @@ PL_put_atom(term_t t, atom_t a)
 void
 PL_put_atom_chars(term_t t, const char *s)
 { GET_LD
-  atom_t a = lookupAtom(s);
+  atom_t a = lookupAtom(s, strlen(s));
+
+  setHandle(t, a);
+  PL_unregister_atom(a);
+}
+
+
+void
+PL_put_atom_nchars(term_t t, unsigned int len, const char *s)
+{ GET_LD
+  atom_t a = lookupAtom(s, len);
 
   setHandle(t, a);
   PL_unregister_atom(a);
@@ -1227,7 +1288,7 @@ PL_put_string_chars(term_t t, const char *s)
 
 
 void
-PL_put_string_nchars(term_t t,  unsigned int len, const char *s)
+PL_put_string_nchars(term_t t, unsigned int len, const char *s)
 { GET_LD
   word w = globalNString(len, s);
 
@@ -1236,9 +1297,8 @@ PL_put_string_nchars(term_t t,  unsigned int len, const char *s)
 
 
 void
-PL_put_list_codes(term_t t, const char *chars)
+PL_put_list_ncodes(term_t t, unsigned int len, const char *chars)
 { GET_LD
-  int len = strlen(chars);
   
   if ( len == 0 )
   { setHandle(t, ATOM_nil);
@@ -1246,7 +1306,7 @@ PL_put_list_codes(term_t t, const char *chars)
   { Word p = allocGlobal(len*3);
     setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
 
-    for( ; *chars ; chars++)
+    for( ; len-- != 0; chars++)
     { *p++ = FUNCTOR_dot2;
       *p++ = consInt((long)*chars & 0xff);
       *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
@@ -1258,9 +1318,14 @@ PL_put_list_codes(term_t t, const char *chars)
 
 
 void
-PL_put_list_chars(term_t t, const char *chars)
+PL_put_list_codes(term_t t, const char *chars)
+{ PL_put_list_ncodes(t, strlen(chars), chars);
+}
+
+
+void
+PL_put_list_nchars(term_t t, unsigned int len, const char *chars)
 { GET_LD
-  int len = strlen(chars);
   
   if ( len == 0 )
   { setHandle(t, ATOM_nil);
@@ -1268,7 +1333,7 @@ PL_put_list_chars(term_t t, const char *chars)
   { Word p = allocGlobal(len*3);
     setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
 
-    for( ; *chars ; chars++)
+    for( ; len-- != 0 ; chars++)
     { *p++ = FUNCTOR_dot2;
       *p++ = codeToAtom(*chars & 0xff);
       *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
@@ -1276,6 +1341,12 @@ PL_put_list_chars(term_t t, const char *chars)
     }
     p[-1] = ATOM_nil;
   }
+}
+
+
+void
+PL_put_list_chars(term_t t, const char *chars)
+{ PL_put_list_nchars(t, strlen(chars), chars);
 }
 
 
@@ -1436,7 +1507,7 @@ PL_unify_functor(term_t t, functor_t f)
 
 int
 PL_unify_atom_chars(term_t t, const char *chars)
-{ atom_t a = lookupAtom(chars);
+{ atom_t a = lookupAtom(chars, strlen(chars));
 
   int rval = unifyAtomic(t, a);
   PL_unregister_atom(a);
@@ -1445,18 +1516,14 @@ PL_unify_atom_chars(term_t t, const char *chars)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If we make (char *)/len atoms we should revise this!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 int
 PL_unify_atom_nchars(term_t t, unsigned int len, const char *chars)
-{ char *tmp = alloca(len+1);
+{ atom_t a = lookupAtom(chars, len);
 
-  strncpy(tmp, chars, len);
-  tmp[len] = EOS;
+  int rval = unifyAtomic(t, a);
+  PL_unregister_atom(a);
 
-  return PL_unify_atom_chars(t, tmp);
+  return rval;
 }
 
 
@@ -1466,11 +1533,10 @@ codeToAtom(int code)
   code &= 0xff;				/* mask for signedness */
 
   if ( !(a=GD->atoms.for_code[code]) )
-  { char tmp[2];
+  { char tmp[1];
 
     tmp[0] = code;
-    tmp[1] = EOS;
-    a = lookupAtom(tmp);
+    a = lookupAtom(tmp, 1);
     GD->atoms.for_code[code] = a;
   }
   
@@ -1478,49 +1544,67 @@ codeToAtom(int code)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TBD: of `l' is a variable, it is a  very good idea to build the list the
-other way around. That avoids calling unify() twice for each element.
+int
+PL_unify_list_ncodes(term_t l, unsigned int len, const char *chars)
+{ if ( PL_is_variable(l) )
+  { term_t tmp = PL_new_term_ref();
 
-If we are really in a  hurry:  make   sure  the  global stack has enough
-space, put the list on the stack and call unify()!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    PL_put_list_ncodes(tmp, len, chars);
+    return PL_unify(l, tmp);
+  } else
+  { term_t head = PL_new_term_ref();
+    term_t t    = PL_copy_term_ref(l);
+    int rval;
+  
+    for( ; len-- != 0; chars++ )
+    { if ( !PL_unify_list(t, head, t) ||
+	   !PL_unify_integer(head, (int)*chars & 0xff) )
+	fail;
+    }
+  
+    rval = PL_unify_nil(t);
+    PL_reset_term_refs(head);
+  
+    return rval;
+  }
+}
+
 
 int
 PL_unify_list_codes(term_t l, const char *chars)
-{ term_t head = PL_new_term_ref();
-  term_t t    = PL_copy_term_ref(l);
-  int rval;
+{ return PL_unify_list_ncodes(l, strlen(chars), chars);
+}
 
-  for( ; *chars; chars++ )
-  { if ( !PL_unify_list(t, head, t) ||
-	 !PL_unify_integer(head, (int)*chars & 0xff) )
-      fail;
+
+int
+PL_unify_list_nchars(term_t l, unsigned int len, const char *chars)
+{ if ( PL_is_variable(l) )
+  { term_t tmp = PL_new_term_ref();
+
+    PL_put_list_nchars(tmp, len, chars);
+    return PL_unify(l, tmp);
+  } else
+  { term_t head = PL_new_term_ref();
+    term_t t    = PL_copy_term_ref(l);
+    int rval;
+  
+    for( ; len-- != 0; chars++ )
+    { if ( !PL_unify_list(t, head, t) ||
+	   !PL_unify_atom(head, codeToAtom(*chars & 0xff)) )
+	fail;
+    }
+  
+    rval = PL_unify_nil(t);
+    PL_reset_term_refs(head);
+  
+    return rval;
   }
-
-  rval = PL_unify_nil(t);
-  PL_reset_term_refs(head);
-
-  return rval;
 }
 
 
 int
 PL_unify_list_chars(term_t l, const char *chars)
-{ term_t head = PL_new_term_ref();
-  term_t t    = PL_copy_term_ref(l);
-  int rval;
-
-  for( ; *chars; chars++ )
-  { if ( !PL_unify_list(t, head, t) ||
-	 !PL_unify_atom(head, codeToAtom(*chars & 0xff)) )
-      fail;
-  }
-
-  rval = PL_unify_nil(t);
-  PL_reset_term_refs(head);
-
-  return rval;
+{ return PL_unify_list_nchars(l, strlen(chars), chars);
 }
 
 
@@ -1933,13 +2017,13 @@ PL_pred(functor_t functor, module_t module)
 predicate_t
 PL_predicate(const char *name, int arity, const char *module)
 { Module m;
-  atom_t a    = lookupAtom(name);
+  atom_t a    = lookupAtom(name, strlen(name));
   functor_t f = lookupFunctorDef(a, arity);
 
   PL_unregister_atom(a);
 
   if ( module )
-  { a = lookupAtom(module);
+  { a = lookupAtom(module, strlen(module));
     m = lookupModule(a);
     PL_unregister_atom(a);
   } else
@@ -2173,7 +2257,7 @@ PL_load_extensions(PL_extension *ext)
   { short flags = TRACE_ME;
     Definition def;
     Procedure proc;
-    atom_t a = lookupAtom(e->predicate_name);
+    atom_t a = PL_new_atom(e->predicate_name);
     functor_t fd = lookupFunctorDef(a, e->arity);
 
     PL_unregister_atom(a);
@@ -2212,7 +2296,7 @@ PL_load_extensions(PL_extension *ext)
 
 int
 PL_toplevel(void)
-{ atom_t a = lookupAtom("$toplevel");
+{ atom_t a = PL_new_atom("$toplevel");
   int rval = prologToplevel(a);
 
   PL_unregister_atom(a);

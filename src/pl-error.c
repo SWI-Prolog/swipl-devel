@@ -260,6 +260,16 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_TERM, stream);
       break;
     }
+    case ERR_DDE_OP:
+    { const char *op  = va_arg(args, const char *);
+      const char *err = va_arg(args, const char *);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_dde_error2,
+		      PL_CHARS, op,
+		      PL_CHARS, err);
+      break;
+    }
     case ERR_NOTIMPLEMENTED:		/* non-ISO */
     { atom_t what = va_arg(args, atom_t);
 
@@ -417,4 +427,24 @@ printMessage(atom_t severity, ...)
   PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, pred, av);
   
   PL_discard_foreign_frame(fid);
+}
+
+
+		 /*******************************
+		 *    ERROR-CHECKING *_get()	*
+		 *******************************/
+
+int
+PL_get_nchars_ex(term_t t, char **s, unsigned int *len, unsigned int flags)
+{ atom_t expected;
+
+  if ( PL_get_nchars(t, s, len, flags) )
+    return TRUE;
+
+  if ( flags & CVT_LIST )
+    expected = ATOM_text;
+  else
+    expected = ATOM_atomic;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
 }

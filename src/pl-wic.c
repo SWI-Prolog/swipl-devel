@@ -468,10 +468,13 @@ loadXRc(int c, IOSTREAM *fd)
       return val;
     }
     case XR_ATOM:
+    { char *s;
       id = ++loadedXRTableId;
-      xr = lookupAtom(getString(fd));
+      s = getString(fd);
+      xr = lookupAtom(s, strlen(s));;
       DEBUG(3, Sdprintf("XR(%d) = '%s'\n", id, stringAtom(xr)));
       break;
+    }
     case XR_FUNCTOR:
     { atom_t name;
       int arity;
@@ -958,9 +961,9 @@ qlfLoadSource(IOSTREAM *fd)
     s = &buf[strlen(buf)];
     *s++ = '/';
     strcpy(s, &str[strlen(qlf_save_dir)]);
-    fname = lookupAtom(canonisePath(buf));
+    fname = PL_new_atom(canonisePath(buf));
   } else
-    fname = lookupAtom(canonisePath(str));
+    fname = PL_new_atom(canonisePath(str));
 
   DEBUG(1, if ( !streq(stringAtom(fname), str) )
 	     Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));
@@ -969,6 +972,7 @@ qlfLoadSource(IOSTREAM *fd)
   currentSource->time = time;
   currentSource->system = issys;
   startConsult(currentSource);
+  PL_unregister_atom(fname);		/* locked with sourceFile */
 
   succeed;
 }
@@ -1860,8 +1864,8 @@ qlfLoad(char *file, Module *module)
   } else
   { char tmp[MAXPATHLEN];
     qlf_has_moved = TRUE;
-    qlf_load_dir = stringAtom(lookupAtom(DirName(absloadname, tmp)));
-    qlf_save_dir = stringAtom(lookupAtom(DirName(abssavename, tmp)));
+    qlf_load_dir = stringAtom(PL_new_atom(DirName(absloadname, tmp)));
+    qlf_save_dir = stringAtom(PL_new_atom(DirName(abssavename, tmp)));
   }
 
   if ( Qgetc(fd) != 'Q' )
@@ -2196,7 +2200,7 @@ compileFile(char *file)
     fail;
   DEBUG(2, Sdprintf("Expanded to %s\n", path));
 
-  nf = lookupAtom(path);
+  nf = PL_new_atom(path);
   PL_put_atom(f, nf);
   DEBUG(2, Sdprintf("Opening\n"));
   if ( !pl_see(f) )

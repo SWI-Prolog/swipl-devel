@@ -626,10 +626,10 @@ properly on Linux. Don't bother with it.
   DEBUG(1, Sdprintf("Starting Prolog Part of initialisation\n"));
 
   if ( compile )
-  { Halt(prologToplevel(lookupAtom("$compile")) ? 0 : 1);
+  { Halt(prologToplevel(PL_new_atom("$compile")) ? 0 : 1);
   }
     
-  return prologToplevel(lookupAtom("$initialise"));
+  return prologToplevel(PL_new_atom("$initialise"));
 }
 
 typedef const char *cline;

@@ -437,9 +437,9 @@ Sfread(void *data, int size, int elms, IOSTREAM *s)
 
 
 int
-Sfwrite(void *data, int size, int elms, IOSTREAM *s)
+Sfwrite(const void *data, int size, int elms, IOSTREAM *s)
 { int chars = size * elms;
-  char *buf = data;
+  const char *buf = data;
 
   for( ; chars > 0; chars-- )
   { if ( Sputc(*buf++, s) < 0 )

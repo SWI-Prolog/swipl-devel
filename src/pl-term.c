@@ -121,7 +121,7 @@ lookupEntry(atom_t name, atom_t type)
     { char *s;
     
       if ( (s = tgetstr(stringAtom(name), &string_area_pointer)) != NULL )
-        e->value  = lookupAtom(s);
+        e->value  = PL_new_atom(s);	/* locked: ok */
     } else
     { warning("tgetent/3: Illegal type");
       freeHeap(e, sizeof(entry));

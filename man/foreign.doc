@@ -567,15 +567,18 @@ The following functions provide for communication using atoms and
 functors.
 
 \begin{description}
-\cfunction{atom_t}{PL_new_atom}{const char *}
+    \cfunction{atom_t}{PL_new_atom}{const char *}
 Return an atom handle for the given C-string.  This function always
-succeeds.  The returned handle is valid for the entire session.
-\cfunction{const char *}{PL_atom_chars}{atom_t atom}
-Return a C-string for the text represented by the given atom.  The
-returned text will not be changed by Prolog.  It is not allowed to
-modify the contents, not even `temporary' as the string may reside
-in read-only memory.
-\cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
+succeeds. The returned handle is valid as long as the atom is
+referenced (see \secref{atomgc}).
+
+    \cfunction{const char*}{PL_atom_chars}{atom_t atom}
+Return a C-string for the text represented by the given atom. The
+returned text will not be changed by Prolog. It is not allowed to modify
+the contents, not even `temporary' as the string may reside in read-only
+memory.
+
+    \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
 Returns a {\em functor identifier}, a handle for the name/arity
 pair.  The returned handle is valid for the entire Prolog session.
 \cfunction{atom_t}{PL_functor_name}{functor_t f}
@@ -583,6 +586,44 @@ Return an atom representing the name of the given functor.
 \cfunction{int}{PL_functor_arity}{functor_t f}
 Return the arity of the given functor.
 \end{description}
+
+
+\subsubsection{Atoms and atom-garbage collection}	\label{sec:atomgc}
+
+With the introduction of atom-garbage collection in version 3.3.0, atoms
+no longer have live as long as the process. Instead, their lifetime is
+guaranteed only as long as they are referenced. In the single-threaded
+version, atom garbage collections are only invoked at the
+\jargon{call-port}. In the multi-threaded version (see \secref{threads},
+they appear asynchronously, except for the invoking thread.
+
+For dealing with atom garbage collection, two additional functions are
+provided:
+
+\begin{description}
+    \cfunction{void}{PL_register_atom}{atom_t atom}
+Increment the reference count of the atom by one. PL_new_atom() performs
+this automatically, returning an atom with a reference count of at least
+one.%
+	\footnote{Otherwise asynchronous atom garbage collection might
+		  detroy the atom before it is used.}
+    \cfunction{void}{PL_unregister_atom}{atom_t atom}
+Decrement the reference count of the atom.  If the reference-count
+drops below zero, an assertion error is raised.
+\end{description}
+
+Please note that the following two calls are different with respect to
+atom garbage collection:
+
+\begin{code}
+PL_unify_atom_chars(t, "text");
+PL_unify_atom(t, PL_new_atom("text"));
+\end{code}
+
+The latter increments the reference count of the atom \const{text},
+which effectively ensures the atom will never be collected.  It is
+adviced to use the *_chars() or *_nchars() functions whenever
+applicable.
 
 
 \subsection{Analysing Terms via the Foreign Interface}
@@ -678,23 +719,28 @@ of them take two arguments.  The first is the input term and the second
 is a pointer to the output value or a term-reference.
 
 \begin{description}
-\cfunction{int}{PL_get_atom}{term_t +t, atom_t *a}
+    \cfunction{int}{PL_get_atom}{term_t +t, atom_t *a}
 If \arg{t} is an atom, store the unique atom identifier over \arg{a}.
 See also PL_atom_chars() and PL_new_atom(). If there is no need to
 access the data (characters) of an atom, it is advised to manipulate
-atoms using their handle.
-\cfunction{int}{PL_get_atom_chars}{term_t +t, char **s}
+atoms using their handle.  As the atom is referenced by \arg{t}, it
+will live at least as long as \arg{t} does.  If longer live-time is
+required, the atom should be locked using PL_register_atom().
+
+    \cfunction{int}{PL_get_atom_chars}{term_t +t, char **s}
 If \arg{t} is an atom, store a pointer to a 0-terminated C-string in
 \arg{s}.  It is explicitly \strong{not} allowed to modify the contents
 of this string.  Some built-in atoms may have the string allocated in
 read-only memory, so `temporary manipulation' can cause an error.
-\cfunction{int}{PL_get_string_chars}{term_t +t, char **s, int *len}
+
+    \cfunction{int}{PL_get_string_chars}{term_t +t, char **s, int *len}
 If \arg{t} is a string object, store a pointer to a 0-terminated
 C-string in \arg{s} and the length of the string in \arg{len}.  Note
 that this pointer is invalidated by backtracking, garbage-collection
 and stack-shifts, so generally the only save operations are to pass
 it immediately to a C-function that doesn't involve Prolog.
-\cfunction{int}{PL_get_chars}{term_t +t, char **s, unsigned flags}
+
+    \cfunction{int}{PL_get_chars}{term_t +t, char **s, unsigned flags}
 Convert the argument term \arg{t} to a 0-terminated C-string.  {\em
 flags} is a bitwise disjunction from two groups of constants.  The
 first specifies which term-types should converted and the second
@@ -768,6 +814,31 @@ assign \arg{a} with a term-reference to the argument.
 \cfunction{int}{_PL_get_arg}{int index, term_t +t, term_t -a}
 Same as PL_get_arg(), but no checking is performed, nor whether \arg{t}
 is actually a term, nor whether \arg{index} is a valid argument-index.
+\end{description}
+
+
+\subsubsection{Exchanging text using length and string}
+
+All internal text-representation of SWI-Prolog is represented using
+\type{char *} plus length and allow for \jargon{0-bytes} in them.
+The foreign library supports this by implementing a *_nchars() function
+for each applicable *_chars() function.  Below we briefly present the
+signatures of these functions.  For full documentation consult the
+*_chars() function.
+
+\begin{description}
+    \cfunction{int}{PL_get_atom_nchars}{term_t t, unsigned int len, char **s}
+    \cfunction{int}{PL_get_list_nchars}{term_t t, unsigned int len, char **s}
+    \cfunction{int}{PL_get_nchars}{term_t t, unsigned int len, char **s,
+				   unsigned int flags}
+    \cfunction{int}{PL_put_atom_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_put_string_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_put_list_ncodes}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_put_list_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_unify_atom_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_unify_string_nchars}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_unify_list_ncodes}{term_t t, unsigned int len, const char *s}
+    \cfunction{int}{PL_unify_list_nchars}{term_t t, unsigned int len, const char *s}
 \end{description}
 
 

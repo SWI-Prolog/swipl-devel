@@ -32,7 +32,7 @@ word		consPtr(void *p, int ts);
 #endif
 char *		store_string(const char *s);
 void		remove_string(char *s);
-int		unboundStringHashValue(const char *t);
+int		unboundStringHashValue(const char *t, unsigned int len);
 void *		xmalloc(size_t size);
 void *		xrealloc(void *mem, size_t size);
 
@@ -49,7 +49,7 @@ void		fix_term_ref_count(void);
 word		pl_unify_with_occurs_check(term_t t1, term_t t2);
 
 /* pl-atom.c */
-word		lookupAtom(const char *s);
+word		lookupAtom(const char *s, unsigned int len);
 word		pl_atom_hashstat(term_t i, term_t n);
 void		initAtoms(void);
 word		pl_current_atom2(term_t a, term_t refs, word h);
@@ -169,6 +169,8 @@ int		PL_error(const char *pred, int arity, const char *msg,
 			 int id, ...);
 char *		tostr(char *buf, const char *fmt, ...);
 void		printMessage(atom_t severity, ...);
+int		PL_get_nchars_ex(term_t t, char **s,
+				 unsigned int *len, unsigned int flags);
 
 /* pl-file.c */
 void		initIO(void);
@@ -279,6 +281,8 @@ word		pl_copy_stream_data3(term_t in, term_t out, term_t len);
 word		pl_copy_stream_data2(term_t in, term_t out);
 int		PL_get_char(term_t c, int *p);
 int		PL_unify_char(term_t chr, int c, int mode);
+void		pushOutputContext(void);
+void		popOutputContext(void);
 
 /* pl-flag.c */
 void		initFlags(void);
@@ -485,8 +489,9 @@ word		pl_string_length(term_t str, term_t l);
 word		pl_string_concat(term_t a1, term_t a2, term_t a3, word h);
 word		pl_string_to_atom(term_t str, term_t a);
 word		pl_string_to_list(term_t str, term_t list);
-word		pl_substring(term_t str, term_t offset,
-			     term_t length, term_t sub);
+word		pl_sub_string(term_t str,
+			      term_t offset, term_t length, term_t after,
+			      term_t sub, word h);
 word		pl_write_on_string(term_t goal, term_t string);
 word		pl_repeat(word h);
 word		pl_fail(void);

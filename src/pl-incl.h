@@ -100,6 +100,11 @@ handy for it someone wants to add a data type to the system.
 #define O_LIMIT_DEPTH		1
 #define O_SAFE_SIGNALS		1
 #define O_LOGICAL_UPDATE	1
+#define O_ATOMGC		1
+
+#ifdef O_PLMT				/* not yet provided */
+#undef O_ATOMGC
+#endif
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
@@ -378,7 +383,6 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 #define ARITHHASHSIZE		16	/* arithmetic function table */
 
-#define stringHashValue(s, n) (unboundStringHashValue(s) & ((n)-1))
 #define pointerHashValue(p, size) ((((long)(p) >> LMASK_BITS) ^ \
 				    ((long)(p) >> (LMASK_BITS+5)) ^ \
 				    ((long)(p))) & \
@@ -972,6 +976,7 @@ struct atom
 #ifdef O_ATOMGC
   unsigned int	references;	/* reference-count */
 #endif
+  unsigned int  length;		/* length of the atom */
   char *	name;		/* name associated with atom */
 };
 

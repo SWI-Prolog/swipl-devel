@@ -278,6 +278,14 @@ prolog:message(gc(done(G, T, Time, UG, UT, RG, RT))) -->
 	  'gained ~D+~D in ~2f sec; used ~D+~D; free ~D+~D'-
 	  [G, T, Time, UG, UT, RG, RT]
 	].
+prolog:message(agc(start)) -->
+	[ 'AGC: ', flush ].
+prolog:message(agc(done(Collected, Remaining, Time))) -->
+	[ at_same_line,
+	  'reclaimed ~D atoms in ~2f sec. (remaining: ~D)'-
+	  [Collected, Time, Remaining]
+	].
+
 
 
 		 /*******************************

@@ -183,6 +183,7 @@ suggest predicates from a keyword.
 \predicatesummary{free_variables}{2}{Find unbound variables in a term}
 \predicatesummary{functor}{3}{Get name and arity of a term or construct a term }
 \predicatesummary{garbage_collect}{0}{Invoke the garbage collector}
+\predicatesummary{garbage_collect_atoms}{0}{Invoke the atom garbage collector}
 \predicatesummary{gensym}{2}{Generate unique atoms from a base}
 \predicatesummary{get}{1}{Read first non-blank character}
 \predicatesummary{get}{2}{Read first non-blank character from a stream}
@@ -402,7 +403,7 @@ suggest predicates from a keyword.
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
 \predicatesummary{sublist}{3}{Determine elements that meet condition}
 \predicatesummary{subset}{2}{Generate/check subset relation}
-\predicatesummary{substring}{4}{Get part of a string}
+\predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{subtract}{3}{Delete elements that do not meet condition}
 \predicatesummary{succ}{2}{Logical integer successor relation}
 \predicatesummary{swritef}{2}{Formatted write on a string}

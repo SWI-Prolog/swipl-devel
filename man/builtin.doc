@@ -2618,11 +2618,10 @@ a string object rather than an atom. Also, if both \arg{String1} and
 particularly fast on long strings as for each redo the system has to
 create two entirely new strings, while the list equivalent only creates
 a single new list-cell and moves some pointers around.
-    \predicate{substring}{4}{+String, +Start, +Length, -Sub} Create a
-substring of \arg{String} that starts at character \arg{Start} (1 base)
-and has \arg{Length} characters. Unify this substring with \arg{Sub}.%
-    \footnote{Future versions probably will provide a more logical
-              variant of this predicate.}
+    \predicate{sub_string}{5}{+String, ?Start, ?Length, ?After, ?Sub}
+\arg{Sub} is a substring of \arg{String} starting at \arg{Start}, with
+length \arg{Length} and \arg{String} has \arg{After} characters left
+after the match.  See also sub_atom/5.
 \end{description}
 
 \section{Operators}
@@ -4359,6 +4358,10 @@ garbage collector is invoked automatically if necessary.  Explicit
 invocation might be useful to reduce the need for garbage collections in
 time critical segments of the code.  After the garbage collection
 trim_stacks/0 is invoked to release the collected memory resources.
+
+    \predicate{garbage_collect_atoms}{0}{}
+Reclaim unused atoms.  Normally invoked after \const{agc_margin}
+(a prolog flag) atoms have been created.
 
     \predicate{limit_stack}{2}{+Key, +Kbytes}
 Limit one of the stack areas to the specified value. \arg{Key} is one of

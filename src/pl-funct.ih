@@ -143,3 +143,4 @@
 #define FUNCTOR_warning3     MK_FUNCTOR(142, 3)
 #define FUNCTOR_xor2         MK_FUNCTOR(143, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(144, 1)
+#define FUNCTOR_dde_error2   MK_FUNCTOR(145, 2)

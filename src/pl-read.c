@@ -380,6 +380,7 @@ raw_read2(ReadData _PL_rd)
 		}
 		set_start_line;
 		strcpy(rb.base, "end_of_file. ");
+		rb.here = rb.base + 14;
 		return rb.base;
       case '/': c = getchr();
 		if ( c == '*' )
@@ -662,7 +663,7 @@ check_singletons(ReadData _PL_rd)
     for_vars(var,
 	     if ( var->times == 1 && var->name[0] != '_' )
 	     { if ( i < MAX_SINGLETONS )
-		 singletons[i++] = lookupAtom(var->name);
+		 singletons[i++] = PL_new_atom(var->name);
 	     });
 
     if ( i > 0 )
@@ -829,8 +830,6 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
     addBuffer(buf, c, char);
   }
 
-  addBuffer(buf, EOS, char);
-
   if ( end )
     *end = in;
 }  
@@ -987,9 +986,7 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		  while(isAlpha(*rdhere) )
 		    rdhere++;
 		  c = *rdhere;
-		  *rdhere = EOS;
-		  cur_token.value.atom = lookupAtom(start);
-		  *rdhere = c;
+		  cur_token.value.atom = lookupAtom(start, rdhere-start);
 		  cur_token.type = (c == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
 				    stringAtom(cur_token.value.atom)));
@@ -1002,7 +999,7 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		  c = *rdhere;
 		  *rdhere = EOS;
 		  if ( c == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
-		  { cur_token.value.atom = lookupAtom(start);
+		  { cur_token.value.atom = lookupAtom(start, rdhere-start);
 		    cur_token.type = T_FUNCTOR;
 		    *rdhere = c;
 		    break;
@@ -1031,10 +1028,10 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		  } else
 		    syntaxError("illegal_number", _PL_rd);
 		}
-    case SO:	{ char tmp[2];
+    case SO:	{ char tmp[1];
 
-		  tmp[0] = c, tmp[1] = EOS;
-		  cur_token.value.atom = lookupAtom(tmp);
+		  tmp[0] = c;
+		  cur_token.value.atom = lookupAtom(tmp, 1);
 		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
 				  *rdhere == '(' ? "FUNC" : "NAME",
@@ -1045,6 +1042,7 @@ get_token(bool must_be_op, ReadData _PL_rd)
     case SY:	{ start = rdhere - 1;
 		  while( isSymbol(*rdhere) )
 		    rdhere++;
+		  end = *rdhere;
 
 		  if ( rdhere == start+1 )
 		  { if ( (c == '+' || c == '-') &&	/* +- number */
@@ -1058,10 +1056,7 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		    }
 		  }
 
-		  end = *rdhere, *rdhere = EOS;
-		  cur_token.value.atom = lookupAtom((char *)start);
-		  *rdhere = end;
-
+		  cur_token.value.atom = lookupAtom((char *)start, rdhere-start);
 		  cur_token.type = (end == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
 				    end == '(' ? "FUNC" : "NAME",
@@ -1091,10 +1086,14 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		  break;
 		}
     case SQ:	{ tmp_buffer b;
+		  int len;
+		  char *s;
 
 		  initBuffer(&b);
 		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
-		  cur_token.value.atom = lookupAtom(baseBuffer(&b, char));
+		  s = baseBuffer(&b, char);
+		  len = entriesBuffer(&b, char);
+		  cur_token.value.atom = lookupAtom(s, len);
 		  cur_token.type = (rdhere[0] == '(' ? T_FUNCTOR : T_NAME);
 		  discardBuffer(&b);
 		  break;
@@ -1102,21 +1101,23 @@ get_token(bool must_be_op, ReadData _PL_rd)
     case DQ:	{ tmp_buffer b;
 		  term_t t = PL_new_term_ref();
 		  char *s;
+		  int len;
 
 		  initBuffer(&b);
 		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
-		  s = baseBuffer(&b, char);
+		  s   = baseBuffer(&b, char);
+		  len = entriesBuffer(&b, char);
 #if O_STRING
  		  if ( true(_PL_rd, DBLQ_STRING) )
-		    PL_put_string_chars(t, s);
+		    PL_put_string_nchars(t, len, s);
 		  else
 #endif
 		  if ( true(_PL_rd, DBLQ_ATOM) )
-		    PL_put_atom_chars(t, s);
+		    PL_put_atom_nchars(t, len, s);
 		  else if ( true(_PL_rd, DBLQ_CHARS) )
-		    PL_put_list_chars(t, s);
+		    PL_put_list_nchars(t, len, s);
 		  else
-		    PL_put_list_codes(t, s);
+		    PL_put_list_ncodes(t, len, s);
 
   		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
@@ -1883,17 +1884,17 @@ pl_raw_read2(term_t from, term_t term)
   }
 
 					/* strip the input from blanks */
-  for(top = s+strlen(s)-1; top > s && isBlank(*top); top--);
+  for(top = rd._rb.here-1; top > s && isBlank(*top); top--);
   if ( *top == '.' )
   { for(top--; top > s && isBlank(*top); top--)
       ;
   }
-  top[1] = EOS;
+  *++top = EOS;
 
-  for(; isBlank(*s); s++)
+  for(; s < top && isBlank(*s); s++)
     ;
 
-  rval = PL_unify_atom_chars(term, s);
+  rval = PL_unify_atom_nchars(term, top-s, s);
 
 out:
   PL_release_stream(in);
@@ -2057,7 +2058,7 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     pl_writeq(term);
     toldString();
 
-    rval = PL_unify_atom_chars(atom, s);
+    rval = PL_unify_atom_nchars(atom, bufsize-1, s);
     if ( s != buf )
       free(s);
 

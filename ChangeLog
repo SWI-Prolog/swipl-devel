@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: sub_string/5 modelled after ISO sub_atom/5.  moved substring/4
+    to library(backcomp).
+
+  * FIXED: exception raised by atom_concat/3.
+
   * FIXED: locking problem in set_input/1, set_output/1, see/1 and
     tell/1 (Multi-threaded version).
 
