@@ -1,0 +1,797 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog ODBC Interface</TITLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<CENTER>
+
+<H1>SWI-Prolog ODBC Interface</H1>
+
+</CENTER>
+<HR>
+<CENTER>
+<I>Jan Wielemaker <BR>
+SWI, <BR>
+University of Amsterdam <BR>
+The Netherlands <BR>
+E-mail: <A HREF="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></I>
+</CENTER>
+<HR>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<CENTER><H3>Abstract</H3></Center>
+<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+This document describes the SWI-Prolog interface to ODBC, the Microsoft 
+standard for <EM>Open DataBase Connectivity</EM>. These days there are 
+ODBC managers from multiple vendors for many platforms as well as 
+drivers for most databases, making it an attractive target for a Prolog 
+Database connection.
+
+<P>The database interface is envisioned to consist of two layers. The 
+first layer is an encapsulation of the core functionality of ODBC. This 
+layer makes it possible to run SQL queries. The second layer exploits 
+the relation between Prolog predicates and database tables, providing 
+---a somewhat limited--- natural Prolog view on the data. The current 
+interface only covers the first layer.
+</TABLE>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
+<LI><A HREF="#sec:2"><B>2 The ODBC layer</B></A>
+<UL>
+<LI><A HREF="#sec:2.1">2.1 Connection management</A>
+<LI><A HREF="#sec:2.2">2.2 Running SQL queries</A>
+<UL>
+<LI><A HREF="#sec:2.2.1">2.2.1 One-time invocation</A>
+<LI><A HREF="#sec:2.2.2">2.2.2 Paramaterised queries</A>
+</UL>
+<LI><A HREF="#sec:2.3">2.3 Transaction management</A>
+<LI><A HREF="#sec:2.4">2.4 Accessing the database dictionary</A>
+<LI><A HREF="#sec:2.5">2.5 Getting more information</A>
+<LI><A HREF="#sec:2.6">2.6 Representing SQL data in Prolog</A>
+<LI><A HREF="#sec:2.7">2.7 Errors and warnings</A>
+<UL>
+<LI><A HREF="#sec:2.7.1">2.7.1 ODBC messages: `Result with info'</A>
+<LI><A HREF="#sec:2.7.2">2.7.2 ODBC errors</A>
+</UL>
+<LI><A HREF="#sec:2.8">2.8 ODBC implementations</A>
+<UL>
+<LI><A HREF="#sec:2.8.1">2.8.1 Using unixODBC</A>
+<LI><A HREF="#sec:2.8.2">2.8.2 Using Microsoft ODBC</A>
+</UL>
+<LI><A HREF="#sec:2.9">2.9 Remaining issues</A>
+</UL>
+<LI><A HREF="#sec:3"><B>3 Installation</B></A>
+<UL>
+<LI><A HREF="#sec:3.1">3.1 Unix systems</A>
+</UL>
+</UL>
+
+<H2><A NAME="sec:1">1 Introduction</A></H2>
+
+<P>The value of RDMS for Prolog is often over-estimated, as Prolog 
+itself can manage substantial amounts of data. Nevertheless a 
+Prolog/RDMS interface provides advantages if data is already provided in 
+an RDMS, data must be shared with other applications, there are strong 
+persistency requirements or there is too much data to fit in memory.
+
+<P>The popularity of ODBC makes it possible to design a single 
+foreign-language module that provides RDMS access for a wide variety of 
+databases on a wide variety of platforms. The SWI-Prolog RDMS interface 
+is closely modelled after the ODBC API. This API is rather low-level, 
+but defaults and dynamic typing provided by Prolog give the user quite 
+simple access to RDMS, while the interface provides the best possible 
+performance given the RDMS independency constraint.
+
+<P>The Prolog community knows about various high-level connections 
+between RDMS and Prolog. We envision these layered on top of the ODBC 
+connection described here.
+
+<H2><A NAME="sec:2">2 The ODBC layer</A></H2>
+
+<H3><A NAME="sec:2.1">2.1 Connection management</A></H3>
+
+<P>The ODBC interface deals with a single ODBC environment but with 
+multiple simultaneous connections. The predicates in this section deal 
+with connection management.
+
+<DL>
+
+<P>
+<DT><A NAME="odbc_connect/3"><STRONG>odbc_connect</STRONG>(<VAR>+DSN, 
+-Connection, +Options</VAR>)</A><DD>
+Create a new ODBC connection to data-source <VAR>DSN</VAR> and return a 
+handle to this connection in <VAR>Connection</VAR>. The connection 
+handle is either an opaque structure or an atom of the <CODE>alias</CODE> 
+option is used. The options below are defined. In addition, options of
+<A NAME="idx:odbcsetconnection2:1"></A><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A> 
+may be provided.
+
+<DL>
+
+<P>
+<DT><STRONG>user</STRONG>(<VAR>User</VAR>)<DD>
+Define the user-name for the connection. This option must be present if 
+the database uses authorization.
+
+<P>
+<DT><STRONG>password</STRONG>(<VAR>Password</VAR>)<DD>
+Provide a password for the connection. Normally used in combination with <CODE>user(User)</CODE>.
+
+<P>
+<DT><STRONG>alias</STRONG>(<VAR>AliasName</VAR>)<DD>
+Use <VAR>AliasName</VAR> as <VAR>Connection</VAR> identifier, making the 
+connection available as a global resource. A good choice is to use the <VAR>DSN</VAR> 
+as alias.
+
+<P>
+<DT><STRONG>open</STRONG>(<VAR>OpenMode</VAR>)<DD>
+If <VAR>OpenMode</VAR> is <CODE>once</CODE> (default if an <CODE>alias</CODE> 
+is provided), a second call to open the same <VAR>DSN</VAR> simply 
+returns the existing connection. If <CODE>multiple</CODE> (default if 
+there is no alias name), a second connection to the same data-source is 
+opened.
+</DL>
+
+<P>The following example connects to the WordNet database, using the 
+connection alias <CODE>wordnet</CODE> and opening the connection only 
+once:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+open_wordnet :-
+        odbc_connect('WordNet', _,
+                     [ user(jan),
+                       password(xxx),
+                       alias(wordnet),
+                       open(once)
+                     ]).
+</PRE>
+</TABLE>
+
+<P>
+<DT><A NAME="odbc_disconnect/1"><STRONG>odbc_disconnect</STRONG>(<VAR>+Connection</VAR>)</A><DD>
+Close the given <VAR>Connection</VAR>. This destroyes the connection 
+alias or, if there is no alias, makes further use of the <VAR>Connection</VAR> 
+handle illegal.
+
+<P>
+<DT><A NAME="odbc_current_connection/2"><STRONG>odbc_current_connection</STRONG>(<VAR>?Connection, 
+?DSN</VAR>)</A><DD>
+Enumerate the existing ODBC connections.
+
+<P>
+<DT><A NAME="odbc_set_connection/2"><STRONG>odbc_set_connection</STRONG>(<VAR>+Connection, 
++Option</VAR>)</A><DD>
+Set options on an existing connection. Defined options are:
+
+<DL>
+
+<P>
+<DT><STRONG>auto_commit</STRONG>(<VAR>bool</VAR>)<DD>
+If <CODE>true</CODE> (default), each update statement is committed 
+immediately. If <CODE>false</CODE>, an update statement starts a 
+transaction that can be committed or rolled-back. See <A HREF="#sec:sqltrans">section 
+2.3</A> for details on transaction management.
+</DL>
+
+</DL>
+
+<H3><A NAME="sec:2.2">2.2 Running SQL queries</A></H3>
+
+<P>ODBC distinguishes between direct execution of literal SQL strings 
+and parameterized execution of SQL strings. The first is a simple 
+practical solution for infrequent calls (such as creating a table), 
+while parameterized execution allows the driver and database to 
+precompile the query and store the optimized code, making it suitable 
+for time-critical operations. In addition, it allows for passing 
+parameters without going through SQL-syntax and thus avoiding the need 
+for quoting.
+
+<H4><A NAME="sec:2.2.1">2.2.1 One-time invocation</A></H4>
+
+<DL>
+
+<P>
+<DT><A NAME="odbc_query/3"><STRONG>odbc_query</STRONG>(<VAR>+Connection, 
++SQL, -Row</VAR>)</A><DD>
+Same as <A NAME="idx:odbcquery4:2"></A><A HREF="#odbc_query/4">odbc_query/4</A> 
+using <CODE></CODE> for <VAR>Options</VAR>.
+
+<P>
+<DT><A NAME="odbc_query/4"><STRONG>odbc_query</STRONG>(<VAR>+Connection, 
++SQL, -Row, +Options</VAR>)</A><DD>
+Fire a query on the database represented by <VAR>Connection</VAR>. <VAR>SQL</VAR> 
+is any valid SQL statement. SQL statements can be specified as a plain 
+atom, string or a term of the format
+<VAR>Format</VAR>-<VAR>Arguments</VAR>, which is converted using <A NAME="idx:format2:3"></A><B>format/2</B>. 
+After executing the query, result-rows are returned one-by-one as terms 
+of the functor row/\arg{Arity} , where <VAR>Arity</VAR> denotes the 
+number of columns in the result-set. If the query has no results (such 
+as <CODE>INSERT</CODE>) use <A NAME="idx:odbcquery2:4"></A><A HREF="#odbc_query/2">odbc_query/2</A>. 
+Here is a small example using the connection created from <A NAME="idx:odbcconnect3:5"></A><A HREF="#odbc_connect/3">odbc_connect/3</A>.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+lemma(Lemma) :-
+        odbc_query(wordnet,
+                   'SELECT (lemma) FROM word',
+                   row(Lemma).
+</PRE>
+</TABLE>
+
+<P>Please note that the SQL-statement does not end in the <CODE>;</CODE> 
+character. <VAR>Options</VAR> defines the following options:
+
+<DL>
+
+<P>
+<DT><STRONG>types</STRONG>(<VAR>ListOfTypes</VAR>)<DD>
+Determine the Prolog type used to report the column-values. When 
+omitted, default conversion as described in <A HREF="#sec:sqltypes">section 
+2.6</A> is implied. A column may specify <CODE>default</CODE> to use 
+default conversion for that column. The length of the type-list must 
+match the number of columns in the result-set.
+
+<P>For example, in the table <CODE>word</CODE> the first column is 
+defined with the SQL type <CODE>DECIMAL(6)</CODE>. Using this SQL-type, 
+``001'' is distinct from ``1'', but using Prolog integers is a valid 
+representation for Wordnet <CODE>wordno</CODE> identifiers. The 
+following query extracts rows using Prolog integers:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+?- odbc_query(wordnet,
+              'select * from word', X,
+              [ types([integer,default])
+              ]).
+
+X = row(1, entity)
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<P>See also <A HREF="#sec:sqltypes">section 2.6</A> for notes on 
+type-conversion.
+
+<P>
+<DT><A NAME="odbc_query/2"><STRONG>odbc_query</STRONG>(<VAR>+Connection, 
++SQL</VAR>)</A><DD>
+As <A NAME="idx:odbcquery3:6"></A><A HREF="#odbc_query/3">odbc_query/3</A>, 
+but used for SQL-statements that should not return result-rows (i.e. all 
+statements except for <CODE>SELECT</CODE>). The predicate prints a 
+diagnostic message if teh query returns a result.
+</DL>
+
+<H4><A NAME="sec:2.2.2">2.2.2 Paramaterised queries</A></H4>
+
+<P>ODBC provides for `parameterized queries'. These are SQL queries with 
+a <CODE>?</CODE>-sign at places where parameters appear. The ODBC 
+interface and database driver may use this to precompile the 
+SQL-statement, giving better performance on repeated queries. This is 
+exactly what we want if we associate Prolog predicates to database 
+tables. This interface is defined by the following predicates:
+
+<DL>
+
+<P>
+<DT><A NAME="odbc_prepare/4"><STRONG>odbc_prepare</STRONG>(<VAR>+Connection, 
++SQL, +Parameters, -Statement</VAR>)</A><DD>
+As <A NAME="idx:odbcprepare5:7"></A><A HREF="#odbc_prepare/5">odbc_prepare/5</A> 
+using <CODE></CODE> for <VAR>Options</VAR>.
+
+<P>
+<DT><A NAME="odbc_prepare/5"><STRONG>odbc_prepare</STRONG>(<VAR>+Connection, 
++SQL, +Parameters, -Statement, +Options</VAR>)</A><DD>
+Create a statement from the given <VAR>SQL</VAR> (which may be a format 
+specification as described with <A NAME="idx:odbcquery3:8"></A><A HREF="#odbc_query/3">odbc_query/3</A>) 
+statement that normally has one or more parameter-indicators (<CODE>?</CODE>) 
+and unify <VAR>Statement</VAR> with a handle to the created statement. <VAR>Parameters</VAR> 
+is a list of descriptions, one for each parameter. Each parameter 
+description is one of the following:
+
+<DL>
+
+<P>
+<DT><STRONG>default</STRONG><DD>
+Uses the ODBC function SQLDescribeParam() to obtain information about 
+the parameter and applies default rules. See <A HREF="#sec:sqltypes">section 
+2.6</A> for details.
+
+<P>
+<DT><STRONG><VAR>SqlType</VAR>Specifier, ...</STRONG>(<VAR><VAR>SqlType</VAR>Specifier, 
+...</VAR>)<DD>
+eclare the parameter to be of type <VAR>SqlType</VAR> with the given 
+specifiers. Specifiers are required for <CODE>char</CODE>, <CODE>varchar</CODE>, 
+etc. to specify the field-width. In <A NAME="idx:odbcexecute2:9"></A><B>odbc_execute/2</B>, 
+the must supply the value in default Prolog type for this SQL type. See <A HREF="#sec:sqltypes">section 
+2.6</A> for details.
+
+<P>
+<DT><VAR>PrologType</VAR> <VAR>&gt;</VAR> <VAR>SqlType</VAR><DD>
+As above, but supply values of the given <VAR>PrologType</VAR>, using 
+the type-transformation defined by the database driver. For example, if 
+the parameter is specified as
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+atom &gt; date
+</PRE>
+</TABLE>
+
+<P>The use must supply an atom of format <CODE>YYYY-MM-DD</CODE> rather 
+than a term <CODE>date(Year,Month,Day)</CODE>. This construct enhances 
+flexibility and allows for passing values that have no proper 
+representation in Prolog.
+</DL>
+
+<P><VAR>Options</VAR> defines a list of options for executing the 
+statement. See
+<A NAME="idx:odbcquery4:10"></A><A HREF="#odbc_query/4">odbc_query/4</A> 
+for details.
+
+<P>
+<DT><A NAME="odbc_execute/3"><STRONG>odbc_execute</STRONG>(<VAR>+Statement, 
++ParameterValues, -Row</VAR>)</A><DD>
+Execute a statement prepared with <A NAME="idx:odbcprepare4:11"></A><A HREF="#odbc_prepare/4">odbc_prepare/4</A> 
+with the given
+<VAR>ParameterValues</VAR> and return the rows one-by-one on 
+backtracking as
+<A NAME="idx:odbcquery4:12"></A><A HREF="#odbc_query/4">odbc_query/4</A>. 
+This predicate may return type_error exceptions if the provided 
+parameter values cannot be converted to the declared types.
+
+<P>ODBC doesn't appear to allow for multiple cursors on the same 
+result-set.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A> This 
+would imply there can only be one active <A NAME="idx:odbcexecute3:13"></A><A HREF="#odbc_execute/3">odbc_execute/3</A> 
+(i.e. have a choice-point) on a prepared statement. Suppose we have a 
+table <CODE>age (name char(25), age integer)</CODE> bound to the 
+predicate <B>age/2</B> we cannot write the code below without special 
+precautions. The ODBC interface therefore creates a clone of a statement 
+if it discovers the statement is being executed, which is discarded 
+after the statement is finished.<A NAME=back-to-note-2 HREF="index.html#note-2"> (2)</A>
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+same_age(X, Y) :-
+        age(X, AgeX),
+        age(Y, AgeY),
+        AgeX = AgeY.
+</PRE>
+</TABLE>
+
+<P>
+<DT><A NAME="odbc_free_statement/1"><STRONG>odbc_free_statement</STRONG>(<VAR>+Statement</VAR>)</A><DD>
+Destroy a statement prepared with <A NAME="idx:odbcprepare4:14"></A><A HREF="#odbc_prepare/4">odbc_prepare/4</A>. 
+If the statement is currently executing (i.e. <A NAME="idx:odbcexecute3:15"></A><A HREF="#odbc_execute/3">odbc_execute/3</A> 
+left a choice-point), the destruction is delayed until the execution 
+terminates.
+</DL>
+
+<H3><A NAME="sec:2.3">2.3 Transaction management</A></H3>
+
+<A NAME="sec:sqltrans"></A>
+
+<P>ODBC can run in two modi. By default, all update actions are 
+immediately committed on the server. Using <A NAME="idx:odbcsetconnection2:16"></A><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A> 
+this behaviour can be switched off, after which each SQL statement that 
+can be inside a transaction implicitely starts a new transaction. This 
+transaction can be ended using <A NAME="idx:odbcendtransaction2:17"></A><A HREF="#odbc_end_transaction/2">odbc_end_transaction/2</A>.
+
+<DL>
+
+<P>
+<DT><A NAME="odbc_end_transaction/2"><STRONG>odbc_end_transaction</STRONG>(<VAR>+Connection, 
++Action</VAR>)</A><DD>
+End the currently open transaction if there is one. Using <VAR>Action</VAR>
+<CODE>commit</CODE> pending updates are made permanent, using
+<CODE>rollback</CODE> they are discarded.
+</DL>
+
+<P>The ODBC documentation has many comments on transation management and 
+its interaction with database cursors.
+
+<H3><A NAME="sec:2.4">2.4 Accessing the database dictionary</A></H3>
+
+<P>With this interface we do not envision the use of Prolog as a 
+database manager. Nevertheless, elementary access to the structure of a 
+database is required, for example to validate a database satisfies the 
+assumptions made by the application.
+
+<DL>
+
+<P>
+<DT><A NAME="odbc_current_table/2"><STRONG>odbc_current_table</STRONG>(<VAR>+Connection, 
+-Table</VAR>)</A><DD>
+Return on backtracking the names of all tables in the database 
+identified by the connection.
+
+<P>
+<DT><A NAME="odbc_current_table/3"><STRONG>odbc_current_table</STRONG>(<VAR>+Connection, 
+?Table, ?Facet</VAR>)</A><DD>
+Enumerate properties of the tables. Defines facets are:
+
+<DL>
+
+<P>
+<DT><STRONG>qualifier</STRONG>(<VAR>Qualifier</VAR>)<DD>
+
+<P>
+<DT><STRONG>owner</STRONG>(<VAR>Owner</VAR>)<DD>
+
+<P>
+<DT><STRONG>comment</STRONG>(<VAR>Comment</VAR>)<DD>
+These facets are defined by SQLTables()
+
+<P>
+<DT><STRONG>arity</STRONG>(<VAR>Arity</VAR>)<DD>
+This facet returns the number of columns in a table.
+</DL>
+
+<P>
+<DT><A NAME="odbc_table_column/3"><STRONG>odbc_table_column</STRONG>(<VAR>+Connection, 
+?Table, ?Column</VAR>)</A><DD>
+On backtracking, enumerate all columns in all tables.
+
+<P>
+<DT><A NAME="odbc_table_column/3"><STRONG>odbc_table_column</STRONG>(<VAR>+Connection, 
+?Table, ?Column, ?Facet</VAR>)</A><DD>
+Provides access to the properties of the table as defined by the ODBC 
+call SQLColumns(). Defined facets are:
+
+<DL>
+
+<P>
+<DT><STRONG>table_qualifier</STRONG>(<VAR>Qualifier</VAR>)<DD>
+
+<P>
+<DT><STRONG>table_owner</STRONG>(<VAR>Owner</VAR>)<DD>
+
+<P>
+<DT><STRONG>table_name</STRONG>(<VAR>Table</VAR>)<DD>
+See <A NAME="idx:odbccurrenttable3:18"></A><A HREF="#odbc_current_table/3">odbc_current_table/3</A>.
+
+<P>
+<DT><STRONG>data_type</STRONG>(<VAR>DataType</VAR>)<DD>
+
+<P>
+<DT><STRONG>type_name</STRONG>(<VAR>TypeName</VAR>)<DD>
+
+<P>
+<DT><STRONG>precision</STRONG>(<VAR>Precision</VAR>)<DD>
+
+<P>
+<DT><STRONG>length</STRONG>(<VAR>Length</VAR>)<DD>
+
+<P>
+<DT><STRONG>scale</STRONG>(<VAR>Scale</VAR>)<DD>
+
+<P>
+<DT><STRONG>radix</STRONG>(<VAR>Radix</VAR>)<DD>
+
+<P>
+<DT><STRONG>nullable</STRONG>(<VAR>Nullable</VAR>)<DD>
+
+<P>
+<DT><STRONG>remarks</STRONG>(<VAR>Remarks</VAR>)<DD>
+These facets are defined by SQLColumns()
+
+<P>
+<DT><STRONG>type</STRONG>(<VAR>Type</VAR>)<DD>
+More prolog-friendly representation of the type properties. See
+<A HREF="#sec:sqltypes">section 2.6</A>.
+</DL>
+
+<P>
+<DT><A NAME="odbc_type/3"><STRONG>odbc_type</STRONG>(<VAR>+Connection, 
+?TypeSpec, ?Facet</VAR>)</A><DD>
+Query the types supported by the data source. <VAR>TypeSpec</VAR> is 
+either an integer type-id, the name of an ODBC SQL type or the constant
+<CODE>all_types</CODE> to enumerate all known types. This predicate 
+calls SQLGetTypeInfo() and its facet names are derived from the 
+specification of this ODBC function:
+
+<DL>
+
+<P>
+<DT><STRONG>name</STRONG>(<VAR>Name</VAR>)<DD>
+Name used by the data-source. Use this in CREATE statements
+
+<P>
+<DT><STRONG>data_type</STRONG>(<VAR>DataType</VAR>)<DD>
+Numeric indentifier of the type
+
+<P>
+<DT><STRONG>precision</STRONG>(<VAR>Precision</VAR>)<DD>
+When available, maximum precision of the type.
+
+<P>
+<DT><STRONG>literal_prefix</STRONG>(<VAR>Prefix</VAR>)<DD>
+When available, prefix for literal representation.
+
+<P>
+<DT><STRONG>literal_suffix</STRONG>(<VAR>Suffix</VAR>)<DD>
+When available, suffix for literal representation.
+
+<P>
+<DT><STRONG>create_params</STRONG>(<VAR>CreateParams</VAR>)<DD>
+When available, arguments needed to create the type.
+
+<P>
+<DT><STRONG>nullable</STRONG>(<VAR>Bool</VAR>)<DD>
+Whether the type can be <CODE>NULL</CODE>. May be <CODE>unknown</CODE>
+
+<P>
+<DT><STRONG>case_sensitive</STRONG>(<VAR>Bool</VAR>)<DD>
+Whether values for this type are case-sensitive.
+
+<P>
+<DT><STRONG>searchable</STRONG>(<VAR>Searchable</VAR>)<DD>
+Whether the type can be searched. Values are <CODE>false</CODE>,
+<CODE>true</CODE>, <CODE>like_only</CODE> or <CODE>all_except_like</CODE>.
+
+<P>
+<DT><STRONG>unsigned</STRONG>(<VAR>Bool</VAR>)<DD>
+When available, whether the value is signed. Please note that SWI-Prolog 
+does not provide unsigned integral values.
+
+<P>
+<DT><STRONG>money</STRONG>(<VAR>Bool</VAR>)<DD>
+Whether the type represents money.
+
+<P>
+<DT><STRONG>auto_increment</STRONG>(<VAR>Bool</VAR>)<DD>
+When available, whether the type can be auto-incremented.
+
+<P>
+<DT><STRONG>local_name</STRONG>(<VAR>LocalName</VAR>)<DD>
+Name of the type in local language.
+
+<P>
+<DT><STRONG>minimum_scale</STRONG>(<VAR>MinScale</VAR>)<DD>
+Minimum scale of the type.
+
+<P>
+<DT><STRONG>maximum_scale</STRONG>(<VAR>MaxScale</VAR>)<DD>
+Maximum scale of the type.
+</DL>
+
+<P>
+<DT><A NAME="odbc_data_source/2"><STRONG>odbc_data_source</STRONG>(<VAR>?DSN, 
+?Description</VAR>)</A><DD>
+Query the defined data sources. It is not required to have any open 
+connections before calling this predicate. <VAR>DSN</VAR> is the name of 
+the data source as required by <A NAME="idx:odbcconnect3:19"></A><A HREF="#odbc_connect/3">odbc_connect/3</A>. <VAR>Description</VAR> 
+is the name of the driver. The driver name may be used to tailure the 
+SQL statements used on the database. Unfortunately this name depends on 
+the local installing details and is therefore not universially useful.
+</DL>
+
+<H3><A NAME="sec:2.5">2.5 Getting more information</A></H3>
+
+<A NAME="sec:odbcinfo"></A>
+
+<DL>
+
+<P>
+<DT><A NAME="odbc_statistics/1"><STRONG>odbc_statistics</STRONG>(<VAR>?Key</VAR>)</A><DD>
+Get statistical data on the ODBC interface. Currently defined keys are:
+
+<DL>
+
+<P>
+<DT><STRONG>statements</STRONG>(<VAR>Created, Freed</VAR>)<DD>
+Number of SQL statements that have been <VAR>Created</VAR> and <VAR>Freed</VAR> 
+over all connections. Statements executed with <A NAME="idx:odbcquery23:20"></A><A HREF="#odbc_query/2">odbc_query/[2,3]</A> 
+increment <VAR>Created</VAR> as the query is created and <VAR>Freed</VAR> 
+if the query is terminated due to deterministic success, failure, cut or 
+exception. Statements created with <A NAME="idx:odbcprepare45:21"></A><A HREF="#odbc_prepare/4">odbc_prepare/[4,5]</A> 
+are freed by <A NAME="idx:odbcfreestatement1:22"></A><A HREF="#odbc_free_statement/1">odbc_free_statement/1</A> 
+or due to a fatal error with the statement.
+</DL>
+
+</DL>
+
+<H3><A NAME="sec:2.6">2.6 Representing SQL data in Prolog</A></H3>
+
+<A NAME="sec:sqltypes"></A>
+
+<P>Databases have a poorly standardized but rich set of datatypes. Some 
+have natural Prolog counterparts, some not. A complete mapping requires 
+us to define Prolog data-types for SQL types that have no standardized 
+Prolog counterpart (such as timestamp), the definition of a default 
+mapping and the possibility to define an alternative mapping for a 
+specific column. For example, many variations of the SQL <CODE>DECIMAL</CODE> 
+type cannot be mapped to a Prolog integer. Nevertheless, mapping to an 
+integer may be the proper choice for a specific application.
+
+<P>The Prolog/ODBC interface defines the following Prolog result types 
+with the indicated default transformation. Different result-types can be 
+requested using the <CODE>types(TypeList)</CODE> option for the
+<A NAME="idx:odbcquery4:23"></A><A HREF="#odbc_query/4">odbc_query/4</A> 
+and <A NAME="idx:odbcprepare5:24"></A><A HREF="#odbc_prepare/5">odbc_prepare/5</A> 
+interfaces.
+
+<DL>
+
+<P>
+<DT><STRONG>atom</STRONG><DD>
+Used as default for the SQL types <CODE>char</CODE>, <CODE>varchar</CODE>,
+<CODE>longvarchar</CODE>, <CODE>decimal</CODE> and <CODE>numeric</CODE>. 
+Can be used for all types.
+
+<P>
+<DT><STRONG>string</STRONG><DD>
+SWI-Prolog extended type string. Use the type for special cases where 
+garbage atoms must be avoided. Can be used for all types.
+
+<P>
+<DT><STRONG>codes</STRONG><DD>
+List of character codes. Use this type if the argument must be analysed 
+or compatibility with Prolog systems that cannot handle infinite-length 
+atoms is desired. Can be used for all types.
+
+<P>
+<DT><STRONG>integer</STRONG><DD>
+Used as default for the SQL types <CODE>bit</CODE>, <CODE>tinyint</CODE>,
+<CODE>smallint</CODE> and <CODE>integer</CODE>. Please note that 
+SWI-Prolog integers are signed 32-bit values, where SQL allows for 
+unsigned values as well. Can be used for the integral, and <CODE>decimal</CODE> 
+types as well as the types <CODE>date</CODE> and <CODE>time_stamp</CODE>, 
+which are represented as POSIX time-stamps (seconds after Jan 1, 1970).
+
+<P>
+<DT><STRONG>double</STRONG><DD>
+Used as default for the SQL types <CODE>real</CODE>, <CODE>float</CODE> 
+and
+<CODE>double</CODE>. Can be used for the integral, float and <CODE>decimal</CODE> 
+types as well as the types <CODE>date</CODE> and <CODE>time_stamp</CODE>, 
+which are represented as POSIX time-stamps (seconds after Jan 1, 1970). 
+Representing time this way is compatible to SWI-Prologs time-stamp 
+handling.
+
+<P>
+<DT><STRONG>date</STRONG><DD>
+A Prolog term of the form <CODE>date(Year,Month,Day)</CODE> used as 
+default for the SQL type <CODE>date</CODE>.
+
+<P>
+<DT><STRONG>time</STRONG><DD>
+A Prolog term of the form <CODE>time(Hour,Minute,Second)</CODE> used as 
+default for the SQL type <CODE>time</CODE>.
+
+<P>
+<DT><STRONG>time_stamp</STRONG><DD>
+A Prolog term of the form
+<CODE>time_tamp(Year,Month,Day,Hour,Minute,Second,Fraction)</CODE> used 
+as default for the SQL type <CODE>time_stamp</CODE>.
+</DL>
+
+<H3><A NAME="sec:2.7">2.7 Errors and warnings</A></H3>
+
+<P>Disregarding some details, ODBC operations return success, error or 
+`success with information'. This section explains how results from the 
+ODBC layer are reported to Prolog.
+
+<H4><A NAME="sec:2.7.1">2.7.1 ODBC messages: `Result with info'</A></H4>
+
+<A NAME="sec:successwithinfo"></A>
+
+<P>If an ODBC operation returns `with info', the info is extracted from 
+the interface and handled to the Prolog message dispatcher <A NAME="idx:printmessage2:25"></A><B>print_message/2</B>. 
+The level of the message is <CODE>informational</CODE> and the term is 
+of the form:
+
+<DL>
+
+<P>
+<DT><STRONG>odbc</STRONG>(<VAR>State, Native, Message</VAR>)<DD>
+Here, <VAR>State</VAR> is the SQL-state as defined in the ODBC API,
+<VAR>Native</VAR> is the (integer) error code of the underlying data 
+source and <VAR>Message</VAR> is a human readable explanation of the 
+message.
+</DL>
+
+<H4><A NAME="sec:2.7.2">2.7.2 ODBC errors</A></H4>
+
+<A NAME="sec:sqlerror"></A>
+
+<P>If an ODBC operation signals an error, it throws the exception
+<CODE>error(<CODE>odbc(State, Native, Message)</CODE>, _)</CODE>. The 
+arguments of the <B>odbc(3)</B> term are explained in <A HREF="#sec:successwithinfo">section 
+2.7.1</A>.
+
+<P>In addition, the Prolog layer performs the normal tests for proper 
+arguments and state, signalling the conventional instantiation, type, 
+domain and resource exceptions.
+
+<H3><A NAME="sec:2.8">2.8 ODBC implementations</A></H3>
+
+<P>There is a wealth on ODBC implementations that are completely or 
+almost compatible to this interface. In addition, a number of databases 
+are delivered with an ODBC compatible interface. This implies you get 
+the portability benefits of ODBC without paying the configuration and 
+performance price. Currently this interface is, according to the
+<A HREF="www.php.net">PHP</A> documentation on this subject, provided by 
+Adabas D, IBM DB2, Solid, and Sybase SQL Anywhere.
+
+<H4><A NAME="sec:2.8.1">2.8.1 Using unixODBC</A></H4>
+
+<P>The SWI-Prolog ODBC interface was developed using
+<A HREF="www.unixodbc.org">unixODBC</A> and <A HREF="www.mysql.com">MySQL</A> 
+on
+<A HREF="www.suse.com">SuSE Linux</A>.
+
+<H4><A NAME="sec:2.8.2">2.8.2 Using Microsoft ODBC</A></H4>
+
+<P>On MS-Windows, the ODBC interface is a standard package, linked 
+against
+<CODE>odbc32.lib</CODE>.
+
+<H3><A NAME="sec:2.9">2.9 Remaining issues</A></H3>
+
+<P>The following issues are indentified and waiting for concrete 
+problems and suggestions.
+
+<DL>
+
+<P>
+<DT><B>NULL data</B><DD>
+How to represent NULL in Prolog. We have seen the atom <CODE>$Null$</CODE> 
+and the compound term 'NULL'(_).
+</DL>
+
+<H2><A NAME="sec:3">3 Installation</A></H2>
+
+<H3><A NAME="sec:3.1">3.1 Unix systems</A></H3>
+
+<P>Installation on Unix system uses the commonly found <EM>configure</EM>,
+<EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
+installed before building this package. If SWI-Prolog is not installed 
+as <B>pl</B>, the environment variable <CODE>PL</CODE> must be set to 
+the name of the SWI-Prolog executable. Installation is now accomplished 
+using:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+% ./configure
+% make
+% make install
+</PRE>
+</TABLE>
+
+<P>This installs the foreign libraries in <CODE>$PLBASE/lib/$PLARCH</CODE> 
+and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
+<CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
+
+<H1><A NAME="document-notes">Footnotes</A></H1>
+
+<DL>
+
+<P>
+<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
+Is this right?
+<DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
+The code is prepared to maintain a cache of statements. Practice should 
+tell us whether it is worthwhile activating this.
+</DL>
+
+</BODY></HTML>
