@@ -728,6 +728,11 @@ is the next to be fired and \arg{scheduled} otherwise.
 Call \arg{Goal} as \index{once/1}\predref{once}{1}.  If \arg{Goal} doesn't complete within
 \arg{Time} seconds, exit using the exception
 \const{time_limit_exceeded}.  See \index{catch/3}\predref{catch}{3}.
+
+Please note that this predicate uses \index{alarm/4}\predref{alarm}{4} and therefore is \emph{not}
+capable to break out of long running goals such as \index{sleep/1}\predref{sleep}{1}, blocking I/O
+or other long-running (foreign) predicates.  Blocking I/O can be handled
+using the timeout option of \index{read_term/3}\predref{read_term}{3}.
 \end{description}
 
 

@@ -81,5 +81,5 @@
 
 call_with_time_limit(Time, Goal) :-
 	alarm(Time, throw(time_limit_exceeded), Id),
-	call_cleanup(once(Goal), remove_alarm(Id)).
+	call_cleanup(once(Goal), time:remove_alarm(Id)).
 		     

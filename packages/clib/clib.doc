@@ -719,6 +719,11 @@ is the next to be fired and \arg{scheduled} otherwise.
 Call \arg{Goal} as once/1.  If \arg{Goal} doesn't complete within
 \arg{Time} seconds, exit using the exception
 \const{time_limit_exceeded}.  See catch/3.
+
+Please note that this predicate uses alarm/4 and therefore is \emph{not}
+capable to break out of long running goals such as sleep/1, blocking I/O
+or other long-running (foreign) predicates.  Blocking I/O can be handled
+using the timeout option of read_term/3.
 \end{description}
 
 

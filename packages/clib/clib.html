@@ -877,6 +877,12 @@ Call <VAR>Goal</VAR> as <A NAME="idx:once1:46"></A><B>once/1</B>. If <VAR>Goal</
 doesn't complete within
 <VAR>Time</VAR> seconds, exit using the exception
 <CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:47"></A><B>catch/3</B>.
+
+<P>Please note that this predicate uses <A NAME="idx:alarm4:48"></A><A HREF="#alarm/4">alarm/4</A> 
+and therefore is <EM>not</EM> capable to break out of long running goals 
+such as <A NAME="idx:sleep1:49"></A><B>sleep/1</B>, blocking I/O or 
+other long-running (foreign) predicates. Blocking I/O can be handled 
+using the timeout option of <A NAME="idx:readterm3:50"></A><B>read_term/3</B>.
 </DL>
 
 <H2><A NAME="sec:10">10 Limiting process resources</A></H2>
@@ -896,7 +902,7 @@ Query and/or set the limit for <VAR>Resource</VAR>. Time-values are in
 seconds and size-values are counted in bytes. The following values are 
 supported by this library. Please note that not all resources may be 
 available and accessible on all platforms. This predicate can throw a 
-variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:48"></A><B>catch/3</B>. 
+variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:51"></A><B>catch/3</B>. 
 The defined resources are:
 <BLOCKQUOTE>
 <TABLE BORDER=0 FRAME=void RULES=groups>
@@ -916,7 +922,7 @@ address </TD></TR>
 
 <P>When the process hits a limit POSIX systems normally send the process 
 a signal that terminates it. These signals may be catched using 
-SWI-Prolog's <A NAME="idx:onsignal3:49"></A><B>on_signal/3</B> 
+SWI-Prolog's <A NAME="idx:onsignal3:52"></A><B>on_signal/3</B> 
 primitive. The code below illustrates this behaviour. Please note that 
 asynchronous signal handling is dangerous, especially when using 
 threads. 100% fail-safe operation cannot be guaranteed, but this 
@@ -969,7 +975,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 
 <P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
-<A NAME="idx:kill2:50"></A><A HREF="#kill/2">kill/2</A> should support 
+<A NAME="idx:kill2:53"></A><A HREF="#kill/2">kill/2</A> should support 
 interrupt-names as well
 <DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
 More subtle handling of I/O, especially for debugging is required: 
