@@ -1293,8 +1293,10 @@ pl_getn(Term rec, Term sel, Term args, Term ret)
 	  goto out;
 	}
       }
-      rval = pceGet(receiver, selector, arity, av);
-      plrval = TRUE;
+      if ( (rval = pceGet(receiver, selector, arity, av)) )
+	plrval = TRUE;
+      else
+	plrval = FALSE;
     } else
       plrval = FALSE;
   }

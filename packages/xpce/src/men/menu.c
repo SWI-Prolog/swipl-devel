@@ -508,7 +508,7 @@ elevated_items(Menu m, Elevation z)
 
 
 static status
-RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
+RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
 { int b = valInt(m->border);
   int lm = valInt(m->left_offset);
   int rm = valInt(m->right_offset);
@@ -518,6 +518,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
   int radius = 0;
   Image fill = NIL;
   Any colour = mi->colour;
+  Elevation z = iz;
 
   DEBUG(NAME_menu, Cprintf("Redraw %s at %d %d %d %d\n",
 			   pp(mi->value), x, y, w, h));
@@ -604,9 +605,9 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
     bh = valInt(leftmark->size->h);
     by = item_mark_y(m, y, h, bh);
 
-    if ( instanceOfObject(z, ClassElevation) )
-    { int h = valInt(z->height);
-      r_3d_box(x+b-h, by-h, bw+2*h, bh+2*h, 0, z, FALSE);
+    if ( instanceOfObject(iz, ClassElevation) && iz->height != ZERO )
+    { int h = valInt(iz->height);
+      r_3d_box(x+b-h, by-h, bw+2*h, bh+2*h, 0, iz, FALSE);
       r_fill(x+b, by, bw, bh, WHITE_COLOUR);
     }
 

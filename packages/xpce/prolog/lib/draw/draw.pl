@@ -138,8 +138,14 @@ PceDraw user may specify a value in ~/.Xdefaults:
 	Pce.Draw.auto_align_mode:	@off
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-resource(auto_align_mode,	bool,	'@on',
+resource(auto_align_mode,		bool, '@on',
 	 "Automatically align graphicals").
+resource(postscript_file_extension,	name, '.eps',
+	 "Extension for saved PostScript").
+resource(printer,			[name], '@default',
+	 "Printer used for direct printing").
+resource(print_command,			name, 'lpr -P%p %f',
+	 "Command to print a file").
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If  the initialisation of an instance  of  this class differs from the
@@ -254,7 +260,7 @@ fill_dialog(Draw, D:dialog) :->
 	new(HasCurrentFile, Canvas?file \== @nil),
 
 	send(D, append, new(MB, menu_bar(actions))),
-	send(D, append, label(feedback, 'Welcome to PceDraw'), right),
+	send(D, append, label(reporter, 'Welcome to PceDraw'), right),
 
 	send(MB, append, new(F, popup(file))),
 	send(MB, append, new(P, popup(proto))),
@@ -377,6 +383,7 @@ fill_dialog(Draw, D:dialog) :->
 
 	send(S, multiple_selection, @on),
 	send(S, show_current, @on),
+	send(S, on_image, @mark_image),
 	send_list(S, append,
 		  [ menu_item(auto_align,
 			      message(Canvas, auto_align_mode, @arg1))

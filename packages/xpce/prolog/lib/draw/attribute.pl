@@ -221,8 +221,10 @@ make_transparent_menu(Menu) :-
 	send(Proto, send_method, send_method(transparent, vector(bool),
 					     message(T, transparent, @arg1))),
 	make_proto_menu(Menu, Proto, transparent, [@on, @off]),
+	get(Menu, reference, Ref),
+	get(Ref, copy, CRef),
 	send(Menu, show_label, @off),
-	send(Menu, reference, point(0, 5)),
+	send(Menu, reference, CRef),
 	send(Proto, done).
 
 
@@ -237,7 +239,7 @@ Create  a menu for  some prototype attribute.   Each menu_item   has a
 
 make_proto_menu(Menu, Proto, Attribute, Values) :-
 	attribute(Label, Attribute),
-	new(Menu, menu(Label, marked,
+	new(Menu, menu(Label, choice,
 		       message(@receiver?frame, client_attribute,
 			       Attribute, @arg1))),
 	send(Menu, off_image, @nil),
@@ -305,7 +307,7 @@ make_shadow_menu(Menu) :-
 
 make_closed_menu(Menu) :-
 	attribute(Label, closed),
-	new(Menu, menu(Label, marked,
+	new(Menu, menu(Label, choice,
 		       message(@receiver?frame, client_attribute,
 			       closed, @arg1))),
 	send_list(Menu, append, [@off, @on]).

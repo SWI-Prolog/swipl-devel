@@ -716,10 +716,13 @@ load(Canvas, File:file, Clear:[bool]) :->
 	),
 	get(File, object, Sheet),
 	send(Sheet?graphicals, for_all,
-	     block(message(Canvas, display, @arg1),
-		   message(@arg1, selected, @off))),
-	send(Canvas, file, File),
-	send(Canvas?frame, feedback, string('Loaded %s', File?base_name)),
+	     and(message(Canvas, display, @arg1),
+		 message(@arg1, selected, @off))),
+	(   Clear == @on
+	->  send(Canvas, file, File)
+	;   true
+	),
+	send(Canvas, report, status, 'Loaded %s', File?base_name),
 	send(Sheet, done).
 
 
@@ -756,7 +759,9 @@ postscript(Canvas) :->
 postscript_as(Canvas) :->
 	"Write PostScript to file"::
 	get(Canvas, default_psfile, DefFile),
-	get(@finder, file, @off, '.eps', @default, DefFile, FileName),
+	get(Canvas, frame, Draw),
+	get(Draw, resource_value, postscript_file_extension, Ext),
+	get(@finder, file, @off, Ext, @default, DefFile, FileName),
 	send(Canvas, generate_postscript, FileName).
 
 
@@ -789,37 +794,61 @@ extended by resquesting additional parameters from the user.
 print(Canvas) :->
 	"Send to default printer"::
 	get(Canvas, default_printer, Printer),
-	default_printer(Printer),
+	get(Canvas, frame, Draw),
+	default_printer(Draw, Printer),
 	new(PsFile, file),
 	send(PsFile, open, write),
 	send(PsFile, append, Canvas?postscript),
 	send(PsFile, append, 'showpage\n'),
 	send(PsFile, close),
 	get(PsFile, absolute_path, File),
-	concat_atom(['lpr -P', Printer, ' ', File], Cmd),
-	shell(Cmd),
+	get(Draw, resource_value, print_command, CmdTempl),
+	print_cmd(CmdTempl, Printer, File, Cmd),
+	pce_shell_command('/bin/sh'('-c', Cmd)),
 	send(PsFile, remove),
 	send(PsFile, done),
-	send(Canvas?frame, feedback,
-	     string('Sent to printer `%s''', Printer)).
+	send(Canvas, report, status, 'Sent to printer `%s''', Printer).
 	
 
 default_printer(Canvas, Printer:name) :<-
 	"Get name of the printer"::
-	default_printer(DefPrinter),
+	get(Canvas, frame, Draw),
+	default_printer(Draw, DefPrinter),
 	new(D, dialog('PceDraw: printer?')),
-	send(D, append, append, new(P, text_item(printer, DefPrinter))),
-	send(D, append, button(ok, message(Canvas, return, P?selection))),
-	send(D, append, button(cancel, message(Canvas, return, @nil))),
-	send(D, default_button(ok)),
-	get(D, confirm_center, Canvas?frame?area?center, Answer),
+	send(D, append, new(P, text_item(printer, DefPrinter))),
+	send(D, append, button(ok, message(D, return, P?selection))),
+	send(D, append, button(cancel, message(D, return, @nil))),
+	send(D, default_button, ok),
+	get(D, confirm_centered, Canvas?frame?area?center, Answer),
 	send(D, destroy),
 	Answer \== @nil,
 	Printer = Answer.
 
-default_printer(Printer) :-
+default_printer(Draw, Printer) :-
+	get(Draw, resource_value, printer, Printer),
+	Printer \== @default, !.
+default_printer(_, Printer) :-
 	get(@pce, environment_variable, 'PRINTER', Printer), !.
-default_printer(postscript).
+default_printer(_, postscript).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+print_cmd(+Template, +Printer, +File,  -Command)   determines  the shell
+command to execute in order to get `File' printed on `Printer' using the
+given template. The substitutions are handled by a regex object.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+print_cmd(Template, Printer, File, Cmd) :-
+	new(S, string('%s', Template)),
+	substitute(S, '%p', Printer),
+	substitute(S, '%f', File),
+	get(S, value, Cmd),
+	free(S).
+
+substitute(S, F, T) :-
+	new(R, regex(F)),
+	send(R, for_all, S,
+	     message(@arg1, replace, @arg2, T)),
+	free(R).
 
 
 		/********************************
