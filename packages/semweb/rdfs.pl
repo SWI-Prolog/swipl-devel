@@ -102,10 +102,8 @@ rdfs_subproperty_of(SubProperty, Property) :-
 %	rdfs_subclass_of(+Class, ?Super)
 %	rdfs_subclass_of(?Class, +Super)
 %	
-%	Generate sub/super classes. At the moment there is a very simple
-%	loop detection back to the original   class. Other loops are not
-%	detected. I recall there  is  an   elegant  algorithm  for  loop
-%	detection using two pointers.
+%	Generate sub/super classes.  rdf_reachable/3 considers the
+%	rdfs:subPropertyOf relation as well as cycles.
 
 rdfs_subclass_of(Class, Super) :-
 	rdf_reachable(Class, rdfs:subClassOf, Super).
@@ -271,7 +269,10 @@ owl_satisfies(Domain, _) :-
 	rdf_equal(rdfs:'Resource', Domain), !.
 					% Descriptions
 owl_satisfies(class(Domain), Resource) :- !,
-	rdfs_subclass_of(Resource, Domain).
+	(   rdf_equal(Resource, rdfs:'Resource')
+	->  true
+	;   rdfs_subclass_of(Resource, Domain)
+	).
 owl_satisfies(union_of(Domains), Resource) :- !,
 	member(Domain, Domains),
 	owl_satisfies(Domain, Resource), !.

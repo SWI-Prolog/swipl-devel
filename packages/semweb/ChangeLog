@@ -1,3 +1,8 @@
+Sep 30, 2003
+
+  * FIXED: rdfs_find: every class is supposed to be a subclass of
+    rdfs:Resource.  Cleanup of comment
+
 Sep 29, 2003
 
   * ENHANCED: Store and reload MD5 using rdf_save_db and rdf_load_db for
