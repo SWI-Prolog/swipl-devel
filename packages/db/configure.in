@@ -28,9 +28,6 @@ AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 		   *)  ;;
 	       esac])
 
-LD=ld
-AC_PROG_CC
-
 AC_ARG_WITH(db, [  --with-db=DIR           DIR holding DB installation],
 	    [ case $withval in
 		no|yes) echo 'Please specify dir holding DB'
@@ -42,8 +39,11 @@ AC_ARG_WITH(db, [  --with-db=DIR           DIR holding DB installation],
               esac
 	    ])
 
+AC_PROG_CC
+LD=$CC
+
 if test -z "$PLINCL"; then
-plcandidates="pl swipl swi-prolog"
+plcandidates="$with_prolog swipl swi-prolog pl"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
 AC_CHECK_PROGS(PLLD, plld, "none")
 if test $PLLD = "none"; then
@@ -99,6 +99,18 @@ AC_CHECK_LIB(nsl, t_bind,
 AC_CHECK_LIB(db, db_open)
 
 AC_CHECK_HEADERS(db.h)
+
+AC_MSG_CHECKING("set_rpc_server() in db_env")
+AC_TRY_COMPILE(
+[
+#include <db.h>
+],
+[ DB_ENV *db_env;
+
+  db_env->set_rpc_server(db_env, "localhost", 0L, 0L, 0);
+], AC_DEFINE(HAVE_SET_RPC_SERVER)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
 
 AC_OUTPUT(Makefile)
 

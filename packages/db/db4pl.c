@@ -35,6 +35,12 @@
 #include <assert.h>
 #include <signal.h>
 
+					/* <  4.0: set_server */
+					/* >= 4.0: set_rpc_server */
+#ifndef HAVE_SET_RPC_SERVER
+#define set_rpc_server set_server
+#endif
+
 #define DEBUG(g) (void)0
 
 static atom_t ATOM_read;
@@ -1137,8 +1143,8 @@ pl_db_init(term_t option_list)
   if ( get_server(option_list, &si) )
   { if ( (rval=db_env_create(&db_env, DB_CLIENT)) )
       return db_status(rval);
-    rval = db_env->set_server(db_env, si.host,
-			      si.cl_timeout, si.sv_timeout, si.flags);
+    rval = db_env->set_rpc_server(db_env, si.host,
+				  si.cl_timeout, si.sv_timeout, si.flags);
     if ( rval )
       return db_status(rval);
   } else

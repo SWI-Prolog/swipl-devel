@@ -1,0 +1,4 @@
+Mon Mar 18 2002
+===============
+
+* Extend configure to check for ->set_rpc_server() from BerkeleyDB 4.0
