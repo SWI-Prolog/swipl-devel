@@ -31,6 +31,12 @@ Hosting languages
 =================
 
 	SWI-Prolog	http://swi.psy.uva.nl/usr/jan/SWI-Prolog/
+
+	Ports to the following have existed and are in not too bad
+	shape.  Regarding the non-GPL nature of these Prolog
+	implementations we have not yet made up our minds what we
+	do with the interface.
+
 	Quintus Prolog	http://www.sics.se/quintus/
 	SICStus Prolog  http://www.sics.se/ (foreseen shortly)
 	
@@ -52,28 +58,33 @@ Documentation
 	various fully dynamic viewpoints to the reference material.
 
 
-Licenses and Versions
-=====================
+Licenses
+========
 
-	* Free option
-	XPCE/SWI-Prolog for PC/Linux.  Fully functioning version
-	distributed free of charge.  Binary only.  For personal
-	and evaluation purposed only.
+	* XPCE is distributed under the GPL version 2 licence, which
+	is included in the file COPYING.
 
-	* Evaluation
-	XPCE/SWI-Prolog for Windows 95/98/NT, runs for 20 minutes.
+	In a nutshell, this implies you are free to modify and distribute
+	it as long as you bahave yourself and make the sourcecode
+	available to your users.  To behave oneself means that you
+	clearly indicate modifications and the fact this is a modified
+	version if you make modifications.  It also means you leave all
+	copyright messages in place.  For details please check the file
+	COPYING.
 
-	* Academic Unix license
-	Complete version, distributed as source.  Compiles on most
-	Unix platforms.  Binaries for SPARC/solaris are available
-	as well.
+	If you WRITE A PROGRAM in XPCE/Prolog and you distribute it you
+	need to DISCLOSE THE COMPLETE SOURCE to the program and make it
+	available to your client/user.
 
-	* Academic Windows license
-	Complete version, distributed as binary only.
-
-	* Commercial license
-	Includes access to the full source (including the Windows
-	binding and setup for Microsoft Visual C 5.0) and grands
-	the right to distribute runtime applications free of charge.
+	* If you have PROPRIETARY software you want to distributed under
+	XPCE(/Prolog) you need to buy a commercial license.  This license
+	gives you the same rights, but allows you not to disclose the
+	programs you wrote using XPCE/Prolog.
 	
-	
+	Please check the SWI-Prolog home-page at
+
+		http://www.swi.psy.uva.nl/projects/SWI-Prolog
+
+	for details.
+
+

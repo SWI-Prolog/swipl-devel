@@ -1,25 +1,37 @@
 Contents
 
 This directory contains XPCE, an   object-oriented  symbolic programming
-environment for User Interfaces.  XPCE has   been  designed to cooperate
-with symbolic languages such as Lisp and Prolog.
+environment   for   User   Interfaces.   XPCE   was   designed   to   be
+language-independant. In practice it has   gained popularity with Prolog
+and many useful libraries are now   available for Prolog only. Therefore
+we will often talk about XPCE/Prolog.
 
 
 Authors
 
-The development of XPCE was started   by  Anjo Anjewierden.  The package
-was then called PCE.  He  designed  and   implemented  version  1 and 2.
-Version 3 is the result of a joint  effort from Anjo Anjewierden and Jan
-Wielemaker.  This was the last version based  on SunView.  Version 4 has
-been designed and implemented by  Jan   Wielemaker.   It  makes the full
-object oriented mechanisms underlying PCE  available   to  the Prolog or
-Lisp programmer and is based on X-windows rather than SunView.
+The development of XPCE was started by Anjo Anjewierden. The package was
+then called PCE. He designed and implemented  version 1 and 2. Version 3
+is  the  result  of  a  joint  effort  from  Anjo  Anjewierden  and  Jan
+Wielemaker. This was the last version based  on SunView. Version 4 and 5
+have been designed and implemented by Jan  Wielemaker. It makes the full
+object oriented mechanisms  underlying  PCE   available  to  the  Prolog
+programmer and has bindings for X-windows (X11) and MS-Windows (Win32).
 
 
 Copyrights
 
-XPCE is NOT PUBLIC DOMAIN, NOR COPY-LEFT.   A licence can be obtained by
-writing or E-mailing to xpce-request@swi.psy.uva.nl
+The copyright to XPCE is owned by  the University of Amsterdam, XPCE may
+be distributed under the terms of the   General Public License version 2
+(GPL-2),   which   is   available   in   the    file   COPYING   or   at
+http://www.gnu.org.
+
+As with the default hosting language SWI-Prolog, commercial licences are
+available that allow for the use with proprietary software. Please check
+the SWI-Prolog home-page for details at
+
+http://www.swi.psy.uva.nl/projects/SWI-Prolog
+
+or contact the author at
 
 	Jan Wielemaker
 	Dept. of Social Science Informatics (SWI)
@@ -28,23 +40,6 @@ writing or E-mailing to xpce-request@swi.psy.uva.nl
 	1018 WB  Amsterdam
 	The Netherlands
 	E-mail: jan@swi.psy.uva.nl
-
-The licence fee is 500 ECU + VAT  for academic institutions and 2000 ECU
-+ VAT for commercial institutions.   The   licence  agreement  is in the
-directory `licence' below this directory.
-
-Binary versions for the free Linux   operating system running on 386/486
-PC hardware may be copied and used free of charge.
-
-
-Commercially supported version
-
-If you whish the benefits  of  commercial   support,  you  can  obtain a
-supported version from AIIL, UK.  This version  is connected to the best
-available Prolog system: Quintus Prolog   (version  3.2 currently).  The
-commercial version is supposed to be   slightly  behind, but more robust
-and following a better controlled release   path.   For details, contact
-Simon Heywood (simon@aiil.co.uk).
 
 
 Installation

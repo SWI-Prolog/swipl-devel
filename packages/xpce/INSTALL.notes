@@ -73,7 +73,7 @@ To install XPCE/SWI-Prolog from the sources:
 		% cd solaris
 		% ../src/configure
 		% make
-		% make dv-install
+		% make install
 
 XPM colour image files
 ======================
@@ -294,7 +294,7 @@ Installing the XPCE library
 
 Finally, to install the XPCE libraries, do:
 
-	% make dv-install
+	% make install
 
 Which will:
 

@@ -499,16 +499,11 @@ library_overview(_M) :->
 pce_ifhostproperty(prolog(quintus),
 (   about(Fmt, Font) :- pce_host:about(Fmt, Font)),
 [ about('XPCE version %s'+[@pce?version], boldhuge),
-  about('Copyright 1992-2000, University of Amsterdam', normal),
-  about('xpce-request@swi.psy.uva.nl', bold),
+  about('Copyright 1992-2001, University of Amsterdam', normal),
+  about('Copying: GPL-2\nLicenses for use with proprietary code available', bold),
+  about(url('http://www.swi.psy.uva.nl/projects/xpce/'), normal),
   about('Jan Wielemaker\nAnjo Anjewierden', italic),
-  about('SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands', normal),
-  (about('Licenced to "%s"'+[Holder], bold) :-
-	get(@pce, attribute, licence_holder, Holder)),
-  (about('Licence will expire in %d days'+[Days], normal) :-
-	get(@pce, attribute, days_to_expiration, Days)),
-  (about('Unregistered copy\nXPCE will CRASH after about 20 minutes', bold) :-
-	get(@pce, attribute, unlicenced_copy, @on))
+  about('SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands', normal)
 ]).
 
 about(M) :->
@@ -516,15 +511,34 @@ about(M) :->
 	new(D, dialog('About XPCE')),
 	send(D, transient_for, M),
 	forall(about(Txt, Font),
-	       (   (   Txt = Fmt+Args
-		   ->  Term =.. [string, Fmt | Args]
-		   ;   Term = string(Txt)
-		   ),
-		   send(D, append, new(T, text(Term, center, Font))),
-		   send(T, alignment, center)
-	       )),
+	       add_about(Txt, Font, D)),
 	send(D, append, button(ok, message(D, destroy))),
 	send(D, open_centered).
+
+add_about(url(Url), Font, D) :- !,
+	send(D, append, new(T, text(Url, center, Font))),
+	send(T, underline, @on),
+	send(T, colour, blue),
+	send(T, recogniser,
+	     click_gesture(left, '', single,
+			   message(@prolog, goto_url, T?string?value))),
+	send(T, cursor, hand2),
+	send(T, alignment, center).
+add_about(Fmt+Args, Font, D) :- !,
+	Term =.. [string, Fmt | Args],
+	send(D, append, new(T, text(Term, center, Font))),
+	send(T, alignment, center).
+add_about(Text, Font, D) :-
+	send(D, append, new(T, text(Text, center, Font))),
+	send(T, alignment, center).
+
+goto_url(Url) :-
+	send(@display, busy_cursor),
+	(   catch(www_open_url(Url), _, fail)
+	->  true
+	;   send(@display, inform, 'Failed to open URL')
+	),
+	send(@display, busy_cursor, @nil).
 
 		 /*******************************
 		 *	       HELP		*
