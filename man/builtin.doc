@@ -4129,8 +4129,8 @@ if the file does not exist and the user has write-access to the
 directory of the specified location.
 
     \predicate{exists_file}{1}{+File}
-Succeeds when \arg{File} exists. This does not imply the user has read
-and/or write permission for the file.
+Succeeds when \arg{File} exists and is a regular file. This does not
+imply the user has read and/or write permission for the file.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
 Extracts the directory-part of \arg{File}.  The returned \arg{Directory}
@@ -4149,8 +4149,9 @@ and point to the same file (due to hard or symbolic links and/or
 relative vs. absolute paths).
 
     \predicate{exists_directory}{1}{+Directory}
-Succeeds if \arg{Directory} exists. This does not imply the user has read,
-search and or write permission for the directory.
+Succeeds if \arg{Directory} exists and is a directory. This does not
+imply the user has read, search and or write permission for the
+directory.
 
     \predicate{delete_file}{1}{+File}
 Remove \arg{File} from the file system.

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: make exists_file/1 and exists_directory/1 properly say no if the
+    filesystem object is not of the right type.
+
   * ADDED: Windows: mkboot.bat script to the bin-directory to easily redo
     the boot-compilation.
 

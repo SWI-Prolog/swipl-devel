@@ -482,6 +482,8 @@ _xos_exists(const char *path, int flags)
   { if ( flags & _XOS_DIR )
     { if ( a & FILE_ATTRIBUTE_DIRECTORY )
 	return TRUE;
+      else
+	retun FALSE;
     }
     if ( flags & _XOS_FILE )
     { if ( a & FILE_ATTRIBUTE_DIRECTORY )

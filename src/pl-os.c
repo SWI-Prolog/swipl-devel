@@ -729,13 +729,12 @@ LastModifiedFile(char *f)
 
 bool
 ExistsFile(const char *path)
-{ char tmp[MAXPATHLEN];
-
-#ifdef HAVE_ACCESS
-  if ( access(OsPath(path, tmp), F_OK) == 0 )
-    succeed;
-  fail;
+{ 
+#ifdef O_XOS
+  return _xos_exists(path, _XOS_FILE);
 #else
+  char tmp[MAXPATHLEN];
+
 #if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
@@ -756,7 +755,9 @@ ExistsFile(const char *path)
   fail;
 #endif
 #endif
+#endif
 }
+
 
 bool
 AccessFile(const char *path, int mode)
