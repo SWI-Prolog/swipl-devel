@@ -3145,7 +3145,7 @@ erasure as soon as the clause finishes executing.
 	  arity   = 0;
 	  args    = NULL;
 	} else if ( isTerm(goal) )
-	{ if ( isSimpleGoal(a PASS_LD) )
+	{ if ( isSimpleGoal(a PASS_LD) /*|| 1*/)
 	  { args    = argTermP(goal, 0);
 	    functor = functorTerm(goal);
 	    arity   = arityFunctor(functor);
@@ -3155,16 +3155,16 @@ erasure as soon as the clause finishes executing.
   
 	    ht    = allocGlobal(3);
 	    ht[0] = FUNCTOR_dcall1;
-	    ht[1] = consPtr(&ht[2], TAG_COMPOUND|STG_GLOBAL);
+	    ht[1] = ATOM_dcall;		/* used for ground goal */
+	    ht[2] = ATOM_nil;		/* harmless data */
 	    arity = g_free_variables(a, gTop, 0);
-	    if ( arity == 0 )
-	    { ht[1] = ATOM_dcall;
-	      ht[2] = ATOM_nil;		/* harmless data */
-	    } else
+	    if ( arity > 0 )
+	    { ht[1] = consPtr(&ht[2], TAG_COMPOUND|STG_GLOBAL);
 	      ht[2] = lookupFunctorDef(ATOM_dcall, arity);
-	    head = argFrameP(next, 1);
+	    }
+	    head = argFrameP(next, 1);	/* @0 is the goal */
 	    *head = consPtr(ht, TAG_COMPOUND|STG_GLOBAL);
-	    lTop = (LocalFrame)argFrameP(next, 2);
+	    lTop = (LocalFrame)head+1;
   
 	    if ( !(cl = compileClause(head, a, PROCEDURE_dcall1, module)) )
 	      goto b_throw;
@@ -3659,26 +3659,22 @@ execution can continue at `next_instruction'
 	     && trueFeature(TAILRECURSION_FEATURE)
 #endif
 	   )
-	{ 
+	{ Definition ndef = ((Procedure) *PC++)->definition;
+	  LocalFrame lSave = lTop;
+
+	  arity = ndef->functor->arity;
+	  lTop = (LocalFrame)argFrameP(lTop, arity);
 #if O_DEBUGGER
 	  if ( true(FR, FR_WATCHED) )
-	  { LocalFrame lSave = lTop;
-	    arity = ((Procedure) *PC)->definition->functor->arity;
-
-	    lTop = (LocalFrame)argFrameP(lTop, arity);
 	    frameFinished(FR);
-	    lTop = lSave;
-	  }
 #endif
-	  { Definition ndef = ((Procedure) *PC++)->definition;
+	  if ( true(DEF, HIDE_CHILDS) )
+	    set(FR, FR_NODEBUG);
+	  leaveDefinition(DEF);
+	  FR->predicate = DEF = ndef;
 
-	    if ( true(DEF, HIDE_CHILDS) )
-	      set(FR, FR_NODEBUG);
-	    leaveDefinition(DEF);
-	    FR->predicate = DEF = ndef;
-
-	    copyFrameArguments(lTop, FR, DEF->functor->arity PASS_LD);
-	  }
+	  copyFrameArguments(lSave, FR, arity PASS_LD);
+	  lTop = lSave;
 
 	  goto depart_continue;
 	}
