@@ -122,6 +122,12 @@ get_to_object(Ref, Object) :-
 %	Send a messages to the carthesian product of ListOfObjs and
 %	ListOfSels.
 
+send_list(X, _) :-
+	var(X),
+	throw(error(instantiation_error, _)).
+send_list(_, X) :-
+	var(X),
+	throw(error(instantiation_error, _)).
 pce_ifhostproperty(prolog(quintus), [],
 (   send_list([], _) :- !)).
 send_list(_, []) :- !.
@@ -158,6 +164,15 @@ send_list_module(Object, Selector, Module) :-
 %       Send a messages to the carthesian product of ListOfObjs and
 %       ListOfSels.
 
+send_list(X, _, _) :-
+	var(X),
+	throw(error(instantiation_error, _)).
+send_list(_, X, _) :-
+	var(X),
+	throw(error(instantiation_error, _)).
+send_list(_, _, X) :-
+	var(X),
+	throw(error(instantiation_error, _)).
 pce_ifhostproperty(prolog(quintus), [],
 (   send_list([], _,  _) :- !)).
 send_list(_, [], _) :- !.
