@@ -59,8 +59,8 @@
 	    odbc_type/3,		% +Conn, ?Type, -Facet
 	    odbc_data_source/2,		% ?DSN, ?Description
 
-	    odbc_statistics/1		% -Value
-
+	    odbc_statistics/1,		% -Value
+	    odbc_debug/1		% +Level
 	  ]).
 :- use_module(library(shlib)).
 :- use_module(library(lists)).

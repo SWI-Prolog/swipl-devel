@@ -44,10 +44,14 @@ Stefano  De  Giorgi  (s.degiorgi@tin.it).
 #endif
 #endif
 
+#define O_DEBUG 1
+
+static int odbc_debuglevel = 0;
+
 #ifdef O_DEBUG
-#define DEBUG(g) g
+#define DEBUG(level, g) if ( odbc_debuglevel >= (level) ) g
 #else
-#define DEBUG(g) ((void)0)
+#define DEBUG(level, g) ((void)0)
 #endif
 
 #include <sql.h>
@@ -71,6 +75,7 @@ typedef DWORD SQLLEN;
 #endif
 #define MAX_NAME_LEN 50
 #define MAX_STMT_LEN 100
+#define MAX_NOGETDATA 1024		/* use SQLGetData() on wider columns */
 #define STRICT
 
 #define NameBufferLength 256
@@ -162,6 +167,7 @@ static functor_t FUNCTOR_silent1;
 static functor_t FUNCTOR_findall2;	/* findall(Term, row(...)) */
 static functor_t FUNCTOR_affected1;
 static functor_t FUNCTOR_fetch1;
+static functor_t FUNCTOR_wide_column_threshold1;	/* set max_nogetdata */
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -222,6 +228,7 @@ typedef struct connection
   nulldef     *null;			/* Prolog null value */
   unsigned     flags;			/* general flags */
   int	       max_qualifier_lenght;	/* SQL_MAX_QUALIFIER_NAME_LEN */
+  int	       max_nogetdata;		/* handle as long field if larger */
   struct connection *next;		/* next in chain */
 } connection;
 
@@ -241,6 +248,7 @@ typedef struct
   unsigned     flags;			/* general flags */
   nulldef     *null;			/* Prolog null value */
   findall     *findall;			/* compiled code to create result */
+  int	       max_nogetdata;		/* handle as long field if larger */
   struct context *clones;		/* chain of clones */
 } context;
 
@@ -1055,6 +1063,7 @@ alloc_connection(atom_t alias, atom_t dsn)
     PL_register_atom(alias);
   c->dsn = dsn;
   PL_register_atom(dsn);
+  c->max_nogetdata = MAX_NOGETDATA;
 
   c->next = connections;
   connections = c;
@@ -1185,7 +1194,8 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
      } else if ( PL_is_functor(head, FUNCTOR_auto_commit1) ||
 		 PL_is_functor(head, FUNCTOR_null1) ||
 		 PL_is_functor(head, FUNCTOR_access_mode1) ||
-		 PL_is_functor(head, FUNCTOR_cursor_type1) )
+		 PL_is_functor(head, FUNCTOR_cursor_type1) ||
+		 PL_is_functor(head, FUNCTOR_wide_column_threshold1) )
      { if ( nafter < MAX_AFTER_OPTIONS )
 	 PL_put_term(after_open+nafter++, head);
        else
@@ -1239,6 +1249,7 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
      return FALSE;
    }
 
+   DEBUG(3, Sdprintf("Processing %d `after' options\n", nafter));
    for(i=0; i<nafter; i++)
    { if ( !odbc_set_connection(cn, after_open+i) )
      { free_connection(cn);
@@ -1368,6 +1379,15 @@ odbc_set_connection(connection *cn, term_t option)
 
     PL_get_arg(1, option, a);
     cn->null = nulldef_spec(a);
+
+    return TRUE;
+  } else if ( PL_is_functor(option, FUNCTOR_wide_column_threshold1) )
+  { int val;
+
+    if ( !get_int_arg_ex(1, option, &val) )
+      return FALSE;
+    DEBUG(2, Sdprintf("Using wide_column_threshold = %d\n", val));
+    cn->max_nogetdata = val;
 
     return TRUE;
   } else
@@ -1548,6 +1568,7 @@ new_context(connection *cn)
   ctxt->connection = cn;
   ctxt->null = cn->null;
   ctxt->flags = cn->flags;
+  ctxt->max_nogetdata = cn->max_nogetdata;
   SQLAllocStmt(cn->hdbc, &ctxt->hstmt);
   statistics.statements_created++;
 
@@ -1819,11 +1840,13 @@ prepare_result(context *ctxt)
       return PL_warning("odbc_query/2: column type not managed");
     }
 
-    if ( true(ctxt, CTX_TABLES) )
-    { /*Sdprintf("SQLTables(): column %d, sqlTypeID = %d, columnSize = %d\n",
-		 i, ptr_result->sqlTypeID, columnSize);*/
+    DEBUG(1, Sdprintf("prepare_result(): column %d, \
+		   sqlTypeID = %d, cTypeID = %d, \
+		   columnSize = %d\n",
+		   i, ptr_result->sqlTypeID, ptr_result->cTypeID, columnSize));
 
-      switch (ptr_result->sqlTypeID)
+    if ( true(ctxt, CTX_TABLES) )
+    { switch (ptr_result->sqlTypeID)
       { case SQL_LONGVARCHAR:
 	case SQL_VARCHAR:
 	{ int qlen = max_qualifier_lenght(ctxt->connection);
@@ -1841,7 +1864,7 @@ prepare_result(context *ctxt)
     switch (ptr_result->sqlTypeID)
     { case SQL_LONGVARCHAR:
       case SQL_LONGVARBINARY:
-      { if ( columnSize > 1024 )
+      { if ( (int)columnSize > ctxt->max_nogetdata )
 	{ ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
 	  continue;
 	}
@@ -1855,7 +1878,7 @@ prepare_result(context *ctxt)
 	columnSize++;			/* one for decimal dot */
         /*FALLTHROUGH*/
       case SQL_C_BINARY:
-	if ( columnSize > 1024 )
+	if ( (int)columnSize > ctxt->max_nogetdata )
 	{ ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
 	  continue;
 	}
@@ -2067,6 +2090,9 @@ set_statement_options(context *ctxt, term_t options)
 	  PL_get_arg(1, head, a);
 	  return domain_error(a, "fetch");
 	}
+      } else if ( PL_is_functor(head, FUNCTOR_wide_column_threshold1) )
+      { if ( !get_int_arg_ex(1, head, &ctxt->max_nogetdata) )
+	  return FALSE;
       } else
 	return domain_error(head, "odbc_option");
     }
@@ -2489,7 +2515,7 @@ declare_parameters(context *ctxt, term_t parms)
 	} else				/* unknown, use SQLPutData() */
 	{ params->ptr_value = (PTR)pn;
 	  params->len_value = SQL_LEN_DATA_AT_EXEC(0);
-	  DEBUG(Sdprintf("Using SQLPutData() for column %d\n", pn));
+	  DEBUG(2, Sdprintf("Using SQLPutData() for column %d\n", pn));
 	}
         vlenptr = &params->len_value;
 	break;
@@ -2743,7 +2769,7 @@ bind_parameters(context *ctxt, term_t parms)
 
   for(prm = ctxt->params; PL_get_list(tail, head, tail); prm++)
   { if ( prm->len_value == SQL_LEN_DATA_AT_EXEC(0) )
-    { DEBUG(Sdprintf("bind_parameters(): Delaying column %d\n",
+    { DEBUG(2, Sdprintf("bind_parameters(): Delaying column %d\n",
 		     prm-ctxt->params+1));
       prm->put_data = PL_copy_term_ref(head);
       continue;
@@ -2779,7 +2805,7 @@ bind_parameters(context *ctxt, term_t parms)
 	len = l;
 
 	if ( len > prm->length_ind )
-	{ DEBUG(Sdprintf("Column-width = %d\n", prm->length_ind));
+	{ DEBUG(1, Sdprintf("Column-width = %d\n", prm->length_ind));
 	  return representation_error(head, "column_width");
 	}
 	memcpy(prm->ptr_value, s, len+1);
@@ -3030,6 +3056,15 @@ odbc_statistics(term_t what)
 }
 
 
+static foreign_t
+odbc_debug(term_t level)
+{ if ( !PL_get_integer(level, &odbc_debuglevel) )
+    return type_error(level, "integer");
+
+  return TRUE;
+}
+
+
 #define MKFUNCTOR(name, arity) PL_new_functor(PL_new_atom(name), arity)
 #define NDET(name, arity, func) PL_register_foreign(name, arity, func, \
 						    PL_FA_NONDETERMINISTIC)
@@ -3105,6 +3140,7 @@ install_odbc4pl()
    FUNCTOR_findall2		 = MKFUNCTOR("findall", 2);
    FUNCTOR_affected1		 = MKFUNCTOR("affected", 1);
    FUNCTOR_fetch1		 = MKFUNCTOR("fetch", 1);
+   FUNCTOR_wide_column_threshold1= MKFUNCTOR("wide_column_threshold", 1);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
@@ -3127,6 +3163,7 @@ install_odbc4pl()
    DET("odbc_data_sources",	   1, odbc_data_sources);
 
    DET("$odbc_statistics",	   1, odbc_statistics);
+   DET("odbc_debug",	           1, odbc_debug);
 }
 
 
@@ -3289,10 +3326,15 @@ pl_put_column(context *c, int nth, term_t col)
     char *data = buf;
     SDWORD len;
 
+    DEBUG(2, Sdprintf("Fetching value for column %d using SQLGetData()\n",
+		   nth+1));
+
     c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
 		       buf, sizeof(buf), &len);
+
     if ( c->rc == SQL_SUCCESS || c->rc == SQL_SUCCESS_WITH_INFO )
-    { if ( len == SQL_NULL_DATA )
+    { DEBUG(2, Sdprintf("Got %ld bytes\n", len));
+      if ( len == SQL_NULL_DATA )
       { put_sql_null(val, c->null);
 	goto ok;
       } else if ( len == SQL_NO_TOTAL )
@@ -3301,22 +3343,43 @@ pl_put_column(context *c, int nth, term_t col)
 			  "Please report to bugs@swi-prolog.org");
       } else if ( len >= (SDWORD)sizeof(buf) )
       { int pad = p->cTypeID == SQL_C_CHAR ? 1 : 0;
+	int todo = len-sizeof(buf)+2*pad;
 	SDWORD len2;
+	char *ep;
+	int part = 2;
 
 	data = odbc_malloc(len+pad);
 	memcpy(data, buf, sizeof(buf));	/* you don't get the data twice! */
-	c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
-			   data+sizeof(buf)-pad, len-sizeof(buf)+2*pad, &len2);
-	if ( c->rc != SQL_SUCCESS )
-	{ free(data);
-	  report_status(c);
-	  return FALSE;
+	ep = data+sizeof(buf)-pad;
+	while(todo > 0)
+	{ c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
+			     ep, todo, &len2);
+	  DEBUG(2, Sdprintf("Requested %d bytes for part %d; \
+			     pad=%d; got %ld\n",
+			    todo, part, pad, len2));
+	  todo -= len2;
+	  ep += len2;
+	  part++;
+
+	  switch( c->rc )
+	  { case SQL_SUCCESS:
+	      len = ep-data;
+	      goto got_all_data;
+	    case SQL_SUCCESS_WITH_INFO:
+	      break;
+	    default:
+	    { Sdprintf("ERROR: %d\n", c->rc);
+	      free(data);
+	      report_status(c);
+	      return FALSE;
+	    }
+	  }
 	}
-	assert(len == len2 + (SDWORD)sizeof(buf) - pad);
       }
     } else if ( !report_status(c) )
       return FALSE;
 
+  got_all_data:
     put_chars(val, p->plTypeID, len, data);
     if ( data != buf )
       free(data);

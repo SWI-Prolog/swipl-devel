@@ -321,10 +321,12 @@ distclean_packages:
 # Quick common actions during development
 ################################################################
 
-pce-dll:
+pce-dll::
 		$(CMD) /c "chdir $(PKGDIR)\xpce\src & $(MAKE) idll"
-clib-install:
+clib-install::
 		$(CMD) /c "chdir $(PKGDIR)\clib & $(MAKE) install"
+odbc-install:
+		$(CMD) /c "chdir $(PKGDIR)\odbc & $(MAKE) install"
 
 ################################################################
 # Cleanup
