@@ -317,12 +317,12 @@ triples_on_relation(Rel, Count) :-
 %	Count the number of times Goal succeeds.
 
 count_solutions(Goal, Count) :-
-	flag(count_solutions, Old, 0),
-	(   catch(Goal, E, (flag(count_solutions, _, Old),
+	flag(rdf_db_count_solutions, Old, 0),
+	(   catch(Goal, E, (flag(rdf_db_count_solutions, _, Old),
 			    throw(E))),
-	    flag(count_solutions, C, C+1),
+	    flag(rdf_db_count_solutions, C, C+1),
 	    fail
-	;   flag(count_solutions, C, Old)
+	;   flag(rdf_db_count_solutions, C, Old)
 	),
 	Count = C.
 
@@ -499,11 +499,45 @@ rdf_save(File) :-
 
 rdf_save(File, DB) :-
 	open(File, write, Out),
+	flag(rdf_db_saved_subjects, OSavedSubjects, 0),
+	flag(rdf_db_saved_triples, OSavedTriples, 0),
+	call_cleanup(rdf_do_save(Out, DB),
+		     Reason,
+		     cleanup_save(Reason,
+				  File,
+				  OSavedSubjects,
+				  OSavedTriples,
+				  Out)).
+
+cleanup_save(Reason,
+	     File,
+	     OSavedSubjects,
+	     OSavedTriples,
+	     Out) :-
+	close(Out),
+	flag(rdf_db_saved_subjects, SavedSubjects, OSavedSubjects),
+	flag(rdf_db_saved_triples, SavedTriples, OSavedTriples),
+	(   Reason == exit
+	->  print_message(informational,
+			  rdf(saved(File, SavedSubjects, SavedTriples)))
+	;   format(user_error, 'Reason = ~w~n', [Reason])
+	).
+
+rdf_do_save(Out, DB) :-
 	rdf_save_header(Out, DB),
 	forall(rdf_subject(Subject, DB),
 	       rdf_save_non_anon_subject(Out, Subject, DB)),
-	rdf_save_footer(Out),
-	close(Out).
+	rdf_save_footer(Out), !.	% dubious cut; without the
+					% cleanup handlers isn't called!?
+
+rdf_subject(Subject, DB) :-
+	var(DB), !,
+	rdf_subject(Subject).
+rdf_subject(Subject, DB) :-
+	rdf_subject(Subject),
+	(   rdf(Subject, _, _, DB:_)
+	->  true
+	).
 
 %	rdf_save_header(+Fd, +DB)
 %
@@ -515,7 +549,7 @@ rdf_save_header(Out, DB) :-
 	format(Out, '<!DOCTYPE rdf:RDF [', []),
 	used_namespaces(NSList, DB),
 	(   member(Id, NSList),
-	    ens(Id, NS),
+	    ns(Id, NS),
 	    format(Out, '~N    <!ENTITY ~w \'~w\'>', [Id, NS]),
 	    fail
 	;   true
@@ -529,19 +563,12 @@ rdf_save_header(Out, DB) :-
 	),
 	format(Out, '>~n', []).
 
-ens(e, '').
-ens(Id, NS) :-
-	ns(Id, NS).
-
 %	used_namespaces(-List)
 %
 %	Return the list of namespaces used in an RDF database.
 
-:- dynamic
-	used_ns/1.
-
 used_namespaces(List, DB) :-
-	setof(NS, Full^ens(NS, Full), NS0),
+	setof(NS, Full^ns(NS, Full), NS0),
 	used_ns(NS0, List, DB).
 
 used_ns([], [], _).
@@ -551,10 +578,9 @@ used_ns([H|T0], [H|T], DB) :-
 used_ns([_|T0], T, DB) :-
 	used_ns(T0, T, DB).
 
-used_ns(e, _) :- !.			% for now just assume it
 used_ns(NS, DB) :-
 	ns(NS, Full),
-	rdf(S,P,O,DB),
+	rdf_db(S,P,O,DB),
 	(   sub_atom(S, 0, _, _, Full)
 	;   sub_atom(P, 0, _, _, Full)
 	;   atom(O),
@@ -568,21 +594,40 @@ rdf_save_footer(Out) :-
 rdf_save_non_anon_subject(_Out, Subject, _DB) :-
 	anonymous_subject(Subject), !.
 rdf_save_non_anon_subject(Out, Subject, DB) :-
-	rdf_save_subject(Out, Subject, DB).
+	rdf_save_subject(Out, Subject, DB),
+	flag(rdf_db_saved_subjects, X, X+1).
 
 
 rdf_save_subject(Out, Subject, DB) :-
-	rdf_save_subject(Out, Subject, rdf, 0, DB),
-	format(Out, '~n', []).
+	rdf_save_subject(Out, Subject, -, 0, DB),
+	format(Out, '~n', []), !.
+rdf_save_subject(_, Subject, _DB) :-
+	throw(error(rdf_save_failed(Subject), 'Internal error')).
 
 rdf_save_subject(Out, Subject, DefNS, Indent, DB) :-
-	setof(Pred=Object, rdf_db(Subject, Pred, Object, DB), Atts),
-	rdf_save_subject(Out, Subject, DefNS, Atts, Indent, DB).
+	findall(Pred=Object, rdf_db(Subject, Pred, Object, DB), Atts0),
+	sort(Atts0, Atts),		% remove duplicates
+	length(Atts, L),
+	(   length(Atts0, L0),
+	    Del is L0-L,
+	    Del > 0
+	->  print_message(informational,
+			  rdf(save_removed_duplicates(Del, Subject)))
+	;   true
+	),
+	rdf_save_subject(Out, Subject, DefNS, Atts, Indent, DB),
+	flag(rdf_db_saved_triples, X, X+L).
 
-rdf_save_subject(Out, Subject, DefNS0, Atts, Indent, DB) :-
-	rdf_global_id(rdf:type, RdfType),
+rdf_db(Subject, Pred, Object, DB) :-
+	var(DB), !,
+	rdf(Subject, Pred, Object).
+rdf_db(Subject, Pred, Object, DB) :-
+	rdf(Subject, Pred, Object, DB:_).
+
+rdf_save_subject(Out, Subject, DefNS, Atts, Indent, DB) :-
+	rdf_equal(rdf:type, RdfType),
 	select(RdfType=Type, Atts, Atts1), !,
-	rdf_local_id(Type, DefNS0, DefNS, TypeId),
+	rdf_id(Type, DefNS, TypeId),
 	format(Out, '~*|<~w', [Indent, TypeId]),
 	save_about(Out, Subject, Indent),
 	save_attributes(Atts1, DefNS, Out, TypeId, Indent, DB).
@@ -615,17 +660,52 @@ save_attributes(Atts, DefNS, Out, Element, Indent, DB) :-
 	    format(Out, '~N~*|</~w>~n', [Indent, Element])
 	).
 
-%	split_attributes(+Attributes, -Inline, -Body)
+%	split_attributes(+Attributes, -HeadAttrs, -BodyAttr)
+%	
+%	Split attribute (Name=Value) list into attributes for the head
+%	and body. Attributes can only be in the head if they are literal
+%	and appear only one time in the attribute list.
+
+split_attributes(Atts, HeadAttr, BodyAttr) :-
+	duplicate_attributes(Atts, Dupls, Singles),
+	literal_attributes(Singles, HeadAttr, Rest),
+	append(Dupls, Rest, BodyAttr).
+
+%	duplicate_attributes(+Attrs, -Duplicates, -Singles)
+%	
+%	Extract attributes that appear more than onces as we cannot
+%	dublicate an attribute in the head according to the XML rules.
+
+duplicate_attributes([], [], []).
+duplicate_attributes([H|T], Dupls, Singles) :-
+	H = (Name=_),
+	named_attributes(Name, T, D, R),
+	D \== [],
+	append([H|D], Dupls2, Dupls), !,
+	duplicate_attributes(R, Dupls2, Singles).
+duplicate_attributes([H|T], Dupls2, [H|Singles]) :-
+	duplicate_attributes(T, Dupls2, Singles).
+
+named_attributes(_, [], [], []) :- !.
+named_attributes(Name, [H|T], D, R) :-
+	(   H = (Name=_)
+	->  D = [H|DT],
+	    named_attributes(Name, T, DT, R)
+	;   R = [H|RT],
+	    named_attributes(Name, T, D, RT)
+	).
+
+%	literal_attributes(+Attributes, -Inline, -Body)
 %
 %	Split attributes for (literal) attributes to be used in the
 %	begin-tag and ones that have to go into the body of the description.
 
-split_attributes([], [], []).
-split_attributes([H|TA], [H|TI], B) :-
+literal_attributes([], [], []).
+literal_attributes([H|TA], [H|TI], B) :-
 	in_tag_attribute(H), !,
-	split_attributes(TA, TI, B).
-split_attributes([H|TA], I, [H|TB]) :-
-	split_attributes(TA, I, TB).
+	literal_attributes(TA, TI, B).
+literal_attributes([H|TA], I, [H|TB]) :-
+	literal_attributes(TA, I, TB).
 
 in_tag_attribute(_=literal(Text)) :-
 	atom_length(Text, Len),
@@ -641,47 +721,56 @@ save_attributes2([H|T], DefNS, Where, Out, Indent, DB) :-
 	save_attributes2(T, DefNS, Where, Out, Indent, DB).
 
 save_attribute(tag, Name=literal(Value), DefNS, Out, Indent, _DB) :-
-	rdf_id(Name, DefNS, NameText),
+	AttIndent is Indent + 2,
+	rdf_att_id(Name, DefNS, NameText),
 	xml_quote_attribute(Value, QVal),
-	format(Out, '~N~*|~w="~w"', [Indent, NameText, QVal]).
+	format(Out, '~N~*|~w="~w"', [AttIndent, NameText, QVal]).
 save_attribute(body, Name=literal(Value), DefNS, Out, Indent, _DB) :- !,
-	rdf_local_id(Name, DefNS, NameText),
+	rdf_id(Name, DefNS, NameText),
 	xml_quote_cdata(Value, QVal),
 	format(Out, '~N~*|<~w>~w</~w>', [Indent, NameText, QVal, NameText]).
-save_attribute(body, Name=Value, DefNS0, Out, Indent, DB) :-
+save_attribute(body, Name=Value, DefNS, Out, Indent, DB) :-
 	anonymous_subject(Value), !,
-	rdf_local_id(Name, DefNS0, DefNS, NameText),
+	rdf_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<~w>~n', [Indent, NameText]),
 	SubIndent is Indent + 2,
 	rdf_save_subject(Out, Value, DefNS, SubIndent, DB),
 	format(Out, '~N~*|</~w>~n', [Indent, NameText]).
 save_attribute(body, Name=Value, DefNS, Out, Indent, _DB) :-
 	rdf_value(Value, QVal),
-	rdf_local_id(Name, DefNS, NameText),
+	rdf_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<~w rdf:resource="~w"/>', [Indent, NameText, QVal]).
 
-anonymous_subject(S) :-
-	sub_atom(S, 0, _, _, 'Description__').
+%	anonymous_subject(+Subject)
+%	
+%	Test if a resource is anonymous. This is highly dubious.
+%	Probably we need to store this in the database.
 
+anonymous_subject(S) :-
+	sub_atom(S, _, _, _, '__'), !.
+
+%	rdf_id(+Resource, +DefNS, -NSLocal)
+%	
+%	Generate a NS:Local name for Resource given the indicated
+%	default namespace.  This call is used for elements.
 
 rdf_id(Id, NS, NS:Local) :-
 	ns(NS, Full),
 	Full \== '',
 	atom_concat(Full, Local, Id), !.
-rdf_id(Id, e, e:Id).
-
-
-rdf_local_id(Id, NS, Local) :-
+rdf_id(Id, _, NS:Local) :-
 	ns(NS, Full),
+	Full \== '',
 	atom_concat(Full, Local, Id), !.
-rdf_local_id(Id, _, Text) :-
-	rdf_id(Id, _, Text).
+rdf_id(Id, _, Id).
 
-rdf_local_id(Id, NS, NS, Local) :-
+
+rdf_att_id(Id, _, NS:Local) :-
 	ns(NS, Full),
+	Full \== '',
 	atom_concat(Full, Local, Id), !.
-rdf_local_id(Id, _, NS, Text) :-
-	rdf_id(Id, NS, Text).
+rdf_att_id(Id, _, Id).
+
 
 rdf_value(V, Text) :-
 	ns(NS, Full),
@@ -713,4 +802,9 @@ prolog:message(rdf(loaded(Spec, Triples, cache(ParseTime)))) -->
 	[ 'Loaded "~w" in ~2f sec; added ~D triples'-
 	  [Base, ParseTime, Triples]
 	].
-
+prolog:message(rdf(save_removed_duplicates(N, Subject))) -->
+	[ 'Removed ~d duplicate triples about "~p"'-[N,Subject] ].
+prolog:message(rdf(saved(File, SavedSubjects, SavedTriples))) -->
+	[ 'Saved ~D triples about ~D subjects into ~p'-
+	  [SavedTriples, SavedSubjects, File]
+	].
