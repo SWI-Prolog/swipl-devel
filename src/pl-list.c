@@ -86,8 +86,7 @@ qsort_compare_standard(const void *p1, const void *p2)
 
 static term_t
 list_to_sorted_array(term_t List, int *size)
-{ GET_LD
-  int n = lengthList(List, TRUE);
+{ int n = lengthList(List, TRUE);
   term_t rval;
   term_t list = PL_copy_term_ref(List);
   term_t head = PL_new_term_ref();
