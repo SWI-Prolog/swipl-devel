@@ -37,16 +37,17 @@ PLLD=$(PLHOME)\bin\plld.exe
 PLRC=$(PLHOME)\bin\plrc.exe
 PLDLL=$(PLHOME)\bin\libpl.dll
 TERMDLL=$(PLHOME)\bin\plterm.dll
+OUTDIRS=$(PLHOME)\bin $(PLHOME)\lib $(PLHOME)\include
 
 LOCALLIB=win32/uxnt/uxnt.lib rc/rc.lib
 
 PB=$(PLHOME)\boot
 INCLUDEDIR=$(PLHOME)\include
-CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
-STREAMH=$(INCLUDEDIR)/SWI-Stream.h
+CINCLUDE=$(INCLUDEDIR)\SWI-Prolog.h
+STREAMH=$(INCLUDEDIR)\SWI-Stream.h
 BOOTFILE=boot32.prc
 STARTUPPATH=$(PLHOME)\$(BOOTFILE)
-LIBRARYDIR=$(PLBASE)/library
+LIBRARYDIR=$(PLBASE)\library
 
 OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-bag.obj pl-comp.obj pl-rc.obj pl-dwim.obj pl-ext.obj \
@@ -113,7 +114,10 @@ pl.res:		pl.rc pl.ico xpce.ico
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PLCON)
 		$(PLCON) -O -o $(STARTUPPATH) -b $(PLINIT)
 
-subdirs:
+$(OUTDIRS):
+		if not exist "$@/$(NULL)" $(MKDIR) "$@"
+
+subdirs:	$(OUTDIRS)
 		chdir rc & $(MAKE)
 		chdir win32\uxnt & $(MAKE)
 		chdir win32\console & $(MAKE)
@@ -124,11 +128,8 @@ index:
 			-g make_library_index('../library') \
 			-t halt
 
-$(INCLUDEDIR):
-		if [ ! -d $@ ]; then $(MKDIR) $@; fi
-
-$(CINCLUDE):	pl-itf.h $(INCLUDEDIR)
-		copy $(srcdir)/pl-itf.h $(CINCLUDE)
+$(CINCLUDE):	$(OUTDIRS) pl-itf.h
+		copy pl-itf.h $@
 
 $(STREAMH):	pl-stream.h $(INCLUDEDIR)
 		copy pl-stream.h $@
