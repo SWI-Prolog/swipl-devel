@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.6
+=============
+
+  * FIXED: Emacs-interaction bug using history.  Thanks to Dave Moffat.
+
+  * FIXED: decompilation (retract, listing, etc.) for predicates with
+    0 arguments.  Reported by Dave Moffat.
+
+  * FIXED: configuration for system where readline requires -lcurses
+    rather then -ltermcap (and the latter is not present).
+
 Version 2.7.5
 =============
 

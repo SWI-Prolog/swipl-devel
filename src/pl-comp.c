@@ -1630,7 +1630,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
   arity = def->functor->arity;
   TRY( PL_unify_functor(head, def->functor) );
-  get_arg_ref(head, argp);
+  if ( arity > 0 )
+    get_arg_ref(head, argp);
   PC = clause->codes;
 
 #define NEXTARG { next_arg_ref(argp); if ( !pushed ) argn++; }
