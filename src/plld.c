@@ -641,26 +641,31 @@ parseOptions(int argc, char **argv)
       nostate = TRUE;
 #ifdef SO_pic
       appendArgList(&coptions, SO_pic);
+      appendArgList(&cppoptions, SO_pic);
 #endif
     } else if ( streq(opt, "-SHARED") )		/* -SHARED */
     { shared = TRUE;
       nostate = TRUE;
 #ifdef SO_PIC
       appendArgList(&coptions, SO_PIC);
+      appendArgList(&cppoptions, SO_PIC);
 #else
 #ifdef SO_pic
       appendArgList(&coptions, SO_pic);
+      appendArgList(&cppoptions, SO_pic);
 #endif
 #endif
     } else if ( streq(opt, "-fpic") )		/* -fpic */
     {
 #ifdef SO_pic
       appendArgList(&coptions, SO_pic);
+      appendArgList(&cppoptions, SO_pic);
 #endif
     } else if ( streq(opt, "-fPIC") )		/* -fPIC */
     {
 #ifdef SO_PIC
       appendArgList(&coptions, SO_PIC);
+      appendArgList(&cppoptions, SO_PIC);
 #endif
     } else if ( streq(opt, "-o") ) 		/* -o out */
     { if ( argc > 1 )

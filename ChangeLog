@@ -4,6 +4,12 @@
 VERSION 5.0.1
 =============
 
+  * PORT: Make sure all packages are compiled with plld and passed -fpic
+    to fix building shared objects on some platforms.  Reported by
+    Michael Piefel.
+    
+  * PORT: Updated config.sub and config.guess using SuSE 7.3 versions.
+
   * FIXED: configure message if libreadline is not found.
 
   * FIXED: Installing the manuals by Pixel <pixel@mandrakesoft.com>

@@ -42,8 +42,13 @@ AC_ARG_WITH(db, [  --with-db=DIR           DIR holding DB installation],
               esac
 	    ])
 
+if test -z "$PLINCL"; then
 plcandidates="pl swipl swi-prolog"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
+AC_CHECK_PROGS(PLLD, plld, "none")
+if test $PLLD = "none"; then
+   AC_ERROR("Cannot find SWI-Prolog plld utility. SWI-Prolog must be installed first")
+fi
 if test $PL = "none"; then
    AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
 else
@@ -58,50 +63,15 @@ AC_MSG_RESULT("		PLARCH=$PLARCH")
 AC_MSG_RESULT("		PLLIBS=$PLLIBS")
 AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
 AC_MSG_RESULT("		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT")
-
-case "$PLARCH" in
-    *)			LDFLAGS="$PLLDFLAGS" ;;
-esac
-
-if test "$MAKE_SHARED_OBJECT" = "yes"; then
-  if test ! -z "$GCC"; then
-    CMFLAGS="$CMFLAGS -fpic"
-  fi
-
-  SO="so"				 # Default shared object extension
-  LD="gcc"				 # Default linking through gcc
-  LDSOFLAGS="-shared"			 # Create a shared object
-  SONAMEFLAG='-Wl,-soname,$(LIBXPCESOM)' # Set the internal name
-  SOWHOLEARCHIVE="-Wl,-whole-archive"	 # Link the whole archive
-  PLTARGET=soall			 # Link XPCE dynamically to prolog
-
-  case "$OS" in
-    *solaris* | *sunos5*)	LD=/usr/ccs/bin/ld
-				LDSOFLAGS="-G"
-    				;;
-    *sunos*)			LD=ld
-				LDSOFLAGS="-assert nodefinitions"
-				;;
-    *linux*)                    ;;
-    *irix*)			;;
-    *osf*)			if test -z "$GCC"; then
-				  LD=ld
-				  LDSOFLAGS="-shared -expect_unresolved \*"
-				  CMFLAGS="$CMFLAGS -std"
-				fi
-				;;
-    *aix*)			SO="o"
-				LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
-				AC_DEFINE(__unix__)
-				;;
-    *hpux*)			SO="sl"
-				LDSOFLAGS="-b"
-				;;
-    *)				;;
-  esac
 else
-  SHLIB=""
+PLLD=../../$BUILDDIR/plld
 fi
+
+CC=$PLLD
+LD=$PLLD
+LDSOFLAGS=-shared
+CMFLAGS=-fpic
+SO="$PLSOEXT"
 
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")

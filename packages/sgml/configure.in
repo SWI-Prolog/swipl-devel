@@ -57,7 +57,11 @@ else
 PLLD=../../$BUILDDIR/plld
 fi
 
+CC=$PLLD
+LD=$PLLD
 LDSOFLAGS=-shared
+CMFLAGS=-fpic
+SO="$PLSOEXT"
 
 case "$PLARCH" in
   *irix*)	if test -z "$GCC"; then
