@@ -1,3 +1,9 @@
+* FIXED: Document rendering (prolog/lib/doc) to pass table_cell options
+  properly.  Now also passes <TR> options properly.  Currently only honours
+  the BGCOLOR option of a table-row.
+
+* FIXED: Drawing background of tables if <-border = 0.
+
 * FIXED: Win32 native font specification to allow spaces in string
   arguments, which is needed for the face() argument.  Spotted by
   Anjo Anjewierden.
