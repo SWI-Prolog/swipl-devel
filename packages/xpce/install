@@ -8,7 +8,7 @@
 #		  + Updated for SWI-Prolog 2.0.6
 ################################################################
 
-PLBASE=/staff/jan/lib/pl-2.1.1
+PLBASE=/staff/jan/lib/pl-2.1.2
 LN_S="ln -s"
 RTSUFFIX=""
 xpce=bin/xpce$RTSUFFIX

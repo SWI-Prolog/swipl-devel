@@ -226,7 +226,7 @@ makeButtonGesture()
 
   GESTURE_button =
     globalObject(NAME_ButtonGesture, ClassClickGesture,
-		 NAME_left, DEFAULT, NAME_single,
+		 NAME_left, DEFAULT, DEFAULT,
 		 newObject(ClassMessage, RECEIVER, NAME_execute, 0),
 		 newObject(ClassMessage, RECEIVER, NAME_status,NAME_preview,0),
 		 newObject(ClassMessage, RECEIVER, NAME_cancel, 0),

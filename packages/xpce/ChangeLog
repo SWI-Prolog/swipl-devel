@@ -1,3 +1,16 @@
+[VERSION 4.8.12]
+
+* FIXED: Multiclick generation in confirmers (sometimes required a button
+  to be clicked multiple times).
+
+* MODIFIED: Class click_gesture now accepts <->multiclick: @default, indicating
+  the gesture should respond to any type of click (single, multiple).  Allows
+  for fast-clicking on a button.
+
+* FIXED: class ->instance_variable to handle the cache properly.
+
+* DOC: added pce_image_directory/1 and pointers to it.
+
 [VERSION 4.8.11 (= ProWindows-3, version 1.3]
 
 * FIXED: PostScript generation for class text: handle <-border correctly.

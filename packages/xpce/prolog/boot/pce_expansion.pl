@@ -206,9 +206,11 @@ do_expand((:- pce_end_class), Result) :-
 	dynamic_declaration(SGS, Decl2),
 	method_clauses(ClassName, Clauses),
 	(   attribute(ClassName, extending, true)
-	->  flatten([ Clauses,
+	->  dynamic_declaration([class(_,_,_,_,_,_)], ClassDecl),
+	    flatten([ Clauses,
 		      Decl1, SMS,
 		      Decl2, SGS,
+		      ClassDecl,
 		      (:- initialization(pce_extended_class(ClassName)))
 		    ], Result)
 	;   retract(attribute(ClassName, super, Super)),

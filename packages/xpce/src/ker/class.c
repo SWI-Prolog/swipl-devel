@@ -654,6 +654,29 @@ getSubClassClass(Class super, Name name)
 Adding local variables to classes
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+fixSubClassVariableClass(Class class, Variable old, Variable new)
+{ if ( class->realised == ON )
+  { Cell cell;
+    Int offset = new->offset;
+
+    if ( (getElementVector(class->instance_variables, offset) == old) || !old )
+    { deleteHashTable(class->get_table,   new->name);
+      deleteHashTable(class->send_table,  new->name);
+      deleteHashTable(class->local_table, new->name);
+
+      elementVector(class->instance_variables, offset, new);
+
+					/* TBD: function subclass? */
+      if ( old && notNil(class->sub_classes) )
+      { for_cell(cell, class->sub_classes)
+	  fixSubClassVariableClass(cell->value, old, new);
+      } 
+    }
+  }
+}
+
+
 status
 instanceVariableClass(Class class, Variable var)
 { Variable old;
@@ -693,9 +716,9 @@ instanceVariableClass(Class class, Variable var)
       assign(class, instance_size, toInt(InstanceSize(class)));
   }
 
-  elementVector(class->instance_variables, offset, var);
   assign(var, offset, offset);
   assign(var, context, class);
+  fixSubClassVariableClass(class, old, var);
 
   if ( ClassDelegateVariable && instanceOfObject(var, ClassDelegateVariable) )
     delegateClass(class, var->name);

@@ -21,7 +21,7 @@
 		 *         CLASS FINDER		*
 		 *******************************/
 
-:- pce_begin_class(finder, frame).
+:- pce_begin_class(finder, frame, "Library dialog for finding a file").
 
 variable(exists,	bool,		both,
 	 "Should files exist?").

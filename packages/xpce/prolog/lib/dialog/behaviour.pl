@@ -778,7 +778,7 @@ simulate(P) :->
 
 :- pce_end_class.
 
-		%%% CALL PORT
+		%%% SEND PORT
 
 :- pce_begin_class(msg_send_port, msg_port, "Callable port").
 :- pce_class_directive(attach_port_handles(send)).
@@ -786,15 +786,13 @@ type(_P, T:port_type) :<- T = send.
 
 identify(P, Id:string) :<-
 	get(P, object, Object),
-	get(Object, ui_object, Self),
 	get(P, name, Selector),
-	(   Self == @prolog
+	(   get(Object, ui_object, @prolog)
 	->  identify_predicate(Selector, Id)
-	;   (	get(Self, send_method, Selector, tuple(_, Method)),
-	        get(Method, summary, Sum)
-	    ->  new(Id, string('Send port %s: "%s"', Selector, Sum))
-	    ;	get(P, get_super, identify, Id)
-	    )
+	;   get(P, program_object, Method),
+	    get(Method, summary, Sum)
+	->  new(Id, string('Send port %s: "%s"', Selector, Sum))
+	;   get(P, get_super, identify, Id)
 	).
 
 
@@ -853,9 +851,21 @@ report_undefined(Host, Head) :-
 
 
 program_object(P, Method:object) :<-
+	"Associated program-object"::
 	get(P, name, Selector),
-	get(P?object, ui_object, Object),
-	get(Object, send_method, Selector, tuple(_, Method)).
+	get(P, object, ModelObject),
+	(   get(ModelObject, connections, Cs),
+	    get(Cs, find, @arg1?name == expansion, C)
+	->  get(C, from, Port),
+	    get(Port, value_type, Type),
+	    class_of_type(Type, Class),
+	    get(Class, send_method, Selector, Method)
+	;   get(ModelObject, ui_object, Object)
+	->  (	send(Object, instance_of, class)
+	    ->	get(Object?class, get_method, Selector, Method)
+	    ;	get(Object, get_method, Selector, tuple(_, Method))
+	    )
+	).
 
 
 count_arguments(P, Set:chain) :<-
@@ -1047,7 +1057,13 @@ ui_object(O, Self:object) :->
 
 ui_object(O, Self:object) :<-
 	"Associated object"::
-	get(O, hypered, ui_object, Self).
+	(   get(O, hypered, ui_object, Self)
+	->  true
+	;   get(O, connections, Cs),	% is this ok?
+	    get(Cs, find, @arg1?name == expansion, C),
+	    get(C, from, Port),
+	    get(Port, value, Self)
+	).
 
 
 simulate(O, PortName:name) :->
@@ -1103,7 +1119,14 @@ identify(O) :->
 
 identify(O, Id:string) :<-
 	"New identification string"::
-	(   get(O, ui_object, Self)
+	(   get(O, connections, Cs),
+	    get(Cs, find, @arg1?type == expansion, C),
+	    get(C, from, Port)
+	->  (	get(Port, value_type, Type)
+	    ->	new(Id, string('Expansion of %s (%N)', Port?identify, Type))
+	    ;	new(Id, string('Expansion of %s', Port?identify))
+	    )
+	;   get(O, ui_object, Self)
 	->  (	send(Self, has_get_method, proto)
 	    ->	new_term(Self, Term)
 	    ;	portray_object(Self, T0),
@@ -1114,13 +1137,6 @@ identify(O, Id:string) :<-
 	    ),
 	    term_to_atom(Term, Atom),
 	    new(Id, string(Atom))
-	;   get(O, connections, Cs),
-	    get(Cs, find, @arg1?type == expansion, C),
-	    get(C, from, Port)
-	->  (	get(Port, value_type, Type)
-	    ->	new(Id, string('Expansion of %s (%N)', Port?identify, Type))
-	    ;	new(Id, string('Expansion of %s', Port?identify))
-	    )
 	;   new(Id, string('(Unlinked)'))
 	).
 

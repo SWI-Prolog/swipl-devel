@@ -53,7 +53,7 @@ initialiseEvent(EventObj e, Name id, PceWindow window,
     if ( isDefault(y) )      y      = parent->y;
     if ( isDefault(bts) )    bts    = parent->buttons;
     if ( isDefault(window) ) window = parent->window;
-    if ( isDefault(time) )   t      = parent->time;
+    if ( isDefault(time) )   t      = max(last_time, parent->time);
   } else
   { if ( isDefault(x) )      x      = last_x;
     if ( isDefault(y) )      y      = last_y;
@@ -80,6 +80,10 @@ initialiseEvent(EventObj e, Name id, PceWindow window,
     int px  = valInt(x);
     int py  = valInt(y);
 
+    DEBUG(NAME_multiclick, Cprintf("t: %d (%d), x: %d (%d), y: %d (%d) --> ",
+				   t, last_down_time, px, last_down_x,
+				   py, last_down_y));
+
     if ( (t - last_down_time) < multi_click_time &&
 	 abs(last_down_x - px) <= multi_click_diff &&
 	 abs(last_down_y - py) <= multi_click_diff &&
@@ -93,6 +97,8 @@ initialiseEvent(EventObj e, Name id, PceWindow window,
 
     last_click_type = clt;
     assign(e, buttons, toInt(valInt(e->buttons) | clt));
+
+    DEBUG(NAME_multiclick, Cprintf("%s\n", strName(getMulticlickEvent(e))));
 
     last_down_bts     = bts;
     last_down_time    = t;

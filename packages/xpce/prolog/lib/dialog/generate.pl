@@ -299,15 +299,6 @@ condition(C, Cond) :-
 
 
 receiver(Object, Receiver) :-
-	get(Object, ui_object, Self), !,
-	(   reference(Receiver, Self)
-	->  true
-	;   Self = @Atom,
-	    atom(Atom)
-	->  Receiver = Self
-	;   pce_to_prolog(Self, Receiver)
-	).
-receiver(Object, Receiver) :-
 	get(Object, connections, Cs),
 	get(Cs, find, @arg1?type == expansion, E), !,
 	get(E, from, Port),
@@ -317,6 +308,15 @@ receiver(Object, Receiver) :-
 	activation_arguments(E, Args),
 	Obtainer =.. [?, R2, Selector | Args],
 	simplify(Obtainer, Receiver).
+receiver(Object, Receiver) :-
+	get(Object, ui_object, Self), !,
+	(   reference(Receiver, Self)
+	->  true
+	;   Self = @Atom,
+	    atom(Atom)
+	->  Receiver = Self
+	;   pce_to_prolog(Self, Receiver)
+	).
 
 
 activation_arguments(C, Args) :-

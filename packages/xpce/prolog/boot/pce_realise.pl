@@ -54,11 +54,13 @@ register_class(ClassName, Module) :-
 pce_extended_class(Spec) :-
 	strip_module(Spec, Module, ClassName),
 	register_class(ClassName, Module),
-	get(@classes, member, ClassName, Class),
-	send(Class, instance_of, class), !,
-	send(Class, clear_cache),
-	resolve_method_message(Msg),
-	send(Class, resolve_method_message, Msg).
+	(   get(@classes, member, ClassName, Class),
+	    send(Class, instance_of, class)
+	->  send(Class, clear_cache),
+	    resolve_method_message(Msg),
+	    send(Class, resolve_method_message, Msg)
+	;   true
+	).
 
 
 		 /*******************************

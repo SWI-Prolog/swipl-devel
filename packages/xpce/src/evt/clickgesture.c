@@ -14,8 +14,7 @@ static status
 initialiseClickGesture(ClickGesture g, Name button,
 		       Modifier modifier, Name multi,
 		       Code execute, Code preview, Code cancel)
-{ if ( isDefault(multi) )   multi   = NAME_single;
-  if ( isDefault(execute) ) execute = NIL;
+{ if ( isDefault(execute) ) execute = NIL;
   if ( isDefault(preview) ) preview = NIL;
   if ( isDefault(cancel) )  cancel  = NIL;
 
@@ -39,7 +38,7 @@ initialiseClickGesture(ClickGesture g, Name button,
 
 static status
 verifyClickGesture(ClickGesture g, EventObj ev)
-{ if ( getMulticlickEvent(ev) == g->multiclick )
+{ if ( isDefault(g->multiclick) || getMulticlickEvent(ev) == g->multiclick )
   { copyPoint(g->down_position, getPositionEvent(ev, DEFAULT));
     succeed;
   }
@@ -108,8 +107,8 @@ makeClassClickGesture(Class class)
 { sourceClass(class, makeClassClickGesture, __FILE__, "$Revision$");
 
   localClass(class, NAME_multiclick, NAME_modifier,
-	     "{single,double,triple}", NAME_both,
-	     "Type: {single,double,triple}");
+	     "[{single,double,triple}]", NAME_both,
+	     "Demand single, double or tripple click");
   localClass(class, NAME_downPosition, NAME_internal, "point", NAME_get,
 	     "Position of the down event");
   localClass(class, NAME_executeMessage, NAME_action, "code*", NAME_both,
