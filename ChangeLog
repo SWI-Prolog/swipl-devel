@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: working_directory/2 to raise a proper exception if it can't
+    get the working directory.
+
   * FIXED: MT: lookup/register/unregister atom mutex mismatch.
     Sergey Tikhonov.
 

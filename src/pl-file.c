@@ -2905,7 +2905,10 @@ pl_is_absolute_file_name(term_t name)
 
 word
 pl_working_directory(term_t old, term_t new)
-{ const char *wd = PL_cwd();
+{ const char *wd;
+
+  if ( !(wd = PL_cwd()) )
+    fail;
 
   if ( PL_unify_atom_chars(old, wd) )
   { if ( PL_compare(old, new) != 0 )
