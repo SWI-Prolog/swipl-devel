@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-12)
+==========================
+
   * PORT: MT version: provided support for systems lacking recursive
     (UNIX98) mutexes, amoung with Solaris 2.5.  With patch received
     from Frank Cornelissen.  Thanks!
