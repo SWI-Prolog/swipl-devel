@@ -35,7 +35,7 @@ initialise(S, Port:[int]) :->
 	send(S, record_separator, '\n\r?\n\r?'),
 	send(S, input_message, message(@receiver, input, @arg1)),
 	send(S, accept_message, message(@arg1, accepted)),
-	send(S, listen).
+	send(S, listen, reuse := @on).
 
 :- pce_global(@http_header_regex,
 	      new(regex('^\\([^:]+\\):\\s *\\(.*\\)$'))).

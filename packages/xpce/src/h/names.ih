@@ -2331,3 +2331,4 @@
 #define NAME_yref (&builtin_names[2330])
 #define NAME_yrefVar (&builtin_names[2331])
 #define NAME_zoom (&builtin_names[2332])
+#define NAME_setsockopt (&builtin_names[2333])

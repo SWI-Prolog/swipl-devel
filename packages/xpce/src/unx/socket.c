@@ -406,7 +406,7 @@ inet_address_socket(Socket s, struct sockaddr_in *address, int *len)
 
 
 static status
-bindSocket(Socket s)
+bindSocket(Socket s, Bool reuse)
 { int rval;
 
   TRY(createSocket(s));
@@ -422,6 +422,18 @@ bindSocket(Socket s)
   { struct sockaddr_in address;
     int len;
     TRY( inet_address_socket(s, &address, &len) );
+
+#if defined(SOL_SOCKET) && defined(SO_REUSEADDR)
+    if ( reuse == ON )
+    { int status = 1;
+
+      DEBUG(NAME_socket, Cprintf("Setting SO_REUSEADDR\n"));
+      if ( setsockopt(SocketHandle(s), SOL_SOCKET, SO_REUSEADDR,
+		      (char *) &status, sizeof(int)) < 0 )
+	return errorPce(s, NAME_socket, NAME_setsockopt, SockError());
+    }
+#endif
+
     if ( (rval = bind(SocketHandle(s), (struct sockaddr *) &address, len))==0 )
     { if ( s->address == ZERO ||
 	   (instanceOfObject(s->address, ClassTuple) &&
@@ -509,11 +521,11 @@ acceptSocket(Socket s)
 
 
 static status
-listenSocket(Socket s, Code accept_message, Int backlog)
+listenSocket(Socket s, Code accept_message, Int backlog, Bool reuse)
 { if ( isDefault(backlog) )
     backlog = toInt(5);
 
-  TRY(bindSocket(s));
+  TRY(bindSocket(s, reuse));
 
   if ( listen(SocketHandle(s), valInt(backlog)) )
     return errorPce(s, NAME_socket, NAME_listen, SockError());
@@ -696,7 +708,7 @@ closeSocket(Socket s)
 /* Type declarations */
 
 static char *T_listen[] =
-        { "[code]*", "[{1..5}]" };
+        { "accept_message=[code]*", "backlog=[{1..5}]", "reuse=[bool]" };
 static char *T_initialise[] =
         { "address=file|tuple|int*", "domain=[{unix,inet}]" };
 
@@ -728,7 +740,7 @@ static senddecl send_socket[] =
      DEFAULT, "Cleanup socket"),
   SM(NAME_connect, 0, NULL, connectSocket,
      NAME_connect, "Connect with server socket"),
-  SM(NAME_listen, 2, T_listen, listenSocket,
+  SM(NAME_listen, 3, T_listen, listenSocket,
      NAME_connect, "Listen for connection requests]"),
   SM(NAME_brokenPipe, 0, NULL, brokenPipeSocket,
      NAME_control, "Attempt to write on broken connection"),
