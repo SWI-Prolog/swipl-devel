@@ -414,7 +414,7 @@ SaveSection sections;
     return warning("save/1: cannot write %s: %s\n", file, OsError());
   
 #if OS2
-  sprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n", OsPath(interpreter));
+  sprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n\032", OsPath(interpreter));
 #else
   sprintf(buf, "#!/bin/sh\nexec %s -r $0 $*\n", OsPath(interpreter));
 #endif

@@ -209,7 +209,7 @@ Word t1, t2;
 
 /*  Rules:
 
-    Var < Atom < String < number < Term
+    Var @< Number @< Atom @< String < Term
     
     OldVar < NewVar	(not relyable)
     Atom:	alphabetically
@@ -254,23 +254,6 @@ register Word t1, t2;
 
   
   w1 = *t1; 
-  if (isAtom(w1) )
-  { if (isAtom(w2) )
-      return strcmp(stringAtom(w1), stringAtom(w2));
-    return LESS;
-  }
-  if (isAtom(w2) )
-    return GREATER;
-
-#if O_STRING
-  if ( isString(w1) )
-  { if ( isString(w2) )
-      return strcmp(valString(w1), valString(w2));
-    return LESS;
-  }
-  if ( isString(w2) )
-    return GREATER;
-#endif /* O_STRING */
 
   if ( isNumber(w1) )
   { if ( !isNumber(w2) )
@@ -291,6 +274,24 @@ register Word t1, t2;
   if ( isNumber(w2) )
     return GREATER;
   
+  if (isAtom(w1) )
+  { if (isAtom(w2) )
+      return strcmp(stringAtom(w1), stringAtom(w2));
+    return LESS;
+  }
+  if (isAtom(w2) )
+    return GREATER;
+
+#if O_STRING
+  if ( isString(w1) )
+  { if ( isString(w2) )
+      return strcmp(valString(w1), valString(w2));
+    return LESS;
+  }
+  if ( isString(w2) )
+    return GREATER;
+#endif /* O_STRING */
+
   SECURE(if (!isTerm(w1) || !isTerm(w2)) sysError("Unknown type"));
 
   f1 = functorTerm(w1);

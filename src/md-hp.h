@@ -34,6 +34,8 @@ with access to their HP machines.
 
 Version 1.6.11 includes   various fixes suggested  by Dave   Sherratt,
 (ads@compsci.liverpool.ac.uk)
+
+Integrated O_FOREIGN support sent to me by Dave	Sherratt.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef __GNUC__
@@ -47,7 +49,7 @@ Version 1.6.11 includes   various fixes suggested  by Dave   Sherratt,
 #define M_CFLAGS		
 #else					/* Use HP-UX cc */
 #define M_CC			cc
-#define M_OPTIMIZE	        +O3
+#define M_OPTIMIZE	        +O3 +Obb650
 #define M_LDFLAGS		-O -Wl,-a archive
 #define M_CFLAGS		-Aa -D_HPUX_SOURCE -Dunix -Dhpux
 #endif
@@ -75,7 +77,7 @@ Version 1.6.11 includes   various fixes suggested  by Dave   Sherratt,
 #define FIRST_DATA_SYMBOL	__data_start
 #define O_C_STACK_GROWS_UP	1
 #define STACK_BASE_ALIGN	1	/* i.e. do not align */
-#define O_FOREIGN		0
+#define O_FOREIGN		1
 #endif
 #define O_SAVE			1
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local:.:";

@@ -806,7 +806,8 @@ Word pred, what, value;
   else
     fail;
 
-  proc = resolveProcedure(fd, module);
+  proc = (isVar(value) ? resolveProcedure(fd, module)  /* lookup */
+		       : lookupProcedure(fd, module)); /* set */
   def = proc->definition;
 
   if (!isAtom(*what) )

@@ -12,6 +12,9 @@
 ** T. Kielmann, 01 Jun 92
 */
 
+/*  Modified (M) 1993 Dave Sherratt  */
+/*  Implementing foreign functions for HP-PA RISC architecture  */
+
 #include "pl-incl.h"
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Make sure the symbolfile and  orgsymbolfile  attributes  of  the  global
@@ -90,9 +93,24 @@ a better common basis to get rid of most of these things.
 #endif
 
 #if hpux
-#define N_DATOFF(x)	DATA_OFFSET(x)
-#define N_TXTOFF(x)	TEXT_OFFSET(x)
-#define PAGSIZ		0x1000
+#  ifdef TEXT_OFFSET  /* a.out_300 */
+#    define N_DATOFF(x)       DATA_OFFSET(x)
+#    define N_TXTOFF(x)       TEXT_OFFSET(x)
+#  else                       /* a.out_800 */
+#    define aout_800 1
+#    define N_TXTOFF(x) ((x).exec_tfile)
+#    define N_DATOFF(x) ((x).exec_dfile)
+#    define aouthdr som_exec_auxhdr
+#    define filehdr header
+#    define tsize exec_tsize
+#    define dsize exec_dsize
+#    define bsize exec_bsize
+#  endif
+#  ifdef EXEC_PAGESIZE
+#    define PAGSIZ    EXEC_PAGESIZE
+#  else
+#    define PAGSIZ    0x1000
+#  endif
 #endif
 
 #if vax
@@ -102,6 +120,15 @@ a better common basis to get rid of most of these things.
 #ifndef N_DATOFF			/* SunOs 3.4 does not define this */
 #define N_DATOFF(x) ( N_TXTOFF(x) + (x).a_text )
 #endif
+
+#define ROUND_UP(cp,POWER_OF_TWO) \
+  (((unsigned long)(cp)+POWER_OF_TWO-1) & ~(POWER_OF_TWO-1))
+
+#define PAGE_ROUND_UP(cp) \
+  ROUND_UP(cp,PAGSIZ)
+
+#define ADDRESS_ALIGN(cp) \
+  ((char *)(PAGE_ROUND_UP(cp)))
 
 #define LOADER	"ld"			/* Unix loader command name */
 
@@ -116,7 +143,12 @@ typedef struct
 char *symbolString();			/* forwards */
 #endif /* NOENTRY */
 
-static struct exec header;		/* a.out header */  
+#if ! aout_800
+static struct exec header;            /* a.out header */
+#else
+struct aouthdr sysHeader;
+struct filehdr fileHeader;
+#endif
 
 void
 resetLoader()
@@ -131,7 +163,11 @@ not.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if hpux || vax
+#  if ! aout_800
 #define valloc malloc
+#  else
+#define valloc( size )        ADDRESS_ALIGN( malloc( ( size ) + PAGSIZ - 1 ) )
+#  endif
 #endif
 
 long
@@ -218,8 +254,10 @@ Word file, entry, options, libraries, size;
     nsz = sizeExec();
     if ( sz > 0 )
     { Putf("! Executable %s does not fit in %d bytes\n", sfile, sz);
+#if ! aout_800
       Putf("Size: %d bytes (%d text %d data, %d bss) (reloading ...)\n",
 		nsz, header.a_text, header.a_data, header.a_bss);
+#endif
     }
     sz = nsz;
   }
@@ -246,10 +284,14 @@ long base;
 char *outfile;
 { char command[10240];
 
-#if NOENTRY
-  sprintf(command, "%s -N -A %s -T %x -o %s %s %s %s -lc",
+#ifdef aout_800
+  sprintf(command, "%s -N -a archive -A %s -R %x -e %s -o %s %s %s %s -lc /lib/dyncall.o",
 #else
+#  if NOENTRY
+  sprintf(command, "%s -N -A %s -T %x -o %s %s %s %s -lc",
+#  else
   sprintf(command, "%s -N -A %s -R %x -e _%s -o %s %s %s %s -lc",
+#  endif
 #endif
 	   LOADER, 				/* name of loader */
 	   stringAtom(loaderstatus.symbolfile),	/* name of symbol file */
@@ -288,12 +330,34 @@ char *execFile;
     return -1;
   }
 
+#if ! aout_800
   if (read(fd, &header, sizeof(struct exec)) != sizeof(struct exec) ||
       N_BADMAG(header) != 0)
   { warning("load_foreign/5: Bad magic number in %s", execFile);
     close(fd);
     return -1;
   }
+#else
+  if ( read(fd, &fileHeader, sizeof(fileHeader)) != sizeof(fileHeader) )
+    {
+      fprintf( stderr , "{ERROR: Unable to read file header}\n" ) ;
+      close(fd);
+      return -1;
+    }
+  if ( fileHeader.aux_header_size == 0 )
+    {
+      fprintf( stderr , "{ERROR: Unable to read aux header}\n" ) ;
+      close(fd);
+      return -1;
+    }
+  lseek( fd , fileHeader.aux_header_location , 0 ) ;
+  if ( read( fd, &sysHeader , sizeof( sysHeader ) ) != sizeof( sysHeader ) )
+    {
+      fprintf( stderr , "{ERROR: Unable to read som header}\n" ) ;
+      close(fd);
+      return -1;
+    }
+#endif
 
   return fd;
 }
@@ -302,9 +366,15 @@ char *execFile;
 static
 int
 sizeExec()
-{ return ROUND(header.a_text, 4) +
-	 ROUND(header.a_data, 4) +
-	 ROUND(header.a_bss, 4);
+{
+  return
+#if ! aout_800
+    ROUND(header.a_text, 4) +
+    ROUND(header.a_data, 4) +
+    ROUND(header.a_bss, 4);
+#else
+    PAGE_ROUND_UP( sysHeader.tsize ) + PAGE_ROUND_UP( sysHeader.dsize ) + PAGE_ROUND_UP( sysHeader.bsize ) ;
+#endif
 }
 
 
@@ -322,6 +392,7 @@ ulong base;
   long *data, data_off, data_size;
   long *bss, bss_size;
 
+#if ! aout_800
   text = (long *)base;			/* address of text in memory */
   text_size = header.a_text;		/* size of text area */
   data = (long *)(base+text_size);	/* address of data in memory */
@@ -330,6 +401,16 @@ ulong base;
   data_off = N_DATOFF(header);		/* offset of data in file */
   bss = (long *)(base + text_size + data_size);
   bss_size = header.a_bss;
+#else
+  text = (long *)sysHeader.exec_tmem; /* address of text in memory */
+  text_size = sysHeader.tsize;                /* size of text area */
+  data = (long *)sysHeader.exec_dmem; /* address of data in memory */
+  data_size = sysHeader.dsize;                /* size of data area */
+  text_off = N_TXTOFF(sysHeader);     /* offset of text in file */
+  data_off = N_DATOFF(sysHeader);     /* offset of data in file */
+  bss = (long *)(data + data_size);
+  bss_size = sysHeader.bsize;
+#endif
 
   DEBUG(1, printf("Text offset = %d, Data offset = %d\n", text_off, data_off));
   DEBUG(1, printf("Base = 0x%x (= %d), text at 0x%x, %d bytes, data at 0x%x, %d bytes\n",
@@ -354,9 +435,15 @@ ulong base;
   }
 #else
 #  if hpux
+#    if ! aout_800
   entry = (Func)(header.a_entry + (long)text);
   DEBUG(2, printf("a_entry = 0x%x; text = 0x%x, entry = 0x%x\n",
 				header.a_entry, text, entry));
+#    else
+  entry = (Func)(sysHeader.exec_entry);
+  DEBUG(2, printf("exec_entry = 0x%x; text = 0x%x, entry = 0x%x\n",
+                              sysHeader.exec_entry, text, entry));
+#    endif
 #  else
   entry = (Func)(header.a_entry);
 #  endif

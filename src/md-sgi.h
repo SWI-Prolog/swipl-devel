@@ -9,6 +9,10 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This port was made by Fred Kwakkel from CWI, the Netherlands.
+
+It appears `O_FOREIGN 1' gives problems on some SGI archiectures. It you
+are not a C-hacker change this into O_FOREIGN 0. Otherwise you might
+want to start debugging.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
