@@ -591,6 +591,17 @@ script_argv(int argc, char **argv)
     char *av[MAXARGV];
     int  an = 0;
 
+#ifdef WIN32
+    if ( argc == 2 )
+    { char tmp[MAXPATHLEN];
+      char dir[MAXPATHLEN];
+
+      _xos_canonical_filename(argv[1], tmp);
+      if ( IsAbsolutePath(tmp) )
+	chdir(DirName(tmp, dir));
+    }
+#endif
+
     fgets(buf, sizeof(buf), fd);
     if ( !strprefix(buf, "#!") )
     { fclose(fd);
@@ -626,6 +637,7 @@ script_argv(int argc, char **argv)
 #endif
 	av[an] = allocHeap(o-start+1);
 	strncpy(av[an], start, o-start);
+	av[an][o-start] = EOS;
 	if ( ++an >= MAXARGV )
 	  fatalError("Too many script arguments");
       }
@@ -662,11 +674,11 @@ PL_initialise(int argc, char **argv)
   bool compile = FALSE;
   const char *rcpath = "<none>";
 
-#if defined(_DEBUG) && defined(WIN32) && 0
+#if defined(_DEBUG) && defined(WIN32) /*&& 0*/
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
-		 _CRTDBG_CHECK_ALWAYS_DF|
 		 _CRTDBG_CHECK_CRT_DF|
-		 _CRTDBG_DELAY_FREE_MEM_DF/*|
+		 _CRTDBG_CHECK_ALWAYS_DF/*|
+		 _CRTDBG_DELAY_FREE_MEM_DF|
 		 _CRTDBG_LEAK_CHECK_DF*/);
 #endif
 
@@ -678,7 +690,7 @@ PL_initialise(int argc, char **argv)
 
   SinitStreams();			/* before anything else */
 
-  script_argv(argc, argv);
+  script_argv(argc, argv);		/* hande #! arguments */
   argc = GD->cmdline.argc;
   argv = GD->cmdline.argv;
 
