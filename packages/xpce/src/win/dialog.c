@@ -88,7 +88,16 @@ ComputeDesiredSizeDialog(Dialog d)
   TRY(send(d, NAME_layout, EAV));
 
   if ( isNil(d->keyboard_focus) )
+  { Button b2;
+
     send(d, NAME_advance, NIL, EAV);	/* select first text item */
+
+    if ( instanceOfObject(d->keyboard_focus, ClassButton) &&
+	 (b2 = get(d, NAME_defaultButton, EAV)) &&
+	 b2 != (Button)d->keyboard_focus )
+    { send(d, NAME_keyboardFocus, b2, EAV);
+    }
+  }
 
   ComputeGraphical(d);
 
