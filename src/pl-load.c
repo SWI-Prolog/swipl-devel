@@ -191,6 +191,12 @@ pl_close_shared_object(term_t plhandle)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Some systems (notably MacOS X) prefixes symbols with _. In some version
+of this OS, dlsym() adds an _, in others not.  We'll try to work around
+this junk with a runtime test ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 word
 pl_call_shared_object_function(term_t plhandle, term_t name)
 { DlEntry e = find_dl_entry(plhandle);
@@ -201,7 +207,8 @@ pl_call_shared_object_function(term_t plhandle, term_t name)
        !PL_get_chars_ex(name, &fname, CVT_ALL) )
     fail;
   
-#ifdef LD_SYMBOL_PREFIX
+#ifdef LD_SYMBOL_PREFIX			/* first try plain anyway */
+  if ( !(ef = (dl_funcptr) dlsym(e->dlhandle, fname)) )
   { char symname[MAXSYMBOLLEN+1];
     
     if ( strlen(fname)+strlen(LD_SYMBOL_PREFIX) > MAXSYMBOLLEN )
