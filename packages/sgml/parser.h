@@ -161,7 +161,8 @@ typedef struct _sgml_environment
 } sgml_environment;
 
 					/* parser->flags */
-#define SGML_PARSER_NODEFS	0x1	/* don't handle default atts */
+#define SGML_PARSER_NODEFS	 0x01	/* don't handle default atts */
+#define SGML_PARSER_QUALIFY_ATTS 0x02	/* qualify attributes in XML mode */
 
 typedef struct _dtd_parser
 { long     magic;			/* SGML_PARSER_MAGIC */

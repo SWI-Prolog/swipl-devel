@@ -152,6 +152,7 @@ static functor_t FUNCTOR_allowed1;
 static functor_t FUNCTOR_context1;
 static functor_t FUNCTOR_defaults1;
 static functor_t FUNCTOR_shorttag1;
+static functor_t FUNCTOR_qualify_attributes1;
 
 static atom_t ATOM_true;
 static atom_t ATOM_false;
@@ -211,6 +212,7 @@ initConstants()
   FUNCTOR_context1       = mkfunctor("context", 1);
   FUNCTOR_defaults1	 = mkfunctor("defaults", 1);
   FUNCTOR_shorttag1	 = mkfunctor("shorttag", 1);
+  FUNCTOR_qualify_attributes1 = mkfunctor("qualify_attributes", 1);
 
   ATOM_true = PL_new_atom("true");
   ATOM_false = PL_new_atom("false");
@@ -433,35 +435,38 @@ pl_set_sgml_parser(term_t parser, term_t option)
       return sgml2pl_error(ERR_DOMAIN, "space", a);
   } else if ( PL_is_functor(option, FUNCTOR_defaults1) )
   { term_t a = PL_new_term_ref();
-    char *s;
+    int val;
 
     PL_get_arg(1, option, a);
-    if ( !PL_get_atom_chars(a, &s) )
-      return sgml2pl_error(ERR_TYPE, "atom", a);
+    if ( !PL_get_bool(a, &val) )
+      return sgml2pl_error(ERR_TYPE, "boolean", a);
 
-    if ( streq(s, "true") )
+    if ( val )
       p->flags &= ~SGML_PARSER_NODEFS;
-    else if ( streq(s, "false") )
-      p->flags |= SGML_PARSER_NODEFS;
     else
-      return sgml2pl_error(ERR_DOMAIN, "boolean", a);
+      p->flags |= SGML_PARSER_NODEFS;
+  } else if ( PL_is_functor(option, FUNCTOR_qualify_attributes1) )
+  { term_t a = PL_new_term_ref();
+    int val;
+
+    PL_get_arg(1, option, a);
+    if ( !PL_get_bool(a, &val) )
+      return sgml2pl_error(ERR_TYPE, "boolean", a);
+
+    if ( val )
+      p->flags |= SGML_PARSER_QUALIFY_ATTS;
+    else
+      p->flags &= ~SGML_PARSER_QUALIFY_ATTS;
   } else if ( PL_is_functor(option, FUNCTOR_shorttag1) )
   { term_t a = PL_new_term_ref();
-    char *s;
+    int val;
     int set;
 
     PL_get_arg(1, option, a);
-    if ( !PL_get_atom_chars(a, &s) )
-      return sgml2pl_error(ERR_TYPE, "atom", a);
+    if ( !PL_get_bool(a, &val) )
+      return sgml2pl_error(ERR_TYPE, "boolean", a);
 
-    if ( streq(s, "true") )
-      set = TRUE;
-    else if ( streq(s, "false") )
-      set = FALSE;
-    else
-      return sgml2pl_error(ERR_DOMAIN, "boolean", a);
-
-    set_option_dtd(p->dtd, OPT_SHORTTAG, set);
+    set_option_dtd(p->dtd, OPT_SHORTTAG, val);
   } else if ( PL_is_functor(option, FUNCTOR_number1) )
   { term_t a = PL_new_term_ref();
     char *s;
@@ -734,7 +739,7 @@ put_url(dtd_parser *p, term_t t, const ichar *url)
 
 
 static void
-put_name(dtd_parser *p, term_t t, dtd_symbol *nm)
+put_attribute_name(dtd_parser *p, term_t t, dtd_symbol *nm)
 { const ichar *url, *local;
 
   if ( p->dtd->dialect == DL_XMLNS )
@@ -877,7 +882,7 @@ unify_attribute_list(dtd_parser *p, term_t alist,
   parser_data *pd = p->closure;
 
   for(i=0; i<argc; i++)
-  { put_name(p, a+0, argv[i].definition->name);
+  { put_attribute_name(p, a+0, argv[i].definition->name);
     put_attribute_value(p, a+1, &argv[i]);
     PL_cons_functor_v(a, FUNCTOR_equal2, a);
     if ( !PL_unify_list(tail, h, tail) ||

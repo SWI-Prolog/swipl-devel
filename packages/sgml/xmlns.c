@@ -165,7 +165,8 @@ xmlns_resolve_attribute(dtd_parser *p, dtd_symbol *id,
 
   *local = id->name;
 
-  if ( (ns = p->environments->thisns) && ns->url->name[0] )
+  if ( (p->flags & SGML_PARSER_QUALIFY_ATTS) &&
+       (ns = p->environments->thisns) && ns->url->name[0] )
     *url = ns->url->name;
   else
     *url = NULL;			/* no default namespace is defined */
