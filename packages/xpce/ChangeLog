@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: Socket library tests for IRIX 6.5.  Rob Myers.
+
 * FIXED: Demo ispell file-open (Kip Rugger).
 
 * FIXED: Crash in button->redraw if the button was nost displayed in a
