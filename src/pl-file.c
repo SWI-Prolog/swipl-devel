@@ -1101,6 +1101,8 @@ pl_wait_for_input(term_t Streams, term_t Available,
   term_t head      = PL_new_term_ref();
   term_t streams   = PL_copy_term_ref(Streams);
   term_t available = PL_copy_term_ref(Available);
+  term_t ahead     = PL_new_term_ref();
+  int from_buffer  = 0;
 
   FD_ZERO(&fds);
   while( PL_get_list(streams, head, streams) )
@@ -1115,6 +1117,14 @@ pl_wait_for_input(term_t Streams, term_t Available,
 		      PL_new_atom("file_stream"), head);
     }
     releaseStream(s);
+					/* check for input in buffer */
+    if ( s->bufp < s->limitp )
+    { if ( !PL_unify_list(available, ahead, available) ||
+	   !PL_unify(ahead, head) )
+	fail;
+      from_buffer++;
+    }
+
     streammap[fd] = PL_copy_term_ref(head);
 
     FD_SET(fd, &fds);
@@ -1126,6 +1136,9 @@ pl_wait_for_input(term_t Streams, term_t Available,
   if ( !PL_get_float(timeout, &time) )
     return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_float, timeout);
   
+  if ( from_buffer > 0 )
+    return PL_unify_nil(available);
+
   if ( time > 0.0 )
   { t.tv_sec  = (int)time;
     t.tv_usec = ((int)(time * 1000000) % 1000000);
@@ -1137,14 +1150,13 @@ pl_wait_for_input(term_t Streams, term_t Available,
 
   for(n=0; n <= max; n++)
   { if ( FD_ISSET(n, &fds) )
-    { if ( !PL_unify_list(available, head, available) ||
-	   !PL_unify(head, streammap[n]) )
+    { if ( !PL_unify_list(available, ahead, available) ||
+	   !PL_unify(ahead, streammap[n]) )
 	fail;
     }
   }
-  PL_unify_nil(available);
 
-  succeed;
+  return PL_unify_nil(available);
 }
 
 #endif /* HAVE_SELECT */
