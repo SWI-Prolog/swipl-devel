@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
  
+VERSION 3.2.1
+=============
+
+  * FIXED: qsave_program/[1,2] for Windows 98 and possibly other platforms.
+    Thanks to Uwe Lesta.
+
+
 VERSION 3.2.0
 =============
 
