@@ -42,7 +42,6 @@ Left-click in the drawing area adds a kangaroo to the diagram.
 :- require([ concat_atom/2
 	   , forall/2
 	   , between/3
-	   , concat/3
 	   ]).
 
 kangaroo :-

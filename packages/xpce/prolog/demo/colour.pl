@@ -34,7 +34,6 @@
 	  ]).
 :- use_module(library(pce)).
 :- require([ absolute_file_name/3
-	   , concat/3
 	   , send_list/3
 	   ]).
 

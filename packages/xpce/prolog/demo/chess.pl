@@ -121,7 +121,6 @@ SICStus Prolog and ignores the require/1 directive.
 :- use_module(library(pce)).
 :- require([ between/3
 	   , call/2
-	   , concat/3
 	   , concat_atom/2
 	   , free_variables/2
 	   ]).

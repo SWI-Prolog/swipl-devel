@@ -62,7 +62,7 @@ make_diagrams(Dir) :-
 	    send(I, level_gap, 15),
 	    forall(member(C, Classes), send(I, show, C, @off)),
 	    send(I, compute),
-	    concat(File, '.eps', PsFile),
+	    file_name_extension(File, eps, PsFile),
 	    get(directory(Dir), file, PsFile, F),
 	    send(F, open, write),
 	    send(F, append, I?postscript),

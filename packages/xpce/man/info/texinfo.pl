@@ -21,7 +21,6 @@
 	   , start_emacs/0
 	   , append/3
 	   , between/3
-	   , concat/3
 	   , format/1
 	   , ignore/1
 	   , is_list/1
@@ -698,7 +697,7 @@ texinfo_global_objects :-
 check_global(Card) :-
 	texi_description(Card, _),	% has description?
 	get(Card, identifier, Id),
-	concat('O.', Ref, Id),
+	atom_concat('O.', Ref, Id),
 	object(@Ref).			% object exists
 
 
@@ -714,7 +713,7 @@ texinfo_global_cluster(Cluster) :-
 
 global_deffn(Card, Type) :-
 	get(Card, identifier, Id),
-	concat('O.', Ref, Id),
+	atom_concat('O.', Ref, Id),
 	object(@Ref),
 	label_object(@Ref),
 	get(@Ref, '_class_name', ClassName),
@@ -1259,14 +1258,14 @@ tex(V) :-
 
 texindex(V) :-
 	get(V?file, name, Path),
-	concat(Base, '.texinfo', Path),
+	atom_concat(Base, '.texinfo', Path),
 	get(string('texindex %s.??', Base), value, Cmd),
 	shell(Cmd).
 
 
 preview(V) :-
 	get(V?file, name, Path),
-	concat(Base, '.texinfo', Path),
+	atom_concat(Base, '.texinfo', Path),
 	get(string('xdvi %s &', Base), value, Cmd),
 	shell(Cmd).
 

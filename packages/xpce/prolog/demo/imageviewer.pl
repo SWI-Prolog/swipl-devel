@@ -33,7 +33,6 @@
 :- use_module(library(pce)).
 :- require([ append/3
 	   , chain_list/2
-	   , concat/3
 	   , concat_atom/2
 	   , flatten/2
 	   , send_list/3
