@@ -4,6 +4,21 @@
 VERSION 2.9.6
 =============
 
+  * PORT: improved detection and placement of mmap()-ed stacks (Unix sparse
+    stack-management) with help of Marcello Balduccini.
+
+  * FIXED: clause/3 to add/remove predicate reference-count while holding
+    a choicepoint to the predicate.  Reported by Marcello Balduccini.
+
+  * ADDED: -c flag to plld to turn it into `plcc', just compiling .c or
+    .cc files.  Thanks to Marcello Balduccini.
+
+  * MODIFIED: write/1 and friends now only insert spaces before and
+    after operators if these are required to be a valid term for read/1.
+    The only exception is ,/2, which is written using a space after the
+    symbol.  NOTE: foreign packages including <SWI-Stream.h> need
+    to be recompiled!!!
+
   * FIXED: current_predicate/2 not consider abolished predicates that
     still exist as `current', so current_predicate(_, Goal), Goal is
     guaranteed not to raise an exception on Goal.  Should fix recent
@@ -15,7 +30,7 @@ VERSION 2.9.6
     the saved-state is loaded, but after the heap is initialised.  This
     implies only foreign predicates may be called from this hook now.
 
-  * FIXED: testing of write-premissions for the library index for
+  * FIXED: testing of write-permissions for the library index for
     make/0.
 
   * MODIFIED: Toplevel queries are now read from user_input, rather

@@ -500,6 +500,29 @@ Put(int c)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PutOpenToken() inserts a space in the output stream if the last-written
+and given character require a space to ensure a token-break.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+PutOpenToken(int c)
+{ IOSTREAM *s = fileTable[Output].stream;
+  
+  if ( c == EOF )
+  { s->lastc = EOF;
+    succeed;
+  }
+
+  if ( s->lastc != EOF &&
+       ((isAlpha(s->lastc) && isAlpha(c)) ||
+	(isSymbol(s->lastc) && isSymbol(c))) )
+    return Put(' ');
+
+  succeed;
+}
+
+
 bool
 Puts(const char *str)
 { IOSTREAM *s = fileTable[Output].stream;

@@ -83,6 +83,7 @@ typedef struct io_stream
   char		       *limitp;		/* read/write limit */
   char		       *buffer;		/* the buffer */
   char		       *unbuffer;	/* Sungetc buffer */
+  int			lastc;		/* last character written */
   int			magic;		/* magic number SIO_MAGIC */
   int  			bufsize;	/* size of the buffer */
   int			flags;		/* Status flags */

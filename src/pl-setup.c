@@ -18,6 +18,8 @@
 
 #undef ulong
 #define ulong unsigned long
+#undef max
+#define max(a,b) ((a) > (b) ? (a) : (b))
 
 #define K * 1024
 
@@ -575,34 +577,45 @@ TOPOFHEAP in config.h. Othewise #define  it  to   0,  in  which case the
 system will allocate a default heap of 64 MB and the stacks above that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef TOPOFHEAP
-#define topOfHeap() TOPOFHEAP
-#else /*TOPOFHEAP*/
 #ifdef HAVE_GETRLIMIT
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
 
 #ifdef RLIMIT_DATA
-ulong
-topOfHeap()
+static ulong
+dataLimit()
 { struct rlimit limit;
 
   if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
-  { ulong top = limit.rlim_cur + heap_base;
-
-    DEBUG(1, Sdprintf("Heap: %p ... %p\n", (void *)heap_base, (void *)top));
-    return top;
-  }
+    return limit.rlim_cur;
 
   return 0L;
 }
 #else
-#define topOfHeap() (0L)
+#define dataLimit() (0L)
 #endif /*RLIMIT_DATA*/
 #else
-#define topOfHeap() (0L)
+#define dataLimit() (0L)
 #endif /*HAVE_GETRLIMIT*/
+
+
+#ifdef TOPOFHEAP
+#define topOfHeap() TOPOFHEAP
+#else /*TOPOFHEAP*/
+ulong
+topOfHeap()
+{ ulong data = dataLimit();
+
+  if ( data )
+  { ulong top = heap_base + data;
+
+    DEBUG(1, Sdprintf("Heap: %p ... %p\n", (void *)heap_base, (void *)top));
+    return top;
+  }
+    
+  return 0L;
+}
 #endif /*TOPOFHEAP*/
 
 
@@ -1149,15 +1162,13 @@ initStacks() initialises the stacks structure,  thus  assigning  a  base
 address,  a limit and a name to each of the stacks.  Finally it installs
 a signal handler for handling  segmentation  faults.   The  segmentation
 fault handler will actually create and expand the stacks on segmentation
-faults.   Currently,  it is assumed memory can be mapped from sbrk(0) to
-MMAP_MAX_ADDRESS and the stack is outside this area.  This is true on
-SUN  and  GOULD.   On  other  machines  the  C-stack  might   start   at
-MMAP_MAX_ADDRESS   and   grow   downwards.    In   this   case  lower
-MMAP_MAX_ADDRESS a bit (if you have 100 MB virtual address  space  or
-more,  I  would  suggest  16 MB), so space is allocated for the C-stack.
-The stacks are allocated right below MMAP_MAX_ADDRESS, at a  distance
-STACK_SEPARATION  from  each other.  STACK_SEPARATION must be a multiple
-of the page size.
+faults.
+
+The big problem is finding a safe   area  for the stacks. Currently, the
+system tries to find an area as far   as possible from the heap, growing
+downwards  if  it  can  determine  the    top  of  the  heap-area  using
+topOfHeap(). If it cannot, it will work from the current top of the heap
+as returned by sbrk(0).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef FORCED_MALLOC_BASE
@@ -1172,7 +1183,7 @@ of the page size.
 static void
 initStacks(long local, long global, long trail, long argument)
 { int large = 0;
-  ulong base, top, space, large_size;
+  ulong base, top, space, large_size, min_space;
 
   size_alignment = getpagesize();
 #ifdef MMAP_STACK
@@ -1190,6 +1201,12 @@ initStacks(long local, long global, long trail, long argument)
   trail    = (ulong) align_size(trail);
   argument = (ulong) align_size(argument);
 
+  min_space = align_base(1) +
+	      align_base(local + STACK_SEPARATION) +
+	      align_base(global + STACK_SEPARATION) +
+	      align_base(trail + STACK_SEPARATION) +
+	      align_base(argument);
+
   if ( local    == 0 ) large++;		/* find dynamic ones */
   if ( global   == 0 ) large++;
   if ( trail    == 0 ) large++;
@@ -1199,11 +1216,8 @@ initStacks(long local, long global, long trail, long argument)
   { if ( large > 0 )			/* we have dynamic stacks */
     { base = heap_base;
       space = top - base;
-      space -= align_base(1) +
-	       align_base(local + STACK_SEPARATION) +
-	       align_base(global + STACK_SEPARATION) +
-	       align_base(trail + STACK_SEPARATION) +
-	       align_base(argument);
+      space -= min_space;
+      large++;				/* heap as well */
       large_size = ((space / large+1) / base_alignment) * base_alignment;
       if ( large_size > 64 MB )
 	large_size = 64 MB;
@@ -1224,9 +1238,20 @@ initStacks(long local, long global, long trail, long argument)
 		  align_base(argument));
     base = align_base_down(base);
   } else				/* we don't know the top */
-  {
+  { ulong maxdata = dataLimit();
+
     if ( !GD->options.heapSize )
-      GD->options.heapSize = 64 MB;
+    { if ( maxdata )
+      { large_size = align_base_down((maxdata-min_space)/(large+1));
+	large_size = max(large_size, 64 MB);
+      } else
+	large_size = 64 MB;
+	
+      GD->options.heapSize = large_size;
+    } else
+    { large_size = align_base_down((maxdata-min_space)/(large+1));
+      large_size = max(large_size, 64 MB);
+    }
 
 #ifdef MMAP_MIN_ADDRESS
     base = MMAP_MIN_ADDRESS;
@@ -1235,8 +1260,7 @@ initStacks(long local, long global, long trail, long argument)
 #endif
 
     if ( large > 0 )
-    { large_size = 64 MB;		/* what about the Alpha? */
-      DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
+    { DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
   
       if ( local    == 0 ) local    = large_size;
       if ( global   == 0 ) global   = large_size;

@@ -89,7 +89,8 @@ embedded application.
 #endif
 #undef oserror				/* Irix name-clash */
 #define oserror xoserror
-#define strdup xstrdup
+#undef strdup
+#define strdup plld_strdup
 #define xmalloc plld_xmalloc
 #define xrealloc plld_xrealloc
 #define xfree plld_xfree
@@ -135,6 +136,7 @@ static char *pltmp;			/* base saved state */
 static char *out;			/* final output */
 
 static int nostate = FALSE;		/* do not make a state */
+static int nolink = FALSE;		/* do not link */
 
 static int verbose = TRUE;		/* verbose operation */
 static int fake = FALSE;		/* don't really do anything */
@@ -399,7 +401,8 @@ replaceExtension(const char *base, const char *ext, char *buf)
     else if ( *q == '/' || *q == '\\' )
       e = NULL;
   }
-  
+  *q = '\0';
+
   if ( e )
     e++;
   else
@@ -488,6 +491,7 @@ usage()
 	  "       -v               verbose\n"
 	  "       -f               fake (do not run any commands)\n"
 	  "       -g               Compile/link for debugging\n"
+	  "       -c               Only compile C/C++ files, do not link\n"
 	  "\n"
 	  "       -pl prolog       Prolog to use\n"
 	  "       -ld linker       link editor to use\n"
@@ -529,6 +533,8 @@ parseOptions(int argc, char **argv)
     { verbose++;
     } else if ( streq(opt, "-f") )		/* -f */
     { fake++;
+    } else if ( streq(opt, "-c") )		/* -c */
+    { nolink++;
     } else if ( streq(opt, "-g") )		/* -g */
     { appendArgList(&coptions, OPT_DEBUG);
       appendArgList(&cppoptions, OPT_DEBUG);
@@ -822,7 +828,8 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
 
   callprog(compiler, args);
   appendArgList(&ofiles, ofile);
-  appendArgList(&tmpfiles, ofile);
+  if ( !nolink )
+    appendArgList(&tmpfiles, ofile);
   freeArgList(args);
 }
 
@@ -911,6 +918,7 @@ linkBaseExecutable()
     {					/* schedule .exp file for deletion */
       char buf[MAXPATHLEN];
       appendArgList(&tmpfiles, replaceExtension(ctmp, "exp", buf));
+      appendArgList(&tmpfiles, replaceExtension(ctmp, "lib", buf));
     }
 #endif
   }
@@ -1136,11 +1144,13 @@ main(int argc, char **argv)
   fillDefaultOptions();
 
   compileObjectFiles();
-  linkBaseExecutable();
+  if ( !nolink )
+  { linkBaseExecutable();
 
-  if ( !nostate )
-  { createSavedState();
-    createOutput();
+    if ( !nostate )
+    { createSavedState();
+      createOutput();
+    }
   }
 
   removeTempFiles();

@@ -14,7 +14,7 @@
 extern int Output;
 
 forwards int	priorityOperator(atom_t);
-forwards bool	writeTerm(term_t term, int pri, int flags);
+forwards bool	writeTerm2(term_t term, int pri, int flags);
 
 char *
 varName(term_t t, char *name)
@@ -73,24 +73,34 @@ atomType(atom_t a)
 
 
 static bool
+PutToken(const char *s)
+{ if ( s[0] )
+    return PutOpenToken(s[0]) && Puts(s);
+
+  return TRUE;
+}
+
+
+static bool
 writeAtom(atom_t a, bool quote)
-{ if ( quote )
+{ char *s = stringAtom(a);
+
+  if ( quote )
   { switch( atomType(a) )
     { case AT_LOWER:
       case AT_SYMBOL:
       case AT_SOLO:
       case AT_SPECIAL:
-	return Puts(stringAtom(a));
+	return PutToken(s);
       case AT_QUOTE:
       case AT_FULLSTOP:
       default:
-      { char *s = stringAtom(a);
-	char c;
+      { char c;
 
 	TRY(Put('\''));
 	while( (c = *s++) != EOS )
 	{ if (c == '\'')
-	  { TRY(Putf("''"));
+	  { TRY(Put(c)&&Put(c));
 	  } else
 	  { TRY(Put(c));
 	  }
@@ -99,7 +109,7 @@ writeAtom(atom_t a, bool quote)
       }
     }
   } else
-    return Puts(stringAtom(a));
+    return PutToken(s);
 }
 
 #if !defined(HAVE_ISNAN) && defined(NaN)
@@ -116,7 +126,7 @@ writePrimitive(term_t t, bool quote)
   char buf[16];
 
   if ( PL_is_variable(t) )
-    return Putf("%s", varName(t, buf));
+    return PutToken(varName(t, buf));
 
   if ( PL_get_atom(t, &a) )
     return writeAtom(a, quote);
@@ -125,11 +135,14 @@ writePrimitive(term_t t, bool quote)
   { long i;
 
     PL_get_long(t, &i);
+    PutOpenToken('0');			/* Any Alpha char will do */
     return Putf("%ld", i);
   }
 
   if ( PL_get_float(t, &f) )
   { char *s = NULL;
+
+    PutOpenToken('0');			/* Any Alpha char will do */
 
 #ifdef HUGE_VAL
     if ( f == HUGE_VAL )
@@ -232,30 +245,16 @@ callPortray(term_t arg)
 }
 
 
-
 static bool
-needSpace(atom_t a1, term_t t)
-{ int t1 = atomType(a1);
-  atom_t a;
+writeTerm(term_t t, int prec, bool style)
+{ PutOpenToken(EOF);			/* reset this */
 
-  if ( PL_get_atom(t, &a) )
-  { int t2 = atomType(a);
-
-    if ( (t1 == AT_SYMBOL && t2 == AT_LOWER) ||
-	 (t1 == AT_LOWER  && t1 == AT_SYMBOL) )
-      fail;
-
-    succeed;
-  }
-  if ( t1 == AT_SYMBOL && PL_is_integer(t) )
-    fail;
-
-  succeed;
+  return writeTerm2(t, prec, style);
 }
 
 
 static bool
-writeTerm(term_t t, int prec, bool style)
+writeTerm2(term_t t, int prec, bool style)
 { atom_t functor;
   int arity, n;
   int op_type, op_pri;
@@ -291,11 +290,11 @@ writeTerm(term_t t, int prec, bool style)
 	  { if ( !PL_is_functor(arg, FUNCTOR_comma2) )
 	      break;
 	    PL_get_arg(1, arg, a);
-	    TRY(writeTerm(a, 999, style) &&
+	    TRY(writeTerm2(a, 999, style) &&
 		Putf(", "));
 	    PL_get_arg(2, arg, arg);
 	  }
-	  TRY(writeTerm(arg, 999, style) &&
+	  TRY(writeTerm2(arg, 999, style) &&
 	      Put('}'));
   
 	  succeed;
@@ -324,10 +323,7 @@ writeTerm(term_t t, int prec, bool style)
 	  { TRY(Put('('));
 	  }
 	  TRY(writeAtom(functor, quote));
-	  if ( needSpace(functor, arg) )
-	  { TRY(Put(' '));
-	  }
-	  TRY(writeTerm(arg, op_type == OP_FX ? op_pri-1 : op_pri, style));
+	  TRY(writeTerm2(arg, op_type == OP_FX ? op_pri-1 : op_pri, style));
 	  if ( op_pri > prec )
 	  { TRY(Put(')'));
 	  }
@@ -342,9 +338,7 @@ writeTerm(term_t t, int prec, bool style)
 	  PL_get_arg(1, t, arg);
 	  if ( op_pri > prec )
 	    TRY(Put('('));
-	  TRY(writeTerm(arg, op_type == OP_XF ? op_pri-1 : op_pri, style));
-	  if ( needSpace(functor, arg) ) /* indendent of order? */
-	    TRY(Put(' '));
+	  TRY(writeTerm2(arg, op_type == OP_XF ? op_pri-1 : op_pri, style));
 	  TRY(writeAtom(functor, quote));
 	  if (op_pri > prec)
 	    TRY(Put(')'));
@@ -360,12 +354,12 @@ writeTerm(term_t t, int prec, bool style)
 	  for(;;)
 	  { PL_get_list(l, head, l);
   
-	    TRY(writeTerm(head, 999, style));
+	    TRY(writeTerm2(head, 999, style));
 	    if ( PL_get_nil(l) )
 	      break;
 	    if ( !PL_is_functor(l, FUNCTOR_dot2) )
 	    { TRY(Put('|'));
-	      TRY(writeTerm(l, 999, style));
+	      TRY(writeTerm2(l, 999, style));
 	      break;
 	    }
 	    TRY(Putf(", "));
@@ -377,27 +371,20 @@ writeTerm(term_t t, int prec, bool style)
 	if ( isInfixOperator(functor, &op_type, &op_pri) )
 	{ term_t l = PL_new_term_ref();
 	  term_t r = PL_new_term_ref();
-	  int needspaces = TRUE;
   
 	  PL_get_arg(1, t, l);
 	  PL_get_arg(2, t, r);
   
-	  if ( functor == ATOM_divide &&
-	       PL_is_atom(l) && PL_is_integer(r) )
-	    needspaces = FALSE;
-  
 	  if ( op_pri > prec )
 	    TRY(Put('('));
-	  TRY(writeTerm(l, 
+	  TRY(writeTerm2(l, 
 			op_type == OP_XFX || op_type == OP_XFY
 				? op_pri-1 : op_pri, 
 			style));
-	  if ( needspaces && functor != ATOM_comma )
-	    TRY(Put(' '));
 	  TRY(writeAtom(functor, quote));
-	  if ( needspaces )
+	  if ( functor == ATOM_comma )
 	    TRY(Put(' '));
-	  TRY(writeTerm(r, 
+	  TRY(writeTerm2(r, 
 			op_type == OP_XFX || op_type == OP_YFX
 				? op_pri-1 : op_pri, 
 			style));
@@ -416,7 +403,7 @@ writeTerm(term_t t, int prec, bool style)
       { if (n > 0)
 	  TRY(Putf(", "));
 	PL_get_arg(n+1, t, a);
-	TRY(writeTerm(a, 999, style));
+	TRY(writeTerm2(a, 999, style));
       }
       return Put(')');
     }

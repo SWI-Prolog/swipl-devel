@@ -43,8 +43,8 @@ int	provides_address = 1;		/* assume */
 
 #define ulong unsigned long		/* avoid redefinition */
 
-#define K * 1024
-#define MB K K
+#define KB * 1024
+#define MB KB KB
 
 #define RoundUp(x, y)	((x)%(y) == 0 ? (x) : ((x)|((y)-1))+1)
 #define RoundDown(p, n)	((p) & ~((n)-1))
@@ -124,7 +124,7 @@ segv_handler(int s, int type, void *scp, char *sigaddr)
 
 static int
 test_map(int *low)
-{ int size = 40 K;
+{ int size = 40 KB;
   int n;
 
 #ifdef VERBOSE
@@ -188,11 +188,8 @@ getpagesize()
 
 #ifdef RLIMIT_DATA
 ulong
-topOfHeap()
+topOfHeap(ulong heap_base)
 { struct rlimit limit;
-  ulong heap_base = (ulong)sbrk(0);
-
-  heap_base = RoundDown(heap_base, 8 MB);
 
   if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
   { ulong top = limit.rlim_cur + heap_base;
@@ -282,38 +279,139 @@ ok()
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+run_testarea() runs testarea as a child, 
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if defined(HAVE_SYS_RESOURCE_H)
+#include <sys/resource.h>
+#endif
+#if defined(HAVE_SYS_WAIT_H) || defined(UNION_WAIT)
+#include <sys/wait.h>
+#endif
+
+#ifdef UNION_WAIT
+
+#define wait_t union wait
+
+#ifndef WEXITSTATUS
+#define WEXITSTATUS(s) ((s).w_status)
+#endif
+#ifndef WTERMSIG
+#define WTERMSIG(s) ((s).w_status)
+#endif
+
+#else /*UNION_WAIT*/
+
+#define wait_t int
+
+#ifndef WEXITSTATUS
+# define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
+#endif
+#ifndef WIFEXITED
+# define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
+#endif
+
+#endif /*UNION_WAIT*/
+
+
+static int
+run_testarea(ulong base, ulong top)
+{ pid_t pid;
+
+  if ( (pid = fork()) == 0 )
+  { if ( testarea(base, top) )		/* the child */
+    { ok();
+      exit(0);
+    }
+  } else if ( pid < 0 )
+  { perror("fork");
+    exit(1);
+  } else				/* wait for it */
+  { wait_t status;
+    int n;
+
+    while((n = wait(&status)) != -1 && n != pid);
+    if ( n == -1 )
+    { perror("wait");
+      exit(1);
+    }
+    if ( WIFEXITED(status) )
+      return WEXITSTATUS(status) == 0 ? TRUE : FALSE;
+
+    return FALSE;			/* signalled */
+  }
+}
+
+#define DEFSTACKSIZE (64 MB * 3 + 8 MB)
+
 int
 main(int argc, char **argv)
-{ ulong top, htop = topOfHeap();
+{ ulong top, htop;
   ulong base;
   ulong hbase;
+  ulong stack;
+  ulong defsize = DEFSTACKSIZE;		/* Thats what we want */
+  ulong size;			
+  int tried = 0;
 
   pagsiz = getpagesize();
   mapfd  = get_map_fd();
   hbase  = RoundDown((ulong)sbrk(0) + 8 MB, pagsiz);
+  htop   = topOfHeap(hbase);
 
   if ( htop )
+    defsize = size = min(htop-(hbase+1 MB), DEFSTACKSIZE);
+  else
+    defsize = size = DEFSTACKSIZE;
+
+again:
+  if ( htop )				/* try from the top ... */
   { top  = RoundDown(htop, pagsiz);
-    base = top - (64 MB * 3 + 8 MB);
+    base = top - size;
 
     base = max(base, hbase);
-    if ( testarea(base, top) )
-    { ok();
-      exit(0);
+    if ( run_testarea(base, top) )
+    { if ( size != DEFSTACKSIZE )
+	printf("MMAP_STACKSIZE=%d;\n", size/(1 MB));
+      exit(0);				/* done */
     }
   }
 
-  base = hbase;
-  top = base + (64 MB * 3 + 8 MB);
+  base = hbase;				/* failed, lets try from the bottom */
+  top = base + size;
   if ( htop )
     top = min(top, htop);
+  stack = (ulong)&top;			/* do not overwrite the stack */
+  if ( stack > base )
+  { ulong stack_base;
 
-  if ( testarea(base, top) )
-  { if ( htop )
+    if ( STACK_DIRECTION < 0 )
+      stack_base = RoundDown(stack - 8 MB, pagsiz);
+    else
+      stack_base = RoundDown(stack, 64 KB);
+
+    top = min(top, stack_base);
+  }
+  size = top-base;
+
+  if ( run_testarea(base, top) )
+  { if ( size != defsize )
+      printf("MMAP_STACKSIZE=%d;\n", size/(1 MB));
+    if ( htop )
       printf("TOPOFHEAP=0;\n");
-    ok();
     exit(0);
   }
+
+  if ( !tried++ )
+  {
+#if defined(__NetBSD__) && _MACHINE == amiga
+    size = 120 MB;
+    goto again;
+#endif
+  }
+
 
   exit(1);
 }

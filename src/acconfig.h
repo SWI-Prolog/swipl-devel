@@ -90,3 +90,7 @@
 
 /* Define top of heap.  See pl-setup.c */
 #undef TOPOFHEAP
+
+/* Define max size of mmapp()ed stacks.  See test/mmap.c */
+#undef MMAP_STACKSIZE
+

@@ -1643,6 +1643,7 @@ DEP_CPP_PL_MA=\
 	".\pl-data.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-os.h"\
 	".\pl-save.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
@@ -2325,6 +2326,7 @@ DEP_CPP_PL_PROC=\
 	".\pl-data.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\

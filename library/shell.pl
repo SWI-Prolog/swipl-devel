@@ -94,6 +94,7 @@ dir_name(Path, Name) :-
 	concat(P, /, Path), !,
 	dir_name(P, Name).
 dir_name(Path, Name) :-
+	feature(unix, true),
 	absolute_file_name('~', Home0),
 	(   concat(Home, /, Home0)
 	->  true

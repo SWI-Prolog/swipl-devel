@@ -186,14 +186,17 @@ LINK32_OBJS= \
 # Begin Source File
 
 SOURCE=.\plld.c
-
-!IF  "$(CFG)" == "plld - Win32 Release"
-
 DEP_CPP_PLLD_=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
 	".\pl-os.h"\
 	".\pl-stream.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -203,25 +206,6 @@ DEP_CPP_PLLD_=\
 
 "$(INTDIR)\plld.obj" : $(SOURCE) $(DEP_CPP_PLLD_) "$(INTDIR)"
 
-
-!ELSEIF  "$(CFG)" == "plld - Win32 Debug"
-
-DEP_CPP_PLLD_=\
-	".\pl-buffer.h"\
-	".\pl-data.h"\
-	".\pl-incl.h"\
-	".\pl-itf.h"\
-	".\pl-os.h"\
-	".\pl-stream.h"\
-	{$(INCLUDE)}"\sys\STAT.H"\
-	{$(INCLUDE)}"\sys\TYPES.H"\
-	{$(INCLUDE)}"\uxnt.h"\
-	
-
-"$(INTDIR)\plld.obj" : $(SOURCE) $(DEP_CPP_PLLD_) "$(INTDIR)"
-
-
-!ENDIF 
 
 # End Source File
 # End Target

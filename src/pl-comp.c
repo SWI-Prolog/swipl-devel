@@ -2270,83 +2270,97 @@ word
 pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
 { Procedure proc;
   Definition def;
-  Clause clause;
   ClauseRef cref;
+  Word argv;
   Module module = NULL;
 
-  if ( ForeignControl(h) == FRG_CUTTED )
-    succeed;
+  switch( ForeignControl(h) )
+  { case FRG_FIRST_CALL:
+    { Clause clause;
 
-  if ( PL_get_pointer(ref, (void **)&clause) ) /* clause(H, B, 2733843) */
-  { Module defModule;
-    term_t tmp  = PL_new_term_ref();
-    term_t head = PL_new_term_ref();
-    term_t body = PL_new_term_ref();
-    functor_t f;
-
-    if ( !inCore(clause) || !isClause(clause) )
-      return warning("clause/3: Invalid reference");
-	
-    if ( !decompile(clause, term, bindings) )
-      fail;
-
-    proc = clause->procedure;
-    def = proc->definition;
-    defModule = def->module;
-
-    if ( PL_get_functor(term, &f) && f == FUNCTOR_module2 )
-    { PL_strip_module(p, &module, tmp);
-      if ( module != defModule )
-	fail;
-    }
-
-    if ( !unify_definition(p, def, tmp, 0) )
-      fail;
-
-    get_head_and_body_clause(term, head, body, NULL);
-
-    return PL_unify(tmp, head);
-  } else
-  { Word argv;
-
-    if ( ForeignControl(h) == FRG_FIRST_CALL)
-    { if ( !get_procedure(p, &proc, 0, GP_FIND) ||
+      if ( PL_get_pointer(ref, (void **)&clause) ) /* clause(H, B, 2733843) */
+      { Module defModule;
+	term_t tmp  = PL_new_term_ref();
+	term_t head = PL_new_term_ref();
+	term_t body = PL_new_term_ref();
+	functor_t f;
+    
+	if ( !inCore(clause) || !isClause(clause) )
+	  return warning("clause/3: Invalid reference");
+	    
+	if ( !decompile(clause, term, bindings) )
+	  fail;
+    
+	proc = clause->procedure;
+	def = proc->definition;
+	defModule = def->module;
+    
+	if ( PL_get_functor(term, &f) && f == FUNCTOR_module2 )
+	{ PL_strip_module(p, &module, tmp);
+	  if ( module != defModule )
+	    fail;
+	}
+    
+	if ( !unify_definition(p, def, tmp, 0) )
+	  fail;
+    
+	get_head_and_body_clause(term, head, body, NULL);
+    
+	return PL_unify(tmp, head);
+      }
+      if ( !get_procedure(p, &proc, 0, GP_FIND) ||
 	   true(proc->definition, FOREIGN) )
 	fail;
       def = proc->definition;
       cref = def->definition.clauses;
-    } else
+      enterDefinition(def);		/* reference the predicate */
+      break;
+    }
+    case FRG_REDO:
     { cref = ForeignContextPtr(h);
       proc = cref->clause->procedure;
       def  = proc->definition;
+      break;
     }
-  
-    if ( def->functor->arity > 0 )
-    { term_t head = PL_new_term_ref();
+    case FRG_CUTTED:
+    default:
+    { cref = ForeignContextPtr(h);
+      def  = cref->clause->procedure->definition;
 
-      PL_strip_module(p, &module, head);
-      argv = valTermRef(head);
-      deRef(argv);
-      argv = argTermP(*argv, 0);
-    } else
-      argv = NULL;
-
-    for(; cref; cref = cref->next)
-    { bool det;
-  
-      if ( !(cref = findClause(cref, argv, def, &det)) )
-	fail;
-  
-      if ( !decompile(cref->clause, term, bindings) )
-	continue;
-      if ( !PL_unify_pointer(ref, cref->clause) )
-	continue;
-  
-      if ( det == TRUE )
-	succeed;
-
-      ForeignRedoPtr(cref->next);
+      leaveDefinition(def);
+      succeed;
     }
+  }
+
+  if ( def->functor->arity > 0 )
+  { term_t head = PL_new_term_ref();
+
+    PL_strip_module(p, &module, head);
+    argv = valTermRef(head);
+    deRef(argv);
+    argv = argTermP(*argv, 0);
+  } else
+    argv = NULL;
+
+  for(; cref; cref = cref->next)
+  { bool det;
+
+    if ( !(cref = findClause(cref, argv, def, &det)) )
+    { leaveDefinition(def);
+      fail;
+    }
+
+    if ( !decompile(cref->clause, term, bindings) )
+      continue;
+    if ( !PL_unify_pointer(ref, cref->clause) )
+      continue;
+
+    if ( det == TRUE )
+    { leaveDefinition(def);
+      succeed;
+    }
+
+    ForeignRedoPtr(cref->next);
   }
 
   fail;

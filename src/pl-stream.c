@@ -266,8 +266,11 @@ Sputc(int c, IOSTREAM *s)
     *s->bufp++ = (char)c;
   else
   { if ( S__flushbufc(c, s) < 0 )
+    { s->lastc = EOF;
       return -1;
+    }
   }
+  s->lastc = c;
 
   if ( c == '\n' && (s->flags & SIO_LBUF) )
   { if ( S__flushbuf(s) < 0 )
@@ -1174,6 +1177,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   }
   memset((char *)s, 0, sizeof(IOSTREAM));
   s->magic     = SIO_MAGIC;
+  s->lastc     = EOF;
   s->flags     = flags;
   s->handle    = handle;
   s->functions = functions;
@@ -1276,7 +1280,7 @@ Sfileno(IOSTREAM *s)
 
 
 #define STDIO(n, f) { NULL, NULL, NULL, NULL, \
-		      SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
+		      SIO_MAGIC, EOF, 0, f, {0, 0, 0}, NULL, \
 		      ((void *)(n)), &Sfilefunctions \
 		    }
 

@@ -168,6 +168,7 @@ bool		readLine(char *buffer);
 bool		LockStream(void);
 bool		UnlockStream(void);
 bool		Put(int c);
+bool		PutOpenToken(int c);
 IOSTREAM *	PL_current_input(void);
 IOSTREAM *	PL_current_output(void);
 word		Putf(char *fm, ...);
