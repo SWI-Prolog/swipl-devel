@@ -10,6 +10,10 @@
 VERSION 5.2.0 (May 22, 2003)
 ============================
 
+  * FIXED: Bug #55: random/1 generating same sequence in all threads on Win32.
+    Mike Elston.  There are still many issues left about random numbers in
+    multi-threaded code.  See comments in pl-os.c
+
   * FIXED: Bug #54: preserve the tracer being disabled in nested
     C->Prolog calls.  Tolga Konik.
     

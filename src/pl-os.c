@@ -79,7 +79,6 @@ static real initial_time;
 
 static void	initExpand(void);
 static void	cleanupExpand(void);
-static void	initRandom(void);
 static void	initEnviron(void);
 static long	Time(void);
 static char *	Which(const char *program, char *fullname);
@@ -121,8 +120,6 @@ bool
 initOs(void)
 { DEBUG(1, Sdprintf("OS:initExpand() ...\n"));
   initExpand();
-  DEBUG(1, Sdprintf("OS:initRandom() ...\n"));
-  initRandom();
   DEBUG(1, Sdprintf("OS:initEnviron() ...\n"));
   initEnviron();
 
@@ -357,12 +354,38 @@ FreeMemory(void)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     long Random()
 
-    Return a random number. Used for arithmetic only.
+    Return a random number. Used for arithmetic only. More trouble. On
+    some systems (WIN32) the seed of rand() is thread-local, while on
+    others it is global.  We appear to have the choice between
+
+    	# srand()/rand()
+	Differ in MT handling, often bad distribution
+
+	# srandom()/random()
+	Not portable, not MT-Safe but much better distribution
+	
+	# drand48() and friends
+	Depreciated according to Linux manpage, suggested by Solaris
+	manpage.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 initRandom(void)
-{ long init = Time();
+{ long init;
+
+#ifdef __WIN32__
+  init = GetTickCount();
+#else
+#ifdef HAVE_GETTIMEOFDAY
+  struct timeval tp;
+
+  gettimeofday(&tp, NULL);
+  init = tp.tv_sec + tp.tv_usec;
+#else
+  init = Time();
+#endif
+#endif
+
 #ifdef HAVE_SRANDOM
   srandom(init);
 #else
@@ -374,16 +397,21 @@ initRandom(void)
 
 long
 Random(void)
-{ 
+{ if ( !LD->os.rand_initialised )
+  { initRandom();
+    LD->os.rand_initialised = TRUE;
+  }
+
 #ifdef HAVE_RANDOM
   return random();
 #else
-  long l = rand();			/* 0<n<2^15-1 */
+  { long l = rand();			/* 0<n<2^15-1 */
   
-  l ^= rand()<<10;
-  l ^= rand()<<20;
+    l ^= rand()<<10;
+    l ^= rand()<<20;
 
-  return l & (~PLMININT);
+    return l & (~PLMININT);
+  }
 #endif
 }
 

@@ -370,6 +370,7 @@ typedef struct PL_local_data
 #ifdef __BEOS__
     status_t	dl_error;		/* dlopen() emulation in pl-beos.c */
 #endif
+    int		rand_initialised;	/* have we initialised random? */
   } os;
 
   struct
