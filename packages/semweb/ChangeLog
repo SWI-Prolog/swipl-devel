@@ -1,3 +1,7 @@
+Mar 8, 2005
+
+  * FIXED: rdf_unload/1: allow for deleting non-files.
+
 Mar 6, 2005
 
   * FIXED: Added code to emit XML literal values using library(sgml_write).

@@ -579,11 +579,17 @@ rdf_load(Spec, Options0) :-
 rdf_unload(Spec) :-
 	(   Spec = '$stream'(_)
 	->  throw(error(permission_error(rdf_db, unload, Spec), _))
+	;   atom(Spec),
+	    rdf(_,_,_,Spec)
+	->  rdf_retractall(_,_,_,Spec:_),
+	    rdf_retractall(_,_,_,Spec),
+	    retractall(rdf_source(Spec, _, _, _))
 	;   absolute_file_name(Spec,
 			       [ access(read),
 				 extensions([rdf,rdfs,owl,''])
 			       ], File),
 	    rdf_retractall(_,_,_,File:_),
+	    rdf_retractall(_,_,_,File),
 	    retractall(rdf_source(File, _, _, _))
 	).
 	
