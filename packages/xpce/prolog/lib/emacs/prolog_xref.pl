@@ -199,6 +199,8 @@ meta_goal(pce_global(_, new(_)), _) :- !, fail.
 meta_goal(pce_global(_, B),     [B+1]).
 meta_goal(ifmaintainer(G),	[G]).	% used in manual
 
+process_body(Var, _) :-
+	var(Var), !.
 process_body(Goal, Src) :-
 	meta_goal(Goal, Metas), !,
 	assert_called(Src, Goal),
@@ -211,8 +213,8 @@ process_called_list([H|T], Src) :-
 	process_meta(H, Src),
 	process_called_list(T, Src).
 
-process_meta(A+N, Src) :- !,
-	nonvar(A),
+process_meta(A+N, Src) :-
+	nonvar(A), !,
 	\+ A = _:_,
 	A =.. List,
 	length(Rest, N),
@@ -319,7 +321,8 @@ find_source_file(Plain, File, Src) :-
 find_source_file(Spec, File, _) :-
 	do_find_source_file(Spec, File), !.
 find_source_file(Spec, _, _) :-
-	format(user_error, 'Cannot file from ~w', [Spec]),
+	term_to_atom(Spec, Atom),
+	send(@pce, report, warning, 'Cannot find file from %s\n', Atom),
 	fail.
 
 do_find_source_file(Spec, File) :-
