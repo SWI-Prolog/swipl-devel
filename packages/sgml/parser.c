@@ -1765,7 +1765,7 @@ match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
 }
 
 
-static void
+static int
 match_shortref(dtd_parser *p)
 { dtd_map *map;
 
@@ -1806,9 +1806,11 @@ match_shortref(dtd_parser *p)
 
 		   process_entity(p, map->to->name);
 		 })			/* TBD: optimise */
-      break;
+      return TRUE;
     }
   }
+
+  return FALSE;
 }
 
 
@@ -4386,11 +4388,13 @@ add_cdata(dtd_parser *p, int chr)
 
     add_ocharbuf(buf, chr);
   
-    if ( p->map && p->map->ends[chr] )
-      match_shortref(p);
+    if ( p->map &&
+	 p->map->ends[chr]  &&
+	 match_shortref(p) )
+      return;
 
     if ( chr == '\n' )			/* dubious.  Whould we do that */
-    { int sz;				/* here or in the space-handling? */
+    { int sz;				/* here or in space-handling? */
 
       if ( (sz=buf->size) > 1 &&
 	   buf->data[sz-1] == LF &&
