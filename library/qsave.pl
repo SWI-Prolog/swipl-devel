@@ -517,8 +517,11 @@ qualify_head(T, user:T).
 
 save_functions :-
 	feedback('~nFUNCTIONS~n', []),
-	'$prolog_arithmetic_function'(Head),
-	D = arithmetic_function(Head),
+	'$prolog_arithmetic_function'(M:Head, Index),
+	functor(Head, Name, Arity),
+	PredArity is Arity + 1,
+	functor(PredHead, Name, PredArity),
+	D = '$arithmetic_function'(M:PredHead, Index),
 	feedback('~n~t~8|~w ', [D]),
 	$add_directive_wic(D),
 	fail.

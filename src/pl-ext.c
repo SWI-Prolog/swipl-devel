@@ -436,10 +436,7 @@ static const PL_extension foreigns[] = {
   FRG("$size_stream",		2, pl_size_stream,		0),
   FRG("$default_module",	3, pl_default_module,	     META),
 #if O_PROLOG_FUNCTIONS
-  FRG("$arithmetic_function",   1, pl_arithmetic_function,   META),
   FRG("current_arithmetic_function", 1, pl_current_arithmetic_function,
-							NDET|META),
-  FRG("$prolog_arithmetic_function", 1, pl_prolog_arithmetic_function,
 							NDET|META),
 #endif
 

@@ -513,3 +513,4 @@
 #define ATOM_system_thread_id MK_ATOM(512)
 #define ATOM_dprof_node   MK_ATOM(513)
 #define ATOM_profile_node MK_ATOM(514)
+#define ATOM_arity_not_less_than_one MK_ATOM(515)

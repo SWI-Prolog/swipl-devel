@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#38: optimized prolog arithmetic functions in saved-states.
+    Holger Kanwischer.
+
   * PORT: (Maybe ...) Make compile using SunSoft C-compiler.  Michel Sall. 
 
   * FIXED: Bug#37 writeq(`hello`) with backquoted_string set to true. 

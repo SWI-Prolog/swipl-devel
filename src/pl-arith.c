@@ -109,7 +109,7 @@ struct arithFunction
 #define FunctionFromIndex(n)	fetchBuffer(function_array, n, ArithFunction)
 
 static ArithFunction	isCurrentArithFunction(functor_t, Module);
-static void		registerFunction(ArithFunction f);
+static int		registerFunction(ArithFunction f, int index);
 static void		promoteToRealNumber(Number n);
 
 
@@ -1184,8 +1184,8 @@ functor and keep them sorted in   the chain, most-specific module first.
 See also isCurrentArithFunction()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-word
-pl_arithmetic_function(term_t descr)
+static
+PRED_IMPL("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
 { GET_LD
   Procedure proc;
   functor_t fd;
@@ -1194,13 +1194,18 @@ pl_arithmetic_function(term_t descr)
   Module m = NULL;
   term_t head = PL_new_term_ref();
   int v;
+  int index, rc;
 
-  PL_strip_module(descr, &m, head);
+  PL_strip_module(A1, &m, head);
   if ( !PL_get_functor(head, &fd) )
-    return warning("arithmetic_function/1: Illegal head");
+    return PL_error(NULL, 0, NULL,
+		    ERR_TYPE, ATOM_callable, head);
   fdef = valueFunctor(fd);
   if ( fdef->arity < 1 )
-    return warning("arithmetic_function/1: Illegal arity");
+    return PL_error(NULL, 0, NULL,
+		    ERR_DOMAIN, ATOM_arity_not_less_than_one, head);
+  if ( !PL_get_integer_ex(A2, &index) )
+    fail;
 
   proc = lookupProcedure(fd, m);
   fd = lookupFunctorDef(fdef->name, fdef->arity - 1);
@@ -1223,10 +1228,10 @@ pl_arithmetic_function(term_t descr)
       break;
     }
   }
-  registerFunction(f);
+  rc = registerFunction(f, index);
   endCritical;
 
-  succeed;
+  return rc;
 }
 
 word
@@ -1248,7 +1253,8 @@ pl_current_arithmetic_function(term_t f, control_t h)
       } else if ( PL_get_functor(head, &fd) )
       {	return isCurrentArithFunction(fd, m) ? TRUE : FALSE;
       } else
-        return warning("current_arithmetic_function/2: instantiation fault");
+        return PL_error(NULL, 0, NULL,
+			ERR_TYPE, ATOM_callable, f);
     }
     case FRG_REDO:
       PL_strip_module(f, &m, head);
@@ -1280,41 +1286,45 @@ pl_current_arithmetic_function(term_t f, control_t h)
   fail;
 }
 
-word
-pl_prolog_arithmetic_function(term_t f, control_t h)
-{ GET_LD
-  ArithFunction a;
-  term_t tmp = PL_new_term_ref();
 
-  switch( ForeignControl(h) )
+static
+PRED_IMPL("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
+	  PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
+{ PRED_LD
+  int i, mx;
+  term_t tmp;
+
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-      a = arithFunctionTable[0];
+      i = 0;
       break;
     case FRG_REDO:
-      a = ForeignContextPtr(h);
+      i = CTX_INT;
       break;
     case FRG_CUTTED:
     default:
       succeed;
   }
 
-  for( ; a; a = a->next )
-  { mark m;
+  tmp = PL_new_term_ref();
+  mx = entriesBuffer(function_array, ArithFunction);
 
-    while( isTableRef(a) )
-    { a = unTableRef(ArithFunction, a);
-      if ( !a )
-        fail;
-    }
+  for( ; i<mx; i++ )
+  { ArithFunction f = FunctionFromIndex(i);
+    mark m;
 
     Mark(m);
-    PL_put_functor(tmp, a->functor);
-    if ( a->proc &&
-	 PL_unify_term(f,
+    PL_put_functor(tmp, f->functor);
+    if ( f->proc &&
+	 PL_unify_term(A1,
 		       PL_FUNCTOR, FUNCTOR_colon2,
-		         PL_ATOM, a->module->name,
-		         PL_TERM, tmp) )
-      return_next_table(ArithFunction, a, ;);
+		         PL_ATOM, f->module->name,
+		         PL_TERM, tmp) &&
+	 PL_unify_integer(A2, f->index) )
+    { if ( ++i == mx )
+	succeed;
+      ForeignRedoInt(i);
+    }
     Undo(m);
   }
 
@@ -1385,10 +1395,20 @@ static const ar_funcdef ar_funcdefs[] = {
 
 #undef ADD
 
-static void
-registerFunction(ArithFunction f)
-{ f->index = entriesBuffer(function_array, ArithFunction);
+static int
+registerFunction(ArithFunction f, int index)
+{ int i = entriesBuffer(function_array, ArithFunction);
+
+  if ( index )
+  { if ( index != i )
+      return fatalError("Mismatch in arithmetic function index (%d != %d)",
+		        index, i);
+  }
+
+  f->index = i;
   addBuffer(function_array, f, ArithFunction);
+
+  succeed;
 }
 
 
@@ -1412,7 +1432,7 @@ registerBuiltinFunctions()
     f->level    = 0;			/* level of system module */
     f->next     = arithFunctionTable[v];
     arithFunctionTable[v] = f;
-    registerFunction(f);
+    registerFunction(f, 0);
     DEBUG(1, Sdprintf("Registered %s/%d at %d, index=%d\n",
 		      stringAtom(nameFunctor(f->functor)),
 		      arityFunctor(f->functor),
@@ -1554,4 +1574,7 @@ BeginPredDefs(arith)
   PRED_DEF(">=",   2, geq, PL_FA_TRANSPARENT)
   PRED_DEF("=\\=", 2, neq, PL_FA_TRANSPARENT)
   PRED_DEF("=:=",  2, eq,  PL_FA_TRANSPARENT)
+  PRED_DEF("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
+	   PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
+  PRED_DEF("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
 EndPredDefs

@@ -731,7 +731,7 @@ arithmetic_function(Spec) :-
 	), !,
 	PredArity is Arity + 1,
 	functor(Head, Name, PredArity),
-	$arithmetic_function(Module:Head).
+	$arithmetic_function(Module:Head, 0).
 
 %	default_module(+Me, -Super)
 %	Is true if `Super' is `Me' or a super (auto import) module of `Me'.
