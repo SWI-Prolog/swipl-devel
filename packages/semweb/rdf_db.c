@@ -370,13 +370,15 @@ INIT_LOCK(rdf_db *db)
 
 static int
 RDLOCK(rdf_db *db)
-{ pthread_mutex_lock(&db->mutex);
+{ int self = PL_thread_self();
+
+  pthread_mutex_lock(&db->mutex);
 
   if ( db->writer == -1 )
   { ok:
 
     db->readers++;
-    db->read_by_thread[PL_thread_self()]++;
+    db->read_by_thread[self]++;
     pthread_mutex_unlock(&db->mutex);
 
     return TRUE;
@@ -756,6 +758,10 @@ print_triple(triple *t, int flags)
 		 /*******************************
 		 *	     STORAGE		*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Our one and only database (for the time being).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static rdf_db *DB;
 
