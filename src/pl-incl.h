@@ -275,6 +275,7 @@ void *alloca ();
 #else
 #include <socket.h>			/* why do we need socket.h? */
 #endif
+#include <kernel/image.h>		/* for pl-beos.c */
 #undef true
 #undef false
 #undef bool

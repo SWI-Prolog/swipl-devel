@@ -36,8 +36,6 @@ integrated into SWI-Prolog by Jan Wielemaker.
 		 *******************************/
 
 #ifdef EMULATE_DLOPEN
-#include <kernel/image.h>
-#include <string.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 These functions emulate the bits from the ELF shared object interface we
