@@ -43,13 +43,14 @@ wise_install :-
 	->  Item = 'SWI-Prolog',
 	    format('Installing icons in group ~w, for CWD=~w~n', [Group, Cwd]),
 	    ensure_group(Group),
-	    feature(symbol_file, PlFileName),
+	    format('Created group ~w~n', [Group]),
+	    current_prolog_flag(executable, PlFileName),
 	    prolog_to_os_filename(PlFileName, CmdLine0),
 	    concat_atom(['"', CmdLine0, '"'], CmdLine),
+	    format('Commandline = ~w~n', [CmdLine]),
 	    progman_make_item(Group, Item, CmdLine, Cwd)
 	;   true
 	), !,
-	make,				% update all library indexes
 	halt(0).
 wise_install :-
 	halt(1).
@@ -65,16 +66,33 @@ wise_install_xpce :-
 	->  Item = 'XPCE',
 	    format('Installing icons in group ~w, for CWD=~w~n', [Group, Cwd]),
 	    ensure_group(Group),
-	    feature(symbol_file, PlFileName),
+	    current_prolog_flag(executable, PlFileName),
 	    prolog_to_os_filename(PlFileName, Prog),
 	    concat_atom(['"', Prog, '" -- -pce'], CmdLine),
 	    progman_make_item(Group, Item, CmdLine, Cwd, Prog:1)
 	;   true
 	), !,
+%	pce_manual_index,
 	halt(0).
 wise_install_xpce :-
 	halt(1).
 	
+pce_manual_index :-
+	send(@display, confirm,
+	     'I can now create the index for the XPCE manual tools\n\n\
+	      This process takes several minutes and requires about 2MB\n\
+	      disk-space.\n\n\
+	      If you do not create the index now, you will be prompted\n\
+	      when you use the manual search tool for the first time.\n\n\
+	      Create the Index now?'),
+	manpce,
+	absolute_file_name(pce('/man/reference/index'),
+			   [ extensions([obj]),
+			     access(write)],
+			   IndexFile), !,
+	get(new(man_index_manager), make_index, IndexFile, _), !.
+pce_manual_index.
+
 		 /*******************************
 		 *	 PRECOMPILED PARTS	*
 		 *******************************/
@@ -86,7 +104,7 @@ qmodule(lib, library('emacs/emacs')).
 qmodule(lib, library('dialog/dialog')).
 
 qcompile_pce :-
-	set_feature(character_escapes, false),
+	set_prolog_flag(character_escapes, false),
 	format('Checking library-index~n'),
 	make,
 	qcompile(library(pce)).
