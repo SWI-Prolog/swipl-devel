@@ -212,17 +212,16 @@ do_format(const char *fmt, int argc, term_t argv)
 	    int i;
 	    qid_t qid;
 
-	    argc -= fdef->arity-2;
-	    NEED_ARG;
-	    argc--;
-
 	    if ( arg == DEFAULT )
 	      PL_put_atom(av+0, ATOM_default);
 	    else
 	      PL_put_integer(av+0, arg);
+
 	    for(i=1; i<fdef->arity; i++)
-	      PL_put_term(av+i, argv+i-1);
-	    argv += fdef->arity;
+	    { NEED_ARG;
+	      PL_put_term(av+i, argv);
+	      SHIFT;
+	    }
 
 	    tellString(&str, BUFSIZE);
 	    qid = PL_open_query(proc->definition->module, FALSE, proc, av);

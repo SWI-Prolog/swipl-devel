@@ -2,6 +2,27 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 2.7.20
+==============
+
+  * ADDED: Documentation for expand_query/4 and expand_answer/2.
+
+  * ADDED: call_with_depth_limit/3, to aid theorem provers.
+
+  * ADDED: features 'unix' and 'windows' for these operating systems. 
+
+Version 2.7.19
+==============
+
+  * FIXED: functor(X, name, -1), reported by Robert van Engelen.  Thanks.
+	
+  * FIXED: :- format_predicate/2 handling of arguments.
+
+  * ADDED: external "C" declaractions for SWI-Stream.h, so you can use this
+    in C++ programs now.
+
+  * FIXED: the function sign/1 for floating point numbers.
+
 Version 2.7.18
 ==============
 

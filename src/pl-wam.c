@@ -906,6 +906,14 @@ PL_open_query(Module ctx, bool debug, Procedure proc, term_t args)
   qf->bfr		= fr;
   qf->debug		= debug;
 
+#ifdef O_LIMIT_DEPTH
+  if ( !debug )
+  { qf->saved_depth_limit   = depth_limit;
+    qf->saved_depth_reached = depth_reached;
+    depth_limit = (unsigned long)DEPTH_NO_LIMIT;
+  }
+#endif
+
   DEBUG(1, { extern int Output;		/* --atoenne-- */
 	     FunctorDef f = proc->definition->functor;
 
@@ -992,6 +1000,23 @@ discard_query(QueryFrame qf)
 }
 
 
+static void
+restore_after_query(QueryFrame qf)
+{ environment_frame = qf->saved_environment;
+  aTop		    = qf->aSave;
+  lTop		    = (LocalFrame)qf;
+  if ( !qf->debug )
+  { debugstatus.suspendTrace--;
+    debugstatus.debugging = qf->debugSave;
+#ifdef O_LIMIT_DEPTH
+    depth_limit   = qf->saved_depth_limit;
+    depth_reached = qf->saved_depth_reached;
+#endif O_LIMIT_DEPTH
+  }
+  SECURE(checkStacks(environment_frame));
+}
+
+
 void
 PL_cut_query(qid_t qid)
 { QueryFrame qf = QueryFromQid(qid);
@@ -1001,15 +1026,8 @@ PL_cut_query(qid_t qid)
 
   if ( !qf->deterministic )
     discard_query(qf);
-					/* restore the parent environment */
-  environment_frame = qf->saved_environment;
-  aTop		    = qf->aSave;
-  lTop		    = (LocalFrame)qf;
-  if ( !qf->debug )
-  { debugstatus.suspendTrace--;
-    debugstatus.debugging = qf->debugSave;
-  }
-  SECURE(checkStacks(environment_frame));
+
+  restore_after_query(qf);
 }
 
 
@@ -1026,14 +1044,7 @@ PL_close_query(qid_t qid)
 
   Undo(fr->mark);
 
-  environment_frame = qf->saved_environment;
-  aTop		    = qf->aSave;
-  lTop		    = (LocalFrame)qf;
-  if ( !qf->debug )
-  { debugstatus.suspendTrace--;
-    debugstatus.debugging = qf->debugSave;
-  }
-  SECURE(checkStacks(environment_frame));
+  restore_after_query(qf);
 }
 
 #if O_SHIFT_STACKS
@@ -2906,6 +2917,7 @@ Note: we are working above `lTop' here!
 	  DEF->profile_calls++;
 #endif /* O_PROFILE */
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Undefined   predicate detection and   handling.  trapUndefined() takes
 care of  linking from the  public  modules  or  calling  the exception
@@ -3002,6 +3014,15 @@ values found in the clause,  give  a   reference  to  the clause and set
 	ARGP = argFrameP(FR, 0);
 	DEF->references++;
 
+#ifdef O_LIMIT_DEPTH
+      { unsigned long depth = levelFrame(FR);
+
+	if ( depth > depth_reached )
+	  depth_reached = depth;
+	if ( depth > depth_limit )
+	   FRAME_FAILED;
+      }
+#endif
 	DEBUG(9, Sdprintf("Searching clause ... "));
 
 	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
@@ -3226,7 +3247,7 @@ different ways we can get here:
     procedure  and  if we are out of clauses continue with the backtrack
     frame of this frame.
 
-<  - A foreign goal failed				(frame_failed)
+  - A foreign goal failed				(frame_failed)
     In this case we can continue at the backtrack frame of  the  current
     frame.
 

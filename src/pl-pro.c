@@ -94,6 +94,7 @@ pl_notrace1(term_t goal)
 }
 
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a prolog goal from C. The argument must  be  an  instantiated  term
 like for the Prolog predicate call/1.
@@ -191,6 +192,10 @@ prolog(volatile atom_t goal)
   tTop = tBase;
   gTop = gBase;
   aTop = aBase;
+
+#ifdef O_LIMIT_DEPTH
+  depth_limit   = (unsigned long)DEPTH_NO_LIMIT;
+#endif
 
   PL_open_foreign_frame();
 

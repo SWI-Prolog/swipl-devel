@@ -14,6 +14,10 @@
 
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Get export declarations right.  Also in SWI-Prolog.h, hence the
    check to avoid doing it twice.
 */
@@ -232,5 +236,9 @@ __pl_export int	   	Sfileno(IOSTREAM *s);
 __pl_export IOSTREAM *	Sopen_pipe(const char *command, const char *type);
 __pl_export IOSTREAM *	Sopenmem(char **buffer, int *sizep, const char *mode);
 __pl_export IOSTREAM *	Sopen_string(IOSTREAM *s, char *buf, int sz, char *m);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_PL_STREAM_H*/

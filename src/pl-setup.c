@@ -90,6 +90,11 @@ setupProlog(void)
   DEBUG(1, Sdprintf("base_addresses[STG_TRAIL] = %p\n",
 		    base_addresses[STG_TRAIL]));
 
+#ifdef O_LIMIT_DEPTH
+  depth_limit   = (unsigned long)DEPTH_NO_LIMIT;
+  depth_reached = 0;
+#endif
+
   PL_open_foreign_frame();
 
   if ( status.dumped == FALSE )
@@ -170,6 +175,7 @@ initFeatures()
 #if __WIN32__
   if ( iswin32s() )
     CSetFeature("win32s",	"true");
+  CSetFeature("windows",	"true");
 #endif
   CSetIntFeature("version",	PLVERSION);
   if ( systemDefaults.home )
@@ -229,6 +235,9 @@ initFeatures()
   CSetFeature("float_format", "%g");
   CSetFeature("character_escapes", "true");
   CSetFeature("tty_control", status.notty ? "false" : "true");
+#if defined(__unix__) || defined(unix)
+  CSetFeature("unix", "true");
+#endif
 
 #if defined(__DATE__) && defined(__TIME__)
   { char buf[100];

@@ -262,3 +262,4 @@
 #define ATOM_tracing      MK_ATOM(261)
 #define ATOM_cut_call     MK_ATOM(262)
 #define ATOM_cut_exit     MK_ATOM(263)
+#define ATOM_depth_limit_exceeded MK_ATOM(264)

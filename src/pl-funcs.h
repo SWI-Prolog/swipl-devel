@@ -475,6 +475,15 @@ word		pl_novice(term_t old, term_t new);
 word		pl_break(void);
 word		pl_break1(term_t goal);
 word		pl_notrace1(term_t goal);
+#ifdef O_LIMIT_DEPTH
+word		pl_depth_limit(term_t limit, term_t olimit, term_t oreached);
+word		pl_depth_limit_true(term_t limit,
+				    term_t olimit, term_t oreached,
+				    term_t res, term_t cut, word b);
+word		pl_depth_limit_false(term_t limit,
+				     term_t olimit, term_t oreached,
+				     term_t res);
+#endif /*O_LIMIT_DEPTH*/
 int		callProlog(Module module, term_t goal, int debug);
 word		pl_abort(void);
 bool		prolog(atom_t toplevel);

@@ -115,13 +115,18 @@ static struct foreign {
   FRG("break",			0, pl_break,			TRACE_ME),
   FRG("$break",			1, pl_break1,			TRACE_ME),
   FRG("notrace",		1, pl_notrace1,			META),
+#ifdef O_LIMIT_DEPTH
+  FRG("$depth_limit",		3, pl_depth_limit,		TRACE_ME),
+  FRG("$depth_limit_true",	5, pl_depth_limit_true,	   NDET|TRACE_ME),
+  FRG("$depth_limit_false",	4, pl_depth_limit_false,	TRACE_ME),
+#endif
 
   FRG("display",		1, pl_display,			TRACE_ME),
   FRG("displayq",		1, pl_displayq,			TRACE_ME),
   FRG("write",			1, pl_write,			TRACE_ME),
   FRG("writeq",			1, pl_writeq,			TRACE_ME),
   FRG("print",			1, pl_print,			TRACE_ME),
-  FRG("$print",			2, pl_dprint,		META|TRACE_ME),
+  FRG("$print",			2, pl_dprint,		   META|TRACE_ME),
 
   FRG("read_variables",		2, pl_read_variables,		TRACE_ME),
   FRG("read_term",		2, pl_read_term,		TRACE_ME),

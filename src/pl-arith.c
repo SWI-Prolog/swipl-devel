@@ -627,9 +627,9 @@ BINAIRY_INT_FUNCTION(ar_xor, ^)
 static int
 ar_sign(Number n1, Number r)
 { if ( intNumber(n1) )
-    r->value.i = (n1->value.i < 0 ? -1 : n1->value.i > 0 ? 1 : 0);
+    r->value.i = (n1->value.i <   0 ? -1 : n1->value.i >   0 ? 1 : 0);
   else
-    r->value.f = (n1->value.f < 0 ? -1 : n1->value.f > 0 ? 1 : 0);
+    r->value.i = (n1->value.f < 0.0 ? -1 : n1->value.f > 0.0 ? 1 : 0);
 
   r->type = V_INTEGER;
   succeed;

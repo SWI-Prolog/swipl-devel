@@ -698,6 +698,15 @@ be changed.  Default is {\tt true}, except for the runtime version.
 If {\tt true}, print error messages, otherwise suppress them.  May be
 changed.  See also the {\tt debug_on_error} feature.  Default is {\tt
 true}, except for the runtime version.  
+    \featureoption{unix}{bool}
+\index{unix}%
+If {\tt true}, the operating system is some version of Unix.  Defined
+if the C-compiler used to compile this version of SWI-Prolog either
+defines \verb$__unix__$ or \const{unix}.
+    \featureoption{windows}{bool}
+\index{windows}%
+If {\tt true}, the operating system is an implementation of Microsoft
+Windows (3.1, 95, NT, etc.).
 \end{description}
 
     \predicate{set_feature}{2}{+Key, +Value}

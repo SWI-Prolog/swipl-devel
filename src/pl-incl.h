@@ -87,6 +87,7 @@ handy for it someone wants to add a data type to the system.
 #define O_INTERRUPT		1
 #define O_DESTRUCTIVE_ASSIGNMENT 1
 #define O_HASHTERM		1
+#define O_LIMIT_DEPTH		1
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
@@ -1065,6 +1066,10 @@ struct queryFrame
     LocalFrame  bfr;
   } registers;
 #endif
+#ifdef O_LIMIT_DEPTH
+  long		saved_depth_limit;	/* saved values of these */
+  long		saved_depth_reached;
+#endif
   int		debug;			/* FALSE: nondebugging call */
   int		debugSave;		/* saved debugstatus.debugging */
   Word	       *aSave;			/* saved argument-stack */
@@ -1546,6 +1551,12 @@ GLOBAL struct _feature
 } features;
 
 #define trueFeature(mask)	true(&features, mask)
+
+#ifdef O_LIMIT_DEPTH
+#define DEPTH_NO_LIMIT	(~0x0L)		/* Highest value */
+GLOBAL unsigned long depth_limit;	/* recursion depth limit */
+GLOBAL unsigned long depth_reached;	/* Deapest point reached */
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Administration of loaded intermediate code files  (see  pl-wic.c).  Used

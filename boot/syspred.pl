@@ -56,6 +56,7 @@
 	, absolute_file_name/2
 	, absolute_file_name/3
 	, require/1
+	, call_with_depth_limit/3
 	]).	
 
 		/********************************
@@ -317,6 +318,26 @@ prolog_load_context(directory, D) :-
 	file_directory_name(F, D).
 prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 	source_location(_, L).
+
+		 /*******************************
+		 *	      CONTROL		*
+		 *******************************/
+
+%	call_with_depth_limit(+Goal, +DepthLimit, -Result)
+%
+%	Try to proof Goal, but fail on any branch exceeding the indicated
+%	depth-limit.  Unify Result with the maximum-reached limit on success,
+%	depth_limit_exceeded if the limit was exceeded and fails otherwise.
+
+:- module_transparent call_with_depth_limit/3.
+
+call_with_depth_limit(G, Limit, Result) :-
+	$depth_limit(Limit, OLimit, OReached),
+	(   G,
+	    $depth_limit_true(Limit, OLimit, OReached, Result, Cut),
+	    Cut
+	;   $depth_limit_false(Limit, OLimit, OReached, Result)
+	).
 
 
 		/********************************

@@ -585,6 +585,8 @@ pl_functor(term_t t, term_t f, term_t a)
     fail;
   if ( arity == 0 && PL_is_atomic(f) )
     return PL_unify(t, f);
+  if ( arity < 0 )
+    return PL_warning("functor/3: illegal arity");
   if ( PL_get_atom(f, &name) )
     return PL_unify_functor(t, PL_new_functor(name, arity));
 
@@ -1833,6 +1835,136 @@ pl_halt(term_t code)
   /*NOTREACHED*/
   fail;
 }
+
+#ifdef O_LIMIT_DEPTH
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The    predicates    below    provide      the     infrastructure    for
+call_with_depth_limit/3. This predicate was included  on request by ...,
+for improving the implementation of a theorem prover.
+
+The implementation of call_with_depth_limit/3 in pl-prims.pl is
+
+================================================================
+call_with_depth_limit(G, Limit, Result) :-
+	'$depth_limit'(Limit, OLimit, OReached),
+	(   G,
+	    '$depth_limit_true'(Limit, OLimit, OReached, Result, Cut),
+	    Cut
+	;   '$depth_limit_false'(Limit, OLimit, OReached, Result)
+	).
+================================================================
+
+$depth_limit/3 sets the new limit and fetches the old values so they can
+be restored by the other calls.   '$depth_limit_true'/5 restores the old
+limits, and unifies Result with  the   maximum  depth reached during the
+proof. Cut is unified  with  !   if  G  succeeded deterministically, and
+`true' otherwise and  ensures  the   wrapper  maintains  the determistic
+properties of G. It can be debated whether this is worthwhile ...
+
+Finally, '$depth_limit_false'/4 checks for a depth-overflow, and unifies
+result with `depth_limit_exceeded' if an overflow  has occurred and just
+fails otherwise. Of course it always restores the outer environment.
+
+Note that call_with_depth_limit/3 cannot be written  as a simple foreign
+call using PL_open_query(), etc, as   the non-deterministic predicate is
+not allowed to return to  the   parent  environment  without closing the
+query.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+word
+pl_depth_limit(term_t limit, term_t olimit, term_t oreached)
+{ long levels;
+  long clevel = levelFrame(environment_frame) - 1;
+
+  if ( PL_get_long(limit, &levels) )
+  { if ( PL_unify_integer(olimit, depth_limit) &&
+	 PL_unify_integer(oreached, depth_reached) )
+    { depth_limit   = clevel + levels;
+      depth_reached = 0;
+    
+      succeed;
+    }
+
+    fail;
+  }
+
+  return PL_warning("call_with_depth_limit/3: instantiation fault");
+}
+
+
+word
+pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
+		    term_t res, term_t cut, word b)
+{ switch(ForeignControl(b))
+  { case FRG_FIRST_CALL:
+    { long l, ol, or;
+
+      if ( PL_get_long(limit, &l) &&
+	   PL_get_long(olimit, &ol) &&
+	   PL_get_long(oreached, &or) )
+      { long clevel = levelFrame(environment_frame) - 1;
+	long used = depth_reached - clevel;
+
+	depth_limit   = olimit;
+	depth_reached = oreached;
+
+	if ( used < 1 )
+	  used = 1;
+	if ( !PL_unify_integer(res, used) )
+	  fail;
+    
+	if ( environment_frame->backtrackFrame->predicate ==
+	     PROCEDURE_alt1->definition &&
+	     environment_frame->parent ==
+	     environment_frame->backtrackFrame->parent )
+	{ return PL_unify_atom(cut, ATOM_cut);
+	} else
+	{ if ( PL_unify_atom(cut, ATOM_true) )
+	    ForeignRedoInt(1);
+	}
+      }
+
+      break;
+    }
+    case FRG_REDO:
+    { long levels;
+      long clevel = levelFrame(environment_frame) - 1;
+
+      PL_get_long(limit, &levels);
+      depth_limit   = clevel + levels;
+      depth_reached = 0;
+
+      fail;				/* backtrack to goal */
+    }
+  }
+
+  fail;
+}
+
+
+
+word
+pl_depth_limit_false(term_t limit, term_t olimit, term_t oreached, term_t res)
+{ long l, ol, or;
+
+  if ( PL_get_long(limit, &l) &&
+       PL_get_long(olimit, &ol) &&
+       PL_get_long(oreached, &or) )
+  { unsigned long clevel = (unsigned long)levelFrame(environment_frame)	- 1;
+    int exceeded = (depth_reached > clevel + l);
+
+    depth_limit   = olimit;
+    depth_reached = oreached;
+
+    if ( exceeded )
+      return PL_unify_atom(res, ATOM_depth_limit_exceeded);
+  }
+
+  fail;
+}
+
+#endif /*O_LIMIT_DEPTH*/
 
 		/********************************
 		*          STATISTICS           *

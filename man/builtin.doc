@@ -637,6 +637,33 @@ ignore(Goal) :-
         Goal, !.
 ignore(_).
 \end{code}
+\predicate{call_with_depth_limit}{3}{+Goal, +Limit, -Result}
+If \arg{Goal} can be proven without recursion deeper than \arg{Limit}
+levels, call_with_depth_limit/3 succeeds, binding \arg{Result} to the
+deepest recursion level used during the proof.  Otherwise, \arg{Result}
+is unified with \const{depth_limit_exceeded} if the limit was exceeded
+during the proof, or the entire predicate fails if \arg{Goal} fails
+without exceeding \arg{Limit}.
+
+The depth-limit is guarded by the internal machinery. This differ from
+the depth computed based on a theoretical model. For example, true/0 is
+translated into an inlined virtual machine instruction. Also, repeat/0
+is not implemented as below, but as a non-deterministic foreign
+predicate.
+
+\begin{code}
+repeat.
+repeat :-
+	repeat.
+\end{code}
+
+As a result, call_with_depth_limit/3 may still loop inifitly on programs
+that should theoretically finish in finite time. This problem can be
+cured by using Prolog equivalents to such built-in predicates.
+
+This predicate may be used for theorem-provers to realise techniques
+like \jargon{iterrative deepening}.  It was implemented after discussion
+with Steve Moyle \email{smoyle@ermine.ox.ac.uk}.
 \end{description}
 
 \section{Advanced control-structures: blocks}
@@ -2720,6 +2747,28 @@ See also halt/0.
 This goal starts the default interactive top level. prolog/0
 is terminated (succeeds) by typing control-D.
 \end{description}
+
+The following two hooks allow for expanding queries and handling the
+result of a query.  These hooks are used by the toplevel variable 
+expansion mechanism described in \secref{topvars}.
+
+\begin{description}
+\predicate{expand_query}{4}{+Query, -Expanded, +Bindings, -ExpandedBindings}
+Hook in module \const{user}, normally not defined.  \arg{Query} and
+\arg{Bindings} represents the query read from the user and the names
+of the free variables as obtained using read_term/3.  If this predicate
+succeeds, it should bind \arg{Expanded} and \arg{ExpandedBindings} to
+the query and bindings to be executed by the toplevel.  This predicate
+is used by the toplevel (prolog/0).  See also expand_answer/2 and
+term_expansion/2.
+
+\predicate{expand_answer}{2}{+Bindings, -ExpandedBindings} Hook in
+module \const{user}, normally not defined. Expand the result of a
+successfully executed toplevel query. \arg{Bindings} is the query
+$<Name>=<Value>$ binding list from the query. \arg{ExpandedBindings}
+must be unified with the bindings the toplevel should print.
+\end{description}
+
 
 \section{Creating a Protocol of the User Interaction}
 
