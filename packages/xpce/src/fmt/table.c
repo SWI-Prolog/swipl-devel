@@ -65,6 +65,41 @@ for_cells_table(Table, CellVar, CellCode, EndRowCode)
 	  } \
 	}
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: This method  may  only  be  used   after  all  columns  have  been
+established! RedrawRulesTable() is ok as  this   is  done after compute,
+which establishes all column objects.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define for_displayed_cells_table(tab, c, code, endrowcode) \
+	{ int _nrows = valInt((tab)->rows->size); \
+	  int _roff = valInt((tab)->rows->offset)+1; \
+	  int _cvoff = valInt((tab)->columns->offset)+1; \
+	  int row; \
+	  for(row = _roff; row < _nrows+_roff; row++) \
+	  { TableRow _trow = (tab)->rows->elements[row-_roff]; \
+ \
+	    if ( notNil(_trow) && _trow->displayed == ON ) \
+	    { int _ncols = valInt(_trow->size); \
+	      int _coff = valInt(_trow->offset)+1; \
+	      int col; \
+	      for(col = _coff; col < _ncols+_coff; col++) \
+	      { TableColumn _tcol = (tab)->columns->elements[col-_cvoff]; \
+		if ( notNil(_tcol) && _tcol->displayed == ON ) \
+		{ TableCell c = _trow->elements[col-_coff]; \
+ \
+		  if ( notNil(c) && \
+		       valInt(c->column) == col && valInt(c->row) == row ) \
+		  { code; \
+		  } \
+		} \
+	      } \
+	    } \
+ 	    endrowcode; \
+	  } \
+	}
+
+
 #define for_rows_table(tab, r, code) \
 	{ int _nrows = valInt((tab)->rows->size); \
 	  int _roff = valInt((tab)->rows->offset)+1; \
@@ -302,6 +337,27 @@ advance_table(Table tab)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Big question is what to do with the   graphicals.  The ideal is to leave
+this to the incremental  garbage  collector,   but  graphicals  use many
+cyclic structures, which are  not  handled   correctly  by  the  garbage
+collector.  For now we will destroy them if they are not locked.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+ 
+static status
+removeCellImageTable(Table tab, TableCell cell)
+{ Graphical gr = cell->image;
+
+  if ( notNil(gr) )
+  { DeviceGraphical(gr, NIL);
+    if ( !onFlag(gr, F_PROTECTED|F_LOCKED|F_FREED) )
+      qadSendv(gr, NAME_destroy, 0, NULL);
+  }
+
+  succeed;
+}
+
+
 static status
 deleteCellTable(Table tab, TableCell cell)
 { if ( cell->layout_manager == (LayoutManager)tab )
@@ -309,8 +365,7 @@ deleteCellTable(Table tab, TableCell cell)
     int ty = valInt(cell->row) + valInt(cell->row_span);
     int x, y;
 
-    if ( notNil(cell->image) )
-      DeviceGraphical(cell->image, NIL);
+    removeCellImageTable(tab, cell);
   
     for(y=valInt(cell->row); y<ty; y++)
     { TableRow row = getRowTable(tab, toInt(y), OFF);
@@ -357,8 +412,9 @@ deleteRowTable(Table tab, TableRow row)
 		     assign(cell, row_span, dec(cell->row_span));
 		   } else if ( cell->row == row->index &&
 			       notNil(cell->image) )
-		   { DeviceGraphical(cell->image, NIL);
+		   { removeCellImageTable(tab, cell);
 		   }
+		   freeObject(cell);
 		 }
 	       });
 
@@ -410,7 +466,7 @@ deleteColumnTable(Table tab, TableColumn col)
 	  { if ( !isFreeingObj(col) )
 	      elementVector((Vector)col, toInt(y), cell);
 
-	    DeviceGraphical(cell->image, NIL);
+	    removeCellImageTable(tab, cell);
 	  }
 	}
       }
@@ -462,7 +518,7 @@ deleteTable(Table tab, Any obj)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This one uses a different algorithm when the full table is deleted, as a
+This one uses a different algorithm if the   full table is deleted, as a
 partial delete requires a lot of work to deal properly with spanning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -493,7 +549,8 @@ deleteRowsTable(Table tab, Int from, Int to)
 		 { if ( i == valInt(cell->column) &&
 			cell->row == r->index &&
 			notNil(cell->image) )
-		   { DeviceGraphical(cell->image, NIL);
+		   { removeCellImageTable(tab, cell);
+		     freeObject(cell);
 		   }
 		 });
 	assign(r, table, NIL);
@@ -1555,8 +1612,8 @@ RedrawRulesTable(Table tab, Area a)
     r_dash(NAME_none);
     r_thickness(b);
 
-    for_cells_table(tab, cell,
-		      RedrawRulesTableCell(cell, tab->rules, b), ;);
+    for_displayed_cells_table(tab, cell,
+			      RedrawRulesTableCell(cell, tab->rules, b), ;);
   }
 
   succeed;

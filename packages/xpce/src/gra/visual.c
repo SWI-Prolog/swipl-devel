@@ -90,7 +90,7 @@ collectSubsVisual(VisualObj v, Chain ch, int root)
 
 status
 destroyVisual(VisualObj v)
-{ if ( !onFlag(v, F_PROTECTED) )
+{ if ( !onFlag(v, F_PROTECTED|F_FREED) )
   { Chain subs = newObject(ClassChain, 0);
     VisualObj sub;
 
