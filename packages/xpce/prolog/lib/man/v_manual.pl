@@ -165,11 +165,6 @@ initialise(M, Dir:[directory]) :->
 	send(M, report, status, 'For help, see `File'' menu').
 
 
-open(M, Pos:[point]) :->
-	send(M, send_super, open, Pos),
-	send(M, check_licence).
-
-
 unlink(M) :->
 	"Manual is destroyed"::
 	get(M, space, Space),
@@ -196,14 +191,6 @@ check_runtime(_M) :->
 		 'Most of the manual will not work.',
 		 'Contact xpce-request@swi.psy.uva.nl',
 		 'for a information on the development version')
-	;   true
-	).
-
-
-check_licence(M) :->
-	"Open about box if not licenced"::
-	(   get(@pce, attribute, unlicenced_copy, @on)
-	->  send(M, about)
 	;   true
 	).
 
@@ -553,24 +540,30 @@ help_on_prolog(_M) :->
 		*	   ABOUT/LICENCE	*
 		********************************/
 
-pce_ifhostproperty(prolog(quintus),
-(   about(Fmt, Font) :- pce_host:about(Fmt, Font)),
-[ about('XPCE version %s'+[@pce?version], boldhuge),
-  about('Copyright 1992-2001, University of Amsterdam', normal),
-  about('Copying: GPL-2\nLicenses for use with proprietary code available', bold),
-  about(url('http://www.swi.psy.uva.nl/projects/xpce/'), normal),
-  about('Jan Wielemaker\nAnjo Anjewierden', italic),
-  about('SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands', normal)
-]).
+about([ 'XPCE version %s'+[@pce?version]-boldhuge,
+	'Copyright 1992-2002, University of Amsterdam',
+	'XPCE comes with ABSOLUTELY NO WARRANTY.',
+	'This is free software, and you are welcome to',
+	'redistribute it under certain conditions.',
+	url('http://www.swi-prolog.org/packages/xpce/'),
+	'Jan Wielemaker\nAnjo Anjewierden'-italic,
+	'SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands'
+      ]).
+
 
 about(M) :->
 	"Print about and licence info"::
 	new(D, dialog('About XPCE')),
 	send(D, transient_for, M),
-	forall(about(Txt, Font),
-	       add_about(Txt, Font, D)),
+	about(List),
+	checklist(add_about(D), List),
 	send(D, append, button(ok, message(D, destroy))),
 	send(D, open_centered).
+
+add_about(D, X-Font) :- !,
+	add_about(X, Font, D).
+add_about(D, X) :-
+	add_about(X, normal, D).
 
 add_about(url(Url), Font, D) :- !,
 	send(D, append, new(T, text(Url, center, Font))),
