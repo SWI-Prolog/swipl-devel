@@ -450,11 +450,22 @@ display_extension(OS, Object, Ext) :-
 display_extension(_, _, _).
 
 
+%	for chains and vectors we first display the extra slots and
+%	then the elements
+
 display_slots(OS, Chain) :-
 	send(Chain, '_instance_of', chain), !,
+	class_slot_names(chain, ChainSlots),
+	slot_names(Chain, Names),
+	subtract(Names, ChainSlots, ExtraSlots),
+	display_slots(OS, Chain, ExtraSlots),
 	display_slots_v(OS, Chain, []).
 display_slots(OS, Vector) :-
 	send(Vector, '_instance_of', vector), !,
+	class_slot_names(vector, VectorSlots),
+	slot_names(Vector, Names),
+	subtract(Names, VectorSlots, ExtraSlots),
+	display_slots(OS, Vector, ExtraSlots),
 	display_slots_v(OS, Vector, []).
 display_slots(OS, PrimCode) :-
 	send(PrimCode, '_instance_of', message), !,
@@ -468,6 +479,13 @@ display_slots(OS, Object) :-
 
 slot_names(Object, Names) :-
 	get(Object, '_class', Class),
+	class_slot_names(Class, Names).
+
+class_slot_names(Class, Names) :-
+	atom(Class), !,
+	get(@pce, convert, Class, class, Object),
+	class_slot_names(Object, Names).
+class_slot_names(Class, Names) :-
 	get(Class, slots, N),
 	slot_names(Class, 0, N, Raw),
 	sort(Raw, Names).
