@@ -362,6 +362,10 @@ function_type -->
 	"void (*)()", !,
 	skip_blanks.
 function_type -->
+	"(return)", !,
+	skip_blanks,
+	function_type.
+function_type -->
 	"const", !,
 	skip_blanks,
 	function_type.

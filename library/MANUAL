@@ -13,7 +13,7 @@
                          SSWWII--PPrroolloogg 55..22
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._2_._9_, _O_c_t_o_b_e_r _2_0_0_3
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._2_._1_0_, _O_c_t_o_b_e_r _2_0_0_3
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                        jan@swi.psy.uva.nl
@@ -10147,11 +10147,11 @@ foreign_t.   Deterministic foreign  functions have  two alternatives  to
 return control back to Prolog:
 
 
-_v_o_i_d PPLL__ssuucccceeeedd(())
+_(_r_e_t_u_r_n_) _f_o_r_e_i_g_n___t PPLL__ssuucccceeeedd(())
     Succeed deterministically.  PL_succeed is defined as return TRUE.
 
 
-_v_o_i_d PPLL__ffaaiill(())
+_(_r_e_t_u_r_n_) _f_o_r_e_i_g_n___t PPLL__ffaaiill(())
     Fail  and  start  Prolog  backtracking.     PL_fail  is  defined  as
     return FALSE.
 
@@ -10203,18 +10203,20 @@ macros  and  extract  the handle  from  the  extra  argument  using  the
 PL_foreign_context*() macro.
 
 
-_v_o_i_d PPLL__rreettrryy((_l_o_n_g))
+_(_r_e_t_u_r_n_) _f_o_r_e_i_g_n___t PPLL__rreettrryy((_l_o_n_g))
     The  foreign function  succeeds while leaving  a choice  point.   On
     backtracking  over this  goal the  foreign function  will be  called
     again,  but the control argument now  indicates it is a `Redo'  call
-    and  the macro  PL_foreign_context() will return  the handle  passed
-    via  PL_retry().   This  handle is a 30  bits signed value (two  bits
-    are used for status indication).
+    and  the macro  PL_foreign_context() returns the  handle passed  via
+    PL_retry().   This handle  is a 30 bits  signed value (two bits  are
+    used  for status indication).  Defined  as return _PL_retry(_n).   See
+    also PL_succeed().
 
 
-_v_o_i_d PPLL__rreettrryy__aaddddrreessss((_v_o_i_d _*))
+_(_r_e_t_u_r_n_) _f_o_r_e_i_g_n___t PPLL__rreettrryy__aaddddrreessss((_v_o_i_d _*))
     As  PL_retry(),  but ensures  an address as  returned by malloc()  is
-    correctly recovered by PL_foreign_context_address().
+    correctly  recovered  by PL_foreign_context_address().    Defined  as
+    return  _PL_retry_address(_n).  See also PL_succeed().
 
 
 _i_n_t PPLL__ffoorreeiiggnn__ccoonnttrrooll((_c_o_n_t_r_o_l___t))

@@ -439,10 +439,10 @@ as Prolog terms. Foreign functions should be declared of type
 to return control back to Prolog:
 
 \begin{description}
-    \cmacro{void}{PL_succeed}{}
+    \cmacro{(return) foreign_t}{PL_succeed}{}
 Succeed deterministically. PL_succeed is defined as
 \exam{return \const{TRUE}}.
-    \cmacro{void}{PL_fail}{}
+    \cmacro{(return) foreign_t}{PL_fail}{}
 Fail and start Prolog backtracking.  PL_fail is defined as \exam{return
 \const{FALSE}}.
 \end{description}
@@ -496,17 +496,20 @@ extract the handle from the extra argument using the
 {\tt PL_foreign_context*()} macro.
 
 \begin{description}
-    \cmacro{void}{PL_retry}{long}
+    \cmacro{(return) foreign_t}{PL_retry}{long}
 The foreign function succeeds while leaving a choice point. On
 backtracking over this goal the foreign function will be called again,
 but the control argument now indicates it is a `Redo' call and the
-macro PL_foreign_context() will return the handle passed via
+macro PL_foreign_context() returns the handle passed via
 PL_retry(). This handle is a 30 bits signed value (two bits are used
-for status indication).
+for status indication).  Defined as \exam{return _PL_retry(n)}.
+See also PL_succeed().
 
-    \cmacro{void}{PL_retry_address}{void *}
+    \cmacro{(return) foreign_t}{PL_retry_address}{void *}
 As PL_retry(), but ensures an address as returned by malloc() is
 correctly recovered by PL_foreign_context_address().
+Defined as \exam{return _PL_retry_address(n)}. See also
+PL_succeed().
 
     \cmacro{int}{PL_foreign_control}{control_t}
 Extracts the type of call from the control argument.  The return values
