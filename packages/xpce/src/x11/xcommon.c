@@ -28,6 +28,7 @@
 #include "include.h"
 #include <X11/keysym.h>
 #include <X11/Xproto.h>			/* get request codes */
+#include <locale.h>
 
 #undef roundup
 #define roundup(v, n)		((((v)+(n)-1)/(n))*(n))
@@ -98,6 +99,16 @@ pceXtAppContext(void * ctx)
 #else
 	XPCE_mt = -1;
 #endif
+
+      if ( !XSupportsLocale() )
+      { errorPce(TheDisplayManager(), NAME_noLocaleSupport,
+		 CtoName(setlocale(LC_ALL, NULL)));
+	fail;
+      }
+      if ( XSetLocaleModifiers("") == NULL )
+      { errorPce(TheDisplayManager(), NAME_cannotSetLocale);
+	fail;
+      }
 
       XtToolkitInitialize();
       XSetErrorHandler(x_error_handler);

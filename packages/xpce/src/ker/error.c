@@ -338,6 +338,11 @@ static const error_def errors[] =
   { NAME_noApplicationContext,	ET_FATAL,
     "%N: Failed to create X-application-context" },
 					/* Colour/Cursor/Font, etc */
+  { NAME_noLocaleSupport,	ET_WARNING,
+    "%N: X11 does not support locale %s" },
+  { NAME_cannotSetLocale,	ET_WARNING,
+    "%N: X11: cannot set locale modifiers" },
+
   { NAME_noNamedColour,		ET_WARNING,
     "%N: No colour named %s; using black" },
   { NAME_noNamedCursor,		EF_REPORT,

@@ -2384,3 +2384,5 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
+  BUILTIN_NAME("cannot_set_locale")
+  BUILTIN_NAME("no_locale_support")

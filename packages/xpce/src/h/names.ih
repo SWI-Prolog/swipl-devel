@@ -2384,3 +2384,5 @@
 #define NAME_yref (&builtin_names[2383])
 #define NAME_yrefVar (&builtin_names[2384])
 #define NAME_zoom (&builtin_names[2385])
+#define NAME_cannotSetLocale (&builtin_names[2386])
+#define NAME_noLocaleSupport (&builtin_names[2387])

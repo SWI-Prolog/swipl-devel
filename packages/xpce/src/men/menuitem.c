@@ -231,13 +231,14 @@ getMessageMenuItem(MenuItem mi)
 
 status
 hasValueMenuItem(MenuItem mi, Any value)
-{ Name name;
+{ string s1, s2;
 
   if ( mi->value == value )
     succeed;
 
-  if ( (name = checkType(mi->value, TypeName, mi)) &&
-       name == checkType(value, TypeName, mi) )
+  if ( toString(mi->value, &s1) &&
+       toString(value, &s2) &&
+       str_eq(&s1, &s2) )
     succeed;
 
   fail;
