@@ -182,15 +182,20 @@ indent_expression_line(E, Brackets:[name], Base:[int]) :->
 		*           ALIGNMENT		*
 		********************************/
 
-align_with_previous_line(E, Leading:[regex]) :->
-	"Align current_line with the one above"::
+alignment_of_previous_line(E, Leading:[regex], Indent:int) :<-
+	"Find the indentation of the previous line"::
 	get(E, caret, Caret),
 	get(E, scan, Caret, line, -1, start, LineStart),
 	get(E, scan, Caret, term, -1, start, TermStart),
 	(   TermStart < LineStart
 	->  get(E, indentation, TermStart, Leading, Indent)
 	;   get(E, indentation, LineStart, Leading, Indent)
-	),
+	).
+
+
+align_with_previous_line(E, Leading:[regex]) :->
+	"Align current_line with the one above"::
+	get(E, alignment_of_previous_line, Leading, Indent),
 	send(E, align_line, Indent).
 
 

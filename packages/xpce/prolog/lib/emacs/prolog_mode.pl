@@ -223,7 +223,11 @@ indent_clause_line(E) :->
 	(   send(regex('\\.'), match, TB, Glue)		% new clause
 	->  send(E, align_line, 0)
 	;   send(regex('\\,'), match, TB, Glue)	  	% Next subclause
-	->  send(E, align_with_previous_line)
+	->  get(E, alignment_of_previous_line, N),
+	    (	N == 0					% head :- !,
+	    ->	send(E, align_line, 8)
+	    ;	send(E, align_line, N)
+	    )
 	;   send(@prolog_neck_regex, match, TB, Glue+1, 0) % First subclause
 	->  send(E, align_line, 8)			% (seach backward)
 	;   send(E, align_with_previous_line)

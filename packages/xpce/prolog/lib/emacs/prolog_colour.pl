@@ -317,7 +317,8 @@ colourise_goal(Goal, TB, Pos) :-
 
 colourise_files(List, TB, list_position(_,_,Elms,_)) :- !,
 	colourise_file_list(List, TB, Elms).
-colourise_files(Spec, TB, Pos) :-
+colourise_files(Spec0, TB, Pos) :-
+	strip_module(Spec0, _, Spec),
 	(   catch(xref_source_file(Spec, Path, TB), _, fail)
 	->  colour_item(file(Path), TB, Pos)
 	;   colour_item(nofile, TB, Pos)
