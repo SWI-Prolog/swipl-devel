@@ -1072,6 +1072,9 @@ will map the signal onto a Prolog exception as described in
 \secref{exception}.  \const{default} resets the handler to the settings
 active before SWI-Prolog manipulated the handler.
 
+Signals bound to a foreign function through PL_signal() are reported
+using the term \term{\$foreign_function}{Address}.
+
 After receiving a signal mapped to \const{throw}, the exception raised
 has the structure
 

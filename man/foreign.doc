@@ -841,6 +841,16 @@ signatures of these functions.  For full documentation consult the
     \cfunction{int}{PL_unify_list_nchars}{term_t t, unsigned int len, const char *s}
 \end{description}
 
+In addition, the following functions are available for creating and
+inspecting atoms:
+
+\begin{description}
+    \cfunction{atom_t}{PL_new_atom_nchars}{unsigned int len, const char *s}
+Create a new atom as PL_new_atom(), but from length and characters.
+    \cfunction{const char *}{PL_atom_nchars}{atom_t a, unsigned int *len}
+Extract text and length of an atom.
+\end{description}
+
 
 \subsubsection{Reading a list}
 
@@ -1417,6 +1427,11 @@ whenever a foreign function returns control back to Prolog.
 \cfunction{void}{PL_discard_foreign_frame}{fid_t id}
 Same as PL_close_foreign_frame(), but also undo all bindings made since
 the open and destroy all Prolog data.
+\cfunction{void}{PL_rewind_foreign_frame}{fid_t id}
+Undo all bindings and discard all term-references created since the
+frame was created, but does not pop the frame.  I.e.\ the same frame
+can be rewinded multiple times, and must eventually be closed or
+discarded.
 \end{description}
 
 It is obligatory to call either of the two closing functions to discard
@@ -1680,9 +1695,20 @@ times PL_thread_attach_engine() has been called.
 
 \subsubsection{Recorded database}
 
-The interface functions below provide for efficient management of Prolog
-terms in the Prolog database. They provide an alternative to calling
-asserta/1 or recorda/3 or friends.
+In some applications it is useful to store and retreive Prolog terms
+from C-code.  For example, the XPCE graphical environment does this for
+storing arbitrary Prolog data as slot-data of XPCE objects.
+
+Please note that the returned handles have no meaning at the Prolog
+level and the recorded terms are not visible from Prolog. The functions
+PL_recorded() and PL_erase() are the only functions that can operate on
+the stored term.
+
+Two groups of functions are provided.The first group (PL_record() and
+friends) store Prolog terms on the Prolog heap for retrieval during the
+same session. These functions are also used by recorda/3 and friends.
+The recorded database may be used to communicate Prolog terms between
+threads.
 
 \begin{description}
 \cfunction{record_t}{PL_record}{term_t +t}
@@ -1695,6 +1721,57 @@ asserta/1 or recorda/3 or friends.
     may be used to copy multiple instances at any time to the Prolog
     stack.  See also PL_record() and PL_erase().
 \cfunction{void}{PL_erase}{record_t record}
+    Remove the recorded term from the Prolog database, reclaiming all
+    associated memory resources.
+\end{description}
+
+The second group (headed by PL_record_external()) provides the same
+functionality, but the returned data has properties that enable storing
+the data on an external device. It has been designed to make it possible
+to store Prolog terms fast an compact in an external database.	Here are
+the main features:
+
+\begin{itemlist}
+    \item [Independent of session]
+Records can be communicated to another Prolog session and made visible
+using PL_recorded_external().
+    \item [Binary]
+The representation is binary for maximum performance.  The returned data
+may contain 0-bytes.
+    \item [Byte-order independent]
+The representation can be transferred between machines with different
+byte-order.
+    \item [No alignment restrictions]
+There are no memory alignment restrictions and copies of the record
+can thus be moved freely.  For example, it is possible to use this
+representation to exchange terms using shared memory between different
+Prolog processes.
+    \item [Compact]
+It is assumed that a smaller memory footprint will eventually outperform
+slightly faster representations.
+    \item [Stable]
+The format is designed for future enhancements without breaking
+compatibility with older records.
+\end{itemlist}
+
+\begin{description}
+\cfunction{char *}{PL_record_external}{term_t +t, unsigned int *len}
+    Record the term \arg{t} into the Prolog database as recorda/3 and
+    return an opaque handle to the term.  The returned handle remains
+    valid until PL_erase() is called on it.
+
+    It is allowed to copy the data and use PL_recorded_external() on
+    the copy.  The user is responsible for the memory management of
+    the copy.  After copying, the original may be discarded using
+    PL_erase_external().
+
+    PL_recorded_external() is used to copy such recorded terms back to
+    the Prolog stack.
+\cfunction{int}{PL_recorded_external}{const char *record, term_t -t}
+    Copy a recorded term back to the Prolog stack.  The same record
+    may be used to copy multiple instances at any time to the Prolog
+    stack.  See also PL_record_external() and PL_erase_external().
+\cfunction{int}{PL_erase_external}{char *record}
     Remove the recorded term from the Prolog database, reclaiming all
     associated memory resources.
 \end{description}

@@ -13,7 +13,7 @@
                           SSWWII--PPrroolloogg 33..33
 
                          RReeffeerreennccee MMaannuuaall
-              _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _3_._3_._3_, _M_a_r_c_h _2_0_0_0
+               _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _3_._3_._7_, _J_u_n_e _2_0_0_0
 
                           _J_a_n _W_i_e_l_e_m_a_k_e_r
 
@@ -3068,6 +3068,9 @@ oonn__ssiiggnnaall((_+_S_i_g_n_a_l_, _-_O_l_d_, _:_N_e
     will  map  the  signal  onto  a Prolog  exception  as  described  in
     section  3.9.   default resets  the handler  to the settings  active
     before SWI-Prolog manipulated the handler.
+
+    Signals  bound   to  a  foreign  function  through  PL_signal()  are
+    reported using the term $foreign_function(_A_d_d_r_e_s_s).
 
     After  receiving a signal mapped to throw, the exception  raised has
     the structure
@@ -8638,6 +8641,17 @@ int PPLL__uunniiffyy__lliisstt__nnccooddeess(_t_e_r_m__
 
 
 int PPLL__uunniiffyy__lliisstt__nncchhaarrss(_t_e_r_m___t _t_, _u_n_s_i_g_n_e_d _i_n_t _l_e_n_, _c_o_n_s_t _c_h_a_r _*_s)
+
+In  addition, the  following functions  are available  for creating  and
+inspecting atoms:
+
+
+atom_t PPLL__nneeww__aattoomm__nncchhaarrss(_u_n_s_i_g_n_e_d _i_n_t _l_e_n_, _c_o_n_s_t _c_h_a_r _*_s)
+    Create a new atom as PL_new_atom(), but from length and characters.
+
+
+const char * PPLL__aattoomm__nncchhaarrss(_a_t_o_m___t _a_, _u_n_s_i_g_n_e_d _i_n_t _*_l_e_n)
+    Extract text and length of an atom.
 
 
 55..66..33..44 RReeaaddiinngg aa lliisstt
@@ -9519,9 +9533,20 @@ int PPLL__ccoommppaarree(_t_e_r_m___t _t_1_, _t_e_r_m___
 
 55..66..1111..22 RReeccoorrddeedd ddaattaabbaassee
 
-The  interface  functions  below provide  for  efficient  management  of
-Prolog terms  in the Prolog  database.  They  provide an alternative  to
-calling asserta/1 or recorda/3 or friends.
+In some  applications it is  useful to store  and retreive Prolog  terms
+from C-code.  For example, the XPCE graphical  environment does this for
+storing arbitrary Prolog data as slot-data of XPCE objects.
+
+Please note  that the  returned handles  have no meaning  at the  Prolog
+level  and  the recorded  terms  are  not  visible from  Prolog.     The
+functions PL_recorded() and PL_erase() are  the only functions that  can
+operate on the stored term.
+
+Two groups  of functions are  provided.The first group  (PL_record() and
+friends) store Prolog terms on the Prolog heap for  retrieval during the
+same session.   These functions are also used by recorda/3  and friends.
+The recorded  database may be used  to communicate Prolog terms  between
+threads.
 
 
 record_t PPLL__rreeccoorrdd(_t_e_r_m___t _+_t)
@@ -9538,6 +9563,63 @@ void PPLL__rreeccoorrddeedd(_r_e_c_o_r_d___t _r_e_c_o_r_
 
 
 void PPLL__eerraassee(_r_e_c_o_r_d___t _r_e_c_o_r_d)
+    Remove  the recorded term from  the Prolog database, reclaiming  all
+    associated memory resources.
+
+The  second group  (headed  by PL_record_external()) provides  the  same
+functionality, but the returned data has properties  that enable storing
+the  data on  an external  device.   It  has been  designed  to make  it
+possible to store Prolog terms fast an compact in  an external database.
+Here are the main features:
+
+  o _I_n_d_e_p_e_n_d_e_n_t _o_f _s_e_s_s_i_o_n
+    Records  can  be communicated  to another  Prolog  session and  made
+    visible using PL_recorded_external().
+
+  o _B_i_n_a_r_y
+    The representation is  binary for maximum performance.  The returned
+    data may contain 0-bytes.
+
+  o _B_y_t_e_-_o_r_d_e_r _i_n_d_e_p_e_n_d_e_n_t
+    The   representation  can  be  transferred  between   machines  with
+    different byte-order.
+
+  o _N_o _a_l_i_g_n_m_e_n_t _r_e_s_t_r_i_c_t_i_o_n_s
+    There are no  memory alignment restrictions and copies of the record
+    can  thus be  moved freely.    For example,  it is  possible to  use
+    this  representation to exchange  terms using shared memory  between
+    different Prolog processes.
+
+  o _C_o_m_p_a_c_t
+    It  is  assumed  that a  smaller  memory footprint  will  eventually
+    outperform slightly faster representations.
+
+  o _S_t_a_b_l_e
+    The  format is  designed  for future  enhancements without  breaking
+    compatibility with older records.
+
+
+char * PPLL__rreeccoorrdd__eexxtteerrnnaall(_t_e_r_m___t _+_t_, _u_n_s_i_g_n_e_d _i_n_t _*_l_e_n)
+    Record  the term _t into the Prolog database as recorda/3  and return
+    an  opaque handle to  the term.   The returned handle remains  valid
+    until PL_erase() is called on it.
+
+    It  is allowed  to copy the  data and use  PL_recorded_external() on
+    the  copy.   The user  is responsible for  the memory management  of
+    the  copy.    After copying,  the original  may  be discarded  using
+    PL_erase_external().
+
+    PL_recorded_external() is used to  copy such recorded terms back  to
+    the Prolog stack.
+
+
+int PPLL__rreeccoorrddeedd__eexxtteerrnnaall(_c_o_n_s_t _c_h_a_r _*_r_e_c_o_r_d_, _t_e_r_m___t _-_t)
+    Copy a recorded term  back to the Prolog stack.  The same record may
+    be used to copy  multiple instances at any time to the Prolog stack.
+    See also PL_record_external() and PL_erase_external().
+
+
+int PPLL__eerraassee__eexxtteerrnnaall(_c_h_a_r _*_r_e_c_o_r_d)
     Remove  the recorded term from  the Prolog database, reclaiming  all
     associated memory resources.
 
@@ -11806,4 +11888,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  839
+                                  844

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.7
+=============
+
   * FIXED: \+ (true, !, fail): ! cutted local choice-point created by
     \+ (same for if->then;else).  Thanks to Pierre Nugues.
 
