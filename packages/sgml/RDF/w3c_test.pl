@@ -381,6 +381,12 @@ compare_triples(A, B, Substitutions) :-
 	compare_list(A, B, [], Substitutions).
 
 compare_list([], [], S, S).
+compare_list(L1, L2, S0, S) :-
+	take_bag(L1, B1, E1, R1), !,
+	take_bag(L2, B2, E2, R2),
+	compare_field(B1, B2, S0, S1),
+	compare_bags(E1, E2, S1, S2),
+	compare_list(R1, R2, S2, S).
 compare_list([H1|T1], In2, S0, S) :-
 	select(H2, In2, T2),
 	compare_triple(H1, H2, S0, S1), % put(.), flush_output,
@@ -394,9 +400,11 @@ compare_triple(rdf(Subj1,P1,O1), rdf(Subj2, P2, O2), S0, S) :-
 compare_field(X, X, S, S) :- !.
 compare_field(literal(X), xml(X), S, S) :- !. % TBD
 compare_field(rdf:Name, Atom, S, S) :-
+	atom(Atom),
 	rdf_parser:rdf_name_space(NS),
 	atom_concat(NS, Name, Atom), !.
 compare_field(NS:Name, Atom, S, S) :-
+	atom(Atom),
 	atom_concat(NS, Name, Atom), !.
 compare_field(X, node(Id), S, S) :-
 	memberchk(X=Id, S), !.
@@ -412,6 +420,41 @@ generated_prefix('Seq__').
 generated_prefix('Alt__').
 generated_prefix('Description__').
 generated_prefix('Statement__').
+
+%	compare_bags(+Members1, +Members2, +S0, -S)
+%	
+%	Order of _1, _2, etc. are not relevant in BadID reification. Are
+%	they in general?  Anyway, we'll normalise the order of the bags
+
+compare_bags([], [], S, S).
+compare_bags([E1|T1], M, S0, S) :-
+	select(E2, M, T2),
+	compare_field(E1, E2, S0, S1),
+	compare_bags(T1, T2, S1, S).
+
+take_bag(Triples, Bag, Elems, RestTriples) :-
+	select(rdf(Bag, Type, BagClass), Triples, T1),
+	compare_field(rdf:type, Type, [], []),
+	compare_field(rdf:'Bag', BagClass, [], []),
+	bag_members(T1, Bag, Elems, RestTriples).
+	
+bag_members([], _, [], []).
+bag_members([rdf(Bag, IsElm, E)|T], Bag, [E|ET], Rest) :-
+	member_prop(IsElm), !,
+	bag_members(T, Bag, ET, Rest).
+bag_members([T0|T], Bag, Elems, [T0|R]) :-
+	bag_members(T, Bag, Elems, R).
+	
+member_prop(rdf:Name) :-
+	atom_codes(Name, [0'_|Codes]),
+	number_codes(_N, Codes), !.
+member_prop(Prop) :-
+	atom(Prop),
+	rdf_parser:rdf_name_space(NS),
+	atom_concat(NS, Name, Prop),
+	atom_codes(Name, [0'_|Codes]),
+	number_codes(_N, Codes), !.
+
 
 %	feedback(+Format, +Args)
 %	
