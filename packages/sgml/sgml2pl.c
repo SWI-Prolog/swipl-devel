@@ -475,7 +475,6 @@ sgml_error(dtd_parser *p, dtd_error *error)
 static int
 write_parser(void *h, char *buf, int len)
 { parser_data *pd = h;
-  int i;
   unsigned char *s = (unsigned char *)buf;
   unsigned char *e = s+len;
 
@@ -567,6 +566,7 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
   parser_data *pd;
   term_t head = PL_new_term_ref();
   term_t tail = PL_copy_term_ref(options);
+  term_t goal = 0;
   IOSTREAM *s;
 
   if ( PL_is_functor(parser, FUNCTOR_dtd2) )
@@ -591,7 +591,9 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
 
   s = Snew(pd, SIO_OUTPUT, &sgml_stream_functions);
   if ( !PL_open_stream(stream, s) )
+  { Sclose(s);
     return FALSE;
+  }
 
   while ( PL_get_list(tail, head, tail) )
   { if ( PL_is_functor(head, FUNCTOR_document1) )
@@ -600,15 +602,9 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
       pd->tail  = PL_copy_term_ref(pd->list);
       pd->stack = NULL;
     } else if ( PL_is_functor(head, FUNCTOR_goal1) )
-    { term_t g = PL_new_term_ref();
-      int rval;
+    { goal = PL_new_term_ref();
 
-      PL_get_arg(1, head, g);
-      rval = PL_call(g, NULL);
-      Sflush(s);
-
-      if ( !rval )
-	return FALSE;
+      PL_get_arg(1, head, goal);
     } else if ( PL_is_functor(head, FUNCTOR_max_errors1) )
     { term_t a = PL_new_term_ref();
 
@@ -620,6 +616,28 @@ pl_sgml_open(term_t parser, term_t options, term_t stream)
   }
   if ( !PL_get_nil(tail) )
     return pl_error(ERR_TYPE, "list", tail);
+
+  if ( goal )
+  { fid_t fid = PL_open_foreign_frame();
+    predicate_t pred = PL_predicate("call", 1, "user");
+    qid_t qid;
+    int rval;
+
+    qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pred, goal);
+    rval = PL_next_solution(qid);
+    if ( rval && Sflush(s) == 0 )
+    { PL_close_query(qid);
+      PL_close_foreign_frame(fid);
+      return TRUE;
+    }
+    PL_cut_query(qid);
+    PL_discard_foreign_frame(fid);
+
+    if ( pd->errors > pd->max_errors )
+      return pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
+
+    return pl_error(ERR_FAIL, goal);
+  }
 
   return TRUE;
 }

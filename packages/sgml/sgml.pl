@@ -23,9 +23,6 @@
 	    dtd_property/2,		% +DTD, ?Property
 
 	    load_structure/3,		% +File, -Term, +Options
-
-	    load_sgml_file/2,		% +File, -Document
-	    load_sgml_file/3,		% +File, -Document, ?DTD
 	    load_html_file/2		% +File, -Document
 	  ]).
 
@@ -154,37 +151,6 @@ load_structure(File, Term, Options) :-
 	    )
 	;   free_dtd(DTD)
 	).
-
-
-load_sgml_file(File, Term, DTD) :-
-	open(File, read, SgmlIn),
-	new_sgml_parser(Parser, [dtd(DTD)]),
-	set_sgml_parser(Parser, file(File)),
-	sgml_open(Parser,
-		  [ document(Term),
-		    goal(copy_stream_data(SgmlIn, SgmlOut))
-		  ],
-		  SgmlOut),
-	close(SgmlIn),
-	close(SgmlOut),
-	(   DTD = dtd(_, DocType),
-	    dtd_property(DTD, doctype(DocType))
-	->  true
-	;   true
-	).
-
-load_sgml_file(File, Term) :-
-	open(File, read, SgmlIn),
-	new_sgml_parser(Parser, [dtd(DTD)]),
-	set_sgml_parser(Parser, file(File)),
-	sgml_open(Parser,
-		  [ document(Term),
-		    goal(copy_stream_data(SgmlIn, SgmlOut))
-		  ],
-		  SgmlOut),
-	close(SgmlIn),
-	close(SgmlOut),
-	free_dtd(DTD).
 
 
 		 /*******************************

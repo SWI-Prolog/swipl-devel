@@ -21,7 +21,11 @@ typedef enum
 					/* ENOENT --> file */
   ERR_TYPE,				/* char *expected, term_t actual */
   ERR_DOMAIN,				/* char *expected, term_t actual */
-  ERR_EXISTENCE				/* char *expected, term_t actual */
+  ERR_EXISTENCE,			/* char *expected, term_t actual */
+
+  ERR_FAIL,				/* term_t goal */
+
+  ERR_LIMIT				/* char *limit, long max */
 } plerrorid;
 
 int		pl_error(plerrorid, ...);

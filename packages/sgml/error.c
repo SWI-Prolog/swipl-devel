@@ -102,6 +102,26 @@ pl_error(plerrorid id, ...)
 
       break;
     }
+    case ERR_FAIL:
+    { term_t goal  = va_arg(args, term_t);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR_CHARS, "goal_failed", 1,
+		    PL_TERM, goal);
+
+      break;
+    }
+    case ERR_LIMIT:
+    { const char *limit = va_arg(args, const char *);
+      long maxval  = va_arg(args, long);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR_CHARS, "limit_exceeded", 2,
+		    PL_CHARS, limit,
+		    PL_INTEGER, maxval);
+
+      break;
+    }
     default:
       assert(0);
   }
