@@ -93,7 +93,7 @@ make_room(Line ln, int room)
   }
 
   memmove(&ln->data[ln->point + room], &ln->data[ln->point],
-	  ln->size - ln->point);
+	  (ln->size - ln->point)*sizeof(TCHAR));
   ln->size += room;
   if ( room > 0 )
     ln->change_start = min(ln->change_start, ln->point);
@@ -106,7 +106,7 @@ set_line(Line ln, const TCHAR *s)
 
   ln->size = ln->point = 0;
   make_room(ln, len);
-  memcpy(ln->data, s, len);
+  _tcsncpy(ln->data, s, len);
 }
 
 
@@ -125,7 +125,7 @@ delete(Line ln, int from, int len)
 { if ( from < 0 || from > ln->size || len < 0 || from + len > ln->size )
     return;
 
-  memcpy(&ln->data[from], &ln->data[from+len], ln->size - (from+len));
+  _tcsncpy(&ln->data[from], &ln->data[from+len], ln->size - (from+len));
   ln->size -= len;
 } 
 
@@ -185,7 +185,7 @@ static void
 backward_delete_character(Line ln, int chr)
 { if ( ln->point > 0 )
   { memmove(&ln->data[ln->point-1], &ln->data[ln->point],
-	    ln->size - ln->point);
+	    (ln->size - ln->point)*sizeof(TCHAR));
     ln->size--;
     ln->point--;
   }
@@ -233,7 +233,8 @@ static void
 backward_delete_word(Line ln, int chr)
 { int from = back_word(ln, ln->point);
   
-  memmove(&ln->data[from], &ln->data[ln->point], ln->size - ln->point);
+  memmove(&ln->data[from], &ln->data[ln->point],
+	  (ln->size - ln->point)*sizeof(TCHAR));
   ln->size -= ln->point - from;
   ln->point = from;
   changed(ln, from);
@@ -244,7 +245,7 @@ static void
 forward_delete_word(Line ln, int chr)
 { int to = forw_word(ln, ln->point);
   
-  memmove(&ln->data[ln->point], &ln->data[to], ln->size - to);
+  memmove(&ln->data[ln->point], &ln->data[to], (ln->size - to)*sizeof(TCHAR));
   ln->size -= to - ln->point;
   changed(ln, ln->point);
 }
@@ -445,7 +446,7 @@ complete(Line ln, int chr)
       delete(ln, data->replace_from, patlen);
       ln->point = data->replace_from;
       make_room(ln, ncommon);
-      memcpy(&ln->data[data->replace_from], match, ncommon);
+      _tcsncpy(&ln->data[data->replace_from], match, ncommon);
       ln->point += ncommon;
       if ( nmatches == 1 && data->quote )
 	insert_self(ln, data->quote);
@@ -473,14 +474,14 @@ list_completions(Line ln, int chr)
       int n, cols;
 
       buf[nmatches] = rlc_malloc(len*sizeof(TCHAR));
-      memcpy(buf[nmatches], data->candidate, len);
+      _tcsncpy(buf[nmatches], data->candidate, len);
       nmatches++;
 
       data->call_type = COMPLETE_ENUMERATE;
       while( (*data->function)(data) )
       { len = _tcslen(data->candidate) + 1;
 	buf[nmatches] = rlc_malloc(len*sizeof(TCHAR));
-	memcpy(buf[nmatches], data->candidate, len);
+	_tcsncpy(buf[nmatches], data->candidate, len);
 	nmatches++;
 	longest = max(longest, len);
 
@@ -589,7 +590,7 @@ read_line(rlc_console b)
   while(!ln.complete)
   { int c;
     rlc_mark m0, m1;
-    function *table;
+    function func;
 
     rlc_get_mark(b, &m0);
     if ( (c = getch(b)) == IMODE_SWITCH_CHAR )
@@ -603,21 +604,19 @@ read_line(rlc_console b)
     { if ( (c = getch(b)) == IMODE_SWITCH_CHAR )
 	return RL_CANCELED_CHARP;
       if ( c > 256 )
-      { undefined(&ln, c);
-	break;
-      }
-      table = dispatch_meta;
+	func = undefined;
+      else
+	func = dispatch_meta[c&0xff];
     } else
     { if ( c > 256 )
-      { insert_self(&ln, c);
-	break;
-      }
-      table = dispatch_table;
+	func = insert_self;
+      else
+	func = dispatch_table[c&0xff];
     }
 
     rlc_get_mark(b, &m1);
 
-    (*table[c & 0xff])(&ln, c);
+    (*func)(&ln, c);
     if ( m0.mark_x != m1.mark_x || m0.mark_y != m1.mark_y )
       ln.reprompt = TRUE;
     update_display(&ln);

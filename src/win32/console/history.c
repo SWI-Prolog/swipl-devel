@@ -113,7 +113,7 @@ rlc_add_history(rlc_console c, const TCHAR *line)
       b->history.lines[i] = rlc_malloc((len+1)*sizeof(TCHAR));
 
     if ( b->history.lines[i] )
-    { memcpy(b->history.lines[i], line, len);
+    { _tcsncpy(b->history.lines[i], line, len);
       b->history.lines[i][len] = '\0';
     }
   }

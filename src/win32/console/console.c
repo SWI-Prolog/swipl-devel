@@ -511,7 +511,7 @@ rlc_progbase(TCHAR *path, TCHAR *base)
   if ( !(e = _tcschr(s, '.')) )
     _tcscpy(base, s);
   else
-  { memmove(base, s, e-s);
+  { _tcsncpy(base, s, e-s);
     base[e-s] = '\0';
   }
 }
@@ -1262,14 +1262,14 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       TCHAR *buf = (TCHAR *)lParam;
 
       if ( OQSIZE - b->output_queued > count )
-      { memcpy(&b->output_queue[b->output_queued], buf, count);
+      { _tcsncpy(&b->output_queue[b->output_queued], buf, count);
 	b->output_queued += count;
       } else
       { if ( b->output_queued > 0 )
 	  rlc_flush_output(b);
 
 	if ( count <= OQSIZE )
-	{ memcpy(b->output_queue, buf, count);
+	{ _tcsncpy(b->output_queue, buf, count);
 	  b->output_queued = count;
 	} else
 	  rlc_do_write(b, buf, count);
@@ -1355,8 +1355,6 @@ rlc_yield()
 		 *	 CHARACTER TYPES	*
 		 *******************************/
 
-#define iswordchar(c) (_rlc_word_chars[(int)(c)])
-
 static void
 rlc_init_word_chars()
 { int i;
@@ -1378,11 +1376,7 @@ rlc_is_word_char(int chr)
 { if ( chr > 0 && chr < CHAR_MAX )
     return _rlc_word_chars[chr];
 
-#ifdef UNICODE
-  return iswalnum((wint_t)chr);
-#else
-  return FALSE;
-#endif
+  return _istalnum((wint_t)chr);	/* only UNICODE version */
 }
 
 
@@ -1577,12 +1571,12 @@ rlc_word_selection(RlcData b, int x, int y)
   if ( rlc_between(b, b->first, b->last, l) )
   { TextLine tl = &b->lines[l];
 
-    if ( c < tl->size && iswordchar(tl->text[c]) )
+    if ( c < tl->size && rlc_is_word_char(tl->text[c]) )
     { int f, t;
 
-      for(f=c; f>0 && iswordchar(tl->text[f-1]); f--)
+      for(f=c; f>0 && rlc_is_word_char(tl->text[f-1]); f--)
 	;
-      for(t=c; t<tl->size && iswordchar(tl->text[t]); t++)
+      for(t=c; t<tl->size && rlc_is_word_char(tl->text[t]); t++)
 	;
       rlc_set_selection(b, l, f, l, t);
     }
@@ -1602,8 +1596,8 @@ rlc_extend_selection(RlcData b, int x, int y)
     { if ( rlc_between(b, b->first, b->last, l) )
       { TextLine tl = &b->lines[l];
 
-	if ( c < tl->size && iswordchar(tl->text[c]) )
-	  for(; c > 0 && iswordchar(tl->text[c-1]); c--)
+	if ( c < tl->size && rlc_is_word_char(tl->text[c]) )
+	  for(; c > 0 && rlc_is_word_char(tl->text[c-1]); c--)
 	    ;
       }
     } else if ( b->sel_unit == SEL_LINE )
@@ -1614,8 +1608,8 @@ rlc_extend_selection(RlcData b, int x, int y)
     { if ( rlc_between(b, b->first, b->last, l) )
       { TextLine tl = &b->lines[l];
 
-	if ( c < tl->size && iswordchar(tl->text[c]) )
-	  for(; c < tl->size && iswordchar(tl->text[c]); c++)
+	if ( c < tl->size && rlc_is_word_char(tl->text[c]) )
+	  for(; c < tl->size && rlc_is_word_char(tl->text[c]); c++)
 	    ;
       }
     } else if ( b->sel_unit == SEL_LINE )
@@ -1690,12 +1684,12 @@ rlc_copy(RlcData b)
 
   if ( sel && b->window )
   { int size = _tcslen(sel);
-    HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, size + 1);
+    HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, (size + 1)*sizeof(TCHAR));
     TCHAR far *data;
     int i;
 
     if ( !mem )
-    { MessageBox(NULL, _T("Not enough memory to paste"), _T("Error"), MB_OK);
+    { MessageBox(NULL, _T("Not enough memory to copy"), _T("Error"), MB_OK);
       return;
     }
     data = GlobalLock(mem);
@@ -1707,7 +1701,11 @@ rlc_copy(RlcData b)
     GlobalUnlock(mem);
     OpenClipboard(b->window);
     EmptyClipboard();
+#ifdef UNICODE
+    SetClipboardData(CF_UNICODETEXT, mem);
+#else
     SetClipboardData(CF_TEXT, mem);
+#endif
     CloseClipboard();
 
     rlc_free(sel);
@@ -1825,12 +1823,20 @@ rlc_redraw(RlcData b)
     int cx = b->cw;
 
     if ( !tl->text )
-    { tl->size = 0;
-      memset(text, ' ', b->width);
+    { int i;
+      TCHAR *t;
+
+      tl->size = 0;
+      for(i=0, t=text; i<b->width; i++)
+	*t++ = ' ';
     } else
-    { memcpy(text, tl->text, tl->size);
-      if ( b->width > tl->size )
-	memset(&text[tl->size], ' ', b->width - tl->size);
+    { int i;
+      TCHAR *t, *s;
+
+      for(i=0, t=text, s=tl->text; i<tl->size; i++)
+	*t++ = *s++;
+      for(; i<b->width; i++)
+	*t++ = ' ';
     }
 
     rect.top    = ty;
@@ -2057,7 +2063,7 @@ rlc_save_font_options(HFONT font, rlc_console_attr *attr)
   { LOGFONT lf;
 
     if ( GetObject(font, sizeof(lf), &lf) )
-    { _tcsncpy(attr->face_name, lf.lfFaceName, sizeof(attr->face_name)-1);
+    { memcpy(attr->face_name, lf.lfFaceName, sizeof(attr->face_name)-1);
 
       attr->font_family   = lf.lfPitchAndFamily;
       attr->font_size     = lf.lfHeight;
@@ -2209,7 +2215,7 @@ rlc_resize(RlcData b, int w, int h)
 	DEBUG(Dprintf(_T("b->first = %d, b->last = %d\n"), b->first, b->last));
 	pl = &b->lines[PrevLine(b, i)];	/* this is the moved line */
 	tl->text = rlc_malloc((pl->size - w)*sizeof(TCHAR));
-	memmove(tl->text, &pl->text[w], pl->size - w);
+	memmove(tl->text, &pl->text[w], (pl->size - w)*sizeof(TCHAR));
 	DEBUG(Dprintf(_T("Copied %d chars from line %d to %d\n"),
 		      pl->size - w, pl - b->lines, i));
 	tl->size = pl->size - w;
@@ -2229,8 +2235,8 @@ rlc_resize(RlcData b, int w, int h)
 	  rlc_add_line(b);
 	nl = &b->lines[NextLine(b, i)];
 	nl->text = rlc_realloc(nl->text, (nl->size + move)*sizeof(TCHAR));
-	memmove(&nl->text[move], nl->text, nl->size);
-	memmove(nl->text, &tl->text[w], move);
+	memmove(&nl->text[move], nl->text, nl->size*sizeof(TCHAR));
+	memmove(nl->text, &tl->text[w], move*sizeof(TCHAR));
 	nl->size += move;
 	tl->size = w;
       }	
@@ -2242,8 +2248,8 @@ rlc_resize(RlcData b, int w, int h)
       nl = &b->lines[NextLine(b, i)];
 
       nl->text = rlc_realloc(nl->text, (nl->size + tl->size)*sizeof(TCHAR));
-      memmove(&nl->text[tl->size], nl->text, nl->size);
-      memmove(nl->text, tl->text, tl->size);
+      memmove(&nl->text[tl->size], nl->text, nl->size*sizeof(TCHAR));
+      memmove(nl->text, tl->text, tl->size*sizeof(TCHAR));
       nl->size += tl->size;
       nl->adjusted = TRUE;
       rlc_shift_lines_up(b, i);
@@ -2663,8 +2669,22 @@ rlc_paste(RlcData b)
 
   if ( b->window )
   { OpenClipboard(b->window);
-    if ( (mem = GetClipboardData(CF_TEXT)) )
-    { TCHAR far *data = GlobalLock(mem);
+    if ( (mem = GetClipboardData(CF_UNICODETEXT)) )
+    { wchar_t *data = GlobalLock(mem);
+      int i;
+      RlcQueue q = b->queue;
+  
+      if ( q )
+      { for(i=0; data[i]; i++)
+	{ rlc_add_queue(b, q, data[i]);
+	  if ( data[i] == '\r' && data[i+1] == '\n' )
+	    i++;
+	}
+      }
+  
+      GlobalUnlock(mem);
+    } else if ( (mem = GetClipboardData(CF_TEXT)) )
+    { char far *data = GlobalLock(mem);
       int i;
       RlcQueue q = b->queue;
   
@@ -3106,10 +3126,10 @@ rlc_read(rlc_console c, TCHAR *buf, unsigned int count)
   else
     give = d->read_buffer.length - d->read_buffer.given;
 
-  memcpy(buf, d->read_buffer.line+d->read_buffer.given, give);
+  _tcsncpy(buf, d->read_buffer.line+d->read_buffer.given, give);
   d->read_buffer.given += give;
 
-  return give * sizeof(TCHAR);
+  return give;
 }
 
 
@@ -3158,8 +3178,6 @@ rlc_write(rlc_console c, TCHAR *buf, unsigned int count)
 { DWORD result;
   TCHAR *e, *s;
   RlcData b = rlc_get_data(c);
-
-  count /= sizeof(TCHAR);
 
   if ( !b )
     return -1;
@@ -3287,13 +3305,13 @@ rlc_title(rlc_console c, TCHAR *title, TCHAR *old, int size)
 { RlcData b = rlc_get_data(c);
 
   if ( old )
-    memmove(old, b->current_title, size);
+    memmove(old, b->current_title, size*sizeof(TCHAR));
 
   if ( title )
   { if ( b->window )
       SetWindowText(b->window, title);
 
-    memmove(b->current_title, title, RLC_TITLE_MAX);
+    memmove(b->current_title, title, RLC_TITLE_MAX*sizeof(TCHAR));
   }
 }
 

@@ -8,8 +8,10 @@
 CFLAGS = $(CFLAGS) /DUNICODE /D_UNICODE
 
 PLHOME=		..\..\..
-OUTDLL=		$(PLHOME)\bin\plterm.dll
-OUTLIB=		$(PLHOME)\lib\plterm.lib
+#OUTDLL=		$(PLHOME)\bin\plterm.dll
+#OUTLIB=		$(PLHOME)\lib\plterm.lib
+OUTDLL=		plterm.dll
+OUTLIB=		plterm.lib
 OUTINC=		$(PLHOME)\include\console.h
 OUTDBG=		$(PLHOME)\bin\plterm.pdb
 
@@ -41,6 +43,11 @@ distclean:	clean
 		if exist $(OUTLIB) del $(OUTLIB)
 		if exist $(OUTDLL) del $(OUTDLL)
 		if exist $(OUTDBG) del $(OUTDBG)
+
+test:		all test.exe
+
+test.exe:	test.obj
+		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ test.obj $(TERMLIB) $(LIBS)
 
 # dependencies
 
