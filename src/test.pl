@@ -43,8 +43,10 @@ available test sets. The public goals are:
 % Required to get this always running regardless of user LANG setting.
 % Without this the tests won't run on machines with -for example- LANG=ja
 % according to NIDE Naoyuki, nide@ics.nara-wu.ac.jp.  Thanks!
+%
+% NOTE: In 5.5.x we should not need this any longer
 
-:- getenv('LANG', _) -> setenv('LANG', 'C'); true.
+% :- getenv('LANG', _) -> setenv('LANG', 'C'); true.
 
 
 		 /*******************************
@@ -1608,6 +1610,45 @@ file(dir-1) :-
 file(dir-2) :-
 	testfile(File),
 	\+ exists_directory(File).
+file(cwd-1) :-
+	working_directory(CWD, CWD),
+	exists_directory(CWD),
+	same_file(CWD, '.').
+file(mkdir-1) :-			% create Cyrillic directory
+	atom_codes(Dir, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	catch(delete_directory(Dir), _, true),
+	make_directory(Dir),
+	exists_directory(Dir),
+	working_directory(Old, Dir),
+	working_directory(O2, '..'),
+	same_file(Old, '.'),
+	same_file(O2, Dir),
+	delete_directory(Dir).
+file(file-1) :-				% create Cyrillic file
+	atom_codes(File, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	Term = hello(world),
+	catch(delete_file(File), _, true),
+	open(File, write, Out),
+	format(Out, '~q.~n', [Term]),
+	close(Out),
+	exists_file(File),
+	open(File, read, In),
+	read(In, Read),
+	close(In),
+	Read =@= Term,
+	delete_file(File).
+file(absfile-1) :-
+	atom_codes(File, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	absolute_file_name(File, Path),
+	file_directory_name(Path, Dir),
+	same_file(Dir, '.'),
+	file_base_name(Path, Base),
+	Base == File.
+file(ext-1) :-
+	atom_codes(File, [1074, 1086, 1079, 1076, 0'., 1091, 1093, 1072]),
+	file_name_extension(Base, Ext, File),
+	atom_codes(Base, [1074, 1086, 1079, 1076]),
+	atom_codes(Ext, [1091, 1093, 1072]).
 
 
 		 /*******************************

@@ -3742,7 +3742,7 @@ word
 pl_file_base_name(term_t f, term_t b)
 { char *n;
 
-  if ( !PL_get_chars_ex(f, &n, CVT_ALL) )
+  if ( !PL_get_chars_ex(f, &n, CVT_ALL|REP_FN) )
     fail;
 
   return PL_unify_chars(b, PL_ATOM|REP_FN, -1, BaseName(n));
@@ -3754,7 +3754,7 @@ pl_file_dir_name(term_t f, term_t b)
 { char *n;
   char tmp[MAXPATHLEN];
 
-  if ( !PL_get_chars_ex(f, &n, CVT_ALL) )
+  if ( !PL_get_chars_ex(f, &n, CVT_ALL|REP_FN) )
     fail;
 
   return PL_unify_chars(b, PL_ATOM|REP_FN, -1, DirName(n, tmp));
