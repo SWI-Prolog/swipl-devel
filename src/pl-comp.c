@@ -1341,8 +1341,11 @@ compileArithArgument(Word arg, compileInfo *ci)
         succeed;
       }
       if ( first )
+      { resetVars();			/* get clean Prolog data, assume */
+					/* calling twice is ok */
 	return PL_error(NULL, 0, "Unbound variable in arithmetic expression",
 			ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
+      }
       Output_0(ci, A_VAR);
     }          
     Output_a(ci, VAROFFSET(index));
