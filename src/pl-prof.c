@@ -32,10 +32,11 @@
 MS-Windows version
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void profile(long ticks);
+static void profile(long ticks, PL_local_data_t *ld);
 
 static LARGE_INTEGER last_profile;
 static HANDLE	     mythread;
+static PL_local_data_t *my_LD;
 static UINT	     timer;
 static long	     virtual_events;
 static long	     events;
@@ -73,7 +74,7 @@ callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
   if ( (newticks = prof_new_ticks(mythread)) )
   { if ( newticks < 0 )			/* Windows 95/98/... */
       newticks = 1;
-    profile(newticks);
+    profile(newticks, my_LD);
   }
   ResumeThread(mythread);
 }
@@ -90,6 +91,8 @@ startProfiler(int how)
 		  0,
 		  FALSE,
 		  DUPLICATE_SAME_ACCESS);
+
+  my_LD = LD;
 
   if ( prof_new_ticks(mythread) < 0 )
   { printMessage(ATOM_informational,
@@ -126,6 +129,7 @@ stopItimer(void)
   if ( mythread )
   { CloseHandle(mythread);
     mythread = 0;
+    my_LD = NULL;
   }
 }
 
@@ -313,15 +317,16 @@ counter will not be incremented.  We do a second pass over the frames to
 clear the flags again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#undef LD
+#define LD LOCAL_LD
+
 static void
 #ifdef __WIN32__
-profile(long ticks)
-#else
+profile(long ticks, PL_local_data_t *__PL_ld)
+{ 
+#else __WIN32__
 profile(int sig)
-#endif
-{ register LocalFrame fr = environment_frame;
-
-#ifndef __WIN32__
+{ GET_LD
 
 #define ticks 1
 
@@ -333,33 +338,36 @@ profile(int sig)
 #if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
   signal(SIGPROF, profile);
 #endif
-#endif /*!__WIN32__*/
 
-  LD->statistics.profile_ticks += ticks;
+#endif __WIN32__
+  { LocalFrame fr = environment_frame;
 
-  if ( gc_status.active )
-  { PROCEDURE_garbage_collect0->definition->profile_ticks++;
-    return;
-  }
-
-  if (fr == (LocalFrame) NULL)
-    return;
-
-  if (LD->statistics.profiling == PLAIN_PROFILING)
-  { fr->predicate->profile_ticks += ticks;
-    return;
-  }
-
-  for(; fr; fr = parentFrame(fr) )		/* CUMULATIVE_PROFILING */
-  { register Definition def = fr->predicate;
-    if ( false(def, PROFILE_TICKED) )
-    { set(def, PROFILE_TICKED);
-      def->profile_ticks += ticks;
-    }
-  }
+    LD->statistics.profile_ticks += ticks;
   
-  for(fr = environment_frame; fr; fr = parentFrame(fr) )
-    clear(fr->predicate, PROFILE_TICKED);
+    if ( gc_status.active )
+    { PROCEDURE_garbage_collect0->definition->profile_ticks++;
+      return;
+    }
+  
+    if (fr == (LocalFrame) NULL)
+      return;
+  
+    if (LD->statistics.profiling == PLAIN_PROFILING)
+    { fr->predicate->profile_ticks += ticks;
+      return;
+    }
+  
+    for(; fr; fr = parentFrame(fr) )		/* CUMULATIVE_PROFILING */
+    { register Definition def = fr->predicate;
+      if ( false(def, PROFILE_TICKED) )
+      { set(def, PROFILE_TICKED);
+	def->profile_ticks += ticks;
+      }
+    }
+    
+    for(fr = environment_frame; fr; fr = parentFrame(fr) )
+      clear(fr->predicate, PROFILE_TICKED);
+  }
 }
 
 #else /* O_PROFILE */
