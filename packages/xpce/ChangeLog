@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.2.10, distributed with SWI-Prolog 5.2.10
+==================================================
+
 * ADDED: library(pce_grapher) to support creating and managing simple Prolog
   graphs.  Especially useful for educational purposes.
 
