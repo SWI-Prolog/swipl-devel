@@ -1626,6 +1626,46 @@ checkStacks(LocalFrame frame, Choice choice)
 
 #endif /*O_SECURE || O_DEBUG*/
 
+#ifdef O_PLMT
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+About synchronisation with atom-gc (AGC). GC can run fully concurrent in
+different threads as it only  affects   the  runtime stacks. AGC however
+must sweep the other threads. It can only do so if these are in a fairly
+sane state, which isn't the case during GC.  So:
+
+We keep the number of threads doing GC in GD->gc.active, a variable that
+is incremented and decremented using  the   L_GC  mutex. This same mutex
+guards AGC as a whole. This  means  that   if  AGC  is working, GC can't
+start. If AGC notices at the start  a   GC  is working, it sets the flag
+GD->gc.agc_waiting and returns. If the last   GC  stops, and notices the
+system wants to do AGC it raised a request for AGC.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+enterGC()
+{ PL_LOCK(L_GC);
+  GD->gc.active++;
+  PL_UNLOCK(L_GC);
+}
+
+static void
+leaveGC()
+{ PL_LOCK(L_GC);
+  if ( --GD->gc.active == 0 && GD->gc.agc_waiting )
+  { GD->gc.agc_waiting = FALSE;
+    PL_raise(SIG_ATOM_GC);
+  }
+  PL_UNLOCK(L_GC);
+}
+
+#else
+
+#define enterGC() (void)0
+#define leaveGC() (void)0
+
+#endif /*O_PLMT*/
+
 
 void
 garbageCollect(LocalFrame fr, Choice ch)
@@ -1640,8 +1680,9 @@ garbageCollect(LocalFrame fr, Choice ch)
   if ( gc_status.blocked || !trueFeature(GC_FEATURE) )
     return;
 
+  enterGC();
   blockSignals(&mask);
-  blockGC(PASS_LD1);				/* avoid recursion due to */
+  blockGC(PASS_LD1);			/* avoid recursion due to */
   gc_status.requested = FALSE;		/* printMessage() */
 
   gc_status.active = TRUE;
@@ -1722,8 +1763,10 @@ garbageCollect(LocalFrame fr, Choice ch)
 		     PL_LONG, usedStack(trail),
 		     PL_LONG, roomStack(global),
 		     PL_LONG, roomStack(trail));
+
   unblockGC(PASS_LD1);
   unblockSignals(&mask);
+  leaveGC();
 }
 
 word
@@ -2370,9 +2413,61 @@ markAtomsInEnvironments(PL_local_data_t *ld)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The BACKTRACE code below can only  be   compiled  on systems using glibc
+(the GNU C-library). It saves the  stack-trace   of  the  latest call to
+markAtomsOnStacks()  to  help  identifying  problems.    You   can  call
+print_backtrace() from GDB to find the last stack-trace.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define BACKTRACE 0
+
+#if BACKTRACE
+#include <execinfo.h>
+#include <string.h>
+static char **mark_backtrace;
+size_t trace_frames;
+
+static void
+save_backtrace (void)
+{ void *array[100];
+     
+  trace_frames = backtrace(array, sizeof(array)/sizeof(void *));
+  if ( mark_backtrace )
+    free(mark_backtrace);
+  mark_backtrace = backtrace_symbols(array, trace_frames);
+}
+
+void
+print_backtrace()
+{ int i;
+
+  for(i=0; i<trace_frames; i++)
+    Sdprintf("[%d] %s\n", i, mark_backtrace[i]);
+}
+
+#endif /*BACKTRACE*/
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+markAtomsOnStacks()  is  called   asynchronously    (Unix)   or  between
+SuspendThread()/ResumeThread() from another thread in  Windows. Its task
+is to mark all atoms that  are   references  from  the Prolog stacks. It
+should not make any assumptions  on   the  initialised  variables in the
+stack-frames, but it is allowed to mark atoms from uninitialised data as
+this causes some atoms not to  be   GC-ed  this  time (maybe better next
+time).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 markAtomsOnStacks(PL_local_data_t *ld)
-{ markAtomsOnGlobalStack(ld);
+{ assert(!ld->gc.status.active);
+
+#if BACKTRACE
+  save_backtrace();
+#endif
+
+  markAtomsOnGlobalStack(ld);
   markAtomsInEnvironments(ld);
   markAtomsInTermReferences(ld);
 }

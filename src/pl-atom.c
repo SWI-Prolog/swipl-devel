@@ -220,12 +220,13 @@ registerAtom(Atom a)
 
 word
 lookupAtom(const char *s, unsigned int length)
-{ int v0 = unboundStringHashValue(s, length);
-  int v = v0 & (atom_buckets-1);
+{ int v0, v;
   ulong oldheap;
   Atom a;
 
   LOCK();
+  v0 = unboundStringHashValue(s, length);
+  v  = v0 & (atom_buckets-1);
   DEBUG(0, lookups++);
 
   for(a = atomTable[v]; a; a = a->next)
@@ -234,11 +235,7 @@ lookupAtom(const char *s, unsigned int length)
 	 memcmp(s, a->name, length) == 0 )
     { 
 #ifdef O_ATOMGC
-#ifdef O_PLMT
-      PL_atomic_inc(&a->references);
-#else
       a->references++;
-#endif
 #endif
       UNLOCK();
       return a->atom;
@@ -408,6 +405,13 @@ markAtom(atom_t a)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+destroyAtom()  actually  discards  an  atom.  The  code  marked  (*)  is
+sometimes inserted to debug atom-gc. The   trick  is to create xxxx<...>
+atoms that should *not* be subject to AGC.   If we find one collected we
+know we trapped a bug.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 destroyAtom(Atom *ap, unsigned long mask ARG_LD)
 { Atom a = *ap;
@@ -417,6 +421,13 @@ destroyAtom(Atom *ap, unsigned long mask ARG_LD)
   { if ( !(*GD->atoms.gc_hook)(a->atom) )
       return;				/* foreign hooks says `no' */
   }
+
+#if 0
+  if ( strncmp(a->name, "xxxx", 4) == 0 ) 	/* (*) see above */
+  { Sdprintf("Deleting %s\n", a->name);
+    assert(0);
+  }
+#endif
 
 #ifdef O_DEBUG_ATOMGC
   if ( atomLogFd )
@@ -474,6 +485,12 @@ collectAtoms(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pl_garbage_collect_atoms() realised the atom   garbage  collector (AGC).
+This is a tricky beast that   needs  careful synchronisation with normal
+GC. These issues are described with enterGC() in pl-gc.c.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 word
 pl_garbage_collect_atoms()
 { GET_LD
@@ -487,13 +504,13 @@ pl_garbage_collect_atoms()
   if ( gc_status.blocked )		/* Tricky things; avoid problems. */
     succeed;
 
-  LOCK();
-  if ( GD->atoms.gc_active )
-  { UNLOCK();
+  PL_LOCK(L_GC);			
+  if ( GD->gc.active ) 			/* GC in progress: delay */
+  { DEBUG(2, Sdprintf("GC active; delaying AGC\n"));
+    GD->gc.agc_waiting = TRUE;
+    PL_UNLOCK(L_GC);
     succeed;
   }
-  GD->atoms.gc_active = TRUE;
-  UNLOCK();				/* for the printMessage() */
 
   if ( verbose )
   {
@@ -523,14 +540,14 @@ pl_garbage_collect_atoms()
   t = CpuTime(CPU_USER) - t;
   GD->atoms.gc_time += t;
   GD->atoms.gc++;
-  GD->atoms.gc_active = FALSE;
   freed = oldheap - GD->statistics.heap;
   GD->statistics.atomspacefreed += freed;
   GD->statistics.atomspace -= freed;
   unblockSignals(&set);
   UNLOCK();
   PL_UNLOCK(L_THREAD);
-  
+  PL_UNLOCK(L_GC);
+    
   if ( verbose )
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "agc", 1,
@@ -559,7 +576,7 @@ PL_agc_hook(PL_agc_hook_t new)
 
 void
 resetAtoms()
-{ GD->atoms.gc_active = FALSE;
+{ 
 }
 
 
@@ -567,12 +584,10 @@ void
 PL_register_atom(atom_t a)
 {
 #ifdef O_ATOMGC
+  LOCK();
   Atom p = atomValue(a);
-#ifdef O_PLMT
-  PL_atomic_inc(&p->references);
-#else
   p->references++;
-#endif
+  UNLOCK();
 #endif
 }
 
@@ -581,14 +596,11 @@ void
 PL_unregister_atom(atom_t a)
 {
 #ifdef O_ATOMGC
+  LOCK();
   Atom p = atomValue(a);
-
-#ifdef O_PLMT
-  PL_atomic_dec(&p->references);
-#else
   p->references--;
-#endif
   assert(p->references >= 0);
+  UNLOCK();
 #endif
 }
 

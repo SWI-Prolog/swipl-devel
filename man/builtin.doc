@@ -4864,8 +4864,12 @@ time critical segments of the code.  After the garbage collection
 trim_stacks/0 is invoked to release the collected memory resources.
 
     \predicate{garbage_collect_atoms}{0}{}
-Reclaim unused atoms.  Normally invoked after \const{agc_margin}
-(a prolog flag) atoms have been created.
+Reclaim unused atoms. Normally invoked after \const{agc_margin} (a
+prolog flag) atoms have been created. On multi-threaded versions the
+actual collection is delayed until there there are no threads performing
+normal garbage collection. In this case garbage_collect_atoms/0 returns
+immediately. Note this implies there is no guarantee it will \emph{ever}
+happen as there may always be threads performing garbage collection.
 
     \predicate{limit_stack}{2}{+Key, +Kbytes}
 Limit one of the stack areas to the specified value. \arg{Key} is one of

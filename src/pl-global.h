@@ -156,6 +156,13 @@ typedef struct
     atom_t	for_code[256];		/* code --> one-char-atom */
   } atoms;
 
+#ifdef O_PLMT
+  struct
+  { int		active;			/* #GC active */
+    int		agc_waiting;		/* AGC is waiting for us */
+  } gc;
+#endif
+
   struct
   { Table	breakpoints;		/* Breakpoint table */
   } comp;

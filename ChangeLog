@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: MT: Problem in the atom-garbage collector reclaiming atoms
+    in use by other threads.  Sergey Tikhonov.
+
   * FIXED: MT: Initial thread has wrong status, causing trouble with
     atom garbage collection.  Sergey Tikhonov.
 
