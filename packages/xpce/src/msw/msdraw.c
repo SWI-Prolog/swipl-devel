@@ -880,15 +880,7 @@ intersection_iarea(IArea a, IArea b)
 
 void
 r_clear(int x, int y, int w, int h)
-{ HBRUSH hbrush = r_fillbrush(context.background);
-  RECT rect;
-
-  rect.left   = x;
-  rect.right  = x + w;
-  rect.top    = y;
-  rect.bottom = y + h;
-
-  FillRect(context.hdc, &rect, hbrush);
+{ r_fill(x, y, w, h, context.background);
 }
 
 
