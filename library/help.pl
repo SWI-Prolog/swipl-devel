@@ -64,16 +64,24 @@ give_help(What) :-
 %	show_help(+ListOfRanges)
 %	Pipe specified ranges of the manual through the user defined pager
 
+:- dynamic asserted_help_tmp_file/1.
+
+help_tmp_file(X) :-
+	asserted_help_tmp_file(X), !.
+help_tmp_file(X) :-
+	tmp_file(manual, X),
+	asserta(asserted_help_tmp_file(X)).
+
 show_help(Ranges) :-
 	current_predicate(_, running_under_emacs_interface),
 	running_under_emacs_interface, !,
 	online_manual_stream(Manual),
-	tmp_file(manual, Outfile),
+	help_tmp_file(Outfile),
 	open(Outfile, write, Output),
 	show_ranges(Ranges, Manual, Output),
 	close(Manual),
 	close(Output),
-	call_emacs('(view-file "~w")', [Outfile]).
+	call_emacs('(view-file-other-window "~w")', [Outfile]).
 show_help([Start-End]) :-
 	End - Start > 4000, !,
 	find_manual(Manual),
