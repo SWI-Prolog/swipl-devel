@@ -79,6 +79,10 @@ stuff.
 #define NULL ((void *)0)
 #endif
 
+#if defined(__WIN32__) && !defined(EWOULDBLOCK)
+#define EWOULDBLOCK	1000		/* Needed for socket handling */
+#endif
+
 #define SIO_BUFSIZE	(4096)		/* buffering buffer-size */
 #define SIO_LINESIZE	(1024)		/* Sgets() default buffer size */
 #define SIO_MAGIC	(7212676)	/* magic number */
