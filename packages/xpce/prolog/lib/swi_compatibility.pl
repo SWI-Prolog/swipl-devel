@@ -30,8 +30,7 @@
 */
 
 :- module(pce_compatibility_layer,
-	  [ strip_module/3,
-	    auto_call/1,
+	  [ auto_call/1,
 	    callable_predicate/1,
 	    modified_since_last_loaded/1,
 	    pce_error/1,
@@ -41,11 +40,7 @@
 
 :- module_transparent
 	auto_call/1,
-	strip_module/3,
 	callable_predicate/1.
-
-strip_module(T, M, G) :-
-	strip_module(T, M, G).
 
 auto_call(G) :-
 	G.
