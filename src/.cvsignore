@@ -6,5 +6,7 @@ BUGS
 *.00[0-9]
 pl.ncb
 pl.opt
+pl.res
+pl.prc
 *.plg
 chhdr

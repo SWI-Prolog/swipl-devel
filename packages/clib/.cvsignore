@@ -1,5 +1,8 @@
 *.opt
 *.plg
+*.lib
+*.dll
+*.exp
 Makefile
 config.h
 config.log

@@ -23,3 +23,5 @@ Makefile
 config.log
 config.h
 .coflags
+*.dll
+*.lib
