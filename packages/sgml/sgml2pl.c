@@ -82,7 +82,7 @@ typedef struct _parser_data
   int	      max_warnings;		/* warning limit */
   errormode   error_mode;		/* how to handle errors */
   int	      positions;		/* report file-positions */
-  term_t      exception;		/* pending exception from callback */
+  int         exception;		/* pending exception from callback */
 
   predicate_t on_begin;			/* begin element */
   predicate_t on_end;			/* end element */
@@ -675,19 +675,37 @@ pl_get_sgml_parser(term_t parser, term_t option)
 }
 
 
+#if 0
+static void
+writeln(term_t t)
+{ PL_write_term(Serror, t, 1200, PL_WRT_QUOTED|PL_WRT_PORTRAY);
+  Sputcode('\n', Serror);
+}
+#endif
+
+
 static int
 call_prolog(parser_data *pd, predicate_t pred, term_t av)
-{ qid_t qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pred, av);
+{ qid_t qid = PL_open_query(NULL, PL_Q_PASS_EXCEPTION, pred, av);
   int rc = PL_next_solution(qid);
 
-  if ( !rc )
-    pd->exception = PL_exception(qid);
+  if ( !rc && PL_exception(qid) )
+    pd->exception = TRUE;
   else
-    pd->exception = 0;
+    pd->exception = FALSE;
 
   PL_close_query(qid);
 
   return rc;
+}
+
+
+static void
+end_frame(fid_t fid, int ex)
+{ if ( ex )
+    PL_close_foreign_frame(fid);
+  else
+    PL_discard_foreign_frame(fid);
 }
 
 
@@ -1006,7 +1024,7 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
     unify_parser(av+2, p);
 
     call_prolog(pd, pd->on_begin, av);
-    PL_discard_foreign_frame(fid);
+    end_frame(fid, pd->exception);
   }
 
   return TRUE;
@@ -1028,7 +1046,7 @@ on_end(dtd_parser *p, dtd_element *e)
     unify_parser(av+1, p);
 
     call_prolog(pd, pd->on_end, av);
-    PL_discard_foreign_frame(fid);
+    end_frame(fid, pd->exception);
   }
 
   if ( pd->tail && !pd->stopped )
@@ -1073,7 +1091,7 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
     unify_parser(av+1, p);
 
     call_prolog(pd, pd->on_end, av);
-    PL_discard_foreign_frame(fid);
+    end_frame(fid, pd->exception);
   }
 
   if ( pd->tail )
@@ -1115,7 +1133,7 @@ on_data(dtd_parser *p, data_type type, int len,
     unify_parser(av+1, p);
 
     call_prolog(pd, pd->on_cdata, av);
-    PL_discard_foreign_frame(fid);
+    end_frame(fid, pd->exception);
   }
 
   if ( pd->tail && !pd->stopped )
@@ -1236,7 +1254,7 @@ on_error(dtd_parser *p, dtd_error *error)
     unify_parser(av+2, p);
 
     call_prolog(pd, pd->on_error, av);
-    PL_discard_foreign_frame(fid);
+    end_frame(fid, pd->exception);
   } else if ( pd->error_mode != EM_QUIET )
   { fid_t fid = PL_open_foreign_frame();
     predicate_t pred = PL_predicate("print_message", 2, "user");
@@ -1282,7 +1300,7 @@ on_xmlns(dtd_parser *p, dtd_symbol *ns, dtd_symbol *url)
     unify_parser(av+2, p);
 
     call_prolog(pd, pd->on_xmlns, av);
-    PL_discard_foreign_frame(fid);
+    end_frame(fid, pd->exception);
   }
 
   return TRUE;
@@ -1304,7 +1322,7 @@ on_pi(dtd_parser *p, const ichar *pi)
     unify_parser(av+1, p);
 
     call_prolog(pd, pd->on_pi, av);
-    PL_discard_foreign_frame(fid);
+    end_frame(fid, pd->exception);
   }
 
   if ( pd->tail )
@@ -1339,7 +1357,7 @@ on_decl(dtd_parser *p, const ichar *decl)
     unify_parser(av+1, p);
 
     call_prolog(pd, pd->on_decl, av);
-    PL_discard_foreign_frame(fid);
+    end_frame(fid, pd->exception);
   }
 
   if ( pd->stopat == SA_DECL )
@@ -1418,7 +1436,7 @@ new_parser_data(dtd_parser *p)
   pd->max_errors = MAX_ERRORS;
   pd->max_warnings = MAX_WARNINGS;
   pd->error_mode = EM_PRINT;
-  pd->exception = 0;
+  pd->exception = FALSE;
   p->closure = pd;
   
   return pd;
@@ -1658,7 +1676,8 @@ pl_sgml_parse(term_t parser, term_t options)
 					/* Parsing input from a stream */
 #define CHECKERROR \
     { if ( pd->exception ) \
-	return PL_raise_exception(pd->exception); \
+      { return FALSE; \
+      } \
       if ( pd->errors > pd->max_errors && pd->max_errors >= 0 ) \
 	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors); \
     }
