@@ -593,7 +593,9 @@ static lccat lccats[] =
 { { LC_ALL,      "all" },
   { LC_COLLATE,  "collate" },
   { LC_CTYPE,    "ctype" },
+#ifdef LC_MESSAGES
   { LC_MESSAGES, "messages" },
+#endif
   { LC_MONETARY, "monetary" },
   { LC_NUMERIC,  "numeric" },
   { LC_TIME,     "time" },

@@ -3784,6 +3784,12 @@ has_extension(const char *name, const char *ext)
 }
 
 
+static int
+name_too_long()
+{ return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
+}
+
+
 word
 pl_file_name_extension(term_t base, term_t ext, term_t full)
 { GET_LD
@@ -3808,7 +3814,7 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
       { TRY(PL_unify_chars(ext, PL_ATOM|REP_MB, -1, &s[1]));
       }
       if ( s-f > MAXPATHLEN )
-	goto maxpath;
+	return name_too_long();
       strncpy(buf, f, s-f);
       buf[s-f] = EOS;
 
@@ -3832,7 +3838,7 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
     if ( has_extension(b, e) )
       return PL_unify(base, full);
     if ( strlen(b) + 1 + strlen(e) + 1 > MAXPATHLEN )
-      goto maxpath;
+      return name_too_long();
     strcpy(buf, b);
     s = buf + strlen(buf);
     *s++ = '.';
@@ -3841,10 +3847,6 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
     return PL_unify_chars(full, PL_ATOM|REP_MB, -1, buf);
   } else
     fail;
-
-maxpath:
-  return PL_error("file_name_extension", 3, NULL, ERR_REPRESENTATION,
-		  ATOM_max_path_length);
 }
 
 
@@ -3852,26 +3854,32 @@ word
 pl_prolog_to_os_filename(term_t pl, term_t os)
 { GET_LD
 #ifdef O_XOS
-  char *n;
-  char buf[MAXPATHLEN];
+  wchar_t *wn;
 
   if ( !PL_is_variable(pl) )
-  { if ( PL_get_chars_ex(pl, &n, CVT_ALL|REP_MB) )
-    { _xos_os_filename(n, buf);
-      return PL_unify_chars(os, PL_ATOM|REP_MB, -1, buf);
+  { char *n;
+    wchar_t buf[MAXPATHLEN];
+
+    if ( PL_get_chars_ex(pl, &n, CVT_ALL|REP_UTF8) )
+    { if ( !_xos_os_filenameW(n, buf, MAXPATHLEN) )
+	return name_too_long();
+
+      return PL_unify_wchars(os, PL_ATOM, -1, buf);
     }
     fail;
   }
 
-  if ( PL_get_chars_ex(os, &n, CVT_ALL|REP_MB) )
-  { char lbuf[MAXPATHLEN];
+  if ( PL_get_wchars(os, NULL, &wn, CVT_ALL) )
+  { wchar_t lbuf[MAXPATHLEN];
+    char buf[MAXPATHLEN];
 
-    _xos_long_file_name(n, lbuf);
-    _xos_canonical_filename(lbuf, buf);
-    return PL_unify_chars(pl, PL_ATOM|REP_MB, -1, buf);
+    _xos_long_file_nameW(wn, lbuf, MAXPATHLEN);
+    _xos_canonical_filenameW(lbuf, buf, MAXPATHLEN);
+
+    return PL_unify_chars(pl, PL_ATOM|REP_UTF8, -1, buf);
   }
 
-  fail;
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, pl);
 #else /*O_XOS*/
   return PL_unify(pl, os);
 #endif /*O_XOS*/
@@ -3887,28 +3895,6 @@ pl_mark_executable(term_t path)
 
   return MarkExecutable(name);
 }
-
-
-#if defined(O_XOS) && defined(__WIN32__)
-word
-pl_make_fat_filemap(term_t dir)
-{ GET_LD
-  char *n;
-
-  if ( PL_get_file_name(dir, &n, 0) )
-  { if ( _xos_make_filemap(n) == 0 )
-      succeed;
-
-    if ( fileerrors )
-      return PL_error("make_fat_filemap", 1, NULL, ERR_FILE_OPERATION,
-		      ATOM_write, ATOM_file, dir);
-
-    fail;
-  }
-  
-  fail;
-}
-#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

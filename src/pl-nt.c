@@ -234,7 +234,7 @@ CpuTime(cputime_kind which)
 char *
 findExecutable(const char *module, char *exe)
 { int n;
-  char buf[MAXPATHLEN];
+  wchar_t wbuf[MAXPATHLEN];
   HMODULE hmod;
 
   if ( module )
@@ -249,15 +249,14 @@ findExecutable(const char *module, char *exe)
   } else
     hmod = NULL;
 
-  if ( (n = GetModuleFileName(hmod, buf, sizeof(buf))) > 0 )
+  if ( (n = GetModuleFileNameW(hmod, wbuf, MAXPATHLEN)) > 0 )
   { char buf2[MAXPATHLEN];
 
-    buf[n] = EOS;
-    _xos_long_file_name(buf, buf2);
-
-    strcpy(exe, buf2);
+    wbuf[n] = EOS;
+    return _xos_long_file_name_toA(wbuf, buf2, MAXPATHLEN);
   } else if ( module )
-  { PrologPath(module, buf);
+  { char buf[MAXPATHLEN];
+    PrologPath(module, buf);
 
     strcpy(exe, buf);
   } else

@@ -120,7 +120,7 @@ findHome(char *symbols)
 
 #if O_XOS
       { char buf2[MAXPATHLEN];
-	_xos_canonical_filename(buf, buf2);
+	_xos_canonical_filename(buf, buf2, MAXPATHLEN);
 	strcpy(buf, buf2);
       }
 #endif
@@ -651,7 +651,7 @@ script_argv(int argc, char **argv)
     { char tmp[MAXPATHLEN];
       char dir[MAXPATHLEN];
 
-      _xos_canonical_filename(argv[1], tmp);
+      _xos_canonical_filename(argv[1], tmp, MAXPATHLEN);
       if ( IsAbsolutePath(tmp) )
 	chdir(DirName(tmp, dir));
     }
@@ -995,7 +995,7 @@ runtime_vars(int format)
   { 
 #ifdef O_XOS
     if ( format == FMT_CMD )
-    { _xos_os_filename(systemDefaults.home, base);
+    { _xos_os_filename(systemDefaults.home, base, MAXPATHLEN);
       home = base;
     } else
       home = systemDefaults.home;

@@ -107,9 +107,6 @@ static const PL_extension foreigns[] = {
   FRG("win_exec",		2, pl_win_exec,			0),
   FRG("win_module_file",	2, pl_win_module_file,		0),
   FRG("win_registry_get_value", 3, pl_get_registry_value,	0),
-#ifdef O_XOS
-  FRG("make_fat_filemap",	1, pl_make_fat_filemap,		0),
-#endif
 #endif
 
   FRG("$on_signal",		4, pl_on_signal,	     META),

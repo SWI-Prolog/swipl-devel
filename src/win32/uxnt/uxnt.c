@@ -83,6 +83,49 @@ _xos_errno()
 }
 
 		 /*******************************
+		 *		UTF-8		*
+		 *******************************/
+
+static char *
+wcstoutf8(char *dest, const wchar_t *src, size_t len)
+{ char *o = dest;
+  char *e = &o[len];
+
+  for(; *src; src++)
+  { if ( o+6 > e )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
+    o = utf8_put_char(o, *src);
+  }
+  *o = '\0';
+
+  return dest;
+}
+
+
+static wchar_t *
+utf8towcs(wchar_t *dest, const char *src, size_t len)
+{ wchar_t *o = dest;
+  wchar_t *e = &o[len-1];
+
+  for( ; *src; )
+  { int wc;
+
+    src = utf8_get_char(src, &wc);
+    if ( o >= e )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
+    *o++ = wc;
+  }
+  *o = 0;
+
+  return dest;
+}
+
+
+		 /*******************************
 		 *	       HOME		*
 		 *******************************/
 
@@ -221,6 +264,17 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
 }
 
 
+char *
+_xos_os_filename(const char *cname, char *osname, size_t len)
+{ TCHAR buf[PATH_MAX];
+
+  if ( !_xos_os_filenameW(cname, buf, PATH_MAX) )
+    return NULL;
+  
+  return wcstoutf8(osname, buf, len);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Transform a UNICODE Windows filename into a UTF-8 representation of the
 filename in Prolog canonical representation.
@@ -253,6 +307,17 @@ _xos_canonical_filenameW(const wchar_t *spec, char *xname, size_t len)
   *p = '\0';
 
   return xname;
+}
+
+
+char *
+_xos_canonical_filename(const char *spec, char *xname, size_t len)
+{ TCHAR buf[PATH_MAX];
+
+  if ( !utf8towcs(buf, spec, PATH_MAX) )
+    return NULL;
+  
+  return _xos_canonical_filenameW(buf, xname, len);
 }
 
 
@@ -341,6 +406,17 @@ _xos_long_file_nameW(const TCHAR *file, TCHAR *longname, size_t len)
   *o = '\0';
 
   return longname;
+}
+
+
+char *
+_xos_long_file_name_toA(const wchar_t *file, char *longname, size_t len)
+{ TCHAR buf[PATH_MAX];
+
+  if ( !_xos_long_file_nameW(file, buf, PATH_MAX) )
+    return NULL;
+
+  return wcstoutf8(longname, buf, len);
 }
 
 
@@ -460,6 +536,24 @@ long
 _xos_tell(int handle)
 { return _tell(handle);
 }
+
+
+FILE *
+_xos_fopen(const char *path, const char *mode)
+{ TCHAR buf[PATH_MAX];
+  TCHAR m[10];
+  int i;
+
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return NULL;
+
+  for(i=0; *mode && i < sizeof(m-1); )
+    m[i++] = (*mode++)&0xff;
+  m[i] = 0;
+
+  return _wfopen(buf, m);
+}
+
 
 
 		 /*******************************
@@ -599,24 +693,15 @@ closedir(DIR *dp)
 static struct dirent *
 translate_data(DIR *dp)
 { WIN32_FIND_DATA *data;
-  const TCHAR *i;
-  char *o;
-  char *e;
 
   if ( !dp->handle )
     return NULL;
 
   data = dp->data;
-  for(i=data->cFileName, o=dp->d_name, e=&o[sizeof(dp->d_name)]; *i; i++)
-  { if ( o+6 > e )
-    { errno = ENAMETOOLONG;
-      return NULL;
-    }
-    o = utf8_put_char(o, *i);
-  }
-  *o = '\0';
+  if ( wcstoutf8(dp->d_name, data->cFileName, sizeof(dp->d_name)) )
+    return dp;
 
-  return dp;
+  return NULL;
 }
 
 

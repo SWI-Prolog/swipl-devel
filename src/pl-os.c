@@ -74,6 +74,12 @@
 #include <dos.h>
 #endif
 
+#ifdef WIN32
+#define STAT_TYPE struct _stat
+#else
+#define STAT_TYPE struct stat
+#endif
+
 #if OS2 && EMX
 static real initial_time;
 #endif /* OS2 */
@@ -708,7 +714,7 @@ OsPath(const char *p, char *buf)
 #if O_XOS
 char *
 PrologPath(const char *p, char *buf)
-{ _xos_canonical_filename(p, buf);
+{ _xos_canonical_filename(p, buf, MAXPATHLEN);
   if ( !trueFeature(FILE_CASE_FEATURE) )
     strlwr(buf);
 
@@ -728,7 +734,7 @@ LastModifiedFile(char *f)
 { char tmp[MAXPATHLEN];
 
 #if defined(HAVE_STAT) || defined(__unix__)
-  struct stat buf;
+  STAT_TYPE buf;
 
   if ( statfunc(OsPath(f, tmp), &buf) < 0 )
     return -1;
@@ -876,7 +882,7 @@ ExistsDirectory(const char *path)
 int64_t
 SizeFile(const char *path)
 { char tmp[MAXPATHLEN];
-  struct stat buf;
+  STAT_TYPE buf;
 
 #if defined(HAVE_STAT) || defined(__unix__)
   if ( statfunc(OsPath(path, tmp), &buf) < 0 )
@@ -985,7 +991,7 @@ bool
 MarkExecutable(const char *name)
 {
 #if (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || defined(__unix__)
-  struct stat buf;
+  STAT_TYPE buf;
   mode_t um;
 
   um = umask(0777);
