@@ -161,7 +161,7 @@ str_upcase(String str, int from, int to)
   { char8 *s = &str->s_text8[from];
 
     for(; from < to; from++, s++)
-      *s = toupper(*s);
+      *s = toupper8(*s);
   } else
   { char16 *s = &str->s_text16[from];
 
@@ -177,7 +177,7 @@ str_downcase(String str, int from, int to)
   { char8 *s = &str->s_text8[from];
 
     for(; from < to; from++, s++)
-      *s = tolower(*s);
+      *s = tolower8(*s);
   } else
   { char16 *s = &str->s_text16[from];
 
@@ -242,7 +242,7 @@ str_icase_cmp(String s1, String s2)
     int d;
 
     for(; n-- > 0; d1++, d2++)
-      if ( (d = (tolower(*d1) - tolower(*d2))) )
+      if ( (d = (tolower8(*d1) - tolower8(*d2))) )
 	return d;
 
     return s1->size - s2->size;
@@ -328,7 +328,7 @@ str_icase_prefix(String s1, String s2)	/* s2 is prefix of s1 */
       char8 *d2 = s2->s_text8;
 
       for(; n-- > 0; d1++, d2++)
-	if ( tolower(*d1) != tolower(*d2) )
+	if ( tolower8(*d1) != tolower8(*d2) )
 	  return FALSE;
 
       return TRUE;
@@ -394,7 +394,7 @@ str_icase_suffix(String s1, String s2)	/* s2 is suffix of s1 */
       char8 *d2 = s2->s_text8;
 
       for( ; n-- > 0; d1++, d2++)
-      { if ( tolower(*d1) != tolower(*d2) )
+      { if ( tolower8(*d1) != tolower8(*d2) )
 	  return FALSE;
       }
 
@@ -472,7 +472,7 @@ str_icasesub(String s1, String s2)		/* s2 is substring of s1 */
 	int i;
 
 	for(i=s2->size; i-- > 0; d1++, d2++ )
-	{ if ( tolower(*d1) != tolower(*d2) )
+	{ if ( tolower8(*d1) != tolower8(*d2) )
 	    goto next8;
 	}
 
@@ -585,7 +585,7 @@ str_lineno(String s, int at)
 }
 
 
-int
+wchar
 str_fetch(String s, int idx)
 { return s->b16 ? str_fetch16(s, idx) & 0xffff
 		: str_fetch8(s, idx) & 0xff;
@@ -692,13 +692,13 @@ str_strip(String s)
     char8 *t = s->s_text8;
     char8 *e = &s->s_text8[size];
     
-    while( f < e && isblank(*f) )
+    while( f < e && isblank8(*f) )
       f++;
 
     do
-    { while( f < e && !isblank(*f) )
+    { while( f < e && !isblank8(*f) )
 	*t++ = *f++;
-      while( f < e && isblank(*f) )
+      while( f < e && isblank8(*f) )
 	f++;
       if ( f < e )
 	*t++ = ' ';
@@ -743,7 +743,7 @@ str_icase_common_length(String s1, String s2)
     { char8 *t1 = s1->s_text8;
       char8 *t2 = s2->s_text8;
 
-      while( i < size && tolower(*t1) == tolower(*t2) )
+      while( i < size && tolower8(*t1) == tolower8(*t2) )
 	i++, t1++, t2++;
     } else
     { char16 *t1 = s1->s_text16;

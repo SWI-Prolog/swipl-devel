@@ -85,7 +85,7 @@ int		str_index(String s, wchar chr);
 int		str_rindex(String s, wchar chr);
 int		str_count_chr(String s, int from, int to, wchar chr);
 int		str_lineno(String s, int at);
-int		str_fetch(String s, int idx);
+wchar		str_fetch(String s, int idx);
 int		str_store(String s, int idx, unsigned int chr);
 String		str_nl(String proto);
 String		str_spc(String proto);

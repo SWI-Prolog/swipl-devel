@@ -31,8 +31,8 @@ NewClass(syntax_table)
   Int		size;			/* Size of the table (256) */
   Regex		sentence_end;		/* End-Of-Sentence */
   Regex		paragraph_end;		/* End-Of-Pargraph */
-  unsigned short       *table;			/* Type-flags */
-  char	       *context;		/* Context info */
+  unsigned short       *table;		/* Type-flags */
+  unsigned char *context;		/* Context info */
 End;
 
 #define makeCFlag(n)	(1 << (n-1))
@@ -76,9 +76,10 @@ extern unsigned short char_flags[];	/* Initial flags table */
 extern unsigned short syntax_spec_code[]; /* Char --> syntax (for \sC regex) */
 extern char  char_context[];		/* Initial context table */
 
-#define Is8char(c)		((unsigned int)(c) < 256)
+#define Is8char(c)		(((c) & ~0xff) == 0)
 #define HasSyntax(c, f)		(Is8char(c) && \
 				 (char_flags[(unsigned int)(c)] & (f)))
+#define HasSyntax8(c, f)	((char_flags[(unsigned int)(c)] & (f)))
 
 #define islower(c)		HasSyntax((c), LC)
 #define isupper(c)		HasSyntax((c), UC)
@@ -95,6 +96,8 @@ extern char  char_context[];		/* Initial context table */
 #define isalnum(c)		HasSyntax((c), AN)
 #define isletter(c)		HasSyntax((c), LC|UC)
 #define ischtype(c, tp)		HasSyntax((c), tp)
+
+#define isblank8(c)		HasSyntax8((c), BL)
 
 #define ismatching(c1, c2)      (Is8char(c1) && \
 				 (char_context[(unsigned int)(c1)] == (c2))
@@ -162,6 +165,8 @@ extern unsigned char  char_upper[];
 					    : (unsigned)(c))
 #define toupper(c)		(Is8char(c) ? char_upper[(unsigned int)(c)] \
 				 	    : (unsigned)(c))
+#define tolower8(c)		(char_lower[(unsigned int)(c)])
+#define toupper8(c)		(char_upper[(unsigned int)(c)])
 
 		/********************************
 		*     HOST-LANGUAGE SYMBOLS	*

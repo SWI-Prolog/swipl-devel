@@ -1384,7 +1384,7 @@ match(TextBuffer tb, int here, String s, int ec, int wm)
 
   if ( ec )
   { for( i=0; i < l; i++ )
-    { if ( fetch(here++) != str_fetch(s, i) )
+    { if ( fetch(here++) != (int)str_fetch(s, i) )
 	return FALSE;
     }
   } else
@@ -1711,7 +1711,7 @@ fetch_textbuffer(TextBuffer tb, int where)
 static status
 store_textbuffer(TextBuffer tb, int where, wchar c)
 { long idx;
-  int old;
+  wchar old;
 
   if ( where < 0 || where >= tb->size )
     fail;
