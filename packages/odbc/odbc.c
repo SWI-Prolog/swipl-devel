@@ -201,6 +201,7 @@ typedef struct connection
   HDBC	       hdbc;			/* ODBC handle */
   nulldef     *null;			/* Prolog null value */
   unsigned     flags;			/* general flags */
+  int	       max_qualifier_lenght;	/* SQL_MAX_QUALIFIER_NAME_LEN */
   struct connection *next;		/* next in chain */
 } connection;
 
@@ -241,6 +242,8 @@ static struct
 #define CTX_SILENT	0x0040		/* don't produce messages */
 #define CTX_PREFETCHED	0x0080		/* we have a prefetched value */
 #define CTX_COLUMNS	0x0100		/* this is an SQLColumns() statement */
+#define CTX_TABLES	0x0200		/* this is an SQLTables() statement */
+#define CTX_GOT_QLEN	0x0400		/* got SQL_MAX_QUALIFIER_NAME_LEN */
 
 #define FND_SIZE(n)	((int)&((findall*)NULL)->codes[n])
 
@@ -1345,7 +1348,6 @@ static conn_option conn_option_list[] =
   { "driver_name",         SQL_DRIVER_NAME, text },
   { "driver_odbc_version", SQL_DRIVER_ODBC_VER, text },
   { "driver_version",      SQL_DRIVER_VER, text },
-  { "driver_version",      SQL_DRIVER_VER, text },
   { "active_statements",   SQL_ACTIVE_STATEMENTS, sword },
   { NULL, 0 }
 };
@@ -1674,6 +1676,29 @@ get_sql_text(context *ctxt, term_t tquery)
 
 
 static int
+max_qualifier_lenght(connection *cn)
+{ if ( false(cn, CTX_GOT_QLEN) )
+  { SQLUSMALLINT len;
+    SWORD plen;
+    RETCODE rc;
+
+    if ( (rc=SQLGetInfo(cn->hdbc, SQL_MAX_QUALIFIER_NAME_LEN,
+			&len, sizeof(len), &plen)) == SQL_SUCCESS )
+    { /*Sdprintf("SQL_MAX_QUALIFIER_NAME_LEN = %d\n", (int)len);*/
+      cn->max_qualifier_lenght = (int)len; /* 0: unknown */
+    } else
+    { odbc_report(henv, cn->hdbc, NULL, rc); 
+      cn->max_qualifier_lenght = -1;
+    }
+
+    set(cn, CTX_GOT_QLEN);
+  }
+
+  return cn->max_qualifier_lenght;
+}
+
+
+static int
 prepare_result(context *ctxt)
 { SQLSMALLINT i;
   SQLCHAR nameBuffer[NameBufferLength];
@@ -1733,6 +1758,25 @@ prepare_result(context *ctxt)
       return PL_warning("odbc_query/2: column type not managed");
     }
 
+    if ( true(ctxt, CTX_TABLES) )
+    { /*Sdprintf("SQLTables(): column %d, sqlTypeID = %d, columnSize = %d\n",
+		 i, ptr_result->sqlTypeID, columnSize);*/
+
+      switch (ptr_result->sqlTypeID)
+      { case SQL_LONGVARCHAR:
+	case SQL_VARCHAR:
+	{ int qlen = max_qualifier_lenght(ctxt->connection);
+
+	  if ( qlen > 0 )
+	  { /*Sdprintf("Using SQL_MAX_QUALIFIER_NAME_LEN = %d\n", qlen);*/
+	    ptr_result->len_value = qlen+1; /* play safe */
+	    goto bind;
+	  } else if ( qlen < 0 )	/* error getting it */
+	    return FALSE;
+	}
+      }
+    }
+
     switch (ptr_result->sqlTypeID)
     { case SQL_LONGVARCHAR:
       case SQL_LONGVARBINARY:
@@ -1744,7 +1788,7 @@ prepare_result(context *ctxt)
 	goto bind;
       }
     }
-
+    
     switch (ptr_result->cTypeID)
     { case SQL_C_CHAR:
 	columnSize++;			/* one for decimal dot */
@@ -2014,6 +2058,7 @@ odbc_tables(term_t dsn, term_t row, control_t handle)
 
       ctxt = new_context(cn);
       ctxt->null = NULL;		/* use default $null$ */
+      set(ctxt, CTX_TABLES);
       TRY(ctxt, SQLTables(ctxt->hstmt, NULL,0,NULL,0,NULL,0,NULL,0));
 
       return odbc_row(ctxt, row);
