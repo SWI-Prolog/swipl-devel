@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: setlocale/3: change/query locale settings at runtime.
+
+  * CLEANUP: deleted old win32s stuff from uxnt.c
+
 VERSION 5.5.10 (March 09, 2005)
 ===============================
 

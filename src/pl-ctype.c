@@ -564,14 +564,8 @@ pl_upcase_atom(term_t in, term_t out)
 }
 
 		 /*******************************
-		 *      PUBLISH PREDICATES	*
+		 *	       LOCALE		*
 		 *******************************/
-
-BeginPredDefs(ctype)
-  PRED_DEF("char_type", 2, char_type, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("code_type", 2, code_type, PL_FA_NONDETERMINISTIC)
-EndPredDefs
-
 
 #if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
 #include <locale.h>
@@ -590,11 +584,78 @@ initLocale()
   }
 }
 
+typedef struct
+{ int category;
+  const char *name;
+} lccat;
+
+static lccat lccats[] =
+{ { LC_ALL,      "all" },
+  { LC_COLLATE,  "collate" },
+  { LC_CTYPE,    "ctype" },
+  { LC_MESSAGES, "messages" },
+  { LC_MONETARY, "monetary" },
+  { LC_NUMERIC,  "numeric" },
+  { LC_TIME,     "time" },
+  { 0,           NULL }
+};
+
+
+static
+PRED_IMPL("setlocale", 3, setlocale, 0)
+{ char *what;
+  char *locale;
+  const lccat *lcp;
+
+
+  if ( !PL_get_chars_ex(A1, &what, CVT_ATOM) )
+    fail;
+  if ( PL_is_variable(A3) )
+    locale = NULL;
+  else if ( !PL_get_chars_ex(A3, &locale, CVT_ATOM) )
+    fail;
+
+  for ( lcp = lccats; lcp->name; lcp++ )
+  { if ( streq(lcp->name, what) )
+    { char *old = setlocale(lcp->category, NULL);
+
+      if ( !PL_unify_chars(A2, PL_ATOM, -1, old) )
+	fail;
+
+      if ( PL_compare(A2, A3) != 0 )
+      { if ( !setlocale(lcp->category, locale) )
+	  return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setlocale");
+      }
+
+      succeed;
+    }
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		  PL_new_atom("category"), A1);
+}
+
 #else
 
 #define initLocale()
 
+static
+PRED_IMPL("setlocale", 3, setlocale, 0)
+{ return notImplemented("setlocale", 3);
+}
+
 #endif
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(ctype)
+  PRED_DEF("char_type", 2, char_type, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("code_type", 2, code_type, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("setlocale", 3, setlocale, 0)
+EndPredDefs
 
 
 		 /*******************************
@@ -636,7 +697,10 @@ IOENC
 initEncoding()
 { if ( LD )
   { if ( !LD->encoding )
-    { char *enc = getenv("LANG");
+    { char *enc;
+
+      initLocale();
+      enc = setlocale(LC_CTYPE, NULL);
 
       LD->encoding = ENC_ANSI;		/* text encoding */
 
@@ -651,14 +715,13 @@ initEncoding()
     return LD->encoding;
   }
 
-  return ENC_ISO_LATIN_1;
+  return ENC_ANSI;
 }
 
 
 void
 initCharTypes()
-{ initLocale();
-  initEncoding();
+{ initEncoding();
 }
 
 

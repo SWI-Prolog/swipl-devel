@@ -4483,6 +4483,14 @@ influence expand_file_name/2.
     \predicate{unsetenv}{1}{+Name}
 Remove environment variable from the environment.
 
+    \predicate{setlocale}{3}{+Category, -Old, +New}
+Set/Query the \jargon{locale} setting which tells the C-library how to
+interpret text-files, write numbers, dates, etc.  Category is one of
+\const{all}, \const{collate}, \const{ctype}, \const{messages},
+\const{monetary}, \const{numeric} or \const{time}.  For details,
+please consult the C-library locale documentation.  See also
+\secref{encoding}.
+
     \predicate{unix}{1}{+Command}
 This predicate comes from the Quintus compatibility library and provides
 a partial implementation thereof.  It provides access to some operating

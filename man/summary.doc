@@ -453,6 +453,7 @@ suggest predicates from a keyword.
 \predicatesummary{set_tty}{2}{Set `tty' stream}
 \predicatesummary{setarg}{3}{Destructive assignment on term}
 \predicatesummary{setenv}{2}{Set shell environment variable}
+\predicatesummary{setlocale}{3}{Set/query C-library regional information}
 \predicatesummary{setof}{3}{Find all unique solutions to a goal}
 \predicatesummary{sformat}{2}{Format on a string}
 \predicatesummary{sformat}{3}{Format on a string}
