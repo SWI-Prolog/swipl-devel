@@ -28,6 +28,7 @@
 
 #ifdef _REENTRANT
 #ifdef WIN32
+#include <windows.h>
 #else
 #include <pthread.h>
 #include <errno.h>
@@ -138,17 +139,6 @@ static int	permission_error(const char *op, const char *type,
 
 #ifdef WIN32
 
-enum
-{ SIGNAL     = 0,
-  MAX_EVENTS = 1
-} win32_event_t;
-
-typedef struct
-{ HANDLE events[MAX_EVENTS];		/* events to be signalled */
-  int    waiters;			/* # waiters */
-} win32_cond_t;
-
-
 static int 
 win32_cond_init(win32_cond_t *cv)
 { cv->events[SIGNAL]    = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -165,11 +155,12 @@ win32_cond_destroy(win32_cond_t *cv)
   return 0;
 }
 
+#define WAIT_INTR (-1)
 
 static int 
 win32_cond_wait(win32_cond_t *cv,
 		CRITICAL_SECTION *external_mutex)
-{ int rc, last;
+{ int rc;
 
   cv->waiters++;
 
@@ -187,9 +178,9 @@ win32_cond_wait(win32_cond_t *cv,
       DispatchMessage(&msg);
     }
 
-    if ( LD->pending_signals )
+    if ( PL_handle_signals() < 0 )
     { EnterCriticalSection(external_mutex);
-      return EINTR;
+      return WAIT_INTR;
     }
   }
 
@@ -229,10 +220,9 @@ RDLOCK(rdf_db *db)
   for(;;)
   { int rc = win32_cond_wait(&db->rdcondvar, &db->mutex);
 
-    if ( rc == EINTR )
-    { if ( PL_handle_signals() < 0 )
-	return FALSE;
-      continue;
+    if ( rc == WAIT_INTR )
+    { LeaveCriticalSection(&db->mutex);
+      return FALSE;
     } else if ( rc == 0 )
     { if ( db->writer == -1 )
       { db->waiting_readers--;
@@ -273,10 +263,9 @@ WRLOCK(rdf_db *db)
   for(;;)
   { int rc = win32_cond_wait(&db->wrcondvar, &db->mutex);
 
-    if ( rc == EINTR )
-    { if ( PL_handle_signals() < 0 )
-	return FALSE;
-      continue;
+    if ( rc == WAIT_INTR )
+    { LeaveCriticalSection(&db->mutex);
+      return FALSE;
     } else if ( rc == 0 )
     { if ( db->writer == -1 && db->readers == 0 )
       { db->waiting_writers--;
@@ -323,13 +312,17 @@ UNLOCK(rdf_db *db)
 
 static int
 LOCK_HASH(rdf_db *db)
-{ return EnterCriticalSection(&db->hash_mutex) == 0;
+{ EnterCriticalSection(&db->hash_mutex);
+
+  return TRUE;
 }
 
 
 static int
 UNLOCK_HASH(rdf_db *db)
-{ return LeaveCriticalSection(&db->hash_mutex) == 0;
+{ LeaveCriticalSection(&db->hash_mutex);
+  
+  return TRUE;
 }
 
 
@@ -337,9 +330,10 @@ static int
 INIT_LOCK(rdf_db *db)
 { int bytes;
 
-  if ( InitializeCriticalSection(&db->mutex) ||
-       InitializeCriticalSection(&db->hash_mutex) ||
-       !win32_cond_init(&db->wrcondvar) == 0 ||
+  InitializeCriticalSection(&db->mutex);
+  InitializeCriticalSection(&db->hash_mutex);
+
+  if ( !win32_cond_init(&db->wrcondvar) == 0 ||
        !win32_cond_init(&db->rdcondvar) == 0 )
   {					/* TBD: System error */
     return FALSE;
