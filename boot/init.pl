@@ -1247,6 +1247,9 @@ $consult_clause(Clause, File) :-
 
 $execute_directive(include(File), F) :- !,
 	$expand_include(File, F).
+$execute_directive(ISO, F) :-
+	$expand_directive(ISO, Normal), !,
+	$execute_directive(Normal, F).
 $execute_directive(Goal, _) :-
 	\+ flag($compiling, database, database), !,
 	$add_directive_wic2(Goal, Type),
@@ -1273,6 +1276,28 @@ $execute_directive2(Goal) :-
 $exception_in_directive(Term) :-
 	print_message(error, Term),
 	fail.
+
+%	This predicate deals with the very odd ISO requirement to allow
+%	for :- dynamic(a/2, b/3, c/4) instead of the normally used
+%	:- dynamic a/2, b/3, c/4 or, if operators are not desirable,
+%	:- dynamic((a/2, b/3, c/4)).
+
+$expand_directive(Directive, Expanded) :-
+	functor(Directive, Name, Arity),
+	Arity > 1,
+	'$iso_property_directive'(Name),
+	Directive =.. [Name|Args],
+	'$mk_normal_args'(Args, Normal),
+	Expanded =.. [Name, Normal].
+
+$iso_property_directive(dynamic).
+$iso_property_directive(multifile).
+$iso_property_directive(discontiguous).
+
+$mk_normal_args([One], One).
+$mk_normal_args([H|T0], (H,T)) :-
+	$mk_normal_args(T0, T).
+
 
 %	Note that the list, consult and ensure_loaded directives are already
 %	handled at compile time and therefore should not go into the

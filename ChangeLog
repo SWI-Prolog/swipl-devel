@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: allow for ISO :- dynamic(a/2, b/3, c/4). style declarations.
+    Spotted by Paulo Moura.  Actually I think it is a bug in the ISO
+    standard :-)
+
+
 VERSION 5.4.0 (September 21, 2004)
 ==================================
 
