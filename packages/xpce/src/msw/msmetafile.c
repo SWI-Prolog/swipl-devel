@@ -10,13 +10,29 @@
 #include "include.h"
 #include <h/unix.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Taken from MSVC20/samples/win32/mfedit.h.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define META32_SIGNATURE        0x464D4520      // ' EMF'
+#define ALDUS_ID		0x9AC6CDD7
+
+typedef struct
+{ DWORD		key;
+  WORD		hmf;
+  SMALL_RECT    bbox;
+  WORD    	inch;
+  DWORD   	reserved;
+  WORD    	checksum;
+} APMFILEHEADER;
+typedef APMFILEHEADER * PAPMFILEHEADER;
+#define APMSIZE 22
+
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024
 #endif
 
 Class ClassWinMF;			/* the class handle */
-
-typedef struct win_mf *WinMF;		/* pointer type */
 
 NewClass(win_mf)			/* class structure */
   ABSTRACT_GRAPHICAL
@@ -84,12 +100,96 @@ closeAllWinMF(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Store/load windows metafile to/form file. Format:
+
+	* If the metafile has a file, just the slots and 'X'
+	* Otherwise, the slots, 'E', <size>, metafilebitx
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+storeWinMF(WinMF mf, FileObj file)
+{ TRY(storeSlotsObject(mf, file));
+
+  if ( isNil(mf->file) && mf->hmf )
+  { UINT size;
+    
+    if ( (size = GetEnhMetaFileBits(mf->hmf, 0, NULL)) )
+    { LPBYTE data = pceMalloc(size);
+      GetEnhMetaFileBits(mf->hmf, size, data);
+      putc('E', file->fd);
+      putstdw(size, file->fd);
+      fwrite(data, sizeof(char), size, file->fd);
+      pceFree(data);
+
+      succeed;
+    }
+  }
+
+  putc('X', file->fd);
+
+  succeed;
+}
+
+
+static status
+loadFdWinMF(WinMF mf, FILE *fd, ClassDef def)
+{ TRY( loadSlotsObject(mf, fd, def) );
+  mf->hmf = NULL;
+
+  switch(getc(fd))
+  { case 'X':
+      if ( notNil(mf->file) )
+	getDimensionsWinMF(mf);
+      break;
+    case 'E':
+    { UINT size = loadWord(fd);
+      LPBYTE data = pceMalloc(size);
+      fread(data, sizeof(char), size, fd);
+      mf->hmf = SetEnhMetaFileBits(size, data);
+      pceFree(data);
+      break;
+    }
+    default:
+      assert(0);
+  }
+
+  return prependChain(WinMetaFiles, mf);
+}
+
+
+static status
+copyWinMF(WinMF to, WinMF from)
+{ copyGraphical(to, from);
+
+  assign(to, file, NIL);		/* ??? */
+  assign(to, summary, from->summary);
+
+  if ( from->hmf )
+    to->hmf = CopyEnhMetaFile(from->hmf, NULL);
+  else
+    from->hmf = NULL;
+
+  succeed;
+}
+
+
+static status
+cloneWinMF(WinMF from, WinMF clone)
+{ clonePceSlots(from, clone);
+  if ( from->hmf )
+    clone->hmf = CopyEnhMetaFile(from->hmf, NULL);
+
+  succeed;
+}
+
+
 void
 set_area_from_rectl(Area a, RECTL *r)
 { assign(a, x, toInt(r->left));
   assign(a, y, toInt(r->top));
-  assign(a, w, toInt(r->right - r->left));
-  assign(a, h, toInt(r->bottom - r->top));
+  assign(a, w, toInt(1 + r->right - r->left));
+  assign(a, h, toInt(1 + r->bottom - r->top));
 }
 
 
@@ -122,6 +222,183 @@ getDimensionsWinMF(WinMF mf)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Taken from MSVC20/samples/win32/mfedit.c and modified to fit into XPCE's
+format.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static HENHMETAFILE
+hemfLoadMetafile(WinMF mf, const char *szFile)
+{ HMETAFILE       ghmf, hmf;
+  UINT            uiSize;
+  LPVOID          pvData;
+  HDC             hDCDrawSurf;
+  HENHMETAFILE    hemf;
+
+  HANDLE          hFile, hMapFile;
+  LPVOID          pMapFile;
+  LPENHMETAHEADER pemh;
+
+  BOOL            bSuccess;
+
+  bSuccess = TRUE;
+
+  if ( (hFile=CreateFile(szFile,
+			 GENERIC_READ, FILE_SHARE_READ, NULL,
+			 OPEN_EXISTING, FILE_ATTRIBUTE_READONLY,
+			 NULL)) == (HANDLE)-1 )
+  { errorPce(mf, NAME_winMetafile, NAME_open, APIError());
+    return 0L;
+  }
+
+  /* Create a map file of the opened file */
+
+  if ( (hMapFile=CreateFileMapping(hFile, NULL,
+				   PAGE_READONLY, 0, 0, "MapF")) == NULL )
+  { errorPce(mf, NAME_winMetafile, NAME_map, APIError());
+    bSuccess = FALSE;
+    goto ErrorExit1;
+  }
+
+  /* Map a view of the whole file */
+
+  if ( (pMapFile = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0)) == NULL)
+  { errorPce(mf, NAME_winMetafile, NAME_view, APIError());
+    bSuccess = FALSE;
+    goto ErrorExit2;
+  }
+
+  /* First check that if it is an enhanced metafile */
+
+  pemh = (LPENHMETAHEADER) pMapFile;
+  if ( pemh->dSignature == META32_SIGNATURE )
+  { hemf = GetEnhMetaFile(szFile);
+    goto HLM_EXIT;
+  }
+
+  /* If it has an ALDUS header skip it
+     Notice: APMSIZE is used because the HANDLE and RECT of the structure
+     depends on the environment
+  */
+  if ( *((LPDWORD)pemh) == ALDUS_ID )
+  { //METAFILEPICT    mfp;
+    PAPMFILEHEADER aldushdr = (PAPMFILEHEADER) pMapFile;
+
+    DEBUG(NAME_winMetafile,
+	  Cprintf("ALDUS Header: inch = %d, size = %d x %d\n",
+		  aldushdr->inch,
+		  aldushdr->bbox.Right,
+		  aldushdr->bbox.Bottom));
+
+    uiSize = *((LPDWORD) ((PBYTE)pMapFile + APMSIZE + 6));
+    hDCDrawSurf = GetDC(NULL);
+
+    /* Notice: mtSize is size of the file in word.
+       if LPMETAFILEPICT is NULL
+       MM_ANISOTROPIC mode and default device size will be used.
+    */
+    hemf = SetWinMetaFileBits(uiSize*2L,
+			      (PBYTE)pMapFile + APMSIZE, hDCDrawSurf, NULL);
+#if 0
+    switch ( aldushdr->inch )
+    { /* !!! End up in an upside down image */
+      case 1440:
+	mfp.mm = MM_TWIPS;
+        break;
+      case 2540:
+	mfp.mm = MM_HIMETRIC;
+        break;
+      case 254:
+	mfp.mm = MM_LOMETRIC;
+        break;
+      case 1000:
+	mfp.mm = MM_HIENGLISH;
+        break;
+      case 100:
+	mfp.mm = MM_LOENGLISH;
+        break;
+      default:
+	mfp.mm = MM_ANISOTROPIC;
+        mfp.xExt = (((PAPMFILEHEADER) pMapFile)->bbox.Right -
+		    ((PAPMFILEHEADER) pMapFile)->bbox.Left) *
+			((PAPMFILEHEADER) pMapFile)->inch * 2560;
+	mfp.yExt = (((PAPMFILEHEADER) pMapFile)->bbox.Bottom -
+		    ((PAPMFILEHEADER) pMapFile)->bbox.Top) *
+			((PAPMFILEHEADER) pMapFile)->inch * 2560;
+	break;
+    }
+    mfp.hMF = 0;
+    hemf = SetWinMetaFileBits(uiSize*2L,
+			      (PBYTE)pMapFile + APMSIZE, hDCDrawSurf, &mfp);
+#endif
+
+    if ( !hemf )
+    { errorPce(mf, NAME_winMetafile,
+	       CtoName("SetWinMetaFileBits"), APIError());
+    }
+
+    ghmf = SetMetaFileBitsEx(uiSize*2L, (PBYTE)pMapFile + APMSIZE);
+    if ( !ghmf )
+    { errorPce(mf, NAME_winMetafile,
+	       CtoName("SetMetaFileBitsEx"), APIError());
+    }
+
+    ReleaseDC(NULL, hDCDrawSurf);
+
+    goto HLM_EXIT;
+  }
+
+  /* It is a Windows 3x format metafile (hopefully) */
+
+  if (!(hmf = GetMetaFile((LPCSTR)szFile)))
+  { errorPce(mf, NAME_winMetafile, CtoName("GetMetaFile"), APIError());
+    bSuccess = FALSE;
+    goto ErrorExit3;
+  }
+
+  if ( !(uiSize = GetMetaFileBitsEx(hmf, 0, NULL)) )
+  { errorPce(mf, NAME_winMetafile, CtoName("GetMetaFileBitsEx-1"), APIError());
+    return NULL;
+  }
+
+  if ((pvData = (LPVOID) LocalAlloc(LMEM_FIXED, uiSize)) == NULL)
+  { errorPce(mf, NAME_winMetafile, CtoName("alloc"), APIError());
+    bSuccess = FALSE;
+    goto ErrorExit3;
+  }
+
+  if (!(uiSize = GetMetaFileBitsEx(hmf, uiSize, pvData)))
+  { errorPce(mf, NAME_winMetafile, CtoName("GetMetaFileBitsEx-2"), APIError());
+    bSuccess = FALSE;
+    goto ErrorExit3;
+  }
+
+  DeleteMetaFile(hmf);
+
+  hDCDrawSurf = GetDC(NULL);
+  hemf = SetWinMetaFileBits(uiSize, (LPBYTE)pvData, hDCDrawSurf, NULL);
+  ghmf = SetMetaFileBitsEx(uiSize, (LPBYTE) pvData);
+
+  LocalFree(pvData);
+
+  ReleaseDC(NULL, hDCDrawSurf);
+
+HLM_EXIT:
+ErrorExit3:
+  UnmapViewOfFile(pMapFile);
+
+ErrorExit2:
+  CloseHandle(hMapFile);
+ErrorExit1:
+  CloseHandle(hFile);
+
+  if (bSuccess)
+    return hemf;
+  else
+    return 0L;
+}
+
+
 static status
 getMhfWinMF(WinMF mf)
 { if ( !mf->hmf && notNil(mf->file) )
@@ -133,44 +410,8 @@ getMhfWinMF(WinMF mf)
 
       _xos_os_filename(rawfn, fn);
 
-      mf->hmf = GetEnhMetaFile(fn);
-      if ( mf->hmf )
+      if ( (mf->hmf = hemfLoadMetafile(mf, fn)) )
 	succeed;
-      else
-      { HMETAFILE h0;
-	status rval = FAIL;
-
-	DEBUG(NAME_winMetafile,
-	      Cprintf("Not an enhanced metafile, trying to convert ..\n"));
-
-	if ( (h0 = GetMetaFile(fn)) )
-	{ int len;
-
-	  if ( (len = GetMetaFileBitsEx(h0, 0, NULL)) )
-	  { void *data = pceMalloc(len);
-	    METAFILEPICT context;
-	    HENHMETAFILE hmf;
-
-	    context.mm = MM_ANISOTROPIC;
-	    context.xExt = 100;		/* ??? */
-	    context.yExt = 100;
-	    context.hMF  = h0;
-
-	    GetMetaFileBitsEx(h0, len, data);
-	    if ( (hmf = SetWinMetaFileBits(len, data, NULL, &context)) )
-	    { mf->hmf = hmf;
-	      rval = SUCCEED;
-	    }
-
-	    pceFree(data);
-	  }
-	       
-	  DeleteMetaFile(h0);
-	} else
-	  errorPce(mf, NAME_winMetafile, CtoName("GetMetaFile"), APIError());
-
-	return rval;
-      }
     }
   }
 
@@ -200,6 +441,7 @@ drawInWinMF(WinMF mf, Any obj, Point pos)
   Device dev;
   char *fn;
   char *descr;
+  Area bb;
 
   if ( notDefault(pos) && instanceOfObject(obj, ClassGraphical) )
   { Graphical gr = obj;
@@ -221,15 +463,46 @@ drawInWinMF(WinMF mf, Any obj, Point pos)
 
   if ( isNil(mf->summary) )
     descr = NULL;
-  else
-    descr = strName(mf->summary);
+  else					/* application\0summary\0\0 */
+  { int slen = strlen(strName(mf->summary));
+    char *s;
+
+    descr = alloca(slen + strlen("XPCE") + 3);
+    strcpy(descr, strName(mf->summary));
+    s = descr + slen + 1;
+    strcpy(s, "XPCE");
+    s += strlen("XPCE") + 1;
+    *s++ = EOS;
+  }
+
+  if ( instanceOfObject(obj, ClassGraphical) )
+  { Graphical gr = obj;
+
+    ComputeGraphical(gr);
+    bb = gr->area;
+  } else /* if ( instanceOfObject(obj, ClassChain) ) */
+  { Cell cell;
+
+    bb = answerObject(ClassArea, 0);
+    for_cell(cell, (Chain)obj)
+    { Graphical gr = cell->value;
+
+      if ( instanceOfObject(gr, ClassGraphical) )
+      { ComputeGraphical(gr);
+	unionNormalisedArea(bb, gr->area);
+      }
+    }
+  }
+
 
   CHANGING_GRAPHICAL(mf,
-    d_winmf(fn, descr);
+    d_winmf(fn,
+	    valInt(bb->x), valInt(bb->y), valInt(bb->w), valInt(bb->h),
+	    descr);
+
     if ( instanceOfObject(obj, ClassGraphical) )
     { Graphical gr = obj;
 
-      ComputeGraphical(gr);
       RedrawArea(gr, gr->area);
     } else
     { Chain ch = obj;
@@ -237,16 +510,16 @@ drawInWinMF(WinMF mf, Any obj, Point pos)
 
       for_cell(cell, ch)
       { if ( instanceOfObject(cell->value, ClassGraphical) )
-	{ Graphical gr = obj;
+	{ Graphical gr = cell->value;
 
-	  ComputeGraphical(gr);
 	  RedrawArea(gr, gr->area);
 	}
       }
     }
+
     mf->hmf = d_winmfdone();
-    if ( mf->hmf )
-      getDimensionsWinMF(mf);
+    copyArea(mf->area, bb);
+    doneObject(bb);
     changedEntireImageGraphical(mf));
 
   if ( notDefault(oldx) )
@@ -261,6 +534,165 @@ drawInWinMF(WinMF mf, Any obj, Point pos)
 
 
 static status
+saveALDUS(WinMF mf, HMETAFILE ghmf, const char *szFile,
+	  int width, int height, int mapping)
+{ UINT            uiSize;
+  HANDLE          hFile, hMapFile;
+  LPVOID          pMapFile;
+  DWORD           dwHigh, dwLow;
+  int		  rval = TRUE;
+
+  uiSize = GetMetaFileBitsEx(ghmf, 0, NULL);
+  dwHigh = 0;
+  dwLow  = uiSize + APMSIZE;
+
+  if ( (hFile = CreateFile(szFile, GENERIC_READ|GENERIC_WRITE,
+			   FILE_SHARE_READ, NULL, CREATE_ALWAYS,
+			   FILE_ATTRIBUTE_NORMAL, NULL)) == (HANDLE)-1)
+  { errorPce(mf, NAME_winMetafile, NAME_open, APIError());
+    fail;
+  }
+
+  if ( !(hMapFile=CreateFileMapping(hFile, NULL,
+				   PAGE_READWRITE,
+				   dwHigh, dwLow, "MapF")) )
+  { errorPce(mf, NAME_winMetafile, NAME_map, APIError());
+    rval = FALSE;
+    goto ErrorExit1;
+  }
+
+  if ( !(pMapFile=MapViewOfFile(hMapFile, FILE_MAP_WRITE, 0, 0, dwLow)))
+  { errorPce(mf, NAME_winMetafile, NAME_view, APIError());
+    rval = FALSE;
+    goto ErrorExit2;
+  }
+
+  if ( uiSize )
+  { APMFILEHEADER   AldHdr;
+    PAPMFILEHEADER  pAldHdr;
+    PBYTE           pjTmp;
+    INT             iSize;
+
+    AldHdr.key = ALDUS_ID;
+    AldHdr.hmf = 0;                                 // Unused; must be zero
+    AldHdr.bbox.Left   = 0;                         // in metafile units
+    AldHdr.bbox.Top    = 0;
+
+    switch (mapping)
+    { case MM_HIENGLISH:
+	AldHdr.inch = 1000;
+        AldHdr.bbox.Right  = (SHORT)width;
+	AldHdr.bbox.Bottom = (SHORT)height;
+	break;
+      case MM_HIMETRIC:
+	AldHdr.inch = 1440;
+        AldHdr.bbox.Right  = (SHORT)(width / 2540 * 1440);
+	AldHdr.bbox.Bottom = (SHORT)(height / 2540 * 1440);
+	break;
+      case MM_LOENGLISH:
+	AldHdr.inch = 100;
+        AldHdr.bbox.Right  = (SHORT)width;
+	AldHdr.bbox.Bottom = (SHORT)height;
+	break;
+      case MM_LOMETRIC:
+	AldHdr.inch = 254;
+        AldHdr.bbox.Right  = (SHORT)width;
+	AldHdr.bbox.Bottom = (SHORT)height;
+	break;
+      case MM_TEXT:
+      { HDC hdc = GetDC(NULL);
+
+	AldHdr.inch = (WORD) ((float)GetDeviceCaps(hdc, HORZRES) * 25.4 /
+			      (float)GetDeviceCaps(hdc, HORZSIZE));
+        AldHdr.bbox.Right  = (SHORT)width;
+	AldHdr.bbox.Bottom = (SHORT)height;
+
+	DEBUG(NAME_winMetafile,
+	      Cprintf("HORZRES = %d, HORZSIZE = %d, inch = %d right = %d\n",
+		      GetDeviceCaps(hdc, HORZRES),
+		      GetDeviceCaps(hdc, HORZSIZE),
+		      AldHdr.inch,
+		      AldHdr.bbox.Right));
+
+	ReleaseDC(NULL, hdc);
+	break;
+      }
+      case MM_TWIPS:
+	AldHdr.inch = 1440;
+        AldHdr.bbox.Right  = (SHORT)width;
+	AldHdr.bbox.Bottom = (SHORT)height;
+	break;
+      default:
+	AldHdr.inch = 1440;
+        AldHdr.bbox.Right  = (SHORT)((width  * 1440) / 2540);
+	AldHdr.bbox.Bottom = (SHORT)((height * 1440) / 2540);
+	break;
+    }
+
+
+    AldHdr.reserved = 0;
+    AldHdr.checksum = 0;
+  { WORD    *p;
+
+    for (p = (WORD *)&AldHdr; p < (WORD *)&(AldHdr.checksum); ++p)
+      AldHdr.checksum ^= *p;
+  }
+
+    pAldHdr = &AldHdr;
+    pjTmp = (PBYTE)pMapFile;
+
+    iSize = APMSIZE;
+
+    while (iSize--) {
+        *(((PBYTE)pjTmp)++) = *(((PBYTE)pAldHdr)++);
+    }
+
+    pMapFile = (PBYTE)pMapFile + APMSIZE;
+    GetMetaFileBitsEx(ghmf, uiSize, pMapFile);
+  }
+
+
+  UnmapViewOfFile(pMapFile);
+
+ErrorExit2:
+  CloseHandle(hMapFile);
+ErrorExit1:
+  CloseHandle(hFile);
+
+  return rval;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get a Windows 3.x format metafile  from   the  XPCE object. I'm not sure
+whether the allocated memory block should be freed or not.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static HMETAFILE
+convert_enh_metafile(WinMF mf, HDC hdc)
+{ void *data = NULL;
+  int len, l2;
+  int fnMapMode = MM_ANISOTROPIC;
+  int omap = SetMapMode(hdc, fnMapMode);
+					/* get old format bits */
+    
+  if ( !(len = GetWinMetaFileBits(mf->hmf, 0, NULL, fnMapMode, hdc)) )
+  { errorPce(mf, NAME_winMetafile,
+	     CtoName("GetWinMetaFileBits"), APIError());
+    return NULL;
+  }
+
+  data = malloc(len);
+  l2 = GetWinMetaFileBits(mf->hmf, len, data, fnMapMode, hdc);
+  SetMapMode(hdc, omap);
+  assert(l2 == len);
+					/* make old format metafile */
+  return SetMetaFileBitsEx(l2, data);
+}
+
+
+
+static status
 saveWinMF(WinMF mf, FileObj file, Name format)
 { char *rawfn = strName(getOsNameFile(file));
   char fn[MAXPATHLEN];
@@ -270,36 +702,42 @@ saveWinMF(WinMF mf, FileObj file, Name format)
 
   _xos_os_filename(rawfn, fn);
 
-  if ( format == NAME_wmf ||		/* Windows 3.1 format */
-       (isDefault(format) &&
-	suffixCharArray((CharArray)file->name,
-			(CharArray)CtoName(".wmf"),
-			ON)) )
-  { void *data = NULL;
-    int len, l2;
-    HMETAFILE ohmf, ohmf2;
-					/* get old format bits */
-    if ( !(len = GetWinMetaFileBits(mf->hmf, 0, NULL,
-				    MM_ANISOTROPIC, NULL)) )
-      return errorPce(mf, NAME_winMetafile,
-		      CtoName("GetWinMetaFileBits"), APIError());
+  if ( isDefault(format) )
+  { if ( suffixCharArray((CharArray)file->name,
+			 (CharArray)CtoName(".wmf"),
+			 ON) )
+      format = NAME_aldus;
+    else if ( suffixCharArray((CharArray)file->name,
+			      (CharArray)CtoName(".emf"),
+			      ON) )
+      format = NAME_emf;
+    else
+      format = getResourceValueObject(mf, NAME_format);
+  }
 
-    data = pceMalloc(len);
-    l2 = GetWinMetaFileBits(mf->hmf, len, data, MM_ANISOTROPIC, NULL);
-    assert(l2 == len);
-					/* make old format metafile */
-    ohmf = SetMetaFileBitsEx(l2, data);
-    if ( !(ohmf2 = CopyMetaFile(ohmf, fn)) )
-    { pceFree(data);
-      DeleteMetaFile(ohmf);
-      return errorPce(mf, NAME_winMetafile,
-		      CtoName("CopyMetaFile"), APIError());
-    }
-    pceFree(data);
+  if ( format == NAME_wmf || format == NAME_aldus )
+  { HDC hdc = GetDC(NULL);
+    HMETAFILE ohmf = convert_enh_metafile(mf, hdc);
+    HMETAFILE ohmf2;
+    status rval = SUCCEED;
+
+    ReleaseDC(NULL, hdc);
+
+    if ( format == NAME_wmf )
+    { if ( !(ohmf2 = CopyMetaFile(ohmf, fn)) )
+      { DeleteMetaFile(ohmf);
+	return errorPce(mf, NAME_winMetafile,
+			CtoName("CopyMetaFile"), APIError());
+      }
+    } else /* ALDUS */
+      rval = saveALDUS(mf, ohmf, fn,
+		       valInt(mf->area->w), valInt(mf->area->h),
+		       MM_TEXT);
+
     DeleteMetaFile(ohmf2);
     DeleteMetaFile(ohmf);
 
-    succeed;
+    return rval;
   } else				/* save as enhanced format */
   { HENHMETAFILE h2;
 
@@ -312,6 +750,71 @@ saveWinMF(WinMF mf, FileObj file, Name format)
   }
 }
 
+		 /*******************************
+		 *	 WINDOWS CUT/PASTE	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Copy a metafile to the windows clipboard.  I'm not really sure about the
+immediate delete, but that is what mfedit is doing. Also, shouldn't this
+use GlobalAlloc() somehow??
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+status
+ws_on_clipboard_metafile(WinMF mf, Name type)
+{ if ( mf->hmf )
+  { if ( type == NAME_emf )
+    { HENHMETAFILE hmftmp = CopyEnhMetaFile(mf->hmf, NULL);
+
+      if ( hmftmp )
+      { SetClipboardData(CF_ENHMETAFILE, hmftmp);
+	DeleteEnhMetaFile(hmftmp);
+
+	succeed;
+      }
+    } else /* if ( type == NAME_wmf ) */
+    { HGLOBAL hmem;
+      LPMETAFILEPICT  lpmfp;
+      HDC hdc  = GetDC(NULL);
+      int hmm  = GetDeviceCaps(hdc, HORZSIZE);
+      int hpxl = GetDeviceCaps(hdc, HORZRES);
+      int vmm  = GetDeviceCaps(hdc, VERTSIZE);
+      int vpxl = GetDeviceCaps(hdc, VERTRES);
+
+      if ( !(hmem = GlobalAlloc(GMEM_ZEROINIT|GMEM_MOVEABLE|GMEM_DDESHARE,
+				sizeof(METAFILEPICT))) )
+      { errorPce(mf, NAME_winMetafile, CtoName("GlobalAlloc"), APIError());
+	fail;
+      }
+
+      lpmfp = (LPMETAFILEPICT)GlobalLock(hmem);
+      lpmfp->mm = MM_ANISOTROPIC;
+
+      lpmfp->xExt = (valInt(mf->area->w)*hmm*100)/hpxl;
+      lpmfp->yExt = (valInt(mf->area->h)*vmm*100)/vpxl;
+      lpmfp->hMF  = convert_enh_metafile(mf, hdc); /* Reclaim??? */
+
+      GlobalUnlock(hmem);
+      SetClipboardData(CF_METAFILEPICT, hmem);
+
+      ReleaseDC(NULL, hdc);
+    }
+  }
+
+  fail;
+}
+
+
+WinMF
+CtoWinMetafile(HENHMETAFILE hmf)
+{ WinMF mf = answerObject(ClassWinMF, 0);
+
+  mf->hmf = hmf;
+  getDimensionsWinMF(mf);
+
+  answer(mf);
+}
+
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*
@@ -322,13 +825,13 @@ saveWinMF(WinMF mf, FileObj file, Name format)
 static char *T_drawIn[] =
         { "graphical|chain", "at=[point]" };
 static char *T_save[] =
-	{ "in=file", "format=[{wmf,emf}]" };
+	{ "in=file", "format=[{aldus,wmf,emf}]" };
 
 /* Instance Variables */
 
 static vardecl var_winmf[] =
 { IV(NAME_file, "file*", IV_GET, 
-     NAME_storage, "Associated .WMF file"),
+     NAME_storage, "Associated physical file"),
   IV(NAME_summary, "string*", IV_BOTH, 
      NAME_manual, "Description associated with the file"), /* TBD:group */
   IV(NAME_handle, "alien:HENHMETAFILE", IV_NONE,
@@ -344,6 +847,8 @@ static senddecl send_winmf[] =
      DEFAULT, "Remove from @win_metafiles"),
   SM(NAME_drawIn, 2, T_drawIn, drawInWinMF,
      NAME_copy, "Paint graphical in metafile"),
+  SM(NAME_copy, 1, "win_metafile", copyWinMF,
+     NAME_copy, "Copy the argument to the receiver"),
   SM(NAME_save, 2, T_save, saveWinMF,
      NAME_file, "Save contents in specified file"),
 };
@@ -362,7 +867,10 @@ static getdecl get_winmf[] =
 static resourcedecl rc_winmf[] =
 { RC(NAME_path, "string",
      "\".:mf:~/lib/mf:$PCEHOME/mf:\"",
-     "Search path for loading Windows metafiles")
+     "Search path for loading Windows metafiles"),
+  RC(NAME_format, "{emf,wmf,aldus}",
+     "aldus",
+     "Default save format")
 };
 
 /* Class Declaration */
@@ -381,6 +889,8 @@ makeClassWinMF(Class class)
 
   setRedrawFunctionClass(class, RedrawAreaWinMF);
   WinMetaFiles = globalObject(NAME_winMetafiles, ClassChain, 0);
+  setLoadStoreFunctionClass(class, loadFdWinMF, storeWinMF);
+  setCloneFunctionClass(class, cloneWinMF);
 
   at_pce_exit(closeAllWinMF, ATEXIT_FIFO);
 

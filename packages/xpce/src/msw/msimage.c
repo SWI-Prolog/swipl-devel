@@ -9,8 +9,14 @@
 
 #include "include.h"
 #include <h/unix.h>
+#include <math.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 #define O_IMGLIB 1
+#define O_GIFREAD 1
 
 #define OsError() getOsErrorPce(PCE)
 
@@ -27,12 +33,16 @@
 #endif
 #endif /*O_IMGLIB*/
 
+#ifdef O_GIFREAD
+extern LPVOID CALLBACK gifLoad(char *);
+#endif /*O_GIFREAD*/
+
 /* Using ws_ref for storing the bits and the xref mechanism for storing
    the Windows HBITMAP handle
 */
 
 
-static int ws_sizeof_bits(int w, int h);
+static int	ws_sizeof_bits(int w, int h);
 
 
 void
@@ -317,7 +327,11 @@ ws_load_image_file(Image image)
 
   _xos_os_filename(strName(fn), fname);
 
-  if ( (bmi = ReadFileIntoDIB(fname)) )
+  if ( (bmi = ReadFileIntoDIB(fname))
+#ifdef O_GIFREAD
+       || (bmi = gifLoad(fname))
+#endif
+     )
   { HDC      hdc       = GetDC(NULL);
     int     iPixelBits = GetDeviceCaps (hdc, BITSPIXEL);
     int     iPlanes    = GetDeviceCaps (hdc, PLANES);
@@ -419,16 +433,33 @@ windows_bitmap_from_dib(Image image)
   { HDC hdc;
     HBITMAP bm;
 
-    hdc = GetDC(NULL);
-    bm = ZCreateDIBitmap(hdc,
-			 (LPBITMAPINFOHEADER) wsi->msw_info,
-			 CBM_INIT,
-			 wsi->data,
-			 (LPBITMAPINFO) wsi->msw_info,
-			 DIB_RGB_COLORS);
-    assign(image, depth, toInt(GetDeviceCaps(hdc, BITSPIXEL)));
-    assign(image, kind, image->depth == ONE ? NAME_bitmap : NAME_pixmap);
-    ReleaseDC(NULL, hdc);
+    if ( image->kind == NAME_bitmap )
+    { int w = valInt(image->size->w);
+      int h = valInt(image->size->h);
+      HBITMAP obm;
+
+      bm = ZCreateBitmap(w, h, 1, 1, NULL);
+      hdc = CreateCompatibleDC(NULL);
+      obm = ZSelectObject(hdc, bm);
+      if ( StretchDIBits(hdc, 0, 0, w, h, 0, 0, w, h,
+			 wsi->data, wsi->msw_info,
+			 DIB_RGB_COLORS, SRCCOPY) == GDI_ERROR )
+	Cprintf("StretchDIBits() failed");
+      ZSelectObject(hdc, obm);
+      DeleteDC(hdc);
+    } else
+    { hdc = GetDC(NULL);
+      bm = ZCreateDIBitmap(hdc,
+			   (LPBITMAPINFOHEADER) wsi->msw_info,
+			   CBM_INIT,
+			   wsi->data,
+			   (LPBITMAPINFO) wsi->msw_info,
+			   DIB_RGB_COLORS);
+      assign(image, depth, toInt(GetDeviceCaps(hdc, BITSPIXEL)));
+      assign(image, kind, image->depth == ONE ? NAME_bitmap : NAME_pixmap);
+      ReleaseDC(NULL, hdc);
+    }
+
     return bm;
   }
 
@@ -603,15 +634,227 @@ ws_scale_image(Image image, int w, int h)
   answer(copy);
 }
 
+#define falmost(f1, f2) (fabs((f1)-(f2)) < 0.001)
+
+Image
+ws_rotate_image(Image image, int a)	/* 0<angle<360 */
+{ int ow = valInt(image->size->w);
+  int oh = valInt(image->size->h);
+  int w, h;
+  float angle = ((float)a * M_PI)/180.0;
+  float sina, cosa;
+  int rot90;				/* rotation by 0,90,180,270 */
+  Image copy;				/* rotated image */
+  DisplayObj d;
+
+  if ( falmost(angle, M_PI/2) )		/* 90 degrees */
+  { w = oh;
+    h = ow;
+    sina = 1.0;
+    cosa = 0.0;
+    rot90 = TRUE;
+  } else if ( falmost(angle, M_PI) )	/* 180 degrees */
+  { w = ow;
+    h = oh;
+    cosa = -1.0;
+    sina = 0.0;
+    rot90 = TRUE;
+  } else if ( falmost(angle, 3*M_PI/2) ) /* 270 degrees */
+  { w = oh;
+    h = ow;
+    sina = -1.0;
+    cosa = 0.0;
+    rot90 = TRUE;
+  } else
+  { rot90 = FALSE;
+    sina = sin(angle);
+    cosa = cos(angle);
+
+    w = fabs((float)oh*sina) + fabs((float)ow*cosa) + 0.99999;
+    h = fabs((float)oh*cosa) + fabs((float)ow*sina) + 0.99999;
+  }
+
+  copy = answerObject(ClassImage, NIL,
+		      toInt(w), toInt(h), image->kind, 0);
+  d = image->display;
+
+  if ( isNil(d) )
+    d = CurrentDisplay(image);
+
+  if ( copy && d )
+  { HBITMAP sbm = (HBITMAP) getXrefObject(image, d);
+
+    if ( sbm )
+    { HDC hdcsrc   = CreateCompatibleDC(NULL);
+      HDC hdcdst   = CreateCompatibleDC(hdcsrc);
+      HBITMAP osbm = ZSelectObject(hdcsrc, sbm);
+      HBITMAP  dbm = ZCreateCompatibleBitmap(hdcsrc, w, h);
+      HBITMAP odbm = ZSelectObject(hdcdst, dbm);
+      XFORM xform;
+      int ogm;
+      float acangle = angle;		/* anti-clockwise-angle */
+
+      angle = -angle;			/* Windows wants clockwise */
+
+      registerXrefObject(copy, d, (void *) dbm);
+      assign(copy, background, image->background);
+      assign(copy, foreground, image->foreground);
+      { Any bg = (isDefault(copy->background) ? d->background
+					      : copy->background);
+	COLORREF rgb = (COLORREF) getXrefObject(bg, d);
+	HBRUSH hbrush = ZCreateSolidBrush(GetNearestColor(hdcdst, rgb));
+	RECT rect;
+
+	rect.left   = 0;
+	rect.right  = w;
+	rect.top    = 0;
+	rect.bottom = h;
+
+	FillRect(hdcdst, &rect, hbrush);
+	ZDeleteObject(hbrush);
+      }
+
+      xform.eM11 = cos(angle);
+      xform.eM12 = sin(angle);
+      xform.eM21 = -xform.eM12;
+      xform.eM22 = xform.eM11;
+      xform.eDx  = 0;
+      xform.eDy  = 0;
+
+      if ( acangle < M_PI/2 )		/* 0<angle<90 */
+      { xform.eDy = sin(acangle) * (float)ow;
+      } else if ( acangle < M_PI )	/* 90<angle<180 */
+      { xform.eDy = h;
+	xform.eDx = -cos(acangle) * (float)ow;
+      } else if ( acangle < 3*M_PI/2 )	/* 180<angle<270 */
+      { xform.eDx = w;
+	xform.eDy = h + (sin(acangle) * (float)ow);
+      } else				/* 270<angle<360 */
+      { xform.eDx = -sin(acangle) * (float)oh;
+      }
+
+      DEBUG(NAME_rotate,
+	    Cprintf("dx=%g, dy=%g, w = %d, h = %d\n",
+		    xform.eDx, xform.eDy, w, h));
+
+      if ( (ogm = SetGraphicsMode(hdcdst, GM_ADVANCED)) &&
+	   SetWorldTransform(hdcdst, &xform) )
+      { BitBlt(hdcdst,
+	       0, 0, ow, oh,		/* dest rectangle */
+	       hdcsrc,
+	       0, 0,
+	       SRCCOPY);
+      
+	xform.eM11 = 1.0;
+	xform.eM12 = 0.0;
+	xform.eM21 = 0.0;
+	xform.eM22 = 1.0;
+	xform.eDx  = 0;
+	xform.eDy  = 0;
+
+	SetWorldTransform(hdcdst, &xform);
+	SetGraphicsMode(hdcdst, ogm);
+      } else
+      { Cprintf("No image rotation in win32s\n");
+	freeObject(copy);
+	copy = FAIL;
+      }
+
+      ZSelectObject(hdcsrc, osbm);
+      ZSelectObject(hdcdst, odbm);
+      DeleteDC(hdcsrc);
+      DeleteDC(hdcdst);
+    }
+  }
+
+  answer(copy);
+}
+
 
 void
 ws_postscript_image(Image image, Int depth)
 { int w = valInt(image->size->w);
   int h = valInt(image->size->h);
+  int d = valInt(depth);
 
   d_image(image, 0, 0, w, h);
-  postscriptDrawable(0, 0, w, h);
+  postscriptDC(d_current_hdc(), 0, 0, w, h, d);
+/*postscriptDrawable(0, 0, w, h);*/
   d_done();
+}
+
+#undef roundup
+#define roundup(v, n)		((((v)+(n)-1)/(n))*(n))
+#define rescale(v, o, n)	((v) * (n) / (o))
+#define putByte(b) { ps_put_char(print[(b >> 4) & 0xf]); \
+		     ps_put_char(print[b & 0xf]); \
+ 		     if ( (++bytes % 32) == 0 ) ps_put_char('\n'); \
+		     bits = 8; c = 0; \
+		   }
+
+static int
+brightness(COLORREF rgb, int bright)
+{ int r, g, b, i;
+
+  if ( rgb == 0 )
+    return 0;
+  if ( rgb == RGB(255, 255, 255) )
+    return bright;
+
+  r = GetRValue(rgb);
+  b = GetBValue(rgb);
+  g = GetGValue(rgb);
+
+  i = (r*20 + g*32 + b*18)/(20+32+18);
+
+  return rescale(i, 256, bright);
+}
+
+
+status
+postscriptDC(HDC hdc,				/* HDC to print from */
+	     int fx, int fy, int w, int h,	/* area to print */
+	     int depth)				/* PostScript depth */
+{ static char print[] = { '0', '1', '2', '3', '4', '5', '6', '7',
+			  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+  int x, y, w8, psbright;
+  int bits, bytes;
+  int c;
+  int bmdepth  = GetDeviceCaps(hdc, BITSPIXEL);
+  int bmbright = 256;
+
+  if ( depth == 0 )			/* PostScript depth is 1, 2, 4, or 8 */
+  { depth = bmdepth;
+
+    if ( depth == 3 )
+      depth = 2;
+    else if ( depth > 4 && depth < 8 )
+      depth = 4;
+    else if ( depth > 8 )
+      depth = 8;
+  }
+
+  w8 = roundup(w, 8);
+  psbright = (1<<depth)-1;
+  for(bytes = c = 0, bits = 8, y = fy; y < h; y++)
+  { for(x = fx; x < w8; x++)
+    { int pixval;
+
+      bits -= depth;
+
+      if ( x < w )
+      { COLORREF c = GetPixel(hdc, x, y);
+	pixval = brightness(c, psbright);
+      } else
+	pixval = psbright;
+
+      c |= pixval << bits;
+      if ( bits == 0 )
+        putByte(c);
+    }
+  }
+
+  succeed;
 }
 
 

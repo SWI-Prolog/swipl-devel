@@ -37,6 +37,8 @@
 
 #define APIError() WinStrError(GetLastError())
 
+typedef struct win_mf *WinMF;		/* win_metafile pointer type */
+
 extern HINSTANCE ThePceHInstance;	/* HINSTANCE from pceDLLEntry() */
 
 typedef char	cwidth;			/* width of a character */
@@ -107,13 +109,18 @@ void		PceEventInWindow(HWND win);
 void		ws_system_colours(DisplayObj d);
 void		ws_system_images(DisplayObj d);
 void		declareWindowsBrush(Any obj, HBRUSH brush);
-status		d_winmf(const char *fn, const char *descr);
+status		d_winmf(const char *fn,
+			int x, int y, int w, int h,
+			const char *descr);
 HENHMETAFILE	d_winmfdone(void);
 void		r_winmf(HENHMETAFILE hmf, int x, int y, int w, int h);
 void		ws_init_loc_still_timer(void);
 void		setPaletteColourMap(ColourMap cm, HPALETTE hpal);
 HPALETTE	getPaletteColourMap(ColourMap cm);
-
+HDC		d_current_hdc(void);
+status		postscriptDC(HDC hdc, int fx, int fy, int w, int h, int depth);
+status		ws_on_clipboard_metafile(WinMF mf, Name type);
+WinMF		CtoWinMetafile(HENHMETAFILE hmf);
 
 		 /*******************************
 		 *	    PNM FORMATS		*

@@ -473,14 +473,30 @@ d_screen(DisplayObj d)
 
 
 status
-d_winmf(const char *fn, const char *descr)
+d_winmf(const char *fn, int x, int y, int w, int h, const char *descr)
 { HDC hdc;
+  RECT bb;
+  HDC refdc = GetDC(NULL);
+  int hmm   = GetDeviceCaps(refdc, HORZSIZE);
+  int hpxl  = GetDeviceCaps(refdc, HORZRES);
+  int vmm   = GetDeviceCaps(refdc, VERTSIZE);
+  int vpxl  = GetDeviceCaps(refdc, VERTRES);
 
-  if ( (hdc = CreateEnhMetaFile(NULL,	/* HDC reference */
-				fn,	/* name of the metafile */
-				NULL,	/* bounding box */
+  bb.left   = (x*hmm*100)/hpxl;			/* bb in .01 mm units */
+  bb.right  = ((x+w)*hmm*100)/hpxl;
+  bb.top    = (y*vmm*100)/vpxl;
+  bb.bottom = ((y+h)*vmm*100)/vpxl;
+
+  DEBUG(NAME_winMetafile,
+	Cprintf("BB in .01 mm = %d,%d,%d,%d\n",
+		bb.left, bb.top, bb.right, bb.bottom));
+
+  if ( (hdc = CreateEnhMetaFile(refdc,		/* HDC reference */
+				fn,		/* name of the metafile */
+				&bb,		/* bounding box */
 				descr)) )
-  { d_hdc(hdc, DEFAULT, DEFAULT);
+  { ReleaseDC(NULL, refdc);
+    d_hdc(hdc, DEFAULT, DEFAULT);
 
     succeed;
   }
@@ -497,6 +513,12 @@ d_winmfdone()
   d_done();
 
   return hmf;
+}
+
+
+HDC
+d_current_hdc()
+{ return context.hdc;
 }
 
 
@@ -1855,8 +1877,8 @@ r_winmf(HENHMETAFILE hmf, int x, int y, int w, int h)
 
   r.left   = x;
   r.top    = y;
-  r.bottom = y + h;
-  r.right  = x + w;
+  r.bottom = y + h - 1;
+  r.right  = x + w - 1;
 
   if ( !PlayEnhMetaFile(context.hdc, hmf, &r) )
     Cprintf("PlayEnhMetaFile() failed\n"); /* TBD */
@@ -2017,7 +2039,12 @@ r_get_pixel(int x, int y)
 
 int
 r_get_mono_pixel(int x, int y)
-{ return GetPixel(context.hdc, x, y) == context.background_rgb ? FALSE : TRUE;
+{ COLORREF p = GetPixel(context.hdc, x, y);
+
+  DEBUG(NAME_pixel, Cprintf("r_get_mono_pixel(%d, %d) --> %ld, bg = %ld\n",
+			    x, y, p, context.background_rgb));
+
+  return p == context.background_rgb ? FALSE : TRUE;
 }
 
 

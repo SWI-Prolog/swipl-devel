@@ -933,15 +933,19 @@ ws_postscript_frame(FrameObj fr)
   { HDC hdc = GetDC(NULL);
     RECT rect;
     int w, h;
+    int depth = GetDeviceCaps(hdc, BITSPIXEL);
+
+    if ( depth >= 4 )
+      depth = 4;
+    else if ( depth == 3 )
+      depth = 2;
 
     GetWindowRect(hwnd, &rect);
     w = rect.right - rect.left;
     h = rect.bottom - rect.top;
 
-    ps_output("0 0 ~D ~D bitmap\n\n", w, h);
-    d_hdc(hdc, DEFAULT, DEFAULT);
-    postscriptDrawable(rect.left, rect.right, w, h);
-    d_done();
+    ps_output("0 0 ~D ~D ~D greymap\n", w, h, depth);
+    postscriptDC(hdc, rect.left, rect.top, rect.right, rect.bottom, depth);
     ps_output("\n");
 
     succeed;

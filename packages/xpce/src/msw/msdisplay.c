@@ -457,32 +457,49 @@ ws_set_cutbuffer(DisplayObj d, int n, String s)
 }
 
 
+static Any
+get_clipboard_data(DisplayObj d, Name type)
+{ HGLOBAL mem;
+  HENHMETAFILE hmf;
+  Any rval = FAIL;
+
+  OpenClipboard(CLIPBOARDWIN);
+  if ( type != NAME_winMetafile && (mem = GetClipboardData(CF_TEXT)) )
+  { char far *data = GlobalLock(mem);
+    char *copy, *q;
+    int i;
+
+    for(i=0; data[i]; i++)
+      ;
+    q = copy = pceMalloc(i + 1);
+
+    while(*q++ = *data++)
+      ;
+    rval = CtoString(copy);
+    pceFree(copy);
+    GlobalUnlock(mem);
+  } else if ( type != NAME_text && (hmf = GetClipboardData(CF_ENHMETAFILE)) )
+  { HENHMETAFILE copy = CopyEnhMetaFile(hmf, NULL);
+    if ( !copy )
+    { errorPce(d, NAME_winMetafile, CtoName("CopyEnhMetaFile"), APIError());
+      fail;
+    }
+
+    rval = CtoWinMetafile(copy);
+    DeleteEnhMetaFile(hmf);
+
+    GlobalUnlock(mem);
+  }
+  CloseClipboard();
+
+  return rval; 
+}
+
+
 StringObj
 ws_get_cutbuffer(DisplayObj d, int n)
 { if ( n == 0 )
-  { HGLOBAL mem;
-    StringObj rval = FAIL;
-
-    OpenClipboard(CLIPBOARDWIN);
-    if ( (mem = GetClipboardData(CF_TEXT)) )
-    { char far *data = GlobalLock(mem);
-      char *copy, *q;
-      int i;
-
-      for(i=0; data[i]; i++)
-	;
-      q = copy = pceMalloc(i + 1);
-
-      while(*q++ = *data++)
-	;
-      rval = CtoString(copy);
-      pceFree(copy);
-      GlobalUnlock(mem);
-    }
-    CloseClipboard();
-
-    return rval; 
-  }
+    return get_clipboard_data(d, NAME_text); /* DEFAULT? */
 
   Cprintf("Cannot access cut-buffers other than 0\n");
   fail;
@@ -503,7 +520,7 @@ ws_set_selection_timeout(ulong time)
 
 Any
 ws_get_selection(DisplayObj d, Name which, Name target)
-{ return ws_get_cutbuffer(d, 0);
+{ return get_clipboard_data(d, target);
 }
 
 
@@ -530,24 +547,44 @@ ws_provide_selection(int format)
   Function msg;
   Name which     = NAME_primary;
   Name hypername = getAppendName(which, NAME_selectionOwner);
+  Name type;
 
   if ( d && notNil(d) &&
-       (h = getFindHyperObject(d, hypername, DEFAULT)) &&
-       (msg = getAttributeObject(h, NAME_convertFunction)) &&
-       (msg = checkType(msg, TypeFunction, NIL)) )
-  { CharArray ca;
-    Name tname = NAME_string;
+       (h    = getFindHyperObject(d, hypername, DEFAULT)) &&
+       (type = getAttributeObject(h, NAME_type)) &&
+       (msg  = getAttributeObject(h, NAME_convertFunction)) &&
+       (msg  = checkType(msg, TypeFunction, NIL)) )
+  { Any val;
 
-    if ( (ca = getForwardReceiverFunction(msg, h->to, which, tname, 0)) &&
-	 (ca = checkType(ca, TypeCharArray, NIL)) )
-    { String s = &ca->data;
-      HGLOBAL mem = ws_string_to_global_mem(s);
+    DEBUG(NAME_selection, Cprintf("Provide %s selection of type %s\n",
+				  pp(which), pp(type)));
 
-      if ( mem )
-	SetClipboardData(CF_TEXT, mem);
+    if ( !(val = getForwardReceiverFunction(msg, h->to, which, type, 0)) )
+      return FALSE;
 
-      return TRUE;
-    }
+    DEBUG(NAME_selection, Cprintf("Got %s\n", pp(val)));
+
+    if ( type == NAME_text )
+    { CharArray ca = checkType(val, TypeCharArray, NIL);
+      
+      if ( ca )
+      { String s = &ca->data;
+      	HGLOBAL mem = ws_string_to_global_mem(s);
+
+	if ( mem )
+	  SetClipboardData(CF_TEXT, mem);
+
+	return TRUE;
+      }
+    } else if ( type == NAME_emf || type == NAME_wmf )
+    { Any mf = checkType(val, nameToType(NAME_winMetafile), NIL);
+
+      if ( mf )
+      { DEBUG(NAME_selection, Cprintf("Providing win_metafile\n"));
+	return ws_on_clipboard_metafile(mf, type);
+      }
+    } else
+      return errorPce(d, NAME_noSelectionType, type);
   }
 
   return FALSE;
@@ -555,12 +592,25 @@ ws_provide_selection(int format)
 
 
 status
-ws_own_selection(DisplayObj d, Name selection)
+ws_own_selection(DisplayObj d, Name selection, Name type)
 { HWND hwnd = CLIPBOARDWIN;
-  
+  UINT format;
+
+  if ( type == NAME_emf )
+    format = CF_ENHMETAFILE;
+  else if ( type == NAME_wmf )
+    format = CF_METAFILEPICT;
+  else if ( type == NAME_text) 
+    format = CF_TEXT;
+  else
+    return errorPce(d, NAME_noSelectionType, type);
+
+  DEBUG(NAME_selection, Cprintf("%s becomes owner of %selection, type %s\n",
+				pp(d), pp(selection), pp(type)));
+
   OpenClipboard(hwnd);
   EmptyClipboard();
-  SetClipboardData(CF_TEXT, NULL);
+  SetClipboardData(format, NULL);
   CloseClipboard();
   init_render_hooks();
 
@@ -632,11 +682,18 @@ status
 ws_postscript_display(DisplayObj d)
 { int w = valInt(getWidthDisplay(d));
   int h = valInt(getHeightDisplay(d));
+  HDC hdc = GetDC(NULL);
+  int depth = GetDeviceCaps(hdc, BITSPIXEL);
 
-  d_screen(d);
-  postscriptDrawable(0, 0, w, h);
-  d_done();
-  
+  if ( depth >= 4 )
+    depth = 4;
+  else if ( depth == 3 )
+    depth = 2;
+
+  ps_output("0 0 ~D ~D ~D greymap\n", w, h, depth);
+  postscriptDC(hdc, 0, 0, w, h, depth);
+  ps_output("\n");
+
   succeed;
 }
 
