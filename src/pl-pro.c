@@ -230,6 +230,7 @@ pl_abort(abort_type type)
   resetSignals();
   resetForeign();
   resetAtoms();
+  resetBags();
 
   longjmp(abort_context, 1);
   /*NOTREACHED*/

@@ -64,6 +64,21 @@ freeAssoc(Assoc prev, Assoc a)
   freeHeap(a, sizeof(*a));
 }
 
+
+void
+resetBags()				/* cleanup after an abort */
+{ GET_LD
+  Assoc a, next;
+
+  for( a=alist; a; a = next )
+  { next = a->next;
+    if ( a->record )
+      freeRecord(a->record);
+    freeHeap(a, sizeof(*a));
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $record_bag(Key-Value)
 

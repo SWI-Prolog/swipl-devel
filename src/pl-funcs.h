@@ -114,6 +114,7 @@ int		toIntegerNumber(Number n);
 void		canoniseNumber(Number n);
 
 /* pl-bag.c */
+void		resetBags(void);
 word		pl_record_bag(term_t term);
 int 		checkBags(void);
 word		pl_collect_bag(term_t bindings, term_t bag);

@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Cleanup dangling records in findall/3 and friends if an abort
+    happens inside one of the bag predicates.
+
+
+VERSION 5.0.9 (Jul 26, 2002)
+============================
+
   * FIXED: Report variables _starting_ with an _ (e.g. _X) in the
     variable_names(Names) option of read_term.
 
