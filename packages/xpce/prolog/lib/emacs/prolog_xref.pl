@@ -42,7 +42,10 @@
 	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
 	    xref_public_list/4,		% +Path, -Export, +Src
-	    xref_meta/2			% +Goal, -Called
+	    xref_meta/2,		% +Goal, -Called
+					% XPCE class references
+	    xref_used_class/2,		% ?Source, ?ClassName
+	    xref_defined_class/3	% ?Source, ?ClassName, -How
 	  ]).
 :- use_module(library(pce)).
 
@@ -55,7 +58,10 @@
 	imported/3,			% Head, Src, From
 	exported/2,			% Head, Src
 	xmodule/2,			% Module, Src
-	source/1.			% Src
+	source/1,			% Src
+	used_class/2,			% Name, Src
+	defined_class/3.		% Name, Src, Line
+
 
 		 /*******************************
 		 *	      HOOKS		*
@@ -139,7 +145,9 @@ xref_clean(Source) :-
 	retractall(imported(_, Src, _From)),
 	retractall(exported(_, Src)),
 	retractall(xmodule(_, Src)),
-	retractall(source(Src)).
+	retractall(source(Src)),
+	retractall(used_class(_, Src)),
+	retractall(defined_class(_, Src, _)).
 	
 
 		 /*******************************
@@ -211,6 +219,14 @@ xref_module(Source, Module) :-
 xref_built_in(Head) :-
 	system_predicate(Head).
 
+xref_used_class(Source, Class) :-
+	canonical_source(Source, Src),
+	used_class(Class, Src).
+
+xref_defined_class(Source, Class, local(Line)) :-
+	canonical_source(Source, Src),
+	defined_class(Class, Src, Line).
+
 collect(Src) :-
 	open_source(Src, Fd),
 	'$style_check'(Old, Old),
@@ -275,6 +291,8 @@ process((Head :- Body), Src) :- !,
 	process_body(Body, Head, Src).
 process('$source_location'(_File, _Line):Clause, Src) :- !,
 	process(Clause, Src).
+process(pce_principal:pce_class(Name, Meta, Super, _, _, _), Src) :- !,
+	assert_defined_class(Src, Name, Meta, Super).
 process(Head, Src) :-
 	assert_defined(Src, Head).
 
@@ -442,35 +460,63 @@ process_meta(G, Origin, Src) :-
 		 *	    XPCE STUFF		*
 		 *******************************/
 
-pce_goal(send(_,_)).
-pce_goal(get(_,_,_)).
+pce_goal(new(_,_), new(-, new)).
+pce_goal(send(_,_), send(arg, msg)).
+pce_goal(get(_,_,_), get(arg, msg, -)).
 
 process_xpce_goal(G, Origin, Src) :-
-	pce_goal(G), !,
+	pce_goal(G, Process), !,
 	assert_called(Src, Origin, G),
-	(   term_member(Term, G),
-	    compound(Term),
-	    arg(1, Term, Prolog),
-	    Prolog == @prolog,
-	    (	Term =.. [message, _, Selector | T],
-		atom(Selector)
-	    ->	Called =.. [Selector|T],
-		process_body(Called, Origin, Src)
-	    ;	Term =.. [?, _, Selector | T],
-		atom(Selector)
-	    ->	append(T, [_R], T2),
-	        Called =.. [Selector|T2],
-		process_body(Called, Origin, Src)
-	    ),
+	(   arg(I, Process, How),
+	    arg(I, G, Term),
+	    process_xpce_arg(How, Term, Origin, Src),
+	    fail
+	;   true
+	).
+		
+process_xpce_arg(new, Term, Origin, Src) :-
+	callable(Term),
+	process_new(Term, Origin, Src).
+process_xpce_arg(arg, Term, Origin, Src) :-
+	compound(Term),
+	process_new(Term, Origin, Src).
+process_xpce_arg(msg, Term, Origin, Src) :-
+	compound(Term),
+	(   arg(_, Term, Arg),
+	    process_xpce_arg(arg, Arg, Origin, Src),
 	    fail
 	;   true
 	).
 
-term_member(X, X).
-term_member(X, T) :-
-	compound(T),
-	arg(_, T, A),
-	term_member(X, A).
+	
+process_new(Term, Origin, Src) :-
+	assert_new(Src, Origin, Term),
+	(   arg(_, Term, Arg),
+	    process_xpce_arg(arg, Arg, Origin, Src),
+	    fail
+	;   true
+	).
+
+assert_new(Src, Origin, Term) :-
+	compound(Term),
+	arg(1, Term, Prolog),
+	Prolog == @prolog,
+	(   Term =.. [message, _, Selector | T],
+	    atom(Selector)
+	->  Called =.. [Selector|T],
+	    process_body(Called, Origin, Src)
+	;   Term =.. [?, _, Selector | T],
+	    atom(Selector)
+	->  append(T, [_R], T2),
+	    Called =.. [Selector|T2],
+	    process_body(Called, Origin, Src)
+	),
+	fail.
+assert_new(_, _, @_) :- !.
+assert_new(Src, _, Term) :-
+	callable(Term),
+	functor(Term, Name, _),
+	assert_used_class(Src, Name).
 
 
 		/********************************
@@ -602,6 +648,22 @@ assert_multifile(Src, Name/Arity) :-
 	functor(Term, Name, Arity),
 	assert(multifile(Term, Src)).
 
+assert_used_class(Src, Name) :-
+	used_class(Name, Src), !.
+assert_used_class(Src, Name) :-
+	assert(used_class(Name, Src)).
+
+assert_defined_class(Src, Name, _Meta, _Super) :-
+	defined_class(Name, Src, _), !.
+assert_defined_class(Src, Name, Meta, Super) :-
+	flag(xref_src_line, Line, Line),
+	assert(defined_class(Name, Src, Line)),
+	(   Meta = @_
+	->  true
+	;   assert_used_class(Src, Meta)
+	),
+	assert_used_class(Src, Super).
+
 
 		/********************************
 		*            UTILITIES		*
@@ -655,10 +717,12 @@ canonical_source(Ref, Ref) :-
 canonical_source(Source, Src) :-
 	absolute_file_name(Source,
 			   [ file_type(prolog),
+			     access(read),
 			     file_errors(fail)
 			   ],
-			   Src).
-
-
-
-
+			   Src), !.
+canonical_source(Source, Src) :-
+	var(Source), !,
+	Src = Source.
+canonical_source(Source, _) :-
+	throw(error(existence_error(file, Source), _)).
