@@ -1,3 +1,7 @@
+10/06/2001
+ 
+ * ADDED: library(mime) for MIME message parsing.
+
 07/10/2000
  
  * ADDED: Allow for descriptor to arguments of dup/2.
