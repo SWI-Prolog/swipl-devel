@@ -1595,6 +1595,30 @@ thread(at_exit-1) :-
 	
 
 		 /*******************************
+		 *	 MUTEX HANDLING		*
+		 *******************************/
+
+mutex(trylock-1) :-
+	gensym(mutex, Mutex),
+	thread_self(Main),
+	thread_create(( mutex_lock(Mutex),
+			thread_send_message(Main, locked),
+			thread_get_message(_)),
+		      Id, []),
+	thread_get_message(locked),
+	\+ mutex_trylock(Mutex),
+	thread_send_message(Id, done),
+	thread_join(Id, true).
+mutex(unlock-1) :-
+	gensym(mutex, Mutex),
+	mutex_lock(Mutex),
+	mutex_unlock(Mutex),
+	catch(mutex_unlock(Mutex), E, true),
+	E == error(permission_error(mutex, unlock, Mutex),
+		   context(mutex_unlock/1, 'not locked')).
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -1708,6 +1732,8 @@ testset(file).
 testset(load_program).
 testset(ctype).
 testset(thread) :-
+	current_prolog_flag(threads, true).
+testset(mutex) :-
 	current_prolog_flag(threads, true).
 testset(resource).
 

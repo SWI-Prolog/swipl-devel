@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+  * FIXED: Several issues with recursive mutexes in Windows, leading to
+    errors in stream closing (Bug#211) and wrong error messages when dealing
+    with Prolog-level mutexes.
+
   * ENHANCED: Make some system calls (shell/1, getenv/2, etc.) raise
     exceptions instead of printing a message.
 

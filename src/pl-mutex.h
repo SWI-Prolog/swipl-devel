@@ -73,10 +73,6 @@ controlled using the following macros:
 #define simpleMutexLock(p)	EnterCriticalSection(p)
 #define simpleMutexUnlock(p)	LeaveCriticalSection(p)
 
-#define MUTEX_BUSY 0			/* return from unsuccessful */
-					/* recursiveMutexTryLock() */
-#define MUTEX_OK(g) (g)
-
 #else /* USE_CRITICAL_SECTIONS */
 
 typedef pthread_mutex_t simpleMutex;
@@ -85,9 +81,6 @@ typedef pthread_mutex_t simpleMutex;
 #define simpleMutexDelete(p)	pthread_mutex_destroy(p)
 #define simpleMutexLock(p)	pthread_mutex_lock(p)
 #define simpleMutexUnlock(p)	pthread_mutex_unlock(p)
-
-#define MUTEX_OK(g) ((g) == 0)
-#define MUTEX_BUSY  EBUSY
 
 #endif /*USE_CRITICAL_SECTIONS*/
 

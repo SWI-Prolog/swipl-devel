@@ -118,7 +118,7 @@ static void	run_close_hooks(IOSTREAM *s);
 inline int
 STRYLOCK(IOSTREAM *s)
 { if ( s->mutex &&
-       recursiveMutexTryLock(s->mutex) == MUTEX_BUSY )
+       recursiveMutexTryLock(s->mutex) == EBUSY )
     return FALSE;
 
   return TRUE;

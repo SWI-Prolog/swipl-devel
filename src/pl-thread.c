@@ -2537,10 +2537,10 @@ pl_mutex_trylock(term_t mutex)
 
   if ( self == m->owner )
   { m->count++;
-  } else if ( MUTEX_OK(rval = pthread_mutex_trylock(&m->mutex)) )
+  } else if ( (rval = pthread_mutex_trylock(&m->mutex)) == 0 )
   { m->count = 1;
     m->owner = self;
-  } else if ( rval == MUTEX_BUSY )
+  } else if ( rval == EBUSY )
   { fail;
   } else
   { assert(0);
@@ -2568,6 +2568,13 @@ PL_mutex_unlock(struct pl_mutex *m)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The error message of this  predicate  is   not  thread-safe.  I.e. it is
+possible the message is wrong. This can   only be fixed by modifying the
+API of PL_mutex_unlock(), which is asking a  bit too much for this small
+error.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 foreign_t
 pl_mutex_unlock(term_t mutex)
 { pl_mutex *m;
@@ -2576,8 +2583,11 @@ pl_mutex_unlock(term_t mutex)
     fail;
 
   if ( !PL_mutex_unlock(m) )
-    return PL_error("mutex_unlock", 1, MSG_ERRNO, ERR_PERMISSION,
+  { char *msg = m->owner ? "not owner" : "not locked";
+
+    return PL_error("mutex_unlock", 1, msg, ERR_PERMISSION,
 		    ATOM_mutex, ATOM_unlock, mutex);
+  }
 
   succeed;
 }
