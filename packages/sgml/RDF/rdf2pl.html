@@ -43,16 +43,16 @@ RDF-XML document into the triple notation.
 <LI><A HREF="#sec:1"><B>1 Introduction</B></A>
 <LI><A HREF="#sec:2"><B>2 Parsing RDF in Prolog</B></A>
 <LI><A HREF="#sec:3"><B>3 Predicates</B></A>
-<LI><A HREF="#sec:4"><B>4 Name spaces</B></A>
 <UL>
-<LI><A HREF="#sec:4.1">4.1 Low-level access</A>
+<LI><A HREF="#sec:3.1">3.1 Name spaces</A>
+<LI><A HREF="#sec:3.2">3.2 Low-level access</A>
 </UL>
-<LI><A HREF="#sec:5"><B>5 Testing the RDF translator</B></A>
-<LI><A HREF="#sec:6"><B>6 Metrics</B></A>
-<LI><A HREF="#sec:7"><B>7 Installation</B></A>
+<LI><A HREF="#sec:4"><B>4 Testing the RDF translator</B></A>
+<LI><A HREF="#sec:5"><B>5 Metrics</B></A>
+<LI><A HREF="#sec:6"><B>6 Installation</B></A>
 <UL>
-<LI><A HREF="#sec:7.1">7.1 Unix systems</A>
-<LI><A HREF="#sec:7.2">7.2 Windows</A>
+<LI><A HREF="#sec:6.1">6.1 Unix systems</A>
+<LI><A HREF="#sec:6.2">6.2 Windows</A>
 </UL>
 </UL>
 
@@ -213,7 +213,7 @@ is either a plain atom or a parsed XML term (list of atoms and
 elements).
 </DL>
 
-<H2><A NAME="sec:4">4 Name spaces</A></H2>
+<H3><A NAME="sec:3.1">3.1 Name spaces</A></H3>
 
 <P>XML name spaces are identified using a URI. Unfortunately various 
 URI's are in common use to refer to RDF. The <CODE>rdf_parser.pl</CODE> 
@@ -244,7 +244,7 @@ rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 </PRE>
 </TABLE>
 
-<H3><A NAME="sec:4.1">4.1 Low-level access</A></H3>
+<H3><A NAME="sec:3.2">3.2 Low-level access</A></H3>
 
 <P>The above defined <A NAME="idx:loadrdf23:2"></A><A HREF="#load_rdf/2">load_rdf/[2,3]</A> 
 is not always suitable. For example, it cannot deal with documents where 
@@ -289,7 +289,7 @@ assert_list([H|T]) :-
 <P>
 </DL>
 
-<H2><A NAME="sec:5">5 Testing the RDF translator</A></H2>
+<H2><A NAME="sec:4">4 Testing the RDF translator</A></H2>
 
 <P>A test-suite and driver program are provided by <CODE>rdf_test.pl</CODE> 
 in the source directory. To run these tests, load this file into Prolog 
@@ -309,7 +309,7 @@ Process <CODE>suite/tN.rdf</CODE> and store the resulting triples in
 Run all tests and classify the result.
 </DL>
 
-<H2><A NAME="sec:6">6 Metrics</A></H2>
+<H2><A NAME="sec:5">5 Metrics</A></H2>
 
 <P>It took three days to write and one to document the Prolog RDF 
 parser. A significant part of the time was spent understanding the RDF 
@@ -348,9 +348,9 @@ seconds Prolog startup time to process this file. The <A HREF="http://www.pro-so
 Solutions</A> parser (written in Perl) requires 1.5 seconds exluding 
 0.25 seconds startup time.
 
-<H2><A NAME="sec:7">7 Installation</A></H2>
+<H2><A NAME="sec:6">6 Installation</A></H2>
 
-<H3><A NAME="sec:7.1">7.1 Unix systems</A></H3>
+<H3><A NAME="sec:6.1">6.1 Unix systems</A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -372,7 +372,7 @@ using:
 where
 <CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
 
-<H3><A NAME="sec:7.2">7.2 Windows</A></H3>
+<H3><A NAME="sec:6.2">6.2 Windows</A></H3>
 
 <P>Copy the files <CODE>rdf.pl</CODE>, <CODE>rdf_parse.pl</CODE>, <CODE>rdf_triple.pl</CODE> 
 and <CODE>rewrite.pl</CODE> to the SWI-Prolog library, start Prolog and 

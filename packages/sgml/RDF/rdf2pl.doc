@@ -187,7 +187,7 @@ either a plain atom or a parsed XML term (list of atoms and elements).
 \end{description}
 
 
-\section{Name spaces}
+\subsection{Name spaces}
 
 XML name spaces are identified using a URI. Unfortunately various URI's
 are in common use to refer to RDF. The \file{rdf_parser.pl} module
