@@ -28,7 +28,7 @@
 %	pce_main_loop(+Goal)
 %	
 %	Simple XPCE runtime toplevel loop.  This goal extracts the command
-%	line arguments, calls `apply(Goal, CmdLineArgs)' and waits for all
+%	line arguments, calls `call(Goal, CmdLineArgs)' and waits for all
 %	frames created by this call to be invisible.  Then it will halt/0.
 
 pce_main_loop(Goal) :-
@@ -89,3 +89,5 @@ setup_runtime :-
 	;   send(@pce, trap_errors, @off)
 	),
 	set_feature(debug_on_error, false).	
+
+
