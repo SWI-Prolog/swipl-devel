@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 			
+  * ADDED: stream_property/2 and set_stream/2 set and query the buffer mode
+    of existing streams.
+
   * MODIFIED: The sequence X=!, X doesn't cut any longer as this was
     in conflict with the ISO standard
 

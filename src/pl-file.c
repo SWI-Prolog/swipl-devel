@@ -948,30 +948,54 @@ pl_set_stream(term_t stream, term_t attr)
     fail;
 
   if ( PL_get_name_arity(attr, &aname, &arity) )
-  { if ( aname == ATOM_alias && arity == 1 )
+  { if ( arity == 1 )
     { term_t a = PL_new_term_ref();
-      atom_t alias;
-      Symbol symb;
-      int i;
 
       _PL_get_arg(1, attr, a);
-      if ( !PL_get_atom(a, &alias) )
-	return PL_error("set_stream", 2, NULL, ERR_TYPE, ATOM_atom, alias);
-      
-      if ( (i=standardStreamIndexFromName(alias)) >= 0 )
-      { LD->IO.streams[i] = s;
-	if ( i == 0 )
-	  LD->prompt.next = TRUE;	/* changed standard input: prompt! */
+
+      if ( aname == ATOM_alias )
+      { atom_t alias;
+	Symbol symb;
+	int i;
+  
+	if ( !PL_get_atom_ex(a, &alias) )
+	  fail;
+	
+	if ( (i=standardStreamIndexFromName(alias)) >= 0 )
+	{ LD->IO.streams[i] = s;
+	  if ( i == 0 )
+	    LD->prompt.next = TRUE;	/* changed standard input: prompt! */
+	  succeed;
+	}
+  
+	LOCK();
+	if ( (symb = lookupHTable(streamAliases, (void *)alias)) )
+	  unaliasStream(symb->value, alias);
+	aliasStream(s, alias);
+	UNLOCK();
+	succeed;
+      } else if ( aname == ATOM_buffer )
+      { atom_t b;
+
+#define SIO_ABUF (SIO_FBUF|SIO_LBUF|SIO_NBUF)
+	if ( !PL_get_atom_ex(a, &b) )
+	  fail;
+	if ( b == ATOM_full )
+	{ s->flags &= ~SIO_ABUF;
+	  s->flags |= SIO_FBUF;
+	} else if ( b == ATOM_line )
+	{ s->flags &= ~SIO_ABUF;
+	  s->flags |= SIO_LBUF;
+	} else if ( b == ATOM_false )
+	{ Sflush(s);
+	  s->flags &= ~SIO_ABUF;
+	  s->flags |= SIO_NBUF;
+	} else
+	  return PL_error("set_stream", 2, NULL, ERR_DOMAIN,
+			  ATOM_buffer, a);
 	succeed;
       }
-
-      LOCK();
-      if ( (symb = lookupHTable(streamAliases, (void *)alias)) )
-	unaliasStream(symb->value, alias);
-      aliasStream(s, alias);
-      UNLOCK();
-      succeed;
-    } 
+    }
   }
 
   return PL_error("set_stream", 2, NULL, ERR_TYPE,
@@ -1909,6 +1933,19 @@ stream_file_no_prop(IOSTREAM *s, term_t prop)
 }
 
 
+static int
+stream_buffer_prop(IOSTREAM *s, term_t prop)
+{ atom_t b;
+
+  if ( s->flags & SIO_FBUF )
+    b = ATOM_full;
+  else if ( s->flags & SIO_LBUF )
+    b = ATOM_line;
+  else /*if ( s->flags & SIO_NBUF )*/
+    b = ATOM_false;
+
+  return PL_unify_atom(prop, b);
+}
 
 
 typedef struct
@@ -1929,6 +1966,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_reposition1,    stream_reposition_prop },
   { FUNCTOR_type1,    	    stream_type_prop },
   { FUNCTOR_file_no1,	    stream_file_no_prop },
+  { FUNCTOR_buffer1,	    stream_buffer_prop },
   { 0,			    NULL }
 };
 

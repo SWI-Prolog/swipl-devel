@@ -1816,7 +1816,7 @@ reading will raise an error. With action \const{reset}, Prolog will
 examine the file again and return more data if the file has grown.
 
     \termitem{buffer}{Buffering}
-Defines output buffering. The atom \const{fullf} (default) defines full
+Defines output buffering. The atom \const{full} (default) defines full
 buffering, \const{line} buffering by line, and \const{false} implies the
 stream is fully unbuffered.  Smaller buffering is useful if another
 process or the user is waiting for the output as it is being produced.
@@ -1890,11 +1890,17 @@ stream has a \jargon{seek-function} and is not based on a POSIX
 file-descriptor that is not associated to a regular file.
     \termitem{type}{T}
 Unify \arg{Bool} with \const{text} or \const{binary}.
+
     \termitem{file_no}{Integer}
 If the stream is associated with a POSIX file-descriptor, unify
 \arg{Integer} with the descriptor number.  SWI-Prolog extension used
 primarily for integration with foreign code.  See also Sfileno() from
 \file{SWI-Stream.h}.
+
+    \termitem{buffer}{Buffering}
+SWI-Prolog extension to query the buffering mode of this stream. 
+\arg{Buffering} is one of \const{full}, \const{line} or \const{false}.
+See also open/4.
 \end{description}
     \predicate{current_stream}{3}{?Object, ?Mode, ?Stream}
 The predicate current_stream/3 is used to access the status of a
@@ -1922,13 +1928,21 @@ raised. The predicate seek/4 is compatible to Quintus Prolog, though the
 error conditions and signalling is ISO compliant. See also
 stream_position/3.
     \predicate{set_stream}{2}{+Stream, +Attribute}
-Modify an attribute of an existing stream. \arg{Attribute} is in the
-current implemention only \term{alias}{AliasName} to set the alias of an
-already created stream. If \arg{AliasName} is the name of one of the
-standard streams is used, this stream is rebound. Thus,
-\exam{set_stream(S, current_input)} is the same as set_input/1 and by
-setting the alias of a stream to \const{user_input}, etc.\ all user
+Modify an attribute of an existing stream. \arg{Attribute} specifies
+the stream property to set.  See also stream_property/2 and open/4.
+
+\begin{description}
+    \termitem{alias}{AliasName}
+Set the alias of an already created stream. If \arg{AliasName} is the
+name of one of the standard streams is used, this stream is rebound.
+Thus, \exam{set_stream(S, current_input)} is the same as set_input/1 and
+by setting the alias of a stream to \const{user_input}, etc.\ all user
 terminal input is read from this stream. See also interactor/0.
+
+    \termitem{buffer}{Buffering}
+Set the buffering mode of an already created stream.  Buffering is one
+of \const{full}, \const{line} or \const{false}.
+\end{description}
 \end{description}
 
 \subsection{Switching Between Implicit and Explicit I/O}

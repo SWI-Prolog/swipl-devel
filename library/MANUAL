@@ -4024,7 +4024,7 @@ ooppeenn((_+_S_r_c_D_e_s_t_, _+_M_o_d_e_, _-_S_t_r_e_a
          more data if the file has grown.
 
     bbuuffffeerr((_B_u_f_f_e_r_i_n_g))
-         Defines output  buffering.   The atom  fullf (default)  defines
+         Defines output  buffering.    The atom  full (default)  defines
          full buffering, line buffering  by line, and false implies  the
          stream is  fully unbuffered.   Smaller  buffering is useful  if
          another process or the user is waiting for the output  as it is
@@ -4115,6 +4115,11 @@ ssttrreeaamm__pprrooppeerrttyy((_?_S_t_r_e_a_m_, _?_S_
          unify  _I_n_t_e_g_e_r  with   the  descriptor  number.      SWI-Prolog
          extension used  primarily  for integration  with foreign  code.
          See also Sfileno() from SWI-Stream.h.
+
+    bbuuffffeerr((_B_u_f_f_e_r_i_n_g))
+         SWI-Prolog  extension  to query  the  buffering  mode  of  this
+         stream.   _B_u_f_f_e_r_i_n_g is one of  full, line or  false.  See  also
+         open/4.
 
 
 ccuurrrreenntt__ssttrreeaamm((_?_O_b_j_e_c_t_, _?_M_o_d_e_, _?_S_t_r_e_a_m))
@@ -4148,13 +4153,20 @@ sseeeekk((_+_S_t_r_e_a_m_, _+_O_f_f_s_e_t_, _+_M_e_t_h
 
 
 sseett__ssttrreeaamm((_+_S_t_r_e_a_m_, _+_A_t_t_r_i_b_u_t_e))
-    Modify  an attribute of  an existing  stream.   _A_t_t_r_i_b_u_t_e is in  the
-    current  implemention  only alias(_A_l_i_a_s_N_a_m_e)  to  set the  alias  of
-    an  already created  stream.   If _A_l_i_a_s_N_a_m_e  is the name  of one  of
-    the  standard  streams is  used,  this stream  is  rebound.    Thus,
-    set_stream(S, current_input)  is  the same  as  set_input/1  and  by
-    setting the  alias of a stream to user_input,  etc. all user terminal
-    input is read from this stream.  See also interactor/0.
+    Modify an attribute  of an existing stream.  _A_t_t_r_i_b_u_t_e specifies the
+    stream property to set.  See also stream_property/2 and open/4.
+
+    aalliiaass((_A_l_i_a_s_N_a_m_e))
+         Set the alias  of an already created  stream.  If _A_l_i_a_s_N_a_m_e  is
+         the name of  one of the standard  streams is used, this  stream
+         is rebound.  Thus,  set_stream(S, current_input)is the  same as
+         set_input/1 and by setting the alias of a stream to user_input,
+         etc. all  user terminal input is  read from this  stream.   See
+         also interactor/0.
+
+    bbuuffffeerr((_B_u_f_f_e_r_i_n_g))
+         Set  the   buffering  mode  of   an  already  created   stream.
+         Buffering is one of full, line or false.
 
 
 33..1166..33 SSwwiittcchhiinngg BBeettwweeeenn IImmpplliicciitt aanndd EExxpplliicciitt II//OO
@@ -9287,6 +9299,9 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
     PL_FLOAT ddoouubbllee
          Unify the argument with a float, as in PL_unify_float().
 
+    PL_POINTER vvooiidd **
+         Unify the argument with a pointer, as in PL_unify_pointer().
+
     PL_STRING ccoonnsstt cchhaarr **
          Unify   the   argument   with   a   string   object,    as   in
          PL_unify_string_chars().
@@ -11600,7 +11615,9 @@ hhttttpp__llooccaattiioonn((_?_P_a_r_t_s_, _?_L_o_c_a_
     HTTP  URL. That is,  the path, search and  fragment specifiers.   In
     the HTTP protocol, the first line of a message is
 
-         _A_c_t_i_o_n _L_o_c_a_t_i_o_n HTTP/_H_t_t_p_V_e_r_s_i_o_n
+         _A_c_t_i_o_n _L_o_c_a_t_i_o_n [HTTP/_H_t_t_p_V_e_r_s_i_o_n]
+
+    _L_o_c_a_t_i_o_n is either an atom or a code-list.
 
 
 wwwwww__ffoorrmm__eennccooddee((_?_V_a_l_u_e_, _?_W_w_w_F_o_r_m_E_n_c_o_d_e_d))
@@ -13194,7 +13211,7 @@ file_search_path/2,  31,  33,  73,     statistics/0, 561
       79,   81,  632,  816,  829,      statistics/2, 401, 560
       832, 835                         stream_property/2, 229
 fileerrors/2, 53, 244                  stream_position/3, 224, 232, 300
-findall/3, 434, 619                    stream_property/2, 231
+findall/3, 434, 619                    stream_property/2, 231, 233
 flag/3, 53, 193, 205                   string/1, 114, 452
 flatten/2, 417                         string_concat/3, 337
 float/1, 111, 355, 373                 string_length/2, 336
@@ -13410,7 +13427,7 @@ online_help _l_i_b_r_a_r_y, 887
 op/3, 21, 69, 197, 285, 340, 341
 open/3, 53, 223, 225
 open/4,  13, 70,  224, 225,  229,
-      281, 850, 851
+      233, 281, 850, 851
 open_dde_conversation/3, 577
 open_null_stream/1, 226
 open_resource/3, 833
