@@ -106,7 +106,7 @@ triples(description(Type, IdAbout, BagId, Props), Subject) -->
 		   | Props
 		   ], BagId, Subject).
 triples(unparsed(Data), Id) -->
-	{ make_id('Error__', Id),
+	{ make_id('__Error', Id),
 	  print_message(error, rdf(unparsed(Data)))
 	},
 	[].
@@ -149,9 +149,9 @@ container_id(Type, Id) :-
 	container_base(Type, Base),
 	make_id(Base, Id).
 
-container_base('Bag', 'Bag__').
-container_base('Seq', 'Seq__').
-container_base('Alt', 'Alt__').
+container_base('Bag', '__Bag').
+container_base('Seq', '__Seq').
+container_base('Alt', '__Alt').
 
 
 		 /*******************************
@@ -166,7 +166,7 @@ rdf_reset_node_ids :-
 
 description_id(Id, Id) :-
 	var(Id), !,
-	make_id('Description__', Id).
+	make_id('__Description', Id).
 description_id(about(Id), Id).
 description_id(id(Id), Id).
 description_id(each(Id), each(Id)).
@@ -174,7 +174,7 @@ description_id(prefix(Id), prefix(Id)).
 description_id(node(NodeID), Id) :-
 	(   node_id(NodeID, Id)
 	->  true
-	;   make_id('Node__', Id),
+	;   make_id('__Node', Id),
 	    assert(node_id(NodeID, Id))
 	).
 
@@ -268,7 +268,7 @@ statement(Subject, Pred, Object, Id, BagH, BagT) -->
 statement_id(Id) :-
 	nonvar(Id), !.
 statement_id(Id) :-
-	make_id('Statement__', Id).
+	make_id('__Statement', Id).
 
 %	li_pred(+Pred, -Pred, +Nth, -NextNth)
 %	
@@ -288,7 +288,7 @@ collection([], rdf:nil) -->
 	[].
 collection([H|T], Id) -->
 	triples(H, HId),
-	{ make_id('List__', Id)
+	{ make_id('__List', Id)
 	},
 	[ rdf(Id, rdf:type, rdf:'List'),
 	  rdf(Id, rdf:first, HId),
@@ -311,13 +311,13 @@ make_id(For, ID) :-
 make_id(For, ID) :-
 	gensym(For, ID).
 
-anon_base('Bag__').
-anon_base('Seq__').
-anon_base('Alt__').
-anon_base('Description__').
-anon_base('Statement__').
-anon_base('List__').
-anon_base('Node__').
+anon_base('__Bag').
+anon_base('__Seq').
+anon_base('__Alt').
+anon_base('__Description').
+anon_base('__Statement').
+anon_base('__List').
+anon_base('__Node').
 
 %	rdf_reset_ids
 %

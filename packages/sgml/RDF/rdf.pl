@@ -58,7 +58,7 @@ xml_to_rdf(XML, BaseURI, Triples) :-
 
 set_anon_prefix([], []) :- !.
 set_anon_prefix(BaseURI, [Ref]) :-
-	atom_concat(BaseURI, '#', AnonBase),
+	concat_atom(['__', BaseURI, '#'], AnonBase),
 	asserta(anon_prefix(AnonBase), Ref).
 
 cleanup_load(Refs) :-

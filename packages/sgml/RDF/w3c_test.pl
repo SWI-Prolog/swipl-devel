@@ -419,13 +419,8 @@ compare_field(X, node(Id), S, [X=Id|S]) :-
 	sub_atom(X, 0, _, _, Prefix), !,
 	feedback('Assume ~w = ~w~n', [X, node(Id)]).
 
-generated_prefix('Bag__').
-generated_prefix('Seq__').
-generated_prefix('Alt__').
-generated_prefix('Description__').
-generated_prefix('Statement__').
-generated_prefix('Node__').
-generated_prefix('List__').
+generated_prefix(Prefix) :-
+	rdf_truple:anon_base(Prefix).
 
 %	compare_bags(+Members1, +Members2, +S0, -S)
 %	

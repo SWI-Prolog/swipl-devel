@@ -1,3 +1,7 @@
+Aug 18, 2003
+
+  * Guarantee that anonymous ids start with __
+
 Mar 20, 2003
 
   * Fixed exception in cleanup.  Dominique de Waleffe.

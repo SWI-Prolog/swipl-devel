@@ -1,6 +1,7 @@
 \documentclass[11pt]{article}
 \usepackage{pl}
 \usepackage{html}
+\usepackage{times}
 
 \onefile
 \htmloutput{html}				% Output directory
@@ -25,7 +26,7 @@
 \begin{abstract}
 \url[RDF]{http://www.w3.org/RDF/} ({\bf R}esource {\bf D}escription {\bf
 F}ormat) is a \url[W3C]{http://www.w3.org/} standard for expressing
-meta-data about web-resources. It has three representations providing
+meta-data about web-resources. It has two representations providing
 the same semantics. RDF documents are normally transferred as XML
 documents using the RDF-XML syntax. This format is unsuitable for
 processing. The parser defined here converts an RDF-XML document into
