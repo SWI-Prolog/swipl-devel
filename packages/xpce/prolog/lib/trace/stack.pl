@@ -239,8 +239,15 @@ up(B, Times:[int]) :->
 step(0, _, _, V, V) :- !.
 step(N, B, child, V, V2) :-
 	get(V, hypered, child, Ch), !,
-	NN is N - 1,
-	step(NN, B, child, Ch, V2).
+	(   get(Ch, frame_reference, Frame),
+	    prolog_frame_attribute(Frame, goal, Goal),
+	    predicate_property(user:Goal, foreign),
+	    get(Ch, hypered, child, Ch2)
+	->  NN is N - 1,
+	    step(NN, B, child, Ch2, V2)
+	;   NN is N - 1,
+	    step(NN, B, child, Ch, V2)
+	).
 step(N, B, parent, V, V2) :-
 	get(V, frame_reference, Frame),
 	prolog_parent(Frame, Parent, PC),

@@ -131,9 +131,14 @@ do_intercept(call, Frame, BFR, Action) :-
 do_intercept(exit, Frame, BFR, Action) :-
 	(   %last_action(finish)
 	    prolog_frame_attribute(Frame, goal, Goal),
-	    \+(	predicate_property(Goal, built_in)
-	      ;	predicate_property(Goal, foreign)
-	      )
+	    \+(( predicate_property(Goal, built_in)
+	       ; predicate_property(Goal, foreign)
+	      )),
+	    \+(( last_action(skip),
+		 prolog_skip_level(L,L),
+		 prolog_frame_attribute(Frame, level, FL),
+		 FL >= L
+	      ))
 	->  show(Frame, BFR, 0, exit),
 	    action(Action)
 	;   last_action(leap)
