@@ -203,8 +203,8 @@ getCellTable(Table tab, Any x, Any y)
 		 *	       BUILDING		*
 		 *******************************/
 
-static void
-row_range(Table tab, int *ymin, int *ymax)
+void
+table_row_range(Table tab, int *ymin, int *ymax)
 { Vector rows = tab->rows;
 
   *ymin = valInt(getLowIndexVector(rows));
@@ -212,14 +212,14 @@ row_range(Table tab, int *ymin, int *ymax)
 }
 
 
-static void
-col_range(Table tab, int *xmin, int *xmax)
+void
+table_column_range(Table tab, int *xmin, int *xmax)
 { Vector rows = tab->rows;
   int low=0, high=0;
   int y, ymin, ymax;
   int first = TRUE;
 
-  row_range(tab, &ymin, &ymax);
+  table_row_range(tab, &ymin, &ymax);
 
   for(y=ymin; y<=ymax; y++)
   { TableRow row = getElementVector(rows, toInt(y));
@@ -248,7 +248,7 @@ static Tuple
 getColumnRangeTable(Table tab)
 { int cmin, cmax;
 
-  col_range(tab, &cmin, &cmax);
+  table_column_range(tab, &cmin, &cmax);
   
   answer(answerObject(ClassTuple, toInt(cmin), toInt(cmax), 0));
 }
@@ -258,7 +258,7 @@ static Tuple
 getRowRangeTable(Table tab)
 { int rmin, rmax;
 
-  row_range(tab, &rmin, &rmax);
+  table_row_range(tab, &rmin, &rmax);
   
   answer(answerObject(ClassTuple, toInt(rmin), toInt(rmax), 0));
 }
@@ -401,7 +401,7 @@ deleteRowTable(Table tab, TableRow row)
 { int i, rown = valInt(row->index);
   int rmin, rmax;
 
-  row_range(tab, &rmin, &rmax);
+  table_row_range(tab, &rmin, &rmax);
 					/* deal with cells spanned over */
 					/* this row */
   for_vector_i(row, TableCell cell, i,
@@ -445,7 +445,7 @@ deleteColumnTable(Table tab, TableColumn col)
   int y, rmin, rmax;
   int x, cmax;
 
-  row_range(tab, &rmin, &rmax);
+  table_row_range(tab, &rmin, &rmax);
   cmax = valInt(getHighIndexVector(tab->columns));
 
 					/* update the rows */
@@ -526,7 +526,7 @@ static status
 deleteRowsTable(Table tab, Int from, Int to)
 { int y, rmin, rmax, f, t;
 
-  row_range(tab, &rmin, &rmax);
+  table_row_range(tab, &rmin, &rmax);
   if ( isDefault(from) )
   { f = rmin;
   } else
@@ -583,7 +583,7 @@ insertRowTable(Table tab, Int at)
   int here = valInt(at);
   TableRow newrow, movedrow;
 
-  row_range(tab, &ymin, &ymax);
+  table_row_range(tab, &ymin, &ymax);
   for(y=ymax; y>=here; y--)
   { TableRow r2;
 
@@ -622,7 +622,7 @@ insertColumnTable(Table tab, Int at, TableColumn new)
   int here = valInt(at);
   int x, cmax;
 
-  row_range(tab, &ymin, &ymax);
+  table_row_range(tab, &ymin, &ymax);
   cmax = valInt(getHighIndexVector(tab->columns));
 
 					/* make room in row structures */
@@ -723,7 +723,7 @@ sortRowsTable(Table tab, Code cmp, Int from, Int to)
 { int y, ymin, ymax;
   Vector rows = tab->rows;
 
-  row_range(tab, &ymin, &ymax);		/* deteymine row-range */
+  table_row_range(tab, &ymin, &ymax);		/* deteymine row-range */
   if ( notDefault(from) )
     ymin = max(ymin, valInt(from));
   if ( notDefault(to) )
@@ -829,9 +829,10 @@ getSelectionTable(Table tab)
 		 *******************************/
 
 Any
-getCellFromPositionTable(Table tab, Any pos)
+getCellFromPositionTable(Table tab, Any pos, Bool onborder)
 { Point pt;
   int x, y;
+  int tx, ty;				/* X/Y tolerance */
 
   if ( instanceOfObject(pos, ClassPoint) )
     pt = pos;
@@ -845,24 +846,38 @@ getCellFromPositionTable(Table tab, Any pos)
   x = valInt(pt->x);
   y = valInt(pt->y);
 
-  for_rows_table(tab, row,
-		 if ( valInt(row->position) < y &&
-		      valInt(row->position) + valInt(row->width) >= y )
-		 { for_cols_table(tab, col,
-				    if ( valInt(col->position) < x &&
-					 valInt(col->position) +
-					   valInt(col->width) >= x )
-				    { TableCell c;
+  if ( onborder == ON )
+  { tx = valInt(tab->cell_spacing->w);
+    ty = valInt(tab->cell_spacing->h);
 
-				      c = getCellTableRow(row, col->index);
-				      if ( c )
-					answer(c);
-				      else
-					answer(answerObject(ClassPoint,
-							    col->index,
-							    row->index,
-							    0));
+    if ( tx > 0 ) tx = (tx+1)/2;
+    if ( ty > 0 ) ty = (ty+1)/2;
+  } else
+    tx = ty = 0;
+
+  for_rows_table(tab, row,
+		 { int ry = valInt(row->position);
+		   int rh = valInt(row->width);
+
+		   if ( ry-ty < y && ry+rh+ty >= y )
+		   { for_cols_table(tab, col,
+				    { int cx = valInt(col->position);
+				      int cw = valInt(col->width);
+
+				      if ( cx-tx < x && cx+cw+tx >= x )
+				      { TableCell c;
+  
+					c = getCellTableRow(row, col->index);
+					if ( c )
+					  answer(c);
+					else
+					  answer(answerObject(ClassPoint,
+							      col->index,
+							      row->index,
+							      0));
+				      }
 				    });
+		   }
 		 });
 
   fail;
@@ -902,6 +917,44 @@ getCellsInRegionTable(Table tab, Area reg)
   } 
 
   answer(rval);
+}
+
+
+static int
+userResizeSliceTable(Table tab, TableSlice slice, Int size)
+{ if ( instanceOfObject(slice, ClassTableColumn) )
+  { int xmin, xmax;
+
+    table_column_range(tab, &xmin, &xmax);
+    if ( valInt(slice->index) >= xmax )
+    { int tabw = valInt(size) + valInt(slice->position);
+
+      send(tab, NAME_width, toInt(tabw), 0);
+    } else
+    { int i;
+
+      for(i=xmin; i<=xmax; i++)
+      { TableColumn col = getColumnTable(tab, toInt(i), OFF);
+
+	if ( col )
+	  assign(col, fixed, i <= valInt(slice->index) ? ON : OFF);
+      }
+
+      send(slice, NAME_width, size, 0);
+    }
+  } else
+  { int ymin, ymax;
+
+    table_row_range(tab, &ymin, &ymax);
+    if ( valInt(slice->index) >= ymax )
+    { int tabh = valInt(size) + valInt(slice->position);
+
+      send(tab, NAME_height, toInt(tabh), 0);
+    } else
+      send(slice, NAME_height, size, 0);
+  }
+
+  succeed;
 }
 
 
@@ -1156,7 +1209,7 @@ computeRowsTable(Table tab)
   int tborder, bborder;
 
   frame_border(tab, &tborder, NULL, &bborder, NULL);
-  row_range(tab, &ymin, &ymax);
+  table_row_range(tab, &ymin, &ymax);
 
   for(y=ymin; y<=ymax; y++)
   { TableRow row = getRowTable(tab, toInt(y), OFF);
@@ -1209,7 +1262,14 @@ computeColsTable(Table tab)
   int lborder, rborder;
 
   frame_border(tab, NULL, &rborder, NULL, &lborder);
-  col_range(tab, &xmin, &xmax);
+  table_column_range(tab, &xmin, &xmax);
+
+  for(x=xmin; x<=xmax; x++)
+  { TableColumn col = getColumnTable(tab, toInt(x), ON);
+
+    if ( col && col->fixed != ON )
+      send(col, NAME_compute, 0);
+  }
 
   if ( notDefault(tab->width) )
   { int wc = valInt(tab->width) - lborder - rborder - 2*colspacing;
@@ -1228,13 +1288,6 @@ computeColsTable(Table tab)
 			 &s,		/* width to distribute */
 			 colspacing,	/* distance between columns */
 			 TRUE);		/* force alignment */
-  } else
-  { for(x=xmin; x<=xmax; x++)
-    { TableColumn col = getColumnTable(tab, toInt(x), ON);
-
-      if ( col && col->fixed != ON )
-	send(col, NAME_compute, 0);
-    }
   }
 
   if ( (spanned = getSpannedCellsTable(tab, NAME_colSpan)) &&
@@ -1544,14 +1597,14 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
   { if ( sides & BSIDES )
     { int rmin, rmax;
 
-      row_range(tab, &rmin, &rmax);
+      table_row_range(tab, &rmin, &rmax);
       if ( valInt(cell->row) + valInt(cell->row_span) > rmax )
 	sides &= ~BSIDES;
     }
     if ( sides & RSIDES )
     { int cmin, cmax;
 
-      col_range(tab, &cmin, &cmax);
+      table_column_range(tab, &cmin, &cmax);
       if ( valInt(cell->column) + valInt(cell->col_span) > cmax )
 	sides &= ~RSIDES;
     }
@@ -1726,6 +1779,10 @@ static char *T_stretchedColumn[] =
 	{ "column=table_column", "width=int" };
 static char *T_stretchedRow[] =
 	{ "column=table_row", "height=int" };
+static char *T_resizeSlice[] =
+	{ "slice=table_slice", "size=int" };
+static char *T_getCell[] =
+	{ "at=point|event", "allow_border=[bool]" };
 
 /* Instance Variables */
 
@@ -1797,7 +1854,10 @@ static senddecl send_table[] =
   SM(NAME_stretchedColumn, 2, T_stretchedColumn, stretchedSliceTable,
      NAME_compute, "Column has been stretched to this width"),
   SM(NAME_stretchedRow, 2, T_stretchedRow, stretchedSliceTable,
-     NAME_compute, "Row has been stretched to this width")
+     NAME_compute, "Row has been stretched to this width"),
+
+  SM(NAME_userResizeSlice, 2, T_resizeSlice, userResizeSliceTable,
+     NAME_event, "User request to resize row/column")
 };
 
 /* Get Methods */
@@ -1812,7 +1872,7 @@ static getdecl get_table[] =
 
   GM(NAME_selection, 0, "chain", NULL, getSelectionTable,
      NAME_selection, "Chain holding selected cells"),
-  GM(NAME_cellFromPosition, 1, "table_cell|point", "point|event",
+  GM(NAME_cellFromPosition, 2, "table_cell|point", T_getCell,
      getCellFromPositionTable,
      NAME_find, "Translate coordinate to cell or point"),
   GM(NAME_cellsInRegion, 1, "chain", "area",

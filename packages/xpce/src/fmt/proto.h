@@ -14,7 +14,9 @@ status		makeClassLayoutInterface(Class class);
 /* ../src/fmt/table.c */
 TableRow	getRowTable(Table tab, Any y, Bool create);
 TableColumn	getColumnTable(Table tab, Any x, Bool create);
-Any		getCellFromPositionTable(Table tab, Any pos);
+void		table_row_range(Table tab, int *ymin, int *ymax);
+void		table_column_range(Table tab, int *xmin, int *xmax);
+Any		getCellFromPositionTable(Table tab, Any pos, Bool onborder);
 status		changedTable(Table tab);
 void		cell_stretchability(TableCell cell, Name which, stretch *s);
 status		makeClassTable(Class class);

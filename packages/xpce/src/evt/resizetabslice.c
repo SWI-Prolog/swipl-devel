@@ -16,15 +16,19 @@ NewClass(resize_table_slice_gesture)
   Name	mode;				/* column,row */
   Int	row;				/* Number of the row */
   Int	column;				/* Number of the column */
+  Size	min_size;			/* Minimum size of cell */
 End;
 
 
 status
 initialiseResizeTableSliceGesture(ResizeTableSliceGesture g, Name mode,
 				  Name button, Modifier modifier)
-{ initialiseGesture((Gesture) g, button, modifier);
+{ Size ms = getClassVariableValueObject(g, NAME_minSize);
+
+  initialiseGesture((Gesture) g, button, modifier);
 
   assign(g, mode, mode);
+  assign(g, min_size, ms != FAIL ? ms : newObject(ClassSize, 0));
 
   succeed;
 }
@@ -61,7 +65,7 @@ verifyResizeTableSliceGesture(ResizeTableSliceGesture g, EventObj ev)
   TableColumn col;
 
   if ( !(tab = getTableFromEvent(ev)) ||
-       !(down = getCellFromPositionTable(tab, ev)) )
+       !(down = getCellFromPositionTable(tab, ev, ON)) )
     fail;
 
   if ( instanceOfObject(down, ClassTableCell) )
@@ -194,13 +198,13 @@ dragResizeTableSliceGesture(ResizeTableSliceGesture g, EventObj ev)
     { TableColumn col = getColumnTable(tab, g->column, ON);
       int nw = valInt(cx) - valInt(col->position);
 
-      nw = max(0, nw);
+      nw = max(valInt(g->min_size->w), nw);
       send(tab, NAME_userResizeSlice, col, toInt(nw), 0);
     } else
     { TableRow row = getRowTable(tab, g->row, ON);
       int nh = valInt(cy) - valInt(row->position);
 
-      nh = max(0, nh);
+      nh = max(valInt(g->min_size->h), nh);
       send(tab, NAME_userResizeSlice, row, toInt(nh), 0);
     }
 
@@ -232,9 +236,14 @@ static char *T_initialise[] =
 /* Instance Variables */
 
 static vardecl var_resizeGesture[] =
-{ IV(NAME_mode,   "{column,row}", IV_BOTH, NAME_mode,  "Resize rows or columns"),
-  IV(NAME_row,    "int*",         IV_GET,  NAME_event, "Row we are resizing"),
-  IV(NAME_column, "int*",         IV_GET,  NAME_event, "Column we are resizing")
+{ IV(NAME_mode,   "{column,row}", IV_BOTH,
+     NAME_mode, "Resize rows or columns"),
+  IV(NAME_row,    "int*",         IV_GET,
+     NAME_event, "Row we are resizing"),
+  IV(NAME_column, "int*",         IV_GET,
+     NAME_event, "Column we are resizing"),
+  IV(NAME_minSize, "size*", IV_BOTH,
+     NAME_constraint, "Minimum size of the row/column")
 };
 
 /* Send Methods */
@@ -270,7 +279,7 @@ static classvardecl rc_resizeGesture[] =
      "Cursor must be within 1/fraction from edge"),
   RC(NAME_marginWidth, "int", "15",
      "Cursor must be within <max> from edge"),
-  RC(NAME_minSize, "size", "size(3,3)",
+  RC(NAME_minSize, "size", "size(10,10)",
      "Minimum size of cell")
 };
 

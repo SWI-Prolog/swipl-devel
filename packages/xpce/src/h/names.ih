@@ -2310,3 +2310,4 @@
 #define NAME_yref (&builtin_names[2309])
 #define NAME_yrefVar (&builtin_names[2310])
 #define NAME_zoom (&builtin_names[2311])
+#define NAME_userResizeSlice (&builtin_names[2312])
