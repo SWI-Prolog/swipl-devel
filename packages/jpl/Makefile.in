@@ -20,6 +20,7 @@ PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 EXDIR=$(PKGDOC)/examples/jpl
 PCEHOME=../xpce
+DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -96,63 +97,63 @@ EXJAVAS=	Exceptions Exceptions2 Family FamilyMT Test Test2 Time \
 
 
 install:	$(TARGETS) $(LIBPL)
-		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		mkdir -p $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
 		for f in $(TARGETS); do \
-		  $(INSTALL_PROGRAM) $$f $(PLBASE)/lib/$(PLARCH); \
+		  $(INSTALL_PROGRAM) $$f $(DESTDIR)/$(PLBASE)/lib/$(PLARCH); \
 		done
 ifeq (@SO@,dylib)		
-		(cd $(PLBASE)/lib/$(PLARCH) && ln -sf libjpl.@SO@ libjpl.jnilib)
+		(cd $(DESTDIR)/$(PLBASE)/lib/$(PLARCH) && ln -sf libjpl.@SO@ libjpl.jnilib)
 endif
-		mkdir -p $(PLBASE)/library
+		mkdir -p $(DESTDIR)/$(PLBASE)/library
 		for f in $(LIBPL); do \
-		  $(INSTALL_DATA) -m 644 $$f $(PLBASE)/library; \
+		  $(INSTALL_DATA) -m 644 $$f $(DESTDIR)/$(PLBASE)/library; \
 		done
-		$(INSTALL_DATA) jpl.jar $(PLBASE)/lib
+		$(INSTALL_DATA) jpl.jar $(DESTDIR)/$(PLBASE)/lib
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install html-install
 
 html-install::	expl-install exjava-install
-		mkdir -p $(PKGDOC)/jpl
+		mkdir -p $(DESTDIR)/$(PKGDOC)/jpl
 		@echo -n "Creating directories "
 		@for d in $(DOCDIRS); do \
-		    mkdir -p $(PKGDOC)/jpl/$$d; echo -n .; \
+		    mkdir -p $(DESTDIR)/$(PKGDOC)/jpl/$$d; echo -n .; \
 		done
 		@echo "ok"
 		@echo -n "Copying documentation files "
 		@for f in $(DOCFILES); do \
-		    $(INSTALL_DATA) docs/$$f $(PKGDOC)/jpl/$$f; echo -n .; \
+		    $(INSTALL_DATA) docs/$$f $(DESTDIR)/$(PKGDOC)/jpl/$$f; echo -n .; \
 		done
 		@echo "ok"
 
 expl-install::
 		echo "Installing Prolog examples"
-		mkdir -p $(EXPL)
+		mkdir -p $(DESTDIR)/$(EXPL)
 		@for f in $(EXPLS) README; do \
-		    $(INSTALL_DATA) examples/prolog/$$f $(EXPL)/$$f; \
+		    $(INSTALL_DATA) examples/prolog/$$f $(DESTDIR)/$(EXPL)/$$f; \
 		done
 
 exjava-install::
 		echo "Installing Java examples"
-		mkdir -p $(EXJAVA)
-		$(INSTALL_DATA) examples/java/README $(EXJAVA)
-		$(INSTALL_DATA) examples/java/env.sh $(EXJAVA)
+		mkdir -p $(DESTDIR)/$(EXJAVA)
+		$(INSTALL_DATA) examples/java/README $(DESTDIR)/$(EXJAVA)
+		$(INSTALL_DATA) examples/java/env.sh $(DESTDIR)/$(EXJAVA)
 		for d in $(EXJAVAS); do \
-		    mkdir -p $(EXJAVA)/$$d; \
-		    $(INSTALL_SCRIPT) examples/java/$$d/run.sh $(EXJAVA)/$$d ;\
-		    $(INSTALL_DATA) examples/java/$$d/README $(EXJAVA)/$$d ;\
-		    $(INSTALL_DATA) examples/java/$$d/$$d.java $(EXJAVA)/$$d ;\
+		    mkdir -p $(DESTDIR)/$(EXJAVA)/$$d; \
+		    $(INSTALL_SCRIPT) examples/java/$$d/run.sh $(DESTDIR)/$(EXJAVA)/$$d ;\
+		    $(INSTALL_DATA) examples/java/$$d/README $(DESTDIR)/$(EXJAVA)/$$d ;\
+		    $(INSTALL_DATA) examples/java/$$d/$$d.java $(DESTDIR)/$(EXJAVA)/$$d ;\
 		    plfile=`echo $$d.pl | tr A-Z a-z`; \
 		    if [ -f examples/java/$$d/$$plfile ]; then \
-			$(INSTALL_DATA) examples/java/$$d/$$plfile $(EXJAVA)/$$d ;\
+			$(INSTALL_DATA) examples/java/$$d/$$plfile $(DESTDIR)/$(EXJAVA)/$$d ;\
 		    fi; \
-		    (cd $(EXJAVA)/$$d && env JPL_COMPILE_ONLY=yes ./run.sh); \
+		    (cd $(DESTDIR)/$(EXJAVA)/$$d && env JPL_COMPILE_ONLY=yes ./run.sh); \
 		done
-		$(INSTALL_DATA) examples/java/SemWeb/test.rdf $(EXJAVA)/SemWeb
+		$(INSTALL_DATA) examples/java/SemWeb/test.rdf $(DESTDIR)/$(EXJAVA)/SemWeb
 
 pdf-install::
 		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 $(DOC).pdf $(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)/$(PKGDOC)
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))

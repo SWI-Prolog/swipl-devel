@@ -17,6 +17,7 @@ LIBDIR=$(PLBASE)/library
 CLPDIR=$(LIBDIR)/clp
 CLPRDIR=$(CLPDIR)/clpr
 EXDIR=$(PKGDOC)/examples/clpr
+DESTDIR=
 
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
@@ -32,9 +33,9 @@ all::
 		echo "Nothing to be done for this package"
 
 install:	$(CLPRDIR) $(LIBPL)
-		$(INSTALL_DATA) $(LIBPL) $(CLPDIR)
-		(cd clpr && $(INSTALL_DATA) $(CLPRPRIV) $(CLPRDIR))
-		$(INSTALL_DATA) README $(CLPRDIR)
+		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)/$(CLPDIR)
+		(cd clpr && $(INSTALL_DATA) $(CLPRPRIV) $(DESTDIR)/$(CLPRDIR))
+		$(INSTALL_DATA) README $(DESTDIR)/$(CLPRDIR)
 
 $(CLPRDIR):
 		mkdir -p $@
@@ -47,7 +48,7 @@ html-install:	install-examples
 
 install-examples::
 #		mkdir -p $(EXDIR)
-#		(cd Examples && $(INSTALL_DATA) $(EXAMPLES) $(EXDIR))
+#		(cd Examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)/$(EXDIR))
 
 uninstall:
 		(cd $(CLPDIR) && rm -f $(LIBPL))

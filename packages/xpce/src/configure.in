@@ -12,7 +12,6 @@ AC_SUBST(PLLD)
 AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
-AC_SUBST(BOOTPL)
 AC_SUBST(PLINCL)
 AC_SUBST(XLIB)
 AC_SUBST(XINCLUDES)
@@ -51,6 +50,7 @@ AC_SUBST(QPBIN)
 AC_SUBST(QPPATH)
 AC_SUBST(SP_PATH)
 AC_SUBST(VWS)
+AC_SUBST(DLLIBVAR)
 
 dnl Link to X11.  Only Cygwin version doesn't do this
 
@@ -172,6 +172,7 @@ if test "$swipl" != "no"; then
      else
          PLBUILD="`(cd ../../../$BUILDDIR && pwd)`/$PL"
          PLLD="`(cd ../.. && pwd)`/plld.sh"
+         PLBUILD="`(cd ../.. && pwd)`/pl.sh"
      fi
   fi
   PLNAME=`basename $PL`
@@ -248,7 +249,6 @@ fi
 
 if test "$MAKE_SHARED_OBJECT" = "yes"; then
   PLTARGET=soall			 # Link XPCE dynamically to prolog
-  BOOTPL="$PL"
   
   AC_MSG_CHECKING("Extension for shared objects")
   if test ! -z "$PLSOEXT"; then
@@ -263,6 +263,8 @@ if test "$MAKE_SHARED_OBJECT" = "yes"; then
     esac
   fi
   AC_MSG_RESULT("$SO")
+
+  DLLIBVAR=LD_LIBRARY_PATH
 
   if test ! -z "$GCC"; then
     AC_MSG_CHECKING("Looking for -lgcc")
@@ -404,6 +406,7 @@ EOF
 	;;
     *aix*)
         LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
+	DLLIBVAR=LIBPATH
 	undefine([__unix__])
 	AC_DEFINE(__unix__, 1, "Define if your system is Unix-like")
 	QPENTRIES=entries.c
@@ -432,16 +435,15 @@ EOF
     *darwin*)
 	LD=plld
 	LDSOFLAGS="-shared"
+	DLLIBVAR=DYLD_LIBRARY_PATH
 	GCCLIB=""
-	CMFLAGS=`echo $CMFLAGS | sed 's/-fPIC//'`
-	CMFLAGS="$CMFLAGS -no-cpp-precomp -fno-common"
+	CMFLAGS=`echo $CMFLAGS | sed 's/-fPIC/-fno-common/'`
+	CMFLAGS="$CMFLAGS -no-cpp-precomp"
 	AC_DEFINE(__unix__)
 	;;
     *)
 	;;
   esac
-else
-  BOOTPL=xpce
 fi
 
 
@@ -989,7 +991,7 @@ rm -rf conftest*
 dnl See which parts of the sources are there, and check the Makefiles we
 dnl need to update.  You cannot call AC_OUTPUT more then once!
 
-Makefiles="Makefile ../xpce.spec"
+Makefiles="Makefile ../xpce.spec xpce.sh"
 Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot ../sicstus/src ../prolog/lib"
 OptionalMakefiles="../pl/src/Makefile.bin"
 for d in $Makedirs; do
@@ -1008,5 +1010,8 @@ dnl around making this variable global.
 
 srcdir=`cd $srcdir && pwd`
 
+AC_CONFIG_COMMANDS([exe],
+		   [ chmod +x xpce.sh
+		   ])
 AC_OUTPUT($Makefiles)
 

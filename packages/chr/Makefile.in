@@ -16,6 +16,7 @@ PCEHOME=../../xpce
 LIBDIR=$(PLBASE)/library
 CHRDIR=$(LIBDIR)/chr
 EXDIR=$(PKGDOC)/examples/chr
+DESTDIR=
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
@@ -61,9 +62,9 @@ chr.pl:		chr_swi.pl
 		cp $< $@
 
 install:	$(CHRDIR) $(LIBPL)
-		$(INSTALL) -m 644 $(LIBPL) $(CHRDIR)
-		$(INSTALL) -m 644 $(CHRPL) $(LIBDIR)/chr.pl
-		$(INSTALL) -m 644 README   $(CHRDIR)
+		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)/$(CHRDIR)
+		$(INSTALL) -m 644 $(CHRPL) $(DESTDIR)/$(LIBDIR)/chr.pl
+		$(INSTALL) -m 644 README   $(DESTDIR)/$(CHRDIR)
 		$(PL) -f none -g make -t halt
 
 $(CHRDIR):
@@ -77,7 +78,7 @@ html-install:	install-examples
 
 install-examples::
 		mkdir -p $(EXDIR)
-		(cd Examples && $(INSTALL_DATA) $(EXAMPLES) $(EXDIR))
+		(cd Examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)/$(EXDIR))
 
 uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))

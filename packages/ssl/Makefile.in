@@ -19,6 +19,7 @@ PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=$(PLBASE)/xpce
 EXDIR=$(PKGDOC)/examples/ssl
+DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -57,12 +58,12 @@ ssl4pl.@SO@:	$(SSLOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(SSLOBJ) $(LIBS)
 
 install:	$(TARGETS) $(LIBPL)
-		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		mkdir -p $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
 		for f in $(TARGETS); do \
-		  $(INSTALL) -m 755 $$f $(PLBASE)/lib/$(PLARCH); \
+		  $(INSTALL) -m 755 $$f $(DESTDIR)/$(PLBASE)/lib/$(PLARCH); \
 		done
 		for f in $(LIBPL); do \
-		  $(INSTALL) -m 644 $$f $(PLBASE)/library; \
+		  $(INSTALL) -m 644 $$f $(DESTDIR)/$(PLBASE)/library; \
 		done
 		$(PL) -f none -g make -t halt
 
@@ -70,15 +71,15 @@ rpm-install:	install
 
 html-install:	install-examples
 		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 $(DOC).html $(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)/$(PKGDOC)
 
 pdf-install:	install-examples
 		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 $(DOC).pdf $(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)/$(PKGDOC)
 
 install-examples::
 		mkdir -p $(EXDIR)
-		$(INSTALL_DATA) $(EXAMPLES) $(EXDIR)
+		$(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)/$(EXDIR)
 		cp -r etc $(EXDIR)
 
 uninstall::

@@ -20,6 +20,8 @@ else
 fi
 AC_MSG_RESULT("		PLBASE=$PLBASE")
 AC_MSG_RESULT("		PLARCH=$PLARCH")
+else
+PL=../pl.sh
 fi
 
 AC_CHECK_PROGS(MAKE, gmake make, "make")

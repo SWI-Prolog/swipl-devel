@@ -51,6 +51,7 @@ AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
 AC_CHECK_PROGS(RUNTEX, runtex, ":")
 else
 PLLD=../plld.sh
+PL=../pl.sh
 RUNTEX=../../man/runtex
 fi
 
