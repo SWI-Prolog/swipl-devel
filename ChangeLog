@@ -10,7 +10,8 @@
 VERSION 5.1.10 (Mar 14, 2003)
 =============================
 
-  * FIXED: Avoid thread_signal/2 to signal a just-exited thread.
+  * FIXED: Avoid thread_signal/2 to signal a just-exited thread.  More
+    patches here ...
 
   * ADDED: New execution profiler providing much more readable and detailed
     output.

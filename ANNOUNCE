@@ -1,4 +1,4 @@
-SWI-Prolog 5.1.9/XPCE 6.1.9 Summary of changes
+SWI-Prolog 5.1.10/XPCE 6.1.10 Summary of changes
 
 Status
 ======
@@ -14,6 +14,10 @@ Status
 
 SWI-Prolog
 ==========
+
+  * Replaced the execution profiler with a complete new call-statistics
+    gathering system and a GUI frontent to browse the results.  See
+    http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/profile.html
 
   * Get Richard O'Keefs fast `natural-merge' sort to replace sort,
     msort and keysort.  Saves space on the first 2 and a huge performance
@@ -33,12 +37,19 @@ SWI-Prolog
 Packages
 ========
 
+  * Make socket library handle Prolog signals, so it can be used together
+    with call_with_time_limit/2 and thread_signal/2.
+
+  * Better handling of errors in the Windows version of the socket library.
+
 Development environment
 =======================
 
   * Handle aborts more gracefully (still not perfect).
 
   * Print human-readable exceptions in the GUI-Tracer.
+  
+  * PceEmacs colouring mode to do more with XPCE classes
 
 Short-term Plans
 ================
