@@ -576,3 +576,15 @@ PL_unify_bool_ex(term_t t, bool val)
 }
 
 
+int
+PL_get_arg_ex(int n, term_t term, term_t arg)
+{ if ( PL_get_arg(n, term, arg) )
+    succeed;
+  else
+  { term_t a = PL_new_term_ref();
+
+    PL_put_integer(a, n);
+
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, a);
+  }
+}

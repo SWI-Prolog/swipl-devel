@@ -497,6 +497,9 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A natural		"natural"
+A frame_reference	"frame_reference"
+A frame_attribute	"frame_attribute"
 
 F abs			1
 F acos			1

@@ -1376,11 +1376,10 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   int arity;
   term_t result = PL_new_term_ref();
 
-  if ( !PL_get_frame(frame, &fr) ||
-       !PL_get_name_arity(what, &key, &arity) )
-  { ierr:
-    return warning("prolog_frame_attribute/3: instantiation fault");
-  }
+  if ( !PL_get_frame(frame, &fr) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_frame_reference, frame);
+  if ( !PL_get_name_arity(what, &key, &arity) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, what);
 
   set(fr, FR_WATCHED);			/* explicit call to do this? */
 
@@ -1389,8 +1388,10 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
     int argn;
     Word p = valTermRef(value);
 
-    if ( !PL_get_arg(1, what, arg) || !PL_get_integer(arg, &argn) || argn < 1 )
-      goto ierr;
+    if ( !PL_get_arg_ex(1, what, arg) || !PL_get_integer_ex(arg, &argn) )
+      fail;
+    if ( argn < 1 )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, arg);
 
     if ( true(fr->predicate, FOREIGN) || !fr->clause )
     { if ( argn > fr->predicate->functor->arity )
@@ -1414,8 +1415,11 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
    fail;
   }
+
   if ( arity != 0 )
-    goto ierr;
+  { unknown_key:
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_frame_attribute, what);
+  }
 
   if (        key == ATOM_level)
   { PL_put_integer(result, levelFrame(fr));
@@ -1492,7 +1496,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
     PL_put_atom(result, a);
   } else
-    return warning("prolog_frame_attribute/3: unknown key");
+    goto unknown_key;
 
   return PL_unify(value, result);
 }

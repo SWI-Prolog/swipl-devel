@@ -485,3 +485,6 @@
 #define ATOM_yfx          MK_ATOM(484)
 #define ATOM_yfy          MK_ATOM(485)
 #define ATOM_zero_divisor MK_ATOM(486)
+#define ATOM_natural      MK_ATOM(487)
+#define ATOM_frame_reference MK_ATOM(488)
+#define ATOM_frame_attribute MK_ATOM(489)

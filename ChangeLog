@@ -1,7 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * PORT: Various MacOS X (darwin) issues.  Work in progress.
+  * ENHANCED: Replaced some more warnings with exceptions in pl-trace.c
+
+  * PORT: Port to MacOS X (darwin):
+	- Various BSD enhancement to configure
+	- Make plld aware of the -bundle -bundle_loader stuff
+	- Deal with foreign symbols starting with a _
+	- Resolve some macro conflicts
 
   * MODIFIED: compiling/0 now also succeed during execution of all directives
     when compiling a state or qlf file.
