@@ -76,7 +76,8 @@ fetch_description(Obj, Description) :-
 	;   get(Obj, man_attribute, description, S0)
 	;   get(Obj, man_inherited_attribute, description, tuple(From, S0)),
 	    \+ excluded(Obj, From, S0)
-	;   get(Obj, summary, S0)
+	;   send(Obj, has_get_method, summary),
+	    get(Obj, summary, S0)
 	;   new(S0, string),
 	    send(S0, lock_object, @on)
 	),
