@@ -150,6 +150,23 @@ typedef struct triple
 } triple;
 
 
+typedef enum
+{ TR_MARK,				/* mark start for nesting */
+  TR_ASSERT,				/* rdf_assert */
+  TR_RETRACT,				/* rdf_retractall */
+  TR_UPDATE,				/* rdf_update */
+  TR_RESET				/* rdf_reset_db */
+} tr_type;
+
+
+typedef struct transaction_record
+{ struct transaction_record    *previous;
+  tr_type			type;
+  triple		       *triple;		/* new/deleted triple */
+  triple		       *triple2; 	/* used for update */
+} transaction_record;
+
+
 #if defined(_REENTRANT) && defined(WIN32)
 enum
 { SIGNAL     = 0,
@@ -184,6 +201,8 @@ typedef struct rdf_db
   source      **source_table;		/* Hash table of sources */
   int      	source_table_size;	/* Entries in table */
   source	*last_source;		/* last accessed source */
+  transaction_record *tr_head;		/* pending transactions */
+  transaction_record *tr_tail;		/* tail of the list */
 #ifdef _REENTRANT
 #ifdef WIN32
   CRITICAL_SECTION	mutex;

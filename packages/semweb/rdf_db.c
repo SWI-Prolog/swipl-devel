@@ -139,6 +139,12 @@ static int	permission_error(const char *op, const char *type,
 
 #ifdef WIN32
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This  is  a  slightly  simplified  version  of  the  condition  variable
+emulation used in SWI-Prolog. We have   deleted the broadcast facilities
+of the CVs as this is not used in this code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int 
 win32_cond_init(win32_cond_t *cv)
 { cv->events[SIGNAL]    = CreateEvent(NULL, FALSE, FALSE, NULL);
