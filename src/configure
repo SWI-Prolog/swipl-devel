@@ -3939,8 +3939,10 @@ rm -fr conftest*
 
 if test "$ac_cv_func_mmap" = "yes" -a "$configmmappedstacks" = "yes"; then
 
+mmap_tried=segv;
+while test ! "$MMAP_STACK" = "1" -a ! $mmap_tried = "stop"; do
 echo $ac_n "checking "if we can use mmap for stack allocation"""... $ac_c" 1>&6
-echo "configure:3944: checking "if we can use mmap for stack allocation"" >&5
+echo "configure:3946: checking "if we can use mmap for stack allocation"" >&5
 echo '#include "confdefs.h"' > conftest.c
 cat $srcdir/test/mmap.c >> conftest.c
 (eval $ac_link) 2>&5
@@ -3962,27 +3964,9 @@ EOF
     else
 	echo "$ac_t"""mmap is not good enough"" 1>&6
     fi
-    if test ! -z "$MMAP_MIN_ADDRESS"; then
-	cat >> confdefs.h <<EOF
-#define MMAP_MIN_ADDRESS $MMAP_MIN_ADDRESS
-EOF
-
-    fi
-    if test ! -z "$MMAP_MAX_ADDRESS"; then
-	cat >> confdefs.h <<EOF
-#define MMAP_MAX_ADDRESS $MMAP_MAX_ADDRESS
-EOF
-
-    fi
     if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
 	cat >> confdefs.h <<\EOF
 #define SIGNAL_HANDLER_PROVIDES_ADDRESS 1
-EOF
-
-    fi
-    if test ! -z "$TOPOFHEAP"; then
-	cat >> confdefs.h <<EOF
-#define TOPOFHEAP $TOPOFHEAP
 EOF
 
     fi
@@ -3990,15 +3974,27 @@ else
     echo "$ac_t"""could not compile mmap test"" 1>&6;
 fi
 rm -fr conftest*
+if test ! "$MMAP_STACK" = "1" -a "$mmap_tried" = "segv"; then
+    mmap_tried=nosegv
+    cat >> confdefs.h <<\EOF
+#define NO_SEGV_HANDLING 1
+EOF
+
+    echo $ac_n "checking "Retrying without handling SEGV"""... $ac_c" 1>&6
+echo "configure:3985: checking "Retrying without handling SEGV"" >&5
+else
+    mmap_tried=stop
+fi
+done
 fi # mmap
 
 if test "$configloadforeign" = "yes"; then
 
 
 echo $ac_n "checking "foreign C-interface"""... $ac_c" 1>&6
-echo "configure:4000: checking "foreign C-interface"" >&5
+echo "configure:3996: checking "foreign C-interface"" >&5
 cat > conftest.$ac_ext <<EOF
-#line 4002 "configure"
+#line 3998 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -4011,7 +4007,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:4015: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4011: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   cat >> confdefs.h <<\EOF
 #define O_AIX_FOREIGN 1
@@ -4031,7 +4027,7 @@ rm -f conftest*
 
 if test "$ac_foreign" != "yes"; then
 cat > conftest.$ac_ext <<EOF
-#line 4035 "configure"
+#line 4031 "configure"
 #include "confdefs.h"
 
 #include <rld.h>
@@ -4046,7 +4042,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:4050: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4046: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   cat >> confdefs.h <<\EOF
 #define O_MACH_FOREIGN 1
@@ -4065,7 +4061,7 @@ fi
 if test "$ac_foreign" != "yes"; then
 echo "$ac_t"""no OS supported incremental linking"" 1>&6
 echo $ac_n "checking "for ld -A"""... $ac_c" 1>&6
-echo "configure:4069: checking "for ld -A"" >&5
+echo "configure:4065: checking "for ld -A"" >&5
 cat > conftest.c <<EOF
 int itf(){return 1;}
 int main(int argc, char **argv){ return 0; }
@@ -4087,9 +4083,9 @@ EOF
     echo "$ac_t""yes" 1>&6
 rm -rf conftest*
 echo $ac_n "checking "BSD a.out based loading"""... $ac_c" 1>&6
-echo "configure:4091: checking "BSD a.out based loading"" >&5
+echo "configure:4087: checking "BSD a.out based loading"" >&5
 cat > conftest.$ac_ext <<EOF
-#line 4093 "configure"
+#line 4089 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -4101,7 +4097,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:4105: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4101: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   cat >> confdefs.h <<\EOF
 #define O_FOREIGN 1

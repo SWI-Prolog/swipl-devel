@@ -2012,21 +2012,9 @@ pl_statistics(term_t k, term_t value)
   else if (key == ATOM_locallimit)
     result = makeNum(limitStack(local));
   else if (key == ATOM_heaplimit)			/* heap */
-#ifdef MMAP_STACK
-  { ulong heap = (ulong)gBase - heap_base;
-    result = makeNum(heap);
-  }
-#else
     fail;
-#endif
   else if (key == ATOM_heap)
-#ifdef MMAP_STACK
-  { ulong heap = (ulong)sbrk(0) - heap_base;
-    result = makeNum(heap);
-  }
-#else
     fail;
-#endif
   else if (key == ATOM_heapused)			/* heap usage */
     result = makeNum(GD->statistics.heap);
   else if (key == ATOM_trail)				/* trail */

@@ -107,7 +107,7 @@ flags after running configure.
 #define DOUBLE_ALIGNMENT sizeof(double)
 #endif
 
-#if MMAP_STACK || O_SHARED_MEMORY || HAVE_VIRTUAL_ALLOC
+#if MMAP_STACK || HAVE_VIRTUAL_ALLOC
 #define O_DYNAMIC_STACKS 1		/* sparse memory management */
 #else
 #ifndef O_SHIFT_STACKS
@@ -1314,25 +1314,6 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 #define GC_FAST_POLICY 0x1		/* not really used yet */
 
-#if O_SHARED_MEMORY
-#define O_SHM_FREE_IMMEDIATE 1
-#define MAX_STACK_SEGMENTS  20
-#define STACK(type) \
-	{ type		base;		/* base address of the stack */     \
-	  type		top;		/* current top of the stack */      \
-	  type		max;		/* allocated maximum */		    \
-	  long		limit;		/* how big it is allowed to grow */ \
-	  long		maxlimit;	/* maximum limit */                 \
-	  char		*name;		/* Symbolic name of the stack */    \
-	  long		segment_initial;/* initial size */		    \
-	  int		segment_double;	/* times to double */		    \
-	  int		segment_top;	/* Next segment to be allocated */  \
-	  struct							    \
-	  { caddress	base;		/* Base of this segment */	    \
-	    long	size;		/* Size of this segment */	    \
-	  } segments[MAX_STACK_SEGMENTS];				    \
-	}
-#else /* !O_SHARED_MEMORY */
 #define STACK(type) \
 	{ type		base;		/* base address of the stack */     \
 	  type		top;		/* current top of the stack */      \
@@ -1347,7 +1328,6 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  int		policy;		/* Time, memory optimization */	    \
 	  char		*name;		/* Symbolic name of the stack */    \
 	}
-#endif
 
 struct stack STACK(caddress);		/* Anonymous stack */
 

@@ -552,6 +552,8 @@ dnl `fixed' and `private' maps and support to map in the same area as
 dnl malloc() does.  The program map/mmap.c tests all these things.
 dnl ****************************************************************
 
+mmap_tried=segv;
+while test ! "$MMAP_STACK" = "1" -a ! $mmap_tried = "stop"; do
 AC_MSG_CHECKING("if we can use mmap for stack allocation")
 echo '#include "confdefs.h"' > conftest.c
 cat $srcdir/test/mmap.c >> conftest.c
@@ -568,22 +570,21 @@ if test -s conftest && eval `./conftest`; then
     else
 	AC_MSG_RESULT("mmap is not good enough")
     fi
-    if test ! -z "$MMAP_MIN_ADDRESS"; then
-	AC_DEFINE_UNQUOTED(MMAP_MIN_ADDRESS, $MMAP_MIN_ADDRESS)
-    fi
-    if test ! -z "$MMAP_MAX_ADDRESS"; then
-	AC_DEFINE_UNQUOTED(MMAP_MAX_ADDRESS, $MMAP_MAX_ADDRESS)
-    fi
     if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
 	AC_DEFINE(SIGNAL_HANDLER_PROVIDES_ADDRESS)
-    fi
-    if test ! -z "$TOPOFHEAP"; then
-	AC_DEFINE_UNQUOTED(TOPOFHEAP, $TOPOFHEAP)
     fi
 else
     AC_MSG_RESULT("could not compile mmap test");
 fi
 rm -fr conftest*
+if test ! "$MMAP_STACK" = "1" -a "$mmap_tried" = "segv"; then
+    mmap_tried=nosegv
+    AC_DEFINE(NO_SEGV_HANDLING)
+    AC_MSG_CHECKING("Retrying without handling SEGV")
+else
+    mmap_tried=stop
+fi
+done
 fi # mmap
 
 if test "$configloadforeign" = "yes"; then

@@ -40,9 +40,6 @@
 /* Define if first data symbol not is environ */
 #undef FIRST_DATA_SYMBOL
 
-/* Define if pl-save.c works */
-#undef O_SAVE
-
 /* Define if symbolic links are supported by the OS */
 #undef HAVE_SYMLINKS
 

@@ -903,9 +903,12 @@ pl_retract(term_t term, word h)
     term_t cl = PL_new_term_ref();
     term_t head = PL_new_term_ref();
     term_t body = PL_new_term_ref();
+    atom_t b;
 
     PL_strip_module(term, &m, cl);
     get_head_and_body_clause(cl, head, body, NULL);
+    if ( PL_get_atom(body, &b) && b == ATOM_true )
+      PL_put_term(cl, head);
 
     if ( ForeignControl(h) == FRG_FIRST_CALL )
     { functor_t fd;

@@ -127,7 +127,7 @@ setupProlog(void)
 
   environment_frame = (LocalFrame) NULL;
   LD->statistics.inferences = 0;
-#if O_STORE_PROGRAM || O_SAVE
+#if O_STORE_PROGRAM
   GD->cannot_save_program = NULL;
 #else
   GD->cannot_save_program = "Not supported on this machine";
@@ -171,10 +171,6 @@ initFeatures()
   CSetFeature("c_ldflags",	C_LDFLAGS);
   CSetFeature("gc",		"true");
   CSetFeature("trace_gc",	"false");
-#ifdef O_SAVE
-  CSetFeature("save",	       "true");
-  CSetFeature("save_program",  "true");
-#endif
 #ifdef O_STORE_PROGRAM
   CSetFeature("save_program",	"true");
 #endif
@@ -810,16 +806,6 @@ align_size(long int x)
 { return x % size_alignment ? (x / size_alignment + 1) * size_alignment : x;
 }
 
-static long
-align_base(long int x)
-{ return x % base_alignment ? (x / base_alignment + 1) * base_alignment : x;
-}
-
-static long
-align_base_down(long int x)
-{ return (x / base_alignment) * base_alignment;
-}
-
 #ifdef MMAP_STACK
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -835,17 +821,27 @@ can  be  shared  by  many  SWI-Prolog  processes  and (therefore) is not
 removed on exit.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void *)-1)
+#endif
+#ifndef MAP_ANON
+#define MAP_ANON 0
+#endif
+
 #ifdef HAVE_MAP_ANON
 #if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
 #define MAP_ANON MAP_ANONYMOUS
 #endif
 
+#define MAP_FLAGS (MAP_ANON|MAP_NORESERVE|MAP_PRIVATE)
 #define get_map_fd() (-1)
-#define STACK_MAP_TYPE MAP_ANON|MAP_PRIVATE|MAP_FIXED
 
 #else /*HAVE_MAP_ANON*/
 
-#define STACK_MAP_TYPE MAP_PRIVATE|MAP_FIXED
+#define MAP_FLAGS (MAP_NORESERVE|MAP_PRIVATE)
 
 static int
 get_map_fd()
@@ -884,95 +880,6 @@ get_map_fd()
 }
 #endif /*HAVE_MAP_ANON*/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Estimate the top if the heap. The default is to get the size of the heap
-using getrlimit(), add this to the estimated  base and use the result as
-top address.
-
-This does not always appewar  to  work.   If  you  know the top, #define
-TOPOFHEAP in config.h. Othewise #define  it  to   0,  in  which case the
-system will allocate a default heap of 64 MB and the stacks above that.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef HAVE_GETRLIMIT
-#ifdef HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
-#endif
-
-#ifdef RLIMIT_DATA
-#ifndef HAVE_RLIM_T
-typedef unsigned long rlim_t;
-#endif
-static ulong
-dataLimit()
-{ struct rlimit limit;
- 
-  if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
-  { rlim_t datasize = limit.rlim_cur;
-    rlim_t maxlong  = (rlim_t)(1L << (LONGBITSIZE-1)) - 1;
- 
-    if ( datasize > maxlong )
-      datasize = (ulong)maxlong;
- 
-    return datasize;
-  }
- 
-  return 0L;
-}
-#else
-#define dataLimit() (0L)
-#endif /*RLIMIT_DATA*/
-#else
-#define dataLimit() (0L)
-#endif /*HAVE_GETRLIMIT*/
-
-
-#ifdef TOPOFHEAP
-#define topOfHeap() TOPOFHEAP
-#else /*TOPOFHEAP*/
-					/* __linux__ TASK_SIZE stuff */
-					/* contributed by Roman Hodek */
-#ifdef __linux__
-#include <asm/page.h>
-#include <asm/system.h>
-#include <asm/ptrace.h>
-#include <asm/segment.h>
-#include <asm/processor.h>
-#endif
-
-ulong
-topOfHeap()
-{ ulong data = dataLimit();
-
-  if ( data )
-  { ulong top = heap_base + data;
-
-#ifdef TASK_SIZE
-    if ( top < heap_base || top > TASK_SIZE )
-      top = TASK_SIZE;
-#else
-    if ( top < heap_base )
-      return 0L;
-#endif
-
-    DEBUG(1, Sdprintf("Heap: %p ... %p\n", (void *)heap_base, (void *)top));
-    return top;
-  }
-    
-  return 0L;
-}
-#endif /*TOPOFHEAP*/
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Expand stack `s' by one page.  This might not be  enough,  but  in  this
-(very  rare) case another segmentation fault will follow to get the next
-page.  The memory is expanded by mapping the map-fd file onto  the  page
-using  a  private  map.  This way the contents of the map-file is copied
-into the page but all changes to the page are  kept  local.   Note  that
-SunOs  4.0.0  on SUN-3 has a bug that causes the various mapped pages to
-point to the same physical memory.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 mapOrOutOf(Stack s)
@@ -988,14 +895,13 @@ mapOrOutOf(Stack s)
   if ( newroom < 0 )
     outOfStack(s, STACK_OVERFLOW_FATAL);
 
-  if ( mmap(s->max, incr,
-	    PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
-	    mapfd, 0L) != s->max )
-    fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",
-	       s->max, incr, mapfd, OsError());
+  if ( mprotect(s->max, incr, PROT_READ|PROT_WRITE) < 0 )
+    fatalError("mprotect() failed at 0x%x for %d bytes: %s\n",
+	       s->max, incr, OsError());
 
-  DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
-		    size_alignment, (unsigned) s->max, s->max + incr));
+  DEBUG(1, Sdprintf("Expanded %s stack with %d bytes from %p\n",
+		    s->name, incr, s->max));
+
   s->max = addPointer(s->max, incr);
 
   if ( newroom <= STACK_SIGNAL )
@@ -1021,10 +927,6 @@ ensureRoomStack(Stack s, int bytes)
 }
 #endif
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unmap() returns all memory resources of a stack that are  no  longer  in
-use to the OS.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 unmap(Stack s)
@@ -1032,249 +934,79 @@ unmap(Stack s)
   caddress addr = (caddress) align_size((long) top + size_alignment);
 
   if ( addr < s->max )
-  { unsigned long used = (char *)s->top - (char *)s->base;
+  { long len = (char *)s->max - (char *)addr;
 
-    if ( munmap(addr, (char *)s->max - (char *)addr) != 0 )
-      fatalError("Failed to unmap memory: %s", OsError());
+#ifdef MAP_FIXED
+    munmap(addr, len);
+    if ( mmap(addr, len, PROT_NONE, MAP_FIXED|MAP_FLAGS, mapfd, 0L) !=
+	 addr )
+      fatalError("Failed to remap 0x%x bytes at %p: %s",
+		 len, addr, OsError());
+#else
+    if ( mprotect(addr, len, PROT_NONE) != 0 )
+      fatalError("Failed to mprotect(%p, %d, PROT_NONE): %s",
+		 addr, len, OsError());
+#endif
+
     s->max = addr;
-
-    if ( used < s->gced_size )
-      s->gced_size = used;
   }
 }
 
-
-#ifdef O_SAVE
 
 static void
-deallocateStack(Stack s)
-{ long len = (unsigned long)s->max - (unsigned long)s->base;
+initStacks(long local, long global, long trail, long argument)
+{ caddress lbase, gbase, tbase, abase;
+  long glsize;
+  long lsep, tsep;
 
-  if ( len > 0 && munmap(s->base, len) != 0 )
-    fatalError("Failed to unmap memory: %s", OsError());
+  size_alignment = getpagesize();
+  base_alignment = size_alignment;
+  mapfd  = get_map_fd();
+
+#ifdef NO_SEGV_HANDLING
+  lsep = tsep = 0;
+#else
+  lsep = STACK_SEPARATION;
+  tsep = size_alignment;
+#endif
+
+  if ( local	== 0 ) local	= 64 MB; /* TBD: 64-bit machines? */
+  if ( global	== 0 ) global	= 64 MB;
+  if ( trail	== 0 ) trail	= 64 MB;
+  if ( argument	== 0 ) argument	= 16 MB;
+
+  local    = (long) align_size(local);	/* Round up to page boundary */
+  global   = (long) align_size(global);
+  trail    = (long) align_size(trail);
+  argument = (long) align_size(argument);
+  glsize   = global+tsep+local+lsep;
+
+  tbase = mmap(NULL, trail+tsep,    PROT_NONE, MAP_FLAGS, mapfd, 0L);
+  abase = mmap(NULL, argument+tsep, PROT_NONE, MAP_FLAGS, mapfd, 0L);
+  gbase = mmap(NULL, glsize,        PROT_NONE, MAP_FLAGS, mapfd, 0L);
+  lbase = addPointer(gbase, global + tsep);
+
+  if ( tbase == MAP_FAILED || abase == MAP_FAILED || gbase == MAP_FAILED )
+    fatalError("Failed to allocate stacks for %d bytes: %s",
+	       trail+argument+glsize, OsError());
+
+#define INIT_STACK(name, print, base, limit, minsize) \
+  DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
+  init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
+#define K * 1024
+
+  INIT_STACK(global,   "global",   gbase, global,   16 K);
+  INIT_STACK(local,    "local",    lbase, local,    8 K);
+  INIT_STACK(trail,    "trail",    tbase, trail,    8 K);
+  INIT_STACK(argument, "argument", abase, argument, 1 K);
+
+#ifndef NO_SEGV_HANDLING
+  set_sighandler(SIGSEGV, (handler_t) _PL_segv_handler);
+#endif
 }
-
-
-void
-deallocateStacks(void)
-{ deallocateStack((Stack) &LD->stacks.local);
-  deallocateStack((Stack) &LD->stacks.global);
-  deallocateStack((Stack) &LD->stacks.trail);
-  deallocateStack((Stack) &LD->stacks.argument);
-}
-
-
-bool
-restoreStack(Stack s)
-{ caddress max;
-  long len;
-  struct stat statbuf;
-
-  if ( mapfd < 0 || fstat(mapfd, &statbuf) == -1 )
-  { mapfd = get_map_fd();
-    base_alignment = size_alignment = getpagesize();
-  }
-
-  max = (caddress) align_size((long) s->top + 1);
-  len = max - (caddress) s->base;
-
-  if ( mmap(s->base, len,
-	    PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
-	    mapfd, 0L) != s->base )
-    fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",
-	       s->base, len, mapfd, OsError());
-
-  s->max = max;
-  DEBUG(0, Sdprintf("mapped %d bytes from 0x%x\n", len, (unsigned) s->base));
-  succeed;
-}
-#endif /*O_SAVE*/
 
 #endif /* MMAP_STACK */
 
-#if O_SHARED_MEMORY
-#include <sys/stat.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#if gould
-#define S_IRUSR SHM_R
-#define S_IWUSR SHM_W
-#endif
-#if mips
-struct pte { long pad };		/* where is the real one? */
-#include <sys/param.h>
-#endif
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Shared memory based MMU controlled stacks are a bit  more  tricky.   The
-main  problem is that shared memory segments are scares resources.  Upto
-a certain limit, each time the size of the stack is doubled.  Afterwards
-the stack grows in fixed segments  of  size  s->segment_initial  *  2  ^
-s->segment_double.   These  parameters  may  vary  from  stack to stack,
-suiting the caracteristics of the stack and of the OS limits on  virtual
-address space and number of shared memory segnments.  See pl-incl.h
-
-The  shared  memory  segments  are  created,  mapped   and   immediately
-afterwards  freed.   According  to  the documentation they actually will
-live untill they are unmapped by the last process.  Immediately  freeing
-them  avoids the burden to do this on exit() and ensures these resources
-are freed, also if SWI-Prolog crashes.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if O_SHM_ALIGN_FAR_APART
-
-#define min(a, b) ((a) < (b) ? (a) : (b))
-
-static long
-new_stack_size(s)
-Stack s;
-{ long size  = s->top - s->base;
-  long free  = size / s->segment_initial;
-  long limit = diffPointers(s->limit, s->base);
-
-  if ( free > s->segment_double ) free = s->segment_double;
-  else if ( free < 1 )            free = 1;
-  
-  size = align_size(size + free * s->segment_initial);  
-
-  if ( size > limit )
-    size = limit;
-
-  return size;
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-resize_segment(s, n, size)
-  Resize segment n of stack s to get size size.  The base address of the
-  segement is assumed to be correct.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void
-resize_segment(s, n, size)
-Stack s;
-int n;
-long size;
-{ if ( s->segments[n].size != size )
-  { int id = -1;
-    char *addr;
-
-    if ( size > 0 )
-    { if ( (id=shmget(IPC_PRIVATE, size, S_IRUSR|S_IWUSR)) < 0 )
-	fatalError("Failed to create shared memory object: %s", OsError());
-      if ( (addr = shmat(id, 0, 0)) < 0 )
-	fatalError("Failed to attach shared memory segment: %s", OsError());
-      memcpy(s->segments[n].base, addr, min(size, s->segments[n].size));
-      if ( shmdt(addr) < 0 )
-      	fatalError("Failed to detach shared memory segment: %s", OsError());
-    }    
-
-    if ( s->segments[n].size > 0 )
-      if ( shmdt(s->segments[n].base) < 0 )
-      	fatalError("Failed to detach shared memory segment: %s", OsError());
-    
-    if ( id >= 0 )
-    { DEBUG(0, Sdprintf("Attach segment of size %ld at 0x%x\n",
-		      size, s->segments[n].base));
-      if ( shmat(id, s->segments[n].base, 0) != s->segments[n].base )
-      	fatalError("Failed to attach shared memory segment at 0x%x: %s",
-		   s->segments[n].base, OsError());
-      
-      if ( shmctl(id, IPC_RMID, NULL) < 0 )
-	fatalError("Failed to release shared memory object: %s", OsError());
-    }
-
-    s->segments[n].size = 0;
-  }
-}
-
-
-void
-mapOrOutOf(Stack s)
-{ long new_size = new_stack_size(s);
-  int  top_segment = new_size / base_alignment;
-  int  n;
-
-  DEBUG(1, Sdprintf("Expanding %s stack to %ld\n", s->name, new_size));
-
-  for(n=0; n < top_segment; n++)
-    resize_segment(s, n, base_alignment);
-
-  resize_segment(s, n, new_size % base_alignment);
-
-  for(n++; s->segments[n].size > 0; n++ )
-    resize_segment(s, n, 0L);
-
-  s->max = s->base + new_size;
-  considerGarbageCollect(s);
-}
-
-
-static void
-unmap(Stack s)
-{ if ( new_stack_size(s) < s->max - s->base )
-    mapOrOutOf(s);
-}
-
-#else /* O_SHM_ALIGN_FAR_APART */
-
-void
-mapOrOutOf(Stack s)
-{ int id;
-  char *rval;
-  long len;
-  caddress addr;
-
-  len  = (s->segment_top <= s->segment_double
-	  		? s->segment_initial << (s->segment_top)
-	  		: s->segment_initial << s->segment_double);
-  addr = s->segments[s->segment_top].base;
-
-  if ( (id=shmget(IPC_PRIVATE, len, S_IRUSR|S_IWUSR)) < 0 )
-  { if ( errno == EINVAL )
-      fatalError("Kernel is not configured with option IPCSHMEM (contact a guru)");
-    fatalError("Failed to create shared memory object: %s", OsError());
-  }
-
-  if ( (rval = shmat(id, addr, 0)) != (char *) addr )
-    fatalError("Failed to map memory at %ld: %s\n", addr, OsError());
-
-  if ( shmctl(id, IPC_RMID, NULL) < 0 )
-    fatalError("Failed to release shared memory object: %s", OsError());
-
-  s->segment_top++;
-  s->max = s->segments[s->segment_top].base = addr+len;
-  considerGarbageCollect(s);
-}
-
-
-static void
-unmap(Stack s)
-{ while( s->segment_top > 0 && s->segments[s->segment_top-1].base > s->top )
-  { s->segment_top--;
-    if ( shmdt(s->segments[s->segment_top].base) < 0 )
-      fatalError("Failed to unmap: %s\n", OsError());
-    s->max = s->segments[s->segment_top].base;
-  }
-}
-
-#endif /* O_SHM_ALIGN_FAR_APART */
-#endif /* O_SHARED_MEMORY */
-
-#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
-static bool
-expandStack(Stack s, caddress addr)
-{ if ( addr < s->max || addr >= addPointer(s->limit, STACK_SEPARATION) )
-    fail;				/* outside this area */
-
-  if ( addr <= s->max + STACK_SEPARATION*2 )
-  { mapOrOutOf(s);
-
-    succeed;
-  }
-
-  fail;
-}
-#endif /*O_SHARED_MEMORY*/
 
 #ifdef HAVE_VIRTUAL_ALLOC
 
@@ -1345,85 +1077,63 @@ unmap(Stack s)
 }
 
 
-#define MAX_VIRTUAL_ALLOC (100 MB)
-#define SPECIFIC_INIT_STACK 1
+static long
+align_base(long int x)
+{ return x % base_alignment ? (x / base_alignment + 1) * base_alignment : x;
+}
+
 
 static void
 initStacks(long local, long global, long trail, long argument)
-{ SYSTEM_INFO info;
-  int large = 0;			/* number of `large' stacks */
-  ulong base;				/* allocation base */
-  ulong totalsize;			/* total size to allocate */
+{ caddress lbase, gbase, tbase, abase;
+  long glsize;
+  long lsep, tsep;
+  SYSTEM_INFO info;
 
   GetSystemInfo(&info);
   size_alignment = info.dwPageSize;
   base_alignment = size_alignment;
-/*base_alignment = info.dwAllocationGranularity;*/
+
+#ifdef NO_SEGV_HANDLING
+  lsep = tsep = 0;
+#else
+  lsep = STACK_SEPARATION;
+  tsep = size_alignment;
+#endif
+
+  if ( local	== 0 ) local	= 64 MB; /* TBD: 64-bit machines? */
+  if ( global	== 0 ) global	= 64 MB;
+  if ( trail	== 0 ) trail	= 64 MB;
+  if ( argument	== 0 ) argument	= 16 MB;
 
   local    = (long) align_size(local);	/* Round up to page boundary */
   global   = (long) align_size(global);
   trail    = (long) align_size(trail);
   argument = (long) align_size(argument);
+  glsize   = global+tsep+local+lsep;
 
-  if ( local    == 0 ) large++;		/* find dynamic ones */
-  if ( global   == 0 ) large++;
-  if ( trail    == 0 ) large++;
-  if ( argument == 0 ) large++;
+  tbase = VirtualAlloc(NULL, trail+tsep,    MEM_RESERVE, PAGE_READWRITE);
+  abase = VirtualAlloc(NULL, argument+tsep, MEM_RESERVE, PAGE_READWRITE);
+  gbase = VirtualAlloc(NULL, glsize,        MEM_RESERVE, PAGE_READWRITE);
+  lbase = addPointer(gbase, global + tsep);
 
-  if ( large )
-    totalsize = MAX_VIRTUAL_ALLOC;
-  else
-    totalsize = local + global + trail + argument + 4 * STACK_SEPARATION;
-
-  if ( !(base = (ulong) VirtualAlloc(NULL, totalsize,
-				     MEM_RESERVE, PAGE_READWRITE)) )
+  if ( !tbase || !abase || !gbase )
     fatalError("Failed to allocate stacks for %d bytes: %d",
-	       totalsize, GetLastError());
+	       trail+argument+glsize, GetLastError());
 
-  if ( large )
-  { ulong space = totalsize -
-           ( align_base(local + STACK_SEPARATION) +
-	     align_base(global + STACK_SEPARATION) +
-	     align_base(trail + STACK_SEPARATION) +
-	     align_base(argument) );
-    ulong large_size = ((space / large) / base_alignment) * base_alignment;
-
-    if ( large_size < STACK_MINIMUM )
-      fatalError("Can't fit requested stack sizes in address space");
-    DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
-
-    if ( local    == 0 ) local    = large_size;
-    if ( global   == 0 ) global   = large_size;
-    if ( trail    == 0 ) trail    = large_size;
-    if ( argument == 0 ) argument = large_size;
-  }
-
-#define INIT_STACK(name, print, limit, minsize) \
+#define INIT_STACK(name, print, base, limit, minsize) \
   DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
-  init_stack((Stack) &LD->stacks.name, print, (caddress) base, limit, minsize); \
-  base += limit + STACK_SEPARATION; \
-  base = align_base(base);
+  init_stack((Stack) &LD->stacks.name, print, base, limit, minsize);
 #define K * 1024
 
-  INIT_STACK(global,   "global",   global,   16 K);
-  INIT_STACK(local,    "local",    local,    8 K);
-  INIT_STACK(trail,    "trail",    trail,    8 K);
-  INIT_STACK(argument, "argument", argument, 1 K);
+  INIT_STACK(global,   "global",   gbase, global,   16 K);
+  INIT_STACK(local,    "local",    lbase, local,    8 K);
+  INIT_STACK(trail,    "trail",    tbase, trail,    8 K);
+  INIT_STACK(argument, "argument", abase, argument, 1 K);
 
 #ifndef NO_SEGV_HANDLING
   set_sighandler(SIGSEGV, (handler_t) _PL_segv_handler);
 #endif
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Reset the stacks after an abort
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-resetStacks()
-{ emptyStacks();
-
-  trimStacks();
 }
 
 #endif /*HAVE_VIRTUAL_ALLOC*/
@@ -1435,6 +1145,22 @@ address of the segmentation fault.  SUN provides this via  an  argument.
 If   your   system   does   not   provide   this  information,  set  the
 SIGNAL_HANDLER_PROVIDES_ADDRESS flag.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
+static bool
+expandStack(Stack s, caddress addr)
+{ if ( addr < s->max || addr >= addPointer(s->limit, STACK_SEPARATION) )
+    fail;				/* outside this area */
+
+  if ( addr <= s->max + STACK_SEPARATION*2 )
+  { mapOrOutOf(s);
+
+    succeed;
+  }
+
+  fail;
+}
+#endif /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
 
 #ifndef NO_SEGV_HANDLING
 RETSIGTYPE
@@ -1487,161 +1213,12 @@ init_stack(Stack s, char *name, caddress base, long limit, long minsize)
   s->min        = (caddress)((ulong)s->base + minsize);
   s->gced_size  = 0L;			/* size after last gc */
   gcPolicy(s, GC_FAST_POLICY);
-#if O_SHARED_MEMORY
-#if O_SHM_ALIGN_FAR_APART
-{ int n;
-
-  s->segment_initial = 32 * 1024;
-  s->segment_double  = 20;
-  for(n=0; n < MAX_STACK_SEGMENTS; n++)
-  { s->segments[n].size = 0;
-    s->segments[n].base = s->base + base_alignment * n;
-  }
-}
-#else /* O_SHM_ALIGN_FAR_APART */
-  s->segment_top     = 0;
-  s->segment_initial = 32 * 1024;
-  s->segment_double  = 5;
-  s->segments[0].base = base;
-#endif /* O_SHM_ALIGN_FAR_APART */
-#endif /* O_SHARED_MEMORY */
 
   DEBUG(1, Sdprintf("%-8s stack from 0x%08x to 0x%08x\n",
 		    s->name, (ulong)s->base, (ulong)s->limit));
 
   while(s->max < s->min)
     mapOrOutOf(s);
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-initStacks() initialises the stacks structure,  thus  assigning  a  base
-address,  a limit and a name to each of the stacks.  Finally it installs
-a signal handler for handling  segmentation  faults.   The  segmentation
-fault handler will actually create and expand the stacks on segmentation
-faults.
-
-The big problem is finding a safe   area  for the stacks. Currently, the
-system tries to find an area as far   as possible from the heap, growing
-downwards  if  it  can  determine  the    top  of  the  heap-area  using
-topOfHeap(). If it cannot, it will work from the current top of the heap
-as returned by sbrk(0).
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef FORCED_MALLOC_BASE
-#undef MMAP_MAX_ADDRESS
-#undef MMAP_MIN_ADDRESS
-#define MMAP_MAX_ADDRESS (FORCED_MALLOC_BASE + 64 MB)
-#define MMAP_MIN_ADDRESS (FORCED_MALLOC_BASE + 16 MB)
-#endif
-
-#ifndef SPECIFIC_INIT_STACK
-
-static void
-initStacks(long local, long global, long trail, long argument)
-{ int large = 0;
-  ulong base, top, space, large_size, min_space;
-
-  size_alignment = getpagesize();
-#ifdef MMAP_STACK
-  base_alignment = size_alignment;
-  mapfd  = get_map_fd();
-#endif
-#if O_SHARED_MEMORY
-  base_alignment = SHMLBA;
-  DEBUG(0, Sdprintf("Shared memory must be aligned to %d (0x%x) bytes\n",
-		  base_alignment, base_alignment));
-#endif
-
-  local    = (ulong) align_size(local);	/* Round up to page boundary */
-  global   = (ulong) align_size(global);
-  trail    = (ulong) align_size(trail);
-  argument = (ulong) align_size(argument);
-
-  min_space = align_base(1) +
-	      align_base(local + STACK_SEPARATION) +
-	      align_base(global + STACK_SEPARATION) +
-	      align_base(trail + STACK_SEPARATION) +
-	      align_base(argument);
-
-  if ( local    == 0 ) large++;		/* find dynamic ones */
-  if ( global   == 0 ) large++;
-  if ( trail    == 0 ) large++;
-  if ( argument == 0 ) large++;
-
-  if ( (top = topOfHeap()) > 0L && !GD->options.heapSize )
-  { if ( large > 0 )			/* we have dynamic stacks */
-    { base = heap_base;
-      space = top - base;
-      space -= min_space;
-      large++;				/* heap as well */
-      large_size = ((space / large+1) / base_alignment) * base_alignment;
-      if ( large_size > 64 MB )
-	large_size = 64 MB;
-      if ( large_size < STACK_MINIMUM )
-	fatalError("Can't fit requested stack sizes in address space");
-      DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
-
-      if ( local    == 0 ) local    = large_size;
-      if ( global   == 0 ) global   = large_size;
-      if ( trail    == 0 ) trail    = large_size;
-      if ( argument == 0 ) argument = large_size;
-    }
-
-    base = top - (align_base(1) +
-		  align_base(local + STACK_SEPARATION) +
-		  align_base(global + STACK_SEPARATION) +
-		  align_base(trail + STACK_SEPARATION) +
-		  align_base(argument));
-    base = align_base_down(base);
-  } else				/* we don't know the top */
-  { ulong maxdata = dataLimit();
-
-    if ( !GD->options.heapSize )
-    { if ( maxdata )
-      { large_size = align_base_down((maxdata-min_space)/(large+1));
-	large_size = max(large_size, 64 MB);
-      } else
-	large_size = 64 MB;
-	
-      GD->options.heapSize = large_size;
-    } else
-    { large_size = align_base_down((maxdata-min_space)/(large+1));
-      large_size = max(large_size, 64 MB);
-    }
-
-#ifdef MMAP_MIN_ADDRESS
-    base = MMAP_MIN_ADDRESS;
-#else
-    base = (ulong) align_base((ulong)sbrk(0) + GD->options.heapSize);
-#endif
-
-    if ( large > 0 )
-    { DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
-  
-      if ( local    == 0 ) local    = large_size;
-      if ( global   == 0 ) global   = large_size;
-      if ( trail    == 0 ) trail    = large_size;
-      if ( argument == 0 ) argument = large_size;
-    }
-  }
-
-#define INIT_STACK(name, print, limit, minsize) \
-  DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
-  init_stack((Stack) &LD->stacks.name, print, (caddress) base, limit, minsize); \
-  base += limit + STACK_SEPARATION; \
-  base = align_base(base);
-#define K * 1024
-
-  INIT_STACK(global,   "global",   global,   16 K);
-  INIT_STACK(local,    "local",    local,    8 K);
-  INIT_STACK(trail,    "trail",    trail,    8 K);
-  INIT_STACK(argument, "argument", argument, 1 K);
-
-  assert(top == 0L || (ulong)aLimit <= top);
-
-#ifndef NO_SEGV_HANDLING
-  set_sighandler(SIGSEGV, (handler_t) _PL_segv_handler);
-#endif
 }
 
 void
@@ -1651,8 +1228,6 @@ resetStacks()
   trimStacks();
 }
 
-
-#endif /*SPECIFIC_INIT_STACK*/
 
 		/********************************
 		*     STACK TRIMMING & LIMITS   *

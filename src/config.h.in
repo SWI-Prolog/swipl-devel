@@ -59,12 +59,6 @@
 /* Define if mmap() can be used to allocate stacks */
 #undef MMAP_STACK
 
-/* Define if maximum address we can map at */
-#undef MMAP_MAX_ADDRESS
-
-/* Define if minimum address we can map and if > sbrk(0) */
-#undef MMAP_MIN_ADDRESS
-
 /* Define if MAP_ANON is defined and works ok */
 #undef HAVE_MAP_ANON
 
@@ -124,9 +118,6 @@
 
 /* Define if doubles cannot be aligned as longs */
 #undef DOUBLE_ALIGNMENT
-
-/* Define top of heap.  See pl-setup.c */
-#undef TOPOFHEAP
 
 /* Define max size of mmapp()ed stacks.  See test/mmap.c */
 #undef MMAP_STACKSIZE
