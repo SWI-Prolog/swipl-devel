@@ -215,8 +215,7 @@ draw_caret(int x, int y, int w, int h, int active)
 
 status
 repaintText(TextObj t, int x, int y, int w, int h)
-{ int cw = valInt(getExFont(t->font));
-  String s = &t->string->data;
+{ String s = &t->string->data;
   int b = valInt(t->border);
 
   if ( notNil(t->background) )
@@ -239,11 +238,11 @@ repaintText(TextObj t, int x, int y, int w, int h)
 
     str_format(buf, s, valInt(t->margin), t->font);
     str_string(buf, t->font,
-	       x+cw/2+valInt(t->x_offset), y, w-cw, h,
+	       x+valInt(t->x_offset), y, w, h,
 	       t->format, NAME_top);
   } else
     str_string(s, t->font,
-	       x+cw/2+valInt(t->x_offset), y, w-cw, h,
+	       x+valInt(t->x_offset), y, w, h,
 	       t->format, NAME_top);
 
   if ( t->wrap == NAME_clip )
@@ -283,7 +282,7 @@ initPositionText()	recomputes the position from the area after the
 
 static status
 initAreaText(TextObj t)
-{ int tw, x, y, w, h, fw;
+{ int tw, x, y, w, h;
   Point pos = t->position;
   String s = &t->string->data;
   int size = s->size;
@@ -294,30 +293,29 @@ initAreaText(TextObj t)
   if ( valInt(t->caret) > size )
     assign(t, caret, toInt(size));
 
-  fw = valInt(getExFont(t->font));
   if ( Wrapped(t) )
   { LocalString(buf, s, s->size + MAX_WRAP_LINES);
 
     str_format(buf, s, valInt(t->margin), t->font);
     str_size(buf, t->font, &tw, &h);
-    if ( t->wrap == NAME_wrapFixedWidth && tw < valInt(t->margin) - fw )
-      tw = valInt(t->margin) - fw;
+    if ( t->wrap == NAME_wrapFixedWidth && tw < valInt(t->margin) )
+      tw = valInt(t->margin);
   } else
     str_size(s, t->font, &tw, &h);
 
   if ( t->wrap == NAME_clip )
     w = valInt(t->area->w) - 2*b;
   else
-    w = tw + fw;
+    w = tw;
 
   if ( equalName(t->format, NAME_right) )
-  { x = valInt(pos->x) - w + fw/2;
+  { x = valInt(pos->x) - w;
     y = valInt(pos->y);
   } else if ( equalName(t->format, NAME_center) )
   { x = valInt(pos->x) - w/2;
     y = valInt(pos->y) - h/2;
   } else
-  { x = valInt(pos->x) - fw/2;
+  { x = valInt(pos->x);
     y = valInt(pos->y);
   }
 
@@ -334,7 +332,7 @@ initAreaText(TextObj t)
 
 static status
 initPositionText(TextObj t)
-{ int tw, x, y, w, h, fw = valInt(getExFont(t->font));
+{ int tw, x, y, w, h;
   Point pos = t->position;
   String s = &t->string->data;
   int b = valInt(t->border);
@@ -344,21 +342,21 @@ initPositionText(TextObj t)
 
     str_format(buf, s, valInt(t->margin), t->font);
     str_size(buf, t->font, &tw, &h);
-    if ( t->wrap == NAME_wrapFixedWidth && tw < valInt(t->margin) - fw )
-      tw = valInt(t->margin) - fw;
+    if ( t->wrap == NAME_wrapFixedWidth && tw < valInt(t->margin) )
+      tw = valInt(t->margin);
   } else
     str_size(s, t->font, &tw, &h);
 
   if ( t->wrap == NAME_clip )
     w = valInt(t->area->w) - 2*b;
   else
-    w = tw + fw;
+    w = tw;
 
   if ( equalName(t->format, NAME_left) )
-  { x = valInt(t->area->x) + fw/2;
+  { x = valInt(t->area->x);
     y = valInt(t->area->y) + b;
   } else if ( equalName(t->format, NAME_right) )
-  { x = valInt(t->area->x) + w - fw/2;
+  { x = valInt(t->area->x) + w;
     y = valInt(t->area->y) + b;
   } else
   { x = valInt(t->area->x) + w/2;
@@ -390,13 +388,12 @@ initOffsetText(TextObj t, int tw)
     assign(t, y_caret, toInt(y));
   } else
   { int x, y, w = valInt(t->area->w), shift;
-    int fw = valInt(getExFont(t->font));
     int xoff;
 
-    if ( tw + fw/2 <= w || t->caret == ZERO )
+    if ( tw <= w || t->caret == ZERO )
       assign(t, x_offset, ZERO);
     else if ( t->caret == getSizeCharArray(t->string) )
-      assign(t, x_offset, toInt(w - (tw + fw)));
+      assign(t, x_offset, toInt(w - tw));
 
     xoff = valInt(t->x_offset);
 
@@ -461,7 +458,6 @@ static status
 get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
 { int caret = (isDefault(chr) ? valInt(t->caret) : valInt(chr));
   int w   = abs(valInt(t->area->w));
-  int cw2 = valInt(getExFont(t->font))/2;
   int ch  = valInt(getHeightFont(t->font));
   int cx, cy = 0, lw, sl;
   int shift;
@@ -488,7 +484,7 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
   w -= 2 * b;
 
   if ( t->format == NAME_left )
-  { cx = cw2 + lw;
+  { cx = lw;
   } else
   { int el;
     int rw;
@@ -500,7 +496,7 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
     if ( t->format == NAME_center )
       cx = w/2 - (lw+rw)/2 + lw;
     else				/* right */
-      cx = w - cw2 - rw;
+      cx = w - rw;
   }
 
   *X = cx + valInt(t->x_offset) + b;
@@ -514,7 +510,6 @@ static Int
 get_pointed_text(TextObj t, int x, int y)
 { String s = &t->string->data;
   int ch = valInt(getHeightFont(t->font));
-  int cw2 = valInt(getExFont(t->font))/2;
   int b = valInt(t->border);
   int cw, w;
   int caret = 0, el;
@@ -545,14 +540,14 @@ get_pointed_text(TextObj t, int x, int y)
   /* caret = start of line, el = end of line */
 
   if ( t->format == NAME_left )
-    w = cw2;
+    w = 0;
   else
   { int lw = str_width(s, caret, el, t->font);
 
     if ( t->format == NAME_center )
       w = (valInt(t->area->w) - lw)/2 - b;
     else
-      w = valInt(t->area->w) - lw - cw2 - 2*b;
+      w = valInt(t->area->w) - lw - 2*b;
   }
   w += valInt(t->x_offset);
 
