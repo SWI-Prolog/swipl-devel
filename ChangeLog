@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Windows select() cleanup (wait_for_input/3).
+
   * ADDED: Guitracer: provide editable write-options to detailed term-view.
     Suggested by Wouter Jansweijer.
 

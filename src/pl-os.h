@@ -167,7 +167,7 @@ extern unsigned long	FreeMemory(void);
 		*       IOSTREAM DESCR. SETS	*
 		********************************/
 
-#ifndef FD_ZERO
+#if !defined(FD_ZERO) && !defined(WIN32)
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #else

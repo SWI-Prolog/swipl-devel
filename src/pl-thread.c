@@ -23,9 +23,6 @@
 */
 
 /*#define O_DEBUG 1*/
-#ifdef WIN32
-#include <windows.h>
-#endif
 #include "pl-incl.h"
 #include <stdio.h>
 #ifdef O_PLMT

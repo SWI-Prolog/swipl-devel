@@ -35,10 +35,6 @@ handling times must be cleaned, but that not only holds for this module.
 
 /*#define O_DEBUG_MT 1*/
 
-#ifdef WIN32
-#include "windows.h"
-#endif
-
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
@@ -1192,6 +1188,24 @@ pl_wait_for_input(term_t streams, term_t available,
 
 #else
 
+typedef struct fdentry
+{ int fd;
+  term_t stream;
+  struct fdentry *next;
+} fdentry;
+
+
+static inline term_t
+findmap(fdentry *map, int fd)
+{ for( ; map; map = map->next )
+  { if ( map->fd == fd )
+      return map->stream;
+  }
+  assert(0);
+  return 0;
+}
+
+
 word
 pl_wait_for_input(term_t Streams, term_t Available,
 		  term_t timeout)
@@ -1200,7 +1214,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   struct timeval t, *to;
   double time;
   int n, max = 0;
-  term_t streammap[256];
+  fdentry *map     = NULL;
   term_t head      = PL_new_term_ref();
   term_t streams   = PL_copy_term_ref(Streams);
   term_t available = PL_copy_term_ref(Available);
@@ -1211,6 +1225,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   while( PL_get_list(streams, head, streams) )
   { IOSTREAM *s;
     int fd;
+    fdentry *e;
 
     if ( !PL_get_stream_handle(head, &s) )
       fail;
@@ -1228,9 +1243,18 @@ pl_wait_for_input(term_t Streams, term_t Available,
       from_buffer++;
     }
 
-    streammap[fd] = PL_copy_term_ref(head);
+    e         = alloca(sizeof(*e));
+    e->fd     = fd;
+    e->stream = PL_copy_term_ref(head);
+    e->next   = map;
+    map       = e;
 
+#ifdef WIN32
+    FD_SET((SOCKET)fd, &fds);
+#else
     FD_SET(fd, &fds);
+#endif
+
     if ( fd > max )
       max = fd;
   }
@@ -1254,7 +1278,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   for(n=0; n <= max; n++)
   { if ( FD_ISSET(n, &fds) )
     { if ( !PL_unify_list(available, ahead, available) ||
-	   !PL_unify(ahead, streammap[n]) )
+	   !PL_unify(ahead, findmap(map, n)) )
 	fail;
     }
   }

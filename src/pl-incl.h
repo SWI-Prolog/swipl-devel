@@ -227,6 +227,9 @@ void *alloca ();
 #include <uxnt.h>
 #endif
 
+#ifdef WIN32
+#include <winsock2.h>
+#endif
 #include "pl-mutex.h"
 #include "pl-stream.h"
 

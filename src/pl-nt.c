@@ -24,10 +24,9 @@
 
 #if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
 
-#include <windows.h>
+#include "pl-incl.h"
 #include <crtdbg.h>
 #include <process.h>
-#include "pl-incl.h"
 #include "pl-ctype.h"
 #include <stdio.h>
 #include <stdarg.h>

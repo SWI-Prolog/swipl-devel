@@ -22,10 +22,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
-#include <windows.h>		/* before pl-incl.h to avoid conflicts */
-#endif
-
 #include "pl-incl.h"
 
 #ifdef O_PROFILE

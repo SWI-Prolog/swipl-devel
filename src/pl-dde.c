@@ -57,10 +57,6 @@
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define INCLUDE_DDEML_H
-#include "windows.h"
-#ifdef __LCC__
-#include "ddeml.h"
-#endif
 #include "pl-incl.h"
 
 #if O_DDE

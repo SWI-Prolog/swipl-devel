@@ -35,6 +35,7 @@ LIB=$(LIB);$(HOME)\lib
 CFG=dev
 DBG=false
 MT=false
+DBGOPT=/Od
 
 !IF "$(CFG)" == "rt"
 CMFLAGS=/DO_RUNTIME
@@ -90,7 +91,7 @@ LDFLAGS=
 D=
 DBGLIBS=
 !ELSE
-CFLAGS=/MD /W3 /Zi /Od /GX /D_DEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
+CFLAGS=/MD /W3 /Zi $(DBGOPT) /GX /D_DEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
 LD=link.exe /nologo /incremental:yes
 LDFLAGS=/DEBUG
 D=D
