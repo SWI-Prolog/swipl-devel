@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Editor->geometry problem with h = @default, introduced with the
+  patch handling very small editors.  Shows up with GUI tracer making the
+  binding and source window smaller each action.
+
 VERSION 5.1.8#2, distributed with SWI-Prolog 4.0.9#2
 ====================================================
 
@@ -19,6 +23,7 @@ VERSION 5.1.8#2, distributed with SWI-Prolog 4.0.9#2
 
 * ENHANCED: Performance of PceEmacs colourisation in Prolog mode by
   removing some non-determinism
+
 
 VERSION 5.1.8
 =============
