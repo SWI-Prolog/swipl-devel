@@ -1115,6 +1115,7 @@ findBlock(LocalFrame fr, Word block)
 
 #endif /*O_BLOCK*/
 
+#ifdef O_DEBUGGER
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 findStartChoice(LocalFrame fr, Choice ch)
     Within the same query, find the choice-point that was created at the
@@ -1140,6 +1141,7 @@ findStartChoice(LocalFrame fr, Choice ch)
 
   return NULL;
 }
+#endif /*O_DEBUGGER*/
 
 
 #if O_CATCHTHROW
@@ -1182,6 +1184,7 @@ exception somewhere.
 #define offset(s, f) ((int)(&((struct s *)NULL)->f))
 #endif
 
+#ifdef O_DEBUGGER
 static int
 isCatchedInOuterQuery(QueryFrame qf, Word catcher)
 { Definition catch3 = PROCEDURE_catch3->definition;
@@ -1205,6 +1208,7 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
 
   fail;
 }
+#endif /*O_DEBUGGER*/
 
 
 #endif /*O_CATCHTHROW*/
@@ -4100,7 +4104,10 @@ body_failed:				MARK(BKTRK);
 clause_failed:
 frame_failed:
 
-{ Choice ch0 = BFR;
+{
+#ifdef O_DEBUGGER
+  Choice ch0 = BFR;
+#endif
   Choice ch;
   LocalFrame fr0;
 
