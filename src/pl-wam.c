@@ -3278,8 +3278,9 @@ to give the compiler a hint to put ARGP not into a register.
     VMI(A_VAR) MARK(AVARN);
     { int offset;
       Number n;
-      offset = *PC++;
       Word p, p2;
+
+      offset = *PC++;
 
     a_var_n:
       n = (Number)ARGP;
