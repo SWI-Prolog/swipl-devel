@@ -82,6 +82,7 @@ static atom_t	 ATOM_integer;
 static atom_t	 ATOM_time;
 static atom_t	 ATOM_date;
 static atom_t	 ATOM_timestamp;
+static atom_t	 ATOM_all_types;
 
 static functor_t FUNCTOR_timestamp7;	/* timestamp/7 */
 static functor_t FUNCTOR_time3;		/* time/7 */
@@ -182,6 +183,7 @@ static void free_context(context *ctx);
 static void close_context(context *ctx);
 static foreign_t odbc_set_connection(term_t con, term_t option);
 static int get_pltype(term_t t, SWORD *type);
+static SWORD get_sqltype_from_atom(atom_t name, SWORD *type);
 
 
 		 /*******************************
@@ -1163,11 +1165,11 @@ pl_odbc_query(term_t dsn, term_t tquery, term_t trow, term_t options,
 
 
 		 /*******************************
-		 *	  SCHEMA SUPPORT	*
+		 *	DICTIONARY SUPPORT	*
 		 *******************************/
 
 static foreign_t
-pl_odbc_database(term_t dsn, term_t row, control_t handle)
+odbc_tables(term_t dsn, term_t row, control_t handle)
 { switch( PL_foreign_control(handle) )
   { case PL_FIRST_CALL:
     { connection *cn;
@@ -1212,6 +1214,48 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
       ctxt = new_context(cn);
       TRY(ctxt, SQLColumns(ctxt->hstmt, NULL, 0, NULL, 0,
 			   (SQLCHAR*)s, (SWORD)len, NULL, 0));
+      
+      return odbc_row(ctxt, row);
+    }
+    case PL_REDO:
+      return odbc_row(PL_foreign_context_address(handle), row);
+
+    case PL_CUTTED:
+      free_context(PL_foreign_context_address(handle));
+      return TRUE;
+
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+
+static foreign_t
+odbc_types(term_t dsn, term_t sqltype, term_t row, control_t handle)
+{ switch( PL_foreign_control(handle) )
+  { case PL_FIRST_CALL:
+    { connection *cn;
+      context *ctxt;
+      atom_t tname;
+      SWORD type;
+      int v;
+
+      if ( PL_get_integer(sqltype, &v) )
+      { type = v;
+      } else
+      { if ( !PL_get_atom(sqltype, &tname) )
+	  return type_error(sqltype, "sql_type");
+	if ( tname == ATOM_all_types )
+	  type = SQL_ALL_TYPES;
+	else if ( !get_sqltype_from_atom(tname, &type) )
+	  return domain_error(sqltype, "sql_type");
+      }
+
+      if ( !get_connection(dsn, &cn) )
+	return FALSE;
+      ctxt = new_context(cn);
+      TRY(ctxt, SQLGetTypeInfo(ctxt->hstmt, type));
       
       return odbc_row(ctxt, row);
     }
@@ -1771,7 +1815,8 @@ install_odbc()
    ATOM_float	      =	PL_new_atom("float");
    ATOM_time	      =	PL_new_atom("time");
    ATOM_date	      =	PL_new_atom("date");
-   ATOM_timestamp    =	PL_new_atom("timestamp");
+   ATOM_timestamp     =	PL_new_atom("timestamp");
+   ATOM_all_types     = PL_new_atom("all_types");
 
    FUNCTOR_timestamp7		 = MKFUNCTOR("timestamp", 7);
    FUNCTOR_time3		 = MKFUNCTOR("time", 3);
@@ -1808,8 +1853,9 @@ install_odbc()
    NDET("odbc_execute",		   3, odbc_execute);
 
    NDET("odbc_query",		   4, pl_odbc_query);
-   NDET("odbc_database",	   2, pl_odbc_database);
+   NDET("odbc_tables",	           2, odbc_tables);
    NDET("odbc_column",		   3, pl_odbc_column);
+   NDET("odbc_types",		   3, odbc_types);
 
    DET("$odbc_statistics",	   1, odbc_statistics);
 }

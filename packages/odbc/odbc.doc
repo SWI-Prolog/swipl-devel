@@ -356,6 +356,48 @@ These facets are defined by SQLColumns()
 More prolog-friendly representation of the type properties.  See
 \secref{sqltypes}.
 \end{description}
+
+    \predicate{odbc_type}{3}{+Connection, ?TypeSpec, ?Facet}
+Query the types supported by the data source.  \arg{TypeSpec} is either
+an integer type-id, the name of an ODBC SQL type or the constant
+\const{all_types} to enumerate all known types.  This predicate calls
+SQLGetTypeInfo() and its facet names are derived from the specification
+of this ODBC function:
+
+\begin{description}
+    \termitem{name}{Name}
+Name used by the data-source.  Use this in CREATE statements
+    \termitem{data_type}{DataType}
+Numeric indentifier of the type
+    \termitem{precision}{Precision}
+When available, maximum precision of the type.
+    \termitem{literal_prefix}{Prefix}
+When available, prefix for literal representation.
+    \termitem{literal_suffix}{Suffix}
+When available, suffix for literal representation.
+    \termitem{create_params}{CreateParams}
+When available, arguments needed to create the type.
+    \termitem{nullable}{Bool}
+Whether the type can be \const{NULL}.  May be \const{unknown} 
+    \termitem{case_sensitive}{Bool}
+Whether values for this type are case-sensitive.
+    \termitem{searchable}{Searchable}
+Whether the type can be searched. Values are \const{false},
+\const{true}, \const{like_only} or \const{all_except_like}.
+    \termitem{unsigned}{Bool}
+When available, whether the value is signed. Please note that SWI-Prolog
+does not provide unsigned integral values.
+    \termitem{money}{Bool}
+Whether the type represents money.
+    \termitem{auto_increment}{Bool}
+When available, whether the type can be auto-incremented.
+    \termitem{local_name}{LocalName}
+Name of the type in local language.
+    \termitem{minimum_scale}{MinScale}
+Minimum scale of the type.
+    \termitem{maximum_scale}{MaxScale}
+Maximum scale of the type.
+\end{description}
 \end{description}
 
 
