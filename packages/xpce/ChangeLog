@@ -1,9 +1,37 @@
+VERSION 5.0.3
+=============
+
+* FIXED: Redraw problem with Windows-buttons if it is the default problem.
+
+* DELETED: `@pce<-method_calls'.  Using the new message passing it is
+  hard to get accurate readings for this.
+
+* ADDED: Allow for interception of undefined errors using the
+  @pce<-exception_handlers.  This simplifies the design of international
+  applications as well as user-defined errors.
+
+* ADDED: Redirected all translation of names to labels to call
+  `name<-label_name' explicitely.  This allows for central definition
+  of multi-lingual translation.
+
+* FIXED: Consulting examples from the online manual.  Thanks to Uwe Lesta.
+  Also fixed a syntax error in the `counting' example.
+
+* FIXED: Execute pce_class_directive/1 while loading a saved-state if the
+  directive appears in :- pce_extend_class environment.
+
 VERSION 5.0.2
 =============
 
-* FIXED: type unchecked to accept prolog_term
+* FIXED: Win32: DDE-handling of edit(File) mapped to edit(file(File)), so
+  it doesn't edit other things.
 
-* FIXED: avoid the creation of explicit instances of class prolog_term
+* FIXED: Printing error message for error(argument_count) (i.e. send(@pce,
+  succeed, doit).
+
+* FIXED: type unchecked to accept prolog_term.
+
+* FIXED: avoid the creation of explicit instances of class prolog_term.
 
 * ADDED: documentation for `host_data ->initialise'.
 
