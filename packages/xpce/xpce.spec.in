@@ -1,0 +1,81 @@
+Summary:	XPCE - GUI Toolkit for (SWI-)Prolog
+Name:		xpce
+Version:	@VMAJOR@.@VMINOR@.@VPATCH@
+Release:	1
+Copyright:	Distributable, free for demo-, evaluation- and personal use.
+Vendor:		SWI, University of Amsterdam
+Source:		xpce-@VMAJOR@.@VMINOR@.@VPATCH@.tar.gz
+Url:		http://www.swi.psy.uva.nl/projects/xpce/
+Group:		Development/Languages
+Requires:	pl >= 3.2.2
+Requires:	libXt.so.6, libX11.so.6, libSM.so.6, libICE.so.6
+Requires:	libjpeg.so.6, libXpm.so.4
+Requires:	libm.so.5, libc.so.5
+Prefix:		/usr
+BuildRoot:	/var/tmp/xpce
+
+%define pceversion @VMAJOR@.@VMINOR@.@VPATCH@
+%define arch @ARCH@-@OS@
+
+%description
+Graphical User Interface (GUI) toolkit for Prolog and other dynamically
+typed languages.  Provides Object Oriented programming to Prolog as well
+as a high-level portable GUI toolkit for (SWI-)Prolog.  Also available for
+Quintus and SICStus Prolog.
+
+%prep
+%setup
+
+%build
+mkdir -p linux
+cd linux
+env CFLAGS="$RPM_OPT_FLAGS" \
+  ../src/configure --prefix=/usr
+make
+
+%install
+mkdir -p $RPM_BUILD_ROOT/usr/lib
+mkdir -p $RPM_BUILD_ROOT/usr/bin
+mkdir -p $RPM_BUILD_ROOT/usr/man/man1
+eval `pl -dump-runtime-variables`
+cd linux
+make rpm-install prefix=$RPM_BUILD_ROOT/usr
+
+%files
+%doc ChangeLog
+%doc INSTALL INSTALL.notes
+%doc README README.linux
+%doc VERSION
+/usr/lib/xpce-%pceversion
+/usr/bin/xpce-client
+/usr/bin/xpce
+/usr/man/man1/xpce.1
+/usr/man/man1/xpce-client.1
+
+%post
+PATH="$RPM_INSTALL_PREFIX/bin:$PATH"
+eval `pl -dump-runtime-variables`
+cd $PLBASE
+ln -s $RPM_INSTALL_PREFIX/lib/xpce-%pceversion xpce
+cp xpce/pl/pl.rc .
+cp xpce/pl/xpce.rc .
+cp xpce/pl/Makefile .
+make -f Makefile
+cd $RPM_INSTALL_PREFIX/bin
+rm -f xpce
+ln -s $PLBASE/bin/%arch/pl xpce
+
+%preun
+rm -f `find $RPM_INSTALL_PREFIX/lib/xpce-%pceversion -name '*.qlf'`
+rm -f $RPM_INSTALL_PREFIX/lib/xpce-%pceversion/man/reference/index.obj
+rm -f $RPM_INSTALL_PREFIX/lib/xpce-%pceversion/prolog/lib/INDEX.pl
+rm -f $RPM_INSTALL_PREFIX/lib/xpce-%pceversion/prolog/lib/.pwd
+
+%postun
+PATH="$RPM_INSTALL_PREFIX/bin:$PATH"
+eval `pl -dump-runtime-variables`
+cd $PLBASE
+rm -f xpce pl.rc xpce.rc Makefile
+
+%clean
+rm -rf $RPM_BUILD_ROOT/usr
