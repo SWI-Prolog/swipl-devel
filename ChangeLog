@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Parsing numbers with 0-base written as 00'...  Anjo Anjewierden.
+
   * ADDED: PL_new_atom_wchars() and PL_atom_wchars() for create/fetch
     text from a wide-character atom.
 

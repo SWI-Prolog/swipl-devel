@@ -1318,7 +1318,7 @@ get_number(cucharp in, ucharp *end, Number value, int escape)
   if ( *in == '\'' )
   { in++;
 
-    if ( !intNumber(value) || value->value.i > 36 )
+    if ( !intNumber(value) || value->value.i > 36 || value->value.i <= 1 )
       fail;				/* illegal base */
     if ( !scan_number(&in, (int)value->value.i, value) )
       fail;				/* number too large */
