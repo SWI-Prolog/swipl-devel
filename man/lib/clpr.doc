@@ -1,15 +1,19 @@
 \libdoc{clpr}{Constraint Logic Programming over Reals}
 
+\begin{quote}
 Author: \emph{Leslie De Koninck}, K.U. Leuven
 as part of a thesis with supervisor Bart Demoen and
 daily advisor Tom Schrijvers.
+\end{quote}
 
 This CLP(R) system is a port of the CLP(Q,R) system of Sicstus
 Prolog by Christian Holzbaur: Holzbaur C.: OFAI clp(q,r) Manual,
 Edition 1.3.3, Austrian Research Institute for Artificial Intelligence,
-Vienna, TR-95-09, 1995. This port only contains the part concerning
-real arithmetics. This manual is roughly based on the manual of the
-above mentioned CLP(QR) implementation.
+Vienna, TR-95-09, 1995.%
+	\footnote{http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09}
+This port only contains the part concerning real arithmetics. This
+manual is roughly based on the manual of the above mentioned CLP(QR)
+implementation.
 
 Please note that the \pllib{clpr} library is \emph{not} an
 \jargon{autoload} library and therefore this library must be loaded
@@ -25,7 +29,6 @@ explicitely before using it:
 The following predicates are provided to work with constraints:
 
 \begin{description}
-
 	\predicate{{}}{1}{+Constraints}
 Adds the constraints given by \arg{Constraints} to the constraint store.
 
@@ -86,44 +89,51 @@ have been replaced by atoms x, y and z.
 \subsection{Syntax of the predicate arguments}
 %=============================================
 
-The arguments of the predicates defined in the subsection above is as follows:
+The arguments of the predicates defined in the subsection above are
+defined in \tabref{clprbnf}. Failing to meet the syntax rules will
+result in an exception.
 
-\begin{code}
+\begin{table}
+\begin{center}
+\begin{tabular}{|lrl|p{0.5\linewidth}|}
+\hline
+<Constraints> \isa <Constraint>				& single constraint \\
+	      \ora <Constraint> , <Constraints>		& conjunction \\
+	      \ora <Constraint> ; <Constraints>		& disjunction \\
 
-Constraints --> Constraint			% single constraint
-	      | Constraint, Constraints		% conjunction
-	      | Constraint; Constraints		% disjunction
+<Constraint> \isa <Expression> {<} <Expression>		& less than \\
+	     \ora <Expression> {>} <Expression>		& greater than \\
+	     \ora <Expression> {=<} <Expression>	& less or equal \\
+	     \ora <=(<Expression>, <Expression>)	& less or equal \\
+	     \ora <Expression> {>=} <Expression>	& greater or equal \\
+	     \ora <Expression> {=\=} <Expression>	& not equal \\
+	     \ora <Expression> =:= <Expression>		& equal \\
+	     \ora <Expression> = <Expression>		& equal \\
 
-Constraint --> Expression < Expression		% less than
-	     | Expression > Expression		% greater than
-	     | Expression =< Expression		% less or equal
-	     | <=(Expression, Expression)	% less or equal
-	     | Expression >= Expression		% greater or equal
-	     | Expression =\= Expression	% not equal
-	     | Expression =:= Expression	% equal
-	     | Expression = Expression		% equal
+<Expression> \isa <Variable>				& Prolog variable \\
+	     \ora <Number>				& Prolog number (float, integer) \\
+	     \ora +<Expression>				& unary plus \\
+	     \ora -<Expression>				& unary minus \\
+	     \ora <Expression> + <Expression>		& addition \\
+	     \ora <Expression> - <Expression>		& substraction \\
+	     \ora <Expression> * <Expression>		& multiplication \\
+	     \ora <Expression> / <Expression>		& division \\
+	     \ora abs(<Expression>)			& absolute value \\
+	     \ora sin(<Expression>)			& sine \\
+	     \ora cos(<Expression>)			& cosine \\
+	     \ora tan(<Expression>)			& tangent \\
+	     \ora exp(<Expression>)			& exponent \\
+	     \ora pow(<Expression>)			& exponent \\
+	     \ora <Expression> {^} <Expression>		& exponent \\
+	     \ora min(<Expression>, <Expression>)	& minimum \\
+	     \ora max(<Expression>, <Expression>)	& maximum \\
+\hline
+\end{tabular}
+    \caption{CLP(R) constraint BNF}
+    \label{tab:clprbnf}
+\end{center}
+\end{table}
 
-Expression --> variable				% prolog variable
-	     | number				% prolog number (float, integer)
-	     | +Expression			% unary plus
-	     | -Expression			% unary minus
-	     | Expression + Expression		% addition
-	     | Expression - Expression		% substraction
-	     | Expression * Expression		% multiplication
-	     | Expression / Expression		% division
-	     | abs(Expression)			% absolute value
-	     | sin(Expression)			% sine
-	     | cos(Expression)			% cosine
-	     | tan(Expression)			% tangent
-	     | exp(Expression)			% exponent
-	     | pow(Expression)			% exponent
-	     | Expression ^ Expression		% exponent
-	     | min(Expression, Expression)	% minimum
-	     | max(Expression, Expression)	% maximum
-
-\end{code}
-
-Failing to meet the syntax rules will result in an exception.
 
 \subsection{Use of unification}
 
@@ -154,38 +164,35 @@ X = 5.0
 \subsection{Non-linear constraints}
 %==================================
 
-In this version, non-linear constraints do not get solved until certain conditions are satisfied. We call
-these conditions the isolation axioms. They are the following:
+In this version, non-linear constraints do not get solved until certain
+conditions are satisfied. We call these conditions the isolation axioms.
+They are given in \tabref{clpraxioms}.
 
-\begin{code}
-	A = B * C
-		B or C is ground			e.g. A = 5 * C or A = B * 4
-		A and (B or C) are ground		e.g. 20 = 5 * C or 20 = B * 4
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|p{0.3\linewidth}|p{0.3\linewidth}|}
+\hline
+$A = B * C$ & B or C is ground			& A = 5 * C or A = B * 4 \\
+	    & A and (B or C) are ground		& 20 = 5 * C or 20 = B * 4 \\
+\hline
+$A = B / C$ & C is ground			& A = B / 3 \\
+	    & A and B are ground		& 4 = 12 / C \\
+\hline
+$X = min(Y,Z)$ & Y and Z are ground		& X = min(4,3) \\
+$X = max(Y,Z)$ & Y and Z are ground		& X = max(4,3) \\
+$X = abs(Y)$   & Y is ground			& X = abs(-7) \\
+\hline
+$X = pow(Y,Z)$ & X and Y are ground		& 8 = 2 {^} Z \\
+$X = exp(Y,Z)$ & X and Z are ground		& 8 = Y {^} 3 \\
+$X = Y ^ Z$    & Y and Z are ground		& X = 2 {^} 3 \\
+\hline
+$X = sin(Y)$	& X is ground			& 1 = sin(Y) \\
+$X = cos(Y)$	& Y is ground			& X = sin(1.5707) \\
+$X = tan(Y)$    && \\
+\hline
+\end{tabular}
+	\caption{CLP(R) isolating axioms}
+	\label{tab:clpraxioms}
+\end{center}
+\end{table}
 
-	A = B / C
-		C is ground				e.g. A = B / 3
-		A and B are ground			e.g. 4 = 12 / C
-	X = min(Y,Z) 
-		Y and Z are ground			e.g. X = min(4,3)
-	X = max(Y,Z) 
-		Y and Z are ground			e.g. X = max(4,3)
-	X = abs(Y)
-		Y is ground				e.g. X = abs(-7)
-	X = pow(Y,Z),
-	X = exp(Y,Z) or
-	X = Y ^ Z
-		X and Y are ground			e.g. 8 = 2 ^ Z
-		X and Z are ground			e.g. 8 = Y ^ 3
-		Y and Z are ground			e.g. X = 2 ^ 3
-	X = sin(Y)
-		X is ground				e.g. 1 = sin(Y) 
-		Y is ground				e.g. X = sin(1.5707)
-	X = cos(Y)
-		X is ground				e.g. 1 = cos(Y)
-		Y is ground				e.g. X = cos(0)
-	X = tan(Y)
-		X is ground				e.g. 1 = tan(Y)
-		Y is ground				e.g. X = tan(0.7853)
-\end{code}
-
-% do not remove
