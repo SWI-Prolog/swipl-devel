@@ -1,5 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
+
+  * FIXED: Setting break-points on facts, or in general on the last
+    (I_EXIT or I_EXITFACT) instruction of a clause.
+
 VERSION 4.0.3
 =============
 

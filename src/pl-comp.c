@@ -3143,7 +3143,7 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
   if ( !get_clause_ptr_ex(ref, &clause) ||
        !PL_get_integer_ex(pc, &pcoffset) )
     fail;
-  if ( pcoffset < 0 || pcoffset >= clause->code_size )
+  if ( pcoffset < 0 || pcoffset > clause->code_size )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, pc);
 
   PC = clause->codes;
