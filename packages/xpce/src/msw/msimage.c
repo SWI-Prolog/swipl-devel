@@ -32,8 +32,7 @@
 
 
 static int	ws_sizeof_bits(int w, int h);
-static status	ws_attach_xpm_image(Image image,
-				    XpmImage* xpmimg, XpmInfo* xpminfo);
+
 
 void
 ws_init_image(Image image)
@@ -468,7 +467,7 @@ ws_std_xpm_image(Name name, Image *global, char **data)
 }
 
 
-static status
+status
 ws_attach_xpm_image(Image image, XpmImage* xpmimg, XpmInfo* xpminfo)
 { XImage *img, *shape;
   HDC hdc;

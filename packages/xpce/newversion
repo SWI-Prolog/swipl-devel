@@ -1,0 +1,25 @@
+#!/bin/sh
+
+version=`cat VERSION`
+versiondate=`date +"%B %Y"`
+tmp=.tmp$$
+
+f=src/Makefile.in
+sed "s/^PCEVERSIONDATE=.*/PCEVERSIONDATE=$versiondate/" $f > $tmp
+if cmp $f $tmp; then
+    rm -f $tmp
+else
+    cp $tmp $f
+    echo "Updated PCEVERSIONDATE in $f"
+fi
+
+f=src/h/interface.h
+sed "s/^#define PCE_VERSION.*/#define PCE_VERSION "\""$version, $versiondate"\"/ $f > $tmp
+if cmp $f $tmp; then
+    rm -f $tmp
+else
+    cp $tmp $f
+    echo "Updated #define PCE_VERSION in $f"
+fi
+
+rm -f $tmp

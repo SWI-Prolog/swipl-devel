@@ -59,12 +59,13 @@ LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 # The main targets
 ################################################################
 
-nosoall:	$(PLBASE)/pl.rc $(PLBASE)/xpce.rc $(PLBASE)/xpce \
-		$(PLBASE)/Makefile $(XPCE)
+nosoall:	common $(XPCE)
 
-soall:		$(PLBASE)/pl.rc $(PLBASE)/xpce.rc $(PLBASE)/xpce \
-		$(PLBASE)/Makefile $(PLBASE)/xpce/lib/$(PLARCH) \
-		$(XPCESO) bootqlf
+soall:		common $(PLBASE)/xpce/lib/$(PLARCH) $(XPCESO) bootqlf
+
+common:		$(PLBASE)/pl.rc $(PLBASE)/xpce.rc $(PLBASE)/xpce \
+		$(PLBASE)/Makefile \
+		$(PLBASE)/xpce/prolog/lib/INDEX.pl
 
 rt-soall:	$(XPCESO)
 rt-nosoall:	$(XPCE)
@@ -150,6 +151,9 @@ $(PLBASE)/xpce/lib/$(PLARCH):
 
 $(PLBASE)/Makefile: Makefile.bin
 	-cp Makefile.bin $@
+
+$(PLBASE)/xpce/prolog/lib/INDEX.pl:
+	$(PL) -g "make_library_index('$(PLBASE)/xpce/prolog/lib')" -t halt
 
 ################################################################
 # C++ Name mangling.  Not used right now
