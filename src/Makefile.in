@@ -1,5 +1,5 @@
 ################################################################
-# Makefile for SWI-Prolog 3.x
+# Makefile for SWI-Prolog 4.x
 # $Id$
 #
 # Author:	Jan Wielemaker
@@ -19,6 +19,7 @@
 #	* make install-arch	Install machine dependent files
 #	* make install-libs	Install machine independent files
 #	* make install-mt	Install multi-threaded version next to normal
+#	* make check		Run some tests
 #
 # Copyright (C) University of Amsterdam, all rights reserved
 # 
@@ -234,7 +235,7 @@ swipl:
 swiplbin:	
 		echo ".." > $@
 
-test:
+check:
 		./$(PL) -f $(srcdir)/test.pl -F none -g test,halt -t 'halt(1)'
 
 install:	@INSTALLTARGET@

@@ -1468,14 +1468,14 @@ pl_stack_parameter(term_t name, term_t key, term_t old, term_t new)
       stack = (Stack) &LD->stacks.argument;
   }
   if ( !stack )
-    return warning("stack_parameter/4: unknown stack");
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stack, name);
 
   if ( PL_get_atom(key, &k) )
   { if ( k == ATOM_min_free )
       value = &stack->minfree;
   }
   if ( !value )
-    return warning("stack_parameter/4: unknown key");
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stack_parameter, key);
 
   return setLong(value, old, new);
 }

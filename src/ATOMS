@@ -475,6 +475,7 @@ A shared_object		"shared_object"
 A li			"li"
 A co			"co"
 A ioctl			"ioctl"
+A stack_parameter	"stack_parameter"
 
 F abs			1
 F acos			1
