@@ -110,8 +110,9 @@ triples(description(Type, IdAbout, _, Props), Subject) -->
 	[ rdf(Subject, rdf:type, TypeURI)
 	],
 	properties(Props, Subject).
-triples(unparsed(Data), '__anon') -->
-	{ print_message(error, rdf(unparsed(Data)))
+triples(unparsed(Data), Id) -->
+	{ gensym('Error__', Id),
+	  print_message(error, rdf(unparsed(Data)))
 	},
 	[].
 

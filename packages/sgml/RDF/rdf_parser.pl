@@ -135,24 +135,30 @@ propertyElt(_, Name, description(description, Id, _, Properties)) ::=
 			 \?idTermAttr(Id)
 		       ]),
 		\propertyElts(Properties)), !.
-propertyElt(Id, Name, Value) ::=
-	element(Name,
-		\attrs([ \?idAttr(Id)
-		       ]),
-		[ \rdf_object(Value)
-		]), !.
 propertyElt(Id, Name, literal(Value)) ::=
 	element(Name,
 		\attrs([ \?idAttr(Id)
 		       ]),
-		[ Value ]), !.
+		[ Value ]),
+	{ atom(Value), !
+	}.
+propertyElt(Id, Name, Value) ::=
+	element(Name,
+		\attrs([ \?idAttr(Id)
+		       ]),
+		\an_rdf_object(Value)), !.
 propertyElt(_Id, Name, description(description, About, BagID, Properties)) ::=
 	element(Name,
 		\attrs([ \?idRefAttr(About),
 			 \?bagIdAttr(BagID)
 		       | \propAttrs(Properties)
 		       ]),
-		[]).
+		[]), !.
+propertyElt(Id, Name, unparsed(Value)) ::=
+	element(Name,
+		\attrs([ \?idAttr(Id)
+		       ]),
+		Value).
 
 idTermAttr(id(Id)) ::=
 	\idAttr(Id).
@@ -168,6 +174,37 @@ idRefAttr(Id) ::=
 	\idAttr(Id), !.
 idRefAttr(about(URI)) ::=
 	\resourceAttr(URI).
+
+
+%	an_rdf_object(-Object)
+%
+%	Deals with an object, but there may be spaces around.  I'm still
+%	not sure where to deal with these.  Best is to ask the XML parser
+%	to get rid of them, So most likely this code will change if this
+%	happens.
+
+an_rdf_object(Object) ::=
+	[ \rdf_object(Object)
+	], !.
+an_rdf_object(Object) ::=
+	[ \rdf_object(Object),
+	  \blank
+	], !.
+an_rdf_object(Object) ::=
+	[ \blank
+	| \an_rdf_object(Object)
+	].
+
+blank ::=
+	A,
+	{ atom_chars(A, Chars),
+	  all_blank(Chars)
+	}.
+
+all_blank([]).
+all_blank([H|T]) :-
+	char_type(H, space),		% SWI-Prolog specific
+	all_blank(T).
 
 
 		 /*******************************

@@ -1,3 +1,6 @@
+  * FIXED: handling mixed <name>literal</name> and <name>object</name>
+    (space canonisation problem).
+
   * CGI Demo: report errors generated before a fatal exception.
 
   * FIXED: handling of propertyElt of the form
