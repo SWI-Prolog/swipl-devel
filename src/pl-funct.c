@@ -161,10 +161,33 @@ registerBuiltinFunctors()
 
     f->name             = d->name;
     f->arity            = d->arity;
-    f->next             = functorDefTable[v];
     f->flags		= 0;
+    f->next             = functorDefTable[v];
     functorDefTable[v]  = f;
     registerFunctor(f);
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+These functors are compiled with compileBody().   Make sure this is kept
+consistent.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+registerControlFunctors()
+{ static functor_t control[] =
+  { FUNCTOR_comma2,
+    FUNCTOR_semicolon2,
+    FUNCTOR_bar2,
+    FUNCTOR_ifthen2,
+    FUNCTOR_softcut2,
+    FUNCTOR_not_provable1
+  };
+  functor_t *f;
+  
+  for(f	= control; *f; f++)
+  { valueFunctor(*f)->flags |= CONTROL_F;
   }
 }
 
@@ -178,6 +201,7 @@ initFunctors(void)
     initBuffer(&functor_array);
     allocFunctorTable();
     registerBuiltinFunctors();
+    registerControlFunctors();
   }
   UNLOCK();
 }

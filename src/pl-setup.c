@@ -997,7 +997,7 @@ mapOrOutOf(Stack s)
 #ifndef NO_SEGV_HANDLING
       LD->current_signal = SIGSEGV;
 #endif
-      outOfStack(s, STACK_OVERFLOW_SIGNAL_IMMEDIATELY);
+      outOfStack(s, STACK_OVERFLOW_THROW);
     } else
       outOfStack(s, STACK_OVERFLOW_SIGNAL);
   }
@@ -1183,7 +1183,7 @@ mapOrOutOf(Stack s)
 #ifndef NO_SEGV_HANDLING
       LD->current_signal = SIGSEGV;
 #endif
-      outOfStack(s, STACK_OVERFLOW_SIGNAL_IMMEDIATELY);
+      outOfStack(s, STACK_OVERFLOW_THROW);
     } else
       outOfStack(s, STACK_OVERFLOW_SIGNAL);
   }

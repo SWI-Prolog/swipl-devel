@@ -12,7 +12,7 @@
 
 /* pl-alloc.c */
 void		freeHeap(void *mem, size_t n);
-void		outOfStack(Stack s, int how);
+word		outOfStack(Stack s, stack_overflow_action how);
 volatile void	outOfCore(void);
 Word		allocGlobal(int words);
 Void		allocHeap(size_t n);

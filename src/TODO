@@ -10,6 +10,31 @@ BUGS:
 	  scenario: generator of findall/3 calls findall/3 in
 	  unbound recursion.
 
+CO-ROUTING AND CALL/1
+=====================
+
+	* Compile goal to local stack.
+	    - How to activate?
+	        - Manipulate PC?  Making it accesible may be expensive!
+		- Signal and test on I_ENTER + foreign I_EXIT
+		- Both require a queue of goals!
+		- How to handle backtracking?
+		    - Choice-point of new node should be last choice.
+
+	* Variable can have value: pointer to term holding when(X, Goal).
+	  This may also serve `attributed variables' in the future?
+
+	    - Other temporary use of variables must remember value
+	        - compiler
+		- copy-term
+		- unify-with-occurs-check
+	    - including the use as `setarg' to restore on backtracking
+	    
+	
+	
+
+
+
 =======
 INPUT HANDLING:
 ---------------

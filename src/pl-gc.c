@@ -2021,7 +2021,7 @@ nextStackSize(Stack s)
 
   if ( size + grow > limit )
   { if ( size + grow > (limit*3)/2 )
-      outOfStack(s, STACK_OVERFLOW_SIGNAL_IMMEDIATELY);
+      outOfStack(s, STACK_OVERFLOW_THROW);
 
     outOfStack(s, STACK_OVERFLOW_SIGNAL);
     grow = limit - size;

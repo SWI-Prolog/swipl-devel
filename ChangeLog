@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: predicate reference handling when running out of stack.  This
+    could leave the system unstable after an out-of-stack, especially
+    caused by dynamic code.
+
   * FIXED: Documentation of file_directory_name/2 (Lourens van der
     Meij).
 
@@ -46,7 +50,7 @@
   * FIXED: Cleanup after exceptions inside the generator of
     bagof/setof/findall.  Left inconsistent linked-list with possibility
     for random crashes on further use of these predicates.  Spotted by
-    Laurens van der Meij.
+    Lourens van der Meij.
 
   * ADDED: option lock to open/4, providing simple fcntl() based advisory
     locks on files.  POSIX only (Windows says it is, but appearently this

@@ -394,8 +394,8 @@ cleanupMemAlloc(void)
 		*             STACKS            *
 		*********************************/
 
-void
-outOfStack(Stack s, int how)
+word
+outOfStack(Stack s, stack_overflow_action how)
 { LD->trim_stack_requested = TRUE;
 
   switch(how)
@@ -405,7 +405,9 @@ outOfStack(Stack s, int how)
 
       pl_abort(ABORT_FATAL);
       assert(0);
-    case STACK_OVERFLOW_SIGNAL_IMMEDIATELY:
+      fail;
+    case STACK_OVERFLOW_THROW:
+    case STACK_OVERFLOW_RAISE:
       LD->outofstack = NULL;
       gc_status.requested = FALSE;	/* can't have that */
       PL_unify_term(LD->exception.tmp,
@@ -413,12 +415,20 @@ outOfStack(Stack s, int how)
 		      PL_FUNCTOR, FUNCTOR_resource_error1,
 		        PL_ATOM, ATOM_stack,
 		      PL_CHARS, s->name);
-      PL_throw(LD->exception.tmp);
-      warning("Out of %s stack while not in Prolog!?", s->name);
-      assert(0);
+      if ( how == STACK_OVERFLOW_THROW )
+      { PL_throw(LD->exception.tmp);
+	warning("Out of %s stack while not in Prolog!?", s->name);
+	assert(0);
+      } else
+      { PL_raise_exception(LD->exception.tmp);
+      }
+      fail;
     case STACK_OVERFLOW_SIGNAL:
       LD->outofstack = s;
+      succeed;
   }
+  assert(0);
+  fail;
 }
 
 

@@ -253,9 +253,6 @@ variable it's address is stored, as well  as  the  number  of  times  it
 occurred in the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards bool	analyse_variables(Word, Word, int, int*);
-forwards int	analyseVariables2(Word, int, int, int);
-
 #if O_COMPILE_ARITH
 #define A_NOTARITH	0
 #define A_OK		1
@@ -268,6 +265,31 @@ typedef struct _varDef
   int		times;			/* occurences */
   int		offset;			/* offset in environment frame */
 } vardef;
+
+typedef struct
+{ int	isize;
+  int	entry[1];
+} var_table, *VarTable;
+
+#undef struct_offsetp
+#define struct_offsetp(t, f) ((int)((t*)0)->f)
+#define sizeofVarTable(isize) (struct_offsetp(var_table, entry) + sizeof(int)*(isize))
+
+#define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
+#define BITSPERINT (sizeof(int)*8)
+
+
+typedef struct
+{ Module	module;			/* module to compile into */
+  int		arity;			/* arity of top-goal */
+  Clause	clause;			/* clause we are constructing */
+  int		vartablesize;		/* size of the vartable */
+  int		cutvar;			/* Variable for local cuts */
+  int		islocal;		/* Temporary local clause */
+  int		argvars;		/* islocal argument psuedo vars */
+  tmp_buffer	codes;			/* scratch code table */
+  VarTable	used_var;		/* boolean array of used variables */
+} compileInfo, *CompileInfo;
 
 #define vardefs		(LD->comp._vardefs)
 #define nvardefs	(LD->comp._nvardefs)
@@ -354,43 +376,9 @@ of the argument block, offset `arity' of the variable block.  Singletons
 are made variables again.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
-analyse_variables(Word head, Word body, int arity, int *nv)
-{ int nvars = 0;
-  int n;
-  int body_voids = 0;
-
-  for(n=0; n<arity; n++)
-    getVarDef(n)->address = NULL;
-
-  if ( (nvars = analyseVariables2(head, 0, arity, -1)) < 0 )
-    fail;
-  if (body != (Word) NULL)
-    if ( (nvars = analyseVariables2(body, nvars, arity, arity)) < 0 )
-      fail;
-
-  for(n=0; n<arity+nvars; n++)
-  { VarDef vd = vardefs[n];
-
-    assert(vd->functor == FUNCTOR_var1);
-    if (vd->address == (Word) NULL)
-      continue;
-    if (vd->times == 1)				/* ISVOID */
-    { setVar(*(vd->address));
-      vd->address = (Word) NULL;
-      if (n >= arity)
-	body_voids++;
-    } else
-      vd->offset = n - body_voids;
-  }
-
-  filledVars = arity + nvars;
-  *nv = nvars - body_voids;
-  succeed;
-}
-
 static int
-analyseVariables2(Word head, int nvars, int arity, int argn)
+analyseVariables2(Word head, int nvars, int arity, int argn,
+		  CompileInfo ci)
 {
 right_recursion:
 
@@ -417,19 +405,62 @@ right_recursion:
 
   if ( isTerm(*head) )
   { Functor f = valueTerm(*head);
-    int ar = arityFunctor(f->definition);
+    FunctorDef fd = valueFunctor(f->definition);
 
-    head = f->arguments;
-    argn = ( argn < 0 ? 0 : arity );
+    if ( ci->islocal && false(fd, CONTROL_F) )
+    { ci->argvars++;
+    } else
+    { int ar = fd->arity;
 
-    for(; --ar > 0; head++, argn++)
-      nvars = analyseVariables2(head, nvars, arity, argn);
+      head = f->arguments;
+      argn = ( argn < 0 ? 0 : arity );
 
-    goto right_recursion;
+      for(; --ar > 0; head++, argn++)
+	nvars = analyseVariables2(head, nvars, arity, argn, ci);
+
+      goto right_recursion;
+    }
   }
 
   return nvars;
 }
+
+
+static void
+analyse_variables(Word head, Word body, CompileInfo ci)
+{ int nvars = 0;
+  int n;
+  int body_voids = 0;
+  int arity = ci->arity;
+
+  for(n=0; n<arity; n++)
+    getVarDef(n)->address = NULL;
+
+  nvars = analyseVariables2(head, 0, arity, -1, ci);
+  if ( body )
+    nvars = analyseVariables2(body, nvars, arity, arity, ci);
+
+  for(n=0; n<arity+nvars; n++)
+  { VarDef vd = vardefs[n];
+
+    assert(vd->functor == FUNCTOR_var1);
+    if (vd->address == (Word) NULL)
+      continue;
+    if (vd->times == 1)				/* ISVOID */
+    { setVar(*(vd->address));
+      vd->address = (Word) NULL;
+      if (n >= arity)
+	body_voids++;
+    } else
+      vd->offset = n - body_voids;
+  }
+
+  filledVars = arity + nvars;
+
+  ci->clause->prolog_vars = ci->clause->variables = nvars - body_voids + arity;
+  ci->vartablesize = (nvars + arity + BITSPERINT-1)/BITSPERINT;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The compiler  itself.   First  it  calls  analyseVariables().  Next  the
@@ -465,31 +496,8 @@ calculation at runtime.
 #define Output_2(ci, c, a0, a1)	BLOCK(Output_1(ci, c, a0); Output_a(ci, a1))
 #define Output_n(ci, p, n)	addMultipleBuffer(&(ci)->codes, p, n, word)
 
-#define BITSPERINT (sizeof(int)*8)
-
 #define PC(ci)		entriesBuffer(&(ci)->codes, code)
 #define OpCode(ci, pc)	(baseBuffer(&(ci)->codes, code)[pc])
-
-typedef struct
-{ int	isize;
-  int	entry[1];
-} var_table, *VarTable;
-
-#undef struct_offsetp
-#define struct_offsetp(t, f) ((int)((t*)0)->f)
-#define sizeofVarTable(isize) (struct_offsetp(var_table, entry) + sizeof(int)*(isize))
-
-#define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
-
-typedef struct
-{ Module	module;			/* module to compile into */
-  int		arity;			/* arity of top-goal */
-  Clause	clause;			/* clause we are constructing */
-  int		vartablesize;		/* size of the vartable */
-  int		cutvar;			/* Variable for local cuts */
-  tmp_buffer	codes;			/* scratch code table */
-  VarTable	used_var;		/* boolean array of used variables */
-} compileInfo;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Variable table operations.
@@ -629,13 +637,13 @@ Clause
 compileClause(Word head, Word body, Procedure proc, Module module)
 { compileInfo ci;			/* data base for the compiler */
   Clause clause;
-  int nvars;
+
+  ci.islocal = FALSE;
+  ci.argvars = 0;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate the clause and fill initialise the field we already know.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  ci.arity = proc->definition->functor->arity;
 
   clause = (Clause) allocHeap(sizeof(struct clause));
   clause->procedure  = proc;
@@ -643,23 +651,18 @@ Allocate the clause and fill initialise the field we already know.
   clause->code_size  = 0;
   clause->source_no  = clause->line_no = 0;
 
+  ci.arity = proc->definition->functor->arity;
+  ci.clause = clause;
+  ci.module = module;
+
   DEBUG(9, Sdprintf("clause struct initialised\n"));
 
-  TRY( analyse_variables(head, body, ci.arity, &nvars) );
-  clause->prolog_vars = clause->variables = nvars + ci.arity;
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Initialise the `compileInfo' structure.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  initBuffer(&ci.codes);
-  ci.module = module;
-  ci.clause = clause;
-
+  analyse_variables(head, body, &ci);
   ci.cutvar = 0;
-  ci.vartablesize = (nvars + ci.arity + BITSPERINT-1)/BITSPERINT;
   ci.used_var = alloca(sizeofVarTable(ci.vartablesize));
   clearVarTable(&ci);
+
+  initBuffer(&ci.codes);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 First compile  the  head  of  the  term.   The  arguments  are  compiled
@@ -768,118 +771,124 @@ A ; B, A -> B, A -> B ; C, \+ A
     FIRSTVAR  type  of instructions.  to avoid such trouble the compiler
     generates  SETVAR  instructions  to  balance  both   brances.    See
     balanceVars();
+  
+    If you add anything to this, please ensure registerControlFunctors()
+    remains consistent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-compileBody(Word body, code call, register compileInfo *ci)
+compileBody(Word body, code call, compileInfo *ci)
 { deRef(body);
 
   if ( isTerm(*body) )
   { functor_t fd = functorTerm(*body);
+    FunctorDef fdef = valueFunctor(fd);
 
-    if ( fd == FUNCTOR_comma2 )			/* A , B */
-    { int rv;
+    if ( true(fdef, CONTROL_F) )
+    { if ( fd == FUNCTOR_comma2 )			/* A , B */
+      { int rv;
 
-      if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
-	return rv;
-      return compileBody(argTermP(*body, 1), call, ci);
+	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
+	  return rv;
+	return compileBody(argTermP(*body, 1), call, ci);
 #if O_COMPILE_OR
-    } else if ( fd == FUNCTOR_semicolon2 ||
-		fd == FUNCTOR_bar2 )		/* A ; B and (A -> B ; C) */
-    { Word a0 = argTermP(*body, 0);
-      VarTable vsave = mkCopiedVarTable(ci->used_var);
-      VarTable valt1 = mkCopiedVarTable(ci->used_var);
-      VarTable valt2 = mkCopiedVarTable(ci->used_var);
-      int hard;
-      
-      setVars(argTermP(*body, 0), valt1);
-      setVars(argTermP(*body, 1), valt2);
+      } else if ( fd == FUNCTOR_semicolon2 ||
+		  fd == FUNCTOR_bar2 )		/* A ; B and (A -> B ; C) */
+      { Word a0 = argTermP(*body, 0);
+	VarTable vsave = mkCopiedVarTable(ci->used_var);
+	VarTable valt1 = mkCopiedVarTable(ci->used_var);
+	VarTable valt2 = mkCopiedVarTable(ci->used_var);
+	int hard;
+	
+	setVars(argTermP(*body, 0), valt1);
+	setVars(argTermP(*body, 1), valt2);
 
-      deRef(a0);
-      if ( (hard=hasFunctor(*a0, FUNCTOR_ifthen2)) || /* A  -> B ; C */
-	   hasFunctor(*a0, FUNCTOR_softcut2) )        /* A *-> B ; C */
+	deRef(a0);
+	if ( (hard=hasFunctor(*a0, FUNCTOR_ifthen2)) || /* A  -> B ; C */
+	     hasFunctor(*a0, FUNCTOR_softcut2) )        /* A *-> B ; C */
+	{ int var = VAROFFSET(ci->clause->variables++);
+	  int tc_or, tc_jmp;
+	  int rv;
+	  int cutsave = ci->cutvar;
+
+	  Output_2(ci, hard ? C_IFTHENELSE : C_SOFTIF, var, (code)0);
+	  tc_or = PC(ci);
+	  ci->cutvar = var;		/* Cut locally in the condition */
+	  if ( (rv=compileBody(argTermP(*a0, 0), I_CALL, ci)) != TRUE )
+	    return rv;
+	  ci->cutvar = cutsave;
+	  Output_1(ci, hard ? C_CUT : C_SOFTCUT, var);
+	  if ( (rv=compileBody(argTermP(*a0, 1), call, ci)) != TRUE )
+	    return rv;
+	  balanceVars(valt1, valt2, ci);
+	  Output_1(ci, C_JMP, (code)0);
+	  tc_jmp = PC(ci);
+	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
+	  copyVarTable(ci->used_var, vsave);
+	  if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
+	    return rv;
+	  balanceVars(valt2, valt1, ci);
+	  OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
+	} else					/* A ; B */
+	{ int tc_or, tc_jmp;
+	  int rv;
+
+	  Output_1(ci, C_OR, (code)0);
+	  tc_or = PC(ci);
+	  if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
+	    return rv;
+	  balanceVars(valt1, valt2, ci);
+	  Output_1(ci, C_JMP, (code)0);
+	  tc_jmp = PC(ci);
+	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
+	  copyVarTable(ci->used_var, vsave);
+	  if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
+	    return rv;
+	  balanceVars(valt2, valt1, ci);
+	  OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
+	}
+
+	orVars(valt1, valt2);
+	copyVarTable(ci->used_var, valt1);
+
+	succeed;
+      } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
       { int var = VAROFFSET(ci->clause->variables++);
-	int tc_or, tc_jmp;
 	int rv;
 	int cutsave = ci->cutvar;
 
-	Output_2(ci, hard ? C_IFTHENELSE : C_SOFTIF, var, (code)0);
-	tc_or = PC(ci);
+	Output_1(ci, C_MARK, var);
 	ci->cutvar = var;		/* Cut locally in the condition */
-	if ( (rv=compileBody(argTermP(*a0, 0), I_CALL, ci)) != TRUE )
-	  return rv;
-	ci->cutvar = cutsave;
-	Output_1(ci, hard ? C_CUT : C_SOFTCUT, var);
-	if ( (rv=compileBody(argTermP(*a0, 1), call, ci)) != TRUE )
-	  return rv;
-	balanceVars(valt1, valt2, ci);
-	Output_1(ci, C_JMP, (code)0);
-	tc_jmp = PC(ci);
-	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	copyVarTable(ci->used_var, vsave);
-	if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
-	  return rv;
-	balanceVars(valt2, valt1, ci);
-	OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
-      } else					/* A ; B */
-      { int tc_or, tc_jmp;
-	int rv;
-
-	Output_1(ci, C_OR, (code)0);
-	tc_or = PC(ci);
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
 	  return rv;
-	balanceVars(valt1, valt2, ci);
-	Output_1(ci, C_JMP, (code)0);
-	tc_jmp = PC(ci);
-	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	copyVarTable(ci->used_var, vsave);
+	ci->cutvar = cutsave;
+	Output_1(ci, C_CUT, var);
 	if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
 	  return rv;
-	balanceVars(valt2, valt1, ci);
-	OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
-      }
-
-      orVars(valt1, valt2);
-      copyVarTable(ci->used_var, valt1);
-
-      succeed;
-    } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
-    { int var = VAROFFSET(ci->clause->variables++);
-      int rv;
-      int cutsave = ci->cutvar;
-
-      Output_1(ci, C_MARK, var);
-      ci->cutvar = var;		/* Cut locally in the condition */
-      if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
-	return rv;
-      ci->cutvar = cutsave;
-      Output_1(ci, C_CUT, var);
-      if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
-	return rv;
-      Output_0(ci, C_END);
+	Output_0(ci, C_END);
       
-      succeed;
-    } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
-    { int var = VAROFFSET(ci->clause->variables++);
-      int tc_or;
-      VarTable vsave = mkCopiedVarTable(ci->used_var);
-      int rv;
-      int cutsave = ci->cutvar;
+	succeed;
+      } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
+      { int var = VAROFFSET(ci->clause->variables++);
+	int tc_or;
+	VarTable vsave = mkCopiedVarTable(ci->used_var);
+	int rv;
+	int cutsave = ci->cutvar;
 
-      Output_2(ci, C_NOT, var, (code)0);
-      tc_or = PC(ci);
-      ci->cutvar = var;
-      if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
-	return rv;
-      ci->cutvar = cutsave;
-      Output_1(ci, C_CUT, var);
-      Output_0(ci, C_FAIL);
-      OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-      copyVarTable(ci->used_var, vsave);
+	Output_2(ci, C_NOT, var, (code)0);
+	tc_or = PC(ci);
+	ci->cutvar = var;
+	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
+	  return rv;
+	ci->cutvar = cutsave;
+	Output_1(ci, C_CUT, var);
+	Output_0(ci, C_FAIL);
+	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
+	copyVarTable(ci->used_var, vsave);
       
-      succeed;
+	succeed;
 #endif /* O_COMPILE_OR */
+      }
     }
   }
 

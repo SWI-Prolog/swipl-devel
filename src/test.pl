@@ -201,6 +201,9 @@ meta(call-2) :-
 	\+ call(ten(20)).
 meta(call-3) :-
 	\+ call((between(0,3,X), !, X = 2)).
+meta(call-4) :-
+	blocked('Doesn\'t work right now!'),
+	length(X, 100000), call((list(X) -> true ; false)).
 meta(apply-1) :-
 	apply(=, [a,a]).
 meta(apply-2) :-
@@ -614,6 +617,28 @@ exception(call-4) :-
 exception(call-5) :-
 	catch(throwit, _, catchme).
 
+		 /*******************************
+		 *	  RESOURCE ERRORS	*
+		 *******************************/
+
+choice.
+choice.
+
+local_overflow :-
+	choice,
+	local_overflow.
+
+global_overflow(X) :-
+	global_overflow(X+1).
+
+
+resource(stack-1) :-
+	catch(local_overflow, E, true),
+	E = error(resource_error(stack), local).
+resource(stack-2) :-
+	catch(global_overflow(0), E, true),
+	E = error(resource_error(stack), global).
+
 
 		 /*******************************
 		 *	       GC		*
@@ -797,6 +822,7 @@ testset(term_atom).
 testset(popen) :-
 	current_prolog_flag(pipe, true).
 testset(ctype).
+testset(resource).
 
 :- dynamic
 	failed/1.
@@ -818,7 +844,8 @@ runtest(Name) :-
 	functor(Head, Name, 1),
 	nth_clause(Head, _N, R),
 	clause(Head, _, R),
-	(   Head
+	(   catch(Head, blocked(Reason),
+		  format('~NBlocked test ~p: ~w~n', [Head, Reason]))
 	->  put(.), flush
 	;   arg(1, Head, TestName),
 	    clause_property(R, line_count(Line)),
@@ -831,3 +858,6 @@ runtest(Name) :-
 runtest(_) :-
 	format(' done.~n').
 	
+blocked(Reason) :-
+	throw(blocked(Reason)).
+

@@ -56,12 +56,14 @@ might be used by us to examine problems with our RDF parser.  We do not
 publish this material.</em> The result-page provides a form for
 attaching a comment to the stored RDF statement.
 
+<!--  enctype="multipart/form-data" -->
+
+
 <p>
 <form
   name=rdf
-  method=post
-  enctype="multipart/form-data"
-  action="http://gollem.swi.psy.uva.nl/cgi-bin/rdf-test">
+  method=get
+  action="http://localhost:8000/rdf">
 <table align=center>
 <tr><td colspan=2>
   <textarea name=rdf rows=15 cols=72 wrap=off></textarea>

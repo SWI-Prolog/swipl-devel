@@ -1221,6 +1221,8 @@ isSimpleGoal(Word g)
     specified term (see I_USERCALL0) or we can call it directly.  The
     choice is based on optimisation.  Compilation is slower, but almost
     required to deal with really complicated cases.
+ 
+    TBD: use CONTROL_F
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -3151,6 +3153,25 @@ If the goal is not a simple goal, the   body is compiled to a new clause
 for system:$call($call(<free vars>)) :-  body,   which  is  subsequently
 called. The created clause  is  erased   immediately,  relying  on  true
 erasure as soon as the clause finishes executing.
+
+If the goal  constains  control-structures,   the  problem  becomes much
+harder. Basically there is the choice   between  direct meta-calling and
+make the definition of the control-structures   handle the call, compile
+the  goal  or  build  an  interpreter.  Discarding  the  latter  as  too
+complicated, we must consider meta-calling. This   was  the solution for
+pre-ISO versions of SWI-Prolog, but it is   next to impossible to handle
+the cur correctly. You  may  consider   mapping  (a,!,c)  to (a->c), but
+nested handling using if-then-else, etc gets really nasty.
+
+Compilation seems to be the right option, BUT the arguments to goals may
+hold very large calls that will be   compiled.  This is wasting time and
+memory (possibly a LOT) and  some  constructs   may  even  be too big to
+compile. 
+
+The solution outlined  here  compiles  the   clause  while  placing  all
+compound terms in local  variables,  allocated   from  the  current lTop
+value. In a further step, we could   also  allocate the clause itself on
+the local stack, avoiding fragmentation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	if ( isAtom(goal = *a) )
@@ -3840,7 +3861,10 @@ be able to access these!
 #endif /*O_DYNAMIC_STACKS*/
 
 	if ( LD->outofstack )
-	  outOfStack(LD->outofstack, STACK_OVERFLOW_SIGNAL_IMMEDIATELY);
+	{ enterDefinition(DEF);		/* exception will lower! */
+	  outOfStack(LD->outofstack, STACK_OVERFLOW_RAISE);
+	  goto b_throw;
+	}
 
 	if ( true(DEF, FOREIGN) )
 	{ int rval;

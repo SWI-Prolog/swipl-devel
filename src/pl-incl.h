@@ -886,7 +886,8 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_ERROR		(0x0040) /* module */
 #define UNKNOWN_WARNING		(0x0080) /* module */
 
-#define INLINE_F		(0x0001) /* functor */
+#define INLINE_F		(0x0001) /* functor (inline foreign) */
+#define CONTROL_F		(0x0002) /* functor (compiled controlstruct) */
 
 #define R_DIRTY			(0x0001) /* recordlist */
 #define R_EXTERNAL		(0x0002) /* record: inline atoms */
@@ -1395,7 +1396,7 @@ struct table_enum
 		 *	     MARK/UNDO		*
 		 *******************************/
 
-#define setVar(w)		((w) = (word) NULL)
+#define setVar(w)		((w) = (word) 0)
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
@@ -1580,9 +1581,12 @@ typedef struct
 			 (char *)LD->stacks.name.top)
 #define narrowStack(name) (roomStack(name) < LD->stacks.name.minfree)
 
-#define STACK_OVERFLOW_SIGNAL 1
-#define STACK_OVERFLOW_SIGNAL_IMMEDIATELY 2
-#define STACK_OVERFLOW_FATAL 3
+typedef enum
+{ STACK_OVERFLOW_SIGNAL,
+  STACK_OVERFLOW_RAISE,
+  STACK_OVERFLOW_THROW,
+  STACK_OVERFLOW_FATAL
+} stack_overflow_action;
 
 #if O_DYNAMIC_STACKS
 #ifdef NO_SEGV_HANDLING
