@@ -1435,12 +1435,20 @@ pl_current_stream(term_t file, term_t mode,
   }
   
   for( ; n < maxfiles; n++)
-  { if ( unifyStreamName(file, n) == FALSE ||
+  { fid_t fid = PL_open_foreign_frame();
+
+    if ( unifyStreamName(file, n) == FALSE ||
 	 unifyStreamMode(mode, n) == FALSE ||
 	 unifyStreamNo(stream, n) == FALSE )
+    { PL_discard_foreign_frame(fid);
       continue;
+    }
+
+    PL_close_foreign_frame(fid);
+
     if ( ++n < maxfiles )
       ForeignRedoInt(n);
+
     succeed;
   }
   

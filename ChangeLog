@@ -6,6 +6,9 @@
 Version 2.7.14
 ==============
 
+  * FIXED: current_stream/3 failed to properly enumerate the streams.
+    Thanks to Robert van Engelen.
+
   * MODIFIED: ensure_loaded and use_module now load if the file has
     been changed since it was last loaded, and not only if it was not
     loaded before.
