@@ -446,7 +446,8 @@ navigation tools progress steadily towards a mature set of tools.
 Many portability issues have been improved, including a port to
 MacOS X (Darwin).
 
-For details, please visit the new website at \url{www.swi-prolog.org}
+For details, please visit the new website at
+\url{http://www.swi-prolog.org}
 
 
 \section{Acknowledgements}	\label{sec:acknowledge}
