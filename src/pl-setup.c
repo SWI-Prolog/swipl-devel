@@ -1108,6 +1108,7 @@ allocStacks(long local, long global, long trail, long argument)
   long glsize;
   long lsep, tsep;
   SYSTEM_INFO info;
+  ulong maxarea;
 
   GetSystemInfo(&info);
   size_alignment = info.dwPageSize;
@@ -1120,9 +1121,11 @@ allocStacks(long local, long global, long trail, long argument)
   tsep = size_alignment;
 #endif
 
-  if ( local	== 0 ) local	= 64 MB; /* TBD: 64-bit machines? */
-  if ( global	== 0 ) global	= 64 MB;
-  if ( trail	== 0 ) trail	= 64 MB;
+  maxarea = (MAXTAGGEDPTR < 512 MB ? MAXTAGGEDPTR : 512 MB);
+
+  if ( local	== 0 ) local	= maxarea;
+  if ( global	== 0 ) global	= maxarea;
+  if ( trail	== 0 ) trail	= maxarea;
   if ( argument	== 0 ) argument	= 16 MB;
 
   local    = (long) align_size(local);	/* Round up to page boundary */

@@ -1718,8 +1718,17 @@ variable, compare the numbers otherwise.
 	} else if ( isReal(*k) )
 	{ Word p = valIndirectP(*k);
 
-	  if ( *p++ == *PC++ && *p == *PC++ ) 
-	    NEXT_INSTRUCTION;
+	  switch(WORDS_PER_DOUBLE) /* depend on compiler to clean up */
+	  { case 2:
+	      if ( *p++ != *PC++ )
+	        CLAUSE_FAILED;
+	    case 1:
+	      if ( *p++ == *PC++ )
+	        NEXT_INSTRUCTION;
+	      CLAUSE_FAILED;
+	    default:
+	      assert(0);
+	  }
 	}
 
       	CLAUSE_FAILED;

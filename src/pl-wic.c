@@ -72,12 +72,14 @@ Below is an informal description of the format of a `.qlf' file:
 
 <wic-file>	::=	<magic code>
 			<version number>
+			<bits-per-word>
 			<home>				% a <string>
 			{<statement>}
 			'T'
 ----------------------------------------------------------------
 <qlf-file>	::=	<qlf-magic>
 			<version-number>
+			<bits-per-word>
 			'F' <string>			% path of qlf file
 			'Q' <qlf-part>
 <qlf-magic>	::=	<string>
@@ -650,15 +652,23 @@ loadWicFd(IOSTREAM *fd)
   Char c;
   char mbuf[100];
   char *savedhome;
+  int saved_wsize;
 
   s = getMagicString(fd, mbuf, sizeof(mbuf));
   if ( !s || !streq(s, saveMagic) )
-    return fatalError("Not a SWI-Prolog intermediate code file");
+    return fatalError("Not a SWI-Prolog saved state");
 
   if ( (qlf_saved_version=getNum(fd)) < LOADVERSION )
-  { fatalError("Intermediate code file has incompatible save version");
+  { fatalError("Saved state has incompatible save version");
     fail;
   }
+
+  saved_wsize = getNum(fd);
+  if ( saved_wsize != sizeof(word)*8 )
+  { fatalError("Saved state has incompatible (%d) word-length", saved_wsize);
+    fail;
+  }
+
 					/* fix paths for changed home */
   savedhome = getString(fd);
   if ( !systemDefaults.home || streq(savedhome, systemDefaults.home) )
@@ -1527,6 +1537,7 @@ writeWicHeader(IOSTREAM *fd)
 
   putString(saveMagic, fd);
   putNum(VERSION, fd);
+  putNum(sizeof(word)*8, fd);	/* bits-per-word */
   if ( systemDefaults.home )
     putString(systemDefaults.home,  fd);
   else
@@ -1771,6 +1782,8 @@ qlfOpen(atom_t name)
 
   putString(qlfMagic, wicFd);
   putNum(VERSION, wicFd);
+  putNum(sizeof(word)*8, wicFd);
+
   putString(absname, wicFd);
 
   currentProc    = (Procedure) NULL;
@@ -1824,7 +1837,8 @@ qlfLoad(char *file, Module *module)
   char *absloadname;
   char *abssavename;
   char tmp[MAXPATHLEN];
-  
+  int saved_wsize;
+
   wicFile = file;
   if ( !(absloadname = AbsoluteFile(wicFile, tmp)) )
     fail;
@@ -1836,6 +1850,12 @@ qlfLoad(char *file, Module *module)
     if ( lversion )
       warning("$qlf_load/1: %s bad version (file version = %d, prolog = %d)",
 	      wicFile, lversion, VERSION);
+    fail;
+  }
+  saved_wsize = getNum(fd);
+  if ( saved_wsize != sizeof(word)*8 )
+  { warning("QLF file %s has incompatible (%d) word-length",
+	    file, saved_wsize);
     fail;
   }
 

@@ -1316,12 +1316,10 @@ compileArithArgument(Word arg, compileInfo *ci)
     succeed;
   }
   if ( isReal(*arg) )
-  { union
-    { double f;
-      word   w[2];
-    } v;
-    v.f = valReal(*arg);
-    Output_2(ci, A_DOUBLE, v.w[0], v.w[1]);
+  { Word p = valIndirectP(*arg);
+
+    Output_0(ci, A_DOUBLE);
+    Output_n(ci, p, WORDS_PER_DOUBLE);
     succeed;
   }
 					/* variable */
@@ -1843,13 +1841,13 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  continue;
 	}
       case H_FLOAT:
-        { Word p = allocGlobal(4);
+        { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
 	  word w;
 
 	  w = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	  cpDoubleData(p, (Word)PC);
-	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+	  *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	  TRY(_PL_unify_atomic(argp, w));
 	  NEXTARG;
 	  continue;
