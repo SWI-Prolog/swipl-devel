@@ -219,6 +219,7 @@ static  HENV henv;			/* environment handle (ODBC) */
 
 /* Prototypes */
 static int pl_put_row(term_t, context *);
+static int pl_put_column(context *c, int nth, term_t col);
 static SWORD CvtSqlToCType(SQLSMALLINT, SQLSMALLINT);
 static void free_context(context *ctx);
 static void close_context(context *ctx);
@@ -592,6 +593,158 @@ is_sql_null(term_t t, nulldef *nd)
 
     return PL_get_atom(t, &a) && a == ATOM_null;
   }
+}
+
+		 /*******************************
+		 *     ALL(Term, row(X,...))	*
+		 *******************************/
+
+#define MAXCODES 256
+#define ROW_ARG  1024			/* way above Prolog types */
+
+typedef unsigned long code;
+typedef struct
+{ term_t row;				/* the row */
+  term_t tmp;				/* scratch term */
+  int columns;				/* arity of row-term */
+  int  size;				/* # codes */
+  code buf[MAXCODES];
+} compile_info;
+
+#define ADDCODE(info, val) (info->buf[info->size++] = (code)(val))
+#define ADDCODE_1(info, v1, v2) ADDCODE(info, v1), ADDCODE(info, v2)
+
+static int
+nth_row_arg(compile_info *info, term_t var)
+{ int i;
+
+  for(i=1; i<=info->columns; i++)
+  { PL_get_arg(i, info->row, info->tmp);
+    if ( PL_compare(info->tmp, var) == 0 )
+      return i;
+  }
+
+  return 0;
+}
+
+
+static void
+compile(compile_info *info, term_t t)
+{ int tt;
+
+  switch((tt=PL_term_type(t)))
+  { case PL_VARIABLE:
+    { int nth;
+
+      if ( (nth=nth_row_arg(info, t)) )
+	ADDCODE_1(info, ROW_ARG, nth);
+      else
+	ADDCODE(info, PL_VARIABLE);
+      break;
+    }
+    case PL_ATOM:
+    { atom_t val;
+      PL_get_atom(t, &val);
+      ADDCODE_1(info, PL_ATOM, val);
+      break;
+    } 
+    case PL_STRING:
+    case PL_FLOAT:
+    { term_t cp = PL_copy_term_ref(t);
+      ADDCODE_1(info, PL_TERM, cp);
+      break;
+    }
+    case PL_INTEGER:
+    { long v;
+      PL_get_long(t, &v);
+      ADDCODE_1(info, PL_INTEGER, v);
+      break;
+    }
+    case PL_TERM:
+    { functor_t f;
+      int i, arity;
+      term_t a = PL_new_term_ref();
+
+      PL_get_functor(t, &f);
+      arity = PL_functor_arity(f);
+      ADDCODE_1(info, PL_FUNCTOR, f);
+      for(i=0; i<arity; i++)
+      { PL_get_arg(i, t, a);
+	compile(info, a);
+      }
+    }
+    default:
+      assert(0);
+  }
+}
+
+
+static code *
+compile_allspec(term_t all)
+{ compile_info info; 
+  term_t t = PL_new_term_ref();
+  atom_t a;
+  code *codes;
+
+  info.tmp  = PL_new_term_ref();
+  info.row  = PL_new_term_ref();
+  info.size = 0;
+
+  PL_get_arg(1, all, t);
+  PL_get_arg(2, all, info.row);
+  PL_get_name_arity(info.row, &a, &info.columns);
+  
+  codes = malloc(sizeof(code)*info.size);
+  memcpy(codes, info.buf, sizeof(code)*info.size);
+
+  return codes;
+}
+
+
+static int
+build_term(context *ctxt, code *PC, term_t result)
+{ switch((int)*PC++)
+  { case PL_VARIABLE:
+      return TRUE;
+    case ROW_ARG:
+      return pl_put_column(ctxt, (int)*PC++, result);
+    case PL_ATOM:
+    { PL_put_atom(result, (atom_t)*PC++);
+      return TRUE;
+    }
+    case PL_INTEGER:
+    { PL_put_integer(result, (long)*PC++);
+      return TRUE;
+    }
+    case PL_TERM:
+    { PL_put_term(result, (term_t)*PC++);
+      return TRUE;
+    }
+    case PL_FUNCTOR:
+    { functor_t f = (functor_t)*PC++;
+      int i = PL_functor_arity(f);
+      term_t av = PL_new_term_refs(i);
+
+      for(;i>0;i--)
+      { if ( !build_term(ctxt, PC, av+i) )
+	  return FALSE;
+      }
+
+      PL_cons_functor_v(result, f, av);
+      PL_reset_term_refs(av);
+    }
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+
+static int
+put_all_row(context ctxt, term_t result)
+{ 
+
+  return TRUE;
 }
 
 
@@ -2435,144 +2588,162 @@ CvtSqlToCType(SQLSMALLINT fSqlType, SQLSMALLINT plTypeID)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pl_put_column(context *c, int nth, term_t col)
+
+    Put the nth (0-based) result column of the statement in the Prolog
+    variable col.  If the source(true) option is in effect, bind col to
+    column(Table, Column, Value)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+pl_put_column(context *c, int nth, term_t col)
+{ parameter *p = &c->result[nth];
+  term_t cell;
+  term_t val;
+
+  if ( true(c, CTX_SOURCE) )
+  { cell = PL_new_term_refs(3);
+
+    PL_put_atom(cell+0, p->source.table);
+    PL_put_atom(cell+1, p->source.column);
+    val = cell+2;
+  } else
+  { val = col;
+    cell = 0;				/* make compiler happy */
+  }
+
+  if ( p->length_ind == SQL_NULL_DATA )
+  { put_sql_null(val, c->null);
+  } else
+  { switch( p->cTypeID )
+    { case SQL_C_CHAR:
+      case SQL_C_BINARY:
+	switch( p->plTypeID )
+	{ case SQL_PL_DEFAULT:
+	  case SQL_PL_ATOM:
+	    PL_put_atom_nchars(val,
+			       p->length_ind,
+			       (SQLCHAR *)p->ptr_value);
+	    break;
+	  case SQL_PL_STRING:
+	    PL_put_string_nchars(val,
+				 p->length_ind,
+				 (SQLCHAR *)p->ptr_value);
+	    break;
+	  case SQL_PL_CODES:
+	    PL_put_list_ncodes(val,
+			       p->length_ind,
+			       (SQLCHAR *)p->ptr_value);
+	    break;
+	  default:
+	    assert(0);
+	}
+	break;
+      case SQL_C_SLONG:
+	PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);
+	break;
+      case SQL_C_DOUBLE:
+	PL_put_float(val,*(SQLDOUBLE *)p->ptr_value);
+	break;
+      case SQL_C_TYPE_DATE:
+      { DATE_STRUCT* ds = (DATE_STRUCT*)p->ptr_value;
+	term_t av = PL_new_term_refs(3);
+
+	PL_put_integer(av+0, ds->year);
+	PL_put_integer(av+1, ds->month);
+	PL_put_integer(av+2, ds->day);
+	
+	PL_cons_functor_v(val, FUNCTOR_date3, av);
+	break;
+      }
+      case SQL_C_TYPE_TIME:
+      { TIME_STRUCT* ts = (TIME_STRUCT*)p->ptr_value;
+	term_t av = PL_new_term_refs(3);
+
+	PL_put_integer(av+0, ts->hour);
+	PL_put_integer(av+1, ts->minute);
+	PL_put_integer(av+2, ts->second);
+	
+	PL_cons_functor_v(val, FUNCTOR_time3, av);
+	break;
+      }
+      case SQL_C_TIMESTAMP: 
+      { SQL_TIMESTAMP_STRUCT* ts = (SQL_TIMESTAMP_STRUCT*)p->ptr_value;
+
+	switch( p->plTypeID )
+	{ case SQL_PL_DEFAULT:
+	  case SQL_PL_TIMESTAMP:
+	  { term_t av = PL_new_term_refs(7);
+
+	    PL_put_integer(av+0, ts->year);
+	    PL_put_integer(av+1, ts->month);
+	    PL_put_integer(av+2, ts->day);
+	    PL_put_integer(av+3, ts->hour);
+	    PL_put_integer(av+4, ts->minute);
+	    PL_put_integer(av+5, ts->second);
+	    PL_put_integer(av+6, ts->fraction);
+	
+	    PL_cons_functor_v(val, FUNCTOR_timestamp7, av);
+	    break;
+	  }
+	  case SQL_PL_INTEGER:
+	  case SQL_PL_FLOAT:
+#ifdef HAVE_MKTIME
+	  { struct tm tm;
+	    time_t time;
+
+	    memset(&tm, 0, sizeof(tm));
+	    tm.tm_year  = ts->year - 1900;
+	    tm.tm_mon   = ts->month-1;
+	    tm.tm_mday  = ts->day;
+	    tm.tm_hour  = ts->hour;
+	    tm.tm_min   = ts->minute;
+	    tm.tm_sec   = ts->second;
+	    tm.tm_isdst = -1;		/* do not know */
+
+	    time = mktime(&tm);
+
+	    if ( p->plTypeID == SQL_PL_INTEGER )
+	      PL_put_integer(val, time);
+	    else
+	      PL_put_float(val, (double)time); /* TBD: fraction */
+	  }
+#else
+	    return PL_warning("System doesn't support mktime()");
+#endif
+	    break;
+	  default:
+	    assert(0);
+	}
+	break;
+      }
+      default:
+	return PL_warning("ODBC: Unknown cTypeID: %d",
+			  p->cTypeID);
+    }
+  }
+
+  if ( true(c, CTX_SOURCE) )
+    PL_cons_functor_v(col, FUNCTOR_column3, cell);
+
+  return TRUE;
+}
+
+
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Store a row
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 pl_put_row(term_t row, context *c)
 { term_t columns = PL_new_term_refs(c->NumCols);
-  term_t val;
-  term_t cell;
-  parameter *p;
   SQLSMALLINT i;
    
-  if ( true(c, CTX_SOURCE) )
-  { cell = PL_new_term_refs(3);		/* table, column, value */
-  } else
-    cell = 0;				/* make compiler happy */
-
-  for (i=0, p=c->result; i<c->NumCols; i++, p++)
-  { if ( true(c, CTX_SOURCE) )
-    { PL_put_atom(cell+0, p->source.table);
-      PL_put_atom(cell+1, p->source.column);
-      val = cell+2;
-    } else
-    { val = columns+i;
-    }
-
-    if ( p->length_ind == SQL_NULL_DATA )
-    { put_sql_null(val, c->null);
-    } else
-    { switch( p->cTypeID )
-      { case SQL_C_CHAR:
-	case SQL_C_BINARY:
-	  switch( p->plTypeID )
-	  { case SQL_PL_DEFAULT:
-	    case SQL_PL_ATOM:
-	      PL_put_atom_nchars(val,
-				 p->length_ind,
-				 (SQLCHAR *)p->ptr_value);
-	      break;
-	    case SQL_PL_STRING:
-	      PL_put_string_nchars(val,
-				   p->length_ind,
-				   (SQLCHAR *)p->ptr_value);
-	      break;
-	    case SQL_PL_CODES:
-	      PL_put_list_ncodes(val,
-				 p->length_ind,
-				 (SQLCHAR *)p->ptr_value);
-	      break;
-	    default:
-	      assert(0);
-	  }
-	  break;
-	case SQL_C_SLONG:
-	  PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);
-	  break;
-	case SQL_C_DOUBLE:
-	  PL_put_float(val,*(SQLDOUBLE *)p->ptr_value);
-	  break;
-	case SQL_C_TYPE_DATE:
-	{ DATE_STRUCT* ds = (DATE_STRUCT*)p->ptr_value;
-	  term_t av = PL_new_term_refs(3);
-
-	  PL_put_integer(av+0, ds->year);
-	  PL_put_integer(av+1, ds->month);
-	  PL_put_integer(av+2, ds->day);
-	  
-	  PL_cons_functor_v(val, FUNCTOR_date3, av);
-	  break;
-	}
-	case SQL_C_TYPE_TIME:
-	{ TIME_STRUCT* ts = (TIME_STRUCT*)p->ptr_value;
-	  term_t av = PL_new_term_refs(3);
-
-	  PL_put_integer(av+0, ts->hour);
-	  PL_put_integer(av+1, ts->minute);
-	  PL_put_integer(av+2, ts->second);
-	  
-	  PL_cons_functor_v(val, FUNCTOR_time3, av);
-	  break;
-	}
-	case SQL_C_TIMESTAMP: 
-	{ SQL_TIMESTAMP_STRUCT* ts = (SQL_TIMESTAMP_STRUCT*)p->ptr_value;
-
-	  switch( p->plTypeID )
-	  { case SQL_PL_DEFAULT:
-	    case SQL_PL_TIMESTAMP:
-	    { term_t av = PL_new_term_refs(7);
-
-	      PL_put_integer(av+0, ts->year);
-	      PL_put_integer(av+1, ts->month);
-	      PL_put_integer(av+2, ts->day);
-	      PL_put_integer(av+3, ts->hour);
-	      PL_put_integer(av+4, ts->minute);
-	      PL_put_integer(av+5, ts->second);
-	      PL_put_integer(av+6, ts->fraction);
-	  
-	      PL_cons_functor_v(val, FUNCTOR_timestamp7, av);
-	      break;
-	    }
-	    case SQL_PL_INTEGER:
-	    case SQL_PL_FLOAT:
-#ifdef HAVE_MKTIME
-	    { struct tm tm;
-	      time_t time;
-
-	      memset(&tm, 0, sizeof(tm));
-	      tm.tm_year  = ts->year - 1900;
-	      tm.tm_mon   = ts->month-1;
-	      tm.tm_mday  = ts->day;
-	      tm.tm_hour  = ts->hour;
-	      tm.tm_min   = ts->minute;
-	      tm.tm_sec   = ts->second;
-	      tm.tm_isdst = -1;		/* do not know */
-
-	      time = mktime(&tm);
-
-	      if ( p->plTypeID == SQL_PL_INTEGER )
-		PL_put_integer(val, time);
-	      else
-		PL_put_float(val, (double)time); /* TBD: fraction */
-	    }
-#else
-	      return PL_warning("System doesn't support mktime()");
-#endif
-	      break;
-	    default:
-	      assert(0);
-	  }
-	  break;
-	}
-	default:
-	  return PL_warning("ODBC: Unknown cTypeID: %d",
-			    p->cTypeID);
-      }
-    }
-
-    if ( true(c, CTX_SOURCE) )
-      PL_cons_functor_v(columns+i, FUNCTOR_column3, cell);
+  for (i=0; i<c->NumCols; i++)
+  { if ( !pl_put_column(c, i, columns+i) )
+      return FALSE;
   }
 
   PL_cons_functor_v(row, c->db_row, columns);
