@@ -1,49 +1,62 @@
-#!/bin/csh -f
+#!/bin/sh
 # Set up SWI-Prolog for a specific machine/operating system
 
-if ( $#argv != 1 ) then
+ln="ln -s"
+
+if [ $# != 1 ]
+then
     echo "Usage: SETUP architecture"
     echo ""
     echo "Where architecture is one of:"
     ls src/md-*.h | sed -e '/src\/md-gener.h/d' \
                         -e 's/src\/md-\(.*\)\.h/	\1/'
     exit 1
-endif
+fi
 
-set arch=$1
+arch=$1
 
-if ( -e $arch ) then
+if [ -f $arch ]
+then
     echo "Directory $arch already exists; setup aborted"
     exit 1
-endif
+fi
 
-if ( ! -e src/md-$arch.h ) then
+if [ ! -f src/md-$arch.h ]
+then
     echo "Machine description file md-$arch.h does not exists."
     echo "I will copy the generic md file into md-$arch.h"
     (cd src; cp md-gener.h md-$arch.h)
-endif
+fi
 
 mkdir $arch
 cd $arch
-ln -s ../src/pl-*.[ch] .
-ln -s ../src/pl-*.i[ch] .
-ln -s ../src/pl-export .
-ln -s ../src/{ATOMS,defatom.awk,gnu,dump} .
-ln -s ../src/{extract,make,simpl,strip}.sed .
-
-switch ( $arch )
-    case atari:
-        ln -s ../src/pl.prj .
-	ln -s ../src/tc.cfg .
-	breaksw
-endsw
-
-if ( -e ../src/Makefile.$arch ) then
-    ln -s ../src/Makefile.$arch Makefile
+$ln ../src/pl-*.[ch] .
+$ln ../src/pl-*.i[ch] .
+$ln ../src/pl-export .
+$ln ../src/ATOMS ../src/defatom.awk ../src/dump .
+$ln ../src/extract.sed ../src/make.sed ../src/simpl.sed ../src/strip.sed .
+if [ "$ln" = ln ]
+then
+mkdir gnu
+(cd gnu; $ln ../../src/gnu/*.[ch] .)
 else
-    ln -s ../src/Makefile Makefile
-endif
+$ln ../src/gnu .
+fi
 
-ln -s ../src/md-$arch.h md.h
+case $arch in
+atari)
+        $ln  ../src/pl.prj .
+	$ln  ../src/tc.cfg .
+	;;
+esac
+
+if [ -f ../src/Makefile.$arch ]
+then
+    $ln  ../src/Makefile.$arch Makefile
+else
+    $ln  ../src/Makefile Makefile
+fi
+
+$ln  ../src/md-$arch.h md.h
 
 echo "Setup for $arch completed in directory $arch"
