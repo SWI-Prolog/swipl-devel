@@ -806,6 +806,12 @@ ws_get_icon_position_frame(FrameObj fr, int *x, int *y)
 
 
 void
+ws_enable_modal(FrameObj fr, Bool val)
+{ /* left to the window manager */
+}
+
+
+void
 ws_status_frame(FrameObj fr, Name status)
 { Widget w = widgetFrame(fr);
 
