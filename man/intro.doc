@@ -58,11 +58,11 @@ ISO compliant predicates are based on ``Prolog: The Standard'',
 This manual describes version \versionshort{} of SWI-Prolog. SWI-Prolog
 has been used now for many years. The application range includes Prolog
 course material, meta-interpreters, simulation of parallel Prolog,
-learning systems, natural language processing and two large workbenches
-for knowledge engineering. Although we experienced rather obvious and
-critical bugs can remain unnoticed for a remarkable long period, we
-assume the basic Prolog system is fairly stable. Bugs can be expected in
-infrequently used built-in predicates.
+learning systems, natural language processing, complex interactive
+systems, web-server and web-server components. Although we experienced
+rather obvious and critical bugs can remain unnoticed for a remarkable
+long period, we assume the basic Prolog system is fairly stable. Bugs
+can be expected in infrequently used built-in predicates.
 
 Some bugs are known to the author. They are described as footnotes in
 this manual.
@@ -75,7 +75,7 @@ Standard'' \cite{Deransart:96}.
 
 Exceptions and warning are still weak. Some SWI-Prolog predicates
 silently fail on conditions where the ISO specification requires an
-exception (functor/3 for example). Many predicates print warnings
+exception (functor/3 for example). Some predicates print warnings
 rather than raising an exception.  All predicates where exceptions
 may be caused due to a correct program operating in an imperfect
 world (I/O, arithmetic, resource overflows) should behave according
@@ -133,10 +133,12 @@ It can also be \jargon{embedded} embedded in external programs (see
 \secref{plld}). System predicates can be redefined locally to provide
 compatibility with other Prolog systems.
     \item [Integration with XPCE]
+\index{Unix}\index{X-Windows}\index{Windows}\index{MacOS X}%
 SWI-Prolog offers a tight integration to the Object Oriented Package
 for User Interface Development, called XPCE \cite{P1098:C1.6}.
 XPCE allows you to implement graphical user interfaces that are
-source-code compatible over Unix/X11 and Win32 (Windows 95 and NT).
+source-code compatible over Unix/X11, Win32 (Windows 95/98/ME and
+NT/2000/XP) and MacOS X (darwin).
 \end{itemlist}
 
 
@@ -448,6 +450,18 @@ MacOS X (Darwin).
 
 For details, please visit the new website at
 \url{http://www.swi-prolog.org}
+
+
+\section{Donate to the SWI-Prolog project}	\label{sec:sponsor}
+
+If you are happy with SWI-Prolog, you care it to be around for much
+longer while it becomes faster, more stable and with more features
+you should consider to donate to the SWI-Prolog foundation.  Please
+visit the page below.
+
+\begin{quote}
+\url{http://www.swi-prolog.org/sponsor.html}
+\end{quote}
 
 
 \section{Acknowledgements}	\label{sec:acknowledge}
