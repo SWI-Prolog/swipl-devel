@@ -160,4 +160,11 @@ install::
 		tar zcvf $(FTPDIR)/refman/HTMLmanual.tar.gz Manual
 		cp -a $(PDF) $(FTPDIR)/refman/refman.pdf
 
+################################################################
+# Windows readme
+################################################################
+
+windows.pdf:	windows.tex
+		./runtex --pdf windows
+
 # EOF #

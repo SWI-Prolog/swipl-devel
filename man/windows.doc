@@ -1,0 +1,154 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\usepackage{html}
+%\onefile
+\sloppy
+\makeindex
+
+\onefile
+\htmloutput{Windows}				% Output directory
+\htmlmainfile{READWIN.html}			% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog for MS-Windows}
+
+\begin{document}
+
+\title{SWI-Prolog for MS-Windows}
+\author{Jan Wielemaker \\
+	SWI, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{jan@swi-prolog.org}}
+
+\maketitle
+
+\begin{abstract}
+This document summarises the most important issues to get you started
+using SWI-Prolog on MS-Windows.
+\end{abstract}
+
+
+\tableofcontents
+
+
+
+\section{Using SWI-Prolog}
+
+The SWI-Prolog executable \program{plwin.exe} can be started from the
+\emph{StartMenu} or by opening a \fileext{pl} file from the Windows
+explorer.%
+    \footnote{The .PL file extension can be changed during installation.
+	      See \secref{ext}.}
+
+
+
+
+
+
+
+
+
+\section{Choosing the file-extension}		\label{sec:ext}
+
+By default, Prolog uses the \fileext{pl} extension to indicate Prolog
+source-files.  Unfortunately this extension conflicts with the Perl
+language. If you want to use both on the same Windows machine SWI-Prolog
+allows you to choose a different extension during the installation.  The
+extension \fileext{pro} is a commonly used alternative.  If portability
+is an issue, it is advised to use the alternative extension only for the
+\emph{load file}, the source-file that loads the entire program and use
+the normal \fileext{pl} extension for libraries and files loaded from
+other files.
+
+
+\section{Installed programs}
+
+The following tools and programs are installed:
+
+\begin{center}
+\begin{tabular}{|l|p{4in}|}
+\hline
+\multicolumn{2}{|c|}{Programs} \\
+\hline
+\verb$bin\plwin.exe$	& Default Windows application for interactive
+			  use. \\
+\verb$bin\plcon.exe$    & Console-based version for scripting purposes. \\
+\hline
+\multicolumn{2}{|c|}{Utilities} \\
+\hline
+\verb$bin\plld.exe$	& Linker front-end to make single-file mixed
+			  Prolog/C/C++ executables. \\
+\verb$bin\plrc.exe$	& Manipulate Prolog resource files. \\
+\hline
+\multicolumn{2}{|c|}{Important directories} \\
+\hline
+\verb$bin$		& Executables and DLL files \\
+\verb$library$		& Prolog library \\
+\verb$boot$		& Sources for system predicates \\
+\verb$include$		& C/C++ header files for embedding or to create
+			  extensions \\
+\verb$xpce$		& XPCE graphics system \\
+\verb$xpce\prolog\lib$	& XPCE/Prolog library \\
+\hline
+\multicolumn{2}{|c|}{DLLs and other supporting files} \\
+\hline
+\verb$boot32.prc$       & Prolog resource file containing system predicates \\
+\verb$\bin\libpl.dll$	& The Prolog kernel \\
+\verb$\bin\plterm.dll$	& The window for \program{plwin.exe} \\
+\verb$\bin\pthreadVC.dll$& POSIX thread runtime library \\
+\verb$\bin\msvcrt.dll$	& Microsoft C runtime library \\
+\hline
+\multicolumn{2}{|c|}{Extension DLLs (plugins)} \\
+\hline
+\verb$\bin\xpce2pl.dll$	& The XPCE graphics system \\
+\verb$\bin\socket.dll$	& Prolog socket interface \\
+\verb$\bin\time.dll$	& Timing and alarm library \\
+\verb$\bin\cgi.dll$	& Gather CGI GET and POST arguments \\
+\verb$\bin\odbc4pl.dll$	& ODBC interface \\
+\verb$\bin\sgml2pl.dll$	& SGML/XML parser \\
+\verb$\bin\table.dll$	& Access structured files as tables \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Installed Registry keys and menus}
+
+The filetype \fileext{pl} or choosen alternative (see \secref{ext}) is
+associated to \program{plwin.exe}.  A choosen folder (default SWI-Prolog)
+is added to the start-menu holding shortcuts to Prolog and some related
+utilities.
+
+The following registry keys are in use:
+
+\begin{center}
+\begin{tabular}{|l|p{4in}|}
+\hline
+\multicolumn{2}{|c|}{\tt HKEY_LOCAL_MACHINE\bsl{}Software\bsl{}SWI\bsl{}Prolog} \\
+\hline
+\verb$fileExtension$		& Extension used for Prolog files \\
+\verb$group$			& Start-menu group \\
+\verb$cwd$			& Default folder for shortcut \\
+\verb$home$			& Installation directory \\
+\hline
+\multicolumn{2}{|c|}{\tt HKEY_CURRENT_USER\bsl{}Software\bsl{}SWI\bsl{}Prolog} \\
+\hline
+\verb$localSize$		& Default local stack size (KB) \\
+\verb$globalSize$		& Default global stack size (KB) \\
+\verb$trailSize$		& Default trail stack size (KB) \\
+\verb$argumentSize$		& Default argument stack size (KB) \\
+\hline
+\multicolumn{2}{|c|}{\tt HKEY_CURRENT_USER\bsl{}Software\bsl{}SWI\bsl{}Plwin\bsl{}Console} \\
+\multicolumn{2}{|c|}{Note: thread-windows store the same info in sub-keys} \\
+\hline
+\verb$Height$			& Height of window in character units \\
+\verb$Width$			& Width of window in character units \\
+\verb$X$			& Left-edge of window in pixel units \\
+\verb$Y$			& Top-edge of window in pixel units \\
+\verb$SaveLines$		& Number of lines available for scrollback \\
+\hline
+\end{tabular}
+\end{center}
+
+
+\end{document}
