@@ -196,7 +196,7 @@ swi_extra(string(String, CharPos)) -->
 	{ sub_string(String, 0, CharPos, _, Before),
 	  sub_string(String, CharPos, _, 0, After)
 	},
-	[ nl, Before, nl, '** here **', nl, After ].
+	[ nl, '~w'-[Before], nl, '** here **', nl, '~w'-[After] ].
 swi_extra(_) -->
 	[].
 

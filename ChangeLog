@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Printing syntax errors holding ~-characters to avoid problems
+    with format-special characters.  With patch by NIDE Naoyuki.  Thanks.
+
   * ADDED: Allow for MKINDEX.pl to control indexing process of library
     directories for auto-loading.
 
