@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED/FIXED: `node<-contained_in' now fails if the node is not
+  contained in a tree (rather than returning the incorrect @nil).
+
 * ADDED: library(url_image) providing class url_image.
 
 * ADDED: library(scaledbitmap) providing class scaled_bitmap.

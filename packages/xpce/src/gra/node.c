@@ -937,7 +937,10 @@ getContainsNode(Node n)
 
 static Any
 getContainedInNode(Node n)
-{ answer(n->tree);
+{ if ( notNil(n->tree) )
+    answer(n->tree);
+
+  fail;
 }
 
 		 /*******************************
