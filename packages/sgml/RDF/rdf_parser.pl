@@ -53,7 +53,7 @@ xml_to_plrdf(Objects, BaseURI, RDF) :-
 	erase(Ref).
 
 rdf_objects([]) ::=
-	[].
+	[], !.
 rdf_objects([H|T]) ::=
 	[ \rdf_object_or_error(H)
 	| \rdf_objects(T)
