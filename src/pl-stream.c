@@ -1445,16 +1445,26 @@ out:
 static int
 Sread_file(void *handle, char *buf, int size)
 { long h = (long) handle;
+  int bytes;
 
-  return read((int)h, buf, size);
+  do
+  { bytes = read((int)h, buf, size);
+  } while ( bytes == -1 && errno == EINTR );
+
+  return bytes;
 }
 
 
 static int
 Swrite_file(void *handle, char *buf, int size)
 { long h = (long) handle;
+  int bytes;
 
-  return write((int)h, buf, size);
+  do
+  { bytes = write((int)h, buf, size);
+  } while ( bytes == -1 && errno == EINTR );
+
+  return bytes;
 }
 
 
@@ -1462,6 +1472,7 @@ static long
 Sseek_file(void *handle, long pos, int whence)
 { long h = (long) handle;
 
+					/* cannot do EINTR according to man */
   return lseek((int)h, pos, whence);
 }
 
@@ -1469,8 +1480,13 @@ Sseek_file(void *handle, long pos, int whence)
 static int
 Sclose_file(void *handle)
 { long h = (long) handle;
+  int rc;
 
-  return close((int) h);
+  do
+  { rc = close((int) h);
+  }  while ( rc == -1 && errno == EINTR );
+
+  return rc;
 }
 
 

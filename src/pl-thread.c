@@ -2324,31 +2324,26 @@ SyncSystemCPU(int sig)
 
 
 static void
-SyncData(int sig)
-{ sem_post(&sem_mark);
-}
-
-
-static void
 sync_statistics(PL_thread_info_t *info, atom_t key)
-{ struct sigaction old;
-  struct sigaction new;
+{ if ( key == ATOM_cputime || key == ATOM_runtime || key == ATOM_system_time )
+  { struct sigaction old;
+    struct sigaction new;
 
-  sem_init(&sem_mark, USYNC_THREAD, 0);
-  memset(&new, 0, sizeof(new));
-  if ( key == ATOM_cputime || key == ATOM_runtime )
-    new.sa_handler = SyncUserCPU;
-  else if ( key == ATOM_system_time )
-    new.sa_handler = SyncSystemCPU;
-  else
-    new.sa_handler = SyncData;
-  new.sa_flags   = SA_RESTART;
-  sigaction(SIG_FORALL, &new, &old);
-  if ( pthread_kill(info->tid, SIG_FORALL) == 0 )
-  { sem_wait(&sem_mark);
+    sem_init(&sem_mark, USYNC_THREAD, 0);
+    memset(&new, 0, sizeof(new));
+    if ( key == ATOM_cputime || key == ATOM_runtime )
+      new.sa_handler = SyncUserCPU;
+    else /*if ( key == ATOM_system_time )*/
+      new.sa_handler = SyncSystemCPU;
+
+    new.sa_flags   = SA_RESTART;
+    sigaction(SIG_FORALL, &new, &old);
+    if ( pthread_kill(info->tid, SIG_FORALL) == 0 )
+    { sem_wait(&sem_mark);
+    }
+    sem_destroy(&sem_mark);
+    sigaction(SIG_FORALL, &old, NULL);
   }
-  sem_destroy(&sem_mark);
-  sigaction(SIG_FORALL, &old, NULL);
 }
 
 #endif /*WIN32*/
