@@ -98,7 +98,10 @@ adjustFirstArrowLine(Line ln)
     av[3] = ln->end_y;
 
     if ( qadSendv(ln->first_arrow, NAME_points, 4, av) )
+    { assign(ln->first_arrow, displayed, ON);
+
       return ComputeGraphical(ln->first_arrow);
+    }
   }
 
   fail;
@@ -116,7 +119,10 @@ adjustSecondArrowLine(Line ln)
     av[3] = ln->start_y;
 
     if ( qadSendv(ln->second_arrow, NAME_points, 4, av) )
+    { assign(ln->second_arrow, displayed, ON);
+
       return ComputeGraphical(ln->second_arrow);
+    }
   }
 
   fail;
