@@ -61,6 +61,7 @@ rdf_diagram_from_file(File) :-
 :- use_class_template(print_graphics).
 
 variable(auto_layout,	bool := @on, both, "Automatically layout on resize").
+variable(type_in_node,  bool := @on, both, "Display type inside node").
 
 initialise(D, Label:[name]) :->
 	send_super(D, initialise, Label),
@@ -85,7 +86,8 @@ append(D, Triple:prolog) :->
 	"Append and rdf(Subject, Predicate, Object) triple"::
 	subject_name(Triple, SubjectName),
 	get(D, resource, SubjectName, Subject),
-	(   is_type(Triple)
+	(   get(D, type_in_node, @on),
+	    is_type(Triple)
 	->  object_resource(Triple, ObjectName),
 	    send(Subject, type, ObjectName)
 	;   predicate_name(Triple, PredName),
@@ -131,14 +133,19 @@ literal(D, Value:prolog, Gr:rdf_literal) :<-
 	).
 
 
-create_resource(_D, Resource:name, Subject:rdf_resource) :<-
+create_resource(D, Resource:name, Subject:rdf_resource) :<-
 	"Create visualisation of Resource"::
-	new(Subject, rdf_resource(Resource)).
+	new(Subject, rdf_resource(Resource, D)).
 
 
 create_literal(_D, Value:prolog, Gr:rdf_literal) :<-
 	"Create visualisation of literal"::
 	new(Gr, rdf_literal(Value)).
+
+
+node_label(_D, Resource:name, Label:name) :<-
+	"Generate label to show for a node"::
+	local_name(Resource, Label).
 
 
 :- pce_group(layout).
@@ -196,10 +203,10 @@ find(D, Name, Subst, _) :-
 :- pce_global(@rdf_link, new(link(link, link,
 				  line(0,0,0,0,second)))).
 
-initialise(C, Gr1:graphical, Gr2:graphical, Pred:name) :->
+initialise(C, Gr1:graphical, Gr2:graphical, Pred:name, Ctx:[object]) :->
 	"Create from predicate"::
 	send_super(C, initialise, Gr1, Gr2, @rdf_link),
-	send(C, tag, rdf_label(Pred, italic)).
+	send(C, tag, rdf_label(Pred, italic, Ctx)).
 
 ideal_length(C, Len:int) :<-
 	"Layout: compute the desired length"::
@@ -227,7 +234,7 @@ initialise(F, Ref:name) :->
 	send(F, name, Ref).
 	
 connect(F, Pred:name, Object:graphical) :->
-        new(_C, rdf_connection(F, Object, Pred)).
+        new(_C, rdf_connection(F, Object, Pred, F)).
 
 :- pce_global(@rdf_any_recogniser,
 	      make_rdf_any_recogniser).
@@ -251,9 +258,18 @@ make_rdf_any_popup(Popup) :-
 	     menu_item(layout, message(Gr, layout))).
 
 event(F, Ev:event) :->
-	(   send_super(F, event, Ev)
+	(   \+ send(Ev, is_a, ms_right_down),
+	    send_super(F, event, Ev)
 	->  true
 	;   send(@rdf_any_recogniser, event, Ev)
+	).
+
+node_label(F, Resource:name, Label:name) :<-
+	"Return label to use for a resource"::
+	get(F, device, Dev),
+	(   send(Dev, has_get_method, node_label)
+	->  get(Dev, node_label, Resource, Label)
+	;   local_name(Resource, Label)
 	).
 
 :- pce_end_class(rdf_any).
@@ -325,8 +341,11 @@ terminate(G, Ev:event) :->
 
 variable(resource, name, get, "Represented predicate").
 
-initialise(L, Pred:name, Font:font) :->
-	local_name(Pred, Label),
+initialise(L, Pred:name, Font:font, Context:[object]) :->
+	(   Context == @default
+	->  local_name(Pred, Label)
+	;   get(Context, node_label, Pred, Label)
+	),
 	send_super(L, initialise, Label, center, Font),
 	send(L, slot, resource, Pred),
 	send(L, background, @default).
@@ -362,15 +381,15 @@ identify(L) :->
 :- pce_begin_class(rdf_resource, rdf_any,
 		   "Represent an RDF resource").
 
-initialise(F, Ref:name) :->
+initialise(F, Ref:name, Ctx:[object]) :->
 	"Create visualisation"::
 	send_super(F, initialise, Ref),
 	send(F, display, ellipse(100, 50), point(-50,-25)),
-	send(F, display, new(T, rdf_label(Ref, normal))),
+	send(F, display, new(T, rdf_label(Ref, normal, Ctx))),
 	send(T, center, point(0,0)).
 
 type(F, Type:name) :->
-	send(F, display, new(TL, rdf_label(Type, small))),
+	send(F, display, new(TL, rdf_label(Type, small, F))),
 	send(TL, center, point(0,14)),
 	get(F, member, ellipse, E),
 	send(E, shadow, 2).
