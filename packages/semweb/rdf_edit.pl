@@ -444,7 +444,7 @@ journal(Term) :-
 	reported_no_journal/0.
 
 report_no_journal :-
-	reported_no_journal.
+	reported_no_journal, !.
 report_no_journal :-
 	new(D, dialog('No project')),
 	send(D, append,
