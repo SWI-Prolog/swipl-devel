@@ -389,7 +389,10 @@ analyse_variables(Word head, Word body, int arity, int *nv)
 
 static int
 analyseVariables2(Word head, int nvars, int arity, int argn)
-{ deRef(head);
+{
+right_recursion:
+
+  deRef(head);
 
   if ( isVar(*head) )
   { VarDef vd;
@@ -417,8 +420,10 @@ analyseVariables2(Word head, int nvars, int arity, int argn)
     head = f->arguments;
     argn = ( argn < 0 ? 0 : arity );
 
-    for(; ar > 0; ar--, head++, argn++)
+    for(; --ar > 0; head++, argn++)
       nvars = analyseVariables2(head, nvars, arity, argn);
+
+    goto right_recursion;
   }
 
   return nvars;
