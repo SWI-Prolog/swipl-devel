@@ -686,8 +686,18 @@ register the colours.
 }
 
 
+static FileObj
+mustBeFile(SourceSink ss)
+{ if ( instanceOfObject(ss, ClassFile) )
+    return (FileObj)ss;
+
+  errorPce(ss, NAME_unexpectedType, nameToType(NAME_file));
+  fail;
+}
+
+
 status
-ws_save_image_file(Image image, FileObj file, Name fmt)
+ws_save_image_file(Image image, SourceSink into, Name fmt)
 { DisplayObj d = image->display;
 
   if ( isNil(d) )
@@ -700,13 +710,18 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
 #ifdef O_XPM
     int as = XpmAttributesSize();
     XpmAttributes *atts = (XpmAttributes *)alloca(as);
-    char *fname = strName(getOsNameFile(file));
+    char *fname;
     DisplayObj d = image->display;
     HPALETTE ohpal, hpal;
     XImage ximg, xmsk, *xmskp = NULL;
     HDC hdc;
     int rval;
-    
+    FileObj file;
+
+    if ( !(file=mustBeFile(into)) )
+      fail;
+    fname = strName(getOsNameFile(file));
+
     if ( isNil(d) )
       d = CurrentDisplay(image);
     if ( instanceOfObject(d->colour_map, ClassColourMap) )
@@ -766,7 +781,7 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     if ( !(bm = getXrefObject(image, d)) )
       fail;
 
-    if ( (fd = Sopen_object(file, "wbr")) )
+    if ( (fd = Sopen_object(into, "wbr")) )
     { if ( write_jpeg_file(fd, image, bm) < 0 )
 	rval = errorPce(image, NAME_xError);
       else
@@ -794,7 +809,7 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     if ( (bm = getXrefObject(image, d)) )
     { IOSTREAM *fd;
 
-      if ( (fd = Sopen_object(file, "wbr")) )
+      if ( (fd = Sopen_object(into, "wbr")) )
       { if ( write_pnm_file(fd, bm, 0, 0, PNM_RAWBITS) < 0 )
 	  rval = errorPce(image, NAME_xError);
       } else

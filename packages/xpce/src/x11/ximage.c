@@ -270,8 +270,18 @@ ws_std_xpm_image(Name name, Image *global, char **data)
 }
 
 
+static FileObj
+mustBeFile(SourceSink ss)
+{ if ( instanceOfObject(ss, ClassFile) )
+    return (FileObj)ss;
+
+  errorPce(ss, NAME_unexpectedType, nameToType(NAME_file));
+  fail;
+}
+
+
 status
-ws_save_image_file(Image image, FileObj file, Name fmt)
+ws_save_image_file(Image image, SourceSink into, Name fmt)
 { DisplayObj d = image->display;
   DisplayWsXref r;
 
@@ -280,7 +290,13 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
   r = d->ws_ref;
 
   if ( fmt == NAME_xbm )
-  { Pixmap pix = (Pixmap) getXrefObject(image, d);
+  { Pixmap pix;
+    FileObj file;
+
+    if ( !(file=mustBeFile(into)) )
+      fail;
+
+    pix = (Pixmap) getXrefObject(image, d);
 
     if ( XWriteBitmapFile(r->display_xref,
 			  strName(file->name),
@@ -295,6 +311,11 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     Pixmap pmsk = 0;
     int as = XpmAttributesSize();
     XpmAttributes *atts = (XpmAttributes *)alloca(as);
+
+    FileObj file;
+
+    if ( !(file=mustBeFile(into)) )
+      fail;
 
     memset(atts, 0, as);
     atts->width     = valInt(image->size->w);
@@ -331,7 +352,7 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
 	fail;
     }
   
-    if ( !(fd=Sopen_object(file, "wbr")) )
+    if ( !(fd=Sopen_object(into, "wbr")) )
       fail;
     if ( write_jpeg_file(fd, i, r->display_xref, 0) < 0 )
       rval = errorPce(image, NAME_xError);
@@ -361,7 +382,7 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
     if ( i )
     { IOSTREAM *fd;
 
-      if ( !(fd=Sopen_object(file, "wbr")) )
+      if ( !(fd=Sopen_object(into, "wbr")) )
 	fail;
       if ( write_pnm_file(fd, i, r->display_xref, 0, 0, 0,
 			  PNM_RAWBITS) < 0 )
