@@ -283,7 +283,7 @@ RedrawAreaButton(Button b, Area a)
     r_swap_background_and_foreground();
   }
 
-  if ( notNil(b->popup) )
+  if ( notNil(b->popup) && !instanceOfObject(b->label, ClassImage) )
     rm = draw_button_popup_indicator(b, x, y, w, h, up);
 
   RedrawLabelDialogItem(b, accelerator_code(b->accelerator),
