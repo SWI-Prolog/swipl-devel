@@ -283,7 +283,7 @@ ps_put_string(String s)
       default:		if ( c >= ' ' && c <= '~' )
 			{ ps_put_char(c);
 			} else
-			{ char tmp[4];
+			{ char tmp[8];
 			  sprintf(tmp, "\\%03o", c);
 			  putString(tmp);
 			}

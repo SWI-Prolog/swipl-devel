@@ -1,3 +1,6 @@
+* FIXED: Avoid crash in Postscript generation from text-objects containing
+  non-ISO characters.  Thanks to Matthias Trautner Kromann.
+
 * INSTALL: Added NMAKE makefiles fro building and installing in Windows.
 
 * ADDED: SWI-Prolog GUI tracer to standard installation for SWI-Prolog.
