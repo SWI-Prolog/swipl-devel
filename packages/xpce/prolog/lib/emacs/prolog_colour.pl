@@ -532,6 +532,10 @@ goal_colours(pce_autoload(_,_),	     classify-[classify,file]).
 goal_colours(pce_image_directory(_), classify-[file]).
 goal_colours(new(_, _),		     built_in-[classify,pce_new]).
 goal_colours(send_list(_,_,_),	     built_in-pce_arg_list).
+goal_colours(send(_,_),		     built_in-[pce_arg,pce_selector]).
+goal_colours(get(_,_,_),	     built_in-[pce_arg,pce_selector,pce_arg]).
+goal_colours(send_super(_,_),	     built_in-[pce_arg,pce_selector]).
+goal_colours(get_super(_,_),	     built_in-[pce_arg,pce_selector,pce_arg]).
 goal_colours(Pce,		     built_in-pce_arg) :-
 	compound(Pce),
 	functor(Pce, Functor, _),
@@ -804,6 +808,12 @@ specified_item(pce_arg_list, List, TB, list_position(_,_,Elms,Tail)) :- !,
 	colourise_list_args(Elms, Tail, List, TB, pce_arg).
 specified_item(pce_arg_list, Term, TB, Pos) :- !,
 	specified_item(pce_arg, Term, TB, Pos).
+					% XPCE selector
+specified_item(pce_selector, Term, TB,
+	       term_position(_,_,_,_,ArgPos)) :- !,
+	specified_items(pce_arg, Term, TB, ArgPos).
+specified_item(pce_selector, Term, TB, Pos) :-
+	colourise_term_arg(Term, TB, Pos).
 					% Nested specification
 specified_item(FuncSpec-ArgSpecs, Term, TB,
 	       term_position(_,_,FF,FT,ArgPos)) :- !,
