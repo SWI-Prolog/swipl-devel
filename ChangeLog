@@ -1,13 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.1
+=============
+
+  * INSTALL: Integrated patches from SuSE to improve RPM generation.
+
   * PORTABILITY: Fixed assumption that a double is twice as big as a long.
     This causes an incompatibility in the .QLF format.  All .QLF files should
     be recompiled to deal with this version.
 
-  * INTERNAL: recorded database to to avoid unaligned retrieval using
+  * INTERNAL: recorded database to avoid unaligned retrieval using
     memcpy().  Provides a little extra speed notably in findall, setof
-    and friends, at the cost of some memory.
+    and friends, at the cost of some (temporary) memory.
 
   * FIXED: scan_options() for machines where sizeof(int) != sizeof(long).
     With help from Bob Moniot.
