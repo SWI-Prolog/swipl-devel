@@ -1,3 +1,17 @@
 #!/bin/sh
 
+# This program is used to generate the configure script from
+# pl/src/configure.  This script also generates Makefile
+# 
+# To use it, first edit the PKG variable in Makefile.in 
+# defining the packages to build.  Then run
+#
+#	./configure
+#	make
+#	make install
+#
+# If you also plan to use pl-mt (the multi-threaded version of SWI-Prolog),
+# you should pass the option --enable-mt to configure.  The resulting
+# packages work both with the single-threaded and multi-treaded SWI-Prolog.
+
 @MAKE@ CNFG="$*" configure

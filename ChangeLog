@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 4.0.11
+==============
+
+  * PORT: Integrated patches by John Towler, mostly dealing with
+    building XPCE and the other SWI-Prolog packages on NetBSD.  Many
+    apply to other BSD variations.  Thanks!
+
   * FIXED: Many typos and some clarifications in the manual pointed out
     by Jack Keel.  Thanks!
 
@@ -12,9 +19,9 @@
     Meij).
 
   * PORT: Deal with missing rl_done declarations from older readline
-    libraries (NIDE Naoyuki).
+    libraries (Nide Naoyuki).
 
-  * FIXED: Language setting for test.pl (NIDE Naoyuki).
+  * FIXED: Language setting for test.pl (Nide Naoyuki).
 
   * FIXED: Check argument domain of random/1 and properly report error.
     Spotted by Pablo Lopez.

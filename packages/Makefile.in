@@ -104,6 +104,7 @@ distclean::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
+	rm -f Makefile configure
 
 clean::
 	for p in $(PKG); do \

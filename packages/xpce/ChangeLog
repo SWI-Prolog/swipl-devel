@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 5.1.10, distributed with SWI-Prolog 4.0.11
+==================================================
+
 * PORT: make FN (required for building XPCE) not depend on bash extensions
   to sh (Lourens van der Meij).
 
