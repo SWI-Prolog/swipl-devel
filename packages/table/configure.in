@@ -29,6 +29,7 @@ else
    AC_CHECKING("Running $PL -dump-runtime-variables")
    eval `$PL -dump-runtime-variables`
 fi
+PLINCL=$PLBASE/include
 AC_MSG_RESULT("		PLBASE=$PLBASE")
 AC_MSG_RESULT("		PLARCH=$PLARCH")
 AC_MSG_RESULT("		PLLIBS=$PLLIBS")
@@ -46,7 +47,7 @@ if test "$PLSHARED" = "yes"; then
   fi
 
   SO="so"				 # Default shared object extension
-  LD="gcc"				 # Default linking through gcc
+  LD="$CC"				 # Default linking through gcc
   LDSOFLAGS="-shared"			 # Create a shared object
 
   case "$OS" in
@@ -77,12 +78,6 @@ else
   SHLIB=""
 fi
 
-AC_CHECK_PROGS(MAKE, gmake make, "make")
-AC_CHECK_PROGS(ETAGS, etags ctags, ":")
-AC_PROG_INSTALL
-AC_PROG_CPP
-AC_ISC_POSIX
-AC_HEADER_STDC
 if test ! -z "$GCC"; then
     COFLAGS=-O2
     CWFLAGS=-Wall
@@ -90,11 +85,19 @@ else
     COFLAGS=-O
     CWFLAGS=
 fi
+
+AC_CHECK_PROGS(MAKE, gmake make, "make")
+AC_CHECK_PROGS(ETAGS, etags ctags, ":")
+AC_PROG_INSTALL
+AC_PROG_CPP
+AC_ISC_POSIX
+AC_HEADER_STDC
 CFLAGS="$CMFLAGS"
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
 
 AC_CHECK_HEADERS(malloc.h unistd.h sys/time.h fcntl.h floatingpoint.h)
+AC_CHECK_HEADERS(alloca.h)
 AC_CHECK_FUNCS(mmap strerror)
 
 AC_OUTPUT(Makefile)

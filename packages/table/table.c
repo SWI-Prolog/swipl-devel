@@ -29,6 +29,9 @@
 #include <unistd.h>
 #include <ctype.h>
 #endif
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
 
 #ifdef HAVE_FLOATINGPOINT_H
 #include <floatingpoint.h>		/* strtod() prototype */
@@ -50,9 +53,8 @@
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
-#ifndef offsetof
+#undef offsetof
 #define offsetof(t, f) ((int)&(((t*)0)->f))
-#endif
 
 #define sizeofquery(t) offsetof(query, field[t->nfields])
 
@@ -128,7 +130,6 @@ static atom_t ATOM_functor;
 static atom_t ATOM_integer;
 static atom_t ATOM_key_field;
 static atom_t ATOM_map_space_to_underscore;
-static atom_t ATOM_nil;
 static atom_t ATOM_prefix;
 static atom_t ATOM_record;
 static atom_t ATOM_record_separator;
@@ -164,7 +165,6 @@ init_constants()
   ATOM_integer			= PL_new_atom("integer");
   ATOM_key_field		= PL_new_atom("key_field");
   ATOM_map_space_to_underscore	= PL_new_atom("map_space_to_underscore");
-  ATOM_nil			= PL_new_atom("[]");
   ATOM_prefix			= PL_new_atom("prefix");
   ATOM_record	        	= PL_new_atom("record");
   ATOM_record_separator 	= PL_new_atom("record_separator");
@@ -1719,7 +1719,6 @@ make_query(Table t, term_t from)
     for(i=0; i<t->nfields; i++)
     { if ( t->fields[i].name == name )
       { QueryField qf = &q->field[i];
-	int istext = FALSE;		/* match text */
 
 	if ( PL_is_variable(arg) )
 	{ qf->flags |= QUERY_READ;
@@ -1744,7 +1743,6 @@ make_query(Table t, term_t from)
 	      qf->flags |= QUERY_MALLOCVAL;
 	    }
 	    qf->length = strlen(qf->value.s);
-	    istext = TRUE;
 	    break;
 	  case FIELD_INTEGER:
 	    if ( !PL_get_long(arg, &qf->value.i) )

@@ -25,9 +25,7 @@ LATEX=latex
 DOC=table
 TEX=$(DOC).tex
 DVI=$(DOC).dvi
-LOG=$(DOC).log
-RERUNMSG="Rerun to get cross-references right"
-RERUN=test ! -e $(DVI) -o ! -e $(LOG) || grep -q $(RERUNMSG) $(LOG)
+PDF=$(DOC).pdf
 
 LD=@LD@
 LDFLAGS=@LDSOFLAGS@
@@ -71,28 +69,18 @@ uninstall:
 # Documentation
 ################################################################
 
+pdf:		$(PDF)
+
 $(DVI):		$(TEX)
-		@TEXINPUTS=.:$(PCEHOME)/TeX:$$TEXINPUTS; \
-		echo "*************************************************"; \
-		echo "* Running latex $(DOC)"; \
-		echo "*************************************************"; \
-		export TEXINPUTS; \
-		rm -f $(LOG); \
-		while $(RERUN); do \
-		    $(CORRECTINDEX) $(DOC).idx; \
-		    $(MAKEINDEX) $(DOC).idx; \
-		    touch $(DOC).ind; \
-		    latex $(DOC) || exit 1; \
-		done
+		runtex $(DOC)
+
+$(PDF):		$(TEX)
+		runtex --pdf $(DOC)
 
 html:		$(TEX)
 		latex2html $(DOC)
-
-$(PS):		$(DVI)
-		dvips -o $@ $(DVI)
-
-$(PDF):		$(PS)
-		pstill -cgipt -o $@ $(PS)
+		mv html/index.html clib.html
+		rm -r html
 
 $(TEX):		$(DOCTOTEX)
 
