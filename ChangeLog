@@ -10,6 +10,8 @@
 VERSION 5.2.1 (re-distributed on Jun 17, 2003)
 ==============================================
 
+  * FIXED: file associations.  Thanks to Lourens van der Meij.
+
   * FIXED: Added files forgotten in the Windows installer.  PacoG.
 
   * FIXED: Bug#66: thread_statistics/2 returning illegal values on floats

@@ -240,12 +240,12 @@ SectionEnd
 Section "Shell Extensions" SecShell
 ; SectionIn 1 2 3
   ; back up old value of .pl
-  ReadRegStr $1 HKCR ${EXT} ""
+  ReadRegStr $1 HKCR .${EXT} ""
   StrCmp $1 "" Label1
     StrCmp $1 "PrologFile" Label1
-    WriteRegStr HKCR ${EXT} "backup_val" $1
+    WriteRegStr HKCR .${EXT} "backup_val" $1
   Label1:
-  WriteRegStr HKCR ${EXT} "" "PrologFile"
+  WriteRegStr HKCR .${EXT} "" "PrologFile"
 
   ReadRegStr $0 HKCR "PrologFile" ""
   StrCmp $0 "" 0 skipNSIAssoc
@@ -347,16 +347,16 @@ Section "Uninstall"
 		       Program Group ${GRP}" \
 		      IDNO Done
 
-  StrCmp "${EXT}" "" NoExt
-    ReadRegStr $1 HKCR ${EXT} ""
+  StrCmp ".${EXT}" "" NoExt
+    ReadRegStr $1 HKCR .${EXT} ""
     StrCmp $1 "PrologFile" 0 NoOwn ; only do this if we own it
-      ReadRegStr $1 HKCR ${EXT} "backup_val"
+      ReadRegStr $1 HKCR .${EXT} "backup_val"
       StrCmp $1 "" 0 RestoreBackup ; if backup == "" then delete the whole key
-	DeleteRegKey HKCR ${EXT}
+	DeleteRegKey HKCR .${EXT}
       Goto NoOwn
       RestoreBackup:
-	WriteRegStr HKCR ${EXT} "" $1
-	DeleteRegValue HKCR ${EXT} "backup_val"
+	WriteRegStr HKCR .${EXT} "" $1
+	DeleteRegValue HKCR .${EXT} "backup_val"
     NoOwn:
   NoExt:
 
