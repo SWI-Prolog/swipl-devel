@@ -17,6 +17,7 @@
 #define IDM_CUT		11
 #define IDM_COPY	12
 #define IDM_PASTE	13
+#define IDM_BREAK	14
 
 const char *lookupMenuId(UINT id);
 void 	    rlc_add_menu_bar(HWND win);

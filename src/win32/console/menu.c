@@ -51,6 +51,7 @@ lookupMenuLabel(const char *label)
   if ( streq(lbuf, "cut") )   return IDM_CUT;
   if ( streq(lbuf, "copy") )  return IDM_COPY;
   if ( streq(lbuf, "paste") ) return IDM_PASTE;
+  if ( streq(lbuf, "break") ) return IDM_BREAK;
 
   for(i=0; i<nmenus; i++)
   { if ( streq(menuids[i], label) )
@@ -84,6 +85,7 @@ lookupMenuId(UINT id)
     case IDM_CUT:   return "cut";
     case IDM_COPY:  return "copy";
     case IDM_PASTE: return "paste";
+    case IDM_BREAK: return "break";
   }
 
   return NULL;
@@ -174,7 +176,7 @@ rlc_add_menu_bar(HWND cwin)
 { HMENU menu = CreateMenu();
   HMENU file = CreatePopupMenu();
   HMENU edit = CreatePopupMenu();
-  HMENU help = CreatePopupMenu();
+  HMENU run  = CreatePopupMenu();
 
   AppendMenu(file, MF_STRING, IDM_EXIT,  "&Exit");
 
@@ -182,8 +184,11 @@ rlc_add_menu_bar(HWND cwin)
   AppendMenu(edit, MF_STRING, IDM_COPY,  "&Copy");
   AppendMenu(edit, MF_STRING, IDM_PASTE, "&Paste");
   
+  AppendMenu(run,  MF_STRING, IDM_BREAK, "&Break");
+
   AppendMenu(menu, MF_POPUP, (UINT)file, "&File");
   AppendMenu(menu, MF_POPUP, (UINT)edit, "&Edit");
+  AppendMenu(menu, MF_POPUP, (UINT)run,  "&Run");
 
   SetMenu(cwin, menu);
 }
@@ -203,8 +208,9 @@ rlc_insert_menu_item(const char *menu, const char *label, const char *before)
 int
 rlc_insert_menu(const char *label, const char *before)
 { HMENU mb;
+  HWND hwnd = rlc_hwnd();
 
-  if ( !(mb = GetMenu(rlc_hwnd())) )
+  if ( !(mb = GetMenu(hwnd)) )
     return FALSE;
 
   if ( !findPopup(label, NULL) )	/* already there */
@@ -223,6 +229,9 @@ rlc_insert_menu(const char *label, const char *before)
     info.cch = strlen(label);
     
     InsertMenuItem(mb, bid, TRUE, &info);
+					/* force redraw; not automatic! */
+    RedrawWindow(hwnd, NULL, 0,
+		 RDW_FRAME|RDW_INVALIDATE|RDW_NOINTERNALPAINT);
   }
 
   return TRUE;

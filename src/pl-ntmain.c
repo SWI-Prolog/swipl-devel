@@ -187,12 +187,61 @@ pl_window_title(term_t old, term_t new)
   return PL_unify_atom_chars(old, buf);
 }
 
+
+static void
+call_menu(const char *name)
+{ fid_t fid = PL_open_foreign_frame();
+  predicate_t pred = PL_predicate("on_menu", 1, "prolog");
+  module_t m = PL_new_module(PL_new_atom("prolog"));
+  term_t a0 = PL_new_term_ref();
+
+  PL_put_atom_chars(a0, name);
+  PL_call_predicate(m, PL_Q_NORMAL, pred, a0);
+
+  PL_discard_foreign_frame(fid);
+}
+
+
+foreign_t
+pl_prolog_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
+{ char *m, *l, *b;
+
+  if ( !PL_get_atom_chars(menu, &m) ||
+       !PL_get_atom_chars(label, &l) ||
+       !PL_get_atom_chars(before, &b) )
+    return FALSE;
+  
+  if ( strcmp(b, "-") == 0 )
+    b = NULL;
+  if ( strcmp(l, "--") == 0 )
+    l = NULL;				/* insert a separator */
+    
+  return rlc_insert_menu_item(m, l, b);
+}
+
+
+foreign_t
+pl_prolog_insert_menu(foreign_t label, foreign_t before)
+{ char *m, *l, *b;
+
+  if ( !PL_get_atom_chars(label, &l) ||
+       !PL_get_atom_chars(before, &b) )
+    return FALSE;
+  
+  if ( strcmp(b, "-") == 0 )
+    b = NULL;
+    
+  return rlc_insert_menu(l, b);
+}
+
+
 		 /*******************************
 		 *	      SIGNALS		*
 		 *******************************/
 
 static DWORD main_thread_id;		/* ThreadId of main thread */
 #define WM_SIGNALLED (WM_USER+1)
+#define WM_MENU	     (WM_USER+2)
 
 static WINAPI
 pl_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
@@ -200,6 +249,13 @@ pl_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   { case WM_SIGNALLED:
       PL_handle_signals();
       return 0;
+    case WM_MENU:
+    { const char *name = (const char *)lParam;
+
+      call_menu(name);
+
+      return 0;
+    }
   }
 
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -312,6 +368,16 @@ interrupt(int sig)
 }
 
 
+static void
+menu_select(const char *name)
+{ if ( GetCurrentThreadId() == main_thread_id )
+    call_menu(name);
+  else
+  { PostMessage(PL_hidden_window(), WM_MENU, 0, (LONG)name);
+  }
+}
+
+
 		 /*******************************
 		 *	       MAIN		*
 		 *******************************/
@@ -335,6 +401,8 @@ PL_extension extensions[] =
 /*{ "name",	arity,  function,	PL_FA_<flags> },*/
 
   { "window_title", 2,  pl_window_title, 0 },
+  { "prolog_insert_menu_item", 3, pl_prolog_insert_menu_item, 0 },
+  { "prolog_insert_menu", 2, pl_prolog_insert_menu, 0 },
   { NULL,	    0, 	NULL,		 0 }	/* terminating line */
 };
 
@@ -383,6 +451,7 @@ win32main(int argc, char **argv)
   PL_hidden_window();			/* create in main thread */
   main_thread_id = GetCurrentThreadId();
   rlc_interrupt_hook(interrupt);
+  rlc_menu_hook(menu_select);
 #if !defined(O_DEBUG) && !defined(_DEBUG)
   initSignals();
 #endif

@@ -521,4 +521,3 @@ call_expand_query(Goal, Goal, Bindings, Bindings).
 call_expand_answer(Goal, Expanded) :-
 	user:expand_answer(Goal, Expanded), !.
 call_expand_answer(Goal, Goal).
-

@@ -978,6 +978,9 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	  return 0;			/* no op: already done */
 	case IDM_CUT:
 	  break;			/* TBD: cut */
+	case IDM_BREAK:
+	  rlc_interrupt();
+	  break;
 	case IDM_EXIT:
 	  if ( rlc_kill() )
 	    return 0;
