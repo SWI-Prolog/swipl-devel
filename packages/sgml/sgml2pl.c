@@ -61,8 +61,9 @@ typedef enum
 } stopat;
 
 typedef enum
-{ EM_PRINT = 0,				/* Print message */
-  EM_QUIET				/* Suppress messages */
+{ EM_QUIET = 0,				/* Suppress messages */
+  EM_PRINT,				/* Print message */
+  EM_STYLE				/* include style-messages */
 } errormode;
 
 typedef struct _env
@@ -1132,7 +1133,10 @@ on_error(dtd_parser *p, dtd_error *error)
   }
 
   switch(error->severity)
-  { case ERS_WARNING:
+  { case ERS_STYLE:
+      severity = "informational";
+      break;
+    case ERS_WARNING:
       pd->warnings++;
       severity = "warning";
       break;
@@ -1153,7 +1157,7 @@ on_error(dtd_parser *p, dtd_error *error)
 
     PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_error, av);
     PL_discard_foreign_frame(fid);
-  } else if ( pd->error_mode == EM_PRINT )
+  } else if ( pd->error_mode != EM_QUIET )
   { fid_t fid = PL_open_foreign_frame();
     predicate_t pred = PL_predicate("print_message", 2, "user");
     term_t av = PL_new_term_refs(2);
@@ -1514,6 +1518,8 @@ pl_sgml_parse(term_t parser, term_t options)
 	pd->error_mode = EM_QUIET;
       else if ( streq(s, "print") )
 	pd->error_mode = EM_PRINT;
+      else if ( streq(s, "style") )
+	pd->error_mode = EM_STYLE;
       else
 	return sgml2pl_error(ERR_DOMAIN, "syntax_error", a);
     } else if ( PL_is_functor(head, FUNCTOR_positions1) )

@@ -1,3 +1,6 @@
+* FIXED: handle CDATA inside elements with content-type ANY
+  (C. M. Sperberg-McQueen).
+
 * MODIFIED: silently ignore attempts to redefine entity declarations.
   Richard O'Keefe.
 

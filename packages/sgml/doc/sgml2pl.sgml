@@ -880,10 +880,14 @@ errors is suppressed after reaching this value. The default is 100.
     <termitem>syntax_errors(+ErrorMode)
 Defines how syntax errors are handled.
     <argdef>
-	<termitem>print
-	Default.  Pass messages to <pref builtin>print_message/2</pref>.
         <termitem>quiet
 	Suppress all messages.
+	<termitem>print
+	Default.  Pass messages to <pref builtin>print_message/2</pref>.
+	<termitem>style
+	Print dubious input such as attempts for redefinitions in the DTD
+	using <pref builtin>print_message/2</pref> with severity
+	<c/informational/.
     </argdef>
     <termitem>call(+Event, :PredicateName)
 Issue call-backs on the specified events. <aref/PredicateName/ is the 

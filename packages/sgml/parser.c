@@ -1282,9 +1282,13 @@ process_entity_declaration(dtd_parser *p, const ichar *decl)
   }
 
   if ( isparam && find_pentity(dtd, id) )
+  { gripe(ERC_REDEFINED, "parameter entity", id);
     return TRUE;			/* already defined parameter entity */
+  }
   if ( id->entity )
+  { gripe(ERC_REDEFINED, "entity", id);
     return TRUE;			/* already defined normal entity */
+  }
 
   decl = iskip_layout(dtd, s);
   e = sgml_calloc(1, sizeof(*e));
@@ -1386,16 +1390,10 @@ process_entity_declaration(dtd_parser *p, const ichar *decl)
   }
 
   if ( isparam )
-  { if ( find_pentity(dtd, e->name) )
-      gripe(ERC_REDEFINED, "parameter entity", e->name->name);
-
-    e->next = dtd->pentities;
+  { e->next = dtd->pentities;
     dtd->pentities = e;
   } else
-  { if ( e->name->entity )
-      gripe(ERC_REDEFINED, "entity", e->name->name);
-
-    e->name->entity = e;
+  { e->name->entity = e;
     e->next = dtd->entities;
     dtd->entities = e;
   }
@@ -1411,6 +1409,19 @@ process_entity_declaration(dtd_parser *p, const ichar *decl)
 		 *	      NOTATIONS		*
 		 *******************************/
 
+static dtd_notation *
+find_notation(dtd *dtd, dtd_symbol *name)
+{ dtd_notation *n;
+
+  for(n=dtd->notations; n; n = n->next)
+  { if ( n->name == name )
+      return n;
+  }
+
+  return NULL;
+}
+
+
 static int
 process_notation_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
@@ -1423,6 +1434,11 @@ process_notation_declaration(dtd_parser *p, const ichar *decl)
   if ( !(s=itake_name(dtd, decl, &nname)) )
     return gripe(ERC_SYNTAX_ERROR, "Notation name expected", decl);
   decl = s;
+
+  if ( find_notation(dtd, nname) )
+  { gripe(ERC_REDEFINED, "notation", nname);
+    return TRUE;
+  }
 
   if ( (s=isee_identifier(dtd, decl, "system")) )
   { ;
@@ -1439,18 +1455,6 @@ process_notation_declaration(dtd_parser *p, const ichar *decl)
 
   if ( *decl )
     return gripe(ERC_SYNTAX_ERROR, "Unexpected end of declaraction", decl);
-
-  for(n=&dtd->notations; *n; n = &(*n)->next)
-  { if ( (*n)->name == nname )
-    { gripe(ERC_REDEFINED, "notation", nname->name);
-      sgml_free((*n)->system);
-      sgml_free((*n)->public);
-      (*n)->system = system;
-      (*n)->public = public;
-      
-      return FALSE;
-    }
-  }
 
   not = sgml_calloc(1, sizeof(*not));
   not->name = nname;
@@ -1626,10 +1630,10 @@ process_shortref_declaration(dtd_parser *p, const ichar *decl)
   if ( sr->defined )
   { gripe(ERC_REDEFINED, "shortref", name);
 
-    free_maps(sr->map);
-    sr->map = NULL;
-  } else
-    sr->defined = TRUE;
+    return TRUE;
+  }
+
+  sr->defined = TRUE;
 
   while( *decl && (s=shortref_add_map(dtd, decl, sr)) )
     decl = s;
@@ -2265,12 +2269,9 @@ add_attribute(dtd *dtd, dtd_element *e, dtd_attr *a)
 
   for(l = &e->attributes; *l; l = &(*l)->next)
   { if ( (*l)->attribute->name == a->name )
-    { gripe(ERC_REDEFINED, "attribute", a->name->name);
-      free_attribute((*l)->attribute);
-      (*l)->attribute = a;
-      a->references++;
-
-      set_element_properties(e, a);
+    { gripe(ERC_REDEFINED, "attribute", a->name);
+      a->references++;			/* attempt to redefine attribute: */
+      free_attribute(a);		/* first wins according to standard */
 
       return;
     }
@@ -2749,7 +2750,7 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
 
     if ( env->element->structure &&
 	 env->element->structure->type == C_ANY )
-    { if ( e->undefined )
+    { if ( e != CDATA_ELEMENT && e->undefined )
 	gripe(ERC_EXISTENCE, "Element", e->name->name);
       push_element(p, e, FALSE);
       return TRUE;
@@ -5150,9 +5151,11 @@ gripe(dtd_error_id e, ...)
       break;
     }
     case ERC_REDEFINED:
-    { error.argv[0] = va_arg(args, char *); /* type */
-      error.argv[1] = va_arg(args, char *); /* name */
-      error.severity = ERS_WARNING;
+    { dtd_symbol *name;
+      error.argv[0] = va_arg(args, char *); /* type */
+      name = va_arg(args, dtd_symbol *); /* name */
+      error.argv[1] = name->name;
+      error.severity = ERS_STYLE;
       break;
     }
     case ERC_EXISTENCE:

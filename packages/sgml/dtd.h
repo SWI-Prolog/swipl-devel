@@ -192,8 +192,9 @@ typedef enum
 #endif
 
 typedef enum
-{ ERS_WARNING,
-  ERS_ERROR
+{ ERS_WARNING,				/* probably correct result */
+  ERS_ERROR,				/* probably incrorrect result */
+  ERS_STYLE				/* dubious/bad style; correct result */
 } dtd_error_severity;
 
 

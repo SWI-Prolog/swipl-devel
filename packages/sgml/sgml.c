@@ -33,8 +33,9 @@
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
 char *program;
-int nerrors;
-int nwarnings;
+int nerrors = 0;
+int nwarnings = 0;
+int style_messages = FALSE;
 
 static void
 usage(void)
@@ -43,6 +44,7 @@ usage(void)
   fprintf(stderr,
 	  "\t-xml\tForce XML mode\n"
 	  "\t-s\tSilent: only report errors and warnings\n"
+	  "\t-style\tWarn about correct but dubious input\n"
 	  "\t-nodefs\tDo not include defaulted attributes\n");
   exit(EXIT_FAILURE);
 }
@@ -271,7 +273,12 @@ on_error(dtd_parser * p, dtd_error * error)
   }
 
   switch (error->severity)
-  { case ERS_WARNING:
+  { case ERS_STYLE:
+      severity = "Style";
+      if ( !style_messages )
+	return TRUE;
+      break;
+    case ERS_WARNING:
       severity = "Warning";
       nwarnings++;
       break;
@@ -331,6 +338,8 @@ main(int argc, char **argv)
     { output = FALSE;
     } else if (streq(argv[0], "-nodefs"))
     { nodefs = TRUE;
+    } else if (streq(argv[0], "-style"))
+    { style_messages = TRUE;
     } else
     { usage();
     }

@@ -1215,12 +1215,18 @@ Defines how syntax errors are handled.
     
 <dl>
 <dt>&nbsp;<br>
-<b>print</b><dd>
-Default.  Pass messages to <b>print_message/2</b>.
-        
-<dt>&nbsp;<br>
 <b>quiet</b><dd>
 Suppress all messages.
+	
+<dt>&nbsp;<br>
+<b>print</b><dd>
+Default.  Pass messages to <b>print_message/2</b>.
+	
+<dt>&nbsp;<br>
+<b>style</b><dd>
+Print dubious input such as attempts for redefinitions in the DTD
+	using <b>print_message/2</b> with severity
+	<a name="const:informational"><b><tt>informational</tt></b></a>.
     
 </dl>
 
@@ -1737,6 +1743,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:id"><b><tt>id</tt></b></a>
 <li><a href="#const:idref"><b><tt>idref</tt></b></a>
 <li><a href="#const:implied"><b><tt>implied</tt></b></a>
+<li><a href="#const:informational"><b><tt>informational</tt></b></a>
 <li><a href="#const:input"><b><tt>input</tt></b></a>
 <li><a href="#const:integer"><b><tt>integer</tt></b></a> [ <a href="#const:integer%2">2</a>]
 <li><a href="#load_dtd/2"><b>load_dtd/2</b></a>
