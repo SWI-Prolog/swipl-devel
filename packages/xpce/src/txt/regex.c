@@ -560,7 +560,7 @@ replaceRegex(Regex re, Any obj, CharArray value)
   status rval;
 
   for(i=o=0; i<size; i++)
-  { wchar c = str_fetch(s, i);
+  { wint_t c = str_fetch(s, i);
 
     if ( c == '\\' && isdigit(str_fetch(s, i+1)) )
     { CharArray ca;
@@ -638,7 +638,7 @@ getQuoteRegex(Regex re, CharArray ca)
     str_store(buf, o++, '\\');
 
   for( i=0; i < size; i++)
-  { wchar c = str_fetch(s, i);
+  { wint_t c = str_fetch(s, i);
 
     switch(c)
     { case '?':

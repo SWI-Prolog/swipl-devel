@@ -286,7 +286,7 @@ ps_output(char *fm, ...)
 
 static void
 ps_put_string(String s)
-{ wchar c;
+{ wint_t c;
   int i, size = s->size;
 
   ps_put_char('(');

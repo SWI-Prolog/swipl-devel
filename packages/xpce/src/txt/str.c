@@ -501,7 +501,7 @@ str_icasesub(String s1, String s2)		/* s2 is substring of s1 */
 
 
 int
-str_next_index(String s, int from, wchar chr)
+str_next_index(String s, int from, wint_t chr)
 { int i, n = s->size;
 
   if ( isstr8(s) )
@@ -523,7 +523,7 @@ str_next_index(String s, int from, wchar chr)
 
 
 int
-str_next_rindex(String s, int from, wchar chr)
+str_next_rindex(String s, int from, wint_t chr)
 { int i;
 
   if ( isstr8(s) )
@@ -545,20 +545,20 @@ str_next_rindex(String s, int from, wchar chr)
 
 
 int
-str_index(String s, wchar chr)
+str_index(String s, wint_t chr)
 { return str_next_index(s, 0, chr);
 } 
 
 
 int
-str_rindex(String s, wchar chr)
+str_rindex(String s, wint_t chr)
 { return str_next_rindex(s, s->size, chr);
 } 
 
 /* count chr in [from,to) */
 
 int
-str_count_chr(String s, int from, int to, wchar chr)
+str_count_chr(String s, int from, int to, wint_t chr)
 { int i, count = 0;
 
   if ( isstr8(s) )
@@ -585,7 +585,7 @@ str_lineno(String s, int at)
 }
 
 
-wchar
+wint_t
 str_fetch(String s, int idx)
 { return s->b16 ? str_fetch16(s, idx) & 0xffff
 		: str_fetch8(s, idx) & 0xff;

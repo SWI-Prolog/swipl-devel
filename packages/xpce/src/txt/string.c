@@ -328,7 +328,7 @@ untabifyString(StringObj str, Any tabs)
       int i=0, o=0, col=0;
 
       for( ; i < size; i++ )
-      { wchar c = str_fetch(s, i);
+      { wint_t c = str_fetch(s, i);
 
 	if ( c == '\t' )
 	{ int destcol = col+1;
@@ -365,7 +365,7 @@ untabifyString(StringObj str, Any tabs)
     int i=0, o=0, col=0;
 
     for( ; i < size; i++ )
-    { wchar c = str_fetch(s, i);
+    { wint_t c = str_fetch(s, i);
 
       if ( c == '\t' )
       { do
@@ -415,7 +415,7 @@ truncateString(StringObj s, Int n)
 
 static status
 translateString(StringObj str, Int c1, Int c2)
-{ wchar f = valInt(c1);
+{ wint_t f = valInt(c1);
   int changed = 0;
   String s = &str->data;
   int size = s->size;
@@ -424,7 +424,7 @@ translateString(StringObj str, Int c1, Int c2)
   prepareWriteString(str);
 
   if ( notNil(c2) )
-  { wchar t = valInt(c2);
+  { wint_t t = valInt(c2);
 
     for(;;)
     { if ( (i = str_next_index(s, i, f)) >= 0 )
@@ -467,7 +467,7 @@ translateString(StringObj str, Int c1, Int c2)
 static status
 characterString(StringObj str, Int index, Int chr)
 { int i = valInt(index);
-  wchar c = valInt(chr);
+  wint_t c = valInt(chr);
 
   if ( i <  0 || i >= str->data.size )
     fail;

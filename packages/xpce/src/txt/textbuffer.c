@@ -35,7 +35,7 @@ forwards status clear_textbuffer(TextBuffer);
 forwards status downcase_textbuffer(TextBuffer, int, int);
 forwards void	end_change(TextBuffer, int);
 forwards Int    getSizeTextBuffer(TextBuffer);
-forwards status store_textbuffer(TextBuffer, int, wchar);
+forwards status store_textbuffer(TextBuffer, int, wint_t);
 forwards status transpose_textbuffer(TextBuffer, int, int, int, int);
 forwards status upcase_textbuffer(TextBuffer, int, int);
 forwards status save_textbuffer(TextBuffer, int, int, SourceSink);
@@ -1060,7 +1060,7 @@ inStringTextBuffer(TextBuffer tb, Int pos, Int from)
 Int
 getMatchingBracketTextBuffer(TextBuffer tb, Int idx, Int bracket)
 { int i = valInt(idx);
-  wchar stack[MAXBRACKETS];
+  wint_t stack[MAXBRACKETS];
   int depth = 1;
   int ic;
   SyntaxTable syntax = tb->syntax;
@@ -1194,7 +1194,7 @@ getSkipCommentTextBuffer(TextBuffer tb, Int where, Int to, Bool layouttoo)
     }
   } else				/* backwards */
   { for(;;)
-    { wchar c;
+    { wint_t c;
 
     again:
 
@@ -1389,8 +1389,8 @@ match(TextBuffer tb, int here, String s, int ec, int wm)
     }
   } else
   { for( i=0; i < l; i++ )
-    { wchar c1 = fetch(here++);
-      wchar c2 = str_fetch(s, i);
+    { wint_t c1 = fetch(here++);
+      wint_t c2 = str_fetch(s, i);
 
       if ( tolower(c1) != tolower(c2) )
 	return FALSE;
@@ -1704,14 +1704,14 @@ fetch_textbuffer(TextBuffer tb, int where)
     return EOB;
   idx = Index(tb, where);
 
-  return istb8(tb) ? (wchar)tb->tb_buffer8[idx] : (wchar)tb->tb_buffer16[idx];
+  return istb8(tb) ? (wint_t)tb->tb_buffer8[idx] : (wint_t)tb->tb_buffer16[idx];
 }
   
 
 static status
-store_textbuffer(TextBuffer tb, int where, wchar c)
+store_textbuffer(TextBuffer tb, int where, wint_t c)
 { long idx;
-  wchar old;
+  wint_t old;
 
   if ( where < 0 || where >= tb->size )
     fail;
@@ -1838,7 +1838,7 @@ transpose_textbuffer(TextBuffer tb, int f1, int t1, int f2, int t2)
 static status
 downcase_textbuffer(TextBuffer tb, int from, int len)
 { for( ; from < tb->size && len > 0; len--, from++ )
-  { wchar c;
+  { wint_t c;
 
     if ( tisupper(tb->syntax, (c=fetch(from))) )
       store_textbuffer(tb, from, tolower(c));
@@ -1851,7 +1851,7 @@ downcase_textbuffer(TextBuffer tb, int from, int len)
 static status
 upcase_textbuffer(TextBuffer tb, int from, int len)
 { for( ; from < tb->size && len > 0; len--, from++ )
-  { wchar c;
+  { wint_t c;
 
     if ( tislower(tb->syntax, (c=fetch(from))) )
       store_textbuffer(tb, from, toupper(c));
@@ -1863,7 +1863,7 @@ upcase_textbuffer(TextBuffer tb, int from, int len)
 
 static status
 capitalise_textbuffer(TextBuffer tb, int from, int len)
-{ wchar b = ' ';
+{ wint_t b = ' ';
 
   for( ; from < tb->size && len > 0; len--, from++ )
   { char c = fetch(from);

@@ -834,7 +834,7 @@ backwardDeleteCharListBrowser(ListBrowser lb)
 
 static status
 insertSelfListBrowser(ListBrowser lb, Int times, Int chr)
-{ wchar c;
+{ wint_t c;
 
   if ( isDefault(times) )
     times = ONE;

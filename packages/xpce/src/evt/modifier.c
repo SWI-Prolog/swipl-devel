@@ -51,7 +51,7 @@ getConvertModifier(Class class, Name name)
     Name meta    = NAME_up;
 
     for(i=0; i<size; i++)
-    { wchar c = str_fetch(s, i);
+    { wint_t c = str_fetch(s, i);
 
       switch(tolower(c))
       { case 's':

@@ -1495,7 +1495,7 @@ verify_editable_editor(Editor e)
 
 static status
 insert_editor(Editor e, Int times, Int chr, int fill)
-{ wchar c;
+{ wint_t c;
   TextBuffer tb = e->text_buffer;
   LocalString(s, &tb->buffer, 1);
 
@@ -3119,7 +3119,7 @@ static status
 insertSelfFillEditor(Editor e, Int times, Int chr)
 { TextBuffer tb = e->text_buffer;
   LocalString(s, &tb->buffer, 1);
-  wchar c;
+  wint_t c;
   Int le;
 
   MustBeEditable(e);
@@ -3522,7 +3522,7 @@ get_dabbrev_hit_editor(Editor e, int start)
   string s;
 
   for(end = start; end < size; end++)
-  { wchar c = fetch_textbuffer(tb, end);
+  { wint_t c = fetch_textbuffer(tb, end);
     if ( !tisalnum(tb->syntax, c) )
       break;
   }

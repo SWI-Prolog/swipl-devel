@@ -1314,7 +1314,7 @@ insertText(TextObj t, Int where, CharArray str)
 
 static status
 insertSelfText(TextObj t, Int times, Int chr)
-{ wchar c;
+{ wint_t c;
   int tms;
 
   if ( isDefault(times) )
@@ -1381,7 +1381,7 @@ gosmacsTransposeText(TextObj t)
 { int caret = valInt(t->caret);
 
   if ( caret >= 2 )
-  { wchar tmp;
+  { wint_t tmp;
     String s;
 
     deselectText(t);
@@ -1402,7 +1402,7 @@ transposeCharsText(TextObj t)
 { int caret = valInt(t->caret);
 
   if ( caret >= 1 )
-  { wchar tmp;
+  { wint_t tmp;
     String s;
 
     deselectText(t);

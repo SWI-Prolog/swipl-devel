@@ -212,7 +212,7 @@ getCapitaliseCharArray(CharArray n)
     str_store(buf, 0, toupper(str_fetch(d, 0)));
 
     for(; i < size; i++, o++)
-    { wchar c = str_fetch(d, i);
+    { wint_t c = str_fetch(d, i);
       
       if ( iswordsep(c) )
       { if ( ++i < size )
@@ -683,7 +683,7 @@ getCharacterCharArray(CharArray n, Int idx)
 
 static Int
 getIndexCharArray(CharArray n, Int chr, Int here)
-{ wchar c = valInt(chr);
+{ wint_t c = valInt(chr);
   int h;
 
   h = (isDefault(here) ? 0 : valInt(here));
@@ -696,7 +696,7 @@ getIndexCharArray(CharArray n, Int chr, Int here)
 
 static Int
 getRindexCharArray(CharArray n, Int chr, Int here)
-{ wchar c = valInt(chr);
+{ wint_t c = valInt(chr);
   int h, len = n->data.size;
 
   h = (isDefault(here) ? (len - 1) : valInt(here));
@@ -863,7 +863,7 @@ static char *T_readAsFile[] =
 static vardecl var_charArray[] =
 { IV(NAME_header, "alien:str_h", IV_NONE,
      NAME_internal, "Header info (packed)"),
-  IV(NAME_text, "alien:wchar *", IV_NONE,
+  IV(NAME_text, "alien:wint_t *", IV_NONE,
      NAME_internal, "Text represented (8- or 16-bits chars)")
 };
 

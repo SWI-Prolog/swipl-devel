@@ -25,11 +25,12 @@
 #ifndef _STR_H_INCLUDED
 #define _STR_H_INCLUDED
 
+#include <wchar.h>
+
 #undef char8				/* from pce-include.h */
 
 typedef unsigned char char8;		/* 8-bit character */
 typedef unsigned short char16;		/* 16-bit character */
-typedef unsigned int wchar;		/* char as passed around */
 
 #define STR_SIZE_BITS 27
 #define STR_MAX_SIZE ((1L<<STR_SIZE_BITS)-1)
@@ -58,8 +59,8 @@ typedef struct _string
 
 #define str_len(s) ((s)->size)		/* length of the string */
 #define str_wsize(s) ((((s)->b16 ? (s)->size * 2 \
-		      	         : (s)->size) + sizeof(wchar) - 1) \
-			/ sizeof(wchar))
+		      	         : (s)->size) + sizeof(wint_t) - 1) \
+			/ sizeof(wint_t))
 #define str_fetch8(s, i)	(s->s_text8[(i)])
 #define str_fetch16(s, i)	(s->s_text16[(i)])
 #define str_store8(s, i, c)	(s->s_text8[(i)] = (char8)(c))
