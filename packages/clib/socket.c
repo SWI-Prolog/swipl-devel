@@ -463,6 +463,20 @@ freeSocket(int socket)
   }
 #endif
 
+  LOCK();
+  p = &sockets;
+
+  for( ; *p; p = &(*p)->next)
+  { if ( (*p)->socket == socket )
+    { plsocket *s = *p;
+      
+      *p = s->next;
+      PL_free(s);
+      break;
+    }
+  }
+  UNLOCK();
+
 again:
   if ( (rval=closesocket(socket)) == SOCKET_ERROR )
   {
@@ -479,20 +493,6 @@ again:
 	     strerror(errno));
 #endif
   }
-
-  LOCK();
-  p = &sockets;
-
-  for( ; *p; p = &(*p)->next)
-  { if ( (*p)->socket == socket )
-    { plsocket *s = *p;
-      
-      *p = s->next;
-      PL_free(s);
-      break;
-    }
-  }
-  UNLOCK();
 
   DEBUG(Sdprintf("freeSocket(%d) returned %d\n", socket, rval));
 
