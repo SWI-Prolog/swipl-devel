@@ -3,6 +3,8 @@
 VERSION 4.0.3
 =============
 
+  * ADDED: New hooking system for help/0, help/1 and apropos/1.
+
   * FIXED: Allow for -f "c:\..." in Windows.
 
   * ENHANCED: Moved boot/listing.pl to the library, reducing the
