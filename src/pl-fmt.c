@@ -307,7 +307,7 @@ do_format(const char *fmt, int argc, term_t argv)
 		{ char *s;
 
 		  NEED_ARG;
-		  if ( !PL_get_list_chars(argv, &s, 0) )
+		  if ( !PL_get_chars(argv, &s, CVT_LIST|CVT_STRING) )
 		    ERROR("illegal argument to ~s");
 		  OUTSTRING(s);
 		  SHIFT;
