@@ -832,7 +832,7 @@ bind_variable_names(ReadData _PL_rd)
   term_t a    = PL_new_term_ref();
 
   for_vars(var,
-	   if ( var->name[0] != '_' )
+	   /*if ( var->name[0] != '_' ) Just _ isn't in this table */
 	   { if ( !PL_unify_list(list, head, list) ||
 		  !PL_unify_functor(head, FUNCTOR_equals2) ||
 		  !PL_get_arg(1, head, a) ||

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Report variables _starting_ with an _ (e.g. _X) in the
+    variable_names(Names) option of read_term.
+
   * FIXED: tmp_file/2 problem in library(emacs_interface). Tolga Konik.
 
   * ADDED: -nosignals option to inhibit signal handling.  Added a section

@@ -652,6 +652,7 @@ static kbDef emacs_edit_basics[] =
 
   { "\\ed",		NAME_killWord },
   { "\\ebackspace",	NAME_backwardKillWord },
+  { "\\e\\C-h",		NAME_backwardKillWord }, /* TBD: better abstraction */
 
   { NULL,		NULL }
 };
