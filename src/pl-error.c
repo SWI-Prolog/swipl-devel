@@ -480,6 +480,8 @@ printMessage(atom_t severity, ...)
   predicate_t pred = PL_predicate("print_message", 2, "system");
   va_list args;
 
+  gc_status.blocked++;			/* sometimes called from dangerous */
+					/* places */
   va_start(args, severity);
   PL_put_atom(av+0, severity);
   PL_unify_termv(av+1, args);
@@ -492,6 +494,7 @@ printMessage(atom_t severity, ...)
     PL_write_term(Serror, av+1, 1200, 0);
     Sfprintf(Serror, "\n");
   }
+  gc_status.blocked--;
 
   PL_discard_foreign_frame(fid);
 }

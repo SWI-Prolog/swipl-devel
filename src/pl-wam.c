@@ -899,11 +899,11 @@ getProcDefinition(Procedure proc)
 
 
 static inline Definition
-getProcDefinedDefinition(LocalFrame fr, Procedure proc ARG_LD)
+getProcDefinedDefinition(LocalFrame fr, Code PC, Procedure proc ARG_LD)
 { Definition def = proc->definition;
 
   if ( !def->definition.clauses && false(def, PROC_DEFINED) )
-    def = trapUndefined(fr, proc PASS_LD);
+    def = trapUndefined(fr, PC, proc PASS_LD);
 
 #ifdef O_PLMT
   if ( true(def, P_THREAD_LOCAL) )
@@ -1765,7 +1765,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   qf	= (QueryFrame) lTop;
   fr    = &qf->frame;
-  def   = getProcDefinedDefinition(fr, proc PASS_LD);
+  def   = getProcDefinedDefinition(fr, NULL, proc PASS_LD);
   arity	= def->functor->arity;
 
   requireStack(local, sizeof(struct queryFrame)+arity*sizeof(word));
@@ -3655,7 +3655,7 @@ frame and write  the  module  name  just  below  the  frame.   See  also
 contextModule().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	DEF = getProcDefinedDefinition(next,
+	DEF = getProcDefinedDefinition(next, PC,
 				       resolveProcedure(functor, module)
 				       PASS_LD);
 
@@ -3817,7 +3817,7 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
 	  int rval;
 
 	  next = lTop;
-	  def = getProcDefinedDefinition(next, fproc PASS_LD);
+	  def = getProcDefinedDefinition(next, PC, fproc PASS_LD);
 	  f = def->definition.function;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4023,7 +4023,7 @@ program pointer and jump to the common part.
 	{ functor_t fdef;
 
 	  fdef = lookupFunctorDef(functor, arity);
-	  DEF = getProcDefinedDefinition(next,
+	  DEF = getProcDefinedDefinition(next, PC,
 					 resolveProcedure(fdef, module)
 					 PASS_LD);
 	  next->context = module;
@@ -4050,7 +4050,7 @@ execution can continue at `next_instruction'
 	     && trueFeature(TAILRECURSION_FEATURE)
 #endif
 	   )
-	{ Definition ndef = getProcDefinedDefinition(lTop,
+	{ Definition ndef = getProcDefinedDefinition(lTop, PC,
 						     (Procedure) *PC++
 						     PASS_LD);
 	  arity = ndef->functor->arity;
@@ -4080,7 +4080,9 @@ execution can continue at `next_instruction'
         next->flags = FR->flags;
 	if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	  set(next, FR_NODEBUG);
-	DEF = getProcDefinedDefinition(next, (Procedure) *PC++ PASS_LD);
+	{ Procedure proc = (Procedure) *PC++;
+	  DEF = getProcDefinedDefinition(next, PC, proc PASS_LD);
+	}
 	next->context = FR->context;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

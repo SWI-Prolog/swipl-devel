@@ -604,7 +604,7 @@ void		gcClausesDefinitionAndUnlock(Definition def);
 void		destroyDefinition(Definition def);
 void		resetReferences(void);
 Procedure	resolveProcedure(functor_t f, Module module);
-Definition	trapUndefined(LocalFrame fr, Procedure proc ARG_LD);
+Definition	trapUndefined(LocalFrame fr, Code PC, Procedure proc ARG_LD);
 word		pl_retract(term_t term, control_t h);
 word		pl_retractall(term_t head);
 word		pl_abolish(term_t atom, term_t arity);

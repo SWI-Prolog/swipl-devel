@@ -38,7 +38,7 @@ finding source files, etc.
 static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
 static void	removeClausesProcedure(Procedure proc, int sfindex);
-static atom_t	autoLoader(atom_t name, int arity, atom_t mname);
+static atom_t	autoLoader(LocalFrame fr, Code PC, Definition def);
 static void	registerDirtyDefinition(Definition def);
 
 Procedure
@@ -590,11 +590,10 @@ pl_current_predicate1(term_t spec, control_t ctx)
 	  { if ( visibleProcedure(e->functor, e->module) )
 	      succeed;
 	    else
-	    { FunctorDef fd = valueFunctor(e->functor);
+	    { Procedure proc = lookupProcedure(e->functor, e->module);
 
-	      if ( autoLoader(fd->name,
-			      fd->arity,
-			      e->module->name) != ATOM_retry )
+	      if ( autoLoader(environment_frame, NULL,
+			      proc->definition) != ATOM_retry )
 		break;
 	    }
 	  }
@@ -1361,8 +1360,15 @@ autoImport(functor_t f, Module m)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Call the autoloader for the given definition   that is to be executed in
+the given frame. PC is the program   pointer of the current environment.
+Before we call Prolog, we need to fill enough of the frame to use it for
+the garbage collector to scan this frame.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static atom_t
-autoLoader(atom_t name, int arity, atom_t mname)
+autoLoader(LocalFrame fr, Code PC, Definition def)
 { GET_LD
   fid_t  cid  = PL_open_foreign_frame();
   term_t argv = PL_new_term_refs(4);
@@ -1375,16 +1381,26 @@ autoLoader(atom_t name, int arity, atom_t mname)
     GD->procedures.undefinterc4 = PL_pred(FUNCTOR_undefinterc4,
 					  MODULE_system);
 
-  PL_put_atom(    argv+0, mname);
-  PL_put_atom(    argv+1, name);
-  PL_put_integer( argv+2, arity);
+  PL_put_atom(    argv+0, def->module->name);
+  PL_put_atom(    argv+1, def->functor->name);
+  PL_put_integer( argv+2, def->functor->arity);
   
   LD->autoload_nesting++;
+  if ( PC )
+  { fr->parent = environment_frame;
+    fr->flags = fr->parent->flags;
+    fr->predicate = def;
+    fr->programPointer = PC;
+    fr->clause = NULL;
+    environment_frame = fr;
+  }
   qid = PL_open_query(MODULE_system, PL_Q_NODEBUG,
 		      GD->procedures.undefinterc4, argv);
   if ( PL_next_solution(qid) )
     PL_get_atom(argv+3, &answer);
   PL_close_query(qid);
+  if ( PC )
+    environment_frame = fr->parent;
   LD->autoload_nesting--;
   source_file_name = sfn;
   source_line_no   = sln;
@@ -1400,7 +1416,7 @@ discontiguous should not cause an undefined predicate warning.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Definition
-trapUndefined_unlocked(LocalFrame fr, Procedure proc ARG_LD)
+trapUndefined_unlocked(LocalFrame fr, Code PC, Procedure proc ARG_LD)
 { int retry_times = 0;
   Definition newdef;
   Definition def = proc->definition;
@@ -1426,9 +1442,7 @@ trapUndefined_unlocked(LocalFrame fr, Procedure proc ARG_LD)
 
       return def;
     } else
-    { atom_t answer = autoLoader(def->functor->name,
-				 def->functor->arity,
-				 def->module->name);
+    { atom_t answer = autoLoader(fr, PC, def);
 
       def = lookupProcedure(functor->functor, module)->definition;
 
@@ -1480,21 +1494,20 @@ that should be considered.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Definition
-trapUndefined(LocalFrame fr, Procedure proc ARG_LD)
+trapUndefined(LocalFrame fr, Code PC, Procedure proc ARG_LD)
 { LocalFrame lSafe = lTop;
   Definition def;
 
+  lTop = (LocalFrame)argFrameP(fr, proc->definition->functor->arity);
 #ifdef O_PLMT
   PL_mutex_lock(GD->thread.MUTEX_load);
-  lTop = (LocalFrame)argFrameP(fr, proc->definition->functor->arity);
-  def = trapUndefined_unlocked(fr, proc PASS_LD);
-  lTop = lSafe;
-  PL_mutex_unlock(GD->thread.MUTEX_load);
-#else
-  lTop = (LocalFrame)argFrameP(fr, proc->definition->functor->arity);
-  def = trapUndefined_unlocked(fr, proc PASS_LD);
-  lTop = lSafe;
 #endif
+  def = trapUndefined_unlocked(fr, PC, proc PASS_LD);
+#ifdef O_PLMT
+  PL_mutex_unlock(GD->thread.MUTEX_load);
+#endif
+  lTop = lSafe;
+
 
   return def;
 }

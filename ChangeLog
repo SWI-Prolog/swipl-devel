@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: GC during autoload.  Fabien Todescato.  Thanks for the extensive
+    test-suite!
+
   * FIXED: avoid deadlock with set_prolog_flag(trace_gc, true).
 
   * FIXED: dependency problem in library(win_menu).
