@@ -167,3 +167,8 @@ ws_uncreate_colour_map(ColourMap cm, DisplayObj d)
 { fail;
 }
 
+
+status
+ws_unlink_colour_map(ColourMap cm)
+{ succeed;
+}
