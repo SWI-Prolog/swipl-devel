@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Change label of objects in dialog editor.  Denis Medvedev.
+
 * FIXED: Class node (part of tree) placement of constrained graphicals using
   ->geometry instead of ->set, so windows can be displayed in hierarchy nodes.
   Also ensure `window<-contained_in' returns the node in this case.

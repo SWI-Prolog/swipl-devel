@@ -138,7 +138,7 @@ apply(LI, Always:[bool]) :->
 	(   (Always == @on ; get(LI, modified, @on)),
 	    get(LI, message, Msg),
 	    Msg \== @nil
-	->  send(Msg, forward, LI?selection)
+	->  send(Msg, forward_receiver, LI, LI?selection)
 	;   true
 	).
 	    
