@@ -28,12 +28,9 @@ forwards void	putNum(long, IOSTREAM *);
 forwards void	putReal(real, IOSTREAM *);
 forwards void	saveWicClause(Clause, IOSTREAM *);
 forwards void	closeProcedureWic(IOSTREAM *);
-forwards bool	openWic(char *, Word);
 forwards bool	closeWic(void);
-forwards bool	addClauseWic(Word, Atom);
-forwards bool	addDirectiveWic(word, IOSTREAM *fd);
+forwards bool	addDirectiveWic(term_t, IOSTREAM *fd);
 forwards bool	importWic(Procedure, IOSTREAM *fd);
-forwards word	directiveClause(word, char *);
 forwards bool	compileFile(char *);
 forwards bool	putStates(IOSTREAM *);
 forwards word	loadXR(IOSTREAM *);
@@ -44,6 +41,7 @@ static bool	loadStatement(int c, IOSTREAM *fd, int skip);
 static bool	loadPart(IOSTREAM *fd, Module *module, int skip);
 static bool	loadInModule(IOSTREAM *fd, int skip);
 static int	qlfVersion(IOSTREAM *s);
+static bool	appendState(char *name);
 
 #define Qgetc(s) Snpgetc(s)		/* ignore position recording */
 
@@ -79,7 +77,6 @@ Below is an informal description of the format of a `.qlf' file:
 			<globalSize>			% a <word>
 			<trailSize>			% a <word>
 			<argumentSize>			% a <word>
-			<lockSize>			% a <word>
 			<goal>				% a <string>
 			<topLevel>			% a <string>
 			<initFile>			% a <string>
@@ -157,7 +154,7 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 25			/* save version number */
+#define VERSION 26			/* save version number */
 
 #define XR_REF     0			/* reference to previous */
 #define XR_ATOM	   1			/* atom */
@@ -492,52 +489,54 @@ loadXR(IOSTREAM *fd)
 
 
 static void
-do_load_qlf_term(IOSTREAM *fd, Word *vars, Word term)
+do_load_qlf_term(IOSTREAM *fd, term_t vars[], term_t term)
 { int c = Qgetc(fd);
 
   if ( c == 'v' )
   { int id = getNum(fd);
     
-    *term = makeRef(&(*vars)[id]);
+    if ( vars[id] )
+      PL_unify(term, vars[id]);
+    else
+    { vars[id] = PL_new_term_ref();
+      PL_put_term(vars[id], term);
+    }
   } else if ( c == 't' )
   { FunctorDef f = (FunctorDef) loadXR(fd);
+    term_t c2 = PL_new_term_ref();
     int arity = f->arity;
     int n;
 
-    *term = globalFunctor(f);
+    PL_unify_functor(term, f);
     for(n=0; n < arity; n++)
-      do_load_qlf_term(fd, vars, argTermP(*term, n));
+    { PL_get_arg(n+1, term, c2);
+      do_load_qlf_term(fd, vars, c2);
+    }
   } else
-  { *term = loadXRc(c, fd);
+  { _PL_unify_atomic(term, loadXRc(c, fd));
   }
 }
 
 
-static word
-loadQlfTerm(IOSTREAM *fd)
+static void
+loadQlfTerm(term_t term, IOSTREAM *fd)
 { int nvars;
   Word vars;
-  word term = 0;
 
   DEBUG(3, Putf("Loading from %d ...", Stell(fd)));
   if ( (nvars = getNum(fd)) )
-  { int n;
-    Word v;
+  { term_t *v;
+    int n;
 
-    vars = allocGlobal(nvars);
+    vars = alloca(nvars * sizeof(term_t));
     for(n=nvars, v=vars; n>0; n--, v++)
-      setVar(*v);
+      *v = 0L;
   } else
     vars = NULL;
 
-  lockp(&vars);
-  lockw(&term);
-  do_load_qlf_term(fd, &vars, &term);
-  DEBUG(3, Putf("Loaded "); pl_write(&term); Putf(" to %d\n", Stell(fd)));
-  unlockw(&term);
-  unlockp(&vars);
-
-  return term;
+  PL_put_variable(term);
+  do_load_qlf_term(fd, vars, term);
+  DEBUG(3, Putf("Loaded "); pl_write(term); Putf(" to %d\n", Stell(fd)));
 }
 
 
@@ -631,7 +630,6 @@ loadWicFd(char *file, IOSTREAM *fd, bool toplevel, bool load_options)
     options.globalSize   = getNum(fd);
     options.trailSize    = getNum(fd);
     options.argumentSize = getNum(fd);
-    options.lockSize	 = getNum(fd);
     DEBUG(2, Sdprintf("local=%ld, global=%ld, trail=%ld, argument=%ld\n",
 		      options.localSize, options.globalSize,
 		      options.trailSize, options.argumentSize));
@@ -706,32 +704,28 @@ loadStatement(int c, IOSTREAM *fd, int skip)
       return loadImport(fd, skip);
 
     case 'D':
-    { mark m;
-      word goal;
-      Atom osf  = source_file_name;
-      int  oln  = source_line_no;
+    { fid_t       cid = PL_open_foreign_frame();
+      term_t goal = PL_new_term_ref();
+      Atom osf         = source_file_name;
+      int  oln         = source_line_no;
 
-      if ( currentSource )
-	source_file_name = currentSource->name;
-      else
-	source_file_name = NULL;
+      source_file_name = (currentSource ? currentSource->name : (Atom)NULL);
       source_line_no   = getNum(fd);
       
-      Mark(m);
-      goal = loadQlfTerm(fd);
+      loadQlfTerm(goal, fd);
       DEBUG(1, Sdprintf("Directive: ");
-	       pl_write(&goal);
+	       pl_write(goal);
 	       Sdprintf("\n"));
       if ( !skip )
-      { if ( !callGoal(MODULE_user, goal, FALSE) )
+      { if ( !callProlog(MODULE_user, goal, FALSE) )
 	{ Sfprintf(Serror,
 		   "[WARNING: %s:%d: (loading %s) directive failed: ",
 		   stringAtom(source_file_name), source_line_no, wicFile);
-	  pl_write(&goal);
+	  pl_write(goal);
 	  Sfprintf(Serror, "]\n");
 	}
       }
-      Undo(m);
+      PL_discard_foreign_frame(cid);
       
       source_file_name = osf;
       source_line_no   = oln;
@@ -904,7 +898,7 @@ loadPart(IOSTREAM *fd, Module *module, int skip)
 
   switch(Qgetc(fd))
   { case 'M':
-    { word mname = loadXR(fd);
+    { Atom mname = (Atom)loadXR(fd);
 
       switch( Qgetc(fd) )
       { case '-':
@@ -913,22 +907,21 @@ loadPart(IOSTREAM *fd, Module *module, int skip)
 	  break;
 	}
 	case 'F':
-	{ word fname;
+	{ Atom fname;
 	  Module m;
 
 	  qlfLoadSource(fd);
-	  fname = (word) currentSource->name;
+	  fname = currentSource->name;
 
-	  m = lookupModule((Atom) mname);
-	  if ( m->file != NULL && m->file != currentSource )
+	  m = lookupModule(mname);
+	  if ( m->file && m->file != currentSource )
 	  { warning("%s:\n\tmodule \"%s\" already loaded from \"%s\" (skipped)",
 		    wicFile, stringAtom(m->name), stringAtom(m->file->name));
 	    skip = TRUE;
 	    modules.source = m;
 	  } else
-	  { if ( !pl_declare_module(&mname, &fname) )
+	  { if ( !declareModule(mname, currentSource) )
 	      fail;
-	    assert(currentSource == modules.source->file);
 	  }
 
 	  if ( module )
@@ -1215,17 +1208,17 @@ do_save_qlf_term(Word t, IOSTREAM *fd)
 
 
 static void
-saveQlfTerm(Word t, IOSTREAM *fd)
+saveQlfTerm(term_t t, IOSTREAM *fd)
 { int nvars;
-  mark m;
+  fid_t cid = PL_open_foreign_frame();
 
   DEBUG(3, Putf("Saving "); pl_write(t); Putf(" from %d ... ", Stell(fd)));
-  Mark(m);
   nvars = numberVars(t, FUNCTOR_var1, 0);
   putNum(nvars, fd);
-  do_save_qlf_term(t, fd);
+  do_save_qlf_term(valTermRef(t), fd);	/* TBD */
   DEBUG(3, Putf("to %d\n", Stell(fd)));
-  Undo(m);
+
+  PL_discard_foreign_frame(cid);
 }
 
 
@@ -1236,7 +1229,7 @@ as this would lead to an inconsistency if   the .qlf file is loaded into
 another context module.  Therefore we just   store the functor.  For now
 this is ok as constructs of the   form  module:goal are translated using
 the meta-call mechanism.  This needs consideration   if we optimise this
-(which is not that likely as I   thin  module:goal, where `module' is an
+(which is not that likely as I	think  module:goal, where `module' is an
 atom,  should  be  restricted  to  very    special  cases  and  toplevel
 interaction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1293,7 +1286,7 @@ closeProcedureWic(IOSTREAM *fd)
 
 
 static bool
-openWic(char *file, Word args)
+openWic(const char *file, term_t args)
 { char *exec;
 
   int   localSize    = options.localSize;
@@ -1316,7 +1309,7 @@ openWic(char *file, Word args)
 			        NULL));
   }
 
-  wicFile = file;
+  wicFile = (char *) file;
 
   DEBUG(1, Sdprintf("Open compiler output file %s\n", file));
   if ( (wicFd = Sopen_file(file, "wbr")) == (IOSTREAM *)NULL )
@@ -1351,7 +1344,6 @@ openWic(char *file, Word args)
   putNum(   globalSize,   	  wicFd);
   putNum(   trailSize,    	  wicFd);
   putNum(   argumentSize, 	  wicFd);
-  putNum(   options.lockSize,     wicFd);
   DEBUG(2, Sdprintf("String options ...\n"));
   putString(goal,          	  wicFd);
   putString(topLevel,      	  wicFd);
@@ -1389,10 +1381,10 @@ closeWic()
 }
 
 static bool
-addClauseWic(Word term, Atom file)
+addClauseWic(term_t term, Atom file)
 { Clause clause;
 
-  if ((clause = assert_term(term, CL_END, file)) != (Clause)NULL)
+  if ( (clause = assert_term(term, CL_END, file)) )
   { IOSTREAM *s = wicFd;
 
     if (clause->procedure != currentProc)
@@ -1412,15 +1404,16 @@ addClauseWic(Word term, Atom file)
     succeed;
   }
 
+  Sdprintf("Failed to compile: "); pl_write(term); Sdprintf("\n");
   fail;
 }
 
 static bool
-addDirectiveWic(word term, IOSTREAM *fd)
+addDirectiveWic(term_t term, IOSTREAM *fd)
 { closeProcedureWic(fd);
   Putc('D', fd);
   putNum(source_line_no, fd);
-  saveQlfTerm(&term, fd);
+  saveQlfTerm(term, fd);
 
   succeed;
 }  
@@ -1494,39 +1487,35 @@ writeSourceMarks(IOSTREAM *s)
 }
 
 
-static Word
-qlfSourceInfo(IOSTREAM *s, long offset, Word info)
+static int
+qlfSourceInfo(IOSTREAM *s, long offset, term_t info)
 { char *str;
-  Atom f;
+  term_t head = PL_new_term_ref();
+  term_t list = PL_copy_term_ref(info);
 
   if ( Sseek(s, offset, SIO_SEEK_SET) != offset )
-  { warning("%s: seek failed: %s", wicFile, OsError());
-    return NULL;
-  }
-
+    return warning("%s: seek failed: %s", wicFile, OsError());
   if ( Getc(s) != 'F' || !(str=getString(s)) )
-  { warning("QLF format error");
-    return NULL;
-  }
+    return warning("QLF format error");
   
-  f = lookupAtom(str);
-  APPENDLIST(info, (Word) &f);
-
-  return info;
+  return PL_unify_list(list, head, list) &&
+         PL_unify_atom_chars(head, str);
 }
 
 
 static word
-qlfInfo(char *file, Word cversion, Word version, Word files)
+qlfInfo(const char *file,
+	term_t cversion, term_t version,
+	term_t files)
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
   long *qlfstart = NULL;
   word rval = TRUE;
 
-  TRY(unifyAtomic(cversion, consNum(VERSION)));
+  TRY(PL_unify_integer(cversion, VERSION));
 
-  wicFile = file;
+  wicFile = (char *)file;
 
   if ( !(s = Sopen_file(file, "rbr")) )
     return warning("Can't open %s: %s", file, OsError());
@@ -1536,7 +1525,7 @@ qlfInfo(char *file, Word cversion, Word version, Word files)
     fail;
   }
     
-  TRY(unifyAtomic(version, consNum(lversion)));
+  TRY(PL_unify_integer(version, lversion));
 
   if ( Sseek(s, -(int)sizeof(long), SIO_SEEK_END) < 0 )
     return warning("qlf_info/3: seek failed: %s", OsError());
@@ -1551,12 +1540,13 @@ qlfInfo(char *file, Word cversion, Word version, Word files)
   DEBUG(1, Sdprintf("\n"));
 
   for(i=0; i<nqlf; i++)
-    if ( !(files = qlfSourceInfo(s, qlfstart[i], files)) )
+  { if ( !qlfSourceInfo(s, qlfstart[i], files) )
     { rval = FALSE;
       goto out;
     }
+  }
 
-  rval = unifyAtomic(files, ATOM_nil);
+  rval = PL_unify_nil(files);
 
 out:
   if ( qlfstart )
@@ -1570,13 +1560,14 @@ out:
 
 
 word
-pl_qlf_info(Word file, Word cversion, Word version, Word files)
+pl_qlf_info(term_t file,
+	    term_t cversion, term_t version,
+	    term_t files)
 { char *name;
+  char buf[MAXPATHLEN];
 
-  if ( !(name = primitiveToString(*file, FALSE)) )
+  if ( !(name = get_filename(file, buf, sizeof(buf))) )
     return warning("qlf_info/3: instantiation fault");
-  if ( !(name = ExpandOneFile(name)) )
-    fail;
 
    return qlfInfo(name, cversion, version, files);
 }
@@ -1760,12 +1751,14 @@ qlfEndPart(IOSTREAM  *fd)
 
 
 word
-pl_qlf_start_module(Word name)
+pl_qlf_start_module(term_t name)
 { if ( wicFd )
-  { if ( !isAtom(*name) )
+  { Module m;
+
+    if ( !PL_get_module(name, &m) )
       return warning("qlf_start_module/1: argument must be an atom");
   
-    return qlfStartModule(lookupModule((Atom)*name), wicFd);
+    return qlfStartModule(m, wicFd);
   }
 
   succeed;
@@ -1773,12 +1766,14 @@ pl_qlf_start_module(Word name)
 
 
 word
-pl_qlf_start_sub_module(Word name)
+pl_qlf_start_sub_module(term_t name)
 { if ( wicFd )
-  { if ( !isAtom(*name) )
+  { Module m;
+
+    if ( !PL_get_module(name, &m) )
       return warning("qlf_start_sub_module/1: argument must be an atom");
   
-    return qlfStartSubModule(lookupModule((Atom)*name), wicFd);
+    return qlfStartSubModule(m, wicFd);
   }
 
   succeed;
@@ -1786,12 +1781,14 @@ pl_qlf_start_sub_module(Word name)
 
 
 word
-pl_qlf_start_file(Word name)
+pl_qlf_start_file(term_t name)
 { if ( wicFd )
-  { if ( !isAtom(*name) )
+  { Atom a;
+
+    if ( !PL_get_atom(name, &a) )
       return warning("qlf_start_file/1: argument must be an atom");
   
-    return qlfStartFile(lookupSourceFile((Atom)*name), wicFd);
+    return qlfStartFile(lookupSourceFile(a), wicFd);
   }
 
   succeed;
@@ -1809,11 +1806,13 @@ pl_qlf_end_part()
 
 
 word
-pl_qlf_open(Word file)
-{ if ( !isAtom(*file) )
-    return warning("qlf_open/1: instantiation fault");
+pl_qlf_open(term_t file)
+{ Atom a;
 
-  return qlfOpen((Atom)*file);
+  if ( PL_get_atom(file, &a) )
+    return qlfOpen(a);
+
+  return warning("qlf_open/1: instantiation fault");
 }
 
 
@@ -1824,26 +1823,29 @@ pl_qlf_close()
 
 
 word
-pl_qlf_load(Word file, Word module)
+pl_qlf_load(term_t file, term_t module)
 { Module m, target = NULL, oldsrc = modules.source;
-  char *name;
+  char fbuf[MAXPATHLEN];
+  char *fn;
   bool rval;
+  term_t name = PL_new_term_ref();
 
-  if ( !(file = stripModule(file, &target)) )
+  if ( !PL_strip_module(file, &m, name) )
     fail;
-  if ( !(name = primitiveToString(*file, FALSE)) )
+  if ( !(fn = get_filename(name, fbuf, sizeof(fbuf))) )
     return warning("$qlf_load/2: instantiation fault");
-  if ( !(name = ExpandOneFile(name)) )
-    fail;
 
   modules.source = target;
-  rval = qlfLoad(name, &m);
+  rval = qlfLoad(fn, &m);
   modules.source = oldsrc;
 
   if ( !rval )
     fail;
 
-  return unifyAtomic(module, m ? (word) m->name : consNum(0));
+  if ( m )
+    return PL_unify_atom(module, m->name);
+  else
+    return PL_unify_integer(module, 0);
 }
 
 
@@ -1852,11 +1854,15 @@ pl_qlf_load(Word file, Word module)
 		*********************************/
 
 word
-pl_open_wic(Word name, Word options)
-{ if ( !isAtom(*name) )
-    fail;
+pl_open_wic(term_t name, term_t options)
+{ char *file;
+  Atom fname;
 
-  return openWic(stringAtom(*name), options);
+  if ( !(file = get_filename(name, NULL, 0)) )
+    fail;
+  fname = lookupAtom(file);	/* ensure persistency */
+
+  return openWic(stringAtom(fname), options);
 }
 
 word
@@ -1867,39 +1873,35 @@ pl_qlf_put_states()
   succeed;
 }
 
+
 word
-pl_close_wic(void)
+pl_close_wic()
 { return closeWic();
 }
 
+
 word
-pl_add_directive_wic(Word term)
+pl_add_directive_wic(term_t term)
 { if ( wicFd )
-  { if (isVar(*term) )
+  { if ( PL_is_variable(term) )
       return warning("$add_directive_wic/1: directive is a variable");
 
-    return addDirectiveWic(*term, wicFd);
+    return addDirectiveWic(term, wicFd);
   }
 
   succeed;
 }
 
+
 word
-pl_import_wic(Word module, Word head)
+pl_import_wic(term_t module, term_t head)
 { if ( wicFd )
   { Module m;
     FunctorDef f;
 
-    if ( !isAtom(*module) ||
-	 !(isAtom(*head) || isTerm(*head)) )
+    if ( !PL_get_module(module, &m) ||
+	 !PL_get_functor(head, &f) )
       return warning("$import_wic/3: instantiation fault");
-
-    m = lookupModule((Atom)*module);
-
-    if ( isAtom(*head) )
-      f = lookupFunctorDef((Atom)*head, 0);
-    else
-      f = functorTerm(*head);
 
     return importWic(lookupProcedure(f, m), wicFd);
   }
@@ -1909,20 +1911,14 @@ pl_import_wic(Word module, Word head)
 
 
 word
-pl_qlf_assert_clause(Word ref)
+pl_qlf_assert_clause(term_t ref)
 { if ( wicFd )
   { Clause clause;
     IOSTREAM *s = wicFd;
 
-    if (!isInteger(*ref))
-    { warning("$qlf_assert_clause/1: argument is not a clause reference");
-      fail;
-    }
-
-    clause = (Clause) numToPointer(*ref);
-  
-    if ( !inCore(clause) || !isClause(clause) )
-      return warning("$qlf_assert_clause/1: Invalid reference");
+    if ( !PL_get_pointer(ref, (void **)&clause) ||
+	 !inCore(clause) || !isClause(clause) )
+      return warning("$qlf_assert_clause/1: Invalid clause reference");
 
     if ( clause->procedure != currentProc )
     { closeProcedureWic(s);
@@ -1960,36 +1956,35 @@ defined compiler handles as well, except:
     (there is no way to include other files).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/*  Check if a clause is of the for ":- directive". If not return NULL, 
-    otherwise return the argument.
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Check whether clause is  of  the  form   :-  directive.  If  so, put the
+directive in directive and succeed. If the   term has no explicit module
+tag, add one from the current source-module.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
- ** Wed Jun  8 16:12:39 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+static int
+directiveClause(term_t directive, term_t clause, char *functor)
+{ Atom name;
+  int arity;
+  term_t d0 = PL_new_term_ref();
+  functor_t f;
 
-static word
-directiveClause(word clause, char *functor)
-{ if (!isTerm(clause) )
-    return (word) NULL;
-  if (functorTerm(clause)->arity == 1 &&
-       streq(functorTerm(clause)->name->name, functor) )
-  { word d;
+  if ( !PL_get_name_arity(clause, &name, &arity) ||
+       arity != 1 ||
+       !streq(stringAtom(name), functor) )
+    fail;
 
-    d = argTerm(clause, 0);
-    if (isVar(d) )
-      return (word) NULL;
+  PL_get_arg(1, clause, d0);
+  if ( PL_get_functor(d0, &f) && f == FUNCTOR_module2 )
+    PL_put_term(directive, d0);
+  else
+  { term_t m = PL_new_term_ref();
 
-    if ( !isTerm(d) || functorTerm(d) != FUNCTOR_module2 )
-    { word directive;
-      
-      directive = globalFunctor(FUNCTOR_module2);
-      argTerm(directive, 0) = (word) modules.source->name;
-      argTerm(directive, 1) = d;
+    PL_put_atom(m, modules.source->name);
+    PL_cons_functor(directive, FUNCTOR_module2, m, d0);
+  }
 
-      return directive;
-    }
-
-    return d;
-  } else
-    return (word) NULL;
+  succeed;
 }
 
 /*  Compile an entire file into intermediate code.
@@ -1999,45 +1994,49 @@ directiveClause(word clause, char *functor)
 static bool
 compileFile(char *file)
 { char *path;
-  word f;
-  Word term = newTerm();
+  term_t f = PL_new_term_ref();
+  Atom nf;
 
   DEBUG(1, Sdprintf("Boot compilation of %s\n", file));
-  if ((path = AbsoluteFile(file)) == (char *) NULL)
+  if ( !(path = AbsoluteFile(file)) )
     fail;
   DEBUG(2, Sdprintf("Expanded to %s\n", path));
 
-  f = (word) lookupAtom(path);
+  nf = lookupAtom(path);
+  PL_put_atom(f, nf);
   DEBUG(2, Sdprintf("Opening\n"));
-  if ( !pl_see(&f) )
+  if ( !pl_see(f) )
     fail;
   DEBUG(2, Sdprintf("pl_start_consult()\n"));
-  pl_start_consult(&f);
-  qlfStartFile(lookupSourceFile((Atom)f), wicFd);
+  pl_start_consult(f);
+  qlfStartFile(lookupSourceFile(nf), wicFd);
   
   for(;;)
-  { word directive;
-    mark m;
-    
-    Mark(m);
+  { fid_t            cid = PL_open_foreign_frame();
+    term_t         t = PL_new_term_ref();
+    term_t directive = PL_new_term_ref();
+    Atom eof;
+
     DEBUG(2, Sdprintf("pl_read_clause() -> "));
-    if (pl_read_clause(term) == FALSE)
+    PL_put_variable(t);
+    if ( !pl_read_clause(t) )		/* syntax error */
       continue;
-    DEBUG(2, pl_write(term); pl_nl());
-    if (*term == (word) ATOM_end_of_file)
+    if ( PL_get_atom(t, &eof) && eof == ATOM_end_of_file )
       break;
-    if ((directive = directiveClause(*term, ":-")) != (word) NULL)
-    { environment_frame = (LocalFrame) NULL;
-      DEBUG(1, Putf(":- "); pl_write(&directive); Putf(".\n") );
+
+    DEBUG(2, pl_write(t); pl_nl());
+
+    if ( directiveClause(directive, t, ":-") )
+    { DEBUG(1, Putf(":- "); pl_write(directive); Putf(".\n") );
       addDirectiveWic(directive, wicFd);
-      callGoal(MODULE_user, directive, FALSE);
-    } else if ((directive = directiveClause(*term, "$:-")) != (word) NULL)
-    { environment_frame = (LocalFrame) NULL;
-      DEBUG(1, Putf("$:- "); pl_write(&directive); Putf(".\n") );
-      callGoal(MODULE_user, directive, FALSE);
+      callProlog(MODULE_user, directive, FALSE);
+    } else if ( directiveClause(directive, t, "$:-") )
+    { DEBUG(1, Putf("$:- "); pl_write(directive); Putf(".\n") );
+      callProlog(MODULE_user, directive, FALSE);
     } else
-      addClauseWic(term, (Atom)f);
-    Undo(m);
+      addClauseWic(t, nf);
+
+    PL_discard_foreign_frame(cid);
   }
 
   qlfEndPart(wicFd);
@@ -2049,7 +2048,7 @@ compileFile(char *file)
 bool
 compileFileList(char *out, int argc, char **argv)
 { newOp("$:-", OP_FX, 1200);
-  TRY(openWic(out, NULL) );
+  TRY(openWic(out, 0) );
   
   systemMode(TRUE);
 
@@ -2062,9 +2061,10 @@ compileFileList(char *out, int argc, char **argv)
   status.autoload = TRUE;
   systemMode(FALSE);
 
-  callGoal(MODULE_user,
-	   (word)lookupAtom("$load_additional_boot_files"),
-	   FALSE);
+  { predicate_t pred = PL_predicate("$load_additional_boot_files", 0, "user");
+
+    PL_call_predicate(MODULE_user, TRUE, pred, 0);
+  }
 
   return closeWic();
 }
@@ -2079,7 +2079,7 @@ compileFileList(char *out, int argc, char **argv)
     with incremental loading.
 */
 
-bool
+static bool
 appendState(char *name)
 { State state, st;
   char *absolute;

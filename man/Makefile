@@ -56,6 +56,9 @@ $(MANUAL):	latex_if_needed doc.tex $(TEXFILES) doc.bbl doc.ind
 		./latex_if_needed $(LATEX) doc
 		mv doc.dvi $(MANUAL)
 
+man:		doc.tex $(TEXFILES) doc.bbl doc.ind
+		$(LATEX) doc
+
 doc.tex:	main.doc
 		$(CCCP) main.doc | cat -s > doc.tex
 

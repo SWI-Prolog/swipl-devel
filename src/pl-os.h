@@ -43,7 +43,6 @@ extern Void Allocate(long);
 extern char *Setenv(char *name, char *value);
 extern char *Unsetenv(char *name);
 
-extern long Time(void);
 extern char *OsError(void);
 extern bool initOs(void);
 extern volatile void Halt(int);
@@ -89,16 +88,14 @@ extern long Random(void);
 #define Getw(fd)		Sgetw(fd)
 
 Char		GetChar(void);
-Atom		TemporaryFile(char *key);
-void		RemoveTemporaryFiles(void);
 long		LastModifiedFile(char *name),
 		SizeFile(char *name);
+Atom		TemporaryFile(char *id);
 bool		AccessFile(char *name, int how),
 		ExistsFile(char *name),
 		ExistsDirectory(char *name),
 		RenameFile(char *old, char *new),
 		SameFile(char *file1, char *file2),
-		OpenStream(int index),
 		MarkExecutable(char *name),
 		expandVars(char *pattern, char *expanded),
 		ChDir(char *dir);

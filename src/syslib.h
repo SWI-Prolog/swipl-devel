@@ -31,7 +31,9 @@ extern int vsprintf (char *, const char *, char * );
 /* extern int ungetc (int, FILE *); */
 /* extern int getw(FILE *stream); */
 /* extern int putw(int data, FILE *stream); */
-/* extern int pclose(FILE *stream); */
+#ifdef FILE
+extern int pclose(FILE *stream);
+#endif
 /* extern int fclose(FILE *stream); */
 extern void bcopy(void *b1, void *b2, int length);
 /* extern long fseek (FILE *, long, int); */

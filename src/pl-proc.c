@@ -15,11 +15,12 @@ General  handling  of  procedures:  creation;  adding/removing  clauses;
 finding source files, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards void	resetReferencesModule(Module);
+forwards void		resetReferencesModule(Module);
+forwards void		resetProcedure(Procedure proc);
+forwards SourceFile	indexToSourceFile(int index);
 
 SourceFile 	sourceFileTable = (SourceFile) NULL;
 SourceFile 	tailSourceFileTable = (SourceFile) NULL;
-SourceFile 	isCurrentSourceFile(Atom name);
 static void	removeClausesProcedure(Procedure proc, int sfindex);
 
 Procedure
@@ -56,7 +57,7 @@ lookupProcedure(FunctorDef f, Module m)
   return proc;
 }
 
-void
+static void
 resetProcedure(Procedure proc)
 { register Definition def = proc->definition;
 
@@ -125,54 +126,64 @@ lookupProcedureToDefine(FunctorDef def, Module m)
 }
 
 
-/*  Find a procedure from description `descr'. `descr' is one of:
-    <term> or <module>:<term>. If the procedure does not exists NULL
-    is returned.
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get the specified procedure from a   Prolog  argument.  This argument is
+either a head or a term of the form module:head.  If `create' is TRUE, a
+procedure is created in the module.  Otherwise, the system traverses the
+module-inheritance chain to find the existing procedure.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
- ** Tue Apr 19 16:11:25 1988  jan@swivax.UUCP (Jan Wielemaker)  */
-
-Procedure
-findProcedure(Word descr)
+int
+get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 { Module m = (Module) NULL;
-  FunctorDef fd;
-  Procedure proc;
+  term_t head = PL_new_term_ref();
+  FunctorDef fdef;
+  Procedure p;
 
-  if ((descr = stripModule(descr, &m)) == (Word) NULL)
-    return (Procedure) NULL;
-
-  if (isAtom(*descr) )
-    fd = lookupFunctorDef((Atom)*descr, 0);
-  else if (isTerm(*descr) )
-    fd = functorTerm(*descr);
-  else
-  { warning("Illegal predicate specification");
-    return (Procedure) NULL;
-  }
+  if ( !PL_strip_module(descr, &m, head) )
+    fail;
+  if ( !PL_get_functor(head, &fdef) )
+    return warning("Illegal predicate specification");
   
-  for( ; m; m = m->super )
-  { if ( (proc = isCurrentProcedure(fd, m)) != NULL )
-      return proc;
+  switch( how )
+  { case GP_CREATE:
+      *proc = lookupProcedure(fdef, m);
+      break;
+    case GP_FINDHERE:
+      if ( (p = isCurrentProcedure(fdef, m)) )
+      { *proc = p;
+        break;
+      }
+      fail;
+    case GP_FIND:
+      for( ; m; m = m->super )
+      { if ( (p = isCurrentProcedure(fdef, m)) )
+	{ *proc = p;
+	  goto out;
+	}
+      }
+      fail;
+    case GP_DEFINE:
+      if ( (p = lookupProcedureToDefine(fdef, m)) )
+      { *proc = p;
+        break;
+      }
+      fail;
+    case GP_RESOLVE:
+      if ( (p = resolveProcedure(fdef, m)) )
+      { *proc = p;
+        break;
+      }
+      fail;
+    default:
+      assert(0);
   }
 
-  return (Procedure) NULL;
-}
+out:
+  if ( h )
+    PL_put_term(h, head);
 
-Procedure
-findCreateProcedure(Word descr)
-{ Module m = (Module) NULL;
-
-  if ((descr = stripModule(descr, &m)) == (Word) NULL)
-  { warning("Illegal module specification");
-    return (Procedure) NULL;
-  }
-
-  if (isAtom(*descr) )
-    return lookupProcedure(lookupFunctorDef((Atom)*descr, 0), m);
-  if (isTerm(*descr) )
-    return lookupProcedure(functorTerm(*descr), m);
-
-  warning("Illegal predicate specification");
-  return (Procedure) NULL;
+  succeed;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -188,42 +199,38 @@ to C.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_current_predicate(Word name, Word functor, word h)
+pl_current_predicate(term_t name, term_t spec, word h)
 { Atom n;
   FunctorDef f;
   Module m = (Module) NULL;
   Procedure proc;
   Symbol symb;
+  term_t functor = PL_new_term_ref();
 
   if ( ForeignControl(h) == FRG_CUTTED )
     succeed;
 
-  if ((functor = stripModule(functor, &m)) == (Word) NULL)
+  if ( !PL_strip_module(spec, &m, functor) )
     fail;
 
-  if (isAtom(*name) )
-    n = (Atom) *name;
-  else if (isVar(*name) )
-    n = (Atom) NULL;
-  else
-    fail;
-
-  if (isTerm(*functor) )
-    f = functorTerm(*functor);
-  else if (isAtom(*functor) )
-    f = lookupFunctorDef((Atom)*functor, 0);
-  else if (isVar(*functor) )
-    f = (FunctorDef) NULL;
-  else
-    fail;
+  if ( !PL_get_atom(name, &n) )
+  { if ( PL_is_variable(name) )
+      n = NULL;
+    else
+      fail;
+  }
+  if ( !PL_get_functor(functor, &f) )
+  { if ( PL_is_variable(functor) )
+      f = NULL;
+    else
+      fail;
+  }
 
   if ( ForeignControl(h) == FRG_FIRST_CALL)
-  { if (f != (FunctorDef) NULL) 
-    { if ((proc = isCurrentProcedure(f, m)) != (Procedure) NULL)
-      { TRY(unifyAtomic(name, f->name) );
-	succeed;
-      } else
-	fail;
+  { if ( f ) 
+    { if ( (proc = isCurrentProcedure(f, m)) )
+	return PL_unify_atom(name, f->name);
+      fail;
     }
     symb = firstHTable(m->procedures);
   } else
@@ -235,12 +242,12 @@ pl_current_predicate(Word name, Word functor, word h)
     proc = (Procedure) symb->value;
     fdef = proc->definition->functor;
 
-    if ( (n != (Atom) NULL && n != fdef->name) ||
-	 !unifyAtomic(name, fdef->name) ||
-	 !unifyFunctor(functor, fdef) )
+    if ( ( n && n != fdef->name) ||
+	 !PL_unify_atom(name, fdef->name) ||
+	 !PL_unify_functor(functor, fdef) )
       continue;
 
-    if ((symb = nextHTable(m->procedures, symb)) != (Symbol) NULL)
+    if ( (symb = nextHTable(m->procedures, symb)) )
       ForeignRedo(symb);
 
     succeed;
@@ -538,7 +545,7 @@ resetReferences(void)
 		 *******************************/
 
 word
-pl_check_definition(Word spec)
+pl_check_definition(term_t spec)
 { Procedure proc;
   Definition def;
   int nclauses = 0;
@@ -546,7 +553,7 @@ pl_check_definition(Word spec)
 
   ClauseRef cref;
 
-  if ( !(proc = findProcedure(spec)) )
+  if ( get_procedure(spec, &proc, 0, GP_FIND) )
     return warning("$check_definition/1: can't find definition");
   def = proc->definition;
 
@@ -608,21 +615,6 @@ resolveProcedure(FunctorDef f, Module module)
 }
 
 
-Definition
-findDefinition(FunctorDef f, Module m)
-{ Procedure proc;
-					/* Defined: no problem */
-  for(;; m = m->super)
-  { if ( (proc = isCurrentProcedure(f, m)) != NULL &&
-	 isDefinedProcedure(proc) )
-      return proc->definition;
-  
-    if ( !m->super )			/* No super: cannot import */
-      return NULL;
-  }
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 autoImport() tries to autoimport f into module `m' and  returns  success
 if this is possible.
@@ -680,55 +672,56 @@ trapUndefined(Definition def)
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
 
 					/* Trap via exception/3 */
-  if ( status.autoload )
-  { word goal;
-    mark m;
-    bool rval;
-    Atom sfn = source_file_name;	/* needs better solution! */
-    int  sln = source_line_no;
-
-    if ( undefined_nesting++ == 1000 )
+  if ( status.autoload && !status.boot )
+  { if ( undefined_nesting > 100 )
     { undefined_nesting = 1;
       sysError("trapUndefined(): undefined: %s", predicateName(def));
+
       return def;
-    }
+    } else
+    { fid_t  cid  = PL_open_foreign_frame();
+      term_t argv = PL_new_term_refs(4);
+      static predicate_t pred;
+      qid_t qid;
+      Atom sfn = source_file_name;	/* needs better solution! */
+      int  sln = source_line_no;
+      Atom answer = ATOM_nil;
 
-    Mark(m);
-    goal = globalFunctor(FUNCTOR_undefinterc3);
-    unifyAtomic(argTermP(goal, 0), def->module->name);
-    unifyAtomic(argTermP(goal, 1), def->functor->name);
-    unifyAtomic(argTermP(goal, 2), consNum(def->functor->arity));
+      if ( !pred )
+	pred = PL_pred(FUNCTOR_undefinterc4, MODULE_system);
 
-    debugstatus.suspendTrace++;
-    rval = callGoal(MODULE_system, goal, FALSE);
-    debugstatus.suspendTrace--;
-    source_file_name = sfn;
-    source_line_no   = sln;
+      PL_put_atom(    argv+0, def->module->name);
+      PL_put_atom(    argv+1, def->functor->name);
+      PL_put_integer( argv+2, def->functor->arity);
+      PL_put_variable(argv+3);
 
-    Undo(m);
-    undefined_nesting--;
+      debugstatus.suspendTrace++;
+      undefined_nesting++;
+      qid = PL_open_query(MODULE_system, FALSE, pred, argv);
+      if ( PL_next_solution(qid) )
+	PL_get_atom(argv+3, &answer);
+      PL_close_query(qid);
+      undefined_nesting--;
+      debugstatus.suspendTrace--;
+      source_file_name = sfn;
+      source_line_no   = sln;
+      PL_discard_foreign_frame(cid);
 
-    def = lookupProcedure(functor, module)->definition; /* ??? */
+      def = lookupProcedure(functor, module)->definition;
 
-    if ( rval == TRUE )
-    { extern int trace_continuation;	/* from pl-trace.c */
-
-      switch( trace_continuation )
-      { case ACTION_FAIL:
+      if ( answer == ATOM_fail )
+	return def;
+      else if ( answer == ATOM_retry )
+      { if ( retry_times++ )
+	{ warning("exception handler failed to define predicate %s\n",
+		  predicateName(def));
 	  return def;
-	case ACTION_RETRY:
-	  if ( retry_times++ )
-	  { warning("exception handler failed to define predicate %s\n",
-		    predicateName(def));
-	    break;
-	  }
-	  goto retry;
-	default:
-	  warning("Illegal return value from exception handler");
+	}
+	goto retry;
       }
     }
   }
-					/* No one want to intercept */
+				/* No one wants to intercept */
   warning("Undefined predicate: %s", predicateName(def) );
 
   return def;
@@ -739,21 +732,10 @@ trapUndefined(Definition def)
 		 *******************************/
 
 word
-pl_require(Word pred)
-{ FunctorDef fd;
-  Module module = (Module) NULL;
+pl_require(term_t pred)
+{ Procedure proc;
 
-  pred = stripModule(pred, &module);
-  if ( isAtom(*pred) )
-    fd = lookupFunctorDef((Atom) *pred, 0);
-  else if ( isTerm(*pred) )
-    fd = functorTerm(*pred);
-  else
-    fail;
-
-  lookupProcedureToDefine(fd, module);
-  
-  succeed;
+  return get_procedure(pred, &proc, 0, GP_DEFINE);
 }
 
 
@@ -762,112 +744,103 @@ pl_require(Word pred)
 		*********************************/
 
 word
-pl_retract(Word term, word h)
-{ Procedure proc;
-  Definition def;
-  Word head, body;
-  Module m = (Module) NULL;
-  ClauseRef cref;
-
-  if ( ForeignControl(h) == FRG_CUTTED )
-  { cref = ForeignContextAddress(h);
+pl_retract(term_t term, word h)
+{ if ( ForeignControl(h) == FRG_CUTTED )
+  { ClauseRef cref = ForeignContextAddress(h);
     leaveDefinition(cref->clause->procedure->definition);
 
     succeed;
-  }
-
-  if ((term = stripModule(term, &m)) == (Word) NULL)
-    fail;
- 
-  if ( !splitClause(term, &head, &body, NULL) )
-    return warning("retract/1: illegal specification");
-
-  if ( ForeignControl(h) == FRG_FIRST_CALL )
-  { if ( isAtom(*head) )
-      proc = isCurrentProcedure(lookupFunctorDef((Atom)*head, 0), m);
-    else if ( isTerm(*head) )
-      proc = isCurrentProcedure(functorTerm(*head), m);
-    else
-      return warning("retract/1: Illegal predicate specification");
-
-    if ( proc == (Procedure) NULL )
-      fail;
-
-    def = proc->definition;
-
-    if ( true(def, FOREIGN) )
-      return warning("retract/1: cannot retract from a foreign predicate");
-    if ( true(def, LOCKED) && false(def, DYNAMIC) )
-      return warning("retract/1: Attempt to retract from a system predicate");
-
-    if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
-      warning("retract/1: %s has %d references",
-	      predicateName(def), def->references);
-
-    cref = def->definition.clauses;
-    def->references++;			/* reference the predicate */
   } else
-  { cref = (ClauseRef) ForeignContextAddress(h);
-    proc = cref->clause->procedure;
-    def  = proc->definition;
-  }
+  { Procedure proc;
+    Definition def;
+    Module m = (Module) NULL;
+    ClauseRef cref;
+    term_t cl = PL_new_term_ref();
+    term_t head = PL_new_term_ref();
+    term_t body = PL_new_term_ref();
 
-  for(; cref; cref = cref->next)
-  { bool det;
+    if ( !PL_strip_module(term, &m, cl) )
+      fail;
+ 
+    if ( !get_head_and_body_clause(cl, head, body, NULL) )
+      return warning("retract/1: illegal clause");
 
-    if ( isTerm(*head) )
-    { if ( !(cref = findClause(cref, argTermP(*head, 0), def, &det)) )
+    if ( ForeignControl(h) == FRG_FIRST_CALL )
+    { FunctorDef fd;
+
+      if ( !PL_get_functor(head, &fd) )
+	return warning("retract/1: illegal head");
+      if ( !(proc = isCurrentProcedure(fd, m)) )
+	fail;
+
+      def = proc->definition;
+
+      if ( true(def, FOREIGN) )
+	return warning("retract/1: cannot retract from foreign predicate");
+      if ( true(def, LOCKED) && false(def, DYNAMIC) )
+	return warning("retract/1: Attempt to retract from system predicate");
+
+      if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
+	warning("retract/1: %s has %d references",
+		predicateName(def), def->references);
+
+      cref = def->definition.clauses;
+      def->references++;			/* reference the predicate */
+    } else
+    { cref = (ClauseRef) ForeignContextAddress(h);
+      proc = cref->clause->procedure;
+      def  = proc->definition;
+    }
+
+    for(; cref; cref = cref->next)
+    { bool det;
+      Word argv;
+
+      if ( PL_is_compound(head) )
+      { argv = valTermRef(head);
+	deRef(argv);
+	argv = argTermP(*argv, 0);
+      } else
+	argv = NULL;
+
+      if ( !(cref = findClause(cref, argv, def, &det)) )
       { leaveDefinition(def);
 	fail;
       }
-    } else /*if ( isAtom(*head) )*/
-    { if ( true(cref->clause, ERASED) )
-	continue;
-      det = (cref->next == NULL);
-    }
 
-    { mark m;
+      { fid_t cid = PL_open_foreign_frame();
 
-      Mark(m);
-      if ( decompile(cref->clause, term) )
-      { retractClauseProcedure(proc, cref->clause);
-	unlockMark(&m);
-	if ( det == TRUE )
-	{ leaveDefinition(def);
-	  succeed;
+	if ( decompile(cref->clause, head) )
+	{ retractClauseProcedure(proc, cref->clause);
+	  PL_close_foreign_frame(cid);	/* necessary? */
+	  if ( det == TRUE )
+	  { leaveDefinition(def);
+	    succeed;
+	  }
+
+	  ForeignRedo(cref->next);
 	}
 
-	ForeignRedo(cref->next);
+	PL_discard_foreign_frame(cid);
       }
-      Undo(m);
+
+      continue;
     }
 
-    continue;
+    leaveDefinition(def);
+    fail;
   }
-
-  leaveDefinition(def);
-  fail;
 }
 
 
 word
-pl_retractall(Word head)
-{ Module m = (Module) NULL;
+pl_retractall(term_t head)
+{ term_t thehead = PL_new_term_ref();
   Procedure proc;
   Definition def;
   ClauseRef cref;
 
-  if ( !(head = stripModule(head, &m)) )
-    fail;
-
-  if ( isAtom(*head) )
-    proc = isCurrentProcedure(lookupFunctorDef((Atom)*head, 0), m);
-  else if ( isTerm(*head) )
-    proc = isCurrentProcedure(functorTerm(*head), m);
-  else
-    return warning("retractall/1: Illegal predicate specification");
-
-  if ( proc == (Procedure) NULL )
+  if ( !get_procedure(head, &proc, thehead, GP_FINDHERE) )
     succeed;
 
   def = proc->definition;
@@ -879,26 +852,27 @@ pl_retractall(Word head)
   def->references++;
   for(cref = def->definition.clauses; cref; cref = cref->next)
   { bool det;
+    Word argv;
 
-    if ( isTerm(*head) )
-    { cref = findClause(cref, argTermP(*head, 0), def, &det);
+    if ( PL_is_compound(head) )
+    { argv = valTermRef(head);
+      deRef(argv);
+      argv = argTermP(*argv, 0);
     } else
-    { while( cref && true(cref->clause, ERASED) )
-	cref = cref->next;
-      if ( cref )
-	det = !cref->next;
-    }
+      argv = NULL;
+
+    cref = findClause(cref, argv, def, &det);
 
     if ( cref )
-    { mark m;
+    { fid_t cid = PL_open_foreign_frame();
     
       if ( det )
 	leaveDefinition(def);
 
-      Mark(m);
-      if ( decompileHead(cref->clause, head) )
+      if ( decompileHead(cref->clause, thehead) )
 	retractClauseProcedure(proc, cref->clause);
-      Undo(m);
+
+      PL_discard_foreign_frame(cid);
 
       if ( det )
 	succeed;
@@ -916,20 +890,21 @@ pl_retractall(Word head)
 		*********************************/
 
 word
-pl_abolish(Word atom, Word arity)
+pl_abolish(term_t atom, term_t arity)
 { FunctorDef f;
   Procedure proc;
   Module m = (Module) NULL;
+  term_t tmp = PL_new_term_ref();
+  Atom name;
+  int a;
 
-  if ((atom = stripModule(atom, &m)) == (Word) NULL)
+  if ( !PL_strip_module(atom, &m, tmp) )
     fail;
-
-  if (!isAtom(*atom) || !isInteger(*arity))
+  if ( !PL_get_atom(tmp, &name) || !PL_get_integer(arity, &a) )
     return warning("abolish/2: instantiation fault");
 
-  if ((f = isCurrentFunctor((Atom)*atom, (int)valNum(*arity))) == (FunctorDef) NULL)
-    succeed;
-  if ((proc = isCurrentProcedure(f, m)) == (Procedure) NULL)
+  if ( !(f = isCurrentFunctor(name, a)) ||
+       !(proc = isCurrentProcedure(f, m)) )
     succeed;
 
   if ( true(proc->definition, LOCKED) && !SYSTEM_MODE && m == MODULE_system )
@@ -965,60 +940,56 @@ attribute_mask(Atom key)
 
 
 word
-pl_get_predicate_attribute(Word pred, Word what, Word value)
+pl_get_predicate_attribute(term_t pred,
+			   term_t what, term_t value)
 { Procedure proc;
-  FunctorDef fd;
   Definition def;
+  FunctorDef fd;
   Atom key;
   Module module = (Module) NULL;
   unsigned long att;
-
-  pred = stripModule(pred, &module);
-  if ( isAtom(*pred) )
-    fd = lookupFunctorDef((Atom) *pred, 0);
-  else if ( isTerm(*pred) )
-    fd = functorTerm(*pred);
-  else
+  term_t head = PL_new_term_ref();
+  
+  if ( !PL_strip_module(pred, &module, head) ||
+       !PL_get_functor(head, &fd) ||
+       !(proc = resolveProcedure(fd, module)) )
     fail;
 
-  proc = resolveProcedure(fd, module);
   def = proc->definition;
 
-  if (!isAtom(*what) )
+  if ( !PL_get_atom(what, &key) )
     return warning("$get_predicate_attribute/3: key should be an atom");
-  key = (Atom) *what;
 
-  if (key == ATOM_imported)
-  { if (module == def->module)
+  if ( key == ATOM_imported )
+  { if ( module == def->module )
       fail;
-    return unifyAtomic(value, def->module->name);
-  } else if (key == ATOM_indexed)
-  { if (def->indexPattern == 0x0)
+    return PL_unify_atom(value, def->module->name);
+  } else if ( key == ATOM_indexed )
+  { if ( def->indexPattern == 0x0 )
       fail;
-    return indexPatternToTerm(proc, value);
-  } else if (key == ATOM_exported)
-  { return unifyAtomic(value, consNum(isPublicModule(module, proc)));
-  } else if (key == ATOM_defined)
-  { return unifyAtomic(value, consNum(true(def, FOREIGN) ||
-				      def->definition.clauses ? 1 : 0));
-  } else if (key == ATOM_line_count)
+    return unify_index_pattern(proc, value);
+  } else if ( key == ATOM_exported )
+  { return PL_unify_integer(value, isPublicModule(module, proc));
+  } else if ( key == ATOM_defined )
+  { return PL_unify_integer(value, (true(def, FOREIGN) ||
+				    def->definition.clauses) ? 1 : 0);
+  } else if ( key == ATOM_line_count )
   { int line;
 
     if ( false(def, FOREIGN) &&
 	 def->definition.clauses &&
 	 (line=def->definition.clauses->clause->line_no) )
-      return unifyAtomic(value, consNum(line));
+      return PL_unify_integer(value, line);
     else
       fail;
-  } else if (key == ATOM_foreign)
-  { return unifyAtomic(value, consNum((def->flags & FOREIGN) ? 1 : 0));
-  } else if (key == ATOM_hashed)
-  { return unifyAtomic(value, consNum(def->hash_info ? def->hash_info->buckets
-				      		     : 0));
-  } else if (key == ATOM_references)
-  { return unifyAtomic(value, consNum(def->references));
+  } else if ( key == ATOM_foreign )
+  { return PL_unify_integer(value, (def->flags & FOREIGN) ? 1 : 0);
+  } else if ( key == ATOM_hashed )
+  { return PL_unify_integer(value, def->hash_info?def->hash_info->buckets:0);
+  } else if ( key == ATOM_references )
+  { return PL_unify_integer(value, def->references);
   } else if ( (att = attribute_mask(key)) )
-  { return unifyAtomic(value, consNum((def->flags & att) ? 1 : 0));
+  { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
   } else
   { return warning("$get_predicate_attribute/3: unknown key: %s",
 		   stringAtom(key));
@@ -1027,48 +998,34 @@ pl_get_predicate_attribute(Word pred, Word what, Word value)
   
 
 word
-pl_set_predicate_attribute(Word pred, Word what, Word value)
+pl_set_predicate_attribute(term_t pred,
+			   term_t what, term_t value)
 { Procedure proc;
-  FunctorDef fd;
   Definition def;
   Atom key;
-  Module module = (Module) NULL;
+  int val;
   unsigned long att;
   int nodef;				/* does not define pred */
 
-  if ( !isAtom(*what) ||
-       (!isInteger(*value) || (valNum(*value) & ~1)) )
+  if ( !PL_get_atom(what, &key) ||
+       !PL_get_integer(value, &val) || val & ~1 )
     return warning("$set_predicate_attribute/3: instantiation fault");
-  key = (Atom) *what;
   if ( !(att = attribute_mask(key)) )
     return warning("$set_predicate_attribute/4: unknown key: %s",
 		   stringAtom(key));
 
   nodef = (att & (TRACE_ANY|SPY_ME));
-
-  pred = stripModule(pred, &module);
-  if ( isAtom(*pred) )
-    fd = lookupFunctorDef((Atom) *pred, 0);
-  else if ( isTerm(*pred) )
-    fd = functorTerm(*pred);
-  else
-    fail;
-
-  proc = (nodef ? resolveProcedure(fd, module)
-	        : lookupProcedureToDefine(fd, module));
-  if ( !proc )
+  if ( !get_procedure(pred, &proc, 0, nodef ? GP_RESOLVE : GP_DEFINE) )
     fail;
   def = proc->definition;
 
-  if ( *value == consNum(0) )
+  if ( !val )
   { clear(def, att);
   } else
   { set(def, att);
     if ( (att == DYNAMIC || att == MULTIFILE) && SYSTEM_MODE )
     { set(def, SYSTEM|HIDE_CHILDS);
     }
-/*  if ( (att == DYNAMIC) )
-      clear(def, AUTOINDEX); */
   }
 
   succeed;
@@ -1076,10 +1033,11 @@ pl_set_predicate_attribute(Word pred, Word what, Word value)
 
 
 word
-pl_default_predicate(Word d1, Word d2)
+pl_default_predicate(term_t d1, term_t d2)
 { Procedure p1, p2;
 
-  if ( (p1 = findProcedure(d1)) && (p2 = findProcedure(d2)) )
+  if ( get_procedure(d1, &p1, 0, GP_FIND) &&
+       get_procedure(d2, &p2, 0, GP_FIND) )
   { if ( p1->definition == p2->definition || !isDefinedProcedure(p1) )
       succeed;
   }
@@ -1104,18 +1062,14 @@ reindexDefinition(Definition def)
     int cannotindex = 0;
     
     for(cref = def->definition.clauses; cref; cref = cref->next)
-    { mark m;
-      Word a1;
-    
-      Mark(m);      
-      a1 = newTerm();
-      decompileArg1(cref->clause, a1);
-      if ( isVar(*a1) || isIndirect(*a1) )
-	cannotindex++;
-      else
+    { word key;
+
+      if ( arg1Key(cref->clause, &key) )
 	canindex++;
-      Undo(m);
+      else
+	cannotindex++;
     }
+
     if ( canindex == 0 )
     { DEBUG(2, if ( def->definition.clauses )
 	       { Procedure proc = def->definition.clauses->clause->procedure;
@@ -1148,76 +1102,71 @@ reindexDefinition(Definition def)
 
 
 word
-pl_index(Word pred)
-{ Procedure proc = findCreateProcedure(pred);
-  Definition def = proc->definition;
-  Module module = (Module) NULL;
-  Word head = stripModule(pred, &module);
-  Word arg;
-  int arity, a;
-  unsigned long pattern = 0x0;
-  int card = 0;
+pl_index(term_t pred)
+{ Procedure proc;
+  term_t head = PL_new_term_ref();
 
-  if (head == (Word) NULL)
-    fail;
+  if ( get_procedure(pred, &proc, head, GP_CREATE) )
+  { Definition def = proc->definition;
+    int arity = def->functor->arity;
 
-  if (!isTerm(*head) )			/* :- index(foo) */
-    succeed;
-  arity = def->functor->arity;
-  for(a = 0; a < arity && a < 31; a++)
-  { arg = argTermP(*head, a);
-    deRef(arg);
-    if (!isInteger(*arg) || valNum(*arg) > 1 || valNum(*arg) < 0)
-      return warning("index/1: %s: illegal index specification", 
-					procedureName(proc));
-    if (valNum(*arg) == 1)
-    { pattern |= 1 << a;
-      if (++card == 4)		/* maximal 4 indexed arguments */
-	break;
+    if (true(def, FOREIGN))
+      return warning("index/1: cannot index foreign predicate %s", 
+		     procedureName(proc));
+
+    if ( arity > 0 )
+    { unsigned long pattern = 0x0;
+      int n, card = 0;
+      term_t a = PL_new_term_ref();
+
+      for(n=0; n<arity && n < 31; n++)
+      { int ia;
+
+	if ( !PL_get_arg(n+1, head, a) ||
+	     !PL_get_integer(a, &ia) || (ia & ~1) )
+	  return warning("index/1: %s: illegal index specification", 
+			 procedureName(proc));
+	if ( ia )
+	{ pattern |= 1 << n;
+	  if (++card == 4)		/* maximal 4 indexed arguments */
+	    break;
+	}
+      }
+      
+      clear(def, AUTOINDEX);
+      if ( (def->indexPattern & ~NEED_REINDEX) == pattern)
+	succeed;
+      def->indexPattern = (pattern | NEED_REINDEX);
     }
+    succeed;
   }
 
-  if (true(def, FOREIGN))
-    return warning("index/1: cannot index foreign predicate %s", 
-		   procedureName(proc));
-
-   
-  clear(def, AUTOINDEX);
-  if ( (def->indexPattern & ~NEED_REINDEX) == pattern)
-    succeed;
-  def->indexPattern = (pattern | NEED_REINDEX);
-
-  succeed;
+  fail;
 }
 
 
 word
-pl_get_clause_attribute(Word ref, Word att, Word value)
+pl_get_clause_attribute(term_t ref, term_t att, term_t value)
 { Clause clause;
-  Atom a = (Atom) *att;
-  word result;
+  Atom a;
 
-  if ( !isInteger(*ref) ||
-       !(clause = (Clause) numToPointer(*ref)) ||
+  if ( !PL_get_pointer(ref, (void **)&clause)  ||
        !inCore(clause) || !isClause(clause) )
     return warning("$clause_attribute/3: illegal reference");
+  if ( !PL_get_atom(att, &a) )
+    return warning("$clause_attribute/3: instantiation fault");
 
   if ( a == ATOM_line_count )
-  { if ( !clause->line_no )
-      fail;
-    else
-      result = (word) consNum(clause->line_no);
+  { if ( clause->line_no )
+      return PL_unify_integer(value, clause->line_no);
   } else if ( a == ATOM_file )
   { SourceFile sf = indexToSourceFile(clause->source_no);
     
     if ( sf )
-      result = (word) sf->name;
-    else
-      fail;
-  } else
-    fail;
+      return PL_unify_atom(value, sf->name);
+  }
 
-  return unifyAtomic(value, result);
+  fail;
 }
 
 
@@ -1261,20 +1210,7 @@ lookupSourceFile(Atom name)
 }
 
 
-SourceFile
-isCurrentSourceFile(Atom name)
-{ SourceFile file;
-
-  for(file=sourceFileTable; file; file=file->next)
-  { if (file->name == name)
-      return file;
-  }
-
-  return (SourceFile) NULL;
-}
-
-
-SourceFile
+static SourceFile
 indexToSourceFile(int index)
 { SourceFile file;
 
@@ -1318,23 +1254,23 @@ pl_make_system_source_files(void)
 }
 
 word
-pl_source_file(Word descr, Word file)
+pl_source_file(term_t descr, term_t file)
 { Procedure proc;
   ClauseRef cref;
   SourceFile sf;
 
-  if ( !(proc = findProcedure(descr)) ||
+  if ( !get_procedure(descr, &proc, 0, GP_FIND) ||
        !proc->definition ||
        true(proc->definition, FOREIGN) ||
        !(cref = proc->definition->definition.clauses) ||
        !(sf = indexToSourceFile(cref->clause->source_no)) )
     fail;
 
-  return unifyAtomic(file, sf->name);
+  return PL_unify_atom(file, sf->name);
 }
 
 word
-pl_time_source_file(Word file, Word time, word h)
+pl_time_source_file(term_t file, term_t time, word h)
 { SourceFile fr;
 
   switch( ForeignControl(h) )
@@ -1352,7 +1288,7 @@ pl_time_source_file(Word file, Word time, word h)
   for(;fr != (SourceFile) NULL; fr = fr->next)
   { if ( fr->system == TRUE )
       continue;
-    if ( unifyAtomic(file, fr->name) &&
+    if ( PL_unify_atom(file, fr->name) &&
          unifyTime(time, fr->time) )
     { if (fr->next != (SourceFile) NULL)
 	ForeignRedo(fr->next);
@@ -1387,15 +1323,16 @@ startConsult(SourceFile f)
 
 
 word
-pl_start_consult(Word file)
-{ SourceFile f;
+pl_start_consult(term_t file)
+{ Atom name;
 
-  if (!isAtom(*file) )
-    fail;
-  f = lookupSourceFile((Atom)*file);
-  f->time = LastModifiedFile(stringAtom(*file));
+  if ( PL_get_atom(file, &name) )
+  { SourceFile f = lookupSourceFile(name);
 
-  startConsult(f);
+    f->time = LastModifiedFile(stringAtom(name));
+    startConsult(f);
+    succeed;
+  }
 
-  succeed;
+  fail;
 }

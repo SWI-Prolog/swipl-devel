@@ -26,8 +26,8 @@ static struct
   Record goal;				/* Goal to find */
 } find;
 
-#define PrologRef(fr)	 consNum((Word)fr - (Word)lBase)
-#define FrameRef(w)	 ((LocalFrame)((Word)lBase + valNum(w)))
+#define PrologRef(fr)	 ((Word)fr - (Word)lBase)
+#define FrameRef(w)	 ((LocalFrame)((Word)lBase + w))
 
 #ifdef O_DEBUGGER
 
@@ -50,7 +50,7 @@ forwards void		alternatives(LocalFrame);
 forwards void		listProcedure(Definition);
 forwards int		traceInterception(LocalFrame, int);
 forwards bool		canUnifyTermWithGoal(Word, LocalFrame);
-forwards int		setupFind(char *);
+forwards void		writeFrameGoal(LocalFrame frame, int how);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 redoFrame() returns the latest skipped frame or NULL if  no  such  frame
@@ -65,6 +65,13 @@ redoFrame(register LocalFrame fr)
 
   return fr;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+canUnifyTermWithGoal() is used to check whether the given grame satisfies
+the /search specification.  This function cannot use the `neat' interface
+as the record is not in the proper format.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
 canUnifyTermWithGoal(Word t, LocalFrame fr)
@@ -119,6 +126,10 @@ tracePort(LocalFrame frame, int port)
        debugstatus.suspendTrace )			   /* called back */
     return ACTION_CONTINUE;
 
+  if ( port == FAIL_PORT )
+    Undo(frame->mark);
+
+					/* trace/[1,2] */
   if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
   { char *fmt = NULL;
 
@@ -212,8 +223,7 @@ again:
   switch(port)
   { case CALL_PORT:	Putf(" Call:  ");	break;
     case REDO_PORT:	Putf(" Redo:  ");	break;
-    case FAIL_PORT:	Putf(" Fail:  ");
-			DoUndo(frame->mark);	break;
+    case FAIL_PORT:	Putf(" Fail:  ");	break;
     case EXIT_PORT:	Putf(" Exit:  ");	break;
     case UNIFY_PORT:	Putf(" Unify: ");	break;
   }
@@ -249,11 +259,10 @@ again:
   return action;
 }
 
+
 static int
 setupFind(char *buf)
-{ Word w;
-  mark m;
-  long rval;
+{ long rval;
   char *s;
   int port = 0;
 
@@ -288,27 +297,30 @@ setupFind(char *buf)
     strcpy(buf, "_");
   }
 
-  Mark(m);
-  seeString(s);
-  w = newTerm();
-  rval = pl_read(w);
-  seenString();
+  { fid_t cid = PL_open_foreign_frame();
+    term_t t = PL_new_term_ref();
 
-  if ( rval == FALSE )
-  { Undo(m);
-    fail;
+    seeString(s);
+    rval = pl_read(t);
+    seenString();
+
+    if ( rval == FALSE )
+    { PL_discard_foreign_frame(cid);
+      fail;
+    }
+
+    if ( find.goal )
+      freeRecord(find.goal);
+    find.port      = port;
+    find.goal      = copyTermToHeap(t);
+    find.searching = TRUE;
+
+    DEBUG(2, Sdprintf("setup ok, port = 0x%x, goal = ", port);
+	  pl_write(t);
+	  Sdprintf("\n") );
+
+    PL_discard_foreign_frame(cid);
   }
-
-  if ( find.goal != NULL )
-    freeRecord(find.goal);
-  find.port      = port;
-  find.goal      = copyTermToHeap(w);
-  find.searching = TRUE;
-  Undo(m);
-
-  DEBUG(2, Sdprintf("setup ok, port = 0x%x, goal = ", port);
-	   pl_write(&find.goal->term);
-	   Sdprintf("\n") );
 
   succeed;
 }
@@ -344,7 +356,7 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 		return ACTION_AGAIN;
     case '/': 	FeedBack("/");
     		pl_flush();
-    		if ( setupFind(&s[1]) == TRUE )
+    		if ( setupFind(&s[1]) )
 		{ clear(frame, FR_SKIPPED);
 		  return ACTION_CONTINUE;
 		}
@@ -475,18 +487,19 @@ the global to the local stack as the local stack frame  might  cease  to
 exists  before  the  global frame.  In this case this does not matter as
 the local stack frame definitely survives the tracer (measuring does not
 always mean influencing in computer science).
+
+For the above reason, the code  below uses low-level manipulation rather
+than normal unification, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+static void
 writeFrameGoal(LocalFrame frame, int how)
 { Definition def = frame->predicate;
   Word argv = argFrameP(frame, 0);
-  Word argp;
   int argc = def->functor->arity;
-  int n;
-  word goal;
-  mark m;
   int debugSave = debugstatus.debugging;
+  fid_t cid = PL_open_foreign_frame();
+  term_t goal = PL_new_term_ref();
 
   if ( debugstatus.showContext )
     Putf("[%s] ", stringAtom(contextModule(frame)->name));
@@ -494,17 +507,19 @@ writeFrameGoal(LocalFrame frame, int how)
        (false(def->module, SYSTEM) || SYSTEM_MODE))
     Putf("%s:", stringAtom(def->module->name));
 
-  Mark(m);
-  if (argc == 0)
-    goal = (word) def->functor->name;
-  else
-  { goal = globalFunctor(def->functor);
-    argp = argTermP(goal, 0);
-    for(n=0; n<argc; n++, argp++, argv++)
-    { register Word a;
-  
-      deRef2(argv, a);
-      *argp = (isVar(*a) ? makeRef(a) : *a);
+  PL_unify_functor(goal, def->functor);
+  if ( argc > 0 )
+  { Word argp = valTermRef(goal);
+    int i;
+
+    deRef(argp);
+    argp = argTermP(*argp, 0);
+
+    for(i=0; i<argc; i++)
+    { Word a;
+
+      deRef2(argv+i, a);
+      *argp++ = (isVar(*a) ? makeRef(a) : *a);
     }
   }
   
@@ -512,22 +527,23 @@ writeFrameGoal(LocalFrame frame, int how)
   { case W_PRINT:
 	debugstatus.debugging = FALSE;
 	if ( status.boot )
-	  pl_write(&goal);
+	  pl_write(goal);
 	else
-	  pl_print(&goal);
+	  pl_print(goal);
 	debugstatus.debugging = debugSave;
 	break;
     case W_WRITE:
-	pl_write(&goal);
+	pl_write(goal);
 	break;
     case W_WRITEQ:
-	pl_writeq(&goal);
+	pl_writeq(goal);
 	break;
     case W_DISPLAY:
-	pl_display(&goal);
+	pl_display(goal);
 	break;
   }
-  Undo(m);
+
+  PL_discard_foreign_frame(cid);
 }
 
 /*  Write those frames on the stack that have alternatives left.
@@ -546,31 +562,28 @@ alternatives(LocalFrame frame)
   }
 }    
 
+
 static void
 listProcedure(Definition def)
-{ extern int Output;
+{ fid_t cid = PL_open_foreign_frame();
+  qid_t qid;
+  extern int Output;
   int OldOut = Output;
-  word goal, mod, spec;
   int debugSave = debugstatus.debugging;
-  mark m;
+  term_t argv = PL_new_term_refs(1);
+  Procedure proc = lookupProcedure(FUNCTOR_listing1, MODULE_system);
 
-  Mark(m);
-  goal = globalFunctor(FUNCTOR_listing1);
-  mod  = globalFunctor(FUNCTOR_module2);
-  spec = globalFunctor(FUNCTOR_divide2);
-  argTerm(goal, 0) = mod;
-  argTerm(mod, 0)  = (word) def->module->name;
-  argTerm(mod, 1)  = spec;
-  argTerm(spec, 0) = (word) def->functor->name;
-  argTerm(spec, 1) = consNum(def->functor->arity);
-
+  unify_definition(argv, def, 0);	/* module:name(args) */
   Output = 1;
   debugstatus.debugging = FALSE;
-  callGoal(MODULE_system, goal, FALSE);		/* listing(mod:name/arity) */
+  qid = PL_open_query(MODULE_user, FALSE, proc, argv);
+  PL_next_solution(qid);
+  PL_close_query(qid);
   debugstatus.debugging = debugSave;
   Output = OldOut;
-  Undo(m);
+  PL_discard_foreign_frame(cid);
 }
+
 
 void
 backTrace(LocalFrame frame, int depth)
@@ -629,43 +642,63 @@ If  this procedure succeeds the tracer assumes the trace action has been
 done and returns, otherwise the  default  C-defined  trace  actions  are
 performed.
 
-The functions traceInterception() and pl_prolog_trace_continuation() are
-the entry points from the C-defined tracer. $prolog_trace_interception/2
-is responsible for the communication with the users' predicate.
+This predicate is supposed to return one of the following atoms:
+
+	continue			simply continue (creep)
+	fail				fail this goal
+	retry				retry this goal
+	ignore				pretend this call succeeded
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 traceInterception(LocalFrame frame, int port)
-{ word goal;
-  Word arg;
-  mark m;
-  bool rval;
+{ int rval = -1;			/* Default C-action */
 
-  if (status.boot == TRUE || status.debugLevel > 0)
-    return -1;
+  if ( !status.boot && status.debugLevel == 0 )
+  { fid_t cid = PL_open_foreign_frame();
+    qid_t qid;
+    term_t argv = PL_new_term_refs(3);
+    Atom portname;
+    static Procedure proc;
 
-  Mark(m);
-  goal = globalFunctor(FUNCTOR_traceinterc2);
-  arg = argTermP(goal, 0);
-  switch(port)
-  { case CALL_PORT:	*arg = (word) ATOM_call;	break;
-    case REDO_PORT:	*arg = (word) ATOM_redo;	break;
-    case EXIT_PORT:	*arg = (word) ATOM_exit;	break;
-    case FAIL_PORT:	*arg = (word) ATOM_fail;	break;
-    case UNIFY_PORT:	*arg = (word) ATOM_unify;	break;
+    if ( !proc )
+      proc = lookupProcedure(FUNCTOR_traceinterc3, MODULE_user);
+
+    switch(port)
+    { case CALL_PORT:	portname = ATOM_call;	break;
+      case REDO_PORT:	portname = ATOM_redo;	break;
+      case EXIT_PORT:	portname = ATOM_exit;	break;
+      case FAIL_PORT:	portname = ATOM_fail;	break;
+      default:
+      case UNIFY_PORT:	portname = ATOM_unify;	break;
+    }
+
+    PL_put_atom(argv, portname);
+    PL_put_integer(argv+1, PrologRef(frame));
+    PL_put_variable(argv+2);
+
+    debugstatus.suspendTrace++;
+    qid = PL_open_query(MODULE_user, FALSE, proc, argv);
+    if ( PL_next_solution(qid) )
+    { Atom a;
+
+      if ( PL_get_atom(argv+2, &a) )
+      { if ( a == ATOM_continue )
+	  rval = ACTION_CONTINUE;
+	else if ( a == ATOM_fail )
+	  rval = ACTION_FAIL;
+	else if ( a == ATOM_retry )
+	  rval = ACTION_RETRY;
+	else if ( a == ATOM_ignore )
+	  rval = ACTION_IGNORE;
+      }
+    }
+    PL_close_query(qid);
+    PL_discard_foreign_frame(cid);
+    debugstatus.suspendTrace--;
   }
-  *++arg = PrologRef(frame);
 
-  debugstatus.suspendTrace++;
-  rval = callGoal(MODULE_system, goal, FALSE);
-  debugstatus.suspendTrace--;
-
-  Undo(m);
-
-  if (rval == TRUE)
-    return trace_continuation;
-  else
-    return -1;
+  return rval;
 }
 
 #endif /*O_DEBUGGER*/
@@ -685,13 +718,8 @@ hasAlternativesFrame(register LocalFrame frame)
 }
 
 word
-pl_trace_continuation(Word what)
-{ if (isInteger(*what) )
-  { trace_continuation = (int)valNum(*what);
-    succeed;
-  }
-
-  fail;
+pl_trace_continuation(term_t what)
+{ return PL_get_integer(what, &trace_continuation);
 }
 
 #ifdef O_INTERRUPT
@@ -716,7 +744,7 @@ helpInterrupt(void)
 
 }
 
-void
+static void
 interruptHandler(int sig)
 { extern int Output;
   int OldOut = Output;
@@ -729,6 +757,10 @@ interruptHandler(int sig)
   }  
 
   Output = 1;
+  gc_status.blocked++;
+#if O_SHIFT_STACKS
+  shift_status.blocked++;
+#endif
   lTop = (LocalFrame)addPointer(lTop, sizeof(struct localFrame) +
 				      MAXARITY * sizeof(word));
 
@@ -778,6 +810,10 @@ again:
     default:	Putf("Unknown option (h for help)\n");
 		goto again;
   }
+#if O_SHIFT_STACKS
+  shift_status.blocked--;
+#endif
+  gc_status.blocked--;
   Output = OldOut;
   lTop = oldltop;
 }
@@ -809,7 +845,7 @@ initTracer(void)
 		*********************************/
 
 word
-pl_trace(void)
+pl_trace()
 { debugstatus.debugging = debugstatus.tracing = TRUE;
   debugstatus.skiplevel = VERY_DEEP;
   find.searching = FALSE;
@@ -818,19 +854,19 @@ pl_trace(void)
 }
 
 word
-pl_notrace(void)
+pl_notrace()
 { debugstatus.tracing = FALSE;
 
   succeed;
 }
 
 word
-pl_tracing(void)
+pl_tracing()
 { return debugstatus.tracing;
 }
 
 word
-pl_debug(void)
+pl_debug()
 { debugstatus.debugging = TRUE;
   debugstatus.skiplevel = VERY_DEEP;
 
@@ -838,7 +874,7 @@ pl_debug(void)
 }
 
 word
-pl_nodebug(void)
+pl_nodebug()
 { debugstatus.debugging = FALSE;
 
   succeed;
@@ -853,154 +889,157 @@ pl_debugging()
 }
 
 word
-pl_skip_level(Word old, Word new)
-{ TRY(unifyAtomic(old, debugstatus.skiplevel == VERY_DEEP ?
-			(word) ATOM_very_deep :
-			consNum(debugstatus.skiplevel)) );
+pl_skip_level(term_t old, term_t new)
+{ Atom a;
 
-  if (isInteger(*new) )
-  { debugstatus.skiplevel = valNum(*new);
-    succeed;
+  if ( debugstatus.skiplevel == VERY_DEEP )
+  { TRY(PL_unify_atom(old, ATOM_very_deep));
+  } else
+  { TRY(PL_unify_integer(old, debugstatus.skiplevel));
   }
-  if (isAtom(*new) && *new == (word) ATOM_very_deep)
+      
+  if ( PL_get_long(new, &debugstatus.skiplevel) )
+    succeed;
+  if ( PL_get_atom(new, &a) && a == ATOM_very_deep)
   { debugstatus.skiplevel = VERY_DEEP;
     succeed;
   }
+
   fail;
 }
 
 word
-pl_spy(Word p)
+pl_spy(term_t p)
 { Procedure proc;
 
-  if ((proc = findProcedure(p)) == (Procedure) NULL)
-    fail;
-  set(proc->definition, SPY_ME);
+  if ( get_procedure(p, &proc, 0, GP_FIND) )
+  { set(proc->definition, SPY_ME);
+    return pl_debug();
+  }
 
-  return pl_debug();
+  fail;
 }
 
 word
-pl_nospy(Word p)
+pl_nospy(term_t p)
 { Procedure proc;
 
-  if ((proc = findProcedure(p)) == (Procedure) NULL)
-    fail;
-  clear(proc->definition, SPY_ME);
+  if ( get_procedure(p, &proc, 0, GP_FIND) )
+  { clear(proc->definition, SPY_ME);
+    succeed;
+  }
 
-  succeed;
+  fail;
 }
 
 word
-pl_leash(Word old, Word new)
-{ TRY(unifyAtomic(old, consNum(debugstatus.leashing) ));
-
-  if (!isInteger(*new) )
-    fail;
-  debugstatus.leashing = valNum(*new) & 0x1f;
-
-  succeed;
+pl_leash(term_t old, term_t new)
+{ return setInteger(&debugstatus.leashing, "$leash", old, new);
 }
 
 word
-pl_visible(Word old, Word new)
-{ TRY(unifyAtomic(old, consNum(debugstatus.visible) ));
-
-  if (!isInteger(*new) )
-    fail;
-  debugstatus.visible = valNum(*new) & 0x1f;
-
-  succeed;
+pl_visible(term_t old, term_t new)
+{ return setInteger(&debugstatus.visible, "$visible", old, new);
 }
 
 
 word
-pl_debuglevel(Word old, Word new)
-{ TRY(unifyAtomic(old, consNum(status.debugLevel)));
-  if ( isInteger(*new) )
-    status.debugLevel = valNum(*new);
-
-  succeed;
+pl_debuglevel(term_t old, term_t new)
+{ return setInteger(&status.debugLevel, "$visible", old, new);
 }
 
 
 word
-pl_unknown(Word old, Word new)
+pl_unknown(term_t old, term_t new)
 { Module m = contextModule(environment_frame);
+  int val = true(m, UNKNOWN) ? TRUE : FALSE;
 
-  TRY(unifyAtomic(old, true(m, UNKNOWN) ? ATOM_trace : ATOM_fail) );
-  if (*new == (word) ATOM_trace)
-    set(m, UNKNOWN);
-  else if (*new == (word) ATOM_fail)
-    clear(m, UNKNOWN);
-  else
-    return warning("unknown/2: argument should be 'fail' or 'trace'");
+  if ( setBoolean(&val, "unknown", old, new) )
+  { if ( val )
+      set(m, UNKNOWN);
+    else
+      clear(m, UNKNOWN);
+  }
 
   succeed;
 }
 
-word
-pl_prolog_current_frame(Word fr)
-{ return unifyAtomic(fr, PrologRef(parentFrame(environment_frame)));
-}
 
 word
-pl_prolog_frame_attribute(Word frame, Word what, Word value)
+pl_prolog_current_frame(term_t frame)
+{ LocalFrame fr = environment_frame;
+
+  if ( fr->predicate->definition.function == pl_prolog_current_frame )
+    fr = parentFrame(fr);		/* thats me! */
+
+  return PL_unify_integer(frame, PrologRef(fr));
+}
+
+
+word
+pl_prolog_frame_attribute(term_t frame, term_t what,
+			  term_t value)
 { LocalFrame fr;
   Atom key;
-  word result;
+  term_t result = PL_new_term_ref();
+  long fri;
 
-  if (!isInteger(*frame) || !isAtom(*what) || !isVar(*value))
+  if ( !PL_get_long(frame, &fri) ||
+       !PL_get_atom(what, &key) )
     return warning("prolog_frame_attribute/3: instantiation fault");
 
-  if ((fr = FrameRef(*frame)) < lBase || fr > lTop)
+  if ((fr = FrameRef(fri)) < lBase || fr > lTop)
     return warning("prolog_frame_attribute/3: illegal frame reference");
-  key = (Atom) *what;
-  
+
   if (        key == ATOM_level)
-  { result = consNum(levelFrame(fr));
+  { PL_put_integer(result, levelFrame(fr));
   } else if (key == ATOM_has_alternatives)
-  { result = consNum(hasAlternativesFrame(fr) );
+  { PL_put_integer(result, hasAlternativesFrame(fr));
   } else if (key == ATOM_alternative)
   { if (fr->backtrackFrame == (LocalFrame) NULL)
       fail;
-    result = PrologRef(fr->backtrackFrame);
+    PL_put_integer(result, PrologRef(fr->backtrackFrame));
   } else if (key == ATOM_parent)
   { LocalFrame parent;
 
-    if ((parent = parentFrame(fr)) != (LocalFrame) NULL)
-      result = PrologRef(parent);
+    if ( (parent = parentFrame(fr)) )
+      PL_put_integer(result, PrologRef(parent));
     else
       fail;
   } else if (key == ATOM_top)
-  { result = consNum(fr->parent == (LocalFrame) NULL ? 1 : 0);
+  { PL_put_integer(result, fr->parent ? 1 : 0);
   } else if (key == ATOM_context_module)
-  { result = (word) contextModule(fr)->name;
+  { PL_put_atom(result, contextModule(fr)->name);
   } else if (key == ATOM_clause)
   { if ( false(fr->predicate, FOREIGN) && fr->clause )
-      result = pointerToNum(fr->clause);
+      PL_put_pointer(result, fr->clause);
     else
       fail;
   } else if (key == ATOM_goal)
   { int arity, n;
-    Word arg;
+    term_t arg = PL_new_term_ref();
     
     if (fr->predicate->module != MODULE_user)
-    { result = globalFunctor(FUNCTOR_module2);
-      argTerm(result, 0) = (word) fr->predicate->module->name;
-      arg = argTermP(result, 1);
+    { PL_put_functor(result, FUNCTOR_module2);
+      PL_get_arg(1, result, arg);
+      PL_unify_atom(arg, fr->predicate->module->name);
+      PL_get_arg(2, result, arg);
     } else
-      arg = &result;
+      PL_put_term(arg, result);
 
     if ((arity = fr->predicate->functor->arity) == 0)
-    { *arg = (word) fr->predicate->functor->name;
+    { PL_unify_atom(arg, fr->predicate->functor->name);
     } else
-    { *arg = globalFunctor(fr->predicate->functor);
-      for(arg=argTermP(*arg, 0), n=0; n < arity; arg++, n++)
-	pl_unify(arg, argFrameP(fr, n) );
+    { term_t a = PL_new_term_ref();
+
+      PL_unify_functor(arg, fr->predicate->functor);
+      for(n=0; n < arity; n++)
+      { PL_get_arg(n+1, arg, a);
+	unify_ptrs(valTermRef(arg), argFrameP(fr, n));
+      }
     }
   } else
     return warning("prolog_frame_attribute/3: unknown key");
 
-  return pl_unify(value, &result);
+  return PL_unify(value, result);
 }

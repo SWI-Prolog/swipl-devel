@@ -9,90 +9,28 @@
 
 #include "pl-incl.h"
 
-static bool
-sizeOption(int *i, word v)
-{ if ( !isInteger(v) )
-    return warning("save_program/2: illegal option argument");
-  *i = valNum(v);
+static opt_spec save_options[] = 
+{ { ATOM_local,      OPT_INT },
+  { ATOM_global,     OPT_INT },
+  { ATOM_trail,	     OPT_INT },
+  { ATOM_argument,   OPT_INT },
+  { ATOM_goal,       OPT_STRING },
+  { ATOM_toplevel,   OPT_STRING },
+  { ATOM_init_file,  OPT_STRING },
+  { ATOM_tty,	     OPT_BOOL },
+  { NULL,	     0 }
+};
 
-  succeed;
-}
-
-static bool
-stringOption(char **s, word v)
-{ if ( !isAtom(v) )
-    return warning("save_program/2: illegal option argument");
-  *s = stringAtom(v);
-
-  succeed;
-}
-
-static bool
-boolOption(bool *b, word v)
-{ if ( v == (word) ATOM_on )
-    *b = TRUE;
-  else if ( v == (word) ATOM_off )
-    *b = FALSE;
-  else
-    return warning("save_program/2: illegal option argument");
-
-  succeed;
-}
 
 word
-parseSaveProgramOptions(Word args,
+parseSaveProgramOptions(term_t args,
 			int *local, int *global, int *trail, int *argument,
 			char **goal, char **toplevel, char **init_file,
 			bool *tty)
-{ Word a;
-  Word Option, Value;
-  Atom option;
-  word value;
-
-  while( isList(*args) )
-  { a = HeadList(args);
-    deRef(a);
-    if ( !isTerm(*a) || functorTerm(*a) != FUNCTOR_equals2 )
-      return warning("save_program/2: Illegal option list");
-
-    Option = argTermP(*a, 0); deRef(Option);
-    Value  = argTermP(*a, 1); deRef(Value);
-    if ( !isAtom(*Option) )
-      return warning("save_program/2: Illegal option list");
-
-    option = (Atom) *Option;
-    value = *Value;
-    if        ( option == ATOM_local )
-    { TRY( sizeOption(local, value) );
-    } else if ( option == ATOM_global )
-    { TRY( sizeOption(global, value) );
-    } else if ( option == ATOM_trail )
-    { TRY( sizeOption(trail, value) );
-    } else if ( option == ATOM_argument )
-    { TRY( sizeOption(argument, value) );
-    } else if ( option == ATOM_goal )
-    { TRY( stringOption(goal, value) );
-    } else if ( option == ATOM_toplevel )
-    { TRY( stringOption(toplevel, value) );
-    } else if ( option == ATOM_init_file )
-    { TRY( stringOption(init_file, value) );
-    } else if ( option == ATOM_tty )
-    { if ( tty )
-      { TRY( boolOption(tty, value) );
-	*tty = !(*tty);
-      }
-    } else
-    { return warning("save_program/2: Unknown option: %s", stringAtom(option));
-    }
-
-    args = TailList(args);
-    deRef(args);
-  }
-
-  if ( !isNil(*args) )
-    return warning("save_program/2: Illegal option list");
-
-  succeed;
+{ return scan_options(args, 0, save_options,
+		      local, global, trail, argument,
+		      goal, toplevel, init_file,
+		      tty);
 }
 
 
@@ -116,15 +54,14 @@ int	unexec(char *, char *, char *, unsigned, unsigned, unsigned);
 #endif
 
 word
-saveProgram(Word new)
+saveProgram(term_t new)
 { char *new_name, *sym_name, *dest;
   char tmp[MAXPATHLEN];
   char old_name[MAXPATHLEN];
+  char buf[MAXPATHLEN];
   
-  if ( (dest = primitiveToString(*new, FALSE)) == (char *)NULL )
+  if ( !(dest = get_filename(new, buf, sizeof(buf))) )
     return warning("save_program/1: instantiation fault");
-  if ( (dest = ExpandOneFile(dest)) == (char *)NULL )
-    fail;
 
   if ( cannot_save_program != NULL )
     return warning("Cannot save the program: %s", cannot_save_program);
@@ -168,7 +105,7 @@ saveProgram(Word new)
 }
 
 word
-pl_save_program(Word new, Word options)
+pl_save_program(term_t new, term_t options)
 { TRY(parseSaveProgramOptions(options,
 			      &systemDefaults.local,
 			      &systemDefaults.global,
@@ -185,16 +122,15 @@ pl_save_program(Word new, Word options)
 #if O_SAVE
 
 word
-pl_save(Word file, Word restore)
+pl_save(term_t file, term_t restore)
 { char *state, *interpreter;
+  char buf[MAXPATHLEN];
 #if O_DYNAMIC_STACKS
   struct save_section sections[5];
 #endif
 
-  if ( (state = primitiveToString(*file, FALSE)) == (char *)NULL )
+  if ( !(state = get_filename(file, buf, sizeof(buf))) )
     return warning("save/2: instantiation fault");
-  if ( (state = ExpandOneFile(state)) == (char *)NULL )
-    fail;
 
   TRY( getSymbols() );
   interpreter = stringAtom(loaderstatus.orgsymbolfile);
@@ -219,12 +155,12 @@ pl_save(Word file, Word restore)
   switch( save(state, interpreter, RET_RETURN, 0, NULL) )
 #endif
   { case SAVE_SAVE:
-      return unifyAtomic(restore, consNum(0));
+      return PL_unify_integer(restore, 0);
     case SAVE_RESTORE:
 #ifdef HAVE_SIGNAL
       initSignals();
 #endif
-      return unifyAtomic(restore, consNum(1));
+      return PL_unify_integer(restore, 1);
     case SAVE_FAILURE:
     default:
       fail;
@@ -256,14 +192,13 @@ allocateSection(SaveSection s)
 #endif
 
 word
-pl_restore(Word file)
+pl_restore(term_t file)
 { char *state;
+  char buf[MAXPATHLEN];
 
-  if ( (state = primitiveToString(*file, FALSE)) == (char *)NULL )
+  if ( !(state = get_filename(file, buf, sizeof(buf))) )
     return warning("restore/1: instantiation fault");
-  if ( (state = ExpandOneFile(state)) == (char *)NULL )
-    fail;
-  if ( ExistsFile(state) == FALSE )
+  if ( !ExistsFile(state) )
     return warning("restore/1: no such file: %s", state);
 
 #if O_DYNAMIC_STACKS
@@ -366,28 +301,24 @@ struct exec *hdr;
 #else /* O_STORE_PROGRAM || O_SAVE */
 
 word
-pl_save(state, rval)
-Word state, rval;
+pl_save(term_t state, term_t rval)
 { return warning("save/2: not ported to this machine.  See qsave_program/[1,2]");
 }
 
 
 word
-pl_restore(state)
-Word state;
+pl_restore(term_t state)
 { return warning("restore/1: not ported to this machine");
 }
 
 
 word
-saveProgram(new)
-Word new;
+saveProgram(term_t new)
 { return warning("store_program/1: not ported to this machine");
 }
 
 word
-pl_save_program(old, new)
-Word old, new;
+pl_save_program(term_t old, term_t new)
 { return warning("store_program/2: not ported to this machine.  See qsave_program/[1,2]");
 }
 

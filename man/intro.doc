@@ -292,6 +292,44 @@ exceptions.
 Added facilities to allow for embedding SWI-Prolog in C applications.
 \end{itemize}
 
+.S Version 2.5 Release Notes
+
+Version 2.5 is an intermediate release on the path from 2.1 to 3.0.  All
+changes are to the foreign-language interface, both to user- and system
+predicates implemented in the C-language.  The aim is twofold.  First of
+all to make garbage-collection and stack-expansion (stack-shifts)
+possible while foreign code is active without the C-programmer having
+to worry about locking and unlocking C-variables pointing to Prolog
+terms.  The new approach is closely compatible to the Quintus and
+SICStus Prolog foreign interface using the {\tt +term} argument
+specification (see their respective manuals).  This allows for writing
+foreign interfaces that are easily portable over these three Prolog
+platforms.
+
+According to the current plan, ISO compliant exception handling and
+hooks for source-code debugging will be added before the system will
+be called 3.0.
+
+Apart from various bugfixes listed in the Changelog file, these
+are the main changes since 2.1.0:
+
+\begin{itemize}
+    \tick{ISO compatibility}
+Many ISO compatibility features have been added: open/4, arithmetic
+functions, syntax, etc.
+    \tick{WIN32}
+Many fixes for the Win32 (NT, '95 and win32s) platforms.  Notably
+many problems related to pathnames and a problem in the garbage
+collector.
+    \tick{Performance}
+Many changes to the clause indexing system: added hash-tables,
+lazy computation of the index information, etc.
+    \tick{Portable saved-states}
+The predicate qsave_program/[1,2] allows for the creating of machine
+independent saved-states that load very quickly.
+\end{itemize}
+
+
 .S Acknowledgements
 
 Some small parts of the Prolog code of SWI-Prolog are modified

@@ -15,7 +15,6 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 /*#define O_DEBUG 1*/
 
 #include "pl-incl.h"
-#include "pl-itf.h"
 #include "pl-save.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -26,6 +25,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 
 forwards void	usage(void);
 static void	version();
+static void	arch();
 
 #define	optionString(s) { if (argc > 1) \
 			  { s = argv[1]; argc--; argv++; \
@@ -260,7 +260,6 @@ startProlog(int argc, char **argv, char **env)
     systemDefaults.global      = DEFGLOBAL;
     systemDefaults.trail       = DEFTRAIL;
     systemDefaults.argument    = DEFARGUMENT;
-    systemDefaults.lock	       = DEFLOCK;
     systemDefaults.goal	       = "'$welcome'";
     systemDefaults.toplevel    = "prolog";
     systemDefaults.notty       = FALSE;
@@ -336,6 +335,8 @@ startProlog(int argc, char **argv, char **env)
 
   if ( argc >= 1 && streq(argv[0], "-help") )
     usage();
+  if ( argc >= 1 && streq(argv[0], "-arch") )
+    arch();
   if ( argc >= 1 && streq(argv[0], "-v") )
     version();
 
@@ -352,7 +353,6 @@ startProlog(int argc, char **argv, char **env)
     DEBUG(2, Sdprintf("options.globalSize   = %ld\n", options.globalSize));
     DEBUG(2, Sdprintf("options.trailSize    = %ld\n", options.trailSize));
     DEBUG(2, Sdprintf("options.argumentSize = %ld\n", options.argumentSize));
-    DEBUG(2, Sdprintf("options.lockSize	  = %ld\n", options.lockSize));
     DEBUG(2, Sdprintf("options.goal         = %s\n",  options.goal));
     DEBUG(2, Sdprintf("options.topLevel     = %s\n",  options.topLevel));
     DEBUG(2, Sdprintf("options.initFile     = %s\n",  options.initFile));
@@ -362,7 +362,6 @@ startProlog(int argc, char **argv, char **env)
     options.globalSize	  = systemDefaults.global   K;
     options.trailSize	  = systemDefaults.trail    K;
     options.argumentSize  = systemDefaults.argument K;
-    options.lockSize	  = systemDefaults.lock	    K;
     options.goal	  = systemDefaults.goal;
     options.topLevel	  = systemDefaults.toplevel;
     options.initFile      = systemDefaults.startup;
@@ -406,14 +405,12 @@ startProlog(int argc, char **argv, char **env)
 			options.globalSize   = 8 K;
 			options.trailSize    = 8 K;
 			options.argumentSize = 1 K;
-			options.lockSize     = 1 K;
 #endif
 			goto next;
 	case 'L':	options.localSize    = atoi(++s) K; goto next;
 	case 'G':	options.globalSize   = atoi(++s) K; goto next;
 	case 'T':	options.trailSize    = atoi(++s) K; goto next;
 	case 'A':	options.argumentSize = atoi(++s) K; goto next;
-	case 'P':	options.lockSize     = atoi(++s) K; goto next;
       }
       s++;
     }
@@ -464,10 +461,10 @@ startProlog(int argc, char **argv, char **env)
   DEBUG(1, Sdprintf("Starting Prolog Engine\n"));
 
   if ( compile )
-  { Halt(prolog(PL_new_atom("$compile")) ? 0 : 1);
+  { Halt(prolog(lookupAtom("$compile")) ? 0 : 1);
   }
     
-  return prolog(PL_new_atom("$initialise"));
+  return prolog(lookupAtom("$initialise"));
 }
 
 
@@ -507,10 +504,18 @@ version()
 }
 
 
+static void
+arch()
+{ Sprintf("%s\n", ARCH);
+
+  Halt(0);
+}
+
+
 #include <stdarg.h>
 
 bool
-sysError(char *fm, ...)
+sysError(const char *fm, ...)
 { va_list args;
 
   va_start(args, fm);
@@ -522,7 +527,7 @@ sysError(char *fm, ...)
 
 
 bool
-fatalError(char *fm, ...)
+fatalError(const char *fm, ...)
 { va_list args;
 
   va_start(args, fm);
@@ -534,7 +539,7 @@ fatalError(char *fm, ...)
 
 
 bool
-warning(char *fm, ...)
+warning(const char *fm, ...)
 { va_list args;
 
   va_start(args, fm);
@@ -546,9 +551,7 @@ warning(char *fm, ...)
 
 
 bool
-vsysError(fm, args)
-char *fm;
-va_list args;
+vsysError(const char *fm, va_list args)
 { Sfprintf(Serror, "[PROLOG INTERNAL ERROR:\n\t");
   Svfprintf(Serror, fm, args);
   if ( gc_status.active )
@@ -588,10 +591,9 @@ action:
   PL_fail;
 }
 
+
 bool
-vfatalError(fm, args)
-char *fm;
-va_list args;
+vfatalError(const char *fm, va_list args)
 {
 #if defined(__WINDOWS__) || defined(__WIN32__)
   char msg[500];
@@ -610,38 +612,40 @@ va_list args;
   PL_fail;
 }
 
+
 bool
-vwarning(fm, args)
-char *fm;
-va_list args;
+vwarning(const char *fm, va_list args)
 { toldString();
 
   if ( ReadingSource && !status.boot && status.initialised )
-  { word goal;
+  { fid_t cid = PL_open_foreign_frame();
+    term_t argv = PL_new_term_refs(3);
+    predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
+    term_t a = PL_new_term_ref();
     char message[LINESIZ];
-    word arg;
-    mark m;
+    qid_t qid;
+    int rval;
 
     Svsprintf(message, fm, args);
 
-    Mark(m);
-    goal = globalFunctor(FUNCTOR_exception3);
-    unifyAtomic(argTermP(goal, 0), ATOM_warning);
-    unifyFunctor(argTermP(goal, 1), FUNCTOR_warning3);
-    arg = argTerm(goal, 1);
-    unifyAtomic(argTermP(arg, 0), source_file_name);
-    unifyAtomic(argTermP(arg, 1), consNum(source_line_no));
-    unifyAtomic(argTermP(arg, 2), globalString(message));
+    PL_put_atom(   argv+0, ATOM_warning);
+    PL_put_functor(argv+1, FUNCTOR_warning3);
+    PL_get_arg(1, argv+1, a); PL_unify_atom(a, source_file_name);
+    PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
+    PL_get_arg(3, argv+1, a); PL_unify_string_chars(a, message);
+    
+    qid = PL_open_query(MODULE_user, FALSE, pred, argv);
+    rval = PL_next_solution(qid);
+    PL_close_query(qid);
+    PL_discard_foreign_frame(cid);
 
-    if ( callGoal(MODULE_user, goal, FALSE) == FALSE )
+    if ( !rval )
     { Sfprintf(Serror, "[WARNING: (%s:%d)\n\t%s]\n",
 	       stringAtom(source_file_name), source_line_no, message);
     }
-    Undo(m);
 
     PL_fail;				/* handled */
   }
-
 
   Sfprintf(Serror, "[WARNING: ");
   Svfprintf(Serror, fm, args);

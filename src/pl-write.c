@@ -11,22 +11,20 @@
 #include "pl-ctype.h"
 extern int Output;
 
-forwards char *	varName(Word);
-forwards void	writePrimitive(Word, bool);
-forwards bool	display(Word, bool);
 forwards int	priorityOperator(Atom);
-forwards bool	writeTerm(Word, int, bool, Word);
-forwards word	displayStream(Word, Word, bool);
-forwards word	writeStreamTerm(Word, Word, int, int, Word);
+forwards bool	writeTerm(term_t, int, bool, term_t);
 
-static char *
-varName(Word adr)
-{ static char name[10];
+char *
+varName(term_t t)
+{ Word adr = valTermRef(t);
+  static char name[10];
+
+  deRef(adr);
 
   if (adr > (Word) lBase)
-    Ssprintf(name, "L%ld", (long)adr - (long)lBase);
+    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
   else
-    Ssprintf(name, "G%ld", (long)adr - (long)gBase);
+    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
 
   return name;
 }
@@ -72,25 +70,73 @@ atomType(Atom a)
 }
 
 
+static int
+writeAtom(Atom a, bool quote)
+{ if ( quote )
+  { switch( atomType(a) )
+    { case AT_LOWER:
+      case AT_SYMBOL:
+      case AT_SOLO:
+      case AT_SPECIAL:
+      { Puts(stringAtom(a));
+	break;
+      }
+      case AT_QUOTE:
+      case AT_FULLSTOP:
+      default:
+      { char *s = stringAtom(a);
+	char c;
+
+	Put('\'');
+	while( (c = *s++) != EOS )
+	  if (c == '\'')
+	    Putf("''");
+	else
+	  Put(c);
+	Put('\'');
+      }
+    }
+  } else
+    Puts(stringAtom(a));
+
+  succeed;
+}
+
+
 static void
-writePrimitive(Word w, bool quote)
-{ char *s, c;
+writePrimitive(term_t t, bool quote)
+{ double f;
+  char *s;
+  Atom a;
+  int n;
 
-  DEBUG(9, Sdprintf("writing primitive at 0x%x: 0x%x\n", w, *w));
+  if ( PL_is_variable(t) )
+  { Putf("%s", varName(t) );
+    return;
+  }    
 
-  if (isInteger(*w))
-  { Putf("%ld", valNum(*w));
+  if ( PL_get_atom(t, &a) )
+  { writeAtom(a, quote);
     return;
   }
 
-  if (isReal(*w))
-  { Putf("%f", valReal(*w));
+  if ( PL_is_integer(t) )		/* beware of automatic conversion */
+  { long i;
+
+    PL_get_long(t, &i);
+    Putf("%ld", i);
+    return;
+  }
+
+  if ( PL_get_float(t, &f) )
+  { Putf("%f", f);
     return;
   }
 
 #if O_STRING
-  if ( isString(*w) )
-  { s = valString(*w);
+  if ( PL_get_string(t, &s, &n) )
+  { int c;
+
     if ( quote == TRUE )
     { Put('\"');
       while( (c = *s++) != EOS )
@@ -105,116 +151,69 @@ writePrimitive(Word w, bool quote)
     return;
   }
 #endif /* O_STRING */
-
-  if (isVar(*w))
-  { Putf("%s", varName(w) );
-    return;
-  }    
-
-  if (isAtom(*w))
-  { if (quote == TRUE)
-    { switch( atomType((Atom) *w) )
-      { case AT_LOWER:
-	case AT_SYMBOL:
-	case AT_SOLO:
-	case AT_SPECIAL:
-	{ char *s = stringAtom(*w);
-
-	  for(; *s; s++)
-	    Put(*s);
-
-          break;
-	}
-        case AT_QUOTE:
-        case AT_FULLSTOP:
-	default:
-	{ char *s = stringAtom(*w);
-	  char c;
-
-	  Put('\'');
-	  while( (c = *s++) != EOS )
-	    if (c == '\'')
-	      Putf("''");
-	  else
-	    Put(c);
-	  Put('\'');
-	}
-      }
-    } else
-      Putf("%s", stringAtom(*w) );
-  }
 }
 
+
 word
-pl_nl(void)
+pl_nl()
 { return Put('\n');
 }
 
 word
-pl_nl1(Word stream)
+pl_nl1(term_t stream)
 { streamOutput(stream, pl_nl());
 }
 
 
 static bool
-display(Word t, bool quote)
-{ int n;
+display(term_t t, bool quote)
+{ Atom name;
   int arity;
-  Word arg;
 
-  DEBUG(9, Sdprintf("display term at 0x%x; ", t));
-  deRef(t);
-  DEBUG(9, Sdprintf("after deRef() at 0x%x\n", t));
+  if ( PL_get_name_arity(t, &name, &arity) && arity > 0 )
+  { term_t a = PL_new_term_ref();
+    int n;
 
-  if (isPrimitive(*t) )
-  { DEBUG(9, Sdprintf("primitive\n"));
+    if ( name == ATOM_comma )
+      Putf("','");
+    else
+      writeAtom(name, quote);
+    Putf("(");
+    for(n=0; n<arity; n++)
+    { if (n > 0)
+	Putf(", ");
+      PL_get_arg(n+1, t, a);
+      display(a, quote);
+    }
+    Putf(")");
+  } else
     writePrimitive(t, quote);
-    succeed;
-  }
-
-  arity = functorTerm(*t)->arity;
-  arg = argTermP(*t, 0);
-  DEBUG(9, Sdprintf("Complex; arg0 at 0x%x, arity = %d\n", arg, arity));
-
-  DEBUG(9, Sdprintf("functorTerm() = 0x%x, ->name = 0x%x\n",
-				functorTerm(*t), functorTerm(*t)->name));
-  if ( functorTerm(*t)->name == ATOM_comma )
-    Putf("','");
-  else
-    writePrimitive((Word)&(functorTerm(*t)->name), quote);
-  Putf("(");
-  for(n=0; n<arity; n++, arg++)
-  { if (n > 0)
-      Putf(", ");
-    display(arg, quote);
-  }
-  Putf(")");
 
   succeed;
 }
 
 word
-pl_display(Word term)
+pl_display(term_t term)
 { return display(term, FALSE);
 }
 
 word
-pl_displayq(Word term)
+pl_displayq(term_t term)
 { return display(term, TRUE);
 }
 
 static word
-displayStream(Word stream, Word term, bool quote)
+displayStream(term_t stream, term_t term, bool quote)
 { streamOutput(stream, display(term, quote));
 }
 
 word
-pl_display2(Word stream, Word term)
+pl_display2(term_t stream, term_t term)
 { return displayStream(stream, term, FALSE);
 }
 
 word
-pl_displayq2(Word stream, Word term)
+pl_displayq2(term_t stream, term_t term)
 { return displayStream(stream, term, TRUE);
 }
 
@@ -248,215 +247,274 @@ priorityOperator(Atom atom)
  ** Sun Jun  5 15:37:12 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static bool
-pl_call2(Word goal, Word arg)
-{ Module mod = NULL;
-  Atom name;
-  int arity;
-  word g;
-  mark m;
+pl_call2(term_t goal, term_t arg)
+{ fid_t cid = PL_open_foreign_frame();
+  term_t head = PL_new_term_ref();
+  term_t a	= PL_new_term_ref();
+  term_t argv;
+  qid_t qid;
+  Procedure proc;
+  functor_t fd;
+  Module mod = NULL;
   int n;
   bool rval;
 
-  TRY(goal = stripModule(goal, &mod));
-  deRef(goal);
+  PL_strip_module(goal, &mod, head);
+  if ( !PL_get_functor(head, &fd) )
+  { warning("pl_call/2: instantiation fault");
+    rval = FALSE;
+    goto out;
+  }
 
-  if ( isAtom(*goal) )
-  { name = (Atom) *goal;
-    arity = 0;
-  } else if ( isTerm(*goal) )
-  { name = functorTerm(*goal)->name;
-    arity = functorTerm(*goal)->arity;
-  } else
-    return warning("call/2: instantiation fault");
-  
-  Mark(m);
-  g = globalFunctor(lookupFunctorDef(name, arity+1));
-  for(n = 0; n < arity; n++)
-    pl_unify(argTermP(g, n), argTermP(goal, n));
-  pl_unify(argTermP(g, n), arg);
+  fd = PL_new_functor(fd->name, fd->arity + 1);
+  proc = lookupProcedure(fd, mod);
+  argv = PL_new_term_refs(fd->arity);
+  for(n=0; n<fd->arity-1; n++)
+  { PL_get_arg(n+1, head, a);
+    PL_put_term(argv+n, a);
+  }
+  PL_put_term(argv+n, arg);
+
   debugstatus.suspendTrace++;
-  rval = callGoal(mod, g, FALSE);
+  qid = PL_open_query(mod, FALSE, proc, argv);
+  rval = PL_next_solution(qid);
+  PL_close_query(qid);
   debugstatus.suspendTrace--;
-  Undo(m);
+
+out:
+  PL_discard_foreign_frame(cid);
 
   return rval;
 }
 
 
+static Atom
+toAtom(term_t t)
+{ Atom a;
+
+  if ( PL_get_atom(t, &a) )
+    return a;
+  return NULL;
+}
+
+
 static bool
-needSpace(word w1, word w2)
-{ if ( isAtom(w1) && atomType((Atom) w1) == AT_SYMBOL &&
-       ((isAtom(w2) && atomType((Atom) w2) == AT_LOWER) ||
-	isVar(w2)) )
-    fail;
+needSpace(Atom a1, Atom a2)
+{ if ( a1 && a2 )
+  { int t1 = atomType(a1);
+    int t2 = atomType(a2);
+
+    if ( (t1 == AT_SYMBOL && t2 == AT_LOWER) ||
+	 (t1 == AT_LOWER  && t1 == AT_SYMBOL) )
+      fail;
+  }
 
   succeed;
 }
 
 
 static bool
-writeTerm(Word term, int prec, bool style, Word g)
+writeTerm(term_t t, int prec, bool style, term_t g)
 { Atom functor;
   int arity, n;
   int op_type, op_pri;
-  Word arg;
+  Atom a;
   bool quote = (style != PLAIN);
 
-  deRef(term);
-
-  if ( !isVar(*term) && style == PORTRAY && pl_call2(g, term) )
+  if ( !PL_is_variable(t) && style == PORTRAY && pl_call2(g, t) )
     succeed;
 
-  if (isPrimitive(*term) )
-  { if (isAtom(*term) && priorityOperator((Atom)*term) > prec)
+  if ( PL_get_atom(t, &a) )
+  { if ( priorityOperator(a) > prec )
     { Put('(');
-      writePrimitive(term, quote);
+      writeAtom(a, quote);
       Put(')');
     } else
-      writePrimitive(term, quote);
+      writeAtom(a, quote);
 
     succeed;
   }
 
-  functor = functorTerm(*term)->name;
-  arity = functorTerm(*term)->arity;
-  arg = argTermP(*term, 0);
+  if ( !PL_get_name_arity(t, &functor, &arity) )
+  { writePrimitive(t, quote);
 
-  if (arity == 1)
-  { if (functor == ATOM_curl)
-    { Put('{');
-      for(;;)
-      { deRef(arg);
-	if (!isTerm(*arg) || functorTerm(*arg) != FUNCTOR_comma2)
-	  break;
-	writeTerm(argTermP(*arg, 0), 999, style, g);
-	Put(',');
-	arg = argTermP(*arg, 1);
-      }
-      writeTerm(arg, 999, style, g);      
-      Put('}');
-      succeed;
-    }
-    if (isPrefixOperator(functor, &op_type, &op_pri) )
-    { if (op_pri > prec)
-	Put('(');
-      writePrimitive((Word) &functor, quote);
-      if ( needSpace((word) functor, *arg) )
-	Put(' ');
-      writeTerm(arg, op_type == OP_FX ? op_pri-1 : op_pri, style, g);
-      if (op_pri > prec)
-	Put(')');
-      succeed;
-    }
-    if (isPostfixOperator(functor, &op_type, &op_pri) )
-    { if (op_pri > prec)
-	Put('(');
-      writeTerm(arg, op_type == OP_XF ? op_pri-1 : op_pri, style, g);
-      if ( needSpace((word) functor, *arg) )
-	Put(' ');
-      writePrimitive((Word)&functor, quote);
-      if (op_pri > prec)
-	Put(')');
-      succeed;
-    }
-  } else if (arity == 2)
-  { if (functor == ATOM_dot)
-    { Put('[');
-      for(;;)
-      { writeTerm(arg++, 999, style, g);
-	deRef(arg);
-	if (*arg == (word) ATOM_nil)
-	  break;
-	if (!isList(*arg) )
-	{ Put('|');
-	  writeTerm(arg, 999, style, g);
-	  break;
+    succeed;
+  } else
+  { term_t arg = PL_new_term_ref();
+
+    if ( arity == 1 )
+    { if ( functor == ATOM_curl )	/* {a,b,c} */
+      { term_t a = PL_new_term_ref();
+
+	PL_get_arg(1, t, arg);
+	Put('{');
+	for(;;)
+	{ if ( !PL_is_functor(arg, FUNCTOR_comma2) )
+	    break;
+	  PL_get_arg(1, arg, a);
+	  writeTerm(a, 999, style, g);
+	  Putf(", ");
+	  PL_get_arg(2, arg, arg);
 	}
-	Put(',');
-	arg = HeadList(arg);
+	writeTerm(arg, 999, style, g);      
+	Put('}');
+
+	succeed;
       }
-      Put(']');
-      succeed;
-    }
-    if (isInfixOperator(functor, &op_type, &op_pri) )
-    { if (op_pri > prec)
+
+					/* op <term> */
+      if ( isPrefixOperator(functor, &op_type, &op_pri) )
+      { term_t arg = PL_new_term_ref();
+
+	PL_get_arg(1, t, arg);
+	if ( op_pri > prec )
+	  Put('(');
+	writeAtom(functor, quote);
+	if ( needSpace(functor, toAtom(arg)) )
+	  Put(' ');
+	writeTerm(arg, op_type == OP_FX ? op_pri-1 : op_pri, style, g);
+	if ( op_pri > prec )
+	  Put(')');
+
+	succeed;
+      }
+
+					/* <term> op */
+      if ( isPostfixOperator(functor, &op_type, &op_pri) )
+      { term_t arg = PL_new_term_ref();
+
+	PL_get_arg(1, t, arg);
+	if ( op_pri > prec )
+	  Put('(');
+	writeTerm(arg, op_type == OP_XF ? op_pri-1 : op_pri, style, g);
+	if ( needSpace(toAtom(arg), functor) )
+	  Put(' ');
+	writeAtom(functor, quote);
+	if (op_pri > prec)
+	  Put(')');
+
+	succeed;
+      }
+    } else if ( arity == 2 )
+    { if ( functor == ATOM_dot )	/* [...] */
+      { term_t head = PL_new_term_ref();
+	term_t l    = PL_copy_term_ref(t);
+
+	Put('[');
+	for(;;)
+	{ PL_get_list(l, head, l);
+
+	  writeTerm(head, 999, style, g);
+	  if ( PL_get_nil(l) )
+	    break;
+	  if ( !PL_is_functor(l, FUNCTOR_dot2) )
+	  { Put('|');
+	    writeTerm(l, 999, style, g);
+	    break;
+	  }
+	  Putf(", ");
+	}
+	Put(']');
+
+	succeed;
+      }
+
+					/* <term> op <term> */
+      if ( isInfixOperator(functor, &op_type, &op_pri) )
+      { term_t a = PL_new_term_ref();
+
+	if ( op_pri > prec )
 	Put('(');
-      writeTerm(arg++, 
-		op_type == OP_XFX || op_type == OP_XFY ? op_pri-1 : op_pri, 
-		style, g);
-      if (functor != ATOM_comma)
+	PL_get_arg(1, t, a);
+	writeTerm(a, 
+		  op_type == OP_XFX || op_type == OP_XFY ? op_pri-1 : op_pri, 
+		  style, g);
+	if ( functor != ATOM_comma )
+	  Put(' ');
+	writeAtom(functor, quote);
 	Put(' ');
-      writePrimitive((Word)&functor, quote);
-      Put(' ');
-      writeTerm(arg, 
-		op_type == OP_XFX || op_type == OP_YFX ? op_pri-1 : op_pri, 
-		style, g);
-      if (op_pri > prec)
-	Put(')');
-      succeed;
+	PL_get_arg(2, t, a);
+	writeTerm(a, 
+		  op_type == OP_XFX || op_type == OP_YFX ? op_pri-1 : op_pri, 
+		  style, g);
+	if ( op_pri > prec )
+	  Put(')');
+	succeed;
+      }
+    }
+
+					/* functor(<args> ...) */
+    { term_t a = PL_new_term_ref();
+
+      writeAtom(functor, quote);
+      Put('(');
+      for(n=0; n<arity; n++, arg++)
+      { if (n > 0)
+	  Putf(", ");
+	PL_get_arg(n+1, t, a);
+	writeTerm(a, 999, style, g);
+      }
+      Put(')');
     }
   }
 
-  writePrimitive((Word)&functor, quote);
-  Put('(');
-  for(n=0; n<arity; n++, arg++)
-  { if (n > 0)
-      Putf(", ");
-    writeTerm(arg, 999, style, g);
-  }
-  Put(')');
+  succeed;
+}
+
+word
+pl_write(term_t term)
+{ writeTerm(term, 1200, PLAIN, 0);
 
   succeed;
 }
 
 word
-pl_write(Word term)
-{ writeTerm(term, 1200, PLAIN, NULL);
+pl_writeq(term_t term)
+{ writeTerm(term, 1200, QUOTE_ATOMS, 0);
 
   succeed;
 }
 
 word
-pl_writeq(Word term)
-{ writeTerm(term, 1200, QUOTE_ATOMS, NULL);
+pl_print(term_t term)
+{ term_t g = PL_new_term_ref();
+
+  PL_put_atom(g, ATOM_portray);
+
+  writeTerm(term, 1200, PORTRAY, g);
 
   succeed;
 }
 
 word
-pl_print(Word term)
-{ word g = (word) ATOM_portray;
-
-  writeTerm(term, 1200, PORTRAY, &g);
-
-  succeed;
-}
-
-word
-pl_dprint(Word term, Word g)
+pl_dprint(term_t term, term_t g)
 { writeTerm(term, 1200, PORTRAY, g);
 
   succeed;
 }
 
+					/* use a predicate pointer? */
 static word
-writeStreamTerm(Word stream, Word term, int prec, int style, Word g)
+writeStreamTerm(term_t stream, term_t term,
+		int prec, int style, term_t g)
 { streamOutput(stream, writeTerm(term, prec, style, g));
 }
 
 word
-pl_write2(Word stream, Word term)
-{ return writeStreamTerm(stream, term, 1200, PLAIN, NULL);
+pl_write2(term_t stream, term_t term)
+{ return writeStreamTerm(stream, term, 1200, PLAIN, 0);
 }
 
 word
-pl_writeq2(Word stream, Word term)
-{ return writeStreamTerm(stream, term, 1200, QUOTE_ATOMS, NULL);
+pl_writeq2(term_t stream, term_t term)
+{ return writeStreamTerm(stream, term, 1200, QUOTE_ATOMS, 0);
 }
 
 word
-pl_print2(Word stream, Word term)
-{ word g = (word) ATOM_portray;
+pl_print2(term_t stream, term_t term)
+{ term_t g = PL_new_term_ref();
 
-  return writeStreamTerm(stream, term, 1200, PORTRAY, &g);
+  PL_put_atom(g, ATOM_portray);
+
+  return writeStreamTerm(stream, term, 1200, PORTRAY, g);
 }

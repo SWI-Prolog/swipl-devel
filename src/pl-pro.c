@@ -7,9 +7,10 @@
     Purpose: Support for virtual machine
 */
 
-/*#define O_SECURE 1*/			/* include checkData() */
+#ifdef SECURE_GC
+#define O_SECURE 1			/* include checkData() */
+#endif
 #include "pl-incl.h"
-#include "pl-itf.h"
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
@@ -26,16 +27,22 @@ the debugger.  Restores I/O and debugger on exit.  The Prolog  predicate
 
 word
 pl_break()
-{ word goal = (word) ATOM_break;
+{ fid_t cid = PL_open_foreign_frame();
+  term_t goal = PL_new_term_ref();
+  word rval;
 
-  return pl_break1(&goal);
+  PL_put_atom(goal, ATOM_break);
+  rval = pl_break1(goal);
+  PL_discard_foreign_frame(cid);
+
+  return rval;
 }
 
+
 word
-pl_break1(Word goal)
+pl_break1(term_t goal)
 { extern int Input, Output;
   bool rval;
-  mark m;
 
   int	     inSave    = Input;
   int	     outSave   = Output;
@@ -52,9 +59,12 @@ pl_break1(Word goal)
   debugstatus.skiplevel = 0;
   debugstatus.suspendTrace = 0;
 
-  Mark(m);
-  rval = callGoal(MODULE_user, *goal, FALSE);
-  Undo(m);
+  { fid_t cid = PL_open_foreign_frame();
+
+    rval = callProlog(MODULE_user, goal, FALSE);
+
+    PL_discard_foreign_frame(cid);
+  }
 
   debugstatus.suspendTrace = suspSave;
   debugstatus.skiplevel    = skipSave;
@@ -69,7 +79,7 @@ pl_break1(Word goal)
 
 
 word
-pl_notrace1(Word goal)
+pl_notrace1(term_t goal)
 { bool rval;
 
   long	     skipSave  = debugstatus.skiplevel;
@@ -82,7 +92,7 @@ pl_notrace1(Word goal)
   debugstatus.skiplevel = 0;
   debugstatus.suspendTrace = 1;
 
-  rval = callGoal(NULL, *goal, FALSE);
+  rval = callProlog(NULL, goal, FALSE);
 
   debugstatus.suspendTrace = suspSave;
   debugstatus.skiplevel    = skipSave;
@@ -95,49 +105,35 @@ pl_notrace1(Word goal)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a prolog goal from C. The argument must  be  an  instantiated  term
-like for the Prolog predicate call/1.  The goal is executed in a kind of
-break environment and thus bindings which result of the call are lost.
+like for the Prolog predicate call/1.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
-callGoal(Module module, word goal, bool debug)
-{ FunctorDef fd;
-  Module m;
+int
+callProlog(Module module, term_t goal, int debug)
+{ term_t g = PL_new_term_ref();
+  FunctorDef fd;
   Procedure proc;
-  Word g, ap;
+
+  PL_strip_module(goal, &module, g);
+  if ( !PL_get_functor(g, &fd) )
+    return warning("callProlog(): Illegal goal");
   
-  if ( (m=module) == NULL )
-  { if ( environment_frame )
-      m = contextModule(environment_frame);
-    else
-      m = MODULE_user;
+  proc = lookupProcedure(fd, module);
+  
+  { int arity = fd->arity;
+    term_t args = PL_new_term_refs(arity);
+    qid_t qid;
+    int n, rval;
+
+    for(n=0; n<arity; n++)
+      PL_get_arg(n+1, g, args+n);
+
+    qid  = PL_open_query(module, debug, proc, args);
+    rval = PL_next_solution(qid);
+    PL_cut_query(qid);
+
+    return rval;
   }
-
-  TRY(g = stripModule(&goal, &m));
-  goal = *g;
-
-  if ( isAtom(goal) )
-  { fd = lookupFunctorDef((Atom)goal, 0);
-    ap = NULL;
-  } else if ( isTerm(goal) )
-  { fd = functorTerm(goal);
-    ap = argTermP(goal, 0);
-  } else
-    return warning("Illegal goal whiled called from C");
-
-  proc = lookupProcedure(fd, m);
-
-  if ( ap )
-  { TermVector(argv, fd->arity);
-    Word *av = argv;
-    int n;
-
-    for( n=fd->arity; n-- > 0; )
-      *av++ = ap++;
-
-    return PL_call_predicate(m, debug, proc, argv);
-  } else
-    return PL_call_predicate(m, debug, proc, NULL);
 }
 
 
@@ -185,36 +181,42 @@ interpreter with the toplevel goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-prolog(volatile word goal)
+prolog(volatile Atom goal)
 { bool rval;
 
   if ( setjmp(abort_context) != 0 )
-  { goal = (word) ATOM_abort;
+  { goal = ATOM_abort;
   } else
   { debugstatus.debugging = FALSE;
   }
 
   environment_frame = NULL;
+  fli_context       = NULL;
   lTop = lBase;
   tTop = tBase;
   gTop = gBase;
   aTop = aBase;
-  pTop = pBase;
 
-  gc_status.blocked    = -1;
+  PL_open_foreign_frame();
+
+  gc_status.blocked    = 0;
   gc_status.requested  = FALSE;
 #if O_SHIFT_STACKS
   shift_status.blocked = 0;
 #endif
   status.arithmetic    = 0;
 
-  lockp(&environment_frame);
-
   debugstatus.tracing      = FALSE;
   debugstatus.suspendTrace = 0;
 
   can_abort = TRUE;
-  rval = callGoal(MODULE_system, goal, FALSE);
+  { fid_t cid = PL_open_foreign_frame();
+    Procedure p = lookupProcedure(lookupFunctorDef(goal, 0), MODULE_system);
+    qid_t qid  = PL_open_query(MODULE_system, FALSE, p, 0);
+    rval = PL_next_solution(qid);
+    PL_close_query(qid);
+    PL_discard_foreign_frame(cid);
+  }
   can_abort = FALSE;
 
   return rval;

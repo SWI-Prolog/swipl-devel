@@ -10,45 +10,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Transform a Prolog word into an integer.   Accepts  integers  and  reals
-that are by accident integer.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-bool
-wordToInteger(word w, long *n)
-{ real f;
-
-  if (isInteger(w) )
-  { *n = valNum(w);
-    succeed;
-  }
-  if (isReal(w) )
-  { f = valReal(w);
-    if (f == (real)((long)f))
-    { *n = (long) f;
-      succeed;
-    }      
-  }
-  fail;
-}  
-
-/*  Transform a Prolog word into a real.  Accepts integers and reals.
-
- ** Fri Jun 10 10:45:18 1988  jan@swivax.UUCP (Jan Wielemaker)  */
-
-bool
-wordToReal(word w, real *f)
-{ if (isInteger(w) )
-  { *f = (real) valNum(w);
-    succeed;
-  }
-  if (isReal(w) )
-  { *f = valReal(w);
-    succeed;
-  }
-  fail;
-}  
+static bool	isUserSystemPredicate(Definition def);
 
 /*  Return the character representing some digit.
 
@@ -123,7 +85,7 @@ predicateName(Definition def)
 
  ** Fri Sep  2 17:03:43 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-bool
+static bool
 isUserSystemPredicate(Definition def)
 { if ( true(def, SYSTEM) &&
        isCurrentProcedure(def->functor, MODULE_user) )
@@ -132,15 +94,52 @@ isUserSystemPredicate(Definition def)
   fail;
 }
 
-bool
-isUserSystemProcedure(Procedure proc)
-{ return isUserSystemPredicate(proc->definition);
-}
-
 word
 notImplemented(char *name, int arity)
 { return warning("%s/%d is not implemented in this version");
 }
+
+word
+setBoolean(int *flag, const char *name, term_t old, term_t new)
+{ Atom n;
+
+  if ( !PL_unify_atom(old, *flag ? ATOM_on : ATOM_off) )
+    fail;
+
+  if ( PL_get_atom(new, &n) )
+  { if ( n == ATOM_on )
+    { *flag = TRUE;
+      succeed;
+    } else if ( n == ATOM_off )
+    { *flag = FALSE;
+      succeed;
+    }
+  }
+
+  return warning("%s/2: instantiation fault", name);
+}
+
+word
+setInteger(int *flag, const char *name, term_t old, term_t new)
+{ if ( !PL_unify_integer(old, *flag) )
+    fail;
+  if ( PL_get_integer(new, flag) )
+    succeed;
+
+  return warning("%s/2: instantiation fault", name);
+}
+
+
+word
+setLong(long *flag, const char *name, term_t old, term_t new)
+{ if ( !PL_unify_integer(old, *flag) )
+    fail;
+  if ( PL_get_long(new, flag) )
+    succeed;
+
+  return warning("%s: instantiation fault", name);
+}
+
 
 		 /*******************************
 		 *	       OPTIONS		*
@@ -155,39 +154,34 @@ Variable argument list:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-scan_options(word list, int flags, OptSpec specs, ...)
+scan_options(term_t options, int flags, OptSpec specs, ...)
 { va_list args;
   OptSpec s;
+  term_t list = PL_copy_term_ref(options);
+  term_t head = PL_new_term_ref();
+  term_t tmp  = PL_new_term_ref();
+  term_t val  = PL_new_term_ref();
 
   va_start(args, specs);
   for( s = specs; s->name; s++ )
     s->value.ptr = va_arg(args, void *);
   va_end(args);
 
-  while ( isList(list) )
+  while ( PL_get_list(list, head, list) )
   { Atom name;
-    word value;
-    word a = argTerm(list, 0);
+    int arity;
+    
+    if ( PL_get_name_arity(head, &name, &arity) )
+    { if ( name == ATOM_equals && arity == 2 )
+      { PL_get_arg(1, head, tmp);
 
-    if ( isTerm(a) )
-    { FunctorDef f = functorTerm(a);
-
-      if ( f == FUNCTOR_equals2 )
-      { word a1 = argTerm(a, 0);
-
-        if ( isAtom(a1) )
-	{ name = (Atom)a1;
-	  value = argTerm(a, 1);
-	} else
+	if ( !PL_get_atom(tmp, &name) )
 	  fail;
-      } else if ( f->arity == 1 )
-      { name = f->name;
-        value = argTerm(a, 0);
-      } else
-	fail;
-    } else if ( isAtom(a) )
-    { name = (Atom)a;
-      value = (word) ATOM_true;
+	PL_get_arg(2, head, val);
+      } else if ( arity == 1 )
+      { PL_get_arg(1, head, val);
+      } else if ( arity == 0 )
+	PL_put_atom(val, ATOM_true);
     } else
       fail;
 
@@ -195,35 +189,40 @@ scan_options(word list, int flags, OptSpec specs, ...)
     { if ( s->name == name )
       { switch(s->type)
 	{ case OPT_BOOL:
-	    if ( value == (word)ATOM_true ||
-		 value == (word)ATOM_on )
+	  { Atom aval;
+
+	    if ( !PL_get_atom(val, &aval) )
+	      fail;
+	    if ( aval == ATOM_true || aval == ATOM_on )
 	      *s->value.b = TRUE;
-	    else if ( value == (word)ATOM_false ||
-		      value == (word)ATOM_off )
+	    else if ( aval == ATOM_false || aval == ATOM_off )
 	      *s->value.b = FALSE;
 	    else
 	      fail;
 	    break;
+	  }
 	  case OPT_INT:
-	    if ( !wordToInteger(value, s->value.i) )
+	  { if ( !PL_get_long(val, s->value.i) )
 	      fail;
+
 	    break;
+	  }
 	  case OPT_STRING:
 	  { char *str;
 
-	    if ( (str = toString(value)) )
-	      *s->value.s = str;
-	    else
+	    if ( !PL_get_chars(val, &str, CVT_ALL) ) /* copy? */
 	      fail;
+	    *s->value.s = str;
 	    break;
 	  }
 	  case OPT_ATOM:
-	  { if ( isAtom(value) )
-	      *s->value.a = (Atom) value;
-	    else
+	  { Atom a;
+
+	    if ( !PL_get_atom(val, &a) )
 	      fail;
+	    *s->value.a = a;
+	    break;
 	  }
-	  break;
 	  default:
 	    fail;
 	}
@@ -232,14 +231,9 @@ scan_options(word list, int flags, OptSpec specs, ...)
     
     if ( !s->name && (flags & OPT_ALL) )
       fail;
-
-    list = argTerm(list, 1);
   }
 
-  if ( list == (word)ATOM_nil )
-    succeed;
-
-  fail;
+  return PL_get_nil(list);		/* tail must now be [] */
 }
 
 
@@ -257,6 +251,7 @@ strprefix(register char *string, register char *prefix)
     succeed;
   fail;
 }
+
 
 bool
 strpostfix(char *string, char *postfix)
@@ -303,19 +298,6 @@ stripostfix(char *s, char *e)
   return FALSE;
 } 
 
-
-bool
-strsub(register char *string, register char *sub)
-{ register char *s, *sb;
-
-  while( *(s = string++) )
-  { for(sb=sub; *sb && *s == *sb; )
-      s++, sb++;
-    if ( *sb == EOS )
-      succeed;
-  }
-  fail;
-}
 
 		/********************************
 		*        CHARACTER TYPES        *

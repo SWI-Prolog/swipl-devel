@@ -28,7 +28,6 @@ handling times must be cleaned, but that not only holds for this module.
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#include "pl-itf.h"
 #ifdef __WIN32__
 #include <console.h>
 #endif
@@ -92,15 +91,13 @@ static struct output_context
   OutputContext previous;		/* previous context */
 } *output_context_stack = NULL;
 
-forwards bool	openStream(word file, int mode, int flags);
-forwards bool	flush(void);
-forwards bool	openProtocol(Atom, bool appnd);
-forwards bool	closeProtocol(void);
+forwards bool	openStream(term_t file, int mode, int flags);
 forwards bool	closeStream(int);
-forwards bool	unifyStreamName(Word, int);
-forwards bool	unifyStreamNo(Word, int);
-forwards bool	setUnifyStreamNo(Word, int);
-forwards bool	unifyStreamMode(Word, int);
+forwards bool	unifyStreamName(term_t, int);
+forwards bool	unifyStreamNo(term_t, int);
+forwards bool	setUnifyStreamNo(term_t, int);
+forwards bool	unifyStreamMode(term_t, int);
+forwards int	Get0();
 
 #ifdef SIGPIPE
 static void
@@ -187,7 +184,7 @@ without the Unix assumptions?
 void
 dieIO()
 { if ( status.io_initialised == TRUE )
-  { closeProtocol();
+  { pl_noprotocol();
     closeFiles();
     PopTty(&ttytab);
   }
@@ -328,9 +325,9 @@ function will read the first character and then skip all character  upto
 and including the newline.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-Char
+int
 getSingleChar(void)
-{ Char c;
+{ int c;
   int OldIn = Input;
   ttybuf buf;
     
@@ -376,7 +373,7 @@ readLine(char *buffer)
   PushTty(&tbuf, TTY_RAW);		/* just donot prompt */
 
   for(;;)
-  { flush();
+  { pl_flush();
 
     switch( (c=Get0()) )
     { case '\n':
@@ -426,7 +423,15 @@ Put(int c)
 }
 
 
-int
+bool
+Puts(const char *str)
+{ IOSTREAM *s = fileTable[Output].stream;
+
+  return (s && Sfputs(str, s)) < 0 ? FALSE : TRUE;
+}
+
+
+static int
 Get0()
 { IOSTREAM *s = fileTable[Input].stream;
   int c;
@@ -491,7 +496,7 @@ currentInputLine()
 
 
 bool
-PL_open_stream(IOSTREAM *s, Word handle)
+PL_open_stream(term_t handle, IOSTREAM *s)
 { int n;
   PlFile f;
 
@@ -505,7 +510,7 @@ PL_open_stream(IOSTREAM *s, Word handle)
       else
 	f->status = F_WRITE;
 
-      return unifyAtomic(handle, consNum(n));
+      return PL_unify_integer(handle, n);
     }
   }
 
@@ -514,22 +519,28 @@ PL_open_stream(IOSTREAM *s, Word handle)
 
 
 static bool
-openStream(word file, int mode, int flags)
+openStream(term_t file, int mode, int flags)
 { int n;
   IOSTREAM *stream;
   char cmode[3];
-  Atom f;
+  Atom name;
+  functor_t f;
   int type;
 
   DEBUG(2, Sdprintf("openStream file=0x%lx, mode=%d\n", file, mode));
-  if ( isAtom(file) )
+
+  if ( PL_get_atom(file, &name) )
   { type = ST_FILE;
-    f = (Atom) file;
-  } else if (isTerm(file) && functorTerm(file) == FUNCTOR_pipe1)
+  } else if ( PL_get_functor(file, &f) && f == FUNCTOR_pipe1)
   {
 #ifdef SIGPIPE
+    term_t an = PL_new_term_ref();
     type = ST_PIPE;
-    f = (Atom) argTerm(file, 0);
+    
+    if ( !PL_get_arg(1, file, an) ||
+	 !PL_get_atom(an, &name) )
+      return warning("Illegal argument to pipe(Command)");
+
     signal(SIGPIPE, pipeHandler);
 #else
     return warning("Pipes are not supported on this OS");
@@ -540,16 +551,16 @@ openStream(word file, int mode, int flags)
   DEBUG(3, Sdprintf("File/command name = %s\n", stringAtom(f)));
   if ( type == ST_FILE )
   { if ( mode == F_READ )
-    { if ( f == ATOM_user || f == ATOM_user_input )
+    { if ( name == ATOM_user || name == ATOM_user_input )
       { Input = 0;
 	succeed;
       }
     } else
-    { if ( f == ATOM_user || f == ATOM_user_output )
+    { if ( name == ATOM_user || name == ATOM_user_output )
       { Output = 1;
         succeed;
       }
-      if ( f == ATOM_user_error || f == ATOM_stderr )
+      if ( name == ATOM_user_error || name == ATOM_stderr )
       { Output = 2;
 	succeed;
       }
@@ -559,7 +570,7 @@ openStream(word file, int mode, int flags)
     
   if ( !(flags & OPEN_OPEN) )		/* see/1, tell/1, append/1 */
   { for( n=0; n<maxfiles; n++ )
-    { if ( fileTable[n].name == f && fileTable[n].type == type )
+    { if ( fileTable[n].name == name && fileTable[n].type == type )
       { if ( fileTable[n].status == mode )
 	{ switch(mode)
 	  { case F_READ:	Input = n; break;
@@ -590,21 +601,21 @@ openStream(word file, int mode, int flags)
 
 #ifdef HAVE_POPEN
   if ( type == ST_PIPE )
-  { if ( !(stream=Sopen_pipe(stringAtom(f), cmode)) )
+  { if ( !(stream=Sopen_pipe(stringAtom(name), cmode)) )
     { if ( fileerrors )
-	warning("Cannot open pipe %s: %s", stringAtom(f), OsError());
+	warning("Cannot open pipe %s: %s", stringAtom(name), OsError());
       fail;
     }
   } else
 #endif /*HAVE_POPEN*/
-  { char *name = ExpandOneFile(stringAtom(f));
+  { char *fn;
 
-    if ( name == (char *)NULL )
+    if ( !(fn = ExpandOneFile(stringAtom(name))) )
       fail;
 
-    if ( !(stream=Sopen_file(name, cmode)) )
+    if ( !(stream=Sopen_file(fn, cmode)) )
     { if ( fileerrors )
-	warning("Cannot open %s: %s", stringAtom(f), OsError());
+	warning("Cannot open %s: %s", fn, OsError());
       fail;
     }
   }
@@ -615,7 +626,7 @@ openStream(word file, int mode, int flags)
   if ( n >= maxfiles )
     return warning("Cannot handle more than %d open files", maxfiles);
 
-  fileTable[n].name = f;
+  fileTable[n].name = name;
   fileTable[n].stream_name = NULL;
   fileTable[n].type = type;
   fileTable[n].stream = stream;
@@ -632,41 +643,62 @@ openStream(word file, int mode, int flags)
   succeed;
 }
 
+
 static bool
-unifyStreamName(Word f, int n)
+unifyStreamName(term_t f, int n)
 { if ( fileTable[n].status == F_CLOSED )
     fail;
+
 #ifdef HAVE_POPEN
   if ( fileTable[n].type == ST_PIPE )
-  { TRY( unifyFunctor(f, FUNCTOR_pipe1) );
-    f = argTermP(*f, 0);
+  { term_t a = PL_new_term_ref();
+
+    return (PL_unify_functor(f, FUNCTOR_pipe1) &&
+	    PL_get_arg(1, f, a) &&
+	    PL_unify_atom(a, fileTable[n].name));
   }
 #endif /*HAVE_POPEN*/
-  return unifyAtomic(f, fileTable[n].name);
+
+  return PL_unify_atom(f, fileTable[n].name);
 }
 
+
 static bool
-unifyStreamMode(Word m, int n)
+unifyStreamMode(term_t m, int n)
 { if ( fileTable[n].status == F_CLOSED )
     fail;
-  return unifyAtomic(m, fileTable[n].status == F_READ ? ATOM_read
-		     				      : ATOM_write);
+
+  return PL_unify_atom(m, fileTable[n].status == F_READ ? ATOM_read
+							: ATOM_write);
 }
+
 
 static bool
-unifyStreamNo(Word stream, int n)
-{ switch( n )
-  { case 0:	return unifyAtomic(stream, ATOM_user_input);
-    case 1:	return unifyAtomic(stream, ATOM_user_output);
-    case 2:	return unifyAtomic(stream, ATOM_user_error);
-    default:	if ( fileTable[n].stream_name != NULL )
-		  return unifyAtomic(stream, fileTable[n].stream_name);
-		return unifyAtomic(stream, consNum(n));
+unifyStreamNo(term_t stream, int n)
+{ Atom name;
+
+  switch( n )
+  { case 0:
+      name = ATOM_user_input;
+      break;
+    case 1:	return PL_unify_atom(stream, ATOM_user_output);
+      name = ATOM_user_output;
+      break;
+    case 2:	return PL_unify_atom(stream, ATOM_user_error);
+      name = ATOM_user_error;
+      break;
+    default:
+      if ( fileTable[n].stream_name )
+	name = fileTable[n].stream_name;
+      return PL_unify_integer(stream, n);
   }
+
+  return PL_unify_atom(stream, name);
 }
 
-bool
-told()
+
+word
+pl_told()
 { if ( fileTable[Output].status != F_WRITE )
     succeed;
 
@@ -676,21 +708,24 @@ told()
   succeed;
 }  
 
-static bool
-flush()
+
+word
+pl_flush()
 { if ( fileTable[Output].stream )
     Sflush(fileTable[Output].stream);
 
   succeed;
 }
 
-bool
-see(word f)
+
+word
+pl_see(term_t f)
 { return openStream(f, F_READ, OPEN_TEXT);
 }
 
-bool
-seen()
+
+word
+pl_seen()
 { if ( fileTable[Input].status != F_READ )
     succeed;
 
@@ -700,13 +735,14 @@ seen()
   succeed;
 }
 
-static bool
-openProtocol(Atom f, bool appnd)
+
+static word
+openProtocol(term_t f, bool appnd)
 { int out = Output;
 
-  closeProtocol();
+  pl_noprotocol();
 
-  if ( openStream((word)f, appnd ? F_APPEND : F_WRITE, OPEN_TEXT|OPEN_OPEN) )
+  if ( openStream(f, appnd ? F_APPEND : F_WRITE, OPEN_TEXT|OPEN_OPEN) )
   { protocolStream = Output;
     Output = out;
 
@@ -717,8 +753,9 @@ openProtocol(Atom f, bool appnd)
   fail;
 }
 
-static bool
-closeProtocol()
+
+word
+pl_noprotocol()
 { if ( protocolStream >= 0 )
   { closeStream(protocolStream);
     protocolStream = -1;
@@ -836,28 +873,30 @@ currentStreamName()			/* only if a file! */
 #ifndef HAVE_SELECT
 
 word
-pl_wait_for_input(streams, available, timeout)
-Word streams, available, timeout;
+pl_wait_for_input(term_t streams, term_t available,
+		  term_t timeout)
 { return notImplemented("wait_for_input", 3);
 }
 
 #else
 
 word
-pl_wait_for_input(Word streams, Word available, Word timeout)
+pl_wait_for_input(term_t Streams, term_t Available,
+		  term_t timeout)
 { fd_set fds;
   struct timeval t, *to;
-  real time;
+  double time;
   int n, max = 0;
   char fdmap[256];
+  term_t head      = PL_new_term_ref();
+  term_t streams   = PL_copy_term_ref(Streams);
+  term_t available = PL_copy_term_ref(Available);
 
   FD_ZERO(&fds);
-  while( isList(*streams) )
-  { Word head = HeadList(streams);
-    IOSTREAM *s;
+  while( PL_get_list(streams, head, streams) )
+  { IOSTREAM *s;
     int n, fd;
 
-    deRef(head);
     if ( (n = streamNo(head, F_READ)) < 0 )
       fail;
     if ( !(s = fileTable[n].stream) || (fd=Sfileno(s)) < 0 )
@@ -865,11 +904,11 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
     fdmap[fd] = n;
 
     FD_SET(fd, &fds);
-    if (fd > max) max = fd;
-    streams = TailList(streams);
-    deRef(streams);
+    if ( fd > max )
+      max = fd;
   }
-  if ( !isNil(*streams) || wordToReal(*timeout, &time) == FALSE )
+  if ( !PL_get_nil(streams) ||
+       !PL_get_float(timeout, &time) )
     return warning("wait_for_input/3: instantiation fault");
   
   if ( time > 0.0 )
@@ -887,13 +926,12 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
 
   for(n=0; n <= max; n++)
   { if ( FD_ISSET(n, &fds) )
-    { TRY(unifyFunctor(available, FUNCTOR_dot2) );
-      TRY(unifyStreamName(HeadList(available), fdmap[n]));
-      available = TailList(available);
-      deRef(available);
+    { if ( !PL_unify_list(available, head, available) ||
+	   !unifyStreamName(head, fdmap[n]) )
+	fail;
     }
   }
-  CLOSELIST(available);
+  PL_unify_nil(available);
 
   succeed;
 }
@@ -905,68 +943,47 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
 		*********************************/
 
 word
-pl_put(Word c)
-{ Char chr;
+pl_put(term_t c)
+{ int chr;
   char *s;
 
-  if ( isInteger(*c) )
-  { chr = (int) valNum(*c);
-    if (chr < 0 || chr > 255)
+  if ( PL_get_integer(c, &chr) )
+  { if (chr < 0 || chr > 255)
       return warning("put/1: argument is not an ascii character");
     Put(chr);
-    succeed;
-  }
-  if ( isAtom(*c) )
-  { s = stringAtom(*c);
-    if (s[0] != '\0' && s[1] == '\0')
-    { Put(s[0]);
-      succeed;
-    }
-  }
-  if ( isList(*c) )		/* accept put("a"), but also put("hello") */
-  { while ( isList(*c) )
-    { Word p = HeadList(c);
-      deRef(p);
-      if ( isInteger(*p) && valNum(*p) >= 0 && valNum(*p) < 256 )
-        Put((int)valNum(*p));
-      else
-        goto error;
-      c = TailList(c);
-      deRef(c);
-    }
-    if ( isNil(*c) )
-      succeed;
-  }
+  } else if ( PL_get_chars(c, &s, CVT_ATOM|CVT_LIST|CVT_STRING) )
+  { Puts(s);
+  } else
+    return warning("put/1: instantiation fault");
 
-error:
-  return warning("put/1: instantiation fault");
+  succeed;
 }
 
 word
-pl_put2(Word stream, Word chr)
+pl_put2(term_t stream, term_t chr)
 { streamOutput(stream, pl_put(chr));
 }
 
 word
-pl_get(Word chr)
-{ Char c;
+pl_get(term_t chr)
+{ int c;
 
   do
-  { if ( (c = Get0()) == EOF )
-      return unifyAtomic(chr, consNum(c));
-  } while( isBlank(c) );
+  { c = Get0();
+  } while( c != EOF && isBlank(c) );
 
-  return unifyAtomic(chr, consNum(c));
+  return PL_unify_integer(chr, c);
 }
 
 
 word
-pl_skip(Word chr)
-{ int c, r;
+pl_skip(term_t chr)
+{ int c;
+  int r;
 
-  if ( !isInteger(*chr) )
+  if ( !PL_get_integer(chr, &c) )
     return warning("skip/1: instantiation fault");
-  c = valNum(*chr) & 0xff;
+  c &= 0xff;
 
   while((r=Get0()) != c && r != EOF )
     ;
@@ -976,13 +993,13 @@ pl_skip(Word chr)
 
 
 word
-pl_skip2(Word stream, Word chr)
+pl_skip2(term_t stream, term_t chr)
 { streamInput(stream, pl_skip(chr));
 }
 
 
 word
-pl_get2(Word stream, Word chr)
+pl_get2(term_t stream, term_t chr)
 { streamInput(stream, pl_get(chr));
 }
 
@@ -994,111 +1011,86 @@ pl_tty()				/* $tty/0 */
 }
 
 word
-pl_get_single_char(Word c)
-{ return unifyAtomic(c, consNum(getSingleChar()));
+pl_get_single_char(term_t c)
+{ return PL_unify_integer(c, getSingleChar());
 }
 
 word
-pl_get0(Word c)
-{ return unifyAtomic(c, consNum(Get0()));
+pl_get0(term_t c)
+{ return PL_unify_integer(c, Get0());
 }
 
 word
-pl_get02(Word stream, Word c)
+pl_get02(term_t stream, term_t c)
 { streamInput(stream, pl_get0(c))
 }
 
 word
-pl_seeing(Word f)
+pl_seeing(term_t f)
 { return unifyStreamName(f, Input);
 }
 
 word
-pl_telling(Word f)
+pl_telling(term_t f)
 { return unifyStreamName(f, Output);
 }
 
 word
-pl_seen(void)
-{ return seen();
+pl_tell(term_t f)
+{ return openStream(f, F_WRITE, OPEN_TEXT);
 }
 
 word
-pl_told(void)
-{ return told();
+pl_append(term_t f)
+{ return openStream(f, F_APPEND, OPEN_TEXT);
 }
 
-word
-pl_see(Word f)
-{ return see(*f);
-}
 
 word
-pl_tell(Word f)
-{ return openStream(*f, F_WRITE, OPEN_TEXT);
-}
-
-word
-pl_append(Word f)
-{ return openStream(*f, F_APPEND, OPEN_TEXT);
-}
-
-word
-pl_ttyflush(void)
+pl_ttyflush()
 { int OldOut = Output;
   bool rval;
 
   Output = 1;
-  rval = flush();
+  rval = pl_flush();
   Output = OldOut;
 
   return rval;
 }
 
+
 word
-pl_flush(void)
-{ return flush();
+pl_protocol(term_t file)
+{ return openProtocol(file, FALSE);
 }
 
-word
-pl_protocol(Word file)
-{ if (!isAtom(*file))
-    return warning("protocol/1: argument should be an atom");
 
-  return openProtocol((Atom) *file, FALSE);
+word
+pl_protocola(term_t file)
+{ return openProtocol(file, TRUE);
 }
 
-word
-pl_protocola(Word file)
-{ if (!isAtom(*file))
-    return warning("protocola/1: argument should be an atom");
-
-  return openProtocol((Atom) *file, TRUE);
-}
 
 word
-pl_noprotocol(void)
-{ return closeProtocol();
-}
-
-word
-pl_protocolling(Word file)
-{ if (protocolStream >= 0)
-    return unifyAtomic(file, fileTable[protocolStream].name);
+pl_protocolling(term_t file)
+{ if ( protocolStream >= 0 )
+    return unifyStreamName(protocolStream, file);
 
   fail;
 }
 
+
 word
-pl_prompt(Word old, Word new)
-{ TRY( unifyAtomic(old, prompt_atom) )
+pl_prompt(term_t old, term_t new)
+{ Atom a;
 
-  if (!isAtom(*new) )
-    return warning("prompt/2: instantiation fault");
+  if ( PL_unify_atom(old, prompt_atom) &&
+       PL_get_atom(new, &a) )
+  { prompt_atom = a;
+    succeed;
+  }
 
-  prompt_atom = (Atom) *new;
-
-  succeed;
+  fail;
 }
 
 
@@ -1112,25 +1104,24 @@ prompt1(char *prompt)
 
 
 word
-pl_prompt1(Word prompt)
+pl_prompt1(term_t prompt)
 { char *s;
 
-  if ( !(s = primitiveToString(*prompt, FALSE)) &&
-       !(s = listToString(*prompt)) )
-    return warning("prompt1/1: instantiation fault");
+  if ( PL_get_chars(prompt, &s, CVT_ALL) )
+  { prompt1(s);
+    succeed;
+  }
 
-  prompt1(s);
-
-  succeed;
+  return warning("prompt1/1: instantiation fault");
 }
 
 
 word
-pl_tab(Word n)
+pl_tab(term_t n)
 { word val = evaluate(n);
   int m;
 
-  if (!isInteger(val))
+  if ( !isInteger(val) )
     return warning("tab/1: instantiation fault");
   m = (int) valNum(val);
 
@@ -1157,8 +1148,8 @@ PrologPrompt()
 
 
 word
-pl_tab2(Word stream, Word n)
-{ streamOutput(stream, pl_tab(n));
+pl_tab2(term_t stream, term_t n)
+{ streamOutput(stream, pl_tab(n)); /* TBD */
 }
 
 		/********************************
@@ -1166,16 +1157,18 @@ pl_tab2(Word stream, Word n)
 		*********************************/
 
 static bool
-setUnifyStreamNo(Word stream, int n)
-{ if ( isAtom(*stream) )
+setUnifyStreamNo(term_t stream, int n)
+{ Atom a;
+
+  if ( PL_get_atom(stream, &a) )
   { register int i;
 
     for(i = 0; i < maxfiles; i++ )
     { if ( fileTable[i].status != F_CLOSED &&
-	   fileTable[i].stream_name == (Atom)*stream )
-	return warning("Stream name %s already in use", stringAtom(*stream));
+	   fileTable[i].stream_name == a )
+	return warning("Stream name %s already in use", stringAtom(a));
     }
-    fileTable[n].stream_name = (Atom) *stream;
+    fileTable[n].stream_name = a;
     succeed;
   }
 
@@ -1193,35 +1186,40 @@ static opt_spec open4_options[] =
 
 
 word
-pl_open4(Word file, Word mode, Word stream, Word options)
-{ int m;
+pl_open4(term_t file, term_t mode,
+	 term_t stream, term_t options)
+{ int m = -1;
+  Atom mname;
   Atom type       = ATOM_text;
   bool reposition = FALSE;
   Atom alias	  = NULL;
   Atom eof_action = ATOM_eof_code;
   int flags = OPEN_OPEN;
 
-  if ( !scan_options(*options, 0, open4_options,
+  if ( !scan_options(options, 0, open4_options,
 		     &type, &reposition, &alias, &eof_action) )
     return warning("open/4: illegal option list");
 
   if ( alias )
-    TRY(unifyAtomic(stream, alias));
+    TRY(PL_unify_atom(stream, alias));
   if ( type == ATOM_text )
     flags |= OPEN_TEXT;
   
-  if ( *mode == (word) ATOM_write )
-    m = F_WRITE;
-  else if ( *mode == (word) ATOM_append )
-    m = F_APPEND;
-  else if ( *mode == (word) ATOM_read )
-    m = F_READ;
-  else
+  if ( PL_get_atom(mode, &mname) )
+  {      if ( mname == ATOM_write )
+      m = F_WRITE;
+    else if ( mname == ATOM_append )
+      m = F_APPEND;
+    else if ( mname == ATOM_read )
+      m = F_READ;
+  }
+  if ( m < 0 )
     return warning("open/3: Invalid mode specification");
 
   if ( m == F_READ )
   { int in = Input;
-    if ( openStream(*file, m, flags) )
+
+    if ( openStream(file, m, flags) )
     { if ( setUnifyStreamNo(stream, Input) )
       { if ( eof_action != ATOM_eof_code )
 	{ IOSTREAM *s = fileTable[Input].stream;
@@ -1242,7 +1240,7 @@ pl_open4(Word file, Word mode, Word stream, Word options)
     fail;
   } else
   { int out = Output;
-    if ( openStream(*file, m, flags) )
+    if ( openStream(file, m, flags) )
     { if ( setUnifyStreamNo(stream, Output) )
       { Output = out;
         succeed;
@@ -1259,14 +1257,17 @@ pl_open4(Word file, Word mode, Word stream, Word options)
 
 
 word
-pl_open(Word file, Word mode, Word stream)
-{ word n = (word) ATOM_nil;
+pl_open(term_t file, term_t mode, term_t stream)
+{ term_t n = PL_new_term_ref();
+  PL_put_nil(n);
 
-  return pl_open4(file, mode, stream, &n);
+  return pl_open4(file, mode, stream, n);
 }
 
 
-#ifndef USEDEVNULL
+		 /*******************************
+		 *	   NULL-STREAM		*
+		 *******************************/
 
 static int
 Swrite_null(void *handle, char *buf, int size)
@@ -1308,57 +1309,43 @@ static IOFUNCTIONS nullFunctions =
 
 
 word
-pl_open_null_stream(Word stream)
+pl_open_null_stream(term_t stream)
 { int sflags = SIO_NBUF|SIO_RECORDPOS;
   IOSTREAM *s = Snew((void *)NULL, sflags, &nullFunctions);
 
-  return PL_open_stream(s, stream);
+  return PL_open_stream(stream, s);
 }
 
-#else /*USEDEVNULL*/
-
-#ifndef DEVNULL
-#define DEVNULL "/dev/null"
-#endif
-
-word
-pl_open_null_stream(Word stream)
-{ static word mode = (word) ATOM_write;
-  word file = (word) lookupAtom(DEVNULL);
-
-  return pl_open(&file, &mode, stream);
-}
-#endif /*USEDEVNULL*/
 
 int
-streamNo(Word spec, int mode)
+streamNo(term_t spec, int mode)
 { int n = -1;
   
-  if ( isInteger(*spec) )
-  { n = (int) valNum(*spec);
-  } else if ( isAtom(*spec) )
-  { Atom k = (Atom) *spec;
+  if ( !PL_get_integer(spec, &n) )
+  { Atom name;
 
-    if ( k == ATOM_user )
-      n = (mode == F_READ ? 0 : 1);
-    else if ( k == ATOM_user_input )
-      n = 0;
-    else if ( k == ATOM_user_output )
-      n = 1;
-    else if ( k == ATOM_user_error )
-      n = 2;
-    else
-    { register int i;
+    if ( PL_get_atom(spec, &name) )
+    {      if ( name == ATOM_user )
+	n = (mode == F_READ ? 0 : 1);
+      else if ( name == ATOM_user_input )
+	n = 0;
+      else if ( name == ATOM_user_output )
+        n = 1;
+      else if ( name == ATOM_user_error )
+        n = 2;
+      else
+      { int i;
 
-      for(i = 3; i < maxfiles; i++)
-      { if ( fileTable[i].stream_name == k )
-        { n = i;
-          break;
+	for(i = 3; i < maxfiles; i++)
+	{ if ( fileTable[i].stream_name == name )
+	  { n = i;
+	    break;
+	  }
 	}
       }
     }
   }
-  
+
   if ( n < 0 || n >= maxfiles || fileTable[n].status == F_CLOSED )
   { warning("Illegal I/O stream specification");
     return -1;
@@ -1382,8 +1369,9 @@ streamNo(Word spec, int mode)
   return n;
 }
   
+
 word
-pl_close(Word stream)
+pl_close(term_t stream)
 { int n;
 
   if ( (n = streamNo(stream, F_READ|F_WRITE)) < 0 )
@@ -1399,7 +1387,8 @@ pl_close(Word stream)
 }
 
 word
-pl_current_stream(Word file, Word mode, Word stream, word h)
+pl_current_stream(term_t file, term_t mode,
+		  term_t stream, word h)
 { int n;
 
   switch( ForeignControl(h) )
@@ -1427,8 +1416,9 @@ pl_current_stream(Word file, Word mode, Word stream, word h)
   fail;
 }      
 
+
 word
-pl_flush_output(Word stream)
+pl_flush_output(term_t stream)
 { int n;
 
   if ( (n = streamNo(stream, F_WRITE)) < 0 )
@@ -1440,7 +1430,7 @@ pl_flush_output(Word stream)
 
 
 static IOSTREAM *
-ioStreamWithPosition(Word stream)
+ioStreamWithPosition(term_t stream)
 { int n;
   IOSTREAM *s;
 
@@ -1457,33 +1447,37 @@ ioStreamWithPosition(Word stream)
 
 
 word
-pl_stream_position(Word stream, Word old, Word new)
+pl_stream_position(term_t stream, term_t old, term_t new)
 { IOSTREAM *s;
   long oldcharno, charno, linepos, lineno;
+  term_t a = PL_new_term_ref();
+  functor_t f;
 
   if ( !(s = ioStreamWithPosition(stream)) )
     fail;
+
   charno  = s->position->charno;
   lineno  = s->position->lineno;
   linepos = s->position->linepos;
   oldcharno = charno;
 
-  TRY( unifyFunctor(old, FUNCTOR_stream_position3) );
-  TRY( unifyAtomic(argTermP(*old, 0), consNum(charno)) );
-  TRY( unifyAtomic(argTermP(*old, 1), consNum(lineno)) );
-  TRY( unifyAtomic(argTermP(*old, 2), consNum(linepos)) );
+  if ( !PL_unify_functor(old, FUNCTOR_stream_position3) ||
+       !PL_get_arg(1, old, a) ||
+       !PL_unify_integer(a, charno) ||
+       !PL_get_arg(2, old, a) ||
+       !PL_unify_integer(a, lineno) ||
+       !PL_get_arg(3, old, a) ||
+       !PL_unify_integer(a, linepos) )
+    fail;
 
-  deRef(new);
-  if ( !isTerm(*new) ||
-       functorTerm(*new) != FUNCTOR_stream_position3 ||
-       !isInteger(argTerm(*new, 0)) ||
-       !isInteger(argTerm(*new, 1)) ||
-       !isInteger(argTerm(*new, 2)) )
+  if ( !(PL_get_functor(new, &f) && f == FUNCTOR_stream_position3) ||
+       !PL_get_arg(1, new, a) ||
+       !PL_get_long(a, &charno) ||
+       !PL_get_arg(2, new, a) ||
+       !PL_get_long(a, &lineno) ||
+       !PL_get_arg(3, new, a) ||
+       !PL_get_long(a, &linepos) )
     return warning("stream_position/3: Invalid position specifier");
-
-  charno = valNum(argTerm(*new, 0));
-  lineno = valNum(argTerm(*new, 1));
-  linepos= valNum(argTerm(*new, 2));
 
   if ( charno != oldcharno && Sseek(s, charno, 0) < 0 )
     return warning("Failed to set stream position: %s", OsError());
@@ -1495,8 +1489,9 @@ pl_stream_position(Word stream, Word old, Word new)
   succeed;
 }
 
+
 word
-pl_set_input(Word stream)
+pl_set_input(term_t stream)
 { int n;
 
   if ( (n = streamNo(stream, F_READ)) < 0 )
@@ -1506,8 +1501,9 @@ pl_set_input(Word stream)
   succeed;
 }
 
+
 word
-pl_set_output(Word stream)
+pl_set_output(term_t stream)
 { int n;
 
   if ( (n = streamNo(stream, F_WRITE)) < 0 )
@@ -1517,59 +1513,58 @@ pl_set_output(Word stream)
   succeed;
 }
 
+
 word
-pl_current_input(Word stream)
+pl_current_input(term_t stream)
 { return unifyStreamNo(stream, Input);
 }
 
+
 word
-pl_current_output(Word stream)
+pl_current_output(term_t stream)
 { return unifyStreamNo(stream, Output);
 }
 
 word
-pl_character_count(Word stream, Word count)
+pl_character_count(term_t stream, term_t count)
 { IOSTREAM *s = ioStreamWithPosition(stream);
 
   if ( s )
-    return unifyAtomic(count, consNum(s->position->charno));
+    return PL_unify_integer(count, s->position->charno);
 
   fail;
 }
 
 word
-pl_line_count(Word stream, Word count)
+pl_line_count(term_t stream, term_t count)
 { IOSTREAM *s = ioStreamWithPosition(stream);
 
   if ( s )
-    return unifyAtomic(count, consNum(s->position->lineno));
+    return PL_unify_integer(count, s->position->lineno);
 
   fail;
 }
 
 word
-pl_line_position(Word stream, Word count)
+pl_line_position(term_t stream, term_t count)
 { IOSTREAM *s = ioStreamWithPosition(stream);
 
   if ( s )
-    return unifyAtomic(count, consNum(s->position->linepos));
+    return PL_unify_integer(count, s->position->linepos);
 
   fail;
 }
 
 
 word
-pl_source_location(Word file, Word line)
-{ if ( ReadingSource )
-  { char *s = AbsoluteFile(stringAtom(source_file_name));
+pl_source_location(term_t file, term_t line)
+{ char *s;
 
-    if ( s != NULL )
-    { TRY( unifyAtomic(file, lookupAtom(s)) );
-      TRY( unifyAtomic(line, consNum(source_line_no)) );
-      
-      succeed;
-    }
-  }
+  if ( ReadingSource &&
+       (s = AbsoluteFile(stringAtom(source_file_name))) &&
+	PL_unify_atom_chars(file, s) &&
+	PL_unify_integer(line, source_line_no) )
+    succeed;
   
   fail;
 }
@@ -1580,58 +1575,78 @@ pl_source_location(Word file, Word line)
 		*********************************/
 
 bool
-unifyTime(Word t, long int time)
-{ return unifyAtomic(t, globalReal((real)time));
+unifyTime(term_t t, long time)
+{ return PL_unify_float(t, (double)time);
+}
+
+
+char *
+get_filename(term_t n, char *buf, int size)
+{ char *name;
+
+  if ( PL_get_chars(n, &name, CVT_ALL) &&
+       (name = ExpandOneFile(name)) )
+  { if ( buf )
+    { if ( strlen(name) < size )
+      { strcpy(buf, name);
+	return buf;
+      }
+
+      warning("File name too long");
+    } else
+      return name;
+  }
+
+  return NULL;
 }
 
 
 word
-pl_time_file(Word name, Word t)
+pl_time_file(term_t name, term_t t)
+{ char *fn;
+
+  if ( (fn = get_filename(name, NULL, 0)) )
+  { long time;
+
+    if ( (time = LastModifiedFile(fn)) == -1 )
+      fail;
+
+    return unifyTime(t, time);
+  }
+
+  return warning("time_file/2: instantiation fault");
+}
+
+
+word
+pl_size_file(term_t name, term_t len)
 { char *n;
-  long time;
 
-  if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
-    return warning("time_file/2: instantiation fault");
-  if ( (n = ExpandOneFile(n)) == (char *)NULL )
-    fail;
+  if ( (n = get_filename(name, NULL, 0)) )
+  { long size;
 
-  if ( (time = LastModifiedFile(n)) == -1 )
-    fail;
+    if ( (size = SizeFile(n)) < 0 )
+      return warning("size_file/2: %s", OsError());
 
-  return unifyTime(t, time);
+    return PL_unify_integer(len, size);
+  }
+
+  return warning("exists_file/1: instantiation fault");
 }
 
 
 word
-pl_size_file(Word name, Word len)
-{ char *n;
-  long size;
-
-  if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
-    return warning("exists_file/1: instantiation fault");
-  if ( (n = ExpandOneFile(n)) == (char *)NULL )
-    fail;
-  
-  if ( (size = SizeFile(n)) < 0 )
-    return warning("size_file/2: %s", OsError());
-
-  return unifyAtomic(len, consNum(size));
-}
-
-
-word
-pl_access_file(Word name, Word mode)
+pl_access_file(term_t name, term_t mode)
 { char *n;
   int md;
-  Atom m = (Atom) *mode;
+  Atom m;
+
+  if ( !PL_get_atom(mode, &m) ||
+       !(n=get_filename(name, NULL, 0)) )
+    return warning("access_file/2: instantiation fault");
 
   if ( m == ATOM_none )
     succeed;
-
-  if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
-    return warning("access_file/2: instantiation fault");
-  if ( (n = ExpandOneFile(n)) == (char *)NULL )
-    fail;
   
   if      ( m == ATOM_write || m == ATOM_append )
     md = ACCESS_WRITE;
@@ -1661,152 +1676,16 @@ pl_access_file(Word name, Word mode)
 
 
 word
-pl_read_link(Word file, Word link, Word to)
+pl_read_link(term_t file, term_t link, term_t to)
 { char *n, *l, *t;
 
-  if ( (n = primitiveToString(*file, FALSE)) == (char *)NULL )
+  if ( !(n = get_filename(file, NULL, 0)) )
     return warning("read_link/2: instantiation fault");
-  if ( (l = ReadLink(n)) )
-    TRY(unifyAtomic(link, lookupAtom(l)));
-  if ( (t = DeRefLink(n)) )
-    return unifyAtomic(to, lookupAtom(t));
 
-  succeed;
-}
-
-
-word
-pl_exists_file(Word name)
-{ char *n;
-
-  if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
-    return warning("exists_file/1: instantiation fault");
-  if ( (n = ExpandOneFile(n)) == (char *)NULL )
-    fail;
-  
-  return ExistsFile(n);
-}
-
-
-word
-pl_exists_directory(Word name)
-{ char *n;
-
-  if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
-    return warning("exists_directory/1: instantiation fault");
-  if ( (n = ExpandOneFile(n)) == (char *)NULL )
-    fail;
-  
-  return ExistsDirectory(n);
-}
-
-
-word
-pl_tmp_file(Word base, Word name)
-{ char *n;
-
-  if ( (n = primitiveToString(*base, FALSE)) == (char *)NULL )
-    return warning("tmp_file/2: instantiation fault");
-
-  return unifyAtomic(name, TemporaryFile(n));
-}
-
-
-word
-pl_delete_file(Word name)
-{ char *n;
-
-  if ( (n = primitiveToString(*name, FALSE)) == (char *)NULL )
-    return warning("delete_file/1: instantiation fault");
-  if ( (n = ExpandOneFile(n)) == (char *)NULL )
-    fail;
-  
-  return RemoveFile(n);
-}
-
-
-word
-pl_same_file(Word file1, Word file2)
-{ char *n1, *n2;
-
-  initAllocLocal();
-  if ( (n1 = primitiveToString(*file1, TRUE)) == NULL ||
-       (n2 = primitiveToString(*file2, TRUE)) == NULL )
-    return warning("same_file/2: instantiation fault");
-
-  if ( (n1 = ExpandOneFile(n1)) == NULL )
-    fail;
-  n1 = store_string_local(n1);
-  if ( (n2 = ExpandOneFile(n2)) == NULL )
-    fail;
-  stopAllocLocal();
-
-  return SameFile(n1, n2);
-}
-
-
-word
-pl_rename_file(Word old, Word new)
-{ char *o, *n;
-
-  initAllocLocal();
-  o = primitiveToString(*old, TRUE);
-  n = primitiveToString(*new, TRUE);
-  if ( o == (char *) NULL || n == (char *) NULL )
-  { stopAllocLocal();
-    return warning("rename_file/2: instantiation fault");
-  }
-  
-  if ( (o = ExpandOneFile(o)) == (char *)NULL )
-    fail;
-  o = store_string_local(o);
-  if ( (n = ExpandOneFile(n)) == (char *)NULL )
-    fail;
-  n = store_string_local(n);
-  stopAllocLocal();
-
-  if ( RenameFile(o, n) )
-    succeed;
-  else
-  { if ( fileerrors )
-      warning("rename_file/2: could not rename %s --> %s: %s\n",
-	      o, n, OsError());
-    fail;
-  }
-}
-
-
-word
-pl_fileerrors(Word old, Word new)
-{ TRY(unifyAtomic(old, (fileerrors ? ATOM_on : ATOM_off)) );
-
-  if ( *new == (word) ATOM_on )       fileerrors = TRUE;
-  else if ( *new == (word) ATOM_off ) fileerrors = FALSE;
-  else                                fail;
-
-  succeed;
-}
-
-
-word
-pl_absolute_file_name(Word name, Word expanded)
-{ char *s = primitiveToString(*name, FALSE);
-
-  if ( s == (char *) NULL || (s = AbsoluteFile(s)) == (char *) NULL)
-    return warning("Invalid file specification");
-
-  return unifyAtomic(expanded, lookupAtom(s));
-}
-
-
-word
-pl_is_absolute_file_name(Word name)
-{ char *s = primitiveToString(*name, FALSE);
-  char pls[MAXPATHLEN];
-
-  if ( s &&
-       (s = ExpandOneFile(PrologPath(s, pls))) &&
-       IsAbsolutePath(s) )
+  if ( (l = ReadLink(n)) &&
+       PL_unify_atom_chars(link, l) &&
+       (t = DeRefLink(n)) &&
+       PL_unify_atom_chars(to, t) )
     succeed;
 
   fail;
@@ -1814,74 +1693,187 @@ pl_is_absolute_file_name(Word name)
 
 
 word
-pl_chdir(Word dir)
-{ char *s = primitiveToString(*dir, FALSE);
-  char pls[MAXPATHLEN];
+pl_exists_file(term_t name)
+{ char *n;
 
-  if ( s == (char *)NULL )
-    return warning("chdir/1: instantiation fault");
-  if ( (s = ExpandOneFile(PrologPath(s, pls))) == (char *)NULL )
-    fail;
+  if ( !(n = get_filename(name, NULL, 0)) )
+    return warning("exists_file/1: instantiation fault");
   
-  if ( ChDir(s) )
+  return ExistsFile(n);
+}
+
+
+word
+pl_exists_directory(term_t name)
+{ char *n;
+
+  if ( !(n = get_filename(name, NULL, 0)) )
+    return warning("exists_directory/1: instantiation fault");
+  
+  return ExistsDirectory(n);
+}
+
+
+word
+pl_tmp_file(term_t base, term_t name)
+{ char *n;
+
+  if ( !PL_get_chars(base, &n, CVT_ALL) )
+    return warning("tmp_file/2: instantiation fault");
+
+  return PL_unify_atom(name, TemporaryFile(n));
+}
+
+
+word
+pl_delete_file(term_t name)
+{ char *n;
+
+  if ( !(n = get_filename(name, NULL, 0)) )
+    return warning("delete_file/1: instantiation fault");
+  
+  return RemoveFile(n);
+}
+
+
+word
+pl_same_file(term_t file1, term_t file2)
+{ char *n1, *n2;
+  char name1[MAXPATHLEN];
+
+  if ( (n1 = get_filename(file1, name1, sizeof(name1))) &&
+       (n2 = get_filename(file2, NULL, 0)) )
+    return SameFile(name1, n2);
+
+  return warning("same_file/2: instantiation fault");
+}
+
+
+word
+pl_rename_file(term_t old, term_t new)
+{ char *o, *n;
+  char ostore[MAXPATHLEN];
+
+  if ( (o = get_filename(old, ostore, sizeof(ostore))) &&
+       (n = get_filename(new, NULL, 0)) )
+  { if ( RenameFile(ostore, n) )
+      succeed;
+
+    if ( fileerrors )
+      warning("rename_file/2: could not rename %s --> %s: %s\n",
+	      ostore, n, OsError());
+    fail;
+  }
+
+  return warning("rename_file/2: instantiation fault");
+}
+
+
+word
+pl_fileerrors(term_t old, term_t new)
+{ return setBoolean(&fileerrors, "fileerrors", old, new);
+}
+
+
+word
+pl_absolute_file_name(term_t name, term_t expanded)
+{ char *n;
+
+  if ( (n = get_filename(name, NULL, 0)) &&
+       (n = AbsoluteFile(n)) )
+    return PL_unify_atom_chars(expanded, n);
+
+  return warning("absolute_file_name/2: instantiation fault");
+}
+
+
+word
+pl_is_absolute_file_name(term_t name)
+{ char *n;
+
+  if ( (n = get_filename(name, NULL, 0)) &&
+       IsAbsolutePath(n) )
     succeed;
 
-  return warning("chdir/1: cannot change directory to %s: %s", s, OsError());
+  fail;
 }
 
 
 word
-pl_file_base_name(Word f, Word b)
-{ if (!isAtom(*f))
+pl_chdir(term_t dir)
+{ char *n;
+
+  if ( (n = get_filename(dir, NULL, 0)) )
+  { if ( ChDir(n) )
+      succeed;
+
+    if ( fileerrors )
+      warning("chdir/1: cannot change directory to %s: %s", n, OsError());
+    fail;
+  }
+
+  return warning("chdir/1: instantiation fault");
+}
+
+
+word
+pl_file_base_name(term_t f, term_t b)
+{ char *n;
+
+  if ( !PL_get_chars(f, &n, CVT_ALL) )
     return warning("file_base_name/2: instantiation fault");
 
-  return unifyAtomic(b, lookupAtom(BaseName(stringAtom(*f))));
+  return PL_unify_atom_chars(b, BaseName(n));
 }
 
 
 word
-pl_file_dir_name(Word f, Word b)
-{ if (!isAtom(*f))
+pl_file_dir_name(term_t f, term_t b)
+{ char *n;
+
+  if ( !PL_get_chars(f, &n, CVT_ALL) )
     return warning("file_dir_name/2: instantiation fault");
 
-  return unifyAtomic(b, lookupAtom(DirName(stringAtom(*f))));
+  return PL_unify_atom_chars(b, DirName(n));
 }
 
 
 word
-pl_prolog_to_os_filename(Word pl, Word os)
+pl_prolog_to_os_filename(term_t pl, term_t os)
 {
 #ifdef O_XOS
+  char *n;
   char buf[MAXPATHLEN];
 
-  if ( isAtom(*pl) )
-  { _xos_os_filename(stringAtom(*pl), buf);
-    return unifyAtomic(os, lookupAtom(buf));
-  } else if ( isAtom(*os) )
-  { _xos_canonical_filename(stringAtom(*os), buf);
-    return unifyAtomic(pl, lookupAtom(buf));
+  if ( PL_get_chars(pl, &n, CVT_ALL) )
+  { _xos_os_filename(n, buf);
+    return PL_unify_atom_chars(os, buf);
+  } else if ( PL_get_chars(os, &n, CVT_ALL) )
+  { _xos_canonical_filename(n, buf);
+    return PL_unify_atom_chars(pl, buf);
   } else
     return warning("prolog_to_os_filename/2: instantiation fault");
 #else /*O_XOS*/
-  return pl_unify(pl, os);
+  return PL_unify(pl, os);
 #endif /*O_XOS*/
 }
 
 
 #if defined(O_XOS) && defined(__WIN32__)
 word
-pl_make_fat_filemap(Word dir)
-{ char *s = primitiveToString(*dir, FALSE);
-  char pls[MAXPATHLEN];
+pl_make_fat_filemap(term_t dir)
+{ char *n;
 
-  if ( s == (char *)NULL )
-    return warning("make_fat_filemap/1: instantiation fault");
-  if ( (s = ExpandOneFile(PrologPath(s, pls))) == (char *)NULL )
+  if ( (n = get_filename(dir, NULL, 0)) )
+  { if ( _xos_make_filemap(s) == 0 )
+      succeed;
+
+    if ( fileerrors )
+      warning("make_fat_filemap/1: failed: %s", OsError());
+
     fail;
+  }
   
-  if ( _xos_make_filemap(s) < 0 )
-    return warning("make_fat_filemap/1: failed: %s", OsError());
-  
-  succeed;
+  return warning("make_fat_filemap/1: instantiation fault");
 }
 #endif

@@ -134,7 +134,7 @@ setMap(uchar *map, int c)
 }
 
 
-bool
+static bool
 compilePattern(char *p)
 { cbuf.size = 0;
   if ( compile_pattern(&cbuf, p, NOCURL) == (char *) NULL )
@@ -252,10 +252,11 @@ compile_pattern(struct out *Out, char *p, int curl)
 }
 
 
-bool
+static inline bool
 matchPattern(char *s)
 { return match_pattern(cbuf.code, s);
 }
+
 
 static bool
 match_pattern(uchar *p, char *str)
@@ -311,20 +312,18 @@ match_pattern(uchar *p, char *str)
 
 
 word
-pl_wildcard_match(Word pattern, Word string)
-{ char *p, *s;
+pl_wildcard_match(term_t pattern, term_t string)
+{ char *p;
 
-  initAllocLocal();
-  p = primitiveToString(*pattern, TRUE);
-  s = primitiveToString(*string, TRUE);
-  stopAllocLocal();
+  if ( PL_get_chars(pattern, &p, CVT_ALL) &&
+       compilePattern(p) )
+  { char *s;
 
-  if ( p == (char *)NULL || s == (char *)NULL )
-    return warning("wildcard_match/2: instantiation fault");
-
-  TRY( compilePattern(p) );
-
-  return matchPattern(s);
+    if ( PL_get_chars(string, &s, CVT_ALL) )
+      return matchPattern(s);
+  }
+    
+  return warning("wildcard_match/2: instantiation fault");
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -332,31 +331,30 @@ File Name Expansion.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_expand_file_name(Word f, Word l)
+pl_expand_file_name(term_t f, term_t list)
 { char spec[MAXPATHLEN];
-  char *s = primitiveToString(*f, FALSE);
+  char *s;
   char *vector[MAXEXPAND];
   char **v;
   int filled;
+  term_t l    = PL_copy_term_ref(list);
+  term_t head = PL_new_term_ref();
 
-  if ( s == (char *) NULL )
+  if ( !PL_get_chars(f, &s, CVT_ALL) )
     return warning("expand_file_name/2: instantiation fault");
   if ( strlen(s) > MAXPATHLEN-1 )
     return warning("expand_file_name/2: name too long");
-  TRY( expandVars(s, spec) );
 
+  TRY( expandVars(s, spec) );
   TRY( expand(spec, vector, &filled) );
 
   for( v = vector; filled > 0; filled--, v++ )
-  { word w;
-
-    w = (word) lookupAtom(*v);
-    APPENDLIST(l, &w);
+  { if ( !PL_unify_list(l, head, l) ||
+	 !PL_unify_atom_chars(head, *v) )
+      fail;
   }
 
-  CLOSELIST(l);
-
-  succeed;
+  return PL_unify_nil(l);
 }
 
 

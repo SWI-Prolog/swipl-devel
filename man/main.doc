@@ -6,10 +6,10 @@
 #endif
 
 \newcommand{\vmajor}{2}
-\newcommand{\vminor}{1}
-\newcommand{\vpatch}{13}
-\newcommand{\vmonth}{December}
-\newcommand{\vyear}{1995}
+\newcommand{\vminor}{5}
+\newcommand{\vpatch}{0}
+\newcommand{\vmonth}{January}
+\newcommand{\vyear}{1996}
 
 \newcommand{\double}{\thispagestyle{plain}\cleardoublepage}
 \newcommand{\onlinebreak}{}

@@ -156,22 +156,17 @@ subwordsTransposed(char *s1, char *s2)
 		*********************************/
 
 word
-pl_dwim_match(Word a1, Word a2, Word mm)
-{ char *s1, *s2 = NULL;		/* initialise to make gcc happy */
-  bool rval;
+pl_dwim_match(term_t a1, term_t a2, term_t mm)
+{ char *s1, *s2;
   Atom type;
 
-  initAllocLocal();
-  rval = ((s1 = primitiveToString(*a1, TRUE)) != (char *)NULL &&
-	  (s2 = primitiveToString(*a2, TRUE)) != (char *)NULL);
-  stopAllocLocal();
-  if ( !rval )
-    fail;
-
-  if ( (type = dwimMatch(s1, s2)) == (Atom) NULL )
-    fail;
-
-  return unifyAtomic(mm, type);
+  if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_RING) &&
+       PL_get_chars(a2, &s2, CVT_ALL|BUF_RING) &&
+       (type = dwimMatch(s1, s2)) &&
+       PL_unify_atom(mm, type) )
+    succeed;
+    
+  fail;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -181,24 +176,20 @@ predicate head.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_dwim_predicate(Word term, Word dwim, word h)
+pl_dwim_predicate(term_t pred, term_t dwim, word h)
 { FunctorDef fdef;
   Module module = (Module) NULL;
   Procedure proc;
   Symbol symb;
+  term_t head = PL_new_term_ref();
 
   if ( ForeignControl(h) == FRG_CUTTED )
     succeed;
 
-  if ((term = stripModule(term, &module)) == (Word) NULL)
+  if ( !PL_strip_module(pred, &module, head) )
     fail;
-
-  if (isAtom(*term) )
-    fdef = lookupFunctorDef((Atom)*term, 0);
-  else if (isTerm(*term) )
-    fdef = functorTerm(*term);
-  else
-    return warning("dwim_predicate/2: illegal term specification");
+  if ( !PL_get_functor(head, &fdef) )
+    return warning("dwim_predicate/2: instantiation fault");
   	
   if ( ForeignControl(h) == FRG_FIRST_CALL )
     symb = firstHTable(module->procedures);
@@ -215,9 +206,9 @@ pl_dwim_predicate(Word term, Word dwim, word h)
 		   stringAtom(def->functor->name)) &&
          isDefinedProcedure(proc) &&
          (stringAtom(def->functor->name)[0] != '$' || SYSTEM_MODE) )
-    { if ( unifyFunctor(dwim, def->functor) == FALSE)
+    { if ( !PL_unify_functor(dwim, def->functor) )
 	continue;
-      if ((symb = nextHTable(module->procedures, symb)) != (Symbol) NULL)
+      if ( (symb = nextHTable(module->procedures, symb)) )
 	ForeignRedo(symb);
 
       succeed;

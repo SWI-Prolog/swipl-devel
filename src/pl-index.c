@@ -201,7 +201,7 @@ findClause(ClauseRef cref, Word argv, Definition def, bool *deterministic)
 }
 
 
-ClauseRef
+static ClauseRef
 nextClause(ClauseRef cref, bool *det, Index ctx)
 { if ( ctx->varmask == 0x0L )		/* no indexing */
   { for(;;cref = cref->next)
@@ -262,7 +262,7 @@ nextClause(ClauseRef cref, bool *det, Index ctx)
 }
 
 
-ClauseRef
+static ClauseRef
 firstClause(Word argv, Definition def, bool *det)
 { ClauseRef cref;
   struct index buf;
@@ -319,25 +319,29 @@ reindexClause(Clause clause)
   if ( pattern == 0x0 )
     succeed;
   if ( false(clause, ERASED) )
-  { mark m;
+  { fid_t fid = PL_open_foreign_frame();
     
-    Mark(m);
     if ( pattern == 0x1 )		/* the 99.9% case.  Speedup a little */
-    { Word a1 = newTerm();
+    { word key;
 
-      decompileArg1(clause, a1);
-      getIndex(a1, pattern, 1, &clause->index);
+      if ( arg1Key(clause, &key) )
+      { clause->index.key     = key;
+	clause->index.varmask = ~0L;
+      } else
+      { clause->index.key     = 0L;
+	clause->index.varmask = 0L;
+      }
     } else
-    { Word head = newTerm();
+    { term_t head = PL_new_term_ref();
 
       decompileHead(clause, head);
-      getIndex(argTermP(*head, 0),
+      getIndex(argTermP(*valTermRef(head), 0),
 	       pattern,
 	       proc->definition->indexCardinality,
 	       &clause->index);
     }
 
-    Undo(m);
+    PL_discard_foreign_frame(fid);
   }
 
   succeed;
@@ -345,30 +349,34 @@ reindexClause(Clause clause)
 
 
 bool
-indexPatternToTerm(Procedure proc, Word value)
-{ Word argp;
-  Definition def = proc->definition;
+unify_index_pattern(Procedure proc, term_t value)
+{ Definition def = proc->definition;
   unsigned long pattern = (def->indexPattern & ~NEED_REINDEX);
   int n, arity = def->functor->arity;
 
-  if (pattern == 0)
+  if ( pattern == 0 )
     fail;
 
-  deRef(value);
-  TRY(unifyFunctor(value, def->functor) );
-  argp = argTermP(*value, 0);
+  if ( PL_unify_functor(value, def->functor) )
+  { term_t a = PL_new_term_ref();
 
-  for(n=0; n<arity; n++, argp++, pattern >>= 1)
-    TRY(unifyAtomic(argp, consNum((pattern & 0x1) ? 1 : 0) ));
+    for(n=0; n<arity; n++, pattern >>= 1)
+    { if ( !PL_get_arg(n+1, value, a) ||
+	   !PL_unify_integer(a, (pattern & 0x1) ? 1 : 0) )
+	fail;
+    }
 
-  succeed;
+    succeed;
+  }
+
+  fail;
 }
 
 		 /*******************************
 		 *	   HASH SUPPORT		*
 		 *******************************/
 
-ClauseIndex
+static ClauseIndex
 newClauseIndexTable(int buckets)
 { ClauseIndex ci = allocHeap(sizeof(struct clause_index));
   ClauseChain ch;
@@ -578,12 +586,17 @@ hashDefinition(Definition def, int buckets)
 }
 
 word
-pl_hash(Word pred)
-{ Procedure proc = findCreateProcedure(pred);
-  Definition def = proc->definition;
+pl_hash(term_t pred)
+{ Procedure proc;
 
-  if ( false(def, FOREIGN) && def->indexPattern & NEED_REINDEX )
-    reindexDefinition(def);
+  if ( get_procedure(pred, &proc, 0, GP_CREATE) )
+  { Definition def = proc->definition;
 
-  return hashDefinition(def, 256);
+    if ( false(def, FOREIGN) && def->indexPattern & NEED_REINDEX )
+      reindexDefinition(def);
+
+    return hashDefinition(def, 256);
+  }
+
+  fail;
 }

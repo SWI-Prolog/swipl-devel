@@ -207,7 +207,7 @@ _export int	Sdprintf(const char *fm, ...);
 _export int	Slock(IOSTREAM *s);
 _export int	Sunlock(IOSTREAM *s);
 _export IOSTREAM * Snew(void *handle, int flags, IOFUNCTIONS *functions);
-_export IOSTREAM * Sopen_file(char *path, char *how);
+_export IOSTREAM * Sopen_file(const char *path, char *how);
 _export IOSTREAM * Sfdopen(int fd, char *type);
 _export int	   Sfileno(IOSTREAM *s);
 _export IOSTREAM * Sopen_pipe(const char *command, const char *type);

@@ -12,9 +12,9 @@
 typedef struct flag *	Flag;
 
 struct flag
-{ Flag	next;
-  word	key;				/* key to the flag */
-  word	value;				/* value of the flag */
+{ Flag  next;
+  word	key;			/* key to the flag */
+  word	value;			/* value of the flag */
 };
 
 static Flag flagTable[FLAGHASHSIZE];
@@ -49,20 +49,25 @@ lookupFlag(word key)
 }
 
 word
-pl_flag(Word name, Word old, Word new)
+pl_flag(term_t name, term_t old, term_t new)
 { Flag f;
   word key;
+  Word n;
 
-  if ((key = getKey(name)) == (word) NULL)
+  if ( !(key = getKey(name)) )
     return warning("flag/2: illegal key");
 
   f = lookupFlag(key);
-  TRY(unifyAtomic(old, f->value) );
-  if (isAtom(*new) || isInteger(*new))
-  { f->value = *new;
+  TRY(_PL_unify_atomic(old, f->value));
+
+  n = valTermRef(new);
+  deRef(n);
+  if ( isAtom(*n) || isInteger(*n) )
+  { f->value = *n;
     succeed;
   } else
   { word value = evaluate(new);
+
     if ( isInteger(value) )
     { f->value = value;
       succeed;
@@ -73,7 +78,7 @@ pl_flag(Word name, Word old, Word new)
 }
 
 word
-pl_current_flag(Word k, word h)
+pl_current_flag(term_t k, term_t h)
 { Flag f;
 
   switch( ForeignControl(h) )
@@ -94,7 +99,7 @@ pl_current_flag(Word k, word h)
       if (f == (Flag) NULL)
 	fail;
     }
-    if ( unifyKey(k, f->key) == FALSE )
+    if ( !unifyKey(k, f->key) )
       continue;
 
     return_next_table(Flag, f, ;);

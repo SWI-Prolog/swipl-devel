@@ -149,25 +149,6 @@ addHTable(Table ht, Void name, Void value)
 }  
 
 
-bool
-deleteHTable(Table ht, Void name)
-{ register int v = pointerHashValue(name, ht->buckets);
-  register Symbol *s = &ht->entries[v];
-  Symbol symb = *s;
-
-  for(;symb && !isRef((word)symb); s = &symb->next)
-  { symb = *s;
-    if (symb->name == (word)name)
-    { *s = symb->next;
-      freeHeap(symb, sizeof(struct symbol));
-      succeed;
-    }
-  }
-
-  fail;
-}
-
-
 Symbol
 nextHTable(Table ht, register Symbol s)
 { s = s->next;
@@ -203,50 +184,3 @@ clearHTable(Table ht)
   }
 }
 
-		/********************************
-		*     TABLES ON LOCAL STACK     *
-		*********************************/
-
-Table
-newLocalTable(int buckets)
-{ Symbol *p;
-  int n;
-  Table ht;
-
-  ht = (Table) allocLocal(sizeof(struct table));
-  ht->buckets = buckets;
-  ht->locked  = 0;
-  ht->entries = allocLocal(buckets * sizeof(Symbol));
-
-  for(n=0, p = &ht->entries[0]; n < buckets; n++, p++)
-    *p = (Symbol) NULL;
-
-  return ht;
-}
-
-Symbol
-lookupLocalTable(Table ht, Void name)
-{ register Symbol s = ht->entries[pointerHashValue(name, ht->buckets)];
-
-  for( ; s; s = s->next )
-    if ( s->name == (word)name )
-      return s;
-
-  return NULL;
-}
-
-bool
-addLocalTable(Table ht, Void name, Void value)
-{ register Symbol s;
-  register int v = pointerHashValue(name, ht->buckets);
-
-  if (lookupLocalTable(ht, name) != (Symbol) NULL)
-    fail;
-  s = (Symbol) allocLocal(sizeof(struct symbol));
-  s->name = (word)name;
-  s->value = (word)value;
-  s->next = ht->entries[v];
-  ht->entries[v] = s;
-
-  succeed;
-}

@@ -81,11 +81,12 @@ operatorTypeToAtom(int type)
 }
 
 word
-pl_current_op(Word prec, Word type, Word name, word h)
+pl_current_op(term_t prec, term_t type, term_t name, word h)
 { int Prec = 0;					/* not specified */
   int Type = -1;				/* not specified */
   Atom Name = (Atom) NULL;			/* not specified */
   Operator op;
+  Atom a;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -99,20 +100,18 @@ pl_current_op(Word prec, Word type, Word name, word h)
       succeed;
   }
 
-  if (isInteger(*prec))
-    Prec = (int) valNum(*prec);
-  else if (!isVar(*prec))
+  if ( !PL_get_integer(prec, &Prec) &&
+       !PL_is_variable(prec) )
     fail;
 
-  if (isAtom(*type))
-  { if ((Type = atomToOperatorType((Atom)*type)) < 0)
+  if ( PL_get_atom(type, &a) )
+  { if ( (Type = atomToOperatorType(a)) < 0 )
       fail;
-  } else if (!isVar(*type))
+  } else if ( !PL_is_variable(type))
     fail;
 
-  if (isAtom(*name))
-    Name = (Atom)*name;
-  else if (!isVar(*name))
+  if ( !PL_get_atom(name, &Name) &&
+       !PL_is_variable(name) )
     fail;
 
   for( ; op; op = op->next )
@@ -121,20 +120,21 @@ pl_current_op(Word prec, Word type, Word name, word h)
       if (op == (Operator) NULL)
 	fail;
     }
-    if (Name != (Atom) NULL && Name != op->name)
+    if ( Name && Name != op->name )
       continue;
-    if (Type >= 0 && Type != op->type  )
+    if ( Type >= 0 && Type != op->type  )
       continue;
-    if (Prec > 0 && Prec != op->priority)
+    if ( Prec > 0 && Prec != op->priority )
       continue;
     if ( op->priority <= 0 )
       continue;
 
-    TRY(unifyAtomic(name, op->name));
-    TRY(unifyAtomic(type, operatorTypeToAtom(op->type)));
-    TRY(unifyAtomic(prec, consNum(op->priority)));
+    if ( !PL_unify_atom(name, op->name) ||
+	 !PL_unify_atom(type, operatorTypeToAtom(op->type)) ||
+	 !PL_unify_integer(prec, op->priority) )
+      fail;
 
-    if (Name != (Atom) NULL && Type >=0)
+    if ( Name && Type >=0 )
       succeed;
 
     return_next_table(Operator, op, ;);
@@ -233,19 +233,20 @@ operator(Atom name, int type, int priority)
 }
 
 word
-pl_op1(Word priority, Word type, Word name)
-{ int t;
+pl_op1(term_t priority, term_t type, term_t name)
+{ Atom nm;
+  Atom tp;
+  int t;
   int pri;
 
-  if (!isAtom(*name) || !isAtom(*type) || !isInteger(*priority))
+  if ( !PL_get_atom(name, &nm) ||
+       !PL_get_atom(type, &tp) ||
+       !PL_get_integer(priority, &pri) ||
+       pri < 0 || pri > 1200 ||
+       (t = atomToOperatorType(tp)) < 0 )
     fail;
 
-  if ((pri = (int) valNum(*priority)) < 0 || pri > 1200)
-    fail;
-  if ((t = atomToOperatorType((Atom)*type)) < 0)
-    fail;
-
-  return operator((Atom)*name, t, pri);
+  return operator(nm, t, pri);
 }
 
 /*  Define standard system operators.

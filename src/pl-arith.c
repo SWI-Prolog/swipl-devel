@@ -28,7 +28,6 @@ day.
 
 #include <math.h>			/* avoid abs() problem with MSVC++ */
 #include "pl-incl.h"
-#include "pl-itf.h"
 #ifndef M_PI
 #define M_PI (3.141593)
 #endif
@@ -42,19 +41,7 @@ day.
 
 #define MAXARITHFUNCTIONS (100)
 
-#define V_ERROR		FALSE		/* so we can use `fail' */
-#define V_REAL		1
-#define V_INTEGER	2
-
 typedef struct arithFunction * 	ArithFunction;
-
-typedef union
-{ real		f;		/* value as real */
-  long		i;		/* value as integer */
-} number;
-
-typedef number * Number;	/* pointer to a number */
-
 typedef int (*ArithF)();
 
 struct arithFunction
@@ -70,7 +57,7 @@ struct arithFunction
 #endif
 };
 
-forwards int		valueExpression(Word t, Number r);
+forwards int		valueExpression(term_t t, Number r);
 forwards ArithFunction	isCurrentArithFunction(FunctorDef, Module);
 
 static ArithFunction arithFunctionTable[ARITHHASHSIZE];
@@ -129,37 +116,38 @@ fvalNum(word w)
 		*********************************/
 
 word
-pl_between(register Word l, register Word h, register Word n, word b)
+pl_between(term_t low, term_t high, term_t n, word b)
 { switch( ForeignControl(b) )
   { case FRG_FIRST_CALL:
-      { if (!isInteger(*l) || !isInteger(*h))
+      { long l, h, i;
+
+	if ( !PL_get_long(low, &l) ||
+	     !PL_get_long(high, &h) )
 	  return warning("between/3: instantiation fault");
 
-	if (isInteger(*n))
-	{ if (valNum(*l) > valNum(*n))
-	    fail;
-	  if (valNum(*h) < valNum(*n))
-	    fail;
-	  succeed;
-	}
-	if (!isVar(*n))
-	  return warning("between/3: instantiation fault");
-	if ( valNum(*h) < valNum(*l) )
+	if ( PL_get_long(n, &i) )
+	{ if ( i >= l && i <= h )
+	    succeed;
 	  fail;
-	unifyAtomic(n, *l);
+	}
+	if ( !PL_is_variable(n) )
+	  return warning("between/3: instantiation fault");
+	if ( h < l )
+	  fail;
 
-	ForeignRedo(valNum(*l));
+	PL_unify_integer(n, l);
+	if ( l == h )
+	  succeed;
+	ForeignRedo(l);
       }
     case FRG_REDO:
       { long next = ForeignContext(b) + 1;
-	word nextword;
+	long h;
 
-	if (next > valNum(*h) )
-	  fail;
-
-	nextword = consNum(next);
-	unifyAtomic(n, nextword);
-
+	PL_unify_integer(n, next);
+	PL_get_long(high, &h);
+	if ( next == h )
+	  succeed;
 	ForeignRedo(next);
       }
     default:;
@@ -168,44 +156,32 @@ pl_between(register Word l, register Word h, register Word n, word b)
 }
 
 word
-pl_succ(register Word n1, register Word n2)
-{ if (isVar(*n1))
-  { if (isInteger(*n2))
-      return unifyAtomic(n1, consNum(valNum(*n2)-1));
+pl_succ(term_t n1, term_t n2)
+{ long i;
 
-    return warning("succ/2: instantiation fault");
-  }
-
-  if (isVar(*n2))
-  { if (isInteger(*n1))
-      return unifyAtomic(n2, consNum(valNum(*n1)+1));
-
-    return warning("succ/2: instantiation fault");
-  }
-
-  if (isInteger(*n1) && isInteger(*n2) )
-  { if (valNum(*n1) + 1 == valNum(*n2) )
-      succeed;
-    else
-      fail;
-  }
+  if ( PL_get_long(n1, &i) )
+    return PL_unify_integer(n2, i+1);
+  if ( PL_get_long(n2, &i) )
+    return PL_unify_integer(n1, i-1);
 
   return warning("succ/2: instantiation fault");
 }
 
 word
-pl_plus(register Word a, register Word b, register Word c)
-{ if (isVar(*a) && isInteger(*b) && isInteger(*c) )
-    return unifyAtomic(a, consNum(valNum(*c) - valNum(*b)) );
-  if (isInteger(*a) && isVar(*b) && isInteger(*c) )
-    return unifyAtomic(b, consNum(valNum(*c) - valNum(*a)) );
-  if (isInteger(*a) && isInteger(*b) && isVar(*c) )
-    return unifyAtomic(c, consNum(valNum(*a) + valNum(*b)) );
-  if (isInteger(*a) && isInteger(*b) && isInteger(*c) )
-    if (valNum(*a) + valNum(*b) == valNum(*c) )
-      succeed;
+pl_plus(term_t a, term_t b, term_t c)
+{ long m, n, o;
 
-  fail;
+  if ( PL_get_long(a, &m) )
+  { if ( PL_get_long(b, &n) )
+      return PL_unify_integer(c, m+n);
+    if ( PL_get_long(c, &o) )
+      return PL_unify_integer(b, o-a);
+  } else
+  { if ( PL_get_long(b, &n) && PL_get_long(c, &o) )
+      return PL_unify_integer(a, o-n);
+  }
+
+  return warning("plus/3: instantiation fault");
 }
 
 
@@ -214,7 +190,7 @@ pl_plus(register Word a, register Word b, register Word c)
 		*********************************/
 
 word
-compareNumbers(Word n1, Word n2, int what)
+compareNumbers(term_t n1, term_t n2, int what)
 { int result;
   number left, right;
   int tl, tr;
@@ -255,37 +231,36 @@ compareNumbers(Word n1, Word n2, int what)
 }
 
 word
-pl_lessNumbers(Word n1, Word n2)			/* </2 */
-            
+pl_lessNumbers(term_t n1, term_t n2)	/* </2 */
 { return compareNumbers(n1, n2, LT);
 }
 
 word
-pl_greaterNumbers(Word n1, Word n2)		/* >/2 */
+pl_greaterNumbers(term_t n1, term_t n2)		/* >/2 */
             
 { return compareNumbers(n1, n2, GT);
 }
 
 word
-pl_lessEqualNumbers(Word n1, Word n2)		/* =</2 */
+pl_lessEqualNumbers(term_t n1, term_t n2)		/* =</2 */
             
 { return compareNumbers(n1, n2, LE);
 }
 
 word
-pl_greaterEqualNumbers(Word n1, Word n2)		/* >=/2 */
+pl_greaterEqualNumbers(term_t n1, term_t n2)		/* >=/2 */
             
 { return compareNumbers(n1, n2, GE);
 }
 
 word
-pl_nonEqualNumbers(Word n1, Word n2)		/* =\=/2 */
+pl_nonEqualNumbers(term_t n1, term_t n2)		/* =\=/2 */
             
 { return compareNumbers(n1, n2, NE);
 }
 
 word
-pl_equalNumbers(Word n1, Word n2)			/* =:=/2 */
+pl_equalNumbers(term_t n1, term_t n2)			/* =:=/2 */
             
 { return compareNumbers(n1, n2, EQ);
 }
@@ -294,29 +269,6 @@ pl_equalNumbers(Word n1, Word n2)			/* =:=/2 */
 		/********************************
 		*           FUNCTIONS           *
 		*********************************/
-
-/* not used any longer, but might be usefull to export via the interface
-static
-ArithFunction
-newArithFunction(f, func)
-FunctorDef f;
-ArithF func;
-{ int v = pointerHashValue(f, ARITHHASHSIZE);
-  register ArithFunction a;
-
-  for(a=arithFunctionTable[v]; a && !isRef((word)a); a=a->next)
-  { if (a->functor == f)
-      return a;
-  }
-  a = (ArithFunction) allocHeap(sizeof(struct arithFunction));
-  a->next = arithFunctionTable[v];
-  arithFunctionTable[v] = a;
-  a->functor = f;
-  a->function = func;
-
-  return a;
-}
-*/
 
 static
 ArithFunction
@@ -381,125 +333,101 @@ struct exception *e;
 
 #if O_PROLOG_FUNCTIONS
 
-static int prologFunction(ArithFunction, Word, Number);
+static int prologFunction(ArithFunction, term_t, Number);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Activating a Prolog predicate as function below the arithmetic functions
-is/0, >, etc.
+is/0, >, etc. `f' is the arithmetic function   to  be called. `t' is the
+base term-reference of an array holding  the proper number of arguments.
+`r' is the result of the evaluation.
+
+This calling convention is somewhat  unnatural,   but  fits  best in the
+calling convention required by ar_func_n() below.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-prologFunction(ArithFunction f, Word av, Number r)
-
-{ word goal;
-  Definition def = f->proc->definition;
+prologFunction(ArithFunction f, term_t t, Number r)
+{ Definition def = f->proc->definition;
   int arity = def->functor->arity;
+  fid_t cid = PL_open_foreign_frame();
+  term_t av = PL_new_term_refs(arity+1);
+  qid_t qid;
   int n;
-  Word ap;
-  mark m;
-  Word result;
-  bool rval;
-  LocalFrame fr = lTop;
 
-  Mark(m);
-  goal = globalFunctor(def->functor);
-  ap = argTermP(goal, 0);
   for(n=0; n < arity-1; n++)
   { number num;
 
-    switch( valueExpression(av++, &num) )
-    { case V_INTEGER:	*ap++ = consNum(num.i);
-      			break;
-      case V_REAL:	*ap++ = globalReal(num.f);
-      			break;
+    switch( valueExpression(t+n, &num) )
+    { case V_INTEGER:
+	PL_put_integer(av+n, num.i);
+        break;
+      case V_REAL:
+	PL_put_float(av+n, num.f);
+        break;
       case V_ERROR:
-      default:		unlockMark(&m);
-      			return V_ERROR;
+      default:
+	return V_ERROR;
     }
   }
 
-  if ( (LocalFrame) &av[1] > lBase )
-  { lTop = (LocalFrame) &av[1];
-    DEBUG(8, Sdprintf("Setting lTop to 0x%x\n", lTop));
-  }
-  DEBUG(2, Putf("calling "); pl_write(&goal); pl_nl());
-  rval = PL_call(&goal, f->proc->definition->module);
-  DEBUG(2, Putf("rval = %d; return ", rval); pl_write(&goal); pl_nl());
-  lTop = fr;
-  if ( rval == FALSE )
-  { warning("Arithmetic function %s failed", procedureName(f->proc));
-    unlockMark(&m);
-    return V_ERROR;
-  }
-
-  result = argTermP(goal, arity-1);
-  deRef(result);
-  
-  if ( isInteger(*result) )
-  { r->i = valNum(*result);
-    Undo(m);
-    return V_INTEGER;
-  } else if ( isReal(*result) )
-  { r->f = valReal(*result);
-    Undo(m);
-    return V_REAL;
+  qid = PL_open_query(NULL, TRUE, f->proc, av);
+  if ( PL_next_solution(qid) )
+  { int rval = valueExpression(av+n, r);
+    PL_discard_foreign_frame(cid);
+    return rval;
   } else
-  { unlockMark(&m);
-    warning("Arithmetic function %s did not bind return value to a number",
-	    					procedureName(f->proc));
-    fail;
+  { PL_discard_foreign_frame(cid);
+    warning("Arithmetic function %s failed", procedureName(f->proc));
+    return V_ERROR;
   }
 }
 
 #endif /* O_PROLOG_FUNCTIONS */
 
 static int
-valueExpression(register Word t, Number r)
-{ volatile ArithFunction f;
-  volatile Word args;
-  volatile FunctorDef fDef;
+valueExpression(term_t t, Number r)
+{ ArithFunction f;
+  FunctorDef fDef;
 
-  deRef(t);
-
-  if (isInteger(*t) )
-  { r->i = valNum(*t);
+  if ( PL_get_long(t, &r->i) )	/* integer value */
     return V_INTEGER;
-  }
-  if (isReal(*t) )
-  { r->f = valReal(*t);
-    if ( r->f >= PLMININT && r->f <= PLMAXINT )
-    { long i = (long) r->f;
+  if ( PL_get_float(t, &r->f) )		/* float */
+  { long i = (long) r->f;
 
-      if ( r->f == (real)i )
-      { r->i = i;
-	return V_INTEGER;
-      }
+    if ( r->f == (real)i &&
+	 r->f >= PLMININT &&
+	 r->f <= PLMAXINT )
+    { r->i = i;
+      return V_INTEGER;
     }
     return V_REAL;
   }
 
-  if ( isTerm(*t) )
-  { fDef = functorTerm(*t);
-    args = argTermP(*t, 0);
-  } else if ( isAtom(*t) )
-  { fDef = lookupFunctorDef((Atom)*t, 0);
-    args = NULL;
-  } else if ( isVar(*t) )
-    return warning("Unbound variable in arithmetic expression");
-  else
-    return warning("Illegal data type in arithmetic expression");
+  if ( !PL_get_functor(t, &fDef) )
+  { if ( PL_is_variable(t) )
+      return warning("Unbound variable in arithmetic expression");
+    else
+      return warning("Illegal data type in arithmetic expression");
+  }
 
   if ((f = isCurrentArithFunction(fDef,
 				  contextModule(environment_frame))) == NULL)
-    return warning("Unknown arithmetic operator: %s", stringAtom(fDef->name));
+    return warning("Unknown arithmetic operator: %s/%d",
+		   stringAtom(fDef->name), fDef->arity);
 
 #if O_PROLOG_FUNCTIONS
-  if ( f->proc != (Procedure) NULL )
-    return prologFunction(f, args, r);
+  if ( f->proc )
+  { int n, arity = fDef->arity;
+    term_t h0 = PL_new_term_refs(arity);
+
+    for(n=0; n<arity; n++)
+      PL_get_arg(n+1, t, h0+n);
+
+    return prologFunction(f, h0, r);
+  }
 #endif
 
   { int type;
-    Word a0, a1;
 
 #ifdef WIN32
     __try
@@ -508,16 +436,29 @@ valueExpression(register Word t, Number r)
     status.arithmetic++;
 #endif
     switch(fDef->arity)
-    { case 0:	type = (*f->function)(r); break;
-      case 1:	deRef2(args, a0);
-		type = (*f->function)(a0, r);
-		break;
-      case 2:	deRef2(args, a0);
-		deRef2((args+1), a1);
-		type = (*f->function)(a0, a1, r);
-		break;
-      default:	sysError("Illegal arity for arithmic function");
-		type = V_ERROR;
+    { case 0:
+	type = (*f->function)(r);
+        break;
+      case 1:	
+      { term_t a0 = PL_new_term_ref();
+
+	PL_get_arg(1, t, a0);
+	type = (*f->function)(a0, r);
+	break;
+      }
+      case 2:
+      { term_t a0 = PL_new_term_ref();
+	term_t a1 = PL_new_term_ref();
+
+	PL_get_arg(1, t, a0);
+	PL_get_arg(2, t, a1);
+
+	type = (*f->function)(a0, a1, r);
+	break;
+      }
+      default:
+	sysError("Illegal arity for arithmic function");
+        type = V_ERROR;
     }
 #ifdef WIN32
     } __except(EXCEPTION_EXECUTE_HANDLER)
@@ -554,9 +495,7 @@ valueExpression(register Word t, Number r)
 
 #define BINAIRYFUNCTION(name, op) \
   static int \
-  name(n1, n2, r) \
-  Word n1, n2; \
-  Number r; \
+  name(term_t n1, term_t n2, Number r) \
   { number left, right; \
     int tl, tr; \
     TRY(tl = valueExpression(n1, &left) ); \
@@ -588,9 +527,7 @@ valueExpression(register Word t, Number r)
 
 #define UNAIRYFUNCTION(name, op) \
   static int \
-  name(n1, r) \
-  Word n1; \
-  Number r; \
+  name(term_t n1, Number r) \
   { number arg; \
     switch( valueExpression(n1, &arg) ) \
     { case V_INTEGER:	r->f = op((real)arg.i); \
@@ -603,9 +540,7 @@ valueExpression(register Word t, Number r)
 
 #define BINAIRY_INT_FUNCTION(name, op) \
   static int \
-  name(n1, n2, r) \
-  Word n1, n2; \
-  Number r; \
+  name(term_t n1, term_t n2, Number r) \
   { number left, right; \
     int tl, tr; \
     TRY(tl = valueExpression(n1, &left) ); \
@@ -619,9 +554,7 @@ valueExpression(register Word t, Number r)
 
 #define BINAIRY_FLOAT_FUNCTION(name, func) \
   static int \
-  name(n1, n2, r) \
-  Word n1, n2; \
-  Number r; \
+  name(term_t n1, term_t n2, Number r) \
   { number left, right; \
     real f1, f2; \
     int tl, tr; \
@@ -658,7 +591,7 @@ BINAIRY_INT_FUNCTION(ar_shift_left, <<)
 BINAIRY_INT_FUNCTION(ar_xor, ^)
 
 static int
-ar_sign(Word n1, Number r)
+ar_sign(term_t n1, Number r)
 { number left;
   int tl;
 
@@ -673,7 +606,7 @@ ar_sign(Word n1, Number r)
 
 
 static int
-ar_rem(Word n1, Word n2, Number r)
+ar_rem(term_t n1, term_t n2, Number r)
 { number left, right;
   int tl, tr;
 
@@ -692,7 +625,7 @@ ar_rem(Word n1, Word n2, Number r)
 
 
 static int
-ar_divide(Word n1, Word n2, Number r)
+ar_divide(term_t n1, term_t n2, Number r)
 { number left, right;
   int tl, tr;
 
@@ -725,7 +658,7 @@ ar_divide(Word n1, Word n2, Number r)
 }
 
 static int
-ar_times(Word n1, Word n2, Number r)
+ar_times(term_t n1, term_t n2, Number r)
 { number left, right;
   int tl, tr;
 
@@ -758,7 +691,7 @@ ar_times(Word n1, Word n2, Number r)
 
 static
 int
-ar_pow(Word n1, Word n2, Number result)
+ar_pow(term_t n1, term_t n2, Number result)
 { number left, right;
   int tl, tr;
   real l, r;
@@ -776,7 +709,7 @@ ar_pow(Word n1, Word n2, Number result)
 
 static
 int
-ar_max(Word n1, Word n2, Number result)
+ar_max(term_t n1, term_t n2, Number result)
 { number left, right;
   int tl, tr;
 
@@ -798,7 +731,7 @@ ar_max(Word n1, Word n2, Number result)
 
 static
 int
-ar_min(Word n1, Word n2, Number result)
+ar_min(term_t n1, term_t n2, Number result)
 { number left, right;
   int tl, tr;
 
@@ -820,21 +753,20 @@ ar_min(Word n1, Word n2, Number result)
 
 static
 int
-ar_dot(Word c, Word nil, Number r)
+ar_dot(term_t c, term_t nil, Number r)
 { long chr;
 
-  if ( isInteger(*c) && isNil(*nil) )
-  { if ((chr = valNum(*c)) >= 0 && chr <= 255)
-    { r->i = chr;
-      return V_INTEGER;
-    }
+  if ( PL_get_long(c, &chr) && PL_get_nil(nil) && chr >= 0 && chr <= 255 )
+  { r->i = chr;
+    return V_INTEGER;
   }
+
   return warning("is/2: illegal character specification");
 }    
 
 static
 int
-ar_negation(Word n1, Number r)
+ar_negation(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -850,7 +782,7 @@ ar_negation(Word n1, Number r)
 
 static
 int
-ar_u_minus(Word n1, Number r)
+ar_u_minus(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -864,7 +796,7 @@ ar_u_minus(Word n1, Number r)
 
 static
 int
-ar_abs(Word n1, Number r)
+ar_abs(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -877,7 +809,7 @@ ar_abs(Word n1, Number r)
 }
 
 static int
-ar_integer(Word n1, Number r)
+ar_integer(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -892,7 +824,7 @@ ar_integer(Word n1, Number r)
 
 
 static int
-ar_float(Word n1, Number r)
+ar_float(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -906,7 +838,7 @@ ar_float(Word n1, Number r)
 
 
 static int
-ar_float_fractional_part(Word n1, Number r)
+ar_float_fractional_part(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -920,7 +852,7 @@ ar_float_fractional_part(Word n1, Number r)
 
 
 static int
-ar_float_integer_part(Word n1, Number r)
+ar_float_integer_part(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -934,7 +866,7 @@ ar_float_integer_part(Word n1, Number r)
 
 
 static int
-ar_floor(Word n1, Number r)
+ar_floor(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -950,7 +882,7 @@ ar_floor(Word n1, Number r)
 
 
 static int
-ar_truncate(Word n1, Number r)
+ar_truncate(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -964,7 +896,7 @@ ar_truncate(Word n1, Number r)
 
 
 static int
-ar_ceil(Word n1, Number r)
+ar_ceil(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -979,7 +911,7 @@ ar_ceil(Word n1, Number r)
 }
 
 static int
-ar_random(Word n1, Number r)
+ar_random(term_t n1, Number r)
 { number arg;
 
   switch( valueExpression(n1, &arg) )
@@ -990,24 +922,21 @@ ar_random(Word n1, Number r)
   }
 }
 
-static
-int
+static int
 ar_pi(Number r)
 { r->f = M_PI;
 
   return V_REAL;
 }
 
-static
-int
+static int
 ar_e(Number r)
 { r->f = M_E;
 
   return V_REAL;
 }
 
-static
-int
+static int
 ar_cputime(Number r)
 { r->f = CpuTime();
 
@@ -1020,14 +949,14 @@ ar_cputime(Number r)
 		*********************************/
 
 word
-pl_is(Word v, Word e)
+pl_is(term_t v, term_t e)
 { number arg;
 
   switch( valueExpression(e, &arg) )
   { case V_INTEGER:
-	return unifyAtomic(v, consNum(arg.i));
+	return PL_unify_integer(v, arg.i);
     case V_REAL:
-	return unifyAtomic(v, globalReal(arg.f));
+	return PL_unify_float(v, arg.f);
     default:
 	fail;
   }
@@ -1035,25 +964,25 @@ pl_is(Word v, Word e)
 
 #if O_PROLOG_FUNCTIONS
 word
-pl_arithmetic_function(Word descr)
+pl_arithmetic_function(term_t descr)
 { Procedure proc;
   Definition def;
   FunctorDef fd;
   register ArithFunction f;
   Module m = NULL;
+  term_t head = PL_new_term_ref();
   int v;
 
-  if ( stripModule(descr, &m) == NULL )
-    fail;
-
-  if ( (proc = findCreateProcedure(descr)) == (Procedure)NULL )
-    fail;
-  def = proc->definition;
-  if ( def->functor->arity < 1 )
+  PL_strip_module(descr, &m, head);
+  if ( !PL_get_functor(head, &fd) )
+    return warning("arithmetic_function/1: Illegal head");
+  if ( fd->arity < 1 )
     return warning("arithmetic_function/1: Illegal arity");
-  fd = lookupFunctorDef(def->functor->name, def->functor->arity - 1);
 
-  if ( (f = isCurrentArithFunction(fd, m)) != NULL && f->module == m )
+  proc = lookupProcedure(fd, m);
+  def = proc->definition;
+  fd = lookupFunctorDef(fd->name, fd->arity - 1);
+  if ( (f = isCurrentArithFunction(fd, m)) && f->module == m )
     succeed;				/* already registered */
 
   if ( next_index >= MAXARITHFUNCTIONS )
@@ -1074,27 +1003,27 @@ pl_arithmetic_function(Word descr)
 }
 
 word
-pl_current_arithmetic_function(Word f, word h)
+pl_current_arithmetic_function(term_t f, word h)
 { ArithFunction a;
   Module m = NULL;
+  term_t head = PL_new_term_ref();
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      if ( (f = stripModule(f, &m)) == NULL )
-	fail;
+    { FunctorDef fd;
 
-      if ( isVar(*f) )
+      PL_strip_module(f, &m, head);
+
+      if ( PL_is_variable(head) )
       { a = arithFunctionTable[0];
         break;
-      } else if ( isTerm(*f) )
-      {	if ( isCurrentArithFunction(functorTerm(*f), m) != NULL )
-	  succeed;
-	fail;
+      } else if ( PL_get_functor(head, &fd) )
+      {	return isCurrentArithFunction(fd, m) ? TRUE : FALSE;
       } else
         return warning("current_arithmetic_function/2: instantiation fault");
+    }
     case FRG_REDO:
-      if ( (f = stripModule(f, &m)) == NULL )
-	fail;
+      PL_strip_module(f, &m, head);
 
       a = (ArithFunction) ForeignContextAddress(h);
       break;
@@ -1114,9 +1043,8 @@ pl_current_arithmetic_function(Word f, word h)
 
     for(m2 = m; m2; m2 = m2->super)
     { if ( m2 == a->module && a == isCurrentArithFunction(a->functor, m) )
-      { if ( unifyFunctor(f, a->functor) == TRUE )
-	{ return_next_table(ArithFunction, a, ;);
-	}
+      { if ( PL_unify_functor(f, a->functor) )
+	  return_next_table(ArithFunction, a, ;);
       }
     }
   }
@@ -1239,6 +1167,7 @@ indexArithFunction(register FunctorDef fdef, register Module m)
   return (int)f->index;
 }
 
+
 FunctorDef
 functorArithFunction(int n)
 { return functions[(int)n].functor;
@@ -1246,18 +1175,24 @@ functorArithFunction(int n)
 
 
 bool
-ar_func_n(register code n, int argc, register Word *stack)
+ar_func_n(code n, int argc, Word *stack)
 { number result;
   int type;
   ArithFunction f = &functions[(int)n];
+  term_t h0;
 
   (*stack) -= argc;
-  if ( f->proc != (Procedure) NULL )
-    type = prologFunction(f, *stack, &result);
-  else
+  h0 = consTermRef(*stack);
+  if ( f->proc )
+  { LocalFrame lSave = lTop;		/* TBD */
+
+    lTop = (LocalFrame) valTermRef(h0+argc);
+    type = prologFunction(f, h0, &result);
+    lTop = lSave;
+  } else
   { 
 #define F    type = (*f->function)
-#define A(n) ((*stack) + (n))
+#define A(n) (h0+n)
 #define R    &result
     switch(argc)
     { case 0:	F(R); break;
@@ -1286,7 +1221,7 @@ ar_func_n(register code n, int argc, register Word *stack)
 #endif /* O_COMPILE_ARITH */
 
 word
-evaluate(Word p)
+evaluate(term_t p)
 { number result;
 
   switch( valueExpression(p, &result) )  

@@ -34,24 +34,19 @@ static Assoc bags = (Assoc) NULL;	/* chain of value pairs */
 forwards void freeAssoc(Assoc, Assoc);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$record_bag(Key, Value)
+$record_bag(Key-Value)
 
 Record a solution of bagof.  Key is a term  v(V0,  ...Vn),  holding  the
 variable binding for solution `Gen'.  Key is ATOM_mark for the mark.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_record_bag(Word key, Word value)
+pl_record_bag(term_t t)
 { Assoc a = (Assoc) allocHeap(sizeof(struct assoc));
-  word t = globalFunctor(FUNCTOR_minus2);
 
-  pl_unify(argTermP(t, 0), key);
-  pl_unify(argTermP(t, 1), value);
-
-  a->next  = bags;
-  bags = a;
-
-  a->binding = copyTermToHeap(&t);
+  a->binding = copyTermToHeap(t);
+  a->next    = bags;
+  bags       = a;
 
   succeed;
 }
@@ -71,91 +66,59 @@ checkBags()
 }
 #endif
 
-static word
-consList(word head, word tail)
-{ word rval = globalFunctor(FUNCTOR_dot2);
-  Word ap = argTermP(rval, 0);
-
-  *ap++ = head;
-  *ap   = tail;
-
-  return rval;
-}
-  
-/* Maybe useful later
-static word
-globalTerm(FunctorDef fdef, ...)
-{ va_list args;
-  word rval = globalFunctor(fdef);
-  int n;
-  
-  va_start(args, fdef);
-  for(n=0; n<fdef->arity; n++)
-    argTerm(rval, n) = va_arg(args, word);
-  va_end(args);
-
-  return rval;
-}
-*/
 
 word
-pl_collect_bag(Word bindings, Word bag)
-{ Word var_term = NULL;			/* v() term on global stack */
-  word list = (word) ATOM_nil;		/* result list */
-  word binding = 0;
-  register Assoc a, next;
+pl_collect_bag(term_t bindings, term_t bag)
+{ term_t var_term = PL_new_term_ref();	/* v() term on global stack */
+  term_t list     = PL_new_term_ref();	/* list to construct */
+  term_t binding  = PL_new_term_ref();	/* current binding */
+  term_t tmp      = PL_new_term_ref();
+  Assoc a, next;
   Assoc prev = (Assoc) NULL;
   
-  if ( (a = bags) == (Assoc) NULL )
+  if ( !(a = bags) )
     fail;
-  if ( !a || argTerm(a->binding->term, 0) == (word) ATOM_mark )
+  if ( argTerm(a->binding->term, 0) == (word) ATOM_mark )
   { freeAssoc(prev, a);
     fail;				/* trapped the mark */
   }
 
-  lockp(&bag);
-  lockp(&bindings);
-  lockp(&var_term);
-  lockw(&list);
-  lockw(&binding);
+  PL_put_nil(list);
 					/* get variable term on global stack */
-  binding  = copyTermToGlobal(a->binding);
-  var_term = argTermP(binding, 0);
-  pl_unify(bindings, var_term);
-  list = consList(argTerm(binding, 1), list);
+  copyTermToGlobal(binding, a->binding);
+  PL_get_arg(1, binding, var_term);
+  PL_unify(bindings, var_term);
+  PL_get_arg(2, binding, tmp);
+  PL_cons_list(list, tmp, list);
 
   next = a->next;
   freeAssoc(prev, a);  
 
   if ( next != NULL )
   { for( a = next, next = a->next; next; a = next, next = a->next )
-    { word t;
-      Word key = argTermP(a->binding->term, 0);
+    { Word key = argTermP(a->binding->term, 0);
 
       if ( *key == (word) ATOM_mark )
 	break;
-      if ( !pl_structural_equal(var_term, key) )
+      _PL_put_atomic(tmp, *key);
+      if ( !pl_structural_equal(var_term, tmp) )
       { prev = a;
 	continue;
       }
 
-      t = copyTermToGlobal(a->binding);
-      pl_unify(argTermP(t, 0), bindings); /* can this fail (no)? */
-      list = consList(argTerm(t, 1), list);
+      copyTermToGlobal(binding, a->binding);
+      PL_get_arg(1, binding, tmp);
+      PL_unify(tmp, bindings);
+      PL_get_arg(2, binding, tmp);
+      PL_cons_list(list, tmp, list);
       SECURE(checkData(&list, FALSE));
       freeAssoc(prev, a);
     }
   }
 
-  unlockw(&binding);
-  unlockw(&list);
-  unlockp(&var_term);
-  unlockp(&bindings);
-  unlockp(&bag);
-
   SECURE(checkData(var_term, FALSE));
 
-  return pl_unify(bag, &list);
+  return PL_unify(bag, list);
 }
 
 

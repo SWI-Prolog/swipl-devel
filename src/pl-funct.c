@@ -169,34 +169,37 @@ checkFunctors()
 #endif
 
 word
-pl_current_functor(Word name, Word arity, word h)
+pl_current_functor(term_t name, term_t arity, word h)
 { FunctorDef fdef;
+  Atom nm;
+  int  ar;
   int name_is_atom;
   mark m;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      if ( (!isAtom(*name) && !isVar(*name))
-	|| (!isInteger(*arity) && !isVar(*arity)))
+      if ( (name_is_atom = PL_get_atom(name, &nm)) &&
+	   PL_get_integer(arity, &ar) )
+	return isCurrentFunctor(nm, ar) ? FALSE : TRUE;
+
+      if ( !(PL_is_integer(arity) || PL_is_variable(arity)) )
 	return warning("current_functor/2: instantiation fault");
 
-      if (isInteger(*arity) && isAtom(*name))
-	if (isCurrentFunctor((Atom)*name, (int)valNum(*arity)) != (FunctorDef) NULL)
-	  succeed;
-	else
-	  fail;
-
-      if ( (name_is_atom = isAtom(*name)) )
-      { int v = pointerHashValue((Atom)*name, functor_buckets);
+      if ( name_is_atom )
+      { int v = pointerHashValue(nm, functor_buckets);
 	
 	fdef = functorDefTable[v];
       } else
+      { if ( !PL_is_variable(name) )
+	  return warning("current_functor/2: instantiation fault");
+
 	fdef = functorDefTable[0];
+      }
       lockFunctors();
       break;
     case FRG_REDO:
       fdef = (FunctorDef) ForeignContextAddress(h);
-      name_is_atom = isAtom(*name);
+      name_is_atom = PL_is_atom(name);
       break;
     case FRG_CUTTED:
     default:
@@ -204,7 +207,7 @@ pl_current_functor(Word name, Word arity, word h)
       succeed;
   }
 
-  DoMark(m);
+  Mark(m);
   DEBUG(9, Sdprintf("current_functor(): fdef = %ld\n", fdef));
   for(; fdef; fdef = fdef->next)
   { if ( isRef((word)fdef) )
@@ -214,14 +217,14 @@ pl_current_functor(Word name, Word arity, word h)
       do
       { fdef = *((FunctorDef *)unRef(fdef));
 	if (fdef == (FunctorDef) NULL)
-	  fail;
+	  goto out;
       } while( isRef((word)fdef) );
     }
-    if ( arity == 0 )
+    if ( fdef->arity == 0 )
       continue;
-    DoUndo(m);
-    if ( !unifyAtomic(name, fdef->name) ||
-	 !unifyAtomic(arity, consNum(fdef->arity)))
+    Undo(m);
+    if ( !PL_unify_atom(name, fdef->name) ||
+	 !PL_unify_integer(arity, fdef->arity) )
       continue;
     DEBUG(9, Sdprintf("Returning backtrack point %ld\n", fdef->next));
 

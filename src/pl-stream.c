@@ -1180,7 +1180,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #endif
 
 IOSTREAM *
-Sopen_file(char *path, char *how)
+Sopen_file(const char *path, char *how)
 { int fd;
   int oflags = 0, flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
   int op = *how++;

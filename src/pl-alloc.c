@@ -188,13 +188,13 @@ on 16-bit machines not supporting ANSI.
 #if O_SHIFT_STACKS
 Void
 alloc_global(int n)
-{ register Word result;
+{ Word result;
 
   if ( roomStack(global)/sizeof(word) < (long) n )
-  { if ( shift_status.blocked )
-      outOf((Stack) &stacks.global);
+  { growStacks(NULL, NULL, FALSE, TRUE, FALSE);
 
-    growStacks(NULL, NULL, FALSE, TRUE, FALSE);
+    if ( roomStack(global)/sizeof(word) < (long) n )
+      outOf((Stack) &stacks.global);
   }
 
   result = gTop;
@@ -207,7 +207,7 @@ alloc_global(int n)
 
 Void
 alloc_global(int n)
-{ register Word result = gTop;
+{ Word result = gTop;
 
   gTop += n;
   verifyStack(global);
@@ -232,7 +232,7 @@ globalFunctor(register FunctorDef def)
 
 #if O_STRING
 word
-globalString(register char *s)
+globalString(const char *s)
 { register long l = strlen(s) + 1;
   register long chars = ROUND(l, sizeof(word));
   register Word gt = allocGlobal(2 + (chars + sizeof(word) - 1)/sizeof(word));
@@ -244,7 +244,7 @@ globalString(register char *s)
 }
 
 word
-heapString(char *s)
+heapString(const char *s)
 { long l = strlen(s) + 1;
   register long chars = ROUND(l, sizeof(word));
   Word gt = (Word)allocHeap(2*sizeof(word) + chars);
@@ -350,11 +350,49 @@ globalReal(real f)
 
 
 word
+copyRealToGlobal(word in)
+{ Word p = gTop;
+  Word i = (Word)unMask(in);
+
+  gTop += 2;
+  verifyStack(global);
+  p[0] = *i++;
+  p[1] = *i;
+  
+  return (word)p | INDIRECT_MASK;
+}
+
+
+word
+copyRealToHeap(word in)
+{ Word p = (Word) allocHeap(sizeof(word) * 2);
+  Word i = (Word)unMask(in);
+
+  p[0] = *i++;
+  p[1] = *i;
+  
+  return (word)p | INDIRECT_MASK;
+}
+
+
+word
 heapReal(real f)
 { Word p = (Word) allocHeap(sizeof(word) * 2);
 
   pack_real((double) f, p);
   return (word)p | INDIRECT_MASK;
+}
+
+
+int
+equalReal(word r1, word r2)
+{ Word p1 = (Word)unMask(r1);
+  Word p2 = (Word)unMask(r2);
+
+  if ( p1[0] == p2[0] && p1[1] == p2[1] )
+    succeed;
+
+  fail;
 }
 
 
@@ -411,20 +449,13 @@ stopAllocLocal()
 { localScratchBase = (char *)NULL;
 }
 
-char *
-store_string_local(register char *s)
-{ register char *copy = (char *)allocLocal(strlen(s)+1);
-
-  strcpy(copy, s);
-  return copy;
-}
 
 		/********************************
 		*            STRINGS            *
 		*********************************/
 
 char *
-store_string(char *s)
+store_string(const char *s)
 { char *copy = (char *)allocHeap(strlen(s)+1);
 
   strcpy(copy, s);
@@ -446,7 +477,7 @@ distribution over these atoms.  Note that size equals 2^n.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-unboundStringHashValue(char *t)
+unboundStringHashValue(const char *t)
 { unsigned int value = 0;
   unsigned int shift = 5;
 

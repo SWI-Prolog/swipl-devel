@@ -88,6 +88,14 @@ handy for it someone wants to add a data type to the system.
 #define O_DESTRUCTIVE_ASSIGNMENT 1
 #define O_HASHTERM		1
 
+#if MMAP_STACK || O_SHARED_MEMORY || HAVE_VIRTUAL_ALLOC
+#define O_DYNAMIC_STACKS 1		/* sparse memory management */
+#else
+#ifndef O_SHIFT_STACKS
+#define O_SHIFT_STACKS 1		/* use stack-shifter */
+#endif
+#endif
+
 #ifndef O_LABEL_ADDRESSES
 #if __GNUC__ == 2
 #define O_LABEL_ADDRESSES	1
@@ -319,7 +327,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign language interface definitions.  Note that these macros MUST  be
-consistent  with  the  definitions  in  pl-itf.h, which is included with
+consistent  with  the  definitions  in  pl-fli.h, which is included with
 users foreign language code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -520,6 +528,8 @@ difference.
 #define FUNCTOR_TYPE	HeapMagic(2)	/* a Functor */
 #define PROCEDURE_TYPE	HeapMagic(3)	/* a procedure */
 #define RECORD_TYPE	HeapMagic(4)	/* a record list */
+#define StackMagic(n)	((n) | 0x98765000)
+#define QID_MAGIC	StackMagic(1)	/* Query frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			  PROLOG DATA REPRESENTATION
@@ -744,8 +754,6 @@ typedef unsigned long		code;		/* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef word			(*Func)();	/* foreign functions */
-typedef unsigned long		lock;		/* foreign lock */
-typedef lock *			Lock;		/* pointer to a lock */
 
 typedef struct atom *		Atom;		/* atom */
 typedef struct functor *	Functor;	/* complex term */
@@ -766,10 +774,39 @@ typedef struct list_cell *	ListCell;	/* Anonymous list */
 typedef struct table *		Table;		/* (numeric) hash table */
 typedef struct symbol *		Symbol;		/* symbol of hash table */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
+typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
+typedef struct fliFrame *	FliFrame; 	/* FLI interface frame */
 typedef struct trail_entry *	TrailEntry;	/* Entry of train stack */
 typedef struct data_mark	mark;		/* backtrack mark */
 typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
+
+		 /*******************************
+		 *	    ARITHMETIC		*
+		 *******************************/
+
+typedef union
+{ real		f;		/* value as real */
+  long		i;		/* value as integer */
+} number, *Number;
+
+#define V_ERROR		0		/* so we can use `fail' */
+#define V_REAL		1
+#define V_INTEGER	2
+
+		 /*******************************
+		 *	   GET-PROCEDURE	*
+		 *******************************/
+
+#define GP_FIND		0		/* find anywhere */
+#define GP_FINDHERE	1		/* find in this module */
+#define GP_CREATE	2		/* create (in this module) */
+#define GP_DEFINE	4		/* define a procedure */
+#define GP_RESOLVE	5		/* find defenition */
+
+		 /*******************************
+		 *	      FLAGS		*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Many of the structures have a large number of booleans  associated  with
@@ -838,6 +875,7 @@ Handling environment (or local stack) frames.
 #define argFrame(f, n)		(*argFrameP((f), (n)) )
 #define varFrameP(f, n)		((Word)(f) + (n))
 #define varFrame(f, n)		(*varFrameP((f), (n)) )
+#define refFliP(f, n)		((Word)((f)+1) + (n))
 #define parentFrame(f)		((f)->parent ? (f)->parent\
 					     : (LocalFrame)varFrame((f), -1))
 #define slotsFrame(f)		(true((f)->predicate, FOREIGN) ? \
@@ -971,8 +1009,12 @@ Handling dereferenced arbitrary Prolog runtime objects.
 #define isPrimitive(w)  (isVar(w) || isAtomic(w))
 #define isAtomic(w)	(nonVar(w) && (isMasked(w) || pointerIsAtom(w)))
 #define isTerm(w)	(isPointer(w) && !pointerIsAtom(w))
+#define hasFunctor(w,f) (isPointer(w) && functorTerm(w) == (f))
+#define nonVarHasFunctor(w,f) \
+			(!isMasked(w) && functorTerm(w) == (f))
+#define isList(w)	hasFunctor(w, FUNCTOR_dot2)
 #define nonVarIsTerm(w)	(!isMasked(w) && !pointerIsAtom(w))
-#define isList(w)	(isPointer(w) && functorTerm(w) == FUNCTOR_dot2)
+#define nonVarIsList(w)	nonVarHasFunctor(w, FUNCTOR_dot2)
 #define functorTerm(w)	(((Functor)(w))->definition)
 #define argTerm(w, n)	(*argTermP((w), (n)))
 #define argTermP(w, n)	(((Word)(w)+1+(n)))
@@ -1146,6 +1188,8 @@ struct definition
 		/*	VOLATILE	   Don't save my clauses */
 		/*	AUTOINDEX	   Automatically guess index */
 		/*	NEEDSCLAUSEGC	   Clauses have been erased */
+		/*	NEEDSREHASH	   Hash-table is out-of-date */
+		/*	ISCASE		   Unused.  What is this? */
   unsigned	indexCardinality : 8;	/* cardinality of index pattern */
   short		number_of_clauses;	/* number of associated clauses */
 };
@@ -1163,6 +1207,31 @@ struct localFrame
 		/*	FR_CUT     has frame been cut ? */
 		/*	FR_NODEBUG don't debug this frame ? */
 };  
+
+
+struct queryFrame
+{ long		magic;			/* Magic code for security */
+#if O_SHIFT_STACKS
+  struct				/* Interpreter registers */
+  { LocalFrame  fr;
+    LocalFrame  bfr;
+  } registers;
+#endif
+  Word	       *aSave;			/* saved argument-stack */
+  int		solutions;		/* # of solutions produced */
+  int		deterministic;		/* Last success was deterministic */
+  LocalFrame	bfr;			/* BacktrackFrame */
+  LocalFrame	saved_environment;	/* Parent local-frame */
+  struct localFrame frame;		/* The local frame */
+};
+
+
+struct fliFrame
+{ int		size;			/* # slots on it */
+  FliFrame	parent;			/* parent FLI frame */
+  mark		mark;			/* data-stack mark */
+};
+
 
 struct record
 { RecordList	list;		/* list I belong to */
@@ -1254,19 +1323,19 @@ typedef struct
 		 *	     MARK/UNDO		*
 		 *******************************/
 
-#define setVar(w)	((w) = (word) NULL)
+#define setVar(w)		((w) = (word) NULL)
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 
-#define DoUndo(b)	do_undo(&b)
-#define T_VALUE_MASK	INDIRECT_MASK
+#define Undo(b)			do_undo(&b)
+#define T_VALUE_MASK		INDIRECT_MASK
 #define makeTrailValueP(p)	((Word)((unsigned long)(p) | T_VALUE_MASK))
 #define isTrailValueP(p)	((unsigned long)(p) & T_VALUE_MASK)
 #define trailValueP(p)		((Word)((unsigned long)(p) & ~T_VALUE_MASK))
 
 #else /*O_DESTRUCTIVE_ASSIGNMENT*/
 
-#define DoUndo(b)	{ register TrailEntry tt = tTop; \
+#define Undo(b)		{ register TrailEntry tt = tTop; \
 			  while(tt > (b).trailtop) \
 			    setVar(*(--tt)->address); \
 			  tTop = tt; \
@@ -1274,17 +1343,33 @@ typedef struct
 			}
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
-#define DoMark(b)	{ (b).trailtop = tTop; \
+#define Mark(b)		{ (b).trailtop = tTop; \
 			  (b).globaltop = gTop; \
 			}
 
-#define Mark(b)		{ DoMark(b); \
-			  lockMark(&b); \
-			}
-#define Undo(b)		{ DoUndo(b); \
-			  unlockMark(&b); \
-			}
 
+		 /*******************************
+		 *	   FLI INTERNALS	*
+		 *******************************/
+
+typedef unsigned long term_t;	/* external term-reference */
+typedef unsigned long qid_t;		/* external query-id */
+typedef unsigned long fid_t;		/* external foreign context-id */
+
+#define consTermRef(p)	((Word)(p) - (Word)(lBase))
+#define valTermRef(r)	(&((Word)(lBase))[r])
+
+#if O_SHIFT_STACKS
+#define SaveLocalPtr(s, ptr)	term_t s = consTermRef(ptr)
+#define RestoreLocalPtr(s, ptr) (ptr) = (void *) valTermRef(s)
+#else
+#define SaveLocalPtr(s, ptr)	
+#define RestoreLocalPtr(s, ptr) 
+#endif
+
+#define QueryFromQid(qid)	((QueryFrame) valTermRef(qid))
+#define QidFromQuery(f)		(consTermRef(f))
+#define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
 		/********************************
 		*             STACKS            *
@@ -1298,14 +1383,6 @@ typedef struct
 If we have access to the virtual   memory management of the machine, use
 this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if MMAP_STACK || O_SHARED_MEMORY || HAVE_VIRTUAL_ALLOC
-#define O_DYNAMIC_STACKS 1
-#else
-#ifndef O_SHIFT_STACKS
-#define O_SHIFT_STACKS 1
-#endif
-#endif
 
 #define GC_FAST_POLICY 0x1		/* not really used yet */
 
@@ -1347,14 +1424,13 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 
 struct stack STACK(caddress);		/* Anonymous stack */
 
-#define N_STACKS (5)
+#define N_STACKS (4)
 
 GLOBAL struct
 { struct STACK(LocalFrame) local;	/* local (environment) stack */
   struct STACK(Word)	   global;	/* local (environment) stack */
   struct STACK(TrailEntry) trail;	/* trail stack */
   struct STACK(Word *)	   argument;	/* argument stack */
-  struct STACK(Lock)	   lock;	/* Foreign code locks */
 } stacks;
 
 #define tBase	(stacks.trail.base)
@@ -1372,10 +1448,6 @@ GLOBAL struct
 #define aBase	(stacks.argument.base)
 #define aTop	(stacks.argument.top)
 #define aMax	(stacks.argument.max)
-
-#define pBase	(stacks.lock.base)
-#define pTop	(stacks.lock.top)
-#define pMax	(stacks.lock.max)
 
 GLOBAL char *	hTop;			/* highest allocated heap address */
 GLOBAL char *	hBase;			/* lowest allocated heap address */
@@ -1419,6 +1491,7 @@ GLOBAL int 	  critical;		/* in critical code for abort? */
 GLOBAL bool	  aborted;		/* have we been aborted */
 GLOBAL char 	 *cannot_save_program;	/* Program cannot be saved */
 GLOBAL LocalFrame environment_frame;	/* current context frame */
+GLOBAL FliFrame   fli_context;		/* current FLI frame */
 GLOBAL bool	  novice;		/* novice user */
 GLOBAL Atom	  source_file_name;	/* Current source file_name */
 GLOBAL int	  source_line_no;	/* Current source line_no */
@@ -1562,8 +1635,8 @@ GLOBAL struct debuginfo
 { unsigned long	skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */
   bool		debugging;		/* are we debugging? */
-  unsigned long leashing;		/* ports we are leashing */
-  unsigned long visible;		/* ports that are visible */
+  int		leashing;		/* ports we are leashing */
+  int	        visible;		/* ports that are visible */
   int		style;			/* print style of tracer */
   bool		showContext;		/* tracer shows context module */
   int		styleCheck;		/* source style checking */
@@ -1571,10 +1644,14 @@ GLOBAL struct debuginfo
 } debugstatus;
 
 #define CHARESCAPE_FEATURE	0x1	/* handle \ in atoms */
+#define GC_FEATURE		0x2	/* do GC */
+#define TRACE_GC_FEATURE	0x4	/* verbose gc */
 
 GLOBAL struct _feature
 { unsigned long flags;			/* the feature flags */
 } features;
+
+#define trueFeature(mask)	true(&features, mask)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Administration of loaded intermediate code files  (see  pl-wic.c).  Used
@@ -1625,5 +1702,46 @@ extern struct functorDef functors[];
 
 #include "pl-atom.ih"
 #include "pl-funct.ih"
+#include "pl-itf.h"
+
+#ifdef O_INLINE_FLI
+
+#define PL_new_term_refs(n)	_PL_new_term_refs(n)
+#define PL_new_term_ref()	_PL_new_term_ref()
+#define PL_reset_term_refs(t)	_PL_reset_term_refs(t)
+
+static inline term_t
+_PL_new_term_refs(int n)
+{ Word t = (Word)lTop;
+  term_t r = consTermRef(t);
+
+  while(n-- > 0)
+    setVar(*t++);
+  lTop = (LocalFrame)t;
+  verifyStack(local);
+  
+  return r;
+}
+
+
+static inline term_t
+_PL_new_term_ref()
+{ Word t = (Word)lTop;
+  term_t r = consTermRef(t);
+
+  lTop = (LocalFrame)(t+1);
+  verifyStack(local);
+  setVar(*t);
+  
+  return r;
+}
+
+
+static inline void
+_PL_reset_term_refs(term_t r)
+{ lTop = (LocalFrame) valTermRef(r);
+}
+
+#endif /*O_INLINE_FLI*/
 
 #endif /*_PL_INCLUDE_H*/

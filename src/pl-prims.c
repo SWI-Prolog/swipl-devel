@@ -13,12 +13,8 @@
 #include "pl-buffer.h"
 
 forwards int	pl_se(Word, Word, Buffer);
-forwards void	resetVariables(Word);
-forwards bool	freeVariables(Word, Word *, bool);
 forwards char 	*prependBase(int, char *);
-forwards bool	isPrefix(char *, char *);
-forwards bool	boolPlease(bool *, Word, Word);
-forwards void	copyTerm(Word, Word, Table);
+
 
 		/********************************
 		*         TYPE CHECKING         *
@@ -26,95 +22,73 @@ forwards void	copyTerm(Word, Word, Table);
 
 
 word
-pl_nonvar(register Word k)
-{ if (isVar(*k))
-    fail;
-
-  succeed;
+pl_nonvar(term_t k)
+{ return PL_is_variable(k) ? FALSE : TRUE;
 }
 
 word
-pl_var(register Word k)
-{ if (isVar(*k))
-    succeed;
-
-  fail;
+pl_var(term_t k)
+{ return PL_is_variable(k);
 }
 
 word
-pl_integer(register Word k)
-{ if (isInteger(*k))
-    succeed;
-
-  fail;
+pl_integer(term_t k)
+{ return PL_is_integer(k);
 }
 
 word
-pl_float(register Word k)
-{ if (isReal(*k))
-    succeed;
-
-  fail;
+pl_float(term_t k)
+{ return PL_is_float(k);
 }
 
 #if O_STRING
 word
-pl_string(register Word k)
-{ if (isString(*k))
-    succeed;;
-
-  fail;
+pl_string(term_t k)
+{ return PL_is_string(k);
 }
 #endif /* O_STRING */
 
 word
-pl_number(register Word k)
-{ if ( isNumber(*k) )
-    succeed;
-
-  fail;
+pl_number(term_t k)
+{ return PL_is_number(k);
 }
 
 word
-pl_atom(register Word k)
-{ if (isAtom(*k))
-    succeed;
-
-  fail;
+pl_atom(term_t k)
+{ return PL_is_atom(k);
 }
 
 word
-pl_atomic(register Word k)
-{ if (isAtomic(*k))
-    succeed;
-
-  fail;
+pl_atomic(term_t k)
+{ return PL_is_atomic(k);
 }
 
-word
-pl_ground(register Word term)
-{ register int arity;
+static int
+_pl_ground(Word p)
+{ int arity;
 
-  deRef(term);
+  deRef(p);
 
-  if (isVar(*term) )
+  if (isVar(*p) )
     fail;
-  if (!isTerm(*term) )
+  if (!isTerm(*p) )
     succeed;
-  arity = functorTerm(*term)->arity;
-  for(term = argTermP(*term, 0); arity > 0; arity--, term++)
-    TRY( pl_ground(term) );
+  arity = functorTerm(*p)->arity;
+  for(p = argTermP(*p, 0); arity > 0; arity--, p++)
+    TRY( _pl_ground(p) );
 
   succeed;
 }
 
+word
+pl_ground(term_t k)
+{ return _pl_ground(valTermRef(k));
+}
+
 
 word
-pl_compound(Word term)
-{ if ( isTerm(*term) )
-    succeed;
-
-  fail;
+pl_compound(term_t k)
+{ return PL_is_compound(k);
 }
 
 #ifdef O_HASHTERM
@@ -122,20 +96,20 @@ pl_compound(Word term)
 		 *	    HASH-TERM		*
 		 *******************************/
 
-bool
-termHashValue(word term, word *hval)
+static bool
+termHashValue(word term, long *hval)
 { if ( isVar(term) )
     fail;
 
   if ( isMasked(term) )
   { if ( isInteger(term) )
-    { *hval = term;
+    { *hval = (long)term;
       succeed;
     }
 
     if ( isReal(term) )
     { union { real f;
-	      unsigned long l[2];
+	      long l[2];
 	    } v;
 
       v.f = valReal(term);
@@ -177,12 +151,16 @@ termHashValue(word term, word *hval)
 
 
 word
-pl_hash_term(Word term, Word hval)
-{ word hraw;
+pl_hash_term(term_t term, term_t hval)
+{ Word p = valTermRef(term);
+  long hraw;
 
-  if ( termHashValue(*term, &hraw) )
+  deRef(p);
+
+  if ( termHashValue(*p, &hraw) )
   { hraw = hraw & PLMAXINT;		/* ensure positive */
-    return unifyAtomic(hval, consNum(hraw));
+
+    return PL_unify_integer(hval, hraw);
   }
 
   succeed;
@@ -196,43 +174,37 @@ pl_hash_term(Word term, Word hval)
 		*********************************/
 
 word
-pl_unify(register Word t1, register Word t2)			/* =/2 */
-                     
-{ mark m;
-
-  DoMark(m);
-  if ( !unify(t1, t2, environment_frame) )
-  { DoUndo(m);
-    fail;
-  }
-
-  succeed;  
-}
-
-word
-pl_notunify(register Word t1, register Word t2)
-{ bool rval;
+pl_unify(term_t t1, term_t t2)		/* =/2 */
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
   mark m;
-  
-  DoMark(m);
-  rval = unify(t1, t2, environment_frame);
-  DoUndo(m);
+  int rval;
 
-  if (rval == TRUE)
-    fail;
+  Mark(m);
+  if ( !(rval = unify(p1, p2, environment_frame)) )
+    Undo(m);
 
-  succeed;
+  return rval;  
 }
 
+
 word
-pl_equal(register Word t1, register Word t2)			/* ==/2 */
-                     
+pl_notunify(term_t t1, term_t t2) /* A \= B */
+{ Word p1    = valTermRef(t1);
+  Word p2    = valTermRef(t2);
+
+  return can_unify(p1, p2) ? FALSE : TRUE;
+}
+
+
+static word
+_pl_equal(register Word t1, register Word t2)
 { int arity, n;
 
   deRef(t1);
   deRef(t2);
 
-  if (isVar(*t1) )
+  if ( isVar(*t1) )
   { if (t1 == t2)
       succeed;
     fail;
@@ -242,7 +214,7 @@ pl_equal(register Word t1, register Word t2)			/* ==/2 */
     succeed;
 
   if ( isIndirect(*t1) )
-  {
+  { 
 #if O_STRING
     if ( isString(*t1) )
     { if ( isString(*t2) && equalString(*t1, *t2) )
@@ -250,7 +222,7 @@ pl_equal(register Word t1, register Word t2)			/* ==/2 */
       fail;
     }
 #endif /* O_STRING */
-    if (isReal(*t2) && valReal(*t1) == valReal(*t2) )
+    if ( isReal(*t2) && equalReal(*t1, *t2) )
       succeed;
     fail;
   }
@@ -263,18 +235,27 @@ pl_equal(register Word t1, register Word t2)			/* ==/2 */
   t1 = argTermP(*t1, 0);
   t2 = argTermP(*t2, 0);
   for(n=0; n<arity; n++, t1++, t2++)
-    TRY(pl_equal(t1, t2) );
+    TRY(_pl_equal(t1, t2) );
 
   succeed;
 }
 
-word
-pl_nonequal(Word t1, Word t2)		/* \== */
-            
-{ if (pl_equal(t1, t2) == FALSE)
-    succeed;
 
-  fail;
+word
+pl_equal(term_t t1, term_t t2) /* == */
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
+
+  return _pl_equal(p1, p2);
+}
+
+
+word
+pl_nonequal(term_t t1, term_t t2) /* \== */
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
+
+  return _pl_equal(p1, p2) ? FALSE : TRUE;
 }
 
 
@@ -325,7 +306,6 @@ compareStandard(register Word t1, register Word t2)
   w2 = *t2;
   if (isVar(w2) )
     return GREATER;
-
   
   w1 = *t1; 
 
@@ -394,50 +374,56 @@ compareStandard(register Word t1, register Word t2)
 #undef w2
 
 word
-pl_compare(Word rel, Word t1, Word t2)
-{ int val = compareStandard(t1, t2);
+pl_compare(term_t rel, term_t t1, term_t t2)
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
 
-  return unifyAtomic(rel, val < 0 ? ATOM_smaller :
-		          val > 0 ? ATOM_larger :
-		                    ATOM_equals);
+  int val = compareStandard(p1, p2);
+
+  return PL_unify_atom(rel, val < 0 ? ATOM_smaller :
+		            val > 0 ? ATOM_larger :
+		                      ATOM_equals);
 }
 
 
 word
-pl_lessStandard(Word t1, Word t2)		/* @</2 */
-            
-{ if (compareStandard(t1, t2) < 0)
-    succeed;
-  fail;
+pl_lessStandard(term_t t1, term_t t2) /* @</2 */
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
+
+  return compareStandard(p1, p2) < 0 ? TRUE : FALSE;
 }
 
 word
-pl_lessEqualStandard(Word t1, Word t2)		/* @=</2 */
-            
-{ if (compareStandard(t1, t2) <= 0)
-    succeed;
-  fail;
+pl_lessEqualStandard(term_t t1, term_t t2) /* @=</2 */
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
+
+  return compareStandard(p1, p2) <= 0 ? TRUE : FALSE;
 }
 
-word
-pl_greaterStandard(Word t1, Word t2)		/* @>/2 */
-            
-{ if (compareStandard(t1, t2) > 0)
-    succeed;
-  fail;
-}
 
 word
-pl_greaterEqualStandard(Word t1, Word t2)	/* @>=/2 */
-            
-{ if (compareStandard(t1, t2) >= 0)
-    succeed;
-  fail;
+pl_greaterStandard(term_t t1, term_t t2) /* @>/2 */
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
+
+  return compareStandard(p1, p2) > 0 ? TRUE : FALSE;
+}
+
+
+word
+pl_greaterEqualStandard(term_t t1, term_t t2)	/* @>=/2 */
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
+
+  return compareStandard(p1, p2) >= 0 ? TRUE : FALSE;
 }
 
 		/********************************
 		*     STRUCTURAL EQUIVALENCE    *
 		*********************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The  idea  for  this  predicate  is  taken  from  the  usenet   network.
 Unfortunately I can't recall the author of the note.
@@ -457,10 +443,6 @@ typedef struct
   Word  v2;
 } reset, *Reset;
 
-#define SE_ITERATIVE 1
-
-#ifdef SE_ITERATIVE
-
 typedef struct uchoice *UChoice;
 
 struct uchoice
@@ -474,9 +456,6 @@ static bool
 pl_se(Word t1, Word t2, Buffer buf)
 { int todo = 1;
   UChoice nextch = NULL, tailch = NULL;
-
-  DEBUG(1, Sdprintf("pl_se("); pl_write(t1); Sdprintf(", "); pl_write(t2);
-	   Sdprintf(")\n"));
 
   for(;;)
   { Word p1, p2;
@@ -516,13 +495,15 @@ pl_se(Word t1, Word t2, Buffer buf)
       fail;
     }
   
-    if (w1 == w2)
+    if ( w1 == w2 )
       continue;
     if ( w1 & MARK_MASK || w2 & MARK_MASK )
       fail;
   
-    if (isIndirect(w1) )
+    if ( isIndirect(w1) )
     { 
+      if ( isReal(w2) && equalReal(w1, w2) )
+	continue;
 #if O_STRING
       if (isString(w1))
       { if ( isString(w2) && equalString(w1, w2) )
@@ -530,13 +511,10 @@ pl_se(Word t1, Word t2, Buffer buf)
 	fail;
       }
 #endif /* O_STRING */
-      if (isReal(w2) && valReal(w1) == valReal(w2) )
-	continue;
       fail;
     }
   
-    if (!isTerm(w1) || !isTerm(w2) ||
-	 functorTerm(w1) != functorTerm(w2) )
+    if ( !nonVarIsTerm(w1) || !nonVarHasFunctor(w2, functorTerm(w1)) )
       fail;
   
     arity = functorTerm(w1)->arity;
@@ -564,82 +542,22 @@ pl_se(Word t1, Word t2, Buffer buf)
   }
 }
 
-#else /*SE_ITERATIVE*/
-
-static bool
-pl_se(Word t1, Word t2, Buffer buf)
-{ int arity, n;
-
-  deRef(t1);
-  deRef(t2);
-
-  if ( isVar(*t1) )
-  { if ( isVar(*t2) )
-    { word id = consNum(sizeOfBuffer(buf))|MARK_MASK;
-      reset r;
-
-      r.v1 = t1;
-      r.v2 = t2;
-      addBuffer(buf, r, reset);
-      *t1 = *t2 = id;
-
-      succeed;
-    }
-    fail;
-  }
-
-  if (*t1 == *t2)
-    succeed;
-  if ( *t1 & MARK_MASK || *t2 & MARK_MASK )
-    fail;
-
-  if (isIndirect(*t1) )
-  { 
-#if O_STRING
-    if (isString(*t1))
-    { if ( isString(*t2) && equalString(*t1, *t2) )
-        succeed;
-      fail;
-    }
-#endif /* O_STRING */
-    if (isReal(*t2) && valReal(*t1) == valReal(*t2) )
-      succeed;
-    fail;
-  }
-
-  if (!isTerm(*t1) || !isTerm(*t2) ||
-       functorTerm(*t1) != functorTerm(*t2) )
-    fail;
-
-  arity = functorTerm(*t1)->arity;
-  t1 = argTermP(*t1, 0);
-  t2 = argTermP(*t2, 0);
-  for(n=0; n<arity; n++, t1++, t2++)
-    if ( !pl_se(t1, t2, buf) )
-      fail;
-
-  succeed;
-}
-
-#endif
 
 word
-pl_structural_equal(Word t1, Word t2)
+pl_structural_equal(term_t t1, term_t t2)
 { bool rval;
   buffer buf;
   Reset r;
+  Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
 
-  if ( *t1 == *t2 )
+  if ( *p1 == *p2 )
     succeed;
 
-  initBuffer(&buf);
-#ifdef SE_ITERATIVE
-  initAllocLocal();
-#endif
-  rval = pl_se(t1, t2, &buf);
-#ifdef SE_ITERATIVE
+  initBuffer(&buf);			/* can be faster! */
+  initAllocLocal();			/* use normal alloc? */
+  rval = pl_se(p1, p2, &buf);
   stopAllocLocal();
-#endif
   for(r = baseBuffer(&buf, reset); r < topBuffer(&buf, reset); r++)
   { setVar(*r->v1);
     setVar(*r->v2);
@@ -649,8 +567,9 @@ pl_structural_equal(Word t1, Word t2)
   return rval == FALSE ? FALSE : TRUE;
 }
 
+
 word
-pl_structural_nonequal(Word t1, Word t2)
+pl_structural_nonequal(term_t t1, term_t t2)
 { return pl_structural_equal(t1, t2) == FALSE ? TRUE : FALSE;
 }
 
@@ -660,78 +579,94 @@ pl_structural_nonequal(Word t1, Word t2)
 		*********************************/
 
 word
-pl_functor(Word t, Word f, Word a)
+pl_functor(term_t t, term_t f, term_t a)
 { int arity;
-
-  if ( isVar(*t) )
-  { if ( !isInteger(*a) )
+  Atom name;
+  
+  if ( PL_get_name_arity(t, &name, &arity) )
+  { if ( !PL_unify_atom(f, name) ||
+	 !PL_unify_integer(a, arity) )
       fail;
 
-    arity = (int) valNum(*a);
-
-    if ( isAtom(*f) )
-    { if (arity == 0)
-	return unifyAtomic(t, *f);
-      if (arity < 0)
-        fail;
-      return unifyFunctor(t, lookupFunctorDef((Atom)*f, arity));
-    }
-    if ( isNumber(*f) && arity == 0 )
-      return unifyAtomic(t, *f);
-
-    fail;
+    succeed;
   }
-  if ( isAtom(*t) || isNumber(*t) )
-  { TRY(unifyAtomic(f, *t) );
-    return unifyAtomic(a, consNum(0));
-  }
-  if ( !isTerm(*t) )
-    fail;
+  if ( PL_is_atomic(t) )
+  { if ( !PL_unify(f, t) ||
+	 !PL_unify_integer(a, 0) )
+      fail;
 
-  TRY(unifyAtomic(f, functorTerm(*t)->name) );
-  return unifyAtomic(a, consNum(functorTerm(*t)->arity));
+    succeed;
+  }
+
+  if ( !PL_get_integer(a, &arity) )
+    fail;
+  if ( arity == 0 && PL_is_atomic(f) )
+    return PL_unify(t, f);
+  if ( PL_get_atom(f, &name) )
+    return PL_unify_functor(t, PL_new_functor(name, arity));
+
+  fail;
 }
 
+
 word
-pl_arg(register Word n, register Word term, register Word arg, word b)
-{ switch( ForeignControl(b) )
+pl_arg(term_t n, term_t term, term_t arg, word b)
+{ Atom name;
+  int arity;
+
+  switch( ForeignControl(b) )
   { case FRG_FIRST_CALL:
-      if ( !isTerm(*term) )
-      { if ( !isAtom(*term) )
-	  warning("arg/3: second argument in not a term");
+    { int idx;
+
+      if ( !PL_get_name_arity(term, &name, &arity) )
+	return warning("arg/3: second argument in not a term");
+  
+      if ( PL_get_integer(n, &idx) )
+      { if ( idx >= 0 && idx <= arity )
+	{ term_t a = PL_new_term_ref();
+	
+	  PL_get_arg(idx, term, a);
+	  return PL_unify(arg, a);
+	}
+
 	fail;
-      }
-
-      if ( isInteger(*n) )
-      { int argn = (int) valNum(*n);
-
-	if (argn < 1 || argn > functorTerm(*term)->arity)
-	  fail;
-
-	return pl_unify(argTermP(*term, argn-1), arg);
-      } else if ( isVar(*n) )
+      } 
+      if ( PL_is_variable(n) )
       { int argn = 1;
-	int arity = functorTerm(*term)->arity;
+	term_t a = PL_new_term_ref();
 
 	for(argn=1; argn <= arity; argn++)
-	  if ( pl_unify(argTermP(*term, argn-1), arg) &&
-	       unifyAtomic(n, consNum(argn)) )
+	{ PL_get_arg(argn, term, a);
+	  if ( PL_unify(arg, a) )
+	  { PL_unify_integer(n, argn);
+	    if ( argn == arity )
+	      succeed;
 	    ForeignRedo(argn);
-
-	fail;
-      } else
-	return warning("arg/3: first argument in not an integer or unbound");
-    case FRG_REDO:
-      { int argn = ForeignContext(b) + 1;
-	int arity = functorTerm(*term)->arity;
-
-	for(; argn <= arity; argn++)
-	  if ( pl_unify(argTermP(*term, argn-1), arg) &&
-	       unifyAtomic(n, consNum(argn)) )
-	    ForeignRedo(argn);
-
+	  }
+	}
 	fail;
       }
+      return warning("arg/3: first argument in not an integer or unbound");
+    }
+    case FRG_REDO:
+    { int argn = ForeignContext(b) + 1;
+      term_t a = PL_new_term_ref();
+
+      if ( !PL_get_name_arity(term, &name, &arity) )
+	return warning("arg/3: second argument in not a term");
+
+      for(; argn <= arity; argn++)
+      { PL_get_arg(argn, term, a);
+	if ( PL_unify(arg, a) )
+	{ PL_unify_integer(n, argn);
+	  if ( argn == arity )
+	    succeed;
+	  ForeignRedo(argn);
+	}
+      }
+
+      fail;
+    }
     default:
       succeed;
   }
@@ -739,34 +674,40 @@ pl_arg(register Word n, register Word term, register Word arg, word b)
 	
 
 word
-pl_setarg(Word n, Word term, Word value)
-{ int argn;
-  Word a;
+pl_setarg(term_t n, term_t term, term_t value)
+{ int arity, argn;
+  Atom name;
+  Word a, v;
 
-  if ( !isTerm(*term) || !isInteger(*n) )
+  if ( !PL_get_integer(n, &argn) ||
+       !PL_get_name_arity(term, &name, &arity) )
     return warning("$setarg/3: instantiation fault");
   
-  argn = (int) valNum(*n);
-  if ( argn < 1 || argn > functorTerm(*term)->arity )
+  if ( argn < 1 || argn > arity )
     fail;
 
-  a = argTermP(*term, argn-1);
+  a = valTermRef(term);
+  v = valTermRef(value);
+  deRef(a);
+  deRef(v);
+
+  a = argTermP(*a, argn-1);
 
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
   TrailAssignment(a);
 #endif
 					/* this is unify(), but the */
 					/* assignment must *not* be trailed */
-  if ( isVar(*value) )
-  { if ( value < a )
-    { *a = makeRef(value);
-    } else if ( a < value )
+  if ( isVar(*v) )
+  { if ( v < a )
+    { *a = makeRef(v);
+    } else if ( a < v )
     { setVar(*a);
-      *value = makeRef(a);
+      *v = makeRef(a);
     } else
       setVar(*a);
   } else
-    *a = *value;
+    *a = *v;
 
   succeed;
 }
@@ -778,332 +719,509 @@ pl_setarg(Word n, Word term, Word value)
  ** Mon Apr 18 16:29:01 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 int
-lengthList(Word list)
+lengthList(term_t list)
 { int length = 0;
+  Word l = valTermRef(list);
 
-  while(!isNil(*list) )
-  { if (!isList(*list) )
+  deRef(l);
+
+  while(!isNil(*l) )
+  { if (!isList(*l) )
       return -1;			/* not a proper list */
     length++;
-    list = TailList(list);
-    deRef(list);
+    l = TailList(l);
+    deRef(l);
   }
-  if (isNil(*list) )
+  if (isNil(*l) )
     return length;
 
   return -1;
 }
 
 word
-pl_univ(Word t, Word l)
-{ word term;
-  int arity, a;
-  Word argp;
-  int n;
-  Word head;
+pl_univ(term_t t, term_t list)
+{ int arity;
+  Atom name;
+  term_t l = PL_new_term_ref();
 
-  arity = lengthList(l) - 1;
+  arity = lengthList(list) - 1;
 
-  if (isVar(*t) )
-  { if (arity < 0)			/* list is not proper */
-      fail;
-    head = HeadList(l);
-    deRef(head);
-    if (arity == 0)
-    { if ( isAtomic(*head) )
-	return unifyAtomic(t, *head);
-      fail;
-    }
-    if (!isAtom(*head) )
-      fail;
-    term = globalFunctor(lookupFunctorDef((Atom)*head, arity) );
-    pl_unify(t, &term);
-  } else
-  { if (isAtomic(*t) )
-    { APPENDLIST(l, t);
-      CLOSELIST(l);
+  if ( arity >= 0 )			/* 2nd argument is a proper list */
+  { term_t head = PL_new_term_ref();
+    int n;
+
+    PL_get_list(list, head, l);
+    if ( arity == 0 )			/* X =.. [Head] */
+      return PL_unify(t, head);
+
+    if ( PL_get_atom(head, &name) )
+    { if ( !PL_unify_functor(t, PL_new_functor(name, arity)) )
+	fail;
+
+      for(n=1; PL_get_list(l, head, l); n++)
+      { if ( !PL_unify_arg(n, t, head) )
+	  fail;
+      }
+
       succeed;
     }
-    if (!isTerm(*t) )
+  }
+  
+					/* 1st arg is term or atom */
+  if ( PL_get_name_arity(t, &name, &arity) )
+  { term_t head = PL_new_term_ref();
+    int n;
+
+    if ( !PL_unify_list(list, head, l) ||
+	 !PL_unify_atom(head, name) )
       fail;
-    term = *t;
+
+    for(n = 1; n <= arity; n++)
+    { if ( !PL_unify_list(l, head, l) ||
+	   !PL_unify_arg(n, t, head) )
+	fail;
+    }
+
+    return PL_unify_nil(l);
   }
 
-  a = functorTerm(term)->arity;
-  if (arity >= 0 && a != arity)
-    fail;
+  if ( PL_is_number(t) )		/* 3 =.. X and 3.4 =.. X */
+  { term_t head = PL_new_term_ref();
 
-  APPENDLIST(l, (Word)&(functorTerm(term)->name));
-  argp = argTermP(term, 0);
-  for(n = 0; n < a; n++, argp++)
-  { APPENDLIST(l, argp);
+    if ( PL_unify_list(list, head, l) &&
+	 PL_unify(head, t) &&
+	 PL_unify_nil(l) )
+      succeed;
   }
 
-  CLOSELIST(l);
-
-  succeed;
+  fail;
 }
 
-int
-numberVars(register Word t, FunctorDef functor, int n)
-{ Word argp;
-  int i, arity;
 
-  deRef(t);
-  
-  if (isVar(*t))
-  { unifyFunctor(t, functor);
-    unifyAtomic(argTermP(*t, 0), consNum(n));
+static int
+do_number_vars(term_t t, FunctorDef functor, int n)
+{ Atom name;
+  int arity;
 
-    return ++n;
-  }
-  if (isTerm(*t))
-  { arity = functorTerm(*t)->arity;
-    argp = argTermP(*t, 0);
+  if ( PL_is_variable(t) )
+  { term_t tmp = PL_new_term_ref();
 
-    for(i=0; i<arity; i++, argp++)
-      n = numberVars(argp, functor, n);
-    
-    return n;
+    PL_unify_functor(t, functor);
+    PL_put_integer(tmp, n);
+    PL_unify_arg(1, t, tmp);
+
+    n++;
+  } else if ( PL_get_name_arity(t, &name, &arity) )
+  { term_t a = PL_new_term_ref();
+    int i;
+
+    for(i=1; i<=arity; i++)
+    { PL_get_arg(i, t, a);
+      n = do_number_vars(a, functor, n);
+    }
   }
 
   return n;			/* anything else */
 }
 
+
+int
+numberVars(term_t t, FunctorDef functor, int n)
+{ term_t h0 = PL_new_term_refs(0);
+  int rval = do_number_vars(t, functor, n);
+
+  PL_reset_term_refs(h0);
+
+  return rval;
+}
+
+
 word
-pl_numbervars(Word t, Word atom, Word start, Word end)
+pl_numbervars(term_t t, term_t f,
+	      term_t start, term_t end)
 { int n;
   FunctorDef functor;
+  Atom name;
+  
+  if ( !PL_get_integer(start, &n) ||
+       !PL_get_atom(f, &name) )
+    return warning("numbervars/4: instantiation fault");
 
-  if (!isInteger(*start) || !isAtom(*atom) )
-    fail;
-    
-  functor = lookupFunctorDef((Atom)*atom, 1);
-  n = (int) valNum(*start);
+  functor = PL_new_functor(name, 1);
   n = numberVars(t, functor, n);
 
-  return unifyAtomic(end, consNum(n));
+  return PL_unify_integer(end, n);
 }
 
-static void
-resetVariables(register Word t)
-{ register int arity;
 
-  deRef(t);
-  if ( !isTerm(*t) )
-    return;
-  if ( functorTerm(*t) == FUNCTOR_var1 )  
-  { setVar(*t);
-    return;
+static int
+free_variables(Word t, term_t l, int n)
+{ deRef(t);
+
+  if ( isVar(*t) )
+  { int i;
+    term_t v;
+
+    for(i=0; i<n; i++)
+    { if ( compareStandard(valTermRef(l+i), t) == 0 )
+	return n;
+    }
+    v = PL_new_term_ref();
+    *valTermRef(v) = makeRef(t);
+
+    return n+1;
   }
-  for(arity=functorTerm(*t)->arity, t=argTermP(*t, 0); arity > 0; arity--, t++)
-    resetVariables(t);
+  if ( isTerm(*t) )
+  { int arity = functorTerm(*t)->arity;
+
+    for(t = argTermP(*t, 0); arity > 0; arity--, t++)
+      n = free_variables(t, l, n);
+  }
+    
+  return n;
 }
 
-static bool
-freeVariables(register Word t, register Word *l, bool e)
-{ int arity;
-  
-  deRef(t);
-  if (!isTerm(*t) )
-    succeed;
-
-  if (e == TRUE && functorTerm(*t) == FUNCTOR_hat2)
-  { resetVariables(argTermP(*t, 0));
-    return freeVariables(argTermP(*t, 1), l, e);
-  }
-
-  if (functorTerm(*t) == FUNCTOR_var1)
-  { setVar(*t);
-    APPENDLIST(*l, t);
-    succeed;
-  }
-  for(arity=functorTerm(*t)->arity, t=argTermP(*t, 0); arity > 0; arity--, t++)
-    TRY(freeVariables(t, l, e) );
-
-  succeed;
-}
 
 word
-pl_free_variables(Word t, Word l)
-{ numberVars(t, FUNCTOR_var1, 0);
-  
-  TRY(freeVariables(t, &l, FALSE) );
-  CLOSELIST(l);
+pl_free_variables(term_t t, term_t variables)
+{ term_t head = PL_new_term_ref();
+  term_t vars = PL_copy_term_ref(variables);
+  term_t v0   = PL_new_term_refs(0);
+  int i, n    = free_variables(valTermRef(t), v0, 0);
 
-  succeed;
+  for(i=0; i<n; i++)
+  { if ( !PL_unify_list(vars, head, vars) ||
+	 !PL_unify(head, v0+i) )
+      fail;
+  }
+      
+  return PL_unify_nil(vars);
 }
 
-word
-pl_e_free_variables(Word t, Word l)
-{ numberVars(t, FUNCTOR_var1, 0);
-  
-  TRY(freeVariables(t, &l, TRUE) );
-  CLOSELIST(l);
 
-  succeed;
-}
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+pl_e_free_variables(V0^V1^t, vars) is used  by   setof/3  and bagof/3 to
+determine  the  free  variables  in  the    goal   that  have  not  been
+existentially bound.  The implementation is rather tricky:
 
+A backtract mark is pushed. Then  bind_existential_vars(t) will bind all
+variables in terms at the left-side  of   the  ^/2 operator to []. Next,
+free_variables() is used to  make  PL_term_refs   for  all  of  the free
+variables. The Undo() is used to free all []-bound variables and finally
+the list is constructed.  All  this  works   thanks  to  the  fact  that
+free_variables() doesn't use unification and its   bindings are thus not
+undone by the Undo().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-copyTerm(Word f, Word copy, Table vars)
-{ deRef(f);
+dobind_vars(Word t, Atom constant)
+{ deRef(t);
 
-  if ( isVar(*f) )
-  { Symbol s = lookupLocalTable(vars, f);
+  if ( isVar(*t) )
+  { unifyAtomic(t, constant);
+    return;
+  }
+  if ( isTerm(*t) )
+  { int arity = functorTerm(*t)->arity;
 
-    if ( s != (Symbol) NULL )
-    { *copy = makeRef(s->value);
-    } else
-    { if ( isVar(*copy) )
-	addLocalTable(vars, f, copy);
-      else
-      { Word p = allocGlobal(1);
-        setVar(*p);
-	*copy = makeRef(p);
-	addLocalTable(vars, f, p);
+    for(t = argTermP(*t, 0); arity > 0; arity--, t++)
+      dobind_vars(t, constant);
+  }
+}
+
+
+static Word
+bind_existential_vars(Word t)
+{ deRef(t);
+
+  if ( isTerm(*t) )
+  { int arity;
+    Word a;
+
+    if ( functorTerm(*t) == FUNCTOR_hat2 )
+    { dobind_vars(argTermP(*t, 0), ATOM_nil);
+      return bind_existential_vars(argTermP(*t, 1));
+    }
+    
+    arity = functorTerm(*t)->arity;
+    for(a = argTermP(*t, 0); arity > 0; arity--, a++)
+      bind_existential_vars(a);
+  }
+
+  return t;
+}
+
+
+word
+pl_e_free_variables(term_t t, term_t vars)
+{ mark m;
+
+  Mark(m);
+  { Word t2          = bind_existential_vars(valTermRef(t));
+    term_t v0   = PL_new_term_refs(0);
+    int i, n	     = free_variables(t2, v0, 0);
+    Undo(m);
+
+    if ( PL_unify_functor(vars, PL_new_functor(ATOM_v, n)) )
+    { for(i=0; i<n; i++)
+      { TRY(PL_unify_arg(i+1, vars, v0+i));
       }
+
+      succeed;
     }
 
-    return;
-  } else if ( isTerm(*f) )
-  { Word p, q;
+    fail;
+  }  
+}
+  
+
+		 /*******************************
+		 *	      COPY-TERM		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Term copying is used to create a  term with `fresh' variables. The ideal
+algorithm should take care of sharing  variables   in  the term and copy
+ground parts of the term by  sharing   them  with the original term. The
+implementation below satisfies these requirements,  passes the term only
+twice, is safe to stack-shifting and garbage-collection while in progres
+and is efficient for both large and small terms. Here is how it works.
+
+Phase *1* analyses the term. It will   make  a foreign term-reference to
+any variable found in the term. It  will add a foreign-reference holding
+the index-number of a ground term encountered. While numbering the tree,
+only compound terms are numbered and a ground term counts as one.
+
+Next, the array of foreign references   is  sorted. Variables are placed
+first, ordered on their address and  ground-term indices after them. The
+variable array is then  scanned  and   for  each  shared  variable (i.e.
+reference to the same address), two  term-references are made. The first
+points to the old term's shared variable and   the  other is set to NULL
+(var). This field will be  used  to   store  a  reference  to the copied
+variable.
+
+Finally, the term is copied. If a variable  is found, it is looked up in
+the shared variable database.  When  present   and  already  copied, the
+reference is copied. When present, but not   copied, a reference is made
+from  the  free  cell  to  the  copy.  Otherwise  no  action  is  needed
+(singleton). If a term is found and it  is in the ground-list, just copy
+the term-reference, otherwise, recurse into the term.  Finally, copy all
+other (atomic) data by reference.
+
+NOTE: the variable detection could be  more efficient by introducing two
+special constants. Finding a variable,  assign   the  first, finding the
+first, assign the second and make a  reference in the variable array. To
+be considered.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+pre_copy_analysis(Word t, int *index)
+{ deRef(t);
+
+  if ( isVar(*t) )
+  { term_t h = PL_new_term_ref();
+    Word p = valTermRef(h);
+
+    *p = makeRef(t);
+    return 1;				/* 1 variable */
+  }
+
+  if ( isTerm(*t) )
+  { int arity = functorTerm(*t)->arity;
+    int subvars = 0;
+    int thisindex = (*index)++;
+    term_t thisterm = PL_new_term_refs(0);
+    
+    t = argTermP(*t, 0);
+    for( ; --arity >= 0; t++ )
+      subvars += pre_copy_analysis(t, index);
+    
+    if ( subvars == 0 )			/* ground term */
+    { term_t h;
+
+      PL_reset_term_refs(thisterm);
+      h = PL_new_term_ref();
+      PL_put_integer(h, thisindex);
+      *index = thisindex+1;		/* don't number in ground! */
+    }
+
+    return subvars;
+  }
+    
+  return 0;
+}
+
+
+static int
+cmp_copy_refs(const void *h1, const void *h2)
+{ word w1 = *((Word) h1);
+  word w2 = *((Word) h2);
+
+  if ( isRef(w1) )
+  { if ( isRef(w2) )
+      return unRef(w1) - unRef(w2);
+    return -1;
+  }
+  if ( isRef(w2) )
+    return 1;
+
+  return valNum(w1) - valNum(w2);
+}
+
+
+typedef struct
+{ term_t shared_variables;		/* handle of first shared var */
+  int    nshared;			/* # shared variables */
+  term_t ground_terms;			/* index of first ground term */
+  int	 nground;			/* # ground terms */
+  int    index;				/* index of current compound */
+} copy_info, *CopyInfo;
+
+
+static Word
+lookup_shared_var(CopyInfo info, Word v)
+{ if ( info->nshared )
+  { Word v0 = valTermRef(info->shared_variables);
     int n;
 
-    *copy = globalFunctor(functorTerm(*f));
-
-    p = argTermP(*copy, 0);
-    q = argTermP(*f, 0);
-
-    for(n = 0; n < functorTerm(*f)->arity; n++, p++, q++)
-      copyTerm(q, p, vars);
-  } else
-    *copy = *f;				/* atomic datatypes */
-}
-
-
-word
-pl_copy_term(Word f, Word t)
-{ Table vartable;
-  Word copy = allocGlobal(1);
-
-  setVar(*copy);
-  initAllocLocal();
-  vartable = newLocalTable(16);
-  copyTerm(f, copy, vartable);
-  stopAllocLocal();
-
-  return pl_unify(t, copy);
-}
-
-bool
-unifyStringWithList(char *s, Word l)
-{ word w;
-  unsigned char *q = (unsigned char *)s;
-
-  while(*q)
-  { w = consNum((int)*q++);
-    APPENDLIST(l, &w);
-  }
-  CLOSELIST(l);
-
-  succeed;
-}
-
-word
-stringToList(char *s)
-{ word result;
-  Word arg;
-  FunctorDef dot = FUNCTOR_dot2;
-  unsigned char *q = (unsigned char *)s;
-
-  if (*q == EOS)
-    return (word)ATOM_nil;
-
-  result = globalFunctor(dot);
-  arg = argTermP(result, 0);
-  *arg++ = consNum((int)*q++);
-
-  while(*q)
-  { *arg = globalFunctor(dot);
-    arg = argTermP(*arg, 0);
-    *arg++ = consNum((int)*q++);
-  }
-
-  *arg = (word)ATOM_nil;
-
-  return result;
-}
-
-char *
-listToString(register word list)
-{ char *result = (char *) lTop;
-  char *s = result;
-  int c;
-  register Word arg;
-  Word tail;
-
-  while(isList(list) && !isNil(list))
-  { arg = argTermP(list, 0);
-    deRef(arg);
-    if (isInteger(*arg) && (c=(int)valNum(*arg)) > 0 && c < 256)
-    { *s++ = (char) c;
-      STACKVERIFY( if (s > (char *)lMax) outOf((Stack)&stacks.local) );
-      tail = argTermP(list, 1);
-      deRef(tail);
-      list = *tail;
-      continue;
+    for(n = info->nshared; n > 0; n--, v0 += 2)
+    { if ( unRef(*v0) == v )
+	return v0;
     }
-    return (char *)NULL;
   }
-  if (!isNil(list))
-    return (char *)NULL;
-
-  *s = EOS;
-
-  return result;
-}
-
-char *
-primitiveToString(word w, bool save)
-{ static char tmp[25];
- 
-  if (isAtom(w) )
-    return stringAtom(w);
-  if (isInteger(w) )
-  { Ssprintf(tmp, "%ld", valNum(w) );
-    return save ? store_string_local(tmp) : tmp;
-  }
-  if (isReal(w) )
-  { Ssprintf(tmp, "%f", valReal(w) );
-    return save ? store_string_local(tmp) : tmp;
-  }
-#if O_STRING
-  if (isString(w))
-    return valString(w);
-#endif /* O_STRING */
-
-  return (char *) NULL;
-}
-
-
-char *
-toString(word w)
-{ char *s;
-  if ( (s = primitiveToString(w, FALSE)) != NULL ||
-       (s = listToString(w)) != NULL )
-    return s;
 
   return NULL;
 }
 
 
+static int
+lookup_ground(CopyInfo info)
+{ if ( info->nground )
+  { Word g0 = valTermRef(info->ground_terms);
+
+    if ( valNum(*g0) == info->index )
+    { info->nground--;
+      info->ground_terms++;
+      succeed;
+    }
+  }
+
+  fail;
+}
+
+
+static void
+do_copy(term_t from, term_t to, CopyInfo info)
+{ Word p = valTermRef(from);
+
+  deRef(p);
+  if ( isVar(*p) )
+  { Word p2 = lookup_shared_var(info, p);
+
+    if ( p2 )
+    { Word t = valTermRef(to);
+
+      deRef(t);
+      if ( p2[1] )
+	*t = p2[1];
+      else
+      { setVar(*t);
+	p2[1] = makeRef(t);
+      }
+    }
+  } else if ( isTerm(*p) )
+  { if ( lookup_ground(info) )
+    { info->index++;
+      PL_unify(to, from);
+    } else
+    { FunctorDef fd = functorTerm(*p);
+      int n, arity = fd->arity;
+      term_t af = PL_new_term_ref();
+      term_t at = PL_new_term_ref();
+
+      info->index++;
+      PL_unify_functor(to, fd);
+      for(n=0; n<arity; n++)
+      { PL_get_arg(n+1, from, af);
+	PL_get_arg(n+1, to, at);
+	do_copy(af, at, info);
+      }
+    }
+  } else
+    PL_unify(to, from);
+}
+
+
 word
-pl_atom_length(Word w, Word n)
+pl_copy_term(term_t from, term_t to)
+{ Word f = valTermRef(from);
+  term_t copy = PL_new_term_ref();
+  term_t ha = copy+1;			/* next free one */
+  int hn;
+  Word p, q;
+  copy_info info;
+  int n, index = 1;
+
+  pre_copy_analysis(f, &index);
+  hn = PL_new_term_refs(0) - ha;
+  info.shared_variables = ha;
+  if ( hn > 0 )
+  { q = p = valTermRef(ha);
+
+    qsort(p, hn, sizeof(word), cmp_copy_refs);
+    for( n = hn; n > 0; n--)
+    { if ( isRef(*p) )
+      { Word v = unRef(*p);
+	int shared = 1;
+
+	while(n > 1 && isRef(p[shared]) && unRef(p[shared]) == v )
+	{ shared++;
+	  n--;
+	}
+
+	if ( shared > 1 )
+	{ *q++ = *p;
+	  *q++ = 0;			/* reserved for new one */
+	}
+	p += shared;
+      } else				/* hit ground terms */
+      { info.nshared = (q-valTermRef(ha))/2;
+	info.nground = n;
+	info.ground_terms = consTermRef(q);
+
+	while(n-- > 0)
+	  *q++ = *p++;
+	goto end_analysis;
+      }
+    }
+    info.nshared = (q-valTermRef(ha))/2;
+    info.nground = 0;
+  } else
+  { info.nshared = 0;
+    info.nground = 0;
+  }
+end_analysis:
+
+  DEBUG(5, Sdprintf("%d shared variables and %d ground terms:\n",
+		    info.nshared, info.nground);
+	for(n=0; n<info.nground; n++)
+	{ Sdprintf("\t");
+	  pl_write(info.ground_terms+n);
+	  Sdprintf("\n");
+	});
+
+  do_copy(from, copy, &info);
+
+  return PL_unify(to, copy);
+}
+
+
+word
+pl_atom_length(term_t w, term_t n)
 { char *s;
 
-  if ( (s = primitiveToString(*w, FALSE)) )
-    return unifyAtomic(n, consNum(strlen(s)));
+  if ( PL_get_chars(w, &s, CVT_ALL) )
+    return PL_unify_integer(n, strlen(s));
 
   return warning("atom_length/2: instantiation fault");
 }
@@ -1121,40 +1239,38 @@ prependBase(int b, char *s)
 }
 
 word
-pl_int_to_atom(Word number, Word base, Word atom)
-{ long n, b;
+pl_int_to_atom(term_t number, term_t base, term_t atom)
+{ int n, b;
   char result[100];
   char *s = &result[99];
 
   *s-- = EOS;
-  if ( wordToInteger(*number, &n) == FALSE ||
-       wordToInteger(*base, &b) == FALSE)
-  { warning("int_to_atom/3: instantiation fault");
-    fail;
-  }
+  if ( !PL_get_integer(number, &n) ||
+       !PL_get_integer(base, &b) )
+    return warning("int_to_atom/3: instantiation fault");
 
-  if (b == 0 && n > 0 && n < 256)
+  if ( b == 0 && n > 0 && n < 256 )
   { *s-- = (char) n;
     *s-- = '\'';
     *s = '0';
-    return unifyAtomic(atom, lookupAtom(s));
+    return PL_unify_atom_chars(atom, s);
   }
 
-  if (b > 36 || b < 2)
+  if ( b > 36 || b < 2 )
     return warning("int_to_atom/3: Illegal base: %d", b);
 
-  if (n == 0)
+  if ( n == 0 )
   { *s-- = '0';
   } else
-  { while(n > 0)
+  { while( n > 0 )
     { *s-- = digitName((int)(n % b), TRUE);
       n /= b;
     }
   }
-  if (b != 10)
-    s = prependBase((int)b, s);
+  if ( b != 10 )
+    s = prependBase(b, s);
 
-  return unifyAtomic(atom, lookupAtom(s+1));
+  return PL_unify_atom_chars(atom, s+1);
 }
 
 /*  format an integer according to  a  number  of  modifiers  at various
@@ -1198,17 +1314,16 @@ formatInteger(bool split, int div, int radix, bool small, long int n)
   return s;
 }	  
 
+
 word
-pl_format_number(Word format, Word number, Word string)
+pl_format_number(term_t format, term_t number, term_t string)
 { char *fmt;
   int arg;
   char conv;
-  word list;
 
-  if (!isAtom(*format) )
+  if ( !PL_get_chars(format, &fmt, CVT_ALL) )
     return warning("$format_number/2: instantiation fault");
-  fmt = stringAtom(*format);
-  if (*fmt == EOS)
+  if ( *fmt == EOS )
     return warning("$format_number/3: illegal format");
   arg = atoi(fmt);
   conv = fmt[strlen(fmt)-1];
@@ -1219,37 +1334,124 @@ pl_format_number(Word format, Word number, Word string)
     case 'r':
     case 'R':
       { long i;
+	char *result;
 
-	if (wordToInteger(*number, &i) == FALSE)
+	if ( !PL_get_long(number, &i) )
 	  return warning("format_number/3: 2nd argument is not an integer");
 	if (conv == 'd' || conv == 'D')
-	  list = stringToList(formatInteger(conv == 'D', arg, 10, TRUE, i) );
+	  result = formatInteger(conv == 'D', arg, 10, TRUE, i);
 	else
-	  list = stringToList(formatInteger(FALSE, 0, arg, conv == 'r', i) );
-	return pl_unify(string, &list);
+	  result = formatInteger(FALSE, 0, arg, conv == 'r', i);
+
+	return PL_unify_list_chars(string, result);
       }
     case 'e':
     case 'E':
     case 'f':
     case 'g':
     case 'G':
-      { real f;
+      { double f;
 	char tmp[100];
 	char form2[10];
 
-	if (fmt[1] == EOS)
+	if ( fmt[1] == EOS )
 	  arg = 6;
-	if (wordToReal(*number, &f) == FALSE)
+	if ( !PL_get_float(number, &f) )
 	  return warning("$format_number/3: 2nd argument is not a float");
 	Ssprintf(form2, "%%.%d%c", arg, conv);
 	Ssprintf(tmp, form2, f);
-	list = stringToList(tmp);
-	return pl_unify(string, &list);
+
+	return PL_unify_list_chars(string, tmp);
       }
     default:
       return warning("$format_number/3: illegal conversion code");
   }
 }
+
+
+#define X_AUTO   0
+#define X_ATOM   1
+#define X_NUMBER 2
+
+static word
+x_chars(const char *pred, term_t atom, term_t string, int how)
+{ char *s;
+
+  if ( PL_get_chars(atom, &s, CVT_ATOMIC) ) /* atomic --> "list" */
+    return PL_unify_list_chars(string, s);
+
+  if ( PL_is_variable(atom) )
+  { if ( !PL_get_list_chars(string, &s, 0) )
+      return warning("%s/2: instantiation fault", pred);
+
+    switch(how)
+    { case X_ATOM:
+	return PL_unify_atom_chars(atom, s);
+      case X_AUTO:
+      case X_NUMBER:
+      default:
+      { number n;
+	char *q;
+	int type = get_number(s, &q, &n);
+
+	if ( type != V_ERROR && *q == EOS )
+	{ switch(type)
+	  { case V_INTEGER:
+	      return PL_unify_integer(atom, n.i);
+	    case V_REAL:
+	      return PL_unify_float(atom, n.f);
+	  }
+	}
+	if ( how == X_AUTO )
+	  return PL_unify_atom_chars(atom, s);
+	else
+	  fail;
+      }
+    }
+  }
+
+  return warning("%s/2: instantiation fault", pred);
+}
+
+
+word
+pl_name(term_t atom, term_t string)
+{ return x_chars("name", atom, string, X_AUTO);
+}
+
+
+word
+pl_atom_chars(term_t atom, term_t string)
+{ return x_chars("atom_chars", atom, string, X_ATOM);
+}
+
+
+word
+pl_number_chars(term_t atom, term_t string)
+{ return x_chars("number_chars", atom, string, X_NUMBER);
+}
+
+
+word
+pl_atom_char(term_t atom, term_t chr)
+{ Atom a;
+  int n;
+
+  if ( PL_get_atom(atom, &a) )
+  { return PL_unify_integer(chr, stringAtom(a)[0]);
+  } else if ( PL_get_integer(chr, &n) )
+  { char buf[2];
+
+    if ( n >= 0 && n < 256 )
+    { buf[0] = n;
+      buf[1] = '\0';
+      return PL_unify_atom_chars(atom, buf);
+    }
+  }
+
+  return warning("atom_char/2: instantiation fault");
+}
+
 
 static bool
 isPrefix(register char *s, register char *q)
@@ -1260,159 +1462,30 @@ isPrefix(register char *s, register char *q)
 }
 
 
-static word
-toNumber(char *s)
-{ char *q = s;
-
-  if ( *s == '+' || *s == '-' )
-    s++;
-/*if ( *s == '.' )		.33 is not valid Prolog syntax!
-    goto dotreal;*/
-  if ( !isDigit(*s) )
-    fail;
-  do { s++; } while (isDigit(*s));
-  if ( *s == '.' )
-  {
-/*dotreal:*/
-    s++;
-    if ( !isDigit(*s) )
-      fail;
-    do { s++; } while (isDigit(*s));
-    if ( *s == 'e' || *s == 'E' )
-    { s++;
-      if ( !isDigit(*s) )
-	fail;
-      do { s++; } while (isDigit(*s));
-    }
-  }
-
-  if ( *s == EOS )
-  { bool rval;
-    Word n = newTerm();
-
-    seeString(q);
-    rval = pl_read(n);
-    seenString();
-
-    return rval ? *n : FALSE;
-  }
-
-  fail;
-}
-
-
-#define X_AUTO   0
-#define X_ATOM   1
-#define X_NUMBER 2
-
-static word
-x_chars(char *pred, Word atom, Word string, int how)
-{ register char *s;
-
-  if ((s = primitiveToString(*atom, FALSE)) != (char *)NULL)
-    return unifyStringWithList(s, string);
-
-  if ( isVar(*atom) )
-  { register char *q;
-
-    if ( !(s = listToString(*string)) )
-      return warning("%s/2: instantiation fault", pred);
-
-    switch(how)
-    { case X_ATOM:
-	return unifyAtomic(atom, lookupAtom(s));
-      case X_NUMBER:
-      { word n = toNumber(s);
-
-	if ( n )
-	  return unifyAtomic(atom, n);
-	else
-	  fail;
-      }
-      case X_AUTO:
-      default:
-	if ( isDigit(*s) )
-	{ word n;
-
-	  for(q=s; *q && isDigit(*q); q++) ;
-	  if ( *q == EOS && (n = toNumber(s)) )
-	    return unifyAtomic(atom, n);
-	}
-        return unifyAtomic(atom, lookupAtom(s) );
-    }
-  }
-
-  return warning("%s/2: instantiation fault", pred);
-}
-
-
 word
-pl_name(Word atom, Word string)
-{ return x_chars("name", atom, string, X_AUTO);
-}
-
-
-word
-pl_atom_chars(Word atom, Word string)
-{ return x_chars("atom_chars", atom, string, X_ATOM);
-}
-
-
-word
-pl_number_chars(Word atom, Word string)
-{ return x_chars("number_chars", atom, string, X_NUMBER);
-}
-
-
-word
-pl_atom_char(Word atom, Word chr)
-{ if ( isAtom(*atom) )
-  { Atom a = (Atom)*atom;
-    return unifyAtomic(chr, consNum(stringAtom(a)[0]));
-  } else if ( isInteger(*chr) )
-  { int n = valNum(*chr);
-    char buf[2];
-
-    if ( n >= 0 && n < 256 )
-    { buf[0] = n;
-      buf[1] = '\0';
-      return unifyAtomic(atom, lookupAtom(buf));
-    }
-  }
-
-  return warning("atom_char/2: instantiation fault");
-}
-
-
-word
-pl_concat(Word a1, Word a2, Word a3)
-{ char *s1, *s2, *s3;
+pl_concat(term_t a1, term_t a2, term_t a3)
+{ char *s1 = NULL, *s2 = NULL, *s3 = NULL;
   long l1, l2, l3;
   char *tmp;
 
-  initAllocLocal();
-
-  s1 = primitiveToString(*a1, TRUE);
-  s2 = primitiveToString(*a2, TRUE);
-  s3 = primitiveToString(*a3, TRUE);
+  PL_get_chars(a1, &s1, CVT_ATOMIC|BUF_RING);
+  PL_get_chars(a2, &s2, CVT_ATOMIC|BUF_RING);
+  PL_get_chars(a3, &s3, CVT_ATOMIC|BUF_RING);
 
   if (s1 && s2)
   { l1 = strlen(s1);
-    tmp = (char *)allocLocal(l1 + strlen(s2));
+    tmp = alloca(l1 + strlen(s2));
     strcpy(tmp, s1);
     strcpy(tmp+l1, s2);
-    stopAllocLocal();
-    return unifyAtomic(a3, lookupAtom(tmp));
+    return PL_unify_atom_chars(a3, tmp);
   }
-
-  stopAllocLocal();
 
   if (!s3)
     return warning("concat/3: instantiation fault");
 
   if (s1)
   { if (isPrefix(s1, s3) )
-      return unifyAtomic(a2, lookupAtom(s3+strlen(s1)) );
+      return PL_unify_atom_chars(a2, s3+strlen(s1));
     fail;
   }
 
@@ -1425,65 +1498,66 @@ pl_concat(Word a1, Word a2, Word a3)
     ld = l3 - l2;
     if (l2 > l3 || !streq(s3+ld, s2) )
       fail;
-    initAllocLocal();
-    q = allocLocal(ld+1);
+    q = alloca(ld+1);
     strncpy(q, s3, ld);
     q[ld] = EOS;
-    stopAllocLocal();
-    return unifyAtomic(a1, lookupAtom(q));
+    return PL_unify_atom_chars(a1, q);
   }
 
   return warning("concat/3: instantiation fault");
 }
 
-word
-pl_concat_atom(Word list, Word atom)
-{ char *tmp = (char *) lTop;
-  char *base = tmp;
-  Word arg;
-  char *s;
-  long l;
 
-  *tmp = EOS;
-  while(!isNil(*list) )
-  { if (!isList(*list) )
-      return warning("concat_atom/2: instantiation fault");
-    arg = HeadList(list);
-    deRef(arg);
-    if ((s = primitiveToString(*arg, FALSE)) == (char *) NULL)
-      return warning("concat_atom/2: instantiation fault");
-    l = strlen(s);
-    STACKVERIFY( if (tmp + l > (char *) lMax) outOf((Stack)&stacks.local) );
-    strcpy(tmp, s);
-    tmp += l;
-    list = TailList(list);
+word
+pl_concat_atom(term_t list, term_t atom)
+{ buffer b;
+  char *s;
+  term_t l = PL_copy_term_ref(list);
+  term_t head = PL_new_term_ref();
+
+  initBuffer(&b);
+  while( PL_get_list(l, head, l) &&
+	 PL_get_chars(head, &s, CVT_ATOMIC) )
+  { addMultipleBuffer(&b, s, strlen(s), char);
+  }
+
+  if ( PL_get_nil(l) )
+  { Atom a;
+
+    addBuffer(&b, EOS, char);
+    a = lookupAtom(baseBuffer(&b, char));
+    discardBuffer(&b);
+
+    return PL_unify_atom(atom, a);
+  }
+
+  discardBuffer(&b);
+  return warning("concat_atom/2: instantiation fault");
+}
+
+
+word
+pl_apropos_match(term_t a1, term_t a2)
+{ char *s1, *s2;
+
+  if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_RING) &&
+       PL_get_chars(a2, &s2, CVT_ALL) )
+  { char *s, *q;
+
+    for (; *s2; s2++)
+    { for(q=s1, s=s2; *q && *s; q++, s++)
+      { if ( *q != *s && *q != toLower(*s) )
+	  break;
+      }
+      if ( *q == EOS )
+	succeed;
+    }
+    fail;
   }
   
-  return unifyAtomic(atom, lookupAtom(base) );
+  return warning("$apropos_match/2: instantiation fault");
 }
 
-word
-pl_apropos_match(Word a1, Word a2)
-{ char *s1, *s2, *q, *s;
-
-  initAllocLocal();
-  s1 = primitiveToString(*a1, TRUE);
-  s2 = primitiveToString(*a2, TRUE);
-  stopAllocLocal();
-  if ( s1 == NULL || s2 == NULL )
-    return warning("$apropos_match/2: instantiation fault");
-
-  for (; *s2; s2++)
-  { for(q=s1, s=s2; *q && *s; q++, s++)
-    { if ( *q != *s && *q != toLower(*s) )
-        break;
-    }
-    if ( *q == EOS )
-      succeed;
-  }
-
-  fail;
-}
 
 #if O_STRING
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1491,154 +1565,149 @@ Provisional String manipulation functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_string_length(Word str, Word l)
+pl_string_length(term_t str, term_t l)
 { char *s;
+  int i;
 
-  if ( isString(*str) )
-    return unifyAtomic(l, consNum(sizeString(*str)));
+  if ( PL_get_string(str, &s, &i) )
+    return PL_unify_integer(l, i);
+  if ( PL_get_chars(str, &s, CVT_ALL) )
+    return PL_unify_integer(l, strlen(s));
 
-  if ( (s=primitiveToString(*str, FALSE)) == NULL )
-    return warning("string_length/2: instantiation fault");
-
-  return unifyAtomic(l, consNum(strlen(s)));
+  return warning("string_length/2: instantiation fault");
 }
 
 word
-pl_string_to_atom(Word str, Word a)
+pl_string_to_atom(term_t str, term_t a)
 { char *s;
 
-  if ( (s = primitiveToString(*str, FALSE)) != (char *) NULL )
-    return unifyAtomic(a, lookupAtom(s));
-  if ( (s = primitiveToString(*a, FALSE)) != (char *) NULL )
-    return unifyAtomic(str, globalString(s));
+  if ( PL_get_chars(str, &s, CVT_ALL) )
+    return PL_unify_atom_chars(a, s);
+  if ( PL_get_chars(a, &s, CVT_ALL) )
+    return PL_unify_string_chars(str, s);
 
   return warning("string_to_atom/2: instantiation fault");
 }
 
 word
-pl_string_to_list(Word str, Word list)
+pl_string_to_list(term_t str, term_t list)
 { char *s;
 
-  if ( (s = primitiveToString(*str, FALSE)) != (char *) NULL )
-    return unifyStringWithList(s, list);
-
-  if ( (s = listToString(*list)) != (char *) NULL )
-    return unifyAtomic(str, globalString(s));
+  if ( PL_get_chars(str, &s, CVT_ALL) )
+    return PL_unify_list_chars(list, s);
+  if ( PL_get_chars(list, &s, CVT_ALL) )
+    return PL_unify_string_chars(str, s);
 
   return warning("string_to_list/2 instantiation fault");
 }
 
 word
-pl_substring(Word str, Word offset, Word length, Word sub)
+pl_substring(term_t str, term_t offset,
+	     term_t length, term_t sub)
 { long off, l, size, end;
   char *s, c;
   word ss;
 
-  if ( !isString(*str) || !isInteger(*offset) || !isInteger(*length) )
+  if ( !PL_get_chars(str, &s, CVT_ALL) ||
+       !PL_get_long(offset, &off) ||
+       !PL_get_long(length, &l) )
     return warning("substring/4: instantiation fault");
 
-  size = sizeString(*str);
-  off = valNum(*offset);
-  l = valNum(*length);
+  size = strlen(s);
   end = off + l - 1;
   if ( off < 1 || off > size || l < 0 || end > size )
     return warning("substring/4: index out of range");
 
-  s = valString(*str);
   c = s[end];
   s[end] = EOS;
-
-  if ( isString(*sub) )
-  { if ( streq(&s[off-1], valString(*sub)) )
-    { s[end] = c;
-      succeed;
-    }
-    s[end] = c;
-    fail;
-  }
-  if ( !isVar(*sub) )
-  { s[end] = c;
-    fail;
-  }
-
   ss = globalString(&s[off-1]);
   s[end] = c;
 
-  return unifyAtomic(sub, ss);
+  return _PL_unify_atomic(sub, ss);
 }
 #endif /* O_STRING */
 
-word
-pl_write_on_atom(Word goal, Word atom)
+#define WR_ATOM 0
+#define WR_STRING 1
+#define WR_LIST 2
+
+static word
+write_on(term_t goal, int how, term_t target)
 { char string[10240];
   bool rval;
 
   tellString(string, 10240);
-  rval = callGoal(MODULE_user, *goal, FALSE);
+  rval = callProlog(MODULE_user, goal, FALSE);
   toldString();
   TRY(rval);
-  return unifyAtomic(atom, lookupAtom(string) );
+
+  switch(how)
+  { case WR_ATOM:
+      return PL_unify_atom_chars(target, string);
+    case WR_STRING:
+      return PL_unify_string_chars(target, string);
+    case WR_LIST:
+      default:
+      return PL_unify_list_chars(target, string);
+  }
+}
+
+
+word
+pl_write_on_atom(term_t goal, term_t atom)
+{ return write_on(goal, WR_ATOM, atom);
 } 
+
 
 #if O_STRING
 word
-pl_write_on_string(Word goal, Word string)
-{ char tmp[10240];
-  bool rval;
-
-  tellString(tmp, 10240);
-  rval = callGoal(MODULE_user, *goal, FALSE);
-  toldString();
-  TRY(rval);
-  return unifyAtomic(string, globalString(tmp));
+pl_write_on_string(term_t goal, term_t string)
+{ return write_on(goal, WR_STRING, string);
 } 
 #endif /* O_STRING */
 
-word
-pl_write_on_list(Word goal, Word string)
-{ char tmp[10240];
-  word list;
-  bool rval;
 
-  tellString(tmp, 10240);
-  rval = callGoal(MODULE_user, *goal, FALSE);
-  toldString();
-  TRY(rval);
-  list = stringToList(tmp);
-  return pl_unify(string, &list);
+word
+pl_write_on_list(term_t goal, term_t list)
+{ return write_on(goal, WR_LIST, list);
 } 
 
+
 word
-pl_term_to_atom(Word term, Word atom, Word bindings, Word errors)
+pl_term_to_atom(term_t term, term_t atom,
+		term_t bindings, term_t errors)
 { char *s;
 
-  if ( isVar(*atom) )
-  { word rval;
-    
-    s = (char *) lTop;
+  if ( PL_is_variable(atom) )
+  { s = (char *) gTop;
 #if O_DYNAMIC_STACKS
     tellString(s, 10000000L);
 #else
-    tellString(s, (char *)lMax - (char *)lTop);
+    tellString(s, (char *)gMax - (char *)gTop);
 #endif
-    rval = pl_writeq(term);
+    pl_writeq(term);
     toldString();
-    TRY(rval);
-    return unifyAtomic(atom, lookupAtom(s) );
+
+    return PL_unify_atom_chars(atom, s);
   }
 
-  if ( (s = toString(*atom)) )
+  if ( PL_get_chars(atom, &s, CVT_ALL) )
   { word rval;
     int ose;
+    int se;
+    int ti;
+
+    se = (PL_get_integer(errors, &ti) && ti);
 
     seeString(s);
-    ose = syntaxerrors(isInteger(*errors) && valNum(*errors));
-    if ( isVar(*bindings) )
+    ose = syntaxerrors(se);
+    if ( PL_is_variable(bindings) )
       rval = pl_read_variables(term, bindings);
     else
       rval = pl_read(term);
     syntaxerrors(ose);
     seenString();
+
     return rval;
   }
 
@@ -1662,22 +1731,20 @@ pl_repeat(word h)
 }
 
 word
-pl_fail(void)		/* just to define it */
+pl_fail()		/* just to define it */
 { fail;
 }
 
 word
-pl_true(void)		/* just to define it */
+pl_true()		/* just to define it */
 { succeed;
 }
 
 word
-pl_halt(Word code)
+pl_halt(term_t code)
 { int status;
 
-  if ( isInteger(*code) )
-    status = valNum(*code);
-  else
+  if ( !PL_get_integer(code, &status) )
     status = 1;
 
   Halt(status);
@@ -1696,13 +1763,12 @@ pl_halt(Word code)
 #define makeNum(n)	((n) < PLMAXINT ? consNum(n) : globalReal((real)n))
 
 word
-pl_statistics(Word k, Word value)
+pl_statistics(term_t k, term_t value)
 { word result;
   Atom key;
 
-  if (!isAtom(*k) )
+  if ( !PL_get_atom(k, &key) )
     return warning("statistics/2: instantiation fault");
-  key = (Atom) *k;
 
   if      (key == ATOM_cputime)				/* time */
     result = globalReal(CpuTime());
@@ -1766,7 +1832,7 @@ pl_statistics(Word k, Word value)
   else
     return warning("statistics/2: unknown key");
 
-  return unifyAtomic(value, result);
+  return _PL_unify_atomic(value, result);
 }
 
 		 /*******************************
@@ -1782,9 +1848,23 @@ struct feature
 
 static Feature feature_list = NULL;
 
+typedef struct
+{ Atom		name;
+  unsigned long	mask;
+} builtin_boolean_feature;
+
+builtin_boolean_feature builtin_boolean_features[] = 
+{ { ATOM_character_escapes,	CHARESCAPE_FEATURE },
+  { ATOM_gc,			GC_FEATURE },
+  { ATOM_trace_gc,		TRACE_GC_FEATURE },
+  { NULL,			0L }
+};
+
+
 void
 setFeature(Atom name, word value)
 { Feature f;
+  builtin_boolean_feature *bf = builtin_boolean_features;
 
   for(f=feature_list; f; f = f->next)
   { if ( f->name == name )
@@ -1798,13 +1878,16 @@ setFeature(Atom name, word value)
   f->value = value;
   feature_list = f;
 
-hooks:					/* hooks.  Should be more general! */
-  if ( name == ATOM_character_escapes )
-  { if ( value == (word) ATOM_true ||
-	 value == (word) ATOM_on )
-    { set(&features, CHARESCAPE_FEATURE);
-    } else
-    { clear(&features, CHARESCAPE_FEATURE);
+hooks:
+  for( ; bf->name; bf++ )
+  { if ( name == bf->name )
+    { if ( value == (word) ATOM_true ||
+	   value == (word) ATOM_on )
+	set(&features, bf->mask);
+      else
+	clear(&features, bf->mask);
+
+      return;
     }
   }
 }
@@ -1824,33 +1907,40 @@ getFeature(Atom name)
 
 
 word
-pl_set_feature(Word key, Word value)
-{ if ( isAtom(*key) && (isAtom(*value) || isInteger(*value)) )
-  { Atom k = (Atom)*key;
-
-    setFeature(k, *value);
-    succeed;
-  } else
+pl_set_feature(term_t key, term_t value)
+{ Atom k;
+  word v;
+  
+  if ( !PL_get_atom(key, &k) ||
+       !(PL_is_atom(value) || PL_is_integer(value)) )
     return warning("set_feature/2; instantiation fault");
+
+  v = _PL_get_atomic(value);
+  setFeature(k, v);
+
+  succeed;
 }
 
 
 word
-pl_feature(Word key, Word value, word h)
+pl_feature(term_t key, term_t value, word h)
 { Feature here;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      if ( isAtom(*key) )
+    { Atom k;
+
+      if ( PL_get_atom(key, &k) )
       { word val;
 
-	if ( (val=getFeature((Atom)*key)) )
-	  return unifyAtomic(value, val);
+	if ( (val=getFeature(k)) )
+	  return _PL_unify_atomic(value, val);
 	fail;
-      } else if ( isVar(*key) )
+      } else if ( PL_is_variable(key) )
       { here = feature_list;
 	break;
       }
+    }
     case FRG_REDO:
       here = (Feature) ForeignContextAddress(h);
       break;
@@ -1860,8 +1950,11 @@ pl_feature(Word key, Word value, word h)
   }
 
   for(; here; here = here->next)
-  { if ( unifyAtomic(key, here->name) && unifyAtomic(value, here->value) )
-    { ForeignRedo(here->next);
+  { if ( PL_unify_atom(key, here->name) &&
+	 _PL_unify_atomic(value, here->value) )
+    { if ( !here->next )
+	succeed;
+      ForeignRedo(here->next);
     }
   }
 
@@ -1878,57 +1971,41 @@ pl_feature(Word key, Word value, word h)
 */
 
 word
-pl_option(Word key, Word old, Word new)
-{ Atom result;
-  Atom k, n;
+pl_option(term_t key, term_t old, term_t new)
+{ char *result, *n;
+  Atom k;
 
-  if ( !isAtom(*key) )
+  if ( !PL_get_atom(key, &k) )
     fail;
-  k = (Atom) *key;
 
-  if (     k == ATOM_goal)	result = lookupAtom(options.goal);
-  else if (k == ATOM_top_level) result = lookupAtom(options.topLevel);
-  else if (k == ATOM_init_file) result = lookupAtom(options.initFile);
+  if (     k == ATOM_goal)	result = options.goal;
+  else if (k == ATOM_top_level) result = options.topLevel;
+  else if (k == ATOM_init_file) result = options.initFile;
   else fail;
 
-  TRY(unifyAtomic(old, result));
-  
-  if ( !isAtom(*new) )
+  if ( !PL_unify_atom_chars(old, result) ||
+       !PL_get_atom_chars(new, &n) )
     fail;
-  n = (Atom) *new;
-  if (     k == ATOM_goal)	options.goal     = stringAtom(n);
-  else if (k == ATOM_top_level) options.topLevel = stringAtom(n);
-  else				options.initFile = stringAtom(n);
+
+  if (     k == ATOM_goal)	options.goal     = n;
+  else if (k == ATOM_top_level) options.topLevel = n;
+  else				options.initFile = n;
 
   succeed;
 }
 
-static bool
-boolPlease(bool *b, register Word old, register Word new)
-{ Atom a;
-
-  TRY( unifyAtomic(old, *b ? ATOM_on : ATOM_off) );
-  a = (Atom) *new;
-
-  if      ( a == ATOM_on )	*b = TRUE;
-  else if ( a == ATOM_off )	*b = FALSE;
-  else return warning("please/3: 3rd must be `on' or `off'");
-
-  succeed;
-}
 
 word
-pl_please(Word key, Word old, Word new)
+pl_please(term_t key, term_t old, term_t new)
 { Atom k;
 
-  if ( !isAtom(*key) )
+  if ( !PL_get_atom(key, &k) )
     fail;
-  k = (Atom) *key;
 
   if   ( k == ATOM_optimise )
-    return boolPlease(&status.optimise, old, new);
+    return setBoolean(&status.optimise, "please", old, new);
   else
-    return warning("please/3: unknown key: %s", stringAtom(*key));
+    return warning("please/3: unknown key: %s", stringAtom(k));
 }
 
 		/********************************
@@ -1936,14 +2013,18 @@ pl_please(Word key, Word old, Word new)
 		*********************************/
 
 word
-pl_style_check(Word old, Word new)
-{ TRY(unifyAtomic(old, consNum(debugstatus.styleCheck)) );
-  if (!isInteger(*new) )
-    fail;
-  debugstatus.styleCheck = (int) valNum(*new);
-  systemMode(debugstatus.styleCheck & DOLLAR_STYLE);
+pl_style_check(term_t old, term_t new)
+{ int n;
 
-  succeed;
+  if ( PL_unify_integer(old, debugstatus.styleCheck) &&
+       PL_get_integer(new, &n) )
+  { debugstatus.styleCheck = n;
+    systemMode(n & DOLLAR_STYLE);
+
+    succeed;
+  }
+
+  fail;
 }
 
 		/********************************
@@ -1951,17 +2032,6 @@ pl_style_check(Word old, Word new)
 		*********************************/
 
 word
-pl_novice(Word old, Word new)
-{ TRY(unifyAtomic(old, novice == TRUE ? ATOM_on : ATOM_off) );
-
-  if (!isAtom(*new))
-    fail;
-  if (*new == (word) ATOM_on)
-    novice = TRUE;
-  else if (*new == (word) ATOM_off)
-    novice = FALSE;
-  else
-    fail;
-
-  succeed;
+pl_novice(term_t old, term_t new)
+{ return setBoolean(&novice, "$novice", old, new);
 }

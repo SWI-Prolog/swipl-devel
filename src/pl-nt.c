@@ -20,15 +20,16 @@
 #include <process.h>
 
 word
-pl_window_title(Word old, Word new)
+pl_window_title(term_t old, term_t new)
 { char buf[256];
+  Atom n;
 
-  if ( !isAtom(*new) )
+  if ( !PL_get_atom(new, &n) )
     return warning("window_title/2: instantiation fault");
 
-  rlc_title(stringAtom(*new), buf, sizeof(buf));
+  rlc_title(stringAtom(n), buf, sizeof(buf));
 
-  return unifyAtomic(old, lookupAtom(buf));
+  return PL_unify_atom_chars(old, buf);
 }
 
 

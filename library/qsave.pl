@@ -179,8 +179,10 @@ save_imports :-
 		 *******************************/
 
 save_features :-
+	feedback('~nFEATURES~n~n', []),
 	feature(Feature, Value),
 	\+ c_feature(Feature),
+	feedback('~t~8|~w: ~w~n', [Feature, Value]),
 	$add_directive_wic(set_feature(Feature, Value)),
 	fail.
 save_features.

@@ -15,43 +15,53 @@ volatile void	outOf(Stack s);
 Void		alloc_global(int n);
 Void		alloc_heap(size_t n);
 word		globalFunctor(FunctorDef def);
-word		globalString(char *s);
-word		heapString(char *s);
+word		globalString(const char *s);
+word		heapString(const char *s);
 Word		newTerm(void);
 double		unpack_real(Word p);
 word		globalReal(real f);
 word		heapReal(real f);
+word		copyRealToGlobal(word in);
+word		copyRealToHeap(word in);
+int		equalReal(word r1, word r2);
 void		freeHeapReal(word w);
 void		initAllocLocal(void);
 Void		alloc_local(size_t n);
 void		stopAllocLocal(void);
-char *		store_string_local(char *s);
-char *		store_string(char *s);
+char *		store_string(const char *s);
 void		remove_string(char *s);
-int		unboundStringHashValue(char *t);
+int		unboundStringHashValue(const char *t);
 void *		xmalloc(size_t size);
 void *		xrealloc(void *mem, size_t size);
 
 /* pl-wam.c */
 word		pl_count(void);
 bool		unify(Word t1, Word t2, LocalFrame env);
+bool		unify_ptrs(Word t1, Word t2);
+bool		can_unify(Word t1, Word t2);
 bool		unify_atomic(Word p, word a);
 bool		unifyFunctor(Word term, FunctorDef functor);
-word		pl_alt(Word skip, word h);
+word		pl_alt(term_t skip, word h);
 void		TrailAssignment(Word p);
 #ifdef __WIN32__
 void		do_undo(mark *m);
 #else
 inline void	do_undo(mark *m);
 #endif
+void		fix_term_ref_count(void);
+qid_t		PL_open_query(Module ctx, bool debug,
+			      Procedure proc, term_t args);
+void            PL_cut_query(qid_t qid);
+void            PL_close_query(qid_t qid);
+int             PL_next_solution(qid_t qid);
 
 /* pl-atom.c */
-Atom		lookupAtom(char *s);
-word		pl_atom_hashstat(Word i, Word n);
+Atom		lookupAtom(const char *s);
+word		pl_atom_hashstat(term_t i, term_t n);
 void		initAtoms(void);
-word		pl_current_atom(Word a, word h);
-word		pl_complete_atom(Word prefix, Word common, Word unique);
-word		pl_atom_completions(Word prefix, Word alts);
+word		pl_current_atom(term_t a, word h);
+word		pl_complete_atom(term_t prefix, term_t common, term_t unique);
+word		pl_atom_completions(term_t prefix, term_t alts);
 char *		atom_generator(char *prefix, int state);
 
 /* pl-arith.c */
@@ -60,54 +70,57 @@ char *		atom_generator(char *prefix, int state);
 word		fconsNum(long i);
 long		fvalNum(word w);
 #endif
-word		pl_between(Word l, Word h, Word n, word b);
-word		pl_succ(Word n1, Word n2);
-word		pl_plus(Word a, Word b, Word c);
-word		compareNumbers(Word n1, Word n2, int what);
-word		pl_lessNumbers(Word n1, Word n2);
-word		pl_greaterNumbers(Word n1, Word n2);
-word		pl_lessEqualNumbers(Word n1, Word n2);
-word		pl_greaterEqualNumbers(Word n1, Word n2);
-word		pl_nonEqualNumbers(Word n1, Word n2);
-word		pl_equalNumbers(Word n1, Word n2);
-word		pl_is(Word v, Word e);
-word		pl_arithmetic_function(Word descr);
-word		pl_current_arithmetic_function(Word f, word h);
+word		pl_between(term_t l, term_t h, term_t n, word b);
+word		pl_succ(term_t n1, term_t n2);
+word		pl_plus(term_t a, term_t b, term_t c);
+word		compareNumbers(term_t n1, term_t n2, int what);
+word		pl_lessNumbers(term_t n1, term_t n2);
+word		pl_greaterNumbers(term_t n1, term_t n2);
+word		pl_lessEqualNumbers(term_t n1, term_t n2);
+word		pl_greaterEqualNumbers(term_t n1, term_t n2);
+word		pl_nonEqualNumbers(term_t n1, term_t n2);
+word		pl_equalNumbers(term_t n1, term_t n2);
+word		pl_is(term_t v, term_t e);
+word		pl_arithmetic_function(term_t descr);
+word		pl_current_arithmetic_function(term_t f, word h);
 void		initArith(void);
 int		indexArithFunction(FunctorDef fdef, Module m);
 FunctorDef	functorArithFunction(int n);
 bool		ar_func_n(code n, int argc, Word *stack);
-word		evaluate(Word p);
+word		evaluate(term_t p);
 
 /* pl-bag.c */
-word		pl_record_bag(Word key, Word value);
+word		pl_record_bag(term_t term);
 int 		checkBags(void);
-word		pl_collect_bag(Word bindings, Word bag);
+word		pl_collect_bag(term_t bindings, term_t bag);
 
 /* pl-comp.c */
 void		initWamTable(void);
-bool		splitClause(Word term, Word *head, Word *body, Module *m);
-Clause		assert_term(Word term, int where, Atom file);
-word		pl_assertz(Word term);
-word		pl_asserta(Word term);
-word		pl_assertz2(Word term, Word ref);
-word		pl_asserta2(Word term, Word ref);
-word		pl_record_clause(Word term, Word file, Word ref);
-word		pl_redefine_system_predicate(Word term);
-bool		decompileHead(Clause clause, Word head);
-bool		decompileArg1(Clause clause, Word arg1);
-bool		decompile(Clause clause, Word term);
-word		pl_clause(Word p, Word term, Word ref, word h);
-word		pl_nth_clause(Word p, Word n, Word ref, word h);
-word		pl_xr_member(Word ref, Word term, word h);
-word		pl_wam_list(Word ref);
+int		get_head_and_body_clause(term_t clause,
+					 term_t head, term_t body, Module *m);
+Clause		assert_term(term_t term, int where, Atom file);
+word		pl_assertz(term_t term);
+word		pl_asserta(term_t term);
+word		pl_assertz2(term_t term, term_t ref);
+word		pl_asserta2(term_t term, term_t ref);
+word		pl_record_clause(term_t term, term_t file, term_t ref);
+word		pl_redefine_system_predicate(term_t term);
+bool		decompileHead(Clause clause, term_t head);
+int		arg1Key(Clause clause, word *key);
+bool		decompile(Clause clause, term_t term);
+word		pl_clause(term_t p, term_t term, term_t ref, word h);
+word		pl_nth_clause(term_t p, term_t n, term_t ref, word h);
+word		pl_xr_member(term_t ref, term_t term, word h);
+word		pl_wam_list(term_t ref);
+int		unify_definition(term_t head, Definition def,
+				 term_t thehead);
 
 /* pl-dump.c */
-word		saveProgram(Word new);
-word		pl_save_program(Word new, Word args);
-word		pl_save(Word file, Word restore);
-word		pl_restore(Word file);
-word		parseSaveProgramOptions(Word args,
+word		saveProgram(term_t new);
+word		pl_save_program(term_t new, term_t args);
+word		pl_save(term_t file, term_t restore);
+word		pl_restore(term_t file);
+word		parseSaveProgramOptions(term_t args,
 			int *local, int *global, int *trail, int *argument,
 			char **goal, char **toplevel, char **init_file,
 			bool *tty);
@@ -119,9 +132,9 @@ void		getIndex(Word argv, unsigned long pattern, int card,
 ClauseRef	findClause(ClauseRef cl,
 			   Word argv, Definition def, bool *deterministic);
 bool		reindexClause(Clause clause);
-bool		indexPatternToTerm(Procedure proc, Word value);
+bool		unify_index_pattern(Procedure proc, term_t value);
 bool		hashDefinition(Definition def, int buckets);
-word		pl_hash(Word pred);
+word		pl_hash(term_t pred);
 void		addClauseToIndex(Definition def, Clause cl, int where);
 void		delClauseFromIndex(ClauseIndex ci, Clause cl);
 void		gcClauseIndex(ClauseIndex ci);
@@ -129,8 +142,8 @@ void		unallocClauseIndexTable(ClauseIndex ci);
 void		markDirtyClauseIndex(ClauseIndex ci, Clause cl);
 
 /* pl-dwim.c */
-word		pl_dwim_match(Word a1, Word a2, Word mm);
-word		pl_dwim_predicate(Word term, Word dwim, word h);
+word		pl_dwim_match(term_t a1, term_t a2, term_t mm);
+word		pl_dwim_predicate(term_t term, term_t dwim, word h);
 
 /* pl-ext.c */
 void		initBuildIns(void);
@@ -139,184 +152,177 @@ void		initBuildIns(void);
 void		initIO(void);
 void		dieIO(void);
 void		closeFiles(void);
-void		newLineInput(void);
+void		protocol(int c);
 int		currentLinePosition(void);
-Char		get_character(void);
-Char		getSingleChar(void);
+int		getSingleChar(void);
+bool		readLine(char *buffer);
 bool		LockStream(void);
 bool		UnlockStream(void);
-bool		put_character(Char c);
+bool		Put(int c);
+IOSTREAM *	PL_current_input(void);
+IOSTREAM *	PL_current_output(void);
 word		Putf(char *fm, ...);
+bool		Puts(const char *str);
 word		vPutf(char *fm, va_list args);
-bool		readLine(char *buffer);
 int		currentInputLine(void);
-bool		told(void);
-bool		see(word f);
-bool		seen(void);
+bool		PL_open_stream(term_t handle, IOSTREAM *s);
+word		pl_told(void);
+word		pl_flush(void);
+word		pl_see(term_t f);
+word		pl_seen(void);
+word		pl_noprotocol(void);
 bool		seeString(char *s);
 bool		seeingString(void);
 bool		seenString(void);
-bool		tellString(char *s, int n);
+bool		tellString(char *s, int size);
 bool		toldString(void);
 Atom		currentStreamName(void);
-word		pl_wait_for_input(Word streams, Word available, Word timeout);
-word		pl_put(Word c);
-word		pl_put2(Word stream, Word chr);
-word		pl_get(Word chr);
-word		pl_skip(Word chr);
-word		pl_skip2(Word stream, Word chr);
-word		pl_get2(Word stream, Word chr);
+word		pl_wait_for_input(term_t streams, term_t avail, term_t tmo);
+word		pl_put(term_t c);
+word		pl_put2(term_t stream, term_t chr);
+word		pl_get(term_t chr);
+word		pl_skip(term_t chr);
+word		pl_skip2(term_t stream, term_t chr);
+word		pl_get2(term_t stream, term_t chr);
 word		pl_tty(void);
-word		pl_get_single_char(Word c);
-word		pl_get0(Word c);
-word		pl_get02(Word stream, Word c);
-word		pl_seeing(Word f);
-word		pl_telling(Word f);
-word		pl_seen(void);
-word		pl_told(void);
-word		pl_see(Word f);
-word		pl_tell(Word f);
-word		pl_append(Word f);
+word		pl_get_single_char(term_t c);
+word		pl_get0(term_t c);
+word		pl_get02(term_t stream, term_t c);
+word		pl_seeing(term_t f);
+word		pl_telling(term_t f);
+word		pl_tell(term_t f);
+word		pl_append(term_t f);
 word		pl_ttyflush(void);
-word		pl_flush(void);
-word		pl_protocol(Word file);
-word		pl_protocola(Word file);
-word		pl_noprotocol(void);
-word		pl_protocolling(Word file);
-word		pl_prompt(Word old, Word new);
+word		pl_protocol(term_t file);
+word		pl_protocola(term_t file);
+word		pl_protocolling(term_t file);
+word		pl_prompt(term_t old, term_t new);
 void		prompt1(char *prompt);
-word		pl_prompt1(Word prompt);
-word		pl_tab(Word n);
+word		pl_prompt1(term_t prompt);
+word		pl_tab(term_t n);
 char *		PrologPrompt(void);
-word		pl_tab2(Word stream, Word n);
-word		pl_open(Word file, Word mode, Word stream);
-word		pl_open4(Word file, Word mode, Word stream, Word options);
-word		pl_open_null_stream(Word stream);
-int		streamNo(Word spec, int mode);
-word		pl_close(Word stream);
-word		pl_current_stream(Word file, Word mode, Word stream, word h);
-word		pl_flush_output(Word stream);
-word		pl_stream_position(Word stream, Word old, Word new);
-word		pl_set_input(Word stream);
-word		pl_set_output(Word stream);
-word		pl_current_input(Word stream);
-word		pl_current_output(Word stream);
-word		pl_character_count(Word stream, Word count);
-word		pl_line_count(Word stream, Word count);
-word		pl_line_position(Word stream, Word count);
-word		pl_source_location(Word file, Word line);
-bool		unifyTime(Word t, long int time);
-word		pl_time_file(Word name, Word t);
-word		pl_size_file(Word name, Word len);
-word		pl_access_file(Word name, Word mode);
-word		pl_read_link(Word file, Word link, Word to);
-word		pl_exists_file(Word name);
-word		pl_exists_directory(Word name);
-word		pl_tmp_file(Word base, Word name);
-word		pl_delete_file(Word name);
-word		pl_same_file(Word file1, Word file2);
-word		pl_rename_file(Word old, Word new);
-word		pl_fileerrors(Word old, Word new);
-word		pl_absolute_file_name(Word name, Word expanded);
-word		pl_is_absolute_file_name(Word name);
-word		pl_chdir(Word dir);
-word		pl_file_base_name(Word f, Word b);
-word		pl_file_dir_name(Word f, Word b);
-word		pl_prolog_to_os_filename(Word pl, Word os);
-int		Get0(void);
-int		Put(int c);
-void		protocol(int c);
-IOSTREAM *	PL_current_input();
-IOSTREAM *	PL_current_output();
-#ifdef O_XOS
-word		pl_make_fat_filemap(Word dir);
+word		pl_tab2(term_t stream, term_t n);
+word		pl_open4(term_t file, term_t mode, term_t stream, term_t opt);
+word		pl_open(term_t file, term_t mode, term_t stream);
+word		pl_open_null_stream(term_t stream);
+int		streamNo(term_t spec, int mode);
+word		pl_close(term_t stream);
+word		pl_current_stream(term_t file, term_t mode, term_t s, word h);
+word		pl_flush_output(term_t stream);
+word		pl_stream_position(term_t stream, term_t old, term_t new);
+word		pl_set_input(term_t stream);
+word		pl_set_output(term_t stream);
+word		pl_current_input(term_t stream);
+word		pl_current_output(term_t stream);
+word		pl_character_count(term_t stream, term_t count);
+word		pl_line_count(term_t stream, term_t count);
+word		pl_line_position(term_t stream, term_t count);
+word		pl_source_location(term_t file, term_t line);
+bool		unifyTime(term_t t, long time);
+char *		get_filename(term_t n, char *buf, int bufsize);
+word		pl_time_file(term_t name, term_t t);
+word		pl_size_file(term_t name, term_t len);
+word		pl_access_file(term_t name, term_t mode);
+word		pl_read_link(term_t file, term_t link, term_t to);
+word		pl_exists_file(term_t name);
+word		pl_exists_directory(term_t name);
+word		pl_tmp_file(term_t base, term_t name);
+word		pl_delete_file(term_t name);
+word		pl_same_file(term_t file1, term_t file2);
+word		pl_rename_file(term_t old, term_t new);
+word		pl_fileerrors(term_t old, term_t new);
+word		pl_absolute_file_name(term_t name, term_t expanded);
+word		pl_is_absolute_file_name(term_t name);
+word		pl_chdir(term_t dir);
+word		pl_file_base_name(term_t f, term_t b);
+word		pl_file_dir_name(term_t f, term_t b);
+word		pl_prolog_to_os_filename(term_t pl, term_t os);
+#ifdef __WIN32__
+word		pl_make_fat_filemap(term_t dir);
 #endif
 
 /* pl-flag.c */
 void		initFlags(void);
-word		pl_flag(Word name, Word old, Word new);
-word		pl_current_flag(Word k, word h);
+word		pl_flag(term_t name, term_t old, term_t new);
+word		pl_current_flag(term_t k, word h);
+
+/* pl-fli.c */
+void		finish_foreign_frame();
 
 /* pl-fmt.c */
-word		pl_format_predicate(Word chr, Word descr);
-word		pl_format(Word fmt, Word args);
-word		pl_format3(Word stream, Word fmt, Word args);
-bool		format(char *fm, ...);
+word		pl_format_predicate(term_t chr, term_t descr);
+word		pl_format(term_t fmt, term_t args);
+word		pl_format3(term_t s, term_t fmt, term_t args);
 
 /* pl-funct.c */
 FunctorDef	lookupFunctorDef(Atom atom, int arity);
 FunctorDef	isCurrentFunctor(Atom atom, int arity);
 void		initFunctors(void);
 int 		checkFunctors(void);
-word		pl_current_functor(Word name, Word arity, word h);
+word		pl_current_functor(term_t name, term_t arity, word h);
 
 /* pl-gc.c */
 void		considerGarbageCollect(Stack s);
 void		garbageCollect(LocalFrame fr);
-word		pl_garbage_collect(Word d);
+word		pl_garbage_collect(term_t d);
 void		resetGC(void);
-void		lockw(Word p);
-void		lockp(void *ptr);
-void		lockMark(mark *m);
-void		unlockw(Word p);
-void		unlockp(Void ptr);
-void		unlockMark(mark *m);
 Word		findGRef(int n);
-void		growStacks(LocalFrame fr, Code PC, int l, int g, int t);
+int		growStacks(LocalFrame fr, Code PC, int l, int g, int t);
 
 /* pl-glob.c */
-bool		compilePattern(char *p);
-bool		matchPattern(char *s);
-word		pl_wildcard_match(Word pattern, Word string);
-word		pl_expand_file_name(Word f, Word l);
+word		pl_wildcard_match(term_t pattern, term_t string);
+word		pl_expand_file_name(term_t f, term_t l);
 
 /* pl-itf.c */
 void		resetForeign(void);
 void		reinitForeign(int argc, char **argv);
 
 /* pl-list.c */
-word		pl_is_list(Word list);
-word		pl_proper_list(Word list);
-word		pl_length(Word list, Word l);
-word		pl_memberchk(Word e, Word list);
-word		pl_msort(Word list, Word sorted);
-word		pl_sort(Word list, Word sorted);
+word		pl_is_list(term_t list);
+word		pl_proper_list(term_t list);
+word		pl_length(term_t list, term_t l);
+word		pl_memberchk(term_t e, term_t list);
+word		pl_msort(term_t list, term_t sorted);
+word		pl_sort(term_t list, term_t sorted);
 
 /* pl-load.c */
 bool		getSymbols(void);
 void		resetLoader(void);
 long		allocText(long int size);
-word		pl_load_foreign(Word file, Word entry, Word options, Word libraries, Word size);
-word		pl_load_foreign1(Word file);
-word		pl_open_shared_object(Word file, Word plhandle, Word flags);
-word		pl_close_shared_object(Word plhandle);
-word		pl_call_shared_object_function(Word plhandle, Word name);
-word		pl_load_shared_object(Word file, Word entry);
+word		pl_load_foreign(term_t file, term_t entry, term_t options,
+				term_t libraries, term_t size);
+word		pl_load_foreign1(term_t file);
+word		pl_open_shared_object(term_t file, term_t h, term_t flags);
+word		pl_close_shared_object(term_t plhandle);
+word		pl_call_shared_object_function(term_t plhandle, term_t name);
+word		pl_load_shared_object(term_t file, term_t entry);
 
 /* pl-modul.c */
 Module		lookupModule(Atom name);
 void		initModules(void);
+int		isSuperModule(Module s, Module m);
 Word		stripModule(Word term, Module *module);
 bool		isPublicModule(Module module, Procedure proc);
-word		pl_default_module(Word me, Word old, Word new);
-word		pl_current_module(Word module, Word file, word h);
-word		pl_strip_module(Word spec, Word module, Word term);
-word		pl_module(Word old, Word new);
-word		pl_set_source_module(Word old, Word new);
-word		pl_declare_module(Word name, Word file);
-word		pl_export_list(Word modulename, Word list);
-word		pl_export(Word head);
+int		declareModule(Atom name, SourceFile sf);
+word		pl_default_module(term_t me, term_t old, term_t new);
+word		pl_current_module(term_t module, term_t file, word h);
+word		pl_strip_module(term_t spec, term_t module, term_t term);
+word		pl_module(term_t old, term_t new);
+word		pl_set_source_module(term_t old, term_t new);
+word		pl_declare_module(term_t name, term_t file);
+word		pl_export_list(term_t modulename, term_t list);
+word		pl_export(term_t head);
 word		pl_check_export(void);
-word		pl_context_module(Word module);
-word		pl_import(Word pred);
+word		pl_context_module(term_t module);
+word		pl_import(term_t pred);
 
 /* pl-op.c */
 Operator	isCurrentOperator(Atom name, int type);
-word		pl_current_op(Word prec, Word type, Word name, word h);
+word		pl_current_op(term_t prec, term_t type, term_t name, word h);
 bool		isPrefixOperator(Atom atom, int *type, int *priority);
 bool		isPostfixOperator(Atom atom, int *type, int *priority);
 bool		isInfixOperator(Atom atom, int *type, int *priority);
-word		pl_op1(Word priority, Word type, Word name);
+word		pl_op1(term_t priority, term_t type, term_t name);
 bool		newOp(char *name, int type, int pri);
 void		initOperators(void);
 word		pl_reset_operators(void);
@@ -328,9 +334,7 @@ char *		OsError(void);
 real		CpuTime(void);
 Void		Allocate(long int n);
 long		Random(void);
-Atom		TemporaryFile(char *id);
 char *		canonisePath(char *path);
-void		RemoveTemporaryFiles(void);
 char *		OsPath(const char *unixpath);
 char *		PrologPath(char *ospath, char *plpath);
 long		LastModifiedFile(char *f);
@@ -354,7 +358,6 @@ char *		ReadLink(char *f);
 char *		DeRefLink(char *link);
 bool		ChDir(char *path);
 struct tm *	LocalTime(long int *t);
-long		Time(void);
 Char		GetChar(void);
 void		ResetTty(void);
 bool		PushTty(ttybuf *buf, int mode);
@@ -366,99 +369,99 @@ char *		Symbols(void);
 void		Pause(real time);
 
 /* pl-prims.c */
-word		pl_nonvar(Word k);
-word		pl_var(Word k);
-word		pl_integer(Word k);
-word		pl_float(Word k);
-word		pl_string(Word k);
-word		pl_number(Word k);
-word		pl_atom(Word k);
-word		pl_atomic(Word k);
-word		pl_ground(Word term);
-word		pl_compound(Word term);
+word		pl_nonvar(term_t k);
+word		pl_var(term_t k);
+word		pl_integer(term_t k);
+word		pl_float(term_t k);
+word		pl_string(term_t k);
+word		pl_number(term_t k);
+word		pl_atom(term_t k);
+word		pl_atomic(term_t k);
+word		pl_ground(term_t term);
+word		pl_compound(term_t term);
 #ifdef O_HASHTERM
-word		pl_hash_term(Word term, Word hval);
+word		pl_hash_term(term_t term, term_t hval);
 #endif
-word		pl_unify(Word t1, Word t2);
-word		pl_notunify(Word t1, Word t2);
-word		pl_equal(Word t1, Word t2);
-word		pl_nonequal(Word t1, Word t2);
+word		pl_unify(term_t t1, term_t t2);
+word		pl_notunify(term_t t1, term_t t2);
+word		pl_equal(term_t t1, term_t t2);
+word		pl_nonequal(term_t t1, term_t t2);
 int		compareStandard(Word t1, Word t2);
-word		pl_compare(Word rel, Word t1, Word t2);
-word		pl_lessStandard(Word t1, Word t2);
-word		pl_lessEqualStandard(Word t1, Word t2);
-word		pl_greaterStandard(Word t1, Word t2);
-word		pl_greaterEqualStandard(Word t1, Word t2);
-word		pl_structural_equal(Word t1, Word t2);
-word		pl_structural_nonequal(Word t1, Word t2);
-word		pl_functor(Word t, Word f, Word a);
-word		pl_arg(Word n, Word term, Word arg, word b);
-word		pl_setarg(Word n, Word term, Word arg);
-int		lengthList(Word list);
-word		pl_univ(Word t, Word l);
-int		numberVars(Word t, FunctorDef functor, int n);
-word		pl_numbervars(Word t, Word atom, Word start, Word end);
-word		pl_free_variables(Word t, Word l);
-word		pl_e_free_variables(Word t, Word l);
-word		pl_copy_term(Word f, Word t);
-bool		unifyStringWithList(char *s, Word l);
+word		pl_compare(term_t rel, term_t t1, term_t t2);
+word		pl_lessStandard(term_t t1, term_t t2);
+word		pl_lessEqualStandard(term_t t1, term_t t2);
+word		pl_greaterStandard(term_t t1, term_t t2);
+word		pl_greaterEqualStandard(term_t t1, term_t t2);
+word		pl_structural_equal(term_t t1, term_t t2);
+word		pl_structural_nonequal(term_t t1, term_t t2);
+word		pl_functor(term_t t, term_t f, term_t a);
+word		pl_arg(term_t n, term_t t, term_t a, word b);
+word		pl_setarg(term_t n, term_t term, term_t arg);
+int		lengthList(term_t list);
+word		pl_univ(term_t t, term_t l);
+int		numberVars(term_t t, FunctorDef functor, int n);
+word		pl_numbervars(term_t t, term_t atom,
+			      term_t start, term_t end);
+word		pl_free_variables(term_t t, term_t l);
+word		pl_e_free_variables(term_t t, term_t l);
+word		pl_copy_term(term_t f, term_t t);
 word		stringToList(char *s);
-char *		listToString(word list);
-char *		primitiveToString(word w, bool save);
-char *		toString(word w);
-word		pl_atom_length(Word w, Word n);
-word		pl_int_to_atom(Word number, Word base, Word atom);
-char *		formatInteger(bool split, int div, int radix, bool small, long int n);
-word		pl_format_number(Word format, Word number, Word string);
-word		pl_name(Word atom, Word string);
-word		pl_atom_chars(Word atom, Word string);
-word		pl_number_chars(Word number, Word string);
-word		pl_atom_char(Word atom, Word chr);
-word		pl_concat(Word a1, Word a2, Word a3);
-word		pl_concat_atom(Word list, Word atom);
-word		pl_apropos_match(Word a1, Word a2);
-word		pl_string_length(Word str, Word l);
-word		pl_string_to_atom(Word str, Word a);
-word		pl_string_to_list(Word str, Word list);
-word		pl_substring(Word str, Word offset, Word length, Word sub);
-word		pl_write_on_atom(Word goal, Word atom);
-word		pl_write_on_string(Word goal, Word string);
-word		pl_write_on_list(Word goal, Word string);
-word		pl_term_to_atom(Word term, Word atom, Word bindings, Word e);
+word		pl_atom_length(term_t w, term_t n);
+word		pl_int_to_atom(term_t number, term_t base,
+			       term_t atom);
+char *		formatInteger(bool split, int div, int radix,
+			      bool small, long int n);
+word		pl_format_number(term_t format, term_t number,
+				 term_t string);
+word		pl_name(term_t atom, term_t string);
+word		pl_atom_chars(term_t atom, term_t string);
+word		pl_number_chars(term_t number, term_t string);
+word		pl_atom_char(term_t atom, term_t chr);
+word		pl_concat(term_t a1, term_t a2, term_t a3);
+word		pl_concat_atom(term_t list, term_t atom);
+word		pl_apropos_match(term_t a1, term_t a2);
+word		pl_string_length(term_t str, term_t l);
+word		pl_string_to_atom(term_t str, term_t a);
+word		pl_string_to_list(term_t str, term_t list);
+word		pl_substring(term_t str, term_t offset,
+			     term_t length, term_t sub);
+word		pl_write_on_atom(term_t goal, term_t atom);
+word		pl_write_on_string(term_t goal, term_t string);
+word		pl_write_on_list(term_t goal, term_t string);
+word		pl_term_to_atom(term_t term, term_t atom,
+				term_t bindings, term_t e);
 word		pl_repeat(word h);
 word		pl_fail(void);
 word		pl_true(void);
-word		pl_halt(Word code);
-word		pl_statistics(Word k, Word value);
+word		pl_halt(term_t code);
+word		pl_statistics(term_t k, term_t value);
 void		setFeature(Atom name, word value);
 word		getFeature(Atom name);
-word		pl_feature(Word key, Word value, word h);
-word		pl_set_feature(Word key, Word value);
-word		pl_option(Word key, Word old, Word new);
-word		pl_please(Word key, Word old, Word new);
-word		pl_style_check(Word old, Word new);
-word		pl_novice(Word old, Word new);
+word		pl_feature(term_t key, term_t value, word h);
+word		pl_set_feature(term_t key, term_t value);
+word		pl_option(term_t key, term_t old, term_t new);
+word		pl_please(term_t key, term_t old, term_t new);
+word		pl_style_check(term_t old, term_t new);
+word		pl_novice(term_t old, term_t new);
 
 /* pl-pro.c */
 word		pl_break(void);
-word		pl_break1(Word goal);
-word		pl_notrace1(Word goal);
-bool		callGoal(Module module, word goal, bool debug);
+word		pl_break1(term_t goal);
+word		pl_notrace1(term_t goal);
+int		callProlog(Module module, term_t goal, int debug);
 word		pl_abort(void);
-bool		prolog(volatile word goal);
+bool		prolog(Atom toplevel);
 word		pl_metacut(void);
 int 		trap_gdb(void);
 word		checkData(Word p, int on_heap);
 
 /* pl-proc.c */
 Procedure	lookupProcedure(FunctorDef f, Module m);
-void		resetProcedure(Procedure proc);
 Procedure	isCurrentProcedure(FunctorDef f, Module m);
 Procedure	lookupProcedureToDefine(FunctorDef def, Module m);
 bool		isDefinedProcedure(Procedure proc);
-Procedure	findProcedure(Word descr);
-Procedure	findCreateProcedure(Word descr);
-word		pl_current_predicate(Word name, Word functor, word h);
+int		get_procedure(term_t descr, Procedure *proc, term_t he, int f);
+word		pl_current_predicate(term_t name, term_t functor, word h);
 bool		assertProcedure(Procedure proc, Clause clause, int where);
 bool		abolishProcedure(Procedure proc, Module module);
 bool		retractClauseProcedure(Procedure proc, Clause clause);
@@ -469,105 +472,101 @@ void		gcClausesDefinition(Definition def);
 void		resetReferences(void);
 Procedure	resolveProcedure(FunctorDef f, Module module);
 Definition	trapUndefined(Definition def);
-word		pl_retract(Word term, word h);
-word		pl_retractall(Word head);
-word		pl_abolish(Word atom, Word arity);
-word		pl_get_clause_attribute(Word ref, Word att, Word value);
-word		pl_get_predicate_attribute(Word pred, Word what, Word value);
-word		pl_set_predicate_attribute(Word pred, Word what, Word value);
+word		pl_retract(term_t term, word h);
+word		pl_retractall(term_t head);
+word		pl_abolish(term_t atom, term_t arity);
+word		pl_get_clause_attribute(term_t ref, term_t att, term_t value);
+word		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
+word		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 void		reindexDefinition(Definition def);
 void		startConsult(SourceFile f);
-word		pl_index(Word pred);
+word		pl_index(term_t pred);
 SourceFile	lookupSourceFile(Atom name);
-SourceFile	isCurrentSourceFile(Atom name);
-SourceFile	indexToSourceFile(int index);
 void		addProcedureSourceFile(SourceFile sf, Procedure proc);
 word		pl_make_system_source_files(void);
-word		pl_source_file(Word descr, Word file);
-word		pl_time_source_file(Word file, Word time, word h);
-word		pl_start_consult(Word file);
-Definition	findDefinition(FunctorDef f, Module m);
-word		pl_default_predicate(Word d1, Word d2);
+word		pl_source_file(term_t descr, term_t file);
+word		pl_time_source_file(term_t file, term_t t, word h);
+word		pl_start_consult(term_t file);
+word		pl_default_predicate(term_t d1, term_t d2);
 Definition	autoImport(FunctorDef f, Module m);
-word		pl_require(Word pred);
-word		pl_check_definition(Word spec);
+word		pl_require(term_t pred);
+word		pl_check_definition(term_t spec);
 
 /* pl-prof.c */
 void		stopItimer(void);
-word		pl_profile(Word old, Word new);
-word		pl_profile_count(Word head, Word calls, Word prom);
-word		pl_profile_box(Word head, Word calls, Word redos, Word exits, Word fails);
+word		pl_profile(term_t old, term_t new);
+word		pl_profile_count(term_t head, term_t calls, term_t prom);
+word		pl_profile_box(term_t head,
+			       term_t calls, term_t redos,
+			       term_t exits, term_t fails);
 word		pl_reset_profiler(void);
 
 /* pl-read.c */
 void		resetRead(void);
 int		syntaxerrors(int new);
-word		pl_syntaxerrors(Word old, Word new);
-word		charpToNumber(char *s);
-word		pl_raw_read(Word term);
-word		pl_read_variables(Word term, Word variables);
-word		pl_read_variables3(Word stream, Word term, Word variables);
-word		pl_read(Word term);
-word		pl_read2(Word stream, Word term);
-word		pl_read_clause(Word term);
-word		pl_read_clause2(Word stream, Word term);
+word		pl_syntaxerrors(term_t old, term_t new);
+int		scan_number(char **, int, Number);
+int		get_number(char *string, char **end, Number value);
+word		pl_raw_read(term_t term);
+word		pl_read_variables(term_t term, term_t variables);
+word		pl_read_variables3(term_t stream, term_t term,
+				   term_t variables);
+word		pl_read(term_t term);
+word		pl_read2(term_t stream, term_t term);
+word		pl_read_clause(term_t term);
+word		pl_read_clause2(term_t stream, term_t term);
 
 /* pl-rec.c */
 void		initRecords(void);
-Record		copyTermToHeap(Word term);
-word		copyTermToGlobal(Record term);
+Record		copyTermToHeap(term_t term);
+void		copyTermToGlobal(term_t copy, Record term);
 bool		freeRecord(Record record);
-bool		unifyKey(Word key, word val);
-word		getKey(Word key);
-word		pl_current_key(Word k, word h);
-word		pl_recorda(Word key, Word term, Word ref);
-word		pl_recordz(Word key, Word term, Word ref);
-word		pl_recorded(Word key, Word term, Word ref, word h);
-word		pl_erase(Word ref);
+bool		unifyKey(term_t key, word val);
+word		getKey(term_t key);
+word		pl_current_key(term_t k, word h);
+word		pl_recorda(term_t key, term_t term, term_t ref);
+word		pl_recordz(term_t key, term_t term, term_t ref);
+word		pl_recorded(term_t key, term_t term, term_t ref, word h);
+word		pl_erase(term_t ref);
 
 /* pl-setup.c */
 void		setupProlog(void);
-void		initSignals(void);
 handler_t	pl_signal(int sig, handler_t func);
-void		deliverSignal(int sig, int type, SignalContext scp, char *addr);
+void		deliverSignal(int sig, int tp, SignalContext scp, char *addr);
 void		deallocateStacks(void);
 bool		restoreStack(Stack s);
 void		trimStacks(void);
 word		pl_trim_stacks(void);
-word		pl_limit_stack(Word s, Word l);
-word		pl_stack_parameter(Word name, Word key, Word old, Word new);
+word		pl_limit_stack(term_t s, term_t l);
+word		pl_stack_parameter(term_t s, term_t k, term_t o, term_t n);
 
 /* pl-sys.c */
-word		pl_shell(Word command, Word status);
-word		pl_getenv(Word var, Word value);
-word		pl_setenv(Word var, Word value);
-word		pl_unsetenv(Word var);
-word		pl_argv(Word list);
-word		pl_grep(Word file, Word search, Word line, word h);
-word		pl_convert_time(Word time, Word year, Word month, Word day, Word hour, Word minute, Word second, Word usec);
-word		pl_get_time(Word t);
-word		pl_sleep(Word time);
+word		pl_shell(term_t command, term_t status);
+word		pl_getenv(term_t var, term_t value);
+word		pl_setenv(term_t var, term_t value);
+word		pl_unsetenv(term_t var);
+word		pl_argv(term_t list);
+word		pl_convert_time(term_t time, term_t year,
+				term_t month, term_t day,
+				term_t hour, term_t minute,
+				term_t second, term_t usec);
+word		pl_get_time(term_t t);
+word		pl_sleep(term_t time);
 
 /* pl-table.c */
 Table		newHTable(int size);
 void		destroyHTable(Table ht);
 Symbol		lookupHTable(Table ht, Void name);
 bool		addHTable(Table ht, Void name, Void value);
-bool		deleteHTable(Table ht, Void name);
 Symbol		nextHTable(Table ht, Symbol s);
 Symbol		firstHTable(Table ht);
 void		clearHTable(Table ht);
-Table		newLocalTable(int size);
-Symbol		lookupLocalTable(Table ht, Void name);
-bool		addLocalTable(Table ht, Void name, Void value);
 void		initTables();
 
 /* pl-trace.c */
 int		tracePort(LocalFrame frame, int port);
-void		writeFrameGoal(LocalFrame frame, int how);
 void		backTrace(LocalFrame frame, int depth);
-word		pl_trace_continuation(Word what);
-void		interruptHandler(int sig);
+word		pl_trace_continuation(term_t what);
 void		initTracer(void);
 word		pl_trace(void);
 word		pl_notrace(void);
@@ -575,32 +574,30 @@ word		pl_tracing(void);
 word		pl_debug(void);
 word		pl_nodebug(void);
 word		pl_debugging(void);
-word		pl_skip_level(Word old, Word new);
-word		pl_spy(Word p);
-word		pl_nospy(Word p);
-word		pl_leash(Word old, Word new);
-word		pl_visible(Word old, Word new);
-word		pl_debuglevel(Word old, Word new);
-word		pl_unknown(Word old, Word new);
-word		pl_prolog_current_frame(Word fr);
-word		pl_prolog_frame_attribute(Word frame, Word what, Word value);
+word		pl_skip_level(term_t old, term_t new);
+word		pl_spy(term_t p);
+word		pl_nospy(term_t p);
+word		pl_leash(term_t old, term_t new);
+word		pl_visible(term_t old, term_t new);
+word		pl_debuglevel(term_t old, term_t new);
+word		pl_unknown(term_t old, term_t new);
+word		pl_prolog_current_frame(term_t fr);
+word		pl_prolog_frame_attribute(term_t fr, term_t key, term_t val);
 
 /* pl-util.c */
-bool		wordToInteger(word w, long int *n);
-bool		wordToReal(word w, real *f);
 char		digitName(int n, bool small);
 int		digitValue(int b, int c);
 char *		procedureName(Procedure proc);
 char *		predicateName(Definition def);
-bool		isUserSystemProcedure(Procedure proc);
-bool		isUserSystemPredicate(Definition def);
 word		notImplemented(char *name, int arity);
+word		setBoolean(int *flag, const char *name, term_t o, term_t n);
+word		setInteger(int *val, const char *name, term_t old, term_t new);
+word		setLong(long *val, const char *name, term_t old, term_t new);
 bool		strprefix(char *string, char *prefix);
 bool		strpostfix(char *string, char *postfix);
 bool		stripostfix(char *string, char *postfix);
-bool		strsub(char *string, char *sub);
 void		systemMode(bool accept);
-bool		scan_options(word list, int flags, OptSpec specs, ...);
+bool		scan_options(term_t list, int flags, OptSpec specs, ...);
 #ifndef HAVE_STRICMP
 int		stricmp(const char *s1, const char *s2);
 #endif
@@ -610,70 +607,70 @@ char *		strlwr(char *s);
 
 /* pl-wic.c */
 bool		loadWicFile(char *file, bool toplevel, bool load_options);
-word		pl_open_wic(Word name, Word options);
+word		pl_open_wic(term_t name, term_t options);
 word		pl_close_wic(void);
-word		pl_add_directive_wic(Word term);
-word		pl_import_wic(Word module, Word head);
+word		pl_add_directive_wic(term_t term);
+word		pl_import_wic(term_t module, term_t head);
 bool		compileFileList(char *out, int argc, char **argv);
-bool		appendState(char *name);
 void		qlfCleanup(void);
 
 word		pl_qlf_put_states(void);
-word		pl_qlf_start_module(Word name);
-word		pl_qlf_start_sub_module(Word name);
-word		pl_qlf_start_file(Word name);
+word		pl_qlf_start_module(term_t name);
+word		pl_qlf_start_sub_module(term_t name);
+word		pl_qlf_start_file(term_t name);
 word		pl_qlf_end_part(void);
-word		pl_qlf_open(Word file);
+word		pl_qlf_open(term_t file);
 word		pl_qlf_close(void);
-word		pl_qlf_load(Word file, Word module);
-word		pl_qlf_assert_clause(Word ref);
-word		pl_qlf_info(Word file, Word cversion, Word fversion, Word info);
+word		pl_qlf_load(term_t file, term_t module);
+word		pl_qlf_assert_clause(term_t ref);
+word		pl_qlf_info(term_t file, term_t cvers, term_t fvers, term_t i);
 
 /* pl-write.c */
+char *		varName(term_t var);
 word		pl_nl(void);
-word		pl_nl1(Word stream);
-word		pl_display(Word term);
-word		pl_displayq(Word term);
-word		pl_display2(Word stream, Word term);
-word		pl_displayq2(Word stream, Word term);
-word		pl_write(Word term);
-word		pl_writeq(Word term);
-word		pl_print(Word term);
-word		pl_dprint(Word term, Word g);
-word		pl_write2(Word stream, Word term);
-word		pl_writeq2(Word stream, Word term);
-word		pl_print2(Word stream, Word term);
+word		pl_nl1(term_t stream);
+word		pl_display(term_t term);
+word		pl_displayq(term_t term);
+word		pl_display2(term_t stream, term_t term);
+word		pl_displayq2(term_t stream, term_t term);
+word		pl_write(term_t term);
+word		pl_writeq(term_t term);
+word		pl_print(term_t term);
+word		pl_dprint(term_t term, term_t g);
+word		pl_write2(term_t stream, term_t term);
+word		pl_writeq2(term_t stream, term_t term);
+word		pl_print2(term_t stream, term_t term);
 
 /* pl-term.c */
 void		resetTerm(void);
-word		pl_tty_get_capability(Word name, Word type, Word value);
-word		pl_tty_goto(Word x, Word y);
-word		pl_tty_put(Word a, Word affcnt);
-word		pl_set_tty(Word old, Word new);
+word		pl_tty_get_capability(term_t name, term_t type, term_t value);
+word		pl_tty_goto(term_t x, term_t y);
+word		pl_tty_put(term_t a, term_t affcnt);
+word		pl_set_tty(term_t old, term_t new);
 
 /* pl-main.c */
 int		startProlog(int argc, char **argv, char **env);
-bool		sysError(char *fm, ...);
-bool		fatalError(char *fm, ...);
-bool		warning(char *fm, ...);
-bool		vsysError(char *fm, va_list args);
-bool		vfatalError(char *fm, va_list args);
-bool		vwarning(char *fm, va_list args);
+bool		sysError(const char *fm, ...);
+bool		fatalError(const char *fm, ...);
+bool		warning(const char *fm, ...);
+bool		vsysError(const char *fm, va_list args);
+bool		vfatalError(const char *fm, va_list args);
+bool		vwarning(const char *fm, va_list args);
 
 /* pl-dde.c */
 
-word		pl_open_dde_conversation(Word service, Word topic, Word hdl);
-word		pl_close_dde_conversation(Word handle);
-word		pl_dde_request(Word handle, Word item, Word value, Word tmo);
-word		pl_dde_execute(Word handle, Word cmd, Word tmo);
-word		pl_dde_register_service(Word service, Word onoff);
+word		pl_open_dde_conversation(term_t serv, term_t top, term_t hdl);
+word		pl_close_dde_conversation(term_t handle);
+word		pl_dde_request(term_t h, term_t it, term_t value, term_t tmo);
+word		pl_dde_execute(term_t handle, term_t cmd, term_t tmo);
+word		pl_dde_register_service(term_t service, term_t onoff);
 
 /* pl-dll.c */
-word		pl_open_dll(Word name, Word handle);
-word		pl_close_dll(Word handle);
-word		pl_call_dll_function(Word handle, Word funcname);
+word		pl_open_dll(term_t name, term_t handle);
+word		pl_close_dll(term_t handle);
+word		pl_call_dll_function(term_t handle, term_t funcname);
 
 /* pl-nt.c */
 
 void		PlMessage(const char *buf, ...);
-word		pl_window_title(Word old, Word new);
+word		pl_window_title(term_t old, term_t new);

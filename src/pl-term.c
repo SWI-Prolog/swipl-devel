@@ -41,7 +41,7 @@ short	ospeed;
 static int	term_initialised;	/* Extracted term info? */
 static char     *string_area_pointer;	/* Current location */
 static Table	capabilities;		/* Terminal capabilities */
-static word	tty_stream;		/* stream on which to do tty */
+static Atom	tty_stream;		/* stream on which to do tty */
 
 typedef struct
 { Atom	type;				/* type of the entry */
@@ -65,7 +65,7 @@ resetTerm()
     clearHTable(capabilities);
   }
 
-  tty_stream = (word) ATOM_user_output;
+  tty_stream = ATOM_user_output;
 }
 
 static bool
@@ -139,55 +139,73 @@ lookupEntry(Atom name, Atom type)
 }
       
 word
-pl_tty_get_capability(Word name, Word type, Word value)
+pl_tty_get_capability(term_t name, term_t type, term_t value)
 { Entry e;
+  Atom n, t;
 
-  if ( !isAtom(*name) || !isAtom(*type) )
+  if ( !PL_get_atom(name, &n) || !PL_get_atom(type, &t) )
     return warning("tgetent/3: instantiation fault");
-  if ( (e = lookupEntry((Atom) *name, (Atom) *type)) == NULL )
+  if ( !(e = lookupEntry(n, t)) )
     fail;
 
   if ( e->value != 0L )
-    return unifyAtomic(value, e->value);
+    return _PL_unify_atomic(value, e->value);
 
   fail;
 }
   
 word
-pl_tty_goto(Word x, Word y)
+pl_tty_goto(term_t x, term_t y)
 { Entry e;
   char *s;
+  int ix, iy;
+  term_t ttys = PL_new_term_ref();
 
-  if ( !isInteger(*x) || !isInteger(*y) )
+  if ( !PL_get_integer(x, &ix) ||
+       !PL_get_integer(y, &iy) )
     return warning("tty_goto: instantiation fault");
 
   if ( (e = lookupEntry(ATOM_cm, ATOM_string)) == NULL ||
         e->value == 0L )
     fail;
 
-  s = tgoto(stringAtom(e->value), (int)valNum(*x), (int)valNum(*y));
+  s = tgoto(stringAtom(e->value), ix, iy);
   if ( streq(s, "OOPS") )
     fail;
-  streamOutput(&tty_stream, (tputs(s, 1, Put), TRUE));
+
+  PL_put_atom(ttys, tty_stream);
+  streamOutput(ttys, (tputs(s, 1, Put), TRUE));
 }
 
 word
-pl_tty_put(Word a, Word affcnt)
-{ char *s = primitiveToString(*a, FALSE);
+pl_tty_put(term_t a, term_t affcnt)
+{ char *s;
+  int n;
 
-  if ( s == NULL || !isInteger(*affcnt) )
-    return warning("tty_put: instantiation fault");
-  streamOutput(&tty_stream, (tputs(s, (int)valNum(*affcnt), Put), TRUE));
+  if ( PL_get_chars(a, &s, CVT_ALL) &&
+       PL_get_integer(affcnt, &n) )
+  { term_t ttys = PL_new_term_ref();
+    PL_put_atom(ttys, tty_stream);
+
+    streamOutput(ttys, (tputs(s, n, Put), TRUE));
+    succeed;
+  }
+
+  return warning("tty_put: instantiation fault");
 }
 
 word
-pl_set_tty(Word old, Word new)
-{ TRY( unifyAtomic(old, tty_stream) );
-  if ( streamNo(new, F_WRITE) < 0 )
-    fail;
+pl_set_tty(term_t old, term_t new)
+{ Atom a;
 
-  tty_stream = *new;
-  succeed;
+  if ( PL_unify_atom(old, tty_stream) &&
+       PL_get_atom(new, &a) &&
+       streamNo(new, F_WRITE) >= 0 )
+  { tty_stream = a;
+    succeed;
+  }
+
+  fail;
 }
 
 #else /* ~TGETENT */
@@ -203,21 +221,17 @@ Word name, type, value;
 }
 
 word
-pl_tty_goto(x, y)
-Word x, y;
+pl_tty_goto(term_t x, term_t y)
 { return notImplemented("tty_goto", 2);
 }
 
 word
-pl_tty_put(a, affcnt)
-Word a;
-Word affcnt;
+pl_tty_put(term_t a, term_t affcnt)
 { return notImplemented("tty_put", 2);
 }
 
 word
-pl_set_tty(old, new)
-Word old, new;
+pl_set_tty(term_t old, term_t new)
 { return notImplemented("set_tty", 2);
 }
 

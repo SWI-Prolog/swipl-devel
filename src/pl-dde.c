@@ -48,9 +48,7 @@
 #include "pl-incl.h"
 
 #if O_DDE
-
-#include "pl-itf.h"
-#include "string.h"
+#include <string.h>
 
 #ifdef __WATCOMC__			/* at least version 9.5 */
 #define WATCOM_DDEACCESS_BUG 1
@@ -127,44 +125,49 @@ hszToAtom(HSZ hsz)
 }
 
 
-static word
-hdataToString(HDDEDATA data)
+static int
+unify_hdata(term_t t, HDDEDATA data)
 { char buf[FASTBUFSIZE];
   int len;
 
   if ( !(len=DdeGetData(data, buf, sizeof(buf)-1, 0)) )
   { dde_warning("data handle");
-    return (word)NULL;
+    fail;
   }
 
   if ( len == sizeof(buf)-1 )
   { if ( (len=DdeGetData(data, NULL, 0, 0)) > 0 )
     { char *b2 = malloc(len+1);
-      word s;
+      int rval;
       
       DdeGetData(data, b2, len, 0);
       b2[len] = '\0';
-      s = globalString(b2);
+      rval = PL_unify_list_chars(t, b2);
       free(b2);
 
-      return s;
+      return rval;
     }
 
     dde_warning("data handle");
   }
 
-  return globalString(buf);
+  return PL_unify_list_chars(t, b2);
 }
 
 
-static HSZ
-wordToHsz(word data)
+static int
+get_hsz(term_t data, HSZ *rval)
 { char *s;
 
-  if ( (s = primitiveToString(data, FALSE)) )
-    return DdeCreateStringHandle(ddeInst, s, CP_WINANSI);
+  if ( PL_get_chars(rval, &s, CVT_ALL) )
+  { HSZ h = DdeCreateStringHandle(ddeInst, s, CP_WINANSI);
+    if ( h )
+    { *rval = h;
+      succeed;
+    }
+  }
 
-  return (HSZ) NULL;
+  fail;
 }
 
 
@@ -202,109 +205,98 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 {
   switch(type)
   {  case XTYP_CONNECT:
-     { word goal;
-       mark m;
+     { fid_t cid = PL_open_foreign_frame();
+       term_t argv = PL_new_term_refs(3);
+       predicate_t pred = PL_pred(FUNCTOR_dde_connect3, MODULE_dde);
        int rval;
 
-       Mark(m);
-       goal = globalFunctor(FUNCTOR_dde_connect3);
-       argTerm(goal, 0) = (word) hszToAtom(hsz2); /* topic */
-       argTerm(goal, 1) = (word) hszToAtom(hsz1); /* service */
-       argTerm(goal, 2) = (dwData2 ? consNum(1) : consNum(0)); /* same inst */
-       rval = callGoal(MODULE_dde, goal, TRUE);
-       Undo(m);
-       
-       return rval ? TRUE : FALSE;
+       PL_put_atom(   argv+0, hszToAtom(hsz2)); /* topic */
+       PL_put_atom(   argv+1, hszToAtom(hsz1)); /* service */
+       PL_put_integer(argv+2, dwData2 ? 1 : 0); /* same instance */
+       rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+       PL_discard_foreign_frame(cid);
+
+       return rval;
      }
      case XTYP_CONNECT_CONFIRM:
-     { word goal;
-       mark m;
+     { fid_t cid = PL_open_foreign_frame();
+       term_t argv = PL_new_term_refs(3);
+       predicate_t pred = PL_pred(FUNCTOR_dde_connect_confirm3, MODULE_dde);
        int rval;
        int plhandle;
 
-       if ( (plhandle = allocServerHandle(hconv)) < 0 )
+       if ( (plhandle = allocServerHandle(hconv)) >= 0 )
+       { fid_t cid = PL_open_foreign_frame();
+	 term_t argv = PL_new_term_refs(3);
+	 predicate_t pred = PL_pred(FUNCTOR_dde_connect_confirm3, MODULE_dde);
+
+	 PL_put_atom(   argv+0, hszToAtom(hsz2)); /* topic */
+	 PL_put_atom(   argv+1, hszToAtom(hsz1)); /* service */
+	 PL_put_integer(argv+2, plhandle);
+
+	 rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+	 PL_discard_foreign_frame(cid);
+       } else
        { warning("No more DDE server handles");
-	 return FALSE;
+	 rval = FALSE;
        }
 
-       Mark(m);
-       goal = globalFunctor(FUNCTOR_dde_connect_confirm3);
-       argTerm(goal, 0) = (word) hszToAtom(hsz2); /* topic */
-       argTerm(goal, 1) = (word) hszToAtom(hsz1); /* service */
-       argTerm(goal, 2) = consNum(plhandle);
-       rval = callGoal(MODULE_dde, goal, TRUE);
-       Undo(m);
-       
-       return rval ? TRUE : FALSE; 
+       return rval; 
      }
      case XTYP_DISCONNECT:
-     { word goal;
-       mark m;
+     { fid_t cid = PL_open_foreign_frame();
+       term_t argv = PL_new_term_refs(1);
+       predicate_t pred = PL_pred(FUNCTOR_dde_disconnect1, MODULE_dde);
        int rval;
-       int plhandle = findServerHandle(hconv);
        
        if ( plhandle >= 0 && plhandle < MAX_CONVERSATIONS )
 	 server_handle[plhandle] = (HCONV)NULL;
 
-       Mark(m);
-       goal = globalFunctor(FUNCTOR_dde_disconnect1);
-       argTerm(goal, 0) = consNum(plhandle);      /* handle */
-       rval = callGoal(MODULE_dde, goal, TRUE);
-       Undo(m);
-       
-       return rval ? TRUE : FALSE;
+       PL_put_integer(argv+0, plhandle);
+       rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+       PL_discard_foreign_frame(cid);
+
+       return rval;
      }
      case XTYP_EXECUTE:
-     { Atom topic = hszToAtom(hsz1);
-       word data;
-       mark m;
-       int plhandle = findServerHandle(hconv);
+     { int plhandle = findServerHandle(hconv);
        HDDEDATA rval = DDE_FNOTPROCESSED;
+       fid_t cid = PL_open_foreign_frame();
+       term_t argv = PL_new_term_refs(3);
+       predicate_t pred = PL_pred(FUNCTOR_dde_execute3, MODULE_dde);
 
-       Mark(m);
-
-       if ( (data = hdataToString(hData)) )
-       { word goal = globalFunctor(FUNCTOR_dde_execute3);
-
-	 argTerm(goal, 0) = consNum(plhandle);
-	 argTerm(goal, 1) = (word) topic;
-	 argTerm(goal, 2) = data;
-	 if ( callGoal(MODULE_dde, goal, TRUE) )
-	   rval = DDE_FACK;
-	 
-	 DdeFreeDataHandle(hData);
-       } else
-	 dde_warning("DdeAccessData()");
-
-       Undo(m);
+       PL_put_integer(argv+0, plhandle);
+       PL_put_atom(   argv+1, hszToAtom(hsz1));
+       unify_hdata(   argv+2, hData);
+       if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
+	 rval = DDE_FACK;
+       PL_discard_foreign_frame(cid);
+       DdeFreeDataHandle(hData);
        return rval;
      }
      case XTYP_REQUEST:
      { HDDEDATA data = (HDDEDATA) NULL;
 
        if ( fmt == CF_TEXT )
-       { Atom topic = hszToAtom(hsz1);
-	 Atom item  = hszToAtom(hsz2);
-	 word goal;
-	 mark m;
+       { fid_t cid = PL_open_foreign_frame();
+	 term_t argv = PL_new_term_refs(4);
+	 predicate_t pred = PL_pred(FUNCTOR_dde_request4, MODULE_dde);
 	 int plhandle = findServerHandle(hconv);
-	   
-	 Mark(m);
-	 goal = globalFunctor(FUNCTOR_dde_request4);
-	 argTerm(goal, 0) = consNum(plhandle);
-	 argTerm(goal, 1) = (word) topic;
-	 argTerm(goal, 2) = (word) item;
-	 if ( callGoal(MODULE_dde, goal, TRUE) )
-	 { Word rval = argTermP(goal, 3);
-	   char *s;
 
-	   if ( (s = primitiveToString(*rval, FALSE)) )
-	   { data = DdeCreateDataHandle(ddeInst, s, strlen(s)+1,
+	 PL_put_integer( argv+0, plhandle);
+	 PL_put_atom(	 argv+1, hszToAtom(hsz1)); /* topic */
+	 PL_put_atom(    argv+2, hszToAtom(hsz2)); /* item */
+	 PL_put_variable(argv+3);
+
+	 if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
+	 { char *s;
+
+	   if ( PL_get_chars(argv+3, &s, CVT_ALL) )
+	     data = DdeCreateDataHandle(ddeInst, s, strlen(s)+1,
 					0, hsz2, CF_TEXT, 0);
-	   }
 	 }
-	 Undo(m);
-       } 
+	 PL_discard_foreign_frame(cid);
+       }
 
        return data;
      }
@@ -350,15 +342,17 @@ dde_initialise()
 
 
 word
-pl_dde_register_service(Word topic, Word onoff)
+pl_dde_register_service(term_t topic, term_t onoff)
 { HSZ t;
+  Atom a;
 
   TRY(dde_initialise());
 
-  if ( !(t=wordToHsz(*topic)) )
+  if ( !get_hsz(topic, &t) ||
+       !PL_get_atom(onoff, &a) )
     return warning("dde_register_topic/1: instantiation fault");
 
-  if ( *onoff == (word)ATOM_off )
+  if ( a == ATOM_off )
   { int rval = (int)DdeNameService(ddeInst, t, 0L, DNS_UNREGISTER);
     DdeFreeStringHandle(ddeInst, t);
     return rval ? TRUE : FALSE;
@@ -373,58 +367,59 @@ pl_dde_register_service(Word topic, Word onoff)
 
 
 word
-pl_open_dde_conversation(Word service, Word topic, Word handle)
+pl_open_dde_conversation(term_t service, term_t topic,
+			 term_t handle)
 { UINT i;
   HSZ Hservice, Htopic;
-
-  if (!isAtom(*service) || !isAtom(*topic)) {
-    warning("open_dde_conversation/3: input arguments must be atoms");
-    fail;
-  }
 
   if ( !dde_initialise() )
     fail;
 
+  if ( !get_hsz(service, &Hservice) ||
+       !get_hsz(topic, &Htopic) )
+    return warning("open_dde_conversation/3: instantion fault");
+
   /* Establish a connection and get a handle for it */
   for (i=0; i < MAX_CONVERSATIONS; i++)   /* Find an open slot */
-    if (conv_handle[i] == (HCONV)NULL) break;
-  if (i == MAX_CONVERSATIONS) {
-    warning("open_dde_conversation/3: too many conversations");
-    fail;
+  { if (conv_handle[i] == (HCONV)NULL)
+      break;
   }
-
-  Hservice = DdeCreateStringHandle(ddeInst, stringAtom(*service), CP_WINANSI);
-  Htopic = DdeCreateStringHandle(ddeInst, stringAtom(*topic), CP_WINANSI);
+  if (i == MAX_CONVERSATIONS)
+    return warning("open_dde_conversation/3: too many conversations");
 
   if ( !(conv_handle[i] = DdeConnect(ddeInst, Hservice, Htopic, 0)) )
     fail;
   else
-    TRY(unifyAtomic(handle, consNum(i)));
+    return PL_unify_integer(handle, i);
 
   DdeFreeStringHandle(ddeInst, Hservice);
   DdeFreeStringHandle(ddeInst, Htopic);
+
   succeed;
 }
 
 
 static int
-wordToConvHandle(word handle)
-{ if ( isInteger(handle) )
-  { int h = valNum(handle);
+get_conv_handle(term_t handle, int *theh)
+{ int h;
 
-    if ( h >= 0 && h < MAX_CONVERSATIONS && conv_handle[h] )
-      return h;
+  if ( PL_get_integer(handle, &h) &&
+       h > 0 && h < MAX_CONVERSATIONS &&
+       conv_handle[h] )
+  { *theh = h;
+
+    succeed;
   }
 
-  return -1;
+  fail;
 }
 
 
 word
-pl_close_dde_conversation(Word handle)
+pl_close_dde_conversation(term_t handle)
 { int hdl;
 
-  if ( (hdl = wordToConvHandle(*handle)) < 0 )
+  if ( !get_conv_handle(handle, &hdl )
     return warning("close_dde_conversation/1: invalid handle");
 
   DdeDisconnect(conv_handle[hdl]);
@@ -435,7 +430,8 @@ pl_close_dde_conversation(Word handle)
 
 
 word
-pl_dde_request(Word handle, Word item, Word value, Word timeout)
+pl_dde_request(term_t handle, term_t item,
+	       term_t value, term_t timeout)
 { int hdl;
   int rval;
   int ddeErr;
@@ -444,13 +440,13 @@ pl_dde_request(Word handle, Word item, Word value, Word timeout)
   HDDEDATA Hvalue;
   DWORD tmo;
 
-  if ( (hdl = wordToConvHandle(*handle)) < 0 )
+  if ( !get_conv_handle(handle, &hdl) )
     return warning("dde_request/4: invalid handle");
-  if ( !(Hitem = wordToHsz(*item)) )
+  if ( !get_hsz(item, &Hitem) )
     return warning("dde_request/4: invalid item");
-  if ( !isInteger(*timeout) )
+  if ( !PL_get_integer(timeout, &tmo) )
     return warning("dde_request/4: invalid timeout");
-  tmo = valNum(*timeout);
+
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;
 
@@ -461,28 +457,18 @@ pl_dde_request(Word handle, Word item, Word value, Word timeout)
 
   if ( ddeErr == DMLERR_NO_ERROR)
   { char * valuebuf;
-#ifdef WATCOM_DDEACCESS_BUG
-    /* Watcom's DdeAccessData is declared to return a 32-bit near ptr, but actually
-       delivers a 16-bit far; the following is to work around this */
-    LPARAM valuefp;
-    char far * valuedata;
-    valuefp = (LPARAM)DdeAccessData(Hvalue, &valuelen);
-    valuedata = MK_FP32((void *)valuefp);
-    valuebuf = (char *)malloc((size_t)valuelen+1);
-    _fstrncpy(valuebuf, valuedata, valuelen+1);
-#else
     char * valuedata;
     valuedata = DdeAccessData(Hvalue, &valuelen);
     valuebuf = (char *)malloc((size_t)valuelen+1);
     strncpy(valuebuf, valuedata, valuelen+1);
-#endif
     DdeUnaccessData(Hvalue);
     valuebuf[valuelen] = '\0';
-    rval = unifyAtomic(value, lookupAtom(valuebuf));
+    rval = PL_unify_atom_chars(value, valuebuf);
     free(valuebuf);
     return rval;
   } else
   { char * errmsg;
+    term_t a = PL_new_term_ref();
 
     switch (ddeErr)
     { case DMLERR_BUSY:            errmsg = "Server busy"; break;
@@ -491,8 +477,9 @@ pl_dde_request(Word handle, Word item, Word value, Word timeout)
       default:                     errmsg = "Unknown error"; break;
     }
 
-    if ( unifyFunctor(value, FUNCTOR_error1) &&
-	 unifyAtomic(argTermP(value, 1), lookupAtom(errmsg)) )
+    if ( PL_unify_functor(value, FUNCTOR_error1) &&
+	 PL_get_arg(1, value, a) &&
+	 PL_unify_atom_chars(a, errmsg) )
       succeed;
 
     fail;
@@ -502,21 +489,20 @@ pl_dde_request(Word handle, Word item, Word value, Word timeout)
 
 
 word
-pl_dde_execute(Word handle, Word command, Word timeout)
+pl_dde_execute(term_t handle, term_t command, term_t timeout)
 { int hdl;
   char *cmdstr;
   HDDEDATA Hvalue, data;
   DWORD result;
   DWORD tmo;
 
-  if ( (hdl = wordToConvHandle(*handle)) < 0 )
+  if ( !get_conv_handle(handle, &hdl) )
     return warning("dde_execute/3: invalid handle");
-  if ( (cmdstr = primitiveToString(*command, FALSE)) == NULL )
+  if ( !PL_get_chars(command, &cmdstr, CVT_ALL) )
     return warning("dde_execute/3: invalid command");
-  if ( !isInteger(*timeout) )
+  if ( !PL_get_integer(timeout, &tmo) )
     return warning("dde_execute/2: invalid timeout");
 
-  tmo = valNum(*timeout);
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;
 

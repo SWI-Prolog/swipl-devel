@@ -196,7 +196,7 @@ A trace_call		"trace_call"
 A trace_exit		"trace_exit"
 A trace_fail		"trace_fail"
 A trace_redo		"trace_redo"
-A traceinterc		"$prolog_trace_interception"
+A traceinterc		"prolog_trace_interception"
 A trail			"trail"
 A trail_shifts		"trail_shifts"
 A traillimit		"traillimit"
@@ -238,6 +238,12 @@ A binary		"binary"
 A false			"false"
 A reset			"reset"
 A error			"error"
+A v			"v"
+A continue		"continue"
+A retry			"retry"
+A ignore		"ignore"
+A gc			"gc"
+A trace_gc		"trace_gc"
 
 F abs			1
 F acos			1
@@ -319,10 +325,10 @@ F stream_position	3
 F syntax_error		3
 F tan			1
 F time			2
-F traceinterc		2
+F traceinterc		3
 F true			0
 F truncate		1
-F undefinterc		3
+F undefinterc		4
 F var			1
 F warning		3
 F xor			2

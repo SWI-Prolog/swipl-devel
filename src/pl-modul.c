@@ -80,6 +80,17 @@ initModules(void)
   modules.source = modules.user;
 }
 
+int
+isSuperModule(Module s, Module m)
+{ while(m)
+  { if ( m == s )
+      succeed;
+    m = m->super;
+  }
+
+  fail;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 stripModule() takes an atom or term, possible embedded in the :/2 module
 term.  It will assing *module with the associated module and return  the
@@ -87,23 +98,23 @@ remaining term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-stripModule(register Word term, Module *module)
-{ while(isTerm(*term) && functorTerm(*term) == FUNCTOR_module2)
-  { register Word mp;
+stripModule(Word term, Module *module)
+{ deRef(term);
+
+  while(isTerm(*term) && functorTerm(*term) == FUNCTOR_module2)
+  { Word mp;
     mp = argTermP(*term, 0);
     deRef(mp);
-    if (!isAtom(*mp) )
-    { warning("Illegal module specification");
-
-      return (Word) NULL;
-    }
+    if ( !isAtom(*mp) )
+      break;
     *module = lookupModule((Atom) *mp);
     term = argTermP(*term, 1);
     deRef(term);
   }
 
-  if (*module == (Module) NULL)
-    *module = contextModule(environment_frame);
+  if ( ! *module )
+    *module = (environment_frame ? contextModule(environment_frame)
+	       			 : MODULE_user);
 
   return term;
 }
@@ -120,23 +131,24 @@ isPublicModule(Module module, Procedure proc)
 		*********************************/
 
 word
-pl_default_module(Word me, Word old, Word new)
+pl_default_module(term_t me, term_t old, term_t new)
 { Module m, s;
+  Atom a;
 
-  if ( isVar(*me) )
+  if ( PL_is_variable(me) )
   { m = contextModule(environment_frame);
-    TRY( unifyAtomic(me, m->name) );
-  } else if ( isAtom(*me) )
-  { m = lookupModule((Atom) *me);
+    TRY(PL_unify_atom(me, m->name));
+  } else if ( PL_get_atom(me, &a) )
+  { m = lookupModule(a);
   } else
     return warning("super_module/2: instantiation fault");
 
-  TRY( unifyAtomic(old, m->super ? m->super->name : ATOM_nil) );
+  TRY(PL_unify_atom(old, m->super ? m->super->name : ATOM_nil));
 
-  if ( !isAtom(*new) )
+  if ( !PL_get_atom(new, &a) )
     return warning("super_module/2: instantiation fault");
 
-  s = (*new == (word) ATOM_nil ? (Module) NULL : lookupModule((Atom) *new));
+  s = (a == ATOM_nil ? NULL : lookupModule(a));
   m->super = s;
 
   succeed;
@@ -144,31 +156,31 @@ pl_default_module(Word me, Word old, Word new)
 
 
 word
-pl_current_module(Word module, Word file, word h)
+pl_current_module(term_t module, term_t file, word h)
 { Symbol symb = firstHTable(moduleTable);
-  mark mark;
+  Atom name;
 
   if ( ForeignControl(h) == FRG_CUTTED )
     succeed;
 
 					/* deterministic cases */
-  if ( isAtom(*module) )
+  if ( PL_get_atom(module, &name) )
   { for(; symb; symb = nextHTable(moduleTable, symb) )
     { Module m = (Module) symb->value;
 
-      if ( (Atom) *module == m->name )
+      if ( name == m->name )
       { Atom f = (m->file == (SourceFile) NULL ? ATOM_nil : m->file->name);
-	return unifyAtomic(file, f);
+	return PL_unify_atom(file, f);
       }
     }
 
     fail;
-  } else if ( isAtom(*file) )
+  } else if ( PL_get_atom(file, &name) )
   { for( ; symb; symb = nextHTable(moduleTable, symb) )
     { Module m = (Module) symb->value;
 
-      if ( m->file && m->file->name == (Atom) *file )
-	return unifyAtomic(module, m->name);
+      if ( m->file && m->file->name == name )
+	return PL_unify_atom(module, m->name);
     }
 
     fail;
@@ -184,61 +196,77 @@ pl_current_module(Word module, Word file, word h)
       assert(0);
   }
 
-  DoMark(mark);
+  for( ; symb; symb = nextHTable(moduleTable, symb) )
+  { Module m = (Module) symb->value;
 
-  for(; symb; symb = nextHTable(moduleTable, symb) )
-  { Atom f;
-    Module m = (Module) symb->value;
-
-    if ( stringAtom(m->name)[0] == '$' && !SYSTEM_MODE && isVar(*module) )
+    if ( stringAtom(m->name)[0] == '$' &&
+	 !SYSTEM_MODE && PL_is_variable(module) )
       continue;
 
-    DoUndo(mark);
-    if (unifyAtomic(module, m->name) == FALSE)
-      continue;
-    f = (m->file == (SourceFile) NULL ? ATOM_nil : m->file->name);
-    if (unifyAtomic(file, f) == FALSE)
-      continue;
+    { fid_t cid = PL_open_foreign_frame();
+      Atom f = (m->file == (SourceFile) NULL ? ATOM_nil : m->file->name);
 
-    if ((symb = nextHTable(moduleTable, symb)) == (Symbol) NULL)
-      succeed;
+      if ( PL_unify_atom(module, m->name) &&
+	   PL_unify_atom(file, f) )
+      { if ( !(symb = nextHTable(moduleTable, symb)) )
+	  succeed;
 
-    ForeignRedo(symb);
+	ForeignRedo(symb);
+      }
+
+      PL_discard_foreign_frame(cid);
+    }
   }
 
   fail;
 }
 
+
 word
-pl_strip_module(Word spec, Word module, Word term)
+pl_strip_module(term_t spec, term_t module, term_t term)
 { Module m = (Module) NULL;
+  term_t plain = PL_new_term_ref();
 
-  if ( (spec = stripModule(spec, &m)) == (Word) NULL )
-    fail;
-  TRY(unifyAtomic(module, m->name) );
+  PL_strip_module(spec, &m, plain);
+  if ( PL_unify_atom(module, m->name) &&
+       PL_unify(term, plain) )
+    succeed;
 
-  return pl_unify(spec, term);
+  fail;
 }  
 
-word
-pl_module(Word old, Word new)
-{ TRY(unifyAtomic(old, modules.typein->name) );
-  if (!isAtom(*new) )
-    return warning("module/1: argument should be an atom");
-  modules.typein = lookupModule((Atom)*new);
-  
-  succeed;
-}
 
 word
-pl_set_source_module(Word old, Word new)
-{ TRY(unifyAtomic(old, modules.source->name) );
-  if (!isAtom(*new) )
-    return warning("$source_module/1: argument should be an atom");
-  modules.source = lookupModule((Atom)*new);
-  
-  succeed;
+pl_module(term_t old, term_t new)
+{ if ( PL_unify_atom(old, modules.typein->name) )
+  { Atom name;
+
+    if ( !PL_get_atom(new, &name) )
+      return warning("module/2: argument should be an atom");
+
+    modules.typein = lookupModule(name);
+    succeed;
+  }
+
+  fail;
 }
+
+
+word
+pl_set_source_module(term_t old, term_t new)
+{ if ( PL_unify_atom(old, modules.source->name) )
+  { Atom name;
+
+    if ( !PL_get_atom(new, &name) )
+      return warning("$source_module/2: argument should be an atom");
+
+    modules.source = lookupModule(name);
+    succeed;
+  }
+
+  fail;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Declare `name' to be a module with `file' as its source  file.   If  the
@@ -246,25 +274,19 @@ module was already loaded its public table is cleared and all procedures
 in it are abolished.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
-word
-pl_declare_module(Word name, Word file)
-{ Module module;
+int
+declareModule(Atom name, SourceFile sf)
+{ Module module = lookupModule(name);
   Symbol s;
-  SourceFile sf;
 
-  if (!isAtom(*name) || !isAtom(*file) )
-    return warning("$declare_module/2: instantiation fault");
-
-  module = lookupModule((Atom)*name);
-
-  sf = lookupSourceFile((Atom)*file);
-  if (module->file != (SourceFile) NULL && module->file != sf)
-    return warning("module/2: module %s already loaded from file %s (abandoned)", 
-				stringAtom(module->name), 
-				stringAtom(module->file->name) );
+  if ( module->file && module->file != sf)
+  { warning("module/2: module %s already loaded from file %s (abandoned)", 
+	    stringAtom(module->name), 
+	    stringAtom(module->file->name));
+    fail;
+  }
+	    
   module->file = sf;
-
   modules.source = module;
 
   for_table(s, module->procedures)
@@ -280,29 +302,48 @@ pl_declare_module(Word name, Word file)
   succeed;
 }
 
+
+word
+pl_declare_module(term_t name, term_t file)
+{ SourceFile sf;
+  Atom mname, fname;
+
+  if ( !PL_get_atom(name, &mname) ||
+       !PL_get_atom(file, &fname) )
+    return warning("$declare_module/2: instantiation fault");
+
+  sf = lookupSourceFile(fname);
+  return declareModule(mname, sf);
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 export_list(+Module, -PublicPreds)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_export_list(Word modulename, Word list)
+pl_export_list(term_t modulename, term_t public)
 { Module module;
+  Atom mname;
   Symbol s;
 
-  if ( !isAtom(*modulename) )
+  if ( !PL_get_atom(modulename, &mname) )
     return warning("export_list/2: instantiation fault");
   
-  if ((module = isCurrentModule((Atom) *modulename)) == NULL)
+  if ( !(module = isCurrentModule(mname)) )
     fail;
   
-  for_table(s, module->public)
-  { TRY(unifyFunctor(list, FUNCTOR_dot2));
-    TRY(unifyFunctor(HeadList(list), (FunctorDef)s->name));
-    list = TailList(list);
-    deRef(list);
+  { term_t head = PL_new_term_ref();
+    term_t list = PL_copy_term_ref(public);
+
+    for_table(s, module->public)
+    { if ( !PL_unify_list(list, head, list) ||
+	   !PL_unify_functor(head, (FunctorDef)s->name) )
+	fail;
+    }
+
+    return PL_unify_nil(list);
   }
   
-  return unifyAtomic(list, ATOM_nil);
 }
 
 
@@ -312,27 +353,24 @@ context module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_export(Word head)
-{ Procedure proc;
-  Module module = (Module) NULL;
+pl_export(term_t pred)
+{ Module module = NULL;
+  term_t head = PL_new_term_ref();
+  FunctorDef fd;
 
-  if ((head = stripModule(head, &module)) == (Word) NULL)
-    fail;
+  PL_strip_module(pred, &module, head);
+  if ( PL_get_functor(head, &fd) )
+  { Procedure proc = lookupProcedure(fd, module);
 
-  if ( isAtom(*head) )
-    proc = lookupProcedure(lookupFunctorDef((Atom)*head, 0), module);
-  else if ( isTerm(*head) )
-    proc = lookupProcedure(functorTerm(*head), module);
-  else
-    return warning("export/1: illegal predicate specification");
+    addHTable(module->public, proc->definition->functor, proc);
+    succeed;
+  }
 
-  addHTable(module->public, proc->definition->functor, proc);
-
-  succeed;
+  return warning("export/1: illegal predicate specification");
 }
 
 word
-pl_check_export(void)
+pl_check_export()
 { Module module = contextModule(environment_frame);
   Symbol s;
 
@@ -352,8 +390,8 @@ pl_check_export(void)
 }
 
 word
-pl_context_module(Word module)
-{ return unifyAtomic(module, contextModule(environment_frame)->name);
+pl_context_module(term_t module)
+{ return PL_unify_atom(module, contextModule(environment_frame)->name);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -365,24 +403,20 @@ warning is displayed, but the predicate is imported nevertheless.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_import(Word pred)
-{ Module source = (Module) NULL;
+pl_import(term_t pred)
+{ Module source = NULL;
   Module destination = contextModule(environment_frame);
+  term_t head = PL_new_term_ref();
+  FunctorDef fd;
   Procedure proc, old;
 
-  if ((pred = stripModule(pred, &source)) == (Word) NULL)
-    fail;
-
-  if (isAtom(*pred) )
-    proc = lookupProcedure(lookupFunctorDef((Atom)*pred, 0), source);
-  else if (isTerm(*pred) )
-    proc = lookupProcedure(functorTerm(*pred), source);
-  else
-    return warning("import/1: illegal predicate specification");
+  PL_strip_module(pred, &source, head);
+  if ( !PL_get_functor(head, &fd) )
+    return warning("import/1: instantiation fault");
+  proc = lookupProcedure(fd, source);
 
   if ( !isDefinedProcedure(proc) )
-  { autoImport(proc->definition->functor, proc->definition->module);
-  }
+    autoImport(proc->definition->functor, proc->definition->module);
 
   if ( (old = isCurrentProcedure(proc->definition->functor, destination)) )
   { if ( old->definition == proc->definition )

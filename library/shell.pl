@@ -16,8 +16,6 @@
 	, popd/0
 	, mv/2
 	, (rm)/1
-	, (grep)/1
-	, (grep)/2
 	]).
 
 % :- op(900, fy, [ls, cd, pushd, rm, grep]).
@@ -146,37 +144,6 @@ mv(From, To) :-
 rm(File) :-
 	name_to_atom(File, A),
 	delete_file(A).
-
-%	grep(String)		--- grep through all source files
-%	grep(File, String)	--- grep through specified files
-
-grep(S) :-
-	flag(grep_, _, 0),
-	source_file(File),
-	    File \== user,
-	    grep_(File, S),
-	fail.
-grep(_) :-
-	flag(grep_, 1, 1).
-
-grep(File, S) :-
-	flag(grep_, _, 0),
-	name_to_atom(File, F),
-	expand_file_name(F, Files),
-	member(F2, Files),
-	    grep_(F2, S),
-	fail.
-grep(_, _) :-
-	flag(grep_, 1, 1).
-
-grep_(File, S) :-
-	file_base_name(File, Base),
-	'$grep'(File, S, Line),
-	    flag(grep_, _, 1),
-	    format('~w: ~w~n', [Base, Line]),
-	fail.
-grep_(_, _) :-
-	flag(grep_, 1, 1).
 
 %	name_to_atom(Typed, Atom)
 %	Convert a typed name into an atom

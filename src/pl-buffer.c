@@ -10,28 +10,14 @@
 #include "pl-incl.h"
 #include "pl-buffer.h"
 
-Buffer
-newBuffer(void)
-{ Buffer b = allocHeap(sizeof(buffer));
-  
-  initBuffer(b);
-  return b;
-}
-
-
-void
-freeBuffer(Buffer b)
-{ discardBuffer(b);
-  freeHeap(b, sizeof(buffer));
-}
-
-
 void
 growBuffer(Buffer b, long int minfree)
 { long sz = b->max - b->base;
   long top = b->top - b->base;
 
-  sz = (sz ? ROUND((sz * 3) / 2, 512) : 512);
+  while( top + minfree > sz )
+  { sz = sz ? 2*sz : 512;
+  }
 
   b->base = (b->base ? realloc(b->base, sz) : malloc(sz));
   if ( !b->base )

@@ -247,22 +247,7 @@ $prefix_module(Module, _, Head, Module:Head).
 
 :- user:dynamic((prolog_trace_interception/3, exception/3)).
 :- user:multifile((prolog_trace_interception/3,	exception/3)).
-
-:- user:$hide($prolog_trace_interception, 2),
-   user:$hide(prolog_trace_interception, 3).	
-
-$map_trace_action(continue, 	0).
-$map_trace_action(retry, 	1).
-$map_trace_action(fail, 	2).
-
-%	This function is called from C by the tracer. Allows the user
-%	to intercept the tracer. If this predicate fails, the C tracer
-%	takes over.
-
-$prolog_trace_interception(Port, Frame) :-
-	user:prolog_trace_interception(Port, Frame, Action),
-	$map_trace_action(Action, Int), !,
-	$trace_continuation(Int).
+:- user:$hide(prolog_trace_interception, 3).	
 
 %	This function is called from C on undefined predicates.  First
 %	allows the user to take care of it using exception/3. Else try
@@ -273,12 +258,10 @@ $prolog_trace_interception(Port, Frame) :-
 :- flag($enable_autoload, _, on).
 :- flag($autoloading, _, 0).
 
-$undefined_procedure(Module, Name, Arity) :-
+$undefined_procedure(Module, Name, Arity, Action) :-
 	$prefix_module(Module, user, Name/Arity, Pred),
-	user:exception(undefined_predicate, Pred, Action),
-	$map_trace_action(Action, Int), !,
-	$trace_continuation(Int).
-$undefined_procedure(Module, Name, Arity) :-
+	user:exception(undefined_predicate, Pred, Action), !.
+$undefined_procedure(Module, Name, Arity, retry) :-
 	flag($enable_autoload, on, on),
 	$find_library(Module, Name, Arity, LoadModule, Library),
 	functor(Head, Name, Arity),
@@ -291,19 +274,15 @@ $undefined_procedure(Module, Name, Arity) :-
 	    )
 	),
 	flag($autoloading, _, Old),
-	$c_current_predicate(_, Module:Head), !,
-	$map_trace_action(retry, Int),
-	$trace_continuation(Int).
-$undefined_procedure(Module, Name, Arity) :-
+	$c_current_predicate(_, Module:Head).
+$undefined_procedure(Module, Name, Arity, fail) :-
 	$prefix_module(Module, user, Name, MName),
 	findall(Dwim, dwim_predicate(MName, Dwim), Dwims),
 	Dwims \== [],
 	functor(Goal, Name, Arity),
 	$prefix_module(Module, user, Goal, Pred),
 	$warn_undefined(Pred, Dwims),
-	trace,
-	$map_trace_action(fail, Int),
-	$trace_continuation(Int).
+	trace.
 
 
 		/********************************

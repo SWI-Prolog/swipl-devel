@@ -38,15 +38,17 @@ allocDllHandle(HINSTANCE handle)
 
 
 static int
-findDllHandle(word handle)
-{ if ( isInteger(handle) )
-  { int i = valNum(handle);
+findDllHandle(term_t handle, int *hdl)
+{ int i;
 
-    if ( i >= 0 && i < MAX_DLL_INSTANCES && dll[i] )
-      return i;
+  if ( PL_get_integer(handle, &i) &&
+       i >= 0 && i < MAX_DLL_INSTANCES && dll[i] )
+  { *hdl = i;
+
+    succeed;
   }
 
-  return -1;
+  fail;
 }
 
 
@@ -58,16 +60,17 @@ dll_warning(char *fmt)
 
 
 word
-pl_open_dll(Word name, Word handle)
+pl_open_dll(term_t name, term_t handle)
 { HINSTANCE h;
+  char *s;
 
-  if ( !isAtom(*name) )
+  if ( !PL_get_chars(name, &s, CVT_ALL) )
     return warning("open_dll/2: illegal name");
 
-  if ( (h = LoadLibrary(stringAtom((Atom)*name))) )
+  if ( (h = LoadLibrary(s)) )
   { int plhandle = allocDllHandle(h);
 
-    return unifyAtomic(handle, consNum(plhandle));
+    return PL_unify_integer(handle, plhandle);
   }
 
   return dll_warning("open_dll/2");
@@ -75,10 +78,10 @@ pl_open_dll(Word name, Word handle)
 
 
 word
-pl_close_dll(Word handle)
+pl_close_dll(term_t handle)
 { int i;
 
-  if ( (i = findDllHandle(*handle))  < 0 )
+  if ( !get_dll_handle(handle, &i) )
     return warning("close_dll/1: illegal handle");
   
   FreeLibrary(dll[i]);
@@ -89,17 +92,17 @@ pl_close_dll(Word handle)
 
 
 word
-pl_call_dll_function(Word handle, Word funcname)
+pl_call_dll_function(term_t handle, term_t funcname)
 { int i;
   FARPROC proc;
+  char *fname;
 
-  if ( (i = findDllHandle(*handle)) < 0 )
+  if ( !get_dll_handle(handle, &i) )
     return warning("call_dll_function/2: illegal handle");
-  if ( !isAtom(*funcname) )
+  if ( !PL_get_chars(funcname, &fname, CVT_ALL) )
     return warning("call_dll_function/2: illegal function name");
   
-  if ( !(proc = GetProcAddress(dll[i], stringAtom((Atom)*funcname))) )
-/*    return dll_warning("call_dll_function/2"); */
+  if ( !(proc = GetProcAddress(dll[i], fname)) )
     fail;
 
   (*proc)();

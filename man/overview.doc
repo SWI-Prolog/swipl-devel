@@ -36,6 +36,9 @@ When given as the only option, it summarises the most important options.
     \option{-v}
 When given as the only option, it summarises the version and the
 architecture identifier.
+    \option{-arch}
+When given as the only option, it prints the architecture identifier
+(see feature(arch, Arch)) and exits.
     \option{-Lsize}
 Give local stack size in K bytes (200 K default). Note that there is no
 space between the size option and its argument.  For machines with
@@ -636,6 +639,13 @@ macros.
     \option{character_escapes}{bool}
 If true (default), read/1 interprets \verb$\$ escape sequences in quoted
 atoms and strings.  May be changed.
+    \option{gc}{bool}
+If true (default), the garbage collector is active.  If false, neither
+garbage-collection, nor stack-shifts will take place, even not on
+explicit request.  May be changed.
+    \option{trace_gc}
+If true (false is the default), garbage collections and stack-shifts
+will be reported on the terminal.  May be changed.
     \option{max_arity}{unbounded}
 ISO feature describing there is no maximum arity to compound terms.
     \option{integer_rounding_function}{down,toward_zero}

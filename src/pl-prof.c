@@ -100,14 +100,13 @@ stopProfiler()
 }
 
 word
-pl_profile(Word old, Word new)
-{ int prof;
+pl_profile(term_t old, term_t new)
+{ int prof = statistics.profiling;
 
-  TRY(unifyAtomic(old, consNum(statistics.profiling)) );
-  if (!isInteger(*new))
-    fail;
-  if ((prof = valNum(*new)) == statistics.profiling)
+  TRY(setInteger(&prof, "profile", old, new));
+  if ( prof == statistics.profiling )
     succeed;
+  statistics.profiling = prof;
   switch(prof)
   { case NO_PROFILING:
 	return stopProfiler();
@@ -125,39 +124,46 @@ pl_profile(Word old, Word new)
 }
 	
 word
-pl_profile_count(Word head, Word calls, Word prom)
+pl_profile_count(term_t head, term_t calls, term_t prom)
 { Procedure proc;
   Definition def;
+  int pm;
 
-  if ((proc = findProcedure(head)) == (Procedure) NULL)
+  if ( !get_procedure(head, &proc, 0, GP_FIND) )
     return warning("profile_count/3: No such predicate");
+
   def = proc->definition;
+  pm  = (statistics.profile_ticks == 0 ? 0 : (1000 * def->profile_ticks) /
+						statistics.profile_ticks);
 
-  TRY(unifyAtomic(calls, consNum(def->profile_calls+def->profile_redos)) );
+  if ( PL_unify_integer(calls, def->profile_calls+def->profile_redos) &&
+       PL_unify_integer(prom, pm) )
+    succeed;
 
-  if ( statistics.profile_ticks == 0 )
-    return unifyAtomic(prom, consNum(0));
-  else
-    return unifyAtomic(prom, consNum((1000 * def->profile_ticks) /
-				     statistics.profile_ticks) );
+  fail;
 }
 
 
 word
-pl_profile_box(Word head, Word calls, Word redos, Word exits, Word fails)
+pl_profile_box(term_t head,
+	       term_t calls, term_t redos,
+	       term_t exits, term_t fails)
 { Procedure proc;
   Definition def;
 
-  if ((proc = findProcedure(head)) == (Procedure) NULL)
+  if ( !get_procedure(head, &proc, 0, GP_FIND) )
     return warning("profile_box/5: No such predicate");
   def = proc->definition;
 
-  TRY(unifyAtomic(calls,    consNum(def->profile_calls)));
-  TRY(unifyAtomic(redos,    consNum(def->profile_redos)));
-  TRY(unifyAtomic(exits,    consNum(def->profile_calls +
-				    def->profile_redos -
-				    def->profile_fails)));
-  return unifyAtomic(fails, consNum(def->profile_fails));
+  if ( PL_unify_integer(calls, def->profile_calls) &&
+       PL_unify_integer(redos, def->profile_redos) &&
+       PL_unify_integer(exits, def->profile_calls +
+			       def->profile_redos -
+			       def->profile_fails) &&
+       PL_unify_integer(fails, def->profile_fails) )
+    succeed;
+
+  fail;
 }
 
 

@@ -22,7 +22,6 @@ GLOBAL struct
   int  global;				/* default global stack size (K) */
   int  trail;				/* default trail stack size (K) */
   int  argument;			/* default argument stack size (K) */
-  int  lock;				/* foreign code locks (K) */
   char *goal;				/* default initialisation goal */
   char *toplevel;			/* default top level goal */
   bool notty;				/* use tty? */
@@ -35,7 +34,6 @@ GLOBAL struct options
   long		globalSize;		/* size of global stack */
   long		trailSize;		/* size of trail stack */
   long		argumentSize;		/* size of argument stack */
-  long		lockSize;		/* size of lock stack */
   char *	goal;			/* initial goal */
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* initialisation file */

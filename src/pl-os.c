@@ -20,7 +20,6 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#include "pl-itf.h"
 
 #if HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -66,8 +65,10 @@ static real initial_time;
 forwards void	initExpand(void);
 forwards void	initRandom(void);
 forwards void	initEnviron(void);
+forwards long	Time(void);
 forwards char *	okToExec(char *);
 forwards char *	Which(char *);
+static void	RemoveTemporaryFiles(void);
 
 #ifndef DEFAULT_PATH
 #define DEFAULT_PATH "/bin:/usr/bin"
@@ -177,11 +178,17 @@ Halt(int rval)
   Output = 1;				/* reset output stream to user */
 
   if ( !halting )
-  { for(h = on_halt_list; h; h = h->next)
+  { halting++;				/* avoid recursion */
+
+    for(h = on_halt_list; h; h = h->next)
       (*h->function)(rval, h->argument);
 
     if ( status.initialised )
-      callGoal(MODULE_system, (word) lookupAtom("$run_at_halt"), FALSE);
+    { fid_t cid = PL_open_foreign_frame();
+      predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
+      PL_call_predicate(MODULE_system, FALSE, proc, 0);
+      PL_discard_foreign_frame(cid);
+    }
 
 #if defined(__WINDOWS__) || defined(__WIN32__)
     if ( rval != 0 )
@@ -473,7 +480,7 @@ TemporaryFile(char *id)
   return tf->name;
 }
 
-void
+static void
 RemoveTemporaryFiles(void)
 { TempFile tf, tf2;  
 
@@ -921,19 +928,6 @@ SameFile(char *f1, char *f2)
     /* this is fine as OS'es not supporting symbolic links don't need this */
 
   fail;
-}
-
-
-bool
-OpenStream(int fd)
-{
-#if defined(HAVE_FSTAT) || defined(__linux)
-  struct stat buf;
-
-  return fstat(fd, &buf) == 0 ? TRUE : FALSE;
-#else
-  return fd < 3 ? TRUE : FALSE;	/* Sinput, Soutput and Serror are open */
-#endif
 }
 
 
@@ -1613,7 +1607,7 @@ LocalTime(long int *t)
 }
 
 
-long
+static long
 Time(void)
 { return (long)time((time_t *) NULL);
 }
@@ -1697,7 +1691,7 @@ event_hook(void)
   int rval;
 
 /*PushTty(&tab, TTY_OUTPUT);*/
-  rval = (*PL_dispatch_events)();
+  rval = (*PL_dispatch_events)(0);	/* hardcoded? */
 /*PopTty(&tab);*/
 
   return rval;
@@ -1707,7 +1701,7 @@ event_hook(void)
 static Char
 GetRawChar(void)
 { if ( PL_dispatch_events )
-  { while((*PL_dispatch_events)() != PL_DISPATCH_INPUT)
+  { while((*PL_dispatch_events)(0) != PL_DISPATCH_INPUT)
       ;
   }
 
@@ -1767,7 +1761,7 @@ Sread_readline(void *handle, char *buf, int size)
     }
 
     if ( PL_dispatch_events )
-    { while((*PL_dispatch_events)() != PL_DISPATCH_INPUT)
+    { while((*PL_dispatch_events)(0) != PL_DISPATCH_INPUT)
 	;
     }
     n = read((int)handle, buf, size);

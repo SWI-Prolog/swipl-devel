@@ -13,8 +13,6 @@ typedef struct
   char *	max;			/* current location */
 } buffer, *Buffer;
 
-Buffer	newBuffer(void);
-void	freeBuffer(Buffer);
 void	growBuffer(Buffer, long);
 
 #define addBuffer(b, obj, type) \
@@ -25,6 +23,15 @@ void	growBuffer(Buffer, long);
           (b)->top += sizeof(type); \
 	} while(0)
   
+#define addMultipleBuffer(b, ptr, times, type) \
+	do \
+	{ int len = sizeof(type) * (times); \
+	  if ( (b)->top + len > (b)->max ) \
+	    growBuffer(b, len); \
+	  memcpy((b)->top, ptr, len); \
+          (b)->top += len; \
+	} while(0)
+  
 #define baseBuffer(b, type)	 ((type *) (b)->base)
 #define topBuffer(b, type)       ((type *) (b)->top)
 #define inBuffer(b, addr)        ((char *) (addr) >= (b)->base && \
@@ -32,8 +39,10 @@ void	growBuffer(Buffer, long);
 
 #define seekBuffer(b, cnt, type) ((b)->top = sizeof(type) * (cnt) + (b)->base)
 #define sizeOfBuffer(b)          ((b)->top - (b)->base)
+#define freeSpaceBuffer(b)	 ((b)->max - (b)->top)
 #define entriesBuffer(b, type)   (sizeOfBuffer(b) / sizeof(type))
 #define initBuffer(b)            ((b)->base = (b)->max = (b)->top = NULL)
+#define emptyBuffer(b)           ((b)->top  = (b)->base)
 
 #define discardBuffer(b) \
 	do \

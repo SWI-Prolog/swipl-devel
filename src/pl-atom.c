@@ -28,7 +28,7 @@ static int	cmps;
 #endif
 
 Atom
-lookupAtom(char *s)
+lookupAtom(const char *s)
 { int v0 = unboundStringHashValue(s);
   int v = v0 & (atom_buckets-1);
   register Atom a;
@@ -102,16 +102,16 @@ out:
 
 
 word
-pl_atom_hashstat(Word i, Word n)
-{ int m;
-  register Atom a;
-
-  if ( !isInteger(*i) || valNum(*i) < 0 || valNum(*i) >= atom_buckets )
+pl_atom_hashstat(term_t idx, term_t n)
+{ int i, m;
+  Atom a;
+  
+  if ( !PL_get_integer(idx, &i) || i < 0 || i >= atom_buckets )
     fail;
-  for(m = 0, a = atomTable[valNum(*i)]; a && !isRef((word)a); a = a->next)
+  for(m = 0, a = atomTable[i]; a && !isRef((word)a); a = a->next)
     m++;
 
-  return unifyAtomic(n, consNum(m));
+  return PL_unify_integer(n, m);
 }
 
 #ifdef O_HASHTERM
@@ -165,13 +165,13 @@ initAtoms(void)
 
 
 word
-pl_current_atom(Word a, word h)
+pl_current_atom(term_t a, word h)
 { Atom atom;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      if ( isAtom(*a) ) succeed;
-      if ( !isVar(*a) ) fail;
+      if ( PL_is_atom(a) )      succeed;
+      if ( !PL_is_variable(a) ) fail;
 
       atom = atomTable[0];
       lockAtoms();
@@ -191,8 +191,7 @@ pl_current_atom(Word a, word h)
       if (atom == (Atom) NULL)
 	goto out;
     }
-    if (unifyAtomic(a, atom) == FALSE)
-      continue;
+    PL_unify_atom(a, atom);
 
     return_next_table(Atom, atom, unlockAtoms());
   }
@@ -266,18 +265,20 @@ out:
 
 
 word
-pl_complete_atom(Word prefix, Word common, Word unique)
+pl_complete_atom(term_t prefix, term_t common, term_t unique)
 { char *p, *s;
   bool u;
   char buf[LINESIZ];
     
-  if ( (p = toString(*prefix)) == NULL )
+  if ( !PL_get_chars(prefix, &p, CVT_ALL) )
     return warning("$complete_atom/3: instanstiation fault");
   strcpy(buf, p);
-  if ( (s = extendAtom(p, &u)) != NULL )
+
+  if ( (s = extendAtom(p, &u)) )
   { strcat(buf, s);
-    TRY(unifyStringWithList(buf, common));
-    return unifyAtomic(unique, u ? ATOM_unique : ATOM_not_unique);
+    if ( PL_unify_list_chars(common, buf) &&
+	 PL_unify_atom(unique, u ? ATOM_unique : ATOM_not_unique) )
+      succeed;
   }
 
   fail;
@@ -322,26 +323,28 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
 
 
 word
-pl_atom_completions(Word prefix, Word alts)
+pl_atom_completions(term_t prefix, term_t alternatives)
 { char *p;
   char buf[LINESIZ];
   struct match altv[ALT_MAX];
   int altn;
   int i;
+  term_t alts = PL_copy_term_ref(alternatives);
+  term_t head = PL_new_term_ref();
 
-  if ( (p = toString(*prefix)) == NULL )
+  if ( !PL_get_chars(prefix, &p, CVT_ALL) )
     return warning("$atom_completions/2: instanstiation fault");
   strcpy(buf, p);
 
   extend_alternatives(buf, altv, &altn);
   
   for(i=0; i<altn; i++)
-  { TRY(unifyFunctor(alts, FUNCTOR_dot2));
-    TRY(unifyAtomic(argTermP(*alts, 0), altv[i].name));
-    alts = argTermP(*alts, 1);
-    deRef(alts);
+  { if ( !PL_unify_list(alts, head, alts) ||
+	 !PL_unify_atom(head, altv[i].name) )
+      fail;
   }
-  return unifyAtomic(alts, ATOM_nil);
+
+  return PL_unify_nil(alts);
 } 
 
 

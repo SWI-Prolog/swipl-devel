@@ -184,26 +184,22 @@ allocText(long int size)
 
 
 word
-pl_load_foreign(Word file, Word entry, Word options, Word libraries, Word size)
+pl_load_foreign(term_t file, term_t entry, term_t options,
+		term_t libraries, term_t size)
 { char *sfile, *sentry, *soptions, *slibraries;
-  int sz, nsz, n;
+  long sz, nsz, n;
   Atom execName;
   char *execFile;
   long base;
   int fd;
 
-  if ( !isAtom(*file) ||
-       !isAtom(*entry) ||
-       !isAtom(*options) ||
-       !isAtom(*libraries) ||
-       !isInteger(*size) )
+  if ( !PL_get_atom_chars(file, &sfile) ||
+       !PL_get_atom_chars(entry, &sentry) ||
+       !PL_get_atom_chars(options, &soptions) ||
+       !PL_get_atom_chars(libraries, &slibraries) ||
+       !PL_get_long(size, &sz) )
     return warning("pl_load_foreign/5: instantiation fault");
 
-  sfile = stringAtom(*file);
-  sentry = stringAtom(*entry);
-  soptions = stringAtom(*options);
-  slibraries = stringAtom(*libraries);
-  sz = valNum(*size);
   if ( sz < 0 )
     sz = 0;
   
@@ -558,18 +554,17 @@ resetLoader()
 }
 
 word
-pl_load_foreign1(file)
-Word file;
+pl_load_foreign1(term_t file)
 { char *sfile;
+  Atom name;
   long rval;
   Func entry;
   char *libpath = (getenv("LIBPATH") == NULL ? "/lib:/usr/lib" : NULL);
   extern int _data;
 
-  if ( !isAtom(*file) )
+  if ( !PL_get_atom(file, &name) )
     return warning("pl_load_foreign/5: instantiation fault");
-
-  sfile = stringAtom(*file);
+  sfile = stringAtom(name);
 
   if ( main_entry == NULL )
   { char *me;
@@ -664,8 +659,8 @@ being printed, with errno == 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_load_foreign(file, entry, options, libraries, size)
-Word file, entry, options, libraries, size;
+pl_load_foreign(term_t file, term_t entry, term_t options,
+		term_t libraries, term_t size)
 { char *sfile, *sentry, *soptions, *slibraries;
 
   struct mach_header *m_header;
@@ -686,19 +681,11 @@ Word file, entry, options, libraries, size;
   status.debugLevel = 1;
   rld_err_stream = NXOpenMemory(NULL,0,NX_WRITEONLY);
 
-  if ( !isAtom(*file) ||
-       !isAtom(*entry) ||
-       !isAtom(*libraries) ) 
+  if ( !PL_get_atom_chars(file, &sfile) ||
+       !PL_get_atom_chars(entry, &sentry) ||
+       !PL_get_atom_chars(libraries, &slibraries) ) 
     return warning("pl_load_foreign/5: instantiation fault");
 
-  sfile = stringAtom(*file);
-  sentry = stringAtom(*entry);
-  slibraries = stringAtom(*libraries);
-  DEBUG(1, 
-	Sdprintf("** sfile = \"%s\"\n",sfile);
-	Sdprintf("** sentry = \"%s\"\n",sentry);
-	Sdprintf("** slibraries = \"%s\"\n",slibraries));
-  
   /* append object-files and libraries */
   if (strlen(slibraries) > 0)
     sfile = strcat(strcat(sfile," "),slibraries);
@@ -793,8 +780,8 @@ resetLoader()
 }
 
 word
-pl_load_foreign(file, entry, options, libraries, size)
-Word file, entry, options, libraries, size;
+pl_load_foreign(term_t file, term_t entry, term_t options,
+		term_t libraries, term_t size)
 {
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(O_DLL)
   warning("load_foreign/[2,5] are not available for this machine\n"
@@ -869,46 +856,46 @@ DlEntry dl_tail;			/* end of this chain */
 #define DL_GLOBAL 0x2
 
 word
-pl_open_shared_object(Word file, Word plhandle, Word flags)
+pl_open_shared_object(term_t file, term_t plhandle,
+		      term_t flags)
 { void *dlhandle;
+  Atom afile;
   DlEntry e;
   int dlflags;
+  int n;
 
-  if ( isInteger(*flags) )
-  { int n = valNum(*flags);
-
-    dlflags = (n & DL_NOW) ? RTLD_NOW : RTLD_LAZY;
+  if ( PL_get_integer(flags, &n) )
+  { dlflags = (n & DL_NOW) ? RTLD_NOW : RTLD_LAZY;
     if ( n & DL_GLOBAL )
       dlflags |= RTLD_GLOBAL;
   } else
     dlflags = RTLD_LAZY | RTLD_GLOBAL;
 
-  if ( !isAtom(*file) )
+  if ( !PL_get_atom(file, &afile) )
     return warning("open_shared_object/2: instantiation fault");
-  if ( !(dlhandle = dlopen(stringAtom(*file), dlflags)) )
+  if ( !(dlhandle = dlopen(stringAtom(afile), dlflags)) )
     return warning("load_shared_object/2: %s", dlerror());
   e = allocHeap(sizeof(struct dl_entry));
   e->id       = ++dl_plid;
   e->dlhandle = dlhandle;
-  e->file     = (Atom) *file;
+  e->file     = afile;
   e->next     = NULL;
   if ( !dl_tail )
     dl_head = dl_tail = e;
   else
     dl_tail->next = e;
 
-  return unifyAtomic(plhandle, consNum(e->id));
+  return PL_unify_integer(plhandle, e->id);
 }
 
 
 static DlEntry
-find_dl_entry(word h)
+find_dl_entry(term_t h)
 { DlEntry e;
+  int id;
 
-  if ( isInteger(h) )
-  { int id = valNum(h);
-
-    for(e = dl_head; e; e = e->next)
+  if ( PL_get_integer(h, &id) )
+  { for(e = dl_head; e; e = e->next)
       if ( e->id == id )
 	return e;
   }
@@ -918,8 +905,8 @@ find_dl_entry(word h)
 
 
 word
-pl_close_shared_object(Word plhandle)
-{ DlEntry e = find_dl_entry(*plhandle);
+pl_close_shared_object(term_t plhandle)
+{ DlEntry e = find_dl_entry(plhandle);
 
   if ( e && e->dlhandle) 
   { dlclose(e->dlhandle);
@@ -933,14 +920,14 @@ pl_close_shared_object(Word plhandle)
 
 
 word
-pl_call_shared_object_function(Word plhandle, Word name)
-{ DlEntry e = find_dl_entry(*plhandle);
+pl_call_shared_object_function(term_t plhandle, term_t name)
+{ DlEntry e = find_dl_entry(plhandle);
   char *fname;
   dl_funcptr ef;
 
   if ( !e || !e->dlhandle )
     return warning("call_shared_object_function/2: bad handle");
-  if ( !(fname = primitiveToString(*name, FALSE)) )
+  if ( !PL_get_chars(name, &fname, CVT_ALL) )
     return warning("call_shared_object_function/2: instantiation fault");
   
   if ( !(ef = (dl_funcptr) dlsym(e->dlhandle, fname)) )

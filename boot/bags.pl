@@ -15,7 +15,7 @@
 	findall/3, 
 	setof/3, 
 	bagof/3, 
-	assert_bag/3.
+	assert_bag/2.
 
 %	findall(-Var, +Goal, -Bag)
 %	Bag holds all alternatives for Var  in  Goal.   Bag  might  hold
@@ -24,7 +24,7 @@
 %	Goal fails immediately.
 
 findall(Var, Goal, Bag) :-
-	assert_bag(v, Var, Goal),
+	assert_bag(v-Var, Goal),
 	collect_bags([], [v-VarBag]), !,
 	VarBag = Bag.
 findall(_, _, []).
@@ -44,19 +44,18 @@ setof(Var, Goal, Set) :-
 %	(^).
 
 bagof(Gen, Goal, Bag) :-
-	$e_free_variables(Gen^Goal, Vs),
-	Vars =.. [v|Vs],
-	assert_bag(Vars, Gen, Goal), 
+	$e_free_variables(Gen^Goal, Vars),
+	assert_bag(Vars-Gen, Goal), 
 	collect_bags([], Bags), 
 	member(Vars-Bag, Bags),
 	Bag \== [].
 
-assert_bag(Vs, Gen, G) :-
-	$record_bag(mark, -), 
+assert_bag(Templ, G) :-
+	$record_bag(-(mark, -)), 
 	G,
-	    $record_bag(Vs, Gen), 
+	    $record_bag(Templ), 
 	fail.
-assert_bag(_, _, _).
+assert_bag(_, _).
 
 collect_bags(Sofar, Result) :-
 	$collect_bag(Vars, Bag), !,

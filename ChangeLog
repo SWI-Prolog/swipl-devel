@@ -1,6 +1,28 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.5.0
+=============
+
+  * Added features `trace_gc' and `gc'.
+
+  * Added `pl -arch' to get the architecture identifier easily
+
+  * New implementation of copy_term/2 that shares common compound
+    sub-terms.
+
+  * Totally new foreign language interface using `term-references' to
+    allow for garbage collection and stack-shifts with active foreign
+    code.  Ported all foreign predicates to the new interface.  This
+    interface also allows for generating multiple alternatives for
+    a Prolog goal from C.
+
+    For compatibility with old foreign code, see README.oldforeign.
+
+****************************************************************
+	     INCOMPATIBLE FOREIGN LANGUAGE INTERFACE
+****************************************************************
+
 Version 2.1.15
 ==============
 

@@ -10,7 +10,6 @@
 /*#define O_SECURE 1*/
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
-#include "pl-itf.h"
 
 #ifdef O_RLC
 #include <console.h>
@@ -188,6 +187,87 @@ int i;
 #include "pl-index.c"
 #include "pl-alloc.c"
 
+		 /*******************************
+		 *	   STACK-LAYOUT		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Brief description of the local stack-layout.  This stack contains:
+
+	* struct localFrame structures for the Prolog stackframes.
+	* argument vectors and local variables for Prolog goals.
+	* term-references for foreign code.  The layout:
+
+
+	lTop  -->| first free location |
+		 -----------------------
+		 | local variables     |
+		 |        ...	       |
+		 | arguments for goal  |
+		 | localFrame struct   |
+		 | queryFrame struct   |
+		 -----------------------
+		 |        ...	       |
+		 | term-references     |
+		 -----------------------
+	lBase -->| # fliFrame struct   |
+		 -----------------------
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+		 /*******************************
+		 *	    FOREIGN FRAME	*
+		 *******************************/
+
+void
+finish_foreign_frame()
+{ if ( fli_context )
+  { FliFrame fr = fli_context;
+
+    if ( (unsigned long)environment_frame < (unsigned long) fr )
+    { fr->size = (Word) lTop - (Word)addPointer(fr, sizeof(struct fliFrame));
+      DEBUG(1, Sdprintf("Pushed fli context with %d term-refs\n", fr->size));
+    }
+  }
+}
+
+
+fid_t
+PL_open_foreign_frame()
+{ FliFrame fr = (FliFrame) lTop;
+
+  finish_foreign_frame();
+  lTop = addPointer(lTop, sizeof(struct fliFrame));
+  verifyStack(local);
+  fr->size = 0;
+  Mark(fr->mark);
+  fr->parent = fli_context;
+  fli_context = fr;
+
+  return consTermRef(fr);
+}
+
+
+void
+PL_close_foreign_frame(fid_t id)
+{ FliFrame fr = (FliFrame) valTermRef(id);
+
+  fli_context = fr->parent;
+  lTop = (LocalFrame) fr;
+}
+
+
+void
+PL_discard_foreign_frame(fid_t id)
+{ FliFrame fr = (FliFrame) valTermRef(id);
+
+  Undo(fr->mark);
+  fli_context = fr->parent;
+  lTop = (LocalFrame) fr;
+}
+
+
 		/********************************
 		*         FOREIGN CALLS         *
 		*********************************/
@@ -210,194 +290,155 @@ mechanism  to  ignore it.  For the first call the constant FIRST_CALL is
 given as `backtrack control'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define MAX_FLI_ARGS 10			/* extend switches on change */
+
+#define CALLDETFN(r, argc) \
+  { switch(argc) \
+    { case 0: \
+	r = F(); \
+        break; \
+      case 1: \
+	r = F(A(0)); \
+	break; \
+      case 2: \
+	r = F(A(0),A(1)); \
+        break; \
+      case 3: \
+	r = F(A(0),A(1),A(2)); \
+        break; \
+      case 4: \
+	r = F(A(0),A(1),A(2),A(3)); \
+        break; \
+      case 5: \
+	r = F(A(0),A(1),A(2),A(3),A(4)); \
+        break; \
+      case 6: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5)); \
+        break; \
+      case 7: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6)); \
+        break; \
+      case 8: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7)); \
+        break; \
+      case 9: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),A(8)); \
+        break; \
+      case 10: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),A(8),A(9)); \
+        break; \
+      default: \
+	r = sysError("Too many arguments to foreign function (>%d)", \
+		     MAX_FLI_ARGS); \
+    } \
+  }
+
+#define CALLNDETFN(r, argc, c) \
+  { switch(argc) \
+    { case 0: \
+	r = F(c); \
+        break; \
+      case 1: \
+	r = F(A(0),(c)); \
+	break; \
+      case 2: \
+	r = F(A(0),A(1),(c)); \
+        break; \
+      case 3: \
+	r = F(A(0),A(1),A(2),(c)); \
+        break; \
+      case 4: \
+	r = F(A(0),A(1),A(2),A(3),(c)); \
+        break; \
+      case 5: \
+	r = F(A(0),A(1),A(2),A(3),A(4),(c)); \
+        break; \
+      case 6: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5),(c)); \
+        break; \
+      case 7: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),(c)); \
+        break; \
+      case 8: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),(c)); \
+        break; \
+      case 9: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),A(8),(c)); \
+        break; \
+      case 10: \
+	r = F(A(0),A(1),A(2),A(3),A(4),A(5),A(6),A(7),A(8),A(9),(c)); \
+        break; \
+      default: \
+	r = sysError("Too many arguments to foreign function (>%d)", \
+		     MAX_FLI_ARGS); \
+    } \
+  }
+
+
+
 static inline bool
 callForeign(const Definition def, LocalFrame frame)
-{ int argc = def->functor->arity;
+{ Func function = def->definition.function;
+  int argc = def->functor->arity;
   word result;
-  Word argv[20]; /* this must be as big as the number args we stuff in it 
-                  * (switch() below can handle upto case : 15) */
-  Func function;
-  Lock top = pTop;
-  bool gc_save;
-
-  { Word a, *ap;
-    int n;
-
-    a = argFrameP(frame, 0);
-    lTop = (LocalFrame) argFrameP(a, argc);
-    for(ap = argv, n = argc; n > 0; n--, a++, ap++)
-      deRef2(a, *ap)
-  }
-
-  DEBUG(7, Sdprintf("Calling built in %s\n", predicateName(def)) );
-
-  SECURE(
-  int n;
-  DEBUG(5, Sdprintf("argc = %d, argv = 0x%x\n", argc, (unsigned long) argv));
-  for(n = 0; n < argc; n++)
-  { checkData(argv[n], FALSE);
-    lockp(&argv[n]);
-  }
-  );
-
-  function = def->definition.function;
-
-#define A(n) argv[n]
-#define F (*function)
-
-  gc_status.blocked++;
-  if ( (gc_save = true(def, GC_SAFE)) )
-    lockp(&frame);
-#if O_SHIFT_STACKS
-  else
-    shift_status.blocked++;
-#endif
-
-  if ( true(def, NONDETERMINISTIC) )
-  { word B = (word) frame->clause;
-
-  switch(argc)
-  { case 0:  result = F(B); break;
-    case 1:  result = F(A(0), B); break;
-    case 2:  result = F(A(0), A(1), B); break;
-    case 3:  result = F(A(0), A(1), A(2), B); break;
-    case 4:  result = F(A(0), A(1), A(2), A(3), B); break;
-    case 5:  result = F(A(0), A(1), A(2), A(3), A(4), B); break;
-    case 6:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), B); break;
-    case 7:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), B); break;
-    case 8:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			B); break;
-    case 9:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), B); break;
-    case 10: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), B); break;
-#if !mips				/* MIPS doesn't handle that many */
-    case 11: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), B); break;
-    case 12: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), A(11), B); break;
-    case 13: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), A(11), A(12), B); break;
-    case 14: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), A(11), A(12), A(13), B); break;
-    case 15: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			A(8), A(9), A(10), A(11), A(12), A(13), A(14),
-			B); break;
-#endif
-    default:	return sysError("Too many arguments to foreign function");
-  }
-  } else /* deterministic predicate call */
-  { switch(argc)
-    { case 0:  result = F(); break;
-      case 1:  result = F(A(0)); break;
-      case 2:  result = F(A(0), A(1)); break;
-      case 3:  result = F(A(0), A(1), A(2)); break;
-      case 4:  result = F(A(0), A(1), A(2), A(3)); break;
-      case 5:  result = F(A(0), A(1), A(2), A(3), A(4)); break;
-      case 6:  result = F(A(0), A(1), A(2), A(3), A(4), A(5)); break;
-      case 7:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6)); break;
-      case 8:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7));
-      			break;
-      case 9:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			  A(8)); break;
-      case 10: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			  A(8), A(9)); break;
-#if !mips				/* MIPS doesn't handle that many */
-      case 11: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			  A(8), A(9), A(10)); break;
-      case 12: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			  A(8), A(9), A(10), A(11)); break;
-      case 13: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			  A(8), A(9), A(10), A(11), A(12)); break;
-      case 14: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			  A(8), A(9), A(10), A(11), A(12), A(13)); break;
-      case 15: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
-			  A(8), A(9), A(10), A(11), A(12), A(13), A(14));
-			break;
-#endif
-      default:	return sysError("Too many arguments to foreign function");
-    }
-  }
+  term_t h0 = argFrameP(frame, 0) - (Word)lBase;
+  fid_t cid;
+  SaveLocalPtr(s1, frame);
   
-  if ( gc_save )
-    unlockp(&frame);
-#if O_SHIFT_STACKS
-  else
-    shift_status.blocked--;
-#endif
-  gc_status.blocked--;
+#define F (*function)    
 
-#undef F
+  lTop = (LocalFrame) argFrameP(frame, argc);
+  cid  = PL_open_foreign_frame();
+    
+#define A(n) (h0+n)
+  if ( false(def, NONDETERMINISTIC) )	/* deterministic */
+  { CALLDETFN(result, argc);
+  } else				/* non-deterministic */
+  { word context = (word) frame->clause;
+    CALLNDETFN(result, argc, context);
+  }
 #undef A
 
-  SECURE(
-  int n;
-  DEBUG(5, Sdprintf("argc = %d, argv = 0x%x\n", argc, (unsigned long) argv));
-  for(n=argc-1; n >= 0; n--)
-  { unlockp(&argv[n]);
-    checkData(argv[n], FALSE);
-  }
-  );
+  PL_close_foreign_frame(cid);
+  RestoreLocalPtr(s1, frame);
 
-  if ( top != pTop )
-  { if ( pTop > top )
-    { warning("%s: left %d foreign data marks",
-	      predicateName(def), pTop - top);
-      pTop = top;
-    } else
-    { warning("%s: popped %d foreign data marks too many",
-	      predicateName(def), top - pTop);
-    }
-  }
-
-  if ( result == FALSE )
+  if ( result <= 1 )			/* FALSE || TRUE */
   { frame->clause = NULL;
-    fail;
-  } else if ( result == TRUE )
-  { frame->clause = NULL;
-    succeed;
+    return (bool) result;
   } else
   { if ( true(def, NONDETERMINISTIC) )
     { if ( !result & FRG_MASK )
       { warning("Illegal return value from foreign predicate %s: 0x%x",
-				    predicateName(def), result);
+		predicateName(def), result);
 	fail;
       }
       frame->clause = (ClauseRef) result;
       succeed;
     }
     warning("Deterministic foreign predicate %s returns 0x%x",
-			    predicateName(def), result);
+	    predicateName(def), result);
     fail;
   }
 }
 
+
 static void
 leaveForeignFrame(LocalFrame fr)
 { Definition def = fr->predicate;
-  Func f = def->definition.function;
-  word context = (word) fr->clause | FRG_CUT;
+  int argc       = def->functor->arity;
+  Func function  = def->definition.function;
+  word context   = (word) fr->clause | FRG_CUT;
+  int  result;
 
-#define U ((Word) NULL)
+#define F	(*function)
+#define A(n)	((Word)NULL)
+
   DEBUG(5, Sdprintf("Cut %s, context = 0x%lx\n",
 		    predicateName(def), context));
 
-  switch(def->functor->arity)
-  { case 0:	(*f)(context);					return;
-    case 1:	(*f)(U, context);				return;
-    case 2:	(*f)(U, U, context);				return;
-    case 3:	(*f)(U, U, U, context);				return;
-    case 4:	(*f)(U, U, U, U, context);			return;
-    case 5:	(*f)(U, U, U, U, U, context);			return;
-    case 6:	(*f)(U, U, U, U, U, U, context);		return;
-    case 7:	(*f)(U, U, U, U, U, U, U, context);		return;
-    case 8:	(*f)(U, U, U, U, U, U, U, U, context);		return;
-    case 9:	(*f)(U, U, U, U, U, U, U, U, U, context);	return;
-    case 10:	(*f)(U, U, U, U, U, U, U, U, U, U, context);	return;
-    default:	sysError("Too many arguments (%d) to leaveForeignFrame()",
-			 def->functor->arity);
-  }
-#undef U
+  CALLNDETFN(result, argc, context);
+#undef A
+#undef F
 }
 
 
@@ -458,6 +499,9 @@ inline void
 do_undo(mark *m)
 { TrailEntry tt = tTop;
 
+  SECURE(assert(m->trailtop  != INVALID_TRAILTOP);
+	 assert(m->globaltop != INVALID_GLOBALTOP));
+
   while(tt > m->trailtop)
   { tt--;
     if ( isTrailValueP(tt->address) )
@@ -479,10 +523,11 @@ do_undo(mark *m)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Unify is the general unification procedure.   This  raw  routine  should
-only be called by interpret as it does not undo bindings made during the
-unification  in  case  the  unification fails.  pl_unify() (implementing
-=/2) does undo bindings and should be used by foreign predicates.
+Unify is the general unification procedure. This raw routine should only
+be called by interpret as it  does   not  undo  bindings made during the
+unification in case the unification fails. pl_unify() (implementing =/2)
+does undo bindings and should be used   by  foreign predicates. See also
+unify_ptrs().
 
 Unification depends on the datatypes available in the system and will in
 general need updating if new types are added.  It should be  noted  that
@@ -498,45 +543,44 @@ have to define extra variables, slowing down execution a bit (on the SUN
 this trick saves about 10% on this function).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef TAGGED_LVALUE
-#define w1 ((word)t1)
-#define w2 ((word)t2)
-#endif
-
 bool
-unify(register Word t1, register Word t2, LocalFrame fr)
-{
-#ifndef TAGGED_LVALUE
-  register word w1, w2;
-#endif
+unify(Word t1, Word t2, LocalFrame fr)
+{ word w1 = *t1;
+  word w2 = *t2;
 
-  deRef(t1);  
-  deRef(t2);
+  while(isRef(w1))			/* this is deRef() */
+  { t1 = unRef(w1);
+    w1 = *t1;
+  }
+  while(isRef(w2))
+  { t2 = unRef(w2);
+    w2 = *t2;
+  }
 
-  if (isVar(*t1) )
-  { if (isVar(*t2) )
-    { if (t1 < t2)		/* always point downwards */
+  if ( isVar(w1) )
+  { if ( isVar(w2) )
+    { if ( t1 < t2 )			/* always point downwards */
       { *t2 = makeRef(t1);
-        Trail(t2, fr);
+	Trail(t2, fr);
 	succeed;
       }
-      if (t1 == t2)
+      if ( t1 == t2 )
 	succeed;
       *t1 = makeRef(t2);
       Trail(t1, fr);
       succeed;
     }
-    *t1 = *t2;
+    *t1 = w2;
     Trail(t1, fr);
     succeed;
   }
-  if (isVar(*t2) )
-  { *t2 = *t1;
+  if ( isVar(w2) )
+  { *t2 = w1;
     Trail(t2, fr);
     succeed;
   }
 
-  if ( (w1 = *t1) == (w2 = *t2) )
+  if ( w1 == w2 )
     succeed;
   if ( mask(w1) != mask(w2) )
     fail;
@@ -544,13 +588,31 @@ unify(register Word t1, register Word t2, LocalFrame fr)
   if ( mask(w1) != 0 )
   { if ( !isIndirect(w1) )
       fail;
+
+    t1 = (Word)unMask(w1);
+    t2 = (Word)unMask(w2);
+    if ( *t1 != *t2 )
+      fail;
+
+    if ( (*t1 & DATA_TAG_MASK) == REAL_MASK )
+    { if ( t1[1] == t1[2] )
+	succeed;
+      fail;
+    }
 #if O_STRING
-    if ( isString(w1) && isString(w2) && equalString(w1, w2) )
+    if ( (*t1 & DATA_TAG_MASK) == STRING_MASK )
+    { long l = ((*t1) << DMASK_BITS) >> (DMASK_BITS+LMASK_BITS);
+      l = allocSizeString(l)/sizeof(word);
+
+      while(--l > 0)
+      { if ( *++t1 != *++t2 )
+	  fail;
+      }
+
       succeed;
+    }
 #endif /* O_STRING */
-    if ( isReal(w1) && isReal(w2) && valReal(w1) == valReal(w2) )
-      succeed;
-    fail;
+    assert(0);
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -559,8 +621,8 @@ atoms  they are not the same atom.  We can do a quick and dirty test for
 atom as it is not a variable, nor a masked type.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  { register int arity;
-    register FunctorDef fd;
+  { int arity;
+    FunctorDef fd;
 
     if ( pointerIsAtom(w1) || 
 	 pointerIsAtom(w2) ||
@@ -578,6 +640,77 @@ atom as it is not a variable, nor a masked type.
   succeed;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Public unification procedure for  `raw'  data.   See  also  unify()  and
+PL_unify().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+unify_ptrs(Word t1, Word t2)
+{ mark m;
+  bool rval;
+
+  Mark(m);
+  if ( !(rval = unify(t1, t2, environment_frame)) )
+    Undo(m);
+
+  return rval;  
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+can_unify(t1, t2) succeeds if  two  terms   *can*  be  unified,  without
+actually doing so. This  is  basically   a  stripped  version of unify()
+above. See this function for comments.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+can_unify(register Word t1, register Word t2)
+{ word w1, w2;
+
+  deRef(t1);  
+  deRef(t2);
+
+  if (isVar(*t1) || isVar(*t2) )
+    succeed;
+  if ( (w1 = *t1) == (w2 = *t2) )
+    succeed;
+  if ( mask(w1) != mask(w2) )
+    fail;
+
+  if ( mask(w1) != 0 )
+  { if ( !isIndirect(w1) )
+      fail;
+#if O_STRING
+    if ( isString(w1) && isString(w2) && equalString(w1, w2) )
+      succeed;
+#endif /* O_STRING */
+    if ( isReal(w1) && equalReal(w1, w2) )
+      succeed;
+    fail;
+  }
+
+  { register int arity;
+    register FunctorDef fd;
+
+    if ( pointerIsAtom(w1) || 
+	 pointerIsAtom(w2) ||
+	 (fd = functorTerm(w1)) != functorTerm(w2) )
+      fail;
+
+    arity = fd->arity;
+    t1 = argTermP(w1, 0);
+    t2 = argTermP(w2, 0);
+    for(; arity > 0; arity--, t1++, t2++)
+      if ( !can_unify(t1, t2) )
+	fail;
+  }
+
+  succeed;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unify_atomic(p, a) is normally called through unifyAtomic(). It  unifies
 a  term,  represented  by  a pointer to it, with an atomic value.  It is
@@ -588,17 +721,17 @@ bool
 unify_atomic(register Word p, word a)
 { deRef(p);
 
-  if (*p == a)
+  if ( *p == a )
     succeed;
 
-  if (isVar(*p) )
+  if ( isVar(*p) )
   { *p = a;
     Trail(p, environment_frame);
     succeed;
   }
 
-  if (isIndirect(a) && isIndirect(*p) )
-  { if (isReal(a) && isReal(*p) && valReal(a) == valReal(*p))
+  if ( isIndirect(a) && isIndirect(*p) )
+  { if ( isReal(a) && equalReal(a, *p) )
       succeed;
 #if O_STRING
     if (isString(a) && isString(*p) && equalString(a, *p))
@@ -624,12 +757,12 @@ unifyFunctor(register Word term, register FunctorDef functor)
 
   deRef(term);
 
-  if (isVar(*term) )
+  if ( isVar(*term) )
   { *term = globalFunctor(functor);
     Trail(term, environment_frame);
     succeed;
   }
-  if (isTerm(*term) && functorTerm(*term) == functor)
+  if ( nonVarHasFunctor(*term, functor) )
     succeed;
 
   fail;
@@ -644,7 +777,7 @@ static LocalFrame
 findBlock(LocalFrame fr, Word block)
 { for(; fr; fr = fr->parent)
   { if ( fr->predicate == PROCEDURE_block3->definition &&
-	 pl_unify(argFrameP(fr, 0), block) )
+	 unify_ptrs(argFrameP(fr, 0), block) )
       return fr;
   }
 
@@ -696,13 +829,157 @@ findBlock(LocalFrame fr, Word block)
        } while(0)
 #endif
 
-#if O_SHIFT_STACKS
-#define register
+#ifndef ulong
+#define ulong unsigned long
 #endif
 
-bool
-PL_call_predicate(Module Context, bool debug, Procedure proc, Word *argv)
-{ register   LocalFrame FR;		/* current frame */
+qid_t
+PL_open_query(Module ctx, bool debug, Procedure proc, term_t args)
+{ QueryFrame qf     = (QueryFrame) lTop;
+  LocalFrame fr     = &qf->frame;
+  Definition def    = proc->definition;
+  int arity	    = def->functor->arity;
+  Word ap;
+  ClauseRef clause;
+
+  SECURE(checkStacks(environment_frame));
+  assert((ulong)fli_context > (ulong)environment_frame);
+  assert((ulong)lTop >= (ulong)(fli_context+1));
+
+  finish_foreign_frame();		/* adjust the size of the context */
+
+  qf->magic		= QID_MAGIC;
+  qf->saved_environment = environment_frame;
+  qf->aSave             = aTop;
+  qf->solutions         = 0;
+  qf->deterministic     = FALSE;	/* last solution was deterministic */
+  qf->bfr		= fr;
+
+  DEBUG(1, { extern int Output;		/* --atoenne-- */
+	     FunctorDef f = proc->definition->functor;
+
+	     if ( Output )
+	     { int n;
+
+	       Putf("PL_open_query: %s(", stringAtom(f->name));
+	       for(n=0; n < f->arity; n++)
+	       { if ( n > 0 )
+		   Putf(", ");
+		 pl_write(valTermRef(args+n));
+	       }
+	       Putf(")\n");
+	     } else
+	       Sdprintf("PL_open_query in unitialized environment.\n");
+	   });
+
+  lTop = (LocalFrame) argFrameP(fr, arity);
+  verifyStack(local);
+
+  fr->parent = NULL;
+					/* fill frame arguments */
+  ap = argFrameP(fr, 0);
+  { int n;
+    Word p = valTermRef(args);
+
+    for( n = arity; n-- > 0; p++ )
+      *ap++ = isVar(*p) ? makeRef(p) : *p;
+  }
+
+					/* find definition and clause */
+  if ( !(clause = def->definition.clauses) && false(def, DYNAMIC) )
+  { def = trapUndefined(def);
+    clause = def->definition.clauses;
+  }
+  if ( true(def, FOREIGN) )
+  { fr->clause = FIRST_CALL;
+  } else
+  { fr->clause = clause;
+  }
+					/* context module */
+  if ( true(def, TRANSPARENT) )
+  { if ( ctx )
+      fr->context = ctx;
+    else if ( environment_frame )
+      fr->context = environment_frame->context;
+    else
+      fr->context = def->module;
+  } else
+    fr->context = def->module;
+
+  clearFlags(fr);
+  setLevelFrame(fr, !parentFrame(fr) ? 0L : levelFrame(parentFrame(fr)) + 1);
+  if ( !debug )
+    set(fr, FR_NODEBUG);
+  fr->backtrackFrame = (LocalFrame) NULL;
+  fr->predicate = def;
+  Mark(fr->mark);
+  environment_frame = fr;
+
+  return QidFromQuery(qf);
+}
+
+
+void
+PL_cut_query(qid_t qid)
+{ QueryFrame qf = QueryFromQid(qid);
+
+  SECURE(assert(qf->magic == QID_MAGIC));
+  qf->magic = 0;			/* disqualify the frame */
+
+  if ( !qf->deterministic )
+  { LocalFrame FR  = &qf->frame;
+    LocalFrame BFR = qf->bfr;
+    LocalFrame fr, fr2;
+
+    set(FR, FR_CUT);			/* execute I_CUT */
+    for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
+    { for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
+      { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
+	leaveFrame(fr2);
+	fr2->clause = NULL;
+      }
+    }
+    leaveFrame(FR);
+  }
+
+					/* restore the parent environment */
+  environment_frame = qf->saved_environment;
+  aTop		    = qf->aSave;
+  lTop		    = (LocalFrame)qf;
+  SECURE(checkStacks(environment_frame));
+}
+
+
+void
+PL_close_query(qid_t qid)
+{ QueryFrame qf = QueryFromQid(qid);
+  LocalFrame fr = &qf->frame;
+
+  Undo(fr->mark);
+
+  PL_cut_query(qid);
+}
+
+#if O_SHIFT_STACKS
+#define SAVE_REGISTERS(qid) \
+	{ QueryFrame qf = QueryFromQid(qid); \
+	  qf->registers.fr  = FR; \
+	  qf->registers.bfr = BFR; \
+	}
+#define LOAD_REGISTERS(qid) \
+	{ QueryFrame qf = QueryFromQid(qid); \
+	  FR = qf->registers.fr; \
+	  BFR = qf->registers.bfr; \
+	}
+#else /*O_SHIFT_STACKS*/
+#define SAVE_REGISTERS(qid)
+#define LOAD_REGISTERS(qid)
+#endif /*O_SHIFT_STACKS*/
+
+int
+PL_next_solution(qid_t qid)
+{ QueryFrame QF;			/* Query frame */
+  register   LocalFrame FR;		/* current frame */
   register   Word	ARGP;		/* current argument pointer */
   register   Code	PC;		/* program counter */
   LocalFrame BFR;			/* last backtrack frame */
@@ -710,10 +987,14 @@ PL_call_predicate(Module Context, bool debug, Procedure proc, Word *argv)
   bool	     deterministic;		/* clause found deterministically */
 #define	     CL (FR->clause)		/* clause of current frame */
 
-  LocalFrame lSave   = lTop;		/* call-back status info */
-  Lock	     pSave   = pTop;
-  LocalFrame envSave = environment_frame;
-  Word *     aSave   = aTop;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get the labels of the various  virtual-machine instructions in an array.
+This is for exploiting GCC's `goto   var' language extension. This array
+can only be allocated insite this   function. The initialisation process
+calls PL_next_solution() with qid =  QID_EXPORT_WAM_TABLE. This function
+will export jmp_table as the compiler  needs   to  know  this table. See
+pl-comp.c
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_LABEL_ADDRESSES
   static void *jmp_table[] =
@@ -811,189 +1092,54 @@ PL_call_predicate(Module Context, bool debug, Procedure proc, Word *argv)
 #endif /* O_LABEL_ADDRESSES */
 
 #if VMCODE_IS_ADDRESS
-  interpreter_jmp_table = jmp_table;	/* make it globally known */
+  if ( qid == QID_EXPORT_WAM_TABLE )
+  { interpreter_jmp_table = jmp_table;	/* make it globally known */
+    succeed;
+  }
 #endif /* VMCODE_IS_ADDRESS */
 
-  DEBUG(1, { extern int Output;		/* --atoenne-- */
-	     FunctorDef f = proc->definition->functor;
-
-	     if ( Output )
-	     { int n;
-
-	       Putf("Interpret: %s(", stringAtom(f->name));
-	       for(n=0; n < f->arity; n++)
-	       { if ( n > 0 )
-		   Putf(", ");
-		 pl_write(argv[n]);
-	       }
-	       Putf(")\n");
-	     } else
-	       Sdprintf("Interpret goal in unitialized environment.\n");
-	   });
-
-  /* Allocate a local stack frame */
-
-  gc_status.blocked++;
-
-  lTop = (LocalFrame) addPointer(lTop, sizeof(word));
-  verifyStack(local);
-  varFrame(lTop, -1) = (word) environment_frame;
-
-  FR = lTop;
-  FR->parent = (LocalFrame) NULL;
-
-#define RESTORE_REGS() do { lTop = lSave; \
-			    aTop = aSave; \
-			    environment_frame = envSave; \
-			    gc_status.blocked--; \
-			    assert(pSave == pTop); } while(0)
-
-#if O_SHIFT_STACKS
-  lockp(&FR);
-  lockp(&BFR);
-  lockp(&ARGP);
-  lockp(&lSave);
-  lockp(&envSave);
-
-#define RETURN(val) do \
-	            { unlockp(&envSave); \
-		      unlockp(&lSave); \
-		      unlockp(&ARGP); \
-		      unlockp(&BFR); \
-		      unlockp(&FR); \
-		      RESTORE_REGS(); \
-		      return(val); \
-		    } while(0)
-#else
-#define RETURN(val) do \
-	            { RESTORE_REGS(); \
-		      return(val); } while(0)
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Find the procedure definition associated with `Goal'.
+This is the real start point  of   this  function.  Simply loads the VMI
+registers from the frame filled by   PL_open_query()  and either jump to
+depart_continue() to do the normal thing or to the backtrack point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-					/* machine registers */
-  { int n, arity;
-
-    DEF   = proc->definition;
-    arity = DEF->functor->arity;
-
-					/* fill frame arguments */
-    ARGP = argFrameP(FR, 0);
-    for( n = arity; n-- > 0; argv++ )
-      *ARGP++ = isVar(**argv) ? makeRef(*argv) : **argv;
-
-					/* find definition and clause */
-    if ( (CL = DEF->definition.clauses) == NULL &&
-         false(DEF, DYNAMIC) )
-    { lTop = (LocalFrame) argFrameP(FR, arity);
-      DEF = trapUndefined(DEF);
-      CL = DEF->definition.clauses;
-    }
-					/* context module */
-    if ( true(DEF, TRANSPARENT) )
-    { if ( Context )
-	FR->context = Context;
-      else if ( environment_frame )
-	FR->context = environment_frame->context;
-      else
-	FR->context = DEF->module;
-    } else
-      FR->context = DEF->module;
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Finally fill all the slots of  the  frame  and  initialise  the  machine
-registers.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-    clearFlags(FR);
-    setLevelFrame(FR, !parentFrame(FR) ? 0L : levelFrame(parentFrame(FR)) + 1);
-    if ( !debug )
-      set(FR, FR_NODEBUG);
-    FR->backtrackFrame = (LocalFrame) NULL;
-    FR->predicate = DEF;
-    DoMark(FR->mark);
-    SetBfr(FR);
-    environment_frame = FR;
-
-
-#ifdef O_PROFILE
-    if (statistics.profiling)
-      DEF->profile_calls++;
-#endif /* O_PROFILE */
-
-#if O_DEBUGGER
-    if ( debugstatus.debugging )
-    { LocalFrame lTopSave = lTop;
-      int action;
-
-      lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-      action = tracePort(FR, CALL_PORT);
-      lTop = lTopSave;
-      switch(action)
-      { case ACTION_FAIL:	RETURN(FALSE);
-	case ACTION_IGNORE:	RETURN(TRUE);
-      }
-    }
-#endif /*O_DEBUGGER*/
-
-    if ( true(DEF, FOREIGN) )
-    { bool rval;
-
-      FR->clause = FIRST_CALL;
-      rval = callForeign(DEF, FR);
-#if O_DEBUGGER      
-      if ( debugstatus.debugging )
-      { LocalFrame lTopSave = lTop;
-	int action;
-
-	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-	action = tracePort(FR, rval ? EXIT_PORT : FAIL_PORT);
-	lTop = lTopSave;
-	switch(action)
-	{ case ACTION_FAIL:	rval = FALSE;
-	  			break;
-	  case ACTION_IGNORE:	rval = TRUE;
-	}
-      }
-#endif /*O_DEBUGGER*/
-      RETURN(rval);			/* need trace call */
-    }
-
-    ARGP = argFrameP(FR, 0);
-    if ( !(CL = firstClause(ARGP, DEF, &deterministic)) )
-    { bool rval = FALSE;
-#if O_DEBUGGER
-      if ( debugstatus.debugging )
-      { LocalFrame lTopSave = lTop;
-	int action;
-
-	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-	action = tracePort(FR, FAIL_PORT);
-	lTop = lTopSave;
-	switch(action)
-	{ case ACTION_FAIL:	rval = FALSE;
-	  			break;
-	  case ACTION_IGNORE:	rval = TRUE;
-	}
-      }
-#endif /*O_DEBUGGER*/
-      RETURN(rval);			/* need trace call */
-    }
-
-    if ( deterministic )
-      set(FR, FR_CUT);
-    DEF->references++;
-
-    { Clause clause = CL->clause;
-
-      PC = clause->codes;
-      lTop = (LocalFrame) argFrameP(FR, clause->variables);
-    }
+  QF  = QueryFromQid(qid);
+  SECURE(assert(QF->magic == QID_MAGIC));
+  FR  = &QF->frame;
+  if ( QF->deterministic )		/* last one succeeded */
+  { Undo(FR->mark);			/* undo */
+    fail;
   }
+
+  BFR = QF->bfr;
+  DEF = FR->predicate;
+  if ( QF->solutions )
+  { if ( true(DEF, FOREIGN) )
+    { Undo(FR->mark);
+#if O_DEBUGGER
+      if ( debugstatus.debugging )
+      { switch( tracePort(FR, REDO_PORT) )
+	{ case ACTION_FAIL:
+	    QF->deterministic = TRUE;
+	    fail;
+	  case ACTION_IGNORE:
+	    QF->deterministic = TRUE;
+	    succeed;
+	  case ACTION_RETRY:
+	    CL->clause = NULL;
+	}
+      }
+#endif /*O_DEBUGGER*/
+#ifdef O_PROFILE
+      if ( statistics.profiling )
+	DEF->profile_redos++;
+#endif /* O_PROFILE */
+      goto call_builtin;
+    } else
+      goto body_failed;
+  } else
+    goto depart_continue;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Main entry of the virtual machine cycle.  A branch to `next instruction'
@@ -1039,7 +1185,7 @@ constant argument.
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Real in the head. This is unlikely, but some poeple seem to use it. We have
+Real in the head. This is unlikely, but some people seem to use it. We have
 to copy the real on the global stack as the user might retract the clause:
 (this is a bit silly programming, but it should not crash)
     x(3.4).
@@ -1051,11 +1197,11 @@ to copy the real on the global stack as the user might retract the clause:
 
 	deRef2(ARGP++, k);
 	if (isVar(*k))
-	{ *k = globalReal(valReal((word)*PC++));
+	{ *k = copyRealToGlobal((word)*PC++);
 	  Trail(k, FR);
 	  NEXT_INSTRUCTION;
 	}
-	if (isReal(*k) && valReal(*k) == valReal((word)*PC++))
+	if ( isReal(*k) && equalReal(*k, (word)*PC++) )
 	  NEXT_INSTRUCTION;
 	CLAUSE_FAILED;
       }
@@ -1097,12 +1243,10 @@ above the stack anyway.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 B_REAL and B_STRING need to copy the value on the global  stack  because
-the XR-table might be freed due to a retract.  We should write fast copy
-algorithms,   especially   for   the   expensive   globalReal(valReal())
-construct.
+the XR-table might be freed due to a retract.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(B_REAL, COUNT_N(b_real_n), ("b_real %d\n", *PC)) MARK(BREAL);
-      { *ARGP++ = globalReal(valReal((word)*PC++));
+      { *ARGP++ = copyRealToGlobal((word)*PC++);
 	NEXT_INSTRUCTION;
       }
 
@@ -1237,38 +1381,49 @@ the global stack (should we check?  Saves trail! How often?).
 
     VMI(H_FUNCTOR, COUNT_N(h_functor_n), ("h_functor %d\n", *PC))
       MARK(HFUNC);
-      { register FunctorDef fdef;
-
-	fdef = (FunctorDef) *PC++;
+      { FunctorDef fdef = (FunctorDef) *PC++;
 
 	*aTop++ = ARGP + 1;
 	verifyStack(argument);
         deRef(ARGP);
-	if (isVar(*ARGP) )
-	{ *ARGP = globalFunctor(fdef);
+	if ( isVar(*ARGP) )
+	{ int arity = fdef->arity;
+	  Word ap;
+
+#ifdef O_SHIFT_STACKS
+	  if ( gTop + 1 + arity > gMax )
+	    growStacks(FR, PC, FALSE, TRUE, FALSE);
+#endif
+	  ap = gTop;
+ 	  STACKVERIFY(if (ap + 1 + arity > gMax)
+			outOf((Stack)&stacks.global));
+	  *ARGP = (word) ap;
 	  Trail(ARGP, FR);
-	  ARGP = argTermP(*ARGP, 0);
+	  *ap++ = (word) fdef;
+	  ARGP = ap;
+	  while(arity-- > 0)
+	  { setVar(*ap++);
+	  }
+	  gTop = ap;
 	  NEXT_INSTRUCTION;
 	}
-	if (isTerm(*ARGP) && functorTerm(*ARGP) == fdef)
+	if ( nonVarHasFunctor(*ARGP, fdef) )
 	{ ARGP = argTermP(*ARGP, 0);
 	  NEXT_INSTRUCTION;
 	}
 	CLAUSE_FAILED;	    
+
     VMI(H_LIST, COUNT(h_list), ("h_list\n")) MARK(HLIST);
 	*aTop++ = ARGP + 1;
 	verifyStack(argument);
 	deRef(ARGP);
-	if (isVar(*ARGP) )
+	if ( isVar(*ARGP) )
 	{ 
 #if O_SHIFT_STACKS
   	  if ( gTop + 3 > gMax )
-	  { growStacks(FR, PC, FALSE, TRUE, FALSE);
-	    STACKVERIFY( if (gTop + 3 > gMax) outOf((Stack)&stacks.global) );
-	  }
-#else
-	  STACKVERIFY( if (gTop + 3 > gMax) outOf((Stack)&stacks.global) );
+	    growStacks(FR, PC, FALSE, TRUE, FALSE);
 #endif
+	  STACKVERIFY(if (gTop + 3 > gMax) outOf((Stack)&stacks.global));
 	  *ARGP = (word) gTop;
 	  Trail(ARGP, FR);
 	  *gTop++ = (word) FUNCTOR_dot2;
@@ -1277,7 +1432,7 @@ the global stack (should we check?  Saves trail! How often?).
 	  setVar(*gTop++);
 	  NEXT_INSTRUCTION;
 	}
-	if ( isList(*ARGP) )
+	if ( nonVarIsList(*ARGP) )
 	{ ARGP = argTermP(*ARGP, 0);
 	  NEXT_INSTRUCTION;
 	}
@@ -1599,10 +1754,10 @@ C_FAIL is equivalent to fail/0. Used to implement \+/1.
 
 #if O_COMPILE_ARITH
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Arithmic is compiled using a stack  machine.   ARGP  is  used  as  stack
-pointer and the stack is arithmic stack is allocated on top of the local
-stack,  starting  at  the  argument  field of the next slot of the stack
-(where ARGP points to when processing the body anyway).
+Arithmic is compiled using a  stack  machine.    ARGP  is  used as stack
+pointer and the arithmic stack is allocated   on top of the local stack,
+starting at the argument field of the next slot of the stack (where ARGP
+points to when processing the body anyway).
 
 Arguments to functions are pushed on the stack  starting  at  the  left,
 thus `add1(X, Y) :- Y is X + 1' translates to:
@@ -1689,47 +1844,49 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
     EXIT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define cmpNumbers(l, r, f) compareNumbers(consTermRef(l), consTermRef(r), f)
     VMI(A_LT, COUNT(a_lt), ("a_lt\n")) MARK(A_LT);
       { ARGP -= 2;
-	if ( compareNumbers(ARGP, ARGP+1, LT) == FALSE )
+	if ( cmpNumbers(ARGP, ARGP+1, LT) == FALSE )
 	  BODY_FAILED;
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_LE, COUNT(a_le), ("a_le\n")) MARK(A_LE);
       { ARGP -= 2;
-	if ( compareNumbers(ARGP, ARGP+1, LE) == FALSE )
+	if ( cmpNumbers(ARGP, ARGP+1, LE) == FALSE )
 	  BODY_FAILED;
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_GT, COUNT(a_gt), ("a_gt\n")) MARK(A_GT);
       { ARGP -= 2;
-	if ( compareNumbers(ARGP, ARGP+1, GT) == FALSE )
+	if ( cmpNumbers(ARGP, ARGP+1, GT) == FALSE )
 	  BODY_FAILED;
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_GE, COUNT(a_ge), ("a_ge\n")) MARK(A_GE);
       { ARGP -= 2;
-	if ( compareNumbers(ARGP, ARGP+1, GE) == FALSE )
+	if ( cmpNumbers(ARGP, ARGP+1, GE) == FALSE )
 	  BODY_FAILED;
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_EQ, COUNT(a_eq), ("a_eq\n")) MARK(A_EQ);
       { ARGP -= 2;
-	if ( compareNumbers(ARGP, ARGP+1, EQ) == FALSE )
+	if ( cmpNumbers(ARGP, ARGP+1, EQ) == FALSE )
 	  BODY_FAILED;
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_NE, COUNT(a_ne), ("a_ne\n")) MARK(A_NE);
       { ARGP -= 2;
-	if ( compareNumbers(ARGP, ARGP+1, NE) == FALSE )
+	if ( cmpNumbers(ARGP, ARGP+1, NE) == FALSE )
 	  BODY_FAILED;
 	NEXT_INSTRUCTION;
       }
+#undef cmpNumbers
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Translation of is/2. Unify the two pushed  values. Order does not matter
@@ -1739,7 +1896,7 @@ here. We need to open part of a frame to ensure trailing works properly.
     VMI(A_IS, COUNT(a_is), ("a_is\n")) MARK(A_IS);
       { int rval;
 
-	DoMark(lTop->mark);
+	Mark(lTop->mark);
 	ARGP -= 2;
 	rval = unify(ARGP, ARGP+1, lTop);
 
@@ -2005,7 +2162,7 @@ the first call of $alt/1 simply succeeds.
 	incLevel(next);
 	clear(next, FR_CUT|FR_SKIPPED);
 	statistics.inferences++;
-	DoMark(next->mark);
+	Mark(next->mark);
 	a = argFrameP(next, 0);		/* see callForeign() */
 	lTop = (LocalFrame)argFrameP(a, 1);
 					/* callForeign() here */
@@ -2027,9 +2184,9 @@ cases (i.e. X = Y, not X = 5).
 
 The VMI for these calls are ICALL_FVN, proc, var-index ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    { Word vars[2];
-      int nvars;
+    { int nvars;
       Procedure fproc;
+      Word v;
 
       VMI(I_CALL_FV0, COUNT(i_call_fv0), ("i_call_fv0")) MARK(CFV0);
       { fproc = (Procedure) *PC++;
@@ -2041,21 +2198,23 @@ The VMI for these calls are ICALL_FVN, proc, var-index ...
       VMI(I_CALL_FV1, COUNT(i_call_fv1), ("i_call_fv1")) MARK(CFV1);
       { fproc = (Procedure) *PC++;
 	nvars = 1;
-	deRef2(varFrameP(FR, *PC++), vars[0]);
+	v = varFrameP(FR, *PC++);
+	*ARGP++ = (isVar(*v) ? makeRef(v) : *v);
 	goto common_call_fv;
       }
 
       VMI(I_CALL_FV2, COUNT(i_call_fv2), ("i_call_fv2")) MARK(CFV2);
       { fproc = (Procedure) *PC++;
 	nvars = 2;
-	deRef2(varFrameP(FR, *PC++), vars[0]);
-	deRef2(varFrameP(FR, *PC++), vars[1]);
+	v = varFrameP(FR, *PC++);
+	*ARGP++ = (isVar(*v) ? makeRef(v) : *v);
+	v = varFrameP(FR, *PC++);
+	*ARGP++ = (isVar(*v) ? makeRef(v) : *v);
 
       common_call_fv:
 	{ Definition def = fproc->definition;
 	  Func f = def->definition.function;
 	  int rval;
-	  int i;
 
 	  if ( !f )
 	  { def = trapUndefined(def);
@@ -2067,15 +2226,12 @@ If we are debugging, just build a normal  frame and do the normal thing,
 so the inline call is expanded to a normal call and may be traced.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	  if ( 
+	  if (
 #ifdef O_DEBUGGER
 	       debugstatus.debugging ||
 #endif
 	       false(def, FOREIGN) )
-	  { for(i=0; i<nvars; i++)
-	      *ARGP++ = (isVar(*vars[i]) ? makeRef(vars[i]) : *vars[i]);
-	  
-	    next = lTop;
+	  { next = lTop;
 	    next->flags = FR->flags;
 	    if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	      set(next, FR_NODEBUG);
@@ -2085,6 +2241,8 @@ so the inline call is expanded to a normal call and may be traced.
 	    goto normal_call;
 	  } else
 	  { LocalFrame oldtop = lTop;
+	    term_t h0;
+	    fid_t fid;
 	
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We must create a frame and mark the  stacks for two reasons: undo if the
@@ -2094,33 +2252,43 @@ increase lTop too to prepare for asynchronous interrupts.
 
 	    statistics.inferences++;
 	    next = lTop;
-	    lTop = (LocalFrame) argFrameP(next, 0);
+	    h0 = argFrameP(next, 0) - (Word)lBase;
+	    lTop = (LocalFrame) argFrameP(next, nvars);
 	    if ( true(def, TRANSPARENT) )
 	      next->context = FR->context;
 	    else
 	      next->context = def->module;
-	    next->predicate = def;
-	    next->parent    = FR;
+	    next->predicate      = def;
+	    next->programPointer = PC;
+	    next->parent         = FR;
+	    next->flags		 = FR->flags;
+	    incLevel(next);
+	    next->backtrackFrame = BFR;
 #ifdef O_PROFILE
 	    if ( statistics.profiling )
 	      def->profile_calls++;
 #endif /* O_PROFILE */
 	    environment_frame = next;
-	    DoMark(next->mark);
+	    Mark(next->mark);
 
+	    SAVE_REGISTERS(qid);
+	    fid = PL_open_foreign_frame();
 	    switch(nvars)
 	    { case 0:
 		rval = (*f)();
 	        break;
 	      case 1:
-		rval = (*f)(vars[0]);
+		rval = (*f)(h0);
 	        break;
 	      case 2:
 	      default:
-		rval = (*f)(vars[0], vars[1]);
+		rval = (*f)(h0, h0+1);
 	        break;
 	    }
+	    PL_close_foreign_frame(fid);
+	    LOAD_REGISTERS(qid);
 
+	    ARGP -= nvars;
 	    environment_frame = FR;
 	    lTop = oldtop;
 
@@ -2128,7 +2296,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    { NEXT_INSTRUCTION;
 	    }
 
-	    DoUndo(next->mark);
+	    Undo(next->mark);
 	    statistics.inferences++;	/* is a redo! */
 	    BODY_FAILED;
 	  }
@@ -2310,7 +2478,7 @@ Note: we are working above `lTop' here!
 	clear(FR, FR_CUT|FR_SKIPPED);
 
 	statistics.inferences++;
-	DoMark(FR->mark);
+	Mark(FR->mark);
 
 #if O_RLC				/* Windows readline console */
 	{ if ( (++statistics.inferences % 0x7ff) == 0 )
@@ -2371,7 +2539,10 @@ Testing is suffices to find out that the predicate is defined.
 	  }
 
 	  if ( gshift || tshift || lshift )
+	  { SAVE_REGISTERS(qid);
 	    growStacks(FR, NULL, lshift, gshift, tshift);
+	    LOAD_REGISTERS(qid);
+	  }
 	}
       }
 #else /*O_SHIFT_STACKS*/
@@ -2394,10 +2565,14 @@ Testing is suffices to find out that the predicate is defined.
 #endif /*O_DEBUGGER*/
 
 	if ( true(DEF, FOREIGN) )
-	{ CL = (ClauseRef) FIRST_CALL;
-	call_builtin:			/* foreign `redo' action */
+	{ int rval;
 
-	  if ( callForeign(DEF, FR) )
+	  CL = (ClauseRef) FIRST_CALL;
+	call_builtin:			/* foreign `redo' action */
+	  SAVE_REGISTERS(qid);
+	  rval = callForeign(DEF, FR);
+	  LOAD_REGISTERS(qid);
+	  if ( rval )
 	    goto exit_builtin;
 
 	  goto frame_failed;
@@ -2413,6 +2588,7 @@ values  found  in  the  clause, give a referecence to the clause and set
 
 	DEBUG(9, Sdprintf("Searching clause ... "));
 
+	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	if ( !(CL = firstClause(ARGP, DEF, &deterministic)) )
 	{ DEBUG(9, Sdprintf("No clause matching index.\n"));
 	  FRAME_FAILED;
@@ -2464,57 +2640,27 @@ Leave the clause:
 
   - restore machine registers from parent frame
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-      {
+      {				MARK(I_EXIT);
     exit_builtin:
-				MARK(I_EXIT);
-	if ( FR->parent == (LocalFrame) NULL )
-	  goto top_exit;
-
-	if ( FR->clause )
+        if ( FR->clause )
 	{ if ( FR > BFR )
 	    SetBfr(FR);
+	  deterministic = FALSE;
 	} else
 	{ if ( BFR <= FR )
 	  { if ( BFR == FR )
 	      SetBfr(FR->backtrackFrame);
 	    lTop = FR;
 	  }
+	  deterministic = TRUE;
 	}
 	goto normal_exit;
 
     VMI(I_EXIT, COUNT(i_exit), ("exit ")) MARK(EXIT);
-	if (FR->parent == (LocalFrame) NULL)
-	{ 
-	top_exit:
-	  { LocalFrame fr, fr2;
-
-	    set(FR, FR_CUT);		/* execute I_CUT */
-	    for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
-	    { for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
-	      { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
-		leaveFrame(fr2);
-		fr2->clause = NULL;
-	      }
-	    }
-	  }
-#if O_DEBUGGER
-	  if (debugstatus.debugging)
-	  { CL = NULL;
-
-	    switch(tracePort(FR, EXIT_PORT))
-	    { case ACTION_RETRY:	goto retry;
-	      case ACTION_FAIL:		set(FR, FR_CUT);
-					FRAME_FAILED;
-	    }
-	  }
-#endif /*O_DEBUGGER*/
-	  leaveFrame(FR);
-	  RETURN(TRUE);
-	}
-
 	if ( false(FR, FR_CUT) )
 	{ if ( FR > BFR )			/* alternatives */
 	    SetBfr(FR);
+	  deterministic = FALSE;
 	} else
 	{ if ( BFR <= FR )			/* deterministic */
 	  { if ( BFR == FR )
@@ -2522,11 +2668,12 @@ Leave the clause:
 	    lTop = FR;
 	    leaveDefinition(DEF);
 	  }
+	  deterministic = TRUE;
 	}
 
     normal_exit:
 #if O_DEBUGGER
-	if (debugstatus.debugging)
+	if ( debugstatus.debugging )
 	{ int action;
 	  LocalFrame lSave = lTop;
 
@@ -2543,6 +2690,32 @@ Leave the clause:
 	  lTop = lSave;
 	}
 #endif /*O_DEBUGGER*/
+
+	if ( !FR->parent )		/* query exit */
+	{ QF = QueryFromQid(qid);	/* may be shifted: recompute */
+	  QF->solutions++;
+	  QF->bfr = BFR;
+	  QF->deterministic = deterministic;
+
+	  if ( !deterministic )		/* alternatives */
+	  { succeed;
+	  } else
+	  { LocalFrame fr, fr2;
+
+	    set(FR, FR_CUT);		/* execute I_CUT */
+	    for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
+	    { for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
+	      { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
+		leaveFrame(fr2);
+		fr2->clause = NULL;
+	      }
+	    }
+	    leaveFrame(FR);
+	    succeed;
+	  }
+
+	  succeed;
+	}
 
 	PC = FR->programPointer;
 	environment_frame = FR = FR->parent;
@@ -2569,15 +2742,13 @@ detailed study!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 retry:					MARK(RETRY);
-  DoUndo(FR->mark);
+  Undo(FR->mark);
   SetBfr(FR);
   clear(FR, FR_CUT);
+  lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 #if O_DEBUGGER
-  if (debugstatus.debugging)
-  { LocalFrame lTopSave = lTop;
-    lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-    tracePort(FR, CALL_PORT);
-    lTop = lTopSave;
+  if ( debugstatus.debugging )
+  { tracePort(FR, CALL_PORT);
   }
 #endif /*O_DEBUGGER*/
   if ( false(DEF, FOREIGN) )
@@ -2650,7 +2821,7 @@ the entire frame has failed, so we can continue at `frame_failed'.
 
 resume_frame:
   ARGP = argFrameP(FR, 0);
-  DoUndo(FR->mark);		/* backtrack before clause indexing */
+  Undo(FR->mark);		/* backtrack before clause indexing */
 
   if ( !(CL = findClause(CL, ARGP, DEF, &deterministic)) )
     goto frame_failed;
@@ -2714,7 +2885,10 @@ visited for dereferencing.
       for(; fr; fr = fr->parent)
         leaveFrame(fr);
 
-      RETURN(FALSE);
+      QF = QueryFromQid(qid);
+      QF->deterministic = TRUE;
+
+      fail;
     }
 
     { register LocalFrame fr = FR->parent;
@@ -2739,7 +2913,7 @@ resume_from_body:
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
-    { DoUndo(FR->mark);			/* data backtracking to get nice */
+    { Undo(FR->mark);			/* data backtracking to get nice */
 					/* tracer output */
 
       switch( tracePort(FR, REDO_PORT) )
@@ -2770,7 +2944,7 @@ foreign frame we have to set BFR and do data backtracking.
     }
 
     SetBfr(FR->backtrackFrame);
-    DoUndo(FR->mark);
+    Undo(FR->mark);
 
     goto call_builtin;
   }
@@ -2839,11 +3013,14 @@ copyFrameArguments(LocalFrame from, LocalFrame to, register int argc)
 
 #if O_COMPILE_OR
 word
-pl_alt(Word skip, word h)
+pl_alt(term_t skip, word h)
 { switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      SECURE( if (!isInteger(*skip)) sysError("pl_alt()") );
-      ForeignRedo(valNum(*skip));
+    { int i;
+
+      PL_get_integer(skip, &i);
+      ForeignRedo(i);
+    }
     case FRG_REDO:
       DEBUG(9, Sdprintf("$alt/1: skipping %ld codes\n", ForeignContext(h)) );
       environment_frame->programPointer += ForeignContext(h);

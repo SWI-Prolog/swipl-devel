@@ -12,11 +12,9 @@
 
 forwards RecordList lookupRecordList(word);
 forwards RecordList isCurrentRecordList(word);
-forwards word	   heapFunctor(FunctorDef);
-forwards void	   copyTermToHeap2(Word, Record, Word);
-forwards void	   copyTermToGlobal2(Word, Word *, Word, Word);
-forwards void	   freeHeapTerm(Word);
-forwards bool	   record(Word, Word, Word, int);
+forwards word heapFunctor(FunctorDef);
+forwards void copyTermToHeap2(Word, Record, Word);
+forwards void freeHeapTerm(Word);
 
 #define RECORDA 0
 #define RECORDZ 1
@@ -83,12 +81,12 @@ not represented as `word', but as `record'.  A `record' holds additional
 information  for  linking  it in the record list and to make copying the
 term back on the global stack faster.
 
-All variables of a term  on  the  heap  are  together  in  an  array  of
-variables  of  which  the  record  knows the base address as well as the
-number of variables.  The term itself holds no  references,  except  for
+All variables of a term  on  the  heap   are  together  in  an  array of
+variables of which the record knows  the   base  address  as well as the
+number of variables. The term  itself   holds  no  variables, except for
 direct references into the variable array.  Using this representation we
-can  easily  create  a new variable array on the global stack and change
-the variables of the copied term to point to  this  new  variable  array
+can easily create a new variable array   on  the global stack and change
+the variables of the copied term  to   point  to this new variable array
 when copying back to the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -110,7 +108,7 @@ copyTermToHeap2(register Word term, Record result, Word copy)
       return;
     }
 #endif
-    *copy = heapReal(valReal(*term));
+    *copy = copyRealToHeap(*term);
     return;
   }
   SECURE(if (!isTerm(*term) )
@@ -129,24 +127,21 @@ copyTermToHeap2(register Word term, Record result, Word copy)
 
 
 Record
-copyTermToHeap(Word term)
-{ mark m;
+copyTermToHeap(term_t term)
+{ fid_t cid = PL_open_foreign_frame();
   Record result;
-  register int n;
-  register Word v;
+  int n;
+  Word v;
 
   SECURE(checkData(term, FALSE));
   result = (Record) allocHeap(sizeof(struct record) );
-  Mark(m);
   result->n_vars = numberVars(term, FUNCTOR_var1, 0);
-
   if (result->n_vars > 0)
     result->variables = allocHeap(sizeof(word)*result->n_vars);
   for(n=result->n_vars, v=result->variables; n > 0; n--, v++)
     setVar(*v);
-
-  copyTermToHeap2(term, result, &result->term);
-  Undo(m);
+  copyTermToHeap2(valTermRef(term), result, &result->term);
+  PL_discard_foreign_frame(cid);
   SECURE(checkData(term, FALSE));
   SECURE(checkData(&result->term, TRUE));
 
@@ -155,68 +150,58 @@ copyTermToHeap(Word term)
 
 
 static void
-copyTermToGlobal2(Word orgvars, Word *vars, register Word term, Word copy)
-{ bool locked;
+copyTermToGlobal2(Word orgvars, term_t *vars, Word term, term_t copy)
+{ if ( isRef(*term) )
+  { int nth = unRef(*term) - orgvars;
 
-  if (isRef(*term) )
-  { *copy = makeRef(unRef(*term) - orgvars + *vars);
-    return;
-  }
-  if (isAtom(*term) || isInteger(*term))
-  { *copy = *term;
-    return;
-  }
-
-  if ( (locked = onStack(global, copy)) )
-    lockp(&copy);
-
-  if (isIndirect(*term))
-  {
-#if O_STRING
-    if ( isString(*term) )
-      *copy = globalString(valString(*term));
+    if ( vars[nth] )
+      PL_unify(copy, vars[nth]);
     else
-#endif /* O_STRING */
-      *copy = globalReal(valReal(*term));
+    { vars[nth] = PL_new_term_ref();
+      PL_put_term(vars[nth], copy);
+    }
+
+    return;
+  }
+
+  if ( isAtomic(*term) )
+  { term_t c2 = PL_new_term_ref();
+
+    _PL_copy_atomic(c2, *term);
+    PL_unify(copy, c2);
   } else				/* term */
-  { int arity = functorTerm(*term)->arity;
+  { FunctorDef fd = functorTerm(*term);
+    int arity = fd->arity;
     int n;
+    term_t c2 = PL_new_term_ref();
 
-    *copy = globalFunctor(functorTerm(*term));
-
+    PL_unify_functor(copy, fd);
     term = argTermP(*term, 0);
     for(n = 0; n < arity; n++, term++)
-      copyTermToGlobal2(orgvars, vars, term, argTermP(*copy, n));
+    { PL_get_arg(n+1, copy, c2);
+      copyTermToGlobal2(orgvars, vars, term, c2);
+    }
   }
-
-  if ( locked )
-    unlockp(&copy);
 }
 
-word
-copyTermToGlobal(register Record term)
-{ Word vars;
-  word copy = 0;
 
-  if (term->n_vars > 0)
-  { register int n;
-    register Word v;
+void
+copyTermToGlobal(term_t copy, Record term)
+{ term_t *vars;
+  
+  if ( term->n_vars > 0 )
+  { int n;
 
-    vars = allocGlobal(term->n_vars);
-    for(n=term->n_vars, v=vars; n>0; n--, v++)
-      setVar(*v);
+    vars = alloca(term->n_vars * sizeof(term_t));
+    for(n=0; n<term->n_vars; n++)
+      vars[n] = 0L;			/* special constant? */
   } else
-    vars = (Word) NULL;
+    vars = NULL;
 
   SECURE(checkData(&term->term, TRUE));
-  lockp(&vars);
-  lockw(&copy);
-  copyTermToGlobal2(term->variables, &vars, &term->term, &copy);
-  unlockw(&copy);
-  unlockp(&vars);
+  PL_put_variable(copy);
+  copyTermToGlobal2(term->variables, vars, &term->term, copy);
   SECURE(checkData(&copy, FALSE));
-
-  return copy;
 }
 
 
@@ -227,7 +212,7 @@ freeHeapTerm(register Word term)
   
   deRef(term);
 
-  if (isAtom(*term) || isInteger(*term))
+  if ( isAtom(*term) || isInteger(*term) )
     return;
   if (isIndirect(*term))
   {
@@ -237,7 +222,7 @@ freeHeapTerm(register Word term)
       return;
     }
 #endif /* O_STRING */
-    freeHeap(unMask(*term), sizeof(real));
+    freeHeapReal(*term);
     return;
   }
   if (isTerm(*term))
@@ -266,25 +251,28 @@ freeRecord(Record record)
 		*********************************/
 
 bool
-unifyKey(Word key, word val)
+unifyKey(term_t key, word val)
 { if ( isAtom(val) || isInteger(val) )
-    return unifyAtomic(key, val);
+    return _PL_unify_atomic(key, val);
 
-  return unifyFunctor(key, (FunctorDef) val);
+  return PL_unify_functor(key, (FunctorDef) val);
 }
 
 word
-getKey(register Word key)
-{ if (isAtom(*key) || isInteger(*key))
-    return *key;
-  else if (isTerm(*key))
-    return (word)functorTerm(*key);
+getKey(term_t key)
+{ Word k = valTermRef(key);
+  deRef(k);
+
+  if ( isAtom(*k) || isInteger(*k) )
+    return *k;
+  else if ( isTerm(*k) )
+    return (word)functorTerm(*k);
   else
-    return (word) NULL;
+    return (word)NULL;
 }
 
 word
-pl_current_key(Word k, word h)
+pl_current_key(term_t k, word h)
 { RecordList l;
 
   switch( ForeignControl(h) )
@@ -315,20 +303,20 @@ pl_current_key(Word k, word h)
 }
 
 static bool
-record(Word key, Word term, Word ref, int az)
+record(term_t key, term_t term, term_t ref, int az)
 { RecordList l;
   Record copy;
   word k;
 
-  if ((k = getKey(key)) == (word) NULL)
-    return warning("record%c/3: illegal key", az);
+  if ( !(k = getKey(key)) )
+    return warning("record%c/3: illegal key", az == RECORDA ? 'a' : 'z');
 
   l = lookupRecordList(k);
   copy = copyTermToHeap(term);
   copy->list = l;
 
-  TRY(unifyAtomic(ref, pointerToNum(copy)));
-  if (l->firstRecord == (Record) NULL)
+  TRY(PL_unify_pointer(ref, copy));
+  if ( !l->firstRecord )
   { copy->next = (Record) NULL;
     l->firstRecord = l->lastRecord = copy;
     succeed;
@@ -346,46 +334,43 @@ record(Word key, Word term, Word ref, int az)
 }
 
 word
-pl_recorda(Word key, Word term, Word ref)
+pl_recorda(term_t key, term_t term, term_t ref)
 { return record(key, term, ref, RECORDA);
 }
 
 word
-pl_recordz(Word key, Word term, Word ref)
+pl_recordz(term_t key, term_t term, term_t ref)
 { return record(key, term, ref, RECORDZ);
 }
 
 word
-pl_recorded(Word key, Word term, Word ref, word h)
+pl_recorded(term_t key, term_t term, term_t ref, word h)
 { RecordList rl;
   Record record;
   word k;
-  mark m;
-  word copy;
 
-  DEBUG(5, Sdprintf("recorded: h=0x%lx, control = %d\n", h, ForeignControl(h)));
+  DEBUG(5, Sdprintf("recorded: h=0x%lx, control = %d\n",
+		    h, ForeignControl(h)));
+
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      if ( isInteger(*ref) )
-      { record = (Record) numToPointer(*ref);
-
-	if ( !inCore(record) || !isRecord(record) )
+      if ( PL_get_pointer(ref, (void **)&record) )
+      { if ( !isRecord(record) )
 	  return warning("recorded/3: Invalid reference");
 	
-	Mark(m);
-	if ( pl_unify(term, &record->term) )
-	{ Undo(m);
-	  copy = copyTermToGlobal(record);
-	  TRY( unifyKey(key, record->list->key) );
-	  return pl_unify(term, &copy);
+	if ( can_unify(valTermRef(term), &record->term) &&
+	     unifyKey(key, record->list->key) )
+	{ term_t copy = PL_new_term_ref();
+
+	  copyTermToGlobal(copy, record);
+	  return PL_unify(term, copy);
 	} else
-	{ Undo(m);
-	  fail;
+	{ fail;
 	}
       }
-      if ((k = getKey(key)) == (word) NULL)
+      if ( !(k = getKey(key)) )
 	return warning("recorded/3: illegal key");
-      if ((rl = isCurrentRecordList(k)) == (RecordList) NULL)
+      if ( !(rl = isCurrentRecordList(k)) )
 	fail;
       record = rl->firstRecord;
       break;
@@ -397,40 +382,35 @@ pl_recorded(Word key, Word term, Word ref, word h)
       succeed;
   }
 
-  Mark(m);
-  for(;record; record = record->next)
-  { if (pl_unify(term, &record->term) )
-    { Undo(m);
-      TRY(unifyAtomic(ref, pointerToNum(record) ));
-      copy = copyTermToGlobal(record);
-      TRY(pl_unify(term, &copy) );
+  for( ;record; record = record->next )
+  { if ( can_unify(valTermRef(term), &record->term) &&
+	 PL_unify_pointer(ref, record) )
+    { term_t copy = PL_new_term_ref();
 
-      if (record->next == (Record) NULL)
+      copyTermToGlobal(copy, record);
+      PL_unify(term, copy);
+
+      if ( !record->next )
 	succeed;
       else
 	ForeignRedo(record->next);
     }
   }
 
-  Undo(m);
   fail;
 }
 
 word
-pl_erase(Word ref)
+pl_erase(term_t ref)
 { Record record;
   Record prev, r;
   RecordList l;
 
-  if (!isInteger(*ref))
-    return warning("erase/1: instantiation fault");
-
-  record = (Record) numToPointer(*ref);
-  
-  if (!inCore(record))
+  if ( !PL_get_pointer(ref, (void **)&record) ||
+       !inCore(record))
     return warning("erase/1: Invalid reference");
 
-  if (isClause(record))
+  if ( isClause(record) )
   { Clause clause = (Clause) record;
   
     if ( true(clause->procedure->definition, LOCKED) &&
@@ -440,7 +420,7 @@ pl_erase(Word ref)
     return retractClauseProcedure(clause->procedure, clause);
   }
   
-  if (!isRecord(record))
+  if ( !isRecord(record) )
     return warning("erase/1: Invalid reference");
 
   l = record->list;
@@ -464,5 +444,5 @@ pl_erase(Word ref)
     }
   }
 
-  return warning("erase/1: illegal reference");
+  return warning("erase/1: Invalid reference");
 }

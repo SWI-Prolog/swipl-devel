@@ -156,7 +156,7 @@ initWamTable(void)
   code maxcoded, mincoded;
 
   if ( interpreter_jmp_table == NULL )
-    prolog((word) ATOM_fail);
+    PL_next_solution(QID_EXPORT_WAM_TABLE);
 
   wam_table[0] = (code) ((int)interpreter_jmp_table[0]);
   maxcoded = mincoded = wam_table[0];
@@ -246,52 +246,35 @@ static int	filledVars;		/* vardef structures filled */
 
 #define VAROFFSET(var) ( (var) + ARGOFFSET / (int) sizeof(word) )
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Split a  clause  into  its  head  and  body.   For  facts  the  body  is
-instantiated to NULL.  This is the only place of the compiler that knows
-about the :-/2 operator.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+int
+get_head_and_body_clause(term_t clause,
+			 term_t head, term_t body, Module *m)
+{ term_t tmp = PL_new_term_ref();
+  Module m0 = NULL;
 
-bool
-splitClause(Word term, Word *head, Word *body, Module *module)
-{ Word h, b;
+  if ( m )
+    m0 = *m;
+  TRY(PL_strip_module(clause, &m0, tmp));
 
-  if ( isAtom(*term) )
-  { *head = term;
-    *body = (Word) NULL;
-    succeed;
-
+  if ( PL_is_functor(tmp, FUNCTOR_prove2) )
+  { PL_get_arg(1, tmp, head);
+    PL_get_arg(2, tmp, body);
+    PL_strip_module(head, &m0, head);
+  } else
+  { PL_put_term(head, tmp);		/* facts */
+    PL_put_atom(body, ATOM_true);
   }
-  if ( !isTerm(*term) )
-    fail;
+  
+  DEBUG(9, pl_write(clause); Sdprintf(" --->\n\t");
+	   Sdprintf("%s:", stringAtom(m0->name));
+	   pl_write(head); Sdprintf(" :- "); pl_write(body); Sdprintf("\n"));
 
-  if ( functorTerm(*term) != FUNCTOR_prove2 )		/* :-/2 */
-  { *head = term;
-    *body = (Word) NULL;
-    succeed;
-  }
-
-  h = argTermP(*term, 0);
-  b = argTermP(*term, 1);
-  deRef(h);
-  deRef(b);
-
-  if ( module && isTerm(*h) && functorTerm(*h) == FUNCTOR_module2 )
-  { Word m = argTermP(*h, 0);
-    
-    deRef(m);
-    if ( isAtom(*m) )
-    { *module = lookupModule((Atom) *m);
-      h = argTermP(*h, 1);
-      deRef(h);
-    }
-  }
-
-  *head = h;
-  *body = b;
+  if ( m )
+    *m = m0;
 
   succeed;
 }
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Analyse the variables of a clause.  `term' is the term to  be  analysed, 
@@ -531,6 +514,9 @@ compile(Word head, Word body, Module module)
   Clause clause;
   int nvars;
 
+  deRef(head);
+  deRef(body);
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Split the clause into its head and body and determine the procedure  the
 clause should belong to.
@@ -608,7 +594,7 @@ before the I_ENTER instructions.
 Now compile the body.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if (body != (Word) NULL)
+  if ( body != (Word) NULL && *body != (word) ATOM_true )
   { Output_0(&ci, I_ENTER);
     compileBody(body, I_DEPART, &ci);
   }
@@ -831,7 +817,7 @@ be a variable, and thus cannot be removed if it is before an I_POP.
 
     if ( isIndirect(*arg) )
     { if ( isReal(*arg) )
-      { Output_1(ci, where & HEAD ? H_REAL : B_REAL, heapReal(valReal(*arg)));
+      { Output_1(ci, where & HEAD ? H_REAL : B_REAL, copyRealToHeap(*arg));
 	return NONVOID;
       }
 #if O_STRING
@@ -1138,7 +1124,7 @@ compileArithArgument(register Word arg, register compileInfo *ci)
     succeed;
   }
   if ( isReal(*arg) )			/* real */
-  { Output_1(ci, B_REAL, heapReal(valReal(*arg)));
+  { Output_1(ci, B_REAL, copyRealToHeap(*arg));
     succeed;
   }
 					/* variable */
@@ -1216,23 +1202,25 @@ The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-assert_term(Word term, int where, Atom file)
+assert_term(term_t term, int where, Atom file)
 { Clause clause;
   Procedure proc;
   Definition def;
   Module source_module = (file ? modules.source : (Module) NULL);
   Module module = source_module;
-  Word head, body;
+  term_t tmp  = PL_new_term_ref();
+  term_t head = PL_new_term_ref();
+  term_t body = PL_new_term_ref();
 
-  term = stripModule(term, &module);
-  if ( !splitClause(term, &head, &body, &module) )
+  if ( !PL_strip_module(term, &module, tmp) ||
+       !get_head_and_body_clause(tmp, head, body, &module) )
   { warning("compiler: illegal clause");
     return (Clause) NULL;
   }
 
   DEBUG(9, Sdprintf("compiling "); pl_write(term); Sdprintf(" ... "););
-  if ((clause = compile(head, body, module)) == (Clause) NULL)
-    return (Clause) NULL;
+  if ( !(clause = compile(valTermRef(head), valTermRef(body), module)) )
+    return NULL;
   DEBUG(9, Sdprintf("ok\n"));
   clause->line_no = source_line_no;
   proc = clause->procedure;
@@ -1253,7 +1241,7 @@ care of reconsult, redefinition, etc.
     if ( def->module != module )
     { if ( true(def->module, SYSTEM) )
         warning("Attempt to redefine a system predicate: %s", 
-				procedureName(proc));
+		procedureName(proc));
       else
 	warning("%s/%d already imported from module %s", 
 		stringAtom(def->functor->name), 
@@ -1327,69 +1315,65 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 }
 
 word
-pl_assertz(Word term)
+pl_assertz(term_t term)
 { return assert_term(term, CL_END, (Atom)NULL) == NULL ? FALSE : TRUE;
 }
 
 word
-pl_asserta(Word term)
+pl_asserta(term_t term)
 { return assert_term(term, CL_START, (Atom)NULL) == NULL ? FALSE : TRUE;
 }
 
 
 word
-pl_assertz2(Word term, Word ref)
+pl_assertz2(term_t term, term_t ref)
 { Clause clause = assert_term(term, CL_END, (Atom)NULL);
 
   if (clause == (Clause)NULL)
     fail;
 
-  return unifyAtomic(ref, pointerToNum(clause));
+  return PL_unify_pointer(ref, clause);
 }
 
 
 word
-pl_asserta2(Word term, Word ref)
+pl_asserta2(term_t term, term_t ref)
 { Clause clause = assert_term(term, CL_START, (Atom)NULL);
 
   if (clause == (Clause)NULL)
     fail;
 
-  return unifyAtomic(ref, pointerToNum(clause));
+  return PL_unify_pointer(ref, clause);
 }
 
 
 word
-pl_record_clause(Word term, Word file, Word ref)
+pl_record_clause(term_t term, term_t file, term_t ref)
 { Clause clause;
+  Atom f;
 
-  if (!isAtom(*file) )
+  if ( !PL_get_atom(file, &f) )
     fail;
 
-  if ( (clause = assert_term(term, CL_END, (Atom)*file)) )
-    return unifyAtomic(ref, pointerToNum(clause));
+  if ( (clause = assert_term(term, CL_END, f)) )
+    return PL_unify_pointer(ref, clause);
   
   fail;
 }  
 
 
 word
-pl_redefine_system_predicate(Word head)
-{ Module m = NULL;
-  FunctorDef def;
-  Procedure proc;
+pl_redefine_system_predicate(term_t pred)
+{ Procedure proc;
+  Module m = NULL;
+  FunctorDef fd;
+  term_t head = PL_new_term_ref();
 
-  if ( (head = stripModule(head, &m)) == NULL )
-    fail;
-
-  if ( isAtom(*head) )
-    def = lookupFunctorDef((Atom)*head, 0);
-  else if ( isTerm(*head) )
-    def = functorTerm(*head);
-  else
+  if ( !PL_strip_module(pred, &m, head) ||
+       !PL_get_functor(head, &fd) )
     return warning("redefine_system_predicate/1: instantiation fault");
 
-  proc = lookupProcedure(def, m);
+  proc = lookupProcedure(fd, m);
   abolishProcedure(proc, m);
 
   succeed;
@@ -1417,26 +1401,15 @@ Then we create a term, back up and fill the arguments.
 #define XR(c)	((word)(c))
 
 typedef struct
-{ Code	pc;				/* pc for decompilation */
-  Word  xr;				/* xr table for decompilation */
-  Word	argp;				/* argument pointer */
-  Word	variables[MAXVARIABLES];	/* variable table */
+{ Code	 pc;				/* pc for decompilation */
+  Word   xr;				/* xr table for decompilation */
+  Word	 argp;				/* argument pointer */
+  term_t variables[MAXVARIABLES];	/* variable table */
 } decompileInfo;
 
-forwards bool	unifyVar(Word, Word *, int);
-forwards bool	decompile_head(Clause, Word, decompileInfo *);
+forwards bool	decompile_head(Clause, term_t, decompileInfo *);
 forwards bool	decompileBody(decompileInfo *, code, Code);
 forwards void	build_term(FunctorDef, decompileInfo *);
-
-static bool
-unifyVar(register Word var, register Word *vars, register int i)
-{ DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
-  if (vars[i] == (Word)NULL)
-  { vars[i] = var;
-    succeed;
-  }
-  return (bool) pl_unify(var, vars[i]);
-}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 decompileArg1()  is  a  simplified  version   of  decompileHead().   Its
@@ -1445,46 +1418,36 @@ index information for indexing on the   first argument (the 99.9% case).
 See reindexClause().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
-decompileArg1(Clause clause, Word argp)
+int
+arg1Key(Clause clause, word *key)
 { Code APC = clause->codes;
 
   for(;;)
   { switch(decode(*APC++))
-    { case I_NOP:
-	  continue;
+    { case H_FUNCTOR:
+      case H_CONST:
+	*key = XR(*APC);
+	succeed;
       case H_NIL:
-	  TRY(unifyAtomic(argp++, ATOM_nil));
-          succeed;
-      case H_REAL:
-	  TRY(unifyAtomic(argp++, globalReal(valReal(XR(*APC++)))));
-	  succeed;
+	*key = (word) ATOM_nil;
+        succeed;
+      case H_LIST:
+	*key = (word) FUNCTOR_dot2;
 #if O_STRING
       case H_STRING:
-	  TRY(unifyAtomic(argp++, globalString(valString(XR(*APC++)))));
-	  succeed;
-#endif /* O_STRING */
-      case H_CONST:
-	  TRY(unifyAtomic(argp++, XR(*APC++)) );
-	  succeed;
+#endif
+      case H_REAL:
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
-	  succeed;			/* Just leave variable */
-      case H_FUNCTOR:
-	{ register FunctorDef fdef = (FunctorDef) XR(*APC++);
-
-      common_functor:
-	  TRY(unifyFunctor(argp, fdef) );
-	  succeed;
-      case H_LIST:	  fdef = FUNCTOR_dot2;		goto common_functor;
-	}
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
-	  succeed;
+	fail;
+      case I_NOP:
+	continue;
       default:
-	  assert(0);
-	  fail;
+	assert(0);
+        fail;
     }
   }
 }
@@ -1498,95 +1461,162 @@ information is recalculated as the constants   may  be different accross
 runs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define setHandle(h, w)		(*valTermRef(h) = (w))
+#define valHandleP(h)		valTermRef(h)
+
+static inline word
+valHandle(term_t r)
+{ Word p = valTermRef(r);
+
+  deRef(p);
+  return *p;
+}
+
 bool
-decompileHead(Clause clause, Word head)
+decompileHead(Clause clause, term_t head)
 { decompileInfo di;
 
   return decompile_head(clause, head, &di);
 }
 
 
+static void
+get_arg_ref(term_t term, term_t argp)
+{ word w = valHandle(term);
+  setHandle(argp, makeRef(argTermP(w, 0)));
+}
+
+
+static void
+next_arg_ref(term_t argp)
+{ Word p = valTermRef(argp);
+  
+  *p = makeRef(unRef(*p)+1);
+}
+
+
+static int
+diff_ref(term_t t1, term_t t2)
+{ Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
+
+  return unRef(*p1) - unRef(*p2);
+}
+
+
 static bool
-decompile_head(Clause clause, Word head, register decompileInfo *di)
+unifyVar(Word var, term_t *vars, int i)
+{ DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
+  if ( !vars[i] )
+  { term_t v = PL_new_term_ref();
+    setHandle(v, makeRef(var));
+    vars[i] = v;
+    succeed;
+  }
+
+  return unify_ptrs(var, valTermRef(vars[i]));
+}
+
+
+static bool
+decompile_head(Clause clause, term_t head, decompileInfo *di)
 { int arity;
-  Word argp, argp0;
+  term_t argp0;
+  term_t argp;
   Definition def = clause->procedure->definition;
 
-  deRef(head);
+  { int m, l;
+    term_t *p;
+
+    l = VAROFFSET(0);
+    m = VAROFFSET(clause->variables);	/* index of highest var + 1 */
+    for(p = di->variables + l; m-- > l;)
+      *p++ = PL_new_term_ref();
+  }
+
+  argp0 = PL_new_term_ref();
+  argp  = PL_new_term_ref();
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
   arity = def->functor->arity;
-  TRY( unifyFunctor(head, def->functor) );
-  argp0 = argp = argTermP(*head, 0);
+  TRY( PL_unify_functor(head, def->functor) );
+  get_arg_ref(head, argp);
+  get_arg_ref(head, argp0);
   PC = clause->codes;
-
-  { register int m;
-    register Word *p;
-
-    m = VAROFFSET(clause->variables);	/* index of highest var + 1 */
-    for(p = di->variables; m-- > 0;)
-      *p++ = (Word) NULL;
-  }
 
   for(;;)
   { switch(decode(*PC++))
     { case I_NOP:
 	  continue;
       case H_NIL:
-	  TRY(unifyAtomic(argp++, ATOM_nil) );
+	  TRY(PL_unify_nil(argp));
+          next_arg_ref(argp);
 	  continue;
       case H_REAL:
-	  TRY( unifyAtomic(argp++, globalReal(valReal(XR(*PC++)))) );
+        { word copy = copyRealToGlobal(XR(*PC++));
+	  TRY(_PL_unify_atomic(argp, copy));
+	  next_arg_ref(argp);
 	  continue;
+	}
 #if O_STRING
       case H_STRING:
-	  TRY( unifyAtomic(argp++, globalString(valString(XR(*PC++)))) );
+	  TRY(PL_unify_string_chars(argp, valString(XR(*PC++))));
+	  next_arg_ref(argp);
 	  continue;
 #endif /* O_STRING */
       case H_CONST:
-	  TRY(unifyAtomic(argp++, XR(*PC++)) );
+	  TRY(_PL_unify_atomic(argp, XR(*PC++)));
+	  next_arg_ref(argp);
 	  continue;
       case H_FIRSTVAR:
       case H_VAR:
-	  TRY(unifyVar(argp++, di->variables, *PC++) );
+	  TRY(unifyVar(valTermRef(argp), di->variables, *PC++) );
+	  next_arg_ref(argp);
 	  continue;
       case H_VOID:
-	{ int arg;		/* FIRSTVAR in the head */
-	  if ((arg = (int)(argp - argp0)) < arity && arg >= 0)
-	    TRY(unifyVar(argp, di->variables, VAROFFSET(arg)) );
-	  argp++;
+	{ int arg = diff_ref(argp, argp0); /* FIRSTVAR in the head */
+	  if ( arg < arity && arg >= 0)
+	    TRY(unifyVar(valTermRef(argp), di->variables, VAROFFSET(arg)) );
+	  next_arg_ref(argp);
 	  continue;
 	}
       case H_FUNCTOR:
-	{ register FunctorDef fdef = (FunctorDef) XR(*PC++);
+	{ FunctorDef fdef = (FunctorDef) XR(*PC++);
+	  term_t t2;
 
       common_functor:
-	  TRY(unifyFunctor(argp, fdef) );
-	  *aTop++ = argp + 1;
-	  verifyStack(argument);
-	  deRef(argp);
-	  argp = argTermP(*argp, 0);
+	  t2 = PL_new_term_ref();
+	  TRY(PL_unify_functor(argp, fdef));
+          get_arg_ref(argp, t2);
+          next_arg_ref(argp);
+	  argp = t2;
 	  continue;
-      case H_LIST:	  fdef = FUNCTOR_dot2;		goto common_functor;
+      case H_LIST:
+	  fdef = FUNCTOR_dot2;
+          goto common_functor;
 	}
       case I_POP:
-	  argp = *--aTop;
+	  PL_reset_term_refs(argp);
+          argp--;
 	  continue;
       case I_POPN:
-	  aTop -= *PC++;
-	  argp = *aTop;
+	  argp -= *PC++;
+          PL_reset_term_refs(argp+1);
 	  continue;
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
-	{ int arg;
+	{ int arg = diff_ref(argp, argp0);
 
-	  for(arg = (int)(argp - argp0); arg < arity; arg++)
-	   TRY(unifyVar(argp++, di->variables, VAROFFSET(arg)) );
+	  for(; arg < arity; arg++)
+	  { TRY(unifyVar(valTermRef(argp), di->variables, VAROFFSET(arg)));
+	    next_arg_ref(argp);
+	  }
 
 	  succeed;
 	}
       default:
-	  sysError("Illegal instruction in clause head: %d = %d", PC[-1], decode(PC[-1]));
+	  sysError("Illegal instruction in clause head: %d = %d",
+		   PC[-1], decode(PC[-1]));
 	  fail;
     }
   }
@@ -1596,27 +1626,29 @@ decompile_head(Clause clause, Word head, register decompileInfo *di)
 						? (int)unRef(w) : -1)
 
 bool
-decompile(Clause clause, Word term)
+decompile(Clause clause, term_t term)
 { decompileInfo dinfo;
-  register decompileInfo *di = &dinfo;
-  Word head, body;
+  decompileInfo *di = &dinfo;
+  Word body;
 
 #ifdef O_RUNTIME
   if ( false(clause->procedure->definition, DYNAMIC) )
     fail;
 #endif
 
-  deRef(term);
-
-  if ((clause->subclauses) == 0)			/* fact */
+  if ( clause->subclauses == 0 )	/* fact */
   { return decompileHead(clause, term);
   } else
-  { TRY(unifyFunctor(term, FUNCTOR_prove2) );
-    head = argTermP(*term, 0);
-    body = argTermP(*term, 1); deRef(body);
+  { term_t a = PL_new_term_ref();
+
+    TRY(PL_unify_functor(term, FUNCTOR_prove2));
+    PL_get_arg(1, term, a);
+    TRY(decompile_head(clause, a, di));
+    PL_get_arg(2, term, a);
+    body = valTermRef(a);
+    deRef(body);
   }
 
-  TRY( decompile_head(clause, head, di) );
   ARGP = (Word) lTop;
 
   decompileBody(di, I_EXIT, (Code) NULL);
@@ -1631,7 +1663,7 @@ decompile(Clause clause, Word term)
     else
       *b = *ARGP;
 
-    return (bool) pl_unify(body, b);
+    return unify_ptrs(body, b);
   }
 }
 
@@ -1657,7 +1689,7 @@ Unfortunately it also has some serious disadvantages:
     and then back-up to fill the arguments, introducing one  more  place
     where we need to know the WAM code semantics.
   - With the  introduction  of  nested  reverse  polish  constructs  for
-    arithmic  it  Sgets  very  difficult  to do the decompilation without
+    arithmic  it  gets  very  difficult  to do the decompilation without
     using a stack for  intermediate  data  storage,  building  the  term
     bottom-up.
 
@@ -1896,87 +1928,136 @@ build_term(register FunctorDef f, register decompileInfo *di)
 #undef PC
 #undef ARGP
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+unify_definition(?Head, +Def, -TheHead)
+    Given some definition, unify its Prolog reference (i.e. its head with
+    optional module specifier) with ?Head.  If TheHead is specified, the
+    plain head (i.e. without module specifier) will be referenced from
+    this term-reference.
+
+    This function properly deals with module-inheritance, etc.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+unify_definition(term_t head, Definition def, term_t thehead)
+{ if ( PL_is_variable(head) )
+  { if ( def->module == MODULE_user )
+    { PL_unify_functor(head, def->functor);
+      if ( thehead )
+	PL_put_term(thehead, head);
+    } else
+    { term_t tmp = PL_new_term_ref();
+      
+      PL_unify_functor(head, FUNCTOR_module2);
+      PL_get_arg(1, head, tmp);
+      PL_unify_atom(tmp, def->module->name);
+      PL_get_arg(2, head, tmp);
+      PL_unify_functor(tmp, def->functor);
+      if ( thehead )
+	PL_put_term(thehead, tmp);
+    }
+
+    succeed;
+  } else
+  { term_t h = PL_new_term_ref();
+    Module m = NULL;
+
+    if ( !PL_strip_module(head, &m, h) ||
+	 !isSuperModule(def->module, m) )
+      fail;
+
+    if ( PL_unify_functor(h, def->functor) )
+    { if ( thehead )
+	PL_put_term(thehead, h);
+      succeed;
+    }
+
+    fail;
+  }
+}
+
+
 word
-pl_clause(Word p, Word term, Word ref, word h)
+pl_clause(term_t p, term_t term, term_t ref, word h)
 { Procedure proc;
   Definition def;
   Clause clause;
   ClauseRef cref;
-  Module module = (Module)NULL;
+  Module module = NULL;
 
   if ( ForeignControl(h) == FRG_CUTTED )
     succeed;
 
-  if (!isVar(*ref))  
+  if ( PL_get_pointer(ref, (void **)&clause) ) /* clause(H, B, 2733843) */
   { Module defModule;
-    Word head, body;
+    term_t tmp  = PL_new_term_ref();
+    term_t head = PL_new_term_ref();
+    term_t body = PL_new_term_ref();
+    FunctorDef f;
 
-    if (!isInteger(*ref))
-      return warning("clause/3: illegal reference");
-
-    clause = (Clause) numToPointer(*ref);
-    
-    if (!inCore(clause) || !isClause(clause))
-      return warning("clause/3: Invalid integer reference");
+    if ( !inCore(clause) || !isClause(clause) )
+      return warning("clause/3: Invalid reference");
 	
-    if (decompile(clause, term) == FALSE)
+    if ( !decompile(clause, term) )
       fail;
 
     proc = clause->procedure;
     def = proc->definition;
     defModule = def->module;
 
-    if (isTerm(*term) && functorTerm(*term) == FUNCTOR_module2)
-    { p = stripModule(p, &module);
-      if (module != defModule)
+    if ( PL_get_functor(term, &f) && f == FUNCTOR_module2 )
+    { PL_strip_module(p, &module, tmp);
+      if ( module != defModule )
 	fail;
     }
 
-    if (isVar(*p))
-    { if (defModule != MODULE_user &&
-	   defModule != contextModule(environment_frame) )
-      { unifyFunctor(p, FUNCTOR_module2);
-	unifyAtomic(argTermP(*p, 0), defModule->name);
-	p = argTermP(*p, 1);
-      }
-    }
-
-    TRY(splitClause(term, &head, &body, NULL));
-    return pl_unify(p, head);
-  }
-
-  if ( ForeignControl(h) == FRG_FIRST_CALL)
-  { if ( (proc = findProcedure(p)) == (Procedure) NULL ||
-         true(proc->definition, FOREIGN) )
+    if ( !unify_definition(p, def, tmp) )
       fail;
-    def = proc->definition;
-    cref = def->definition.clauses;
+
+    get_head_and_body_clause(term, head, body, NULL);
+
+    return PL_unify(tmp, head);
   } else
-  { cref = (ClauseRef) ForeignContextAddress(h);
-    proc = cref->clause->procedure;
-    def  = proc->definition;
-  }
+  { Word argv;
 
-  p = stripModule(p, &module);
+    if ( ForeignControl(h) == FRG_FIRST_CALL)
+    { if ( !get_procedure(p, &proc, 0, GP_FIND) ||
+	   true(proc->definition, FOREIGN) )
+	fail;
+      def = proc->definition;
+      cref = def->definition.clauses;
+    } else
+    { cref = (ClauseRef) ForeignContextAddress(h);
+      proc = cref->clause->procedure;
+      def  = proc->definition;
+    }
+  
+    if ( def->functor->arity > 0 )
+    { term_t head = PL_new_term_ref();
 
-  for(; cref; cref = cref->next)
-  { bool det;
+      PL_strip_module(p, &module, head);
+      argv = valTermRef(head);
+      deRef(argv);
+      argv = argTermP(*argv, 0);
+    } else
+      argv = NULL;
 
-    if ((cref = findClause(cref, 
-			   def->functor->arity == 0 ? (Word)NULL
-						    : argTermP(*p, 0), 
-			   def, &det)) == NULL)
-      fail;
+    for(; cref; cref = cref->next)
+    { bool det;
+  
+      if ( !(cref = findClause(cref, argv, def, &det)) )
+	fail;
+  
+      if ( !decompile(cref->clause, term) )
+	continue;
+      if ( !PL_unify_pointer(ref, cref->clause) )
+	continue;
+  
+      if ( det == TRUE )
+	succeed;
 
-    if (decompile(cref->clause, term) == FALSE)
-      continue;
-    if (unifyAtomic(ref, pointerToNum(cref->clause)) == FALSE)
-      continue;
-
-    if ( det == TRUE )
-      succeed;
-					/* ??? add reference? */
-    ForeignRedo(cref->next);
+      ForeignRedo(cref->next);
+    }
   }
 
   fail;
@@ -1990,7 +2071,7 @@ typedef struct
 
 
 word
-pl_nth_clause(Word p, Word n, Word ref, word h)
+pl_nth_clause(term_t p, term_t n, term_t ref, word h)
 { Clause clause;
   ClauseRef cref;
   Procedure proc;
@@ -2005,14 +2086,9 @@ pl_nth_clause(Word p, Word n, Word ref, word h)
     succeed;
   }
 
-  if (!isVar(*ref))  
+  if ( PL_get_pointer(ref, (void **)&clause) )
   { int i;
 
-    if (!isInteger(*ref))
-      return warning("nth_clause/3: illegal reference");
-
-    clause = (Clause) numToPointer(*ref);
-    
     if (!inCore(clause) || !isClause(clause))
       return warning("nth_clause/3: Invalid integer reference");
 	
@@ -2020,21 +2096,11 @@ pl_nth_clause(Word p, Word n, Word ref, word h)
     def  = proc->definition;
     for( cref = def->definition.clauses, i=1; cref; cref = cref->next, i++)
     { if ( cref->clause == clause )
-      { TRY(unifyAtomic(n, consNum(i)));
+      { if ( !PL_unify_integer(n, i) ||
+	     !unify_definition(p, def, 0) )
+	  fail;
 
-	if ( isVar(*p) )
-	{ if ( def->module != MODULE_user &&
-	       def->module != contextModule(environment_frame) )
-	  { unifyFunctor(p, FUNCTOR_module2);
-	    unifyAtomic(argTermP(*p, 0), def->module->name);
-	    p = argTermP(*p, 1);
-	  }
-	} else if ( isTerm(*p) && functorTerm(*p) == FUNCTOR_module2 )
-	{ p = argTermP(*p, 1);
-	  deRef(p);
-	}
-
-	return unifyFunctor(p, def->functor);
+	succeed;
       }
     }
 
@@ -2042,7 +2108,9 @@ pl_nth_clause(Word p, Word n, Word ref, word h)
   }
 
   if ( ForeignControl(h) == FRG_FIRST_CALL )
-  { if ( (proc = findProcedure(p)) == (Procedure) NULL ||
+  { int i;
+
+    if ( !get_procedure(p, &proc, 0, GP_FIND) ||
          true(proc->definition, FOREIGN) )
       fail;
 
@@ -2054,10 +2122,8 @@ pl_nth_clause(Word p, Word n, Word ref, word h)
     if ( !cref )
       fail;
 
-    if ( isInteger(*n) )		/* proc and n specified */
-    { int i = valNum(*n);
-
-      while(i > 1 && cref)
+    if ( PL_get_integer(n, &i) )		/* proc and n specified */
+    { while(i > 1 && cref)
       { do
 	{ cref = cref->next;
 	} while ( cref && true(cref->clause, ERASED) );
@@ -2065,7 +2131,7 @@ pl_nth_clause(Word p, Word n, Word ref, word h)
 	i--;
       }
       if ( i == 1 )
-	return unifyAtomic(ref, pointerToNum(cref->clause));
+	return PL_unify_pointer(ref, cref->clause);
       fail;
     }
 
@@ -2078,8 +2144,8 @@ pl_nth_clause(Word p, Word n, Word ref, word h)
     def = cr->clause->clause->procedure->definition;
   }
 
-  unifyAtomic(n, consNum(cr->index));
-  unifyAtomic(ref, pointerToNum(cr->clause->clause));
+  PL_unify_integer(n, cr->index);
+  PL_unify_pointer(ref, cr->clause->clause);
 
   cref = cr->clause->next;
   while ( cref && true(cref->clause, ERASED) )
@@ -2098,23 +2164,8 @@ pl_nth_clause(Word p, Word n, Word ref, word h)
 }
 
 
-static bool
-unifyProcedure(Word t, Procedure proc)
-{ Definition def = proc->definition;
-
-  if ( unifyFunctor(t, FUNCTOR_module2) )
-  { deRef(t);
-    if ( unifyAtomic(argTermP(*t, 0), def->module->name) &&
-	 unifyFunctor(argTermP(*t, 1), def->functor) )
-      succeed;
-  }
-
-  fail;
-}
-
-
 word
-pl_xr_member(Word ref, Word term, word h)
+pl_xr_member(term_t ref, term_t term, word h)
 { Clause clause;
   Code PC;
   Code end;
@@ -2122,17 +2173,14 @@ pl_xr_member(Word ref, Word term, word h)
   if ( ForeignControl(h) == FRG_CUTTED )
     succeed;
 
-  if (!isInteger(*ref))
-    return warning("$xr_member/2: Illegal reference");
-  clause = (Clause) numToPointer(*ref);
-  
-  if (!inCore(clause) || !isClause(clause))
+  if ( !PL_get_pointer(ref, (void **)&clause) ||
+       !inCore(clause) || !isClause(clause) )
     return warning("$xr_member/2: Invalid reference");
 
   PC  = clause->codes;
   end = &PC[clause->code_size];
 
-  if ( isVar(*term) )
+  if ( PL_is_variable(term) )
   { int an;				/* argument-n */
 
     if ( ForeignControl(h) == FRG_FIRST_CALL)
@@ -2150,9 +2198,12 @@ pl_xr_member(Word ref, Word term, word h)
       for( ; an < codeTable[op].externals; an++ )
       { word xr = PC[an];
 
-	if ( isAtomic(xr) )         rval = unifyAtomic(term, xr);
-	else if ( isProcedure(xr) ) rval = unifyProcedure(term, (Procedure)xr);
-	else			    rval = unifyFunctor(term, (FunctorDef)xr);
+	if ( isAtomic(xr) )
+	  rval = _PL_unify_atomic(term, xr);
+	else if ( isProcedure(xr) )
+	  rval = unify_definition(term, ((Procedure)xr)->definition, 0);
+	else
+	  rval = PL_unify_functor(term, (FunctorDef)xr);
 
 	if ( rval )
 	{ long i = PC - clause->codes - 1; /* compensate ++ above! */
@@ -2167,8 +2218,9 @@ pl_xr_member(Word ref, Word term, word h)
     fail;
   } else				/* instantiated */
   { Procedure proc;
+    FunctorDef fd;
 
-    if ( isAtomic(*term) )
+    if ( PL_is_atomic(term) )
     { while( PC < end )
       { int an = 0;
 	code op = decode(*PC++);
@@ -2176,13 +2228,13 @@ pl_xr_member(Word ref, Word term, word h)
 	for( ; an < codeTable[op].externals; an++ )
 	{ word xr = PC[an];
 
-	  if ( isAtomic(xr) && unifyAtomic(term, xr) )
+	  if ( isAtomic(xr) && _PL_unify_atomic(term, xr) )
 	    succeed;
 	}
 
 	PC += codeTable[op].arguments;
       }
-    } else if ( (proc = findProcedure(term)) )
+    } else if ( get_procedure(term, &proc, 0, GP_FIND) )
     { while( PC < end )
       { int an = 0;
 	code op = decode(*PC++);
@@ -2198,8 +2250,8 @@ pl_xr_member(Word ref, Word term, word h)
 
 	PC += codeTable[op].arguments;
       }
-    } else if ( isTerm(*term) )
-    { word target = (word) functorTerm(*term);
+    } else if ( PL_get_functor(term, &fd) )
+    { word target = (word) fd;
 
       while( PC < end )
       { int an = 0;
@@ -2227,16 +2279,12 @@ pl_xr_member(Word ref, Word term, word h)
 #define VARNUM(i) ((i) - (ARGOFFSET / (int) sizeof(word)))
 
 word
-pl_wam_list(Word ref)
+pl_wam_list(term_t ref)
 { Clause clause;
   Code bp, ep;
 
-  if (!isInteger(*ref))
-    return warning("$wam_list/1: argument is not a clause reference");
-
-  clause = (Clause) numToPointer(*ref);
-  
-  if ( !inCore(clause) || !isClause(clause) )
+  if ( !PL_get_pointer(ref, (void **)&clause) ||
+       !inCore(clause) || !isClause(clause) )
     return warning("$wam_list/1: Invalid reference");
 
   bp = clause->codes;

@@ -230,7 +230,6 @@ $break :-
 	flag($break_level, _, New), 
 	$ttyformat('Break Level [~w]~n', [New]),
 	$toplevel,
-	$ttyformat('Exit Break Level [~w]~n', [New]),
 	flag($break_level, _, Old), !.
 
 $toplevel :-
@@ -265,7 +264,11 @@ prolog :-
 				  Bindings, ExpandedBindings)
 	    ->  $execute(ExpandedGoal, ExpandedBindings)
 	    ), !,
-	$ttyformat('[halt]~n', []).
+	(   BreakLev == 0
+	->  $ttyformat('[halt]~n', [])
+	;   $ttyformat('[exit break level ~d]~n', [BreakLev])
+	).
+
 
 		/********************************
 		*            PROMPTING		*
@@ -338,10 +341,10 @@ $execute_goal(trace, []) :-
 	fail.
 $execute_goal(Goal, Bindings) :-
 	$module(TypeIn, TypeIn), 
-	TypeIn:retractall($user_query(Bindings)),
-	TypeIn:asserta(($user_query(Bindings) :- Goal), Ref),
+	flag($qid, Qid, Qid+1),
+	TypeIn:asserta(($user_query(Qid, Bindings) :- Goal), Ref),
 	$set_user_goal_attributes(TypeIn),
-	(   TypeIn:$user_query(Bindings),
+	(   TypeIn:$user_query(Qid, Bindings),
 	    flush,
 	    call_expand_answer(Bindings, NewBindings),
 	    $ttyformat('~n'),
@@ -357,12 +360,9 @@ $execute_goal(Goal, Bindings) :-
 	    fail
 	).
 
-$user_call(Goal) :-
-	Goal.
-
 $set_user_goal_attributes(TypeIn) :-
-	TypeIn:(($hide($user_query, 1),
-		 $show_childs($user_query, 1))).
+	TypeIn:(($hide($user_query, 2),
+		 $show_childs($user_query, 2))).
 
 $write_bindings([]) :- !, 
 	$ttyformat('Yes~n').
