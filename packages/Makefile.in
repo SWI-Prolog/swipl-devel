@@ -10,6 +10,7 @@
 # libXPM and libjpeg to compile
 
 PKG=	clib \
+	cpp \
 	table \
 	sgml \
 	sgml/RDF \
@@ -61,12 +62,12 @@ CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
 	    ./configure $(CNFG) --prefix=$(prefix)
 
 all:	objects
-	
+
 objects::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) ); fi; \
         done
-	
+
 install::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
@@ -79,18 +80,18 @@ rpm-install: html-install
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
-	
+
 pdf-install::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
-	
+
 html-install::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
 	$(INSTALL_DATA) index.html $(PKGDOC)
-	
+
 configure::
 	@echo "**********************"
 	@echo "* Configuring packages $(PKG)"
@@ -103,7 +104,7 @@ configure::
 	        ( cd $$p && $(CONFIG) ); \
 	    fi; \
         done
-	
+
 distclean::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
