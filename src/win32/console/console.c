@@ -226,7 +226,7 @@ static void Dprint_lines(RlcData b, int from, int to);
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 It might look a bit weird not to  use <assert.h>, but for some reason it
 looks as if the application thread continues if the asserting is trapped
-using  the  normal  assert()!?  Just  but    a  debugger  breakpoint  on
+using  the  normal  assert()!?  Just  put    a  debugger  breakpoint  on
 rlc_assert() and all functions normally.
 
 rlc_check_assertions() is a (very) incomplete   check that everything we

@@ -175,7 +175,7 @@ typedef struct _line
 { rlc_mark	origin;			/* origin of edit */
   int   	point;			/* location of the caret */
   int		size;			/* # characters in buffer */
-  int   	allocated;		/* # characters allocted */
+  int   	allocated;		/* # characters allocated */
   int		change_start;		/* start of change */
   int		complete;		/* line is completed */
   int		reprompt;		/* repeat the prompt */
