@@ -71,7 +71,7 @@ make_file_popup(P) :-
 		  ]).
 
 
-initialise(D, Mode:mode=[{open,save}]) :->
+initialise(D, Mode:mode=[{open,save}], Label:[char_array]) :->
 	default(Mode, open, TheMode),
 	send_super(D, initialise, find_file?label_name),
 	send(D, slot, message, @default),
@@ -102,7 +102,7 @@ initialise(D, Mode:mode=[{open,save}]) :->
 	send(New, label, image(resource(newdir))),
 	send(D, default_button, ok),
 	send(D, resize_message, message(D, layout, @arg2)),
-	send(D, mode, TheMode),
+	send(D, mode, TheMode, Label),
 	send(D, keyboard_focus, File).
 
 

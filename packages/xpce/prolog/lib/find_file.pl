@@ -91,6 +91,7 @@ register_file_dialog :-
 		   "Find files on behalf of applications").
 
 variable(directory,	directory,	both, "Current directory").
+variable(label,		[char_array],	both, "Used label").
 
 initialise(F) :->
 	send_super(F, initialise),
@@ -114,13 +115,15 @@ get_file(F, Exists, Ext, Dir, Default, File) :-
 	->  DefFile = Default
 	;   get(Default, name, DefFile)
 	),
+	get(F, label, Label),
 	get(@display, win_file_name, Mode, Filters,
-	    @default, DefFile, DefDir, File),
+	    Label, DefFile, DefDir, File),
 	file_directory_name(File, NewDir),
 	send(F, slot, directory, NewDir).
 get_file(F, Exists, Ext, Dir, Default, File) :-
 	mode(Exists, Mode),
-	new(D, find_file_dialog(Mode)),
+	get(F, label, Label),
+	new(D, find_file_dialog(Mode, Label)),
 	send(D, filter, Ext),
 	(   Dir == @default
 	->  send(D, directory, F?directory)

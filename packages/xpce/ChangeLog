@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `finder->label' compatibility.
+
 * FIXED: Missing ws_unlink_colour_map() in X11 version.  Paulo Moura.
 
 VERSION 6.0.7, distributed with SWI-Prolog 5.0.7
