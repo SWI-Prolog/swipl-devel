@@ -84,10 +84,20 @@ unlink(B) :->
 
 :- pce_global(@emacs_interpreter_regex,
 	      new(regex('#!\\(\\S +\\)\\s '))).
+:- pce_global(@emacs_mode_regex,	% -*- Mode -*-
+					% -*- mode: Mode; ... -*-
+	      new(regex('.*-\\*-\\s *\\([Mm]ode:\\s *\\(\\w+\\);.*-\\*-\\|\\(\\w+\\)\\s *-\\*-\\)'))).
+
 
 determine_initial_mode(B) :->
 	"Determine initial mode"::
-	(   (   send(@emacs_interpreter_regex, match, B),
+	(   send(@emacs_mode_regex, match, B),
+	    member(Reg, [2,3]),
+	    get(@emacs_mode_regex, register_value, B, Reg, Mode0),
+	    get(Mode0?downcase, value, Mode),
+	    get(@pce, convert, Mode, emacs_mode, _ModeObject)
+	->  send(B, slot, mode, Mode)
+	;   (   send(@emacs_interpreter_regex, match, B),
 		get(@emacs_interpreter_regex, register_value, B, 1, Match),
 		To = @emacs_interpreter_mode_list
 	    ;   get(B, file, File),

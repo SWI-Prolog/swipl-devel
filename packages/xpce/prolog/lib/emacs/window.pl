@@ -889,6 +889,7 @@ binding_name(ClassName, Name) :-
 convert(_, Name:name, Mode:emacs_mode) :<-
         "Convert name into a mode object"::
         concat_atom([emacs_, Name, '_mode'], ModeClassName),
+	get(@pce, convert, ModeClassName, class, _), % fail silently
         new(Mode, ModeClassName).
 
 
