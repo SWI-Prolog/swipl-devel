@@ -23,5 +23,8 @@
 	send(X, syntax,     '#',  comment_start),
 	send(X, add_syntax, '\n', comment_end).
 
+:- initialization
+	new(_, emacs_mode_menu(script, language)).
+
 :- pce_end_class.
 

@@ -103,8 +103,7 @@ recogniser.
 :- pce_global(@draw_text_recogniser,
 	      new(handler_group(@draw_shape_select_recogniser,
 				@draw_edit_text_recogniser,
-				click_gesture(middle, '', single,
-					      message(@receiver, paste)),
+				@draw_text_paste_recogniser,
 				new(draw_resize_selection_gesture),
 				@draw_move_outline_gesture,
 				@draw_connect_gesture,
@@ -673,6 +672,8 @@ focus.
 	      make_draw_edit_text_recogniser).
 :- pce_global(@draw_compound_draw_text_recogniser,
 	      make_draw_compound_draw_text_recogniser).
+:- pce_global(@draw_text_paste_recogniser,
+	      make_draw_text_paste_recogniser).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 After `Device  ->display'  the new  graphical is  at  the end  of  the
@@ -711,6 +712,11 @@ make_draw_compound_draw_text_recogniser(R) :-
 			     message(Compound, start_text, @event),
 			     Canvas?(mode) == draw_edit)).
 	
+make_draw_text_paste_recogniser(G) :-
+	new(G, click_gesture(middle, '', single,
+			     message(@receiver, paste))),
+	send(G, condition, @event?receiver?show_caret == @on).
+
 
 		/********************************
 		*             MOVE		*

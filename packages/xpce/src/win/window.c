@@ -310,7 +310,7 @@ updatePositionWindow(PceWindow sw)
 
   if ( parent && createdWindow(parent) &&
        parent->displayed == ON &&
-       sw->displayed == ON )
+       getIsDisplayedGraphical((Graphical)sw, (Device)parent) == ON )
   { int ox, oy, x, y, w, h;
     int pen = valInt(sw->pen);
 

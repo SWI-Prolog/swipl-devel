@@ -730,7 +730,7 @@ exposeDevice(Device dev, Graphical gr, Graphical gr2)
   { moveAfterChain(dev->graphicals, gr, gr2);
     changedEntireImageGraphical(gr2);
   }
-  requestComputeDevice(dev, DEFAULT);		/* Actually only needs format */
+  requestComputeDevice(dev, DEFAULT);	/* Actually only needs format */
 
   changedEntireImageGraphical(gr);
 

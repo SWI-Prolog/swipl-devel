@@ -1,5 +1,13 @@
 [VERSION 4.8.5]
 
+* FIXED: PceEmacs: script-mode now makes menu.  Otherwise mode refinement
+  doesn't work properly.
+
+* FIXED: PceDraw middle-click on text objects `pasted' always.  Now only
+  if the text object has the caret.
+
+* FIXED: <-displayed handling of windows when displayed on other windows.
+
 * EXTENDED/FIXED: 16-bit character support:
 
 	* Fixed `editor ->insert_self' for 16-bit values
@@ -7,6 +15,11 @@
 	* Fixed methods using newline, tab and space constants
 	* `key_binding ->typed' calls <-function, so this may be
 	  redefined.
+
+* ADDED: Introduced class class_stub above class class.  Intended for
+  lazy creation of classes in a foreseen modification of the class
+  compiler.  This modification itself will ensure better and faster
+  runtime generation, but is delayed due to more urgent matters.
 
 * ADDED: Defined load/save format to load/save plain char_array objects
   using ->save_in_file and `file <-object'.

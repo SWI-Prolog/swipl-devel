@@ -103,12 +103,12 @@ statusFigure(Figure f, Name stat)
 
   if ( stat == NAME_allActive )
   { for_cell(cell, f->graphicals)
-      displayedGraphicalDevice((Device) f, cell->value, ON);
+      DisplayedGraphical(cell->value, ON);
   } else
   { for_cell(cell, f->graphicals)
     { Graphical gr = cell->value;
     
-      displayedGraphicalDevice((Device) f, gr, gr->name == stat ? ON : OFF);
+      DisplayedGraphical(gr, gr->name == stat ? ON : OFF);
     }
     assign(f, status, stat);
   }

@@ -41,7 +41,7 @@ RANLIB=ranlib
 
 # LIBRARIES
 
-NETLIBS= -lnsl
+NETLIBS=
 PLLIBS=-lreadline -ltermcap -lm
 XLIBS=-lXt -lX11
 STATICLIBS=
