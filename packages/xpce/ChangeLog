@@ -4,6 +4,8 @@
 VERSION 6.2.10, distributed with SWI-Prolog 5.2.10
 ==================================================
 
+* FIXED: Bug#102: focus handling problems in combo box.  Holger Kanwischer.
+
 * ADDED: library(pce_grapher) to support creating and managing simple Prolog
   graphs.  Especially useful for educational purposes.
 
