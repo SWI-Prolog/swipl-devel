@@ -647,14 +647,14 @@ Compares two substrings of two text representations.
 int
 PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
 	    unsigned len)
-{ unsigned int l = len;
+{ int l = len;
   int ifeq = 0;
 
-  if ( l > t1->length - o1 )
+  if ( l > (int)t1->length - o1 )
   { l = t1->length - o1;
     ifeq = -1;				/* first is short */
   }
-  if ( l > t2->length - o2 )
+  if ( l > (int)t2->length - o2 )
   { l = t2->length - o2;
     if ( ifeq == 0 )
       ifeq = 1;
