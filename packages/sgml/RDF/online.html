@@ -75,6 +75,23 @@ attaching a comment to the stored RDF statement.
 </table>
 </form>
 
+<h4><hr>Notes<hr></h4
+
+<dl>
+<dt><b><em>rdf:</em>resource, etc.</b><dd>
+The specification and discussion on the rdf interest group yielded no
+satisfactory solution how to deal with RDF attributes that are not in
+the RDF namespace such as <b>ID</b>, <b>resource</b>, etc. This parser
+interprets such attributes in the namespace of the element, so the
+statement below is not interpreted as a <b>propertyElt</b> with value
+<code>me</code> but as a <b>typedNode</b> with predicate
+<code>resource</code> and value <b>literal(</b>me<b>)</b>.
+
+<pre>
+  &lt;s:Creator resource="#me"&gt;
+</pre>
+</dl>
+
 <!---------------------------------------------------------------->
 <!-- EXAMPLES -->
 <!---------------------------------------------------------------->
