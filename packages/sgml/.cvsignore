@@ -6,3 +6,8 @@ content.pl
 big.xml
 P9000.sgml
 sgml.00[0-9]
+Debug
+Release
+sgml.ncb
+sgml.opt
+sgml.plg
