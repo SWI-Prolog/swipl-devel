@@ -29,7 +29,7 @@ class may be used as an   example/template  for defining compound dialog
 items.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_begin_class(font_item, device, "Dialog item for defining a font").
+:- pce_begin_class(font_item, dialog_group, "Dialog item for defining a font").
 
 variable(message,	code*,		both,	"Message executed on change").
 variable(default,	'font|function',get,	"Default value").
@@ -41,25 +41,26 @@ initialise(FI, Name:[name],
 	"Create font-selector"::
 	default(Name, font, Nm),
 	default(Message, @nil, Msg),
-	default(Default, font(screen, roman, 13), Def),
+	default(Default, normal, Def),
 	send(FI, slot, message, Msg),
 	send(FI, slot, default, Def),
-	send(FI, send_super, initialise),
-	send(FI, name, Nm),
+	send(FI, send_super, initialise, Nm, group),
+	send(FI, gap, size(0,0)),
 	send(FI, alignment, column),
 	send(FI, auto_label_align, @on),
-	send(FI, append_dialog_item,
+	send(FI, append,
 	     new(Fam, menu(family, cycle, message(FI, family, @arg1)))),
-	send(FI, append_dialog_item,
+	send(FI, append,
 	     new(Wgt, menu(weight, cycle, message(FI, weight, @arg1))), right),
-	send(FI, append_dialog_item,
+	send(FI, append,
 	     new(Pts, menu(points, cycle, message(FI, points, @arg1))), right),
+	send(Fam, auto_label_align, off),
 	send(Fam, label, ?(Fam, label_name, Nm)),
 	send(Wgt, label, ''),
 	send(Pts, label, ''),
 	send(FI, value_set, ValueSet),
 	send(FI, default, Def),
-	send(FI, layout_dialog, size(0, 0)).
+	send(FI, layout_dialog).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -73,19 +74,16 @@ label(FI, Label:name) :->
 	"Set the label"::
 	get(FI, member, family, Fam),
 	send(Fam, label, Label),
-	send(FI, layout_dialog, size(0, 0)).
+	send(Fam, label_width, @default),	
+	send(FI, layout_dialog).
 
 label_width(FI, W:int) :<-
 	get(FI, member, family, Fam),
 	get(Fam, label_width, W).
 label_width(FI, W:int) :->
 	get(FI, member, family, Fam),
-	get(Fam, slot, label_width, O),
 	send(Fam, label_width, W),
-	get(FI, member, weight, Wgt),
-	get(FI, member, points, Pts),
-	send(Wgt, relative_move, point(W-O, 0)),
-	send(Pts, relative_move, point(W-O, 0)).
+	send(FI, layout_dialog).
 
 reference(FI, Ref:point) :<-
 	"Dialog item reference point"::

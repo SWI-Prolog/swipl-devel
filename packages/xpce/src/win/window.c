@@ -924,8 +924,6 @@ redrawWindow(PceWindow sw, Area a)
   ws_invalidate_window(sw, DEFAULT);
 #else
   int ox, oy, dw, dh;
-  int w   = valInt(sw->area->w);
-  int h   = valInt(sw->area->h);
   int tmp = FALSE;
   iarea ia;
 
@@ -946,7 +944,9 @@ redrawWindow(PceWindow sw, Area a)
     ia.h = valInt(a->h);
   }
 
-  DEBUG(NAME_redraw, Cprintf("redrawWindow: w=%d, h=%d\n", w, h));
+  DEBUG(NAME_redraw, Cprintf("redrawWindow: w=%d, h=%d\n",
+			     valInt(sw->area->w),
+			     valInt(sw->area->h)));
 
   ox += valInt(sw->scroll_offset->x);
   oy += valInt(sw->scroll_offset->y);

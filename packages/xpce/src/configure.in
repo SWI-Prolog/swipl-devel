@@ -125,44 +125,43 @@ builddir=`basename $PWD`
 AC_MSG_RESULT("$builddir")
 
 if test "$swipl" = "yes"; then
-  plcandidates="pl swipl swi-prolog"
   if test "$runtime" = "yes"; then
-      plcandidates="plrt swiplrt swi-prologrt $plcandidates"
+    if test -z "$PL"; then
+      if test "$exec_prefix" = "NONE"; then
+	if test "$prefix" = "NONE"; then
+	  plprefix=/usr/local
+	else
+	  plprefix="$prefix"
+	fi
+      else
+	plprefix="$exec_prefix"
+      fi
+      if test -r $plprefix/lib/rt-pl-*/bin/$ARCH-$OS/pl; then
+        PL=$plprefix/lib/rt-pl-*/bin/$ARCH-$OS/pl
+	AC_MSG_RESULT("PL=$PL")
+      else
+        AC_MSG_RESULT("No $plprefix/lib/rt-pl-*/bin/$ARCH-$OS/pl");
+      fi
+    fi
+    plcandidates="plrt"
+  else
+    plcandidates="pl swipl swi-prolog"
   fi
   AC_CHECK_PROGS(PL, $plcandidates, "none")
   if test $PL = "none"; then
      AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
   else
-     AC_CHECKING("Running $PL to find home and architecture")
-changequote(,)dnl
-     $PL -f none -g true << _EOS_
-     feature(arch, Arch),
-     feature(home, Home),
-     feature(c_libs, PLLIBS),
-     feature(c_ldflags, PLLDFLAGS),
-     tell('/tmp/__plparms$$'),
-     format('PLBASE="~w"~n', Home),
-     format('PLARCH="~w"~n', Arch),
-     format('PLLIBS="~w"~n', PLLIBS),
-     format('PLLDFLAGS="~w"~n', PLLDFLAGS),
-     (   feature(open_shared_object, true)
-     ->	 format('MAKE_SHARED_OBJECT=yes~n', [])
-     ;   true
-     ),
-     told,
-     halt.
-_EOS_
-changequote([,])dnl
-     . /tmp/__plparms$$
-     rm -f /tmp/__plparms$$
+     AC_CHECKING("Running $PL -dump-runtime-variables")
+     eval `$PL -dump-runtime-variables`
+  fi
+  if test -z "$MAKE_SHARED_OBJECT" && test "$PLSHARED" = "yes"; then
+     MAKE_SHARED_OBJECT=yes
   fi
   AC_MSG_RESULT("		PLBASE=$PLBASE")
   AC_MSG_RESULT("		PLARCH=$PLARCH")
   AC_MSG_RESULT("		PLLIBS=$PLLIBS")
   AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
-  if test ! -z "$MAKE_SHARED_OBJECT"; then
-    AC_MSG_RESULT("		MAKE_SHARED_OBJECT=yes")
-  fi
+  AC_MSG_RESULT("		MAKE_SHARED_OBJECT=$MAKE_SHARED_OBJECT")
   
   case "$PLARCH" in
       *)			LDFLAGS="$PLLDFLAGS" ;;
@@ -252,6 +251,9 @@ else
   BOOTPL=xpce
 fi
 
+if test "$runtime" = yes; then
+  PLTARGET=rt-$PLTARGET
+fi
 
 AC_MSG_CHECKING("tar flags to create including symbolic links")
 mkdir conftest.in conftest.out

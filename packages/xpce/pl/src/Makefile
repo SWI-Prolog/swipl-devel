@@ -61,6 +61,9 @@ soall:		$(PLBASE)/pl.rc $(PLBASE)/xpce.rc $(PLBASE)/xpce \
 		$(PLBASE)/Makefile $(PLBASE)/xpce/lib/$(PLARCH) \
 		$(XPCESO) bootqlf
 
+rt-soall:	$(XPCESO)
+rt-nosoall:	$(XPCE)
+
 ################################################################
 # Objects for $(OBJDIR)
 ################################################################

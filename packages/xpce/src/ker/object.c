@@ -2394,6 +2394,7 @@ reportObject(Any obj, Name kind, CharArray fmt, int argc, Any *argv)
 		*        MANUAL SUPPORT		*
 		********************************/
 
+#ifndef O_RUNTIME
 Name
 getManIdObject(Any obj)
 { Name name;
@@ -2413,6 +2414,7 @@ static Name
 getManIndicatorObject(Any obj)
 { answer(CtoName("O"));
 }
+#endif
 
 
 static CharArray
