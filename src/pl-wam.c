@@ -787,12 +787,12 @@ PL_call_predicate(Module Context, bool debug, Procedure proc, Word *argv)
   lockp(&envSave);
 
 #define RETURN(val) do \
-	            { RESTORE_REGS(); \
-		      unlockp(&envSave); \
+	            { unlockp(&envSave); \
 		      unlockp(&lSave); \
 		      unlockp(&ARGP); \
 		      unlockp(&BFR); \
 		      unlockp(&FR); \
+		      RESTORE_REGS(); \
 		      return(val); \
 		    } while(0)
 #else

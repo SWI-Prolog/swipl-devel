@@ -15,7 +15,7 @@
 #
 ################################################################
 
-PLVERSION=2.0.6
+PLVERSION=2.0.7
 
 PL=pl
 prefix=/staff/jan
@@ -49,9 +49,11 @@ PLFOREIGN=foreign.pl
 DEFSTARTUP=.plrc
 
 PB=../boot
-EXPORTS=../include/SWI-Exports
-CINCLUDE=../include/SWI-Prolog.h
-STREAMH=../include/SWI-Stream.h
+INCLUDEDIR=../include
+EXPORTS=$(INCLUDEDIR)/SWI-Exports
+CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
+STREAMH=$(INCLUDEDIR)/SWI-Stream.h
+STUBC=$(INCLUDEDIR)/stub.c
 STARTUPPATH=$(PL).qlf
 RUNTIMEDIR=../runtime/$(ARCH)
 RUNTIME=$(RUNTIMEDIR)/$(PL).o
@@ -79,7 +81,7 @@ all:	../VERSION banner headers system startup index runtime pl-bite
 
 system:		$(PL)
 startup:	$(STARTUPPATH)
-headers:	parms.h $(EXPORTS) $(CINCLUDE) $(STREAMH)
+headers:	parms.h $(EXPORTS) $(CINCLUDE) $(STREAMH) $(STUBC)
 runtime:	$(RUNTIME)
 
 banner:
@@ -108,18 +110,22 @@ index:
 			-g make_library_index\(\'../library\'\) \
 			-t halt
 
-$(EXPORTS):	Makefile pl-export
-		if [ ! -d ../include ]; then mkdir ../include; fi
+$(INCLUDEDIR):
+		if [ ! -d $@ ]; then mkdir $@; fi
+
+$(EXPORTS):	Makefile pl-export $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $(EXPORTS)
 		cat pl-export >> $(EXPORTS)
 
-$(CINCLUDE):	pl-itf.h
-		if [ ! -d ../include ]; then mkdir ../include; fi
+$(CINCLUDE):	pl-itf.h $(INCLUDEDIR)
 		cp pl-itf.h $(CINCLUDE)
 
-$(STREAMH):	pl-stream.h
-		if [ ! -d ../include ]; then mkdir ../include; fi
+$(STREAMH):	pl-stream.h $(INCLUDEDIR)
 		cp pl-stream.h $@
+
+$(STUBC):	pl-extend.c $(INCLUDEDIR)
+		$(SED) 's/"pl-itf.h"/<SWI-Prolog.h>/' pl-extend.c > $@
+		
 
 parms.h:	Makefile
 		@echo "#define PLHOME       \"$(PLBASE)\""      > %$@%
@@ -204,7 +210,7 @@ ilib:
 
 iinclude:       
 		cd ../include; \
-		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h; do \
+		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
 		    if [ -f $$f ]; then \
 			$(INSTALL_DATA) $$f $(PLBASE)/include; \
 		    fi; \
