@@ -46,6 +46,26 @@ computeTBox(TBox tb)
   succeed;
 }
 
+
+HBox
+getSpaceHBoxFont(FontObj f)
+{ return answerObject(ClassHBox,
+		      getAdvanceFont(f, (CharArray)name_space),
+		      getAscentFont(f),
+		      getDescentFont(f),
+		      findGlobal(NAME_spaceRubber),
+		      0);
+}
+
+
+static HBox
+getSpaceTBox(TBox tb)
+{ FontObj f = getFontTBox(tb);
+
+  return getSpaceHBoxFont(f);
+}
+
+
 		 /*******************************
 		 *	      REDRAW		*
 		 *******************************/
@@ -98,12 +118,10 @@ static senddecl send_tbox[] =
 
 /* Get Methods */
 
-#define get_tbox NULL
-/*
 static getdecl get_tbox[] =
-{ 
+{ GM(NAME_space, 0, "hbox", NULL, getSpaceTBox,
+     NAME_layout, "Yield hbox for a space compatible with tbox")
 };
-*/
 
 /* Resources */
 

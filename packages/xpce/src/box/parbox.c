@@ -54,6 +54,69 @@ clearParBox(ParBox pb)
 }
 
 
+static HBox
+makeDefaultSpace(TBox refbox, Style style)
+{ HBox hb;
+  FontObj f;
+
+  if ( notNil(refbox) )
+  { if ( (hb=get(refbox, NAME_space, 0)) )
+      return hb;
+  }
+
+  if ( notDefault(style) && notDefault(style->font) )
+    f = style->font;
+  else
+    f = getClassVariableValueClass(ClassTBox, NAME_font);
+
+  return getSpaceHBoxFont(f);
+}
+
+
+static status
+cdataParBox(ParBox pb, StringObj cdata,
+	    Style style,
+	    HBox space,
+	    Name ignore_blanks)
+{ const char *text = strName(cdata);
+  Any refbox = NIL;
+
+  if ( ignore_blanks == NAME_leading )
+  { while( *text && islayout(*text) )
+      text++;
+  }
+  
+  while( *text )
+  { if ( islayout(*text) )
+    { while( *text && islayout(*text) )
+	text++;
+
+      if ( isDefault(space) )
+	space = makeDefaultSpace(refbox, style);
+
+      appendParBox(pb, space);		/* send? */
+    } else
+    { const char *start = text;
+      string s;
+      Name n;
+
+      while( *text && !islayout(*text) )
+	text++;
+
+      str_inithdr(&s, ENC_ASCII);
+      s.size = text - start;
+      s.s_text8 = (char *)start;
+
+      n = StringToName(&s);
+
+      appendParBox(pb, (refbox=newObject(ClassTBox, n, style, 0)));
+    }
+  }
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	  LOW-LEVEL DATA	*
 		 *******************************/
@@ -1120,6 +1183,9 @@ static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_boxArea[] =
 	{ "for=hbox|1..", "relative_to=[device]" };
+static char *T_cdata[] = 
+	{ "cdata=string", "style=[style]", "space=[hbox]",
+	  "ignore_blanks=[{leading,none}]" };
 
 
 /* Instance Variables */
@@ -1148,6 +1214,8 @@ static senddecl send_parbox[] =
      DEFAULT, "Change parbox width"),
   SM(NAME_append, 1, "hbox", appendParBox,
      NAME_content, "Append a hbox"),
+  SM(NAME_cdata, 4, T_cdata, cdataParBox,
+     NAME_content, "Append CDATA after breaking into words"),
   SM(NAME_clear, 0, NULL, clearParBox,
      NAME_content, "Delete all contents")
 };

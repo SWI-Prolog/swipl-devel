@@ -102,6 +102,16 @@ ClassDecl(rubber_decls,
 
 status
 makeClassRubber(Class class)
-{ return declareClass(class, &rubber_decls);
+{ declareClass(class, &rubber_decls);
+
+  globalObject(NAME_spaceRubber,
+	       ClassRubber,
+	       toInt(1),
+	       toInt(100),
+	       toInt(1),
+	       NAME_allow,
+	       0);
+
+  succeed;
 }
 
