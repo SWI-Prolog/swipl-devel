@@ -33,7 +33,8 @@
 
 :- multifile
 	prolog:debug_control_hook/1,
-	prolog:help_hook/1.
+	prolog:help_hook/1,
+	prolog:show_profile_hook/2.
 
        		 /*******************************
 		 *	    DEBUG HOOKS		*
@@ -58,3 +59,11 @@ prolog:help_hook(help(What)) :- !,
 	     ->  manpce(Method)
 	     ;   prolog_help(What)
 	     )).
+
+
+		 /*******************************
+		 *	     PROFILING		*
+		 *******************************/
+
+prolog:show_profile_hook(_Style, _Top) :-
+	call(pce_show_profile).

@@ -31,9 +31,10 @@
 
 
 :- module(prolog_statistics,
-	  [ time/1,
-	    show_profile/1,
-	    profile/3
+	  [ time/1,			% :Goal
+	    profile/1,			% :Goal
+	    profile/3,			% :Goal, +Style, +Top
+	    show_profile/1		% +Top
 	  ]).
 
 :- module_transparent
@@ -66,56 +67,184 @@ time(Goal) :-
 	).
 
 
+		 /*******************************
+		 *     EXECUTION PROFILING	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This module provides a simple backward compatibility frontend on the new
+(in version 5.1.10) execution profiler  with  a   hook  to  the  new GUI
+visualiser for profiling results defined in library('swi/pce_profile').
+
+Later we will add a proper textual report-generator.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- module_transparent
+	profile/1,
+	profile/3.
+:- multifile
+	prolog:show_profile_hook/2.
+
+%	profile(:Goal, +ShowStyle, +TopN)
+%	
+%	Run Goal under the execution profiler and show the top TopN
+%	goals using ShowStyle.
+
+profile(Goal) :-
+	profile(Goal, plain, 25).
+profile(Goal, Style, N) :-
+	call_cleanup('$profile'(Goal),
+		     prolog_statistics:show_profile(Style, N)).
+
+
 %   show_profile(N)
+%
 %   Show the top N functions' profile. Negative numbers or 0 show ALL
 %   functions that have been called during profiling.
 
 show_profile(N) :-
-	findall( triple(Perc, Calls, Module:Head), 
-		 enum_profile_count(Module:Head, Calls, Perc), 
-		 List), 
-	sort(List, Sorted), 
+	show_profile(plain, N).
+
+show_profile(How, N) :-
+	prolog:show_profile_hook(How, N), !.
+show_profile(How, N) :-
+	prof_statistics(Stat),
+	sort_on(How, SortKey),
+	findall(KeyedNode, prof_node(SortKey, KeyedNode), Nodes),
+	keysort(Nodes, Sorted),
 	reverse(Sorted, HighFirst), 
-	format('~w~t~w =~41|~t~w~57| = ~w ~t~w~79|~n',
-	       [ 'Predicate', 'Box Entries', 'Calls+Redos'
-	       , 'Exits+Fails', 'Time'
+	format('~w~t~w =~45|~t~w~60|~t~w~69|~n',
+	       [ 'Predicate', 'Box Entries', 'Calls+Redos', 'Time'
 	       ]),
-	format('~61t~79|~n'),
-	show_profile(N, HighFirst).
+	format('~61t~69|~n'),
+	show_plain(HighFirst, N, Stat, SortKey).
 
-enum_profile_count(Head, Calls, Perc) :-
-	current_predicate(_, Head), 
-	\+ predicate_property(Head, imported_from(_)), 
-	profile_count(Head, Calls, Perc), 
-	Calls \== 0.
+sort_on(plain, ticks_self).
+sort_on(cumulative, ticks).
 
-show_profile(0, _) :- !.
-show_profile(_, []) :- !.
-show_profile(N, [triple(Prom, Total, Pred)|Rest]) :-
-	predicate_name(Pred, Name),
-	profile_box(Pred, Calls, Redos, Exits, Fails),
-	format('~w~t~D =~41|~t~D+~D~57| = ~D+~D ~t~1d%~79|~n',
-	       [Name, Total, Calls, Redos, Exits, Fails, Prom]), 
-	succ(M, N), 
-	show_profile(M, Rest).
+show_plain([], _, _, _).
+show_plain(_, 0, _, _) :- !.
+show_plain([_-H|T], N, Stat, Key) :-
+	show_plain(H, Stat, Key),
+	N2 is N - 1,
+	show_plain(T, N2, Stat, Key).
 
-:- module_transparent
-	profile/3.
+show_plain(Node, Stat, Key) :-
+	value(label,			   Node, Pred),
+	value(call,			   Node, Call),
+	value(redo,			   Node, Redo),
+	value(time(Key, percentage, Stat), Node, Percent),
+	IntPercent is round(Percent*10),
+	Entry is Call + Redo,
+	format('~w~t~D =~45|~t~D+~55|~D ~t~1d%~69|~n',
+	       [Pred, Entry, Call, Redo, IntPercent]).
 
-profile(Goal, Style, N) :-
-	profiler(_, off), 
-	reset_profiler, 
-	profiler(_, Style), 
-	(   catch(time(Goal), E, true)
-	->  Rval = true
-	;   Rval = fail
-	),
-	profiler(_, off), 
-	show_profile(N), !, 
-	(   nonvar(E)
-	->  throw(E)
-	;   Rval == true
+
+		 /*******************************
+		 *	   DATA GATHERING	*
+		 *******************************/
+
+%	prof_statistics(prof(Ticks, Account, Time, Nodes))
+%	
+%	Get overall statistics
+
+prof_statistics(prof(Ticks, Account, Time, Nodes)) :-
+	'$prof_statistics'(Ticks, Account, Time, Nodes).
+
+prof_statistics(ticks, Term, Ticks) :-
+	arg(1, Term, Ticks).
+prof_statistics(accounting, Term, Ticks) :-
+	arg(2, Term, Ticks).
+prof_statistics(time, Term, Ticks) :-
+	arg(3, Term, Ticks).
+prof_statistics(nodes, Term, Ticks) :-
+	arg(4, Term, Ticks).
+
+
+%	prof_node(+KeyOn
+%		  Key-node(Pred,
+%		           TimeSelf, TimeSiblings,
+%		           Calls, Redo, Recursive,
+%		           Parents))
+%
+%	Collect data for each of the interesting predicates.
+
+prof_node(KeyOn, Node) :-
+	style_check(+dollar),
+	call_cleanup(get_prof_node(KeyOn, Node), style_check(-dollar)).
+
+get_prof_node(KeyOn, Key-Node) :-
+	Node = node(M:H,
+		    TicksSelf, TicksSiblings,
+		    Call, Redo, Recursive,
+		    Parents, Siblings),
+	current_predicate(_, M:H),
+	\+ predicate_property(M:H, imported_from(_)),
+	'$prof_procedure_data'(M:H,
+			       TicksSelf, TicksSiblings,
+			       Call, Redo, Recursive,
+			       Parents, Siblings),
+	value(KeyOn, Node, Key).
+
+key(predicate,	    1).
+key(ticks_self,	    2).
+key(ticks_siblings, 3).
+key(call,	    4).
+key(redo,	    5).
+key(recursive,	    6).
+key(callers,	    7).
+key(callees,	    8).
+
+value(name, Data, Name) :- !,
+	arg(1, Data, Pred),
+	predicate_name(Pred, Name).
+value(label, Data, Label) :- !,
+	arg(1, Data, Pred),
+	predicate_label(Pred, Label).
+value(ticks, Data, Ticks) :- !,
+	arg(2, Data, Self),
+	arg(3, Data, Siblings),
+	Ticks is Self + Siblings.
+value(time(Key, percentage, Stat), Data, Percent) :- !,
+	value(Key, Data, Ticks),
+	prof_statistics(ticks, Stat, Total),
+	prof_statistics(accounting, Stat, Account),
+	(   Total-Account > 0
+	->  Percent is 100 * (Ticks/(Total-Account))
+	;   Percent is 0.0
 	).
+value(Name, Data, Value) :-
+	key(Name, Arg),
+	arg(Arg, Data, Value).
+
+%	predicate_label(+Head, -Label)
+%	
+%	Create a human-readable label for the given head
+
+predicate_label(M:H, Label) :- !,
+	functor(H, Name, Arity),
+	(   hidden_module(M, H)
+	->  concat_atom([Name, /, Arity], Label)
+	;   concat_atom([M, :, Name, /, Arity], Label)
+	).
+predicate_label(H, Label) :- !,
+	functor(H, Name, Arity),
+	concat_atom([Name, /, Arity], Label).
+
+hidden_module(system, _).
+hidden_module(user, _).
+hidden_module(M, H) :-
+	predicate_property(system:H, imported_from(M)).
+
+%	predicate_name(+Head, -Name)
+%	
+%	Return the (module-free) name of the predicate for sorting
+%	purposes.
+
+predicate_name(_:H, Name) :- !,
+	predicate_name(H, Name).
+predicate_name(H, Name) :-
+	functor(H, Name, _Arity).
 
 
 		 /*******************************
@@ -127,20 +256,3 @@ profile(Goal, Style, N) :-
 
 prolog:message(time(UsedInf, UsedTime, Lips)) -->
 	[ '~D inferences in ~2f seconds (~w Lips)'-[UsedInf, UsedTime, Lips] ].
-
-
-:- module_transparent
-	predicate_name/2.
-
-%	predicate_name(+Head, -String)
-%	Convert `Head' into a predicate name.
-
-predicate_name(Goal, String) :-
-	'$strip_module'(Goal, Module, Head), 
-	functor(Head, Name, Arity), 
-	(   memberchk(Module, [user, system])
-	->  sformat(String, '~w/~w',	[Name, Arity])
-	;   sformat(String, '~w:~w/~w',	[Module, Name, Arity])
-	).
-
-
