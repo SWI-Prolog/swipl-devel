@@ -372,18 +372,20 @@ the file and \arg{Line} with the line-number in the file. New code
 should use prolog_load_context/2.
 
     \predicate{term_expansion}{2}{+Term1, -Term2}
-Dynamic predicate, normally not defined.  When defined by the user all
-terms read during consulting that are given to this predicate.  If the
-predicate succeeds Prolog will assert \arg{Term2} in the database rather
-then the read term (\arg{Term1}).  \arg{Term2} may be a term of a the
-form `?- \arg{Goal}' or `:- \arg{Goal}'.  \arg{Goal} is then treated as
-a directive. If \arg{Term2} is a list all terms of the list are stored
-in the database or called (for directives).  If \arg{Term2} is of the
-form below, the system will assert \arg{Clause} and record the indicated
-source-location with it.
+Dynamic and multifile predicate, normally not defined. When defined by
+the user all terms read during consulting are given to this
+predicate. If the predicate succeeds Prolog will assert \arg{Term2} in
+the database rather then the read term (\arg{Term1}). \arg{Term2} may be
+a term of a the form `?- \arg{Goal}' or `:- \arg{Goal}'. \arg{Goal} is
+then treated as a directive. If \arg{Term2} is a list all terms of the
+list are stored in the database or called (for directives). If
+\arg{Term2} is of the form below, the system will assert \arg{Clause}
+and record the indicated source-location with it.
+
 \begin{quote}
 \mbox{\tt '\$source_location'(<File>, <Line>):<Clause>}
 \end{quote}
+
 When compiling a module (see \chapref{modules} and the directive module/2),
 expand_term/2 will first try term_expansion/2 in the module being
 compiled to allow for term-expansion rules that are local to a module.
