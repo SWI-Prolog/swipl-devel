@@ -1,50 +1,72 @@
-SWI-Prolog 5.0.10/XPCE 6.0.10 Summary of changes
+SWI-Prolog 5.1.1/XPCE 6.1.1 Summary of changes
+
+Status
+======
+  
+  * 2nd beta-release.  Suitable for research and development.
+    Discouraged for production usage.  
+
 
 SWI-Prolog
 ==========
 
-  * Mostly portability patches, notably for gcc-3.x, Solaris 9 and
-    MacOS X 10.2.  Some code and configuration cleanup.  In general,
-    be careful with gcc 3.x as there appear to be some buggy versions
-    around.
+  * Both Linux and Windows binaries now come as multi-threaded versions.
+    
+  * Performance improvements in shallow backtracing (+/- 30%) and
+    indexing (+/- 10%).
 
-  * Fixed some issues around the *-> operator.
+  * Moved list predicates (member/2, etc) from built-in to a new
+    library(lists) for better compatibility and allow students to
+    define these predicates without name-conflict.
+    
+    Existing code shouldn't be affected due to the auto-loader.
+
+  * Fixed assertion-failure on negative reference-count in atoms.
+    Notably affects embedded applications and platforms that do not
+    zero memory before handing it new applications.
+
+  * Updated Windows makefiles to deal properly with spaces in source
+    and target folders and run on Windows 2000.  For better security,
+    compilation is moved to a VMWARE virtual machine with only access
+    to its hosting Linux machine and is only used for compiling Prolog.
+
 
 Packages
 ========
 
-  * ODBC: More bug-fixes.  There are probably still problems with certain
-    odbc drivers and database drivers, but I consider the library API
-    stable and the library ready for real use.  Main test platforms
-    are Linux/UnixODBC/MySQL and Windows NT/MS-ODBC/SQL Server.
+  * ODBC: Bug-fixes handling long VARCHAR and VARBINARY data-types.
 
-  * SGML/XML parser:
-    **MODIFIED** XML+Namespaces (mode xmlns): unqualified attributes are no
-    longer qualified to the namespace of their element.  Though the standard
-    says they are normally interpreted in the namespace of the element it
-    also says they are unqualified.
+  * SGML/XML parser: Small fixes, notably in XML mode.
 
-    There is a new option qualify_attributes(Bool) to get the old behaviour
-    as this is sometimes handy and makes it easier to deal with code assuming
-    the old behaviour.
+  * RDF-Parser: Updated for the new revised syntax (8 nov).  Most important
+    additions are support for xml:base and parseType="Collection".  The
+    source-tree includes code for handling the W3C RDF test-suite.  The
+    library(rdf_diagram) is added to visualise triples as a graph
+    (documentation follows later).
+    
+  * XPCE: Made windows version thread-safe.  Minor patches.
 
-    The RDF parser is adjusted to deal with these changes.
 
-    **MODIFIED**: when entities are redefined, the first value is used
-    (i.e. the attempt to redefine is ignored) rather than the last encountered
-    definition.  Again to comply to the standards.
+Development environment
+=======================
 
-    *FIXES*: There are some fixes to the SGML parser, notably handling
-    <em/shorttag/ elements and parsing DTD from the <!DOCTYPE xx [...]>
-    in-document definition.  In addition, there is a fix in XML mode
-    handling documents that have <!ATTLIST declarations, but no <!ELEMENT
-    declarations.
+  * Minor patches
 
-  * XPCE: Improvements for handling out-of-memory conditions, especially
-    for strings.  Increased maximum string length from 16MB to 128 MB.
-    Fixed a rare but very dangerous memory management problem.
 
-Environment
-===========
+Short-term Plans
+================
 
-  * Some minor patches to the source-level debugger.
+  * More RDF/RDFS/OWL handling
+
+  * More multi-threading support (thread-monitor, debugging, etc).
+
+  * Some ODBC issues
+ 
+  * Resolve Java interface issues
+
+
+Please, especially for professional users, support SWI-Prolog with a
+donation at
+
+	http://www.swi-prolog.org/donate.html
+
