@@ -257,6 +257,12 @@ utter_referenced(_Module:lazy_send_method(_,_,_), _, _, _, _) :-
 utter_referenced(_Module:lazy_get_method(_,_,_), _, _, _, _) :-
 	current_prolog_flag(xpce, true), !,
 	fail.
+utter_referenced(pce_xref:exported(_,_), _, _, _, _) :- !,
+	fail.
+utter_referenced(pce_xref:defined(_,_,_), _, _, _, _) :- !,
+	fail.
+utter_referenced(pce_xref:called(_,_,_), _, _, _, _) :- !,
+	fail.
 utter_referenced(pce_principal:send_implementation(_, _, _),
 		 _, Ref, Text, Explanation) :-
 	current_prolog_flag(xpce, true), !,
