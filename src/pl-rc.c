@@ -172,6 +172,9 @@ pl_rc_close_archive(term_t rc_h)
   if ( !get_rc(rc_h, &rc) )
     return FALSE;
 
+  if ( rc->modified )
+    rc_save_archive(rc, NULL);
+
   return rc_close_archive(rc);
 }
 
