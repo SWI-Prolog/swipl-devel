@@ -1155,9 +1155,9 @@ Known missing SGML features include
 Though notation is parsed, notation attributes on external entity 
 declarations are not handed to the user. 
     <tag>NOTATION attributes
-SGML notations may have attributes, declared using <verb><!ATTLIST
-#NOTATION name attributes></verb>. Those data attributes are provided
-when you declare an external CDATA, NDATA, or SDATA entity.
+SGML notations may have attributes, declared using
+<verb><!ATTLIST #NOTATION name attributes></verb>. Those data attributes
+are provided when you declare an external CDATA, NDATA, or SDATA entity.
 
 <p>
 XML does not include external CDATA, NDATA, or SDATA entities,
