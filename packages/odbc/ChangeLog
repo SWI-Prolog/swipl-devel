@@ -1,3 +1,8 @@
+Sep 27, 2002
+
+* FIXED: fetch LONGVAR* types properly in drivers that do not produce
+  the length of the longest column (MS-Access).  Thomas Moraitis.
+
 Sep 25, 2002
 
 * FIXED: proper handling of BINARY data-types.  Spotted by
