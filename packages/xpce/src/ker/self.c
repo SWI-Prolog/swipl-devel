@@ -40,7 +40,14 @@ extern int gethostname(char *__name, size_t __len);
 #endif
 
 static void	callExitMessagesPce(int stat, Pce pce);
-static void	exit_pce(void);
+static void	exit_pce(int);
+#ifdef HAVE_ON_EXIT
+static void	run_pce_onexit_hooks(int, void *);
+#else
+#ifdef HAVE_ATEXIT
+static void	run_pce_atexit_hooks(void);
+#endif
+#endif
 
 #ifndef O_RUNTIME
 static status	debuggingPce(Pce pce, Bool val);
@@ -290,9 +297,25 @@ callExitMessagesPce(int stat, Pce pce)
 
 
 static void
-exit_pce(void)				/* for usage with ANSI atexit() */
-{ callExitMessagesPce(0, PCE);
+exit_pce(int rval)
+{ callExitMessagesPce(rval, PCE);
 }
+
+#ifdef HAVE_ON_EXIT
+static void
+run_pce_onexit_hooks(int rval, void *context)
+{ run_pce_exit_hooks(rval);
+}
+#else
+
+#ifdef HAVE_ATEXIT
+static void				/* for usage with ANSI atexit() */
+run_pce_atexit_hooks()
+{ run_pce_exit_hooks(0);
+}
+#endif
+#endif
+
 
 		/********************************
 		*            DEBUGGING		*
@@ -720,6 +743,15 @@ _emu_getlogin()
   return user;
 }
 #endif /*HAVE_GETLOGIN*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Linux sysinfo() is something completely  different from Solaris sysinfo,
+for which this code was designed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef __linux__
+#undef HAVE_SYSINFO
+#endif
 
 #if !defined(HAVE_GETHOSTNAME) || defined(HAVE_SYSINFO)
 #undef gethostname
@@ -1715,11 +1747,11 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   ws_initialise(argc, argv);
   if ( !hostAction(HOST_ATEXIT, run_pce_exit_hooks) )
   {
-#ifdef HAVE_ATEXIT
-     atexit(run_pce_exit_hooks);
-#else
 #ifdef HAVE_ON_EXIT
-     on_exit(run_pce_exit_hooks, NULL);
+     on_exit(run_pce_onexit_hooks, NULL);
+#else
+#ifdef HAVE_ATEXIT
+     atexit(run_pce_atexit_hooks);
 #endif
 #endif
   }

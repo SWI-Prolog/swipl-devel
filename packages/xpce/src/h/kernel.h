@@ -107,7 +107,7 @@ generate warnings on accidental use of them.
 #define ATEXIT_FILO	0x1
 #define ATEXIT_FIFO	0x2
 
-typedef void			(*atexit_function)(void);
+typedef void			(*atexit_function)(int status);
 
 		/********************************
 		*       SAVING OBJECTS		*

@@ -1,12 +1,20 @@
 [VERSION 4.9.3]
 
+* FIXED: if the system defines on_exit(), this preferenced over atexit()
+  to be able to pass the exit code to messages registered using
+  @pce->exit_message.
+
+* PORT: Linux libc 5.4.23 defines sysinfo(), which errornously is mistaken
+  for Solaris (compatible) sysinfo() by configure.  Fixed in ker/self.c by
+  explicitely testing for not-linux.
+
 * MODIFIED: `directory->scan' to send ->ignore_case to the pattern if the
   class feature `case_sensitive' on class file yields @off.  Fixes
   compatibility problems.
 
 * INTERFACE: Various minor modifications to the SWI-Prolog/XPCE interface,
   mainly aiming at reduced memory usage and faster data conversion in the
-  interface.  Saves a some 10% on the interface speed.
+  interface.  Saves some 10% on the interface speed.
 
 * PW3: fixed require/1 for reporting non-existing predicates (the predicate,
   not the expansion form of require/1, which was ok).  Added support for

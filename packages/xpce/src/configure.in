@@ -13,6 +13,7 @@ AC_SUBST(BOOTPL)
 AC_SUBST(XLIB)
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBS)
+AC_SUBST(CXXLIBHACK)
 AC_SUBST(PCEHOME)
 AC_SUBST(COFLAGS)
 AC_SUBST(CWFLAGS)
@@ -48,6 +49,7 @@ RTSUFFIX=""
 QPENTRIES=""
 QPBIN="sun4-5"
 QPPATH="/usr/quintus"
+CXXLIBHACK=""
 
 LD=ld
 AC_PROG_CC
@@ -237,7 +239,8 @@ EOF
 				SONAMEFLAG=""
 				SOEXTRAOBJ=Initialize.o
 				;;
-    *linux*)			;;
+    *linux*)			CXXLIBHACK="-lc -Wl,-Bstatic"
+				;;
     *irix*)			;;
     *osf*)			if test -z "$GCC"; then
 				  LD=ld

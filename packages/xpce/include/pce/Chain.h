@@ -22,25 +22,32 @@ class PceCell
 { Any self;
 
 public:
-  PceCell(const Any cell)
+  PceCell()
+  {
+  }
+
+  PceCell(Any cell)
   { self = cell;
   }
 
   PceArg value()
   { return PceArg(XPCE_cell_value(self));
   }
-    
 
   operator void *()
   { return self;			/* for if ( cell ) */
   }
 
-  PceCell& operator ++()		/* cell++ */
+  PceCell& operator=(const PceCell&q)	/* x = y */
+  { self = q.self;
+    return *this;
+  }
+  PceCell operator ++()			/* ++cell */
   { Any old = self;
     self = XPCE_next_cell(self);
     return PceCell(old);
   }
-  PceCell& operator ++(int)		/* ++cell */
+  PceCell& operator ++(int)		/* cell++ */
   { self = XPCE_next_cell(self);
     return *this;
   }
@@ -98,6 +105,7 @@ public:
   { return PceCell(XPCE_chain_head(self));
   }
 };
+
 
 inline PceChain
 AsChain(PceArg a)

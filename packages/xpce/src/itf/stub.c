@@ -50,17 +50,17 @@ Stub__HostActionv(int action, va_list args)
 
   switch(action)
   { case HOST_ATEXIT:
-#if HAVE_ATEXIT
-    { atexit_hook_t func = va_arg(args, atexit_hook_t);
-
-      atexit(func);
-      break;
-    }
-#else
 #if HAVE_ON_EXIT
     { onexit_hook_t func = va_arg(args, onexit_hook_t);
 
       on_exit(func, NULL);
+      break;
+    }
+#else
+#if HAVE_ATEXIT
+    { atexit_hook_t func = va_arg(args, atexit_hook_t);
+
+      atexit(func);
       break;
     }
 #endif

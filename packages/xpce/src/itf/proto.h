@@ -55,6 +55,7 @@ Any		cToPceName(const char *text);
 Any		cToPcePointer(void *ptr);
 void *		pcePointerToC(PceObject obj);
 Any		cToPceAssoc(const char *s);
+PceObject	pceObjectFromName(PceName name);
 Any		cToPceReference(ulong val);
 int		pceExistsReference(ulong ref);
 char *		pcePPReference(PceObject ref);
@@ -74,6 +75,7 @@ void		pceRegisterAssoc(int n, hostHandle handle, Any obj);
 status		pceSend(Any receiver, Name selector, int argc, Any *argv);
 Any		pceGet(Any receiver, Name selector, int argc, Any *argv);
 Any		pceNew(Name assoc, Any class, int argc, Any *argv);
+void *		pceResolveSend(PceObject receiver, PceName selector, int *argc, PceObject **types);
 int		pceDispatch(int fd, int time);
 void		pceRedraw(void);
 char *		getHostSymbolTable(void);
@@ -96,6 +98,8 @@ char *		Cgetline(char *line, int size);
 void *		pceMalloc(int size);
 void *		pceRealloc(void *ptr, int size);
 void		pceFree(void *ptr);
+void *		pceAlloc(int bytes);
+void		pceUnAlloc(int bytes, void *p);
 
 /* itf/cpointer.c */
 CPointer	CtoCPointer(void *ptr);

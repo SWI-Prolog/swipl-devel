@@ -1018,7 +1018,7 @@ at_pce_exit(atexit_function f, int flags)
 
 
 void
-run_pce_exit_hooks()
+run_pce_exit_hooks(int rval)
 { AtexitEntry h;
 
 #ifndef O_RUNTIME
@@ -1030,6 +1030,6 @@ run_pce_exit_hooks()
     return;
 
   for(h = atexit_head; h; h = h->next)
-    (*h->function)();
+    (*h->function)(rval);
 }
 

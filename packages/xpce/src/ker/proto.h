@@ -162,7 +162,7 @@ void		msleep(int time);
 int		getdtablesize(void);
 int		pceAssert(int expr, char *text, char *file, int line);
 void		at_pce_exit(atexit_function f, int flags);
-void		run_pce_exit_hooks(void);
+void		run_pce_exit_hooks(int rval);
 
 /* ker/passing.c */
 status		sendImplementation(Any implementation, Any receiver, int argc, Any *argv);

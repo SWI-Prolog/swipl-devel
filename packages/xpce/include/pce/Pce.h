@@ -167,6 +167,9 @@ public:
   operator Any (void)
   { return self;
   }
+  operator bool (void)
+  { return self ? TRUE : FALSE;
+  }
 
   PceStatus send(const PceArg& sel)
   { return XPCE_sendv(self, sel.self, 0, NULL);
