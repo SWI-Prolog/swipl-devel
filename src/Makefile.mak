@@ -169,7 +169,8 @@ check:
 !IF "$(CFG)" == "rt"
 install:	$(BINDIR) iprog install_packages
 !ELSE
-install:	install-arch install-libs install-readme install_packages
+install:	install-arch install-libs install-readme install_packages \
+		install-dotfiles
 !ENDIF
 
 install-arch:	idirs iprog
@@ -196,7 +197,8 @@ install-libs:	idirs iinclude iboot ilib
 			-t halt
 
 IDIRS=		$(BINDIR) $(LIBDIR) $(PLBASE)\include \
-		$(PLBASE)\boot $(PLBASE)\library $(PKGDOC)
+		$(PLBASE)\boot $(PLBASE)\library $(PKGDOC) \
+		$(PLCUSTOM)
 
 $(IDIRS):
 		if not exist "$@/$(NULL)" $(MKDIR) "$@"
@@ -218,6 +220,11 @@ install-readme::
 		$(INSTALL_DATA) ..\VERSION "$(PLBASE)"
 		$(INSTALL_DATA) ..\ChangeLog "$(PLBASE)\ChangeLog.TXT"
 		$(INSTALL_DATA) ..\README.WIN "$(PLBASE)\READWIN.TXT"
+
+install-dotfiles::
+		$(INSTALL_DATA) ..\dotfiles\dotplrc "$(PLCUSTOM)\pl.ini"
+		$(INSTALL_DATA) ..\dotfiles\dotxpcerc "$(PLCUSTOM)\xpce.ini"
+		$(INSTALL_DATA) ..\dotfiles\README "$(PLCUSTOM)\README.TXT"
 
 ################################################################
 # DLL DEMOS

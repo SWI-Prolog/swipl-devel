@@ -14,6 +14,7 @@ prefix=E:\jan\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
+PLCUSTOM=$(PLBASE)\custom
 
 # Setup the environment.  Use this to additional libraries and include
 # files to the path.  In particular provide access to the jpeg and xpm
