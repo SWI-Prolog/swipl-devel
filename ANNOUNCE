@@ -1,9 +1,10 @@
-SWI-Prolog 5.2.10/XPCE 6.2.10 stable release
+SWI-Prolog 5.2.11/XPCE 6.2.11 stable release
 
 Status
 ======
   
   * Stable release integrating shared-database multi-threaded execution.
+
 
 Brief summary of changes since 5.2.10
 =====================================
@@ -11,16 +12,14 @@ Brief summary of changes since 5.2.10
 SWI-Prolog
 ----------
 
-  * Fix call/1 exception handling when called with a non-callable argument.
+  * Small patches
 
 Packages
 --------
 
-  * XPCE: Added library(pce_grapher) supporting visualisation of Prolog
-    exploring a search-tree and other nice graph handling stuff.
+  * XPCE: Added library(scaledbitmap) and library(url_image).
 
-    Extended graphical->layout to support incremental layout.
-    Fixed combobox event/focus handling.
+  * RDF support: various minor problems.
 
 Development environment
 -----------------------

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.11 (Nov 29, 2003)
+=============================
+	
   * FIXED: interrupt and error handling in wait_for_input/3.  With patch
     from Leonid Khramov.  Second patch dealing with overruled sets. Thanks.
 
