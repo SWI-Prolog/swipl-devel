@@ -488,44 +488,53 @@ the call-back.
   }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  * We are after a `normal call', so we have MAXARITY free cells on the
+    local stack
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define F (*function)    
+#define A(n) (h0+n)
+
 static bool
 callForeign(LocalFrame frame, frg_code control ARG_LD)
-{ struct foreign_context context;
-  Definition def = frame->predicate;
+{ Definition def = frame->predicate;
   Func function = def->definition.function;
   int argc = def->functor->arity;
   word result;
   term_t h0 = argFrameP(frame, 0) - (Word)lBase;
-  fid_t cid;
-  SaveLocalPtr(s1, frame);
-
-  context.context = (word)frame->clause;
-  context.engine  = LD;
-  context.control = control;
+  FliFrame ffr;
 
 #ifdef O_DEBUGGER
 retry:
-#endif
-  lTop = (LocalFrame) argFrameP(frame, argc);
-  exception_term = 0;
-  frame->clause = NULL;
-
-#ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { int port = (control == FRG_FIRST_CALL ? CALL_PORT : REDO_PORT);
 
+    lTop = (LocalFrame)argFrameP(frame, argc);
+
     switch( tracePort(frame, LD->choicepoints, port, NULL) )
     { case ACTION_FAIL:
+	exception_term = 0;
 	fail;
       case ACTION_IGNORE:
+	exception_term = 0;
 	succeed;
       case ACTION_RETRY:
+	exception_term = 0;
 	control = FRG_FIRST_CALL;
+	frame->clause = NULL;
     }
   }
 #endif /*O_DEBUGGER*/
 
-  cid = PL_open_foreign_frame();
+					/* open foreign frame */
+  ffr  = (FliFrame)argFrameP(frame, argc);
+  lTop = addPointer(ffr, sizeof(struct fliFrame));
+  ffr->size = 0;
+  Mark(ffr->mark);
+  ffr->parent = fli_context;
+  fli_context = ffr;
 
   SECURE({ int n;
 	   Word p0 = argFrameP(frame, 0);
@@ -534,170 +543,121 @@ retry:
 	     checkData(p0+n);
 	 });
 
-#define F (*function)    
-  if ( true(def, P_VARARG) )
-  { result = F(h0, argc, &context);
-    if ( false(def, NONDETERMINISTIC) )
-      goto ret_det;
-    else
-      goto ret_ndet;
-  } else
-#define A(n) (h0+n)
-  { if ( false(def, NONDETERMINISTIC) )	/* deterministic */
-    { CALLDETFN(result, argc);
+					/* do the call */
+  { SaveLocalPtr(fid, frame);
+    SaveLocalPtr(cid, ffr);
 
-    ret_det:
-      RestoreLocalPtr(s1, frame);
+    if ( true(def, P_VARARG) )
+    { struct foreign_context context;
+  
+      context.context = (word)frame->clause;
+      context.engine  = LD;
+      context.control = control;
+  
+      result = F(h0, argc, &context);
+    } else
+    { if ( false(def, NONDETERMINISTIC) )
+      { CALLDETFN(result, argc);
+      } else
+      { struct foreign_context context;
+  
+	context.context = (word)frame->clause;
+	context.engine  = LD;
+	context.control = control;
 
-      if ( exception_term )
-      { if ( result )			/* False alarm */
-	{ exception_term = 0;
-	  setVar(*valTermRef(exception_bin));
-	}
-#ifdef O_DEBUGGER
-	else
-	  goto except;			/* force debugging */
-#endif
+	CALLNDETFN(result, argc, &context);
       }
+    }
+    
+    RestoreLocalPtr(fid, frame);
+    RestoreLocalPtr(cid, frame);
+  }
 
-#ifdef O_DEBUGGER
-      if ( debugstatus.debugging )
-      { int port;
-
-	switch( (int)result )
-	{ case TRUE:
-	    port = EXIT_PORT;
-	    break;
-	  case FALSE:
-	  except:
-	  { FliFrame ffr = (FliFrame)valTermRef(cid);
-
-	    if ( exception_term )
-	    { mark m;
-	      Choice ch;
-
-	      m = ffr->mark;
-	      PL_close_foreign_frame(cid);
-	      ch = newChoice(CHP_DEBUG, frame PASS_LD);
-	      ch->mark = m;
-
-	      return FALSE;
-	    } else
-	    { port = FAIL_PORT;
-	      Undo(ffr->mark);
-	      break;
-	    }
-	  }
-	  default:
-	    goto err_domain;
-	}
-
-	switch( tracePort(frame, LD->choicepoints, port, NULL) )
-	{ case ACTION_FAIL:
-	    fail;
-	  case ACTION_IGNORE:
-	    succeed;
-	  case ACTION_RETRY:
-	    control = FRG_FIRST_CALL;
-	    PL_close_foreign_frame(cid);
-	    goto retry;
-	}
-      }
-#endif /*O_DEBUGGER*/
-
-      PL_close_foreign_frame(cid);
-
-      switch((int)result)
-      { case TRUE:
-	  succeed;
-	case FALSE:
-	  fail;
-	default:
-#ifdef O_DEBUGGER
-	err_domain:
-#endif
-	{ FunctorDef fd = def->functor;
-	  term_t ex = PL_new_term_ref();
-
-	  PL_put_integer(ex, result);
-
-	  return PL_error(stringAtom(fd->name), fd->arity, NULL, ERR_DOMAIN,
-			  ATOM_foreign_return_value, ex);
-	}
-      }
-    } else				/* non-deterministic */
-    { FliFrame ffr;
-      mark m;
+  if ( exception_term )			/* EXCEPTION */
+  { if ( result )			/* No, false alarm */
+    { exception_term = 0;
+      setVar(*valTermRef(exception_bin));
+    } else
+    { mark m = ffr->mark;
       Choice ch;
 
-      CALLNDETFN(result, argc, &context);
-
-    ret_ndet:
-      RestoreLocalPtr(s1, frame);
-      if ( exception_term )
-      { if ( result )			/* False alarm */
-	{ exception_term = 0;
-	  setVar(*valTermRef(exception_bin));
-	}
-#ifdef O_DEBUGGER
-	else
-	  goto except;			/* force debugging */
-#endif
-      }
-      
-#ifdef O_DEBUGGER
-      if ( debugstatus.debugging )
-      { int port;
-
-	if ( result )
-	{ port = EXIT_PORT;
-	} else
-	{ if ( exception_term )
-	    goto except;
-	  else
-	  { FliFrame ffr = (FliFrame)valTermRef(cid);
-	    port = FAIL_PORT;
-	    Undo(ffr->mark);
-	  }
-	}
-
-	switch( tracePort(frame, LD->choicepoints, port, NULL) )
-	{ case ACTION_FAIL:
-	    fail;
-	  case ACTION_IGNORE:
-	    succeed;
-	  case ACTION_RETRY:
-	    control = FRG_FIRST_CALL;
-	    PL_close_foreign_frame(cid);
-	    goto retry;
-	}
-      }
-#endif /*O_DEBUGGER*/
-
-      if ( result == FALSE || result == TRUE )
-      { PL_close_foreign_frame(cid);
-	return result;
-      }
-
-      if ( (result & FRG_REDO_MASK) == REDO_INT )
-	result >>= FRG_REDO_BITS;
-      else
-	result &= ~FRG_REDO_MASK;
-
-      ffr = (FliFrame) valTermRef(cid);
-      m = ffr->mark;
-      PL_close_foreign_frame(cid);
-      ch = newChoice(CHP_FOREIGN, frame PASS_LD);
+      fli_context = ffr->parent;
+      ch = newChoice(CHP_DEBUG, frame PASS_LD);
       ch->mark = m;
-      ch->value.foreign = result;
-      frame->clause = (ClauseRef)result; /* for discardFrame() */
 
-      return TRUE;
+      return FALSE;
     }
-#undef A
   }
-#undef F
+
+#ifdef O_DEBUGGER
+  if ( debugstatus.debugging )
+  { int port = (result ? EXIT_PORT : FAIL_PORT);
+
+    if ( port == FAIL_PORT )
+    { Undo(ffr->mark);
+    }
+
+    switch( tracePort(frame, LD->choicepoints, port, NULL) )
+    { case ACTION_FAIL:
+	exception_term = 0;
+        fail;
+      case ACTION_IGNORE:
+	exception_term = 0;
+        succeed;
+      case ACTION_RETRY:
+	Undo(ffr->mark);
+	control = FRG_FIRST_CALL;
+        frame->clause = NULL;
+	fli_context = ffr->parent;
+	goto retry;
+    }
+  }
+#endif
+
+					/* deterministic result */
+  if ( result == TRUE || result == FALSE )
+  { fli_context = ffr->parent;
+    return result;
+  }
+
+  if ( true(def, NONDETERMINISTIC) )
+  { mark m = ffr->mark;
+    Choice ch;
+
+    if ( (result & FRG_REDO_MASK) == REDO_INT )
+      result >>= FRG_REDO_BITS;
+    else
+      result &= ~FRG_REDO_MASK;
+
+    fli_context = ffr->parent;
+    ch = (Choice)ffr;
+    lTop = addPointer(ch, sizeof(*ch));
+
+					/* see newChoice() */
+    ch->type = CHP_FOREIGN;
+    ch->frame = frame;
+    ch->parent = BFR;
+    ch->mark = m;
+    ch->value.foreign = result;
+    BFR = ch;
+
+    frame->clause = (ClauseRef)result; /* for discardFrame() */
+    
+    return TRUE;
+  } else				/* illegal return */
+  { FunctorDef fd = def->functor;
+    term_t ex = PL_new_term_ref();
+
+    PL_put_integer(ex, result);
+
+    PL_error(stringAtom(fd->name), fd->arity, NULL, ERR_DOMAIN,
+	     ATOM_foreign_return_value, ex);
+    fli_context = ffr->parent;
+    return FALSE;
+  }
 }
+#undef A
+#undef F
 
 
 static void
@@ -2663,7 +2623,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 					  /* undoes unify of findCatcher() */
 	  lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
 	  if ( LD->trim_stack_requested )
-	    trimStacks();
+	    trimStacks(PASS_LD1);
 	  argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
 	  *valTermRef(exception_printed) = 0;   /* consider it handled */
 	  *valTermRef(exception_bin)     = 0;
@@ -2698,7 +2658,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  }
 
 	  if ( LD->trim_stack_requested )
-	    trimStacks();
+	    trimStacks(PASS_LD1);
 
 	  fail;
 	}
