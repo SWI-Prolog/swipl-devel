@@ -2968,7 +2968,7 @@ Starting with version 3.3, SWI-Prolog offers garbage collection on the
 atom-space as well as representing 0-bytes in atoms.  Although strings
 and atoms still have different features, new code should consider using
 atoms to avoid too many representations for text as well as for
-compatibility to other Prolog systems.  Below are some of the
+compatibility to other Prolog implementations.  Below are some of the
 differences:
 
 \begin{itemlist}
@@ -2984,7 +2984,16 @@ strings will cause many garbage collections. Atom garbage collection is
 generally faster.
 \end{itemlist}
 
-See also the prolog-flag \const{double_quotes}.
+String objects by default have no syntax and thus can only be created
+using the predicates below or through the foreign language interface.
+There are two ways to make read/1 read text into strings, both
+controlled through Prolog flags.  One is by setting the
+\const{double_quotes} flag to \const{string} and the other is by
+setting the \const{backquoted_string} flag to \const{true}.  In latter
+case, \verb$`Hello world`$ is read into a string and write_term/2 prints
+strings between backquotes if \const{quoted} is \const{true}.  This
+flag provides compatibility to LPA Prolog string handling.
+
 
 \begin{description}
     \predicate{string_to_atom}{2}{?String, ?Atom}

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Read `hello world` as a string if the Prolog flag backquoted_string
+    is true (LPA compatibility, Holger Kanwischer).
+
   * FIXED/ADDED (MT-Version):
 
 	* Atom-gc problems

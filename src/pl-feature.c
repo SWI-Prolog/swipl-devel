@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-ctype.h"
 
 #define LOCK()   PL_LOCK(L_FEATURE)
 #define UNLOCK() PL_UNLOCK(L_FEATURE)
@@ -350,6 +351,11 @@ pl_set_feature(term_t key, term_t value)
 	}
       } else if ( k == ATOM_debugger_show_context )
       { debugstatus.showContext = val;
+      } else if ( k == ATOM_backquoted_string )
+      { if ( val )
+	  _PL_char_types[(int)'`'] = BQ;
+	else
+	  _PL_char_types[(int)'`'] = SY;
       }
 
       break;
@@ -709,6 +715,7 @@ initFeatures()
   defFeature("answer_format", FT_ATOM, "~p");
   defFeature("character_escapes", FT_BOOL, TRUE, CHARESCAPE_FEATURE);
   defFeature("char_conversion", FT_BOOL, FALSE, CHARCONVERSION_FEATURE);
+  defFeature("backquoted_string", FT_BOOL, FALSE, BACKQUOTED_STRING_FEATURE);
   defFeature("double_quotes", FT_ATOM, "codes");
   defFeature("unknown", FT_ATOM, "error");
   defFeature("debug", FT_BOOL, FALSE, 0);

@@ -31,9 +31,10 @@ extern char _PL_char_types[];	/* array of character types */
 #define PU  4			/* Punctuation character */
 #define DQ  5			/* Double quote */
 #define SQ  6			/* Single quote */
-#define UC  7			/* Uppercase character */
-#define LC  8			/* Lowercase character */
-#define DI  9			/* Digit */
+#define BQ  7			/* Back quote */
+#define UC  8			/* Uppercase character */
+#define LC  9			/* Lowercase character */
+#define DI 10			/* Digit */
 
 #define isControl(c)	(_PL_char_types[(unsigned)(c) & 0xff] == CT)
 #define isBlank(c)	(_PL_char_types[(unsigned)(c) & 0xff] <= SP)

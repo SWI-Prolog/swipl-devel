@@ -640,6 +640,14 @@ raw_read2(ReadData _PL_rd)
 		  dotseen = FALSE;
 		}
 		goto handle_c;
+      case '`': if ( trueFeature(BACKQUOTED_STRING_FEATURE) )
+		{ set_start_line;
+		  if ( !raw_read_quoted(c, _PL_rd) )
+		    fail;
+		  dotseen = FALSE;
+		  break;
+		}
+      	        /*FALLTHROUGH*/
       default:	switch(_PL_char_types[c])
 		{ case SP:
 		  case CT:
@@ -1286,6 +1294,23 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		  discardBuffer(&b);
 		  break;
 		}
+#ifdef O_STRING
+    case BQ:    { tmp_buffer b;
+		  term_t t = PL_new_term_ref();
+		  char *s;
+		  int len;
+
+		  initBuffer(&b);
+		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
+		  s   = baseBuffer(&b, char);
+		  len = entriesBuffer(&b, char);
+		  PL_put_string_nchars(t, len, s);
+  		  cur_token.value.term = t;
+		  cur_token.type = T_STRING;
+		  discardBuffer(&b);
+		  break;
+		}
+#endif
     default:	{ sysError("read/1: tokeniser internal error");
     		  break;		/* make lint happy */
 		}

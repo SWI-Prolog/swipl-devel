@@ -1777,24 +1777,25 @@ typedef struct debuginfo
 #define FF_READONLY	0x10		/* feature is read-only */
 
 
-#define CHARESCAPE_FEATURE	0x0001	/* handle \ in atoms */
-#define GC_FEATURE		0x0002	/* do GC */
-#define TRACE_GC_FEATURE	0x0004	/* verbose gc */
-#define TTY_CONTROL_FEATURE	0x0008	/* allow for tty control */
-#define READLINE_FEATURE	0x0010	/* readline is loaded */
-#define DEBUG_ON_ERROR_FEATURE	0x0020	/* start tracer on error */
-#define REPORT_ERROR_FEATURE	0x0040	/* print error message */
-#define FILE_CASE_FEATURE	0x0080	/* file names are case sensitive */
+#define CHARESCAPE_FEATURE	  0x00001 /* handle \ in atoms */
+#define GC_FEATURE		  0x00002 /* do GC */
+#define TRACE_GC_FEATURE	  0x00004 /* verbose gc */
+#define TTY_CONTROL_FEATURE	  0x00008 /* allow for tty control */
+#define READLINE_FEATURE	  0x00010 /* readline is loaded */
+#define DEBUG_ON_ERROR_FEATURE	  0x00020 /* start tracer on error */
+#define REPORT_ERROR_FEATURE	  0x00040 /* print error message */
+#define FILE_CASE_FEATURE	  0x00080 /* file names are case sensitive */
 #define FILE_CASE_PRESERVING_FEATURE 0x0100 /* case preserving file names */
-#define DOS_FILE_NAMES_FEATURE  0x0200	/* dos (8+3) file names */
-#define ALLOW_VARNAME_FUNCTOR	0x0400	/* Read Foo(x) as 'Foo'(x) */
-#define ISO_FEATURE		0x0800	/* Strict ISO compliance */
-#define OPTIMISE_FEATURE	0x1000	/* -O: optimised compilation */
-#define FILEVARS_FEATURE	0x2000	/* Expand $var and ~ in filename */
-#define AUTOLOAD_FEATURE	0x4000	/* do autoloading */
-#define CHARCONVERSION_FEATURE	0x8000	/* do character-conversion */
-#define TAILRECURSION_FEATURE	0x10000	/* Tail recursion enabled? */
-#define EX_ABORT_FEATURE	0x20000	/* abort with exception */
+#define DOS_FILE_NAMES_FEATURE    0x00200 /* dos (8+3) file names */
+#define ALLOW_VARNAME_FUNCTOR	  0x00400 /* Read Foo(x) as 'Foo'(x) */
+#define ISO_FEATURE		  0x00800 /* Strict ISO compliance */
+#define OPTIMISE_FEATURE	  0x01000 /* -O: optimised compilation */
+#define FILEVARS_FEATURE	  0x02000 /* Expand $var and ~ in filename */
+#define AUTOLOAD_FEATURE	  0x04000 /* do autoloading */
+#define CHARCONVERSION_FEATURE	  0x08000 /* do character-conversion */
+#define TAILRECURSION_FEATURE	  0x10000 /* Tail recursion enabled? */
+#define EX_ABORT_FEATURE	  0x20000 /* abort with exception */
+#define BACKQUOTED_STRING_FEATURE 0x40000 /* `a string` */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */

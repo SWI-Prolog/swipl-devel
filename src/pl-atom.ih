@@ -490,3 +490,4 @@
 #define ATOM_frame_attribute MK_ATOM(489)
 #define ATOM_record_position MK_ATOM(490)
 #define ATOM_main         MK_ATOM(491)
+#define ATOM_backquoted_string MK_ATOM(492)

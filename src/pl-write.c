@@ -333,8 +333,15 @@ writePrimitive(term_t t, write_options *options)
 #if O_STRING
   if ( PL_get_string(t, &s, &n) )
   { if ( true(options, PL_WRT_QUOTED) )
-      return writeQuoted(out, s, n, '"', options);
-    else
+    { int q;
+
+      if ( trueFeature(BACKQUOTED_STRING_FEATURE) )
+	q = '`';
+      else
+	q = '"';
+      
+      return writeQuoted(out, s, n, q, options);
+    } else
       return PutString(s, out);
   }
 #endif /* O_STRING */

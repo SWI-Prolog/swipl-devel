@@ -1029,6 +1029,11 @@ quotes are the same as single-quotes and finally, \const{string} reads
 the text into a Prolog string (see \secref{strings}).   See also
 atom_chars/2 and atom_codes/2.
 
+    \prologflagitem{backquoted_string}{bool}{rw}
+If \const{true} (default \const{false}), read translates text between
+backquotes into a string object (see \secref{strings}).  This flag is
+mainly for compatibility to LPA Prolog.
+
     \prologflagitem{allow_variable_name_as_functor}{bool}{rw}
 If true (default is false), \exam{Functor(arg)} is read as if it was
 written \exam{'Functor'(arg)}. Some applications use the Prolog read/1
