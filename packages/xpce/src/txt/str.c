@@ -86,9 +86,10 @@ str_init(String s, String proto, charA *data)
 
 
 String
-fstr_inithdr(String s, int iswide, void *data)
+fstr_inithdr(String s, int iswide, void *data, int len)
 { str_inithdr(s, iswide);
   s->s_text = data;
+  s->size = len;
 
   return s;
 }

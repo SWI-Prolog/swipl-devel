@@ -476,7 +476,7 @@ void	clearDFlagProgramObject(Any, unsigned long);
   string _s_ ## name ## _hdr; \
   void  *_s_ ## name ## _buf = (void *)alloca(iswide ? (size) * sizeof(charW) \
 						   : (size) * sizeof(charA)); \
-  String name = fstr_inithdr(&_s_ ## name ## _hdr, iswide, _s_ ## name ## _buf)
+  String name = fstr_inithdr(&_s_ ## name ## _hdr, iswide, _s_ ## name ## _buf, size)
 
 #ifndef NO_BUILT_IN_DECL
 extern struct name builtin_names[];	/* object-array of built-in's */
