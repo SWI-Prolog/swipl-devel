@@ -121,11 +121,11 @@ char tmp[256];				/* for calling print_val(), etc. */
 
 #define ldomark(p)	{ *(p) |= MARK_MASK; }
 #define domark(p)	{ if ( marked(p) ) \
-			    sysError("marked twice: 0x%p (*= 0x%lx), gTop = 0x%p", p, *(p), gTop); \
+			    sysError("marked twice: %p (*= 0x%lx), gTop = %p", p, *(p), gTop); \
 			  *(p) |= MARK_MASK; \
 			  total_marked++; \
 			  recordMark(p); \
-			  DEBUG(4, Sdprintf("marked(0x%p)\n", p)); \
+			  DEBUG(4, Sdprintf("marked(%p)\n", p)); \
 			}
 #define unmark(p)	(*(p) &= ~MARK_MASK)
 #define marked(p)	(*(p) & MARK_MASK)
@@ -423,7 +423,7 @@ mark_variable(Word start ARG_LD)
   word val;				/* old value of current cell */
   Word next;				/* cell to be examined */
 
-  DEBUG(3, Sdprintf("marking 0x%p\n", start));
+  DEBUG(3, Sdprintf("marking %p\n", start));
 
   if ( marked(start) )
     sysError("Attempt to mark twice");
@@ -444,13 +444,13 @@ forward:				/* Go into the tree */
   { case TAG_REFERENCE:
     { next = unRef(val);		/* address pointing to */
       if ( next < gBase )
-	sysError("REF pointer to 0x%p\n", next);
+	sysError("REF pointer to %p\n", next);
       needsRelocation(current);
       if ( is_first(next) )		/* ref to choice point. we will */
         BACKWARD;			/* get there some day anyway */
       val  = get_value(next);		/* invariant */
       set_value(next, makeRef(current));/* create backwards pointer */
-      DEBUG(5, Sdprintf("Marking REF from 0x%p to 0x%p\n", current, next));
+      DEBUG(5, Sdprintf("Marking REF from %p to %p\n", current, next));
       current = next;			/* invariant */
       FORWARD;
     }
@@ -463,7 +463,7 @@ forward:				/* Go into the tree */
       if ( marked(next) )
 	BACKWARD;			/* term has already been marked */
       args = arityFunctor(((Functor)next)->definition) - 1;
-      DEBUG(5, Sdprintf("Marking TERM %s/%d at 0x%p\n",
+      DEBUG(5, Sdprintf("Marking TERM %s/%d at %p\n",
 			stringAtom(nameFunctor(((Functor)next)->definition)),
 			args+1, next));
       domark(next);
@@ -736,7 +736,7 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
 	    trailcells_deleted++;
 	  }
 #endif
-	  DEBUG(3, Sdprintf("Early reset of 0x%p\n", te->address));
+	  DEBUG(3, Sdprintf("Early reset of %p\n", te->address));
 	  te->address = 0;
 	  trailcells_deleted++;
 	}
@@ -841,7 +841,7 @@ mark_phase(LocalFrame fr, Choice ch)
 #endif
 
   DEBUG(2, { long size = gTop - gBase;
-	     Sdprintf("%ld referenced cell; %ld garbage (gTop = 0x%p)\n",
+	     Sdprintf("%ld referenced cell; %ld garbage (gTop = %p)\n",
 		      total_marked, size - total_marked, gTop);
 	   });
 }
@@ -883,7 +883,7 @@ update_relocation_chain(Word current, Word dest ARG_LD)
 { Word head = current;
   word val = get_value(current);
 
-  DEBUG(3, Sdprintf("unwinding relocation chain at 0x%p to 0x%p\n",
+  DEBUG(3, Sdprintf("unwinding relocation chain at %p to %p\n",
 		    current, dest));
 
   do
@@ -911,7 +911,7 @@ into_relocation_chain(Word current, int stg ARG_LD)
   set_value(current, get_value(head));
   set_value(head, consPtr(current, stg|tag(val)));
 
-  DEBUG(2, Sdprintf("Into relocation chain: 0x%p (head = 0x%p)\n",
+  DEBUG(2, Sdprintf("Into relocation chain: %p (head = %p)\n",
 		    current, head));
 
   if ( is_first(head) )
@@ -954,7 +954,7 @@ compact_trail(void)
     { Symbol s;
       if ( (s=lookupHTable(check_table, current)) != NULL &&
 	   s->value == (void *)TRUE )
-        sysError("0x%p was supposed to be relocated (*= 0x%p)",
+        sysError("%p was supposed to be relocated (*= %p)",
 		 current, current->address);
     }
 #endif
@@ -1286,11 +1286,11 @@ compact_global(void)
     {
 #if O_SECURE
       if ( current != *--v )
-        sysError("Marked cell at 0x%p (*= 0x%p); gTop = 0x%p; should be 0x%p",
+        sysError("Marked cell at %p (*= %p); gTop = %p; should be %p",
 		 current, *current, gTop, *v);
 #endif
       dest -= offset + 1;
-      DEBUG(3, Sdprintf("Marked cell at 0x%p (size = %ld; dest = 0x%p)\n",
+      DEBUG(3, Sdprintf("Marked cell at %p (size = %ld; dest = %p)\n",
 			current, offset+1, dest));
       if ( is_first(current) )
 	update_relocation_chain(current, dest PASS_LD);
@@ -1307,9 +1307,9 @@ compact_global(void)
 #if O_SECURE
   if ( v != mark_base )
   { for( v--; v >= mark_base; v-- )
-    { Sdprintf("Expected marked cell at 0x%p, (*= 0x%lx)\n", *v, **v);
+    { Sdprintf("Expected marked cell at %p, (*= 0x%lx)\n", *v, **v);
     }
-    sysError("v = 0x%p; mark_base = 0x%p", v, mark_base);
+    sysError("v = %p; mark_base = %p", v, mark_base);
   }
 #endif
 
@@ -1432,12 +1432,12 @@ scan_global(int marked)
   for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
   { cells++;
     if ( (!marked && marked(current)) || is_first(current) )
-    { warning("Illegal cell in global stack (up) at 0x%p (*= 0x%p)",
+    { warning("Illegal cell in global stack (up) at %p (*= %p)",
 	      current, *current);
       if ( isAtom(*current) )
-	warning("0x%p is atom %s", current, stringAtom(*current));
+	warning("%p is atom %s", current, stringAtom(*current));
       if ( isTerm(*current) )
-	warning("0x%p is term %s/%d",
+	warning("%p is term %s/%d",
 		current,
 		stringAtom(nameFunctor(functorTerm(*current))),
 		arityTerm(*current));
@@ -1452,7 +1452,7 @@ scan_global(int marked)
   { cells --;
     current -= offset_cell(current);
     if ( (!marked && marked(current)) || is_first(current) )
-    { warning("Illegal cell in global stack (down) at 0x%p (*= 0x%p)",
+    { warning("Illegal cell in global stack (down) at %p (*= %p)",
 	      current, *current);
       if ( ++errors > 10 )
       { Sdprintf("...\n");
@@ -1735,7 +1735,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 #if O_SECURE
   assert(trailtops_marked == 0);
   if ( !scan_global(FALSE) )
-    sysError("Stack not ok after gc; gTop = 0x%p", gTop);
+    sysError("Stack not ok after gc; gTop = %p", gTop);
   free(mark_base);
 #endif
 
