@@ -549,7 +549,7 @@ typed(D, Id:event_id) :->
 event(D, Ev:event) :->
 	(   send(Ev, is_a, keyboard)
 	->  send(D, typed, Ev)
-	;   send(D, send_super, event, Ev)
+	;   send_super(D, event, Ev)
 	).
 
 button(D, Name:name, Button:button) :<-

@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: keyboard focus handling in class frame to use ->post_event.  Also
+  the source-view of the GUI tracer requires redefining ->post_event rather
+  then event (doesn't forward trace-commands).
+
 * MODIFIED: Various aspects of class text_edit_gesture: only activate on
   `click', ignore double-click and ->copy on ->terminate if there is a
   selection.
@@ -9,6 +13,7 @@
   selection handling.
 
 * ADDED: Selection management for class text if the text is wrapped.
+
 
 VERSION 6.2.8, distributed with SWI-Prolog 5.2.8
 ================================================

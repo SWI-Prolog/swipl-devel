@@ -120,14 +120,14 @@ update_label(V) :->
 
 :- pce_group(event).
 
-event(V, Ev:event) :->
+post_event(V, Ev:event) :->
 	(   send(Ev, is_a, keyboard),
 	    get(V, editable, @off),
 	    get(V, frame, Tracer),
 	    send(Tracer, has_send_method, source_typed),
 	    send(Tracer, source_typed, Ev)
 	->  true
-	;   send(V, send_super, event, Ev)
+	;   send_super(V, post_event, Ev)
 	).
 	
 :- pce_group(edit).

@@ -1360,7 +1360,7 @@ eventFrame(FrameObj fr, EventObj ev)
     }
 
     if ( (sw = getKeyboardFocusFrame(fr)) )
-      return postEvent(ev, (Graphical) sw, DEFAULT);
+      return postNamedEvent(ev, (Graphical) sw, DEFAULT, NAME_postEvent);
 
     return send(fr, NAME_typed, ev, EAV);
   }
