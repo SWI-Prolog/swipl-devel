@@ -13,7 +13,7 @@
                           SSWWII--PPrroolloogg 44..00
 
                          RReeffeerreennccee MMaannuuaall
-              _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _4_._0_._3_, _A_p_r_i_l _2_0_0_1
+               _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _4_._0_._6_, _M_a_y _2_0_0_1
 
                           _J_a_n _W_i_e_l_e_m_a_k_e_r
 
@@ -1171,9 +1171,8 @@ n ((NNoo ddeebbuugg))
     Continue execution in `no debug' mode.
 
 p ((PPrriinntt))
-    Set       the       prolog-flag       debugger_print_options       to
-    [quoted(true), portray(true), max_depth(10)].        This   is   the
-    default.
+    Set   the   prolog-flag  debugger_print_options  to   [quoted(true),
+    portray(true), max_depth(10)].  This is the default.
 
 r ((RReettrryy))
     Undo  all actions (except for database and i/o actions) back  to the
@@ -7421,7 +7420,8 @@ wwiillddccaarrdd__mmaattcchh((_+_P_a_t_t_e_r_n_, _+_S_
 
      ?      Matches one arbitrary character.
      *      Matches any number of arbitrary characters.
-     [...]  Matches one of the characters specified between the brackets.  <_c_h_a_r_1>-<_c_h_a_r_2>indicates a range.
+     [...]  Matches one of the characters specified between the brackets.
+            <_c_h_a_r_1>-<_c_h_a_r_2>indicates a range.
      {...}  Matches any of the patterns of the comma separated list between the braces.
 
     Example:
@@ -9048,14 +9048,20 @@ void PPLL__ccoonnss__ffuunnccttoorr(_t_e_r_m___t _-_h_, 
     list  holding the same number of term_t objects as the arity  of the
     functor.  To create the term animal(gnu, 50), use:
 
-            term_t a1 = PL_new_term_ref();
-            term_t a2 = PL_new_term_ref();
-            term_t t  = PL_new_term_ref();
+    { term_t a1 = PL_new_term_ref();
+      term_t a2 = PL_new_term_ref();
+      term_t t  = PL_new_term_ref();
+      functor_t animal2;
 
-            PL_put_atom_chars(a1, "gnu");
-            PL_put_integer(a2, 50);
-            PL_cons_functor(t, PL_new_functor(PL_new_atom("animal"), 2),
-                            a1, a2);
+      /* animal2 is a constant that may be bound to a global
+         variable and re-used
+      */
+      animal2 = PL_new_functor(PL_new_atom("animal"), 2);
+
+      PL_put_atom_chars(a1, "gnu");
+      PL_put_integer(a2, 50);
+      PL_cons_functor(t, animal2, a1, a2);
+    }
 
     After  this sequence, the term-references _a_1 and _a_2 may be  used for
     other purposes.
@@ -9229,6 +9235,17 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
     bad  C-compilers have fairly low  limits on the number of  arguments
     that may be passed to a function.
 
+    Special  attention is required when  passing numbers.  C  `promotes'
+    any  integral  smaller than  int  to  int.    I.e. the  types  char,
+    short  and  int  are all  passed  as int.    In  addition,  on  most
+    32-bit  platforms int and  long are the same.   Upto version  4.0.5,
+    only  PL_INTEGER  could be specified which  was taken from the  stack
+    as  long.   Such  code fails when  passing small  integral types  on
+    machines  where int  is smaller than  long.   It is  adviced to  use
+    PL_SHORT, PL_INT or  PL_LONG  as appropriate.   Similar, C  compilers
+    promote  float to  double and  therefore PL_FLOAT and  PL_DOUBLE  are
+    synonyms.
+
     The type identifiers are:
 
     PL_VARIABLE nnoonnee
@@ -9237,13 +9254,26 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
     PL_ATOM aattoomm__tt
          Unify the argument with an atom, as in PL_unify_atom().
 
+    PL_SHORT sshhoorrtt
+         Unify the argument  with an integer,  as in PL_unify_integer().
+         As short is promoted to int, PL_SHORT is a synonym for PL_INT.
+
+    PL_INT iinntt
+         Unify the argument with an integer, as in PL_unify_integer().
+
+    PL_LONG lloonngg
+         Unify the argument with an integer, as in PL_unify_integer().
+
     PL_INTEGER lloonngg
          Unify the argument with an integer, as in PL_unify_integer().
 
-    PL_FLOAT ddoouubbllee
+    PL_DOUBLE ddoouubbllee
          Unify  the  argument  with a  float,  as  in  PL_unify_float().
          Note  that,  as the  argument  is  passed using  the  C  vararg
          conventions, a float must be casted to a double explicitly.
+
+    PL_FLOAT ddoouubbllee
+         Unify the argument with a float, as in PL_unify_float().
 
     PL_STRING ccoonnsstt cchhaarr **
          Unify   the   argument   with   a   string   object,    as   in
@@ -9261,6 +9291,10 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
          Unify the argument  with a compound  term.  This  specification
          should be  followed by  exactly as many  specifications as  the
          number of arguments of the compound term.
+
+    PL_FUNCTOR_CHARS ccoonnsstt cchhaarr **nnaammee,, iinntt aarriittyy,, ......
+         Create a functor from the given name and arity  and then behave
+         as PL_FUNCTOR.
 
     PL_LIST iinntt lleennggtthh,, ......
          Create  a  list  of  the  indicated  length.     The  following
@@ -9660,9 +9694,9 @@ int PPLL__rraaiissee__eexxcceeppttiioonn(_t_e_r_m___t _
       { term_t except = PL_new_term_ref();
 
         PL_unify_term(except,
-                      PL_FUNCTOR, PL_new_functor(PL_new_atom("type_error"), 2),
+                      PL_FUNCTOR_CHARS, "type_error", 2,
                         PL_CHARS, "atom",
-                        PL_TERM,  to);
+                        PL_TERM, to);
 
         return PL_raise_exception(except);
       }
@@ -11821,7 +11855,7 @@ suggest predicates from a keyword.
  append/1                      Append to a file
  append/3                      Concatenate lists
  apply/2                       Call goal with additional arguments
- apropos/1                     library(online_help) Show related predicates and manual sections
+ apropos/1                     library(online_help) Search manual
  arg/3                         Access argument of a term
 
  arithmetic_function/1         Register an evaluable function
