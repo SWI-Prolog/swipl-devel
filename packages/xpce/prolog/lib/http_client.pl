@@ -212,7 +212,7 @@ send_header(S, Action:name) :->
 	get(S, user_agent, Agent),
 	get(S, location, Location),
 	send(S, format, '%s %s HTTP/%s\r\n', Action, Location, Version),
-	send(S, format, 'Host: ~w\r\n', Host),
+	send(S, format, 'Host: %s\r\n', Host),
 	send(S, format, 'User-Agent: %s\r\n', Agent),
 	send(S, format, '\r\n').
 
