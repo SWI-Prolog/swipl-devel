@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.6
+=============
+
   * FIXED: read, etc. not to raise an exception if the argument is
     instantiated (reported by Mike Elston).
 	
