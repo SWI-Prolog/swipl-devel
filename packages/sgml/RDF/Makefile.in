@@ -6,10 +6,10 @@
 
 .SUFFIXES: .tex .dvi .doc .pl
 
-SHELL=/bin/bash
-
-PL=@PL@
+SHELL=@SHELL@
 PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PL=@PL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../../xpce
 
