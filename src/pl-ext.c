@@ -120,7 +120,9 @@ static struct foreign {
   ADD("$start_module_wic",	2, pl_start_module_wic,		TRACE_ME),
   ADD("$export_wic",		2, pl_export_wic,		TRACE_ME),
   ADD("$import_wic",		3, pl_import_wic,		TRACE_ME),
+/*
   ADD("$load_wic_file",		1, pl_load_wic_file,		TRACE_ME),
+*/
 
   ADD("abolish",    2, pl_abolish,    TRANSPARENT|TRACE_ME),
   ADD("$clause",    3, pl_clause,     NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
