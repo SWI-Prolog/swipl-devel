@@ -111,10 +111,14 @@ typedef struct _alias
 } alias;
 
 
+#define IO_TELL	0x001			/* opened by tell/1 */
+#define IO_SEE  0x002			/* opened by see/1 */
+
 typedef struct
 { alias *alias_head;
   alias *alias_tail;
   atom_t filename;			/* associated filename */
+  unsigned flags;
 } stream_context;
 
 
@@ -127,6 +131,7 @@ getStreamContext(IOSTREAM *s)
 
     ctx->alias_head = ctx->alias_tail = NULL;
     ctx->filename = NULL_ATOM;
+    ctx->flags = 0;
     addHTable(streamContext, s, ctx);
 
     return ctx;
@@ -1669,6 +1674,28 @@ pl_open(term_t file, term_t mode, term_t stream)
 		 *	  EDINBURGH I/O		*
 		 *******************************/
 
+static IOSTREAM *
+findStreamFromFile(atom_t name, unsigned int flags)
+{ TableEnum e;
+  Symbol symb;
+  IOSTREAM *s = NULL;
+
+  e = newTableEnum(streamContext);
+  while( (symb=advanceTableEnum(e)) )
+  { stream_context *ctx = symb->value;
+
+    if ( ctx->filename == name &&
+	 true(ctx, flags) )
+    { s = symb->name;
+      break;
+    }
+  }
+  freeTableEnum(e);
+
+  return s;
+}
+
+
 word
 pl_see(term_t f)
 { IOSTREAM *s;
@@ -1678,13 +1705,16 @@ pl_see(term_t f)
   LOCK();
   if ( get_stream_handle(f, &s, SH_ALIAS|SH_UNLOCKED) )
   { Scurin = s;
-    UNLOCK();
-    succeed;
+    goto ok;
   }
-  UNLOCK();
+
   if ( PL_get_atom(f, &a) && a == ATOM_user )
   { Scurin = Suser_input;
-    succeed;
+    goto ok;
+  }
+  if ( (s = findStreamFromFile(a, IO_SEE)) )
+  { Scurin = s;
+    goto ok;
   }
 
   mode = PL_new_term_ref();
@@ -1692,8 +1722,12 @@ pl_see(term_t f)
   if ( !(s = openStream(f, mode, 0)) )
     fail;
 
+  set(getStreamContext(s), IO_SEE);
   pl_push_input_context();
   Scurin = s;
+
+ok:
+  UNLOCK();
 
   succeed;
 }
@@ -1722,12 +1756,18 @@ do_tell(term_t f, atom_t m)
   term_t mode;
 
   LOCK();
-  if ( get_stream_handle(f, &s, SH_ALIAS|SH_UNLOCKED) )
+  if ( get_stream_handle(f, &s, SH_UNLOCKED) )
   { Scurout = s;
     goto ok;
   }
+
   if ( PL_get_atom(f, &a) && a == ATOM_user )
   { Scurout = Suser_output;
+    goto ok;
+  }
+
+  if ( (s = findStreamFromFile(a, IO_TELL)) )
+  { Scurout = s;
     goto ok;
   }
 
@@ -1738,6 +1778,7 @@ do_tell(term_t f, atom_t m)
     fail;
   }
 
+  set(getStreamContext(s), IO_TELL);
   pushOutputContext();
   Scurout = s;
 
