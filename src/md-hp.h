@@ -43,6 +43,9 @@ NOTE:	I've been informedby Irek Karkowski (irek@donau.et.tudelft.nl)
 	library function vsprintf().
 	He successfully compiled on a hp9000s700 running hpux 8.07.
 	The resulting binary runs on both machines.
+
+Version 1.8.10 includes some patches by  Dave   Sherratt  for  the HP cc
+compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MACHINE			"hp"
@@ -61,7 +64,7 @@ NOTE:	I've been informedby Irek Karkowski (irek@donau.et.tudelft.nl)
 #define M_CFLAGS		
 #else					/* Use HP-UX cc */
 #define M_CC			cc
-#define M_OPTIMIZE		+O1 +Obb650 /* In HP-UX 8.07, can use +O3 */
+#define M_OPTIMIZE		+O1 +Obb700 /* In HP-UX 8.07, can use +O3 */
 #define M_LDFLAGS		-O -Wl,-a archive
 #define M_CFLAGS		-Aa -D_HPUX_SOURCE -Dunix -Dhpux -I/usr/local/include -I/usr/local/include/readline
 #endif

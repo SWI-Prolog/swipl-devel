@@ -760,7 +760,11 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
   struct timeval t, *to;
   real time;
   int n, max = 0;
+#if hpux
+  extern int select(size_t, int *, int *, int *, const struct timeval *);
+#else
   extern int select(int, fd_set *, fd_set *, fd_set *, struct timeval *);
+#endif
 
   FD_ZERO(&fds);
   while( isList(*streams) )

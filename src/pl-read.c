@@ -97,7 +97,6 @@ struct read_buffer
   char *here;			/* current position in read buffer */
   int   stream;			/* stream we are reading from */
   FILE *fd;			/* file descriptor we are reading from */
-  bool	doExtend;		/* extension mode on? */
 } rb;
 
 #if O_PCE
@@ -125,7 +124,6 @@ startRead(void)
   rb_stack[read_nesting++] = rb;
   rb = rb_stack[read_nesting];
 #endif /* O_PCE */
-  rb.doExtend = (Input == 0 && status.notty == FALSE);
   rb.stream = Input;
   rb.fd = checkInput(rb.stream);
   source_file_name = currentStreamName();

@@ -13,12 +13,14 @@ This port was made by Fred Kwakkel from CWI, the Netherlands.
 It appears `O_FOREIGN 1' gives problems on some SGI archiectures. It you
 are not a C-hacker change this into O_FOREIGN 0. Otherwise you might
 want to start debugging.
+
+Added -DANSI -D_BSD_SIGNALS after report from Fergus Henderson
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
 #define M_OPTIMIZE		-O2
 #define M_LDFLAGS		
-#define M_CFLAGS
+#define M_CFLAGS		-DANSI -D_BSD_SIGNALS
 #define M_LIBS			-lm -ltermcap
 
 

@@ -16,6 +16,9 @@ static long	wait_ticks;	/* clock ticks not CPU time */
 #if OS2 && EMX
 #include <os2.h>                /* this has to appear before pl-incl.h */
 #endif
+#ifdef linux
+#include <stdio.h>
+#endif
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-itf.h"
@@ -1385,7 +1388,8 @@ AbsoluteFile(char *spec)
   }
   
   strcpy(path, CWDdir);
-  strcpy(&path[CWDlen], file);
+  if ( file[0] != EOS )
+    strcpy(&path[CWDlen], file);
   if ( strchr(file, '.') || strchr(file, '/') )
     return canonisePath(path);
   else
@@ -1617,6 +1621,23 @@ xmalloc(int size)
 
 #define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
 
+static Char
+GetRawChar(void)
+{ unsigned char chr;
+
+  if ( PL_dispatch_events )
+  { while((*PL_dispatch_events)() != PL_DISPATCH_INPUT)
+      ;
+  }
+
+  if (read(0, &chr, 1) == 0)
+    return EOF;
+  else
+    return chr;
+}
+
+
+
 Char
 GetChar(void)
 { static char *line;			/* read line */
@@ -1626,23 +1647,23 @@ GetChar(void)
   Char c;
 
   if ( ttymode == TTY_RAW )
-  { if ( PL_dispatch_events )
-    { for(;;)
-      { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
-	{ char chr;
+  { c = GetRawChar();
+  } else if ( status.notty )
+  { unsigned char chr;
 
-	  if (read(0, &chr, 1) == 0)
-	    c = EOF;
-	  else
-	    c = (Char) chr;
-	  break;
-	}
-      }
-    } else
-    { char chr;				/* don't use getchar(); I/O buffer */
-					/* might not be empty after save() */
-      c = (read(0, &chr, 1) == 0 ? EOF : chr);
+    if ( !line )
+    { extern int Output;
+      int old = Output;
+      Output = 1;
+      Putf("%s", PrologPrompt());
+      pl_flush();
+      Output = old;
+
+      line = "ok";
     }
+
+    if ( (c=GetRawChar()) == '\n' )
+      line = NULL;
   } else
   { if ( !line )
     { ttybuf buf;
@@ -1682,6 +1703,7 @@ GetChar(void)
 
   source_line_no   = sln;
   source_file_name = sfn;
+
   return c;
 }
 

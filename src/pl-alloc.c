@@ -93,7 +93,8 @@ free_heap(register Void mem, register size_t n)
 
   n = ALLOCROUND(n);
   statistics.heap -= n;
-  DEBUG(9, printf("freed %ld bytes at %ld\n", n, (unsigned long)p));
+  DEBUG(9, printf("freed %ld bytes at %ld\n",
+		  (unsigned long)n, (unsigned long)p));
 
   if (n <= ALLOCFAST)
   { n /= sizeof(align_type);

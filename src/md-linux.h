@@ -33,13 +33,22 @@ Wed Jun 30 22:03:41 1993
     results in multiple symbol declaration when SWI-Prolog is linked.
     As a temporary fix remove /usr/lib/libtermcap.sa while linking
     SWI-Prolog.
+
+Thu Mar 10 22:14:20 1994
+    Updated version 1.8.9. The stdio file structure elements were
+    changed with libc 4.5.8 and above. The linux stdio now uses the
+    libio structures. The old (and new) versions still don't work
+    the way RESET_STDIN is meant to work. There seems to be no portable
+    way to handle flushing all to-be-input characters when doing a save/1.
+    Kayvan Sylvan (kayvan@Sylvan.COM) also (kayvan@Quintus.COM).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
 /*#define M_OPTIMIZE		-g*/
 #define M_LDFLAGS		-static
-#define M_CFLAGS		-ansi -pedantic -Wall -funsigned-char
+/*#define M_CFLAGS		-ansi -pedantic -Wall -funsigned-char*/
+#define M_CFLAGS		-Wall -funsigned-char
 #define M_LIBS			-lm -ltermcap -lreadline
 
 			/* compiler */
@@ -73,6 +82,12 @@ Wed Jun 30 22:03:41 1993
 #define DIR_INCLUDE2		<dirent.h>
 #define TERMIO_INCLUDE		<termio.h>
 #define O_GETCWD		1
+
+/* This is for the newer libc (4.5.8+) */
+#ifdef _STDIO_USES_IOSTREAM
+#define _gptr _IO_read_ptr
+#define _egptr _IO_read_end
+#endif
 
 #include <linux/limits.h>
 
