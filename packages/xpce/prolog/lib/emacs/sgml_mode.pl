@@ -32,6 +32,7 @@
 :- module(emacs_sgml_mode, []).
 :- use_module(library(pce)).
 :- use_module(library(emacs_extend)).
+:- use_module(library(debug)).
 :- require([ free_sgml_parser/1
 	   , www_open_url/1
 	   , dtd/2
@@ -250,6 +251,9 @@ reload_styles(M) :->
 	;   true
 	).
 
+:- dynamic
+	ok_range/2.
+
 colourise_element(M, Warn:[bool]) :->
 	"Colour element at location"::
 	send(M, setup_styles),
@@ -260,12 +264,23 @@ colourise_element(M, Warn:[bool]) :->
 	load_dtd(M, Parser),
 	set_sgml_parser(Parser, doctype(_)),
 	pce_open(TB, read, In),
-	(   get(TB, scan, Caret, line, -2, start, Start),
-%	    format('Starting from ~w~n', [Start]),
-	    find_element(M, Parser, Re, In, Start, From-To),
-	    Caret < To
+	(   retractall(ok_range(_,_)),
+	    debug(sgml_mode, 'Starting at ~D', [Caret]),
+	    find_element(M, Parser, Re, In, Caret, F-T),
+	    debug(sgml_mode, 'Found ~D ... ~D', [F, T]),
+	    (	Caret < T
+	    ->  asserta(ok_range(F, T))
+	    ;	true
+	    ),
+	    (	Caret - F > 5000	% limit look-back
+	    ->	!,
+		retract(ok_range(From, To))
+	    ;	Caret < T,		% surrounds caret
+	        F-T > 100		% sufficient context
+	    ->	From = F,
+		To = T
+	    )
 	->  send(M, remove_syntax_fragments, From, To),
-%	    colour_item(element, TB, From, To),
 	    seek(In, From, bof, _),
 	    set_sgml_parser(Parser, charpos(From)),
 	    colourise(M, Parser,
@@ -298,7 +313,9 @@ find_element(M, Caret, Range) :-
 	get(M, text_buffer, TB),
 	pce_open(TB, read, In),
 	new(Re, regex('<\\w+')),
-	(   find_element(M, Parser, Re, In, Caret, Range)
+	(   find_element(M, Parser, Re, In, Caret, Range),
+	    Range = _-To,
+	    To-1>Caret
 	->  close(In)
 	;   close(In),
 	    fail
@@ -330,9 +347,7 @@ find_element(M, Parser, _Re, In, Caret, Start, Start-To) :-
 	      E,
 	      show_message(M, E)),
 					% charpos/1 yields start-position
-	get_sgml_parser(Parser, charpos(_, To)),
-%	format('Found ~d-~d~n', [Start, To]),
-	To-1 > Caret.
+	get_sgml_parser(Parser, charpos(_, To)).
 find_element(M, Parser, Re, In, Caret, Start0, Range) :-
 	get(M, text_buffer, TB),
 	send(Re, search, TB, Start0, 0),
@@ -946,7 +961,8 @@ allowed_elements(M, Allowed:prolog) :<-
 	get_sgml_parser(Parser, dtd(DTD)),
 	set_sgml_parser(Parser, doctype(_)),
 	pce_open(TB, read, In),
-	(   find_element(M, Parser, Re, In, Caret, From-_To),
+	(   find_element(M, Parser, Re, In, Caret, From-To),
+	    To-1 > Caret,
 	    get(M, looking_at_element, From, E),
 %	    format('Looking at ~w~n', [E]),
 	    (	dtd_property(DTD, doctype(E))
