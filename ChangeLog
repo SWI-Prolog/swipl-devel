@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Bug in PL_unify_term(), causing incorrect `format error' messages.
+
+  * FIXED: MT-version: deadlock in stream-handling.
+
   * FIXED: Test for existence of files and directories in expand_file_name/2.
 
   * FIXED: Handling exceptions from make while updating the library index.
