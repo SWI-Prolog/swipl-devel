@@ -7,12 +7,12 @@ srcdir=@srcdir@
 lib=$srcdir/../lib/@ARCH@
 bdir=$srcdir/../@BUILDDIR@
 
-if [ "x$LD_LIBRARY_PATH" = "x" ]; then
-  LD_LIBRARY_PATH=$lib
+if [ "x$@DLLIBVAR@" = "x" ]; then
+  @DLLIBVAR@=$lib
 else
-  LD_LIBRARY_PATH="$lib:$LD_LIBRARY_PATH"
+  @DLLIBVAR@="$lib:$@DLLIBVAR@"
 fi
 
-export LD_LIBRARY_PATH
+export @DLLIBVAR@
 
 $bdir/@PL@ "$@"

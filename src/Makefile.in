@@ -90,6 +90,7 @@ PLLIB=@PLLIB@
 LNLIBS=@LNLIBS@
 USEPLLIB=@USEPLLIB@
 RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
+SOEXT=@SO_EXT@
 SHARED=@PLSO@
 SHAREDV=$(SHARED).$(PLVERSION)
 SONAMEOPT=-Wl,-soname=@PLSO@.$(PLVERSION)
@@ -179,12 +180,20 @@ $(RUNTIME):	$(OBJ) $(RCOBJ) $(XOBJ)
 		$(AR) r $@ $(OBJ) $(RCOBJ) $(XOBJ)
 		$(RANLIB) $@
 
+ifeq ($(SOEXT),dylib)
+$(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
+		$(CC) -dynamiclib -current_version $(PLVERSION) \
+			-install_name $(PLBASE)/lib/$(ARCH)/$(SHARED) \
+			$(COFLAGS) -o $@ \
+			$(OBJ) $(RCOBJ) $(XOBJ) $(LIBS)
+else
 $(RUNTIMEDIR)/$(SHAREDV):	$(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
 			$(OBJ) $(RCOBJ) $(XOBJ) $(LIBS)
 
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
 		( cd ../lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
+endif
 
 rc-lib:
 		@(cd rc && $(MAKE) COFLAGS="$(COFLAGS)")
@@ -313,10 +322,16 @@ installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
 iruntime::
 		$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/lib/$(ARCH)
 		$(RANLIB) $(PLBASE)/lib/$(ARCH)/$(PLLIB)
+ifeq ($(SOEXT),dylib)
+		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(PLBASE)/lib/$(ARCH) ; \
+		fi
+else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHAREDV) $(PLBASE)/lib/$(ARCH) ; \
 		( cd $(PLBASE)/lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
 		fi
+endif
 
 install-implib::
 		$(INSTALL_DATA) libplimp.a $(PLBASE)/lib/$(ARCH)

@@ -481,6 +481,9 @@
 /* Define to make runtime version */
 #undef O_RUNTIME
 
+/* "Define if Prolog kernel is in shared object" */
+#undef O_SHARED_KERNEL
+
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
 
@@ -538,9 +541,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at run-time.
-	STACK_DIRECTION > 0 => grows toward higher addresses
-	STACK_DIRECTION < 0 => grows toward lower addresses
-	STACK_DIRECTION = 0 => direction of growth unknown */
+        STACK_DIRECTION > 0 => grows toward higher addresses
+        STACK_DIRECTION < 0 => grows toward lower addresses
+        STACK_DIRECTION = 0 => direction of growth unknown */
 #undef STACK_DIRECTION
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -574,11 +577,9 @@
 /* Required in FreeBSD for compiling thread-safe code */
 #undef _THREAD_SAFE
 
-/* Define to `__inline__' or `__inline' if that's what the C compiler
-   calls it, or to nothing if 'inline' is not supported under any name.  */
-#ifndef __cplusplus
+/* Define as `__inline' if that's what the C compiler calls it, or to nothing
+   if it is not supported. */
 #undef inline
-#endif
 
 /* Define to `int' if <sys/types.h> does not define. */
 #undef pid_t

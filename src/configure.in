@@ -28,10 +28,11 @@ AC_SUBST(USEPLLIB)		dnl -lpl
 AC_SUBST(LNLIBS)		dnl libs to link with Prolog
 AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
-AC_SUBST(SO)
+AC_SUBST(SO_EXT)
 AC_SUBST(MKLIBS)		dnl system libraries to make
 AC_SUBST(BUILDDIR)
 AC_SUBST(CNFG)
+AC_SUBST(DLLIBVAR)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -1107,6 +1108,8 @@ SO_pic="-fpic"
 SO_PIC="-fPIC"
 SO_LD="$CC"
 SO_EXT="so"
+SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH"
+DLLIBVAR=LD_LIBRARY_PATH
 
 case "$ARCH" in
   *solaris* | *sunos5*)
@@ -1143,6 +1146,7 @@ case "$ARCH" in
 	;;
   *aix*)
 	SO_EXT="o"
+	DLLIBVAR=LIBPATH
 	if test "$GCC" = "yes"; then
 	    LDFLAGS="$LDFLAGS -Wl,-bE:../include/SWI-Exports"
 	    SO_LDFLAGS="-Wl,-bI:$PLBASE/include/SWI-Exports"
@@ -1152,15 +1156,23 @@ case "$ARCH" in
 	fi
 	;;
   *darwin*)
+	if test "x$MKSHARED" = "x"; then
+	    MKSHARED=yes
+	fi
 	PL=swipl
-	SO_pic="-fPIC"
+	SO_EXT=dylib
+	SO_pic="-fno-common"
+	SO_PIC="-fno-common"
+	SO_LDFLAGS="-bundle -dynamic -flat_namespace -undefined suppress"
+	SO_PATH=""
+	DLLIBVAR=DYLD_LIBRARY_PATH
 	AC_DEFINE(USE_SEM_OPEN, 1,
 		  [Define if we must use sem_open() instead of the preferred sem_init()])
 	AC_DEFINE(LD_SYMBOL_PREFIX, "_",
 		  [String used to prefix all symbols requested through dlsym()])
-	AC_DEFINE(SO_FORMAT_LDFLAGS,
-		  ["-bundle -bundle_loader \"%s\" -o \"%s\"", plexe, soout],
-		  [Arguments to pass to sprintf() to create SO_LDFLAGS])
+dnl	AC_DEFINE(SO_FORMAT_LDFLAGS,
+dnl		  ["-bundle -dynamic -o \"%s\"", soout],
+dnl		  [Arguments to pass to sprintf() to create SO_LDFLAGS])
 	CMFLAGS="-no-cpp-precomp"
 	;;
   *cygwin*)
@@ -1190,8 +1202,7 @@ AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
 AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
 		   [Name of the SWI-Prolog executable (normally pl)])
-SO=$SO_EXT
-PLSO=libpl.$SO
+PLSO=libpl.$SO_EXT
 
 fi	dnl dlopen or shl_load
 
@@ -1200,8 +1211,10 @@ dnl ================================================================
 if test "$MKSHARED" = yes; then
   MKLIBS="$MKLIBS sharedlib"
   CMFLAGS="$CMFLAGS $SO_PIC"
-  LDFLAGS="$LDFLAGS -Wl,-rpath=$PLBASE/lib/$ARCH"
+  LDFLAGS="$LDFLAGS $SO_PATH"
   LNLIBS="$USEPLLIB"
+  AC_DEFINE(O_SHARED_KERNEL, 1,
+  	    "Define if Prolog kernel is in shared object")
 else
   LNLIBS="$LIBS"
 fi dnl MKSHARED

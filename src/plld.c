@@ -1221,8 +1221,11 @@ linkSharedObject()
 #endif /*SO_FORMAT_LDFLAGS*/
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
+#ifndef O_SHARED_KERNEL
   if ( embed_shared )
-    appendArgList(&ldoptions, pllib);		/* -lpl */
+#endif
+  { appendArgList(&ldoptions, pllib);		/* -lpl */
+  }
   concatArgList(&ldoptions, "-l", &libs);	/* libraries */
   concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
 #ifdef __BEOS__
