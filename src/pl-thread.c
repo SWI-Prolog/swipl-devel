@@ -889,6 +889,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
     case PL_THREAD_CANCELED:
       return PL_unify_atom(status, ATOM_canceled);
     default:
+      fatalError("info->status = %d", info->status);
       assert(0);
       fail;
   }

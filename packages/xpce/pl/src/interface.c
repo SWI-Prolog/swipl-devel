@@ -2752,7 +2752,7 @@ PrologQuery(int what, PceCValue *value)
 		 *	    CONSOLE I/O		*
 		 *******************************/
 
-#if 0
+#if 1
 #define XPCE_OUTPUT Suser_output	/* log in current console */
 #define XPCE_INPUT Suser_input
 #else
