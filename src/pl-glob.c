@@ -49,6 +49,8 @@
 #include <sys/param.h>
 #endif
 
+#define O_EXPANDS_TESTS_EXISTS 1
+
 #ifndef IS_DIR_SEPARATOR
 #define IS_DIR_SEPARATOR(c)	((c) == '/')
 #endif
@@ -430,7 +432,7 @@ expandBag(struct bag *b)
       switch( (c = *s++) )
       { case EOS:				/* no special characters */
 #ifdef O_EXPANDS_TESTS_EXISTS
-	  if ( b->expanded == FALSE || Exists(b->bag[b->out]) )
+	  if ( b->expanded == FALSE || ExistsFile(b->bag[b->out]) )
 	  { b->bag[b->in] = b->bag[b->out];
 	    b->in = NextIndex(b->in);
 	  } else
