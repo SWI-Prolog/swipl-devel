@@ -34,6 +34,7 @@ initialise(Emacs, Buffers:dict) :->
 	new(Msg, message(Emacs, check_saved_at_exit)),
 	send(@pce, exit_message, Msg),
 	send(Emacs, slot, exit_message, Msg),
+	new(@emacs_mark_list, emacs_bookmark_editor),
 	ignore(send(Emacs, server_start)),
 	ignore(send(Emacs, load_user_init_file)).
 	
@@ -81,11 +82,11 @@ buffer(Emacs, Name:name, B:emacs_buffer) :<-
 	get(Dict, member, Name, DI),
 	get(DI, object, B).
 
-buffer(Emacs, Name:name, B:emacs_buffer) :<-
-	"Find named buffer"::
-	get(Emacs, buffer_list, Dict),
-	get(Dict, member, Name, DI),
-	get(DI, object, B).
+file_buffer(_, File:file, Buffer:emacs_buffer) :<-
+	"Find existing buffer holding file"::
+	get(File, base_name, Base),
+	get(@emacs_base_names, member, Base, Chain),
+	get(Chain, find, message(@arg1?file, same, File), Buffer).
 
 buffers(Emacs, Buffers:chain) :<-
 	"Chain with all emacs-buffers"::
@@ -113,7 +114,8 @@ goto_source_location(_Emacs, Location:source_location) :->
 	    Line \== @nil
 	->  get(B?editors, head, E),
 	    send(E?mode, select_line, Line),
-	    send(E, caret, E?selection?x) % dubious!
+	    get(E, slot, selection_start, Caret), % without slot, fails
+	    send(E, caret, Caret)		  % on empty line!
 	;   true
 	).
 

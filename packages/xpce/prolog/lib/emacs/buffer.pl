@@ -55,6 +55,10 @@ initialise(B, File:file*, Name:[name]) :->
 		    message(@arg1?name, match, FileBaseName), Att)
 	    ->  send(B, slot, mode, Att?value)
 	    ;   send(B, slot, mode, @emacs_default_mode)
+	    ),
+	    (	object(@emacs_mark_list)
+	    ->	ignore(send(@emacs_mark_list, loaded_buffer, B))
+	    ;	true
 	    )
 	),
 

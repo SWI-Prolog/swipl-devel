@@ -927,6 +927,11 @@ load_user_extensions(M) :->
 		*           TYPING		*
 		********************************/
 
+select_event(Ev) :-
+	send(Ev, instance_of, event),
+	send(Ev, is_a, cursor),
+	send(Ev, has_modifier, modifier(shift := down)).
+
 typed(M, Id:event_id, Editor:editor) :->
 	"Handle typed character for editor"::
 	get(M, text_buffer, TB),
@@ -942,7 +947,8 @@ typed(M, Id:event_id, Editor:editor) :->
 	    send(Binding, typed, Id, M),
 	    (	object(M),		% may be deleted ...
 	        get(M, focus_function, @nil)
-	    ->  (   get(M, keep_selection, @off)
+	    ->  (   get(M, keep_selection, @off),
+		    \+ select_event(@event)
 		->  send(M?editor, selection, 0, 0)
 		;   true
 		),

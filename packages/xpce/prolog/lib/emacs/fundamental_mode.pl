@@ -61,6 +61,7 @@
 
 					% BROWSER menu
 	  bookmark_line		   = button(browse),
+	  show_bookmarks	   = button(browse),
 	  grep			   = button(browse),
 
 					% COMPILE menu
@@ -424,6 +425,12 @@ bookmark_line(M) :->
 	get(M, caret, Caret),
 	get(M, scan, Caret, line, 0, start, SOL),
 	send(@emacs_mark_list, append_hit, M?text_buffer, SOL).
+
+
+show_bookmarks(_) :->
+	"Show PceEmacs bookmarks"::
+	send(@emacs_mark_list, open).
+
 
 		 /*******************************
 		 *	   PROCESS STUFF	*

@@ -61,6 +61,7 @@ pce_ifhostproperty(prolog(swi),
 :- consult(fundamental_mode).
 :- consult(language_mode).
 :- consult(outline_mode).
+:- consult(bookmarks).
 
 
 		 /*******************************
@@ -97,8 +98,6 @@ pce_ifhostproperty(prolog(swi),
 		 *     EMACS GLOBAL OBJECTS	*
 		 *******************************/
 
-:- pce_global(@emacs_mark_list,
-	      new(emacs_hit_list('Emacs Mark List'))).
 :- pce_global(@emacs_base_names,
 	      new(chain_table)).		  % file-base --> buffers
 :- pce_global(@emacs_buffers,
