@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: make sure PL_initialise(0, argv) inititialises the system with
+    reasonable defaults.
+
   * FIXED: precompilation of chr files in build environment.  Paulo Moura.
 
 VERSION 5.5.4 (Januari 26, 2005)
@@ -685,7 +688,7 @@ VERSION 5.2.12 (Jan 17, 2004)
   * FIXED: destroying thread-local clauses with the GUI debugger loaded.
     Fabien Todescato.
 
-  * DOCUMENTATION: Typo in term_expansion/2 docs.  M�rcio Mazza.
+  * DOCUMENTATION: Typo in term_expansion/2 docs.  Mrcio Mazza.
 
   * INTERNAL: changed tag schema freeing up an entry for attributed
     variables.

@@ -254,8 +254,7 @@ initPaths()
     GD->paths.executable       = store_string(symbols);
     GD->options.systemInitFile = defaultSystemInitFile(GD->cmdline.argv[0]);
   } else
-  { Sdprintf("No initialisation arguments\n");
-    systemDefaults.home	       = findHome(NULL);
+  { systemDefaults.home	       = findHome(NULL);
     GD->options.systemInitFile = store_string("none");
 #ifdef __WIN32__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string("libpl.dll");
