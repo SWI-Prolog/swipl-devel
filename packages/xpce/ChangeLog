@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.1.12, distributed with SWI-Prolog 5.1.12
+==================================================
+
 * ADDED: library(splash_screen) to provide nice startup screens.
 
 * ADDED/FIXED: Allow a frame to delete its only window (frame->delete).

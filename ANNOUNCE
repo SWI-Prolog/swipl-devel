@@ -1,37 +1,38 @@
-SWI-Prolog 5.1.11/XPCE 6.1.11 Summary of changes
+SWI-Prolog 5.1.12/XPCE 6.1.12 Summary of changes
 
 Status
 ======
   
-  * 12th beta-release.  Considering feedback, the 5.1.x series probably becomes
-    mainstream not too far from here.
+  * 13th beta-release.  Unless serious trouble shows up, the next release
+    will be 5.2.0.  I.e. this will become the next stable release.
 
 SWI-Prolog
 ==========
 
-  * Better performance using multiple threads and dynamic code on SMP
-    hardware by using more per-object mutex objects.
+  * MODIFIED: last/2 argument order to last(List, Elem).  See
+    http://www.prolog-standard.fmg.uva.nl/twiki/bin/view/Library/PredLast2
+    for a discussion.
 
-  * Provide compile_predicates/1 as advocated in by Richard O'Keefe.
-
-  * Some protability patches.
+  * Some portability patches.
 
   * Miscellaneous small patches.
 
 Packages
 ========
 
-  * XPCE: More support around tabbed-dialogs.  Added library(tabbed_window)
-    displaying multiple windows as subwindow of a single window, selectable
-    by tabs.
+  * XPCE: Fixes to the new library(tabbed_window), some patches to PostScript
+    generation. Added library(splash_screen) to provide a nice startup-screen
+    for your application.
 
 Development environment
 =======================
 
+  * Fixed showing up too many FAIL-ports in the GUI-tracer,
+
 Short-term Plans
 ================
 
-  * Write articles :-)
+  * Finish articles :-)
 
   * RDF storage and RDFS and OWL query support.
 

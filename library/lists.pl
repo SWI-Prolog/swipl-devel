@@ -149,7 +149,10 @@ nth1(Index, List, Elem) :-
 
 %	last(?List, ?Elem)
 %
-%	Succeeds if `Last' unifies with the last element of `List'.
+%	Succeeds if `Last' unifies with the last element of `List'.  For
+%	discussion on the argument order, see:
+%	
+%	http://www.prolog-standard.fmg.uva.nl/twiki/bin/view/Library/PredLast2
 
 last([X|Xs], Last) :-
     last_(Xs, X, Last).

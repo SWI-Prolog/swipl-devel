@@ -7,6 +7,12 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.1.11 (April 25, 2003)
+===============================
+
+  * ADDED: library(checklast) to check for the modified argument order of
+    last/2.
+
   * ADDED/FIXED: Bug#46: loading .qlf files using use_module/1 and friends.
     Holger Kanwischer.
 
@@ -19,6 +25,10 @@
     and utitilities you find most calls using
 
 		grep -n '\<last(' `find . -name '*.pl'`
+
+    On all systems you can run ?- check_old_last. before loading your
+    program.  This spots if last/2 is used at compiletime as well as
+    trapping suspicious calls at runtime.
 
   * ADDED: time/1 and profile/1,3 to call expand_goal/2.  Time/1 to
     report elapsed time.
