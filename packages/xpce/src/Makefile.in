@@ -65,6 +65,7 @@ RANLIB=@RANLIB@
 LDCONFIG=@LDCONFIG@
 YACC=@YACC@
 PL=@PL@
+PLNAME=$(shell basename $(PL))
 MKPROTO=mkproto -p
 CLPROTO=grep -vw NewClass
 LN=@LN_S@
@@ -197,7 +198,7 @@ xpce-pl:	xpce pl-itf
 pl-itf:		pl
 		cd ../pl/src; \
 		CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
-		$(MAKE) PL=$(PL) $(PLTARGET)
+		$(MAKE) PL=../$(PL) $(PLTARGET)
 
 pl-shared:	pl
 		cd ../pl/src; \
@@ -214,7 +215,7 @@ pl:
 		mkdir $@
 
 $(MANINDEX):	$(shell find ../man/reference -name '*.doc')
-		-$(PL) \
+		-$(PLNAME) \
 		  -F none \
 		  -f ../pl/src/plrc \
 		  -g "[library('man/man_index')],pce_make_manual_index('$@')" \
@@ -719,8 +720,8 @@ rt-bins:
 		    $(INSTALL_PROGRAM) xpce $(PLBINDIR); \
 		else \
 		    rm -f $(PLBINDIR)/xpce; \
-		    echo "linking xpce to $(PL) in $(PLBINDIR)"; \
-		    (cd $(PLBINDIR); ln -s $(PL) xpce) ; \
+		    echo "linking xpce to $(PLNAME) in $(PLBINDIR)"; \
+		    (cd $(PLBINDIR); ln -s $(PLNAME) xpce) ; \
 		fi
 		@for f in xpce-client; do \
 		    if [ -f $$f ]; then \
@@ -758,7 +759,7 @@ dv-lib:
 		    fi; \
 		    echo done; \
 		done
-		$(PL) -f none -F none -g true \
+		$(PLNAME) -f none -F none -g true \
 			-t "make_library_index('$(DVHOME)/prolog/lib')"
 		$(INSTALL_DATA) ../prolog/lib/Overview $(DVHOME)/prolog/lib
 		$(INSTALL_DATA) ../prolog/lib/trace/pltracer.hlp $(DVHOME)/prolog/lib/trace
@@ -815,7 +816,7 @@ rt-link:
 		cd $(PLBASE); rm -f xpce; ln -s xpce-$(PCEVERSION) xpce
 
 dv-link:	rt-link
-		$(INSTALL_DATA) ../pl/src/plrc $(PLBASE)/$(PL).rc
+		$(INSTALL_DATA) ../pl/src/plrc $(PLBASE)/$(PLNAME).rc
 		$(INSTALL_DATA) ../pl/src/plrc $(PLBASE)/xpce.rc
 		$(INSTALL_DATA) ../pl/src/Makefile.bin $(PLBASE)/Makefile
 
