@@ -516,6 +516,9 @@ get_xy_event_graphical(EventObj ev, Graphical gr, int *rx, int *ry)
 
   get_xy_event_window(ev, sw, OFF, rx, ry);
   offsetDeviceGraphical(gr, &ox, &oy);
+  DEBUG(NAME_inside, Cprintf("At %d,%d: offset %s --> %s is %d,%d\n",
+			     *rx, *ry,
+			     pp(gr), pp(sw), ox, oy));
   *rx -= ox + valInt(gr->area->x);
   *ry -= oy + valInt(gr->area->y);
 }
@@ -546,8 +549,8 @@ get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry)
   }
 
   if ( area == ON &&
-       instanceOfObject(ev->receiver, ClassDevice) && /* why ev->receiver? */
-       !instanceOfObject(ev->receiver, ClassWindow) )
+       instanceOfObject(obj, ClassDevice) &&
+       !instanceOfObject(obj, ClassWindow) )
   { Device dev = (Device) ev->receiver;
     x -= valInt(dev->area->x) - valInt(dev->offset->x);
     y -= valInt(dev->area->y) - valInt(dev->offset->y);
@@ -634,6 +637,8 @@ insideEvent(EventObj ev, Graphical gr)
     gr = ev->receiver;
 
   TRY( get_xy_event(ev, gr, ON, &x, &y) );
+  DEBUG(NAME_inside, Cprintf("Event at %d,%d on %s\n",
+			     valInt(x), valInt(y), pp(gr)));
   if ( instanceOfObject(gr, ClassWindow) )
   { int vx, vy, vw, vh; 
     PceWindow sw = (PceWindow) gr;
