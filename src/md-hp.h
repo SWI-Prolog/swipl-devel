@@ -31,10 +31,13 @@ HP9000s300 series.
 
 I would like to  thank Olle Ollson  at SICS (Sweden) for providing  me
 with access to their HP machines.
+
+Version 1.6.11 includes   various fixes suggested  by Dave   Sherratt,
+(ads@compsci.liverpool.ac.uk)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef __GNUC__
-#define __GNUC__		1	/* set to 0 to use HP's cc */
+#define __GNUC__		0	/* set to 1 to use gcc */
 #endif
 
 #if __GNUC__				/* Use GNU-C */
@@ -45,7 +48,7 @@ with access to their HP machines.
 #else					/* Use HP-UX cc */
 #define M_CC			cc
 #define M_OPTIMIZE	        +O3
-#define M_LDFLAGS		-Wl,-a archive
+#define M_LDFLAGS		-O -Wl,-a archive
 #define M_CFLAGS		
 #endif
 

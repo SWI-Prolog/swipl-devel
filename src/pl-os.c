@@ -1953,7 +1953,10 @@ do_get_char()
 { Char c;
 
   if ( PL_dispatch_events != NULL )
-  { DEBUG(3, printf("do_get_char() --> "));
+  { Atom sfn = source_file_name;	/* save over call-back */
+    int  sln = source_line_no;
+
+    DEBUG(3, printf("do_get_char() --> "));
     for(;;)
     { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
       { char chr;
@@ -1966,6 +1969,8 @@ do_get_char()
       }
     }
 
+    source_line_no   = sln;
+    source_file_name = sfn;
     DEBUG(3, printf("%d (%c) --> ", c, c));
   } else
     c = (Char) getchar();

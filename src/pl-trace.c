@@ -700,6 +700,10 @@ interruptHandler()
   Output = 1;
   lTop = (LocalFrame)addPointer(lTop, sizeof(struct localFrame) +
 				      MAXARITY * sizeof(word));
+
+  ResetTty();				/* remove pending tty input */
+					/* (bug fix from Andreas Toenne */
+
 again:
   Putf("\nAction (h for help) ? ");
   pl_flush();

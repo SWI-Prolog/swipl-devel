@@ -461,15 +461,17 @@ distribute_rubber(r, rn, space)
 struct rubber *r;
 int rn;
 int space;
-{ int s = space / rn;
-  int n, m;
+{ if ( space > 0 )
+  { int s = space / rn;
+    int n, m;
 
-  for(n=0; n < rn; n++)		/* give them equal size */
-    r[n].size = s;
-				/* distribute the remainings from the center */
-  space -= s*rn;
-  for(m = rn / 2, n = 0; space; n++, space--)
-  { r[m + (n % 2 ? n : -n)].size++;
+    for(n=0; n < rn; n++)		/* give them equal size */
+      r[n].size = s;
+					/* distribute from the center */
+    space -= s*rn;
+    for(m = rn / 2, n = 0; space; n++, space--)
+    { r[m + (n % 2 ? n : -n)].size++;
+    }
   }
 }
 

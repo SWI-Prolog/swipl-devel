@@ -833,7 +833,11 @@ Word streams, available, timeout;
 
   FD_ZERO(&fds);
   while( isList(*streams) )
-  { int fd = streamNo(HeadList(streams), F_READ);
+  { Word h = HeadList(streams);
+    int fd;
+
+    deRef(h);				/* bug found by Andreas Toenne */
+    fd = streamNo(h, F_READ);
 
     if ( fd < 0 )
       fail;

@@ -10,7 +10,13 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note: when using gcc, make sure you have patched the SUN include files
 using the shell script fixincludes  provided with gcc.   If you don't,
-the terminal interface does not operate properly.
+the terminal interface does not operate properly.   To fix this either
+run fixincludes or compile  pl-os.c using cc: `cc  -c -O pl-os.c'  and
+run make again.
+
+When using SUN cc, make sure to  use  the  BSD compiler, include files
+and libraries.  If you are not sure, run `which cc' which should yield
+/usr/ucb/cc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -27,7 +33,7 @@ the terminal interface does not operate properly.
 #define M_CFLAGS		-Wall
 #endif
 
-/*#define M_OPTIMIZE		-g -DO_DEBUG*/
+#define M_OPTIMIZE		-g -DO_DEBUG
 
 #define M_LIBS			-lm -ltermcap
 

@@ -146,7 +146,7 @@ stopRead()
     fatalError("Read stack underflow???");
   if (read_nesting > 0)
   { rb.fd = checkInput(rb.stream);
-    source_file_name = currentStreamName();
+  /*source_file_name = currentStreamName();*/
   }
 #endif O_PCE
 }
@@ -361,7 +361,8 @@ getchr()
 			   addToBuffer(c); \
 		        }
 #define set_start_line { if ( !something_read ) \
-			 { source_line_no = currentInputLine(); \
+			 { source_file_name = currentStreamName(); \
+			   source_line_no = currentInputLine(); \
 			   something_read++; \
 			 } \
 		       }
