@@ -418,13 +418,19 @@ make_prolog_mode_class_popup(G) :-
 			      message(@emacs_mode, open_class, @arg1?message, @on))
 		  ]).
 
-open_class(_Mode, Class:name, NewWindow:[bool]) :->
+open_class(Mode, ClassName:name, NewWindow:[bool]) :->
 	"Open XPCE class [in new window]"::
-	prolog_edit:locate(class(Class), Location),
-	memberchk(file(File), Location),
-	memberchk(line(Line), Location),
-	send(@emacs, goto_source_location,
-	     source_location(File, Line), NewWindow).
+	(   get(@pce, convert, ClassName, class, Class)
+	->  (   get(Class, creator, built_in)
+	    ->	manpce(ClassName)
+	    ;	prolog_edit:locate(class(Class), Location),
+		memberchk(file(File), Location),
+		memberchk(line(Line), Location),
+		send(@emacs, goto_source_location,
+		     source_location(File, Line), NewWindow)
+	    )
+	;   send(Mode, report, error, 'Class %s doesn''t exist', ClassName)
+	).
 
 message(file(Path), F) :- !,
 	send(F, message, Path),
