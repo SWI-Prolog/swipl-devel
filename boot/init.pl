@@ -390,13 +390,21 @@ $chk_file(File, FullName, _, Exts) :-
 	absolute_file_name(PlFile, FullName),
 	exists_file(FullName), !.
 
+:- dynamic
+	$lib_file_cache/4.
+
+$chk_lib_file(File, FullFile, Prefixes, Exts) :-
+	$lib_file_cache(File, FullFile, Pref, Ext),
+	memberchk(Pref, Prefixes),
+	memberchk(Ext, Exts), !.
 $chk_lib_file(File, FullFile, Prefixes, Exts) :-
 	user:library_directory(Dir),
 	member(Prefix, Prefixes),
 	member(Ext, Exts),
 	concat_atom([Dir, '/', Prefix, '/', File, Ext], LibFile),
+	exists_file(LibFile), !,
 	absolute_file_name(LibFile, FullFile),
-	exists_file(FullFile), !.
+	asserta($lib_file_cache(File, FullFile, Prefix, Ext)).
 	
 
 		/********************************
@@ -668,22 +676,13 @@ $load_file(FirstClause, File, _, false, Module) :- !,
 	    $consult_clause(Clause, File), !.
 
 :- dynamic
-	$module_file/3.
-
-$module_file(File, Module) :-
-	$module_file(File, _Base, Module), !.
-$module_file(File, Module) :-
-	$file_base_name(File, Base),
-	$module_file(LoadedFile, Base, Module),
-	same_file(File, LoadedFile), !,
-	$assert_module_file(LoadedFile, Module).
+	$module_file/2.
 
 $assert_module_file(File, Module) :-
-	$file_base_name(File, Base),
-	(   $module_file(File, Base, Module)
-	->  true
-	;   asserta($module_file(File, Base, Module))
-	).
+	$module_file(File, Module), !.
+$assert_module_file(File, Module) :-
+	asserta($module_file(File, Module)).
+
 
 $load_module(Module, Public, Import, File) :-
 	$set_source_module(OldModule, OldModule),

@@ -288,8 +288,9 @@ source_file(File) :-
 	$time_source_file(File, _).
 source_file(File) :-
 	atom(File),
-	$time_source_file(LoadedFile, _),
-	same_file(LoadedFile, File), !.
+	absolute_file_name(File, Abs),	% canonise
+	$time_source_file(Abs, _).
+
 
 		/********************************
 		*           DATA BASE           *
