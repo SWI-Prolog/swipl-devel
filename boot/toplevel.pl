@@ -91,7 +91,7 @@ $load_script_file :-
 	prolog_to_os_filename(File, OsFile),
 	(   exists_file(File)		% avoid expanding on extensions
 	->  asserta(loaded_init_file(script)),
-	    ensure_loaded(user:File)
+	    load_files(user:File, [expand(false)])
 	;   throw(error(existence_error(script_file, File), _))
 	).
 $load_script_file.
