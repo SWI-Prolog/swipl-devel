@@ -785,10 +785,15 @@ loadStatement(int c, IOSTREAM *fd, int skip ARG_LD)
       source_line_no   = getInt(fd);
       
       loadQlfTerm(goal, fd PASS_LD);
-      DEBUG(2, Sdprintf("%s:%d: Directive: ",
+      DEBUG(2,
+	    if ( source_file_name )
+	    { Sdprintf("%s:%d: Directive: ",
 			PL_atom_chars(source_file_name), source_line_no);
-	       pl_write(goal);
-	       Sdprintf("\n"));
+	    } else
+	    { Sdprintf("Directive: ");
+	    }
+	    pl_write(goal);
+	    Sdprintf("\n"));
       if ( !skip )
       { if ( !callProlog(MODULE_user, goal, PL_Q_NODEBUG, NULL) )
 	{ Sfprintf(Serror,

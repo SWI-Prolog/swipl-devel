@@ -289,8 +289,8 @@ setEncoding(atom_t a)
 }
 
 
-word
-pl_set_feature(term_t key, term_t value)
+static word
+set_feature_unlocked(term_t key, term_t value)
 { atom_t k;
   Symbol s;
   feature *f;
@@ -301,7 +301,6 @@ pl_set_feature(term_t key, term_t value)
   if ( !PL_get_atom(key, &k) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, key);
 
-  LOCK();
 					/* set existing feature */
 #ifdef O_PLMT
   if ( LD->feature.table &&
@@ -369,7 +368,6 @@ pl_set_feature(term_t key, term_t value)
 #endif
       addHTable(GD->feature.table, (void *)k, f);
 
-    UNLOCK();
     succeed;
   }
 
@@ -378,7 +376,8 @@ pl_set_feature(term_t key, term_t value)
     { int val;
 
       if ( !PL_get_bool(value, &val) )
-	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, value);
+      { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, value);
+      }
       if ( f->index > 0 )
       { unsigned long mask = 1L << (f->index-1);
 
@@ -428,7 +427,7 @@ pl_set_feature(term_t key, term_t value)
       { rval = setEncoding(a);
       }
       if ( !rval )
-	goto out;
+	fail;
 
       PL_unregister_atom(f->value.a);
       f->value.a = a;
@@ -443,9 +442,7 @@ pl_set_feature(term_t key, term_t value)
     { long i;
 
       if ( !PL_get_long(value, &i) )
-      { rval = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, value);
-	break;
-      }
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, value);
       f->value.i = i;
 #ifdef O_ATOMGC
       if ( k == ATOM_agc_margin )
@@ -462,10 +459,20 @@ pl_set_feature(term_t key, term_t value)
     default:
       assert(0);
   }
-out:
-  UNLOCK();
 
   return rval;
+}
+
+
+word
+pl_set_feature(term_t key, term_t value)
+{ word rc;
+
+  LOCK();
+  rc = set_feature_unlocked(key, value);
+  UNLOCK();
+
+  return rc;
 }
 
 

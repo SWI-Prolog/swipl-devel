@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Possible deadlock in set_prolog_flag/2.
+
   * ADDED: Various new predicates to the ordsets compatibility library,
     used for the new CHR version.
    
