@@ -1,10 +1,55 @@
-Please check out
+SWI-Prolog on MacOS X (Darwin)
 
-	http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Foreign/MacOsXForeign
+Thanks  to  Jacobo  Myerston   <jacunix@cantv.net>    and   Paulo  Moura
+<pmoura@noe.ubi.pt> for their help on   assembling  this version. Jacobo
+produces binary packages on a regular basis. Please visit the SWI-Prolog
+home and download on www.swi-prolog.org.
 
-and especially
+As of SWI-Prolog 5.0.2, the  SWI-Prolog   sources  have  been adapted to
+compile and run flawlessly on MacOS X,   including all packages and XPCE
+using X11.
 
-	http://www.phil.uu.nl/~xges/HOWTO/swipldynlib.html 
+The plld compile/link utility is  capable   of  producing shared objects
+from foreign code to  be  loaded  in   SWI-Prolog  as  well  as embedded
+executables.
 
-discussing various issues concerned with building and using foreign code
-on MacOSX platform.
+
+Installing from the source
+==========================
+
+There are no longer special instructions  for installing SWI-Prolog from
+the sources. To  build  XPCE  though,   you  need  the  X11  development
+environment and the XPM and JPEG libraries.   Please visit the Twiki web
+on SWI-Prolog for details:
+
+	http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Porting/MacOSX
+
+
+Installing the binary
+=====================
+
+In order to install SWI-Prolog you must   have XFree86 installed in your
+computer. A double-clickable installer for XFree86 4.2.0  on Mac OS X is
+available from the XonX project: http://sourceforge.net/projects/xonx. A
+binary distribution is  also  available  from   the  XFree86  web  page:
+http://www.xfree86.org/4.2.0
+
+Once  you  have  installed  XFree86  you   just  have  to  double  click
+SWI-Prolog.mpkg.  The  installer  will  ask  you  for  an  administrator
+password, and you will have to agree the terms of the license.
+
+
+Running SWI-Prolog
+------------------
+
+The executable of SWI-Prolog is installed as /usr/local/bin/swipl. Using
+normal setup, it can be started by typing the command
+
+	swipl
+
+in a terminal window. This may  fail   if  /usr/local/bin is not in your
+`PATH'. In that case you can start   SWI-Prolog  by typing the full path
+name or you have to modify PATH first.
+
+The    libraries    and    other    resources     are    installed    in
+/usr/local/lib/pl-<version>/
