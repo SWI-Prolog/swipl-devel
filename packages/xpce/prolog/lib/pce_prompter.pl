@@ -151,6 +151,9 @@ make_dialog_item(Type, Label, DI) :-
 	send(DI, type, Type).
 
 
+dialog_item_from_type_kind(int,   Type, Label, DI) :- !,
+	new(DI, int_item(Label)),
+	send(DI, type, Type).
 dialog_item_from_type_kind(Range, Type, Label, DI) :-
 	(   Range == int_range
 	;   Range == real_range
