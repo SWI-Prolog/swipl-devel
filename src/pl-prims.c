@@ -2414,11 +2414,15 @@ pl_statistics(term_t k, term_t value)
     fail;
   else if (key == ATOM_heapused)			/* heap usage */
     result = makeNum(GD->statistics.heap);
-  else if (key == ATOM_trail || key == ATOM_trailused)	/* trail */
+  else if (key == ATOM_trail)				/* trail */
+    result = makeNum(sizeStack(trail));
+  else if (key == ATOM_trailused)	
     result = makeNum(usedStack(trail));
   else if (key == ATOM_traillimit)
     result = makeNum(limitStack(trail));
-  else if (key == ATOM_global || key == ATOM_globalused ) /* global */
+  else if (key == ATOM_global)				/* global */
+    result = makeNum(sizeStack(global));
+  else if (key == ATOM_globalused )
     result = makeNum(usedStack(global));
   else if (key == ATOM_globallimit)
     result = makeNum(limitStack(global));
