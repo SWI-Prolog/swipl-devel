@@ -1,0 +1,119 @@
+\section{Library ``broadcast'' for all your deliveries}
+\label{sec:libbroadcast}
+
+\index{broadcast}\index{message,service}\index{blackboard}%
+\index{agent}\index{daemon}% The \pllib{broadcast} library was invented
+to realise GUI applications consisting of stand-alone components that
+use the Prolog database for storing the application data.
+\Figref{broadcast} illustrates the flow of information using this design
+
+\postscriptfig[width=\linewidth]{broadcast}{Information-flow using
+					    broadcasting service}
+
+The broadcasting service provides two services. Using the `shout'
+service, an unknown number of agents may listen to the message and
+act.  The broadcaster is not (directly) aware of the implications.
+Using the `request' service, listening agents are asked for an answer
+one-by-one and the broadcaster is allowed to reject answers using
+normal Prolog failure.
+
+Shouting is often used to inform about changes made to a common
+database.  Other messages can be ``save yourself'' or ``show this''.
+
+Requesting is used to get information while the broadcaster is
+not aware who might be able to answer the question.  For example
+``who is showing $X$?''.
+
+\begin{description}
+    \predicate{broadcast}{1}{+Term}
+Broadcast \arg{Term}. There are no limitations to \arg{Term}, though
+being a global service, it is good practice to use a descriptive and
+unique principal functor. All associated goals are started and
+regardless of their success or failure, broadcast/1 always succeeds.
+Exceptions are passed.
+
+    \predicate{broadcast_request}{1}{+Term}
+Unlike broadcast/1, this predicate stops if an associated goal succeeds.
+Backtracking causes it to try other listeners.  A broadcast request is
+used to fetch information without knowing the identity of the agent
+providing it.  C.f.\ ``Is there someone who knows the age of John?''
+could be asked using
+
+\begin{code}
+	...,
+	broadcast_request(age_of('John', Age)),
+\end{code}
+
+If there is an agent (\jargon{listener}) that registered an `age-of'
+service and knows about the age of `John' this question will be
+answered.
+
+    \predicate{listen}{2}{+Template, :Goal}
+Register a \jargon{listen} channal. Whenever a term unifying
+\arg{Template} is broadcasted, call \arg{Goal}.  The following example
+traps all broadcasted messages as a variable unifies to any message.
+It is commonly used to debug usage of the library.
+
+\begin{code}
+?- listen(Term, write_ln(Term)).
+?- broadcast(hello(world)).
+hello(world)
+
+Yes
+\end{code}
+
+    \predicate{listen}{3}{+Listener, +Template, :Goal}
+Declare \arg{Listener} as the owner of the channal.  Unlike a channal
+opened using listen/2, channals that have an owner can terminate the
+channal.  This is commonly used if an object is listening to broadcast
+messages.  In the example below we define a `name-item' displaying the
+name of an identifier represented by the predicate name_of/2.
+
+\begin{pcecode}
+:- pce_begin_class(name_item, text_item).
+
+variable(id,	any,	get, "Id visualised").
+
+initialise(NI, Id:any) :->
+	name_of(Id, Name),
+	send_super(NI, initialise, name, Name,
+		   message(NI, set_name, @arg1)),
+	send(NI, slot, id, Id),
+	listen(NI, name_of(Id, Name),
+	       send(NI, selection, Name)).
+
+unlink(NI) :->
+	unlisten(NI),
+	send_super(NI, unlink).
+
+set_name(NI, Name:name) :->
+	get(NI, id, Id),
+	retractall(name_of(Id, _)),
+	assert(name_of(Id, Name)),
+	broadcast(name_of(Id, Name)).
+
+:- pce_end_class.
+\end{pcecode}
+
+    \predicate{unlisten}{1}{+Listener}
+Deregister all entries created with listen/3 whose \arg{Listener}
+unify.
+
+    \predicate{unlisten}{2}{+Listener, +Template}
+Deregister all entries created with listen/3 whose \arg{Listener}
+and \arg{Template} unify.
+
+    \predicate{unlisten}{3}{+Listener, +Template, :Goal}
+Deregister all entries created with listen/3 whose \arg{Listener},
+\arg{Template} and \arg{Goal} unify.
+
+    \predicate{listening}{3}{?Listener, ?Template, ?Goal}
+Examine the current listeners.  This predicate is useful for debugging
+purposes.
+\end{description}
+
+
+
+
+
+

@@ -39,6 +39,11 @@ the HTTP protocol.  It allows \product{} to act as a web-server.
     \secoverview{docrender}{Document rendering}
 Primitives for rendering mixed text/graphics, handling fonts, alignment,
 tables and other common text-layout primitives.
+
+    \secoverview{libbroadcast}{Library ``broadcast'' for all your deliveries}
+The \pllib{broadcast} library is a pure-Prolog library sending messages
+around in your application.  It is especially useful for blackboard-like
+architectures.
 \end{itemize}
 
 \newcommand{\libinput}[1]{\cleardoublepage\input{#1}}
@@ -51,3 +56,4 @@ tables and other common text-layout primitives.
 \libinput{dragdrop.tex}
 \libinput{httpd}
 \libinput{docrender}
+\libinput{libbroadcast}

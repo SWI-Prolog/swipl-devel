@@ -22,7 +22,7 @@ COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	resource.tex images.tex summary.tex body.tex \
 	mswin.tex \
 	libs.tex findfile.tex toc.tex tabular.tex libdia.tex mlingual.tex \
-	httpd.tex httpd-ex.tex docrender.tex
+	httpd.tex httpd-ex.tex docrender.tex libbroadcast.tex
 
 XPCETEX=	xpceusg.tex $(COMMON)
 PWTEX=		pwusg.tex pwinfo.tex $(COMMON)

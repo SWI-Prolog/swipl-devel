@@ -1,0 +1,393 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%Creator: PCE 5.0.11, November 2000
+%%CreationDate: (Tue Feb 27 10:42:30 2001)
+%%Pages: 1
+%%DocumentFonts: (atend)
+%%BoundingBox: 70 70 569 352
+%%Object: @709158/draw_canvas
+%%EndComments
+
+/draw
+	{ 0 currentlinewidth ne
+	  { currentdash 0 eq exch [] eq and not
+	    { gsave nodash 1 setgray stroke grestore
+	    } if
+	    stroke
+	  } if
+	} def
+
+/pspen
+	{ 2 div
+	} def
+
+/pen
+	{ pspen
+	  setlinewidth
+	} def
+
+/boxpath
+	{ /r exch def
+	  /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+	  
+	  r 0 eq
+	  { 2 setlinecap newpath
+	    x p pspen add y p pspen add moveto
+	    w p sub 0 rlineto
+	    0 h p sub rlineto
+	    w p sub neg 0 rlineto
+	    0 h p sub neg rlineto
+	  }
+	  { newpath
+	    /pr r p pspen add def
+	    x pr add y p pspen add moveto
+	    x w add pr sub	y pr add	r 270 360 arc
+	    x w add pr sub	y h add pr sub	r 0 90 arc
+	    x pr add		y h add pr sub  r 90 180 arc
+	    x pr add		y pr add	r 180 270 arc
+	  } ifelse
+	  
+	  p pen
+	} def
+
+/nodash
+	{ [] 0 setdash
+	} def
+
+/region
+	{ newpath
+	    x y moveto
+	    w 0 rlineto
+	    0 h rlineto
+	    w neg 0 rlineto
+	  closepath
+	} def
+
+/clear
+	{ /h exch def
+	  /w exch def
+	  /y exch def
+	  /x exch def
+	  gsave
+	    region 1 setgray fill
+	  grestore
+	} def
+
+/text
+	{ /s exch def
+	  /w exch def
+	  
+	  gsave
+	    1 eq { invert } if
+	    moveto s stringwidth pop w exch div -1 scale s show
+	  grestore
+	} def
+
+/startpath
+	{ newpath moveto pen
+	} def
+
+/ellipsepath
+	{ /h exch 2 div def
+	  /w exch 2 div def
+	  /y exch def
+	  /x exch def
+	  /p exch def
+	  matrix currentmatrix
+	  x w add y h add translate
+	  w p pspen sub h p pspen sub scale
+	  newpath
+	  0 0 1 0 360 arc
+	  setmatrix
+	  p pen
+	} def
+
+/dashed
+	{ [5] 0 setdash
+	} def
+
+gsave
+
+70 70 translate
+0.99 -0.99 scale
+-53 -347 translate
+%%EndProlog
+%%Page 0 1
+
+%%Object: @709158/draw_canvas
+gsave 0 0 translate 0.00 0.00 0.00 setrgbcolor 
+
+%%Object: @806055/uml_class
+gsave 99 84 translate 
+
+%%Object: @806112/box
+gsave  nodash 1 0 0 100 50 0 boxpath
+draw grestore
+
+%%Object: @806150/draw_text
+18 11 65 28 clear
+gsave nodash 0 18 11 65 28 0 boxpath
+/Helvetica-Bold findfont 12 scalefont setfont
+24 22 0 53 (Interface) text
+18 36 0 65 (component) text
+grestore
+grestore
+
+%%Object: @821986/uml_class
+gsave 98 195 translate 
+
+%%Object: @822036/box
+gsave  nodash 1 0 0 100 50 0 boxpath
+draw grestore
+
+%%Object: @822074/draw_text
+13 11 74 28 clear
+gsave nodash 0 13 11 74 28 0 boxpath
+/Helvetica-Bold findfont 12 scalefont setfont
+22 22 0 55 (Database) text
+13 36 0 74 (manipulation) text
+grestore
+grestore
+
+%%Object: @823564/uml_class
+gsave 100 297 translate 
+
+%%Object: @823602/box
+gsave  nodash 1 0 0 457 50 0 boxpath
+draw grestore
+
+%%Object: @823633/draw_text
+181 18 94 14 clear
+gsave nodash 0 181 18 94 14 0 boxpath
+/Helvetica-Bold findfont 12 scalefont setfont
+181 29 0 94 (Prolog database) text
+grestore
+grestore
+
+%%Object: @824456/uml_class
+gsave 270 195 translate 
+
+%%Object: @824489/box
+gsave  nodash 1 0 0 100 50 0 boxpath
+draw grestore
+
+%%Object: @824520/draw_text
+20 18 60 14 clear
+gsave nodash 0 20 18 60 14 0 boxpath
+/Helvetica-Bold findfont 12 scalefont setfont
+20 29 0 60 (Broadcast) text
+grestore
+grestore
+
+%%Object: @827018/draw_rect_connection
+gsave 
+grestore
+
+%%Object: @827304/path
+gsave 0 0 translate  nodash 1 149 245 startpath
+ 149 297 lineto
+
+draw
+
+%%Object: @draw_default_arrow/arrow
+gsave  nodash 0 pen newpath 152 255 moveto 149 245 lineto 146 255 lineto closepath gsave 0.00 setgray fill grestore
+ grestore
+
+%%Object: @draw_default_arrow/arrow
+gsave  nodash 0 pen newpath 146 287 moveto 149 297 lineto 152 287 lineto closepath gsave 0.00 setgray fill grestore
+ grestore
+grestore
+
+%%Object: @846053/draw_rect_connection
+gsave 
+grestore
+
+%%Object: @846107/path
+gsave 0 0 translate  nodash 1 198 220 startpath
+ 270 220 lineto
+
+draw
+
+%%Object: @draw_default_arrow/arrow
+gsave  nodash 0 pen newpath 260 223 moveto 270 220 lineto 260 217 lineto closepath gsave 0.00 setgray fill grestore
+ grestore
+grestore
+
+%%Object: @846679/draw_rect_connection
+gsave 
+grestore
+
+%%Object: @846719/path
+gsave 0 0 translate  nodash 1 148 134 startpath
+ 148 195 lineto
+
+draw
+
+%%Object: @draw_default_arrow/arrow
+gsave  nodash 0 pen newpath 145 185 moveto 148 195 lineto 151 185 lineto closepath gsave 0.00 setgray fill grestore
+ grestore
+grestore
+
+%%Object: @893927/draw_ellipse
+gsave  nodash 1 270 84 100 50 ellipsepath
+draw grestore
+
+%%Object: @901103/draw_rect_connection
+gsave 
+grestore
+
+%%Object: @901144/path
+gsave 0 0 translate  nodash 1 320 195 startpath
+ 320 134 lineto
+
+draw
+
+%%Object: @triangle_arrow/arrow
+gsave  nodash 1 pen newpath 327 150 moveto 320 134 lineto 313 150 lineto closepath gsave 1.00 setgray fill grestore
+ nodash draw
+ grestore
+grestore
+
+%%Object: @901219/draw_rect_connection
+gsave 
+grestore
+
+%%Object: @901259/path
+gsave 0 0 translate  nodash 1 270 109 startpath
+ 199 109 lineto
+
+draw
+
+%%Object: @triangle_arrow/arrow
+gsave  nodash 1 pen newpath 215 102 moveto 199 109 lineto 215 116 lineto closepath gsave 1.00 setgray fill grestore
+ nodash draw
+ grestore
+grestore
+
+%%Object: @901359/draw_text
+303 102 35 14 clear
+gsave nodash 0 303 102 35 14 0 boxpath
+/Helvetica findfont 12 scalefont setfont
+303 113 0 35 (`Ether') text
+grestore
+
+%%Object: @906992/draw_rect_connection
+gsave 
+grestore
+
+%%Object: @907025/path
+gsave 0 0 translate  dashed 1 194 134 startpath
+ 194 164 lineto
+ 275 164 lineto 275 195 lineto
+draw
+
+%%Object: @open_arrow/arrow
+gsave  nodash 1 pen newpath 268 179 moveto 275 195 lineto 282 179 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @907172/draw_rect_connection
+gsave 
+grestore
+
+%%Object: @907219/path
+gsave 0 0 translate  nodash 1 100 322 startpath
+ 79 322 lineto
+ 79 109 lineto 99 109 lineto
+draw
+
+%%Object: @draw_default_arrow/arrow
+gsave  nodash 0 pen newpath 89 112 moveto 99 109 lineto 89 106 lineto closepath gsave 0.00 setgray fill grestore
+ grestore
+grestore
+
+%%Object: @907278/uml_class
+gsave 453 84 translate 
+
+%%Object: @907311/box
+gsave  nodash 1 0 0 100 50 0 boxpath
+draw grestore
+
+%%Object: @907332/draw_text
+18 11 65 28 clear
+gsave nodash 0 18 11 65 28 0 boxpath
+/Helvetica-Bold findfont 12 scalefont setfont
+24 22 0 53 (Interface) text
+18 36 0 65 (component) text
+grestore
+grestore
+
+%%Object: @907510/draw_rect_connection
+gsave 
+grestore
+
+%%Object: @907550/path
+gsave 0 0 translate  nodash 1 370 109 startpath
+ 453 109 lineto
+
+draw
+
+%%Object: @triangle_arrow/arrow
+gsave  nodash 1 pen newpath 437 116 moveto 453 109 lineto 437 102 lineto closepath gsave 1.00 setgray fill grestore
+ nodash draw
+ grestore
+grestore
+
+%%Object: @915613/draw_rect_connection
+gsave 
+grestore
+
+%%Object: @915646/path
+gsave 0 0 translate  dashed 1 458 134 startpath
+ 458 164 lineto
+ 365 164 lineto 365 195 lineto
+draw
+
+%%Object: @open_arrow/arrow
+gsave  nodash 1 pen newpath 358 179 moveto 365 195 lineto 372 179 lineto nodash draw
+ grestore
+grestore
+
+%%Object: @915815/draw_text
+401 149 28 14 clear
+gsave nodash 0 401 149 28 14 0 boxpath
+/Helvetica findfont 12 scalefont setfont
+401 160 0 28 (listen) text
+grestore
+
+%%Object: @915894/draw_text
+206 205 54 14 clear
+gsave nodash 0 206 205 54 14 0 boxpath
+/Helvetica findfont 12 scalefont setfont
+206 216 0 54 (broadcast) text
+grestore
+
+%%Object: @920170/draw_text
+114 268 71 14 clear
+gsave nodash 0 114 268 71 14 0 boxpath
+/Helvetica findfont 12 scalefont setfont
+114 279 0 71 (assert/retract) text
+grestore
+
+%%Object: @920221/draw_text
+53 151 51 14 clear
+gsave nodash 0 53 151 51 14 0 boxpath
+/Helvetica findfont 12 scalefont setfont
+53 162 0 51 (Querying) text
+grestore
+
+%%Object: @920298/draw_text
+268 62 113 14 clear
+gsave nodash 0 268 62 113 14 0 boxpath
+/Helvetica findfont 12 scalefont setfont
+268 73 0 113 (Changed-messages) text
+grestore
+grestore
+
+%%Trailer
+grestore
+%%DocumentFonts:
+showpage
