@@ -161,7 +161,8 @@ char **env;
   DEBUG(1, {if (status.boot) printf("Boot session\n");});
 
   if ( argc >= 2 && streq(argv[0], "-r") )
-  { argc -= 2, argv += 2;		/* recover; we've done this! */
+  { loaderstatus.restored_state = lookupAtom(AbsoluteFile(argv[1]));
+    argc -= 2, argv += 2;		/* recover; we've done this! */
   }
 
   if ( argc >= 2 && streq(argv[0], "-x") )

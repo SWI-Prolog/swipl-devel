@@ -1117,6 +1117,7 @@ GLOBAL struct
 GLOBAL struct
 { Atom		symbolfile;		/* current symbol file */
   Atom		orgsymbolfile;		/* symbol file we started with */
+  Atom		restored_state;		/* -r/restore state restored */
 } loaderstatus;
 
 #define NO_PROFILING		0

@@ -48,7 +48,8 @@ Compiler flags for making `makefile' from `Makefile' using cpp
 #define O_MACH_FOREIGN		1
 
 #define O_STORE_PROGRAM		0
-#define O_SAVE			1	/* Might work: not tested (JW) */
+#define TEXT_END		get_etext()
+#define O_SAVE			0	/* Does not work (JW) */
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local:.:"
 #define DIR_INCLUDE		<sys/dir.h>
 #define DIR_INCLUDE2		<sys/dirent.h>

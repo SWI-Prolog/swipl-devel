@@ -22,6 +22,12 @@
 #endif
 #endif
 
+#ifdef __GNUC__
+#define constf const			/* const function */
+#else
+#define constf
+#endif
+
 #ifndef PL_KERNEL
 typedef	unsigned long	atomic;		/* atomic Prolog datum */
 typedef unsigned long	functor;	/* name/arity pair as Prolog */
@@ -82,24 +88,24 @@ typedef struct
 
 #define PL_atomic(t)	(*(t))		/* convert term to atomic */
 
-int const PL_is_var P((const term));
-int const PL_is_int P((const term));
-int const PL_is_atom P((const term));
-int const PL_is_float P((const term));
-int const PL_is_string P((const term));
-int const PL_is_term P((const term));
+int constf PL_is_var P((const term));
+int constf PL_is_int P((const term));
+int constf PL_is_atom P((const term));
+int constf PL_is_float P((const term));
+int constf PL_is_string P((const term));
+int constf PL_is_term P((const term));
 
-int	const PL_type P((const term));
-long	const PL_integer_value P((const atomic));
-double	      PL_float_value P((const atomic));
-char *	      PL_string_value P((const atomic));
-char *        PL_list_string_value P((const term));
-char *	const PL_atom_value P((const atomic));
-functor const PL_functor P((const term));
-atomic	const PL_functor_name P((const functor));
-int	const PL_functor_arity P((const functor));
-term	const PL_arg P((const term, int));
-term	const PL_strip_module P((const term, module*));
+int	constf PL_type P((const term));
+long	constf PL_integer_value P((const atomic));
+double	       PL_float_value P((const atomic));
+char *	       PL_string_value P((const atomic));
+char *         PL_list_string_value P((const term));
+char *	constf PL_atom_value P((const atomic));
+functor constf PL_functor P((const term));
+atomic	constf PL_functor_name P((const functor));
+int	constf PL_functor_arity P((const functor));
+term	constf PL_arg P((const term, int));
+term	constf PL_strip_module P((const term, module*));
 
 		/********************************
 		*         CONSTRUCTION          *

@@ -139,7 +139,11 @@ static long
 saveVersion()
 { if ( save_version == 0 )
   { long *start = (long *) saveVersion;
+#ifdef TEXT_END
+    long *end	= (long *) TEXT_END;
+#else
     long *end   = (long *) &etext;
+#endif
     int  step   = (end - start) / 500;
     
     for(; start < end; start += step)
