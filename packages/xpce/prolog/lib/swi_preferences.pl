@@ -175,8 +175,11 @@ apply(I, Always:[bool]) :->
 	    get(I, member, limit_to, LimitItem),
 	    (   get(LimitItem, selection, @on)
 	    ->  get(I, member, 'Mb', IntItem),
-		get(IntItem, selection, Mb),
-		Kb is Mb * 1024
+		(   get(IntItem, selection, Mb)
+		->  Kb is Mb * 1024
+		;   send(I, report, error, 'Limit out of range (1..128 MB)'),
+		    fail
+		)
 	    ;   Kb = 0
 	    ),
 	    stack(Stack, _, KeyName),
