@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Stop profiler in PL_cleanup().  Reported by Lourens van der Meij.
+
+  * PORT: added MacOS X required sys/malloc.h to files from rc directory.
+
+  * FIXED: compile ! in x :- (!, y -> z) to C_LCUT rather then C_CUT.
+
 VERSION 3.4.3
 =============
 
