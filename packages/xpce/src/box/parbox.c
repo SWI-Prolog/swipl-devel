@@ -79,16 +79,21 @@ cdataParBox(ParBox pb, StringObj cdata,
 	    HBox space,
 	    Name ignore_blanks)
 { const char *text = strName(cdata);
+  const char *end  = text+cdata->data.size;
   Any refbox = NIL;
 
-  if ( ignore_blanks == NAME_leading )
-  { while( *text && islayout(*text) )
+  if ( ignore_blanks == NAME_leading || ignore_blanks == NAME_both )
+  { while( text<end && islayout(*text) )
       text++;
   }
+  if ( ignore_blanks == NAME_trailing || ignore_blanks == NAME_both )
+  { while( end > text && islayout(end[-1]) )
+      end--;
+  }
   
-  while( *text )
+  while( text < end )
   { if ( islayout(*text) )
-    { while( *text && islayout(*text) )
+    { while( text<end && islayout(*text) )
 	text++;
 
       if ( isDefault(space) )
@@ -100,7 +105,7 @@ cdataParBox(ParBox pb, StringObj cdata,
       string s;
       Name n;
 
-      while( *text && !islayout(*text) )
+      while( text<end && !islayout(*text) )
 	text++;
 
       str_inithdr(&s, ENC_ASCII);
@@ -115,7 +120,6 @@ cdataParBox(ParBox pb, StringObj cdata,
 
   succeed;
 }
-
 
 		 /*******************************
 		 *	  LOW-LEVEL DATA	*
@@ -527,6 +531,24 @@ getFindParBox(ParBox pb, Code test)
   }
 
   fail;
+}
+
+
+static Int
+getMinimumWidthParBox(ParBox pb)
+{ HBox *content = (HBox *)pb->content->elements-1;
+  int hi   = valInt(getHighIndexVector(pb->content));
+  int here = valInt(getLowIndexVector(pb->content));
+  int w = 0;
+
+  for( ; here <= hi; here++ )
+  { int wb = valInt(content[here]->width);
+
+    if ( wb > w )
+      w = wb;
+  }
+
+  answer(toInt(w));
 }
 
 
@@ -1187,7 +1209,7 @@ static char *T_boxArea[] =
 	{ "for=hbox|1..", "relative_to=[device]" };
 static char *T_cdata[] = 
 	{ "cdata=string", "style=[style]", "space=[hbox]",
-	  "ignore_blanks=[{leading,none}]" };
+	  "ignore_blanks=[{none,leading,trailing,both}]" };
 
 
 /* Instance Variables */
@@ -1232,7 +1254,9 @@ static getdecl get_parbox[] =
   GM(NAME_boxArea, 2, "area", T_boxArea, getBoxAreaParBox,
      NAME_area, "Get bounding box of indicated hbox"),
   GM(NAME_find, 1, "tuple", "code", getFindParBox,
-     NAME_iterate, "Return tuple(parbox, index) of matching hbox")
+     NAME_iterate, "Return tuple(parbox, index) of matching hbox"),
+  GM(NAME_minimumWidth, 0, "int", NULL, getMinimumWidthParBox,
+     NAME_dimension, "Return width of largest hbox in paragraph")
 };
 
 
