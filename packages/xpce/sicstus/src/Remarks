@@ -1,0 +1,76 @@
+Hi Mats,
+
+Work in XPCE/Sicstus is progressing rather smoothly.  Most of the tools from
+the development environment (manual, editor) and many of the demo programs
+are now working completly or almost completely.  No bugs in SICStus
+sofar (3.7.1 under SuSE Linux 6.0).  Don't know whether there are any malloc()
+problems.  I guess they will show up as random crashes?
+
+Below is a list of problems/remarks.  I'd appreciate feedback on the
+ones with two **'s.
+
+	* The arguments of last/2 are reversed (See Quintus page K-13).
+
+	* Control-C doesn't work if SICStus prompts.
+
+       ** Is there a way to list a specific clause?  Listing/1 can list the
+	  whole, but clause/2 is denied access to static predicates.
+
+	* Option silent(true) to load_files/2?
+
+	* Split HTML manual in smaller pieces to improve searching using
+	  Ht/dig or similar tools.
+
+       ** I need to generate multifile declarations for an xpce-class.
+	  multiple classes can be in the same file, but I should only
+	  generate 1 declaration to avoid a warning about ignored double
+	  declaraction.
+
+	  How to avoid the declaration when finding the second class, but
+	  give the declaration on the first class if the file is *re*consulted.
+
+	* Is it true that sicstus changes directory to the file being loaded?
+	  is there a way to refer to the initial directory?
+
+       ** Can I seek on a user-defined stream?  I *need* that for the
+	  fancy prolog-editor with on-the-fly syntax checking and singleton
+	  highlighting.
+
+       ** Setup of distribution.  How do I integrate the library?  Would
+	  it be best to add a directory xpce into the /usr/local/lib/sicstus
+	  and somehow add /usr/local/lib/sicstus/xpce/prolog/lib to the
+	  library-directories?  A better alternative?  Eventually, it should
+	  be smooth both to have sicstus installed and the XPCE source and
+	  add xpce to sicstus as well as to provide a binary package.
+	  
+	  Regards --- Jan
+
+More stuff
+
+	* When using save_program/[1,2] and the init() function of one
+	foreign library performs callbacks on Prolog that require another
+	foreign resource, it appears the order of loading is either undefined
+	or reversed.
+
+	* BUG: :- initialization(:Goal) does not execute Goal in the
+	proper context module!  Try (for example)
+
+	:- module(test, []).
+
+	test1.
+	test2.
+
+	:- initialization((test1, test2)).
+	
+	* Also: :- initialization(:Goal) executes both immediately and at
+	initialization under Quintus and SWI.
+
+	* Linux malloc() problems:
+	Using glibc, you can define:
+
+	  __malloc_hook  = SP_malloc;
+	  __realloc_hook = SP_realloc;
+	  __free_hook    = SP_free;
+
+	But his should be done really in the beginning.
+	

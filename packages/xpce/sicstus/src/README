@@ -1,0 +1,31 @@
+				XPCE/SICStus
+
+Last upated: Mon Jul 19 1999
+
+
+Intro
+-----
+
+This directory contains the XPCE library for SICStus Prolog. The XPCE
+system is described in
+
+	http://www.swi.psy.uva.nl/projects/xpce/
+
+Release notes and specific issues for SICStus Prolog are in
+
+	http://www.swi.psy.uva.nl/projects/xpce/sicstus/
+
+This document also describes the installation.
+
+Status
+------
+
+This release is an alpha test version of the XPCE/SICStus interface.
+
+Copyright
+---------
+
+XPCE and the XPCE/SICStus interface are  copyright by SWI, University of
+Amsterdam. This software requires a licence agreement! SICStus Prolog is
+copyright SICS.
+

@@ -1,0 +1,78 @@
+				XPCE/SICStus Prolog
+
+Created:	Mon Jun  7 1999
+
+This directory contains the sources for the SICStus Prolog binding for
+XPCE.
+
+Requirements
+============
+
+	* A Unix machine with
+	* SICStus Prolog 3.7.1 or later installed
+	* The full XPCE source-tree including the sicstus directory
+
+Procedure
+=========
+
+	(1) Build the XPCE library
+
+		(a) Follow $PCEHOME/INSTALL.notes
+
+		    This should result in $PCEHOME/<arch>/libXPCE.a
+
+		    ====================================================
+		    Bluffersguide:
+
+		    * Make sure to have libXpm and its headers installed
+		    * Make sure to have libjpeg and its headers installed
+		    * % cd $PCEHOME
+		      % mkdir <arch>
+		      % ../src/configure
+		      % make
+		    ====================================================
+
+	(2) Build the XPCE/SICStus interface:
+	
+		(a) Goto $PCEHOME/sicstus/src
+		(b) Type
+
+			% make
+
+	(3) Test the base system:
+
+			% sicstus
+			?- [load].
+	     
+	    This should load the XPCE library *without any warnings*.
+	    Run
+
+			?- manpce.
+
+	    A little window appears at the top-left of your screen.
+	    Play around.  For example try Browsers/Class Hierarchy.
+
+	    If everything looks healthy, continue with the next step.
+
+	(4) Acquire rights to install in the installation directory
+	    $PCEHOME (default $SP_PATH/xpce).
+
+	(5) Install the XPCE library components in public directories
+
+	    	% make install
+
+	(6) Compile the .ql libraries
+
+		% make ql
+
+	(7) Configure the default xpce executable by editing xpce.pl
+	    and run
+
+		% make xpce
+
+	    to create the public executable $(XPCE)
+
+	(8) Install the result using
+
+		% make install
+	   
