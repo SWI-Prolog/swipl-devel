@@ -22,24 +22,23 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include <ctype.h>
-#include "console.h"
 #include <windows.h>
-#include <string.h>
-#include "utf8.h"
+#include <tchar.h>
+#include "console.h"
 
 #ifndef EOS
 #define EOS 0
 #endif
 
-static char *completion_chars = "~:\\/-.";
+static TCHAR *completion_chars = TEXT("~:\\/-.");
 
 static int
 complete_scan_backwards(Line ln, int from)
 { while( from > 0 )
-  { int c = ln->data[from-1];
+  { _TINT c = ln->data[from-1];
 
-    if ( rlc_is_word_char(c) || strchr(completion_chars, c) )
+    if ( rlc_is_word_char(c) ||
+	 _tcschr(completion_chars, c) )
       from--;
     else
       break;
@@ -63,8 +62,8 @@ rlc_complete_file_function(RlcCompleteData data)
   switch(data->call_type)
   { case COMPLETE_INIT:
     { int start = complete_scan_backwards(ln, ln->point);
-      char *pattern = data->buf_handle;
-      char *s = pattern;
+      TCHAR *pattern = data->buf_handle;
+      TCHAR *s = pattern;
       int n = start;
       int ld = start;
       HANDLE h;
@@ -89,7 +88,7 @@ rlc_complete_file_function(RlcCompleteData data)
 	if ( start > 0 &&
 	     !(fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) )
 	  data->quote = close_quote(ln->data[start-1]);
-	strcpy(data->candidate, fdata.cFileName);
+	_tcscpy(data->candidate, fdata.cFileName);
 	data->ptr_handle = h;
 	data->case_insensitive = TRUE;
 	data->function = rlc_complete_file_function;
@@ -102,7 +101,7 @@ rlc_complete_file_function(RlcCompleteData data)
 
     case COMPLETE_ENUMERATE:
     { if ( FindNextFile(data->ptr_handle, &fdata) )
-      { strcpy(data->candidate, fdata.cFileName);
+      { _tcscpy(data->candidate, fdata.cFileName);
 	return TRUE;
       }
       

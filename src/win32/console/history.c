@@ -25,6 +25,7 @@
 #define _MAKE_DLL 1
 #undef _export
 #include <windows.h>
+#include <tchar.h>
 #include "console.h"			/* public stuff */
 #include "console_i.h"			/* internal stuff */
 #include <string.h>
@@ -59,10 +60,10 @@ rlc_init_history(rlc_console c, int size)
   int i;
 
   if ( b->history.lines )
-  { b->history.lines = rlc_realloc(b->history.lines, sizeof(char *) * size);
+  { b->history.lines = rlc_realloc(b->history.lines, sizeof(TCHAR *) * size);
     oldsize = b->history.size;
   } else
-  { b->history.lines = rlc_malloc(sizeof(char *) * size);
+  { b->history.lines = rlc_malloc(sizeof(TCHAR *) * size);
     oldsize = 0;
   }
 
@@ -75,16 +76,16 @@ rlc_init_history(rlc_console c, int size)
 
 
 void
-rlc_add_history(rlc_console c, const char *line)
+rlc_add_history(rlc_console c, const TCHAR *line)
 { RlcData b = rlc_get_data(c);
 
   if ( b->history.size )
   { int i = next(b, b->history.head);
-    int len = strlen(line);
+    int len = _tcslen(line);
 
     while(*line && *line <= ' ')	/* strip leading white-space */
       line++;
-    len = strlen(line);
+    len = _tcslen(line);
 					/* strip trailing white-space */
     while ( len > 0 && line[len-1] <= ' ' )
       len--;
@@ -95,7 +96,7 @@ rlc_add_history(rlc_console c, const char *line)
     }
 
     if ( b->history.lines[b->history.head] &&
-	 strncmp(b->history.lines[b->history.head], line, len) == 0 )
+	 _tcsncmp(b->history.lines[b->history.head], line, len) == 0 )
     { b->history.current = -1;
       return;				/* same as last line added */
     }
@@ -106,9 +107,10 @@ rlc_add_history(rlc_console c, const char *line)
     b->history.current = -1;
 
     if ( b->history.lines[i] )
-      b->history.lines[i] = rlc_realloc(b->history.lines[i], len+1);
+      b->history.lines[i] = rlc_realloc(b->history.lines[i],
+					(len+1)*sizeof(TCHAR));
     else
-      b->history.lines[i] = rlc_malloc(len+1);
+      b->history.lines[i] = rlc_malloc((len+1)*sizeof(TCHAR));
 
     if ( b->history.lines[i] )
     { memcpy(b->history.lines[i], line, len);
@@ -124,7 +126,7 @@ rlc_at_head_history(RlcData b)
 }
 
 
-const char *
+const TCHAR *
 rlc_bwd_history(RlcData b)
 { if ( b->history.size )
   { if ( b->history.current == -1 )
@@ -141,10 +143,10 @@ rlc_bwd_history(RlcData b)
 }
 
 
-const char *
+const TCHAR *
 rlc_fwd_history(RlcData b)
 { if ( b->history.size && b->history.current != -1 )
-  { const char *s;
+  { const TCHAR *s;
 
     b->history.current = next(b, b->history.current);
     s = b->history.lines[b->history.current];

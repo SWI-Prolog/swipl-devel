@@ -23,5 +23,5 @@
 */
 
 #define IMODE_SWITCH_CHAR -2
-#define RL_CANCELED_CHARP ((char *)-1)
+#define RL_CANCELED_CHARP ((TCHAR *)-1)
 

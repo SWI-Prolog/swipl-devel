@@ -35,7 +35,7 @@ typedef struct _history
   int		tail;			/* oldest position */
   int		head;			/* newest position */
   int		current;		/* for retrieval */
-  char **	lines;			/* the lines */
+  TCHAR **	lines;			/* the lines */
 } history, *History;
 
 
@@ -49,18 +49,12 @@ typedef struct _history
 #define MAX_USER_VALUES	  10		/* max user data-handles */
 
 typedef struct lqueued
-{ char *	  line;			/* Lines in queue */
+{ TCHAR *	  line;			/* Lines in queue */
   struct lqueued* next;			/* Next in queue */
 } lqueued, *LQueued;
 
-typedef struct dchar
-{ wchar_t	code;			/* UNICODE character */
-  unsigned	colour : 4;		/* one of the 16 VGA colours */
-  unsigned	underline : 1;		/* underline character */
-} dchar;
-
 typedef struct
-{ dchar *	 text;			/* the storage */
+{ TCHAR *	 text;			/* the storage */
   unsigned short size;			/* #characters in line */
   unsigned	 adjusted : 1;		/* line has been adjusted? */
   unsigned	 changed : 1;		/* line needs redraw */
@@ -113,17 +107,17 @@ typedef struct
   int		sb_lines;		/* #lines the scrollbar thinks */
   int		sb_start;		/* start-line scrollbar thinks */
   int		caret_is_shown;		/* is caret in the window? */
-  char		current_title[RLC_TITLE_MAX]; /* window title */
+  TCHAR		current_title[RLC_TITLE_MAX]; /* window title */
 					/* status */
   rlc_console_attr * create_attributes;	/* Creation attributes */
-  char	       *regkey_name;		/* last part of key */
+  TCHAR	       *regkey_name;		/* last part of key */
   int		win_x;			/* window top-left corner */
   int		win_y;			/* window top-left corner */
 					/* output queue */
-  char	        output_queue[OQSIZE];	/* The output queue */
+  TCHAR	        output_queue[OQSIZE];	/* The output queue */
   int		output_queued;		/* # characters in the queue */
   struct
-  { char *line;				/* buffered line */
+  { TCHAR *line;				/* buffered line */
     unsigned int length;		/* length of line */
     unsigned int given;			/* how much we passed */
   } read_buffer;
@@ -133,8 +127,8 @@ typedef struct
   RlcQueue	queue;			/* input stream */
   LQueued	lhead;			/* line-queue head */
   LQueued	ltail;			/* line-queue tail */
-  char		promptbuf[MAXPROMPT];	/* Buffer for building prompt */
-  char		prompt[MAXPROMPT];	/* The prompt */
+  TCHAR		promptbuf[MAXPROMPT];	/* Buffer for building prompt */
+  TCHAR		prompt[MAXPROMPT];	/* The prompt */
   int		promptlen;		/* length of the prompt */
   int		closing;		/* closing status */
   int		modified_options;	/* OPT_ */
@@ -161,19 +155,19 @@ extern RlcData  _rlc_stdio;		/* global default console */
 		 *	    FUNCTIONS		*
 		 *******************************/
 
-extern void	rlc_assert(const char *msg);
+extern void	rlc_assert(const TCHAR *msg);
 int		rlc_at_head_history(RlcData b);
-const char *	rlc_bwd_history(RlcData b);
-const char *	rlc_fwd_history(RlcData b);
+const TCHAR *	rlc_bwd_history(RlcData b);
+const TCHAR *	rlc_fwd_history(RlcData b);
 void		rlc_get_mark(rlc_console c, RlcMark mark);
 void		rlc_goto_mark(rlc_console c, RlcMark mark,
-			      const wchar_t *data, int offset);
+			      const TCHAR *data, int offset);
 void		rlc_erase_from_caret(rlc_console c);
 void		rlc_putchar(rlc_console c, int chr);
-char *		rlc_read_screen(rlc_console c,
+TCHAR *		rlc_read_screen(rlc_console c,
 				RlcMark from, RlcMark to);
 void		rlc_update(rlc_console c);
-const char *	rlc_prompt(rlc_console c, const char *prompt);
+const TCHAR *	rlc_prompt(rlc_console c, const TCHAR *prompt);
 void		rlc_clearprompt(rlc_console c);
 
 
@@ -182,7 +176,7 @@ void		rlc_clearprompt(rlc_console c);
 		 *******************************/
 
 #ifdef O_DEBUG
-#define assert(g) if ( !(g) ) rlc_assert(#g)
+#define assert(g) if ( !(g) ) rlc_assert(_T(#g))
 #else
 #define assert(g) (void)0
 #endif

@@ -24,7 +24,7 @@
 
 /* history.c */
 void		rlc_init_history(int auto_add, int size);
-void		rlc_add_history(const char *line);
+void		rlc_add_history(const TCHAR *line);
 int		rlc_at_head_history(void);
-const char *	rlc_bwd_history(void);
-const char *	rlc_fwd_history(void);
+const TCHAR *	rlc_bwd_history(void);
+const TCHAR *	rlc_fwd_history(void);

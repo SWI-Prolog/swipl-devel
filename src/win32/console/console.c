@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi.psy.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2004, University of Amsterdam
+    Copyright (C): 1985-2002, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -50,6 +50,21 @@ dispatching events, for the display-thread to   fill the buffer and send
 WM_RLC_INPUT (which is just sent  to   make  GetMessage()  in rlc_read()
 return).
 
+Towards an MT version on Windows
+--------------------------------
+
+If we want to move towards a  multi-threaded version for MS-Windows, the
+console code needs to be changed significantly, as we need to be able to
+create multiple consoles to support thread_attach_console/0.
+
+The most logical solution seems to   be to reverse the thread-structure,
+Prolog starting and running in the   main-thread  and creating a console
+creates a new thread for this console. There  are two ways to keep track
+of the console to use. Cleanest might be to add an argument denoting the
+allocated console and alternatively we could   use thread-local data. We
+can also combine the two: add an  additional argument, but allow passing
+NULL to use the default console for this thread.
+
 Menus
 -----
 
@@ -65,6 +80,7 @@ static void initHeapDebug(void);
 #endif
 
 #include <windows.h>
+#include <tchar.h>
 #ifndef WM_MOUSEWHEEL			/* sometimes not defined */
 #define WM_MOUSEWHEEL 0x020A
 #endif
@@ -78,13 +94,12 @@ static void initHeapDebug(void);
 #include "console.h"
 #include "menu.h"
 #include "common.h"
-#include "utf8.h"
 #include <signal.h>
 #include <ctype.h>
 #include <stdio.h>
 
 #ifndef isletter
-#define isletter(c) (isalpha(c) || (c) == '_')
+#define isletter(c) (_istalpha(c) || (c) == '_')
 #endif
 
 #ifndef MAXPATHLEN
@@ -134,7 +149,7 @@ static void initHeapDebug(void);
 
 #define Control(x) ((x) - '@')
 
-#define streq(s, q) (strcmp((s), (q)) == 0)
+#define streq(s, q) (_tcscmp((s), (q)) == 0)
 
 #include "console_i.h"			/* internal package stuff */
 
@@ -148,7 +163,7 @@ static void initHeapDebug(void);
        RlcData  _rlc_stdio = NULL;	/* the main buffer */
 static int      _rlc_show;		/* initial show */
 static char	_rlc_word_chars[CHAR_MAX]; /* word-characters (selection) */
-static const char *	_rlc_program;		/* name of the program */
+static const TCHAR *	_rlc_program;		/* name of the program */
 static HANDLE   _rlc_hinstance;		/* Global instance */
 static HICON    _rlc_hicon;		/* Global icon */
 
@@ -172,7 +187,7 @@ static void	rlc_init_text_dimensions(RlcData b, HFONT f);
 static void	rlc_save_font_options(HFONT f, rlc_console_attr *attr);
 static void	rlc_get_options(rlc_console_attr *attr);
 static HKEY	rlc_option_key(rlc_console_attr *attr, int create);
-static void	rlc_progbase(char *path, char *base);
+static void	rlc_progbase(TCHAR *path, TCHAR *base);
 static int	rlc_add_queue(RlcData b, RlcQueue q, int chr);
 static int	rlc_add_lines(RlcData b, int here, int add);
 static void	rlc_start_selection(RlcData b, int x, int y);
@@ -182,13 +197,12 @@ static void	rlc_copy(RlcData b);
 static void	rlc_destroy(RlcData b);
 static void	rlc_request_redraw(RlcData b);
 static void	rlc_redraw(RlcData b);
-static int	rlc_breakargs(char *program, char *line, char **argv);
+static int	rlc_breakargs(TCHAR *program, TCHAR *line, TCHAR **argv);
 static void	rlc_resize(RlcData b, int w, int h);
 static void	rlc_adjust_line(RlcData b, int line);
-static int	text_width(RlcData b, HDC hdc, const dchar *text, int len);
-static int	wchar_width(RlcData b, HDC hdc, const wchar_t *text, int len);
+static int	text_width(RlcData b, HDC hdc, const TCHAR *text, int len);
 static void	rlc_queryfont(RlcData b);
-static int      rlc_do_write(RlcData b, const char *buf, int count);
+static void     rlc_do_write(RlcData b, TCHAR *buf, int count);
 static void     rlc_reinit_line(RlcData b, int line);
 static void	rlc_free_line(RlcData b, int line);
 static int	rlc_between(RlcData b, int f, int t, int v);
@@ -219,14 +233,14 @@ static DWORD WINAPI window_loop(LPVOID arg);	/* console window proc */
 
 #ifdef O_DEBUG
 #include <stdarg.h>
-static void Dprintf(const char *fmt, ...);
+static void Dprintf(const TCHAR *fmt, ...);
 static void Dprint_lines(RlcData b, int from, int to);
 #define DEBUG(Code) Code
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 It might look a bit weird not to  use <assert.h>, but for some reason it
 looks as if the application thread continues if the asserting is trapped
-using  the  normal  assert()!?  Just  put    a  debugger  breakpoint  on
+using  the  normal  assert()!?  Just  but    a  debugger  breakpoint  on
 rlc_assert() and all functions normally.
 
 rlc_check_assertions() is a (very) incomplete   check that everything we
@@ -234,8 +248,8 @@ expect to be true about the data is indeed the case.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-rlc_assert(const char *msg)
-{ MessageBox(NULL, msg, "Console assertion failed", MB_OK|MB_TASKMODAL);
+rlc_assert(const TCHAR *msg)
+{ MessageBox(NULL, msg, _T("Console assertion failed"), MB_OK|MB_TASKMODAL);
 }
 
 void
@@ -262,18 +276,18 @@ rlc_check_assertions(RlcData b)
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-rlc_long_name(char *buffer)
+rlc_long_name(TCHAR *buffer)
 	Translate a filename, possibly holding 8+3 abbreviated parts into
 	the `real' filename.  I couldn't find a direct call for this.  If
 	you have it, I'd be glad to receive a better implementation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-rlc_long_name(char *file)
-{ char buf[MAXPATHLEN];
-  char *i = file;
-  char *o = buf;
-  char *ok = buf;
+rlc_long_name(TCHAR *file)
+{ TCHAR buf[MAXPATHLEN];
+  TCHAR *i = file;
+  TCHAR *o = buf;
+  TCHAR *ok = buf;
   int changed = 0;
 
   while(*i)
@@ -290,9 +304,9 @@ rlc_long_name(char *file)
 
       *o = '\0';
       if ( (h=FindFirstFile(buf, &data)) != INVALID_HANDLE_VALUE )
-      { strcpy(ok, data.cFileName);
+      { _tcscpy(ok, data.cFileName);
 	FindClose(h);
-	o = ok + strlen(ok);
+	o = ok + _tcslen(ok);
 	changed++;
       }
     }
@@ -303,7 +317,7 @@ rlc_long_name(char *file)
 
   if ( changed )
   { *o = '\0';
-    strcpy(file, buf);
+    _tcscpy(file, buf);
   }
 }
 
@@ -317,16 +331,16 @@ it.
 In old versions this was fixed to "RlcConsole"
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static char *
+static TCHAR *
 rlc_window_class(HICON icon)
-{ static char winclassname[32];
+{ static TCHAR winclassname[32];
   static WNDCLASS wndClass;
   HINSTANCE instance = _rlc_hinstance;
 
   if ( !winclassname[0] )
-  { if ( !GetEnvironmentVariable("PLTERM_CLASS",
+  { if ( !GetEnvironmentVariable(TEXT("PLTERM_CLASS"),
 				 winclassname, sizeof(winclassname)) )
-      sprintf(winclassname, "PlTerm-%d", instance);
+      _stprintf(winclassname, TEXT("PlTerm-%d"), instance);
 
     wndClass.lpszClassName	= winclassname;
     wndClass.style		= CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS;
@@ -352,12 +366,12 @@ rlc_window_class(HICON icon)
 
 int
 rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
-	 LPSTR lpszCmdLine, int nCmdShow,
+	 LPTSTR lpszCmdLine, int nCmdShow,
 	 RlcMain mainfunc, HICON icon)
-{ char *	    argv[100];
+{ TCHAR *	    argv[100];
   int		    argc;
-  char		    program[MAXPATHLEN];
-  char	 	    progbase[100];
+  TCHAR		    program[MAXPATHLEN];
+  TCHAR	 	    progbase[100];
   RlcData           b;
   rlc_console_attr  attr;
 
@@ -388,20 +402,20 @@ rlc_console
 rlc_create_console(rlc_console_attr *attr)
 { RlcData b;
   MSG msg;
-  const char *title;
+  const TCHAR *title;
 
   rlc_get_options(attr);
 
   if ( attr->title )
     title = attr->title;
   else
-    title = "Untitled";
+    title = _T("Untitled");
 
   b = rlc_make_buffer(attr->width, attr->savelines);
   b->create_attributes = attr;
-  strcpy(b->current_title, title);
+  _tcscpy(b->current_title, title);
   if ( attr->key )
-  { b->regkey_name = strdup(attr->key);
+  { b->regkey_name = _tcsdup(attr->key);
   }
 
   rlc_init_text_dimensions(b, NULL);
@@ -486,16 +500,16 @@ rlc_iswin32s()
 
 
 static void
-rlc_progbase(char *path, char *base)
-{ char *s;
-  char *e;
+rlc_progbase(TCHAR *path, TCHAR *base)
+{ TCHAR *s;
+  TCHAR *e;
 
-  if ( !(s=strrchr(path, '\\')) )
+  if ( !(s=_tcsrchr(path, '\\')) )
     s = path;				/* takes the filename part */
   else
     s++;
-  if ( !(e = strchr(s, '.')) )
-    strcpy(base, s);
+  if ( !(e = _tcschr(s, '.')) )
+    _tcscpy(base, s);
   else
   { memmove(base, s, e-s);
     base[e-s] = '\0';
@@ -517,14 +531,14 @@ rlc_kill_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
-static char *
+static TCHAR *
 rlc_kill_window_class()
-{ static char winclassname[32];
+{ static TCHAR winclassname[32];
   static WNDCLASS wndClass;
   HINSTANCE instance = _rlc_hinstance;
 
   if ( !winclassname[0] )
-  { sprintf(winclassname, "Console-hidden-win%d", instance);
+  { _stprintf(winclassname, _T("Console-hidden-win%d"), instance);
 
     wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) rlc_kill_wnd_proc;
@@ -547,7 +561,7 @@ rlc_kill_window_class()
 static void
 _rlc_create_kill_window(RlcData b)
 { b->kill_window = CreateWindow(rlc_kill_window_class(),
-				"Console hidden window",
+				_T("Console hidden window"),
 				0,
 				0, 0, 32, 32,
 				NULL, NULL, _rlc_hinstance, NULL);
@@ -561,7 +575,7 @@ _rlc_create_kill_window(RlcData b)
 #define MAXREGSTRLEN 1024
 
 static void
-reg_save_int(HKEY key, const char *name, int value)
+reg_save_int(HKEY key, const TCHAR *name, int value)
 { DWORD val = value;
 
   RegSetValueEx(key, name, 0,
@@ -569,8 +583,8 @@ reg_save_int(HKEY key, const char *name, int value)
 }
 
 static void
-reg_save_str(HKEY key, const char *name, char *value)
-{ RegSetValueEx(key, name, 0, REG_SZ, (LPBYTE)value, strlen(value)+1);
+reg_save_str(HKEY key, const TCHAR *name, TCHAR *value)
+{ RegSetValueEx(key, name, 0, REG_SZ, (LPBYTE)value, _tcslen(value)+1);
 }
 
 
@@ -585,23 +599,23 @@ rlc_save_options(RlcData b)
   if ( !(key = rlc_option_key(&attr, TRUE)) )
     return;
 
-  reg_save_int(key, "SaveLines",  b->height);
+  reg_save_int(key, _T("SaveLines"),  b->height);
   if ( b->modified_options & OPT_SIZE )
-  { reg_save_int(key, "Width",    b->width);
-    reg_save_int(key, "Height",   b->window_size);
+  { reg_save_int(key, _T("Width"),    b->width);
+    reg_save_int(key, _T("Height"),   b->window_size);
   }
   if ( b->modified_options & OPT_POSITION )
-  { reg_save_int(key, "X",	  b->win_x);
-    reg_save_int(key, "Y",	  b->win_y);
+  { reg_save_int(key, _T("X"),	  b->win_x);
+    reg_save_int(key, _T("Y"),	  b->win_y);
   }
 
   rlc_save_font_options(b->hfont, &attr);
   if ( attr.face_name[0] )
-  { reg_save_str(key, "FaceName",    attr.face_name);
-    reg_save_int(key, "FontFamily",  attr.font_family);
-    reg_save_int(key, "FontSize",    attr.font_size);
-    reg_save_int(key, "FontWeight",  attr.font_weight);
-    reg_save_int(key, "FontCharSet", attr.font_char_set);
+  { reg_save_str(key, _T("FaceName"),    attr.face_name);
+    reg_save_int(key, _T("FontFamily"),  attr.font_family);
+    reg_save_int(key, _T("FontSize"),    attr.font_size);
+    reg_save_int(key, _T("FontWeight"),  attr.font_weight);
+    reg_save_int(key, _T("FontCharSet"), attr.font_char_set);
   }
 
   RegCloseKey(key);
@@ -609,7 +623,7 @@ rlc_save_options(RlcData b)
 
 
 static void
-reg_get_int(HKEY key, const char *name, int mn, int def, int mx, int *value)
+reg_get_int(HKEY key, const TCHAR *name, int mn, int def, int mx, int *value)
 { DWORD type;
   BYTE  data[8];
   DWORD len = sizeof(data);
@@ -640,7 +654,7 @@ reg_get_int(HKEY key, const char *name, int mn, int def, int mx, int *value)
 
 
 static void
-reg_get_str(HKEY key, const char *name, char *value, int length)
+reg_get_str(HKEY key, const TCHAR *name, TCHAR *value, int length)
 { DWORD type;
   BYTE  data[MAXREGSTRLEN];
   DWORD len = sizeof(data);
@@ -651,8 +665,8 @@ reg_get_str(HKEY key, const char *name, char *value, int length)
   if ( RegQueryValueEx(key, name, NULL, &type, data, &len) == ERROR_SUCCESS )
   { switch(type)
     { case REG_SZ:
-      { char *val = data;
-	strncpy(value, val, length-1);
+      { TCHAR *val = (TCHAR*)data;
+	_tcsncpy(value, val, length-1);
 	value[length-1] = '\0';
       }
     }
@@ -661,7 +675,7 @@ reg_get_str(HKEY key, const char *name, char *value, int length)
 
 
 HKEY
-reg_open_key(char **which, int create)
+reg_open_key(TCHAR **which, int create)
 { HKEY key = HKEY_CURRENT_USER;
   DWORD disp;
   LONG rval;
@@ -679,7 +693,7 @@ reg_open_key(char **which, int create)
 	return NULL;
     }
 
-    rval = RegCreateKeyEx(key, which[0], 0, "", 0,
+    rval = RegCreateKeyEx(key, which[0], 0, _T(""), 0,
 			  KEY_ALL_ACCESS, NULL, &tmp, &disp);
     RegCloseKey(key);
     if ( rval == ERROR_SUCCESS )
@@ -694,19 +708,19 @@ reg_open_key(char **which, int create)
 
 static HKEY
 rlc_option_key(rlc_console_attr *attr, int create)
-{ char Prog[256];
-  char *address[] = { "Software",
+{ TCHAR Prog[256];
+  TCHAR *address[] = { _T("Software"),
   		      RLC_VENDOR,
 		      Prog,
-		      "Console",
-		      (char *)attr->key,	/* possible secondary key */
+		      _T("Console"),
+		      (TCHAR *)attr->key,	/* possible secondary key */
 		      NULL
 		    };
-  const char *s;
-  char *q;
+  const TCHAR *s;
+  TCHAR *q;
 
   for(s=_rlc_program, q=Prog; *s; s++, q++) /* capitalise the key */
-  { *q = (s==_rlc_program ? toupper(*s) : tolower(*s));
+  { *q = (s==_rlc_program ? _totupper(*s) : _totlower(*s));
   }
   *q = EOS;
 
@@ -735,18 +749,18 @@ rlc_get_options(rlc_console_attr *attr)
   maxx = rect.right  - 40;
   maxy = rect.bottom - 40;
 
-  reg_get_int(key, "SaveLines",   200,  200, 100000, &attr->savelines);
-  reg_get_int(key, "Width",        20,	 80,    300, &attr->width);
-  reg_get_int(key, "Height",        5,	 24,    100, &attr->height);
-  reg_get_int(key, "X",		 minx, minx,   maxx, &attr->x);
-  reg_get_int(key, "Y",	         miny, miny,   maxy, &attr->y);
+  reg_get_int(key, _T("SaveLines"),   200,  200, 100000, &attr->savelines);
+  reg_get_int(key, _T("Width"),        20,	 80,    300, &attr->width);
+  reg_get_int(key, _T("Height"),        5,	 24,    100, &attr->height);
+  reg_get_int(key, _T("X"),		 minx, minx,   maxx, &attr->x);
+  reg_get_int(key, _T("Y"),	         miny, miny,   maxy, &attr->y);
 }
 
-  reg_get_str(key, "FaceName", attr->face_name, sizeof(attr->face_name));
-  reg_get_int(key, "FontFamily",    0,  0,  0, &attr->font_family);
-  reg_get_int(key, "FontSize",      0,  0,  0, &attr->font_size);
-  reg_get_int(key, "FontWeight",    0,  0,  0, &attr->font_weight);
-  reg_get_int(key, "FontCharSet",   0,  0,  0, &attr->font_char_set);
+  reg_get_str(key, _T("FaceName"), attr->face_name, sizeof(attr->face_name));
+  reg_get_int(key, _T("FontFamily"),    0,  0,  0, &attr->font_family);
+  reg_get_int(key, _T("FontSize"),      0,  0,  0, &attr->font_size);
+  reg_get_int(key, _T("FontWeight"),    0,  0,  0, &attr->font_weight);
+  reg_get_int(key, _T("FontCharSet"),   0,  0,  0, &attr->font_char_set);
 
   RegCloseKey(key);
 }
@@ -755,13 +769,13 @@ rlc_get_options(rlc_console_attr *attr)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Windows-'95 appears to quote names of files   (I guess because files may
-hold spaces).  rlc_breakargs()  will  pass  a   quoted  strings  as  one
+hold spaces).  rlc_breakargs()  will  pass  a   quoted  _tcsings  as  one
 argument.  If it can't find the closing   quote, it will tread the quote
 as a normal character.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-rlc_breakargs(char *program, char *line, char **argv)
+rlc_breakargs(TCHAR *program, TCHAR *line, TCHAR **argv)
 { int argc = 1;
 
   argv[0] = program;
@@ -769,12 +783,12 @@ rlc_breakargs(char *program, char *line, char **argv)
   while(*line)
   { int q;
 
-    while(*line && isspace(*line))
+    while(*line && _istspace(*line))
       line++;
 
     if ( (q = *line) == '"' || q == '\'' )	/* quoted arguments */
-    { char *start = line+1;
-      char *end = start;
+    { TCHAR *start = line+1;
+      TCHAR *end = start;
 
       while( *end && *end != q )
 	end++;
@@ -788,7 +802,7 @@ rlc_breakargs(char *program, char *line, char **argv)
 
     if ( *line )
     { argv[argc++] = line;
-      while(*line && !isspace(*line))
+      while(*line && !_istspace(*line))
 	line++;
       if ( *line )
 	*line++ = '\0';
@@ -865,9 +879,9 @@ rlc_kill(RlcData b)
 			       &result) )
       { if ( b->window )
 	{ switch( MessageBox(b->window,
-			     "Main task is not responding."
-			     "Click \"OK\" to terminate it",
-			     "Error",
+			     _T("Main task is not responding.")
+			     _T("Click \"OK\" to terminate it"),
+			     _T("Error"),
 			     MB_OKCANCEL|MB_ICONEXCLAMATION|MB_APPLMODAL) )
 	  { case IDCANCEL:
 	      return FALSE;
@@ -975,7 +989,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
     case WM_COMMAND:
     { UINT  item  = (UINT) LOWORD(wParam);
-      const char *name;
+      const TCHAR *name;
 
       switch( item )
       { case IDM_PASTE:
@@ -1245,7 +1259,7 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
     case WM_RLC_WRITE:
     { int count = (int)wParam;
-      char *buf = (char *)lParam;
+      TCHAR *buf = (TCHAR *)lParam;
 
       if ( OQSIZE - b->output_queued > count )
       { memcpy(&b->output_queue[b->output_queued], buf, count);
@@ -1254,21 +1268,11 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       { if ( b->output_queued > 0 )
 	  rlc_flush_output(b);
 
-	while(count > 0)
-	{ if ( OQSIZE - b->output_queued > count )
-	  { memcpy(b->output_queue, buf, count);
-	    b->output_queued += count;
-	    break;
-	  } else
-	  { int room = OQSIZE - b->output_queued;
-
-	    memcpy(b->output_queue, buf, room);
-	    b->output_queued += room;
-	    rlc_flush_output(b);
-	    buf += room;
-	    count -= room;
-	  }
-	}
+	if ( count <= OQSIZE )
+	{ memcpy(b->output_queue, buf, count);
+	  b->output_queued = count;
+	} else
+	  rlc_do_write(b, buf, count);
       }
 
       return 0;
@@ -1330,7 +1334,7 @@ rlc_dispatch(RlcData b)
     rlc_flush_output(b);
     return;
   } else
-  { DEBUG(Dprintf("Thread %x got WM_RLC_CLOSEWIN\n",
+  { DEBUG(Dprintf(_T("Thread %x got WM_RLC_CLOSEWIN\n"),
 		  GetCurrentThreadId()));
     b->queue->flags |= RLC_EOF;
   }
@@ -1374,7 +1378,11 @@ rlc_is_word_char(int chr)
 { if ( chr > 0 && chr < CHAR_MAX )
     return _rlc_word_chars[chr];
 
+#ifdef UNICODE
   return iswalnum((wint_t)chr);
+#else
+  return FALSE;
+#endif
 }
 
 
@@ -1492,7 +1500,7 @@ rlc_translate_mouse(RlcData b, int x, int y, int *line, int *chr)
   } else if ( tl->size == 0 )
   { *chr = 0;
   } else
-  { dchar *s = tl->text;
+  { TCHAR *s = tl->text;
     HDC hdc = GetDC(b->window);
     int f = 0;
     int t = tl->size;
@@ -1508,7 +1516,7 @@ rlc_translate_mouse(RlcData b, int x, int y, int *line, int *chr)
       if ( x > w )
       { int cw;
 
-	GetCharWidth32(hdc, s[m].code, s[m].code, &cw);
+	GetCharWidth32(hdc, s[m], s[m], &cw);
 	if ( x < w+cw )
 	{ *chr = m;
 	  return;
@@ -1569,12 +1577,12 @@ rlc_word_selection(RlcData b, int x, int y)
   if ( rlc_between(b, b->first, b->last, l) )
   { TextLine tl = &b->lines[l];
 
-    if ( c < tl->size && iswordchar(tl->text[c].code) )
+    if ( c < tl->size && iswordchar(tl->text[c]) )
     { int f, t;
 
-      for(f=c; f>0 && iswordchar(tl->text[f-1].code); f--)
+      for(f=c; f>0 && iswordchar(tl->text[f-1]); f--)
 	;
-      for(t=c; t<tl->size && iswordchar(tl->text[t].code); t++)
+      for(t=c; t<tl->size && iswordchar(tl->text[t]); t++)
 	;
       rlc_set_selection(b, l, f, l, t);
     }
@@ -1594,8 +1602,8 @@ rlc_extend_selection(RlcData b, int x, int y)
     { if ( rlc_between(b, b->first, b->last, l) )
       { TextLine tl = &b->lines[l];
 
-	if ( c < tl->size && iswordchar(tl->text[c].code) )
-	  for(; c > 0 && iswordchar(tl->text[c-1].code); c--)
+	if ( c < tl->size && iswordchar(tl->text[c]) )
+	  for(; c > 0 && iswordchar(tl->text[c-1]); c--)
 	    ;
       }
     } else if ( b->sel_unit == SEL_LINE )
@@ -1606,8 +1614,8 @@ rlc_extend_selection(RlcData b, int x, int y)
     { if ( rlc_between(b, b->first, b->last, l) )
       { TextLine tl = &b->lines[l];
 
-	if ( c < tl->size && iswordchar(tl->text[c].code) )
-	  for(; c < tl->size && iswordchar(tl->text[c].code); c++)
+	if ( c < tl->size && iswordchar(tl->text[c]) )
+	  for(; c < tl->size && iswordchar(tl->text[c]); c++)
 	    ;
       }
     } else if ( b->sel_unit == SEL_LINE )
@@ -1617,15 +1625,15 @@ rlc_extend_selection(RlcData b, int x, int y)
 }
 
 
-static char *
+static TCHAR *
 rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
 { int bufsize = 256;
-  char *buf;
+  TCHAR *buf;
   int i = 0;
 
   if ( el < sl || el == sl && ec < sc )
     return NULL;			/* invalid region */
-  if ( !(buf = rlc_malloc(bufsize)) )
+  if ( !(buf = rlc_malloc(bufsize * sizeof(TCHAR))) )
     return NULL;			/* not enough memory */
 
   for( ; ; sc = 0, sl = NextLine(b, sl))
@@ -1639,10 +1647,10 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
       while(sc < e)
       { if ( i >= bufsize )
 	{ bufsize *= 2;
-	  if ( !(buf = rlc_realloc(buf, bufsize)) )
+	  if ( !(buf = rlc_realloc(buf, bufsize * sizeof(TCHAR))) )
 	    return NULL;		/* not enough memory */
 	}
-	buf[i++] = tl->text[sc++].code & 0xff;	/* TBD: UNICODE */
+	buf[i++] = tl->text[sc++];
       }
     }
       
@@ -1654,7 +1662,7 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
     if ( tl && !tl->softreturn )
     { if ( i+1 >= bufsize )
       { bufsize *= 2;
-	if ( !(buf = rlc_realloc(buf, bufsize)) )
+	if ( !(buf = rlc_realloc(buf, bufsize * sizeof(TCHAR))) )
 	  return NULL;			/* not enough memory */
       }
       buf[i++] = '\r';			/* Bill ... */
@@ -1664,7 +1672,7 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
 }
 
 
-static char *
+static TCHAR *
 rlc_selection(RlcData b)
 { if ( SelEQ(b->sel_start_line, b->sel_start_char,
 	     b->sel_end_line,   b->sel_end_char) )
@@ -1678,16 +1686,16 @@ rlc_selection(RlcData b)
 
 static void
 rlc_copy(RlcData b)
-{ char *sel = rlc_selection(b);
+{ TCHAR *sel = rlc_selection(b);
 
   if ( sel && b->window )
-  { int size = strlen(sel);
+  { int size = _tcslen(sel);
     HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, size + 1);
-    char far *data;
+    TCHAR far *data;
     int i;
 
     if ( !mem )
-    { MessageBox(NULL, "Not enough memory to paste", "Error", MB_OK);
+    { MessageBox(NULL, _T("Not enough memory to paste"), _T("Error"), MB_OK);
       return;
     }
     data = GlobalLock(mem);
@@ -1722,16 +1730,16 @@ rlc_place_caret(RlcData b)
       { SetCaretPos((b->caret_x + 1) * b->cw, line * b->ch);
       } else
       { HDC hdc = GetDC(b->window);
-	int twidth;
+	SIZE tsize;
 	TextLine tl = &b->lines[b->caret_y];
 	HFONT old;
 
 	old = SelectObject(hdc, b->hfont);
-	twidth = text_width(b, hdc, tl->text, b->caret_x);
+	GetTextExtentPoint32(hdc, tl->text, b->caret_x, &tsize);
 	SelectObject(hdc, old);
 	ReleaseDC(b->window, hdc);
 
-	SetCaretPos(b->cw + twidth, line * b->ch);
+	SetCaretPos(b->cw + tsize.cx, line * b->ch);
       }
       if ( !b->caret_is_shown )
       { ShowCaret(b->window);
@@ -1812,23 +1820,17 @@ rlc_redraw(RlcData b)
 
   for(; pl <= el; l = NextLine(b, l), pl++)
   { TextLine tl = &b->lines[l];
-    wchar_t text[MAXLINE];		/* UNICODE for line to paint */
+    TCHAR text[MAXLINE];
     int ty = b->ch * pl;
     int cx = b->cw;
 
     if ( !tl->text )
-    { int i;
-
-      tl->size = 0;
-      for(i=0; i<b->width; i++)
-	text[i] = ' ';
+    { tl->size = 0;
+      memset(text, ' ', b->width);
     } else
-    { int i;
-
-      for(i=0; i<tl->size; i++)
-	text[i] = tl->text[i].code;
-      for( ; i <b->width; i++)
-	text[i] = ' ';
+    { memcpy(text, tl->text, tl->size);
+      if ( b->width > tl->size )
+	memset(&text[tl->size], ' ', b->width - tl->size);
     }
 
     rect.top    = ty;
@@ -1840,33 +1842,33 @@ rlc_redraw(RlcData b)
       int ce = (b->sel_end_line != b->sel_start_line ? b->width
 						     : b->sel_end_char);
       if ( cf > 0 )
-      {	TextOutW(hdc, cx, ty, text, cf);
-	cx += wchar_width(b, hdc, text, cf);
+      {	TextOut(hdc, cx, ty, text, cf);
+	cx += text_width(b, hdc, text, cf);
       }
       SetBkColor(hdc, b->sel_background);
       SetTextColor(hdc, b->sel_foreground);
-      TextOutW(hdc, cx, ty, &text[cf], ce-cf);
-      cx += wchar_width(b, hdc, &text[cf], ce-cf);
+      TextOut(hdc, cx, ty, &text[cf], ce-cf);
+      cx += text_width(b, hdc, &text[cf], ce-cf);
       if ( l == b->sel_end_line )
       { SetBkColor(hdc, b->background);
 	SetTextColor(hdc, b->foreground);
-	TextOutW(hdc, cx, ty, &text[ce], b->width - ce);
-	cx += wchar_width(b, hdc, &text[ce], b->width - ce);
+	TextOut(hdc, cx, ty, &text[ce], b->width - ce);
+	cx += text_width(b, hdc, &text[ce], b->width - ce);
       } else
 	insel = TRUE;
     } else if ( l == b->sel_end_line )	/* end of selection */
     { int ce = b->sel_end_char;
 
       insel = FALSE;
-      TextOutW(hdc, cx, ty, text, ce);
-      cx += wchar_width(b, hdc, text, ce);
+      TextOut(hdc, cx, ty, text, ce);
+      cx += text_width(b, hdc, text, ce);
       SetBkColor(hdc, b->background);
       SetTextColor(hdc, b->foreground);
-      TextOutW(hdc, cx, ty, &text[ce], b->width - ce);
-      cx += wchar_width(b, hdc, &text[ce], b->width - ce);
+      TextOut(hdc, cx, ty, &text[ce], b->width - ce);
+      cx += text_width(b, hdc, &text[ce], b->width - ce);
     } else				/* entire line in/out selection */
-    { TextOutW(hdc, cx, ty, text, b->width);
-      cx += wchar_width(b, hdc, text, b->width);
+    { TextOut(hdc, cx, ty, text, b->width);
+      cx += text_width(b, hdc, text, b->width);
     }
 
 					/* clear remainder of line */
@@ -1958,7 +1960,7 @@ rlc_resize_pixel_units(RlcData b, int w, int h)
 { int nw = max(20, w/b->cw)-2;		/* 1 character space for margins */
   int nh = max(1, h/b->ch);
   
-  DEBUG(Dprintf("rlc_resize_pixel_units(%p, %d, %d) (%dx%d)\n",
+  DEBUG(Dprintf(_T("rlc_resize_pixel_units(%p, %d, %d) (%dx%d)\n"),
 		b, w, h, nw, nh));
 
   if ( b->width == nw && b->window_size == nh )
@@ -2002,7 +2004,7 @@ rlc_init_text_dimensions(RlcData b, HFONT font)
       lfont.lfWeight          = a->font_weight;
       lfont.lfPitchAndFamily  = a->font_family;
       lfont.lfCharSet	      = a->font_char_set;
-      strncpy(lfont.lfFaceName, a->face_name, 31);
+      _tcsncpy(lfont.lfFaceName, a->face_name, 31);
     
       if ( !(b->hfont = CreateFontIndirect(&lfont)) )
 	b->hfont = GetStockObject(ANSI_FIXED_FONT);
@@ -2035,31 +2037,13 @@ rlc_init_text_dimensions(RlcData b, HFONT font)
 
 
 static int
-wchar_width(RlcData b, HDC hdc, const wchar_t *text, int len)
+text_width(RlcData b, HDC hdc, const TCHAR *text, int len)
 { if ( b->fixedfont )
   { return len * b->cw;
   } else
   { SIZE size;
 
-    GetTextExtentPoint32W(hdc, text, len, &size);
-    return size.cx;
-  }
-}
-
-
-static int
-text_width(RlcData b, HDC hdc, const dchar *text, int len)
-{ if ( b->fixedfont )
-  { return len * b->cw;
-  } else
-  { SIZE size;
-    wchar_t *t = alloca(len*sizeof(wchar_t));
-    int i;
-
-    for(i=0; i<len; i++)
-      t[i] = text[i].code;
-
-    GetTextExtentPoint32W(hdc, t, len, &size);
+    GetTextExtentPoint32(hdc, text, len, &size);
     return size.cx;
   }
 }
@@ -2073,7 +2057,7 @@ rlc_save_font_options(HFONT font, rlc_console_attr *attr)
   { LOGFONT lf;
 
     if ( GetObject(font, sizeof(lf), &lf) )
-    { strncpy(attr->face_name, lf.lfFaceName, sizeof(attr->face_name)-1);
+    { _tcsncpy(attr->face_name, lf.lfFaceName, sizeof(attr->face_name)-1);
 
       attr->font_family   = lf.lfPitchAndFamily;
       attr->font_size     = lf.lfHeight;
@@ -2204,7 +2188,8 @@ rlc_resize(RlcData b, int w, int h)
   if ( b->width == w && b->window_size == h )
     return;				/* no real change */
 
-  DEBUG(Dprintf("Resizing %dx%d --> %dx%d\n", b->width, b->window_size, w, h));
+  DEBUG(Dprintf(_T("Resizing %dx%d --> %dx%d\n"),
+		b->width, b->window_size, w, h));
 
   b->window_size = h;
   b->width = w;
@@ -2221,17 +2206,17 @@ rlc_resize(RlcData b, int w, int h)
 
 	rlc_shift_lines_down(b, i);
 	DEBUG(Dprint_lines(b, b->first, b->first));
-	DEBUG(Dprintf("b->first = %d, b->last = %d\n", b->first, b->last));
+	DEBUG(Dprintf(_T("b->first = %d, b->last = %d\n"), b->first, b->last));
 	pl = &b->lines[PrevLine(b, i)];	/* this is the moved line */
-	tl->text = rlc_malloc((pl->size - w)*sizeof(dchar));
-	memmove(tl->text, &pl->text[w], (pl->size - w)*sizeof(dchar));
-	DEBUG(Dprintf("Copied %d chars from line %d to %d\n",
+	tl->text = rlc_malloc((pl->size - w)*sizeof(TCHAR));
+	memmove(tl->text, &pl->text[w], pl->size - w);
+	DEBUG(Dprintf(_T("Copied %d chars from line %d to %d\n"),
 		      pl->size - w, pl - b->lines, i));
 	tl->size = pl->size - w;
 	tl->adjusted = TRUE;
 	tl->softreturn = FALSE;
 	pl->softreturn = TRUE;
-	pl->text = rlc_realloc(pl->text, w*sizeof(dchar));
+	pl->text = rlc_realloc(pl->text, w * sizeof(TCHAR));
 	pl->size = w;
 	pl->adjusted = TRUE;
 	i = pl - b->lines;
@@ -2243,9 +2228,9 @@ rlc_resize(RlcData b, int w, int h)
 	if ( i == b->last )
 	  rlc_add_line(b);
 	nl = &b->lines[NextLine(b, i)];
-	nl->text = rlc_realloc(nl->text, (nl->size + move)*sizeof(dchar));
-	memmove(&nl->text[move], nl->text, nl->size*sizeof(dchar));
-	memmove(nl->text, &tl->text[w], move*sizeof(dchar));
+	nl->text = rlc_realloc(nl->text, (nl->size + move)*sizeof(TCHAR));
+	memmove(&nl->text[move], nl->text, nl->size);
+	memmove(nl->text, &tl->text[w], move);
 	nl->size += move;
 	tl->size = w;
       }	
@@ -2256,9 +2241,9 @@ rlc_resize(RlcData b, int w, int h)
 	rlc_add_line(b);
       nl = &b->lines[NextLine(b, i)];
 
-      nl->text = rlc_realloc(nl->text, (nl->size + tl->size)*sizeof(dchar));
-      memmove(&nl->text[tl->size], nl->text, nl->size*sizeof(dchar));
-      memmove(nl->text, tl->text, tl->size*sizeof(dchar));
+      nl->text = rlc_realloc(nl->text, (nl->size + tl->size)*sizeof(TCHAR));
+      memmove(&nl->text[tl->size], nl->text, nl->size);
+      memmove(nl->text, tl->text, tl->size);
       nl->size += tl->size;
       nl->adjusted = TRUE;
       rlc_shift_lines_up(b, i);
@@ -2311,8 +2296,9 @@ rlc_adjust_line(RlcData b, int line)
 { TextLine tl = &b->lines[line];
 
   if ( tl->text && !tl->adjusted )
-  { tl->text = rlc_realloc(tl->text, tl->size == 0 ? sizeof(dchar)
-						   : tl->size*sizeof(dchar));
+  { tl->text = rlc_realloc(tl->text, tl->size == 0
+			   	? sizeof(TCHAR)
+				: tl->size * sizeof(TCHAR));
     tl->adjusted = TRUE;
   }
 }
@@ -2324,11 +2310,11 @@ rlc_unadjust_line(RlcData b, int line)
 
   if ( tl->text )
   { if ( tl->adjusted )
-    { tl->text = rlc_realloc(tl->text, (b->width + 1)*sizeof(dchar));
+    { tl->text = rlc_realloc(tl->text, (b->width + 1)*sizeof(TCHAR));
       tl->adjusted = FALSE;
     }
   } else
-  { tl->text = rlc_malloc((b->width + 1)*sizeof(dchar));
+  { tl->text = rlc_malloc((b->width + 1)*sizeof(TCHAR));
     tl->adjusted = FALSE;
     tl->size = 0;
   }
@@ -2346,7 +2332,7 @@ rlc_open_line(RlcData b)
     b->first = NextLine(b, b->first);
   }
 
-  b->lines[i].text       = rlc_malloc((b->width + 1)*sizeof(dchar));
+  b->lines[i].text       = rlc_malloc((b->width + 1)*sizeof(TCHAR));
   b->lines[i].adjusted   = FALSE;
   b->lines[i].size       = 0;
   b->lines[i].softreturn = FALSE;
@@ -2472,7 +2458,7 @@ rlc_tab(RlcData b)
   { rlc_unadjust_line(b, b->caret_y);
 
     while ( tl->size < b->caret_x )
-      tl->text[tl->size++].code = ' ';
+      tl->text[tl->size++] = ' ';
   }
 
   b->changed |= CHG_CARET;
@@ -2540,8 +2526,8 @@ rlc_put(RlcData b, int chr)
 
   rlc_unadjust_line(b, b->caret_y);
   while( tl->size < b->caret_x )
-    tl->text[tl->size++].code = ' ';
-  tl->text[b->caret_x].code = chr;
+    tl->text[tl->size++] = ' ';
+  tl->text[b->caret_x] = chr;
   if ( tl->size <= b->caret_x )
     tl->size = b->caret_x + 1;
   tl->changed |= CHG_CHANGED;
@@ -2550,7 +2536,7 @@ rlc_put(RlcData b, int chr)
 }
 
 #ifdef _DEBUG
-#define CMD(c) {cmd = #c; c;}
+#define CMD(c) {cmd = _T(#c); c;}
 #else
 #define CMD(c) {c;}
 #endif
@@ -2559,7 +2545,7 @@ static void
 rlc_putansi(RlcData b, int chr)
 {
 #ifdef _DEBUG
-  char *cmd;
+  TCHAR *cmd;
 #endif
 
   switch(b->cmdstat)
@@ -2601,7 +2587,7 @@ rlc_putansi(RlcData b, int chr)
       }
       break;
     case CMD_ANSI:			/* ESC [ */
-      if ( isdigit(chr) )
+      if ( _istdigit((wint_t)chr) )
       { if ( !b->argstat )
 	{ b->argv[b->argc] = (chr - '0');
 	  b->argstat = 1;		/* positive */
@@ -2678,7 +2664,7 @@ rlc_paste(RlcData b)
   if ( b->window )
   { OpenClipboard(b->window);
     if ( (mem = GetClipboardData(CF_TEXT)) )
-    { char far *data = GlobalLock(mem);
+    { TCHAR far *data = GlobalLock(mem);
       int i;
       RlcQueue q = b->queue;
   
@@ -2710,7 +2696,7 @@ rlc_get_mark(rlc_console c, RlcMark m)
 
 
 void
-rlc_goto_mark(rlc_console c, RlcMark m, const wchar_t *data, int offset)
+rlc_goto_mark(rlc_console c, RlcMark m, const TCHAR *data, int offset)
 { RlcData b = rlc_get_data(c);
   
   b->caret_x = m->mark_x;
@@ -2761,10 +2747,10 @@ rlc_putchar(rlc_console c, int chr)
 }
 
 
-char *
+TCHAR *
 rlc_read_screen(rlc_console c, RlcMark f, RlcMark t)
 { RlcData b = rlc_get_data(c);
-  char *buf;
+  TCHAR *buf;
 
   buf = rlc_read_from_window(b, f->mark_y, f->mark_x, t->mark_y, t->mark_x);
 
@@ -2804,11 +2790,11 @@ window_loop(LPVOID arg)
   while(!b->closing)
   { switch( b->imode )
     { case IMODE_COOKED:
-      { char *line = read_line(b);
+      { TCHAR *line = read_line(b);
 
 	if ( line != RL_CANCELED_CHARP )
 	{ LQueued lq = rlc_malloc(sizeof(lqueued));
-
+    
 	  lq->next = NULL;
 	  lq->line = line;
     
@@ -2843,10 +2829,10 @@ window_loop(LPVOID arg)
 
   if ( b->closing <= 2 )
   { MSG msg;
-    char *waiting = "\r\nWaiting for Prolog. "
-      		    "Close again to force termination ..";
+    TCHAR *waiting = _T("\r\nWaiting for Prolog. ")
+      		     _T("Close again to force termination ..");
       
-    rlc_write(b, waiting, strlen(waiting));
+    rlc_write(b, waiting, _tcslen(waiting));
 
     while ( b->closing <= 2 && rlc_get_message(&msg, NULL, 0, 0) )
     { TranslateMessage(&msg);
@@ -2979,23 +2965,7 @@ ScreenRows(rlc_console c)
 		 *	      QUEUE		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The queue defined here is the terminal  input queue. It maintains a ring
-of characters stored in UTF-8 format. 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 #define QN(q, i) ((i)+1 >= (q)->size ? 0 : (i)+1)
-
-static __inline int
-queue_room(RlcQueue q)			/* free room in queue */
-{ if ( q->first < q->last )
-    return q->size - (q->last - q->first) - 1;
-  else if ( q->last < q->first )
-    return q->first - q->last - 1;
-  else
-    return q->size;
-}
-
 
 
 RlcQueue
@@ -3007,7 +2977,7 @@ rlc_make_queue(int size)
     q->size = size;
     q->flags = 0;
 
-    if ( (q->buffer = rlc_malloc(sizeof(char) * size)) )
+    if ( (q->buffer = rlc_malloc(sizeof(TCHAR) * size)) )
       return q;
   }
 
@@ -3027,18 +2997,11 @@ rlc_free_queue(RlcQueue q)
 
 static int
 rlc_add_queue(RlcData b, RlcQueue q, int chr)
-{ int empty = (q->first == q->last);	/* empty on entrance */
-  char buf[8];
-  char *e;
+{ int empty = (q->first == q->last);
 
-  e = utf8_put_char(buf, chr);
-  if ( queue_room(q) > e-buf )
-  { char *s;
-
-    for(s=buf; s<e; s++)
-    { q->buffer[q->last] = *s&0xff;
-      q->last = QN(q, q->last);
-    }
+  if ( QN(q, q->last) != q->first )
+  { q->buffer[q->last] = chr;
+    q->last = QN(q, q->last);
 
     if ( empty )
       PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
@@ -3066,7 +3029,7 @@ rlc_empty_queue(RlcQueue q)
 
 
 static int
-rlc_byte_from_queue(RlcQueue q)
+rlc_from_queue(RlcQueue q)
 { if ( q->first != q->last )
   { int chr = q->buffer[q->first];
 
@@ -3075,35 +3038,7 @@ rlc_byte_from_queue(RlcQueue q)
     return chr;
   }
 
-  return EOF;
-}
-
-
-static int
-rlc_from_queue(RlcQueue q)
-{ int c = rlc_byte_from_queue(q);
-  int oldfirst = q->first;
-  
-  if ( c != EOF && (c&0x80) )
-  { int extra = UTF8_FBN(c);
-    int code;
-
-    code = UTF8_FBV(c,extra);
-    for( ; extra > 0; extra-- )
-    { int c2 = rlc_byte_from_queue(q);
-	  
-      if ( c2 == EOF )
-      { q->first = oldfirst;
-	return EOF;
-      }
-
-      code = (code<<6)+(c2&0x3f);
-    }
-
-    c = code;
-  }
-
-  return c;
+  return -1;
 }
 
 
@@ -3111,8 +3046,12 @@ rlc_from_queue(RlcQueue q)
 		 *	   BUFFERED I/O		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+When using UNICODE, count is in bytes!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
-rlc_read(rlc_console c, char *buf, unsigned int count)
+rlc_read(rlc_console c, TCHAR *buf, unsigned int count)
 { RlcData d = rlc_get_data(c);
   int give;
   MSG msg;
@@ -3127,7 +3066,7 @@ rlc_read(rlc_console c, char *buf, unsigned int count)
     (*_rlc_update_hook)();
 
   d->promptbuf[d->promptlen] = EOS;
-  strcpy(d->prompt, d->promptbuf);
+  _tcscpy(d->prompt, d->promptbuf);
 
   if ( d->read_buffer.given >= d->read_buffer.length )
   { if ( d->read_buffer.line )
@@ -3158,7 +3097,7 @@ rlc_read(rlc_console c, char *buf, unsigned int count)
       rlc_free(lq);
     }
 
-    d->read_buffer.length = strlen(d->read_buffer.line);
+    d->read_buffer.length = _tcslen(d->read_buffer.line);
     d->read_buffer.given = 0;
   }
 
@@ -3170,33 +3109,18 @@ rlc_read(rlc_console c, char *buf, unsigned int count)
   memcpy(buf, d->read_buffer.line+d->read_buffer.given, give);
   d->read_buffer.given += give;
 
-  return give;
+  return give * sizeof(TCHAR);
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-rlc_do_write() writes an UTF-8 sequence  to   the  screen, returning the
-number of bytes processed. Incomplete  processing   is  possible  if the
-buffer contains an incomplete UTF-8 sequence.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-rlc_do_write(RlcData b, const char *buf, int count)
+static void
+rlc_do_write(RlcData b, TCHAR *buf, int count)
 { if ( count > 0 )
   { int n = 0;
-    const char *s = buf;
-    const char *e = &buf[count];
+    TCHAR *s = buf;
 
-    while(s<e)
-    { int chr;
-
-      chr = *s&0xff;
-      if ( !(chr & 0x80) )
-      { s++;
-      } else if ( UTF8_FBN(chr)+s < e )
-      { s = utf8_get_char(s, &chr);
-      } else
-	break;
+    while(n++ < count)
+    { int chr = *s++;
 
       if ( chr == '\n' )
 	rlc_putansi(b, '\r');
@@ -3208,11 +3132,7 @@ rlc_do_write(RlcData b, const char *buf, int count)
     { rlc_request_redraw(b);
       UpdateWindow(b->window);
     }
-
-    return s-buf;
   }
-
-  return 0;
 }
 
 
@@ -3224,15 +3144,9 @@ rlc_flush_output(rlc_console c)
     return -1;
 
   if ( b->output_queued )
-  { int processed = rlc_do_write(b, b->output_queue, b->output_queued);
+  { rlc_do_write(b, b->output_queue, b->output_queued);
 
-    if ( processed < b->output_queued )
-    { memmove(b->output_queue,
-	      &b->output_queue[processed],
-	      b->output_queued - processed);
-      b->output_queued -= processed;
-    } else
-      b->output_queued = 0;
+    b->output_queued = 0;
   }
 
   return 0;
@@ -3240,10 +3154,12 @@ rlc_flush_output(rlc_console c)
 
 
 int
-rlc_write(rlc_console c, char *buf, unsigned int count)
+rlc_write(rlc_console c, TCHAR *buf, unsigned int count)
 { DWORD result;
-  char *e, *s;
+  TCHAR *e, *s;
   RlcData b = rlc_get_data(c);
+
+  count /= sizeof(TCHAR);
 
   if ( !b )
     return -1;
@@ -3332,20 +3248,20 @@ rlc_close(rlc_console c)
 }
 
 
-const char *
-rlc_prompt(rlc_console c, const char *new)
+const TCHAR *
+rlc_prompt(rlc_console c, const TCHAR *new)
 { RlcData b = rlc_get_data(c);
 
   if ( b )
   { if ( new )
-    { strncpy(b->prompt, new, MAXPROMPT);
+    { _tcsncpy(b->prompt, new, MAXPROMPT);
       b->prompt[MAXPROMPT-1] = EOS;
     }
 
     return b->prompt;
   }
   
-  return "";
+  return _T("");
 }
 
 
@@ -3364,10 +3280,10 @@ rlc_clearprompt(rlc_console c)
 		 *	    MISC STUFF		*
 		 *******************************/
 
-static char current_title[RLC_TITLE_MAX];
+static TCHAR current_title[RLC_TITLE_MAX];
 
 void
-rlc_title(rlc_console c, char *title, char *old, int size)
+rlc_title(rlc_console c, TCHAR *title, TCHAR *old, int size)
 { RlcData b = rlc_get_data(c);
 
   if ( old )
@@ -3567,7 +3483,7 @@ free_user_data(RlcData b)
 
 static void
 noMemory()
-{ MessageBox(NULL, "Not enough memory", "Console", MB_OK|MB_TASKMODAL);
+{ MessageBox(NULL, _T("Not enough memory"), _T("Console"), MB_OK|MB_TASKMODAL);
 
   ExitProcess(1);
 }
@@ -3631,12 +3547,12 @@ initHeapDebug(void)
 
 
 static void
-Dprintf(const char *fmt, ...)
-{ char buf[1024];
+Dprintf(const TCHAR *fmt, ...)
+{ TCHAR buf[1024];
   va_list args;
 
   va_start(args, fmt);
-  vsprintf(buf, fmt, args);
+  _vstprintf(buf, fmt, args);
   va_end(args);
 
   OutputDebugString(buf);
@@ -3644,17 +3560,14 @@ Dprintf(const char *fmt, ...)
 
 static void
 Dprint_lines(RlcData b, int from, int to)
-{ char buf[1024];			/* TBD: UNICODE */
+{ TCHAR buf[1024];
 
   for( ; ; from = NextLine(b, from))
   { TextLine tl = &b->lines[from];
-    int i;
 
-    for(i=0; i<tl->size; i++)
-      buf[i] = tl->text[i].code&0xff;
-    buf[i] = EOS;
-
-    Dprintf("%03d: (0x%08x) \"%s\"\n", from, tl->text, buf);
+    memcpy(buf, tl->text, tl->size);
+    buf[tl->size] = EOS;
+    Dprintf(_T("%03d: (0x%08x) \"%s\"\n"), from, tl->text, buf);
 
     if ( from == to )
       break;

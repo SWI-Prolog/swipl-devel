@@ -25,14 +25,13 @@
 #define _MAKE_DLL 1
 #undef _export
 #include <windows.h>
+#include <tchar.h>
 #include "console.h"
 #include "console_i.h"
 #include "common.h"
-#include "utf8.h"
 #include <memory.h>
 #include <string.h>
 #include <ctype.h>
-#include <malloc.h>
 
 #ifndef EOF
 #define EOF -1
@@ -85,16 +84,16 @@ static void
 make_room(Line ln, int room)
 { while ( ln->size + room + 1 > ln->allocated )
   { if ( !ln->data )
-    { ln->data = rlc_malloc(256*sizeof(wchar_t));
+    { ln->data = rlc_malloc(256 * sizeof(TCHAR));
       ln->allocated = 256;
     } else
     { ln->allocated *= 2;
-      ln->data = rlc_realloc(ln->data, ln->allocated*sizeof(wchar_t));
+      ln->data = rlc_realloc(ln->data, ln->allocated * sizeof(TCHAR));
     }
   }
 
   memmove(&ln->data[ln->point + room], &ln->data[ln->point],
-	  (ln->size - ln->point) * sizeof(wchar_t));
+	  ln->size - ln->point);
   ln->size += room;
   if ( room > 0 )
     ln->change_start = min(ln->change_start, ln->point);
@@ -102,28 +101,19 @@ make_room(Line ln, int room)
 
 
 static void
-set_line_from_utf8(Line ln, const char *s)
-{ int blen = strlen(s);
-  int len = utf8_strlen(s, blen);
-  const char *e = &s[blen];
-  wchar_t *o;
+set_line(Line ln, const TCHAR *s)
+{ int len = _tcslen(s);
 
   ln->size = ln->point = 0;
   make_room(ln, len);
-
-  for(o=ln->data; s<e; )
-  { int chr;
-
-    s = utf8_get_char(s, &chr);
-    *o++ = chr;
-  }
+  memcpy(ln->data, s, len);
 }
 
 
 static void
 terminate(Line ln)
 { if ( !ln->data )
-  { ln->data = rlc_malloc(sizeof(wchar_t));
+  { ln->data = rlc_malloc(sizeof(TCHAR));
     ln->allocated = 1;
   }
   ln->data[ln->size] = EOS;
@@ -135,9 +125,7 @@ delete(Line ln, int from, int len)
 { if ( from < 0 || from > ln->size || len < 0 || from + len > ln->size )
     return;
 
-  memcpy(&ln->data[from], &ln->data[from+len],
-	 (ln->size - (from+len))*sizeof(wchar_t));
-
+  memcpy(&ln->data[from], &ln->data[from+len], ln->size - (from+len));
   ln->size -= len;
 } 
 
@@ -197,7 +185,7 @@ static void
 backward_delete_character(Line ln, int chr)
 { if ( ln->point > 0 )
   { memmove(&ln->data[ln->point-1], &ln->data[ln->point],
-	    (ln->size - ln->point)*sizeof(wchar_t));
+	    ln->size - ln->point);
     ln->size--;
     ln->point--;
   }
@@ -245,8 +233,7 @@ static void
 backward_delete_word(Line ln, int chr)
 { int from = back_word(ln, ln->point);
   
-  memmove(&ln->data[from], &ln->data[ln->point],
-	  (ln->size - ln->point)*sizeof(wchar_t));
+  memmove(&ln->data[from], &ln->data[ln->point], ln->size - ln->point);
   ln->size -= ln->point - from;
   ln->point = from;
   changed(ln, from);
@@ -257,8 +244,7 @@ static void
 forward_delete_word(Line ln, int chr)
 { int to = forw_word(ln, ln->point);
   
-  memmove(&ln->data[ln->point], &ln->data[to],
-	  (ln->size - to)*sizeof(wchar_t));
+  memmove(&ln->data[ln->point], &ln->data[to], ln->size - to);
   ln->size -= to - ln->point;
   changed(ln, ln->point);
 }
@@ -352,37 +338,20 @@ interrupt(Line ln, int chr)
 		 *******************************/
 
 static void
-add_history(rlc_console c, const wchar_t *data)
-{ const wchar_t *s = data;
-  
+add_history(rlc_console c, const TCHAR *data)
+{ const TCHAR *s = data;
+
   while(*s && *s <= ' ')
     s++;
 
   if ( *s )
-  { const wchar_t *w;
-    int ulen;
-    char *buf;
-    char *u;
-
-    for(w=s, ulen = 0; *w; w++)
-    { int c = *w;
-
-      ulen += UTF8_BYTES_FOR_CODE(c);
-    }
-    buf = alloca(ulen+1);
-
-    for(u=buf, w=s; *w; w++)
-      u = utf8_put_char(u, *w);
-    *u = EOS;
-
-    rlc_add_history(c, buf);
-  }
+    rlc_add_history(c, s);
 }
 
 
 static void
 backward_history(Line ln, int chr)
-{ const char *h;
+{ const TCHAR *h;
 
   if ( rlc_at_head_history(ln->console) && ln->size > 0 )
   { terminate(ln);
@@ -390,7 +359,7 @@ backward_history(Line ln, int chr)
   }
 
   if ( (h = rlc_bwd_history(ln->console)) )
-  { set_line_from_utf8(ln, h);
+  { set_line(ln, h);
     ln->point = ln->size;
   }
 }
@@ -399,10 +368,10 @@ backward_history(Line ln, int chr)
 static void
 forward_history(Line ln, int chr)
 { if ( !rlc_at_head_history(ln->console) )
-  { const char *h = rlc_fwd_history(ln->console);
+  { const TCHAR *h = rlc_fwd_history(ln->console);
 
     if ( h )
-    { set_line_from_utf8(ln, h);
+    { set_line(ln, h);
       ln->point = ln->size;
     }
   } else
@@ -424,7 +393,7 @@ rlc_complete_hook(RlcCompleteFunc new)
 
 
 static int
-common(const char *s1, const char *s2, int insensitive)
+common(const TCHAR *s1, const TCHAR *s2, int insensitive)
 { int n = 0;
 
   if ( !insensitive )
@@ -457,12 +426,12 @@ complete(Line ln, int chr)
     data->call_type = COMPLETE_INIT;
 
     if ( (*_rlc_complete_function)(data) )
-    { char match[COMPLETE_MAX_WORD_LEN];
+    { TCHAR match[COMPLETE_MAX_WORD_LEN];
       int nmatches = 1;
-      int ncommon = strlen(data->candidate);
+      int ncommon = _tcslen(data->candidate);
       int patlen = ln->point - data->replace_from;
 
-      strcpy(match, data->candidate);
+      _tcscpy(match, data->candidate);
 
       data->call_type = COMPLETE_ENUMERATE;
       while( (*data->function)(data) )
@@ -497,26 +466,26 @@ list_completions(Line ln, int chr)
     data->call_type = COMPLETE_INIT;
 
     if ( (*_rlc_complete_function)(data) )
-    { char *buf[COMPLETE_MAX_MATCHES];
+    { TCHAR *buf[COMPLETE_MAX_MATCHES];
       int nmatches = 0;
-      int len = strlen(data->candidate) + 1;
+      int len = _tcslen(data->candidate) + 1;
       int longest = len;
       int n, cols;
 
-      buf[nmatches] = rlc_malloc(len);
+      buf[nmatches] = rlc_malloc(len*sizeof(TCHAR));
       memcpy(buf[nmatches], data->candidate, len);
       nmatches++;
 
       data->call_type = COMPLETE_ENUMERATE;
       while( (*data->function)(data) )
-      { len = strlen(data->candidate) + 1;
-	buf[nmatches] = rlc_malloc(len);
+      { len = _tcslen(data->candidate) + 1;
+	buf[nmatches] = rlc_malloc(len*sizeof(TCHAR));
 	memcpy(buf[nmatches], data->candidate, len);
 	nmatches++;
 	longest = max(longest, len);
 
 	if ( nmatches > COMPLETE_MAX_MATCHES )
-	{ char *msg = "\r\n! Too many matches\r\n";
+	{ TCHAR *msg = _T("\r\n! Too many matches\r\n");
 	  
 	  while(*msg)
 	    rlc_putchar(ln->console, *msg++);
@@ -534,7 +503,7 @@ list_completions(Line ln, int chr)
       rlc_putchar(ln->console, '\n');
 
       for(n=0; n<nmatches; )
-      { char *s = buf[n];
+      { TCHAR *s = buf[n];
 	len = 0;
 
 	while(*s)
@@ -568,7 +537,7 @@ list_completions(Line ln, int chr)
 		 *******************************/
 
 static void
-output(rlc_console b, const wchar_t *s, int len)
+output(rlc_console b, TCHAR *s, int len)
 { while(len-- > 0)
   { if ( *s == '\n' )
       rlc_putchar(b, '\r');
@@ -580,8 +549,8 @@ output(rlc_console b, const wchar_t *s, int len)
 static void
 update_display(Line ln)
 { if ( ln->reprompt )
-  { const char *prompt = rlc_prompt(ln->console, NULL);
-    const char *s = prompt;
+  { const TCHAR *prompt = rlc_prompt(ln->console, NULL);
+    const TCHAR *s = prompt;
       
     rlc_putchar(ln->console, '\r');
     while(*s)
@@ -604,48 +573,12 @@ update_display(Line ln)
 }
 
 		 /*******************************
-		 *	   CREATE UTF-8		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-wchar2utf8() creates a malloc'ed UTF-8  string   from  an  wchar string.
-Maybe this should move to utf8.c?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static char *
-wchar2utf8(const wchar_t *w)
-{ const wchar_t *s;
-  char *u, *o;
-  int ulen;
-
-  for(s=w, ulen = 0; *s; s++)
-  { int c = *s;
-
-    ulen += UTF8_BYTES_FOR_CODE(c);
-  }
-
-  u = rlc_malloc(ulen+1);
-  for(s=w, o=u; *s; s++)
-  { o = utf8_put_char(o, *s);
-  }
-  *o++ = EOS;
-
-  return u;
-}
-
-
-		 /*******************************
 		 *	     TOPLEVEL		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Return a malloc'ed UTF-8 representation of an input line
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-char *
+TCHAR *
 read_line(rlc_console b)
 { line ln;
-  char *result;
 
   init_line_package(b);
 
@@ -669,36 +602,31 @@ read_line(rlc_console b)
     } else if ( c == ESC )
     { if ( (c = getch(b)) == IMODE_SWITCH_CHAR )
 	return RL_CANCELED_CHARP;
+      if ( c > 256 )
+      { undefined(&ln, c);
+	break;
+      }
       table = dispatch_meta;
     } else
+    { if ( c > 256 )
+      { insert_self(&ln, c);
+	break;
+      }
       table = dispatch_table;
+    }
 
     rlc_get_mark(b, &m1);
 
-    if ( c < 256 )
-      (*table[c & 0xff])(&ln, c);
-    else if ( table == dispatch_table )
-    { if ( iswprint((wint_t)c) )
-	insert_self(&ln, c);
-      else
-	undefined(&ln, c);
-    } else
-      undefined(&ln, c);
-
+    (*table[c & 0xff])(&ln, c);
     if ( m0.mark_x != m1.mark_x || m0.mark_y != m1.mark_y )
       ln.reprompt = TRUE;
-
     update_display(&ln);
   }
   rlc_clearprompt(b);
 
   add_history(b, ln.data);
 
-  result = wchar2utf8(ln.data);
-
-  rlc_free(ln.data);
-  
-  return result;
+  return ln.data;
 }
 
 

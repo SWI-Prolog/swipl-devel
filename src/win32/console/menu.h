@@ -35,6 +35,6 @@
 #define IDM_BREAK	14
 #define IDM_FONT	15
 
-const char *lookupMenuId(UINT id);
+const TCHAR *lookupMenuId(UINT id);
 void 	    rlc_add_menu_bar(HWND win);
 void	    rlc_menu_action(rlc_console c, struct menu_data *data);

@@ -5,6 +5,7 @@
 ################################################################
 
 !include ..\..\rules.mk
+CFLAGS = $(CFLAGS) /DUNICODE /D_UNICODE
 
 PLHOME=		..\..\..
 OUTDLL=		$(PLHOME)\bin\plterm.dll
@@ -14,7 +15,7 @@ OUTDBG=		$(PLHOME)\bin\plterm.pdb
 
 XLIBS=		gdi32.lib comdlg32.lib $(DBGLIBS)
 
-OBJ=		complete.obj console.obj edit.obj history.obj menu.obj utf8.obj
+OBJ=		complete.obj console.obj edit.obj history.obj menu.obj
 
 all:		$(OUTLIB) $(OUTINC)
 

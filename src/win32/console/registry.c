@@ -28,12 +28,12 @@
 #define MAXKEYLEN	256
 #define MAXKEYPATHLEN	1024
 
-static char _rlc_regbase[MAXKEYPATHLEN] = "current_user/PrologConsole";
+static TCHAR _rlc_regbase[MAXKEYPATHLEN] = TEXT("current_user/PrologConsole");
 
 static HKEY
-reg_open_key(const char *path, HKEY parent, REGSAM access)
-{ char buf[MAXKEYLEN];
-  char *sep;
+reg_open_key(const TCHAR *path, HKEY parent, REGSAM access)
+{ TCHAR buf[MAXKEYLEN];
+  TCHAR *sep;
 
   if ( *path )
     return parent;
@@ -63,21 +63,21 @@ reg_open_key(const char *path, HKEY parent, REGSAM access)
 
 
 HKEY
-RegOpenKeyFromPath(const char *path, REGSAM access)
-{ char buf[MAXKEYLEN];
-  char *sep;
+RegOpenKeyFromPath(const TCHAR *path, REGSAM access)
+{ TCHAR buf[MAXKEYLEN];
+  TCHAR *sep;
   HKEY root;
 
   for(sep = path; *sep && *sep != '/' && *sep != '\\'; sep++)
     ;
   strncpy(buf, path, sep-path);
-  if ( streq(buf, "classes_root") )
+  if ( streq(buf, TEXT("classes_root")) )
     root = HKEY_CLASSES_ROOT;
-  else if ( streq(buf, "current_user") )
+  else if ( streq(buf, TEXT("current_user")) )
     root = HKEY_CURRENT_USER;
-  else if ( streq(buf, "local_machine") )
+  else if ( streq(buf, TEXT("local_machine")) )
     root = HKEY_LOCAL_MACHINE;
-  else if ( streq(buf, "users") )
+  else if ( streq(buf, TEXT("users")) )
     root = HKEY_USERS;
   else
     return NULL;

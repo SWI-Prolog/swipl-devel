@@ -23,6 +23,7 @@
 */
 
 #include <windows.h>
+#include <tchar.h>
 #define _MAKE_DLL
 #include "console.h"
 #include "console_i.h"
@@ -32,29 +33,29 @@
 #define EOS 0
 #endif
 
-#define streq(s,q) (strcmp((s), (q)) == 0)
+#define streq(s,q) (_tcscmp((s), (q)) == 0)
 
-static char **menuids;
+static TCHAR **menuids;
 static int nmenus;
 static int nmenualloc;
 
 static struct rl_item
 { UINT	      id;
-  const char *name;
+  const TCHAR *name;
 } rl_items[] =
-{ { IDM_EXIT, "&Exit" },
-  { IDM_CUT,  "&Cut" },
-  { IDM_COPY, "&Copy" },
-  { IDM_PASTE, "&Paste" },
-  { IDM_BREAK, "&Interrupt" },
-  { IDM_FONT,  "&Font ..." },
+{ { IDM_EXIT, _T("&Exit") },
+  { IDM_CUT,  _T("&Cut") },
+  { IDM_COPY, _T("&Copy") },
+  { IDM_PASTE, _T("&Paste") },
+  { IDM_BREAK, _T("&Interrupt") },
+  { IDM_FONT,  _T("&Font ...") },
   { 0,         NULL }
 };
 
 
 
 static UINT
-lookupMenuLabel(const char *label)
+lookupMenuLabel(const TCHAR *label)
 { int i;
   int llen;
   struct rl_item *builtin;
@@ -72,22 +73,22 @@ lookupMenuLabel(const char *label)
   if ( nmenus + 1 > nmenualloc )
   { if ( nmenualloc )
     { nmenualloc *= 2;
-      menuids = rlc_realloc(menuids, nmenualloc*sizeof(char *));
+      menuids = rlc_realloc(menuids, nmenualloc*sizeof(TCHAR *));
     } else
     { nmenualloc = 32;
-      menuids = rlc_malloc(nmenualloc*sizeof(char *));
+      menuids = rlc_malloc(nmenualloc*sizeof(TCHAR *));
     }
   }
 
-  llen = strlen(label);
-  menuids[nmenus] = rlc_malloc(llen+1);
+  llen = _tcslen(label);
+  menuids[nmenus] = rlc_malloc((llen+1)*sizeof(TCHAR));
   memcpy(menuids[nmenus], label, llen+1);
   
   return nmenus++ + IDM_USER;
 }
 
 
-const char *
+const TCHAR *
 lookupMenuId(UINT id)
 { struct rl_item *builtin;
 
@@ -103,7 +104,7 @@ lookupMenuId(UINT id)
 }
 
 int
-insertMenu(HMENU in, const char *label, const char *before)
+insertMenu(HMENU in, const TCHAR *label, const TCHAR *before)
 { if ( !before )
   { if ( !label )
       AppendMenu(in, MF_SEPARATOR, 0, NULL);
@@ -123,8 +124,8 @@ insertMenu(HMENU in, const char *label, const char *before)
     { info.fType = MFT_STRING;
       info.fMask |= MIIM_ID;
       info.wID = lookupMenuLabel(label);
-      info.dwTypeData = (char *)label;
-      info.cch = strlen(label);
+      info.dwTypeData = (TCHAR *)label;
+      info.cch = _tcslen(label);
     } else
     { info.fType = MFT_SEPARATOR;
     }
@@ -141,7 +142,7 @@ Find popup with given name.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static HMENU
-findPopup(RlcData b, const char *name, int *pos)
+findPopup(RlcData b, const TCHAR *name, int *pos)
 { HMENU mb = GetMenu(rlc_hwnd(b));
 
   if ( mb )
@@ -154,7 +155,7 @@ findPopup(RlcData b, const char *name, int *pos)
 
     for(i=0; ; i++)
     { MENUITEMINFO info;
-      char nbuf[MAXLABELLEN];
+      TCHAR nbuf[MAXLABELLEN];
 
       memset(&info, 0, sizeof(info));
       info.cbSize = sizeof(info);
@@ -204,10 +205,10 @@ rlc_add_menu_bar(HWND cwin)
 
   append_builtin(run,  IDM_BREAK);
 
-  AppendMenu(menu, MF_POPUP, (UINT)file,     "&File");
-  AppendMenu(menu, MF_POPUP, (UINT)edit,     "&Edit");
-  AppendMenu(menu, MF_POPUP, (UINT)settings, "&Settings");
-  AppendMenu(menu, MF_POPUP, (UINT)run,      "&Run");
+  AppendMenu(menu, MF_POPUP, (UINT)file,     _T("&File"));
+  AppendMenu(menu, MF_POPUP, (UINT)edit,     _T("&Edit"));
+  AppendMenu(menu, MF_POPUP, (UINT)settings, _T("&Settings"));
+  AppendMenu(menu, MF_POPUP, (UINT)run,      _T("&Run"));
 
   SetMenu(cwin, menu);
 }
@@ -220,9 +221,9 @@ rlc_add_menu_bar(HWND cwin)
 
 typedef struct menu_data
 { long magic;				/* safety */
-  const char *menu;			/* menu to operate on */
-  const char *label;			/* new label */
-  const char *before;			/* add before this one */
+  const TCHAR *menu;			/* menu to operate on */
+  const TCHAR *label;			/* new label */
+  const TCHAR *before;			/* add before this one */
   int         rc;			/* result */
 } menu_data;
 
@@ -262,8 +263,8 @@ rlc_menu_action(rlc_console c, menu_data *data)
       info.fMask = MIIM_TYPE|MIIM_SUBMENU;
       info.fType = MFT_STRING;
       info.hSubMenu = CreatePopupMenu();
-      info.dwTypeData = (char *)data->label;
-      info.cch = strlen(data->label);
+      info.dwTypeData = (TCHAR *)data->label;
+      info.cch = _tcslen(data->label);
       
       InsertMenuItem(mb, bid, TRUE, &info);
 					/* force redraw; not automatic! */
@@ -276,7 +277,7 @@ rlc_menu_action(rlc_console c, menu_data *data)
 
 
 int
-rlc_insert_menu(rlc_console c, const char *label, const char *before)
+rlc_insert_menu(rlc_console c, const TCHAR *label, const TCHAR *before)
 { HWND hwnd = rlc_hwnd(c);
   menu_data data;
 
@@ -293,7 +294,7 @@ rlc_insert_menu(rlc_console c, const char *label, const char *before)
 
 int
 rlc_insert_menu_item(rlc_console c,
-		     const char *menu, const char *label, const char *before)
+		     const TCHAR *menu, const TCHAR *label, const TCHAR *before)
 { HWND hwnd = rlc_hwnd(c);
   menu_data data;
 
