@@ -421,7 +421,7 @@ void
 printMessage(atom_t severity, ...)
 { fid_t fid = PL_open_foreign_frame();
   term_t av = PL_new_term_refs(2);
-  predicate_t pred = PL_predicate("print_message", 2, "user");
+  predicate_t pred = PL_predicate("print_message", 2, "system");
   va_list args;
 
   va_start(args, severity);
@@ -517,6 +517,22 @@ PL_unify_nil_ex(term_t l)
     fail;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+}
+
+
+int
+PL_unify_bool_ex(term_t t, bool val)
+{ bool v;
+
+  if ( PL_is_variable(t) )
+    return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
+  if ( PL_get_bool(t, &v) )
+  { if ( (!val && !v) || (val && v) )
+      succeed;
+    fail;
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
 }
 
 

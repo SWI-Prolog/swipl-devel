@@ -180,7 +180,7 @@ int		PL_get_integer_ex(term_t t, int *i);
 int		PL_get_long_ex(term_t t, long *i);
 int		PL_unify_list_ex(term_t l, term_t h, term_t t);
 int		PL_unify_nil_ex(term_t l);
-
+int		PL_unify_bool_ex(term_t t, bool val);
 
 /* pl-file.c */
 void		initIO(void);

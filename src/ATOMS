@@ -461,6 +461,7 @@ A frame			"frame"
 A help			"help"
 A backtrace		"backtrace"
 A choice		"choice"
+A debugger_show_context "debugger_show_context"
 
 F abs			1
 F acos			1

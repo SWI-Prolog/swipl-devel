@@ -456,21 +456,23 @@ tracing_list([trace(Head, Ports)|T]) -->
 prolog_message(frame(Frame, backtrace, _PC)) --> !,
 	{ prolog_frame_attribute(Frame, level, Level)
 	},
-	[ at_same_line, '~t[~D] ~10|'-[Level] ],
+	[ '~t[~D] ~10|'-[Level] ],
+	frame_context(Frame),
 	frame_goal(Frame).
 prolog_message(frame(Frame, choice, PC)) --> !,
 	prolog_message(frame(Frame, backtrace, PC)).
 prolog_message(frame(Frame, trace(Port), _PC)) --> !,
-	[ at_same_line, ' T ' ],
+	[ ' T ' ],
 	port(Port),
 	frame_level(Frame),
+	frame_context(Frame),
 	frame_goal(Frame),
 	[ flush ].
 prolog_message(frame(Frame, Port, _PC)) -->
-	[ at_same_line ],
 	frame_flags(Frame),
 	port(Port),
 	frame_level(Frame),
+	frame_context(Frame),
 	frame_goal(Frame),
 	[ flush ].
 
@@ -486,6 +488,14 @@ frame_level(Frame) -->
 	},
 	[ '(~D) '-[Level] ].
 
+frame_context(Frame) -->
+	(   { current_prolog_flag(debugger_show_context, true),
+	      prolog_frame_attribute(Frame, context_module, Context)
+	    }
+	->  [ '[~w] '-[Context] ]
+	;   []
+	).
+
 frame_flags(Frame) -->
 	{ prolog_frame_attribute(Frame, goal, Goal),
 	  (   predicate_property(Goal, transparent)
@@ -500,7 +510,16 @@ frame_flags(Frame) -->
 	[ '~w~w '-[T, S] ].
 	  
 port(Port) -->
+	{ port_name(Port, Name)
+	}, !,
 	[ '~w: '-[Port] ].
+
+port_name(call,	     'Call').
+port_name(exit,	     'Exit').
+port_name(fail,	     'Fail').
+port_name(redo,	     'Redo').
+port_name(unify,     'Unify').
+port_name(exception, 'Exception').
 
 clean_goal(M:Goal, Goal) :-
 	hidden_module(M), !.

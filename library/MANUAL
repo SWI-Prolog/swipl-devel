@@ -95,7 +95,7 @@ primitive  predicates compatible  with  Quintus Prolog  [Qui, 1997]  and
 BIM_Prolog [BIM, 1989].
 
 ISO  compliant  predicates  are based  on  ``Prolog:    The  Standard'',
-[Deransart _e_t _a_l_., 1996].
+[Deransart _e_t _a_l_., 1996], validated using [??].
 
 
 11..22 SSttaattuuss
@@ -1278,7 +1278,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          Identifier for the hardware and operating system  SWI-Prolog is
          running on.  Used  to determine the startup file as well  as to
          select foreign  files for  the right  architecture.   See  also
-         load_foreign/5.
+         section 5.4.
 
     vveerrssiioonn _(_i_n_t_e_g_e_r_)
          The version identifier is an integer with value:
@@ -1297,8 +1297,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          <_h_o_m_e>/library.
 
     eexxeeccuuttaabbllee _(_a_t_o_m_)
-         ath-name of the running executable.  Used by qsave_program/2 as
-         default emulator.
+         Path-name of the  running executable.  Used  by qsave_program/2
+         as default emulator.
 
     aarrggvv _(_l_i_s_t_)
          List  is  a   list  of  atoms  representing  the   command-line
@@ -1402,6 +1402,11 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          `p'  and  `<_N>  d'  commands  of  the  debugger.    Default  is
          [quoted(true), portray(true), max_depth(10)].
 
+    ddeebbuuggggeerr__sshhooww__ccoonntteexxtt _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If true, show  the context module while printing a  stack-frame
+         in the  tracer.   Normally controlled using  the `C' option  of
+         the tracer.
+
     ccoommppiilleedd__aatt _(_a_t_o_m_)
          Describes when the  system has been  compiled.  Only  available
          if  the C-compiler  used  to  compile SWI-Prolog  provides  the
@@ -1462,7 +1467,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
              convert  floats  to integers  if  the float  represents  an
              integer.
 
-           o The  /(_2) (float division) _a_l_w_a_y_s  return a float, even  if
+           o The  //2 (float division)  _a_l_w_a_y_s return a  float, even  if
              applied to integers that can be divided.
 
            o In  the standard order  of terms (see  section 3.6.1),  all
@@ -3193,8 +3198,8 @@ Definite  Clause  Grammar (DCG)  handling  is  not part  of  the  Prolog
 standard.   Most Prolog  engines implement DCG,  but the details  differ
 slightly.
 
-Grammar rules  look like  ordinary clauses using  -->(_2) for  separating
-the head and  body rather then :-(_2).   Expanding grammar rules is  done
+Grammar rules  look like  ordinary clauses  using -->/2  for  separating
+the head  and body rather then  :-/2.   Expanding grammar rules is  done
 by expand_term/2, which  adds two additional  argument to each term  for
 representing the difference list.   We will illustrate the  behaviour by
 defining a rule-set for parsing an integer.
@@ -3218,10 +3223,10 @@ digit(D) -->
 
 The  body of  a grammar  rule  can contain  three  types of  terms.    A
 compound  term interpreted  as a  reference  to a  grammar-rule.    Code
-between {...} is interpreted as a reference to ordinary  Prolog code and
-finally, a list  is interpreted as a sequence  of literals.  The  Prolog
-control-constructs (\+(_1), ->(_2),  ;(_/)2, ,(_2) and !(_0)) can be  used in
-grammar rules.
+between {...}  is interpreted  as a  reference to  ordinary Prolog  code
+and finally,  a list  is interpreted  as a  sequence of literals.    The
+Prolog control-constructs (\+/1,  ->/2, ;//2, ,/2  and !/0) can be  used
+in grammar rules.
 
 Grammar rule-sets are  called using the builtin predicates phrase/2  and
 phrase/3:

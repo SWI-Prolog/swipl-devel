@@ -131,8 +131,8 @@ trace(Pred, Ports) :-
 	(   member(Head, Preds),
 		$define_predicate(Head),
 	        $trace(Ports, Head),
-	        trace_ports(Head, Tracing),
-	        print_message(informational, trace(Head, Tracing)),
+	        trace_ports(user:Head, Tracing),
+	        print_message(informational, trace(user:Head, Tracing)),
 	    fail
 	;   true
 	).

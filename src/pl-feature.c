@@ -332,6 +332,8 @@ pl_set_feature(term_t key, term_t value)
 	{ tracemode(FALSE, NULL);
 	  debugmode(FALSE, NULL);
 	}
+      } else if ( k == ATOM_debugger_show_context )
+      { debugstatus.showContext = val;
       }
 
       break;
@@ -418,7 +420,9 @@ unify_feature_value(Module m, atom_t key, feature *f, term_t val)
 
     return PL_unify_atom(val, v);
   } else if ( key == ATOM_debug )
-  { return PL_unify_atom(val, debugstatus.debugging ? ATOM_true : ATOM_false);
+  { return PL_unify_bool_ex(val, debugstatus.debugging);
+  } else if ( key == ATOM_debugger_show_context )
+  { return PL_unify_bool_ex(val, debugstatus.showContext);
   }
 
   switch(f->flags & FT_MASK)
@@ -663,6 +667,7 @@ initFeatures()
   defFeature("debug_on_error",	FT_BOOL, TRUE, DEBUG_ON_ERROR_FEATURE);
   defFeature("report_error",	FT_BOOL, TRUE, REPORT_ERROR_FEATURE);
 #endif
+  defFeature("debugger_show_context", FT_BOOL, FALSE, 0);
   defFeature("autoload",  FT_BOOL, TRUE,  AUTOLOAD_FEATURE);
   defFeature("max_integer",	   FT_INTEGER|FF_READONLY, PLMAXINT);
   defFeature("min_integer",	   FT_INTEGER|FF_READONLY, PLMININT);

@@ -790,7 +790,7 @@ the prolog-flag is present {\bf and} the \arg{Value} is the atom
     \prologflagitem{arch}{atom}{r}
 Identifier for the hardware and operating system SWI-Prolog is running
 on.  Used to determine the startup file as well as to select foreign
-files for the right architecture.  See also load_foreign/5.
+files for the right architecture.  See also \secref{shlib}.
     \prologflagitem{version}{integer}{r}
 The version identifier is an integer with value: $$10000 \times
 \arg{Major} + 100 \times \arg{Minor} + \arg{Patch}$$
@@ -801,7 +801,7 @@ easier for implementing version-conditional statements.
 SWI-Prolog's notion of the home-directory.  SWI-Prolog uses it's home
 directory to find its startup file as \file{<home>/startup/startup.<arch>}
 and to find its library as \file{<home>/library}.
-    \prologflagitem{executable}{atom}
+    \prologflagitem{executable}{atom}{r}
 Path-name of the running executable.  Used by qsave_program/2 as default
 emulator.
     \prologflagitem{argv}{list}{r}
@@ -878,6 +878,9 @@ This argument is given as option-list to write_term/2 for printing goals
 by the debugger.  Modified by the `w', `p' and `<N> d' commands of the
 debugger.  Default is \exam{[quoted(true), portray(true),
 max_depth(10)]}.
+    \prologflagitem{debugger_show_context}{bool}{rw}
+If \const{true}, show the context module while printing a stack-frame in
+the tracer.  Normally controlled using the `C' option of the tracer.
     \prologflagitem{compiled_at}{atom}{r}
 Describes when the system has been compiled. Only available if the
 C-compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__

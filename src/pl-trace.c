@@ -207,18 +207,27 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
   Definition def = frame->predicate;
   LocalFrame fr;
 
-  if ( (true(frame, FR_NODEBUG) && !(SYSTEM_MODE))	|| /* hidden */
-       debugstatus.suspendTrace )			   /* called back */
+  if ( (true(frame, FR_NODEBUG) && !(SYSTEM_MODE)) || /* hidden */
+       debugstatus.suspendTrace )		      /* called back */
     return ACTION_CONTINUE;
 
   if ( port == FAIL_PORT )
     Undo(frame->mark);
 
 					/* trace/[1,2] */
-  if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) &&
-       (port & (CALL_PORT|REDO_PORT|EXIT_PORT|FAIL_PORT)) &&
-       !(port & (BREAK_PORT|CUT_PORT)) )
-    writeFrameGoal(frame, PC, port|WFG_TRACE);
+  if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
+  { int doit = FALSE;
+
+    switch(port)
+    { case CALL_PORT: doit = true(def, TRACE_CALL); break;
+      case EXIT_PORT: doit = true(def, TRACE_EXIT); break;
+      case FAIL_PORT: doit = true(def, TRACE_FAIL); break;
+      case REDO_PORT: doit = true(def, TRACE_REDO); break;
+    }
+
+    if ( doit )
+      writeFrameGoal(frame, PC, port|WFG_TRACE);
+  }
 
   if ( (port != BREAK_PORT) &&
        /*(port != EXCEPTION_PORT) &&*/

@@ -1,6 +1,19 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-8)
+=========================
+
+  * FIXED: Get tracer option `show context' working again.
+
+  * FIXED: Module-handling in trace/1 (when using in module user).
+
+  * FIXED: Printing messages from C.
+
+
+VERSION 3.3.0 (release-7)
+=========================
+
   * FIXED: Path-handling problem loading Quick Load Files from a different
     location then they were created.  Notably affects handling of
     discontiguous.
@@ -22,6 +35,7 @@
 
   * FIXED: Bug in handling logical-update view of assert/retract.  Thanks
     to Paolo Moura.
+
 
 VERSION 3.3.0 (release-6)
 =========================
