@@ -11,6 +11,10 @@
 	  , qsave_program/2
 	  ]).
 
+:- module_transparent
+	qsave_program/1,
+	qsave_program/2.
+
 :- system_mode(on).
 
 :- dynamic verbose/1.
@@ -22,14 +26,15 @@
 qsave_program(File) :-
 	qsave_program(File, []).
 
-qsave_program(File, Options0) :-
+qsave_program(FileSpec, Options0) :-
+	'$strip_module'(FileSpec, Module, File),
 	option(Options0, autoload/true, Autoload, Options1),
 	option(Options1, map/[],        Map,      Options2),
 	option(Options2, goal/[],       GoalTerm, Options3),
 	option(Options3, op/save,	SaveOps,  Options4),
 	(   GoalTerm == []
 	->  Options = Options4
-	;   term_to_atom(GoalTerm, GoalAtom),
+	;   term_to_atom(Module:GoalTerm, GoalAtom),
 	    term_to_atom(GT, GoalAtom),
 	    define_predicate(user:GT),
 	    Options = [goal=GoalAtom|Options4]
@@ -46,8 +51,7 @@ qsave_program(File, Options0) :-
 	set_feature(saved_program, true),
 	$open_wic(File, Options),
 	system_mode(on),		% generate system modules too
-	forall(special_module(X), save_module(X)),
-	forall((current_module(X), \+ special_module(X)), save_module(X)),
+	save_modules,
 	save_records,
 	save_flags,
 	save_imports,
@@ -63,6 +67,10 @@ qsave_program(File, Options0) :-
 	->  close(Fd)
 	;   true
 	).
+
+save_modules :-
+	forall(special_module(X), save_module(X)),
+	forall((current_module(X), \+ special_module(X)), save_module(X)).
 
 special_module(system).
 special_module(user).
@@ -199,6 +207,8 @@ c_feature(symbol_file).
 c_feature(compiled_at).
 c_feature(min_integer).
 c_feature(max_integer).
+c_feature(min_tagged_integer).
+c_feature(max_tagged_integer).
 c_feature(pipe).
 c_feature(readline).
 c_feature(dynamic_stacks).
@@ -212,6 +222,12 @@ c_feature(c_libs).
 c_feature(home).
 c_feature(version).
 c_feature(arch).
+c_feature(boot_file).
+c_feature(unix).
+c_feature(windows).
+c_feature(max_arity).
+c_feature(integer_rounding_function).
+c_feature(bounded).
 
 		 /*******************************
 		 *	     OPERATORS		*

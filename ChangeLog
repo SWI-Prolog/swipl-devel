@@ -4,6 +4,12 @@
 VERSION 2.9.6
 =============
 
+  * MODIFIED: list_to_set/2 retains the first, rather then the last
+    occurrence of duplicate members to the set.
+
+  * FIXED: flag/3 using floating-point numbers for machines that cannot
+    address doubles on 4-byte alignment (most RISC processors).
+
   * FIXED: foreign-reference handling of exception terms, causing garbage
     collection problems.  Reported by Robert van Engelen.
 

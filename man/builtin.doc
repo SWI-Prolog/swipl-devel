@@ -2275,8 +2275,14 @@ Duplicates are {\bf not} removed.
 \predicate{is_set}{1}{+Set}
 Succeeds if \arg{Set} is a proper list (see proper_list/1) without duplicates.
 \predicate{list_to_set}{2}{+List, -Set}
-Succeeds if \arg{Set} holds the same elements as \arg{List} in the same
-order, but has no duplicates. See also sort/2.
+Unifies \arg{Set} with a list holding the same elements as \arg{List} in
+the same order.  If \arg{list} contains duplicates, only the first is
+retained.  See also sort/2.  Example:
+\begin{code}
+?- list_to_set([a,b,a], X)
+
+X = [a,b]
+\end{code}
 \predicate{intersection}{3}{+Set1, +Set2, -Set3}
 Succeeds if \arg{Set3} unifies with the intersection of \arg{Set1} and
 \arg{Set2}. \arg{Set1} and \arg{Set2} are lists without duplicates.

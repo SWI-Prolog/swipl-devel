@@ -149,12 +149,19 @@ is_set([_|T]) :-
 %	list_to_set(+List, ?Set)
 %	is true when Set has the same element as List in the same order
 
-list_to_set([], []).
-list_to_set([H|T], R) :-
-	memberchk(H, T), !, 
-	list_to_set(T, R).
-list_to_set([H|T], [H|R]) :-
-	list_to_set(T, R).
+list_to_set(List, Set) :-
+	list_to_set_(List, Set0),
+	Set = Set0.
+
+list_to_set_([], R) :-
+	close_list(R).
+list_to_set_([H|T], R) :-
+	memberchk(H, R), !, 
+	list_to_set_(T, R).
+
+close_list([]) :- !.
+close_list([_|T]) :-
+	close_list(T).
 
 %	intersection(+Set1, +Set2, -Set3)
 %	Succeeds if Set3 unifies with the intersection of Set1 and Set2

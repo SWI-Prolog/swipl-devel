@@ -42,7 +42,7 @@ lookupFlag(word key)
   if ( (symb = lookupHTable(flagTable, (void *)key)) )
     return (Flag)symb->value;
 
-  f = (Flag) allocHeap(sizeof(struct flag) );
+  f = (Flag) allocHeap(sizeof(struct flag));
   f->key = key;
   f->type = FLG_INTEGER;
   f->value.i = 0;
@@ -70,8 +70,16 @@ pl_flag(term_t name, term_t old, term_t new)
       TRY(PL_unify_integer(old, f->value.i));
       break;
     case FLG_REAL:
+    {
+#ifdef DOUBLE_ALIGNMENT
+      double v;
+      memcpy(&v, &f->value.f, sizeof(double));
+      TRY(PL_unify_float(old, v));
+#else
       TRY(PL_unify_float(old, f->value.f));
+#endif
       break;
+    }
     default:
       assert(0);
   }
@@ -88,8 +96,13 @@ pl_flag(term_t name, term_t old, term_t new)
     { f->type = FLG_INTEGER;
       f->value.i = n.value.i;
     } else
-    { f->type = FLG_REAL;
+    { 
+      f->type = FLG_REAL;
+#ifdef DOUBLE_ALIGNMENT
+      memcpy(&f->value.f, &n.value.f, sizeof(double));
+#else
       f->value.f = n.value.f;
+#endif
     }
 
     succeed;

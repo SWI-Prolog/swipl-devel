@@ -1901,7 +1901,11 @@ pl_access_file(term_t name, term_t mode)
   { char tmp[MAXPATHLEN];
     char *dir = DirName(n, tmp);
 
-    if ( AccessFile(*dir == EOS ? "." : dir, md) )
+    if ( dir[0] )
+    { if ( !ExistsDirectory(dir) )
+	fail;
+    }
+    if ( AccessFile(dir[0] ? dir : ".", md) )
       succeed;
   }
 

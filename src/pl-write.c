@@ -308,6 +308,7 @@ writeTerm2(term_t t, int prec, bool style)
 	  { int i = n % 26;
 	    int j = n / 26;
 	    
+	    PutOpenToken('0');
 	    if ( j == 0 )
 	      return Putf("%c", i+'A');
 	    else

@@ -960,11 +960,18 @@ SOURCE=".\pl-prims.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_PRI=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1033,10 +1040,17 @@ SOURCE=".\pl-dde.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_DD=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1136,10 +1150,17 @@ SOURCE=".\pl-bag.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_BA=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1206,10 +1227,17 @@ SOURCE=".\pl-flag.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_FL=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1276,11 +1304,18 @@ SOURCE=".\pl-nt.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_NT=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\console.h"\
 	"d:\development\pl\include\uxnt.h"\
@@ -1352,10 +1387,17 @@ SOURCE=".\pl-ext.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_EX=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1422,10 +1464,17 @@ SOURCE=".\pl-prof.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_PRO=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1493,11 +1542,18 @@ SOURCE=".\pl-wam.c"
 
 DEP_CPP_PL_WA=\
 	".\pl-alloc.c"\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-index.c"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1568,10 +1624,17 @@ SOURCE=".\pl-sys.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_SY=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1638,11 +1701,17 @@ SOURCE=".\pl-main.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_MA=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
 	".\pl-os.h"\
 	".\pl-save.h"\
 	".\pl-stream.h"\
@@ -1715,10 +1784,17 @@ SOURCE=".\pl-load.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_LO=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1785,11 +1861,18 @@ SOURCE=".\pl-os.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_OS=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1858,11 +1941,18 @@ SOURCE=".\pl-read.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_REA=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -1931,11 +2021,18 @@ SOURCE=".\pl-glob.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_GL=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\dirent.h"\
 	"d:\development\pl\include\uxnt.h"\
@@ -2007,10 +2104,17 @@ SOURCE=".\pl-modul.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_MO=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2077,11 +2181,18 @@ SOURCE=".\pl-trace.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_TR=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2176,10 +2287,17 @@ SOURCE=".\pl-setup.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_SE=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2247,10 +2365,17 @@ SOURCE=".\pl-save.c"
 
 DEP_CPP_PL_SA=\
 	".\morecore.c"\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-save.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
@@ -2322,10 +2447,16 @@ SOURCE=".\pl-proc.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_PROC=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
 	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
@@ -2393,10 +2524,17 @@ SOURCE=".\pl-dll.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_DL=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2463,10 +2601,17 @@ SOURCE=".\pl-op.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_OP=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2533,11 +2678,18 @@ SOURCE=".\pl-funct.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_FU=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
 	".\pl-funct.ic"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2606,10 +2758,17 @@ SOURCE=".\pl-list.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_LI=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2676,11 +2835,18 @@ SOURCE=".\pl-fmt.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_FM=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2749,10 +2915,17 @@ SOURCE=".\pl-arith.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_AR=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2819,10 +2992,17 @@ SOURCE=".\pl-fli.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_FLI=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2889,10 +3069,17 @@ SOURCE=".\pl-wic.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_WI=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -2959,10 +3146,17 @@ SOURCE=".\pl-buffer.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_BU=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -3029,10 +3223,17 @@ SOURCE=".\pl-gc.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_GC=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -3100,11 +3301,18 @@ SOURCE=".\pl-atom.c"
 
 DEP_CPP_PL_AT=\
 	".\pl-atom.ic"\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-ctype.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\
@@ -3175,10 +3383,17 @@ SOURCE=".\pl-error.c"
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 DEP_CPP_PL_ER=\
+	".\pl-atom.ih"\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
+	".\pl-error.h"\
+	".\pl-funcs.h"\
+	".\pl-funct.ih"\
+	".\pl-global.h"\
 	".\pl-incl.h"\
 	".\pl-itf.h"\
+	".\pl-main.h"\
+	".\pl-os.h"\
 	".\pl-stream.h"\
 	"d:\development\pl\include\uxnt.h"\
 	{$(INCLUDE)}"\sys\STAT.H"\

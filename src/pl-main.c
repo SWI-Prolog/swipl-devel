@@ -34,11 +34,40 @@ static bool	vsysError(const char *fm, va_list args);
 			}
 #define K * 1024L
 
+#define EXECVARMAGIC "$EXECVARS="
+static const char exec_vars[512] = EXECVARMAGIC;
+
+static const char *
+exec_var(const char *name)
+{ const char *s=exec_vars + strlen(EXECVARMAGIC);
+  int l = strlen(name);
+
+  while(s < exec_vars+sizeof(exec_vars))
+  { if ( strncmp(name, s, l) == 0 && s[l] == '=' )
+      return &s[l+1];
+    while(*s && s< exec_vars+sizeof(exec_vars))
+      s++;
+    while(*s == '\0' && s< exec_vars+sizeof(exec_vars))
+      s++;
+  }
+
+  return NULL;
+}
+
 
 static char *
-findHome(char *symbols, char *def)
-{ char *home;
+findHome(char *symbols)
+{ char *home = NULL;
   char plp[MAXPATHLEN];
+  const char *val = exec_var("homevar");
+  
+  if ( (val  = exec_var("homevar")) &&
+       (home = getenv(val)) &&
+       (home = PrologPath(home, plp)) )
+    return store_string(home);
+  if ( (val = exec_var("home")) &&
+       (home = PrologPath(home, plp)) )
+    return store_string(home);
 
   if ( !(home = getenv("SWI_HOME_DIR")) )
     home = getenv("SWIPL");
@@ -85,8 +114,9 @@ findHome(char *symbols, char *def)
     }
   }
 
-  if ( ExistsDirectory(def) )
-    return def;
+  if ( (home = PrologPath(PLHOME, plp)) &&
+       ExistsDirectory(home) )
+    return store_string(home);
 
 #if tos || __DOS__ || __WINDOWS__
 #if tos
@@ -312,8 +342,8 @@ startProlog(int argc, char **argv)
       symbols = store_string(DeRefLink(symbols, plp));
 
     systemDefaults.arch        = ARCH;
-    systemDefaults.home	       = findHome(symbols,
-					  store_string(PrologPath(PLHOME,plp)));
+    systemDefaults.home	       = findHome(symbols);
+
 #ifdef O_XOS
     if ( systemDefaults.home )
     { char buf[MAXPATHLEN];
