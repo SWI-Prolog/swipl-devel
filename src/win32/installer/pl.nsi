@@ -453,11 +453,14 @@ Function UserInfo
   Win9x:
     StrCpy ${DEFCWD} $INSTDIR\demo
     StrCpy ${SHCTX}  "current"
+    Goto end
 
   done:
     StrCmp ${SHCTX} "all" 0 +2
       SetShellVarContext all
     StrCpy ${DEFCWD} $DESKTOP\Prolog
+
+  end:
 FunctionEnd
 
 Function .onInstSuccess
