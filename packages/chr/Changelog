@@ -1,3 +1,7 @@
+Mar 4, 2005
+
+  * TS: Fixed bug that causes wrong output in chr_show_store.
+
 Feb 25, 2005
 
   * TS: Fixed several bugs in generation of debugable code.
