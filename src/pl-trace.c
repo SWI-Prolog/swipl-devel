@@ -1298,15 +1298,15 @@ tracemode(int doit, int *old)
     *old = debugstatus.tracing;
 
   if ( debugstatus.tracing != doit )
-  { if ( doit )
-    { debugstatus.skiplevel = VERY_DEEP;
-      if ( LD->trace.find )
-	LD->trace.find->searching = FALSE;
-    }
-    debugstatus.tracing = doit;
+  { debugstatus.tracing = doit;
     printMessage(ATOM_silent,
 		 PL_FUNCTOR_CHARS, "trace_mode", 1,
 		   PL_ATOM, doit ? ATOM_on : ATOM_off);
+  }
+  if ( doit )				/* make sure trace works inside skip */
+  { debugstatus.skiplevel = VERY_DEEP;
+    if ( LD->trace.find )
+      LD->trace.find->searching = FALSE;
   }
 
   succeed;

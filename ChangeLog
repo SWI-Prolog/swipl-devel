@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: make trace/0 work while skipping, so an explicit trace command
+    always works.  Alan Baljeu.
+
   * FIXED: Bug#71: graphical tracer confused about (a,b),c nested inside
     an if-then-else.  Holger Kanwischer.
 
