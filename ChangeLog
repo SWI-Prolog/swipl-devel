@@ -1,15 +1,26 @@
 			SWI-Prolog ChangeLog
 			====================
 
-Version 1.9.5.
+Version 1.9.6:
+==============
+
+  * Added Quintus compatible foreign-language (C) interface.
+  * Changed .qlf (former .wic) format drastically.  The current
+    format gives about 30% shorter files and loads twice as fast.
+  * Changed basic clause representation.  VM op-codes are now
+    full machine words, avoiding the need for the `XR' table
+    management and related indirections.  Simplifies the instruction set,
+    speedup for compiler, decompiler (retract, clause) and execution
+    (about 10%).  Enlarges program-size with about 10%.
+
+
+Version 1.9.5:
 ==============
 
 alpha-2
 
   * Fixed prolog_frame_attribute/3 for key=parent.
-  
   * Added at_initialisation(+Goal) for initialisation hooks
-
   * Fixed tracer problems introduced in 1.9.5-alpla-1.
 
 
