@@ -297,7 +297,6 @@ ws_input_stream(Stream s)
       s->rdfd = 0;			/* signal open status */
     }
   } else
-#ifdef USE_API_THREAD
   { DWORD id;
     HANDLE h;
 
@@ -308,12 +307,26 @@ ws_input_stream(Stream s)
     else
       Cprintf("%s: Failed to create wait-thread\n", pp(s));
   }
-#else
-  { if ( _beginthread(process_thread, 10240, (HANDLE) s) < 0 )
-      Cprintf("%s: Failed to create wait-thread\n", pp(s));
-  }
-#endif
+
+  DEBUG(NAME_stream,
+	Cprintf("Registered %s for asynchronous input\n", pp(s)));
 }
+
+
+void
+ws_no_input_stream(Stream s)
+{ if ( instanceOfObject(obj, ClassSocket) )
+  { SOCKET s = (SOCKET) obj->ws_ref;
+
+    if ( s != INVALID_SOCKET )
+    { WSAAsyncSelect(s, PceHiddenWindow(), 0, 0);
+    }
+  }
+
+  DEBUG(NAME_stream,
+	Cprintf("Un-registered %s for asynchronous input\n", pp(s)));
+}
+
 
 status
 ws_write_stream_data(Stream s, void *data, int len)

@@ -289,6 +289,12 @@ handleInputStream(Stream s)
       AnswerMark mark;
       markAnswerStack(mark);
 
+      DEBUG(NAME_stream,
+	    { Cprintf("Read (%d chars, unbuffered): `", n);
+	      write_buffer(buf, n);
+	      Cprintf("'\n");
+	    });
+
       str_inithdr(&q, ENC_ASCII);
       q.size = n;
       q.s_text8 = (unsigned char *)buf;
@@ -418,6 +424,23 @@ recordSeparatorStream(Stream s, Any re)
 }
 
 
+static status
+inputMessageStream(Stream s, Code msg)
+{ if ( s->input_message != msg )
+  { Code old = s->input_message;
+    
+    assign(s, input_message, msg);
+    if ( isNil(old) && notNil(msg) )
+    { ws_input_stream(s);
+    } else if ( notNil(old) && isNil(msg) )
+    { ws_no_input_stream(s);
+    }
+  }
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	      AS FILE		*
 		 *******************************/
@@ -450,9 +473,11 @@ static char *T_writeAsFile[] =
 #define var_stream XPCE_var_stream	/* AIX 3.2.5 conflict */
 
 static vardecl var_stream[] =
-{ IV(NAME_inputMessage, "code*", IV_BOTH,
+{ SV(NAME_inputMessage, "code*", IV_GET|IV_STORE,
+     inputMessageStream,
      NAME_input, "Forwarded on input from the stream"),
-  SV(NAME_recordSeparator, "regex|int*", IV_GET|IV_STORE, recordSeparatorStream,
+  SV(NAME_recordSeparator, "regex|int*", IV_GET|IV_STORE,
+     recordSeparatorStream,
      NAME_input, "Regex that describes the record separator"),
   IV(NAME_wrfd, "alien:int", IV_NONE,
      NAME_internal, "File-handle to write to stream"),

@@ -50,9 +50,7 @@ setXtInputIdStream(Stream s, XtInputId id)
 
 void
 ws_close_input_stream(Stream s)
-{ XtInputId id;
-
-  if ( s->rdstream )
+{ if ( s->rdstream )
   { fclose(s->rdstream);
     s->rdstream = NULL;
   }
@@ -68,10 +66,7 @@ ws_close_input_stream(Stream s)
     s->rdfd = -1;
   }
 
-  if ( (id = getXtInputIdStream(s)) )
-  { XtRemoveInput(id);
-    setXtInputIdStream(s, 0);
-  }
+  ws_no_input_stream(s);
 }
 
 
@@ -113,6 +108,23 @@ ws_input_stream(Stream s)
 		       ws_handle_stream_data, s);
 
     setXtInputIdStream(s, id);
+
+    DEBUG(NAME_stream,
+	  Cprintf("Registered %s for asynchronous input\n", pp(s)));
+  }
+}
+
+
+void
+ws_no_input_stream(Stream s)
+{ XtInputId id;
+
+  if ( (id = getXtInputIdStream(s)) )
+  { XtRemoveInput(id);
+    setXtInputIdStream(s, 0);
+
+    DEBUG(NAME_stream,
+	  Cprintf("Un-registered %s for asynchronous input\n", pp(s)));
   }
 }
 
