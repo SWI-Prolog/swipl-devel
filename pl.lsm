@@ -1,6 +1,6 @@
 Begin4
 Title:		SWI-Prolog 
-Version: 	5.1.1
+Version: 	5.1.2
 Entered-date:	2000-03-09  
 Description:	ISO/Edinburgh-style Prolog compiler.  Compliant with Part 1 of the ISO standard
 		for Prolog.  Covers all traditional Edinburgh Prolog features and shared many
@@ -14,7 +14,7 @@ Keywords:       Prolog, Edinburgh, Programming Language, Symbolic, Logic
 Author:         jan@swi.psy.uva.nl (Jan Wielemaker)
 Maintained-by:  jan@swi.psy.uva.nl
 Primary-site:   ftp.swi.psy.uva.nl /pub/SWI-Prolog
-		5500kB pl-5.1.1.tar.gz
+		5500kB pl-5.1.2.tar.gz
 Platforms:      Unix, Win32 32 and 64-bit platforms. ANSI-C
 Copying-policy: GPL-2
 End

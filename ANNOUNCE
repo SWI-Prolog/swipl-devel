@@ -1,56 +1,46 @@
-SWI-Prolog 5.1.1/XPCE 6.1.1 Summary of changes
+SWI-Prolog 5.1.2/XPCE 6.1.2 Summary of changes
 
 Status
 ======
   
-  * 2nd beta-release.  Suitable for research and development.
-    Discouraged for production usage.  
+  * 3th beta-release.  Suitable for research and development.
+    Discouraged for production usage.  It has a few 5.0.10 bugs
+    fixed but surely introduced new ones.
 
 
 SWI-Prolog
 ==========
 
-  * Both Linux and Windows binaries now come as multi-threaded versions.
+  * Added thread_statistics/3: get statistics on other threads.
     
-  * Performance improvements in shallow backtracing (+/- 30%) and
-    indexing (+/- 10%).
+  * Fixed a large number of multithreaded I/O locking issues, something
+    that would never have succeeded without help from Sergey Tikhonov.
+    Seems most pressing problems in this area are now resolved.
 
-  * Moved list predicates (member/2, etc) from built-in to a new
-    library(lists) for better compatibility and allow students to
-    define these predicates without name-conflict.
-    
-    Existing code shouldn't be affected due to the auto-loader.
+  * Fixed important bug in negative integer context of non-deterministic
+    foreign code (result from new representation in 5.1.x).
 
-  * Fixed assertion-failure on negative reference-count in atoms.
-    Notably affects embedded applications and platforms that do not
-    zero memory before handing it new applications.
+  * Fixes to abort (exceptions), listing, and many more.
 
-  * Updated Windows makefiles to deal properly with spaces in source
-    and target folders and run on Windows 2000.  For better security,
-    compilation is moved to a VMWARE virtual machine with only access
-    to its hosting Linux machine and is only used for compiling Prolog.
+  * Fixed wait_for_input/3 on Windows 2000 machines, as well as for
+    other architectures with many open I/O channals.
 
 
 Packages
 ========
 
-  * ODBC: Bug-fixes handling long VARCHAR and VARBINARY data-types.
+  * ODBC: Fixed silent operation of odbc_connect.
 
-  * SGML/XML parser: Small fixes, notably in XML mode.
+  * CLIB: Added library(rlimit), providing access to the POSIX
+    resource limitations (limit memory, filesize, CPUtime, etc).
 
-  * RDF-Parser: Updated for the new revised syntax (8 nov).  Most important
-    additions are support for xml:base and parseType="Collection".  The
-    source-tree includes code for handling the W3C RDF test-suite.  The
-    library(rdf_diagram) is added to visualise triples as a graph
-    (documentation follows later).
-    
-  * XPCE: Made windows version thread-safe.  Minor patches.
+  * XPCE: Fixed incremental GC leaking objects.
 
 
 Development environment
 =======================
 
-  * Minor patches
+  * More flexible presentation of variable-bindings in the GUI debugger.
 
 
 Short-term Plans

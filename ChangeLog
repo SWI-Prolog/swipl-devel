@@ -1,12 +1,16 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.1.2 (Nov 27, 2002)
+============================
+
   * FIXED: Windows select() cleanup (wait_for_input/3).
 
   * ADDED: Guitracer: provide editable write-options to detailed term-view.
     Suggested by Wouter Jansweijer.
 
   * FIXED: backtracking foreign predicates using integer handles (between/3).
+    Anjo Anjewierden.
 
   * FIXED: toldString() didn't unlock current output, notably causing
     warnings from background threads to lock I/O.  Sergey Tikhonov.
@@ -56,6 +60,7 @@
 
   * FIXED: Preserve exceptions in GUI tracer (notably abort).  Kanwischer
     Holger.
+
 
 VERSION 5.1.1 (Nov 16, 2002)
 ============================

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.1.2, distributed with SWI-Prolog 5.1.2
+================================================
+
 * PORT: MS-Windows Moved from winsock-1 to winsock-2
 
 * FIXED: memory leak due to error in recent change in incremental GC.
@@ -9,8 +12,8 @@
   integer into an XPCE real object.  Petter Egesund.
 
 
-VERSION 6.0.11, distributed with SWI-Prolog 5.0.11
-==================================================
+VERSION 6.1.1, distributed with SWI-Prolog 5.1.1
+================================================
 
 * INSTALL: Remove .qlf files when installing new libraries to avoid version
   conflicts.
