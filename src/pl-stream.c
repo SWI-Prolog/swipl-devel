@@ -1350,7 +1350,7 @@ typedef struct
   long  size;				/* size of buffer */
   int  *sizep;				/* pointer to size */
   long	allocated;			/* allocated size */
-  char *buffer;				/* allocated buffer */
+  char **buffer;			/* allocated buffer */
   int	malloced;			/* malloc() maintained */
 } memfile;
 
@@ -1359,7 +1359,7 @@ static int
 S__memfile_nextsize(int needed)
 { needed += needed/4;
 
-  return (needed + 255)/256;
+  return (needed + 255) & ~255;
 }
 
 
@@ -1367,36 +1367,39 @@ static int
 Swrite_memfile(void *handle, char *buf, int size)
 { memfile *mf = handle;
 
-  if ( mf->here + size >= mf->allocated )
-  { if ( mf->malloced )
-    { long ns = S__memfile_nextsize(mf->here + size);
-      char *nb;
+  if ( mf->here + size + 1 >= mf->allocated )
+  { long ns = S__memfile_nextsize(mf->here + size);
+    char *nb;
 
-      if ( mf->allocated )
-	nb = malloc(ns);
-      else
-	nb = realloc(mf->buffer, ns);
-
-      if ( !nb )
+    if ( mf->allocated == 0 || !mf->malloced )
+    { if ( !(nb = malloc(ns)) )
       { errno = ENOMEM;
 	return -1;
       }
-
-      mf->allocated = ns;
-      mf->buffer = nb;
+      if ( !mf->malloced )
+      { if ( *mf->buffer )
+	  memcpy(nb, *mf->buffer, mf->allocated);
+	mf->malloced = TRUE;
+      }
     } else
-    { errno = ENOMEM;
-      return -1;
+    { if ( !(nb = realloc(*mf->buffer, ns)) )
+      { errno = ENOMEM;
+	return -1;
+      }
     }
+
+    mf->allocated = ns;
+    *mf->buffer = nb;
   }
 
-  memcpy(&mf->buffer[mf->here], buf, size);
+  memcpy(&(*mf->buffer)[mf->here], buf, size);
+  mf->here += size;
 
-  if ( mf->here + size > mf->size )
-  { mf->size = mf->here + size;
+  if ( mf->here > mf->size )
+  { mf->size = mf->here;
     if ( mf->sizep )			/* make externally known */
       *mf->sizep = mf->size;
-    mf->buffer[mf->size] = '\0';
+    (*mf->buffer)[mf->size] = '\0';
   }
 
   return size;
@@ -1413,7 +1416,7 @@ Sread_memfile(void *handle, char *buf, int size)
       size = 0;
   }
   
-  memcpy(buf, &mf->buffer[mf->here], size);
+  memcpy(buf, &(*mf->buffer)[mf->here], size);
   mf->here += size;
 
   return size;
@@ -1472,12 +1475,12 @@ IOFUNCTIONS Smemfunctions =
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Sopenmem(char **buffer, int *size, char* mode)
     Open an memory area as a stream.  Output streams will automatically
-    resized using realloc() of *size = 0 or the stream is opened with mode
+    resized using realloc() if *size = 0 or the stream is opened with mode
     "wa".
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 IOSTREAM *
-Sopenmem(char **buffer, int *sizep, char *mode)
+Sopenmem(char **buffer, int *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
   int flags = SIO_FBUF;
   int size;
@@ -1516,7 +1519,7 @@ Sopenmem(char **buffer, int *sizep, char *mode)
 
   mf->sizep	= sizep;
   mf->here      = 0;
-  mf->buffer    = *buffer;
+  mf->buffer    = buffer;
 
   return Snew(mf, flags, &Smemfunctions);
 }

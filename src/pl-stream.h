@@ -230,7 +230,7 @@ __pl_export IOSTREAM *	Sopen_file(const char *path, char *how);
 __pl_export IOSTREAM *	Sfdopen(int fd, char *type);
 __pl_export int	   	Sfileno(IOSTREAM *s);
 __pl_export IOSTREAM *	Sopen_pipe(const char *command, const char *type);
-__pl_export IOSTREAM *	Sopenmem(char **buffer, int *sizep, char *mode);
+__pl_export IOSTREAM *	Sopenmem(char **buffer, int *sizep, const char *mode);
 __pl_export IOSTREAM *	Sopen_string(IOSTREAM *s, char *buf, int sz, char *m);
 
 #endif /*_PL_STREAM_H*/

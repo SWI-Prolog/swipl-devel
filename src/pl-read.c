@@ -6,7 +6,7 @@
 */
 
 #include <math.h>
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
@@ -1231,12 +1231,14 @@ typedef struct
   short	right_pri;			/* priority at right hand */
   short	op_pri;				/* priority of operator */
   term_t tpos;				/* term-position */
+  char *token_start;			/* start of the token for message */
 } op_entry;
 
 
 typedef struct
 { term_t term;				/* the term */
   term_t tpos;				/* its term-position */
+  int	 pri;				/* priority of the term */
 } out_entry;
 
 
@@ -1291,8 +1293,8 @@ build_op_term(term_t term, atom_t atom, int arity, out_entry *argv)
 	side[side_n++] = in_op; \
 	side_p = (side_n == 1 ? 0 : side_p+1);
 	
-#define Modify(pri) \
-	if ( side_p >= 0 && pri > side[side_p].right_pri ) \
+#define Modify(cpri) \
+	if ( side_p >= 0 && cpri > side[side_p].right_pri ) \
 	{ term_t tmp; \
 	  if ( side[side_p].kind == OP_PREFIX && rmo == 0 ) \
 	  { DEBUG(1, Sdprintf("Prefix %s to atom\n", \
@@ -1303,6 +1305,7 @@ build_op_term(term_t term, atom_t atom, int arity, out_entry *argv)
 	    realloca(out, sizeof(*out), out_n+1); \
 	    out[out_n].term = tmp; \
 	    out[out_n].tpos = side[side_p].tpos; \
+	    out[out_n].pri = 0; \
 	    out_n++; \
 	    side_n--; \
 	    side_p = (side_n == 0 ? -1 : side_p-1); \
@@ -1313,6 +1316,7 @@ build_op_term(term_t term, atom_t atom, int arity, out_entry *argv)
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
 	    build_op_term(tmp, side[side_p].op, 1, &out[out_n-1]); \
+	    out[out_n-1].pri  = side[side_p].op_pri; \
 	    out[out_n-1].term = tmp; \
 	    side[side_p].kind = OP_POSTFIX; \
 	    out[out_n-1].tpos = opPos(&side[side_p], &out[out_n-1]); \
@@ -1377,16 +1381,84 @@ opPos(op_entry *op, out_entry *args)
   return 0;
 }
 
-#define Reduce(cond) \
-	while( out_n > 0 && side_p >= 0 && (cond) ) \
+
+static int
+can_reduce(out_entry *out, op_entry *op)
+{ int rval;
+
+  switch(op->kind)
+  { case OP_PREFIX:
+      rval = op->right_pri >= out[0].pri;
+      break;
+    case OP_POSTFIX:
+      rval = op->left_pri >= out[0].pri;
+      break;
+    case OP_INFIX:
+      rval = op->left_pri >= out[0].pri &&
+	     op->right_pri >= out[1].pri;
+      break;
+    default:
+      assert(0);
+      rval = FALSE;
+  }
+
+  return rval;
+}
+
+static int
+bad_operator(out_entry *out, op_entry *op)
+{ char buf[1024];
+  term_t t;
+  atom_t name;
+  int arity;
+  char *opname = stringAtom(op->op);
+
+  token_start = op->token_start;
+
+  switch(op->kind)
+  { case OP_INFIX:
+      if ( op->left_pri < out[0].pri )
+	t = out[0].term;
+      else
+      { token_start += strlen(opname);
+	t = out[1].term;
+      }
+      break;
+    case OP_PREFIX:
+      token_start += strlen(opname);
+      /*FALL THROUGH*/
+    default:
+      t = out[0].term;
+  }
+
+  if ( PL_get_name_arity(t, &name, &arity) )
+  { Ssprintf(buf, "Operator `%s' conflicts with `%s'",
+	     opname, stringAtom(name));
+  } else
+  { Ssprintf(buf, "Unknown conflict with operator `%s'", opname);
+  }
+
+  syntaxError(buf);
+
+  fail;
+}
+
+#define Reduce(cpri) \
+	while( out_n > 0 && side_p >= 0 && (cpri) >= side[side_p].op_pri ) \
 	{ int arity = (side[side_p].kind == OP_INFIX ? 2 : 1); \
 	  term_t tmp; \
- 	  if ( arity > out_n ) break; \
+	  if ( arity > out_n ) break; \
+	  if ( !can_reduce(&out[out_n-arity], &side[side_p]) ) \
+          { if ( (cpri) == (OP_MAXPRIORITY+1) ) \
+              return bad_operator(&out[out_n-arity], &side[side_p]); \
+	    break; \
+	  } \
 	  DEBUG(1, Sdprintf("Reducing %s/%d\n", \
 			    stringAtom(side[side_p].op), arity));\
 	  tmp = PL_new_term_ref(); \
 	  out_n -= arity; \
 	  build_op_term(tmp, side[side_p].op, arity, &out[out_n]); \
+	  out[out_n].pri  = side[side_p].op_pri; \
 	  out[out_n].term = tmp; \
 	  out[out_n].tpos = opPos(&side[side_p], &out[out_n]); \
 	  out_n ++; \
@@ -1397,7 +1469,7 @@ opPos(op_entry *op, out_entry *args)
 
 static bool
 complex_term(const char *stop, term_t term, term_t positions)
-{ out_entry *out = NULL;
+{ out_entry *out  = NULL;
   op_entry  *side = NULL;
   op_entry  in_op;
   int out_n = 0, side_n = 0;
@@ -1440,6 +1512,7 @@ complex_term(const char *stop, term_t term, term_t positions)
 
       PL_get_atom(in, &name);
       in_op.tpos = pin;
+      in_op.token_start = token_start;
 
       DEBUG(1, Sdprintf("name %s, rmo = %d\n", stringAtom(name), rmo));
 
@@ -1448,7 +1521,7 @@ complex_term(const char *stop, term_t term, term_t positions)
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
-	{ Reduce(in_op.op_pri > side[side_p].right_pri);
+	{ Reduce(in_op.left_pri);
 	  PushOp();
 	  rmo--;
 
@@ -1460,7 +1533,7 @@ complex_term(const char *stop, term_t term, term_t positions)
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
-	{ Reduce(in_op.op_pri > side[side_p].right_pri);
+	{ Reduce(in_op.left_pri);
 	  PushOp();	
 	
 	  continue;
@@ -1479,13 +1552,14 @@ complex_term(const char *stop, term_t term, term_t positions)
       syntaxError("Operator expected");
     rmo++;
     realloca(out, sizeof(*out), out_n+1);
+    out[out_n].pri = 0;
     out[out_n].term = in;
     out[out_n++].tpos = pin;
   }
 
 exit:
   Modify(OP_MAXPRIORITY+1);
-  Reduce(TRUE);
+  Reduce(OP_MAXPRIORITY+1);
 
   if ( out_n == 1 && side_n == 0 )	/* simple term */
   { PL_assign_term(term, out[0].term);
