@@ -507,6 +507,13 @@ It is part of the clib package as it is used most of the time together
 with the <CODE>library(socket)</CODE> library. On non-Unix systems it 
 often can only be used with socket streams.
 
+<P>With SWI-Prolog 5.1.x, multi-threading often provides a good 
+alternative to using this library. In this schema one thread watches the 
+listening socket waiting for connections and either creates a thread per 
+connection or processes the accepted connections with a pool of
+<EM>worker threads</EM>. The library <CODE>library(http/thread_httpd)</CODE> 
+provides an example realising a mult-threaded HTTP server.
+
 <DL>
 
 <P>
