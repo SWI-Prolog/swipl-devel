@@ -809,12 +809,17 @@ getPointPath(Path p, Point pos, Int dist)
 
 
 static Point
-getSegmentPath(Path p, Point pos)
+getSegmentPath(Path p, Point pos, Int accept)
 { Point rval = NIL;
-  int besth = 100;			/* worst accepted */
+  int besth;				/* worst accepted */
   Cell cell;
   Point p0 = NIL;
   int d0 = 0;				/* keep gcc happy */
+
+  if ( isDefault(accept) )
+    besth = 100;
+  else
+    besth = valInt(accept);
 
   if ( instanceOfObject(pos, ClassEvent) && notNil(p->device) )
   { pos = getPositionEvent((EventObj) pos, (Graphical) p->device);
@@ -940,6 +945,8 @@ static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_relativeMove[] =
 	{ "diff=point", "how=[{offset,points}]" };
+static char *T_segment[] =
+	{ "near=point|event", "accept=[0..]" };
 
 /* Instance Variables */
 
@@ -1002,7 +1009,7 @@ static senddecl send_path[] =
 static getdecl get_path[] =
 { GM(NAME_point, 2, "point", T_point, getPointPath,
      NAME_event, "Find closest point"),
-  GM(NAME_segment, 1, "point", "near=point|event", getSegmentPath,
+  GM(NAME_segment, 2, "point", T_segment, getSegmentPath,
      NAME_event, "Return start-point of closest line-segment"),
   GM(NAME_distance, 1, "int", "point|event|graphical", getDistancePath,
      NAME_compute, "Closest distance to line"),

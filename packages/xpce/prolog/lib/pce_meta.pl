@@ -81,8 +81,11 @@ pce_to_method(ClassName, Class) :-
 	atom(ClassName),
 	get(@pce, convert, ClassName, class, Class), !.
 pce_to_method(Method, Method) :-
-	object(Method).
-
+	object(Method), !.
+pce_to_method(get(Receiver, Selector), Method) :- !,
+	pce_to_method(<-(Receiver, Selector), Method).
+pce_to_method(send(Receiver, Selector), Method) :- !,
+	pce_to_method(->(Receiver, Selector), Method).
 
 
 		 /*******************************
