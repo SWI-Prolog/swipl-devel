@@ -484,7 +484,7 @@ void
 printMessage(atom_t severity, ...)
 { fid_t fid = PL_open_foreign_frame();
   term_t av = PL_new_term_refs(2);
-  predicate_t pred = PL_predicate("print_message", 2, "system");
+  predicate_t pred = PROCEDURE_print_message2;
   va_list args;
 
   gc_status.blocked++;			/* sometimes called from dangerous */
