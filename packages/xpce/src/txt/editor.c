@@ -3735,10 +3735,14 @@ getSelectedEditor(Editor e)
 static status
 deleteSelectionEditor(Editor e)
 { Int from, to;
+  status rval;
 
   MustBeEditable(e);
   SelectionRegion(e, from, to);
-  return deleteTextBuffer(e->text_buffer, from, sub(to, from));
+  if ( (rval = deleteTextBuffer(e->text_buffer, from, sub(to, from))) )
+    e->selection_start = e->selection_end = 0;
+
+  return rval;
 }
 
 
