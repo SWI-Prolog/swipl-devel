@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Class tabular (library(tabular)): ->append now accepts
+  table_cell objects.
+
 * ADDED: drag_and_drop_gesture<-select_command to deal with command selection
   in right-dragging.
 

@@ -87,7 +87,7 @@ table(TD, Table:table) :<-
 :- pce_group(fill).
 
 append(TD,
-       Label:label='name|graphical',
+       Label:label='name|graphical|table_cell',
        Font:font=[font],
        HAlign:halign=[{left,center,right}],
        VAlign:valign=[{top,center,bottom}],
@@ -98,14 +98,19 @@ append(TD,
 	"Append a cell to the table"::
 	get(TD, table, Table),
 	(   atom(Label)
-	->  new(Gr, text(Label, @default, Font))
-	;   Gr = Label,
+	->  new(TC, table_cell(text(Label, @default, Font)))
+	;   send(Label, instance_of, graphical)
+	->  new(TC, table_cell(Label)),
 	    (   Font \== @default
-	    ->	send(Gr, font, Font)
+	    ->	send(Label, font, Font)
+	    ;	true
+	    )
+	;   TC = Label,
+	    (   Font \== @default
+	    ->	send(Label, font, Font)
 	    ;	true
 	    )
 	),
-	new(TC, table_cell(Gr)),
 	(   HAlign \== @default
 	->  send(TC, halign, HAlign)
 	;   true
