@@ -146,7 +146,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	int arity = fr->predicate->functor->arity;
 	int rval = TRUE;
 
-	copyRecordToGlobal(t, find->goal.term.term);
+	copyRecordToGlobal(t, find->goal.term.term PASS_LD);
 	a = valTermRef(t);
 	deRef(a);
 	a = argTermP(*a, 0);

@@ -461,48 +461,86 @@ resetSignals()
   LD->pending_signals = 0L;
 }
 
+#if defined(O_PLMT) && defined(HAVE_PTHREAD_SIGMASK)
+#ifndef HAVE_SIGPROCMASK
+#define HAVE_SIGPROCMASK 1
+#endif
+
+#define sigprocmask(how, new, old) pthread_sigmask(how, new, old)
+#endif
+
+#ifdef HAVE_SIGPROCMASK
+
+static void
+allSignalMask(sigset_t *set)
+{ sigfillset(set);
+}
+
+
+#if 0
+static void
+listBlocked()
+{ sigset_t current;
+  int i;
+
+  sigprocmask(SIG_BLOCK, NULL, &current);
+  
+  Sdprintf("Blocked: ");
+  for(i=1; i<32; i++)
+  { if ( sigismember(&current, i) )
+      Sdprintf(" %d", i);
+  }
+  Sdprintf("\n");
+  Sdprintf("UnBlocked: ");
+  for(i=1; i<32; i++)
+  { if ( !sigismember(&current, i) )
+      Sdprintf(" %d", i);
+  }
+  Sdprintf("\n\n");
+}
+#endif
 
 void
 blockSignals()
-{
-#ifdef HAVE_SIGPROCMASK
-  sigset_t set;
+{ sigset_t set;
 
-  sigfillset(&set);			/* only part? */
-  
+  allSignalMask(&set);
+
   sigprocmask(SIG_BLOCK, &set, NULL);
   DEBUG(1, Sdprintf("Blocked all signals\n"));
-#endif
 }
 
 
 void
 unblockSignals()
-{
-#ifdef HAVE_SIGPROCMASK
-  sigset_t set;
+{ sigset_t set;
 
-  sigfillset(&set);			/* only part? */
+  allSignalMask(&set);
   
   sigprocmask(SIG_UNBLOCK, &set, NULL);
   DEBUG(1, Sdprintf("UnBlocked all signals\n"));
-#endif
 }
 
 
 void
 unblockSignal(int sig)
-{
-#ifdef HAVE_SIGPROCMASK
-  sigset_t set;
+{ sigset_t set;
 
   sigemptyset(&set);
   sigaddset(&set, sig);
 
   sigprocmask(SIG_UNBLOCK, &set, NULL);
   DEBUG(1, Sdprintf("Unblocked signal %d\n", sig));
-#endif
 }
+
+#else /*HAVE_SIGPROCMASK*/
+
+void blockSignals() {}
+void unblockSignals() {}
+void unblockSignal(int sig) {}
+
+#endif
+
 
 
 handler_t

@@ -434,9 +434,11 @@ users foreign language code.
 #define FRG_CONTROL_MASK	0x00000003L
 #define FRG_CONTROL_BITS	2
 
-#define FRG_FIRST_CALL	(0)		/* Initial call */
-#define FRG_CUTTED	(1)		/* Context was cutted */
-#define FRG_REDO	(2)		/* Normal redo */
+typedef enum
+{ FRG_FIRST_CALL = 0,		/* Initial call */
+  FRG_CUTTED     = 1,		/* Context was cutted */
+  FRG_REDO	 = 2		/* Normal redo */
+} frg_code;
 
 #define FIRST_CALL	(0L)
 
@@ -446,7 +448,7 @@ users foreign language code.
 #define ForeignRedoInt(v)	return ForeignRedoIntVal(v)
 #define ForeignRedoPtr(v)	return ForeignRedoPtrVal(v)
 
-#define ForeignControl(h)	((h) & FRG_CONTROL_MASK)
+#define ForeignControl(h)	((frg_code)((h) & FRG_CONTROL_MASK))
 #define ForeignContextInt(h)	((long)(h)>>FRG_CONTROL_BITS)
 #define ForeignContextPtr(h)	((void*)((unsigned long)(h)&~FRG_CONTROL_MASK))
 
@@ -1192,8 +1194,7 @@ struct record
 };
 
 struct recordList
-{ RecordList	next;		/* next record chain with same key */
-  int		type;		/* RECORD_TYPE */
+{ int		type;		/* RECORD_TYPE */
   int		references;	/* choicepoints reference count */
   word		key;		/* key of record */
   Record	firstRecord;	/* first record associated with key */

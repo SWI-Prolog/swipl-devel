@@ -193,6 +193,9 @@ static Word *mark_top;			/* Top of this array */
 static Table check_table = NULL;	/* relocation address table */
 #endif
 
+#undef LD
+#define LD LOCAL_LD
+
 #if O_SECURE
 		/********************************
 		*           DEBUGGING           *
@@ -200,7 +203,8 @@ static Table check_table = NULL;	/* relocation address table */
 
 static void
 needsRelocation(void *addr)
-{ needs_relocation++;
+{ GET_LD
+  needs_relocation++;
 
   addHTable(check_table, addr, (Void) TRUE);
 }
@@ -208,7 +212,8 @@ needsRelocation(void *addr)
 
 static char *
 print_adr(Word adr, char *buf)
-{ char *name;
+{ GET_LD
+  char *name;
   Word base;
 
   if ( onGlobal(adr) )
@@ -232,7 +237,8 @@ print_adr(Word adr, char *buf)
 
 static char *
 print_val(word val, char *buf)
-{ char *tag_name[] = { "var", "float", "int", "atom",
+{ GET_LD
+  char *tag_name[] = { "var", "float", "int", "atom",
 		       "string", "list", "term", "ref" };
   char *stg_name[] = { "static/inline/trail", "global", "local", "reserved" };
 
@@ -250,7 +256,8 @@ print_val(word val, char *buf)
 
 static void
 do_check_relocation(Word addr, char *file, int line)
-{ Symbol s;
+{ GET_LD
+  Symbol s;
 
   if ( !(s=lookupHTable(check_table, addr)) )
   { char buf1[256];
@@ -303,7 +310,8 @@ previous_gcell(Word p)
 
 static inline word
 makePtr(Word ptr, int tag)
-{ int stg;
+{ GET_LD
+  int stg;
 
   if ( onStackArea(global, ptr) )
     stg = STG_GLOBAL;
@@ -354,7 +362,8 @@ last-argument-first).
 
 static void
 mark_variable(Word start)
-{ Word current;				/* current cell examined */
+{ GET_LD
+  Word current;				/* current cell examined */
   word val;				/* old value of current cell */
   Word next;				/* cell to be examined */
 
@@ -465,7 +474,8 @@ References from foreign code.
 
 static void
 mark_term_refs()
-{ FliFrame fr = fli_context;
+{ GET_LD
+  FliFrame fr = fli_context;
 
   for( ; fr; fr = fr->parent )
   { Word sp = refFliP(fr, 0);
@@ -485,7 +495,8 @@ mark_term_refs()
 
 static void
 mark_foreign_trail_refs()
-{ FliFrame fr = fli_context;
+{ GET_LD
+  FliFrame fr = fli_context;
 
   for( ; fr; fr = fr->parent )
   { needsRelocation(&fr->mark.trailtop);
@@ -612,7 +623,8 @@ mark_environments(LocalFrame fr)
 
 static GCTrailEntry
 mark_choicepoints(LocalFrame bfr, GCTrailEntry te)
-{ for( ; bfr; bfr = bfr->backtrackFrame )
+{ GET_LD
+  for( ; bfr; bfr = bfr->backtrackFrame )
   { Word top = argFrameP(bfr, bfr->predicate->functor->arity);
     GCTrailEntry tm = (GCTrailEntry)bfr->mark.trailtop;
 
@@ -661,7 +673,8 @@ has to be updated as none of these variables should be reset
 
 static void
 mark_stacks(LocalFrame fr)
-{ QueryFrame query;
+{ GET_LD
+  QueryFrame query;
   GCTrailEntry te = (GCTrailEntry)tTop - 1;
 
   trailcells_deleted = 0;
@@ -686,7 +699,8 @@ mark_stacks(LocalFrame fr)
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
 static void
 mark_trail()
-{ GCTrailEntry te = (GCTrailEntry)tTop - 1;
+{ GET_LD
+  GCTrailEntry te = (GCTrailEntry)tTop - 1;
 
   for( ; te >= (GCTrailEntry)tBase; te-- )
   { Word gp;
@@ -709,7 +723,8 @@ mark_trail()
 #if O_SECURE
 static int
 cmp_address(const void *vp1, const void *vp2)
-{ Word p1 = *((Word *)vp1);
+{ GET_LD
+  Word p1 = *((Word *)vp1);
   Word p2 = *((Word *)vp2);
 
   return p1 > p2 ? 1 : p1 == p2 ? 0 : -1;
@@ -719,7 +734,8 @@ cmp_address(const void *vp1, const void *vp2)
 
 static void
 mark_phase(LocalFrame fr)
-{ total_marked = 0;
+{ GET_LD
+  total_marked = 0;
 
   mark_term_refs();
   mark_stacks(fr);
@@ -770,7 +786,8 @@ chain.
 
 static void
 update_relocation_chain(Word current, Word dest)
-{ Word head = current;
+{ GET_LD
+  Word head = current;
   word val = get_value(current);
 
   DEBUG(3, Sdprintf("unwinding relocation chain at 0x%p to 0x%p\n",
@@ -794,7 +811,8 @@ update_relocation_chain(Word current, Word dest)
 
 static void
 into_relocation_chain(Word current, int stg)
-{ Word head;
+{ GET_LD
+  Word head;
   word val = get_value(current);
   
   head = valPtr(val);			/* FIRST/MASK already gone */
@@ -817,7 +835,8 @@ into_relocation_chain(Word current, int stg)
 
 static void
 alien_into_relocation_chain(void *addr, int orgst, int stg)
-{ void **ptr = (void **)addr;
+{ GET_LD
+  void **ptr = (void **)addr;
   
   *ptr = (void *)consPtr(*ptr, orgst);
   into_relocation_chain(addr, stg);
@@ -832,7 +851,8 @@ Trail stack compacting.
 
 static void
 compact_trail(void)
-{ GCTrailEntry dest, current;
+{ GET_LD
+  GCTrailEntry dest, current;
   
 	/* compact the trail stack */
   for( dest = current = (GCTrailEntry)tBase; current < (GCTrailEntry)tTop; )
@@ -866,7 +886,8 @@ compact_trail(void)
 
 static void
 tag_trail()
-{ TrailEntry te;
+{ GET_LD
+  TrailEntry te;
 
   for(te = tBase; te < tTop; te++)
   { if ( te->address )
@@ -886,7 +907,8 @@ tag_trail()
 
 static void
 untag_trail()
-{ TrailEntry te;
+{ GET_LD
+  TrailEntry te;
 
   for(te = tBase; te < tTop; te++)
   { if ( te->address )
@@ -908,7 +930,8 @@ cell. Hence the `goto found'.
 
 static void
 sweep_mark(mark *m)
-{ Word gm, prev;
+{ GET_LD
+  Word gm, prev;
 
   marks_swept++;
   gm = m->globaltop;
@@ -938,7 +961,8 @@ sweep_mark(mark *m)
 
 static void
 sweep_foreign()
-{ FliFrame fr = fli_context;
+{ GET_LD
+  FliFrame fr = fli_context;
 
   for( ; fr; fr = fr->parent )
   { Word sp = refFliP(fr, 0);
@@ -961,7 +985,8 @@ sweep_foreign()
 
 static void
 unsweep_mark(mark *m)
-{ m->trailtop  = (TrailEntry)valPtr2((word)m->trailtop,  STG_TRAIL);
+{ GET_LD
+  m->trailtop  = (TrailEntry)valPtr2((word)m->trailtop,  STG_TRAIL);
   m->globaltop = valPtr2((word)m->globaltop, STG_GLOBAL);
 
   SECURE(check_mark(m));
@@ -972,7 +997,8 @@ unsweep_mark(mark *m)
 
 static void
 unsweep_foreign()
-{ FliFrame fr = fli_context;
+{ GET_LD
+  FliFrame fr = fli_context;
 
   for( ; fr; fr = fr->parent )
     unsweep_mark(&fr->mark);
@@ -1026,7 +1052,8 @@ relocation chains.
 
 static void
 sweep_trail(void)
-{ GCTrailEntry te = (GCTrailEntry)tTop - 1;
+{ GET_LD
+  GCTrailEntry te = (GCTrailEntry)tTop - 1;
 
   for( ; te >= (GCTrailEntry)tBase; te-- )
   { if ( te->address )
@@ -1052,7 +1079,8 @@ NOTE: catch/3 and the topmost frame requires its mark to be valid!
 
 static LocalFrame
 sweep_environments(LocalFrame fr)
-{ Code PC = NULL;
+{ GET_LD
+  Code PC = NULL;
 
   if ( fr == (LocalFrame) NULL )
     return (LocalFrame) NULL;
@@ -1129,7 +1157,8 @@ sweep_stacks(LocalFrame fr)
 
 static void
 sweep_local(LocalFrame fr)
-{ sweep_stacks(fr);
+{ GET_LD
+  sweep_stacks(fr);
 
   if ( local_marked != 0 )
     sysError("local_marked = %ld", local_marked);
@@ -1151,7 +1180,8 @@ size.
 
 static bool
 is_downward_ref(Word p)
-{ word val = get_value(p);
+{ GET_LD
+  word val = get_value(p);
 
   switch(tag(val))
   { case TAG_INTEGER:
@@ -1170,7 +1200,8 @@ is_downward_ref(Word p)
 
 static bool
 is_upward_ref(Word p)
-{ word val = get_value(p);
+{ GET_LD
+  word val = get_value(p);
 
   switch(tag(val))
   { case TAG_INTEGER:
@@ -1189,7 +1220,8 @@ is_upward_ref(Word p)
 
 static void
 compact_global(void)
-{ Word dest, current;
+{ GET_LD
+  Word dest, current;
 #if O_SECURE
   Word *v = mark_top;
 #endif
@@ -1289,7 +1321,8 @@ compact_global(void)
 
 static void
 collect_phase(LocalFrame fr)
-{
+{ GET_LD
+ 
   DEBUG(2, Sdprintf("Sweeping foreign references\n"));
   sweep_foreign();
   DEBUG(2, Sdprintf("Sweeping trail stack\n"));
@@ -1319,7 +1352,8 @@ collect_phase(LocalFrame fr)
 #if O_DYNAMIC_STACKS
 void
 considerGarbageCollect(Stack s)
-{ if ( s->gc && trueFeature(GC_FEATURE) )
+{ GET_LD
+  if ( s->gc && trueFeature(GC_FEATURE) )
   { if ( (char *)s->top - (char *)s->base > (long)(s->factor*s->gced_size + s->small) )
     { DEBUG(1, Sdprintf("%s overflow: Posted garbage collect request\n",
 			s->name));
@@ -1333,7 +1367,8 @@ considerGarbageCollect(Stack s)
 #if O_SECURE || O_DEBUG || defined(O_MAINTENANCE)
 static bool
 scan_global(int marked)
-{ Word current;
+{ GET_LD
+  Word current;
   int errors = 0;
   long cells = 0;
 
@@ -1381,7 +1416,8 @@ static int checked;
 
 static void
 check_mark(mark *m)
-{ if ( m->trailtop == INVALID_TRAILTOP )
+{ GET_LD
+  if ( m->trailtop == INVALID_TRAILTOP )
   { assert(m->globaltop == INVALID_GLOBALTOP);
   } else
   { assert(onStackArea(trail,  m->trailtop));
@@ -1393,7 +1429,8 @@ check_mark(mark *m)
 static QueryFrame
 check_environments(fr)
 LocalFrame fr;
-{ Code PC = NULL;
+{ GET_LD
+  Code PC = NULL;
 
   if ( fr == NULL )
     return NULL;
@@ -1438,7 +1475,8 @@ LocalFrame fr;
 static void
 check_choicepoints(bfr)
 LocalFrame bfr;
-{ for( ; bfr; bfr = bfr->backtrackFrame )
+{ GET_LD
+  for( ; bfr; bfr = bfr->backtrackFrame )
   { check_environments(bfr);
   }
 }
@@ -1447,7 +1485,8 @@ LocalFrame bfr;
 static LocalFrame
 lunmark_environments(fr)
 LocalFrame fr;
-{ if ( fr == NULL )
+{ GET_LD
+  if ( fr == NULL )
     return NULL;
 
   for(;;)
@@ -1467,14 +1506,16 @@ LocalFrame fr;
 static void
 lunmark_choicepoints(bfr)
 LocalFrame bfr;
-{ for( ; bfr; bfr = bfr->backtrackFrame )
+{ GET_LD
+  for( ; bfr; bfr = bfr->backtrackFrame )
     lunmark_environments(bfr);
 }
 
 
 word
 check_foreign()
-{ FliFrame ff;
+{ GET_LD
+  FliFrame ff;
   word key = 0L;
 
   for(ff = fli_context; ff; ff = ff->parent )
@@ -1493,7 +1534,8 @@ check_foreign()
 
 word
 checkStacks(LocalFrame frame)
-{ LocalFrame fr, fr2;
+{ GET_LD
+  LocalFrame fr, fr2;
   QueryFrame qf;
 
   if ( !frame )
@@ -1529,7 +1571,8 @@ checkStacks(LocalFrame frame)
 
 void
 garbageCollect(LocalFrame fr)
-{ long tgar, ggar;
+{ GET_LD
+  long tgar, ggar;
   real t = CpuTime();
   int verbose = trueFeature(TRACE_GC_FEATURE);
 
@@ -1544,7 +1587,7 @@ garbageCollect(LocalFrame fr)
   gc_status.requested = FALSE;
 
   gc_status.active = TRUE;
-  finish_foreign_frame();
+  finish_foreign_frame(PASS_LD1);
   if ( verbose )
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "gc", 1,
@@ -1632,7 +1675,8 @@ garbageCollect(LocalFrame fr)
 
 word
 pl_garbage_collect(term_t d)
-{ LocalFrame fr = environment_frame;
+{ GET_LD
+  LocalFrame fr = environment_frame;
 
 #if O_DEBUG
   int ol = GD->debug_level;
@@ -1642,7 +1686,7 @@ pl_garbage_collect(term_t d)
     return warning("garbage_collect/1: instantiation fault");
   GD->debug_level = nl;
 #endif
-  finish_foreign_frame();
+  finish_foreign_frame(PASS_LD1);
   garbageCollect(fr);
 #if O_DEBUG
   GD->debug_level = ol;
@@ -1653,7 +1697,8 @@ pl_garbage_collect(term_t d)
 
 void
 blockGC()
-{ gc_status.blocked++;
+{ GET_LD
+  gc_status.blocked++;
 #if O_SHIFT_STACKS
   shift_status.blocked++;
 #endif
@@ -1662,7 +1707,8 @@ blockGC()
 
 void
 unblockGC()
-{ gc_status.blocked--;
+{ GET_LD
+  gc_status.blocked--;
 #if O_SHIFT_STACKS
   shift_status.blocked--;
 #endif
@@ -1710,7 +1756,8 @@ Memory management description.
 
 static inline void
 update_pointer(void *p, long offset)
-{ char **ptr = ((char **)p);
+{ GET_LD
+  char **ptr = ((char **)p);
 
   if ( *ptr )
     *ptr += offset;
@@ -1725,7 +1772,8 @@ static void update_choicepoints(LocalFrame, long, long, long);
 
 static void
 update_mark(mark *m, long gs, long ts)
-{ if ( ts && m->trailtop != INVALID_TRAILTOP )
+{ GET_LD
+  if ( ts && m->trailtop != INVALID_TRAILTOP )
     update_pointer(&m->trailtop, ts);
   if ( gs && m->globaltop != INVALID_GLOBALTOP )
     update_pointer(&m->globaltop, gs);
@@ -1734,7 +1782,8 @@ update_mark(mark *m, long gs, long ts)
 
 static LocalFrame
 update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
-{ if ( fr == NULL )
+{ GET_LD
+  if ( fr == NULL )
     return NULL;
 
   for(;;)
@@ -1798,7 +1847,8 @@ update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
 
 static void
 update_choicepoints(LocalFrame bfr, long ls, long gs, long ts)
-{ for( ; bfr; bfr = bfr->backtrackFrame )
+{ GET_LD
+  for( ; bfr; bfr = bfr->backtrackFrame )
   { DEBUG(1, Sdprintf("Updating choicepoints from 0x%p [%ld] %s ... ",
 		      bfr, levelFrame(bfr), predicateName(bfr->predicate)));
     update_environments(bfr, NULL, ls, gs, ts);
@@ -1812,7 +1862,8 @@ update_choicepoints(LocalFrame bfr, long ls, long gs, long ts)
 
 static void
 update_argument(long ls, long gs)
-{ Word *p = aBase;
+{ GET_LD
+  Word *p = aBase;
   Word *t = aTop;
 
   for( ; p < t; p++ )
@@ -1832,7 +1883,8 @@ update_argument(long ls, long gs)
 
 static void
 update_trail(long ls, long gs)
-{ TrailEntry p = tBase;
+{ GET_LD
+  TrailEntry p = tBase;
   TrailEntry t = tTop;
 
   for( ; p < t; p++ )
@@ -1852,7 +1904,8 @@ update_trail(long ls, long gs)
 
 static void
 update_foreign(long ts, long ls, long gs)
-{ FliFrame fr = addPointer(fli_context, ls);
+{ GET_LD
+  FliFrame fr = addPointer(fli_context, ls);
 
   for( ; fr; fr = fr->parent )
   { update_mark(&fr->mark, gs, ts);
@@ -1881,7 +1934,8 @@ updateStacks(frame, PC, lb, gb, tb)
 LocalFrame frame;
 Code PC;
 Void lb, gb, tb;			/* bases addresses */
-{ long ls, gs, ts;
+{ GET_LD
+  long ls, gs, ts;
   LocalFrame fr;
 
   ls = (long) lb - (long) lBase;
@@ -1943,7 +1997,8 @@ Void lb, gb, tb;			/* bases addresses */
 
 static long
 nextStackSize(Stack s)
-{ long size  = diffPointers(s->max, s->base);
+{ GET_LD
+  long size  = diffPointers(s->max, s->base);
   long grow  = ROUND(size/2, 8192);
   long limit = diffPointers(s->limit, s->base);
 
@@ -1972,7 +2027,8 @@ Entry point from interpret()
 
 int
 growStacks(LocalFrame fr, Code PC, int l, int g, int t)
-{ if ( fr == NULL || PC != NULL )	/* for now, only at the call-port */
+{ GET_LD
+  if ( fr == NULL || PC != NULL )	/* for now, only at the call-port */
     fail;
 
   if ( (l || g || t) && !shift_status.blocked )
@@ -1997,7 +2053,7 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
       Sdprintf("stacks ");
     }
 
-    finish_foreign_frame();
+    finish_foreign_frame(PASS_LD1);
 
     if ( !fr )
       fr = environment_frame;

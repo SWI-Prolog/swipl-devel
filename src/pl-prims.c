@@ -169,30 +169,6 @@ pl_hash_term(term_t term, term_t hval)
 		*           EQUALITY            *
 		*********************************/
 
-word
-pl_unify(term_t t1, term_t t2)		/* =/2 */
-{ Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
-  mark m;
-  int rval;
-
-  Mark(m);
-  if ( !(rval = unify(p1, p2, environment_frame)) )
-    Undo(m);
-
-  return rval;  
-}
-
-
-word
-pl_notunify(term_t t1, term_t t2) /* A \= B */
-{ Word p1    = valTermRef(t1);
-  Word p2    = valTermRef(t2);
-
-  return can_unify(p1, p2) ? FALSE : TRUE;
-}
-
-
 static word
 _pl_equal(register Word t1, register Word t2)
 { int arity, n;
@@ -632,20 +608,21 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
   switch( ForeignControl(b) )
   { case FRG_FIRST_CALL:
     { int idx;
+      Word p = valTermRef(term);
 
-      if ( !PL_get_name_arity(term, &name, &arity) )
-      { if ( PL_is_variable(term) )
-	  return PL_error("arg", 3, NULL, ERR_INSTANTIATION);
-	else
-	  return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
-      }
+      deRef(p);
+      if ( isTerm(*p) )
+	arity = arityTerm(*p);
+      else if ( isAtom(*p) )
+	arity = 0;
+      else
+	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
   
       if ( PL_get_integer(n, &idx) )
       { if ( idx > 0 && idx <= arity )
-	{ term_t a = PL_new_term_ref();
+	{ Word ap = argTermP(*p, idx-1);
 	
-	  PL_get_arg(idx, term, a);
-	  return PL_unify(arg, a);
+	  return unify_ptrs(valTermRef(arg), ap);
 	}
 	if ( idx < 0 )
 	  return PL_error("arg", 3, NULL, ERR_DOMAIN,
@@ -2216,6 +2193,8 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 
       fail;				/* backtrack to goal */
     }
+    case FRG_CUTTED:
+      succeed;
   }
 
   fail;

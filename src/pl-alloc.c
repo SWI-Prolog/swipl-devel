@@ -101,10 +101,10 @@ allocHeap(size_t n)
       return f;				/* perfect fit */
     }
     f = allocate(n);			/* allocate from core */
+    UNLOCK();
 
     SetHBase(f);
     SetHTop((char *)f + n);
-    UNLOCK();
 
     DEBUG(9, Sdprintf("(n) %p\n", f));
 #if ALLOC_DEBUG
@@ -112,13 +112,13 @@ allocHeap(size_t n)
 #endif
     return f;
   }
+  UNLOCK();				/* we assume malloc() is MT-safe */
 
   if ( !(f = malloc(n)) )
     outOfCore();
 
   SetHBase(f);
   SetHTop((char *)f + n);
-  UNLOCK();
 
   DEBUG(9, Sdprintf("(b) %ld\n", (unsigned long)f));
 #if ALLOC_DEBUG
@@ -148,11 +148,13 @@ freeHeap(void *mem, size_t n)
   { n /= ALIGN_SIZE;
     p->next = freeChains[n];
     freeChains[n] = p;
+    UNLOCK();
   } else
-  { free(p);
+  { UNLOCK();
+    free(p);
   }
-  UNLOCK();
 }
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 No perfect fit is available.  We pick memory from the big chunk  we  are
@@ -257,6 +259,9 @@ outOfCore()
 		 *	REFS AND POINTERS	*
 		 *******************************/
 
+#undef LD
+#define LD LOCAL_LD
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 __consPtr() is inlined for this module (including pl-wam.c), but external
 for the other modules, where it is far less fime-critical.
@@ -288,7 +293,7 @@ consPtr(void *p, int ts)
 #define makeRefG(p) consPtr(p, TAG_REFERENCE|STG_GLOBAL)
 
 static inline word
-__makeRef(Word p)
+__makeRef(Word p ARG_LD)
 { if ( p >= (Word) lBase )
     return makeRefL(p);
   else
@@ -298,10 +303,11 @@ __makeRef(Word p)
 
 word
 makeRef(Word p)
-{ return __makeRef(p);			/* public version */
+{ GET_LD
+  return __makeRef(p PASS_LD);		/* public version */
 }
 
-#define makeRef(p)  __makeRef(p)
+#define makeRef(p)  __makeRef(p PASS_LD)
 
 
 		/********************************
@@ -316,7 +322,8 @@ inline  as  it is simple and usualy very time critical.
 #if O_SHIFT_STACKS
 Word
 allocGlobal(int n)
-{ Word result;
+{ GET_LD
+  Word result;
 
   if ( roomStack(global)/sizeof(word) < (long) n )
   { growStacks(NULL, NULL, FALSE, TRUE, FALSE);
@@ -335,7 +342,8 @@ allocGlobal(int n)
 
 static inline Word
 __allocGlobal(int n)
-{ Word result = gTop;
+{ GET_LD
+  Word result = gTop;
 
   requireStack(global, n * sizeof(word));
   gTop += n;
@@ -353,7 +361,8 @@ Word allocGlobal(int n)
 
 word
 globalFunctor(functor_t f)
-{ int arity = arityFunctor(f);
+{ GET_LD
+  int arity = arityFunctor(f);
   Word a = allocGlobal(1 + arity);
   Word t = a;
 
@@ -380,7 +389,8 @@ newTerm(void)
 
 word
 globalLong(long l)
-{ Word p = allocGlobal(3);
+{ GET_LD
+  Word p = allocGlobal(3);
   word r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   word m = mkIndHdr(1, TAG_INTEGER);
 
@@ -398,7 +408,8 @@ globalLong(long l)
 
 int
 sizeString(word w)
-{ word m  = *((Word)addressIndirect(w));
+{ GET_LD
+  word m  = *((Word)addressIndirect(w));
   int wn  = wsizeofInd(m);
   int pad = padHdr(m);
 
@@ -408,7 +419,8 @@ sizeString(word w)
 
 word
 globalNString(long l, const char *s)
-{ int lw = (l+sizeof(word))/sizeof(word);
+{ GET_LD
+  int lw = (l+sizeof(word))/sizeof(word);
   int pad = (lw*sizeof(word) - l);
   Word p = allocGlobal(2 + lw);
   word r = consPtr(p, TAG_STRING|STG_GLOBAL);
@@ -461,7 +473,8 @@ doublecpy(void *to, void *from)
 
 double					/* take care of alignment! */
 valReal(word w)
-{ fword *v = (fword *)valIndirectP(w);
+{ GET_LD
+  fword *v = (fword *)valIndirectP(w);
   union
   { double d;
     fword  l;
@@ -475,7 +488,8 @@ valReal(word w)
 
 word
 globalReal(double d)
-{ Word p = allocGlobal(2+WORDS_PER_DOUBLE);
+{ GET_LD
+  Word p = allocGlobal(2+WORDS_PER_DOUBLE);
   word r = consPtr(p, TAG_FLOAT|STG_GLOBAL);
   word m = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
   union
@@ -501,7 +515,8 @@ globalReal(double d)
 
 int
 equalIndirect(word w1, word w2)
-{ Word p1 = addressIndirect(w1);
+{ GET_LD
+  Word p1 = addressIndirect(w1);
   Word p2 = addressIndirect(w2);
   
   if ( *p1 == *p2 )
@@ -526,7 +541,8 @@ neither is the length or original location.
 
 word
 globalIndirect(word w)
-{ Word p = addressIndirect(w);
+{ GET_LD
+  Word p = addressIndirect(w);
   word t = *p;
   int  n = wsizeofInd(t);
   Word h = allocGlobal((n+2));
@@ -543,7 +559,8 @@ globalIndirect(word w)
 
 word
 globalIndirectFromCode(Code *PC)
-{ Code pc = *PC;
+{ GET_LD
+  Code pc = *PC;
   word m = *pc++;
   int  n = wsizeofInd(m);
   Word p = allocGlobal(n+2);
@@ -561,7 +578,8 @@ globalIndirectFromCode(Code *PC)
 
 static int				/* used in pl-wam.c */
 equalIndirectFromCode(word a, Code *PC)
-{ Word pc = *PC;
+{ GET_LD
+  Word pc = *PC;
   Word pa = addressIndirect(a);
 
   if ( *pc == *pa )

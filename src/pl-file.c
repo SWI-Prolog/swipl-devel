@@ -1299,7 +1299,7 @@ word
 pl_tab2(term_t out, term_t spaces)
 { number n;
 
-  if ( valueExpression(spaces, &n) &&
+  if ( valueExpression(spaces, &n PASS_LD) &&
        toIntegerNumber(&n) )
   { int m = n.value.i;
     IOSTREAM *s;

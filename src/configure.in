@@ -182,6 +182,9 @@ if test "$MT" = "yes"; then
     # highly experimental and for developers only.  If you are a    #
     # normal SWI-Prolog user, please rerun configure without the    #
     # --enable-mt option					    #
+    #                                                               #
+    # Currently multi-threading is developed using SuSE Linux 6.2   #
+    # (glibc 2.1.1) and ported to Solaris 2.7 (egcs 1.1)            #
     #################################################################
 
 _EOM_
@@ -191,6 +194,7 @@ _EOM_
   fi
   AC_CHECK_LIB(rt, sem_init)
   AC_CHECK_FUNCS(pthread_mutexattr_setkind_np pthread_mutexattr_settype)
+  AC_CHECK_FUNCS(pthread_sigmask)
 fi
 
 AC_CHECK_LIB(m, main)

@@ -106,6 +106,7 @@ typedef struct
 
   struct
   { Table	modules;		/* atom --> module */
+    Table	record_lists;		/* Available record lists */
   } tables;
 
   struct
@@ -358,6 +359,10 @@ GLOBAL PL_code_data_t	PL_code_data;
 #ifndef O_PLMT
 GLOBAL PL_local_data_t  PL_local_data;
 #define GET_LD
+#define ARG_LD
+#define ARG1_LD void
+#define PASS_LD
+#define PASS_LD1
 #define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
 #define LD	  GLOBAL_LD

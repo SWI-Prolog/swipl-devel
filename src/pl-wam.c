@@ -17,7 +17,6 @@
 #define MARK(label)
 #endif
 
-forwards void		copyFrameArguments(LocalFrame, LocalFrame, int);
 forwards inline bool	callForeign(const Definition, LocalFrame);
 forwards void		leaveForeignFrame(LocalFrame);
 
@@ -269,9 +268,8 @@ Brief description of the local stack-layout.  This stack contains:
 #define LD LOCAL_LD
 
 void
-finish_foreign_frame()
-{ GET_LD
-  if ( fli_context )
+finish_foreign_frame(ARG1_LD)
+{ if ( fli_context )
   { FliFrame fr = fli_context;
 
     if ( (unsigned long)environment_frame < (unsigned long) fr )
@@ -287,7 +285,7 @@ PL_open_foreign_frame()
 { GET_LD
   FliFrame fr = (FliFrame) lTop;
 
-  finish_foreign_frame();
+  finish_foreign_frame(PASS_LD1);
   requireStack(local, sizeof(struct fliFrame));
   lTop = addPointer(lTop, sizeof(struct fliFrame));
   fr->size = 0;
@@ -329,9 +327,6 @@ PL_discard_foreign_frame(fid_t id)
   fli_context = fr->parent;
   lTop = (LocalFrame) fr;
 }
-
-#undef LD
-#define LD GLOBAL_LD
 
 		/********************************
 		*         FOREIGN CALLS         *
@@ -443,8 +438,6 @@ given as `backtrack control'.
 static inline bool
 callForeign(const Definition def, LocalFrame frame)
 { GET_LD
-#undef LD
-#define LD LOCAL_LD
   Func function = def->definition.function;
   int argc = def->functor->arity;
   word result;
@@ -514,8 +507,6 @@ callForeign(const Definition def, LocalFrame frame)
 		      ATOM_foreign_return_value, ex);
     }
   }
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
@@ -572,7 +563,8 @@ global stack and fr is available.
 
 void
 DoTrail(Word p)
-{ Trail(p, environment_frame);
+{ GET_LD
+  Trail(p, environment_frame);
 }
 
 
@@ -600,7 +592,8 @@ on the global stack.
 
 void
 TrailAssignment(Word p)
-{ Word old = allocGlobal(1);
+{ GET_LD
+  Word old = allocGlobal(1);
 
   *old = *p;				/* save the old value on the global */
   requireStack(trail, 2*sizeof(struct trail_entry));
@@ -608,8 +601,9 @@ TrailAssignment(Word p)
   (tTop++)->address = tagTrailPtr(old);
 }
 
+
 static inline void
-__do_undo(mark *m)
+__do_undo(mark *m ARG_LD)
 { TrailEntry tt = tTop;
   TrailEntry mt = m->trailtop;
 
@@ -630,13 +624,15 @@ __do_undo(mark *m)
   gTop = m->globaltop;
 }
 
+
 void
 do_undo(mark *m)
-{ __do_undo(m);
+{ GET_LD
+  __do_undo(m PASS_LD);
 }
 
 #undef Undo
-#define Undo(m) __do_undo(&m)
+#define Undo(m) __do_undo(&m PASS_LD)
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
 		/********************************
@@ -661,11 +657,9 @@ are:
   - various builtin predicates. They should be flagged some way.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
-unify(Word t1, Word t2, LocalFrame fr)
-{ GET_LD
-#undef LD
-#define LD LOCAL_LD
+static bool
+unify(Word t1, Word t2 ARG_LD)
+{ 
   word w1;
   word w2;
 
@@ -686,22 +680,22 @@ right_recursion:
   { if ( isVar(w2) )
     { if ( t1 < t2 )			/* always point downwards */
       { *t2 = makeRef(t1);
-	Trail(t2, fr);
+	Trail(t2, LD->environment);
 	succeed;
       }
       if ( t1 == t2 )
 	succeed;
       *t1 = makeRef(t2);
-      Trail(t1, fr);
+      Trail(t1, LD->environment);
       succeed;
     }
     *t1 = w2;
-    Trail(t1, fr);
+    Trail(t1, LD->environment);
     succeed;
   }
   if ( isVar(w2) )
   { *t2 = w1;
-    Trail(t2, fr);
+    Trail(t2, LD->environment);
     succeed;
   }
 
@@ -721,19 +715,19 @@ right_recursion:
     case TAG_FLOAT:
       return equalIndirect(w1, w2);
     case TAG_COMPOUND:
-    { int arity;
-      Functor f1 = valueTerm(w1);
+    { Functor f1 = valueTerm(w1);
       Functor f2 = valueTerm(w2);
+      Word e;
 
       if ( f1->definition != f2->definition )
 	fail;
 
-      arity = arityFunctor(f1->definition);
       t1 = f1->arguments;
       t2 = f2->arguments;
+      e  = t1+arityFunctor(f1->definition)-1; /* right-recurse on last */
 
-      for(; --arity > 0; t1++, t2++)
-      { if ( !unify(t1, t2, fr) )
+      for(; t1 < e; t1++, t2++)
+      { if ( !unify(t1, t2 PASS_LD) )
 	  fail;
       }
       goto right_recursion;
@@ -741,8 +735,32 @@ right_recursion:
   }
 
   succeed;
-#undef LD
-#define LD GLOBAL_LD
+}
+
+
+word
+pl_unify(term_t t1, term_t t2)		/* =/2 */
+{ GET_LD
+  Word p1 = valTermRef(t1);
+  Word p2 = valTermRef(t2);
+  mark m;
+  int rval;
+
+  Mark(m);
+  if ( !(rval = unify(p1, p2 PASS_LD)) )
+    Undo(m);
+
+  return rval;  
+}
+
+
+word
+pl_notunify(term_t t1, term_t t2)	/* A \= B */
+{ GET_LD
+  Word p1    = valTermRef(t1);
+  Word p2    = valTermRef(t2);
+
+  return can_unify(p1, p2) ? FALSE : TRUE;
 }
 
 
@@ -753,11 +771,12 @@ PL_unify().
 
 bool
 unify_ptrs(Word t1, Word t2)
-{ mark m;
+{ GET_LD
+  mark m;
   bool rval;
 
   Mark(m);
-  if ( !(rval = unify(t1, t2, environment_frame)) )
+  if ( !(rval = unify(t1, t2 PASS_LD)) )
     Undo(m);
 
   return rval;  
@@ -772,11 +791,12 @@ above. See this function for comments.
 
 bool
 can_unify(Word t1, Word t2)
-{ mark m;
+{ GET_LD
+  mark m;
   bool rval;
 
   Mark(m);
-  rval = unify(t1, t2, environment_frame);
+  rval = unify(t1, t2 PASS_LD);
   Undo(m);
 
   return rval;  
@@ -795,9 +815,7 @@ int var_occurs_in(Word v, Word t)
 static bool
 var_occurs_in(Word v, Word t)
 { GET_LD
-#undef LD
-#define LD LOCAL_LD
-  
+
 right_recursion:
   deRef(t);
   if ( v == t )
@@ -816,16 +834,12 @@ right_recursion:
   }
 
   fail;
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
 static bool
 unify_with_occurs_check(Word t1, Word t2, LocalFrame fr)
 { GET_LD
-#undef LD
-#define LD LOCAL_LD
   word w1;
   word w2;
 
@@ -906,14 +920,13 @@ right_recursion:
   }
 
   succeed;
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
 word
 pl_unify_with_occurs_check(term_t t1, term_t t2)
-{ mark m;
+{ GET_LD
+  mark m;
   Word p1, p2;
   word rval;
 
@@ -1055,20 +1068,20 @@ The new arguments block can contain the following types:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-copyFrameArguments(LocalFrame from, LocalFrame to, int argc)
-{ Word ARGD, ARGS;
-  int n;
+copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
+{ Word ARGD, ARGS, ARGE;
 
   if ( argc == 0 )
     return;
 
   ARGS = argFrameP(from, 0);
+  ARGE = ARGS+argc;
   ARGD = argFrameP(to, 0);
-  for( n=argc; --n >= 0; ARGS++, ARGD++) /* dereference the block */
+  for( ; ARGS < ARGE; ARGS++, ARGD++) /* dereference the block */
   { word k = *ARGS;
 
-    if ( isRef(k) )
-    { Word p = unRef(k);
+    if ( isRefL(k) )
+    { Word p = unRefL(k);
 
       if ( p > (Word)to )
       { if ( isVar(*p) )
@@ -1081,7 +1094,7 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc)
   }    
   ARGS = argFrameP(from, 0);
   ARGD = argFrameP(to, 0);
-  while(--argc >= 0)			/* now copy them */
+  while( ARGS < ARGE )			/* now copy them */
     *ARGD++ = *ARGS++;  
 }
 
@@ -1132,7 +1145,8 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc)
 
 qid_t
 PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
-{ QueryFrame qf;
+{ GET_LD
+  QueryFrame qf;
   LocalFrame fr;
   Definition def;
   int arity;
@@ -1172,7 +1186,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   assert((ulong)fli_context > (ulong)environment_frame);
   assert((ulong)lTop >= (ulong)(fli_context+1));
 
-  finish_foreign_frame();		/* adjust the size of the context */
+  finish_foreign_frame(PASS_LD1);	/* adjust the size of the context */
 
   if ( flags == TRUE )			/* compatibility */
     flags = PL_Q_NORMAL;
@@ -1263,7 +1277,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
 static void
 discard_query(QueryFrame qf)
-{ LocalFrame FR  = &qf->frame;
+{ GET_LD
+  LocalFrame FR  = &qf->frame;
   LocalFrame BFR = LD->choicepoints;
   LocalFrame fr, fr2;
 
@@ -1286,7 +1301,8 @@ new exception has been thrown, consider it handled.
 
 static void
 restore_after_query(QueryFrame qf)
-{ if ( qf->exception && !exception_term )
+{ GET_LD
+  if ( qf->exception && !exception_term )
     *valTermRef(exception_printed) = 0;
 
   environment_frame = qf->saved_environment;
@@ -1307,7 +1323,8 @@ restore_after_query(QueryFrame qf)
 
 void
 PL_cut_query(qid_t qid)
-{ QueryFrame qf = QueryFromQid(qid);
+{ GET_LD
+  QueryFrame qf = QueryFromQid(qid);
 
   SECURE(assert(qf->magic == QID_MAGIC));
   qf->magic = 0;			/* disqualify the frame */
@@ -1321,7 +1338,8 @@ PL_cut_query(qid_t qid)
 
 void
 PL_close_query(qid_t qid)
-{ QueryFrame qf = QueryFromQid(qid);
+{ GET_LD
+  QueryFrame qf = QueryFromQid(qid);
   LocalFrame fr = &qf->frame;
 
   SECURE(assert(qf->magic == QID_MAGIC));
@@ -1339,7 +1357,8 @@ PL_close_query(qid_t qid)
 
 term_t
 PL_exception(qid_t qid)
-{ QueryFrame qf = QueryFromQid(qid);
+{ GET_LD
+  QueryFrame qf = QueryFromQid(qid);
 
   return qf->exception;
 }
@@ -1370,8 +1389,6 @@ int _PL_nop_counter;
 int
 PL_next_solution(qid_t qid)
 { GET_LD
-#undef LD
-#define LD LOCAL_LD
   QueryFrame QF;			/* Query frame */
   LocalFrame FR;			/* current frame */
   Word	     ARGP = NULL;		/* current argument pointer */
@@ -1810,7 +1827,7 @@ probably worth more than the 0.001% performance to gain.
       { Word p1 = varFrameP(FR, *PC++);
 	Word p2 = ARGP++;
 
-	if ( unify(p1, p2, FR) )
+	if ( unify(p1, p2 PASS_LD) )
 	  NEXT_INSTRUCTION;
 	CLAUSE_FAILED;
       }
@@ -2278,7 +2295,7 @@ exit(Block, RVal).  First does !(Block).
 
 	DEBUG(3, Sdprintf("BFR = %d\n", (Word)BFR - (Word)lBase) );
 
-	if ( unify(argFrameP(blockfr, 2), rval, environment_frame) ) /*???*/
+	if ( unify(argFrameP(blockfr, 2), rval PASS_LD) )
 	{ for( ; FR > blockfr; FR = FR->parent )
 	  { leaveFrame(FR);
 	    FR->clause = NULL;
@@ -2618,7 +2635,7 @@ to give the compiler a hint to put ARGP not into a register.
       v = consTermRef(varFrameP(FR, offset));
       n = (Number)ARGP;
 
-      if ( valueExpression(v, n) )
+      if ( valueExpression(v, n PASS_LD) )
       { ARGP = (Word)(n+1);
 	NEXT_INSTRUCTION;
       } else
@@ -3339,7 +3356,7 @@ execution can continue at `next_instruction'
 	    set(FR, FR_NODEBUG);
 	  
 	  FR->predicate = DEF = ((Procedure) *PC++)->definition;
-	  copyFrameArguments(lTop, FR, DEF->functor->arity);
+	  copyFrameArguments(lTop, FR, DEF->functor->arity PASS_LD);
 
 	  goto depart_continue;
 	}
@@ -3552,7 +3569,7 @@ values found in the clause,  give  a   reference  to  the clause and set
 	DEBUG(9, Sdprintf("Searching clause ... "));
 
 	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-	if ( !(CL = firstClause(ARGP, FR, DEF, &deterministic)) )
+	if ( !(CL = firstClause(ARGP, FR, DEF, &deterministic PASS_LD)) )
 	{ DEBUG(9, Sdprintf("No clause matching index.\n"));
 	  FRAME_FAILED;
 	}
@@ -3973,14 +3990,14 @@ foreign frame we have to set BFR and do data backtracking.
 
     goto call_builtin;
   }
-#undef LD
-#define LD GLOBAL_LD
 } /* end of PL_next_solution() */
 
 #if O_COMPILE_OR
 word
 pl_alt(word h)
-{ switch( ForeignControl(h) )
+{ GET_LD
+
+  switch( ForeignControl(h) )
   { case FRG_REDO:
     { int skip = ForeignContextInt(h);
       DEBUG(9, Sdprintf("$alt/1: skipping %ld codes\n", ForeignContextInt(h)));

@@ -71,8 +71,8 @@ pl_flag(term_t name, term_t old, term_t new)
   number n;
   word rval;
 
-  if ( !(key = getKey(name)) )
-    return PL_error("flag", 3, NULL, ERR_TYPE, ATOM_key, name);
+  if ( !getKeyEx(name, &key) )
+    fail;
   rval = FALSE;
 
   LOCK();
@@ -109,7 +109,7 @@ pl_flag(term_t name, term_t old, term_t new)
     f->type = FLG_ATOM;
     f->value.a = a;
     PL_register_atom(a);
-  } else if ( valueExpression(new, &n) )
+  } else if ( valueExpression(new, &n PASS_LD) )
   { canoniseNumber(&n);
 
     if ( n.type == V_INTEGER )
@@ -144,16 +144,14 @@ pl_current_flag(term_t k, term_t h)
   { case FRG_FIRST_CALL:
     { word key;
 
-      if ( (key = getKey(k)) )
-      { if ( lookupHTable(flagTable, (void *)key) )
-	  succeed;
-	fail;
-      }
       if ( PL_is_variable(k) )
       {	e = newTableEnum(flagTable);
 	break;
       }
-      return PL_error("current_flag", 2, NULL, ERR_TYPE, ATOM_key, key);
+      if ( getKeyEx(k, &key) &&
+	   lookupHTable(flagTable, (void *)key) )
+	succeed;
+      fail;
     }
     case FRG_REDO:
       e = ForeignContextPtr(h);

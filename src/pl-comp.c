@@ -1432,7 +1432,8 @@ assert_term(term_t term, int where, SourceLoc loc)
     getIndex(argTermP(*h, 0),
 	     def->indexPattern, 
 	     def->indexCardinality,
-	     &clause->index);
+	     &clause->index
+	     PASS_LD);
   else
     clause->index.key = clause->index.varmask = 0L;
 

@@ -97,16 +97,20 @@ extern pthread_mutex_t _PL_mutexes[];	/* Prolog mutexes */
 
 #if 0
 #define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
-#define LOCAL_LD  __PL_ld
 #define GLOBAL_LD ((PL_local_data_t *)pthread_getspecific(PL_ldata))
-#define LD	  GLOBAL_LD
 #else
 #define GET_LD	  PL_local_data_t *__PL_ld = GLOBAL_LD;
-#define LOCAL_LD  __PL_ld
 #define GLOBAL_LD _LD()
-#define LD	  GLOBAL_LD
 extern PL_local_data_t *_LD(void) __attribute((const));
 #endif
+
+#define ARG1_LD   PL_local_data_t *__PL_ld
+#define ARG_LD    , ARG1_LD
+#define PASS_LD1  LD
+#define PASS_LD   , LD
+#define LOCAL_LD  __PL_ld
+#define LD	  GLOBAL_LD
+
 
 extern PL_local_data_t *allocPrologLocalData(void);
 extern void		initPrologThreads(void);

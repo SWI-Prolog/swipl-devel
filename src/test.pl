@@ -278,11 +278,62 @@ proc(retract-2) :-
 	assert((test(X, Y) :- X is Y + 3)),
 	retract((test(A, B) :- Body)),
 	Body == (A is B + 3).
-proc(recorda-1) :-
+
+
+		 /*******************************
+		 *	       RECORDS		*
+		 *******************************/
+
+mkterm(T) :-
+	string_to_list(S, "hello"),
+	current_prolog_flag(max_tagged_integer, X),
+	BigNum is X * 3,
+	T = term(atom,			% an atom
+		 S,			% a string
+		 1,			% an integer
+		 BigNum,		% large integer
+		 3.4,			% a float
+		 _,			% a singleton
+		 A, A,			% a shared variable
+		 [a, list]).		% a list
+
+erase_all(Key) :-
+	recorded(Key, _, Ref),
+	erase(Ref),
+	fail.
+erase_all(_).
+
+record(recorda-1) :-
+	erase_all(r1),
+	mkterm(T0),
+	recorda(r1, T0),
+	recorded(r1, T1),
+	T0 =@= T1.
+record(recorda-2) :-
+	erase_all(r2),
+	mkterm(T0),
+	recorda(r2, T0, Ref),
+	recorded(K, T1, Ref),
+	K == r2,
+	T0 =@= T1.
+record(recorda-3) :-
+	erase_all(r3),
+	\+ current_key(r3),
+	recorda(r3, test),
+	current_key(r3).
+record(recorda-4) :-
+	erase_all(r4),
+	recorda(r4, aap),
+	recorda(r4, noot),
+	recordz(r4,  mies),
+	findall(X, recorded(r4, X), Xs),
+	Xs = [noot, aap, mies].
+record(recorda-5) :-
 	recorda(bla,sign(a,(b,c),d)),
 	\+ recorded(bla, sign(_,(B,B),_)),
 	\+ (recorded(bla,S),
 	    S=sign(_,(B,B),_)).
+
 
 		 /*******************************
 		 *	    UPDATE-VIEW		*
@@ -505,6 +556,7 @@ testset(list).
 testset(sets).
 testset(atom_handling).
 testset(proc).
+testset(record).
 testset(update).
 testset(gc).
 testset(floatconv).

@@ -28,6 +28,10 @@ day.
 
 #include <math.h>			/* avoid abs() problem with MSVC++ */
 #include "pl-incl.h"
+
+#undef LD
+#define LD LOCAL_LD
+
 #ifndef M_PI
 #define M_PI (3.14159265358979323846)
 #endif
@@ -215,12 +219,14 @@ ar_compare(Number n1, Number n2, int what)
 
 static word
 compareNumbers(term_t n1, term_t n2, int what)
-{ number left, right;
+{ GET_LD
+  number left, right;
 
-  TRY(valueExpression(n1, &left) &&
-      valueExpression(n2, &right));
+  if ( valueExpression(n1, &left PASS_LD) &&
+       valueExpression(n2, &right PASS_LD) )
+    return ar_compare(&left, &right, what);
 
-  return ar_compare(&left, &right, what);
+  fail;
 }
 
 
@@ -306,7 +312,8 @@ prologFunction(ArithFunction f, term_t av, Number r)
   qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, f->proc, av);
 
   if ( PL_next_solution(qid) )
-  { rval = valueExpression(av+arity-1, r);
+  { GET_LD
+    rval = valueExpression(av+arity-1, r PASS_LD);
     PL_close_query(qid);
     PL_discard_foreign_frame(fid);
   } else
@@ -330,7 +337,7 @@ prologFunction(ArithFunction f, term_t av, Number r)
 #endif /* O_PROLOG_FUNCTIONS */
 
 int
-valueExpression(term_t t, Number r)
+valueExpression(term_t t, Number r ARG_LD)
 { ArithFunction f;
   functor_t functor;
   Word p = valTermRef(t);
@@ -397,8 +404,8 @@ valueExpression(term_t t, Number r)
     for(n=0; n<arity; n++)
     { number n1;
 
-      PL_get_arg(n+1, t, h0+n);
-      if ( valueExpression(h0+n, &n1) )
+      _PL_get_arg(n+1, t, h0+n);
+      if ( valueExpression(h0+n, &n1 PASS_LD) )
       { _PL_put_number(h0+n, &n1);
       } else
 	fail;
@@ -431,8 +438,8 @@ valueExpression(term_t t, Number r)
       { term_t a = PL_new_term_ref();
 	number n1;
 
-	PL_get_arg(1, t, a);
-	if ( valueExpression(a, &n1) )
+	_PL_get_arg(1, t, a);
+	if ( valueExpression(a, &n1 PASS_LD) )
 	  rval = (*f->function)(&n1, r);
 	else
 	  rval = FALSE;
@@ -444,10 +451,10 @@ valueExpression(term_t t, Number r)
       { term_t a = PL_new_term_ref();
 	number n1, n2;
 
-	PL_get_arg(1, t, a);
-	if ( valueExpression(a, &n1) )
-	{ PL_get_arg(2, t, a);
-	  if ( valueExpression(a, &n2) )
+	_PL_get_arg(1, t, a);
+	if ( valueExpression(a, &n1 PASS_LD) )
+	{ _PL_get_arg(2, t, a);
+	  if ( valueExpression(a, &n2 PASS_LD) )
 	    rval = (*f->function)(&n1, &n2, r);
 	  else
 	    rval = FALSE;
@@ -531,18 +538,21 @@ toIntegerNumber(Number n)
 void
 canoniseNumber(Number n)
 {					/* only if not explicit! */
-  if ( n->type == V_REAL && !trueFeature(ISO_FEATURE) )
-  { long l;
+  if ( n->type == V_REAL )
+  { GET_LD
+    if ( !trueFeature(ISO_FEATURE) )
+    { long l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( !((n->value.f >= PLMININT) && (n->value.f <= PLMAXINT)) )
-      return;
+      if ( !((n->value.f >= PLMININT) && (n->value.f <= PLMAXINT)) )
+        return;
 #endif
 
-    l = (long)n->value.f;
-    if ( n->value.f == (real) l )
-    { n->value.i = l;
-      n->type = V_INTEGER;
+      l = (long)n->value.f;
+      if ( n->value.f == (real) l )
+      { n->value.i = l;
+	n->type = V_INTEGER;
+      }
     }
   }
 }
@@ -1030,9 +1040,10 @@ ar_cputime(Number r)
 
 word
 pl_is(term_t v, term_t e)
-{ number arg;
+{ GET_LD
+  number arg;
 
-  if ( valueExpression(e, &arg) )
+  if ( valueExpression(e, &arg PASS_LD) )
   { canoniseNumber(&arg);
     return _PL_unify_number(v, &arg);
   }
@@ -1044,7 +1055,9 @@ pl_is(term_t v, term_t e)
 #if O_PROLOG_FUNCTIONS
 word
 pl_arithmetic_function(term_t descr)
-{ Procedure proc;
+{ GET_LD
+
+  Procedure proc;
   Definition def;
   functor_t fd;
   FunctorDef fdef;
@@ -1134,7 +1147,8 @@ pl_current_arithmetic_function(term_t f, word h)
 
 word
 pl_prolog_arithmetic_function(term_t f, word h)
-{ ArithFunction a;
+{ GET_LD
+  ArithFunction a;
   term_t tmp = PL_new_term_ref();
 
   switch( ForeignControl(h) )
@@ -1292,7 +1306,7 @@ initArith(void)
 		*********************************/
 
 int
-indexArithFunction(functor_t fdef, register Module m)
+indexArithFunction(functor_t fdef, Module m)
 { ArithFunction f;
 
   if ( !(f = isCurrentArithFunction(fdef, m)) )
@@ -1317,7 +1331,8 @@ ar_func_n(code n, int argc, Number *stack)
 
   sp -= argc;
   if ( f->proc )
-  { LocalFrame lSave = lTop;		/* TBD (check with stack!) */
+  { GET_LD
+    LocalFrame lSave = lTop;		/* TBD (check with stack!) */
     term_t h0;
     int n;
 

@@ -17,71 +17,70 @@ forwards RecordList isCurrentRecordList(word);
 #define RECORDA 0
 #define RECORDZ 1
 
-static RecordList recordTable[RECORDHASHSIZE];
-
 #define LOCK()   PL_LOCK(L_RECORD)
 #define UNLOCK() PL_UNLOCK(L_RECORD)
 
+#undef LD
+#define LD LOCAL_LD
+
 void
 initRecords(void)
-{ RecordList *l;
-  int n;
-
-  for(n=0, l=recordTable; n < (RECORDHASHSIZE-1); n++, l++)
-    *l = makeTableRef(l+1);
+{ GD->tables.record_lists = newHTable(8);
 }
 
 
+/* MT: locked by caller (record())
+*/
+
 static RecordList
 lookupRecordList(word key)
-{ int v = pointerHashValue(key, RECORDHASHSIZE);
-  RecordList l;
+{ Symbol s;
 
-  for(l=recordTable[v]; l && !isTableRef(l); l = l->next)
-  { if (l->key == key)
-      return l;
+  if ( (s = lookupHTable(GD->tables.record_lists, (void *)key)) )
+  { return s->value;
+  } else
+  { RecordList l;
+
+    if ( isAtom(key) )			/* can also be functor_t */
+      PL_register_atom(key);
+    l = allocHeap(sizeof(*l));
+    l->key = key;
+    l->type = RECORD_TYPE;
+    l->references = 0;
+    l->flags = 0;
+    addHTable(GD->tables.record_lists, (void *)key, l);
+
+    return l;
   }
-  if ( isAtom(key) )			/* can also be functor_t */
-    PL_register_atom(key);
-  l = (RecordList) allocHeap(sizeof(struct recordList));
-  l->key = key;
-  l->firstRecord = l->lastRecord = NULL;
-  l->type = RECORD_TYPE;
-  l->references = 0;
-  l->flags = 0;
-  l->next = recordTable[v];
-  recordTable[v] = l;
-
-  return l;
 }
 
 
 static RecordList
 isCurrentRecordList(word key)
-{ int v = pointerHashValue(key, RECORDHASHSIZE);
-  RecordList l;
+{ Symbol s;
 
-  for(l=recordTable[v]; l && !isTableRef(l); l = l->next)
-  { if (l->key == key)
-      return l;
-  }
+  if ( (s = lookupHTable(GD->tables.record_lists, (void *)key)) )
+    return s->value;
+
   return NULL;
 }
 
 
+/* MT: Locked by called
+*/
+
 static void
 cleanRecordList(RecordList rl)
-{ Record *p = &rl->firstRecord;
-  Record r = *p;
+{ Record *p;
+  Record r;
 
-  while(r)
+  for(p = &rl->firstRecord; (r=*p); )
   { if ( r->erased )
     { *p = r->next;
       freeRecord(r);
     } else
     { p = &r->next;
     }
-    r = *p;
   }
 }
 
@@ -116,8 +115,6 @@ typedef struct
 static void
 compile_term_to_heap(Word p, CompileInfo info)
 { GET_LD
-#undef LD
-#define LD LOCAL_LD
   word w;
 
 right_recursion:
@@ -201,15 +198,14 @@ right_recursion:
       p = unRef(w);
       goto right_recursion;
   }
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
 
 Record
 compileTermToHeap(term_t t)
-{ compile_info info;
+{ GET_LD
+  compile_info info;
   Record record;
   Word *p;
   int n, size;
@@ -275,8 +271,6 @@ typedef struct
 static void
 copy_record(Word p, CopyInfo b)
 { GET_LD
-#undef LD
-#define LD LOCAL_LD
   int tag;
 
 right_recursion:
@@ -372,13 +366,11 @@ right_recursion:
       goto right_recursion;
     }
   }
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
 void
-copyRecordToGlobal(term_t copy, Record r)
+copyRecordToGlobal(term_t copy, Record r ARG_LD)
 { copy_info b;
   Word *p;
   int n;
@@ -471,11 +463,8 @@ typedef struct
 
 
 static int
-se_record(Word p, SeInfo info)
-{ GET_LD
-#undef LD
-#define LD LOCAL_LD
-  word w;
+se_record(Word p, SeInfo info ARG_LD)
+{ word w;
   int stag;
 
 right_recursion:
@@ -575,7 +564,7 @@ unref_cont:
 
 	  p = f->arguments;
 	  for(; --arity > 0; p++)
-	  { if ( !se_record(p, info) )
+	  { if ( !se_record(p, info PASS_LD) )
 	      fail;
 	  }
 	  goto right_recursion;
@@ -590,13 +579,11 @@ unref_cont:
       assert(0);
       fail;
   }
-#undef LD
-#define LD GLOBAL_LD
 }
 
 
 int
-structuralEqualArg1OfRecord(term_t t, Record r)
+structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
 { se_info info;
   int n, rval;
   Word *p;
@@ -604,7 +591,7 @@ structuralEqualArg1OfRecord(term_t t, Record r)
   initBuffer(&info.vars);
   info.data = r->buffer + sizeof(char) + sizeof(word);
 					/* skip PL_TYPE_COMPOUND <functor> */
-  rval = se_record(valTermRef(t), &info);
+  rval = se_record(valTermRef(t), &info PASS_LD);
   n = entriesBuffer(&info.vars, Word);
   p = (Word *)info.vars.base;
   while(--n >= 0)
@@ -652,50 +639,58 @@ unifyKey(term_t key, word val)
 }
 
 
-word
-getKey(term_t key)
-{ Word k = valTermRef(key);
+int
+getKeyEx(term_t key, word *w)
+{ GET_LD
+  Word k = valTermRef(key);
   deRef(k);
 
   if ( isAtom(*k) || isTaggedInt(*k) )
-    return *k;
+    *w = *k;
   else if ( isTerm(*k) )
-    return (word)functorTerm(*k);
+    *w = (word)functorTerm(*k);
   else
-    return (word)NULL;
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_key, key);
+
+  succeed;
 }
 
 
 word
 pl_current_key(term_t k, word h)
-{ RecordList l;
+{ GET_LD
+  TableEnum e;
+  Symbol s;
+  mark m;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      l = recordTable[0];
+      e = newTableEnum(GD->tables.record_lists);
       break;
     case FRG_REDO:
-      l = ForeignContextPtr(h);
+      e = ForeignContextPtr(h);
       break;
     case FRG_CUTTED:
-    default:
+    default:				/* fool gcc */
+      e = ForeignContextPtr(h);
+      freeTableEnum(e);
       succeed;
   }
 
-  for(; l; l = l->next)
-  { while(isTableRef(l) )
-    { l = unTableRef(RecordList, l);
-      if ( !l )
-	fail;
-    }
-    if ( l->firstRecord == NULL || unifyKey(k, l->key) == FALSE )
-      continue;
+  Mark(m);
+  while( (s=advanceTableEnum(e)) )
+  { RecordList l = s->value;
 
-    return_next_table(RecordList, l, ;);
+    if ( l->firstRecord && unifyKey(k, l->key) )
+      ForeignRedoPtr(e);
+
+    Undo(m);
   }
 
+  freeTableEnum(e);
   fail;
 }
+
 
 static bool
 record(term_t key, term_t term, term_t ref, int az)
@@ -703,8 +698,8 @@ record(term_t key, term_t term, term_t ref, int az)
   Record copy;
   word k;
 
-  if ( !(k = getKey(key)) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_key, key);
+  if ( !getKeyEx(key, &k) )
+    fail;
   if ( !PL_is_variable(ref) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
 
@@ -758,8 +753,9 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
       { LOCK();
 	if ( isRecord(record) )
 	{ if ( unifyKey(key, record->list->key) )
-	  { copy = PL_new_term_ref();
-	    copyRecordToGlobal(copy, record);
+	  { GET_LD
+	    copy = PL_new_term_ref();
+	    copyRecordToGlobal(copy, record PASS_LD);
 	    rval = PL_unify(term, copy);
 	  } else
 	    rval = FALSE;
@@ -768,9 +764,8 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
 	UNLOCK();
 	return rval;
       }
-      if ( !(k = getKey(key)) )
-	return PL_error("recorded", 3, NULL, ERR_TYPE, ATOM_key, key);
-      if ( !(rl = isCurrentRecordList(k)) )
+      if ( !getKeyEx(key, &k) ||
+	   !(rl = isCurrentRecordList(k)) )
 	fail;
       LOCK();
       rl->references++;
@@ -799,6 +794,7 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
       succeed;
   }
 
+{ GET_LD
   copy = PL_new_term_ref();
   for( ; record; record = record->next )
   { mark m;
@@ -807,7 +803,7 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
       continue;
 
     Mark(m);
-    copyRecordToGlobal(copy, record);
+    copyRecordToGlobal(copy, record PASS_LD);
     if ( PL_unify(term, copy) && PL_unify_pointer(ref, record) )
     { if ( !record->next )
       { if ( --rl->references == 0 && true(rl, R_DIRTY) )
@@ -821,6 +817,7 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
     }
     Undo(m);
   }
+}
 
   if ( --rl->references == 0 && true(rl, R_DIRTY) )
     cleanRecordList(rl);
@@ -899,7 +896,7 @@ pl_erase(term_t ref)
 		 *******************************/
 
 static int
-count_term(Word t, int left)
+count_term(Word t, int left ARG_LD)
 { int count = 0;
 
 right_recursion:
@@ -917,7 +914,7 @@ right_recursion:
     { if ( arity == 0 )
 	goto right_recursion;
 
-      me = count_term(t, left);
+      me = count_term(t, left PASS_LD);
       if ( me < 0 )
 	return me;
       left -= me;
@@ -937,12 +934,13 @@ right_recursion:
 
 word
 pl_term_complexity(term_t t, term_t mx, term_t count)
-{ int c, m;
+{ GET_LD
+  int c, m;
 
   if ( !PL_get_integer(mx, &m) )
     m = INT_MAX;
 
-  c = count_term(valTermRef(t), m);
+  c = count_term(valTermRef(t), m PASS_LD);
   if ( c < 0 || c > m )
     fail;
 
@@ -971,7 +969,8 @@ whether that is worth the trouble?
 
 void
 undo_while_saving_term(mark *m, Word term)
-{ compile_info info;
+{ GET_LD
+  compile_info info;
   copy_info b;
   int n;
   Word *p;

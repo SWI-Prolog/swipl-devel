@@ -13,9 +13,6 @@
 #include "pl-ctype.h"
 #include <errno.h>
 
-#undef LD
-#define LD LOCAL_LD
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog  new-style  foreign-language  interface.   This  new  foreign
 interface is a mix of the old  interface using the ideas on term-handles
@@ -58,25 +55,16 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #undef ulong
 #define ulong unsigned long
 
-#ifdef O_PLMT
 static inline word
-__valHandle(term_t r, PL_local_data_t *__PL_ld)
+__valHandle(term_t r ARG_LD)
 { Word p = valTermRef(r);
 
   deRef(p);
   return *p;
 }
-#define valHandle(r) __valHandle(r, __PL_ld)
-#else
-static inline word
-valHandle(term_t r)
-{ GET_LD
-  Word p = valTermRef(r);
 
-  deRef(p);
-  return *p;
-}
-#endif
+#define valHandle(r) __valHandle(r PASS_LD)
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deduce the value to store a copy of the  contents of p. This is a *very*
@@ -90,15 +78,8 @@ variation, which is a bit longer, a function might actually be faster.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static word
-linkVal(Word p)
-{ GET_LD
-  
-#if 0
-  deRef(p);
-  return isVar(*p) ? makeRef(p) : *p;
-#else
-#if 1
-  word w = *p;
+_ld_linkVal(Word p ARG_LD)
+{ word w = *p;
 
   if ( isVar(w) )
     return makeRef(p);
@@ -111,20 +92,13 @@ linkVal(Word p)
   }
 
   return w;
-#else
-  word w = 0;
-
-  while(isRef(*p))
-  { w = *p;
-    p = unRef(w);
-  }
-  if ( isVar(*p) )
-    return w ? w : makeRef(p);
-  return *p;
-#endif
-#endif
 }
 
+#ifdef O_PLMT
+#define linkVal(p) _ld_linkVal(p, LD)
+#else
+#define linkVal(p) _ld_linkVal(p)
+#endif
 
 term_t
 wordToTermRef(Word p)
@@ -1962,7 +1936,7 @@ PL_unify(term_t t1, term_t t2)
   mark m;
 
   Mark(m);
-  if ( !unify(p1, p2, environment_frame) )
+  if ( !unify(p1, p2 PASS_LD) )
   { Undo(m);
     fail;
   }
@@ -2563,7 +2537,9 @@ PL_record(term_t t)
 
 void
 PL_recorded(record_t r, term_t t)
-{ copyRecordToGlobal(t, r);
+{ GET_LD
+
+  copyRecordToGlobal(t, r PASS_LD);
 }
 
 
@@ -2793,6 +2769,4 @@ PL_query(int query)
   }
 }
 
-#undef LD
-#define LD GLOBAL_LD
 

@@ -108,7 +108,7 @@ hashIndex(word key, int buckets)
 
 
 static word
-indexOfWord(word w)
+indexOfWord(word w ARG_LD)
 { for(;;)
   { switch(tag(w))
     { case TAG_VAR:
@@ -134,10 +134,10 @@ indexOfWord(word w)
 
 
 void
-getIndex(register Word argv, register unsigned long pattern, int card,
-	 struct index *index)
+getIndex(Word argv, unsigned long pattern, int card, struct index *index
+	 ARG_LD)
 { if ( pattern == 0x1L )
-  { index->key     = indexOfWord(*argv);
+  { index->key     = indexOfWord(*argv PASS_LD);
     index->varmask = (index->key ? (unsigned long) ~0L : 0L);
 
     return;
@@ -152,7 +152,7 @@ getIndex(register Word argv, register unsigned long pattern, int card,
     { for(;(pattern & 0x1) == 0; pattern >>= 1)
 	argv++;
 
-      key = indexOfWord(*argv);
+      key = indexOfWord(*argv PASS_LD);
       if ( !key )
       { index->varmask &= varMask(card, a);
       }
@@ -211,7 +211,8 @@ findClause(ClauseRef cref, Word argv,
 	return NULL;
     }
   } else if ( def->indexPattern == 0x1L ) /* first-argument indexing */
-  { word key = indexOfWord(*argv);
+  { GET_LD
+    word key = indexOfWord(*argv PASS_LD);
 
     if ( !key )
       goto noindex;
@@ -243,8 +244,10 @@ findClause(ClauseRef cref, Word argv,
     return findClause(cref, argv, fr, def, deterministic);
   } else
   { struct index argIndex;
+    GET_LD
 
-    getIndex(argv, def->indexPattern, def->indexCardinality, &argIndex);
+    getIndex(argv, def->indexPattern, def->indexCardinality, &argIndex
+	     PASS_LD);
     for(; cref; cref = cref->next)
     { if ( matchIndex(argIndex, cref->clause->index) &&
 	   visibleClause(cref->clause, gen))
@@ -332,7 +335,7 @@ nextClause(ClauseRef cref, unsigned long generation, bool *det, Index ctx)
 
 
 static ClauseRef
-firstClause(Word argv, LocalFrame fr, Definition def, bool *det)
+firstClause(Word argv, LocalFrame fr, Definition def, bool *det ARG_LD)
 { ClauseRef cref;
   struct index buf;
   Index ctx = &buf;
@@ -355,7 +358,7 @@ again:
     }
     return NULL;
   } else if ( def->indexPattern == 0x1L )
-  { word key = indexOfWord(*argv);
+  { word key = indexOfWord(*argv PASS_LD);
 
     if ( key == 0L )
       goto noindex;
@@ -372,7 +375,7 @@ again:
   { reindexDefinition(def);
     goto again;
   } else
-  { getIndex(argv, def->indexPattern, def->indexCardinality, ctx);
+  { getIndex(argv, def->indexPattern, def->indexCardinality, ctx PASS_LD);
     cref = def->definition.clauses;
   }
 
@@ -406,14 +409,17 @@ reindexClause(Clause clause)
 	clause->index.varmask = 0L;
       }
     } else
-    { fid_t fid = PL_open_foreign_frame();
+    { GET_LD
+  
+      fid_t fid = PL_open_foreign_frame();
       term_t head = PL_new_term_ref();
 
       decompileHead(clause, head);
       getIndex(argTermP(*valTermRef(head), 0),
 	       pattern,
 	       proc->definition->indexCardinality,
-	       &clause->index);
+	       &clause->index
+	       PASS_LD);
       PL_discard_foreign_frame(fid);
     }
   }

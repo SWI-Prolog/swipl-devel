@@ -973,8 +973,12 @@ pl_retract(term_t term, word h)
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 			ATOM_modify, PL_new_atom("foreign_procedure"), def);
       if ( false(def, DYNAMIC) )
-	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-			ATOM_modify, PL_new_atom("static_procedure"), def);
+      { if ( isDefinedProcedure(proc) )
+	  return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+			  ATOM_modify, PL_new_atom("static_procedure"), def);
+	set(def, DYNAMIC);		/* implicit */
+	fail;				/* no clauses */
+      }
 
       if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
 	printMessage(ATOM_informational,
@@ -1046,8 +1050,12 @@ pl_retractall(term_t head)
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_modify, PL_new_atom("foreign_procedure"), def);
   if ( false(def, DYNAMIC) )
-    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-		    ATOM_modify, PL_new_atom("static_procedure"), def);
+  { if ( isDefinedProcedure(proc) )
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		      ATOM_modify, PL_new_atom("static_procedure"), def);
+    set(def, DYNAMIC);			/* implicit.  Warn? */
+    succeed;				/* nothing to retract */
+  }
 
   enterDefinition(def);
   for(cref = def->definition.clauses; cref; cref = cref->next)

@@ -161,7 +161,9 @@ and while loading .wic files.  It comes at no price.
 		 *******************************/
 
 #define isRef(w)	(tag(w) == TAG_REFERENCE)
+#define isRefL(w)	(tagex(w) == (TAG_REFERENCE|STG_LOCAL))
 #define unRef(w)	((Word)valPtr(w))
+#define unRefL(w)	((Word)valPtr2(w, STG_LOCAL))
 #define deRef(p)	{ while(isRef(*(p))) (p) = unRef(*(p)); }
 #define deRef2(p, d)	{ (d) = (p); deRef(d); }
 

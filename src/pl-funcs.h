@@ -38,7 +38,6 @@ void *		xrealloc(void *mem, size_t size);
 
 /* pl-wam.c */
 word		pl_count(void);
-bool		unify(Word t1, Word t2, LocalFrame env);
 bool		unify_ptrs(Word t1, Word t2);
 bool		can_unify(Word t1, Word t2);
 word		pl_alt(word h);
@@ -89,7 +88,7 @@ void		initArith(void);
 int		indexArithFunction(functor_t fdef, Module m);
 functor_t	functorArithFunction(int n);
 bool		ar_func_n(code n, int argc, Number *stack);
-int		valueExpression(term_t p, Number n);
+int		valueExpression(term_t p, Number n ARG_LD);
 int		toIntegerNumber(Number n);
 void		canoniseNumber(Number n);
 
@@ -143,7 +142,8 @@ word		parseSaveProgramOptions(term_t args,
 /* pl-index.c */
 int		cardinalityPattern(unsigned long pattern);
 void		getIndex(Word argv, unsigned long pattern, int card,
-			 struct index *);
+			 struct index *
+			 ARG_LD);
 ClauseRef	findClause(ClauseRef cl, Word argv,
 			   LocalFrame fr, Definition def, bool *deterministic);
 bool		reindexClause(Clause clause);
@@ -297,7 +297,7 @@ void		initFeatures(void);
 
 /* pl-fli.c */
 word		makeNum(long i);
-void		finish_foreign_frame();
+void		finish_foreign_frame(ARG1_LD);
 void		_PL_put_number(term_t t, Number n);
 int		_PL_unify_number(term_t t, Number n);
 predicate_t	_PL_predicate(const char *name, int arity, const char *module,
@@ -607,11 +607,11 @@ word		pl_atom_to_term(term_t term, term_t atom, term_t bindings);
 /* pl-rec.c */
 void		initRecords(void);
 Record		compileTermToHeap(term_t term);
-void		copyRecordToGlobal(term_t copy, Record term);
-int		structuralEqualArg1OfRecord(term_t t, Record r);
+void		copyRecordToGlobal(term_t copy, Record term ARG_LD);
+int		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
 bool		freeRecord(Record record);
 bool		unifyKey(term_t key, word val);
-word		getKey(term_t key);
+int		getKeyEx(term_t key, word *k);
 word		pl_current_key(term_t k, word h);
 word		pl_recorda(term_t key, term_t term, term_t ref);
 word		pl_recordz(term_t key, term_t term, term_t ref);
