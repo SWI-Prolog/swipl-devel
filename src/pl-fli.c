@@ -783,6 +783,14 @@ PL_unify_string_chars(term_t t, const char *s)
   return unifyAtomic(p, str);
 }
 
+int
+PL_unify_string_nchars(term_t t, int len, const char *s)
+{ word str = globalNString(len, (char *)s);
+  Word p = valHandleP(t);
+
+  return unifyAtomic(p, str);
+}
+
 #endif
 
 		 /*******************************
@@ -952,7 +960,7 @@ PL_unify_list_chars(term_t t, const char *chars)
 
   for( ; *chars; chars++ )
   { if ( !PL_unify_list(t, head, t) ||
-	 !PL_unify_integer(head, *chars) )
+	 !PL_unify_integer(head, (int)*chars & 0xff) )
       fail;
   }
 

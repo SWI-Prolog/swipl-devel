@@ -16,6 +16,7 @@ Void		alloc_global(int n);
 Void		alloc_heap(size_t n);
 word		globalFunctor(FunctorDef def);
 word		globalString(const char *s);
+word		globalNString(long len, const char *s);
 word		heapString(const char *s);
 Word		newTerm(void);
 double		unpack_real(Word p);
@@ -231,6 +232,7 @@ word		pl_is_absolute_file_name(term_t name);
 word		pl_chdir(term_t dir);
 word		pl_file_base_name(term_t f, term_t b);
 word		pl_file_dir_name(term_t f, term_t b);
+word		pl_file_name_extension(term_t base, term_t ext, term_t full);
 word		pl_prolog_to_os_filename(term_t pl, term_t os);
 #ifdef __WIN32__
 word		pl_make_fat_filemap(term_t dir);
@@ -362,6 +364,10 @@ char *		Unsetenv(char *name);
 int		System(char *cmd);
 char *		Symbols(void);
 void		Pause(real time);
+#ifdef HAVE_LIBREADLINE
+word		pl_rl_read_init_file(term_t file);
+word		pl_rl_add_history(term_t text);
+#endif
 
 /* pl-prims.c */
 word		pl_nonvar(term_t k);
@@ -416,6 +422,7 @@ word		pl_concat(term_t a1, term_t a2, term_t a3);
 word		pl_concat_atom(term_t list, term_t atom);
 word		pl_apropos_match(term_t a1, term_t a2);
 word		pl_string_length(term_t str, term_t l);
+word		pl_string_concat(term_t a1, term_t a2, term_t a3, word h);
 word		pl_string_to_atom(term_t str, term_t a);
 word		pl_string_to_list(term_t str, term_t list);
 word		pl_substring(term_t str, term_t offset,

@@ -59,11 +59,16 @@ static struct foreign {
   FRG("flush",			0, pl_flush,			TRACE_ME),
   FRG("prompt",			2, pl_prompt,			TRACE_ME),
   FRG("prompt1",		1, pl_prompt1,			TRACE_ME),
+#ifdef HAVE_LIBREADLINE
+  FRG("rl_read_init_file",	1, pl_rl_read_init_file,	TRACE_ME),
+  FRG("rl_add_history",		1, pl_rl_add_history,		TRACE_ME),
+#endif
   FRG("expand_file_name",	2, pl_expand_file_name,		TRACE_ME),
   FRG("$absolute_file_name",	2, pl_absolute_file_name,	TRACE_ME),
   FRG("is_absolute_file_name",	1, pl_is_absolute_file_name,	TRACE_ME),
   FRG("file_base_name",		2, pl_file_base_name,		TRACE_ME),
   FRG("file_directory_name",	2, pl_file_dir_name,		TRACE_ME),
+  FRG("file_name_extension",	3, pl_file_name_extension,	TRACE_ME),
   FRG("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	TRACE_ME),
 #if defined(O_XOS) && defined(__WIN32__)
   FRG("make_fat_filemap",	1, pl_make_fat_filemap,		TRACE_ME),
@@ -300,11 +305,12 @@ static struct foreign {
 #ifdef O_DLL
   FRG("open_dll",		2, pl_open_dll,			TRACE_ME),
   FRG("close_dll",		1, pl_close_dll,		TRACE_ME),
-  FRG("call_dll_function",	2, pl_call_dll_function,    META|TRACE_ME),
+  FRG("call_dll_function",	2, pl_call_dll_function,   META|TRACE_ME),
 #endif /*O_DLL*/
 
 #if O_STRING
   FRG("string",			1, pl_string,			TRACE_ME),
+  FRG("string_concat",		3, pl_string_concat,	   NDET|TRACE_ME),
   FRG("string_length",		2, pl_string_length,		TRACE_ME),
   FRG("string_to_atom",		2, pl_string_to_atom,		TRACE_ME),
   FRG("string_to_list",		2, pl_string_to_list,		TRACE_ME),

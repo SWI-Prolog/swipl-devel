@@ -217,6 +217,8 @@ __pl_export int		PL_unify_atom(term_t t, atom_t a);
 __pl_export int		PL_unify_atom_chars(term_t t, const char *chars);
 __pl_export int		PL_unify_list_chars(term_t t, const char *chars);
 __pl_export int		PL_unify_string_chars(term_t t, const char *chars);
+__pl_export int		PL_unify_string_nchars(term_t t,
+					       int len, const char *chars);
 __pl_export int		PL_unify_integer(term_t t, long n);
 __pl_export int		PL_unify_float(term_t t, double f);
 __pl_export int		PL_unify_pointer(term_t t, void *ptr);

@@ -500,16 +500,8 @@ $extend_file(File, Exts, FileEx) :-
 	
 $ensure_extensions([], _, []).
 $ensure_extensions([E|E0], F, [FE|E1]) :-
-	$ensure_extension(E, F, FE),
+	file_name_extension(F, E, FE),
 	$ensure_extensions(E0, F, E1).
-
-$ensure_extension('', File, FileEx) :- !,
-	FileEx = File.
-$ensure_extension(Ext, File, FileEx) :-
-	(   concat(_, Ext, File)
-	->  FileEx = File
-	;   concat(File, Ext, FileEx)
-	).
 
 $list_to_set([], []).
 $list_to_set([H|T], R) :-

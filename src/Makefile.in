@@ -25,6 +25,8 @@ bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
 mansec=1
 mandir=$(prefix)/man/man$(mansec)
+lmansec=3
+lmandir=$(prefix)/man/man$(lmansec)
 
 CC=@CC@
 LIBS=@LIBS@
@@ -236,8 +238,10 @@ iinclude:
 iman:
 		$(SED) 's/PL/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(PLBASE)/man/chpl.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/readline.3 $(PLBASE)/man/readline.$(lmansec)
 		-$(INSTALL_DATA) $(PLBASE)/man/$(PL).$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(PLBASE)/man/chpl.$(mansec) $(mandir)
+		-$(INSTALL_DATA) $(PLBASE)/man/readline.$(lmansec) $(lmandir)
  
 #
 # runtime-only environment installation

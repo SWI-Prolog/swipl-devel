@@ -1838,6 +1838,86 @@ pl_file_dir_name(term_t f, term_t b)
 }
 
 
+static int
+has_extension(const char *name, const char *ext)
+{ const char *s = name + strlen(name);
+
+  if ( ext[0] == EOS )
+    succeed;
+
+  while(*s != '.' && *s != '/' && s > name)
+    s--;
+  if ( *s == '.' && s > name && s[-1] != '/' )
+  { if ( ext[0] == '.' )
+      ext++;
+    if ( status.case_sensitive_files )
+      return strcmp(&s[1], ext) == 0;
+    else
+      return stricmp(&s[1], ext) == 0;
+  }
+
+  fail;
+}
+
+
+word
+pl_file_name_extension(term_t base, term_t ext, term_t full)
+{ char *b, *e, *f;
+  char buf[MAXPATHLEN];
+
+  if ( PL_get_chars(full, &f, CVT_ALL) )
+  { char *s = f + strlen(f);		/* ?base, ?ext, +full */
+
+    while(*s != '.' && *s != '/' && s > f)
+      s--;
+    if ( *s == '.' )
+    { if ( PL_get_chars(ext, &e, CVT_ALL) )
+      { if ( e[0] == '.' )
+	  e++;
+	if ( status.case_sensitive_files )
+	{ TRY(strcmp(&s[1], e) == 0);
+	} else
+	{ TRY(stricmp(&s[1], e) == 0);
+	}
+      } else
+      { TRY(PL_unify_atom_chars(ext, &s[1]));
+      }
+      if ( s-f > MAXPATHLEN )
+	return warning("file_extension/2: file too long");
+      strncpy(buf, f, s-f);
+      buf[s-f] = EOS;
+
+      return PL_unify_atom_chars(base, buf);
+    }
+    if ( PL_unify_atom_chars(ext, "") &&
+	 PL_unify(full, base) )
+      PL_succeed;
+
+    PL_fail;
+  }
+
+  if ( PL_get_chars(base, &b, CVT_ALL|BUF_RING) &&
+       PL_get_chars(ext, &e, CVT_ALL) )
+  { char *s;
+
+    if ( e[0] == '.' )		/* +Base, +Extension, -full */
+      e++;
+    if ( has_extension(b, e) )
+      return PL_unify(base, full);
+    if ( strlen(b) + 1 + strlen(e) + 1 > MAXPATHLEN )
+      return warning("file_extension/2: file too long");
+    strcpy(buf, b);
+    s = buf + strlen(buf);
+    *s++ = '.';
+    strcpy(s, e);
+
+    return PL_unify_atom_chars(full, buf);
+  }
+
+  return warning("file_extension/2: instantiation fault");
+}
+
+
 word
 pl_prolog_to_os_filename(term_t pl, term_t os)
 {

@@ -43,6 +43,23 @@ ftp://swi.psy.uva.nl/pub/SWI-Prolog/old-md-files.tgz to check the manual
 configuration.
 
 
+SWI-Prolog and 8-bit CHARACTERS
+===============================
+
+If you built SWI-Prolog  using  the   readline  library,  by default you
+cannot enter 8-bit characters from  the   terminal  as  the GNU readline
+library  maps  any   character   with   the    high-bit   set   to   ESC
+<character-with-8bit-cleared>. To fix this, create a file ~/.inputrc and
+add the following lines:
+
+################################################################
+set convert-meta off
+set output-meta  on
+################################################################
+
+See readline(3) for details.
+
+
 GNU-EMACS INTERFACE
 ===================
 
@@ -57,16 +74,15 @@ MODIFYING SWI-Prolog
 ====================
 
 You are free to modify SWI-Prolog under   the licence terms specified in
-the file LICENCE.   You  may  wish  the   other  users  can  share  your
-improvements.   For  code  to  be  accepted  as  part  of  the  official
+the  file  LICENCE.  You  may  wish  the  other  users  can  share  your
+improvements.  For  code  to  be  accepted   as  part  of  the  official
 distribution, it should be written in the same  style as the rest of the
-SWI-Prolog sources.  I do not claim this style to be the best available,
-but I want the  entire  source  to   have  a  consistent  style.  Please
-document the modifications and  if   reasonably  possible  indicate them
-using #if ...  #endif.   Please  do  not   send  `diff'  files  to me, I
-probably do not have the same version of the sources, so complete files,
-with  the  changes  indicated  with  #if   ...   #endif  are  easier  to
-incorporate.
+SWI-Prolog sources. I do not claim this  style to be the best available,
+but I want the entire source to have a consistent style. Please document
+the modifications and if reasonably indicate  them using #if ... #endif.
+Please do not send `diff' files to me,   I probably do not have the same
+version of the sources, so complete   files,  with the changes indicated
+with #if ... #endif are easier to incorporate.
 
 If your change is accepted, you will  be propriately acknowledged in the
 distribution.

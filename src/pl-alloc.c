@@ -244,6 +244,20 @@ globalString(const char *s)
 }
 
 word
+globalNString(long l, const char *s)
+{ register long chars = ROUND(l+1, sizeof(word));
+  register Word gt = allocGlobal(2 + (chars + sizeof(word) - 1)/sizeof(word));
+  char *t;
+
+  gt[0] = gt[1+chars/sizeof(word)] = (((l-1)<<LMASK_BITS) | STRING_MASK);
+  t = (char *)(gt+1);
+  strncpy(t, s, l);
+  t[l] = EOS;
+
+  return ((word)gt | INDIRECT_MASK);
+}
+
+word
 heapString(const char *s)
 { long l = strlen(s) + 1;
   register long chars = ROUND(l, sizeof(word));

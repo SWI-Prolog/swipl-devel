@@ -1460,9 +1460,8 @@ isPrefix(register char *s, register char *q)
   return *s == EOS;
 }
 
-
-word
-pl_concat(term_t a1, term_t a2, term_t a3)
+static word
+concat(term_t a1, term_t a2, term_t a3, int (*out)(term_t, const char *))
 { char *s1 = NULL, *s2 = NULL, *s3 = NULL;
   long l1, l2, l3;
   char *tmp;
@@ -1476,7 +1475,7 @@ pl_concat(term_t a1, term_t a2, term_t a3)
     tmp = alloca(l1 + strlen(s2));
     strcpy(tmp, s1);
     strcpy(tmp+l1, s2);
-    return PL_unify_atom_chars(a3, tmp);
+    return (*out)(a3, tmp);
   }
 
   if (!s3)
@@ -1484,7 +1483,7 @@ pl_concat(term_t a1, term_t a2, term_t a3)
 
   if (s1)
   { if (isPrefix(s1, s3) )
-      return PL_unify_atom_chars(a2, s3+strlen(s1));
+      return (*out)(a2, s3+strlen(s1));
     fail;
   }
 
@@ -1500,10 +1499,16 @@ pl_concat(term_t a1, term_t a2, term_t a3)
     q = alloca(ld+1);
     strncpy(q, s3, ld);
     q[ld] = EOS;
-    return PL_unify_atom_chars(a1, q);
+    return (*out)(a1, q);
   }
 
   return warning("concat/3: instantiation fault");
+}
+
+
+word
+pl_concat(term_t a1, term_t a2, term_t a3)
+{ return concat(a1, a2, a3, PL_unify_atom_chars);
 }
 
 
@@ -1576,6 +1581,37 @@ pl_string_length(term_t str, term_t l)
   return warning("string_length/2: instantiation fault");
 }
 
+
+word
+pl_string_concat(term_t a1, term_t a2, term_t a3, word h)
+{ if ( h || (PL_is_variable(a1) && PL_is_variable(a2)) )
+  { char *s;
+    int n;
+
+    switch(ForeignControl(h))
+    { case FRG_FIRST_CALL:
+	n = 0;
+        goto cont;
+      case FRG_REDO:
+	n = ForeignContext(h);
+      cont:
+	if ( !PL_get_chars(a3, &s, CVT_ALL) )
+	  fail;
+        PL_unify_string_nchars(a1, n, s);
+	PL_unify_string_chars(a2, &s[n]);
+	if ( s[n] )
+	  ForeignRedo(n+1);
+	else
+	  succeed;
+      case FRG_CUTTED:
+      default:
+	succeed;
+    }
+  } else
+    return concat(a1, a2, a3, PL_unify_string_chars);
+}
+
+
 word
 pl_string_to_atom(term_t str, term_t a)
 { char *s;
@@ -1588,6 +1624,7 @@ pl_string_to_atom(term_t str, term_t a)
   return warning("string_to_atom/2: instantiation fault");
 }
 
+
 word
 pl_string_to_list(term_t str, term_t list)
 { char *s;
@@ -1599,6 +1636,7 @@ pl_string_to_list(term_t str, term_t list)
 
   return warning("string_to_list/2 instantiation fault");
 }
+
 
 word
 pl_substring(term_t str, term_t offset,

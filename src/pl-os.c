@@ -1685,6 +1685,34 @@ extern Function *rl_event_hook;
 extern char *filename_completion_function(char *, int);
 
 
+word
+pl_rl_read_init_file(term_t file)
+{ char *f;
+
+  if ( (f = get_filename(file, NULL, 0)) )
+  { rl_read_init_file(f);
+
+    succeed;
+  }
+
+  fail;
+}
+
+
+word
+pl_rl_add_history(term_t text)
+{ char *s;
+
+  if ( PL_get_chars(text, &s, CVT_ALL) )
+  { add_history(s);
+
+    succeed;
+  }
+
+  return warning("rl_add_history/1: instantation fault");
+}
+
+
 static int
 event_hook(void)
 { /*ttybuf tab;*/
@@ -1794,7 +1822,7 @@ Sread_readline(void *handle, char *buf, int size)
 
       for(s = line; *s; s++)
       { if ( !isBlank(*s) )
-	{ add_history(line);
+	{ /* add_history(line); */	/* done from Prolog */
 	  break;
 	}
       }
@@ -1905,7 +1933,8 @@ Sread_terminal(void *handle, char *buf, int size)
 
   if ( PL_dispatch_events )
   { for(;;)
-    { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
+    {					/* fixed by Stefan Mueller */
+      if ( (*PL_dispatch_events)(0) == PL_DISPATCH_INPUT )
 #ifdef __WATCOMC__
       { int c = (ttymode == TTY_RAW) ? getch() : getche();
 

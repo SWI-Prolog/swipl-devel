@@ -112,6 +112,11 @@ prompt_history(Prompt) :-
 %   save_event(+Event)
 %   Save Event in the history system. Remove possibly outdated events.
 
+save_event(_, Event) :-
+	feature(readline, true),
+	string_concat(Event, '.', RlEvent),
+	call(rl_add_history(RlEvent)),	% fool check/0
+	fail.
 save_event(Dont, Event) :-
 	memberchk(Event, Dont), !.
 save_event(_, Event) :-

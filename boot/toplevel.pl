@@ -181,7 +181,7 @@ $load_associated_file :-
 	feature(associate, Ext),
 	$argv([_,OsFile]),
 	prolog_to_os_filename(File, OsFile),
-	concat(_, Ext, File),
+	file_name_extension(_, Ext, File),
 	access_file(File, read),
 	file_directory_name(File, Dir),
 	chdir(Dir),

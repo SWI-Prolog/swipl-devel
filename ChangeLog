@@ -4,6 +4,17 @@
 Version 2.5.1
 =============
 
+  * ADDED: string_concat/3 with same semantics as concat/3, but unbound
+    will be unified with a string object.
+
+  * ADDED: rl_read_init_file(+File) and rl_add_history(+Line) for better
+    readline interaction.  Added readline.3 to the standard installed
+    manual set.
+
+  * ADDED: file_name_extension/3 to reason about filename extensions in
+    a machine-independent manner.  Fixes Win32 associations if the filename
+    has uppercase extension.
+
   * FIXED: Stack expansion for some foreign predicates using the local
     stack as temporary area for machines with exception-based stack-overflow
     handling that do not provide the address of the segmentation fault to

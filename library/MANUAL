@@ -3555,6 +3555,19 @@ string_length(+String, -Length)
      floats as its first argument.
 
 
+string_concat(?String1, ?String2, ?String3)
+     Similar to concat/3, but the unbound argument will be
+     unified with a string object rather than an atom.
+     Also, if both String1 and String2 are unbound and
+     String3 is bound to text, it breaks String3, unifying
+     the start with String1 and the end with String2 as
+     append does with lists.  Note that this is not
+     particulary fast on long strings as for each redo the
+     system has to create two entirely new strings, while
+     the list equivalent only creates a single new
+     list-cell and moves some pointers around.
+
+
 substring(+String, +Start, +Length, -Sub)
      Create a substring of String that starts at character
      Start (1 base) and has Length characters.  Unify this
@@ -4698,6 +4711,17 @@ is_absolute_file_name(+File)
      provide platform-independent checking for absolute
      paths.  See also absolute_file_name/2 and
      prolog_to_os_filename/2.
+
+
+file_name_extension(?Base, ?Extension, ?Name)
+     This predicate is used to add, remove or test filename
+     extensions.  The main reason for its introduction is
+     to deal with different filename properties in a
+     portable manner.  If the filesystem is
+     case-insensitive, testing for an extension will be
+     done case-insensitive too.  Extension may be specified
+     with or without a leading dot (.).  If an Extension is
+     generated, it will not have a leading dot.
 
 
 expand_file_name(+WildCard, -List)
@@ -8347,6 +8371,25 @@ exception(+Exception, +Context, -Action)
          with GNU Emacs.
 
 
+7.4  Readline Interaction
+
+The following predicates are available if
+feature(readline, true) succeeds.  They allow for direct
+interaction with the GNU readline library.  See also
+readline(3).
+
+
+rl_read_init_file(+File)
+     Read a readline initialisation file.  Readline by
+     default reads ~/.inputrc.  This predicate may be used
+     to read alternative readline initialisation files.
+
+
+rl_add_history(+Line)
+     Add a line to the Control-P/Control-N history system
+     of the readline library.
+
+
 Chapter  8
 
 Summary
@@ -8495,6 +8538,7 @@ fail/1                        Immediately fail named block.  See block/3
 feature/2                     Get system configuration parameters
 file_base_name/2              Get file part of path
 file_directory_name/2         Get directory part of path
+file_name_extension/3         Add, string or test file extensions
 file_search_path/2            Define path-aliases for locating files
 fileerrors/2                  Do/Don't warn on file errors
 findall/3                     Find all solutions to a goal
@@ -8684,6 +8728,8 @@ show_profile/1                Show results of the profiler
 size_file/2                   Get size of a file in characters
 skip/1                        Skip to character in current input
 skip/2                        Skip to character on stream
+rl_add_history/1              Add line to readline(3) history
+rl_read_init_file/1           Read readline(3) init file
 sleep/1                       Suspend execution for specified time
 sort/2                        Sort elements in a list
 source_file/1                 Examine currently loaded source files
@@ -8695,6 +8741,7 @@ statistics/0                  Show execution statistics
 statistics/2                  Obtain collected statistics
 stream_position/3             Get/seek to position in file
 string/1                      Type check for string
+string_concat/3               concat/3 for strings (non-deterministic)
 string_length/2               Determine length of a string
 string_to_atom/2              Conversion between string and atom
 string_to_list/2              Conversion between string and list of ASCII
