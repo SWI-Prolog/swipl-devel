@@ -138,7 +138,7 @@ aborted :-
 	gui(Level, Gui),
 	(   Level \== 0
 	->  send(Gui, destroy)
-	;   send(Gui, clear),
+	;   send(Gui, aborted),
 	    send(Gui, report, status, 'Execution aborted')
 	).
 aborted :-
@@ -214,6 +214,15 @@ clear(F) :->
 	send(StackView, clear),
 	get(F, member, bindings, BindingView),
 	send(BindingView, clear).
+
+
+aborted(F) :->
+	"User has aborted the query"::
+	ignore(send(F, send_hyper, fragment, free)),
+	get(F, member, stack, StackView),
+	send(StackView, aborted),
+	get(F, member, bindings, BindingView),
+	send(BindingView, aborted).
 
 
 fill_menu_bar(F) :->
@@ -444,7 +453,7 @@ frame_finished(F, Frame:int) :->
 	send(StackView, frame_finished, Frame),
 	(   get(F, member, bindings, Bindings),
 	    get(Bindings, prolog_frame, Frame)
-	->  send(Bindings, clear),
+	->  send(Bindings, background, grey80),
 	    send(Bindings, slot, prolog_frame, @nil),
 	    ignore(send(F, send_hyper, fragment, free))
 	;   true
@@ -602,6 +611,11 @@ clear(B) :->
 	send_super(B, clear),
 	send(B, prolog_frame, @nil).
 
+aborted(B) :->
+	"User has aborted the query"::
+	send(B, prolog_frame, @nil),
+	send(B, background, grey80).
+
 details(B, Fragment:[prolog_frame_var_fragment]) :->
 	"View details of the binding"::
 	get(B, prolog_frame, Frame),
@@ -646,6 +660,7 @@ on_click(B, Index:int) :->
 
 bindings(B, Bindings:prolog) :->
 	"Display complete list of bindings"::
+	send(B, background, white),
 	pce_open(B, write, Fd),
 	forall(member(Vars=Value, Bindings),
 	       send(B, append_binding, Vars, Value, Fd)),

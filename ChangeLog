@@ -10,6 +10,9 @@
 VERSION 5.2.0 (May 22, 2003)
 ============================
 
+  * ENHANCED: Source-level debugger only to disactivate the binding view
+    on abort, so you can cut-and-paste bindings to the interaction window.
+
   * FIXED: Bug #56: various issues with 0-bytes in format/3 and friends.
     Mike Elston.
 

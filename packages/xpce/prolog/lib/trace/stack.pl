@@ -207,6 +207,11 @@ clear(B) :->
 	send(B?graphicals, for_all, message(@arg1, destroy)).
 
 
+aborted(B) :->
+	"User has aborted the query"::
+	send(B, clear).			% we could also de-activate the view
+
+
 member(B, F:int, PC:[name|int], V:prolog_stack_frame) :<-
 	"Find visualiser from frame"::
 	get(B, members, Table),
