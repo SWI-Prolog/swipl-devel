@@ -222,7 +222,9 @@ __consPtr() is inlined for this module (including pl-wam.c), but external
 for the other modules, where it is far less fime-critical.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef consPtr
+#if !defined(consPtr) || defined(SECURE_GC)
+#undef consPtr
+
 static inline word
 __consPtr(void *p, int ts)
 { unsigned long v = (unsigned long) p;

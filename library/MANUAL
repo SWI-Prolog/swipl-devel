@@ -11,6 +11,7 @@
                     Tel.  (+31) 20 5256121
 
                          SSWWII--PPrroolloogg 22..99
+
                         RReeffeerreennccee MMaannuuaall
 
             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _2_._9_._5_, _O_c_t_o_b_e_r _1_9_9_7
@@ -19,12 +20,13 @@
 
                        jan@swi.psy.uva.nl
 
-SWI-Prolog  is a Prolog implementation based on a subset of the
-WAM  (Warren Abstract Machine ).   SWI-Prolog has been designed
-and  implemented  such  that  it  can  easily  be modified  for
-experiments  with  logic programming  and the  relation between
-logic  programming and other programming paradigms (such as the
-object  oriented XPCE environment ).  SWI-Prolog has a rich set
+SWI-Prolog  is  a Prolog  implementation based  on a  subset of
+the  WAM (Warren Abstract Machine  [Warren, 1983]).  SWI-Prolog
+has  been  designed and  implemented  such that  it  can easily
+be  modified  for experiments  with logic  programming  and the
+relation   between  logic  programming  and  other  programming
+paradigms   (such  as  the  object  oriented  XPCE  environment
+[Anjewierden & Wielemaker, 1989]).   SWI-Prolog has  a rich set
 of  built-in predicates and reasonable performance, which makes
 it  possible to  develop substantial applications  in it.   The
 current  version offers a module system, garbage collection and
@@ -52,38 +54,41 @@ is  limited due  to the  main objectives:    portability (SWI-Prolog  is
 entirely written in C and Prolog) and modifiability.
 
 SWI-Prolog  is based  on  a very  restricted  form  of the  WAM  (Warren
-Abstract  Machine) described  in   which  defines only  7  instructions.
-Prolog  can easily  be  compiled into  this  language and  the  abstract
-machine code  is easily  decompiled back  into Prolog.   As  it is  also
-possible  to wire  a standard  4-port debugger  in  the WAM  interpreter
-there is  no need  for a  distinction between  compiled and  interpreted
-code.    Besides simplifying  the  design of  the Prolog  system  itself
-this  approach has  advantages for  program development:   the  compiler
-is  simple and  fast,  the  user does  not  have  to decide  in  advance
-whether debugging is  required and the system only runs  slightly slower
-when in  debug mode.    The price  we have  to pay  is some  performance
-degradation (taking out  the debugger from the WAM interpreter  improves
-performance by about  20%) and somewhat additional memory usage  to help
-the decompiler and debugger.
+Abstract Machine) described  in [Bowen & Byrd, 1983] which defines  only
+7  instructions.   Prolog  can  easily be  compiled into  this  language
+and the  abstract machine code  is easily  decompiled back into  Prolog.
+As  it is  also  possible to  wire a  standard  4-port debugger  in  the
+WAM interpreter  there is  no need  for a  distinction between  compiled
+and interpreted  code.   Besides  simplifying the design  of the  Prolog
+system  itself this  approach has  advantages  for program  development:
+the  compiler is  simple and  fast, the  user  does not  have to  decide
+in  advance whether  debugging  is required  and  the system  only  runs
+slightly  slower when  in debug  mode.   The  price we  have  to pay  is
+some  performance degradation  (taking  out the  debugger from  the  WAM
+interpreter improves performance  by about 20%) and somewhat  additional
+memory usage to help the decompiler and debugger.
 
 SWI-Prolog  extends  the  minimal  set  of   instructions  described  in
-to  improve  performance.    While  extending  this set  care  has  been
-taken  to  maintain  the advantages  of  decompilation  and  tracing  of
-compiled  code.     The  extensions   include  specialised  instructions
-for unification,  predicate  invocation, some  frequently used  built-in
-predicates, arithmetic, and  control (;//22, |//22), if-then (->//22)  and not
-(\+//11).
+[Bowen & Byrd, 1983]  to improve  performance.    While  extending  this
+set care  has been  taken to  maintain the  advantages of  decompilation
+and  tracing of  compiled  code.    The extensions  include  specialised
+instructions  for unification,  predicate  invocation,  some  frequently
+used built-in  predicates, arithmetic, and  control (;//22, |//22),  if-then
+(->//22) and not (\+//11).
 
-This  manual  does  not  describe  the  full  syntax  and  semantics  of
-SWI-Prolog,  nor how  one  should write  a  program in  Prolog.    These
-subjects have  been described extensively  in the literature.   See ,  ,
-and .   For  more advanced Prolog material  see .   Syntax and  standard
-operator declarations confirm  to the `Edinburgh standard'.   Most built
-in predicates are compatible with those described in .   SWI-Prolog also
-offers a number  of primitive predicates compatible with Quintus  Prolog
-and BIM_Prolog .
+This manual  does not  describe the  full syntax and  semantics of  SWI-
+Prolog, nor how  one should write a program  in Prolog.  These  subjects
+have been described extensively in the literature.   See [Bratko, 1986],
+[Sterling & Shapiro, 1986],   and   [Clocksin & Melish, 1987].       For
+more  advanced  Prolog   material  see  [OKeefe, 1990].     Syntax   and
+standard  operator declarations  confirm  to the  `Edinburgh  standard'.
+Most  built  in  predicates  are  compatible  with  those  described  in
+[Clocksin & Melish, 1987].      SWI-Prolog  also  offers  a  number   of
+primitive  predicates compatible  with  Quintus Prolog  [Qui, 1997]  and
+BIM_Prolog [BIM, 1989].
 
-ISO compliant predicates are based on ``Prolog:  The Standard'', .
+ISO  compliant  predicates  are based  on  ``Prolog:    The  Standard'',
+[Deransart _e_t _a_l_., 1996].
 
 
 11..22 SSttaattuuss
@@ -156,10 +161,11 @@ On the other hand, SWI-Prolog offers some nice facilities:
     the system are provided.
 
   o _I_n_t_e_g_r_a_t_i_o_n _w_i_t_h _X_P_C_E
-    SWI-Prolog  offers  a  tight  integration  to  the  Object  Oriented
-    Package  for User Interface Development,  called XPCE . XPCE  allows
-    you  to implement  graphical  user interfaces  that are  source-code
-    compatible over Unix/X11 and Win32 (Windows 95 and NT).
+    SWI-Prolog   offers  a   tight  integration  to   the  Object   Ori-
+    ented   Package  for   User  Interface   Development,  called   XPCE
+    [Anjewierden & Wielemaker, 1989].    XPCE  allows you  to  implement
+    graphical  user  interfaces  that are  source-code  compatible  over
+    Unix/X11 and Win32 (Windows 95 and NT).
 
 
 11..44 TThhee XXPPCCEE GGUUII ssyysstteemm ffoorr PPrroolloogg
@@ -890,10 +896,10 @@ Trail  stack :    4,096,000        8,192          432 Bytes
 22..66 OOvveerrvviieeww ooff tthhee DDeebbuuggggeerr
 
 SWI-Prolog has  a 6-port  tracer, extending the  standard 4-port  tracer
-with two additional ports.   The optional _u_n_i_f_y port allows the  user to
-inspect the result  after unification of the  head.  The _e_x_c_e_p_t_i_o_n  port
-shows exceptions  raised by tthhrrooww//11 or  one of the built-in  predicates.
-See section 3.8.
+[Clocksin & Melish, 1987]  with two  additional  ports.    The  optional
+_u_n_i_f_y port allows  the user to inspect  the result after unification  of
+the head.  The _e_x_c_e_p_t_i_o_n port shows exceptions raised  by tthhrrooww//11 or one
+of the built-in predicates.  See section 3.8.
 
 The standard  ports are called call,  exit, redo, fail  and unify.   The
 tracer is started  by the ttrraaccee//00 command,  when a spy point is  reached
@@ -1025,13 +1031,14 @@ u ((UUpp))
 w ((WWrriittee))
     Write goals using the Prolog predicate wwrriittee//11.
 
-The  ideal  4  port  model  as  described  in  many  Prolog  books    is
-not visible  in many  Prolog implementations  because code  optimisation
-removes  part  of  the  choice- and  exit  points.     Backtrack  points
-are not  shown if  either the  goal succeeded  deterministically or  its
-alternatives were  removed using the  cut.  When  running in debug  mode
-(ddeebbuugg//00) choice points are only destroyed when removed by the  cut.  In
-debug mode, tail recursion optimisation is switched off.
+The   ideal  4   port  model   as  described   in   many  Prolog   books
+[Clocksin & Melish, 1987] is not visible in many  Prolog implementations
+because  code  optimisation  removes  part  of  the   choice-  and  exit
+points.   Backtrack points  are not shown if  either the goal  succeeded
+deterministically or its alternatives were removed using the cut.   When
+running in  debug mode (ddeebbuugg//00) choice  points are only destroyed  when
+removed by  the cut.    In debug  mode, tail  recursion optimisation  is
+switched off.
 
 
 22..77 CCoommppiillaattiioonn
@@ -1089,9 +1096,9 @@ exec $PL -f none -g "load_files(['$base/load'],[silent(true)])" -t go -
 go :-
         unix(argv(Arguments)),
         append(_SytemArgs, [--|Args], Arguments), !,
-        go(Arguments).
+        go(Args).
 
-go(Arguments) :-
+go(Args) :-
         ...
 
 On Windows  systems, similar  behaviour can  be achieved  by creating  a
@@ -1321,6 +1328,19 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
          If true  (default),  rreeaadd//11 interprets  \  escape sequences  in
          quoted atoms and strings.  May be changed.
 
+    aallllooww__vvaarriiaabbllee__nnaammee__aass__ffuunnccttoorr ((_b_o_o_l))
+         If true  (default  is false),  Functor(arg) is  read  as if  it
+         was written 'Functor'(arg).   Some applications use the  Prolog
+         rreeaadd//11  predicate for  reading  an application  defined  script
+         language.   In these  cases, it is  often difficult to  explain
+         none-Prolog  users  of  the  application  that   constants  and
+         functions can only  start with a  lowercase letter.   Variables
+         can be  turned into atoms  starting with  an uppercase atom  by
+         calling rreeaadd__tteerrmm//22using  the option variable_names  and binding
+         the variables to their name.   Using this feature, F(x)  can be
+         turned into valid syntax for such script languages.   Suggested
+         by Robert van Engelen.  SWI-Prolog specific.
+
     ggcc ((_b_o_o_l))
          If true (default), the garbage collector is active.   If false,
          neither garbage-collection,  nor stack-shifts will take  place,
@@ -1371,8 +1391,8 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
 
 
 sseett__ffeeaattuurree((_+_K_e_y_, _+_V_a_l_u_e))
-    Define  a new feature or change its  value.  Both arguments  must be
-    atoms.
+    Define a new feature or  change its value.  _K_e_y is an atom, _V_a_l_u_e is
+    an atom or number.
 
 
 22..99 AAuuttoommaattiicc llooaaddiinngg ooff lliibbrraarriieess
@@ -1710,9 +1730,9 @@ FFllooaattss  Floating  point  numbers   are  represented  as  native   do
 The boot  compiler (see -b  option) does not  support the module  system
 (yet).    As large  parts of  the system  are written  in Prolog  itself
 we  need some  way to  avoid name  clashes with  the user's  predicates,
-database keys, etc.   Like Edinburgh C-Prolog  all  predicates, database
-keys, etc. that should  be hidden from the user start with a  dollar ($)
-sign (see ssttyyllee__cchheecckk//11).
+database  keys,  etc.    Like  Edinburgh  C-Prolog  [Pereira, 1986]  all
+predicates,  database keys,  etc. that should  be hidden  from the  user
+start with a dollar ($) sign (see ssttyyllee__cchheecckk//11).
 
 The  compiler uses  the  special  functor $VAR$/1  while  analysing  the
 clause  to  compile.      Using  this   functor  in  a  program   causes
@@ -1746,12 +1766,13 @@ the dynamic predicate  lliibbrraarryy__ddiirreeccttoorryy//11
 is strongly  encouraged for  managing complex  applications.   See  also
 aabbssoolluuttee__ffiillee__nnaammee//[[22,,33]].
 
-SWI-Prolog  recognises grammar  rules as  defined in  .    The user  may
-define  additional  compilation  of the  source  file  by  defining  the
-dynamic predicate  tteerrmm__eexxppaannssiioonn//22.   Transformations by this  predicate
-overrule  the  systems  grammar  rule  transformations.      It  is  not
-allowed to  use aasssseerrtt//11, rreettrraacctt//11 or  any other database predicate  in
-tteerrmm__eexxppaannssiioonn//22other than for local computational purposes.
+SWI-Prolog     recognises     grammar    rules     as     defined     in
+[Clocksin & Melish, 1987].     The  user  may   define  additional  com-
+pilation  of  the   source  file  by  defining  the  dynamic   predicate
+tteerrmm__eexxppaannssiioonn//22.     Transformations  by  this  predicate  overrule  the
+systems  grammar  rule transformations.     It  is not  allowed  to  use
+aasssseerrtt//11, rreettrraacctt//11 or  any other database predicate in tteerrmm__eexxppaannssiioonn//22
+other than for local computational purposes.
 
 Directives  may be  placed  anywhere  in a  source  file,  invoking  any
 predicate.    They are  executed when  encountered.    If the  directive
@@ -2542,8 +2563,8 @@ The predicate pprriinntt__mmeessssaaggee//22 may be used to print
 a human readable format:
 
 
-pprriinntt__mmeessssaaggee((_T))
-    his  predicate  is modelled  after the  Quintus  predicate with  the
+pprriinntt__mmeessssaaggee((_+_K_i_n_d_, _+_T_e_r_m))
+    This  predicate is  modelled after  the Quintus  predicate with  the
     same  name, though  its current  implementation is incomplete.    It
     is  used only  for printing messages  from exceptions from  built-in
     predicates.    _K_i_n_d is  one of  informational, warning,  consterror,
@@ -6200,14 +6221,15 @@ show the two cases in which this simple transformation does not work.
 
 CChhaapptteerr 55..  FFOORREEIIGGNN LLAANNGGUUAAGGEE IINNTTEERRFFAACCEE
 
-SWI-Prolog  offers  a  powerful  interface  to  C  .   The  main  design
-objectives  of  the  foreign  language  interface  are  flexibility  and
-performance.   A  foreign predicate is  a C-function  that has the  same
-number  of arguments  as the  predicate represented.    C-functions  are
-provided to analyse the  passed terms, convert them to basic  C-types as
-well as to  instantiate arguments using unification.   Non-deterministic
-foreign predicates are supported, providing the foreign  function with a
-handle to control backtracking.
+SWI-Prolog      offers      a     powerful      interface      to      C
+[Kernighan & Ritchie, 1978].     The  main  design   objectives  of  the
+foreign language interface  are flexibility and performance.   A foreign
+predicate  is a  C-function that  has the  same number  of arguments  as
+the predicate  represented.   C-functions  are provided  to analyse  the
+passed terms,  convert them to basic C-types  as well as to  instantiate
+arguments using unification.   Non-deterministic foreign predicates  are
+supported,  providing the  foreign  function with  a handle  to  control
+backtracking.
 
 C can  call Prolog  predicates, providing  both an  query interface  and
 an interface  to extract  multiple solutions  from an  non-deterministic
@@ -7514,7 +7536,7 @@ _q_i_d___t PPLL__ooppeenn__qquueerryy((_m_o_d_u_l_e___
         p = PL_predicate("is_a", 2, "database");
 
       PL_put_atom_chars(a0, me);
-      PL_open_query(NULL, TRUE, p, a0);
+      PL_open_query(NULL, PL_Q_NORMAL, p, a0);
       ...
     }
 
@@ -7681,7 +7703,7 @@ prologFunction(ArithFunction f, term_t av, Number r)
   qid_t qid;
   int rval;
 
-  qid = PL_open_query(NULL, TRUE, f->proc, av);
+  qid = PL_open_query(NULL, PL_Q_NORMAL, f->proc, av);
 
   if ( PL_next_solution(qid) )
   { rval = valueExpression(av+arity-1, r);
@@ -9175,6 +9197,7 @@ suggest predicates from a keyword.
  print/1                       Print a term
  print/2                       Print a term on a stream
 
+ print_message/2               Print message from (exception) term
  profile/3                     Obtain execution statistics
  profile_count/3               Obtain profile results on a predicate
  profiler/2                    Obtain/change status of the profiler
@@ -9182,16 +9205,16 @@ suggest predicates from a keyword.
  prolog_current_frame/1        Reference to goal's environment stack
  prolog_frame_attribute/3      Obtain information on a goal environment
  prolog_load_context/2         Context information for directives
- prolog_skip_level/2           Indicate deepest recursion to trace
 
+ prolog_skip_level/2           Indicate deepest recursion to trace
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
  prompt1/1                     Change prompt for 1 line
  prompt/2                      Change the prompt used by rreeaadd//11
  proper_list/1                 Type check for list
  protocol/1                    Make a log of the user interaction
- protocola/1                   Append log of the user interaction to file
 
+ protocola/1                   Append log of the user interaction to file
  protocolling/1                On what file is user interaction logged
  put/1                         Write a character
  put/2                         Write a character on a stream
@@ -9199,16 +9222,16 @@ suggest predicates from a keyword.
  qload/1                       Load Quick Load File as ccoonnssuulltt//11
  qsave_program/1               Create runtime application
  qsave_program/2               Create runtime application
- read/1                        Read Prolog term
 
+ read/1                        Read Prolog term
  read/2                        Read Prolog term from stream
  read_clause/1                 Read clause
  read_clause/2                 Read clause from stream
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
  read_term/2                   Read term with options
- read_term/3                   Read term with options from stream
 
+ read_term/3                   Read term with options from stream
  read_variables/2              Read clause including variable names
  read_variables/3              Read clause including variable names from stream
  recorda/2                     Record term in the database (first)
@@ -9216,16 +9239,16 @@ suggest predicates from a keyword.
  recorded/2                    Obtain term from the database
  recorded/3                    Obtain term from the database
  recordz/2                     Record term in the database (last)
- recordz/3                     Record term in the database (last)
 
+ recordz/3                     Record term in the database (last)
  redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
  repeat/0                      Succeed, leaving infinite backtrack points
  require/1                     This file requires these predicates
  reset_profiler/0              Clear statistics obtained by the profiler
  restore/1                     Restore saved-state (ssaavvee//11, ssaavvee__pprrooggrraamm//11)
- retract/1                     Remove clause from the database
 
+ retract/1                     Remove clause from the database
  retractall/1                  Remove unifying clauses from the database
  reverse/2                     Inverse the order of the elements in a list
  same_file/2                   Succeeds if arguments refer to same file
@@ -9233,16 +9256,16 @@ suggest predicates from a keyword.
  save/2                        Save program including current goal
  save_program/1                Save the current program on a file
  save_program/2                Save the current program on a file
- see/1                         Change the current input stream
 
+ see/1                         Change the current input stream
  seeing/1                      Query the current input stream
  seen/0                        Close the current input stream
  select/3                      Select element of a list
  set_feature/2                 Define a system feature
  set_input/1                   Set current input stream from a stream
  set_output/1                  Set current output stream from a stream
- set_tty/2                     Set `tty' stream
 
+ set_tty/2                     Set `tty' stream
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
  setof/3                       Find all unique solutions to a goal
@@ -9250,16 +9273,16 @@ suggest predicates from a keyword.
  sformat/3                     Format on a string
  shell/0                       Execute interactive subshell
  shell/1                       Execute OS command
- shell/2                       Execute OS command
 
+ shell/2                       Execute OS command
  show_profile/1                Show results of the profiler
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
  rl_add_history/1              Add line to readline(3) history
  rl_read_init_file/1           Read readline(3) init file
- sleep/1                       Suspend execution for specified time
 
+ sleep/1                       Suspend execution for specified time
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
  source_file/2                 Obtain source file of predicate
@@ -9267,16 +9290,16 @@ suggest predicates from a keyword.
  spy/1                         Force tracer on specified predicate
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
  statistics/0                  Show execution statistics
- statistics/2                  Obtain collected statistics
 
+ statistics/2                  Obtain collected statistics
  stream_position/3             Get/seek to position in file
  string/1                      Type check for string
  string_concat/3               ccoonnccaatt//33 for strings (non-deterministic)
  string_length/2               Determine length of a string
  string_to_atom/2              Conversion between string and atom
  string_to_list/2              Conversion between string and list of ASCII
- style_check/1                 Change level of warnings
 
+ style_check/1                 Change level of warnings
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
  substring/4                   Get part of a string
@@ -9284,16 +9307,16 @@ suggest predicates from a keyword.
  succ/2                        Logical integer successor relation
  swritef/2                     Formatted write on a string
  swritef/3                     Formatted write on a string
- tab/1                         Output number of spaces
 
+ tab/1                         Output number of spaces
  tab/2                         Output number of spaces on a stream
  tell/1                        Change current output stream
  telling/1                     Query current output stream
  term_expansion/2              (hook) Convert term before compilation
  term_to_atom/2                Convert between term and atom
  throw/1                       Raise an exception (see ccaattcchh//33)
- time/1                        Determine time needed to execute goal
 
+ time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
  tmp_file/2                    Create a temporary filename
  told/0                        Close current output
@@ -9301,16 +9324,16 @@ suggest predicates from a keyword.
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
  tracing/0                     Query status of the tracer
- trim_stacks/0                 Release unused memory resources
 
+ trim_stacks/0                 Release unused memory resources
  true/0                        Succeed
  tty_get_capability/3          Get terminal parameter
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
  union/3                       Union of two sets
- unknown/2                     Trap undefined predicates
 
+ unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
@@ -9318,16 +9341,16 @@ suggest predicates from a keyword.
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
  volatile/1                    Predicates that are not saved
- wait_for_input/3              Wait for input with optional timeout
 
+ wait_for_input/3              Wait for input with optional timeout
  wildcard_match/2              Csh(1) style wildcard match
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
  write_canonical/1             Write a term with quotes, ignore operators
- write_canonical/2             Write a term with quotes, ignore operators on a stream
 
+ write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
@@ -9454,3 +9477,61 @@ suggest predicates from a keyword.
  -->                1200   xfx   DCGrammar:  rewrite
 
  :-                 1200   xfx   head :- body.  separator
+
+
+Bibliography
+
+[Anjewierden & Wielemaker, 1989]  A.  Anjewierden  and  J.   Wielemaker.
+                                  Extensible  objects.  ESPRIT   Project
+                                  1098 Technical Report  UvA-C1-TR-006a,
+                                  University of Amsterdam, March 1989.
+
+[BIM, 1989]                       _B_I_M  _P_r_o_l_o_g  _r_e_l_e_a_s_e  _2_._4.   Everberg,
+                                  Belgium, 1989.
+
+[Bowen & Byrd, 1983]              D. L. Bowen and L. M. Byrd. A portable
+                                  Prolog compiler.  In  L.  M.  Pereira,
+                                  editor,  _P_r_o_c_e_e_d_i_n_g_s   _o_f  _t_h_e   _L_o_g_i_n
+                                  _P_r_o_g_r_a_m_m_i_n_g  _W_o_r_k_s_h_o_p  _1_9_8_3,  Lisabon,
+                                  Portugal, 1983.  Universidade nova  de
+                                  Lisboa.
+
+[Bratko, 1986]                    I. Bratko. _P_r_o_l_o_g _P_r_o_g_r_a_m_m_i_n_g _f_o_r  _A_r_-
+                                  _t_i_f_i_c_i_a_l _I_n_t_e_l_l_i_g_e_n_c_e. Addison-Wesley,
+                                  Reading, Massachusetts, 1986.
+
+[Clocksin & Melish, 1987]         W.  F.  Clocksin  and  C.  S.  Melish.
+                                  _P_r_o_g_r_a_m_m_i_n_g   _i_n  _P_r_o_l_o_g.    Springer-
+                                  Verlag, New York,  Third, Revised  and
+                                  Extended edition, 1987.
+
+[Deransart _e_t _a_l_., 1996]          P.  Deransart,    A.  Ed-Dbali,    and
+                                  L. Cervoni.  _P_r_o_l_o_g_:    _T_h_e  _S_t_a_n_d_a_r_d.
+                                  Springer-Verlag, New York, 1996.
+
+[Kernighan & Ritchie, 1978]       B. W. Kernighan and D. M. Ritchie. _T_h_e
+                                  _C _P_r_o_g_r_a_m_m_i_n_g _L_a_n_g_u_a_g_e. Prentice-Hall,
+                                  Englewood Cliffs, New Jersey, 1978.
+
+[OKeefe, 1990]                    R. A.  OKeefe.  _T_h_e _C_r_a_f_t  _o_f  _P_r_o_l_o_g.
+                                  MIT Press, Massachussetts, 1990.
+
+[Pereira, 1986]                   F. Pereira.  _C_-_P_r_o_l_o_g  _U_s_e_r_'_s  _M_a_n_u_a_l,
+                                  1986.
+
+[Qui, 1997]                       _Q_u_i_n_t_u_s   _P_r_o_l_o_g_,   _U_s_e_r   _G_u_i_d_e   _a_n_d
+                                  _R_e_f_e_r_e_n_c_e  _M_a_n_u_a_l.  Berkhamsted,   UK,
+                                  1997.
+
+[Sterling & Shapiro, 1986]        L.  Sterling  and   E.  Shapiro.   _T_h_e
+                                  _A_r_t _o_f _P_r_o_l_o_g.  MIT Press,  Cambridge,
+                                  Massachusetts, 1986.
+
+[Warren, 1983]                    D.   H.  D.   Warren.    The   runtime
+                                  environment  for  a  prolog   compiler
+                                  using  a  copy  algorithm.   Technical
+                                  Report 83/052,  SUNY and Stone  Brook,
+                                  New York, 1983.  Major revision  March
+                                  1984.
+
+                                  721

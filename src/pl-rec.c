@@ -17,6 +17,7 @@ forwards RecordList isCurrentRecordList(word);
 #define RECORDZ 1
 
 static RecordList recordTable[RECORDHASHSIZE];
+static int	  dirtyrecords;
 
 void
 initRecords(void)
@@ -25,6 +26,7 @@ initRecords(void)
 
   for(n=0, l=recordTable; n < (RECORDHASHSIZE-1); n++, l++)
     *l = makeTableRef(l+1);
+  dirtyrecords = 0;
 }
 
 
@@ -43,6 +45,8 @@ lookupRecordList(register word key)
   l->key = key;
   l->firstRecord = l->lastRecord = (Record) NULL;
   l->type = RECORD_TYPE;
+  l->references = 0;
+  l->flags = 0;
 
   return l;
 }
@@ -58,6 +62,25 @@ isCurrentRecordList(register word key)
       return l;
   }
   return NULL;
+}
+
+
+static void
+cleanRecordList(RecordList rl)
+{ Record *p = &rl->firstRecord;
+  Record r = *p;
+
+  while(r)
+  { if ( r->erased )
+    { *p = r->next;
+      freeRecord(r);
+      dirtyrecords--;
+      DEBUG(2, Sdprintf("Deleted record, %d dirty left\n", dirtyrecords));
+    } else
+    { p = &r->next;
+    }
+    r = *p;
+  }
 }
 
 
@@ -183,6 +206,8 @@ compileTermToHeap(term_t t)
   Word *p;
   int n, size;
 
+  SECURE(checkData(valTermRef(t)));
+
   initBuffer(&info.code);
   initBuffer(&info.vars);
   info.size = 0;
@@ -200,6 +225,7 @@ compileTermToHeap(term_t t)
   record->gsize = info.size;
   record->nvars = info.nvars;
   record->size = size;
+  record->erased = FALSE;
   memcpy(record->buffer, info.code.base, sizeOfBuffer(&info.code));
   discardBuffer(&info.code);
 
@@ -247,8 +273,14 @@ right_recursion:
 
       fetchUnalignedBuf(b, &n, int);
       if ( b->vars[n] )
-	*p = makeRef(b->vars[n]);
-      else
+      { if ( p > b->vars[n] )		/* ensure the reference is in the */
+	  *p = makeRef(b->vars[n]);	/* right direction! */
+	else
+	{ setVar(*p);			/* wrong way.  make sure b->vars[n] */
+	  *b->vars[n] = makeRef(p);	/* stays at the real variable */
+	  b->vars[n] = p;
+	}
+      } else
       {	setVar(*p);
 	b->vars[n] = p;
       }
@@ -347,7 +379,12 @@ copyRecordToGlobal(term_t copy, Record r)
   copy_record(valTermRef(copy), &b);
   if ( b.gstore != gTop )
   { Sdprintf("b.gstore = %p, gTop = %p\n", b.gstore, gTop);
+    Sdprintf("Term = ");
+    pl_write_canonical(copy);
+    Sdprintf("\n");
   }
+
+  SECURE(checkData(valTermRef(copy)));
 }
 
 		 /*******************************
@@ -634,9 +671,29 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
       record = rl->firstRecord;
       break;
     case FRG_REDO:
+    { RecordList rl;
+
       record = ForeignContextPtr(h);
+      rl = record->list;
+
+      if ( --rl->references == 0 && true(rl, R_DIRTY) )
+      { while(record && record->erased )
+	  record = record->next;	/* find a valid record */
+	cleanRecordList(rl);
+      }
+      DEBUG(0, assert(rl->references >= 0));
       break;
+    }
     case FRG_CUTTED:
+    { RecordList rl;
+
+      record = ForeignContextPtr(h);
+      rl = record->list;
+
+      if ( --rl->references == 0 && true(rl, R_DIRTY) )
+	cleanRecordList(rl);
+    }
+      /* FALLTHROUGH */
     default:
       succeed;
   }
@@ -645,13 +702,18 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
   for( ;record; record = record->next )
   { mark m;
 
+    if ( record->erased )
+      continue;
+
     Mark(m);
     copyRecordToGlobal(copy, record);	/* unifyRecordToGlobal()? */
     if ( PL_unify(term, copy) && PL_unify_pointer(ref, record) )
     { if ( !record->next )
 	succeed;
       else
+      { record->list->references++;
 	ForeignRedoPtr(record->next);
+      }
     }
     Undo(m);
   }
@@ -688,6 +750,14 @@ pl_erase(term_t ref)
 #endif
 
   l = record->list;
+  if ( l->references )			/* a recorded has choicepoints */
+  { record->erased = TRUE;
+    set(l, R_DIRTY);
+    dirtyrecords++;
+    DEBUG(2, Sdprintf("%d Delayed record destruction\n", dirtyrecords));
+    succeed;
+  }
+
   if ( record == l->firstRecord )
   { if ( record->next == (Record) NULL )
       l->lastRecord = (Record) NULL;

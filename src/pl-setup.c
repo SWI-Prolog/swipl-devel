@@ -227,6 +227,7 @@ initFeatures()
   CSetFeature("float_format", "%g");
   CSetFeature("character_escapes", "true");
   CSetFeature("tty_control", GD->cmdline.notty ? "false" : "true");
+  CSetFeature("allow_variable_name_as_functor", "false");
 #if defined(__unix__) || defined(unix)
   CSetFeature("unix", "true");
 #endif

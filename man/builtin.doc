@@ -759,7 +759,7 @@ The predicate print_message/2 may be used to print an exception term
 in a human readable format:
 
 \begin{description}
-    \predicate{print_message}{+Kind, +Term}
+    \predicate{print_message}{2}{+Kind, +Term}
 This predicate is modelled after the Quintus predicate with the same
 name, though its current implementation is incomplete.  It is used
 only for printing messages from exceptions from built-in predicates.

@@ -398,7 +398,9 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 	  ForeignRedoPtr(v); \
 	}
 
-#define NEED_REINDEX (1L << (LONGBITSIZE-1)) /* definition reindexing */
+/* Definition->indexPattern is set to NEED_REINDEX if the definition's index
+   pattern needs to be recomputed */
+#define NEED_REINDEX ((unsigned long)1L << (LONGBITSIZE-1))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign language interface definitions.  Note that these macros MUST  be
@@ -838,6 +840,8 @@ with one operation, it turns out to be faster as well.
 
 #define INLINE_F		(0x0001) /* functor */
 
+#define R_DIRTY			(0x0001) /* recordlist */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1137,15 +1141,18 @@ struct record
   int		nvars;			/* # variables in the term */
   int		gsize;			/* Stack space required (words) */
   int		size;			/* # bytes of the record */
+  int		erased;			/* record has been erased */
   char 		buffer[1];		/* array holding codes */
 };
 
 struct recordList
 { RecordList	next;		/* next record chain with same key */
   int		type;		/* RECORD_TYPE */
+  int		references;	/* choicepoints reference count */
   word		key;		/* key of record */
   Record	firstRecord;	/* first record associated with key */
   Record	lastRecord;	/* last record associated with key */
+  unsigned int  flags;		/* R_DIRTY */
 };
 
 struct sourceFile
@@ -1544,6 +1551,7 @@ typedef struct debuginfo
 #define FILE_CASE_FEATURE	0x0080	/* file names are case sensitive */
 #define FILE_CASE_PRESERVING_FEATURE 0x0100 /* case preserving file names */
 #define DOS_FILE_NAMES_FEATURE  0x0200	/* dos (8+3) file names */
+#define ALLOW_VARNAME_FUNCTOR	0x0400	/* Read Foo(x) as 'Foo'(x) */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */

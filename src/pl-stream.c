@@ -228,7 +228,7 @@ S__fillbuf(IOSTREAM *s)
 		 *******************************/
 
 
-__inline int
+inline int
 S___fupdatefilepos(IOPOS *p, int c)
 { if ( p )
   { switch(c)

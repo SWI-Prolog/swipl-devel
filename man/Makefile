@@ -70,6 +70,9 @@ doc.bbl:	biblio.doc
 htmldoc.bbl:	biblio.doc
 		cp  biblio.doc $@
 
+online.bbl:	biblio.doc
+		cp  biblio.doc $@
+
 doc.idx:	$(TEXFILES)
 		$(LATEX) doc
 
@@ -83,7 +86,7 @@ $(ONLINE):	online.dvi $(DVITOTTY)
 		cat -s | \
 		sed 's/\(.\)_/_\1/g' > $(ONLINE)
 
-online.dvi:	latex_if_needed online.tex $(TEXFILES)
+online.dvi:	latex_if_needed online.tex $(TEXFILES) online.bbl
 		./latex_if_needed $(LATEX) online
 
 online.doc:	main.doc

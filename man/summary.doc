@@ -271,6 +271,7 @@ suggest predicates from a keyword.
 \predicatesummary{preprocessor}{2}{Install a preprocessor before the compiler}
 \predicatesummary{print}{1}{Print a term}
 \predicatesummary{print}{2}{Print a term on a stream}
+\predicatesummary{print_message}{2}{Print message from (exception) term}
 \predicatesummary{profile}{3}{Obtain execution statistics}
 \predicatesummary{profile_count}{3}{Obtain profile results on a predicate}
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}

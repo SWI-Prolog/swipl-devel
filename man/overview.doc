@@ -590,9 +590,9 @@ exec $PL -f none -g "load_files(['$base/load'],[silent(true)])" -t go -- $*
 go :-
 	unix(argv(Arguments)),
 	append(_SytemArgs, [--|Args], Arguments), !,
-	go(Arguments).
+	go(Args).
 
-go(Arguments) :-
+go(Args) :-
 	...
 \end{code}
 
@@ -794,6 +794,17 @@ macros.
     \featureoption{character_escapes}{bool}
 If true (default), read/1 interprets \verb$\$ escape sequences in quoted
 atoms and strings.  May be changed.
+    \featureoption{allow_variable_name_as_functor}{bool}
+If true (default is false), \exam{Functor(arg)} is read as if it was
+written \exam{'Functor'(arg)}. Some applications use the Prolog read/1
+predicate for reading an application defined script language. In these
+cases, it is often difficult to explain none-Prolog users of the
+application that constants and functions can only start with a lowercase
+letter. Variables can be turned into atoms starting with an uppercase
+atom by calling read_term/2 using the option \const{variable_names} and
+binding the variables to their name. Using this feature, F(x) can be
+turned into valid syntax for such script languages. Suggested by Robert
+van Engelen.  SWI-Prolog specific.
     \featureoption{gc}{bool}
 If true (default), the garbage collector is active.  If false, neither
 garbage-collection, nor stack-shifts will take place, even not on
@@ -834,7 +845,8 @@ Windows (3.1, 95, NT, etc.).
 \end{description}
 
     \predicate{set_feature}{2}{+Key, +Value}
-Define a new feature or change its value. Both arguments must be atoms.
+Define a new feature or change its value.  \arg{Key} is an atom,
+\arg{Value} is an atom or number.
 \end{description}
 
 

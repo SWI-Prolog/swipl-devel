@@ -141,9 +141,9 @@ CpuTime()
 
 
 char *
-Symbols(char *buf)
-{ char buf[MAXPATHLEN];
-  int n;
+Symbols(char *syms)
+{ int n;
+  char buf[MAXPATHLEN];
 
   if ( (n = GetModuleFileName(NULL, buf, sizeof(buf))) > 0 )
   { char buf2[MAXPATHLEN];
@@ -151,15 +151,14 @@ Symbols(char *buf)
     buf[n] = EOS;
     _xos_long_file_name(buf, buf2);
 
-    strcpy(buf, buf2);
+    strcpy(syms, buf2);
   } else
-  { char tmp[MAXPATHLEN];
-    PrologPath(GD->cmdline.argv[0], buf);
+  { PrologPath(GD->cmdline.argv[0], buf);
 
-    strcpy(buf, tmp);
+    strcpy(syms, buf);
   }
 
-  return buf;
+  return syms;
 }
 
 		 /*******************************

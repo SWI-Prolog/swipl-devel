@@ -80,7 +80,7 @@ extern int Input;		/* current input stream (from pl-file.c) */
 static unsigned char *here;		/* current character */
 static unsigned char *base;		/* base of clause */
 static unsigned char *token_start;	/* start of most recent read token */
-static unsigned char *last_syntax_error; /* last syntax error */
+static char *last_syntax_error; /* last syntax error */
 static struct token token;	/* current token */
 static bool unget = FALSE;	/* unget_token() */
 
@@ -100,8 +100,8 @@ static
 struct read_buffer
 { int	size;			/* current size of read buffer */
   int	left;			/* left space in read buffer */
-  char *base;			/* base of read buffer */
-  char *here;			/* current position in read buffer */
+  unsigned char *base;		/* base of read buffer */
+  unsigned char *here;		/* current position in read buffer */
   int   stream;			/* stream we are reading from */
 } rb;
 
@@ -289,7 +289,7 @@ reading.
 static void
 clearBuffer()
 { if (rb.size == 0)
-  { if ((rb.base = malloc(RBSIZE)) == (char *) NULL)
+  { if ( !(rb.base = (unsigned char *)malloc(RBSIZE)) )
       fatalError("%s", OsError());
     rb.size = RBSIZE;
   }
@@ -305,7 +305,7 @@ clearBuffer()
 static inline void
 addToBuffer(int c)
 { if (rb.left-- == 0)
-  { if ((rb.base = realloc(rb.base, rb.size * 2)) == (char *)NULL)
+  { if ( !(rb.base = (unsigned char *)realloc(rb.base, rb.size * 2)) )
       fatalError("%s", OsError());
     DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (long) rb.base));
     base = rb.base;
@@ -1059,6 +1059,12 @@ get_token(bool must_be_op)
 		    here++;
 		  c = *here;
 		  *here = EOS;
+		  if ( c == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
+		  { token.value.atom = lookupAtom(start);
+		    token.type = T_FUNCTOR;
+		    *here = c;
+		    break;
+		  }
 		  if (start[0] == '_' && here == start + 1)
 		  { DEBUG(9, Sdprintf("VOID\n"));
 		    token.type = T_VOID;
@@ -1111,7 +1117,7 @@ get_token(bool must_be_op)
 		  }
 
 		  end = *here, *here = EOS;
-		  token.value.atom = lookupAtom(start);
+		  token.value.atom = lookupAtom((char *)start);
 		  *here = end;
 
 		  token.type = (end == '(' ? T_FUNCTOR : T_NAME);
@@ -1251,7 +1257,7 @@ typedef struct
   short	right_pri;			/* priority at right hand */
   short	op_pri;				/* priority of operator */
   term_t tpos;				/* term-position */
-  char *token_start;			/* start of the token for message */
+  unsigned char *token_start;		/* start of the token for message */
 } op_entry;
 
 

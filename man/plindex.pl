@@ -15,15 +15,14 @@
 
 :- set_feature(character_escapes, true).
 
-:- multifile
-	user:portray/1.
-
-user:portray(X) :-
-	nonvar(X),
-	is_list(X),
-	checklist(is_ascii, X), !,
-	format('"~s"', [X]).
+:- asserta((user:portray(X) :-
+	   	nonvar(X),
+	        is_list(X),
+	        checklist(is_ascii, X), !,
+	        format('"~s"', [X]))).
 	
+:- dynamic
+	last_chapter/1.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This library module creates the index file for the  online  manual.   By
@@ -138,7 +137,8 @@ identify_page(Offset, EndOffset, Page) :-
 parse(page(Type, Offset)) -->
 	skip_blank_lines(0, Offset),
 	get_line(Line),
-	type(Line, Type).
+	{ phrase(type(Type), Line)
+	}.
 
 skip_blank_lines(Sofar, Offset) -->
 	blank_line(Line), !,
@@ -172,31 +172,42 @@ get_line([C|R]) -->
 
 %	Typing on the first line
 
-type(Line, predicate(Name, Arity, Summary)) -->
-	{ predicate_line(Line, Name, Arity),
-	  (   summary(Name, Arity, Summary)
+type(predicate(Name, Arity, Summary)) -->
+	predicate_line(Name, Arity),
+	end_of_input, !,
+	{ (   summary(Name, Arity, Summary)
 	  ->  true
 	  ;   format('ERROR: No summary for ~w/~w~n', [Name, Arity]),
 	      Summary = ''
 	  )
         }, !.
-type(Line, section(Index, Name)) -->
-	{ section_line(Line, Index, Name) }, !.
-type(Line, section(Index, Name)) -->
-	{ chapter_line(Line, Index, Name) }, !.
-type(Line, function(Name)) -->
-	{ function_line(Line, Name) }, !.
-type(Line, unknown) -->
+type(section([0], 'Title Page')) -->
+	skip_blanks,
+	"University of Amsterdam", !.
+type(section([N], 'Bibliography')) -->
+	skip_blanks,
+	"Bibliography", !,
+	{ last_chapter([P]),
+	  N is P + 1
+	}.
+type(section(Index, Name)) -->
+	section_line(Index, Name), !.
+type(section(Index, Name)) -->
+	chapter_line(Index, Name), !.
+type(function(Name)) -->
+	function_line(Name), !.
+type(unknown) -->
+	skipall(Line),
 	{ % trace,
-	  format('Unidentified: ~s~n', [Line])
+          format('Unidentified: ~s~n', [Line])
 	}.
 type(_, _) -->
 	{ fail }.
 
-%	Identify line as describing a predicate
+end_of_input([], []).
+skipall(Line, Line, []).
 
-predicate_line(Line, Name, Arity) :-
-	predicate_line(Name, Arity, Line, []).
+%	Identify line as describing a predicate
 
 predicate_line(Name, Arity) -->
 	optional_directive,
@@ -212,27 +223,27 @@ predicate_line(Name, Arity) -->
 predicate_line(Name, 1) -->			% prefix operator
 	atom(Name),
 	skip_blanks,
-	arg,
+	predarg,
 	optional_dots, !.
 predicate_line(Name, 2) -->			% infix operator
 	skip_blanks,
-	arg,
+	predarg,
 	skip_blanks,
 	atom(Name),
 	skip_blanks,
-	arg,
-	skip_blanks, !.
+	predarg,
+	skipall(_), !.
 predicate_line(Name, 2) -->			% infix operator
 	skip_blanks,
-	arg,
+	predarg,
 	skip_blanks,
 	atom(Name),
 	skip_blanks,
-	arg,
+	predarg,
 	skip_blanks,
 	";",
 	skip_blanks,
-	arg,
+	predarg,
 	skip_blanks.
 predicate_line(Name, 0) -->
 	atom(Name).
@@ -270,7 +281,7 @@ arguments(Args) -->
 
 args(Args) -->
 	skip_blanks,
-	arg(A),
+	predarg(A),
 	optional(0',),
 	args(Args0),
 	{sum_args(Args0, A, Args)}.
@@ -290,18 +301,18 @@ optional_dots -->
 optional_dots -->
 	{ true }.
 
-arg -->
-	arg(_).
+predarg -->
+	predarg(_).
 
-arg(1) -->
+predarg(1) -->
 	input_output,
 	alphas(_),
 	optional(0'/),
 	optional_input_output,
 	alphas(_), !.
-arg(_) -->
+predarg(_) -->
 	"...", !.
-arg(1) -->
+predarg(1) -->
 	starts("[]").
 
 input_output -->
@@ -315,12 +326,11 @@ optional_input_output -->
 
 %	Identify line as describing a function
 
-function_line(Line, Name) :-
-	function_line(Name, Line, _).
-
 function_line(Name) -->
 	function_type,
-	function_name(Name).
+	function_name(Name),
+	"(",
+	skipall(_).
 
 function_type -->
 	"void (*)()", !,
@@ -348,8 +358,8 @@ function_name(Name) -->
 
 %	Identify line as starting a section
 
-section_line(Line, Index, Name) :-
-	section_index(Index, Line, S),
+section_line(Index, Name, Line, []) :-
+	phrase(section_index(Index), Line, S),
 	name(Name, S).
 
 section_index([C|R]) -->
@@ -378,8 +388,10 @@ digits([]) -->
 
 %	Identify line as starting a chapter
 
-chapter_line(Line, Index, Name) :-
-	chapter_index(Index, Line, S),
+chapter_line(Index, Name, Line, []) :-
+	phrase(chapter_index(Index), Line, S),
+	retractall(last_chapter(_)),
+	asserta(last_chapter(Index)),
 	name(Name, S).
 
 chapter_index([Index]) -->

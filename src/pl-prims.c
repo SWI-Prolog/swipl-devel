@@ -2103,15 +2103,16 @@ typedef struct
 } builtin_named_feature;
 
 static const builtin_boolean_feature builtin_boolean_features[] = 
-{ { ATOM_character_escapes,	    CHARESCAPE_FEATURE },
-  { ATOM_gc,			    GC_FEATURE },
-  { ATOM_trace_gc,		    TRACE_GC_FEATURE },
-  { ATOM_tty_control,		    TTY_CONTROL_FEATURE },
-  { ATOM_readline,		    READLINE_FEATURE },
-  { ATOM_debug_on_error,	    DEBUG_ON_ERROR_FEATURE },
-  { ATOM_report_error,		    REPORT_ERROR_FEATURE },
-  { ATOM_case_sensitive_file_names, FILE_CASE_FEATURE },
-  { NULL_ATOM,			    0L }
+{ { ATOM_character_escapes,	         CHARESCAPE_FEATURE },
+  { ATOM_gc,			         GC_FEATURE },
+  { ATOM_trace_gc,		         TRACE_GC_FEATURE },
+  { ATOM_tty_control,		         TTY_CONTROL_FEATURE },
+  { ATOM_readline,		         READLINE_FEATURE },
+  { ATOM_debug_on_error,	         DEBUG_ON_ERROR_FEATURE },
+  { ATOM_report_error,		         REPORT_ERROR_FEATURE },
+  { ATOM_case_sensitive_file_names,      FILE_CASE_FEATURE },
+  { ATOM_allow_variable_name_as_functor, ALLOW_VARNAME_FUNCTOR },
+  { NULL_ATOM,			         0L }
 };
 
 static const builtin_named_feature builtin_named_features[] =

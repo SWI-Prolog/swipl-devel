@@ -218,18 +218,15 @@ pl_current_atom(term_t a, word h)
       succeed;
   }
 
-  for(; atom; atom = atom->next)
-  { while(isTableRef(atom) )
-    { atom = unTableRef(Atom, atom);
-      if ( !atom )
-	goto out;
-    }
-    PL_unify_atom(a, atom->atom);
+  while(atom && isTableRef(atom) )
+    atom = unTableRef(Atom, atom);
+
+  if ( atom )
+  { PL_unify_atom(a, atom->atom);
 
     return_next_table(Atom, atom, unlockAtoms());
   }
 
-out:
   unlockAtoms();
   fail;
 }

@@ -1249,7 +1249,7 @@ ancestor(const char *me)
     p = PL_predicate("is_a", 2, "database");
 
   PL_put_atom_chars(a0, me);
-  PL_open_query(NULL, TRUE, p, a0);
+  PL_open_query(NULL, PL_Q_NORMAL, p, a0);
   ...
 }
 \end{code}
@@ -1411,7 +1411,7 @@ prologFunction(ArithFunction f, term_t av, Number r)
   qid_t qid;
   int rval;
 
-  qid = PL_open_query(NULL, TRUE, f->proc, av);
+  qid = PL_open_query(NULL, PL_Q_NORMAL, f->proc, av);
 
   if ( PL_next_solution(qid) )
   { rval = valueExpression(av+arity-1, r);

@@ -1,6 +1,22 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.9.6
+=============
+
+  * FIXED: erase/1 on records referenced by recorded/3 choicepoints.  Thanks
+    to Robert van Engelen.
+
+  * FIXED: Reference direction in recorded/3 (also used by findall/3 and
+    friends).
+
+  * FIXED: Removed various warnings for SunSoft cc compiler.  Fixed
+    one error reported by this compiler.
+
+  * FIXED: Cite references in online documentation.  Modified/Cleaned
+    man/plindex.pl for this.  Fixed a few typos.
+
+
 VERSION 2.9.5
 =============
 
@@ -21,7 +37,7 @@ VERSION 2.9.4
 =============
 
   * FIXED: Various references to the variable stacks for systems requiring
-    the shack-shifter.  Thanks to Michirou Yabuki for reporting.
+    the stack-shifter.  Thanks to Michirou Yabuki for reporting.
 
   * FIXED: recorded database (and findall/3, bagof/3, setof/3 store) 
     handling of strings.  After retrieval, the string's indirect header

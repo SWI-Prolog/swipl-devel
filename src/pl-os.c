@@ -353,12 +353,12 @@ The builtin strcmp() of SunOs is broken on some machines ...
 
 #if sun
 int
-strcmp(s1, s2)
-unsigned char *s1, *s2;
+strcmp(const char *s1, const char *s2)
 { while(*s1 && *s1 == *s2)
     s1++, s2++;
 
-  return *s1 - *s2;
+  return *(const unsigned char *)s1 -
+	 *(const unsigned char *)s2;
 }
 #endif
 
@@ -1168,12 +1168,12 @@ canoniseFileName(char *path)
       if ( *in )
       { while( in[1] == '/' )
 	  in++;
-	while( in[1] == '.' && (in[2] == '/' || in[2] == EOS) )
+	if ( in[1] == '.' && (in[2] == '/' || in[2] == EOS) )
 	{ in += 2;
 	  goto again;
 	}
-	while (in[1] == '.' && in[2] == '.' &&
-	       (in[3] == '/' || in[3] == EOS) && osavep > 0 )
+	if ( in[1] == '.' && in[2] == '.' &&
+	     (in[3] == '/' || in[3] == EOS) && osavep > 0 )
 	{ out = osave[--osavep];
 	  in += 3;
 	  goto again;
