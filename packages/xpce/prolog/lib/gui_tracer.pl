@@ -32,7 +32,8 @@
 :- module(gui_tracer,
 	  [ guitracer/0,
 	    noguitracer/0,		% Switch it off
-	    prolog_break_at/3		% +File, +Line, +Pos
+	    prolog_break_at/3,		% +File, +Line, +Pos
+	    gtrace/0			% Start tracer and trace
 	  ]).
 
 guitracer :-
@@ -50,6 +51,16 @@ noguitracer :-
 	set_prolog_flag(gui_tracer, false),
 	print_message(informational, gui_tracer(false)).
 noguitracer.
+
+%	gtrace/0
+%	
+%	Like trace/0, but uses the graphical tracer.
+
+:- '$hide'(gtrace,0).			% don't trace it
+
+gtrace :-
+	guitracer,
+	trace.
 
 %	prolog_break_at(+File, +Line, +Pos)
 %

@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: gtrace/0 as alias for guitracer,trace.
+
   * ADDED: PL_get_file_name() to fetch the name of files from Prolog
     terms with options to include search, test properties, etc.
     
