@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(url_image) providing class url_image.
+
 * ADDED: library(scaledbitmap) providing class scaled_bitmap.
 
 * FIXED: Bug#104: PceEmacs find-file `Browse' to use Open rather than Save
