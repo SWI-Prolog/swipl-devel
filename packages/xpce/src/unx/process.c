@@ -509,7 +509,6 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	}
       }
 #endif
-
 #ifdef USE_GRANTPT
 	if ( grantpt(master) < 0 ||
 	     unlockpt(master) < 0 ||
@@ -540,6 +539,10 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 
 	for(i=3; i < maxfd; i++)	/* close remaining open fd's */
 	  close(i);
+
+#ifdef TIOCSCTTY
+	ioctl(0, TIOCSCTTY, NULL);
+#endif        
 
 	argv = (char **)alloca(sizeof(char *) *
 			       (valInt(p->arguments->size) + 2));
