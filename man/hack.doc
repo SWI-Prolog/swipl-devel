@@ -114,7 +114,7 @@ level according to \arg{New}.  New is an integer, or the special atom
 variable of the Prolog system that disables the debugger on all
 recursion levels deeper than the level of the variable.  Used to
 implement the trace options `skip' (sets skip level to the level of the
-frame) and `up' (sets skip level to the level of the parent frame (i.e.\
+frame) and `up' (sets skip level to the level of the parent frame (i.e.,
 the level of this frame minus 1).
 \end{description}
 
@@ -185,7 +185,7 @@ of:
 Hook in spy/1.  If the hook succeeds spy/1 takes no further action.
     \termitem{nospy}{Spec}
 Hook in nospy/1.  If the hook succeeds spy/1 takes no further action.
-If spy/1 is hooked, it is adviced to place a complementary hook for
+If spy/1 is hooked, it is advised to place a complementary hook for
 nospy/1.
     \termitem{nospyall}{}
 Hook in nospyall/0.  Should remove all spy-points.  This hook is

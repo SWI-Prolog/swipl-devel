@@ -16,7 +16,7 @@ and `?' denotes `either input or output'.%
 In traditional (Edinburgh-) Prolog, characters are represented using
 \jargon{character-codes}. Character codes are integer indices into
 a specific character set.  Traditionally the character set was 7-bits
-US-ASCII. Since a long while 8-bit character sets are allowed, providing
+US-ASCII. 8-bit character sets have been allowed for a long time, providing
 support for national character sets, of which iso-latin-1 (ISO 8859-1)
 is applicable to many western languages.  Text-files are supposed to
 represent a sequence of character-codes.
@@ -86,7 +86,7 @@ specified module and only the \jargon{public} predicates are
 made available to the context loading the module.  Module files
 are normally loaded using use_module/[1,2].  See \chapref{modules}
 for details.
-    \item [ A include ] Prolog source file is loaded using
+    \item [ An include ] Prolog source file is loaded using
 the include/1 directive and normally contains only directives.
 \end{description}
 
@@ -210,7 +210,7 @@ already defined.  If not, it will search the libraries and load the
 required library.
 
 SWI-Prolog, having autoloading, does {\bf not} load the library. Instead
-it creates a procedure header for the predicate if this does not exist.
+it creates a procedure header for the predicate if it does not exist.
 This will flag the predicate as `undefined'.  See also check/0 and
 autoload/0.
 
@@ -265,7 +265,7 @@ The prolog-flag \const{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
     \predicate{expand_file_search_path}{2}{+Spec, -Path}
-Unifies \arg{Path} will all possible expansions of the file name
+Unifies \arg{Path} with all possible expansions of the file name
 specification \arg{Spec}.  See also absolute_file_name/3.
 
     \predicate{prolog_file_type}{2}{?Extension, ?Type}
@@ -320,7 +320,7 @@ Determine loading context.  The following keys are defined:
 Quintus compatibility predicate.  See also source_location/2.
 
     \predicate{source_location}{2}{-File, -Line}
-If the last term has been read from a physical file (i.e.\ not from the
+If the last term has been read from a physical file (i.e., not from the
 file \const{user} or a string), unify \arg{File} with an absolute path to
 the file and \arg{Line} with the line-number in the file. New code
 should use prolog_load_context/2.
@@ -373,19 +373,19 @@ preprocessing. First it calls goal_expansion/2. If this fails it returns
 the first argument.
 
     \predicate{at_initialization}{1}{+Goal}
-Register \arg{Goal} to be ran when the system initialises.
+Register \arg{Goal} to be run when the system initialises.
 Initialisation takes place after reloading a .qlf (formerly .wic) file
 as well as after reloading a saved-state.  The hooks are run in the
 order they were registered.  A warning message is issued if \arg{Goal}
 fails, but execution continues.  See also at_halt/1
 
     \predicate{at_halt}{1}{+Goal}
-Register \arg{Goal} to be ran when the system halts. The hooks are run
+Register \arg{Goal} to be run when the system halts. The hooks are run
 in the order they were registered.  Success or failure executing a hook
 is ignored.  These hooks may not call halt/[0,1].
     \predicate{initialization}{1}{+Goal}
 Call \arg{Goal} and register it using at_initialization/1.  Directives
-that do other things that creating clauses, records, flags or setting
+that do other things than creating clauses, records, flags or setting
 predicate attributes should normally be written using this tag to
 ensure the initialisation is executed when a saved system starts.
 See also qsave_program/[1,2].
@@ -411,14 +411,11 @@ Old = none
 
 \subsection{Quick load files}
 
-The features described in this section should be regarded {\bf alpha}.
+SWI-Prolog supports compilation of individual or multiple Prolog
+source files into `Quick Load Files'. A `Quick Load Files' (\fileext{qlf}
+file) stores the contents of the file in a precompiled format.
 
-As of version 2.0.0, SWI-Prolog supports compilation of individual
-or multiple Prolog sourcefiles into `Quick Load Files'.  A `Quick
-Load Files' (\fileext{qlf} file) stores the contents of the file in
-a precompiled format.
-
-These files load considerably faster than sourcefiles and are normally
+These files load considerably faster than source files and are normally
 more compact.  They are machine independent and may thus be loaded
 on any implementation of SWI-Prolog.  Note however that clauses are
 stored as virtual machine instructions.  Changes to the compiler will
@@ -429,11 +426,11 @@ consult/1 or one of the other file-loading predicates described in
 \secref{consulting}. If consult is given the explicit \fileext{pl} file,
 it will load the Prolog source. When given the \fileext{qlf} file, it
 will load the file. When no extension is specified, it will load the
-\fileext{qlf} file when present and the fileext{pl} file otherwise.
+\fileext{qlf} file when present and the \fileext{pl} file otherwise.
 
 \begin{description}
     \predicate{qcompile}{1}{+File}
-Takes a single file specification like consult/1 (i.e. accepts
+Takes a single file specification like consult/1 (i.e., accepts
 constructs like \file{library(LibFile)} and creates a Quick Load
 File from \arg{File}.  The file-extension of this file is \fileext{qlf}.
 The base name of the Quick Load File is the same as the input file.
@@ -560,7 +557,7 @@ prolog_edit:load :-
     \predicate{listing}{1}{+Pred}
 List specified predicates (when an atom is given all predicates with
 this name will be listed).  The listing is produced on the basis of the
-internal representation, thus loosing user's layout and variable name
+internal representation, thus losing user's layout and variable name
 information.  See also portray_clause/1.
     \predicate{listing}{0}{}
 List all predicates of the database using listing/1.
@@ -655,7 +652,7 @@ No
 \end{code}
 
 I.e.\ the first creates a \jargon{cyclic-term}, which is printed as
-an infinitly nested \functor{f}{1} term (see the \const{max_depth}
+an infinitely nested \functor{f}{1} term (see the \const{max_depth}
 option of write_term/2). The second executes logically sound unification
 and thus fails.
 \infixop{\=}{+Term1}{+Term2}
@@ -935,7 +932,7 @@ exception is not handled by user-code, the interactive toplevel will
 trap it to prevent termination.
 
 If we do not take special precautions, the context information
-associated with an unexpected exception (i.e.\ a programming error) is
+associated with an unexpected exception (i.e, a programming error) is
 lost. Therefore, if an exception is raised, which is not caught using
 catch/3 and the toplevel is running, the error will be printed, and the
 system will enter trace mode.
@@ -957,7 +954,7 @@ trap the tracer to help analysing the context of the error.
 \end{itemlist}
 
 While looking for the context in which an exception takes place, it is
-adviced to switch on debug mode using the predicate debug/0.
+advised to switch on debug mode using the predicate debug/0.
 
 
 \subsection{The exception term}		\label{sec:exceptterm}
@@ -1335,7 +1332,7 @@ introduced in DEC-10 Prolog precisely for dealing with static procedures.
 In SWI-Prolog, abolish/1 works on static procedures, unless the prolog
 flag \const{iso} is set to \const{true}.
 
-It is adviced to use retractall/1 for erasing all clauses of a dynamic
+It is advised to use retractall/1 for erasing all clauses of a dynamic
 predicate.
     \predicate{abolish}{2}{+Name, +Arity}
 Same as \exam{abolish(Name/Arity)}.  The predicate abolish/2 conforms to
@@ -1605,7 +1602,7 @@ Predicate is indexed (see index/1) according to \arg{Head}. \arg{Head}
 is a term whose name and arity are identical to the predicate. The
 arguments are unified with `1' for indexed arguments, `0' otherwise.
     \termitem{file}{FileName}
-Unify \arg{FileName} with the name of the sourcefile in which the
+Unify \arg{FileName} with the name of the source file in which the
 predicate is defined.  See also source_file/2.
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the first clause of the
@@ -1658,7 +1655,7 @@ clause as produced by clause/3, nth_clause/3 or prolog_frame_attribute/3.
 \arg{Property} is one of the following:
 \begin{description}
     \termitem{file}{FileName}
-Unify \arg{FileName} with the name of the sourcefile in which the
+Unify \arg{FileName} with the name of the source file in which the
 clause is defined.   Fails if the clause is not associated to a file.
     \termitem{line_count}{LineNumber}
 Unify \arg{LineNumber} with the line number of the clause.  Fails if
@@ -2225,7 +2222,7 @@ As write_term/2, but output is sent to \arg{Stream} rather than the
 current output.
     \predicate{write_canonical}{1}{+Term}
 Write \arg{Term} on the current output stream using standard
-parenthesised prefix notation (i.e. ignoring operator declarations).
+parenthesised prefix notation (i.e., ignoring operator declarations).
 Atoms that need quotes are quoted.  Terms written with this predicate
 can always be read back, regardless of current operator declarations.
 Equivalent to write_term/2 using the options \const{ignore_ops} and
@@ -2922,7 +2919,7 @@ Expr2}.
 \infixop{is}{-Number}{+Expr}
 Succeeds when \arg{Number} has successfully been unified with the number
 \arg{Expr} evaluates to.  If \arg{Expr} evaluates to a float that can be
-represented using an integer (i.e.\ the value is integer and within the
+represented using an integer (i.e, the value is integer and within the
 range that can be described by Prolog's integer representation), \arg{
 Expr} is unified with the integer value. 
 
@@ -3417,7 +3414,7 @@ Escape sequences to include arguments from \arg{Arguments}. Each time a
 \fmtseq{%d}  &  Write the term, ignoring operators.  See also
 		write_term/2.  Mnemonic: old Edinburgh display/1. \\
 \fmtseq{%p}  &  print/1 the next item (identical to \fmtseq{%t}) \\
-\fmtseq{%n}  &  Put the next item as a character (i.e. it is
+\fmtseq{%n}  &  Put the next item as a character (i.e., it is
                 an ASCII value) \\
 \fmtseq{%r}  &  Write the next item N times where N is the
                 second item (an integer) \\
@@ -3862,7 +3859,7 @@ Defines extensions. Current mapping: \const{txt} implies \const{['']},
     \termitem{file_errors}{fail/error}
 If \const{error} (default), throw and \const{existence_error} exception
 if the file cannot be found.  If \const{fail}, stay silent.%
-	\footnote{Silent operation was the default upto version 3.2.6.}
+	\footnote{Silent operation was the default up to version 3.2.6.}
     \termitem{solutions}{first/all}
 If \const{first} (default), the predicates leaves no choice-point.
 Otherwise a choice-point will be left and backtracking may yield
@@ -4528,7 +4525,7 @@ threads_cputime & MT-version: seconds CPU time used by finished threads \\
     \predicate{statistics}{0}{}
 Display a table of system statistics on the current output stream.
     \predicate{time}{1}{+Goal}
-Execute \arg{Goal} just like once/1 (i.e. leaving no choice points),
+Execute \arg{Goal} just like once/1 (i.e., leaving no choice points),
 but print used time, number of logical inferences and the average
 number of \arg{lips} (logical inferences per second).  Note that
 SWI-Prolog counts the actual executed number of inferences rather than

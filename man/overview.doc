@@ -38,7 +38,8 @@ Yes
 ?- 
 \end{code}
 
-After this point, Unix and Windows users are united again.
+After this point, Unix and Windows users unite, so if you are using
+Unix please continue at \secref{execquery}.
 
 \subsubsection{Starting SWI-Prolog on Windows}
 
@@ -65,7 +66,7 @@ The normal way to start with the \file{likes.pl} file mentioned in
 explorer.
 
 
-\subsection{Executing a query}
+\subsection{Executing a query}			\label{sec:execquery}
 
 After loading a program, one can ask Prolog queries about the program.
 The query below asks Prolog to prove whether `john' likes someone and
@@ -710,7 +711,7 @@ directly as a Unix script-file.  the same mechanism is useful to
 specify additional parameters for running a Prolog file on Windows.
 
 If the first letter of a Prolog file is \verb$#$, the first line is
-threated as comment.%
+treated as comment.%
 	\footnote{The \texttt{\#}-sign can be the legal start of a
 	normal Prolog clause. In the unlikely case this is required,
 	leave the first line blank or add a header-comment.}
@@ -820,7 +821,7 @@ file.
 
 \subsubsection{Creating a saved-state}
 
-For larger programs, as well as for programs that are required run on
+For larger programs, as well as for programs that are required to run on
 systems that do not have the SWI-Prolog development system installed,
 creating a saved state is the best solution. A saved state is created
 using qsave_program/[1,2] or using the linker plld(1). A saved state is
@@ -848,7 +849,7 @@ qsave_program/2.
 \verb$--${\em option-name}\verb$=$\em{option-value}
 \end{quote}
 
-For example, to create a stan-alone executable that starts by executing
+For example, to create a stand-alone executable that starts by executing
 main/0 and for which the source is loaded through \file{load.pl}, use
 the command
 
@@ -898,7 +899,7 @@ files for the right architecture.  See also \secref{shlib}.
     \prologflagitem{version}{integer}{r}
 The version identifier is an integer with value: $$10000 \times
 \arg{Major} + 100 \times \arg{Minor} + \arg{Patch}$$
-Note that in releases upto 2.7.10 this prolog-flag yielded an atom holding
+Note that in releases up to 2.7.10 this prolog-flag yielded an atom holding
 the three numbers separated by dots. The current representation is much
 easier for implementing version-conditional statements.
     \prologflagitem{home}{atom}{r}
@@ -921,8 +922,8 @@ If true, open_shared_object/2 and friends are implemented, providing
 access to shared libraries (\fileext{so} files) or dynamic link
 libraries (\fileext{DLL} files).
     \prologflagitem{shared_object_extension}{atom}{r}
-Extension used by the operating system for shared objects.  \const{so}
-for most Unix systems and \const{dll} for Windows.  Used for locating
+Extension used by the operating system for shared objects. \fileext{so}
+for most Unix systems and \fileext{dll} for Windows.  Used for locating
 files using the \const{file_type} \const{executable}.  See also
 absolute_file_name/3.
     \prologflagitem{dynamic_stacks}{bool}{r}
@@ -1005,7 +1006,7 @@ atom_chars/2 and atom_codes/2.
 If true (default is false), \exam{Functor(arg)} is read as if it was
 written \exam{'Functor'(arg)}. Some applications use the Prolog read/1
 predicate for reading an application defined script language. In these
-cases, it is often difficult to explain none-Prolog users of the
+cases, it is often difficult to explain to non-Prolog users of the
 application that constants and functions can only start with a lowercase
 letter. Variables can be turned into atoms starting with an uppercase
 atom by calling read_term/2 using the option \const{variable_names} and
@@ -1076,7 +1077,7 @@ If true (false is the default), garbage collections and stack-shifts
 will be reported on the terminal.  May be changed.
     \prologflagitem{max_arity}{unbounded}{r}
 ISO prolog-flag describing there is no maximum arity to compound terms.
-    \prologflagitem{integer_rounding_function}{down,toward_zero}
+    \prologflagitem{integer_rounding_function}{down,toward_zero}{r}
 ISO prolog-flag describing rounding by \verb$//$ and \verb$rem$ arithmetic
 functions. Value depends on the C-compiler used.
     \prologflagitem{bounded}{true}{r}
@@ -1093,7 +1094,7 @@ is printed, and execution continues as if the predicate was not defined
 and if \const{error} (default), an \except{existence_error} exception
 is raised.  This flag is local to each module.
     \prologflagitem{debug}{bool}{rw}
-Switch on/off debugging mode.  If debug mode is activated the system
+Switch debugging mode on/off.  If debug mode is activated the system
 traps encountered spy-points (see spy/1) and trace-points (see trace/1).
 In addition, tail-recursion optimisation is disabled and the system is
 more conservative in destroying choice-points to simplify debugging.
@@ -1316,10 +1317,10 @@ Alert character.  Normally the ASCII character 7 (beep).
     \escapeitem{b}
 Backspace character.
     \escapeitem{c}
-No output.  All input characters upto but not including the first
+No output.  All input characters up to but not including the first
 non-layout character are skipped.  This allows for the specification
 of pretty-looking long lines.  For compatibility with Quintus Prolog.
-Nor supported by ISO.  Example:
+Not supported by ISO.  Example:
 \begin{code}
 format('This is a long line that would look better if it was \c
        split across multiple physical lines in the input')
@@ -1363,9 +1364,9 @@ Character escaping is only available if the
 See current_prolog_flag/2. Character escapes conflict with writef/2 in
 two ways: \verb$\40$ is interpreted as decimal 40 by writef/2, but
 character escapes handling by read has already interpreted as 32 (40
-octal). Also, \fmtseq{\l} is translated to a single `l'. It is adviced
+octal). Also, \fmtseq{\l} is translated to a single `l'. It is advised
 to use the more widely supported format/[2,3] predicate instead. If you
-insist using writef, either switch \const{character_escapes} to
+insist upon using writef/2, either switch \const{character_escapes} to
 \const{false}, or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
 
 
@@ -1394,7 +1395,7 @@ is interpreted in Kbytes (1024 bytes), with \const{m}, the value is
 interpreted in Mbytes ($1024 \times 1024$ bytes).
 
 The local-, global- and trail-stack are limited to 128 Mbytes on 32 bit
-processors, or more in general to $\pow{2}{\mbox{bits-per-long} - 5}$
+processors, or more generally to $\pow{2}{\mbox{bits-per-long} - 5}$
 bytes.
 
 The PrologScript facility described in \secref{plscript} provides a 
@@ -1403,8 +1404,9 @@ default stack-sizes are controlled using the Windows \idx{registry}
 on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$ using the
 names \const{localSize}, \const{globalSize} and \const{trailSize}.  The
 value is a \const{DWORD} expressing the default stack size in Kbytes.
-A GUI for modifying these values of provided using the XPCE package.
-
+A GUI for modifying these values is provided using the XPCE package.
+To use this, start the XPCE manual tools using manpce/0, after which
+you find \textit{Preferences} in the \textit{File} menu.
 
 \begin{table}
 \begin{center}
@@ -1457,7 +1459,7 @@ SWI-Prolog 2.8.5, no limits are imposed on the addresses returned by
 \funcref{malloc}{} and friends.
 
 On some machines, the runtime stacks described above are allocated using
-`sparse allocation'. Virtual space upto the limit is claimed at startup
+`sparse allocation'. Virtual space up to the limit is claimed at startup
 and committed and released while the area grows and shrinks.  On Win32
 platform this is realised using \funcref{VirtualAlloc}{} and friends.
 On Unix systems this is realised using \funcref{mmap}{}.
@@ -1480,7 +1482,7 @@ and value information.  The size of the various memory areas is limited
 to 128 Mb for each of the areas, except for the program heap, which is
 not limited.
     \item[Integers]
-Integers are 32-bit to the user, but integers upto the value of the
+Integers are 32-bit to the user, but integers up to the value of the
 \const{max_tagged_integer} prolog-flag are represented more efficiently.
     \item[Floats]
 Floating point numbers are represented as C-native double precision

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Many typos and some clarifications in the manual pointed out
+    by Jack Keel.  Thanks!
+
   * FIXED: predicate reference handling when running out of stack.  This
     could leave the system unstable after an out-of-stack, especially
     caused by dynamic code.

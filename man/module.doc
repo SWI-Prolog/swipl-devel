@@ -86,7 +86,7 @@ system.
 
 Modules normally are created by loading a \jargon{module file}.  A module
 file is a file holding a module/2 directive as its first term.  The
-module/2 directive declares the name and the public (i.e.\
+module/2 directive declares the name and the public (i.e.,
 externally visible) predicates of the module.  The rest of the file
 is loaded into the module.  Below is an example of a module file,
 defining reverse/2. 
@@ -495,7 +495,7 @@ disadvantages. If a predicate $A$ passes module sensitive information
 to a predicate $B$, passing the same information to a module
 sensitive system predicate both $A$ and $B$ should be declared
 transparent. Using the Quintus approach only $A$ needs to be
-treated special (i.e. declared with meta_predicate/1)%
+treated special (i.e., declared with meta_predicate/1)%
     \footnote{Although this would make it impossible to call $B$
               directly.}.
 A second problem arises if the body of a transparent predicate uses

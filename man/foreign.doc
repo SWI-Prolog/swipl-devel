@@ -625,7 +625,7 @@ PL_unify_atom(t, PL_new_atom("text"));
 
 The latter increments the reference count of the atom \const{text},
 which effectively ensures the atom will never be collected.  It is
-adviced to use the *_chars() or *_nchars() functions whenever
+advised to use the *_chars() or *_nchars() functions whenever
 applicable.
 
 
@@ -1186,7 +1186,7 @@ In addition, on most 32-bit platforms \type{int} and \type{long} are the
 same. Upto version 4.0.5, only \const{PL_INTEGER} could be specified
 which was taken from the stack as \type{long}. Such code fails when
 passing small integral types on machines where \type{int} is smaller
-than \type{long}. It is adviced to use \const{PL_SHORT}, \const{PL_INT}
+than \type{long}. It is advised to use \const{PL_SHORT}, \const{PL_INT}
 or \const{PL_LONG} as appropriate. Similar, C compilers promote
 \type{float} to \type{double} and therefore \const{PL_FLOAT} and
 \const{PL_DOUBLE} are synonyms.
@@ -1266,7 +1266,7 @@ install()
 \cfunction{int}{PL_chars_to_term}{const char *chars, term_t -t}
 Parse the string \arg{chars} and put the resulting Prolog term into
 \arg{t}. \arg{chars} may or may not be closed using a Prolog full-stop
-(i.e.\ a dot followed by a blank). Returns \const{FALSE} if a syntax
+(i.e., a dot followed by a blank). Returns \const{FALSE} if a syntax
 error was encountered and \const{TRUE} after successful completion.
 In addition to returning \const{FALSE}, the exception-term is
 returned in \arg{t} on a syntax error.
@@ -2285,7 +2285,7 @@ This approach is fast and easy, but has the drawbacks of (untyped)
 pointers: there is no reliable way to detect the validity of the
 pointer, not to verify it is pointing to a structure of the desired
 type.  The pointer may be wrapped into a compound term with arity
-1 (i.e. \exam{dde_channel(<Pointer>)}), making the type-problem
+1 (i.e., \exam{dde_channel(<Pointer>)}), making the type-problem
 less serious.
 
 Alternatively (used in the DDE interface), the interface code can
