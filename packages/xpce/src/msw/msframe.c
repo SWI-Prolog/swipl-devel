@@ -654,6 +654,9 @@ static void
 ws_place_frame(FrameObj fr)
 { static int last_x = 0, last_y = 0;
   static int placed = 0;
+  int xborder = GetSystemMetrics(SM_CXBORDER);
+  int yborder = GetSystemMetrics(SM_CYCAPTION) +
+		GetSystemMetrics(SM_CYBORDER);
 
   int dw = valInt(getWidthDisplay(fr->display));
   int dh = valInt(getHeightDisplay(fr->display));
@@ -669,16 +672,20 @@ ws_place_frame(FrameObj fr)
   }
 
   if ( last_x + fw > dw - PLACE_MARGIN )
-  { last_x = PLACE_MARGIN;
+  { int xborder = GetSystemMetrics(SM_CXBORDER);
+
+    last_x = PLACE_MARGIN;
     if ( last_x + fw > dw )
-      last_x = GetSystemMetrics(SM_CXBORDER);
+      last_x = 0;
   }
   if ( last_y + fh > dh - PLACE_MARGIN )
   { last_y = PLACE_MARGIN;
     if ( last_y + fh > dh )
-      last_y = GetSystemMetrics(SM_CYCAPTION) +
-	       GetSystemMetrics(SM_CYBORDER);
+      last_y = 0;
   }
+
+  last_x = max(xborder, last_x);
+  last_y = max(yborder, last_y);
 
   send(fr, NAME_set, toInt(last_x), toInt(last_y), 0);
 }

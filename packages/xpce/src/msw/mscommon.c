@@ -321,6 +321,7 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
   Int buttons = DEFAULT;
   Any window = getObjectFromHWND(hwnd);
   int mouse_ev = FALSE;
+  int double_click = FALSE;
 
   DEBUG(NAME_event,
 	Cprintf("messageToEvent(%s(0x%04x), 0x%04x, 0x%04x, 0x%08lx)\n",
@@ -355,6 +356,8 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       }
 
       break;
+    case WM_LBUTTONDBLCLK:
+      double_click = TRUE;
     case WM_LBUTTONDOWN:
       id = NAME_msLeftDown;
 
@@ -375,6 +378,8 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       id = NAME_msMiddleUp;
       mouse_ev++;
       break;
+    case WM_MBUTTONDBLCLK:
+      double_click = TRUE;
     case WM_MBUTTONDOWN:
       id = NAME_msMiddleDown;
       mouse_ev++;
@@ -394,6 +399,8 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       }
 
       break;
+    case WM_RBUTTONDBLCLK:
+      double_click = TRUE;
     case WM_RBUTTONDOWN:
       id = NAME_msRightDown;
 
@@ -459,6 +466,9 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       state |= BUTTON_ms_middle;
     if ( wParam & MK_RBUTTON )
       state |= BUTTON_ms_right;
+
+    if ( double_click )
+      state |= CLICK_TYPE_double;
 
     buttons = toInt(state);
   }
