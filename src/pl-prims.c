@@ -88,17 +88,19 @@ static int
 _pl_ground(Word p ARG_LD)
 { int arity;
 
+last:
   deRef(p);
 
   if (isVar(*p) )
     fail;
   if (!isTerm(*p) )
     succeed;
+
   arity = arityFunctor(functorTerm(*p));
-  for(p = argTermP(*p, 0); arity > 0; arity--, p++)
+  for(p = argTermP(*p, 0); --arity > 0; p++)
     TRY( _pl_ground(p PASS_LD) );
 
-  succeed;
+  goto last;
 }
 
 
