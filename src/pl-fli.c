@@ -1887,6 +1887,13 @@ cont:
     case PL_CHARS:
       rval = PL_unify_atom_chars(t, va_arg(args, const char *));
       break;
+    case PL_NCHARS:
+    { unsigned int len = va_arg(args, unsigned int);
+      const char *s = va_arg(args, const char *)
+
+      rval = PL_unify_atom_nchars(t, len, s);
+      break;
+    }
   { functor_t ft;
     int arity;
 

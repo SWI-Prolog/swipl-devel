@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: PL_NCHARS option to PL_unify_term().
+
   * ADDED: current_prolog_flag(pid, Pid) to get the process identifier.
 
   * ADDED: gtrace/0 as alias for guitracer,trace.

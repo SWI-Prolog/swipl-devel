@@ -1202,6 +1202,12 @@ The type identifiers are:
 No op.  Used in arguments of \const{PL_FUNCTOR}.
    \definition{\const{PL_ATOM} \arg{atom_t}}
 Unify the argument with an atom, as in PL_unify_atom().
+   \definition{\const{PL_CHARS} \arg{const char *}}
+Unify the argument with an atom created from a 0-terminated string.
+   \definition{\const{PL_NCHARS} \arg{unsigned int, const char *}}
+Unify the argument with an atom created from the given number of
+characters starting at the given address. See also
+PL_unify_atom_nchars();
    \definition{\const{PL_SHORT} \arg{short}}
 Unify the argument with an integer, as in PL_unify_integer(). As
 \type{short} is promoted to \type{int}, \const{PL_SHORT} is a
