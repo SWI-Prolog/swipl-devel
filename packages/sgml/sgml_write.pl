@@ -159,19 +159,106 @@ emit([], _, _) :- !.
 emit([H|T], Out, State) :- !,
 	emit(H, Out, State),
 	emit(T, Out, State).
-emit(element(Name, Attributes, Content), Out, State) :-
-	format(Out, '<~w', [Name]),
-	attributes(Attributes, Out, State),
+emit(Element, Out, State) :-
+	\+ \+ emit_element(Element, Out, State).
+
+emit_element(element(Name, Attributes, Content), Out, State) :-
+	att_length(Attributes, State, Alen),
+	(   Alen > 60
+	->  Sep = nl,
+	    AttIndent = 4
+	;   Sep = sp,
+	    AttIndent = 0
+	),
+	(   get_state(State, dialect, xml)
+	->  update_nsmap(Attributes, State)
+	;   true
+	),
+	put_char(Out, '<'),
+	emit_name(Name, Out, State),
+	(   AttIndent > 0
+	->  \+ \+ ( inc_indent(State, AttIndent),
+	            attributes(Attributes, Sep, Out, State)
+		  )
+	;   attributes(Attributes, Sep, Out, State)
+	),
 	content(Content, Out, Name, State).
 
-attributes([], _, _).
-attributes([H|T], Out, State) :-
+attributes([], _, _, _).
+attributes([H|T], Sep, Out, State) :-
+	(   Sep == nl
+	->  write_indent(State, Out)
+	;   put_char(Out, ' ')
+	),
 	attribute(H, Out, State),
-	attributes(T, Out, State).
+	attributes(T, Sep, Out, State).
 
 attribute(Name=Value, Out, State) :-
-	format(Out, ' ~w=', [Name]),
+	emit_name(Name, Out, State),
+	put_char(Out, =),
 	sgml_write_attribute(Out, Value, State).
+
+att_length(Atts, State, Len) :-
+	att_length(Atts, State, 0, Len).
+
+att_length([], _, Len, Len).
+att_length([A0|T], State, Len0, Len) :-
+	alen(A0, State, AL),
+	Len1 is Len0 + 1 + AL,
+	att_length(T, State, Len1, Len).
+
+alen(URI:Name=Value, State, Len) :- !,
+	atom_length(Value, AL),
+	atom_length(Name, NL),
+	get_state(State, nsmap, Nsmap),
+	(   memberchk(NS=URI, Nsmap)
+	->  atom_length(NS, NsL)
+	;   atom_length(URI, NsL)
+	),
+	Len is AL+NL+NsL+3.
+alen(Name=Value, _, Len) :-
+	atom_length(Name, NL),
+	atom_length(Value, AL),
+	Len is AL+NL+3.
+
+emit_name(Name, Out, _) :-
+	atom(Name), !,
+	write(Out, Name).
+emit_name(URI:Name, Out, State) :-
+	get_state(State, nsmap, NSMap),
+	memberchk(NS=URI, NSMap), !,
+	(   NS == []
+	->  write(Out, Name)
+	;   format(Out, '~w:~w', [NS, Name])
+	).
+emit_name(Term, Out, _) :-
+	write(Out, Term).
+
+%	update_nsmap(+Attributes, !State)
+%	
+%	Modify the nsmap of State to reflect modifications due to xmlns
+%	arguments.
+
+update_nsmap(Attributes, State) :-
+	get_state(State, nsmap, Map0),
+	update_nsmap(Attributes, Map0, Map),
+	set_state(State, nsmap, Map).
+
+update_nsmap([], Map, Map).
+update_nsmap([xmlns:NS=URI|T], Map0, Map) :- !,
+	set_nsmap(NS, URI, Map0, Map1),
+	update_nsmap(T, Map1, Map).
+update_nsmap([xmlns=URI|T], Map0, Map) :- !,
+	set_nsmap([], URI, Map0, Map1),
+	update_nsmap(T, Map1, Map).
+update_nsmap([_|T], Map0, Map) :- !,
+	update_nsmap(T, Map0, Map).
+
+set_nsmap(NS, URI, Map0, Map) :-
+	select(NS=_, Map0, Map1), !,
+	Map = [NS=URI|Map1].
+set_nsmap(NS, URI, Map, [NS=URI|Map]).
+
 
 %	content(+Content, +Out, +Element, +State, +Options)
 %	
@@ -183,27 +270,34 @@ attribute(Name=Value, Out, State) :-
 content([], Out, Element, State) :- !,	% empty element
 	(   get_state(State, dialect, xml)
 	->  format(Out, '/>', [])
-	;   (   empty_element(State, Element)
-	    ->	put_char(Out, '>')
-	    ;	format(Out, '></~w>', [Element])
+	;   write(Out, '>'),
+	    (   empty_element(State, Element)
+	    ->	true
+	    ;	emit_close(Element, Out, State)
 	    )
 	).
 content([Atom], Out, Element, State) :-
 	atom(Atom), !,
 	format(Out, '>', []),
 	sgml_write_content(Out, Atom, State),
-	format(Out, '</~w>', [Element]).
+	emit_close(Element, Out, State).
 content(Content, Out, Element, State) :-
 	element_content(Content, Elements), !,
 	format(Out, '>', []),
 	\+ \+ (inc_indent(State),
 	       write_element_content(Elements, Out, State)),
 	write_indent(State, Out),
-	format(Out, '</~w>', [Element]).
+	emit_close(Element, Out, State).
 content(Content, Out, Element, State) :-
 	format(Out, '>', []),
 	write_mixed_content(Content, Out, Element, State),
-	format(Out, '</~w>', [Element]).
+	emit_close(Element, Out, State).
+
+
+emit_close(Element, Out, State) :-
+	write(Out, '</'),
+	emit_name(Element, Out, State),
+	write(Out, '>').
 
 
 write_mixed_content([], _, _, _).
@@ -331,9 +425,12 @@ write_n(N, Char, Out) :-
 	).
 	
 inc_indent(State) :-
+	inc_indent(State, 2).
+
+inc_indent(State, Inc) :-
 	state(indent, Arg),
 	arg(Arg, State, I0),
-	I is I0 + 2,
+	I is I0 + Inc,
 	setarg(Arg, State, I).
 
 
@@ -388,11 +485,13 @@ state(indent,     1).
 state(dtd,        2).
 state(entity_map, 3).
 state(dialect,	  4).
+state(nsmap,	  5).
 
 new_state(state(0,			% indent
 		-,			% DTD
 		EntityMap,		% entity_map
-		xml)) :-		% dialect
+		xml,			% dialect
+	        [])) :-			% NS=Full map
 	empty_assoc(EntityMap).
 
 get_state(State, Field, Value) :-

@@ -1,3 +1,9 @@
+Mar 4, 2005
+
+  * ADDED: xmlns support to xml_write/3.
+
+  * ENHANCED: library(sgml_write): Indent attributes if there are too many.
+
 Mar 01, 2005
 
   * ADDED: encoding argument to xml_quote_* and xml_name/2 predicates.
