@@ -57,8 +57,11 @@ interpreter and copy command.
 #endif
 
 #ifdef WIN32
+#include <io.h>				/* read, write, etc */
+#include <direct.h>			/* mkdir, chdir */
 #define IsDirSep(c) ((c) == '/' || (c) == '\\')
 #define DIRSEP '\\'
+#define mode_t unsigned short
 #else
 #define IsDirSep(c) ((c) == '/')
 #define DIRSEP '/'
@@ -169,7 +172,11 @@ static int
 makedir(char *path)
 { again:
 
+#ifdef WIN32
+  if ( mkdir(path) == 0 )
+#else
   if ( mkdir(path, 0777) == 0 )
+#endif
   { free(path);
     return TRUE;
   }
@@ -227,7 +234,7 @@ install_file(const char *from, const char *to)
       }
 
       if ( difftime(from_time, to_time) < 0.0 )
-      { if ( verbose )
+      { if ( verbose >= 2 )
 	  fprintf(stderr, "Skipped %s (not modified)\n", to);
 	return TRUE;
       }
@@ -318,6 +325,309 @@ install_file_in_dir(const char *file, const char *dir)
   return rval;
 }
 
+		 /*******************************
+		 *	       IGNORE		*
+		 *******************************/
+
+#define MAXLINE 1024
+#define EOS '\0'
+
+int compilePattern(const char *p);
+int matchPattern(const char *s);
+
+typedef struct icell *Icell;
+
+struct icell
+{ char *pattern;
+  Icell next;
+};
+
+typedef struct
+{ Icell head;
+  Icell tail;
+} ilist, *Ilist;
+
+ilist _ignore_patterns;
+Ilist ignore_patterns = &_ignore_patterns;
+
+void
+to_ignore_list(Ilist ign, const char *pattern)
+{ char *p = str_store(pattern);
+  Icell c = malloc(sizeof(struct icell));
+
+  c->pattern = p;
+  c->next = NULL;
+  if ( ign->tail )
+  { ign->tail->next = c;
+    ign->tail = c;
+  } else
+  { ign->head = ign->tail = c;
+  }
+}
+
+
+int
+ignore(Ilist ign, const char *name)
+{ Icell c;
+
+  for(c = ignore_patterns->head; c; c=c->next)
+  { compilePattern(c->pattern);
+    if ( matchPattern(name) )
+      return TRUE;
+  } 
+  for(c = ign->head; c; c=c->next)
+  { compilePattern(c->pattern);
+     if ( matchPattern(name) )
+       return TRUE;
+  } 
+  
+  return FALSE;
+}
+
+
+static void
+ignoreForDir(Ilist l, char *d)
+{ char n[MAXPATHLEN];
+  FILE *fd;
+
+  sprintf(n, "%s%c.cvsignore", d, DIRSEP);
+  if ( (fd = fopen(n, "r")) )
+  { char p[MAXLINE];
+
+    while( fgets(p, sizeof(p), fd) )
+    { char *s = p;
+      int len;
+
+      while(*s && *s < ' ')
+	s++;
+      len = strlen(s);
+
+      while( len > 0 && s[len-1] < ' ' )
+	len--;
+      s[len] = EOS;
+
+      if ( l > 0 )
+      { if ( verbose )
+	  printf("ignore %s in %s\n", s, d);
+	to_ignore_list(l, s);
+      }
+    }
+
+    fclose(fd);
+  }
+}
+
+
+		 /*******************************
+		 *	  WILDCHART MATCH	*
+		 *******************************/
+
+#define succeed return(TRUE);
+#define fail	return(FALSE);
+#ifndef uchar
+#define uchar unsigned char
+#endif
+
+#define MAXCODE 512
+
+#define ANY	128
+#define STAR	129
+#define ALT	130
+#define JMP	131
+#define ANYOF	132
+#define EXIT	133
+
+#define NOCURL	0
+#define CURL	1
+
+#define warning(text) \
+	(fprintf(stderr, "%s: bad pattern: %s\n", program, text), \
+	 exit(0))
+
+#define Output(c)	{ if ( Out->size > MAXCODE-1 ) \
+			  { warning("pattern too large"); \
+			    return (char *) NULL; \
+			  } \
+			  Out->code[Out->size++] = c; \
+			}
+#define setMap(c)	{ map[(c)/8] |= 1 << ((c) % 8); }
+
+static struct _pattern_buffer
+{ int	size;
+  uchar	code[MAXCODE];
+} default_pattern_buffer;
+
+static char	*compile_pattern(struct _pattern_buffer*, const char *, int);
+static int	match_pattern(uchar *, const char *);
+
+int
+compilePattern(const char *p)
+{ default_pattern_buffer.size = 0;
+  if ( compile_pattern(&default_pattern_buffer, p, NOCURL) == (char *) NULL )
+    fail;
+
+  succeed;
+}
+
+
+static char *
+compile_pattern(struct _pattern_buffer *Out, const char *p, int curl)
+{ char c;
+
+  for(;;)
+  { switch(c = *p++)
+    { case EOS:
+	break;
+      case '\\':
+	Output(*p == EOS ? '\\' : (*p & 0x7f));
+	if (*p == EOS )
+	  break;
+	p++;
+	continue;
+      case '?':
+	Output(ANY);
+	continue;
+      case '*':
+	Output(STAR);
+	continue;
+      case '[':
+	{ uchar *map;
+	  int n;
+
+	  Output(ANYOF);
+	  map = &Out->code[Out->size];
+	  Out->size += 16;
+	  if ( Out->size >= MAXCODE )
+	  { warning("Pattern too long");
+	    return (char *) NULL;
+	  }
+
+	  for( n=0; n < 16; n++)
+	    map[n] = 0;
+
+	  for(;;)
+	  { switch( c = *p++ )
+	    { case '\\':
+		if ( *p == EOS )
+		{ warning("Unmatched '['");
+		  return (char *)NULL;
+		}
+		setMap(*p);
+		p++;
+		continue;
+	      case ']':
+		break;
+	      default:
+		if ( p[-1] != ']' && p[0] == '-' && p[1] != ']' )
+		{ register int chr;
+
+		  for ( chr=p[-1]; chr <= p[1]; chr++ )
+		    setMap(chr);
+		  p += 2;
+		} else
+		  setMap(c);
+		continue;
+	    }
+	    break;
+	  }
+
+	  continue;
+	}
+      case '{':
+	{ int ai, aj = -1;
+
+	  for(;;)
+	  { Output(ALT); ai = Out->size; Output(0);
+	    if ( (p = compile_pattern(Out, p, CURL)) == (char *) NULL )
+	      return (char *) NULL;
+	    if ( aj > 0 )
+	      Out->code[aj] = Out->size - aj;
+	    if ( *p == ',' )
+	    { Output(JMP); aj = Out->size; Output(0);
+	      Out->code[ai] = Out->size - ai;
+	      Output(ALT); ai = Out->size; Output(0);
+	      p++;
+	    } else if ( *p == '}' )
+	    { p++;
+	      break;
+	    } else
+	    { warning("Unmatched '{'");
+	      return (char *) NULL;
+	    }
+	  }
+	  
+	  continue;
+	}
+      case '}':
+      case ',':
+	if ( curl == CURL )
+	{ p--;
+	  return (char *)p;
+	}
+	/*FALLTHROUGH*/
+      default:
+	Output(c & 0x7f);
+	continue;
+    }
+
+    Output(EXIT);
+    return (char *)p;
+  }
+}
+
+
+int
+matchPattern(const char *s)
+{ return match_pattern(default_pattern_buffer.code, s);
+}
+
+
+static int
+match_pattern(uchar *p, const char *s)
+{ uchar c;
+
+  for(;;)
+  { switch( c = *p++ )
+    { case EXIT:
+	  return (*s == EOS ? TRUE : FALSE);
+      case ANY:						/* ? */
+	  if ( *s == EOS )
+	    fail;
+	  s++;
+	  continue;
+      case ANYOF:					/* [...] */
+	  if ( p[*s / 8] & (1 << (*s % 8)) )
+	  { p += 16;
+	    s++;
+	    continue;
+	  }
+	  fail;
+      case STAR:					/* * */
+	  do
+	  { if ( match_pattern(p, s) )
+	      succeed;
+	  } while( *s++ );
+	  fail;
+      case JMP:						/* { ... } */
+	  p += *p;
+	  continue;
+      case ALT:
+	  if ( match_pattern(p+1, s) )
+	    succeed;
+	  p += *p;
+	  continue;	  
+      default:						/* character */
+	  if ( c != (uchar) *s )
+	    fail;
+	  s++;
+	  continue;
+    }
+  }
+}
+
+		 /*******************************
+		 *		MAIN		*
+		 *******************************/
 
 void
 usage()
@@ -403,8 +713,24 @@ main(int argc, char **argv)
   { if ( isdir(out) )
     { int i;
   
+      to_ignore_list(ignore_patterns, "*~");
+      to_ignore_list(ignore_patterns, "*.bak");
+      to_ignore_list(ignore_patterns, "*.old");
+      to_ignore_list(ignore_patterns, ".cvsignore");
+      to_ignore_list(ignore_patterns, "CVS");
+      ignoreForDir(ignore_patterns, out);
+
       for(i=0; i<argc-1; i++)
-      { if ( !install_file_in_dir(argv[i], out) )
+      { if ( ignore(ignore_patterns, argv[i]) )
+	  continue;
+
+	if ( isdir(argv[i]) )
+	{ if ( verbose )
+	    fprintf(stderr, "Skipping directory %s\n", argv[i]);
+	  continue;
+	}
+
+	if ( !install_file_in_dir(argv[i], out) )
 	  errors++;
       }
     } else

@@ -1,4 +1,22 @@
 ################################################################
+# Makefile for XPCE as a SWI-Prolog package for MS-Windows
+#
+# Author:	Jan Wielemaker
+# E-mail:	jan@swi.psy.uva.nl
+# Copyright:	University of Amsterdam
+# Copying:	GPL-2.  See file COPYING or http://www.gnu.org/
+#
+# This makefile assumes the xpce sources are in the packages
+# directory of SWI-Prolog (...\pl\packages).
+#
+# This makefile is for use with Microsoft NMAKE.  The configuration
+# for Unix-based platforms uses GNU autoconf.  This Makefile uses
+# the CMD.EXE command FOR %var (list) DO command and therefore only
+# runs on Windows-NT or Windows-2000.  The result runs on all Win32
+# platforms, starting with Windows-95.
+#
+# Configuration is done in the ...\pl\src\rules.mk file
+################################################################
 
 PLHOME=..\..\..
 !include $(PLHOME)\src\rules.mk
@@ -7,9 +25,9 @@ INCLUDE=$(INCLUDE);..\include
 XLIBS=$(UXLIB) $(PLLIB) jpeglib2.lib xpm.lib comdlg32.lib
 
 XPCEDLL=xpce.dll
-XPCE2PL=xpce2pl.dll
+PL2XPCE=pl2xpce.dll
 
-all:	$(XPCE2PL)
+all:	$(PL2XPCE)
 
 ################################################################
 # ADT 		--- Abstract Data Types
@@ -222,53 +240,76 @@ $(XPCEDLL):	$(OBJECTS)
 
 PLOBJ=		$(OBJECTS) ..\pl\src\interface.obj
 
-$(XPCE2PL):	$(PLOBJ)
-		$(LD) $(LDFLAGS) /out:$@ /dll $(OBJECTS) $(LIBS) $(XLIBS)
+$(PL2XPCE):	$(PLOBJ)
+		$(LD) $(LDFLAGS) /out:$@ /dll $(PLOBJ) $(LIBS) $(XLIBS)
+
+################################################################
+# Installation program
+################################################################
+
+xpce-install:	xpce-install.exe
+
+# NOTE: setargv ensures main() is fet with expanded arguments (see
+# MSVC documentation).
+
+xpce-install.exe: xpce-install.obj
+		$(LD) /out:$@ /subsystem:console \
+			xpce-install.obj setargv.obj $(LIBS)
 
 ################################################################
 # Installation
 ################################################################
 
 IBASE=	$(PLBASE)\xpce
-IDIRS=	$(IBASE)\appl-help \
-	$(IBASE)\bitmaps \
-	$(IBASE)\bitmaps\16x16 \
-	$(IBASE)\bitmaps\32x32 \
-	$(IBASE)\bitmaps\patterns \
-	$(IBASE)\bitmaps \
-	$(IBASE)\man \
-	$(IBASE)\prolog \
-	$(IBASE)\prolog\boot \
-	$(IBASE)\prolog\contrib \
-	$(IBASE)\prolog\contrib\rubik \
-	$(IBASE)\prolog\demo \
-	$(IBASE)\prolog\lib \
-	$(IBASE)\prolog\lib\compatibility \
-	$(IBASE)\prolog\lib\dialog \
-	$(IBASE)\prolog\lib\bitmaps \
-	$(IBASE)\prolog\lib\bitmaps \
-	$(IBASE)\prolog\lib\doc \
-	$(IBASE)\prolog\lib\doc\DTD \
-	$(IBASE)\prolog\lib\doc\icons \
-	$(IBASE)\prolog\lib\draw \
-	$(IBASE)\prolog\lib\emacs \
-	$(IBASE)\prolog\lib\english \
-	$(IBASE)\prolog\lib\http \
-	$(IBASE)\prolog\lib\man \
-	$(IBASE)\prolog\lib\math \
-	$(IBASE)\prolog\lib\xref
+IDIRS=	appl-help \
+	bitmaps \
+	bitmaps\16x16 \
+	bitmaps\32x32 \
+	bitmaps\patterns \
+	man \
+	man\reference \
+	man\reference\class \
+	prolog \
+	prolog\boot \
+	prolog\contrib \
+	prolog\contrib\rubik \
+	prolog\demo \
+	prolog\lib \
+	prolog\lib\compatibility \
+	prolog\lib\dialog \
+	prolog\lib\doc \
+	prolog\lib\doc\icons \
+	prolog\lib\draw \
+	prolog\lib\emacs \
+	prolog\lib\english \
+	prolog\lib\http \
+	prolog\lib\man \
+	prolog\lib\math \
+	prolog\lib\xref \
+	prolog\lib\trace \
+	prolog\lib\trace\icons
 
-$(IDIRS):
-	mkdir "$@"
+INSTALL=xpce-install.exe -n
 
-INSTALL=xpce-install
-
-install:	idirs idll
+install:	xpce-install.exe idirs idll ilib iindex
 		
-idirs:		$(IDIRS)
-idll::
-		$(INSTALL) $(XPCE2PL) $(PLBASE)\bin
+idirs::
+		@for %d in ($(IDIRS)) do \
+		  @if not exist "$(IBASE)\%d\$(NULL)" mkdir "$(IBASE)\%d"
+
+idll:		$(PL2XPCE)
+		$(INSTALL) $(PL2XPCE) $(PLBASE)\bin
 
 ilib::
-		$(INSTALL) -n ..\prolog\lib\*.pl $(IBASE)\prolog\lib
-		$(INSTALL) -n ..\prolog\lib\*.pl $(IBASE)\prolog\lib
+		@for %d in ($(IDIRS)) do \
+		  @echo Installing files in %d ... & \
+		  $(INSTALL) ..\%d\* $(IBASE)\%d
+
+iindex::
+		chdir $(IBASE)\prolog\lib & \
+		  $(PLBASE)\bin\plcon.exe \
+			-f none -F none \
+			-g make_library_index('.') \
+			-t halt
+
+
