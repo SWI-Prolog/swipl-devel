@@ -357,6 +357,8 @@ free_prolog_thread(void *data)
     return;				/* Post-mortem */
 
   info = ld->thread.info;
+  if ( info->status == PL_THREAD_RUNNING )
+    info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
   acknowlege = (info->status == PL_THREAD_CANCELED);
   DEBUG(1, Sdprintf("Freeing prolog thread %d\n", info-threads));
 
@@ -865,7 +867,9 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
     case PL_THREAD_EXITED:
     { term_t tmp = PL_new_term_ref();
 
-      PL_recorded(info->return_value, tmp);
+      if ( info->return_value )
+	PL_recorded(info->return_value, tmp);
+
       return PL_unify_term(status,
 			   PL_FUNCTOR, FUNCTOR_exited1,
 			     PL_TERM, tmp);

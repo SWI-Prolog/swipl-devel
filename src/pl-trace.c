@@ -137,6 +137,16 @@ PL_get_choice(term_t r, Choice *chp)
 
 #ifdef O_DEBUGGER
 
+static void
+exitFromDebugger(int status)
+{
+#ifdef O_PLMT
+  if ( PL_thread_self() > 1 )
+    pthread_exit(NULL);
+#endif
+  PL_halt(status);
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines the tracer and interrupt  handler  that  allows  the
 user  to break the normal Prolog execution.  The tracer is written in C,
@@ -378,14 +388,14 @@ again:
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
       { Sfputs("EOF: exit\n", Sdout);
-	PL_halt(0);
+	exitFromDebugger(0);
       }
     } else
     { int c = getSingleChar(Sdin);
 
       if ( c == EOF )
       { Sfputs("EOF: exit\n", Sdout);
-	PL_halt(0);
+	exitFromDebugger(0);
       }
       buf[0] = c;
       buf[1] = EOS;
@@ -557,7 +567,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
     case '\04':
     case EOF:	FeedBack("EOF: ");
     case 'e':	FeedBack("exit\n");
-		PL_halt(0);
+		exitFromDebugger(0);
     case 'f':	FeedBack("fail\n");
 		return ACTION_FAIL;
     case 'i':	if (port & (CALL_PORT|REDO_PORT|FAIL_PORT))
@@ -1213,7 +1223,7 @@ again:
     case 04:
     case EOF:	Sfputs("EOF: ", Sdout);
     case 'e':	Sfputs("exit\n", Sdout);
-		PL_halt(0);
+		exitFromDebugger(0);
 		break;
 #ifdef O_DEBUGGER
     case 'g':	Sfputs("goals\n", Sdout);

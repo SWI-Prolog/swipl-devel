@@ -1270,7 +1270,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   } else if ( PL_is_integer(timeout) )
   { long v;
 
-    PL_get_integer(timeout, &v);
+    PL_get_long(timeout, &v);
     if ( v > 0L )
     { t.tv_sec = v;
       t.tv_usec = 0;
