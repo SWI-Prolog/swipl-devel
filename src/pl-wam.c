@@ -3430,12 +3430,11 @@ execution can continue at `next_instruction'
 	    lTop = lSave;
 	  }
 #endif
-  	  leaveDefinition(DEF);
+	  FR->predicate = DEF = ((Procedure) *PC++)->definition;
 	  if ( true(DEF, HIDE_CHILDS) )
 	    set(FR, FR_NODEBUG);
-	  
-	  FR->predicate = DEF = ((Procedure) *PC++)->definition;
 	  copyFrameArguments(lTop, FR, DEF->functor->arity PASS_LD);
+  	  leaveDefinition(DEF);
 
 	  goto depart_continue;
 	}
