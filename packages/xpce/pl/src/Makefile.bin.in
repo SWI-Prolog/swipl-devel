@@ -39,7 +39,9 @@ BOOTPL=@BOOTPL@
 BPL=		bin/$(PLARCH)/$(BOOTPL)
 PWD=`pwd`
 
-STARTUP=	boot.prc
+# Make this boot64 for 64-bit processors
+
+STARTUP=	boot32.prc
 BOOTPLS=	boot/apply.pl boot/autoload.pl \
 		boot/bags.pl boot/dwim.pl boot/make.pl  \
 		boot/history.pl boot/init.pl boot/list.pl boot/listing.pl \
