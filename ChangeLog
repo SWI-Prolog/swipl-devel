@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: quicker and more graceful stack-overflow exception from sort/2
+    if available local-stack space doesn't suffice (Anjo Anjewierden).
+
+
 VERSION 5.0.5
 =============
 

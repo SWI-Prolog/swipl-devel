@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Lock up on `point<-distance' if points are very far apart.  Now
+  use floating point arithmetic.
+
 * ADDED: Dedicated support for JPEG loading on static-color visuals in
   the X11 version, more than triples the speed on non colour-mapped
   displays.

@@ -86,14 +86,22 @@ qsort_compare_standard(const void *p1, const void *p2)
 
 static term_t
 list_to_sorted_array(term_t List, int *size)
-{ int n = lengthList(List, TRUE);
+{ GET_LD
+  int n = lengthList(List, TRUE);
   term_t rval;
   term_t list = PL_copy_term_ref(List);
   term_t head = PL_new_term_ref();
   int i;
 
   if ( n < 0 )
-    fail;			/* not a proper list */
+    fail;				/* not a proper list */
+
+					/* Won't work anyhow */
+  if ( spaceStack(local) < sizeof(word)*n )
+  { outOfStack((Stack)&LD->stacks.local, STACK_OVERFLOW_RAISE);
+    fail;
+  }
+
   rval = PL_new_term_refs(n);
   
   for(i=0; PL_get_list(list, head, list); i++)

@@ -27,6 +27,7 @@
 #include "alloc.h"
 #include <h/graphics.h>
 #include <h/unix.h>
+#include <math.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -36,12 +37,21 @@
 	3.5 integer multiplications on average.
  */
 
+long
+rdouble(double f)
+{ if (f > 0.0)
+    return (long) (f+0.4999999);
+
+  return (long) (f-0.4999999);
+}
+
 int
 isqrt(long a)
-{ register long n, d, m1, m2;
-
-  if ( a < 0 )
+{ if ( a < 0 )
     return errorPce(NAME_sqrt, NAME_domainError, toInt(a));
+
+#ifdef BITSHIFT_SQRT
+  register long n, d, m1, m2;
 
   for (m2=5; ((a<<1) & (0xffff << (m2<<1))); m2++);
   m1 = m2 - 1;
@@ -57,6 +67,9 @@ isqrt(long a)
     }
     n += (1 + (d>>m2));
   }
+#else
+  return rdouble(sqrt((double)a));
+#endif
 }
 
 

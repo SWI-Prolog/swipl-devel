@@ -1745,9 +1745,11 @@ pl_garbage_collect(term_t d)
   int ol = GD->debug_level;
   int nl;
 
-  if ( !PL_get_integer(d, &nl) )
-    return warning("garbage_collect/1: instantiation fault");
-  GD->debug_level = nl;
+  if ( d )
+  { if ( !PL_get_integer(d, &nl) )
+      return warning("garbage_collect/1: instantiation fault");
+    GD->debug_level = nl;
+  }
 #endif
   finish_foreign_frame(PASS_LD1);
   garbageCollect(fr, ch);

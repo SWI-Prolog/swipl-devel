@@ -1618,6 +1618,8 @@ typedef struct
 			 (char *)LD->stacks.name.base)
 #define roomStack(name) ((char *)LD->stacks.name.max - \
 			 (char *)LD->stacks.name.top)
+#define spaceStack(name) ((char *)LD->stacks.name.limit - \
+			 (char *)LD->stacks.name.top)
 #define limitStack(name) ((char *)LD->stacks.name.limit - \
 			 (char *)LD->stacks.name.base)
 #define narrowStack(name) (roomStack(name) < LD->stacks.name.minfree)
