@@ -1689,7 +1689,8 @@ get_message(message_queue *queue, term_t msg)
       PL_recorded(msgp->message, tmp);
 
       if ( PL_unify(msg, tmp) )
-      { if ( prev )
+      { DEBUG(1, Sdprintf("%d: match\n", PL_thread_self()));
+	if ( prev )
 	{ if ( !(prev->next = msgp->next) )
 	    queue->tail = prev;
 	} else
@@ -1953,6 +1954,15 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   LOCK();
   if ( !get_message_queue(A1, &q, FALSE) )
   { UNLOCK();
+    fail;
+  }
+
+					/* only heuristic!  How to do */
+					/* proper locking? */
+  if ( q->waiting )
+  { PL_error("message_queue_destroy", 1, "Has waiting threads", ERR_PERMISSION,
+	     ATOM_message_queue, ATOM_destroy, A1);
+    UNLOCK();
     fail;
   }
 
