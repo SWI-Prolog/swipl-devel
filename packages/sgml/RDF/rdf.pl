@@ -124,7 +124,8 @@ prolog:message(rdf(unparsed(Data))) -->
 	{ phrase(unparse_xml(Data), XML)
 	},
 	[ 'RDF: Failed to interpret "~s"'-[XML] ].
-
+prolog:message(rdf(protege(id, Id))) -->
+	[ 'RDF: Fixed Protege 1.3 ID="~w" bug'-[Id] ].
 
 		 /*******************************
 		 *	    XML-TO-TEXT		*
