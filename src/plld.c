@@ -51,10 +51,10 @@ embedded application.
 #endif
 #define PROG_LD "link.exe"
 #define SO_LD "link.exe"
-#define PROG_CC UNQUOTED_PREFIX "cl.exe /MD"
-#define PROG_CXX UNQUOTED_PREFIX "cl.exe /MD /GX"
+#define PROG_CC "cl.exe /MD"
+#define PROG_CXX "cl.exe /MD /GX"
 #define PROG_OUT "plout.exe"
-#define PROG_CPP UNQUOTED_PREFIX "cl.exe -P"
+#define PROG_CPP "cl.exe -P"
 #define LIB_PL	 "libpl.lib"
 #define LIB_PLMT LIB_PL
 #define LIB_PL_DEBUG "libplD.lib"
@@ -350,10 +350,11 @@ concatArgList(arglist *to, const char *prefix, arglist *from)
   for(n=0; n<from->size; n++)
   { char buf[1024];
 
+    buf[0] = UNQUOTED;
     if ( strchr(from->list[n], ' ') )
-      sprintf(buf, "%s\"%s\"", prefix, from->list[n]);
+      sprintf(buf+1, "%s\"%s\"", prefix, from->list[n]);
     else
-      sprintf(buf, "%s%s", prefix, from->list[n]);
+      sprintf(buf+1, "%s%s", prefix, from->list[n]);
     appendArgList(to, buf);
   }
 }
