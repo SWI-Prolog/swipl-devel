@@ -4,6 +4,15 @@
 Version 2.7.6
 =============
 
+  * MODIFIED: Added some more support for very deeply nested terms on
+    the last arguments (long lists beeing one of them) by introducing
+    a new compilation schema for such terms.  Also modified numbervars/4
+    to exploit right-recursion of terms.
+
+  * MODIFIED: Argument-stack default-limit changed from 8 KB to 1 MB
+    for machines with dynamic stacks.  16 KB for others.  This limits
+    most of all the depth of terms handled by assert/retract.
+
   * FIXED: Emacs-interaction bug using history.  Thanks to Dave Moffat.
 
   * FIXED: decompilation (retract, listing, etc.) for predicates with

@@ -50,9 +50,9 @@ struct
   int b_argfirstvar_n[256];
   int h_void;
   int b_void;
-  int h_functor_n[256];
+  int h_functor;
   int h_list;
-  int b_functor_n[256];
+  int b_functor;
   int i_pop;
   int i_pop_n[256];
   int i_enter;
@@ -113,11 +113,10 @@ pl_count()
   countArray("B_ARGFIRSTVAR", 	counting.b_argfirstvar_n);  
   countOne(  "H_VOID", 		counting.h_void);
   countOne(  "B_VOID", 		counting.b_void);
-  countArray("H_FUNCTOR", 	counting.h_functor_n);  
+  countOne(  "H_FUNCTOR", 	counting.h_functor_n);  
   countOne(  "H_LIST", 		counting.h_list);  
-  countArray("B_FUNCTOR", 	counting.b_functor_n);  
+  countOne(  "B_FUNCTOR", 	counting.b_functor_n);  
   countOne(  "I_POP", 		counting.i_pop);
-  countArray("I_POPN", 		counting.i_pop_n);  
   countOne(  "I_ENTER", 	counting.i_enter);
 #if O_BLOCK
   countOne(  "I_CUT_BLOCK",	counting.i_cut_block);
@@ -1063,9 +1062,10 @@ pl-comp.c
     &&I_DEPART_LBL,
     &&I_EXIT_LBL,
     &&B_FUNCTOR_LBL,
+    &&B_RFUNCTOR_LBL,
     &&H_FUNCTOR_LBL,
+    &&H_RFUNCTOR_LBL,
     &&I_POP_LBL,
-    &&I_POPN_LBL,
     &&B_VAR_LBL,
     &&H_VAR_LBL,
     &&B_CONST_LBL,
@@ -1084,7 +1084,11 @@ pl-comp.c
     &&B_ARGVAR_LBL,
 
     &&H_NIL_LBL,
+    &&B_NIL_LBL,
     &&H_LIST_LBL,
+    &&H_RLIST_LBL,
+    &&B_LIST_LBL,
+    &&B_RLIST_LBL,
 
     &&B_VAR0_LBL,
     &&B_VAR1_LBL,
@@ -1324,6 +1328,10 @@ above the stack anyway.
       { *ARGP++ = (word)*PC++;
 	NEXT_INSTRUCTION;
       }
+    VMI(B_NIL, COUNT(b_nil), ("b_nil\n")) MARK(BNIL);
+      { *ARGP++ = ATOM_nil;
+        NEXT_INSTRUCTION;
+      }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 32-bit integer in write-mode (body).  Simply   create  the bignum on the
@@ -1547,10 +1555,12 @@ the global stack (should we check?  Saves trail! How often?).
 
     VMI(H_FUNCTOR, COUNT_N(h_functor_n), ("h_functor %d\n", *PC))
       MARK(HFUNC);
-      { FunctorDef fdef = (FunctorDef) *PC++;
+      { FunctorDef fdef;
 
 	requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP + 1;
+    VMI(H_RFUNCTOR, COUNT_N(h_rfunctor_n), ("h_rfunctor %d\n", *PC))
+	fdef = (FunctorDef) *PC++;
         deRef(ARGP);
 	if ( isVar(*ARGP) )
 	{ int arity = fdef->arity;
@@ -1583,6 +1593,7 @@ the global stack (should we check?  Saves trail! How often?).
     VMI(H_LIST, COUNT(h_list), ("h_list\n")) MARK(HLIST);
         requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP + 1;
+    VMI(H_RLIST, COUNT(h_rlist), ("h_rlist\n")) MARK(HRLIST);
 	deRef(ARGP);
 	if ( isVar(*ARGP) )
 	{ 
@@ -1613,31 +1624,41 @@ memory  while  in  body  mode  we  just  allocate  the  term,  but don't
 initialise the arguments to variables.  Allocation is done in  place  to
 avoid a function call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_FUNCTOR, COUNT_N(b_functor_n), ("b_functor %d\n", *PC)) MARK(BFUNC);
-      { register FunctorDef fdef = (FunctorDef) *PC++;
+    VMI(B_FUNCTOR, COUNT(b_functor), ("b_functor %d\n", *PC)) MARK(BFUNC);
+      { FunctorDef fdef;
 
-	requireStack(global, sizeof(word) * (1+fdef->arity));
 	requireStack(argument, sizeof(Word));
-
+	*aTop++ = ARGP+1;
+    VMI(B_RFUNCTOR, COUNT(b_rfunctor), ("b_rfunctor %d\n", *PC)) MARK(BRFUNC);
+	requireStack(global, sizeof(word) * (1+fdef->arity));
+	fdef = (FunctorDef) *PC++;
 	*ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
-	*aTop++ = ++ARGP;
 	*gTop++ = fdef->functor;
 	ARGP = gTop;
 	gTop += fdef->arity;
 
 	NEXT_INSTRUCTION;
       }
+
+    VMI(B_LIST, COUNT(b_list), ("b_list\n")) MARK(BLIST);
+      { requireStack(argument, sizeof(Word));
+	*aTop++ = ARGP+1;
+    VMI(B_RLIST, COUNT(b_rlist), ("b_rlist %d\n", *PC)) MARK(BRLIST);
+	requireStack(global, sizeof(word) * 3);
+	*ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
+	*gTop++ = FUNCTOR_dot2->functor;
+	ARGP = gTop;
+	gTop += 2;
+
+	NEXT_INSTRUCTION;
+      }
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Pop the saved argument pointer (see H_FUNCTOR and B_FUNCTOR).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(I_POP, COUNT(i_pop), ("pop\n")) MARK(POP);
       { ARGP = *--aTop;
-	NEXT_INSTRUCTION;
-      }
-    VMI(I_POPN, COUNT_N(i_pop_n), ("popn %d\n", *PC)) MARK(POPN);
-      { aTop -= *PC++;
-	ARGP = *aTop;
 	NEXT_INSTRUCTION;
       }
 

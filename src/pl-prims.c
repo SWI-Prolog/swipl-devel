@@ -786,6 +786,7 @@ do_number_vars(term_t t, FunctorDef functor, int n)
 { atom_t name;
   int arity;
 
+start:
   if ( PL_is_variable(t) )
   { term_t tmp = PL_new_term_ref();
 
@@ -794,13 +795,24 @@ do_number_vars(term_t t, FunctorDef functor, int n)
     PL_unify_arg(1, t, tmp);
 
     n++;
-  } else if ( PL_get_name_arity(t, &name, &arity) )
-  { term_t a = PL_new_term_ref();
-    int i;
+  } else if ( _PL_get_name_arity(t, &name, &arity) && arity > 0 )
+  { if ( arity == 1 )
+    { PL_get_arg(1, t, t);
+      goto start;
+    } else
+    { term_t a = PL_new_term_ref();
+      int i;
 
-    for(i=1; i<=arity; i++)
-    { PL_get_arg(i, t, a);
-      n = do_number_vars(a, functor, n);
+      for(i=1; ; i++)
+      { if ( i == arity )
+	{ PL_reset_term_refs(a);
+	  _PL_get_arg(i, t, t);
+	  goto start;			/* right-recursion optimisation */
+	} else
+	{ _PL_get_arg(i, t, a);
+	  n = do_number_vars(a, functor, n);
+	}
+      }
     }
   }
 
@@ -810,10 +822,10 @@ do_number_vars(term_t t, FunctorDef functor, int n)
 
 int
 numberVars(term_t t, FunctorDef functor, int n)
-{ term_t h0 = PL_new_term_refs(0);
-  int rval = do_number_vars(t, functor, n);
+{ term_t h2 = PL_copy_term_ref(t);
+  int rval = do_number_vars(h2, functor, n);
 
-  PL_reset_term_refs(h0);
+  PL_reset_term_refs(h2);
 
   return rval;
 }

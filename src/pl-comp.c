@@ -19,9 +19,10 @@ struct code_info codeTable[] = {
   CODE(I_DEPART,	"i_depart",	1, CA1_PROC),
   CODE(I_EXIT,		"i_exit",	0, 0),
   CODE(B_FUNCTOR,	"b_functor",	1, CA1_FUNC),
+  CODE(B_RFUNCTOR,	"b_rfunctor",	1, CA1_FUNC),
   CODE(H_FUNCTOR,	"h_functor",	1, CA1_FUNC),
+  CODE(H_RFUNCTOR,	"h_rfunctor",	1, CA1_FUNC),
   CODE(I_POP,		"i_pop",	0, 0),
-  CODE(I_POPN,		"i_popn",	1, 0),
   CODE(B_VAR,		"b_var",	1, 0),
   CODE(H_VAR,		"h_var",	1, 0),
   CODE(B_CONST,		"b_const",	1, CA1_DATA),
@@ -38,7 +39,11 @@ struct code_info codeTable[] = {
   CODE(B_ARGFIRSTVAR,	"b_argfirstvar",1, 0),
   CODE(B_ARGVAR,	"b_argvar",	1, 0),
   CODE(H_NIL,		"h_nil",	0, 0),
+  CODE(B_NIL,		"b_nil",	0, 0),
   CODE(H_LIST,		"h_list",	0, 0),
+  CODE(H_RLIST,		"h_rlist",	0, 0),
+  CODE(B_LIST,		"h_list",	0, 0),
+  CODE(B_RLIST,		"h_rlist",	0, 0),
   CODE(B_VAR0,		"b_var0",	0, 0),
   CODE(B_VAR1,		"b_var1",	0, 0),
   CODE(B_VAR2,		"b_var2",	0, 0),
@@ -431,10 +436,10 @@ calculation at runtime.
 
 #define isConjunction(w) hasFunctor(w, FUNCTOR_comma2)
 
-#define HEAD    2			/* compileArgument on head argument */
-#define HEADARG 3			/* ... on functor arg in head */
-#define BODY    4			/* compileArgument on body argument */
-#define BODYARG 5			/* ... on functor arg in body */
+#define A_HEAD	0x01			/* argument in head */
+#define A_BODY  0x02			/* argument in body */
+#define A_ARG	0x04			/* sub-argument */
+#define A_RIGHT	0x08			/* rightmost argument */
 
 #define ISVOID 0			/* compileArgument produced H_VOID */
 #define NONVOID 1			/* ... anything else */
@@ -665,7 +670,7 @@ before the I_ENTER instructions.
     Word arg;
 
     for ( arg = argTermP(*head, 0), n = 0; n < ci.arity; n++, arg++ )
-    { if ( compileArgument(arg, HEAD, &ci) == NONVOID )
+    { if ( compileArgument(arg, A_HEAD, &ci) == NONVOID )
 	lastnonvoid = PC(&ci);
     }
     seekBuffer(&ci.codes, lastnonvoid, code);
@@ -865,14 +870,11 @@ sequences,  in  which  case  we  can leave out the VOIDS just before the
 I_ENTER or I_POP instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int lastPopped;		/* how many contiguous pops? */
-
 static int
 compileArgument(Word arg, int where, compileInfo *ci)
 { int index;
   bool first;
 
-  lastPopped = 0;		/* going to produce something else */
   deRef(arg);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -883,7 +885,7 @@ be a variable, and thus cannot be removed if it is before an I_POP.
 
   switch(tag(*arg))
   { case TAG_VAR:
-      if (where & BODY)
+      if (where & A_BODY)
       { Output_0(ci, B_VOID);
 	return NONVOID;
       }
@@ -891,23 +893,27 @@ be a variable, and thus cannot be removed if it is before an I_POP.
       return ISVOID;
     case TAG_INTEGER:
       if ( storage(*arg) != STG_INLINE )
-      {	Output_1(ci, where & HEAD ? H_INTEGER : B_INTEGER, valBignum(*arg));
+      {	Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, valBignum(*arg));
 	return NONVOID;
       }
       /* FALLTHROUGH for tagged integers */
     case TAG_ATOM:
-      Output_1(ci, (where & BODY) ? B_CONST : H_CONST, *arg);
+      if ( isNil(*arg) )
+      {	Output_0(ci, (where & A_BODY) ? B_NIL : H_NIL);
+      } else
+      { Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
+      }
       return NONVOID;
     case TAG_FLOAT:
     { Word p = valIndirectP(*arg);
-      Output_2(ci, (where & BODY) ? B_FLOAT : H_FLOAT, p[0], p[1]);
+      Output_2(ci, (where & A_BODY) ? B_FLOAT : H_FLOAT, p[0], p[1]);
       return NONVOID;
     }
     case TAG_STRING:
     { Word p = addressIndirect(*arg);
 
       int n  = wsizeofInd(*p);
-      Output_0(ci, where & HEAD ? H_INDIRECT : B_INDIRECT);
+      Output_0(ci, (where & A_HEAD) ? H_INDIRECT : B_INDIRECT);
       Output_n(ci, p, n+1);
       return NONVOID;
     }
@@ -923,64 +929,89 @@ Non-void variables. There are many cases for this.
   { first = isFirstVar(ci->used_var, index);
 
     if ( index < ci->arity )		/* variable on its own in the head */
-    { switch ( where )
-      { case BODY:	if ( index < 3 )
-			{ Output_0(ci, B_VAR0 + index);
-			  return NONVOID;
-			}
-			Output_0(ci, B_VAR);	break;
-	case BODYARG:	Output_0(ci, B_ARGVAR);	break;
-	case HEAD:	if ( first )
-			{ Output_0(ci, H_VOID);
-			  return ISVOID;
-			} /*FALLTHROUGH*/
-	case HEADARG:	Output_0(ci, H_VAR);	break;
+    { if ( where & A_BODY )
+      { if ( where & A_ARG )
+	{ Output_0(ci, B_ARGVAR);
+	} else
+	{ if ( index < 3 )
+	  { Output_0(ci, B_VAR0 + index);
+	    return NONVOID;
+	  }
+	  Output_0(ci, B_VAR);
+	}
+      } else				/* head */
+      { if ( !(where & A_ARG) && first )
+	{ Output_0(ci, H_VOID);
+	  return ISVOID;
+	}
+	Output_0(ci, H_VAR);
       }
       Output_a(ci, VAROFFSET(index));
+
       return NONVOID;
     }
 
     /* normal variable (i.e. not shared in the head and non-void) */
-    switch(where)
-    { case BODY:	if ( index < 3 && !first )
-			{ Output_0(ci, B_VAR0 + index);
-			  return NONVOID;
-			}
-			Output_0(ci, first ? B_FIRSTVAR    : B_VAR);	break;
-      case BODYARG:	Output_0(ci, first ? B_ARGFIRSTVAR : B_ARGVAR); break;
-      default:		Output_0(ci, first ? H_FIRSTVAR    : H_VAR);	break;
+    if( where & A_BODY )
+    { if ( where & A_ARG )
+      { Output_0(ci, first ? B_ARGFIRSTVAR : B_ARGVAR);
+      } else
+      { if ( index < 3 && !first )
+	{ Output_0(ci, B_VAR0 + index);
+	  return NONVOID;
+	}
+	Output_0(ci, first ? B_FIRSTVAR : B_VAR);
+      }
+    } else
+    { Output_0(ci, first ? H_FIRSTVAR : H_VAR);
     }
+
     Output_a(ci, VAROFFSET(index));
+
     return NONVOID;
   }
 
   { int ar;
     int lastnonvoid;
     FunctorDef fdef;
+    int isright = (where & A_RIGHT);
 
     fdef = functorTerm(*arg);
-    if ( fdef == FUNCTOR_dot2 && (where & HEAD) )
-    { Output_0(ci, H_LIST);
+    if ( fdef == FUNCTOR_dot2 )
+    { code c;
+
+      if ( (where & A_HEAD) )		/* index in array! */
+	c = (isright ? H_RLIST : H_LIST);
+      else
+	c = (isright ? B_RLIST : B_LIST);
+
+      Output_0(ci, c);
     } else
-    { Output_1(ci, where & BODY ? B_FUNCTOR : H_FUNCTOR, (word)fdef);
+    { code c;
+
+      if ( (where & A_HEAD) )		/* index in array! */
+	c = (isright ? H_RFUNCTOR : H_FUNCTOR);
+      else
+	c = (isright ? B_RFUNCTOR : B_FUNCTOR);
+
+      Output_1(ci, c, (word)fdef);
     }
     lastnonvoid = PC(ci);
     ar = fdef->arity;
+    where &= ~A_RIGHT;
     for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
-    { if ( compileArgument(arg, (where & BODY) ? BODYARG : HEADARG, ci)
-							== NONVOID )
+    { where |= A_ARG;
+
+      if ( ar == 1 )
+	where |= A_RIGHT;
+
+      if ( compileArgument(arg, where, ci) == NONVOID )
 	lastnonvoid = PC(ci);
     }
     seekBuffer(&ci->codes, lastnonvoid, code);
-    switch(lastPopped)
-    { case 0:		Output_0(ci, I_POP);
-    			break;
-      case 1:		OpCode(ci, PC(ci)-1) = encode(I_POPN);
-			Output_a(ci, 2);
-			break;
-      default:		OpCode(ci, PC(ci)-1)++;
-    }
-    lastPopped++;
+    if ( !isright )
+      Output_0(ci, I_POP);
+
     return NONVOID;
   }
 }
@@ -1005,7 +1036,7 @@ compileSubClause(register Word arg, code call, compileInfo *ci)
 A non-void variable. Create a I_USERCALL0 instruction for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     if ( isIndexedVarTerm(*arg) >= 0 )
-    { compileArgument(arg, BODY, ci);
+    { compileArgument(arg, A_BODY, ci);
       Output_0(ci, I_USERCALL0);
       succeed;
     }
@@ -1038,7 +1069,7 @@ will use the meta-call mechanism for all these types of calls.
       }
   */
 
-      compileArgument(arg, BODY, ci);
+      compileArgument(arg, A_BODY, ci);
       Output_0(ci, I_USERCALL0);
       succeed;
     }
@@ -1094,7 +1125,7 @@ operator.
 #endif /*O_INLINE_FOREIGNS*/
 
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
-	compileArgument(arg, BODY, ci);
+	compileArgument(arg, A_BODY, ci);
 
       if ( fdef->name == ATOM_call )
       { Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
@@ -1182,7 +1213,7 @@ compileArith(Word arg, compileInfo *ci)
   else if ( fdef == FUNCTOR_smaller_equal2 )	a_func = A_LE;	/* =< */
   else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE;	/* >= */
   else if ( fdef == FUNCTOR_is2 )				/* is */
-  { if ( !compileArgument(argTermP(*arg, 0), BODY, ci) )
+  { if ( !compileArgument(argTermP(*arg, 0), A_BODY, ci) )
       return A_ERROR;
     Output_0(ci, A_ENTER);
     if ( !compileArithArgument(argTermP(*arg, 1), ci) )
@@ -1520,6 +1551,7 @@ arg1Key(Clause clause, word *key)
   for(;;)
   { switch(decode(*APC++))
     { case H_FUNCTOR:
+      case H_RFUNCTOR:
 	*key = ((FunctorDef)XR(*APC))->functor;
         succeed;
       case H_CONST:
@@ -1529,6 +1561,7 @@ arg1Key(Clause clause, word *key)
 	*key = ATOM_nil;
         succeed;
       case H_LIST:
+      case H_RLIST:
 	*key = FUNCTOR_dot2->functor;
         succeed;
       case H_INTEGER:
@@ -1700,6 +1733,17 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  fdef = FUNCTOR_dot2;
           goto common_functor;
 	}
+      case H_RFUNCTOR:
+	{ FunctorDef fdef = (FunctorDef) XR(*PC++);
+
+      common_rfunctor:
+	  TRY(PL_unify_functor(argp, fdef));
+          get_arg_ref(argp, argp);
+	  continue;
+      case H_RLIST:
+	  fdef = FUNCTOR_dot2;
+          goto common_rfunctor;
+	}
       case I_POP:
 	  PL_reset_term_refs(argp);
           argp--;
@@ -1707,16 +1751,6 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  if ( !pushed )
 	    argn++;
 	  continue;
-      case I_POPN:
-        { int n = *PC++;
-
-	  argp -= n;
-	  pushed -= n;
-          PL_reset_term_refs(argp+1);
-	  if ( !pushed )
-	    argn++;
-	  continue;
-	}
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
 	{ assert(argn <= arity);
@@ -1834,6 +1868,9 @@ decompileBody(register decompileInfo *di, code end, Code until)
 	case B_CONST:
 			    *ARGP++ = XR(*PC++);
 			    continue;
+	case B_NIL:
+			    *ARGP++ = ATOM_nil;
+			    continue;
 	case B_INTEGER:
 	case A_INTEGER:
 			    *ARGP++ = makeNum(*PC++);
@@ -1875,20 +1912,33 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    setVar(*ARGP++);
 			    continue;
       case B_FUNCTOR:
-			    *ARGP = globalFunctor((FunctorDef)XR(*PC++));
-			    *aTop++ = ARGP + 1;
-			    verifyStack(argument);
-			    ARGP = argTermP(*ARGP, 0);
-			    nested++;
-			    continue;
+      { FunctorDef fdef = (FunctorDef)XR(*PC++);
+
+      common_bfunctor:
+	*ARGP = globalFunctor(fdef);
+        *aTop++ = ARGP + 1;
+        verifyStack(argument);
+	ARGP = argTermP(*ARGP, 0);
+	nested++;
+	continue;
+      case B_LIST:
+	fdef = FUNCTOR_dot2;
+        goto common_bfunctor;
+      }
+      case B_RFUNCTOR:
+      { FunctorDef fdef = (FunctorDef)XR(*PC++);
+
+      common_brfunctor:
+	*ARGP = globalFunctor(fdef);
+	ARGP = argTermP(*ARGP, 0);
+	continue;
+      case B_RLIST:
+	fdef = FUNCTOR_dot2;
+        goto common_brfunctor;
+      }
       case I_POP:
 			    ARGP = *--aTop;
 			    nested--;
-			    continue;
-      case I_POPN:
-			    aTop -= *PC;
-			    nested -= *PC++;
-			    ARGP = *aTop;
 			    continue;
 #if O_COMPILE_ARITH
       case A_FUNC0:

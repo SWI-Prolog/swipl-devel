@@ -601,6 +601,22 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
 
 
 int
+_PL_get_name_arity(term_t t, atom_t *name, int *arity)
+{ word w = valHandle(t);
+
+  if ( isTerm(w) )
+  { FunctorDef fd = functorTerm(w);
+
+    *name =  fd->name;
+    *arity = fd->arity;
+    succeed;
+  }
+
+  fail;
+}
+
+
+int
 PL_get_functor(term_t t, functor_t *f)
 { word w = valHandle(t);
 
