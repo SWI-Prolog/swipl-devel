@@ -35,6 +35,7 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#undef abs
 #include <math.h>		/* avoid abs() problem with msvc++ */
 #include <stdio.h>		/* rename() and remove() prototypes */
 
