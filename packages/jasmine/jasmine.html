@@ -1,0 +1,376 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog Jasmine (ODB) Interface</TITLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<CENTER>
+
+<H1>SWI-Prolog Jasmine (ODB) Interface</H1>
+
+</CENTER>
+<HR>
+<CENTER>
+<I>Jan Wielemaker <BR>
+SWI, <BR>
+University of Amsterdam <BR>
+The Netherlands <BR>
+E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
+</CENTER>
+<HR>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<CENTER><H3>Abstract</H3></Center>
+<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+The Jasmine interface provides a client interface to the Object Oriented 
+Jasmine database. The interface consists of two layers. The first is a 
+simple wrapper around the Jasmine C-interface. The second provides 
+utility predicates providing more high-level access to Jasmine.
+</TABLE>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
+<LI><A HREF="#sec:2"><B>2 Basic ODB predicates</B></A>
+<UL>
+<LI><A HREF="#sec:2.1">2.1 Session management</A>
+<LI><A HREF="#sec:2.2">2.2 ODQL Statements</A>
+<LI><A HREF="#sec:2.3">2.3 Variables</A>
+<LI><A HREF="#sec:2.4">2.4 Collections</A>
+</UL>
+<LI><A HREF="#sec:3"><B>3 Utility Predicates</B></A>
+<LI><A HREF="#sec:4"><B>4 Error handling</B></A>
+<LI><A HREF="#sec:5"><B>5 Issues</B></A>
+<LI><A HREF="#sec:6"><B>6 Installation</B></A>
+<UL>
+<LI><A HREF="#sec:6.1">6.1 Unix systems</A>
+<LI><A HREF="#sec:6.2">6.2 Windows</A>
+</UL>
+</UL>
+
+<P>
+
+<H2><A NAME="sec:1">1 Introduction</A></H2>
+
+<P>Jasmine is an object-oriented database (ODB), implementing ODQL (<B>O</B>bject <B>D</B>atabase <B>Q</B>uery <B>L</B>anguage). 
+It provides a C-interface based on the following components:
+
+<P>
+<UL>
+<LI><I>Session management</I><BR>
+Connecting and disconnecting a database.
+<LI><I>Variables</I><BR>
+Within the interface, variables can be declared. These variables can be 
+manipulated both using ODQL statement and from the access language. 
+Variables play a vital role in communicating data.
+<LI><I>Data conversion</I><BR>
+Variables can be read and written. They are dynamically typed and the 
+interface provides access to their type and value. In Prolog we can 
+exploit dynamic typing of Prolog to hide most of the data conversion 
+from the user.
+<LI><I>Collection conversion</I><BR>
+Collections play a vital role in communicating results from databases. 
+Variables are bound to collections using ODQL statements. They can be 
+queried for their size and converted into Prolog lists.
+</UL>
+
+<H2><A NAME="sec:2">2 Basic ODB predicates</A></H2>
+
+<P>Below is the definition of the basic ODB access predicates defined in
+<CODE>jasmine.c</CODE>.
+
+<H3><A NAME="sec:2.1">2.1 Session management</A></H3>
+
+<P>Sessions are accessed using a <EM>session-handle</EM>. This opaque 
+handle is normally preserved in the Prolog database.
+
+<DL>
+<DT><A NAME="odb_ses_start/5"><STRONG>odb_ses_start</STRONG>(<VAR>-SH, 
++Database, +User, +Passwd, +EnvFile</VAR>)</A><DD>
+Connect to the indicated database and return a handle for the created 
+session in <VAR>SH</VAR>. <VAR>SH</VAR> is an opaque Prolog term 
+providing context for subsequent ODB calls. <VAR>Database</VAR> 
+specifies the database to connect to. It is an atom formatted as below, 
+where <VAR>nvode</VAR> is the name of the machine to connect to. <VAR>User</VAR> 
+and <VAR>Passwd</VAR> and
+<VAR>EnvFile</VAR> are either atoms or unbound variables. The latter 
+makes the interface choose default values. <VAR>EnvFile</VAR> is the 
+name of a file providing parameters for the interface. See the C-API 
+documentation for details.
+<BLOCKQUOTE> [<VAR>vnode</VAR>::]/jasmine/jasmine
+</BLOCKQUOTE>
+<DT><A NAME="odb_ses_end/1"><STRONG>odb_ses_end</STRONG>(<VAR>+SH</VAR>)</A><DD>
+Terminate the session. Note that <A NAME="idx:athalt1:1"></A><B>at_halt/1</B> 
+can be used to ensure termination of the session when Prolog halts.
+</DL>
+
+<H3><A NAME="sec:2.2">2.2 ODQL Statements</A></H3>
+
+<P>ODQL statement are passed in textual form and specified either as 
+atoms or SWI-Prolog strings. The latter makes it possible to construct 
+statements using <A NAME="idx:sformat3:2"></A><B>sformat/3</B>. See also <A NAME="idx:odbexecodql3:3"></A><A HREF="#odb_exec_odql/3">odb_exec_odql/3</A>.
+
+<DL>
+<DT><A NAME="odb_exec_odql/2"><STRONG>odb_exec_odql</STRONG>(<VAR>+SH, 
++Statement</VAR>)</A><DD>
+Execute the given ODQL <VAR>Statement</VAR> on the session <VAR>SH</VAR>. 
+This predicate either succeeds or raises an exception. See
+<B>section ??</B> for details.
+</DL>
+
+<H3><A NAME="sec:2.3">2.3 Variables</A></H3>
+
+<P>Variables play a vital role in the interface. Interface variables are 
+defined using ODQL statements. They are scoped to the session, but 
+otherwise global. There are two approaches to deal with this. One is to 
+define a suitable set of variables for the application at startup and 
+the other is to create them as they are needed. In the latter case one 
+should be sure the variable name is currently not in use. In some of the 
+examples we therefore see:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+undefVar pcount;
+Integer pcount;
+</PRE>
+</TABLE>
+
+<P>From this example we learn that variables are typed. The type is 
+accessible through the C-interface and used by the access predicate to 
+perform suitable conversion to Prolog.
+
+<DL>
+<DT><A NAME="odb_get_var/3"><STRONG>odb_get_var</STRONG>(<VAR>+SH, 
++Name, -Value</VAR>)</A><DD>
+Fetches the value of the named interface variable. Succeeds if the value 
+can be unified successfully, fails if the value is retrieved correctly 
+but unification fails and raises an exception otherwise.
+
+<P>The representation of <VAR>Value</VAR> depends on the type of <VAR>Name</VAR> 
+in the database interface.
+
+<P>
+<UL>
+<LI><I>Bool</I><BR>
+Booleans are represented either using the atom <CODE>true</CODE> or
+<CODE>false</CODE>.
+<LI><I>ByteSequence</I><BR>
+Byte-sequences are represented using an atom (as of SWI-Prolog 3.3 atoms 
+can hold 0-bytes are therefore are capable of storing an arbitrary 
+byte-stream).
+<LI><I>Date</I><BR>
+Dates are represented in SWI-Prolog as a floating point number 
+representing the time since the start of 1970. See the Prolog reference 
+manual for manipulating dates.
+<LI><I>Decimal</I><BR>
+An ODB decimal is a sequence of digits with precision and scale. There 
+is no representation for this in Prolog and therefore we use
+<CODE>decimal(Digits, Precision, Scale)</CODE>. See the Jasmine C-API 
+docs for details.
+<LI><I>Integer</I><BR>
+Jasmine integers are, as SWI-Prolog's integers 32 bit signed values and 
+therefore represented naturally.
+<LI><I>Nil</I><BR>
+Nil is represented using the Prolog empty list (<CODE>Nil</CODE>[])).<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
+<LI><I>Object</I><BR>
+Objects are represented using a opaque term.
+<LI><I>Real</I><BR>
+Jasmine reals are double-precision floats and therefore naturally 
+represented using SWI-Prolog floats.
+<LI><I>String</I><BR>
+Strings are, like <CODE>ByteSequences</CODE>, represented as Prolog 
+atoms.
+<LI><I>Tuple</I><BR>
+Database N-tuples are represented using a term
+<CODE>tuple(...<VAR>Arg</VAR>...)</CODE>, where <VAR>Arg</VAR> is the 
+converted value for the corresponding position in the tuple.
+</UL>
+<DT><A NAME="odb_set_var/3"><STRONG>odb_set_var</STRONG>(<VAR>+SH, 
++Name, +Value</VAR>)</A><DD>
+Set a variable. In accordance with the guidelines in the interface this 
+first fetches the value to examine the type of the variable. The latter 
+is problematic, as not-yet-filled variables yield the <EM>Nil</EM> type. 
+In this case the type is determined from <VAR>Value</VAR>.
+
+<P>This translation currently does not deal with the type-ambiguities. 
+It is currently not possible to set nil-variables to a boolean, 
+byte-sequence or date. This problem can be fixed by using an ODQL query 
+to fill the empty variable with an object of the requested type.
+</DL>
+
+<H3><A NAME="sec:2.4">2.4 Collections</A></H3>
+
+<P>Database queries normally yield collections as results. The interface 
+simply converts collections into Prolog lists. The current interface 
+does not yet provide mechanisms for fetching part of a collection. Note 
+that, using ODQL statements it is possible to get the length of a 
+collection before conversion:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+collection_length(SH, Collection, Length) :-
+        odb_exec_odql(SH, 'Integer len;'),
+        odb_exec_odql(SH, 'len = ~w.count();', [Collection]),
+        odb_get_var(SH, len, Length).
+</PRE>
+</TABLE>
+
+<DL>
+<DT><A NAME="odb_collection_to_list/3"><STRONG>odb_collection_to_list</STRONG>(<VAR>+SH, 
++Collection, -List</VAR>)</A><DD>
+Where <VAR>Collection</VAR> is the name of a variable containing a 
+collection or the object-identifier of a collection. The elements of the 
+collection are converted using the same rules as <A NAME="idx:odbgetvar3:4"></A><A HREF="#odb_get_var/3">odb_get_var/3</A>.
+</DL>
+
+<H2><A NAME="sec:3">3 Utility Predicates</A></H2>
+
+<P>The predicates of the previous section provide all important aspects 
+of the C-API to the Prolog user. The provided access however is very 
+low-level. A very first start has been made to provide a number of 
+utility predicates.
+
+<DL>
+<DT><A NAME="odb_exec_odql/3"><STRONG>odb_exec_odql</STRONG>(<VAR>+SH, 
++Format, +Args</VAR>)</A><DD>
+First constructs a command using <A NAME="idx:sformat3:5"></A><B>sformat/3</B> 
+from <VAR>Format</VAR> and
+<VAR>Args</VAR> and then execute it.
+<DT><A NAME="odql/3"><STRONG>odql</STRONG>(<VAR>:SH, +Declarations, 
++Statements</VAR>)</A><DD>
+Utility to deal with a sequence of ODQL statements, requiring some 
+variables to execute them. <VAR>Declarations</VAR> is a list of
+<VAR>VarName</VAR>:<VAR>Type</VAR>. These variables are first unset and 
+then declared using the given type. Please note that this principle is
+<B>not re-entrant</B>. <VAR>Statements</VAR> is a list containing a mix 
+of ODQL statements, set/get variables, access collections and ordinary 
+Prolog code:
+
+<DL>
+<DT><STRONG>get</STRONG>(<VAR>VarName, Value</VAR>)<DD>
+Fetch the interface variable <VAR>VarName</VAR> using <A NAME="idx:odbgetvar3:6"></A><A HREF="#odb_get_var/3">odb_get_var/3</A>.
+<DT><STRONG>set</STRONG>(<VAR>VarName, Value</VAR>)<DD>
+Store the interface variable <VAR>VarName</VAR> using <A NAME="idx:odbsetvar3:7"></A><A HREF="#odb_set_var/3">odb_set_var/3</A>.
+<DT><STRONG>get_list</STRONG>(<VAR>Collection, List</VAR>)<DD>
+Get a variable or object-id into a list of values using
+<A NAME="idx:odbcollectiontolist2:8"></A><B>odb_collection_to_list/2</B>.
+<DT><STRONG>{}</STRONG>(<VAR>Goal</VAR>)<DD>
+Call normal Prolog goal in the module from which <A NAME="idx:odql3:9"></A><A HREF="#odql/3">odql/3</A> 
+was called. Note that <CODE>{Goal}</CODE> is the same as <CODE>{}(Goal)</CODE>.
+<DT><STRONG>-</STRONG>(<VAR>Format, Args</VAR>)<DD>
+Execute an ODQL query using <A NAME="idx:odbexecodql3:10"></A><A HREF="#odb_exec_odql/3">odb_exec_odql/3</A>.
+<DT><STRONG><VAR>Command</VAR></STRONG><DD>
+Execute ODQL command.
+</DL>
+
+<P>Here is an example, extracting the available <EM>class-families</EM> 
+from the Jasmine database:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+families(SH, List) :-
+        odql(SH,
+             [ ss:'Bag&lt;String&gt;'
+             ],
+             [ 'ss = FamilyManager.getAllFamilies();',
+               get_list(ss, List)
+             ]).
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<H2><A NAME="sec:4">4 Error handling</A></H2>
+
+<A NAME="sec:exception"></A>
+
+<P>All errors are reported using Prolog exceptions. This package raises 
+two types of exceptions. If Prolog arguments cannot be converted into 
+the desired data, normal Prolog <CODE>type_error</CODE> and
+<CODE>instantiation_error</CODE> exceptions are raised. Jasmine calls 
+returning an error are translated into an error term of the format
+<BLOCKQUOTE>
+<CODE>error(<CODE>package(jasmine, ErrorId)</CODE>, Context)</CODE>
+</BLOCKQUOTE>
+
+<P>Where <VAR>Context</VAR> is
+<BLOCKQUOTE>
+<CODE>context(Message, _)</CODE>
+</BLOCKQUOTE>
+
+<P>In this term, <VAR>ErrorId</VAR> is the (numerical) error identifier 
+raised by Jasmine and <VAR>Message</VAR> is Jasmine's textual 
+representation of the error.
+
+<H2><A NAME="sec:5">5 Issues</A></H2>
+
+<P>The interface defined here provides the foreign-language basis for a 
+more advanced Prolog ODQL interface. Specifying all ODQL as strings and 
+dealing with the interface variables is not a desirable way to deal with 
+ODQL. A more fundamental approach is to define a Prolog API for ODQL and 
+an interface for translating these Prolog queries into textual ODQL 
+calls. For example, the <A NAME="idx:families2:11"></A><B>families/2</B> 
+example above could be written as:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+families(SH, Families) :-
+        odql(Families:bag(string) = 'FamilyManager'.getAllFamilies).
+</PRE>
+</TABLE>
+
+<H2><A NAME="sec:6">6 Installation</A></H2>
+
+<P>The jasmine package has currently been build only on Windows. As 
+Jasmine is also available on Unix, the standard SWI-Prolog package 
+infra-structure for Unix foreign packages is provided.
+
+<H3><A NAME="sec:6.1">6.1 Unix systems</A></H3>
+
+<P>Installation on Unix system uses the commonly found <EM>configure</EM>,
+<EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
+installed before building this package. If SWI-Prolog is not installed 
+as <B>pl</B>, the environment variable <CODE>PL</CODE> must be set to 
+the name of the SWI-Prolog executable. Installation is now accomplished 
+using:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+% ./configure
+% make
+% make install
+</PRE>
+</TABLE>
+
+<P>This installs the Prolog library files in <CODE>$PLBASE/library</CODE>, 
+where
+<CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
+
+<H3><A NAME="sec:6.2">6.2 Windows</A></H3>
+
+<P>Run the file <CODE>setup.pl</CODE> by double clicking it. This will 
+install the required files into the SWI-Prolog directory and update the 
+library directory.
+
+<H1><A NAME="document-notes">Footnotes</A></H1>
+
+<DL>
+<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
+This could be considered a bug. What would be a better choice?
+</DL>
+
+</BODY></HTML>

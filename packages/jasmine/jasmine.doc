@@ -1,0 +1,337 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\usepackage{html}
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog Jasmine (ODB) Interface}
+
+\newcommand{\elem}[1]{{\tt\string<#1\string>}}
+
+\begin{document}
+
+\title{\runningtitle}
+\author{Jan Wielemaker \\
+	SWI, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{jan@swi.psy.uva.nl}}
+
+\maketitle
+
+\begin{abstract}
+The Jasmine interface provides a client interface to the Object Oriented
+Jasmine database.  The interface consists of two layers.  The first is a
+simple wrapper around the Jasmine C-interface. The second provides
+utility predicates providing more high-level access to Jasmine.
+\end{abstract}
+
+\vfill
+
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+
+\section{Introduction}
+
+Jasmine is an object-oriented database (ODB), implementing ODQL ({\bf
+O}bject {\bf D}atabase {\bf Q}uery {\bf L}anguage). It provides a
+C-interface based on the following components:
+
+\begin{itemlist}
+    \item [Session management]
+Connecting and disconnecting a database.
+    \item [Variables]
+Within the interface, variables can be declared.  These variables can
+be manipulated both using ODQL statement and from the access language.
+Variables play a vital role in communicating data.
+    \item [Data conversion]
+Variables can be read and written.  They are dynamically typed and the
+interface provides access to their type and value.  In Prolog we can
+exploit dynamic typing of Prolog to hide most of the data conversion
+from the user.
+    \item [Collection conversion]
+Collections play a vital role in communicating results from databases.
+Variables are bound to collections using ODQL statements.  They can
+be queried for their size and converted into Prolog lists.
+\end{itemlist}
+
+
+\section{Basic ODB predicates}
+
+Below is the definition of the basic ODB access predicates defined in
+\file{jasmine.c}.
+
+\subsection{Session management}
+
+Sessions are accessed using a \jargon{session-handle}. This opaque
+handle is normally preserved in the Prolog database.
+
+\begin{description}
+    \predicate{odb_ses_start}{5}{-SH, +Database, +User, +Passwd, +EnvFile}
+Connect to the indicated database and return a handle for the created
+session in \arg{SH}. \arg{SH} is an opaque Prolog term providing context
+for subsequent ODB calls. \arg{Database} specifies the database to
+connect to.  It is an atom formatted as below, where \arg{nvode} is the
+name of the machine to connect to.  \arg{User} and \arg{Passwd} and
+\arg{EnvFile} are either atoms or unbound variables.  The latter makes
+the interface choose default values.  \arg{EnvFile} is the name of a
+file providing parameters for the interface. See the C-API documentation
+for details.
+
+\begin{quote}
+    [\arg{vnode}::]/jasmine/jasmine
+\end{quote}
+
+    \predicate{odb_ses_end}{1}{+SH}
+Terminate the session. Note that at_halt/1 can be used to ensure
+termination of the session when Prolog halts.
+\end{description}
+
+
+\subsection{ODQL Statements}
+
+ODQL statement are passed in textual form and specified either as atoms
+or SWI-Prolog strings. The latter makes it possible to construct
+statements using sformat/3.  See also odb_exec_odql/3.
+
+\begin{description}
+    \predicate{odb_exec_odql}{2}{+SH, +Statement}
+Execute the given ODQL \arg{Statement} on the session \arg{SH}.  This
+predicate either succeeds or raises an exception. See
+\secref{exceptions} for details.
+\end{description}
+
+
+\subsection{Variables}
+
+Variables play a vital role in the interface.  Interface variables are
+defined using ODQL statements. They are scoped to the session, but
+otherwise global.  There are two approaches to deal with this.  One is
+to define a suitable set of variables for the application at startup
+and the other is to create them as they are needed.  In the latter case
+one should be sure the variable name is currently not in use.  In some
+of the examples we therefore see:
+
+\begin{code}
+undefVar pcount;
+Integer pcount;
+\end{code}
+
+From this example we learn that variables are typed. The type is
+accessible through the C-interface and used by the access predicate to
+perform suitable conversion to Prolog.
+
+\begin{description}
+    \predicate{odb_get_var}{3}{+SH, +Name, -Value}
+Fetches the value of the named interface variable. Succeeds if the value
+can be unified successfully, fails if the value is retrieved correctly
+but unification fails and raises an exception otherwise.
+
+The representation of \arg{Value} depends on the type of \arg{Name} in
+the database interface.
+
+\begin{itemlist}
+    \item [Bool]
+Booleans are represented either using the atom \const{true} or
+\const{false}.
+    \item [ByteSequence]
+Byte-sequences are represented using an atom (as of SWI-Prolog 3.3 atoms
+can hold 0-bytes are therefore are capable of storing an arbitrary
+byte-stream).
+    \item [Date]
+Dates are represented in SWI-Prolog as a floating point number
+representing the time since the start of 1970. See the Prolog reference
+manual for manipulating dates.
+    \item [Decimal]
+An ODB decimal is a sequence of digits with precision and scale. There
+is no representation for this in Prolog and therefore we use
+\term{decimal}{Digits, Precision, Scale}.  See the Jasmine C-API docs
+for details.
+    \item [Integer]
+Jasmine integers are, as SWI-Prolog's integers 32 bit signed values and
+therefore represented naturally.
+    \item [Nil]
+Nil is represented using the Prolog empty list (\const([])).%
+	\footnote{This could be considered a bug. What would be a better
+		  choice?}
+    \item [Object]
+Objects are represented using a opaque term.
+    \item [Real]
+Jasmine reals are double-precision floats and therefore naturally
+represented using SWI-Prolog floats.
+    \item [String]
+Strings are, like \type{ByteSequences}, represented as Prolog atoms.
+    \item [Tuple]
+Database N-tuples are represented using a term
+\term{tuple}{...\arg{Arg}...}, where \arg{Arg} is the converted value
+for the corresponding position in the tuple.
+\end{itemlist}
+
+    \predicate{odb_set_var}{3}{+SH, +Name, +Value}
+Set a variable.  In accordance with the guidelines in the interface this
+first fetches the value to examine the type of the variable.  The latter
+is problematic, as not-yet-filled variables yield the \jargon{Nil} type.
+In this case the type is determined from \arg{Value}.
+
+This translation currently does not deal with the type-ambiguities. It
+is currently not possible to set nil-variables to a boolean,
+byte-sequence or date. This problem can be fixed by using an ODQL query
+to fill the empty variable with an object of the requested type.
+\end{description}
+
+
+\subsection{Collections}
+
+Database queries normally yield collections as results.  The interface
+simply converts collections into Prolog lists.  The current interface
+does not yet provide mechanisms for fetching part of a collection. Note
+that, using ODQL statements it is possible to get the length of a
+collection before conversion:
+
+\begin{code}
+collection_length(SH, Collection, Length) :-
+	odb_exec_odql(SH, 'Integer len;'),
+	odb_exec_odql(SH, 'len = ~w.count();', [Collection]),
+	odb_get_var(SH, len, Length).
+\end{code}
+
+\begin{description}
+    \predicate{odb_collection_to_list}{3}{+SH, +Collection, -List}
+Where \arg{Collection} is the name of a variable containing a collection
+or the object-identifier of a collection. The elements of the collection
+are converted using the same rules as odb_get_var/3.
+\end{description}
+
+
+\section{Utility Predicates}
+
+The predicates of the previous section provide all important aspects of
+the C-API to the Prolog user. The provided access however is very
+low-level.  A very first start has been made to provide a number of
+utility predicates.
+
+\begin{description}
+    \predicate{odb_exec_odql}{3}{+SH, +Format, +Args}
+First constructs a command using sformat/3 from \arg{Format} and
+\arg{Args} and then execute it.
+    \predicate{odql}{3}{:SH, +Declarations, +Statements}
+Utility to deal with a sequence of ODQL statements, requiring some
+variables to execute them.  \arg{Declarations} is a list of
+\arg{VarName}:\arg{Type}.  These variables are first unset and then
+declared using the given type.  Please note that this principle is
+{\bf not re-entrant}.  \arg{Statements} is a list containing a mix
+of ODQL statements, set/get variables, access collections and ordinary
+Prolog code:
+
+\begin{description}
+    \termitem{get}{VarName, Value}
+Fetch the interface variable \arg{VarName} using odb_get_var/3.
+    \termitem{set}{VarName, Value}
+Store the interface variable \arg{VarName} using odb_set_var/3.
+    \termitem{get_list}{Collection, List}
+Get a variable or object-id into a list of values using
+odb_collection_to_list/2.
+    \termitem{\{\}}{Goal}
+Call normal Prolog goal in the module from which odql/3 was called.
+Note that \exam{\{Goal\}} is the same as \term{\{\}}{Goal}.
+    \termitem{-}{Format, Args}
+Execute an ODQL query using odb_exec_odql/3.
+    \termitem{\arg{Command}}{}
+Execute ODQL command.
+\end{description}
+
+Here is an example, extracting the available \jargon{class-families}
+from the Jasmine database:
+
+\begin{code}
+families(SH, List) :-
+	odql(SH,
+	     [ ss:'Bag<String>'
+	     ],
+	     [ 'ss = FamilyManager.getAllFamilies();',
+	       get_list(ss, List)
+	     ]).
+\end{code}
+\end{description}
+
+
+\section{Error handling}		\label{sec:exception}
+
+All errors are reported using Prolog exceptions.  This package raises
+two types of exceptions.  If Prolog arguments cannot be converted into
+the desired data, normal Prolog \const{type_error} and
+\const{instantiation_error} exceptions are raised. Jasmine calls
+returning an error are translated into an error term of the format
+
+\begin{quote}
+    \term{error}{\term{package}{jasmine, ErrorId}, Context}
+\end{quote}
+
+Where \arg{Context} is
+
+\begin{quote}
+    \term{context}{Message, _}
+\end{quote}
+
+In this term, \arg{ErrorId} is the (numerical) error identifier raised
+by Jasmine and \arg{Message} is Jasmine's textual representation of the
+error. 
+
+
+\section{Issues}
+
+The interface defined here provides the foreign-language basis for a
+more advanced Prolog ODQL interface.  Specifying all ODQL as
+strings and dealing with the interface variables is not a desirable
+way to deal with ODQL.  A more fundamental approach is to define a
+Prolog API for ODQL and an interface for translating these Prolog
+queries into textual ODQL calls.  For example, the families/2 example
+above could be written as:
+
+\begin{code}
+families(SH, Families) :-
+	odql(Families:bag(string) = 'FamilyManager'.getAllFamilies).
+\end{code}
+
+
+\section{Installation}
+
+The jasmine package has currently been build only on Windows. As Jasmine
+is also available on Unix, the standard SWI-Prolog package
+infra-structure for Unix foreign packages is provided.
+
+\subsection{Unix systems}
+
+Installation on Unix system uses the commonly found {\em configure},
+{\em make} and {\em make install} sequence. SWI-Prolog should be
+installed before building this package. If SWI-Prolog is not installed
+as \program{pl}, the environment variable \env{PL} must be set to the
+name of the SWI-Prolog executable. Installation is now accomplished
+using:
+
+\begin{code}
+% ./configure
+% make
+% make install
+\end{code}
+
+This installs the Prolog library files in \file{$PLBASE/library}, where
+\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+\subsection{Windows}
+
+Run the file \file{setup.pl} by double clicking it.  This will install
+the required files into the SWI-Prolog directory and update the
+library directory.
+
+\end{document}
+
+
