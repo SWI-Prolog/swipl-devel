@@ -221,7 +221,11 @@ variable(value, any, get, "Represented value").
 
 initialise(C, Value:any) :->
 	send(C, slot, value, Value),
-	send_super(C, initialise(Value?print_name)).
+	(   object(Value)
+	->  get(Value, print_name, Text)
+	;   Text = Value
+	),
+	send_super(C, initialise(Text)).
 
 compare(N1, N2:dir_value_text, Result) :<-
 	get(N1?value, compare, N2?value, Result).
