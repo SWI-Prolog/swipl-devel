@@ -474,7 +474,9 @@ static senddecl send_connection[] =
 
 static getdecl get_connection[] =
 { GM(NAME_opposite, 1, "graphical", "graphical", getOppositeConnection,
-     NAME_relation, "Other side of the connection")
+     NAME_relation, "Other side of the connection"),
+  GM(NAME_idealLength, 0, "0..", NULL, getFailObject,
+     NAME_layout, "Ideal length for `graphical->layout'")
 };
 
 /* Resources */

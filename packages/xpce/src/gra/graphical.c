@@ -2143,9 +2143,9 @@ match_connection(Connection c, Link link, Name from, Name to)
 }
 
 
-status
-connectedGraphical(Graphical gr, Graphical gr2,
-		   Link link, Name from, Name to)
+static Connection
+getConnectedGraphical(Graphical gr, Graphical gr2,
+		      Link link, Name from, Name to)
 { Chain ch;
   Cell cell;
 
@@ -2155,11 +2155,18 @@ connectedGraphical(Graphical gr, Graphical gr2,
     
       if ( (isDefault(gr2) || c->to == gr2 || c->from == gr2) &&
 	   match_connection(c, link, from, to) )
-	succeed;
+	answer(c);
     }
   }
 
   fail;
+}
+
+
+status
+connectedGraphical(Graphical gr, Graphical gr2,
+		   Link link, Name from, Name to)
+{ return getConnectedGraphical(gr, gr2, link, from, to) ? SUCCEED : FAIL;
 }
 
 
@@ -2295,6 +2302,23 @@ forceRepel(int d, float C3)
 }
 
 
+static void
+placeGraphical(Graphical gr, int x, int y)
+{ Any av[2];
+
+  av[0] = toInt(x);
+  av[1] = toInt(y);
+
+  qadSendv(gr, NAME_set, 2, av);
+}
+
+
+typedef struct
+{ int		fx;			/* force in X-direction */
+  int		fy;			/* force in Y-direction */
+  Connection 	c;			/* the connection */
+} lg_relation;
+
 
 static status
 layoutGraphical(Graphical gr,
@@ -2303,9 +2327,10 @@ layoutGraphical(Graphical gr,
 		Real argC3,		/* strength of not-connected */
 		Int  argC4,		/* addaption-speed */
 		Int  argC5)		/* max iterations */
-{ int **x, **y;		/* x[i][j] = force in x-direction on i, j */
-  int **r;		/* r[i][j] = TRUE if graphicals i, j are connected */
+{ lg_relation **r;	/* relation matrix */
   Graphical *g;		/* g[i] = graphicals in the graph */
+  char *u;		/* graphicals that need update */
+  int un;		/* # in u[] */
   int *fx, *fy, *fw, *fh, *m;
   int force;
   int dx, dy, d;
@@ -2323,16 +2348,11 @@ layoutGraphical(Graphical gr,
     fail;
 
   network = get(gr, NAME_network, EAV);
-
   n = valInt(getSizeChain(network));
 
-  x = pceMalloc(n*sizeof(int *));
-  y = pceMalloc(n*sizeof(int *));
-  r = pceMalloc(n*sizeof(int *));
+  r = pceMalloc(n*sizeof(lg_relation *));
   for (i=0; i<n; i++)
-  { x[i] = pceMalloc(sizeof(int)*n);
-    y[i] = pceMalloc(sizeof(int)*n);
-    r[i] = pceMalloc(sizeof(int)*n);
+  { r[i] = pceMalloc(sizeof(lg_relation)*n);
   }
   g  = pceMalloc(sizeof(Graphical)*n);
   fx = pceMalloc(sizeof(int)*n);
@@ -2340,6 +2360,7 @@ layoutGraphical(Graphical gr,
   fh = pceMalloc(sizeof(int)*n);
   fw = pceMalloc(sizeof(int)*n);
   m  = pceMalloc(sizeof(int)*n);
+  u  = pceMalloc(sizeof(char)*n);
 
   for (cell=network->head, i=0; notNil(cell); i++, cell=cell->next)
   { g[i] = cell->value;
@@ -2351,11 +2372,13 @@ layoutGraphical(Graphical gr,
 
   for (i=0; i<n; i++)
   { for (j=0; j<i; j++)
-      r[i][j] = connectedGraphical(g[i], g[j], DEFAULT, DEFAULT, DEFAULT);
+      r[i][j].c = getConnectedGraphical(g[i], g[j], DEFAULT, DEFAULT, DEFAULT);
     m[i] = TRUE;
-    x[i][i] = y[i][i] = 0;
+    r[i][i].fx = r[i][i].fy = 0;	/* clean diagonal */
+    u[i] = FALSE;
   }
 
+  un = 0;
   moved = TRUE;
 
   for (l=1; l<=C5 && moved; l++)
@@ -2368,18 +2391,40 @@ layoutGraphical(Graphical gr,
 	if (d == 0)
 	{ int f = ((int)C2<<10)/6;
 
-	  x[j][i] = -(x[i][j] = f);
-	  y[j][i] = -(y[i][j] = f);
+	  r[j][i].fx = -(r[i][j].fx = f);
+	  r[j][i].fy = -(r[i][j].fy = f);
 
 	  continue;
 	}
 	dx = ((fx[j] + fw[j]/2) - (fx[i] + fw[i]/2)) << 10;
 	dy = ((fy[j] + fh[j]/2) - (fy[i] + fh[i]/2)) << 10;
 
-	force = (r[i][j] ? forceAttract(d, C1, C2) : forceRepel(d, C3));
+	if ( r[i][j].c )
+	{ Int len;
+	  float c2;
 
-	x[j][i] = -(x[i][j] = (dx * force) >> 11);
-	y[j][i] = -(y[i][j] = (dy * force) >> 11);
+	  ComputeGraphical(r[i][j].c);
+	  len = qadGetv(r[i][j].c, NAME_idealLength, 0, NULL);
+
+	  if ( len )
+	  { c2 = (float)valInt(len);
+	    if ( !u[i] )
+	    { un++;
+	      u[i] = TRUE;
+	    }
+	    if ( !u[j] )
+	    { un++;
+	      u[j] = TRUE;
+	    }
+	  } else
+	    c2 = C2;
+
+	  force = forceAttract(d, C1, c2);
+	} else
+	  force = forceRepel(d, C3);
+
+	r[j][i].fx = -(r[i][j].fx = (dx * force) >> 11);
+	r[j][i].fy = -(r[i][j].fy = (dy * force) >> 11);
       }
     }
 
@@ -2387,8 +2432,8 @@ layoutGraphical(Graphical gr,
     for (i=0; i<n; i++)
     { dx = dy = 0;
       for (j=0; j<n; j++)
-      { dx += x[i][j];
-	dy += y[i][j];
+      { dx += r[i][j].fx;
+	dy += r[i][j].fy;
       }
       dx = (((dx * C4) / n) + 512) >> 10;
       dy = (((dy * C4) / n) + 512) >> 10;
@@ -2404,19 +2449,26 @@ layoutGraphical(Graphical gr,
       if (fy[i] < 5)
 	fy[i] = 5;
     }
+
+    if ( un )
+    { for (i=0; i<n; i++)
+      { if ( u[i] )
+	{ placeGraphical(g[i], fx[i], fy[i]);
+	  u[i] = FALSE;
+	  un--;
+	}
+      }
+      assert(un==0);
+    }
   }
 
   for (i=0; i<n; i++)	/* update display */
-    send(g[i], NAME_set, toInt(fx[i]), toInt(fy[i]), DEFAULT, DEFAULT, EAV);
+    placeGraphical(g[i], fx[i], fy[i]);
 
   for(i=0; i<n; i++)
   { pceFree(r[i]);
-    pceFree(x[i]);
-    pceFree(y[i]);
   }
   pceFree(r);
-  pceFree(x);
-  pceFree(y);
   pceFree(g);
   pceFree(fx);
   pceFree(fy);

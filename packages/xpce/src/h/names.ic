@@ -1012,6 +1012,7 @@
   BUILTIN_NAME("iconify_console")
   BUILTIN_NAME("id")
   BUILTIN_NAME("ideal_height")
+  BUILTIN_NAME("ideal_length")
   BUILTIN_NAME("ideal_width")
   BUILTIN_NAME("identifier")
   BUILTIN_NAME("identity")
