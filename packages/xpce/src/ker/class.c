@@ -13,7 +13,7 @@
 static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
 static status	fill_slots_class(Class class, Class super);
 
-#define CLASS_PCE_SLOTS 42
+#define CLASS_PCE_SLOTS 43
 
 #define InstanceSize(c)	((int) &((Instance) NULL)->slots[valInt((c)->slots)])
 #define SlotsClass(c) \
@@ -199,6 +199,7 @@ fill_slots_class(Class class, Class super)
   assign(class, send_table,      newObject(ClassHashTable, 0));
   assign(class, get_table,       newObject(ClassHashTable, 0));
   assign(class, local_table,     newObject(ClassHashTable, 0));
+  assign(class, resource_table,  NIL);
   assign(class, selection_style, NIL);
   assign(class, rcs_revision,	 NIL);
   assign(class, source,		 NIL);
@@ -1728,6 +1729,8 @@ makeClassClass(Class class)
 	     "Hash table for all get methods");
   localClass(class, NAME_localTable, NAME_cache, "hash_table", NAME_get,
 	     "Hash table for all instance variables");
+  localClass(class, NAME_resourceTable, NAME_cache, "hash_table*", NAME_get,
+	     "Hash table for all resources");
 
   localClass(class, NAME_instances, NAME_debugging, "hash_table*", NAME_get,
 	     "Hash table holding existing instances");
@@ -1778,6 +1781,7 @@ makeClassClass(Class class)
 
   termClass(class, "class", 2, NAME_name, NAME_superClassName);
   saveStyleClass(class, NAME_external);
+  cloneStyleClass(class, NAME_none);
 
   sendMethod(class, NAME_initialise, DEFAULT, 2, "name=name", "super=[class]*",
 	     "Create from name and super class",

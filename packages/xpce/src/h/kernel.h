@@ -719,6 +719,7 @@ NewClass(class)
   HashTable	send_table;		/* hash-table of send methods */
   HashTable	get_table;		/* hash-table of get methods */
   HashTable	local_table;		/* hash-table of instance variables */
+  HashTable	resource_table;		/* hash-table of resources */
   HashTable	instances;		/* hash-table holding the instances */
 
   Bool		realised;		/* Class has been realised? */

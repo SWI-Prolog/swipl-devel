@@ -120,6 +120,35 @@ resourceName(Name name)
 }
 
 
+Resource
+getSubResource(Resource r, Class class)
+{ if ( r->context == class )
+  { answer(r);
+  } else
+  { Any val;
+    DisplayObj d = CurrentDisplay(NIL);
+    Name name = class->name;
+
+    openDisplay(d);
+    if ( (val = ws_get_resource_value(d,
+				      getCapitaliseName(name),
+				      name,
+				      r->r_class,
+				      r->name) ) )
+    { Resource clone = get(r, NAME_clone, 0);
+
+      assert(clone);
+      contextResource(clone, class);
+      doneObject(val);			/* What to do with this? */
+
+      answer(clone);
+    } else
+    { answer(r);
+    }
+  }
+}
+
+
 static CharArray
 getStringValueResource(Resource r, Any obj)
 { Any val;
@@ -227,19 +256,35 @@ resourceClass(Class class, Resource r)
 
 Resource
 getResourceClass(Class class, Name name)
-{ for(; notNil(class); class = class->super_class)
-  { Cell cell;
+{ Resource r;
+  Cell cell;
 
-    realiseClass(class);
+  realiseClass(class);
 
-    for_cell(cell, class->resources)
-    { Resource r = cell->value;
+  if ( isNil(class->resource_table) )
+    assign(class, resource_table, newObject(ClassHashTable, 0));
+  else if ( (r=getMemberHashTable(class->resource_table, name)) )
+    answer(r);
+ 
+  for_cell(cell, class->resources)
+  { Resource r = cell->value;
     
-      if ( r->name == name )
-	answer(r);
+    if ( r->name == name )
+    { appendHashTable(class->resource_table, name, r);
+      answer(r);
     }
   }
 
+  if ( notNil(class->super_class) )
+  { Resource super = getResourceClass(class->super_class, name);
+
+    if ( super )
+    { r = getSubResource(super, class);
+      appendHashTable(class->resource_table, name, r);
+      answer(r);
+    }
+  }
+  
   fail;
 }
 
@@ -396,6 +441,8 @@ makeClassResource(Class class)
   termClass(class, "resource", 6,
 	    NAME_name, NAME_class, NAME_type, NAME_default, NAME_context,
 	    NAME_summary);
+  cloneStyleVariableClass(class, NAME_summary, NAME_reference);
+  cloneStyleVariableClass(class, NAME_value,   NAME_reference);
 
   sendMethod(class, NAME_initialise, DEFAULT, 6,
 	     "name=name", "class=[name]", "type=type", "default=string",
@@ -439,6 +486,9 @@ makeClassResource(Class class)
   getMethod(class, NAME_printName, NAME_textual, "name", 0,
 	    "Class.name",
 	    getPrintNameResource);
+  getMethod(class, NAME_sub, NAME_type, "resource", 1, "class",
+	    "Refined resource when redefined by user",
+	    getSubResource);
 
 			/* MUST BE MOVED !!!! */
 

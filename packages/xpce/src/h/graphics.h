@@ -529,7 +529,7 @@ End;
   PopupObj	popup;			/* Associated popup */ \
   EventObj	current_event;		/* Currently processed event */ \
   Bool		sensitive;		/* Sensitive to events */ \
-  Colour	background;		/* Background colour of the window */ \
+  Any		background;		/* Background colour of the window */ \
   Bool		grab_pointer;		/* We have a pointer grab */ \
 					/* Alien stuff */ \
   UpdateArea	changes_data;		/* Recorded changes */ \

@@ -60,6 +60,7 @@ status		makeClassPicture(Class class);
 
 /* resource.c */
 char *		resourceName(Name name);
+Resource	getSubResource(Resource r, Class class);
 status		resourceClass(Class class, Resource r);
 Resource	getResourceClass(Class class, Name name);
 Any		getResourceValueClass(Class cl, Name name);

@@ -1735,8 +1735,8 @@ makeClassWindow(Class class)
 	     "Event beeing processed now");
   localClass(class, NAME_sensitive, NAME_event, "bool", NAME_both,
 	     "Window accepts events");
-  localClass(class, NAME_background, NAME_appearance, "[colour]", NAME_get,
-	     "Background colour");
+  localClass(class, NAME_background, NAME_appearance, "colour|image", NAME_get,
+	     "Background colour or pattern");
   localClass(class, NAME_grabPointer, NAME_focus, "bool", NAME_get,
 	     "If @on, grab pointer events");
   localClass(class, NAME_changesData, NAME_redraw, "alien:UpdateArea",
@@ -1950,6 +1950,8 @@ makeClassWindow(Class class)
 		  "Thickness of outside line");
   attach_resource(class, "cursor", "cursor", "top_left_arrow",
 		  "Default window cursor");
+  attach_resource(class, "background", "colour", "white",
+		  "Colour/fill pattern of the background");
 
   succeed;
 }

@@ -25,5 +25,7 @@ version.h:	../../Makefile
 
 self.o:		version.h
 
+name.o:		../h/names.ih
+
 clean:
 		rm -f *~ a.out core $(KEROBJS) addlib
