@@ -40,7 +40,6 @@ new_charclass()
 
   char_range(map, 192, 214, CH_CNMSTRT); /* XML ISO-LATIN-1 accented chars */
   char_range(map, 216, 246, CH_CNMSTRT);
-  char_range(map, 248, 305, CH_CNMSTRT);
   char_range(map, 248, 255, CH_CNMSTRT);
 
   ca['\t'] |= CH_WHITE;
