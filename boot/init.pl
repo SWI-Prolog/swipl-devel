@@ -355,25 +355,30 @@ user:file_search_path(user_profile, SwiHome) :-
 	current_prolog_flag(windows, true), 		% single user machine
 	current_prolog_flag(home, SwiHome).
 
+
+%	expand_file_search_path(+Spec, -Expanded)
+%
+%	Expand a search path.  The system uses depth-first search upto a
+%	specified depth.  If this depth is exceeded an exception is raised.
+%	TBD: bread-first search?
+
 expand_file_search_path(Spec, Expanded) :-
+	catch($expand_file_search_path(Spec, Expanded, 0, []),
+	      loop(Used),
+	      throw(error(loop_error(Spec), file_search(Used)))).
+
+$expand_file_search_path(Spec, Expanded, N, Used) :-
 	functor(Spec, Alias, 1),
 	user:file_search_path(Alias, Exp0),
-	expand_file_search_path(Exp0, Exp1),
+	NN is N + 1,
+	(   NN > 16
+	->  throw(loop(Used))
+	;   true
+	),
+	$expand_file_search_path(Exp0, Exp1, NN, [Alias=Exp0|Used]),
 	arg(1, Spec, Base),
 	$make_path(Exp1, Base, Expanded).
-expand_file_search_path(Spec, Spec) :-
-	atomic(Spec).
-
-$expand_existing_file_search_path(Spec, Expanded) :-
-	functor(Spec, Alias, 1),
-	user:file_search_path(Alias, Exp0),
-	$expand_existing_file_search_path(Exp0, Exp1),
-	(   exists_directory(Exp1)
-	->  arg(1, Spec, Base),
-	    $make_path(Exp1, Base, Expanded)
-	;   !, fail
-	).
-$expand_existing_file_search_path(Spec, Spec) :-
+$expand_file_search_path(Spec, Spec, _, _) :-
 	atomic(Spec).
 
 $make_path(Dir, File, Path) :-
@@ -488,10 +493,7 @@ $chk_alias_file(Spec, Exts, Cond, FullFile) :-
 	$file_condition(Cond, FullFile),
 	$search_message(file_search(cache(Spec, Cond), FullFile)).
 $chk_alias_file(Spec, Exts, Cond, FullFile) :-
-	(   $exists_condition(Cond)
-	->  $expand_existing_file_search_path(Spec, Expanded)
-	;   expand_file_search_path(Spec, Expanded)
-	),
+	expand_file_search_path(Spec, Expanded),
 	$extend_file(Expanded, Exts, LibFile),
 	(   $file_condition(Cond, LibFile),
 	    $absolute_file_name(LibFile, FullFile),
@@ -530,18 +532,6 @@ $file_condition(access([A1|AT]), File) :- !,
 $file_condition(access([]), _) :- !.
 $file_condition(access(Access), File) :- !,
 	access_file(File, Access).
-
-%	$exists_condition(+Cond)
-%
-%	Succeeds if Cond is a condition demanding the file to exists
-
-$exists_condition(access(X)) :-
-	X \== [].
-$exists_condition([H|T]) :-
-	(   $exists_condition(H)
-	->  true
-	;   $exists_condition(T)
-	).
 
 $extend_file(File, Exts, FileEx) :-
 	$ensure_extensions(Exts, File, Fs),
