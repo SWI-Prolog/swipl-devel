@@ -228,6 +228,11 @@ freeStream(IOSTREAM *s)
   if ( (symb=lookupHTable(streamContext, s)) )
   { stream_context *ctx = symb->value;
 
+    if ( ctx->filename == source_file_name )
+    { source_file_name = NULL_ATOM;	/* TBD: pop? */
+      source_line_no = -1;
+    }
+
     freeHeap(ctx, sizeof(*ctx));
     deleteSymbolHTable(streamContext, symb);
   }
