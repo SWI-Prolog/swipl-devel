@@ -15,6 +15,7 @@
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
+#include <string.h>
 
 static int debuglevel = 0;
 static int emit_space = 0;
@@ -156,8 +157,6 @@ typedef struct _input
 } input;
 
 static Input	curin;			/* current input (file) */
-static Output	curout;			/* current output */
-
 
 static void cmd_prolog(Command g, Input fd, CallBack func, void *ctx);
 
@@ -621,7 +620,7 @@ parseFuncSpec(char **line, const char **fname)
 
   skipBanks(s);
   if ( *s != '=' )
-    return;
+    return NULL;
   s++;
   while(isalnum(*s))
     *q++ = *s++;
@@ -697,7 +696,6 @@ parseCommandSpec(const char *fname, int lineno, char *line)
   { char *f = ++s;
     char tmp;
     cmd_arg args[MAXCMDARGS];		/* argument-list */
-    int nargs = 0;
     CmdDescr c;
 
     if ( isalnum(*s) )
@@ -923,7 +921,6 @@ getOptionalArgument(Input fd, int flags, char *buf, int size)
 static void
 getDimension(Input fd, int flags, char *buf, int size)
 { int c = getc(fd);
-  int sz = size;
 
   if ( !(flags & F_NOSKIPBLANK) )
   { while(isspace(c))
@@ -1400,7 +1397,7 @@ parseTeX(Input fd, CallBack func, void *ctx)
 
 static int
 parseTeXFile(const char *file, CallBack func, void *ctx)
-{ Input fd; int rval;
+{ Input fd;
 
   if ( (fd = openInputFile(file)) == NULL )
   { fprintf(stderr, "Can't open %s: %s", file, strerror(errno));
@@ -1828,7 +1825,7 @@ pl_put_tex_token(term_t term)
 { token t;
   atom_t atom;
   functor_t f;
-  static last_is_word = FALSE;
+  static int last_is_word = FALSE;
   
   t.type = -1;
 
@@ -2544,7 +2541,7 @@ pl_put_html_token(term_t term)
 { token t;
   char *s;
   atom_t atom;
-  static last_is_word = FALSE;
+  static int last_is_word = FALSE;
 
   t.type = -1;
 
@@ -2711,39 +2708,3 @@ install()
 }
 
 #endif /*__SWI_PROLOG__*/
-
-#ifdef __SWI_EMBEDDED__
-
-PL_extension PL_extensions [] =
-{
-/*{ "name",	arity,  function,	PL_FA_<flags> },*/
-
-  { NULL,	0, 	NULL,		0 }	/* terminating line */
-};
-
-
-int
-main(int argc, char **argv, char **env)
-{ char *av[argc+2];
-  int i=0, ac = 0;
-  predicate_t pred;
-
-  av[ac++] = argv[i++];
-  av[ac++] = "--";
-  while( i<argc )
-    av[ac++] = argv[i++];
-  av[ac] = NULL;
-
-  if ( !PL_initialise(ac, av, env) )
-    PL_halt(1);
-  signal(SIGINT, SIG_DFL);		/* don't catch interrupts */
-  install();				/* install foreign functions */
-
-  pred = PL_predicate("main", 0, "difftex");
-  if ( PL_call_predicate(NULL, TRUE, pred, 0) )
-    exit(0);
-
-  exit(1);
-}
-
-#endif /*__SWI_EMBEDDED__*/
