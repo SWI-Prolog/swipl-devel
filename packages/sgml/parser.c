@@ -1497,7 +1497,7 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
     return NULL;
   }
   decl = s;
-  if ( !(s=itake_name(dtd, decl, &to)) )
+  if ( !(s=itake_entity_name(dtd, decl, &to)) )
   { gripe(ERC_SYNTAX_ERROR, "map-to name expected", decl);
     return NULL;
   }
