@@ -1,3 +1,15 @@
+[VERSION 4.8.11]
+
+* FIXED: `directory ->scan' to include files starting with a dot if the
+  pattern includes this.
+
+* FIXED: Avoid previewing non-active menu items in popup menus using `stayup'
+  mode. 
+
+* FIXED: Dialog Editor code generation for cycle menus.
+
+* FIXED: Finding the demo sources.
+
 [VERSION 4.8.10]
 
 * FIXED: Redraw problem when displaying windows in windows.

@@ -267,15 +267,26 @@ process_use_module([]) :- !.
 process_use_module([H|T]) :- !,
 	process_use_module(H),
 	process_use_module(T).
+process_use_module(library(pce)) :- !,	% bit special
+	file_public_list(library(pce), Public),
+	forall(member(Name/Arity, Public),
+	       (   functor(Term, Name, Arity),
+		   \+ built_in(Term)
+	       ->  assert_defined(Term)
+	       ;   true
+	       )).
 process_use_module(File) :-
+	(   file_public_list(File, Public)
+	->  assert_import(Public)
+	;   true
+	).
+
+file_public_list(File, Public) :-
 	find_source_file(File, Source),
 	seeing(Old), see(Source),
 	read(ModuleDecl),
 	seen, see(Old),
-	(   ModuleDecl = (:- module(_, Public))
-	->  assert_import(Public)
-	;   true
-	).
+	ModuleDecl = (:- module(_, Public)).
 
 
 		/********************************

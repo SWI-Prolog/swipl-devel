@@ -776,7 +776,8 @@ r_background(Any c)
 { Any ob = context.gcs->background;
 
   if ( isDefault(c) )
-    c = context.default_background;
+    return ob;
+/*  c = context.default_background; */
 
   if ( c != context.gcs->background )
   { if ( context.gcs->kind != NAME_bitmap )
@@ -1261,8 +1262,13 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
     }
   }  
 
-  if ( notDefault(e->colour) )
-    r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, e->colour);
+  if ( up )
+  { if ( notDefault(e->colour) )
+      r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, e->colour);
+  } else
+  { if ( notDefault(e->background) )
+      r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, e->background);
+  }
 }
 
 
@@ -1312,14 +1318,97 @@ r_3d_line(int x1, int y1, int x2, int y2, Elevation e, int up)
 }
 
 
+static inline void
+step_to(int *x1, int *y1, int tx, int ty)
+{ if ( tx > *x1 )
+    (*x1)++;
+  else if ( tx < *x1 )
+    (*x1)--;
+
+  if ( ty > *y1 )
+    (*y1)++;
+  else if ( ty < *y1 )
+    (*y1)--;
+}
+
+
 void
 r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
-	      Elevation e, int up)
+	      Elevation e, int up, int map)
 { XSegment s[3];
   GC topGC, botGC;
   int z = valInt(e->height);
+  int n, i, p;
+  int cx, cy;
 
   r_elevation(e);
+
+  if ( !up )
+    z = -z;
+
+  if ( z > 0 )
+  { topGC = context.gcs->reliefGC;
+    botGC = context.gcs->shadowGC;
+    p = z;
+  } else
+  { topGC = context.gcs->shadowGC;
+    botGC = context.gcs->reliefGC;
+    p = -z;
+  }
+
+  cx = (x1 + x2 + x3)/3;
+  cy = (y1 + y2 + y3)/3;
+
+  for( i = 0 ; p > 0; p--, i += 3 )
+  { int i0=0;
+    int i1=i0+1;
+    int i2=i0+2;
+
+    s[i0].x1=X(x1);    s[i0].y1=Y(y1);    s[i0].x2=X(x2);    s[i0].y2=Y(y2);
+    s[i1].x1=s[i0].x2; s[i1].y1=s[i0].y2; s[i1].x2=X(x3);    s[i1].y2=Y(y3);
+    s[i2].x1=s[i1].x2; s[i2].y1=s[i1].y2; s[i2].x2=s[i0].x1; s[i2].y2=s[i0].y1;
+
+    for(n=0; n<3;)
+    { int f = n;
+      int light = map & (1<<n);
+      
+      do
+      { n++;
+      } while(n < 4 &&
+	      ((light && (map & (1<<n))) ||
+	       (!light && !(map & (1<<n)))));
+
+      XDrawSegments(context.display, context.drawable,
+		    light ? topGC : botGC, &s[f], n-f);
+    }
+
+    step_to(&x1, &y1, cx, cy);
+    step_to(&x2, &y2, cx, cy);
+    step_to(&x3, &y3, cx, cy);
+  }
+
+  if ( up )
+  { if ( notDefault(e->colour) )
+    { r_fillpattern(e->colour);
+      r_fill_triangle(x1, y1, x2, y2, x3, y3);
+    }
+  } else
+  { if ( notDefault(e->background) )
+    { r_fillpattern(e->background);
+      r_fill_triangle(x1, y1, x2, y2, x3, y3);
+    }
+  }
+}
+
+
+void
+r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)
+{ GC topGC, botGC;
+  int z = valInt(e->height);
+  int nox, noy, wex, wey, sox, soy, eax, eay;
+
+  r_elevation(e);
+  r_thickness(1);
 
   if ( !up )
     z = -z;
@@ -1330,14 +1419,53 @@ r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
   } else
   { topGC = context.gcs->shadowGC;
     botGC = context.gcs->reliefGC;
+    z = -z;
   }
 
-  s[0].x1 = X(x1);   s[0].y1 = Y(y1);   s[0].x2 = X(x2);   s[0].y2 = Y(y2);
-  s[1].x1 = s[0].x2; s[1].y1 = s[0].y2; s[1].x2 = X(x3);   s[1].y2 = Y(y3);
-  s[2].x1 = s[1].x2; s[2].y1 = s[1].y2; s[2].x2 = s[0].x1; s[2].y2 = s[0].y1;
+  z = (z*3)/2;				/* actually sqrt(2) */
 
-  XDrawSegments(context.display, context.drawable, topGC, s,     2);
-  XDrawSegments(context.display, context.drawable, botGC, &s[2], 1);
+  DEBUG(NAME_3dDiamond,
+	Cprintf("r_3d_diamond(%d, %d, %d, %d, %s, %d) -->\n\t",
+		x, y, w, h, pp(e), up));
+
+  nox = X(x) + w/2; noy = Y(y);
+  wex = X(x) + w;   wey = Y(y) + h/2;
+  sox = nox;        soy = Y(y) + h;
+  eax = X(x);       eay = wey;
+
+  DEBUG(NAME_3dDiamond,
+	Cprintf("(%d, %d) (%d, %d) (%d, %d) (%d, %d)\n",
+		nox, noy, wex, wey, sox, soy, eax, eay));
+
+  for(; z > 0; z--)
+  { XSegment s[4];
+
+    s[0].x1 = eax; s[0].y1 = eay; s[0].x2 = nox; s[0].y2 = noy;
+    s[1].x1 = nox; s[1].y1 = noy; s[1].x2 = wex; s[1].y2 = wey;
+    s[2].x1 = wex; s[2].y1 = wey; s[2].x2 = sox; s[2].y2 = soy;
+    s[3].x1 = sox; s[3].y1 = soy; s[3].x2 = eax; s[3].y2 = eay;
+
+    XDrawSegments(context.display, context.drawable, topGC, s,     2);
+    XDrawSegments(context.display, context.drawable, botGC, &s[2], 2);
+
+    noy++;
+    soy--;
+    wex--;
+    eax++;
+  }
+      
+  if ( (up && notDefault(e->colour)) || (!up && notDefault(e->background)))
+  { XPoint p[4];
+
+    p[0].x = wex; p[0].y = wey;
+    p[1].x = nox; p[1].y = noy;
+    p[2].x = eax; p[2].y = eay;
+    p[3].x = sox; p[3].y = soy;
+
+    r_fillpattern(up ? e->colour : e->background);
+    XFillPolygon(context.display, context.drawable, context.gcs->fillGC,
+		 p, 4, Convex, CoordModeOrigin);
+  }
 }
 
 
@@ -1443,9 +1571,13 @@ r_3d_ellipse(int x, int y, int w, int h, Elevation z, int up)
     XDrawArcs(context.display, context.drawable, BottomRightGC, a, an);
   }
 
-  if ( notDefault(z->colour) )
+  if ( up && notDefault(z->colour) )
   { r_thickness(0);
     r_arc(x+shadow, y+shadow, w-2*shadow, h-2*shadow, 0, 360*64, z->colour);
+  }
+  if ( !up && notDefault(z->background) )
+  { r_thickness(0);
+    r_arc(x+shadow, y+shadow, w-2*shadow, h-2*shadow, 0, 360*64,z->background);
   }
 }
 

@@ -597,6 +597,7 @@ NewClass(elevation)
   Name		name;			/* logical name */
   Int		height;			/* Height of the top */
   Any		colour;			/* Colour of the top */
+  Any		background;		/* Colour when down */
   Any		relief;			/* Relief colour/pixmap */
   Any		shadow;			/* Shadow colour/pixmap */
   Name		kind;			/* How elevation is painted */

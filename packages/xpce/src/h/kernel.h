@@ -309,6 +309,7 @@ provided.
 #define addInt(i, j)	((i) = toInt(valInt(i) + valInt(j)))
 #define subInt(i, j)	((i) = toInt(valInt(i) - valInt(j)))
 #define maxInt(i, j)	toInt(max(valInt(i), valInt(j)))
+#define absInt(i)	(valInt(i) < 0 ? neg(i) : i)
 
 #undef div
 #define neg(i)		(toInt(-valInt(i)))

@@ -17,8 +17,8 @@
 :- require([ emacs/1
 	   , forall/2
 	   , member/2
+	   , term_to_atom/2
 	   ]).
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file defines a demo-starting tool.  The  demo's themselves should
@@ -85,11 +85,15 @@ view_source(Browser) :-
 	    (	demo(Name, _Summary, File, _Predicate)
 	    ;	contribution(Name, _Summary, _Author, File, _Predicate)
 	    ),
-	    locate_file(File, Path),
-	    emacs(Path)
+	    (	locate_file(File, Path)
+	    ->	emacs(Path)
+	    ;	term_to_atom(File, FileAtom),
+	        send(Browser, report, error,
+		     'Can''t find source from %s', FileAtom)
+	    )
 	).
 
-ifhostproperty(prolog(quintus),
+pce_ifhostproperty(prolog(quintus),
 	       (   locate_file(Base, File) :-
 	       		absolute_file_name(Base,
 					   [ file_type(prolog),
@@ -102,15 +106,19 @@ ifhostproperty(prolog(quintus),
 	new(S, string('%s%s', Base, Ext)),
 	send(file(S), exists), !,
 	get(S, value, File)),
-(locate_file(library(Base), Path) :-
-	user:library_directory(Dir),
-	member(Ext, ['.pl', '']),
-	new(S, string('%s/%s%s', Dir, Base, Ext)),
-	send(file(S), exists), !,
-	get(S, value, Path)),
-(locate_file(Base, _) :-
-	format('Cannot find source-file ~w~n', Base),
-	fail)]).
+(locate_file(Spec, Path) :-
+	functor(Spec, Alias, 1),
+	user:file_search_path(Alias, Dir),
+	(   atom(Dir)
+	->  arg(1, Spec, Base),
+	    concat_atom([Dir, /, Base], Exp),
+	    locate_file(Exp, Path)
+	;   functor(Dir, NewAlias, 1),
+	    arg(1, Dir, C),
+	    concat_atom([C, /, Base], C2),
+	    NSpec =.. [NewAlias, C2],
+	    locate_file(NSpec, Path)
+	))]).
 
 
 		/********************************

@@ -23,6 +23,10 @@ static status	restoreMenu(Menu m);
 #define CYCLE_TRIANGLE_HEIGHT 8
 #define CYCLE_DROP_DISTANCE 5
 
+#define MARK_DIAMOND_SIZE 16
+#define MARK_BOX_SIZE     13
+#define NAMED_IMAGE_WIDTH max(MARK_DIAMOND_SIZE, MARK_BOX_SIZE)
+
 status
 initialiseMenu(Menu m, Name name, Name kind, Code msg)
 { createDialogItem(m, name);
@@ -250,10 +254,15 @@ computeItemsMenu(Menu m)
   h += 2 * border;
 
   if ( notNil(m->on_image) || notNil(m->off_image) )
-  { if ( notNil(m->on_image) )
+  { if ( instanceOfObject(m->on_image, ClassImage) )
       lm = valInt(m->on_image->size->w);
-    if ( notNil(m->off_image) )
+    else if ( notNil(m->on_image) )
+      lm = NAMED_IMAGE_WIDTH;
+
+    if ( instanceOfObject(m->off_image, ClassImage) )
       lm = max(lm, valInt(m->off_image->size->w));
+    else if ( notNil(m->off_image) )
+      lm = max(lm, NAMED_IMAGE_WIDTH);
 
     lm += 5;				/* TBD: Parameter? */
   }
@@ -390,7 +399,15 @@ draw_cycle_blob(int x, int y, Elevation z, int up)
   int ty = y + (h - th)/2;
 
   r_3d_box(x, y, w, h, 0, z, up);
-  r_3d_triangle(tx + tw/2, ty+th, tx, ty, tx+tw, ty, z, up);
+  r_3d_triangle(tx + tw/2, ty+th, tx, ty, tx+tw, ty, z, up, 0x3);
+}
+
+
+static int
+item_mark_y(Menu m, int y, int h, int mh)
+{ return (m->vertical_format == NAME_top    ? y :
+	  m->vertical_format == NAME_center ? y + (h-mh)/2 :
+					      y + (h-mh));
 }
 
 
@@ -423,7 +440,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
   else if ( mi->selected == OFF && notNil(m->off_image) )
     leftmark = m->off_image;
 
-  if ( m->look == NAME_motif )
+  if ( m->look == NAME_motif && instanceOfObject(m, ClassPopup)	)
   { int up = TRUE;
 
     if ( m->preview == mi )
@@ -450,7 +467,8 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
 						    y + h - th);
       int tx = x+w-b-tw;
 
-      r_3d_triangle(tx, ty+th, tx, ty, tx+tw, ty+th/2, z, m->preview != mi);
+      r_3d_triangle(tx, ty+th, tx, ty, tx+tw, ty+th/2,
+		    z, m->preview != mi, 0x3);
     }
   } else
   { if ( (mi->selected == ON && m->feedback == NAME_box) )
@@ -510,7 +528,17 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
 	  m->vertical_format == NAME_center ? y + (h-bh)/2 :
 					      y + h - bh);
     r_image(leftmark, 0, 0, x+b, by, bw, bh, ON);
-  } 
+  } else if ( (Name) leftmark == NAME_3dDiamond )
+  { int dy = item_mark_y(m, y, h, MARK_DIAMOND_SIZE);
+
+    r_3d_diamond(x+b, dy, MARK_DIAMOND_SIZE, MARK_DIAMOND_SIZE,
+		 z, mi->selected == OFF);
+  } else if ( (Name) leftmark == NAME_3dBox )
+  { int dy = item_mark_y(m, y, h, MARK_BOX_SIZE);
+
+    r_3d_box(x+b, dy, MARK_BOX_SIZE, MARK_BOX_SIZE,
+	     0, z, mi->selected == OFF);
+  }
 
   if ( notNil(m->accelerator_font) && notNil(mi->accelerator) )
   { FontObj f = m->accelerator_font;
@@ -1272,13 +1300,27 @@ allOffMenu(Menu m)
 static status
 kindMenu(Menu m, Name kind)
 { if ( m->kind != kind )
-  { if ( m->look == NAME_openLook || m->look == NAME_motif )
+  { if ( m->look == NAME_openLook )
     { if ( kind == NAME_marked || kind == NAME_choice || kind == NAME_toggle )
       { assign(m, on_image, NIL);
 	assign(m, off_image, NIL);
 	assign(m, feedback, NAME_box);
-	assign(m, pen, m->look == NAME_motif ? ZERO : ONE);
-	assign(m, border, m->look == NAME_motif ? toInt(3) : TWO);
+	assign(m, pen, ONE);
+	assign(m, border, TWO);
+	assign(m, multiple_selection, kind == NAME_toggle ? ON : OFF);
+
+	assign(m, kind, kind);
+	return requestComputeGraphical(m, DEFAULT);
+      } else if ( kind == NAME_cycle )
+      { assign(m, pen, ZERO);
+      }
+    } else if ( m->look == NAME_motif )
+    { if ( kind == NAME_marked || kind == NAME_choice || kind == NAME_toggle )
+      { assign(m, on_image, kind == NAME_toggle ? NAME_3dBox : NAME_3dDiamond);
+	assign(m, off_image, m->on_image);
+	assign(m, feedback, NAME_image);
+	assign(m, pen, ZERO);
+	assign(m, border, toInt(3));
 	assign(m, multiple_selection, kind == NAME_toggle ? ON : OFF);
 
 	assign(m, kind, kind);
@@ -1653,11 +1695,14 @@ makeClassMenu(Class class)
 	     "Gap between items");
   localClass(class, NAME_border, NAME_appearance, "width=0..", NAME_get,
 	     "Width of border around item");
-  localClass(class, NAME_onImage, NAME_appearance, "image=image*", NAME_get,
+  localClass(class, NAME_onImage, NAME_appearance,
+	     "image=image|{3d_diamond,3d_box}*", NAME_get,
 	     "Left mark if selected equals @on");  
-  localClass(class, NAME_offImage, NAME_appearance, "image=image*", NAME_get,
+  localClass(class, NAME_offImage, NAME_appearance,
+	     "image=image|{3d_diamond,3d_box}*", NAME_get,
 	     "Left mark if selected equals @off");  
-  localClass(class, NAME_popupImage, NAME_appearance, "image=image*", NAME_get,
+  localClass(class, NAME_popupImage, NAME_appearance,
+	     "image=image*", NAME_get,
 	     "Right mark if popup not equal @nil");  
   localClass(class, NAME_acceleratorFont, NAME_appearance,
 	     "font=font*", NAME_get,
@@ -1867,9 +1912,9 @@ makeClassMenu(Class class)
 		  "Gap between items (XxY)");
   attach_resource(class, "border",     "int",	  "0",
 		  "Border around each item");
-  attach_resource(class, "on_image",   "image*",  "@mark_image",
+  attach_resource(class, "on_image",   "image|name*",  "@mark_image",
 		  "Marker for items in selection");
-  attach_resource(class, "off_image",  "image*",  "@nomark_image",
+  attach_resource(class, "off_image",  "image|name*",  "@nomark_image",
 		  "Marker for items not in selection");
   attach_resource(class, "popup_image", "image*",  "@nil",
 		  "Marker for items with popup");

@@ -15,7 +15,7 @@ static HashTable ElevationTable;	/* @elevations */
 static status
 initialiseElevation(Elevation e, Any name,
 		    Int height, Any colour, Any relief, Any shadow,
-		    Name kind)
+		    Name kind, Any bg)
 { if ( isDefault(name) )
     name = NIL;
   
@@ -29,13 +29,15 @@ initialiseElevation(Elevation e, Any name,
   if ( isDefault(relief) ) relief = getResourceValueObject(e, NAME_relief);
   if ( isDefault(shadow) ) shadow = getResourceValueObject(e, NAME_shadow);
   if ( isDefault(kind) )   kind   = getResourceValueObject(e, NAME_kind);
+  if ( isDefault(bg) )	   bg     = colour;
 
-  assign(e, name,   name);
-  assign(e, height, height);
-  assign(e, colour, colour);
-  assign(e, relief, relief);
-  assign(e, shadow, shadow);
-  assign(e, kind,   kind);
+  assign(e, name,       name);
+  assign(e, height,     height);
+  assign(e, colour,     colour);
+  assign(e, relief,     relief);
+  assign(e, shadow,     shadow);
+  assign(e, kind,       kind);
+  assign(e, background, bg);
 
   if ( notNil(name) )
     appendHashTable(ElevationTable, name, e);
@@ -47,13 +49,14 @@ initialiseElevation(Elevation e, Any name,
 static Elevation
 getLookupElevation(Any receiver, Any name,
 		   Int height, Any colour, Any relief, Any shadow,
-		   Name kind)
+		   Name kind, Any bg)
 { Elevation e = getMemberHashTable(ElevationTable, name);
 
   if ( e &&
        isName(name) &&
        (isDefault(height) || height == e->height) &&
        (isDefault(colour) || colour == e->colour) &&
+       (isDefault(bg)     || bg     == e->background) &&
        (isDefault(relief) || relief == e->relief) &&
        (isDefault(shadow) || shadow == e->shadow) &&
        (isDefault(kind)   || kind   == e->kind) )
@@ -62,6 +65,7 @@ getLookupElevation(Any receiver, Any name,
        isInteger(name) &&
        isDefault(height) &&
        isDefault(colour) &&
+       isDefault(bg) &&
        isDefault(relief) &&
        isDefault(shadow) &&
        isDefault(kind) )
@@ -77,7 +81,8 @@ getConvertElevation(Any receiver, Any val)
   Elevation e;
 
   if ( (e= getLookupElevation(receiver, val,
-			      DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT)) )
+			      DEFAULT, DEFAULT, DEFAULT,
+			      DEFAULT, DEFAULT, DEFAULT)) )
     return e;
 
   if ( (i = toInteger(val)) )
@@ -122,6 +127,12 @@ colourElevation(Elevation e, Any colour)
 
 
 static status
+backgroundElevation(Elevation e, Any colour)
+{ return attributeElevation(e, NAME_background, colour);
+}
+
+
+static status
 reliefElevation(Elevation e, Any colour)
 { return attributeElevation(e, NAME_relief, colour);
 }
@@ -146,6 +157,7 @@ getModifyElevation(Elevation e, Name att, Any val)
     Any colour = e->colour;
     Any relief = e->relief;
     Any shadow = e->shadow;
+    Any bg     = e->background;
     Name kind  = e->kind;
 
     if      ( att == NAME_height ) height = val;
@@ -153,9 +165,10 @@ getModifyElevation(Elevation e, Name att, Any val)
     else if ( att == NAME_relief ) relief = val;
     else if ( att == NAME_shadow ) shadow = val;
     else if ( att == NAME_kind   ) kind   = val;
+    else if ( att == NAME_background ) bg = val;
     
     answer(answerObject(ClassElevation, NIL, height, colour,
-			relief, shadow, kind, 0));
+			relief, shadow, kind, bg, 0));
   } else
   { attributeElevation(e, att, val);
     answer(e);
@@ -173,6 +186,8 @@ makeClassElevation(Class class)
 	     "Height above the surface");
   localClass(class, NAME_colour, NAME_appearance, "[colour|pixmap]", NAME_get,
 	     "Colour/pixmap to paint the `top'");
+  localClass(class, NAME_background, NAME_appearance, "[colour|pixmap]", NAME_get,
+	     "Colour/pixmap when area is lowered");
   localClass(class, NAME_relief, NAME_appearance, "[colour|pixmap]", NAME_get,
 	     "Colour/pixmap used at `light' side");
   localClass(class, NAME_shadow, NAME_appearance, "[colour|pixmap]", NAME_get,
@@ -184,17 +199,18 @@ makeClassElevation(Class class)
 	    NAME_name, NAME_height, NAME_colour, NAME_relief, NAME_shadow);
   cloneStyleClass(class, NAME_none);
 
-  storeMethod(class, NAME_height, heightElevation);
-  storeMethod(class, NAME_colour, colourElevation);
-  storeMethod(class, NAME_relief, reliefElevation);
-  storeMethod(class, NAME_shadow, shadowElevation);
-  storeMethod(class, NAME_kind,   kindElevation);
+  storeMethod(class, NAME_height,     heightElevation);
+  storeMethod(class, NAME_colour,     colourElevation);
+  storeMethod(class, NAME_relief,     reliefElevation);
+  storeMethod(class, NAME_shadow,     shadowElevation);
+  storeMethod(class, NAME_kind,       kindElevation);
+  storeMethod(class, NAME_background, backgroundElevation);
 
-  sendMethod(class, NAME_initialise, DEFAULT, 6,
+  sendMethod(class, NAME_initialise, DEFAULT, 7,
 	     "name=[name|int]*", "height=[int]",
 	     "colour=[colour|pixmap]",
 	     "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
-	     "kind=[{3d,shadow}]",
+	     "kind=[{3d,shadow}]", "background=[colour|pixmap]",
 	     "Create elevation from name, heigth and colours",
 	     initialiseElevation);
   sendMethod(class, NAME_unlink, DEFAULT, 0,
@@ -204,15 +220,16 @@ makeClassElevation(Class class)
   getMethod(class, NAME_convert, DEFAULT, "elevation", 1, "name|int",
 	    "Convert name to object (reuse) or int to height",
 	    getConvertElevation);
-  getMethod(class, NAME_lookup, DEFAULT, "elevation", 6,
+  getMethod(class, NAME_lookup, DEFAULT, "elevation", 7,
 	    "name=[name|int]*", "height=[int]",
 	    "colour=[colour|pixmap]",
 	    "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
-	    "kind=[{3d,shadow}]",
+	    "kind=[{3d,shadow}]", "background=[colour|pixmap]",
 	    "Lookup from @elevations",
 	    getLookupElevation);
   getMethod(class, NAME_modify, NAME_appearance, "elevation", 2,
-	    "attribute={height,colour,relief,shadow,kind}", "value=any",
+	    "attribute={height,colour,relief,shadow,kind,background}",
+	    "value=any",
 	    "Return modified (new) elevation object",
 	    getModifyElevation);
 

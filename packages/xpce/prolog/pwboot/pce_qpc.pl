@@ -347,6 +347,8 @@ user:term_expansion(pce_ifhostproperty(Prop, Then, Else), TheClause) :-
 property(prolog(quintus)).
 property(file_extensions([qof, pl])).
 property(repeat_meta_declaraction).
+property(need_extern_declaration).
+property(use_predicate_references).
 
 
 prolog_head(SendGet, Head, Selector, TypeVector, PlHead, Cascade) :-

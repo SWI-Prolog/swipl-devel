@@ -87,6 +87,7 @@ static void	ascent_and_descent_graphical(Graphical gr, int *, int *);
 static status
 initialiseTextImage(TextImage ti, Any obj, Int w, Int h)
 { initialiseGraphical(ti, ZERO, ZERO, w, h);
+
   assign(ti, text,	   obj);
   assign(ti, start,        ZERO);
   assign(ti, end,	   ZERO);
@@ -202,6 +203,7 @@ storeTextImage(TextImage ti, FileObj file)
 static status
 reinitTextImage(TextImage ti)
 { Any obj = ti->text;
+  Elevation z;
 
   assign(ti, request_compute, ON);
 
@@ -223,6 +225,9 @@ reinitTextImage(TextImage ti)
   ti->map                  = alloc(sizeof(struct text_screen));
   ti->map->allocated       = ti->map->length = ti->map->skip = 0;
   ti->map->lines           = NULL;
+
+  if ( (z = getResourceValueObject(ti, NAME_elevation)) && notNil(z) )
+    assign(ti, pen, absInt(z->height));
 
   return obtainResourcesObject(ti);
 }
@@ -1267,23 +1272,22 @@ RedrawAreaTextImage(TextImage ti, Area a)
   if ( h > valInt(a->h) ) h = valInt(a->h);
 
   obg = r_background(ti->background);
-  r_offset(ox, oy);
-  paint_area(ti, a, sx, sy, w, h);
-  r_offset(-ox, -oy);
-  r_background(obg);
-
   if ( sx < TXT_X_MARGIN || sx + w > ti->w - TXT_X_MARGIN ||
        sy < TXT_Y_MARGIN || sy + h > ti->h - TXT_Y_MARGIN )
   { Elevation z = getResourceValueObject(ti, NAME_elevation);
     
     if ( z && notNil(z) )
-    { r_3d_box(bx, by, bw, bh, 0, z, TRUE);
+    { r_3d_box(bx, by, bw, bh, 0, z, FALSE);
     } else
     { r_thickness(p);
       r_dash(ti->texture);
       r_box(bx, by, bw, bh, 0, NIL);
     }
   }
+  r_offset(ox, oy);
+  paint_area(ti, a, sx, sy, w, h);
+  r_offset(-ox, -oy);
+  r_background(obg);
 
   return RedrawAreaGraphical(ti, a);
 }

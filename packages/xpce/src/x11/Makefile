@@ -1,9 +1,8 @@
 # X11 		--- X11 implementation of the XPCE Virtual Window Interface
 
-COMMOBJS=	canvas.o fshell.o xcommon.o xconvert.o x11-compat.o
+COMMOBJS=	canvas.o fshell.o xcommon.o xconvert.o x11-compat.o xppm.o
 WSTOBJS=	xcolour.o xcursor.o xdisplay.o xdraw.o xevent.o xfont.o \
-		xframe.o ximage.o xstream.o xtimer.o xwindow.o x11.o \
-		xppm.o
+		xframe.o ximage.o xstream.o xtimer.o xwindow.o x11.o
 X11OBJS=	$(COMMOBJS) $(WSTOBJS)
 
 COMMSRC=	$(COMMOBJS:.o=.c)

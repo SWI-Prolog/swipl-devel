@@ -445,7 +445,7 @@ eventPopup(PopupObj p, EventObj ev)
   } else if ( isAEvent(ev, NAME_locMove) )
   { MenuItem mi = getItemFromEventMenu((Menu) p, ev);
 
-    previewMenu((Menu) p, mi ? mi : NIL);
+    previewMenu((Menu) p, mi && mi->active == ON ? mi : NIL);
   }
 
   fail;

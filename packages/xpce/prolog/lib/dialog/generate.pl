@@ -192,10 +192,14 @@ source_attribute(Dialog, popups, Popups) :-
 	Popups \== [].
 
 popup(Gr, [ popup := NewTerm, Attributes ]) :-
-	get(Gr, popup, Popup),
-	Popup \== @nil,
-	new_term(Popup, NewTerm),
-	object_attributes(Popup, Attributes).
+	(   send(Gr, instance_of, menu),
+	    get(Gr, kind, cycle)
+	->  fail
+	;   get(Gr, popup, Popup),
+	    Popup \== @nil,
+	    new_term(Popup, NewTerm),
+	    object_attributes(Popup, Attributes)
+	).
 
 
 		 /*******************************

@@ -90,7 +90,7 @@ RedrawAreaTextItem(TextItem ti, Area a)
   th = valInt(vt->area->h);
 
   if ( z && notNil(z) && ti->look == NAME_motif )
-    r_3d_box(tx, ty, tw, th, 0, z, TRUE);
+    r_3d_box(tx, ty, tw, th, 0, z, FALSE);
   else if ( ti->look != NAME_motif )
   { if ( z && notNil(z) )
     { int zh = abs(valInt(z->height));

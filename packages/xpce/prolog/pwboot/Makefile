@@ -30,8 +30,8 @@ PCEDEMO=$(PCEHOME)/demo
 
 
 PCESHARE=	english \
-		pce_compile.pl \
 		pce_editor.pl \
+		pce_compile.pl \
 		pce_error.pl \
 		pce_expand.pl \
 		pce_global.pl \
@@ -55,6 +55,7 @@ OBJS=		../../quintus/src/$(BIN)/libpce.so
 
 BOOTQOFS=	pce_qpc.qof \
 		prowindows.qof \
+		qp_pce.qof \
 		pce.qof
 BOOTPLS=	pce_qux.pl \
 		QPINDEX.pl \
@@ -101,6 +102,7 @@ LIBPLS=		pce_util.pl \
 		help.hlp \
 		pce_image.pl \
 		pce_prompter.pl \
+		pce_template.pl \
 		pce_tagged_connection.pl
 
 MANPLS= 	man/p_card.pl \
@@ -179,16 +181,9 @@ DIALOGPLS=	dialog/attribute.pl \
 		dialog/pretty_print.pl \
 		dialog/proto.pl \
 		dialog/util.pl \
+		dialog/prompter.pl \
+		dialog/sub_dialog.pl \
 		dialog/dialog.hlp
-DIALOGLPLS = 	dialog/lib/prompter.pl    \
-		dialog/lib/sub_dialog.pl  \
-		dialog/lib/template.pl
-DIALOGDEMOS = 	dialog/ask_name.pl \
-	     	dialog/ask_name.dia \
-	     	dialog/file_selector.pl \
-	     	dialog/file_selector.dia \
-	     	dialog/smile.pl \
-	     	dialog/smile.dia
 
 LANGPLS=	english/pce_messages.pl
 
@@ -223,9 +218,9 @@ PW2DEMOS=	pw2/README \
 
 all:	qofs release
 
-qofs: pceshare prowindows.qof pce.qof
+qofs: pceshare prowindows.qof qp_pce.qof pce.qof
 
-pw: prowindows.qof pce.qof
+pw: prowindows.qof qp_pce.qof
 	$(QLD) -Ddv -L `pwd` -L `pwd`/../boot \
 		-L `pwd`/../lib prowindows.qof \
 
@@ -244,7 +239,7 @@ pce_qpc.qof: pce_qpc.pl
 
 prowindows.qof: pce_qpc.qof english/pce_messages.qof
 
-pce.qof: $(PCEQOFS)
+qp_pce.qof: $(PCEQOFS)
 	$(QLD) -ro $@ $(PCEQOFS)
 
 require.qof: require.pl
@@ -286,7 +281,6 @@ release_lib:		$(addprefix $(PCELIB)/, $(BOOTQOFS)) \
 			$(addprefix $(PCELIB)/, $(LIBPLS)) \
 			$(addprefix $(PCELIB)/, $(DRAWPLS)) \
 			$(addprefix $(PCELIB)/, $(DIALOGPLS)) \
-			$(addprefix $(PCELIB)/, $(DIALOGLPLS)) \
 			$(addprefix $(PCELIB)/, dialog/bitmaps) \
 			$(addprefix $(PCELIB)/, $(EMACSPLS)) \
 			$(addprefix $(PCELIB)/, $(MANPLS)) \

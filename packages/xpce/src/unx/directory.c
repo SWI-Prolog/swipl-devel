@@ -241,9 +241,7 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
 	  continue;
 	}
 	doneScratchCharArray(ca);
-      }
-
-      if ( all != ON && name[0] == '.' )
+      } else if ( all != ON && name[0] == '.' )
 	continue;
 
       appendChain(files, CtoName(name));

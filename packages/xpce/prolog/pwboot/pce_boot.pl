@@ -12,7 +12,7 @@
 PCE public predicates
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- module(pce,
+:- module(qp_pce,
 	  [ new/2, free/1
 
 	  , send/2, send/3, send/4, send/5, send/6, send/7
@@ -28,13 +28,20 @@ PCE public predicates
 	  , pce_autoload_all/0
 	  , pce_begin_class/2, pce_begin_class/3
 	  , pce_extend_class/1
+	  , default/3
 	  , pce_end_class/0
 	  , pce_group/1
-	  , default/3
 	  , pce_term_expansion/2
 	  , pce_compiling/1
 
+	  , pce_send_method/7
+	  , pce_get_method/8
+	  , pce_send_method_message/2
+	  , pce_get_method_message/2
+	  , pce_predicate_reference/2
+
 	  , pce_catch_error/2
+
 	  , require/1
 	  , auto_call/1
 	  ]).
@@ -66,7 +73,9 @@ pce_ifhostproperty(repeat_meta_declaraction,
 	get(+, :, +, +, +, +, +, +, +, +, +, -),
 	get(+, :, +, +, +, +, +, +, +, +, +, +, -),
 
-	new(?, :))).
+	new(?, :),
+
+	pce_predicate_reference(:, ?))).
 
 
 		/********************************

@@ -9,6 +9,7 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include <math.h>
 #include "include.h"
 #include <X11/keysym.h>
 
@@ -258,6 +259,16 @@ postscriptXImage(XImage *im,
 		 *       COLOUR HANDLING	*
 		 *******************************/
 
+int
+intensityXColor(XColor *c)
+{ unsigned int r = c->red;
+  unsigned int g = c->green;
+  unsigned int b = c->blue;
+
+  return (r*20 + g*32 + b*18)/(20+32+18);
+}
+
+
 ulong
 getPixelColour(Colour c, DisplayObj d)
 { XColor *color = (XColor *) getXrefObject(c, d);
@@ -288,6 +299,81 @@ x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc)
 
   for(; gcs > 0; gcs--, gc++)
     XChangeGC(r->display_xref, *gc, mask, &values);
+}
+
+
+static int
+distanceColours(Name vt, XColor *c1, XColor *c2)
+{ if ( vt == NAME_greyScale )
+  { int i1 = intensityXColor(c1);
+    int i2 = intensityXColor(c2);
+
+    return abs(i1 - i2);
+  } else
+  { int dr = ((int)c1->red - (int)c2->red) / 4;
+    int dg = ((int)c1->green - (int)c2->green) / 4;
+    int db = ((int)c1->blue - (int)c2->blue) / 4;
+
+    return (int)sqrt((double)(dr*dr + dg*dg + db*db)) * 4;
+  }
+}
+
+
+status
+findNearestColour(Display *display, Colormap map, int depth, Name vt,
+		  XColor *c)
+{ XColor *colors;
+  int entries = 1<<depth;
+
+  if ( (colors = alloc(entries * sizeof(XColor))) )
+  { int i;
+      
+    for(i=0; i<entries; i++)
+      colors[i].pixel = i;
+
+    DEBUG(NAME_colour, Cprintf("Looking for %d %d %d\n",
+			       c->red, c->green, c->blue));
+
+    if ( isDefault(vt) )		/* TBD */
+    { Visual *v = XDefaultVisual(display, DefaultScreen(display));
+      int vclass = v->class;
+
+      switch(vclass)
+      { case StaticGray: vt = NAME_staticGrey;
+        case GrayScale:	 vt = NAME_greyScale;
+      }
+    }
+
+    if ( XQueryColors(display, map, colors, entries) )
+    { XColor *cb = NULL;
+      int badness = 1000000;
+
+      for(i=0; i<entries; i++)
+      { XColor *e = &colors[i];
+	int d = distanceColours(vt, c, e);
+
+	DEBUG(NAME_colour, Cprintf("\t%d: %d %d %d (d=%d)\n",
+				   i, e->red, e->green, e->blue, d));
+
+	if ( d < badness )
+	{ cb = e;
+	  badness = d;
+	}
+      }
+
+      assert(cb);
+      
+      DEBUG(NAME_colour, Cprintf("Mapped colour %d %d %d --> %d %d %d\n",
+				 c->red, c->green, c->blue,
+				 cb->red, cb->green, cb->blue));
+
+      *c = *cb;
+      unalloc(entries * sizeof(XColor), colors);
+      succeed;
+    }
+  } 
+
+  fail;
 }
 
 

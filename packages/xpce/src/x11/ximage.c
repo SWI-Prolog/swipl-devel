@@ -104,12 +104,14 @@ ws_store_image(Image image, FileObj file)
     if ( write_pnm_file(file->fd, i, r->display_xref, 0, 0, 0, PNM_RUNLEN) < 0 )
       fail;
     DEBUG(NAME_ppm, Cprintf("Saved PNM image to index %d\n", ftell(file->fd)));
-#else
-  { putc('X', file->fd);
-    dumpXImage(i, file->fd);
-#endif
   } else
     return errorPce(image, NAME_cannotSaveObject, NAME_noImage);
+#else /*O_PPM*/
+  { putc('X', file->fd);
+    dumpXImage(i, file->fd);
+  } else
+    return errorPce(image, NAME_cannotSaveObject, NAME_noImage);
+#endif /*O_PPM*/
 
   succeed;
 }

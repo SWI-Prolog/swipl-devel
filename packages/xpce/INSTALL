@@ -36,7 +36,7 @@ The qinstall bourne shell script   provides  automatic installation.  If
 this fails for any reason, the explanation   of  the manual layout below
 may help you to fix the problem.
 
-	% ./qinstall
+	% ./xpce-<version>/qinstall
 
 After  this,  the  XPCE  executable  is    created   in  ./bin/xpce  and
 ./bin/xpce-<version>.  You may create a  symbolic   link  from  a public

@@ -114,6 +114,21 @@ lbReceiver(ListBrowser lb)
 }
 
 		 /*******************************
+		 *		REDRAW		*
+		 *******************************/
+
+static status
+RedrawAreaListBrowser(ListBrowser lb, Area a)
+{ Any obg = r_background(getResourceValueObject(lb, NAME_background));
+
+  RedrawAreaDevice((Device)lb, a);
+
+  r_background(obg);
+
+  succeed;
+}
+
+		 /*******************************
 		 *	     LOAD/SAVE		*
 		 *******************************/
 
@@ -1374,6 +1389,7 @@ makeClassListBrowser(Class class)
 	     "Cell reference to top-row of display");
 
   termClass(class, "list_browser", 3, NAME_dict, NAME_width, NAME_height);
+  setRedrawFunctionClass(class, RedrawAreaListBrowser);
   delegateClass(class, NAME_dict);
 
   storeMethod(class, NAME_font, fontListBrowser);
@@ -1564,6 +1580,8 @@ makeClassListBrowser(Class class)
 		  "@default", "Style object for <-selection");
   attach_resource(class, "isearch_style", "[style]",
 		  "@default", "Style for incremental search");
+  attach_resource(class, "background", "colour|pixmap", "white",
+		  "Colour/fill pattern of the background");
 
   succeed;
 }

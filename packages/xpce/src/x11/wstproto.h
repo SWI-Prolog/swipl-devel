@@ -77,7 +77,8 @@ void		r_box(int x, int y, int w, int h, int r, Image fill);
 void		r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill);
 void		r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up);
 void		r_3d_line(int x1, int y1, int x2, int y2, Elevation e, int up);
-void		r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3, Elevation e, int up);
+void		r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3, Elevation e, int up, int map);
+void		r_3d_diamond(int x, int y, int w, int h, Elevation e, int up);
 void		r_arc(int x, int y, int w, int h, int s, int e, Image fill);
 void		r_ellipse(int x, int y, int w, int h, Image fill);
 void		r_3d_ellipse(int x, int y, int w, int h, Elevation z, int up);
@@ -151,6 +152,17 @@ status		ws_postscript_frame(FrameObj fr);
 /* ximage.c */
 void		ws_init_image(Image image);
 void		ws_destroy_image(Image image);
+status		ws_store_image(Image image, FileObj file);
+status		loadXImage(Image image, FILE *fd);
+status		loadPNMImage(Image image, FILE *fd);
+status		ws_load_old_image(Image image, FILE *fd);
+status		ws_load_image_file(Image image);
+status		ws_save_image_file(Image image, FileObj file, Name fmt);
+status		ws_open_image(Image image, DisplayObj d);
+void		ws_close_image(Image image, DisplayObj d);
+status		ws_resize_image(Image image, Int w, Int h);
+void		ws_postscript_image(Image image, Int depth);
+void		ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h);
 
 /* xstream.c */
 void		ws_close_input_stream(Stream s);

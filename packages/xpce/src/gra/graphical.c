@@ -472,7 +472,9 @@ changedImageGraphical(Any obj, Int x, Int y, Int w, Int h)
 	} else if ( instanceOfObject(gr, ClassText) ||
 		    instanceOfObject(gr, ClassTextItem) )
 	{ cx -= 5; cy -= 0; cw += 10; ch += 5;
-	}
+	} else if ( instanceOfObject(gr, ClassDialogItem) )
+	{ cx -= 6; cy -= 6; cw += 12; ch += 12;
+	}				/* Motif hack */
 
 	changed_window(sw, cx, cy, cw, ch, offFlag(gr, F_SOLID));
 
@@ -2241,6 +2243,17 @@ keyboardFocusGraphical(Graphical gr, Bool val)
 }
 
 
+Bool
+getKeyboardFocusGraphical(Graphical gr)
+{ PceWindow sw = getWindowGraphical(gr);
+
+  if ( sw && sw->keyboard_focus == gr )
+    answer(ON);
+
+  answer(OFF);
+}
+
+
 status
 generateEventGraphical(Graphical gr, Name name)
 { int rval;
@@ -2958,6 +2971,8 @@ makeClassGraphical(Class class)
   getMethod(class, NAME_popup, NAME_menu, "popup", 0,
 	    "Associated ->popup",
 	    getPopupGraphical);
+  getMethod(class, NAME_keyboardFocus, NAME_focus, "bool", 0,
+	    "@on if graphical is in focus of the keyboard");
 
   getMethod(class, NAME_autoAlign, NAME_layout, "bool", 0,
 	    "Dialog_item integration",

@@ -122,6 +122,15 @@ sticky_window(F, Val:[bool]) :->
 	).
 
 
+fit(F) :->
+	"Request to fit the contents"::
+	(   get(F, attribute, fitted, @on)
+	->  send(F, resize)
+	;   send(F, send_super, fit),
+	    send(F, attribute, fitted, @on)
+	).
+
+
 		 /*******************************
 		 *	    PROMPTING		*
 		 *******************************/
@@ -235,6 +244,8 @@ initialise(D) :->
 	     click_gesture(left, '', single,
 			   message(@receiver?frame, sticky_window))),
 	send(D, display, label(reporter), point(25, 2)),
+	get(text_item(''), height, MH),
+	send(D, height, MH),
 	send(D, name, mini_window).
 
 
@@ -313,6 +324,15 @@ m_x_previous(D) :->
 	send(D?prompter, displayed_value, NewDefault?print_name).
 
 
+geometry(D, X:[int], Y:[int], W:[int], H:[int]) :->
+	"Change size, center contents vertically"::
+	send(D, send_super, geometry, X, Y, W, H),
+	get(D, height, DH),
+	DH2 is DH//2,
+	send(D?graphicals, for_all,
+	     message(@arg1, center_y, DH2)).
+
+
 prompter(D, Prompter:dialog_item*) :->
 	"Display the prompter"::
 	get(D, member, reporter, Reporter),
@@ -324,7 +344,16 @@ prompter(D, Prompter:dialog_item*) :->
 	->  send(Reporter, clear),
 	    send(Reporter, displayed, @on)
 	;   send(Reporter, displayed, @off),
-	    send(D, display, Prompter, point(25, 2))
+	    get(Prompter, height, H),
+	    get(D, height, DH),
+	    PY is (DH-H)//2,
+	    send(D, display, Prompter, point(25, PY)),
+	    get(Prompter, height, H),
+	    MinH is H,
+	    (	DH < MinH
+	    ->	send(D, height, MinH)
+	    ;	true
+	    )
 	),
 	send(D, slot, prompter, Prompter).
 

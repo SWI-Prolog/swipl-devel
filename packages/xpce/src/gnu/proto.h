@@ -20,8 +20,8 @@ size_t		regerror(int errcode, const regex_t *preg, char *errbuf, size_t errbuf_s
 void		regfree(regex_t *preg);
 
 /* getdate.c */
+int		yyparse(void);
 int		yyerror(char *s);
 int		yylex(void);
 time_t		get_date(char *p, struct timeb *now);
 int 		main(int ac, char *av []);
-int		yyparse(void);

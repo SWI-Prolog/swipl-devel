@@ -481,7 +481,8 @@ hideFrame(FrameObj fr)
 
 static status
 exposedFrame(FrameObj fr)
-{ informTransientsFramev(fr, NAME_expose, 0, NULL);
+{ moveAfterChain(fr->display->frames, fr, DEFAULT);
+  informTransientsFramev(fr, NAME_expose, 0, NULL);
 
   succeed;
 }
@@ -489,7 +490,8 @@ exposedFrame(FrameObj fr)
 
 static status
 hiddenFrame(FrameObj fr)
-{ informTransientsFramev(fr, NAME_hide, 0, NULL);
+{ moveAfterChain(fr->display->frames, fr, getTailChain(fr->display->frames));
+  informTransientsFramev(fr, NAME_hide, 0, NULL);
 
   succeed;
 }

@@ -1,11 +1,14 @@
-:- module(pce_host, [
-		user_help/0,
-		qui_user_help/0,
-		xpce_loop/0,
-		pce_reset/0
-	]).
+	:- module(pce_host,
+	  [ user_help/0,
+	    qui_user_help/0,
+	    xpce_loop/0,
+	    pce_reset/0
+	  ]).
 
 :- meta_predicate ignore(:).
+:- meta_predicate pce_predicate_reference(:, ?).
+
+:- use_module(library(strings), [concat_atom/2]).
 
 :- use_module(language(pce_messages)).
 
@@ -31,8 +34,8 @@
 	  '$Quintus: check_license'(prowindows, '3.0')
 	; true  % no checking in runtimes
 	),
-	prowindows_version,
 	pce_init,
+	prowindows_version,
         asserta(user:file_search_path(package, quintus('prowindows3.0'))),
         absolute_file_name(quintus('prowindows3.0'), Home),
 	pl_send(@host, name_reference, prolog, 1),
@@ -46,10 +49,12 @@ prowindows_version :-
 	( pw_version_done ->
 	  true
 	; otherwise ->
-	  VersionString =
-'Quintus ProWindows 3.0 (XPCE 4.8.0) Interface
-Copyright (C) 1995, Quintus Corporation / University of Amsterdam.
-All Rights Reserved.',
+	  List = [ 'Quintus ProWindows 3.0 (XPCE ',
+		   PceVersion,
+		   ') Interface Copyright (C) 1995, Quintus Corporation / University of Amsterdam.
+All Rights Reserved.'],
+	  ubpl_get(@pce, version, PceVersion, 1),
+	  concat_atom(List, VersionString),
 	  version(VersionString),
 	  assert(pw_version_done)
 	).
@@ -118,28 +123,45 @@ foreign(ubpl_new, c, ubpl_new(-term, +term, [-integer])).
 foreign(pce_q_reset, c, pce_reset).
 foreign(open, c, unix_open(+string, +integer, [-integer])).
 foreign('XtCreateApplicationContext', c, xt_create_app_context([-integer])).
+foreign(qp_pce_predicate_reference, c, qp_pce_predicate_reference(+term, +term, [-integer])).
 
 
 foreign_file(system(libpce), 
-		[prolog_pce_init, pl_send0, pl_send1, pl_send2,
-		 pl_send3, pl_sendN, pl_get0, pl_get1, 
-		 pl_get2, pl_get3, pl_getN, pl_get_objectN,
-		 ubpl_get0, ubpl_get1,
-                 ubpl_get2, ubpl_get3, ubpl_getN, ubpl_get_objectN, 
-		 pl_object1, pl_object2, pl_new, ubpl_new, pce_q_reset,
-		 ubpl_object2,
-		 setup_input,
-		 pceDispatch,
-		 pceXtAppContext,
-		 'XtCreateApplicationContext',
-		 open
-		]).
+	     [ prolog_pce_init, pl_send0, pl_send1, pl_send2,
+	       pl_send3, pl_sendN, pl_get0, pl_get1, 
+	       pl_get2, pl_get3, pl_getN, pl_get_objectN,
+	       ubpl_get0, ubpl_get1,
+	       ubpl_get2, ubpl_get3, ubpl_getN, ubpl_get_objectN, 
+	       pl_object1, pl_object2, pl_new, ubpl_new, pce_q_reset,
+	       qp_pce_predicate_reference,
+	       ubpl_object2,
+	       setup_input,
+	       pceDispatch,
+	       pceXtAppContext,
+	       'XtCreateApplicationContext',
+	       open
+	     ]).
 
 :- load_foreign_executable(system(libpce)).
 
 user_help :-
 	use_module(library(pce_manual)),
 	call(manpce).
+
+pce_principal:pce_predicate_reference(Spec, PceRef) :-
+	strip_module(Spec, Module, Head),
+	(   var(Head)
+	->  qp_pce_predicate_reference(Head, PceRef, 1)
+	;   qp_pce_predicate_reference(Module:Head, PceRef, 1)
+	).
+
+strip_module(RT, M, T) :-
+	strip_module(RT, T, M, user).
+
+strip_module(Module:RT2, T, M, _) :-
+	atom(Module), !,
+	strip_module(RT2, T, M, Module).
+strip_module(T, T, M, M).
 
 qui_user_help :-
 	user:user_help,
@@ -245,6 +267,8 @@ pce_principal:new(A,B):-
 property(prolog(quintus)).
 property(file_extensions([qof, pl])).
 property(repeat_meta_declaraction).
+property(need_extern_declaration).
+property(use_predicate_references).
 
 file_extensions([qof, pl]).
 

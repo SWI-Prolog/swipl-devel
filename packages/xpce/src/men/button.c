@@ -41,24 +41,73 @@ RedrawAreaButton(Button b, Area a)
   NormaliseArea(x, y, w, h);
   
   if ( z && notNil(z) )			/* 3-d style */
-  { int up      = (b->status == NAME_inactive || b->status == NAME_active);
+  { int up = (b->status == NAME_inactive || b->status == NAME_active);
+    Colour oldc = NIL;
    
+    if ( b->look == NAME_motif )
+    { int bx = x, by = y, bw = w, bh = h;
+      PceWindow sw;
+      int kbf;				/* Button has keyboard focus */
+      int obhf;				/* Other button has focus */
+      int focus;
+
+      if ( (sw = getWindowGraphical((Graphical)b)) )
+      { kbf   = (sw->keyboard_focus == (Graphical) b);
+	obhf  = (!kbf && instanceOfObject(sw->keyboard_focus, ClassButton));
+	focus = (sw->input_focus == ON);
+      } else
+	kbf = obhf = focus = FALSE;	/* should not happen */
+
+      if ( (defb && !obhf) || (focus && kbf) )
+      { static Elevation e = NULL;
+
+	if ( !e )
+	  e = newObject(ClassElevation, ONE, 0);
+
+	bx -= 4; by -= 4; bw += 8; bh += 8;
+	r_3d_box(bx, by, bw, bh, valInt(b->radius), e, FALSE);
+      }
+      if ( kbf && focus )
+      { bx -= 2; by -= 2; bw += 4; bh += 4;
+	r_thickness(2);
+	r_box(bx, by, bw, bh, valInt(b->radius), NIL);
+      }
+    }
+
     r_3d_box(x, y, w, h, valInt(b->radius), z, up);
 
     if ( notNil(b->popup) )
-    { int th = 8;
-      int tw = 9;
-      int tx, ty;
+    { if ( b->look == NAME_motif )
+      { int bw = 12;
+	int bh = 8;
 
-      rm = tw+8;
-      tx = x+w-rm;
-      ty = y + (h-th)/2;
+	rm = bw+8;
+	r_3d_box(x+w-bw-8, y+(h-bh)/2, bw, bh, 0, z, TRUE);
+      } else
+      { int th = 8;
+	int tw = 9;
+	int tx, ty;
 
-      r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z, up);
+	rm = tw+8;
+	tx = x+w-rm;
+	ty = y + (h-th)/2;
+
+	r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z, up, 0x3);
+      }
+    }
+
+    if ( !up )
+    { Colour c  = getDisplayColourGraphical((Graphical)b);
+      
+      if ( c->name == NAME_black )
+	oldc = r_colour(WHITE_COLOUR);
     }
 
     str_string(&b->label->data, b->label_font, x, y, w-rm, h,
 	       NAME_center, NAME_center);
+
+    if ( notNil(oldc) )
+      r_colour(oldc);
   } else				/* x, open_look */
   { int swapc  = 0;
     int pen    = valInt(b->pen);
@@ -118,6 +167,8 @@ computeButton(Button b)
     if ( notNil(b->popup) )
     { if ( notNil(b->popup->popup_image) )
 	w += valInt(b->popup->popup_image->size->w) + 5;
+      else if ( b->look == NAME_motif )
+	w += 12 + 5;
       else
 	w += 9 + 5;
     }
@@ -187,12 +238,43 @@ makeButtonGesture()
 
 
 static status
-eventButton(Button b, EventObj ev)
-{ if ( eventDialogItem(b, ev) )
+WantsKeyboardFocusButton(Button b)
+{ if ( b->active == ON && b->look == NAME_motif )
     succeed;
+
+  fail;
+}
+
+
+static status
+eventButton(Button b, EventObj ev)
+{ int infocus;
+
+  if ( eventDialogItem(b, ev) )
+    succeed;
+
+  infocus = (getKeyboardFocusGraphical((Graphical) b) == ON);
+
+  if ( ev->id == toInt(9) && infocus )
+  { advanceDevice(b->device, (Graphical) b);
+    succeed;
+  }
 
   if ( b->active == ON )
   { makeButtonGesture();
+
+    if ( ev->id == toInt(13) && infocus ) /* RETURN */
+    { send(b, NAME_execute, 0);
+      succeed;
+    }
+    
+    if ( isAEvent(ev, NAME_msLeftDown) && !infocus )
+      send(b, NAME_keyboardFocus, ON, 0);
+
+    if ( isAEvent(ev, NAME_focus) )
+    { changedDialogItem(b);
+      succeed;
+    }
 
     return eventGesture(GESTURE_button, ev);
   }
@@ -342,6 +424,9 @@ makeClassButton(Class class)
   sendMethod(class, NAME_event, DEFAULT, 1, "event",
 	     "Process an event",
 	     eventButton);
+  sendMethod(class, NAME_WantsKeyboardFocus, NAME_event, 0,
+	     "Test if ready to accept input",
+	     WantsKeyboardFocusButton);
   sendMethod(class, NAME_selection, NAME_label, 1, "name",
 	     "Equivalent to ->label",
 	     labelDialogItem);

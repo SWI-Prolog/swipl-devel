@@ -38,15 +38,16 @@
 
 :- use_module(pce_principal).
 :- use_module(pce_operator).
+:- use_module(pce_global).
 pce_ifhostproperty(prolog(quintus),
 		   (:- use_module(pce_utils))).
 :- require([ between/3
+	   , call/3
 	   , concat/3
 	   , concat_atom/2
 	   , forall/2
 	   , genarg/3
 	   ]).
-
 
 :- dynamic
 	compiling/1,
@@ -319,13 +320,13 @@ do_expand(variable(Name, Type, Acs, Doc),
 
 do_expand(resource(Name, Type, Def),
 	(?- send(Class, resource, resource(Name, @default, PceType, PceDef,
-					  Class)))) :- !,
+					   Class)))) :- !,
 	current_class(Class),
 	to_atom(Def, PceDef),
 	type(Type, PceType).
 do_expand(resource(Name, Type, Def, Doc),
 	(?- send(Class, resource, resource(Name, @default, PceType, PceDef,
-					  Class, string(Doc))))) :- !,
+					   Class, string(Doc))))) :- !,
 	current_class(Class),
 	to_atom(Def, PceDef),
 	type(Type, PceType).
@@ -342,7 +343,25 @@ do_expand(delegate_to(VarName),
 	(?- send(Class, delegate, VarName))) :- !,
 	current_class(Class).
 
-do_expand((Head :-> DocBody),			% Prolog send
+
+pce_ifhostproperty(need_extern_declaration,
+(do_expand((Head :-> DocBody),			% Prolog send
+	[ (PlHead :- Body)
+	, pce_compile:lazy_method(Selector, ClassName, send,
+				  lazy_send_method(Module:PlHead, Types,
+						   Doc, Loc, Group))
+	, (:- extern(ExternHead))
+	]) :- !,
+	extract_documentation(DocBody, Doc, Body),
+	source_location_term(Loc),
+	current_class(Class),
+	current_group(Group),
+	class_name(Class, ClassName),
+	prolog_head(send, Head, Selector, Types, PlHead),
+	extern_head(PlHead, ExternHead),
+	prolog_load_context(module, Module),
+	feedback(expand_send(ClassName, Selector))),
+(do_expand((Head :-> DocBody),			% Prolog send
 	[ (PlHead :- Body)
 	, pce_compile:lazy_method(Selector, ClassName, send,
 				  lazy_send_method(Module:PlHead, Types,
@@ -355,10 +374,28 @@ do_expand((Head :-> DocBody),			% Prolog send
 	class_name(Class, ClassName),
 	prolog_head(send, Head, Selector, Types, PlHead),
 	prolog_load_context(module, Module),
-	feedback(expand_send(ClassName, Selector)).
+	feedback(expand_send(ClassName, Selector)))).
 
 
-do_expand((Head :<- DocBody),			% Prolog get
+pce_ifhostproperty(need_extern_declaration, 
+(do_expand((Head :<- DocBody),			% Prolog get
+	[ (PlHead :- Body)
+	, pce_compile:lazy_method(Selector, ClassName, get,
+				  lazy_get_method(RType, Module:PlHead, Types,
+						  Doc, Loc, Group))
+	, (:- extern(ExternHead))
+	]) :- !,
+	extract_documentation(DocBody, Doc, Body),
+	source_location_term(Loc),
+	current_class(Class),
+	current_group(Group),
+	class_name(Class, ClassName),
+	return_type(Head, RType),
+	prolog_head(get, Head, Selector, Types, PlHead),
+	extern_head(PlHead, ExternHead),
+	prolog_load_context(module, Module),
+	feedback(expand_get(ClassName, Selector))),
+(do_expand((Head :<- DocBody),			% Prolog get
 	[ (PlHead :- Body)
 	, pce_compile:lazy_method(Selector, ClassName, get,
 				  lazy_get_method(RType, Module:PlHead, Types,
@@ -372,13 +409,30 @@ do_expand((Head :<- DocBody),			% Prolog get
 	return_type(Head, RType),
 	prolog_head(get, Head, Selector, Types, PlHead),
 	prolog_load_context(module, Module),
-	feedback(expand_get(ClassName, Selector)).
+	feedback(expand_get(ClassName, Selector)))).
+
+
+pce_ifhostproperty(need_extern_declaration, [
+(extern_head(PlHead, ExternHead) :-
+	functor(PlHead, Name, Arity),
+	functor(ExternHead, Name, Arity),
+	add_plus_term(0, Arity, ExternHead)),
+
+(add_plus_term(N, N, _) :- !),
+(add_plus_term(N, M, T) :-
+	NN is N + 1,
+	arg(NN, T, +term),
+	add_plus_term(NN, M, T))]).
+
 
 pce_ifhostproperty(string, 
 (extract_documentation((DocText::Body), Str, Body) :- !,
-	       string_to_list(Str, DocText)),
-(extract_documentation((DocText::Body), string(DocText), Body) :- !)
-	      ).
+	(   string(DocText)
+	->  Str = DocText
+	;   DocText = [_|_],
+	    string_to_list(Str, DocText)
+	)),
+(extract_documentation((DocText::Body), string(DocText), Body) :- !)).
 extract_documentation((DocText,Body), string(DocText), Body) :-
 	is_string(DocText), !,
 	pce_error(summary_not_closed(DocText)).
@@ -574,19 +628,18 @@ pce_get_method(Class, Selector, RType, Head, Types, Doc, Loc, Group) :-
 		 *    LAZY METHOD RESOLUTION	*
 		 *******************************/
 
-:- pce_global(@pce_resolve_method_message,
-	      new(message(@prolog, call, bind_lazy, @arg1, @arg2, @arg3))).
+:- initialization
+   new(@pce_resolve_method_message,
+       message(@prolog, call, bind_lazy, @arg1, @arg2, @arg3)).
 
 pce_ifhostproperty(prolog(swi),		% Hide from the tracer
 		   (:- '$hide'(bind_lazy, 3))).
 
 bind_lazy(Kind, ClassName, @default) :- !,
-%	format('bind_lazy(~p, ~p)~n', [Kind, ClassName]),
 	retract(lazy_method(Selector, ClassName, Kind, Arguments)),
 	call(Arguments, ClassName, Selector),
 	fail ; true.
 bind_lazy(Kind, ClassName, Selector) :-
-%	format('bind_lazy(~p, ~p, ~p)~n', [Kind, ClassName, Selector]),
 	retract(lazy_method(Selector, ClassName, Kind, Arguments)),
 	call(Arguments, ClassName, Selector).
 

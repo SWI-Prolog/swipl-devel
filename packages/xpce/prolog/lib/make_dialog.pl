@@ -32,8 +32,8 @@ make_dialog(Dialog, Module, TheId) :-
 	do(make_dialog_item,   parts,         Attributes),
 	do(modify,             modifications, Attributes),
 	do(popups,	       popups,	      Attributes),
-	do(layout(Dialog),     layout,        Attributes),
 	do(behaviour(Module),  behaviour,     Attributes),
+	do(layout(Dialog),     layout,        Attributes),
 	do(initialise,	       initialise,    Attributes).
 
 do(Goal, Attribute, List) :-

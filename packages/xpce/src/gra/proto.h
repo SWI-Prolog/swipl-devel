@@ -160,6 +160,7 @@ status		attachConnectionGraphical(Graphical gr, Connection c);
 status		detachConnectionGraphical(Graphical gr, Connection c);
 status		disconnectGraphical(Graphical gr, Graphical gr2, Link link, Name from, Name to);
 status		eventGraphical(Any obj, EventObj ev);
+Bool		getKeyboardFocusGraphical(Graphical gr);
 status		generateEventGraphical(Graphical gr, Name name);
 status		inEventAreaGraphical(Graphical gr, Int xc, Int yc);
 Chain		getAllRecognisersGraphical(Any obj, Bool create);

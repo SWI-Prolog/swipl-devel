@@ -14,8 +14,8 @@ static XCloseColour(Colour c, DisplayObj d);
 
 static Int
 defcolourname(Int r, Int g, Int b)
-{ return toInt((valInt(r)/256) << 16 +
-	       (valInt(g)/256) << 8 +
+{ return toInt(((valInt(r)/256) << 16) +
+	       ((valInt(g)/256) << 8) +
 	       (valInt(b)/256));
 }
 
@@ -77,9 +77,9 @@ getStorageReferenceColour(Colour c)
   { char tmp[256];
 
     sprintf(tmp, "#%02x%02x%02x",
-	    valInt(c->red)/256,
-	    valInt(c->green)/256,
-	    valInt(c->blue)/256);
+	    (unsigned int) valInt(c->red)/256,
+	    (unsigned int) valInt(c->green)/256,
+	    (unsigned int) valInt(c->blue)/256);
 
     answer(CtoName(tmp));
   }

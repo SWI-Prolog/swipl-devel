@@ -188,6 +188,21 @@ unlinkEditor(Editor e)
 
 
 		 /*******************************
+		 *		REDRAW		*
+		 *******************************/
+
+static status
+RedrawAreaEditor(Editor e, Area a)
+{ Any obg = r_background(getResourceValueObject(e, NAME_background));
+
+  RedrawAreaDevice((Device)e, a);
+
+  r_background(obg);
+
+  succeed;
+}
+
+		 /*******************************
 		 *	  CLONE/SAVE/LOAD	*
 		 *******************************/
 
@@ -3845,6 +3860,7 @@ makeClassEditor(Class class)
 
   termClass(class, "editor",
 	    4, NAME_textBuffer, NAME_width, NAME_height, NAME_marginWidth);
+  setRedrawFunctionClass(class, RedrawAreaEditor);
 
   delegateClass(class, NAME_textBuffer);
   delegateClass(class, NAME_margin);
@@ -4346,6 +4362,8 @@ makeClassEditor(Class class)
 		  "Style for <-selection");
   attach_resource(class, "isearch_style", "style", "style(highlight := @on)",
 		  "Style for incremental search");
+  attach_resource(class, "background", "colour|pixmap", "white",
+		  "Colour/fill pattern of the background");
 
   succeed;
 }
