@@ -253,7 +253,7 @@ N mp_is legendre(X, Y):- !, N1 mp_is X, N2 mp_is Y, mp_legendre(N1, N2, N).
 N mp_is ln(X)         :- !, N1 mp_is X, mp_log(N1, N).
 N mp_is log(X)        :- !, N1 mp_is X, mp_log(N1, N).
 N mp_is log10(X)      :- !, N1 mp_is X, mp_log10(N1, N).
-N mp_is max(X, Y)     :- !, N1 mp_is X, N2 mp_is Y, mp_min(N1, N2, N).
+N mp_is max(X, Y)     :- !, N1 mp_is X, N2 mp_is Y, mp_max(N1, N2, N).
 N mp_is min(X, Y)     :- !, N1 mp_is X, N2 mp_is Y, mp_min(N1, N2, N).
 N mp_is num(X)        :- !, N1 mp_is X, mp_num(N1, N).
 N mp_is prec(X)       :- !, N1 mp_is X, mp_getprec(N1, N).
