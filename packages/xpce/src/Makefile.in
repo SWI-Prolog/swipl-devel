@@ -136,7 +136,7 @@ SICSTARGET=xpce-sicstus
 VMAJOR=@VMAJOR@
 VMINOR=@VMINOR@
 VPATCH=@VPATCH@
-PCEVERSIONDATE=March 1999
+PCEVERSIONDATE=April 1999
 
 SOMAJOR=$(VMAJOR)
 SOMINOR=$(VMINOR).$(VPATCH)
@@ -359,7 +359,8 @@ EVTOBJS=	clickgesture.o conngesture.o event.o \
 		eventnode.o eventtree.o gesture.o handler.o \
 		handlergroup.o modifier.o movegesture.o \
 		mvolgesture.o popupgesture.o recogniser.o \
-		resizegesture.o rzolgesture.o edittextgest.o
+		resizegesture.o rzolgesture.o edittextgest.o \
+		browserselgesture.o
 EVTSRC=		$(addprefix $(srcdir)/evt/, $(EVTOBJS:.o=.c))
 
 $(srcdir)/evt/proto.h:	$(EVTSRC)

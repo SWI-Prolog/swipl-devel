@@ -126,7 +126,7 @@ object(C, Method:method) :<-
 variable(defaults,	string*,	get,
 	 "Default value").
 
-initialise(C, R:resource) :->
+initialise(C, R:class_variable) :->
 	"Initialise from resource"::
 	send(C, send_super, initialise, R?man_module, R?name, R?man_id).
 

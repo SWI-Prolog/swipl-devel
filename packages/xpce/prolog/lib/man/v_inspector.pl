@@ -699,7 +699,7 @@ initialise(F, Manual:man_manual) :->
 	send(D, below, Inspector),
 
 	send(D, append, label(reporter,
-			      'META_SHIFT_CONTROL-I adds object')),
+			      'ALT+SHIFT+CONTROL-I adds object')),
 	send(D, append, button(clear, message(Inspector, clear))),
 	send(D, append, button(help, message(F, help))),
 	send(D, append, button(quit, message(F, quit))),

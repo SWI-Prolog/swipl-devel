@@ -234,7 +234,7 @@ initialise(F, Manual:man_manual) :->
 	F->>append(new(V, vis_window)),
 	new(D, dialog)->>below(V),
 	D->>append(label(reporter,
-			 'META-SHIFT-CONTROL-V adds object to tree')),
+			 'ALT+SHIFT+CONTROL-V adds object to tree')),
 	D->>append(button(help)),
 	D->>append(button(quit)),
 	D->>append(text_item(add, '', message(F, visualise_from_atom, @arg1)),
