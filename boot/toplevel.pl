@@ -245,6 +245,7 @@ $runtoplevel :-
 %	Toplevel called when invoked with -c option.
 
 $compile :-
+	$set_file_search_paths,
 	$compile_wic.
 
 

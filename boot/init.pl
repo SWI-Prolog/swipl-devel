@@ -200,7 +200,7 @@ fail(Label) :-
 %	throw(+Exception)
 %
 %	ISO compliant exception handling.  $throw/1 is compiled to
-%	rhe virtual instruction B_THROW.  See pl-wam.c for details.
+%	the virtual instruction B_THROW.  See pl-wam.c for details.
 
 catch(Goal, _Catcher, _Recover) :-
 	Goal.
@@ -753,8 +753,8 @@ $load_file(Spec, Options) :-
 	    )
 	;   (   $check_file(File, Absolute)
 	    *-> true
-	    ;   $warning('No such file: ~w', Spec),
-		fail
+	    ;   throw(error(existence_error(source_sink, File),
+			    context(_, 'No such file or directory')))
 	    ),
 
 	    $calleventhook(load_file(Absolute, start)),
