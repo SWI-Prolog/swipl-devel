@@ -8,7 +8,7 @@
 					--------------------------------------
 
   * FIXED: interrupt and error handling in wait_for_input/3.  With patch
-    from Leonid Khramov.  Thanks.
+    from Leonid Khramov.  Second patch dealing with overruled sets. Thanks.
 
   * FIXED: Generate syntax error on `based numbers' without digits.  Dima.
 

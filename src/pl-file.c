@@ -1333,8 +1333,20 @@ pl_wait_for_input(term_t Streams, term_t Available,
 
   while( (ret=select(max+1, &fds, NULL, NULL, to)) == -1 &&
 	 errno == EINTR )
-  { if ( PL_handle_signals() < 0 )
+  { fdentry *e;
+
+    if ( PL_handle_signals() < 0 )
       fail;				/* exception */
+
+    FD_ZERO(&fds);			/* EINTR may leave fds undefined */
+    for(e=map; e; e=e->next)		/* so we rebuild it to be safe */
+    {
+#ifdef WIN32
+      FD_SET((SOCKET)e->fd, &fds);
+#else
+      FD_SET(e->fd, &fds);
+#endif
+    }
   }
 
   switch(ret)
