@@ -1,6 +1,19 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.11
+==============
+
+  * MODIFIED: feature(version, Version) and PLVERSION are now numeric.
+
+  * FIXED: reporting out-of-stack now never calls the Prolog exception
+    handler to avoid a real crash.
+
+  * ADDED: Syntax for maintaining source-location inside term-expansion.
+    If a term of the form $source_location(File, Line):Clause is found,
+    not the current, but the given location will be recorded with the
+    clause)
+
 Version 2.7.10
 ==============
 

@@ -157,8 +157,10 @@ pl_abort()
   { aborted = TRUE;
     succeed;
   }
+
   if ( !trueFeature(READLINE_FEATURE) )
     PopTty(&ttytab);
+  status.outofstack = FALSE;
   resetRead();
   closeFiles();
   resetReferences();

@@ -4,7 +4,7 @@
     See ../LICENCE to find out about your rights.
     jan@swi.psy.uva.nl
 
-    Purpose: Virtual machine instruction interpreter
+    Purpose: Public declarations for defining C-predicates and embedding.
 */
 
 #ifndef _FLI_H_INCLUDED
@@ -25,8 +25,10 @@ This interface has been changed considerable  between version 2.1.14 and
 before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
+
 #ifndef PLVERSION
-#define PLVERSION "2.7.10, July 1996"
+#define PLVERSION 207011
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -53,6 +53,7 @@ GLOBAL struct
   int		arithmetic;		/* inside arithmetic code ? */
   bool		io_initialised;		/* I/O initoalisation has finished */
   bool		initialised;		/* Initialisation completed */
+  bool		outofstack;		/* System is out of a stack */
   bool		autoload;		/* autoloading traps enabled */
   bool		case_sensitive_files;   /* FileNames are case sensitive? */
   bool		case_preserving_files;  /* FileNames case is preserved */

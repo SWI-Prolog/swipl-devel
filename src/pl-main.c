@@ -526,7 +526,11 @@ usage()
 
 static void
 version()
-{ Sprintf("SWI-Prolog version %s for %s\n", PLVERSION, ARCH);
+{ Sprintf("SWI-Prolog version %d.%d.%d for %s\n",
+	  PLVERSION / 10000,
+	  (PLVERSION / 100) % 100,
+	  PLVERSION % 100,
+	  ARCH);
 
   Halt(0);
 }
@@ -547,7 +551,7 @@ runtime_vars()
 	  "PLARCH=\"%s\";\n"
 	  "PLLIBS=\"%s\";\n"
 	  "PLLDFLAGS=\"%s\";\n"
-	  "PLVERSION=\"%s\";\n",
+	  "PLVERSION=\"%d\";\n",
 	  C_CC,
 	  systemDefaults.home,
 	  ARCH,
@@ -670,7 +674,10 @@ vwarning(const char *fm, va_list args)
 { toldString();
 
   if ( trueFeature(REPORT_ERROR_FEATURE) )
-  { if ( ReadingSource && !status.boot && status.initialised )
+  { if ( ReadingSource &&
+	 !status.boot &&
+	 status.initialised &&
+	 !status.outofstack )		/* cannot call Prolog */
     { fid_t cid = PL_open_foreign_frame();
       term_t argv = PL_new_term_refs(3);
       predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);

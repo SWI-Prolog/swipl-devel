@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.7.10"
+#define PLVERSION    207011
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -387,7 +387,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign language interface definitions.  Note that these macros MUST  be
-consistent  with  the  definitions  in  pl-fli.h, which is included with
+consistent  with  the  definitions  in  pl-itf.h, which is included with
 users foreign language code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1518,6 +1518,15 @@ GLOBAL State stateList;			/* list of loaded states */
 #define QLF_TOPLEVEL 0x1		/* toplevel wic file */
 #define QLF_OPTIONS  0x2		/* only load options */
 #define QLF_EXESTATE 0x4		/* probe qlf exe state */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Sourcelocation information (should be used at more places).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ atom_t	file;			/* name of the file */
+  int		line;			/* line number */
+} sourceloc, *SourceLoc;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Include debugging info to make it (very) verbose.  SECURE adds  code  to

@@ -160,13 +160,18 @@ CSetFeature(char *name, char *value)
 }
 
 static void
+CSetIntFeature(char *name, int value)
+{ setFeature(lookupAtom(name), consInt(value));
+}
+
+static void
 initFeatures()
 { CSetFeature("arch",		ARCH);
 #if __WIN32__
   if ( iswin32s() )
     CSetFeature("win32s",	"true");
 #endif
-  CSetFeature("version",	PLVERSION);
+  CSetIntFeature("version",	PLVERSION);
   CSetFeature("home",		systemDefaults.home);
   CSetFeature("c_libs",		C_LIBS);
   CSetFeature("c_staticlibs",	C_STATICLIBS);
@@ -212,8 +217,8 @@ initFeatures()
 					/* ISO features */
   setFeature(lookupAtom("max_integer"), heapLong(PLMAXINT));
   setFeature(lookupAtom("min_integer"), heapLong(PLMININT));
-  setFeature(lookupAtom("max_tagged_integer"), consInt(PLMAXTAGGEDINT));
-  setFeature(lookupAtom("min_tagged_integer"), consInt(PLMINTAGGEDINT));
+  CSetIntFeature("max_tagged_integer", PLMAXTAGGEDINT);
+  CSetIntFeature("min_tagged_integer", PLMINTAGGEDINT);
   CSetFeature("bounded",	"true");
   if ( (-3 / 2) == -2 )
     CSetFeature("integer_rounding_function", "down");

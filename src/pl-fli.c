@@ -2071,11 +2071,7 @@ PL_query(int query)
       PopTty(&ttytab);			/* restore terminal mode */
       return (long) Sgetchar();		/* normal reading */
     case PL_QUERY_VERSION:
-    { int major, minor, patch;
-      
-      sscanf(PLVERSION, "%d.%d.%d", &major, &minor, &patch);
-      return major * 10000 + minor * 100 + patch;
-    }
+      return PLVERSION;
     default:
       sysError("PL_query: Illegal query: %d", query);
       /*NOTREACHED*/

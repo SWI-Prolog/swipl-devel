@@ -98,7 +98,7 @@ word		pl_collect_bag(term_t bindings, term_t bag);
 void		initWamTable(void);
 int		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body, Module *m);
-Clause		assert_term(term_t term, int where, atom_t file);
+Clause		assert_term(term_t term, int where, SourceLoc loc);
 word		pl_assertz(term_t term);
 word		pl_asserta(term_t term);
 word		pl_assertz2(term_t term, term_t ref);

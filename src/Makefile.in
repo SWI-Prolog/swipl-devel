@@ -161,7 +161,8 @@ $(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
 parms.h:	Makefile
 		@echo "#define PLHOME       \"$(PLBASE)\""      > %$@%
 		@echo "#define DEFSTARTUP   \"$(DEFSTARTUP)\"" >> %$@%
-		@echo "#define PLVERSION    \"$(PLVERSION)\""  >> %$@%
+		@echo $(PLVERSION) | \
+		$(AWK) -F. '{ printf("#define PLVERSION %d\n", $$1 * 10000 + $$2 * 100 + $$3); }' >> %$@%
 		@echo "#define ARCH	    \"$(ARCH)\""       >> %$@%
 		@echo "#define C_LIBS	    \"$(LIBS)\""       >> %$@%
 		@echo "#define C_STATICLIBS \"$(STATICLIBS)\"" >> %$@%

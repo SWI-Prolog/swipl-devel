@@ -29,7 +29,7 @@
 #	  based on SWI-Prolog.  Contact prolog-request@swi.psy.uva.nl.
 ################################################################
 
-PLVERSION=2.7.7
+PLVERSION=2.7.11
 
 PL=pl
 prefix=/usr/local
@@ -50,7 +50,7 @@ AWK=nawk
 SED=sed
 ETAGS=etags
 RANLIB=ranlib
-ARCH=sparc-solaris2.5
+ARCH=i686-linux
 INSTALL=/usr/gnu/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
@@ -60,7 +60,7 @@ CWFLAGS=-Wall
 CIFLAGS=
 CMFLAGS=-funsigned-char
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
-LDFLAGS=
+LDFLAGS=-rdynamic 
 
 PLFOREIGN=
 
@@ -112,6 +112,11 @@ banner:
 		@echo "To be installed in $(prefix)/bin/$(PL)"
 		@echo "Home (libraries) in $(PLBASE)"
 		@echo "****************"
+
+# Considered the following in the link phase, but it doesn't really
+# appear to help.
+#		LD_RUN_PATH="$(prefix)/lib:$$LD_RUN_PATH"; \
+#		export LD_RUN_PATH; \
 
 $(PL):		$(ALLOBJ)
 		$(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
@@ -214,7 +219,7 @@ install-arch:	idirs iruntime
 		done
 		$(INSTALL_PROGRAM) $(srcdir)/plld $(PLBASE)/bin/$(ARCH)
 
-install-libs:	idirs iboot ilib iruntime iman
+install-libs:	idirs iboot ilib iruntime iinclude iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup
 		$(INSTALL_DATA) swipl $(PLBASE)
 		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl

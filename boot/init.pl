@@ -1001,6 +1001,9 @@ $store_clause((_, _), _) :- !,
 $store_clause((_:-B), _) :-
 	nonvar(B), B = (_:-_), !,
 	$warning('Clause not closed by `.''? (attempt to call :-/2)').
+$store_clause($source_location(File, Line):Term, _) :-
+	$record_clause(Term, File:Line, Ref),
+        $ifcompiling($qlf_assert_clause(Ref)).
 $store_clause(Term, File) :-
 	$record_clause(Term, File, Ref),
         $ifcompiling($qlf_assert_clause(Ref)).

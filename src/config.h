@@ -67,7 +67,7 @@
 /* #undef MMAP_MIN_ADDRESS */
 
 /* Define if MAP_ANON is defined and works ok */
-/* #undef HAVE_MAP_ANON */
+#define HAVE_MAP_ANON 1
 
 /* Define if you can't use asm("nop") to separate two labels */
 /* #undef NO_ASM_NOP */
@@ -130,7 +130,7 @@
 /* #undef ASSERT_H_REQUIRES_STDIO_H */
 
 /* Define if doubles cannot be aligned as longs */
-#define DOUBLE_ALIGNMENT sizeof(double)
+/* #undef DOUBLE_ALIGNMENT */
 
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1

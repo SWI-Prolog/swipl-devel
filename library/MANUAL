@@ -11,7 +11,7 @@
 
                    Reference Manual
 
-        Updated for version 2.7.5, May 1996
+      Updated for version 2.7.11, August 1996
 
                     Jan Wielemaker
 
@@ -1736,9 +1736,14 @@ term_expansion(+Term1, -Term2)
      predicate. If the predicate succeeds Prolog will assert Term2 in the
      database rather then the read term (Term1). Term2 may be a term
      of a the form `?- Goal' or `:- Goal'. Goal is then treated as a
-     directive. Term2 may also be a list, in which case all terms of the
-     list are stored in the database or called (for directives). See also
-     expand_term/2.
+     directive. If Term2 is a list all terms of the list are stored in the
+     database or called (for directives). If Term2 is of the form below,
+     the system will assert Clause and record the indicated
+     source-location with it.
+
+         '$source_location'(File, Line):Clause
+
+     See also expand_term/2.
 
 
 expand_term(+Term1, -Term2)

@@ -1514,7 +1514,10 @@ openWic(const char *file, term_t args)
   Sfprintf(wicFd, "/* Compiled SWI-Prolog Program */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -x \" name arg(1)\r\nexit\r\n", exec);
 #else
   Sfprintf(wicFd, "#!/bin/sh\n");
-  Sfprintf(wicFd, "# SWI-Prolog version: %s\n",      PLVERSION);
+  Sfprintf(wicFd, "# SWI-Prolog version: %d.%d.%d\n",
+	   PLVERSION/10000,
+	   (PLVERSION/100)%100,
+	   PLVERSION%100);
   Sfprintf(wicFd, "# SWI-Prolog save-version: %d\n", VERSION);
   Sfprintf(wicFd, "exec ${SWIPL-%s} -x $0 \"$@\"\n", exec);
   Sfprintf(wicFd, "# End Header\n");
@@ -1578,8 +1581,12 @@ closeWic()
 static bool
 addClauseWic(term_t term, atom_t file)
 { Clause clause;
+  sourceloc loc;
 
-  if ( (clause = assert_term(term, CL_END, file)) )
+  loc.file = file;
+  loc.line = source_line_no;
+
+  if ( (clause = assert_term(term, CL_END, &loc)) )
   { IOSTREAM *s = wicFd;
 
     DEBUG(3, Sdprintf("WAM code:\n");

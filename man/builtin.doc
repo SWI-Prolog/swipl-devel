@@ -171,9 +171,15 @@ terms read during consulting that are given to this predicate.  If the
 predicate succeeds Prolog will assert {\em Term2} in the database rather
 then the read term ({\em Term1}).  {\em Term2} may be a term of a the
 form `?- {\em Goal}' or `:- {\em Goal}'.  {\em Goal} is then treated as
-a directive.  {\em Term2} may also be a list, in which case all terms of
-the list are stored in the database or called (for directives).  See
-also expand_term/2.
+a directive. If {\em Term2} is a list all terms of the list are stored
+in the database or called (for directives).  If {\em Term2} is of the
+form below, the system will assert {\em Clause} and record the indicated
+source-location with it.
+\begin{quote}
+{\tt '\$source_location'({\em File, Line}):{\em Clause}}
+\end{quote}
+See also expand_term/2.
+
 .C expand_term 2 +Term1, -Term2
 This predicate is normally called by the compiler to perform preprocessing.
 First it calls term_expansion/2.  If this predicate fails it performs

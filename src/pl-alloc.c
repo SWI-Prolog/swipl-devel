@@ -168,7 +168,9 @@ allocate(register size_t n)
 
 volatile void
 outOf(Stack s)
-{ warning("Out of %s stack", s->name);
+{ status.outofstack = TRUE;		/* will be reset by abort() */
+
+  warning("Out of %s stack", s->name);
 
   pl_abort();
   exit(2);				/* should not happen */

@@ -1328,11 +1328,11 @@ The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-assert_term(term_t term, int where, atom_t file)
+assert_term(term_t term, int where, SourceLoc loc)
 { Clause clause;
   Procedure proc;
   Definition def;
-  Module source_module = (file ? modules.source : (Module) NULL);
+  Module source_module = (loc ? modules.source : (Module) NULL);
   Module module = source_module;
   term_t tmp  = PL_new_term_ref();
   term_t head = PL_new_term_ref();
@@ -1348,20 +1348,19 @@ assert_term(term_t term, int where, atom_t file)
   if ( !(clause = compile(valTermRef(head), valTermRef(body), module)) )
     return NULL;
   DEBUG(9, Sdprintf("ok\n"));
-  clause->line_no = source_line_no;
   proc = clause->procedure;
   def = proc->definition;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-If file is defined, we are called from record_clause/2.  This code takes
+If loc is defined, we are called from record_clause/2.  This code takes
 care of reconsult, redefinition, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( file )
+  if ( loc )
   { SourceFile sf;
 
-    sf = lookupSourceFile(file);
-    clause->line_no   = source_line_no;
+    sf = lookupSourceFile(loc->file);
+    clause->line_no   = loc->line;
     clause->source_no = sf->index;
 
     if ( def->module != module )
@@ -1442,18 +1441,18 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
 word
 pl_assertz(term_t term)
-{ return assert_term(term, CL_END, NULL_ATOM) == NULL ? FALSE : TRUE;
+{ return assert_term(term, CL_END, NULL) == NULL ? FALSE : TRUE;
 }
 
 word
 pl_asserta(term_t term)
-{ return assert_term(term, CL_START, NULL_ATOM) == NULL ? FALSE : TRUE;
+{ return assert_term(term, CL_START, NULL) == NULL ? FALSE : TRUE;
 }
 
 
 word
 pl_assertz2(term_t term, term_t ref)
-{ Clause clause = assert_term(term, CL_END, NULL_ATOM);
+{ Clause clause = assert_term(term, CL_END, NULL);
 
   if (clause == (Clause)NULL)
     fail;
@@ -1464,7 +1463,7 @@ pl_assertz2(term_t term, term_t ref)
 
 word
 pl_asserta2(term_t term, term_t ref)
-{ Clause clause = assert_term(term, CL_START, NULL_ATOM);
+{ Clause clause = assert_term(term, CL_START, NULL);
 
   if (clause == (Clause)NULL)
     fail;
@@ -1476,12 +1475,22 @@ pl_asserta2(term_t term, term_t ref)
 word
 pl_record_clause(term_t term, term_t file, term_t ref)
 { Clause clause;
-  atom_t f;
+  sourceloc loc;
 
-  if ( !PL_get_atom(file, &f) )
-    fail;
+  if ( PL_get_atom(file, &loc.file) )	/* just the name of the file */
+  { loc.line = source_line_no;
+  } else if ( PL_is_functor(file, FUNCTOR_module2) )
+  { term_t arg = PL_new_term_ref();	/* file:line */
 
-  if ( (clause = assert_term(term, CL_END, f)) )
+    PL_get_arg(1, file, arg);
+    if ( !PL_get_atom(arg, &loc.file) )
+      return warning("$record_clause/3: instantiation fault");
+    PL_get_arg(2, file, arg);
+    if ( !PL_get_integer(arg, &loc.line) )
+      return warning("$record_clause/3: instantiation fault");
+  }
+
+  if ( (clause = assert_term(term, CL_END, &loc)) )
     return PL_unify_pointer(ref, clause);
   
   fail;
