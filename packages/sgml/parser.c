@@ -1712,11 +1712,6 @@ match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
       e--;
       continue;
     }
-    if ( *m == '\r' && *e == '\n' )	/* dubious */
-    { m--;
-      e--;
-      continue;
-    }
     if ( *m == CHR_DBLANK )
     { if ( e>data && HasClass(dtd, *e, CH_WHITE) )
 	e--;
@@ -1740,50 +1735,46 @@ match_map(dtd *dtd, dtd_map *map, int len, ichar *data)
 
 static void
 match_shortref(dtd_parser *p)
-{ 
-					/* condition in caller */
-  if ( p->map /*&& p->map->ends[p->cdata->data[p->cdata->size-1]]*/ )
-  { dtd_map *map;
+{ dtd_map *map;
 
-    for(map = p->map->map; map; map = map->next)
-    { int len;
+  for(map = p->map->map; map; map = map->next)
+  { int len;
 
-      if ( (len=match_map(p->dtd, map,
-			  p->cdata->size, (ichar *)p->cdata->data)) )
-      { p->cdata->size -= len;
+    if ( (len=match_map(p->dtd, map,
+			p->cdata->size, (ichar *)p->cdata->data)) )
+    { p->cdata->size -= len;
 
-	if ( p->cdata_must_be_empty )
-	{ int blank = TRUE;
-	  const ichar *s;
-	  int i;
+      if ( p->cdata_must_be_empty )
+      { int blank = TRUE;
+	const ichar *s;
+	int i;
 
-	  for(s = p->cdata->data, i=0; i++ < p->cdata->size; s++)
-	  { if ( !HasClass(p->dtd, *s, CH_BLANK) )
-	    { blank = FALSE;
-	      break;
-	    }
+	for(s = p->cdata->data, i=0; i++ < p->cdata->size; s++)
+	{ if ( !HasClass(p->dtd, *s, CH_BLANK) )
+	  { blank = FALSE;
+	    break;
 	  }
-
-	  p->blank_cdata = blank;
 	}
 
-	WITH_CLASS(p, EV_SHORTREF,
-		   { sgml_cplocation(&p->startloc, &p->location);
-		     p->startloc.charpos -= len;
-		     p->startloc.linepos -= len;
-		     if ( p->startloc.linepos < 0 )
-		     { p->startloc.line--;
-		       p->startloc.linepos = 0; /* not correct! */
-		     }
-		     DEBUG(printf("%d-%d: Matched map '%s' --> %s, len = %d\n",
-				  p->startloc.charpos,
-				  p->location.charpos,
-				  map->from, map->to->name, len));
-
-		     process_entity(p, map->to->name);
-		   })			/* TBD: optimise */
-	break;
+	p->blank_cdata = blank;
       }
+
+      WITH_CLASS(p, EV_SHORTREF,
+		 { sgml_cplocation(&p->startloc, &p->location);
+		   p->startloc.charpos -= len;
+		   p->startloc.linepos -= len;
+		   if ( p->startloc.linepos < 0 )
+		   { p->startloc.line--;
+		     p->startloc.linepos = 0; /* not correct! */
+		   }
+		   DEBUG(printf("%d-%d: Matched map '%s' --> %s, len = %d\n",
+				p->startloc.charpos,
+				p->location.charpos,
+				map->from, map->to->name, len));
+
+		   process_entity(p, map->to->name);
+		 })			/* TBD: optimise */
+      break;
     }
   }
 }
@@ -4201,21 +4192,21 @@ add_cdata(dtd_parser *p, int chr)
       p->blank_cdata = FALSE;
     }
 
-    if ( chr == '\n' )
-    { if ( p->map && p->map->ends['\r'] &&
-	   (buf->size == 0 || buf->data[buf->size-1] != '\r') )
-      { add_ocharbuf(buf, '\r');
-	match_shortref(p);
-      }
-  
-      if ( buf->size > 0 && buf->data[buf->size-1] == '\r' )
-	buf->size--;
-    }
-  
     add_ocharbuf(buf, chr);
   
     if ( p->map && p->map->ends[chr] )
       match_shortref(p);
+
+    if ( chr == '\n' )			/* dubious.  Whould we do that */
+    { int sz;				/* here or in the space-handling? */
+
+      if ( (sz=buf->size) > 1 &&
+	   buf->data[sz-1] == LF &&
+	   buf->data[sz-2] == CR )
+      { buf->data[sz-2] = LF;
+	buf->size--;
+      }
+    }
   }
 }
 

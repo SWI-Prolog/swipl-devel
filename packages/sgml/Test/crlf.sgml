@@ -1,0 +1,11 @@
+<!DOCTYPE text [
+<!ENTITY new.p STARTTAG "p">
+<!SHORTREF for.text
+    "&#RS;&#RE;" new.p>
+<!ELEMENT text O O (p+)>
+<!USEMAP for.text text>
+<!ELEMENT p O O (#PCDATA)>
+]>
+par 1
+
+par 2
