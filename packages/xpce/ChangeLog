@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `frame->set' on Windows to handle X and Y properly.  Reported by
+  Ron Seljee.
+
 * MODIFIED: `tab_stack->layout_dialog' to succeed if the stack is empty.
 
 * ADDED: Allow non-editing interaction (select, scroll) on text_items that
