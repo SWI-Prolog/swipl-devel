@@ -46,7 +46,8 @@ typedef unsigned char pixval;
 static int 
 ReadColorMap(IOSTREAM *fd, int number,
 	     GIFAllocColorTable at, GIFAllocColor ac, void *closure);
-static int DoExtension(IOSTREAM *fd,int label);
+static int DoExtension(IOSTREAM *fd, int label,
+		       GIFDoExtension func, void *closure);
 static int GetDataBlock(IOSTREAM *fd, UCHAR *buf);
 static int GetCode (IOSTREAM *fd, int code_size, int flag);
 static int LZWReadByte (IOSTREAM *fd,int flag, int  input_code_size);
@@ -100,7 +101,9 @@ GIFReadFD(IOSTREAM *fd,
 int
 GIFReadFD(IOSTREAM *fd,
 	  PIXEL **data, int *width, int *height,
-	  GIFAllocColorTable at, GIFAllocColor ac, void *closure)
+	  GIFAllocColorTable at, GIFAllocColor ac,
+	  GIFDoExtension doext,
+	  void *closure)
 {
   UCHAR buf[16];
   UCHAR c;
@@ -111,6 +114,11 @@ GIFReadFD(IOSTREAM *fd,
   int h = 0;
   PIXEL *bigBuf;
   int rval;
+
+  Gif89.transparent = -1;
+  Gif89.delayTime   = -1;
+  Gif89.inputFlag   = -1;
+  Gif89.disposal    = 0;
 
   /* read GIF file header */
   if (!ReadOK(fd, buf, 6))
@@ -179,7 +187,7 @@ GIFReadFD(IOSTREAM *fd,
       { setGifError("Error on extension read.  Giving up");
 	return GIF_INVALID;
       }
-      DoExtension(fd, c);
+      DoExtension(fd, c, doext, closure);
       continue;
     }
     if (c != ',')
@@ -266,10 +274,11 @@ ReadColorMap(IOSTREAM *fd, int number,
   
   for (i = 0; i < number; ++i)
   { if (!ReadOK(fd, rgb, sizeof(rgb)))
-    { return GIF_INVALID;
-    }
+      return GIF_INVALID;
     
-    if ( (rval=(*ac)(i, rgb[0], rgb[1], rgb[2], closure)) != GIF_OK )
+    rval = (*ac)(i, rgb[0], rgb[1], rgb[2], closure);
+
+    if ( rval != GIF_OK )
       return rval;
   }
 
@@ -278,7 +287,7 @@ ReadColorMap(IOSTREAM *fd, int number,
 
 
 static int 
-DoExtension(IOSTREAM * fd, int label)
+DoExtension(IOSTREAM * fd, int label, GIFDoExtension doext, void *cl)
 {
   static char buf[256];
   char *str;
@@ -306,7 +315,9 @@ DoExtension(IOSTREAM * fd, int label)
     Gif89.inputFlag = (buf[0] >> 1) & 0x1;
     Gif89.delayTime = LM_to_uint(buf[1], buf[2]);
     if ((buf[0] & 0x1) != 0)
-      Gif89.transparent = buf[3];
+    { Gif89.transparent = buf[3];
+      (*doext)(GIFEXT_TRANSPARENT, (void *)Gif89.transparent, cl);
+    }
 
     while (GetDataBlock(fd, (UCHAR *) buf) != 0) ;
     return FALSE;

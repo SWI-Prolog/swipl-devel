@@ -24,7 +24,7 @@
 
 #define XpmMalloc(size) (void *)malloc((size))
 
-int
+static int
 alloc_colortable(int ncolors, void *closure)
 { XpmImage *img = closure;
 
@@ -41,17 +41,37 @@ alloc_colortable(int ncolors, void *closure)
 }
 
 
-int
+static int
 alloc_color(int index, int r, int g, int b, void *closure)
 { XpmImage *img = closure;
   XpmColor *c   = &img->colorTable[index];
   
   if ( (c->c_color = XpmMalloc(8)) )
   { sprintf(c->c_color, "#%02x%02x%02x", r, g, b);
+
     return GIF_OK;
   }
 
   return GIF_NOMEM;
+}
+
+
+static int
+gif_extension(int ext, void *data, void *closure)
+{ XpmImage *img = closure;
+
+  switch(ext)
+  { case GIFEXT_TRANSPARENT:
+    { XpmColor *c   = &img->colorTable[(int)data];
+
+      strcpy(c->c_color, "None");	/* malloced 8 bytes, so ok. */
+      break;
+    }
+    default:
+      assert(0);
+  }
+
+  return GIF_OK;
 }
 
 
@@ -69,6 +89,7 @@ XpmReadGIF(IOSTREAM *fd, XpmImage *img)
 		    &img->height,
 		    alloc_colortable,
 		    alloc_color,
+		    gif_extension,
 		    img) )
   { case GIF_OK:
       return XpmSuccess;

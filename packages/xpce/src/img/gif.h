@@ -20,6 +20,9 @@ typedef int (*GIFAllocColor)(int index,
 			     int r, int g, int b,
 			     void *closure);
 typedef int (*GIFAllocColorTable)(int size, void *closure);
+typedef int (*GIFDoExtension)(int ext, void *data, void *closure);
+
+#define GIFEXT_TRANSPARENT 0		/* data = colour index */
 
 #define GIF_OK		0
 #define GIF_NOMEM	1
@@ -39,7 +42,10 @@ typedef int (*GIFAllocColorTable)(int size, void *closure);
 
 extern int GIFReadFD(IOSTREAM *fd,
 		     PIXEL **data, int *width, int *height,
-		     GIFAllocColorTable at, GIFAllocColor ac, void *closure);
+		     GIFAllocColorTable at,
+		     GIFAllocColor ac,
+		     GIFDoExtension doext,
+		     void *closure);
 extern const char  *GIFError(void);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
