@@ -30,16 +30,27 @@ resource(icon,	 image, image('32x32/dbgsettings.xpm')).
 :- dynamic
 	debug_status_window/1.
 
-:- pce_begin_class(prolog_debug_status, dialog,
+
+:- pce_begin_class(prolog_debug_status, persistent_frame,
+		   "Show status of Prolog debugger").
+
+initialise(F, App:[application]*) :->
+	send_super(F, initialise('Prolog debugging')),
+	send(F, icon, resource(icon)),
+	send(F, append, new(prolog_debug_status_dialog)),
+	(   App \== @default, App \== @nil
+	->  send(F, application, App)
+	;   true
+	).
+
+:- pce_end_class(prolog_debug_status).
+
+
+:- pce_begin_class(prolog_debug_status_dialog, dialog,
 		   "View/change debug_status information").
 
-initialise(D, App:[application]*) :->
-	send_super(D, initialise('Prolog debugging')),
-	(   App \== @default, App \== @nil
-	->  send(D, application, App)
-	;   true
-	),
-	send(D, icon, resource(icon)),
+initialise(D) :->
+	send_super(D, initialise),
 	send(D, append, new(TB, tool_bar(D))),
 	send_list(TB, append,
 		  [ tool_button(cut,
@@ -59,6 +70,7 @@ initialise(D, App:[application]*) :->
 	send(LB, style, break, style(icon := resource(stop))),
 	send(LB, style, trace, style(icon := resource(trace))),
 	send(LB, attribute, hor_stretch, 100),
+	send(LB, attribute, ver_stretch, 100),
 	send(D, append, new(PI, prolog_predicate_item(predicate))),
 	send(PI, length, 30),
 	send(D, append, new(TB2, tool_bar(D)), right),

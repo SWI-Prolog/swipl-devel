@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: shrinking ver_stretch items in a dialog (shrink could be blocked
+  by empty cells in other columns).
+
+* FIXED: Make Windows version completely compatible in frame geometry
+  handling, required to make the persistent_frame library function
+  correctly.
+
 * ADDED: library(persistent_frame) defining a class with the same name that
   realises a frame remembering its position, size and subwindow layout.  Use
   this class for (part of) the development environment tools.

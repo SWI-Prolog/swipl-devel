@@ -220,6 +220,7 @@ debug_settings(FB) :->
 	;   send(new(prolog_debug_status), open)
 	).
 
+
 :- pce_group(event).
 
 event(FB, Ev:event) :->
