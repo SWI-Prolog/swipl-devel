@@ -2694,12 +2694,22 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     int bufsize = sizeof(buf);
     word rval;
     char *s = buf;
+    IOSTREAM *stream;
+    PL_chars_t txt;
 
-    tellString(&s, &bufsize);
-    pl_writeq(term);
-    toldString();
+    stream = Sopenmem(&s, &bufsize, "w");
+    stream->encoding = ENC_UTF8;
+    PL_write_term(stream, term, 1200, PL_WRT_QUOTED);
+    Sflush(stream);
+    
+    txt.text.t = s;
+    txt.length = bufsize;
+    txt.storage = PL_CHARS_HEAP;
+    txt.encoding = ENC_UTF8;
+    txt.canonical = FALSE;
+    rval = PL_unify_text(atom, &txt, PL_ATOM);
 
-    rval = PL_unify_atom_nchars(atom, bufsize, s);
+    Sclose(stream);
     if ( s != buf )
       free(s);
 

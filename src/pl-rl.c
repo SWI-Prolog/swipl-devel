@@ -127,6 +127,12 @@ pl_rl_read_init_file(term_t file)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is not really clear using   wide-character  handling. We now assume
+that the readline library can only do   wide characters using UTF-8. Not
+sure this is true, but is certainly covers most installations.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static foreign_t
 pl_rl_add_history(term_t text)
 { atom_t a;
