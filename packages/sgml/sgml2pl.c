@@ -106,6 +106,7 @@ static functor_t FUNCTOR_source1;
 static functor_t FUNCTOR_call2;
 static functor_t FUNCTOR_charpos1;
 static functor_t FUNCTOR_ns2;		/* :/2 */
+static functor_t FUNCTOR_space1;
 
 static atom_t ATOM_sgml;
 static atom_t ATOM_dtd;
@@ -148,6 +149,7 @@ initConstants()
   FUNCTOR_call2	       = mkfunctor("call", 2);
   FUNCTOR_charpos1     = mkfunctor("charpos", 1);
   FUNCTOR_ns2	       = mkfunctor(":", 2);
+  FUNCTOR_space1       = mkfunctor("space", 1);
 
   ATOM_dtd  = PL_new_atom("dtd");
   ATOM_sgml = PL_new_atom("sgml");
@@ -342,6 +344,23 @@ pl_set_sgml_parser(term_t parser, term_t option)
       set_dialect_dtd(p->dtd, DL_SGML);
     else
       return sgml2pl_error(ERR_DOMAIN, "sgml_dialect", a);
+  } else if ( PL_is_functor(option, FUNCTOR_space1) )
+  { term_t a = PL_new_term_ref();
+    char *s;
+
+    PL_get_arg(1, option, a);
+    if ( !PL_get_atom_chars(a, &s) )
+      return sgml2pl_error(ERR_TYPE, "atom", a);
+
+    if ( streq(s, "preserve") )
+      p->space_mode = SP_PRESERVE;
+    else if ( streq(s, "default") )
+      p->space_mode = SP_DEFAULT;
+    else if ( streq(s, "remove") )
+      p->space_mode = SP_REMOVE;
+
+    else
+      return sgml2pl_error(ERR_DOMAIN, "space", a);
   } else
     return sgml2pl_error(ERR_DOMAIN, "sgml_parser_option", option);
 
@@ -1245,6 +1264,7 @@ unify_attribute_default(term_t defval, dtd_attr *a)
 	{ case AT_CDATA:
 	    return PL_unify_atom_chars(tmp, a->att_def.cdata);
 	  case AT_NAME:
+	  case AT_NMTOKEN:
 	  case AT_NAMEOF:
 	    return PL_unify_atom_chars(tmp, a->att_def.name->name);
 	  case AT_NUMBER:

@@ -152,6 +152,7 @@ dtd_property(DTD, Prop) :-
 parser_option(dialect(_)).
 parser_option(file(_)).
 parser_option(line(_)).
+parser_option(space(_)).
 
 set_parser_options(Parser, Options, RestOptions) :-
 	parser_option(Option),

@@ -47,15 +47,16 @@ DTD. The parser is designed to be small, fast and flexible.
 <LI><A HREF="#sec:3"><B>3 Predicate Reference</B></A>
 <UL>
 <LI><A HREF="#sec:3.1">3.1 Loading Structured Documents</A>
-<LI><A HREF="#sec:3.2">3.2 XML documents</A>
+<LI><A HREF="#sec:3.2">3.2 Handling white-space</A>
+<LI><A HREF="#sec:3.3">3.3 XML documents</A>
 <UL>
-<LI><A HREF="#sec:3.2.1">3.2.1 XML Namespaces</A>
+<LI><A HREF="#sec:3.3.1">3.3.1 XML Namespaces</A>
 </UL>
-<LI><A HREF="#sec:3.3">3.3 DTD-Handling</A>
-<LI><A HREF="#sec:3.4">3.4 Extracting a DTD</A>
-<LI><A HREF="#sec:3.5">3.5 Parsing Primitives</A>
+<LI><A HREF="#sec:3.4">3.4 DTD-Handling</A>
+<LI><A HREF="#sec:3.5">3.5 Extracting a DTD</A>
+<LI><A HREF="#sec:3.6">3.6 Parsing Primitives</A>
 <UL>
-<LI><A HREF="#sec:3.5.1">3.5.1 Partial Parsing</A>
+<LI><A HREF="#sec:3.6.1">3.6.1 Partial Parsing</A>
 </UL>
 </UL>
 <LI><A HREF="#sec:4"><B>4 Processing Indexed Files</B></A>
@@ -170,7 +171,7 @@ for details.
 <H3><A NAME="sec:2.1">2.1 `Goodies' Predicates</A></H3>
 
 <P>These predicates are for basic usage of the library, converting 
-entire and self-contained files in one of the three supported X ML 
+entire and self-contained files in one of the three supported <I>X</I>ML 
 dialects into a structured term. They are all expressed in <A NAME="idx:loadstructure3:2"></A><A HREF="#load_structure/3">load_structure/3</A>.
 
 <DL>
@@ -213,12 +214,13 @@ and <A NAME="idx:loadhtmlfile2:6"></A><A HREF="#load_html_file/2">load_html_file
 <DL>
 <DT><A NAME="load_structure/3"><STRONG>load_structure</STRONG>(<VAR>+File, 
 --ListOfContent, +Options</VAR>)</A><DD>
-Load the X ML file <VAR>File</VAR> and return the resulting structure in <VAR>ListOfContent</VAR>. <VAR>Options</VAR> 
-is a list of options controlling the conversion process.
+Load the <I>X</I>ML file <VAR>File</VAR> and return the resulting 
+structure in <VAR>ListOfContent</VAR>. <VAR>Options</VAR> is a list of 
+options controlling the conversion process.
 
-<P>A proper X ML document contains only a single toplevel element whose 
-name matches the document type. Nevertheless, a list is returned for 
-consistency with the representation of element content. The
+<P>A proper <I>X</I>ML document contains only a single toplevel element 
+whose name matches the document type. Nevertheless, a list is returned 
+for consistency with the representation of element content. The
 <VAR>ListOfContent</VAR> consists of three types:
 
 <DL>
@@ -270,11 +272,15 @@ Currently defined options are:
 Reference to a DTT object. If specified, the <CODE>&lt;!DOCTYPE ...&gt;</CODE> 
 declaration is ignored and the document is parsed and validated against 
 the provided DTD. If provided as a variable, the implicitly created DTD 
-is returned. See <A HREF="#sec:implicitdtd">section 3.4</A>.
+is returned. See <A HREF="#sec:implicitdtd">section 3.5</A>.
 <DT><STRONG>dialect</STRONG>(<VAR>+Dialect</VAR>)<DD>
 Specify the parsing dialect. Supported are <CODE>sgml</CODE> (default),
-<CODE>xml</CODE> and <CODE>smlns</CODE>. See <A HREF="#sec:xml">section 
-3.2</A> for details on the differences.
+<CODE>xml</CODE> and <CODE>xmlns</CODE>. See <A HREF="#sec:xml">section 
+3.3</A> for details on the differences.
+<DT><STRONG>space</STRONG>(<VAR>+SpaceMode</VAR>)<DD>
+Sets the `space-handling-mode' for the initial environment. This mode is 
+inherited by the other environments and subject to the XML reserved tag <TT>&lt;xml:space&gt;</TT>. 
+See <A HREF="#sec:space">section 3.2</A>.
 <DT><STRONG>file</STRONG>(<VAR>+Name</VAR>)<DD>
 Sets the name of the file on which errors are reported. Sets the 
 linenumber to 1.
@@ -290,7 +296,46 @@ exception of the format below is raised. The default is 50.
 
 </DL>
 
-<H3><A NAME="sec:3.2">3.2 XML documents</A></H3>
+<H3><A NAME="sec:3.2">3.2 Handling white-space</A></H3>
+
+<A NAME="sec:space"></A>
+
+<P>SGPL2PL has three modes for handling white-space. The initial mode 
+can be switched using the <CODE>space(SpaceMode)</CODE> option to <A NAME="idx:loadstructure3:8"></A><A HREF="#load_structure/3">load_structure/3</A> 
+and <A NAME="idx:setsgmlparser2:9"></A><A HREF="#set_sgml_parser/2">set_sgml_parser/2</A>. 
+In XML mode, the mode is further controlled by the <TT>&lt;xml:space&gt;</TT> 
+attribute, which may be specified both in the DTD as in the document. 
+The defined modes are:
+
+<DL>
+<DT><STRONG>space</STRONG>(<VAR>preserve</VAR>)<DD>
+White space is passed literally to the application. This is the default 
+mode. This mode leaves all white space handling to the application.
+<DT><STRONG>space</STRONG>(<VAR>default</VAR>)<DD>
+All consequtive white-space is reduced to a single space-character. This 
+mode canonises all white space.
+<DT><STRONG>space</STRONG>(<VAR>remove</VAR>)<DD>
+In addition to <CODE>default</CODE>, all leading and trailing 
+white-space is removed from <CODE>CDATA</CODE> objects. If, as a result, 
+if the
+<CODE>CDATA</CODE> becomes empty, nothing is passed to the application. 
+This mode is especially handy for processing `data-oriented' documents, 
+such as RDF. It is not suitable for normal text documents. Consider the 
+HTML statement below. When processed in this mode, the spaces between 
+the three modified words are lost. This mode is, unlike the two others, 
+not part of the XML standard.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+Consider adjecent &lt;b&gt;bold&lt;/b&gt; &lt;ul&gt;and&lt;/ul&gt; &lt;it&gt;italic&lt;/it&gt; words.
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<H3><A NAME="sec:3.3">3.3 XML documents</A></H3>
 
 <A NAME="sec:xml"></A>
 
@@ -326,9 +371,25 @@ reserved names (i.e. <CODE>ELEMENT</CODE>, etc.).
 <LI><I>Character classes</I><BR>
 In XML mode, underscores (<CODE>_</CODE>) and colon (<CODE>:</CODE>) are 
 allowed in names.
+<LI><I>White-space handling</I><BR>
+In addition to setting white-space handling at the toplevel the XML 
+reserved attribute <TT>&lt;xml:space&gt;</TT> is honoured. It may appear 
+both in the document as the DTD. The <CODE>remove</CODE> extension is 
+honoured as <TT>&lt;xml:space&gt;</TT> value. For example, the DTD 
+statement below ensures that the <TT>&lt;pre&gt;</TT> element preserves 
+space, regardless of the default processing mode.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+&lt;!ATTLIST pre xml:space nmtoken #fixed preserve&gt;
+</PRE>
+</TABLE>
+
+<P>
 </UL>
 
-<H4><A NAME="sec:3.2.1">3.2.1 XML Namespaces</A></H4>
+<H4><A NAME="sec:3.3.1">3.3.1 XML Namespaces</A></H4>
 
 <A NAME="sec:xmlns"></A>
 
@@ -347,7 +408,7 @@ URL is returned.
 <P>Attributes declaring namespaces (<CODE>xmlns:<VAR>ns</VAR>=<VAR>url</VAR></CODE> 
 are reported as if <CODE>xmlns</CODE> is not a defined resource.
 
-<H3><A NAME="sec:3.3">3.3 DTD-Handling</A></H3>
+<H3><A NAME="sec:3.4">3.4 DTD-Handling</A></H3>
 
 <P>The DTD (<B>D</B>ocument <B>T</B>ype <B>D</B>efinition) is a separate 
 entity in sgml2pl, that can be created, freed, defined and inspected. 
@@ -365,7 +426,7 @@ Deallocate all resources associated to the DTD. Further use of <VAR>DTD</VAR>
 is invalid.
 <DT><A NAME="load_dtd/1"><STRONG>load_dtd</STRONG>(<VAR>+DTD, +File</VAR>)</A><DD>
 Define the DTD by loading the SGML-DTD file <VAR>File</VAR>. This 
-predicate is defined using the low-level <A NAME="idx:opendtd3:8"></A><A HREF="#open_dtd/3">open_dtd/3</A> 
+predicate is defined using the low-level <A NAME="idx:opendtd3:10"></A><A HREF="#open_dtd/3">open_dtd/3</A> 
 predicate:
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -383,7 +444,7 @@ load_dtd(DTD, DtdFile) :-
 <DT><A NAME="open_dtd/3"><STRONG>open_dtd</STRONG>(<VAR>+DTD, +Options, 
 -OutStream</VAR>)</A><DD>
 Open either a DTD as an output stream. The option-list is currently 
-empty. See <A NAME="idx:loaddtd2:9"></A><B>load_dtd/2</B> for an 
+empty. See <A NAME="idx:loaddtd2:11"></A><B>load_dtd/2</B> for an 
 example.
 <DT><A NAME="dtd/2"><STRONG>dtd</STRONG>(<VAR>+DocType, -DTD</VAR>)</A><DD>
 Find the DTD representing the indicated <EM>doctype</EM>. This predicate 
@@ -477,7 +538,7 @@ is unbound.
 
 </DL>
 
-<H3><A NAME="sec:3.4">3.4 Extracting a DTD</A></H3>
+<H3><A NAME="sec:3.5">3.5 Extracting a DTD</A></H3>
 
 <A NAME="sec:implicitdtd"></A>
 
@@ -515,7 +576,7 @@ elements_in_xml_document(File, Elements) :-
 </PRE>
 </TABLE>
 
-<H3><A NAME="sec:3.5">3.5 Parsing Primitives</A></H3>
+<H3><A NAME="sec:3.6">3.6 Parsing Primitives</A></H3>
 
 <DL>
 <DT><A NAME="new_sgml_parser/2"><STRONG>new_sgml_parser</STRONG>(<VAR>-Parser, 
@@ -558,10 +619,10 @@ attributes and omitted tags).
 <DT><STRONG>xml</STRONG><DD>
 This dialect is selected automatically if the processing instruction
 <CODE>&lt;?xml ...&gt;</CODE> is encountered. See <A HREF="#sec:xml">section 
-3.2</A> for details.
+3.3</A> for details.
 <DT><STRONG>xmlns</STRONG><DD>
-Process file as XML file with namespace support. See <B>section ??</B> 
-for details.
+Process file as XML file with namespace support. See <A HREF="#sec:xmlns">section 
+3.3.1</A> for details.
 </DL>
 
 </DL>
@@ -580,7 +641,7 @@ Offset from where the parser started its processing in the file-object.
 See <A HREF="#sec:indexaccess">section 4</A>.
 <DT><STRONG>source</STRONG>(<VAR>-Stream</VAR>)<DD>
 Prolog stream being processed. May be used in the <CODE>on_begin</CODE>, 
-etc. callbacks from <A NAME="idx:sgmlparse2:10"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>.
+etc. callbacks from <A NAME="idx:sgmlparse2:12"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>.
 <DT><STRONG>dialect</STRONG>(<VAR>-Dialect</VAR>)<DD>
 Return the current dialect used by the parser (<CODE>sgml</CODE>, <CODE>xml</CODE> 
 or <CODE>xmlns</CODE>).
@@ -588,9 +649,9 @@ or <CODE>xmlns</CODE>).
 
 <DT><A NAME="sgml_parse/2"><STRONG>sgml_parse</STRONG>(<VAR>+Parser, 
 +Options</VAR>)</A><DD>
-Parse an X ML file. The parser can operate in two input and two output 
-modes. Output is either a structured term as described with
-<A NAME="idx:loadstructure2:11"></A><B>load_structure/2</B> or 
+Parse an <I>X</I>ML file. The parser can operate in two input and two 
+output modes. Output is either a structured term as described with
+<A NAME="idx:loadstructure2:13"></A><B>load_structure/2</B> or 
 call-backs on predefined events. The first is especially suitable for 
 manipulating not-too-large documents, while the latter provides a 
 primitive means for handling very large documents.
@@ -601,12 +662,12 @@ parser. A full description of the option-list is below.
 <DL>
 <DT><STRONG>document</STRONG>(<VAR>+Term</VAR>)<DD>
 A variable that will be unified with a list describing the content of 
-the document (see <A NAME="idx:loadstructure2:12"></A><B>load_structure/2</B>).
+the document (see <A NAME="idx:loadstructure2:14"></A><B>load_structure/2</B>).
 <DT><STRONG>source</STRONG>(<VAR>+Stream</VAR>)<DD>
 An input stream that is read. Either this option or the
 <CODE>goal(Goal)</CODE> option must be provided.
 <DT><STRONG>goal</STRONG>(<VAR>+Goal</VAR>)<DD>
-<VAR>Goal</VAR> is a callable term. The predicate <A NAME="idx:sgmlparse2:13"></A><A HREF="#sgml_parse/2">sgml_parse/2</A> 
+<VAR>Goal</VAR> is a callable term. The predicate <A NAME="idx:sgmlparse2:15"></A><A HREF="#sgml_parse/2">sgml_parse/2</A> 
 opens an output stream to the parser and invokes <CODE>call(Goal, Stream)</CODE>, 
 where <VAR>Goal</VAR> should write the data to be parsed to <VAR>Stream</VAR>. 
 This option is not compatible to <CODE>parse(element)</CODE>. This 
@@ -680,21 +741,21 @@ handler is called with two arguments:
 
 </DL>
 
-<H4><A NAME="sec:3.5.1">3.5.1 Partial Parsing</A></H4>
+<H4><A NAME="sec:3.6.1">3.6.1 Partial Parsing</A></H4>
 
 <P>In some cases, part of a document needs to be parsed. One option is 
-to use <A NAME="idx:loadstructure2:14"></A><B>load_structure/2</B> or 
+to use <A NAME="idx:loadstructure2:16"></A><B>load_structure/2</B> or 
 one of its variations and extract the desired elements from the returned 
 structure. This is a clean solution, especially on small and 
 medium-sized documents. It however is unsuitable for parsing really big 
 documents. Such documents can only be handled with the call-back output 
 interface realised by the
-<CODE>call(Event, Action)</CODE> option of <A NAME="idx:sgmlparse2:15"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>. 
+<CODE>call(Event, Action)</CODE> option of <A NAME="idx:sgmlparse2:17"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>. 
 Event-driven processing is not very natural in Prolog.
 
 <P>The SGML2PL library allows for a mixed approach. Consider the case 
 where we want to process all descriptions from RDF elements in a 
-document. The code below calls <A NAME="idx:processrdfdescription1:16"></A><B>process_rdf_description/1</B> 
+document. The code below calls <A NAME="idx:processrdfdescription1:18"></A><B>process_rdf_description/1</B> 
 on any element that is directly inside an RDF element.
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -749,11 +810,11 @@ document into memory is then undesirable.
 
 <P>Using the <CODE>parse(element)</CODE> option, we open a file, seek 
 (using
-<A NAME="idx:seek4:17"></A><B>seek/4</B>) to the position of the element 
+<A NAME="idx:seek4:19"></A><B>seek/4</B>) to the position of the element 
 and read the desired element.
 
 <P>The index can be built using the call-back interface of
-<A NAME="idx:sgmlparse2:18"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>. 
+<A NAME="idx:sgmlparse2:20"></A><A HREF="#sgml_parse/2">sgml_parse/2</A>. 
 For example, the following code makes an index of the <CODE>structure.rdf</CODE> 
 file of the OpenDirectory projects:
 
@@ -809,7 +870,7 @@ the entity names and the file is done using a <EM>catalog</EM> file in a
 format compatible to that used by James Clark's SP Parser.
 
 <P>Catalog files can be specified using two primitives: the predicate
-<A NAME="idx:sgmlregistercatalogfile2:19"></A><A HREF="#sgml_register_catalog_file/2">sgml_register_catalog_file/2</A> 
+<A NAME="idx:sgmlregistercatalogfile2:21"></A><A HREF="#sgml_register_catalog_file/2">sgml_register_catalog_file/2</A> 
 or the environment variable
 <CODE>SGML_CATALOG_FILES</CODE> (compatible to the SP package).
 

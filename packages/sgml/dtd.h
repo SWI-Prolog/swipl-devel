@@ -130,6 +130,13 @@ typedef enum
 } dtd_dialect;
 
 
+typedef enum
+{ SP_PRESERVE = 0,			/* Preserve all white-space */
+  SP_DEFAULT,				/* Default space handling */
+  SP_REMOVE,				/* Remove all blank CDATA elements */
+  SP_INHERIT				/* DTD: inherit from environment */
+} dtd_space_mode;
+
 		 /*******************************
 		 *	      ERRORS		*
 		 *******************************/
@@ -278,6 +285,7 @@ typedef struct _dtd_element
 { dtd_symbol	*name;			/* its name */
   dtd_edef	*structure;		/* content structure of the element */
   dtd_attr_list *attributes;		/* defined attributes */
+  dtd_space_mode space_mode;		/* How to handle white-space (SP_*) */
   int		undefined;		/* Only implicitely defined */
   struct _dtd_element *next;		/* in DTD'e element list */
 } dtd_element;

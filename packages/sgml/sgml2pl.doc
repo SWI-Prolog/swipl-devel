@@ -235,6 +235,11 @@ Specify the parsing dialect.  Supported are \const{sgml} (default),
 \const{xml} and \const{xmlns}. See \secref{xml} for details on the
 differences.
 
+    \termitem{space}{+SpaceMode}
+Sets the `space-handling-mode' for the initial environment.  This mode
+is inherited by the other environments and subject to the XML reserved
+tag \elem{xml:space}.  See \secref{space}.
+
     \termitem{file}{+Name}
 Sets the name of the file on which errors are reported. Sets the
 linenumber to 1.
@@ -251,6 +256,38 @@ exception of the format below is raised.  The default is 50.
 \end{quote}
 \end{description}
 \end{description}
+
+
+\subsection{Handling white-space}		\label{sec:space}
+
+SGPL2PL has three modes for handling white-space.  The initial mode can
+be switched using the \term{space}{SpaceMode} option to load_structure/3
+and set_sgml_parser/2.  In XML mode, the mode is further controlled by
+the \elem{xml:space} attribute, which may be specified both in the DTD
+as in the document.  The defined modes are:
+
+\begin{description}
+    \termitem{space}{preserve}
+White space is passed literally to the application.  This is the default
+mode.  This mode leaves all white space handling to the application.
+    \termitem{space}{default}
+All consequtive white-space is reduced to a single space-character. This
+mode canonises all white space.
+    \termitem{space}{remove}
+In addition to \const{default}, all leading and trailing white-space is
+removed from \const{CDATA} objects. If, as a result, if the
+\const{CDATA} becomes empty, nothing is passed to the application. This
+mode is especially handy for processing `data-oriented' documents, such
+as RDF. It is not suitable for normal text documents. Consider the HTML
+statement below. When processed in this mode, the spaces between the
+three modified words are lost. This mode is, unlike the two others, not
+part of the XML standard.
+
+\begin{code}
+Consider adjecent <b>bold</b> <ul>and</ul> <it>italic</it> words.
+\end{code}
+\end{description}
+
 
 \subsection{XML documents}			\label{sec:xml}
 
@@ -282,8 +319,18 @@ reserved names (i.e. \const{ELEMENT}, etc.).
     \item [Character classes]
 In XML mode, underscores (\verb$_$) and colon (\verb$:$) are allowed in
 names.
-\end{itemlist}
+    \item [White-space handling]
+In addition to setting white-space handling at the toplevel the XML
+reserved attribute \elem{xml:space} is honoured.  It may appear both
+in the document as the DTD.  The \const{remove} extension is honoured
+as \elem{xml:space} value.  For example, the DTD statement below ensures
+that the \elem{pre} element preserves space, regardless of the default
+processing mode.
 
+\begin{code}
+<!ATTLIST pre xml:space nmtoken #fixed preserve>
+\end{code}
+\end{itemlist}
 
 \subsubsection{XML Namespaces}			\label{sec:xmlns}
 

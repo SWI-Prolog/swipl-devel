@@ -37,6 +37,9 @@ static int		process_chars(dtd_parser *p, const ichar *name, const ichar *s);
 static dtd_parser *	clone_dtd_parser(dtd_parser *p);
 static void		free_model(dtd_model *m);
 static int		process_entity_declaraction(dtd *dtd, const ichar *decl);
+static dtd_space_mode	istr_to_space_mode(const ichar *val);
+static void		update_space_mode(dtd_parser *p, dtd_element *e,
+					  int natts, sgml_attribute *atts);
 
 void			putchar_dtd_parser(dtd_parser *p, int chr);
 int			load_dtd_from_file(dtd_parser *p, const char *file);
@@ -347,6 +350,7 @@ find_element(dtd *dtd, dtd_symbol *id)
     return id->element;			/* must check */
 
   e = calloc(1, sizeof(*e));
+  e->space_mode = SP_INHERIT;
   e->name = id;
   id->element = e;
   
@@ -1085,7 +1089,7 @@ process_element_declaraction(dtd *dtd, const ichar *decl)
   def->references = en;			/* for GC */
 
 
-					/* omitted tag declarations (optional) */
+					/* omitted tag declarations (opt) */
   if ( (s = isee_identifier(dtd, decl, "-")) )
   { def->omit_close = FALSE;
     goto seeclose;
@@ -1154,6 +1158,33 @@ add_name_list(dtd_name_list **nl, dtd_symbol *s)
 
 
 static void
+set_element_properties(dtd_element *e, dtd_attr *a)
+{ if ( istreq(a->name->name, "xml:space") )
+  { switch(a->def)
+    { case AT_FIXED:
+      case AT_DEFAULT:
+	break;
+      default:
+	return;
+    }
+
+    switch (a->type )
+    { case AT_NAMEOF:
+      case AT_NAME:
+      case AT_NMTOKEN:
+	e->space_mode = istr_to_space_mode(a->att_def.name->name);
+	break;
+      case AT_CDATA:
+	e->space_mode = istr_to_space_mode((ichar *)a->att_def.cdata);
+	break;
+      default:
+	break;
+    }
+  }
+}
+
+
+static void
 add_attribute(dtd *dtd, dtd_element *e, dtd_attr *a)
 { dtd_attr_list **l;
   dtd_attr_list *n;
@@ -1164,6 +1195,9 @@ add_attribute(dtd *dtd, dtd_element *e, dtd_attr *a)
       free_attribute((*l)->attribute);
       (*l)->attribute = a;
       a->references++;
+
+      set_element_properties(e, a);
+
       return;
     }
   }
@@ -1173,6 +1207,7 @@ add_attribute(dtd *dtd, dtd_element *e, dtd_attr *a)
   n->attribute = a;
   a->references++;
   *l = n;
+  set_element_properties(e, a);
 }
 
 
@@ -1405,6 +1440,8 @@ push_element(dtd_parser *p, dtd_element *e, int callback)
     make_state_engine(e);
     env->element = e;
     env->state = make_state_engine(e);
+    env->space_mode = (p->environments ? p->environments->space_mode
+				       : p->space_mode);
     env->parent = p->environments;
     p->environments = env;
     if ( callback && p->on_begin_element )
@@ -1553,6 +1590,7 @@ open_element(dtd_parser *p, dtd_element *e)
   }
 
   push_element(p, e, FALSE);
+
   return TRUE;
 }
 
@@ -1782,6 +1820,8 @@ process_begin_element(dtd_parser *p, const ichar *decl)
       if ( dtd->dialect == DL_XMLNS )
 	update_xmlns(p, e, natts, atts);
 #endif
+      if ( dtd->dialect != DL_SGML )
+	update_space_mode(p, e, natts, atts);
     }
     if ( *decl )
       gripe(ERC_SYNTAX_ERROR, "Bad attribute list", decl);
@@ -2037,6 +2077,7 @@ new_dtd_parser(dtd *dtd)
   p->state	= S_PCDATA;
   p->mark_state	= MS_INCLUDE;
   p->dmode      = DM_DTD;
+  p->space_mode = SP_PRESERVE;
   p->encoding	= ENC_ISO_LATIN1;
   p->buffer	= new_icharbuf();
   p->cdata	= new_ocharbuf();
@@ -2185,30 +2226,122 @@ pop_marked_section(dtd_parser *p)
 } 
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Update the space-mode for the current element.  The space mode defines
+how spaces are handled in the CDATA output.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static dtd_space_mode
+istr_to_space_mode(const ichar *val)
+{ if ( istreq(val, "default") )
+    return SP_DEFAULT;
+  if ( istreq(val, "preserve") )
+    return SP_PRESERVE;
+  if ( istreq(val, "remove") )
+    return SP_REMOVE;
+
+  return SP_INHERIT;			/* interpret as error */
+}
+
+
+static void
+update_space_mode(dtd_parser *p, dtd_element *e,
+		  int natts, sgml_attribute *atts)
+{ for( ; natts-- > 0; atts++ )
+  { const ichar *name = atts->definition->name->name;
+
+    if ( istreq(name, "xml:space") && atts->definition->type == AT_CDATA )
+    { dtd_space_mode m = istr_to_space_mode(atts->value.cdata);
+
+      if ( m != SP_INHERIT )
+	p->environments->space_mode = m;
+      else
+	gripe(ERC_EXISTENCE, "xml:space-mode", atts->value.cdata);
+
+      return;
+    }
+  }
+
+  if ( e->space_mode != SP_INHERIT )
+    p->environments->space_mode = e->space_mode;
+}
+
+
 static int
 process_cdata(dtd_parser *p)
-{ if ( p->cdata->size == 0 )
-    return TRUE;
-
-  terminate_ocharbuf(p->cdata);
+{ terminate_ocharbuf(p->cdata);
 
   if ( p->mark_state == MS_INCLUDE )
   { dtd *dtd = p->dtd;
-    const ichar *s, *data = p->cdata->data;
-    int len = p->cdata->size;
+    ichar *s, *data = p->cdata->data;
     int blank = TRUE;
 
-    for(s=data; *s; s++)
-    { if ( !HasClass(dtd, *s, CH_BLANK) )
-      { blank = FALSE;
-	break;
+    if ( p->environments )
+    { switch(p->environments->space_mode)
+      { case SP_PRESERVE:
+	preserve:
+	  for(s=data; *s; s++)
+	  { if ( !HasClass(dtd, *s, CH_BLANK) )
+	    { blank = FALSE;
+	      break;
+	    }
+	  }   
+	  break;
+	case SP_DEFAULT:		/* map multiple blanks to a single */
+	{ ichar *o = data;
+
+	  for(s=data; *s; s++)
+	  { if ( HasClass(dtd, *s, CH_BLANK) )
+	    { while(s[1] && HasClass(dtd, s[1], CH_BLANK))
+		s++;
+	      *o++ = ' ';
+	      continue;
+	    }
+	    blank = FALSE;
+	    *o++ = *s;
+	  }
+	  *o = '\0';
+	  p->cdata->size = o-data;
+	  break;
+	}
+	case SP_REMOVE:
+	{ ichar *o = data;
+	  ichar *end = data;
+
+	  for(s=data; *s && HasClass(dtd, *s, CH_BLANK); s++)
+	    ;
+	  if ( *s )
+	  { blank = FALSE;
+
+	    for(; *s; s++)
+	    { if ( HasClass(dtd, *s, CH_BLANK) )
+	      { while(s[1] && HasClass(dtd, s[1], CH_BLANK))
+		  s++;
+		*o++ = ' ';
+		continue;
+	      }
+	      *o++ = *s;
+	      end = o;
+	    }
+	  }
+	  *end = '\0';
+	  p->cdata->size = end-data;
+	  break;
+	}
+	case SP_INHERIT:
+	  assert(0);
+	  return FALSE;
       }
-    }   
+    } else
+      goto preserve;
+
+    if ( p->cdata->size == 0 )
+      return TRUE;
 
     if ( !blank )
     { open_element(p, CDATA_ELEMENT);
       if ( p->on_cdata )
-	(*p->on_cdata)(p, len, data);
+	(*p->on_cdata)(p, p->cdata->size, data);
     } else if ( p->environments )
     { sgml_environment *env = p->environments;
       dtd_state *new;
@@ -2216,7 +2349,7 @@ process_cdata(dtd_parser *p)
       if ( (new=make_dtd_transition(env->state, CDATA_ELEMENT)) )
       { env->state = new;
 	if ( p->on_cdata )
-	  (*p->on_cdata)(p, len, data);
+	  (*p->on_cdata)(p, p->cdata->size, data);
       }
     }
   }
