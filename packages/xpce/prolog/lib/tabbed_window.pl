@@ -97,6 +97,13 @@ member(W, Name:name, Window:window) :<-
 	get(TS, member, Name, Tab),
 	get(Tab, window, Window).
 
+members(W, Windows:chain) :<-
+	"New chain with member windows"::
+	new(Windows, chain),
+	get_super(W, member, tab_stack, TS),
+	send(TS?graphicals, for_all,
+	     message(Windows, append, @arg1?window)).
+	
 clear(W) :->
 	"Remove all member tabs"::
 	get_super(W, member, tab_stack, TS),
