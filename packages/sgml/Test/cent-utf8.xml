@@ -1,0 +1,19 @@
+<!DOCTYPE testdoc [
+<!--* test swi: check to see how SWI handles non-ASCII characters
+    * in Unicode.  Named entities, numeric character references,
+    * and native UTF8 may all be different. 
+    *-->
+<!ENTITY ntilde  "&#241;" ><!-- small n, tilde -->
+<!ENTITY lsquo  "&#x2018;" ><!--=single quotation mark, left-->
+<!ENTITY rsquo  "&#8217;" ><!-- = x2019 single quotation mark, right-->
+<!ENTITY townname "Espa&ntilde;ola">
+<!ENTITY townnum "Espa&#241;ola">
+<!ENTITY scarequote1 "a &lsquo;test&rsquo; for you">
+<!ENTITY scarequote2 "a &#x2018;test&#x2019; for you">
+]>
+<testdoc id="t7-20020923" resp="MSM">
+<names>From Espa&ntilde;ola -- a &lsquo;test&rsquo; for you.</names>
+<nums>From Espa&#241;ola -- a &#x2018;test&#x2019; for you.</nums>
+<names>From &townname; -- &scarequote1;.</names>
+<nums>From &townname; -- &scarequote2;.</nums>
+</testdoc>
