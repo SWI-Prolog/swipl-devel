@@ -181,7 +181,7 @@ controlling terminal.
 
 \section{Socket library}
 
-The \pllib(socket) library provides TCP inet-domain sockets from
+The \pllib{socket} library provides TCP inet-domain sockets from
 SWI-Prolog, both client and server-side communication. The interface of
 this library is very close to the Unix socket interface, also supported
 by the MS-Windows {\em winsock} API.  Since SWI-Prolog 4.0, XPCE is part
