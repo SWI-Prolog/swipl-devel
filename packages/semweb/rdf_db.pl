@@ -34,6 +34,7 @@
 	    rdf_load/1,			% +File
 	    rdf_save/1,			% +File
 	    rdf_save/2,			% +File, +DB
+	    rdf_unload/1,		% +File
 
 	    rdf_source/1,		% ?File
 	    rdf_make/0,			% Reload modified databases
@@ -412,6 +413,23 @@ rdf_load(Spec) :-
 	;   true
 	).
 
+
+%	rdf_unload(+Spec)
+%	
+%	Remove the triples loaded from the specified source and remove
+%	the source from the database.
+
+rdf_unload(Spec) :-
+	(   Spec = '$stream'(_)
+	->  throw(error(permission_error(rdf_db, unload, Spec), _))
+	;   absolute_file_name(Spec,
+			       [ access(read),
+				 extensions([rdf,rdfs,owl,''])
+			       ], File),
+	    rdf_retractall(_,_,_,File:_),
+	    retractall(rdf_source(File, _))
+	).
+	
 
 %	rdf_source(?Source)
 %	

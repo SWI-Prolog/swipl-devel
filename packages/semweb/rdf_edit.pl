@@ -204,6 +204,7 @@ rdfe_load(File) :-
 	size_file(File, Size),
 	time_file(File, Modified),
 	SecTime is round(Modified),
+	assert_action(TID, load_file(Path), -, -, -),
 	journal(rdf_load(TID,
 			 Path,
 			 [ pwd(PWD),
@@ -211,6 +212,11 @@ rdfe_load(File) :-
 			   modified(SecTime),
 			   triples(Loaded)
 			 ])).
+
+rdfe_unload(Path) :-
+	rdf_unload(Path),
+	assert_action(TID, unload_file(Path), -, -, -),
+	journal(rdf_unload(TID, Path)).
 
 
 		 /*******************************
@@ -386,6 +392,10 @@ undo(ns(Action), -, -, -) :- !,
 	;   Action = unregister(Id, URI)
 	->  rdfe_register_ns(Id, URI)
 	).
+undo(load_file(Path), -, -, -) :- !,
+	rdfe_unload(Path).
+undo(unload_file(Path), -, -, -) :- !,
+	rdfe_load(Path).
 undo(Action, Subject, Predicate, Object) :-
 	action(Action), !,
 	rdfe_update(Subject, Predicate, Object, Action).

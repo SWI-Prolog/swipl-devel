@@ -287,6 +287,10 @@ described below.  Caching is activated by creating a directory
 the \fileext{rdf} files.  Cached RDF files are loaded at approx.\
 25 times the speed of RDF-XML files.
 
+    \predicate{rdf_unload}{1}{+Spec}
+Remove all triples loaded from \arg{Spec}. In the current implementation
+\arg{Spec} must refer to a file.
+
     \predicate{rdf_save}{1}{+File}
 Save all known triples to the given \arg{File}.
 
