@@ -225,10 +225,8 @@ do_intercept(cut_exit(PC), Frame, CHP, Action) :-
 
 show(StartFrame, CHP, Up, exception(Except)) :- !,
 	show(StartFrame, CHP, Up, exception, exception),
-	\+ \+ (numbervars(Except, '$VAR', 0, _),
-	       term_to_atom(Except, Atom),
-	       send_tracer(report(warning, 'Exception: %s', Atom))
-	      ).
+	message_to_string(Except, Message),
+	send_tracer(report(warning, 'Exception: %s', Message)).
 show(StartFrame, CHP, Up, Port) :-
 	prolog_frame_attribute(StartFrame, goal, Goal),
 	predicate_name(user:Goal, Pred),
