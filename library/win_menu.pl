@@ -126,7 +126,11 @@ insert_associated_file :-
 insert_associated_file.
 
 
-:- initialization init_win_menus.
+:- initialization
+   (   win_has_menu
+   ->  init_win_menus
+   ;   true
+   ).
 
 		 /*******************************
 		 *	      ACTIONS		*

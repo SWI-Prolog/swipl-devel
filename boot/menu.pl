@@ -30,7 +30,8 @@
 */
 
 :- module($win_menu,
-	  [ win_insert_menu_item/4	% +PopupName, +Item, +Before, :Goal
+	  [ win_insert_menu_item/4,	% +PopupName, +Item, +Before, :Goal
+	    win_has_menu/0		% Test whether we have menus
 	  ]).
 
 :- module_transparent
@@ -46,6 +47,13 @@ prolog:on_menu(Label) :-
 	menu_action(Label, Action),
 	catch(Action, Error,
 	      print_message(error, Error)).
+
+%	win_has_menu
+%	
+%	Test whether the system provides the menu interface
+
+win_has_menu :-
+	current_predicate(_, $win_insert_menu_item(_, _, _)).
 
 %	win_insert_menu_item(+Popup, +Item, +Before, :Goal)
 %
