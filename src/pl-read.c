@@ -884,6 +884,46 @@ typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
 
 static int
+scan_decimal(cucharp *sp, Number n)
+{ unsigned long maxi = PLMAXINT/10;	/* cache? */
+  unsigned long t = 0;
+  cucharp s = *sp;
+  int c;
+
+  for(c = *s; isDigit(c); c = *++s)
+  { if ( t > maxi )
+    { real maxf = MAXREAL / (real) 10 - (real) 10;
+      real tf = (real)t;
+
+      tf = tf * (real)10 + (real)(c - '0');
+      for(c = *s; isDigit(c); c = *++s)
+      { if ( tf > maxf )
+	  fail;				/* number too large */
+        tf = tf * (real)10 + (real)(c - '0');
+      }
+      *sp = s;
+      n->value.f = tf;
+      n->type = V_REAL;
+      succeed;
+    } else
+      t = t * 10 + c - '0';
+  }  
+
+  *sp = s;
+
+  if ( t > PLMAXINT )
+  { n->value.f = (real)t;
+    n->type = V_REAL;
+    succeed;
+  }
+
+  n->value.i = t;
+  n->type = V_INTEGER;
+  succeed;
+}
+
+
+static int
 scan_number(cucharp *s, int b, Number n)
 { int d;
   unsigned long maxi = PLMAXINT/b;	/* cache? */
@@ -1059,7 +1099,7 @@ get_number(cucharp in, ucharp *end, Number value)
     }
   }
 
-  if ( !isDigit(*in) || !scan_number(&in, 10, value) )
+  if ( !isDigit(*in) || !scan_decimal(&in, value) )
     fail;				/* too large? */
 
 					/* base'value number */
@@ -1118,7 +1158,7 @@ get_number(cucharp in, ucharp *end, Number value)
         break;
     }
 
-    if ( !scan_number(&in, 10, &exponent) || !intNumber(&exponent) )
+    if ( !scan_decimal(&in, &exponent) || !intNumber(&exponent) )
       fail;				/* too large exponent */
 
     if ( intNumber(value) )
@@ -2170,19 +2210,16 @@ pl_read(term_t term)
 }
 
 
-word
-pl_read_clause2(term_t from, term_t term)
-{ GET_LD
-  read_data rd;
+/* read_clause([+Stream, ]-Clause) */
+
+int
+read_clause(IOSTREAM *s, term_t term ARG_LD)
+{ read_data rd;
   int rval;
-  IOSTREAM *s;
   mark m;
 
 retry:
   Mark(m);
-
-  if ( !getInputStream(from, &s) )
-    fail;
 
   init_read_data(&rd, s PASS_LD);
   rd.on_error = ATOM_dec10;
@@ -2195,15 +2232,42 @@ retry:
     }
   }
   free_read_data(&rd);
-  PL_release_stream(s);
 
   return rval;
 }
 
-word
-pl_read_clause(term_t term)
-{ return pl_read_clause2(0, term);
+
+static
+PRED_IMPL("read_clause", 2, read_clause, 0)
+{ PRED_LD
+  int rval;
+
+  switch( CTX_ARITY )
+  { case 1:
+    { IOSTREAM *s;
+
+      if ( !getInputStream(0, &s) )	/* Scurin */
+	fail;
+      rval = read_clause(s, A1 PASS_LD);
+      PL_release_stream(s);
+
+      return rval;
+    }
+    case 2:
+    { IOSTREAM *s;
+
+      if ( !getInputStream(A1, &s) )
+	fail;
+      rval = read_clause(s, A2 PASS_LD);
+      PL_release_stream(s);
+
+      return rval;
+    }
+  }
+  assert(0);
+  fail;
 }
+
 
 static const opt_spec read_term_options[] = 
 { { ATOM_variable_names,    OPT_TERM },
@@ -2368,3 +2432,12 @@ PL_chars_to_term(const char *s, term_t t)
 
   return rval;
 }
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(read)
+  PRED_DEF("read_clause", 1, read_clause, 0)
+  PRED_DEF("read_clause", 2, read_clause, 0)
+EndPredDefs

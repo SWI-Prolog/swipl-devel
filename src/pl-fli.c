@@ -491,9 +491,8 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 
 
 void
-PL_cons_list(term_t l, term_t head, term_t tail)
-{ GET_LD
-  Word a = allocGlobal(3);
+PL_cons_list__LD(term_t l, term_t head, term_t tail ARG_LD)
+{ Word a = allocGlobal(3);
   
   a[0] = FUNCTOR_dot2;
   bindConsVal(&a[1], valHandleP(head) PASS_LD);
@@ -501,6 +500,16 @@ PL_cons_list(term_t l, term_t head, term_t tail)
 
   setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
 }
+
+
+#undef PL_cons_list
+void
+PL_cons_list(term_t l, term_t head, term_t tail)
+{ GET_LD
+  PL_cons_list__LD(l, head, tail PASS_LD);
+}
+#define PL_cons_list(l, h, t) PL_cons_list__LD(l, h, t PASS_LD)
+
 
 		 /*******************************
 		 *     POINTER <-> PROLOG INT	*
@@ -1079,24 +1088,6 @@ PL_get_name_arity(term_t t, atom_t *name, int *arity)
 }
 
 
-					/* only on compound */
-int
-_PL_get_name_arity(term_t t, atom_t *name, int *arity)
-{ GET_LD
-  word w = valHandle(t);
-
-  if ( isTerm(w) )
-  { FunctorDef fd = valueFunctor(functorTerm(w));
-
-    *name =  fd->name;
-    *arity = fd->arity;
-    succeed;
-  }
-
-  fail;
-}
-
-
 int
 PL_get_functor__LD(term_t t, functor_t *f ARG_LD)
 { word w = valHandle(t);
@@ -1181,9 +1172,8 @@ PL_get_arg(int index, term_t t, term_t a)
 
 
 int
-PL_get_list(term_t l, term_t h, term_t t)
-{ GET_LD
-  word w = valHandle(l);
+PL_get_list__LD(term_t l, term_t h, term_t t ARG_LD)
+{ word w = valHandle(l);
 
   if ( isList(w) )
   { Word a = argTermP(w, 0);
@@ -1196,6 +1186,15 @@ PL_get_list(term_t l, term_t h, term_t t)
 
   fail;
 }
+
+
+#undef PL_get_list
+int
+PL_get_list(term_t l, term_t h, term_t t)
+{ GET_LD
+  return PL_get_list__LD(l, h, t PASS_LD);
+}
+#define PL_get_list(l, h, t) PL_get_list__LD(l, h, t PASS_LD)
 
 
 int
@@ -1307,12 +1306,22 @@ PL_is_variable(term_t t)
 
 
 int
+PL_is_atom__LD(term_t t ARG_LD)
+{ word w = valHandle(t);
+
+  return isAtom(w) ? TRUE : FALSE;
+}
+
+
+#undef PL_is_atom
+int
 PL_is_atom(term_t t)
 { GET_LD
   word w = valHandle(t);
 
   return isAtom(w) ? TRUE : FALSE;
 }
+#define PL_is_atom(t) PL_is_atom__LD(t PASS_LD)
 
 
 int
@@ -1906,9 +1915,8 @@ PL_unify_arg(int index, term_t t, term_t a)
 
 
 int
-PL_unify_list(term_t l, term_t h, term_t t)
-{ GET_LD
-  Word p = valHandleP(l);
+PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
+{ Word p = valHandleP(l);
 
   deRef(p);
 
@@ -1945,6 +1953,16 @@ PL_unify_list(term_t l, term_t h, term_t t)
 
   succeed;
 }
+
+
+#undef PL_unify_list
+int
+PL_unify_list(term_t l, term_t h, term_t t)
+{ GET_LD
+
+  return PL_unify_list__LD(l, h, t PASS_LD);
+}
+#define PL_unify_list(l, h, t) PL_unify_list__LD(l, h, t PASS_LD)
 
 
 int
@@ -2921,7 +2939,9 @@ PL_dispatch(int fd, int wait)
 
 record_t
 PL_record(term_t t)
-{ return compileTermToHeap(t, R_DUPLICATE);
+{ GET_LD
+
+  return compileTermToHeap(t, R_DUPLICATE);
 }
 
 
@@ -2935,7 +2955,9 @@ PL_recorded(record_t r, term_t t)
 
 void
 PL_erase(record_t r)
-{ freeRecord(r);
+{ GET_LD
+
+  freeRecord(r);
 }
 
 

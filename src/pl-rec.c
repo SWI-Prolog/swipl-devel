@@ -411,9 +411,8 @@ right_recursion:
 
 
 Record
-compileTermToHeap(term_t t, int flags)
-{ GET_LD
-  compile_info info;
+compileTermToHeap__LD(term_t t, int flags ARG_LD)
+{ compile_info info;
   Record record;
   Word *p;
   int n, size;
@@ -1136,9 +1135,8 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
 
 
 bool
-freeRecord(Record record)
-{ GET_LD
-  if ( true(record, R_DUPLICATE) && --record->references > 0 )
+freeRecord__LD(Record record ARG_LD)
+{ if ( true(record, R_DUPLICATE) && --record->references > 0 )
     succeed;
 
 #ifdef O_ATOMGC

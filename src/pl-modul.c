@@ -25,6 +25,8 @@
 #include "pl-incl.h"
 #define LOCK()   PL_LOCK(L_MODULE)
 #define UNLOCK() PL_UNLOCK(L_MODULE)
+#undef LD
+#define LD LOCAL_LD
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Definition of modules.  A module consists of a  set  of  predicates.   A
@@ -47,7 +49,9 @@ _lookupModule(atom_t name)
   if ((s = lookupHTable(GD->tables.modules, (void*)name)) != (Symbol) NULL)
     return (Module) s->value;
 
-  m = allocHeap(sizeof(struct module));
+  { GET_LD
+    m = allocHeap(sizeof(struct module));
+  }
   m->name = name;
   m->file = (SourceFile) NULL;
   m->operators = NULL;
@@ -138,10 +142,7 @@ remaining term.
 
 Word
 stripModule(Word term, Module *module ARG_LD)
-{
-#undef LD
-#define LD LOCAL_LD
-  deRef(term);
+{ deRef(term);
 
   while( hasFunctor(*term, FUNCTOR_colon2) )
   { Word mp;
@@ -159,8 +160,6 @@ stripModule(Word term, Module *module ARG_LD)
 	       			 : MODULE_user);
 
   return term;
-#undef LD
-#define LD GLOBAL_LD
 }
 
 bool
@@ -179,7 +178,8 @@ isPublicModule(Module module, Procedure proc)
 
 word
 pl_default_module(term_t me, term_t old, term_t new)
-{ Module m, s;
+{ GET_LD
+  Module m, s;
   atom_t a;
 
   if ( PL_is_variable(me) )
@@ -204,7 +204,8 @@ pl_default_module(term_t me, term_t old, term_t new)
 
 word
 pl_current_module(term_t module, term_t file, control_t h)
-{ TableEnum e = NULL;
+{ GET_LD
+  TableEnum e = NULL;
   Symbol symb;
   atom_t name;
 
@@ -273,7 +274,8 @@ pl_current_module(term_t module, term_t file, control_t h)
 
 word
 pl_strip_module(term_t spec, term_t module, term_t term)
-{ Module m = (Module) NULL;
+{ GET_LD
+  Module m = (Module) NULL;
   term_t plain = PL_new_term_ref();
 
   PL_strip_module(spec, &m, plain);
@@ -287,7 +289,9 @@ pl_strip_module(term_t spec, term_t module, term_t term)
 
 word
 pl_module(term_t old, term_t new)
-{ if ( PL_unify_atom(old, LD->modules.typein->name) )
+{ GET_LD
+
+  if ( PL_unify_atom(old, LD->modules.typein->name) )
   { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
@@ -303,7 +307,9 @@ pl_module(term_t old, term_t new)
 
 word
 pl_set_source_module(term_t old, term_t new)
-{ if ( PL_unify_atom(old, LD->modules.source->name) )
+{ GET_LD
+
+  if ( PL_unify_atom(old, LD->modules.source->name) )
   { atom_t name;
 
     if ( !PL_get_atom(new, &name) )
@@ -352,7 +358,7 @@ that has no clauses. The predicate would fail anyhow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static word
-expansion_module(term_t name, functor_t func, control_t h)
+expansion_module(term_t name, functor_t func, control_t h ARG_LD)
 { Module m;
   Procedure proc;
 
@@ -386,15 +392,23 @@ expansion_module(term_t name, functor_t func, control_t h)
 }
 
 
-word
-pl_term_expansion_module(term_t name, control_t h)
-{ return expansion_module(name, FUNCTOR_term_expansion2, h);
+static
+PRED_IMPL("$term_expansion_module", 1, term_expansion_module,
+	  PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+
+  return expansion_module(A1, FUNCTOR_term_expansion2,
+			  PL__ctx PASS_LD);
 }
 
 
-word
-pl_goal_expansion_module(term_t name, control_t h)
-{ return expansion_module(name, FUNCTOR_goal_expansion2, h);
+static
+PRED_IMPL("$goal_expansion_module", 1, goal_expansion_module,
+	  PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+
+  return expansion_module(A1, FUNCTOR_goal_expansion2,
+			  PL__ctx PASS_LD);
 }
 
 
@@ -406,7 +420,8 @@ in it are abolished.
 
 int
 declareModule(atom_t name, SourceFile sf)
-{ Module module;
+{ GET_LD
+  Module module;
 
   module = lookupModule(name);
   LOCK();
@@ -439,9 +454,9 @@ pl_declare_module(term_t name, term_t file)
 { SourceFile sf;
   atom_t mname, fname;
 
-  if ( !PL_get_atom(name, &mname) ||
-       !PL_get_atom(file, &fname) )
-    return warning("$declare_module/2: instantiation fault");
+  if ( !PL_get_atom_ex(name, &mname) ||
+       !PL_get_atom_ex(file, &fname) )
+    fail;
 
   sf = lookupSourceFile(fname);
   return declareModule(mname, sf);
@@ -456,13 +471,15 @@ pl_export_list(term_t modulename, term_t public)
 { Module module;
   atom_t mname;
 
-  if ( !PL_get_atom(modulename, &mname) )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module, modulename);
+  if ( !PL_get_atom_ex(modulename, &mname) )
+    fail;
   
   if ( !(module = isCurrentModule(mname)) )
     fail;
   
-  { term_t head = PL_new_term_ref();
+  { GET_LD
+
+    term_t head = PL_new_term_ref();
     term_t list = PL_copy_term_ref(public);
     int rval = TRUE;
 
@@ -490,7 +507,8 @@ context module.
 
 word
 pl_export(term_t pred)
-{ Module module = NULL;
+{ GET_LD
+  Module module = NULL;
   term_t head = PL_new_term_ref();
   functor_t fd;
 
@@ -516,7 +534,8 @@ pl_export(term_t pred)
 
 word
 pl_check_export()
-{ Module module = contextModule(environment_frame);
+{ GET_LD
+  Module module = contextModule(environment_frame);
 
   for_table(module->public, s,
 	    { Procedure proc = (Procedure) s->value;
@@ -536,7 +555,8 @@ pl_check_export()
 
 word
 pl_context_module(term_t module)
-{ return PL_unify_atom(module, contextModule(environment_frame)->name);
+{ GET_LD
+  return PL_unify_atom(module, contextModule(environment_frame)->name);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -579,7 +599,8 @@ fixExport(Definition old, Definition new)
 
 word
 pl_import(term_t pred)
-{ Module source = NULL;
+{ GET_LD
+  Module source = NULL;
   Module destination = contextModule(environment_frame);
   term_t head = PL_new_term_ref();
   functor_t fd;
@@ -648,4 +669,13 @@ pl_import(term_t pred)
   succeed;
 }
 
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
 
+BeginPredDefs(module)
+  PRED_DEF("$term_expansion_module", 1, term_expansion_module,
+	   PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$goal_expansion_module", 1, goal_expansion_module,
+	   PL_FA_NONDETERMINISTIC)
+EndPredDefs

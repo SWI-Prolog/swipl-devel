@@ -489,7 +489,6 @@ __pl_export PL_atomic_t	_PL_get_atomic(term_t t);
 __pl_export void	_PL_put_atomic(term_t t, PL_atomic_t a);
 __pl_export int		_PL_unify_atomic(term_t t, PL_atomic_t a);
 __pl_export void	_PL_copy_atomic(term_t t, PL_atomic_t a);
-	    int		_PL_get_name_arity(term_t t, atom_t *name, int *arity);
 __pl_export void	_PL_get_arg(int index, term_t t, term_t a);
 
 

@@ -72,9 +72,10 @@ pl_number(term_t k)
 { return PL_is_number(k);
 }
 
-word
-pl_atom(term_t k)
-{ return PL_is_atom(k);
+static
+PRED_IMPL("atom", 1, atom, 0)
+{ PRED_LD
+  return PL_is_atom(A1);
 }
 
 static
@@ -114,9 +115,10 @@ pl_compound(term_t k)
 }
 
 
-word
-pl_callable(term_t k)
-{ if ( PL_is_atom(k) || PL_is_compound(k) )
+static
+PRED_IMPL("callable", 1, callable, 0)
+{ PRED_LD
+  if ( PL_is_atom(A1) || PL_is_compound(A1) )
     succeed;
 
   fail;
@@ -636,15 +638,19 @@ PRED_IMPL("functor", 3, functor, 0)
 { PRED_LD
   int arity;
   atom_t name;
+  Word p = valTermRef(A1);
   
-  if ( PL_get_name_arity(A1, &name, &arity) )
-  { if ( !PL_unify_atom(A2, name) ||
-	 !PL_unify_integer(A3, arity) )
+  deRef(p);
+
+  if ( isTerm(*p) )
+  { FunctorDef fd = valueFunctor(functorTerm(*p));
+    if ( !PL_unify_atom(A2, fd->name) ||
+	 !PL_unify_integer(A3, fd->arity) )
       fail;
 
     succeed;
   }
-  if ( PL_is_atomic(A1) )
+  if ( isAtomic(*p) )
   { if ( !PL_unify(A2, A1) ||
 	 !PL_unify_integer(A3, 0) )
       fail;
@@ -888,20 +894,37 @@ pl_univ(term_t t, term_t list)
 
 static int
 do_number_vars(term_t t, functor_t functor, int n ARG_LD)
-{ atom_t name;
-  int arity;
+{ Word p;
 
 start:
-  if ( PL_is_variable(t) )
-  { term_t tmp = PL_new_term_ref();
+  p = valTermRef(t);
+  deRef(p);
 
-    PL_unify_functor(t, functor);
-    PL_put_integer(tmp, n);
-    PL_unify_arg(1, t, tmp);
+  if ( isVar(*p) )
+  { Word a;
 
+#ifdef O_SHIFT_STACKS
+    if ( roomStack(global) < 2 * sizeof(word) )
+    { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
+      p = valTermRef(t);
+      deRef(p);
+    }
+#else
+    requireStack(global, sizeof(word)*(2));
+#endif
+    
+    a = gTop;
+    a[0] = functor;
+    a[1] = makeNum(n);
+    gTop += 2;
+    *p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+    Trail(p);
+    
     n++;
-  } else if ( _PL_get_name_arity(t, &name, &arity) )
-  { if ( arity == 1 )
+  } else if ( isTerm(*p) )
+  { int arity = arityFunctor(functorTerm(*p));
+
+    if ( arity == 1 )
     { _PL_get_arg(1, t, t);
       goto start;
     } else
@@ -2802,7 +2825,9 @@ BeginPredDefs(prims)
   PRED_DEF("var", 1, var, 0)
   PRED_DEF("arg", 3, arg, PL_FA_NONDETERMINISTIC)
   PRED_DEF("atomic", 1, atomic, 0)
+  PRED_DEF("atom", 1, atom, 0)
   PRED_DEF("ground", 1, ground, 0)
+  PRED_DEF("callable", 1, callable, 0)
   PRED_DEF("==", 2, equal, 0)
   PRED_DEF("\\==", 2, nonequal, 0)
   PRED_DEF("compare", 3, compare, 0)

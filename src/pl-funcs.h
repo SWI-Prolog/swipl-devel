@@ -120,11 +120,6 @@ Clause		compileClause(Word head, Word body,
 			      Procedure proc, Module module ARG_LD);
 Clause		assert_term(term_t term, int where, SourceLoc loc ARG_LD);
 void		unregisterAtomsClause(Clause clause);
-word		pl_assertz(term_t term);
-word		pl_asserta(term_t term);
-word		pl_assertz2(term_t term, term_t ref);
-word		pl_asserta2(term_t term, term_t ref);
-word		pl_record_clause(term_t term, term_t file, term_t ref);
 word		pl_redefine_system_predicate(term_t term);
 bool		decompileHead(Clause clause, term_t head);
 int		arg1Key(Clause clause, word *key);
@@ -364,6 +359,10 @@ void		PL_put_term__LD(term_t t1, term_t t2 ARG_LD);
 int		PL_get_functor__LD(term_t t, functor_t *f ARG_LD);
 int		PL_unify_atom__LD(term_t t, atom_t a ARG_LD);
 int		PL_unify_pointer__LD(term_t t, void *ptr ARG_LD);
+int		PL_get_list__LD(term_t l, term_t h, term_t t ARG_LD);
+int		PL_is_atom__LD(term_t t ARG_LD);
+int		PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD);
+void		PL_cons_list__LD(term_t l, term_t head, term_t tail ARG_LD);
 
 void		registerForeignLicenses(void);
 
@@ -431,8 +430,6 @@ word		pl_current_module(term_t module, term_t file, control_t h);
 word		pl_strip_module(term_t spec, term_t module, term_t term);
 word		pl_module(term_t old, term_t new);
 word		pl_set_source_module(term_t old, term_t new);
-word		pl_term_expansion_module(term_t name, control_t h);
-word		pl_goal_expansion_module(term_t name, control_t h);
 word		pl_declare_module(term_t name, term_t file);
 word		pl_export_list(term_t modulename, term_t list);
 word		pl_export(term_t head);
@@ -506,9 +503,7 @@ word		pl_integer(term_t k);
 word		pl_float(term_t k);
 word		pl_string(term_t k);
 word		pl_number(term_t k);
-word		pl_atom(term_t k);
 word		pl_compound(term_t term);
-word		pl_callable(term_t term);
 word		pl_deterministic(void);
 word		pl_notunify(term_t t1, term_t t2);
 int		compareStandard(Word t1, Word t2 ARG_LD);
@@ -663,22 +658,20 @@ word		pl_raw_read(term_t term);
 word		pl_raw_read2(term_t stream, term_t term);
 word		pl_read(term_t term);
 word		pl_read2(term_t stream, term_t term);
-word		pl_read_clause(term_t term);
-word		pl_read_clause2(term_t stream, term_t term);
 word		pl_read_term(term_t term, term_t pos);
 word		pl_read_term3(term_t stream, term_t term, term_t pos);
 word		pl_atom_to_term(term_t term, term_t atom, term_t bindings);
 void		initCharConversion(void);
 foreign_t	pl_char_conversion(term_t in, term_t out);
 foreign_t	pl_current_char_conversion(term_t in, term_t out, control_t h);
-
+int		read_clause(IOSTREAM *s, term_t term ARG_LD);
 
 /* pl-rec.c */
 void		initRecords(void);
-Record		compileTermToHeap(term_t term, int flags);
+Record		compileTermToHeap__LD(term_t term, int flags ARG_LD);
 void		copyRecordToGlobal(term_t copy, Record term ARG_LD);
 int		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
-bool		freeRecord(Record record);
+bool		freeRecord__LD(Record record ARG_LD);
 bool		unifyKey(term_t key, word val);
 int		getKeyEx(term_t key, word *k ARG_LD);
 word		pl_current_key(term_t k, control_t h);
@@ -709,7 +702,7 @@ int		initPrologStacks(long local,
 void		initPrologLocalData(void);
 void		deallocateStacks(void);
 bool		restoreStack(Stack s);
-void		trimStacks(void);
+void		trimStacks(ARG1_LD);
 void		resetStacks(void);
 void		emptyStacks(void);
 void		freeStacks(PL_local_data_t *ld);

@@ -161,6 +161,8 @@ static void	rehashAtoms();
 
 #define LOCK()   PL_LOCK(L_ATOM)
 #define UNLOCK() PL_UNLOCK(L_ATOM)
+#undef LD
+#define LD LOCAL_LD
 
 		 /*******************************
 		 *      BUILT-IN ATOM TABLE	*
@@ -242,22 +244,25 @@ lookupAtom(const char *s, unsigned int length)
       return a->atom;
     }
   }
-  oldheap = GD->statistics.heap;
-  a = allocHeap(sizeof(struct atom));
-  a->length = length;
-  a->name = allocHeap(length+1);
-  memcpy(a->name, s, length);
-  a->name[length] = EOS;
+
+  { GET_LD
+    oldheap = GD->statistics.heap;
+    a = allocHeap(sizeof(struct atom));
+    a->length = length;
+    a->name = allocHeap(length+1);
+    memcpy(a->name, s, length);
+    a->name[length] = EOS;
 #ifdef O_HASHTERM
-  a->hash_value = v0;
+    a->hash_value = v0;
 #endif
 #ifdef O_ATOMGC
-  a->references = 1;
+    a->references = 1;
 #endif
-  registerAtom(a);
-  a->next       = atomTable[v];
-  atomTable[v]  = a;
-  GD->statistics.atoms++;
+    registerAtom(a);
+    a->next       = atomTable[v];
+    atomTable[v]  = a;
+    GD->statistics.atoms++;
+  }
 
 #ifdef O_ATOMGC
   if ( GD->atoms.margin > 0 &&
@@ -402,57 +407,76 @@ markAtom(atom_t a)
 }
 
 
-void
-collectAtoms()
-{ int n = GD->atoms.builtin;
-  Atom *ap = &baseBuffer(&atom_array, Atom)[n];
-  int mx = entriesBuffer(&atom_array, Atom);
-  int holes = 0;
+static void
+destroyAtom(Atom *ap, unsigned long mask ARG_LD)
+{ Atom a = *ap;
+  Atom *ap2 = &atomTable[a->hash_value & mask];
 
-  for( ; n < mx; ap++, n++)
+  if ( GD->atoms.gc_hook )
+  { if ( !(*GD->atoms.gc_hook)(a->atom) )
+      return;				/* foreign hooks says `no' */
+  }
+
+#ifdef O_DEBUG_ATOMGC
+  if ( atomLogFd )
+    Sfprintf(atomLogFd, "Deleted `%s'\n", a->name);
+#endif
+
+  for( ; ; ap2 = &(*ap2)->next )
+  { assert(*ap2);			/* MT: TBD: failed a few times!? */
+	
+    if ( *ap2 == a )
+    { *ap2 = a->next;
+      break;
+    }
+  }
+      
+  *ap = NULL;			/* delete from index array */
+  GD->atoms.collected++;
+  GD->statistics.atoms--;
+
+  freeHeap(a->name, a->length+1);
+  freeHeap(a, sizeof(*a));
+}
+
+
+static void
+collectAtoms(void)
+{ GET_LD
+  Atom *ap0 = baseBuffer(&atom_array, Atom);
+  Atom *ap  = ap0 + GD->atoms.builtin;
+  Atom *ep  = ap0 + entriesBuffer(&atom_array, Atom);
+  int hole_seen = FALSE;
+  unsigned long mask = atom_buckets-1;
+
+  ap--;
+  while(++ap < ep)
   { Atom a = *ap;
 
     if ( !a )
-    { if ( holes++ == 0 )
-	GD->atoms.no_hole_before = n;
+    { if ( !hole_seen )
+      { hole_seen = TRUE;
+	GD->atoms.no_hole_before = ap-ap0;
+      }
       continue;
     }
 
-    if ( a->references == 0 &&
-	 (!GD->atoms.gc_hook || (*GD->atoms.gc_hook)(a->atom)) )
-    { Atom *ap2 = &atomTable[a->hash_value & (atom_buckets-1)];
-
-					/* delete from hash-table */
-      for( ; ; ap2 = &(*ap2)->next )
-      { assert(*ap2);			/* MT: TBD: failed a few times!? */
-	
-	if ( *ap2 == a )
-	{ *ap2 = a->next;
-	  break;
-	}
+    if ( a->references == 0 )
+    { destroyAtom(ap, mask PASS_LD);
+      if ( !hole_seen && *ap == NULL )
+      { hole_seen = TRUE;
+	GD->atoms.no_hole_before = ap-ap0;
       }
-      
-      *ap = NULL;			/* delete from index array */
-      GD->atoms.collected++;
-      GD->statistics.atoms--;
-      if ( holes++ == 0 )
-	GD->atoms.no_hole_before = n;
-#ifdef O_DEBUG_ATOMGC
-      if ( atomLogFd )
-	Sfprintf(atomLogFd, "Deleted `%s' at (#%d)\n", a->name, n);
-#endif
-      freeHeap(a->name, a->length+1);
-      freeHeap(a, sizeof(*a));
-    }
-
-    a->references &= ~ATOM_MARKED_REFERENCE;
+    } else
+      a->references &= ~ATOM_MARKED_REFERENCE;
   }
 }
 
 
 word
 pl_garbage_collect_atoms()
-{ int verbose = trueFeature(TRACE_GC_FEATURE);
+{ GET_LD
+  int verbose = trueFeature(TRACE_GC_FEATURE);
   long oldcollected = GD->atoms.collected;
   long oldheap = GD->statistics.heap;
   long freed;
@@ -576,20 +600,26 @@ PL_unregister_atom(atom_t a)
 
 static void
 rehashAtoms()
-{ Atom *oldtab   = atomTable;
+{ GET_LD
+  Atom *oldtab   = atomTable;
   int   oldbucks = atom_buckets;
-  long i, mx = entriesBuffer(&atom_array, Atom);
+  long mx = entriesBuffer(&atom_array, Atom);
+  unsigned long mask;
+  Atom *ap, *ep;
 
   startCritical;
   atom_buckets *= 2;
+  mask = atom_buckets-1;
   atomTable = allocHeap(atom_buckets * sizeof(Atom));
   memset(atomTable, 0, atom_buckets * sizeof(Atom));
   
   DEBUG(0, Sdprintf("rehashing atoms (%d --> %d)\n", oldbucks, atom_buckets));
 
-  for(i=0; i<mx; i++)
-  { Atom a = baseBuffer(&atom_array, Atom)[i];
-    int v = a->hash_value & (atom_buckets-1);
+  for(ap = baseBuffer(&atom_array, Atom), ep = ap+mx;
+      ap < ep;
+      ap++)
+  { Atom a = *ap;
+    int v = a->hash_value & mask;
 
     a->next = atomTable[v];
     atomTable[v] = a;
@@ -602,7 +632,8 @@ rehashAtoms()
 
 word
 pl_atom_hashstat(term_t idx, term_t n)
-{ int i, m;
+{ GET_LD
+  int i, m;
   Atom a;
   
   if ( !PL_get_integer(idx, &i) || i < 0 || i >= atom_buckets )
@@ -616,7 +647,8 @@ pl_atom_hashstat(term_t idx, term_t n)
 
 static void
 registerBuiltinAtoms()
-{ int size = sizeof(atoms)/sizeof(char *) - 1;
+{ GET_LD
+  int size = sizeof(atoms)/sizeof(char *) - 1;
   Atom a = allocHeap(size * sizeof(struct atom));
   const ccharp *s;
 
@@ -652,7 +684,8 @@ void
 initAtoms(void)
 { LOCK();
   if ( !atomTable )
-  { atom_buckets = ATOMHASHSIZE;
+  { GET_LD
+    atom_buckets = ATOMHASHSIZE;
     atomTable = allocHeap(atom_buckets * sizeof(Atom));
 
     memset(atomTable, 0, atom_buckets * sizeof(Atom));
@@ -677,7 +710,8 @@ cleanupAtoms(void)
 
 word
 pl_current_atom2(term_t a, term_t refs, control_t h)
-{ unsigned int i;
+{ GET_LD
+  unsigned int i;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -795,12 +829,14 @@ pl_complete_atom(term_t prefix, term_t common, term_t unique)
   char buf[LINESIZ];
   char cmm[LINESIZ];
     
-  if ( !PL_get_chars(prefix, &p, CVT_ALL) )
-    return warning("$complete_atom/3: instanstiation fault");
+  if ( !PL_get_chars_ex(prefix, &p, CVT_ALL) )
+    fail;
   strcpy(buf, p);
 
   if ( extendAtom(p, &u, cmm) )
-  { strcat(buf, cmm);
+  { GET_LD
+
+    strcat(buf, cmm);
     if ( PL_unify_list_codes(common, buf) &&
 	 PL_unify_atom(unique, u ? ATOM_unique
 				 : ATOM_not_unique) )
@@ -849,7 +885,8 @@ extend_alternatives(char *prefix, struct match *altv, int *altn)
 
 word
 pl_atom_completions(term_t prefix, term_t alternatives)
-{ char *p;
+{ GET_LD
+  char *p;
   char buf[LINESIZ];
   struct match altv[ALT_MAX];
   int altn;
@@ -892,7 +929,8 @@ static pthread_key_t key;
 
 char *
 PL_atom_generator(const char *prefix, int state)
-{ long i, mx = entriesBuffer(&atom_array, Atom);
+{ GET_LD
+  long i, mx = entriesBuffer(&atom_array, Atom);
 
 #ifdef O_PLMT
   if ( !key )

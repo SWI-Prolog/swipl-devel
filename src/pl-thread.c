@@ -662,7 +662,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   if ( !info )
     return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_threads);
-  if ( !pl_callable(goal) )
+  if ( !(PL_is_compound(goal) || PL_is_atom(goal)) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, goal);
 
   ldnew = info->thread_data;

@@ -2290,7 +2290,7 @@ compileFile(char *file)
 
     DEBUG(2, Sdprintf("pl_read_clause() -> "));
     PL_put_variable(t);
-    if ( !pl_read_clause(t) )		/* syntax error */
+    if ( !read_clause(Scurin, t PASS_LD) ) /* syntax error */
     { Sdprintf("%s:%d: Syntax error\n",
 	       PL_atom_chars(source_file_name),
 	       source_line_no);

@@ -159,8 +159,6 @@ static const PL_extension foreigns[] = {
   FRG("read_term",		2, pl_read_term,		0),
   FRG("read_term",		3, pl_read_term3,		0),
   FRG("read",			1, pl_read,			0),
-  FRG("read_clause",		1, pl_read_clause,		0),
-  FRG("read_clause",		2, pl_read_clause2,		0),
   FRG("$raw_read",		1, pl_raw_read,			0),
   FRG("$raw_read",		2, pl_raw_read2,		0),
   FRG("current_op",		3, pl_current_op,	NDET|META),
@@ -251,13 +249,6 @@ static const PL_extension foreigns[] = {
   FRG("recorded",		3, pl_recorded,		     NDET),
   FRG("erase",			1, pl_erase,			0),
   FRG("$term_complexity",	3, pl_term_complexity,		0),
-  FRG("assert",			1, pl_assertz,		     META),
-  FRG("asserta",		1, pl_asserta,		     META),
-  FRG("assertz",		1, pl_assertz,		     META),
-  FRG("assert",			2, pl_assertz2,		     META),
-  FRG("asserta",		2, pl_asserta2,		     META),
-  FRG("assertz",		2, pl_assertz2,		     META),
-  FRG("$record_clause",		3, pl_record_clause,		0),
   FRG("redefine_system_predicate", 1, pl_redefine_system_predicate,
 							     META),
 
@@ -277,9 +268,7 @@ static const PL_extension foreigns[] = {
   FRG("integer",		1, pl_integer,			0),
   FRG("float",			1, pl_float,			0),
   FRG("number",			1, pl_number,			0),
-  FRG("atom",			1, pl_atom,			0),
   FRG("compound",		1, pl_compound,			0),
-  FRG("callable",		1, pl_callable,			0),
 
   FRG("unify_with_occurs_check",2, pl_unify_with_occurs_check,  0),
   FRG("\\=",			2, pl_notunify,			0),
@@ -335,8 +324,6 @@ static const PL_extension foreigns[] = {
   FRG("$current_module",	2, pl_current_module,	     NDET),
   FRG("$module",		2, pl_module,			0),
   FRG("$set_source_module",	2, pl_set_source_module,	0),
-  FRG("$term_expansion_module",	1, pl_term_expansion_module, NDET),
-  FRG("$goal_expansion_module",	1, pl_goal_expansion_module, NDET),
   FRG("$declare_module",	2, pl_declare_module,		0),
   FRG("context_module",		1, pl_context_module,	     META),
   FRG("$strip_module",		3, pl_strip_module,	     META),
@@ -626,12 +613,15 @@ registerBuiltins(const PL_extension *f)
 #define REG_PLIST(id) \
 	registerBuiltins(PL_predicates_from_ ## id)
 
-DECL_PLIST(wam);
-DECL_PLIST(prims);
-DECL_PLIST(list);
 DECL_PLIST(arith);
-DECL_PLIST(flag);
 DECL_PLIST(bag);
+DECL_PLIST(comp);
+DECL_PLIST(flag);
+DECL_PLIST(list);
+DECL_PLIST(module);
+DECL_PLIST(prims);
+DECL_PLIST(read);
+DECL_PLIST(wam);
 
 void
 initBuildIns(void)
@@ -639,12 +629,15 @@ initBuildIns(void)
   Module m = MODULE_system;
 
   registerBuiltins(foreigns);
-  REG_PLIST(wam);
-  REG_PLIST(prims);
-  REG_PLIST(list);
   REG_PLIST(arith);
-  REG_PLIST(flag);
   REG_PLIST(bag);
+  REG_PLIST(comp);
+  REG_PLIST(flag);
+  REG_PLIST(list);
+  REG_PLIST(module);
+  REG_PLIST(prims);
+  REG_PLIST(read);
+  REG_PLIST(wam);
 
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
   PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);

@@ -1569,6 +1569,7 @@ Defining built-in predicates using the new interface
 #define CTX_CNTRL ForeignControl(PL__ctx)
 #define CTX_PTR   ForeignContextPtr(PL__ctx)
 #define CTX_INT   ForeignContextInt(PL__ctx)
+#define CTX_ARITY PL__ac
 
 #define BeginPredDefs(id) \
         PL_extension PL_predicates_from_ ## id[] = {

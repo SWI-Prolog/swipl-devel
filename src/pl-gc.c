@@ -161,18 +161,19 @@ char tmp[256];				/* for calling print_val(), etc. */
 		 *     FUNCTION PROTOTYPES	*
 		 *******************************/
 
-forwards void		mark_variable(Word);
+forwards void		mark_variable(Word ARG_LD);
 forwards void		sweep_foreign(void);
 forwards QueryFrame	mark_environments(LocalFrame, Code PC);
-forwards void		update_relocation_chain(Word, Word);
-forwards void		into_relocation_chain(Word, int stg);
+forwards void		update_relocation_chain(Word, Word ARG_LD);
+forwards void		into_relocation_chain(Word, int stg ARG_LD);
 forwards void		alien_into_relocation_chain(void *addr,
-						    int orgst, int stg);
+						    int orgst, int stg
+						    ARG_LD);
 forwards void		compact_trail(void);
-forwards void		sweep_mark(mark *);
+forwards void		sweep_mark(mark * ARG_LD);
 forwards void		sweep_trail(void);
-forwards bool		is_downward_ref(Word);
-forwards bool		is_upward_ref(Word);
+forwards bool		is_downward_ref(Word ARG_LD);
+forwards bool		is_upward_ref(Word ARG_LD);
 forwards void		compact_global(void);
 
 #if O_SECURE
@@ -323,9 +324,8 @@ previous_gcell(Word p)
 
 
 static inline word
-makePtr(Word ptr, int tag)
-{ GET_LD
-  int stg;
+makePtr(Word ptr, int tag ARG_LD)
+{ int stg;
 
   if ( onStackArea(global, ptr) )
     stg = STG_GLOBAL;
@@ -420,9 +420,8 @@ last-argument-first).
 #define BACKWARD	goto backward
 
 static void
-mark_variable(Word start)
-{ GET_LD
-  Word current;				/* current cell examined */
+mark_variable(Word start ARG_LD)
+{ Word current;				/* current cell examined */
   word val;				/* old value of current cell */
   Word next;				/* cell to be examined */
 
@@ -475,7 +474,7 @@ forward:				/* Go into the tree */
       next--;				/* last cell of term */
       val = get_value(next);		/* invariant */
 					/* backwards pointer (NO ref!) */
-      set_value(next, makePtr(current, TAG_COMPOUND));
+      set_value(next, makePtr(current, TAG_COMPOUND PASS_LD));
       current = next;
       FORWARD;
     }
@@ -507,7 +506,7 @@ backward:  				/* reversing backwards */
     if ( isRef(w) )
       val = makeRef(current);
     else
-      val = makePtr(current-1, TAG_COMPOUND);
+      val = makePtr(current-1, TAG_COMPOUND PASS_LD);
     current= next;
   }
 
@@ -543,7 +542,7 @@ mark_term_refs()
     for( ; n-- > 0; sp++ )
     { if ( !marked(sp) )		/* can this be marked?? */
       { if ( isGlobalRef(*sp) )
-	  mark_variable(sp);
+	  mark_variable(sp PASS_LD);
 	else
 	  ldomark(sp);      
       }
@@ -559,7 +558,7 @@ mark_foreign_trail_refs()
 
   for( ; fr; fr = fr->parent )
   { needsRelocation(&fr->mark.trailtop);
-    alien_into_relocation_chain(&fr->mark.trailtop, STG_TRAIL, STG_LOCAL);
+    alien_into_relocation_chain(&fr->mark.trailtop, STG_TRAIL, STG_LOCAL PASS_LD);
   }
 }
 
@@ -642,7 +641,8 @@ to the parent `foreign' environment.
 
 static QueryFrame
 mark_environments(LocalFrame fr, Code PC)
-{ if ( !fr )
+{ GET_LD
+  if ( !fr )
     return NULL;
 
   for( ; ; )
@@ -669,7 +669,7 @@ mark_environments(LocalFrame fr, Code PC)
     for( ; slots-- > 0; sp++ )
     { if ( !marked(sp) )
       { if ( isGlobalRef(*sp) )
-	  mark_variable(sp);
+	  mark_variable(sp PASS_LD);
 	else
 	  ldomark(sp);      
       }
@@ -746,7 +746,7 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
     }
 
     needsRelocation(&ch->mark.trailtop);
-    alien_into_relocation_chain(&ch->mark.trailtop, STG_TRAIL, STG_LOCAL);
+    alien_into_relocation_chain(&ch->mark.trailtop, STG_TRAIL, STG_LOCAL PASS_LD);
     SECURE(trailtops_marked--);
 
     mark_environments(fr,
@@ -804,7 +804,7 @@ mark_trail()
 
       assert(onGlobal(gp));
       if ( !marked(gp) )
-      { mark_variable(gp);
+      { mark_variable(gp PASS_LD);
 	total_marked++;			/* fix counters */
 	local_marked--;
       }
@@ -882,9 +882,8 @@ chain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-update_relocation_chain(Word current, Word dest)
-{ GET_LD
-  Word head = current;
+update_relocation_chain(Word current, Word dest ARG_LD)
+{ Word head = current;
   word val = get_value(current);
 
   DEBUG(3, Sdprintf("unwinding relocation chain at 0x%p to 0x%p\n",
@@ -897,7 +896,7 @@ update_relocation_chain(Word current, Word dest)
     current = valPtr(val);
     tag = tag(val);
     val = get_value(current);
-    set_value(current, makePtr(dest, tag));
+    set_value(current, makePtr(dest, tag PASS_LD));
     relocated_cells++;
   } while( is_first(current) );
 
@@ -907,9 +906,8 @@ update_relocation_chain(Word current, Word dest)
 
 
 static void
-into_relocation_chain(Word current, int stg)
-{ GET_LD
-  Word head;
+into_relocation_chain(Word current, int stg ARG_LD)
+{ Word head;
   word val = get_value(current);
   
   head = valPtr(val);			/* FIRST/MASK already gone */
@@ -931,12 +929,11 @@ into_relocation_chain(Word current, int stg)
 
 
 static void
-alien_into_relocation_chain(void *addr, int orgst, int stg)
-{ GET_LD
-  void **ptr = (void **)addr;
+alien_into_relocation_chain(void *addr, int orgst, int stg ARG_LD)
+{ void **ptr = (void **)addr;
   
   *ptr = (void *)consPtr(*ptr, orgst);
-  into_relocation_chain(addr, stg);
+  into_relocation_chain(addr, stg PASS_LD);
 
   alien_relocations++;
 }
@@ -954,7 +951,7 @@ compact_trail(void)
 	/* compact the trail stack */
   for( dest = current = (GCTrailEntry)tBase; current < (GCTrailEntry)tTop; )
   { if ( is_first(&current->address) )
-      update_relocation_chain(&current->address, &dest->address);
+      update_relocation_chain(&current->address, &dest->address PASS_LD);
 #if O_SECURE
     else
     { Symbol s;
@@ -971,7 +968,7 @@ compact_trail(void)
       current++;
   }
   if ( is_first(&current->address) )
-    update_relocation_chain(&current->address, &dest->address);
+    update_relocation_chain(&current->address, &dest->address PASS_LD);
 
   tTop = (TrailEntry)dest;
 
@@ -1026,9 +1023,8 @@ cell. Hence the `goto found'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-sweep_mark(mark *m)
-{ GET_LD
-  Word gm, prev;
+sweep_mark(mark *m ARG_LD)
+{ Word gm, prev;
 
   marks_swept++;
   gm = m->globaltop;
@@ -1048,7 +1044,7 @@ sweep_mark(mark *m)
       m->globaltop = gm, STG_GLOBAL;
       DEBUG(3, Sdprintf("gTop mark from choice point: "));
       needsRelocation(&m->globaltop);
-      alien_into_relocation_chain(&m->globaltop, STG_GLOBAL, STG_LOCAL);
+      alien_into_relocation_chain(&m->globaltop, STG_GLOBAL, STG_LOCAL PASS_LD);
       break;
     }
     gm = prev;
@@ -1065,14 +1061,14 @@ sweep_foreign()
   { Word sp = refFliP(fr, 0);
     int n = fr->size;
 
-    sweep_mark(&fr->mark);
+    sweep_mark(&fr->mark PASS_LD);
     for( ; n-- > 0; sp++ )
     { if ( marked(sp) )
       {	unmark(sp);
 	if ( isGlobalRef(get_value(sp)) )
 	{ local_marked--;
 	  check_relocation(sp);
-	  into_relocation_chain(sp, STG_LOCAL);
+	  into_relocation_chain(sp, STG_LOCAL PASS_LD);
 	}
       }
     }
@@ -1081,9 +1077,8 @@ sweep_foreign()
 
 
 static void
-unsweep_mark(mark *m)
-{ GET_LD
-  m->trailtop  = (TrailEntry)valPtr2((word)m->trailtop,  STG_TRAIL);
+unsweep_mark(mark *m ARG_LD)
+{ m->trailtop  = (TrailEntry)valPtr2((word)m->trailtop,  STG_TRAIL);
   m->globaltop = valPtr2((word)m->globaltop, STG_GLOBAL);
 
   SECURE(check_mark(m));
@@ -1093,19 +1088,18 @@ unsweep_mark(mark *m)
 
 
 static void
-unsweep_foreign()
-{ GET_LD
-  FliFrame fr = fli_context;
+unsweep_foreign(ARG1_LD)
+{ FliFrame fr = fli_context;
 
   for( ; fr; fr = fr->parent )
-    unsweep_mark(&fr->mark);
+    unsweep_mark(&fr->mark PASS_LD);
 }
 
 
 static void
-unsweep_choicepoints(Choice ch)
+unsweep_choicepoints(Choice ch ARG_LD)
 { for( ; ch ; ch = ch->parent)
-    unsweep_mark(&ch->mark);
+    unsweep_mark(&ch->mark PASS_LD);
 }
 
 
@@ -1119,12 +1113,12 @@ unsweep_environments(LocalFrame fr)
 
 
 static void
-unsweep_stacks(LocalFrame fr, Choice ch)
+unsweep_stacks(LocalFrame fr, Choice ch ARG_LD)
 { QueryFrame query;
 
   for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
   { query = unsweep_environments(fr);
-    unsweep_choicepoints(ch);
+    unsweep_choicepoints(ch PASS_LD);
   }
 }
 
@@ -1145,12 +1139,12 @@ sweep_trail(void)
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
       if ( ttag(te->address) == TAG_TRAILVAL )
       { needsRelocation(&te->address);
-	into_relocation_chain(&te->address, STG_TRAIL);
+	into_relocation_chain(&te->address, STG_TRAIL PASS_LD);
       } else
 #endif
       if ( storage(te->address) == STG_GLOBAL )
       { needsRelocation(&te->address);
-	into_relocation_chain(&te->address, STG_TRAIL);
+	into_relocation_chain(&te->address, STG_TRAIL PASS_LD);
       }
     }
   }
@@ -1181,7 +1175,7 @@ sweep_environments(LocalFrame fr, Code PC)
 	if ( isGlobalRef(get_value(sp)) )
 	{ local_marked--;
 	  check_relocation(sp);
-	  into_relocation_chain(sp, STG_LOCAL);
+	  into_relocation_chain(sp, STG_LOCAL PASS_LD);
 	}
       }
     }
@@ -1196,11 +1190,11 @@ sweep_environments(LocalFrame fr, Code PC)
 
 
 static void
-sweep_choicepoints(Choice ch)
+sweep_choicepoints(Choice ch ARG_LD)
 { for( ; ch ; ch = ch->parent)
   { sweep_environments(ch->frame,
 		       ch->type == CHP_JUMP ? ch->value.PC : NULL);
-    sweep_mark(&ch->mark);
+    sweep_mark(&ch->mark PASS_LD);
   }
 }
 
@@ -1212,7 +1206,7 @@ sweep_stacks(LocalFrame fr, Choice ch)
   
   for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
   { query = sweep_environments(fr, NULL);
-    sweep_choicepoints(ch);
+    sweep_choicepoints(ch PASS_LD);
 
     if ( !query )			/* we've been here */
       break;
@@ -1238,9 +1232,8 @@ size.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-is_downward_ref(Word p)
-{ GET_LD
-  word val = get_value(p);
+is_downward_ref(Word p ARG_LD)
+{ word val = get_value(p);
 
   switch(tag(val))
   { case TAG_INTEGER:
@@ -1258,9 +1251,8 @@ is_downward_ref(Word p)
 
 
 static bool
-is_upward_ref(Word p)
-{ GET_LD
-  word val = get_value(p);
+is_upward_ref(Word p ARG_LD)
+{ word val = get_value(p);
 
   switch(tag(val))
   { case TAG_INTEGER:
@@ -1304,14 +1296,14 @@ compact_global(void)
       DEBUG(3, Sdprintf("Marked cell at 0x%p (size = %ld; dest = 0x%p)\n",
 			current, offset+1, dest));
       if ( is_first(current) )
-	update_relocation_chain(current, dest);
-      if ( is_downward_ref(current) )
+	update_relocation_chain(current, dest PASS_LD);
+      if ( is_downward_ref(current PASS_LD) )
       { check_relocation(current);
-	into_relocation_chain(current, STG_GLOBAL);
+	into_relocation_chain(current, STG_GLOBAL PASS_LD);
       }
     } else
     { if ( is_first(current) )
-	update_relocation_chain(current, dest);	/* gTop refs from marks */
+	update_relocation_chain(current, dest PASS_LD);	/* gTop refs from marks */
     }
   }
 
@@ -1338,13 +1330,13 @@ compact_global(void)
     { long l, n;
 
       if ( is_first(current) )
-	update_relocation_chain(current, dest);
+	update_relocation_chain(current, dest PASS_LD);
 
       if ( (l = offset_cell(current)) == 0 )	/* normal cells */
       { *dest = *current;
-        if ( is_upward_ref(current) )
+        if ( is_upward_ref(current PASS_LD) )
 	{ check_relocation(current);
-          into_relocation_chain(dest, STG_GLOBAL);
+          into_relocation_chain(dest, STG_GLOBAL PASS_LD);
 	}
 	unmark(dest);
 	dest++;
@@ -1391,8 +1383,8 @@ collect_phase(LocalFrame fr, Choice ch)
   DEBUG(2, Sdprintf("Compacting global stack\n"));
   compact_global();
 
-  unsweep_foreign();
-  unsweep_stacks(fr, ch);
+  unsweep_foreign(PASS_LD1);
+  unsweep_stacks(fr, ch PASS_LD);
 
   if ( relocation_chains != 0 )
     sysError("relocation chains = %ld", relocation_chains);
@@ -1709,7 +1701,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 
   t = CpuTime(CPU_USER) - t;
   gc_status.time += t;
-  trimStacks();
+  trimStacks(PASS_LD1);
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.active = FALSE;

@@ -234,9 +234,11 @@ void			PL_atomic_dec(int *addr);
 #define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
 #define allocHeap(n)		allocHeap__LD(n PASS_LD)
 #define freeHeap(p, n)		freeHeap__LD(p, n PASS_LD)
+#define freeRecord(r)		freeRecord__LD(r PASS_LD)
 #define makeNum(n)		makeNum__LD(n PASS_LD)
 #define getInputStream(t, s)	getInputStream__LD(t, s PASS_LD)
 #define valReal(w)		valReal__LD(w PASS_LD)
+#define compileTermToHeap(t, f)	compileTermToHeap__LD(t, f PASS_LD)
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define _PL_put_number(t, n) 	_PL_put_number__LD(t, n PASS_LD)
@@ -258,5 +260,9 @@ void			PL_atomic_dec(int *addr);
 #define PL_unify_pointer(t, p)	PL_unify_pointer__LD(t, p PASS_LD)
 #define PL_is_variable(t)	PL_is_variable__LD(t PASS_LD)
 #define PL_is_atomic(t)		PL_is_atomic__LD(t PASS_LD)
+#define PL_get_list(l, h, t)	PL_get_list__LD(l, h, t PASS_LD)
+#define PL_is_atom(t)		PL_is_atom__LD(t PASS_LD)
+#define PL_unify_list(l, h, t)	PL_unify_list__LD(l, h, t PASS_LD)
+#define PL_cons_list(l, h, t)	PL_cons_list__LD(l, h, t PASS_LD)
 
 #endif /*PL_THREAD_H_DEFINED*/

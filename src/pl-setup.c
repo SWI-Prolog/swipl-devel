@@ -1472,7 +1472,7 @@ void
 resetStacks()
 { emptyStacks();
 
-  trimStacks();
+  trimStacks(PASS_LD1);
 }
 
 
@@ -1498,7 +1498,7 @@ gcPolicy(Stack s, int policy)
 
 word
 pl_trim_stacks()
-{ trimStacks();
+{ trimStacks(PASS_LD1);
 
   gcPolicy((Stack) &LD->stacks.global, GC_FAST_POLICY);
   gcPolicy((Stack) &LD->stacks.trail,  GC_FAST_POLICY);
@@ -1650,9 +1650,11 @@ result from a stack-overflow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-trimStacks()
+trimStacks(ARG1_LD)
 {
 #ifdef O_DYNAMIC_STACKS
+#undef LD
+#define LD LOCAL_LD
   TrailEntry te;
   Word dummy = NULL;
 
@@ -1679,7 +1681,8 @@ trimStacks()
       te->address = dummy;
     }
   }
-
+#undef LD
+#define LD GLOBAL_LD
 #endif /*O_DYNAMIC_STACKS*/
 }
 
