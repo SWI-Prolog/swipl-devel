@@ -350,13 +350,13 @@ ws_load_windows_ico_file(Image image, IOSTREAM *fd)
 
 #ifdef LOAD_ICO_FROM_STREAM
   long start = Stell(fd);
-  int dirsize, size = 3 * sizeof(WORD);
-  ICONDIR *dir = pceMalloc(size);
+  int hdr_size = 3 * sizeof(WORD);
+  ICONDIR *dir = pceMalloc(hdr_size);
   ICONIMAGE *iimg = NULL;
   int id;
   long res_offset, res_size;
 
-  if ( Sfread(dir, 1, size, fd) != size )
+  if ( Sfread(dir, 1, hdr_size, fd) != hdr_size )
   { error:
     Sseek(fd, start, SIO_SEEK_SET);
     if ( dir )
@@ -370,18 +370,18 @@ ws_load_windows_ico_file(Image image, IOSTREAM *fd)
        dir->idType != 2 )
     goto error;				/* bad type */
 
+  DEBUG(NAME_icon,
+	Cprintf("Type = %d, count = %d\n", dir->idType, dir->idCount));
   if ( dir->idCount < 1 || dir->idCount > 100 )	/* doesn't make sense */
-  { Cprintf("idCount = %d???\n", dir->idCount);
+  { DEBUG(NAME_icon, Cprintf("idCount = %d???\n", dir->idCount));
     goto error;
   }
-  dirsize = offsetof(ICONDIR, idEntries[dir->idCount]);
-  DEBUG(NAME_icon,
-	Cprintf("Type = %d, count = %d, dirsize = %d (extra = %d)\n",
-		dir->idType, dir->idCount, dirsize, dirsize - size));
-  pceRealloc(dir, dirsize);
-  if ( Sfread(&dir->idEntries[0], 1, dirsize-size, fd) != (dirsize-size) )
+
+  dir = pceRealloc(dir, offsetof(ICONDIR, idEntries[dir->idCount]));
+  if ( Sfread(&dir->idEntries[0], sizeof(ICONDIRENTRY), dir->idCount, fd)
+							!= (dir->idCount) )
   { DEBUG(NAME_icon,
-	  Cprintf("Failed to read %d bytes directory\n", dirsize-size));
+	  Cprintf("Failed to read %d directory entries\n", dir->idCount));
     goto error;
   }
 
@@ -394,6 +394,8 @@ ws_load_windows_ico_file(Image image, IOSTREAM *fd)
 
   res_offset = dir->idEntries[id].dwImageOffset;
   res_size   = dir->idEntries[id].dwBytesInRes;
+  if ( res_size < 0 || res_size > 100000 )
+    goto error;
 
   DEBUG(NAME_icon,
 	Cprintf("At id=%d, offset=%ld, size=%d\n",
