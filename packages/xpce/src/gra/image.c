@@ -827,6 +827,10 @@ getPostscriptDepthImage(Image image)
 		*       PREDEFINED IMAGES	*
 		********************************/
 
+#if defined(WIN32) || defined(HAVE_LIBXPM)
+#define XPM_PCEIMAGE 1			/* use an XPM image */
+#endif
+
 #include "bitmaps/cycle_bm"
 #include "bitmaps/mark_bm"
 #include "bitmaps/nomark_bm"
@@ -855,7 +859,7 @@ stdImage(Name name, Image *global, char *bits, int w, int h)
   return image;
 }
 
-#ifdef WIN32
+#ifdef XPM_PCEIMAGE
 #include "bitmaps/pce16.xpm"
 #else
 #include "bitmaps/pce.bm"
@@ -922,7 +926,7 @@ standardImages(void)
 	   cnode_bits, cnode_width, cnode_height);
   stdImage(NAME_intItemImage, &INT_ITEM_IMAGE,
 	   intarrows_bits, intarrows_width, intarrows_height);
-#if defined(WIN32)
+#ifdef XPM_PCEIMAGE
   ws_std_xpm_image(NAME_pceImage, NULL, pce16_xpm);
 #else
   stdImage(NAME_pceImage, NULL,
