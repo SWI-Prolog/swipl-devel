@@ -4,7 +4,8 @@
 VERSION 5.1.7
 =============
 
-
+* FIXED: Possible loop in repaint of rounded buttons in X11 version.
+	
 * FIXED: Image scaling and rotation in 24-bit colourmode for the X11
   version (memory corruption).
 
