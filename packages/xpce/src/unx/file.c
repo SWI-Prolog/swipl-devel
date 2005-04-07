@@ -1026,6 +1026,9 @@ storeStringFile() stores a string to a   file. For compatibility reasons
 the format is somewhat strange. If the string  is 8-bit, it is stored as
 length followed by  the  character  data.   Otherwise  it  is  stores as
 NEGATIVE length followed by a sequence of UTF-8 character codes.
+
+Note that if the string is wide but need not be, it is saved as if it is
+an ISO Latin-1 string.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
@@ -1033,6 +1036,20 @@ storeStringFile(FileObj f, String s)
 { if ( isstrA(s) )
   { TRY(storeWordFile(f, (Any) s->size));
     Sfwrite(s->s_textA, sizeof(char), s->size, f->fd);
+
+    DEBUG(NAME_save, Cprintf("Saved ISO string, %ld chars\n", s->size));
+  } else if ( !str_iswide(s) )
+  { const charW *w = s->s_textW;
+    const charW *e = &w[s->size];
+
+    TRY(storeWordFile(f, (Any) s->size));
+    for( ; w<e; w++)
+    { if ( Sputc(*w, f->fd) < 0 )
+	return checkErrorFile(f);
+    }
+
+    DEBUG(NAME_save,
+	  Cprintf("Saved converted ISO string, %ld chars\n", s->size));
   } else
   { IOENC oenc;
     const charW *w = s->s_textW;
@@ -1048,6 +1065,8 @@ storeStringFile(FileObj f, String s)
       }
     }
     f->fd->encoding = oenc;
+
+    DEBUG(NAME_save, Cprintf("Saved wide string, %ld chars\n", s->size));
   }
   
   return checkErrorFile(f);

@@ -700,7 +700,6 @@ save_fragments(F, S0, S) :-
 	;   OldValue = @nil
 	),
 	\+ equal(NewValue, OldValue), !,
-portray_object(NewValue),
 	(   NewValue \== @nil
 	->  send(NewValue, prepend, '\n'), % undent the lines (HACK)
 	    send(@man_undent_regex, for_all, NewValue,
@@ -708,11 +707,12 @@ portray_object(NewValue),
 	    send(NewValue, delete, 0, 1)
 	;   true
 	),
-portray_object(NewValue),
 	send(Object, man_attribute, Att, NewValue),
 	(   NewValue == @nil
 	->  send(@pce, format, 'Cleared %s of %N\n', Att, Object)
-	;   send(@pce, format, 'Modified %s of %N\n', Att, Object)
+	;   get(NewValue, size, Size),
+	    send(@pce, format, 'Modified %s of %N (%d chars)\n',
+		 Att, Object, Size)
 	),
 	S1 is S0 + 1,
 	(   get(F, next, F1)
