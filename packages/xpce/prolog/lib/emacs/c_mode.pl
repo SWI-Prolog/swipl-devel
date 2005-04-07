@@ -58,7 +58,7 @@
 		      (/)  + comment_start(*),
 		      (*)  + comment_end(/),
 
-		      paragraph_end(regex('\\s*$|/\\*|.*\\*/'))
+		      paragraph_end(regex('\\s*\n|/\\*|[^\n]*\\*/'))
 		    ]).
 
 :- initialization
@@ -172,7 +172,7 @@ insert_c_begin(E, Times:[int], Id:[event_id]) :->
 	get(E, caret, Caret),
 	get(E, text_buffer, TB),
 	get(TB, scan, Caret, line, 0, start, SOL),
-	(   send(regex(string('\\\\s *%c', Id)), match, TB, SOL, Caret)
+	(   send(regex(string('\\\\s*%c', Id)), match, TB, SOL, Caret)
 	->  new(F, fragment(TB, Caret, 0)),
 	    send(E, indent_line),
 	    send(E, caret, F?start),

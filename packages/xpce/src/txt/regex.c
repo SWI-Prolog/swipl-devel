@@ -358,7 +358,7 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
     if ( !ensure_compiled_regex(re, RE_MATCH) )
       fail;
 
-    for(here = from; here > to; here--)
+    for(here = from; here >= to; here--)
     { rc = re_execW(re->compiled, IDX2PTR(here), from-here,
 		    fetch, closure,
 		    NULL,
@@ -374,6 +374,7 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
 			NULL,
 			re->compiled->re_nsub+1, re->registers, 0);
 	  assert(rc == REG_OKAY);
+       adjust:
 	  for(n=0; n <= re->compiled->re_nsub; n++)
 	  { re->registers[n].rm_so += match;
 	    re->registers[n].rm_eo += match;
@@ -383,6 +384,8 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
 	}
 	case REG_OKAY:
 	  match = here;
+	  if ( here == to )
+	    goto adjust;
 	  continue;
 	default:
 	  return error_regex(re, rc);

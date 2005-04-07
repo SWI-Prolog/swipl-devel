@@ -62,17 +62,17 @@ emacs_tag(+Symbol, -File, -LineNo)
 
 
 :- pce_global(@emacs_tag_file_regex,
-	      new(regex('\f\n([^,]+),\\d+$'))).
+	      new(regex('\f\n([^,]+),\\d+\n'))).
 :- pce_global(@emacs_tag_line_regex,
-	      new(regex('.*\\D(\\d+),\\d+$'))).
+	      new(regex('[^\n]*\\D(\\d+),\\d+\n'))).
 
 emacs_tag(Name, File, LineNo) :-
 	tag_string(String), !,
 	new(Re, regex('')),
 	get(Re, quote, Name, QName),
-	(   send(Re, pattern, string('\\\\b%s\\\\b', QName))
-	;   send(Re, pattern, string('\\\\b%s', QName))
-	;   send(Re, pattern, string('\\\\b%s%c', QName, 1))
+	(   send(Re, pattern, string('\\\\y%s\\\\y', QName))
+	;   send(Re, pattern, string('\\\\y%s', QName))
+	;   send(Re, pattern, string('\\\\y%s%c', QName, 1))
 	),
 	get(Re, search, String, Start), !,
 	send(@emacs_tag_file_regex, search, String, Start, 0),
@@ -93,7 +93,7 @@ emacs_complete_tag(Name, Goal) :-
 	->  new(Re, regex('\\y[a-zA-Z_]\\w*'))
 	;   new(Re, regex('')),
 	    get(Re, quote, Name, QName),
-	    send(Re, pattern, string('\\\\b%s\\\\w*', QName))
+	    send(Re, pattern, string('\\\\y%s\\\\w*', QName))
 	),
 	new(Here, number(0)),
 	repeat,
