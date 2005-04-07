@@ -110,12 +110,12 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  '/'  + comment_start('*'),
 	  '*'  + comment_end('/'),
 
-	  paragraph_end([ '\\s*\n',		% empty line
-			  '^/\\*',		% comment start
-			  '.*\\*/\\s*\n', 	% comment end
-			  '^%',			% line comment
-			  '^	',		% indented line
-			  '.*:<?->?\\s*\n'	% clause head
+	  paragraph_end([ '\\s*$',		% empty line
+			  '/\\*',		% comment start
+			  '[^\n]*\\*/\\s*$', 	% comment end
+			  '%',			% line comment
+			  '\t',			% indented line
+			  '[^\n]*:<?->?\\s*$'	% clause head
 			])
 	]).
 		 
