@@ -467,7 +467,7 @@ regex(regex-1) :-
 	).
 regex(regex-2) :-			% backref test
 	send(regex('(.)x\\1'), match, 'axa').
-regex(regex-3) :-
+regex(regex-3) :-			% backward search
 	get(regex('[({[]|:'), search, '{ ', 2, 0, X),
 	X == 0.
 
