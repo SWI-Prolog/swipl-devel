@@ -185,8 +185,6 @@ static int before _ANSI_ARGS_((celt, celt));
 static struct cvec *eclass _ANSI_ARGS_((struct vars *, celt, int));
 static struct cvec *cclass _ANSI_ARGS_((struct vars *, chr *, chr *, int));
 static struct cvec *allcases _ANSI_ARGS_((struct vars *, pchr));
-static int cmp _ANSI_ARGS_((struct vars *, CONST chr *, CONST chr *, size_t));
-static int casecmp _ANSI_ARGS_((struct vars *, CONST chr *, CONST chr *, size_t));
 /* automatically gathered by fwd; do not hand-edit */
 /* =====^!^===== end forwards =====^!^===== */
 

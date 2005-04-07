@@ -186,7 +186,7 @@ error_regex(Regex re, int rc)
 
 static status
 ensure_compiled_regex(Regex re, int flags)
-{ int myflags = 0;
+{ int myflags = REG_NLANCH;		/* make ^$ match around \n */
 
   if ( re->ignore_case == ON )
     myflags |= REG_ICASE;
@@ -231,8 +231,8 @@ ensure_compiled_regex(Regex re, int flags)
 
 
 #define IDXOFF		0x1000
-#define IDX2PTR(i)	(charW*)(i*sizeof(charW)+IDXOFF)
-#define PTR2IDX(p)	((long)p-IDXOFF)/sizeof(charW)
+#define IDX2PTR(i)	(charW*)((i)*sizeof(charW)+IDXOFF)
+#define PTR2IDX(p)	((long)(p)-IDXOFF)/sizeof(charW)
 
 
 static int
@@ -285,7 +285,7 @@ search_string_regex(Regex re, String s)
 static status
 search_regex(Regex re, Any obj, Int start, Int end, int flags)
 { int from = isDefault(start) ? 0 : valInt(start);
-  int len, to;
+  int len, to, eflags = 0;
   int (*fetch)(const charW*, void*);
   void *closure;
 
@@ -331,13 +331,19 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
   if ( from <= to )			/* forwards */
   { int rc;
 
+					  /* partial match, check ends */
+    if ( from > 0 && (*fetch)(IDX2PTR(from-1), closure) != '\n' )
+      eflags |= REG_NOTBOL;
+    if ( to < len && (*fetch)(IDX2PTR(to), closure) != '\n' )
+      eflags |= REG_NOTEOL;
+
     if ( !ensure_compiled_regex(re, flags) ) /* RE_SEARCH/RE_MATCH */
       fail;
 
     rc = re_execW(re->compiled, IDX2PTR(from), to-from,
 		  fetch, closure,
 		  NULL,
-		  re->compiled->re_nsub+1, re->registers, 0);
+		  re->compiled->re_nsub+1, re->registers, eflags);
     if ( rc == 0 )
     { if ( from != 0 )
       { int n;
@@ -358,11 +364,19 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
     if ( !ensure_compiled_regex(re, RE_MATCH) )
       fail;
 
+    if ( from < len && (*fetch)(IDX2PTR(from), closure) != '\n' )
+      eflags |= REG_NOTEOL;
+
     for(here = from; here >= to; here--)
-    { rc = re_execW(re->compiled, IDX2PTR(here), from-here,
+    { eflags &= ~REG_NOTBOL;
+
+      if ( here > 0 && (*fetch)(IDX2PTR(here-1), closure) != '\n' )
+	eflags |= REG_NOTBOL;
+
+      rc = re_execW(re->compiled, IDX2PTR(here), from-here,
 		    fetch, closure,
 		    NULL,
-		    re->compiled->re_nsub+1, re->registers, 0);
+		    re->compiled->re_nsub+1, re->registers, eflags);
       switch(rc)
       { case REG_NOMATCH:
 	{ int n;

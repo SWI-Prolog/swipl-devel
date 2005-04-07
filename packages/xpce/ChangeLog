@@ -1,6 +1,16 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: Replaced the underlying regular expression library from
+  GNU-regex to Henry Spencers regex implementation with the Tcl added
+  support for UNICODE.  Support for regular expressions is now a lot
+  more powerful, but unfortunately SERIOUSLY INCOMPATIBLE.  There is
+  a program in library(pce_regex_compat) that can convert regular
+  expressions embedded in sourcefiles.  This is not perfect, sometimes
+  regular expressions are created on the fly and sometimes the script
+  may modify an atom that is not a regular expression.  It did at least
+  95% of the job for PceEmacs and the rest of the XPCE libraries though.
+
 * ADDED: UNICODE support for ->save_in_file on names and strings.
 
 * ADDED: UNICODE support for class text_buffer in ->save_in_file and

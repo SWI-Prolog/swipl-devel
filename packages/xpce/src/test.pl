@@ -481,7 +481,9 @@ regex(regex-3) :-			% backward search
 	X == 0.
 regex(regex-4) :-			% BOSONLY on branches
 	\+ send(regex('foo|bar'), match, 'xx bar').
-
+regex(regex-5) :-			% end-of-line in partial-matches
+	get(regex('^.'), search, 'hello', 5, 0, X),
+	X == 0.
 
 
 		 /*******************************
