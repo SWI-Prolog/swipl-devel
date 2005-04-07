@@ -116,7 +116,7 @@ split_completion(_FI, Value, Tuple:tuple) :<-
 	new(S, string('%s', Value)),
 						% delete ...// or .../~
 	get(S, size, L),
-	(   get(regex('//|~|\\w:[/\\]'), search, S, L, 0, Start)
+	(   get(regex('//|~|\\w:[/\\\\]'), search, S, L, 0, Start)
 	->  send(S, delete, 0, Start),
 	    (   send(S, prefix, '//')
 	    ->  send(S, delete, 0, 1)

@@ -449,6 +449,8 @@ regex(regex-1) :-
 	    fail
 	;   arg(1, State, ok)
 	).
+regex(regex-2) :-			% backref test
+	send(regex('(.)x\\1'), match, 'axa').
 
 
 

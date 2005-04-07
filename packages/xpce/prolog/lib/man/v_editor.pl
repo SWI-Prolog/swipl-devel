@@ -457,7 +457,7 @@ jump_pattern('\\W(<?->?\\w+)').
 :- pce_global(@man_classvar_regex,
 	      new(regex('(\\w+)\\.(\\w+)'))).
 :- pce_global(@man_example_code_regex,
-	      new(regex('\n\\s*((\n\t\t+[^\t#*0-9].*|\n\\s*)+)\n'))).
+	      new(regex('\n\\s*((\n\t\t+[^\t#*0-9][^\n]*|\n\\s*)+)\n'))).
 :- pce_global(@man_example_regex,
 	      new(regex('[Ee]xample\\s+`([^\']+)\''))).
 :- pce_global(@man_predicate_regex,
