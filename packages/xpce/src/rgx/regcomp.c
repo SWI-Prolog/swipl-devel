@@ -185,8 +185,8 @@ static int before _ANSI_ARGS_((celt, celt));
 static struct cvec *eclass _ANSI_ARGS_((struct vars *, celt, int));
 static struct cvec *cclass _ANSI_ARGS_((struct vars *, chr *, chr *, int));
 static struct cvec *allcases _ANSI_ARGS_((struct vars *, pchr));
-static int cmp _ANSI_ARGS_((CONST chr *, CONST chr *, size_t));
-static int casecmp _ANSI_ARGS_((CONST chr *, CONST chr *, size_t));
+static int cmp _ANSI_ARGS_((struct vars *, CONST chr *, CONST chr *, size_t));
+static int casecmp _ANSI_ARGS_((struct vars *, CONST chr *, CONST chr *, size_t));
 /* automatically gathered by fwd; do not hand-edit */
 /* =====^!^===== end forwards =====^!^===== */
 
@@ -425,7 +425,7 @@ int flags;
 	g->tree = v->tree;
 	v->tree = NULL;
 	g->ntree = v->ntree;
-	g->compare = (v->cflags&REG_ICASE) ? casecmp : cmp;
+	g->icase = (v->cflags&REG_ICASE);
 	g->lacons = v->lacons;
 	v->lacons = NULL;
 	g->nlacons = v->nlacons;

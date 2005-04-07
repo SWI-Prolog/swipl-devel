@@ -158,6 +158,8 @@ static struct sset *miss _ANSI_ARGS_((struct vars *, struct dfa *, struct sset *
 static int lacon _ANSI_ARGS_((struct vars *, struct cnfa *, chr *, pcolor));
 static struct sset *getvacant _ANSI_ARGS_((struct vars *, struct dfa *, chr *, chr *));
 static struct sset *pickss _ANSI_ARGS_((struct vars *, struct dfa *, chr *, chr *));
+static int cmp(struct vars *v, CONST chr *x, CONST chr *y, size_t len);
+static int casecmp(struct vars *v, CONST chr *x, CONST chr *y, size_t len);
 /* automatically gathered by fwd; do not hand-edit */
 /* =====^!^===== end forwards =====^!^===== */
 
@@ -977,8 +979,13 @@ chr *end;			/* end of same */
 	/* count occurrences */
 	i = 0;
 	for (p = begin; p <= stop && (i < max || max == INFINITY); p += len) {
-		if ((*v->g->compare)(paren, p, len) != 0)
-				break;
+		if ( v->g->icase )
+		{ if ( casecmp(v, paren, p, len) != 0)
+		    break;
+		} else
+		{ if ( cmp(v, paren, p, len) != 0)
+		    break;
+		}				
 		i++;
 	}
 	MDEBUG(("cbackref found %d\n", i));
@@ -1039,6 +1046,44 @@ chr *end;			/* end of same */
 	return caltdissect(v, t->right, begin, end);
 }
 
+/*
+ - cmp - chr-substring compare
+ * Backrefs need this.  It should preferably be efficient.
+ * Note that it does not need to report anything except equal/unequal.
+ * Note also that the length is exact, and the comparison should not
+ * stop at embedded NULs!
+ ^ static int cmp(CONST chr *, CONST chr *, size_t);
+ */
+static int				/* 0 for equal, nonzero for unequal */
+cmp(struct vars *v, CONST chr *x, CONST chr *y, size_t len)
+{ for( ; len>0; len--, x++, y++)
+  { if ( GETCHR(v, x) != GETCHR(v, y) )
+      return 1;
+  }
+
+  return 0;
+}
+
+/*
+ - casecmp - case-independent chr-substring compare
+ * REG_ICASE backrefs need this.  It should preferably be efficient.
+ * Note that it does not need to report anything except equal/unequal.
+ * Note also that the length is exact, and the comparison should not
+ * stop at embedded NULs!
+ ^ static int casecmp(CONST chr *, CONST chr *, size_t);
+ */
+static int				/* 0 for equal, nonzero for unequal */
+casecmp(struct vars *v, CONST chr *x, CONST chr *y, size_t len)
+{
+    for (; len > 0; len--, x++, y++) {
+	chr c1 = GETCHR(v, x);
+	chr c2 = GETCHR(v, y);
+	if ((c1!=c2) && (towlower(c1) != towlower(c2))) {
+	    return 1;
+	}
+    }
+    return 0;
+}
 
 
 #include "rege_dfa.c"

@@ -37,8 +37,6 @@
  */
 #include "regcustom.h"
 
-
-
 /*
  * Things that regcustom.h might override.
  */
@@ -412,7 +410,7 @@ struct guts {
 	struct cnfa search;	/* for fast preliminary search */
 	int ntree;
 	struct colormap cmap;
-	int FUNCPTR(compare, (CONST chr *, CONST chr *, size_t));
+	int icase;		/* ignore case in backref match */
 	struct subre *lacons;	/* lookahead-constraint vector */
 	int nlacons;		/* size of lacons */
 };

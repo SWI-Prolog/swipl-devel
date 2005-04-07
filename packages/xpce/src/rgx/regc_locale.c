@@ -1008,39 +1008,3 @@ allcases(v, pc)
     return cv;
 }
 
-/*
- - cmp - chr-substring compare
- * Backrefs need this.  It should preferably be efficient.
- * Note that it does not need to report anything except equal/unequal.
- * Note also that the length is exact, and the comparison should not
- * stop at embedded NULs!
- ^ static int cmp(CONST chr *, CONST chr *, size_t);
- */
-static int				/* 0 for equal, nonzero for unequal */
-cmp(x, y, len)
-    CONST chr *x, *y;			/* strings to compare */
-    size_t len;				/* exact length of comparison */
-{
-    return memcmp(VS(x), VS(y), len*sizeof(chr));
-}
-
-/*
- - casecmp - case-independent chr-substring compare
- * REG_ICASE backrefs need this.  It should preferably be efficient.
- * Note that it does not need to report anything except equal/unequal.
- * Note also that the length is exact, and the comparison should not
- * stop at embedded NULs!
- ^ static int casecmp(CONST chr *, CONST chr *, size_t);
- */
-static int				/* 0 for equal, nonzero for unequal */
-casecmp(x, y, len)
-    CONST chr *x, *y;			/* strings to compare */
-    size_t len;				/* exact length of comparison */
-{
-    for (; len > 0; len--, x++, y++) {
-	if ((*x!=*y) && (towlower(*x) != towlower(*y))) {
-	    return 1;
-	}
-    }
-    return 0;
-}
