@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.12/XPCE 6.5.12 development release
+SWI-Prolog 5.5.13/XPCE 6.5.13 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -36,7 +36,6 @@ Planned features in 5.5.x relative to 5.4.x and their status
 		- XPCE
 			- Getting close
 			- Lacking input methods (XIM, ...)
-			- Lacking support in Class regex
 
   * More constraint libraries
 
@@ -59,13 +58,10 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.12 relative to 5.5.11
+Patches in 5.5.13 relative to 5.5.12
 ====================================
 
-  * Fix floats on 64-bit platforms (GC error)
-
-  * Various minor issues
-
+  * Added clp/clp_events.pl to installed system.
 
 Packages
 ========
@@ -73,15 +69,18 @@ Packages
   * XPCE: Added library(pce_progress), providing progress bars.
     Fixed locale issue making XPCE fail in environmens with different
     NUMERIC locale.  minor stuff.
-  * SGML: Allow throwing exceptions from call-backs.  Minor stuff.
-  * RDF: Fix for rdf:datatype handling.  Memory leak in process_rdf/2.
-  * SemWeb: For rdf(?,+,?) where the predicate is not a yet known predicate.
-    Used by rdf_bnode/1. Bug resulted in serious loss of memory and
-    performance in applications using rdf_bnode/1 frequently.
 
 
 Incompatible changes
 ====================
 
-  * XPCE class file expands $VAR, etc as the file object is created instead
-    of when it is accessed.  Should not affect many users.
+  * XPCE class REGEX has a completely new implementation basis.  It used
+    to run on the GNU-regex library using EMACS syntax.  The new version
+    is based on the Tcl 8.5 regex library, a version of Henry Spencers
+    regex adopted for UNICODE handling.  This regex library is also used
+    by the Postgres project.  The library uses `modern-style' regex, which
+    differ considerably from the old EMACS ones.
+
+    There is a library(pce_regex_compat) explaining the issues and capable
+    of doing transformation on Prolog source-files.
+
