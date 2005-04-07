@@ -118,20 +118,16 @@ getConvertTextBuffer(Any ctx, Editor e)
 
 static status
 storeTextBuffer(TextBuffer tb, FileObj file)
-{ int unitsize = (istbA(tb) ? sizeof(charA) : sizeof(charW));
+{ IOENC oenc = file->fd->encoding;
+  size_t i;
 
   TRY(storeSlotsObject(tb, file));
   storeIntFile(file, toInt(tb->size));
-  storeIntFile(file, toInt(unitsize));
 
-  Sfwrite(Address(tb, 0),
-	  unitsize,
-	  tb->gap_start,
-	  file->fd);
-  Sfwrite(Address(tb, tb->gap_end),
-	  unitsize,
-	  tb->size - tb->gap_start,
-	  file->fd);
+  file->fd->encoding = ENC_UTF8;
+  for(i=0; i<tb->size; i++)
+    Sputcode(fetch_textbuffer(tb, i), file->fd);
+  file->fd->encoding = oenc;
 
   return checkErrorFile(file);
 }
@@ -139,7 +135,9 @@ storeTextBuffer(TextBuffer tb, FileObj file)
 
 static status
 loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
-{ int unitsize;
+{ IOENC oenc = fd->encoding;
+  size_t i;
+  int chr;
 
   TRY( loadSlotsObject(tb, fd, def) );
 
@@ -150,22 +148,42 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
 
   assign(tb, editors, newObject(ClassChain, EAV));
   tb->size = loadWord(fd);
-  if ( restoreVersion >= 18 )
-    unitsize = loadWord(fd);
   tb->allocated = ROUND(tb->size, ALLOC);
-  if ( unitsize == 1 )
-  { str_cphdr(&tb->buffer, str_nl(NULL));	/* ASCII */
-    tb->tb_bufferA = pceMalloc(tb->allocated);
-    Sfread(Address(tb, 0), sizeof(char), tb->size, fd);
-  } else 
-  { str_inithdr(&tb->buffer, TRUE);
+  
+  str_cphdr(&tb->buffer, str_nl(NULL));
+  tb->tb_bufferA = pceMalloc(tb->allocated);
 
-    if ( unitsize == sizeof(charW) )
-    { Sfread(Address(tb, 0), unitsize, tb->size, fd);
-    } else
-    { assert(0);			/* TBD (also byte-order) */
+  fd->encoding = ENC_UTF8;
+  for(i=0; i<tb->size; i++)
+  { chr = Sgetcode(fd);
+
+    if ( chr <= 0xff )
+      tb->tb_bufferA[i] = chr;
+    else
+      break;
+  }
+
+  if ( i < tb->size )			/* non-ISO characters: promote */
+  { charW *w = pceMalloc(tb->allocated * sizeof(charW));
+    const charA *f = Address(tb, 0);
+    const charA *e = &f[i];
+    charW *t = w;
+
+    while(f<e)
+      *t++ = *f++;
+
+    pceFree(tb->tb_bufferA);
+    tb->tb_bufferW = w;
+    tb->buffer.iswide = TRUE;
+    tb->tb_bufferW[i++] = chr;
+
+    for(; i<tb->size; i++)
+    { chr = Sgetcode(fd);
+
+      tb->tb_bufferW[i] = chr;
     }
   }
+  fd->encoding = oenc;
 
   tb->gap_start = tb->size;
   tb->gap_end = tb->allocated;

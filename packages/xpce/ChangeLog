@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: UNICODE support for class text_buffer in ->save_in_file and
+  file<-object.
+
+
 VERSION 6.5.12, distributed with SWI-Prolog 5.5.12
 ==================================================
 

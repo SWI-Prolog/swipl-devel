@@ -303,6 +303,22 @@ textbuffer(file-1) :-
 	get(file(Tmp, utf8), contents, string(Copy)),
 	delete_file(Tmp),
 	Copy == WAtom.
+textbuffer(store-1) :-
+	tmp_file(tb, Tmp),
+	new(TB, text_buffer('Hello world')),
+	send(TB, save_in_file, Tmp),
+	get(file(Tmp), object, TB2),
+	get(TB2?contents, value, Value),
+	Value == 'Hello world'.
+textbuffer(store-2) :-
+	numlist(32, 1000, L),
+	atom_codes(WAtom, L),
+	tmp_file(tb, Tmp),
+	new(TB, text_buffer(WAtom)),
+	send(TB, save_in_file, Tmp),
+	get(file(Tmp), object, TB2),
+	get(TB2?contents, value, Value),
+	Value == WAtom.
 
 
 		 /*******************************
