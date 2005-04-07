@@ -479,6 +479,9 @@ regex(regex-2) :-			% backref test
 regex(regex-3) :-			% backward search
 	get(regex('[({[]|:'), search, '{ ', 2, 0, X),
 	X == 0.
+regex(regex-4) :-			% BOSONLY on branches
+	\+ send(regex('foo|bar'), match, 'xx bar').
+
 
 
 		 /*******************************

@@ -110,12 +110,12 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  '/'  + comment_start('*'),
 	  '*'  + comment_end('/'),
 
-	  paragraph_end([ '\\s*$',		% empty line
+	  paragraph_end([ '\\s*\n',		% empty line
 			  '^/\\*',		% comment start
-			  '.*\\*/\\s*$', 	% comment end
+			  '.*\\*/\\s*\n', 	% comment end
 			  '^%',			% line comment
 			  '^	',		% indented line
-			  '.*:<?->?\\s*$'	% clause head
+			  '.*:<?->?\\s*\n'	% clause head
 			])
 	]).
 		 
@@ -181,7 +181,7 @@ expand_path(Term, D) :-
 :- pce_global(@prolog_neck_regex,
 	      new(regex(':-|:->|:<-|-->'))).
 :- pce_global(@prolog_full_stop,
-	      new(regex('[^-#$&*+./:<=>?@\\^`~]\\.($|\\s)'))).
+	      new(regex('[^-#$&*+./:<=>?@\\\\^`~]\\.($|\\s)'))).
 
 indent_line(E) :->
 	"Indent current line (Prolog indentation)"::
@@ -284,7 +284,7 @@ insert_if_then_else(E, Times:[int], Char:char) :->
 	    get(E, beginning_of_if_then_else, OpenPos)
 	->  get(E, text_buffer, TB),
 	    get(TB, scan, Caret, line, 0, start, SOL),
-	    (   (   send(regex('\\s*(\\(|->|;)$'), match,
+	    (   (   send(regex('\\s*(\\(|->|;)\n'), match,
 			 TB, SOL, Caret)
 		;   Caret =:= 1 + OpenPos
 		)

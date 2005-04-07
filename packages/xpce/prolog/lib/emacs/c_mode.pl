@@ -58,7 +58,7 @@
 		      (/)  + comment_start(*),
 		      (*)  + comment_end(/),
 
-		      paragraph_end(regex('\\s*\n|/\\*|[^\n]*\\*/'))
+		      paragraph_end(regex('[[:blank:]]*\n|/\\*|[^\n]*\\*/'))
 		    ]).
 
 :- initialization

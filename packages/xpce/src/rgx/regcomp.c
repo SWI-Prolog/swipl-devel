@@ -678,6 +678,14 @@ int partial;			/* is this only part of a branch? */
 	seencontent = 0;
 	t = subre(v, '=', 0, left, right);	/* op '=' is tentative */
 	NOERRN();
+
+				/* Insert a \A (SBEGIN) in each toplevel branch */
+	if ( stopper == EOS && !partial && (v->cflags&REG_BOSONLY)) {
+		newarc(v->nfa, '^', 0, lp, right);
+		newarc(v->nfa, '^', 1, lp, right);
+		seencontent = 1;
+ 	}
+
 	while (!SEE('|') && !SEE(stopper) && !SEE(EOS)) {
 		if (seencontent) {	/* implicit concat operator */
 			lp = newstate(v->nfa);

@@ -283,11 +283,13 @@ struct vars *v;
 	/* remember flavor of last token */
 	v->lasttype = v->nexttype;
 
+#if 0					/* JW: moved to parsebranch() */
 	/* REG_BOSONLY */
 	if (v->nexttype == EMPTY && (v->cflags&REG_BOSONLY)) {
 		/* at start of a REG_BOSONLY RE */
 		RETV(SBEGIN, 0);		/* same as \A */
 	}
+#endif
 
 	/* if we're nested and we've hit end, return to outer level */
 	if (v->savenow != NULL && ATEOS()) {

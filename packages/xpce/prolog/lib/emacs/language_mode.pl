@@ -52,7 +52,7 @@
 	],
 	[ '"'  = string_quote('"'),
 	  '''' = string_quote(''''),
-	  paragraph_end(regex('\\s*$|/\\* - - -|- - -.*\\*/$'))
+	  paragraph_end(regex('\\s*\n|/\\* - - -|- - -.*\\*/\n'))
 	]).
 
 
@@ -576,8 +576,8 @@ adjust_tag(E, Tag) :-
 	get(E, caret, Here),
 	new(Re, regex('')),
 	get(Re, quote, Tag, QTag),
-	(   send(Re, pattern, string('\\\\b%s\\\\b', QTag))
-	;   send(Re, pattern, string('\\\\b%s', QTag))
+	(   send(Re, pattern, string('\\\\y%s\\\\y', QTag))
+	;   send(Re, pattern, string('\\\\y%s', QTag))
 	),
 	closest(Re, TB, Here, Pos), !,
 	send(E, caret, Pos).

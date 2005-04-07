@@ -1022,10 +1022,10 @@ storeWordFile(FileObj f, Any w)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-storeStringFile() stores a string to a file.  For compatibility reasons the
-format is somewhat strange.  If the string is 8-bit, it is stored as length
-followed by the character data.  Otherwise it is stores as NEGATIVE length
-followed by a sequence of UTF-8 character codes.
+storeStringFile() stores a string to a   file. For compatibility reasons
+the format is somewhat strange. If the string  is 8-bit, it is stored as
+length followed by  the  character  data.   Otherwise  it  is  stores as
+NEGATIVE length followed by a sequence of UTF-8 character codes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 status
