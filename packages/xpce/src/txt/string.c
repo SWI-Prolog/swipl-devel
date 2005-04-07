@@ -211,16 +211,16 @@ Load/store a string to/from file. Format:
 static status
 storeString(StringObj s, FileObj file)
 { TRY(storeSlotsObject(s, file));
-  return storeCharpFile(file, (char *)s->data.s_textA); /* TBD: full store! */
+
+  return storeStringFile(file, &s->data);
 }
 
 
 static status
 loadString(StringObj s, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(s, fd, def));
-  CsetString(s, loadCharp(fd));
 
-  succeed;
+  return loadStringFile(fd, &s->data);
 }
 
 

@@ -1021,12 +1021,34 @@ storeWordFile(FileObj f, Any w)
 }
 
 
-status
-storeCharpFile(FileObj f, char *s)
-{ int l = strlen(s);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+storeStringFile() stores a string to a file.  For compatibility reasons the
+format is somewhat strange.  If the string is 8-bit, it is stored as length
+followed by the character data.  Otherwise it is stores as NEGATIVE length
+followed by a sequence of UTF-8 character codes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  TRY(storeWordFile(f, (Any) (long)l));
-  Sfwrite(s, sizeof(char), l, f->fd);
+status
+storeStringFile(FileObj f, String s)
+{ if ( isstrA(s) )
+  { TRY(storeWordFile(f, (Any) s->size));
+    Sfwrite(s->s_textA, sizeof(char), s->size, f->fd);
+  } else
+  { IOENC oenc;
+    const charW *w = s->s_textW;
+    const charW *e = &w[s->size];
+
+    TRY(storeWordFile(f, (Any) -s->size));
+    oenc = f->fd->encoding;
+    f->fd->encoding = ENC_UTF8;
+    for( ; w<e; w++)
+    { if ( Sputcode(*w, f->fd) < 0 )
+      { f->fd->encoding = oenc;
+	return checkErrorFile(f);
+      }
+    }
+    f->fd->encoding = oenc;
+  }
   
   return checkErrorFile(f);
 }
@@ -1034,7 +1056,7 @@ storeCharpFile(FileObj f, char *s)
 
 status
 storeNameFile(FileObj f, Name n)
-{ return storeCharpFile(f, strName(n));
+{ return storeStringFile(f, &n->data);
 }
 
 

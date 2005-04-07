@@ -23,7 +23,7 @@
 */
 
 #include <h/kernel.h>
-#include <h/unix.h>			/* storeCharpFile() prototype */
+#include <h/unix.h>			/* storeStringFile() prototype */
 
 static CharArray	stringToCharArray(String s);
 
@@ -67,23 +67,16 @@ cloneCharArray(CharArray str, CharArray clone)
 static status
 storeCharArray(CharArray s, FileObj file)
 { TRY(storeSlotsObject(s, file));
-  return storeCharpFile(file, (char *)s->data.s_textA); /* TBD: full store! */
+
+  return storeStringFile(file, &s->data);
 }
 
 
 static status
 loadCharArray(CharArray s, IOSTREAM *fd, ClassDef def)
-{ char *data;
+{ TRY(loadSlotsObject(s, fd, def));
 
-  TRY(loadSlotsObject(s, fd, def));
-  if ( (data = loadCharp(fd)) )
-  { String str = &s->data;
-    int len = strlen((char *)data);
-    
-    return str_set_n_ascii(str, len, data);
-  }
-
-  succeed;
+  return loadStringFile(fd, &s->data);
 }
 
 

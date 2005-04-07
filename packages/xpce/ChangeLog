@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: UNICODE support for ->save_in_file on names and strings.
+
 * ADDED: UNICODE support for class text_buffer in ->save_in_file and
   file<-object.
 

@@ -143,6 +143,15 @@ wstring(split-1) :-
 	get(Text, split, -, Chain),
 	chain_list(Chain, Splitted),
 	Splitted == Atoms.
+wstring(store-1) :-
+	numlist(32, 1000, L),
+	atom_codes(Watom, L),
+	tmp_file(tb, Tmp),
+	new(S, string('%s', Watom)),
+	send(S, save_in_file, Tmp),
+	get(file(Tmp), object, S2),
+	get(S2, value, Value),
+	Value == Watom.
 
 
 		 /*******************************

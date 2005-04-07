@@ -217,6 +217,7 @@ saveNilRefs(FileObj f)
 status
 saveInFileObject(Any obj, FileObj file)
 { status result;
+  string magic;
 
   TRY(send(file, NAME_kind, NAME_binary, EAV) &&
       send(file, NAME_open, NAME_write, EAV));
@@ -225,7 +226,8 @@ saveInFileObject(Any obj, FileObj file)
     SaveMagic = SAVEMAGIC;
 
   objects_saved = classes_saved = save_nesting = 0;
-  storeCharpFile(file, SaveMagic);
+  str_set_n_ascii(&magic, strlen(SaveMagic), SaveMagic);
+  storeStringFile(file, &magic);
   storeWordFile(file, (Any) SAVEVERSION);
   saveTable = createHashTable(toInt(256), NAME_none);
   saveClassTable = createHashTable(toInt(256), NAME_none);
@@ -522,38 +524,61 @@ loadWord(IOSTREAM *fd)
 }
 
 
-char *
-loadCharp(IOSTREAM *fd)
-{ DEBUG(NAME_save,
-	{ long here = Stell(fd);
-	  int size = loadWord(fd);
-	  char *s = alloc(size+1);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+loadStringFile() loads a string saved using storeStringFile().  See there for
+format details.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-	  Sfread(s, sizeof(char), size, fd);
-	  s[size] = '\0';
-	  Cprintf("Loaded from %d chars from %ld: `%s'\n", size, here, s);
-	  return s;
-	});
-	  
-  { int size = loadWord(fd);
-    char *s = alloc(size+1);
+int
+loadStringFile(IOSTREAM *fd, String s)
+{ int size = loadWord(fd);
 
-    Sfread(s, sizeof(char), size, fd);
-    s[size] = '\0';
+  if ( size >= 0 )
+  { str_inithdr(s, FALSE);
+    s->size = size;
 
-    return s;
+    str_alloc(s);
+    if ( Sfread(s->s_textA, sizeof(char), size, fd) != size )
+      fail;
+  } else
+  { int i;
+    charW *d;
+    IOENC oenc;
+
+    str_inithdr(s, TRUE);
+    s->size = -size;
+    str_alloc(s);
+
+    oenc = fd->encoding;
+    fd->encoding = ENC_UTF8;
+    for(d=s->s_textW, i=0; i<s->size; i++)
+    { int chr = Sgetcode(fd);
+
+      if ( chr != EOF )
+      { *d++ = chr;
+      } else
+      { fd->encoding = oenc;
+	fail;
+      }
+    }
   }
+
+  succeed;
 }
 
 
 static Name
 loadName(IOSTREAM *fd)
-{ char *s = loadCharp(fd);
-  Name name = CtoName(s);
+{ string s;
 
-  free_string(s);
+  if ( loadStringFile(fd, &s) )
+  { Name name = StringToName(&s);
+    str_unalloc(&s);
 
-  return name;
+    return name;
+  }
+  
+  return NULL;
 }
 
 
@@ -937,17 +962,22 @@ loadObject(IOSTREAM *fd)
 		}
 	      }
     case 'S':				/* lisp-symbol hack */
-	{ char *name_string = loadCharp(fd);
-	  char *package_string = loadCharp(fd);
-	  Name name = CtoName(name_string);
-	  Name package = CtoName(package_string);
-	  Class symbol_class = getConvertClass(ClassClass, NAME_lispSymbol);
-	  Any  symbol = newObject(symbol_class, name, package, EAV);
+	{ string ns, ps;
 
-	  free_string(name_string);
-	  free_string(package_string);
+	  if ( loadStringFile(fd, &ns) &&
+	       loadStringFile(fd, &ps) )
+	  { Name name = StringToName(&ns);
+	    Name package = StringToName(&ps);
+	    Class symbol_class = getConvertClass(ClassClass, NAME_lispSymbol);
+	    Any  symbol = newObject(symbol_class, name, package, EAV);
 
-	  return symbol;
+	    str_unalloc(&ns);
+	    str_unalloc(&ps);
+
+	    return symbol;
+	  }
+
+	  fail;
 	}
     
     default:  { long index;
@@ -1050,13 +1080,10 @@ loadSlotsObject(Any obj, IOSTREAM *fd, ClassDef def)
     if ( (slotValue = loadObject(fd)) == FAIL )
       fail;
     if ( (slot = def->offset[i]) < 0 )	/* slot out of use */
-    { if ( hasSendMethodObject(inst, NAME_convertOldSlot) )
-	send(inst, NAME_convertOldSlot, def->name[i], slotValue, EAV);
-      continue;
-    }
-    if ( restoreVersion != SAVEVERSION || PCEdebugging )
-    { Any converted;
-      Variable var = def->class->instance_variables->elements[slot];
+    { if ( hasSendMethodObject(inst, NAME_convertOldSlot) ) send(inst,
+NAME_convertOldSlot, def->name[i], slotValue, EAV); continue; } if (
+restoreVersion != SAVEVERSION || PCEdebugging ) { Any converted;
+Variable var = def->class->instance_variables->elements[slot];
 
       if ( (converted = checkType(slotValue, var->type, inst)) )
 	slotValue = converted;

@@ -47,9 +47,9 @@ initialiseSyntaxTable(SyntaxTable t, Name name, SyntaxTable def)
   { flags = char_flags;
     context = char_context;
     assign(t, sentence_end,
-	   newObject(ClassRegex, CtoName("[.?!]\\s "), EAV));
+	   newObject(ClassRegex, CtoName("[.?!]\\s"), EAV));
     assign(t, paragraph_end,
-	   newObject(ClassRegex, CtoName("\\s *$"), EAV));
+	   newObject(ClassRegex, CtoName("\\s*\n"), EAV));
   }
     
   assign(t, name, name);
