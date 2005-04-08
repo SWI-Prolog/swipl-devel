@@ -177,6 +177,7 @@ Section "CLP"
   SectionIn 1 3
   SetOutPath $INSTDIR\library\clp
   File pl\library\clp\bounds.pl
+  File pl\library\clp\clp_events.pl
 SectionEnd
 
 Section "CLP on real numbers: CLP(R)"
