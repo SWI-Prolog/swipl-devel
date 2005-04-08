@@ -158,17 +158,8 @@ COMMON(void)	at_pce_exit(atexit_function f, int flags);
 COMMON(void)	run_pce_exit_hooks(int rval);
 
 /* /staff/jan/src/pl/packages/xpce/src/ker/passing.c */
-COMMON(int)	pceMTTryLock(int lock);
 COMMON(void)	LOCK(void);
 COMMON(void)	UNLOCK(void);
-COMMON(int)	pceMTinit(void);
-COMMON(int)	pceMTTryLock(int lock);
-COMMON(int)	pceMTTryLock(int lock);
-COMMON(int)	pceMTinit(void);
-COMMON(int)	pceMTinit(void);
-COMMON(int)	pceMTTryLock(int lock);
-COMMON(void)	pceMTLock(int lock);
-COMMON(void)	pceMTUnlock(int lock);
 COMMON(status)	vm_send(Any receiver, Name selector, Class class, int argc, const Any argv []);
 COMMON(Any)	vm_get(Any receiver, Name selector, Class class, int argc, const Any argv []);
 COMMON(status)	sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv []);
