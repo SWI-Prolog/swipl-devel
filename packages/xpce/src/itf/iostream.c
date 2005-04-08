@@ -242,6 +242,11 @@ static IOFUNCTIONS Sobjectfunctions =
 };
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that files have their own  open/close.   In  the old days that used
+stdio FILE*. Now that they both use IOSTREAM*, this should be merged.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 IOSTREAM *
 Sopen_object(Any obj, const char *mode)
 { if ( instanceOfObject(obj, ClassFile) )
@@ -250,7 +255,37 @@ Sopen_object(Any obj, const char *mode)
 
     if ( (s=Sopen_file(nameToFN(name), mode)) )
     { if ( !strchr(mode, 'b') )
-	setStreamEncodingSourceSink(obj, s);
+      { FileObj f = obj;
+	Name oldstat = f->status;
+	IOSTREAM *ofd = f->fd;
+	int rc;
+
+					/* HACKS */
+	f->status = (mode[0] == 'r' ? NAME_read : NAME_write);
+	f->fd = s;
+
+	switch(mode[0])
+	{ case 'r':
+	  { if ( (rc = doBOMFile(f)) == 0 )
+	      setStreamEncodingSourceSink(obj, s);
+	    break;
+	  }
+	  case 'w':
+	  { setStreamEncodingSourceSink(obj, s);
+	    rc = doBOMFile(f);
+	    break;
+	  }
+	  default:
+	  { setStreamEncodingSourceSink(obj, s);
+	    rc = 0;
+	  }
+	}
+	    
+	f->fd = ofd;
+	f->status = oldstat;
+	if ( rc < 0 )
+	  return NULL;
+      }
       return s;
     }
     

@@ -390,6 +390,31 @@ read_stream_to_terms(H, In, [H|T]) :-
 
 
 		 /*******************************
+		 *	       BOM		*
+		 *******************************/
+
+bom(bom-1) :-
+	tmp_file(bom, File),
+	open(File, write, Out,
+	     [ encoding(unicode_le),
+	       bom(true)
+	     ]),
+	forall(between(32, 1100, C), put_code(Out, C)),
+	close(Out),
+	new(V, view),
+	send(V, load, file(File)),
+	get(V?file, encoding, unicode_le),
+	send(V, append, '\nHello world'),
+	send(V, save),
+	new(F, file(File)),
+	send(F, open, read),
+	get(F, encoding, unicode_le),
+	get(F, bom, @on),
+	send(F, close),
+	delete_file(File).
+
+
+		 /*******************************
 		 *	     SELECTION		*
 		 *******************************/
 
@@ -565,6 +590,7 @@ testset(fmt).				% Formatting actions
 testset(srcsink).			% Source/Sink operations
 testset(file).				% file (-name) handling
 testset(dir).				% directory (-name) handling
+testset(bom).				% Byte Order Mark hanling
 testset(textbuffer).
 testset(asfile).			% test pce_open and friends
 testset(selection).			% X11 selection

@@ -24,8 +24,6 @@
 
 #include <h/kernel.h>
 
-static Name encoding_to_name(IOENC enc);
-
 status
 initialiseSourceSink(SourceSink ss)
 { PceCValue val;
@@ -76,7 +74,7 @@ static const encname enc_names[] =
 };
 
 
-static Name
+Name
 encoding_to_name(IOENC enc)
 { const encname *en;
 

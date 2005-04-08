@@ -73,6 +73,7 @@ initialiseFile(FileObj f, Name name, Name encoding)
   }
 
   assign(f, status, NAME_closed);
+  assign(f, bom, DEFAULT);
   assign(f, path, DEFAULT);
   f->fd = NULL;
 
@@ -207,6 +208,8 @@ loadFile(FileObj f, IOSTREAM *fd, ClassDef def)
     assign(f, kind, NAME_binary);	/* same */
   if ( !isName(f->encoding) )
     assign(f, encoding, (f->kind == NAME_binary ? NAME_octet : NAME_text));
+  if ( !isDefault(f->bom) && !isBoolean(f->bom) )
+    assign(f, bom, DEFAULT);
 
   assign(f, status, NAME_closed);
   f->fd = NULL;
@@ -535,6 +538,39 @@ getFilterFile(FileObj f)
 
 
 status
+doBOMFile(FileObj f)
+{ assert(f->fd);			/* must be open */
+
+  if ( f->kind == NAME_text )
+  { if ( f->status == NAME_read )
+    { if ( f->bom != OFF )
+      { if ( ScheckBOM(f->fd) < 0 )
+	{ error:
+  
+	  reportErrorFile(f);
+	  closeFile(f);
+  
+	  fail;
+	}
+  
+	assign(f, bom, (f->fd->flags & SIO_BOM) ? ON : OFF);
+	if ( f->bom == ON )
+	  assign(f, encoding, encoding_to_name(f->fd->encoding));
+      }
+    } else				/* write */
+    { if ( f->bom == ON )
+      { if ( SwriteBOM(f->fd) < 0 )
+	{ goto error;
+	}
+      }
+    }
+  }
+
+  succeed;
+}
+
+
+status
 openFile(FileObj f, Name mode, Name filter, CharArray extension)
 { CharArray path;
   Name name = getOsNameFile(f);
@@ -613,15 +649,27 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
     return errorPce(f, NAME_openFile, mode, getOsErrorPce(PCE));
   }
 
-  if ( !setStreamEncodingSourceSink((SourceSink)f, f->fd) )
-  { closeFile(f);
-    fail;
-  }
-
-  assign(f, filter, filter);
   if ( mode == NAME_append )
     mode = NAME_write;
   assign(f, status, mode);
+  assign(f, filter, filter);
+
+  if ( mode == NAME_read )
+  { if ( !doBOMFile(f) )
+      fail;
+    if ( !setStreamEncodingSourceSink((SourceSink)f, f->fd) )
+    { closeFile(f);
+      fail;
+    }
+  } else
+  { if ( !setStreamEncodingSourceSink((SourceSink)f, f->fd) )
+    { closeFile(f);
+      fail;
+    }
+
+    if ( mode != NAME_append && !doBOMFile(f) )
+      fail;
+  }
 
   succeed;
 }
@@ -1217,6 +1265,8 @@ static vardecl var_file[] =
      NAME_open, "(How) opened or closed?"),
   IV(NAME_filter, "command=name*", IV_BOTH,
      NAME_filter, "Name of input/output filter used"),
+  IV(NAME_bom, "[bool]", IV_BOTH,
+     NAME_encoding, "Byte Order Mark"),
   IV(NAME_fd, "alien:FILE *", IV_NONE,
      NAME_internal, "Unix file (stream) handle")
 };

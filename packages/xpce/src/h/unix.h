@@ -93,6 +93,7 @@ NewClass(fileobj)
   Name		kind;			/* {text,binary} */
   Name		status;			/* current open mode */
   Name		filter;			/* I/O filter used */
+  Bool		bom;			/* Use/has BOM marker? */
   IOSTREAM     *fd;			/* file descriptor */
 End;
 

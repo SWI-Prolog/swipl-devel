@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Support for BOM.  See class file and SWI-Prolog manual.
+
 * MODIFIED: Replaced the underlying regular expression library from
   GNU-regex to Henry Spencers regex implementation with the Tcl added
   support for UNICODE.  Support for regular expressions is now a lot
