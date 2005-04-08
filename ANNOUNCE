@@ -23,11 +23,11 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	  filenames through UTF-8 encoding.
 	- Support wide characters in SGML/XML parser.
 	- Support wide characters in most of XPCE.
+	- Support for BOM (Byte Order Marker) for UNICODE and UTF-8 files.
 
       Lacking
       -------
 
-	- Support for BOM (Byte Order Marker) for UNICODE and UTF-8 files.
 	- Incomplete support in packages
 		- ODBC
 			- No support at all
@@ -62,14 +62,16 @@ Patches in 5.5.13 relative to 5.5.12
 ====================================
 
   * Added clp/clp_events.pl to installed system.
+  * Added support for BOM (Byte Order Marker) in UNICODE files.
+    See open/4.
+
 
 Packages
 ========
 
-  * XPCE: Added library(pce_progress), providing progress bars.
-    Fixed locale issue making XPCE fail in environmens with different
-    NUMERIC locale.  minor stuff.
-
+  * XPCE: use new library for class regex.  See below.  Added (Prolog
+    compatible) support for BOM.
+  
 
 Incompatible changes
 ====================
