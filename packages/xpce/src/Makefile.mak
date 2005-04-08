@@ -35,7 +35,7 @@ all:	$(PL2XPCE).dll xpce-stub.exe
 ################################################################
 
 MODULES=	adt ari evt gnu gra itf ker men fmt msg prg rel \
-		txt unx win img box msw
+		rgx txt unx win img box msw
 
 ################################################################
 # ADT 		--- Abstract Data Types
@@ -72,7 +72,7 @@ EVTOBJS=	evt\clickgesture.obj evt\conngesture.obj \
 # GNU 		--- GNU-Project Libraries
 ################################################################
 
-GNUOBJS=	gnu\gregex.obj gnu\getdate.obj
+GNUOBJS=	gnu\getdate.obj
 
 gnu\gregex.obj:	gnu\gregex.c
 		$(CC) -I. -I $(PLHOME)\include $(CFLAGS) /Dpce_source \
@@ -172,6 +172,31 @@ RELOBJS=	rel\constraint.obj rel\hyper.obj rel\identity.obj \
 		rel\relation.obj rel\spatial.obj
 
 ################################################################
+# RGX		--- Henry Spencer's regex library
+################################################################
+
+RGXOBJS=	rgx\regcompW.obj rgx\regexecW.obj \
+		rgx\regfree.obj rgx\regerror.obj
+
+REGCOBJS=	rgx\regcomp.c \
+		rgx\regc_lex.c rgx\regc_color.c rgx\regc_nfa.c \
+		rgx\regc_cvec.c rgx\regc_locale.c
+
+rgx\regcompA.obj:	$(REGCOBJS)
+		$(CC) -I. -c $(CFLAGS) rgx\regcomp.c /Fo$@
+rgx\regcompW.obj:	$(REGCOBJS)
+		$(CC) -I. -c $(CFLAGS) -DREG_WIDE rgx\regcomp.c /Fo$@
+rgx\regexecA.obj:	rgx\regexec.c
+		$(CC) -I. -c $(CFLAGS) rgx\regexec.c /Fo$@
+rgx\regexecW.obj:	rgx\regexec.c
+		$(CC) -I. -c $(CFLAGS) -DREG_WIDE rgx\regexec.c /Fo$@
+rgx\regfree.obj:	rgx\regfree.c
+		$(CC) -I. -c $(CFLAGS) -DREG_WIDE rgx\regfree.c /Fo$@
+rgx\regerror.obj:	rgx\regerror.c
+		$(CC) -I. -c $(CFLAGS) -DREG_WIDE rgx\regerror.c /Fo$@
+
+
+################################################################
 # TXT 		--- Text Representation and Manipulation Classes
 ################################################################
 
@@ -237,6 +262,7 @@ OBJECTS=	$(ADTOBJS) \
 		$(MSGOBJS) \
 		$(PRGOBJS) \
 		$(RELOBJS) \
+		$(RGXOBJS) \
 		$(TXTOBJS) \
 		$(UNXOBJS) \
 		$(WINOBJS) \

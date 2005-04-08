@@ -30,12 +30,17 @@
 #define tree pceTree
 #define string pceString
 #include <h/kernel.h>
+#undef INT_MAX
+#undef INT_MIN
 #undef tree
 #undef string
-
 #undef NOTREACHED
 #undef EOS
 #undef OFF
+
+#ifdef WIN32
+#define stdout NULL
+#endif
 
 #define _ANSI_ARGS_(args) args
 #define UCHAR(c) ((unsigned char)(c))

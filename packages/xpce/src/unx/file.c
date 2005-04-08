@@ -1055,7 +1055,7 @@ storeStringFile(FileObj f, String s)
     const charW *w = s->s_textW;
     const charW *e = &w[s->size];
 
-    TRY(storeWordFile(f, (Any) -s->size));
+    TRY(storeWordFile(f, (Any) -(long)s->size));
     oenc = f->fd->encoding;
     f->fd->encoding = ENC_UTF8;
     for( ; w<e; w++)

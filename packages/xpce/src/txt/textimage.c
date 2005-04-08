@@ -474,11 +474,11 @@ do_fill_line(TextImage ti, TextLine l, long index)
 	    last_is_space = TRUE;
 	    break;
 	  case ' ':
-	    x += c_width(tc->value.c, tc->font);
+	    x += c_width((wint_t)tc->value.c, tc->font);
 	    last_is_space = TRUE;
 	    break;
 	  default:
-	    x += c_width(tc->value.c, tc->font);
+	    x += c_width((wint_t)tc->value.c, tc->font);
 	    if ( last_is_space )
 	      last_break = i;
 	    last_is_space = FALSE;
