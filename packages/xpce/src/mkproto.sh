@@ -6,4 +6,4 @@
 # public domain program to generate ANSI prototypes from C-sources.
 
 mkproto -p -d COMMON -D '#define COMMON(type) type SO_LOCAL' $* | \
-	grep -vw NewClass
+	grep -vw NewClass | grep -v pceMT
