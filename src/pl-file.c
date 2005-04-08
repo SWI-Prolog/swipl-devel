@@ -2054,6 +2054,7 @@ static const opt_spec open4_options[] =
   { ATOM_buffer,	 OPT_ATOM },
   { ATOM_lock,		 OPT_ATOM },
   { ATOM_encoding,	 OPT_ATOM },
+  { ATOM_bom,	 	 OPT_BOOL },
   { NULL_ATOM,	         0 }
 };
 
@@ -2070,6 +2071,7 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t lock		= ATOM_none;
   atom_t encoding	= NULL_ATOM;
   bool   close_on_abort = TRUE;
+  bool	 bom		= -1;
   char   how[10];
   char  *h		= how;
   char *path;
@@ -2079,10 +2081,32 @@ openStream(term_t file, term_t mode, term_t options)
   if ( options )
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
-		       &close_on_abort, &buffer, &lock, &encoding) )
+		       &close_on_abort, &buffer, &lock, &encoding, &bom) )
       fail;
   }
 
+					/* MODE */
+  if ( PL_get_atom(mode, &mname) )
+  { if ( mname == ATOM_write )
+    { *h++ = 'w';
+    } else if ( mname == ATOM_append )
+    { bom = FALSE;
+      *h++ = 'a';
+    } else if ( mname == ATOM_update )
+    { bom = FALSE;
+      *h++ = 'u';
+    } else if ( mname == ATOM_read )
+    { *h++ = 'r';
+    } else
+    { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_io_mode, mode);
+      return NULL;
+    }
+  } else
+  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, mode);
+    return NULL;
+  }
+
+					/* ENCODING */
   if ( encoding != NULL_ATOM )
   { enc = atom_to_encoding(encoding);
     if ( enc == ENC_UNKNOWN )
@@ -2092,30 +2116,17 @@ openStream(term_t file, term_t mode, term_t options)
     }
   } else if ( type == ATOM_binary )
   { enc = ENC_OCTET;
+    bom = FALSE;
   } else
   { enc = LD->encoding;
-  }
-
-  if ( PL_get_atom(mode, &mname) )
-  {      if ( mname == ATOM_write )
-      *h++ = 'w';
-    else if ( mname == ATOM_append )
-      *h++ = 'a';
-    else if ( mname == ATOM_update )
-      *h++ = 'u';
-    else if ( mname == ATOM_read )
-      *h++ = 'r';
-    else
-    { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_io_mode, mode);
-      return NULL;
-    }
-  } else
-  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, mode);
-    return NULL;
+    if ( bom == -1 )
+      bom = (mname == ATOM_read ? TRUE : FALSE);
   }
 
   if ( type == ATOM_binary )
     *h++ = 'b';
+
+					/* LOCK */
   if ( lock != ATOM_none )
   { *h++ = 'l';
     if ( lock == ATOM_read || lock == ATOM_shared )
@@ -2131,6 +2142,8 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
   *h = EOS;
+
+					/* FILE */
   if ( PL_get_chars(file, &path, CVT_ATOM|CVT_STRING|CVT_INTEGER|REP_FN) )
   { if ( !(s = Sopen_file(path, how)) )
     { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
@@ -2187,6 +2200,20 @@ openStream(term_t file, term_t mode, term_t options)
     aliasStream(s, alias);
   if ( !reposition )
     s->position = NULL;
+
+  if ( bom )
+  { if ( mname == ATOM_read )
+    { if ( ScheckBOM(s) < 0 )
+      { bom_error:
+
+	streamStatus(getStream(s));
+	return NULL;
+      }
+    } else
+    { if ( SwriteBOM(s) < 0 )
+	goto bom_error;
+    }
+  }
 
   return s;
 }
@@ -2649,6 +2676,15 @@ stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 
 static int
+stream_bom_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ if ( (s->flags & SIO_BOM) ) 
+    return PL_unify_bool_ex(prop, TRUE);
+
+  fail;
+}
+
+
+static int
 stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
 { return PL_unify_atom(prop, encoding_to_atom(s->encoding));
 }
@@ -2706,6 +2742,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_close_on_abort1,stream_close_on_abort_prop },
   { FUNCTOR_tty1,	    stream_tty_prop },
   { FUNCTOR_encoding1,	    stream_encoding_prop },
+  { FUNCTOR_bom1,	    stream_bom_prop },
   { FUNCTOR_representation_errors1, stream_reperror_prop },
   { 0,			    NULL }
 };

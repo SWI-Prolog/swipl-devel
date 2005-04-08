@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Support for BOM (Byte Order Mark), detecting various UNICODE
+    file formats
+
+
 VERSION 5.5.12 (April 04, 2005)
 ===============================
 
@@ -22,6 +26,7 @@ VERSION 5.5.12 (April 04, 2005)
 
   * FIXED: Bug#27: set_stream_property/2 for representation errors.  
     Jiri Spitz.
+
 
 VERSION 5.5.11 (March 15, 2005)
 ===============================

@@ -407,17 +407,26 @@ S__fillbuf(IOSTREAM *s)
       goto error;			/* error */
     }
   } else
-  { int n;
+  { int n, len;
 
     if ( !s->buffer )
     { if ( S__setbuf(s, NULL, 0) < 0 )
 	goto error;
-      s->limitp = s->buffer;
+      s->bufp = s->limitp = s->buffer;
+      len = s->bufsize;
+    } else if ( s->bufp < s->limitp )
+    { len = s->limitp - s->bufp;
+      memmove(s->buffer, s->bufp, s->limitp - s->bufp);
+      s->bufp = s->buffer;
+      s->limitp = &s->bufp[len];
+      len = s->bufsize - len;
+    } else
+    { s->bufp = s->limitp = s->buffer;
+      len = s->bufsize;
     }
 
-    if ( (n=(*s->functions->read)(s->handle, s->buffer, s->bufsize)) > 0 )
-    { s->bufp = s->buffer;
-      s->limitp = &s->buffer[n];
+    if ( (n=(*s->functions->read)(s->handle, s->limitp, len)) > 0 )
+    { s->limitp += n;
       c = char_to_int(*s->bufp++);
       goto ok;
     } else
@@ -1034,6 +1043,79 @@ Sread_pending(IOSTREAM *s, char *buf, int limit, int flags)
   return done+n;
 }
 
+
+		 /*******************************
+		 *               BOM		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Check the stream for a BOM (Byte Order Marker).  If present (and known),
+update the stream encoding.  Return value is one of
+
+	-1:	error (check errno)
+	 0:	ok.  If BOM, SIO_BOM is added to flags
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ IOENC encoding;
+  int bomlen;
+  const char *bom;
+} bomdef;
+
+static const bomdef bomdefs[] =
+{ { ENC_UTF8,       3, "\357\273\277" }, /* 0xef, 0xbb, 0xbb */
+  { ENC_UNICODE_BE, 2, "\376\377" },	 /* 0xfe, oxff */
+  { ENC_UNICODE_LE, 2, "\377\376" },	 /* 0xff, oxfe */
+  { ENC_UNKNOWN,    0, NULL }
+};
+
+int
+ScheckBOM(IOSTREAM *s)
+{ if ( (s->flags & SIO_NBUF) )
+  { errno = EINVAL;
+    return -1;
+  }
+
+  for(;;)
+  { int avail = s->limitp - s->bufp;
+    const bomdef *bd;
+
+    for(bd=bomdefs; bd->bomlen; bd++)
+    { if ( avail >= bd->bomlen && memcmp(s->bufp, bd->bom, bd->bomlen) == 0 )
+      { s->encoding = bd->encoding;
+	s->bufp += bd->bomlen;
+	s->flags |= SIO_BOM;
+	return 0;
+      }
+    }
+
+    if ( avail >= 4 )			/* longest BOM */
+      return 0;
+
+    if ( S__fillbuf(s) == -1 )
+      return 0;				/* empty stream */
+    s->bufp--;
+  }
+}
+
+
+int
+SwriteBOM(IOSTREAM *s)
+{ switch(s->encoding)
+  { case ENC_UTF8:
+    case ENC_UNICODE_LE:
+    case ENC_UNICODE_BE:
+    { if ( Sputcode(0xfeff, s) != -1 )
+      { s->flags |= SIO_BOM;
+
+	return 0;
+      }
+      return -1;
+    }
+    default:
+      return 0;
+  }
+}
 
 
 		 /*******************************

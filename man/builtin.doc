@@ -2036,8 +2036,8 @@ The \arg{Options} list can contain the following options:
     \termitem{type}{Type}
 Using type \const{text} (default), Prolog will write a text-file in
 an operating-system compatible way. Using type \const{binary} the
-bytes will be read or written without any translation. Note there is no
-difference between the two on Unix systems.
+bytes will be read or written without any translation.  See also
+the option \const{encoding}.
 
     \termitem{alias}{Atom}
 Gives the stream a name.   Below is an example.   Be careful with this
@@ -2056,6 +2056,12 @@ Define the encoding used for reading and writing text to this stream.
 The default encoding for type \const{text} is derived from the Prolog
 flag \const{encoding}. For \const{binary} streams the default encoding
 is \const{octet}. For details on encoding issues, see \secref{encoding}.
+
+    \termitem{bom}{Bool}
+Check for a BOM (\jargon{Byte Order Marker}) or write
+one.  If omitted, the default is \const{true} for mode \const{read} and
+\const{false} for mode \const{write}.  See also stream_property/2 and
+especially \secref{bom} for a discussion on this feature.
 
     \termitem{eof_action}{Action}
 Defines what happens if the end of the input stream is reached. Action
@@ -2133,6 +2139,11 @@ Otherwise unify \arg{Atom} with the first alias of the stream.%
 SWI-Prolog extension to query the buffering mode of this stream. 
 \arg{Buffering} is one of \const{full}, \const{line} or \const{false}.
 See also open/4.
+
+    \termitem{bom}{Bool}
+If present and \const{true}, a BOM (\jargon{Byte Order Mark}) was
+detected while opening the file for reading or a BOM was written while
+opening the stream. See \secref{bom} for details.
 
     \termitem{encoding}{Encoding}
 Query the encoding used for text.  See \secref{encoding} for an

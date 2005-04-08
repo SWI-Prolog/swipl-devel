@@ -1717,10 +1717,10 @@ but generates errors and warnings on encountering values above
 8-bit encoding supporting many western languages.  This causes
 the stream to be read and written fully untranslated.
 
-    \termitem{text}
+    \termitem{text}{}
 C-library default locale encoding for textfiles.  Files are read and
 written using the C-library functions mbrtowc() and wcrtomb().  This
-maye be the same as one of the other locales, notably it may be the
+may be the same as one of the other locales, notably it may be the
 same as \const{iso_latin_1} for western languages and \const{utf8}
 in a UTF-8 context.
 
@@ -1743,6 +1743,34 @@ represent these characters. The behaviour of a stream on these errors
 can be controlled using set_stream/2. Initially the terminal stream
 write the characters using Prolog escape sequences while other streams
 generate an I/O exception.
+
+
+\subsubsection{BOM: Byte Order Mark}		\label{sec:BOM}
+
+\index{BOM}\index{Byte Order Mark}%
+From \secref{encoding}, you may have got the impression text-files are
+complicated. This section deals with a related topic, making live often
+easier for the user, but providing another worry to the programmer.
+\textbf{BOM} or \jargon{Byte Order Marker} is a technique for
+identifying UNICODE text-files as well as the encoding they use. Such
+files start with the UNICODE character 0xFEFF, a non-breaking,
+zero-width space character. This is a pretty unique sequence that is not
+likely to be the start of a non-UNICODE file and uniquely distinguishes
+the various UNICODE file formats. As it is a zero-width blank, it even
+doesn't produce any output. This solves all problems, or \ldots
+
+Some formats start of as US-ASCII and may contain some encoding mark to
+switch to UTF-8, such as the \verb$encoding="UTF-8"$ in an XML header.
+Such formats often explicitely forbit the the use of a UTF-8 BOM. In
+other cases there is additional information telling the encoding making
+the use of a BOM redundant or even illegal.
+
+The BOM is handled by SWI-Prolog open/4 predicate. By default,
+text-files are probed for the BOM when opened for reading. If a BOM is
+found, the encoding is set accordingly and the property \term{bom}{true}
+is available through stream_property/2. When opening a file for writing,
+writing a BOM can be requested using the option \term{bom}{true} with
+open/4.
 
 
 \section{System limits}				\label{sec:limits}

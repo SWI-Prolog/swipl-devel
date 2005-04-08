@@ -204,6 +204,7 @@ typedef struct io_stream
 #define SIO_CLEARERR	SmakeFlag(28)	/* Clear error after reporting */
 #define SIO_REPXML	SmakeFlag(29)	/* Bad char --> XML entity */
 #define SIO_REPPL	SmakeFlag(30)	/* Bad char --> Prolog \hex\ */
+#define SIO_BOM		SmakeFlag(31)	/* BOM was detected/written */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
@@ -357,6 +358,9 @@ PL_EXPORT(void)		Sfree(void *ptr);
 
 PL_EXPORT(int64_t)	Stell64(IOSTREAM *s);
 PL_EXPORT(int64_t)	Sseek64(IOSTREAM *s, int64_t pos, int whence);
+
+PL_EXPORT(int)		ScheckBOM(IOSTREAM *s);
+PL_EXPORT(int)		SwriteBOM(IOSTREAM *s);
 
 #ifdef __cplusplus
 }
