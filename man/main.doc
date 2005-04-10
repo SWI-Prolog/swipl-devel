@@ -117,10 +117,10 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 	\LARGE
 	      University of Amsterdam			\\[3mm]
 	\small
-	Dept. of Social Science Informatics (SWI)	\\%
-	    Roeterstraat 15, 1018 WB~~Amsterdam		\\%
+	Human-Computer Studies (HCS, formerly SWI) 	\\%
+	   Kruislaan 419, 1098 VA~~Amsterdam		\\%
 		    The Netherlands			\\%
-		Tel. (+31) 20 5256121
+		Tel. (+31) 20 8884671
     \end{center}}}
 
 \raisebox{4cm}{
@@ -136,7 +136,7 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 	 \LARGE Reference Manual}		\\[3mm]
         {\it Updated for version \versionlong}	\\[10mm]
 	{\large \it Jan Wielemaker}		\\[0mm]
-	{\large \email{jan@swi.psy.uva.nl}}	\\[0mm]
+	{\large \email{wielemak@science.uva.nl}} \\[0mm]
 	{\large	http://www.swi-prolog.org}
 \end{center}
 
