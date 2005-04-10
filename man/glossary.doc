@@ -166,7 +166,7 @@ also called a \g{meta predicate}.
 
     \glossitem{multifile [predicate]}
 Predicate for which the definition is distributed over multiple
-source-files.  See multi_file/1.
+source-files.  See multifile/1.
 
     \glossitem{neck}
 Operator (\const{:-}) separating \g{head} from \g{body} in a \g{clause}.

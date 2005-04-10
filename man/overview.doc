@@ -1745,7 +1745,7 @@ write the characters using Prolog escape sequences while other streams
 generate an I/O exception.
 
 
-\subsubsection{BOM: Byte Order Mark}		\label{sec:BOM}
+\subsubsection{BOM: Byte Order Mark}		\label{sec:bom}
 
 \index{BOM}\index{Byte Order Mark}%
 From \secref{encoding}, you may have got the impression text-files are

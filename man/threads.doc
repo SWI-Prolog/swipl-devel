@@ -278,7 +278,7 @@ threads to wait for data or conditions without using the CPU.
 
 Each thread has a message-queue attached to it that is identified
 by the thread. Additional queues are created using
-message_queue_create/2.
+message_queue_create/1.
 
 \begin{description}
     \predicate{thread_send_message}{2}{+QueueOrThreadId, +Term}
@@ -347,10 +347,10 @@ anynymous message queues, may try to wait for later.%
 As thread_get_message/1, operating on a given queue. It is allowed (but
 not advised) to get messages from the queue of other threads.
 
-    \predicate{thread_get_message}{2}{+Queue, ?Term}
-As thread_get_message/1, operating on a given queue. It is allowed to
-peek into another thread's message queue, an operation that can be used
-to check whether a thread has swallowed a message sent to it.
+    \predicate{thread_peek_message}{2}{+Queue, ?Term}
+As thread_peek_message/1, operating on a given queue. It is allowed
+to peek into another thread's message queue, an operation that can be
+used to check whether a thread has swallowed a message sent to it.
 \end{description}
 
 
@@ -522,7 +522,7 @@ Execute \arg{Goal} while holding \arg{MutexId}.  If \arg{Goal} leaves
 choicepointes, these are destroyed (as in once/1).  The mutex is unlocked
 regardless of whether \arg{Goal} succeeds, fails or raises an exception.
 An exception thrown by \arg{Goal} is re-thrown after the mutex has been
-successfully unlocked.  See also mutex_create/2 and call_cleanup/3.
+successfully unlocked.  See also mutex_create/1 and call_cleanup/3.
 
 Although described in the thread-section, this predicate is also
 available in the single-threaded version, where it behaves simply as

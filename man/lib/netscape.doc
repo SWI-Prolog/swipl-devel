@@ -18,7 +18,7 @@ configuration, but in general it should be the behaviour expected by
 the user.
 
     \item [Other platforms]
-On other platforms it tests the environment variable (see getenv/1)
+On other platforms it tests the environment variable (see getenv/2)
 named \env{BROWSER} or uses \program{netscape} if this variable is not
 set.  If the browser is either \const{mozilla} or \const{netscape},
 www_open_url/1 first tries to open a new window on a running using

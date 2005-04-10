@@ -1852,7 +1852,7 @@ return with the exception.  Some caution is required though.  It is
 \strong{not} allowed to call PL_close_query() or
 PL_discard_foreign_frame() afterwards, as this will invalidate the
 exception term.  Below is the code that calls a Prolog defined
-arithmetic function (see arithmethic_function/1).
+arithmetic function (see arithmetic_function/1).
 
 If PL_next_solution() succeeds, the result is analysed and translated to
 a number, after which the query is closed and all Prolog data created
@@ -1990,6 +1990,11 @@ Signal handling routines may raise exceptions using
 PL_raise_exception().  The use of PL_throw() is not safe.  If a synchronous
 handler raises an exception, the exception is delayed to the next call
 to PL_handle_signals();
+
+    \cfunction{int}{PL_raise}{int sig}
+Register \arg{sig} for \emph{synchronous} handling by Prolog.
+Synchronous signals are handled at the call-port or if foreign code
+calls PL_handle_signals().  See also thread_signal/2.
 
     \cfunction{int}{PL_handle_signals}{void}
 Handle any signals pending from PL_raise(). PL_handle_signals() is

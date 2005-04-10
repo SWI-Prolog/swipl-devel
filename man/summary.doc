@@ -291,7 +291,6 @@ suggest predicates from a keyword.
 \predicatesummary{load_foreign_library}{2}{\pllib{shlib} Load shared library (.so file)}
 \predicatesummary{make}{0}{Reconsult all changed source files}
 \predicatesummary{make_directory}{1}{Create a folder on the file system}
-\predicatesummary{make_fat_filemap}{1}{Win32: Create file containing non-FAT filenames}
 \predicatesummary{make_library_index}{1}{Create autoload file INDEX.pl}
 \predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
 \predicatesummary{maplist}{2}{Apply predicate on all elements}
