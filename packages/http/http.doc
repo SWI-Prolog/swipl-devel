@@ -16,10 +16,10 @@
 
 \title{SWI-Prolog HTTP support}
 \author{Jan Wielemaker \\
-	SWI, \\
+	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{jan@swi.psy.uva.nl}}
+	E-mail: \email{wielemak@science.uva.nl}}
 
 \maketitle
 
@@ -72,14 +72,13 @@ and much larger footprint.
 \subsection*{Acknowledgements}
 
 This work has been carried out under the following projects:
-\url[GARP]{http://web.swi.psy.uva.nl/projects/GARP/},
+\url[GARP]{http://hcs.science.uva.nl/projects/GARP/},
 \url[MIA]{http://db.cwi.nl/projecten/project.php4?prjnr=129},
-\url[IBROW]{http://web.swi.psy.uva.nl/projects/ibrow/home.html} and
-\url[KITS]{http://kits.edte.utwente.nl/}.
-The following people have pioneered parts of
-this library and contributed with bug-report and suggestions for
-improvements: Anjo Anjewierden, Bert Bredeweg, Wouter Jansweijer
-and Bob Wielinga.
+\url[IBROW]{http://hcs.science.uva.nl/projects/ibrow/home.html}
+and \url[KITS]{http://kits.edte.utwente.nl/}. The following people have
+pioneered parts of this library and contributed with bug-report and
+suggestions for improvements: Anjo Anjewierden, Bert Bredeweg, Wouter
+Jansweijer and Bob Wielinga.
 
 
 \section{The HTTP client libraries}
