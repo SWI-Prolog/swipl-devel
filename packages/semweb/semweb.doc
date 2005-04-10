@@ -22,7 +22,7 @@
 	SWI, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{jan@swi.psy.uva.nl}}
+	E-mail: \email{wielemak@science.uva.nl}}
 
 \maketitle
 
@@ -1129,7 +1129,7 @@ To realise a modular graphical interface for editing the triple store,
 the system must use some sort of \emph{event} mechanism. This is
 implemented by the XPCE library \pllib{broadcast} which is described
 in the \url[XPCE User
-Guide]{http://www.swi.psy.uva.nl/projects/xpce/UserGuide/libbroadcast.html}.
+Guide]{http://hcs.science.uva.nl/projects/xpce/UserGuide/libbroadcast.html}.
 In this section we describe the terms brodcasted by the library.
 
 \begin{description}
@@ -1178,7 +1178,7 @@ the SeRQL language.  The Sesame Java client can be used to access Prolog
 servers from Java, while the Prolog client can be used to access the
 Sesame SeRQL server.  For further details, see the
 \url[project
-home]{http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Library/SeRQL}.
+home]{http://gollem.science.uva.nl/twiki/pl/bin/view/Library/SeRQL}.
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
