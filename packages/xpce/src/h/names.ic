@@ -262,6 +262,7 @@
   BUILTIN_NAME("blue")
   BUILTIN_NAME("body")
   BUILTIN_NAME("bold")
+  BUILTIN_NAME("bom")
   BUILTIN_NAME("bool")
   BUILTIN_NAME("boot")
   BUILTIN_NAME("border")
@@ -2399,4 +2400,3 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
-  BUILTIN_NAME("bom")

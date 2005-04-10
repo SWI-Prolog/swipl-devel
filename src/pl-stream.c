@@ -1585,6 +1585,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 
 	if ( *fm == '*' )
 	{ has_arg1++;
+	  fm++;
 	  arg1 = va_arg(args, int);
 	} else if ( isdigit(char_to_int(*fm)) )
 	{ if ( *fm == '0' )

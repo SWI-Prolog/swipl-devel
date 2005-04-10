@@ -4,8 +4,11 @@
 					--------------------------------------
 					NOTE: Bug #<N> refers to bugs reported
 					to the SWI-Prolog Bugzilla system at
-					http://gollem.swi.psy.uva.nl/bugzilla/
+					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
+
+  * FIXED: Bug#30: Sprintf() and friends format bug.  With patch from
+    Koenraad Heijlen.  Thanks.
 
   * ADDED: Support for BOM (Byte Order Mark), detecting various UNICODE
     file formats
@@ -2078,7 +2081,7 @@ VERSION 5.0.5 (April 16, 2002)
   * PORT: Detect <SupportDefs.h> in recent BeOS and use it (Axel Drfler).
 
   * PORT: Fixed detection of ru_idrss in struct rusage (not around in BeOS,
-    reported by Axel D�rfler).
+    reported by Axel Dï¿½rfler).
 
   * FIXED: Documentation on obsolete prolog_navigator/1 replaced by new
     prolog_ide/1.  Fixed prolog_ide(open_navigator(Dir)) (Tolga Konik).
