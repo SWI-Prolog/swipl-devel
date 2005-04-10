@@ -230,6 +230,7 @@
 \langle
 \rangle
 \wedge
+\sum
 
 
 % fancy styles support

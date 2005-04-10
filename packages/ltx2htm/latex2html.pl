@@ -1103,6 +1103,7 @@ cmd(beta, html('&beta;')).
 cmd(alpha, #var(a)).			% \alpha
 cmd(beta, #var(b)).			% \beta
 cmd(tm, #embrace(tm)).			% \tm
+cmd(sum, #i(sum)).			% \sum
 
 cmd(include({File}), HTML) :-
 	absolute_file_name(tex(File), [ extensions([tex]),
