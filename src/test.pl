@@ -1574,7 +1574,9 @@ collect_data(C, Fd, [C|T]) :-
 timeout(pipe-1) :-
 	(   current_prolog_flag(pipe, true),
 	    \+ current_prolog_flag(windows, true) % cannot wait on pipes
-	->  open(pipe('echo xx && sleep 2 && echo xx.'), read, In),
+	->  open(pipe('echo xx && sleep 2 && echo xx.'), read, In,
+		 [ bom(false)
+		 ]),
 	    set_stream(In, timeout(1)),
 	    wait_for_input([In], [In], infinite),
 	    catch(read(In, _), E1, true),

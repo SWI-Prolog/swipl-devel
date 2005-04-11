@@ -282,29 +282,44 @@ Sunlock(IOSTREAM *s)
 
 static int
 S__flushbuf(IOSTREAM *s)
-{ int rval = 0;
-  int size;
+{ int size;
+  char *from = s->buffer;
 
-  while ( (size = s->bufp - s->buffer) > 0 )
-  { int n = (*s->functions->write)(s->handle, s->buffer, size);
+  while ( (size = s->bufp - from) > 0 )
+  { int n = (*s->functions->write)(s->handle, from, size);
 
-    if ( n >= 0 )
-    { rval += n;
-      s->bufp -= n;
-    } else
+    if ( n > 0 )			/* wrote some */
+    { from += n;
+    } else if ( n < 0 )			/* error */
     { s->flags |= SIO_FERR;
       return -1;
+    } else				/* wrote nothing? */
+    { break;
     }
   }
 
-  return rval;
+  if ( s->bufp - from == 0 )		/* full flush */
+  { int rc = s->bufp - s->buffer;
+
+    s->bufp = s->buffer;
+
+    return rc;
+  } else				/* partial flush */
+  { int rc = from - s->buffer;
+    int left = s->bufp - from;
+
+    memmove(s->buffer, from, left);
+    s->bufp = s->buffer + left;
+
+    return rc;
+  }
 }
 
 
 static int
 S__flushbufc(int c, IOSTREAM *s)
 { if ( s->buffer )
-  { if ( S__flushbuf(s) < 0 )
+  { if ( S__flushbuf(s) <= 0 )		/* == 0: no progress!? */
       c = -1;
     else
       *s->bufp++ = (c & 0xff);
