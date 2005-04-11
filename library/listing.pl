@@ -59,7 +59,7 @@ listing :-
 	(   (   predicate_property(Pred, built_in)
 	    ;	sub_atom(Name, 0, _, _, $)
 	    )
-	->  style_check(?dollar)
+	->  style_check(?(dollar))
 	;   true
 	),
 	nl, 

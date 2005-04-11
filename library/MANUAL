@@ -8366,12 +8366,12 @@ uunnkknnoowwnn((_-_O_l_d_, _+_N_e_w))
 
 ssttyyllee__cchheecckk((_+_S_p_e_c))
     Set  style checking options.   _S_p_e_c  is either  +<_o_p_t_i_o_n>, -<_o_p_t_i_o_n>,
-    ?<_o_p_t_i_o_n>  or a  list  of such  options.    +<_o_p_t_i_o_n> sets  a  style
-    checking option,  -<_o_p_t_i_o_n>clears it and ?<_o_p_t_i_o_n> succeeds or fails
-    according to the  current setting.  consult/1 and derivatives resets
-    the  style checking options to their value before loading  the file.
-    If---for  example---a file  containing long atoms  should be  loaded
-    the user can start the file with:
+    ?(<_o_p_t_i_o_n>) or  a list  of  such options.    +<_o_p_t_i_o_n> sets a  style
+    checking  option,  -<_o_p_t_i_o_n> clears it  and ?(<_o_p_t_i_o_n>) succeeds  or
+    fails  according to the current setting.  consult/1  and derivatives
+    resets the style  checking options to their value before loading the
+    file.   If---for  example---a file containing  long atoms should  be
+    loaded the user can start the file with:
 
     :- style_check(-atom).
 
@@ -8383,22 +8383,22 @@ ssttyyllee__cchheecckk((_+_S_p_e_c))
     |                         read_clause/1 (used by  consult/1)  warns |               ||
     |                         on variables  only  appearing once  in  a |               ||
     |                         term  (clause)  which  have  a  name  not |               ||
-
     ||atom          |  on    |starting with an underscore.              ||              ||
 
     |               |        |read/1 and  derivatives will  produce  an |
     |               |        |error message on quoted atoms or  strings |
     |               |        |longer than 5 lines.                      |
+
     | dollar        |  off   |Accept dollar as a lower case  character, |
     |               |        |thus avoiding the need for quoting  atoms |
     |               |        |with dollar  signs.   System  maintenance |
     |               |        |use only.                                 |
     | discontiguous |  on    |Warn if the clauses  for a predicate  are |
-
     |               |        |not together in the same source file.     |
     | string        |  off   |Backward    compatibility.            See |
     |               |        |the       prolog-flag       double_quotes |
     |               |        |(current_prolog_flag/2).                  |
+
     | charset       |  off   |Warn on atoms and variables holding  non- |
     |               |        |ASCII characters  that  are  not  quoted. |
     |_______________|________|See_also_section_2.15.1.1.________________|

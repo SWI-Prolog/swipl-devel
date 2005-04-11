@@ -5034,12 +5034,16 @@ and \const{fail}. If the \plflag{unknown} flag is set to
 \const{warning}, unknown/2 reports the value as \const{trace}.
     \predicate{style_check}{1}{+Spec}
 Set style checking options.  \arg{Spec} is either \mbox{\tt +<option>}, 
-\mbox{\tt -<option>}, \mbox{\tt ?<option>} or a list of such options.
-\mbox{\tt +<option>} sets a style checking option, \mbox{\tt -<option>} clears
-it and \mbox{\tt ?<option>} succeeds or fails according to the current
-setting. consult/1 and derivatives resets the style checking options to
-their value before loading the file. If---for example---a file containing
-long atoms should be loaded the user can start the file with:
+\mbox{\tt -<option>}, \mbox{\tt ?(<option>)}%
+	\footnote{In older versions `\const{?}' was a prefix operator.
+		  Inversions after 5.5.13, explicit brackets are needed.}
+or a list of such options. \mbox{\tt +<option>} sets a style checking
+option, \mbox{\tt -<option>} clears it and \mbox{\tt ?(<option>)}
+succeeds or fails according to the current setting. consult/1 and
+derivatives resets the style checking options to their value before
+loading the file. If---for example---a file containing long atoms should
+be loaded the user can start the file with:
+
 \begin{code}
 :- style_check(-atom).
 \end{code}

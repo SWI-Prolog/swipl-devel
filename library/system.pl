@@ -48,7 +48,7 @@
 
 system_mode(X) :-
 	var(X), !,
-	(   style_check(?dollar)
+	(   style_check(?(dollar))
 	->  X = on
 	;   X = off
 	).

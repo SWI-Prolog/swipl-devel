@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Deleted built-in operator op(500, fy, ?).  Non-standard.
+    Paulo Moura.  Very infrequently used for style_check(?dollar) and
+    similar queries.
+
   * FIXED: Win32 console lockup when writing using put_byte/1 or using
     a modified encoding.
 
