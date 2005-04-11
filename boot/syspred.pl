@@ -93,7 +93,7 @@ $map_bits(Pred, +Name, Old, New) :- !, 		% set a bit
 $map_bits(Pred, -Name, Old, New) :- !, 		% clear a bit
 	call(Pred, Name, Bits), !,
 	New is Old /\ (\Bits).
-$map_bits(Pred, ?Name, Old, Old) :-		% ask a bit
+$map_bits(Pred, ?(Name), Old, Old) :-		% ask a bit
 	call(Pred, Name, Bits),
 	Old /\ Bits > 0.
 

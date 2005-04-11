@@ -9,7 +9,10 @@
 
   * MODIFIED: Deleted built-in operator op(500, fy, ?).  Non-standard.
     Paulo Moura.  Very infrequently used for style_check(?dollar) and
-    similar queries.
+    similar queries.  Also changed for ISO compatibility:
+
+		op(500, fx, \)  --> op(200, fy, \)
+		op(500, fx, -)  --> op(200, fy, -)
 
   * FIXED: Win32 console lockup when writing using put_byte/1 or using
     a modified encoding.

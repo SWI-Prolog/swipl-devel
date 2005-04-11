@@ -511,7 +511,7 @@ static const opdef operators[] = {
   OP(ATOM_plus,		OP_FX,		500),	/* + */
   OP(ATOM_plus,		OP_YFX,		500),
   OP(ATOM_comma,	OP_XFY,	       1000),	/* , */
-  OP(ATOM_minus,	OP_FX,		500),	/* - */
+  OP(ATOM_minus,	OP_FY,		200),	/* - */
   OP(ATOM_minus,	OP_YFX,		500),
   OP(ATOM_grammar,	OP_XFX,	       1200),	/* --> */
   OP(ATOM_ifthen,	OP_XFY,	       1050),	/* -> */
@@ -540,7 +540,7 @@ static const opdef operators[] = {
   OP(ATOM_at_smaller_eq,OP_XFX,		700),	/* @=< */
   OP(ATOM_at_larger,	OP_XFX,		700),	/* @> */
   OP(ATOM_at_larger_eq,	OP_XFX,		700),	/* @>= */
-  OP(ATOM_backslash,	OP_FX,		500),	/* \ */
+  OP(ATOM_backslash,	OP_FY,		200),	/* \ */
   OP(ATOM_not_provable,	OP_FY,		900),	/* \+ */
   OP(ATOM_or,		OP_YFX,		500),	/* \/ */
   OP(ATOM_not_equals,	OP_XFX,		700),	/* \= */

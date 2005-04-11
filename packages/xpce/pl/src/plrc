@@ -17,8 +17,8 @@ This file is loaded  on  startup.  Use   it  for  local  (not  personal)
 configuration purposes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- initialization op(100, fx,  user:(@)).
-:- initialization op(150, yfx, user:(?)).
+:- initialization op(200, fy,  user:(@)).
+:- initialization op(250, yfx, user:(?)).
 :- initialization op(990, xfx, user:(:=)).
 
 :- multifile
