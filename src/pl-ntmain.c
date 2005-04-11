@@ -175,6 +175,16 @@ Srlc_read(void *handle, char *buffer, int size)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The user streams for plwin.exe  run   using  the  'wchar' encoding. This
+means size must be a multiple of   sizeof(wchar_t),  but not if the user
+cheats and either switches the encoding   or uses put_byte/1 or similar.
+The flushing code will remember `half'   characters  and re-send them as
+more data comes ready. This means however  that after a put_byte(X), the
+wchar_t stream is out-of-sync and produces   unreadable  output. We will
+therefore pad it with '?' characters to re-sync the stream.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 Srlc_write(void *handle, char *buffer, int size)
 { rlc_console c = handle;
@@ -182,6 +192,18 @@ Srlc_write(void *handle, char *buffer, int size)
 
   n = rlc_write(c, (TCHAR*)buffer, size/sizeof(TCHAR));
   n *= sizeof(TCHAR);
+
+  if ( n < size && size-n < sizeof(TCHAR) )
+  { char buf[sizeof(TCHAR)];		/* Pad to TCHAR */
+    int i = sizeof(TCHAR) - (size-n);
+
+    memcpy(buf, buffer+n, i);
+    for(; i<sizeof(TCHAR); i++)
+      buf[i] = '?';
+    rlc_write(c, (TCHAR*)buffer, 1);
+
+    return size;
+  }
 
   return n;
 }
