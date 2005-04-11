@@ -466,6 +466,17 @@ comment_column(M, Col:[int]) :->
 	),
 	send(M?editor, comment_column, Column).
 
+encoding(M,
+	 Enc:encoding={ascii,iso_latin_1,text,utf8,unicode_be,unicode_le},
+	 BOM:'BOM'=bool) :->
+	"Set the character encoding for the file"::
+	(   get(M, file, File),
+	    File \== @nil
+	->  send(File, encoding, Enc),
+	    send(File, bom, BOM)
+	;   send(M, report, warning, "No file")
+	).
+
 
 		 /*******************************
 		 *	       PRINT		*

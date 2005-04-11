@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.13, distributed with SWI-Prolog 5.5.13
+==================================================
+
+* ADDED: PceEmacs: report encoding in ->properties and allow changing
+  using M-x encoding.
+
 * ADDED: Support for BOM.  See class file and SWI-Prolog manual.
 
 * MODIFIED: Replaced the underlying regular expression library from
