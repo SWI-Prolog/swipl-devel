@@ -1056,6 +1056,10 @@ term_colours(class_variable(_,_,_),
 term_colours(delegate_to(_),
 	     expanded - [ classify
 			]).
+term_colours((:- encoding(_)),
+	     expanded - [ expanded - [ classify
+				     ]
+			]).
 term_colours((:- pce_begin_class(_, _, _)),
 	     expanded - [ expanded - [ identifier,
 				       pce_new,
