@@ -266,7 +266,7 @@ Sopen_object(Any obj, const char *mode)
 
 	switch(mode[0])
 	{ case 'r':
-	  { if ( (rc = doBOMFile(f)) == 0 )
+	  { if ( (rc = doBOMFile(f)) )
 	      setStreamEncodingSourceSink(obj, s);
 	    break;
 	  }
@@ -283,7 +283,7 @@ Sopen_object(Any obj, const char *mode)
 	    
 	f->fd = ofd;
 	f->status = oldstat;
-	if ( rc < 0 )
+	if ( !rc )
 	  return NULL;
       }
       return s;

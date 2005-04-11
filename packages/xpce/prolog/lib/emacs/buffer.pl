@@ -550,7 +550,9 @@ properties(Buffer, V:view) :<-
 	),
 	(   File \== @nil
 	->  get(File, absolute_path, Path),
-	    send(V, appendf, 'Path:\t%s\n', Path)
+	    send(V, appendf, 'Path:\t%s\n', Path),
+	    send(V, appendf, 'Encoding:\t%s (BOM=%s)\n',
+		 File?encoding, File?bom)
 	;   send(V, appendf, 'Path:\t<No file>\n')
 	),
 	send(V, caret, 0),
