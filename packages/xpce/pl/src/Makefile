@@ -80,7 +80,7 @@ $(OBJDIR)/interface.o:	$(ITFSRC)
 $(OBJDIR)/link.o:	link.c
 		$(CC) -c $(CFLAGS) $< -o $@
 $(OBJDIR)/pcecall.o:	pcecall.c
-		$(CC) -c $(CFLAGS) $< -o $@
+		$(CC) -c $(CFLAGS) $(XINCLUDES) $< -o $@
 
 ################################################################
 # Creating statically linked xpce and its xpce.qlf bootfile
