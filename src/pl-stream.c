@@ -564,7 +564,14 @@ Sfgetc(IOSTREAM *s)
 int
 Sungetc(int c, IOSTREAM *s)
 { if ( s->bufp > s->unbuffer )
-  { *--s->bufp = c;
+  { IOPOS *p = s->position;
+
+    *--s->bufp = c;
+    if ( p )
+    { p->charno--;
+      s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS);
+    }
+
     return c;
   }
 

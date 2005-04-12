@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Sungetc() update of position->charno
+
   * MODIFIED: Deleted built-in operator op(500, fy, ?).  Non-standard.
     Paulo Moura.  Very infrequently used for style_check(?dollar) and
     similar queries.  Also changed for ISO compatibility:
