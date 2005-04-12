@@ -70,8 +70,10 @@ static long nfanode _ANSI_ARGS_((struct vars *, struct subre *, FILE *));
 static int newlacon _ANSI_ARGS_((struct vars *, struct state *, struct state *, int));
 static VOID freelacons _ANSI_ARGS_((struct subre *, int));
 static VOID rfree _ANSI_ARGS_((regex_t *));
+#ifdef REG_DEBUG
 static VOID dump _ANSI_ARGS_((regex_t *, FILE *));
 static VOID dumpst _ANSI_ARGS_((struct subre *, FILE *, int));
+#endif
 static VOID stdump _ANSI_ARGS_((struct subre *, FILE *, int));
 static char *stid _ANSI_ARGS_((struct subre *, char *, size_t));
 /* === regc_lex.c === */
@@ -290,7 +292,11 @@ int flags;
 	struct guts *g;
 	int i;
 	size_t j;
+#ifdef REG_DEBUG
 	FILE *debug = (flags&REG_PROGRESS) ? stdout : (FILE *)NULL;
+#else
+#	define debug NULL
+#endif
 #	define	CNOERR()	{ if (ISERR()) return freev(v, v->err); }
 
 	/* sanity checks */
@@ -375,19 +381,23 @@ int flags;
 	/* finish setup of nfa and its subre tree */
 	specialcolors(v->nfa);
 	CNOERR();
+#ifdef REG_DEBUG
 	if (debug != NULL) {
 		fprintf(debug, "\n\n\n========= RAW ==========\n");
 		dumpnfa(v->nfa, debug);
 		dumpst(v->tree, debug, 1);
 	}
+#endif
 	optst(v, v->tree);
 	v->ntree = numst(v->tree, 1);
 	markst(v->tree);
 	cleanst(v);
+#ifdef REG_DEBUG
 	if (debug != NULL) {
 		fprintf(debug, "\n\n\n========= TREE FIXED ==========\n");
 		dumpst(v->tree, debug, 1);
 	}
+#endif
 
 	/* build compacted NFAs for tree and lacons */
 	re->re_info |= nfatree(v, v->tree, debug);
@@ -403,8 +413,10 @@ int flags;
 		NOTE(REG_USHORTEST);
 
 	/* build compacted NFAs for tree, lacons, fast search */
+#ifdef REG_DEBUG
 	if (debug != NULL)
 		fprintf(debug, "\n\n\n========= SEARCH ==========\n");
+#endif
 	/* can sacrifice main NFA now, so use it as work area */
 	(DISCARD)optimize(v->nfa, debug);
 	CNOERR();
@@ -428,8 +440,10 @@ int flags;
 	v->lacons = NULL;
 	g->nlacons = v->nlacons;
 
+#ifdef REG_DEBUG
 	if (flags&REG_DUMP)
 		dump(re, stdout);
+#endif
 
 	assert(v->err == 0);
 	return freev(v, 0);
@@ -1944,13 +1958,17 @@ FILE *f;			/* for debug output */
 {
 	struct nfa *nfa;
 	long ret = 0;
-	char idbuf[50];
 
 	assert(t->begin != NULL);
 
+#ifdef REG_DEBUG
+	{
+	char idbuf[50];
 	if (f != NULL)
 		fprintf(f, "\n\n\n========= TREE NODE %s ==========\n",
 						stid(t, idbuf, sizeof(idbuf)));
+	}
+#endif
 	nfa = newnfa(v, v->cm, v->nfa);
 	NOERRZ();
 	dupnfa(nfa, t->begin, t->end, nfa->init, nfa->final);
@@ -2051,12 +2069,12 @@ regex_t *re;
  - dump - dump an RE in human-readable form
  ^ static VOID dump(regex_t *, FILE *);
  */
+#ifdef REG_DEBUG
 static VOID
 dump(re, f)
 regex_t *re;
 FILE *f;
 {
-#ifdef REG_DEBUG
 	struct guts *g;
 	int i;
 
@@ -2088,7 +2106,6 @@ FILE *f;
 	}
 	fprintf(f, "\n");
 	dumpst(g->tree, f, 0);
-#endif
 }
 
 /*
@@ -2107,6 +2124,7 @@ int nfapresent;			/* is the original NFA still around? */
 		stdump(t, f, nfapresent);
 	fflush(f);
 }
+#endif
 
 /*
  - stdump - recursive guts of dumpst

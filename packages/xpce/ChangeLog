@@ -4,6 +4,9 @@
 VERSION 6.5.13, distributed with SWI-Prolog 5.5.13
 ==================================================
 
+* PORT: remove regex debugging code, as it fails to compile on some
+  systems.
+
 * MODIFIED: changed operators after discussion with Paulo Moura about
   a conflict with @.  I think these values are more in line with the
   ISO table.

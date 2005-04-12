@@ -38,10 +38,6 @@
 #undef EOS
 #undef OFF
 
-#ifdef WIN32
-#define stdout NULL
-#endif
-
 #define _ANSI_ARGS_(args) args
 #define UCHAR(c) ((unsigned char)(c))
 
