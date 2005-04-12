@@ -148,6 +148,56 @@ environment.  It may start some of these tools.
 \end{itemlist}
 
 
+\subsection{International Sourcefiles}		\label{sec:intsrcfile}
+
+As discussed in \secref{widechars}, SWI-Prolog supports international
+character handling.  Its internal encoding is UNICODE.  I/O streams
+convert to/from this internal format.  This sections discusses the
+options for source-files not in US-ASCII.
+
+SWI-Prolog can read files in any of the encodings described in
+\secref{widechars}. Two encodings are of particular interest. The
+\const{text} encoding deals with the current \jargon{locale}, the
+default used by this computer for representing textfiles. The encodings
+\const{utf8}, \const{unicode_le} and \const{unicode_be} are
+\jargon{UNICODE} encodings: they can represent---in the same
+file---characters of virtually any known language.   In addition, they
+do so unambiguously.
+
+If one wants to represent non US-ASCII text as Prolog terms in a
+source-file there are several options:
+
+\begin{itemlist}
+    \item [Use escape sequences]
+This approach describes NON-ASCII as sequences of the form
+\verb$\$\textit{octal}\verb$\$.  The numerical argument is interpreted as
+a UNICODE character.%
+	\footnote{To my knowledge, the ISO escape sequences is limited
+		  to 3 octal digits, which means most characters cannot
+		  be represented.}
+The resulting Prolog file is strict 7-bit US-ASCII, but if there are
+many NON-ASCII characters it becomes very unreadable.
+
+    \item [Use local conventions]
+Alternatively the file may be specified using local conventions, such
+as the EUC encoding for Japanese text.  The disadvantage is portability.
+If the file is moved to another machine this machine must be using the
+same \jargon{locale} or the file is unreadable.  There is no elegant if
+files from multiple locales must be united in one application using
+this technique.  In other words, it is fine for local projects in
+countries with uniform locale conventions.
+
+    \item [Using UTF-8 files]
+The best way to specify sourcefiles with many NON-ASCII characters is
+definitely the use of UTF-8 encoding. Prolog can be notified two ways of
+this encoding, using a UTF-8 \jargon{BOM} (see \secref{bom}) or using
+the directive \exam{:- encoding(utf8).}.   Many todays text editors,
+including PceEmacs, are capable of editing UTF-8 files.  Projects that
+started using local conventions can be be re-coded using the Unix
+\program{iconv} tool or often using a commands offered by the editor.
+\end{itemlist}
+
+
 \section{Using modules}				\label{sec:usingmodules}
 
 Modules have been debated fiercely in the Prolog world.  Despite all
@@ -311,7 +361,7 @@ of the extension
 
     \item [Using \exam{-*- Prolog -*-}]
 If the above sequence appears in the first line of the file (inside a
-Prolog comment) Prolog mode is sequence
+Prolog comment) Prolog mode is selected.
 
     \item [Explicit selection]
 Finally, using \menu{File/Mode/Prolog} you can switch to Prolog mode

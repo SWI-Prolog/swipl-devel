@@ -1677,9 +1677,9 @@ Although characters are uniquely coded using the UCS standard
 internally, streams and files are byte (8-bit) oriented and there are a
 variety of ways to represent the larger UCS codes in an 8-bit octet
 stream. The most popular one, especially in the context of the web, is
-UTF-8. Bytes 0 \ldots{} 127 represent simply the corresponding US-ASCII
-character, while bytes 128 \ldots{} 255 are used for multi-byte encoding
-of characters placed higher in the UCS space. Especially on
+UTF-8. Bytes 0~\ldots{}~127 represent simply the corresponding US-ASCII
+character, while bytes 128~\ldots{}~255 are used for multi-byte
+encoding of characters placed higher in the UCS space. Especially on
 MS-Windows the 16-bit UNICODE standard, represented by pairs of bytes is
 also popular.
 
@@ -1699,7 +1699,9 @@ Prolog source with an alternative encoding, open/4 when opening files or
 using set_stream/2 on any open stream. For Prolog sourcefiles we also
 provide the encoding/1 directive that can be used to switch between
 encodings that are compatible to US-ASCII (\const{ascii},
-\const{iso_latin_1}, \const{utf8} and many locales).
+\const{iso_latin_1}, \const{utf8} and many locales).  See also
+\secref{intsrcfile} for writing Prolog files with non-us-ascii
+characters.
 
 SWI-Prolog currently defines and supports the following encodings:
 

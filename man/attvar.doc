@@ -209,7 +209,7 @@ Global variables are associations between names (atoms) and terms.
 They differ in various ways from storing information using assert/1
 or recorda/3.
 
-\begin{itemlist}
+\begin{itemize}
     \item The value lives on the Prolog (global) stack.  This implies
           that lookup time is independent from the size of the term.
 	  This is particulary interesting for large data structures
@@ -227,7 +227,7 @@ or recorda/3.
 
     \item Currently global variables are scoped globally.  We may
           consider module scoping in future versions.
-\end{itemlist}
+\end{itemize}
 
 Both b_setval/2 and nb_setval/2 implicitely create a variable if the
 referenced name does not already refer to a variable.
