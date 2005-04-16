@@ -238,7 +238,7 @@ get_constraint_mode(FA,Q) <=>
 
 constraint_mode(FA,Mode), indexed_argument(FA,I) \ may_trigger(FA) <=> 
   nth(I,Mode,M),
-  M \== (+),
+  M \== (+)|
   is_stored(FA). 
 may_trigger(FA) <=> chr_pp_flag(debugable,on).	% in debug mode, we assume everything can be triggered
 
