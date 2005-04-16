@@ -2119,10 +2119,10 @@ openStream(term_t file, term_t mode, term_t options)
     bom = FALSE;
   } else
   { enc = LD->encoding;
-    if ( bom == -1 )
-      bom = (mname == ATOM_read ? TRUE : FALSE);
   }
 
+  if ( bom == -1 )
+    bom = (mname == ATOM_read ? TRUE : FALSE);
   if ( type == ATOM_binary )
     *h++ = 'b';
 
