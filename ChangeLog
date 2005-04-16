@@ -7,6 +7,16 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#31: Crash when asserting predicates with wide-character
+    functor name (mutex-name problem).  Also fixed mutex_statistics/0
+    for such predicates.  Dmitry.
+
+  * FIXED: Do not add BOM by default when a file is opened for write with
+    explicit encoding.
+
+VERSION 5.5.13 (April 12, 2005)
+===============================
+
   * FIXED: Sungetc() update of position->charno
 
   * MODIFIED: Deleted built-in operator op(500, fy, ?).  Non-standard.

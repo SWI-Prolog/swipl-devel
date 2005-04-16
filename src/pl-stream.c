@@ -1556,6 +1556,12 @@ Svprintf(const char *fm, va_list args)
 }
 
 
+#define NEXTCHR(s, c)	if ( utf8 ) \
+			{ (s) = utf8_get_char((s), &(c)); \
+			} else \
+			{ c = *(s)++; c &= 0xff; \
+			}
+
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
 			   } while(0)
@@ -1593,6 +1599,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	char fbuf[100], *fs = fbuf, *fe = fbuf;
 	int islong = 0;
 	int pad = ' ';
+	int utf8 = FALSE;
 
 	for(;;)
 	{ switch(*fm)
@@ -1635,6 +1642,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	}
 	if ( *fm == 'l' )
 	{ islong++;			/* 2: %lld */
+	  fm++;
+	}
+	if ( *fm == 'U' )		/* %Us: UTF-8 string */
+	{ utf8 = TRUE;
 	  fm++;
 	}
 
@@ -1729,7 +1740,9 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  if ( align == A_LEFT )
 	  { int w = 0;
 	    while(*fs)
-	    { OUTCHR(s, *fs++);
+	    { int c;
+	      NEXTCHR(fs, c);
+	      OUTCHR(s, c);
 	      w++;
 	    }
 	    while(w < arg1)
@@ -1744,13 +1757,19 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    else
 	      w = strlen(fs);
 
+	    if ( utf8 )
+	      w = utf8_strlen(fs, w);
+
 	    w = arg1 - w;
 	    while(w > 0 )
 	    { OUTCHR(s, pad);
 	      w--;
 	    }
 	    while(*fs)
-	      OUTCHR(s, *fs++);
+	    { int c;
+	      NEXTCHR(fs, c);
+	      OUTCHR(s, c);
+	    }
 	  }
 	} else
 	{ if ( fs == fbuf )		/* unaligned field, just output */
@@ -1758,7 +1777,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      OUTCHR(s, *fs++);
 	  } else
 	  { while(*fs)
-	      OUTCHR(s, *fs++);
+	    { int c;
+	      NEXTCHR(fs, c);
+	      OUTCHR(s, c);
+	    }
 	  }
 	}
 	fm++;

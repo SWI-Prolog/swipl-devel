@@ -24,6 +24,7 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-utf8.h"
 
 static bool	isUserSystemPredicate(Definition def);
 
@@ -72,7 +73,9 @@ digitValue(int b, int c)
 These  functions  return  a  user-printable  name   of  a  predicate  as
 name/arity or module:name/arity. The result  is   stored  in the foreign
 buffer ring, so we are thread-safe, but   the  result needs to be copied
-before the ring is exhausted. See buffer_string() for details.
+before the ring is exhausted. See buffer_string() for details.  For wide
+character versions, we use UTF-8 encoding.  This isn't very elegant, but
+these functions are for debugging only.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
@@ -81,44 +84,68 @@ procedureName(Procedure proc)
 }
 
 
+#define fetch_text(s, i) \
+	((s)->encoding == ENC_ISO_LATIN_1 ? (s)->text.t[i]&0xff \
+					  : (s)->text.w[i])
+
 const char *
 atom_summary(atom_t name, unsigned int maxlen)
-{ unsigned int len;
-  const char *nm = PL_atom_nchars(name, &len);
+{ PL_chars_t txt;
+  Buffer b;
+  int i;
 
-  if ( maxlen < 10 )
-    maxlen = 10;
+  if ( !get_atom_text(name, &txt) )
+    return NULL;
 
-  if ( len > maxlen )
-  { char tmp[256];
+  if ( txt.encoding == ENC_ISO_LATIN_1 && txt.length < maxlen )
+  { const unsigned char *s = (const unsigned char*) txt.text.t;
+    const unsigned char *e = &s[txt.length];
 
-    if ( maxlen > 255 )
-      maxlen = 255;
+    for( ; s<e; s++ )
+    { if ( *s >= 0x80 )
+	break;
+    }
+    if ( s == e )
+      return txt.text.t;
+  }
 
-    memcpy(tmp, nm, maxlen-6);
-    strcpy(&tmp[maxlen-6], "...");
-    memcpy(&tmp[maxlen-3], &nm[len-3], 3);
-    tmp[maxlen] = EOS;
+  b = findBuffer(BUF_RING);
+  for(i=0; i<txt.length; i++)
+  { char buf[6];
+    char *e;
 
-    return (const char *)buffer_string(tmp, BUF_RING);
-  } else
-    return nm;				/* non-printable characters? */
+    e = utf8_put_char(buf, fetch_text(&txt, i));
+    addMultipleBuffer(b, buf, e-buf, char);
+    if ( i == maxlen - 6 )
+    { addMultipleBuffer(b, "...", 3, char);
+      i = txt.length - 4;
+    }
+  }
+  addBuffer(b, 0, char);
+
+  return baseBuffer(b, char);
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+predicateName() returns an UTF-8  representation  of   the  name  of the
+predicate. Note that we need for the buffer 6*max summary length,
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 char *
 predicateName(Definition def)
-{ char tmp[256];
+{ char tmp[650];
+  char *e = tmp;
 
-  if ( def->module == MODULE_user || isUserSystemPredicate(def) )
-    Ssprintf(tmp, "%s/%d",
-	     atom_summary(def->functor->name, 50), 
-	     def->functor->arity);
-  else
-    Ssprintf(tmp, "%s:%s/%d",
-	     atom_summary(def->module->name, 50), 
-	     atom_summary(def->functor->name, 50), 
-	     def->functor->arity);
+  if ( def->module != MODULE_user && !isUserSystemPredicate(def) )
+  { strcpy(e, atom_summary(def->module->name, 50));
+    e += strlen(e);
+    *e++ = ':';
+  }
+  strcpy(e, atom_summary(def->functor->name, 50));
+  e += strlen(e);
+  *e++ = '/';
+  Ssprintf(e, "%d", def->functor->arity);
 
   return buffer_string(tmp, BUF_RING);
 }

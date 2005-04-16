@@ -290,7 +290,7 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
   { if ( cm->count == 0 )
       continue;
 
-    Sdprintf("%-32s %8d", cm->name, cm->count);
+    Sdprintf("%-32Us %8d", cm->name, cm->count); /* %Us: UTF-8 string */
 #ifdef O_CONTENTION_STATISTICS
     Sdprintf(" %8d", cm->collisions);
 #endif
