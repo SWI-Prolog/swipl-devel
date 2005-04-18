@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.14 (April 18, 2005)
+===============================
+
   * FIXED: Bug#31: Crash when asserting predicates with wide-character
     functor name (mutex-name problem).  Also fixed mutex_statistics/0
     for such predicates.  Dmitry.
