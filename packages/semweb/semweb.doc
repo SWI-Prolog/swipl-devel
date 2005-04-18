@@ -891,16 +891,18 @@ in applications using multiple namespaces that may lead to confusion.
     \predicate{rdfs_ns_label}{2}{?Resource, ?Label}
 Defined as \term{rdfs_ns_label}{Resource, _, Label}.
 
-    \predicate{rdfs_find}{5}{+String, +Description, +Properties, +Method, -Subject}
+    \predicate{rdfs_find}{5}{+String, +Description, ?Properties, +Method, -Subject}
 \index{search}%
 Find (on backtracking) \arg{Subject}s that satisfy a search
 specification for textual attributes.  \arg{String} is the string
 searched for. \arg{Description} is an OWL description (see \secref{owl})
 specifying candidate resources. \arg{Properties} is a list of properties
-to search for literal objects where \arg{rdfs:label} is replaced by a
-call to rdfs_label/2 and finally, \arg{Method} defines the textual
+to search for literal objects, \arg{Method} defines the textual
 matching algorithm.  All textual mapping is performed case-insensitive.
-The matching-methods are described with rdf_match_label/3.
+The matching-methods are described with rdf_match_label/3.  If
+\arg{Properties} is unbound, the search is performed in any property and
+\arg{Properties} is unified with a list holding the property on which
+the match was found.
 \end{description}
 
 

@@ -1,3 +1,8 @@
+Apr 18, 2005
+
+  * ADDED: rdfs_find/5: allow for unbound property list to search all
+    properties.
+
 Apr 1, 2005
 
   * FIXED: memory leak creating many predicate structures on calls to

@@ -310,7 +310,7 @@ rdfs_assert_list([H|T], List, DB) :-
 		 *     SEARCH IN HIERARCHY	*
 		 *******************************/
 
-%	rdfs_find(+String, +Domain, +Properties, +Method, -Subject)
+%	rdfs_find(+String, +Domain, ?Properties, +Method, -Subject)
 %	
 %	Search all classes below Domain for a literal property with
 %	that matches String.  Method is one of
@@ -326,6 +326,12 @@ rdfs_assert_list([H|T], List, DB) :-
 %	making the URI-ref fragment name the last resort to determine
 %	the label.
 
+rdfs_find(String, Domain, Fields, Method, Subject) :-
+	var(Fields), !,
+	For =.. [Method,String],
+	rdf_has(Subject, Field, literal(For, _)),
+	owl_satisfies(Domain, Subject),
+	Fields = [Field].		% report where we found it.
 rdfs_find(String, Domain, Fields, Method, Subject) :-
 	globalise_list(Fields, GlobalFields),
 	For =.. [Method,String],
