@@ -4,6 +4,11 @@
 VERSION 6.5.14, distributed with SWI-Prolog 5.5.14
 ==================================================
 
+* ADDED: allow for rules for the multifile predicate
+  emacs_prolog_colours:style/2 to define personal colour preference. 
+  Steve Moyle.
+
+
 VERSION 6.5.13, distributed with SWI-Prolog 5.5.13
 ==================================================
 

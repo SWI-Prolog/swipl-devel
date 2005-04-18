@@ -43,6 +43,7 @@ User extension hooks.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- multifile
+	style/2,
 	term_colours/2,
 	goal_colours/2,
 	goal_classification/2.
@@ -80,9 +81,12 @@ reload_styles(M) :->
 	"Force reloading the styles"::
 	retractall(style_name(_,_)),
 	(   style(Class, Name, Style),
-	    assert(style_name(Class, Name)),
-	    Style \== @default,
-	    send(M, style, Name, Style),
+	    (	style_name(_, Name)
+	    ->  true			% redefined
+	    ;   assert(style_name(Class, Name)),
+		Style \== @default,
+		send(M, style, Name, Style)
+	    ),
 	    fail
 	;   true
 	).
@@ -919,79 +923,83 @@ head_colours(M:_,		    meta-[module(M),extern(M)]).
 		 *	       STYLES		*
 		 *******************************/
 
-%	style(+Pattern, -Style)
+%	def_style(+Pattern, -Style)
 %
-%	Define the style used for the given pattern.
+%	Define the style used for the   given  pattern. Definitions here
+%	can     be     overruled     by       defining     rules     for
+%	emacs_prolog_colours:style/2
 
-style(goal(built_in,_),	  style(colour	   := blue)).
-style(goal(imported(_),_),style(colour	   := blue)).
-style(goal(autoload,_),	  style(colour	   := navy_blue)).
-style(goal(global,_),	  style(colour	   := navy_blue)).
-style(goal(undefined,_),  style(colour	   := red)).
-style(goal(thread_local,_), style(colour   := magenta,
-				  underline:= @on)).
-style(goal(dynamic,_),	  style(colour	   := magenta)).
-style(goal(multifile,_),  style(colour	   := navy_blue)).
-style(goal(expanded,_),	  style(colour	   := blue,
-				underline  := @on)).
-style(goal(extern(_),_),  style(colour	   := blue,
-				underline  := @on)).
-style(goal(recursion,_),  style(underline  := @on)).
-style(goal(meta,_),	  style(colour	   := red4)). % same as var
-style(goal(local(_),_),	  @default).
-style(goal(constraint(_),_), style(colour := darkcyan)).
+def_style(goal(built_in,_),	style(colour := blue)).
+def_style(goal(imported(_),_),	style(colour := blue)).
+def_style(goal(autoload,_), 	style(colour := navy_blue)).
+def_style(goal(global,_),	style(colour := navy_blue)).
+def_style(goal(undefined,_),	style(colour := red)).
+def_style(goal(thread_local,_), style(colour := magenta,
+				      underline:= @on)).
+def_style(goal(dynamic,_), 	style(colour := magenta)).
+def_style(goal(multifile,_),	style(colour := navy_blue)).
+def_style(goal(expanded,_),	style(colour := blue,
+				      underline := @on)).
+def_style(goal(extern(_),_),	style(colour := blue,
+				      underline := @on)).
+def_style(goal(recursion,_),	style(underline := @on)).
+def_style(goal(meta,_),		style(colour := red4)). % same as var
+def_style(goal(local(_),_),	@default).
+def_style(goal(constraint(_),_), style(colour := darkcyan)).
 
-style(head(exported),	  style(bold	   := @on, colour := blue)).
-style(head(extern(_)),	  style(bold	   := @on, colour := blue)).
-style(head(dynamic),	  style(bold	   := @on, colour := magenta)).
-style(head(multifile),	  style(bold	   := @on, colour := navy_blue)).
-style(head(unreferenced), style(bold	   := @on, colour := red)).
-style(head(hook),	  style(underline  := @on, colour := blue)).
-style(head(meta),	  @default).
-style(head(constraint(_)),style(bold	   := @on, colour := darkcyan)).
-style(head(_),	  	  style(bold	   := @on)).
+def_style(head(exported),	style(bold := @on, colour := blue)).
+def_style(head(extern(_)),	style(bold := @on, colour := blue)).
+def_style(head(dynamic),	style(bold := @on, colour := magenta)).
+def_style(head(multifile),	style(bold := @on, colour := navy_blue)).
+def_style(head(unreferenced),	style(bold := @on, colour := red)).
+def_style(head(hook),	  	style(underline  := @on, colour := blue)).
+def_style(head(meta),	  	@default).
+def_style(head(constraint(_)),	style(bold := @on, colour := darkcyan)).
+def_style(head(_),	  	style(bold := @on)).
 
-style(comment,		  style(colour	   := dark_green)).
+def_style(comment,		style(colour := dark_green)).
 
-style(directive,	  style(background := grey90)).
-style(method(_),	  style(bold       := @on)).
+def_style(directive,	  	style(background := grey90)).
+def_style(method(_),	  	style(bold := @on)).
 
-style(var,		  style(colour	   := red4)).
-style(unbound,		  style(bold	   := @on, colour := red)).
-style(quoted_atom,        style(colour	   := navy_blue)).
-style(string,		  style(colour	   := navy_blue)).
-style(nofile,		  style(colour	   := red)).
-style(file(_),		  style(colour	   := blue,
-				underline  := @on)).
-style(class(built_in,_),  style(colour	   := blue,
-				underline  := @on)).
-style(class(library(_),_),style(colour	   := navy_blue,
-				underline  := @on)).
-style(class(local(_,_,_),_),	  style(underline  := @on)).
-style(class(user(_),_),	  style(underline  := @on)).
-style(class(user,_),	  style(underline  := @on)).
-style(class(undefined,_), style(colour	   := red,
-				underline  := @on)).
-style(prolog_data,	  style(colour	   := blue,
-				underline  := @on)).
+def_style(var,		  	style(colour := red4)).
+def_style(unbound,		style(bold := @on, colour := red)).
+def_style(quoted_atom,        	style(colour := navy_blue)).
+def_style(string,		style(colour := navy_blue)).
+def_style(nofile,		style(colour := red)).
+def_style(file(_),		style(colour := blue,
+				      underline  := @on)).
+def_style(class(built_in,_),	style(colour := blue,
+				      underline := @on)).
+def_style(class(library(_),_),	style(colour := navy_blue,
+				      underline := @on)).
+def_style(class(local(_,_,_),_), style(underline := @on)).
+def_style(class(user(_),_),	style(underline := @on)).
+def_style(class(user,_), 	style(underline := @on)).
+def_style(class(undefined,_),	style(colour := red,
+				      underline  := @on)).
+def_style(prolog_data,		style(colour := blue,
+				      underline  := @on)).
 
-style(identifier,	  style(bold       := @on)).
-style(delimiter,	  style(bold       := @on)).
-style(expanded,		  style(colour	   := blue,
-				underline  := @on)).
+def_style(identifier, 		style(bold := @on)).
+def_style(delimiter,		style(bold := @on)).
+def_style(expanded,		style(colour := blue,
+				      underline  := @on)).
 
-style(hook,		  style(colour	   := blue,
-				underline  := @on)).
+def_style(hook,			style(colour := blue,
+				      underline := @on)).
 
-style(error,		  style(background := orange)).
-style(type_error(_),	  style(background := orange)).
-style(syntax_error,	  style(background := red)).
+def_style(error,		style(background := orange)).
+def_style(type_error(_),	style(background := orange)).
+def_style(syntax_error,	  	style(background := red)).
 
 :- dynamic
 	style_name/2.
 
 style(Class, Name, Style) :-
-	style(Class, Style),
+	(   style(Class, Style)		% user hook
+	;   def_style(Class, Style)	% system default
+	),
 	copy_term(Class, Copy),
 	numbervars(Copy, 0, _),
 	term_to_atom(Copy, Name).
