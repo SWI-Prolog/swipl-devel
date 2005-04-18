@@ -2353,6 +2353,7 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
 
   if ( PL_get_nil(l) )
   { PL_chars_t sum;
+    int rc;
     
     sum.encoding  = enc;
     sum.storage   = PL_CHARS_HEAP;
@@ -2366,7 +2367,10 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
       sum.length = entriesBuffer(&b, pl_wchar_t);
     }
 
-    return PL_unify_text(atom, &sum, PL_ATOM);
+    rc = PL_unify_text(atom, &sum, PL_ATOM);
+    discardBuffer(&b);
+
+    return rc;
   }
 
   discardBuffer(&b);
