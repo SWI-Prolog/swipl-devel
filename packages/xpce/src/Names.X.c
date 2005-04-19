@@ -49,6 +49,8 @@ main(int argc, char **argv)
       { char *start = s = s + len;
 	char nbuf[200];
 
+	if ( strncmp(s, "MAX", 3) == 0 ) /* avoid NAME_MAX */
+	  continue;
 	while(*s && (isalnum(*s & 0xff) || *s == '_') )
 	  s++;
 	strncpy(nbuf, start, s-start);
