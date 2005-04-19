@@ -409,6 +409,14 @@ match(7) :-				% test backtracking
 
 
 		 /*******************************
+		 *	     RETRACTALL		*
+		 *******************************/
+
+rdf_retractall(nopred-1) :-
+	rdf_retractall(aap, noot, mies).
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -490,6 +498,7 @@ testset(update).
 testset(transaction).
 testset(label).
 testset(match).
+testset(rdf_retractall).
 
 %	testdir(Dir)
 %	

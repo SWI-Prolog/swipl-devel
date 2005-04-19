@@ -3031,18 +3031,25 @@ get_src(term_t src, triple *t)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return values:
+	-1: exception
+	 0: no predicate
+	 1: the predicate
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 get_existing_predicate(rdf_db *db, term_t t, predicate **p)
 { atom_t name;
 
   if ( !get_atom_ex(t, &name ) )
-    return FALSE;
+    return -1;				/* error */
 
   if ( (*p = existing_predicate(db, name)) )
-    return TRUE;
+    return 1;
 
   DEBUG(5, Sdprintf("No predicate %s\n", PL_atom_chars(name)));
-  return FALSE;				/* but no exception! */
+  return 0;				/* no predicate */
 }
 
 
@@ -3077,17 +3084,24 @@ return FALSE for  two  reasons.  Mostly   (type)  errors,  but  also  if
 resources are accessed that do not   exist  and therefore the subsequent
 matching will always fail. This  is   notably  the  case for predicates,
 which are first class citizens to this library.
+
+Return values:
+	1: ok
+	0: no predicate
+       -1: error
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 get_partial_triple(rdf_db *db,
 		   term_t subject, term_t predicate, term_t object,
 		   term_t src, triple *t)
-{ if ( subject && !get_atom_or_var_ex(subject, &t->subject) )
+{ int rc;
+
+  if ( subject && !get_atom_or_var_ex(subject, &t->subject) )
     return FALSE;
   if ( !PL_is_variable(predicate) &&
-       !get_existing_predicate(db, predicate, &t->predicate) )
-    return FALSE;
+       (rc=get_existing_predicate(db, predicate, &t->predicate)) != 1 )
+    return rc;
 					/* the object */
   if ( object && !PL_is_variable(object) )
   { if ( PL_get_atom(object, &t->object.resource) )
@@ -3760,7 +3774,7 @@ rdf(term_t subject, term_t predicate, term_t object,
     { triple t, *p;
       
       memset(&t, 0, sizeof(t));
-      if ( !get_partial_triple(db, subject, predicate, object, src, &t) )
+      if ( get_partial_triple(db, subject, predicate, object, src, &t) != TRUE )
 	return FALSE;
 
       if ( !RDLOCK(db) )
@@ -3923,8 +3937,12 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
   int rc;
 
   memset(&t, 0, sizeof(t));
-  if ( !get_partial_triple(db, subject, predicate, object, 0, &t) )
-    return FALSE;
+  if ( (rc=get_partial_triple(db, subject, predicate, object, 0, &t)) != TRUE )
+  { if ( rc == -1 )
+      return FALSE;
+    else
+      return PL_unify_integer(complexity, 0); 	/* cannot succeed */
+  }
   
   if ( !RDLOCK(db) )
     return FALSE;
@@ -4091,8 +4109,12 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   rdf_db *db = DB;
       
   memset(&t, 0, sizeof(t));
-  if ( !get_partial_triple(db, subject, predicate, object, src, &t) )
-    return FALSE;
+  switch( get_partial_triple(db, subject, predicate, object, src, &t) )
+  { case 0:				/* no such predicate */
+      return TRUE;
+    case -1:				/* error */
+      return FALSE;
+  }
 
   if ( !WRLOCK(db, FALSE) )
     return FALSE;
@@ -4610,13 +4632,21 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 
       memset(&a, 0, sizeof(a));
       if ( !PL_is_variable(subj) )		/* subj .... obj */
-      { if ( !get_partial_triple(db, subj, pred, 0, 0, &a.pattern) )
-	  return directly_attached(pred, subj, obj);
+      { switch(get_partial_triple(db, subj, pred, 0, 0, &a.pattern))
+	{ case 0:
+	    return directly_attached(pred, subj, obj);
+	  case -1:
+	    return FALSE;
+	}
 	a.target = a.pattern.object.resource;
 	target_term = obj;
       } else if ( !PL_is_variable(obj) ) 	/* obj .... subj */
-      {	if ( !get_partial_triple(db, 0, pred, obj, 0, &a.pattern) )
-	  return directly_attached(pred, obj, subj);
+      {	switch(get_partial_triple(db, 0, pred, obj, 0, &a.pattern))
+	{ case 0:
+	    return directly_attached(pred, obj, subj);
+	  case -1:
+	    return FALSE;
+	}
 	a.target = a.pattern.subject;
 	target_term = subj;
       } else

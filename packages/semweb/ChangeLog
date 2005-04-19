@@ -1,3 +1,7 @@
+Apr 19, 2005
+
+  * FIXED: rdf_retractall/[3,4] should always succeed
+
 Apr 18, 2005
 
   * ADDED: rdfs_find/5: allow for unbound property list to search all
