@@ -1,4 +1,4 @@
-#define COMMON(type) type SO_LOCAL
+#define COMMON(type) SO_LOCAL type
 
 /* /staff/jan/src/pl/packages/xpce/src/fmt/layoutmgr.c */
 COMMON(status)	initialiseLayoutManager(Any obj);

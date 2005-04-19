@@ -1,4 +1,4 @@
-#define COMMON(type) type SO_LOCAL
+#define COMMON(type) SO_LOCAL type
 
 /* /staff/jan/src/pl/packages/xpce/src/txt/chararray.c */
 COMMON(status)	initialiseCharArray(CharArray n, CharArray value);

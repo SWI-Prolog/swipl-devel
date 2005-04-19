@@ -1,4 +1,4 @@
-#define COMMON(type) type SO_LOCAL
+#define COMMON(type) SO_LOCAL type
 
 /* /staff/jan/src/pl/packages/xpce/src/gra/arc.c */
 COMMON(void)	points_arc(Arc a, int *sx, int *sy, int *ex, int *ey);

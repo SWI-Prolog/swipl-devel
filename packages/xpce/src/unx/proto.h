@@ -1,4 +1,4 @@
-#define COMMON(type) type SO_LOCAL
+#define COMMON(type) SO_LOCAL type
 
 /* /swi40/jan/src/pl/packages/xpce/src/unx/directory.c */
 COMMON(status)	cdDirectory(Directory d);

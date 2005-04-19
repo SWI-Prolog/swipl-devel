@@ -1,4 +1,4 @@
-#define COMMON(type) type SO_LOCAL
+#define COMMON(type) SO_LOCAL type
 
 /* /staff/jan/src/pl/packages/xpce/src/x11/canvas.c */
 
