@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: renamed option initfile for qsave_program/2 to init_file.
+    Inconsistent with the documentation and the rest of the system calls
+    it init_file as well.  Mike Elston.
+
   * FIXED: memory leak in concat_atom/3.
 
 VERSION 5.5.14 (April 18, 2005)

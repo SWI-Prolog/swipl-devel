@@ -54,12 +54,12 @@ qsave_program(FileSpec, Options0) :-
 	check_options(Options0),
 	strip_module(FileSpec, Module, FileBase),
 	exe_file(FileBase, File),
-	option(Options0, autoload/true,	   Autoload,  Options1),
-	option(Options1, map/[],	   Map,	      Options2),
-	option(Options2, goal/[],	   GoalTerm,  Options3),
-	option(Options3, op/save,	   SaveOps,   Options4),
-	option(Options4, class/runtime,	   SaveClass, Options5),
-	option(Options5, initfile/DefInit, InitFile,  Options6),
+	option(Options0, autoload/true,	    Autoload,  Options1),
+	option(Options1, map/[],	    Map,       Options2),
+	option(Options2, goal/[],	    GoalTerm,  Options3),
+	option(Options3, op/save,	    SaveOps,   Options4),
+	option(Options4, class/runtime,	    SaveClass, Options5),
+	option(Options5, init_file/DefInit, InitFile,  Options6),
 	default_init_file(SaveClass, DefInit),
 	(   GoalTerm == []
 	->  Options = Options6,
@@ -582,7 +582,7 @@ option_type(op,		 atom([save, standard])).
 option_type(stand_alone, bool).
 option_type(goal, 	 callable).
 option_type(toplevel, 	 callable).
-option_type(initfile, 	 atom).
+option_type(init_file, 	 atom).
 option_type(emulator, 	 ground).
 
 check_options([]) :- !.
