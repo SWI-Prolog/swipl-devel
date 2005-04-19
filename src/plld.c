@@ -1304,7 +1304,7 @@ createSavedState()
   *e++ = ',';
   e = put_pl_option(e, "toplevel", pltoplevel);
   *e++ = ',';
-  e = put_pl_option(e, "initfile", plinitfile);
+  e = put_pl_option(e, "init_file", plinitfile);
   if ( plclass )
   { *e++ = ',';
     e = put_pl_option(e, "class", plclass);
