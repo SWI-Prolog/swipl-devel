@@ -2172,6 +2172,7 @@ concat(const char *pred,
     PL_concat_text(2, v, &c);
 
     rc = PL_unify_text(a3, &c, otype);
+    PL_free_text(&c);
     goto out;
   }
 
