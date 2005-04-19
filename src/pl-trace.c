@@ -331,7 +331,7 @@ ok:
 Give a trace on the skipped goal for a redo.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  { Code pc2;
+  { Code pc2 = NULL;
 
     if ( port == REDO_PORT && debugstatus.skiplevel == VERY_DEEP &&
 	 (fr = redoFrame(frame, &pc2)) != NULL )
@@ -1708,7 +1708,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 
 foreign_t
 pl_prolog_choice_attribute(term_t choice, term_t what, term_t value)
-{ Choice ch;
+{ Choice ch = NULL;
   atom_t key;
 
   if ( !PL_get_choice(choice, &ch) ||

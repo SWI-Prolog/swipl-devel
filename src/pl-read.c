@@ -342,7 +342,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
   } else if ( isStringStream(rb.stream) )
   { int pos;
 
-    pos = utf8_strlen(rdbase, last_token_start-rdbase);
+    pos = utf8_strlen((char *)rdbase, last_token_start-rdbase);
 
     PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_string2,
@@ -980,13 +980,13 @@ bind_variables(ReadData _PL_rd ARG_LD)
 		*           TOKENISER           *
 		*********************************/
 
-static inline char *
-skipSpaces(char *in)
+static inline unsigned char *
+skipSpaces(unsigned char *in)
 { int chr;
-  char *s;
+  unsigned char *s;
 
   for( ; *in; in=s)
-  { s = utf8_get_char(in, &chr);
+  { s = (unsigned char*)utf8_get_char((char *)in, &chr);
 
     if ( !isBlankW(chr) )
       return in;
@@ -996,13 +996,13 @@ skipSpaces(char *in)
 }
 
 
-static inline char *
-skipAlpha(char *in)
+static inline unsigned char *
+skipAlpha(unsigned char *in)
 { int chr;
-  char *s;
+  unsigned char *s;
 
   for( ; *in; in=s)
-  { s = utf8_get_char(in, &chr);
+  { s = (unsigned char*)utf8_get_char((char*)in, &chr);
 
     if ( !isAlphaW(chr) )
       return in;
@@ -1428,7 +1428,7 @@ checkASCII(unsigned char *name, int len, const char *type)
 
 static Token
 get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
-{ unsigned int c;
+{ int c;
   unsigned char *start;
   int end;
 
@@ -1441,7 +1441,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
   start = last_token_start = rdhere;
   cur_token.start = source_char_no + last_token_start - rdbase;
 
-  rdhere = utf8_get_char(rdhere, &c);
+  rdhere = (unsigned char*)utf8_get_char((char *)rdhere, &c);
   if ( c > 0xff )
   { if ( isLowerW(c) )
       goto lower;
@@ -1460,7 +1460,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		    checkASCII(start, rdhere-start, "atom");
 		  
 		functor:
-		  txt.text.t    = start;
+		  txt.text.t    = (char *)start;
 		  txt.length    = rdhere-start;
 		  txt.storage   = PL_CHARS_HEAP;
 		  txt.encoding  = ENC_UTF8;
@@ -1992,6 +1992,9 @@ complex_term(const char *stop, term_t term, term_t positions,
   term_t pin;
   int thestop;				/* encountered stop-character */
 
+  in_op.left_pri = 0;
+  in_op.right_pri = 0;
+
   for(;;)
   { bool isname;
     Token token;
@@ -2419,35 +2422,35 @@ failed:
 		*       PROLOG CONNECTION       *
 		*********************************/
 
-static char *
-backSkipUTF8(const char *start, const char *end, int *chr)
-{ const char *s;
+static unsigned char *
+backSkipUTF8(unsigned const char *start, unsigned const char *end, int *chr)
+{ const unsigned char *s;
 
   for(s=end-1 ; s>start && *s&0x80; s--)
     ;
-  utf8_get_char(s, chr);
+  utf8_get_char((char*)s, chr);
 
-  return (char *)s;
+  return (unsigned char *)s;
 }
 
 
-static char *
-backSkipBlanks(const char *start, const char *end)
-{ const char *s;
+static unsigned char *
+backSkipBlanks(const unsigned char *start, const unsigned char *end)
+{ const unsigned char *s;
 
   for( ; end > start; end = s)
-  { char *e;
+  { unsigned char *e;
     int chr;
 
     for(s=end-1 ; s>start && *s&0x80; s--)
       ;
-    e = utf8_get_char(s, &chr);
+    e = (unsigned char*)utf8_get_char((char*)s, &chr);
     assert(e == end);
     if ( !isBlankW(chr) )
-      return (char *)end;
+      return (unsigned char*)end;
   }
 
-  return (char *)start;
+  return (unsigned char *)start;
 }
 
 
@@ -2478,7 +2481,7 @@ pl_raw_read2(term_t from, term_t term)
   *top = EOS;
   s = skipSpaces(s);
   
-  txt.text.t    = s;
+  txt.text.t    = (char*)s;
   txt.length    = top-s;
   txt.storage   = PL_CHARS_HEAP;
   txt.encoding  = ENC_UTF8;

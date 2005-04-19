@@ -1489,8 +1489,10 @@ registerFunction(ArithFunction f, int index)
 
   if ( index )
   { if ( index != i )
-      return fatalError("Mismatch in arithmetic function index (%d != %d)",
-		        index, i);
+    { fatalError("Mismatch in arithmetic function index (%d != %d)",
+		 index, i);
+      fail;				/* NOTREACHED */
+    }
   }
 
   f->index = i;

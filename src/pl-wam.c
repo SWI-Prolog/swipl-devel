@@ -2025,7 +2025,7 @@ PL_next_solution(qid_t qid)
   QueryFrame QF;			/* Query frame */
   LocalFrame FR;			/* current frame */
   Word	     ARGP = NULL;		/* current argument pointer */
-  Code	     PC;			/* program counter */
+  Code	     PC = NULL;			/* program counter */
   Definition DEF = NULL;		/* definition of current procedure */
   Word *     aFloor = aTop;		/* don't overwrite old arguments */
 #define	     CL (FR->clause)		/* clause of current frame */
@@ -4713,6 +4713,8 @@ retry:					MARK(RETRY);
   debugstatus.retryFrame = NULL;
   rframe0 = rframe;
 
+  m.trailtop = tTop;
+  m.globaltop = gTop;
   for( ; rframe; rframe = rframe->parent )
   { if ( (ch = findStartChoice(rframe, BFR)) )
     { m = ch->mark;

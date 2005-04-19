@@ -653,7 +653,7 @@ outOfStack(Stack s, stack_overflow_action how)
 }
 
 
-volatile void
+void
 outOfCore()
 { fatalError("Could not allocate memory: %s", OsError());
 }
@@ -903,7 +903,7 @@ globalWString(unsigned len, const pl_wchar_t *s)
     pl_wchar_t *w;
 
     g = allocString((len+1)*sizeof(pl_wchar_t) PASS_LD);
-    t = (unsigned char *)&g[1];
+    t = (char *)&g[1];
     w = (pl_wchar_t*)t;
     w[0] = 0;
     *t = 'W';

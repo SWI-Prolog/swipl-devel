@@ -3287,7 +3287,7 @@ wouldBindToDefinition(Definition from, Definition to)
 word
 pl_xr_member(term_t ref, term_t term, control_t h)
 { GET_LD
-  Clause clause;
+  Clause clause = NULL;
   Code PC;
   Code end;
 
@@ -3589,7 +3589,7 @@ wamListClause(Clause clause)
 
 word
 pl_wam_list(term_t ref)
-{ Clause clause;
+{ Clause clause = NULL;
 
   if ( !get_clause_ptr_ex(ref, &clause) )
     fail;
@@ -3612,7 +3612,7 @@ $fetch_vm(+Clause, +Offset, -NextOffset, -Instruction)
 word
 pl_fetch_vm(term_t ref, term_t offset, term_t noffset, term_t instruction)
 { GET_LD
-  Clause clause;
+  Clause clause = NULL;
   int pcoffset;
   Code PC;
   code op;
@@ -3740,7 +3740,7 @@ add_1_if_not_at_end(Code PC, Code end, term_t tail ARG_LD)
 word
 pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 { GET_LD
-  Clause clause;
+  Clause clause = NULL;
   int pcoffset;
   Code PC, loc, end;
   term_t tail = PL_copy_term_ref(locterm);
@@ -3946,7 +3946,7 @@ for placing a break-point.
 word
 pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
 { GET_LD
-  Clause clause;
+  Clause clause = NULL;
   int offset;
   Code PC, end;
 
@@ -4095,7 +4095,7 @@ replacedBreak(Code PC)
 
 word
 pl_break_at(term_t ref, term_t pc, term_t set)
-{ Clause clause;
+{ Clause clause = NULL;
   int offset;
   int doit;
 

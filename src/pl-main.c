@@ -1199,15 +1199,13 @@ sysError(const char *fm, ...)
 }
 
 
-bool
+void
 fatalError(const char *fm, ...)
 { va_list args;
 
   va_start(args, fm);
   vfatalError(fm, args);
-  va_end(args);
-
-  PL_fail;
+/*va_end(args);*/
 }
 
 
@@ -1279,7 +1277,7 @@ action:
 }
 
 
-bool
+void
 vfatalError(const char *fm, va_list args)
 {
 #if defined(__WINDOWS__) || defined(__WIN32__)
@@ -1296,7 +1294,6 @@ vfatalError(const char *fm, va_list args)
 #endif
 
   PL_halt(2);
-  PL_fail;
 }
 
 

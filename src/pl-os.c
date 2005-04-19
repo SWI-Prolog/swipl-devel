@@ -90,7 +90,6 @@ static real initial_time;
 static void	initExpand(void);
 static void	cleanupExpand(void);
 static void	initEnviron(void);
-static long	Time(void);
 static char *	Which(const char *program, char *fullname);
 
 #ifndef DEFAULT_PATH
@@ -396,7 +395,7 @@ initRandom(void)
   gettimeofday(&tp, NULL);
   init = tp.tv_sec + tp.tv_usec;
 #else
-  init = Time();
+  init = (long)time((time_t *) NULL);
 #endif
 #endif
 
@@ -1853,12 +1852,6 @@ LocalTime(long int *t, struct tm *r)
   *r = *localtime((const time_t *) t);
   return r;
 #endif
-}
-
-
-static long
-Time(void)
-{ return (long)time((time_t *) NULL);
 }
 
 

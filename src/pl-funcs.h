@@ -31,13 +31,13 @@ libraries and avoids Prolog picking wrong   symbols. It also reduces ELF
 symbol lookup and relocations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define COMMON(type) type SO_LOCAL
+#define COMMON(type) SO_LOCAL type
 
 
 /* pl-alloc.c */
 COMMON(void) 		freeHeap__LD(void *mem, size_t n ARG_LD);
 COMMON(word) 		outOfStack(Stack s, stack_overflow_action how);
-COMMON(volatile void)	outOfCore(void);
+COMMON(void)		outOfCore(void) NORETURN;
 COMMON(Word) 		allocGlobal__LD(int words ARG_LD);
 COMMON(Word) 		allocGlobalNoShift__LD(int words ARG_LD);
 COMMON(void *) 		allocHeap__LD(size_t n ARG_LD);
@@ -863,9 +863,9 @@ COMMON(word) 		pl_tty_size(term_t r, term_t c);
 /* pl-main.c */
 COMMON(int) 		startProlog(int argc, char **argv);
 COMMON(bool) 		sysError(const char *fm, ...);
-COMMON(bool) 		fatalError(const char *fm, ...);
+COMMON(void) 		fatalError(const char *fm, ...) NORETURN;
 COMMON(bool) 		warning(const char *fm, ...);
-COMMON(bool) 		vfatalError(const char *fm, va_list args);
+COMMON(void) 		vfatalError(const char *fm, va_list args) NORETURN;
 COMMON(bool) 		vwarning(const char *fm, va_list args);
 
 /* pl-dde.c */

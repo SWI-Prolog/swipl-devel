@@ -369,7 +369,7 @@ pl_nat_sort(term_t in, term_t out, int remove_dups, int compare_keys ARG_LD)
   else
   { list l;
     term_t tmp = PL_new_term_ref();
-    Word top;
+    Word top = NULL;
 
     if ( prolog_list_to_sort_list(in, compare_keys, &l, &top) )
     { l = nat_sort(l, remove_dups, compare_keys);

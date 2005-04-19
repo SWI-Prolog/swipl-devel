@@ -136,6 +136,10 @@ typedef void * 		pl_function_t;	/* can only pass function as void * */
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #endif
 
+#ifndef NORETURN
+#define NORETURN
+#endif
+
 #define fid_t PL_fid_t			/* avoid AIX name-clash */
 
 					/* values for PL_get_term_value() */
@@ -697,7 +701,7 @@ PL_EXPORT(int)		PL_is_initialised(int *argc, char ***argv);
 install_t		PL_install_readline(void);
 PL_EXPORT(int)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
-PL_EXPORT(int)		PL_halt(int status);
+PL_EXPORT(void)		PL_halt(int status) NORETURN;
 
 		 /*******************************
 		 *      INPUT/PROMPT/ETC	*

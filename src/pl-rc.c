@@ -109,7 +109,7 @@ pl_rc_open(term_t rc_h,
 	   term_t name, term_t class, term_t rw,
 	   term_t handle)
 { char *n, *c = NULL;
-  RcArchive rc;
+  RcArchive rc = NULL;
   atom_t how;
   int flags = 0, sflags = 0;		/* compiler isn't smart enough */
 
@@ -179,7 +179,7 @@ pl_rc_open_archive(term_t file, term_t handle)
 
 foreign_t
 pl_rc_close_archive(term_t rc_h)
-{ RcArchive rc;
+{ RcArchive rc = NULL;
 
   if ( !get_rc(rc_h, &rc) )
     return FALSE;
@@ -193,7 +193,7 @@ pl_rc_close_archive(term_t rc_h)
 
 foreign_t
 pl_rc_save_archive(term_t rc_h, term_t to)
-{ RcArchive rc;
+{ RcArchive rc = NULL;
   char *file;
 
   if ( !get_rc(rc_h, &rc) )
@@ -219,7 +219,7 @@ foreign_t
 pl_rc_append_file(term_t rc_h,
 		  term_t name, term_t class, term_t encoding,
 		  term_t file)
-{ RcArchive rc;
+{ RcArchive rc = NULL;
   char *n, *c = "data", *enc = "none", *f;
 
   if ( !get_rc(rc_h, &rc) )
@@ -250,7 +250,7 @@ $rc_members(+RCHandle, -ListOfMembers)
 
 foreign_t
 pl_rc_members(term_t rc_h, term_t members)
-{ RcArchive rc;
+{ RcArchive rc = NULL;
   RcMember m;
   functor_t f;
   term_t tail = PL_copy_term_ref(members);

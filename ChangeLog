@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Made compilation clean for GCC 4.0.  Work with Stefan Dirsch
+    from SuSE preparing for the next SuSE release.
+
   * MODIFIED: renamed option initfile for qsave_program/2 to init_file.
     Inconsistent with the documentation and the rest of the system calls
     it init_file as well.  Mike Elston.

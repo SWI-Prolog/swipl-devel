@@ -680,7 +680,7 @@ PL_canonise_text(PL_chars_t *text)
 	    len++;
 	  }
 
-	  s = (const unsigned char *)text->text.t;
+	  s = (const char *)text->text.t;
 	  text->length = len;
 
 	  if ( wide )
@@ -915,8 +915,8 @@ PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
     return ifeq;
 
   if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_ISO_LATIN_1 )
-  { const unsigned char *s = t1->text.t+o1;
-    const unsigned char *q = t2->text.t+o2;
+  { const unsigned char *s = (const unsigned char *)t1->text.t+o1;
+    const unsigned char *q = (const unsigned char *)t2->text.t+o2;
 
     for(; l-- > 0 && *s == *q; s++, q++ )
       ;
@@ -935,7 +935,7 @@ PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
     else
       return *s > *q ? 1 : -1;
   } else if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_WCHAR )
-  { const unsigned char *s = t1->text.t+o1;
+  { const unsigned char *s = (const unsigned char *)t1->text.t+o1;
     const pl_wchar_t *q = t2->text.w+o2;
 
     for(; l-- > 0 && *s == *q; s++, q++ )
@@ -946,7 +946,7 @@ PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
       return *s > *q ? 1 : -1;
   } else
   { const pl_wchar_t *s = t1->text.w+o1;
-    const unsigned char *q = t2->text.t+o2;
+    const unsigned char *q = (const unsigned char *)t2->text.t+o2;
 
     for(; l-- > 0 && *s == *q; s++, q++ )
       ;
@@ -1007,7 +1007,7 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
       { memcpy(to, text[i]->text.w, text[i]->length*sizeof(pl_wchar_t));
 	to += text[i]->length;
       } else
-      { const unsigned char *f = text[i]->text.t;
+      { const unsigned char *f = (const unsigned char *)text[i]->text.t;
 	const unsigned char *e = &f[text[i]->length];
 
 	while(f<e)

@@ -2240,7 +2240,7 @@ int
 recursiveMutexInit(recursiveMutex *m)
 { 
 #ifdef RECURSIVE_MUTEXES
-  pthread_mutexattr_t *attr;
+  pthread_mutexattr_t *attr = NULL;
   int rc;
   
   if ( (rc=recursive_attr(&attr)) )

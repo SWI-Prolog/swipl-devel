@@ -325,8 +325,8 @@ unify_node(term_t t, call_node *node)
 static
 PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  call_node *parent;
-  call_node *sibling;
+  call_node *parent = NULL;
+  call_node *sibling = NULL;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
@@ -390,7 +390,7 @@ unify_node_id(term_t t, call_node *n)
 static
 PRED_IMPL("$prof_node", 7, prof_node, 0)
 { PRED_LD
-  call_node *n;
+  call_node *n = NULL;
 
   if ( !get_node(A1, &n PASS_LD) )
     fail;

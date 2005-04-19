@@ -346,6 +346,12 @@ A common basis for C keywords.
 #define SO_LOCAL
 #endif
 
+#if defined(__GNUC__) && !defined(NORETURN)
+#define NORETURN __attribute__ ((noreturn))
+#else
+#define NORETURN
+#endif
+
 #if __STRICT_ANSI__
 #undef TAGGED_LVALUE
 #endif

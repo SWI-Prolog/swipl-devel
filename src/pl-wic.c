@@ -716,7 +716,9 @@ loadWicFd(IOSTREAM *fd)
 
   s = getMagicString(fd, mbuf, sizeof(mbuf));
   if ( !s || !streq(s, saveMagic) )
-    return fatalError("Not a SWI-Prolog saved state");
+  { fatalError("Not a SWI-Prolog saved state");
+    fail;				/* NOTREACHED */
+  }
 
   if ( (saved_version=getInt(fd)) < LOADVERSION )
   { fatalError("Saved state has incompatible save version");

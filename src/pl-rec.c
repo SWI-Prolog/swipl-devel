@@ -1495,7 +1495,7 @@ record(term_t key, term_t term, term_t ref, int az)
   RecordList l;
   RecordRef r;
   Record copy;
-  word k;
+  word k = 0L;
 
   DEBUG(3, Sdprintf("record() of ");
 	   PL_write_term(Serror, term, 1200, PL_WRT_ATTVAR_WRITE);
@@ -1549,7 +1549,7 @@ word
 pl_recorded(term_t key, term_t term, term_t ref, control_t h)
 { RecordList rl;
   RecordRef record;
-  word k;
+  word k = 0L;
   term_t copy;
   word rval;
 
