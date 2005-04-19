@@ -466,7 +466,7 @@ void	clearDFlagProgramObject(Any, unsigned long);
 
 
 		/********************************
-		*    CHAR_ARRAY, STRING, NAME	*
+		*       CHAR_ARRAY, STRING	*
 		********************************/
 
 #include "str.h"			/* string type and friends */
@@ -477,19 +477,6 @@ void	clearDFlagProgramObject(Any, unsigned long);
   void  *_s_ ## name ## _buf = (void *)alloca(iswide ? (size) * sizeof(charW) \
 						   : (size) * sizeof(charA)); \
   String name = fstr_inithdr(&_s_ ## name ## _hdr, iswide, _s_ ## name ## _buf, size)
-
-#ifndef NO_BUILT_IN_DECL
-extern struct name builtin_names[];	/* object-array of built-in's */
-#endif
-#include "names.ih"			/* #defines for code used names */
-
-#define isName(name)	(isObject(name) && onFlag((name), F_ISNAME))
-#define notName(name)	(!isName(name))
-#define equalName(a, b) ((a) == (b))
-#define strName(s)	((char *)((Name)(s))->data.s_textA)
-
-#define getAppendName(n, s) \
-	((Name) getAppendCharArray((CharArray)(n), (CharArray)(s)))
 
 		/********************************
 		*         OBJECT HEADER		*
@@ -1406,6 +1393,23 @@ struct class_definition
   Class *	global;			/* Pointer to global class var */
   char *	summary;		/* Summary description */
 };
+
+		 /*******************************
+		 *	       NAMES		*
+		 *******************************/
+
+#ifndef NO_BUILT_IN_DECL
+extern struct name builtin_names[];	/* object-array of built-in's */
+#endif
+#include "names.ih"			/* #defines for code used names */
+
+#define isName(name)	(isObject(name) && onFlag((name), F_ISNAME))
+#define notName(name)	(!isName(name))
+#define equalName(a, b) ((a) == (b))
+#define strName(s)	((char *)((Name)(s))->data.s_textA)
+
+#define getAppendName(n, s) \
+	((Name) getAppendCharArray((CharArray)(n), (CharArray)(s)))
 
 
 		/********************************

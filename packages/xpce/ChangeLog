@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: Some of the GCC 4.0 issues (handling names and visibility attribute)
+
+
 VERSION 6.5.14, distributed with SWI-Prolog 5.5.14
 ==================================================
 
