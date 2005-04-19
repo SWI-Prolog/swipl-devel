@@ -531,7 +531,7 @@ void xdnd_send_position (DndClass * dnd, Window window, Window from, Atom action
     xevent.xclient.message_type = dnd->XdndPosition;
     xevent.xclient.format = 32;
 
-    XDND_POSITION_SOURCE_WIN (&xevent) = from;
+    XDND_POSITION_SOURCE_WIN (&xevent) = (long)from;
     XDND_POSITION_ROOT_SET (&xevent, x, y);
     if (dnd_version_at_least (dnd->dragging_version, 1))
 	XDND_POSITION_TIME (&xevent) = time;
@@ -554,7 +554,7 @@ void xdnd_send_status (DndClass * dnd, Window window, Window from, int will_acce
     xevent.xclient.message_type = dnd->XdndStatus;
     xevent.xclient.format = 32;
 
-    XDND_STATUS_TARGET_WIN (&xevent) = from;
+    XDND_STATUS_TARGET_WIN (&xevent) = (long)from;
     XDND_STATUS_WILL_ACCEPT_SET (&xevent, will_accept);
     if (will_accept)
 	XDND_STATUS_WANT_POSITION_SET (&xevent, want_position);

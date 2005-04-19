@@ -46,7 +46,10 @@ critical modules may wish to include this file in the following way:
 		*     OBJECT MANIPULATIONS	*
 		********************************/
 
-INLINE constf status
+INLINE status instanceOfObject(const Any obj, const Class super) PURE_FUNCTION;
+INLINE status objectIsInstanceOf(const Any obj, const Class super) PURE_FUNCTION;
+
+INLINE status
 instanceOfObject(const Any obj, const Class super)
 { if ( isObject(obj) )
   { Class class = classOfObject(obj);
@@ -59,7 +62,7 @@ instanceOfObject(const Any obj, const Class super)
 }
 
 
-INLINE constf status
+INLINE status
 objectIsInstanceOf(const Any obj, const Class super)
 { const Class class = classOfObject(obj);
     
@@ -277,22 +280,22 @@ checkSelector(Any sel)
 
 #else /*USE_INLINE*/
 
-void		unallocObject(Any obj);
-void		addCodeReference(Any obj);
-void		delCodeReference(Any obj);
-status	 constf instanceOfObject(const Any, const Class);
-status   constf objectIsInstanceOf(const Any obj, const Class super);
-status		isProperObject(const Any);
-Any		getSendMethodClass(Class, Name);
-Any		getGetMethodClass(Class, Name);
-Any		getMemberHashTable(const HashTable, const Any);
-status		executeCode(Code);
-Any		getExecuteFunction(Function);
-status		forwardCodev(Code, int, const Any[]);
-status		forwardBlockv(Block, int, const Any[]);
-Any		expandCodeArgument(Any);
-Any		checkType(const Any val, const Type t, const Any ctx);
-Name		checkSelector(Any sel);
+void	unallocObject(Any obj);
+void	addCodeReference(Any obj);
+void	delCodeReference(Any obj);
+status	instanceOfObject(const Any, const Class) PURE_FUNCTION;
+status  objectIsInstanceOf(const Any obj, const Class super) PURE_FUNCTION;
+status	isProperObject(const Any);
+Any	getSendMethodClass(Class, Name);
+Any	getGetMethodClass(Class, Name);
+Any	getMemberHashTable(const HashTable, const Any);
+status	executeCode(Code);
+Any	getExecuteFunction(Function);
+status	forwardCodev(Code, int, const Any[]);
+status	forwardBlockv(Block, int, const Any[]);
+Any	expandCodeArgument(Any);
+Any	checkType(const Any val, const Type t, const Any ctx);
+Name	checkSelector(Any sel);
 
 /* Donot write below this line */
 #endif /*USE_INLINE*/

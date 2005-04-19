@@ -198,10 +198,10 @@ different types when passed to a vararg function.
 #define inline
 #endif
 
-#if O_CONST_FUNCTION
-#define constf const
+#ifdef __GNUC__
+#define PURE_FUNCTION __attribute__((pure))
 #else
-#define constf
+#define PURE_FUNCTION
 #endif
 
 #define forwards	static		/* Local functions */

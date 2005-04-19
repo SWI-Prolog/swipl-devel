@@ -1,7 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
-* PORT: Some of the GCC 4.0 issues (handling names and visibility attribute)
+* PORT: Some of the GCC 4.0 issues: handling names, visibility attribute,
+  illegal lvalues in DND interface. Work with Stefan Dirsch from SuSE
+  preparing for the next SuSE release.
 
 
 VERSION 6.5.14, distributed with SWI-Prolog 5.5.14
