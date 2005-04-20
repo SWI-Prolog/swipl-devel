@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: regex definitions is ispell demo (also used by PceEmacs
+  M-x ispell).
+
 * PORT: Some of the GCC 4.0 issues: handling names, visibility attribute,
   illegal lvalues in DND interface. Work with Stefan Dirsch from SuSE
   preparing for the next SuSE release.

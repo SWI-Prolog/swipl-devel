@@ -419,8 +419,8 @@ mark_word(F, S:string) :->
 	get(F, view, View),
 	get(View, text_buffer, TB),
 	get(@ispell_mark_re, quote, S, Q),
-	send(Q, prepend, '\\b'),
-	send(Q, append, '\\b'),
+	send(Q, prepend, '\\y'),
+	send(Q, append, '\\y'),
 	send(@ispell_mark_re, pattern, Q),
 	mark_all(TB, 0, @ispell_mark_re, Word, Errors, error),
 	send(F, report, done).
@@ -552,11 +552,12 @@ the object searched.  Register 0 of a regular expression refers to the
 entire match.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_global(@re_word_ispell_3, new(regex('[:,] \\([^,]*\\)'))).
-:- pce_global(@re_word_ispell_4, new(regex('\\s +\\(\\S +\\)'))).
+:- pce_global(@re_word_ispell_3, new(regex('[:,] ([^,]*)'))).
+:- pce_global(@re_word_ispell_4, new(regex('\\s+(\\S+)'))).
 
 ispell_utterance(F, Line:string) :->
 	"Handle line of output from ispell"::
+	send(@pce, write_ln, Line),
 	get(F, corrections, Corrections),
 	(   get(Line, size, 1)
 	->  true
