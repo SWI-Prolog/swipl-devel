@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: XPCE httpd regex for breaking the header.
+
 * FIXED: regex definitions is ispell demo (also used by PceEmacs
   M-x ispell).
 

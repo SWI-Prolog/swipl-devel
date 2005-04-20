@@ -57,7 +57,7 @@ initialise(S, Port:[int]) :->
 	send(S, listen, reuse := @on).
 
 :- pce_global(@http_header_regex,
-	      new(regex('^([^:]+):\\s*(.*)$'))).
+	      new(regex('^([^:]+):\\s*([^\n]*)'))).
 :- pce_global(@http_path_regex,
 	      new(regex('(\\w+)\\s*(\\S+)\\s*HTTP/([0-9.]+)\r?\n?'))).
 
@@ -339,7 +339,7 @@ pp_request(S) :->
 	"Print the current request"::
 	get(S, request, Sheet),
 	send(Sheet, for_all,
-	     message(@pce, format, '%s: %s\n', @arg1?name, @arg1?value)),
+	     message(@pce, format, 'FIELD %s: %s\n', @arg1?name, @arg1?value)),
 	(   get(Sheet, value, form, Form),
 	    Form \== @nil
 	->  send(@pce, format, '\nForm data:\n'),

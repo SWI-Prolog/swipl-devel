@@ -182,7 +182,7 @@ function expandall()
 %	be used in the onLoad handler of the page-body.
 
 pageYOffset(Cookie, Y) :-
-	new(Re, regex('y=\\([0-9]+\\)')),
+	new(Re, regex('y=([0-9]+)')),
 	send(Re, search, Cookie),
 	get(Re, register_value, Cookie, 1, int, Y).
 pageYOffset(_, 0).
