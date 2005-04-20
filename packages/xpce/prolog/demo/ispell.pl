@@ -557,7 +557,6 @@ entire match.
 
 ispell_utterance(F, Line:string) :->
 	"Handle line of output from ispell"::
-	send(@pce, write_ln, Line),
 	get(F, corrections, Corrections),
 	(   get(Line, size, 1)
 	->  true
