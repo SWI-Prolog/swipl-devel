@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: Fixed visibility attribute issues on IA64.  These problems may
+  have affected more GCC/ELF platforms.  With help from Stefan Dirsch.
+
 * FIXED: XPCE httpd regex for breaking the header.
 
 * FIXED: regex definitions is ispell demo (also used by PceEmacs

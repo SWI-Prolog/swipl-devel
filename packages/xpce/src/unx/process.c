@@ -535,7 +535,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
       if ( (pid = fork()) == 0 )	/* child process */
       { int i, argc;
 	char **argv;
-	int maxfd = getdtablesize();
+	int maxfd = getFileDesCount();
 
 #ifdef stderr
 	DEBUG(NAME_process, fprintf(stderr, "Child: maxfd = %d\n", maxfd));
@@ -644,11 +644,10 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	  cdDirectory(p->directory);
 	initEnvironment(p);
 
-	for(i = getdtablesize()-1; i >= 0; i--)
-	  if ( i != wrfd[0] && i != rdfd[1] )
+	for(i = getFileDesCount()-1; i >= 0; i--)
+	{ if ( i != wrfd[0] && i != rdfd[1] )
 	    close(i);
-
-
+	}
 
 	dup2(wrfd[0], 0);
 	dup2(rdfd[1], 1);

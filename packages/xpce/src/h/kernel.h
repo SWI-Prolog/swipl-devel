@@ -95,10 +95,6 @@ generate warnings on accidental use of them.
 #include SYSLIB_H
 #endif
 
-#ifndef HAVE_GETDTABLESIZE		/* avoid clash with SWI-Prolog */
-#define getdtablesize PCE_getdtablesize
-#endif
-
 		/********************************
 		*             LIMITS		*
 		********************************/

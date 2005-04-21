@@ -475,26 +475,19 @@ exceptionPce(Pce pce, Name kind, ...)
 		*           STATISTICS		*
 		********************************/
 
-#ifndef HAVE_GETDTABLESIZE
+int
+getFileDesCount(void)
+{
+#ifdef HAVE_GETDTABLESIZE
+   return getdtablesize();
+#else
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
-#if defined(__sun__) && !defined(STDC_HEADERS)
-extern int getrlimit(int resource, struct rlimit *rlp);
-#endif
-
-int
-getdtablesize(void)
-{ struct rlimit rlp;
+  struct rlimit rlp;
   (void) getrlimit(RLIMIT_NOFILE, &rlp);
 
   return (rlp.rlim_cur);
-}
-
 #else
-
-int
-getdtablesize(void)
-{
 #ifdef OPEN_MAX
   return OPEN_MAX;
 #else
@@ -507,10 +500,10 @@ getdtablesize(void)
 #endif
 #endif
   return 32;				/* don't know */
+#endif
+#endif
 }
 
-#endif /*HAVE_SYS_RESOURCE_H*/
-#endif /*HAVE_GETDTABLESIZE*/
 
 static Int
 getFdPce(Pce pce)
@@ -518,7 +511,7 @@ getFdPce(Pce pce)
 #if defined(HAVE_FSTAT) || defined(__linux)
   int i, cntr = 0;
   struct stat buf;
-  int mx = getdtablesize();
+  int mx = getFileDesCount();
 
   for (i=0; i<mx; i++)
   { if (fstat(i, &buf) == -1)

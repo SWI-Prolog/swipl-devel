@@ -3150,7 +3150,7 @@ Call this function as Prolog is about to detach this thread, so XPCE can
 delete all windows operating in this thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+static void
 detach_thread(void *closure)
 { pceMTdetach();
 }

@@ -1156,13 +1156,6 @@ msleep(int time)
 #endif /*HAVE_SELECT*/
 #endif /*__WATCOMC__*/
 
-#ifdef __msdos__
-int
-getdtablesize()
-{ return 32;
-}
-#endif
-
 		 /*******************************
 		 *	 ASSERT() SUPPORT	*
 		 *******************************/

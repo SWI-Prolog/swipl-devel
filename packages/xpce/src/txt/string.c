@@ -609,12 +609,6 @@ CsetStringL(StringObj str, const char *txt, int l)
 }
 
 
-static status
-CsetString(StringObj str, const char *txt)
-{ return CsetStringL(str, txt, strlen(txt));
-}
-
-
 status
 str_insert_string(StringObj str, Int where, String s)
 { int sz = str->data.size;
