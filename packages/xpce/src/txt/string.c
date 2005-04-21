@@ -27,9 +27,6 @@
 
 static status	appendString(StringObj, CharArray);
 static status	setString(StringObj str, String s);
-static status	CsetString(StringObj str, const char *txt);
-static status	CsetStringL(StringObj str, const char *txt, int len);
-
 
 StringObj
 create_string_from_str(String s, int tmp)
@@ -591,21 +588,6 @@ setString(StringObj str, String s)
     changedObject(str, NAME_text, EAV);
 
   succeed;
-}
-
-
-static status
-CsetStringL(StringObj str, const char *txt, int l)
-{ string s;
-
-  if ( l > STR_MAX_SIZE )
-    return errorPce(str, NAME_stringTooLong, toInt(l));
-
-  s.size = l;
-  s.iswide = 0;
-  s.s_textA = (charA*) txt;
-
-  return setString(str, &s);
 }
 
 
