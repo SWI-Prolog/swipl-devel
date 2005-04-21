@@ -1531,6 +1531,7 @@ typedef long	AnswerMark;
 #include "../ker/proto.h"
 #include "../msg/proto.h"
 #include "../adt/proto.h"
+#include "../rel/proto.h"
 
 					/* Interface callback stubs */
 __pce_export void	Cprintf(const char *fmt, ...);
