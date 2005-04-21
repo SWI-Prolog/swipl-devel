@@ -695,7 +695,8 @@ int xdnd_get_selection (DndClass * dnd, Window from, Atom property, Window inser
 }
 
 
-int outside_rectangle (int x, int y, XRectangle * r)
+static int
+outside_rectangle (int x, int y, XRectangle * r)
 {
     return (x < r->x || y < r->y || x >= r->x + r->width || y >= r->y + r->height);
 }

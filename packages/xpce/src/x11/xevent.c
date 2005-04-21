@@ -301,7 +301,7 @@ is_key_event(Display *dsp, XEvent *ev, XPointer arg)
 }
 
 
-int
+static int
 key_waiting(DisplayObj d)
 { DisplayWsXref r = d->ws_ref;
   int waiting = FALSE;

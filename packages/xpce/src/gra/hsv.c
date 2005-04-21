@@ -22,6 +22,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <h/kernel.h>
+#include <h/graphics.h>
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Convert between HSV  (Hue-Saturnation-Value)   and  RGB (Red-Green-Blue)
 colour models. XPCE uses the RGB  model internally, but provides methods

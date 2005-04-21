@@ -35,7 +35,7 @@ NewClass(resize_table_slice_gesture)
 End;
 
 
-status
+static status
 initialiseResizeTableSliceGesture(ResizeTableSliceGesture g, Name mode,
 				  Name button, Modifier modifier)
 { Size ms = getClassVariableValueObject(g, NAME_minSize);

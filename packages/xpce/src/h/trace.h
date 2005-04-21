@@ -41,8 +41,8 @@ GLOBAL int	MaxGoalDepth;		/* maximum recursion level */
     ServiceMode = _smode; \
   }
 
-extern void	writeGoal(PceGoal g);
-extern int	isProperGoal(PceGoal g);
-extern void	pceBackTrace(PceGoal g, int depth);
+COMMON(void)	writeGoal(PceGoal g);
+COMMON(int)	isProperGoal(PceGoal g);
+COMMON(void)	pceBackTrace(PceGoal g, int depth);
 
 #endif /*PCE_TRACE_H*/

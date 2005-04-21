@@ -423,9 +423,6 @@ ITF2OBJS=	@CXXTARGETS@
 ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS)
 ITFSRC=		$(addprefix $(srcdir)/itf/, $(ITF1OBJS:.o=.c) $(ITF2OBJS:.o=.cxx))
 
-$(srcdir)/itf/proto.h:	$(ITFSRC)
-		$(MKPROTO) $(ITFSRC) > $@
-
 itf/cpp.o:	itf/cpp.cxx
 		$(CXX) -c -I../include $(CFLAGS) $< -o $@
 
@@ -629,9 +626,6 @@ WSTSRC=		$(addprefix $(srcdir)/x11/, $(WSTOBJS:.o=.c)) \
 
 $(srcdir)/x11/wstproto.h: $(WSTSRC)
 		$(MKPROTO) $(WSTSRC) | grep -v '^XImage' > $@
-
-$(srcdir)/x11/proto.h:	$(XCOMMSRC)
-		$(MKPROTO) $(XCOMMSRC) > $@
 
 ################################################################
 # MSW 		--- MS-Windows implementation of the

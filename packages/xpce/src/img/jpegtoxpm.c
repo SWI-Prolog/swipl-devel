@@ -50,6 +50,8 @@
 #endif
 #include <setjmp.h>
 
+#include "jpeg.h"
+
 /* left to free(), so use malloc() rather then pceMalloc() */
 #define XpmMalloc(n) (void *)malloc(n)
 typedef unsigned int XpmPixel;

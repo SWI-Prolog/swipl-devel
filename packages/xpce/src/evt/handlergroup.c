@@ -23,6 +23,7 @@
 */
 
 #include <h/kernel.h>
+#include <h/graphics.h>
 
 static status appendHandlerGroup(HandlerGroup, Recogniser);
 

@@ -1107,7 +1107,7 @@ GLOBAL  Chain grabbedWindows;		/* @grabbed_windows */
 		 *	    IMAGE TYPES		*
 		 *******************************/
 
-extern int image_type_from_data(char *data, int size);
+COMMON(int) image_type_from_data(char *data, int size);
 
 #define IMG_IS_UNKNOWN	0
 #define IMG_IS_JPEG	1

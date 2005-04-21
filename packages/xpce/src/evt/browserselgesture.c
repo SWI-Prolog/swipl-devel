@@ -33,7 +33,7 @@ End;
 
 typedef struct browser_select_gesture *BrowserSelectGesture;
 
-status
+static status
 initialiseBrowserSelectGesture(BrowserSelectGesture g)
 { initialiseGesture((Gesture) g,
 		    NAME_left,

@@ -23,7 +23,7 @@
 */
 
 #include <h/kernel.h>
-
+#include <h/graphics.h>
 
 status
 initialiseRecogniser(Recogniser r)
