@@ -1,18 +1,5 @@
 #define COMMON(type) SO_LOCAL type
 
-/* /staff/jan/src/pl/packages/xpce/src/img/jdatasrc.c */
-COMMON(int) )	METHODDEF(void);
-COMMON(int) )	METHODDEF(int boolean);
-COMMON(int) )	METHODDEF(void);
-COMMON(int) )	METHODDEF(void);
-COMMON(int) )	GLOBAL(void);
-
-/* /staff/jan/src/pl/packages/xpce/src/img/jdatadst.c */
-COMMON(int) )	METHODDEF(void);
-COMMON(int) )	METHODDEF(int boolean);
-COMMON(int) )	METHODDEF(void);
-COMMON(int) )	GLOBAL(void);
-
 /* /staff/jan/src/pl/packages/xpce/src/img/jpegtoxpm.c */
 COMMON(int)	readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img, Image image);
 

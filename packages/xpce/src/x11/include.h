@@ -74,6 +74,10 @@ error XPCE cannot be build for X version 10.  Sorry.
 #include <X11/Xft/Xft.h>
 #endif
 
+#ifdef HAVE_LIBXPM
+#include <X11/xpm.h>
+#endif
+
 
 		 /*******************************
 		 *	      IMAGES		*
@@ -214,44 +218,47 @@ struct draw_context
 		 *******************************/
 
 /* x11-common.c */
-Widget		widgetWindow(PceWindow sw);
-Widget		widgetFrame(FrameObj fr);
-Atom		DisplayAtom(DisplayObj d, Name name);
-char *		DisplayAtomToString(DisplayObj d, Atom a);
-Atom		FrameAtom(FrameObj fr, Name name);
-char *		FrameAtomToString(FrameObj fr, Atom a);
-Atom		WmProtocols(FrameObj fr);
-EventObj	CtoEvent(Any window, XEvent *event);
-unsigned long   getPixelColour(Colour c, DisplayObj d);
-void		setXImageImage(Image image, XImage *i);
-int		shift_for_mask(unsigned long mask);
-status		postscriptXImage(XImage *im,
-				 int x, int y, int w, int h,
-				 Display *disp, Colormap cmap,
-				 int depth,
-				 int colorimage);
-int		intensityXColor(XColor *c);
-void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
+COMMON(Widget)		widgetWindow(PceWindow sw);
+COMMON(Widget)		widgetFrame(FrameObj fr);
+COMMON(Atom)		DisplayAtom(DisplayObj d, Name name);
+COMMON(char *)		DisplayAtomToString(DisplayObj d, Atom a);
+COMMON(Atom)		FrameAtom(FrameObj fr, Name name);
+COMMON(char *)		FrameAtomToString(FrameObj fr, Atom a);
+COMMON(Atom)		WmProtocols(FrameObj fr);
+COMMON(EventObj)	CtoEvent(Any window, XEvent *event);
+COMMON(unsigned long)   getPixelColour(Colour c, DisplayObj d);
+COMMON(void)		setXImageImage(Image image, XImage *i);
+COMMON(int)		shift_for_mask(unsigned long mask);
+COMMON(status)		postscriptXImage(XImage *im,
+					 int x, int y, int w, int h,
+					 Display *disp, Colormap cmap,
+					 int depth,
+					 int colorimage);
+COMMON(int)		intensityXColor(XColor *c);
+COMMON(void)		x11_set_gc_foreground(DisplayObj d, Any fg,
+					      int gcs, GC *gc);
 #ifdef O_XDND
-status		setDndAwareFrame(FrameObj fr);
+COMMON(status)		setDndAwareFrame(FrameObj fr);
 #endif
 
 /* x11-conversion.c */
-XImage *	readImageFile(Image image, IOSTREAM *fd);
-XImage *	CreateXImageFromData(unsigned char *data, int w, int h);
-XImage *	read_ppm_file(Display *disp, Colormap map,
-			      int depth, IOSTREAM *fd);
-int		write_pnm_file(IOSTREAM *fd, XImage *img,
-			       Display *disp, Colormap cmap,
-			       int scale, int fmt, int asascii);
-int		write_jpeg_file(IOSTREAM *fd, XImage *img,
-				Display *disp, Colormap cmap, Image image);
-int		write_gif_file(IOSTREAM *fd, XImage *img, XImage *msk,
-			       Display *disp, Colormap cmap);
+COMMON(XImage *)	readImageFile(Image image, IOSTREAM *fd);
+COMMON(XImage *)	CreateXImageFromData(unsigned char *data, int w, int h);
+COMMON(XImage *)	read_ppm_file(Display *disp, Colormap map,
+				      int depth, IOSTREAM *fd);
+COMMON(int)		write_pnm_file(IOSTREAM *fd, XImage *img,
+				       Display *disp, Colormap cmap,
+				       int scale, int fmt, int asascii);
+COMMON(int)		write_jpeg_file(IOSTREAM *fd, XImage *img,
+					Display *disp, Colormap cmap,
+					Image image);
+COMMON(int)		write_gif_file(IOSTREAM *fd, XImage *img, XImage *msk,
+				       Display *disp, Colormap cmap);
+COMMON(XImage *)	attachXpmImageImage(Image image, XpmImage *xpm);
 
 /* xcolour.c */
-status		allocNearestColour(Display *display, Colormap map,
-				   int depth, Name vt, XColor *c);
+COMMON(status)		allocNearestColour(Display *display, Colormap map,
+					   int depth, Name vt, XColor *c);
 
 extern XtAppContext ThePceXtAppContext;	/* X toolkit application context */
 

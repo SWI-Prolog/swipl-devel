@@ -280,22 +280,22 @@ checkSelector(Any sel)
 
 #else /*USE_INLINE*/
 
-void	unallocObject(Any obj);
-void	addCodeReference(Any obj);
-void	delCodeReference(Any obj);
-status	instanceOfObject(const Any, const Class) PURE_FUNCTION;
-status  objectIsInstanceOf(const Any obj, const Class super) PURE_FUNCTION;
-status	isProperObject(const Any);
-Any	getSendMethodClass(Class, Name);
-Any	getGetMethodClass(Class, Name);
-Any	getMemberHashTable(const HashTable, const Any);
-status	executeCode(Code);
-Any	getExecuteFunction(Function);
-status	forwardCodev(Code, int, const Any[]);
-status	forwardBlockv(Block, int, const Any[]);
-Any	expandCodeArgument(Any);
-Any	checkType(const Any val, const Type t, const Any ctx);
-Name	checkSelector(Any sel);
+COMMON(void)	unallocObject(Any obj);
+COMMON(void)	addCodeReference(Any obj);
+COMMON(void)	delCodeReference(Any obj);
+COMMON(status)	instanceOfObject(const Any, const Class) PURE_FUNCTION;
+COMMON(status)  objectIsInstanceOf(const Any obj, const Class super) PURE_FUNCTION;
+COMMON(status)	isProperObject(const Any);
+COMMON(Any)	getSendMethodClass(Class, Name);
+COMMON(Any)	getGetMethodClass(Class, Name);
+COMMON(Any)	getMemberHashTable(const HashTable, const Any);
+COMMON(status)	executeCode(Code);
+COMMON(Any)	getExecuteFunction(Function);
+COMMON(status)	forwardCodev(Code, int, const Any[]);
+COMMON(status)	forwardBlockv(Block, int, const Any[]);
+COMMON(Any)	expandCodeArgument(Any);
+COMMON(Any)	checkType(const Any val, const Type t, const Any ctx);
+COMMON(Name)	checkSelector(Any sel);
 
 /* Donot write below this line */
 #endif /*USE_INLINE*/

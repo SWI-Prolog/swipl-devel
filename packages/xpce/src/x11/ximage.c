@@ -280,8 +280,6 @@ status
 ws_create_image_from_xpm_data(Image image, char **data, DisplayObj d)
 {
 #ifdef HAVE_LIBXPM
-  extern XImage *attachXpmImageImage(Image image, XpmImage *xpm);
-
   XpmImage img;
   XpmInfo info;
   XImage *i;

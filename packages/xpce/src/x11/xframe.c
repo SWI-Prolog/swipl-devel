@@ -1372,7 +1372,6 @@ ws_topmost_frame(FrameObj fr, Bool topmost)
 void
 ws_set_label_frame(FrameObj fr)
 { Widget w = widgetFrame(fr);
-  DisplayWsXref r = fr->display->ws_ref;
 
   if ( w )
   { Arg args[1];

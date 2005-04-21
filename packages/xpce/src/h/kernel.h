@@ -1540,35 +1540,39 @@ __pce_export int	Cputchar(int chr);
 __pce_export char *	Cgetline(char *line, int size);
 
 					/* interface prototypes */
-CPointer	CtoCPointer(void *);
 __pce_export Any	cToPceName(const char *text);
-status		makeClassC(Class class);
-status		makeClassRC(Class class);
-status		makeClassCPointer(Class class);
-status		initialiseHost(Host h, Name which);
-status		makeClassHost(Class class);
-status		makeClassHostData(Class class);
-status		makeClassSourceSink(Class class);
-Host		HostObject(void);
-int		hostGetc(void);
-void		pceWriteErrorGoal(void);
+COMMON(CPointer) CtoCPointer(void *);
+COMMON(status)	makeClassC(Class class);
+COMMON(status)	makeClassRC(Class class);
+COMMON(status)	makeClassCPointer(Class class);
+COMMON(status)	initialiseHost(Host h, Name which);
+COMMON(status)	makeClassHost(Class class);
+COMMON(status)	makeClassHostData(Class class);
+COMMON(status)	makeClassSourceSink(Class class);
+COMMON(Host)	HostObject(void);
+COMMON(int)	hostGetc(void);
+COMMON(void)	pceWriteErrorGoal(void);
 
-status		initialiseSourceSink(SourceSink ss);
-status		checkErrorSourceSink(SourceSink ss, IOSTREAM *fd);
-status		initialiseSourceSink(SourceSink ss);
-IOSTREAM *	Sopen_object(Any obj, const char *mode);
-COMMON(status)  setStreamEncodingSourceSink(SourceSink ss, IOSTREAM *fd);
+COMMON(status)	initialiseSourceSink(SourceSink ss);
+COMMON(status)	checkErrorSourceSink(SourceSink ss, IOSTREAM *fd);
+COMMON(status)	initialiseSourceSink(SourceSink ss);
+COMMON(IOSTREAM *)	Sopen_object(Any obj, const char *mode);
+COMMON(status) 	setStreamEncodingSourceSink(SourceSink ss, IOSTREAM *fd);
 COMMON(Name)	encoding_to_name(IOENC encoding);
 
 #if O_CPLUSPLUS
-status 	callCPlusPlusProc(void *f, int ac, const Any av[]);
-Any	callCPlusPlusFunc(void *f, int ac, const Any av[]);
-status 	callCPlusPlusPceMethodProc(Any o, void *f, int ac, const Any av[]);
-Any 	callCPlusPlusPceMethodFunc(Any o, void *f, int ac, const Any av[]);
-status 	callCPlusPlusMethodProc(Any o, void *f, int ac, const Any av[]);
-Any 	callCPlusPlusMethodFunc(Any o, void *f, int ac, const Any av[]);
+COMMON(status )	callCPlusPlusProc(void *f, int ac, const Any av[]);
+COMMON(Any)	callCPlusPlusFunc(void *f, int ac, const Any av[]);
+COMMON(status )	callCPlusPlusPceMethodProc(Any o, void *f,
+					   int ac, const Any av[]);
+COMMON(Any )	callCPlusPlusPceMethodFunc(Any o, void *f,
+					   int ac, const Any av[]);
+COMMON(status )	callCPlusPlusMethodProc(Any o, void *f,
+					int ac, const Any av[]);
+COMMON(Any )	callCPlusPlusMethodFunc(Any o, void *f,
+					int ac, const Any av[]);
 #endif
-void	initCGlobals(void);
+COMMON(void)	initCGlobals(void);
 
 		/********************************
 		*       GLOBAL VARIABLES	*

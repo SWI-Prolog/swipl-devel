@@ -52,13 +52,13 @@ typedef int (*GIFDoExtension)(int ext, void *data, void *closure);
 #define UCHAR unsigned char
 #define MAX_LZW_BITS	12
 
-extern int GIFReadFD(IOSTREAM *fd,
-		     PIXEL **data, int *width, int *height,
-		     GIFAllocColorTable at,
-		     GIFAllocColor ac,
-		     GIFDoExtension doext,
-		     void *closure);
-extern const char  *GIFError(void);
+COMMON(int) GIFReadFD(IOSTREAM *fd,
+		      PIXEL **data, int *width, int *height,
+		      GIFAllocColorTable at,
+		      GIFAllocColor ac,
+		      GIFDoExtension doext,
+		      void *closure);
+COMMON(const char)  *GIFError(void);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 First include <X11/xpm.h> to get  this   prototype.  The  function is in
@@ -66,7 +66,7 @@ giftoxpm.c. The usage in x11/xconvert.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef XPM_h
-extern int XpmReadGIF(IOSTREAM *fd, XpmImage *image);
+COMMON(int)	XpmReadGIF(IOSTREAM *fd, XpmImage *image);
 #endif
 
 #endif /*GIFHDRH*/
