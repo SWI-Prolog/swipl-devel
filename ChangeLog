@@ -7,6 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.15 (April 22, 2005)
+===============================
+
+  * FIXED: Bug#32: offset in colouring using cyrillic data.  Actually
+    a bug in subterm_positions option of read_term (Dmitry).
+
   * ENHANCED: The functions min and max to return one of the values 
     rather then converting to float.  Avoids rounding errors on large
     integers.  Markus Triska.

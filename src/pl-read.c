@@ -195,6 +195,9 @@ typedef struct
   struct token token;			/* current token */
   bool _unget;				/* unget_token() */
 
+  unsigned char *posp;			/* position pointer */
+  int		posi;			/* position number */
+
   Module	module;			/* Current source module */
   unsigned int	flags;			/* Module syntax flags */
   int		styleCheck;		/* style-checking mask */
@@ -434,6 +437,9 @@ clearBuffer(ReadData _PL_rd)
   }
   rb.end = rb.base + rb.size;
   rdbase = rb.here = rb.base;
+
+  _PL_rd->posp = rdbase;
+  _PL_rd->posi = 0;
 }      
 
 
@@ -446,10 +452,11 @@ growToBuffer(int c, ReadData _PL_rd)
     rb.base = PL_realloc(rb.base, rb.size*2);
 
   DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (long) rb.base));
-  rdbase = rb.base;
+  _PL_rd->posp = rdbase = rb.base;
   rb.here = rb.base + rb.size;
   rb.size *= 2;
   rb.end  = rb.base + rb.size;
+  _PL_rd->posi = 0;
 
   *rb.here++ = c;
 }
@@ -1426,6 +1433,29 @@ checkASCII(unsigned char *name, int len, const char *type)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ptr_to_pos(p, context) gets the code index of   a pointer in the buffer,
+considering the fact that the buffer is  in UTF-8. It remembers the last
+returned value, so it doesn't have to start all over again each time.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+ptr_to_pos(const unsigned char *p, ReadData _PL_rd)
+{ int i;
+
+  if ( p == NULL || p < _PL_rd->posp )
+  { _PL_rd->posp = rdbase;
+    _PL_rd->posi = 0;
+  }
+
+  i = utf8_strlen((const char*) _PL_rd->posp, p-_PL_rd->posp);
+  _PL_rd->posp = (unsigned char*)p;
+  _PL_rd->posi += i;
+
+  return _PL_rd->posi;
+}
+
+
 static Token
 get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 { int c;
@@ -1439,7 +1469,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
   rdhere = skipSpaces(rdhere);
   start = last_token_start = rdhere;
-  cur_token.start = source_char_no + last_token_start - rdbase;
+  cur_token.start = source_char_no + ptr_to_pos(last_token_start, _PL_rd);
 
   rdhere = (unsigned char*)utf8_get_char((char *)rdhere, &c);
   if ( c > 0xff )
@@ -1647,7 +1677,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
   }
 
 out:
-  cur_token.end = source_char_no + rdhere - rdbase;
+  cur_token.end = source_char_no + ptr_to_pos(rdhere, _PL_rd);
 
   return &cur_token;
 }

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.15, distributed with SWI-Prolog 5.5.15
+==================================================
+
 * PORT: Fixed visibility attribute issues on IA64.  These problems may
   have affected more GCC/ELF platforms.  With help from Stefan Dirsch.
 
