@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.13/XPCE 6.5.13 development release
+SWI-Prolog 5.5.15/XPCE 6.5.15 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -34,7 +34,6 @@ Planned features in 5.5.x relative to 5.4.x and their status
 		- JPL
 			- No support at all
 		- XPCE
-			- Getting close
 			- Lacking input methods (XIM, ...)
 
   * More constraint libraries
@@ -58,31 +57,26 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.13 relative to 5.5.12
+Patches in 5.5.15 relative to 5.5.14
 ====================================
 
-  * Added clp/clp_events.pl to installed system.
-  * Added support for BOM (Byte Order Marker) in UNICODE files.
-    See open/4.
-
+  * Memory leak in concat_atom/[2,3]
+  * Rounding error in min/max causing trouble in bounds.pl
+  * Fix for clean compilation on gcc 4.0
+  * Fixed alignment problems on some platforms.
+  * Fixed offset problems for term-position
 
 Packages
 ========
 
-  * XPCE: use new library for class regex.  See below.  Added (Prolog
-    compatible) support for BOM.
-  
+  * Fix XPCE compilation on gcc 4.0 and linking on IA64 (and various
+    other ELF-based platforms
+  * Fixed regex handling for the HTTP server (including the http_man
+    to serve the XPCE manual).
 
 Incompatible changes
 ====================
 
-  * XPCE class REGEX has a completely new implementation basis.  It used
-    to run on the GNU-regex library using EMACS syntax.  The new version
-    is based on the Tcl 8.5 regex library, a version of Henry Spencers
-    regex adopted for UNICODE handling.  This regex library is also used
-    by the Postgres project.  The library uses `modern-style' regex, which
-    differ considerably from the old EMACS ones.
-
-    There is a library(pce_regex_compat) explaining the issues and capable
-    of doing transformation on Prolog source-files.
+  * qsave_program/2 option initfile has been renamed to init_file for
+    consistency with documentation and other places.
 
