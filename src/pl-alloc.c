@@ -96,10 +96,14 @@ GD.  Rules:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef ALIGN_SIZE
-#if defined(__sgi) && !defined(__GNUC__)
+#if (defined(__sgi) && !defined(__GNUC__)) || defined __sparc__ || defined __sparc64__
 #define ALIGN_SIZE sizeof(double)
 #else
+#ifdef __ia64__
+#define ALIGN_SIZE sizeof(long[2])
+#else
 #define ALIGN_SIZE sizeof(long)
+#endif
 #endif
 #endif
 #define ALLOC_MIN  sizeof(Chunk)
