@@ -971,15 +971,17 @@ ar_max(Number n1, Number n2, Number r)
   { r->value.i = (n1->value.i > n2->value.i ? n1->value.i : n2->value.i);
     r->type = V_INTEGER;
     succeed;
+  } else
+  { number f1 = *n1;
+    number f2 = *n2;
+
+    promoteToRealNumber(&f1);
+    promoteToRealNumber(&f2);
+
+    *r = f1.value.f >= f2.value.f ? *n1 : *n2;
+
+    (void)toIntegerNumber(r);
   }
-
-  promoteToRealNumber(n1);
-  promoteToRealNumber(n2);
-
-  r->value.f = (n1->value.f > n2->value.f ? n1->value.f : n2->value.f);
-  r->type = V_REAL;
-
-  (void)toIntegerNumber(r);
 
   succeed;
 }
@@ -991,15 +993,17 @@ ar_min(Number n1, Number n2, Number r)
   { r->value.i = (n1->value.i < n2->value.i ? n1->value.i : n2->value.i);
     r->type = V_INTEGER;
     succeed;
+  } else
+  { number f1 = *n1;
+    number f2 = *n2;
+
+    promoteToRealNumber(&f1);
+    promoteToRealNumber(&f2);
+
+    *r = f1.value.f <= f2.value.f ? *n1 : *n2;
+
+    (void)toIntegerNumber(r);
   }
-
-  promoteToRealNumber(n1);
-  promoteToRealNumber(n2);
-
-  r->value.f = (n1->value.f < n2->value.f ? n1->value.f : n2->value.f);
-  r->type = V_REAL;
-
-  (void)toIntegerNumber(r);
 
   succeed;
 }

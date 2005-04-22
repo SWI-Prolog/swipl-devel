@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: The functions min and max to return one of the values 
+    rather then converting to float.  Avoids rounding errors on large
+    integers.  Markus Triska.
+
   * FIXED: thread_get_message/[1,2] using a lot of system time on some
     Unix based platforms.  Jacco van Ossenbruggen.
 
