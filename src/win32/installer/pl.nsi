@@ -361,6 +361,7 @@ Section "Shell Extensions" SecShell
   ClearErrors
   ; back up old value of .pl
   ReadRegStr $1 HKCR .${EXT} ""
+  IfErrors Label1
   StrCmp $1 "" Label1
     StrCmp $1 "PrologFile" Label1
     WriteRegStr HKCR .${EXT} "backup_val" $1
