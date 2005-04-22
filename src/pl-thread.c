@@ -1795,6 +1795,11 @@ dispatch_cond_wait(message_queue *queue)
     timeout.tv_sec  = now.tv_sec;
     timeout.tv_nsec = (now.tv_usec+250000) * 1000;
 
+    if ( timeout.tv_nsec >= 1000000000 ) /* some platforms demand this */
+    { timeout.tv_nsec -= 1000000000;
+      timeout.tv_sec += 1;
+    }
+
     rc = pthread_cond_timedwait(&queue->cond_var, &queue->mutex, &timeout);
 #ifdef O_DEBUG
     if ( LD && LD->thread.info )	/* can be absent during shutdown */

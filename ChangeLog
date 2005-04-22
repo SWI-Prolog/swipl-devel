@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: thread_get_message/[1,2] using a lot of system time on some
+    Unix based platforms.  Jacco van Ossenbruggen.
+
   * FIXED: alignment for some platforms (Andreas Schwab).
 
   * PORT: Made compilation clean for GCC 4.0.  Work with Stefan Dirsch
