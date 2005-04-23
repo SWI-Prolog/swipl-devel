@@ -267,7 +267,7 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 	if ( !(buf = malloc(allocated)) )
 	  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
     
-	for( done=0; (c=Sgetc(stream)) != EOF; )
+	for( done=0; (c=Sgetcode(stream)) != EOF; )
 	{ if ( done >= allocated )
 	  { allocated *= 2;
 
@@ -295,7 +295,7 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 	if ( !(buf = malloc(size)) )
 	  return pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
     
-	for( done=0; (c=Sgetc(stream)) != EOF && done < size; )
+	for( done=0; (c=Sgetcode(stream)) != EOF && done < size; )
 	  buf[done++] = c;
 
 	*len = done;

@@ -1,3 +1,8 @@
+Apr 23, 2005
+
+  * FIXED: mime_parse/3: read stream with Sgetcode rather than Sgetc to
+    deal with encoding issues.
+
 Feb 17, 2005
 
   * ADDED: Provide wide-character support for library(memfile).
