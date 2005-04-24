@@ -95,6 +95,10 @@ wname(wname-2) :-			% get it back as an atom
 	watom(Atom),
 	get(chain(Atom), head, Copy),
 	Copy == Atom.
+wname(append-1) :-
+	atom_codes(X, [1100]),
+	get('', append, X, Y),
+	Y == X.
 
 
 		 /*******************************

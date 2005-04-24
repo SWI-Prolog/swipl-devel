@@ -151,9 +151,11 @@ get_default_function_key_binding(KeyBinding kb, Name key)
 
   if ( notNil(kb->default_function) )
     answer(kb->default_function);
+
   for_cell(cell, kb->defaults)
-    if ( (cmd = get_default_function_key_binding(cell->value, key)) )
+  { if ( (cmd = get_default_function_key_binding(cell->value, key)) )
       answer(cmd);
+  }
 
   fail;
 }
@@ -166,6 +168,14 @@ getFunctionKeyBinding(KeyBinding kb, EventId id)
 
   if ( (cmd = get_function_key_binding(kb, key)) )
     answer(cmd);
+
+					/* deal with UNICODE characters */
+  if ( key->data.iswide && key->data.size == 1 )
+  { int c = key->data.s_textW[0];
+
+    if ( valInt(id) >= c )
+      return NAME_insertSelf;
+  }
 
   answer(get_default_function_key_binding(kb, key));
 }

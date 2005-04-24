@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#32: editor->typed.  By default bind unicode characters to
+  ->insert_self.  Dmitry.
+
+* FIXED: char_array<-append: support wide characters.
+
+
 VERSION 6.5.15, distributed with SWI-Prolog 5.5.15
 ==================================================
 

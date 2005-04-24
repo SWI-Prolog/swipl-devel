@@ -289,7 +289,7 @@ checkSummaryCharp(Name classname, Name name, char *s)
 
 Name
 characterName(Any chr)
-{ char buf[10];
+{ wchar_t buf[10];
   int ctrl;
   int c;
 
@@ -311,7 +311,7 @@ characterName(Any chr)
   }
 
   if ( c >= META_OFFSET )
-  { strcpy(buf, "\\e");
+  { wcscpy(buf, L"\\e");
     c -= META_OFFSET;
   } else
     buf[0] = EOS;
@@ -321,40 +321,40 @@ characterName(Any chr)
 
   switch(c)
   { case ESC:
-      strcat(buf, "\\e");
+      wcscat(buf, L"\\e");
       break;
     case ' ':
-      strcat(buf, "SPC");
+      wcscat(buf, L"SPC");
       break;
     case '\t':
-      strcat(buf, "TAB");
+      wcscat(buf, L"TAB");
       break;
     case '\r':
-      strcat(buf, "RET");
+      wcscat(buf, L"RET");
       break;
     case '\n':
-      strcat(buf, "LFD");
+      wcscat(buf, L"LFD");
       break;
     case DEL:
-      strcat(buf, "DEL");
+      wcscat(buf, L"DEL");
       break;
     default:
     ctrl:
       if ( c < ' ' )
       {	int l;
 
-	strcat(buf, "\\C-");
-	buf[l=strlen(buf)] = tolower(c + '@');
+	wcscat(buf, L"\\C-");
+	buf[l=wcslen(buf)] = tolower(c + '@');
 	buf[l+1] = EOS;
       } else
       { int l;
 
-        buf[l=strlen(buf)] = c;
+        buf[l=wcslen(buf)] = c;
 	buf[l+1] = EOS;
       }
   }
   
-  return CtoName(buf);
+  return WCToName(buf, wcslen(buf));
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

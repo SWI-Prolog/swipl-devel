@@ -398,22 +398,16 @@ getSplitCharArray(CharArray in, CharArray br)
 }
 
 
-
-
-
-
-
-
 CharArray
 getAppendCharArray(CharArray n1, CharArray n2)
 { String s1 = &n1->data;
   String s2 = &n2->data;
-  LocalString(buf, s1->iswide, s1->size + s2->size);
-  int n;
+  int iswide = (s1->iswide || s2->iswide);
+  LocalString(buf, iswide, s1->size + s2->size);
 
   buf->size = s1->size + s2->size;
-  memcpy(buf->s_textA, s1->s_textA, (n=str_datasize(s1)));
-  memcpy(&buf->s_textA[n], s2->s_textA, str_datasize(s2));
+  str_ncpy(buf, 0, s1, 0, s1->size);
+  str_ncpy(buf, s1->size, s2, 0, s2->size);
 
   answer(ModifiedCharArray(n1, buf));
 }
@@ -422,33 +416,24 @@ getAppendCharArray(CharArray n1, CharArray n2)
 static CharArray
 getAppendCharArrayv(CharArray ca, int argc, CharArray *argv)
 { int l = ca->data.size;
+  int iswide = ca->data.iswide;
   int i;
 
   for( i=0; i<argc; i++ )
-    l += argv[i]->data.size;
+  { l += argv[i]->data.size;
+    if ( argv[i]->data.iswide )
+      iswide = TRUE;
+  }
        
-  { LocalString(buf, ca->data.iswide, l);
+  { LocalString(buf, iswide, l);
+    int d;
 
-    if ( isstrA(&ca->data) )
-    { charA *d = buf->s_textA;
-      
-      memcpy(d, ca->data.s_textA, ca->data.size * sizeof(charA));
-      d += ca->data.size;
-
-      for( i=0; i<argc; i++ )
-      { memcpy(d, argv[i]->data.s_textA, argv[i]->data.size*sizeof(charA));
-	d += argv[i]->data.size;
-      }
-    } else
-    { charW *d = buf->s_textW;
-      
-      cpdata(d, ca->data.s_textW, charW, ca->data.size);
-      d += ca->data.size;
-
-      for( i=0; i<argc; i++ )
-      { cpdata(d, argv[i]->data.s_textW, charW, argv[i]->data.size);
-	d += argv[i]->data.size;
-      }
+    str_ncpy(buf, 0, &ca->data, 0, ca->data.size);
+    d = ca->data.size;
+    
+    for( i=0; i<argc; i++ )
+    { str_ncpy(buf, d, &argv[i]->data, 0, argv[i]->data.size);
+      d += argv[i]->data.size;
     }
 
     buf->size = l;
