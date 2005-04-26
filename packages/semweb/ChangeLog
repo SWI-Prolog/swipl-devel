@@ -1,6 +1,11 @@
+Apr 26, 2005
+
+  * FIXED: support UNICODE in rdf_save_db/rdf_load_db.  Fabien
+    Todescato.
+
 Apr 19, 2005
 
-  * FIXED: rdf_retractall/[3,4] should always succeed
+  * FIXED: rdf_retractall/[3,4] should always succeed.  Bob Wielinga.
 
 Apr 18, 2005
 

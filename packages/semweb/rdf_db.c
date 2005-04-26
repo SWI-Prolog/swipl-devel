@@ -2174,6 +2174,7 @@ Quick Load Format (implemented in pl-wic.c).
 
 	<atom>		::= "X" <integer>
 			    "A" <string>
+			    "W" <utf-8 string>
 
 	<string>	::= <integer><bytes>
 
@@ -2269,20 +2270,21 @@ save_int(IOSTREAM *fd, long n)
 }
 
 
-static void
+static int
 save_atom(IOSTREAM *out, atom_t a, save_context *ctx)
 { int hash = atom_hash(a) % ctx->saved_size;
   saved *s;
   unsigned int len;
   const char *chars;
   unsigned int i;
+  const wchar_t *wchars;
 
   for(s=ctx->saved_table[hash]; s; s= s->next)
   { if ( s->name == a )
     { Sputc('X', out);
       save_int(out, s->as);
 
-      return;
+      return TRUE;
     }
   }
 
@@ -2292,11 +2294,24 @@ save_atom(IOSTREAM *out, atom_t a, save_context *ctx)
   s->next = ctx->saved_table[hash];
   ctx->saved_table[hash] = s;
 
-  Sputc('A', out);
-  chars = PL_atom_nchars(a, &len);
-  save_int(out, len);
-  for(i=0; i<len; i++, chars++)
-    Sputc(*chars, out);
+  if ( (chars = PL_atom_nchars(a, &len)) )
+  { Sputc('A', out);
+    save_int(out, len);
+    for(i=0; i<len; i++, chars++)
+      Sputc(*chars&0xff, out);
+  } else if ( (wchars = PL_atom_wchars(a, &len)) )
+  { IOENC enc = out->encoding;
+
+    Sputc('W', out);
+    save_int(out, len);
+    out->encoding = ENC_UTF8;
+    for(i=0; i<len; i++, chars++)
+      Sputcode(*wchars, out);
+    out->encoding = enc;
+  } else
+    return FALSE;
+
+  return TRUE;
 }
 
 
@@ -2522,6 +2537,31 @@ load_atom(IOSTREAM *in, ld_context *ctx)
 	a = PL_new_atom_nchars(len, buf);
 	PL_free(buf);
       }
+
+      add_atom(a, ctx);
+      return a;
+    }
+    case 'W':
+    { int len = load_int(in);
+      atom_t a;
+      wchar_t buf[1024];
+      wchar_t *w;
+      IOENC enc = in->encoding;
+      int i;
+
+      if ( len < 1024 )
+	w = buf;
+      else
+	w = PL_malloc(len*sizeof(wchar_t));
+
+      in->encoding = ENC_UTF8;
+      for(i=0; i<len; i++)
+	w[i] = Sgetcode(in);
+      in->encoding = enc;
+	  
+      a = PL_new_atom_wchars(len, w);
+      if ( w != buf )
+	PL_free(w);
 
       add_atom(a, ctx);
       return a;

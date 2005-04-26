@@ -265,6 +265,10 @@ wide(utf8-subject) :-
 	wide_atom(A),
 	rdf_assert(A, aap, noot),
 	save_reload(utf8).
+wide(db-object-literal) :-
+	wide_atom(A),
+	rdf_assert(aap, noot, literal(A)),
+	save_reload_db.
 
 
 
