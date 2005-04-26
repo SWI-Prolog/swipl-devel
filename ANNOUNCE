@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.15/XPCE 6.5.15 development release
+SWI-Prolog 5.5.16/XPCE 6.5.16 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -57,26 +57,18 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.15 relative to 5.5.14
+Patches in 5.5.16 relative to 5.5.15
 ====================================
 
-  * Memory leak in concat_atom/[2,3]
-  * Rounding error in min/max causing trouble in bounds.pl
-  * Fix for clean compilation on gcc 4.0
-  * Fixed alignment problems on some platforms.
-  * Fixed offset problems for term-position
+  * PL_new_atom_wchars() failed to canonise the representation
 
 Packages
 ========
 
-  * Fix XPCE compilation on gcc 4.0 and linking on IA64 (and various
-    other ELF-based platforms
-  * Fixed regex handling for the HTTP server (including the http_man
-    to serve the XPCE manual).
+  * XPCE: Fix entering UNICODE characters in editor windows
+  * Semweb: Fix save/load of UNICODE resources and literals.
 
 Incompatible changes
 ====================
 
-  * qsave_program/2 option initfile has been renamed to init_file for
-    consistency with documentation and other places.
-
+  (none)
