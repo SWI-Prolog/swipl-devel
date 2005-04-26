@@ -1,3 +1,8 @@
+Apr 26, 2005
+
+  * ADDED: debug(sgml_plugin) and some missing use_module calls.  Simplifies
+    debugging automatic conversion.
+
 Mar 4, 2005
 
   * FIXED: Bug#24: open files binary.   Fabien Todescato.

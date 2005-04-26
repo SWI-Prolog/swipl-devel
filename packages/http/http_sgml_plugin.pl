@@ -33,6 +33,8 @@
 :- use_module(http_client).
 :- use_module(library(memfile)).
 :- use_module(library(sgml)).
+:- use_module(library(lists)).
+:- use_module(library(debug)).
 
 :- multifile
 	http_client:http_convert_data/4.
@@ -49,6 +51,7 @@ reads directly from the stream that established the HTTP connection.
 
 http_client:http_convert_data(In, Fields, Data, Options) :-
 	memberchk(content_type(Type), Fields),
+	debug(sgml_plugin, 'Content type: ~w', [Type]),
 	(   markup_type(Type, ParseOptions)
 	->  true
 	;   major_type(Type, Major),
@@ -59,6 +62,7 @@ http_client:http_convert_data(In, Fields, Data, Options) :-
 		      | ParseOptions
 		      ], Options, Merged),
 	markup_options(Fields, Merged, MarkupOptions),
+	debug(sgml_plugin, 'Markup options: ~p', [MarkupOptions]),
 	load_structure(stream(In), Data, MarkupOptions).
 
 
