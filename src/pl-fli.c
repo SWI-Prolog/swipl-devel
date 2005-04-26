@@ -343,10 +343,18 @@ lookupUCSAtom(const pl_wchar_t *s, unsigned int len)
 
 atom_t
 PL_new_atom_wchars(unsigned int len, const wchar_t *s)
-{ if ( !GD->initialised )
+{ PL_chars_t txt;
+
+  if ( !GD->initialised )
     initAtoms();
 
-  return lookupUCSAtom(s, len);
+  txt.text.w    = (wchar_t*)s;
+  txt.length    = len;
+  txt.encoding  = ENC_WCHAR;
+  txt.storage   = PL_CHARS_HEAP;
+  txt.canonical = FALSE;
+
+  return textToAtom(&txt);
 }
 
 

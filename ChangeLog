@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: PL_new_atom_wchars() did not canonise the atom representation,
+    so PL_new_atom_wchars(2, L"nl") != PL_new_atom_nchars(2, "nl").  Paul
+    Singleton.
+
+
 VERSION 5.5.15 (April 22, 2005)
 ===============================
 
