@@ -111,7 +111,7 @@ way. The active constraint is matched with a constraint in the head of
 the rule. If more constraints appear in the head they are looked for
 among the suspended constraints, which are called passive constraints in
 this context. If the necessary passive constraints can be found and all
-match with the head of the rule and the gaurd of the rule succeeds, then
+match with the head of the rule and the guard of the rule succeeds, then
 the rule is committed and the body of the rule executed. If not all the
 necessary passive constraint can be found, the matching fails or the
 guard fails, then the body is not executed and the process of trying and
