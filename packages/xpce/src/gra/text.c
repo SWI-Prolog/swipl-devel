@@ -1323,7 +1323,7 @@ insertSelfText(TextObj t, Int times, Int chr)
     
   prepareInsertText(t);
 
-  { LocalString(buf, t->string->data.iswide, tms);
+  { LocalString(buf, c > 0xff, tms);
     int i;
 
     for(i=0; i<tms; i++)

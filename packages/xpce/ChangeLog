@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#36: text->insert_self for characters > 255.  Dmitry.
+
 * FIXED: Bug#33: editor->typed.  By default bind unicode characters to
   ->insert_self.  Dmitry.
 
