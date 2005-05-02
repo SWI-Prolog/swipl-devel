@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: hash_term/2: various problems handling compound terms:
+    instable results, undefined results on terms with shared
+    subterms.  Hugo Ferreira.
+
   * FIXED: PL_new_atom_wchars() did not canonise the atom representation,
     so PL_new_atom_wchars(2, L"nl") != PL_new_atom_nchars(2, "nl").  Paul
     Singleton.

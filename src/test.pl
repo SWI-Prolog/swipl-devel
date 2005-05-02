@@ -1415,6 +1415,31 @@ copy_term(nat-1) :-
 
 
 		 /*******************************
+		 *	     HASH-TERM		*
+		 *******************************/
+
+hash_term(simple-1) :-
+	hash_term(aap, 480).
+hash_term(simple-2) :-			% small int
+	hash_term(42, 42).
+hash_term(simple-3) :-			% not tagged int
+	hash_term(2000000000, 3511296).
+hash_term(simple-4) :-
+	A is pi,
+	hash_term(A, 5049571).
+hash_term(simple-5) :-
+	string_to_list(S, "hello world"),
+	hash_term(S, 16017976).
+hash_term(compound-1) :-
+	hash_term(hello(world), 259300). 
+hash_term(compound-2) :-
+	X = x(a),
+	hash_term(hello(X, X), 92021). 
+hash_term(compound-3) :-
+	hash_term(hello(x(a), x(a)), 92021). 
+
+
+		 /*******************************
 		 *    BIG TERMS, ATOM-TO-TERM	*
 		 *******************************/
 
@@ -1851,6 +1876,7 @@ testset(meta).
 testset(avar).
 testset(gvar).
 testset(copy_term).
+testset(hash_term).
 testset(cyclic).
 testset(cleanup).
 testset(term).

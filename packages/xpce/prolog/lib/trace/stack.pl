@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module(prolog_stack,
+:- module(prolog_ide_stack,
 	  [ display_stack/3		% Window, Call, Choice
 	  ]).
 :- use_module(util).

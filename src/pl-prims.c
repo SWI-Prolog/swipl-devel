@@ -330,63 +330,76 @@ termHashValue(word term, long *hval ARG_LD)
       case TAG_ATTVAR:
 	fail;
       case TAG_ATOM:
-	*hval = atomValue(term)->hash_value;
+	*hval += atomValue(term)->hash_value;
         succeed;
       case TAG_STRING:
       { unsigned len;
 	char *s;
 
 	s = getCharsString(term, &len);
-	*hval = unboundStringHashValue(s, len);
+	*hval += unboundStringHashValue(s, len);
 
         succeed;
       }
       case TAG_INTEGER:
 	if ( storage(term) == STG_INLINE )
-	{ *hval = valInt(term);
+	{ *hval += valInt(term);
 	} else
 	{ Word p = valIndirectP(term);
 #if SIZEOF_LONG == 4
-	  *hval = p[0]^p[1];
+	  *hval += p[0]^p[1];
 #else
-	  *hval = p[0];
+	  *hval += p[0];
 #endif
 	}
         succeed;
       case TAG_FLOAT:
       { int i;
 	long *p = (long *)valIndirectP(term);
-	
-	*hval = *p;
+	long h = *p;
+
 	for(p++, i=WORDS_PER_DOUBLE-1; --i >= 0; )
-	  *hval ^= *p++;
+	  h ^= *p++;
+	*hval += h;
 
 	succeed;
       }
       case TAG_COMPOUND:
-      { Functor f = valueTerm(term);
-	int arity = arityFunctor(f->definition);
-	Word a = f->arguments;
+      { Functor t = valueTerm(term);
+	functor_t f = t->definition;
+	FunctorDef fd;
+	int arity;
+	Word a;
+	int rc = TRUE;
 
-	if ( visited(f PASS_LD) )
+	if ( visited(t PASS_LD) )
+	{ *hval = -(*hval);
 	  succeed;
+	}
 
-	*hval = atomValue(nameFunctor(f->definition))->hash_value + arity;
-	for(; arity; arity--, a++)
-	{ long av;
-	  Word a2;
+	fd    = valueFunctor(f);
+	arity = fd->arity;
+	a     = t->arguments;
+
+	*hval += atomValue(fd->name)->hash_value + arity;
+	for(; arity-- > 0; a++)
+	{ Word a2;
 
 	  deRef2(a, a2);
-	  if ( termHashValue(*a2, &av PASS_LD) )
-	    *hval += av << (arity % 8);
-	  else
-	    fail;
+	  if ( !termHashValue(*a2, hval PASS_LD) )
+	  { rc = FALSE;
+	    break;
+	  }
 	}
-        succeed;
+        popVisited(PASS_LD1);
+
+        return rc;
       }
       case TAG_REFERENCE:
-	term = *unRef(term);
+	term += *unRef(term);
         continue;
+      default:
+	assert(0);
     }
   }
 }
@@ -398,14 +411,14 @@ static
 PRED_IMPL("hash_term", 2, hash_term, 0)
 { PRED_LD
   Word p = valTermRef(A1);
-  long hraw;
+  long hraw = 0L;
   Word *m = aTop;
   int rc;
 
   deRef(p);
 
   rc = termHashValue(*p, &hraw PASS_LD);
-  unvisit(m PASS_LD);
+  assert(aTop == m);
 
   if ( rc )
   { hraw = hraw & PLMAXTAGGEDINT;	/* ensure tagged */
