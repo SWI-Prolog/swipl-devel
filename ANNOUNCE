@@ -60,12 +60,14 @@ Planned features in 5.5.x relative to 5.4.x and their status
 Patches in 5.5.16 relative to 5.5.15
 ====================================
 
+  * Fixed hash_term/2
   * PL_new_atom_wchars() failed to canonise the representation
 
 Packages
 ========
 
-  * XPCE: Fix entering UNICODE characters in editor windows
+  * XPCE: Fix entering UNICODE characters in editor windows and
+    text objects.
   * Semweb: Fix save/load of UNICODE resources and literals.
 
 Incompatible changes

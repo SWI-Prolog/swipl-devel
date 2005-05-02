@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.16 (May 02, 2005)
+=============================
+
   * FIXED: hash_term/2: various problems handling compound terms:
     instable results, undefined results on terms with shared
     subterms.  Hugo Ferreira.
