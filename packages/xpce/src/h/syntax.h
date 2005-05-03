@@ -98,7 +98,7 @@ extern char  char_context[];		/* Initial context table */
 #define isstringescape(q, e)	(Is8char(q) && \
 				 char_context[((unsigned int))(q)] == (e))
 
-#ifndef _GNU_SOURCE
+#if !defined(_GNU_SOURCE) && !defined(isblank)
 #define isblank(c)		((c) == ' ' || (c) == '\t')
 #endif
 

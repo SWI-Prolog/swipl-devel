@@ -144,7 +144,7 @@ Swrite_object(void *handle, char *buf, int size)
       for(f=wbuf; f<end; )
 	*t++ = (charA)*f++;
   
-      str_set_n_ascii(&s, advance, asc);
+      str_set_n_ascii(&s, advance, (char*)asc);
     } else
     { str_set_n_wchar(&s, advance, (wchar_t*)wbuf);
     }

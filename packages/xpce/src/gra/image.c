@@ -1019,11 +1019,11 @@ standardImages(void)
   stdImage(NAME_olCycleImage, NULL,
 	   ol_cycle_bits, ol_cycle_width, ol_cycle_height);
   stdImage(NAME_treeExpandedImage, NULL,
-	   enode_bits, enode_width, enode_height);
+	   (char*)enode_bits, enode_width, enode_height);
   stdImage(NAME_treeCollapsedImage, NULL,
-	   cnode_bits, cnode_width, cnode_height);
+	   (char*)cnode_bits, cnode_width, cnode_height);
   stdImage(NAME_intItemImage, &INT_ITEM_IMAGE,
-	   intarrows_bits, intarrows_width, intarrows_height);
+	   (char*)intarrows_bits, intarrows_width, intarrows_height);
 #ifdef XPM_PCEIMAGE
   stdXPMImage(NAME_pceImage,	     NULL,		  pce16_xpm);
   stdXPMImage(NAME_hadjustTileImage, NULL,		  hadjusttile_xpm);

@@ -277,7 +277,7 @@ status
 repaintText(TextObj t, int x, int y, int w, int h)
 { String s = &t->string->data;
   int b = valInt(t->border);
-  int sf, st;
+  int sf = 0, st = 0;
   int flags = 0;
   Style style = NIL;
 

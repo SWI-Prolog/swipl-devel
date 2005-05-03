@@ -240,8 +240,8 @@ matchingVectors(Vector k, Vector v)
 
 static Chain
 getMatchATable(Atable t, Vector v)
-{ HashTable ht;
-  Any val;
+{ HashTable ht = NULL;
+  Any val = NULL;
   Name match;
 
   TRY(match = best_hashtable(t, v, &ht, &val));

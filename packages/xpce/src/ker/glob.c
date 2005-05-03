@@ -29,6 +29,14 @@
 #define PUBLIC_GLOBAL
 #endif
 
+#include <h/kernel.h>
+#include <h/trace.h>
+#include <h/interface.h>
+#include <h/arith.h>
+#include <h/dialog.h>
+#include <h/lang.h>
+#include <ker/alloc.h>
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Oops. The MacOS X (darwin) linker doesn't get a .o file for a library if
 there are only common symbols in there. So,   we add a function and call
@@ -45,10 +53,3 @@ IAmAGlobalFunctionToMakeMeLoad()
 }
 #endif
 
-#include <h/kernel.h>
-#include <h/trace.h>
-#include <h/interface.h>
-#include <h/arith.h>
-#include <h/dialog.h>
-#include <h/lang.h>
-#include <ker/alloc.h>

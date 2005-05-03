@@ -416,7 +416,7 @@ pceCharArrayToCA(Any val, unsigned int *len)
     { if ( len )
 	*len = ca->data.size;
 
-      return ca->data.s_textA;
+      return (char*)ca->data.s_textA;
     }
   }
 

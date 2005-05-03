@@ -61,7 +61,7 @@ pceMTTryLock(int lock)
   return TRUE;
 }
 
-inline void
+static inline void
 LOCK()
 { if ( XPCE_mt == TRUE )
   { EnterCriticalSection(&mutex);
@@ -70,7 +70,7 @@ LOCK()
   }
 }
 
-inline void
+static inline void
 UNLOCK()
 { if ( XPCE_mt == TRUE )
   { if ( --lock_count == 0 )

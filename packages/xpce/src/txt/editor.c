@@ -5194,12 +5194,13 @@ newKill(CharArray ca)
 static CharArray
 killRegister(Int which)
 { CharArray ca;
+ Vector ring; 
 
   if ( isDefault(which) )
     which = ZERO;
 
-  if ( TextKillRing &&
-       (ca = getElementVector(TextKillRing(), 0)) &&
+  if ( (ring=TextKillRing()) &&
+       (ca = getElementVector(ring, 0)) &&
        notNil(ca) )
     answer(ca);
 

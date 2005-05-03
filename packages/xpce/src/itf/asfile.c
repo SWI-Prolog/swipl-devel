@@ -190,7 +190,7 @@ pceWrite(int handle, const char *buf, int size)
       for(f=wbuf; f<end; )
 	*t++ = (charA)*f++;
   
-      str_set_n_ascii(&s, size/sizeof(wchar_t), asc);
+      str_set_n_ascii(&s, size/sizeof(wchar_t), (char*)asc);
     } else
     { str_set_n_wchar(&s, size/sizeof(wchar_t), (wchar_t*)wbuf);
     }
