@@ -511,14 +511,16 @@ process_called_list([H|T], Origin, Src) :-
 	process_meta(H, Origin, Src),
 	process_called_list(T, Origin, Src).
 
-process_meta(A+N, Origin, Src) :-
-	callable(A), !,
-	\+ A = _:_,
-	A =.. List,
-	length(Rest, N),
-	append(List, Rest, NList),
-	Term =.. NList,
-	process_body(Term, Origin, Src).
+process_meta(A+N, Origin, Src) :- !,
+	(   callable(A),
+	    \+ A = _:_
+	->  A =.. List,
+	    length(Rest, N),
+	    append(List, Rest, NList),
+	    Term =.. NList,
+	    process_body(Term, Origin, Src)
+	;   true
+	).
 process_meta(G, Origin, Src) :-
 	process_body(G, Origin, Src).
 

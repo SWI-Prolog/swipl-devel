@@ -865,7 +865,6 @@ goal_colours(consult(_),	     built_in-[file]).
 goal_colours([_|_],		     built_in-file).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
-goal_colours(load_files(_),	     built_in-[file]).
 goal_colours(load_files(_,_),	     built_in-[file,classify]).
 % Database access
 goal_colours(assert(_),		     built_in-[db]).
