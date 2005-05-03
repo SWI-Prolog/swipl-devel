@@ -1554,7 +1554,7 @@ PL_unify_char(term_t chr, int c, int how)
 int
 PL_unify_char(term_t chr, int c, int how)
 { GET_LD
-  int c2;
+  int c2 = -1;
 
   if ( PL_is_variable(chr) )
   { switch(how)
@@ -1610,7 +1610,7 @@ PRED_IMPL("put_byte", 1, put_byte1, 0)
 static foreign_t
 put_code(term_t stream, term_t chr ARG_LD)
 { IOSTREAM *s;
-  int c;
+  int c = 0;
 
   if ( !PL_get_char(chr, &c, FALSE) )
     fail;
@@ -1699,7 +1699,7 @@ PRED_IMPL("get", 2, get2, 0)
 
 static foreign_t
 skip(term_t in, term_t chr ARG_LD)
-{ int c;
+{ int c = -1;
   int r;
   IOSTREAM *s;
 

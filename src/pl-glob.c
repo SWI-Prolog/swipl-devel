@@ -362,6 +362,7 @@ typedef struct
   int		end;			/* last valid entry of files */
 } glob_info, *GlobInfo;
 
+#undef isspecial			/* play safe */
 #define isspecial(c) \
 	((c) == '[' || (c) == '{' || (c) == '?' || (c) == '*')
 
