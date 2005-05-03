@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: tracing dynamic clauses holding strings.  Steve Moyle.
+
 * FIXED: PceEmacs colouring: removed load_files/1 spec (error).  Cross
   referencer: deal properly with meta predicates with unknown goal.
 

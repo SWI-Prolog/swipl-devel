@@ -129,8 +129,11 @@ clause_info(_, _, _, _) :-
 
 %	unify_term(+T1, +T2)
 %	
-%	Unify the two terms, but be aware that rounding problems may
-%	cause floating point numbers not to unify.
+%	Unify the two terms, where T2 is created by writing the term and
+%	reading it back in, but  be   aware  that  rounding problems may
+%	cause floating point numbers not to  unify. Also, if the initial
+%	term has a string object, it is written   as "..." and read as a
+%	code-list. We compensate for that.
 
 unify_term(X, X) :- !.
 unify_term(X1, X2) :-
@@ -141,6 +144,10 @@ unify_term(X1, X2) :-
 	unify_args(0, Arity, X1, X2).
 unify_term(X, Y) :-
 	float(X), float(Y), !.
+unify_term(X, Y) :-
+	string(X),
+	is_list(Y),
+	string_to_list(X, Y), !.
 unify_term(X, Y) :-
 	format('[INTERNAL ERROR: Diff: ~q <-> ~q]~n', [X, Y]),
 	break.
