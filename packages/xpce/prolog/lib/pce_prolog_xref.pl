@@ -478,6 +478,8 @@ xref_meta(clause(G, _, _),	[G]).
 xref_meta(time(G),		[G]).	% development system
 xref_meta(profile(G),		[G]).
 xref_meta(at_halt(G),		[G]).
+xref_meta(call_with_time_limit(_, G), [G]).
+xref_meta(call_with_depth_limit(G, _, _), [G]).
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
