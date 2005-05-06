@@ -1418,6 +1418,11 @@ copy_term(nat-1) :-
 		 *	     HASH-TERM		*
 		 *******************************/
 
+%	NOTE: these numbers are for 32-bit platforms. Different value of
+%	max_tagged_integer is main reason why the result is different on
+%	64-bit platforms. What to do? Use the   32-bit  limit also on 64
+%	bit platforms?  For now the test is disabled on 64-bit machines.
+
 hash_term(simple-1) :-
 	hash_term(aap, 480).
 hash_term(simple-2) :-			% small int
@@ -1876,7 +1881,8 @@ testset(meta).
 testset(avar).
 testset(gvar).
 testset(copy_term).
-testset(hash_term).
+testset(hash_term) :-			% 32-bit platforms
+	current_prolog_flag(max_integer, 2147483647).
 testset(cyclic).
 testset(cleanup).
 testset(term).
