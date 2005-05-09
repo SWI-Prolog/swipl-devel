@@ -1071,7 +1071,7 @@ static HostStackEntry host_handle_stack;
 
 static __inline PceObject
 pushHostHandle(PceObject h)
-{ HostStackEntry e = pceAlloc(sizeof(host_handle_stack));
+{ HostStackEntry e = pceAlloc(sizeof(*e));
 
   e->handle   = h;
   e->previous = host_handle_stack;
@@ -1097,7 +1097,7 @@ rewindHostHandles(HostStackEntry top)
 	setHostDataHandle(e->handle, r);
       }
   
-      pceUnAlloc(sizeof(host_handle_stack), e);
+      pceUnAlloc(sizeof(*e), e);
     }
   
     host_handle_stack = top;

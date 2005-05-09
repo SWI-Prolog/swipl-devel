@@ -4,6 +4,9 @@
 VERSION 6.5.17, distributed with SWI-Prolog 5.5.17
 ==================================================
 
+* FIXED: Bug#41: memory allocation error using Prolog terms in XPCE.
+  Dmitry.
+
 * FIXED: Bug#40: Wrong calculation of character dimensions on non-fixed
   width Unicode characters.  Dmitry.
 

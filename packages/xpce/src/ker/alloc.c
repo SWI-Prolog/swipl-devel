@@ -43,6 +43,56 @@
    debuggers */
 /*#define ALLOCFAST 0*/
 
+#ifdef USE_MALLOC
+
+Any
+alloc(unsigned int n)
+{ void *p;
+
+  allocbytes += n;
+
+  p = malloc(n);
+  allocRange(p, n);
+
+  return p;
+}
+
+void
+unalloc(unsigned int n, Any p)
+{ allocbytes -= n;
+
+  free(p);
+}
+
+void
+initAlloc(void)
+{ wastedbytes = allocbytes = 0;
+  allocTop  = 0L;
+  allocBase = 0xffffffff;
+
+  alloc(sizeof(long));			/* initialise Top/Base */
+#ifdef VARIABLE_POINTER_OFFSET
+  pce_data_pointer_offset = allocBase & 0xf0000000L;
+#endif
+}
+
+void
+allocRange(void *low, int size)
+{ unsigned long l = (unsigned long)low;
+
+  if ( l < allocBase )
+    allocBase = l;
+  if ( l+size > allocTop )
+    allocTop = l+size;
+}
+
+status
+listWastedCorePce(Pce pce, Bool ppcells)
+{ succeed;
+}
+
+#else /*USE_MALLOC*/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Debugging note: This module can run at three debugging levels:
 
@@ -346,6 +396,7 @@ listWastedCorePce(Pce pce, Bool ppcells)
   succeed;
 }
 
+#endif /*USE_MALLOC*/
 
 char *
 save_string(const char *s)
