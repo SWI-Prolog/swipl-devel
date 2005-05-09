@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Prefer library ncursesw.  Unclear what this means, but might
+    solve some issues on MacOS X.
+
   * FIXED: Bug#40: Unable to `ungetc' multibyte codes under some 
     circumstances.  Grzegorz Chrupala.
 
