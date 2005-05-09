@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#40: Unable to `ungetc' multibyte codes under some 
+    circumstances.  Grzegorz Chrupala.
+
   * FIXED: Bug#38: incorrect spacing in write_term on Unicode characters.
     Dmitry.
 

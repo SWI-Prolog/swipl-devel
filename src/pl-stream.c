@@ -96,6 +96,10 @@ typedef wchar_t pl_wchar_t;
 #include SYSLIB_H
 #endif
 
+#ifndef MB_LEN_MAX
+#define MB_LEN_MAX 6
+#endif
+
 #ifndef FALSE
 #define FALSE 0
 #endif
@@ -111,6 +115,7 @@ int Slinesize = SIO_LINESIZE;		/* Sgets() buffer size */
 
 static int	S__flushbuf(IOSTREAM *s);
 static void	run_close_hooks(IOSTREAM *s);
+static int	S__removebuf(IOSTREAM *s);
 
 #define S__fupdatefilepos(s, c) S___fupdatefilepos(s, c)
 
@@ -142,30 +147,36 @@ extern IOENC			initEncoding(void);
 		 *	      BUFFER		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that the  buffer  is  allocated   from  s->unbuffer,  which  starts
+MB_LEN_MAX before s->buffer, so we can always push-back a wide character
+into a multibyte stream. We do  not   do  this for SIO_USERBUF case, but
+this is only used by  the  output   stream  Svfprintf()  where it is not
+needed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 S__setbuf(IOSTREAM *s, char *buffer, int size)
 { if ( size == 0 )
     size = SIO_BUFSIZE;
 
+  S__removebuf(s);
   s->bufsize = size;
-  
-  if ( s->buffer && !(s->flags & SIO_USERBUF) )
-    free(s->buffer);
 
   if ( buffer )
-  { s->buffer = buffer;
+  { s->unbuffer = s->buffer = buffer;
     s->flags |= SIO_USERBUF;
   } else
-  { if ( !(s->buffer = malloc(s->bufsize)) )
+  { if ( !(s->unbuffer = malloc(s->bufsize+MB_LEN_MAX)) )
     { errno = ENOMEM;
       return -1;
     }
     s->flags &= ~SIO_USERBUF;
+    s->buffer = s->unbuffer + MB_LEN_MAX;
   }
 
-  s->unbuffer = s->buffer;
-  s->limitp   = &s->buffer[s->bufsize];
-  s->bufp     = s->buffer;
+  s->limitp = &s->buffer[s->bufsize];
+  s->bufp   = s->buffer;
 
   return size;
 }
@@ -173,12 +184,15 @@ S__setbuf(IOSTREAM *s, char *buffer, int size)
 
 static int
 S__removebuf(IOSTREAM *s)
-{ if ( s->buffer )
-  { int rval = S__flushbuf(s);
+{ if ( s->buffer && s->unbuffer )
+  { int rval = 0;
+
+    if ( (s->flags & SIO_OUTPUT) && S__flushbuf(s) < 0 )
+      rval = -1;
 
     if ( !(s->flags & SIO_USERBUF) )
-      free(s->buffer);
-    s->bufp = s->limitp = s->buffer = NULL;
+      free(s->unbuffer);
+    s->bufp = s->limitp = s->buffer = s->unbuffer = NULL;
     s->bufsize = 0;
 
     return rval;
@@ -1411,15 +1425,7 @@ Sclose(IOSTREAM *s)
   while(s->locks > 0)			/* remove buffer-locks */
     rval = Sunlock(s);
 
-  if ( s->buffer )
-  { if ( (s->flags & SIO_OUTPUT) && S__flushbuf(s) < 0 )
-      rval = -1;
-
-    if ( !(s->flags & SIO_USERBUF) )
-      free(s->buffer);
-
-    s->buffer = NULL;
-  }
+  rval = S__removebuf(s);
   if ( s->mbstate )
     free(s->mbstate);
 
@@ -2970,8 +2976,10 @@ Scleanup(void)
   close_hooks = NULL;
 
   for(i=0; i<=2; i++)
-  { if ( S__iob[i].buffer )
-      free(S__iob[i].buffer);
-    S__iob[i] = S__iob0[i];
+  { IOSTREAM *s = &S__iob[i];
+
+    s->bufp = s->buffer;		/* avoid actual flush */
+    S__removebuf(s);
+    *s = S__iob0[i];			/* re-initialise */
   }
 }
