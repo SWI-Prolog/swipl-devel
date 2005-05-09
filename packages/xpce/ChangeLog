@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#40: Wrong calculation of character dimensions on non-fixed
+  width Unicode characters.  Dmitry.
+
 * FIXED: Bug#39: cannot paint selected text with UNICODE characters.
   Dmitry.
 

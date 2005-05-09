@@ -2728,9 +2728,9 @@ c_width(wint_t c, FontObj font)
 { INT w[1];
 
   s_font(font);
-  if ( GetCharWidth32(context.hdc, c, c, w) )
+  if ( GetCharWidth32W(context.hdc, c, c, w) )
     return w[0];
-  else if ( GetCharWidth32(context.hdc, 'x', 'x', w) )
+  else if ( GetCharWidth32W(context.hdc, 'x', 'x', w) )
     return w[0];
   else
     return 10;				/* avoid crashes */
