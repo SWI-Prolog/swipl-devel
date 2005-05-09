@@ -3126,7 +3126,7 @@ str_stext(String s, int f, int len, Style style)
     if ( isstrA(s) )
     { TextOut(context.hdc, 0, 0, s->s_textA+f, len);
     } else
-    { Cprintf("16-bits characters are not supported on XPCE for Windows\n");
+    { TextOutW(context.hdc, 0, 0, s->s_textW+f, len);
     }
 
     if ( notNil(style) && (style->attributes & TXT_UNDERLINED) )

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#39: cannot paint selected text with UNICODE characters.
+  Dmitry.
+
 * FIXED: tracing dynamic clauses holding strings.  Steve Moyle.
 
 * FIXED: PceEmacs colouring: removed load_files/1 spec (error).  Cross
