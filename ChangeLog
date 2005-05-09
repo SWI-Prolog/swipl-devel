@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.17 (May 09, 2005)
+=============================
+
   * PORT: Prefer library ncursesw.  Unclear what this means, but might
     solve some issues on MacOS X.
 

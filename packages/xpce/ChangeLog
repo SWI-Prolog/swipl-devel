@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.17, distributed with SWI-Prolog 5.5.17
+==================================================
+
 * FIXED: Bug#40: Wrong calculation of character dimensions on non-fixed
   width Unicode characters.  Dmitry.
 
