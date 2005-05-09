@@ -187,8 +187,8 @@ PutOpenToken(int c, IOSTREAM *s)
   { s->lastc = EOF;
     return TRUE;
   } else if ( s->lastc != EOF &&
-	      ((isAlpha(s->lastc) && isAlpha(c)) ||
-	       (isSymbol(s->lastc) && isSymbol(c)) ||
+	      ((isAlphaW(s->lastc) && isAlphaW(c)) ||
+	       (isSymbolW(s->lastc) && isSymbolW(c)) ||
 	       (s->lastc != '(' && !isBlank(s->lastc) && c == '(')) )
   { return Putc(' ', s);
   }

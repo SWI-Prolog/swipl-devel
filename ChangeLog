@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#38: incorrect spacing in write_term on Unicode characters.
+    Dmitry.
+
+
 VERSION 5.5.16 (May 02, 2005)
 =============================
 
