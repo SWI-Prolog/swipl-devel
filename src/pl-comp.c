@@ -2171,6 +2171,16 @@ arg1Key(Clause clause, word *key)
 	*key = (word)*PC;
 	succeed;
       case H_FLOAT:			/* tbd */
+	switch(WORDS_PER_DOUBLE)
+	{ case 2:
+	    *key = (word)PC[0] ^ (word)PC[1];
+	    succeed;
+	  case 1:
+	    *key = (word)PC[0];
+	    succeed;
+	  default:
+	    assert(0);
+	}
       case H_INDIRECT:
       case H_FIRSTVAR:
       case H_VAR:

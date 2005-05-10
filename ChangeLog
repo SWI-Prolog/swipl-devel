@@ -10,6 +10,8 @@
 VERSION 5.5.17 (May 09, 2005)
 =============================
 
+  * ENHANCED: do 1st argument indexing on floats.
+
   * PORT: Prefer library ncursesw.  Unclear what this means, but might
     solve some issues on MacOS X.
 
