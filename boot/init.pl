@@ -1484,6 +1484,11 @@ $do_expand_body((A*->B), (EA*->EB)) :- !,
         $do_expand_body(B, EB).
 $do_expand_body((\+A), (\+EA)) :- !,
         $do_expand_body(A, EA).
+$do_expand_body(A, B) :-
+        $goal_expansion_module(M),
+        M:goal_expansion(A, B0),
+	B0 \== A, !,			% avoid a loop
+	$do_expand_body(B0, B).
 $do_expand_body(not(A), not(EA)) :- !,
         $do_expand_body(A, EA).
 $do_expand_body(call(A), call(EA)) :- !,
@@ -1517,11 +1522,6 @@ $do_expand_body(M:G, M:EG) :-
 	$set_source_module(Old, M),
 	call_cleanup($do_expand_body(G, EG),
 		     $set_source_module(_, Old)), !.
-$do_expand_body(A, B) :-
-        $goal_expansion_module(M),
-        M:goal_expansion(A, B0),
-	B0 \== A, !,			% avoid a loop
-	$do_expand_body(B0, B).
 $do_expand_body(A, A).
 
 %	Delete extraneous true's that result from goal_expansion(..., true)
