@@ -576,7 +576,7 @@ bannerPce(Pce pce)
 	 pce->operating_system,
 	 pce->window_system_version,
 	 pce->window_system_revision);
-  writef("Copyright (C) 1993-2002 University of Amsterdam.\n"
+  writef("Copyright (C) 1993-2005 University of Amsterdam.\n"
 	 "XPCE comes with ABSOLUTELY NO WARRANTY. "
 	 "This is free software,\nand you are welcome to redistribute it "
 	 "under certain conditions.\n");
