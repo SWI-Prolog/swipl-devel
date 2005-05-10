@@ -10,6 +10,11 @@
 VERSION 5.5.17 (May 09, 2005)
 =============================
 
+  * FIXED: nb_setarg/3 using float arguments.
+
+  * FIXED: setarg/nb_setarg allows to overwrite the functor using Index
+    = 0.
+
   * ENHANCED: do 1st argument indexing on floats.
 
   * PORT: Prefer library ncursesw.  Unclear what this means, but might

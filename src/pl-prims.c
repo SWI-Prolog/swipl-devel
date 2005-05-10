@@ -1039,9 +1039,13 @@ setarg(term_t n, term_t term, term_t value, int flags)
 
   if ( !PL_get_integer_ex(n, &argn) )
     fail;
-  if ( argn < 0 )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, n);
+  if ( argn <= 0 )
+  { if ( argn < 0 )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		      ATOM_not_less_than_zero, n);
+    else
+      fail;
+  }
   if ( !PL_get_name_arity(term, &name, &arity) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, term);
   
@@ -1058,7 +1062,7 @@ setarg(term_t n, term_t term, term_t value, int flags)
   { v = valTermRef(value);
     deRef(v);
 
-    if ( !isAtomic(*v) )
+    if ( storage(*v) == STG_GLOBAL )
     { if ( !(flags & SETARG_LINK) )
       { term_t copy = PL_new_term_ref();
 
