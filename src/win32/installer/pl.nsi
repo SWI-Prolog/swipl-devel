@@ -504,6 +504,7 @@ Section "Uninstall"
     MessageBox MB_OK "Folder $INSTDIR doesn't seem to contain Prolog"
 
   Done:
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\SWI-Prolog"
 SectionEnd
 
 ################################################################
