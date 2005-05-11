@@ -135,7 +135,6 @@ indexOfWord(word w ARG_LD)
     { case TAG_VAR:
       case TAG_ATTVAR:
       case TAG_STRING:
-      case TAG_FLOAT:
 	return 0L;
       case TAG_INTEGER:
 	if ( storage(w) != STG_INLINE )
@@ -149,6 +148,19 @@ indexOfWord(word w ARG_LD)
 	}
       case TAG_ATOM:
 	break;				/* atom_t */
+      case TAG_FLOAT:
+      { Word p = valIndirectP(w);
+	
+	switch(WORDS_PER_DOUBLE)
+	{ case 2:
+	    return p[0]^p[1];
+	  case 1:
+	    return p[0];
+	  default:
+	    assert(0);
+	    return 0L;
+	}
+      }
       case TAG_COMPOUND:
 	w = *valPtr(w);			/* functor_t */
 	break;
