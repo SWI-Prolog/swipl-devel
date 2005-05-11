@@ -10,6 +10,9 @@
 VERSION 5.5.17 (May 09, 2005)
 =============================
 
+  * PORT: Bug#43: remove / after $(DESTDIR) to avoid paths starting
+    with //.  Causes problems on Cygwin.  Dmitry.
+
   * MODIFIED: Allow for goal_expansion/2 on named meta-predicates.
 
   * FIXED: nb_setarg/3 using float arguments.

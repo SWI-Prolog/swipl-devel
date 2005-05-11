@@ -80,25 +80,25 @@ rlimit.@SO@:	$(RLIMITOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(RLIMITOBJ) $(LIBS)
 
 install:	$(TARGETS) $(LIBPL)
-		mkdir -p $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
+		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		for f in $(TARGETS); do \
-		  $(INSTALL) -m 755 $$f $(DESTDIR)/$(PLBASE)/lib/$(PLARCH); \
+		  $(INSTALL) -m 755 $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
 		done
-		mkdir -p $(DESTDIR)/$(PLBASE)/library
+		mkdir -p $(DESTDIR)$(PLBASE)/library
 		for f in $(LIBPL); do \
-		  $(INSTALL) -m 644 $$f $(DESTDIR)/$(PLBASE)/library; \
+		  $(INSTALL) -m 644 $$f $(DESTDIR)$(PLBASE)/library; \
 		done
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
 
 html-install::
-		mkdir -p $(DESTDIR)/$(PKGDOC)
-		$(INSTALL) -m 644 clib.html $(DESTDIR)/$(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL) -m 644 clib.html $(DESTDIR)$(PKGDOC)
 
 pdf-install::
 		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 clib.pdf $(DESTDIR)/$(PKGDOC)
+		$(INSTALL) -m 644 clib.pdf $(DESTDIR)$(PKGDOC)
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))

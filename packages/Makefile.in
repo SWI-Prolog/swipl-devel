@@ -79,15 +79,15 @@ install::
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
 	@echo "*** Forcing update of library index ***"
-	rm -f $(DESTDIR)/$(PLLIB)/INDEX.pl
-	./pl.sh -f none -g "make_library_index('$(DESTDIR)/$(PLLIB)')" -t halt
+	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
+	./pl.sh -f none -g "make_library_index('$(DESTDIR)$(PLLIB)')" -t halt
 
 rpm-install: html-install
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
 	@echo "*** Forcing update of library index ***"
-	rm -f $(DESTDIR)/$(PLLIB)/INDEX.pl
+	rm -f $(DESTDIR)$(PLLIB)/INDEX.pl
 	./pl.sh -f none -g "make_library_index('$(PLLIB)')" -t halt
 
 pdf-install::
@@ -99,7 +99,7 @@ html-install::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
-	$(INSTALL_DATA) index.html $(DESTDIR)/$(PKGDOC)
+	$(INSTALL_DATA) index.html $(DESTDIR)$(PKGDOC)
 
 configure::
 	@echo "**********************"

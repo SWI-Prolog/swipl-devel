@@ -42,21 +42,21 @@ all:
 		@echo "Nothing to do for this package"
 
 install:	$(LIBPL) xpce-install
-		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)/$(PLBASE)/library
+		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)$(PLBASE)/library
 		$(PL) -f none -g make -t halt
 
 xpce-install:	$(XPCEPL)
-		if [ -d $(DESTDIR)/$(XPCEBASE) ]; then \
-		   $(INSTALL) -m 644 $(XPCEPL) $(DESTDIR)/$(XPCEBASE)/prolog/lib; \
+		if [ -d $(DESTDIR)$(XPCEBASE) ]; then \
+		   $(INSTALL) -m 644 $(XPCEPL) $(DESTDIR)$(XPCEBASE)/prolog/lib; \
 		fi
 
 rpm-install:	install
 
 pdf-install::
-		$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)/$(PKGDOC)
+		$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)$(PKGDOC)
 
 html-install::
-		$(INSTALL_DATA) $(DOC).html $(DESTDIR)/$(PKGDOC)
+		$(INSTALL_DATA) $(DOC).html $(DESTDIR)$(PKGDOC)
 
 uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))

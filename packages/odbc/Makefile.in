@@ -54,24 +54,24 @@ odbc4pl.@SO@:	$(ODBCOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(ODBCOBJ) $(LIBS)
 
 install:	$(TARGETS) $(LIBPL)
-		mkdir -p $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
+		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		for f in $(TARGETS); do \
-		  $(INSTALL) -m 755 $$f $(DESTDIR)/$(PLBASE)/lib/$(PLARCH); \
+		  $(INSTALL) -m 755 $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
 		done
 		for f in $(LIBPL); do \
-		  $(INSTALL) -m 644 $$f $(DESTDIR)/$(PLBASE)/library; \
+		  $(INSTALL) -m 644 $$f $(DESTDIR)$(PLBASE)/library; \
 		done
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
 
 html-install::
-		mkdir -p $(DESTDIR)/$(PKGDOC)
-		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)/$(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)$(PKGDOC)
 
 pdf-install::
-		mkdir -p $(DESTDIR)/$(PKGDOC)
-		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)/$(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)$(PKGDOC)
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))

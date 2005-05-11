@@ -78,10 +78,10 @@ chr.pl:		chr_swi.pl
 		cp $< $@
 
 install:	$(LIBPL)
-		mkdir -p $(DESTDIR)/$(CHRDIR)
-		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)/$(CHRDIR)
-		$(INSTALL) -m 644 $(CHRPL) $(DESTDIR)/$(LIBDIR)/chr.pl
-		$(INSTALL) -m 644 README   $(DESTDIR)/$(CHRDIR)
+		mkdir -p $(DESTDIR)$(CHRDIR)
+		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)$(CHRDIR)
+		$(INSTALL) -m 644 $(CHRPL) $(DESTDIR)$(LIBDIR)/chr.pl
+		$(INSTALL) -m 644 README   $(DESTDIR)$(CHRDIR)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
@@ -91,8 +91,8 @@ pdf-install:	install-examples
 html-install:	install-examples
 
 install-examples::
-		mkdir -p $(DESTDIR)/$(EXDIR)
-		(cd Examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)/$(EXDIR))
+		mkdir -p $(DESTDIR)$(EXDIR)
+		(cd Examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
 
 uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))

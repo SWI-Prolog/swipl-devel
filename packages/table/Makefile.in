@@ -48,20 +48,20 @@ table.@SO@:	$(OBJ)
 		$(LD) $(LDFLAGS) -o $@ $(OBJ)
 
 install:	$(TARGETS) $(LIBPL)
-		mkdir -p $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 755 $(TARGETS) $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)/$(PLBASE)/library
+		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL) -m 755 $(TARGETS) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)$(PLBASE)/library
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
 
 pdf-install::
-		mkdir -p $(DESTDIR)/$(PKGDOC)
-		$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)/$(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)$(PKGDOC)
 
 html-install::
-		mkdir -p $(DESTDIR)/$(PKGDOC)
-		$(INSTALL_DATA) $(DOC).html $(DESTDIR)/$(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL_DATA) $(DOC).html $(DESTDIR)$(PKGDOC)
 
 uninstall:
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))

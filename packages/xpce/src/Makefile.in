@@ -253,14 +253,14 @@ so-install:	so
 		@echo "****************"
 		@echo "* Installing XPCE shared libraries in $(libdir)"
 		@echo "****************"
-		$(INSTALL_PROGRAM) $(LIBXPCESOMM) $(DESTDIR)/$(libdir)
-		(cd $(DESTDIR)/$(libdir); \
+		$(INSTALL_PROGRAM) $(LIBXPCESOMM) $(DESTDIR)$(libdir)
+		(cd $(DESTDIR)$(libdir); \
 		     rm -f $(LIBXPCESOM) $(LIBXPCESO); \
 		     ln -s $(LIBXPCESOMM) $(LIBXPCESOM); \
 		     ln -s $(LIBXPCESOM) $(LIBXPCESO))
 		$(LDCONFIG)
-		$(INSTALL_DATA) $(LIBXPCEMAIN) $(DESTDIR)/$(libdir)
-		(cd $(DESTDIR)/$(libdir) ; $(RANLIB) $(LIBXPCEMAIN))
+		$(INSTALL_DATA) $(LIBXPCEMAIN) $(DESTDIR)$(libdir)
+		(cd $(DESTDIR)$(libdir) ; $(RANLIB) $(LIBXPCEMAIN))
 
 $(LIBXPCESO):	libXPCE.a $(SOEXTRAOBJ)
 		$(LD) $(MKSOFLAGS) $(SONAMEFLAG) -o $(LIBXPCESOMM) $(SOLIBS)
@@ -717,8 +717,8 @@ rpm-install:	rt-home rt-misc rt-bitmaps rt-bins rpm-link \
 manindex:	$(MANINDEX)
 
 rpm-link::
-		rm -f $(DESTDIR)/$(PLBASE)/xpce
-		(cd $(DESTDIR)/$(PLBASE) && ln -s xpce-$(PCEVERSION) xpce)
+		rm -f $(DESTDIR)$(PLBASE)/xpce
+		(cd $(DESTDIR)$(PLBASE) && ln -s xpce-$(PCEVERSION) xpce)
 
 #	runtime only stuff
 
@@ -726,131 +726,131 @@ RTBINS=		xpce xpce-client
 RTLIBS=		pl2xpce.$(SO) $(LIBXPCESOMM) $(LIBXPCEMAIN)
 
 rt-home:
-		if [ ! -d $(DESTDIR)/$(RTHOME) ]; then mkdir $(DESTDIR)/$(RTHOME); fi
+		if [ ! -d $(DESTDIR)$(RTHOME) ]; then mkdir $(DESTDIR)$(RTHOME); fi
 
 rt-bitmaps:
 		BMFS=`find ../bitmaps/ \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print` && \
-		$(INSTALL_DATA) -p1 ../bitmaps/README $$BMFS $(DESTDIR)/$(RTHOME)
+		$(INSTALL_DATA) -p1 ../bitmaps/README $$BMFS $(DESTDIR)$(RTHOME)
 
 rt-misc:
-		$(INSTALL_DATA) -C .. $(RTMISC) $(DESTDIR)/$(RTHOME)
+		$(INSTALL_DATA) -C .. $(RTMISC) $(DESTDIR)$(RTHOME)
 
 rt-bins:
-		$(INSTALL_DATA) -dC $(DESTDIR)/$(RTHOME) bin/$(PLARCH) lib/$(PLARCH)
+		$(INSTALL_DATA) -dC $(DESTDIR)$(RTHOME) bin/$(PLARCH) lib/$(PLARCH)
 		@if [ -f xpce ]; then \
 		    echo "xpce --> $(PLBINDIR)"; \
-		    $(INSTALL_PROGRAM) xpce $(DESTDIR)/$(PLBINDIR); \
+		    $(INSTALL_PROGRAM) xpce $(DESTDIR)$(PLBINDIR); \
 		else \
-		    echo "linking xpce to $(PLNAME) in $(DESTDIR)/$(PLBINDIR)"; \
-		    rm -f $(DESTDIR)/$(PLBINDIR)/xpce; \
-		    (cd $(DESTDIR)/$(PLBINDIR); ln -s $(PLNAME) xpce) ; \
+		    echo "linking xpce to $(PLNAME) in $(DESTDIR)$(PLBINDIR)"; \
+		    rm -f $(DESTDIR)$(PLBINDIR)/xpce; \
+		    (cd $(DESTDIR)$(PLBINDIR); ln -s $(PLNAME) xpce) ; \
 		fi
 		@for f in xpce-client; do \
 		    if [ -f $$f ]; then \
-			echo "$$f --> $(DESTDIR)/$(RTBINDIR)"; \
-		        $(INSTALL_PROGRAM) $$f $(DESTDIR)/$(RTBINDIR); \
+			echo "$$f --> $(DESTDIR)$(RTBINDIR)"; \
+		        $(INSTALL_PROGRAM) $$f $(DESTDIR)$(RTBINDIR); \
 		    fi; \
 		done
 		@for f in $(RTLIBS); do \
 		    if [ -f $$f ]; then \
-			echo "$$f --> $(DESTDIR)/$(RTHOME)/lib/$(PLARCH)"; \
-		        $(INSTALL_PROGRAM) $$f $(DESTDIR)/$(RTHOME)/lib/$(PLARCH); \
+			echo "$$f --> $(DESTDIR)$(RTHOME)/lib/$(PLARCH)"; \
+		        $(INSTALL_PROGRAM) $$f $(DESTDIR)$(RTHOME)/lib/$(PLARCH); \
 		    fi; \
 		done
-		if [ -f $(DESTDIR)/$(RTHOME)/lib/$(PLARCH)/$(LIBXPCESOMM) ]; then \
-		    (cd $(DESTDIR)/$(RTHOME)/lib/$(PLARCH); \
+		if [ -f $(DESTDIR)$(RTHOME)/lib/$(PLARCH)/$(LIBXPCESOMM) ]; then \
+		    (cd $(DESTDIR)$(RTHOME)/lib/$(PLARCH); \
 		         rm -f $(LIBXPCESOM) $(LIBXPCESO); \
 		         ln -s $(LIBXPCESOMM) $(LIBXPCESOM); \
 		         ln -s $(LIBXPCESOM) $(LIBXPCESO)); \
 		fi
 
 dv-home:
-		if [ ! -d $(DESTDIR)/$(DVHOME) ]; then mkdir $(DESTDIR)/$(DVHOME); fi
+		if [ ! -d $(DESTDIR)$(DVHOME) ]; then mkdir $(DESTDIR)$(DVHOME); fi
 
 dv-lib:
-		@if [ ! -d $(DESTDIR)/$(DVHOME)/prolog ]; then mkdir $(DESTDIR)/$(DVHOME)/prolog; fi
+		@if [ ! -d $(DESTDIR)$(DVHOME)/prolog ]; then mkdir $(DESTDIR)$(DVHOME)/prolog; fi
 		@for d in $(DVLIBDIRS); do \
-		    if [ ! -d $(DESTDIR)/$(DVHOME)/prolog/$$d ]; then \
-		        mkdir $(DESTDIR)/$(DVHOME)/prolog/$$d; \
+		    if [ ! -d $(DESTDIR)$(DVHOME)/prolog/$$d ]; then \
+		        mkdir $(DESTDIR)$(DVHOME)/prolog/$$d; \
 		    fi; \
 		    echo -n "Installing library files for prolog/$$d ..."; \
-		    rm -f $(DESTDIR)/$(DVHOME)/prolog/$$d/*.qlf; \
-		    $(INSTALL_DATA) ../prolog/$$d/*.pl $(DESTDIR)/$(DVHOME)/prolog/$$d; \
+		    rm -f $(DESTDIR)$(DVHOME)/prolog/$$d/*.qlf; \
+		    $(INSTALL_DATA) ../prolog/$$d/*.pl $(DESTDIR)$(DVHOME)/prolog/$$d; \
 		    if [ -r ../prolog/$$d/README ]; then \
-		        $(INSTALL_DATA) ../prolog/$$d/README $(DESTDIR)/$(DVHOME)/prolog/$$d; \
+		        $(INSTALL_DATA) ../prolog/$$d/README $(DESTDIR)$(DVHOME)/prolog/$$d; \
 		    fi; \
 		    echo done; \
 		done
 		$(PLBUILD) -t halt \
-			-g "make_library_index('$(DESTDIR)/$(DVHOME)/prolog/lib')"
-		$(INSTALL_DATA) ../prolog/lib/Overview $(DESTDIR)/$(DVHOME)/prolog/lib
-		$(INSTALL_DATA) ../prolog/lib/trace/pltracer.hlp $(DESTDIR)/$(DVHOME)/prolog/lib/trace
+			-g "make_library_index('$(DESTDIR)$(DVHOME)/prolog/lib')"
+		$(INSTALL_DATA) ../prolog/lib/Overview $(DESTDIR)$(DVHOME)/prolog/lib
+		$(INSTALL_DATA) ../prolog/lib/trace/pltracer.hlp $(DESTDIR)$(DVHOME)/prolog/lib/trace
 		@for d in $(DVIMGDIRS); do \
-		    if [ ! -d $(DESTDIR)/$(DVHOME)/prolog/$$d ]; then \
-		        mkdir $(DESTDIR)/$(DVHOME)/prolog/$$d; \
+		    if [ ! -d $(DESTDIR)$(DVHOME)/prolog/$$d ]; then \
+		        mkdir $(DESTDIR)$(DVHOME)/prolog/$$d; \
 		    fi; \
 		    echo -n "Installing icons in prolog/$$d ..."; \
 		    $(INSTALL_DATA) \
 			`find ../prolog/$$d \( -name '*.bm' -o -name '*.xpm' \)` \
-				$(DESTDIR)/$(DVHOME)/prolog/$$d; \
+				$(DESTDIR)$(DVHOME)/prolog/$$d; \
 		    echo done; \
 		done
 		$(INSTALL_DATA) ../prolog/lib/man/classification.dat \
-				$(DESTDIR)/$(DVHOME)/prolog/lib/man
-		$(INSTALL_DATA) ../prolog/lib/Makefile $(DESTDIR)/$(DVHOME)/prolog/lib
+				$(DESTDIR)$(DVHOME)/prolog/lib/man
+		$(INSTALL_DATA) ../prolog/lib/Makefile $(DESTDIR)$(DVHOME)/prolog/lib
 
 dv-classindex::
 		./xpce.sh -t "halt(1)" \
-			-g "[library(pce_class_index)],pce_make_library_index('$(DESTDIR)/$(DVHOME)/prolog/lib'),halt"
+			-g "[library(pce_class_index)],pce_make_library_index('$(DESTDIR)$(DVHOME)/prolog/lib'),halt"
 
 dv-boot:	
 		@for d in $(DVBOOTDIRS); do \
-		    if [ ! -d $(DESTDIR)/$(DVHOME)/prolog/$$d ]; then \
-		        mkdir $(DESTDIR)/$(DVHOME)/prolog/$$d; \
+		    if [ ! -d $(DESTDIR)$(DVHOME)/prolog/$$d ]; then \
+		        mkdir $(DESTDIR)$(DVHOME)/prolog/$$d; \
 		    fi; \
 		    for f in ../prolog/$$d/*.pl; do \
 			echo $$f; \
-			$(INSTALL_DATA) $$f $(DESTDIR)/$(DVHOME)/prolog/$$d; \
+			$(INSTALL_DATA) $$f $(DESTDIR)$(DVHOME)/prolog/$$d; \
 		    done; \
 		done
 
 dv-help:
-		$(INSTALL_DATA) -vp1 ../appl-help/*.hlp $(DESTDIR)/$(DVHOME)
+		$(INSTALL_DATA) -vp1 ../appl-help/*.hlp $(DESTDIR)$(DVHOME)
 
 dv-misc:
-		$(INSTALL_DATA) -C .. $(DVMISCFILES) $(DESTDIR)/$(DVHOME)
+		$(INSTALL_DATA) -C .. $(DVMISCFILES) $(DESTDIR)$(DVHOME)
 
 dv-manual:	
-		$(INSTALL_DATA) -p1 ../man/reference/*.doc $(DESTDIR)/$(DVHOME)
-		$(INSTALL_DATA) -p1 ../man/reference/class/*.doc $(DESTDIR)/$(DVHOME)
-		$(INSTALL_DATA) -p1 ../man/faq/*.html $(DESTDIR)/$(DVHOME)
+		$(INSTALL_DATA) -p1 ../man/reference/*.doc $(DESTDIR)$(DVHOME)
+		$(INSTALL_DATA) -p1 ../man/reference/class/*.doc $(DESTDIR)$(DVHOME)
+		$(INSTALL_DATA) -p1 ../man/faq/*.html $(DESTDIR)$(DVHOME)
 
 dv-online:	manindex
 		if [ -r $(MANINDEX) ]; then \
-		    $(INSTALL_DATA) -p1 $(MANINDEX) $(DESTDIR)/$(DVHOME); \
+		    $(INSTALL_DATA) -p1 $(MANINDEX) $(DESTDIR)$(DVHOME); \
 		fi
 
 dv-man:
 		for f in xpce-client xpce; do \
-		    $(INSTALL_DATA) ../man/$$f.1 $(DESTDIR)/$(DVHOME)/man; \
+		    $(INSTALL_DATA) ../man/$$f.1 $(DESTDIR)$(DVHOME)/man; \
 		    if test -w $(smandir); then \
-		        $(INSTALL_DATA) ../man/$$f.1 $(DESTDIR)/$(smandir)/$$f.$(mansec); \
+		        $(INSTALL_DATA) ../man/$$f.1 $(DESTDIR)$(smandir)/$$f.$(mansec); \
 		    fi; \
 	        done
 
 rt-link:
-		cd $(DESTDIR)/$(PLBASE); rm -f xpce; ln -s xpce-$(PCEVERSION) xpce
+		cd $(DESTDIR)$(PLBASE); rm -f xpce; ln -s xpce-$(PCEVERSION) xpce
 
 dv-link:	rt-link
-		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)/$(PLBASE)/$(PLNAME).rc
-		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)/$(PLBASE)/xpce.rc
-		$(INSTALL_DATA) ../pl/src/Makefile.bin $(DESTDIR)/$(PLBASE)/Makefile
+		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(PLBASE)/$(PLNAME).rc
+		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(PLBASE)/xpce.rc
+		$(INSTALL_DATA) ../pl/src/Makefile.bin $(DESTDIR)$(PLBASE)/Makefile
 
 dv-pl-files:
-		if [ ! -d $(DESTDIR)/$(RTHOME)/pl ]; then mkdir $(DESTDIR)/$(RTHOME)/pl; fi
-		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)/$(RTHOME)/pl/pl.rc
-		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)/$(RTHOME)/pl/xpce.rc
-		$(INSTALL_DATA) ../pl/src/Makefile.bin $(DESTDIR)/$(RTHOME)/pl/Makefile
+		if [ ! -d $(DESTDIR)$(RTHOME)/pl ]; then mkdir $(DESTDIR)$(RTHOME)/pl; fi
+		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(RTHOME)/pl/pl.rc
+		$(INSTALL_DATA) ../pl/src/plrc $(DESTDIR)$(RTHOME)/pl/xpce.rc
+		$(INSTALL_DATA) ../pl/src/Makefile.bin $(DESTDIR)$(RTHOME)/pl/Makefile
 
 # (for now) only build the quick load files if we actually install into
 # the target location.  If not, the paths will be wrong anyway.
@@ -861,9 +861,9 @@ ifeq ($(DESTDIR),)
 endif
 
 dv-bins:
-		rm -f $(DESTDIR)/$(bindir)/xpce
-		$(REL_LN) $(DESTDIR)/$(bindir)/$(PL) $(DESTDIR)/$(bindir)/xpce
-		$(INSTALL_PROGRAM) xpce-client $(DESTDIR)/$(bindir)
+		rm -f $(DESTDIR)$(bindir)/xpce
+		$(REL_LN) $(DESTDIR)$(bindir)/$(PL) $(DESTDIR)$(bindir)/xpce
+		$(INSTALL_PROGRAM) xpce-client $(DESTDIR)$(bindir)
 
 pdf-install::
 html-install::
@@ -881,14 +881,14 @@ CXXDEMO=	DEMOS Makefile Makefile.in README bnode.cxx dir.cxx \
 cxx-install:	cxx-headers cxx-demos cxx-misc
 
 cxx-headers:
-		$(INSTALL_DATA) -p1 ../include/pce/*.h $(DESTDIR)/$(DVHOME)
+		$(INSTALL_DATA) -p1 ../include/pce/*.h $(DESTDIR)$(DVHOME)
 
 cxx-demos:
-		$(INSTALL_DATA) -pC ../CXX/demo $(CXXDEMO) $(DESTDIR)/$(DVHOME)/CXX/demo
+		$(INSTALL_DATA) -pC ../CXX/demo $(CXXDEMO) $(DESTDIR)$(DVHOME)/CXX/demo
 
 cxx-misc:
-		$(INSTALL_DATA) -C .. README.CXX $(DESTDIR)/$(DVHOME)
-		$(INSTALL_DATA) -p1 ../src/itf/main.cxx $(DESTDIR)/$(DVHOME)
+		$(INSTALL_DATA) -C .. README.CXX $(DESTDIR)$(DVHOME)
+		$(INSTALL_DATA) -p1 ../src/itf/main.cxx $(DESTDIR)$(DVHOME)
 
 ################################################################
 # CHECK

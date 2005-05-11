@@ -56,26 +56,26 @@ sgml2pl.@SO@:	$(PLOBJ)
 		$(PLLD) -shared -o $@ $(PLOBJ)
 
 install:	$(TARGETS) $(LIBPL) install-dtd
-		mkdir -p $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
-		$(INSTALL_PROGRAM) $(TARGETS) $(DESTDIR)/$(PLFOREIGN)
-		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)/$(PLLIB)
+		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL_PROGRAM) $(TARGETS) $(DESTDIR)$(PLFOREIGN)
+		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(PLLIB)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
 
 install-dtd::
-		mkdir -p $(DESTDIR)/$(PLBASE)/library/DTD
+		mkdir -p $(DESTDIR)$(PLBASE)/library/DTD
 		for f in $(DTDFILES); do \
-		   $(INSTALL_DATA) DTD/$$f $(DESTDIR)/$(PLBASE)/library/DTD; \
+		   $(INSTALL_DATA) DTD/$$f $(DESTDIR)$(PLBASE)/library/DTD; \
 		done
 
 pdf-install::
-		mkdir -p $(DESTDIR)/$(PKGDOC)
-		$(INSTALL_DATA) doc/sgml2pl.pdf $(DESTDIR)/$(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL_DATA) doc/sgml2pl.pdf $(DESTDIR)$(PKGDOC)
 
 html-install::
-		mkdir -p $(DESTDIR)/$(PKGDOC)
-		$(INSTALL_DATA) doc/sgml2pl.html $(DESTDIR)/$(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL_DATA) doc/sgml2pl.html $(DESTDIR)$(PKGDOC)
 
 check::
 		$(PL) -f Test/test.pl -g test,halt

@@ -292,116 +292,116 @@ install-version: install-arch install-libs install-vbins
 dv-install:	install-arch install-libs install-bins
 
 install-bins:	install-arch
-		-if [ ! -d $(DESTDIR)/$(bindir)  ]; then $(MKDIR) $(DESTDIR)/$(bindir); fi
+		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
 		for f in $(PL) plld plrc; do \
-		    $(REL_LN) $(DESTDIR)/$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)/$(bindir); \
+		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 
 install-vbins:	install-arch
-		-if [ ! -d $(DESTDIR)/$(bindir)  ]; then $(MKDIR) $(DESTDIR)/$(bindir); fi
-		$(REL_LN) $(DESTDIR)/$(PLBASE)/bin/$(ARCH)/$(PL) $(DESTDIR)/$(bindir)/$(PLV)
+		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
+		$(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$(PL) $(DESTDIR)$(bindir)/$(PLV)
 		for f in plld plrc; do \
-		    $(REL_LN) $(DESTDIR)/$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)/$(bindir); \
+		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)$(bindir); \
 		done
 
 install-arch:	idirs iruntime
 		for f in $(PL) plld rc/plrc; do \
-		    $(INSTALL_PROGRAM) $$f $(DESTDIR)/$(PLBASE)/bin/$(ARCH); \
+		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(ARCH); \
 		done
 
 install-libs:	idirs iboot ilib iruntime iinclude iman idot
-		$(INSTALL_DATA) $(STARTUPPATH) $(DESTDIR)/$(PLBASE)/$(BOOTFILE)
-		echo . > $(DESTDIR)/$(PLBASE)/swipl
-		echo .. > $(DESTDIR)/$(PLBASE)/bin/swipl
+		$(INSTALL_DATA) $(STARTUPPATH) $(DESTDIR)$(PLBASE)/$(BOOTFILE)
+		echo . > $(DESTDIR)$(PLBASE)/swipl
+		echo .. > $(DESTDIR)$(PLBASE)/bin/swipl
 		$(DEVPL) -f none -F none \
-			-g make_library_index\(\'$(DESTDIR)/$(PLBASE)/library\'\) \
+			-g make_library_index\(\'$(DESTDIR)$(PLBASE)/library\'\) \
 			-t halt
 
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
 		library/clp library/unicode include dotfiles
 
 iruntime::
-		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)/$(PLBASE)/lib/$(ARCH)
-		$(RANLIB) $(DESTDIR)/$(PLBASE)/lib/$(ARCH)/$(PLLIB)
+		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
+		$(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(ARCH)/$(PLLIB)
 ifeq ($(SOEXT),dylib)
 		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)/$(PLBASE)/lib/$(ARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
 		fi
 else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
-		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)/$(PLBASE)/lib/$(ARCH) ; \
-		( cd $(DESTDIR)/$(PLBASE)/lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
+		( cd $(DESTDIR)$(PLBASE)/lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
 		fi
 endif
 
 install-implib::
-		$(INSTALL_DATA) libplimp.a $(DESTDIR)/$(PLBASE)/lib/$(ARCH)
+		$(INSTALL_DATA) libplimp.a $(DESTDIR)$(PLBASE)/lib/$(ARCH)
 
 idirs::
-		if [ ! -d $(DESTDIR)/$(prefix)/lib  ]; then $(MKDIR) $(DESTDIR)/$(prefix)/lib; fi
-		if [ ! -d $(DESTDIR)/$(PLBASE) ]; then $(MKDIR) $(DESTDIR)/$(PLBASE); fi
+		if [ ! -d $(DESTDIR)$(prefix)/lib  ]; then $(MKDIR) $(DESTDIR)$(prefix)/lib; fi
+		if [ ! -d $(DESTDIR)$(PLBASE) ]; then $(MKDIR) $(DESTDIR)$(PLBASE); fi
 		for d in $(installdirs); do \
-			if [ ! -d $(DESTDIR)/$(PLBASE)/$$d ]; then \
-				$(MKDIR) $(DESTDIR)/$(PLBASE)/$$d; \
+			if [ ! -d $(DESTDIR)$(PLBASE)/$$d ]; then \
+				$(MKDIR) $(DESTDIR)$(PLBASE)/$$d; \
 			fi; \
 		done
 
 
 iboot::		
 		cd ../boot; \
-		for f in *.pl; do $(INSTALL_DATA) $$f $(DESTDIR)/$(PLBASE)/boot; done
+		for f in *.pl; do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
 
 ilib:		iclp iunicode
 		cd ../library; \
 		for f in $(PLLIBS); do \
-			$(INSTALL_DATA) $$f $(DESTDIR)/$(PLBASE)/library; \
+			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library; \
 		done
 
 iclp::
 		cd ../library/clp; \
 		for f in $(CLP); do \
-			$(INSTALL_DATA) $$f $(DESTDIR)/$(PLBASE)/library/clp; \
+			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library/clp; \
 		done
 
 
 iunicode::
 		cd ../library/unicode; \
 		for f in $(UNICODE); do \
-			$(INSTALL_DATA) $$f $(DESTDIR)/$(PLBASE)/library/unicode; \
+			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library/unicode; \
 		done
 
 idot::
-		$(INSTALL_DATA) ../dotfiles/dotplrc $(DESTDIR)/$(PLBASE)/dotfiles
-		$(INSTALL_DATA) ../dotfiles/dotxpcerc $(DESTDIR)/$(PLBASE)/dotfiles
-		$(INSTALL_DATA) ../dotfiles/README $(DESTDIR)/$(PLBASE)/dotfiles
-		$(INSTALL_SCRIPT) ../dotfiles/edit $(DESTDIR)/$(PLBASE)/dotfiles
+		$(INSTALL_DATA) ../dotfiles/dotplrc $(DESTDIR)$(PLBASE)/dotfiles
+		$(INSTALL_DATA) ../dotfiles/dotxpcerc $(DESTDIR)$(PLBASE)/dotfiles
+		$(INSTALL_DATA) ../dotfiles/README $(DESTDIR)$(PLBASE)/dotfiles
+		$(INSTALL_SCRIPT) ../dotfiles/edit $(DESTDIR)$(PLBASE)/dotfiles
 
 iinclude::
 		cd ../include; \
 		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
 		    if [ -f $$f ]; then \
-			$(INSTALL_DATA) $$f $(DESTDIR)/$(PLBASE)/include; \
+			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/include; \
 		    fi; \
 		done
 
 iman::
-		-if [ ! -d $(DESTDIR)/$(mandir) ]; then $(MKDIR) $(DESTDIR)/$(mandir); fi
-		-if [ ! -d $(DESTDIR)/$(smandir)  ];    then $(MKDIR) $(DESTDIR)/$(smandir);     fi
-		-$(INSTALL_DATA) pl.1 $(DESTDIR)/$(smandir)/$(PL).$(mansec)
-		-$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)/$(smandir)/plrc.$(mansec)
-		-$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)/$(smandir)/plld.$(mansec)
+		-if [ ! -d $(DESTDIR)$(mandir) ]; then $(MKDIR) $(DESTDIR)$(mandir); fi
+		-if [ ! -d $(DESTDIR)$(smandir)  ];    then $(MKDIR) $(DESTDIR)$(smandir);     fi
+		-$(INSTALL_DATA) pl.1 $(DESTDIR)$(smandir)/$(PL).$(mansec)
+		-$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(smandir)/plrc.$(mansec)
+		-$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(smandir)/plld.$(mansec)
 
 install-lman::
-		$(INSTALL_DATA) pl.1 $(DESTDIR)/$(plmandir)/$(PL).$(mansec)
-		$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)/$(plmandir)/plrc.$(mansec)
-		$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)/$(plmandir)/plld.$(mansec)
-		$(INSTALL_DATA) $(srcdir)/readline.3 $(DESTDIR)/$(plmandir)/readline.$(lmansec)
+		$(INSTALL_DATA) pl.1 $(DESTDIR)$(plmandir)/$(PL).$(mansec)
+		$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(plmandir)/plrc.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(plmandir)/plld.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/readline.3 $(DESTDIR)$(plmandir)/readline.$(lmansec)
 
 #
 # runtime-only environment installation
 #
 
-RTHOME=		$(DESTDIR)/$(prefix)/lib/$(PLV)
+RTHOME=		$(DESTDIR)$(prefix)/lib/$(PLV)
 RTDIRS=		$(RTHOME) $(RTHOME)/bin $(RTHOME)/lib $(RTHOME)/lib/$(ARCH) \
 		$(RTHOME)/man $(RTHOME)/bin/$(ARCH) $(RTHOME)/include
 

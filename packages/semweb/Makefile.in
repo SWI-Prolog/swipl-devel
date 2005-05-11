@@ -60,13 +60,13 @@ rdf_db.@SO@:	$(RDFDBOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(RDFDBOBJ) $(LIBS)
 
 install:	$(TARGETS) $(LIBPL)
-		mkdir -p $(DESTDIR)/$(LIBDIR)
-		mkdir -p $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
+		mkdir -p $(DESTDIR)$(LIBDIR)
+		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		for f in $(TARGETS); do \
-		  $(INSTALL) -m 755 $$f $(DESTDIR)/$(PLBASE)/lib/$(PLARCH); \
+		  $(INSTALL) -m 755 $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
 		done
 		for f in $(DATA) $(LIBPL) README; do \
-		  $(INSTALL_DATA) $$f $(DESTDIR)/$(LIBDIR); \
+		  $(INSTALL_DATA) $$f $(DESTDIR)$(LIBDIR); \
 		done
 		$(PL) -f none -g make -t halt
 
@@ -86,12 +86,12 @@ rpm-install:	install
 
 html-install::
 		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)/$(PKGDOC)
-		$(INSTALL) -m 644 modules.gif $(DESTDIR)/$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)$(PKGDOC)
+		$(INSTALL) -m 644 modules.gif $(DESTDIR)$(PKGDOC)
 
 pdf-install::
 		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)/$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)$(PKGDOC)
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
