@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.16/XPCE 6.5.16 development release
+SWI-Prolog 5.5.17/XPCE 6.5.17 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -57,18 +57,19 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.16 relative to 5.5.15
+Patches in 5.5.17 relative to 5.5.16
 ====================================
 
-  * Fixed hash_term/2
-  * PL_new_atom_wchars() failed to canonise the representation
+  * Portability issues
+  * Unicode issues
+  * Add 1st argument indexing for floats
+  * Fixed nb_setarg/3 setting term-arguments to floats.
 
 Packages
 ========
 
-  * XPCE: Fix entering UNICODE characters in editor windows and
-    text objects.
-  * Semweb: Fix save/load of UNICODE resources and literals.
+  * XPCE: Memory management problem handling Prolog terms, various
+    Unicode issues.
 
 Incompatible changes
 ====================
