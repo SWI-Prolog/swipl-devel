@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#44 ?=(X,Y) in when/2.  Roy Haddad and Tom Schrijvers.
+
+
 VERSION 5.5.17 (May 09, 2005)
 =============================
 

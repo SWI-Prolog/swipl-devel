@@ -144,8 +144,9 @@ check_disj(Disj,Goal) :-
 	).
 
 suspend_list([],_Goal).
-suspend_list([V=_|Unifier],Goal) :-
+suspend_list([V=W|Unifier],Goal) :-
 	suspend(V,Goal),
+	( var(W) -> suspend(W,Goal) ; true),
 	suspend_list(Unifier,Goal).
 
 suspend(V,Goal) :-
