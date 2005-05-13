@@ -106,7 +106,13 @@ dump_toplevel_bindings(Bindings,Constraints) :-
 
 dump_vars_names([],_,[],[]).
 dump_vars_names([Name=Term|Rest],Seen,Vars,Names) :-
-	( var(Term), \+ memberchk_eq(Term,Seen) ->
+	( var(Term), 
+	  (
+		get_attr(Term,itf3,_)
+	  ;
+		get_attr(Term,geler_r,_)
+	  ),
+	  \+ memberchk_eq(Term,Seen) ->
 		Vars = [Term|RVars],
 		Names = [Name|RNames],
 		NSeen = [Term|Seen]

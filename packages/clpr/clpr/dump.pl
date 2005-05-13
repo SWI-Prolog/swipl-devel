@@ -82,6 +82,7 @@ this_linear_solver(clpr).
 % variables. In short, you can safely manipulate NewVars and Constraints without changing the
 % constraints on Target.
 
+dump([],[],[]).
 dump(Target,NewVars,Constraints) :-
 	( 
 		(
