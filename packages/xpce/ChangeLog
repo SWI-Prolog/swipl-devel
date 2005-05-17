@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#46: Support unicode in display->{inform,confirm}.  Dmitry.
+
+
 VERSION 6.5.17, distributed with SWI-Prolog 5.5.17
 ==================================================
 

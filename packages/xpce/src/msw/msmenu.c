@@ -506,10 +506,10 @@ ws_checkbox_size(int flags, int *w, int *h)
 
 int
 ws_message_box(Any msg, int flags)
-{ Name n = msg;
-  wchar_t *s = charArrayToWC((CharArray)n, NULL);
+{ CharArray n = msg;
+  wchar_t *s = charArrayToWC(n, NULL);
   UINT style = MB_TASKMODAL;
-  char *title;
+  wchar_t *title;
 
   if ( flags & MBX_INFORM )
   { style |= MB_OK;
