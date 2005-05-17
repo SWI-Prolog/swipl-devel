@@ -503,7 +503,7 @@ keycode_to_name(XEvent *event)
   int bytes;
   KeySym sym;
 
-  bytes = Xq((XKeyEvent *) event, buf, 256, &sym, NULL);
+  bytes = XLookupString((XKeyEvent *) event, buf, 256, &sym, NULL);
 
   switch(sym)				/* special ones */
   { case XK_BackSpace:
