@@ -507,23 +507,23 @@ ws_checkbox_size(int flags, int *w, int *h)
 int
 ws_message_box(Any msg, int flags)
 { Name n = msg;
-  char *s = strName(n);
+  wchar_t *s = charArrayToWC((CharArray)n, NULL);
   UINT style = MB_TASKMODAL;
   char *title;
 
   if ( flags & MBX_INFORM )
   { style |= MB_OK;
-    title = "Information";
+    title = L"Information";
   } else if ( flags & MBX_CONFIRM )
   { style |= MB_OKCANCEL;
-    title = "Confirm";
+    title = L"Confirm";
   } else if ( flags & MBX_ERROR )
   { style |= MB_OK|MB_ICONEXCLAMATION;
-    title = "Error";
+    title = L"Error";
   } else
     return MBX_NOTHANDLED;
 
-  switch(MessageBox(NULL, s, title, style))
+  switch(MessageBoxW(NULL, s, title, style))
   { case IDOK:
       return MBX_OK;
     default:
