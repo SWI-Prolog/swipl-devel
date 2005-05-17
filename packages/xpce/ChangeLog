@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED:  (At  least  partly):  use   UTF-8  in  decoding  output  from
+  XLookupString() to deal with international keyboard input.  See
+  src/x11/xcommon.c for details.
+
 * FIXED: Bug#46: Support unicode in display->{inform,confirm}.  Dmitry.
 
 

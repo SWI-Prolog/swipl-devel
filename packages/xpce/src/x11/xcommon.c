@@ -479,13 +479,31 @@ allocNearestColour(Display *display, Colormap map, int depth, Name vt,
 		*      X-EVENT TRANSLATION	*
 		********************************/
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This function gets the keyboard event id   from an Xevent. Function keys
+are mapped to XPCE names. Normal keys   must  be mapped to their UNICODE
+character.  This  is  a  bit  complicated.    According   to  the  docs,
+XLookupString only returns ISO-Latin-1 characters.   In practice it also
+appears to return multibyte sequences, especially   UTF-8. It is unclear
+whether all X11 systems do this and whether the output is always UTF-8.
+
+Some posts claim one should be   using XwcLookupString(), but this means
+we must have an X input context. I  do   not  have the time work out the
+details. There is a good starting point at:
+
+	http://home.catv.ne.jp/pp/ginoue/im/xim-e.html
+
+But it all looks pretty complicated.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static Any
 keycode_to_name(XEvent *event)
 { char buf[256];
   int bytes;
   KeySym sym;
 
-  bytes = XLookupString((XKeyEvent *) event, buf, 256, &sym, NULL);
+  bytes = Xq((XKeyEvent *) event, buf, 256, &sym, NULL);
 
   switch(sym)				/* special ones */
   { case XK_BackSpace:
@@ -502,6 +520,19 @@ keycode_to_name(XEvent *event)
 
     return toInt(c);
   }
+
+  if ( bytes > 1 )			/* see above */
+  { char *e;
+    int c;
+
+    if ( (e = utf8_get_char(buf, &c)) && e-buf == bytes )
+    { if ( event->xkey.state & Mod1Mask )	/* meta depressed */
+	c += META_OFFSET;
+
+      return toInt(c);
+    }
+  }
+
 
   switch(sym)
   { case XK_F1:		return NAME_keyTop_1;
