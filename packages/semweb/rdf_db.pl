@@ -85,6 +85,7 @@
 	    rdf_equal/2,		% ?Resource, ?Resource
 
 	    rdf_register_ns/2,		% +Alias, +URI
+	    rdf_register_ns/3,		% +Alias, +URI, +Options
 	    rdf_global_id/2,		% ?NS:Name, ?Global
 	    rdf_global_object/2,	% ?Object, ?NSExpandedObject
 	    rdf_global_term/2,		% Term, WithExpandedNS
@@ -127,17 +128,30 @@ ns(eor,  'http://dublincore.org/2000/03/13/eor#').
 ns(serql,'http://www.openrdf.org/schema/serql#').
 
 %	rdf_register_ns(+Alias, +URI)
+%	rdf_register_ns(+Alias, +URI, +Options)
 %
-%	Register a namespace.  What to do if the Alias already
-%	exists?  Throw a permission error?  Use both URI's as synonyms?
+%	Register a namespace. If force(true) is   provided as an option,
+%	the  existing  namespace  alias  is   replaced.  Otherwise  this
+%	predicate raises a permission error.  Please note that replacing
+%	a namespace is dangerous  as   namespaces  affect preprocessing.
+%	Make sure all code that depends on a namespace is compiled after
+%	changing the registration.
 
 rdf_register_ns(Alias, URI) :-
+	rdf_register_ns(Alias, URI, []).
+
+rdf_register_ns(Alias, URI, _) :-
 	ns(Alias, URI), !.
-rdf_register_ns(Alias, _) :-
+rdf_register_ns(Alias, URI, Options) :-
 	ns(Alias, _),
-	throw(error(permission_error(register, namespace, Alias),
-		    context(_, 'Already defined'))).
-rdf_register_ns(Alias, URI) :-
+	(   option(force(Force), Options, false),
+	    Force == true
+	->  retractall(ns(Alias, _)),
+	    assert(ns(Alias, URI))
+	;   throw(error(permission_error(register, namespace, Alias),
+			context(_, 'Already defined')))
+	).
+rdf_register_ns(Alias, URI, _) :-
 	assert(ns(Alias, URI)).
 
 

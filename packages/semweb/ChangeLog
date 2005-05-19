@@ -1,3 +1,7 @@
+May 19, 2005
+
+  * ADDED: rdf_register_ns/3, allow overruling old alias.
+
 Apr 26, 2005
 
   * FIXED: support UNICODE in rdf_save_db/rdf_load_db.  Fabien

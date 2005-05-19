@@ -637,9 +637,15 @@ runtime overhead than normal Prolog unification.
 \end{code}
 
     \predicate{rdf_register_ns}{2}{+Alias, +URL}
+Same as \term{rdf_register_ns}{Alias, URL, []}.
+
+    \predicate{rdf_register_ns}{2}{+Alias, +URL, +Options}
 Register \arg{Alias} as a shorthand for \arg{URL}.  Note that the
 registration must be done before loading any files using them as
 namespace aliases are handled at compiletime through goal_expansion/2.
+If \arg{Alias} already exists a permission error is raised unless the
+option \term{force}{true} is provided.  Rebinding an alias must be done
+\emph{before} any code is compiled that relies on the alias.
 
     \predicate{rdf_global_id}{2}{?Alias:Local, ?Global}
 Runtime translation between \arg{Alias} and \arg{Local} and a
