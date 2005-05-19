@@ -643,9 +643,11 @@ Same as \term{rdf_register_ns}{Alias, URL, []}.
 Register \arg{Alias} as a shorthand for \arg{URL}.  Note that the
 registration must be done before loading any files using them as
 namespace aliases are handled at compiletime through goal_expansion/2.
-If \arg{Alias} already exists a permission error is raised unless the
-option \term{force}{true} is provided.  Rebinding an alias must be done
-\emph{before} any code is compiled that relies on the alias.
+If \arg{Alias} already exists the default is to raise a permission
+error.  If the option \term{force}{true} is provided, the alias is
+silently modified.  Rebinding an alias must be done \emph{before} any
+code is compiled that relies on the alias. If the option
+\term{keep}{true} is provided the new registration is silently ignored.
 
     \predicate{rdf_global_id}{2}{?Alias:Local, ?Global}
 Runtime translation between \arg{Alias} and \arg{Local} and a

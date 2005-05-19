@@ -823,10 +823,12 @@ Same as <CODE>rdf_register_ns(Alias, URL,)</CODE>.
 Register <VAR>Alias</VAR> as a shorthand for <VAR>URL</VAR>. Note that 
 the registration must be done before loading any files using them as 
 namespace aliases are handled at compiletime through <A NAME="idx:goalexpansion2:45"></A><B>goal_expansion/2</B>. 
-If <VAR>Alias</VAR> already exists a permission error is raised unless 
-the option <CODE>force(true)</CODE> is provided. Rebinding an alias must 
-be done
-<EM>before</EM> any code is compiled that relies on the alias.
+If <VAR>Alias</VAR> already exists the default is to raise a permission 
+error. If the option <CODE>force(true)</CODE> is provided, the alias is 
+silently modified. Rebinding an alias must be done <EM>before</EM> any 
+code is compiled that relies on the alias. If the option
+<CODE>keep(true)</CODE> is provided the new registration is silently 
+ignored.
 
 <P>
 <DT><A NAME="rdf_global_id/2"><STRONG>rdf_global_id</STRONG>(<VAR>?Alias:Local, 

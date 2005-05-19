@@ -148,6 +148,9 @@ rdf_register_ns(Alias, URI, Options) :-
 	    Force == true
 	->  retractall(ns(Alias, _)),
 	    assert(ns(Alias, URI))
+	;   option(keep(Keep), Options, false),
+	    Keep == true
+	->  true
 	;   throw(error(permission_error(register, namespace, Alias),
 			context(_, 'Already defined')))
 	).
