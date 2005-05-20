@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.17/XPCE 6.5.17 development release
+SWI-Prolog 5.5.18/XPCE 6.5.18 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -60,16 +60,19 @@ Planned features in 5.5.x relative to 5.4.x and their status
 Patches in 5.5.17 relative to 5.5.16
 ====================================
 
-  * Portability issues
-  * Unicode issues
-  * Add 1st argument indexing for floats
-  * Fixed nb_setarg/3 setting term-arguments to floats.
+  * Bug in when/2 for ?=(X,Y)
+
+  * Printing in clp(R)
 
 Packages
 ========
 
-  * XPCE: Memory management problem handling Prolog terms, various
-    Unicode issues.
+  * XPCE: MS-Windows: handle unicode in message boxes (->inform, ->confirm).
+    X11: handle UTF-8 keyboard input.
+
+  * SemWeb: Added rdf_register_ns/3 (extra option argument), allow lists
+    for rdf_load/[1,2].
+
 
 Incompatible changes
 ====================

@@ -440,18 +440,18 @@ described in \secref{rdffastfile}.  Here are the predicates
 for portable RDF load and save.
 
 \begin{description}
-    \predicate{rdf_load}{1}{+In}
+    \predicate{rdf_load}{1}{+InOrList}
 Load triples from \arg{In}, which is either a stream opened for
-reading or an atom specifying a filename.  This predicate calls
-process_rdf/3 to read the source one description at a time, avoiding
-limits to the size of the input.  If \arg{In} is a file, rdf_load/1
-provides for caching the results for quick-load using rdf_load_db/1
-described below.  Caching is activated by creating a directory
-\file{.cache} (or \file{_cache} on Windows) in the directory holding
-the \fileext{rdf} files.  Cached RDF files are loaded at approx.\
+reading, an atom specifying a filename or a list of valid inputs. This
+predicate calls process_rdf/3 to read the source one description at a
+time, avoiding limits to the size of the input. If \arg{In} is a file,
+rdf_load/1 provides for caching the results for quick-load using
+rdf_load_db/1 described below. Caching is activated by creating a
+directory \file{.cache} (or \file{_cache} on Windows) in the directory
+holding the \fileext{rdf} files. Cached RDF files are loaded at approx.\
 25 times the speed of RDF-XML files.
 
-    \predicate{rdf_load}{2}{+File, +Options}
+    \predicate{rdf_load}{2}{+FileOrList, +Options}
 As rdf_load/1, providing additional options.  The options are handed
 to the RDF parser as implemented by process_rdf/3.
 

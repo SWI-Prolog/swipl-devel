@@ -1,3 +1,7 @@
+May 20, 2005
+
+  * ADDED: Allow list of files in rdf_load/[1,2]
+
 May 19, 2005
 
   * ADDED: rdf_register_ns/3, allow overruling old alias.

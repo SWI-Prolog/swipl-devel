@@ -565,20 +565,23 @@ predicates for portable RDF load and save.
 <DL>
 
 <P>
-<DT><A NAME="rdf_load/1"><STRONG>rdf_load</STRONG>(<VAR>+In</VAR>)</A><DD>
+<DT><A NAME="rdf_load/1"><STRONG>rdf_load</STRONG>(<VAR>+InOrList</VAR>)</A><DD>
 Load triples from <VAR>In</VAR>, which is either a stream opened for 
-reading or an atom specifying a filename. This predicate calls
-<A NAME="idx:processrdf3:29"></A><B>process_rdf/3</B> to read the source 
-one description at a time, avoiding limits to the size of the input. If <VAR>In</VAR> 
-is a file, <A NAME="idx:rdfload1:30"></A><A HREF="#rdf_load/1">rdf_load/1</A> 
-provides for caching the results for quick-load using <A NAME="idx:rdfloaddb1:31"></A><A HREF="#rdf_load_db/1">rdf_load_db/1</A> 
-described below. Caching is activated by creating a directory
-<CODE>.cache</CODE> (or <CODE>_cache</CODE> on Windows) in the directory 
-holding the <CODE>.rdf</CODE> files. Cached RDF files are loaded at 
-approx. 25 times the speed of RDF-XML files.
+reading, an atom specifying a filename or a list of valid inputs. This 
+predicate calls <A NAME="idx:processrdf3:29"></A><B>process_rdf/3</B> to 
+read the source one description at a time, avoiding limits to the size 
+of the input. If <VAR>In</VAR> is a file,
+<A NAME="idx:rdfload1:30"></A><A HREF="#rdf_load/1">rdf_load/1</A> 
+provides for caching the results for quick-load using
+<A NAME="idx:rdfloaddb1:31"></A><A HREF="#rdf_load_db/1">rdf_load_db/1</A> 
+described below. Caching is activated by creating a directory <CODE>.cache</CODE> 
+(or <CODE>_cache</CODE> on Windows) in the directory holding the <CODE>.rdf</CODE> 
+files. Cached RDF files are loaded at approx. 25 times the speed of 
+RDF-XML files.
 
 <P>
-<DT><A NAME="rdf_load/2"><STRONG>rdf_load</STRONG>(<VAR>+File, +Options</VAR>)</A><DD>
+<DT><A NAME="rdf_load/2"><STRONG>rdf_load</STRONG>(<VAR>+FileOrList, 
++Options</VAR>)</A><DD>
 As <A NAME="idx:rdfload1:32"></A><A HREF="#rdf_load/1">rdf_load/1</A>, 
 providing additional options. The options are handed to the RDF parser 
 as implemented by <A NAME="idx:processrdf3:33"></A><B>process_rdf/3</B>.

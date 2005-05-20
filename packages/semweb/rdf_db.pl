@@ -499,7 +499,7 @@ rdf_load_db(File) :-
 		 *	    LOADING RDF		*
 		 *******************************/
 
-%	rdf_load(+File, +Options)
+%	rdf_load(+FileOrList, +Options)
 %
 %	Load RDF file.  Options provides additional processing options.
 %	Currently defined options are:
@@ -514,6 +514,10 @@ rdf_load_db(File) :-
 rdf_load(Spec) :-
 	rdf_load(Spec, []).
 
+rdf_load([], _) :- !.
+rdf_load([H|T], Options) :- !,
+	rdf_load(H, Options),
+	rdf_load(T, Options).
 rdf_load(Spec, Options0) :-
 	statistics(cputime, CpuOld),
 	(   select(result(Action, Triples, MD5), Options0, Options1)

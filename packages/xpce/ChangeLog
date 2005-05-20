@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.18, distributed with SWI-Prolog 5.5.18
+==================================================
+
 * FIXED:  (At  least  partly):  use   UTF-8  in  decoding  output  from
   XLookupString() to deal with international keyboard input.  See
   src/x11/xcommon.c for details.
