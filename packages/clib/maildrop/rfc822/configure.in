@@ -1,0 +1,101 @@
+dnl Process this file with autoconf to produce a configure script.
+dnl $Id$
+dnl
+dnl Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
+dnl distribution information.
+
+AC_INIT(rfc822.c)
+
+AM_INIT_AUTOMAKE(rfc822lib, 0.12, 0)
+AM_CONFIG_HEADER(config.h)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_RANLIB
+
+AC_ISC_POSIX
+AC_AIX
+AC_MINIX
+
+if test "$GCC" = yes ; then
+        CXXFLAGS="$CXXFLAGS -Wall"
+        CFLAGS="$CFLAGS -Wall"
+fi
+
+dnl Checks for libraries.
+
+dnl Checks for header files.
+AC_HEADER_STDC
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_SIZE_T
+AC_STRUCT_TM
+
+dnl Checks for library functions.
+
+AC_CHECK_FUNCS(strcasecmp strncasecmp)
+
+AC_CACHE_CHECK([how to calculate alternate timezone],librfc822_cv_SYS_TIMEZONE,
+
+AC_TRY_COMPILE([
+#include	<time.h>
+],[
+int main()
+{
+time_t	t=altzone;
+
+	return (0);
+}
+], librfc822_cv_SYS_TIMEZONE=altzone,
+
+	AC_TRY_COMPILE([
+#include	<time.h>
+],[
+int main()
+{
+int	n=daylight;
+
+	return (0);
+}
+	], librfc822_cv_SYS_TIMEZONE=daylight,
+
+	AC_TRY_COMPILE([
+#include	<time.h>
+
+extern struct tm dummy;
+],[
+int main()
+{
+long	n=dummy.tm_gmtoff;
+
+	return (0);
+}
+	] ,librfc822_cv_SYS_TIMEZONE=tm_gmtoff,
+		librfc822_cv_SYS_TIMEZONE=unknown
+			)
+		)
+	)
+)
+
+case $librfc822_cv_SYS_TIMEZONE in
+tm_gmtoff)
+	AC_DEFINE_UNQUOTED(USE_TIME_GMTOFF,1)
+	;;
+altzone)
+	AC_DEFINE_UNQUOTED(USE_TIME_ALTZONE,1)
+	;;
+daylight)
+	AC_DEFINE_UNQUOTED(USE_TIME_DAYLIGHT,1)
+	;;
+*)
+	AC_MSG_WARN(Cannot figure out how to calculate the alternate timezone, will use GMT)
+	;;
+esac
+
+if test -d ../unicode
+then
+	AC_DEFINE_UNQUOTED(HAVE_LIBUNICODE,1)
+fi
+
+AC_OUTPUT(Makefile)

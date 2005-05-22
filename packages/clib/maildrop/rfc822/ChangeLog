@@ -1,0 +1,15 @@
+
+Mon Apr  5 00:58:37 EDT 1999
+
+* Yes, I've decided to start a Change Log. librfc822 now has a life of its
+own, so it might as well have it.
+
+* Courier needs tokens in a link list, not an array.  Rewrote most token
+handling code.
+
+* Fixed some issues with handling of () comments.
+
+* Changed *pr* functions to pass along a caller-provided void, also for
+  courier.  librfc822 should now be threadable (like, who cares...)
+
+* Added a testsuite

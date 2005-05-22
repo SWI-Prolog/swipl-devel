@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+                      "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html">
+  <title>rfc2045 - RFC 2045 (MIME) parsing library</title>
+  <!-- $Id$ -->
+  <!-- Copyright 2000 Double Precision, Inc.  See COPYING for -->
+  <!-- distribution information. -->
+  <!-- SECTION 3X -->
+</head>
+
+<body text="#000000" bgcolor="#FFFFFF" link="#0000EE" vlink="#551A8B"
+alink="#FF0000">
+<h1>rfc2045 - RFC 2045 (MIME) parsing library</h1>
+
+<h2>SYNOPSIS</h2>
+
+<p><code>#include &lt;rfc2045.h></code></p>
+
+<p><code>cc ... -lrfc2045 -lrfc822</code></p>
+
+<h2>DESCRIPTION</h2>
+
+<p>The rfc2045 library is used to parse and work with MIME-formatted messages.
+The rfc2045 library is used to:</p>
+
+<p>1) Parse the structure of a MIME formatted message</p>
+
+<p>2) Examine the contents of each MIME section</p>
+
+<p>3) Optionally rewrite and reformat the message.</p>
+
+<h2>Creating an rfc2045 structure</h2>
+<pre>#include &lt;rfc2045.h>
+
+struct rfc2045 *ptr=rfc2045_alloc();
+void rfc2045_parse(struct rfc2045 *ptr, const char *txt, size_t cnt);
+
+struct rfc2045 *ptr=rfc2045_fromfd(int fd);
+struct rfc2045 *ptr=rfc2045_fromfp(FILE *fp);
+
+void rfc2045_free(struct rfc2045 *ptr);
+
+void rfc2045_error(const char *errmsg)
+{
+        perror(errmsg);
+        exit(0);
+}</pre>
+
+<p>The <i>rfc2045</i> structure is created from an existing message. The
+function rfc2045_alloc() allocates the structure, then rfc2045_parse() is
+called to initialize the structure based on the contents of the message.
+<i>txt</i> points to the contents of the message, and <i>cnt</i> contains the
+number of bytes in the message.</p>
+
+<p>Large messages can be parsed by calling rfc2045_parse() multiple number of
+times, each time passing a portion of the overall message. There is no need to
+call a separate function after the entire message has been parsed -- the
+<i>rfc2045</i> structure is created dynamically, on the fly.</p>
+
+<p>rfc2045_alloc() returns NULL if there was insufficient memory to allocate
+the structure. The rfc2045_parse() also allocates memory, internally, however
+no error indication is return in the event of a memory allocation failure.
+Instead, the function rfc2045_error() is called, with <i>errmsg</i> set to
+"Out of memory". rfc2045_error() is also called by <i>rfc2045_alloc()</i> also
+calls rfc2045_error(), prior to returning a NULL pointer.</p>
+
+<p>The rfc2045_error() function is not included in the rfc2045 library, it
+must be defined by the application to report the error in some appropriate
+way. All functions below will use rfc2045_error() to report an error condition
+(currently only insufficient memory is reported), in addition to returning any
+kind of an error indicator.  Some functions do not return an error indicator,
+so rfc2045_error() is the only reliable way to detect a failure.</p>
+
+<p>The rfc2045_fromfd() function initializes an <i>rfc2045</i> structure from
+a file descriptor. It is equivalent to calling rfc2045_alloc(), then reading
+the contents of the given file descriptor, and calling rfc2045_parse(). The
+rfc2045_fromfp() function initializes an <i>rfc2045</i> structure from a
+FILE.</p>
+
+<p>After the <i>rfc2045</i> structure is initialized, the functions described
+below may be used to access and work with the contents of the structure. When
+the <i>rfc2045</i> structure is no longer needed, the function rfc2045_free()
+deallocates and destroys the structure.</p>
+
+<h2>Structure of a MIME message</h2>
+<pre>struct rfc2045 {
+
+        struct rfc2045 *parent;
+
+        struct rfc2045 *firstpart;
+        struct rfc2045 *next;
+        int             isdummy;
+        int             rfcviolation;
+} ;</pre>
+
+<p>The <i>rfc2045</i> has many fields, only some are publicly documented. A
+MIME message is represented by a recursive tree of linked <i>rfc2045</i>
+structures. Each instance of the <i>rfc2045</i> structure represents a single
+MIME section of a MIME message.</p>
+
+<p>The top-level structure representing the entire message is created by the
+rfc2045_alloc() function.  The remaining structures are created dynamically by
+rfc2045_parse().  Any <i>rfc2045</i> structure, except ones whose
+<i>isdummy</i> flag is set, may be used as an argument to any function
+described in the following chapters.</p>
+
+<p>The <i>rfcviolation</i> field in the top-level <i>rfc2045</i> is set to
+indicate any errors encountered while parsing the MIME message.
+<i>rfcviolation</i> is a bitmask of the following flags:</p>
+<ul>
+  <li><code>RFC2045_ERR8BITHEADER</code> - illegal 8-bit characters in MIME
+    headers.<br>
+    <br>
+  </li>
+  <li><code>RFC2045_ERR8BITCONTENT</code> - illegal 8-bit contents of a MIME
+    section that has a 7bit transfer encoding.<br>
+    <br>
+  </li>
+  <li><code>RFC2045_ERR2COMPLEX</code> - the message has too many MIME
+    sections, this is a potential denial-of-service attack.</li>
+</ul>
+
+<p>In each <i>rfc2045</i> structure representing a multipart MIME section (or
+one containing message/rfc822 content), the <i>firstpart</i> pointer points to
+the first MIME section in the multipart MIME section (or the included
+"message/rfc822" MIME section).  If there are more than one MIME sections in a
+multipart MIME section <i>firstpart->next</i> gets you the second MIME
+section, <i>firstpart->next->next</i> gets you the third MIME section, and so
+on.  <i>parent</i> points to the parent MIME section, which is NULL for the
+top-level MIME section.</p>
+
+<p>Not all MIME sections are created equal.  In a multipart MIME section,
+there is an initial, unused, "filler" section before the first MIME delimiter
+(see RFC 2045 for more information).  This filler section typically contains a
+terse message saying that this is a MIME-formatted message, or something
+similar of that kind.  This is not considered to be a "real" MIME section, and
+all MIME-aware software must ignore those.  These filler sections are
+designated by setting the "isdummy" flag to non-zero.  All <i>rfc2045</i>
+structures that have "isdummy" set must be completely ignored, and skipped
+over, when traversing the <i>rfc2045</i> tree.</p>
+
+<h2>Basic MIME information</h2>
+<pre>const char *content_type, *content_transfer_encoding,
+           *content_character_set;
+
+void rfc2045_mimeinfo(const struct rfc2045 *ptr,
+        &content_type, &content_transfer_encoding,
+        &content_character_set);
+
+off_t start_pos, end_pos, start_body, nlines, nbodylines;
+
+void rfc2045_mimepos(const struct rfc2045 *ptr,
+        &start_pos, &end_pos, &start_body, &nlines,
+        &nbodylines);</pre>
+
+<p>The rfc2045_mimeinfo() function returns the content type, encoding method,
+and the character set of a given MIME section.  Where a MIME section does not
+specify any property, rfc2045_mimeinfo() automatically supplies a default
+value.  The character set is only meaningful for MIME sections containing a
+text content type, however it is still defaulted for other sections.  It is
+not permissible to supply a NULL pointer for any argument to
+rfc2045_mimeinfo().</p>
+
+<p>The rfc2045_mimepos() function is used to locate the position of the given
+MIME section in the original message. It is not permissible to supply a NULL
+pointer for any argument to rfc2045_mimepos().  All arguments must be
+used.</p>
+
+<p><i>start_pos</i> and <i>end_pos</i> point to the starting and the ending
+offset, from the beginning of the message, of this MIME section. <i>nlines</i>
+is initialized to the number of lines of text in this MIME section. The
+starting offset points to the start of MIME headers in this section.
+<i>start_body</i> is initialized to point to the starting offset of the actual
+contents of this MIME section, and <i>nbodylines</i> is set to the number of
+lines of actual content in this MIME section.</p>
+<pre>const char *id=rfc2045_content_id(
+                       const struct rfc2045 *ptr);
+
+const char *desc=rfc2045_content_description(
+                       const struct rfc2045 *ptr);
+
+const char *lang=rfc2045_content_language(
+                       const struct rfc2045 *ptr);
+
+const char *md5=rfc2045_content_md5(
+                       const struct rfc2045 *ptr);</pre>
+
+<p>These functions return the contents of the corresponding MIME headers. If
+these headers do not exist, these functions return an empty string, "", NOT a
+null pointer.</p>
+<pre>char *id=rfc2045_related_start(const struct rfc2045 *ptr);</pre>
+
+<p>This function returns the <i>start</i> parameter of the Content-Type:
+header, which is used by multipart/related content. This function returns a
+dynamically-allocated buffer, which must be free(3)-ed after use (a null
+pointer is returned if there was insufficient memory for the buffer, and
+rfc2045_error() is called).</p>
+<pre>const char *disposition, *name, *filename;
+
+void rfc2045_dispositioninfo(const struct rfc2045 *ptr,
+        &disposition, &name, &filename);</pre>
+
+<p>rfc2045_dispositioninfo() returns the disposition specifications of a MIME
+section.  For MIME sections that do not specify the type of disposition
+(inline or attachment), the name or the filename of the attachment, the
+corresponding pointer is initialized to NULL.</p>
+<pre>char *url=rfc2045_content_base(struct rfc2045 *ptr);
+
+char *url=rfc2045_append_url(const char *base, const char *url);</pre>
+
+<p>These functions are used to work with multipart/related MIME messages. The
+rfc2045_content_base() returns the contents of either the Content-Base: or the
+Content-Location: header.  If both are present, they are logically combined.
+The rfc2045_append_url() function combines two URLs, <i>base</i> and
+<i>url</i>, and returns the absolute URL that results from the
+combination.</p>
+
+<p>Both functions return a pointer to a dynamically-allocated buffer that must
+be free(3)-ed after it is no longer needed.  Both functions return NULL if
+there was no sufficient memory to allocate the buffer. rfc2045_content_base()
+returns an empty string in the event that there are no Content-Base: or
+Content-Location: headers. Either argument to rfc2045_append_url() may be a
+NULL, or an empty string.</p>
+
+<h2>Decoding a MIME section</h2>
+<pre>void rfc2045_cdecode_start(struct rfc2045 *ptr,
+        int (*callback_func)(const char *, size_t, void *),
+        void *callback_arg);
+
+int rfc2045_cdecode(struct rfc2045 *ptr, const char *stuff,
+        size_t nstuff);
+
+int rfc2045_cdecode_end(struct rfc2045 *ptr);</pre>
+
+<p>These functions are used to return the raw contents of the given MIME
+section, transparently decoding quoted-printable or base64-encoded content.
+Because the rfc2045 library does not require the message to be read from a
+file (it can be stored in a memory buffer), the application is responsible for
+reading the contents of the message and calling rfc2045_cdecode().</p>
+
+<p>The rfc2045_cdecode_start() function is used to begin the process of
+decoding the given MIME section. After calling rfc2045_cdecode_start(), the
+application must the repeatedly call rfc2045_cdecode() with the contents of
+the MIME message between the offsets given by the <i>start_body</i> and
+<i>end_pos</i> return values from rfc2045_mimepos() function. The
+rfc2045_cdecode() function can be called repeatedly, if necessary, for
+successive portions of the MIME section. After the last MIME section, the
+rfc2045_cdecode_end() function is called to finish decoding the MIME
+section.</p>
+
+<p>rfc2045_cdecode() and rfc2045_cdecode_end() repeatedly call the
+callback_func() function, with the decoded contents of the MIME section. The
+first argument to callback_func() is a pointer to a portion of the decoded
+content, the second argument is the number of bytes in this portion.  The
+third argument is <i>callback_arg</i>.</p>
+
+<p>callback_func() is required to return zero, to continue decoding. If
+callback_func() returns non-zero, the decoding immediately stops and
+rfc2045_cdecode() or rfc2045_cdecode_end() will terminate with callback_func's
+return code.</p>
+
+<h2>Rewriting MIME messages</h2>
+
+<p>The rfc2045 library contains functions that can be used to rewrite a MIME
+message in order to convert 8-bit data to 7-bit encoding method, or to convert
+7-bit encoded data to full 8-bit data, if possible.</p>
+<pre>struct rfc2045 *ptr=rfc2045_alloc_ac();
+int necessary=rfc2045_ac_check(struct rfc2045 *ptr, int mode);
+
+int error=rfc2045_rewrite(struct rfc2045 *ptr,
+                int fdin,
+                int fdout,
+                const char *appname);
+
+int rfc2045_rewrite_func(struct rfc2045 *p, int fdin,
+        int (*funcout)(const char *, int, void *), void *funcout_arg,
+        const char *appname);</pre>
+
+<p>When rewriting will be used, the rfc2045_alloc_ac() function must be used
+to create the initial <i>rfc2045</i> structure.  This function allocates some
+additional structures that are used in rewriting. The rfc2045_parse() function
+is used to parse the message, as usual. The rfc2045_free() function will also
+be used normally to destroy the <i>rfc2045</i> structure, when all is said and
+done.</p>
+
+<p>The rfc2045_ac_check() function must be called to determine whether
+rewriting is necessary. <i>mode</i> must be set to one of the following
+values:</p>
+<ul>
+  <li><code>RFC2045_RW_7BIT</code> - we want to generate 7-bit content. If the
+    original message contains any 8-bit content it will be converted to 7-bit
+    content using quoted-printable encoding.</li>
+  <li><code>RFC2045_RW_8BIT</code> - we want to generate 8-bit content. If the
+    original message contains any 7-bit quoted-printable content it should be
+    rewritten as 8-bit content.</li>
+</ul>
+
+<p>The rfc2045_ac_check() function returns non-zero if there's any content in
+the MIME message that should be converted, OR if there are any missing MIME
+headers. rfc2045_ac_check() returns zero if there's no need to rewrite the
+message.  However it might still be worthwhile to rewrite the message anyway.
+There are some instances where it is desirable to provide defaults for some
+missing MIME headers, but they are too trivial to require the message to be
+rewritten.  One such case would be a missing Content-Transfer-Encoding: header
+for a multipart section.</p>
+
+<p>Either the rfc2045_rewrite() or the rfc2045_rewrite_func() function is used
+to rewrite the message.  The only difference is that rfc2045_rewrite() writes
+the new message to a given file descriptor, <i>fdout</i>, while
+rfc2045_rewrite_func() repeatedly calls the <i>funcout</i> function. Both
+function read the original message from <i>fdin</i>. <i>funcout</i> receives
+to a portion of the MIME message, the number of bytes in the specified
+portion, and <i>funcout_arg</i>. When either function rewrites a MIME section,
+an informational header gets appended, noting that the message was converted
+by <i>appname</i>.</p>
+
+<h2>SEE ALSO</h2>
+<a href="rfc822.html">rfc822(3)</a>, <a
+href="reformime.html">reformime(1)</a>, <a
+href="reformail.html">reformail(1)</a>.</body>
+</html>

@@ -1,3 +1,7 @@
+May 22, 2005
+
+  * PORT: Added maildrop RFC libraries to distribution
+
 Apr 23, 2005
 
   * FIXED: mime_parse/3: read stream with Sgetcode rather than Sgetc to

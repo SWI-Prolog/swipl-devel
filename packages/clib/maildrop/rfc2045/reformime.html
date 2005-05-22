@@ -1,0 +1,212 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+                      "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+<head>
+  <title>reformime - MIME utility</title>
+  <!-- $Id$ -->
+  <!-- SECTION 1 -->
+  <meta http-equiv="Content-Type" content="text/html">
+</head>
+
+<body text="#000000" bgcolor="#FFFFFF" link="#0000EE" vlink="#551A8B"
+alink="#FF0000">
+<h1>reformime - MIME utility</h1>
+
+<h2>SYNOPSIS</h2>
+<code>reformime [options] ...</code>
+
+<h2>DESCRIPTION</h2>
+
+<p><i>reformime</i> is a tool for manipulating MIME messages and
+attachments.</p>
+
+<p><i>reformime</i> expects to see an <a
+href="http://www.rfc-editor.org/rfc/rfc2045.txt">RFC 2045</a>, message on
+standard input.</p>
+
+<p>If no options are given, <i>reformime</i> prints the MIME structure of the
+message. The output consists of so-called "MIME reference tags", one per line.
+For example, you might see the following output:</p>
+<pre> 
+    1
+    1.1
+    1.2</pre>
+This tells you that the message contains two different MIME sections. The
+first line of the MIME structure output will always contain "1", which refers
+to the entire message, which happens to be a <code>multipart/mixed</code>
+message. "1.1" refers to the first section of the multiparty message, which
+happens to be a <code>text/plain</code> section. "1.2" refers to the second
+section of the message, which happens to be an
+<code>application/octet-stream</code> section. This is a typical situation.
+
+<p>If the message is not a MIME message, or it does not contain any
+attachments, you will see a rather boring</p>
+<pre> 
+    1</pre>
+If, instead the first part of the message was itself a
+<code>multipart/alternative</code> section, you might see the following
+instead:
+<pre> 
+    1
+    1.1
+    1.1.1
+    1.1.2
+    1.2</pre>
+
+<p>Arbitrarily complex MIME constructs are possible.</p>
+
+<h2>OPTIONS</h2>
+<ul>
+  <li><code>-d</code> - parse a delivery status notification MIME message (RFC
+    1894). reformime expects to see on standard input a MIME message that
+    consists of a delivery status notification, as defined by RFC 1894.
+    reformime reads the message and prints on standard output a list of
+    addresses and their corresponding delivery status, as specified in the
+    delivery status notification. Each line printed by reformime consists of a
+    delivery status, a space, and the address reformime will terminate with a
+    0 exit status. reformime produces no output and terminates with an exit
+    status of 1 if the standard input does not contain a delivery status
+    notification.<br>
+    <br>
+  </li>
+  <li><code>-D</code> - like the <code>-d</code> option, except that it lists
+    the "original" recipient address, if provided.  See RFC 1894 for more
+    information.<br>
+    <br>
+  </li>
+  <li><code>-e</code> - extract the contents of the indicated MIME section,
+    and display it on standard output. The -s option is required when -e is
+    specified. If the indicated section uses either the <code>base64</code> or
+    <code>quoted-printable</code> encoding method, reformime automatically
+    decodes it. In this case you're better off redirecting the standard output
+    into a file.<br>
+    <br>
+  </li>
+  <li><code>-x</code> - extract the contents of the indicated MIME section to
+    a file.<br>
+    <br>
+  </li>
+  <li><code>-X</code> - pipe the contents of the indicated MIME section to a
+    program.<br>
+    <br>
+  </li>
+  <li><code>-i</code> - display MIME information for each section.
+    <code>reformime</code> will display the contents of the Content-Type:
+    header, any encoding used, and the character set. <code>reformime</code>
+    will also display at which byte offset in the message each section starts
+    and ends (and where the actual contents of the section start, skipping all
+    the headers).<br>
+    <br>
+  </li>
+  <li><code>-s section</code> - display MIME information for this section
+    only. section is a MIME specification tag. The -s option is required if -e
+    is also specified, and is optional with -i.<br>
+    <br>
+  </li>
+  <li><code>-r</code> - rewrite message, adding or standardizing RFC 2045 MIME
+    headers.<br>
+    <br>
+  </li>
+  <li><code>-r7</code> - also convert MIME sections with 8bit encoding to
+    quoted-printable encoding.<br>
+    <br>
+  </li>
+  <li><code>-r8</code> - also convert MIME sections with quoted-printable
+    encoding to 8bit encoding, where possible.<br>
+    <br>
+    <code></code></li>
+  <li><code>-m <i>file1 file2 ...</i></code> - create a MIME message
+  digest.</li>
+</ul>
+
+<h3>Extracting RFC 2045 MIME section(s) to file(s)</h3>
+
+<p>The -x and -X options extract a specific MIME section to a file or to a
+pipe to an external program.  Use the -s option to identify the MIME section
+to extract.  If the -s option is not specified, every MIME section in the
+message is extracted, one at a time. quoted-printable and base64 encoding are
+automatically decoded.</p>
+<ul>
+  <li><code>-x</code> - interactive extraction. <code>reformime</code> prints
+    the MIME content type of each section.  Answer with 'y' or 'Y' to extract
+    the MIME section. Specify the filename at the next prompt.
+    <code>reformime</code> will prompt with a default filename. reformime
+    tries to choose the default filename based on the MIME headers, if
+    possible. If not, the default filename will be
+    <code>attachment1.dat</code> (if the -s option is not specified, the next
+    filename will be <code>attachment2.dat</code>, and so on).<br>
+    <br>
+  </li>
+  <li><code>-xPREFIX</code> - automatic extraction. <i>reformime</i> will
+    automatically extract one or more MIME sections, and save them to a file.
+    The filename will be formed by taking PREFIX, and appending the default
+    filename to it. Note that there may not be a space between "-x" and
+    "PREFIX". For example: "reformime -xfiles-" - this will save MIME sections
+    as <code>files-attachment1.dat</code>, then
+    <code>files-attachment2.dat</code>, etc. <code>reformime</code> will try
+    to append the filename specified in the MIME headers for each section.
+    <i>reformime</i> will replace all suspect characters with the underbar,
+    when using the filename specified in the MIME headers.<br>
+    <br>
+  </li>
+  <li><code>-X prog arg1 arg2 ...</code> - the -X option must be the last
+    option to <code>reformime</code>. <code>reformime</code> will run an
+    external program specified by "prog", and pipe the contents of the MIME
+    section to the program. reformime will set the environment variable
+    <code>CONTENT_TYPE</code> to the MIME content type.  The environmetn
+    variable <code>FILENAME</code> will be set to the default filename of
+    reformime's liking. If the -s option is not specified, the program will be
+    executed one time for every MIME section in the message.</li>
+</ul>
+
+<p>NOTE: <i>reformime</i> will extract every MIME section in the message
+unless the -s option is specified. Yes, even the <code>text/plain</code> MIME
+part that usually precedes a binary attachment.</p>
+
+<h3>Adding RFC 2045 MIME headers</h3>
+
+<p>The <i>-r</i> option performs the following actions:</p>
+
+<p>If there is no <code>Mime-Version:</code>, <code>Content-Type:</code>, or
+<code>Content-Transfer-Encoding:</code> header, <code>reformime</code> will
+add one.</p>
+
+<p>If the <code>Content-Transfer-Encoding:</code> header contains
+<code>8bit</code> or <code>raw</code>, but only seven-bit data is found,
+the<code> Content-Transfer-Encoding</code> header is changed to
+<code>7bit</code>.</p>
+
+<p><i>-r7</i> does the same thing, but also converts 8bit transfer encoding
+containing eight-bit characters to quoted-printable encoding.</p>
+
+<p><i>-r8</i> does the same thing, but also converts quoted-printable encoded
+sections to 8bit, except in some situations.</p>
+
+<h3>Creating MIME message digests</h3>
+
+<p>The <code>-m</code> option is followed by a list of files. Each file should
+contain a single RFC 822 message. <code>reformime</code> prints, on standard
+output, a MIME digest containing the indicated messages.</p>
+
+<p>If <code>-m</code> is not followed by at least one file,
+<code>reformime</code> reads standard input. Each line on standard input must
+contain a single filename; blank lines are not allowed.</p>
+
+<h2>BUGS</h2>
+
+<p>-x and -X ignores the Content-Disposition: header.</p>
+
+<h2>FILES</h2>
+
+<p><code>$HOME/.tmp</code> - directory for temporary files. Automatically
+created, if necessary.</p>
+
+<h2>SEE ALSO</h2>
+<a href="maildrop.html">maildrop(1)</a>, <a
+href="maildropfilter.html">maildropfilter(1)</a>, <a
+href="makemime.html">makemime(1)</a>, <a
+href="reformail.html">reformail(1)</a>, egrep(1), grep(1), <a
+href="courier.html">courier(8)</a>, sendmail(8), <a
+href="http://www.rfc-editor.org/rfc/rfc1894.txt">RFC 1894</a>, <a
+href="http://www.rfc-editor.org/rfc/rfc2045.txt">RFC 2045</a>.</body>
+</html>

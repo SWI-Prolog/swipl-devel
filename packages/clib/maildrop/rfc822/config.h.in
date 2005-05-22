@@ -1,0 +1,48 @@
+/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Define if on AIX 3.
+   System headers sometimes define this.
+   We just want to avoid a redefinition error message.  */
+#ifndef _ALL_SOURCE
+#undef _ALL_SOURCE
+#endif
+
+/* Define to empty if the keyword does not work.  */
+#undef const
+
+/* Define if on MINIX.  */
+#undef _MINIX
+
+/* Define if the system does not provide POSIX.1 features except
+   with this defined.  */
+#undef _POSIX_1_SOURCE
+
+/* Define if you need to in order for stat and other things to work.  */
+#undef _POSIX_SOURCE
+
+/* Define to `unsigned' if <sys/types.h> doesn't define.  */
+#undef size_t
+
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
+/* Define if your <sys/time.h> declares struct tm.  */
+#undef TM_IN_SYS_TIME
+
+/* Whether daylight savings time offset is set via the altzone variable */
+#undef USE_TIME_ALTZONE
+
+/* Whether daylight savings time offset is set via the tm_isdst member */
+#undef USE_TIME_DAYLIGHT
+
+/* Whether time offset is specified via the tm_gmtoff member */
+#undef USE_TIME_GMTOFF
+
+/* Whether we have libunicode.a */
+#undef HAVE_LIBUNICODE
+
+/* Define if you have the strcasecmp function.  */
+#undef HAVE_STRCASECMP
+
+/* Define if you have the strncasecmp function.  */
+#undef HAVE_STRNCASECMP

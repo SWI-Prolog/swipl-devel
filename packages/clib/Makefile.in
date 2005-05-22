@@ -6,7 +6,7 @@
 #
 # License: LGPL
 #
-# Author: Jan Wielemaker (jan@swi.psy.uva.nl)
+# Author: Jan Wielemaker (wielemak@science.uva.nl)
 ################################################################
 
 .SUFFIXES: .tex .dvi .doc .pl
@@ -28,7 +28,7 @@ CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
 LIBS=@LIBS@
 NETLIBS=@NETLIBS@
 CRYPTLIBS=@CRYPTLIBS@
-MIMELIBS=@MIMELIBS@
+MIMELIBS=maildrop/rfc2045/librfc2045.a maildrop/rfc822/librfc822.a 
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
@@ -70,7 +70,7 @@ crypt.@SO@:	$(CRYPTOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(CRYPTOBJ) $(CRYPTLIBS)
 memfile.@SO@:	$(MEMOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(MEMOBJ) $(LIBS)
-mime.@SO@:	$(MIMEOBJ)
+mime.@SO@:	$(MIMEOBJ) $(MIMELIBS)
 		$(LD) $(LDFLAGS) -o $@ $(MIMEOBJ) $(MIMELIBS)
 time.@SO@:	$(TIMEOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(TIMEOBJ) $(LIBS)
@@ -78,6 +78,12 @@ files.@SO@:	$(FILESOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(FILESOBJ) $(LIBS)
 rlimit.@SO@:	$(RLIMITOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(RLIMITOBJ) $(LIBS)
+
+maildrop/rfc822/librfc822.a:
+		(cd maildrop/rfc822 && make librfc822.a)
+maildrop/rfc2045/librfc2045.a:
+		(cd maildrop/rfc2045 && make librfc2045.a)
+
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
@@ -153,8 +159,12 @@ $(TEX):		$(DOCTOTEX)
 
 clean:
 		rm -f $(OBJ) *~ *.o *% a.out core config.log
+		-(cd maildrop/rfc822 && $(MAKE) clean)
+		-(cd maildrop/rfc2045 && $(MAKE) clean)
 
 distclean:	clean
 		rm -f $(TARGETS) config.cache config.h config.status Makefile
 		rm -f clib.aux clib.log clib.out clib.toc
 		rm -rf html
+		-(cd maildrop/rfc822 && $(MAKE) distclean)
+		-(cd maildrop/rfc2045 && $(MAKE) distclean)

@@ -33,6 +33,7 @@
 	  [ mime_parse/2		% +Data, -Mime
 	  ]).
 
+:- license(gpl).
 :- load_foreign_library(foreign(mime), install_mime).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
