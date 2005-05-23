@@ -4,8 +4,13 @@ package source to simplify building the package.
 
 maildrop is written by:
 
-Sam Varshavchik <mrsam@courier-mta.com>
-Double Precision, Inc.
-PO Box 637
-Harriman, NY 10926-0637
+	Sam Varshavchik <mrsam@courier-mta.com>
+	Double Precision, Inc.
+	PO Box 637
+	Harriman, NY 10926-0637
+
+Although  initially  distributed  under  GPL,  Sam  gave  permission  to
+redistribute the library with  SWI-Prolog  under   the  LGPL.  See  file
+LICENSE.MAIL in this directory.
+
 
