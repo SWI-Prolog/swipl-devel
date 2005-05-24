@@ -4521,10 +4521,10 @@ empty_agenda(rdf_db *db, agenda *a)
 
   for(c=a->chunk; c; c = n)
   { n = c->next;
-    rdf_free(db, c, sizeof(*c));
+    rdf_free(db, c, CHUNK_SIZE(c->size));
   }
   if ( a->hash )
-    rdf_free(db, a->hash, sizeof(*a->hash));
+    rdf_free(db, a->hash, sizeof(visited*)*a->hash_size);
 }
 
 
