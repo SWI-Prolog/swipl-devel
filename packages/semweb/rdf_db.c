@@ -62,9 +62,52 @@ static int debuglevel = 0;
 #endif
 
 #ifdef DIRECT_MALLOC
-#define PL_malloc malloc
-#define PL_free free
-#define PL_realloc realloc
+#define rdf_malloc(db, size)		malloc(size)
+#define rdf_free(db, ptr, size)     	free(ptr)
+#define rdf_realloc(db, ptr, old, new)  realloc(ptr, new)
+#else
+
+static void *
+rdf_malloc(rdf_db *db, size_t size)
+{ size_t bytes = size + sizeof(size_t);
+  size_t *ptr = malloc(bytes);
+
+  *ptr++ = size;
+  if ( db )
+    db->core += size;
+
+  return ptr;
+}
+
+static void
+rdf_free(rdf_db *db, void *ptr, size_t size)
+{ size_t *p = ptr;
+
+  assert(p[-1] == size);
+
+  db->core -= size;
+  free(&p[-1]);
+}
+
+
+static void *
+rdf_realloc(rdf_db *db, void *ptr, size_t old, size_t new)
+{ size_t *p = ptr;
+  size_t bytes = new + sizeof(size_t);
+
+  assert(p[-1] == old);
+  p = realloc(&p[-1], bytes);
+  *p++ = new;
+  db->core += new-old;
+
+  return p;
+}
+
+#if 0
+#define rdf_malloc(db, size)		PL_malloc(size)
+#define rdf_free(db, ptr, size)     	PL_free(ptr)
+#define rdf_realloc(db, ptr, old, new)  PL_realloc(ptr, new)
+#endif
 #endif
 
 static functor_t FUNCTOR_literal1;
@@ -105,6 +148,7 @@ static functor_t FUNCTOR_type2;
 
 static functor_t FUNCTOR_gc2;
 static functor_t FUNCTOR_rehash2;
+static functor_t FUNCTOR_core1;
 
 static atom_t   ATOM_user;
 static atom_t	ATOM_exact;
@@ -427,7 +471,7 @@ INIT_LOCK(rdf_db *db)
 
   bytes = sizeof(int)*PL_query(PL_QUERY_MAX_THREADS);
 
-  db->read_by_thread = PL_malloc(bytes);
+  db->read_by_thread = rdf_malloc(db, bytes);
   memset(db->read_by_thread, 0, bytes);
 
   return TRUE;
@@ -659,7 +703,7 @@ INIT_LOCK(rdf_db *db)
   maxthreads = PL_query(PL_QUERY_MAX_THREADS);
   bytes = sizeof(int)*maxthreads;
   DEBUG(1, Sdprintf("MAX_THREADS = %d\n", maxthreads));
-  db->read_by_thread = PL_malloc(bytes);
+  db->read_by_thread = rdf_malloc(db, bytes);
   memset(db->read_by_thread, 0, bytes);
 
   return TRUE;
@@ -916,7 +960,7 @@ SWI-Prolog note: Atoms are integers shifted by LMASK_BITS (7)
 		 *******************************/
 
 static int
-add_list(list *list, void *value)
+add_list(rdf_db *db, list *list, void *value)
 { cell *c;
 
   for(c=list->head; c; c=c->next)
@@ -924,7 +968,7 @@ add_list(list *list, void *value)
       return FALSE;			/* already a member */
   }
 
-  c = PL_malloc(sizeof(*c));
+  c = rdf_malloc(db, sizeof(*c));
   c->value = value;
   c->next = NULL;
 
@@ -940,7 +984,7 @@ add_list(list *list, void *value)
 
 
 static int
-del_list(list *list, void *value)
+del_list(rdf_db *db, list *list, void *value)
 { cell *c, *p = NULL;
 
   for(c=list->head; c; p=c, c=c->next)
@@ -953,7 +997,7 @@ del_list(list *list, void *value)
       if ( !c->next )
 	list->tail = p;
 
-      PL_free(c);
+      rdf_free(db, c, sizeof(*c));
 
       return TRUE;
     }
@@ -964,12 +1008,12 @@ del_list(list *list, void *value)
 
 
 static void
-free_list(list *list)
+free_list(rdf_db *db, list *list)
 { cell *c, *n;
 
   for(c=list->head; c; c=n)
   { n = c->next;
-    PL_free(c);
+    rdf_free(db, c, sizeof(*c));
   }
 
   list->head = list->tail = NULL;
@@ -984,7 +1028,7 @@ static void
 init_pred_table(rdf_db *db)
 { int bytes = sizeof(predicate*)*INITIAL_PREDICATE_TABLE_SIZE;
 
-  db->pred_table = PL_malloc(bytes);
+  db->pred_table = rdf_malloc(db, bytes);
   memset(db->pred_table, 0, bytes);
   db->pred_table_size = INITIAL_PREDICATE_TABLE_SIZE;
 }
@@ -1020,7 +1064,7 @@ lookup_predicate(rdf_db *db, atom_t name)
       return p;
     }
   }
-  p = PL_malloc(sizeof(*p));
+  p = rdf_malloc(db, sizeof(*p));
   memset(p, 0, sizeof(*p));
   p->name = name;
   p->root = p;
@@ -1037,10 +1081,10 @@ lookup_predicate(rdf_db *db, atom_t name)
 
 
 static predicate *
-alloc_dummy_root_predicate()
+alloc_dummy_root_predicate(rdf_db *db)
 { predicate *p;
 
-  p = PL_malloc(sizeof(*p));
+  p = rdf_malloc(db, sizeof(*p));
   memset(p, 0, sizeof(*p));
   p->name = 0;				/* dummy roots have no name */
   p->root = p;
@@ -1056,11 +1100,12 @@ alloc_dummy_root_predicate()
 */
 
 static void				/* currently only frees dummy root */
-free_predicate(predicate *p) { assert(!p->name);
+free_predicate(rdf_db *db, predicate *p)
+{ assert(!p->name);
 
-  free_list(&p->siblings);
-  free_list(&p->subPropertyOf);
-  PL_free(p);
+  free_list(db, &p->siblings);
+  free_list(db, &p->subPropertyOf);
+  rdf_free(db, p, sizeof(*p));
 }
 #endif
 
@@ -1083,26 +1128,26 @@ Change the root if we put a new root   on  top of a hierarchy. We should
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void				/* make root the root of p */
-set_dummy_root_r(predicate *p, predicate *root)
+set_dummy_root_r(rdf_db *db, predicate *p, predicate *root)
 { if ( p->root && p->root != root )
   { cell *c;
 
     if ( p->root && p->root != (predicate*)1 && is_dummy_root(p->root) )
-      del_list(&p->root->siblings, p);
+      del_list(db, &p->root->siblings, p);
     p->root = root;
-    add_list(&root->siblings, p);
+    add_list(db, &root->siblings, p);
 
     for(c=p->siblings.head; c; c=c->next)
-    { set_dummy_root_r(c->value, root);
+    { set_dummy_root_r(db, c->value, root);
     }
   }
 }
 
 
 static void				/* make root the root of p */
-set_dummy_root(predicate *p, predicate *root)
+set_dummy_root(rdf_db *db, predicate *p, predicate *root)
 { p->root = (predicate*)1;		/* not-null */
-  set_dummy_root_r(p, root);
+  set_dummy_root_r(db, p, root);
 }
 
 
@@ -1139,7 +1184,7 @@ and returns this parent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static predicate*
-root_predicate(predicate *p0, int vindex)
+root_predicate(rdf_db *db, predicate *p0, int vindex)
 { predicate *p = p0;
 
   DEBUG(3, Sdprintf("root_predicate(%s) ...", pname(p)));
@@ -1164,12 +1209,14 @@ root_predicate(predicate *p0, int vindex)
     if ( !p->subPropertyOf.head->next )
       p = p->subPropertyOf.head->value;	/* exactly one super */
     else				/* multiple supers */
-    { predicate *root = root_predicate(p->subPropertyOf.head->value, vindex);
+    { predicate *root = root_predicate(db, 
+				       p->subPropertyOf.head->value,
+				       vindex);
       
       DEBUG(2, Sdprintf("%s has multiple roots\n", pname(p)));
 
       for(c=p->subPropertyOf.head->next; c; c=c->next)
-      { predicate *r2 = root_predicate(c->value, vindex);
+      { predicate *r2 = root_predicate(db, c->value, vindex);
 
 	if ( r2 != root )		/* multiple roots */
 	{ if ( is_dummy_root(root) )
@@ -1177,16 +1224,16 @@ root_predicate(predicate *p0, int vindex)
 	    { cell *c;
 
 	      for(c=r2->siblings.head; c; c=c->next)
-		set_dummy_root(c->value, root);
+		set_dummy_root(db, c->value, root);
 #if 0
 	      if ( !r2->siblings.head )
 		free_predicate(r2);
 #endif
 	    } else
-	    { set_dummy_root(r2, root);
+	    { set_dummy_root(db, r2, root);
 	    }
 	  } else if ( is_dummy_root(r2) )
-	  { set_dummy_root(root, r2);
+	  { set_dummy_root(db, root, r2);
 	    root = r2;
 	  } else
 	  { predicate *nr;
@@ -1196,10 +1243,10 @@ root_predicate(predicate *p0, int vindex)
 	    else if ( is_virgin_dummy_root(r2->oldroot) )
 	      nr = r2->oldroot;
 	    else
-	      nr = alloc_dummy_root_predicate();
+	      nr = alloc_dummy_root_predicate(db);
 
-	    set_dummy_root(root, nr);
-	    set_dummy_root(r2, nr);
+	    set_dummy_root(db, root, nr);
+	    set_dummy_root(db, r2, nr);
 
 	    DEBUG(1, Sdprintf("New virtual root %s for %s and %s\n",
 			      pname(nr),
@@ -1236,7 +1283,7 @@ organise_predicates(rdf_db *db)
     for( p = *ht; p; p = p->next )
     { p->oldroot = p->root;
       if ( is_dummy_root(p->oldroot) )
-	free_list(&p->oldroot->siblings);
+	free_list(db, &p->oldroot->siblings);
       p->root = NULL;
       p->visited = -1;
     }
@@ -1246,7 +1293,7 @@ organise_predicates(rdf_db *db)
   { predicate *p;
 
     for( p = *ht; p; p = p->next )
-    { predicate *root = root_predicate(p, seen);
+    { predicate *root = root_predicate(db, p, seen);
 
       p->root = root;
       seen++;
@@ -1285,8 +1332,8 @@ predicate_hash(predicate *p)
 
 static void
 addSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
-{ if ( add_list(&sub->subPropertyOf, super) )
-  { add_list(&super->siblings, sub);
+{ if ( add_list(db, &sub->subPropertyOf, super) )
+  { add_list(db, &super->siblings, sub);
     db->need_update++;
   }
 }
@@ -1294,8 +1341,8 @@ addSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
 
 static void
 delSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
-{ if ( del_list(&sub->subPropertyOf, super) )
-  { del_list(&super->siblings, sub);
+{ if ( del_list(db, &sub->subPropertyOf, super) )
+  { del_list(db, &super->siblings, sub);
     db->need_update++;
   }
 }
@@ -1487,7 +1534,7 @@ static void
 init_source_table(rdf_db *db)
 { int bytes = sizeof(predicate*)*INITIAL_SOURCE_TABLE_SIZE;
 
-  db->source_table = PL_malloc(bytes);
+  db->source_table = rdf_malloc(db, bytes);
   memset(db->source_table, 0, bytes);
   db->source_table_size = INITIAL_SOURCE_TABLE_SIZE;
 }
@@ -1511,7 +1558,7 @@ lookup_source(rdf_db *db, atom_t name, int create)
     return NULL;
   }
 
-  src = PL_malloc(sizeof(*src));
+  src = rdf_malloc(db, sizeof(*src));
   memset(src, 0, sizeof(*src));
   src->name = name;
   src->md5 = TRUE;
@@ -1536,7 +1583,7 @@ erase_sources(rdf_db *db)
     { n = src->next;
 
       PL_unregister_atom(src->name);
-      PL_free(src);
+      rdf_free(db, src, sizeof(*src));
     }
 
     *ht = NULL;
@@ -1646,11 +1693,11 @@ init_tables(rdf_db *db)
   { if ( i == BY_SO )
       continue;
 
-    db->table[i] = PL_malloc(bytes);
+    db->table[i] = rdf_malloc(db, bytes);
     memset(db->table[i], 0, bytes);
-    db->tail[i] = PL_malloc(bytes);
+    db->tail[i] = rdf_malloc(db, bytes);
     memset(db->tail[i], 0, bytes);
-    db->counts[i] = PL_malloc(cbytes);
+    db->counts[i] = rdf_malloc(db, cbytes);
     memset(db->counts[i], 0, cbytes);
     db->table_size[i] = INITIAL_TABLE_SIZE;
   }
@@ -1662,7 +1709,7 @@ init_tables(rdf_db *db)
 
 static rdf_db *
 new_db()
-{ rdf_db *db = PL_malloc(sizeof(*db));
+{ rdf_db *db = rdf_malloc(NULL, sizeof(*db));
 
   memset(db, 0, sizeof(*db));
   INIT_LOCK(db);
@@ -1679,8 +1726,8 @@ Prolog backtracking context references them.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static triple *
-save_triple(triple *t)
-{ triple *copy = PL_malloc(sizeof(*copy));
+save_triple(rdf_db *db, triple *t)
+{ triple *copy = rdf_malloc(db, sizeof(*copy));
 
   *copy = *t;
 
@@ -1925,13 +1972,15 @@ rehash_triples(rdf_db *db)
 
   for(i=1; i<INDEX_TABLES; i++)
   { if ( db->table[i] )
-    { long bytes  = sizeof(triple*) * tsize;
-      long cbytes = sizeof(int)    * tsize;
+    { long bytes   = sizeof(triple*) * tsize;
+      long cbytes  = sizeof(int)     * tsize;
+      long obytes  = sizeof(triple*) * db->table_size[i];
+      long ocbytes = sizeof(int)     * db->table_size[i];
 
+      db->table[i]  = rdf_realloc(db, db->table[i],  obytes,  bytes);
+      db->tail[i]   = rdf_realloc(db, db->tail[i],	 obytes,  bytes);
+      db->counts[i] = rdf_realloc(db, db->counts[i], ocbytes, cbytes);
       db->table_size[i] = tsize;
-      db->table[i]  = PL_realloc(db->table[i], bytes);
-      db->tail[i]   = PL_realloc(db->tail[i], bytes);
-      db->counts[i] = PL_realloc(db->counts[i], cbytes);
 
       memset(db->table[i], 0, bytes);
       memset(db->tail[i], 0, bytes);
@@ -1944,7 +1993,7 @@ rehash_triples(rdf_db *db)
   { t2 = t->next[BY_NONE];
 
     unlock_atoms(t);
-    PL_free(t);
+    rdf_free(db, t, sizeof(*t));
     db->freed++;
 
     db->by_none = t2;
@@ -1965,7 +2014,7 @@ rehash_triples(rdf_db *db)
     { t3 = t2->next[BY_NONE];
 
       unlock_atoms(t2);
-      PL_free(t2);
+      rdf_free(db, t2, sizeof(*t2));
       db->freed++;
     }
 
@@ -2229,16 +2278,16 @@ init_saved(rdf_db *db, save_context *ctx)
 { long size = next_table_size((db->created - db->erased)/8);
   long bytes = size * sizeof(*ctx->saved_table);
 
-  ctx->saved_table = PL_malloc(bytes);
+  ctx->saved_table = rdf_malloc(db, bytes);
   memset(ctx->saved_table, 0, bytes);
   ctx->saved_size = size;
   ctx->saved_id = 0;
 }
 
 static void
-destroy_saved(save_context *ctx)
+destroy_saved(rdf_db *db, save_context *ctx)
 { if ( ctx->saved_table )
-    PL_free(ctx->saved_table);
+    rdf_free(db, ctx->saved_table, ctx->saved_size*sizeof(*ctx->saved_table));
 }
 
 #define LONGBITSIZE (sizeof(long)*8)
@@ -2284,7 +2333,7 @@ save_int(IOSTREAM *fd, long n)
 
 
 static int
-save_atom(IOSTREAM *out, atom_t a, save_context *ctx)
+save_atom(rdf_db *db, IOSTREAM *out, atom_t a, save_context *ctx)
 { int hash = atom_hash(a) % ctx->saved_size;
   saved *s;
   unsigned int len;
@@ -2301,7 +2350,7 @@ save_atom(IOSTREAM *out, atom_t a, save_context *ctx)
     }
   }
 
-  s = PL_malloc(sizeof(*s));
+  s = rdf_malloc(db, sizeof(*s));
   s->name = a;
   s->as = ctx->saved_id++;
   s->next = ctx->saved_table[hash];
@@ -2336,26 +2385,26 @@ static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
 
 
 static void
-write_triple(IOSTREAM *out, triple *t, save_context *ctx)
+write_triple(rdf_db *db, IOSTREAM *out, triple *t, save_context *ctx)
 { Sputc('T', out);
 
-  save_atom(out, t->subject, ctx);
-  save_atom(out, t->predicate->name, ctx);
+  save_atom(db, out, t->subject, ctx);
+  save_atom(db, out, t->predicate->name, ctx);
 
   if ( t->qualifier )
   { assert(t->type_or_lang);
     Sputc(t->qualifier == Q_LANG ? 'l' : 't', out);
-    save_atom(out, t->type_or_lang, ctx);
+    save_atom(db, out, t->type_or_lang, ctx);
   }
 
   switch(t->objtype)
   { case OBJ_RESOURCE:
       Sputc('R', out);
-      save_atom(out, t->object.resource, ctx);
+      save_atom(db, out, t->object.resource, ctx);
       break;
     case OBJ_STRING:
       Sputc('L', out);
-      save_atom(out, t->object.string, ctx);
+      save_atom(db, out, t->object.string, ctx);
       break;
     case OBJ_INTEGER:
       Sputc('I', out);
@@ -2387,7 +2436,7 @@ write_triple(IOSTREAM *out, triple *t, save_context *ctx)
       assert(0);
   }
 
-  save_atom(out, t->source, ctx);
+  save_atom(db, out, t->source, ctx);
   save_int(out, t->line);
 }
 
@@ -2420,7 +2469,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
   save_int(out, SAVE_VERSION);
   if ( src )
   { Sputc('S', out);
-    save_atom(out, src, &ctx);
+    save_atom(db, out, src, &ctx);
     write_md5(db, out, src);
   }
   if ( Sferror(out) )
@@ -2431,7 +2480,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
   for(t = db->by_none; t; t = t->next[BY_NONE])
   { if ( !t->erased &&
 	 (!src || t->source == src) )
-    { write_triple(out, t, &ctx);
+    { write_triple(db, out, t, &ctx);
       if ( Sferror(out) )
 	return FALSE;
     }
@@ -2442,7 +2491,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
     return FALSE;
   }
 
-  destroy_saved(&ctx);
+  destroy_saved(db, &ctx);
   RDUNLOCK(db);
 
   return TRUE;
@@ -2515,15 +2564,18 @@ typedef struct ld_context
 
 
 static void
-add_atom(atom_t a, ld_context *ctx)
+add_atom(rdf_db *db, atom_t a, ld_context *ctx)
 { if ( ctx->loaded_id >= ctx->atoms_size )
   { if ( ctx->atoms_size == 0 )
     { ctx->atoms_size = 1024;
-      ctx->loaded_atoms = PL_malloc(sizeof(atom_t)*ctx->atoms_size);
+      ctx->loaded_atoms = rdf_malloc(db, sizeof(atom_t)*ctx->atoms_size);
     } else
-    { ctx->atoms_size *= 2;
-      ctx->loaded_atoms = PL_realloc(ctx->loaded_atoms,
-				     sizeof(atom_t)*ctx->atoms_size);
+    { long obytes = sizeof(atom_t)*ctx->atoms_size;
+      long  bytes;
+
+      ctx->atoms_size *= 2;
+      bytes = sizeof(atom_t)*ctx->atoms_size;
+      ctx->loaded_atoms = rdf_realloc(db, ctx->loaded_atoms, obytes, bytes);
     }
   }
 
@@ -2532,7 +2584,7 @@ add_atom(atom_t a, ld_context *ctx)
 
 
 static atom_t
-load_atom(IOSTREAM *in, ld_context *ctx)
+load_atom(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 { switch(Sgetc(in))
   { case 'X':
       return ctx->loaded_atoms[load_int(in)];
@@ -2545,13 +2597,13 @@ load_atom(IOSTREAM *in, ld_context *ctx)
 	Sfread(buf, 1, len, in);
 	a = PL_new_atom_nchars(len, buf);
       } else
-      { char *buf = PL_malloc(len);
+      { char *buf = rdf_malloc(db, len);
 	Sfread(buf, 1, len, in);
 	a = PL_new_atom_nchars(len, buf);
-	PL_free(buf);
+	rdf_free(db, buf, len);
       }
 
-      add_atom(a, ctx);
+      add_atom(db, a, ctx);
       return a;
     }
     case 'W':
@@ -2565,7 +2617,7 @@ load_atom(IOSTREAM *in, ld_context *ctx)
       if ( len < 1024 )
 	w = buf;
       else
-	w = PL_malloc(len*sizeof(wchar_t));
+	w = rdf_malloc(db, len*sizeof(wchar_t));
 
       in->encoding = ENC_UTF8;
       for(i=0; i<len; i++)
@@ -2574,9 +2626,9 @@ load_atom(IOSTREAM *in, ld_context *ctx)
 	  
       a = PL_new_atom_wchars(len, w);
       if ( w != buf )
-	PL_free(w);
+	rdf_free(db, w, len*sizeof(wchar_t));
 
-      add_atom(a, ctx);
+      add_atom(db, a, ctx);
       return a;
     }
     default:
@@ -2607,20 +2659,20 @@ load_double(IOSTREAM *fd)
 
 static int
 load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
-{ triple *t = PL_malloc(sizeof(*t));
+{ triple *t = rdf_malloc(db, sizeof(*t));
 
   memset(t, 0, sizeof(*t));
-  t->subject   = load_atom(in, ctx);
-  t->predicate = lookup_predicate(db, load_atom(in, ctx));
+  t->subject   = load_atom(db, in, ctx);
+  t->predicate = lookup_predicate(db, load_atom(db, in, ctx));
 value:
   switch(Sgetc(in))
   { case 'R':
       t->objtype = OBJ_RESOURCE;
-      t->object.resource = load_atom(in, ctx);
+      t->object.resource = load_atom(db, in, ctx);
       break;
     case 'L':
       t->objtype = OBJ_STRING;
-      t->object.resource = load_atom(in, ctx);
+      t->object.resource = load_atom(db, in, ctx);
       break;
     case 'I':
       t->objtype = OBJ_INTEGER;
@@ -2636,7 +2688,7 @@ value:
 
       t->objtype = OBJ_TERM;
       t->object.term.len = load_int(in);
-      t->object.term.record = PL_malloc(t->object.term.len);
+      t->object.term.record = rdf_malloc(db, t->object.term.len);
       s = (char *)t->object.term.record;
 
       for(i=0; i<t->object.term.len; i++)
@@ -2646,16 +2698,16 @@ value:
     }
     case 'l':
       t->qualifier = Q_LANG;
-      t->type_or_lang = load_atom(in, ctx);
+      t->type_or_lang = load_atom(db, in, ctx);
       goto value;
     case 't':
       t->qualifier = Q_TYPE;
-      t->type_or_lang = load_atom(in, ctx);
+      t->type_or_lang = load_atom(db, in, ctx);
       goto value;
     default:
       assert(0);
   }
-  t->source = load_atom(in, ctx);
+  t->source = load_atom(db, in, ctx);
   t->line   = load_int(in);
 
   if ( db->tr_first )
@@ -2706,7 +2758,7 @@ load_db(rdf_db *db, IOSTREAM *in)
 	}
         break;
       case 'S':
-	ctx.source = lookup_source(db, load_atom(in, &ctx), TRUE);
+	ctx.source = lookup_source(db, load_atom(db, in, &ctx), TRUE);
         break;
       case 'M':
       { int i;
@@ -2727,11 +2779,11 @@ load_db(rdf_db *db, IOSTREAM *in)
       }
       case 'E':
 	if ( ctx.loaded_atoms )
-	  PL_free(ctx.loaded_atoms);
+	  rdf_free(db, ctx.loaded_atoms, sizeof(atom_t)*ctx.atoms_size);
 
         if ( ctx.md5 )
 	{ if ( db->tr_first )
-	  { md5_byte_t *d = PL_malloc(sizeof(ctx.digest));
+	  { md5_byte_t *d = rdf_malloc(db, sizeof(ctx.digest));
 	    memcpy(d, ctx.digest, sizeof(ctx.digest));
 	    record_md5_transaction(db, ctx.source, d);
 	  } else
@@ -3528,7 +3580,7 @@ append_transaction(rdf_db *db, transaction_record *tr)
 
 static void
 open_transaction(rdf_db *db)
-{ transaction_record *tr = PL_malloc(sizeof(*tr));
+{ transaction_record *tr = rdf_malloc(db, sizeof(*tr));
 
   memset(tr, 0, sizeof(*tr));
   tr->type = TR_MARK;
@@ -3544,7 +3596,7 @@ open_transaction(rdf_db *db)
 
 static void
 record_transaction(rdf_db *db, tr_type type, triple *t)
-{ transaction_record *tr = PL_malloc(sizeof(*tr));
+{ transaction_record *tr = rdf_malloc(db, sizeof(*tr));
 
   memset(tr, 0, sizeof(*tr));
   tr->type = type;
@@ -3556,7 +3608,7 @@ record_transaction(rdf_db *db, tr_type type, triple *t)
 
 static void
 record_md5_transaction(rdf_db *db, source *src, md5_byte_t *digest)
-{ transaction_record *tr = PL_malloc(sizeof(*tr));
+{ transaction_record *tr = rdf_malloc(db, sizeof(*tr));
 
   memset(tr, 0, sizeof(*tr));
   tr->type = TR_UPDATE_MD5,
@@ -3569,7 +3621,7 @@ record_md5_transaction(rdf_db *db, source *src, md5_byte_t *digest)
 
 static void
 record_update_transaction(rdf_db *db, triple *t, triple *new)
-{ transaction_record *tr = PL_malloc(sizeof(*tr));
+{ transaction_record *tr = rdf_malloc(db, sizeof(*tr));
 
   memset(tr, 0, sizeof(*tr));
   tr->type = TR_UPDATE,
@@ -3583,7 +3635,7 @@ record_update_transaction(rdf_db *db, triple *t, triple *new)
 static void
 record_update_src_transaction(rdf_db *db, triple *t,
 			      atom_t src, unsigned long line)
-{ transaction_record *tr = PL_malloc(sizeof(*tr));
+{ transaction_record *tr = rdf_malloc(db, sizeof(*tr));
 
   memset(tr, 0, sizeof(*tr));
   tr->type = TR_UPDATE_SRC,
@@ -3596,25 +3648,25 @@ record_update_src_transaction(rdf_db *db, triple *t,
 
 
 static void
-free_transaction(transaction_record *tr)
+free_transaction(rdf_db *db, transaction_record *tr)
 { switch(tr->type)
   { case TR_ASSERT:
       unlock_atoms(tr->triple);
-      PL_free(tr->triple);
+      rdf_free(db, tr->triple, sizeof(*tr->triple));
       break;
     case TR_UPDATE:
       unlock_atoms(tr->update.triple);
-      PL_free(tr->update.triple);
+      rdf_free(db, tr->update.triple, sizeof(*tr->update.triple));
       break;
     case TR_UPDATE_MD5:
       if ( tr->update.md5.digest )
-	PL_free(tr->update.md5.digest);
+	rdf_free(db, tr->update.md5.digest, sizeof(*tr->update.md5.digest));
       break;
     default:
       break;
   }
 
-  PL_free(tr);
+  rdf_free(db, tr, sizeof(*tr));
 }
 
 
@@ -3641,13 +3693,13 @@ discard_transaction(rdf_db *db)
   { prev = tr->previous;
 
     if ( tr->type == TR_MARK )
-    { PL_free(tr);
+    { rdf_free(db, tr, sizeof(*tr));
       truncate_transaction(db, prev);
       db->tr_nesting--;
       return;
     }
     
-    free_transaction(tr);
+    free_transaction(db, tr);
   }
 }
 
@@ -3661,7 +3713,7 @@ commit_transaction(rdf_db *db)
 
     if ( tr->type == TR_MARK )		/* empty nested transaction */
     { truncate_transaction(db, tr->previous);
-      PL_free(tr);
+      rdf_free(db, tr, sizeof(*tr));
       db->tr_nesting--;
 
       return TRUE;
@@ -3672,7 +3724,7 @@ commit_transaction(rdf_db *db)
       if ( tr->type == TR_MARK )
       { tr->previous->next = tr->next;
 	tr->next->previous = tr->previous;
-	PL_free(tr);
+	rdf_free(db, tr, sizeof(*tr));
 	db->tr_nesting--;
 
 	return TRUE;
@@ -3722,7 +3774,7 @@ commit_transaction(rdf_db *db)
 	if ( digest )
 	{ sum_digest(digest, src->digest);
 	  src->md5 = TRUE;
-	  PL_free(digest);
+	  rdf_free(db, digest, sizeof(md5_byte_t)*16);
 	} else
 	{ src->md5 = FALSE;
 	}
@@ -3735,7 +3787,7 @@ commit_transaction(rdf_db *db)
 	assert(0);
     }
 
-    PL_free(tr);
+    rdf_free(db, tr, sizeof(*tr));
   }
 
   db->tr_first = db->tr_last = NULL;
@@ -3782,17 +3834,17 @@ rdf_transaction(term_t goal)
 
 static foreign_t
 rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
-{ triple *t = PL_malloc(sizeof(*t));
-  rdf_db *db = DB;
-
+{ rdf_db *db = DB;
+  triple *t = rdf_malloc(db, sizeof(*t));
+  
   memset(t, 0, sizeof(*t));
   if ( !get_triple(db, subject, predicate, object, t) )
-  { PL_free(t);
+  { rdf_free(db, t, sizeof(*t));
     return FALSE;
   }
   if ( src )
   { if ( !get_source(src, t) )
-    { PL_free(t);
+    { rdf_free(db, t, sizeof(*t));
       return FALSE;
     }
   } else
@@ -3803,7 +3855,7 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
   lock_atoms(t);
   if ( !WRLOCK(db, FALSE) )
   { unlock_atoms(t);
-    PL_free(t);
+    rdf_free(db, t, sizeof(*t));
     return FALSE;
   }
 
@@ -3865,7 +3917,7 @@ rdf(term_t subject, term_t predicate, term_t object,
 	    { t.next[0] = p;
 	      
 	      db->active_queries++;
-	      PL_retry_address(save_triple(&t));
+	      PL_retry_address(save_triple(db, &t));
 	    }
 	  }
 
@@ -3913,7 +3965,7 @@ rdf(term_t subject, term_t predicate, term_t object,
 	    goto retry_inv_alt;
 	  }
 
-          PL_free(t);
+          rdf_free(db, t, sizeof(*t));
 	  db->active_queries--;
 	  RDUNLOCK(db);
           return TRUE;
@@ -3923,7 +3975,7 @@ rdf(term_t subject, term_t predicate, term_t object,
       { p = db->table[t->indexed][triple_hash(db, t, t->indexed)];
 	goto retry_inv;
       }
-      PL_free(t);
+      rdf_free(db, t, sizeof(*t));
       db->active_queries--;
       RDUNLOCK(db);
       return FALSE;
@@ -3932,7 +3984,7 @@ rdf(term_t subject, term_t predicate, term_t object,
     { triple *t = PL_foreign_context_address(h);
 
       db->active_queries--;
-      PL_free(t);
+      rdf_free(db, t, sizeof(*t));
       RDUNLOCK(db);
       return TRUE;
     }
@@ -4101,7 +4153,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
   for(i=0; i<INDEX_TABLES; i++)
     tmp.next[i] = NULL;
 
-  new = PL_malloc(sizeof(*new));
+  new = rdf_malloc(db, sizeof(*new));
   memset(new, 0, sizeof(*new));
   new->subject	    = tmp.subject;
   new->predicate    = tmp.predicate;
@@ -4439,7 +4491,7 @@ typedef struct chunk
 
 
 static visited *
-alloc_node_agenda(agenda *a)
+alloc_node_agenda(rdf_db *db, agenda *a)
 { chunk *c;
   int size;
 
@@ -4452,7 +4504,7 @@ alloc_node_agenda(agenda *a)
   }
 
   size = (a->size == 0 ? 8 : 1024);
-  c = PL_malloc(CHUNK_SIZE(size));
+  c = rdf_malloc(db, CHUNK_SIZE(size));
   c->size = size;
   c->used = 1;
   c->next = a->chunk;
@@ -4463,21 +4515,21 @@ alloc_node_agenda(agenda *a)
 
 
 static void
-empty_agenda(agenda *a)
+empty_agenda(rdf_db *db, agenda *a)
 { chunk *c, *n;
 
   for(c=a->chunk; c; c = n)
   { n = c->next;
-    PL_free(c);
+    rdf_free(db, c, sizeof(*c));
   }
   if ( a->hash )
-    PL_free(a->hash);
+    rdf_free(db, a->hash, sizeof(*a->hash));
 }
 
 
 static agenda *
-save_agenda(agenda *a)
-{ agenda *r = PL_malloc(sizeof(*r));
+save_agenda(rdf_db *db, agenda *a)
+{ agenda *r = rdf_malloc(db, sizeof(*r));
 
   *r = *a;
 
@@ -4486,13 +4538,13 @@ save_agenda(agenda *a)
 
 
 static void
-hash_agenda(agenda *a, int size)
+hash_agenda(rdf_db *db, agenda *a, int size)
 { if ( a->hash )
-    PL_free(a->hash);
+    rdf_free(db, a->hash, sizeof(*a->hash));
   if ( size > 0 )
   { visited *v;
 
-    a->hash = PL_malloc(sizeof(visited*)*size);
+    a->hash = rdf_malloc(db, sizeof(visited*)*size);
     memset(a->hash, 0, sizeof(visited*)*size);
     a->hash_size = size;
     
@@ -4542,11 +4594,11 @@ append_agenda(rdf_db *db, agenda *a, atom_t res)
 
   a->size++; 
   if ( !a->hash_size && a->size > 32 )
-    hash_agenda(a, 64);
+    hash_agenda(db, a, 64);
   else if ( a->size > a->hash_size * 4 )
-    hash_agenda(a, a->hash_size * 4);
+    hash_agenda(db, a, a->hash_size * 4);
 
-  v = alloc_node_agenda(a);
+  v = alloc_node_agenda(db, a);
   v->resource = res;
   v->next = NULL;
   if ( a->tail )
@@ -4726,15 +4778,15 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       while(next_agenda(db, &a, &r))
       { if ( PL_unify_atom(target_term, r) )
 	{ if ( a.target )		/* mode(+, +, +) */
-	  { empty_agenda(&a);
+	  { empty_agenda(db, &a);
 	    return TRUE;
 	  } else			/* mode(+, +, -) or mode(-, +, +) */
 	  { db->active_queries++;
-	    PL_retry_address(save_agenda(&a));
+	    PL_retry_address(save_agenda(db, &a));
 	  }
 	}
       }
-      empty_agenda(&a);
+      empty_agenda(db, &a);
       return FALSE;
     }
     case PL_REDO:
@@ -4750,7 +4802,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       while(next_agenda(db, a, &r))
       { if ( PL_unify_atom(target_term, r) )
 	{ if ( a->target )		/* +, +, + */
-	  { empty_agenda(a);
+	  { empty_agenda(db, a);
 	    return TRUE;
 	  } else
 	  { PL_retry_address(a);
@@ -4759,16 +4811,16 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       }
 
       db->active_queries--;
-      empty_agenda(a);
-      PL_free(a);
+      empty_agenda(db, a);
+      rdf_free(db, a, sizeof(*a));
       return FALSE;
     }
     case PL_CUTTED:
     { agenda *a = PL_foreign_context_address(h);
 
       db->active_queries--;
-      empty_agenda(a);
-      PL_free(a);
+      empty_agenda(db, a);
+      rdf_free(db, a, sizeof(*a));
       return TRUE;
     }
     default:
@@ -4794,6 +4846,8 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
   { v = db->subjects;
   } else if ( f == FUNCTOR_predicates1 )
   { v = db->pred_count;
+  } else if ( f == FUNCTOR_core1 )
+  { v = db->core;
   } else if ( f == FUNCTOR_indexed8 )
   { int i;
     term_t a = PL_new_term_ref();
@@ -4898,7 +4952,7 @@ erase_triples(rdf_db *db)
   { n = t->next[BY_NONE];
 
     unlock_atoms(t);
-    PL_free(t);
+    rdf_free(db, t, sizeof(*t));
     db->freed++;
   }
   db->by_none = db->by_none_tail = NULL;
@@ -4932,10 +4986,10 @@ erase_predicates(rdf_db *db)
     for( p = *ht; p; p = n )
     { n = p->next;
 
-      free_list(&p->siblings);
-      free_list(&p->subPropertyOf);
+      free_list(db, &p->siblings);
+      free_list(db, &p->subPropertyOf);
 
-      PL_free(p);
+      rdf_free(db, p, sizeof(*p));
     }
 
     *ht = NULL;
@@ -5446,6 +5500,7 @@ install_rdf_db()
   MKFUNCTOR(rdfs_object_branch_factor, 1);
   MKFUNCTOR(gc, 2);
   MKFUNCTOR(rehash, 2);
+  MKFUNCTOR(core, 1);
 
   FUNCTOR_colon2 = PL_new_functor(PL_new_atom(":"), 2);
 
@@ -5469,6 +5524,7 @@ install_rdf_db()
   keys[i++] = FUNCTOR_triples2;
   keys[i++] = FUNCTOR_gc2;
   keys[i++] = FUNCTOR_rehash2;
+  keys[i++] = FUNCTOR_core1;
   keys[i++] = 0;
 
 					/* setup the database */

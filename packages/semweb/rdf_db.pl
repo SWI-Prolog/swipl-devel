@@ -413,6 +413,8 @@ rdf_statistics(gc(Count, Time)) :-
 	rdf_statistics_(gc(Count, Time)).
 rdf_statistics(rehash(Count, Time)) :-
 	rdf_statistics_(rehash(Count, Time)).
+rdf_statistics(core(Bytes)) :-
+	rdf_statistics_(core(Bytes)).
 rdf_statistics(lookup(Index, Count)) :-
 	functor(Indexed, indexed, 8),
 	rdf_statistics_(Indexed),

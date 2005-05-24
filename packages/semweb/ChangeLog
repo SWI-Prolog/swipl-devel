@@ -1,5 +1,7 @@
 May 24, 2005
 
+  * ENHANCED: Added core statistics
+
   * FIXED: force re-hashing while loading files to avoid slowdown.
 
 May 20, 2005
