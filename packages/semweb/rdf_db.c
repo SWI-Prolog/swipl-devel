@@ -1953,12 +1953,13 @@ static long
 tbl_size(long triples)
 { long s0 = 1024;
 
+  triples /= MIN_HASH_FACTOR;
+
   while(s0 < triples)
     s0 *= 2;
 
   return s0;
 }
-
 
 
 static void
@@ -1978,12 +1979,12 @@ rehash_triples(rdf_db *db)
       long ocbytes = sizeof(int)     * db->table_size[i];
 
       db->table[i]  = rdf_realloc(db, db->table[i],  obytes,  bytes);
-      db->tail[i]   = rdf_realloc(db, db->tail[i],	 obytes,  bytes);
+      db->tail[i]   = rdf_realloc(db, db->tail[i],   obytes,  bytes);
       db->counts[i] = rdf_realloc(db, db->counts[i], ocbytes, cbytes);
       db->table_size[i] = tsize;
 
-      memset(db->table[i], 0, bytes);
-      memset(db->tail[i], 0, bytes);
+      memset(db->table[i],  0, bytes);
+      memset(db->tail[i],   0, bytes);
       memset(db->counts[i], 0, cbytes);
     }
   }
@@ -2041,7 +2042,7 @@ WANT_GC(rdf_db *db)
 
   if ( dirty > 1000 && dirty > count )
     return TRUE;
-  if ( count > db->table_size[1]*4 )
+  if ( count > db->table_size[1]*MAX_HASH_FACTOR )
     return TRUE;
 
   return FALSE;

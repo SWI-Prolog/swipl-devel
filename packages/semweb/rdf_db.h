@@ -63,6 +63,9 @@
 #define INITIAL_PREDICATE_TABLE_SIZE	1024
 #define INITIAL_SOURCE_TABLE_SIZE	64
 
+#define MAX_HASH_FACTOR 8		/* factor to trigger re-hash */
+#define MIN_HASH_FACTOR 4		/* factor after re-hash */
+
 #define NO_LINE	((unsigned long)-1L)
 
 #define MAX_LIKE_CHOICES	100	/* max *'s in like pattern */
