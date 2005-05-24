@@ -525,7 +525,7 @@ getICWindow(Any obj)
   fail;
 }
 
-#endif
+#endif /*O_XIM*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This function gets the keyboard event id   from an Xevent. Function keys
@@ -554,10 +554,14 @@ keycode_to_name(Any sw, XEvent *event)
 
   if ( ic )
   { charW wbuf[256];
+    charW *winput = wbuf;
     Status status;
+    int has_chars = FALSE;
+    int has_sym = FALSE;
 
+  again:
     count = XwcLookupString(ic, (XKeyPressedEvent*)event,
-			    wbuf, sizeof(wbuf)/sizeof(wchar_t),
+			    winput, sizeof(wbuf)/sizeof(wchar_t),
 			    &sym, &status);
     DEBUG(NAME_event,
 	  { int i;
@@ -568,15 +572,30 @@ keycode_to_name(Any sw, XEvent *event)
 	  });
 
     switch(status)
-    { case XLookupNone:
+    { case XBufferOverflow:
+	winput = pceMalloc(sizeof(wchar_t)*(count+1));
+        goto again;
+      case XLookupNone:
 	fail;
+      case XLookupKeySym:
+	has_sym = TRUE;
+        break;
+      case XLookupBoth:
+	has_chars = has_sym = TRUE;
+        break;
+      case XLookupChars:
+	has_chars = TRUE;
+        break;
     }
 
-    switch(sym)
-    { case XK_BackSpace:
-	if ( event->xkey.state & Mod1Mask )
-	  return toInt(8+META_OFFSET);
-        return NAME_backspace;
+    if ( has_sym )
+    { switch(sym)
+      { case XK_BackSpace:
+	  if ( event->xkey.state & Mod1Mask )
+	    return toInt(8+META_OFFSET);
+					/* cannot be a buffer overflow */
+	return NAME_backspace;
+      }
     }
 
     if ( count == 1 )
@@ -587,8 +606,15 @@ keycode_to_name(Any sw, XEvent *event)
       
       return toInt(c);
     }
+
+    if ( !has_sym )
+    { if ( winput != wbuf )		/* TBD: multi-character input */
+	pceFree(winput);
+
+      fail;
+    }
   } else
-#endif
+#endif /*O_XIM*/
   { count = XLookupString((XKeyPressedEvent *) event,
 			  buf, sizeof(buf), &sym, NULL);
     DEBUG(NAME_event,
