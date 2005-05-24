@@ -7,6 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.19 (May 24, 2005)
+=============================
+
+  * ADDED: PL_query(PL_QUERY_USER_CPU) to get portable CPU statistics.
+
+
 VERSION 5.5.18 (May 20, 2005)
 =============================
 

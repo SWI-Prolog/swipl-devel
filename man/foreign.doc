@@ -2217,10 +2217,14 @@ are listed in \tabref{action}.
 \subsection{Querying Prolog}
 
 \begin{description}
-\cfunction{C_type}{PL_query}{int}
+\cfunction{long}{PL_query}{int}
 Obtain status information on the Prolog system. The actual argument
 type depends on the information required. \arg{int} describes what
-information is wanted. The  options are given in \tabref{query}.
+information is wanted.%
+	\footnote{Returning pointers and integers as a long is bad
+		  style.  The signature of this function should be
+		  changed.}
+The  options are given in \tabref{query}.
 
 
 \begin{table}
@@ -2247,6 +2251,8 @@ information is wanted. The  options are given in \tabref{query}.
 			       and this number. \\
 \const{PL_QUERY_ENCODING}    & Return the default stream encoding of
 			       Prolog (of type \ctype{IOENC}). \\
+\const{PL_QUERY_USER_CPU}    & Get amount of user CPU time of the
+			       process in milliseconds. \\
 \hline
 \end{tabular}\end{quote}
 
@@ -2255,8 +2261,8 @@ information is wanted. The  options are given in \tabref{query}.
 \end{table}
 \end{description}
 
-\subsection{Registering Foreign Predicates}
 
+\subsection{Registering Foreign Predicates}
 
 \begin{description}
 \cfunction{int}{PL_register_foreign_in_module}{const char *module,
