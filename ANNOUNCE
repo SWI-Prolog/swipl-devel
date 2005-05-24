@@ -57,7 +57,7 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.17 relative to 5.5.16
+Patches in 5.5.18 relative to 5.5.17
 ====================================
 
   * Bug in when/2 for ?=(X,Y)
