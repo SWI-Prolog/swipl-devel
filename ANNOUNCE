@@ -74,6 +74,10 @@ Packages
     slowed down dubplicate handling.  Fixed.  Reduces loading a 8 million
     triples file from 1,900 seconds to 55 seconds.
 
+  * CLIB: Added sources of mime support libraries to package.  Sorted out
+    license issues around these libraries.
+
+
 Incompatible changes
 ====================
 
