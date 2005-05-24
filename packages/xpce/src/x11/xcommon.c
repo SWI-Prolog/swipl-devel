@@ -475,9 +475,33 @@ allocNearestColour(Display *display, Colormap map, int depth, Name vt,
   fail;
 }
 
+
 		/********************************
 		*      X-EVENT TRANSLATION	*
 		********************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This function gets the keyboard event id   from an Xevent. Function keys
+are mapped to XPCE names. Normal keys   must  be mapped to their UNICODE
+character.  This  is  a  bit  complicated.    According   to  the  docs,
+XLookupString only returns ISO-Latin-1 characters.   In practice it also
+appears to return multibyte sequences, especially   UTF-8. It is unclear
+whether all X11 systems do this and whether the output is always UTF-8.
+
+Dispite many references, XtSetLanguageProc() and  XLookupString() do not
+ensure proper handling of dead keys (' +   e). Possibly this is due to a
+weird combination of event-related X/Xt  functions   used  in  low level
+XPCE, but even with browsing the X11 sources I could not find it. As the
+long term aim was  to  move   to  XwcLookupString()  anyway, proper -but
+simple- support for XIM has been implemented.
+
+A good document is:
+
+	http://home.catv.ne.jp/pp/ginoue/im/xim-e.html
+
+One of the issues is the window for an IC. Can/should this always be the
+frame? At the moment it is the X11 window realising the event receiver.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 #ifdef O_XIM
@@ -486,12 +510,16 @@ getICWindow(Any obj)
 { FrameObj fr;
   FrameWsRef wsfr;
   DisplayWsXref d;
+  Widget w;
 
   if ( instanceOfObject(obj, ClassFrame) )
   { fr = obj;
+    w = widgetFrame(fr);
   } else if ( instanceOfObject(obj, ClassWindow) )
   { PceWindow sw = obj;
-    fr = sw->frame;
+    if ( !(fr = getFrameWindow(sw, OFF)) )
+      fail;
+    w = widgetWindow(sw);
   } else
     fail;
 
@@ -499,13 +527,18 @@ getICWindow(Any obj)
 
   if ( (wsfr = fr->ws_ref) && d->im )
   { XIC ic;
+    Window xwin = XtWindow(w);
 
     if ( wsfr->ic )
+    { XSetICValues(wsfr->ic,
+		   XNClientWindow, xwin,
+		   NULL);
       return wsfr->ic;
+    }
 
     ic = XCreateIC(d->im, 
 		   XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
-		   XNClientWindow, XtWindow(wsfr->widget),
+		   XNClientWindow, xwin,
 		   NULL);
     if( !ic )
     { DEBUG(NAME_event, Cprintf("Could not open X Input Context\n"));
@@ -526,23 +559,6 @@ getICWindow(Any obj)
 }
 
 #endif /*O_XIM*/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This function gets the keyboard event id   from an Xevent. Function keys
-are mapped to XPCE names. Normal keys   must  be mapped to their UNICODE
-character.  This  is  a  bit  complicated.    According   to  the  docs,
-XLookupString only returns ISO-Latin-1 characters.   In practice it also
-appears to return multibyte sequences, especially   UTF-8. It is unclear
-whether all X11 systems do this and whether the output is always UTF-8.
-
-Some posts claim one should be   using XwcLookupString(), but this means
-we must have an X input context. I  do   not  have the time work out the
-details. There is a good starting point at:
-
-	http://home.catv.ne.jp/pp/ginoue/im/xim-e.html
-
-But it all looks pretty complicated.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Any
 keycode_to_name(Any sw, XEvent *event)

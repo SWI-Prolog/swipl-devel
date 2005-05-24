@@ -807,6 +807,7 @@ PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);
 #define PL_QUERY_VERSION        10	/* 207006 = 2.7.6 */
 #define PL_QUERY_MAX_THREADS	11	/* maximum thread count */
 #define PL_QUERY_ENCODING	12	/* I/O encoding */
+#define PL_QUERY_USER_CPU	13	/* User CPU in milliseconds */
 
 PL_EXPORT(long)	PL_query(int);	/* get information from Prolog */
 
