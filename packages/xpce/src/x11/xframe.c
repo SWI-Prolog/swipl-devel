@@ -122,12 +122,18 @@ ws_uncreate_frame(FrameObj fr)
     XtRemoveCallback(w, XtNeventCallback,
 		     (XtCallbackProc)xEventFrame, fr);
 
-    XtDestroyWidget(w);
-
     if ( fr->ws_ref )
-    { unalloc(sizeof(frame_ws_ref), fr->ws_ref);
+    { FrameWsRef wsfr = fr->ws_ref;
+
+#ifdef O_XIM      
+      if ( wsfr->ic )
+	XDestroyIC(wsfr->ic);
+#endif
+      unalloc(sizeof(frame_ws_ref), wsfr);
       fr->ws_ref = NULL;
     }
+
+    XtDestroyWidget(w);
   }
 }
 
@@ -700,13 +706,28 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	if ( d && wfr )
 	  XSetInputFocus(d, XtWindow(wfr), RevertToParent, CurrentTime);
       } else
-      { send(fr, NAME_inputFocus, ON, EAV);
+      { 
+#ifdef O_XIM
+	FrameWsRef wsfr;
+
+	if ( (wsfr = fr->ws_ref) && wsfr->ic )
+	  XSetICFocus(wsfr->ic);
+#endif
+	send(fr, NAME_inputFocus, ON, EAV);
       }
       return;
     }
     case FocusOut:
+    { 
+#ifdef O_XIM
+	FrameWsRef wsfr;
+
+	if ( (wsfr = fr->ws_ref) && wsfr->ic )
+	  XUnsetICFocus(wsfr->ic);
+#endif
       send(fr, NAME_inputFocus, OFF, EAV);
       return;
+    }
     case KeyPress:
     { EventObj ev;
       FrameObj fr2;

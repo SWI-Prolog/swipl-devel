@@ -25,6 +25,8 @@
 #ifndef _PCE_X11_INCLUDED
 #define _PCE_X11_INCLUDED
 
+#define O_XIM 1				/* Use X input methods */
+
 #define O_XDND 1			/* include Gnome/KDE drag-and-drop */
 #define USE_XFONTSET 1			/* Use Xwc* functions */
 
@@ -102,6 +104,9 @@ typedef struct
 { Widget	widget;
   Window	busy_window;
   int		win_gravity;
+#ifdef O_XIM
+  XIC		ic;			/* input context */
+#endif
 } frame_ws_ref, *FrameWsRef;
 
 
@@ -126,6 +131,9 @@ typedef struct
 #ifdef O_XDND
   DndClass     *dnd;			/* The DND handler */
   Atom		XdndTextUriList;	/* "text/uri-list" */
+#endif
+#ifdef O_XIM
+  XIM		im;			/* Input method */
 #endif
 } display_ws_ref, *DisplayWsXref;
 

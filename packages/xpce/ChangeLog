@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Working on XIM support.  Current primitive version deals with
+  dead-keys and with wide characters in a portable manner.
+
+
 VERSION 6.5.18, distributed with SWI-Prolog 5.5.18
 ==================================================
 

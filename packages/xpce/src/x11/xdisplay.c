@@ -202,6 +202,11 @@ ws_open_display(DisplayObj d)
   char *address;
   Display *display;
 
+  char **PCEargv = malloc(sizeof(char**)*10);
+  PCEargv[0] = "pl";
+  PCEargv[1] = NULL;
+  PCEargc = 1;
+
   address = isDefault(d->address) ? NULL : strName(d->address);
   display = XtOpenDisplay(pceXtAppContext(NULL),
 			  address, "xpce",
@@ -236,6 +241,12 @@ ws_open_display(DisplayObj d)
     ref->white_pixel  = WhitePixel(display, screen);
     ref->black_pixel  = BlackPixel(display, screen);
     ref->depth        = DefaultDepth(display, screen);
+
+#ifdef O_XIM
+    if ( !(ref->im = XOpenIM(display, NULL, NULL, NULL)) )
+    { DEBUG(NAME_event, Cprintf("Could not open XIM\n"));
+    }
+#endif
   }
   
   { Arg args[5];

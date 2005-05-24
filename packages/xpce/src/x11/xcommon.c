@@ -74,9 +74,9 @@ x_error_handler(Display *display, XErrorEvent *error)
 }
 
 
-#define USE_XDEFAUL_APP_CONTEXT 1
+#define USE_XDEFAULT_APP_CONTEXT 1
 
-#ifdef USE_XDEFAUL_APP_CONTEXT
+#ifdef USE_XDEFAULT_APP_CONTEXT
 extern XtAppContext _XtDefaultAppContext(void);
 #undef XtCreateApplicationContext
 #define XtCreateApplicationContext _XtDefaultAppContext
@@ -90,7 +90,7 @@ pceXtAppContext(void * ctx)
     { ThePceXtAppContext = ctx;
       XSetErrorHandler(x_error_handler);
     } else
-    {
+    { 
 #if defined(_REENTRANT) && defined(HAVE_XINITTHREADS)
       if ( XPCE_mt == TRUE )
 	XInitThreads();
@@ -100,17 +100,17 @@ pceXtAppContext(void * ctx)
 	XPCE_mt = -1;
 #endif
 
-      if ( !XtSetLanguageProc(NULL, NULL, NULL) )
-      { errorPce(TheDisplayManager(), NAME_noLocaleSupport,
-		 CtoName(setlocale(LC_ALL, NULL)));
-	fail;
-      }
-
       XtToolkitInitialize();
       XSetErrorHandler(x_error_handler);
 
       if ( (ThePceXtAppContext = XtCreateApplicationContext()) == NULL )
       { errorPce(TheDisplayManager(), NAME_noApplicationContext);
+	fail;
+      }
+
+      if ( !XtSetLanguageProc(ThePceXtAppContext, NULL, NULL) )
+      { errorPce(TheDisplayManager(), NAME_noLocaleSupport,
+		 CtoName(setlocale(LC_ALL, NULL)));
 	fail;
       }
     }
@@ -480,6 +480,53 @@ allocNearestColour(Display *display, Colormap map, int depth, Name vt,
 		********************************/
 
 
+#ifdef O_XIM
+static XIC
+getICWindow(Any obj)
+{ FrameObj fr;
+  FrameWsRef wsfr;
+  DisplayWsXref d;
+
+  if ( instanceOfObject(obj, ClassFrame) )
+  { fr = obj;
+  } else if ( instanceOfObject(obj, ClassWindow) )
+  { PceWindow sw = obj;
+    fr = sw->frame;
+  } else
+    fail;
+
+  d = fr->display->ws_ref;
+
+  if ( (wsfr = fr->ws_ref) && d->im )
+  { XIC ic;
+
+    if ( wsfr->ic )
+      return wsfr->ic;
+
+    ic = XCreateIC(d->im, 
+		   XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
+		   XNClientWindow, XtWindow(wsfr->widget),
+		   NULL);
+    if( !ic )
+    { DEBUG(NAME_event, Cprintf("Could not open X Input Context\n"));
+      fail;
+    }
+#if 0					/* TBD */
+    XGetICValues(ic, XNFilterEvents, &fevent, NULL);
+    mask = ExposureMask | KeyPressMask | FocusChangeMask;
+    XSelectInput(display, window, mask|fevent);
+#endif
+
+    wsfr->ic = ic;
+
+    return ic;
+  }
+
+  fail;
+}
+
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This function gets the keyboard event id   from an Xevent. Function keys
 are mapped to XPCE names. Normal keys   must  be mapped to their UNICODE
@@ -498,41 +545,90 @@ But it all looks pretty complicated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Any
-keycode_to_name(XEvent *event)
+keycode_to_name(Any sw, XEvent *event)
 { char buf[256];
-  int bytes;
+  int count;
   KeySym sym;
+#ifdef O_XIM
+  XIC ic = getICWindow(sw);
 
-  bytes = XLookupString((XKeyEvent *) event, buf, 256, &sym, NULL);
+  if ( ic )
+  { charW wbuf[256];
+    Status status;
 
-  switch(sym)				/* special ones */
-  { case XK_BackSpace:
-      if ( event->xkey.state & Mod1Mask )
-	return toInt(8+META_OFFSET);
-      return NAME_backspace;
-  }
+    count = XwcLookupString(ic, (XKeyPressedEvent*)event,
+			    wbuf, sizeof(wbuf)/sizeof(wchar_t),
+			    &sym, &status);
+    DEBUG(NAME_event,
+	  { int i;
+	    Cprintf("Got %d wide characters:", count);
+	    for(i=0; i<count; i++)
+	      Cprintf(" %d", wbuf[i]);
+		Cprintf("\n");
+	  });
 
-  if ( bytes == 1 )
-  { int c = buf[0] & 0xff;
+    switch(status)
+    { case XLookupNone:
+	fail;
+    }
 
-    if ( event->xkey.state & Mod1Mask )	/* meta depressed */
-      c += META_OFFSET;
+    switch(sym)
+    { case XK_BackSpace:
+	if ( event->xkey.state & Mod1Mask )
+	  return toInt(8+META_OFFSET);
+        return NAME_backspace;
+    }
 
-    return toInt(c);
-  }
-
-  if ( bytes > 1 )			/* see above */
-  { char *e;
-    int c;
-
-    if ( (e = utf8_get_char(buf, &c)) && e-buf == bytes )
-    { if ( event->xkey.state & Mod1Mask )	/* meta depressed */
+    if ( count == 1 )
+    { int c = wbuf[0];
+      
+      if ( event->xkey.state & Mod1Mask )	/* meta depressed */
 	c += META_OFFSET;
-
+      
       return toInt(c);
     }
-  }
+  } else
+#endif
+  { count = XLookupString((XKeyPressedEvent *) event,
+			  buf, sizeof(buf), &sym, NULL);
+    DEBUG(NAME_event,
+	  { int i;
+	    Cprintf("Got %d characters:", count);
+	    for(i=0; i<count; i++)
+	      Cprintf(" %d", buf[i]&0xff);
+		Cprintf("\n");
+	  });
 
+    switch(sym)				/* special ones */
+    { case XK_BackSpace:
+	if ( event->xkey.state & Mod1Mask )
+	  return toInt(8+META_OFFSET);
+        return NAME_backspace;
+    }
+
+    if ( count == 1 )
+    { int c = buf[0] & 0xff;
+      
+      if ( event->xkey.state & Mod1Mask )	/* meta depressed */
+	c += META_OFFSET;
+      
+      return toInt(c);
+    }
+    
+    if ( count > 1 )			/* see above */
+    { char *e;
+      int c;
+
+      if ( (e = utf8_get_char(buf, &c)) && e-buf == count )
+      { DEBUG(NAME_event, Cprintf("\t-->UTF-8 sequence for %d\n", c));
+	
+	if ( event->xkey.state & Mod1Mask )	/* meta depressed */
+	  c += META_OFFSET;
+
+	return toInt(c);
+      }
+    }
+  }
 
   switch(sym)
   { case XK_F1:		return NAME_keyTop_1;
@@ -686,7 +782,7 @@ CtoEvent(Any window, XEvent *event)	/* window or frame */
       y     = event->xkey.y;
       state = event->xkey.state;
       time  = event->xkey.time;
-      name  = keycode_to_name(event);
+      name  = keycode_to_name(window, event);
       if ( name == FAIL )
         fail;
 
