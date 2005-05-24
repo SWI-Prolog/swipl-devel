@@ -1,3 +1,7 @@
+May 24, 2005
+
+  * FIXED: force re-hashing while loading files to avoid slowdown.
+
 May 20, 2005
 
   * ADDED: Allow list of files in rdf_load/[1,2]

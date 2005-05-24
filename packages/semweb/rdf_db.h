@@ -28,7 +28,7 @@
 #include "md5.h"
 #endif
 
-#define RDF_VERSION 20200		/* 2.1.0 */
+#define RDF_VERSION 20201		/* 2.2.1 */
 
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
@@ -203,6 +203,10 @@ typedef struct rdf_db
   long		freed;			/* #triples actually erased */
   long		subjects;		/* subjects (unique first) */
   long		indexed[8];		/* Count calls */
+  int		rehash_count;		/* # rehashes */
+  int		gc_count;		/* # garbage collections */
+  double	rehash_time;		/* time spent in rehash */
+  double	gc_time;		/* time spent in GC */
   predicate   **pred_table;		/* Hash-table of predicates */
   int		pred_table_size;	/* #entries in the table */
   int		pred_count;		/* #predicates */

@@ -103,6 +103,9 @@ static functor_t FUNCTOR_searched_nodes1;
 static functor_t FUNCTOR_lang2;
 static functor_t FUNCTOR_type2;
 
+static functor_t FUNCTOR_gc2;
+static functor_t FUNCTOR_rehash2;
+
 static atom_t   ATOM_user;
 static atom_t	ATOM_exact;
 static atom_t	ATOM_prefix;
@@ -1863,7 +1866,7 @@ link_triple(rdf_db *db, triple *t)
 
   link_triple_hash(db, t);
 
-  if ( update_duplicates_add(db, t)	)
+  if ( update_duplicates_add(db, t) )
     goto ok;				/* is a duplicate */
 
 					/* keep track of subjects */
@@ -1917,6 +1920,8 @@ rehash_triples(rdf_db *db)
   triple *t, *t2;
   long count = db->created - db->freed;
   long tsize = tbl_size(count);
+
+  DEBUG(1, Sdprintf("(%ld triples; %ld entries) ...", count, tsize));
 
   for(i=1; i<INDEX_TABLES; i++)
   { if ( db->table[i] )
@@ -2006,16 +2011,24 @@ update_hash(rdf_db *db)
 
     if ( db->need_update )		/* check again */
     { if ( organise_predicates(db) )
-      { DEBUG(1, Sdprintf("Re-hash ..."));
+      { long t0 = PL_query(PL_QUERY_USER_CPU);
+
+	DEBUG(1, Sdprintf("Re-hash ..."));
 	invalidate_distinct_counts(db);
 	rehash_triples(db);
 	db->generation += (db->created-db->erased);
+	db->rehash_count++;
+	db->rehash_time += (double)(PL_query(PL_QUERY_USER_CPU)-t0)/1000.0;
 	DEBUG(1, Sdprintf("ok\n"));
       }
       db->need_update = 0;
     } else if ( WANT_GC(db) )
-    { DEBUG(1, Sdprintf("rdf_db: GC ..."));
+    { long t0 = PL_query(PL_QUERY_USER_CPU);
+
+      DEBUG(1, Sdprintf("rdf_db: GC ..."));
       rehash_triples(db);
+      db->gc_count++;
+      db->gc_time += (double)(PL_query(PL_QUERY_USER_CPU)-t0)/1000.0;
       DEBUG(1, Sdprintf("ok\n"));
     }
 
@@ -3402,6 +3415,13 @@ database.
 
 It might make sense to  introduce  the   BY_SPO  table  as fully indexed
 lookups are frequent with the introduction of duplicate detection.
+
+(*) Iff too many triples are  added,  it   may  be  time  to enlarge the
+hashtable. Note that we do not call  update_hash() blindly as this would
+cause each triple that  modifies  the   predicate  hierarchy  to force a
+rehash. As we are not searching using subPropertyOf semantics during the
+duplicate update, there is no point updating. If it is incorrect it will
+be updated on the first real query.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -3413,6 +3433,8 @@ update_duplicates_add(rdf_db *db, triple *t)
   assert(t->is_duplicate == FALSE);
   assert(t->duplicates == 0);
 
+  if ( WANT_GC(db) )			/* (*) See above */
+    update_hash(db);
   d = db->table[indexed][triple_hash(db, t, indexed)];
   for( ; d && d != t; d = d->next[indexed] )
   { if ( match_triples(d, t, MATCH_EXACT) )
@@ -4760,7 +4782,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 		 *	     STATISTICS		*
 		 *******************************/
 
-static functor_t keys[10];
+static functor_t keys[12];		/* initialised in install_rdf_db() */
 
 static int
 unify_statistics(rdf_db *db, term_t key, functor_t f)
@@ -4802,6 +4824,16 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
 
     PL_get_arg(2, key, a);
     return PL_unify_integer(a, v);
+  } else if ( f == FUNCTOR_gc2 )
+  { return PL_unify_term(key,
+			 PL_FUNCTOR, f,
+			   PL_INTEGER, db->gc_count,
+			   PL_FLOAT, db->gc_time); 	/* time spent */
+  } else if ( f == FUNCTOR_rehash2 )
+  { return PL_unify_term(key,
+			 PL_FUNCTOR, f,
+			   PL_INTEGER, db->rehash_count,
+			   PL_FLOAT, db->rehash_time);
   } else
     assert(0);
 
@@ -5412,6 +5444,8 @@ install_rdf_db()
   MKFUNCTOR(rdf_object_branch_factor, 1);
   MKFUNCTOR(rdfs_subject_branch_factor, 1);
   MKFUNCTOR(rdfs_object_branch_factor, 1);
+  MKFUNCTOR(gc, 2);
+  MKFUNCTOR(rehash, 2);
 
   FUNCTOR_colon2 = PL_new_functor(PL_new_atom(":"), 2);
 
@@ -5433,6 +5467,8 @@ install_rdf_db()
   keys[i++] = FUNCTOR_searched_nodes1;
   keys[i++] = FUNCTOR_duplicates1;
   keys[i++] = FUNCTOR_triples2;
+  keys[i++] = FUNCTOR_gc2;
+  keys[i++] = FUNCTOR_rehash2;
   keys[i++] = 0;
 
 					/* setup the database */

@@ -736,6 +736,20 @@ Number of unique values for the first field of the triple set.
 
 	\termitem{triples}{-Count}
 Total number of triples in the database.
+
+	\termitem{triples_by_file}{?File, -Count}
+Enumerate the number of triples associated to each file.
+
+	\termitem{searched_nodes}{-Count}
+Number of nodes explored in rdf_reachable/3.
+
+	\termitem{gc}{-Count, -Time}
+Number of garbage collections and time spent in seconds represented as
+a float.
+
+	\termitem{rehash}{-Count, -Time}
+Number of times the hash-tables were enlarged and time spent in seconds
+represented as a float.
         \end{description}
 
     \predicate{rdf_match_label}{3}{+Method, +Search, +Atom}

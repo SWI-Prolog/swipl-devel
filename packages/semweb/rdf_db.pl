@@ -409,9 +409,10 @@ rdf_statistics(properties(Count)) :-
 	rdf_statistics_(predicates(Count)).
 rdf_statistics(triples(Count)) :-
 	rdf_statistics_(triples(Count)).
-%rdf_statistics(triples_by_property(Rel0, Count)) :-
-%	rdf_global_id(Rel0, Rel),
-%	triples_on_relation(Rel, Count).
+rdf_statistics(gc(Count, Time)) :-
+	rdf_statistics_(gc(Count, Time)).
+rdf_statistics(rehash(Count, Time)) :-
+	rdf_statistics_(rehash(Count, Time)).
 rdf_statistics(lookup(Index, Count)) :-
 	functor(Indexed, indexed, 8),
 	rdf_statistics_(Indexed),
