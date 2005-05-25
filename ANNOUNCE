@@ -71,8 +71,9 @@ Packages
     latin languages.
     
   * SemWeb: Loading files did not cause re-hashing, which eventually
-    slowed down dubplicate handling.  Fixed.  Reduces loading a 8 million
-    triples file from 1,900 seconds to 55 seconds.
+    slowed down duplicate handling.  Fixed.  Reduces loading a 8 million
+    triples file from 1,900 seconds to 55 seconds.  Also tuned parameters
+    to reduce memory requirements and some new statistics.
 
   * CLIB: Added sources of mime support libraries to package.  Sorted out
     license issues around these libraries.
