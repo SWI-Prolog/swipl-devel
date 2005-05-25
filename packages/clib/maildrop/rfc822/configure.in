@@ -44,6 +44,7 @@ AC_TRY_COMPILE([
 int main()
 {
 time_t	t=altzone;
+int	offset = -timezone;
 
 	return (0);
 }
@@ -55,6 +56,7 @@ time_t	t=altzone;
 int main()
 {
 int	n=daylight;
+int	offset = -timezone;
 
 	return (0);
 }
