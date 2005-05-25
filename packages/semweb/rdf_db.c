@@ -61,16 +61,26 @@ static int debuglevel = 0;
 #define DEBUG(n, g) ((void)0);
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We now use malloc/free/realloc  calls  with   explicit  sizes  to  allow
+maintaining statistics as well as to   prepare  for dealing with special
+memory  pools  associated  with  databases.  Using  -DDIRECT_MALLOC  the
+library uses plain malloc to facilitate malloc debuggers.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #ifdef DIRECT_MALLOC
+
 #define rdf_malloc(db, size)		malloc(size)
 #define rdf_free(db, ptr, size)     	free(ptr)
 #define rdf_realloc(db, ptr, old, new)  realloc(ptr, new)
-#else
 
+#else /*DIRECT_MALLOC*/
+
+#if CHECK_MALLOC_SIZES
 static void *
 rdf_malloc(rdf_db *db, size_t size)
 { size_t bytes = size + sizeof(size_t);
-  size_t *ptr = malloc(bytes);
+  size_t *ptr = PL_malloc(bytes);
 
   *ptr++ = size;
   if ( db )
@@ -86,7 +96,7 @@ rdf_free(rdf_db *db, void *ptr, size_t size)
   assert(p[-1] == size);
 
   db->core -= size;
-  free(&p[-1]);
+  PL_free(&p[-1]);
 }
 
 
@@ -96,19 +106,40 @@ rdf_realloc(rdf_db *db, void *ptr, size_t old, size_t new)
   size_t bytes = new + sizeof(size_t);
 
   assert(p[-1] == old);
-  p = realloc(&p[-1], bytes);
+  p = PL_realloc(&p[-1], bytes);
   *p++ = new;
   db->core += new-old;
 
   return p;
 }
 
-#if 0
-#define rdf_malloc(db, size)		PL_malloc(size)
-#define rdf_free(db, ptr, size)     	PL_free(ptr)
-#define rdf_realloc(db, ptr, old, new)  PL_realloc(ptr, new)
-#endif
-#endif
+#else /*CHECK_MALLOC_SIZES*/
+
+static void *
+rdf_malloc(rdf_db *db, size_t size)
+{ if ( db )
+    db->core += size;
+
+  return PL_malloc(size);
+}
+
+static void
+rdf_free(rdf_db *db, void *ptr, size_t size)
+{ db->core -= size;
+
+  PL_free(ptr);
+}
+
+
+static void *
+rdf_realloc(rdf_db *db, void *ptr, size_t old, size_t new)
+{ db->core += new-old;
+
+  return PL_realloc(ptr, new);
+}
+
+#endif /*CHECK_MALLOC_SIZES*/
+#endif /*DIRECT_MALLOC*/
 
 static functor_t FUNCTOR_literal1;
 static functor_t FUNCTOR_literal2;
@@ -2068,7 +2099,7 @@ update_hash(rdf_db *db)
 	rehash_triples(db);
 	db->generation += (db->created-db->erased);
 	db->rehash_count++;
-	db->rehash_time += (double)(PL_query(PL_QUERY_USER_CPU)-t0)/1000.0;
+	db->rehash_time += ((double)(PL_query(PL_QUERY_USER_CPU)-t0))/1000.0;
 	DEBUG(1, Sdprintf("ok\n"));
       }
       db->need_update = 0;
@@ -2078,7 +2109,7 @@ update_hash(rdf_db *db)
       DEBUG(1, Sdprintf("rdf_db: GC ..."));
       rehash_triples(db);
       db->gc_count++;
-      db->gc_time += (double)(PL_query(PL_QUERY_USER_CPU)-t0)/1000.0;
+      db->gc_time += ((double)(PL_query(PL_QUERY_USER_CPU)-t0))/1000.0;
       DEBUG(1, Sdprintf("ok\n"));
     }
 
