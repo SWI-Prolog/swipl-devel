@@ -1249,7 +1249,7 @@ void *
 PL_malloc(size_t size)
 { void *mem;
 
-  if ( !size )
+  if ( size == 0 )
     return NULL;
   if ( (mem = malloc(size)) )
     return mem;
