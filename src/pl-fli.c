@@ -3706,7 +3706,7 @@ PL_query(int query)
     }
     case PL_QUERY_USER_CPU:		/* User CPU in milliseconds */
     { double cpu = CpuTime(CPU_USER);
-      return (long)cpu*1000.0;
+      return (long)(cpu*1000.0);
     }
     default:
       sysError("PL_query: Illegal query: %d", query);
