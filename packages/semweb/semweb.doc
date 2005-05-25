@@ -750,8 +750,13 @@ a float.
 	\termitem{rehash}{-Count, -Time}
 Number of times the hash-tables were enlarged and time spent in seconds
 represented as a float.
-        \end{description}
 
+	\termitem{core}{-Bytes}
+Core used by the triple store.  This includes all memory allocated on
+behalf of the library, but \emph{not} the memory allocated in
+Prolog atoms referenced (only) by the triple store.
+    \end{description}
+	
     \predicate{rdf_match_label}{3}{+Method, +Search, +Atom}
 True if \arg{Search} matches \arg{Atom} as defined by \arg{Method}.
 All matching is performed case-insensitive.  Defines methods are:
