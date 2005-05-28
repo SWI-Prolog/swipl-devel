@@ -185,7 +185,8 @@ destroy_dtd(M) :->
 setup_mode(E) :->
 	"Switch editor into fill-mode"::
 	send(E, fill_mode, @on),
-	send(E, setup_styles).
+	send(E, setup_styles),
+	send_super(E, setup_mode).
 
 
 unlink(M) :->
