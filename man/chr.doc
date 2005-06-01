@@ -4,10 +4,17 @@ This chapter is written by Tom Schrijvers, K.U. Leuven for the hProlog
 system. Adjusted by Jan Wielemaker to fit the SWI-Prolog documentation
 infrastructure and remove hProlog specific references.
 
-The CHR runtime environment using in SWI-Prolog is written by Christian
-Holzbaur and Tom Schrijvers while the compiler is written by Tom
-Schrijvers.  Both are integrated with SWI-Prolog and licenced under
-compatible conditions with permission from the authors.
+The CHR system of SWI-Prolog is the K.U.Leuven CHR system.  The runtime
+environment is written by Christian Holzbaur and Tom Schrijvers while the
+compiler is written by Tom Schrijvers. Both are integrated with SWI-Prolog
+and licenced under compatible conditions with permission from the authors.
+
+The main reference for SWI-Prolog's CHR system is:
+\begin{itemize}
+\item T. Schrijvers, and B. Demoen, {\em The K.U.Leuven CHR System: Implementation
+and Application}, First Workshop on Constraint Handling Rules: Selected
+Contributions (Fr\"uhwirth, T. and Meister, M., eds.), pp. 1--5, 2004.
+\end{itemize}
 
 
 \section{Introduction}
@@ -443,8 +450,14 @@ never stop, and \const{default} to stop at the \const{call},
 See also leash/1.
 
     \predicate{chr_show_store}{1}{+Mod}
-Prints all suspended constraints of module \arg{Mod} to the
-standard output.
+Prints all suspended constraints of module \arg{Mod} to the standard
+output. This predicate is automatically called by the SWI-Prolog toplevel at
+the end of each query for every CHR module currently loaded.  The prolog-flag
+\const{chr_toplevel_show_store} controls whether the toplevel shows the
+constraint stores. The value \const{true} enables it.  Any other value
+disables it.
+
+
 \end{description}
 
 
