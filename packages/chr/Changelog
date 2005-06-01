@@ -1,3 +1,8 @@
+Jun 1, 2005
+
+  * TS: Added option to disable toplevel constraint store printing.
+  * TS: Slightly improved hash table constraint store implementation.
+ 
 Apr 16, 2005
 
   * JW: Added patch from Jon Sneyers.

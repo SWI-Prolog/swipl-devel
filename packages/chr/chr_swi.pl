@@ -245,6 +245,8 @@ prolog:message(chr(CHR)) -->
 		 *	 TOPLEVEL PRINTING	*	
 		 *******************************/
 
+:- set_prolog_flag(chr_toplevel_show_store,true).
+
 :- multifile chr:'$chr_module'/1.
 
 prolog:message(query(YesNo)) --> !,
@@ -256,7 +258,8 @@ prolog:message(query(YesNo,Bindings)) --> !,
         '$messages':prolog_message(query(YesNo,Bindings)).
 
 print_all_stores :-
-	( chr:'$chr_module'(Mod),
+	( current_prolog_flag(chr_toplevel_show_store,true),
+	  chr:'$chr_module'(Mod),
 	  chr_show_store(Mod),
 	  fail
 	;

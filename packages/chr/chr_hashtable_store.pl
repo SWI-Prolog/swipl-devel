@@ -25,60 +25,18 @@ new_ht(Capacity,HT) :-
         HT = ht(Capacity,0,Table),
         Table = T1.
 
-lookup_ht(HT,Term,Values) :-
-	term_hash(Term,Hash),
-	int_lookup_ht(HT,Hash,Term,Values).
-
-int_lookup_ht(HT,Hash,Key,Values) :-
+lookup_ht(HT,Key,Values) :-
+	term_hash(Key,Hash),
 	HT = ht(Capacity,_,Table),
 	Index is (Hash mod Capacity) + 1,
 	arg(Index,Table,Bucket),
 	nonvar(Bucket),
-	( Bucket = K-Vs,
-	  K == Key ->	
+	( Bucket = K-Vs ->
+	    K == Key,	
 	    Values = Vs
 	;
 	    lookup_eq(Bucket,Key,Values)
 	).
-
-insert_ht(HT,Term,Value) :-
-	term_hash(Term,Hash),
-	( int_lookup_ht(HT,Hash,Term,Values),
-	  hprolog:memberchk_eq(Value,Values) ->
-		true
-	;
-		int_insert_ht(HT,Hash,Term,Value)
-	).
-
-int_insert_ht(HT,Hash,Key,Value) :-
-	HT = ht(Capacity0,Load,Table0),
-	( Load ==  Capacity0 ->
-		expand_ht(HT),
-		arg(3,HT,Table),
-		Capacity is Capacity0 * 2
-	;
-		Table = Table0,
-		Capacity = Capacity0
-	),
-	NLoad is Load + 1,
-	setarg(2,HT,NLoad),
-	Index is (Hash mod Capacity) + 1,
-	arg(Index,Table,Bucket),
-	( var(Bucket) ->
-		Bucket = Key-[Value]
-	; Bucket = K-Vs ->
-		( K == Key ->
-			setarg(2,Bucket,[Value|Vs])
-		;
-			setarg(Index,Table,[Key-[Value],Bucket])
-		)
-	; lookup_pair_eq(Bucket,Key,Pair) ->
-		Pair = _-Vs,
-		setarg(2,Pair,[Value|Vs])
-	;
-		setarg(Index,Table,[Key-[Value]|Bucket])
-	).
-
 
 lookup_pair_eq([P | KVs],Key,Pair) :-
 	P = K-_,
@@ -88,40 +46,97 @@ lookup_pair_eq([P | KVs],Key,Pair) :-
 		lookup_pair_eq(KVs,Key,Pair)
 	).
 
-delete_ht(HT,Term,Value) :-
-	term_hash(Term,Hash),
-	( int_lookup_ht(HT,Hash,Term,Values),
-	  hprolog:memberchk_eq(Value,Values) ->
-		int_delete_ht(HT,Hash,Term,Value)
+insert_ht(HT,Key,Value) :-
+	term_hash(Key,Hash),
+	HT = ht(Capacity0,Load,Table0),
+	LookupIndex is (Hash mod Capacity0) + 1,
+	arg(LookupIndex,Table0,LookupBucket),
+	( var(LookupBucket) ->
+		Inc = yes,
+		LookupBucket = Key - [Value]
+	; LookupBucket = K-Values ->
+	      	( K == Key ->	
+			( hprolog:memberchk_eq(Value,Values) ->
+				true
+			;
+				Inc = yes,
+				setarg(2,LookupBucket,[Value|Values])
+			)
+		;
+			Inc = yes,
+			setarg(LookupIndex,Table0,[Key-[Value],LookupBucket])
+		)	
+	;
+	      	( lookup_pair_eq(LookupBucket,Key,Pair) ->
+			Pair = _-Values,
+			( hprolog:memberchk_eq(Value,Values) ->
+				true
+			;	
+				Inc = yes,
+				setarg(2,Pair,[Value|Values])
+			)
+		;
+			Inc = yes,
+			setarg(LookupIndex,Table0,[Key-[Value]|LookupBucket])
+		)
+	),
+	( Inc == yes ->
+		NLoad is Load + 1,
+		setarg(2,HT,NLoad),
+		( Load == Capacity0 ->
+			expand_ht(HT,_Capacity)
+		;
+			true
+		)
 	;
 		true
 	).
 
-int_delete_ht(HT,Hash,Key,Value) :-
+delete_ht(HT,Key,Value) :-
 	HT = ht(Capacity,Load,Table),
 	NLoad is Load - 1,
-	setarg(2,HT,NLoad),
+	term_hash(Key,Hash),
 	Index is (Hash mod Capacity) + 1,
 	arg(Index,Table,Bucket),
-	( Bucket = _-Vs ->
-		delete(Vs,Value,NVs),
-		( NVs == [] ->
-			setarg(Index,Table,_)
-		;
-			setarg(2,Bucket,NVs)
-		)
-	; 
-		lookup_pair_eq(Bucket,Key,Pair),
-		Pair = _-Vs,	
-		delete(Vs,Value,NVs),
-		( NVs == [] ->
-			pairlist:delete_eq(Bucket,Key,NBucket),
-			setarg(Index,Table,NBucket)
-		;
-			setarg(2,Pair,NVs)
+	( var(Bucket) ->
+		true
+	;
+		( Bucket = K-Vs ->
+			( K == Key,
+			  delete_first_fail(Vs,Value,NVs) ->
+				setarg(2,HT,NLoad),
+				( NVs == [] ->
+					setarg(Index,Table,_)
+				;
+					setarg(2,Bucket,NVs)
+				)
+			;
+				true
+			)	
+		; 
+			( lookup_pair_eq(Bucket,Key,Pair),
+			  Pair = _-Vs,
+			  delete_first_fail(Vs,Value,NVs) ->
+				setarg(2,HT,NLoad),
+				( NVs == [] ->
+					pairlist:delete_eq(Bucket,Key,NBucket),
+					setarg(Index,Table,NBucket)
+				;
+					setarg(2,Pair,NVs)
+				)
+			;
+				true
+			)
 		)
 	).
 
+delete_first_fail([X | Xs], Y, Zs) :-
+	( X == Y ->
+		Zs = Xs
+	;
+		Zs = [X | Zs1],
+		delete_first_fail(Xs, Y, Zs1)
+	).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 value_ht(HT,Value) :-
 	HT = ht(Capacity,_,Table),
@@ -170,7 +185,7 @@ append_snd([_-H|Ps],L,NL) :-
 	append_snd(Ps,L,T).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-expand_ht(HT) :-
+expand_ht(HT,NewCapacity) :-
 	HT = ht(Capacity,_,Table),
 	NewCapacity is Capacity * 2,
 	functor(NewTable,t,NewCapacity),
