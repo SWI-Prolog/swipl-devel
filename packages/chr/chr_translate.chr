@@ -466,7 +466,7 @@ store_management_preds(Constraints,Clauses) :-
 insert_declarations(Clauses0, Clauses) :-
 	append(Clauses0, 
 		  [ :- use_module(chr(chr_runtime)) 
-		  , :- use_module(chr(chr_hashtable_store)),
+		  , :- use_module(chr(chr_hashtable_store))
 		  , :- use_module(library('clp/clp_events'))
 		  ],
 		  Clauses).

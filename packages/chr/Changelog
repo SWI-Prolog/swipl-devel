@@ -1,3 +1,10 @@
+Jun 8, 2005
+
+  * TS: Improved compiler scalability: use nb_setval/2 to
+        remember compiled code through backtracking over
+	compilation process instead of assert/1.
+  * TS: Removed spurious comma from file.
+
 Jun 1, 2005
 
   * TS: Added option to disable toplevel constraint store printing.

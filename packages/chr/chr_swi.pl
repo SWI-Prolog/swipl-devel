@@ -173,11 +173,11 @@ add_optimise_decl(CHR, CHR).
 
 call_chr_translate(_, In, _Out) :-
 	   ( chr_translate(In, Out0) ->
-		assert(chr_translated_program(Out0)),
+		nb_setval(chr_translated_program,Out0),
 		fail
 	    ).
 call_chr_translate(_, _In, Out) :-
-	    retract(chr_translated_program(Out)),!.
+	    nb_current(chr_translated_program,Out),!,nb_delete(chr_translated_program).
 	
 call_chr_translate(File, _, []) :-
 	print_message(error, chr(compilation_failed(File))).
