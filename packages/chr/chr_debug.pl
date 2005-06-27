@@ -30,7 +30,8 @@
 */
 
 :- module(chr_debug,
-	  [ chr_show_store/1		% +Module
+	  [ chr_show_store/1, % +Module
+            find_chr_constraint/1
 	  ]).
 :- use_module(chr(chr_runtime)).
 :- use_module(library(lists)).
@@ -51,3 +52,8 @@ chr_show_store(Mod) :-
 	;
 		true
 	).
+
+find_chr_constraint(C) :-
+	chr:'$chr_module'(Mod),
+	Mod:'$enumerate_suspensions'(Susp),
+	arg(6,Susp,C).

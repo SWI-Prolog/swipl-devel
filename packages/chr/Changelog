@@ -1,3 +1,7 @@
+Jun 27, 2005
+
+  * TS: Added find_chr_constraint/1 functionality.
+
 Jun 8, 2005
 
   * TS: Improved compiler scalability: use nb_setval/2 to

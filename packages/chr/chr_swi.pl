@@ -46,6 +46,7 @@
 	    op(1150, fx, (-)),
 	    op(1150, fx, (?)),
 	    chr_show_store/1,		% +Module
+	    find_chr_constraint/1,	% +Pattern
 	    chr_trace/0,
 	    chr_notrace/0,
 	    chr_leash/1			% +Ports
