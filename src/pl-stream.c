@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1284,13 +1284,13 @@ Ssize(IOSTREAM *s)
 Maybe we should optimise this to become block-aligned?  Or can we leave
 this to read/write?
 
-The first part checks whether repositioning   the  read/write pointer in
-the buffer suffices to achieve the seek.
+The first part checks whether  repositioning   the  read  pointer in the
+buffer suffices to achieve the seek.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int64_t
 Sseek64(IOSTREAM *s, int64_t pos, int whence)
-{ if ( s->limitp > s->buffer )		/* something there */
+{ if ( (s->flags & SIO_INPUT) && s->limitp > s->buffer ) /* something there */
   { int64_t now = Stell64(s);
 
     if ( now != -1 )
@@ -1323,7 +1323,8 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   Sflush(s);
     
   s->bufp   = s->buffer;
-  s->limitp = s->buffer;
+  if ( (s->flags & SIO_INPUT) )
+    s->limitp = s->buffer;
 
   if ( whence == SIO_SEEK_CUR )
   { pos += Stell64(s);

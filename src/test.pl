@@ -1684,6 +1684,37 @@ file(ext-1) :-
 
 
 		 /*******************************
+		 *		SEEK		*
+		 *******************************/
+
+seek(write-1) :-
+	tmp_file(seek, File),
+	open(File, write, S, [type(binary)]),
+	Max = 999,
+	forall(between(0, Max, _),
+	       format(S, '1234567890~n', [])),
+	forall(between(0, Max, N),
+	       (   Pos is N * 11 + 6,
+		   seek(S, Pos, bof, _),
+		   format(S, 'x', [])
+	       )),
+	close(S),
+
+	open(File, read, In, [type(binary)]),
+	forall(between(0, Max, N),
+	       must_read("123456x890\n", In)),
+	close(In),
+	delete_file(File).
+
+must_read([], _) :- !.
+must_read([H|T], In) :-
+	get_byte(In, Byte),
+	H == Byte,
+	must_read(T, In).
+
+
+
+		 /*******************************
 		 *	   CODE/CHAR-TYPE	*
 		 *******************************/
 
@@ -1908,6 +1939,7 @@ testset(popen) :-
 	current_prolog_flag(pipe, true).
 testset(timeout).
 testset(file).
+testset(seek).
 testset(load_program).
 testset(ctype).
 testset(thread) :-
