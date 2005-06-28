@@ -869,7 +869,8 @@ setArgvFeature()
 
   PL_put_nil(l);
   for(n=argc-1; n>= 0; n--)
-  { PL_put_atom_chars(e, argv[n]);
+  { PL_put_variable(e);
+    PL_unify_chars(e, PL_ATOM|REP_FN, -1, argv[n]);
     PL_cons_list(l, e, l);
   }
 

@@ -945,6 +945,21 @@ closeWin(int s, void *a)
 
 #define MAX_ARGC 100
 
+static size_t
+utf8_required_len(const wchar_t *s)
+{ size_t l = 0;
+  char tmp[6];
+  char *q;
+
+  for( ; *s; s++)
+  { q = utf8_put_char(tmp, *s);
+    l += q-tmp;
+  }
+  
+  return l;
+}
+
+
 int
 win32main(rlc_console c, int argc, TCHAR **argv)
 { char *av[MAX_ARGC+1];
@@ -980,9 +995,10 @@ win32main(rlc_console c, int argc, TCHAR **argv)
   { char *s;
     TCHAR *q;
 
-    av[i] = alloca(_tcslen(argv[i])+1);
+    av[i] = alloca(utf8_required_len(argv[i])+1);
     for(s=av[i], q=argv[i]; *q; )
-      *s++ = (char)*q++;		/* TBD: --> UTF-8 */
+    { s = utf8_put_char(s, *q);
+    }
     *s = '\0';
   }
   av[i] = NULL;
