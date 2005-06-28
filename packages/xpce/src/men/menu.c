@@ -1625,8 +1625,7 @@ kindMenu(Menu m, Name kind)
       assign(m, feedback, NAME_box);
       assign(m, pen, ONE);
       assign(m, border, TWO);
-      assign(m, multiple_selection, kind == NAME_toggle ? ON : OFF);
-
+      multipleSelectionMenu(m, kind == NAME_toggle ? ON : OFF);
       assign(m, kind, kind);
       return requestComputeGraphical(m, DEFAULT);
     } else if ( kind == NAME_marked )
@@ -1635,7 +1634,7 @@ kindMenu(Menu m, Name kind)
       assign(m, feedback, NAME_image);
       assign(m, pen, ZERO);
       assign(m, border, TWO);
-      assign(m, multiple_selection, OFF);
+      multipleSelectionMenu(m, OFF);
       assign(m, kind, kind);
 
       return requestComputeGraphical(m, DEFAULT);
@@ -1649,7 +1648,7 @@ kindMenu(Menu m, Name kind)
       assign(m, feedback, NAME_image);
       assign(m, pen, ZERO);
       assign(m, border, toInt(3));
-      assign(m, multiple_selection, kind == NAME_toggle ? ON : OFF);
+      multipleSelectionMenu(m, kind == NAME_toggle ? ON : OFF);
 
       assign(m, kind, kind);
       return requestComputeGraphical(m, DEFAULT);
@@ -1659,7 +1658,7 @@ kindMenu(Menu m, Name kind)
       assign(m, feedback, NAME_box);
       assign(m, pen, ONE);
       assign(m, border, TWO);
-      assign(m, multiple_selection, OFF);
+      multipleSelectionMenu(m, OFF);
 
       assign(m, kind, kind);
       return requestComputeGraphical(m, DEFAULT);
@@ -1678,7 +1677,7 @@ kindMenu(Menu m, Name kind)
       assign(m, feedback, NAME_image);
       assign(m, pen, ZERO);
       assign(m, border, toInt(3));
-      assign(m, multiple_selection, kind == NAME_toggle ? ON : OFF);
+      multipleSelectionMenu(m, kind == NAME_toggle ? ON : OFF);
 
       assign(m, kind, kind);
       return requestComputeGraphical(m, DEFAULT);
@@ -1688,7 +1687,7 @@ kindMenu(Menu m, Name kind)
       assign(m, feedback, NAME_box);
       assign(m, pen, ONE);
       assign(m, border, TWO);
-      assign(m, multiple_selection, OFF);
+      multipleSelectionMenu(m, OFF);
 
       assign(m, kind, kind);
       return requestComputeGraphical(m, DEFAULT);
@@ -1791,7 +1790,11 @@ ensureSingleSelectionMenu(Menu m)
 
 static status
 multipleSelectionMenu(Menu m, Bool val)
-{ return assignGraphical(m, NAME_multipleSelection, val);
+{ assignGraphical(m, NAME_multipleSelection, val);
+  
+  get(m, NAME_selection, EAV);		/* update <-selection */
+
+  succeed;
 }
 
 
