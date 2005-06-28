@@ -196,7 +196,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
 
     goto error;
   } else
-  { fail;				/* no conversion specified */
+  { goto error;
   }
 
   succeed;

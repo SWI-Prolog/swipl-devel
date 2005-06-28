@@ -27,6 +27,7 @@
 #include <windows.h>
 
 #include "pl-incl.h"
+#include "pl-utf8.h"
 #include <crtdbg.h>
 #include <process.h>
 #include "pl-ctype.h"
@@ -318,17 +319,23 @@ get_showCmd(term_t show, int *cmd)
 
 
 static int
-win_exec(const wchar_t *cmd, UINT show)
+win_exec(size_t len, const wchar_t *cmd, UINT show)
 { STARTUPINFOW startup;
   PROCESS_INFORMATION info;
   int rval;
+  wchar_t *wcmd;
 
   memset(&startup, 0, sizeof(startup));
   startup.cb = sizeof(startup);
   startup.wShowWindow = show;
 
+					/* ensure 0-terminated */
+  wcmd = PL_malloc((len+1)*sizeof(wchar_t));
+  memcpy(wcmd, cmd, len*sizeof(wchar_t));
+  wcmd[len] = 0;
+  
   rval = CreateProcessW(NULL,		/* app */
-			(wchar_t*)cmd,
+			wcmd,
 			NULL, NULL,	/* security */
 			FALSE,		/* inherit handles */
 			0,		/* flags */
@@ -336,6 +343,7 @@ win_exec(const wchar_t *cmd, UINT show)
 			NULL,		/* Directory */
 			&startup,
 			&info);		/* process info */
+  PL_free(wcmd);
 
   if ( rval )
   { CloseHandle(info.hProcess);
@@ -345,7 +353,7 @@ win_exec(const wchar_t *cmd, UINT show)
   } else
   { term_t tmp = PL_new_term_ref();
       
-    PL_unify_wchars(tmp, PL_ATOM, wcslen(cmd), cmd);
+    PL_unify_wchars(tmp, PL_ATOM, len, cmd);
     return PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp);
   }
 }
@@ -420,11 +428,12 @@ System(char *command)			/* command is a UTF-8 string */
 word
 pl_win_exec(term_t cmd, term_t how)
 { wchar_t *s;
+  size_t len;
   UINT h;
 
-  if ( PL_get_wchars(cmd, NULL, &s, CVT_ALL|CVT_EXCEPTION) &&
+  if ( PL_get_wchars(cmd, &len, &s, CVT_ALL|CVT_EXCEPTION) &&
        get_showCmd(how, &h) )
-  { return win_exec(s, h);
+  { return win_exec(len, s, h);
   } else
     fail;
 }
