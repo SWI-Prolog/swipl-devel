@@ -487,8 +487,8 @@ advanceDate(Date d, Int times, Name units)
   i = valInt(times) * mult;
 
   n = d->unix_date + i;
-  if ( (d->unix_date > 0 && i > 0 && i < 0) ||
-       (d->unix_date < 0 && i < 0 && i > 0) )
+  if ( (d->unix_date > 0 && i > 0 && n < 0) ||
+       (d->unix_date < 0 && i < 0 && n > 0) )
     return errorPce(d, NAME_intRange);
 
   d->unix_date = n;

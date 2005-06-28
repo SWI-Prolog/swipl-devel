@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#48: Error handling in date->advance.  Dmitry.
+
 * FIXED: Bug#57: menu<-modified.  Holger Kanwischer.
 
 * FIXED: Bug#52: file->backup when using national characters.  Jiri Spitz.
