@@ -42,9 +42,6 @@
 	    op( 500, yfx, #),
 	    op(1150, fx, chr_type),
 	    op(1130, xfx, --->),
-	    op(1150, fx, (+)),
-	    op(1150, fx, (-)),
-	    op(1150, fx, (?)),
 	    chr_show_store/1,		% +Module
 	    find_chr_constraint/1,	% +Pattern
 	    chr_trace/0,
