@@ -32,7 +32,7 @@ word
 pl_shell(term_t command, term_t status)
 { char *cmd;
 
-  if ( PL_get_chars_ex(command, &cmd, CVT_ALL) )
+  if ( PL_get_chars_ex(command, &cmd, CVT_ALL|REP_FN) )
   { int rval = System(cmd);
 
     return PL_unify_integer(status, rval);

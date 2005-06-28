@@ -98,10 +98,10 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
   { if ( !get_atom_text(w, text) )
-      fail;
+      goto error;
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( !get_string_text(w, text PASS_LD) )
-      fail;
+      goto error;
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { sprintf(text->buf, INT64_FORMAT, valInteger(w) );
     text->text.t    = text->buf;
@@ -146,7 +146,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
       text->text.w = baseBuffer(b, pl_wchar_t);
       text->encoding = ENC_WCHAR;
     } else
-      fail;
+      goto error;
 
     text->storage   = PL_CHARS_RING;
     text->canonical = TRUE;
@@ -194,12 +194,28 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
       }
     }
 
-    fail;
+    goto error;
   } else
-  { fail;
+  { fail;				/* no conversion specified */
   }
 
   succeed;
+
+error:
+  if ( (flags & CVT_EXCEPTION) )
+  { atom_t expected;
+
+    if ( flags & CVT_LIST )
+      expected = ATOM_text;
+    else if ( flags & CVT_NUMBER )
+      expected = ATOM_atomic;
+    else
+      expected = ATOM_atom;
+    
+    return PL_error(NULL, 0, NULL, ERR_TYPE, expected, l);
+  }
+
+  fail;
 }
 
 

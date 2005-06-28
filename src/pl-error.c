@@ -544,43 +544,19 @@ printMessage(atom_t severity, ...)
 
 int
 PL_get_nchars_ex(term_t t, unsigned int *len, char **s, unsigned int flags)
-{ atom_t expected;
-
-  if ( PL_get_nchars(t, len, s, flags) )
-    return TRUE;
-
-  if ( flags & CVT_LIST )
-    expected = ATOM_text;
-  else if ( flags & CVT_NUMBER )
-    expected = ATOM_atomic;
-  else
-    expected = ATOM_atom;
-
-  return PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
+{ return PL_get_nchars(t, len, s, flags|CVT_EXCEPTION);
 }
 
 
 int
 PL_get_chars_ex(term_t t, char **s, unsigned int flags)
-{ return PL_get_nchars_ex(t, NULL, s, flags);
+{ return PL_get_nchars(t, NULL, s, flags|CVT_EXCEPTION);
 }
 
 
 int
 PL_get_text_ex(term_t t, PL_chars_t *txt, unsigned int flags)
-{ atom_t expected;
-
-  if ( PL_get_text(t, txt, flags) )
-    return TRUE;
-
-  if ( flags & CVT_LIST )
-    expected = ATOM_text;
-  else if ( flags & CVT_NUMBER )
-    expected = ATOM_atomic;
-  else
-    expected = ATOM_atom;
-
-  return PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
+{ return PL_get_text(t, txt, flags);
 }
 
 

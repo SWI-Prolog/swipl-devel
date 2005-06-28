@@ -324,6 +324,7 @@ win_exec(const wchar_t *cmd, UINT show)
   int rval;
 
   memset(&startup, 0, sizeof(startup));
+  startup.cb = sizeof(startup);
   startup.wShowWindow = show;
 
   rval = CreateProcessW(NULL,		/* app */
@@ -342,36 +343,57 @@ win_exec(const wchar_t *cmd, UINT show)
 
     succeed;
   } else
-  { return PL_error(NULL, 0, NULL,
-		    ERR_SHELL_FAILED, 0); /* TBD */
+  { term_t tmp = PL_new_term_ref();
+      
+    PL_unify_wchars(tmp, PL_ATOM, wcslen(cmd), cmd);
+    return PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp);
   }
 }
 
 
+static void
+utf8towcs(wchar_t *o, const char *src)
+{ for( ; *src; )
+  { int wc;
+
+    src = utf8_get_char(src, &wc);
+    *o++ = wc;
+  }
+  *o = 0;
+}
+
+
 int
-System(char *command)
-{ STARTUPINFO sinfo;
+System(char *command)			/* command is a UTF-8 string */
+{ STARTUPINFOW sinfo;
   PROCESS_INFORMATION pinfo;
   int shell_rval;
+  int len;
+  wchar_t *wcmd;
 
   memset(&sinfo, 0, sizeof(sinfo));
   sinfo.cb = sizeof(sinfo);
 
-  if ( CreateProcess(NULL,			/* module */
-		     command,			/* command line */
-		     NULL,			/* Security stuff */
-		     NULL,			/* Thread security stuff */
-		     FALSE,			/* Inherit handles */
-		     NORMAL_PRIORITY_CLASS,	/* flags */
-		     NULL,			/* environment */
-		     NULL,			/* CWD */
-		     &sinfo,			/* startup info */
-		     &pinfo) )			/* process into */
+  len = utf8_strlen(command, strlen(command));
+  wcmd = PL_malloc((len+1)*sizeof(wchar_t));
+  utf8towcs(wcmd, command);
+
+  if ( CreateProcessW(NULL,			/* module */
+		      wcmd,			/* command line */
+		      NULL,			/* Security stuff */
+		      NULL,			/* Thread security stuff */
+		      FALSE,			/* Inherit handles */
+		      NORMAL_PRIORITY_CLASS,	/* flags */
+		      NULL,			/* environment */
+		      NULL,			/* CWD */
+		      &sinfo,			/* startup info */
+		      &pinfo) )			/* process into */
   { BOOL rval;
     DWORD code;
 
     CloseHandle(pinfo.hThread);			/* don't need this */
-      
+    PL_free(wcmd);
+
     do
     { MSG msg;
 
@@ -387,7 +409,9 @@ System(char *command)
     shell_rval = (rval == TRUE ? code : -1);
     CloseHandle(pinfo.hProcess);
   } else
+  { PL_free(wcmd);
     return shell_rval = -1;
+  }
 
   return shell_rval;
 }
@@ -398,7 +422,7 @@ pl_win_exec(term_t cmd, term_t how)
 { wchar_t *s;
   UINT h;
 
-  if ( PL_get_wchars(cmd, NULL, &s, CVT_ALL) &&
+  if ( PL_get_wchars(cmd, NULL, &s, CVT_ALL|CVT_EXCEPTION) &&
        get_showCmd(how, &h) )
   { return win_exec(s, h);
   } else
