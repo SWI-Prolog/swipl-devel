@@ -411,9 +411,9 @@ out:
 }
 
 
-status
-backup_name(const char *old, const char *ext, char *bak)
-{ if ( strlen(old) + strlen(ext) + 1 <= MAXPATHLEN )
+static status
+backup_name(const char *old, const char *ext, char *bak, size_t len)
+{ if ( strlen(old) + strlen(ext) + 1 <= len )
   { sprintf(bak, "%s%s", old, ext);
     succeed;
   } else
@@ -425,12 +425,12 @@ backup_name(const char *old, const char *ext, char *bak)
 
 static Name
 getBackupFileNameFile(FileObj f, Name ext)
-{ char bak[MAXPATHLEN];
+{ char bak[MAXPATHLEN*2];
 
   if ( backup_name(nameToUTF8(f->name),
 		   isDefault(ext) ? "~" : nameToUTF8(ext),
-		   bak) )
-    answer(CtoName(bak));
+		   bak, sizeof(bak)) )
+    answer(UTF8ToName(bak));
 
   errorPce(f, NAME_representation, NAME_nameTooLong);
   fail;

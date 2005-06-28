@@ -232,6 +232,10 @@ file(utf8-1) :-
 	send(F2, exists),
 	get(F2, contents, string('Hello world\n')),
 	send(F2, remove).
+file(backup-1) :-
+	foreign(Name),
+	get(file(Name), backup_file_name, Backup),
+	atom_concat(Name, ~, Backup).
 
 
 		 /*******************************

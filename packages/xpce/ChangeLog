@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#52: file->backup when using national characters.  Jiri Spitz.
+
+
 VERSION 6.5.19, distributed with SWI-Prolog 5.5.19
 ==================================================
 

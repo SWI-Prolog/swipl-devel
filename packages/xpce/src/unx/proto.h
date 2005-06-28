@@ -17,7 +17,6 @@ COMMON(status)	existsFile(FileObj f, Bool mustbefile);
 COMMON(status)	sameOsPath(const char *s1, const char *s2);
 COMMON(Name)	getAbsolutePathFile(FileObj f);
 COMMON(status)	isAbsoluteFile(FileObj f);
-COMMON(status)	backup_name(const char *old, const char *ext, char *bak);
 COMMON(status)	doBOMFile(FileObj f);
 COMMON(status)	openFile(FileObj f, Name mode, Name filter, CharArray extension);
 COMMON(status)	removeFile(FileObj f);
