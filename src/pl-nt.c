@@ -317,33 +317,34 @@ get_showCmd(term_t show, int *cmd)
 
 
 
-static char *
-win_exec(const char *cmd, UINT show)
-{ char *msg;
+static int
+win_exec(const wchar_t *cmd, UINT show)
+{ STARTUPINFOW startup;
+  PROCESS_INFORMATION info;
   int rval;
 
-  switch((rval = WinExec(cmd, show)))
-  { case 0:
-      msg = "Not enough memory";
-      break;
-    case ERROR_BAD_FORMAT:
-      msg = "Bad format";
-      break;
-    case ERROR_FILE_NOT_FOUND:
-      msg = "File not found";
-      break;
-    case ERROR_PATH_NOT_FOUND:
-      msg = "Path not found";
-      break;
-    default:
-      if ( rval > 31 )
-	msg = NULL;
-      else
-	msg = "Unknown error";
-      break;
-  }
+  memset(&startup, 0, sizeof(startup));
+  startup.wShowWindow = show;
 
-  return msg;
+  rval = CreateProcessW(NULL,		/* app */
+			(wchar_t*)cmd,
+			NULL, NULL,	/* security */
+			FALSE,		/* inherit handles */
+			0,		/* flags */
+			NULL,		/* environment */
+			NULL,		/* Directory */
+			&startup,
+			&info);		/* process info */
+
+  if ( rval )
+  { CloseHandle(info.hProcess);
+    CloseHandle(info.hThread);
+
+    succeed;
+  } else
+  { return PL_error(NULL, 0, NULL,
+		    ERR_SHELL_FAILED, 0); /* TBD */
+  }
 }
 
 
@@ -394,17 +395,12 @@ System(char *command)
 
 word
 pl_win_exec(term_t cmd, term_t how)
-{ char *s;
+{ wchar_t *s;
   UINT h;
 
-  if ( PL_get_chars_ex(cmd, &s, CVT_ALL) &&
+  if ( PL_get_wchars(cmd, NULL, &s, CVT_ALL) &&
        get_showCmd(how, &h) )
-  { char *msg = win_exec(s, h);
-
-    if ( msg )
-      return warning("win_exec/2: %s", msg);
-    else
-      succeed;
+  { return win_exec(s, h);
   } else
     fail;
 }
