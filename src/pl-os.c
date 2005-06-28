@@ -35,6 +35,7 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-utf8.h"
 #undef abs
 #include <math.h>		/* avoid abs() problem with msvc++ */
 #include <stdio.h>		/* rename() and remove() prototypes */
@@ -1280,10 +1281,29 @@ canoniseFileName(char *path)
 }
 
 
+static char *
+utf8_strlwr(char *s)
+{ char tmp[MAXPATHLEN];
+  char *o, *i;
+  
+  strcpy(tmp, s);
+  for(i=tmp, o=s; *i; )
+  { int c;
+
+    i = utf8_get_char(i, &c);
+    c = towlower((wint_t)c);
+    o = utf8_put_char(o, c);
+  }
+  *o = EOS;
+
+  return s;
+}
+
+
 char *
 canonisePath(char *path)
 { if ( !trueFeature(FILE_CASE_FEATURE) )
-    strlwr(path);
+    utf8_strlwr(path);
 
   canoniseFileName(path);
 

@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: absolute_file_name/2 and friends for UNICODE filenames on
+    windows platforms.
+
   * FIXED: Bug#59: seek/4 on output streams.  Holger Kanwischer.
 
 VERSION 5.5.19 (May 24, 2005)
