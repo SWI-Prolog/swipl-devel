@@ -46,7 +46,7 @@ word
 pl_getenv(term_t var, term_t value)
 { char *n;
 
-  if ( PL_get_chars_ex(var, &n, CVT_ALL) )
+  if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN) )
   { int len = getenvl(n);
 
     if ( len >= 0 )
@@ -56,7 +56,7 @@ pl_getenv(term_t var, term_t value)
       { char *s;
 
 	if ( (s=getenv3(n, buf, len+1)) )
-	  return PL_unify_atom_chars(value, s);
+	  return PL_unify_chars(value, PL_ATOM|REP_FN, -1, s);
       } else
 	return PL_error("getenv", 2, NULL, ERR_NOMEM);
     }
@@ -72,8 +72,8 @@ word
 pl_setenv(term_t var, term_t value)
 { char *n, *v;
 
-  if ( PL_get_chars_ex(var, &n, CVT_ALL|BUF_RING) &&
-       PL_get_chars_ex(value, &v, CVT_ALL) )
+  if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN|BUF_RING) &&
+       PL_get_chars_ex(value, &v, CVT_ALL|REP_FN) )
   { Setenv(n, v);
     succeed;
   }
@@ -86,7 +86,7 @@ word
 pl_unsetenv(term_t var)
 { char *n;
 
-  if ( PL_get_chars_ex(var, &n, CVT_ALL) )
+  if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN) )
   { Unsetenv(n);
 
     succeed;

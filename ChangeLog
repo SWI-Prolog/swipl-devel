@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Unicode support for environment variables (non-Windows version).
+
   * FIXED: Unicode handling of commandline arguments.
 
   * FIXED: Bug#56: UNICODE handling for shell/1 and win_exec/2.  Dmitry.
