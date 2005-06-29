@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Flickering pullright when dragging over pullright arrow.
+  Jochem Liem.
+
 * FIXED: Open pullright if there is no message on an item and the button
   is released.  Jochem Liem.
 

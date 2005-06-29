@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org/packages/xpce/
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -376,6 +376,27 @@ showPullrightMenuPopup(PopupObj p, MenuItem mi, EventObj ev, Any context)
 
 
 static status
+inPullRigthPopup(PopupObj p, MenuItem mi, EventObj ev)
+{ Int ex, ey;
+  int ix, iy, ih, iw;
+  int rx;
+
+  area_menu_item((Menu)p, mi, &ix, &iy, &iw, &ih);
+  if ( notNil(p->popup_image) )
+    rx = ix+iw-valInt(p->popup_image->size->w);
+  else
+    rx = ix+iw-8;
+  rx -= 2*valInt(p->border);
+
+  get_xy_event(ev, p, ON, &ex, &ey);
+  if ( valInt(ex) >= rx )
+    succeed;
+  
+  fail;
+}
+
+
+static status
 dragPopup(PopupObj p, EventObj ev, Bool check_pullright)
 { MenuItem mi;
 
@@ -386,19 +407,7 @@ dragPopup(PopupObj p, EventObj ev, Bool check_pullright)
     { previewMenu((Menu) p, mi);
 
       if ( notNil(mi->popup) && check_pullright != OFF )
-      { Int ex, ey;
-	int ix, iy, ih, iw;
-	int rx;
-
-	area_menu_item((Menu)p, mi, &ix, &iy, &iw, &ih);
-	if ( notNil(p->popup_image) )
-	  rx = ix+iw-valInt(p->popup_image->size->w);
-	else
-	  rx = ix+iw-8;
-	rx -= 2*valInt(p->border);
-
-	get_xy_event(ev, p, ON, &ex, &ey);
-	if ( valInt(ex) >= rx )
+      { if ( inPullRigthPopup(p, mi, ev) )
 	  send(p, NAME_showPullrightMenu, mi, ev, EAV);
       }
     } else
@@ -474,7 +483,8 @@ eventPopup(PopupObj p, EventObj ev)
     { if ( isNil(p->pullright->preview) )
       { MenuItem mi;
 
-	if ( (mi = getItemFromEventMenu((Menu) p, ev)) )
+	if ( (mi = getItemFromEventMenu((Menu) p, ev)) &&
+	     mi->popup != p->pullright )
 	{ send(p->pullright, NAME_close, EAV);
 	  assign(p, pullright, NIL);
 	  return send(p, NAME_drag, ev, EAV);
