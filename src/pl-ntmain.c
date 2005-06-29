@@ -38,6 +38,8 @@
 #include <pthread.h>
 #endif
 
+#include "pl-utf8.c"			/* we're not in the libpl.dll module */
+
 #ifndef streq
 #define streq(s,q) (strcmp((s), (q)) == 0)
 #endif
@@ -996,7 +998,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
     TCHAR *q;
 
     av[i] = alloca(utf8_required_len(argv[i])+1);
-    for(s=av[i], q=argv[i]; *q; )
+    for(s=av[i], q=argv[i]; *q; q++)
     { s = utf8_put_char(s, *q);
     }
     *s = '\0';
