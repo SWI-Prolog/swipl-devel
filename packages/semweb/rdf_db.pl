@@ -1155,7 +1155,7 @@ rdf_save_list(Out, List, DefNS, Indent, Options) :-
 	    rdf_save_subject(Out, First, DefNS, Indent, Options)
 	;   stream_property(Out, encoding(Encoding)),
 	    rdf_value(First, QVal, Encoding),
-	    format(Out, '~N~*|<rdf:Description about="~w"/>',
+	    format(Out, '~N~*|<rdf:Description rdf:about="~w"/>',
 		   [Indent, QVal])
 	),
 	flag(rdf_db_saved_triples, X, X+3),

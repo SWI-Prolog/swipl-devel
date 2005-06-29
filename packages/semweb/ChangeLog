@@ -1,3 +1,7 @@
+Jun 29, 2005
+
+  * FIXED: rdf:about instead of about when saving lists.  Jochem Liem.
+
 May 24, 2005
 
   * ENHANCED: Added core statistics
