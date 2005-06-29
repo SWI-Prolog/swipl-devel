@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Open pullright if there is no message on an item and the button
+  is released.  Jochem Liem.
+
+* FIXED: Unicode support in Windows metafile filename and comment handling.
+
 * FIXED: Bug#48: Error handling in date->advance.  Dmitry.
 
 * FIXED: Bug#57: menu<-modified.  Holger Kanwischer.

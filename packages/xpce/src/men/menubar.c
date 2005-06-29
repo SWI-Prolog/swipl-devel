@@ -307,8 +307,12 @@ eventMenuBar(MenuBar mb, EventObj ev)
 	{ if ( isNil(mb->current) )
 	  { focusWindow(sw, NIL, NIL, NIL, NIL);
 	    deleteAttributeObject(mb, NAME_Stayup);
-	  } else if ( grabbed )
-	  { grabPointerWindow(sw, ON);
+	  } else if ( mb->current->displayed == ON )
+	  { if ( !grabbed )
+	      attributeObject(mb, NAME_Stayup, ON);
+	    grabPointerWindow(sw, ON);
+	    if ( !grabbed )
+	      focusWindow(sw, (Graphical) mb, DEFAULT, DEFAULT, NIL);
 	  }
 	}
       }

@@ -517,8 +517,12 @@ eventPopup(PopupObj p, EventObj ev)
 	 notNil(p->preview->popup) &&
 	 valInt(getClickTimeEvent(ev)) < 400 &&
 	 valInt(getClickDisplacementEvent(ev)) < 10 )
-      send(p, NAME_showPullrightMenu, p->preview, EAV);
-    else if ( getButtonEvent(ev) == p->button )
+    { send(p, NAME_showPullrightMenu, p->preview, EAV);
+    } else if ( notNil(p->preview) &&
+		notNil(p->preview->popup) &&
+		!instanceOfObject(p->preview->message, ClassCode) )
+    { send(p, NAME_showPullrightMenu, p->preview, EAV);
+    } else if ( getButtonEvent(ev) == p->button )
     { assign(p, selected_item, p->preview);
       send(p, NAME_close, EAV);
       succeed;
