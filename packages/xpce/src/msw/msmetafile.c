@@ -459,8 +459,8 @@ static status
 drawInWinMF(WinMF mf, Any obj, Point pos)
 { Int oldx, oldy;
   Device dev;
-  char *fn;
-  char *descr;
+  wchar_t *fn;
+  wchar_t *descr;
   Area bb;
 
   if ( notDefault(pos) && instanceOfObject(obj, ClassGraphical) )
@@ -479,20 +479,23 @@ drawInWinMF(WinMF mf, Any obj, Point pos)
   if ( isNil(mf->file) )
     fn = NULL;
   else
-    fn = strName(getOsNameFile(mf->file));
+    fn = charArrayToWC((CharArray)getOsNameFile(mf->file), NULL);
 
   if ( isNil(mf->summary) )
     descr = NULL;
   else					/* application\0summary\0\0 */
-  { int slen = strlen(strName(mf->summary));
-    char *s;
+  { size_t slen;
+    wchar_t *summary, *s;
+    wchar_t *app = L"XPCE";
 
-    descr = alloca(slen + strlen("XPCE") + 3);
-    strcpy(descr, strName(mf->summary));
-    s = descr + slen + 1;
-    strcpy(s, "XPCE");
-    s += strlen("XPCE") + 1;
-    *s++ = EOS;
+    summary = charArrayToWC((CharArray)mf->summary, &slen);
+    descr = alloca((slen + wcslen(app) + 3)*sizeof(wchar_t));
+    wcscpy(descr, summary);
+    s = descr + slen;
+    *s++ = L'\0';
+    wcscpy(s, app);
+    s += wcslen(app) + 1;
+    *s++ = L'\0';
   }
 
   if ( instanceOfObject(obj, ClassGraphical) )

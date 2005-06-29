@@ -160,9 +160,9 @@ void		ws_system_colours(DisplayObj d);
 Colour		ws_system_colour(DisplayObj d, const char *name, COLORREF rgb);
 status		ws_has_colourmap(DisplayObj d);
 void		declareWindowsBrush(Any obj, HBRUSH brush);
-status		d_winmf(const char *fn,
+status		d_winmf(const wchar_t *fn,
 			int x, int y, int w, int h,
-			const char *descr);
+			const wchar_t *descr);
 HENHMETAFILE	d_winmfdone(void);
 void		r_winmf(HENHMETAFILE hmf, int x, int y, int w, int h);
 void		ws_init_loc_still_timer(void);

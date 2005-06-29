@@ -580,7 +580,7 @@ d_screen(DisplayObj d)
 
 
 status
-d_winmf(const char *fn, int x, int y, int w, int h, const char *descr)
+d_winmf(const wchar_t *fn, int x, int y, int w, int h, const wchar_t *descr)
 { HDC hdc;
   RECT bb;
   HDC refdc = GetDC(NULL);
@@ -616,11 +616,11 @@ d_winmf(const char *fn, int x, int y, int w, int h, const char *descr)
 	Cprintf("BB in .01 mm = %d,%d,%d,%d\n",
 		bb.left, bb.top, bb.right, bb.bottom));
 
-  if ( (hdc = CreateEnhMetaFile(refdc,		/* HDC reference */
-				fn,		/* name of the metafile */
-				&bb,		/* bounding box */
-//				NULL,		/* or let GDI compute BB */
-				descr)) )
+  if ( (hdc = CreateEnhMetaFileW(refdc,		/* HDC reference */
+				 fn,		/* name of the metafile */
+				 &bb,		/* bounding box */
+//				 NULL,		/* or let GDI compute BB */
+				 descr)) )
   { ReleaseDC(NULL, refdc);
     d_hdc(hdc, DEFAULT, DEFAULT);
     SetBkMode(hdc, TRANSPARENT);
