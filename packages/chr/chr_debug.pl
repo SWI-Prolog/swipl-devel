@@ -47,7 +47,7 @@ chr_show_store(Mod) :-
 	(
 		Mod:'$enumerate_suspensions'(Susp),
 		arg(6,Susp,C),
-		writeln(C),
+		print(C),nl, % allows use of portray to control printing
 		fail
 	;
 		true

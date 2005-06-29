@@ -4815,12 +4815,12 @@ order_score(multi_store(StoreTypes),Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
 	min_list(Scores,Score).
 		
 
-order_score_indexes([],_,_,Score,Score) :-
-	Score > 0.
+order_score_indexes([],_,_,Score,NScore) :-
+	Score > 0, NScore = 100.
 order_score_indexes([I|Is],Head,KnownVars,Score,NScore) :-
 	multi_hash_key_args(I,Head,Args),
 	( forall(Arg,Args,memberchk_eq(Arg,KnownVars)) ->
-		Score1 is Score + 10 	
+		Score1 is Score + 1 	
 	;
 		Score1 = Score
 	),
