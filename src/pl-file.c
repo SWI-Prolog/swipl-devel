@@ -2041,6 +2041,32 @@ bad_encoding(atom_t name)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fn_to_atom() translates a 8-bit  filename  into   a  unicode  atom.  The
+encoding is generic `multibyte' on Unix systems   and  fixed to UTF-8 on
+Windows, where the uxnt layer  translates   the  UTF-8  sequences to the
+Windows *W() functions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static atom_t
+fn_to_atom(const char *fn)
+{ PL_chars_t text;
+  atom_t a;
+
+  text.text.t    = (char *)fn;
+  text.encoding  = ((REP_FN&REP_UTF8) ? ENC_UTF8 :
+		    (REP_FN&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
+  text.storage   = PL_CHARS_HEAP;
+  text.length    = strlen(fn);
+  text.canonical = FALSE;
+
+  a = textToAtom(&text);
+  PL_free_text(&text);
+  
+  return a;
+}
+
+
 		/********************************
 		*       STREAM BASED I/O        *
 		*********************************/
@@ -2150,7 +2176,7 @@ openStream(term_t file, term_t mode, term_t options)
 	       ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
-    setFileNameStream(s, PL_new_atom(path));
+    setFileNameStream(s, fn_to_atom(path));
   } 
 #ifdef HAVE_POPEN
   else if ( PL_is_functor(file, FUNCTOR_pipe1) )

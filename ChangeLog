@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Unicode handling in filenames associated with streams (error
+    reporting and prolog_load_context/2).
+
   * FIXED: Unicode support for environment variables (non-Windows version).
 
   * FIXED: Unicode handling of commandline arguments.
