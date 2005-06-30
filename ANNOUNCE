@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.18/XPCE 6.5.18 development release
+SWI-Prolog 5.5.20/XPCE 6.5.20 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -58,26 +58,20 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.19 relative to 5.5.18
+Patches in 5.5.20 relative to 5.5.19
 ====================================
 
-  (none)
+  * Fixed unicode handling at various places, notably dealing with
+    filenames, commandline arguments, etc.
+
+  * Fix to seek/4 on output streams.
 
 Packages
 ========
 
-  * XPCE: X11 version: change KeyPress handling to use XIM.  Too simple
-    implementation, but it fixes key composition requires for many 
-    latin languages.
+  * XPCE: Various patches, mostly related to unicode handling.
     
-  * SemWeb: Loading files did not cause re-hashing, which eventually
-    slowed down duplicate handling.  Fixed.  Reduces loading a 8 million
-    triples file from 1,900 seconds to 55 seconds.  Also tuned parameters
-    to reduce memory requirements and some new statistics.
-
-  * CLIB: Added sources of mime support libraries to package.  Sorted out
-    license issues around these libraries.
-
+  * SemWeb: Fix saving RDF lists (depreciated use of plain 'about').
 
 Incompatible changes
 ====================
