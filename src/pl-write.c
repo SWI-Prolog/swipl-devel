@@ -26,6 +26,9 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include <stdio.h>			/* sprintf() */
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#endif
 
 typedef struct visited
 { Word address;				/* we have done this address */
@@ -529,6 +532,59 @@ writeString(term_t t, write_options *options)
 #define HAVE_ISNAN
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Formatting a float. This is very  complicated   as  we must write floats
+such that it can be read as a float. This means using the conventions of
+the C locale and if the float happens to be integer as <int>.0.
+
+Switching the locale is no option as  locale handling is not thread-safe
+and may have unwanted  consequences  for   embedding.  There  is  a long
+discussion on the very same topic on  the Python mailinglist. Many hacks
+are proposed, none is very satisfactory.  Converting floats to string is
+not an easy task and there is no   neat  way to avoid locale issues with
+sprintf. We opt for one of  the   tricks:  substitute the locale decimal
+point. Claims are made that sprintf()   may  not use grouping separators
+(e.g. 100,000.00) according to the C99 standard.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *
+format_float(double f, char *buf, const char *format)
+{ char *q;
+
+  sprintf(buf, format, f);
+
+  q = buf;
+  if ( *q == '-' )
+    q++;
+  for(; *q; q++)
+  { if ( !isDigit(*q) )
+      break;
+  }
+  if ( !*q )
+  { *q++ = '.';
+    *q++ = '0';
+    *q = EOS;
+  }
+
+#ifdef HAVE_LOCALECONV
+  { struct lconv *conv = localeconv();
+    int dp;
+
+    if ( conv && conv->decimal_point && (dp=*conv->decimal_point) != '.' )
+    { for(q=buf; *q; q++)
+      { if ( *q == dp )
+	  *q = '.';
+      }
+    }
+  }
+#endif
+
+  return buf;
+}
+
+
+
+
 static bool
 writePrimitive(term_t t, write_options *options)
 { double f;
@@ -569,29 +625,12 @@ writePrimitive(term_t t, write_options *options)
     }
 #endif
 
-    if ( s ) {
-      return PutToken(s, out);
+    if ( s )
+    { return PutToken(s, out);
     } else
     { char buf[100];
-      char *q;
 
-      sprintf(buf, LD->float_format, f);
-					/* make sure to write float */
-					/* such that it reads as a float */
-      /*if ( true(options, PL_WRT_QUOTED) )*/
-      { q = buf;
-	if ( *q == '-' )
-	  q++;
-	for(; *q; q++)
-	{ if ( !isDigit(*q) )
-	    break;
-	}
-        if ( !*q )
-	{ *q++ = '.';
-	  *q++ = '0';
-	  *q = EOS;
-	}
-      }
+      format_float(f, buf, LD->float_format);
 
       return PutToken(buf, out);
     }

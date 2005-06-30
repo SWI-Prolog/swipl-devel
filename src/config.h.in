@@ -148,6 +148,9 @@
 /* Define to 1 if you have the `ncurses' library (-lncurses). */
 #undef HAVE_LIBNCURSES
 
+/* Define to 1 if you have the `ncursesw' library (-lncursesw). */
+#undef HAVE_LIBNCURSESW
+
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
@@ -165,6 +168,9 @@
 
 /* Define to 1 if you have the `ucb' library (-lucb). */
 #undef HAVE_LIBUCB
+
+/* Define to 1 if you have the `localeconv' function. */
+#undef HAVE_LOCALECONV
 
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
