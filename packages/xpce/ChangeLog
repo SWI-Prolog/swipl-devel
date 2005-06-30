@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.20, distributed with SWI-Prolog 5.5.20
+==================================================
+
 * FIXED: Flickering pullright when dragging over pullright arrow.
   Jochem Liem.
 

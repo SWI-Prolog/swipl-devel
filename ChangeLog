@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.20 (June 30, 2005)
+==============================
+
   * FIXED: Unicode handling in filenames associated with streams (error
     reporting and prolog_load_context/2).
 

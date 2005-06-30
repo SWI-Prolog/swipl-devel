@@ -218,7 +218,7 @@ set_associated_file :-
 	\+ memberchk(--, Pre),
 	prolog_to_os_filename(File, OsFile),
 	file_name_extension(_, Ext, File),
-	access_file(File, read),
+	access_file(File, read), !,
 	file_directory_name(File, Dir),
 	working_directory(_, Dir),
 	set_prolog_flag(associated_file, File),
