@@ -73,6 +73,8 @@ Packages
     
   * SemWeb: Fix saving RDF lists (depreciated use of plain 'about').
 
+  * CHR: Various small patches.
+
 Incompatible changes
 ====================
 
