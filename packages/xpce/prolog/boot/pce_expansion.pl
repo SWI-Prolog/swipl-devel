@@ -627,6 +627,12 @@ can_define_class(Name, _Super) :-
 	Level > 0,			% SWI: we are running consult
 	pce_class(Name, _Meta, _OldSuper, _Vars, _ClassVars, _Dirs),
 	throw(error(permission_error(modify, pce(class), Name), _)).
+can_define_class(Name, _Super) :-
+	get(@types, member, Name, Type),
+	\+ get(Type, kind, class),
+	throw(error(permission_error(define, pce(class), Name),
+		    context(pce_begin_class/3,
+			    'Already defined as a type'))).
 can_define_class(_, _).
 
 

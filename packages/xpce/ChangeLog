@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#62: define class whose name is already used as a type causes
+  a crash.  Holger Kanwischer.
+
 VERSION 6.5.20, distributed with SWI-Prolog 5.5.20
 ==================================================
 
