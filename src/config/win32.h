@@ -389,6 +389,9 @@ typedef int mode_t;
 /* Define to 1 if you have the `setlocale' function. */
 #define HAVE_SETLOCALE 1
 
+/* Define to 1 if you have `localeconv' function */
+#define HAVE_LOCALECONV 1
+
 
 		 /*******************************
 		 *	     FUNCTIONS		*
