@@ -142,7 +142,8 @@ RedrawAreaArc(Arc a, Area area)
     }
       
     if ( qadSendv(a->first_arrow, NAME_points, 4, av) )
-    { ComputeGraphical(a->first_arrow);
+    { assign(a->first_arrow, displayed, ON);
+      ComputeGraphical(a->first_arrow);
       RedrawArea(a->first_arrow, area);
     }
   }
@@ -161,7 +162,8 @@ RedrawAreaArc(Arc a, Area area)
     }
 
     if ( qadSendv(a->second_arrow, NAME_points, 4, av) )
-    { ComputeGraphical(a->second_arrow);
+    { assign(a->second_arrow, displayed, ON);
+      ComputeGraphical(a->second_arrow);
       RedrawArea(a->second_arrow, area);
     }
   }
