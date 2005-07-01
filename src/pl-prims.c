@@ -1542,12 +1542,35 @@ assignments of attributed variables (assignAttVar()). The last operation
 of assignAttVar() is a trailed assignment  replacing the attvar with its
 value. Before that it performs two trailed  actions to update the wakeup
 list. These two must be skipped.
+
+Unfortunately, if a value is unified to   a  local stack variable (which
+can only be the case if one of the arguments is a plain variable) things
+get very complicated. Therefore we test   these  cases before going into
+the trouble. Note that unifying attributed   variables  is no problem as
+these always live on the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
 PRED_IMPL("unifyable", 3, unifyable, 0)
 { PRED_LD
   mark m;
+
+  if ( PL_is_variable(A1) )
+  { return PL_unify_term(A3,
+			 PL_FUNCTOR, FUNCTOR_dot2,
+			   PL_FUNCTOR, FUNCTOR_equals2,
+			     PL_TERM, A1,
+			     PL_TERM, A2,
+			   PL_ATOM, ATOM_nil);
+  }
+  if ( PL_is_variable(A2) )
+  { return PL_unify_term(A3,
+			 PL_FUNCTOR, FUNCTOR_dot2,
+			   PL_FUNCTOR, FUNCTOR_equals2,
+			     PL_TERM, A2,
+			     PL_TERM, A1,
+			   PL_ATOM, ATOM_nil);
+  }
 
   Mark(m);
   if ( PL_unify(A1, A2) )
@@ -1574,14 +1597,14 @@ PRED_IMPL("unifyable", 3, unifyable, 0)
 	  gp[4] = makeRef(p2);
 	  gp[5] = *p2;
 	} else
-	{ gp[4] = makeRef(p);
-	  gp[5] = *p;
+	{ gp[5] = *p;
+	  assert(onStackArea(global, p));
+	  gp[4] = makeRefG(p);
+	  setVar(*p);
 	}
 	gp += 6;
 
-	if ( !isTrailVal(p) )
-	{ setVar(*p);
-	} else
+	if ( isTrailVal(p) )
 	{ assert(isAttVar(trailVal(p)));
 
 	  tt--;				/* re-insert the attvar */

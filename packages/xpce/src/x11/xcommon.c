@@ -503,8 +503,20 @@ One of the issues is the window for an IC. Can/should this always be the
 frame? At the moment it is the X11 window realising the event receiver.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+//#define IC_ON_FRAME 1
 
 #ifdef O_XIM
+static void
+adjustEventMask(Display *d, Window w, XIC ic)
+{ XWindowAttributes winatts;
+  long fevent;
+
+  XGetICValues(ic, XNFilterEvents, &fevent, NULL);
+  XGetWindowAttributes(d, w, &winatts);
+  XSelectInput(d, w, winatts.your_event_mask|fevent);
+}
+
+
 static XIC
 getICWindow(Any obj)
 { FrameObj fr;
@@ -514,14 +526,24 @@ getICWindow(Any obj)
 
   if ( instanceOfObject(obj, ClassFrame) )
   { fr = obj;
+#ifndef IC_ON_FRAME
     w = widgetFrame(fr);
+    DEBUG(NAME_event, Cprintf("Associating IC with %s ...", pp(fr)));
+#endif
   } else if ( instanceOfObject(obj, ClassWindow) )
   { PceWindow sw = obj;
     if ( !(fr = getFrameWindow(sw, OFF)) )
       fail;
+#ifndef IC_ON_FRAME
     w = widgetWindow(sw);
+    DEBUG(NAME_event, Cprintf("Associating IC with %s ...", pp(sw)));
+#endif
   } else
     fail;
+
+#ifdef IC_ON_FRAME
+  w = widgetFrame(fr);
+#endif
 
   d = fr->display->ws_ref;
 
@@ -530,9 +552,17 @@ getICWindow(Any obj)
     Window xwin = XtWindow(w);
 
     if ( wsfr->ic )
-    { XSetICValues(wsfr->ic,
-		   XNClientWindow, xwin,
-		   NULL);
+    { if ( wsfr->icwin != xwin )
+      { XSetICValues(wsfr->ic,
+		     XNClientWindow, xwin,
+		     NULL);
+	wsfr->icwin = xwin;
+	adjustEventMask(d->display_xref, xwin, ic);
+	DEBUG(NAME_event, Cprintf("Re-using IC %p (switched window)\n",
+				  wsfr->ic));
+      } else
+      { DEBUG(NAME_event, Cprintf("Re-using IC %p\n", wsfr->ic));
+      }
       return wsfr->ic;
     }
 
@@ -544,13 +574,11 @@ getICWindow(Any obj)
     { DEBUG(NAME_event, Cprintf("Could not open X Input Context\n"));
       fail;
     }
-#if 0					/* TBD */
-    XGetICValues(ic, XNFilterEvents, &fevent, NULL);
-    mask = ExposureMask | KeyPressMask | FocusChangeMask;
-    XSelectInput(display, window, mask|fevent);
-#endif
+    adjustEventMask(d->display_xref, xwin, ic);
 
-    wsfr->ic = ic;
+    DEBUG(NAME_event, Cprintf("Created IC %p\n", ic));
+    wsfr->ic    = ic;
+    wsfr->icwin = xwin;
 
     return ic;
   }

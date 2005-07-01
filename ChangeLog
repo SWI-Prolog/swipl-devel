@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: unifyable/3 corrupts the stacks when called with variables
+    living on the local stack.  This notably affects dif/2.  Hugo Ferreira.  
+
+
 VERSION 5.5.20 (June 30, 2005)
 ==============================
 

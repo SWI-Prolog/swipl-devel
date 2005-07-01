@@ -106,6 +106,7 @@ typedef struct
   int		win_gravity;
 #ifdef O_XIM
   XIC		ic;			/* input context */
+  Window	icwin;			/* Window for IC */
 #endif
 } frame_ws_ref, *FrameWsRef;
 
