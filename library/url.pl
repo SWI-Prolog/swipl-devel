@@ -48,7 +48,7 @@ extensions:
 
 	* Allow for ~ character in path-names.
 	* Assuming http as default protocol.
-	* Allow for file:<path>
+	* Allow for file://<path>
 
 Public interface:
 
@@ -192,9 +192,9 @@ curl(http, A) -->
 	"//",
 	cpart(host, "", A),
 	cpart(port, ":", A),
-	cpart(path, "", A),
+	cpath(A),
 	csearch(A),
-	cpart(fragment, "#", A).
+	cfragment(A).
 
 curi(A) -->
 	cpart(path, "", A),
@@ -212,6 +212,45 @@ cpart(_,_,_) -->
 catomic(A, In, Out) :-
 	atom_codes(A, Codes),
 	append(Codes, Out, In).
+
+%	cpath(+Attributes, //)
+
+cpath(A) -->
+	{ memberchk(path(Path), A), !,
+	  atom_codes(Path, Codes)
+	},
+	cpath_chars(Codes).
+cpath(_) -->
+	[].
+
+cpath_chars([]) --> !,
+	[].
+cpath_chars([H|T]) -->
+	cxalpha(H),
+	cpath_chars(T).
+
+cxalpha(C) -->
+	{ code_type(C, alnum)
+	; C == 0'/
+	; safe(C)
+	; extra(C)
+	}, !,
+	[C].
+cxalpha(C) -->
+	cescape(C).
+
+cescape(C) -->
+	{ C < 256, !,
+	  DV1 is ((C>>4) /\ 0xf), code_type(D1, xdigit(DV1)),
+	  DV2 is (C /\ 0xf),      code_type(D2, xdigit(DV2))
+	},
+	[ 0'%, D1, D2 ].
+cescape(_) -->
+	{ throw(error(representation_error(unicode_character),
+		      context(parse_url/2), 'no unicode escape'))
+	}.
+
+%	csearch(+Attributes, //)
 
 csearch(A)--> 
 	(   { memberchk(search(Parameters), A) }
@@ -244,6 +283,33 @@ cparam(Name)-->
 cform(Atom) --> 
 	{ www_form_encode(Atom, Encoded) }, 
 	catomic(Encoded). 
+
+%	cfragment(+Attributes, //)
+
+cfragment(A) -->
+	{ memberchk(fragment(Frag), A), !,
+	  atom_codes(Frag, Codes)
+	},
+	"#",
+	cfragment_chars(Codes).
+cfragment(_) -->
+	"".
+	
+cfragment_chars([]) --> !,
+	[].
+cfragment_chars([H|T]) -->
+	cfragment_char(H),
+	cfragment_chars(T).
+
+cfragment_char(C) -->
+	{ code_type(C, alnum)
+	; safe(C)
+	; extra(C)
+	; reserved(C)
+	}, !,
+	[C].
+cfragment_char(C) -->
+	cescape(C).
 
 		
 		 /*******************************
@@ -592,6 +658,7 @@ escape(C) -->
 xalpha(C, [C|T], T) :-
 	(   code_type(C, alnum)		% alpha | digit
 	;   safe(C)
+	;   unsafe(C)
 	;   extra(C)
 	), !.
 xalpha(C) -->
@@ -609,6 +676,7 @@ search_char(C) -->
 fragment_char(C, [C|T], T):- 
 	(   code_type(C, alnum)		% alpha | digit
 	;   safe(C)
+	;   unsafe(C)
 	;   extra(C)
         ;   reserved(C)
 	), !.
@@ -624,9 +692,14 @@ safe(0'@).
 safe(0'.).
 safe(0'&).
 safe(0'+).
-safe(0'~).				% JW: not official URL
-safe(0'=).				% LCF: not official URL
 
+%	unsafe(+Char)
+%	
+%	Succeeds  for  characters  commonly  used,  but  officially  not
+%	allowed.
+
+unsafe(0'~).
+unsafe(0'=).
 
 search_char(0'$).
 search_char(0'-).

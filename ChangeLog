@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: parse_url(-, +) to insert %XX escape sequences for characters
+    that are not allowed in path-name or fragment names.
+
   * FIXED: pl -dump-runtime-variables value for PLLIB in single-threaded
     version.  Roberto Bagnara.
 
