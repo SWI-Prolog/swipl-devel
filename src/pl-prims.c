@@ -1556,12 +1556,15 @@ PRED_IMPL("unifyable", 3, unifyable, 0)
   mark m;
 
   if ( PL_is_variable(A1) )
-  { return PL_unify_term(A3,
-			 PL_FUNCTOR, FUNCTOR_dot2,
-			   PL_FUNCTOR, FUNCTOR_equals2,
-			     PL_TERM, A1,
-			     PL_TERM, A2,
-			   PL_ATOM, ATOM_nil);
+  { if ( PL_compare(A1, A2) == 0 )
+      return PL_unify_atom(A3, ATOM_nil);
+    else
+      return PL_unify_term(A3,
+			   PL_FUNCTOR, FUNCTOR_dot2,
+			     PL_FUNCTOR, FUNCTOR_equals2,
+			       PL_TERM, A1,
+			       PL_TERM, A2,
+			     PL_ATOM, ATOM_nil);
   }
   if ( PL_is_variable(A2) )
   { return PL_unify_term(A3,
