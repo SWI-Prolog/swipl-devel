@@ -43,8 +43,8 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Utility library to break down URL  specifications. This library is based
-on RFC-1738, specifying  the  URL  syntax   with  a  few  commonly  used
-extensions:
+on RFC-1738 (http://rfc.sunsite.dk/rfc/rfc1738.html), specifying the URL
+syntax with a few commonly used extensions:
 
 	* Allow for ~ character in path-names.
 	* Assuming http as default protocol.
@@ -176,10 +176,12 @@ http_location(Parts, Codes) :-		% LocationCodes --> Parts
 
 curl(A0) -->
 	{ select(protocol(Protocol), A0, A1)
-	},
+	}, !,
 	catomic(Protocol),
 	":",
 	curl(Protocol, A1).
+curl(A) -->
+	curl(http, A).
 
 curl(file, A) -->
 	(   "//"
@@ -189,8 +191,7 @@ curl(file, A) -->
 curl(https, A) -->
 	curl(http, A).
 curl(http, A) -->
-	"//",
-	cpart(host, "", A),
+	cpart(host, "//", A),
 	cpart(port, ":", A),
 	cpath(A),
 	csearch(A),
@@ -291,26 +292,10 @@ cfragment(A) -->
 	  atom_codes(Frag, Codes)
 	},
 	"#",
-	cfragment_chars(Codes).
+	cpath_chars(Codes).
 cfragment(_) -->
 	"".
 	
-cfragment_chars([]) --> !,
-	[].
-cfragment_chars([H|T]) -->
-	cfragment_char(H),
-	cfragment_chars(T).
-
-cfragment_char(C) -->
-	{ code_type(C, alnum)
-	; safe(C)
-	; extra(C)
-	; reserved(C)
-	}, !,
-	[C].
-cfragment_char(C) -->
-	cescape(C).
-
 		
 		 /*******************************
 		 *	      PARSING		*
