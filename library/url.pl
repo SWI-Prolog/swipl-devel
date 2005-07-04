@@ -227,17 +227,16 @@ cpath(_) -->
 cpath_chars([]) --> !,
 	[].
 cpath_chars([H|T]) -->
-	cxalpha(H),
+	cxpath_char(H),
 	cpath_chars(T).
 
-cxalpha(C) -->
+cxpath_char(C) -->
 	{ code_type(C, alnum)
 	; C == 0'/
-	; safe(C)
-	; extra(C)
+	; csafe(C)
 	}, !,
 	[C].
-cxalpha(C) -->
+cxpath_char(C) -->
 	cescape(C).
 
 cescape(C) -->
@@ -296,6 +295,22 @@ cfragment(A) -->
 cfragment(_) -->
 	"".
 	
+%	Par 2.2: "Thus, only alphanumerics, the special characters
+%	"$-_.+!*'(),", and reserved characters used for their reserved 
+%	purposes may be used unencoded within a URL
+
+csafe(0'$).
+csafe(0'-).
+csafe(0'_).
+csafe(0'.).
+csafe(0'+).
+csafe(0'!).
+csafe(0'*).
+csafe(0'').
+csafe(0'().
+csafe(0')).
+csafe(0',).
+
 		
 		 /*******************************
 		 *	      PARSING		*
