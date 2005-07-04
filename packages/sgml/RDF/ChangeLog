@@ -1,3 +1,7 @@
+Jul 4, 2005
+
+  * FIXED: Make "make check" work from the build directory.
+
 Mar 31, 2005
 
   * FIXED: memory leak in process_rdf/2

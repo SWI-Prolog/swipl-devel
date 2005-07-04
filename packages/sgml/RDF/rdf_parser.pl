@@ -35,6 +35,7 @@
 	    rdf_name_space/1
 	  ]).
 :- use_module(rewrite).
+:- use_module(library(sgml)).		% xml_name/1
 
 :- op(500, fx, \?).			% Optional (attrs)
 

@@ -20,6 +20,12 @@
 	    show_ok/1			% +Test
 	  ]).
 
+:- multifile
+	user:file_search_path/2.
+
+user:file_search_path(library, ..).
+user:file_search_path(foreign, ..).
+
 :- use_module(library(sgml)).
 :- use_module(rdf_parser).
 :- use_module(rdf_triple).
