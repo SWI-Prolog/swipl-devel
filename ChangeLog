@@ -7,6 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: pl -dump-runtime-variables value for PLLIB in single-threaded
+    version.  Roberto Bagnara.
+
+  * FIXED: Bug#64: Error handling for failing Prolog arithmetic functions.
+    Roland Illig.
+
   * FIXED: unifyable/3 corrupts the stacks when called with variables
     living on the local stack.  This notably affects dif/2.  Hugo Ferreira.  
 

@@ -4515,6 +4515,8 @@ echo "${ECHO_T}\"Use VirtualAlloc\"" >&6
 esac
 
 
+USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
+
 if test "$MT" = "yes"; then
 pthread_ok=false
 
@@ -4527,8 +4529,6 @@ _ACEOF
 
 	;;
 esac
-
-USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
 
   if test "$GCC" = "yes"; then
 echo "$as_me:$LINENO: checking \"whether gcc supports -pthread\"" >&5

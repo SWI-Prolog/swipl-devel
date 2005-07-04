@@ -270,6 +270,10 @@ dnl ****************************************************************
 dnl Finding libraries
 dnl ****************************************************************
 
+changequote(,)dnl
+USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
+changequote([,])dnl
+
 if test "$MT" = "yes"; then
 pthread_ok=false
 
@@ -279,10 +283,6 @@ case "$ARCH" in
 		  [Required in FreeBSD for compiling thread-safe code])
 	;;
 esac
-
-changequote(,)dnl
-USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
-changequote([,])dnl
 
   if test "$GCC" = "yes"; then
 AC_MSG_CHECKING("whether gcc supports -pthread")
