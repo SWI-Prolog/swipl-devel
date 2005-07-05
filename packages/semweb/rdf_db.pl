@@ -113,7 +113,8 @@
 	rdf_source/4.			% File, ModTimeAtLoad, Triples, MD5
 :- volatile
 	rdf_source/4.
-
+:- discontiguous
+	term_expansion/2.
 
 		 /*******************************
 		 *	     NAMESPACES		*
@@ -1198,13 +1199,22 @@ rdf_att_id(Id, _, NS:Local) :-
 rdf_att_id(Id, _, Id).
 
 
+%	rdf_value(+Resource, -Text, +Encoding)
+%	
+%	According  to  "6.4  RDF  URI  References"  of  the  RDF  Syntax
+%	specification, a URI reference is  UNICODE string not containing
+%	control sequences, represented as  UTF-8   and  then  as escaped
+%	US-ASCII.
+
 rdf_value(V, Text, Encoding) :-
 	ns(NS, Full),
 	atom_concat(Full, Local, V), !,
-	xml_quote_attribute(Local, QLocal, Encoding),
+	rdf_quote_uri(Local, QLocal0),
+	xml_quote_attribute(QLocal0, QLocal, Encoding),
 	concat_atom(['&', NS, (';'), QLocal], Text).
 rdf_value(V, Q, Encoding) :-
-	xml_quote_attribute(V, Q, Encoding).
+	rdf_quote_uri(V, Q0),
+	xml_quote_attribute(Q0, Q, Encoding).
 
 
 		 /*******************************

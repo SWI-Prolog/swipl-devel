@@ -1,3 +1,8 @@
+Jul 5, 2005
+
+  * ADDED/FIXED: Proper quoting of Unicode URI values conforming the
+    RDF standard.  Jochem Liem.
+
 Jun 29, 2005
 
   * FIXED: rdf:about instead of about when saving lists.  Jochem Liem.
