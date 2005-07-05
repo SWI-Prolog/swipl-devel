@@ -1,3 +1,8 @@
+Jul 3, 2005
+
+  * TS: Factored out option functionality into separate module.
+  * TS: Factored out utility code into separate module.
+
 Jun 29, 2005
 
   * TS: Changed chr_show_store/1 to use print/1 instead of write/1.

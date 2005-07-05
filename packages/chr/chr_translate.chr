@@ -140,6 +140,8 @@
 :- use_module(builtins).
 :- use_module(find).
 :- use_module(guard_entailment).
+:- use_module(chr_compiler_options).
+:- use_module(chr_compiler_utility).
 :- include(chr_op).
 :- op(1150, fx, chr_type).
 :- op(1130, xfx, --->).
@@ -405,8 +407,6 @@ set_constraint_indices([C|Cs],N) :-
 %%
 %% Translation
 
-%chr_translate(Declarations,NewDeclarations) :-
-%    time('total compile time',chr_translate_(Declarations,NewDeclarations)).
 chr_translate(Declarations,NewDeclarations) :-
 	init_chr_pp_flags,
 	partition_clauses(Declarations,Constraints,Rules,OtherClauses),
@@ -865,8 +865,14 @@ add_occurrences([H|Hs],[ID|IDs],RuleNb) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Observation Analysis
-%  - approximative: should make decision in late allocation analysis per body
 %
+% CLASSIFICATION
+%   Legacy
+%
+%  - approximative: should make decision in late allocation analysis per body
+%  TODO:
+%    remove
+
 constraints
 	observes/2,
 	spawns_observer/2,
@@ -1009,253 +1015,6 @@ late_allocation([C|Cs]) :-
 	late_allocation(Cs).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Global Options
-%
-
-handle_option(Var,Value) :- 
-	var(Var), !,
-	format('CHR compiler ERROR: ~w.\n',[option(Var,Value)]),
-	format('    `--> First argument should be an atom, not a variable.\n',[]),
-	fail.
-
-handle_option(Name,Value) :- 
-	var(Value), !,
-	format('CHR compiler ERROR: ~w.\n',[option(Name,Value)]),
-	format('    `--> Second argument should be a nonvariable.\n',[]),
-	fail.
-
-handle_option(Name,Value) :-
-	option_definition(Name,Value,Flags),
-	!,
-	set_chr_pp_flags(Flags).
-
-handle_option(Name,Value) :- 
-	\+ option_definition(Name,_,_), !,
-	setof(N,_V ^ _F ^ (option_definition(N,_V,_F)),Ns),
-	format('CHR compiler WARNING: ~w.\n',[option(Name,Value)]),
-	format('    `--> Invalid option name ~w: should be one of ~w.\n',[Name,Ns]).
-
-handle_option(Name,Value) :- 
-	findall(V,option_definition(Name,V,_),Vs), 
-	format('CHR compiler ERROR: ~w.\n',[option(Name,Value)]),
-	format('    `--> Invalid value ~w: should be one of ~w.\n',[Value,Vs]),
-	fail.
-
-option_definition(optimize,experimental,Flags) :-
-	Flags = [ functional_dependency_analysis  - on,
-                  check_unnecessary_active - off,
-		  reorder_heads		   - on,
-		  set_semantics_rule	   - off,
-		  storage_analysis	   - on,
-		  guard_via_reschedule     - on,
-		  guard_simplification	   - on,
-		  check_impossible_rules   - on,
-		  occurrence_subsumption   - on,
-		  observation		   - on,
-		  ai_observation_analysis	   - on,
-		  late_allocation	   - on,
-		  reduced_indexing	   - on
-		].
-option_definition(optimize,full,Flags) :-
-	Flags = [ functional_dependency_analysis  - on,
-                  check_unnecessary_active - full,
-		  reorder_heads		   - on,
-		  set_semantics_rule	   - on,
-		  storage_analysis	   - on,
-		  guard_via_reschedule     - on,
-		  guard_simplification	   - on,
-		  check_impossible_rules   - on,
-		  occurrence_subsumption   - on,
-		  observation		   - on,
-		  ai_observation_analysis	   - on,
-		  late_allocation	   - on,
-		  reduced_indexing	   - on
-		].
-
-option_definition(optimize,sicstus,Flags) :-
-	Flags = [ functional_dependency_analysis  - off,
-                  check_unnecessary_active - simplification,
-		  reorder_heads		   - off,
-		  set_semantics_rule	   - off,
-		  storage_analysis	   - off,
-		  guard_via_reschedule     - off,
-		  guard_simplification	   - off,
-		  check_impossible_rules   - off,
-		  occurrence_subsumption   - off,
-		  observation		   - off,
-		  ai_observation_analysis	   - off,
-		  late_allocation	   - off,
-		  reduced_indexing	   - off
-		].
-
-option_definition(optimize,off,Flags) :-
-	Flags = [ functional_dependency_analysis  - off,
-                  check_unnecessary_active - off,
-		  reorder_heads		   - off,
-		  set_semantics_rule	   - off,
-		  storage_analysis	   - off,
-		  guard_via_reschedule     - off,
-		  guard_simplification	   - off,
-		  check_impossible_rules   - off,
-		  occurrence_subsumption   - off,
-		  observation		   - off,
-		  ai_observation_analysis	   - off,
-		  late_allocation	   - off,
-		  reduced_indexing	   - off
-		].
-
-option_definition(functional_dependency_analysis,on,Flags) :-
-	Flags = [ functional_dependency_analysis - on ].
-option_definition(functional_dependency_analysis,off,Flags) :-
-	Flags = [ functional_dependency_analysis - off ].
-
-option_definition(set_semantics_rule,on,Flags) :-
-	Flags = [ set_semantics_rule - on ].
-option_definition(set_semantics_rule,off,Flags) :-
-	Flags = [ set_semantics_rule - off ].
-
-option_definition(check_unnecessary_active,full,Flags) :-
-	Flags = [ check_unnecessary_active - full ].
-option_definition(check_unnecessary_active,simplification,Flags) :-
-	Flags = [ check_unnecessary_active - simplification ].
-option_definition(check_unnecessary_active,off,Flags) :-
-	Flags = [ check_unnecessary_active - off ].
-
-option_definition(check_guard_bindings,on,Flags) :-
-	Flags = [ guard_locks - on ].
-option_definition(check_guard_bindings,off,Flags) :-
-	Flags = [ guard_locks - off ].
-
-option_definition(reduced_indexing,on,Flags) :-
-	Flags = [ reduced_indexing - on ].
-option_definition(reduced_indexing,off,Flags) :-
-	Flags = [ reduced_indexing - off ].
-
-option_definition(storage_analysis,on,Flags) :-
-	Flags = [ storage_analysis - on ].
-option_definition(storage_analysis,off,Flags) :-
-	Flags = [ storage_analysis - off ].
-
-option_definition(guard_simplification,on,Flags) :-
-	Flags = [ guard_simplification - on ].
-option_definition(guard_simplification,off,Flags) :-
-	Flags = [ guard_simplification - off ].
-
-option_definition(check_impossible_rules,on,Flags) :-
-	Flags = [ check_impossible_rules - on ].
-option_definition(check_impossible_rules,off,Flags) :-
-	Flags = [ check_impossible_rules - off ].
-
-option_definition(occurrence_subsumption,on,Flags) :-
-	Flags = [ occurrence_subsumption - on ].
-option_definition(occurrence_subsumption,off,Flags) :-
-	Flags = [ occurrence_subsumption - off ].
-
-option_definition(late_allocation,on,Flags) :-
-	Flags = [ late_allocation - on ].
-option_definition(late_allocation,off,Flags) :-
-	Flags = [ late_allocation - off ].
-
-option_definition(type_definition,TypeDef,[]) :-
-	( nonvar(TypeDef) ->
-	TypeDef = type(T,D),
-	type_definition(T,D)
-	; true).
-option_definition(type_declaration,TypeDecl,[]) :-
-	( nonvar(TypeDecl) ->
-	functor(TypeDecl,F,A),
-	TypeDecl =.. [_|ArgTypes],
-	constraint_type(F/A,ArgTypes)
-	; true).
-	
-option_definition(mode,ModeDecl,[]) :-
-	( nonvar(ModeDecl) ->
-	functor(ModeDecl,F,A),
-	ModeDecl =.. [_|ArgModes],
-	constraint_mode(F/A,ArgModes)
-	; true).
-option_definition(store,FA-Store,[]) :-
-	store_type(FA,Store).
-
-option_definition(debug,off,Flags) :-
-	Flags = [ debugable - off ].
-option_definition(debug,on,Flags) :-
-	Flags = [ debugable - on ].
-
-option_definition(store_counter,off,[]).
-option_definition(store_counter,on,[store_counter-on]).
-
-option_definition(observation,off,Flags) :-
-	Flags = [
-			observation_analysis - off,
-			ai_observation_analysis - off,
-			late_allocation - off,
-			storage_analysis - off
-		].
-option_definition(observation,on,Flags) :-
-	Flags = [
-			observation_analysis - on,
-			ai_observation_analysis - on
-		].
-option_definition(observation,regular,Flags) :-
-	Flags = [
-			observation_analysis - on,
-			ai_observation_analysis - off
-		].
-option_definition(observation,ai,Flags) :-
-	Flags = [
-			observation_analysis - off,
-			ai_observation_analysis - on
-		].
-
-option_definition(solver_events,NMod,Flags) :-
-	Flags =	[solver_events - NMod].
-
-init_chr_pp_flags :-
-	chr_pp_flag_definition(Name,[DefaultValue|_]),
-	set_chr_pp_flag(Name,DefaultValue),
-	fail.
-init_chr_pp_flags.		
-
-set_chr_pp_flags([]).
-set_chr_pp_flags([Name-Value|Flags]) :-
-	set_chr_pp_flag(Name,Value),
-	set_chr_pp_flags(Flags).
-
-set_chr_pp_flag(Name,Value) :-
-	atom_concat('$chr_pp_',Name,GlobalVar),
-	nb_setval(GlobalVar,Value).
-
-chr_pp_flag_definition(functional_dependency_analysis,[off,on]).
-chr_pp_flag_definition(check_unnecessary_active,[off,full,simplification]).
-chr_pp_flag_definition(reorder_heads,[off,on]).
-chr_pp_flag_definition(set_semantics_rule,[off,on]).
-chr_pp_flag_definition(guard_via_reschedule,[off,on]).
-chr_pp_flag_definition(guard_locks,[on,off]).
-chr_pp_flag_definition(storage_analysis,[off,on]).
-chr_pp_flag_definition(debugable,[on,off]).
-chr_pp_flag_definition(reduced_indexing,[off,on]).
-chr_pp_flag_definition(observation_analysis,[off,on]).
-chr_pp_flag_definition(ai_observation_analysis,[off,on]).
-chr_pp_flag_definition(late_allocation,[off,on]).
-chr_pp_flag_definition(store_counter,[off,on]).
-chr_pp_flag_definition(guard_simplification,[off,on]).
-chr_pp_flag_definition(check_impossible_rules,[off,on]).
-chr_pp_flag_definition(occurrence_subsumption,[off,on]).
-chr_pp_flag_definition(observation,[off,on]).
-chr_pp_flag_definition(show,[off,on]).
-chr_pp_flag_definition(solver_events,[none,_]).
-
-chr_pp_flag(Name,Value) :-
-	atom_concat('$chr_pp_',Name,GlobalVar),
-	nb_getval(GlobalVar,V),
-	( V == [] ->
-		chr_pp_flag_definition(Name,[Value|_])
-	;
-		V = Value
-	).
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
@@ -3735,82 +3494,6 @@ symmetry_analysis_heads([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%  ____        _        _____            _            _                     
-%% |  _ \ _   _| | ___  | ____|__ _ _   _(_)_   ____ _| | ___ _ __   ___ ___ 
-%% | |_) | | | | |/ _ \ |  _| / _` | | | | \ \ / / _` | |/ _ \ '_ \ / __/ _ \
-%% |  _ <| |_| | |  __/ | |__| (_| | |_| | |\ V / (_| | |  __/ | | | (_|  __/
-%% |_| \_\\__,_|_|\___| |_____\__, |\__,_|_| \_/ \__,_|_|\___|_| |_|\___\___|
-%%                               |_|                                         
-% have to check for no duplicates in value list
-
-% check wether two rules are identical
-
-identical_rules(rule(H11,H21,G1,B1),rule(H12,H22,G2,B2)) :-
-   G1 == G2,
-   identical_bodies(B1,B2),
-   permutation(H11,P1),
-   P1 == H12,
-   permutation(H21,P2),
-   P2 == H22.
-
-identical_bodies(B1,B2) :-
-   ( B1 = (X1 = Y1),
-     B2 = (X2 = Y2) ->
-     ( X1 == X2,
-       Y1 == Y2
-     ; X1 == Y2,
-       X2 == Y1
-     ),
-     !
-   ; B1 == B2
-   ).
- 
-% replace variables in list
-   
-copy_with_variable_replacement(X,Y,L) :-
-   ( var(X) ->
-     ( lookup_eq(L,X,Y) ->
-       true
-     ; X = Y
-     )
-   ; functor(X,F,A),
-     functor(Y,F,A),
-     X =.. [_|XArgs],
-     Y =.. [_|YArgs],
-     copy_with_variable_replacement_l(XArgs,YArgs,L)
-   ).
-
-copy_with_variable_replacement_l([],[],_).
-copy_with_variable_replacement_l([X|Xs],[Y|Ys],L) :-
-   copy_with_variable_replacement(X,Y,L),
-   copy_with_variable_replacement_l(Xs,Ys,L).
-   
-%% build variable replacement list
-
-variable_replacement(X,Y,L) :-
-   variable_replacement(X,Y,[],L).
-   
-variable_replacement(X,Y,L1,L2) :-
-   ( var(X) ->
-     var(Y),
-     ( lookup_eq(L1,X,Z) ->
-       Z == Y,
-       L2 = L1
-     ; ( X == Y -> L2=L1 ; L2 = [X-Y,Y-X|L1])
-     )
-   ; X =.. [F|XArgs],
-     nonvar(Y),
-     Y =.. [F|YArgs],
-     variable_replacement_l(XArgs,YArgs,L1,L2)
-   ).
-
-variable_replacement_l([],[],L,L).
-variable_replacement_l([X|Xs],[Y|Ys],L1,L3) :-
-   variable_replacement(X,Y,L1,L2),
-   variable_replacement_l(Xs,Ys,L2,L3).
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  ____  _                 _ _  __ _           _   _
 %% / ___|(_)_ __ ___  _ __ | (_)/ _(_) ___ __ _| |_(_) ___  _ __
 %% \___ \| | '_ ` _ \| '_ \| | | |_| |/ __/ _` | __| |/ _ \| '_ \
@@ -3841,7 +3524,7 @@ simplification_code(Head,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
-		my_term_copy(Guard - Body, VarDict, _, DebugGuard - DebugBody),		
+		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
 		DebugTry   = 'chr debug_event'(  try([Susp|RestSusps],[],DebugGuard,DebugBody)),
 		DebugApply = 'chr debug_event'(apply([Susp|RestSusps],[],DebugGuard,DebugBody))
 	;
@@ -4118,27 +3801,6 @@ simple_guard(G,VarDict) :-
 	     lookup_eq(VarDict,V,_)
 	   )).
 
-my_term_copy(X,Dict,Y) :-
-   my_term_copy(X,Dict,_,Y).
-
-my_term_copy(X,Dict1,Dict2,Y) :-
-   (   var(X) ->
-       (   lookup_eq(Dict1,X,Y) ->
-           Dict2 = Dict1
-       ;   Dict2 = [X-Y|Dict1]
-       )
-   ;   functor(X,XF,XA),
-       functor(Y,XF,XA),
-       X =.. [_|XArgs],
-       Y =.. [_|YArgs],
-       my_term_copy_list(XArgs,Dict1,Dict2,YArgs)
-   ).
-
-my_term_copy_list([],Dict,Dict,[]).
-my_term_copy_list([X|Xs],Dict1,Dict3,[Y|Ys]) :-
-   my_term_copy(X,Dict1,Dict2,Y),
-   my_term_copy_list(Xs,Dict2,Dict3,Ys).
-
 gen_cond_susp_detachment(Id,Susp,FA,SuspDetachment) :-
 	( is_stored(FA) ->
 		( (Id == [0]; 
@@ -4233,7 +3895,7 @@ simpagation_head1_code(Head,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
    gen_cond_susp_detachment(Id,Susp,F/A,SuspDetachment),
    
 	( chr_pp_flag(debugable,on) ->
-		my_term_copy(Guard - Body, VarDict, _, DebugGuard - DebugBody),		
+		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
 		DebugTry   = 'chr debug_event'(  try([Susp|Susps1],Susps2,DebugGuard,DebugBody)),
 		DebugApply = 'chr debug_event'(apply([Susp|Susps1],Susps2,DebugGuard,DebugBody))
 	;
@@ -4408,7 +4070,7 @@ simpagation_head2_new_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule
    ),
 
    ( chr_pp_flag(debugable,on) ->
-   	my_term_copy(Guard - Body, VarDict, _, DebugGuard - DebugBody),		
+   	my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
    	DebugTry   = 'chr debug_event'(  try([OtherSusp|Susps1],[Susp|Susps2],DebugGuard,DebugBody)),
    	DebugApply = 'chr debug_event'(apply([OtherSusp|Susps1],[Susp|Susps2],DebugGuard,DebugBody))
    ;
@@ -4515,7 +4177,7 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,L,T) :-
 
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
-		my_term_copy(Guard - Body, VarDict, _, DebugGuard - DebugBody),		
+		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
 		DebugTry   = 'chr debug_event'(  try([],[Susp],DebugGuard,DebugBody)),
 		DebugApply = 'chr debug_event'(apply([],[Susp],DebugGuard,DebugBody))
 	;
@@ -4645,7 +4307,7 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
-		my_term_copy(Guard - Body, VarDict, _, DebugGuard - DebugBody),		
+		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
 		DebugTry   = 'chr debug_event'(  try([],[Susp,OtherSusp|RestSusps],DebugGuard,DebugBody)),
 		DebugApply = 'chr debug_event'(apply([],[Susp,OtherSusp|RestSusps],DebugGuard,DebugBody))
 	;
@@ -4943,49 +4605,6 @@ and_pattern(Pos,Pat) :-
 	Y is 1 << X,          % was 2 ** X
 	Pat is (-1)*(Y + 1).	% because fx (-) is redefined
 
-conj2list(Conj,L) :-				%% transform conjunctions to list
-  conj2list(Conj,L,[]).
-
-conj2list(Conj,L,T) :-
-  Conj = (true,G2), !,
-  conj2list(G2,L,T).
-conj2list(Conj,L,T) :-
-  Conj = (G1,G2), !,
-  conj2list(G1,L,T1),
-  conj2list(G2,T1,T).
-conj2list(G,[G | T],T).
-
-disj2list(Conj,L) :-				%% transform disjunctions to list
-  disj2list(Conj,L,[]).
-disj2list(Conj,L,T) :-
-  Conj = (fail;G2), !,
-  disj2list(G2,L,T).
-disj2list(Conj,L,T) :-
-  Conj = (G1;G2), !,
-  disj2list(G1,L,T1),
-  disj2list(G2,T1,T).
-disj2list(G,[G | T],T).
-
-list2conj([],true).
-list2conj([G],X) :- !, X = G.
-list2conj([G|Gs],C) :-
-	( G == true ->				%% remove some redundant trues
-		list2conj(Gs,C)
-	;
-		C = (G,R),
-		list2conj(Gs,R)
-	).
-
-list2disj([],fail).
-list2disj([G],X) :- !, X = G.
-list2disj([G|Gs],C) :-
-	( G == fail ->				%% remove some redundant fails
-		list2disj(Gs,C)
-	;
-		C = (G;R),
-		list2disj(Gs,R)
-	).
-
 atom_concat_list([X],X) :- ! .
 atom_concat_list([X|Xs],A) :-
 	atom_concat_list(Xs,B),
@@ -5006,25 +4625,6 @@ select2(X, Y, [X|Xs], [Y|Ys], Xs, Ys).
 select2(X, Y, [X1|Xs], [Y1|Ys], [X1|NXs], [Y1|NYs]) :-
 	select2(X, Y, Xs, Ys, NXs, NYs).
 
-pair_all_with([],_,[]).
-pair_all_with([X|Xs],Y,[X-Y|Rest]) :-
-	pair_all_with(Xs,Y,Rest).
-
-replicate(N,E,L) :-
-	( N =< 0 ->
-		L = []
-	;
-		L = [E|T],
-		M is N - 1,
-		replicate(M,E,T)
-	).
-
-time(Phase,Goal) :-
-	statistics(runtime,[T1|_]),
-	call(Goal),
-	statistics(runtime,[T2|_]),
-	T is T2 - T1,
-	format('    ~w:\t\t~w ms\n',[Phase,T]).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Storetype dependent lookup
 lookup_passive_head(Head,PreJoin,VarDict,Goal,AllSusps) :-
@@ -5258,16 +4858,15 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%  _____                      _                      _        _ _ 
-% | ____|_  ___ __   ___ _ __(_)_ __ ___   ___ _ __ | |_ __ _| | |
-% |  _| \ \/ / '_ \ / _ \ '__| | '_ ` _ \ / _ \ '_ \| __/ _` | | |
-% | |___ >  <| |_) |  __/ |  | | | | | | |  __/ | | | || (_| | |_|
-% |_____/_/\_\ .__/ \___|_|  |_|_| |_| |_|\___|_| |_|\__\__,_|_(_)
-%            |_|                                                  
+% Observation Analysis
+% 
+% CLASSIFICATION
+%   Enabled 
 %
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% observation analysis based on Abstract Interpretation paper
+% Analysis based on Abstract Interpretation paper.
+% 
+% TODO: 
+%   stronger analysis domain [research]
 
 constraints
 	initial_call_pattern/1,
@@ -5529,27 +5128,20 @@ unconditional_occurrence_args([X|Xs]) :-
 	X = x,
 	unconditional_occurrence_args(Xs).
 
-is_variant(A,B) :-
-	copy_term_nat(A,AC),
-	copy_term_nat(B,BC),
-	term_variables(AC,AVars), 
-	term_variables(BC,BVars),
-	AC = BC,
-	is_variant1(AVars),
-	is_variant2(BVars).
-
-is_variant1([]).
-is_variant1([X|Xs]) :-
-	var(X),
-	X = '$test',
-	is_variant1(Xs).
-	
-is_variant2([]).
-is_variant2([X|Xs]) :-
-	X == '$test',
-	is_variant2(Xs).
- 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Generate rules that implement chr_show_store/1 functionality.
+%
+% CLASSIFICATION
+%   Experimental
+%   Unused
+%
+% Generates additional rules:
+%
+%   $show, C1 # ID ==> writeln(C1) pragma passive(ID).
+%   ...
+%   $show, Cn # ID ==> writeln(Cn) pragma passive(ID).
+%   $show <=> true.
+
 generate_show_constraint(Constraints0,Constraints,Rules0,Rules) :-
 	( chr_pp_flag(show,on) ->
 		Constraints = ['$show'/0|Constraints0],
