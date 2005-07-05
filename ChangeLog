@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.21 (July 05, 2005)
+==============================
+
   * ADDED: Documentation of the gensym library.
 
   * FIXED: parse_url(-, +) to insert %XX escape sequences for characters

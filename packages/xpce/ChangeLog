@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.21, distributed with SWI-Prolog 5.5.21
+==================================================
+
 * ADDED: Allow (re-)definition of ->_draw_postscript from Prolog.  See
   documentation in `graphical->_draw_postscript'.
 
