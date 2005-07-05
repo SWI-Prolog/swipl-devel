@@ -548,7 +548,7 @@ getICWindow(Any obj)
 		     XNClientWindow, xwin,
 		     NULL);
 	wsfr->icwin = xwin;
-	adjustEventMask(d->display_xref, xwin, ic);
+	adjustEventMask(d->display_xref, xwin, wsfr->ic);
 	DEBUG(NAME_event, Cprintf("Re-using IC %p (switched window)\n",
 				  wsfr->ic));
       } else
