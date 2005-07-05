@@ -2637,6 +2637,17 @@ pl_pce_open(Term t, Term mode, Term plhandle)
   PL_fail;
 }
 
+
+static foreign_t
+pl_pce_postscript_stream(term_t ps)
+{ IOSTREAM *s = pcePostScriptStream();
+
+  if ( s )
+    return PL_unify_stream(ps, s);
+
+  return FALSE;
+}
+
 #endif /*SWI*/
 
 		 /*******************************
@@ -3091,6 +3102,7 @@ registerPredicates()
   InstallPredicate("pce_method_implementation", 2,
 		   pl_pce_method_implementation, 0);
   InstallPredicate("pce_open",		3, pl_pce_open, 	0);
+  InstallPredicate("pce_postscript_stream", 1, pl_pce_postscript_stream, 0);
 }
 
 

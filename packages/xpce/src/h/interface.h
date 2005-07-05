@@ -518,6 +518,13 @@ __pce_export const char *pceOsError();
 #define PCE_SEEK_END	2
 
 		 /*******************************
+		 *	       MISC		*
+		 *******************************/
+
+__pce_export void *	pcePostScriptStream(void);
+
+
+		 /*******************************
 		 *	    CALL-BACK		*
 		 *******************************/
 

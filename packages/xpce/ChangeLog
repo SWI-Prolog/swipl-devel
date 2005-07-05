@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Allow (re-)definition of ->_draw_postscript from Prolog.  See
+  documentation in `graphical->_draw_postscript'.
+
 * FIXED: handling arrows on class arc.  MPWH.
 
 * FIXED: Bug#62: define class whose name is already used as a type causes

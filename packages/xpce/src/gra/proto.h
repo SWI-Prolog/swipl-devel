@@ -1,23 +1,23 @@
 #define COMMON(type) SO_LOCAL type
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/arc.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/arc.c */
 COMMON(void)	points_arc(Arc a, int *sx, int *sy, int *ex, int *ey);
 COMMON(status)	makeClassArc(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/arrow.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/arrow.c */
 COMMON(status)	makeClassArrow(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/bitmap.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/bitmap.c */
 COMMON(status)	updateSolidBitmap(BitmapObj bm);
 COMMON(status)	makeClassBitmap(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/box.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/box.c */
 COMMON(status)	makeClassBox(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/circle.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/circle.c */
 COMMON(status)	makeClassCircle(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/colour.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/colour.c */
 COMMON(Int)	getRedColour(Colour c);
 COMMON(Int)	getGreenColour(Colour c);
 COMMON(Int)	getBlueColour(Colour c);
@@ -25,15 +25,15 @@ COMMON(Colour)	getHiliteColour(Colour c, Real h);
 COMMON(Colour)	getReduceColour(Colour c, Real re);
 COMMON(status)	makeClassColour(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/connection.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/connection.c */
 COMMON(status)	updateHideExposeConnection(Connection c);
 COMMON(status)	updateDeviceConnection(Connection c);
 COMMON(status)	makeClassConnection(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/cursor.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/cursor.c */
 COMMON(status)	makeClassCursor(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/device.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/device.c */
 COMMON(status)	initialiseDevice(Device dev);
 COMMON(status)	unlinkDevice(Device dev);
 COMMON(CursorObj) getDisplayedCursorDevice(Device dev);
@@ -68,15 +68,15 @@ COMMON(status)	updateConnectionsDevice(Device dev, Int level);
 COMMON(status)	geometryDevice(Device dev, Int x, Int y, Int w, Int h);
 COMMON(status)	makeClassDevice(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/ellipse.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/ellipse.c */
 COMMON(status)	makeClassEllipse(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/figure.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/figure.c */
 COMMON(status)	initialiseFigure(Figure f);
 COMMON(Any)	RedrawBoxFigure(Figure f, Area area);
 COMMON(status)	makeClassFigure(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/font.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/font.c */
 COMMON(status)	replaceFont(FontObj f, DisplayObj d);
 COMMON(status)	makeBuiltinFonts(void);
 COMMON(Int)	getWidthFont(FontObj f, CharArray txt);
@@ -89,10 +89,10 @@ COMMON(Bool)	getFixedWidthFont(FontObj f);
 COMMON(Bool)	getB16Font(FontObj f);
 COMMON(status)	makeClassFont(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/format.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/format.c */
 COMMON(status)	makeClassFormat(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/graphical.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/graphical.c */
 COMMON(status)	initialiseGraphical(Any obj, Int x, Int y, Int w, Int h);
 COMMON(status)	unlinkGraphical(Graphical gr);
 COMMON(status)	copyGraphical(Any obj1, Any obj2);
@@ -192,13 +192,13 @@ COMMON(status)	clipGraphical(Graphical gr, Area a);
 COMMON(status)	unclipGraphical(Graphical gr);
 COMMON(status)	makeClassGraphical(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/handle.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/handle.c */
 COMMON(status)	getXYHandle(Handle h, Graphical gr, Device dev, Int *X, Int *Y);
 COMMON(Int)	getXHandle(Handle h, Graphical gr, Device dev);
 COMMON(Int)	getYHandle(Handle h, Graphical gr, Device dev);
 COMMON(status)	makeClassHandle(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/image.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/image.c */
 COMMON(status)	initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind);
 COMMON(Image)	getConvertImage(Class class, Any obj);
 COMMON(status)	XopenImage(Image image, DisplayObj d);
@@ -208,13 +208,13 @@ COMMON(status)	fillImage(Image image, Any pattern, Area area);
 COMMON(Image)	getMonochromeImage(Image image);
 COMMON(status)	makeClassImage(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/joint.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/joint.c */
 COMMON(status)	initialiseJoint(Joint jt, Int x, Int y, Int w, Int h, Name arrows);
 COMMON(status)	copyJoint(Joint jt1, Joint jt2);
 COMMON(status)	setArrowsJoint(Joint jt, Graphical first, Graphical second);
 COMMON(status)	makeClassJoint(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/line.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/line.c */
 COMMON(status)	initialiseLine(Line ln, Int xa, Int ya, Int xb, Int yb, Name arrows);
 COMMON(status)	adjustFirstArrowLine(Line ln);
 COMMON(status)	adjustSecondArrowLine(Line ln);
@@ -227,10 +227,10 @@ COMMON(Point)	getIntersectionLine(Line l1, Line l2);
 COMMON(Real)	getAngleLine(Line ln, Point p);
 COMMON(status)	makeClassLine(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/link.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/link.c */
 COMMON(status)	makeClassLink(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/listbrowser.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/listbrowser.c */
 COMMON(status)	requestGeometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h);
 COMMON(Size)	getSizeListBrowser(ListBrowser lb);
 COMMON(status)	executeSearchListBrowser(ListBrowser lb);
@@ -248,7 +248,7 @@ COMMON(DictItem) getMemberListBrowser(ListBrowser lb, Any key);
 COMMON(Chain)	getContainsListBrowser(ListBrowser lb);
 COMMON(status)	makeClassListBrowser(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/node.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/node.c */
 COMMON(status)	updateDisplayedTree(Tree t);
 COMMON(status)	relateImageNode(Node n, Node n2);
 COMMON(status)	forAllNode(Node n, Code msg);
@@ -256,13 +256,14 @@ COMMON(status)	forSomeNode(Node n, Code msg);
 COMMON(Node)	getFindNodeNode(Node n, Graphical gr);
 COMMON(status)	makeClassNode(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/path.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/path.c */
 COMMON(status)	adjustFirstArrowPath(Path p);
 COMMON(status)	adjustSecondArrowPath(Path p);
 COMMON(status)	makeClassPath(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/postscript.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/postscript.c */
 COMMON(StringObj) getPostscriptObject(Any obj, Bool ls, Area a);
+COMMON(__pce_export void *) pcePostScriptStream(void);
 COMMON(void)	ps_put_char(int c);
 COMMON(void)	ps_output(char *fm, ...);
 COMMON(status)	ps_font(FontObj font);
@@ -286,13 +287,13 @@ COMMON(status)	drawPostScriptText(TextObj t);
 COMMON(status)	postscriptFrame(FrameObj fr);
 COMMON(status)	postscriptDisplay(DisplayObj d);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/scrollbar.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/scrollbar.c */
 COMMON(Int)	getMarginScrollBar(ScrollBar sb);
 COMMON(status)	placeScrollBar(ScrollBar sb, Graphical gr);
 COMMON(status)	bubbleScrollBar(ScrollBar sb, Int l, Int s, Int v);
 COMMON(status)	makeClassScrollBar(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/text.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/text.c */
 COMMON(void)	str_format(String out, const String in, const int width, const FontObj font);
 COMMON(status)	repaintText(TextObj t, int x, int y, int w, int h);
 COMMON(Int)	get_pointed_text(TextObj t, int x, int y);
@@ -306,14 +307,14 @@ COMMON(status)	lengthText(TextObj t, Int l);
 COMMON(status)	marginText(TextObj t, Int width, Name wrap);
 COMMON(status)	makeClassText(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/tree.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/tree.c */
 COMMON(status)	requestComputeTree(Tree t);
 COMMON(status)	displayTree(Tree t, Node n);
 COMMON(status)	unzoomTree(Tree t);
 COMMON(status)	zoomTree(Tree t, Node n);
 COMMON(status)	makeClassTree(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/visual.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/visual.c */
 COMMON(status)	resetVisual(VisualObj v);
 COMMON(status)	destroyVisual(VisualObj v);
 COMMON(Any)	getReportToVisual(VisualObj v);
@@ -321,28 +322,28 @@ COMMON(status)	reportVisual(VisualObj v, Name kind, CharArray fmt, int argc, Any
 COMMON(status)	alertReporteeVisual(Any v);
 COMMON(status)	makeClassVisual(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/pixmap.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/pixmap.c */
 COMMON(Colour)	getReplacementColourPixmap(PixmapObj pm);
 COMMON(status)	makeClassPixmap(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/elevation.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/elevation.c */
 COMMON(Elevation) getModifyElevation(Elevation e, Name att, Any val);
 COMMON(status)	makeClassElevation(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/pen.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/pen.c */
 COMMON(status)	makeClassPen(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/draw.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/draw.c */
 COMMON(void)	r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/colourmap.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/colourmap.c */
 COMMON(status)	makeClassColourMap(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/bezier.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/bezier.c */
 COMMON(status)	adjustFirstArrowBezier(Bezier b);
 COMMON(status)	adjustSecondArrowBezier(Bezier b);
 COMMON(status)	makeClassBezier(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/gra/hsv.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/hsv.c */
 COMMON(void)	RGBToHSV(float r, float g, float b, float *H, float *S, float *V);
 COMMON(void)	HSVToRGB(float hue, float sat, float V, float *R, float *G, float *B);

@@ -79,6 +79,7 @@ getPostscriptObject(Any obj, Bool ls, Area a)
     send(obj, NAME_compute, EAV);
   if ( !header(obj, a, ls) )
   { Sclose(psoutput);
+    psoutput = NULL;
     free(PostScript);
     fail;
   }
@@ -86,10 +87,17 @@ getPostscriptObject(Any obj, Bool ls, Area a)
   footer();
 
   Sclose(psoutput);
+  psoutput = NULL;
   result = CtoString(PostScript);	/* TBD: avoid duplication! */
   free(PostScript);
 
   answer(result);
+}
+
+
+__pce_export void *
+pcePostScriptStream(void)
+{ return psoutput;
 }
 
 
