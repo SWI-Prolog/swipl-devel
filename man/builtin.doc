@@ -5419,14 +5419,6 @@ Example:
 Yes
 \end{code}
 
-    \predicate{gensym}{2}{+Base, -Unique}
-Generate a unique atom from base \arg{Base} and unify it with \arg{Unique}.
-\arg{Base} should be an atom. The first call will return \mbox{<base>1}, 
-the next \mbox{<base>2}, etc. Note that this is no warrant that the atom
-is unique in the system.%
-\bug{I plan to supply a real gensym/2 which does give this warrant for
-future versions.}
-
     \predicate{sleep}{1}{+Time}
 Suspend execution \arg{Time} seconds. \arg{Time} is either a floating
 point number or an integer. Granularity is dependent on the system's

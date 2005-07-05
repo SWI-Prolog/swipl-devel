@@ -797,6 +797,10 @@ represented.  See the \const{REP_*} flags below for details.
 \const{CVT_ALL}     & Convert if term is any of the above, except for
                       \const{CVT_VARIABLE} and \const{CVT_WRITE} \\
 \hline
+\const{CVT_EXCEPTION}&If conversion fails due to a type error, raise
+		      a Prolog type error exception in addition to
+		      failure \\
+\hline
 \const{BUF_DISCARDABLE}     & Data must copied immediately \\
 \const{BUF_RING}    & Data is stored in a ring of buffers \\
 \const{BUF_MALLOC}  & Data is copied to a new buffer returned by

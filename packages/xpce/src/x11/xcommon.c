@@ -500,10 +500,9 @@ A good document is:
 	http://home.catv.ne.jp/pp/ginoue/im/xim-e.html
 
 One of the issues is the window for an IC. Can/should this always be the
-frame? At the moment it is the X11 window realising the event receiver.
+frame? At the moment it is the  X11 window realising the event receiver.
+Using the frame window for all XIM operations does not work.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-//#define IC_ON_FRAME 1
 
 #ifdef O_XIM
 static void
@@ -526,24 +525,16 @@ getICWindow(Any obj)
 
   if ( instanceOfObject(obj, ClassFrame) )
   { fr = obj;
-#ifndef IC_ON_FRAME
     w = widgetFrame(fr);
     DEBUG(NAME_event, Cprintf("Associating IC with %s ...", pp(fr)));
-#endif
   } else if ( instanceOfObject(obj, ClassWindow) )
   { PceWindow sw = obj;
     if ( !(fr = getFrameWindow(sw, OFF)) )
       fail;
-#ifndef IC_ON_FRAME
     w = widgetWindow(sw);
     DEBUG(NAME_event, Cprintf("Associating IC with %s ...", pp(sw)));
-#endif
   } else
     fail;
-
-#ifdef IC_ON_FRAME
-  w = widgetFrame(fr);
-#endif
 
   d = fr->display->ws_ref;
 
@@ -563,6 +554,7 @@ getICWindow(Any obj)
       } else
       { DEBUG(NAME_event, Cprintf("Re-using IC %p\n", wsfr->ic));
       }
+
       return wsfr->ic;
     }
 

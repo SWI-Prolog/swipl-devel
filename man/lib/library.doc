@@ -27,6 +27,7 @@ documented at all.
 \end{quote}
 
 \input{lists}
+\input{gensym}
 \input{check}
 \input{debug}
 \input{readutil}

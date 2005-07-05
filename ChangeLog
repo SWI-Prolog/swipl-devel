@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Documentation of the gensym library.
+
   * FIXED: parse_url(-, +) to insert %XX escape sequences for characters
     that are not allowed in path-name or fragment names.
 

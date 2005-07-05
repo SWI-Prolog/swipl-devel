@@ -2399,4 +2399,3 @@
 #define NAME_yref (&builtin_names[2398])
 #define NAME_yrefVar (&builtin_names[2399])
 #define NAME_zoom (&builtin_names[2400])
-#define NAME_PostscriptStream (&builtin_names[2401])

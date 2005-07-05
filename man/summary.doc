@@ -434,6 +434,8 @@ suggest predicates from a keyword.
 \predicatesummary{rename_file}{2}{Change name of file}
 \predicatesummary{repeat}{0}{Succeed, leaving infinite backtrack points}
 \predicatesummary{require}{1}{This file requires these predicates}
+\predicatesummary{reset_gensym}{1}{Reset a gensym key}
+\predicatesummary{reset_gensym}{0}{Reset all gensym keys}
 \predicatesummary{reset_profiler}{0}{Clear statistics obtained by the profiler}
 \predicatesummary{resource}{3}{Declare a program resource}
 \predicatesummary{retract}{1}{Remove clause from the database}
