@@ -1,6 +1,6 @@
 \libdoc{gensym}{Generate unique identifiers}
 
-Gensym (\textbf{G}enerate \textbf{S}ymbols) is an old library for
+Gensym (\textbf{Gen}erate \textbf{Sym}bols) is an old library for
 generating unique symbols (atoms).  Such symbols are generated from
 a base atom which gets a sequence number appended.  Of course there
 is no guarantee that `catch22' is not an already defined atom and
