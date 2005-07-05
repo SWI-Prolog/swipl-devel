@@ -1,3 +1,7 @@
+Jul 5, 2005
+
+  * FIXED: Perform proper URI decoding to Unicode atoms
+
 Jul 4, 2005
 
   * FIXED: Make "make check" work from the build directory.

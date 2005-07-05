@@ -36,6 +36,8 @@
 	  ]).
 :- use_module(rewrite).
 :- use_module(library(sgml)).		% xml_name/1
+:- use_module(library(lists)).
+:- use_module(library(url)).
 
 :- op(500, fx, \?).			% Optional (attrs)
 
@@ -104,7 +106,7 @@ nodeElementOrError(unparsed(Data), _Options) ::=
 	Data.
 
 nodeElement(container(Type, Id, Elements), Options) ::=
-	\container(Type, Id, Elements, Options), !. % compatibility
+	\container(Type, Id, Elements, Options), !. 	% compatibility
 nodeElement(description(Type, About, BagID, Properties), Options) ::=
 	\description(Type, About, BagID, Properties, Options).
 
@@ -392,7 +394,7 @@ uri(URI, Options) ::=
 	->  canonical_uri(A, Base, URI)
 	;   sub_atom(A, 0, _, _, #)
 	->  sub_atom(A, 1, _, 0, URI)
-	;   URI = A
+	;   decode_uri(A, URI)
 	}.
 
 globalid(Id, Options) ::=
@@ -416,21 +418,92 @@ make_globalid(In, Options, Id) :-
 	(   memberchk(base_uri(Base), Options),
 	    Base \== []
 	->  (   is_absolute_url(In)
-	    ->	Id = In
-	    ;	concat_atom([Base, In], #, Id)
+	    ->	decode_uri(In, Id)
+	    ;	concat_atom([Base, In], #, Id0),
+		decode_uri(Id0, Id)
 	    )
 	;   sub_atom(In, 0, _, _, #)
 	->  sub_atom(In, 1, _, 0, Id)
-	;   Id = In
+	;   decode_uri(In, Id)
 	).
 
 
 %	canonical_uri(+In, +Base, -Absolute)
+%	
+%	Make the URI absolute and decode special sequences. For the last
+%	clause, which is the correct order?
 
 canonical_uri('', Base, Base) :- !.	% '' expands to xml:base
-canonical_uri(URI, [], URI) :- !.	% do not use one
+canonical_uri(URI0, [], URI) :- !,	% do not use one
+	decode_uri(URI0, URI).
 canonical_uri(URI, Base, Global) :-	% use our generic library
-	global_url(URI, Base, Global).
+	global_url(URI, Base, Global0),
+	decode_uri(Global0, Global).
+
+
+%	decode_uri(+Encoded, -Decoded)
+%	
+%	RDF URIs are encoded  Unicode  strings.   First  the  unicode is
+%	translated using UTF-8 and then  the   result  is represented as
+%	US-ASCII using %XX sequences. Here we have to do the reverse.
+
+decode_uri(Encoded, Decoded) :-
+	sub_atom(Encoded, _, _, _, '%'), !,
+	atom_codes(Encoded, Codes),
+	unescape_precent(Codes, UTF8),
+	phrase(utf8_string(Unicodes), UTF8),
+	atom_codes(Decoded, Unicodes).
+decode_uri(Encoded, Encoded).
+
+unescape_precent([], []).
+unescape_precent([0'%,D1,D2|T0], [H|T]) :- !,
+	H is (D1-0'0) * 16 + (D2-0'0),
+	unescape_precent(T0, T).
+unescape_precent([H|T0], [H|T]) :-
+	unescape_precent(T0, T).
+
+utf8_string([H|T]) -->
+	utf8(H), !,
+	utf8_string(T).
+utf8_string([]) -->
+	[].
+
+utf8(C) -->
+	[C0],
+	(   {C0 < 0x80}
+	->  {C = C0}
+	;   {C0/\0xe0 =:= 0xc0}
+	->  utf8_cont(C1, 0),
+	    {C is (C0/\0x1f)<<6\/C1}
+	;   {C0/\0xf0 =:= 0xe0}
+	->  utf8_cont(C1, 6),
+	    utf8_cont(C2, 0),
+	    {C is (C0\/0xf)<<16\/C1\/C2}
+	;   {C0/\0xf8 =:= 0xf0}
+	->  utf8_cont(C1, 12),
+	    utf8_cont(C2, 6),
+	    utf8_cont(C3, 0),
+	    {C is (C0\/0x7)<<16\/C1\/C2\/C3}
+	;   {C0/\0xfc =:= 0xf8}
+	->  utf8_cont(C1, 18),
+	    utf8_cont(C2, 12),
+	    utf8_cont(C3, 6),
+	    utf8_cont(C4, 0),
+	    {C is (C0\/0x3)<<24\/C1\/C2\/C3\/C4}
+	;   {C0/\0xfc =:= 0xf8}
+	->  utf8_cont(C1, 24),
+	    utf8_cont(C2, 18),
+	    utf8_cont(C3, 12),
+	    utf8_cont(C4, 6),
+	    utf8_cont(C5, 0),
+	    {C is (C0\/0x1)<<30\/C1\/C2\/C3\/C4\/C5}
+	).
+
+utf8_cont(Val, Shift) -->
+	[C],
+	{ C/\0xc0 =:= 0x80,
+	  Val is (C/\0x3f)<<Shift
+	}.
 
 
 		 /*******************************
