@@ -326,12 +326,12 @@ rule(RuleNb,Rule), occurrence(C,O,RuleNb,_) \ allocation_occurrence(C,O)
 	| NO is O + 1, allocation_occurrence(C,NO).
 	% need not store constraint if does not observe itself
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,_) \ allocation_occurrence(C,O)
-	<=> Rule = pragma(rule([_|_],_,_,_),_,_,_,_), \+ (is_self_observer(C),ai_is_observed(C,O))
+	<=> Rule = pragma(rule([_|_],_,_,_),_,_,_,_), \+ is_observed(C,O)
 	| NO is O + 1, allocation_occurrence(C,NO).
 	% need not store constraint if does not observe itself and cannot trigger
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,_), least_occurrence(RuleNb,[])
 	\ allocation_occurrence(C,O)
-	<=> Rule = pragma(rule([],Heads,_,_),_,_,_,_), \+ (is_self_observer(C),ai_is_observed(C,O))
+	<=> Rule = pragma(rule([],Heads,_,_),_,_,_,_), \+ is_observed(C,O)
 	| NO is O + 1, allocation_occurrence(C,NO).
 
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,ID), allocation_occurrence(C,AO)
@@ -872,6 +872,10 @@ add_occurrences([H|Hs],[ID|IDs],RuleNb) :-
 %  - approximative: should make decision in late allocation analysis per body
 %  TODO:
 %    remove
+
+is_observed(C,O) :-
+	is_self_observer(C),
+	ai_is_observed(C,O).
 
 constraints
 	observes/2,
@@ -2900,8 +2904,7 @@ check_storage_head2(Head,O,H1,B) :-
 	functor(Head,F,A),
 	C = F/A,
 	( ( (H1 \== [], B == true ) ; 
-	   \+ is_self_observer(F/A) ; 
-	   \+ ai_is_observed(F/A,O) ) ->
+	   \+ is_observed(F/A,O) ) ->
 		stored(C,O,maybe)
 	;
 		stored(C,O,yes)
@@ -3508,13 +3511,7 @@ simplification_code(Head,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	get_constraint_mode(F/A,Mode),
 	head_arg_matches(HeadPairs,Mode,[],FirstMatching,VarDict1),
 	
-	(   RestHeads == [] ->
-	    Susps = [],
-	    VarDict = VarDict1,
-	    GetRestHeads = []
-	;   
-	    rest_heads_retrieval_and_matching(RestHeads,RestIDs,Head,GetRestHeads,Susps,VarDict1,VarDict)
-	),
+	rest_heads_retrieval_and_matching(RestHeads,RestIDs,Head,GetRestHeads,Susps,VarDict1,VarDict),
 	
 	guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy),
 	guard_via_reschedule(GetRestHeads,GuardCopyList,ClauseHead-FirstMatching,RescheduledTest),
@@ -3526,18 +3523,16 @@ simplification_code(Head,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 		Rule = rule(_,_,Guard,Body),
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
 		DebugTry   = 'chr debug_event'(  try([Susp|RestSusps],[],DebugGuard,DebugBody)),
-		DebugApply = 'chr debug_event'(apply([Susp|RestSusps],[],DebugGuard,DebugBody))
+		DebugApply = 'chr debug_event'(apply([Susp|RestSusps],[],DebugGuard,DebugBody)),
+		instrument_goal(ActualCut,DebugTry,DebugApply,Cut)
 	;
-		DebugTry = true,
-		DebugApply = true
+		Cut = ActualCut
 	),
-	( unconditional_occurrence(F/A,O), chr_pp_flag(late_allocation,on) -> Cut = true ; Cut = (!) ),	
+	( unconditional_occurrence(F/A,O), chr_pp_flag(late_allocation,on) -> ActualCut = true ; ActualCut = (!) ),	
 	Clause = ( ClauseHead :-
 			FirstMatching, 
 		     RescheduledTest,
-		     DebugTry,
 	             Cut,
-		     DebugApply,
 	             SuspsDetachments,
 	             SuspDetachment,
 	             BodyCopy
@@ -3885,7 +3880,6 @@ simpagation_head1_code(Head,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
    append(OtherIDs,Heads2IDs,IDs),
    reorder_heads(RuleNb,Head,Heads,IDs,NHeads,NIDs),
    rest_heads_retrieval_and_matching(NHeads,NIDs,Head,GetRestHeads,Susps,VarDict1,VarDict),
-   % rest_heads_retrieval_and_matching(NHeads,NIDs,Head,GetRestHeads,Susps,VarDict1,VarDict,[Head],[Susp],[]),
    split_by_ids(NIDs,Susps,OtherIDs,Susps1,Susps2), 
 
    guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy),
@@ -3897,18 +3891,16 @@ simpagation_head1_code(Head,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
 	( chr_pp_flag(debugable,on) ->
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
 		DebugTry   = 'chr debug_event'(  try([Susp|Susps1],Susps2,DebugGuard,DebugBody)),
-		DebugApply = 'chr debug_event'(apply([Susp|Susps1],Susps2,DebugGuard,DebugBody))
+		DebugApply = 'chr debug_event'(apply([Susp|Susps1],Susps2,DebugGuard,DebugBody)),
+		instrument_goal((!),DebugTry,DebugApply,Cut)
 	;
-		DebugTry = true,
-		DebugApply = true
+		Cut = (!)
 	),
 
    Clause = ( ClauseHead :-
 		FirstMatching, 
 		RescheduledTest,
-		DebugTry,
-                !,
-		DebugApply,
+		Cut,
                 SuspsDetachments,
                 SuspDetachment,
                 BodyCopy
@@ -4039,17 +4031,9 @@ simpagation_head2_new_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule
    ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],
    build_head(F,A,Id,ClauseVars,ClauseHead),
 
-   ( NextHeads \== []   ->
 	rest_heads_retrieval_and_matching(NextHeads,NextIDs,[CurrentHead|PreHeads],RestSuspsRetrieval,Susps,VarDict1,VarDict2,[CurrentHead|PreHeads],[OtherSusp|PreSusps],[]),
         split_by_ids(NextIDs,Susps,IDs1,Susps1,Susps2),
-	split_by_ids(NextIDs,NextHeads,IDs1,RestHeads1,_) 
-   ;   
-	RestSuspsRetrieval = [],
-	Susps1 = [],
-        Susps2 = [],
-        VarDict1 = VarDict2,
-	RestHeads1 = []
-   ),
+	split_by_ids(NextIDs,NextHeads,IDs1,RestHeads1,_),
 
    gen_uncond_susps_detachments([OtherSusp | Susps1],[CurrentHead|RestHeads1],Susps1Detachments),
 
@@ -4060,7 +4044,7 @@ simpagation_head2_new_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule
 
    guard_body_copies2(Rule,VarDict2,GuardCopyList,BodyCopy),
    guard_via_reschedule(RestSuspsRetrieval,GuardCopyList,v(ClauseHead,CurrentSuspTest),RescheduledTest),
-   (   BodyCopy \== true, is_self_observer(F/A), ai_is_observed(F/A,O) ->
+   (   BodyCopy \== true, is_observed(F/A,O) ->
        gen_uncond_attach_goal(F/A,Susp,Attachment,Generation),
        gen_state_cond_call(Susp,A,RecursiveCall,Generation,ConditionalRecursiveCall),
        gen_state_cond_call(Susp,A,RecursiveCall2,Generation,ConditionalRecursiveCall2)
@@ -4149,40 +4133,40 @@ propagation_code(Head,RestHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,T) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Single headed propagation
 %% everything in a single clause
-propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,L,T) :-
-   head_info(Head,A,Vars,Susp,VarsSusp,HeadPairs),
-   build_head(F,A,Id,VarsSusp,ClauseHead),
-
-   inc_id(Id,NextId),
-   build_head(F,A,NextId,VarsSusp,NextHead),
-
-   RecursiveCall = NextHead,
-   get_constraint_mode(F/A,Mode),
-   head_arg_matches(HeadPairs,Mode,[],HeadMatching,VarDict),
-   guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
-   gen_occ_allocation(F/A,O,Vars,Susp,VarsSusp,Allocation),
-
-   (   BodyCopy \== true, is_self_observer(F/A), ai_is_observed(F/A,O) ->
-       gen_uncond_attach_goal(F/A,Susp,Attachment,Generation),
-       gen_state_cond_call(Susp,A,RecursiveCall,Generation,ConditionalRecursiveCall)
-   ;   Attachment = true,
-       ConditionalRecursiveCall = RecursiveCall
-   ),
+propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
+	head_info(Head,A,Vars,Susp,VarsSusp,HeadPairs),
+	build_head(F,A,Id,VarsSusp,ClauseHead),
+	
+	inc_id(Id,NextId),
+	build_head(F,A,NextId,VarsSusp,NextHead),
+	
+	RecursiveCall = NextHead,
+	get_constraint_mode(F/A,Mode),
+	head_arg_matches(HeadPairs,Mode,[],HeadMatching,VarDict),
+	guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
+	gen_occ_allocation(F/A,O,Vars,Susp,VarsSusp,Allocation),
+	
+	( BodyCopy \== true, is_observed(F/A,O) ->
+	    gen_uncond_attach_goal(F/A,Susp,Attachment,Generation),
+	    gen_state_cond_call(Susp,A,RecursiveCall,Generation,ConditionalRecursiveCall)
+	;   Attachment = true,
+	    ConditionalRecursiveCall = RecursiveCall
+	),
 
 	( unconditional_occurrence(F/A,O), chr_pp_flag(late_allocation,on) ->
-		Cut = true
+		ActualCut = true
 	;
-		Cut = !
+		ActualCut = !
 	),
 
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
 		DebugTry   = 'chr debug_event'(  try([],[Susp],DebugGuard,DebugBody)),
-		DebugApply = 'chr debug_event'(apply([],[Susp],DebugGuard,DebugBody))
+		DebugApply = 'chr debug_event'(apply([],[Susp],DebugGuard,DebugBody)),
+		instrument_goal(ActualCut,DebugTry,DebugApply,Cut)
 	;
-		DebugTry = true,
-		DebugApply = true
+		Cut = ActualCut
 	),
 
    	( may_trigger(F/A) ->
@@ -4193,21 +4177,19 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,L,T) :-
 		ExtendHistory   = true
 	),
 
-   Clause = (
-        ClauseHead :-
-		HeadMatching,
-		Allocation,
-		NovelProduction,
-		GuardCopy,
-		DebugTry,
-		Cut,
-		DebugApply,
-		ExtendHistory,
-		Attachment,
-		BodyCopy,
-		ConditionalRecursiveCall
-   ),  
-   L = [Clause | T].
+	Clause = (
+	     ClauseHead :-
+	     	HeadMatching,
+	     	Allocation,
+	     	NovelProduction,
+	     	GuardCopy,
+	     	Cut,
+	     	ExtendHistory,
+	     	Attachment,
+	     	BodyCopy,
+	     	ConditionalRecursiveCall
+	),  
+	ProgramList = [Clause | ProgramTail].
    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% multi headed propagation
@@ -4284,7 +4266,7 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
    different_from_other_susps(CurrentHead,OtherSusp,PreHeads,RestSusps,DiffSuspGoals), 
    guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
 
-   (   BodyCopy \== true, is_self_observer(F/A), ai_is_observed(F/A,O) ->
+   (   BodyCopy \== true, is_observed(F/A,O) ->
        gen_uncond_attach_goal(F/A,Susp,Attach,Generation),
        gen_state_cond_call(Susp,A,RecursiveCall,Generation,ConditionalRecursiveCall)
    ;   Attach = true,
@@ -4566,11 +4548,6 @@ build_head(F,A,Id,Args,Head) :-
 	   Head =.. [Name|ArgsWOSusp]
   ).
 
-init([],[]).
-init([X],[]) :- !.
-init([X|Xs],[X|R]) :-
-	init(Xs,R).
-
 buildName(Fct,Aty,List,Result) :-
    ( (chr_pp_flag(debugable,on) ; (once((is_stored(Fct/Aty), ( has_active_occurrence(Fct/Aty) ; chr_pp_flag(late_allocation,off)), 
    ( may_trigger(Fct/Aty) ; get_allocation_occurrence(Fct/Aty,AO), get_max_occurrence(Fct/Aty,MO), 
@@ -4605,25 +4582,8 @@ and_pattern(Pos,Pat) :-
 	Y is 1 << X,          % was 2 ** X
 	Pat is (-1)*(Y + 1).	% because fx (-) is redefined
 
-atom_concat_list([X],X) :- ! .
-atom_concat_list([X|Xs],A) :-
-	atom_concat_list(Xs,B),
-	atom_concat(X,B,A).
-
 make_name(Prefix,F/A,Name) :-
 	atom_concat_list([Prefix,F,(/),A],Name).
-
-set_elems([],_).
-set_elems([X|Xs],X) :-
-	set_elems(Xs,X).
-
-member2([X|_],[Y|_],X-Y).
-member2([_|Xs],[_|Ys],P) :-
-	member2(Xs,Ys,P).
-
-select2(X, Y, [X|Xs], [Y|Ys], Xs, Ys).
-select2(X, Y, [X1|Xs], [Y1|Ys], [X1|NXs], [Y1|NYs]) :-
-	select2(X, Y, Xs, Ys, NXs, NYs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Storetype dependent lookup

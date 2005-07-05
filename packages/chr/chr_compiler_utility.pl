@@ -43,8 +43,15 @@
 	, copy_with_variable_replacement/3
 	, my_term_copy/3
 	, my_term_copy/4
+	, atom_concat_list/2
+	, init/2
+	, member2/3
+	, select2/6
+	, set_elems/2
+	, instrument_goal/4
 	]).
 
+:- use_module(pairlist).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 is_variant(A,B) :-
 	copy_term_nat(A,AC),
@@ -160,7 +167,7 @@ identical_bodies(B1,B2) :-
    
 copy_with_variable_replacement(X,Y,L) :-
    ( var(X) ->
-     ( chr_translate:lookup_eq(L,X,Y) ->
+     ( lookup_eq(L,X,Y) ->
        true
      ; X = Y
      )
@@ -184,7 +191,7 @@ variable_replacement(X,Y,L) :-
 variable_replacement(X,Y,L1,L2) :-
    ( var(X) ->
      var(Y),
-     ( chr_translate:lookup_eq(L1,X,Z) ->
+     ( lookup_eq(L1,X,Z) ->
        Z == Y,
        L2 = L1
      ; ( X == Y -> L2=L1 ; L2 = [X-Y,Y-X|L1])
@@ -206,7 +213,7 @@ my_term_copy(X,Dict,Y) :-
 
 my_term_copy(X,Dict1,Dict2,Y) :-
    (   var(X) ->
-       (   chr_translate:lookup_eq(Dict1,X,Y) ->
+       (   lookup_eq(Dict1,X,Y) ->
            Dict2 = Dict1
        ;   Dict2 = [X-Y|Dict1]
        )
@@ -222,3 +229,27 @@ my_term_copy_list([X|Xs],Dict1,Dict3,[Y|Ys]) :-
    my_term_copy(X,Dict1,Dict2,Y),
    my_term_copy_list(Xs,Dict2,Dict3,Ys).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+atom_concat_list([X],X) :- ! .
+atom_concat_list([X|Xs],A) :-
+	atom_concat_list(Xs,B),
+	atom_concat(X,B,A).
+
+set_elems([],_).
+set_elems([X|Xs],X) :-
+	set_elems(Xs,X).
+
+init([],[]).
+init([X],[]) :- !.
+init([X|Xs],[X|R]) :-
+	init(Xs,R).
+
+member2([X|_],[Y|_],X-Y).
+member2([_|Xs],[_|Ys],P) :-
+	member2(Xs,Ys,P).
+
+select2(X, Y, [X|Xs], [Y|Ys], Xs, Ys).
+select2(X, Y, [X1|Xs], [Y1|Ys], [X1|NXs], [Y1|NYs]) :-
+	select2(X, Y, Xs, Ys, NXs, NYs).
+
+instrument_goal(Goal,Pre,Post,(Pre,Goal,Post)).
