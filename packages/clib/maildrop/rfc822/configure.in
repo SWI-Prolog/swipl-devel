@@ -6,8 +6,8 @@ dnl distribution information.
 
 AC_INIT(rfc822.c)
 
-AM_INIT_AUTOMAKE(rfc822lib, 0.12, 0)
-AM_CONFIG_HEADER(config.h)
+dnl AM_INIT_AUTOMAKE(rfc822lib, 0.12, 0)
+dnl AM_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
 AC_PROG_CC

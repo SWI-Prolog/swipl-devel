@@ -4,8 +4,8 @@ dnl Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 AC_INIT(rfc2045.c)
 
-AM_INIT_AUTOMAKE(rfc2045lib, 0.10, 0)
-AM_CONFIG_HEADER(config.h)
+dnl AM_INIT_AUTOMAKE(rfc2045lib, 0.10, 0)
+dnl AM_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
 AC_PROG_CC
