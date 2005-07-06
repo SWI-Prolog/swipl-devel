@@ -547,7 +547,7 @@ point. Claims are made that sprintf()   may  not use grouping separators
 (e.g. 100,000.00) according to the C99 standard.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static char *
+char *
 format_float(double f, char *buf, const char *format)
 { char *q;
 

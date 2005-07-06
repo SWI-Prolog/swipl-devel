@@ -110,23 +110,8 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     text->storage   = PL_CHARS_LOCAL;
     text->canonical = TRUE;
   } else if ( (flags & CVT_FLOAT) && isReal(w) )
-  { char *q;
-
-    Ssprintf(text->buf, LD->float_format, valReal(w) );
-    text->text.t = text->buf;
-
-    q = text->buf;			/* See also writePrimitive() */
-    if ( *q == L'-' )
-      q++;
-    for(; *q; q++)
-    { if ( !isDigit(*q) )
-	break;
-    }
-    if ( !*q )
-    { *q++ = '.';
-      *q++ = '0';
-      *q = EOS;
-    }
+  { format_float(valReal(w), text->buf, LD->float_format);
+    text->text.t    = text->buf;
     text->length    = strlen(text->text.t);
     text->encoding  = ENC_ISO_LATIN_1;
     text->storage   = PL_CHARS_LOCAL;

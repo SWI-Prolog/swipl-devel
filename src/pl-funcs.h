@@ -852,6 +852,7 @@ COMMON(word) 		pl_print2(term_t stream, term_t term);
 COMMON(int) 		writeAttributeMask(atom_t name);
 COMMON(int)		writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags);
 COMMON(int)		writeAtomToStream(IOSTREAM *s, atom_t atom);
+COMMON(char *)		format_float(double f, char *buf, const char *format);
 
 /* pl-term.c */
 COMMON(void) 		resetTerm(void);

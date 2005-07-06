@@ -10,6 +10,8 @@
 VERSION 5.5.21 (July 05, 2005)
 ==============================
 
+  * FIXED: float formatting in atom_number/2, etc.  
+
   * ADDED: Documentation of the gensym library.
 
   * FIXED: parse_url(-, +) to insert %XX escape sequences for characters
