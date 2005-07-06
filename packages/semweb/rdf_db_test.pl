@@ -5,6 +5,9 @@
     Copyright (C) 1996 University of Amsterdam. All rights reserved.
 */
 
+:- asserta(file_search_path(foreign, '../sgml')).
+:- asserta(file_search_path(library, '../sgml')).
+:- asserta(file_search_path(library, '../sgml/RDF')).
 :- asserta(file_search_path(foreign, '.')).
 :- use_module(rdf_db).
 :- use_module(rdfs).
