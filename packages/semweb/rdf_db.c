@@ -29,6 +29,7 @@
 #ifdef _REENTRANT
 #ifdef WIN32
 #include <windows.h>
+#include <malloc.h>			/* alloca() */
 #else
 #include <pthread.h>
 #include <errno.h>

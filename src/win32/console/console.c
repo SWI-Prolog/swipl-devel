@@ -3032,17 +3032,46 @@ rlc_free_queue(RlcQueue q)
 
 
 static int
+rlc_resize_queue(RlcQueue q, int size)
+{ TCHAR *newbuf;
+
+  if ( (newbuf = rlc_malloc(size*sizeof(TCHAR))) )
+  { TCHAR *o = newbuf;
+    int c;
+
+    while( (c=rlc_from_queue(q)) != -1 )
+      *o++ = c;
+
+    if ( q->buffer )
+      rlc_free(q->buffer);
+    q->buffer = newbuf;
+    q->first = 0;
+    q->last  = o-newbuf;
+    q->size  = size;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
 rlc_add_queue(RlcData b, RlcQueue q, int chr)
 { int empty = (q->first == q->last);
 
-  if ( QN(q, q->last) != q->first )
-  { q->buffer[q->last] = chr;
-    q->last = QN(q, q->last);
+  while(q->size < 50000)
+  { if ( QN(q, q->last) != q->first )
+    { q->buffer[q->last] = chr;
+      q->last = QN(q, q->last);
+      
+      if ( empty )
+	PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
 
-    if ( empty )
-      PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
+      return TRUE;
+    }
 
-    return TRUE;
+    rlc_resize_queue(q, q->size*2);
   }
 
   return FALSE;
