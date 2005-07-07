@@ -4,6 +4,9 @@
 VERSION 6.5.21, distributed with SWI-Prolog 5.5.21
 ==================================================
 
+* FIXED: Bug#66: filename handling for names holding extended ISO Latin 1
+  (128..256) characters.  Jiri Spitz.
+
 * ADDED: Allow (re-)definition of ->_draw_postscript from Prolog.  See
   documentation in `graphical->_draw_postscript'.
 

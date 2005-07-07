@@ -134,7 +134,7 @@ stringToUTF8(String str)
       return str->s_textA;		/* no */
 
     out = find_ring();
-    for( ; s<e; s++ )
+    for(s = (cuchar*) str->s_textA; s<e; s++ )
     { roomBuffer(out, 2);		/* max bytes per UTF-8 < 256 */
 
       out->bufp = utf8_put_char(out->bufp, *s);

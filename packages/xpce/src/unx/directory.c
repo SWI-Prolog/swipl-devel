@@ -727,7 +727,7 @@ getWorkingDirectoryPce(Pce pce)
 
 
 int
-isAbsolutePath(const char *p)
+isAbsolutePath(const char *p)		/* UTF-8 */
 {
 #ifdef O_XOS
   return _xos_is_absolute_filename(p);

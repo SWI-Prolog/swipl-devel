@@ -331,7 +331,7 @@ _xos_is_absolute_filename(const char *spec)
 { TCHAR buf[PATH_MAX];
 
   _xos_os_filenameW(spec, buf, PATH_MAX);
-  if ( buf[1] == ':' && buf[0] < 0x80 && isalpha(buf[0]) )
+  if ( buf[1] == ':' && buf[0] < 0x80 && iswalpha(buf[0]) )
     return TRUE;			/* drive */
   if ( buf[0] == '\\' && buf[1] == '\\' )
     return TRUE;			/* UNC */
