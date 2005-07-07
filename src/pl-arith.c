@@ -43,6 +43,12 @@ day.
 
 #include <math.h>			/* avoid abs() problem with MSVC++ */
 #include "pl-incl.h"
+#ifdef HAVE_FLOAT_H
+#include <float.h>
+#ifdef WIN32
+#define isnan(x) _isnan(x)
+#endif
+#endif
 
 #undef LD
 #define LD LOCAL_LD
@@ -52,11 +58,6 @@ day.
 #endif
 #ifndef M_E
 #define M_E (2.7182818284590452354)
-#endif
-
-#if !defined(HAVE_ISNAN) && defined(NaN)
-#define isnan(f)  ((f) == NaN)
-#define HAVE_ISNAN
 #endif
 
 #ifdef HAVE___TRY
@@ -420,6 +421,45 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
 
 #endif /* O_PROLOG_FUNCTIONS */
 
+static int
+check_float(double f)
+{ 
+#ifdef HAVE_FPCLASSIFY
+  switch(fpclassify(f))
+  { case FP_NAN:
+      return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+      break;
+    case FP_INFINITE
+      return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+      break;
+  }
+#else
+#ifdef HAVE_FPCLASS
+  switch(_fpclass(f))
+  { case _FPCLASS_SNAN:
+    case _FPCLASS_QNAN:
+      return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+      break;
+    case _FPCLASS_NINF:
+    case _FPCLASS_PINF:
+      return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+      break;
+  }
+#else
+#ifdef HAVE_ISNAN
+  if ( isnan(f) )
+    return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+#endif
+#ifdef HAVE_ISINF
+  if ( isinf(f) )
+    return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+#endif
+#endif /*HAVE_FPCLASS*/
+#endif /*HAVE_FPCLASSIFY*/
+  return TRUE;
+}
+
+
 int
 valueExpression(term_t t, Number r ARG_LD)
 { ArithFunction f;
@@ -549,22 +589,8 @@ valueExpression(term_t t, Number r ARG_LD)
     LD->in_arithmetic--;
 #endif /*HAVE___TRY*/
 
-    if ( r->type == V_REAL )
-    {
-#ifdef DBL_MAX
-      if ( r->value.f > DBL_MAX || r->value.f < -DBL_MAX ) 
-	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
-#else
-#ifdef HUGE_VAL
-      if ( r->value.f == HUGE_VAL || r->value.f == -HUGE_VAL )
-	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
-#endif
-#endif
-#ifdef HAVE_ISNAN
-      if ( isnan(r->value.f) )
-	return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
-#endif
-    }
+    if ( r->type == V_REAL && !check_float(r->value.f) )
+      return FALSE;
 
     return rval;
   }
@@ -1632,22 +1658,8 @@ ar_func_n(code n, int argc, Number *stack)
   }
 
   if ( rval )
-  { if ( result.type == V_REAL )
-    {
-#ifdef DBL_MAX
-      if ( result.value.f > DBL_MAX || result.value.f < -DBL_MAX ) 
-	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
-#else
-#ifdef HUGE_VAL
-      if ( result.value.f == HUGE_VAL || result.value.f == -HUGE_VAL )
-	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
-#endif
-#endif
-#ifdef HAVE_ISNAN
-      if ( isnan(result.value.f) )
-	return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
-#endif
-    }
+  { if ( result.type == V_REAL && !check_float(result.value.f) )
+      return FALSE;
 
     *sp++ = result;
     *stack = sp;

@@ -29,6 +29,9 @@
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
+#ifdef HAVE_FLOAT_H
+#include <float.h>
+#endif
 
 typedef struct visited
 { Word address;				/* we have done this address */
@@ -526,12 +529,6 @@ writeString(term_t t, write_options *options)
 #endif /*O_STRING*/
 
 
-
-#if !defined(HAVE_ISNAN) && defined(NaN)
-#define isnan(f)  ((f) == NaN)
-#define HAVE_ISNAN
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Formatting a float. This is very  complicated   as  we must write floats
 such that it can be read as a float. This means using the conventions of
@@ -610,6 +607,28 @@ writePrimitive(term_t t, write_options *options)
   if ( PL_get_float(t, &f) )
   { char *s = NULL;
 
+#ifdef HAVE_FPCLASSIFY
+    switch(fpclassify(f))
+    { case FP_NAN:
+	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
+        break;
+      case FP_INFINITE
+	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
+        break;
+    }
+#else
+#ifdef HAVE_FPCLASS
+    switch(_fpclass(f))
+    { case _FPCLASS_SNAN:
+      case _FPCLASS_QNAN:
+	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
+        break;
+      case _FPCLASS_NINF:
+      case _FPCLASS_PINF:
+	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
+        break;
+    }
+#else
 #ifdef HAVE_ISINF
     if ( isinf(f) )
     { s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
@@ -620,6 +639,8 @@ writePrimitive(term_t t, write_options *options)
     { s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
     }
 #endif
+#endif /*HAVE_FPCLASS*/
+#endif /*HAVE_FPCLASSIFY*/
 
     if ( s )
     { return PutToken(s, out);
