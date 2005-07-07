@@ -804,7 +804,7 @@ assert_export(Src, [H|T]) :-
 	assert_export(Src, H),
 	assert_export(Src, T).
 assert_export(Src, Name0/Arity) :-
-	(   Name0 = $Hidden		% deal with system modules
+	(   Name0 = $(Hidden)		% deal with system modules
 	->  atom_concat($, Hidden, Name)
 	;   Name = Name0
 	),
