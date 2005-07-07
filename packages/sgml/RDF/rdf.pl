@@ -151,10 +151,15 @@ member_attribute(A) :-
 %		Return list of namespaces declared using xmlns:NS=URL in
 %		the document.  This can be used to update the namespace
 %		list with rdf_register_ns/2.
+%		
+%		# entity(Name, Value)
+%		Overrule entity values found in the file
+
 
 process_rdf(File, OnObject, Options0) :-
 	is_list(Options0), !,
-	meta_options(Options0, Options),
+	entity_options(Options0, EntOptions, Options1),
+	meta_options(Options1, Options),
 	option(base_uri(BaseURI), Options, []),
 	rdf_start_file(Options, Cleanup),
 	strip_module(OnObject, Module, Pred),
@@ -171,7 +176,8 @@ process_rdf(File, OnObject, Options0) :-
 	    Close = In,
 	    Source = File
 	),
-	new_sgml_parser(Parser, []),
+	new_sgml_parser(Parser, [dtd(DTD)]),
+	def_entities(EntOptions, DTD),
 	set_sgml_parser(Parser, file(Source)),
 	set_sgml_parser(Parser, dialect(xmlns)),
 	set_sgml_parser(Parser, space(sgml)),
@@ -180,6 +186,19 @@ process_rdf(File, BaseURI, OnObject) :-
 %	print_message(warning,
 %		      format('process_rdf(): new argument order', [])),
 	process_rdf(File, OnObject, [base_uri(BaseURI)]).
+
+def_entities([], _).
+def_entities([entity(Name, Value)|T], DTD) :- !,
+	def_entity(DTD, Name, Value),
+	def_entities(T, DTD).
+def_entities([_|T0], DTD) :-
+	def_entities(T0, DTD).
+
+def_entity(DTD, Name, Value) :-
+	open_dtd(DTD, [], Stream),
+	xml_quote_attribute(Value, QValue),
+	format(Stream, '<!ENTITY ~w "~w">~n', [Name, QValue]),
+	close(Stream).
 
 
 do_process_rdf(Parser, In, NSList, Close, Cleanup) :-
