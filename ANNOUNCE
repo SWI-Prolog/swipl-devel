@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.20/XPCE 6.5.20 development release
+SWI-Prolog 5.5.20/XPCE 6.5.21 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -58,22 +58,20 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.20 relative to 5.5.19
+Patches in 5.5.21 relative to 5.5.20
 ====================================
 
-  * Fixed unicode handling at various places, notably dealing with
-    filenames, commandline arguments, etc.
+  * Fixed unifyable/3 (used by dif/2, crashed GC)
 
-  * Fix to seek/4 on output streams.
+  * Various minor and portability issues.
 
 Packages
 ========
 
-  * XPCE: Various patches, mostly related to unicode handling.
+  * XPCE: filename handling for names holding extended ISO Latin 1
+  (128..256) characters.  Various minor issues.
     
-  * SemWeb: Fix saving RDF lists (depreciated use of plain 'about').
-
-  * CHR: Various small patches.
+  * XML and RDF parser: allow overriding entity declarations in the file
 
 Incompatible changes
 ====================
