@@ -50,6 +50,10 @@ day.
 #endif
 #endif
 
+#ifdef fpclassify
+#define HAVE_FPCLASSIFY 1
+#endif
+
 #undef LD
 #define LD LOCAL_LD
 

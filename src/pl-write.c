@@ -33,6 +33,10 @@
 #include <float.h>
 #endif
 
+#ifdef fpclassify
+#define HAVE_FPCLASSIFY 1
+#endif
+
 typedef struct visited
 { Word address;				/* we have done this address */
   struct visited *next;			/* next already visited */

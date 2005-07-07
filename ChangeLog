@@ -10,6 +10,8 @@
 VERSION 5.5.21 (July 05, 2005)
 ==============================
 
+  * PORT: Float classification for NaN and infinity.  Better portable.
+
   * ENHANCED: MS-Windows: remove 256 character paste-limit from plwin
     console.  Steve Moyle.
 
