@@ -217,6 +217,12 @@ type.
 Unify \arg{List} with a list of \arg{NS}=\arg{URL} for each
 encountered \const{xmlns}:\arg{NS}=\arg{URL} declaration found
 in the source.
+
+	\termitem{entity}{+Name, +Value}
+Overrule entity declaration in file.  As it is common practice
+to declare namespaces using entities in RDF/XML, this option
+allows for changing the namespace without changing the file.
+Multiple of these options are allowed.
    \end{description}
 
 The \arg{Triples} list is a list of \term{rdf}{Subject, Predicate,

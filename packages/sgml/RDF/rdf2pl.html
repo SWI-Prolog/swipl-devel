@@ -236,7 +236,7 @@ this library that did not support language identifiers.
 
 <P>
 <DT><STRONG>convert_typed_literal</STRONG>(<VAR>:ConvertPred</VAR>)<DD>
-If the parser finds a literal with the <CODE>rdf:dataType</CODE>=<VAR>Type</VAR> 
+If the parser finds a literal with the <CODE>rdf:datatype</CODE>=<VAR>Type</VAR> 
 attribute, call <CODE>ConvertPred(+Type, +Content, -Literal)</CODE>.
 <VAR>Content</VAR> is the XML element contentas returned by the XML 
 parser (a list). The predicate must unify <VAR>Literal</VAR> with a 
@@ -254,6 +254,13 @@ is <CODE>xsd:int</CODE> or a related type.
 Unify <VAR>List</VAR> with a list of <VAR>NS</VAR>=<VAR>URL</VAR> for 
 each encountered <CODE>xmlns</CODE>:<VAR>NS</VAR>=<VAR>URL</VAR> 
 declaration found in the source.
+
+<P>
+<DT><STRONG>entity</STRONG>(<VAR>+Name, +Value</VAR>)<DD>
+Overrule entity declaration in file. As it is common practice to declare 
+namespaces using entities in RDF/XML, this option allows for changing 
+the namespace without changing the file. Multiple of these options are 
+allowed.
 </DL>
 
 <P>The <VAR>Triples</VAR> list is a list of <CODE>rdf(Subject, 
@@ -302,7 +309,7 @@ parser</A>
 
 <P>
 <LI><I><CODE>type(Type, StringValue)</CODE></I><BR>
-If the literal has an <CODE>rdf:dataType=</CODE><VAR>Type</VAR> a term 
+If the literal has an <CODE>rdf:datatype=</CODE><VAR>Type</VAR> a term 
 of this format is returned.
 </UL>
 
