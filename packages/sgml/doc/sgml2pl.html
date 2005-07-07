@@ -368,6 +368,12 @@ the source.  If <a name="const:false"><b><tt>false</tt></b></a>, only the attrib
 are emitted.
     
 <dt>&nbsp;<br>
+<b>entity(<var>+Name, +Value</var>)</b><dd>
+Defines (overwrites) an entity definition.  At the moment, only
+<a name="const:CDATA%4"><b><tt>CDATA</tt></b></a> entities can be specified with this construct.  Multiple
+entity options are allowed.
+    
+<dt>&nbsp;<br>
 <b>file(<var>+Name</var>)</b><dd>
 Sets the name of the file on which errors are reported. Sets the 
 linenumber to 1.
@@ -427,7 +433,7 @@ space.
 <dt>&nbsp;<br>
 <b>space(<var>remove</var>)</b><dd>
 In addition to <a name="const:default"><b><tt>default</tt></b></a>, all leading and trailing white-space is 
-removed from <a name="const:CDATA%4"><b><tt>CDATA</tt></b></a> objects. If, as a result, the <a name="const:CDATA%5"><b><tt>CDATA</tt></b></a> 
+removed from <a name="const:CDATA%5"><b><tt>CDATA</tt></b></a> objects. If, as a result, the <a name="const:CDATA%6"><b><tt>CDATA</tt></b></a> 
 becomes empty, nothing is passed to the application. This mode is 
 especially handy for processing `data-oriented' documents, such as RDF. 
 It is not suitable for normal text documents. Consider the HTML 
@@ -856,7 +862,7 @@ is:
 
 <p>
 Any encountered attribute is added to the attribute list with the type
-<a name="const:CDATA%6"><b><tt>CDATA</tt></b></a> and default <a name="const:#IMPLIED"><b><tt>#IMPLIED</tt></b></a>.
+<a name="const:CDATA%7"><b><tt>CDATA</tt></b></a> and default <a name="const:#IMPLIED"><b><tt>#IMPLIED</tt></b></a>.
 
 
 <p>
@@ -1865,7 +1871,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:/&gt;"><b><tt>/&gt;</tt></b></a>
 <li><a href="#const::"><b><tt>:</tt></b></a>
 <li><a href="#const:&lt;&gt;&amp;'&quot;"><b><tt>&lt;&gt;&amp;'&quot;</tt></b></a>
-<li><a href="#const:CDATA"><b><tt>CDATA</tt></b></a> [ <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a>]
+<li><a href="#const:CDATA"><b><tt>CDATA</tt></b></a> [ <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a> <a href="#const:CDATA%7">7</a>]
 <li><a href="#const:DOCTYPE"><b><tt>DOCTYPE</tt></b></a> [ <a href="#const:DOCTYPE%2">2</a> <a href="#const:DOCTYPE%3">3</a> <a href="#const:DOCTYPE%4">4</a>]
 <li><a href="#const:NAMES"><b><tt>NAMES</tt></b></a>
 <li><a href="#const:NDATA"><b><tt>NDATA</tt></b></a>

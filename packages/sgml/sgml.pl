@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -261,7 +261,8 @@ load_structure(stream(In), Term, Options) :- !,
 	new_sgml_parser(Parser,
 			[ dtd(DTD)
 			]),
-	call_cleanup(parse(Parser, Options2, TermRead, In),
+	def_entities(Options2, DTD, Options3),
+	call_cleanup(parse(Parser, Options3, TermRead, In),
 		     free_sgml_parser(Parser)),
 	(   ExplicitDTD == true
 	->  (   DTD = dtd(_, DocType),
@@ -288,7 +289,20 @@ parse(Parser, Options, Document, In) :-
 		   | Options1
 		   ]).
 
+def_entities([], _, []).
+def_entities([entity(Name, Value)|T], DTD, Opts) :- !,
+	def_entity(DTD, Name, Value),
+	def_entities(T, DTD, Opts).
+def_entities([H|T0], DTD, [H|T]) :-
+	def_entities(T0, DTD, T).
 
+def_entity(DTD, Name, Value) :-
+	open_dtd(DTD, [], Stream),
+	xml_quote_attribute(Value, QValue),
+	format(Stream, '<!ENTITY ~w "~w">~n', [Name, QValue]),
+	close(Stream).
+	
+	
 		 /*******************************
 		 *	     UTILITIES		*
 		 *******************************/

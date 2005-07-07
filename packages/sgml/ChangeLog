@@ -1,3 +1,7 @@
+Jul 7, 2005
+
+  * ADDED: entiry(+Name, +Value) to (re-)define CDATA entity values.
+
 Mar 31, 2005
 
   * ADDED: make exceptions in call-backs from sgml_parse/3 return the

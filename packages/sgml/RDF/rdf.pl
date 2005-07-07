@@ -21,6 +21,7 @@
 
 :- use_module(library(sgml)).		% Basic XML loading
 :- use_module(library(option)).		% option/3
+:- use_module(library(lists)).
 :- use_module(rdf_parser).		% Basic parser
 :- use_module(rdf_triple).		% Generate triples
 
@@ -44,7 +45,8 @@ load_rdf(File, Triples) :-
 	load_rdf(File, Triples, []).
 
 load_rdf(File, Triples, Options0) :-
-	meta_options(Options0, Options),
+	entity_options(Options0, EntOptions, Options1),
+	meta_options(Options1, Options),
 	init_ns_collect(Options, NSList),
 	load_structure(File,
 		       [ RDFElement
@@ -52,6 +54,7 @@ load_rdf(File, Triples, Options0) :-
 		       [ dialect(xmlns),
 			 space(sgml),
 			 call(xmlns, rdf:on_xmlns)
+		       | EntOptions
 		       ]),
 	rdf_start_file(Options, Cleanup),
 	call_cleanup(xml_to_rdf(RDFElement, Triples0, Options),
@@ -59,6 +62,16 @@ load_rdf(File, Triples, Options0) :-
 	exit_ns_collect(NSList),
 	post_process(Options, Triples0, Triples).
 	
+entity_options([], [], []).
+entity_options([H|T0], Entities, Rest) :-
+	(   H = entity(_,_)
+	->  Entities = [H|ET],
+	    entity_options(T0, ET, Rest)
+	;   Rest = [H|RT],
+	    entity_options(T0, Entities, RT)
+	).
+
+
 %	xml_to_rdf(+XML, -Triples, +Options)
 
 xml_to_rdf(XML, Triples, Options) :-

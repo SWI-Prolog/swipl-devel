@@ -1,3 +1,7 @@
+Jul 7, 2005
+
+  * ADDED: Pass entity(Name, Value) to XML parser
+
 Jul 5, 2005
 
   * FIXED: Perform proper URI decoding to Unicode atoms

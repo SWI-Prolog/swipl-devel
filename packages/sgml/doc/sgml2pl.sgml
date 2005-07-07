@@ -269,6 +269,10 @@ Determines how default and fixed values from the DTD are used.  By
 default, defaults are included in the output if they do not appear in
 the source.  If <c/false/, only the attributes occurring in the source
 are emitted.
+    <termitem>entity(+Name, +Value)
+Defines (overwrites) an entity definition.  At the moment, only
+<c/CDATA/ entities can be specified with this construct.  Multiple
+entity options are allowed.
     <termitem>file(+Name)
 Sets the name of the file on which errors are reported. Sets the 
 linenumber to 1.
