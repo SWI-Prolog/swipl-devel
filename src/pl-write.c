@@ -540,11 +540,14 @@ the C locale and if the float happens to be integer as <int>.0.
 Switching the locale is no option as  locale handling is not thread-safe
 and may have unwanted  consequences  for   embedding.  There  is  a long
 discussion on the very same topic on  the Python mailinglist. Many hacks
-are proposed, none is very satisfactory.  Converting floats to string is
-not an easy task and there is no   neat  way to avoid locale issues with
-sprintf. We opt for one of  the   tricks:  substitute the locale decimal
-point. Claims are made that sprintf()   may  not use grouping separators
-(e.g. 100,000.00) according to the C99 standard.
+are proposed, none is very satisfactory.   Richard  O'Keefe suggested to
+use ecvt(), fcvt() and gcvt(). These  are   not  thread-safe.  The GNU C
+library provides *_r() variations that  can   do  the  trick. An earlier
+patch used localeconv() to find the  decimal   point,  but  this is both
+complicated and not thread-safe.
+
+Finally, with help of Richard we decided  to replace the first character
+that is not a digit nor [eE], as this must be the decimal point. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
@@ -554,30 +557,23 @@ format_float(double f, char *buf, const char *format)
   sprintf(buf, format, f);
 
   q = buf;
-  if ( *q == '-' )
+  if ( *q == '-' )			/* skip -?[0-9]* */
     q++;
-  for(; *q; q++)
-  { if ( !isDigit(*q) )
+  while(*q && isDigit(*q))
+    q++;
+
+  switch( *q )
+  { case '\0':
+      *q++ = '.';
+      *q++ = '0';
+      *q = EOS;
       break;
+    case 'e':
+    case 'E':
+      break;
+    default:
+      *q = '.';
   }
-  if ( !*q )
-  { *q++ = '.';
-    *q++ = '0';
-    *q = EOS;
-  }
-
-#ifdef HAVE_LOCALECONV
-  { struct lconv *conv = localeconv();
-    int dp;
-
-    if ( conv && conv->decimal_point && (dp=*conv->decimal_point) != '.' )
-    { for(q=buf; *q; q++)
-      { if ( *q == dp )
-	  *q = '.';
-      }
-    }
-  }
-#endif
 
   return buf;
 }
@@ -614,8 +610,8 @@ writePrimitive(term_t t, write_options *options)
   if ( PL_get_float(t, &f) )
   { char *s = NULL;
 
-#ifdef HUGE_VAL
-    if ( f == HUGE_VAL )
+#ifdef HAVE_ISINF
+    if ( isinf(f) )
     { s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
     } else
 #endif

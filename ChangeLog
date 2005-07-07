@@ -13,7 +13,7 @@ VERSION 5.5.21 (July 05, 2005)
   * ENHANCED: MS-Windows: remove 256 character paste-limit from plwin
     console.  Steve Moyle.
 
-  * FIXED: float formatting in atom_number/2, etc.  
+  * FIXED: float formatting in atom_number/2, etc.  Richard O'Keefe
 
   * ADDED: Documentation of the gensym library.
 
