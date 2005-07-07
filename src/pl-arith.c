@@ -433,7 +433,7 @@ check_float(double f)
   { case FP_NAN:
       return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
       break;
-    case FP_INFINITE
+    case FP_INFINITE:
       return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
       break;
   }

@@ -616,7 +616,7 @@ writePrimitive(term_t t, write_options *options)
     { case FP_NAN:
 	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
         break;
-      case FP_INFINITE
+      case FP_INFINITE:
 	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
         break;
     }
