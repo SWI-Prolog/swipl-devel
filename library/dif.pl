@@ -39,10 +39,11 @@
 %	Copyright:	2003-2004, K.U.Leuven
 %
 % Update 7/3/2004:
-%   Now uses unifyable/3. It enables dif/2 to work with infinite terms.
+%   Now uses unifiable/3. It enables dif/2 to work with infinite terms.
 % Update 11/3/2004:
 %   Cleaned up code. Now uses just one or node for every call to dif/2.
-%
+% Update Jul 8, 2005 (JW)
+%   Fixed spelling unifyable --> unifiable
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- module(dif,[dif/2]).
@@ -57,7 +58,7 @@ dif(X,Y) :-
 %	node(Parent,Children,Variables,Counter)
 
 dif_c_c(X,Y,OrNode) :-
-	( unifyable(X,Y,Unifier) ->
+	( unifiable(X,Y,Unifier) ->
 		( Unifier == [] ->
 			or_one_fail(OrNode)
 		;

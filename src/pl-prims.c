@@ -709,7 +709,7 @@ PRED_IMPL("\\==", 2, nonequal, 0)
 The  idea  for  this  predicate  is  taken  from  the  usenet   network.
 Unfortunately I can't recall the author of the note.
 
-Structural equivalency is stronger then unifyable (=), but  weaker  then
+Structural equivalency is stronger then unifiable (=), but  weaker  then
 pure equivalence (==). Two terms are structural equivalent if their tree
 representation is equivalent. Examples:
 
@@ -1531,7 +1531,7 @@ pl_e_free_variables(term_t t, term_t vars)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unifyable(@X, @Y, -Substitution)
+unifiable(@X, @Y, -Substitution)
 
 If X can be unified to Y, unify   Substitution with a list of Variable =
 value for the substitutions that must be made to make X and Y identical.
@@ -1551,7 +1551,7 @@ these always live on the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static
-PRED_IMPL("unifyable", 3, unifyable, 0)
+PRED_IMPL("unifiable", 3, unifiable, 0)
 { PRED_LD
   mark m;
 
@@ -3588,7 +3588,7 @@ BeginPredDefs(prims)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("term_variables", 2, term_variables2, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
-  PRED_DEF("unifyable", 3, unifyable, 0)
+  PRED_DEF("unifiable", 3, unifiable, 0)
 #ifdef O_HASHTERM
   PRED_DEF("hash_term", 2, hash_term, 0)
 #endif

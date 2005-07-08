@@ -4024,7 +4024,7 @@ ccoommppaarree((_?_O_r_d_e_r_, _+_T_e_r_m_1_, _+_T_e_r
     ?=(A,B) :- (A==B ; A B), !..  See also dif/2.
 
 
-uunniiffyyaabbllee((_@_X_, _@_Y_, _-_U_n_i_f_i_e_r))
+uunniiffiiaabbllee((_@_X_, _@_Y_, _-_U_n_i_f_i_e_r))
     If  _X and _Y  can unify,  unify _U_n_i_f_i_e_r with  a list of  _V_a_r = _V_a_l_u_e,
     representing  the  bindings required  to make  _X  and _Y  equivalent.
     This  predicate can handle cyclic  terms.  Attributed variables  are
@@ -15105,7 +15105,7 @@ ssuubbsseett((_+_S_u_b_s_e_t_, _+_S_e_t))
 
 1111..22 gensym::  GGeenneerraattee uunniiqquuee iiddeennttiiffiieerrss
 
-Gensym  (GGenerate SSymbols)  is  an  old library  for  generating  unique
+Gensym  (GGeennerate SSyymmbols)  is  an  old library  for  generating  unique
 symbols (atoms).    Such symbols are  generated from  a base atom  which
 gets a sequence number  appended.  Of course there is no  guarantee that
 `catch22'  is not  an already  defined atom  and therefore  one must  be
@@ -16716,7 +16716,7 @@ suggest predicates from a keyword.
 
  @>=/2                         Standard order larger or equal
  \+/1                          Negation by failure.  Same as not/1
- \=/2                          Not unifyable
+ \=/2                          Not unifiable
  \==/2                         Not identical
  \=@=/2                        Not structural identical
  ^/2                           Existential quantification (bagof/3, setof/3)
@@ -17261,7 +17261,7 @@ suggest predicates from a keyword.
  tty_size/2                    Get row/column size of the terminal
  ttyflush/0                    Flush output on terminal
  unify_with_occurs_check/2     Logically sound unification
- unifyable/3                   Determing binding required for unification
+ unifiable/3                   Determing binding required for unification
  unix/1                        OS interaction
  unknown/2                     Trap undefined predicates
  unload_foreign_library/1      shlib Detach shared library (.so file)
@@ -18051,8 +18051,8 @@ log10/1, 463                           tty_size/2, 515
 logical                                ttyflush/0, 316, 498
    update view, 244                    UCS, 74
 MacOS X, 7                             UNICODE, 74
-main/0, 58                             unify_with_occurs_check/2, 170
-make/0, 7, 63,  66, 93, 100, 108,      unifyable/3, 180
+main/0, 58                             unifiable/3, 180
+make/0, 7, 63,  66, 93, 100, 108,      unify_with_occurs_check/2, 170
       113, 119                         union/3, 1033
 make_directory/1, 558                  Unix, 7
 make_library_index/1, 63, 64           unix, 60

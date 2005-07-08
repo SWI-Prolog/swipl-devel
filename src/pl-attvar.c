@@ -68,8 +68,8 @@ that should be awoken.
 Before calling, av *must* point to   a  dereferenced attributed variable
 and value to a legal value.
 
-The predicate unifyable/3 relies on  the   trailed  pattern left by this
-function. If you change this you must also adjust unifyable/3.
+The predicate unifiable/3 relies on  the   trailed  pattern left by this
+function. If you change this you must also adjust unifiable/3.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int

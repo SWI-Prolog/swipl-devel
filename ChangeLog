@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED/MODIFIED: Typo unifyable/3 --> unifiable/3 (Richard O'Keefe).
+    The predicate is used internally for dif/2.  Considering it is not
+    around very long, I believe there will be very few users of it.
+    Code using unifyable/3 must be updated.
+
   * FIXED: Bug#67: Crash in parsing 0'<unicode char>.  Also fixed parsing
     solo Unicode characters.  Holger Kanwischer.
 

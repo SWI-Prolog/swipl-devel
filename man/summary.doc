@@ -48,7 +48,7 @@ suggest predicates from a keyword.
 \oppredsummary{@>}{2}{xfx}{700}{Standard order larger}
 \oppredsummary{@>=}{2}{xfx}{700}{Standard order larger or equal}
 \oppredsummary{\+}{1}{fy}{900}{Negation by failure. Same as not/1}
-\oppredsummary{\=}{2}{xfx}{700}{Not unifyable}
+\oppredsummary{\=}{2}{xfx}{700}{Not unifiable}
 \oppredsummary{\==}{2}{xfx}{700}{Not identical}
 \oppredsummary{\=@=}{2}{xfx}{700}{Not structural identical}
 \oppredsummary{^}{2}{xfy}{200}{Existential quantification (bagof/3, setof/3)}
@@ -530,7 +530,7 @@ suggest predicates from a keyword.
 \predicatesummary{tty_size}{2}{Get row/column size of the terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
 \predicatesummary{unify_with_occurs_check}{2}{Logically sound unification}
-\predicatesummary{unifyable}{3}{Determing binding required for unification}
+\predicatesummary{unifiable}{3}{Determing binding required for unification}
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}

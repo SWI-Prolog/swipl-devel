@@ -818,7 +818,7 @@ can change due to further instantiation of either term.  It is
 defined as by \exam{?=(A,B) :- (A==B ; A \= B), !.}.  See also
 dif/2.
 
-    \predicate{unifyable}{3}{{@}X, {@}Y, -Unifier}
+    \predicate{unifiable}{3}{{@}X, {@}Y, -Unifier}
 If \arg{X} and \arg{Y} can unify, unify \arg{Unifier} with a list of
 \mbox{\arg{Var} = \arg{Value}}, representing the bindings required to
 make \arg{X} and \arg{Y} equivalent.%
