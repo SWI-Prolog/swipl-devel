@@ -1294,16 +1294,13 @@ get_number(cucharp in, ucharp *end, Number value, int escape)
     switch(in[1])
     { case '\'':			/* 0'<char> */
       { int chr;
-
+	
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
 	{ chr = escape_char(in+3, end, 0);
 	} else
-	{ chr = in[2] & 0xff;
-	  *end = (ucharp)in+3;
+	{ *end = utf8_get_char((char*)in+2, &chr);
 	}
 
-	if ( isAlpha(**end) )
-	  fail;				/* illegal number */
 	value->value.i = (int64_t)chr;
 	if ( negative )			/* -0'a is a bit dubious! */
 	  value->value.i = -value->value.i;
@@ -1528,10 +1525,12 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		}
     case_digit:
     case DI:	{ number value;
+		  int echr;
 
 		  if ( get_number(&rdhere[-1],
 				  &rdhere, &value, DO_CHARESCAPE) &&
-		       !isAlpha(rdhere[0]) )
+		       utf8_get_char(rdhere, &echr) &&
+		       !isAlphaW(echr) )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
 		    break;
@@ -1539,10 +1538,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		    syntaxError("illegal_number", _PL_rd);
 		}
     case_solo:
-    case SO:	{ char tmp[1];
-
-		  tmp[0] = c;
-		  cur_token.value.atom = lookupAtom(tmp, 1);
+    case SO:	{ cur_token.value.atom = codeToAtom(c);
 		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
 				  *rdhere == '(' ? "FUNC" : "NAME",
@@ -2472,7 +2468,7 @@ backSkipBlanks(const unsigned char *start, const unsigned char *end)
   { unsigned char *e;
     int chr;
 
-    for(s=end-1 ; s>start && *s&0x80; s--)
+    for(s=end-1 ; s>start && ISUTF8_CB(*s); s--)
       ;
     e = (unsigned char*)utf8_get_char((char*)s, &chr);
     assert(e == end);

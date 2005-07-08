@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#67: Crash in parsing 0'<unicode char>.  Also fixed parsing
+    solo Unicode characters.  Holger Kanwischer.
+
+
 VERSION 5.5.21 (July 05, 2005)
 ==============================
 
