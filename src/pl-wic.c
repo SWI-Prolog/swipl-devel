@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 #include "pl-incl.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -39,14 +39,15 @@ static real	getReal(IOSTREAM *);
 static bool	loadWicFd(IOSTREAM *);
 static bool	loadPredicate(IOSTREAM *, int skip ARG_LD);
 static bool	loadImport(IOSTREAM *, int skip ARG_LD);
+static void	saveXRBlobType(PL_blob_t *type, IOSTREAM *fd);
 static void	putString(const char *, unsigned len, IOSTREAM *);
-static void	putAtom(atom_t, IOSTREAM *);
 static void	putNum(int64_t, IOSTREAM *);
 static void	putReal(real, IOSTREAM *);
 static void	saveWicClause(Clause, IOSTREAM *);
 static void	closeProcedureWic(IOSTREAM *);
 static bool	compileFile(char *);
 static word	loadXRc(int c, IOSTREAM *fd ARG_LD);
+static atom_t   getBlob(IOSTREAM *fd ARG_LD);
 static bool	loadStatement(int c, IOSTREAM *fd, int skip ARG_LD);
 static bool	loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD);
 static bool	loadInModule(IOSTREAM *fd, int skip ARG_LD);
@@ -136,14 +137,17 @@ Below is an informal description of the format of a `.qlf' file:
 		      | 'X' 				% end of list
 <XR>		::=	XR_REF     <num>		% XR id from table
 			XR_ATOM    <len><chars>		% atom
+			XR_BLOB	   <blob><private>	% typed atom (blob)
 			XR_INT     <num>		% number
 			XR_FLOAT   <word>*		% real (double)
 			XR_STRING  <string>		% string
+			XR_STRING_UTF8  <utf-8 string>	% wide string
 			XR_FUNCTOR <XR/name> <num>	% functor
 			XR_PRED    <XR/fdef> <XR/module>% predicate
 			XR_MODULE  <XR/name>		% module
 			XR_FILE	   's'|'u' <XR/atom> <time>
 				   '-'
+			XR_BLOB_TYPE <len><chars>	% blob type-name
 <term>		::=	<num>				% # variables in term
 			<theterm>
 <theterm>	::=	<XR/atomic>			% atomic data
@@ -182,6 +186,9 @@ bits) as well as machines with different byte order.
 #define XR_STRING  6			/* string */
 #define XR_FILE	   7			/* source file */
 #define XR_MODULE  8			/* a module */
+#define XR_BLOB	   9			/* a typed atom (blob) */
+#define XR_BLOB_TYPE 10			/* name of atom-type declaration */
+#define XR_STRING_UTF8 11		/* Wide character string */
 
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
@@ -352,8 +359,38 @@ getString(IOSTREAM *fd, unsigned *length)
 }
 
 
+pl_wchar_t *
+wicGetStringUTF8(IOSTREAM *fd, unsigned *length,
+		 pl_wchar_t *buf, size_t bufsize)
+{ size_t i, len = (size_t)wicGetNum(fd);
+  IOENC oenc = fd->encoding;
+  pl_wchar_t *tmp, *o;
+  
+  if ( length )
+    *length = len;
+
+  if ( len < bufsize )
+    tmp = buf;
+  else
+    tmp = PL_malloc(len*sizeof(pl_wchar_t));
+
+  fd->encoding = ENC_UTF8;
+  for(i=0, o=tmp; i<len; i++)
+  { int c = Sgetcode(fd);
+
+    if ( c < 0 )
+      fatalError("Unexpected EOF in UCS atom");
+    *o++ = c;
+  }
+  fd->encoding = oenc;
+
+  return tmp;
+}
+
+
+
 static atom_t
-getAtom(IOSTREAM *fd ARG_LD)
+getAtom(IOSTREAM *fd, PL_blob_t *type ARG_LD)
 { char buf[1024];
   char *tmp, *s;
   int len = getInt(fd);
@@ -373,12 +410,26 @@ getAtom(IOSTREAM *fd ARG_LD)
 		 Stell(fd));
     *s++ = c;
   }
-  a = lookupAtom(tmp, len);
+  if ( type )
+  { int new;
+
+    a = lookupBlob(tmp, len, type, &new);
+  } else
+  { a = lookupAtom(tmp, len);
+  }
 
   if ( tmp != buf )
     freeHeap(tmp, len);
 
   return a;
+}
+
+
+static PL_blob_t *
+getBlobType(IOSTREAM *fd)
+{ const char *name = getString(fd, NULL);
+
+  return PL_find_blob_type(name);
 }
 
 
@@ -520,8 +571,20 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
     }
     case XR_ATOM:
     { id = ++loadedXRTableId;
-      xr = getAtom(fd PASS_LD);
+      xr = getAtom(fd, NULL PASS_LD);
       DEBUG(3, Sdprintf("XR(%d) = '%s'\n", id, stringAtom(xr)));
+      break;
+    }
+    case XR_BLOB:
+    { id = ++loadedXRTableId;
+      xr = getBlob(fd PASS_LD);
+      DEBUG(3, Sdprintf("XR(%d) = <blob>\n", id));
+      break;
+    }
+    case XR_BLOB_TYPE:
+    { id = ++loadedXRTableId;
+      xr = (word)getBlobType(fd);
+      DEBUG(3, Sdprintf("XR(%d) = <blob-type>%s", id, ((PL_blob_t*)xr)->name));
       break;
     }
     case XR_FUNCTOR:
@@ -567,6 +630,19 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
 
       return globalString(len, s);
     }
+    case XR_STRING_UTF8:
+    { pl_wchar_t *w;
+      unsigned len;
+      pl_wchar_t buf[256];
+      word s;
+      
+      w = wicGetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
+      s = globalWString(len, w);
+      if ( w != buf )
+	PL_free(w);
+
+      return s;
+    }
 #endif
     case XR_FILE:
     { int c;
@@ -608,6 +684,18 @@ loadXRc(int c, IOSTREAM *fd ARG_LD)
   storeXrId(id, xr);
 
   return xr;
+}
+
+
+static atom_t
+getBlob(IOSTREAM *fd ARG_LD)
+{ PL_blob_t *type = (PL_blob_t*)loadXR(fd);
+  
+  if ( type->load )
+  { return (*type->load)(fd);
+  } else
+  { return getAtom(fd, type PASS_LD);
+  }
 }
 
 
@@ -1243,14 +1331,44 @@ putString(const char *s, unsigned len, IOSTREAM *fd)
 
 
 static void
+putStringW(const pl_wchar_t *s, unsigned len, IOSTREAM *fd)
+{ const pl_wchar_t *e;
+  IOENC oenc = fd->encoding;
+
+  if ( len == STR_NOLEN )
+    len = wcslen(s);
+  e = &s[len];
+
+  putNum(len, fd);
+  fd->encoding = ENC_UTF8;
+  while(s<e)
+  { Sputcode(*s, fd);
+    s++;
+  }
+  fd->encoding = oenc;
+}
+
+
+static void
 putAtom(atom_t w, IOSTREAM *fd)
 { Atom a = atomValue(w);
-  const char *s = a->name;
-  const char *e = s+a->length;
+  static PL_blob_t *text_blob;
 
-  putNum(a->length, fd);
-  for( ; s<e; s++ )
-    Sputc(*s, fd);
+  if ( !text_blob )
+    text_blob = PL_find_blob_type("text");
+
+  if ( a->type != text_blob )
+  { Sputc(XR_BLOB, fd);
+    saveXRBlobType(a->type, fd);
+    if ( a->type->save )
+    { (*a->type->save)(a->atom, fd);
+    } else
+    { putString(a->name, a->length, fd);
+    }
+  } else
+  { Sputc(XR_ATOM, fd);
+    putString(a->name, a->length, fd);
+  }
 }
 
 
@@ -1394,11 +1512,16 @@ saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
 #if O_STRING
   } else if ( isString(xr) )
   { char *s;
+    pl_wchar_t *w;
     unsigned len;
 
-    Sputc(XR_STRING, fd);
-    s = getCharsString(xr, &len);
-    putString(s, len, fd);
+    if ( (s = getCharsString(xr, &len)) )
+    { Sputc(XR_STRING, fd);
+      putString(s, len, fd);
+    } else if ( (w=getCharsWString(xr, &len)) )
+    { Sputc(XR_STRING_UTF8, fd);
+      putStringW(w, len, fd);
+    }
     return;
 #endif /* O_STRING */
   }
@@ -1408,7 +1531,6 @@ saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
 
   if ( isAtom(xr) )
   { DEBUG(3, Sdprintf("XR(%d) = '%s'\n", savedXRTableId, stringAtom(xr)));
-    Sputc(XR_ATOM, fd);
     putAtom(xr, fd);
     return;
   }
@@ -1416,6 +1538,16 @@ saveXR__LD(word xr, IOSTREAM *fd ARG_LD)
   assert(0);
 }
 #define saveXR(xr, s) saveXR__LD(xr, s PASS_LD)
+
+
+static void
+saveXRBlobType(PL_blob_t *type, IOSTREAM *fd)
+{ if ( savedXRPointer(type, fd) )
+    return;
+
+  Sputc(XR_BLOB_TYPE, fd);
+  putString(type->name, STR_NOLEN, fd);
+}
 
 
 static void
@@ -2536,6 +2668,28 @@ qlfCleanup()
     getstr_buffer_size = 512;
   }
 }
+
+		 /*******************************
+		 *	 PUBLIC FUNCTIONS	*
+		 *******************************/
+
+void
+wicPutNum(int64_t n, IOSTREAM *fd)
+{ putNum(n, fd);
+}
+
+
+int64_t
+wicGetNum(IOSTREAM *fd)
+{ return getInt64(fd);
+}
+
+
+void
+wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
+{ putStringW(w, len, fd);
+} 
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

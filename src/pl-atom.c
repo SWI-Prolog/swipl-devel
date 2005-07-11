@@ -182,7 +182,7 @@ static PL_blob_t unregistered_blob_atom =
 };
 
 
-static void
+void
 PL_register_blob_type(PL_blob_t *type)
 { PL_LOCK(L_MISC);			/* cannot use L_ATOM */
 
@@ -207,6 +207,22 @@ PL_register_blob_type(PL_blob_t *type)
 
   PL_UNLOCK(L_MISC);
 }
+
+
+PL_blob_t *
+PL_find_blob_type(const char *name)
+{ PL_blob_t *t;
+
+  PL_LOCK(L_MISC);
+  for(t = GD->atoms.types; t; t = t->next)
+  { if ( streq(name, t->name) )
+      break;
+  }
+  PL_UNLOCK(L_MISC);
+
+  return t;
+}
+
 
 
 int

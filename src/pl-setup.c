@@ -75,6 +75,7 @@ setupProlog(void)
 
   startCritical;
   initCharTypes();
+  initForeign();
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   if ( trueFeature(SIGNALS_FEATURE) )

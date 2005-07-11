@@ -500,8 +500,15 @@ typedef struct PL_blob_t
   int			(*write)(void *s, atom_t a, int flags);
 #endif
   void			(*acquire)(atom_t a);
+#ifdef SIO_MAGIC
+  int			(*save)(atom_t a, IOSTREAM *s);
+  atom_t		(*load)(IOSTREAM *s);
+#else
+  int			(*save)(atom_t a, void*);
+  atom_t		(*load)(void *s);
+#endif
 					/* private */
-  void *		reserved[12];	/* for future extension */
+  void *		reserved[10];	/* for future extension */
   int			registered;	/* Already registered? */
   int			rank;		/* Rank for ordering atoms */
   struct PL_blob_t *    next;		/* next in registered type-chain */
@@ -519,6 +526,9 @@ PL_EXPORT(int)		PL_get_blob(term_t t, void **blob, unsigned int *len,
 PL_EXPORT(void*)	PL_blob_data(atom_t a,
 				     unsigned int *len,
 				     struct PL_blob_t **type);
+
+PL_EXPORT(void)		PL_register_blob_type(PL_blob_t *type);
+PL_EXPORT(PL_blob_t*)	PL_find_blob_type(const char* name);
 PL_EXPORT(int)		PL_unregister_blob_type(PL_blob_t *type);
 
 

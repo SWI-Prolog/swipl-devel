@@ -313,7 +313,9 @@ PL_functor_arity(functor_t f)
 		 *    WIDE CHARACTER SUPPORT	*
 		 *******************************/
 
-static int compareUCSAtom(atom_t h1, atom_t h2);
+static int	compareUCSAtom(atom_t h1, atom_t h2);
+static int	saveUCSAtom(atom_t a, IOSTREAM *fd);
+static atom_t	loadUCSAtom(IOSTREAM *fd);
 
 static PL_blob_t ucs_atom =
 { PL_BLOB_MAGIC,
@@ -322,8 +324,17 @@ static PL_blob_t ucs_atom =
   "ucs_text",
   NULL,					/* release */
   compareUCSAtom,			/* compare */
-  writeUCSAtom				/* write */
+  writeUCSAtom,				/* write */
+  NULL,					/* acquire */
+  saveUCSAtom,				/* save load to/from .qlf files */
+  loadUCSAtom
 };
+
+
+static void
+initUCSAtoms()
+{ PL_register_blob_type(&ucs_atom);
+}
 
 
 int
@@ -418,6 +429,35 @@ compareUCSAtom(atom_t h1, atom_t h2)
   }
 
   return a1->length - a2->length;
+}
+
+
+static int
+saveUCSAtom(atom_t atom, IOSTREAM *fd)
+{ Atom a = atomValue(atom);
+  const pl_wchar_t *s = (const pl_wchar_t*)a->name;
+  size_t len = a->length/sizeof(pl_wchar_t);
+
+  wicPutStringW(s, len, fd);
+
+  return TRUE;
+}
+
+
+static atom_t
+loadUCSAtom(IOSTREAM *fd)
+{ pl_wchar_t buf[256];
+  pl_wchar_t *w;
+  unsigned len;
+  atom_t a;
+
+  w = wicGetStringUTF8(fd, &len, buf, sizeof(buf)/sizeof(pl_wchar_t));
+  a = lookupUCSAtom(w, len);
+
+  if ( w != buf )
+    PL_free(w);
+
+  return a;
 }
 
 
@@ -3773,4 +3813,14 @@ registerForeignLicenses(void)
   }
 
   pre_registered = NULL;
+}
+
+
+		 /*******************************
+		 *	       INIT		*
+		 *******************************/
+
+void
+initForeign(void)
+{ initUCSAtoms();
 }

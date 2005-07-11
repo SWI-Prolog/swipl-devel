@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#59: QLF (Quick load files and saved states not storing
+    atoms correctly if they contain characters >= 256.  (Dmitry).  Also
+    fixed strings for this issue.
+
   * FIXED/MODIFIED: Typo unifyable/3 --> unifiable/3 (Richard O'Keefe).
     The predicate is used internally for dif/2.  Considering it is not
     around very long, I believe there will be very few users of it.

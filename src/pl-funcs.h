@@ -403,6 +403,8 @@ COMMON(int)		unfindBuffer(int flags);
 COMMON(void) 		registerForeignLicenses(void);
 COMMON(void)            bindExtensions(const char *module,
 				       const PL_extension *ext);
+COMMON(void)		initForeign(void);
+
 
 /* pl-fmt.c */
 COMMON(word) 		pl_format_predicate(term_t chr, term_t descr);
@@ -832,6 +834,13 @@ COMMON(word) 		pl_qlf_open(term_t file);
 COMMON(word) 		pl_qlf_close(void);
 COMMON(word) 		pl_qlf_load(term_t file, term_t module);
 COMMON(word) 		pl_qlf_assert_clause(term_t ref, term_t saveclass);
+
+COMMON(void)		wicPutNum(int64_t n, IOSTREAM *fd);
+COMMON(int64_t)		wicGetNum(IOSTREAM *fd);
+COMMON(void)		wicPutStringW(const pl_wchar_t *w, size_t len, 
+				      IOSTREAM *fd);
+COMMON(pl_wchar_t*)	wicGetStringUTF8(IOSTREAM *fd, unsigned *length,
+					 pl_wchar_t *buf, size_t bufsize);
 
 /* pl-write.c */
 COMMON(char *) 		varName(term_t var, char *buf);
