@@ -4338,8 +4338,15 @@ followed by linefeed (so a (Grr.) DOS machine is happy with the output).
 \begin{code}
 :- format_predicate(n, dos_newline(_Arg)).
 
-dos_newline(Arg) :-
-        between(1, Ar, _), put(13), put(10), fail ; true.
+dos_newline(default) :- !,
+	dos_newline(1).
+dos_newline(N) :-
+	(   N > 0
+	->  write('\r\n'),
+	    N2 is N - 1,
+	    dos_newline(N2)
+	;   true
+	).
 \end{code}
     \predicate{current_format_predicate}{2}{?Code, ?:Head}
     Enumerates all user-defined format predicates. \arg{Code} is the
