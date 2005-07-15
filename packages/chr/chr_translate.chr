@@ -50,9 +50,9 @@
 %%
 %% URGENTLY TODO
 %%
-%%	* ground matching seems to be not optimized for comppound terms
+%%	* ground matching seems to be not optimized for compound terms
 %%	* add groundness info to a.i.-based observation analysis
-%%	* proper index analysis
+%%	* proper fd/index analysis
 %%	* re-add generation checking
 %%	
 %% AGGRESSIVE OPTIMISATION IDEAS
@@ -4140,12 +4140,13 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
 	inc_id(Id,NextId),
 	build_head(F,A,NextId,VarsSusp,NextHead),
 	
-	RecursiveCall = NextHead,
 	get_constraint_mode(F/A,Mode),
 	head_arg_matches(HeadPairs,Mode,[],HeadMatching,VarDict),
 	guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
 	gen_occ_allocation(F/A,O,Vars,Susp,VarsSusp,Allocation),
 	
+	% - recursive call -
+	RecursiveCall = NextHead,
 	( BodyCopy \== true, is_observed(F/A,O) ->
 	    gen_uncond_attach_goal(F/A,Susp,Attachment,Generation),
 	    gen_state_cond_call(Susp,A,RecursiveCall,Generation,ConditionalRecursiveCall)
