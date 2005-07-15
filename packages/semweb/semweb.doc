@@ -364,7 +364,7 @@ desirable:
 If the database is modified using information based on reading the same
 database. A typical case is a forward reasoner examining the database
 and asserting new triples that can be deduced from the already existing
-ones.   For example, \emph{if length(X) > 2 then size(X) is large}:
+ones.   For example, \emph{if $length(X) > 2$ then size(X) is large}:
 
 \begin{code}
 	(   rdf(X, length, literal(L)),
