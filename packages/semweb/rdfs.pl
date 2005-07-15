@@ -57,33 +57,12 @@
 		 *	    EXPANSION		*
 		 *******************************/
 
-%	user:goal_expansion(+NSGoal, -Goal)
-%	
-%	This predicate allows for writing down rdf queries in a friendly
-%	name-space fashion.  
-
-:- multifile
-	user:goal_expansion/2.
-
-user:goal_expansion(rdfs_subproperty_of(Sub0, Prop0),
-		    rdfs_subproperty_of(Sub, Prop)) :-
-	rdf_global_id(Sub0, Sub),
-	rdf_global_id(Prop0, Prop).
-user:goal_expansion(rdfs_subclass_of(Sub0, Class0),
-		    rdfs_subclass_of(Sub, Class)) :-
-	rdf_global_id(Sub0, Sub),
-	rdf_global_id(Class0, Class).
-user:goal_expansion(rdfs_class_property(Class0, Prop0),
-		    rdfs_class_property(Class, Prop)) :-
-	rdf_global_id(Class0, Class),
-	rdf_global_id(Prop0, Prop).
-user:goal_expansion(rdfs_individual_of(Resource0, Class0),
-		    rdfs_individual_of(Resource, Class)) :-
-	rdf_global_id(Resource0, Resource),
-	rdf_global_id(Class0, Class).
-user:goal_expansion(rdfs_label(Resource0, Label),
-		    rdfs_label(Resource, Label)) :-
-	rdf_global_id(Resource0, Resource).
+:- rdf_meta
+	rdfs_subproperty_of(r,r),
+	rdfs_subclass_of(r,r),
+	rdfs_class_property(r,r),
+	rdfs_individual_of(r,r),
+	rdfs_label(r,-).
 
 
 		 /*******************************

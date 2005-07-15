@@ -1,3 +1,8 @@
+Jul 15, 2005
+
+  * ADDED/CLEANUP: new rdf_meta/1 directive to simplify namespace
+    pre-processing.
+
 Jul 5, 2005
 
   * ADDED/FIXED: Proper quoting of Unicode URI values conforming the

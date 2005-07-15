@@ -96,50 +96,15 @@ This library provides a number of functions on top of the rdf_db module:
     * Provide undo/redo
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	user:goal_expansion(+NSGoal, -Goal)
-%	
-%	This predicate allows for writing down rdf queries in a friendly
-%	name-space fashion.  
-
-:- multifile
-	user:goal_expansion/2.
-
-user:goal_expansion(rdfe_assert(Subj0, Pred0, Obj0),
-		    rdfe_assert(Subj, Pred, Obj)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdfe_assert(Subj0, Pred0, Obj0, PayLoad),
-		    rdfe_assert(Subj, Pred, Obj, PayLoad)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdfe_retractall(Subj0, Pred0, Obj0),
-		    rdfe_retractall(Subj, Pred, Obj)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdfe_update(Subj0, Pred0, Obj0, Action0),
-		    rdfe_update(Subj, Pred, Obj, Action)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj),
-	(   compound(Action0)
-	->  Action0 =.. [Name,Res0],
-	    rdf_global_id(Res0, Res),
-	    Action =.. [Name,Res]
-	;   Action = Action0
-	).
-user:goal_expansion(rdfe_delete(Subj0),
-		    rdfe_delete(Subj)) :-
-	rdf_global_id(Subj0, Subj).
-user:goal_expansion(rdfe_transaction(G0),
-		    rdfe_transaction(G)) :-
-	expand_goal(G0, G).
-user:goal_expansion(rdfe_transaction(G0, Name),
-		    rdfe_transaction(G, Name)) :-
-	expand_goal(G0, G).
-
+:- rdf_meta
+	rdfe_assert(r,r,o),
+	rdfe_assert(r,r,o,+),
+	rdfe_retractall(r,r,o),
+	rdfe_update(r,r,o,t),
+	rdfe_delete(r),
+	rdfe_transaction(:),
+	rdfe_transaction(:, +).
+	
 
 		 /*******************************
 		 *     BASIC EDIT OPERATIONS	*

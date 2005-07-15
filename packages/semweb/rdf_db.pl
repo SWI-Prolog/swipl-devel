@@ -93,7 +93,10 @@
 	    rdf_match_label/3,		% +How, +String, +Label
 	    rdf_split_url/3,		% ?Base, ?Local, ?URL
 
-	    rdf_debug/1			% Set verbosity
+	    rdf_debug/1,		% Set verbosity
+
+	    (rdf_meta)/1,			% +Heads
+	    op(1150, fx, (rdf_meta))
 	  ]).
 :- use_module(library(rdf)).
 :- use_module(library(lists)).
@@ -107,7 +110,8 @@
    load_foreign_library(foreign(rdf_db)).
 
 :- multifile
-	ns/2.
+	ns/2,
+	rdf_meta_specification/2.	% Unbound Head, Head
 :- dynamic
 	ns/2,				% ID, URL
 	rdf_source/4.			% File, ModTimeAtLoad, Triples, MD5
@@ -215,91 +219,128 @@ rdf_global_term(Term0, Term) :-
 rdf_global_term(Term, Term).
 
 
-%	user:goal_expansion(+NSGoal, -Goal)
-%	
-%	This predicate allows for writing down rdf queries in a friendly
-%	name-space fashion.  
+		 /*******************************
+		 *	      EXPANSION		*
+		 *******************************/
 
 :- multifile
-	user:goal_expansion/2.
+	user:term_expansion/2.
 
-user:goal_expansion(rdf(Subj0, Pred0, Obj0),
-		    rdf(Subj, Pred, Obj)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdf_has(Subj0, Pred0, Obj0, RP0),
-		    rdf_has(Subj, Pred, Obj, RP)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj),
-	rdf_global_id(RP0, RP).
-user:goal_expansion(rdf_has(Subj0, Pred0, Obj0),
-		    rdf_has(Subj, Pred, Obj)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdf_assert(Subj0, Pred0, Obj0),
-		    rdf_assert(Subj, Pred, Obj)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdf_retractall(Subj0, Pred0, Obj0),
-		    rdf_retractall(Subj, Pred, Obj)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdf(Subj0, Pred0, Obj0, PayLoad),
-		    rdf(Subj, Pred, Obj, PayLoad)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdf_reachable(Subj0, Pred0, Obj0),
-		    rdf_reachable(Subj, Pred, Obj)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdf_assert(Subj0, Pred0, Obj0, PayLoad),
-		    rdf_assert(Subj, Pred, Obj, PayLoad)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdf_retractall(Subj0, Pred0, Obj0, PayLoad),
-		    rdf_retractall(Subj, Pred, Obj, PayLoad)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-user:goal_expansion(rdf_update(Subj0, Pred0, Obj0, Action0),
-		    rdf_update(Subj, Pred, Obj, Action)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj),
-	rdf_global_term(Action0, Action).
-user:goal_expansion(rdf_equal(SubjA0, SubjB0),
-		    rdf_equal(SubjA, SubjB)) :-
-	rdf_global_id(SubjA0, SubjA),
-	rdf_global_id(SubjB0, SubjB).
-user:goal_expansion(rdf_source_location(Subj0, Source),
-		    rdf_source_location(Subj, Source)) :-
-	rdf_global_id(Subj0, Subj).
-user:goal_expansion(rdf_subject(Subj0),
-		    rdf_subject(Subj)) :-
-	rdf_global_id(Subj0, Subj).
-user:goal_expansion(rdf_set_predicate(P0, Prop),
-		    rdf_set_predicate(P, Prop)) :-
-	rdf_global_id(P0, P).
-user:goal_expansion(rdf_predicate_property(P0, Prop),
-		    rdf_predicate_property(P, Prop)) :-
-	rdf_global_id(P0, P).
-user:goal_expansion(rdf_estimate_complexity(Subj0, Pred0, Obj0, C),
-		    rdf_estimate_complexity(Subj, Pred, Obj, C)) :-
-	rdf_global_id(Subj0, Subj),
-	rdf_global_id(Pred0, Pred),
-	rdf_global_object(Obj0, Obj).
-					% meta predicates
-user:goal_expansion(rdf_transaction(G0), rdf_transaction(G)) :-
-	expand_goal(G0, G).
+user:term_expansion((:- rdf_meta(Heads)), Clauses) :-
+	mk_clauses(Heads, Clauses).
 
+mk_clauses((A,B), [H|T]) :- !,
+	mk_clause(A, H),
+	mk_clauses(B, T).
+mk_clauses(A, [C]) :-
+	mk_clause(A, C).
+
+mk_clause(Head, rdf_db:rdf_meta_specification(Unbound, Head)) :-
+	valid_rdf_meta_head(Head),
+	functor(Head, Name, Arity),
+	functor(Unbound, Name, Arity).
+
+valid_rdf_meta_head(Head) :-
+	callable(Head), !,
+	Head =.. [_|Args],
+	valid_args(Args).
+valid_rdf_meta_head(Head) :-
+	throw(error(type_error(callable, Head), _)).
+
+valid_args([]).
+valid_args([H|T]) :-
+	valid_arg(H), !,
+	valid_args(T).
+
+valid_arg(:).
+valid_arg(+).
+valid_arg(-).
+valid_arg(?).
+valid_arg(@).
+valid_arg(r).
+valid_arg(o).
+valid_arg(t).
+valid_arg(A) :-
+	throw(error(type_error(rdf_meta_argument, A), _)).
+
+%	rdf_meta(+Heads)
+%	
+%	This   directive   is   expanded   using   term-expansion.   The
+%	implementation just throws an error in   case  it is called with
+%	the wrong context.
+
+rdf_meta(Heads) :-
+	throw(error(context_error(nodirective, rdf_meta(Heads)), _)).
+
+
+user:goal_expansion(G, Expanded) :-
+	rdf_meta_specification(G, Spec), !,
+	rdf_expand(G, Spec, Expanded).
+
+rdf_expand(G, Spec, Expanded) :-
+	functor(G, Name, Arity),
+	functor(Expanded, Name, Arity),
+	rdf_expand_args(0, Arity, G, Spec, Expanded).
+
+rdf_expand_args(Arity, Arity, _, _, _) :- !.
+rdf_expand_args(I0, Arity, Goal, Spec, Expanded) :-
+	I is I0 + 1,
+	arg(I, Goal, GA),
+	arg(I, Spec, SA),
+	arg(I, Expanded, EA),
+	rdf_expand_arg(SA, GA, EA),
+	rdf_expand_args(I, Arity, Goal, Spec, Expanded).
+
+rdf_expand_arg(r, A, E) :- !,
+	mk_global(A, E).
+rdf_expand_arg(o, A, E) :- !,
+	rdf_global_object(A, E).
+rdf_expand_arg(t, A, E) :- !,
+	rdf_global_term(A, E).
+rdf_expand_arg(:, A, E) :- !,
+	expand_goal(A, E).
+rdf_expand_arg(_, A, A).
+
+%	mk_global(+Src, -Resource)
+%	
+%	Realised rdf_global_id(+, -), but adds compiletime checking,
+%	notably to see whether a namespace is not yet defined.
+
+mk_global(X, X) :-
+	var(X), !.
+mk_global(X, X) :-
+	atom(X), !.
+mk_global(NS:Local, Global) :-
+	must_be_atom(NS),
+	must_be_atom(Local),
+	(   ns(NS, Full)
+	->  atom_concat(Full, Local, Global)
+	;   throw(error(existence_error(namespace, NS), _))
+	).
+
+must_be_atom(X) :-
+	atom(X), !.
+must_be_atom(X) :-
+	throw(error(type_error(atom, X), _)).
+
+:- rdf_meta
+	rdf(r,r,o),
+	rdf_has(r,r,o,r),
+	rdf_has(r,r,o),
+	rdf_assert(r,r,o),
+	rdf_retractall(r,r,o),
+	rdf(r,r,o,?),
+	rdf_assert(r,r,o,+),
+	rdf_retractall(r,r,o,?),
+	rdf_reachable(r,r,r),
+	rdf_update(r,r,o,t),
+	rdf_equal(r,r),
+	rdf_source_location(r,-),
+	rdf_subject(r),
+	rdf_set_predicate(r, +),
+	rdf_predicate_property(r, -),
+	rdf_estimate_complexity(r,r,r,-),
+	rdf_transaction(:).
 
 %	rdf_equal(?Resource1, ?Resource2)
 %	

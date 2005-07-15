@@ -673,6 +673,87 @@ is split on the last \chr{\#} or \chr{/} character.
 \end{description}
 
 
+\subsubsection{Namespace handling for custom predicates}
+
+If we implement a new predicate based on one of the predicates of
+the semweb libraries that expands namespaces, namespace expansion
+is not automatically available to it.  Consider the following code
+computing the number of distinct objects for a certain property
+on a certain object.
+
+\begin{code}
+cardinality(S, P, C) :-
+	(   setof(O, rdf_has(S, P, O), Os)
+	->  length(Os, C)
+	;   C = 0
+	).
+\end{code}
+
+Now assume we want to write labels/2 that returns the number of
+distict labels of a resource:
+
+\begin{code}
+labels(S, C) :-
+	cardinality(S, rdfs:label, C).
+\end{code}
+
+This code will \emph{not work} as \verb$rdfs:label$ is not expanded
+at compile time.  To make this work, we need to add an rdf_meta/1
+declaration.
+
+\begin{code}
+:- rdf_meta
+	cardinality(r,r,-).
+\end{code}
+
+\begin{description}
+    \predicate{rdf_meta}{1}{Heads}
+This predicate defines the argument types of the named predicates,
+which will force compile time namespace expansion for these predicates.
+\arg{Heads} is a coma-separated list of callable terms.  Defined
+argument properties are:
+
+    \begin{description}
+	\termitem{:}{}
+Argument is a goal. The goal is processed using expand_goal/2,
+recursively applying goal transformation on the argument.
+	\termitem{+}{}
+The argument is instantiated at entry.  Nothing is changed.
+	\termitem{-}{}
+The argument is not instantiated at entry.  Nothing is changed.
+	\termitem{?}{}
+The argument is unbound or instantiated at entry.  Nothing is changed.
+	\termitem{@}{}
+The argument is not changed.
+	\termitem{r}{}
+The argument must be a resource.  If it is a term <namespace>:<local>
+it is translated.
+	\termitem{o}{}
+The argument is an object or resource.
+	\termitem{t}{}
+The argument is a term that must be translated. Expansion will translate
+all occurences of <namespace>:<local> appearing anywhere in the term.
+    \end{description}
+
+As it is subject to term_expansion/2, the rdf_meta/1 declaration can
+only be used as a \emph{directive}. The directive must be processed
+before the definition of the predicates as well as before compiling code
+that uses the rdf meta-predicates. The atom \verb$rdf_meta$ is declared
+as an operator exported from library \file{rdf_db.pl}. Files using
+rdf_meta/1 \emph{must} explicitely load \file{rdf_db.pl}.
+
+ Below are some examples from
+\file{rdf_db.pl}
+
+\begin{code}
+:- rdf_meta
+	rdf(r,r,o),
+	rdf_source_location(r,-),
+	rdf_transaction(:).
+\end{code}
+\end{description}
+
+
 \subsection{Miscellaneous predicates}
 
 This section describes the remaining predicates of the \file{rdf_db}
