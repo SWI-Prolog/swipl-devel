@@ -1060,6 +1060,15 @@ static char *T_win_file_name[] =
 	  "directory=[directory]",
 	  "owner=[frame|int]"
 	};
+extern Name getWinDirectoryDisplay(DisplayObj d,
+				   CharArray title,
+				   Directory dir,
+				   Any owner);
+static T_win_directory[] =
+	{ "title=[char_array]",
+	  "directory=[directory]",
+	  "owner=[frame|int]"
+	};
 #endif
 
 /* Instance Variables */
@@ -1206,6 +1215,8 @@ static getdecl get_display[] =
 #ifdef WIN32_GRAPHICS
   GM(NAME_winFileName, 6, "name", T_win_file_name, getWinFileNameDisplay,
      NAME_prompt, "Ask for a filename using Windows standard dialog"),
+  GM(NAME_winDirectory, 3, "name", T_win_directory, getWinDirectoryDisplay,
+     NAME_prompt, "Ask for a directory (folder) using Windows standard dialog"),
 #endif
   GM(NAME_windowManager, 0, "[{twm,olwm,mwm,fvwm}|name]", NULL,
      getWindowManagerDisplay,

@@ -488,3 +488,48 @@ getWinFileNameDisplay(DisplayObj d,
 
   return rval;
 }
+
+
+Name
+getWinDirectoryDisplay(DisplayObj d,
+		       CharArray title,
+		       Directory dir,	/* initial dir */
+		       Any owner)	/* owner window */
+{ BROWSEINFO bi;
+  HWND hwnd;
+  Name rval = 0;
+  EventObj ev = EVENT->value;
+  LPITEMIDLIST pidl;
+
+  memset(&bi, 0, sizeof(bi));
+
+  if ( isInteger(owner) )
+    bi.hwndOwner = (void *)valInt(owner);
+  else if ( instanceOfObject(owner, ClassFrame) )
+    bi.hwndOwner = getHwndFrame(owner);
+  else if ( instanceOfObject(ev, ClassEvent) &&
+	    (hwnd = getHwndWindow(ev->window)) )
+    bi.hwndOwner = hwnd;
+
+  bi.lpszTitle = nameToTCHAR(title);
+  bi.ulFlags   = BIF_RETURNONLYFSDIRS;
+
+  if ( (pidl = SHBrowseForFolder(&bi)) )
+  { TCHAR *path[MAX_PATH];
+    IMalloc *im = NULL;
+    Name result = NULL;
+
+    if ( SHGetPathFromIDList(pidl, path) )
+    { result = TCHARToName(path);
+    }
+    
+    if ( SHGetMalloc(&im) )
+    { imalloc->Free(pidl);
+      imalloc->Release();
+    }
+
+    return result;
+  } else
+  { fail;
+  }
+}

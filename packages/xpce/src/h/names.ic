@@ -2331,6 +2331,7 @@
   BUILTIN_NAME("whole")
   BUILTIN_NAME("width")
   BUILTIN_NAME("win")
+  BUILTIN_NAME("win_directory")
   BUILTIN_NAME("win_file_name")
   BUILTIN_NAME("win_handle")
   BUILTIN_NAME("win_menu_bar")
