@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: pcePP() to return UTF-8 encoded strings if there is Unicode data
+  in it.
+
 * FIXED: prolog_term<-print_name (encoding issue).
 
 

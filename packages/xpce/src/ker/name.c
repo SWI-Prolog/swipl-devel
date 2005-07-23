@@ -605,18 +605,6 @@ CtoKeyword(const char *s)
 }
 
 
-char *
-saveStringName(Name n)
-{ if ( isProperObject(n) && instanceOfObject(n, ClassName) )
-    return save_string((char *)n->data.s_textA);
-  else
-  { char buf[100];
-
-    sprintf(buf, "0x%lx", (unsigned long)n);
-    return save_string(buf);
-  }
-}
-
 		/********************************
 		*           ANALYSIS		*
 		********************************/

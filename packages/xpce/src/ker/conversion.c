@@ -192,14 +192,37 @@ ppsavestring(const char *s)
 }
 
 
-/* (JW)	A special routine to ease debugging.  Type checking is done more
-	carefully to avoid core-dumps on any void* (=Any) value.
- */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Safe version of strName(), making sure the datastructures are fairly ok.
+Used for debugging purposes only. Returns the string as UTF-8.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *
+safeStringName(Name n)
+{ if ( isProperObject(n) && instanceOfObject(n, ClassName) )
+    return nameToUTF8(n);
+  else
+  { char buf[100];
+
+    sprintf(buf, "0x%lx", (unsigned long)n);
+    return ppsavestring(buf);
+  }
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+do_pp() creates a UTF-8 string  to  describe   an  object  on  behalf of
+debugging. The function is careful to check the consistency before doing
+most  of  its  work  to   avoid    crashes   on   partial  or  corrupted
+datastructures.
+
+The returned string either points to static data   or is part of a ring,
+which implies upto PPRINGSIZE values can be requested before overwrite.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static char *
 do_pp(Any obj)
 { char tmp[LINESIZE];
-  char summary[25];
+  char summary[256];
   char *s;
 
   if ( !obj )
@@ -212,18 +235,26 @@ do_pp(Any obj)
 
   if ( isProperObject(obj) )
   { if ( isName(obj))
-      return saveStringName((Name) obj);
+      return safeStringName((Name) obj);
 
     if ( instanceOfObject(obj, ClassCharArray) &&
 	 isAddress(((CharArray)obj)->data.s_text) )
-    { summary[0] = '"';
-      strncpy(summary+1, strName(obj), 23);
-      summary[24] = '\0';
+    { CharArray ca = obj;
+
+      summary[0] = '"';
+      if ( ca->data.size < 25 )
+      { strcpy(&summary[1], charArrayToUTF8(ca));
+      } else
+      { strncpy(&summary[1], charArrayToUTF8(ca), 25);
+	summary[26] = '\0';
+	strcat(summary, " ...");
+      }
+
       strcat(summary, "\"");
       s = summary;
     } else if ( instanceOfObject(obj, ClassType) &&
 		isName(((Type)obj)->fullname) )
-    { s = strName(((Type)obj)->fullname);
+    { s = nameToUTF8(((Type)obj)->fullname);
     } else if ( instanceOfObject(obj, ClassReal) )
     { sprintf(summary, "%g", valReal(obj));
       s = summary;
@@ -232,19 +263,18 @@ do_pp(Any obj)
       s = summary;
     } else if ( instanceOfObject(obj, ClassHostData) )
     { Any pn = qadGetv(obj, NAME_printName, 0, NULL);
-      char *tmp;
 
-      if ( pn && (tmp = toCharp(pn)) )
-	return ppsavestring(tmp);
+      if ( pn && instanceOfObject(pn, ClassCharArray) )
+	return ppsavestring(charArrayToUTF8(pn));
       else
-	s = strName(classOfObject(obj)->name);
+	s = nameToUTF8(classOfObject(obj)->name);
     } else
-      s = strName(classOfObject(obj)->name);
+      s = nameToUTF8(classOfObject(obj)->name);
 
     { Name name;
 
       if ( (name = getNameAssoc(obj)) )
-        sprintf(tmp, "@%s/%s", strName(name), s);
+        sprintf(tmp, "@%s/%s", nameToUTF8(name), s);
       else
 	sprintf(tmp, "@%ld/%s", valInt(PointerToInt(obj)), s);
     }

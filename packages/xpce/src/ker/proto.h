@@ -190,7 +190,6 @@ COMMON(Name)	GetLabelNameName(Name n);
 COMMON(Name)	getDeleteSuffixName(Name n, Name suffix);
 COMMON(Name)	StringToName(String s);
 COMMON(Name)	CtoKeyword(const char *s);
-COMMON(char *)	saveStringName(Name n);
 COMMON(status)	makeClassName(Class class);
 
 /* /staff/jan/src/pl/packages/xpce/src/ker/object.c */
