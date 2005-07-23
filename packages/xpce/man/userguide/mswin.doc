@@ -1,7 +1,9 @@
 \chapter{Notes on XPCE for MS-Windows}		\label{sec:mswin}
 
-\index{Windows 95}\index{Windows NT}
-The same binary version of \product{} runs on both Windows~95 and NT.
+\index{Windows 95}\index{Windows NT}\index{Windows 2000}\index{Windows XP}
+The binary version of \product{} runs on Windows~NT, 2000 and XP.%
+	\footnote{As of 6.5.x, XPCE is a UNICODE application and is no
+		  longer supported for Windows 95, 98 and ME.}
 Its functionality is very close to the Unix/X11 version, making
 applications source-code compatible between the two platforms. \ifpw{
 Quintus \fileext{qof} files are identical on Unix and Windows platforms,
@@ -91,7 +93,7 @@ name is \const{win_something}.  The full list is in \tabref{wincolours}.
 
 \begin{table}
 \begin{center}
-\begin{tabularlp}{\const{win_inactivecaptiontext}}
+\begin{tabularlp}{\const{win_gradientinactivecaption}}
 \hline
 \const{win_3ddkshadow} & Dark shadow for three-dimensional display elements. \\
 \const{win_3dface} & \\
@@ -99,25 +101,27 @@ name is \const{win_something}.  The full list is in \tabref{wincolours}.
 \const{win_3dhilight} & \\
 \const{win_3dhighlight} & \\
 \const{win_btnhilight} & \\
-\const{win_btnhighlight} & Highlight color for three-dimensional display elements (for edges facing the light source.) \const{win_3DLIGHT} Light color for three-dimensional display elements (for edges facing the light source.) \\
+\const{win_btnhighlight} & Highlight color for three-dimensional display elements \\
+\const{win_3dlight} & Light color for three-dimensional display elements \\
 \const{win_3dshadow} & \\
-\const{win_btnshadow} & Shadow color for three-dimensional display elements (for edges facing away from the light source). \\
+\const{win_btnshadow} & Shadow color for three-dimensional display elements \\
 \const{win_activeborder} & Active window border. \\
-\const{win_activecaption} & Active window title bar.Windows NT 5.0 and Windows 98: Specifies the left side color in the color gradient of an active window's title bar if the gradient effect is enabled. \\
-\const{win_appworkspace} & Background color of multiple document interface (MDI) applications. \\
+\const{win_activecaption} & Active window title bar. \\
+\const{win_appworkspace} & Background color of MDI applications. \\
 \const{win_background} & \\
 \const{win_desktop} & Desktop. \\
 \const{win_btntext} & Text on push buttons. \\
 \const{win_captiontext} & Text in caption, size box, and scroll bar arrow box. \\
-\const{win_gradientactivecaption} & Windows NT 5.0 and Windows 98: Right side color in the color gradient of an active window's title bar. \const{win_ACTIVECAPTION} specifies the left side color. Use SPI_GETGRADIENTCAPTIONS with the SystemParametersInfo function to determine whether the gradient effect is enabled. \\
-\const{win_gradientinactivecaption} & Windows NT 5.0 and Windows 98: Right side color in the color gradient of an inactive window's title bar. \const{win_INACTIVECAPTION} specifies the left side color. \\
-\const{win_graytext} & Grayed (disabled) text. This color is set to 0 if the current display driver does not support a solid gray color. \\
+\const{win_gradientactivecaption} & Right side color of an active window's title bar. \\
+\const{win_activecaption} & specifies the left side color. \\
+\const{win_gradientinactivecaption} & Right side color of an inactive window's title bar. \\
+\const{win_inactivecaption} & specifies the left side color. \\
+\const{win_graytext} & Grayed (disabled) text. \\
 \const{win_highlight} & Item(s) selected in a control. \\
 \const{win_highlighttext} & Text of item(s) selected in a control. \\
-\const{win_hotlight} & Windows NT 5.0 and Windows 98: Color for a hot-tracked item. Single clicking a hot-tracked item executes the item. \\
+\const{win_hotlight} & Color for a hot-tracked item. \\
 \const{win_inactiveborder} & Inactive window border. \\
 \const{win_inactivecaption} & Inactive window caption. \\
-Windows NT 5.0 and Windows 98: Specifies the left side color in the color gradient of an inactive window's title bar if the gradient effect is enabled.
 \const{win_inactivecaptiontext} & Color of text in an inactive caption. \\
 \const{win_infobk} & Background color for tooltip controls. \\
 \const{win_infotext} & Text color for tooltip controls. \\

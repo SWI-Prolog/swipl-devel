@@ -23,19 +23,19 @@
 \newcommand{\product}{{\sc xpce}}
 \newcommand{\plainproduct}{XPCE}
 \newcommand{\productpl}{{\sc xpce/p}rolog}
-\newcommand{\productversion}{6.0.0}
+\newcommand{\productversion}{6.5.22}
 \newcommand{\quintus}{Quintus}
 \newenvironment{xpceonly}{}{}
 \excludecomment{pwonly}
-\newcommand{\productdate}{February 2002}
+\newcommand{\productdate}{July 2005}
 
 \renewcommand{\runningtitle}{\product{} \productversion}
 \def\booktitle{Programming in XPCE/Prolog}
-\author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl} \\
-	\email[Anjo Anjewierden]{anjo@swi.psy.uva.nl} \\
+\author{\email[Jan Wielemaker]{wielemak@science.uva.nl} \\
+	\email[Anjo Anjewierden]{anjo@science.uva.nl} \\
 	SWI, University of Amsterdam \\
-	Roetersstraat 15 \\
-	1018 WB  Amsterdam}
+	Kruislaan 419 \\
+	1098~VA~~Amsterdam}
 
 \sloppy
 %\psdraft
@@ -57,8 +57,8 @@
 \begin{abstract}
 \productpl{} is a hybrid environment integrating logic programming and
 object-oriented programming for Graphical User Interfaces. Applications
-in \productpl{} are portable across the supported X11 and Win32 (Windows
-95 and Windows NT) platforms.
+in \productpl{} are portable across the supported X11 and Win32
+(Windows NT/2000/XP) platforms.
 
 %\product{} has been connected to the following Prolog systems.
 %
@@ -68,10 +68,10 @@ in \productpl{} are portable across the supported X11 and Win32 (Windows
 %    \item \url[SICStus Prolog]{http://www.sics.se/isl/sicstus.html}
 %\end{itemize}
 
-{\it Last updated February 28, 2001 for \product{} version
+{\it Last updated July, 2005 for \product{} version
  \productversion}
 
-Copyright \copyright\ 1992-2001 University of Amsterdam
+Copyright \copyright\ 1992-2005 University of Amsterdam
 \end{abstract}
 
 \hr
@@ -114,15 +114,15 @@ super-section, and sections that have subsections contain a
 \noindent
 {\bf Programming in \productpl{}} \\[1cm]
 \begin{tabular}{ll}
-Jan Wielemaker   & \email{jan@swi.psy.uva.nl} \\
-Anjo Anjewierden & \email{anjo@swi.psy.uva.nl}
+Jan Wielemaker   & \email{wielemak@science.uva.nl} \\
+Anjo Anjewierden & \email{anjo@science.uva.nl}
 \end{tabular}
 
 \vfil\noindent
 \productpl{} is a hybrid environment integrating logic programming and
 object-oriented programming for Graphical User Interfaces.  Applications
 in \productpl{} are fully compatible across the supported X11 and
-Win32 (Windows 95/98/ME, NT/2000/XP) platforms.\\[10pt]
+Win32 (NT/2000/XP) platforms.\\[10pt]
 
 \vfil\noindent
 This document also applies to XPCE/Prolog \productversion{} distributed
@@ -154,7 +154,7 @@ Titlepage created using \product{} 4.8.10 on Windows-NT 4.0
 Last updated February 2002 for \product{} version \productversion
 \vfil
 \noindent
-Copyright \copyright\ 1992-2002 University of Amsterdam
+Copyright \copyright\ 1992-2005 University of Amsterdam
 \end{titlepage}
 \end{xpceonly}
 
