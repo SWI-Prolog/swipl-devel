@@ -1323,7 +1323,7 @@ getPrintNameProlog(PceObject hd)
   s->encoding = ENC_WCHAR;
   PL_write_term(s, getTermHandle(hd), 1200, 0);
   Sflush(s);
-  rval = cToPceStringW(NIL, (wchar_t *)buffer, size, FALSE);
+  rval = cToPceStringW(NIL, (wchar_t *)buffer, size/sizeof(wchar_t), FALSE);
   Sclose(s);
 
   return rval;

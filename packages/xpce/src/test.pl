@@ -423,6 +423,16 @@ bom(bom-1) :-
 
 
 		 /*******************************
+		 *	   PROLOG TERMS		*
+		 *******************************/
+
+plterm(print_name-1) :-
+	new(C, chain(prolog(bar(foo)))),
+	get(C?head, print_name, string(X)),
+	X == 'bar(foo)'.
+
+
+		 /*******************************
 		 *	     SELECTION		*
 		 *******************************/
 
@@ -599,6 +609,7 @@ testset(srcsink).			% Source/Sink operations
 testset(file).				% file (-name) handling
 testset(dir).				% directory (-name) handling
 testset(bom).				% Byte Order Mark hanling
+testset(plterm).			% Prolog terms in XPCE
 testset(textbuffer).
 testset(asfile).			% test pce_open and friends
 testset(selection).			% X11 selection

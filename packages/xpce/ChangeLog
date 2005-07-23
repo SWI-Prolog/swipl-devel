@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: prolog_term<-print_name (encoding issue).
+
+
 VERSION 6.5.21, distributed with SWI-Prolog 5.5.21
 ==================================================
 
