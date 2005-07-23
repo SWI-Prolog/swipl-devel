@@ -490,6 +490,9 @@ getWinFileNameDisplay(DisplayObj d,
 }
 
 
+#include <shlobj.h>
+#include <objbase.h>
+
 Name
 getWinDirectoryDisplay(DisplayObj d,
 		       CharArray title,
@@ -500,6 +503,7 @@ getWinDirectoryDisplay(DisplayObj d,
   Name rval = 0;
   EventObj ev = EVENT->value;
   LPITEMIDLIST pidl;
+  Name result = NULL;
 
   memset(&bi, 0, sizeof(bi));
 
@@ -511,25 +515,45 @@ getWinDirectoryDisplay(DisplayObj d,
 	    (hwnd = getHwndWindow(ev->window)) )
     bi.hwndOwner = hwnd;
 
-  bi.lpszTitle = nameToTCHAR(title);
-  bi.ulFlags   = BIF_RETURNONLYFSDIRS;
+  if ( isDefault(title) )
+    bi.lpszTitle = L"Choose folder";
+  else
+    bi.lpszTitle = nameToTCHAR(title);
+  bi.ulFlags = BIF_RETURNONLYFSDIRS;
+
+  CoInitialize(NULL);
 
   if ( (pidl = SHBrowseForFolder(&bi)) )
-  { TCHAR *path[MAX_PATH];
-    IMalloc *im = NULL;
-    Name result = NULL;
+  { TCHAR path[MAX_PATH];
 
     if ( SHGetPathFromIDList(pidl, path) )
-    { result = TCHARToName(path);
+    { 
+#ifdef O_XOS				/* should always be true */
+      char buf[MAXPATHLEN];
+
+      if ( _xos_canonical_filenameW(path, buf, sizeof(buf), 0) )
+	result = UTF8ToName(buf);
+      else
+	errorPce(TCHARToName(path), NAME_representation, NAME_nameTooLong);
+#else
+      result = TCHARToName(path);
+#endif
     }
     
-    if ( SHGetMalloc(&im) )
-    { imalloc->Free(pidl);
-      imalloc->Release();
+#if 1
+    CoTaskMemFree(pidl);
+#else
+  { IMalloc *im = NULL;
+    if ( SHGetMalloc(&im) == NOERROR )
+    { im->Free(pidl);			/* these are C++ methods! */
+      im->Release();
     }
-
-    return result;
-  } else
-  { fail;
   }
+#endif
+  }
+  
+  CoUninitialize();
+
+  return result;
 }
+

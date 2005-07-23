@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: display<-win_directory to exploit the standard Windows Shell
+  directory dialog.
+
 * ENHANCED: Win32: update GetSysColor() defined colours (name win_*).
   Steve Moyle.
 

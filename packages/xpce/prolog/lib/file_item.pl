@@ -232,4 +232,18 @@ check_existence(_FI, Name:name) :->
 	"Check existence of directory"::
 	send(directory(Name), exists).
 
+browse(DI) :->
+	"Run finder to fill with value"::
+	get(DI?value, value, Sofar0),
+	(   Sofar0 == ''
+	->  Sofar = '.'
+	;   Sofar = Sofar0
+	),
+	(   send(@display, has_get_method, win_directory)
+	->  get(@display, win_directory, @default, Sofar, DirName),
+	    send(DI, value, DirName),
+	    send(DI, apply, @on)
+	;   send_super(DI, browse)
+	).
+
 :- pce_end_class.

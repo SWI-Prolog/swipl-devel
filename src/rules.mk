@@ -94,7 +94,7 @@ INSTALL_DATA=$(INSTALL)
 MKDIR=mkdir
 MAKE=nmake CFG="$(CFG)" DBG="$(DBG)" MT="$(MT)" /nologo /f Makefile.mak
 
-LIBS=/NODEFAULTLIB:libc msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib
+LIBS=/NODEFAULTLIB:libc msvcprt.lib user32.lib shell32.lib gdi32.lib advapi32.lib wsock32.lib ole32.lib
 !if "$(MT)" == "true"
 LIBS=$(LIBS) pthreadVC.lib
 !ENDIF

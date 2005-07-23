@@ -384,12 +384,16 @@ static struct system_colour window_colours[] =
   { "win_btntext",		   COLOR_BTNTEXT },
   { "win_captiontext",		   COLOR_CAPTIONTEXT },
   { "win_desktop",		   COLOR_DESKTOP },
+#ifdef COLOR_GRADIENTACTIVECAPTION
   { "win_gradientactivecaption",   COLOR_GRADIENTACTIVECAPTION },
   { "win_gradientinactivecaption", COLOR_GRADIENTINACTIVECAPTION },
+#endif
   { "win_graytext",		   COLOR_GRAYTEXT },
   { "win_highlight",		   COLOR_HIGHLIGHT },
   { "win_highlighttext",	   COLOR_HIGHLIGHTTEXT },
+#ifdef COLOR_HOTLIGHT
   { "win_hotlight",		   COLOR_HOTLIGHT },
+#endif
   { "win_inactiveborder",	   COLOR_INACTIVEBORDER },
   { "win_inactivecaption",	   COLOR_INACTIVECAPTION },
   { "win_inactivecaptiontext",	   COLOR_INACTIVECAPTIONTEXT },
