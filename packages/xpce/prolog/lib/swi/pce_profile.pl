@@ -203,7 +203,7 @@ load_profile(B) :->
 update_label(B) :->
 	get(B, sort_by, Sort),
 	sort_by(Human, Sort, _How),
-	send(B, label, string('Flat profile (%s)', Human?label_name)).
+	send(B, label, Human?label_name).
 
 sort_by(B, SortBy:name, Order:[{normal,reverse}]) :->
 	"Define key on which to sort"::
@@ -270,7 +270,7 @@ update_label(DI, SortBy:name, F:prof_frame) :->
 	"Update label considering sort key and frame"::
 	get(DI, key, Key),
 	(   SortBy == name
-	->  send(DI, label, Key)
+	->  send(DI, update_label, ticks_self, F)
 	;   get(DI, value, SortBy, Value),
 	    (	time_key(SortBy)
 	    ->	get(F, render_time, Value, Rendered)
@@ -630,12 +630,12 @@ value(Data, Name, Value) :-
 	key(Name, Arg),
 	arg(Arg, Data, Value).
 
-sort_by(by_name,	    name,	    normal).
-sort_by(by_time,	    ticks,	    reverse).
-sort_by(by_time_self,	    ticks_self,	    reverse).
-sort_by(by_time_siblings,   ticks_siblings, reverse).
-sort_by(by_number_of_calls, call,	    reverse).
-sort_by(by_number_of_redos, redo,	    reverse).
+sort_by(flat_profile_by_name,		     name,	     normal).
+sort_by(cumulative_profile_by_time,	     ticks,	     reverse).
+sort_by(flat_profile_by_time_self,	     ticks_self,     reverse).
+sort_by(cumulative_profile_by_time_siblings, ticks_siblings, reverse).
+sort_by(flat_profile_by_number_of_calls,     call,	     reverse).
+sort_by(flat_profile_by_number_of_redos,     redo,	     reverse).
 
 
 %	predicate_label(+Head, -Label)
