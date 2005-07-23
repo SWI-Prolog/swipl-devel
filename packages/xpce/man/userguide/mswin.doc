@@ -93,27 +93,40 @@ name is \const{win_something}.  The full list is in \tabref{wincolours}.
 \begin{center}
 \begin{tabularlp}{\const{win_inactivecaptiontext}}
 \hline
-\const{win_activeborder}	& Active window border.\\
-\const{win_activecaption}	& Active window caption.\\
-\const{win_appworkspace}	& Background colour of (MDI) applications.\\
-\const{win_background}		& Desktop.\\
-\const{win_btnface}		& Face shading on push buttons.\\
-\const{win_btnshadow}		& Edge shading on push buttons.\\
-\const{win_btntext}		& Text on push buttons.\\
-\const{win_captiontext}		& Text in caption and size box\\
-\const{win_graytext}		& Grayed (disabled) text.\\
-\const{win_highlight}		& Item(s) selected in a control.\\
-\const{win_highlighttext}	& Text of item(s) selected in a control.\\
-\const{win_inactiveborder}	& Inactive window border.\\
-\const{win_inactivecaption}	& Inactive window caption.\\
-\const{win_inactivecaptiontext}	& Color of text in an inactive caption.\\
-\const{win_menu}		& Menu background.\\
-\const{win_menutext}		& Text in menus.\\
-\const{win_scrollbar}		& Scroll bar gray area.\\
-\const{win_shadow}		& Color of automatic window shadows.\\
-\const{win_window}		& Window background.\\
-\const{win_windowframe}		& Window frame.\\
-\const{win_windowtext}		& Text in windows.\\
+\const{win_3ddkshadow} & Dark shadow for three-dimensional display elements. \\
+\const{win_3dface} & \\
+\const{win_btnface} & Face color for three-dimensional display elements. \\
+\const{win_3dhilight} & \\
+\const{win_3dhighlight} & \\
+\const{win_btnhilight} & \\
+\const{win_btnhighlight} & Highlight color for three-dimensional display elements (for edges facing the light source.) \const{win_3DLIGHT} Light color for three-dimensional display elements (for edges facing the light source.) \\
+\const{win_3dshadow} & \\
+\const{win_btnshadow} & Shadow color for three-dimensional display elements (for edges facing away from the light source). \\
+\const{win_activeborder} & Active window border. \\
+\const{win_activecaption} & Active window title bar.Windows NT 5.0 and Windows 98: Specifies the left side color in the color gradient of an active window's title bar if the gradient effect is enabled. \\
+\const{win_appworkspace} & Background color of multiple document interface (MDI) applications. \\
+\const{win_background} & \\
+\const{win_desktop} & Desktop. \\
+\const{win_btntext} & Text on push buttons. \\
+\const{win_captiontext} & Text in caption, size box, and scroll bar arrow box. \\
+\const{win_gradientactivecaption} & Windows NT 5.0 and Windows 98: Right side color in the color gradient of an active window's title bar. \const{win_ACTIVECAPTION} specifies the left side color. Use SPI_GETGRADIENTCAPTIONS with the SystemParametersInfo function to determine whether the gradient effect is enabled. \\
+\const{win_gradientinactivecaption} & Windows NT 5.0 and Windows 98: Right side color in the color gradient of an inactive window's title bar. \const{win_INACTIVECAPTION} specifies the left side color. \\
+\const{win_graytext} & Grayed (disabled) text. This color is set to 0 if the current display driver does not support a solid gray color. \\
+\const{win_highlight} & Item(s) selected in a control. \\
+\const{win_highlighttext} & Text of item(s) selected in a control. \\
+\const{win_hotlight} & Windows NT 5.0 and Windows 98: Color for a hot-tracked item. Single clicking a hot-tracked item executes the item. \\
+\const{win_inactiveborder} & Inactive window border. \\
+\const{win_inactivecaption} & Inactive window caption. \\
+Windows NT 5.0 and Windows 98: Specifies the left side color in the color gradient of an inactive window's title bar if the gradient effect is enabled.
+\const{win_inactivecaptiontext} & Color of text in an inactive caption. \\
+\const{win_infobk} & Background color for tooltip controls. \\
+\const{win_infotext} & Text color for tooltip controls. \\
+\const{win_menu} & Menu background. \\
+\const{win_menutext} & Text in menus. \\
+\const{win_scrollbar} & Scroll bar gray area. \\
+\const{win_window} & Window background. \\
+\const{win_windowframe} & Window frame. \\
+\const{win_windowtext} & Text in windows \\
 \hline
 \end{tabularlp}
 \end{center}
