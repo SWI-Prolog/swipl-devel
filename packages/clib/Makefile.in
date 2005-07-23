@@ -80,9 +80,9 @@ rlimit.@SO@:	$(RLIMITOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(RLIMITOBJ) $(LIBS)
 
 maildrop/rfc822/librfc822.a:
-		(cd maildrop/rfc822 && make librfc822.a)
+		(cd maildrop/rfc822 && make)
 maildrop/rfc2045/librfc2045.a:
-		(cd maildrop/rfc2045 && make librfc2045.a)
+		(cd maildrop/rfc2045 && make)
 
 
 install:	$(TARGETS) $(LIBPL)

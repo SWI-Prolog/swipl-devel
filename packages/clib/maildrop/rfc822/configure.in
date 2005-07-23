@@ -5,12 +5,12 @@ dnl Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 
 AC_INIT(rfc822.c)
-
-dnl AM_INIT_AUTOMAKE(rfc822lib, 0.12, 0)
-dnl AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER(config.h)
+AC_SUBST(AR)
 
 dnl Checks for programs.
 AC_PROG_CC
+AC_CHECK_PROG(AR, ar, ar, ar)
 AC_PROG_RANLIB
 
 AC_ISC_POSIX
@@ -82,13 +82,16 @@ long	n=dummy.tm_gmtoff;
 
 case $librfc822_cv_SYS_TIMEZONE in
 tm_gmtoff)
-	AC_DEFINE_UNQUOTED(USE_TIME_GMTOFF,1)
+	AC_DEFINE_UNQUOTED(USE_TIME_GMTOFF,1,
+			   [Whether time offset is specified via the tm_gmtoff member])
 	;;
 altzone)
-	AC_DEFINE_UNQUOTED(USE_TIME_ALTZONE,1)
+	AC_DEFINE_UNQUOTED(USE_TIME_ALTZONE,1,
+			   [Whether daylight savings time offset is set via the altzone variable])
 	;;
 daylight)
-	AC_DEFINE_UNQUOTED(USE_TIME_DAYLIGHT,1)
+	AC_DEFINE_UNQUOTED(USE_TIME_DAYLIGHT,1,
+			   [Whether daylight savings time offset is set via the tm_isdst member])
 	;;
 *)
 	AC_MSG_WARN(Cannot figure out how to calculate the alternate timezone, will use GMT)
@@ -97,7 +100,7 @@ esac
 
 if test -d ../unicode
 then
-	AC_DEFINE_UNQUOTED(HAVE_LIBUNICODE,1)
+	AC_DEFINE_UNQUOTED(HAVE_LIBUNICODE,1,[Whether we have libunicode.a])
 fi
 
 AC_OUTPUT(Makefile)

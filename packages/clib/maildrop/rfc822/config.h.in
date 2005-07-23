@@ -1,25 +1,10 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
-/*
-** Copyright 1998 - 2000 Double Precision, Inc.
-** See COPYING for distribution information.
-*/
-
-/* $Id$ */
-
-/* Whether daylight savings time offset is set via the altzone variable */
-#undef	USE_TIME_ALTZONE
-
-/* Whether daylight savings time offset is set via the tm_isdst member */
-#undef	USE_TIME_DAYLIGHT
-
-/* Whether time offset is specified via the tm_gmtoff member */
-#undef	USE_TIME_GMTOFF
-
-/* Whether we have libunicode.a */
-#undef	HAVE_LIBUNICODE
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Whether we have libunicode.a */
+#undef HAVE_LIBUNICODE
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -71,6 +56,15 @@
 
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 #undef TM_IN_SYS_TIME
+
+/* Whether daylight savings time offset is set via the altzone variable */
+#undef USE_TIME_ALTZONE
+
+/* Whether daylight savings time offset is set via the tm_isdst member */
+#undef USE_TIME_DAYLIGHT
+
+/* Whether time offset is specified via the tm_gmtoff member */
+#undef USE_TIME_GMTOFF
 
 /* Define to 1 if on AIX 3.
    System headers sometimes define this.

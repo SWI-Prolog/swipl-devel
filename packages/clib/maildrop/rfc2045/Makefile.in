@@ -33,4 +33,5 @@ clean:
 		rm -f $(OBJ) *~ *.o *% a.out core config.log
 
 distclean:	clean
-		rm -f librfc2045.a
+		rm -f Makefile config.status config.h librfc2045.a
+		rm -rf autom4te.cache
