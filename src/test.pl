@@ -1681,6 +1681,8 @@ file(ext-1) :-
 	file_name_extension(Base, Ext, File),
 	atom_codes(Base, [1074, 1086, 1079, 1076]),
 	atom_codes(Ext, [1091, 1093, 1072]).
+file(ext-2) :-
+	\+ file_name_extension(foo, _, 'bar.pl'). 	% Bug#69
 
 
 		 /*******************************
