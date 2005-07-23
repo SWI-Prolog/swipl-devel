@@ -4,11 +4,12 @@ dnl Copyright 1998 - 1999 Double Precision, Inc.  See COPYING for
 dnl distribution information.
 AC_INIT(rfc2045.c)
 
-dnl AM_INIT_AUTOMAKE(rfc2045lib, 0.10, 0)
-dnl AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER(config.h)
+AC_SUBST(AR)
 
 dnl Checks for programs.
 AC_PROG_CC
+AC_CHECK_PROG(AR, ar, ar, ar)
 AC_PROG_RANLIB
 
 AC_ISC_POSIX
@@ -42,7 +43,8 @@ extern int gethostname(int,int);
 
 if test $rfc2045_cv_SYS_GETHOSTNAME = "no"
 then
-	AC_DEFINE_UNQUOTED(HAS_GETHOSTNAME,1)
+	AC_DEFINE_UNQUOTED(HAS_GETHOSTNAME, 1,
+			   [Define if gethostname() is provided])
 fi
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -67,8 +69,8 @@ AC_ARG_WITH(version, [], version="$withval",
 		ac_configure_args="$ac_configure_args --with-version=$VERSION"
 	])
 
-AC_DEFINE_UNQUOTED(RFC2045PKG,"$package")
-AC_DEFINE_UNQUOTED(RFC2045VER,"$version")
+AC_DEFINE_UNQUOTED(RFC2045PKG,"$package",[Specify package])
+AC_DEFINE_UNQUOTED(RFC2045VER,"$version",[Specify version])
 
 AC_ARG_ENABLE(mimecharset,
 	[  --enable-mimecharset=charset   Default MIME charset to set on new messages],
