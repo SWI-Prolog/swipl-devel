@@ -351,42 +351,59 @@ struct system_colour
 };
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Windows system colors as obtained from GetSysColor()
+Windows system colors as obtained from GetSysColor().
+
+Updated with new colors at Jul 23, 2005 using MSVC 6.0 documentation
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static struct system_colour window_colours[] =
-{ { "sys_scrollbar_background",	COLOR_BTNFACE },
-  { "sys_dialog_background",	COLOR_MENU },
-  { "sys_dialog_foreground",	COLOR_MENUTEXT },
-  { "sys_window_background",	COLOR_WINDOW },
-  { "sys_window_foreground",	COLOR_WINDOWTEXT },
-  { "sys_relief",		COLOR_BTNFACE },
-  { "sys_shadow",		COLOR_BTNSHADOW },
-  { "sys_inactive",		COLOR_GRAYTEXT },
+{ { "sys_scrollbar_background",	   COLOR_BTNFACE },
+  { "sys_dialog_background",	   COLOR_MENU },
+  { "sys_dialog_foreground",	   COLOR_MENUTEXT },
+  { "sys_window_background",	   COLOR_WINDOW },
+  { "sys_window_foreground",	   COLOR_WINDOWTEXT },
+  { "sys_relief",		   COLOR_BTNFACE },
+  { "sys_shadow",		   COLOR_BTNSHADOW },
+  { "sys_inactive",		   COLOR_GRAYTEXT },
 
-  { "win_activeborder",		COLOR_ACTIVEBORDER },
-  { "win_activecaption",	COLOR_ACTIVECAPTION },
-  { "win_appworkspace",		COLOR_APPWORKSPACE },
-  { "win_background",		COLOR_BACKGROUND },
-  { "win_btnface",		COLOR_BTNFACE },
-  { "win_btnshadow",		COLOR_BTNSHADOW },
-  { "win_btntext",		COLOR_BTNTEXT },
-  { "win_captiontext",		COLOR_CAPTIONTEXT },
-  { "win_graytext",		COLOR_GRAYTEXT },
-  { "win_highlight",		COLOR_HIGHLIGHT },
-  { "win_highlighttext",	COLOR_HIGHLIGHTTEXT },
-  { "win_inactiveborder",	COLOR_INACTIVEBORDER },
-  { "win_inactivecaption",	COLOR_INACTIVECAPTION },
-  { "win_inactivecaptiontext",	COLOR_INACTIVECAPTIONTEXT },
-  { "win_menu",			COLOR_MENU },
-  { "win_menutext",		COLOR_MENUTEXT },
-  { "win_scrollbar",		COLOR_SCROLLBAR },
-/*{ "win_shadow",		COLOR_SHADOW },	*/
-  { "win_window",		COLOR_WINDOW },
-  { "win_windowframe",		COLOR_WINDOWFRAME },
-  { "win_windowtext",		COLOR_WINDOWTEXT },
+  { "win_3ddkshadow",		   COLOR_3DDKSHADOW },
+  { "win_3dface",		   COLOR_3DFACE },
+  { "win_3dhighlight",		   COLOR_3DHIGHLIGHT },
+  { "win_3dhilight",		   COLOR_3DHILIGHT },
+  { "win_3dlight",		   COLOR_3DLIGHT },
+  { "win_3dshadow",		   COLOR_3DSHADOW },
+  { "win_activeborder",		   COLOR_ACTIVEBORDER },
+  { "win_activecaption",	   COLOR_ACTIVECAPTION },
+  { "win_activecaption",	   COLOR_ACTIVECAPTION },
+  { "win_appworkspace",		   COLOR_APPWORKSPACE },
+  { "win_background",		   COLOR_BACKGROUND },
+  { "win_btnface",		   COLOR_BTNFACE },
+  { "win_btnhighlight",		   COLOR_BTNHIGHLIGHT },
+  { "win_btnhilight",		   COLOR_BTNHILIGHT },
+  { "win_btnshadow",		   COLOR_BTNSHADOW },
+  { "win_btntext",		   COLOR_BTNTEXT },
+  { "win_captiontext",		   COLOR_CAPTIONTEXT },
+  { "win_desktop",		   COLOR_DESKTOP },
+  { "win_gradientactivecaption",   COLOR_GRADIENTACTIVECAPTION },
+  { "win_gradientinactivecaption", COLOR_GRADIENTINACTIVECAPTION },
+  { "win_graytext",		   COLOR_GRAYTEXT },
+  { "win_highlight",		   COLOR_HIGHLIGHT },
+  { "win_highlighttext",	   COLOR_HIGHLIGHTTEXT },
+  { "win_hotlight",		   COLOR_HOTLIGHT },
+  { "win_inactiveborder",	   COLOR_INACTIVEBORDER },
+  { "win_inactivecaption",	   COLOR_INACTIVECAPTION },
+  { "win_inactivecaptiontext",	   COLOR_INACTIVECAPTIONTEXT },
+  { "win_infobk",		   COLOR_INFOBK },
+  { "win_infotext",		   COLOR_INFOTEXT },
+  { "win_menu",			   COLOR_MENU },
+  { "win_menutext",		   COLOR_MENUTEXT },
+  { "win_scrollbar",		   COLOR_SCROLLBAR },
+  { "win_window",		   COLOR_WINDOW },
+  { "win_windowframe",		   COLOR_WINDOWFRAME },
+  { "win_windowtext",		   COLOR_WINDOWTEXT 
+ },
 
-  { NULL, 			0 }
+  { NULL, 			   0 }
 };
 
 

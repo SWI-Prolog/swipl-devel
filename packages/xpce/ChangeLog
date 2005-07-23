@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: Win32: update GetSysColor() defined colours (name win_*).
+  Steve Moyle.
+
 * FIXED: pcePP() to return UTF-8 encoded strings if there is Unicode data
   in it.
 
