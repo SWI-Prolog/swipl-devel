@@ -7,6 +7,15 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#69: file_name_extension/2 not functioning properly on Windows.  
+    Due to conflict between REP_UTF8 and new CVT_EXCEPTION flag.  Changed the
+    value for the latter.  Foreign language code using this flag must be
+    recompiled.  Holger Kanwischer. 
+
+
+VERSION 5.5.22 (July 15, 2005)
+==============================
+
   * FIXED: Bug#59: QLF (Quick load files and saved states not storing
     atoms correctly if they contain characters >= 256.  (Dmitry).  Also
     fixed strings for this issue.

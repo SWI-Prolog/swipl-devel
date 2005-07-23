@@ -629,7 +629,7 @@ PL_EXPORT(void)		_PL_get_arg(int index, term_t t, term_t a);
 #define BUF_RING	0x0100
 #define BUF_MALLOC	0x0200
 
-#define CVT_EXCEPTION	0x1000		/* throw exception on error */
+#define CVT_EXCEPTION	0x10000		/* throw exception on error */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Output   representation   for   PL_get_chars()     and    friends.   The
