@@ -2657,7 +2657,10 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
 void
 qlfCleanup()
 { if ( mkWicFile )
-  { warning("Removing incomplete Quick Load File %s", mkWicFile);
+  { printMessage(ATOM_warning,
+		 PL_FUNCTOR_CHARS, "qlf", 1,
+		   PL_FUNCTOR_CHARS, "removed_after_error", 1,
+		     PL_CHARS, mkWicFile);
     RemoveFile(mkWicFile);
     mkWicFile = NULL;
   }

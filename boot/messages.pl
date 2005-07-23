@@ -343,6 +343,9 @@ prolog_message(minus_in_identifier) -->
 	[ 'The "-" character should not be used to seperate words in an', nl,
 	  'identifier.  Check the SWI-Prolog FAQ for details.'
 	].
+prolog_message(qlf(removed_after_error(File))) -->
+	[ 'Removed incomplete QLF file ~w'-[File] ].
+
 
 used_search([]) -->
 	[].

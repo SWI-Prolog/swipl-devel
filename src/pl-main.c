@@ -1118,6 +1118,7 @@ PL_cleanup(int rval)
 
   GD->cleaning = CLN_PROLOG;
 
+  qlfCleanup();				/* remove errornous .qlf files */
   if ( GD->initialised )
   { fid_t cid = PL_open_foreign_frame();
     predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
@@ -1130,7 +1131,6 @@ PL_cleanup(int rval)
     PlMessage("Exit status is %d", rval);
 #endif
 
-  qlfCleanup();				/* remove errornous .qlf files */
   dieIO();				/* streams may refer to foreign code */
 					/* Standard I/O is only flushed! */
 

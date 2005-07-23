@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Handle incomplete .QLF files through print_message/2.
+
   * FIXED: Bug#69: file_name_extension/2 not functioning properly on Windows.  
     Due to conflict between REP_UTF8 and new CVT_EXCEPTION flag.  Changed the
     value for the latter.  Foreign language code using this flag must be
