@@ -39,6 +39,8 @@ This library is dynamically picked up  by library(readline), which falls
 back to a pure Prolog implementation if this library cannot be found.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static atom_t ATOM_end_of_file;
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 read_line_to_codes(+Stream, -Codes, ?Tail)
 
@@ -61,7 +63,9 @@ read_line_to_codes3(term_t stream, term_t codes, term_t tail)
   { int	c = Sgetcode(s);
 
     if ( c == EOF )
-    { if ( PL_unify_wchars(cl, PL_CODE_LIST, o-buf, buf) &&
+    { if ( tail == 0 && o == buf )
+	return PL_unify_atom(codes, ATOM_end_of_file);
+      if ( PL_unify_wchars(cl, PL_CODE_LIST, o-buf, buf) &&
            (tail == 0 || PL_unify_nil(tail)) )
 	return TRUE;
 
@@ -142,7 +146,9 @@ read_stream_to_codes2(term_t stream, term_t codes)
 
 install_t
 install_readutil()
-{ PL_register_foreign("read_line_to_codes", 3, read_line_to_codes3, 0);
+{ ATOM_end_of_file = PL_new_atom("end_of_file");
+
+  PL_register_foreign("read_line_to_codes", 3, read_line_to_codes3, 0);
   PL_register_foreign("read_line_to_codes", 2, read_line_to_codes2, 0);
   PL_register_foreign("read_stream_to_codes", 3, read_stream_to_codes3, 0);
   PL_register_foreign("read_stream_to_codes", 2, read_stream_to_codes2, 0);
