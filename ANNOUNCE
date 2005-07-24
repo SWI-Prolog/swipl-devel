@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.20/XPCE 6.5.21 development release
+SWI-Prolog 5.5.23/XPCE 6.5.23 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -58,20 +58,25 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.21 relative to 5.5.20
+Patches in 5.5.23 relative to 5.5.22
 ====================================
 
-  * Fixed unifyable/3 (used by dif/2, crashed GC)
+  * Fixed bug in Windows file_name_extension/2 introduced in 5.5.22
 
-  * Various minor and portability issues.
+  * C-version of read_line_to_codes/[2,3] and friends.
 
 Packages
 ========
 
-  * XPCE: filename handling for names holding extended ISO Latin 1
-  (128..256) characters.  Various minor issues.
+  * XPCE: Added display<-win_directory to access Windows Shell
+    directory dialog, updated access to standard windows colors
+    and fix error printing (notably on type-errors).
     
-  * XML and RDF parser: allow overriding entity declarations in the file
+  * SemWeb: Added rdf_meta/1 to streamline namespace handling.
+
+  * Clib: fixed makefile issues with integration of maildrop RFC
+    libraries.  Added readutil.c, providing the new read_line_to_codes,
+    etc.
 
 Incompatible changes
 ====================

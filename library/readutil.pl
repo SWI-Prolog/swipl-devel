@@ -125,7 +125,7 @@ read_line_to_codes(C, Fd, [C|T], Tail) :-
 %	pl_read_stream_to_codes(+Stream, -Codes, [?Tail]).
 
 pl_read_stream_to_codes(Fd, Codes) :-
-	read_stream_to_codes(Fd, Codes, []).
+	pl_read_stream_to_codes(Fd, Codes, []).
 pl_read_stream_to_codes(Fd, Codes, Tail) :-
 	get_code(Fd, C0),
 	read_stream_to_codes(C0, Fd, Codes0, Tail),
