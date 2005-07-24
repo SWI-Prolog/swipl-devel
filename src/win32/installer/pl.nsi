@@ -243,6 +243,7 @@ Section "Package CLIB"
   File pl\bin\mime.dll
   File pl\bin\socket.dll
   File pl\bin\time.dll
+  File pl\bin\readutil.dll
   SetOutPath $INSTDIR\library
   File pl\library\cgi.pl
   File pl\library\memfile.pl
@@ -345,6 +346,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\sgml2pl.pdb
   File pl\bin\socket.pdb
   File pl\bin\time.pdb
+  File pl\bin\readutil.pdb
   File pl\bin\ssl4pl.pdb
 SectionEnd
 
