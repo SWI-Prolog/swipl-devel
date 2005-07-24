@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: add readline.so/dll to the clib package and make
+    library(readutil) decide at runtime to use the foreign or Prolog
+    implementation.
+
   * ENHANCED: Handle incomplete .QLF files through print_message/2.
 
   * FIXED: Bug#69: file_name_extension/2 not functioning properly on Windows.  

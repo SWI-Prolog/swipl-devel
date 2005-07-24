@@ -38,16 +38,51 @@
 	    read_file_to_terms/3	% +File, -Terms, +Options
 	  ]).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This library provides some commonly used   reading  predicates. As these
+predicates have proven to be time-critical in some applications we moved
+them to C. For compatibility as well  as to reduce system dependency, we
+link  the  foreign  code  ar  runtime    and   fallback  to  the  Prolog
+implementation if the shared object cannot be found.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- volatile
+	read_line_to_codes/2,
+	read_line_to_codes/3,
+	read_stream_to_codes/2,
+	read_stream_to_codes/3.
+
+link_foreign :-
+	catch(load_foreign_library(foreign(readutil)), _, fail), !.
+link_foreign :-
+	assert((read_line_to_codes(Stream, Line) :-
+	        pl_read_line_to_codes(Stream, Line))),
+	assert((read_line_to_codes(Stream, Line, Tail) :-
+	        pl_read_line_to_codes(Stream, Line, Tail))),
+	assert((read_stream_to_codes(Stream, Content) :-
+	        pl_read_stream_to_codes(Stream, Content))),
+	assert((read_stream_to_codes(Stream, Content, Tail) :-
+	        pl_read_stream_to_codes(Stream, Content, Tail))),
+	compile_predicates([ read_line_to_codes/2,
+			     read_line_to_codes/3,
+			     read_stream_to_codes/2,
+			     read_stream_to_codes/3
+			   ]).
+
+:- initialization
+   link_foreign.
+
+
 		 /*******************************
 		 *	       LINES		*
 		 *******************************/
 
-%	read_line_to_codes(+Fd, -Line)
+%	pl_read_line_to_codes(+Fd, -Line)
 %
 %	Read a line of input from stream into a list of character codes.
 %	Trailing newline and or ret are deleted.
 
-read_line_to_codes(Fd, Codes) :-
+pl_read_line_to_codes(Fd, Codes) :-
 	get_code(Fd, C0),
 	(   C0 == -1
 	->  Codes = end_of_file
@@ -64,13 +99,13 @@ read_1line_to_codes(C, Fd, [C|T]) :-
 	get_code(Fd, C2),
 	read_1line_to_codes(C2, Fd, T).
 
-%	read_line_to_codes(+Fd, -Line, ?Tail)
+%	pl_read_line_to_codes(+Fd, -Line, ?Tail)
 %
 %	Read a line of input as a   difference list. This should be used
 %	to read multiple lines  efficiently.   On  reaching end-of-file,
 %	Tail is bound to the empty list.
 
-read_line_to_codes(Fd, Codes, Tail) :-
+pl_read_line_to_codes(Fd, Codes, Tail) :-
 	get_code(Fd, C0),
 	read_line_to_codes(C0, Fd, Codes0, Tail),
 	Codes = Codes0.
@@ -87,11 +122,11 @@ read_line_to_codes(C, Fd, [C|T], Tail) :-
 		 *     STREAM (ENTIRE INPUT)	*
 		 *******************************/
 
-%	read_stream_to_codes(+Stream, -Codes, [?Tail]).
+%	pl_read_stream_to_codes(+Stream, -Codes, [?Tail]).
 
-read_stream_to_codes(Fd, Codes) :-
+pl_read_stream_to_codes(Fd, Codes) :-
 	read_stream_to_codes(Fd, Codes, []).
-read_stream_to_codes(Fd, Codes, Tail) :-
+pl_read_stream_to_codes(Fd, Codes, Tail) :-
 	get_code(Fd, C0),
 	read_stream_to_codes(C0, Fd, Codes0, Tail),
 	Codes = Codes0.

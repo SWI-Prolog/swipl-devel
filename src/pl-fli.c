@@ -475,7 +475,29 @@ PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *s)
   text.length    = len;
   text.canonical = FALSE;
 
-  rc = PL_unify_text(t, &text, flags);
+  rc = PL_unify_text(t, 0, &text, flags);
+  PL_free_text(&text);
+
+  return rc;
+}
+
+
+int
+PL_unify_wchars_diff(term_t t, term_t tail, int flags,
+		     unsigned int len, const pl_wchar_t *s)
+{ PL_chars_t text;
+  int rc;
+
+  if ( len == (unsigned int)-1 )
+    len = wcslen(s);
+
+  text.text.w    = (pl_wchar_t *)s;
+  text.encoding  = ENC_WCHAR;
+  text.storage   = PL_CHARS_HEAP;
+  text.length    = len;
+  text.canonical = FALSE;
+
+  rc = PL_unify_text(t, tail, &text, flags);
   PL_free_text(&text);
 
   return rc;
@@ -2238,7 +2260,7 @@ PL_unify_chars(term_t t, int flags, unsigned int len, const char *s)
 
   flags &= ~(REP_UTF8|REP_MB|REP_ISO_LATIN_1);
 
-  rc = PL_unify_text(t, &text, flags);
+  rc = PL_unify_text(t, 0, &text, flags);
   PL_free_text(&text);
 
   return rc;
@@ -2475,7 +2497,7 @@ cont:
       txt.encoding  = ENC_UTF8;
       txt.canonical = FALSE;
 
-      rval = PL_unify_text(t, &txt,
+      rval = PL_unify_text(t, 0, &txt,
 			   op == PL_UTF8_STRING ? PL_STRING : PL_ATOM);
       break;
     }
@@ -2490,7 +2512,7 @@ cont:
       txt.encoding  = ENC_UTF8;
       txt.canonical = FALSE;
 
-      rval = PL_unify_text(t, &txt,
+      rval = PL_unify_text(t, 0, &txt,
 			   op == PL_NUTF8_CHARS ? PL_ATOM : 
 			         PL_NUTF8_CODES ? PL_CODE_LIST :
 			   			  PL_STRING);

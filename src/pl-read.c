@@ -958,7 +958,7 @@ bind_variable_names(ReadData _PL_rd ARG_LD)
 	     if ( !PL_unify_list(list, head, list) ||
 		  !PL_unify_functor(head, FUNCTOR_equals2) ||
 		  !PL_get_arg(1, head, a) ||
-		  !PL_unify_text(a, &txt, PL_ATOM) ||
+		  !PL_unify_text(a, 0, &txt, PL_ATOM) ||
 		  !PL_get_arg(2, head, a) ||
 		  !PL_unify(a, var->variable) )
 	       fail;
@@ -1638,7 +1638,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  else
 		    type = PL_CODE_LIST;
 
-		  PL_unify_text(t, &txt, type);
+		  PL_unify_text(t, 0, &txt, type);
 		  PL_free_text(&txt);
   		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
@@ -1658,7 +1658,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  txt.storage   = PL_CHARS_HEAP;
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = FALSE;
-		  PL_unify_text(t, &txt, PL_STRING);
+		  PL_unify_text(t, 0, &txt, PL_STRING);
 		  PL_free_text(&txt);
   		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
@@ -2513,7 +2513,7 @@ pl_raw_read2(term_t from, term_t term)
   txt.encoding  = ENC_UTF8;
   txt.canonical = FALSE;
 
-  rval = PL_unify_text(term, &txt, PL_ATOM);
+  rval = PL_unify_text(term, 0, &txt, PL_ATOM);
 
 out:
   free_read_data(&rd);
@@ -2755,7 +2755,7 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     txt.storage = PL_CHARS_HEAP;
     txt.encoding = ENC_UTF8;
     txt.canonical = FALSE;
-    rval = PL_unify_text(atom, &txt, PL_ATOM);
+    rval = PL_unify_text(atom, 0, &txt, PL_ATOM);
 
     Sclose(stream);
     if ( s != buf )

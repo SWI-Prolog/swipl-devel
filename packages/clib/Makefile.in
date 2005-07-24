@@ -46,7 +46,7 @@ INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		@PLTARGETS@ prolog_server.pl
-TARGETS=	@TARGETS@
+TARGETS=	@TARGETS@ readutil.@SO@
 
 UNXOBJ=		error.o process.o
 SOCKOBJ=	error.o socket.o nonblockio.o
@@ -57,6 +57,7 @@ MIMEOBJ=	error.o mime.o
 TIMEOBJ=	error.o time.o
 FILESOBJ=	error.o files.o
 RLIMITOBJ=	error.o rlimit.o
+READUTILOBJ=	readutil.o
 
 all:		$(TARGETS)
 
@@ -78,6 +79,8 @@ files.@SO@:	$(FILESOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(FILESOBJ) $(LIBS)
 rlimit.@SO@:	$(RLIMITOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(RLIMITOBJ) $(LIBS)
+readutil.@SO@:	$(READUTILOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(READUTILOBJ)
 
 maildrop/rfc822/librfc822.a:
 		(cd maildrop/rfc822 && make)

@@ -451,6 +451,8 @@ PL_EXPORT(int)		PL_unify_chars(term_t t, int flags,
 
 PL_EXPORT(int)		PL_unify_wchars(term_t t, int type,
 					unsigned int len, const pl_wchar_t *s);
+PL_EXPORT(int)		PL_unify_wchars_diff(term_t t, term_t tail, int type,
+					unsigned int len, const pl_wchar_t *s);
 PL_EXPORT(int)		PL_get_wchars(term_t l,
 				      unsigned int *length, pl_wchar_t **s,
 				      unsigned flags);

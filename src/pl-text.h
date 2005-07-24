@@ -55,7 +55,7 @@ typedef struct
 	}
 
 int	PL_get_text(term_t l, PL_chars_t *text, int flags);
-int	PL_unify_text(term_t term, PL_chars_t *text, int type);
+int	PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type);
 int	PL_unify_text_range(term_t term, PL_chars_t *text,
 			    unsigned int from, unsigned int len, int type);
 

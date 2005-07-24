@@ -18,10 +18,13 @@ MEMOBJ=		error.obj memfile.obj
 MIMEOBJ=	error.obj mime.obj
 MIMELIBS=	rfc2045.lib rfc822.lib
 TIMEOBJ=	error.obj time.obj
+READOBJ=	readutil.obj
 TIMELIBS=	winmm.lib
 
-all:		socket.dll cgi.dll memfile.dll mime.dll time.dll
+all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll
 
+readutil.dll:	$(READOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(READOBJ) $(PLLIB)
 socket.dll:	$(SOCKOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(SOCKOBJ) $(PLLIB) $(LIBS)
 cgi.dll:	$(CGIOBJ)
@@ -63,12 +66,14 @@ idll::
 		copy memfile.dll "$(BINDIR)"
 		copy mime.dll "$(BINDIR)"
 		copy time.dll "$(BINDIR)"
+		copy readutil.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy socket.pdb "$(BINDIR)"
 		copy cgi.pdb "$(BINDIR)"
 		copy memfile.pdb "$(BINDIR)"
 		copy mime.pdb "$(BINDIR)"
 		copy time.pdb "$(BINDIR)"
+		copy readutil.pdb "$(BINDIR)"
 !ENDIF
 
 ilib::
@@ -88,6 +93,7 @@ uninstall::
 		del "$(BINDIR)\memfile.dll"
 		del "$(BINDIR)\mime.dll"
 		del "$(BINDIR)\time.dll"
+		del "$(BINDIR)\readutil.dll"
 		del "$(PLBASE)\library\socket.pl"
 		del "$(PLBASE)\library\cgi.pl"
 		del "$(PLBASE)\library\memfile.pl"

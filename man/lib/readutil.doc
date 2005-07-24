@@ -1,7 +1,12 @@
 \libdoc{readutil}{Reading lines, streams and files}
 
 This library contains primitives to read lines, files, multiple terms,
-etc.
+etc. The package \file{clib} provides a shared object
+(DLL) named \file{readutil}.  If the library can locate this shared
+object it will use the foreign implementation for reading character
+codes.  Otherwise it will use a Prolog implementation.  Distributed
+applications should make sure to deliver the \file{readutil} shared
+object if performance of these predicates is critical.
 
 \begin{description}
     \predicate{read_line_to_codes}{2}{+Stream, -Codes}

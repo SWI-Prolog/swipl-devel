@@ -2214,7 +2214,7 @@ concat(const char *pred,
 
     PL_concat_text(2, v, &c);
 
-    rc = PL_unify_text(a3, &c, otype);
+    rc = PL_unify_text(a3, 0, &c, otype);
     PL_free_text(&c);
     goto out;
   }
@@ -2411,7 +2411,7 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
       sum.length = entriesBuffer(&b, pl_wchar_t);
     }
 
-    rc = PL_unify_text(atom, &sum, PL_ATOM);
+    rc = PL_unify_text(atom, 0, &sum, PL_ATOM);
     discardBuffer(&b);
 
     return rc;
@@ -2818,9 +2818,9 @@ pl_string_to_atom(term_t str, term_t a)
 { PL_chars_t t;
 
   if ( PL_get_text(str, &t, CVT_ALL) )
-    return PL_unify_text(a, &t, PL_ATOM);
+    return PL_unify_text(a, 0, &t, PL_ATOM);
   if ( PL_get_text(a, &t, CVT_ALL) )
-    return PL_unify_text(str, &t, PL_STRING);
+    return PL_unify_text(str, 0, &t, PL_STRING);
 
   return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 }
@@ -2831,11 +2831,11 @@ pl_string_to_list(term_t str, term_t list)
 { PL_chars_t t;
 
   if ( PL_get_text(str, &t, CVT_ALL) )
-    return PL_unify_text(list, &t, PL_CODE_LIST);
+    return PL_unify_text(list, 0, &t, PL_CODE_LIST);
   if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST) )/* string_to_list(S, []). */
-    return PL_unify_text(str, &t, PL_STRING);
+    return PL_unify_text(str, 0, &t, PL_STRING);
   if ( PL_get_text(list, &t, CVT_ALL) )
-    return PL_unify_text(str, &t, PL_STRING);
+    return PL_unify_text(str, 0, &t, PL_STRING);
 
   return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 }
@@ -2874,7 +2874,7 @@ pl_write_on_string(term_t goal, term_t target)
     txt.storage   = PL_CHARS_HEAP;
     txt.canonical = FALSE;
 
-    rval = PL_unify_text(target, &txt, PL_STRING);
+    rval = PL_unify_text(target, 0, &txt, PL_STRING);
   } else if ( ex )
   { rval = PL_raise_exception(ex);
   }

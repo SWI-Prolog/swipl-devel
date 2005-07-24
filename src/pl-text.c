@@ -229,7 +229,7 @@ textToString(PL_chars_t *text)
 
 
 int
-PL_unify_text(term_t term, PL_chars_t *text, int type)
+PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 { switch(type)
   { case PL_ATOM:
     { atom_t a = textToAtom(text);
@@ -246,7 +246,13 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
     case PL_CODE_LIST:
     case PL_CHAR_LIST:
     { if ( text->length == 0 )
-      { return PL_unify_nil(term);
+      { if ( tail )
+	{ GET_LD
+	  PL_put_term(tail, term);
+	  return TRUE;
+	} else
+	{ return PL_unify_nil(term);
+	}
       } else
       { GET_LD
 	term_t l = PL_new_term_ref();
@@ -345,11 +351,21 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
 	    return FALSE;
 	  }
 	}
-	p[-1] = ATOM_nil;
 
 	setHandle(l, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
+	p--;
+	if ( tail )
+	{ setVar(*p);
+	  if ( PL_unify(l, term) )
+	  { setHandle(tail, makeRefG(p));
+	    return TRUE;
+	  }
 
-	return PL_unify(l, term);
+	  return FALSE;
+	} else
+	{ *p = ATOM_nil;
+	  return PL_unify(l, term);
+	}
       }
     }
     default:
@@ -365,7 +381,7 @@ int
 PL_unify_text_range(term_t term, PL_chars_t *text,
 		    unsigned offset, unsigned len, int type)
 { if ( offset == 0 && len == text->length )
-  { return PL_unify_text(term, text, type);
+  { return PL_unify_text(term, 0, text, type);
   } else
   { PL_chars_t sub;
     int rc;
@@ -385,7 +401,7 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
       sub.canonical = FALSE;
     }
 
-    rc = PL_unify_text(term, &sub, type);
+    rc = PL_unify_text(term, 0, &sub, type);
 
     PL_free_text(&sub);
     
