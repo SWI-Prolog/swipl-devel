@@ -956,6 +956,16 @@ Unify \arg{t} with a textual representation of the C wide character
 array \arg{s}.  The \arg{arg}{type} argument defines the Prolog
 representation and is one of \const{PL_ATOM}, \const{PL_STRING},
 \const{PL_CODE_LIST} or \const{PL_CHAR_LIST}.
+    \cfunction{int}{PL_unify_wchars_diff}{term_t +t, term_t -tail, int type,
+					  unsigned int len,
+					  const pl_wchar_t *s}
+Difference list version of PL_unify_wchars(), only supporting the
+types \const{PL_CODE_LIST} and \const{PL_CHAR_LIST}.  It serves two
+purposes.  It allows for returning very long lists from data read from
+a stream without the need for a resizing buffer in C and the use of
+difference lists is often practical for further processing in Prolog.
+Examples can be found in \file{packages/clib/readutil.c} from the
+source distribution.
 \end{description}
 
 
