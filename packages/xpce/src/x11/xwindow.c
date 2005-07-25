@@ -354,71 +354,6 @@ ws_window_thread(PceWindow sw)
 		*     GRAB POINTER/KEYBOARD	*
 		********************************/
 
-#if XT_REVISION < 4
-
-void
-ws_grab_pointer_window(PceWindow sw, Bool val)
-{ if ( widgetWindow(sw) != NULL )
-  { if ( val == ON )
-    { XGrabPointer(getDisplayGraphical((Graphical)sw)->displayXref,
-		   XtWindow(widgetWindow(sw)),
-		   False,
-		   ButtonPressMask|ButtonReleaseMask|
-		   EnterWindowMask|LeaveWindowMask|
-		   PointerMotionMask|ButtonMotionMask,
-		   GrabModeAsync, GrabModeAsync,
-		   None,
-		   None,
-		   CurrentTime);
-      appendChain(grabbedWindows, sw);
-    } else
-    { deleteChain(grabbedWindows, sw);
-      if ( notNil(grabbedWindows->tail) )
-      { PceWindow sw2 = (PceWindow) grabbedWindows->tail->value;
-
-	XGrabPointer(getDisplayGraphical((Graphical)sw2)->displayXref,
-		     XtWindow(widgetWindow(sw2)),
-		     False,
-		     ButtonPressMask|ButtonReleaseMask|
-		     EnterWindowMask|LeaveWindowMask|
-		     PointerMotionMask|ButtonMotionMask,
-		     GrabModeAsync, GrabModeAsync,
-		     None,
-		     None,
-		     CurrentTime);
-      }
-    }
-  }
-}
-
-
-void					/* XT_REVISION < 4 */
-ws_grab_keyboard_window(PceWindow sw, Bool val)
-{ DisplayObj d;
-  Display display;
-  Widget w;
-
-  if ( (w=widgetWindow(sw)) &&
-       (d = getDisplayGraphical((Graphical)sw)) &&
-       d->ws_ref &&
-       (display = d->wsref->diaplay_xref) )
-  { if ( val == ON )
-    { XSetInputFocus(display, XtWindow(w),
-		     RevertToParent,
-		     current_event_time());
-    } else
-    { XSetInputFocus(display, None,
-		     0,
-		     current_event_time());
-    }
-    succeed;
-  }
-
-  fail;
-}
-
-#else /*XT_REVISION >= 4*/
-
 static status
 do_grab_window(PceWindow sw)
 { if ( widgetWindow(sw) != NULL )
@@ -483,7 +418,6 @@ ws_grab_keyboard_window(PceWindow sw, Bool val)
   }
 }
 
-#endif /* XT_REVISION > 4 */
 
 void
 ws_ungrab_all()
