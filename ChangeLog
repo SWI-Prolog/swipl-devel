@@ -7,6 +7,7 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==============================
 VERSION 5.5.23 (July 24, 2005)
 ==============================
 
@@ -24,6 +25,9 @@ VERSION 5.5.23 (July 24, 2005)
 
 VERSION 5.5.22 (July 15, 2005)
 ==============================
+
+  * FIXED: predicateName for predicates using wide-characters in their
+    name.
 
   * FIXED: Bug#59: QLF (Quick load files and saved states not storing
     atoms correctly if they contain characters >= 256.  (Dmitry).  Also
@@ -170,6 +174,7 @@ VERSION 5.5.14 (April 18, 2005)
 VERSION 5.5.13 (April 12, 2005)
 ===============================
 
+>>>>>>> 1.1039
   * FIXED: Sungetc() update of position->charno
 
   * MODIFIED: Deleted built-in operator op(500, fy, ?).  Non-standard.
