@@ -673,9 +673,10 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
       if ( notNil(fr->modal) )
       { Display *d = getXDisplayFrame(fr);
 	Widget wfr = widgetFrame(fr);
+	Window win = XtWindow(wfr);
 
-	if ( d && wfr )
-	  XSetInputFocus(d, XtWindow(w), RevertToParent, CurrentTime);
+	if ( d && wfr == w && win )
+	  XSetInputFocus(d, win, RevertToParent, CurrentTime);
       }
 
       return;
@@ -702,9 +703,10 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
       if ( (fr2=blockedByModalFrame(fr)) )
       { Display *d = getXDisplayFrame(fr2);
 	Widget wfr = widgetFrame(fr2);
+	Window w = XtWindow(wfr);
 
-	if ( d && wfr )
-	  XSetInputFocus(d, XtWindow(wfr), RevertToParent, CurrentTime);
+	if ( d && w )
+	  XSetInputFocus(d, w, RevertToParent, CurrentTime);
       } else
       { 
 #ifdef O_XIM

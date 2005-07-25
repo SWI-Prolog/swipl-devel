@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Better consistency check before calling XSetInputFocus(), sometimes
+  killing process.  Not sure it helps :-(
+
+VERSION 6.5.23, distributed with SWI-Prolog 5.5.23
+==================================================
+
 * ADDED: display<-win_directory to exploit the standard Windows Shell
   directory dialog.
 
