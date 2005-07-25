@@ -23,6 +23,7 @@ VERSION 5.5.23 (July 24, 2005)
     recompiled.  Holger Kanwischer. 
 
 
+==============================	
 VERSION 5.5.22 (July 15, 2005)
 ==============================
 
@@ -174,7 +175,6 @@ VERSION 5.5.14 (April 18, 2005)
 VERSION 5.5.13 (April 12, 2005)
 ===============================
 
->>>>>>> 1.1039
   * FIXED: Sungetc() update of position->charno
 
   * MODIFIED: Deleted built-in operator op(500, fy, ?).  Non-standard.
