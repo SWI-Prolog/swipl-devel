@@ -87,6 +87,10 @@ s_string(s, f, x, y, w, h, had, vad)
 
 static void	clip_area(int *, int *, int *, int *);
 static void	r_andpattern(Image i);
+#ifdef USE_XFT
+static XftDraw *xftDraw();
+#endif
+
 
 		/********************************
 		*       DEVICE FUNCTIONS	*
@@ -536,6 +540,59 @@ d_frame(FrameObj fr, int x, int y, int w, int h)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Actually set the clipping region. If we are  using Xft, we need to use a
+Region (as far  as  I  understand   a  monochrome  pixmap).  This  seems
+expensive. I have the impression that eventually   the clip-mask of a GC
+is a monochrome pixmap anyway.  A   simple  test  reveals no significant
+performance difference between the two  approaches,   so  we'll  use the
+Region based approach regardless of Xft   for easier maintenance. Can we
+get better efficiency by keeping the region around?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+do_clip(int x, int y, int w, int h)
+{
+#if 1					/* was USE_XFT */
+  XPoint pts[5];
+  Region r;
+
+  pts[0].x = x;   pts[0].y = y;
+  pts[1].x = x;   pts[1].y = y+h;
+  pts[2].x = x+w; pts[2].y = y+h;
+  pts[3].x = x+w; pts[3].y = y;
+  pts[4].x = x;   pts[4].y = y;
+
+  r = XPolygonRegion(pts, 5, WindingRule);
+  XSetRegion(context.display, context.gcs->workGC, r);
+  XSetRegion(context.display, context.gcs->fillGC, r);
+  XSetRegion(context.display, context.gcs->shadowGC, r);
+  XSetRegion(context.display, context.gcs->reliefGC, r);
+  XftDrawSetClip(xftDraw(), r);
+#ifdef USE_XFT
+  XDestroyRegion(r);
+#endif
+
+#else /*USE_XFT*/
+  XRectangle rect;
+
+# define CLIP(x) XSetClipRectangles(context.display, x, 0, 0, &rect, \
+				    1, Unsorted)
+  rect.x      = x;
+  rect.y      = y;
+  rect.width  = w;
+  rect.height = h;
+
+  CLIP(context.gcs->workGC);
+  CLIP(context.gcs->fillGC);
+  CLIP(context.gcs->shadowGC);
+  CLIP(context.gcs->reliefGC);
+
+#undef CLIP
+#endif /*USE_XFT*/
+}
+
+
 void
 d_clip(int x, int y, int w, int h)
 { XRectangle rect;
@@ -560,12 +617,7 @@ d_clip(int x, int y, int w, int h)
 
   DEBUG(NAME_redraw, Cprintf("clip to %d %d %d %d\n", x, y, w, h));
 
-# define CLIP(x) XSetClipRectangles(context.display, x, 0, 0, &rect, \
-				    1, Unsorted)
-  CLIP(context.gcs->workGC);
-  CLIP(context.gcs->fillGC);
-  CLIP(context.gcs->shadowGC);
-  CLIP(context.gcs->reliefGC);
+  do_clip(x, y, w, h);
 }
 
 
@@ -606,21 +658,8 @@ d_clip_done(void)
 
   assert(env >= environments);		/* stack underflow */
 
-  if ( env->level != 0 )		/* outermost: no use */
-  { XRectangle rect;
-
-    rect.x      = env->area.x;
-    rect.y      = env->area.y;
-    rect.width  = env->area.w;
-    rect.height = env->area.h;
-
-    CLIP(context.gcs->workGC);
-    CLIP(context.gcs->fillGC);
-    CLIP(context.gcs->shadowGC);
-    CLIP(context.gcs->reliefGC);
-  } 
-
-#   undef CLIP
+  if ( env >= environments && env->level != 0 ) /* outermost: no use */
+    do_clip(env->area.x, env->area.y, env->area.w, env->area.h);
 }
 
 

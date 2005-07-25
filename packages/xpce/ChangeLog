@@ -1,8 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
-* FIXED: Better consistency check before calling XSetInputFocus(), sometimes
-  killing process.  Not sure it helps :-(
+* FIXED: Text clipping in X11 systems using the Xft text rendering library.
+
+* FIXED: Remove code calling XSetInputFocus() if a window gets the focus
+  while it has a modal trainsient window.  This could cause BadMatch
+  errors, killing XPCE.  In theory the window manager should do this
+  properly anyway.
+
 
 VERSION 6.5.23, distributed with SWI-Prolog 5.5.23
 ==================================================

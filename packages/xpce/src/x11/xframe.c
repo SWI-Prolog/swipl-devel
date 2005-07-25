@@ -698,16 +698,19 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	send(fr, NAME_hidden, EAV);
       return;
     case FocusIn:
-    { FrameObj fr2;
+    { 
+#if 0
+      FrameObj fr2;		/* this code causes BadMatch errors.  Why? */
 
       if ( (fr2=blockedByModalFrame(fr)) )
       { Display *d = getXDisplayFrame(fr2);
 	Widget wfr = widgetFrame(fr2);
-	Window w = XtWindow(wfr);
+	Window win = XtWindow(wfr);
 
-	if ( d && w )
-	  XSetInputFocus(d, w, RevertToParent, CurrentTime);
+	if ( d && win )
+	  XSetInputFocus(d, win, RevertToParent, CurrentTime);
       } else
+#endif
       { 
 #ifdef O_XIM
 	FrameWsRef wsfr;
