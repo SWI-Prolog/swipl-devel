@@ -3536,9 +3536,9 @@ simplification_code(Head,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	head_info(Head,A,_Vars,Susp,HeadVars,HeadPairs),
 	build_head(F,A,Id,HeadVars,ClauseHead),
 	get_constraint_mode(F/A,Mode),
-	head_arg_matches(HeadPairs,Mode,[],FirstMatching,VarDict1),
+	head_arg_matches(HeadPairs,Mode,[],FirstMatching,VarDict1,[],GroundVars),
 	
-	rest_heads_retrieval_and_matching(RestHeads,RestIDs,Head,GetRestHeads,Susps,VarDict1,VarDict),
+	rest_heads_retrieval_and_matching(RestHeads,RestIDs,Head,GetRestHeads,Susps,VarDict1,VarDict,[],[],[],GroundVars,_),
 	
 	guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy),
 	guard_via_reschedule(GetRestHeads,GuardCopyList,ClauseHead-FirstMatching,RescheduledTest),
@@ -3567,11 +3567,14 @@ simplification_code(Head,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	L = [Clause | T].
 
 head_arg_matches(Pairs,Modes,VarDict,Goal,NVarDict) :-
-	head_arg_matches_(Pairs,Modes,VarDict,[],GoalList,NVarDict),
+	head_arg_matches(Pairs,Modes,VarDict,Goal,NVarDict,[],_).
+
+head_arg_matches(Pairs,Modes,VarDict,Goal,NVarDict,GroundVars,NGroundVars) :-
+	head_arg_matches_(Pairs,Modes,VarDict,GroundVars,GoalList,NVarDict,NGroundVars),
 	list2conj(GoalList,Goal).
  
-head_arg_matches_([],[],VarDict,_,[],VarDict).
-head_arg_matches_([Arg-Var| Rest],[Mode|Modes],VarDict,GroundArgs,GoalList,NVarDict) :-
+head_arg_matches_([],[],VarDict,GroundVars,[],VarDict,GroundVars).
+head_arg_matches_([Arg-Var| Rest],[Mode|Modes],VarDict,GroundArgs,GoalList,NVarDict,GroundVars) :-
    (   var(Arg) ->
        (   lookup_eq(VarDict,Arg,OtherVar) ->
 	   ( Mode = (+) ->
@@ -3607,7 +3610,7 @@ head_arg_matches_([Arg-Var| Rest],[Mode|Modes],VarDict,GroundArgs,GoalList,NVarD
        NGroundArgs = GroundArgs,
        Pairs = Rest,
        RestModes = Modes
-   ;   ground(Arg), Mode == (+) -> 
+   ;   Mode == (+), ground(Arg)  -> 
        GoalList = [ Var = Arg | RestGoalList],	
        VarDict = VarDict1,
        NGroundArgs = GroundArgs,
@@ -3629,23 +3632,27 @@ head_arg_matches_([Arg-Var| Rest],[Mode|Modes],VarDict,GroundArgs,GoalList,NVarD
        VarDict1 = VarDict,
        NGroundArgs = GroundArgs
    ),
-   head_arg_matches_(Pairs,RestModes,VarDict1,NGroundArgs,RestGoalList,NVarDict).
+   head_arg_matches_(Pairs,RestModes,VarDict1,NGroundArgs,RestGoalList,NVarDict,GroundVars).
 
 rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict):-
-	rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict,[],[],[]).
+	rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict,[],[],[],[],_).
 	
 rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict,PrevHs,PrevSusps,AttrDict) :-
+	rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict,PrevHs,PrevSusps,AttrDict,[],_).
+
+rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict,PrevHs,PrevSusps,AttrDict,GroundVars,NGroundVars) :-
 	( Heads = [_|_] ->
-		rest_heads_retrieval_and_matching_n(Heads,IDs,PrevHs,PrevSusps,ActiveHead,GoalList,Susps,VarDict,NVarDict,AttrDict)	
+		rest_heads_retrieval_and_matching_n(Heads,IDs,PrevHs,PrevSusps,ActiveHead,GoalList,Susps,VarDict,NVarDict,AttrDict,GroundVars,NGroundVars)	
 	;
 		GoalList = [],
 		Susps = [],
-		VarDict = NVarDict
+		VarDict = NVarDict,
+		GroundVars = NGroundVars
 	).
 
-rest_heads_retrieval_and_matching_n([],_,_,_,_,[],[],VarDict,VarDict,AttrDict) :-
+rest_heads_retrieval_and_matching_n([],_,_,_,_,[],[],VarDict,VarDict,AttrDict,GroundVars,GroundVars) :-
 	instantiate_pattern_goals(AttrDict).
-rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,[Goal|Goals],[Susp|Susps],VarDict,NVarDict,AttrDict) :-
+rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,[Goal|Goals],[Susp|Susps],VarDict,NVarDict,AttrDict,GroundVars,NGroundVars) :-
 	functor(H,F,A),
 	head_info(H,A,Vars,_,_,Pairs),
 	get_store_type(F/A,StoreType),
@@ -3661,7 +3668,7 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
 		),
 		create_get_mutable(active,State,GetMutable),
 		get_constraint_mode(F/A,Mode),
-		head_arg_matches(Pairs,Mode,VarDict,MatchingGoal,VarDict1),
+		head_arg_matches(Pairs,Mode,VarDict,MatchingGoal,VarDict1,GroundVars,GroundVars1),
 		ExistentialLookup = 	(
 						ViaGoal,
 						'chr sbag_member'(Susp,VarSusps),
@@ -3672,7 +3679,7 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
 		existential_lookup(StoreType,H,[ActiveHead|PrevHs],VarDict,Suspension,State,ExistentialLookup,Susp,Pairs,NPairs),
 		get_constraint_mode(F/A,Mode),
 		filter_mode(NPairs,Pairs,Mode,NMode),
-		head_arg_matches(NPairs,NMode,VarDict,MatchingGoal,VarDict1),
+		head_arg_matches(NPairs,NMode,VarDict,MatchingGoal,VarDict1,GroundVars,GroundVars1),
 		NewAttrDict = AttrDict
 	),
 	Suspension =.. [suspension,_,State,_,_,_,_|Vars],
@@ -3683,7 +3690,7 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
 		DiffSuspGoals,
 		MatchingGoal
 	),
-	rest_heads_retrieval_and_matching_n(Hs,IDs,[H|PrevHs],[Susp|PrevSusps],ActiveHead,Goals,Susps,VarDict1,NVarDict,NewAttrDict).
+	rest_heads_retrieval_and_matching_n(Hs,IDs,[H|PrevHs],[Susp|PrevSusps],ActiveHead,Goals,Susps,VarDict1,NVarDict,NewAttrDict,GroundVars1,NGroundVars).
 
 filter_mode([],_,_,[]).
 filter_mode([Arg-Var|Rest],[_-V|R],[M|Ms],Modes) :-
