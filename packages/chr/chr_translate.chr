@@ -51,6 +51,9 @@
 %% URGENTLY TODO
 %%
 %%	* ground matching seems to be not optimized for compound terms
+%%	  in case where active constraint f(X) is ground
+%%		f(X), g(X) (<|=)=> ...
+%%		may use =/2 instead of ==/2
 %%	* add groundness info to a.i.-based observation analysis
 %%	* proper fd/index analysis
 %%	* re-add generation checking
@@ -3604,12 +3607,18 @@ head_arg_matches_([Arg-Var| Rest],[Mode|Modes],VarDict,GroundArgs,GoalList,NVarD
        NGroundArgs = GroundArgs,
        Pairs = Rest,
        RestModes = Modes
+   ;   ground(Arg), Mode == (+) -> 
+       GoalList = [ Var = Arg | RestGoalList],	
+       VarDict = VarDict1,
+       NGroundArgs = GroundArgs,
+       Pairs = Rest,
+       RestModes = Modes
    ;   Arg =.. [_|Args],
        functor(Arg,Fct,N),
        functor(Term,Fct,N),
        Term =.. [_|Vars],
        ( Mode = (+) ->
-	       GoalList = [ Var = Term | RestGoalList ] 
+	       	GoalList = [ Var = Term | RestGoalList ] 
        ;
 	       GoalList = [ nonvar(Var), Var = Term | RestGoalList ] 
        ),

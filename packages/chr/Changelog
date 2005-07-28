@@ -2,6 +2,9 @@ Jul 28, 2005
 
   * TS: New input verification: duplicate constraint declaration
 	now reported as an error. Requested by Mike Elston.
+  * TS: More efficient matching code for ground constraints
+	when matching an argument of a partner constraint with
+	a ground term
 
 Jul 3, 2005
 
