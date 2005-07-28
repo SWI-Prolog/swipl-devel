@@ -5,6 +5,7 @@ Jul 28, 2005
   * TS: More efficient matching code for ground constraints
 	when matching an argument of a partner constraint with
 	a ground term
+  * JS: Bug fix in guard simplification.
 
 Jul 3, 2005
 
