@@ -1,3 +1,8 @@
+Jul 28, 2005
+
+  * TS: New input verification: duplicate constraint declaration
+	now reported as an error. Requested by Mike Elston.
+
 Jul 3, 2005
 
   * TS: Factored out option functionality into separate module.

@@ -125,6 +125,14 @@
 %%          only works for rules with at least 3 constraints in the head
 %%	* (set semantics + functional dependency) declaration + resolution
 %%
+%%
+%%	* identify cases where prefixes of partner lookups for subsequent occurrences can be
+%%	  merged
+%%
+%%	* map A \ B <=> true | true rules
+%%	  onto efficient code that empties the constraint stores of B
+%%	  in O(1) time for ground constraints where A and B do not share
+%%	  any variables
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- module(chr_translate,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
@@ -410,6 +418,7 @@ set_constraint_indices([C|Cs],N) :-
 chr_translate(Declarations,NewDeclarations) :-
 	init_chr_pp_flags,
 	partition_clauses(Declarations,Constraints,Rules,OtherClauses),
+	check_declared_constraints(Constraints),
 	( Constraints == [] ->
 		insert_declarations(OtherClauses, NewDeclarations)
 	;
@@ -713,6 +722,21 @@ add_rules([Rule|Rules]) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Some input verification:
+
+check_declared_constraints(Constraints) :-
+	check_declared_constraints(Constraints,[]).
+
+check_declared_constraints([],_).
+check_declared_constraints([C|Cs],Acc) :-
+	( memberchk_eq(C,Acc) ->
+		format('CHR compiler ERROR: constraint ~w multiply defined.\n',[C]),
+		format('    `--> Remove redundant declaration!\n',[]),
+		fail
+	;
+		true
+	),
+	check_declared_constraints(Cs,[C|Acc]).
+
 %%  - all constraints in heads are declared constraints
 %%  - all passive pragmas refer to actual head constraints
 

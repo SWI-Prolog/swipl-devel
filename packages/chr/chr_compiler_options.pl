@@ -79,7 +79,7 @@ option_definition(optimize,experimental,Flags) :-
 		  check_impossible_rules   - on,
 		  occurrence_subsumption   - on,
 		  observation		   - on,
-		  ai_observation_analysis	   - on,
+		  ai_observation_analysis  - on,
 		  late_allocation	   - on,
 		  reduced_indexing	   - on
 		].
@@ -94,7 +94,7 @@ option_definition(optimize,full,Flags) :-
 		  check_impossible_rules   - on,
 		  occurrence_subsumption   - on,
 		  observation		   - on,
-		  ai_observation_analysis	   - on,
+		  ai_observation_analysis  - on,
 		  late_allocation	   - on,
 		  reduced_indexing	   - on
 		].
