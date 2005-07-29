@@ -367,8 +367,9 @@ Send the contents of <VAR>File</VAR>. The MIME type is derived from the
 filename extension using <A NAME="idx:filemimetype2:10"></A><B>file_mime_type/2</B>.
 
 <P>
-<DT><STRONG>file</STRONG>(<VAR>+File, +Type</VAR>)<DD>
-Send the contents of <VAR>File</VAR> using the provided MIME type.
+<DT><STRONG>file</STRONG>(<VAR>+Type, +File</VAR>)<DD>
+Send the contents of <VAR>File</VAR> using the provided MIME type, i.e. claiming 
+the <CODE>Content-type</CODE> equals <VAR>Type</VAR>.
 
 <P>
 <DT><STRONG>cgi_stream</STRONG>(<VAR>+Stream, +Len</VAR>)<DD>

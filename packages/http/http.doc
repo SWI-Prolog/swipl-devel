@@ -266,8 +266,9 @@ described in section \secref{htmlwrite}.
 Send the contents of \arg{File}.  The MIME type is derived from the
 filename extension using file_mime_type/2.
 
-	\termitem{file}{+File, +Type}
-Send the contents of \arg{File} using the provided MIME type.
+	\termitem{file}{+Type, +File}
+Send the contents of \arg{File} using the provided MIME type,
+i.e.\ claiming the \const{Content-type} equals \arg{Type}.
 
 	\termitem{cgi_stream}{+Stream, +Len}
 Read the input from \arg{Stream} which, like CGI data starts with a
