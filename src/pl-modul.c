@@ -588,7 +588,7 @@ declareModule(atom_t name, SourceFile sf, int line)
 
     obj = PL_new_term_ref();
     PL_put_atom(obj, name);
-    Ssprintf(msg, "Alread loaded from %s",
+    Ssprintf(msg, "Already loaded from %s",
 	     atom_summary(module->file->name, 100));
     return PL_error("module", 2, msg, ERR_PERMISSION,
 		    ATOM_redefine, ATOM_module, obj);
