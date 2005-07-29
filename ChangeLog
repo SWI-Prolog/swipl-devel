@@ -7,11 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: atom_concat(X, a, a).  Mike Elston.
+
   * FIXED: Added two missing CHR files to the Windows installer.  Mike
     Elston.  Replaced the w32pl5523.exe installer on July 26.  Source
     update of MS-Windows makefiles and installer-generator will be in
     5.5.24.
-
 
 ==============================
 VERSION 5.5.23 (July 24, 2005)

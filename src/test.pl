@@ -625,6 +625,9 @@ atom_handling(concat-4) :-
 atom_handling(concat-5) :-
 	findall(X-Y, atom_concat(X, Y, 'abc'), Pairs),
 	Pairs == [''-abc, a-bc, ab-c, abc-''].
+atom_handling(concat-6) :-
+	atom_concat(X, a, a),
+	X == ''.
 
 atom_handling(number-1) :-
 	atom_number('42', X), X == 42.

@@ -2228,7 +2228,7 @@ concat(const char *pred,
       return PL_unify_text_range(a2, &t3, L1, L3-L1, otype);
     fail;
   } else if ( t2.text.t )		/* -, +, + */
-  { if ( L2 < L3 &&
+  { if ( L2 <= L3 &&
 	 PL_cmp_text(&t2, 0, &t3, L3-L2, L2) == 0 )
       return PL_unify_text_range(a1, &t3, 0, L3-L2, otype);
     fail;
