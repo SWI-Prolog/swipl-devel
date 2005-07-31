@@ -5,12 +5,12 @@
 AUTHOR
 ======
 	Jan Wielemaker
-	SWI
+	HCS (Formery SWI)
 	University of Amsterdam
-	Roetersstraat 15
-	1018 WB  Amsterdam
+	Kruislaan 419
+	1098 VA  Amsterdam
 	The Netherlands
-	E-mail: jan@swi.psy.uva.nl
+	E-mail: jan@swi-prolog.org
 
 WEB-HOME
 ========
@@ -62,7 +62,7 @@ package. Please check INSTALL for the   generic installation options and
 INSTALL.notes  for  some  SWI-Prolog  specific  things.  An  interactive
 web-page for discussing portability issues is at
 
-	http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Porting/WebHome
+	http://gollem.science.uva.nl/twiki/pl/bin/view/Porting/WebHome
 
 SWI-Prolog should compile using any Unix-type   system with 32 or larger
 (64) word-length and an ANSI-compliant C-compiler.
@@ -114,7 +114,7 @@ Otherwise, get yourself the following tools and resources
 	* MSVC 5.0 or later
 	* MIME, JPEG and XPM libraries. You find precompiled versions in
 
-		ftp://ftp.swi.psy.uva.nl/xpce/Windows/lib
+		ftp://gollem.science.uva.nl/xpce/Windows/lib
 
 Now proceed as follows
 
@@ -174,13 +174,14 @@ CONTRIBUTING
 ============
 
 There are a number of ways in which you can contribute to the success of
-SWI-Prolog. If you encounter problems or   have suggestions, please send
-them to prolog-bugs@swi.psy.uva.nl. If you   write  applications, please
-acknowledge  the  use  of  SWI-Prolog  in   your  application.  If  your
-application has a web-page, please link to the SWI-Prolog home page (see
-the top of  this  file).  If   you  write  reusable  libraries, consider
-providing them to the SWI-Prolog user community   as  a package (see the
-SWI-Prolog home page).
+SWI-Prolog. If you have problems  using   SWI-Prolog  or  think you have
+found  a  bug  check   http://www.swi-prolog.org/support.html  for  more
+information as well as instructions for   submitting bug-reports. If you
+write applications, please acknowledge the  use   of  SWI-Prolog in your
+application. If your application has  a   web-page,  please  link to the
+SWI-Prolog home page (see the top of   this file). If you write reusable
+libraries, consider providing them to the SWI-Prolog user community as a
+package (see the SWI-Prolog home page).
 
 
 COMMERCIAL USAGE
