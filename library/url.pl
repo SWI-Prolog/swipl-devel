@@ -700,6 +700,7 @@ safe(0'+).
 
 unsafe(0'~).
 unsafe(0'=).
+unsafe(0':).
 
 search_char(0'$).
 search_char(0'-).
