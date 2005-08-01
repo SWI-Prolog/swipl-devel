@@ -30,7 +30,7 @@
 #ifdef WIN32
 typedef __int64 int64_t;
 #else
-#include <stdint.h>			/* specific-width integers */
+#include <inttypes.h>			/* more portable than stdint.h */
 #endif
 
 #ifdef __cplusplus

@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Bug#70: Use inttypes.h instead of stdint.h for portability.
+    Andreas Vögele.
+
   * FIXED: atom_concat(X, a, a).  Mike Elston.
 
   * FIXED: Added two missing CHR files to the Windows installer.  Mike

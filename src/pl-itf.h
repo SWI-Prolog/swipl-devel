@@ -31,7 +31,7 @@
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 #else
-#include <stdint.h>			/* specific-width integers */
+#include <inttypes.h>			/* more portable than stdint.h */
 #endif
 
 #ifdef __cplusplus
