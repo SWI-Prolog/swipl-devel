@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: CanoniseDir() caching issues for absolute_file_name/[2,3].
+    Wim Delvaux.
+
   * PORT: Bug#70: Use inttypes.h instead of stdint.h for portability.
     Andreas Vögele.
 

@@ -1679,6 +1679,23 @@ file(absfile-1) :-
 	same_file(Dir, '.'),
 	file_base_name(Path, Base),
 	Base == File.
+file(absfile-2) :-			% canoniseDir() caching issues
+	X = 'pl-test-x',
+	Y = 'pl-test-y',
+	atom_concat(X, '/file', XF),
+	atom_concat(Y, '/file', YF),
+	make_directory(X),
+	touch(XF),
+	absolute_file_name(XF, Abs1),
+	atom_concat(_, XF, Abs1),
+	delete_file(XF),
+	delete_directory(X),
+	make_directory(Y),
+	touch(YF),
+	absolute_file_name(YF, Abs2),
+	delete_file(YF),
+	delete_directory(Y),
+	atom_concat(_, YF, Abs2).
 file(ext-1) :-
 	atom_codes(File, [1074, 1086, 1079, 1076, 0'., 1091, 1093, 1072]),
 	file_name_extension(Base, Ext, File),
@@ -1687,6 +1704,10 @@ file(ext-1) :-
 file(ext-2) :-
 	\+ file_name_extension(foo, _, 'bar.pl'). 	% Bug#69
 
+
+touch(File) :-
+	open(File, update, Out),
+	close(Out).
 
 		 /*******************************
 		 *		SEEK		*

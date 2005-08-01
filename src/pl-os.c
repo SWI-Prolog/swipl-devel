@@ -1131,16 +1131,57 @@ registerParentDirs(const char *path)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+verify_entry() verifies the path cache for this   path is still safe. If
+not it updates the cache and returns FALSE.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+verify_entry(CanonicalDir d)
+{ char tmp[MAXPATHLEN];
+  struct stat buf;
+
+  if ( statfunc(OsPath(d->canonical, tmp), &buf) == 0 )
+  { if ( d->inode  == buf.st_dev &&
+	 d->device == buf.st_ino )
+      return TRUE;
+
+    d->inode  = buf.st_dev;
+    d->device = buf.st_ino;
+  } else
+  { if ( d == canonical_dirlist )
+    { canonical_dirlist = d->next;
+    } else
+    { CanonicalDir cd;
+
+      for(cd=canonical_dirlist; cd; cd=cd->next)
+      { if ( cd->next == d )
+	{ cd->next = d->next;
+	  break;
+	}
+      }
+    }
+
+    free(d);
+  }
+    
+  return FALSE;
+}
+
+
 static char *
 canoniseDir(char *path)
 { CanonicalDir d;
   struct stat buf;
   char tmp[MAXPATHLEN];
+  CanonicalDir next;
 
   DEBUG(1, Sdprintf("canoniseDir(%s) --> ", path));
 
-  for(d = canonical_dirlist; d; d = d->next)
-  { if ( streq(d->name, path) )
+  for(d = canonical_dirlist; d; d = next)
+  { next = d->next;	
+
+    if ( streq(d->name, path) && verify_entry(d) )
     { if ( d->name != d->canonical )
 	strcpy(path, d->canonical);
 
@@ -1159,7 +1200,6 @@ canoniseDir(char *path)
     char dirname[MAXPATHLEN];
     char *e = path + strlen(path);
 
-    dn->next   = canonical_dirlist;
     dn->name   = store_string(path);
     dn->inode  = buf.st_ino;
     dn->device = buf.st_dev;
@@ -1173,8 +1213,11 @@ canoniseDir(char *path)
       DEBUG(2, Sdprintf("Checking %s (dev=%d,ino=%d)\n",
 			dirname, buf.st_dev, buf.st_ino));
 
-      for(d = canonical_dirlist; d; d = d->next)
-      { if ( d->inode == buf.st_ino && d->device == buf.st_dev )
+      for(d = canonical_dirlist; d; d=next)
+      { next = d->next;			/* safe as verify_entry() may delete */
+
+	if ( d->inode == buf.st_ino && d->device == buf.st_dev &&
+	     verify_entry(d) )
 	{ canonical_dirlist = dn;
 
 	  DEBUG(2, Sdprintf("Hit with %s (dev=%d,ino=%d)\n",
@@ -1196,6 +1239,7 @@ canoniseDir(char *path)
     } while( e > path );
 
     dn->canonical = dn->name;
+    dn->next      = canonical_dirlist;
     canonical_dirlist = dn;
 
     DEBUG(1, Sdprintf("(new, existing) %s\n", path));
