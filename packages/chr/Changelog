@@ -1,3 +1,8 @@
+Aug 1, 2005
+
+  * TS: Extended more efficient ground matching code to
+	removed simpagation occurrence code.
+
 Jul 28, 2005
 
   * TS: New input verification: duplicate constraint declaration
