@@ -1117,11 +1117,11 @@ registerParentDirs(const char *path)
     if ( statfunc(OsPath(dirname, tmp), &buf) == 0 )
     { CanonicalDir dn   = malloc(sizeof(*dn));
 
-      dn->next		= canonical_dirlist;
       dn->name		= store_string(dirname);
       dn->inode		= buf.st_ino;
       dn->device	= buf.st_dev;
       dn->canonical	= dn->name;
+      dn->next		= canonical_dirlist;
       canonical_dirlist	= dn;
 
       DEBUG(1, Sdprintf("Registered canonical dir %s\n", dirname));
@@ -1142,14 +1142,18 @@ verify_entry(CanonicalDir d)
   struct stat buf;
 
   if ( statfunc(OsPath(d->canonical, tmp), &buf) == 0 )
-  { if ( d->inode  == buf.st_dev &&
-	 d->device == buf.st_ino )
+  { if ( d->inode  == buf.st_ino &&
+	 d->device == buf.st_dev )
       return TRUE;
 
-    d->inode  = buf.st_dev;
-    d->device = buf.st_ino;
+    DEBUG(1, Sdprintf("%s: inode/device changed\n", d->canonical));
+
+    d->inode  = buf.st_ino;
+    d->device = buf.st_dev;
   } else
-  { if ( d == canonical_dirlist )
+  { DEBUG(1, Sdprintf("%s: no longer exists\n", d->canonical));
+
+    if ( d == canonical_dirlist )
     { canonical_dirlist = d->next;
     } else
     { CanonicalDir cd;
@@ -1171,15 +1175,14 @@ verify_entry(CanonicalDir d)
 
 static char *
 canoniseDir(char *path)
-{ CanonicalDir d;
+{ CanonicalDir d, next;
   struct stat buf;
   char tmp[MAXPATHLEN];
-  CanonicalDir next;
 
   DEBUG(1, Sdprintf("canoniseDir(%s) --> ", path));
 
   for(d = canonical_dirlist; d; d = next)
-  { next = d->next;	
+  { next = d->next;
 
     if ( streq(d->name, path) && verify_entry(d) )
     { if ( d->name != d->canonical )
@@ -1213,20 +1216,19 @@ canoniseDir(char *path)
       DEBUG(2, Sdprintf("Checking %s (dev=%d,ino=%d)\n",
 			dirname, buf.st_dev, buf.st_ino));
 
-      for(d = canonical_dirlist; d; d=next)
-      { next = d->next;			/* safe as verify_entry() may delete */
+      for(d = canonical_dirlist; d; d = next)
+      { next = d->next;
 
 	if ( d->inode == buf.st_ino && d->device == buf.st_dev &&
 	     verify_entry(d) )
-	{ canonical_dirlist = dn;
-
-	  DEBUG(2, Sdprintf("Hit with %s (dev=%d,ino=%d)\n",
+	{ DEBUG(2, Sdprintf("Hit with %s (dev=%d,ino=%d)\n",
 			    d->canonical, d->device, d->inode));
 
 	  strcpy(dirname, d->canonical);
 	  strcat(dirname, e);
 	  strcpy(path, dirname);
 	  dn->canonical = store_string(path);
+	  dn->next = canonical_dirlist;
 	  canonical_dirlist = dn;
 	  DEBUG(1, Sdprintf("(replace) %s\n", path));
 	  registerParentDirs(path);
@@ -1239,7 +1241,7 @@ canoniseDir(char *path)
     } while( e > path );
 
     dn->canonical = dn->name;
-    dn->next      = canonical_dirlist;
+    dn->next = canonical_dirlist;
     canonical_dirlist = dn;
 
     DEBUG(1, Sdprintf("(new, existing) %s\n", path));
