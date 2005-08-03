@@ -834,13 +834,13 @@ executed.
 
 \section{Control Predicates}		\label{sec:control}
 
-The predicates of this section implement control structures.  Normally
-these constructs are translated into virtual machine instructions by
-the compiler.  It is still necessary to implement these constructs
-as true predicates to support meta-calls, as demonstrated in the
-example below. The predicate finds all currently defined atoms of 1
-character long. Note that the cut has no effect when called via one
-of these predicates (see !/0).
+The predicates of this section implement control structures. Normally
+the constructs in this section, except for repeat/0, are translated by
+the compiler. Please note that complex goals passed as arguments to
+meta-predicates such as findall/3 below cause the goal to be compiled to
+a temporary location before execution. It is faster to define a
+sub-predicate (i.e.\ one_character_atom/1 in the example below) and make
+a call to this simple predicate.
 
 \begin{code}
 one_character_atoms(As) :-
