@@ -202,6 +202,7 @@ typedef struct
   unsigned int	flags;			/* Module syntax flags */
   int		styleCheck;		/* style-checking mask */
   bool		backquoted_string;	/* Read `hello` as string */
+  int	       *char_conversion_table;	/* active conversion table */
 
   atom_t	on_error;		/* Handling of syntax errors */
   int		has_exception;		/* exception is raised */
@@ -239,6 +240,10 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
   _PL_rd->styleCheck = debugstatus.styleCheck;
   _PL_rd->on_error = ATOM_error;
   _PL_rd->backquoted_string = trueFeature(BACKQUOTED_STRING_FEATURE);
+  if ( trueFeature(CHARCONVERSION_FEATURE) )
+    _PL_rd->char_conversion_table = char_conversion_table;
+  else
+    _PL_rd->char_conversion_table = NULL;
 }
 
 static void
@@ -510,17 +515,17 @@ setCurrentSourceLocation(IOSTREAM *s ARG_LD)
 
 
 static inline int
-getchr__(IOSTREAM *in)
-{ int c = Sgetcode(in);
+getchr__(ReadData _PL_rd)
+{ int c = Sgetcode(rb.stream);
 
-  if ( c < 0 || c >= 256 )
+  if ( !_PL_rd->char_conversion_table || c < 0 || c >= 256 )
     return c;
 
-  return char_conversion_table[c];
+  return _PL_rd->char_conversion_table[c];
 }
 
 
-#define getchr()  getchr__(rb.stream)
+#define getchr()  getchr__(_PL_rd)
 #define getchrq() Sgetcode(rb.stream)
 
 #define ensure_space(c) { if ( something_read && \
