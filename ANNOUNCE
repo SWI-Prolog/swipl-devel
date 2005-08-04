@@ -58,25 +58,22 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.23 relative to 5.5.22
+Patches in 5.5.24 relative to 5.5.23
 ====================================
 
-  * Fixed bug in Windows file_name_extension/2 introduced in 5.5.22
-
-  * C-version of read_line_to_codes/[2,3] and friends.
+  * Fixed atom_concat(X, a, a)
+  * Fixed CanoniseDir()
+  * Honour char_conversion flag
+  * Enhanced portability for stdint.h issues
 
 Packages
 ========
 
-  * XPCE: Added display<-win_directory to access Windows Shell
-    directory dialog, updated access to standard windows colors
-    and fix error printing (notably on type-errors).
+  * XPCE: X11 version: fix possible crash in XSetInputFocus(), fix
+    text-clipping on systems using the Xft library (default when
+    available).
     
-  * SemWeb: Added rdf_meta/1 to streamline namespace handling.
-
-  * Clib: fixed makefile issues with integration of maildrop RFC
-    libraries.  Added readutil.c, providing the new read_line_to_codes,
-    etc.
+  * SemWeb: Added option document_language(+Lang) to rdf_save/2.
 
 Incompatible changes
 ====================

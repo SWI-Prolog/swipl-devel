@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.24, distributed with SWI-Prolog 5.5.24
+==================================================
+
 * FIXED: Text clipping in X11 systems using the Xft text rendering library.
 
 * FIXED: Remove code calling XSetInputFocus() if a window gets the focus
