@@ -66,40 +66,40 @@ translate([X|Xs],Dict,[Y|Ys]) :-
 	lookup_eq(Dict,X,Y),
 	translate(Xs,Dict,Ys).
 
-delete([], _, []).
-delete([K - V| KVs], Key, PL) :-
+pairlist_delete([], _, []).
+pairlist_delete([K - V| KVs], Key, PL) :-
 	( Key = K ->
 		PL = KVs
 	;
 		PL = [ K - V | T ],
-		delete(KVs, Key, T)
+		pairlist_delete(KVs, Key, T)
 	).
 
-delete_all([], _, []).
-delete_all([K - V| KVs], Key, PL) :-
+pairlist_delete_all([], _, []).
+pairlist_delete_all([K - V| KVs], Key, PL) :-
 	( Key = K ->
-		delete_all(KVs, Key, PL)
+		pairlist_delete_all(KVs, Key, PL)
 		
 	;
 		PL = [ K - V | T ],
-		delete_all(KVs, Key, T)
+		pairlist_delete_all(KVs, Key, T)
 	).
 
-delete_eq([], _, []).
-delete_eq([K - V| KVs], Key, PL) :-
+pairlist_delete_eq([], _, []).
+pairlist_delete_eq([K - V| KVs], Key, PL) :-
 	( Key == K ->
 		PL = KVs
 	;
 		PL = [ K - V | T ],
-		delete_eq(KVs, Key, T)
+		pairlist_delete_eq(KVs, Key, T)
 	).
 
-delete_all_eq([], _, []).
-delete_all_eq([K - V| KVs], Key, PL) :-
+pairlist_delete_all_eq([], _, []).
+pairlist_delete_all_eq([K - V| KVs], Key, PL) :-
 	( Key == K ->
-		delete_all_eq(KVs, Key, PL)
+		pairlist_delete_all_eq(KVs, Key, PL)
 	;
 		PL = [ K - V | T ],
-		delete_all_eq(KVs, Key, T)
+		pairlist_delete_all_eq(KVs, Key, T)
 	).
 		
