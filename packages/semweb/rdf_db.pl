@@ -754,6 +754,9 @@ rdf_reset_db :-
 %		
 %		# encoding(Encoding)
 %		Encoding for the output.  Either utf8 or iso_latin_1
+%		
+%		# document_language(+Lang)
+%		Initial xml:lang saved with rdf:RDF element
 
 :- module_transparent
 	rdf_save/2,
@@ -875,6 +878,10 @@ rdf_save_header(Out, Options) :-
 	    fail
 	;   true
 	),
+	(   memberchk(document_language(Lang), Options)
+	->  format(Out, '~N    xml:lang="~w"', [Lang])
+	;   true
+	),
 	format(Out, '>~n', []).
 rdf_save_header(Out, FileRef) :-	% compatibility
 	atom(FileRef),
@@ -979,8 +986,7 @@ rdf_save_non_anon_subject(_Out, Subject, Options) :-
 	    rdf_db(_, _, Subject, DB)
 	), !.
 rdf_save_non_anon_subject(Out, Subject, Options) :-
-	db(Options, DB),
-	rdf_save_subject(Out, Subject, DB),
+	rdf_save_subject(Out, Subject, Options),
 	flag(rdf_db_saved_subjects, X, X+1).
 
 
@@ -1135,9 +1141,12 @@ save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 	;   Literal = Literal0
 	),
 	(   Literal = lang(Lang, Value)
-	->  rdf_id(Lang, DefNS, LangText),
-	    format(Out, '~N~*|<~w xml:lang="~w">',
-		   [Indent, NameText, LangText])
+	->  (   memberchk(document_language(Lang), Options)
+	    ->  format(Out, '~N~*|<~w>', [Indent, NameText])
+	    ;   rdf_id(Lang, DefNS, LangText),
+		format(Out, '~N~*|<~w xml:lang="~w">',
+		       [Indent, NameText, LangText])
+	    )
 	;   Literal = type(Type, Value)
 	->  rdf_id(Type, DefNS, TypeText),
 	    format(Out, '~N~*|<~w rdf:datatype="~w">',

@@ -490,6 +490,14 @@ Define the XML encoding used for the file.  Defined values are
 \const{utf8} (default), \const{iso_latin_1} and \const{ascii}.
 Using \const{iso_latin_1} or \const{ascii}, characters not covered by
 the encoding are emitted as XML character entities (\verb$&#...;$).
+
+	\termitem{document_language}{+XMLLang}
+The value \arg{XMLLang} is used for the \const{xml:lang} attribute
+in the outermost \const{rdf:RDF} element.  This language acts as
+a default, which implies that the \const{xml:lang} tag is only used
+for literals with a \emph{different} language identifier.  Please note
+that this option will cause all literals without language tag to be
+interpreted using \arg{XMLLang}.
     \end{description}
 
     \predicate{rdf_source}{1}{?File}

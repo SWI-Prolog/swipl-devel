@@ -1,3 +1,8 @@
+Aug 4, 2005
+
+  * ADDED: document_language(+Lang) option to rdf_save/2.  Suggested
+    by Mark van Assem.
+
 Jul 15, 2005
 
   * ADDED/CLEANUP: new rdf_meta/1 directive to simplify namespace

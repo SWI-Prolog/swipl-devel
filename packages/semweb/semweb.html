@@ -634,6 +634,15 @@ Define the XML encoding used for the file. Defined values are
 <CODE>utf8</CODE> (default), <CODE>iso_latin_1</CODE> and <CODE>ascii</CODE>. 
 Using <CODE>iso_latin_1</CODE> or <CODE>ascii</CODE>, characters not 
 covered by the encoding are emitted as XML character entities (<CODE>&amp;#...;</CODE>).
+
+<P>
+<DT><STRONG>document_language</STRONG>(<VAR>+XMLLang</VAR>)<DD>
+The value <VAR>XMLLang</VAR> is used for the <CODE>xml:lang</CODE> 
+attribute in the outermost <CODE>rdf:RDF</CODE> element. This language 
+acts as a default, which implies that the <CODE>xml:lang</CODE> tag is 
+only used for literals with a <EM>different</EM> language identifier. 
+Please note that this option will cause all literals without language 
+tag to be interpreted using <VAR>XMLLang</VAR>.
 </DL>
 
 <P>
