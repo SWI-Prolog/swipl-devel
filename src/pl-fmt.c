@@ -120,17 +120,18 @@ outstring(format_state *state, const char *s, unsigned int len)
 { const char *q;
   const char *e = &s[len];
 
-  for(q=s; q < e; q++)
-    state->column = update_column(state->column, *q&0xff);
-
   if ( state->pending_rubber )
   { addMultipleBuffer(&state->buffer, s, len, char);
+    state->buffered += len;
   } else
   { for(q=s; q < e; q++)
     { if ( Sputcode(*q&0xff, state->out) < 0 )
 	return FALSE;
     }
   }
+
+  for(q=s; q < e; q++)
+    state->column = update_column(state->column, *q&0xff);
 
   return TRUE;
 }

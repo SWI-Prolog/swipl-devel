@@ -11,6 +11,8 @@
 VERSION 5.5.24 (August 04, 2005)
 ================================
 
+  * FIXED: format/3: rubber handling error printing numeric values.
+
   * FIXED: Bug#73: honour char_conversion flag.  Holger Kanwischer.
 
   * FIXED: CanoniseDir() caching issues for absolute_file_name/[2,3].
