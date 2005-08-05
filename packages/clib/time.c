@@ -488,7 +488,11 @@ print_trace (void)
   size = backtrace(array, sizeof(array)/sizeof(void *));
   strings = backtrace_symbols(array, size);
      
+#ifdef _REENTRANT
+  Sdprintf("on_alarm() Prolog-context [thread %d]:\n", PL_thread_self());
+#else
   Sdprintf("on_alarm() Prolog-context:\n");
+#endif
   PL_action(PL_ACTION_BACKTRACE, 3);
 
   Sdprintf("on_alarm() C-context:\n");
