@@ -1,41 +1,7 @@
 BUGS:
 -----
 
-	* format('~t~w~72|~n', [ 'hello\0\world' ]) simply writes
-	  hello at the end of the line.
-
 	* plcon.exe to delay Control-C in garbage collections.
-
-CO-ROUTING AND CALL/1
-=====================
-
-	* Compile goal to local stack.
-	    - How to activate?
-	        - Manipulate PC?  Making it accesible may be expensive!
-		- Signal and test on I_ENTER + foreign I_EXIT
-		- Both require a queue of goals!
-		- How to handle backtracking?
-		    - Choice-point of new node should be last choice.
-
-	* Variable can have value: pointer to term holding when(X, Goal).
-	  This may also serve `attributed variables' in the future?
-
-	    - Other temporary use of variables must remember value
-	        - compiler
-		- copy-term
-		- unify-with-occurs-check
-	    - including the use as `setarg' to restore on backtracking
-	    
-	
-PROLOG FLAGS AND FOREIGN CODE
-=============================
-
-	* Cleanup GD->initialised status variables to use a bitmask
-
-	* Change PL_set_feature into PL_set_prolog_flag(), calling
-	  defFeature() if the system is not initialised and the lower
-	  level of a split pl_set_feature() if the system is properly
-	  initialised.
 
 
 SCRIPT
@@ -55,20 +21,12 @@ Allow Unix/X11 version of XPCE to run without X11 display but with active
 sockets.  Problems: Windows compatibility, X11 handling. 
 
 
-FOREIGN LINKING:
-----------------
-
-	* Add info for compilation and linking to pl -dump-runtime-variables:
-
-		+ Compile-flag for position-independent
-		+ Link flag for making shared object
-		+ Use this in plld
-
 ISO:
 ----
 
 	* Complete replacement of warnings by exceptions.
-
+	* Meta info on predicates to identify compatibility and standard
+	  issues.
 
 FEATURES:
 ---------
@@ -76,43 +34,6 @@ FEATURES:
 	* Provide options when trying to load existing module from another
 	  file.
 
-
-MULTI-LINGUAL SUPPORT:
-----------------------
-
-Provide support for UTF-8 encoding:
-
-	* Known encodings:
-		ascii,
-		iso_latin_1
-		utf_8			# internal
-		unicode			# Stream I/O
-		ucs_2			# = unicode
-		ucs_4
-
-	* set_prolog_flag(encoding, utf_8).
-
-	* File open:
-
-		open(File, read, Stream, [encoding(utf_8)]).
-		set_stream(Stream, encoding(utf_8)).
-
-	* Breaking up atoms
-		+ atom_codes/2
-		+ atom_chars/2
-		+ atom_length/2		# ignore 0x80-0xbf!
-		+ char_code/2
-
-	* get_code/1
-
-	* put_code/1
-
-	* Prolog source?
-		+ Can be entered as UTF-8
-		+ ISO?
-
-
-See also Charset.TODO
 
 FOREIGN CLAUSES:
 ----------------
