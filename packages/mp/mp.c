@@ -243,7 +243,10 @@ static atom_t
 
 #define relidx(X) (X > 0 ? 2 : X < 0 ? 0 : 1)	/* index func. for rel atoms */
 
-static long mp_min_int, mp_max_int;	/* min and max SWI-Prolog ints */
+/* min and max SWI-Prolog ints */
+#include <limits.h>
+static long mp_min_int = LONG_MIN;
+static long mp_max_int = LONG_MAX;	
 
 #define BUFSIZE (32768)	/* holds digits for conversion of MP to readable form.
 			   Unfortunately, this limits precision of the output */
@@ -2228,6 +2231,4 @@ void mp_install()
 	relatom[0] = PL_new_atom("<");
 	relatom[1] = PL_new_atom("=");
 	relatom[2] = PL_new_atom(">");
-	mp_min_int = PL_query(PL_QUERY_MIN_INTEGER);
-	mp_max_int = PL_query(PL_QUERY_MAX_INTEGER);
 }

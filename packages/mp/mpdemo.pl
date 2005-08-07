@@ -9,8 +9,8 @@
 	 [ mp_demo/0
 	 ]).
 
-load_mp :-
-	current_predicate(_, user:mp_term(_,_,_,_)), !.
+:- asserta(user:file_search_path(foreign, '.')).
+
 load_mp :-
 	use_module(library(mp)).
 
