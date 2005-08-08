@@ -11,6 +11,14 @@
 VERSION 5.5.24 (August 04, 2005)
 ================================
 
+  * MODIFIED: Operator ambiguity resolution, preferring prefix over
+    infix.  Sentences of the form "pre inpre atom" are read as
+    pre(inpre(atom)) instead of inpre(pre, atom) if both interpretations
+    are allowed.  This is the de-facto standard, tested on SICStus,
+    GNU, YAP and Ciao.  Needed for lptp (www.inf.ethz.ch/~staerk/lptp.html)
+    After comments from various people, including Bart Demoen and 
+    Joachim Schimpf.
+
   * FIXED: format/3: rubber handling error printing numeric values.
 
   * FIXED: Bug#73: honour char_conversion flag.  Holger Kanwischer.

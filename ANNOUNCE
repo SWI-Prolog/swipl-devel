@@ -74,6 +74,8 @@ Packages
     available).
     
   * SemWeb: Added option document_language(+Lang) to rdf_save/2.
+  
+  * MP: update for SWI-Prolog 5.5.x (communication of min/max integer)
 
 Incompatible changes
 ====================

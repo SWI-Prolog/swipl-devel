@@ -75,6 +75,8 @@ syntax(op-7) :-
 	op(500, xf, op2),
 	catch(atom_to_term("op1 a op2", op1(op2(a)), []), E, true),
 	E = error(syntax_error(operator_clash), _).
+syntax(op-8) :-				% assume 200 fy and 500 yfx
+	atom_to_term("- - a", -(-(a)), []).
 syntax(atom-1) :-
 	atom_codes('\003\\'\n\x80\', X),
 	X = [3, 39, 10, 128].

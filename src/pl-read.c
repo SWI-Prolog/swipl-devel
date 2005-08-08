@@ -2069,6 +2069,13 @@ complex_term(const char *stop, term_t term, term_t positions,
 
       DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringAtom(name), rmo));
 
+      if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op, _PL_rd) )
+      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
+	
+	PushOp();
+
+	continue;
+      }
       if ( isOp(name, OP_INFIX, &in_op, _PL_rd) )
       { DEBUG(9, Sdprintf("Infix op: %s\n", stringAtom(name)));
 
@@ -2091,13 +2098,6 @@ complex_term(const char *stop, term_t term, term_t positions,
 	
 	  continue;
 	}
-      }
-      if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op, _PL_rd) )
-      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
-	
-	PushOp();
-
-	continue;
       }
     }
 
