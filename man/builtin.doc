@@ -515,9 +515,10 @@ will load the file. When no extension is specified, it will load the
 \begin{description}
     \predicate{qcompile}{1}{+File}
 Takes a single file specification like consult/1 (i.e., accepts
-constructs like \file{library(LibFile)} and creates a Quick Load
-File from \arg{File}.  The file-extension of this file is \fileext{qlf}.
-The base name of the Quick Load File is the same as the input file.
+constructs like \file{library(LibFile)} and, in addition to the normal
+compilation, creates a \emph{Quick Load File} from \arg{File}. The
+file-extension of this file is \fileext{qlf}. The base name of the Quick
+Load File is the same as the input file.
 
 If the file contains `\exam{:- consult(\arg{+File})}', `\exam{:-
 [\arg{+File}]}' or \exam{:- load_files(\arg{+File}, [qcompile(true),
