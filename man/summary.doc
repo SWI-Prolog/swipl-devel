@@ -261,6 +261,7 @@ suggest predicates from a keyword.
 \predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{import_module}{2}{Query import modules}
 \oppredsummary{in}{2}{xfx}{700}{Define interval for variable}
+\predicatesummary{in_pce_thread}{1}{Run goal in XPCE thread}
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}

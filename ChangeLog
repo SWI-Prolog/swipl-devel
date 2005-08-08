@@ -11,6 +11,8 @@
 VERSION 5.5.24 (August 04, 2005)
 ================================
 
+  * ADDED: documented in_pce_thread/1.
+
   * MODIFIED: Operator ambiguity resolution, preferring prefix over
     infix.  Sentences of the form "pre inpre atom" are read as
     pre(inpre(atom)) instead of inpre(pre, atom) if both interpretations

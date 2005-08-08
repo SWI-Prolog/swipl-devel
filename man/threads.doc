@@ -801,7 +801,32 @@ created the window in which the event occurred, whereas in Unix/X11 they
 are processed by the thread that dispatches messages.
 
 Some tentative work is underway to improve the integration between XPCE
-and multi-threaded SWI-Prolog.  
+and multi-threaded SWI-Prolog. There are two sets of support predicates.
+The first model assumes that XPCE is running in the main thread and
+background threads are used for computation.  In the second model,
+XPCE event dispatching runs in the background, while the foreground
+thread is used for Prolog.
+
+\paragraph{XPCE in the foreground}
+Using XPCE in the foreground simplifies debugging of the UI and 
+generally provides the most comfortable development environment.
+The GUI creates new threads using thread_create/3 and, after
+work in the thread is completed, the sub-thread signals the
+main thread of the the completion using in_pce_thread/1.
+
+\begin{description}
+    \predicate{in_pce_thread}{1}{:Goal}
+Assuming XPCE is running in the foreground thread, this call gives
+background threads the opportunity to make calls to the XPCE thread.
+A call to in_pce_thread/1 succeeds immediately, copying \arg{Goal}
+to the XPCE thread.  \arg{Goal} is added to the XPCE event-queue
+and executed synchronous to normal user events like typing and clicking.
+\end{description}
+
+
+\paragraph{XPCE in the background}
+In this model a thread for running XPCE is created using pce_dispatch/1
+and actions are sent to this thread using pce_call/1.
 
 \begin{description}
     \predicate{pce_dispatch}{1}{+Options}
@@ -821,6 +846,13 @@ to the \const{pce} thread.
 
 For further information about XPCE in threaded applications, please
 visit
-\url{http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Development/MultiThreadsXPCE}
+\url{http://gollem.science.uva.nl/twiki/pl/bin/view/Development/MultiThreadsXPCE}
+
+
+
+
+
+
+
 
 
