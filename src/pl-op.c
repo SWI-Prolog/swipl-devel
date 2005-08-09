@@ -554,6 +554,7 @@ static const opdef operators[] = {
   OP(ATOM_volatile,	OP_FX,	       1150), 	/* volatile */
   OP(ATOM_thread_local,	OP_FX,	       1150), 	/* thread_local */
   OP(ATOM_initialization,OP_FX,	       1150), 	/* initialization */
+  OP(ATOM_thread_initialization,OP_FX, 1150), 	/* thread_initialization */
   OP(ATOM_is,		OP_XFX,		700),	/* is */
   OP(ATOM_mod,		OP_YFX,		400),	/* mod */
   OP(ATOM_rem,		OP_YFX,		400),	/* rem */

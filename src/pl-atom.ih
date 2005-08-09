@@ -546,3 +546,5 @@
 #define ATOM_yfx          MK_ATOM(545)
 #define ATOM_yfy          MK_ATOM(546)
 #define ATOM_zero_divisor MK_ATOM(547)
+#define ATOM_dthread_init MK_ATOM(548)
+#define ATOM_thread_initialization MK_ATOM(549)

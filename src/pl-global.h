@@ -226,6 +226,7 @@ typedef struct
     Procedure   dcall1;			/* $call/1 */
     Procedure	call_cleanup3;		/* call_cleanup/2 */
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
+    Procedure   dthread_init0;		/* $thread_init/0 */
 #ifdef O_ATTVAR
     Procedure	dwakeup1;		/* system:$wakeup/1 */
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */

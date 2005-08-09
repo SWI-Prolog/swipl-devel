@@ -557,6 +557,8 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A dthread_init		"$thread_init"
+A thread_initialization "thread_initialization"
 
 F abs			1
 F access		1
@@ -727,3 +729,4 @@ F tty			1
 F encoding		1
 F representation_errors 1
 F bom			1
+F dthread_init		0

@@ -504,6 +504,7 @@ suggest predicates from a keyword.
 \predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
 \predicatesummary{thread_get_message}{1}{Wait for message}
 \predicatesummary{thread_get_message}{2}{Wait for message in a queue}
+\predicatesummary{thread_initialization}{1}{Run action at start of thread}
 \predicatesummary{thread_join}{2}{Wait for Prolog task-completion}
 \predicatesummary{thread_local}{1}{Declare thread-specific clauses for a predicate}
 \predicatesummary{thread_peek_message}{1}{Test for message}

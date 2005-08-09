@@ -865,6 +865,7 @@ start_thread(void *closure)
   info->status = PL_THREAD_RUNNING;
   UNLOCK();
 
+  PL_call_predicate(MODULE_system, PL_Q_NORMAL, PROCEDURE_dthread_init0, 0);
   goal = PL_new_term_ref();
   PL_recorded(info->goal, goal);
   rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
@@ -2785,6 +2786,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
       return -1;
     }
   }
+  PL_call_predicate(MODULE_system, PL_Q_NORMAL, PROCEDURE_dthread_init0, 0);
 
   return info->pl_tid;
 }

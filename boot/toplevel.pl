@@ -40,6 +40,8 @@
 	, $set_prompt/1			% set the main prompt
 	, at_initialization/1		% goals to run at initialization
 	, (initialization)/1		% initialization goal (directive)
+	, $thread_init/0		% initialise thread
+	, (thread_initialization)/1	% thread initialization goal
 	]).
 
 
@@ -130,7 +132,8 @@ $run_at_initialization :-
 		fail
 	    )
 	;   true
-	).
+	),
+	'$thread_init'.
 
 %	initialization(+Goal)
 %
@@ -139,6 +142,32 @@ $run_at_initialization :-
 initialization(Goal) :-
 	at_initialization(Goal),
 	Goal.
+
+
+		 /*******************************
+		 *     THREAD INITIALIZATION	*
+		 *******************************/
+
+:- module_transparent
+	(thread_initialization)/1.
+:- dynamic
+	$at_thread_initialization/1.
+
+thread_initialization(Spec) :-
+	strip_module(Spec, Module, Goal),
+	'$toplevel':assert($at_thread_initialization(Module:Goal)),
+	Spec.
+
+'$thread_init' :-
+	(   $at_thread_initialization(Goal),
+	    (   catch(Goal, E,
+		      print_message(error, initialization_exception(Goal, E)))
+	    ->  fail
+	    ;   print_message(warning, goal_failed(at_initialization, Goal)),
+		fail
+	    )
+	;   true
+	).
 
 
 		 /*******************************

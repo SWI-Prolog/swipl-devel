@@ -1962,6 +1962,7 @@ typedef struct
 #define PROCEDURE_dcall1		(GD->procedures.dcall1)
 #define PROCEDURE_call_cleanup3		(GD->procedures.call_cleanup3)
 #define PROCEDURE_dwakeup1		(GD->procedures.dwakeup1)
+#define PROCEDURE_dthread_init0		(GD->procedures.dthread_init0)
 
 extern const code_info codeTable[]; /* Instruction info (read-only) */
 

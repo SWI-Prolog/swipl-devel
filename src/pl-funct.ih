@@ -167,3 +167,4 @@
 #define FUNCTOR_encoding1    MK_FUNCTOR(166, 1)
 #define FUNCTOR_representation_errors1 MK_FUNCTOR(167, 1)
 #define FUNCTOR_bom1         MK_FUNCTOR(168, 1)
+#define FUNCTOR_dthread_init0 MK_FUNCTOR(169, 0)

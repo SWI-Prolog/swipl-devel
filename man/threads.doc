@@ -154,6 +154,16 @@ result-state for thread_join/2.  If the thread has the attribute
 retrieved using thread_join/2 making the value of \arg{Term} irrelevant.
 The Prolog stacks and C-thread are reclaimed.
 
+    \predicate{thread_initialization}{1}{:Goal}
+Run \arg{Goal} when thread is started.  This predicate must be compared
+with initialization/1, but is intended for initialization operations of
+the runtime stacks, such as setting global variables as described in
+\secref{gvar}.  \arg{Goal} is run on four occasions: at the call to
+this predicate, after loading a saved state, on starting a new
+thread and on creating a Prolog engine through the C interface. On
+loading a saved state, \arg{Goal} is executed \emph{after} running the
+initialization/1 hooks.
+
     \predicate{thread_at_exit}{1}{:Goal}
 Run \arg{Goal} just before releasing the thread resources. This is to be
 compared to at_halt/1, but only for the current thread. These hooks are

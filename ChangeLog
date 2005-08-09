@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: thread_initialization/1, as a per-thread version of
+    inititialization/1.
+
+
 ================================
 VERSION 5.5.24 (August 04, 2005)
 ================================
