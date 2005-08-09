@@ -7,8 +7,14 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+================================
+VERSION 5.5.25 (August 05, 2005)
+================================
+
   * ADDED: thread_initialization/1, as a per-thread version of
     inititialization/1.
+
+  * FIXED: loading library(chr).  Mike Elston.
 
 
 ================================
