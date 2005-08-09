@@ -7,3 +7,6 @@ client-req.pem: client/config-req.txt
 
 client-sign.pem: client-req.pem client/config-sign.txt
 	openssl ca -config client/config-sign.txt -out $@ -infiles client-req.pem
+
+clean:
+	rm -f client-sign.pem client-req.pem
