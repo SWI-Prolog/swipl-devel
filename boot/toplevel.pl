@@ -160,12 +160,8 @@ thread_initialization(Spec) :-
 
 '$thread_init' :-
 	(   $at_thread_initialization(Goal),
-	    (   catch(Goal, E,
-		      print_message(error, initialization_exception(Goal, E)))
-	    ->  fail
-	    ;   print_message(warning, goal_failed(at_initialization, Goal)),
-		fail
-	    )
+	    Goal,
+	    fail
 	;   true
 	).
 

@@ -865,10 +865,15 @@ start_thread(void *closure)
   info->status = PL_THREAD_RUNNING;
   UNLOCK();
 
-  PL_call_predicate(MODULE_system, PL_Q_NORMAL, PROCEDURE_dthread_init0, 0);
   goal = PL_new_term_ref();
-  PL_recorded(info->goal, goal);
-  rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+  PL_put_atom(goal, ATOM_dthread_init);
+
+  rval = callProlog(MODULE_system, goal, PL_Q_CATCH_EXCEPTION, &ex);
+
+  if ( rval )
+  { PL_recorded(info->goal, goal);
+    rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+  }
 
   if ( !rval && info->detached )
   { if ( ex )
