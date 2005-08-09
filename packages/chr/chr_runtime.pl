@@ -127,17 +127,13 @@
 
 %   I N I T I A L I S A T I O N
 
-?- initialization			% SWI
-   nb_setval(id,0).
+chr_init :-
+	nb_setval(id,0),
+	nb_setval(chr_global,_),
+	nb_setval(chr_debug,mutable(off)),
+	nb_setval(chr_debug_history,mutable([],0)).
 
-?- initialization			% SWI
-   nb_setval(chr_global,_).
-
-?- initialization
-   nb_setval(chr_debug,mutable(off)).
-
-?- initialization
-   nb_setval(chr_debug_history,mutable([],0)).
+:- initialization chr_init.
 
 show_store(Mod) :-
 	(

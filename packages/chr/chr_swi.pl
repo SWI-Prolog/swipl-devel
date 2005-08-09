@@ -257,6 +257,7 @@ prolog:message(query(YesNo,Bindings)) --> !,
 
 print_all_stores :-
 	( current_prolog_flag(chr_toplevel_show_store,true),
+	  catch(nb_getval(chr_global, _), _, fail),
 	  chr:'$chr_module'(Mod),
 	  chr_show_store(Mod),
 	  fail

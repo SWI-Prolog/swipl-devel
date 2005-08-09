@@ -1,5 +1,7 @@
 Aug 9, 2005
 
+  * JW: make message hook for query(yes) detect CHR global variables.
+
   * JW: Exported pairlist_delete_eq/3 from pairlist and use this in
     chr_hashtable_store.pl
 
