@@ -1064,7 +1064,7 @@ extern Name getWinDirectoryDisplay(DisplayObj d,
 				   CharArray title,
 				   Directory dir,
 				   Any owner);
-static T_win_directory[] =
+static char *T_win_directory[] =
 	{ "title=[char_array]",
 	  "directory=[directory]",
 	  "owner=[frame|int]"
