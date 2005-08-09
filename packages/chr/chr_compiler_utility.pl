@@ -52,6 +52,7 @@
 	]).
 
 :- use_module(pairlist).
+:- use_module(library(lists), [permutation/2]).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 is_variant(A,B) :-
 	copy_term_nat(A,AC),
@@ -240,7 +241,7 @@ set_elems([X|Xs],X) :-
 	set_elems(Xs,X).
 
 init([],[]).
-init([X],[]) :- !.
+init([_],[]) :- !.
 init([X|Xs],[X|R]) :-
 	init(Xs,R).
 

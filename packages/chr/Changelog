@@ -1,5 +1,7 @@
 Aug 9, 2005
 
+  * JW: import lists into chr_compiler_utility.pl
+
   * JW: make message hook for query(yes) detect CHR global variables.
 
   * JW: Exported pairlist_delete_eq/3 from pairlist and use this in
