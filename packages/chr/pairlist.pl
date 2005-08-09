@@ -16,7 +16,8 @@
 		lookup_any_eq/3,
 		pairup/3,
 		snd_of_pairs/2,
-		translate/3
+		translate/3,
+		pairlist_delete_eq/3
 	]).
 
 fst_of_pairs([],[]).

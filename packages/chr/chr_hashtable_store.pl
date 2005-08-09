@@ -119,7 +119,7 @@ delete_ht(HT,Key,Value) :-
 			  delete_first_fail(Vs,Value,NVs) ->
 				setarg(2,HT,NLoad),
 				( NVs == [] ->
-					pairlist:delete_eq(Bucket,Key,NBucket),
+					pairlist_delete_eq(Bucket,Key,NBucket),
 					setarg(Index,Table,NBucket)
 				;
 					setarg(2,Pair,NVs)

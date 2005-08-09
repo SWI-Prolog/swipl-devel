@@ -1,3 +1,8 @@
+Aug 9, 2005
+
+  * JW: Exported pairlist_delete_eq/3 from pairlist and use this in
+    chr_hashtable_store.pl
+
 Aug 1, 2005
 
   * TS: Extended more efficient ground matching code to
