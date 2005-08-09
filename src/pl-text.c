@@ -98,10 +98,10 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
   { if ( !get_atom_text(w, text) )
-      goto error;
+      goto maybe_write;
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( !get_string_text(w, text PASS_LD) )
-      goto error;
+      goto maybe_write;
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { sprintf(text->buf, INT64_FORMAT, valInteger(w) );
     text->text.t    = text->buf;
@@ -131,7 +131,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
       text->text.w = baseBuffer(b, pl_wchar_t);
       text->encoding = ENC_WCHAR;
     } else
-      goto error;
+      goto maybe_write;
 
     text->storage   = PL_CHARS_RING;
     text->canonical = TRUE;
@@ -142,10 +142,15 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     text->storage  = PL_CHARS_LOCAL;
     text->canonical = TRUE;
   } else if ( (flags & CVT_WRITE) )
-  { IOENC encodings[] = { ENC_ISO_LATIN_1, ENC_WCHAR, ENC_UNKNOWN };
+  { IOENC encodings[3];
     IOENC *enc;
     char *r;
 
+  case_write:
+    encodings[0] = ENC_ISO_LATIN_1;
+    encodings[1] = ENC_WCHAR;
+    encodings[2] = ENC_UNKNOWN;
+    
     for(enc = encodings; *enc != ENC_UNKNOWN; enc++)
     { int size;
       IOSTREAM *fd;
@@ -185,6 +190,10 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
   }
 
   succeed;
+
+maybe_write:
+  if ( (flags & CVT_WRITE) )
+    goto case_write;
 
 error:
   if ( (flags & CVT_EXCEPTION) )
