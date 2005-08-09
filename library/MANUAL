@@ -3697,9 +3697,10 @@ and the .pl file otherwise.
 
 qqccoommppiillee((_+_F_i_l_e))
     Takes  a single  file specification  like  consult/1 (i.e.,  accepts
-    constructs like library(LibFile)  and creates a Quick Load File from
-    _F_i_l_e.   The file-extension of this file  is .qlf.  The base  name of
-    the Quick Load File is the same as the input file.
+    constructs  like library(LibFile)  and,  in addition  to the  normal
+    compilation,   creates  a   _Q_u_i_c_k  _L_o_a_d  _F_i_l_e   from  _F_i_l_e.      The
+    file-extension  of this file is  .qlf.  The  base name of the  Quick
+    Load File is the same as the input file.
 
     If   the   file  contains   `:- consult(+File)',   `:- [+File]'   or
     :- load_files(+File, [qcompile(true), ...])   statements,  the   re-
