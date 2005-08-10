@@ -1,3 +1,8 @@
+Aug 10, 2005
+
+  * FIXED: Quick Save Format for wide-character atoms.  Saved first
+    character as many times as the length of the atom. 
+
 Aug 4, 2005
 
   * ADDED: document_language(+Lang) option to rdf_save/2.  Suggested

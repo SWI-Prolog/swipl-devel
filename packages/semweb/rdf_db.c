@@ -2401,7 +2401,7 @@ save_atom(rdf_db *db, IOSTREAM *out, atom_t a, save_context *ctx)
     save_int(out, len);
     out->encoding = ENC_UTF8;
     for(i=0; i<len; i++, chars++)
-      Sputcode(*wchars, out);
+      Sputcode(*wchars++, out);
     out->encoding = enc;
   } else
     return FALSE;
