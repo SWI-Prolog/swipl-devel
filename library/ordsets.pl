@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -130,7 +130,7 @@ ord_add_element(Set1, Element, Set2) :-
 %	Delete an element from an ordered set
 
 ord_del_element(Set, Element, NewSet) :-
-	oset_addel(Set, Element, NewSet).
+	oset_delel(Set, Element, NewSet).
 
 
 %	ord_memberchk(+Element, +Set)
