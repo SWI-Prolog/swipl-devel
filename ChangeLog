@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+================================
+VERSION 5.5.26 (August 12, 2005)
+================================
+
   * FIXED: library(ordset), ord_del_element/3.  Mike Elston.
 
   * FIXED: PL_get_chars() to revert to write if CVT_WRITE is provided.

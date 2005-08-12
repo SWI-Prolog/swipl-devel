@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.23/XPCE 6.5.23 development release
+SWI-Prolog 5.5.26/XPCE 6.5.25 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -58,25 +58,17 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.24 relative to 5.5.23
+Patches in 5.5.26 relative to 5.5.25
 ====================================
 
-  * Fixed atom_concat(X, a, a)
-  * Fixed CanoniseDir()
-  * Honour char_conversion flag
-  * Enhanced portability for stdint.h issues
+  * fix ord_del_element/3
 
 Packages
 ========
 
-  * XPCE: X11 version: fix possible crash in XSetInputFocus(), fix
-    text-clipping on systems using the Xft library (default when
-    available).
-    
-  * SemWeb: Added option document_language(+Lang) to rdf_save/2.
+  * SemWeb: Fixed quick save of wide-character atoms (saved first
+    character repeatedly).
   
-  * MP: update for SWI-Prolog 5.5.x (communication of min/max integer)
-
 Incompatible changes
 ====================
 
