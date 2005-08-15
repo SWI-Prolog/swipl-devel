@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+
+  * FIXED: parsing hostnames in library(url).
+
 ================================
 VERSION 5.5.26 (August 12, 2005)
 ================================
