@@ -3234,27 +3234,13 @@ integer and \arg{Atom} is a variable \arg{Atom} will be unified with the
 integer value described by \arg{String} (e.g. `\exam{name(N, "300"), 400
 is N + 100}' succeeds).
 
-    \predicate{int_to_atom}{3}{+Int, +Base, -Atom}
-Convert \arg{Int} to an textual representation using base \arg{Base} and
-unify the result with \arg{Atom}. If $\arg{Base} \not= 10$ the base will
-be prepended to \arg{Atom}. $\arg{Base} = 0$ will try to interpret
-\arg{Int} as an character codes and return \const{0'}<c>. Otherwise $2
-\leq \arg{Base} \leq 36$. Some examples are given below.
-
-\begin{center}\begin{tabular}{lcl}
-int_to_atom(45,  2, A) & $\longrightarrow$ & $A = 2'101101$ \\
-int_to_atom(97,  0, A) & $\longrightarrow$ & $A = 0'a$ \\
-int_to_atom(56, 10, A) & $\longrightarrow$ & $A = 56$ \\
-\end{tabular}\end{center}
-
-    \predicate{int_to_atom}{2}{+Int, -Atom}
-Equivalent to \exam{int_to_atom(Int, 10, Atom)}.
     \predicate{term_to_atom}{2}{?Term, ?Atom}
 Succeeds if \arg{Atom} describes a term that unifies with \arg{Term}. When
 \arg{Atom} is instantiated \arg{Atom} is converted and then unified with
 \arg{Term}.  If \arg{Atom} has no valid syntax, a \except{syntax_error}
 exception is raised. Otherwise \arg{Term} is ``written'' on \arg{Atom}
 using write/1.
+
     \predicate{atom_to_term}{3}{+Atom, -Term, -Bindings}
 Use \arg{Atom} as input to read_term/2 using the option
 \const{variable_names} and return the read term in \arg{Term} and the
@@ -3262,6 +3248,7 @@ variable bindings in \arg{Bindings}. \arg{Bindings} is a list of
 $\arg{Name} = \arg{Var}$ couples, thus providing access to the actual
 variable names. See also read_term/2. If \arg{Atom} has no valid syntax,
 a \except{syntax_error} exception is raised.
+
     \predicate{atom_concat}{3}{?Atom1, ?Atom2, ?Atom3}
 \arg{Atom3} forms the concatenation of \arg{Atom1} and \arg{Atom2}. At
 least two of the arguments must be instantiated to atoms, integers or
@@ -3269,11 +3256,13 @@ floating point numbers. For ISO compliance, the instantiation-pattern
 \mbox{-, -, +} is allowed too, non-deterministically splitting the 3-th
 argument into two parts (as append/3 does for lists). See also
 string_concat/3.
+
     \predicate{concat_atom}{2}{+List, -Atom}
 \arg{List} is a list of atoms, integers or floating point numbers. Succeeds
 if \arg{Atom} can be unified with the concatenated elements of \arg{List}. If
 \arg{List} has exactly 2 elements it is equivalent to atom_concat/3,
 allowing for variables in the list.
+
     \predicate{concat_atom}{3}{?List, +Separator, ?Atom}
 Creates an atom just like concat_atom/2, but inserts \arg{Separator}
 between each pair of atoms.  For example:
