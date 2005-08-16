@@ -1339,9 +1339,9 @@ PL_get_float(term_t t, double *f)
 
 int
 PL_get_pointer__LD(term_t t, void **ptr ARG_LD)
-{ long p;
+{ int64_t p;
 
-  if ( PL_get_long(t, &p) )
+  if ( PL_get_int64(t, &p) )
   { *ptr = longToPointer((ulong)p);
 
     succeed;

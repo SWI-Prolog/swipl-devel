@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: PL_unify_pointer()/PL_get_pointer().  Paul Singleton.
+
   * FIXED: parsing hostnames in library(url).
 
 ================================
