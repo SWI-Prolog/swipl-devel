@@ -3234,13 +3234,27 @@ integer and \arg{Atom} is a variable \arg{Atom} will be unified with the
 integer value described by \arg{String} (e.g. `\exam{name(N, "300"), 400
 is N + 100}' succeeds).
 
+    \predicate{int_to_atom}{3}{+Int, +Base, -Atom}
+Convert \arg{Int} to an textual representation using base \arg{Base} and
+unify the result with \arg{Atom}. If $\arg{Base} \not= 10$ the base will
+be prepended to \arg{Atom}. $\arg{Base} = 0$ will try to interpret
+\arg{Int} as an character codes and return \const{0'}<c>. Otherwise $2
+\leq \arg{Base} \leq 36$. Some examples are given below.
+
+\begin{center}\begin{tabular}{lcl}
+int_to_atom(45,  2, A) & $\longrightarrow$ & $A = 2'101101$ \\
+int_to_atom(97,  0, A) & $\longrightarrow$ & $A = 0'a$ \\
+int_to_atom(56, 10, A) & $\longrightarrow$ & $A = 56$ \\
+\end{tabular}\end{center}
+
+    \predicate{int_to_atom}{2}{+Int, -Atom}
+Equivalent to \exam{int_to_atom(Int, 10, Atom)}.
     \predicate{term_to_atom}{2}{?Term, ?Atom}
 Succeeds if \arg{Atom} describes a term that unifies with \arg{Term}. When
 \arg{Atom} is instantiated \arg{Atom} is converted and then unified with
 \arg{Term}.  If \arg{Atom} has no valid syntax, a \except{syntax_error}
 exception is raised. Otherwise \arg{Term} is ``written'' on \arg{Atom}
 using write/1.
-
     \predicate{atom_to_term}{3}{+Atom, -Term, -Bindings}
 Use \arg{Atom} as input to read_term/2 using the option
 \const{variable_names} and return the read term in \arg{Term} and the
@@ -3248,7 +3262,6 @@ variable bindings in \arg{Bindings}. \arg{Bindings} is a list of
 $\arg{Name} = \arg{Var}$ couples, thus providing access to the actual
 variable names. See also read_term/2. If \arg{Atom} has no valid syntax,
 a \except{syntax_error} exception is raised.
-
     \predicate{atom_concat}{3}{?Atom1, ?Atom2, ?Atom3}
 \arg{Atom3} forms the concatenation of \arg{Atom1} and \arg{Atom2}. At
 least two of the arguments must be instantiated to atoms, integers or
@@ -3256,13 +3269,11 @@ floating point numbers. For ISO compliance, the instantiation-pattern
 \mbox{-, -, +} is allowed too, non-deterministically splitting the 3-th
 argument into two parts (as append/3 does for lists). See also
 string_concat/3.
-
     \predicate{concat_atom}{2}{+List, -Atom}
 \arg{List} is a list of atoms, integers or floating point numbers. Succeeds
 if \arg{Atom} can be unified with the concatenated elements of \arg{List}. If
 \arg{List} has exactly 2 elements it is equivalent to atom_concat/3,
 allowing for variables in the list.
-
     \predicate{concat_atom}{3}{?List, +Separator, ?Atom}
 Creates an atom just like concat_atom/2, but inserts \arg{Separator}
 between each pair of atoms.  For example:
@@ -3614,19 +3625,21 @@ for details.
 \section{Arithmetic}				\label{sec:arith}
 
 Arithmetic can be divided into some special purpose integer predicates
-and a series of general predicates for integer, floating point and
-rational arithmetic as appropriate. The general arithmetic predicates
-all handle \arg{expressions}. An expression is either a simple number or
-a \arg{function}. The arguments of a function are expressions. The
-functions are described in \secref{functions}.
+and a series of general predicates for floating point and integer
+arithmetic as appropriate.  The integer predicates are as ``logical'' as
+possible.  Their usage is recommended whenever applicable, resulting in
+faster and more ``logical'' programs.
 
+The general arithmetic predicates are optionally compiled now (see
+set_prolog_flag/2 and the \cmdlineoption{-O} command line option).
+Compiled arithmetic reduces global stack requirements and improves
+performance. Unfortunately compiled arithmetic cannot be traced, which
+is why it is optional.
 
-\subsection{Special purpose integer arithmetic}
-
-The predciates in this section provide more logical operations between
-integers. They are not covered by the ISO standard, although they are
-`part of the comminuty' and found as either library or built-in in many
-other Prolog systems.
+The general arithmetic predicates all handle \arg{expressions}.  An
+expression is either a simple number or a \arg{function}.  The arguments
+of a function are expressions.  The functions are described in
+\secref{functions}.
 
 \begin{description}
     \predicate{between}{3}{+Low, +High, ?Value}
@@ -3656,19 +3669,7 @@ and \term{succ}{X, -1} raises a domain-error.%
     \predicate{plus}{3}{?Int1, ?Int2, ?Int3}
 Succeeds if $\arg{Int3} = \arg{Int1} + \arg{Int2}$. At least two of the
 three arguments must be instantiated to integers.
-\end{description}
-
-
-\subsection{General purpose arithmetic}		\label{sec:arithpreds}
-
-The general arithmetic predicates are optionally compiled (see
-set_prolog_flag/2 and the \cmdlineoption{-O} command line option).
-Compiled arithmetic reduces global stack requirements and improves
-performance. Unfortunately compiled arithmetic cannot be traced, which
-is why it is optional.
-
-\begin{description}
-    \infixop{>}{+Expr1}{+Expr2}
+\infixop{>}{+Expr1}{+Expr2}
 Succeeds when expression \arg{Expr1} evaluates to a larger number than \arg{Expr2}.
 
 \infixop{<}{+Expr1}{+Expr2}
@@ -3711,110 +3712,23 @@ equality is to be tested, =:=/2 should be used.  For example:
 \end{tabular}\end{center}
 \end{description}
 
-
-\subsubsection{Arithmetic types}	\label{sec:artypes}
-
-\index{integer,unbounded}\index{rational,number}\index{number,rational}%
-SWI-Prolog defines the following numeric types:
-
-\begin{itemlist}
-    \item [integer]
-If SWI-Prolog is built using the \emph{GNU multiple precision arithmetic
-library} \index{GMP}(GMP), integer arithmetic is \emph{unbounded}, which
-means that the size of integers is limited by available memory only.
-Without GMP, SWI-Prolog integers are 64-bits, regardless of the native
-integer size of the platform. The type of integer support can be
-detected using the Prolog flags \const{bounded}, \const{min_integer} and
-\const{max_integer}. As the use of GMP is default, most of the following
-descriptions assume unbounded integer arithmetic.
-
-Internally, SWI-Prolog has three integer representations. Small integers
-(defined by the Prolog flag \const{max_tagged_integer}) are encoded
-directly. Larger integers are represented as 64-bit value on the
-global stack. Integers that do not fit in 64-bit are represented as
-serialized GNU MPZ structures on the global stack.
-    \item [rational number]
-Rational numbers ($Q$) are quotients of two integers. Rational
-arithmetic is only provided if GMP is used (see above).  Rational
-numbers are not supported by a Prolog type.  They are represented
-by the compound term \term{rdiv}{N,M}.  Rational numbers that are
-returned from is/2 are \emph{normalised}, which means $M$ is
-positive and $N$ and $M$ have no common divisors.  Rational numbers
-are introduced in the computation using the rat/1 function or
-the rdiv/2 (rational division) function.  Using the same functor
-for rational division and representing rational numbers allow for
-passing rational numbers between computations as well as to format/3
-for printing.
-    \item [float]
-Floating point numbers are represented using the C-type \cont{double}.
-On most today platforms these are 64-bit IEEE floating point numbers.
-\end{itemlist}
-
-Arithmetic functions that require integer arguments accept, in addition
-to integers, rational numbers with denoninator `1' and floating point
-numbers that can be accurately converted to integers.  If the required
-argument is a float the argument is converted to float.  Note that
-conversion of integers to floating point numbers may raise an overflow
-exception.  In all other cases, arguments are converted to the same
-type using the order below.
-
-\begin{quote}
-integer $\rightarrow$ rational number $\rightarrow$ floating point number
-\end{quote}
-
-
-\subsubsection{Rational number examples}	\label{sec:rational}
-
-The use of rational numbers with unbounded integers allows for exact
-integer or \jargon{fixed point} arithmetic under the addition,
-subtraction, multiplication and division.  To exploit rational
-arithmetic rdiv/2 should be used instead of `/' and floating point
-numbers must be converted to rational using rat/1.  Omitting the
-rat/1 on floats will convert a rational operant to float and continue
-the arithmetic using floating point numbers.  Here are some examples.
-
-\begin{center}
-\begin{tabular}{ll}
-A is 2 rdiv 6			& A = 1 rdiv 3 \\
-A is 4 rdiv 3 + 1		& A = 7 rdiv 3 \\
-A is 4 rdiv 3 + 1.5		& A = 2.83333 \\
-A is 4 rdiv 3 + rat(1.5)	& A = 17 rdiv 6 \\
-\end{tabular}
-\end{center}
-
-Rational numbers can be printed as decimal numbers with unlimited
-precision using the format/3 floating point conversion:
-
-\begin{code}
-?- A is 4 rdiv 3 + rat(1.5),
-   format('~50f~n', [A]).
-2.83333333333333333333333333333333333333333333333333
-
-A = 17 rdiv 6
-\end{code}
-
-
-\subsubsection{Arithmetic Functions}	\label{sec:functions}
+\section{Arithmetic Functions}			\label{sec:functions}
 
 Arithmetic functions are terms which are evaluated by the arithmetic
-predicates described in \secref{arithpreds}. SWI-Prolog tries to hide
-the difference between integer arithmetic and floating point arithmetic
-from the Prolog user. Arithmetic is done as integer arithmetic as long
-as possible and converted to floating point arithmetic whenever one of
-the arguments or the combination of them requires it. If a function
-returns a floating point value which is whole it is automatically
-transformed into an integer. There are four types of arguments to
-functions:
+predicates described above.  SWI-Prolog tries to hide the difference
+between integer arithmetic and floating point arithmetic from the Prolog
+user.  Arithmetic is done as integer arithmetic as long as possible and
+converted to floating point arithmetic whenever one of the arguments or
+the combination of them requires it.  If a function returns a floating
+point value which is whole it is automatically transformed into an
+integer.  There are three types of arguments to functions:
 
 \begin{center}\begin{tabular}{lp{4in}}
 \arg{Expr}	& Arbitrary expression, returning either a floating
 		  point value or an integer. \\
 \arg{IntExpr}   & Arbitrary expression that must evaluate into
                   an integer. \\
-\arg{RatExpr}   & Arbitrary expression that must evaluate into
-                  a rational number. \\
-\arg{FloatExpr} & Arbitrary expression that must evaluate into
-                  a floating point.
+\arg{Int}       & An integer.
 \end{tabular}\end{center}
 
 In case integer addition, subtraction and multiplication would lead to
@@ -3875,8 +3789,8 @@ option is available for compatibility only. It will not work if
 transformed into a string object. The recommended way to specify the
 character code of the letter `a' is \exam{0'a}.
 
-    \predicate{random}{1}{+IntExpr}
-Evaluates to a random integer \arg{i} for which $0 \leq i < \arg{IntExpr}$.
+    \predicate{random}{1}{+Int}
+Evaluates to a random integer \arg{i} for which $0 \leq i < \arg{Int}$.
 The seed of this random generator is determined by the system clock when
 SWI-Prolog was started.
     \predicate{round}{1}{+Expr}
