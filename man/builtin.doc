@@ -3614,21 +3614,19 @@ for details.
 \section{Arithmetic}				\label{sec:arith}
 
 Arithmetic can be divided into some special purpose integer predicates
-and a series of general predicates for floating point and integer
-arithmetic as appropriate.  The integer predicates are as ``logical'' as
-possible.  Their usage is recommended whenever applicable, resulting in
-faster and more ``logical'' programs.
+and a series of general predicates for integer, floating point and
+rational arithmetic as appropriate. The general arithmetic predicates
+all handle \arg{expressions}. An expression is either a simple number or
+a \arg{function}. The arguments of a function are expressions. The
+functions are described in \secref{functions}.
 
-The general arithmetic predicates are optionally compiled now (see
-set_prolog_flag/2 and the \cmdlineoption{-O} command line option).
-Compiled arithmetic reduces global stack requirements and improves
-performance. Unfortunately compiled arithmetic cannot be traced, which
-is why it is optional.
 
-The general arithmetic predicates all handle \arg{expressions}.  An
-expression is either a simple number or a \arg{function}.  The arguments
-of a function are expressions.  The functions are described in
-\secref{functions}.
+\subsection{Special purpose integer arithmetic}
+
+The predciates in this section provide more logical operations between
+integers. They are not covered by the ISO standard, although they are
+`part of the comminuty' and found as either library or built-in in many
+other Prolog systems.
 
 \begin{description}
     \predicate{between}{3}{+Low, +High, ?Value}
@@ -3658,7 +3656,19 @@ and \term{succ}{X, -1} raises a domain-error.%
     \predicate{plus}{3}{?Int1, ?Int2, ?Int3}
 Succeeds if $\arg{Int3} = \arg{Int1} + \arg{Int2}$. At least two of the
 three arguments must be instantiated to integers.
-\infixop{>}{+Expr1}{+Expr2}
+\end{description}
+
+
+\subsection{General purpose arithmetic}		\label{sec:arithpreds}
+
+The general arithmetic predicates are optionally compiled (see
+set_prolog_flag/2 and the \cmdlineoption{-O} command line option).
+Compiled arithmetic reduces global stack requirements and improves
+performance. Unfortunately compiled arithmetic cannot be traced, which
+is why it is optional.
+
+\begin{description}
+    \infixop{>}{+Expr1}{+Expr2}
 Succeeds when expression \arg{Expr1} evaluates to a larger number than \arg{Expr2}.
 
 \infixop{<}{+Expr1}{+Expr2}
@@ -3701,23 +3711,110 @@ equality is to be tested, =:=/2 should be used.  For example:
 \end{tabular}\end{center}
 \end{description}
 
-\section{Arithmetic Functions}			\label{sec:functions}
+
+\subsubsection{Arithmetic types}	\label{sec:artypes}
+
+\index{integer,unbounded}\index{rational,number}\index{number,rational}%
+SWI-Prolog defines the following numeric types:
+
+\begin{itemlist}
+    \item [integer]
+If SWI-Prolog is built using the \emph{GNU multiple precision arithmetic
+library} \index{GMP}(GMP), integer arithmetic is \emph{unbounded}, which
+means that the size of integers is limited by available memory only.
+Without GMP, SWI-Prolog integers are 64-bits, regardless of the native
+integer size of the platform. The type of integer support can be
+detected using the Prolog flags \const{bounded}, \const{min_integer} and
+\const{max_integer}. As the use of GMP is default, most of the following
+descriptions assume unbounded integer arithmetic.
+
+Internally, SWI-Prolog has three integer representations. Small integers
+(defined by the Prolog flag \const{max_tagged_integer}) are encoded
+directly. Larger integers are represented as 64-bit value on the
+global stack. Integers that do not fit in 64-bit are represented as
+serialized GNU MPZ structures on the global stack.
+    \item [rational number]
+Rational numbers ($Q$) are quotients of two integers. Rational
+arithmetic is only provided if GMP is used (see above).  Rational
+numbers are not supported by a Prolog type.  They are represented
+by the compound term \term{rdiv}{N,M}.  Rational numbers that are
+returned from is/2 are \emph{normalised}, which means $M$ is
+positive and $N$ and $M$ have no common divisors.  Rational numbers
+are introduced in the computation using the rat/1 function or
+the rdiv/2 (rational division) function.  Using the same functor
+for rational division and representing rational numbers allow for
+passing rational numbers between computations as well as to format/3
+for printing.
+    \item [float]
+Floating point numbers are represented using the C-type \cont{double}.
+On most today platforms these are 64-bit IEEE floating point numbers.
+\end{itemlist}
+
+Arithmetic functions that require integer arguments accept, in addition
+to integers, rational numbers with denoninator `1' and floating point
+numbers that can be accurately converted to integers.  If the required
+argument is a float the argument is converted to float.  Note that
+conversion of integers to floating point numbers may raise an overflow
+exception.  In all other cases, arguments are converted to the same
+type using the order below.
+
+\begin{quote}
+integer $\rightarrow$ rational number $\rightarrow$ floating point number
+\end{quote}
+
+
+\subsubsection{Rational number examples}	\label{sec:rational}
+
+The use of rational numbers with unbounded integers allows for exact
+integer or \jargon{fixed point} arithmetic under the addition,
+subtraction, multiplication and division.  To exploit rational
+arithmetic rdiv/2 should be used instead of `/' and floating point
+numbers must be converted to rational using rat/1.  Omitting the
+rat/1 on floats will convert a rational operant to float and continue
+the arithmetic using floating point numbers.  Here are some examples.
+
+\begin{center}
+\begin{tabular}{ll}
+A is 2 rdiv 6			& A = 1 rdiv 3 \\
+A is 4 rdiv 3 + 1		& A = 7 rdiv 3 \\
+A is 4 rdiv 3 + 1.5		& A = 2.83333 \\
+A is 4 rdiv 3 + rat(1.5)	& A = 17 rdiv 6 \\
+\end{tabular}
+\end{center}
+
+Rational numbers can be printed as decimal numbers with unlimited
+precision using the format/3 floating point conversion:
+
+\begin{code}
+?- A is 4 rdiv 3 + rat(1.5),
+   format('~50f~n', [A]).
+2.83333333333333333333333333333333333333333333333333
+
+A = 17 rdiv 6
+\end{code}
+
+
+\subsubsection{Arithmetic Functions}	\label{sec:functions}
 
 Arithmetic functions are terms which are evaluated by the arithmetic
-predicates described above.  SWI-Prolog tries to hide the difference
-between integer arithmetic and floating point arithmetic from the Prolog
-user.  Arithmetic is done as integer arithmetic as long as possible and
-converted to floating point arithmetic whenever one of the arguments or
-the combination of them requires it.  If a function returns a floating
-point value which is whole it is automatically transformed into an
-integer.  There are three types of arguments to functions:
+predicates described in \secref{arithpreds}. SWI-Prolog tries to hide
+the difference between integer arithmetic and floating point arithmetic
+from the Prolog user. Arithmetic is done as integer arithmetic as long
+as possible and converted to floating point arithmetic whenever one of
+the arguments or the combination of them requires it. If a function
+returns a floating point value which is whole it is automatically
+transformed into an integer. There are four types of arguments to
+functions:
 
 \begin{center}\begin{tabular}{lp{4in}}
 \arg{Expr}	& Arbitrary expression, returning either a floating
 		  point value or an integer. \\
 \arg{IntExpr}   & Arbitrary expression that must evaluate into
                   an integer. \\
-\arg{Int}       & An integer.
+\arg{RatExpr}   & Arbitrary expression that must evaluate into
+                  a rational number. \\
+\arg{FloatExpr} & Arbitrary expression that must evaluate into
+                  a floating point.
 \end{tabular}\end{center}
 
 In case integer addition, subtraction and multiplication would lead to
@@ -3778,8 +3875,8 @@ option is available for compatibility only. It will not work if
 transformed into a string object. The recommended way to specify the
 character code of the letter `a' is \exam{0'a}.
 
-    \predicate{random}{1}{+Int}
-Evaluates to a random integer \arg{i} for which $0 \leq i < \arg{Int}$.
+    \predicate{random}{1}{+IntExpr}
+Evaluates to a random integer \arg{i} for which $0 \leq i < \arg{IntExpr}$.
 The seed of this random generator is determined by the system clock when
 SWI-Prolog was started.
     \predicate{round}{1}{+Expr}
