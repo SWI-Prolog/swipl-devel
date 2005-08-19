@@ -49,7 +49,8 @@
 #include <linux/limits.h>
 #endif
 
-static Sheet FileFilters;
+static status	kindFile(FileObj f, Name encoding);
+static Sheet	FileFilters;
 
 static status
 initialiseFile(FileObj f, Name name, Name encoding)
@@ -60,22 +61,12 @@ initialiseFile(FileObj f, Name name, Name encoding)
   if ( isDefault(encoding) )
     encoding = NAME_text;
 
-  if ( encoding == NAME_text )
-  { if ( !isName(f->encoding) )
-      assign(f, encoding, getClassVariableValueObject(f, NAME_encoding));
-    assign(f, kind, NAME_text);
-  } else if ( encoding == NAME_binary || encoding == NAME_octet )
-  { assign(f, kind, NAME_binary);
-    assign(f, encoding, NAME_octet);
-  } else
-  { assign(f, encoding, encoding);
-    assign(f, kind, NAME_text);
-  }
-
   assign(f, status, NAME_closed);
   assign(f, bom, DEFAULT);
   assign(f, path, DEFAULT);
   f->fd = NULL;
+  
+  kindFile(f, encoding);
 
   if ( isDefault(name) )
   {
@@ -167,12 +158,22 @@ expandFileName(Name in)
 
 
 static status
-kindFile(FileObj f, Name kind)
+kindFile(FileObj f, Name encoding)
 { if ( f->status != NAME_closed )
     return errorPce(f, NAME_noChangeAfterOpen);
 
-  assign(f, kind, kind);
-
+  if ( encoding == NAME_text )
+  { if ( !isName(f->encoding) )
+      assign(f, encoding, getClassVariableValueObject(f, NAME_encoding));
+    assign(f, kind, NAME_text);
+  } else if ( encoding == NAME_binary || encoding == NAME_octet )
+  { assign(f, kind, NAME_binary);
+    assign(f, encoding, NAME_octet);
+  } else
+  { assign(f, encoding, encoding);
+    assign(f, kind, NAME_text);
+  }
+  
   succeed;
 }
 
@@ -1278,6 +1279,8 @@ static senddecl send_file[] =
      DEFAULT, "Create from name and kind"),
   SM(NAME_unlink, 0, NULL, unlinkFile,
      DEFAULT, "Close file"),
+  SM(NAME_encoding, 1, "{text,binary,iso_latin_1,utf8,unicode_be,unicode_le}",
+     kindFile, NAME_fileType, "Specify text or binary encoding type"),
   SM(NAME_backup, 1, "extension=[name]", backupFile,
      NAME_copy, "Make a backup by adding extension (~)"),
   SM(NAME_copy, 1, "from=file", copyFile,

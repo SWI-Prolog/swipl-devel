@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `file->kind'.   Petter Egesund.
+
 VERSION 6.5.26, distributed with SWI-Prolog 5.5.26
 ==================================================
 	
