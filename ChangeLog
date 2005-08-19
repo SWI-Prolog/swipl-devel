@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * FIXED: Indexing error in large negative integers.  Introduced with
+    64-bit arithmetic.
+
   * FIXED: PL_unify_pointer()/PL_get_pointer().  Paul Singleton.
 
   * FIXED: parsing hostnames in library(url).

@@ -2164,11 +2164,18 @@ arg1Key(Clause clause, word *key)
       case H_RLIST:
 	*key = FUNCTOR_dot2;
         succeed;
-      case H_INT64:
+      case H_INT64:			/* only on 32-bit hardware! */
 	*key = (word)PC[0] ^ (word)PC[1];
         succeed;
       case H_INTEGER:
+#if SIZEOF_LONG == 4
+	*key = (word)*PC;		/* indexOfWord() picks 64-bits */
+        if ( (long)*key < 0L )
+	  *key ^= -1L;
+	DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, *key));
+#else
 	*key = (word)*PC;
+#endif
 	succeed;
       case H_FLOAT:			/* tbd */
 	switch(WORDS_PER_DOUBLE)

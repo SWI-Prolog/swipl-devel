@@ -141,6 +141,8 @@ indexOfWord(word w ARG_LD)
 	{ Word p = valIndirectP(w);
 
 #if SIZEOF_LONG == 4
+          DEBUG(9, Sdprintf("Index for %lld = 0x%x\n",
+			    valBignum(w), p[0]^p[1]));
 	  return p[0]^p[1];
 #else
  	  return p[0];
