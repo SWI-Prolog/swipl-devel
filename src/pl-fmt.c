@@ -289,9 +289,21 @@ pl_format3(term_t stream, term_t format, term_t Args)
     PL_put_term(argv, args);
   }
   
-  if ( (rval = do_format(out, &fmt, argc, argv)) )
-    return streamStatus(out);
-  else
+  switch(fmt.storage)			/* format can to call-back! */
+  { case PL_CHARS_RING:
+    case PL_CHARS_STACK:
+      PL_save_text(&fmt, BUF_MALLOC);
+      break;
+    default:
+      break;
+  }
+
+  rval = do_format(out, &fmt, argc, argv);
+  PL_free_text(&fmt);
+
+  if ( rval )
+  { return streamStatus(out);
+  } else
   { PL_release_stream(out);
     fail;
   }

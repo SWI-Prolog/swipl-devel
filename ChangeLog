@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: handling @ in format/3.  David Duke.
+
   * FIXED: Indexing error in large negative integers.  Introduced with
     64-bit arithmetic.
 
