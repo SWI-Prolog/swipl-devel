@@ -1321,12 +1321,28 @@ selectionMenu(Menu m, Any selection)
     if ( is_set[n] & NEEDS_SET )
     { if ( !(is_set[n] & IS_SET) )
       { assign(mi, selected, ON);
-	ChangedItemMenu(m, mi);
       }
     } else
     { if ( is_set[n] & IS_SET )
-      { assign(((MenuItem) cell->value), selected, OFF);
-	ChangedItemMenu(m, mi);
+      { assign(mi, selected, OFF);
+      }
+    }
+    n++;
+  }
+
+					/* 2nd pass to avoid a call-back */
+					/* through ensureSingleSelectionMenu */
+  n = 1;
+  for_cell(cell, m->members)
+  { MenuItem mi = cell->value;
+
+    if ( is_set[n] & NEEDS_SET )
+    { if ( !(is_set[n] & IS_SET) )
+      { ChangedItemMenu(m, mi);
+      }
+    } else
+    { if ( is_set[n] & IS_SET )
+      { ChangedItemMenu(m, mi);
       }
     }
     n++;
@@ -1779,7 +1795,9 @@ ensureSingleSelectionMenu(Menu m)
 
   if ( sel == 0 )
   { if ( notNil(first) )
+    { DEBUG(NAME_popup, Cprintf("%s: selecting first\n", pp(m)));
       return selectionMenu(m, first);
+    }
 
     fail;
   }
