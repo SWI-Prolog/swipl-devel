@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.26/XPCE 6.5.25 development release
+SWI-Prolog 5.5.27/XPCE 6.5.27 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -58,16 +58,25 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.26 relative to 5.5.25
+Patches in 5.5.27 relative to 5.5.26
 ====================================
 
-  * fix ord_del_element/3
+  * FIXED: handling @ in format/3.
+
+  * FIXED: Indexing error in large negative integers.  Introduced with
+    64-bit arithmetic.
+
+  * FIXED: PL_unify_pointer()/PL_get_pointer().
+
+  * FIXED: parsing hostnames in library(url).
+
 
 Packages
 ========
 
-  * SemWeb: Fixed quick save of wide-character atoms (saved first
-    character repeatedly).
+  * XPCE Fixed `menu->selection' for single-selection menus, PceEmacs
+    colourisation issues for missing files and encoding issue in
+    `file->kind'.
   
 Incompatible changes
 ====================
