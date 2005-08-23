@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceEmacs: colourising of use_module directives pointing to 
+  non-existing files.
+
 * FIXED: `file->kind'.   Petter Egesund.
 
 VERSION 6.5.26, distributed with SWI-Prolog 5.5.26

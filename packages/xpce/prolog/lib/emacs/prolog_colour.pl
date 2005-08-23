@@ -264,10 +264,11 @@ process_use_module([H|T], Src) :-
 	process_use_module(H, Src),
 	process_use_module(T, Src).
 process_use_module(File, Src) :-
-	xref_public_list(File, _Path, Public, Src),
-	forall(member(op(P,T,N), Public),
-	       emacs_push_op(P,T,N)).
-
+	(   xref_public_list(File, _Path, Public, Src)
+	->  forall(member(op(P,T,N), Public),
+		   emacs_push_op(P,T,N))
+	;   true
+	).
 
 %	colourise(+TB, +Stream)
 %
