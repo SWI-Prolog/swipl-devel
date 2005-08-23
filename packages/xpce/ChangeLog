@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.27, distributed with SWI-Prolog 5.5.27
+==================================================
+	
+* FIXED: `menu->selection' for single-selection menus sometimes wasn't
+  honoured.
+
 * FIXED: PceEmacs: colourising of use_module directives pointing to 
   non-existing files.
 

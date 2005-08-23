@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+================================
+VERSION 5.5.27 (August 23, 2005)
+================================
 
   * FIXED: handling @ in format/3.  David Duke.
 
