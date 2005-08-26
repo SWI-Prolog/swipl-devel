@@ -274,7 +274,7 @@ load_structure(stream(In), Term, Options) :- !,
 	),
 	Term = TermRead.
 load_structure(Stream, Term, Options) :-
-	Stream = '$stream'(_), !,
+	is_stream(Stream), !,
 	load_structure(stream(Stream), Term, Options).
 load_structure(File, Term, Options) :-
 	open(File, read, In, [type(binary)]),

@@ -169,7 +169,7 @@ process_rdf(File, OnObject, Options0) :-
 	init_ns_collect(Options, NSList),
 	(   File = stream(In)
 	->  Source = BaseURI
-	;   File = '$stream'(_)
+	;   is_stream(File)
 	->  In = File,
 	    Source = BaseURI
 	;   open(File, read, In, [type(binary)]),

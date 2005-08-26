@@ -52,8 +52,9 @@ load_rdf_ntriples(File, Triples) :-
 %	Open Input, returning Stream and a goal to cleanup Stream if it
 %	was opened.
 
-open_nt_file(stream(Stream), Stream, true).
-open_nt_file('$stream'(In), '$stream'(In), true).
+open_nt_file(stream(Stream), Stream, true) :- !.
+open_nt_file(Stream, Stream, true) :-
+	is_stream(Stream), !.
 open_nt_file(Spec, Stream, close(Stream)) :-
 	absolute_file_name(Spec,
 			   [ access(read),

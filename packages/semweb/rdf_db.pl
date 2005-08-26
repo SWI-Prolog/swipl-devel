@@ -573,7 +573,7 @@ rdf_load(Spec, Options0) :-
 	->  Options2 = Options1
 	;   Options2 = [ blank_nodes(share)|Options1 ]
 	),
-	(   (   Spec = '$stream'(_)
+	(   (   is_stream(Spec)
 	    ->	In = Spec
 	    ;	Spec = stream(In)
 	    )
@@ -643,7 +643,7 @@ rdf_load(Spec, Options0) :-
 %	the source from the database.
 
 rdf_unload(Spec) :-
-	(   Spec = '$stream'(_)
+	(   is_stream(Spec)
 	->  throw(error(permission_error(rdf_db, unload, Spec), _))
 	;   atom(Spec),
 	    rdf(_,_,_,Spec)
