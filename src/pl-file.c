@@ -392,6 +392,7 @@ PL_release_stream(IOSTREAM *s)
 #define SH_ERRORS   0x01		/* generate errors */
 #define SH_ALIAS    0x02		/* allow alias */
 #define SH_UNLOCKED 0x04		/* don't lock the stream */
+#define SH_SAFE	    0x08		/* Lookup in table */
 
 static int
 get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
@@ -403,7 +404,18 @@ get_stream_handle__LD(term_t t, IOSTREAM **s, int flags ARG_LD)
 
     _PL_get_arg(1, t, a);
     if ( PL_get_pointer(a, &p) )
-    { if ( flags & SH_UNLOCKED )
+    { if ( flags & SH_SAFE )
+      { Symbol symb;
+
+	LOCK();
+	symb = lookupHTable(streamContext, p);
+	UNLOCK();
+	
+	if ( !symb )
+	  goto noent;
+      }
+
+      if ( flags & SH_UNLOCKED )
       { if ( ((IOSTREAM *)p)->magic == SIO_MAGIC )
 	{ *s = p;
 	  return TRUE;
@@ -2950,6 +2962,21 @@ pl_stream_property(term_t stream, term_t property, control_t h)
 }
 
 
+static 
+PRED_IMPL("is_stream", 1, is_stream, 0)
+{ GET_LD
+  IOSTREAM *s;
+
+  if ( get_stream_handle(A1, &s, SH_SAFE) )
+  { releaseStream(s);
+    succeed;
+  }
+
+  fail;
+}
+
+
+
 		 /*******************************
 		 *	      FLUSH		*
 		 *******************************/
@@ -4049,4 +4076,5 @@ BeginPredDefs(file)
   PRED_DEF("get", 2, get2, 0)
   PRED_DEF("get0", 2, get_code2, 0)
   PRED_DEF("get0", 1, get_code1, 0)
+  PRED_DEF("is_stream", 1, is_stream, 0)
 EndPredDefs
