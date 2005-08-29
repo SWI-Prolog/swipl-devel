@@ -567,7 +567,7 @@ bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, EAV);
 
 #ifdef __WIN32__
-  writef("XPCE %s for %I%IWin32: NT and '9x%I%I\n",
+  writef("XPCE %s for %I%IWin32: NT,2000,XP%I%I\n",
 #else
   writef("XPCE %s for %s-%s and X%dR%d\n",
 #endif
