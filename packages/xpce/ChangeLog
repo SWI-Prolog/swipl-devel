@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Bug#79: `frame->icon' also sets the Windows `big' icon.
+  Holger Kanwischer.
+
 VERSION 6.5.27, distributed with SWI-Prolog 5.5.27
 ==================================================
 	

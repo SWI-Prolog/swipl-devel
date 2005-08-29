@@ -1130,6 +1130,10 @@ ws_set_icon_frame(FrameObj fr)
 		    WM_SETICON,
 		    (WPARAM)ICON_SMALL,
 		    (LPARAM)icon);
+	SendMessage(hwnd,
+		    WM_SETICON,
+		    (WPARAM)ICON_BIG,
+		    (LPARAM)icon);
       }
     } else
     { SendMessage(hwnd,
