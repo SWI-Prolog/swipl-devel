@@ -37,7 +37,15 @@
 :- pce_begin_class(help_message_window, dialog,
 		   "Window to display <-help_message").
 
-class_variable(background, colour, burlywood1, "Ballon background").
+class_variable(background, colour,
+	       when(@pce?window_system == windows,
+		    win_infobk,
+		    burlywood1),
+	       "Ballon background").
+class_variable(foreground, colour,
+	       when(@pce?window_system == windows,
+		    win_infotext,
+		    black)).
 
 variable(handler,	handler,	get, "Handler for intercept").
 variable(message,	string*,	get, "Currently displayed message").

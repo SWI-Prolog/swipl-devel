@@ -38,6 +38,10 @@ static void       paint_icon(FrameObj fr);
 
 static FrameObj current_frame;		/* hack for timing problem */
 
+#ifndef CS_DROPSHADOW			/* SDK constant */
+#define CS_DROPSHADOW 0x00020000
+#endif
+
 static const TCHAR *
 store_stringW(TCHAR *in)
 { size_t bytes = (_tcslen(in)+1)*sizeof(TCHAR);
@@ -89,7 +93,7 @@ WinPopupFrameClass()
     wsprintf(buf, _T("PcePopupFrame%ld"), (unsigned long)PceHInstance);
     cname = store_stringW(buf);
 
-    wndClass.style		= /*CS_HREDRAW|CS_VREDRAW|*/CS_SAVEBITS;
+    wndClass.style		= CS_SAVEBITS|CS_DROPSHADOW;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
     wndClass.cbClsExtra		= 0;
     wndClass.cbWndExtra		= 0;
