@@ -1,3 +1,7 @@
+Aug 31, 2005
+
+  * TS: Added missing operator declarations for prefix (?).
+
 Aug 9, 2005
 
   * JW: import lists into chr_compiler_utility.pl
@@ -7,6 +11,10 @@ Aug 9, 2005
   * JW: Exported pairlist_delete_eq/3 from pairlist and use this in
     chr_hashtable_store.pl
 
+Aug 4, 2005
+
+  * TS: Renamed pairlist:delete/3 to pairlist:pairlist_delete/3.
+	Mike Elston.
 Aug 1, 2005
 
   * TS: Extended more efficient ground matching code to
