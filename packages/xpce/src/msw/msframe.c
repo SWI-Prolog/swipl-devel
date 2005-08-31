@@ -82,10 +82,17 @@ WinFrameClass()
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note: CS_DROPSHADOW is an XP extension.   On  older Windows versions the
+class registration fails. We try the  first   time  to  find out whether
+dropshadow is supported (reported as Bug#81).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static const TCHAR *
 WinPopupFrameClass()
 { static const TCHAR *cname = NULL;
   static WNDCLASS wndClass;
+  static int style = (CS_SAVEBITS|CS_DROPSHADOW);
 
   if ( !cname )
   { TCHAR buf[50];
@@ -93,7 +100,8 @@ WinPopupFrameClass()
     wsprintf(buf, _T("PcePopupFrame%ld"), (unsigned long)PceHInstance);
     cname = store_stringW(buf);
 
-    wndClass.style		= CS_SAVEBITS|CS_DROPSHADOW;
+  retry:
+    wndClass.style		= style;
     wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
     wndClass.cbClsExtra		= 0;
     wndClass.cbWndExtra		= 0;
@@ -104,7 +112,10 @@ WinPopupFrameClass()
     wndClass.lpszMenuName	= NULL;
     wndClass.lpszClassName	= cname;
 
-    RegisterClass(&wndClass);
+    if ( !RegisterClass(&wndClass) && (style&CS_DROPSHADOW) )
+    { style &= ~CS_DROPSHADOW;
+      goto retry;
+    }
   }
 
   return cname;
