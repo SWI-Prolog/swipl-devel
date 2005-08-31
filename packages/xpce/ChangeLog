@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#81: dynamically deal with dropshadow setting for popup frames
+  to avoid crash on windows versions older than XP. Holger Kanwischer.
+
 * ADDED: Bug#79: `frame->icon' also sets the Windows `big' icon.
   Holger Kanwischer.
 
