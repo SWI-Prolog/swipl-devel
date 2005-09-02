@@ -490,7 +490,6 @@ getWinFileNameDisplay(DisplayObj d,
 }
 
 
-#include <shlobj.h>
 #include <objbase.h>
 
 Name

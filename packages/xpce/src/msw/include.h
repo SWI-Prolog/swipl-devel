@@ -40,6 +40,7 @@
 #endif
 #undef RedrawWindow
 #undef hyper				/* don't need this */
+#include <shlobj.h>
 
 #define PceHInstance ThePceHInstance
 
