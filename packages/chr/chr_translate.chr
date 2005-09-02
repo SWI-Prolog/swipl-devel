@@ -164,7 +164,6 @@ option(optimize,full).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- constraints 
-
 	target_module/1,			% target_module(Module)
 	get_target_module/1,
 
@@ -190,7 +189,6 @@ option(optimize,full).
 	is_passive/2,
 	any_passive_head/1,
 
-
 	new_occurrence/3,
 	occurrence/4,
 	get_occurrence/4,
@@ -205,6 +203,8 @@ option(optimize,full).
 	least_occurrence/2,
 	is_least_occurrence/1
 	. 
+
+option(check_guard_bindings,off).
 
 option(mode,target_module(+)).
 option(mode,indexed_argument(+,+)).
@@ -250,7 +250,7 @@ get_constraint_mode(FA,Q) <=>
 
 constraint_mode(FA,Mode), indexed_argument(FA,I) \ may_trigger(FA) <=> 
   nth(I,Mode,M),
-  M \== (+)|
+  M \== (+) |
   is_stored(FA). 
 may_trigger(FA) <=> chr_pp_flag(debugable,on).	% in debug mode, we assume everything can be triggered
 
@@ -419,9 +419,9 @@ set_constraint_indices([C|Cs],N) :-
 
 chr_translate(Declarations,NewDeclarations) :-
 	init_chr_pp_flags,
-	partition_clauses(Declarations,Constraints,Rules,OtherClauses),
-	check_declared_constraints(Constraints),
-	( Constraints == [] ->
+	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
+	check_declared_constraints(Constraints0),
+	( Constraints0 == [] ->
 		insert_declarations(OtherClauses, NewDeclarations)
 	;
 		generate_show_constraint(Constraints0,Constraints,Rules0,Rules),
@@ -498,7 +498,7 @@ generate_counter_code(Clauses) :-
 		Clauses = []
 	).
 
-
+% SWI-Prolog specific
 chr_module_declaration(CHRModuleDeclaration) :-
 	get_target_module(Mod),
 	( Mod \== chr_translate ->
@@ -1045,7 +1045,6 @@ late_allocation([C|Cs]) :-
 	late_allocation(Cs).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 %% Generated predicates
@@ -1090,6 +1089,7 @@ generate_attach_a_constraint_1_1(FA,Clause) :-
 	generate_attach_body_1(FA,Var,Susp,AttachBody),
 	make_name('attach_',FA,Fct),
 	RecursiveCall =.. [Fct,Vars,Susp],
+	% SWI-Prolog specific code
 	chr_pp_flag(solver_events,NMod),
 	( NMod \== none ->
 		Args = [[Var|_],Susp],
@@ -1121,6 +1121,7 @@ generate_attach_a_constraint_t_p(FA,Clause) :-
 	make_name('attach_',FA,Fct),
 	RecursiveCall =.. [Fct,Vars,Susp],
 	generate_attach_body_n(FA,Var,Susp,AttachBody),
+	% SWI-Prolog specific code
 	chr_pp_flag(solver_events,NMod),
 	( NMod \== none ->
 		Args = [[Var|_],Susp],
@@ -1393,7 +1394,7 @@ generate_allocate_clause(List,Tail) :-
 		(
 			allocate_constraint( Closure, Self, F, Args) :-
 				Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
-				Gref = mutable(0),	
+				Gref = mutable(0),
 				'chr empty_history'(History),
 				Href = mutable(History),
 				chr_indexed_variables(Self,Vars),
@@ -2364,7 +2365,8 @@ use_same_args([OA|ROA],[NA|RNA],[Out|ROut],G,Body,NewB) :-
 simplify_heads([],_GuardList,_G,_Body,[],[]).
 simplify_heads([M|RM],GuardList,G,Body,NewM,NewB) :-
     M = (A = B),
-    ( (nonvar(B) ; vars_occur_in(B,RM-GuardList)),guard_entailment:entails_guard(GuardList,(A=B)) ->
+    ( (nonvar(B) ; vars_occur_in(B,RM-GuardList)),
+	guard_entailment:entails_guard(GuardList,(A=B)) ->
 	( vars_occur_in(B,G-RM-GuardList) ->
 	    NewB = NextB,
 	    NewM = NextM
@@ -4554,8 +4556,6 @@ order_score_count_vars([V|Vs],KnownVars,RestVars,NK-NR-NO) :-
 %% |___|_| |_|_|_|_| |_|_|_| |_|\__, |
 %%                              |___/ 
 
-% create_get_mutable(V,M,GM) :-
-% 	GM = (M = mutable(V)).
 create_get_mutable(V,M,GM) :-
 	M = mutable(V),
 	GM = true.
@@ -4634,7 +4634,7 @@ or_pattern(Pos,Pat) :-
 and_pattern(Pos,Pat) :-
 	X is Pos - 1,
 	Y is 1 << X,          % was 2 ** X
-	Pat is (-1)*(Y + 1).	% because fx (-) is redefined
+	Pat is (-1)*(Y + 1).
 
 make_name(Prefix,F/A,Name) :-
 	atom_concat_list([Prefix,F,(/),A],Name).
