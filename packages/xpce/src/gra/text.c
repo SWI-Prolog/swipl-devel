@@ -1192,15 +1192,20 @@ prepareEditText(TextObj t, Name selector)
 status
 pasteText(TextObj t, Int buffer)
 { CharArray str;
+  Any selection;
   DisplayObj d = CurrentDisplay(t);
 
-  TRY((str = get(d, NAME_cutBuffer, buffer, EAV)) &&
-      (str = checkType(str, nameToType(NAME_charArray), NIL)));
-  prepareInsertText(t);
-  insertString((StringObj) t->string, t->caret, str);
-  caretText(t, add(t->caret, getSizeCharArray(str)));
-  doneObject(str);
-  return recomputeText(t, NAME_area);
+  if ( d &&
+       (selection=get(d, NAME_paste, EAV)) &&
+       (str=checkType(selection, TypeCharArray, NIL)) )
+  { prepareInsertText(t);
+    insertString((StringObj) t->string, t->caret, str);
+    caretText(t, add(t->caret, getSizeCharArray(str)));
+    doneObject(str);
+    return recomputeText(t, NAME_area);
+  }
+
+  fail;
 }
 
 

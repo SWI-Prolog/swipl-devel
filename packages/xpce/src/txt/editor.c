@@ -1909,14 +1909,17 @@ cutEditor(Editor e)
 static status
 pasteEditor(Editor e)
 { DisplayObj d = getDisplayGraphical((Graphical)e);
-  CharArray selection;
+  CharArray str;
+  Any selection;
 
-  if ( d && (selection=get(d, NAME_paste, EAV)) )
+  if ( d &&
+       (selection=get(d, NAME_paste, EAV)) &&
+       (str=checkType(selection, TypeCharArray, NIL)) )
   { if ( HasSelection(e) &&
 	 getClassVariableValueObject(e, NAME_insertDeletesSelection) == ON )
       deleteSelectionEditor(e);
 
-    return insertEditor(e, selection);
+    return insertEditor(e, str);
   }
 
   fail;
