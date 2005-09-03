@@ -248,7 +248,7 @@ send_list_output([H|T], Out) :-
 
 echo(Term) :-
 	client(echo(Term), Reply),
-	assume(Term =@= Reply).
+	assertion(Term =@= Reply).
 
 connect :-
 	host(Host),
@@ -289,7 +289,7 @@ test_impl(big(Size, Times)) :-
 
 test_impl(timeout) :-
 	catch(client(sleep(2), _Reply, 1), E, true),
-	assume(E = error(timeout_error(read, '$stream'(_)), _G285)).
+	assertion(E = error(timeout_error(read, '$stream'(_)), _G285)).
 
 
 		 /*******************************
@@ -315,14 +315,14 @@ test_impl(nohost) :-
 	tcp_socket(S),
 	catch(tcp_connect(S, 'foo.bar':80), E, true),
 	tcp_close_socket(S),
-	assume(E =@= error(socket_error('Host not found'), _)).
+	assertion(E =@= error(socket_error('Host not found'), _)).
 
 test_impl(noport) :-
 	tcp_socket(S),
 	catch(call_with_time_limit(5, tcp_connect(S, localhost:4321)),
 	      E, true),
 	tcp_close_socket(S),
-	assume(E = error(socket_error(_), _)).
+	assertion(E = error(socket_error(_), _)).
 
 
 		 /*******************************

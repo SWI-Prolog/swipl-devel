@@ -361,7 +361,7 @@ write_mixed_content_element(H, Out, State) :-
 	;   H = sdata(Data)		% cannot be written without entity!
 	->  print_message(warning, sgml_write(sdata_as_cdata(Data))),
 	    sgml_write_content(Out, Data, State)
-	;   assume(fail)
+	;   assertion(fail)
 	).
 
 

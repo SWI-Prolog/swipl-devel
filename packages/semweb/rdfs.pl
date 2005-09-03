@@ -246,12 +246,12 @@ rdfs_member(Element, Set) :-
 
 rdfs_collection_member(Element, Set) :-
 	rdf_has(Set, rdf:first, Element),
-	assume(rdfs_individual_of(Set, rdf:'List')).
+	assertion(rdfs_individual_of(Set, rdf:'List')).
 rdfs_collection_member(Element, Set) :-
 	rdf_has(Set, rdf:rest, Tail), !,
 	rdfs_collection_member(Element, Tail).
 rdfs_collection_member(_, Set) :-
-	assume(rdf_equal(Set, rdf:nil)),
+	assertion(rdf_equal(Set, rdf:nil)),
 	fail.
 
 %	rdfs_list_to_prolog_list(+RDFSList, -PrologList)
