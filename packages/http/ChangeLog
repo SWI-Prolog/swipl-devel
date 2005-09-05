@@ -1,3 +1,7 @@
+Sep 5, 2005
+
+  * ADDED: method(head) --> "HEAD".  Matt Lilley.
+
 Apr 26, 2005
 
   * ADDED: debug(sgml_plugin) and some missing use_module calls.  Simplifies

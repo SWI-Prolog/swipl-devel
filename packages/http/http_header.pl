@@ -625,8 +625,10 @@ request(Fd, [unknown(What)|Header]) -->
 
 method(get) -->
 	"GET", !.
-method(post) -->
+method(put) -->
 	"PUT", !.
+method(head) -->
+	"HEAD", !.
 method(post) -->
 	"POST", !.
 
