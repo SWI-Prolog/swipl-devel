@@ -580,6 +580,43 @@ format_float(double f, char *buf, const char *format)
 }
 
 
+static bool
+WriteNumber(Number n, write_options *options)
+{ switch(n->type)
+  { case V_INTEGER:
+    { char buf[32];
+
+      sprintf(buf, INT64_FORMAT, n->value.i);
+      return PutToken(buf, options->out);
+    }
+#ifdef O_GMP
+    case V_MPZ:
+    { char tmp[1024];
+      char *buf;
+      size_t sz = mpz_sizeinbase(n->value.mpz, 10) + 2;
+      bool rc;
+
+      if ( sz <= sizeof(tmp) )
+	buf = tmp;
+      else
+	buf = PL_malloc(sz);
+
+      mpz_get_str(buf, 10, n->value.mpz);
+      rc = PutToken(buf, options->out);
+      if ( buf != tmp )
+	PL_free(buf);
+	
+      return rc;
+    }
+    case V_MPQ:				/* should not get here */
+#endif
+    case V_REAL:
+      assert(0);
+  }
+
+  fail;
+}
+
 
 
 static bool
@@ -601,11 +638,11 @@ writePrimitive(term_t t, write_options *options)
     return writeAtom(a, options);
 
   if ( PL_is_integer(t) )		/* beware of automatic conversion */
-  { int64_t i;
+  { number n;
 
-    PL_get_int64(t, &i);
-    sprintf(buf, INT64_FORMAT, i);
-    return PutToken(buf, out);
+    PL_get_number(t, &n);
+
+    return WriteNumber(&n, options);
   }
 
   if ( PL_get_float(t, &f) )

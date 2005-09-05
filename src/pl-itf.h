@@ -50,7 +50,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 50527
+#define PLVERSION 50528
 #endif
 
 		 /*******************************
@@ -382,6 +382,7 @@ PL_EXPORT(int)		PL_is_atom(term_t t);
 PL_EXPORT(int)		PL_is_integer(term_t t);
 PL_EXPORT(int)		PL_is_string(term_t t);
 PL_EXPORT(int)		PL_is_float(term_t t);
+PL_EXPORT(int)		PL_is_rational(term_t t);
 PL_EXPORT(int)		PL_is_compound(term_t t);
 PL_EXPORT(int)		PL_is_functor(term_t t, functor_t f);
 PL_EXPORT(int)		PL_is_list(term_t t);

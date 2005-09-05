@@ -98,7 +98,7 @@ associated to \arg{Var} this predicate fails silently.  If \arg{Module}
 is not an atom, a type error is raised.
 
     \predicate{del_attr}{2}{+Var, +Module}
-Delete the named attribute.  If \arg{Var} looses its last attribute it
+Delete the named attribute.  If \arg{Var} loses its last attribute it
 is transformed back into a traditional Prolog variable.  If \arg{Module}
 is not an atom, a type error is raised. In all other cases this
 predicate succeeds regarless whether or not the named attribute is

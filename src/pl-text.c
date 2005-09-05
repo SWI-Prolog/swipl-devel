@@ -103,11 +103,35 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
   { if ( !get_string_text(w, text PASS_LD) )
       goto maybe_write;
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
-  { sprintf(text->buf, INT64_FORMAT, valInteger(w) );
-    text->text.t    = text->buf;
-    text->length    = strlen(text->text.t);
+  { number n;
+
+    PL_get_number(l, &n);
+    switch(n.type)
+    { case V_INTEGER:
+	sprintf(text->buf, INT64_FORMAT, valInteger(w) );
+        text->text.t    = text->buf;
+	text->length    = strlen(text->text.t);
+	text->storage   = PL_CHARS_LOCAL;
+	break;
+#ifdef O_GMP
+      case V_MPZ:
+      { size_t sz = mpz_sizeinbase(n.value.mpz, 10) + 2;
+	Buffer b  = findBuffer(BUF_RING);
+
+	growBuffer(b, sz);
+	mpz_get_str(b->base, 10, n.value.mpz);
+	b->top = b->base + strlen(b->base);
+	text->text.t  = baseBuffer(b, char);
+	text->length  = entriesBuffer(b, char);
+	text->storage = PL_CHARS_RING;
+
+	break;
+      }
+#endif
+      default:
+	assert(0);
+    }
     text->encoding  = ENC_ISO_LATIN_1;
-    text->storage   = PL_CHARS_LOCAL;
     text->canonical = TRUE;
   } else if ( (flags & CVT_FLOAT) && isReal(w) )
   { format_float(valReal(w), text->buf, LD->float_format);

@@ -518,6 +518,7 @@ static const opdef operators[] = {
   OP(ATOM_softcut,	OP_XFY,	       1050),	/* *-> */
   OP(ATOM_divide,	OP_YFX,		400),	/* / */
   OP(ATOM_div,		OP_YFX,		400),	/* // */
+  OP(ATOM_rdiv,		OP_YFX,		400),	/* rdiv */
   OP(ATOM_and,		OP_YFX,		500),	/* /\ */
   OP(ATOM_colon,	OP_XFY,		600),	/* : */
   OP(ATOM_prove,	OP_FX,	       1200),	/* :- */

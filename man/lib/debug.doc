@@ -46,15 +46,21 @@ Deactivates topics for debugging.  See debug/1 for the arguments.
     \predicate{list_debug_topics}{0}{}
 List the current status of registered topics.  See also debugging/0.
 
-    \predicate{assume}{1}{:Goal}
+    \predicate{assertion}{1}{:Goal}
 \index{assertions}%
 This predicate is to be compared to the C-library assert()
 function. By inserting this goal you explicitely state you expect
-\arg{Goal} to succeed at this place. As assume/1 calls are removed when
+\arg{Goal} to succeed at this place. As assertion/1 calls are removed when
 compiling in optimized mode \arg{Goal} should not have side-effects.
 Typical examples are type-tests and validating invariants defined by
 your application.
 
-If \arg{Goal} fails the system prints a message and starts the debugger.
+If \arg{Goal} fails the system prints a message, followed by a
+stack-trace and starts the debugger.
+
+In older versions of this library this predicate was called assume/1.
+Code using assume/1 is automatically converted while printing a warning
+on the first occurrence.
+
 \end{description}
 

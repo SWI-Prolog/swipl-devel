@@ -71,9 +71,9 @@ suggest predicates from a keyword.
 \predicatesummary{assert}{2}{Add a clause to the database, give reference}
 \predicatesummary{asserta}{1}{Add a clause to the database (first)}
 \predicatesummary{asserta}{2}{Add a clause to the database (first)}
+\predicatesummary{assertion}{1}{Make assertions about your program}
 \predicatesummary{assertz}{1}{Add a clause to the database (last)}
 \predicatesummary{assertz}{2}{Add a clause to the database (last)}
-\predicatesummary{assume}{1}{Make assertions about your program}
 \predicatesummary{attach_console}{0}{Attach I/O console to thread}
 \predicatesummary{attr_unify_hook}{2}{Attributed variable unification hook}
 \predicatesummary{attr_portray_hook}{2}{Attributed variable print hook}
@@ -265,13 +265,12 @@ suggest predicates from a keyword.
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}
-\predicatesummary{int_to_atom}{2}{Convert from integer to atom}
-\predicatesummary{int_to_atom}{3}{Convert from integer to atom (non-decimal)}
 \predicatesummary{integer}{1}{Type check for integer}
 \predicatesummary{interactor}{0}{Start new thread with console and toplevel}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_list}{1}{Type check for a list}
+\predicatesummary{is_stream}{1}{Type check for a stream handle}
 \predicatesummary{keysort}{2}{Sort, using a key}
 \predicatesummary{label}{1}{Solve constraints for variables}
 \predicatesummary{last}{2}{Last element of a list}
@@ -415,6 +414,8 @@ suggest predicates from a keyword.
 \predicatesummary{qcompile}{1}{Compile source to Quick Load File}
 \predicatesummary{qsave_program}{1}{Create runtime application}
 \predicatesummary{qsave_program}{2}{Create runtime application}
+\predicatesummary{rational}{1}{Type check for a rational number}
+\predicatesummary{rational}{3}{Decompose a rational}
 \predicatesummary{read}{1}{Read Prolog term}
 \predicatesummary{read}{2}{Read Prolog term from stream}
 \predicatesummary{read_clause}{1}{Read clause}
@@ -613,6 +614,10 @@ suggest predicates from a keyword.
 \functionsummary{msb}{1}{Most significant bit}
 \opfuncsummary{mod}{2}{xfx}{300}{Remainder of division}
 \functionsummary{random}{1}{Generate random number}
+\functionsummary{random}{1}{Generate random number}
+\functionsummary{rational}{1}{Convert to rational number}
+\functionsummary{rationalize}{1}{Convert to rational number}
+\functionsummary{rdiv}{2}{Ration number division}
 \functionsummary{rem}{2}{Remainder of division}
 \functionsummary{round}{1}{Round to nearest integer}
 \functionsummary{truncate}{1}{Truncate float to integer}

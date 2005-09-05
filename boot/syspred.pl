@@ -39,10 +39,10 @@
 	, trace/2
 	, nospyall/0
 	, debugging/0
+	, rational/3
 	, concat_atom/2
 	, term_to_atom/2
 	, atom_prefix/2
-	, int_to_atom/2
 	, dwim_match/2
 	, source_file/1
 	, prolog_load_context/2
@@ -287,6 +287,24 @@ trace_ports(Head, Ports) :-
 		Ports).
 
 
+		 /*******************************
+		 *	      RATIONAL		*
+		 *******************************/
+
+%	rational(+Rat, -M, -N)
+%	
+%	Get parts of a rational number.
+
+rational(Rat, M, N) :-
+	rational(Rat),
+	(   Rat = rdiv(M, N)
+	->  true
+	;   integer(Rat)
+	->  M = Rat,
+	    N = 1
+	).
+
+
 		/********************************
 		*             ATOMS             *
 		*********************************/
@@ -298,9 +316,6 @@ concat_atom(L, Atom) :-
 
 term_to_atom(Term, Atom) :-
 	atom_to_term(Atom, Term, 0).
-
-int_to_atom(Int, Atom) :-
-	int_to_atom(Int, 10, Atom).
 
 dwim_match(A1, A2) :-
 	dwim_match(A1, A2, _).

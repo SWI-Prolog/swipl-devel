@@ -92,7 +92,7 @@ const char *
 atom_summary(atom_t name, unsigned int maxlen)
 { PL_chars_t txt;
   Buffer b;
-  int i;
+  unsigned int i;
 
   if ( !get_atom_text(name, &txt) )
     return NULL;

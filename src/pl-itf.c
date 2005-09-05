@@ -72,7 +72,7 @@ _PL_list_string_value(term_t t)
 
 int64_t
 _PL_integer_value(PL_atomic_t a)
-{ return valInteger(a);
+{ return valInteger(a);			/* MPZ: Cannot handle! */
 }
 
 

@@ -132,24 +132,33 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
     f->value.a = a;
     PL_register_atom(a);
   } else if ( valueExpression(new, &n PASS_LD) )
-  { if ( n.type == V_REAL && !trueFeature(ISO_FEATURE) )
-      canoniseNumber(&n);
-
-    if ( n.type == V_INTEGER )
-    { freeFlagValue(f);
-      f->type = FLG_INTEGER;
-      f->value.i = n.value.i;
-    } else
-    { freeFlagValue(f);
-      f->type = FLG_REAL;
+  { switch(n.type)
+    { case V_INTEGER:
+      { freeFlagValue(f);
+	f->type = FLG_INTEGER;
+	f->value.i = n.value.i;
+	break;
+      }
+#ifdef O_GMP
+      case V_MPZ:
+      case V_MPQ:
+	goto type_error;
+#endif
+      case V_REAL:
+      { freeFlagValue(f);
+	f->type = FLG_REAL;
 #ifdef DOUBLE_ALIGNMENT
-      doublecpy(&f->value.f, &n.value.f);
+        doublecpy(&f->value.f, &n.value.f);
 #else
-      f->value.f = n.value.f;
+        f->value.f = n.value.f;
+	break;
+      }
 #endif
     }
   } else
+  { type_error:
     rval = PL_error("flag", 3, NULL, ERR_TYPE, ATOM_flag_value, new);
+  }
 
 out:
   UNLOCK();

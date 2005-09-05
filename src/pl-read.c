@@ -1029,6 +1029,7 @@ skipAlpha(unsigned char *in)
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
 
+#ifndef O_GMP
 static real
 uint64_to_real(uint64_t i)
 {
@@ -1042,40 +1043,50 @@ uint64_to_real(uint64_t i)
   return (real)i;
 #endif
 }
+#endif
 
 
 static int
 scan_decimal(cucharp *sp, Number n)
-{ uint64_t maxi = PLMAXINT/10;		/* cache? */
+{ uint64_t maxi = PLMAXINT/10;
   uint64_t t = 0;
   cucharp s = *sp;
   int c;
 
   for(c = *s; isDigit(c); c = *++s)
-  { if ( t > maxi )
-    { real maxf = MAXREAL / (real) 10 - (real) 10;
-      real tf = uint64_to_real(t);
+  { if ( t > maxi || t * 10 + c - '0' > PLMAXINT )
+    { 
+#ifdef O_GMP
+      n->value.i = (int64_t)t;
+      n->type = V_INTEGER;
+      promoteToMPZNumber(n);
+      
+      for(c = *s; isDigit(c); c = *++s)
+      { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
+	mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
+      }
+      *sp = s;
+
+      succeed;
+#else
+      double maxf = MAXREAL / (double) 10 - (double) 10;
+      double tf = uint64_to_real(t);
 
       for(c = *s; isDigit(c); c = *++s)
       { if ( tf > maxf )
 	  fail;				/* number too large */
-        tf = tf * (real)10 + (real)(c - '0');
+        tf = tf * (double)10 + (double)(c - '0');
       }
       *sp = s;
       n->value.f = tf;
       n->type = V_REAL;
       succeed;
+#endif
     } else
       t = t * 10 + c - '0';
   }  
 
   *sp = s;
-
-  if ( t > PLMAXINT )
-  { n->value.f = uint64_to_real(t);
-    n->type = V_REAL;
-    succeed;
-  }
 
   n->value.i = t;
   n->type = V_INTEGER;
@@ -1098,8 +1109,22 @@ scan_number(cucharp *s, int b, Number n)
   while((d = digitValue(b, *q)) >= 0)
   { q++;
 
-    if ( t > maxi )
-    { real maxf = MAXREAL / (real) b - (real) b;
+    if ( t > maxi || t * b + d > PLMAXINT )
+    {
+#ifdef O_GMP
+      n->value.i = (int64_t)t;
+      n->type = V_INTEGER;
+      promoteToMPZNumber(n);
+
+      while((d = digitValue(b, *q)) >= 0)
+      { mpz_mul_ui(n->value.mpz, n->value.mpz, b);
+	mpz_add_ui(n->value.mpz, n->value.mpz, d);
+      }
+      *s = q;
+
+      succeed;
+#else
+      real maxf = MAXREAL / (real) b - (real) b;
       real tf = uint64_to_real(t);
 
       tf = tf * (real)b + (real)d;
@@ -1113,16 +1138,10 @@ scan_number(cucharp *s, int b, Number n)
       n->type = V_REAL;
       *s = q;
       succeed;
+#endif
     } else
       t = t * b + d;
   }  
-
-  if ( t > PLMAXINT )
-  { n->value.f = uint64_to_real(t);
-    n->type = V_REAL;
-    *s = q;
-    succeed;
-  }
 
   n->value.i = t;
   n->type = V_INTEGER;
@@ -1282,8 +1301,38 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
 }  
 
 
+static void
+neg_number(Number n)
+{ switch(n->type)
+  { case V_INTEGER:
+      if ( n->value.i == PLMININT )
+      {
+#ifdef O_GMP
+	promoteToMPZNumber(n);
+	mpz_neg(n->value.mpz, n->value.mpz);
+#else
+	n->type = V_REAL;
+	n->value.f = -(double)n->value.i;
+#endif
+      } else
+      { n->value.i = -n->value.i;
+      }
+      break;
+#ifdef O_GMP
+    case V_MPZ:
+      mpz_neg(n->value.mpz, n->value.mpz);
+      break;
+    case V_MPQ:
+      assert(0);			/* are not read directly */
+#endif
+    case V_REAL:
+      n->value.f = -n->value.f;
+  }
+}
+
+
 int
-get_number(cucharp in, ucharp *end, Number value, int escape)
+str_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
   unsigned int c;
 
@@ -1342,7 +1391,9 @@ get_number(cucharp in, ucharp *end, Number value, int escape)
   if ( *in == '\'' )
   { in++;
 
-    if ( !intNumber(value) || value->value.i > 36 || value->value.i <= 1 )
+    if ( value->type != V_INTEGER ||
+	 value->value.i > 36 ||
+	 value->value.i <= 1 )
       fail;				/* illegal base */
     if ( !scan_number(&in, (int)value->value.i, value) )
       fail;				/* number too large */
@@ -1351,23 +1402,17 @@ get_number(cucharp in, ucharp *end, Number value, int escape)
       fail;				/* illegal number */
 
     if ( negative )
-    { if ( intNumber(value) )
-	value->value.i = -value->value.i;
-      else
-	value->value.f = -value->value.f;
-    }
+      neg_number(value);
 
     *end = (ucharp)in;
     succeed;
   }
 					/* Real numbers */
+					/* we should use strtod_l() here */
   if ( *in == '.' && isDigit(in[1]) )
   { double n;
 
-    if ( intNumber(value) )
-    { value->value.f = (double) value->value.i;
-      value->type = V_REAL;
-    }
+    promoteToRealNumber(value);
     n = 10.0, in++;
     while( isDigit(c = *in) )
     { in++;
@@ -1394,13 +1439,10 @@ get_number(cucharp in, ucharp *end, Number value, int escape)
         break;
     }
 
-    if ( !scan_decimal(&in, &exponent) || !intNumber(&exponent) )
+    if ( !scan_decimal(&in, &exponent) || exponent.type != V_INTEGER )
       fail;				/* too large exponent */
 
-    if ( intNumber(value) )
-    { value->value.f = (double) value->value.i;
-      value->type = V_REAL;
-    }
+    promoteToRealNumber(value);
 
     value->value.f *= pow((double)10.0,
 			  neg_exponent ? -(double)exponent.value.i
@@ -1408,11 +1450,7 @@ get_number(cucharp in, ucharp *end, Number value, int escape)
   }
 
   if ( negative )
-  { if ( intNumber(value) )
-      value->value.i = -value->value.i;
-    else
-      value->value.f = -value->value.f;
-  }
+    neg_number(value);
 
   *end = (ucharp)in;
   succeed;
@@ -1532,7 +1570,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case DI:	{ number value;
 		  int echr;
 
-		  if ( get_number(&rdhere[-1],
+		  if ( str_number(&rdhere[-1],
 				  &rdhere, &value, DO_CHARESCAPE) &&
 		       utf8_get_char(rdhere, &echr) &&
 		       !isAlphaW(echr) )
@@ -2176,6 +2214,7 @@ simple_term(bool must_be_op, term_t term, bool *name,
       goto atomic_out;
     case T_NUMBER:
       _PL_put_number(term, &token->value.number);
+      clearNumber(&token->value.number);
     atomic_out:
       if ( positions )
       { PL_unify_term(positions,

@@ -130,8 +130,6 @@ COMMON(functor_t) 	functorArithFunction(int n);
 COMMON(bool) 		ar_func_n(code n, int argc, Number *stack);
 COMMON(int) 		valueExpression(term_t p, Number n ARG_LD);
 COMMON(int) 		toIntegerNumber(Number n);
-COMMON(void) 		canoniseNumber(Number n);
-COMMON(int)		unifyNumber(term_t t, Number n);
 COMMON(int) 		arithChar(Word p ARG_LD);
 
 /* pl-bag.c */
@@ -546,25 +544,20 @@ COMMON(int) 		numberVars(term_t t, functor_t functor,
 COMMON(word) 		pl_e_free_variables(term_t t, term_t l);
 COMMON(word) 		stringToList(char *s);
 COMMON(word) 		pl_atom_length(term_t w, term_t n);
-COMMON(word) 		pl_int_to_atom(term_t number, term_t base,
-			       term_t atom);
-COMMON(char *) 		formatInteger(bool split, int div, int radix,
-			      bool small, int64_t n, char *out);
-COMMON(word) 		pl_format_number(term_t format, term_t number,
-				 term_t string);
 COMMON(word) 		pl_name(term_t atom, term_t string);
 COMMON(word) 		pl_atom_chars(term_t atom, term_t string);
 COMMON(word) 		pl_atom_codes(term_t atom, term_t string);
 COMMON(word) 		pl_number_chars(term_t number, term_t string);
 COMMON(word) 		pl_number_codes(term_t number, term_t string);
 COMMON(word) 		pl_char_code(term_t atom, term_t chr);
-COMMON(word) 		pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx);
+COMMON(word) 		pl_atom_concat(term_t a1, term_t a2, term_t a3,
+				       control_t ctx);
 COMMON(word) 		pl_concat_atom(term_t list, term_t atom);
 COMMON(word) 		pl_concat_atom3(term_t list, term_t sep, term_t atom);
 COMMON(word) 		pl_apropos_match(term_t a1, term_t a2);
 COMMON(foreign_t) 	pl_sub_atom(term_t atom,
-			    term_t before, term_t len, term_t after,
-			    term_t sub, control_t h);
+				    term_t before, term_t len, term_t after,
+				    term_t sub, control_t h);
 COMMON(word) 		pl_string_length(term_t str, term_t l);
 COMMON(word) 		pl_string_concat(term_t a1, term_t a2, term_t a3, control_t h);
 COMMON(word) 		pl_string_to_atom(term_t str, term_t a);
@@ -675,9 +668,9 @@ COMMON(void) 		profRedo(struct call_node *node ARG_LD);
 
 /* pl-read.c */
 COMMON(void) 		resetRead(void);
-COMMON(int) 		get_number(const unsigned char *string,
-			   unsigned char **end,
-			   Number value, bool escape);
+COMMON(int) 		str_number(const unsigned char *string,
+				   unsigned char **end,
+				   Number value, bool escape);
 COMMON(word) 		pl_raw_read(term_t term);
 COMMON(word) 		pl_raw_read2(term_t stream, term_t term);
 COMMON(word) 		pl_read(term_t term);

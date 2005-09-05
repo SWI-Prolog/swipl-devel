@@ -24,6 +24,7 @@
 
 :- set_prolog_flag(optimise, true).
 %:- set_prolog_flag(trace_gc, true).
+:- use_module(library(lists)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog test file.  A test is a clause of the form:
@@ -48,6 +49,26 @@ available test sets. The public goals are:
 
 % :- getenv('LANG', _) -> setenv('LANG', 'C'); true.
 
+
+		 /*******************************
+		 *    CONDITIONAL COMPILATION	*
+		 *******************************/
+
+:- dynamic
+	include_code/1.
+
+term_expansion((:- if(G)), []) :-
+	(   catch(G, E, (print_message(error, E), fail))
+	->  asserta(include_code(true))
+	;   asserta(include_code(false))
+	).
+term_expansion((:- endif), []) :-
+	retract(include_code(_)), !.
+
+term_expansion(_, []) :-
+	include_code(X), !,
+	X == false.
+	    
 
 		 /*******************************
 		 *	      SYNTAX		*
@@ -84,22 +105,12 @@ syntax(char-1) :-
 	10 = 0'\n.
 syntax(char-2) :-
 	52 = 0'\x34.
-syntax(char-2) :-
+syntax(char-3) :-
 	"\\" =:= 0'\\.
 syntax(string-1) :-
 	'\c ' = ''.
 syntax(string-2) :-
 	'x\c y' = xy.
-syntax(number-1) :-			% check integer overflow translation
-	(   current_prolog_flag(max_integer, 2147483647)
-	->  Chars = "41234567891",
-	    Float = 41234567891.0
-	;   Chars = "9223372036854775900",
-	    Float = 9223372036854775900.0
-	),
-	name(X, Chars),
-	float(X),
-	X =:= Float.
 syntax(number-2) :-
 	catch(atom_to_term('2\'', _, _), E, true),
 	E = error(syntax_error(illegal_number), _).
@@ -121,6 +132,27 @@ write_test(q-5) :-
 	term_to_atom('/**', X), X == '\'/**\''.
 write_test(q-6) :-
 	term_to_atom('*/*', X), X == '*/*'.
+
+
+		 /*******************************
+		 *	      FORMAT		*
+		 *******************************/
+
+format_test(intD-1) :-
+	sformat(X, '~D', [1000]),
+	string_to_atom(X, '1,000').
+format_test(intD-2) :-
+	sformat(X, '~2D', [1000]),
+	string_to_atom(X, '10.00').
+format_test(intD-3) :-
+	sformat(X, '~2D', [100000]),
+	string_to_atom(X, '1,000.00').
+format_test(intr-1) :-
+	sformat(X, '~16r', [1000]),
+	string_to_atom(X, '3e8').
+format_test(intR-1) :-
+	sformat(X, '~16R', [1000]),
+	string_to_atom(X, '3E8').
 
 
 		 /*******************************
@@ -149,9 +181,9 @@ cyclic(test-1) :-
 	X = f(X), cyclic_term(X).
 cyclic(test-2) :-
 	acyclic_term(f(x)).
-cyclic(test-2) :-
-	acyclic_term(_).
 cyclic(test-3) :-
+	acyclic_term(_).
+cyclic(test-4) :-
 	X = f(a), acyclic_term(a(X, X)).
 
 
@@ -197,7 +229,9 @@ arithmetic(arith-4) :-
 arithmetic(arith-5) :-
 	1 =:= integer(0.5).
 arithmetic(arith-6) :-
-	4.5 =:= abs(-4.5).
+	4.5 =:= abs(-4.5),
+	4 =:= abs(4),
+	4 =:= abs(-4).
 arithmetic(arith-7) :-
 	5.5 =:= max(1, 5.5).
 arithmetic(arith-8) :-
@@ -217,6 +251,20 @@ arithmetic(arith-12) :-
 	1.0 is float(sin(pi/2)).
 arithmetic(arith-13) :-
 	1.0 =:= sin(pi/2).
+arithmetic(sign-1) :-
+	-1 =:= sign(-1),   0 =:= sign(0),   1 =:= sign(1),
+	-1 =:= sign(-1.5), 0 =:= sign(0.0), 1 =:= sign(pi).
+arithmetic(floor-1) :-
+	0 is floor(0.0),
+	0 is floor(0.9),
+	-1 is floor(-0.1),
+	-1 is floor(-0.9).
+arithmetic(ceil-1) :-
+	0 is ceil(0.0),
+	1 is ceil(0.9),
+	0 is ceil(-0.1),
+	0 is ceil(-0.9).
+
 
 		 /*******************************
 		 *	    BIG NUMBERS		*
@@ -233,7 +281,7 @@ arithmetic(cmp-1) :-
 		 *******************************/
 
 foverflow(X) :-
-	X2 is X * 1000,
+	X2 is X * pi * pi,
 	foverflow(X2),
 	1 = 1.			% avoid tail-recursion to force termination
 
@@ -257,14 +305,14 @@ floattest(float-4) :-
 floattest(float-5) :-
 	clause(ftest(X), true),
 	X == 4.5.
-floattest(float-5) :-
+floattest(float-6) :-
 	clause(ftest, ftest(X)),
 	X == 4.5.
-floattest(float-6) :-
-	catch(foverflow(2), E, true),
-	E = error(evaluation_error(float_overflow), _).
 floattest(float-7) :-
-	catch(foverflow(-2), E, true),
+	catch(foverflow(2.2), E, true),
+	E = error(evaluation_error(float_overflow), _).
+floattest(float-8) :-
+	catch(foverflow(-2.2), E, true),
 	E = error(evaluation_error(float_overflow), _).
 
 
@@ -295,6 +343,185 @@ arithmetic_functions(func-4) :-
         Exp = 6*euler*7*1,		% test functions corrupting stack
         EE is Exp,
 	EE =:= 6*euler*7*1.
+
+
+		 /*******************************
+		 *     UNBOUNDED ARITHMETIC	*
+		 *******************************/
+
+:- dynamic
+	gmp_clause/2.
+
+fac(1,1) :- !.
+fac(X,N) :-
+	X > 1,
+	X2 is X - 1,
+	fac(X2, N0),
+	N is N0 * X.
+
+oefac(X, Fac) :-			% produce large pos and neg ints
+	fac(X, F0),
+	odd_even_neg(X, F0, Fac).
+
+odd_even_neg(X, V0, V) :-
+	(   X mod 2 =:= 0
+	->  V = V0
+	;   V is -V0
+	).
+
+:- if(current_prolog_flag(bounded, false)). % GMP implies rational
+
+ratp(C, X, X ) :-
+	C =< 0, !.
+ratp(Count, In, Out) :-
+        succ(Count0, Count),
+        T is In + (In rdiv 2),
+	ratp(Count0, T, Out).
+
+gmp(neg-1) :-				% check conversion of PLMININT
+	A is -9223372036854775808,
+	-A =:= 9223372036854775808.
+gmp(abs-1) :-
+	A is -9223372036854775808,
+	abs(A) =:= 9223372036854775808.
+gmp(sign-1) :-
+	-1 =:= sign(-5 rdiv 3),
+	0 =:= sign(0 rdiv 1), 
+	1 =:= sign(2 rdiv 7),
+	fac(60, X),
+	-1 =:= sign(-X),
+	1 =:= sign(X).
+gmp(floor-1) :-
+	A is floor(1e20),
+	integer(A),
+	1e20 =:= float(A).
+gmp(ceil-1) :-
+	A is ceil(1e20),
+	integer(A),
+	1e20 =:= float(A).
+gmp(msb-1) :-
+	10 =:= msb(1<<10).
+gmp(msb-2) :-
+	100 =:= msb(1<<100).
+gmp(fac-1) :-
+	fac(25, X),
+	X == 15511210043330985984000000. % computed with bc
+gmp(arith-1) :-
+	A = 12345678901234567890123456789,
+	B = 7070707070707070707,
+	X is A * (A * B * A * B * A * B),
+	integer(X),
+	Y is B * A * B * A * B * A,
+	integer(Y),
+	R is X / Y,
+	R == A. 
+gmp(pow-1) :-
+	A is 10**50, integer(A).
+gmp(pow-2) :-
+	A is -10**3, integer(A), A = -1000.
+gmp(pow-3) :-
+	A is 0**0, A = 1.
+gmp(pow-4) :-
+	A is 1.5**2, A = 2.25.
+gmp(integer-1) :-			% rounding integer conversion
+	0 =:= integer(1 rdiv 3),
+	1 =:= integer(2 rdiv 3),
+	0 =:= integer(-1 rdiv 3),
+       -1 =:= integer(-2 rdiv 3).
+gmp(integer-2) :-
+	0 =:= integer(1/3),
+	1 =:= integer(2/3),
+	0 =:= integer(-1/3),
+       -1 =:= integer(-2/3).
+gmp(rational-1) :-				% IEEE can represent 0.25
+	rational(1/4) =:= 1 rdiv 4.
+gmp(rational-2) :-
+	A is 2 rdiv 4,
+	rational(A, 1, 2).
+gmp(rationalize-1) :-
+	A is rationalize(0.0), A == 0,
+	B is rationalize(0.1), B == 1 rdiv 10,
+	C is rationalize(10.0), C == 10,
+	D is rationalize(-0.1), D == -1 rdiv 10.
+gmp(rationalize-2) :-
+	pi =:= float(rationalize(pi)).
+gmp(number-1) :-
+	A is 1 rdiv 3,
+	rational(A).
+gmp(float-1) :-
+	1/3 =:= float(1 rdiv 3).
+gmp(cmp-1) :-
+	0 < 3,
+	-1 < 0,
+	-1 < 1 rdiv 3,
+	1 > 0.3,
+	fac(100, F100), fac(200, F200), F100 < F200,
+	pi > 5 rdiv 2.
+gmp(clause-1) :-
+	Clause = (gmp_clause(X,Y) :-
+		     X is Y + 3353461138769748319272960000),
+	assert(Clause, Ref),
+	clause(H,B,Ref),
+	erase(Ref),
+	(H:-B) =@= Clause.
+gmp(comp-1) :-
+	retractall(gmp_clause(_,_)),
+	forall(between(1, 50, X),
+	       (   oefac(X, Fac),
+		   assert(gmp_clause(Fac, X))
+	       )),
+	forall(between(1, 50, X),
+	       (   oefac(X, Fac),
+		   gmp_clause(Fac, Y),
+		   X == Y,
+		   clause(gmp_clause(Fac, Z), true),
+		   X == Z
+	       )),
+	retractall(gmp_clause(_,_)).
+gmp(comp-2) :-
+	X is ((1 rdiv 2)*2) rdiv 3,
+	X == 1 rdiv 3.
+gmp(rec-1) :-
+	forall(recorded(gmp_fac, _, R), erase(R)),
+	forall(between(1, 50, X),
+	       (   oefac(X, Fac),
+		   recordz(gmp_fac, X-Fac)
+	       )),
+	forall(between(1, 50, X),
+	       (   oefac(X, Fac),
+		   recorded(gmp_fac, X-Y),
+		   Fac == Y
+	       )),
+	forall(recorded(gmp_fac, _, R), erase(R)).
+gmp(number_codes-1) :-
+	fac(25, X),
+	number_codes(X, Codes),		% write
+	number_codes(Y, Codes),		% read
+	X == Y.
+gmp(atom_number-1) :-
+	fac(100, X),
+	atom_number(Atom, X),		% write
+	atom_number(Atom, Y),		% read
+	X == Y.
+gmp(fmtd-1) :-
+	sformat(X, '~d', [12345678901234567890123456]),
+	string_to_atom(X, '12345678901234567890123456').
+gmp(fmtd-2) :-
+	sformat(X, '~2d', [12345678901234567890123456]),
+	string_to_atom(X, '123456789012345678901234.56').
+gmp(fmtD-1) :-
+	sformat(X, '~D', [12345678901234567890123456]),
+	string_to_atom(X, '12,345,678,901,234,567,890,123,456').
+gmp(fmtD-2) :-
+	sformat(X, '~2D', [12345678901234567890123456]),
+	string_to_atom(X, '123,456,789,012,345,678,901,234.56').
+gmp(fmtf-1) :-
+	ratp(999, 1, X),
+	sformat(S, '~5f', [X]),
+	sub_atom(S, _, _, 0, '935376.65824').
+
+:- endif.
+
 
 		 /*******************************
 		 *	     CHARACTERS		*
@@ -353,18 +580,18 @@ meta(call-4) :-
 	length(X, 100000), call((is_list(X) -> true ; fail)).
 meta(call-5) :-
 	call((X=a;X=b)), X = b.
-meta(call-5) :-
-	call((foo:hello(X)->true)), X = world.
 meta(call-6) :-
-	call((X=a,x(X)=Y)), Y == x(a).
+	call((foo:hello(X)->true)), X = world.
 meta(call-7) :-
+	call((X=a,x(X)=Y)), Y == x(a).
+meta(call-8) :-
 	string_to_list(S, "hello world"),
 	call((string(S), true)).
-meta(call-8) :-
-	call((foo:true, true)).
 meta(call-9) :-
-	call((A=x, B=x, A==B)).		% avoid I_CALL_FVX for dynamic call
+	call((foo:true, true)).
 meta(call-10) :-
+	call((A=x, B=x, A==B)).		% avoid I_CALL_FVX for dynamic call
+meta(call-11) :-
 	A = (	member(_,[1,2,3]),
 		flag(a, F, F+1),
 		(   F >= 999999
@@ -375,7 +602,7 @@ meta(call-10) :-
 	flag(a, Old, 0),
 	forall(A, true),
 	flag(a, 3, Old).
-meta(call-11) :-
+meta(call-12) :-
 	catch(call(1), E, true),
 	error(E, type_error(callable, 1)).
 meta(apply-1) :-
@@ -451,13 +678,6 @@ dl_fail(N) :-
 	dl_fail(NN).
 
 :- arithmetic_function(fac/1).
-
-fac(1, 1) :- !.
-fac(N, V) :-
-	NN is N - 1,
-	fac(NN, V0),
-	V is N*V0.
-
 
 depth_limit(depth-1) :-
 	call_with_depth_limit(dl_det(1), 10, 1),
@@ -544,11 +764,11 @@ list(sort-4) :-
 	msort([e,b,c,e], [b,c,e,e]).
 list(sort-5) :-
 	keysort([e-2,b-5,c-6,e-1], [b-5,c-6,e-2,e-1]).
-list(sort-5) :-
-	sort([a,g,b], [a,b|G]), G == [g].
 list(sort-6) :-
-	sort([X], [Y]), X == Y.
+	sort([a,g,b], [a,b|G]), G == [g].
 list(sort-7) :-
+	sort([X], [Y]), X == Y.
+list(sort-8) :-
 	sort([_X, _Y], [_,_]).
 
 
@@ -758,16 +978,12 @@ mkterm(T) :-
 	current_prolog_flag(max_tagged_integer, X),
 	BigNum is X * 3,
 	NegBigNum is -X*5,
-	current_prolog_flag(max_integer, MaxInt),
-	current_prolog_flag(min_integer, MinInt),
 	T = term(atom,			% an atom
 		 S,			% a string
 		 1,			% an integer
 		 BigNum,		% large integer
 		 -42,			% small negative integer
 		 NegBigNum,		% large negative integer
-		 MaxInt,
-		 MinInt,
 		 3.4,			% a float
 		 _,			% a singleton
 		 A, A,			% a shared variable
@@ -1145,23 +1361,31 @@ gc(agc-2) :-
 gc_data(a).
 
 		 /*******************************
-		 *            FLOATS		*
+		 *	INTEGER OVERFLOW	*
 		 *******************************/
 
-floatconv(float-1) :-
-	A is 5.5/5.5, integer(A).
-floatconv(float-2) :-
+intoverflow(add-1) :-
 	current_prolog_flag(max_integer, MI),
-	ToHigh is MI + 10000,		% +1 may fail on 64-bit systems
+	ToHigh is MI + 10000,
 	float(ToHigh).
-floatconv(float-3) :-
+intoverflow(syntax-1) :-
 	(   current_prolog_flag(max_integer, 2147483647)
 	->  term_to_atom(X, 2147483648)
 	;   current_prolog_flag(max_integer, 9223372036854775807)
 	->  term_to_atom(X, 9223372036854775808)
 	),
 	float(X).
-
+intoverflow(syntax-2) :-
+	(   current_prolog_flag(max_integer, 2147483647)
+	->  Chars = "41234567891",
+	    Float = 41234567891.0
+	;   Chars = "9223372036854775900",
+	    Float = 9223372036854775900.0
+	),
+	name(X, Chars),
+	float(X),
+	X =:= Float.
+	
 
 		 /*******************************
 		 *	ATTRIBUTED VARIABLES	*
@@ -1396,13 +1620,14 @@ copy_term(av-3) :-
 	get_attr(Y, test, A),
 	A = f(Z),
 	Y == Z.
-copy_term(av-3) :-
+copy_term(av-4) :-
 	freeze(X, true),
 	freeze(X, Done = true),
 	copy_term(X, Y),
 	X = ok,
 	Done == true,
-	get_attr(Y, freeze, (true, D2=true)),
+	get_attr(Y, freeze, Att),
+	Att = (user:true, user:(D2=true)),
 	var(D2),
 	Y = ok,
 	D2  == true.
@@ -1927,10 +2152,13 @@ script_failed(File, Except) :-
 
 testset(syntax).
 testset(write_test).
+testset(format_test).
 testset(unify).
 testset(arithmetic).
 testset(arithmetic_functions).
 testset(floattest).
+testset(gmp) :-
+	current_prolog_flag(bounded, false).
 testset(chars).
 testset(wchars).
 testset(depth_limit) :-
@@ -1956,8 +2184,9 @@ testset(compiler).
 testset(flag).
 testset(update).
 testset(gc).
-testset(floatconv) :-
-	current_prolog_flag(iso, false).
+testset(intoverflow) :-
+	current_prolog_flag(iso, false),
+	current_prolog_flag(max_integer, _).
 testset(control).
 testset(exception).
 testset(term_atom).
@@ -2026,8 +2255,9 @@ runtest(Name) :-
 	format('Running test set "~w" ', [Name]),
 	flush,
 	functor(Head, Name, 1),
-	nth_clause(Head, _N, R),
-	clause(Head, _, R),
+	findall(Head-R, nth_clause_head(Head, R), Heads),
+	unique_heads(Heads),
+	member(Head-R, Heads),
 	(   catch(Head, Except, true)
 	->  (   var(Except)
 	    ->  put(.), flush
@@ -2042,6 +2272,27 @@ runtest(Name) :-
 runtest(_) :-
 	format(' done.~n').
 	
+nth_clause_head(Head, R) :-
+	nth_clause(Head, _N, R),
+	clause(Head, _, R).
+
+unique_heads(Heads) :-
+	keysort(Heads, Sorted),
+	check_uniqye(Sorted).
+
+check_uniqye([]).
+check_uniqye([Head-R1,Head-R2|T]) :- !,
+	clause_property(R1, line_count(Line1)),
+	clause_property(R1, file(File1)),
+	clause_property(R2, line_count(Line2)),
+	clause_property(R2, file(File2)),
+	format('~N~w:~d: test ~w duplicated at ~w:~d~n',
+	       [File2, Line2, Head, File1, Line1]),
+	check_uniqye([Head-R1|T]).
+check_uniqye([_|T]) :-
+	check_uniqye(T).
+
+
 test_failed(R, Except) :-
 	clause(Head, _, R),
 	functor(Head, Name, 1),

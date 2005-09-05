@@ -25,6 +25,7 @@
 #if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
 #define _WIN32_WINNT 0x0400
 #include <windows.h>
+#include <winsock2.h>
 
 #include "pl-incl.h"
 #include "pl-utf8.h"
@@ -465,16 +466,17 @@ static const shell_error se_errors[] =
 
 static int
 win_shell(term_t op, term_t file, term_t how)
-{ char *o, *f;
+{ unsigned int lo, lf;
+  wchar_t *o, *f;
   UINT h;
   HINSTANCE instance;
 
-  if ( !PL_get_chars_ex(op,   &o, CVT_ALL|BUF_RING) ||
-       !PL_get_chars_ex(file, &f, CVT_ALL|BUF_RING) ||
+  if ( !PL_get_wchars(op,   &lo, &o, CVT_ALL|CVT_EXCEPTION|BUF_RING) ||
+       !PL_get_wchars(file, &lf, &f, CVT_ALL|CVT_EXCEPTION|BUF_RING) ||
        !get_showCmd(how, &h) )
     fail;
        
-  instance = ShellExecute(NULL, o, f, NULL, NULL, h);
+  instance = ShellExecuteW(NULL, o, f, NULL, NULL, h);
 
   if ( (long)instance <= 32 )
   { const shell_error *se;

@@ -1,0 +1,73 @@
+SWI-Prolog and the GMP library
+
+Author:  Jan Wielemaker
+Created: Aug 21, 2005
+
+The GNU GMP library (GNU  Multiple   Precision  Arithmetic  Library), is
+available from http://www.swox.com/gmp/. It  provides multiple precision
+integer  and  rational  (N/M)  arithmetic  to  SWI-Prolog.  By  default,
+SWI-Prolog uses GMP, but it can  be   built  without using the configure
+option --disable-gmp. Statically linking GMP  makes SWI-Prolog about 20%
+larger, which may be the most important reason not to want it.
+
+Unix
+----
+
+On  Unix(-like)  systems,  configure  should   deal  with  building  and
+installation issues.
+
+Windows
+-------
+
+Windows is a different matter.  The  GMP   people  state  it is too much
+trouble making a Windows version. Nevertheless, it can be done.  I found
+three starting points:
+
+	(1) http://developer.berlios.de/projects/win32gmp/
+		- Static library
+		- Big (2.5MB, adds 800 KB to Prolog dll) 
+
+	(2) http://na-inet.jp/na/bnc/wingmp.html
+		- Only for MSVC 7 (.NET)
+
+	(3) http://fp.gladman.plus.com/computing/gmp4win.htm
+		- Brian Gladman's build instructions for GMP on
+		  MSVC.
+
+(2) is basically a precompiled version created   with  (3), but only the
+.NET version. I've tried  to  follow  (3)   for  MSVC  6,  but DevStudio
+crashed.
+
+(1) is created by Miki Tebeka, who  told   me  it is build using MingW +
+Msys (www.mingw.org). With some more remarks I   managed  to find a good
+way to build a gmp.lib that can be used with MSVC 6:
+
+	* Get MSYS (1.0.10) and MinGW (4.1.1)
+		From http://www.mingw.org/
+	* Install MSYS.
+	* Get the source for GMP (I used 4.1.4)
+		From http://www.swox.com/gmp/
+	* Extract to a place *not holding spaces in the mingw path*
+	* Build using
+		% CFLAGS=-O2 ./configure
+	    	% make
+		% make check	*important to run the tests*
+
+Now  you  have  a  static  version   of    the   library  for  MinGW  in
+.libs/libgmp.a. Only, this uses alloca() which  is provided by libgcc.a.
+We want alloca() as it is faster and avoids memory fragmentation. So:
+
+	* Find libgcc.a using 
+		% gcc -print-libgcc-file-name
+	* Find the file defining alloca() using the command below.
+	  For me this was _chkstk.o.  Guess that is pretty stable.
+		% nm -o `gcc -print-libgcc-file-name` | grep alloca
+	* Now merg _chkstk.o into our library:
+		% ar x `gcc -print-libgcc-file-name` _chkstk.o
+		% cp .libs/libgmp.a gmp.a
+		% ar q gmp.a _chkstk.o
+		% ranlib gmp.a
+		% mv gmp.a gmp.lib
+
+Done!  You can use gmp.h and gmp.lib in an MSVC project.
+	

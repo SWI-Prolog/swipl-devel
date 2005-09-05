@@ -1546,12 +1546,20 @@ put(X,L,U,Exp) :-
 	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%	SWI-Prolog 5.7.x has unbounded arithmetic.  What to do?
+
 min_inf(Inf) :-
-	current_prolog_flag(min_integer,MInf),
-	Inf is MInf + 1.
+	(   current_prolog_flag(min_integer,MInf)
+	->  Inf is MInf + 1
+	;   Inf = -9223372036854775807
+	).
 
 max_inf(Inf) :-
-	current_prolog_flag(max_integer,Inf).
+	(   current_prolog_flag(max_integer,Inf)
+	->  true
+	;   Inf = 9223372036854775807
+	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 attr_unify_hook(bounds(L,U,Exp),Other) :-

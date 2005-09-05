@@ -30,6 +30,11 @@ source should also use format() to produce error messages, etc.
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include <ctype.h>
+
+static char *	formatNumber(bool split, int div, int radix,
+			     bool small, Number n, Buffer out);
+static char *	formatFloat(int how, int arg, Number f, Buffer out);
 
 #define MAXRUBBER 100
 
@@ -456,12 +461,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	      case 'f':			/* float */
 	      case 'g':			/* shortest of 'f' and 'e' */
 	      case 'G':			/* shortest of 'f' and 'E' */
-		{ double f;
-		  char tmp[12];
-		  char buf[256];
+		{ number n;
+		  tmp_buffer b;
 
 		  NEED_ARG;
-		  if ( !PL_get_float(argv, &f) )
+		  if ( !valueExpression(argv, &n PASS_LD) )
 		  { char f[2];
 		    
 		    f[0] = c;
@@ -469,9 +473,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		    FMT_ARG(f, argv);
 		  }
 		  SHIFT;
-		  Ssprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, c);
-		  Ssprintf(buf, tmp, f);
-		  outstring0(&state, buf);
+
+		  initBuffer(&b);
+		  formatFloat(c, arg, &n, (Buffer)&b);
+		  clearNumber(&n);
+		  outstring0(&state, baseBuffer(&b, char));
+		  discardBuffer(&b);
 		  here++;
 		  break;
 		}
@@ -479,11 +486,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	      case 'D':			/* grouped integer */
 	      case 'r':			/* radix number */
 	      case 'R':			/* Radix number */
-		{ int64_t i;
-		  char tmp[50];
+		{ number i;
+		  tmp_buffer b;
 
 		  NEED_ARG;
-		  if ( !PL_get_int64(argv, &i) )
+		  if ( !valueExpression(argv, &i PASS_LD) ||
+		       !toIntegerNumber(&i) )
 		  { char f[2];
 		    
 		    f[0] = c;
@@ -493,11 +501,14 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  SHIFT;
 		  if ( arg == DEFAULT )
 		    arg = 0;
+		  initBuffer(&b);
 		  if ( c == 'd' || c == 'D' )
-		    formatInteger(c == 'D', arg, 10, TRUE, i, tmp);
+		    formatNumber(c == 'D', arg, 10, TRUE, &i, (Buffer)&b);
 		  else
-		    formatInteger(FALSE, 0, arg, c == 'r', i, tmp);
-		  outstring0(&state, tmp);			
+		    formatNumber(FALSE, 0, arg, c == 'r', &i, (Buffer)&b);
+		  clearNumber(&i);
+		  outstring0(&state, baseBuffer(&b, char));			
+		  discardBuffer(&b);
 		  here++;
 		  break;
 		}
@@ -789,4 +800,189 @@ emit_rubber(format_state *state)
   state->pending_rubber = 0;
 
   return TRUE;
+}
+
+
+/*  format an integer according to  a  number  of  modifiers  at various
+    radius.   `split'  is a boolean asking to put ',' between each group
+    of three digits (e.g. 67,567,288).  `div' askes to divide the number
+    by radix^`div' before printing.   `radix'  is  the  radix  used  for
+    conversion.  `n' is the number to be converted.
+
+ ** Fri Aug 19 22:26:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+
+static char *
+formatNumber(bool split, int div, int radix, bool small, Number i,
+	     Buffer out)
+{ switch(i->type)
+  { case V_INTEGER:
+    { int64_t n = i->value.i;
+
+      char tmp[100]; 
+      char *end = &tmp[sizeof(tmp)];
+      char *s = end;			/* i.e. start at the end */
+      int before = (div == 0);
+      int digits = 0;
+      bool negative = FALSE;
+
+      *--s = EOS;
+      if ( n < 0 )
+      { n = -n;
+	negative = TRUE;
+      }
+      if ( n == 0 && div == 0 )
+      { *--s = '0';
+      } else
+      { while( n > 0 || div >= 0 )
+	{ if ( div-- == 0 && !before )
+	  { *--s = '.';
+	    before = 1;
+	  }
+	  if ( split && before && (digits++ % 3) == 0 && digits != 1 )
+	    *--s = ',';
+	  *--s = digitName((int)(n % radix), small);
+	  n /= radix;
+	}
+	if ( negative )
+	  *--s = '-';  
+      }
+
+      addMultipleBuffer(out, s, end-s, char);
+
+      return baseBuffer(out, char);
+    }
+#ifdef O_GMP
+    case V_MPZ:
+    { int len = mpz_sizeinbase(i->value.mpz, radix);
+      char tmp[256];
+      char *buf;
+
+      if ( len+2 > sizeof(tmp) )
+	buf = PL_malloc(len+2);
+      else
+	buf = tmp;
+
+      mpz_get_str(buf, radix, i->value.mpz);
+      if ( !small && radix > 10 )
+      { char *s;
+
+	for(s=buf; *s; s++)
+	  *s = toupper(*s);
+      }
+      if ( split || div > 0 )
+      { int before = len-div;
+	int leading;
+	char *s = buf;
+
+	if ( *s == '-' )
+	{ addBuffer(out, *s, char);
+	  s++;
+	}
+	if ( split )
+	{ leading = before % 3;
+	  if ( leading == 0 )
+	    leading = 3;
+	} else
+	{ leading = len;
+	}
+	for(s=buf; *s; s++)
+	{ if ( before-- == 0 && div > 0 )
+	  { addBuffer(out, '.', char);
+	  } else if ( leading-- == 0 && before > 0 )
+	  { addBuffer(out, ',', char);
+	    leading = 2;
+	  }
+	  addBuffer(out, *s, char);
+	}
+	addBuffer(out, EOS, char);
+      } else
+      { addMultipleBuffer(out, buf, strlen(buf), char);
+	addBuffer(out, EOS, char);
+      }
+
+      if ( buf != tmp )
+	PL_free(buf);
+
+      return baseBuffer(out, char);
+    }
+#endif /*O_GMP*/
+    default:
+      assert(0);
+      return NULL;
+  }
+}
+
+
+static char *
+formatFloat(int how, int arg, Number f, Buffer out)
+{ if ( arg == DEFAULT )
+    arg = 6;
+
+  switch(f->type)
+  { 
+#ifdef O_GMP
+    mpf_t mpf;
+    case V_MPZ:
+      mpf_init2(mpf, arg*4);
+      mpf_set_z(mpf, f->value.mpz);
+      goto print;
+    case V_MPQ:
+    { char tmp[12];
+      int size;
+      int written;
+      int fbits;
+      
+      switch(how)
+      { case 'f':
+	case 'g':
+	case 'G':
+	{ mpz_t iv;
+
+	  mpz_init(iv);
+	  mpz_set_q(iv, f->value.mpq);
+	  fbits = mpz_sizeinbase(iv, 2) + 4*arg;
+	  mpz_clear(iv);
+	  break;
+	}
+	default:
+	  fbits = 4*arg;
+      }
+      
+      mpf_init2(mpf, fbits);
+      mpf_set_q(mpf, f->value.mpq);
+      
+    print:
+      Ssprintf(tmp, "%%.%dF%c", arg, how);
+      size = 0;
+      written = arg+4;
+      while(written >= size)
+      { size = written+1;
+
+	growBuffer(out, size);		/* reserve for -.e<null> */
+	written = gmp_snprintf(baseBuffer(out, char), size, tmp, mpf);
+      }
+      out->top = out->base + written;
+
+      return baseBuffer(out, char);
+    }
+#endif
+    case V_INTEGER:
+      promoteToRealNumber(f);
+      /*FALLTHROUGH*/
+    case V_REAL:
+    { char tmp[12];
+
+      if ( arg > 256 )
+	arg = 256;
+
+      growBuffer(out, 256+4);		/* reserve for -.e<null> */
+      Ssprintf(tmp, "%%.%d%c", arg, how);
+      Ssprintf(baseBuffer(out, char), tmp, f->value.f);
+      out->top = out->base + strlen(out->base);
+
+      return baseBuffer(out, char);
+    }
+  }
+
+  return NULL;
 }

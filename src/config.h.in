@@ -82,6 +82,9 @@
 /* Define to 1 if you have the <floatingpoint.h> header file. */
 #undef HAVE_FLOATINGPOINT_H
 
+/* Define to 1 if you have the <float.h> header file. */
+#undef HAVE_FLOAT_H
+
 /* Define to 1 if you have the `floor' function. */
 #undef HAVE_FLOOR
 
@@ -124,6 +127,9 @@
 /* Define to 1 if you have the `getwd' function. */
 #undef HAVE_GETWD
 
+/* Define to 1 if you have the <gmp.h> header file. */
+#undef HAVE_GMP_H
+
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
 
@@ -147,6 +153,9 @@
 
 /* Define to 1 if you have the `exc' library (-lexc). */
 #undef HAVE_LIBEXC
+
+/* Define to 1 if you have the `gmp' library (-lgmp). */
+#undef HAVE_LIBGMP
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM

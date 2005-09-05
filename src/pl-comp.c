@@ -79,6 +79,7 @@ const code_info codeTable[] = {
   CODE(A_ENTER,		"a_enter",	0, 0),
   CODE(A_INTEGER,	"a_integer",	1, CA1_INTEGER),
   CODE(A_INT64,		"a_int64",	WORDS_PER_INT64, CA1_INT64),
+  CODE(A_MPZ,		"a_mpz",	0, CA1_MPZ),
   CODE(A_DOUBLE,	"a_double",	WORDS_PER_DOUBLE, CA1_FLOAT),
   CODE(A_VAR0,		"a_var0",	0, 0),
   CODE(A_VAR1,		"a_var1",	0, 0),
@@ -1236,18 +1237,27 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
       }
     case TAG_INTEGER:
       if ( storage(*arg) != STG_INLINE )
-      {	int64_t val = valBignum(*arg);
+      {	Word p = addressIndirect(*arg);
+	int  n = wsizeofInd(*p);
+	
+	if ( n == sizeof(int64_t)/sizeof(word) )
+	{ int64_t val = *(int64_t*)(p+1);
 
 #if SIZEOF_LONG == 8
-	Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (long)val);
+          Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (long)val);
 #else
-	if ( val >= LONG_MIN && val <= LONG_MAX )
-	{ Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (long)val);
-	} else
-	{ Output_0(ci, (where&A_HEAD) ? H_INT64 : B_INT64);
-	  Output_n(ci, (Word)&val, WORDS_PER_INT64);
-	}
+          if ( val >= LONG_MIN && val <= LONG_MAX )
+	  { Output_1(ci, (where&A_HEAD) ? H_INTEGER : B_INTEGER, (long)val);
+	  } else
+	  { Output_0(ci, (where&A_HEAD) ? H_INT64 : B_INT64);
+	    Output_n(ci, (Word)&val, WORDS_PER_INT64);
+	  }
 #endif
+	} else				/* MPZ NUMBER */
+	{ Output_0(ci, (where & A_HEAD) ? H_INDIRECT : B_INDIRECT);
+	  Output_n(ci, p, n+1);
+	  return NONVOID;
+	}
 	return NONVOID;
       }
       Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
@@ -1704,24 +1714,29 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
   deRef(arg);
 
   if ( isInteger(*arg) )
-  { 
-#if SIZEOF_LONG == 8
-    Output_1(ci, A_INTEGER, valInteger(*arg));
-#else
-    if ( storage(*arg) == STG_INLINE )
+  { if ( storage(*arg) == STG_INLINE )
     { Output_1(ci, A_INTEGER, valInt(*arg));
     } else
-    { int64_t val = valBignum(*arg);
+    { Word p = addressIndirect(*arg);
+      int  n = wsizeofInd(*p);
 
-      if ( val >= LONG_MIN && val <= LONG_MAX )
-      { Output_1(ci, A_INTEGER, (word)val);
-      } else
-      { Output_0(ci, A_INT64);
-	Output_n(ci, (Word)&val, WORDS_PER_INT64);
-	succeed;
+      if ( n == sizeof(int64_t)/sizeof(word) )
+      { int64_t val = *(int64_t*)(p+1);
+#if SIZEOF_LONG == 8
+	Output_1(ci, A_INTEGER, val);
+#else
+        if ( val >= LONG_MIN && val <= LONG_MAX )
+	{ Output_1(ci, A_INTEGER, (word)val);
+	} else
+	{ Output_0(ci, A_INT64);
+	  Output_n(ci, (Word)&val, WORDS_PER_INT64);
+	}
+#endif
+      } else				/* GMP */
+      { Output_0(ci, A_MPZ);
+	Output_n(ci, p+1, n);
       }
     }
-#endif
     succeed;
   }
   if ( isReal(*arg) )
@@ -1820,6 +1835,25 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 
 
 		 /*******************************
+		 *	    GMP SUPPORT		*
+		 *******************************/
+
+#ifdef O_GMP
+static Code
+skipMPZCodes(Code PC)
+{ Word p = PC;
+  int mpsize = (int)*p++;
+  int bsize  = sizeof(mp_limb_t) * abs(mpsize);
+  int wsize  = (bsize+sizeof(word)-1)/sizeof(word);
+  
+  p += wsize;
+
+  return (Code) p;
+}
+#endif
+
+
+		 /*******************************
 		 *	     ATOM-GC		*
 		 *******************************/
 
@@ -1858,12 +1892,19 @@ unregisterAtomsClause(Clause clause)
 
 	if ( isAtom(w) )
 	  PL_unregister_atom(w);
+	break;
       }
+#ifdef O_GMP
+      case A_MPZ:
+	PC = skipMPZCodes(PC+1);
+        PC--;
+#endif
     }
   }
 }
 
 #endif /*O_ATOMGC*/
+
 
 		/********************************
 		*  PROLOG DATA BASE MANAGEMENT  *
@@ -2618,11 +2659,25 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case A_INT64:
 			  { Word p = allocGlobal(2+WORDS_PER_INT64);
 			    *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-			    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_FLOAT);
+			    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 			    cpInt64Data(p, PC);
-			    *p   = mkIndHdr(WORDS_PER_INT64, TAG_FLOAT);
+			    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 			    continue;
 			  }
+#ifdef O_GMP
+	case A_MPZ:
+			  { Word wp  = (Word)PC;
+			    Code end = skipMPZCodes(PC);
+			    int wsz  = (Word)end - wp;
+			    Word p = allocGlobal(2+wsz);
+			    *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+			    *p++    = mkIndHdr(wsz, TAG_INTEGER);
+			    p[wsz]  = mkIndHdr(wsz, TAG_INTEGER);
+			    memcpy(p, wp, wsz*sizeof(word));
+			    PC = end;
+			    continue;
+			  }
+#endif
 	case B_FLOAT:
 	case A_DOUBLE:
 		  	  { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
@@ -3255,13 +3310,22 @@ fetchop(Code PC)
   return op;
 }
 
+
 static Code
 stepPC(Code PC)
 { code op = fetchop(PC++);
 
-  if ( codeTable[op].argtype == CA1_STRING )
-  { word m = *PC++;
-    PC += wsizeofInd(m);
+  switch(codeTable[op].argtype)
+  { case CA1_STRING:
+    { word m = *PC++;
+      PC += wsizeofInd(m);
+      break;
+    }
+#ifdef O_GMP
+    case CA1_MPZ:
+      PC = skipMPZCodes(PC);
+      break;
+#endif
   }
 
   PC += codeTable[op].arguments;
@@ -3358,6 +3422,10 @@ pl_xr_member(term_t ref, term_t term, control_t h)
 	  PC += wsizeofInd(m);
 	  break;
 	}
+#ifdef O_GMP
+	case CA1_MPZ:
+	  PC = skipMPZCodes(PC);
+#endif
       }
 
       PC += codeTable[op].arguments;
@@ -3564,10 +3632,6 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 	  n += 2;
 	  cpDoubleData(p, bp);
 	  Sfprintf(out, " %g", v.f);
-#if 0					/* used to discover GDB problem */
-	  Sfprintf(out, " [0x%08x 0x%8x]", bp[-2], bp[-1]);
-	  Sfprintf(out, " [0x%08x 0x%8x]", v.w[0], v.w[1]);
-#endif
 	  break;
 	}
 	case CA1_STRING:
@@ -3577,6 +3641,12 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 	  bp += n;
 	  break;
 	}
+#ifdef O_GMP
+	case CA1_MPZ:
+	{ bp = skipMPZCodes(bp);
+	  Sfprintf(out, " <GMP mpz integer>");
+	}
+#endif
       }
       for(; n < codeTable[op].arguments; n++ )
 	Sfprintf(out, "%s%d", n == 0 ? " " : ", ", *bp++);

@@ -2100,6 +2100,7 @@ pl-comp.c
     &&A_ENTER_LBL,
     &&A_INTEGER_LBL,
     &&A_INT64_LBL,
+    &&A_MPZ_LBL,
     &&A_DOUBLE_LBL,
     &&A_VAR0_LBL,
     &&A_VAR1_LBL,
@@ -3404,6 +3405,28 @@ to give the compiler a hint to put ARGP not into a register.
 	NEXT_INSTRUCTION;
       }
 
+    VMI(A_MPZ) MARK(AMPZ);		/* see globalMPZ() and compiler */
+#ifdef O_GMP
+      {	Number n = (Number)ARGP;
+	Word p = (Word)PC;
+	int size;
+
+	n->type = V_MPZ;
+	n->value.mpz->_mp_size  = (int)*p++;
+	n->value.mpz->_mp_alloc = 0;	/* avoid de-allocating */
+	size = sizeof(mp_limb_t) * abs(n->value.mpz->_mp_size);
+	n->value.mpz->_mp_d     = PL_malloc(size);
+	memcpy(n->value.mpz->_mp_d, p, size);
+
+	p += (size+sizeof(word)-1)/sizeof(word);
+ 	PC = (Code)p;
+	ARGP = (Word)(n+1);
+	NEXT_INSTRUCTION;
+      }
+#else
+	NEXT_INSTRUCTION;
+#endif
+
     VMI(A_DOUBLE) MARK(ADOUBLE);
       {	Number n = (Number)ARGP;
 	Word p = &n->value.w[0];
@@ -3428,8 +3451,7 @@ to give the compiler a hint to put ARGP not into a register.
 
       switch(tag(*p2))
       { case TAG_INTEGER:
-	  n->value.i = valInteger(*p2);
-	  n->type = V_INTEGER;
+	  get_integer(*p2, n);
 	a_ok:
 	  ARGP = (Word)(n+1);
 	  NEXT_INSTRUCTION;
@@ -3530,65 +3552,29 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
     EXIT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  { int cmp;
+    Number n;
+    int rc;
+
     VMI(A_LT) MARK(A_LT);
-      { Number n = (Number)ARGP;
+        cmp = LT;
+      acmp:				/* common entry */
+	n = (Number)ARGP;
 	n -= 2;
 	ARGP = (Word)n;
-	if ( !ar_compare(n, n+1, LT) )
-	  BODY_FAILED;
+	rc = ar_compare(n, n+1, cmp);
+	clearNumber(n);
+	clearNumber(n+1);
 	ARGP = argFrameP(lTop, 0);
-	NEXT_INSTRUCTION;
-      }
-
-    VMI(A_LE) MARK(A_LE);
-      { Number n = (Number)ARGP;
-	n -= 2;
-	ARGP = (Word)n;
-	if ( !ar_compare(n, n+1, LE) )
-	  BODY_FAILED;
-	ARGP = argFrameP(lTop, 0);
-	NEXT_INSTRUCTION;
-      }
-
-    VMI(A_GT) MARK(A_GT);
-      { Number n = (Number)ARGP;
-	n -= 2;
-	ARGP = (Word)n;
-	if ( !ar_compare(n, n+1, GT) )
-	  BODY_FAILED;
-	ARGP = argFrameP(lTop, 0);
-	NEXT_INSTRUCTION;
-      }
-
-    VMI(A_GE) MARK(A_GE);
-      { Number n = (Number)ARGP;
-	n -= 2;
-	ARGP = (Word)n;
-	if ( !ar_compare(n, n+1, GE) )
-	  BODY_FAILED;
-	ARGP = argFrameP(lTop, 0);
-	NEXT_INSTRUCTION;
-      }
-
-    VMI(A_EQ) MARK(A_EQ);
-      { Number n = (Number)ARGP;
-	n -= 2;
-	ARGP = (Word)n;
-	if ( !ar_compare(n, n+1, EQ) )
-	  BODY_FAILED;
-	ARGP = argFrameP(lTop, 0);
-	NEXT_INSTRUCTION;
-      }
-
-    VMI(A_NE) MARK(A_NE);
-      { Number n = (Number)ARGP;
-	n -= 2;
-	ARGP = (Word)n;
-	if ( !ar_compare(n, n+1, NE) )
-	  BODY_FAILED;
-	ARGP = argFrameP(lTop, 0);
-	NEXT_INSTRUCTION;
-      }
+	if ( rc )
+	  NEXT_INSTRUCTION;
+	BODY_FAILED;
+    VMI(A_LE) MARK(A_LE); cmp = LE; goto acmp;
+    VMI(A_GT) MARK(A_GT); cmp = GT; goto acmp;
+    VMI(A_GE) MARK(A_GE); cmp = GE; goto acmp;
+    VMI(A_EQ) MARK(A_EQ); cmp = EQ; goto acmp;
+    VMI(A_NE) MARK(A_NE); cmp = NE; goto acmp;
+  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Translation of is/2.  The stack has two pushed values: the variable for
@@ -3611,30 +3597,33 @@ the result (a word) and the number holding the result.  For example:
 	n--;				/* pop the number */
 	ARGP = argFrameP(lTop, 0);	/* 1-st argument */
 	deRef2(ARGP, k);
-	if ( n->type == V_REAL && !trueFeature(ISO_FEATURE) )
-	  canoniseNumber(n);		/* whole real --> long */
 
 	if ( canBind(*k) )
-	{ word c;
+	{ word c = put_number(n);
 
-	  if ( intNumber(n) )
-	  { if ( inTaggedNumRange(n->value.i) )
-	      c = consInt(n->value.i);
-	    else
-	      c = globalLong(n->value.i PASS_LD);
-	  } else
-	    c = globalReal(n->value.f);
-
+	  clearNumber(n);
 	  bindConst(k, c);
 #ifdef O_ATTVAR
-	if ( *valTermRef(LD->attvar.head) ) /* can be faster */
-	  goto wakeup;
+	  if ( *valTermRef(LD->attvar.head) ) /* can be faster */
+	    goto wakeup;
 #endif
 	  NEXT_INSTRUCTION;
 	} else
-	{ if ( isInteger(*k) && intNumber(n) && valInteger(*k) == n->value.i )
-	    NEXT_INSTRUCTION;
-	  if ( isReal(*k) && floatNumber(n) && valReal(*k) == n->value.f )
+	{ int rc;
+
+	  if ( isInteger(*k) )
+	  { number left;
+
+	    get_integer(*k, &left);
+	    rc = (cmpNumbers(&left, n) == 0);
+	  } else if ( isReal(*k) )
+	  { rc = (floatNumber(n) && valReal(*k) == n->value.f);
+	  } else
+	  { rc = FALSE;
+	  }
+
+	  clearNumber(n);
+	  if ( rc )
 	    NEXT_INSTRUCTION;
 	}
 

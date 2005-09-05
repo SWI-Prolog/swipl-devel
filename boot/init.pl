@@ -1661,6 +1661,7 @@ $t_body(List, S, SR, C) :-
 	;   C = $append(List, SR, S)
 	).
 $t_body(!, S, S, !) :- !.
+$t_body({}, S, S, true) :- !.
 $t_body({T}, S, SR, (T, SR = S)) :- !.		% (*)
 %$t_body({T}, S, S, T) :- !.			% (*)
 $t_body((T, R), S, SR, (Tt, Rt)) :- !,

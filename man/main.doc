@@ -43,8 +43,8 @@
 #endif
 
 \newcommand{\vmajor}{5}
-\newcommand{\vminor}{5}
-\newcommand{\vpatch}{24}
+\newcommand{\vminor}{7}
+\newcommand{\vpatch}{0}
 \newcommand{\vmonth}{August}
 \newcommand{\vyear}{2005}
 

@@ -969,9 +969,11 @@ If \const{true} (default \const{false}), read translates text between
 backquotes into a string object (see \secref{strings}).  This flag is
 mainly for compatibility to LPA Prolog.
 
-    \prologflagitem{bounded}{true}{r}
-ISO prolog-flag describing integer representation is bound by
-\const{min_integer} and \const{max_integer}.
+    \prologflagitem{bounded}{bool}{r}
+ISO prolog-flag. If \const{true}, integer representation is bound by
+\const{min_integer} and \const{max_integer}.  If \const{false} integers
+can be arbitrary large and the \const{min_integer}
+and \const{max_integer} are not present.  See \secref{artypes}.
 
     \prologflagitem{c_cc}{atom}{r}
 Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
@@ -1169,17 +1171,17 @@ switched off using the configure option \const{--disable-largefile}.%
 ISO prolog-flag describing there is no maximum arity to compound terms.
 
     \prologflagitem{max_integer}{integer}{r}
-Maximum integer value.  Most arithmetic operations will automatically
-convert to floats if integer values above this are returned.
+Maximum integer value if integers are \emph{bounded}.  See also
+the flag \const{bounded} and \secref{artypes}.
 
     \prologflagitem{max_tagged_integer}{integer}{r}
 Maximum integer value represented as a `tagged' value.  Tagged integers
-require 4-bytes storage and are used for indexing.  Larger integers are
-represented as `indirect data' and require 16-bytes on the stacks (though
-a copy requires only 4 additional bytes).
+require 1 word storage.  Larger integers are represented as `indirect data'
+and require significantly more space.
 
     \prologflagitem{min_integer}{integer}{r}
-Minimum integer value.
+Minimum integer value if integers are \emph{bounded}.  See also
+the flag \const{bounded} and \secref{artypes}.
 
     \prologflagitem{min_tagged_integer}{integer}{r}
 Start of the tagged-integer value range.

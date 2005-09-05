@@ -48,6 +48,12 @@ typedef int mode_t;
 #define ASSOCIATE_STATE "qlx"
 #define ASSOCIATE_SRC	"pl"
 
+#define O_GMP 1
+#ifdef O_GMP
+#define HAVE_GMP_H 1
+#define HAVE_LIB_GMP 1
+#endif
+
 #ifdef __LCC__
 #define NO_MS_EXTENSIONS 1
 #else

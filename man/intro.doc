@@ -493,6 +493,13 @@ Christian Holzbaur, brought to SWI-Prolog by Tom Schrijver and Leslie
 De Koninck (\secref{lib:clpr}).
 
 
+\subsection{Version 5.7 Release Notes} \label{sec:rel-5.7}
+
+The version 5.7 development cycle adds unbounded integer and rational
+number arithmetic to SWI-Prolog. This project is sponsored by Scientific
+Software and Systems Limited, \url{www.sss.co.nz}.
+
+
 \section{Donate to the SWI-Prolog project}	\label{sec:sponsor}
 
 If you are happy with SWI-Prolog, you care it to be around for much
@@ -538,3 +545,7 @@ interface package.
 
 Richard O'Keefe is gratefully acknowledged for his efforts to educate
 beginners as well as valuable comments on proposed new developments.
+
+Scientific Software and Systems Limited, \url{www.sss.co.nz} has
+sponsored the development if the SSL library as well as unbounded
+integer and rational number arithmetic.

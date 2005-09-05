@@ -37,10 +37,10 @@
 	    debugging/2,		% ?Topic, ?Bool
 	    list_debug_topics/0,
 
-	    assume/1			% +Goal
+	    assertion/1			% :Goal
 	  ]).
 
-:- meta_predicate(assume(:)).
+:- meta_predicate(assertion(:)).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- dynamic
@@ -120,19 +120,24 @@ debug(_, _, _).
 		 *	      ASSUME		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Assume is like C assert().  Currently  we   trap  the  tracer.  In later
-versions we may employ goal_expansion to provide source-information.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+%	assertion(:Goal)
+%	
+%	Acts similar to C assert() macro.  It has no effect of Goal
+%	succeeds.  If Goal fails it prints a message, a stack-trace
+%	and finally traps the debugger.
+%	
+%	assume/1 is backward compatibility.  The better name assertion
+%	was suggested by Steve Moyle.
 
-assume(G) :-
+assertion(G) :-
 	\+ \+ G, !.			% avoid binding variables
-assume(G) :-
+assertion(G) :-
 	print_message(error, assumption_failed(G)),
+	backtrace(10),
 	trace,
-	assumption_failed.
+	assertion_failed.
 
-assumption_failed.
+assertion_failed.
 
 
 		 /*******************************
@@ -154,11 +159,19 @@ user:goal_expansion((debugging(Topic) -> _ ; true), true) :-
 	;   debug_topic(Topic),
 	    fail
 	).
-user:goal_expansion(assume(G), Goal) :-
+user:goal_expansion(assertion(G), Goal) :-
 	(   current_prolog_flag(optimise, true)
 	->  Goal = true
 	;   expand_goal(G, G2),
-	    Goal = assume(G2)
+	    Goal = assertion(G2)
+	).
+user:goal_expansion(assume(G), Goal) :-
+	print_message(informational,
+		      compatibility(renamed(assume/1, assertion/1))),
+	(   current_prolog_flag(optimise, true)
+	->  Goal = true
+	;   expand_goal(G, G2),
+	    Goal = assertion(G2)
 	).
 
 

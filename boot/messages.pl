@@ -694,6 +694,16 @@ clean_goal(Goal, Goal).
 
 
 		 /*******************************
+		 *	  COMPATIBILITY		*
+		 *******************************/
+
+prolog_message(compatibility(renamed(Old, New))) -->
+	[ 'The predicate ~p has been renamed to ~p.'-[Old, New], nl,
+	  'Please update your sources for compatibility with future versions.'
+	].
+
+
+		 /*******************************
 		 *	      THREADS		*
 		 *******************************/
 
@@ -719,11 +729,15 @@ prolog_message(abnormal_thread_completion(Goal, fail)) -->
 %	system.
 
 print_message(Level, Term) :-
-	translate_message(Term, Lines, []), !,
-	(   nonvar(Term),
-	    notrace(user:message_hook(Term, Level, Lines))
-	->  true
-	;   print_system_message(Term, Level, Lines)
+	(   must_print(Level, Term)
+	->  (   translate_message(Term, Lines, [])
+	    ->  (   nonvar(Term),
+		    notrace(user:message_hook(Term, Level, Lines))
+		->  true
+		;   print_system_message(Term, Level, Lines)
+		)
+	    )
+	;   true
 	).
 
 %	print_system_message(+Term, +Level, +Lines)
@@ -833,4 +847,28 @@ actions_to_format([Term|Tail], Fmt, Args) :-
         atom_concat('~w', Fmt1, Fmt),
         $append([Term], Args1, Args).
 
+
+		 /*******************************
+		 *    MESSAGES TO PRINT ONCE	*
+		 *******************************/
+
+:- dynamic
+	printed/2.
+
+%	print_once(Message, Level)
+%	
+%	True for messages that must be printed only once.
+
+print_once(compatibility(_), _).
+
+%	must_print(+Level, +Message)
+%	
+%	True if the message must be printed.
+
+must_print(Level, Message) :-
+	nonvar(Message),
+	print_once(Message, Level), !,
+	\+ printed(Message, Level),
+	assert(printed(Message, Level)).
+must_print(_, _).
 	

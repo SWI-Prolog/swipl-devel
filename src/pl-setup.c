@@ -110,6 +110,8 @@ setupProlog(void)
   initBuildIns();
   DEBUG(1, Sdprintf("Operators ...\n"));
   initOperators();
+  DEBUG(1, Sdprintf("GMP ...\n"));
+  initGMP();
   DEBUG(1, Sdprintf("Arithmetic ...\n"));
   initArith();
   DEBUG(1, Sdprintf("Tracer ...\n"));

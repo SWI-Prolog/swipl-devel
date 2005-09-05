@@ -523,7 +523,7 @@ host(H) -->
 	hostnumber(H).
 
 hostname(Host) -->
-	hostpart(Part1),
+	ialpha(Part1),
 	(   "."
 	->  hostname(Domain),
 	    { concat_atom([Part1, '.', Domain], Host)
@@ -630,8 +630,11 @@ fragment_chars([C|T]) -->
 fragment_chars([]) -->
 	[].
 
-hostpart(Atom) -->
-	chars(alnum, [C0|S]),
+
+
+ialpha(Atom) -->
+	alphanum(C0),			% JW: official URL demands alpha here
+	xalphas(S),
 	{ atom_codes(Atom, [C0|S])
 	}.
 

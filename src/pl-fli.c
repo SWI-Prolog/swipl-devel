@@ -818,7 +818,7 @@ PL_get_term_value(term_t t, term_value_t *val)
   { case PL_VARIABLE:
       break;
     case PL_INTEGER:
-      val->i = valInteger(w);
+      val->i = valInteger(w);		/* TBD: Handle MPZ integers? */
       break;
     case PL_FLOAT:
       val->f = valReal(w);
@@ -1684,6 +1684,42 @@ PL_is_float(term_t t)
 }
 
 
+static inline int
+isRational(word w ARG_LD)
+{ if ( isTerm(w) )
+  { Functor f = valueTerm(w);
+
+    if ( f->definition == FUNCTOR_rdiv2 )
+    { Word p;
+
+      deRef2(&f->arguments[0], p);
+      if ( !isInteger(*p) )
+	fail;
+      deRef2(&f->arguments[1], p);
+      if ( !isInteger(*p) )
+	fail;
+      if ( *p == consInt(0) )
+	fail;
+
+      return TRUE;
+    }
+  }
+  if ( isInteger(w) )
+    return TRUE;
+
+  return FALSE;
+}
+
+
+int
+PL_is_rational(term_t t)
+{ GET_LD
+  word w = valHandle(t);
+
+  return isRational(w PASS_LD);
+}
+
+
 int
 PL_is_compound(term_t t)
 { GET_LD
@@ -1751,7 +1787,11 @@ PL_is_number(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  return isNumber(w) ? TRUE : FALSE;
+  if ( isInteger(w) ||
+       isReal(w) )
+    return TRUE;
+
+  return FALSE;
 }
 
 
@@ -1927,10 +1967,7 @@ PL_put_int64(term_t t, int64_t i)
 
 void
 _PL_put_number__LD(term_t t, Number n ARG_LD)
-{ if ( intNumber(n) )
-    PL_put_int64(t, n->value.i);
-  else
-    PL_put_float(t, n->value.f);
+{ setHandle(t, put_number(n));
 }
 
 

@@ -9,6 +9,7 @@
 # pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.  If you do not have
 # awk you can propagate the changes by hand, but be careful!
 
+
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -156,6 +157,7 @@ A double_quotes		"double_quotes"
 A doublestar		"**"
 A dprof_node		"$profile_node"
 A dstream		"$stream"
+A dthread_init		"$thread_init"
 A dthrow		"$throw"
 A dwakeup		"$wakeup"
 A dynamic		"dynamic"
@@ -391,6 +393,9 @@ A quiet			"quiet"
 A quote			"quote"
 A quoted		"quoted"
 A random		"random"
+A rational		"rational"
+A rationalize		"rationalize"
+A rdiv			"rdiv"
 A read			"read"
 A read_option		"read_option"
 A readline		"readline"
@@ -477,6 +482,7 @@ A terminal_capability	"terminal_capability"
 A text			"text"
 A thread		"thread"
 A thread_cputime	"thread_cputime"
+A thread_initialization "thread_initialization"
 A thread_local		"thread_local"
 A thread_local_procedure "thread_local_procedure"
 A thread_option		"thread_option"
@@ -557,8 +563,6 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
-A dthread_init		"$thread_init"
-A thread_initialization "thread_initialization"
 
 F abs			1
 F access		1
@@ -577,6 +581,7 @@ F att			3
 F backslash		1
 F bar			2
 F block			3
+F bom			1
 F brace_term_position	3
 F break			1
 F break			3
@@ -613,9 +618,11 @@ F dot			2
 F doublestar		2
 F dprof_node		1
 F dstream		1
+F dthread_init		0
 F dthrow		1
 F dwakeup		1
 F e			0
+F encoding		1
 F end_of_stream		1
 F eof_action		1
 F equals		2
@@ -680,9 +687,13 @@ F prove			1
 F prove			2
 F punct			2
 F random		1
+F rational		1
+F rationalize		1
+F rdiv			2
 F rem			2
 F reposition		1
 F representation_error	1
+F representation_errors 1
 F resource_error	1
 F retry			1
 F round			1
@@ -717,6 +728,7 @@ F traceinterc		3
 F tracing		1
 F true			0
 F truncate		1
+F tty			1
 F type			1
 F type_error		2
 F undefinterc		4
@@ -725,8 +737,3 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
-F tty			1
-F encoding		1
-F representation_errors 1
-F bom			1
-F dthread_init		0

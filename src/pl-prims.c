@@ -31,7 +31,6 @@
 #undef LD
 #define LD LOCAL_LD
 
-static char 	*prependBase(int, char *);
 static void	duplicate_term(term_t in, term_t copy ARG_LD);
 
 
@@ -61,6 +60,12 @@ static
 PRED_IMPL("float", 1, float, 0)
 { return PL_is_float(A1);
 }
+
+static
+PRED_IMPL("rational", 1, rational, 0)
+{ return PL_is_rational(A1);
+}
+
 
 #if O_STRING
 static
@@ -530,16 +535,18 @@ tail_recursion:
 
   if ( t1 != t2 )
   { if ( !trueFeature(ISO_FEATURE) && !eq )
-    { if ( t1 == TAG_INTEGER && t2 == TAG_FLOAT )
-      { real f1 = (real)valInteger(w1);
-	real f2 = valReal(w2);
-  
-	return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
-      } else if ( t1 == TAG_FLOAT && t2 == TAG_INTEGER )
-      { real f1 = valReal(w1);
-	real f2 = (real)valInteger(w2);
-  
-	return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
+    { if ( (t1 == TAG_INTEGER && t2 == TAG_FLOAT) ||
+	   (t1 == TAG_FLOAT && t2 == TAG_INTEGER) )
+      { number left, right;
+	int rc;
+
+	get_number(w1, &left PASS_LD);
+	get_number(w2, &right PASS_LD);
+	rc = cmpNumbers(&left, &right);
+	clearNumber(&left);
+	clearNumber(&right);
+
+	return rc;
       }
     }
 
@@ -553,10 +560,18 @@ tail_recursion:
     cmpvars:
       return p1 < p2 ? LESS : p1 == p2 ? EQUAL : GREATER;
     case TAG_INTEGER:
-    { int64_t l1 = valInteger(w1);
-      int64_t l2 = valInteger(w2);
+    { number n1, n2;
+      int rc;
 
-      return l1 < l2 ? LESS : l1 == l2 ? EQUAL : GREATER;
+      get_integer(w1, &n1);
+      get_integer(w2, &n2);
+      if ( eq && !(n1.type == n2.type) )
+	return NOTEQ;
+      rc = cmpNumbers(&n1, &n2);
+      clearNumber(&n1);
+      clearNumber(&n2);
+
+      return rc;
     }
     case TAG_FLOAT:
     { real f1 = valReal(w1);
@@ -1057,7 +1072,11 @@ setarg(term_t n, term_t term, term_t value, int flags)
     deRef(a);
     a = argTermP(*a, argn-1);
 
-    TrailAssignment(a);
+    if ( isVar(*a) )
+    { return unify_ptrs(valTermRef(value), a PASS_LD);
+    } else
+    { TrailAssignment(a);
+    }
   } else
   { v = valTermRef(value);
     deRef(v);
@@ -1926,96 +1945,6 @@ pl_atom_length(term_t w, term_t n)
 }
 
 
-static char *
-prependBase(int b, char *s)
-{ *s-- = '\'';
-  while(b > 0)
-  { *s-- = digitName(b % 10, TRUE);
-    b /= 10;
-  }
-
-  return s;
-}
-
-word
-pl_int_to_atom(term_t number, term_t base, term_t atom)
-{ int n, b;
-  char result[100];
-  char *s = &result[99];
-
-  *s-- = EOS;
-  if ( !PL_get_integer(number, &n) ||
-       !PL_get_integer(base, &b) )
-    return warning("int_to_atom/3: instantiation fault");
-
-  if ( b == 0 && n > 0 && n < 256 )
-  { *s-- = (char) n;
-    *s-- = '\'';
-    *s = '0';
-    return PL_unify_atom_chars(atom, s);
-  }
-
-  if ( b > 36 || b < 2 )
-    return warning("int_to_atom/3: Illegal base: %d", b);
-
-  if ( n == 0 )
-  { *s-- = '0';
-  } else
-  { while( n > 0 )
-    { *s-- = digitName((int)(n % b), TRUE);
-      n /= b;
-    }
-  }
-  if ( b != 10 )
-    s = prependBase(b, s);
-
-  return PL_unify_atom_chars(atom, s+1);
-}
-
-/*  format an integer according to  a  number  of  modifiers  at various
-    radius.   `split'  is a boolean asking to put ',' between each group
-    of three digits (e.g. 67,567,288).  `div' askes to divide the number
-    by radix^`div' before printing.   `radix'  is  the  radix  used  for
-    conversion.  `n' is the number to be converted.
-
- ** Fri Aug 19 22:26:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
-
-char *
-formatInteger(bool split, int div, int radix, bool small, int64_t n,
-	      char *out)
-{ char tmp[100];
-  char *s = &tmp[sizeof(tmp)-1];	/* i.e. start at the end */
-  int before = (div == 0);
-  int digits = 0;
-  bool negative = FALSE;
-
-  *s = EOS;
-  if ( n < 0 )
-  { n = -n;
-    negative = TRUE;
-  }
-  if ( n == 0 && div == 0 )
-  { out[0] = '0';
-    out[1] = EOS;
-    return out;
-  }
-  while( n > 0 || div >= 0 )
-  { if ( div-- == 0 && !before )
-    { *--s = '.';
-      before = 1;
-    }
-    if ( split && before && (digits++ % 3) == 0 && digits != 1 )
-      *--s = ',';
-    *--s = digitName((int)(n % radix), small);
-    n /= radix;
-  }
-  if ( negative )
-    *--s = '-';  
-
-  return strcpy(out, s);
-}	  
-
-
 #define X_AUTO   0x00
 #define X_ATOM   0x01
 #define X_NUMBER 0x02
@@ -2085,8 +2014,8 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
     { number n;
       unsigned char *q;
 
-      if ( s && get_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
-	return unifyNumber(atom, &n);
+      if ( s && str_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
+	return PL_unify_number(atom, &n);
       if ( how == X_AUTO )
 	goto case_atom;
       else
@@ -2157,8 +2086,8 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
   { number n;
     unsigned char *q;
 
-    if ( get_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
-      return unifyNumber(A2, &n);
+    if ( str_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
+      return PL_unify_number(A2, &n);
     else
       return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
   } else if ( PL_get_nchars(A2, &len, &s, CVT_NUMBER) )
@@ -3316,7 +3245,7 @@ pl_statistics_ld(term_t k, term_t value, PL_local_data_t *ld ARG_LD)
   if ( !PL_is_list(value) )
   { switch(swi_statistics__LD(key, &result, ld))
     { case TRUE:
-	return unifyNumber(value, &result);
+	return PL_unify_number(value, &result);
       case FALSE:
 	fail;
       case -1:
@@ -3509,7 +3438,7 @@ set_pl_option(const char *name, const char *value)
 	  number n;
 	  unsigned char *q;
 
-	  if ( get_number((unsigned char *)value, &q, &n, FALSE) &&
+	  if ( str_number((unsigned char *)value, &q, &n, FALSE) &&
 	       *q == EOS &&
 	       intNumber(&n) )
 	  { *val = (long)n.value.i;
@@ -3564,6 +3493,7 @@ BeginPredDefs(prims)
   PRED_DEF("var", 1, var, 0)
   PRED_DEF("integer", 1, integer, 0)
   PRED_DEF("float", 1, float, 0)
+  PRED_DEF("rational", 1, rational, 0)
   PRED_DEF("number", 1, number, 0)
   PRED_DEF("arg", 3, arg, PL_FA_NONDETERMINISTIC)
   PRED_DEF("atomic", 1, atomic, 0)

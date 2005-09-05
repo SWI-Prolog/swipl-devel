@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.27/XPCE 6.5.27 development release
+SWI-Prolog 5.5.28/XPCE 6.5.28 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -58,26 +58,24 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.27 relative to 5.5.26
+Patches in 5.5.28 relative to 5.5.27
 ====================================
 
-  * FIXED: handling @ in format/3.
-
-  * FIXED: Indexing error in large negative integers.  Introduced with
-    64-bit arithmetic.
-
-  * FIXED: PL_unify_pointer()/PL_get_pointer().
-
-  * FIXED: parsing hostnames in library(url).
-
+ * Added unbound integer and rational arithmetic support
+ * MODIFIED: renamed assume/1 to assertion/1.  Suggested by Steve Moyle.
+   The debug library issues a compatibility warning for assume/1.
+ * MODIFIED: Dropped int_to_atom/3.  Considered non-standard and absolete.
+   New code can use atom_number/2 for decimal numbers or sformat/3 for
+   arbitrary conversions.
+ * Unicode fix for win_shell/[2,3]
+ * Bug in format using ~@
 
 Packages
 ========
+ 
+ * XPCE: handle unicode Prolog string objects, added `dropshadow' support
+   for popup windows in XP, support `big' icons in Windows.
 
-  * XPCE Fixed `menu->selection' for single-selection menus, PceEmacs
-    colourisation issues for missing files and encoding issue in
-    `file->kind'.
-  
 Incompatible changes
 ====================
 

@@ -151,6 +151,7 @@ typedef struct
 #define PL_TYPE_ATTVAR		(12)	/* Attributed variable */
 #define PL_REC_ALLOCVAR		(13)	/* Allocate a variable on global */
 #define PL_REC_CYCLE		(14)	/* cyclic reference */
+#define PL_REC_MPZ		(15)	/* GMP integer */
 
 #define addUnalignedBuf(b, ptr, type) \
 	do \
@@ -385,13 +386,29 @@ right_recursion:
       if ( isTaggedInt(w) )
       { val = valInt(w);
 	addOpCode(info, PL_TYPE_TAGGED_INTEGER);
+	addInt64(info, val);
       } else
-      { info->size += sizeof(int64_t)/sizeof(word) + 2;
-	val = valBignum(w);
-	addOpCode(info, PL_TYPE_INTEGER);
+      { number n;
+
+	info->size += wsizeofIndirect(w) + 2;
+
+	get_integer(w, &n);
+	switch(n.type)
+	{ case V_INTEGER:
+	    addOpCode(info, PL_TYPE_INTEGER);
+	    addInt64(info, n.value.i);
+	    break;
+#ifdef O_GMP
+	  case V_MPZ:
+	    addOpCode(info, PL_REC_MPZ);
+	    addMPZToBuffer((Buffer)&info->code, n.value.mpz);
+	    break;
+#endif
+  	  default:
+	    assert(0);
+	}
       }
       
-      addInt64(info, val);
       return;
     }
     case TAG_STRING:
@@ -868,6 +885,13 @@ right_recursion:
 
       return;
     }
+#ifdef O_GMP
+    case PL_REC_MPZ:
+    { b->data = loadMPZFromCharp(b->data, p, &b->gstore);
+
+      return;
+    }
+#endif
     case PL_TYPE_FLOAT:
     case PL_TYPE_EXT_FLOAT:
     { *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
@@ -1030,6 +1054,11 @@ right_recursion:
     { skipLong(b);
       return;
     }
+#ifdef O_GMP
+    case PL_REC_MPZ:
+      b->data = skipMPZOnCharp(b->data);
+      return;
+#endif
     case PL_TYPE_FLOAT:
     case PL_TYPE_EXT_FLOAT:
     { skipBuf(b, double);

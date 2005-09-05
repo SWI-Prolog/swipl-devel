@@ -125,6 +125,11 @@ if test "$segvhandling" = "no"; then
   AC_DEFINE(NO_SEGV_HANDLING)
 fi
 
+AC_ARG_ENABLE(gmp, [  --disable-gmp		  Disable Multi-precision arithmetic],
+	      configgmp="$enableval",
+	      configgmp=yes)
+
+
 dnl ****************************************************************
 dnl Setup PLBASE.  Need to expand prefix first as this isn't yet set. Yek
 dnl ****************************************************************
@@ -487,7 +492,7 @@ AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
 AC_CHECK_HEADERS(malloc.h sys/stropts.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h locale.h)
-AC_CHECK_HEADERS(floatingpoint.h SupportDefs.h)
+AC_CHECK_HEADERS(float.h floatingpoint.h SupportDefs.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
@@ -506,6 +511,11 @@ AC_FUNC_VFORK
 AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(int,  4)
 AC_CHECK_SIZEOF(long long, 8)
+
+if test "$configgmp" = "yes"; then
+  AC_CHECK_HEADERS(gmp.h)
+  AC_CHECK_LIB(gmp, main)
+fi
 
 AC_DEFINE(INT64_FORMAT, ["%lld"],
 	  [printf format for int64_t datatype])

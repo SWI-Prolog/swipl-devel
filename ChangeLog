@@ -7,18 +7,67 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-================================
-VERSION 5.5.27 (August 23, 2005)
-================================
+
+===================================
+VERSION 5.5.28 (September 05, 2005)
+===================================
+
+  * FIXED: Bug#82: Make win_shell/[2,3] Unicode aware.  Dmitry.
+
+  * MODIFIED: renamed assume/1 to assertion/1.  Suggested by Steve Moyle.
+    The debug library issues a compatibility warning for assume/1.
+
+  * MODIFIED: Translate {} in DCG to true.  Allows for
+    t --> {/*comment*/}, ... without error.  Michael Mueller.
+
+  * PORT: Added Slackware package management targets.  John Poplett.
+
+  * FIXED: Safe 64-bit integer multiplication before moving to bignum
+    or error.  With help from Bart Demoen.
+
+  * MODIFIED: No longer convert the result of arithmetic that is float
+    but happens to be an integer into the integer.  This habbit was not
+    ISO compatible and critized too often.
+
+  * ADDED: is_stream/1.  Jocelyn Paine.
+
+  * FIXED: Bug#80: floor/1 and ceil/1 functions to create a big integer
+    instead of an integer overflow exception.  Holger Kanwischer.
+
+  * FIXED: Bug#78: documentation of bounded, max_integer and min_integer
+    flags.  Holger Kanwischer.
+
+  * ADDED: function rationalize/1, predicate rational/1.  Make number/1
+    succeed on rational numbers.
+
+  * MODIFIED: renamed rat/1 to rational/1.
+
+  * FIXED: abs/1 on integers (caused by gmp changes).
+
+  * FIXED: make function integer/1 rational-aware.  Lyosha Ilyukhin.
+
+  * FIXED: converting `whole' rationals to integers.  Lyosha Ilyukhin.
+
+  * FIXED: increment save-version of qlf-files as new instructions for GMP
+    causes incompatibilities.
+
+  * FIXED: Crash in retract/1 (caused by gmp changes).
 
   * FIXED: handling @ in format/3.  David Duke.
 
-  * FIXED: Indexing error in large negative integers.  Introduced with
-    64-bit arithmetic.
+  * FIXED: format ~f for rational numbers loosing digits.  Lyosha Ilyukhin.
 
-  * FIXED: PL_unify_pointer()/PL_get_pointer().  Paul Singleton.
+  * ADDED: Allow format arguments to ~d, ~D, ~f, ~g, ~e to be arithmetic
+    expressions (allows passing in rational values).
 
-  * FIXED: parsing hostnames in library(url).
+  * MODIFIED: Dropped int_to_atom/3.  Considered non-standard and absolete.
+    New code can use atom_number/2 for decimal numbers or sformat/3 for
+    arbitrary conversions.
+
+  * FIXED: Hack in clp/bounds.pl to fake +/- infinite.
+
+  * ADDED: Elementary support for infinite precision arithmetic based on
+    the GNU gmp library.
 
 ================================
 VERSION 5.5.26 (August 12, 2005)

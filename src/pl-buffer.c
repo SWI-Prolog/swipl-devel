@@ -29,6 +29,9 @@ growBuffer(Buffer b, size_t minfree)
 { size_t osz = b->max - b->base, sz = osz;
   size_t top = b->top - b->base;
 
+  if ( b->max - b->top >= (int)minfree )
+    return;
+
   if ( sz < 512 )
     sz = 512;				/* minimum reasonable size */
   while( top + minfree > sz )

@@ -59,7 +59,7 @@ OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-write.obj pl-term.obj pl-buffer.obj pl-thread.obj \
 	pl-xterm.obj pl-feature.obj pl-ctype.obj pl-main.obj \
 	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj pl-btree.obj \
-	pl-utf8.obj pl-text.obj pl-mswchar.obj
+	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj
 
 PLINIT=	$(PB)/init.pl
 
@@ -120,7 +120,7 @@ banner:
 		@echo ****************
 
 $(PLLIB):	$(OBJ) $(LOCALLIB)
-		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(LIBS) winmm.lib $(DBGLIBS)
+		$(LD) $(LDFLAGS) /dll /out:$(PLDLL) /implib:$@ $(OBJ) $(LOCALLIB) $(LIBS) winmm.lib gmp.lib $(DBGLIBS)
 
 $(PLCON):	$(PLLIB) pl-ntcon.obj
 		$(LD) $(LDFLAGS) /subsystem:console /out:$@ pl-ntcon.obj $(PLLIB)

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.28, distributed with SWI-Prolog 5.5.28
+==================================================
+	
 * FIXED: Bug#85: conversion of unicode SWI-Prolog string objects to
   XPCE strings.  Dmitry.
 

@@ -792,11 +792,17 @@ initFeatures()
   defFeature("editor",		   FT_ATOM, "$EDITOR");
   defFeature("debugger_show_context", FT_BOOL, FALSE, 0);
   defFeature("autoload",  FT_BOOL, TRUE,  AUTOLOAD_FEATURE);
+#ifndef O_GMP
   defFeature("max_integer",	   FT_INT64|FF_READONLY, PLMAXINT);
   defFeature("min_integer",	   FT_INT64|FF_READONLY, PLMININT);
+#endif
   defFeature("max_tagged_integer", FT_INTEGER|FF_READONLY, PLMAXTAGGEDINT);
   defFeature("min_tagged_integer", FT_INTEGER|FF_READONLY, PLMINTAGGEDINT);
+#ifdef O_GMP
+  defFeature("bounded",		   FT_BOOL|FF_READONLY,	   FALSE, 0);
+#else
   defFeature("bounded",		   FT_BOOL|FF_READONLY,	   TRUE, 0);
+#endif
   if ( (-3 / 2) == -2 )
     defFeature("integer_rounding_function", FT_ATOM|FF_READONLY, "down");
   else

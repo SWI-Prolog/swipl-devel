@@ -121,6 +121,8 @@ handy for it someone wants to add a data type to the system.
       requires O_DESTRUCTIVE_ASSIGNMENT.
   O_CYCLIC
       Provide support for cyclic terms.
+  O_GMP
+      Use GNU gmp library for infinite precision arthmetic
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define PL_KERNEL		1
@@ -144,6 +146,9 @@ handy for it someone wants to add a data type to the system.
 #define O_ATTVAR		1
 #define O_GVAR			1
 #define O_CYCLIC		1
+#ifdef HAVE_GMP_H
+#define O_GMP			1
+#endif
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
@@ -279,6 +284,10 @@ void *alloca ();
 #ifdef HAVE_SYS_MALLOC_H
 #include <sys/malloc.h>
 #endif
+#endif
+
+#ifdef O_GMP
+#include <gmp.h>
 #endif
 
 #if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
@@ -627,71 +636,72 @@ codes.
 #define A_ENTER		((code)40)		/* start arithmetic sequence */
 #define A_INTEGER	((code)41)		/* 32-bit signed int */
 #define A_INT64		((code)42)		/* 64-bit signed int */
-#define A_DOUBLE	((code)43)		/* 64-bit double */
-#define A_VAR0		((code)44)		/* variable-0 */
-#define A_VAR1		((code)45)		/* variable-1 */
-#define A_VAR2		((code)46)		/* variable-2 */
-#define A_VAR		((code)47)		/* variable-n */
-#define A_FUNC0		((code)48)		/* nullary arithmic function */
-#define A_FUNC1		((code)49)		/* unary arithmic function */
-#define A_FUNC2		((code)50)		/* binary arithmic function */
-#define A_FUNC		((code)51)		/* n-ary arithmic function */
-#define A_LT		((code)52)		/* < */
-#define A_GT		((code)53)		/* > */
-#define A_LE		((code)54)		/* =< */
-#define A_GE		((code)55)		/* >= */
-#define A_EQ		((code)56)		/* =:= */
-#define A_NE		((code)57)		/* =\= */
-#define A_IS		((code)58)		/* is */
+#define A_MPZ		((code)43)		/* GMP mpz_t */
+#define A_DOUBLE	((code)44)		/* 64-bit double */
+#define A_VAR0		((code)45)		/* variable-0 */
+#define A_VAR1		((code)46)		/* variable-1 */
+#define A_VAR2		((code)47)		/* variable-2 */
+#define A_VAR		((code)48)		/* variable-n */
+#define A_FUNC0		((code)49)		/* nullary arithmic function */
+#define A_FUNC1		((code)50)		/* unary arithmic function */
+#define A_FUNC2		((code)51)		/* binary arithmic function */
+#define A_FUNC		((code)52)		/* n-ary arithmic function */
+#define A_LT		((code)53)		/* < */
+#define A_GT		((code)54)		/* > */
+#define A_LE		((code)55)		/* =< */
+#define A_GE		((code)56)		/* >= */
+#define A_EQ		((code)57)		/* =:= */
+#define A_NE		((code)58)		/* =\= */
+#define A_IS		((code)59)		/* is */
 #endif /* O_COMPILE_ARITH */
 
 #if O_COMPILE_OR
-#define C_OR		((code)59)		/* In-clause backtract point */
-#define C_JMP		((code)60)		/* Jump over code */
-#define C_MARK		((code)61)		/* Sub-clause cut mark */
-#define C_CUT		((code)62)		/* cut to corresponding mark */
-#define C_IFTHENELSE	((code)63)		/* if-then-else start */
-#define C_VAR		((code)64)		/* make a variable */
-#define C_END		((code)65)		/* dummy to help decompiler */
-#define C_NOT		((code)66)		/* same as C_IFTHENELSE */
-#define C_FAIL		((code)67)		/* fail */
+#define C_OR		((code)60)		/* In-clause backtract point */
+#define C_JMP		((code)61)		/* Jump over code */
+#define C_MARK		((code)62)		/* Sub-clause cut mark */
+#define C_CUT		((code)63)		/* cut to corresponding mark */
+#define C_IFTHENELSE	((code)64)		/* if-then-else start */
+#define C_VAR		((code)65)		/* make a variable */
+#define C_END		((code)66)		/* dummy to help decompiler */
+#define C_NOT		((code)67)		/* same as C_IFTHENELSE */
+#define C_FAIL		((code)68)		/* fail */
 #endif /* O_COMPILE_OR */
 
-#define B_INDIRECT	((code)68)		/* INDIRECT in body */
+#define B_INDIRECT	((code)69)		/* INDIRECT in body */
 
 #if O_BLOCK
-#define I_CUT_BLOCK	((code)69)		/* !(block) */
-#define B_EXIT		((code)70)		/* exit(block, rval) */
+#define I_CUT_BLOCK	((code)70)		/* !(block) */
+#define B_EXIT		((code)71)		/* exit(block, rval) */
 #endif /*O_BLOCK*/
 
 #if O_INLINE_FOREIGNS
-#define I_CALL_FV0	((code)71)		/* call foreign, no args */
-#define I_CALL_FV1	((code)72)		/* call foreign, 1 var arg */
-#define I_CALL_FV2	((code)73)		/* call foreign, 2 var args */
+#define I_CALL_FV0	((code)72)		/* call foreign, no args */
+#define I_CALL_FV1	((code)73)		/* call foreign, 1 var arg */
+#define I_CALL_FV2	((code)74)		/* call foreign, 2 var args */
 #endif /*O_INLINE_FOREIGNS*/
 
-#define I_FAIL		((code)74)		/* fail */
-#define I_TRUE		((code)75)		/* true */
+#define I_FAIL		((code)75)		/* fail */
+#define I_TRUE		((code)76)		/* true */
 
 #ifdef O_SOFTCUT
-#define C_SOFTIF	((code)76)		/* Start A *-> B ; C */
-#define C_SOFTCUT	((code)77)		/* `Cut' of A *-> B ; C */
+#define C_SOFTIF	((code)77)		/* Start A *-> B ; C */
+#define C_SOFTCUT	((code)78)		/* `Cut' of A *-> B ; C */
 #endif /*O_SOFTCUT*/
 
-#define I_EXITFACT	((code)78)		/* exit from a fact */
-#define D_BREAK		((code)79)		/* Debugger break-point */
+#define I_EXITFACT	((code)79)		/* exit from a fact */
+#define D_BREAK		((code)80)		/* Debugger break-point */
 
 #if O_CATCHTHROW
-#define I_CATCH		((code)80)		/* $catch (catch/3) */
-#define B_THROW		((code)81)		/* throw(Exception) */
+#define I_CATCH		((code)81)		/* $catch (catch/3) */
+#define B_THROW		((code)82)		/* throw(Exception) */
 #endif
 
-#define I_CONTEXT	((code)82)		/* Push context module */
-#define C_LCUT		((code)83)		/* ! local in \+ and -> */
-#define I_CALLCLEANUP	((code)84)		/* $call_cleanup */
-#define I_EXITCLEANUP	((code)85)		/* $exit_cleanup */
+#define I_CONTEXT	((code)83)		/* Push context module */
+#define C_LCUT		((code)84)		/* ! local in \+ and -> */
+#define I_CALLCLEANUP	((code)85)		/* $call_cleanup */
+#define I_EXITCLEANUP	((code)86)		/* $exit_cleanup */
 
-#define I_HIGHEST	((code)85)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)86)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -883,20 +893,32 @@ typedef struct feature *	Feature; 	/* pl-prims.c */
 		 *	    ARITHMETIC		*
 		 *******************************/
 
+/* the numtype enum requires total ordering.
+*/
+
+typedef enum
+{ V_INTEGER,				/* integer (64-bit) value */
+#ifdef O_GMP    
+  V_MPZ,				/* mpz_t */
+  V_MPQ,				/* mpq_t */
+#endif
+  V_REAL				/* Floating point number (double) */
+} numtype;
+
 typedef struct
-{ int	type;				/* type of number */
-  union { real  f;			/* value as real */
-	  int64_t  i;			/* value as integer */
+{ numtype type;				/* type of number */
+  union { double f;			/* value as real */
+	  int64_t i;			/* value as integer */
 	  word  w[WORDS_PER_DOUBLE];	/* for packing/unpacking the double */
+#ifdef O_GMP
+	  mpz_t mpz;			/* GMP integer */
+	  mpq_t mpq;			/* GMP rational */
+#endif
 	} value;
 } number, *Number;
 
-#define V_INTEGER	0		/* integer (64-bit) value */
-#define V_REAL		1		/* just a real */
-#define V_EXPLICIT_REAL 3		/* explicely specified real */
-
-#define intNumber(n)	((n)->type == V_INTEGER)
-#define floatNumber(n)	((n)->type & V_REAL)
+#define intNumber(n)	((n)->type <  V_REAL)
+#define floatNumber(n)	((n)->type >= V_REAL)
 
 		 /*******************************
 		 *	   GET-PROCEDURE	*
@@ -1262,6 +1284,7 @@ struct clause_ref
 #define CA1_STRING	7	/* inlined string */
 #define CA1_MODULE	8	/* a module */
 #define CA1_VAR		9	/* a variable(-offset) */
+#define CA1_MPZ	       10	/* GNU mpz number */
 
 typedef struct
 { char		*name;		/* name of the code */
@@ -2121,6 +2144,7 @@ decrease).
 #include "pl-global.h"			/* global data */
 #include "pl-funcs.h"			/* global functions */
 #include "pl-text.h"			/* text manipulation */
+#include "pl-gmp.h"			/* GNU-GMP support */
 
 #ifdef __DECC				/* Dec C-compiler: avoid conflicts */
 #undef leave
