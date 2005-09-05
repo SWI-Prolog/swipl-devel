@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#85: conversion of unicode SWI-Prolog string objects to
+  XPCE strings.  Dmitry.
+
 * FIXED: Bug#81: dynamically deal with dropshadow setting for popup frames
   to avoid crash on windows versions older than XP. Holger Kanwischer.
 

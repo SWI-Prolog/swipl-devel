@@ -502,7 +502,6 @@ static PL_dispatch_hook_t	old_dispatch_hook;
 #define AtomCharp(a)		PL_atom_chars((a))
 #define GetInteger(a, i)	PL_get_long((a), (i))
 #define GetAtom(a, n)		PL_get_atom((a), (n))
-#define GetString(t, s, l)	PL_get_string((t), (s), (l))
 #define GetFloat(a, f)		PL_get_float((a), (f))
 #define NewTerm()		PL_new_term_ref()
 #define CopyTerm(t)		PL_copy_term_ref(t)
@@ -1558,9 +1557,13 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 
 #ifdef O_STRING
   { char *s;
+    wchar_t *w;
     int len;
-    if ( GetString(t, &s, &len) )	/* string object (if supported) */
+
+    if ( PL_get_string(t, &s, &len) )	/* string object (if supported) */
       return cToPceStringA(atomToAssoc(assoc), s, len, FALSE);
+    if ( PL_get_wchars(t, &len, &w, CVT_STRING) )
+      return cToPceStringW(atomToAssoc(assoc), w, len, FALSE);
   }
 #endif
 
