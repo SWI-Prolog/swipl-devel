@@ -171,14 +171,20 @@ accept_server(SSL, Goal, Options) :-
 	memberchk(ssl_instance(SSL), Options), !,
 	option(queue(Queue), Options, http_client),
 	repeat,
-	  ssl_accept(SSL, Client, Peer),
+	  catch(ssl_accept(SSL, Client, Peer), E,
+		(   print_message(error, E),
+		    fail
+		)),
 	  debug(connection, 'New HTTPS connection from ~p', [Peer]),
 	  thread_send_message(Queue, ssl_client(SSL, Client, Goal, Peer)),
 	fail.
 accept_server(Socket, Goal, Options) :-
 	option(queue(Queue), Options, http_client),
 	repeat,
-	  tcp_accept(Socket, Client, Peer),
+	  catch(tcp_accept(Socket, Client, Peer), E,
+		(   print_message(error, E),
+		    fail
+		)),
 	  debug(connection, 'New HTTP connection from ~p', [Peer]),
 	  thread_send_message(Queue, tcp_client(Client, Goal, Peer)),
 	fail.

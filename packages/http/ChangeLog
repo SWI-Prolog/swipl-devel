@@ -1,3 +1,7 @@
+Sep 6, 2005
+
+  * FIXED: handle error in tcp_accept/3 gracefully.
+
 Sep 5, 2005
 
   * ADDED: method(head) --> "HEAD".  Matt Lilley.
