@@ -1,11 +1,15 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#87: conversion of wide-string to source_location object.
+  Dmitry.
+
 * ADDED: Partial support for creating proper PostScript from masked
   colour images (often used as icons).
 
 * FIXED: crash in `graphical<-postscript' for graphicals with zero width
   and/or height (sometimes used to fill space).
+
 
 VERSION 6.5.28, distributed with SWI-Prolog 5.5.28
 ==================================================
@@ -18,6 +22,7 @@ VERSION 6.5.28, distributed with SWI-Prolog 5.5.28
 
 * ADDED: Bug#79: `frame->icon' also sets the Windows `big' icon.
   Holger Kanwischer.
+
 
 VERSION 6.5.27, distributed with SWI-Prolog 5.5.27
 ==================================================

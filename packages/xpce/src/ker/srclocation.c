@@ -61,17 +61,36 @@ getConvertSourceLocation(SourceLocation loc, Any spec)
     if ( abs )
       answer(newObject(ClassSourceLocation, abs, EAV));
   } else /* if ( instanceOfObject(spec, ClassCharArray) */
-  { char buf[MAXPATHLEN];
-    int line;
-    CharArray ca = spec;
+  { CharArray ca = spec;
     String s = &ca->data;
+    int i;
 
-    if ( isstrA(s) )
-    { if ( sscanf((char *)s->s_text, "%[^: ]:%d", buf, &line) == 2 )
-	answer(newObject(ClassSourceLocation, CtoName(buf), toInt(line), EAV));
-      else
-	answer(newObject(ClassSourceLocation, spec, EAV));
+    if ( (i=str_rindex(s, ':')) > 0 )
+    { char lb[20];
+      int j;
+      string fn;
+
+      i++;
+      for(j=0; j<sizeof(lb)-1 && i+j<s->size; j++)
+      { int c = str_fetch(s, i+j);
+
+	if ( isdigit(c) )
+	  lb[j] = c;
+	else
+	  goto noline;
+      }
+      if ( j == 0 || j >= sizeof(lb)-1 )
+	goto noline;
+
+      lb[j] = EOS;
+      fn = *s;
+      fn.size = i-1;
+      answer(newObject(ClassSourceLocation,
+		       StringToName(&fn), toInt(atol(lb)), EAV));
     }
+
+    noline:
+    answer(newObject(ClassSourceLocation, spec, EAV));
   }
 
   fail;
