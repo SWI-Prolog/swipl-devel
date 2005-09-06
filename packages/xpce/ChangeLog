@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: crash in `graphical<-postscript' for graphicals with zero width
+  and/or height (sometimes used to fill space).
+
 VERSION 6.5.28, distributed with SWI-Prolog 5.5.28
 ==================================================
 	

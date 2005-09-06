@@ -2949,20 +2949,24 @@ extern status postscriptGraphical(Any obj);
 
 static status
 drawPostScriptGraphical(Graphical gr)
-{ Image i;
+{ if ( gr->area->w != ZERO && gr->area->h != ZERO )
+  { Image i;
 
-  if ( (i=checkType(gr, nameToType(NAME_image), gr)) )
-  { BitmapObj bm = answerObject(ClassBitmap, i, EAV);
-    
-    setGraphical(bm, gr->area->x, gr->area->y, DEFAULT, DEFAULT);
-    send(bm, NAME_DrawPostScript, EAV);
-    doneObject(bm);
-    doneObject(i);
+    if ( (i=checkType(gr, nameToType(NAME_image), gr)) )
+    { BitmapObj bm = answerObject(ClassBitmap, i, EAV);
+      
+      setGraphical(bm, gr->area->x, gr->area->y, DEFAULT, DEFAULT);
+      send(bm, NAME_DrawPostScript, EAV);
+      doneObject(bm);
+      doneObject(i);
+  
+      succeed;
+    }
 
-    succeed;
+    fail;
   }
 
-  fail;
+  succeed;
 }
 
 		 /*******************************
