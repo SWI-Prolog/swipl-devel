@@ -238,7 +238,7 @@ COMMON(EventObj)	CtoEvent(Any window, XEvent *event);
 COMMON(unsigned long)   getPixelColour(Colour c, DisplayObj d);
 COMMON(void)		setXImageImage(Image image, XImage *i);
 COMMON(int)		shift_for_mask(unsigned long mask);
-COMMON(status)		postscriptXImage(XImage *im,
+COMMON(status)		postscriptXImage(XImage *im, XImage *mask,
 					 int x, int y, int w, int h,
 					 Display *disp, Colormap cmap,
 					 int depth,

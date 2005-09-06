@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Partial support for creating proper PostScript from masked
+  colour images (often used as icons).
+
 * FIXED: crash in `graphical<-postscript' for graphicals with zero width
   and/or height (sometimes used to fill space).
 

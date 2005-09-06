@@ -232,7 +232,7 @@ shift_for_mask(unsigned long mask)
 
 
 status
-postscriptXImage(XImage *im,
+postscriptXImage(XImage *im, XImage *mask,
 		 int fx, int fy, int w, int h,
 		 Display *disp,
 		 Colormap cmap,
@@ -290,7 +290,11 @@ postscriptXImage(XImage *im,
     { for(x = fx; x < w8; x++)
       { int pixval;
 	
-	pixval = (x < w ? psmap[XGetPixel(im, x, y)] : psbright);
+	if ( mask && XGetPixel(mask, x, y) == 0L )
+	  pixval = psbright;
+	else
+	  pixval = (x < w ? psmap[XGetPixel(im, x, y)] : psbright);
+
 	put_value(&stat, pixval);
       }
     } else
@@ -307,32 +311,42 @@ postscriptXImage(XImage *im,
 	int pixval;
 	int r, g, b;
 
-	pixel = XGetPixel(im, x, y);
-	r = (pixel & im->red_mask)   >> r_shift;
-	g = (pixel & im->green_mask) >> g_shift;
-	b = (pixel & im->blue_mask)  >> b_shift;
-	DEBUG(NAME_image, Cprintf(" %x/%x/%x", r, g, b));
-
-	if ( depth == 1 )
-	{ if ( r+g+b > (r_bright+g_bright+b_bright)/2 )
-	    pixval = 1;
-	  else
-	    pixval = 0;
-
-	  put_value(&stat, pixval);
-	} else
-	{ r = rescale(r, r_bright, psbright);
-	  g = rescale(g, g_bright, psbright);
-	  b = rescale(b, b_bright, psbright);
-
-	  if ( iscolor )
-	  { put_value(&stat, r);
-	    put_value(&stat, g);
-	    put_value(&stat, b);
+	if ( mask && XGetPixel(mask, x, y) == 0L )
+	{ if ( iscolor )
+	  { put_value(&stat, psbright);
+	    put_value(&stat, psbright);
+	    put_value(&stat, psbright);
 	  } else
-	  { pixval = (x < w ? INTENSITY(r, g, b) : psbright);
-	  
+	  { put_value(&stat, psbright);
+	  }
+	} else
+	{ pixel = XGetPixel(im, x, y);
+	  r = (pixel & im->red_mask)   >> r_shift;
+	  g = (pixel & im->green_mask) >> g_shift;
+	  b = (pixel & im->blue_mask)  >> b_shift;
+	  DEBUG(NAME_image, Cprintf(" %x/%x/%x", r, g, b));
+  
+	  if ( depth == 1 )
+	  { if ( r+g+b > (r_bright+g_bright+b_bright)/2 )
+	      pixval = 1;
+	    else
+	      pixval = 0;
+  
 	    put_value(&stat, pixval);
+	  } else
+	  { r = rescale(r, r_bright, psbright);
+	    g = rescale(g, g_bright, psbright);
+	    b = rescale(b, b_bright, psbright);
+  
+	    if ( iscolor )
+	    { put_value(&stat, r);
+	      put_value(&stat, g);
+	      put_value(&stat, b);
+	    } else
+	    { pixval = (x < w ? INTENSITY(r, g, b) : psbright);
+	    
+	      put_value(&stat, pixval);
+	    }
 	  }
 	}
       }

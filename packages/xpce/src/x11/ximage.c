@@ -1017,13 +1017,23 @@ ws_postscript_image(Image image, Int depth, int iscolor)
   if ( i && i->f.get_pixel )
   { DisplayObj d = image->display;
     DisplayWsXref r;
+    XImage *mask = NULL;
 
     if ( isNil(d) )
       d = CurrentDisplay(image);
     openDisplay(d);
     r = d->ws_ref;
 
-    postscriptXImage(i,
+    if ( notNil(image->mask) )
+    { mask = getXImageImage(image->mask);
+      if ( mask->f.get_pixel )
+      { DEBUG(NAME_mask, Cprintf("%s: using mask\n", pp(image)));
+      } else
+      { mask = NULL;
+      }
+    }
+
+    postscriptXImage(i, mask,
 		     0, 0, i->width, i->height,
 		     r->display_xref,
 		     r->colour_map,
