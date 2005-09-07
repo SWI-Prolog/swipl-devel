@@ -132,6 +132,7 @@ detach(W) :->
 	(   get(W, hypered, mirroring, Gr)
 	->  send(W, delete_hypers, mirroring),
 	    send(W, clear),
+	    send(@display, synchronise), % deal with possible pending show
 	    send(W, show, @off),
 	    get(W, handler, H),
 	    send(Gr?window, grab_pointer, @off),
