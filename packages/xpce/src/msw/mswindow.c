@@ -206,7 +206,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     { HDC hdc = (HDC) wParam;
       RECT rect;
 
-      d_hdc(hdc, NIL, sw->background);
+      d_hdc(hdc, NIL, sw->background, TRUE);
       GetClipBox(hdc, &rect);
       r_clear(rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top);
       d_done();

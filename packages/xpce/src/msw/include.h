@@ -138,7 +138,7 @@ Any		messageToKeyId(UINT message, UINT wParam, LONG lParam,
 			       unsigned long *bmask);
 EventObj	messageToEvent(HWND hwnd, UINT msg, UINT wParam, LONG lParam);
 status		d_mswindow(PceWindow sw, IArea a, int clear);
-void		d_hdc(HDC hdc, Colour fg, Colour bg);
+void		d_hdc(HDC hdc, Colour fg, Colour bg, int compatible);
 void		initDraw(void);
 void		exitDraw(int rval);
 void *		ws_image_bits(Image image);

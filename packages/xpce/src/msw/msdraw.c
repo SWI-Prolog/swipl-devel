@@ -88,6 +88,7 @@ typedef struct
   DisplayObj	display;		/* The XPCE display */
   int		depth;			/* # bits/pixel */
   int		transformed;		/* A scaling-mapping is active */
+  int		compatible;		/* HDC is compatible to screen */
 
   Elevation	elevation;		/* current elevation context */
   HPEN		relief_pen;		/* standing-edge pen */
@@ -167,6 +168,7 @@ reset_context()
   context.r_offset_x	     = 0;
   context.r_offset_y	     = 0;
   context.fixed_colours	     = 0;
+  context.compatible	     = TRUE;
 }
 
 
@@ -551,7 +553,7 @@ d_image(Image i, int x, int y, int w, int h)
 
 
 void
-d_hdc(HDC hdc, Colour fg, Colour bg)
+d_hdc(HDC hdc, Colour fg, Colour bg, int compatible)
 { push_context();
 
   d_display(DEFAULT);
@@ -563,6 +565,7 @@ d_hdc(HDC hdc, Colour fg, Colour bg)
   context.open++;
   context.hdc = hdc;
   context.device = NIL;			/* anonymous device */
+  context.compatible = compatible;
 
   if ( notNil(bg) )
     r_default_background(bg);
@@ -575,7 +578,7 @@ void
 d_screen(DisplayObj d)
 { HDC hdc = GetDC(NULL);
 
-  d_hdc(hdc, DEFAULT, DEFAULT);
+  d_hdc(hdc, DEFAULT, DEFAULT, TRUE);
 }
 
 
@@ -584,7 +587,6 @@ d_winmf(const wchar_t *fn, int x, int y, int w, int h, const wchar_t *descr)
 { HDC hdc;
   RECT bb;
   HDC refdc = GetDC(NULL);
-#if 1
   int hmm   = GetDeviceCaps(refdc, HORZSIZE);
   int hpxl  = GetDeviceCaps(refdc, HORZRES);
   int vmm   = GetDeviceCaps(refdc, VERTSIZE);
@@ -602,15 +604,6 @@ d_winmf(const wchar_t *fn, int x, int y, int w, int h, const wchar_t *descr)
 		x, y, x+w, y+h,
 		hmm, hpxl, vmm, vpxl,
 		bb.left, bb.top, bb.right, bb.bottom));
-#else
-  int rx    = GetDeviceCaps(refdc, LOGPIXELSX);
-  int ry    = GetDeviceCaps(refdc, LOGPIXELSY);
-
-  bb.left   = ((x*254)+rx-1)/rx;
-  bb.right  = (((x+w)*254)+rx-1)/rx;
-  bb.top    = ((y*254)+ry-1)/ry;
-  bb.bottom = (((y+h)*254)+ry-1)/ry;
-#endif
 
   DEBUG(NAME_winMetafile,
 	Cprintf("BB in .01 mm = %d,%d,%d,%d\n",
@@ -622,7 +615,7 @@ d_winmf(const wchar_t *fn, int x, int y, int w, int h, const wchar_t *descr)
 //				 NULL,		/* or let GDI compute BB */
 				 descr)) )
   { ReleaseDC(NULL, refdc);
-    d_hdc(hdc, DEFAULT, DEFAULT);
+    d_hdc(hdc, DEFAULT, DEFAULT, FALSE);
     SetBkMode(hdc, TRANSPARENT);
 
     succeed;
@@ -2301,6 +2294,11 @@ r_op_image(Image image, int sx, int sy, int x, int y, int w, int h, Name op)
 #include "imglib.h"
 #endif
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void *getDIBImage(Image, HBITMAP bm, BITMAPINFO *dib)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void *
 getDIBImage(Image image, HBITMAP bm, BITMAPINFO *dib)
 { HDC hdc;
@@ -2403,15 +2401,14 @@ r_image(Image image,
 	ZSelectObject(hdc, otbm);
 	ZDeleteObject(tbm);
 	DeleteDC(hdc);
-      } else if ( GetDeviceCaps(context.hdc, BITSPIXEL) != 
-		  ws_depth_display(DEFAULT) )
+      } else if ( !context.compatible )
       { void *data;
 	BITMAPINFO dib;
 
 	DEBUG(NAME_image, Cprintf("Using DIB\n"));
 	if ( (data = getDIBImage(image, bm, &dib)) )
 	{ StretchDIBits(context.hdc, x, y, w, h,
-			0, 0, dib.bmiHeader.biWidth, -dib.bmiHeader.biHeight,
+			sx, sy, w, h,
 			data, &dib, DIB_RGB_COLORS, SRCPAINT);
 			      
 	  pceFree(data);
