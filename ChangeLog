@@ -9,6 +9,12 @@
 
 
 ===================================
+VERSION 5.5.29 (September 07, 2005)
+===================================
+
+  * FIXED: library(url) bug re-appeared due to version management problems.
+
+===================================
 VERSION 5.5.28 (September 05, 2005)
 ===================================
 
