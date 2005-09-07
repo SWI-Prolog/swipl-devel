@@ -72,6 +72,7 @@ clipped_by_window(Gr) :->
 :- pce_begin_class(pce_unclip_window, window).
 
 variable(handler, handler, get, "Handler used to fetch all events").
+variable(busy,    bool := @off, none, "Handling attach/detach?").
 
 class_variable(background, colour, azure).
 
@@ -88,6 +89,14 @@ initialise(W) :->
 
 attach(W, To:graphical) :->
 	"Attach to graphical"::
+	(   get(W, slot, busy, @off)
+	->  send(W, slot, busy, @on),
+	    call_cleanup(attach(W, To),
+			 send(W, slot, busy, @off))
+	;   true
+	).
+
+attach(W, To) :-
 	get(To, window, ToWindow),
 	(   get(W, hypered, mirroring, Old)
 	->  send(W, delete_hypers, mirroring),
@@ -129,10 +138,17 @@ update(W) :->
 
 detach(W) :->
 	"Detach and hide"::
+	(   get(W, slot, busy, @off)
+	->  send(W, slot, busy, @on),
+	    call_cleanup(detach(W),
+			 send(W, slot, busy, @off))
+	;   true
+	).
+
+detach(W) :-
 	(   get(W, hypered, mirroring, Gr)
 	->  send(W, delete_hypers, mirroring),
 	    send(W, clear),
-	    send(@display, synchronise), % deal with possible pending show
 	    send(W, show, @off),
 	    get(W, handler, H),
 	    send(Gr?window, grab_pointer, @off),
