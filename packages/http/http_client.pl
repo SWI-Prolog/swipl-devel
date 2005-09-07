@@ -74,7 +74,11 @@ do_connect(Address, In, Out) :-
 	tcp_socket(Socket),
 	thread_self(Me),
 	debug(connection, '~w: Connecting to ~w ...', [Me, Address]),
-        tcp_connect(Socket, Address),
+	catch(tcp_connect(Socket, Address),
+	      E,
+	      (	  tcp_close_socket(Socket),
+		  throw(E)
+	      )),
 	debug(connection, 'ok~n', []),
 	tcp_open_socket(Socket, In, Out), !.
 do_connect(Address, _, _) :-

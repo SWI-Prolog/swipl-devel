@@ -1,3 +1,7 @@
+Sep 7, 2005
+
+  * FIXED: handle connection error in http_get/3 gracefully.
+
 Sep 6, 2005
 
   * FIXED: handle error in tcp_accept/3 gracefully.
