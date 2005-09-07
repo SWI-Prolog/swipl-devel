@@ -2300,39 +2300,76 @@ void *getDIBImage(Image, HBITMAP bm, BITMAPINFO *dib)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void *
-getDIBImage(Image image, HBITMAP bm, BITMAPINFO *dib)
+getDIBImage(Image image, BITMAPINFO *dib)
 { HDC hdc;
+  HBITMAP bm = (HBITMAP) getXrefObject(image, context.display);
+  int delete = FALSE;
+  void *data = NULL;
+  int w = valInt(image->size->w);
+  int h = valInt(image->size->h);
+  HPALETTE ohpal = NULL;
 
   hdc = CreateCompatibleDC(NULL);
+  if ( context.hpal )
+    ohpal = SelectPalette(hdc, context.hpal, FALSE);
+
+  if ( notNil(image->mask) )
+  { HBITMAP mask = (HBITMAP) getXrefObject(image->mask, context.display);
+    HBITMAP copy = CopyImage(bm, IMAGE_BITMAP, 0, 0, LR_COPYRETURNORG);
+    HDC mskhdc = CreateCompatibleDC(hdc);
+    HBITMAP obm = ZSelectObject(hdc, copy);
+    HBITMAP mobm;
+    COLORREF oldbg, oldfg;
+    HPALETTE ohpal2 = NULL;
+
+    if ( context.hpal )
+      ohpal2 = SelectPalette(mskhdc, context.hpal, FALSE);
+    mobm = ZSelectObject(mskhdc, mask);
+
+    oldbg = SetBkColor(hdc, RGB(255,255,255));
+    oldfg = SetTextColor(hdc, RGB(0,0,0));
+    if ( !BitBlt(hdc, 0, 0, w, h, mskhdc, 0, 0, SRCPAINT) )
+      Cprintf("BitBlt() failed\n");
+    SetTextColor(hdc, oldfg);
+    SetBkColor(hdc, oldbg);
+
+    ZSelectObject(mskhdc, mobm);
+    if ( ohpal2 )
+      SelectPalette(mskhdc, ohpal2, FALSE);
+    DeleteDC(mskhdc);
+    ZSelectObject(hdc, obm);
+
+    bm = copy;
+    delete = TRUE;
+  }
+
   memset(dib, 0, sizeof(*dib));
   dib->bmiHeader.biSize = sizeof(dib->bmiHeader);
-  dib->bmiHeader.biWidth = valInt(image->size->w);
-  dib->bmiHeader.biHeight = -valInt(image->size->h);	/* work top-down */
+  dib->bmiHeader.biWidth = w;
+  dib->bmiHeader.biHeight = -h;		/* work top-down */
   dib->bmiHeader.biPlanes = 1;
   dib->bmiHeader.biBitCount = 24;
   dib->bmiHeader.biCompression = BI_RGB; /* from WINGDI, this is 0 */
 
-  if ( GetDIBits(hdc, bm,
-		 0, valInt(image->size->h),
-		 NULL,
-		 dib,
-		 DIB_RGB_COLORS) )
-  { void *data = pceMalloc(dib->bmiHeader.biSizeImage);
+  if ( GetDIBits(hdc, bm, 0, h, NULL, dib, DIB_RGB_COLORS) )
+  { data = pceMalloc(dib->bmiHeader.biSizeImage);
 
-    if ( GetDIBits(hdc, bm,
-		   0, abs(dib->bmiHeader.biHeight),
-		   data,
-		   dib,
-		   DIB_RGB_COLORS) )
-    { DeleteDC(hdc);
-      return data;
+    if ( !GetDIBits(hdc, bm, 0, h, data, dib, DIB_RGB_COLORS) )
+    { pceFree(data);
+      data = NULL;
     }
-
-    pceFree(data);
   }
 
+  if ( delete )
+    DeleteObject(bm);
+  if ( ohpal )
+    SelectPalette(hdc, ohpal, FALSE);
   DeleteDC(hdc);
-  return NULL;
+
+  if ( !data )
+    Cprintf("Failed to get DIB\n");
+
+  return data;
 }
 
 
@@ -2343,6 +2380,9 @@ r_image(Image image,
 	Bool transparent)
 { DEBUG(NAME_image, Cprintf("r_image(%s, %d, %d, %d+%d, %dx%d, %s)\n",
 			    pp(image), sx, sy, x, y, w, h, pp(transparent)));
+
+//context.compatible = TRUE;
+
   if ( w > 0 && h > 0 &&
        image->size->w != ZERO && image->size->h != ZERO )
   { HBITMAP obm, bm = (HBITMAP) getXrefObject(image, context.display);
@@ -2354,15 +2394,15 @@ r_image(Image image,
     if ( context.hpal )
       ohpal = SelectPalette(mhdc, context.hpal, FALSE);
 
-    obm = ZSelectObject(mhdc, bm);
-
     if ( transparent == ON && image->kind == NAME_bitmap )
     { HBRUSH hbrush = ZCreateSolidBrush(context.rgb);
       HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
       COLORREF oldbk = SetBkColor(context.hdc, RGB(255,255,255));
       COLORREF oldtx = SetTextColor(context.hdc, RGB(0,0,0));
       
+      obm = ZSelectObject(mhdc, bm);
       BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, 0xB8074AL);
+      ZSelectObject(mhdc, obm);
       /* ROP from "Programming Windows3.1" */
       /* 3-rd edition, page 633 */
       SetTextColor(context.hdc, oldtx);
@@ -2370,62 +2410,66 @@ r_image(Image image,
 
       ZSelectObject(context.hdc, oldbrush);
       ZDeleteObject(hbrush);
-    } else if ( notNil(image->mask) )
-    { HBITMAP msk = (HBITMAP) getXrefObject(image->mask, context.display);
-      HDC chdc = CreateCompatibleDC(context.hdc);
-      HBITMAP obm = ZSelectObject(chdc, msk);
-      COLORREF oldbg, oldfg;
+    } else if ( context.compatible )
+    { obm = ZSelectObject(mhdc, bm);
 
-      DEBUG(NAME_image, Cprintf("Using BitBlt\n"));
-
-      oldbg = SetBkColor(context.hdc, RGB(255,255,255));
-      oldfg = SetTextColor(context.hdc, RGB(0,0,0));
-      BitBlt(context.hdc, x, y, w, h, chdc, sx, sy, SRCAND);
-      SetBkColor(context.hdc, oldbg);
-      SetTextColor(context.hdc, oldfg);
-
-      if ( image->kind == NAME_bitmap )
-      { HDC hdc = CreateCompatibleDC(context.hdc);
-	HBITMAP otbm, tbm = ZCreateCompatibleBitmap(context.hdc, w, h);
-	otbm = ZSelectObject(hdc, tbm);
-
-	oldbg = SetBkColor(hdc, context.background_rgb);
-	oldfg = SetTextColor(hdc, context.rgb);
-	BitBlt(hdc, 0, 0, w, h, mhdc, sx, sy, SRCCOPY);
-	SetBkColor(hdc, RGB(0,0,0));
-	SetTextColor(hdc, RGB(255,255,255));
-	BitBlt(hdc, 0, 0, w, h, chdc, sx, sy, SRCAND);
-	SetBkColor(hdc, oldbg);
-	SetTextColor(hdc, oldfg);
-	BitBlt(context.hdc, x, y, w, h, hdc, 0, 0, SRCPAINT);
-	ZSelectObject(hdc, otbm);
-	ZDeleteObject(tbm);
-	DeleteDC(hdc);
-      } else if ( !context.compatible )
-      { void *data;
-	BITMAPINFO dib;
-
-	DEBUG(NAME_image, Cprintf("Using DIB\n"));
-	if ( (data = getDIBImage(image, bm, &dib)) )
-	{ StretchDIBits(context.hdc, x, y, w, h,
-			sx, sy, w, h,
-			data, &dib, DIB_RGB_COLORS, SRCPAINT);
-			      
-	  pceFree(data);
+      if ( notNil(image->mask) )
+      { HBITMAP msk = (HBITMAP) getXrefObject(image->mask, context.display);
+	HDC chdc = CreateCompatibleDC(context.hdc);
+	HBITMAP obm2 = ZSelectObject(chdc, msk);
+	COLORREF oldbg, oldfg;
+  
+	DEBUG(NAME_image, Cprintf("Using BitBlt\n"));
+  
+	oldbg = SetBkColor(context.hdc, RGB(255,255,255));
+	oldfg = SetTextColor(context.hdc, RGB(0,0,0));
+	BitBlt(context.hdc, x, y, w, h, chdc, sx, sy, SRCAND);
+	SetBkColor(context.hdc, oldbg);
+	SetTextColor(context.hdc, oldfg);
+  
+	if ( image->kind == NAME_bitmap )
+	{ HDC hdc = CreateCompatibleDC(context.hdc);
+	  HBITMAP otbm, tbm = ZCreateCompatibleBitmap(context.hdc, w, h);
+	  otbm = ZSelectObject(hdc, tbm);
+  
+	  oldbg = SetBkColor(hdc, context.background_rgb);
+	  oldfg = SetTextColor(hdc, context.rgb);
+	  BitBlt(hdc, 0, 0, w, h, mhdc, sx, sy, SRCCOPY);
+	  SetBkColor(hdc, RGB(0,0,0));
+	  SetTextColor(hdc, RGB(255,255,255));
+	  BitBlt(hdc, 0, 0, w, h, chdc, sx, sy, SRCAND);
+	  SetBkColor(hdc, oldbg);
+	  SetTextColor(hdc, oldfg);
+	  BitBlt(context.hdc, x, y, w, h, hdc, 0, 0, SRCPAINT);
+	  ZSelectObject(hdc, otbm);
+	  ZDeleteObject(tbm);
+	  DeleteDC(hdc);
+	} else 
+	{ BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCPAINT);
 	}
+	ZSelectObject(chdc, obm2);
+	DeleteDC(chdc);
       } else
-      { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCPAINT);
+      { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCCOPY);
       }
 
-      ZSelectObject(chdc, obm);
-      DeleteDC(chdc);
-    } else
-    { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCCOPY);
+      ZSelectObject(mhdc, obm);
+    } else				/* incompatible HDC */
+    { void *data;
+      BITMAPINFO dib;
+
+      DEBUG(NAME_mask, Cprintf("Using DIB\n"));
+      if ( (data = getDIBImage(image, &dib)) )
+      { StretchDIBits(context.hdc, x, y, w, h,
+		      sx, sy, w, h,
+		      data, &dib, DIB_RGB_COLORS, SRCCOPY);
+		      
+        pceFree(data);
+      }
     }
       
     if ( ohpal )
       SelectPalette(mhdc, ohpal, FALSE);
-    ZSelectObject(mhdc, obm);
     DeleteDC(mhdc);
   }
 }
