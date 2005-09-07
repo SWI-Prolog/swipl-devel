@@ -681,7 +681,7 @@ drawInWinPrinter(WinPrinter prt, Any obj, Point pos)
   }
 
 
-  d_hdc(prt->ws_ref->hdc, DEFAULT, DEFAULT);
+  d_hdc(prt->ws_ref->hdc, DEFAULT, DEFAULT, FALSE);
 
   if ( instanceOfObject(obj, ClassGraphical) )
   { Graphical gr = obj;
