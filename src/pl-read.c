@@ -28,6 +28,11 @@
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 
+typedef const unsigned char * cucharp;
+typedef       unsigned char * ucharp;
+
+#define utf8_get_uchar(s, chr) (ucharp)utf8_get_char((char *)(s), chr)
+
 #undef LD
 #define LD LOCAL_LD
 
@@ -992,19 +997,19 @@ bind_variables(ReadData _PL_rd ARG_LD)
 		*           TOKENISER           *
 		*********************************/
 
-static inline unsigned char *
-skipSpaces(unsigned char *in)
+static inline ucharp
+skipSpaces(cucharp in)
 { int chr;
-  unsigned char *s;
+  ucharp s;
 
   for( ; *in; in=s)
-  { s = (unsigned char*)utf8_get_char((char *)in, &chr);
+  { s = utf8_get_uchar(in, &chr);
 
     if ( !isBlankW(chr) )
-      return in;
+      return (ucharp)in;
   }  
 
-  return in;
+  return (ucharp)in;
 }
 
 
@@ -1025,9 +1030,6 @@ skipAlpha(unsigned char *in)
 
 
 #define unget_token()	{ unget = TRUE; }
-
-typedef const unsigned char * cucharp;
-typedef       unsigned char * ucharp;
 
 #ifndef O_GMP
 static real
@@ -1155,36 +1157,40 @@ escape_char(cucharp in, ucharp *end, unsigned int quote)
 { int base, xdigits;
   int chr;
   unsigned c;
+  cucharp e;
 
 #define OK(v) if (1) {chr = (v); goto ok;} else (void)0
 
 again:
-  switch((c = *in++))
+  in = utf8_get_uchar(in, &c);
+  switch(c)
   { case 'a':
       OK(7);				/* 7 is ASCII BELL */
     case 'b':
       OK('\b');
     case 'c':				/* skip \c<blank>* */
       if ( quote )
-      { while(isBlank(*in))
-	  in++;
+      { in = skipSpaces(in);
       skip_cont:
-	c = *in;
+	e = utf8_get_uchar(in, &c);
 	if ( c == '\\' )
-	{ in++;
+	{ in = e;
 	  goto again;
 	}
 	if ( c == quote )		/* \c ' --> no output */
 	{ OK(EOF);
 	}
-	in++;
+	in = e;
 	OK(c);
       }
       OK('c');
     case '\n':				/* \LF<blank>* */
       if ( quote )
-      { while(isBlank(*in) && *in != '\n' )
-	  in++;
+      { for( ; *in; in=e )
+	{ e = utf8_get_uchar(in, &c);
+	  if ( c == '\n' || !isBlankW(c) )
+	    break;
+	}
 	goto skip_cont;
       }
       OK('\n');
