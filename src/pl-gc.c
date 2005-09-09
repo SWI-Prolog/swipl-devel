@@ -2876,21 +2876,27 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
       def = fr->predicate;
 
     if ( def &&
-	 true(def, NEEDSCLAUSEGC) &&
-	 false(def, DYNAMIC) )
+	 false(def, DYNAMIC) && 
+	 def->references == 0 )		/* already done */
     { if ( GD->procedures.reloading )
       { ListCell cell;
 
 	for(cell=GD->procedures.reloading->procedures; cell; cell=cell->next)
 	{ Procedure proc = cell->value;
+
 	  if ( proc->definition == def )
-	  { def->references++;
+	  { DEBUG(2, Sdprintf("Marking %s\n", predicateName(def)));
+	    def->references++;
 	    GD->procedures.active_marked++;
 	    break;
 	  }
 	}
-      } else
-	def->references++;
+      } else				/* pl_garbage_collect_clauses() */
+      { if ( true(def, NEEDSCLAUSEGC) )
+	{ DEBUG(2, Sdprintf("Marking %s\n", predicateName(def)));
+	  def->references++;
+	}
+      }
     }
 
     if ( fr->parent )

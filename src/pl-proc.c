@@ -808,6 +808,7 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
     addClauseToIndex(def, clause, where PASS_LD);
     if ( def->hash_info->size /2 > def->hash_info->buckets )
     { set(def, NEEDSREHASH);
+      DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
       if ( true(def, DYNAMIC) && def->references == 0 )
       { gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
 	return cref;
@@ -2634,38 +2635,48 @@ startConsult(SourceFile f)
 #endif
     GD->procedures.reloading = NULL;
 
-    for(cell = f->procedures; cell; cell = next)
+					/* remove the clauses */
+    for(cell = f->procedures; cell; cell = cell->next)
     { Procedure proc = cell->value;
       Definition def = proc->definition;
 
-      next = cell->next;
-      if ( def )
-      { DEBUG(2, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
-			  predicateName(def), def->references));
+      DEBUG(2, Sdprintf("removeClausesProcedure(%s), refs = %d\n",
+			predicateName(def), def->references));
 
-	removeClausesProcedure(proc,
-			       true(def, MULTIFILE) ? f->index : 0,
-			       TRUE);
-
-	if ( true(def, NEEDSCLAUSEGC) )
-	{ if ( def->references == 0 )
-	    garbage = cleanDefinition(def, garbage);
-	  else if ( false(def, DYNAMIC) )
-	    registerDirtyDefinition(def);
-	}
-
-	if ( false(def, DYNAMIC) && def->references )
-	{ def->references = 0;
-	  GD->procedures.active_marked--;
-	}
-
-	if ( false(def, MULTIFILE) )
-	  clear(def, FILE_ASSIGNED);
+      removeClausesProcedure(proc,
+			     true(def, MULTIFILE) ? f->index : 0,
+			     TRUE);
+      
+      if ( true(def, NEEDSCLAUSEGC) )
+      { if ( def->references == 0 )
+	  garbage = cleanDefinition(def, garbage);
+	else if ( false(def, DYNAMIC) )
+	  registerDirtyDefinition(def);
       }
+      
+      if ( false(def, MULTIFILE) )
+	clear(def, FILE_ASSIGNED);
+    }
+
+					/* unmark the marked predicates */
+    for(cell = f->procedures; cell; cell = cell->next)
+    { Procedure proc = cell->value;
+      Definition def = proc->definition;
+
+      if ( false(def, DYNAMIC) && def->references )
+      { assert(def->references == 1);
+	def->references = 0;
+	GD->procedures.active_marked--;
+      }
+    }
+
+					/* cleanup the procedure list */
+    for(cell = f->procedures; cell; cell = next)
+    { next = cell->next;
       freeHeap(cell, sizeof(struct list_cell));
     }
-    assert(GD->procedures.active_marked == 0);
     f->procedures = NULL;
+    assert(GD->procedures.active_marked == 0);
 
 #ifdef O_PLMT
     resumeThreads();

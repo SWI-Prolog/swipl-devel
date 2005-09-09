@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: Bug#88: Safe reloading of running code.  Lyosha Ilyukhin.
+
   * FIXED: Unicode handling in read/1 for \-escape sequences
     Lyosha Ilyukhin.
 
