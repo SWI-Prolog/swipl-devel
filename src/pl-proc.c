@@ -2613,7 +2613,6 @@ startConsult(SourceFile f)
   if ( f->count++ > 0 )			/* This is a re-consult */
   { ListCell cell, next;
     sigset_t set;
-    int immediate;
     ClauseRef garbage = NULL;
 
     PL_LOCK(L_THREAD);
@@ -2626,12 +2625,6 @@ startConsult(SourceFile f)
 #ifdef O_PLMT
     forThreadLocalData(markPredicatesInEnvironments,
 		       PL_THREAD_SUSPEND_AFTER_WORK);
-
-					/* are we alone? */
-    immediate = ((GD->statistics.threads_created -
-		  GD->statistics.threads_finished) == 1);
-#else
-    immediate = TRUE;
 #endif
     GD->procedures.reloading = NULL;
 
