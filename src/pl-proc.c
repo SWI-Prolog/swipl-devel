@@ -2180,11 +2180,7 @@ reindexDefinition(Definition def)
 
   assert(def->references == 1 || !def->hash_info);
 
-  DEBUG(2, if ( def->definition.clauses )
-	   { Procedure proc = def->definition.clauses->clause->procedure;
-
-	     Sdprintf("reindexDefinition(%s)\n", procedureName(proc));
-	   });
+  DEBUG(2, Sdprintf("reindexDefinition(%s)\n", predicateName(def)));
 
   enterDefinition(def);
   def->indexPattern &= ~NEED_REINDEX;
@@ -2205,11 +2201,7 @@ reindexDefinition(Definition def)
 
   if ( true(def, AUTOINDEX) )
   { if ( canindex == 0 )
-    { DEBUG(2, if ( def->definition.clauses )
-	       { Procedure proc = def->definition.clauses->clause->procedure;
-
-		 Sdprintf("not indexed: %s\n", procedureName(proc));
-	       });
+    { DEBUG(2, Sdprintf("not indexed: %s\n", predicateName(def)));
       def->indexPattern = 0x0;
     } else
     { def->indexPattern = 0x1;
@@ -2226,12 +2218,7 @@ reindexDefinition(Definition def)
   leaveDefinition(def);
 
   if ( do_hash )
-  { DEBUG(3,
-	  if ( def->definition.clauses )
-	  { Procedure proc = def->definition.clauses->clause->procedure;
-
-	    Sdprintf("hash(%s, %d)\n", procedureName(proc), do_hash);
-	  });
+  { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(proc), do_hash));
     hashDefinition(def, do_hash);
   }
 }
