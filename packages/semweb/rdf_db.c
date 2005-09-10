@@ -5439,7 +5439,8 @@ split_url(term_t base, term_t local, term_t url)
 { char *b, *l, *u;
   unsigned int bl, ll;
 
-  if ( PL_get_atom_nchars(base, &bl, &b) &&
+  if ( local &&
+       PL_get_atom_nchars(base, &bl, &b) &&
        PL_get_atom_nchars(local, &ll, &l) )
   { if ( bl+ll < 1024 )
     { char buf[1024];
@@ -5467,13 +5468,13 @@ split_url(term_t base, term_t local, term_t url)
 	last = s;
     }
     if ( last )
-    { if ( PL_unify_atom_chars(local, last+1) &&
+    { if ( (!local || PL_unify_atom_chars(local, last+1)) &&
 	   PL_unify_atom_nchars(base, last+1-u, u) )
 	return TRUE;
       else
 	return FALSE;
     } else
-    { if ( PL_unify(local, url) &&
+    { if ( (!local || PL_unify(local, url)) &&
 	   PL_unify_atom_chars(base, "") )
 	return TRUE;
       else
@@ -5482,6 +5483,13 @@ split_url(term_t base, term_t local, term_t url)
   } else
     return type_error(url, "atom");
 }
+
+
+static foreign_t
+url_namespace(term_t url, term_t namespace)
+{ return split_url(namespace, 0, url);
+}
+
 
 
 		 /*******************************
@@ -5609,6 +5617,7 @@ install_rdf_db()
   PL_register_foreign("rdf_generation", 1, rdf_generation,  0);
   PL_register_foreign("rdf_match_label",3, match_label,     0);
   PL_register_foreign("rdf_split_url",  3, split_url,       0);
+  PL_register_foreign("rdf_url_namespace", 2, url_namespace,0);
   PL_register_foreign("rdf_save_db_",   2, rdf_save_db,     0);
   PL_register_foreign("rdf_load_db_",   1, rdf_load_db,     0);
   PL_register_foreign("rdf_reachable",  3, rdf_reachable,   NDET);

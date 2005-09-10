@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * ADDED: library(nb_set): manipulate non-backtrackable sets of terms.
+
   * FIXED: Re-loading files while other threads execute them.
 
   * FIXED: Bug#88: Safe reloading of running code.  Dmitry.

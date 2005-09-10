@@ -61,6 +61,8 @@ suggest predicates from a keyword.
 \predicatesummary{access_file}{2}{Check access permissions of a file}
 \predicatesummary{acyclic_term}{1}{Test term for cycles}
 \predicatesummary{add_import_module}{3}{Add module to the auto-import list}
+\predicatesummary{add_nb_set}{2}{Add term to a non-backtrackable set}
+\predicatesummary{add_nb_set}{3}{Add term to a non-backtrackable set}
 \predicatesummary{all_different}{1}{Constraint all values to be unique}
 \predicatesummary{append}{1}{Append to a file}
 \predicatesummary{apply}{2}{Call goal with additional arguments}
@@ -188,6 +190,7 @@ suggest predicates from a keyword.
 \oppredsummary{dynamic}{1}{fx}{1150}{Indicate predicate definition may change}
 \predicatesummary{edit}{0}{Edit current script- or associated file}
 \predicatesummary{edit}{1}{Edit a file, predicate, module (extensible)}
+\predicatesummary{empty_nb_set}{1}{Test/create an empty non-backtrackable set}
 \predicatesummary{encoding}{1}{Define encoding inside a source file}
 \predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
 \predicatesummary{erase}{1}{Erase a database record or clause}
@@ -232,6 +235,7 @@ suggest predicates from a keyword.
 \predicatesummary{garbage_collect}{0}{Invoke the garbage collector}
 \predicatesummary{garbage_collect_atoms}{0}{Invoke the atom garbage collector}
 \predicatesummary{garbage_collect_clauses}{0}{Invoke clause garbage collector}
+\predicatesummary{gen_nb_set}{2}{Generate members of non-backtrackable set}
 \predicatesummary{gensym}{2}{Generate unique atoms from a base}
 \predicatesummary{get}{1}{Read first non-blank character}
 \predicatesummary{get}{2}{Read first non-blank character from a stream}
@@ -323,6 +327,7 @@ suggest predicates from a keyword.
 \predicatesummary{nb_getval}{2}{Fetch non-backtrackable global variable}
 \predicatesummary{nb_linkarg}{3}{Non-backtrackable assignment to term}
 \predicatesummary{nb_linkval}{2}{Assign non-backtrackable global variable}
+\predicatesummary{nb_set_to_list}{2}{Convert non-backtrackable set to list}
 \predicatesummary{nb_setarg}{3}{Non-backtrackable assignment to term}
 \predicatesummary{nb_setval}{2}{Assign non-backtrackable global variable}
 \predicatesummary{nl}{0}{Generate a newline}
@@ -467,6 +472,7 @@ suggest predicates from a keyword.
 \predicatesummary{show_profile}{1}{Show results of the profiler}
 \predicatesummary{show_profile}{2}{Show results of the profiler}
 \predicatesummary{size_file}{2}{Get size of a file in characters}
+\predicatesummary{size_nb_set}{2}{Dtermine size of non-backtrackable set}
 \predicatesummary{skip}{1}{Skip to character in current input}
 \predicatesummary{skip}{2}{Skip to character on stream}
 \predicatesummary{rl_add_history}{1}{Add line to readline(3) history}

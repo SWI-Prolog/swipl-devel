@@ -80,7 +80,7 @@
 	    rdf_estimate_complexity/4,	% +S,+P,+O,-Count
 
 	    rdf_save_subject/3,		% +Stream, +Subject, +DB
-	    rdf_save_header/2,		% +Out, +DB
+	    rdf_save_header/2,		% +Out, +Options
 	    rdf_save_footer/1,		% +Out
 
 	    rdf_equal/2,		% ?Resource, ?Resource
@@ -93,6 +93,7 @@
 
 	    rdf_match_label/3,		% +How, +String, +Label
 	    rdf_split_url/3,		% ?Base, ?Local, ?URL
+	    rdf_url_namespace/2,	% +URL, ?Base
 
 	    rdf_debug/1,		% Set verbosity
 
@@ -520,6 +521,11 @@ rdf_current_predicate(P) :-
 rdf_current_predicate(P) :-
 	rdf_predicate_property_(P, triples(N)),
 	N > 0.
+
+rdf_current_predicate(P, DB) :-
+	rdf_current_predicates(All),
+	member(P, All),
+	once(rdf(_,P,_,DB:_)).
 
 %	rdf_predicate_property(?Predicate, ?Property)
 %	
@@ -966,7 +972,7 @@ cannot use names holding /, :, etc. as XML identifiers.
 
 decl_used_predicate_ns(DB) :-
 	retractall(predicate_ns(_,_)),
-	(   rdf_db(_,P,_,DB),
+	(   rdf_current_predicate(P, DB),
 	    decl_predicate_ns(P),
 	    fail
 	;   true
