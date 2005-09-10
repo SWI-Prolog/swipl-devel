@@ -2879,7 +2879,7 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
 	 false(def, DYNAMIC) && 
 	 def->references == 0 )		/* already done */
     { if ( GD->procedures.reloading )
-      { ListCell cell;
+      { ListCell cell;			/* startConsult() */
 
 	for(cell=GD->procedures.reloading->procedures; cell; cell=cell->next)
 	{ Procedure proc = cell->value;
