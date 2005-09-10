@@ -493,6 +493,70 @@ Old = none
 \end{code}
 \end{description}
 
+
+\subsection{Loading files, active code and threads}
+
+Traditionally, Prolog environments allow for reloading files holding
+currently active code.  In particular, the following sequence is valid
+use of the development environment:
+
+\begin{itemize}
+    \item Trace a goal
+    \item Find unexpected behaviour of a predicate
+    \item Enter a \jargon{break} using the \textbf{b} command
+    \item Fix the sources and reload them using make/0
+    \item Exit the break, \jargon{retry} using the \textbf{r} command
+\end{itemize}
+
+Goals running during the reload keep running on the old definition,
+while new goals use the reloaded definition, which is why the
+\jargon{retry} must be used \emph{after} the reload. This implies that
+clauses of predicates that are active during the reload cannot be
+reclaimed. Normally a small amount of dead clauses should not be an
+issue during development. Such clauses can be relaimed with
+garbage_collect_clauses/0.
+
+\begin{description}
+    \predicate{garbage_collect_clauses}{0}
+Cleanup all \jargon{dirty} predicates, where dirty predicates are
+defined to be predicates that have both old and new definitions due 
+to reloading a sourcefile while the predicate was active.  Of course,
+predicates that are active using garbage_collect_clauses/0 cannot
+be reclaimed and remain \jargon{dirty}.  Predicate are -like atoms-
+shared resources and therefore all threads are suspended during the
+execution of this predicate.
+\end{description}
+
+
+\subsubsection{Threads and reloading running code}
+
+As of version 5.5.30, there is basic thread-safety for reloading
+sourcefiles while other threads are executing code defined in these
+sourcefiles.  Reloading a file freezes all threads after marking the
+active predicates originating from the file being reloaded.  The
+threads are resumed after the file has been loaded.  In addition,
+after completing loading the outermost file the system runs
+garbage_collect_clauses/0.
+
+What does that mean? Unfortunately it does \emph{not} mean we can
+`hot-swap' modules.  Consider the case where thread $A$ is executing
+the recursive predicate $P$.  We `fix' $P$ and reload.  The already
+running goals for $P$ continue to run the old definition, but new
+recursive calls will use the new definition!  Many similar cases
+can be constructed with dependent predicates.  
+
+It provides some basic security for reloading files in multi-threaded
+applications during development.  In the above scenarios the system
+does not crash uncontrolled, but behaves like any broken program:
+it may return the wrong bindings, wrong thruth value or raise an
+exception.
+
+Future versions may have an `update now' facility.  Such as facility
+can be implemented on top of the \emph{logical update view}.  It would
+allow threads to do a controlled update between processing independent
+jobs.
+
+
 \subsection{Quick load files}		\label{sec:qlf}
 
 SWI-Prolog supports compilation of individual or multiple Prolog

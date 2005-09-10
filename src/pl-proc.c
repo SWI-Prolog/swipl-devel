@@ -139,7 +139,7 @@ resetProcedure(Procedure proc, bool isnew)
        def->definition.clauses == NULL )
     isnew = TRUE;
 
-  def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_SHARED);
+  def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_SHARED|P_DIRTYREG);
   if ( stringAtom(def->functor->name)[0] != '$' )
     set(def, TRACE_ME);
   def->number_of_clauses = 0;
@@ -807,8 +807,10 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 
     addClauseToIndex(def, clause, where PASS_LD);
     if ( def->hash_info->size /2 > def->hash_info->buckets )
-    { set(def, NEEDSREHASH);
-      DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
+    { if ( false(def, NEEDSREHASH) )
+      { set(def, NEEDSREHASH);
+	DEBUG(2, Sdprintf("Asking re-hash for %s\n", predicateName(def)));
+      }
       if ( true(def, DYNAMIC) && def->references == 0 )
       { gcClausesDefinitionAndUnlock(def); /* does UNLOCKDEF() */
 	return cref;
@@ -1223,12 +1225,15 @@ MT: locked by caller
 
 static void
 registerDirtyDefinition(Definition def)
-{ GET_LD
-  DefinitionChain cell = allocHeap(sizeof(*cell));
+{ if ( false(def, P_DIRTYREG) )
+  { GET_LD
+    DefinitionChain cell = allocHeap(sizeof(*cell));
 
-  cell->definition = def;
-  cell->next = GD->procedures.dirty;
-  GD->procedures.dirty = cell;
+    set(def, P_DIRTYREG);
+    cell->definition = def;
+    cell->next = GD->procedures.dirty;
+    GD->procedures.dirty = cell;
+  }
 }
 
 
@@ -1237,10 +1242,10 @@ pl_garbage_collect_clauses(void)
 { GET_LD
 
   if ( GD->procedures.dirty && !gc_status.blocked )
-  { DefinitionChain c, *cell;
+  { DefinitionChain c, cell, next, last;
     sigset_t set;
 
-    DEBUG(2, Sdprintf("pl_garbage_collect_clauses()\n"));
+    DEBUG(1, Sdprintf("pl_garbage_collect_clauses()\n"));
 
     PL_LOCK(L_THREAD);
     LOCK();
@@ -1251,6 +1256,7 @@ pl_garbage_collect_clauses(void)
     { Definition def = c->definition;
 
       assert(false(def, DYNAMIC));
+      assert(true(def, P_DIRTYREG));
       assert(def->references == 0);
     }
 
@@ -1262,21 +1268,25 @@ pl_garbage_collect_clauses(void)
 
     DEBUG(1, Sdprintf("Marking complete; cleaning predicates\n"));
 
-    for( cell = &GD->procedures.dirty; *cell; )
-    { Definition def = (*cell)->definition;
+    last = NULL;
+    for(cell = GD->procedures.dirty; cell; cell = next)
+    { Definition def = cell->definition;
       
+      next = cell->next;
+
       if ( def->references )
-      { def->references = 0;
-	cell = &(*cell)->next;
-      } else
-      { DefinitionChain next = (*cell)->next;
-
+      { assert(def->references == 1);
 	def->references = 0;
-	DEBUG(2, Sdprintf("gcClausesDefinition(%s)\n", predicateName(def)));
+	last = cell;
+      } else
+      { DEBUG(1, Sdprintf("gcClausesDefinition(%s)\n", predicateName(def)));
 	gcClausesDefinition(def);
-	freeHeap(*cell, sizeof(**cell));
-
-	*cell = next;
+	clear(def, P_DIRTYREG);
+	freeHeap(cell, sizeof(*cell));
+	if ( last )
+	  last->next = next;
+	else
+	  GD->procedures.dirty = next;
       }
     }
 
@@ -1410,8 +1420,11 @@ found:
 					/* TBD: find something better! */
 #ifdef O_PLMT
   PL_LOCK(L_THREAD);
-  if ( GD->statistics.threads_created > 1 )
+  if ( (GD->statistics.threads_created -
+	GD->statistics.threads_finished) == 1 )
+  { assert(false(proc->definition, P_DIRTYREG));
     freeHeap(proc->definition, sizeof(struct definition));
+  }
   PL_UNLOCK(L_THREAD);
 #else
   freeHeap(proc->definition, sizeof(struct definition));
@@ -2219,7 +2232,7 @@ reindexDefinition(Definition def)
   leaveDefinition(def);
 
   if ( do_hash )
-  { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(proc), do_hash));
+  { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));
     hashDefinition(def, do_hash);
   }
 }

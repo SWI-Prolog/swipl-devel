@@ -8,7 +8,9 @@
 					--------------------------------------
 
 
-  * FIXED: Bug#88: Safe reloading of running code.  Lyosha Ilyukhin.
+  * FIXED: Re-loading files while other threads execute them.
+
+  * FIXED: Bug#88: Safe reloading of running code.  Dmitry.
 
   * FIXED: Unicode handling in read/1 for \-escape sequences
     Lyosha Ilyukhin.
