@@ -4425,6 +4425,31 @@ unify_predicate_property(rdf_db *db, predicate *p, term_t option, functor_t f)
 
 
 static foreign_t
+rdf_current_predicates(term_t preds)
+{ rdf_db *db = DB;
+  int i;
+  term_t head = PL_new_term_ref();
+  term_t tail = PL_copy_term_ref(preds);
+
+  LOCK_MISC(db);
+  for(i=0; i<db->pred_table_size; i++)
+  { predicate *p;
+
+    for(p=db->pred_table[i]; p; p = p->next)
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_atom(head, p->name) )
+      { UNLOCK_MISC(db);
+	return FALSE;
+      }
+    }
+  }
+  UNLOCK_MISC(db);
+
+  return PL_unify_nil(tail);
+}  
+
+
+static foreign_t
 rdf_predicate_property(term_t pred, term_t option, control_t h)
 { int n;
   predicate *p;
@@ -5590,8 +5615,10 @@ install_rdf_db()
   PL_register_foreign("rdf_reset_db_",  0, rdf_reset_db,    0);
   PL_register_foreign("rdf_set_predicate",
 					2, rdf_set_predicate, 0);
-  PL_register_foreign("rdf_predicate_property",
+  PL_register_foreign("rdf_predicate_property_",
 					2, rdf_predicate_property, NDET);
+  PL_register_foreign("rdf_current_predicates",
+					1, rdf_current_predicates, 0);
   PL_register_foreign("rdf_sources_",   1, rdf_sources,     0);
   PL_register_foreign("rdf_estimate_complexity",
 					4, rdf_estimate_complexity, 0);

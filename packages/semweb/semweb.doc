@@ -242,11 +242,14 @@ reasoning inside the kernel of the rdb_db engine. Note that
 supported by the rest of the engine.
 
 \begin{description}
+    \predicate{rdf_current_predicate}{1}{?Predicate}
+Enumerate all defined predicates.
+
     \predicate{rdf_set_predicate}{2}{+Predicate, +Property}
 Define a property of the predicate.  Defined properties are listed
 with rdf_predicate_property/2.
 
-    \predicate{rdf_predicate_property}{2}{+Predicate, -Property}
+    \predicate{rdf_predicate_property}{2}{?Predicate, -Property}
 Query properties of a defined predicate.  Currently defined properties
 are given below.
 

@@ -49,6 +49,7 @@
 	    rdf_update/5,		% +Subject, +Predicate, +Object, +Src, +Act
 	    rdf_set_predicate/2,	% +Predicate, +Property
 	    rdf_predicate_property/2,	% +Predicate, ?Property
+	    rdf_current_predicate/1,	% -Predicate
 
 	    rdf_transaction/1,		% :Goal
 
@@ -503,6 +504,38 @@ count_solutions(Goal, Count) :-
 
 
 		 /*******************************
+		 *	     PREDICATES		*
+		 *******************************/
+
+%	rdf_current_predicate(?Predicate)
+%	
+%	True if Predicate is a currently defined predicate.
+
+rdf_current_predicate(P) :-
+	var(P), !,
+	rdf_current_predicates(All),
+	member(P, All),
+	rdf_predicate_property_(P, triples(N)),
+	N > 0.
+rdf_current_predicate(P) :-
+	rdf_predicate_property_(P, triples(N)),
+	N > 0.
+
+%	rdf_predicate_property(?Predicate, ?Property)
+%	
+%	Enumerate predicates and their properties
+
+
+rdf_predicate_property(P, Prop) :-
+	var(P), !,
+	rdf_current_predicates(All),
+	member(P, All),
+	rdf_predicate_property_(P, Prop).
+rdf_predicate_property(P, Prop) :-
+	rdf_predicate_property_(P, Prop).
+
+
+		 /*******************************
 		 *    QUICK BINARY LOAD/SAVE	*
 		 *******************************/
 
@@ -950,7 +983,7 @@ decl_predicate_ns(Pred) :-
 	xml_codes(LocalCodes), !,
 	(   NSCodes \== []
 	->  atom_codes(NS, NSCodes),
-	    (   between(1, 1000000, N),
+	    (   between(1, infinite, N),
 		atom_concat(ns, N, Id),
 		\+ ns(Id, _)
 	    ->  rdf_register_ns(Id, NS),
