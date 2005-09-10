@@ -1543,7 +1543,8 @@ re-definition.
 	if ( (tm != MODULE_system &&
 	      (syspred=isCurrentProcedure(functor, MODULE_system)) &&
 	      isDefinedProcedure(syspred)) )
-	{ freeHeap(proc->definition, sizeof(struct definition));
+	{ assert(false(proc->definition, P_DIRTYREG));
+	  freeHeap(proc->definition, sizeof(struct definition));
 	  proc->definition = syspred->definition;
 	}
       }
