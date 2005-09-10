@@ -999,6 +999,7 @@ with one operation, it turns out to be faster as well.
 #define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
 #define P_THREAD_LOCAL		(0x01000000L) /* predicate */
 #define P_FOREIGN_CREF		(0x02000000L) /* predicate */
+#define P_DIRTYREG		(0x04000000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause, record */
 					 /* clause flags */
