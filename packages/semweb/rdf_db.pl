@@ -107,6 +107,8 @@
 :- use_module(library(sgml)).
 :- use_module(library(sgml_write)).
 :- use_module(library(option)).
+:- use_module(library(nb_set)).
+:- use_module(library(ordsets)).
 
 :- initialization
    load_foreign_library(foreign(rdf_db)).
@@ -899,11 +901,10 @@ meta_options([H0|T0], [H|T]) :-
 
 rdf_save_header(Out, Options) :-
 	is_list(Options), !,
-	db(Options, DB),
 	xml_encoding(Out, Encoding),
 	format(Out, '<?xml version=\'1.0\' encoding=\'~w\'?>~n', [Encoding]),
 	format(Out, '<!DOCTYPE rdf:RDF [', []),
-	used_namespaces(NSList, DB),
+	header_namespaces(Options, NSList),
 	(   member(Id, NSList),
 	    ns(Id, NS),
 	    format(Out, '~N    <!ENTITY ~w \'~w\'>', [Id, NS]),
@@ -935,31 +936,43 @@ xml_encoding_name(iso_latin_1, 'ISO-8859-1').
 xml_encoding_name(utf8,        'UTF-8').
 
 
-%	used_namespaces(-List)
+%	header_namespaces(Options, -List)
+%	
+%	Get namespaces we will define as entities
+
+header_namespaces(Options, List) :-
+	memberchk(namespaces(NSL0), Options), !,
+	sort([rdf,rdfs|NSL0], List).
+header_namespaces(Options, List) :-
+	db(Options, DB),
+	used_namespace_entities(List, DB).
+	
+%	used_namespace_entities(-List, ?DB)
 %
 %	Return the list of namespaces used in an RDF database.
 
-used_namespaces(List, DB) :-
+used_namespace_entities(List, DB) :-
 	decl_used_predicate_ns(DB),
-	setof(NS, Full^ns(NS, Full), NS0),
-	used_ns(NS0, List, DB).
+	used_namespaces(All, DB),
+	findall(NS, Full^ns(NS, Full), Short),
+	ord_intersection(All, Short, List).
 
-used_ns([], [], _).
-used_ns([H|T0], [H|T], DB) :-
-	used_ns(H, DB), !,
-	used_ns(T0, T, DB).
-used_ns([_|T0], T, DB) :-
-	used_ns(T0, T, DB).
+used_namespaces(List, DB) :-
+	empty_nb_set(Set),
+	add_nb_set(rdf, Set),
+	(   rdf_db(S, P, O, DB),
+	    add_ns(S, Set),
+	    add_ns(P, Set),
+	    add_ns(O, Set),
+	    fail
+	;   true
+	),
+	nb_set_to_list(Set, List).
 
-used_ns(rdf, _) :- !.			% we need rdf:RDF
-used_ns(NS, DB) :-
-	ns(NS, Full),
-	rdf_db(S,P,O,DB),
-	(   sub_atom(S, 0, _, _, Full)
-	;   sub_atom(P, 0, _, _, Full)
-	;   atom(O),
-	    sub_atom(O, 0, _, _, Full)
-	), !.
+add_ns(S, Set) :-
+	atom(S),
+	rdf_url_namespace(S, NS),
+	add_nb_set(NS, Set).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
