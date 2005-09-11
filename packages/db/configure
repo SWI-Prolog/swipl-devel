@@ -4178,9 +4178,20 @@ done
 
 echo "$as_me:$LINENO: checking Whether environment is sane" >&5
 echo $ECHO_N "checking Whether environment is sane... $ECHO_C" >&6
+if test "$ac_cv_lib_db_db_create" = "yes"; then
+   echo "$as_me:$LINENO: result: library ok" >&5
+echo "${ECHO_T}library ok" >&6;
+else
+   echo "$as_me:$LINENO: result: Cannot find db library.  Aborted" >&5
+echo "${ECHO_T}Cannot find db library.  Aborted" >&6;
+   exit 1
+fi
+
+echo "$as_me:$LINENO: checking Whether environment is sane" >&5
+echo $ECHO_N "checking Whether environment is sane... $ECHO_C" >&6
 if test "$ac_cv_header_db_h" = yes ; then
-   echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6;
+   echo "$as_me:$LINENO: result: header ok" >&5
+echo "${ECHO_T}header ok" >&6;
 else
    echo "$as_me:$LINENO: result: Cannot find db.h.  Aborted" >&5
 echo "${ECHO_T}Cannot find db.h.  Aborted" >&6;

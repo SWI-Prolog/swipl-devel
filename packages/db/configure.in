@@ -112,8 +112,16 @@ AC_CHECK_LIB(db, db_create)
 AC_CHECK_HEADERS(db.h)
 
 AC_MSG_CHECKING(Whether environment is sane)
+if test "$ac_cv_lib_db_db_create" = "yes"; then
+   AC_MSG_RESULT(library ok);
+else
+   AC_MSG_RESULT(Cannot find db library.  Aborted);
+   exit 1
+fi
+
+AC_MSG_CHECKING(Whether environment is sane)
 if test "$ac_cv_header_db_h" = yes ; then
-   AC_MSG_RESULT(yes);
+   AC_MSG_RESULT(header ok);
 else
    AC_MSG_RESULT(Cannot find db.h.  Aborted);
    exit 1
