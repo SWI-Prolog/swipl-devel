@@ -243,7 +243,15 @@ supported by the rest of the engine.
 
 \begin{description}
     \predicate{rdf_current_predicate}{1}{?Predicate}
-Enumerate all defined predicates.
+Enumerate all defined predicates.  Behaves as the code below, but
+much more efficient.
+
+\begin{code}
+rdf_current_predicate(Predicate) :-
+	findall(P, rdf(_,P,_), Ps),
+	sort(Ps, S),
+	member(Predicate, S).
+\end{code}
 
     \predicate{rdf_set_predicate}{2}{+Predicate, +Property}
 Define a property of the predicate.  Defined properties are listed
@@ -533,8 +541,15 @@ is one of:
 
     \begin{description}
 	\termitem{db}{+FileRef}
-    Only search for namespaces used in triples labeled with
-    \arg{FileRef}.
+    Only search for namespaces used in triples labeled with \arg{FileRef}.
+
+	\termitem{namespaces}{+List}
+    Where \arg{List} is a list of namespace abbreviations (see
+    \secref{rdfns}).  With this option, the expensive search for
+    all namespaces that may be used by your data is omitted.  The
+    namespaces \const{rdf} and \const{rdfs} are added to the provided
+    \arg{List}.  If a namespace is not declared, the resource is
+    emitted in non-abreviated form.
     \end{description}
 
     \predicate{rdf_save_footer}{1}{+Stream}

@@ -310,12 +310,27 @@ are not yet supported by the rest of the engine.
 <DL>
 
 <P>
+<DT><A NAME="rdf_current_predicate/1"><STRONG>rdf_current_predicate</STRONG>(<VAR>?Predicate</VAR>)</A><DD>
+Enumerate all defined predicates. Behaves as the code below, but much 
+more efficient.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+rdf_current_predicate(Predicate) :-
+        findall(P, rdf(_,P,_), Ps),
+        sort(Ps, S),
+        member(Predicate, S).
+</PRE>
+</TABLE>
+
+<P>
 <DT><A NAME="rdf_set_predicate/2"><STRONG>rdf_set_predicate</STRONG>(<VAR>+Predicate, 
 +Property</VAR>)</A><DD>
 Define a property of the predicate. Defined properties are listed with <A NAME="idx:rdfpredicateproperty2:9"></A><A HREF="#rdf_predicate_property/2">rdf_predicate_property/2</A>.
 
 <P>
-<DT><A NAME="rdf_predicate_property/2"><STRONG>rdf_predicate_property</STRONG>(<VAR>+Predicate, 
+<DT><A NAME="rdf_predicate_property/2"><STRONG>rdf_predicate_property</STRONG>(<VAR>?Predicate, 
 -Property</VAR>)</A><DD>
 Query properties of a defined predicate. Currently defined properties 
 are given below.
@@ -685,8 +700,17 @@ is one of:
 
 <P>
 <DT><STRONG>db</STRONG>(<VAR>+FileRef</VAR>)<DD>
-Only search for namespaces used in triples labeled with
-<VAR>FileRef</VAR>.
+Only search for namespaces used in triples labeled with <VAR>FileRef</VAR>.
+
+<P>
+<DT><STRONG>namespaces</STRONG>(<VAR>+List</VAR>)<DD>
+Where <VAR>List</VAR> is a list of namespace abbreviations (see
+<A HREF="#sec:rdfns">section 3.5</A>). With this option, the expensive 
+search for all namespaces that may be used by your data is omitted. The 
+namespaces <CODE>rdf</CODE> and <CODE>rdfs</CODE> are added to the 
+provided
+<VAR>List</VAR>. If a namespace is not declared, the resource is emitted 
+in non-abreviated form.
 </DL>
 
 <P>
@@ -1738,6 +1762,7 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdf_atom_md5/3">rdf_atom_md5/3</A><DD>
 <DT><A HREF="#rdf_bnode/1">rdf_bnode/1</A><DD>
 <A HREF="#idx:rdfbnode1:66">4.2</A>
+<DT><A HREF="#rdf_current_predicate/1">rdf_current_predicate/1</A><DD>
 <DT><A HREF="#rdfe_assert/3">rdfe_assert/3</A><DD>
 <DT><A HREF="#rdfe_can_redo/1">rdfe_can_redo/1</A><DD>
 <DT><A HREF="#rdfe_can_undo/1">rdfe_can_undo/1</A><DD>
