@@ -35,6 +35,20 @@
 :- use_module(library(pce_template)).
 :- use_module(library(pce_shell)).
 
+:- pce_autoload(finder, library(find_file)).
+:- pce_global(@finder, new(finder)).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Public methods:
+
+	->print
+	Prints the content of the Window as a single page
+
+	->save_postscript: [file], [directory]
+	Save content of the Window as PostScript
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 :- pce_begin_class(print_graphics, template,
 		   "Template defining ->print").
 
@@ -163,6 +177,28 @@ substitute(S, F, T) :-
 	     message(@arg1, replace, @arg2, T)),
 	free(R).
 
+
+		 /*******************************
+		 *	    POSTSCRIPT		*
+		 *******************************/
+
+
+save_postscript(Canvas, File:file=[file], Directory:directory=[directory]) :->
+	"Save content as PostScript to File"::
+	(   File == @default
+	->  get(@finder, file, save,
+		chain(tuple('PostScript', ps),
+		      tuple('Encapsulated PostScript', eps)),
+		Directory,
+		FileName)
+	;   FileName = File
+	),
+	new(PsFile, file(FileName)),
+	send(PsFile, open, write),
+	send(PsFile, append, Canvas?postscript),
+	send(PsFile, append, 'showpage\n'),
+	send(PsFile, close),
+	send(Canvas, report, status, 'Saved PostScript to %s', PsFile).
 
 :- pce_end_class(print_graphics).
 	  

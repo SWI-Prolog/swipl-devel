@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(print_graphics), method ->save_postscript
+
 VERSION 6.5.29, distributed with SWI-Prolog 5.5.29
 ==================================================
 	

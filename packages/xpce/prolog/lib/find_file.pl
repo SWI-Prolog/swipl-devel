@@ -48,7 +48,7 @@ embedable file-prompters.
 Typical usage:
 
 	:- pce_autoload(finder, library(find_file)).
-	:- pce_global(@finder, new(finder))
+	:- pce_global(@finder, new(finder)).
 
 		...,
 		get(@finder, file, ...Options..., FileName),
