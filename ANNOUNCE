@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.28/XPCE 6.5.28 development release
+SWI-Prolog 5.5.30/XPCE 6.5.30 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -58,19 +58,23 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.29 relative to 5.5.28
+Patches in 5.5.30 relative to 5.5.29
 ====================================
 
- * Re-fixed: library(url) host handling.
+ * Fixed reloading running sourcefiles as well as files running in other
+   threads.
+ * Added new library: nb_set, providing non-backtrackable sets of terms
+ * Unicode bug in 'xyz \c  more'
+
 
 Packages
 ========
  
- * HTTP: catch exceptions in accept (server) and connect (client).
+ * SemWeb: added rdf_current_predicate/1.  Much faster analysis of 
+   required entity definitions for save and allow passing the required
+   entities to avoid this step altogether.
 
- * XPCE: Unicode handling in class source_location.  Postscript generation
-   for zero with/heigth graphicals, transparency handling in Postscript
-   generation and printing bitmaps in the MS-Windows version.
+ * XPCE: Added library(print_graphics), method ->save_postscript
 
 Incompatible changes
 ====================
