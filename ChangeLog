@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+===================================
+VERSION 5.5.30 (September 12, 2005)
+===================================
+
   * ADDED: library(nb_set): manipulate non-backtrackable sets of terms.
 
   * FIXED: Re-loading files while other threads execute them.
