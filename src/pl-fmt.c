@@ -265,8 +265,8 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 }
 
 
-word
-pl_format3(term_t stream, term_t format, term_t Args)
+static word
+format_impl(term_t stream, term_t format, term_t Args)
 { term_t argv;
   int argc = 0;
   term_t args = PL_copy_term_ref(Args);
@@ -312,6 +312,18 @@ pl_format3(term_t stream, term_t format, term_t Args)
   { PL_release_stream(out);
     fail;
   }
+}
+
+
+word
+pl_format3(term_t stream, term_t format, term_t args)
+{ int rc;
+
+  startCritical;
+  rc = format_impl(stream, format, args);
+  endCritical;
+
+  return rc;
 }
 
 
