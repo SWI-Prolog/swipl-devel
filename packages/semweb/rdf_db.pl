@@ -256,14 +256,14 @@ valid_args([H|T]) :-
 	valid_arg(H), !,
 	valid_args(T).
 
-valid_arg(:).
-valid_arg(+).
-valid_arg(-).
-valid_arg(?).
-valid_arg(@).
-valid_arg(r).
-valid_arg(o).
-valid_arg(t).
+valid_arg(:).				% meta argument
+valid_arg(+).				% non-var
+valid_arg(-).				% var
+valid_arg(?).				% either var or non-var
+valid_arg(@).				% not modified
+valid_arg(r).				% RDF resource
+valid_arg(o).				% RDF object
+valid_arg(t).				% term with RDF resources
 valid_arg(A) :-
 	throw(error(type_error(rdf_meta_argument, A), _)).
 
