@@ -468,6 +468,9 @@
 /* Define if __attribute__ visibility is supported */
 #undef HAVE_VISIBILITY_ATTRIBUTE
 
+/* Define to 1 if you have the `waitpid' function. */
+#undef HAVE_WAITPID
+
 /* Define to 1 if `fork' works. */
 #undef HAVE_WORKING_FORK
 

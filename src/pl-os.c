@@ -2479,12 +2479,25 @@ System(char *cmd)
     old_stop = signal(SIGTSTP, SIG_DFL);
 #endif /* SIGTSTP */
 
-    while((n = Wait(&status)) != -1 && n != pid);
-    if (n == -1)
+    for(;;)
+    { 
+#ifdef HAVE_WAITPID
+      n = waitpid(pid, &status, 0);
+#else
+      n = wait(&status);
+#endif
+      if ( n == -1 && errno == EINTR )
+	continue;
+      if ( n != pid )
+	continue;
+      break;
+    }
+
+    if ( n == -1 )
     { term_t tmp = PL_new_term_ref();
       
       PL_put_atom_chars(tmp, cmd);
-      PL_error("shell", 2, NULL, ERR_SHELL_FAILED, tmp);
+      PL_error("shell", 2, MSG_ERRNO, ERR_SHELL_FAILED, tmp);
 
       rval = 1;
     } else if (WIFEXITED(status))

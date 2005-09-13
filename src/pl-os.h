@@ -236,6 +236,4 @@ extern void ResetTty(void);
 		*        PROCESS CONTROL        *
 		*********************************/
 
-#define Wait(stat)	wait(stat)
-
 extern int System(char *command);

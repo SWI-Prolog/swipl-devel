@@ -500,7 +500,7 @@ AC_CHECK_FUNCS(popen putenv random remove rename select fcntl getrusage)
 AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan isinf tcsetattr cfmakeraw getpid)
-AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep)
+AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
 AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r)
 AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll fpclassify)
 AC_HEADER_TIME

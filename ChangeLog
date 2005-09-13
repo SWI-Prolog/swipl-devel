@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: shell/[1,2] when executed by multiple threads (Unix version).
+
   * ENHANCED: Safer abort from format/[2,3].
 
 
