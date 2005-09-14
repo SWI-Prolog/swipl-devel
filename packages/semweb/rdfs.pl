@@ -111,14 +111,14 @@ rdfs_subclass_of(Class, Super) :-
 		 *	    INDIVIDUALS		*
 		 *******************************/
 
-%	rdfs_individual(+Resource, -Class)
-%	rdfs_individual(-Resource, +Class)
+%	rdfs_individual_of(+Resource, -Class)
+%	rdfs_individual_of(-Resource, +Class)
 %	
 %	Generate resources belonging to a class   or  classes a resource
 %	belongs to. We assume everything at the `object' end of a triple
 %	is a class. A validator should confirm this property.
 %	
-%	rdfs_individual(+,  -)  does  not  exploit    domain  and  range
+%	rdfs_individual_of(+, -) does  not  exploit   domain  and  range
 %	properties, deriving that if rdf(R,  P,   _)  is  present R must
 %	satisfy the domain of P (and similar for range).
 %	
