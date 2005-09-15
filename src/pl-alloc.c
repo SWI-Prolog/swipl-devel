@@ -461,15 +461,24 @@ mergeAllocPool(AllocPool to, AllocPool from)
       i < (ALLOCFAST/ALIGN_SIZE);
       i++, t++, f++)
   { if ( *f )
-    { Chunk c = *t;
+    { if ( to->free_count[i] )
+      { if ( to->free_count[i] <= from->free_count[i] )
+	{ Chunk c = *t;
+		 
+	  while(c->next)
+	    c = c->next;
+	  c->next = *f; 
+	} else
+	{ Chunk c = *f;
 
-      if ( c )
-      { while(c->next)			/* find end of chain */
-	  c = c->next;
-	c->next = *f;
+	  while(c->next)
+	    c = c->next;
+	  c->next = *t;
+	  *t = *f;
+	}
       } else
 	*t = *f;
-
+	 
       to->free_count[i] += from->free_count[i];
       from->free_count[i] = 0;
 
