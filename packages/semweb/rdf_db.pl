@@ -52,6 +52,9 @@
 	    rdf_current_predicate/1,	% -Predicate
 
 	    rdf_transaction/1,		% :Goal
+	    rdf_transaction/2,		% :Goal, +Id
+
+	    rdf_monitor/2,		% :Goal, +Options
 
 	    rdf_save_db/1,		% +File
 	    rdf_save_db/2,		% +File, +DB
@@ -544,6 +547,64 @@ rdf_predicate_property(P, Prop) :-
 
 
 		 /*******************************
+		 *	    TRANSACTION		*
+		 *******************************/
+
+%	rdf_transaction(:Goal)
+%	
+%	Backward compatibility
+
+rdf_transaction(Goal) :-
+	rdf_transaction(Goal, user).
+
+%	rdf_monitor(:Goal, +Options)
+%
+
+rdf_monitor(Goal, Options) :-
+	monitor_mask(Options, 0xffff, Mask),
+	rdf_monitor_(Goal, Mask).
+
+monitor_mask([], Mask, Mask).
+monitor_mask([H|T], Mask0, Mask) :-
+	update_mask(H, Mask0, Mask1),
+	monitor_mask(T, Mask1, Mask).
+
+update_mask(-X, Mask0, Mask) :- !,
+	monitor_mask(X, M),
+	Mask is Mask0 /\ \M.
+update_mask(+X, Mask0, Mask) :- !,
+	monitor_mask(X, M),
+	Mask is Mask0 \/ M.
+update_mask(X, Mask0, Mask) :-
+	monitor_mask(X, M),
+	Mask is Mask0 \/ M.
+
+%	monitor_mask(Name, Mask)
+%	
+%	Mask bit for the monitor events.  Note that this must be kept
+%	consistent with the enum broadcast_id defined in rdf_db.c
+
+					% C-defined broadcasts
+monitor_mask(assert,	   0x0001).
+monitor_mask(assert(load), 0x0002).
+monitor_mask(retract,	   0x0004).
+monitor_mask(update,	   0x0008).
+monitor_mask(transaction,  0x0010).
+monitor_mask(load,	   0x0020).
+monitor_mask(rehash,	   0x0040).
+					% prolog defined broadcasts
+monitor_mask(parse,	   0x1000).
+monitor_mask(reset,	   0x2000).
+monitor_mask(unload,	   0x1000).
+					% mask for all
+monitor_mask(all,	   0xffff).
+
+rdf_broadcast(Term, MaskName) :-
+	monitor_mask(MaskName, Mask),
+	rdf_broadcast_(Term, Mask).
+
+
+		 /*******************************
 		 *    QUICK BINARY LOAD/SAVE	*
 		 *******************************/
 
@@ -563,13 +624,13 @@ rdf_save_db(File, DB) :-
 	call_cleanup(rdf_save_db_(Out, DB), close(Out)).
 
 
-rdf_load_db_no_admin(File) :-
+rdf_load_db_no_admin(File, Id) :-
 	open(File, read, Out, [type(binary)]),
-	call_cleanup(rdf_load_db_(Out), close(Out)).
+	call_cleanup(rdf_load_db_(Out, Id), close(Out)).
 
 
 rdf_load_db(File) :-
-	rdf_load_db_no_admin(File),
+	rdf_load_db_no_admin(File, file(File)),
 	rdf_sources_(Sources),
 	(   member(Src, Sources),
 	    rdf_md5(Src, MD5),
@@ -656,11 +717,11 @@ rdf_load(Spec, Options0) :-
 			catch(rdf_load_db_no_admin(Cache), _, fail),
 			ignore(memberchk(namespaces([]), Options)) % TBD
 		    ->  Load = cache(ParseTime)
-		    ;   process_rdf(File, assert_triples, Options),
+		    ;   parse_rdf_file(File, Options),
 			Load = parsed(ParseTime),
 			save_cache(File, Cache)
 		    )
-		;   process_rdf(File, assert_triples, Options),
+		;   parse_rdf_file(File, Options),
 		    Load = parsed(ParseTime)
 		),
 		rdf_statistics_(triples(File, Triples)),
@@ -678,6 +739,19 @@ rdf_load(Spec, Options0) :-
 	).
 
 
+parse_rdf_file(File, Options) :-
+	source_descr(File, Id),
+	rdf_broadcast(parse(begin, Id), parse),
+	call_cleanup(process_rdf(File, assert_triples, Options),
+		     rdf_broadcast(parse(end, Id), parse)).
+
+source_descr(File, file(File)) :-
+	atom(File), !.
+source_descr(Stream, stream(Stream)) :-
+	is_stream(Stream), !.
+source_descr(Descr, Descr).
+
+
 %	rdf_unload(+Spec)
 %	
 %	Remove the triples loaded from the specified source and remove
@@ -687,26 +761,33 @@ rdf_unload(Spec) :-
 	(   is_stream(Spec)
 	->  throw(error(permission_error(rdf_db, unload, Spec), _))
 	;   atom(Spec),
+	    rdf_statistics_(triples(Spec, _)),
 	    rdf(_,_,_,Spec)
-	->  rdf_retractall(_,_,_,Spec:_),
-	    rdf_retractall(_,_,_,Spec),
-	    retractall(rdf_source(Spec, _, _, _))
+	->  do_unload(Spec)
 	;   absolute_file_name(Spec,
 			       [ access(read),
 				 extensions([rdf,rdfs,owl,''])
 			       ], File),
-	    rdf_retractall(_,_,_,File:_),
-	    rdf_retractall(_,_,_,File),
-	    retractall(rdf_source(File, _, _, _))
+	    do_unload(File)
 	).
 	
+do_unload(Spec) :-
+	rdf_broadcast(unload(begin, Spec), unload),
+	rdf_retractall(_,_,_,Spec:_),
+	rdf_retractall(_,_,_,Spec),
+	retractall(rdf_source(Spec, _, _, _)),
+	rdf_broadcast(unload(end, Spec), unload).
+
 
 %	rdf_source(?Source)
 %	
 %	Query the loaded sources
 
 rdf_source(File) :-
-	rdf_source(File, _, _, _).
+	rdf_sources_(Sources),
+	member(File, Sources),
+	rdf_statistics_(triples(File, Triples)),
+	Triples > 0.
 
 %	rdf_make
 %	
@@ -769,7 +850,8 @@ assert_triples([H|_], _) :-
 
 rdf_reset_db :-
 	rdf_reset_db_,
-	retractall(rdf_source(_,_,_,_)).
+	retractall(rdf_source(_,_,_,_)),
+	rdf_broadcast(reset, reset).
 
 
 		 /*******************************
@@ -800,6 +882,8 @@ rdf_reset_db :-
 %		Initial xml:lang saved with rdf:RDF element
 
 :- module_transparent
+	rdf_transaction/1,
+	rdf_monitor/2,
 	rdf_save/2,
 	meta_options/2.
 

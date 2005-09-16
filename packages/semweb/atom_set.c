@@ -407,7 +407,8 @@ avl_new_node(avl_tree *tree)
 
 void
 avl_init(avl_tree *tree)
-{ tree->root        = NULL;
+{ tree->magic       = AVL_MAGIC;
+  tree->root        = NULL;
   tree->size        = 0L;
   tree->block1.next = NULL;
   tree->block1.left = FREE_CHUNK_SIZE;
@@ -423,5 +424,6 @@ avl_destroy(avl_tree *tree)
   { n = l->next;
     PL_free(l);
   }
-}
 
+  tree->magic = 0;
+}

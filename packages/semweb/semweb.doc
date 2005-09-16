@@ -401,8 +401,8 @@ The storage layer may require reindexing after adding or deleting
 triples. Such reindexing operatations however are not possible while
 there are active read operations in other threads or from choicepoints
 that can be in the same thread. For this reason we added
-rdf_transaction/1. Note that, like the predicates from
-\secref{modpreds}, rdf_transaction/1 raises a permission error exception
+rdf_transaction/2. Note that, like the predicates from
+\secref{modpreds}, rdf_transaction/2 raises a permission error exception
 if the calling thread has active choicepoints on the database. The
 problem is illustrated below.  The rdf/3 call leaves a choicepoint and
 as the read lock originates from the calling thread itself the system
@@ -424,6 +424,9 @@ ERROR: No permission to write rdf_db `default' (Operation would deadlock)
 
 \begin{description}
     \predicate{rdf_transaction}{1}{:Goal}
+Same as \termitem{rdf_transaction}{Goal, \const{user}}.
+
+    \predicate{rdf_transaction}{2}{:Goal, +Id}
 After starting a transaction, all predicates from \secref{modpreds}
 append their operation to the \emph{transaction} instead of modifying
 the database. If \arg{Goal} succeeds rdf_transaction cuts all
@@ -440,6 +443,10 @@ Transactions may be nested.  Committing a nested transactions merges
 its change records into the outer transaction, while discarding a
 nested transaction simply destroys the change records belonging to
 the nested transaction.
+
+The \arg{Id} argument may be used to identify the transaction.  It
+is passed to the begin/end events posted to hooks registered with
+rdf_monitor/2.
 \end{description}
 
 
@@ -780,6 +787,74 @@ rdf_meta/1 \emph{must} explicitely load \file{rdf_db.pl}.
 \end{description}
 
 
+\subsection{Monitoring the database}		\label{sec:rdfmonitor}
+
+Considering performance and modularity, we are working on a replacement
+of the \file{rdf_edit} (see \secref{rdfedit}) layered design to deal
+with updates, journalling, transactions, etc.  Where the rdf_edit
+approach creates a single layer on top of rdf_db and code using the
+RDF database must select whether to use rdf_db.pl or rdf_edit.pl, the
+new approach allows to register \jargon{monitors}.  This allows multiple
+modules to provide additional services, while these services will be
+used regardless of how the database is modified.
+
+\begin{description}
+    \predicate{rdf_monitor}{2}{:Goal, +Mask}
+\arg{Goal} is called for modifications of the database. It is called
+with a single argument that describes the modification. Defined
+events are:
+
+\begin{description}
+    \termitem{assert}{+S, +P, +O, +DB}
+A triple has been asserted.
+    \termitem{retract}{+S, +P, +O, +DB}
+A triple has been deleted.
+    \termitem{update}{+S, +P, +O, +DB, +Action}
+A triple has been updated.
+    \termitem{transaction}{+BeginOrEnd, +Id}
+Mark begin or end of the commit of a toplevel transaction started by
+rdf_transaction/2.  \arg{BeginOrEnd} is \const{begin} or \const{end}.
+\arg{Id} is the second argument of rdf_transaction/2.
+    \termitem{load}{+BeginOrEnd, +Spec}
+Mark begin or end of rdf_load_db/1 or load through rdf_load/2 from
+a cached file. \arg{Spec} is currently defined as \term{file}{Path}.
+    \termitem{parse}{+BeginOrEnd, +Spec}
+Mark begin or end of parsing an RDF/XML file. \arg{Spec} is one of
+\term{file}{Path} or \term{stream}{Stream}.
+    \termitem{parse}{+BeginOrEnd, +Spec}
+Mark begin or end of parsing an RDF/XML file. \arg{Spec} is one of
+\term{file}{Path} or \term{stream}{Stream}.
+    \termitem{unload}{+BeginOrEnd, +DB}
+Indicates the begin and end of rdf_unload/1, passing the 4th argument
+of rdf/4 of the removed triples in \arg{DB}.
+    \termitem{rehash}{+BeginOrEnd}
+Marks begin/end of a re-hash due to required re-indexing or garbage
+collection.
+    \termitem{reset}{}
+Issued after the RDF database has been cleared using rdf_reset_db/0.
+\end{description}
+
+\arg{Mask} is a list of events this monitor is interested in.  Default
+(empty list) is to report all events.  Otherwise each element is of the
+form +Event or -Event to include or exclude monitoring for certain
+events. The event-names are the functor names of the events described
+above.  The special name \term{all}{} refers to all events and \term
+{assert}{load} to assert events originating from rdf_load_db/1.  As
+loading triples using rdf_load_db/1 is very fast, monitoring this at
+the triple level may seriously harm performance.
+
+This predicate is intended to maintain derived data, such as a journal,
+information for \emph{undo}, additional indexing in literals, etc. There
+is no way to remove registered monitors. If this is required one should
+register a monitor that maintains a dynamic list of subscribers like the
+XPCE broadcast library. A second subscription of the same hook predicate
+only re-assignes the mask. The monitor hooks are called in the order of
+registration and in the same thread that issued the database
+manipulation. To process all changes in one thread they should be send
+to a thread message queue.
+\end{description}
+
+
 \subsection{Miscellaneous predicates}
 
 This section describes the remaining predicates of the \file{rdf_db}
@@ -1061,6 +1136,12 @@ reasoning.
 
 \section{Module rdf_edit}			\label{sec:rdfedit}
 
+\begin{quote}\em
+It is anticipated that this library will eventually be superseeded
+by facilities running on top of the native rdf_transaction/2 and
+rdf_monitor/2 facilities.  See \secref{rdfmonitor}.
+\end{quote}
+
 \index{undo}\index{journal}\index{transactions}
 The module \file{rdf_edit.pl} is a layer than encasulates the
 modification predicates from \secref{rdfmodify} for use from
@@ -1247,7 +1328,7 @@ Test whether there is a journal and to which file the actions are
 journalled.
 
     \predicate{rdfe_replay_journal}{1}{+File}
-Read a jorunal, replaying all actions in it.  To do so, the system
+Read a journal, replaying all actions in it.  To do so, the system
 reads the journal a transaction at a time.  If the transaction is
 closed with a \emph{commit} it executes the actions inside the journal.
 If it is closed with a \emph{rollback} or not closed at all due to a

@@ -63,6 +63,24 @@ static int debuglevel = 0;
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The ids form a mask. This must be kept consistent with monitor_mask/2 in
+rdf_db.pl!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef enum
+{ EV_ASSERT      = 0x0001,		/* triple */
+  EV_ASSERT_LOAD = 0x0002,		/* triple */
+  EV_RETRACT     = 0x0004,		/* triple */
+  EV_UPDATE      = 0x0008,		/* old, new */
+  EV_TRANSACTION = 0x0010,		/* id, begin/end */
+  EV_LOAD	 = 0x0020,		/* id, begin/end */
+  EV_REHASH	 = 0x0040		/* begin/end */
+} broadcast_id;
+
+static void broadcast(broadcast_id id, void *a1, void *a2);
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We now use malloc/free/realloc  calls  with   explicit  sizes  to  allow
 maintaining statistics as well as to   prepare  for dealing with special
 memory  pools  associated  with  databases.  Using  -DDIRECT_MALLOC  the
@@ -182,12 +200,22 @@ static functor_t FUNCTOR_gc2;
 static functor_t FUNCTOR_rehash2;
 static functor_t FUNCTOR_core1;
 
+static functor_t FUNCTOR_assert4;
+static functor_t FUNCTOR_retract4;
+static functor_t FUNCTOR_update5;
+static functor_t FUNCTOR_transaction2;
+static functor_t FUNCTOR_load2;
+static functor_t FUNCTOR_rehash1;
+
 static atom_t   ATOM_user;
 static atom_t	ATOM_exact;
 static atom_t	ATOM_prefix;
 static atom_t	ATOM_substring;
 static atom_t	ATOM_word;
 static atom_t	ATOM_like;
+static atom_t	ATOM_error;
+static atom_t	ATOM_begin;
+static atom_t	ATOM_end;
 
 static atom_t	ATOM_subPropertyOf;
 
@@ -1934,7 +1962,7 @@ link_triple_hash(rdf_db *db, triple *t)
 /* MT: must be locked by caller */
 
 static void
-link_triple(rdf_db *db, triple *t)
+link_triple_silent(rdf_db *db, triple *t)
 { triple *one;
 
   if ( db->by_none_tail )
@@ -1971,6 +1999,13 @@ ok:
 }
 
 
+static inline void
+link_triple(rdf_db *db, triple *t)
+{ link_triple_silent(db, t);
+  broadcast(EV_ASSERT, t, NULL);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 rehash_triples()
 
@@ -2002,6 +2037,7 @@ rehash_triples(rdf_db *db)
   long tsize = tbl_size(count);
 
   DEBUG(1, Sdprintf("(%ld triples; %ld entries) ...", count, tsize));
+  broadcast(EV_REHASH, (void*)ATOM_begin, NULL);
 
   for(i=1; i<INDEX_TABLES; i++)
   { if ( db->table[i] )
@@ -2058,6 +2094,8 @@ rehash_triples(rdf_db *db)
 
   if ( db->by_none == NULL )
     db->by_none_tail = NULL;
+
+  broadcast(EV_REHASH, (void*)ATOM_end, NULL);
 }
 
 
@@ -2124,7 +2162,7 @@ update_hash(rdf_db *db)
 /* MT: Must be locked */
 
 static void
-erase_triple(rdf_db *db, triple *t)
+erase_triple_silent(rdf_db *db, triple *t)
 { if ( !t->erased )
   { t->erased = TRUE;
 
@@ -2150,6 +2188,13 @@ erase_triple(rdf_db *db, triple *t)
     t->predicate->triple_count--;
     unregister_source(db, t);
   }
+}
+
+
+static inline void
+erase_triple(rdf_db *db, triple *t)
+{ erase_triple(db, t);
+  broadcast(EV_RETRACT, t, NULL);
 }
 
 
@@ -2746,7 +2791,8 @@ value:
   if ( db->tr_first )
   { record_transaction(db, TR_ASSERT, t);     
   } else
-  { link_triple(db, t);
+  { link_triple_silent(db, t);
+    broadcast(EV_ASSERT_LOAD, t, NULL);
   }
 
   return TRUE;
@@ -2839,13 +2885,19 @@ load_db(rdf_db *db, IOSTREAM *in)
 
 
 static foreign_t
-rdf_load_db(term_t stream)
+rdf_load_db(term_t stream, term_t id)
 { IOSTREAM *in;
+  int rc;
 
   if ( !PL_get_stream_handle(stream, &in) )
     return type_error(stream, "stream");
 
-  return load_db(DB, in);
+  broadcast(EV_LOAD, (void*)id, (void*)ATOM_begin);
+  rc = load_db(DB, in);
+  broadcast(EV_LOAD, (void*)id, (void*)ATOM_end);
+  PL_release_stream(in);
+
+  return rc;
 }
 
 
@@ -3378,6 +3430,14 @@ unify_source(term_t src, triple *t)
 
 
 static int
+same_source(triple *t1, triple *t2)
+{ return t1->line   == t2->line &&
+         t1->source == t2->source;
+}
+
+
+
+static int
 put_value(term_t v, triple *t)
 { switch(t->objtype)
   { case OBJ_STRING:
@@ -3786,9 +3846,10 @@ commit_transaction(rdf_db *db)
 	}
 	break;
       case TR_UPDATE:
-	erase_triple(db, tr->triple);
-        link_triple(db, tr->update.triple);
+	erase_triple_silent(db, tr->triple);
+        link_triple_silent(db, tr->update.triple);
 	db->generation++;
+	broadcast(EV_UPDATE, tr->triple, tr->update.triple);
 	break;
       case TR_UPDATE_SRC:
         if ( tr->triple->source != tr->update.src.atom )
@@ -3830,7 +3891,7 @@ commit_transaction(rdf_db *db)
 
 
 static foreign_t
-rdf_transaction(term_t goal)
+rdf_transaction(term_t goal, term_t id)
 { int rc;
   rdf_db *db = DB;
 
@@ -3842,13 +3903,18 @@ rdf_transaction(term_t goal)
   rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, PRED_call1, goal);
 
   if ( rc )
-  { if ( db->tr_nesting == 0 )
-    { if ( db->tr_last && db->tr_last->type != TR_MARK && /* not empty */
-	   !LOCKOUT_READERS(db) )
+  { int empty = (db->tr_last == NULL || db->tr_last->type == TR_MARK);
+
+    if ( db->tr_nesting == 0 )
+    { if ( !empty && !LOCKOUT_READERS(db) )
 	goto discard;
     }
 
+    if ( !empty )
+      broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_begin);
     commit_transaction(db);
+    if ( !empty )
+      broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_end);
   } else
   { discard:
     discard_transaction(db);
@@ -4201,9 +4267,10 @@ update_triple(rdf_db *db, term_t action, triple *t)
   if ( db->tr_first )
   { record_update_transaction(db, t, new);
   } else
-  { erase_triple(db, t);
-    link_triple(db, new);
+  { erase_triple_silent(db, t);
+    link_triple_silent(db, new);
     db->generation++;
+    broadcast(EV_UPDATE, t, new);
   }
 
   return TRUE;
@@ -4234,7 +4301,9 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
   for( ; p; p = p->next[indexed])
   { if ( match_triples(p, &t, MATCH_EXACT) )
     { if ( !update_triple(db, action, p) )
+      { WRUNLOCK(db);
 	return FALSE;			/* type errors */
+      }
       done++;
     }
   }
@@ -4292,6 +4361,207 @@ rdf_retractall3(term_t subject, term_t predicate, term_t object)
 { return rdf_retractall4(subject, predicate, object, 0);
 }
 
+
+		 /*******************************
+		 *	     MONITOR		*
+		 *******************************/
+
+typedef struct broadcast_callback
+{ struct broadcast_callback *next;
+  predicate_t		     pred;
+  long			     mask;
+} broadcast_callback;
+
+static long joined_mask = 0L;
+static broadcast_callback *callback_list;
+static broadcast_callback *callback_tail;
+
+static void
+do_broadcast(term_t term, long mask)
+{ if ( callback_list )
+  { broadcast_callback *cb;
+
+    for(cb = callback_list; cb; cb = cb->next)
+    { qid_t qid;
+      term_t ex;
+
+      if ( !(cb->mask & mask) )
+	continue;
+
+      qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, cb->pred, term);
+      if ( !PL_next_solution(qid) && (ex = PL_exception(qid)) )
+      { term_t av = PL_new_term_refs(2);
+
+	PL_cut_query(qid);
+
+	PL_put_atom(av+0, ATOM_error);
+	PL_put_term(av+1, ex);
+
+	PL_call_predicate(NULL, PL_Q_NORMAL, 
+			  PL_predicate("print_message", 2, "user"),
+			  av);
+      } else
+      { PL_close_query(qid);
+      }
+    }
+  }
+}
+
+
+static foreign_t
+rdf_broadcast(term_t term, term_t mask)
+{ long msk;
+
+  if ( !get_long_ex(mask, &msk) )
+    return FALSE;
+
+  do_broadcast(term, msk);
+  return TRUE;
+}
+
+
+static void
+broadcast(broadcast_id id, void *a1, void *a2)
+{ if ( (joined_mask & id) )
+  { fid_t fid;
+    term_t term;
+    functor_t funct;
+    
+    fid = PL_open_foreign_frame();
+    term = PL_new_term_ref();
+
+    switch(id)
+    { case EV_ASSERT:
+      case EV_ASSERT_LOAD:
+	funct = FUNCTOR_assert4;
+        goto assert_retract;
+      case EV_RETRACT:
+	funct = FUNCTOR_retract4;
+      assert_retract:
+      { triple *t = a1;
+	term_t tmp = PL_new_term_refs(4);
+	
+	PL_put_atom(tmp+0, t->subject);
+	PL_put_atom(tmp+1, t->predicate->name);
+	unify_object(tmp+2, t);
+	unify_source(tmp+3, t);
+
+	PL_cons_functor_v(term, funct, tmp);
+	break;
+      }
+      case EV_UPDATE:
+      { triple *t = a1;
+	triple *new = a2;
+	term_t tmp = PL_new_term_refs(5);
+	term_t a = PL_new_term_ref();
+	functor_t action;
+
+	PL_put_atom(tmp+0, t->subject);
+	PL_put_atom(tmp+1, t->predicate->name);
+	unify_object(tmp+2, t);
+	unify_source(tmp+3, t);
+
+	if ( t->subject != new->subject )
+	{ action = FUNCTOR_object1;
+	  PL_put_atom(a, new->subject);
+	} else if ( t->predicate != new->predicate )
+	{ action = FUNCTOR_predicate1;
+	  PL_put_atom(a, new->predicate->name);
+	} else if ( !match_object(t, new) )
+	{ action = FUNCTOR_object1;
+	  unify_object(a, new);
+	} else if ( !same_source(t, new) )
+	{ action = FUNCTOR_source1;
+	  unify_source(a, new);
+	} else
+	{ return;			/* no change */
+	}
+	  
+	PL_cons_functor_v(tmp+4, action, a);
+	PL_cons_functor_v(term, FUNCTOR_update5, tmp);
+	break;
+      }
+      case EV_TRANSACTION:
+      case EV_LOAD:
+      { term_t id = (term_t)a1;
+	atom_t be = (atom_t)a2;
+	term_t tmp = PL_new_term_refs(2);
+	
+	PL_put_atom(tmp+0, be);		/* begin/end */
+	PL_put_term(tmp+1, id);
+
+	PL_cons_functor_v(term,
+			  id == EV_TRANSACTION ? FUNCTOR_transaction2
+					       : FUNCTOR_load2,
+			  tmp);
+	break;
+      }
+      case EV_REHASH:
+      { term_t tmp = PL_new_term_refs(1);
+	atom_t be = (atom_t)a1;
+	
+	PL_put_atom(tmp+0, be);	
+	PL_cons_functor_v(term, FUNCTOR_rehash1, tmp);
+	break;
+      }
+      default:
+	assert(0);
+    }
+
+    do_broadcast(term, id);
+
+    PL_discard_foreign_frame(fid);
+  }
+}
+
+
+static foreign_t
+rdf_monitor(term_t goal, term_t mask)
+{ atom_t name;
+  broadcast_callback *cb;
+  predicate_t p;
+  long msk;
+
+  if ( !get_atom_ex(goal, &name) ||
+       !get_long_ex(mask, &msk) )
+    return FALSE;
+    
+  p = PL_pred(PL_new_functor(name, 1), NULL);
+
+  for(cb=callback_list; cb; cb = cb->next)
+  { if ( cb->pred == p )
+    { broadcast_callback *cb2;
+      cb->mask = msk;
+
+      joined_mask = 0L;
+      for(cb2=callback_list; cb2; cb2 = cb2->next)
+	joined_mask |= cb2->mask;
+      Sdprintf("Set mask to 0x%x\n", joined_mask);
+
+      return TRUE;
+    }
+  }
+
+  cb = PL_malloc(sizeof(*cb));
+  cb->next = NULL;
+  cb->mask = msk;
+  cb->pred = p;
+  if ( callback_list )
+  { callback_tail->next = cb;
+    callback_tail = cb;
+  } else
+  { callback_list = callback_tail = cb;
+  }
+  joined_mask |= mask;
+
+  return TRUE;
+}
+
+
+
+		 /*******************************
+		 *	       QUERY		*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Enumerate the known subjects. This uses the   `first' flag on triples to
@@ -5573,6 +5843,12 @@ install_rdf_db()
   MKFUNCTOR(gc, 2);
   MKFUNCTOR(rehash, 2);
   MKFUNCTOR(core, 1);
+  MKFUNCTOR(assert, 4);
+  MKFUNCTOR(retract, 4);
+  MKFUNCTOR(update, 5);
+  MKFUNCTOR(transaction, 2);
+  MKFUNCTOR(load, 2);
+  MKFUNCTOR(rehash, 1);
 
   FUNCTOR_colon2 = PL_new_functor(PL_new_atom(":"), 2);
 
@@ -5583,6 +5859,9 @@ install_rdf_db()
   ATOM_substring     = PL_new_atom("substring");
   ATOM_word	     = PL_new_atom("word");
   ATOM_subPropertyOf = PL_new_atom(URL_subPropertyOf);
+  ATOM_error	     = PL_new_atom("error");
+  ATOM_begin	     = PL_new_atom("begin");
+  ATOM_end	     = PL_new_atom("end");
 
   PRED_call1         = PL_predicate("call", 1, "user");
 
@@ -5619,7 +5898,7 @@ install_rdf_db()
   PL_register_foreign("rdf_split_url",  3, split_url,       0);
   PL_register_foreign("rdf_url_namespace", 2, url_namespace,0);
   PL_register_foreign("rdf_save_db_",   2, rdf_save_db,     0);
-  PL_register_foreign("rdf_load_db_",   1, rdf_load_db,     0);
+  PL_register_foreign("rdf_load_db_",   2, rdf_load_db,     0);
   PL_register_foreign("rdf_reachable",  3, rdf_reachable,   NDET);
   PL_register_foreign("rdf_reset_db_",  0, rdf_reset_db,    0);
   PL_register_foreign("rdf_set_predicate",
@@ -5631,7 +5910,9 @@ install_rdf_db()
   PL_register_foreign("rdf_sources_",   1, rdf_sources,     0);
   PL_register_foreign("rdf_estimate_complexity",
 					4, rdf_estimate_complexity, 0);
-  PL_register_foreign("rdf_transaction",1, rdf_transaction, META);
+  PL_register_foreign("rdf_transaction",2, rdf_transaction, META);
+  PL_register_foreign("rdf_monitor_",   2, rdf_monitor,     META);
+  PL_register_foreign("rdf_broadcast_", 2, rdf_broadcast,   0);
 #ifdef O_DEBUG
   PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
 #endif

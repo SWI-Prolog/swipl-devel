@@ -36,10 +36,12 @@ typedef struct avl_node
 { struct avl_node *left;
   struct avl_node *right;
   atom_t key;
-  int bal;
+  int bal;				/* balance */
+  void *value;				/* associated value */
 } avl_node;
 
 #define FREE_CHUNK_SIZE 1024
+#define AVL_MAGIC	0x794bac67L
 
 typedef struct avl_free_list
 { struct avl_free_list *next;
@@ -48,7 +50,8 @@ typedef struct avl_free_list
 } avl_free_list;
 
 typedef struct avl_tree
-{ avl_node      *root;
+{ long		 magic;			/* magic code */
+  avl_node      *root;
   long		 size;			/* # nodes in the tree */
   avl_free_list *free_list;
   avl_free_list  block1;
