@@ -1043,7 +1043,8 @@ used_namespace_entities(List, DB) :-
 
 used_namespaces(List, DB) :-
 	empty_nb_set(Set),
-	add_nb_set(rdf, Set),
+	ns(rdf, RDF),
+	add_nb_set(RDF, Set),
 	(   rdf_db(S, P, O, DB),
 	    add_ns(S, Set),
 	    add_ns(P, Set),
@@ -1051,12 +1052,23 @@ used_namespaces(List, DB) :-
 	    fail
 	;   true
 	),
-	nb_set_to_list(Set, List).
+	nb_set_to_list(Set, FullList),
+	ns_abbreviations(FullList, List).
+
+ns_abbreviations([], []).
+ns_abbreviations([H0|T0], [H|T]) :-
+	ns(H, H0), !,
+	ns_abbreviations(T0, T).
+ns_abbreviations([_|T0], T) :-
+	ns_abbreviations(T0, T).
+	
 
 add_ns(S, Set) :-
 	atom(S),
-	rdf_url_namespace(S, NS),
-	add_nb_set(NS, Set).
+	rdf_url_namespace(S, Full),
+	Full \== '', !,
+	add_nb_set(Full, Set).
+add_ns(_, _).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

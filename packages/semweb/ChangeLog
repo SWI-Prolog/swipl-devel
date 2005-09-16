@@ -4,6 +4,8 @@ Version 2.3.0
 
 Sep 16, 2005
 
+  * FIXED: Namespace computation (broken in 5.5.30 version).
+
   * ADDED: rdf_transaction/2 and rdf_monitor/1.
 
   * MODIFIED: rdf_source/1 also returns sources added using rdf_assert/4,
