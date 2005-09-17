@@ -58,23 +58,17 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.30 relative to 5.5.29
+Patches in 5.5.31 relative to 5.5.30
 ====================================
 
- * Fixed reloading running sourcefiles as well as files running in other
-   threads.
- * Added new library: nb_set, providing non-backtrackable sets of terms
- * Unicode bug in 'xyz \c  more'
-
+ * Fixed Unix version of shell/[1,2] for multiple threads.
+ * Misc small stuff
 
 Packages
 ========
  
- * SemWeb: added rdf_current_predicate/1.  Much faster analysis of 
-   required entity definitions for save and allow passing the required
-   entities to avoid this step altogether.
-
- * XPCE: Added library(print_graphics), method ->save_postscript
+ * SemWeb: Added rdf_monitor/2.  Fixed namespace computation broken in
+   previous version.
 
 Incompatible changes
 ====================
