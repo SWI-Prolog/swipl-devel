@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * PORT: Bug#90: Fix Prolog Makefile for parallel make.  Mike Frysinger.
+
   * ENHANCED: Faster merging of memory left from terminated threads.  Code
     contributed by Servey Tikhonov.
 

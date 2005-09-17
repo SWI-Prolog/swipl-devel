@@ -2193,7 +2193,7 @@ erase_triple_silent(rdf_db *db, triple *t)
 
 static inline void
 erase_triple(rdf_db *db, triple *t)
-{ erase_triple(db, t);
+{ erase_triple_silent(db, t);
   broadcast(EV_RETRACT, t, NULL);
 }
 

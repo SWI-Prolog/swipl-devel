@@ -165,7 +165,7 @@ banner::
 		@echo "****************"
 
 
-$(PL):		$(RUNTIME) $(PLOBJ)
+$(PL):		$(RUNTIME) $(PLOBJ) $(RUNTIMEDIR)/$(SHARED)
 		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(ARCH) -lpl $(LNLIBS)
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
@@ -183,13 +183,13 @@ $(RUNTIME):	$(OBJ) $(RCOBJ) $(XOBJ)
 		$(RANLIB) $@
 
 ifeq ($(SOEXT),dylib)
-$(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
 		$(CC) -dynamiclib -current_version $(PLVERSION) \
 			-install_name $(LIBPL_INSTALL_NAME) \
 			$(COFLAGS) -o $@ \
 			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 else
-$(RUNTIMEDIR)/$(SHAREDV):	$(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHAREDV):	dirs $(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
 			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 
@@ -200,7 +200,7 @@ endif
 rc-lib:
 		@(cd rc && $(MAKE) COFLAGS="$(COFLAGS)")
 
-../library/INDEX.pl:	../library ../library/[a-z]*.pl
+../library/INDEX.pl:	../library ../library/[a-z]*.pl $(DEVPL) $(STARTUPPATH)
 		$(DEVPL) -x $(STARTUPPATH) \
 			-f none -F none \
 			-g make_library_index\(\'../library\'\) \
@@ -255,11 +255,7 @@ parms.h:	Makefile
 		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> $@%
 		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
 
-pl-main.o:	parms.h
-pl-setup.o:	parms.h
-pl-wic.o:	parms.h
-pl-funct.o:	$(srcdir)/pl-funct.ih
-pl-atom.o:	$(srcdir)/pl-funct.ih
+$(OBJ): headers parms.h $(srcdir)/pl-funct.ih
 pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c
 
 $(srcdir)/pl-funct.ih:	$(srcdir)/ATOMS
@@ -274,7 +270,7 @@ $(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
 frame.o:
 		ar x `$(CC) -print-libgcc-file-name` $@
 
-plld:		$(srcdir)/plld.c
+plld:		$(srcdir)/plld.c parms.h
 		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/plld.c
 
 tags:		$(srcdir)/TAGS
