@@ -165,7 +165,7 @@ banner::
 		@echo "****************"
 
 
-$(PL):		$(RUNTIME) $(PLOBJ) $(RUNTIMEDIR)/$(SHARED)
+$(PL):		$(RUNTIME) $(PLOBJ)
 		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(ARCH) -lpl $(LNLIBS)
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
