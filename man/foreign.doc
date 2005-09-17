@@ -1630,20 +1630,25 @@ etc., a Prolog predicate has a handle that is not destroyed, nor moved.
 This handle is known by the type \ctype{predicate_t}.
 
 \begin{description}
-\cfunction{predicate_t}{PL_pred}{functor_t f, module_t m}
+    \cfunction{predicate_t}{PL_pred}{functor_t f, module_t m}
 Return a handle to a predicate for the specified name/arity in the given
 module. This function always succeeds, creating a handle for an
-undefined predicate if no handle was available.
-\cfunction{predicate_t}{PL_predicate}{const char *name, int arity, const char* module}
+undefined predicate if no handle was available.  If the module argument
+\arg{m} is \const{NULL}, the current context module is used.
+
+    \cfunction{predicate_t}{PL_predicate}{const char *name, int arity,
+					  const char* module}
 Same a PL_pred(), but provides a more convenient interface to
 the C-programmer.
-\cfunction{void}{PL_predicate_info}{predicate_t p, atom_t *n, int *a, module_t *m}
+
+    \cfunction{void}{PL_predicate_info}{predicate_t p, atom_t *n,
+					int *a, module_t *m}
 Return information on the predicate \arg{p}.  The name is stored
 over \arg{n}, the arity over \arg{a}, while \arg{m} receives the
 definition module.  Note that the latter need not be the same as
-specified with PL_predicate().  If the predicate was imported into
+specified with PL_predicate().  If the predicate is imported into
 the module given to PL_predicate(), this function will return the
-module where the predicate was defined.
+module where the predicate is defined.
 \end{description}
 
 
