@@ -631,9 +631,27 @@ fragment_chars([]) -->
 	[].
 
 hostpart(Atom) -->
-	chars(alnum, [C0|S]),
-	{ atom_codes(Atom, [C0|S])
+	host_chars(Codes),
+	{ Codes = [_|_],
+	  atom_codes(Atom, Codes)
 	}.
+
+host_chars([H|T]) -->
+	host_char(H), !,
+	host_chars(T).
+host_chars([]) -->
+	[].
+
+host_char(X) -->
+	[X],
+	{   code_type(X, alnum)
+	;   host_extra(X)
+	}.
+
+host_extra(0'-).
+host_extra(0'_).
+host_extra(0'~).
+
 
 		 /*******************************
 		 *	  URL DCG BASICS	*
