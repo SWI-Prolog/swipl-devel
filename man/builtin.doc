@@ -4233,7 +4233,7 @@ changed. The implementation is in C, using \jargon{natural merge sort}.
     \predicate{predsort}{3}{+Pred, +List, -Sorted}
 Sorts similar to sort/2, but determines the order of two terms by
 calling \mbox{\arg{Pred}(-\arg{Delta}, +\arg{E1}, +\arg{E2})}.  This
-call must unify \arg{Delta} with one of \const{<}, const{>} or
+call must unify \arg{Delta} with one of \const{<}, \const{>} or
 \const{=}.  If built-in predicate compare/3 is used, the result is
 the same as sort/2.  See also keysort/2.%
 	\footnote{Please note that the semantics have changed between

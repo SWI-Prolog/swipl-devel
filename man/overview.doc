@@ -437,30 +437,23 @@ Backtracking yields further explanations.
 \end{description}
 
 
-\section{Query Substitutions}			\label{sec:history}
+\section{Command line history}			\label{sec:history}
 
-SWI-Prolog offers a query substitution mechanism similar to that of Unix
-csh (csh(1)), called `history'. The availability of this feature is
-controlled by set_prolog_flag/2, using the \const{history} prolog-flag. By
-default, history is available if the prolog-flag \const{readline} is
-\const{false}. To enable this feature, remembering the last 50 commands,
-put the following into your startup file (see \secref{initfile}:
+SWI-Prolog offers a query substitution mechanism called `history'. The
+availability of this feature is controlled by set_prolog_flag/2, using
+the \const{history} prolog-flag. By default, history is available if the
+prolog-flag \const{readline} is \const{false}. To enable this feature,
+remembering the last 50 commands, put the following into your startup
+file (see \secref{initfile}):
 
 \begin{code}
 :- set_prolog_flag(history, 50).
 \end{code}
 
 The history system allows the user to compose new queries from those
-typed before and remembered by the system. It also allows to correct
-queries and syntax errors. SWI-Prolog does not offer the Unix csh
-capabilities to include arguments. This is omitted as it is unclear how
-the first, second, etc.\ argument should be defined.%
-    \footnote{One could choose words, defining words as a sequence of
-              alpha-numeric characters and the word separators as
-              anything else, but one could also choose Prolog
-              arguments}
-
-The available history commands are shown in \tabref{history}.
+typed before and remembered by the system. The available history
+commands are shown in \tabref{history}. History expansion is not done if
+these sequences appear in quoted atoms or strings.
 
 \begin{table}
 \begin{center}
@@ -469,13 +462,7 @@ The available history commands are shown in \tabref{history}.
 \verb+!!.+            & Repeat last query \\
 \verb+!nr.+           & Repeat query numbered <nr> \\
 \verb+!str.+          & Repeat last query starting with <str> \\
-\verb+!?str.+         & Repeat last query holding <str> \\
-\verb+^old^new.+      & Substitute <old> into <new> in
-                        last query \\
-\verb+!nr^old^new.+   & Substitute in query numbered <nr> \\
-\verb+!str^old^new.+  & Substitute in query starting with <str> \\
-\verb+!?str^old^new.+ & Substitute in query holding <str> \\
-\verb+h.+             & Show history list \\
+\verb+h.+             & Show history of commands \\
 \verb+!h.+            & Show this list \\
 \hline
 \end{tabular}
@@ -483,16 +470,6 @@ The available history commands are shown in \tabref{history}.
     \caption{History commands}
     \label{tab:history}
 \end{table}
-
-
-\subsection{Limitations of the History System}	\label{sec:histlimits}
-
-History expansion is executed after \jargon{raw-reading}. This is the
-first stage of read_term/2 and friends, reading the term into a string
-while deleting comment and canonising blank. This makes it hard to use
-it for correcting syntax errors. Command-line editing as provided using
-the GNU-readline library is more suitable for this. History expansion is
-first of all useful for executing or combining commands from long ago.
 
 
 \section{Reuse of toplevel bindings}    \label{sec:topvars}

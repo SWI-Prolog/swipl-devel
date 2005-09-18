@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -128,6 +128,15 @@ prompt_history(Prompt) :-
 	),
 	ttyflush.
 
+%   substitute(+Old, +New, +String, -Substituted)	
+%   substitute first occurence of Old in String by New
+
+substitute(Old, New, String, Substituted) :-
+	$append(Head, OldAndTail, String), 
+	$append(Old, Tail, OldAndTail), !, 
+	$append(Head, New, HeadAndNew), 
+	$append(HeadAndNew, Tail, Substituted), !.
+
 %   save_event(+Event)
 %   Save Event in the history system. Remove possibly outdated events.
 
@@ -175,11 +184,8 @@ history_depth_(25).
 %    Expand Raw using the available history list. Expandations performed
 %    are:
 %    
-%	^old^new	% Substitute
 %	!match		% Last event starting <match>
-%	!?match		% Last event matching <match>
 %	!n		% Event nr. <n>
-%	!spec^old^new	% substitute <by> <new> in last event <spec>
 %	!!		% last event
 %	
 %    Note: the first character after a '!' should be a letter or number to
@@ -190,38 +196,31 @@ expand_history(Raw, Expanded, Changed) :-
 	expand_history2(RawString, ExpandedString, Changed), 
 	atom_chars(Expanded, ExpandedString), !.
 
-expand_history2([^|Rest], Expanded, true) :- !, 
-	get_last_event(Last), 
-	old_new(Rest, Old, New, []), 
-	substitute_warn(Old, New, Last, Expanded).
-expand_history2(String, Expanded, Changed) :-
-	expand_history3(String, Expanded, Changed).
-
-expand_history3([!, C|Rest], [!|Expanded], Changed) :-
+expand_history2([!, C|Rest], [!|Expanded], Changed) :-
 	not_event_char(C), !, 
-	expand_history3([C|Rest], Expanded, Changed).
-expand_history3([!|Rest], Expanded, true) :- !, 
+	expand_history2([C|Rest], Expanded, Changed).
+expand_history2([!|Rest], Expanded, true) :- !, 
 	match_event(Rest, Event, NewRest), 
 	$append(Event, RestExpanded, Expanded), !, 
-	expand_history3(NewRest, RestExpanded, _).
-expand_history3([H|T], [H|R], Changed) :- !, 
-	expand_history3(T, R, Changed).
-expand_history3([], [], false).
+	expand_history2(NewRest, RestExpanded, _).
+expand_history2(['\''|In], ['\''|Out], Changed) :- !,
+	skip_quoted(In, '\'', Out, Tin, Tout),
+	expand_history2(Tin, Tout, Changed).
+expand_history2(['"'|In], ['"'|Out], Changed) :- !,
+	skip_quoted(In, '"', Out, Tin, Tout),
+	expand_history2(Tin, Tout, Changed).
+expand_history2([H|T], [H|R], Changed) :- !, 
+	expand_history2(T, R, Changed).
+expand_history2([], [], false).
 
-%   old_new(+Spec, -Old, -New, -Left)
-%   Takes Spec as a substitute specification without the first '^' and
-%   returns the Old and New substitute patterns as well s possible text
-%   left.
-
-old_new([^|Rest], [], New, Left) :- !, 
-	new(Rest, New, Left).
-old_new([H|Rest], [H|Old], New, Left) :-
-	old_new(Rest, Old, New, Left).
-
-new([], [], []) :- !.
-new([^|Left], [], Left) :- !.
-new([H|T], [H|New], Left) :-
-	new(T, New, Left).
+skip_quoted([Q|T],Q,[Q|R], T, R) :- !.
+skip_quoted([\,Q|T0],Q,[\,Q|T], In, Out) :- !,
+	skip_quoted(T0, Q, T, In, Out).
+skip_quoted([Q,Q|T0],Q,[Q,Q|T], In, Out) :- !,
+	skip_quoted(T0, Q, T, In, Out).
+skip_quoted([C|T0],Q,[C|T], In, Out) :- !,
+	skip_quoted(T0, Q, T, In, Out).
+skip_quoted([], _, [], [], []).
 
 %   get_last_event(-String)
 %   return last event typed as a string
@@ -233,45 +232,20 @@ get_last_event(_) :-
 	print_message(query, history(no_event)),
 	fail.
 
-%   substitute(+Old, +New, +String, -Substituted)	
-%   substitute first occurence of Old in String by New
-
-substitute(Old, New, String, Substituted) :-
-	$append(Head, OldAndTail, String), 
-	$append(Old, Tail, OldAndTail), !, 
-	$append(Head, New, HeadAndNew), 
-	$append(HeadAndNew, Tail, Substituted), !.
-
-substitute_warn(Old, New, String, Substituted) :-
-	substitute(Old, New, String, Substituted), !.
-substitute_warn(_, _, _, _) :-
-	print_message(query, history(bad_substitution)),
-	fail.
-
 %   match_event(+Spec, -Event, -Rest)
 %   Use Spec as a specification of and event and return the event as Event
 %   and what is left of Spec as Rest.
 
 match_event(Spec, Event, Rest) :-
-	find_event(Spec, RawEvent, Rest0), !, 
-	substitute_event(Rest0, RawEvent, Event, Rest).
+	find_event(Spec, Event, Rest), !.
 match_event(_, _, _) :-
 	print_message(query, history(no_event)),
 	fail.
 
-substitute_event([^|Spec], RawEvent, Event, Rest) :- !, 
-	old_new(Spec, Old, New, Rest), 
-	substitute(Old, New, RawEvent, Event).
-substitute_event(Rest, Event, Event, Rest).
-
 not_event_char(C) :- code_type(C, csym), !, fail.
-not_event_char(?) :- !, fail.
 not_event_char(!) :- !, fail.
 not_event_char(_).
 
-find_event([?|Rest], Event, Left) :- !, 
-	take_string(Rest, String, Left), 
-	matching_event(substring, String, Event).
 find_event([!|Left], Event, Left) :- !, 
 	get_last_event(Event).
 find_event([N|Rest], Event, Left) :-
@@ -281,8 +255,8 @@ find_event([N|Rest], Event, Left) :-
 	$history(Number, Atom), 
 	atom_chars(Atom, Event).
 find_event(Spec, Event, Left) :-
-	take_string(Spec, String, Left), 
-	matching_event(prefix, String, Event).
+        take_string(Spec, String, Left),
+        matching_event(String, Event).
 
 take_string([C|Rest], [C|String], Left) :-
 	code_type(C, csym), !, 
@@ -296,15 +270,11 @@ take_number([C|Rest], [C|String], Left) :-
 take_number([C|Rest], [], [C|Rest]) :- !.	
 take_number([], [], []).
 
-%   matching_event(+Where, +String, -Event)
+%   matching_event(+String, -Event)
+%   
 %   Return first event with prefix String as a Prolog string.
 
-matching_event(prefix, String, Event) :-
-	$history(_, AtomEvent), 
-	atom_chars(AtomEvent, Event), 
-	$append(String, _, Event), !.
-matching_event(substring, String, Event) :-
-	$history(_, AtomEvent), 
-	atom_chars(AtomEvent, Event), 
-	$append(_, MatchAndTail, Event), 
-	$append(String, _, MatchAndTail), !.	
+matching_event(String, Event) :-
+        $history(_, AtomEvent),
+        atom_chars(AtomEvent, Event),
+        $append(String, _, Event), !.

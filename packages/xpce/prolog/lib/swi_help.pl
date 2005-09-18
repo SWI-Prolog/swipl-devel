@@ -471,9 +471,11 @@ mark_titles(TB, From, To) :-
 
 :- pce_global(@ul_regex, new(regex('.\b(.)'))).
 
+%	Bug: send(regex('((.)x\\2)+$'), match, axbaxa) succeeds!
+%	Bug reproduces in TCL.  Submitted to Tcl bugtracking system.
+
 regex(bold,	  '((.)\b\\2)+').
-regex(underline,  '((.)\b_)+').
-regex(underline2,  '(_\b(.))+').
+regex(underline,  '(_\b(.))+').
 regex(predicate,  '(\\w+)/(\\d+)').
 regex(predicate2, '\\w+/\\[\\d+[-,]\\d+\\]').
 regex(function,   'PL_\\w+\\(\\)').
@@ -512,7 +514,6 @@ mark_fragment(V, Re:regex) :->
 
 font_style(bold, bold).
 font_style(underline, underline).
-font_style(underline2, underline).
 
 documented(Re, V, button) :-
 	regex_db(predicate, Re), !,
@@ -529,7 +530,6 @@ documented(Re, V, Style) :-
 	     message(@ul_regex, replace, String, '\\1')),
 	send(Re, replace, TB, String).
 documented(_, _, button).
-
 
 jump(V, Caret:[int]) :->
 	"Jump to current fragment"::
