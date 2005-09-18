@@ -12,6 +12,8 @@
 VERSION 5.5.31 (September 17, 2005)
 ===================================
 
+  * FIXED: Retry after executing a ! to do proper undo.   Alan Baljeu.
+
   * FIXED: library(url): allow "-_~" in hostnames.  Jacco van Ossenbruggen.
 
   * PORT: Bug#90: Fix Prolog Makefile for parallel make.  Mike Frysinger.

@@ -3169,6 +3169,7 @@ debugger output.
 #ifdef O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ Choice ch;
+	  mark m;
 
 	  switch(tracePort(FR, BFR, CUT_CALL_PORT, PC PASS_LD))
 	  { case ACTION_RETRY:
@@ -3177,9 +3178,14 @@ debugger output.
 	      FRAME_FAILED;
 	  }
 
-	  discardChoicesAfter(FR PASS_LD);
+	  if ( (ch = findStartChoice(FR, BFR)) )
+	    m = ch->mark;
+	  dbg_discardChoicesAfter(FR PASS_LD);
 	  lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
-	  ch = newChoice(CHP_DEBUG, FR PASS_LD);
+	  if ( ch )
+	  { ch = newChoice(CHP_DEBUG, FR PASS_LD);
+	    ch->mark = m;
+	  }
 	  ARGP = argFrameP(lTop, 0);
 	  if ( exception_term )
 	    goto b_throw;
