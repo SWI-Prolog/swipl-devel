@@ -3977,21 +3977,20 @@ the so called ``standard order''.  This order is defined as follows:
 
  1. _V_a_r_i_a_b_l_e_s <_A_t_o_m_s <_S_t_r_i_n_g_s <_N_u_m_b_e_r_s <_T_e_r_m_s
 
- 2. _O_l_d _V_a_r_i_a_b_l_e <_N_e_w _V_a_r_i_a_b_l_e
+ 2. Variables  are  sorted  by  address.     Attaching  attributes  (see
+    section 6.1) does not affect the ordering.
 
  3. _A_t_o_m_s are compared alphabetically.
 
  4. _S_t_r_i_n_g_s are compared alphabetically.
 
  5. _N_u_m_b_e_r_s  are compared  by value.   Integers  and floats are  treated
-    identically.
+    identically.   If the prolog_flag (see current_prolog_flag/2)  iso is
+    defined, all floating point numbers precede all integers.
 
  6. _C_o_m_p_o_u_n_d  terms are  first checked  on  their arity,  then on  their
     functor-name  (alphabetically)  and  finally  recursively  on  their
     arguments, leftmost argument first.
-
-If  the  prolog_flag  (see  current_prolog_flag/2)  iso  is  defined,  all
-floating point numbers precede all integers.
 
 
 _+_T_e_r_m_1 == _+_T_e_r_m_2
@@ -12866,13 +12865,40 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
          Unify the argument with an atom, as in PL_unify_atom().
 
     PL_CHARS ccoonnsstt cchhaarr **
-         Unify the  argument with  an atom created  from a  0-terminated
-         string.
+         Unify the argument  with an atom,  constructed from the C  char
+         *, as in PL_unify_atom_chars().
 
     PL_NCHARS uunnssiiggnneedd iinntt,, ccoonnsstt cchhaarr **
-         Unify the argument with  an atom created from the  given number
-         of  characters  starting  at the  given  address.     See  also
-         PL_unify_atom_nchars();
+         Unify the argument  with an atom,  constructed from length  and
+         char* as in PL_unify_atom_nchars().
+
+    PL_UTF8_CHARS ccoonnsstt cchhaarr **
+         Create an atom from a UTF-8 string.
+
+    PL_UTF8_STRING ccoonnsstt cchhaarr **
+         Create a packed string object from a UTF-8 string.
+
+    PL_MBCHARS ccoonnsstt cchhaarr **
+         Create an atom from a multibyte string in the current locale.
+
+    PL_MBCODES ccoonnsstt cchhaarr **
+         Create a  list of character  codes from  a multibyte string  in
+         the current locale.
+
+    PL_MBSTRING ccoonnsstt cchhaarr **
+         Create a packed  string object from  a multibyte string in  the
+         current locale.
+
+    PL_MBCHARS uunnssiiggnneedd iinntt,, ccoonnsstt wwcchhaarr__tt **
+         Create an atom from a length and a wide character pointer.
+
+    PL_MBCODES uunnssiiggnneedd iinntt,, ccoonnsstt wwcchhaarr__tt **
+         Create an  list of  character codes from  a length  and a  wide
+         character pointer.
+
+    PL_MBSTRING uunnssiiggnneedd iinntt,, ccoonnsstt wwcchhaarr__tt **
+         Create  a  packed  string object  from  a  length  and  a  wide
+         character pointer.
 
     PL_SHORT sshhoorrtt
          Unify the argument  with an integer,  as in PL_unify_integer().
@@ -12905,10 +12931,6 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
     PL_TERM tteerrmm__tt
          Unify  a  subterm.    Note  this  may the  return  value  of  a
          PL_new_term_ref()call to get access to a variable.
-
-    PL_CHARS ccoonnsstt cchhaarr **
-         Unify the argument  with an atom,  constructed from the C  char
-         *, as in PL_unify_atom_chars().
 
     PL_FUNCTOR ffuunnccttoorr__tt,, ......
          Unify the argument  with a compound  term.  This  specification

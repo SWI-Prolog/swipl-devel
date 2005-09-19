@@ -192,6 +192,12 @@ typedef union
 #define PL_NUTF8_CHARS	 (27)		/* unsigned, const char * */
 #define PL_NUTF8_CODES	 (29)		/* unsigned, const char * */
 #define PL_NUTF8_STRING	 (30)		/* unsigned, const char * */
+#define PL_NWCHARS	 (31)		/* unsigned, const wchar_t * */
+#define PL_NWCODES	 (32)		/* unsigned, const wchar_t * */
+#define PL_NWSTRING	 (33)		/* unsigned, const wchar_t * */
+#define PL_MBCHARS	 (34)		/* unsigned, const char * */
+#define PL_MBCODES	 (35)		/* unsigned, const char * */
+#define PL_MBSTRING	 (36)		/* unsigned, const char * */
 
 
 		/********************************

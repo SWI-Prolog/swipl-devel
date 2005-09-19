@@ -9,8 +9,11 @@
 
 
 ===================================
-VERSION 5.5.31 (September 17, 2005)
+VERSION 5.5.31 (September 19, 2005)
 ===================================
+
+  * ADDED: Extra conversion arguments to PL_unify_term() to pass strings
+    as wchar_t* as well as in the current locale.  Sergey Tikhonov.
 
   * FIXED: Retry after executing a ! to do proper undo.   Alan Baljeu.
 

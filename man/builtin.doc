@@ -793,31 +793,27 @@ so called ``standard order''. This order is defined as follows:
           < \arg{Numbers} < \arg{Terms}$%
 	\footnote{Strings might be considered atoms in future versions. See
 		  also \secref{strings}}
-    \item $\arg{Old~Variable} < \arg{New~Variable}$%
-        \footnote{In fact the variables are compared on their (dereferenced)
-                  addresses. Variables living on the global stack are always
-                  $<$ than variables on the local stack.  Programs
-                  should not rely on the order in which variables are sorted.}
+    \item Variables are sorted by address.  Attaching attributes 
+          (see \secref{attvar}) does not affect the ordering.
     \item \arg{Atoms} are compared alphabetically.
     \item \arg{Strings} are compared alphabetically.
     \item \arg{Numbers} are compared by value. Integers and floats are
-          treated identically.
+          treated identically. If the prolog_flag (see current_prolog_flag/2)
+	  \const{iso} is defined, all floating point numbers precede
+	  all integers.
     \item \arg{Compound} terms are first checked on their arity, then 
           on their functor-name (alphabetically) and finally recursively
 	  on their arguments, leftmost argument first. 
 \end{enumerate}
 
-If the prolog_flag (see current_prolog_flag/2) \const{iso} is defined,
-all floating point numbers precede all integers.
-
 
 \begin{description}
-\infixop{==}{+Term1}{+Term2}
+    \infixop{==}{+Term1}{+Term2}
 Succeeds if \arg{Term1} is equivalent to \arg{Term2}. A variable is only
 identical to a sharing variable.
-\infixop{\==}{+Term1}{+Term2}
+    \infixop{\==}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 == Term2}.
-\infixop{=}{+Term1}{+Term2}
+    \infixop{=}{+Term1}{+Term2}
 Unify \arg{Term1} with \arg{Term2}. Succeeds if the unification succeeds.
     \predicate{unify_with_occurs_check}{2}{+Term1, +Term2}
 As \predref{=}{2}, but using \jargon{sound-unification}. That is, a

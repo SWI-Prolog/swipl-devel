@@ -1331,11 +1331,29 @@ Unify the argument with \const{true} or \const{false}.
    \definition{\const{PL_ATOM} \arg{atom_t}}
 Unify the argument with an atom, as in PL_unify_atom().
    \definition{\const{PL_CHARS} \arg{const char *}}
-Unify the argument with an atom created from a 0-terminated string.
+Unify the argument with an atom, constructed from the C \ctype{char *},
+as in PL_unify_atom_chars().
    \definition{\const{PL_NCHARS} \arg{unsigned int, const char *}}
-Unify the argument with an atom created from the given number of
-characters starting at the given address. See also
-PL_unify_atom_nchars();
+Unify the argument with an atom, constructed from length and
+\ctype{char*} as in PL_unify_atom_nchars().
+   \definition{\const{PL_UTF8_CHARS} \arg{const char *}}
+Create an atom from a UTF-8 string.
+   \definition{\const{PL_UTF8_STRING} \arg{const char *}}
+Create a packed string object from a UTF-8 string.
+   \definition{\const{PL_MBCHARS} \arg{const char *}}
+Create an atom from a multibyte string in the current locale.
+   \definition{\const{PL_MBCODES} \arg{const char *}}
+Create a list of character codes from a multibyte string in the current
+locale.
+   \definition{\const{PL_MBSTRING} \arg{const char *}}
+Create a packed string object from a multibyte string in the
+current locale.
+   \definition{\const{PL_MBCHARS} \arg{unsigned int, const wchar_t *}}
+Create an atom from a length and a wide character pointer.
+   \definition{\const{PL_MBCODES} \arg{unsigned int, const wchar_t *}}
+Create an list of character codes from a length and a wide character pointer.
+   \definition{\const{PL_MBSTRING} \arg{unsigned int, const wchar_t *}}
+Create a packed string object from a length and a wide character pointer.
    \definition{\const{PL_SHORT} \arg{short}}
 Unify the argument with an integer, as in PL_unify_integer(). As
 \type{short} is promoted to \type{int}, \const{PL_SHORT} is a
@@ -1359,9 +1377,6 @@ Unify the argument with a string object, as in PL_unify_string_chars().
    \definition{\const{PL_TERM} \arg{term_t}}
 Unify a subterm.  Note this may the return value of a PL_new_term_ref()
 call to get access to a variable.
-   \definition{\const{PL_CHARS} \arg{const char *}}
-Unify the argument with an atom, constructed from the C \ctype{char *},
-as in PL_unify_atom_chars().
    \definition{\const{PL_FUNCTOR} \arg{functor_t, \ldots}}
 Unify the argument with a compound term.  This specification should be
 followed by exactly as many specifications as the number of arguments of

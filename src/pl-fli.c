@@ -2555,6 +2555,40 @@ cont:
 			   			  PL_STRING);
       break;
     }
+    case PL_NWCHARS:
+    case PL_NWCODES:
+    case PL_NWSTRING:
+    { PL_chars_t txt;
+
+      txt.length    = va_arg(args, unsigned int);
+      txt.text.w    = va_arg(args, wchar_t *);
+      txt.storage   = PL_CHARS_HEAP;
+      txt.encoding  = ENC_WCHAR;
+      txt.canonical = FALSE;
+
+      rval = PL_unify_text(t, 0, &txt,
+			   op == PL_NWCHARS ? PL_ATOM : 
+			         PL_NWCODES ? PL_CODE_LIST :
+					      PL_STRING);
+      break;
+    }
+    case PL_MBCHARS:
+    case PL_MBCODES:
+    case PL_MBSTRING:
+    { PL_chars_t txt;
+
+      txt.text.t    = va_arg(args, char *);
+      txt.length    = strlen(txt.text.t);
+      txt.storage   = PL_CHARS_HEAP;
+      txt.encoding  = ENC_ANSI;
+      txt.canonical = FALSE;
+
+      rval = PL_unify_text(t, 0, &txt,
+			   op == PL_MBCHARS ? PL_ATOM : 
+			         PL_MBCODES ? PL_CODE_LIST :
+					      PL_STRING);
+      break;
+    }
   { functor_t ft;
     int arity;
 
