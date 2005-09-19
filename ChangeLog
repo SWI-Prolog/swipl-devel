@@ -12,6 +12,8 @@
 VERSION 5.5.31 (September 19, 2005)
 ===================================
 
+  * ADDED: library(url): protocol https.  Anjo Anjewierden.
+
   * ADDED: Extra conversion arguments to PL_unify_term() to pass strings
     as wchar_t* as well as in the current locale.  Sergey Tikhonov.
 
