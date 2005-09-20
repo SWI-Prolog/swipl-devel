@@ -178,11 +178,11 @@ http_reply(not_modified, Out, HrdExtra) :- !,
 	format(Out, '~s', [Header]),
 	print_html(Out, HTML).
 http_reply(server_error(ErrorTerm), Out, HrdExtra) :-
-	message_to_html(ErrorTerm, Tokens),
+	'$messages':translate_message(ErrorTerm, Lines, []),
 	phrase(page([ title('500 Internal server error')
 		    ],
 		    [ h1('Internal server error'),
-		      p(Tokens),
+		      p(\html_message_lines(Lines)),
 		      address(httpd)
 		    ]),
 	       HTML),
@@ -191,15 +191,10 @@ http_reply(server_error(ErrorTerm), Out, HrdExtra) :-
 	print_html(Out, HTML).
 
 
-
-message_to_html(Term, Tokens) :-
-	'$messages':translate_message(Term, Lines, []),
-	phrase(html_message_lines(Lines), Tokens).
-
 html_message_lines([]) -->
 	[].
 html_message_lines([nl|T]) --> !,
-	['<br>'],
+	html([br([])]),
 	html_message_lines(T).
 html_message_lines([flush]) -->
 	[].
