@@ -151,9 +151,9 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
         doublecpy(&f->value.f, &n.value.f);
 #else
         f->value.f = n.value.f;
+#endif
 	break;
       }
-#endif
     }
   } else
   { type_error:
