@@ -201,12 +201,12 @@ html_message_lines([flush]) -->
 html_message_lines([Fmt-Args|T]) --> !,
 	{ sformat(S, Fmt, Args)
 	},
-	[S],
+	html([S]),
 	html_message_lines(T).
 html_message_lines([Fmt|T]) --> !,
 	{ sformat(S, Fmt, [])
 	},
-	[S],
+	html([S]),
 	html_message_lines(T).
 
 %	http_join_headers(+Default, +Header, -Out)
