@@ -1457,3 +1457,18 @@ source(Spec) -->
 in_time(Triples, ParseTime) -->
 	[ ' in ~2f sec; ~D triples'-[ParseTime, Triples]
 	].
+
+		 /*******************************
+		 *	    ENVIRONMENT		*
+		 *******************************/
+
+%	prolog:meta_goal(+Goal, -MetaArgs)
+%	
+%	Used by the XPCE/Prolog cross-referencer as well as PceEmacs for
+%	colouring code.
+
+:- multifile
+	prolog:meta_goal/2.
+
+prolog:meta_goal(rdf_transaction(G,_),	[G]).
+prolog:meta_goal(rdf_monitor(G,_),	[G]).
