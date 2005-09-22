@@ -4552,7 +4552,7 @@ rdf_monitor(term_t goal, term_t mask)
   } else
   { callback_list = callback_tail = cb;
   }
-  joined_mask |= mask;
+  joined_mask |= msk;
 
   return TRUE;
 }

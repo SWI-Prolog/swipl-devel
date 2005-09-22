@@ -1,3 +1,9 @@
+Sep 22, 2005
+
+  * FIXED: mask-handling in rdf_monitor, causing incorrect callbaks.
+
+  * FIXED: bug in cache handling by rdf_load/2, introduced in 2.3.0.
+
 =============
 Version 2.3.0
 =============
