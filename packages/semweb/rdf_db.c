@@ -4536,7 +4536,7 @@ rdf_monitor(term_t goal, term_t mask)
       joined_mask = 0L;
       for(cb2=callback_list; cb2; cb2 = cb2->next)
 	joined_mask |= cb2->mask;
-      Sdprintf("Set mask to 0x%x\n", joined_mask);
+      DEBUG(2, Sdprintf("Set mask to 0x%x\n", joined_mask));
 
       return TRUE;
     }

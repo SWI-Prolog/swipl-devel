@@ -714,7 +714,8 @@ rdf_load(Spec, Options0) :-
 		->  (   time_file(Cache, CacheTime),
 		        time_file(File, FileTime),
 			CacheTime >= FileTime,
-			catch(rdf_load_db_no_admin(Cache), _, fail),
+			catch(rdf_load_db_no_admin(Cache, cache(File)),
+			      _, fail),
 			ignore(memberchk(namespaces([]), Options)) % TBD
 		    ->  Load = cache(ParseTime)
 		    ;   parse_rdf_file(File, Options),
