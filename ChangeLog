@@ -8,6 +8,11 @@
 					--------------------------------------
 
 
+  * FIXED: upcase_atom/2 and downcase_atom/2 for atoms holding characters
+    in the range 128..255 but not > 255 as well as for 8-bit atoms whose
+    converted version does not fit in 8-bit.  Grzegorz Chrupała.
+
+
 ===================================
 VERSION 5.5.31 (September 19, 2005)
 ===================================

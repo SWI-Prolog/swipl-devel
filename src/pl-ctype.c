@@ -505,7 +505,9 @@ modify_case_atom(term_t in, term_t out, int down)
     tout.canonical = FALSE;		/* or TRUE? Can WCHAR map to ISO? */
 
     if ( tin.encoding == ENC_ISO_LATIN_1 )
-    { if ( tin.length < sizeof(tout.buf) )
+    { const unsigned char *in = tin.text.t;
+
+      if ( tin.length < sizeof(tout.buf) )
       { tout.text.t = tout.buf;
 	tout.storage = PL_CHARS_LOCAL;
       } else
@@ -515,11 +517,31 @@ modify_case_atom(term_t in, term_t out, int down)
 
       if ( down )
       { for(i=0; i<tin.length; i++)
-	{ tout.text.t[i] = tolower(tin.text.t[i]);
+	{ wint_t c = towlower(in[i]);
+
+	  if ( c > 255 )
+	  { PL_promote_text(&tout);
+	    for( ; i<tin.length; i++)
+	    { tout.text.w[i] = towlower(in[i]);
+	    }
+	    break;
+	  } else
+	  { tout.text.t[i] = c;
+	  }
 	}
-      } else
+      } else				/* upcase */
       { for(i=0; i<tin.length; i++)
-	{ tout.text.t[i] = toupper(tin.text.t[i]);
+	{ wint_t c = towupper(in[i]);
+
+	  if ( c > 255 )
+	  { PL_promote_text(&tout);
+	    for( ; i<tin.length; i++)
+	    { tout.text.w[i] = towupper(in[i]);
+	    }
+	    break;
+	  } else
+	  { tout.text.t[i] = c;
+	  }
 	}
       } 
     } else
