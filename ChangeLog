@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * PORT: Allow for CFLAGS=xx ./configure.  Use LDFLAGS when building
+    plrc.  Tim Brown.
+
   * FIXED: Initialisation bug in format/3.  Sergey Tikhonov.
 
   * FIXED: upcase_atom/2 and downcase_atom/2 for atoms holding characters

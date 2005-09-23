@@ -33,6 +33,7 @@ COFLAGS=@COFLAGS@
 CWFLAGS=@CWFLAGS@
 CIFLAGS=@CIFLAGS@
 CMFLAGS=@CMFLAGS@
+LDFLAGS=@LDFLAGS@
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
 
 INSTALL=@INSTALL@
@@ -44,7 +45,7 @@ LIBOBJ=	html.o access.o build.o util.o
 all:	plrc
 
 plrc:	librc.a rc.o
-	$(CC) -o $@ rc.o -L. -lrc
+	$(CC) $(LDFLAGS) -o $@ rc.o -L. -lrc
 
 librc.a:	$(LIBOBJ)
 	rm -f $@
