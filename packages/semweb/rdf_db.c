@@ -442,6 +442,14 @@ LOCKOUT_READERS(rdf_db *db)
 }
 
 
+static void
+REALLOW_READERS(rdf_db *db)
+{ EnterCriticalSection(&db->mutex);
+  db->allow_readers = TRUE;
+  LeaveCriticalSection(&db->mutex);
+}
+
+
 static int
 UNLOCK(rdf_db *db, int rd)
 { int self = PL_thread_self();
@@ -673,6 +681,14 @@ LOCKOUT_READERS(rdf_db *db)
     { assert(0);			/* TBD: OS errors */
     }
   }
+}
+
+
+static void
+REALLOW_READERS(rdf_db *db)
+{ pthread_mutex_lock(&db->mutex);
+  db->allow_readers = TRUE;
+  pthread_mutex_unlock(&db->mutex);
 }
 
 
@@ -2825,16 +2841,11 @@ load_db(rdf_db *db, IOSTREAM *in)
   
   memset(&ctx, 0, sizeof(ctx));
 
-  if ( !WRLOCK(db, FALSE) )
-    return FALSE;
-
   while((c=Sgetc(in)) != EOF)
   { switch(c)
     { case 'T':
 	if ( !load_triple(db, in, &ctx) )
-	{ WRUNLOCK(db);
 	  return FALSE;
-	}
         break;
       case 'S':
 	ctx.source = lookup_source(db, load_atom(db, in, &ctx), TRUE);
@@ -2872,29 +2883,31 @@ load_db(rdf_db *db, IOSTREAM *in)
 	}
 
 	db->generation += (db->created-created0);
-	WRUNLOCK(db);
 	return TRUE;
       default:
 	break;
     }
   }
   
-  WRUNLOCK(db);
   return PL_warning("Illegal RDF triple file");
 }
 
 
 static foreign_t
 rdf_load_db(term_t stream, term_t id)
-{ IOSTREAM *in;
+{ rdf_db *db = DB;
+  IOSTREAM *in;
   int rc;
 
   if ( !PL_get_stream_handle(stream, &in) )
     return type_error(stream, "stream");
 
+  if ( !WRLOCK(db, FALSE) )
+    return FALSE;
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_begin);
-  rc = load_db(DB, in);
+  rc = load_db(db, in);
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_end);
+  WRUNLOCK(db);
   PL_release_stream(in);
 
   return rc;
@@ -3905,16 +3918,18 @@ rdf_transaction(term_t goal, term_t id)
   if ( rc )
   { int empty = (db->tr_last == NULL || db->tr_last->type == TR_MARK);
 
-    if ( db->tr_nesting == 0 )
-    { if ( !empty && !LOCKOUT_READERS(db) )
+    if ( empty || db->tr_nesting > 0 )
+    { commit_transaction(db);
+    } else
+    { broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_begin);
+      if ( !LOCKOUT_READERS(db) )	/* interrupt, timeout */
+      { broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_end);
 	goto discard;
-    }
-
-    if ( !empty )
-      broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_begin);
-    commit_transaction(db);
-    if ( !empty )
+      }
+      commit_transaction(db);
+      REALLOW_READERS(db);
       broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_end);
+    }
   } else
   { discard:
     discard_transaction(db);
@@ -4483,12 +4498,12 @@ broadcast(broadcast_id id, void *a1, void *a2)
       }
       case EV_TRANSACTION:
       case EV_LOAD:
-      { term_t id = (term_t)a1;
-	atom_t be = (atom_t)a2;
+      { term_t ctx = (term_t)a1;
+	atom_t be  = (atom_t)a2;
 	term_t tmp = PL_new_term_refs(2);
 	
 	PL_put_atom(tmp+0, be);		/* begin/end */
-	PL_put_term(tmp+1, id);
+	PL_put_term(tmp+1, ctx);
 
 	PL_cons_functor_v(term,
 			  id == EV_TRANSACTION ? FUNCTOR_transaction2

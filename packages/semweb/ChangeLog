@@ -1,6 +1,10 @@
+Sep 23, 2005
+
+  * ENHANCED: issue monitor events with holding write lock.
+
 Sep 22, 2005
 
-  * FIXED: mask-handling in rdf_monitor, causing incorrect callbaks.
+  * FIXED: mask-handling in rdf_monitor, causing incorrect callbacks.
 
   * FIXED: bug in cache handling by rdf_load/2, introduced in 2.3.0.
 

@@ -812,46 +812,54 @@ A triple has been deleted.
     \termitem{update}{+S, +P, +O, +DB, +Action}
 A triple has been updated.
     \termitem{transaction}{+BeginOrEnd, +Id}
-Mark begin or end of the commit of a toplevel transaction started by
-rdf_transaction/2.  \arg{BeginOrEnd} is \const{begin} or \const{end}.
-\arg{Id} is the second argument of rdf_transaction/2.
+Mark begin or end of the \emph{commit} of a toplevel transaction started
+by rdf_transaction/2. \arg{BeginOrEnd} is \const{begin} or \const{end}.
+\arg{Id} is the second argument of rdf_transaction/2.  The following 
+transaction Ids are pre-defined by the library:
+
+    \begin{description}
+	\termitem{parse}{Id}
+A file is loaded using rdf_load/2.  \arg{Id} is one of \term{file}{Path}
+or \term{stream}{Stream}.
+	\termitem{unload}{DB}
+All triples with source \arg{DB} are being unloaded using rdf_unload/1.
+	\termitem{reset}{}
+Issued by rdf_reset_db/0.
+    \end{description}
+
     \termitem{load}{+BeginOrEnd, +Spec}
 Mark begin or end of rdf_load_db/1 or load through rdf_load/2 from
 a cached file. \arg{Spec} is currently defined as \term{file}{Path}.
-    \termitem{parse}{+BeginOrEnd, +Spec}
-Mark begin or end of parsing an RDF/XML file. \arg{Spec} is one of
-\term{file}{Path} or \term{stream}{Stream}.
-    \termitem{parse}{+BeginOrEnd, +Spec}
-Mark begin or end of parsing an RDF/XML file. \arg{Spec} is one of
-\term{file}{Path} or \term{stream}{Stream}.
-    \termitem{unload}{+BeginOrEnd, +DB}
-Indicates the begin and end of rdf_unload/1, passing the 4th argument
-of rdf/4 of the removed triples in \arg{DB}.
     \termitem{rehash}{+BeginOrEnd}
 Marks begin/end of a re-hash due to required re-indexing or garbage
 collection.
-    \termitem{reset}{}
-Issued after the RDF database has been cleared using rdf_reset_db/0.
 \end{description}
 
-\arg{Mask} is a list of events this monitor is interested in.  Default
-(empty list) is to report all events.  Otherwise each element is of the
+\arg{Mask} is a list of events this monitor is interested in. Default
+(empty list) is to report all events. Otherwise each element is of the
 form +Event or -Event to include or exclude monitoring for certain
 events. The event-names are the functor names of the events described
-above.  The special name \term{all}{} refers to all events and \term
-{assert}{load} to assert events originating from rdf_load_db/1.  As
-loading triples using rdf_load_db/1 is very fast, monitoring this at
-the triple level may seriously harm performance.
+above. The special name \const{all} refers to all events and
+\term{assert}{load} to assert events originating from rdf_load_db/1. As
+loading triples using rdf_load_db/1 is very fast, monitoring this at the
+triple level may seriously harm performance.
 
 This predicate is intended to maintain derived data, such as a journal,
 information for \emph{undo}, additional indexing in literals, etc. There
 is no way to remove registered monitors. If this is required one should
 register a monitor that maintains a dynamic list of subscribers like the
 XPCE broadcast library. A second subscription of the same hook predicate
-only re-assignes the mask. The monitor hooks are called in the order of
-registration and in the same thread that issued the database
-manipulation. To process all changes in one thread they should be send
-to a thread message queue.
+only re-assignes the mask.
+
+The monitor hooks are called in the order of registration and in the
+same thread that issued the database manipulation. To process all
+changes in one thread they should be send to a thread message queue. For
+all updating events, the monitor is called while the calling thread has
+a write lock on the RDF store. This implies that these events are
+processed strickly synchronous, even if modifications originate from
+multiple threads. In particular, the \const{transaction} \emph{begin},
+\ldots{} \emph{updates} \ldots{} \emph{end} sequence is never
+interleaved with other events. Same for \const{load} and \const{parse}.
 \end{description}
 
 

@@ -1068,49 +1068,47 @@ A triple has been updated.
 
 <P>
 <DT><STRONG>transaction</STRONG>(<VAR>+BeginOrEnd, +Id</VAR>)<DD>
-Mark begin or end of the commit of a toplevel transaction started by
-<A NAME="idx:rdftransaction2:56"></A><A HREF="#rdf_transaction/2">rdf_transaction/2</A>. <VAR>BeginOrEnd</VAR> 
+Mark begin or end of the <EM>commit</EM> of a toplevel transaction 
+started by <A NAME="idx:rdftransaction2:56"></A><A HREF="#rdf_transaction/2">rdf_transaction/2</A>. <VAR>BeginOrEnd</VAR> 
 is <CODE>begin</CODE> or <CODE>end</CODE>.
-<VAR>Id</VAR> is the second argument of <A NAME="idx:rdftransaction2:57"></A><A HREF="#rdf_transaction/2">rdf_transaction/2</A>.
+<VAR>Id</VAR> is the second argument of <A NAME="idx:rdftransaction2:57"></A><A HREF="#rdf_transaction/2">rdf_transaction/2</A>. 
+The following transaction Ids are pre-defined by the library:
+
+<DL>
+
+<P>
+<DT><STRONG>parse</STRONG>(<VAR>Id</VAR>)<DD>
+A file is loaded using <A NAME="idx:rdfload2:58"></A><A HREF="#rdf_load/2">rdf_load/2</A>. <VAR>Id</VAR> 
+is one of <CODE>file(Path)</CODE> or <CODE>stream(Stream)</CODE>.
+
+<P>
+<DT><STRONG>unload</STRONG>(<VAR>DB</VAR>)<DD>
+All triples with source <VAR>DB</VAR> are being unloaded using <A NAME="idx:rdfunload1:59"></A><A HREF="#rdf_unload/1">rdf_unload/1</A>.
+
+<P>
+<DT><STRONG>reset</STRONG><DD>
+Issued by <A NAME="idx:rdfresetdb0:60"></A><A HREF="#rdf_reset_db/0">rdf_reset_db/0</A>.
+</DL>
 
 <P>
 <DT><STRONG>load</STRONG>(<VAR>+BeginOrEnd, +Spec</VAR>)<DD>
-Mark begin or end of <A NAME="idx:rdfloaddb1:58"></A><A HREF="#rdf_load_db/1">rdf_load_db/1</A> 
-or load through <A NAME="idx:rdfload2:59"></A><A HREF="#rdf_load/2">rdf_load/2</A> 
+Mark begin or end of <A NAME="idx:rdfloaddb1:61"></A><A HREF="#rdf_load_db/1">rdf_load_db/1</A> 
+or load through <A NAME="idx:rdfload2:62"></A><A HREF="#rdf_load/2">rdf_load/2</A> 
 from a cached file. <VAR>Spec</VAR> is currently defined as <CODE>file(Path)</CODE>.
-
-<P>
-<DT><STRONG>parse</STRONG>(<VAR>+BeginOrEnd, +Spec</VAR>)<DD>
-Mark begin or end of parsing an RDF/XML file. <VAR>Spec</VAR> is one of
-<CODE>file(Path)</CODE> or <CODE>stream(Stream)</CODE>.
-
-<P>
-<DT><STRONG>parse</STRONG>(<VAR>+BeginOrEnd, +Spec</VAR>)<DD>
-Mark begin or end of parsing an RDF/XML file. <VAR>Spec</VAR> is one of
-<CODE>file(Path)</CODE> or <CODE>stream(Stream)</CODE>.
-
-<P>
-<DT><STRONG>unload</STRONG>(<VAR>+BeginOrEnd, +DB</VAR>)<DD>
-Indicates the begin and end of <A NAME="idx:rdfunload1:60"></A><A HREF="#rdf_unload/1">rdf_unload/1</A>, 
-passing the 4th argument of <A NAME="idx:rdf4:61"></A><A HREF="#rdf/4">rdf/4</A> 
-of the removed triples in <VAR>DB</VAR>.
 
 <P>
 <DT><STRONG>rehash</STRONG>(<VAR>+BeginOrEnd</VAR>)<DD>
 Marks begin/end of a re-hash due to required re-indexing or garbage 
 collection.
-
-<P>
-<DT><STRONG>reset</STRONG><DD>
-Issued after the RDF database has been cleared using <A NAME="idx:rdfresetdb0:62"></A><A HREF="#rdf_reset_db/0">rdf_reset_db/0</A>.
 </DL>
 
 <P><VAR>Mask</VAR> is a list of events this monitor is interested in. 
 Default (empty list) is to report all events. Otherwise each element is 
 of the form +Event or -Event to include or exclude monitoring for 
 certain events. The event-names are the functor names of the events 
-described above. The special name <CODE>all()</CODE> refers to all 
-events and <CODE>assert(load)</CODE> to assert events originating from <A NAME="idx:rdfloaddb1:63"></A><A HREF="#rdf_load_db/1">rdf_load_db/1</A>. 
+described above. The special name <CODE>all</CODE> refers to all events 
+and
+<CODE>assert(load)</CODE> to assert events originating from <A NAME="idx:rdfloaddb1:63"></A><A HREF="#rdf_load_db/1">rdf_load_db/1</A>. 
 As loading triples using <A NAME="idx:rdfloaddb1:64"></A><A HREF="#rdf_load_db/1">rdf_load_db/1</A> 
 is very fast, monitoring this at the triple level may seriously harm 
 performance.
@@ -1120,10 +1118,17 @@ journal, information for <EM>undo</EM>, additional indexing in literals,
 etc. There is no way to remove registered monitors. If this is required 
 one should register a monitor that maintains a dynamic list of 
 subscribers like the XPCE broadcast library. A second subscription of 
-the same hook predicate only re-assignes the mask. The monitor hooks are 
-called in the order of registration and in the same thread that issued 
-the database manipulation. To process all changes in one thread they 
-should be send to a thread message queue.
+the same hook predicate only re-assignes the mask.
+
+<P>The monitor hooks are called in the order of registration and in the 
+same thread that issued the database manipulation. To process all 
+changes in one thread they should be send to a thread message queue. For 
+all updating events, the monitor is called while the calling thread has 
+a write lock on the RDF store. This implies that these events are 
+processed strickly synchronous, even if modifications originate from 
+multiple threads. In particular, the <CODE>transaction</CODE> <EM>begin</EM>, 
+... <EM>updates</EM> ... <EM>end</EM> sequence is never interleaved with 
+other events. Same for <CODE>load</CODE> and <CODE>parse</CODE>.
 </DL>
 
 <H3><A NAME="sec:3.7">3.7 Miscellaneous predicates</A></H3>
@@ -1868,7 +1873,7 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdf/3">rdf/3</A><DD>
 <A HREF="#idx:rdf3:2">3</A> <A HREF="#idx:rdf3:5">3.1</A> <A HREF="#idx:rdf3:6">3.1</A> <A HREF="#idx:rdf3:10">3.2</A> <A HREF="#idx:rdf3:14">3.3.1</A> <A HREF="#idx:rdf3:25">3.3.2</A> <A HREF="#idx:rdf3:48">3.5</A> <A HREF="#idx:rdf3:120">7</A>
 <DT><A HREF="#rdf/4">rdf/4</A><DD>
-<A HREF="#idx:rdf4:4">3.1</A> <A HREF="#idx:rdf4:61">3.6</A>
+<A HREF="#idx:rdf4:4">3.1</A>
 <DT><A HREF="#rdf_assert/3">rdf_assert/3</A><DD>
 <A HREF="#idx:rdfassert3:15">3.3.1</A> <A HREF="#idx:rdfassert3:22">3.3.2</A> <A HREF="#idx:rdfassert3:39">3.4.2</A> <A HREF="#idx:rdfassert3:99">6.3</A>
 <DT><A HREF="#rdf_assert/4">rdf_assert/4</A><DD>
@@ -1931,11 +1936,11 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdf_load/1">rdf_load/1</A><DD>
 <A HREF="#idx:rdfload1:31">3.4</A> <A HREF="#idx:rdfload1:33">3.4</A> <A HREF="#idx:rdfload1:35">3.4</A> <A HREF="#idx:rdfload1:68">3.7</A> <A HREF="#idx:rdfload1:102">6.3</A>
 <DT><A HREF="#rdf_load/2">rdf_load/2</A><DD>
-<A HREF="#idx:rdfload2:59">3.6</A>
+<A HREF="#idx:rdfload2:58">3.6</A> <A HREF="#idx:rdfload2:62">3.6</A>
 <DT>rdf_load/[1,2]<DD>
 <A HREF="#idx:rdfload12:38">3.4.2</A> <A HREF="#idx:rdfload12:40">3.4.3</A> <A HREF="#idx:rdfload12:44">3.4.3</A>
 <DT><A HREF="#rdf_load_db/1">rdf_load_db/1</A><DD>
-<A HREF="#idx:rdfloaddb1:32">3.4</A> <A HREF="#idx:rdfloaddb1:41">3.4.3</A> <A HREF="#idx:rdfloaddb1:58">3.6</A> <A HREF="#idx:rdfloaddb1:63">3.6</A> <A HREF="#idx:rdfloaddb1:64">3.6</A>
+<A HREF="#idx:rdfloaddb1:32">3.4</A> <A HREF="#idx:rdfloaddb1:41">3.4.3</A> <A HREF="#idx:rdfloaddb1:61">3.6</A> <A HREF="#idx:rdfloaddb1:63">3.6</A> <A HREF="#idx:rdfloaddb1:64">3.6</A>
 <DT><A HREF="#rdf_make/0">rdf_make/0</A><DD>
 <DT><A HREF="#rdf_match_label/3">rdf_match_label/3</A><DD>
 <A HREF="#idx:rdfmatchlabel3:80">4.3</A>
@@ -1951,7 +1956,7 @@ BUG: The current implementation cannot deal with cycles
 <A HREF="#idx:rdfreachable3:69">3.7</A>
 <DT><A HREF="#rdf_register_ns/2">rdf_register_ns/2</A><DD>
 <DT><A HREF="#rdf_reset_db/0">rdf_reset_db/0</A><DD>
-<A HREF="#idx:rdfresetdb0:62">3.6</A>
+<A HREF="#idx:rdfresetdb0:60">3.6</A>
 <DT><A HREF="#rdf_retractall/3">rdf_retractall/3</A><DD>
 <A HREF="#idx:rdfretractall3:16">3.3.1</A> <A HREF="#idx:rdfretractall3:100">6.3</A>
 <DT><A HREF="#rdf_retractall/4">rdf_retractall/4</A><DD>
@@ -1998,7 +2003,7 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdf_transaction/2">rdf_transaction/2</A><DD>
 <A HREF="#idx:rdftransaction2:23">3.3.2</A> <A HREF="#idx:rdftransaction2:24">3.3.2</A> <A HREF="#idx:rdftransaction2:56">3.6</A> <A HREF="#idx:rdftransaction2:57">3.6</A> <A HREF="#idx:rdftransaction2:82">6</A>
 <DT><A HREF="#rdf_unload/1">rdf_unload/1</A><DD>
-<A HREF="#idx:rdfunload1:60">3.6</A> <A HREF="#idx:rdfunload1:103">6.3</A>
+<A HREF="#idx:rdfunload1:59">3.6</A> <A HREF="#idx:rdfunload1:103">6.3</A>
 <DT><A HREF="#rdf_update/4">rdf_update/4</A><DD>
 <A HREF="#idx:rdfupdate4:20">3.3.1</A> <A HREF="#idx:rdfupdate4:101">6.3</A>
 <DT><A HREF="#rdf_update/5">rdf_update/5</A><DD>

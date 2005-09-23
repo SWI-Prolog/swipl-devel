@@ -742,9 +742,8 @@ rdf_load(Spec, Options0) :-
 
 parse_rdf_file(File, Options) :-
 	source_descr(File, Id),
-	rdf_broadcast(parse(begin, Id), parse),
-	call_cleanup(process_rdf(File, assert_triples, Options),
-		     rdf_broadcast(parse(end, Id), parse)).
+	rdf_transaction(process_rdf(File, assert_triples, Options),
+			parse(Id)).
 
 source_descr(File, file(File)) :-
 	atom(File), !.
@@ -773,11 +772,10 @@ rdf_unload(Spec) :-
 	).
 	
 do_unload(Spec) :-
-	rdf_broadcast(unload(begin, Spec), unload),
-	rdf_retractall(_,_,_,Spec:_),
-	rdf_retractall(_,_,_,Spec),
 	retractall(rdf_source(Spec, _, _, _)),
-	rdf_broadcast(unload(end, Spec), unload).
+	rdf_transaction((rdf_retractall(_,_,_,Spec:_),
+			 rdf_retractall(_,_,_,Spec)),
+			unload(Spec)).
 
 
 %	rdf_source(?Source)
@@ -850,9 +848,8 @@ assert_triples([H|_], _) :-
 %	statistics.
 
 rdf_reset_db :-
-	rdf_reset_db_,
 	retractall(rdf_source(_,_,_,_)),
-	rdf_broadcast(reset, reset).
+	rdf_transaction(rdf_reset_db_, reset).
 
 
 		 /*******************************
