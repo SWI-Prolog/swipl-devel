@@ -79,6 +79,8 @@ mime_extension(tgz,  application/'x-gtar').
 					% Some document formats
 mime_extension(pdf,  application/pdf).
 mime_extension(doc,  application/msword).
+					% Java classes
+mime_extension(class, application/'octet-stream').
 					% Some image formats
 mime_extension(jpg,  image/jpeg).
 mime_extension(jpeg, image/jpeg).
