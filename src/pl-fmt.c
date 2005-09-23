@@ -695,6 +695,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  state.rub[state.pending_rubber].pad   =
 					(arg == DEFAULT ? (pl_wchar_t)' '
 							: (pl_wchar_t)arg);
+		  state.rub[state.pending_rubber].size = 0;
 		  state.pending_rubber++;
 		  here++;
 		  break;
