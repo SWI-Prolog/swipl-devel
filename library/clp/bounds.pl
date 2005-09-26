@@ -397,12 +397,14 @@ lex_le([V1|V1s], [V2|V2s]) :-
               freeze(V1,lex_le([V1|V1s],[V2|V2s]))
       ).
 
-lex_chain([_L]) :- !.
-lex_chain([L1,L2|Ls]) :-
-      lex_le(L1,L2),
-      lex_chain([L2|Ls]).
+lex_chain([]).
+lex_chain([L|Ls]) :-
+	lex_chain_lag(Ls, L).
 
-
+lex_chain_lag([], _).
+lex_chain_lag([L|Ls], Prev) :-
+	lex_le(Prev, L),
+	lex_chain_lag(Ls, L).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 domain(X,L,U) :-
