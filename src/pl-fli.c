@@ -2551,7 +2551,7 @@ cont:
 
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_NUTF8_CHARS ? PL_ATOM : 
-			         PL_NUTF8_CODES ? PL_CODE_LIST :
+			   op == PL_NUTF8_CODES ? PL_CODE_LIST :
 			   			  PL_STRING);
       break;
     }
@@ -2568,7 +2568,7 @@ cont:
 
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_NWCHARS ? PL_ATOM : 
-			         PL_NWCODES ? PL_CODE_LIST :
+			   op == PL_NWCODES ? PL_CODE_LIST :
 					      PL_STRING);
       break;
     }
@@ -2585,7 +2585,7 @@ cont:
 
       rval = PL_unify_text(t, 0, &txt,
 			   op == PL_MBCHARS ? PL_ATOM : 
-			         PL_MBCODES ? PL_CODE_LIST :
+			   op == PL_MBCODES ? PL_CODE_LIST :
 					      PL_STRING);
       break;
     }
