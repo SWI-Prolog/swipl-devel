@@ -2902,10 +2902,15 @@ rdf_load_db(term_t stream, term_t id)
   if ( !PL_get_stream_handle(stream, &in) )
     return type_error(stream, "stream");
 
-  if ( !WRLOCK(db, FALSE) )
+  if ( !WRLOCK(db, TRUE) )
     return FALSE;
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_begin);
-  rc = load_db(db, in);
+  if ( !LOCKOUT_READERS(db) )	/* interrupt, timeout */
+  { rc = FALSE;
+  } else
+  { rc = load_db(db, in);
+    REALLOW_READERS(db);
+  }
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_end);
   WRUNLOCK(db);
   PL_release_stream(in);
@@ -3924,6 +3929,7 @@ rdf_transaction(term_t goal, term_t id)
     { broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_begin);
       if ( !LOCKOUT_READERS(db) )	/* interrupt, timeout */
       { broadcast(EV_TRANSACTION, (void*)id, (void*)ATOM_end);
+	rc = FALSE;
 	goto discard;
       }
       commit_transaction(db);
