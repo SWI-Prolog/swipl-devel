@@ -48,6 +48,8 @@
 #ifdef WITH_MD5
 #include "md5.h"
 
+#undef UNLOCK
+
 static void md5_triple(triple *t, md5_byte_t *digest);
 static void sum_digest(md5_byte_t *digest, md5_byte_t *add);
 static void dec_digest(md5_byte_t *digest, md5_byte_t *add);
@@ -326,13 +328,21 @@ win32_cond_signal(win32_cond_t *cv)	/* must be holding associated mutex */
 
 static int
 RDLOCK(rdf_db *db)
-{ EnterCriticalSection(&db->mutex);
+{ int self = PL_thread_self();
+
+  if ( db->writer == self )
+  { db->lock_level++;			/* read nested in write */
+
+    return TRUE;
+  }
+
+  EnterCriticalSection(&db->mutex);
 
   if ( db->allow_readers == TRUE )
   { ok:
 
     db->readers++;
-    db->read_by_thread[PL_thread_self()]++;
+    db->read_by_thread[self]++;
     LeaveCriticalSection(&db->mutex);
 
     return TRUE;
@@ -554,6 +564,12 @@ INIT_LOCK(rdf_db *db)
 static int
 RDLOCK(rdf_db *db)
 { int self = PL_thread_self();
+
+  if ( db->writer == self )
+  { db->lock_level++;			/* read nested in write */
+
+    return TRUE;
+  }
 
   pthread_mutex_lock(&db->mutex);
 
@@ -2902,17 +2918,13 @@ rdf_load_db(term_t stream, term_t id)
   if ( !PL_get_stream_handle(stream, &in) )
     return type_error(stream, "stream");
 
-  if ( !WRLOCK(db, TRUE) )
+  if ( !WRLOCK(db, FALSE) )
     return FALSE;
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_begin);
-  if ( !LOCKOUT_READERS(db) )	/* interrupt, timeout */
-  { rc = FALSE;
-  } else
-  { rc = load_db(db, in);
-    REALLOW_READERS(db);
-  }
+  rc = load_db(db, in);
   broadcast(EV_LOAD, (void*)id, (void*)ATOM_end);
   WRUNLOCK(db);
+
   PL_release_stream(in);
 
   return rc;

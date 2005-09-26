@@ -111,7 +111,6 @@
 :- use_module(library(sgml_write)).
 :- use_module(library(option)).
 :- use_module(library(nb_set)).
-:- use_module(library(ordsets)).
 
 :- initialization
    load_foreign_library(foreign(rdf_db)).
@@ -1035,9 +1034,7 @@ header_namespaces(Options, List) :-
 
 used_namespace_entities(List, DB) :-
 	decl_used_predicate_ns(DB),
-	used_namespaces(All, DB),
-	findall(NS, Full^ns(NS, Full), Short),
-	ord_intersection(All, Short, List).
+	used_namespaces(List, DB).
 
 used_namespaces(List, DB) :-
 	empty_nb_set(Set),
