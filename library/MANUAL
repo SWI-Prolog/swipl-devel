@@ -13,7 +13,7 @@
 
                         RReeffeerreennccee MMaannuuaall
 
-           _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._5_._3_1_, _S_e_p_t_e_m_b_e_r _2_0_0_5
+           _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._5_._3_2_, _S_e_p_t_e_m_b_e_r _2_0_0_5
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                     wielemak@science.uva.nl
@@ -3914,7 +3914,8 @@ ffllooaatt((_+_T_e_r_m))
 
 
 rraattiioonnaall((_+_T_e_r_m))
-    Succeeds if _T_e_r_m is bound to a rational number.
+    Succeeds  if _T_e_r_m is bound to  a rational number.  Rational  numbers
+    include integers.
 
 
 rraattiioonnaall((_+_T_e_r_m_, _-_N_u_m_e_r_a_t_o_r_, _-_D_e_n_o_m_i_n_a_t_o_r))
@@ -3925,8 +3926,7 @@ rraattiioonnaall((_+_T_e_r_m_, _-_N_u_m_e_r_a_t_o_r_, 
 
 
 nnuummbbeerr((_+_T_e_r_m))
-    Succeeds  if _T_e_r_m is bound to  an integer, floating point number  or
-    rational number.
+    Succeeds if _T_e_r_m is bound to an integer or floating point number.
 
 
 aattoomm((_+_T_e_r_m))

@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+===================================
+VERSION 5.5.32 (September 26, 2005)
+===================================
+
   * PORT: Allow for CFLAGS=xx ./configure.  Use LDFLAGS when building
     plrc.  Tim Brown.
 

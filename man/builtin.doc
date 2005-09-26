@@ -746,15 +746,20 @@ Succeeds if \arg{Term} is bound to an integer.
     \predicate{float}{1}{+Term}
 Succeeds if \arg{Term} is bound to a floating point number.
     \predicate{rational}{1}{+Term}
-Succeeds if \arg{Term} is bound to a rational number.
+Succeeds if \arg{Term} is bound to a rational number.  Rational numbers
+include integers.
     \predicate{rational}{1}{+Term, -Numerator, -Denominator}
 True if \arg{Term} is a rational number with given \arg{Numerator} and
 \arg{Denominator}.  The \arg{Numerator} and \arg{Denominator} are in
 canonical form, which means \arg{Denominator} is a positive integer and
 there are no common divisors between \arg{Numerator} and \arg{Denominator}.
     \predicate{number}{1}{+Term}
-Succeeds if \arg{Term} is bound to an integer, floating point number
-or rational number.
+Succeeds if \arg{Term} is bound to an integer or floating point number.%
+	\footnote{As rational numbers are not atomic in the current
+		  implementation and we do not want to break the rule
+		  that number/1 implies atomic/1, number/1 fails on
+		  rational numbers. This will change if rational numbers
+		  become atomic.}
     \predicate{atom}{1}{+Term}
 Succeeds if \arg{Term} is bound to an atom.
     \predicate{string}{1}{+Term}
