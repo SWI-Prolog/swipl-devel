@@ -2015,7 +2015,7 @@ ok:
 }
 
 
-static inline void
+static __inline void
 link_triple(rdf_db *db, triple *t)
 { link_triple_silent(db, t);
   broadcast(EV_ASSERT, t, NULL);
@@ -2207,7 +2207,7 @@ erase_triple_silent(rdf_db *db, triple *t)
 }
 
 
-static inline void
+static __inline void
 erase_triple(rdf_db *db, triple *t)
 { erase_triple_silent(db, t);
   broadcast(EV_RETRACT, t, NULL);
