@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -107,7 +107,7 @@ variable(mode,
 :- pce_global(@http_end_line_regex,
 	      new(regex('\n\r?'))).
 :- pce_global(@http_has_header_regex,
-	      new(regex('.*HTTP/'))).
+	      new(regex('[^\n]*HTTP/'))).
 
 initialise(S, Goal:prolog, Port:[int]) :->
 	default(Port, 0, ThePort),	% anonymous
@@ -266,9 +266,9 @@ wrapper_error(Error) :-
 
 
 :- pce_global(@http_content_length_regex,
-	      new(regex('^Content-Length:\\s *\\([0-9]+\\)', @off))).
+	      new(regex('^Content-Length:[[:blank:]]*\\([0-9]+\\)', @off))).
 :- pce_global(@http_chunked_regex,
-	      new(regex('^Transfer-encoding:\\s *chunked', @off))).
+	      new(regex('^Transfer-encoding:[[:blank:]]*chunked', @off))).
 
 
 collect_post_data(S, Header:string) :->
