@@ -50,8 +50,10 @@ install:	$(LIBPL)
 
 ln-install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(LIBDIR)
-		ln -sf $(LIBPL) $(DESTDIR)$(LIBDIR)
-		ln -sf README $(DESTDIR)$(LIBDIR)
+		for f in $(LIBPL) README; do \
+		    rm -f $(DESTDIR)$(LIBDIR)/$$f; \
+		    ln -s `pwd`/$$f $(DESTDIR)$(LIBDIR); \
+		done
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
