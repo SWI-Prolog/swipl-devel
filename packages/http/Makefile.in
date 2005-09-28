@@ -48,6 +48,12 @@ install:	$(LIBPL)
 		$(INSTALL_DATA) README $(DESTDIR)$(LIBDIR)
 		$(PL) -f none -g make -t halt
 
+ln-install:	$(LIBPL)
+		mkdir -p $(DESTDIR)$(LIBDIR)
+		ln -sf $(LIBPL) $(DESTDIR)$(LIBDIR)
+		ln -sf README $(DESTDIR)$(LIBDIR)
+		$(PL) -f none -g make -t halt
+
 rpm-install:	install
 
 pdf-install:	install-examples
