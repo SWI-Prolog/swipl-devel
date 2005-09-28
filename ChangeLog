@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: Prevent recursive calling of Sclose().
+
   * ADDED: Win32: current_prolog_flag(pid, Pid).
 
 ===================================

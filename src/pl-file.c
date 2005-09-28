@@ -33,6 +33,7 @@ If time is there I will have a look at all this to  clean  it.   Notably
 handling times must be cleaned, but that not only holds for this module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/*#define O_DEBUG 1*/
 /*#define O_DEBUG_MT 1*/
 
 #include "pl-incl.h"

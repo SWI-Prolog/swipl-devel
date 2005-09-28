@@ -1413,6 +1413,13 @@ Stell(IOSTREAM *s)
 		 *	      CLOSE		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) Sclose() can be called recursively. For example if an XPCE object is
+only referenced from an open stream,  the close-function will delete the
+object, which in turn calls the  ->unlink   which  may wish to close the
+associated stream.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 Sclose(IOSTREAM *s)
 { int rval = 0;
@@ -1421,6 +1428,9 @@ Sclose(IOSTREAM *s)
   { errno = EINVAL;
     return -1;
   }
+
+  if ( (s->flags&SIO_CLOSING) )		/* recursive (*) */
+    return rval;
 
   SLOCK(s);
   while(s->locks > 0)			/* remove buffer-locks */
