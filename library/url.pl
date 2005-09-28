@@ -836,12 +836,12 @@ www_encode([C|T]) -->
 www_encode(Enc) -->
 	(   "\r\n"
 	;   "\n"
-	),
+	), !,
 	{ append("%0D%0A", T, Enc)
 	},
 	www_encode(T).
 www_encode([]) -->
-	[].
+	[], !.
 www_encode([0'%,D1,D2|T]) -->
 	[C],
 	{ Dv1 is (C>>4 /\ 0xf),
