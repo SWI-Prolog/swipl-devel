@@ -226,6 +226,9 @@ typedef int mode_t;
 /* Define if you have the getcwd function.  */
 #define HAVE_GETCWD 1
 
+/* Define if you have the getpid function.  */
+#define HAVE_GETPID 1
+
 /* Define if you have the getdtablesize function.  */
 #undef HAVE_GETDTABLESIZE
 
@@ -406,13 +409,3 @@ typedef int mode_t;
 
 /* Define to 1 if you have <float.h> header */
 #define HAVE_FLOAT_H 1
-
-
-		 /*******************************
-		 *	     FUNCTIONS		*
-		 *******************************/
-
-#if 0
-#define strncasecmp(a, b, len) _strnicmp((a), (b), (len))
-#define getpid()	       (int)GetCurrentThreadId()
-#endif

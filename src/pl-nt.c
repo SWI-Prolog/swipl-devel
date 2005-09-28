@@ -628,6 +628,7 @@ dlclose(void *handle)
 
 #endif /*EMULATE_DLOPEN*/
 
+
 		 /*******************************
 		 *	      REGISTRY		*
 		 *******************************/

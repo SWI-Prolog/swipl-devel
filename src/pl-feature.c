@@ -26,6 +26,9 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include <ctype.h>
+#ifdef __WIN32__
+#include <process.h>			/* getpid() */
+#endif
 
 #define LOCK()   PL_LOCK(L_FEATURE)
 #define UNLOCK() PL_UNLOCK(L_FEATURE)
@@ -731,7 +734,7 @@ initFeatures()
     defFeature("home", FT_ATOM|FF_READONLY, systemDefaults.home);
   if ( GD->paths.executable )
     defFeature("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
-#ifdef HAVE_GETPID
+#if defined(HAVE_GETPID) || defined(EMULATE_GETPID)
   defFeature("pid", FT_INTEGER|FF_READONLY, getpid());
 #endif
   defFeature("optimise", FT_BOOL, GD->cmdline.optimise, OPTIMISE_FEATURE);
