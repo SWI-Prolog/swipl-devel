@@ -1,3 +1,7 @@
+Sep 28, 2005
+
+  * FIXED: Regular expressions in xpce_httpd frontend.  Wouter Jansweijer.
+
 Sep 23, 2005
 
   * ADDED: .class to mimetypes.pl.
