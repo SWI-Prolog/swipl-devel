@@ -266,7 +266,7 @@ wrapper_error(Error) :-
 
 
 :- pce_global(@http_content_length_regex,
-	      new(regex('^Content-Length:[[:blank:]]*\\([0-9]+\\)', @off))).
+	      new(regex('^Content-Length:[[:blank:]]*([0-9]+)', @off))).
 :- pce_global(@http_chunked_regex,
 	      new(regex('^Transfer-encoding:[[:blank:]]*chunked', @off))).
 
