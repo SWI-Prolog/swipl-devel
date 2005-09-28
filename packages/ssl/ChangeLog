@@ -1,3 +1,7 @@
+Sep 28, 2005
+
+  * Avoid ERR_print_error_fp().  Matt Lilley.
+
 Feb 25, 2005
 
   * DESTDIR missing.  Michael Piefel.

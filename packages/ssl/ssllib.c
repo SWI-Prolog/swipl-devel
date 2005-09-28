@@ -685,6 +685,23 @@ ssl_exit(PL_SSL *config)
     ssl_deb(1, "Controlled exit\n");
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ERR_print_errors_pl() is like  ERR_print_errors_fp(stderr),   but  deals
+with the fact that on Windows stderr is generally lost, so we use Prolog
+I/O for portability.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+ERR_print_errors_pl()
+{ char errmsg[1024];
+
+  ERR_error_string_n(ERR_get_error(), errmsg, sizeof(errmsg));
+
+  Sdprintf("%s\n", errmsg);
+}
+
+
 PL_SSL *
 ssl_init(PL_SSL_ROLE role)
 /*
@@ -719,7 +736,7 @@ ssl_init(PL_SSL_ROLE role)
     ssl_ctx = SSL_CTX_new(ssl_method);
 
     if (!ssl_ctx) {
-        ERR_print_errors_fp(stderr);
+        ERR_print_errors_pl();
     } else {
         long ctx_mode = 0L;
 
@@ -814,17 +831,17 @@ ssl_config(PL_SSL *config)
         if (SSL_CTX_use_certificate_file( config->pl_ssl_ctx
                                         , config->pl_ssl_certf
                                         , SSL_FILETYPE_PEM) <= 0) {
-            ERR_print_errors_fp(stderr);
+            ERR_print_errors_pl();
             return -2;
         }
         if (SSL_CTX_use_PrivateKey_file( config->pl_ssl_ctx
                                        , config->pl_ssl_keyf
                                        , SSL_FILETYPE_PEM) <= 0) {
-            ERR_print_errors_fp(stderr);
+            ERR_print_errors_pl();
             return -3;
         }
         if (SSL_CTX_check_private_key(config->pl_ssl_ctx) <= 0) {
-            ERR_print_errors_fp(stderr);
+            ERR_print_errors_pl();
             ssl_err("Private key does not match certificate public key\n");
             return -4;
         }
