@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: avoid warning on M-q in Prolog mode (->indent_clause).
+
 VERSION 6.5.31, distributed with SWI-Prolog 5.5.31
 ==================================================
 

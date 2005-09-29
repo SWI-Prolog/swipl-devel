@@ -304,12 +304,15 @@ indent_clause(E) :->
 	between(0, 1000, _),		% avoid loops on errors
 	    send(E, indent_line),
 	    get(E, caret, Caret),
-	    (	get(regex('.*[^[:punct:]]\\.'), match, TB, Caret, Size),
+	    (	get(regex('[^\n]*[^[:punct:]]\\.[[:space:]]'), match,
+		    TB, Caret, Size0),
+		Size is Size0 - 1,	% subtract matched space
 		End is Caret + Size,
 		get(TB, scan_syntax, Start, End, tuple(code,_))
 	    ->	!
 	    ;	get(TB, size, Caret)
-	    ->	!
+	    ->	!,
+		Size = 0
 	    ;   send(E, next_line),
 		fail
 	    ),
