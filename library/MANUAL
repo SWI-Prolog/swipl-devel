@@ -3128,6 +3128,14 @@ pprroolloogg__iiddee((_+_A_c_t_i_o_n))
     ooppeenn__qquueerryy__wwiinnddooww
          Opens  a  little  window to  run  Prolog  queries  from  a  GUI
          component.
+
+    tthhrreeaadd__mmoonniittoorr
+         Open a graphical  window indicating existing threads and  their
+         status.
+
+    ddeebbuugg__mmoonniittoorr
+         Open a graphical frontend  for the debug library that  provides
+         an overview of the topics and catches messages.
 
 
 33..88 SSuummmmaarryy ooff tthhee iiDDEE
@@ -18201,7 +18209,7 @@ dde_poke/4, 632                        prolog_ide _c_l_a_s_s, 106
 dde_register_service/2, 634            prolog_ide/1, 105, 106
 dde_request/3, 630                     prolog_list_goal/1, 61, 1149
 dde_unregister_service/1, 635          prolog_load_context/2, 125, 126
-debug _l_i_b_r_a_r_y, 1064                    prolog_load_file/2, 61, 112, 1152
+debug _l_i_b_r_a_r_y, 106, 1064               prolog_load_file/2, 61, 112, 1152
 debug/0, 50, 209,  592, 594, 595,      prolog_server _l_i_b_r_a_r_y, 285
       973                              prolog_skip_level/2, 1145
 debug/1, 1065, 1067, 1068              prolog_to_os_filename/2,  85,  562,

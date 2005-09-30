@@ -78,6 +78,10 @@ fill_tool_dialog(_M, D:tool_dialog) :->
 	send_list(Settings, append,
 		  [ menu_item(disable_all),
 		    menu_item(enable_all)
+		  ]),
+	send(D, append, new(Help, popup(help))),
+	send_list(Help, append,
+		  [ menu_item(help)
 		  ]).
 
 :- pce_group(actions).
@@ -110,6 +114,10 @@ enable_all(B) :->
 	forall(debugging(Topic, false),
 	       debug(Topic)),
 	send(B, refresh).
+
+help(_) :->
+	"Start help on predciate"::
+	auto_call(help(debug/3)).
 
 :- pce_end_class(prolog_debug_monitor).
 
@@ -246,10 +254,7 @@ prolog:debug_print_hook(Topic, Format, Arguments) :-
 
 debug_message(Topic, Format, Arguments) :-
 	forall(view_window(V),
-	       send(V, debug_message,
-		    prolog(Topic),
-		    prolog(Format),
-		    prolog(Arguments))).
+	       send(V, debug_message, Topic, Format, Arguments)).
 	
 
 :- pce_begin_class(prolog_debug_view, view,

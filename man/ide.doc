@@ -666,6 +666,13 @@ Open a window to edit spy- and trace-points.
 
     \termitem{open_query_window}{}
 Opens a little window to run Prolog queries from a GUI component.
+
+    \termitem{thread_monitor}{}
+Open a graphical window indicating existing threads and their status.
+
+    \termitem{debug_monitor}{}
+Open a graphical frontend for the \pllib{debug} library that provides
+an overview of the topics and catches messages.
 \end{description}
 \end{description}
 
