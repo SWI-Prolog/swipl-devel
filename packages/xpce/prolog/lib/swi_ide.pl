@@ -50,6 +50,7 @@ the IDE components to the autoloading of one single predicate.
 :- pce_autoload(prolog_navigator,      library('trace/browse')).
 :- pce_autoload(prolog_query_frame,    library('trace/query')).
 :- pce_autoload(prolog_thread_monitor, library('swi/thread_monitor')).
+:- pce_autoload(prolog_debug_monitor,  library('swi/pce_debug_monitor')).
 
 
 		 /*******************************
@@ -137,5 +138,14 @@ thread_monitor(IDE) :->
 		 'This version of SWI-Prolog is not built\n\
 		  with thread-support')
 	).
+
+debug_monitor(IDE) :->
+	"Open monitor for debug messages"::
+	(   get(IDE, member, prolog_debug_monitor, Monitor)
+	->  true
+	;   new(Monitor, prolog_debug_monitor),
+	    send(Monitor, application, IDE)
+	),
+	send(Monitor, open).
 
 :- pce_end_class(prolog_ide).

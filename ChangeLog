@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * ADDED: Allow hooking into output of library(debug).  Added XPCE Gui
+    frontend for the debugging library called with prolog_debug_monitor/0.
+
   * FIXED: Prevent recursive calling of Sclose().
 
   * ADDED: Win32: current_prolog_flag(pid, Pid).

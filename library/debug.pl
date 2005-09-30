@@ -112,12 +112,21 @@ list_debug_topics :-
 
 debug(Topic, Format, Args) :-
 	debugging(Topic, true), !,
-	print_message(informational, format(Format, Args)).
+	print_debug(Topic, Format, Args).
 debug(_, _, _).
 
 
+:- multifile
+	prolog:debug_print_hook/3.
+
+print_debug(Topic, Format, Args) :-
+	prolog:debug_print_hook(Topic, Format, Args), !.
+print_debug(_, Format, Args) :-
+	print_message(informational, format(Format, Args)).
+
+
 		 /*******************************
-		 *	      ASSUME		*
+		 *	     ASSERTION		*
 		 *******************************/
 
 %	assertion(:Goal)

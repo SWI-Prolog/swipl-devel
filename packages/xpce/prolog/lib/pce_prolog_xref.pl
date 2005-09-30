@@ -488,6 +488,7 @@ xref_meta(pce_global(_, B),     [B+1]).
 xref_meta(ifmaintainer(G),	[G]).	% used in manual
 xref_meta(listen(_, G),		[G]).	% library(broadcast)
 xref_meta(listen(_, _, G),	[G]).
+xref_meta(in_pce_thread(G),	[G]).
 
 %	process_body(+Body, +Origin, +Src)
 %	
