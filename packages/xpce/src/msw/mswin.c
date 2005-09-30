@@ -359,6 +359,7 @@ getWinFileNameDisplay(DisplayObj d,
   EventObj ev = EVENT->value;
   TCHAR filter[1024], *ef = filter;
   TCHAR buffer[2048];
+  TCHAR dirbuf[1024];
   BOOL tmpb;
 
   memset(&ofn, 0, sizeof(OPENFILENAME));
@@ -430,7 +431,10 @@ getWinFileNameDisplay(DisplayObj d,
   ofn.lpstrFile    = buffer;
   ofn.nMaxFile     = (sizeof(buffer)/sizeof(TCHAR))-1;
   if ( notDefault(dir) )
-    ofn.lpstrInitialDir = nameToTCHAR(dir->path);
+  { ofn.lpstrInitialDir =
+      _xos_os_filenameW(nameToUTF8(dir->path),
+			dirbuf, sizeof(dirbuf)/sizeof(TCHAR));
+  }
   if ( notDefault(title) )
   ofn.lpstrTitle = nameToTCHAR(title);
 

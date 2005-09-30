@@ -4,6 +4,9 @@
 VERSION 6.5.33, distributed with SWI-Prolog 5.5.33
 ==================================================
 
+* FIXED: Win32: display<-win_file_name: honour default directory.
+  Jelmer Jellema.
+
 * ADDED: head/body argument do `_draw_post_script'.  Jelmer Jellema.
 
 * ADDED: library(swi/pce_debug_monitor).
