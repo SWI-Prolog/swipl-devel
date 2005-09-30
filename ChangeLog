@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: when/2: unifyable -->unifiable.  Grzegorz Chrupała.
+
   * ADDED: Allow hooking into output of library(debug).  Added XPCE Gui
     frontend for the debugging library called with prolog_debug_monitor/0.
 

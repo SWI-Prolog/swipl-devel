@@ -104,7 +104,7 @@ trigger_ground(X,Goal) :-
 	).
 
 trigger_determined(X,Y,Goal) :-
-	unifyable(X,Y,Unifier),
+	unifiable(X,Y,Unifier),
 	!,
 	( Unifier == [] ->
 		call(Goal)
