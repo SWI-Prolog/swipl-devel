@@ -1767,9 +1767,22 @@ generate_insert_constraint_call(FA,Susp,Call) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+:- constraints 
+	module_initializer/1,
+	module_initializers/1.
+
+module_initializers(G), module_initializer(Initializer) <=>
+	G = (Initializer,Initializers),
+	module_initializers(Initializers).
+
+module_initializers(G) <=>
+	G = true.
+
 generate_attach_code(Constraints,[Enumerate|L]) :-
 	enumerate_stores_code(Constraints,Enumerate),
-	generate_attach_code(Constraints,L,[]).
+	generate_attach_code(Constraints,L,T),
+	module_initializers(Initializers),
+	T = [('$chr_initialization' :- Initializers),(:- '$chr_initialization')].
 
 generate_attach_code([],L,L).
 generate_attach_code([C|Cs],L,T) :-
@@ -1796,15 +1809,21 @@ multi_store_generate_attach_code([ST|STs],C,L,T) :-
 multi_hash_store_initialisations([],_,L,L).
 multi_hash_store_initialisations([Index|Indexes],FA,L,T) :-
 	multi_hash_store_name(FA,Index,StoreName),
-	L = [(:- (new_ht(HT),nb_setval(StoreName,HT)) )|L1],
+	module_initializer((new_ht(HT),nb_setval(StoreName,HT))),
+	% L = [(:- (new_ht(HT),nb_setval(StoreName,HT)) )|L1],
+	L1 = L,
 	multi_hash_store_initialisations(Indexes,FA,L1,T).
 
 global_ground_store_initialisation(C,L,T) :-
 	global_ground_store_name(C,StoreName),
-	L = [(:- nb_setval(StoreName,[]))|T].
+	module_initializer(nb_setval(StoreName,[])),
+	L = T.
+	% L = [(:- nb_setval(StoreName,[]))|T].
 global_singleton_store_initialisation(C,L,T) :-
 	global_singleton_store_name(C,StoreName),
-	L = [(:- nb_setval(StoreName,[]))|T].
+	module_initializer(nb_setval(StoreName,[])),
+	L = T.
+	%L = [(:- nb_setval(StoreName,[]))|T].
 
 multi_hash_via_lookups([],_,L,L).
 multi_hash_via_lookups([Index|Indexes],C,L,T) :-
