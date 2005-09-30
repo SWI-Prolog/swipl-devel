@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+===================================
+VERSION 5.5.33 (September 30, 2005)
+===================================
+
   * FIXED: when/2: unifyable -->unifiable.  Grzegorz Chrupała.
 
   * ADDED: Allow hooking into output of library(debug).  Added XPCE Gui
