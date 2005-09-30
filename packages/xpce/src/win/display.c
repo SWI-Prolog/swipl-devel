@@ -884,7 +884,6 @@ resetDisplay(DisplayObj d)
   return resetVisual((VisualObj) d);
 }
 
-extern status postscriptDisplay(DisplayObj d);
 
 static status
 quitDisplay(DisplayObj d)
@@ -1139,7 +1138,7 @@ static senddecl send_display[] =
      NAME_internal, "Handle confirmer events"),
   SM(NAME_open, 0, NULL, openDisplay,
      NAME_open, "Open connection to X-server and initialise"),
-  SM(NAME_Postscript, 0, NULL, postscriptDisplay,
+  SM(NAME_Postscript, 1, "{head,body}", postscriptDisplay,
      NAME_postscript, "Create PostScript"),
   SM(NAME_quit, 0, NULL, quitDisplay,
      NAME_quit, "Destroy all window-system references"),

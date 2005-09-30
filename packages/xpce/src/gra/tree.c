@@ -703,7 +703,7 @@ static senddecl send_tree[] =
      NAME_scroll, "Zoom to a particular node"),
   SM(NAME_layout, 0, NULL, layoutTree,
      NAME_update, "Recompute layout"),
-  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptTree,
+  SM(NAME_DrawPostScript, 1, "{head,body}", drawPostScriptTree,
      NAME_postscript, "Create PostScript")
 };
 

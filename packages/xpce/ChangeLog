@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.33, distributed with SWI-Prolog 5.5.33
+==================================================
+
+* ADDED: head/body argument do `_draw_post_script'.  Jelmer Jellema.
+
+* ADDED: library(swi/pce_debug_monitor).
+
 * FIXED: avoid warning on M-q in Prolog mode (->indent_clause).
 
 VERSION 6.5.31, distributed with SWI-Prolog 5.5.31

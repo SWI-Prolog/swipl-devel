@@ -94,7 +94,7 @@ static vardecl var_box[] =
 static senddecl send_box[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseBox,
      DEFAULT, "Create box from width and height"),
-  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptBox,
+  SM(NAME_DrawPostScript, 1, "{head,body}", drawPostScriptBox,
      NAME_postscript, "Create PostScript")
 };
 

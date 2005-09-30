@@ -2945,10 +2945,8 @@ initialiseNewSlotGraphical(Graphical gr, Variable new)
 		 *	    POSTSCRIPT		*
 		 *******************************/
 
-extern status postscriptGraphical(Any obj);
-
 static status
-drawPostScriptGraphical(Graphical gr)
+drawPostScriptGraphical(Graphical gr, Name hb)
 { if ( gr->area->w != ZERO && gr->area->h != ZERO )
   { Image i;
 
@@ -2956,7 +2954,7 @@ drawPostScriptGraphical(Graphical gr)
     { BitmapObj bm = answerObject(ClassBitmap, i, EAV);
       
       setGraphical(bm, gr->area->x, gr->area->y, DEFAULT, DEFAULT);
-      send(bm, NAME_DrawPostScript, EAV);
+      send(bm, NAME_DrawPostScript, hb, EAV);
       doneObject(bm);
       doneObject(i);
   
@@ -3434,9 +3432,9 @@ static senddecl send_graphical[] =
      NAME_organisation, "Graphicals parent-chain has changed"),
   SM(NAME_pointer, 1, "point", pointerGraphical,
      NAME_pointer, "Warp pointer relative to graphical"),
-  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptGraphical,
+  SM(NAME_DrawPostScript, 1, "{head,body}", drawPostScriptGraphical,
      NAME_postscript, "Create PostScript using intermediate image object"),
-  SM(NAME_Postscript, 0, NULL, postscriptGraphical,
+  SM(NAME_Postscript, 1, "{head,body}", postscriptGraphical,
      NAME_postscript, "Create PostScript"),
   SM(NAME_connect, 4, T_link, connectGraphical,
      NAME_relation, "Create a connection to another graphical"),

@@ -594,7 +594,7 @@ static senddecl send_bezier[] =
      NAME_points, "Move (member) point to (X, Y)"),
   SM(NAME_selected, 1, "bool", selectedBezier,
      NAME_selection, "If @on, I'm selected"),
-  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptBezier,
+  SM(NAME_DrawPostScript, 1, "{head,body}", drawPostScriptBezier,
      NAME_postscript, "Create PostScript")
 };
 

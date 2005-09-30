@@ -2348,7 +2348,7 @@ static senddecl send_device[] =
      NAME_organisation, "Erase a graphical"),
   SM(NAME_reparent, 0, NULL, reparentDevice,
      NAME_organisation, "Device's parent-chain has changed"),
-  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptDevice,
+  SM(NAME_DrawPostScript, 1, "{head,body}", drawPostScriptDevice,
      NAME_postscript, "Create PostScript"),
   SM(NAME_changedUnion, 4, T_changedUnion, changedUnionDevice,
      NAME_resize, "Trap changes to the union of all graphicals"),

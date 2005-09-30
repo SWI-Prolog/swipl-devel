@@ -1155,7 +1155,7 @@ static senddecl send_image[] =
      NAME_pixel, "Set pixel at x-y to bool or colour"),
   SM(NAME_setPixel, 2, T_xAint_yAint, setPixelImage,
      NAME_pixel, "Set pixel at x-y (to 1 or foreground)"),
-  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptImage,
+  SM(NAME_DrawPostScript, 1, "{head,body}", drawPostScriptImage,
      NAME_postscript, "Create PostScript"),
   SM(NAME_Xclose, 1, "display", XcloseImage,
      NAME_x, "Destroy associated window-system resources"),

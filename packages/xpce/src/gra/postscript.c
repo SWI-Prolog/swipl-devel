@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org/projects/xpce/
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -33,7 +33,7 @@ static int	header(Any, Area, Bool);
 static int	footer(void);
 static status	fill(Any, Name);
 static void	ps_colour(Colour c, int grey);
-static status	draw_postscript_image(Image image, Int x, Int y);
+static status	draw_postscript_image(Image image, Int x, Int y, Name hb);
 
 static struct
 { Colour colour;			/* current colour */
@@ -41,7 +41,6 @@ static struct
   { Name	family;			/* family of current PostScript font */
     Int		points;			/* points in current PostScript font */
   } currentFont;
-  int	 mkheader;			/* creating the header */
 } psstatus;
 
 static Chain documentFonts = NIL;	/* chain holding fonts in document */
@@ -83,7 +82,7 @@ getPostscriptObject(Any obj, Bool ls, Area a)
     free(PostScript);
     fail;
   }
-  send(obj, NAME_Postscript, EAV);
+  send(obj, NAME_Postscript, NAME_body, EAV);
   footer();
 
   Sclose(psoutput);
@@ -518,9 +517,7 @@ header(Any gr, Area area, Bool ls)
   ps_output("%%Object: ~O\n", gr);
   ps_output("%%EndComments\n\n");
   
-  psstatus.mkheader = TRUE;
-  TRY(send(gr, NAME_Postscript, EAV));
-  psstatus.mkheader = FALSE;
+  TRY(send(gr, NAME_Postscript, NAME_head, EAV));
 
   ps_output("gsave\n\n");
 
@@ -1024,9 +1021,9 @@ psdef_arrows(Any obj)
 { Joint j = obj;
 
   if ( notNil(j->first_arrow) )
-    postscriptGraphical(j->first_arrow);
+    postscriptGraphical(j->first_arrow, NAME_head);
   if ( notNil(j->second_arrow) )
-    postscriptGraphical(j->second_arrow);
+    postscriptGraphical(j->second_arrow, NAME_head);
 }
 
 
@@ -1035,29 +1032,29 @@ psdef_arrows(Any obj)
 		*********************************/
 
 status
-postscriptGraphical(Any obj)
-{ if ( !psstatus.mkheader )
+postscriptGraphical(Any obj, Name hb)
+{ if ( hb == NAME_body )
     ps_output("\n%%Object: ~O\n", obj);
 
-  return send(obj, NAME_DrawPostScript, EAV);
+  return send(obj, NAME_DrawPostScript, hb, EAV);
 }
 
 
 status
-drawPostScriptDevice(Device dev)
+drawPostScriptDevice(Device dev, Name hb)
 { Cell cell;
 
-  if ( !psstatus.mkheader )
+  if ( hb == NAME_body )
     ps_output("gsave ~t ~C\n", dev, dev);
 
   for_cell(cell, dev->graphicals)
   { Graphical gr = cell->value;
 
     if ( gr->displayed == ON )
-      send(gr, NAME_Postscript, EAV);
+      send(gr, NAME_Postscript, hb, EAV);
   }
 
-  if ( !psstatus.mkheader )
+  if ( hb == NAME_body )
     ps_output("grestore\n");
 
   succeed;
@@ -1065,9 +1062,9 @@ drawPostScriptDevice(Device dev)
 
 
 status
-drawPostScriptFigure(Figure f)
+drawPostScriptFigure(Figure f, Name hb)
 { if ( f->pen != ZERO || notNil(f->background) )
-  { if ( psstatus.mkheader )
+  { if ( hb == NAME_head )
     { psdef(NAME_boxpath);
       psdef(NAME_draw);
       psdef_texture(f);
@@ -1080,7 +1077,7 @@ drawPostScriptFigure(Figure f)
     }
   }
 
-  return drawPostScriptDevice((Device) f);
+  return drawPostScriptDevice((Device) f, hb);
 }
 
 
@@ -1094,11 +1091,11 @@ static void
 ps_image(Image img,
 	 int sx, int sy,
 	 int x, int y, int w, int h,
-	 Bool transparent)
+	 Bool transparent, Name hb)
 { if ( sx || sy )
     Cprintf("ps_image(): sx/sy parameters currently ignored\n");
 
-  if ( psstatus.mkheader )
+  if ( hb == NAME_head )
   { psdef(NAME_greymap);
   } else
   { Int depth = get(img, NAME_postscriptDepth, EAV);
@@ -1130,7 +1127,7 @@ drawPostScriptNode(Node node, Image cimg, Image eimg)
   { int iw = valInt(i->size->w);
     int ih = valInt(i->size->h);
 
-    ps_image(i, 0, 0, lx-lg-(iw+1)/2, ly-(ih+1)/2, iw, ih, OFF);
+    ps_image(i, 0, 0, lx-lg-(iw+1)/2, ly-(ih+1)/2, iw, ih, OFF, NAME_body);
   }
 
   if ( notNil(node->sons) && node->collapsed != ON &&
@@ -1150,11 +1147,11 @@ drawPostScriptNode(Node node, Image cimg, Image eimg)
 
 
 status
-drawPostScriptTree(Tree tree)
+drawPostScriptTree(Tree tree, Name hb)
 { if ( tree->direction == NAME_list && notNil(tree->displayRoot) )
   { Line proto = tree->link->line;
 
-    if ( psstatus.mkheader )
+    if ( hb == NAME_head )
     { psdef(NAME_greymap);
       psdef(NAME_drawline);
       psdef_texture(proto);
@@ -1171,13 +1168,13 @@ drawPostScriptTree(Tree tree)
     }
   }
 
-  return drawPostScriptFigure((Figure)tree);
+  return drawPostScriptFigure((Figure)tree, hb);
 }
 
 
 status
-drawPostScriptBox(Box b)
-{ if ( psstatus.mkheader )
+drawPostScriptBox(Box b, Name hb)
+{ if ( hb == NAME_head )
   { psdef(NAME_draw);
     psdef(NAME_boxpath);
     psdef_texture(b);
@@ -1222,8 +1219,8 @@ drawPostScriptBox(Box b)
 
 
 status
-drawPostScriptCircle(Circle c)
-{ if ( psstatus.mkheader )
+drawPostScriptCircle(Circle c, Name hb)
+{ if ( hb == NAME_head )
   { psdef(NAME_draw);
     psdef(NAME_circlepath);
     psdef_texture(c);
@@ -1240,8 +1237,8 @@ drawPostScriptCircle(Circle c)
 
 
 status
-drawPostScriptEllipse(Ellipse e)
-{ if ( psstatus.mkheader )
+drawPostScriptEllipse(Ellipse e, Name hb)
+{ if ( hb == NAME_head )
   { psdef(NAME_draw);
     psdef(NAME_nodash);
     psdef_texture(e);
@@ -1275,8 +1272,8 @@ drawPostScriptEllipse(Ellipse e)
 
 
 status
-drawPostScriptPath(Path p)
-{ if ( psstatus.mkheader )
+drawPostScriptPath(Path p, Name hb)
+{ if ( hb == NAME_head )
   { psdef(NAME_draw);
     psdef(NAME_startpath);
     psdef_texture(p);
@@ -1284,7 +1281,7 @@ drawPostScriptPath(Path p)
     psdef_arrows(p);
 
     if ( notNil(p->mark) )
-      draw_postscript_image(p->mark, ZERO, ZERO);
+      draw_postscript_image(p->mark, ZERO, ZERO, hb);
   } else
   { if ( valInt(getSizeChain(p->points)) >= 2 )
     { Chain points = (p->kind == NAME_smooth ? p->interpolation : p->points);
@@ -1395,14 +1392,14 @@ drawPostScriptPath(Path p)
 
 	  draw_postscript_image(i,
 				toInt(valInt(pt->x) - iw2 + ox),
-				toInt(valInt(pt->y) - ih2 + oy));
+				toInt(valInt(pt->y) - ih2 + oy), hb);
 	}
       }
 
       if ( adjustFirstArrowPath(p) )
-	postscriptGraphical(p->first_arrow);
+	postscriptGraphical(p->first_arrow, hb);
       if ( adjustSecondArrowPath(p) )
-	postscriptGraphical(p->second_arrow);
+	postscriptGraphical(p->second_arrow, hb);
   
       ps_output("grestore\n");
     }
@@ -1414,8 +1411,8 @@ drawPostScriptPath(Path p)
 
 
 status
-drawPostScriptBezier(Bezier b)
-{ if ( psstatus.mkheader )
+drawPostScriptBezier(Bezier b, Name hb)
+{ if ( hb == NAME_head )
   { psdef(NAME_draw);
     psdef(NAME_startpath);
     psdef_texture(b);
@@ -1441,9 +1438,9 @@ drawPostScriptBezier(Bezier b)
     }
 
     if ( adjustFirstArrowBezier(b) )
-      postscriptGraphical(b->first_arrow);
+      postscriptGraphical(b->first_arrow, hb);
     if ( adjustSecondArrowBezier(b) )
-      postscriptGraphical(b->second_arrow);
+      postscriptGraphical(b->second_arrow, hb);
   
     ps_output("grestore\n");
   }
@@ -1453,8 +1450,8 @@ drawPostScriptBezier(Bezier b)
 
 
 status
-drawPostScriptLine(Line ln)
-{ if ( psstatus.mkheader )
+drawPostScriptLine(Line ln, Name hb)
+{ if ( hb == NAME_head )
   { if ( ln->pen != ZERO )
     { if ( ln->pen != ZERO )
       { psdef(NAME_draw);
@@ -1475,9 +1472,9 @@ drawPostScriptLine(Line ln)
 		ln, ln, x1, y1, x2-x1, y2-y1);
   
     if ( adjustFirstArrowLine(ln) )
-      postscriptGraphical(ln->first_arrow);
+      postscriptGraphical(ln->first_arrow, hb);
     if ( adjustSecondArrowLine(ln) )
-      postscriptGraphical(ln->second_arrow);
+      postscriptGraphical(ln->second_arrow, hb);
   
     ps_output("grestore\n");
   }
@@ -1487,8 +1484,8 @@ drawPostScriptLine(Line ln)
 
 
 status
-drawPostScriptArrow(Arrow a)
-{ if ( psstatus.mkheader )
+drawPostScriptArrow(Arrow a, Name hb)
+{ if ( hb == NAME_head )
   { psdef(NAME_draw);
     psdef_texture(a);
     psdef(NAME_pen);
@@ -1515,8 +1512,8 @@ drawPostScriptArrow(Arrow a)
 
 
 status
-drawPostScriptArc(Arc a)
-{ if ( psstatus.mkheader )
+drawPostScriptArc(Arc a, Name hb)
+{ if ( hb == NAME_head )
   { psdef(NAME_draw);
     psdef(NAME_arcpath);
     psdef_fill(a, NAME_fillPattern);
@@ -1555,7 +1552,7 @@ drawPostScriptArc(Arc a)
 	  
 	if ( qadSendv(a->first_arrow, NAME_points, 4, av) )
 	{ ComputeGraphical(a->first_arrow);
-	  postscriptGraphical(a->first_arrow);
+	  postscriptGraphical(a->first_arrow, hb);
 	}
       }
       if (notNil(a->second_arrow))
@@ -1574,7 +1571,7 @@ drawPostScriptArc(Arc a)
     
 	if ( qadSendv(a->second_arrow, NAME_points, 4, av) )
 	{ ComputeGraphical(a->second_arrow);
-	  postscriptGraphical(a->second_arrow);
+	  postscriptGraphical(a->second_arrow, hb);
 	}
       }
     }
@@ -1587,9 +1584,9 @@ drawPostScriptArc(Arc a)
 
 
 static status
-draw_postscript_image(Image image, Int x, Int y)
+draw_postscript_image(Image image, Int x, Int y, Name hb)
 { if ( image->depth == ONE /* && image->transparent == ON */ )
-  { if ( psstatus.mkheader )
+  { if ( hb == NAME_head )
     { psdef(NAME_bitmap);
     } else
     { Int iw = image->size->w;
@@ -1602,7 +1599,7 @@ draw_postscript_image(Image image, Int x, Int y)
   { Name format = get(image, NAME_postscriptFormat, EAV);
   
     if ( format == NAME_colour )
-    { if ( psstatus.mkheader )
+    { if ( hb == NAME_head )
       { psdef(NAME_rgbimage);
       } else
       { Int depth = get(image, NAME_postscriptDepth, EAV);
@@ -1611,7 +1608,7 @@ draw_postscript_image(Image image, Int x, Int y)
 		  x, y, image->size->w, image->size->h, depth, depth, image);
       }
     } else
-    { if ( psstatus.mkheader )
+    { if ( hb == NAME_head )
       { psdef(NAME_greymap);
       } else
       { Int depth = get(image, NAME_postscriptDepth, EAV);
@@ -1627,19 +1624,19 @@ draw_postscript_image(Image image, Int x, Int y)
 
 
 status
-drawPostScriptBitmap(BitmapObj bm)
-{ return draw_postscript_image(bm->image, bm->area->x, bm->area->y);
+drawPostScriptBitmap(BitmapObj bm, Name hb)
+{ return draw_postscript_image(bm->image, bm->area->x, bm->area->y, hb);
 }
 
 
 status
-drawPostScriptImage(Image image)
-{ return draw_postscript_image(image, ZERO, ZERO);
+drawPostScriptImage(Image image, Name hb)
+{ return draw_postscript_image(image, ZERO, ZERO, hb);
 }
 
 
 status
-drawPostScriptText(TextObj t)
+drawPostScriptText(TextObj t, Name hb)
 { String s = &t->string->data;
 
   if ( s[0].size > 0 )			/* i.e. non-empty */
@@ -1651,19 +1648,19 @@ drawPostScriptText(TextObj t)
     w = valInt(t->area->w);
 
     if ( isDefault(t->background) )
-    { if ( psstatus.mkheader )
+    { if ( hb == NAME_head )
 	psdef(NAME_clear);
       else
 	ps_output("~x ~y ~w ~h clear\n", t, t, t, t);
     }
 
-    if ( !psstatus.mkheader )
+    if ( hb == NAME_body )
       ps_output("gsave ~C", t);
     else
       psdef(NAME_text);
 
     if ( t->pen != ZERO || notNil(t->background) )
-    { if ( psstatus.mkheader )
+    { if ( hb == NAME_head )
       { psdef_fill(t, NAME_background);
 	psdef_texture(t);
 	psdef(NAME_boxpath);
@@ -1678,7 +1675,7 @@ drawPostScriptText(TextObj t)
       }
     }
   
-    if ( psstatus.mkheader )
+    if ( hb == NAME_head )
     { if ( t->wrap == NAME_clip )
       { psdef(NAME_boxpath);
 	psdef_texture(t);
@@ -1720,8 +1717,8 @@ drawPostScriptText(TextObj t)
 
 
 status
-postscriptFrame(FrameObj fr)
-{ if ( psstatus.mkheader )
+postscriptFrame(FrameObj fr, Name hb)
+{ if ( hb == NAME_head )
   { psdef(NAME_rgbimage);
     succeed;
   } else
@@ -1730,8 +1727,8 @@ postscriptFrame(FrameObj fr)
 
 
 status
-postscriptDisplay(DisplayObj d)
-{ if ( psstatus.mkheader )
+postscriptDisplay(DisplayObj d, Name hb)
+{ if ( hb == NAME_head )
   { psdef(NAME_rgbimage);
     succeed;
   } else

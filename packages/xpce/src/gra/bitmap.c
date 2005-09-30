@@ -267,7 +267,7 @@ static senddecl send_bitmap[] =
      NAME_change, "Update size and repaint indicated area"),
   SM(NAME_load, 2, T_load, loadBitmap,
      NAME_file, "Load file (in path) into bitmap"),
-  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptBitmap,
+  SM(NAME_DrawPostScript, 1, "{head,body}", drawPostScriptBitmap,
      NAME_postscript, "Create PostScript")
 };
 

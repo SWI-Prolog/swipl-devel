@@ -1724,7 +1724,7 @@ static senddecl send_text[] =
      NAME_insert, "Insert newlines (RET, LFD)"),
   SM(NAME_openLine, 1, "times=[int]", openLineText,
      NAME_insert, "Insert newlines after caret (\\C-o)"),
-  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptText,
+  SM(NAME_DrawPostScript, 1, "{head,body}", drawPostScriptText,
      NAME_postscript, "Create PostScript"),
   SM(NAME_compute, 0, NULL, computeText,
      NAME_repaint, "Recompute area/offset"),

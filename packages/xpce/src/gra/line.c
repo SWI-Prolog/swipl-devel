@@ -661,7 +661,7 @@ static senddecl send_line[] =
      NAME_resize, "Define start and vector"),
   SM(NAME_copy, 1, "line", copyLine,
      NAME_copy, "Copy attributes from other line"),
-  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptLine,
+  SM(NAME_DrawPostScript, 1, "{head,body}", drawPostScriptLine,
      NAME_postscript, "Create PostScript"),
   SM(NAME_end, 1, "point", endLine,
      NAME_tip, "Set end-point of line segment"),

@@ -1519,7 +1519,7 @@ getCatchAllFramev(FrameObj fr, Name name)
 }
 
 
-extern status postscriptFrame(FrameObj fr);
+extern status postscriptFrame(FrameObj fr, Name hb);
 
 		/********************************
 		*             VISUAL		*
@@ -1744,7 +1744,7 @@ static senddecl send_frame[] =
      NAME_organisation, "Append a window to the frame"),
   SM(NAME_delete, 1, "member:window", deleteFrame,
      NAME_organisation, "Delete window from the frame"),
-  SM(NAME_Postscript, 0, NULL, postscriptFrame,
+  SM(NAME_Postscript, 1, "{head,body}", postscriptFrame,
      NAME_postscript, "Create PostScript for interior"),
   SM(NAME_bell, 1, "volume=[int]", bellFrame,
      NAME_report, "Ring the bell on display"),
