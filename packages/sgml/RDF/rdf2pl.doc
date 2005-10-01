@@ -155,7 +155,7 @@ description(description, About, BagID, Properties) ::=
 
 The parser is designed to operate in various environments and therefore
 provides interfaces at various levels. First we describe the top level
-defined in \pllib{rdf}, simply parsing a PDF-XML file into a list of
+defined in \pllib{rdf}, simply parsing a RDF-XML file into a list of
 triples. Please note these are {\em not} asserted into the database
 because it is not necessarily the final format the user wishes to reason
 with and it is not clean how the user wants to deal with multiple RDF
