@@ -17,7 +17,7 @@
     University of Amsterdam <br>
     The Netherlands
   </address>
-  <email>jan@science.uva.nl</email>
+  <email>wielemak@science.uva.nl</email>
 </author>
 
 <abstract>
@@ -291,7 +291,7 @@ exception of the format below is raised. The default is 50.
 <s2 name="space">Handling white-space</title>
 
 <p>
-SGPL2PL has four modes for handling white-space. The initial mode can be
+SGML2PL has four modes for handling white-space. The initial mode can be
 switched using the <term>space(SpaceMode)</term> option to
 <pref>load_structure/3</pref> and <pref>set_sgml_parser/2</pref>. In XML
 mode, the mode is further controlled by the <elem/xml:space/ attribute,
