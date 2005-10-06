@@ -1271,23 +1271,26 @@ solidClass(Class class, Bool val)
 
 status
 sourceClass(Class class, SendFunc f, char *file, char *rcs)
-{ static char rev[] = "$Revision: ";
-  char *s, *q;
-  char buf[100];
-  int l;
-
+{ 
 #ifndef O_RUNTIME
   assign(class, source, newObject(ClassSourceLocation, CtoName(file), EAV));
 #endif
   
-  for(s=rcs, q=rev; *q && *s == *q; s++, q++)
-    ;
-  strcpy(buf, s);
-  l = strlen(buf);
-  if ( l >= 2 && streq(&buf[l-2], " $") )
-    buf[l-2] = EOS;
+  if ( rcs )
+  { static char rev[] = "$Revision: ";
+    char *s, *q;
+    char buf[100];
+    int l;
+
+    for(s=rcs, q=rev; *q && *s == *q; s++, q++)
+      ;
+    strcpy(buf, s);
+    l = strlen(buf);
+    if ( l >= 2 && streq(&buf[l-2], " $") )
+      buf[l-2] = EOS;
       
-  assign(class, rcs_revision, CtoName(buf));
+    assign(class, rcs_revision, CtoName(buf));
+  }
 
   succeed;
 }

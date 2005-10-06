@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Start of interface to add classes from C at runtime.
+
 VERSION 6.5.33, distributed with SWI-Prolog 5.5.33
 ==================================================
 

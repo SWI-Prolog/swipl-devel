@@ -893,6 +893,7 @@ typedef struct _classdecl
 #define SMEntries(l)		(sizeof(l) / sizeof(senddecl))
 #define GMEntries(l)		(sizeof(l) / sizeof(getdecl))
 #define RCEntries(l)		(sizeof(l) / sizeof(classvardecl))
+#define TNEntries(l)		(sizeof(l) / sizeof(Name))
 
 #ifndef UXWIN
 #ifdef WIN32_GRAPHICS
@@ -1548,6 +1549,7 @@ COMMON(status)	makeClassSourceSink(Class class);
 COMMON(Host)	HostObject(void);
 COMMON(int)	hostGetc(void);
 COMMON(void)	pceWriteErrorGoal(void);
+COMMON(int)	initPublicInterface(void);
 
 COMMON(status)	initialiseSourceSink(SourceSink ss);
 COMMON(status)	checkErrorSourceSink(SourceSink ss, IOSTREAM *fd);

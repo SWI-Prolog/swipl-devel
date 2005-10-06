@@ -102,7 +102,7 @@ ITFOBJS=	itf\c.obj itf\host.obj itf\interface.obj \
 		itf\cpointer.obj itf\asfile.obj itf\console.obj \
 		itf\stub.obj itf\xmalloc.obj itf\iostream.obj \
 		itf\srcsink.obj itf\rc.obj itf\hostdata.obj \
-		itf\cpp.obj
+		itf\cpp.obj itf\public.obj
 
 ################################################################
 # KER 		--- Kernel modules

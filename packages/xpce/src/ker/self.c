@@ -105,6 +105,8 @@ initialisePce(Pce pce)
 
   at_pce_exit(exit_pce, ATEXIT_FIFO);
 
+  initPublicInterface();
+
   succeed;
 }
 

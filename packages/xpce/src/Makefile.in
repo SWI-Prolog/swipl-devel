@@ -418,7 +418,8 @@ $(srcdir)/gra/proto.h:	$(GRASRC)
 ################################################################
 
 ITF1OBJS=	c.o host.o interface.o cpointer.o asfile.o console.o \
-		stub.o xmalloc.o iostream.o srcsink.o rc.o hostdata.o
+		stub.o xmalloc.o iostream.o srcsink.o rc.o hostdata.o \
+		public.o
 ITF2OBJS=	@CXXTARGETS@
 ITFOBJS=	$(ITF1OBJS) $(ITF2OBJS)
 ITFSRC=		$(addprefix $(srcdir)/itf/, $(ITF1OBJS:.o=.c) $(ITF2OBJS:.o=.cxx))
