@@ -9,7 +9,7 @@
 
 BUILDDIR=@BUILDDIR@
 srcdir=`echo @srcdir@ | sed 's=/../packages=='`
-ARCH=@ARCH@
+ARCH=@RT@@ARCH@
 PL=@PL@@RT@
 bdir=$srcdir/../$BUILDDIR
 ldir=$srcdir/../lib/$ARCH

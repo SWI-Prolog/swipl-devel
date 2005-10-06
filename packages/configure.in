@@ -19,12 +19,12 @@ export MAKE
 
 BUILDDIR=@BUILDDIR@
 srcdir=`echo @srcdir@ | sed 's=/../packages=='`
-ARCH=@ARCH@
+ARCH=@RT@@ARCH@
 PL=@PL@@RT@
 bdir=$srcdir/../$BUILDDIR
 ldir=$srcdir/../lib/$ARCH
 
-if [ "x$@DLLIBVAR@" = "" ]; then
+if [ "x$@DLLIBVAR@" = "x" ]; then
   @DLLIBVAR@=$ldir
 else
   @DLLIBVAR@="$ldir:$@DLLIBVAR@"
@@ -38,16 +38,16 @@ delpkg()
 
   for p in $PKG; do
     if [ "$p" = "$1" ]; then
-      found=yes
+      found=$p
     else
       tmp="$tmp $p"
     fi
   done
 
-  if [ found = "no" ]; then
+  if [ "$found" = "no" ]; then
     return 1
   else
-    echo "Dropped package $p"
+    echo "Dropped package $found"
     PKG="$tmp"
   fi
 }
@@ -69,7 +69,8 @@ while [ "$1" != "" ]; do
 			;;
 	--with-*)	pkg=`echo "$1" | sed 's/--with-//'`
 			if [ -d "$pkg" ]; then
-			  delpkg $pkg
+			  delpkg $pkg > /dev/null
+			  echo "Added package $pkg"
 			  PKG="$PKG $pkg"
 			else
 			  configoptions="$configoptions $1"

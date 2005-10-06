@@ -1735,10 +1735,12 @@ ar_abs(Number n1, Number r)
       }
 #ifdef O_GMP
     case V_MPZ:
+      r->type = V_MPZ;
       mpz_init(r->value.mpz);
       mpz_abs(r->value.mpz, n1->value.mpz);
       break;
     case V_MPQ:
+      r->type = V_MPQ;
       mpq_init(r->value.mpq);
       mpq_abs(r->value.mpq, n1->value.mpq);
       break;

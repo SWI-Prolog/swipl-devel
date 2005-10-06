@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+  * PORT: Bug#97: Some packages configure issues.  Mike Frysinger.
+
+  * FIXED: abs/1 for large integers and rationals.  Mike Elston.
+
 ===================================
 VERSION 5.5.33 (September 30, 2005)
 ===================================
