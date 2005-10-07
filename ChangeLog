@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * ADDED: message_queue_size/2.  Woon Kiong.
+
   * FIXED: Singleton warning for variables with Unicode name.  Dmitry.
 
   * PORT: Bug#90: parallel make.  Mike Frysinger.

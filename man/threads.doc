@@ -361,6 +361,12 @@ not advised) to get messages from the queue of other threads.
 As thread_peek_message/1, operating on a given queue. It is allowed
 to peek into another thread's message queue, an operation that can be
 used to check whether a thread has swallowed a message sent to it.
+
+    \predicate{message_queue_size}{2}{+Queue, -Size}
+Unify \arg{Size} with the number of terms waiting in \arg{Queue}.  Note
+that due to concurrent access the returned value may be outdated before
+it is returned.  It can be used for debugging purposes as well as work
+distribution purposes.
 \end{description}
 
 

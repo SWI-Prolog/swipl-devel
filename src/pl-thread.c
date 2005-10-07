@@ -2168,6 +2168,24 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 }
 
 
+static 
+PRED_IMPL("message_queue_size", 2, message_queue_size, 0)
+{ message_queue *q;
+  thread_message *m;
+  int n;
+					/* Needs lock? */
+  if ( !get_message_queue(A1, &q, TRUE) )
+    fail;
+
+  simpleMutexLock(&q->mutex);
+  for(n=0, m=q->head; m; m = m->next)
+    n++;
+  simpleMutexUnlock(&q->mutex);
+
+  return PL_unify_integer(A2, n);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 thread_get_message(+Queue, -Message)
 thread_get_message(-Message)
@@ -3600,5 +3618,6 @@ BeginPredDefs(thread)
   PRED_DEF("message_queue_destroy", 1, message_queue_destroy, 0)
   PRED_DEF("thread_setconcurrency", 2, thread_setconcurrency, 0)
   PRED_DEF("mutex_statistics", 0, mutex_statistics, 0)
+  PRED_DEF("message_queue_size", 2, message_queue_size, 0)
 #endif
 EndPredDefs
