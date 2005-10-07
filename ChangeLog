@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: Singleton warning for variables with Unicode name.  Dmitry.
+
   * PORT: Bug#90: parallel make.  Mike Frysinger.
 
   * PORT: Bug#97: Some packages configure issues.  Mike Frysinger.

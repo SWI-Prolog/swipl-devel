@@ -381,7 +381,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 
 
 static void
-singletonWarning(atom_t *vars, int nvars)
+singletonWarning(const char **vars, int nvars)
 { GET_LD
   fid_t cid = PL_open_foreign_frame();
   term_t l = PL_new_term_ref();
@@ -391,8 +391,7 @@ singletonWarning(atom_t *vars, int nvars)
 
   for(n=0; n<nvars; n++)
   { PL_unify_list(a, h, a);
-    PL_unify_atom(h, vars[n]);
-    PL_unregister_atom(vars[n]);
+    PL_unify_chars(h, REP_UTF8|PL_ATOM, (unsigned)-1, vars[n]);
   }
   PL_unify_nil(a);
 
@@ -932,13 +931,13 @@ check_singletons(ReadData _PL_rd ARG_LD)
 
     return PL_unify_nil(list);
   } else				/* just report */
-  { atom_t singletons[MAX_SINGLETONS];
+  { const char *singletons[MAX_SINGLETONS];
     int i = 0;
 
     for_vars(var,
 	     if ( var->times == 1 && var->name[0] != '_' )
 	     { if ( i < MAX_SINGLETONS )
-		 singletons[i++] = PL_new_atom(var->name);
+		 singletons[i++] = var->name;
 	     });
 
     if ( i > 0 )
