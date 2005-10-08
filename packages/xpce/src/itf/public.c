@@ -141,5 +141,5 @@ XPCE_constant(xpce_constant_id id)
 
 int
 initPublicInterface()
-{
+{ succeed;
 }
