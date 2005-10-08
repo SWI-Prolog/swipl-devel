@@ -94,6 +94,7 @@ Examples:
 	    readln/2,			% -Line, +EOL
 	    readln/5			% See above
 	  ]).
+:- use_module(library(lists)).
 :- license(swipl).
 
 readln(Read) :-			% the default is read up to EOL
