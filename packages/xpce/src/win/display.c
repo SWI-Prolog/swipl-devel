@@ -1298,7 +1298,7 @@ typedef struct
   char *xname;
 } fontdef, *FontDef;
 
-#ifdef WIN32_GRAPHICS
+#if defined(WIN32_GRAPHICS) || defined(USE_XFT)
 #define XNAME(x) NULL
 #else
 #define XNAME(x) x

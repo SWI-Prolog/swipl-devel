@@ -568,10 +568,10 @@ do_clip(int x, int y, int w, int h)
   XSetRegion(context.display, context.gcs->fillGC, r);
   XSetRegion(context.display, context.gcs->shadowGC, r);
   XSetRegion(context.display, context.gcs->reliefGC, r);
-  XftDrawSetClip(xftDraw(), r);
 #ifdef USE_XFT
-  XDestroyRegion(r);
+  XftDrawSetClip(xftDraw(), r);
 #endif
+  XDestroyRegion(r);
 
 #else /*USE_XFT*/
   XRectangle rect;

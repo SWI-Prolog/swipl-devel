@@ -50,8 +50,16 @@ ws_create_font(FontObj f, DisplayObj d)
     XftPattern *match;
     FcResult fcrc;
     int i;
+    char *fam;
+    int mono = FALSE;
 
-    XftPatternAddString(p, XFT_FAMILY, strName(f->family));
+    if ( f->family == NAME_screen )
+    { fam = "monospace";
+      mono = TRUE;
+    } else
+      fam = strName(f->family);
+
+    XftPatternAddString(p, XFT_FAMILY, fam);
     XftPatternAddDouble(p, XFT_PIXEL_SIZE, (double)valInt(f->points));
     if ( f->style == NAME_italic )
       XftPatternAddInteger(p, XFT_SLANT, XFT_SLANT_ITALIC);
@@ -59,6 +67,11 @@ ws_create_font(FontObj f, DisplayObj d)
       XftPatternAddInteger(p, XFT_SLANT, XFT_SLANT_ROMAN);
     else if ( f->style == NAME_bold )
       XftPatternAddInteger(p, XFT_WEIGHT, XFT_WEIGHT_BOLD);
+
+    if ( mono )
+    { DEBUG(NAME_font, Cprintf("Asking for fixed\n"));
+      XftPatternAddInteger(p, XFT_SPACING, XFT_MONO);
+    }
 
     if ( !(match = XftFontMatch(r->display_xref, r->screen, p, &fcrc)) )
       return replaceFont(f, d);
@@ -71,7 +84,7 @@ ws_create_font(FontObj f, DisplayObj d)
 
 					/* see above (*) */
     if ( FcPatternGetInteger(match, XFT_SPACING, 0, &i) == FcResultMatch )
-    { Cprintf("Setting fixed from property\n");
+    { DEBUG(NAME_font, Cprintf("Setting fixed from property\n"));
       if ( i == XFT_MONO )
 	assign(f, fixed_width, ON);
       else

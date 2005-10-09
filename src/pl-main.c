@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -611,6 +611,11 @@ $PATH!
 
 	{pl, '-L0 -f', <file>}
 
+On some unix systems, currently MacOS X  tiger, the arguments are passed
+as { pl, -L0, -f, <file> }, which   must be converted by adding -- after
+the script file. This mode is selected  if SCRIPT_ALL_ARGS is defined by
+configure.
+
 On Windows this is simply passed as below.   We have to analyse the file
 ourselves. Unfortunately this needs to be done  on C as it might contain
 stack-parameters.
@@ -634,6 +639,38 @@ script_argv(int argc, char **argv)
 	{ for(i=0; i< argc; i++)
 	    Sdprintf("argv[%d] = '%s'\n", i, argv[i]);
 	});
+
+#ifdef SCRIPT_ALL_ARGS
+  for(i=1; i < argc-1; i++)
+  { if ( argv[i][0] == '-' && argv[i][2] == '\0' )
+    { switch(argv[i][1])
+      { case '-':
+	  goto noscript;
+	case 's':
+	case 'f':
+	  if ( (fd=fopen(argv[i+1], "r")) )
+	  { char **av = allocHeap(sizeof(char*)*(argc+2));
+	    int j;
+
+	    DEBUG(1, Sdprintf("Got script %s\n", argv[i+1]));
+
+	    fclose(fd);
+
+	    for(j=0; j<=i+1; j++)
+	      av[j] = argv[j];
+	    av[j] = "--";
+	    for(; j<argc; j++)
+	      av[j+1] = argv[j];
+	    av[j+1] = NULL;
+	    GD->cmdline.argc = argc+1;
+	    GD->cmdline.argv = av;
+
+	    return;
+	  }
+      }
+    }
+  }
+#else /*SCRIPT_ALL_ARGS*/
 
 #ifdef __unix__
   if ( argc >= 3 &&
@@ -718,6 +755,7 @@ script_argv(int argc, char **argv)
 
     fclose(fd);
   } else
+#endif /*SCRIPT_ALL_ARGS*/
   { noscript:
     GD->cmdline.argc = argc;
     GD->cmdline.argv = argv;
