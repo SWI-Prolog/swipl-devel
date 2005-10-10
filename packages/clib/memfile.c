@@ -47,13 +47,13 @@ static functor_t FUNCTOR_memory_file1;
 #define MEMFILE_MAGIC	0x5624a6b3L
 
 typedef struct
-{ long  magic;				/* MEMFILE_MAGIC */
-  IOENC  encoding;			/* encoding of the data */
-  char *data;				/* data of the file */
-  int	data_size;			/* byte-size of data */
-  int   size;				/* size in characters */
-  IOSTREAM *stream;			/* Stream hanging onto it */
-  atom_t atom;				/* Created from atom */
+{ long		magic;			/* MEMFILE_MAGIC */
+  IOENC		encoding;		/* encoding of the data */
+  char	       *data;			/* data of the file */
+  unsigned int	data_size;		/* byte-size of data */
+  unsigned int	size;			/* size in characters */
+  IOSTREAM     *stream;			/* Stream hanging onto it */
+  atom_t 	atom;			/* Created from atom */
 } memfile;
 
 
@@ -173,7 +173,7 @@ open_memory_file(term_t handle, term_t mode, term_t stream)
     return pl_error("open_memory_file", 3, NULL, ERR_DOMAIN,
 		    mode, "io_mode");
 
-  if ( !(fd = Sopenmem(&m->data, &m->data_size, x)) )
+  if ( !(fd = Sopenmem(&m->data, (int *)&m->data_size, x)) )
     return pl_error("open_memory_file", 3, NULL, ERR_ERRNO,
 		    "memory_file", "create");
 
