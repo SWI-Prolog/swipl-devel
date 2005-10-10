@@ -1558,7 +1558,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 #ifdef O_STRING
   { char *s;
     wchar_t *w;
-    int len;
+    unsigned int len;
 
     if ( PL_get_string(t, &s, &len) )	/* string object (if supported) */
       return cToPceStringA(atomToAssoc(assoc), s, len, FALSE);
@@ -1630,7 +1630,7 @@ unifyObject(Term t, PceObject obj, int top)
   if ( pceIsString(obj) )	/* string: handle special */
   { const char *textA;
     const wchar_t *textW;
-    int len;
+    unsigned int len;
     Term a = NewTerm();
 
     if ( (textA = pceCharArrayToCA(obj, &len)) )
@@ -2047,7 +2047,7 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 
 	  pceInitArgumentsGoal(&goal);
 	  for(n=0; n<arity; n++)
-	  { PceObject value;
+	  { PceObject value = NULL;
 	    PceName name = NULL;
 	    PceType type;
 	    int i;
