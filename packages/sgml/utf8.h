@@ -32,5 +32,6 @@
 		      : (*(chr) = *(in), (char *)(in)+1))
 
 extern char *sgml__utf8_get_char(const char *in, int *chr);
+#define utf8_get_uchar(in, chr) (unsigned char*)utf8_get_char((char*)(in), chr)
 
 #endif /*UTF8_H_INCLUDED*/

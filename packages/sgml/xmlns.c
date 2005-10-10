@@ -147,7 +147,7 @@ xmlns_resolve_attribute(dtd_parser *p, dtd_symbol *id,
       *local = s+1;
       n = dtd_add_symbol(dtd, buf);
 
-      if ( istrprefix("xml", buf) )	/* XML reserved namespaces */
+      if ( istrprefix((ichar*)"xml", buf) )	/* XML reserved namespaces */
       { *url = n->name;
         return TRUE;
       } else if ( (ns = xmlns_find(p->environments, n)) )

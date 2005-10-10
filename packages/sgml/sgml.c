@@ -263,7 +263,7 @@ print_data(dtd_parser * p, data_type type, int len, const char *data)
     default:
       assert(0);
   }
-  print_escaped(c, data);
+  print_escaped(c, (ichar*)data);
   return TRUE;
 }
 

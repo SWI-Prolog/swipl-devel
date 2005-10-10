@@ -454,16 +454,16 @@ load_one_catalogue(catalog_file * file)
 	  squish(buffer);
 	this_item->next = 0;
 	this_item->kind = t == CAT_SYSTEM ? t : t + override;
-	this_item->target = istrdup(buffer);
+	this_item->target = strdup(buffer);
 
 	if (scan(src, buffer, sizeof buffer, 0) == EOF)
 	  break;
 
 	if (is_absolute_path(buffer) || p == base)
-	{ this_item->replacement = istrdup(buffer);
+	{ this_item->replacement = strdup(buffer);
 	} else
         { (void) strcpy(p, buffer);
-          this_item->replacement = istrdup(base);
+          this_item->replacement = strdup(base);
         }
 
 	if (file->first_item == 0)
@@ -620,7 +620,7 @@ find_in_catalogue(int kind,
   item = sgml_malloc(sizeof *item);
   item->next = 0;
   item->kind = kind;
-  item->target = istrdup(name);
+  item->target = strdup(name);
 
   switch (kind)
   { case CAT_DOCTYPE:
@@ -637,7 +637,7 @@ find_in_catalogue(int kind,
       abort();
   }
 
-  item->replacement = istrdup(penname);
+  item->replacement = strdup(penname);
   if (first_item == 0)
   { first_item = item;
   } else
