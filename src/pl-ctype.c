@@ -505,7 +505,7 @@ modify_case_atom(term_t in, term_t out, int down)
     tout.canonical = FALSE;		/* or TRUE? Can WCHAR map to ISO? */
 
     if ( tin.encoding == ENC_ISO_LATIN_1 )
-    { const unsigned char *in = tin.text.t;
+    { const unsigned char *in = (const unsigned char*)tin.text.t;
 
       if ( tin.length < sizeof(tout.buf) )
       { tout.text.t = tout.buf;

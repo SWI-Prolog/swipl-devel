@@ -1155,7 +1155,7 @@ static int
 escape_char(cucharp in, ucharp *end, unsigned int quote)
 { int base, xdigits;
   int chr;
-  unsigned c;
+  int c;
   cucharp e;
 
 #define OK(v) if (1) {chr = (v); goto ok;} else (void)0
@@ -1357,7 +1357,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
 	{ chr = escape_char(in+3, end, 0);
 	} else
-	{ *end = utf8_get_char((char*)in+2, &chr);
+	{ *end = utf8_get_uchar(in+2, &chr);
 	}
 
 	value->value.i = (int64_t)chr;
@@ -1577,7 +1577,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
 		  if ( str_number(&rdhere[-1],
 				  &rdhere, &value, DO_CHARESCAPE) &&
-		       utf8_get_char(rdhere, &echr) &&
+		       utf8_get_uchar(rdhere, &echr) &&
 		       !isAlphaW(echr) )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
