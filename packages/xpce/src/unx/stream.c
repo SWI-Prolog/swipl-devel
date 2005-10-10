@@ -224,7 +224,7 @@ dispatch_stream(Stream s, int size, int discard)
   assert(size <= s->input_p);
 
   markAnswerStack(mark);
-  str_set_n_ascii(&q, size, s->input_buffer);
+  str_set_n_ascii(&q, size, (char *)s->input_buffer);
   str = StringToString(&q);
   if ( discard )
   { pceFree(s->input_buffer);
@@ -243,7 +243,7 @@ dispatch_stream(Stream s, int size, int discard)
 	  Cprintf("Sending: %d characters, `", n);
 	  write_buffer(strName(str), n);
 	  Cprintf("'\n\tLeft: %d characters, `", s->input_p);
-	  write_buffer(s->input_buffer, s->input_p);
+	  write_buffer((char *)s->input_buffer, s->input_p);
 	  Cprintf("'\n");
 	});
   
@@ -283,7 +283,7 @@ dispatch_input_stream(Stream s)
     { Regex re = s->record_separator;
       string str;
 
-      str_set_n_ascii(&str, s->input_p, s->input_buffer);
+      str_set_n_ascii(&str, s->input_p, (char *)s->input_buffer);
       if ( search_string_regex(re, &str) )
       { int size = valInt(getRegisterEndRegex(s->record_separator, ZERO));
 
@@ -333,7 +333,7 @@ handleInputStream(Stream s)
 
       DEBUG(NAME_input,
 	    { Cprintf("Read (%d chars): `", n);
-	      write_buffer(&s->input_buffer[s->input_p-n], n);
+	      write_buffer((char *)&s->input_buffer[s->input_p-n], n);
 	      Cprintf("'\n");
 	    });
 
@@ -449,9 +449,10 @@ getReadLineStream(Stream s, Real timeout)
 	  int len = (q-s->input_buffer)+1;
 	  StringObj rval;
 	  
-	  str_set_n_ascii(&str, len, s->input_buffer);
+	  str_set_n_ascii(&str, len, (char *)s->input_buffer);
 	  rval = StringToString(&str);
-	  strncpy(s->input_buffer, &s->input_buffer[len], s->input_p - len);
+	  strncpy((char *)s->input_buffer,
+		  (char *)&s->input_buffer[len], s->input_p - len);
 	  s->input_p -= len;
 
 	  return rval;

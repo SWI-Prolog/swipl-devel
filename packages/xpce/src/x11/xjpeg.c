@@ -371,7 +371,7 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
     { if ( m->marker == JPEG_COM )
       { string s;
 
-	if ( str_set_n_ascii(&s, m->data_length, m->data) )
+	if ( str_set_n_ascii(&s, m->data_length, (char*)m->data) )
 	  appendChain(ch, StringToString(&s));
       }
     }

@@ -110,7 +110,7 @@ CreateXImageFromData(unsigned char *data, int width, int height)
 		       1,
 		       XYBitmap,
 		       0,
-		       data,
+		       (char *)data,
 		       width, height,
 		       8, (width+7)/8);
 

@@ -33,7 +33,7 @@ static HashTable SyntaxTables;		/* @syntax_tables */
 static status
 initialiseSyntaxTable(SyntaxTable t, Name name, SyntaxTable def)
 { unsigned short *flags;
-  char *context;
+  unsigned char *context;
 
   if ( isDefault(name) )
     name = NIL;
@@ -509,7 +509,7 @@ unsigned short char_flags[] = {
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, 
    LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC, LC };
 
-char char_context[] = {
+unsigned char char_context[] = {
 /* ^@  ^A  ^B  ^C  ^D  ^E  ^F  ^G  ^H  ^I  ^J  ^K  ^L  ^M  ^N  ^O    0-15 */
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
 /* ^P  ^Q  ^R  ^S  ^T  ^U  ^V  ^W  ^X  ^Y  ^Z  ^[  ^\  ^]  ^^  ^_   16-31 */

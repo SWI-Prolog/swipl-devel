@@ -27,7 +27,7 @@
 #include "include.h"
 
 #define X11LastEventTime() ((Time)LastEventTime())
-
+#define utf8_get_uchar(s, chr) (unsigned char*)utf8_get_char((char *)(s), chr)
 
 static XrmOptionDescRec opTable[] =
 { {"-xrm",	NULL,	XrmoptionResArg, NULL }
@@ -461,9 +461,9 @@ ws_set_cutbuffer(DisplayObj d, int n, String s)
 { DisplayWsXref r = d->ws_ref;
 
   if ( n == 0 )
-    XStoreBytes(r->display_xref, s->s_text, str_datasize(s));
+    XStoreBytes(r->display_xref, (char*)s->s_text, str_datasize(s));
   else
-    XStoreBuffer(r->display_xref, s->s_text, str_datasize(s), n);
+    XStoreBuffer(r->display_xref, (char*)s->s_text, str_datasize(s), n);
 
   succeed;
 }
@@ -579,7 +579,7 @@ collect_selection_display(Widget w, XtPointer xtp,
 
       outA = bufA = malloc(l);
       while(in<end)
-      { in = utf8_get_char(in, &chr);
+      { in = utf8_get_uchar(in, &chr);
 
 	if ( chr <= 0xff )
 	  *outA++ = chr;
@@ -588,7 +588,7 @@ collect_selection_display(Widget w, XtPointer xtp,
       }
 
       if ( in >= end )
-      { str_set_n_ascii(&s, outA-bufA, bufA);
+      { str_set_n_ascii(&s, outA-bufA, (char*)bufA);
 	selection_value = StringToString(&s);
 	pceFree(bufA);
       } else
@@ -596,7 +596,7 @@ collect_selection_display(Widget w, XtPointer xtp,
 	charW *out = bufW;
 	
 	for(in = value; in<end; )
-	{ in = utf8_get_char(in, &chr);
+	{ in = utf8_get_uchar(in, &chr);
 
 	  *out++ = chr;
 	}
@@ -727,7 +727,7 @@ convert_selection_display(Widget w,
 	char *out;
 
 	if ( isstrA(s) )
-	  length = pce_utf8_enclenA(s->s_textA, s->size);
+	  length = pce_utf8_enclenA((char*)s->s_textA, s->size);
 	else
 	  length = pce_utf8_enclenW(s->s_textW, s->size);
 

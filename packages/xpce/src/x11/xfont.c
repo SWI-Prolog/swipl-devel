@@ -100,7 +100,7 @@ ws_create_font(FontObj f, DisplayObj d)
 //    XftPatternDestroy(match);
 
   } else
-  { const charA *xname = strName(f->x_name);
+  { const char *xname = strName(f->x_name);
 
     if ( strchr(xname, ':') )
       xft = XftFontOpenName(r->display_xref, r->screen, xname);

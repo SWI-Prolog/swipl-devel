@@ -541,8 +541,8 @@ dndEventFrame(FrameObj fr, XEvent *xevent)
 		  { AnswerMark mark;
 		    Chain files;
 		    Point pos;
-		    unsigned char *s = i.drop_data;
-		    unsigned char *e = s + i.drop_data_length;
+		    char *s = i.drop_data;
+		    char *e = s + i.drop_data_length;
 
 		    markAnswerStack(mark);
 		    files = answerObject(ClassChain, EAV);
@@ -550,7 +550,7 @@ dndEventFrame(FrameObj fr, XEvent *xevent)
 					 toInt(i.x), toInt(i.y), EAV);
 		    
 		    for(; s<e; )
-		    { unsigned char *start;
+		    { char *start;
 		      string str;
 
 		      start = s;
@@ -919,7 +919,8 @@ getWMFrameFrame(FrameObj fr, int *dxp, int *dyp)
 	XFree((char *) children);	/* declared char * ???? */
 
 	if ( dxp || dyp )
-	{ unsigned int x, y, width, h, bw, depth;
+	{ int x, y;
+	  unsigned int width, h, bw, depth;
 
 	  XGetGeometry(d, w, &root, &x, &y, &width, &h, &bw, &depth);
 

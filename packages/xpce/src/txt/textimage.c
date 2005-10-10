@@ -1396,7 +1396,7 @@ eventTextImage(TextImage ti, EventObj ev)
 { if ( eventGraphical(ti, ev) )
   { succeed;
   } else
-  { long where;
+  { long where = 0L;
 
     updatePointedTextImage(ti, ev, &where);
 

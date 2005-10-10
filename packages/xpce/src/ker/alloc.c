@@ -174,7 +174,7 @@ allocate(int size)
   base      = (long) p;
   allocRange(p, ALLOCSIZE);
 
-  spaceptr = p + alloc_size;
+  spaceptr = (char*)p + alloc_size;
   spacefree = ALLOCSIZE - alloc_size;
 
 #if ALLOC_DEBUG

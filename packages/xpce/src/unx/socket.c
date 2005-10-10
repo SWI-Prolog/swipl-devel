@@ -478,7 +478,7 @@ bindSocket(Socket s, Bool reuse)
 	   (instanceOfObject(s->address, ClassTuple) &&
 	    ((Tuple)s->address)->second == ZERO) )
       { struct sockaddr_in addr;
-	int len = sizeof(addr);
+	socklen_t len = sizeof(addr);
 
 	if ( getsockname(SocketHandle(s), (struct sockaddr *) &addr, &len) )
 	{ return errorPce(s, NAME_socket, NAME_getsockname, SockError());
@@ -508,7 +508,7 @@ acceptSocket(Socket s)
 #ifdef UNIX_DOMAIN_SOCKETS
   if ( s->domain == NAME_unix )
   { struct sockaddr_un address;
-    int len = sizeof(address);
+    socklen_t len = sizeof(address);
 
     if ( (id2=accept(SocketHandle(s), (struct sockaddr *) &address, &len))<0 )
       errorPce(s, NAME_socket, NAME_accept, SockError());
@@ -517,7 +517,7 @@ acceptSocket(Socket s)
   } else /*if ( s->domain == NAME_inet )*/
 #endif
   { struct sockaddr_in address;
-    int len = sizeof(address);
+    socklen_t len = sizeof(address);
 
     if ( (id2=accept(SocketHandle(s), (struct sockaddr *) &address, &len))<0 )
       errorPce(s, NAME_socket, NAME_accept, SockError());
@@ -652,7 +652,7 @@ getPeerNameSocket(Socket s)
   if ( s->domain == NAME_unix )
   { struct sockaddr_un *address;
     char buf[MAX_UN_ADDRESS_LEN + sizeof(address->sun_family)];
-    int len;
+    socklen_t len;
 
     address = (struct sockaddr_un *) buf;
     len = sizeof(buf);
@@ -666,7 +666,7 @@ getPeerNameSocket(Socket s)
   } else /* if ( s->domain = NAME_inet ) */
 #endif /*UNIX_DOMAIN_SOCKETS*/
   { struct sockaddr_in address;
-    int len = sizeof(address);
+    socklen_t len = sizeof(address);
     int port;
     unsigned long addr;
     char aname[3*4+4];

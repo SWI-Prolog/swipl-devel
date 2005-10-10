@@ -597,10 +597,12 @@ allmcces(v, cv)
 
 					/* might have to do UTF-8 on a */
 static int
-strncmpAW(const unsigned char *a, const chr *w, size_t len)
-{ for( ; len-->0; a++, w++)
-  { if ( *a != *w )
-      return *a - *w;
+strncmpAW(const char *a, const chr *w, size_t len)
+{ const unsigned char *ua = (const unsigned char*)a;
+
+  for( ; len-->0; ua++, w++)
+  { if ( *ua != *w )
+      return *ua - *w;
   }
 
   return 0;

@@ -971,6 +971,7 @@ pchr pc;
 	}
 
 	assert(NOTREACHED);
+	return 0;
 }
 
 /*

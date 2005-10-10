@@ -26,6 +26,8 @@
 #include <h/kernel.h>
 #include <h/utf8.h>
 
+#define utf8_get_uchar(s, chr) (unsigned char*)utf8_get_char((char *)(s), chr)
+
 #ifndef MB_LEN_MAX
 #define MB_LEN_MAX 6
 #endif
@@ -131,7 +133,7 @@ stringToUTF8(String str)
 	break;
     }
     if ( s == e )
-      return str->s_textA;		/* no */
+      return (char *)str->s_textA;	/* no */
 
     out = find_ring();
     for(s = (cuchar*) str->s_textA; s<e; s++ )
@@ -177,7 +179,7 @@ stringToMB(String str)
 	return NULL;			/* cannot convert */
     }
     if ( s == e )
-      return str->s_textA;		/* no */
+      return (char *)str->s_textA;		/* no */
 
     memset(&mbs, 0, sizeof(mbs));
     out = find_ring();
@@ -276,7 +278,7 @@ UTF8ToName(const char *utf8)
   int len;
   int wide;
 
-  for(in=utf8; *in; in++)
+  for(in=(cuchar*)utf8; *in; in++)
   { if ( (*in)&0x80 )
       break;
   }
@@ -284,11 +286,11 @@ UTF8ToName(const char *utf8)
   if ( *in == EOS )			/* simple ASCII string */
     return CtoName(utf8);
 
-  e = in + strlen(in);
-  for(in=utf8, len=0, wide=FALSE; in < e; )
+  e = in + strlen((const char*)in);
+  for(in=(cuchar*)utf8, len=0, wide=FALSE; in < e; )
   { int chr;
 
-    in = utf8_get_char(in, &chr);
+    in = utf8_get_uchar(in, &chr);
     if ( chr > 0xff )
       wide = TRUE;
     len++;
@@ -308,10 +310,10 @@ UTF8ToName(const char *utf8)
       mlcd = TRUE;
     }
 
-    for(in=utf8, o=ws; in < e; )
+    for(in=(cuchar*)utf8, o=ws; in < e; )
     { int chr;
 
-      in = utf8_get_char(in, &chr);
+      in = utf8_get_uchar(in, &chr);
       *o++ = chr;
     }
 
@@ -336,10 +338,10 @@ UTF8ToName(const char *utf8)
       mlcd = TRUE;
     }
 
-    for(in=utf8, o=as; in < e; )
+    for(in=(cuchar*)utf8, o=as; in < e; )
     { int chr;
 
-      in = utf8_get_char(in, &chr);
+      in = utf8_get_uchar(in, &chr);
       *o++ = (char)chr;
     }
 

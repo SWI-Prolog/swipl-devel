@@ -74,7 +74,7 @@ End;
 GLOBAL SyntaxTable DefaultSyntaxTable;	/* Systems default table */
 extern unsigned short char_flags[];	/* Initial flags table */
 extern unsigned short syntax_spec_code[]; /* Char --> syntax (for \sC regex) */
-extern char  char_context[];		/* Initial context table */
+extern unsigned char  char_context[];	/* Initial context table */
 
 #define Is8char(c)		(((c) & ~0xff) == 0)
 #define HasSyntax(c, f)		(Is8char(c) && \

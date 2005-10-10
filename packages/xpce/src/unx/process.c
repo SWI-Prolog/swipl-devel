@@ -510,7 +510,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 
   if ( isNil(p->pid) )
   { if ( p->use_tty == ON )
-    { int master, slave;
+    { int master = -1, slave = -1;
       int pid;
 #if USE_GRANTPT
       char *line = NULL;
