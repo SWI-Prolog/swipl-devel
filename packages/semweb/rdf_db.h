@@ -134,7 +134,7 @@ typedef struct triple
     double	real;
     struct
     { record_t  record;
-      int       len;
+      unsigned int len;
     } term;				/* external record */
   } object;
   atom_t	type_or_lang;		/* Type or language for literals */

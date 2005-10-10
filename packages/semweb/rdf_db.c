@@ -2940,13 +2940,13 @@ static void
 md5_triple(triple *t, md5_byte_t *digest)
 { md5_state_t state;
   unsigned int len;
-  char tmp[2];
+  md5_byte_t tmp[2];
   const char *s;
 
   md5_init(&state);
   s = PL_blob_data(t->subject, &len, NULL);
   md5_append(&state, (const md5_byte_t *)s, len);
-  md5_append(&state, "P", 1);
+  md5_append(&state, (const md5_byte_t *)"P", 1);
   s = PL_blob_data(t->predicate->name, &len, NULL);
   md5_append(&state, (const md5_byte_t *)s, len);
   tmp[0] = 'O';
@@ -2977,12 +2977,14 @@ md5_triple(triple *t, md5_byte_t *digest)
   md5_append(&state, (const md5_byte_t *)s, len);
   if ( t->qualifier )
   { assert(t->type_or_lang);
-    md5_append(&state, t->qualifier == Q_LANG ? "l" : "t", 1);
+    md5_append(&state,
+	       (const md5_byte_t *)(t->qualifier == Q_LANG ? "l" : "t"),
+	       1);
     s = PL_blob_data(t->type_or_lang, &len, NULL);
     md5_append(&state, (const md5_byte_t *)s, len);
   }
   if ( t->source )
-  { md5_append(&state, "S", 1);
+  { md5_append(&state, (const md5_byte_t *)"S", 1);
     s = PL_blob_data(t->source, &len, NULL);
     md5_append(&state, (const md5_byte_t *)s, len);
   }
@@ -3078,7 +3080,8 @@ rdf_md5(term_t file, term_t md5)
 static foreign_t
 rdf_atom_md5(term_t text, term_t times, term_t md5)
 { char *s;
-  int n, i, len;
+  int n, i;
+  unsigned int len;
   md5_byte_t digest[16];
 
   if ( !PL_get_nchars(text, &len, &s, CVT_ALL) )
@@ -3093,7 +3096,7 @@ rdf_atom_md5(term_t text, term_t times, term_t md5)
     md5_init(&state);
     md5_append(&state, (const md5_byte_t *)s, len);
     md5_finish(&state, digest);
-    s = digest;
+    s = (char *)digest;
     len = sizeof(digest);
   }
 
@@ -5442,8 +5445,8 @@ matchA(int how, const charA *f, const charA *l)
       return FALSE;
     }
     case STR_MATCH_SUBSTRING:		/* use Boyle-More! */
-    { const char *h;
-      const char *f0 = f;
+    { const charA *h;
+      const charA *f0 = f;
   
       for(h=l; *h; h++)
       { for( l=h,f=f0; *l && *f; l++, f++ )
@@ -5459,8 +5462,8 @@ matchA(int how, const charA *f, const charA *l)
       return FALSE;
     }
     case STR_MATCH_WORD:
-    { const char *h;
-      const char *f0 = f;
+    { const charA *h;
+      const charA *f0 = f;
   
       for(h=l; *h; h = nextwordA(h))
       { for( l=h,f=f0; *l && *f; l++, f++ )
@@ -5478,8 +5481,8 @@ matchA(int how, const charA *f, const charA *l)
       return FALSE;
     }
     case STR_MATCH_LIKE:		/* SeRQL like: * --> wildcart */
-    { typedef struct chp { const char *pattern;
-			   const char *label; } chp;
+    { typedef struct chp { const charA *pattern;
+			   const charA *label; } chp;
       chp chps[MAX_LIKE_CHOICES];
       int chn=0;
 
