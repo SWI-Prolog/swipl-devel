@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS COFLAGS CWFLAGS CMFLAGS CIFLAGS AR MKDIR ETAGS LDFLAGS ARCH PLSHARED PL RT PLVERSION VPATH COUTOPT INSTALLTARGET EXTRAOBJ BOOTFILE PLLIB PLSO USEPLLIB LNLIBS LDEXE EXTRAHDR SO_EXT MKLIBS BUILDDIR CNFG DLLIBVAR CC CFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT RANLIB ac_ct_RANLIB build build_cpu build_vendor build_os host host_cpu host_vendor host_os MAKE AWK INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CPP EGREP ALLOCA LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS COFLAGS CWFLAGS CMFLAGS CIFLAGS AR MKDIR ETAGS LDFLAGS ARCH PLSHARED PL RT PLVERSION VPATH COUTOPT INSTALLTARGET EXTRAOBJ BOOTFILE PLLIB PLSO USEPLLIB LNLIBS LDEXE EXTRAHDR SO_EXT MKLIBS BUILDDIR CNFG DLLIBVAR CC CFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT RANLIB ac_ct_RANLIB build build_cpu build_vendor build_os host host_cpu host_vendor host_os MAKE AWK SED INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CPP EGREP ALLOCA LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -2733,6 +2733,46 @@ fi
   test -n "$AWK" && break
 done
 
+# Extract the first word of "sed", so it can be a program name with args.
+set dummy sed; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_SED+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $SED in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_SED="$SED" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_SED="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  test -z "$ac_cv_path_SED" && ac_cv_path_SED="/bin/sed"
+  ;;
+esac
+fi
+SED=$ac_cv_path_SED
+
+if test -n "$SED"; then
+  echo "$as_me:$LINENO: result: $SED" >&5
+echo "${ECHO_T}$SED" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
 # Find a good install program.  We prefer a C program (faster),
 # so one script is as good as another.  But avoid the broken or
 # incompatible versions:
@@ -4527,6 +4567,30 @@ echo "${ECHO_T}\"Use VirtualAlloc\"" >&6
 	EXTRAHDR=exports
 	;;
 esac
+
+
+echo "$as_me:$LINENO: checking Script arguments" >&5
+echo $ECHO_N "checking Script arguments... $ECHO_C" >&6
+cat > testconf.args << EOS
+#!$SED -e s/foo/bar/ -f
+
+s/x/y/
+EOS
+chmod +x testconf.args
+
+if ( echo foo | ./testconf.args ) >/dev/null 2>&1; then
+
+cat >>confdefs.h <<\_ACEOF
+#define SCRIPT_BREAKDOWN_ARGS 1
+_ACEOF
+
+    echo "$as_me:$LINENO: result: breaks down arguments" >&5
+echo "${ECHO_T}breaks down arguments" >&6
+else
+    echo "$as_me:$LINENO: result: does not breakdown arguments" >&5
+echo "${ECHO_T}does not breakdown arguments" >&6
+fi
+rm -f testconf.args
 
 
 USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
@@ -14592,6 +14656,7 @@ s,@host_vendor@,$host_vendor,;t t
 s,@host_os@,$host_os,;t t
 s,@MAKE@,$MAKE,;t t
 s,@AWK@,$AWK,;t t
+s,@SED@,$SED,;t t
 s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
 s,@INSTALL_SCRIPT@,$INSTALL_SCRIPT,;t t
 s,@INSTALL_DATA@,$INSTALL_DATA,;t t

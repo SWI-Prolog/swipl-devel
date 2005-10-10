@@ -176,6 +176,7 @@ dnl ****************************************************************
 AC_CHECK_PROG(AR, ar, ar, ar)
 AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
 AC_PROG_AWK
+AC_PATH_PROG(SED, sed, /bin/sed)
 AC_PROG_INSTALL
 case "$INSTALL" in
     ./*) INSTALL="`pwd`/$INSTALL" ;;
@@ -274,6 +275,27 @@ case "$ARCH" in
 	EXTRAHDR=exports
 	;;
 esac
+
+dnl ****************************************************************
+dnl How script args are handled
+dnl ****************************************************************
+
+AC_MSG_CHECKING(Script arguments)
+cat > testconf.args << EOS
+#!$SED -e s/foo/bar/ -f
+
+s/x/y/
+EOS
+chmod +x testconf.args
+
+if ( echo foo | ./testconf.args ) >/dev/null 2>&1; then
+    AC_DEFINE(SCRIPT_BREAKDOWN_ARGS, 1,
+	      [breaks arguments ])
+    AC_MSG_RESULT(breaks down arguments)
+else
+    AC_MSG_RESULT(does not breakdown arguments)
+fi
+rm -f testconf.args
 
 dnl ****************************************************************
 dnl Finding libraries

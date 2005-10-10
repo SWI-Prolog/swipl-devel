@@ -547,6 +547,9 @@
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
+/* #! breaks arguments */
+#undef SCRIPT_BREAKDOWN_ARGS
+
 /* Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV */
 #undef SGIMMAP
 

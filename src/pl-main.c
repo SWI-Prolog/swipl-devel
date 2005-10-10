@@ -613,8 +613,8 @@ $PATH!
 
 On some unix systems, currently MacOS X  tiger, the arguments are passed
 as { pl, -L0, -f, <file> }, which   must be converted by adding -- after
-the script file. This mode is selected  if SCRIPT_ALL_ARGS is defined by
-configure.
+the script file. This  mode  is   selected  if  SCRIPT_BREAKDOWN_ARGS is
+defined by configure.
 
 On Windows this is simply passed as below.   We have to analyse the file
 ourselves. Unfortunately this needs to be done  on C as it might contain
@@ -640,7 +640,7 @@ script_argv(int argc, char **argv)
 	    Sdprintf("argv[%d] = '%s'\n", i, argv[i]);
 	});
 
-#ifdef SCRIPT_ALL_ARGS
+#ifdef SCRIPT_BREAKDOWN_ARGS
   for(i=1; i < argc-1; i++)
   { if ( argv[i][0] == '-' && argv[i][2] == '\0' )
     { switch(argv[i][1])
@@ -670,7 +670,7 @@ script_argv(int argc, char **argv)
       }
     }
   }
-#else /*SCRIPT_ALL_ARGS*/
+#else /*SCRIPT_BREAKDOWN_ARGS*/
 
 #ifdef __unix__
   if ( argc >= 3 &&
@@ -755,7 +755,7 @@ script_argv(int argc, char **argv)
 
     fclose(fd);
   } else
-#endif /*SCRIPT_ALL_ARGS*/
+#endif /*SCRIPT_BREAKDOWN_ARGS*/
   { noscript:
     GD->cmdline.argc = argc;
     GD->cmdline.argv = argv;
