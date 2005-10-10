@@ -649,13 +649,23 @@ script_argv(int argc, char **argv)
 	case 's':
 	case 'f':
 	  if ( (fd=fopen(argv[i+1], "r")) )
-	  { char **av = allocHeap(sizeof(char*)*(argc+2));
+	  { char buf[MAXLINE];
+	    char **av;
 	    int j;
+
+	    if ( !fgets(buf, sizeof(buf), fd) )
+	    { fclose(fd);
+	      goto noscript;
+	    }
+	    if ( !strprefix(buf, "#!") )
+	    { fclose(fd);
+	      goto noscript;
+	    }
+	    fclose(fd);
 
 	    DEBUG(1, Sdprintf("Got script %s\n", argv[i+1]));
 
-	    fclose(fd);
-
+	    av = allocHeap(sizeof(char*)*(argc+2));
 	    for(j=0; j<=i+1; j++)
 	      av[j] = argv[j];
 	    av[j] = "--";
