@@ -249,7 +249,7 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 { atom_t name;
   int arity;
   char *buf;
-  int size;
+  unsigned int size;
 
   if ( PL_get_name_arity(from, &name, &arity) && arity > 0 )
   { if ( name == ATOM_stream )
@@ -320,8 +320,8 @@ get_character_data(term_t from, char **data, size_t *len, int *malloced)
 foreign_t
 mime_parse(term_t handle, term_t result)
 { char *buf;
-  size_t len;
-  int malloced;
+  size_t len = 0;
+  int malloced = FALSE;
   struct rfc2045 *rfc;
   int rval;
 

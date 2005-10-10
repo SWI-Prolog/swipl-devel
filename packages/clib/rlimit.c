@@ -80,12 +80,12 @@ pl_rlimit(term_t what, term_t old, term_t new)
     if ( rlim.rlim_cur == RLIM_INFINITY )
       rval = PL_unify_atom_chars(old, "unlimited");
     else
-      rval = PL_unify_integer(old, rlim.rlim_cur);
+      rval = PL_unify_int64(old, rlim.rlim_cur);
 
     if ( rval )
-    { long n;
+    { int64_t n;
 
-      if ( PL_get_long(new, &n) )
+      if ( PL_get_int64(new, &n) )
       { 
       set:
 	if ( rlim.rlim_cur != (unsigned long) n )

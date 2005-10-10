@@ -620,7 +620,7 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
 	  PL_get_arg(1, head, arg);
 
 	  if ( name == ATOM_remove )
-	  { int t;
+	  { int t = FALSE;
 
 	    if ( !pl_get_bool_ex(arg, &t) )
 	      return FALSE;
@@ -679,7 +679,7 @@ alarm3(term_t time, term_t callable, term_t id)
 
 foreign_t
 remove_alarm(term_t alarm)
-{ Event ev;
+{ Event ev = NULL;
 
   if ( !get_timer(alarm, &ev) )
     return FALSE;
