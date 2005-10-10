@@ -306,7 +306,7 @@ pl_bind(term_t Socket, term_t Address)
 
   if ( PL_is_variable(Address) )
   { struct sockaddr_in addr;
-    int len = sizeof(addr);
+    socklen_t len = sizeof(addr);
 
     if ( getsockname(socket, (struct sockaddr *) &addr, &len) )
       return nbio_error(errno, TCP_ERRNO);
@@ -339,7 +339,7 @@ static foreign_t
 pl_accept(term_t Master, term_t Slave, term_t Peer)
 { int master, slave;
   struct sockaddr_in addr;
-  int addrlen = sizeof(addr);
+  socklen_t addrlen = sizeof(addr);
 
   if ( !tcp_get_socket(Master, &master) )
     return FALSE;

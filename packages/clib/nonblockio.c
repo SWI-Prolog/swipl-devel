@@ -1485,7 +1485,7 @@ nbio_connect(int socket,
 
 
 int
-nbio_accept(int master, struct sockaddr *addr, size_t *addrlen)
+nbio_accept(int master, struct sockaddr *addr, socklen_t *addrlen)
 { int slave;
   plsocket *m;
 	

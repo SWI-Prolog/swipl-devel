@@ -126,7 +126,7 @@ extern int	nbio_bind(int socket,
 extern int	nbio_listen(int socket, int backlog);
 extern int	nbio_accept(int master,
 			   struct sockaddr *addr,
-			   size_t *addrlen);
+			   socklen_t *addrlen);
 
 extern int	nbio_read(int socket, char *buf, int bufSize);
 extern int 	nbio_write(int socket, char *buf, int bufSize);
