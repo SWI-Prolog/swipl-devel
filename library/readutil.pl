@@ -37,6 +37,7 @@
 	    read_file_to_codes/3,	% +File, -Codes, +Options
 	    read_file_to_terms/3	% +File, -Terms, +Options
 	  ]).
+:- use_module(library(lists), [select/3]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This library provides some commonly used   reading  predicates. As these
