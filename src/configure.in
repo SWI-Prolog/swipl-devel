@@ -1098,6 +1098,13 @@ dnl Some versions of (g)cc need to export the symbols from the main program
 dnl using -export-dynamic or (older versions) -rdynamic.  See whether
 dnl this gcc understands this flag.
 
+case "$ARCH" in
+  *darwin*)
+	exportdynamic=done
+	;;
+esac
+
+if test "$exportdynamic" != "done"; then
 AC_MSG_CHECKING("whether LDFLAGS need -export-dynamic")
   old_ldflags="$LDFLAGS"
   LDFLAGS="-export-dynamic $LDFLAGS"
@@ -1116,6 +1123,7 @@ main()
      LDFLAGS="$old_ldflags",
      AC_MSG_RESULT(no)
      LDFLAGS="$old_ldflags")
+fi	dnl test for -exportdynamic
 
 if test "$exportdynamic" != "done"; then
 AC_MSG_CHECKING("whether LDFLAGS need -rdynamic")
@@ -1135,7 +1143,7 @@ main()
      LDFLAGS="$old_ldflags",
      AC_MSG_RESULT(no)
      LDFLAGS="$old_ldflags")
-fi	dnl test for -exportdynamic
+fi	dnl test for -rdynamic
 
 dnl Some specific OS stuff
 

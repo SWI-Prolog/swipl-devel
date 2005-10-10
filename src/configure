@@ -13655,6 +13655,13 @@ if test "$ac_cv_func_dlopen" = "yes" || \
    test "$ac_cv_func_shl_load" = "yes"; then
 
 
+case "$ARCH" in
+  *darwin*)
+	exportdynamic=done
+	;;
+esac
+
+if test "$exportdynamic" != "done"; then
 echo "$as_me:$LINENO: checking \"whether LDFLAGS need -export-dynamic\"" >&5
 echo $ECHO_N "checking \"whether LDFLAGS need -export-dynamic\"... $ECHO_C" >&6
   old_ldflags="$LDFLAGS"
@@ -13706,7 +13713,7 @@ echo "${ECHO_T}no" >&6
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
-
+fi
 if test "$exportdynamic" != "done"; then
 echo "$as_me:$LINENO: checking \"whether LDFLAGS need -rdynamic\"" >&5
 echo $ECHO_N "checking \"whether LDFLAGS need -rdynamic\"... $ECHO_C" >&6
