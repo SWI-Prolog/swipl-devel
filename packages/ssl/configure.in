@@ -81,6 +81,7 @@ fi
 
 AC_CHECK_LIB(ssl, SSL_library_init)
 AC_CHECK_LIB(crypto, main)
+AC_CHECK_TYPES(socklen_t)
 
 if test "$ac_cv_lib_ssl_SSL_library_init" = yes &&
    test	"$ac_cv_lib_crypto_main" = yes; then
