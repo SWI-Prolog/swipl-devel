@@ -39,6 +39,7 @@
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(debug)).
+:- use_module(library(listing)).
 
 :- pce_global(@dynamic_source_buffer,
 	      make_dynamic_source_buffer).
@@ -94,9 +95,9 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	make_varnames(Clause, VarOffset, VarNames, NameOffset),
 	debug(clause_info, 'got names~n', []), !,
 	asserta(clause_info_cache(ClauseRef, File, TermPos, NameOffset)),
-	debug(clause_info, 'Added to info-cache~n', []).
+	debug(clause_info, 'Added to info-cache', []).
 clause_info(ClauseRef, S, TermPos, NameOffset) :-
-	debug(clause_info, 'Listing for clause ~w~n', [ClauseRef]),
+	debug(clause_info, 'Listing for clause ~w', [ClauseRef]),
 	'$clause'(Head, Body, ClauseRef, VarOffset),
 	(   Body == true
 	->  Clause = Head
@@ -110,9 +111,7 @@ clause_info(ClauseRef, S, TermPos, NameOffset) :-
 	send(S, clear),
 	debug(clause_info, 'Writing clause ~w to string ~p ... ', [ClauseRef, S]),
 	pce_open(S, write, Fd),
-	telling(Old), set_output(Fd),
-	portray_clause(Clause),
-	tell(Old),
+	portray_clause(Fd, Clause),
 	close(Fd),
 	debug(clause_info, 'ok, reading ... ', []),
 	pce_open(S, read, Handle),
