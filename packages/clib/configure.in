@@ -138,6 +138,7 @@ AC_CHECK_HEADERS(malloc.h alloca.h unistd.h sys/time.h fcntl.h utime.h)
 AC_CHECK_HEADERS(execinfo.h sys/resource.h)
 
 AC_CHECK_FUNCS(setsid strerror setitimer utime getrlimit)
+AC_CHECK_TYPES(socklen_t)
 
 AC_MSG_CHECKING(_XOPEN_SOURCE)
 AC_TRY_COMPILE(

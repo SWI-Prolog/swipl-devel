@@ -41,9 +41,6 @@
 /* "Define if you have the nsl library (-lnsl)." */
 #undef HAVE_LIBNSL
 
-/* Define to 1 if you have the `rfc822' library (-lrfc822). */
-#undef HAVE_LIBRFC822
-
 /* "Define if you have the socket library (-lsocket)." */
 #undef HAVE_LIBSOCKET
 
@@ -58,6 +55,9 @@
 
 /* Define to 1 if you have the `setsid' function. */
 #undef HAVE_SETSID
+
+/* Define to 1 if the system has the type `socklen_t'. */
+#undef HAVE_SOCKLEN_T
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H

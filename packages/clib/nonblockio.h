@@ -48,6 +48,7 @@
 
 #include <io.h>
 #include <winsock2.h>
+typedef size_t socklen_t;
 
 #else /*WIN32*/
 
@@ -69,9 +70,11 @@ extern int h_errno;
 #else
 #define h_errno errno
 #endif
+#ifndef HAVE_SOCKLEN_T
+typedef size_t socklen_t;
+#endif
 
 #endif /*WIN32*/
-
 
 typedef enum
 { TCP_ERRNO,
