@@ -34,7 +34,7 @@
 	    print_prolog_backtrace/2,	% +Stream, +Stack
 	    backtrace/1			% +MaxDepth
 	  ]).
-:- use_module(library('trace/clause')).
+:- use_module(library(prolog_clause)).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 

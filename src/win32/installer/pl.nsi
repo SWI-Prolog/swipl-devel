@@ -72,6 +72,7 @@ Section "Base system (required)"
   File pl\library\dif.pl
   File pl\library\when.pl
   File pl\library\prolog_stack.pl
+  File pl\library\prolog_clause.pl
 
 ; COMPATIBILITY
   File pl\library\backcomp.pl

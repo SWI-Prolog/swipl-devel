@@ -30,9 +30,7 @@
 */
 
 :- module(pce_prolog_tracer,
-	  [ prolog_show_frame/2,	% +Frame, +Options
-	    clause_info/4,		% +Ref, -File, -TermPos, -VarOffset
-	    clear_clause_info_cache/0
+	  [ prolog_show_frame/2		% +Frame, +Options
 	  ]).
 :- consult([ clause,
 	     util,
@@ -41,7 +39,8 @@
 	     gui
 	   ]).
 
-:- visible(+cut_call).
+:- initialization
+   visible(+cut_call).
 
 
 		 /*******************************
@@ -335,16 +334,16 @@ find_frame2(N, F0, _, F, PC) :-
 	find_frame2(NN, F1, PC1, F, PC).
 
 subgoal_position(ClauseRef, unify, File, CharA, CharZ) :- !,
-	clause_info(ClauseRef, File, TPos, _),
+	pce_clause_info(ClauseRef, File, TPos, _),
 	head_pos(ClauseRef, TPos, PosTerm),
 	arg(1, PosTerm, CharA),
 	arg(2, PosTerm, CharZ).
 subgoal_position(ClauseRef, choice, File, CharA, CharZ) :- !,
-	clause_info(ClauseRef, File, TPos, _),
+	pce_clause_info(ClauseRef, File, TPos, _),
 	arg(2, TPos, CharA),
 	CharZ is CharA + 1.		% i.e. select the dot.
 subgoal_position(ClauseRef, exit, File, CharA, CharZ) :- !,
-	clause_info(ClauseRef, File, TPos, _),
+	pce_clause_info(ClauseRef, File, TPos, _),
 	arg(2, TPos, CharA),
 	CharZ is CharA + 1.		% i.e. select the dot.
 subgoal_position(ClauseRef, fail, File, CharA, CharZ) :- !,
@@ -352,7 +351,7 @@ subgoal_position(ClauseRef, fail, File, CharA, CharZ) :- !,
 subgoal_position(ClauseRef, exception, File, CharA, CharZ) :- !,
 	subgoal_position(ClauseRef, exit, File, CharA, CharZ).
 subgoal_position(ClauseRef, PC, File, CharA, CharZ) :-
-	clause_info(ClauseRef, File, TPos, _),
+	pce_clause_info(ClauseRef, File, TPos, _),
 	(   '$clause_term_position'(ClauseRef, PC, List)
 	->  debug('Term-position: for ref=~w at PC=~w: ~w~n',
 		  [ClauseRef, PC, List]),
@@ -533,7 +532,7 @@ show_bindings(Frame, Attributes) :-
 	;   send(Browser, label, 'Bindings'),
 	    prolog_frame_attribute(Frame, clause, ClauseRef),
 	    debug('(clause ~w) ', [ClauseRef]),
-	    catch(clause_info(ClauseRef, _, _, VarNames), E,
+	    catch(pce_clause_info(ClauseRef, _, _, VarNames), E,
 		  (print_message(error, E), fail)),
 	    frame_bindings(Frame, VarNames, Bindings),
 	    send(Browser, bindings, Bindings),

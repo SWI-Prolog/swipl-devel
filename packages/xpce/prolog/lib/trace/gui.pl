@@ -37,6 +37,7 @@
 	    display_stack/3
 	  ]).
 :- use_module(library(pce)).
+:- use_module(library(lists)).
 :- use_module(library(toolbar)).
 :- use_module(library(pce_report)).
 :- use_module(library(persistent_frame)).

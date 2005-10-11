@@ -33,7 +33,7 @@
 	  [ break_at/3,			% +File, +Line, +CharPos
 	    break_location/4		% +ClauseRef, +PC, -File, -A-Z
 	  ]).
-:- use_module(trace).			% clause_info
+:- use_module(trace).
 :- use_module(util).
 :- use_module(clause).
 :- use_module(source).
@@ -56,7 +56,7 @@
 break_at(File, Line, Char) :-
 	debug('break_at(~q, ~d, ~d).~n', [File, Line, Char]),
 	'$clause_from_source'(File, Line, ClauseRef),
-	clause_info(ClauseRef, InfoFile, TermPos, _NameOffset),
+	pce_clause_info(ClauseRef, InfoFile, TermPos, _NameOffset),
 	(   InfoFile == File
 	->  '$break_pc'(ClauseRef, PC, NextPC),
 	    debug('Clause ~p, NextPC = ~w~n', [ClauseRef, NextPC]),
@@ -103,7 +103,7 @@ break(SetClear, ClauseRef, PC) :-
 %	Determine source-code location of a break-point.
 
 break_location(ClauseRef, PC, File, A-Z) :-
-	clause_info(ClauseRef, File, TermPos, _NameOffset),
+	pce_clause_info(ClauseRef, File, TermPos, _NameOffset),
 	'$fetch_vm'(ClauseRef, PC, NPC, _VMI),
 	'$clause_term_position'(ClauseRef, NPC, List),
 	debug('ClausePos = ~w~n', [List]),
