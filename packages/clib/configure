@@ -4237,8 +4237,22 @@ LIBS="$oldlibs"
 
 echo "$as_me:$LINENO: checking \"Configuring MIME libraries\"" >&5
 echo $ECHO_N "checking \"Configuring MIME libraries\"... $ECHO_C" >&6
-(cd maildrop/rfc822 && $SHELL configure)
-(cd maildrop/rfc2045 && $SHELL configure)
+case "$CC" in
+	.*) ACC="../../$CC"
+	    ;;
+	*)  ACC="$CC"
+esac
+case "$LD" in
+	.*) ALD="../../$LD"
+	    ;;
+	*)  ALD="$LD"
+esac
+( CC=$ACC; LD=$ALD; CFLAGS=$CFLAGS; LDFLAGS=$LDFLAGS;
+  export CC LD CFLAGS LDFLAGS
+
+  (cd maildrop/rfc822 && $SHELL configure)
+  (cd maildrop/rfc2045 && $SHELL configure)
+)
 echo "$as_me:$LINENO: result: \"Done\"" >&5
 echo "${ECHO_T}\"Done\"" >&6
 

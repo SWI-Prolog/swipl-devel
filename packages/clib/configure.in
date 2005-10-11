@@ -102,8 +102,22 @@ AC_CHECK_FUNCS(crypt)
 LIBS="$oldlibs"
 
 AC_MSG_CHECKING("Configuring MIME libraries")
-(cd maildrop/rfc822 && $SHELL configure)
-(cd maildrop/rfc2045 && $SHELL configure)
+case "$CC" in
+	.*) ACC="../../$CC"
+	    ;;
+	*)  ACC="$CC"
+esac
+case "$LD" in
+	.*) ALD="../../$LD"
+	    ;;
+	*)  ALD="$LD"
+esac
+( CC=$ACC; LD=$ALD; CFLAGS=$CFLAGS; LDFLAGS=$LDFLAGS;
+  export CC LD CFLAGS LDFLAGS
+
+  (cd maildrop/rfc822 && $SHELL configure)
+  (cd maildrop/rfc2045 && $SHELL configure)
+)
 AC_MSG_RESULT("Done")
 
 AC_MSG_CHECKING(h_errno)
