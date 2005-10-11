@@ -40,6 +40,7 @@
 #include "mswinsock.h"
 #include <io.h>
 #include <fcntl.h>
+typedef size_t socklen_t;
 #else /*HAVE_WINSOCK*/
 
 #define HAVE_SYS_UN_H 1
@@ -55,6 +56,9 @@ extern int errno;
 #undef NAME_MAX				/* conflict */
 
 #define SOCKET int
+#ifndef HAVE_SOCKLEN_T
+typedef size_t socklen_t;
+#endif
 #endif /*WINSOCK*/
 
 #define create PCEcreate		/* avoid conflict */
