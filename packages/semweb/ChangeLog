@@ -1,3 +1,8 @@
+Oct 11, 2005
+
+  * FIXED: rdf_split_url/3 to detect local part more in line with current
+    URI specs.
+
 Sep 23, 2005
 
   * ENHANCED: issue monitor events with holding write lock.

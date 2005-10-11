@@ -5740,6 +5740,24 @@ match_label(term_t how, term_t search, term_t label)
 }
 
 
+static char url_special[128] = {0};
+static int  url_special_done = FALSE;
+
+static void
+fill_special()
+{ if ( !url_special_done )
+  { url_special['#'] = TRUE;
+    url_special['/'] = TRUE;
+    url_special['?'] = TRUE;
+    url_special[':'] = TRUE;
+    url_special['='] = TRUE;
+    url_special['&'] = TRUE;
+
+    url_special_done = TRUE;
+  }
+}
+
+
 static foreign_t
 split_url(term_t base, term_t local, term_t url)
 { char *b, *l, *u;
@@ -5767,15 +5785,21 @@ split_url(term_t base, term_t local, term_t url)
       return rc;
     }
   } else if ( PL_get_atom_chars(url, &u) )
-  { char *s, *last = NULL;
+  { const unsigned char *s, *last = NULL;
 
-    for(s=u; *s; s++)
-    { if ( *s == '#' || *s == '/' )
+    fill_special();
+
+    for(s = (unsigned char*)u; *s; s++)
+    { int c = *s;
+
+      if ( c < 128 && url_special[c] )
 	last = s;
     }
     if ( last )
-    { if ( (!local || PL_unify_atom_chars(local, last+1)) &&
-	   PL_unify_atom_nchars(base, last+1-u, u) )
+    { const char *l1 = (const char*)last+1;
+
+      if ( (!local || PL_unify_atom_chars(local, l1)) &&
+	   PL_unify_atom_nchars(base, l1-u, u) )
 	return TRUE;
       else
 	return FALSE;
