@@ -38,6 +38,7 @@ Stefano  De  Giorgi  (s.degiorgi@tin.it).
 #include <windows.h>
 #define HAVE_MKTIME 1
 #define HAVE_GMTIME 1
+#define SQLULEN SQLUINTEGER
 #else
 #ifdef HAVE_CONFIG_H
 #include <config.h>
