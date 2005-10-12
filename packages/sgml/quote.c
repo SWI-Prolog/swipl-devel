@@ -356,7 +356,7 @@ xml_name(term_t in, term_t encoding)
 
       if ( c <= 0xff && !(map->class[c] & CH_NAME) )
 	return FALSE;
-      if ( c > 0xff && !iswalnum(c) )
+      if ( c > 0xff && !iswalnum((wint_t)c) )
 	return FALSE;
     }
 
