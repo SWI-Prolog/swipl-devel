@@ -200,7 +200,9 @@ ensure_compiled_regex(Regex re, int flags)
   else
     myflags |= REG_ADVANCED;
 
-  if ( !re->compiled || valInt(re->re_flags) != myflags )
+  if ( !re->compiled ||
+       isNil(re->re_flags) ||
+       valInt(re->re_flags) != myflags )
   { int rc;
     wchar_t *ws;
     size_t len;
@@ -732,7 +734,7 @@ static vardecl var_regex[] =
      NAME_pattern, "Regex syntax used"),
   SV(NAME_ignoreCase, "bool", IV_GET|IV_STORE, ignoreCaseRegex,
      NAME_pattern, "Ignore case while matching?"),
-  IV(NAME_flags, "int", IV_NONE,
+  IV(NAME_flags, "int*", IV_NONE,
      NAME_internal, "REG_* flags"),
   IV(NAME_compiled, "alien:regex_t*", IV_NONE,
      NAME_internal, "Buffer holding compiled pattern"),

@@ -27,7 +27,10 @@
 
 static status
 initialiseRC(RC rc, Name name, Class rc_class)
-{ assign(rc, name,     name);
+{ if ( !initialiseSourceSink((SourceSink)rc) )
+    fail;
+
+  assign(rc, name,     name);
   assign(rc, rc_class, rc_class);
 
   if ( TheCallbackFunctions.getHostContext )

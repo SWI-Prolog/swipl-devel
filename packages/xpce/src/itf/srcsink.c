@@ -36,6 +36,7 @@ initialiseSourceSink(SourceSink ss)
     if ( (en = encoding_to_name(enc)) )
       assign(ss, encoding, en);
   }
+  obtainClassVariablesObject(ss);
 
   succeed;
 }
