@@ -309,7 +309,7 @@ static SWORD get_sqltype_from_atom(atom_t name, SWORD *type);
 static int
 odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
 { SQLCHAR state[16];			/* Normally 5-character ID */
-  DWORD   native;
+  SQLINTEGER native;			/* was DWORD */
   SQLCHAR message[SQL_MAX_MESSAGE_LENGTH];
   SWORD   msglen;
   term_t  msg = PL_new_term_ref();
@@ -555,13 +555,13 @@ list_length(term_t list)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int formatted_string(+Fmt-[Arg...], unsigned *len, char **out)
+int formatted_string(+Fmt-[Arg...], *len, char **out)
     Much like sformat, but this approach avoids avoids creating
     intermediate Prolog data.  Maybe we should publish pl_format()?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-formatted_string(term_t in, unsigned int *len, char **out)
+formatted_string(term_t in, int *len, char **out)
 { term_t av = PL_new_term_refs(3);
   static predicate_t format;
   IOSTREAM *fd = Sopenmem(out, len, "w");
@@ -810,7 +810,7 @@ compile_arg(compile_info *info, term_t t)
 	  for(i=0; i<sizeof(double)/sizeof(code); i++)
 	    ADDCODE(info, v.ascode[i]);
 	} else				/* string */
-	{ int len;
+	{ unsigned int len;
 	  char *s, *cp;
 
 	  PL_get_string_chars(t, &s, &len);
@@ -1664,7 +1664,7 @@ clone_context(context *in)
 
 					/* Prepare the statement */
   TRY(new,
-      SQLPrepare(new->hstmt, new->sqltext, new->sqllen),
+      SQLPrepare(new->hstmt, (SQLCHAR*)new->sqltext, new->sqllen),
       close_context(new));
 
 					/* Copy parameter declarations */
@@ -1750,14 +1750,14 @@ code to synchronise this problem.
 
 static int
 get_sql_text(context *ctxt, term_t tquery)
-{ int qlen;
+{ unsigned int qlen;
   char *q;
 
   if ( PL_is_functor(tquery, FUNCTOR_minus2) )
   { qlen = 0;
     q = NULL;
 
-    if ( !formatted_string(tquery, &qlen, &q) )
+    if ( !formatted_string(tquery, (int*)&qlen, &q) )
       return FALSE;
     ctxt->sqltext = q;
     ctxt->sqllen = qlen;
@@ -1801,7 +1801,7 @@ prepare_result(context *ctxt)
 { SQLSMALLINT i;
   SQLCHAR nameBuffer[NameBufferLength];
   SQLSMALLINT nameLength, dataType, decimalDigits, nullable;
-  SQLUINTEGER columnSize;
+  SQLULEN columnSize;			/* was SQLUINTEGER */
   parameter *ptr_result;
   SQLSMALLINT ncol;
 
@@ -1833,15 +1833,17 @@ prepare_result(context *ctxt)
 		   &nullable);
 
     if ( true(ctxt, CTX_SOURCE) )
-    { DWORD ival;
+    { SQLLEN ival;			/* was DWORD */
 
-      ptr_result->source.column = PL_new_atom_nchars(nameLength, nameBuffer);
+      ptr_result->source.column = PL_new_atom_nchars(nameLength,
+						     (char*)nameBuffer);
       if ( (ctxt->rc=SQLColAttributes(ctxt->hstmt, i,
 				      SQL_COLUMN_TABLE_NAME,
 				      nameBuffer,
 				      NameBufferLength, &nameLength,
 				      &ival)) == SQL_SUCCESS )
-      { ptr_result->source.table = PL_new_atom_nchars(nameLength, nameBuffer);
+      { ptr_result->source.table = PL_new_atom_nchars(nameLength,
+						      (char*)nameBuffer);
       } else
       { if ( !report_status(ctxt) )		/* TBD: May close ctxt */
 	  return FALSE;
@@ -1969,7 +1971,7 @@ odbc_row(context *ctxt, term_t trow)
   }
       
   if ( !ctxt->result )			/* not a SELECT statement */
-  { DWORD rows;
+  { SQLLEN rows;			/* was DWORD */
     int rval;
 
     ctxt->rc = SQLRowCount(ctxt->hstmt, &rows);
@@ -2172,7 +2174,7 @@ pl_odbc_query(term_t dsn, term_t tquery, term_t trow, term_t options,
       }
       set(ctxt, CTX_INUSE);
       TRY(ctxt,
-	  SQLExecDirect(ctxt->hstmt, ctxt->sqltext, ctxt->sqllen),
+	  SQLExecDirect(ctxt->hstmt, (SQLCHAR*)ctxt->sqltext, ctxt->sqllen),
 	  close_context(ctxt));
 
       return odbc_row(ctxt, trow);
@@ -2629,7 +2631,7 @@ odbc_prepare(term_t dsn, term_t sql, term_t parms, term_t qid, term_t options)
   }
 
   TRY(ctxt,
-      SQLPrepare(ctxt->hstmt, ctxt->sqltext, ctxt->sqllen),
+      SQLPrepare(ctxt->hstmt, (SQLCHAR*)ctxt->sqltext, ctxt->sqllen),
       close_context(ctxt));
 
   if ( !declare_parameters(ctxt, parms) )
@@ -3463,7 +3465,7 @@ pl_put_column(context *c, int nth, term_t col)
   { switch( p->cTypeID )
     { case SQL_C_CHAR:
       case SQL_C_BINARY:
-	put_chars(val, p->plTypeID, p->length_ind, (SQLCHAR *)p->ptr_value);
+	put_chars(val, p->plTypeID, p->length_ind, (char*)p->ptr_value);
 	break;
       case SQL_C_SLONG:
 	PL_put_integer(val,*(SQLINTEGER *)p->ptr_value);

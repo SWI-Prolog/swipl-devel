@@ -79,11 +79,16 @@ else
     CWFLAGS=
 fi
 
-AC_CHECK_LIB(odbc, SQLAllocEnv)
+havelib=no
+AC_CHECK_LIB(odbc, SQLAllocEnv, havelib=yes)
+if test $havelib = no; then
+  AC_CHECK_LIB(iodbc, SQLAllocEnv, havelib=yes)
+fi
+
 AC_CHECK_HEADERS(malloc.h sql.h time.h)
 AC_CHECK_FUNCS(localtime mktime gmtime timegm)
 
-if test "$ac_cv_lib_odbc_SQLAllocEnv" = yes &&
+if test "$havelib" = yes &&
    test "$ac_cv_header_sql_h" = yes; then
   TARGETS="odbc4pl.$SO"
 else

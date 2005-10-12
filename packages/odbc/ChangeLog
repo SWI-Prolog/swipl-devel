@@ -1,3 +1,7 @@
+Oct 12, 2005
+
+* PORT: Stricter typing, look for Mac native iodbc library.
+
 Sep 27, 2003
 
 * FIXED: odbc_free_statement/1 for statements that use SQLPutData() to
