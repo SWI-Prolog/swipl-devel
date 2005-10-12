@@ -71,7 +71,7 @@ extern int h_errno;
 #define h_errno errno
 #endif
 #ifndef HAVE_SOCKLEN_T
-typedef size_t socklen_t;
+#define socklen_t size_t
 #endif
 
 #endif /*WIN32*/

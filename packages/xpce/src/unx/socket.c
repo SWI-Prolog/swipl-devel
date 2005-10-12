@@ -57,7 +57,7 @@ extern int errno;
 
 #define SOCKET int
 #ifndef HAVE_SOCKLEN_T
-typedef size_t socklen_t;
+#define socklen_t size_t
 #endif
 #endif /*WINSOCK*/
 

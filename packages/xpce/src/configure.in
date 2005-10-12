@@ -583,7 +583,11 @@ AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_C_CHAR_UNSIGNED
 
-AC_CHECK_TYPES(socklen_t)
+AC_CHECK_TYPES(socklen_t, [], [],
+[
+#include <sys/types.h>
+#include <sys/socket.h>
+])
 
 if test "$ac_cv_func_vsscanf" = "yes"; then
 AC_MSG_CHECKING("cast to va_list")
