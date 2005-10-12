@@ -114,13 +114,12 @@ unify_args(I, Arity, T1, T2) :-
 
 %	Must be a user-programmable hook!
 
-alternate_syntax(prolog,    true,
-			    true).
-alternate_syntax(pce_class, pce_expansion:push_compile_operators(SM),
-			    pce_expansion:pop_compile_operators) :-
-	'$set_source_module'(SM, SM).
-alternate_syntax(system,    style_check(+dollar),
-			    style_check(-dollar)).
+alternate_syntax(prolog, _,    true,
+			       true).
+alternate_syntax(pce_class, M, pce_expansion:push_compile_operators(M),
+			       pce_expansion:pop_compile_operators).
+alternate_syntax(system, _,    style_check(+dollar),
+			       style_check(-dollar)).
 
 system_module(system) :- !.
 system_module(Module) :-
@@ -149,9 +148,11 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 	->  Syntax = system
 	;   true
 	),
-	alternate_syntax(Syntax, Setup, Restore),
-	Setup,
 	seek(Handle, 0, current, Here),
+	alternate_syntax(Syntax, Module, Setup, Restore),
+	peek_char(Handle, X),
+	debug(clause_info, 'Using syntax ~w (c=~w)', [Syntax, X]),
+	Setup,
 	catch(read_term(Handle, Clause,
 			[ subterm_positions(TermPos),
 			  variable_names(VarNames),
@@ -162,10 +163,30 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 	Restore,
 	(   var(Error)
 	->  !
-	;   seek(Handle, Here, bof, _),
+	;   text_seek(Handle, Here),
 	    fail
 	).
 	
+
+%	text_seek(+Handle, +To)
+%	
+%	Re-position the stream at position `To'.  On decent systems this
+%	is easy, but on M$-Windows with their text-mode files holding an
+%	unknown number of ^M it is   very complicated. We simply restart
+%	reading the file. Not nice, but   alternatives  are really hard,
+%	especially as many files moving  between well designed operating
+%	systems and Windows do not have a consistent line delimiter.
+
+text_seek(Handle, To) :-
+	current_prolog_flag(windows, true), !,
+	seek(Handle, 0, bof, _),
+	open_null_stream(Tmp),
+	call_cleanup(copy_stream_data(Handle, Tmp, To),
+		     close(Tmp)).
+text_seek(Handle, To) :-
+	seek(Handle, To, bof, _).
+
+
 %	make_varnames(+ReadClause, +[Offset=Var ...], +[Name=Var...], -Term)
 %	
 %	Create a Term varnames(...) where each argument contains the name
