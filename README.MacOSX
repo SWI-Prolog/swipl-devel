@@ -14,26 +14,52 @@ from foreign code to  be  loaded  in   SWI-Prolog  as  well  as embedded
 executables.
 
 
-Installing from the source
-==========================
+Installing from the source (tiger)
+==================================
 
-There are no longer special instructions  for installing SWI-Prolog from
-the sources. Of course you do need  the development environment and some
-compatibility libraries (dlcompat, readline). To   build  XPCE, you also
-need the X11 development environment  and   the  XPM and JPEG libraries.
-Please visit the Twiki web on SWI-Prolog for details:
+Building  SWI-Prolog  is  based  on    the  DarwinPorts  project.  These
+instructions have been updated for Tiger   (MacOS 10.4.2), October 2005.
+Using a plain Mac, proceed as follows.
 
-	http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Porting/MacOSX
+	* Get and install Mac xCode (used 2.1). I downloaded them
+	  after subscribing to the developer network.
+	* Install the optional MacOS X11 package from the
+	  MacOS tiger installation CD.
+	* Get DarwinPorts from http://darwinports.opendarwin.org/
+	* Update it using
 
+		% sudo port -d selfupdate
+
+	* Install required packages:
+
+		% sudo port install readline
+		% sudo port install libmcrypt
+		% sudo port install ncurses
+		% sudo port install jpeg
+		% sudo port install gmp
+
+	* Adjust PATH to
+
+		- Hold /usr/X11R6/bin
+		- Hold /opt/local/bin
+		- Hold the desired target directory for Prolog if
+		  different from above.
+
+	  NOTE: Make sure /usr/X11R6/bin is before /opt/local/bin if
+	  you have the DarwinPort fontconfig package installed.
+
+	* Add
+		- export LIBRARY_PATH=/opt/local/lib
+		- export CPATH=/opt/local/include
+
+Now you can build SWI-Prolog from source   using the normal configure &&
+make && make install sequence.
 
 Installing the binary
 =====================
 
-In order to install SWI-Prolog you must   have XFree86 installed in your
-computer. A double-clickable installer for XFree86 4.2.0  on Mac OS X is
-available from the XonX project: http://sourceforge.net/projects/xonx. A
-binary distribution is  also  available  from   the  XFree86  web  page:
-http://www.xfree86.org/4.2.0
+In order to install SWI-Prolog  you  must   have  the  Mac  optional X11
+subsystem installed in your computer (see above).
 
 Once  you  have  installed  XFree86  you   just  have  to  double  click
 SWI-Prolog.mpkg.  The  installer  will  ask  you  for  an  administrator
@@ -43,7 +69,7 @@ password, and you will have to agree the terms of the license.
 Running SWI-Prolog
 ------------------
 
-The executable of SWI-Prolog is installed as /usr/local/bin/swipl. Using
+The executable of SWI-Prolog is installed as /opt/local/bin/swipl. Using
 normal setup, it can be started by typing the command
 
 	swipl
@@ -53,4 +79,5 @@ in a terminal window. This may  fail   if  /usr/local/bin is not in your
 name or you have to modify PATH first.
 
 The    libraries    and    other    resources     are    installed    in
-/usr/local/lib/pl-<version>/
+/opt/local/lib/pl-<version>/
+
