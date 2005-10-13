@@ -2804,6 +2804,7 @@ pl_write_on_string(term_t goal, term_t target)
     txt.canonical = FALSE;
 
     rval = PL_unify_text(target, 0, &txt, PL_STRING);
+    PL_free_text(&txt);
   } else if ( ex )
   { rval = PL_raise_exception(ex);
   }
