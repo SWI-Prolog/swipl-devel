@@ -45,6 +45,7 @@ atom_to_memory_file(+Atom, -Handle)
 
 static functor_t FUNCTOR_memory_file1;
 #define MEMFILE_MAGIC	0x5624a6b3L
+#define NOSIZE ((unsigned int)-1)
 
 typedef struct
 { long		magic;			/* MEMFILE_MAGIC */
@@ -165,7 +166,7 @@ open_memory_file(term_t handle, term_t mode, term_t stream)
       m->data = NULL;
     }
     m->data_size = 0;
-    m->size = -1;			/* don't know */
+    m->size = NOSIZE;			/* don't know */
     m->encoding = ENC_UTF8;
   } else if ( streq(s, "read") )
     x = "r";
@@ -194,7 +195,7 @@ size_memory_file(term_t handle, term_t size)
   { if ( m->stream && !m->atom )
       return alreadyOpen(handle, "size");
     if ( m->data )
-    { if ( m->size < 0 )
+    { if ( m->size == NOSIZE )
       { switch( m->encoding )
 	{ case ENC_ISO_LATIN_1:
 	  case ENC_OCTET:

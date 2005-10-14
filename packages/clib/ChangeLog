@@ -1,3 +1,8 @@
+Oct 14, 2005
+
+  * Fixed signedness error in library memfile, returning incorrect values
+    for size_memory_file/2
+
 Oct 11, 2005
 
   * PORT: Use plld to compile maildrop as position independent code
