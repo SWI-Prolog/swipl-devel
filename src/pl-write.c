@@ -560,7 +560,7 @@ format_float(double f, char *buf, const char *format)
   q = buf;
   if ( *q == '-' )			/* skip -?[0-9]* */
     q++;
-  while(*q && isDigit(*q))
+  while(*q && (isDigit(*q) || *q <= ' '))
     q++;
 
   switch( *q )

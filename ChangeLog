@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: Bug#104: float formatting.  Holger Kanwischer.
+
   * FIXED: Memory leak in sformat/3.  Mike Elston.
 
 =================================
