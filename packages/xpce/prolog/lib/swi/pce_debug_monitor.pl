@@ -193,7 +193,7 @@ update_item(_B, DI:dict_item) :->
 resize(B) :->
 	"Update tab-stops"::
 	get(B?visible, width, W),
-	send(B, tab_stops, vector(W-50)),
+	send(B, tab_stops, vector(W-60)),
 	send_super(B, resize).
 
 selected(B, DI:dict_item) :->
