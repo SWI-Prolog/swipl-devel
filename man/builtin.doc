@@ -889,7 +889,7 @@ with the obvious meaning.
 Decide whether the equality of \arg{Term1} and \arg{Term2} can be
 compared safely, i.e.\ whether the result of \exam{Term1 == Term2}
 can change due to further instantiation of either term.  It is
-defined as by \exam{?=(A,B) :- (A==B ; A \= B), !.}.  See also
+defined as by \verb$?=(A,B) :- (A==B ; A \= B), !.$  See also
 dif/2.
 
     \predicate{unifiable}{3}{{@}X, {@}Y, -Unifier}
