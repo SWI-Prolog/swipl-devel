@@ -31,8 +31,8 @@
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% This module implements the dif/2 constraint. It constraint two terms to be
-% not identical.
+% This module implements the dif/2 constraint. It constraints two terms
+% to be not identical.
 %
 %	Author: 	Tom Schrijvers, K.U.Leuven
 % 	E-mail: 	Tom.Schrijvers@cs.kuleuven.ac.be
@@ -47,6 +47,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- module(dif,[dif/2]).
+:- use_module(library(lists)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dif(X,Y) :-
