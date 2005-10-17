@@ -309,7 +309,10 @@ server_loop(_Goal, In, Out, _, _) :-
 	at_end_of_stream(In), !,
 	close_connection(In, Out).
 server_loop(Goal, In, Out, Peer, Options) :-
-	http_wrapper(Goal, In, Out, Connection, [request(Request)]),
+	http_wrapper(Goal, In, Out, Connection,
+		     [ request(Request),
+		       peer(Peer)
+		     ]),
 	(   downcase_atom(Connection, 'keep-alive')
 	->  after(Request, Options),
 	    option(timeout(TimeOut), Options, infinite),

@@ -34,6 +34,7 @@
 	  ]).
 :- use_module(http_header).
 :- use_module(library(memfile)).
+:- use_module(library(lists)).
 
 :- meta_predicate
 	http_wrapper(:, +, +, -, +).
@@ -50,13 +51,11 @@
 %	content-length is added by http_reply/3  Options:
 %	
 %	  request(-Request)		Return the request to the caller
+%	  peer(+Peer)			IP address of client
 
 http_wrapper(Goal, In, Out, Close, Options) :-
-	http_read_request(In, Request),
-	(   memberchk(request(Request), Options)
-	->  true
-	;   true
-	),
+	http_read_request(In, Request0),
+	extend_request(Options, Request0, Request),
 	new_memory_file(MemFile),
 	open_memory_file(MemFile, write, TmpOut),
 	current_output(OldOut),
@@ -71,9 +70,15 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	->  size_memory_file(MemFile, Length),
 	    open_memory_file(MemFile, read, TmpIn),
 	    http_read_header(TmpIn, CgiHeader),
-	    seek(TmpIn, 0, current, Pos),
-	    Size is Length - Pos,
-	    join_cgi_header(Request, CgiHeader, Header),
+	    join_cgi_header(Request, CgiHeader, Header0),
+	    update_encoding(Header0, Encoding, Header),
+	    set_stream(Out, encoding(Encoding)),
+	    (	Encoding == utf8
+	    ->  utf8_position_memory_file(MemFile, BytePos, ByteSize),
+		Size is ByteSize - BytePos
+	    ;   seek(TmpIn, 0, current, Pos),
+		Size is Length - Pos
+	    ),
 	    http_reply(stream(TmpIn, Size), Out, Header),
 	    flush_output(Out),
 	    close(TmpIn),
@@ -108,6 +113,32 @@ map_exception(E,
 	      server_error(E),
 	      [connection(close)]).
 
+%	update_encoding(+HeaderIn, -Encoding, -HeaderOut)
+%	
+%	Allow for rewrite of the  header,   adjusting  the  encoding. We
+%	distinguish three options. If  the   user  announces  `text', we
+%	always use UTF-8 encoding. If   the user announces charset=utf-8
+%	we  use  UTF-8  and  otherwise  we  use  octed  (raw)  encoding.
+%	Alternatively we could dynamically choose for ASCII, ISO-Latin-1
+%	or UTF-8.
+
+update_encoding(Header0, utf8, [content_type(Type)|Header]) :-
+	select(content_type(Type0), Header0, Header),
+	sub_atom(Type0, 0, _, _, 'text/'), !,
+	(   sub_atom(Type0, S, _, _, ';')
+	->  sub_atom(Type0, 0, B, _, S)
+	;   B = Type0
+	),
+	atom_concat(B, '; charset=UTF-8', Type).
+update_encoding(Header, utf8, Header) :-
+	memberchk(content_type(Type), Header),
+	(   sub_atom(Type, _, _, _, 'UTF-8')
+	;   sub_atom(Type, _, _, _, 'utf-8')
+	), !.
+update_encoding(Header, octet, Header).
+
+
+%	join_cgi_header(+Request, +CGIHeader, -Header)
 
 join_cgi_header(Request, CgiHeader, [connection(Connect)|Rest]) :-
 	select(connection(CgiConn), CgiHeader, Rest), !,
@@ -136,3 +167,16 @@ connection(Header, Close) :-
 	->  Close = 'Keep-Alive'
 	;   Close = close
 	).
+
+%	extend_request(+Options, +RequestIn, -Request)
+%	
+%	Merge options in the request.
+
+extend_request([], R, R).
+extend_request([request(R)|T], R0, R) :- !,
+	extend_request(T, R0, R).
+extend_request([peer(P)|T], R0, R) :- !,
+	extend_request(T, [peer(P)|R0], R).
+extend_request([_|T], R0, R) :- !,
+	extend_request(T, R0, R).
+

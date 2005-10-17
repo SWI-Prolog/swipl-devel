@@ -87,11 +87,31 @@ mematom(wide-1) :-
 
 
 		 /*******************************
+		 *	      POSITION		*
+		 *******************************/
+
+position(pos-1) :-
+	new_memory_file(MF),
+	open_memory_file(MF, write, Out),
+	format(Out, '~s', [[97, 254, 500]]),
+	close(Out),
+	size_memory_file(MF, CodeSize),
+	open_memory_file(MF, read, In),
+	get_code(In, _),
+	get_code(In, _),
+	utf8_position_memory_file(MF, Here, Size),
+	CodeSize == 3,			% size in characters
+	Here == 3,
+	Size == 5.
+
+
+		 /*******************************
 		 *        TEST MAIN-LOOP	*
 		 *******************************/
 
 testset(writemem).
 testset(mematom).
+testset(position).
 
 :- dynamic
 	failed/1,

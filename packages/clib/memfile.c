@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -221,6 +221,40 @@ size_memory_file(term_t handle, term_t size)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+utf8_position_memory_file(+MF, -Here, -Size)
+
+Given  MF  is  a  UTF-8  encoded  memory   file,  unify  here  with  the
+byte-position of the read-pointer and Size with   the  total size of the
+memory file in bytes. This is a bit hacky predicate, but the information
+is easily available at low cost, while it is very valuable for producing
+answers  in  content-length  computation  of    the   HTTP  server.  See
+http_wrapper.pl
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static foreign_t
+utf8_position(term_t handle, term_t here, term_t size)
+{ memfile *m;
+
+  if ( !get_memfile(handle, &m) )
+    return FALSE;
+  if ( m->encoding != ENC_UTF8 )
+    return pl_error(NULL, 0, "no UTF-8 encoding",
+		    ERR_PERMISSION, handle, "utf8_position", "memory_file");
+  if ( !PL_unify_integer(size, m->data_size) )
+    return FALSE;
+  if ( m->stream )
+  { IOPOS *op = m->stream->position;
+    m->stream->position = NULL;
+    long p = Stell(m->stream);
+
+    m->stream->position = op;
+    return PL_unify_integer(here, p);
+  } else
+    return PL_unify_integer(here, 0);
+}
+
+
 static foreign_t
 atom_to_memory_file(term_t atom, term_t handle)
 { atom_t a;
@@ -325,4 +359,5 @@ install_memfile()
   PL_register_foreign("atom_to_memory_file",  2, atom_to_memory_file,  0);
   PL_register_foreign("memory_file_to_atom",  2, memory_file_to_atom,  0);
   PL_register_foreign("memory_file_to_codes", 2, memory_file_to_codes, 0);
+  PL_register_foreign("utf8_position_memory_file", 3, utf8_position,   0);
 }

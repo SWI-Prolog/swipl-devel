@@ -1,3 +1,9 @@
+Oct 17, 2005
+
+  * ADDED: Pass peer from threaded HTTP server to request.
+
+  * ENHANCED: Use UTF-8 encoding for text by default.
+
 Sep 28, 2005
 
   * FIXED: Regular expressions in xpce_httpd frontend.  Wouter Jansweijer.

@@ -118,6 +118,25 @@ This is the first demo of the web-server serving an XML message
 </message>
 ', []).
 
+%	/foreign
+%	
+%	Test emitting text using UTF-8 encoding
+
+reply(Request) :-
+	member(path('/foreign'), Request), !,
+	format('Content-type: text/html~n~n', []),
+	format('\
+<html>
+<head><title>Foreign characters</title></head>
+<body>
+<p>Chinese for book is ~s
+</body>
+</html>
+',
+[ [23398, 20064]
+]).
+
+
 %	/work
 %	
 %	Do a lot of work and then say 'ok'. Can be used to test
