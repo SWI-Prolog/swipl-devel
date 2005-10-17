@@ -81,6 +81,7 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    ),
 	    http_reply(stream(TmpIn, Size), Out, Header),
 	    flush_output(Out),
+	    set_stream(Out, encoding(octet)),
 	    close(TmpIn),
 	    free_memory_file(MemFile),
 	    memberchk(connection(Close), Header)
@@ -118,7 +119,7 @@ map_exception(E,
 %	Allow for rewrite of the  header,   adjusting  the  encoding. We
 %	distinguish three options. If  the   user  announces  `text', we
 %	always use UTF-8 encoding. If   the user announces charset=utf-8
-%	we  use  UTF-8  and  otherwise  we  use  octed  (raw)  encoding.
+%	we  use  UTF-8  and  otherwise  we  use  octet  (raw)  encoding.
 %	Alternatively we could dynamically choose for ASCII, ISO-Latin-1
 %	or UTF-8.
 
