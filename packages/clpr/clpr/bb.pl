@@ -200,8 +200,8 @@ rhs_value(Xn,Value) :-
 
 bb_first_nonint([I|Is],[Rhs|Rhss],Eps,Viol,F,C) :-
 	(
-	  Floor is float(floor(Rhs)),
-	  Ceiling is float(ceiling(Rhs)),
+	  Floor is float(floor(Rhs+1e-010)),
+	  Ceiling is float(ceiling(Rhs-1e-010)),
 	  Eps - min(Rhs-Floor,Ceiling-Rhs) < -1e-010 ->
 
 		Viol = I,
@@ -245,7 +245,7 @@ bb_intern([],X,_,_) :-
 bb_intern([v(I,[])],X,_,Eps) :- 
 	!,
 	X = I,
-	min(I-float(floor(I)),float(ceiling(I))-I) - Eps < 1e-010.
+	min(I-floor(I+1e-010),ceiling(I-1e-010)-I) - Eps < 1e-010.
 bb_intern([v(One,[V^1])],X,_,_) :-
 	Test is One - 1.0,
 	Test =< 1e-010,
@@ -268,7 +268,7 @@ bb_narrow_lower(X) :-
 	(
 	  inf(X,Inf) ->
 
-		Bound is float(ceiling(Inf)),
+		Bound is float(ceiling(Inf-1e-010)),
 		(
 		  entailed(X > Bound) ->
 
@@ -288,7 +288,7 @@ bb_narrow_upper(X) :-
 	(
 	  sup(X,Sup) ->
 
-		Bound is float(floor(Sup)),
+		Bound is float(floor(Sup+1e-010)),
 		(
 		  entailed(X < Bound) ->
 	
