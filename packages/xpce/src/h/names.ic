@@ -2342,6 +2342,7 @@
   BUILTIN_NAME("window")
   BUILTIN_NAME("window_decorator")
   BUILTIN_NAME("window_manager")
+  BUILTIN_NAME("window_of_last_event")
   BUILTIN_NAME("window_system")
   BUILTIN_NAME("window_system_revision")
   BUILTIN_NAME("window_system_version")

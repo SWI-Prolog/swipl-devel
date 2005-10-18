@@ -103,6 +103,14 @@ CurrentDisplay(Any obj)
 }
 
 
+static PceWindow
+getWindowOfLastEventDisplayManager(DisplayManager dm)
+{ PceWindow sw = WindowOfLastEvent();
+
+  answer(sw);
+}
+
+
 static status
 eventQueuedDisplayManager(DisplayManager dm)
 { Cell cell;
@@ -244,7 +252,9 @@ static getdecl get_displayManager[] =
   GM(NAME_current, 0, "display", NULL, getCurrentDisplayManager,
      NAME_current, "Get the current display"),
   GM(NAME_member, 1, "display", "name", getMemberDisplayManager,
-     NAME_display, "Find display for specified address")
+     NAME_display, "Find display for specified address"),
+  GM(NAME_windowOfLastEvent, 0, "window", NULL, getWindowOfLastEventDisplayManager,
+     NAME_event, "Find window that received last event")
 };
 
 /* Resources */
