@@ -205,9 +205,11 @@ option_definition(store,FA-Store,[]) :-
 	chr_translate:store_type(FA,Store).
 
 option_definition(debug,off,Flags) :-
-	Flags = [ debugable - off ].
+        option_definition(optimize,full,Flags2),
+        Flags = [ debugable - off | Flags2].
 option_definition(debug,on,Flags) :-
-	Flags = [ debugable - on ].
+	% TODO: should not be allowed when nodebug flag is set in SWI-Prolog
+        Flags = [ debugable - on ].
 
 option_definition(store_counter,off,[]).
 option_definition(store_counter,on,[store_counter-on]).
