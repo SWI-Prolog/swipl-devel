@@ -135,7 +135,7 @@ result in an exception.
 
 \subsection{Use of unification}
 
-Instead of using the {}/1 predicate, you can also use the standard
+Instead of using the \predref{{}}{1} predicate, you can also use the standard
 unification mechanism to store constraints. The following code samples
 are equivalent:
 
