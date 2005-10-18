@@ -20,7 +20,7 @@ Contributions (Fr\"uhwirth, T. and Meister, M., eds.), pp. 1--5, 2004.
 \section{Introduction}
 %=====================
 
-Constraint Handling Rules (CHR) is a committed-choice bottom-up language
+Constraint Handling Rules (CHR) is a committed-choice rule-based language
 embedded in Prolog. It is designed for writing constraint solvers and is
 particularily useful for providing application-specific constraints.
 It has been used in many kinds of applications, like scheduling,
@@ -68,10 +68,12 @@ actual_rule --> simplification_rule.
 actual_rule --> propagation_rule.
 actual_rule --> simpagation_rule.
 
-simplification_rule --> constraints, [atom('<=>')], guard, body.
-propagation_rule --> constraints, [atom('==>')], guard, body.
-simpagation_rule --> constraints, [atom('\')], constraints, [atom('<=>')], 
+simplification_rule --> head, [atom('<=>')], guard, body.
+propagation_rule --> head, [atom('==>')], guard, body.
+simpagation_rule --> head, [atom('\')], head, [atom('<=>')], 
                      guard, body.
+
+head --> constraints.
 
 constraints --> constraint, constraint_id.
 constraints --> constraint, [atom(',')], constraints.
@@ -95,13 +97,6 @@ actual_pragmas --> actual_pragma, [atom(',')], actual_pragmas.
 actual_pragma --> [atom('passive(')], variable, [atom(')')].
 
 \end{code}
-
-Additional syntax-related terminology:
-
-\begin{itemize}
-\item \textbf{head:} the constraints in an \texttt{actual_rule} before
-                     the arrow (either \texttt{<=>} or \texttt{==>})
-\end{itemize}
 
 \subsection{Semantics}
 %--------------------
@@ -171,7 +166,7 @@ The semantics of the pragmas are:
 
 \begin{description}
     \termitem{passive}{Identifier}
-The constraint in the head of a rule \arg{Identifier} can only act as a
+The constraint in the head of a rule \arg{Identifier} can only match a
 passive constraint in that rule.
 \end{description}
 
@@ -186,13 +181,16 @@ Options are specified with the \texttt{option/2} declaration:
                 option(Option,Value).
 \end{code}
 
+and may appear in the file anywhere after the first constraints declaration.
+
 Available options are:
 \begin{description}
         \termitem{check_guard_bindings}{}
-This option controls whether guards should be checked for illegal
-variable bindings or not. Possible values for this option are
-\texttt{on}, to enable the checks, and \texttt{off}, to disable the
-checks.
+This option controls whether guards should be checked for (illegal) variable
+bindings or not. Possible values for this option are \texttt{on}, to enable
+the checks, and \texttt{off}, to disable the checks. If this option is on,
+any guard fails when it binds a variable that appears in the head of the rule.
+When the option if off, the behavior is of a binding in the guard is undefined.
 
         \termitem{optimize}{}
 This is an experimental option controlling the degree of optimization.
@@ -266,8 +264,8 @@ type(list(T),[ [] | [T | list(T)]).
 
 \end{description}
 
-The mode, type_declaration and type_definition options are provided
-for backward compatibility. The new syntax is described below.
+The above mode, type_declaration and type_definition options are deprecated. 
+The new syntax is described below.
 
 \section{CHR in SWI-Prolog Programs}		\label{sec:practical}
 %===========================
@@ -366,7 +364,7 @@ An active constraint has tried all rules and is suspended in
 the constraint store.
 	\termitem{remove}{}
 An active or passive constraint is removed from the constraint
-store, if it had been inserted.
+store.
 \termitem{try}{}
 	An active constraints tries a rule with possibly
 	some passive constraints. The try port is entered
@@ -499,14 +497,8 @@ constraint solver.
 
 dom(X,[]) <=> fail.
 dom(X,[Y]) <=> X = Y.
+dom(X,L) <=> nonvar(X) | member(X,L).
 dom(X,L1), dom(X,L2) <=> intersection(L1,L2,L3), dom(X,L3).
-
-intersection([],_,[]).
-intersection([H|T],L2,[H|L3]) :-
-        member(H,L2), !,
-        intersection(T,L2,L3).
-intersection([_|T],L2,L3) :-
-        intersection(T,L2,L3).
 \end{code}
 		
 \end{itemize}
@@ -531,10 +523,6 @@ of the available rules through the \predref{rules}{1} declaration. The
 declaration is valid syntax in SWI-Prolog, but has no effect. A
 warning is given during compilation.
 
-	\item [Sourcefile naming]
-SICStus uses a two-step compiler, where \fileext{chr} files are
-first translated into \fileext{pl} files.  For SWI-Prolog CHR
-rules may be defined in a file with any extension.
 \end{itemlist}
 
 
@@ -545,6 +533,12 @@ In this section we cover several guidelines on how to use CHR to write
 constraint solvers and how to do so efficiently.
 
 \begin{itemlist}
+
+   \item [Check guard bindings yourself]
+It is considered bad practice to write guards that bind variables of 
+the head and to rely on the system to detect this at runtime. It is
+inefficient and obscures the working of the program.
+
     \item [Set semantics]
 The CHR system allows the presence of identical constraints, i.e.
 multiple constraints with the same functor, arity and arguments. For
