@@ -497,7 +497,7 @@ constraint solver.
 
 dom(X,[]) <=> fail.
 dom(X,[Y]) <=> X = Y.
-dom(X,L) <=> nonvar(X) | member(X,L).
+dom(X,L) <=> nonvar(X) | memberchk(X,L).
 dom(X,L1), dom(X,L2) <=> intersection(L1,L2,L3), dom(X,L3).
 \end{code}
 		
