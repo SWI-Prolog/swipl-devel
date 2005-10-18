@@ -1,3 +1,11 @@
+Oct 18, 2005
+
+  * JS: Compiled code is broken, if debug is off and optimize too.
+	Debug off now entails optimize on.
+
+  * TS: Some fixes of the documentation. Thanks to Bart Demoen
+	and Thom Fruehwirth. 
+
 Sep 2, 2005
 
   * TS: Synchronized with hProlog.
