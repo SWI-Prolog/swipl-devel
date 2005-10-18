@@ -190,7 +190,7 @@ This option controls whether guards should be checked for (illegal) variable
 bindings or not. Possible values for this option are \texttt{on}, to enable
 the checks, and \texttt{off}, to disable the checks. If this option is on,
 any guard fails when it binds a variable that appears in the head of the rule.
-When the option if off, the behavior is of a binding in the guard is undefined.
+When the option is off, the behavior of a binding in the guard is undefined.
 
         \termitem{optimize}{}
 This is an experimental option controlling the degree of optimization.
@@ -523,6 +523,10 @@ of the available rules through the \predref{rules}{1} declaration. The
 declaration is valid syntax in SWI-Prolog, but has no effect. A
 warning is given during compilation.
 
+	\item [Guard bindings]
+The \texttt{check_guard_bindings} option only turns
+invalid calls to unification into failure, whereas in SICStus
+also invalid calls to other built-ins are dealt with.
 \end{itemlist}
 
 
