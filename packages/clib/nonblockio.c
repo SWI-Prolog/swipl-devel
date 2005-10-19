@@ -333,7 +333,7 @@ waitRequest(plsocket *s)
     { TranslateMessage(&msg);
       DispatchMessage(&msg);
     } else
-    { ExitProcess(0);			/* WM_QUIT received */
+    { ExitThread(0);			/* WM_QUIT received */
       return FALSE;			/* NOTREACHED */
     }
   }
@@ -374,7 +374,7 @@ nbio_wait(int socket, nbio_request request)
     { TranslateMessage(&msg);
       DispatchMessage(&msg);
     } else
-    { ExitProcess(0);			/* WM_QUIT received */
+    { ExitThread(0);			/* WM_QUIT received */
       return -1;			/* NOTREACHED */
     }
   }
@@ -457,7 +457,7 @@ nbio_select(int n,
 	{ TranslateMessage(&msg);
 	  DispatchMessage(&msg);
 	} else
-	{ ExitProcess(0);		/* WM_QUIT received */
+	{ ExitThread(0);		/* WM_QUIT received */
 	  return -1;			/* NOTREACHED */
 	}
       } else if ( rc == WAIT_TIMEOUT )
@@ -470,7 +470,7 @@ nbio_select(int n,
       { TranslateMessage(&msg);
 	DispatchMessage(&msg);
       } else
-      { ExitProcess(0);			/* WM_QUIT received */
+      { ExitThread(0);			/* WM_QUIT received */
 	return -1;			/* NOTREACHED */
       }
     }
