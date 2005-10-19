@@ -4173,8 +4173,8 @@ simpagation_head2_new_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule
 gen_state_cond_call(Susp,N,Call,Generation,ConditionalCall) :-
    length(Args,N),
    Suspension =.. [suspension,_,State,_,NewGeneration,_,_|Args],
-   create_get_mutable(active,State,GetState),
-   create_get_mutable(Generation,NewGeneration,GetGeneration),
+   create_get_mutable_ref(active,State,GetState),
+   create_get_mutable_ref(Generation,NewGeneration,GetGeneration),
    ConditionalCall =
       (   Susp = Suspension,
 	  GetState,
@@ -4578,6 +4578,9 @@ order_score_count_vars([V|Vs],KnownVars,RestVars,NK-NR-NO) :-
 create_get_mutable(V,M,GM) :-
 	M = mutable(V),
 	GM = true.
+
+create_get_mutable_ref(V,M,GM) :-
+    GM = (M = mutable(V)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
