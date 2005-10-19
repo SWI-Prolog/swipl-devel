@@ -1158,12 +1158,6 @@ PL_cleanup(int rval)
 
   Scurout = Soutput;			/* reset output stream to user */
 
-  GD->cleaning = CLN_FOREIGN;
-
-					/* run PL_on_halt() hooks */
-  for(h = GD->os.on_halt_list; h; h = h->next)
-    (*h->function)(rval, h->argument);
-
   GD->cleaning = CLN_PROLOG;
 
   qlfCleanup();				/* remove errornous .qlf files */
@@ -1173,6 +1167,12 @@ PL_cleanup(int rval)
     PL_call_predicate(MODULE_system, FALSE, proc, 0);
     PL_discard_foreign_frame(cid);
   }
+
+  GD->cleaning = CLN_FOREIGN;
+
+					/* run PL_on_halt() hooks */
+  for(h = GD->os.on_halt_list; h; h = h->next)
+    (*h->function)(rval, h->argument);
 
 #if defined(__WINDOWS__) || defined(__WIN32__)
   if ( rval != 0 && !hasConsole() )
