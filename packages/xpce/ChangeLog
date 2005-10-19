@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.35, distributed with SWI-Prolog 5.5.35
+==================================================
+
 * ADDED: display_manager<-window_of_last_event
 
 VERSION 6.5.34, distributed with SWI-Prolog 5.5.34

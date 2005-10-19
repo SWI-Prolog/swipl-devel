@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+=================================
+VERSION 5.5.35 (October 19, 2005)
+=================================
+
   * FIXED: Bug#104: float formatting.  Holger Kanwischer.
 
   * FIXED: Memory leak in sformat/3.  Mike Elston.
