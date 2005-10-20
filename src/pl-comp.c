@@ -125,6 +125,7 @@ const code_info codeTable[] = {
   CODE(D_BREAK,		"d_break",	0, 0),
 #if O_CATCHTHROW
   CODE(I_CATCH,		"i_catch",      0, 0),
+  CODE(I_EXITCATCH,	"i_exitcatch",  0, 0),
   CODE(B_THROW,		"b_throw",	0, 0),
 #endif
   CODE(I_CONTEXT,	"i_context",	1, CA1_MODULE),
@@ -853,9 +854,11 @@ automatic update if a predicate is later defined as meta-predicate.
       
       goto exit_fail;
     }
-    Output_0(&ci, I_EXIT);
-    if ( OpCode(&ci, bi) == encode(I_CUT) )
-    { set(&clause, COMMIT_CLAUSE);
+    if ( OpCode(&ci, PC(&ci)-1) != encode(I_EXITCATCH) )
+    { Output_0(&ci, I_EXIT);
+      if ( OpCode(&ci, bi) == encode(I_CUT) )
+      { set(&clause, COMMIT_CLAUSE);
+      }
     }
   } else
   { set(&clause, UNIT_CLAUSE);		/* fact (for decompiler) */
@@ -1621,6 +1624,7 @@ re-definition.
     { Output_0(ci, I_FAIL);
     } else if ( *arg == ATOM_dcatch )	/* $catch */
     { Output_0(ci, I_CATCH);
+      Output_0(ci, I_EXITCATCH);
     } else if ( *arg == ATOM_dcall_cleanup )	/* $call_cleanup */
     { Output_0(ci, I_CALLCLEANUP);
       Output_0(ci, I_EXITCLEANUP);
@@ -2234,6 +2238,7 @@ arg1Key(Clause clause, word *key)
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
+      case I_EXITCATCH:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
@@ -2487,6 +2492,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  if ( !pushed )
 	    argn++;
 	  continue;
+      case I_EXITCATCH:
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
@@ -2634,7 +2640,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
   again:
 #endif
     if ( op == end )
-    { PC--;
+    { exit:
+      PC--;
       break;
     }
 
@@ -2888,6 +2895,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
 #endif /* O_COMPILE_OR */
+      case I_EXITCATCH:
+	goto exit;
       case I_EXIT:
 			    break;
       default:
@@ -3842,7 +3851,9 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
   PC = clause->codes;
   loc = &PC[pcoffset];
   end = &PC[clause->code_size - 1];	/* forget the final I_EXIT */
-  DEBUG(0, assert(fetchop(end) == I_EXIT || fetchop(end) == I_EXITFACT));
+  DEBUG(0, assert(fetchop(end) == I_EXIT ||
+		  fetchop(end) == I_EXITFACT ||
+		  fetchop(end) == I_EXITCATCH));
 
   if ( true(clause, GOAL_CLAUSE) )
     add_node(tail, 2 PASS_LD);			/* $call :- <Body> */
@@ -3864,6 +3875,7 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 	continue;
       case I_EXIT:
       case I_EXITFACT:
+      case I_EXITCATCH:
 	if ( loc == PC )
 	{ return PL_unify_nil(tail);
 	}
@@ -4063,6 +4075,7 @@ pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
     switch(op)
     { case I_ENTER:
       case I_EXIT:
+      case I_EXITCATCH:
       case I_EXITFACT:
       case I_CALL:
       case I_DEPART:

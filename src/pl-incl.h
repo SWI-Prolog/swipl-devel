@@ -693,15 +693,16 @@ codes.
 
 #if O_CATCHTHROW
 #define I_CATCH		((code)81)		/* $catch (catch/3) */
-#define B_THROW		((code)82)		/* throw(Exception) */
+#define I_EXITCATCH	((code)82)		/* $exit_catch (catch/3) */
+#define B_THROW		((code)83)		/* throw(Exception) */
 #endif
 
-#define I_CONTEXT	((code)83)		/* Push context module */
-#define C_LCUT		((code)84)		/* ! local in \+ and -> */
-#define I_CALLCLEANUP	((code)85)		/* $call_cleanup */
-#define I_EXITCLEANUP	((code)86)		/* $exit_cleanup */
+#define I_CONTEXT	((code)84)		/* Push context module */
+#define C_LCUT		((code)85)		/* ! local in \+ and -> */
+#define I_CALLCLEANUP	((code)86)		/* $call_cleanup */
+#define I_EXITCLEANUP	((code)87)		/* $exit_cleanup */
 
-#define I_HIGHEST	((code)86)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)87)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison

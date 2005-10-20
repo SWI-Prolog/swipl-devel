@@ -12,6 +12,10 @@
 VERSION 5.5.35 (October 19, 2005)
 =================================
 
+  * ENHANCED: delete choicepoint of catch/3, maintaining last call
+    optimization in goals using catch/3 on deterministic code.  Leslie
+    de Koninck.
+
   * FIXED: Bug#104: float formatting.  Holger Kanwischer.
 
   * FIXED: Memory leak in sformat/3.  Mike Elston.

@@ -2151,6 +2151,7 @@ pl-comp.c
     &&D_BREAK_LBL,
 #if O_CATCHTHROW
     &&I_CATCH_LBL,
+    &&I_EXITCATCH_LBL,
     &&B_THROW_LBL,
 #endif
     &&I_CONTEXT_LBL,
@@ -2885,7 +2886,7 @@ catch(Goal, Pattern, Recover) :-
 which is translated to:
 	I_ENTER
 	I_CATCH
-	I_EXIT
+	I_EXITCATCH
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(I_CATCH)
@@ -2901,6 +2902,15 @@ which is translated to:
 	goto i_usercall0;
       }
       
+    VMI(I_EXITCATCH)
+      { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
+	{ assert(BFR->type == CHP_CATCH);
+	  BFR = BFR->parent;
+	}
+
+	goto exit_builtin_cont;
+      }
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The B_THROW code is the implementation for   throw/1.  The call walks up
 the stack, looking for a frame running catch/3 on which it can unify the
