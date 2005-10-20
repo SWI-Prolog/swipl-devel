@@ -691,7 +691,6 @@ rdf_load(Spec, Options0) :-
 	    Load = parsed(ParseTime),
 	    Action = load
 	;   Source = Spec,
-	    Options = Options2,
 	    absolute_file_name(Spec,
 			       [ access(read),
 				 extensions([rdf,rdfs,owl,''])
@@ -706,8 +705,7 @@ rdf_load(Spec, Options0) :-
 	    ;	Action = load
 	    ),
 	    (	Action \== none
-	    ->  atom_concat('file:', File, DefBaseURI),
-		option(base_uri(BaseURI), Options1, DefBaseURI),
+	    ->  add_base_url(Options2, File, Options),
 		retractall(rdf_source(File, _, _, _)),
 		(   cache_file(File, Cache)
 		->  (   time_file(Cache, CacheTime),
@@ -749,6 +747,20 @@ source_descr(File, file(File)) :-
 source_descr(Stream, stream(Stream)) :-
 	is_stream(Stream), !.
 source_descr(Descr, Descr).
+
+
+%	add_base_url(+Options0, +File, -Options)
+%	
+%	Add base_uri(file://File) to the options if  this is not already
+%	there. A base URI is needed  to   avoid  the  case where loading
+%	multiple  files  independently  cause    clashes   of  generated
+%	descriptions.
+
+add_base_url(Options, _File, Options) :-
+	option(base_uri(Base), Options, Var),
+	Base \== Var, !.
+add_base_url(Options, File, [base_uri(Base)|Options]) :-
+	atom_concat('file://', File, Base).
 
 
 %	rdf_unload(+Spec)
