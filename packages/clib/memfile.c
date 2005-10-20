@@ -245,10 +245,12 @@ utf8_position(term_t handle, term_t here, term_t size)
     return FALSE;
   if ( m->stream )
   { IOPOS *op = m->stream->position;
-    m->stream->position = NULL;
-    long p = Stell(m->stream);
+    long p;
 
+    m->stream->position = NULL;
+    p = Stell(m->stream);
     m->stream->position = op;
+
     return PL_unify_integer(here, p);
   } else
     return PL_unify_integer(here, 0);
