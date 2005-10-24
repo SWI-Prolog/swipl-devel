@@ -95,12 +95,12 @@ forwardsSpatial(Spatial s, Any from, Any to)
   TRY(f = get(from, NAME_area, EAV));
   TRY(t = get(to, NAME_area, EAV));
 
-  CALC(xref,s->xFrom,getVar(s->xFrom,VarXref,VarX,f->x,VarW,f->w,0),f->x);
-  CALC(yref,s->yFrom,getVar(s->yFrom,VarYref,VarY,f->y,VarH,f->h,0),f->y);
-  CALC(tW, s->wTo, getVar(s->wTo, VarW2, VarW, f->w, 0), t->w);
-  CALC(tH, s->hTo, getVar(s->hTo, VarH2, VarH, f->h, 0), t->h);
-  CALC(tX, s->xTo,getVar(s->xTo, VarX, VarXref, xref, VarW, tW, 0), t->x);
-  CALC(tY, s->yTo,getVar(s->yTo, VarY, VarYref, yref, VarH, tH, 0), t->y);
+  CALC(xref,s->xFrom,getVar(s->xFrom,VarXref,VarX,f->x,VarW,f->w, EAV),f->x);
+  CALC(yref,s->yFrom,getVar(s->yFrom,VarYref,VarY,f->y,VarH,f->h, EAV),f->y);
+  CALC(tW, s->wTo, getVar(s->wTo, VarW2, VarW, f->w, EAV), t->w);
+  CALC(tH, s->hTo, getVar(s->hTo, VarH2, VarH, f->h, EAV), t->h);
+  CALC(tX, s->xTo,getVar(s->xTo, VarX, VarXref, xref, VarW, tW, EAV), t->x);
+  CALC(tY, s->yTo,getVar(s->yTo, VarY, VarYref, yref, VarH, tH, EAV), t->y);
 
   DEBUG(NAME_spatial,
 	Cprintf("%s->f: (%s,%s) -- %ld,%ld,%ld,%ld ==> (%ld, %ld, %ld, %ld)\n",
@@ -125,12 +125,12 @@ backwardsSpatial(Spatial s, Any from, Any to)
   TRY(f = get(from, NAME_area, EAV));
   TRY(t = get(to, NAME_area, EAV));
 
-  CALC(xref, s->xTo, getVar(s->xTo,VarXref,VarX,t->x,VarW,t->w,0), t->x);
-  CALC(yref, s->yTo, getVar(s->yTo,VarYref,VarY,t->y,VarH,t->h,0), t->y);
-  CALC(fW, s->wTo, getVar(s->wTo,VarW,VarW2,t->w,0), f->w);
-  CALC(fH, s->hTo, getVar(s->hTo,VarH,VarH2,t->h,0), f->h);
-  CALC(fX, s->xTo, getVar(s->xFrom,VarX,VarXref,xref,VarW,f->w,0), f->x);
-  CALC(fY, s->yTo, getVar(s->yFrom,VarY,VarYref,yref,VarH,f->h,0), f->y);
+  CALC(xref, s->xTo, getVar(s->xTo,VarXref,VarX,t->x,VarW,t->w,EAV), t->x);
+  CALC(yref, s->yTo, getVar(s->yTo,VarYref,VarY,t->y,VarH,t->h,EAV), t->y);
+  CALC(fW, s->wTo, getVar(s->wTo,VarW,VarW2,t->w,EAV), f->w);
+  CALC(fH, s->hTo, getVar(s->hTo,VarH,VarH2,t->h,EAV), f->h);
+  CALC(fX, s->xTo, getVar(s->xFrom,VarX,VarXref,xref,VarW,f->w,EAV), f->x);
+  CALC(fY, s->yTo, getVar(s->yFrom,VarY,VarYref,yref,VarH,f->h,EAV), f->y);
 
   DEBUG(NAME_spatial,
 	Cprintf("%s->b: (%s,%s) -- %ld,%ld,%ld,%ld ==> (%ld, %ld, %ld, %ld)\n",
