@@ -31,6 +31,7 @@
 #define MD "config/win32.h"
 #include <winsock2.h>
 #include "pl-mswchar.h"
+#define CRLF_MAPPING 1
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -626,6 +627,13 @@ Sputcode(int c, IOSTREAM *s)
   if ( s->tee && s->tee->magic == SIO_MAGIC )
     Sputcode(c, s->tee);
 
+#ifdef CRLF_MAPPING
+  if ( c == '\n' && (s->flags&SIO_TEXT) )
+  { if ( Sputcode('\r', s) < 0 )
+      return -1;
+  }
+#endif
+
   switch(s->encoding)
   { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
@@ -733,6 +741,10 @@ Sputcode(int c, IOSTREAM *s)
 int
 Sgetcode(IOSTREAM *s)
 { int c;
+
+#ifdef CRLF_MAPPING
+retry:
+#endif
 
   switch(s->encoding)
   { case ENC_OCTET:
@@ -856,6 +868,11 @@ Sgetcode(IOSTREAM *s)
   }
 
 out:
+#ifdef CRLF_MAPPING
+  if ( c == '\r' && (s->flags&SIO_TEXT) )
+    goto retry;
+#endif
+
   if ( s->tee && s->tee->magic == SIO_MAGIC && c != -1 )
     Sputcode(c, s->tee);
 
@@ -2325,13 +2342,18 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 Open a file. In addition to the normal  arguments, "lr" means get a read
 (shared-) lock on the file and  "lw"   means  get  an write (exclusive-)
 lock.  How much do we need to test here?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+Note that the low-level open  is  always   binary  as  O_TEXT open files
+result in lost and corrupted data in   some  encodings (UTF-16 is one of
+them).  Sgetcode()  and  Sputcode()  do  the  LF  <->  CRLF  mapping  of
+CRLF_MAPPING is defined.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 IOSTREAM *
 Sopen_file(const char *path, const char *how)
 { int fd;
-  int oflags = 0, flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
+  int oflags = O_BINARY;
+  int flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
   int op = *how++;
   long lfd;
   enum {lnone=0,lread,lwrite} lock = lnone;
@@ -2342,7 +2364,6 @@ Sopen_file(const char *path, const char *how)
   { switch(*how)
     { case 'b':				/* binary */
 	flags &= ~SIO_TEXT;
-        oflags = O_BINARY;
 	enc = ENC_OCTET;
         break;
       case 'r':				/* no record */
