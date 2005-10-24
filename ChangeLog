@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * FIXED: integer arithmetic returning results between -1<<63 and -1<<31.
+    Leslie de Koninck.
+
 =================================
 VERSION 5.5.35 (October 19, 2005)
 =================================

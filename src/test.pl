@@ -381,6 +381,8 @@ ratp(Count, In, Out) :-
 gmp(neg-1) :-				% check conversion of PLMININT
 	A is -9223372036854775808,
 	-A =:= 9223372036854775808.
+gmp(neg-2) :-
+	A is -(1<<63+1), A == -9223372036854775809.
 gmp(abs-1) :-
 	A is -9223372036854775808,
 	abs(A) =:= 9223372036854775808.
@@ -423,6 +425,10 @@ gmp(pow-3) :-
 	A is 0**0, A = 1.
 gmp(pow-4) :-
 	A is 1.5**2, A = 2.25.
+gmp(pow-5) :-
+	A is -100**5,
+	A < 0,
+	abs(A) =:= 100**5.
 gmp(integer-1) :-			% rounding integer conversion
 	0 =:= integer(1 rdiv 3),
 	1 =:= integer(2 rdiv 3),

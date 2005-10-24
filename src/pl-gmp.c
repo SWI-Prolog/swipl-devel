@@ -404,6 +404,8 @@ put_mpz(mpz_t mpz)
     int64_t v;
 
     mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
+    if ( mpz_sgn(mpz) < 0 )
+      v = -v;
     
     return globalLong(v PASS_LD);
   } else
