@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Various 64-bit compiler warnings.  One of them caused
+  `graphical->layout' to do the layout in the area (0,0,0,0).
+  Anders Bouwer.
+
 VERSION 6.5.35, distributed with SWI-Prolog 5.5.35
 ==================================================
 

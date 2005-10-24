@@ -36,6 +36,12 @@
 #include <time.h>			/* do that before we do it here */
 #endif
 #include <h/stream.h>			/* IOSTREAM interface */
+#include <limits.h>
+
+#ifndef INT_MAX
+#define INT_MAX	    ((int)(((unsigned int)1<<(sizeof(int)*8-1))-1))
+#define INT_MIN     (-(INT_MIN)-1)
+#endif
 
 #ifdef HAVE_DMALLOC_H
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */

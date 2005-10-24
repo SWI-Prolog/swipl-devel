@@ -2411,7 +2411,7 @@ layoutGraphical(Graphical gr,
     fail;
   if ( isDefault(area) )
   { limit.x = limit.y = 5;
-    limit.w = limit.h = PCE_MAX_INT;
+    limit.w = limit.h = INT_MAX/2;
   } else
   { limit.x = valInt(area->x);
     limit.y = valInt(area->y);

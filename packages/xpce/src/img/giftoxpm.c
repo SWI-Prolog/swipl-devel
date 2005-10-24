@@ -85,15 +85,15 @@ gif_extension(int ext, void *data, void *closure)
   switch(ext)
   { case GIFEXT_TRANSPARENT:
     { XpmColor *c;
-      int i = (int)data;
+      long i = (long)data;
 
       DEBUG(NAME_gif, Cprintf("Using %d as transparent (ncolors=%d)\n",
 			      i, img->ncolors));
 
-      if ( i < 0 || i >= (int)img->ncolors )
+      if ( i < 0 || i >= img->ncolors )
 	return GIF_INVALID;
 
-      c = &img->colorTable[(long)data];
+      c = &img->colorTable[i];
       strcpy(c->c_color, "None");	/* malloced 8 bytes, so ok. */
       break;
     }

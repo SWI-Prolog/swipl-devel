@@ -870,7 +870,7 @@ getDistancePath(Path p, Any to)
   if ( instanceOfObject(to, ClassPoint) )
   { Point p0 = NIL;
     Point pt = to;
-    int bestd = PCE_MAX_INT;
+    int bestd = INT_MAX;
     Chain ch = (p->kind == NAME_smooth ? p->interpolation : p->points);
     Cell cell;
     int tx = valInt(pt->x);

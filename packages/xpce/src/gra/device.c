@@ -412,7 +412,7 @@ advanceDevice(Device dev, Graphical gr, Bool propagate, Name direction)
       }
     }
 
-    if ( notNil(best) )
+    if ( best != -1 )
       return keyboardFocusWindow(sw, focus);
   } else
   { if ( isDefault(direction) )
