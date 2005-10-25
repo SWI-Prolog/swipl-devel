@@ -1,3 +1,7 @@
+Oct 25
+
+  * TS: Two minor bug fixes.
+
 Oct 19, 2005
 
   * TS: Fixed bug due to overly aggressive inlining of get_mutable_value.

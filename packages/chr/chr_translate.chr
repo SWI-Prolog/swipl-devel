@@ -332,7 +332,7 @@ rule(RuleNb,Rule), occurrence(C,O,RuleNb,ID) \ allocation_occurrence(C,O)
 	| NO is O + 1, allocation_occurrence(C,NO).
 	% need not store constraint when body is true
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,_) \ allocation_occurrence(C,O)
-	<=> Rule = pragma(rule([_|_],_,_,true),_,_,_,_)
+	<=> Rule = pragma(rule(_,_,_,true),_,_,_,_)
 	| NO is O + 1, allocation_occurrence(C,NO).
 	% need not store constraint if does not observe itself
 rule(RuleNb,Rule), occurrence(C,O,RuleNb,_) \ allocation_occurrence(C,O)
@@ -564,6 +564,7 @@ is_declaration(D, Constraints) :-		%% constraint declaration
   ;
 	D = Decl
   ),
+
   Decl =.. [constraints,Cs],
   conj2list(Cs,Constraints0),
   extract_type_mode(Constraints0,Constraints).
@@ -924,10 +925,11 @@ spawns_observer(C1,C2), observes_indirectly(C2,C3) ==> observes_indirectly(C1,C3
 
 observes_indirectly(C,C) \ is_self_observer(C) <=>  true.
 is_self_observer(_) <=> chr_pp_flag(observation_analysis,off). 
-	% fails if analysis has not been run
+	% true if analysis has not been run,
+	% false if analysis has been run
 
 observation_analysis(Cs) :-
-    ( chr_pp_flag(observation,on) ->
+    ( chr_pp_flag(observation_analysis,on) ->
 	observation_analysis(Cs,Cs)
     ;
 	true
