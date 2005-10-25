@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * FIXED: IO_RECORDPOS handling.  Bug exposed by changes for UTF-17 I/O
+    on Windows.  Dmitry and Holger Kanwischer.
+
 =================================
 VERSION 5.5.36 (October 24, 2005)
 =================================

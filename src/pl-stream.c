@@ -2367,7 +2367,7 @@ Sopen_file(const char *path, const char *how)
 	enc = ENC_OCTET;
         break;
       case 'r':				/* no record */
-	flags &= SIO_RECORDPOS;
+	flags &= ~SIO_RECORDPOS;
         break;
       case 'l':				/* lock r: read, w: write */
 	if ( *++how == 'r' )
