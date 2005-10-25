@@ -32,6 +32,9 @@
 #ifdef HAVE_FLOAT_H
 #include <float.h>
 #endif
+#ifdef HAVE_IEEEFP_H
+#include <ieeefp.h>
+#endif
 
 #ifdef fpclassify
 #define HAVE_FPCLASSIFY 1
@@ -659,6 +662,18 @@ writePrimitive(term_t t, write_options *options)
     }
 #else
 #ifdef HAVE_FPCLASS
+    switch(fpclass(f))
+    { case FP_SNAN:
+      case FP_QNAN:
+	s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
+        break;
+      case FP_NINF:
+      case FP_PINF:
+	s = (true(options, PL_WRT_QUOTED) ? "'$Infinity'" : "Infinity");
+        break;
+    }
+#else
+#ifdef HAVE__FPCLASS
     switch(_fpclass(f))
     { case _FPCLASS_SNAN:
       case _FPCLASS_QNAN:
@@ -680,6 +695,7 @@ writePrimitive(term_t t, write_options *options)
     { s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
     }
 #endif
+#endif /*HAVE__FPCLASS*/
 #endif /*HAVE_FPCLASS*/
 #endif /*HAVE_FPCLASSIFY*/
 

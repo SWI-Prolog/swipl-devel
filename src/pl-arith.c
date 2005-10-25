@@ -50,6 +50,9 @@ day.
 #define isnan(x) _isnan(x)
 #endif
 #endif
+#ifdef HAVE_IEEEFP_H
+#include <ieeefp.h>
+#endif
 
 #ifdef fpclassify
 #define HAVE_FPCLASSIFY 1
@@ -475,6 +478,18 @@ check_float(double f)
   }
 #else
 #ifdef HAVE_FPCLASS
+  switch(fpclass(f))
+  { case FP_SNAN:
+    case FP_QNAN:
+      return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+      break;
+    case FP_NINF:
+    case FP_PINF:
+      return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+      break;
+  }
+#else
+#ifdef HAVE__FPCLASS
   switch(_fpclass(f))
   { case _FPCLASS_SNAN:
     case _FPCLASS_QNAN:
@@ -494,6 +509,7 @@ check_float(double f)
   if ( isinf(f) )
     return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
 #endif
+#endif /*HAVE__FPCLASS*/
 #endif /*HAVE_FPCLASS*/
 #endif /*HAVE_FPCLASSIFY*/
   return TRUE;

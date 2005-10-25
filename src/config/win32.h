@@ -404,8 +404,8 @@ typedef int mode_t;
 /* Define to 1 if you have `isinf' function */
 /*#define HAVE_ISINF 1*/
 
-/* Define to 1 if you have `fpclass' function */
-#define HAVE_FPCLASS 1
+/* Define to 1 if you have `_fpclass' function */
+#define HAVE__FPCLASS 1
 
 /* Define to 1 if you have <float.h> header */
 #define HAVE_FLOAT_H 1

@@ -518,7 +518,7 @@ AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
 AC_CHECK_HEADERS(malloc.h sys/stropts.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h locale.h)
-AC_CHECK_HEADERS(float.h floatingpoint.h SupportDefs.h)
+AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
 
 AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
@@ -528,7 +528,7 @@ AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan isinf tcsetattr cfmakeraw getpid)
 AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
 AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r)
-AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll fpclassify)
+AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll fpclassify fpclass)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
