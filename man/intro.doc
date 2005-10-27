@@ -491,8 +491,8 @@ SWI-Prolog arithmetic uses the GNU GMP library to provided
 \jargon{unbounded} integer arithmetic as well as rational arithmetic.
 Adding GMP support is sponsored by Scientific Software and Systems
 Limited, \url{www.sss.co.nz}. This version also incorporates clp(r) by
-Christian Holzbaur, brought to SWI-Prolog by Tom Schrijver and Leslie De
-Koninck (\secref{lib:clpr}).
+Christian Holzbaur, brought to SWI-Prolog by Tom Schrijvers and Leslie
+De Koninck (\secref{lib:clpr}).
 
 
 \section{Donate to the SWI-Prolog project}	\label{sec:sponsor}
