@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * ADDED: library(clp/clp_tuples.pl), Symbolic constraints on tuples.
+    Contributed by  Markus Triska.
+
   * PORT: Bug#110: Solaris float handling.  Andreas Vögele.
 
   * FIXED: IO_RECORDPOS handling.  Bug exposed by changes for UTF-17 I/O

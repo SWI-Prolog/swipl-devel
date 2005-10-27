@@ -72,3 +72,10 @@
 \predicatesummary{http_location}{2}{Analyse or construct location}
 \predicatesummary{www_form_encode}{2}{Encode or decode form-data}
 \end{summarylist}
+
+\subsection{\pllib{clp/clp_tuples}}
+
+\begin{summarylist}{ll}
+\predicatesummary{tuples_in}{2}{Symbolic constraints on tuples}
+\predicatesummary{tuples_in}{3}{Symbolic constraints on tuples}
+\end{summarylist}
