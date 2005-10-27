@@ -13,7 +13,7 @@
 
   * PORT: Bug#110: Solaris float handling.  Andreas Vögele.
 
-  * FIXED: IO_RECORDPOS handling.  Bug exposed by changes for UTF-17 I/O
+  * FIXED: IO_RECORDPOS handling.  Bug exposed by changes for UTF-16 I/O
     on Windows.  Dmitry and Holger Kanwischer.
 
 =================================
