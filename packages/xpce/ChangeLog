@@ -2,6 +2,9 @@
 			   ==============
 
 
+* FIXED: Bug#111: @pce->write and friends to deal with Unicode arguments.
+  Dmitry.
+
 VERSION 6.5.36, distributed with SWI-Prolog 5.5.36
 ==================================================
 

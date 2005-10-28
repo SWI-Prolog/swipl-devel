@@ -111,6 +111,12 @@ initialisePce(Pce pce)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unicode note. Cprintf for  SWI-Prolog  maps   to  Svfprintf(),  which is
+designed to accept the argument of %Us as a UTF-8 string.  Such a string
+is produced by charArrayToUTF8() as well as pp().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
 writePcev(Pce pce, int argc, Any *argv)
 { int i;
@@ -120,14 +126,14 @@ writePcev(Pce pce, int argc, Any *argv)
       Cputchar(' ');
 
     if ( instanceOfObject(argv[i], ClassCharArray) )
-      Cprintf("%s", strName(argv[i]));
+      Cprintf("%Us", charArrayToUTF8(argv[i]));
     else if ( isInteger(argv[i]) )
       Cprintf("%ld", valInt(argv[i]));
     else if ( instanceOfObject(argv[i], ClassReal) )
       Cprintf("%g", valReal(argv[i]));
     else
     { char *s = pp(argv[i]);
-      Cprintf("%s", s);
+      Cprintf("%Us", s);
     }
   }
 
