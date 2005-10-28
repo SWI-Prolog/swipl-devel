@@ -852,6 +852,7 @@ Optional Features:
   --enable-segv-handling  Use SIGSEGV to guard stacks
   --disable-gmp		  Disable Multi-precision arithmetic
   --disable-largefile     omit support for large files
+  --disable-custom-flags  Do not add custom build optimization flags
   --disable-load-foreign  No shared-lib interface
 
 Some influential environment variables:
@@ -3767,25 +3768,37 @@ fi
 rm -f conftest*
 fi
 
-if test "$GCC" = "yes"; then
-    COFLAGS="-O3 -fno-strict-aliasing"
-    LDFLAGS="$LDFLAGS -O3"
-    if test "$ac_cv_header_stdc" = "yes" ; then
-        CWFLAGS=-Wall
-    else
-	CWFLAGS=
-    fi
-    CMFLAGS=
-else
-    COFLAGS=-O
-    CWFLAGS=
-    CMFLAGS=
 
-    case "$ARCH" in
-	*mips-irix*)
-	    COFLAGS="-O -OPT:Olimit_opt=on"
-	    ;;
-    esac
+# Check whether --enable-custom-flags or --disable-custom-flags was given.
+if test "${enable_custom_flags+set}" = set; then
+  enableval="$enable_custom_flags"
+  custom_flags=$enableval
+else
+  custom_flags=yes
+fi;
+if test "x$custom_flags" = "xyes" ; then
+	if test "$GCC" = "yes"; then
+		COFLAGS="-O3 -fno-strict-aliasing"
+		LDFLAGS="$LDFLAGS -O3"
+		if test "$ac_cv_header_stdc" = "yes" ; then
+			CWFLAGS=-Wall
+		else
+			CWFLAGS=
+		fi
+		CMFLAGS=
+	else
+		COFLAGS=-O
+		CWFLAGS=
+		CMFLAGS=
+
+		case "$ARCH" in
+			*mips-irix*)
+				COFLAGS="-O -OPT:Olimit_opt=on"
+			;;
+		esac
+	fi
+else
+	COFLAGS=$CFLAGS
 fi
 
 
@@ -8524,7 +8537,8 @@ done
 
 
 
-for ac_header in float.h floatingpoint.h SupportDefs.h
+
+for ac_header in float.h floatingpoint.h ieeefp.h SupportDefs.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
@@ -9546,7 +9560,8 @@ done
 
 
 
-for ac_func in mmap confstr strcasecmp mbscoll mbscasecoll fpclassify
+
+for ac_func in mmap confstr strcasecmp mbscoll mbscasecoll fpclassify fpclass
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
 echo "$as_me:$LINENO: checking for $ac_func" >&5

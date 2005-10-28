@@ -187,25 +187,33 @@ AC_DEFINE_UNQUOTED(PROG_CPP, "$CPP",
 AC_ISC_POSIX
 AC_HEADER_STDC
 AC_SYS_LARGEFILE
-if test "$GCC" = "yes"; then
-    COFLAGS="-O3 -fno-strict-aliasing"
-    LDFLAGS="$LDFLAGS -O3"
-    if test "$ac_cv_header_stdc" = "yes" ; then
-        CWFLAGS=-Wall
-    else
-	CWFLAGS=
-    fi
-    CMFLAGS=
-else
-    COFLAGS=-O
-    CWFLAGS=
-    CMFLAGS=
 
-    case "$ARCH" in
-	*mips-irix*)
-	    COFLAGS="-O -OPT:Olimit_opt=on"
-	    ;;
-    esac
+AC_ARG_ENABLE(custom-flags, [  --disable-custom-flags  Do not add custom build optimization flags],
+	custom_flags=$enableval,
+	custom_flags=yes)
+if test "x$custom_flags" = "xyes" ; then
+	if test "$GCC" = "yes"; then
+		COFLAGS="-O3 -fno-strict-aliasing"
+		LDFLAGS="$LDFLAGS -O3"
+		if test "$ac_cv_header_stdc" = "yes" ; then
+			CWFLAGS=-Wall
+		else
+			CWFLAGS=
+		fi
+		CMFLAGS=
+	else
+		COFLAGS=-O
+		CWFLAGS=
+		CMFLAGS=
+
+		case "$ARCH" in
+			*mips-irix*)
+				COFLAGS="-O -OPT:Olimit_opt=on"
+			;;
+		esac
+	fi
+else
+	COFLAGS=$CFLAGS
 fi
 
 dnl ****************************************************************
