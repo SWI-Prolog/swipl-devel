@@ -437,8 +437,8 @@ cause edit/1 to use the built-in PceEmacs editor.
 
 \subsection{Version 5.0 Release Notes} \label{sec:rel-5.0}
 
-Version 5.0 marks a breakpoint in the phylosophy, where SWI-Prolog moves
-from a dual GPL/proprietary to a uniform LGPL (Lesser GNU Public
+Version 5.0 marks a breakpoint in the philosophy, where SWI-Prolog
+moves from a dual GPL/proprietary to a uniform LGPL (Lesser GNU Public
 Licence) schema, providing a widely usable Free Source Prolog
 implementation.
 
