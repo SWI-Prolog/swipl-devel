@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * ENHANCED: locale based detection of natively (UTF-8 or ISO Latin-1)
+    supported encodings.  Richard O'Keefe.
+
   * ADDED: library(clp/clp_tuples.pl), Symbolic constraints on tuples.
     Contributed by  Markus Triska.
 

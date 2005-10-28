@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -728,11 +728,19 @@ initEncoding()
 
       LD->encoding = ENC_ANSI;		/* text encoding */
 
-      if ( enc )
-      { int l = strlen(enc);
-	
-	if ( l >= 5 && strcmp(&enc[l-5], "UTF-8") == 0 )
+      if ( enc && (enc = strchr(enc, '.')) )
+      { enc++;				/* skip '.' */
+
+	if ( strcmp(enc, "UTF-8") == 0 )
 	  LD->encoding = ENC_UTF8;
+	else if ( strcmp(enc, "utf8") == 0 )
+	  LD->encoding = ENC_UTF8;
+	else if ( strcmp(enc, "ISO8859-1") == 0 )
+	  LD->encoding = ENC_ISO_LATIN_1;
+	else if ( strcmp(enc, "ISO8859_1") == 0 )
+	  LD->encoding = ENC_ISO_LATIN_1;
+	else if ( strcmp(enc, "iso88591") == 0 )
+	  LD->encoding = ENC_ISO_LATIN_1;
       }
     }
 
