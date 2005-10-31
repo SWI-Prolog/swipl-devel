@@ -34,6 +34,7 @@
 	  [ rdfe_assert/3,		% Sub, Pred, Obj
 	    rdfe_assert/4,		% Sub, Pred, Obj, PayLoad
 	    rdfe_retractall/3,		% Sub, Pred, Obj
+	    rdfe_retractall/4,		% Sub, Pred, Obj, PayLoad
 	    rdfe_update/4,		% Sub, Pred, Obj, +Action
 	    rdfe_update/5,		% Sub, Pred, Obj, +PayLoad, +Action
 	    rdfe_load/1,		% +File
