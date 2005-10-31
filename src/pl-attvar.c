@@ -345,7 +345,7 @@ saveWakeup(ARG1_LD)
     h = valTermRef(LD->attvar.tail);
     *valTermRef(s+1) = *h;
     setVar(*h);    
-    Sdprintf("Saved wakeup to %p\n", valTermRef(s));
+    DEBUG(1, Sdprintf("Saved wakeup to %p\n", valTermRef(s)));
 
     return fid;
   }
@@ -360,7 +360,7 @@ restoreWakeup(fid_t fid ARG_LD)
   { FliFrame fr = (FliFrame) valTermRef(fid);
     Word p = (Word)(fr+1);
 
-    Sdprintf("Restore wakeup from %p\n", p);
+    DEBUG(1, Sdprintf("Restore wakeup from %p\n", p));
 
     *valTermRef(LD->attvar.head) = p[0];
     *valTermRef(LD->attvar.tail) = p[1];
