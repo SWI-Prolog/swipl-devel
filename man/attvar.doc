@@ -101,7 +101,7 @@ is not an atom, a type error is raised.
 Delete the named attribute.  If \arg{Var} loses its last attribute it
 is transformed back into a traditional Prolog variable.  If \arg{Module}
 is not an atom, a type error is raised. In all other cases this
-predicate succeeds regarless whether or not the named attribute is
+predicate succeeds regardless whether or not the named attribute is
 present.
 
     \predicate{attr_unify_hook}{2}{+AttValue, +VarValue}
