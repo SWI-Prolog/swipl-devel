@@ -34,9 +34,6 @@
 % For details, see Neng-Fa Zhou, 2005:
 %      "Programming Finite-Domain Constraint Propagators in Action Rules"
 
-% Domains are represented as bit-vectors, with the i-th bit being set
-% if "i" is in the domain.
-
 :- module(clp_distinct,
 	[
 		vars_in/2,
@@ -51,7 +48,7 @@ This library uses the following arribute value:
 	dom_neq(Domain, Left, Right)
 
 Domain is an unbounded  (GMP)  integer   representing  the  domain  as a
-bit-vector, meaning N is in the domain if 0 =\= Domain /\ (1<<N).
+bit-vector, meaning N is in the domain iff 0 =\= Domain /\ (1<<N).
 
 Left and Right are both lists of lists of variables. Each of those lists
 corresponds to one all_distinct constraint the  variable is involved in,
