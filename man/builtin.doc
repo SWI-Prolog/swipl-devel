@@ -382,7 +382,12 @@ Determine loading context.  The following keys are defined:
 \bf Key               & \bf Description \\
 \hline
 \const{module}        & Module into which file is loaded \\
-\const{file}          & File loaded \\
+\const{source}        & File loaded.  Returns the original Prolog file
+			when loading a \fileext{qlf} file. Compatible
+			to SICStus Prolog. \\
+\const{file}          & Currenrly equivalent to \const{file}.  In future
+			versions it may report a different values for
+			files being loaded using include/1. \\
 \const{stream}        & Stream identifier (see current_input/1) \\
 \const{directory}     & Directory in which \arg{File} lives. \\
 \const{term_position} & Position of last term read.  Term

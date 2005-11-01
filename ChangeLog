@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * COMPAT: prolog_load_context/2 to support the SICStus key `source'.
+    Bart Demoen.
+
   * PORT: Bug#109: Added --disable-custom-flags for configure.  
     Mike Frysinger.
 
