@@ -58,7 +58,12 @@ vars_in_([V|Vs], Bitvec) :-
 	( var(V) ->
 		( get_attr(V, clp_distinct, dom_neq(VBV,VLeft,VRight)) ->
 			Bitvec1 is VBV /\ Bitvec,
-			put_attr(V, clp_distinct, dom_neq(Bitvec1,VLeft,VRight))
+		  	Bitvec1 =\= 0,
+		        ( popcount(Bitvec1) =:= 1 ->
+				V is msb(Bitvec1)
+			;
+				put_attr(V, clp_distinct, dom_neq(Bitvec1,VLeft,VRight))
+			)
 		;
 			put_attr(V, clp_distinct, dom_neq(Bitvec, [], []))
 		)
