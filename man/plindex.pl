@@ -551,7 +551,13 @@ next_index(L, N) :-
 %	summary descriptions.  Normally this file is called summary.doc
 
 parse_summaries(File) :-
-	open(File, read, In),
+	(   file_name_extension(Base, tex, File),
+	    file_name_extension(Base, doc, DocFile),
+	    exists_file(DocFile)
+	->  true
+	;   DocFile = File
+	),
+	open(DocFile, read, In),
 	parse_summary_stream(In),
 	close(In).
 

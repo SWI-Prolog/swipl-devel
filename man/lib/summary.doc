@@ -1,6 +1,15 @@
 \pagebreak
 \section{Library predicates}		\label{sec:library}
 
+\subsection{\pllib{check}}
+
+\begin{summarylist}{ll}
+\predicatesummary{check}{0}{Program completeness and consistency}
+\predicatesummary{list_undefined}{0}{List undefined predicates}
+\predicatesummary{list_autoload}{0}{List predicates that require autoload}
+\predicatesummary{list_redefined}{0}{List locally redefined predicates}
+\end{summarylist}
+
 \subsection{\pllib{lists}}
 
 \begin{summarylist}{ll}
@@ -24,13 +33,10 @@
 \predicatesummary{union}{3}{Union of two sets}
 \end{summarylist}
 
-\subsection{\pllib{check}}
+\subsection{\pllib{netscape}}
 
 \begin{summarylist}{ll}
-\predicatesummary{check}{0}{Program completeness and consistency}
-\predicatesummary{list_undefined}{0}{List undefined predicates}
-\predicatesummary{list_autoload}{0}{List predicates that require autoload}
-\predicatesummary{list_redefined}{0}{List locally redefined predicates}
+\predicatesummary{www_open_url}{1}{Open a web-page in a browser}
 \end{summarylist}
 
 \subsection{\pllib{readutil}}
@@ -44,13 +50,9 @@
 \predicatesummary{read_file_to_terms}{3}{Read contents of file to Prolog terms}
 \end{summarylist}
 
-\subsection{\pllib{netscape}}
-
-\begin{summarylist}{ll}
-\predicatesummary{www_open_url}{1}{Open a web-page in a browser}
-\end{summarylist}
-
 \subsection{\pllib{registry}}
+
+This library is only available on Windows systems.
 
 \begin{summarylist}{ll}
 \predicatesummary{registry_get_key}{2}{Get principal value of key}
@@ -73,6 +75,26 @@
 \predicatesummary{www_form_encode}{2}{Encode or decode form-data}
 \end{summarylist}
 
+\subsection{\pllib{clp/bounds}}
+
+\begin{summarylist}{ll}
+\oppredsummary{in}{2}{xfx}{700}{Define interval for variable}
+\oppredsummary{#>}{2}{xfx}{700}{Greater than constraint}
+\oppredsummary{#<}{2}{xfx}{700}{Less than constraint}
+\oppredsummary{#>=}{2}{xfx}{700}{Greater or equal constraint}
+\oppredsummary{#=<}{2}{xfx}{700}{Less of equal constraint}
+\oppredsummary{#\=}{2}{xfx}{700}{Non-equal constraint}
+\oppredsummary{#=}{2}{xfx}{700}{Equality constraint}
+\oppredsummary{#<=>}{2}{xfx}{760}{Constraint equivalence}
+\oppredsummary{#<=}{2}{xfx}{750}{Constraint implication to the left}
+\oppredsummary{#=>}{2}{xfx}{750}{Constraint implication to the right}
+\predicatesummary{all_different}{1}{Constraint all values to be unique}
+\predicatesummary{indomain}{1}{Enumerate values from domain}
+\predicatesummary{label}{1}{Solve constraints for variables}
+\predicatesummary{lex_chain}{1}{Constraint on lexicographic ordering}
+\predicatesummary{sum}{3}{Constraint sum of variables}
+\end{summarylist}
+
 \subsection{\pllib{clp/clp_tuples}}
 
 \begin{summarylist}{ll}
@@ -86,4 +108,17 @@
 \predicatesummary{all_distinct}{1}{Demand distinct values}
 \predicatesummary{vars_in}{2}{Declare domain of variable as set}
 \predicatesummary{vars_in}{3}{Declare domain of variable as interval}
+\end{summarylist}
+
+\subsection{\pllib{clpr}}
+
+\begin{summarylist}{ll}
+\predicatesummary{entailed}{1}{Check if constraint is entailed}
+\predicatesummary{inf}{2}{Determine lower-bound of variable}
+\predicatesummary{sup}{2}{Determine upper-bound of variable}
+\predicatesummary{min}{1}{Determine lower-bound of variable}
+\predicatesummary{max}{1}{Determine upper-bound of variable}
+\predicatesummary{bb_inf}{3}{Determine infimum of expression}
+\predicatesummary{bb_inf}{5}{Determine infimum of expression}
+\predicatesummary{dump}{3}{Dump constraints on variables}
 \end{summarylist}

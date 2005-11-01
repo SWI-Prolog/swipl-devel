@@ -18,15 +18,6 @@ suggest predicates from a keyword.
 \begin{summarylist}{ll}
 \predicatesummary{!}{0}{Cut (discard choicepoints)}
 \predicatesummary{!}{1}{Cut block. See block/3}
-\oppredsummary{#>}{2}{xfx}{700}{Greater than constraint}
-\oppredsummary{#<}{2}{xfx}{700}{Less than constraint}
-\oppredsummary{#>=}{2}{xfx}{700}{Greater or equal constraint}
-\oppredsummary{#=<}{2}{xfx}{700}{Less of equal constraint}
-\oppredsummary{#\=}{2}{xfx}{700}{Non-equal constraint}
-\oppredsummary{#=}{2}{xfx}{700}{Equality constraint}
-\oppredsummary{#<=>}{2}{xfx}{760}{Constraint equivalence}
-\oppredsummary{#<=}{2}{xfx}{750}{Constraint implication to the left}
-\oppredsummary{#=>}{2}{xfx}{750}{Constraint implication to the right}
 \oppredsummary{,}{2}{xfy}{1000}{Conjunction of goals}
 \oppredsummary{->}{2}{xfy}{1050}{If-then-else}
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}
@@ -63,7 +54,6 @@ suggest predicates from a keyword.
 \predicatesummary{add_import_module}{3}{Add module to the auto-import list}
 \predicatesummary{add_nb_set}{2}{Add term to a non-backtrackable set}
 \predicatesummary{add_nb_set}{3}{Add term to a non-backtrackable set}
-\predicatesummary{all_different}{1}{Constraint all values to be unique}
 \predicatesummary{append}{1}{Append to a file}
 \predicatesummary{apply}{2}{Call goal with additional arguments}
 \predicatesummary{apropos}{1}{\pllib{online_help} Search manual}
@@ -265,7 +255,6 @@ suggest predicates from a keyword.
 \predicatesummary{ignore}{1}{Call the argument, but always succeed}
 \predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{import_module}{2}{Query import modules}
-\oppredsummary{in}{2}{xfx}{700}{Define interval for variable}
 \predicatesummary{in_pce_thread}{1}{Run goal in XPCE thread}
 \predicatesummary{include}{1}{Include a file with declarations}
 \predicatesummary{index}{1}{Change clause indexing}
@@ -277,7 +266,6 @@ suggest predicates from a keyword.
 \predicatesummary{is_list}{1}{Type check for a list}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
 \predicatesummary{keysort}{2}{Sort, using a key}
-\predicatesummary{label}{1}{Solve constraints for variables}
 \predicatesummary{last}{2}{Last element of a list}
 \predicatesummary{leash}{1}{Change ports visited by the tracer}
 \predicatesummary{length}{2}{Length of a list}
@@ -579,7 +567,7 @@ suggest predicates from a keyword.
 \predicatesummary{writeq}{2}{Write term, insert quotes on stream}
 \end{summarylist}
 
-\input{lib/summary.doc}
+\input{lib/summary.tex}
 
 \pagebreak
 \section{Arithmetic Functions}		\label{sec:funcsummary}

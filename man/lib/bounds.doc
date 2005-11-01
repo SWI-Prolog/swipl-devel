@@ -1,7 +1,8 @@
 \libdoc{clp/bounds}{Integer Bounds Constraint Solver}
 
-Author: \emph{Tom Schrijvers}, K.U.Leuven
+\makebox[\linewidth]{\hfill Author: \emph{Tom Schrijvers}, K.U.Leuven}
 
+\noindent
 The bounds solver is a rather simple integer constraint solver, implemented
 with attributed variables. Its syntax is a subset of the SICStus clp(FD)
 syntax.
@@ -24,11 +25,11 @@ The following constraints are supported:
 
 \begin{description}
 	\infixop{in}{-Var}{+Range}
-		Varibale \arg{Var} is restricted to be in rage \arg{Range}.
+		Varibale \arg{Var} is restricted to be in range \arg{Range}.
 		A range is denoted by \texttt{L..U} where both \arg{L}
 		and \arg{U} are integers.
 	\infixop{in}{-Vars}{+Range}
-		A list of variables \arg{Vars} are restriced to be in range	
+		A list of variables \arg{Vars} are restriced to be in range
 		\arg{Range}.
 	\infixop{#>}{?Expr}{?Expr}
 		The left-hand expression is constrained to be greater than the
