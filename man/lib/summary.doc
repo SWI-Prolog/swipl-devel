@@ -79,3 +79,11 @@
 \predicatesummary{tuples_in}{2}{Symbolic constraints on tuples}
 \predicatesummary{tuples_in}{3}{Symbolic constraints on tuples}
 \end{summarylist}
+
+\subsection{\pllib{clp/clp_distinct}}
+
+\begin{summarylist}{ll}
+\predicatesummary{all_distinct}{1}{Demand distinct values}
+\predicatesummary{vars_in}{2}{Declare domain of variable as set}
+\predicatesummary{vars_in}{3}{Declare domain of variable as interval}
+\end{summarylist}
