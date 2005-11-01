@@ -83,7 +83,11 @@ vars_in_([V|Vs], Bitvec) :-
 				put_attr(V, clp_distinct, dom_neq(Bitvec1,VLeft,VRight))
 			)
 		;
-			put_attr(V, clp_distinct, dom_neq(Bitvec, [], []))
+			( popcount(Bitvec) =:= 1 ->
+				V is msb(Bitvec)
+			;
+				put_attr(V, clp_distinct, dom_neq(Bitvec, [], []))
+			)
 		)
 	;
 		0 =\= Bitvec /\ (1<<V)
@@ -163,9 +167,14 @@ attr_unify_hook(dom_neq(Dom,Lefts,Rights), Y) :-
 		\+ lists_contain(Rights, Y),
 		( get_attr(Y, clp_distinct, dom_neq(YDom0,YLefts0,YRights0)) ->
 			YDom1 is YDom0 /\ Dom,
-			append(YLefts0, Lefts, YLefts1),
-			append(YRights0, Rights, YRights1),
-			put_attr(Y, clp_distinct, dom_neq(YDom1,YLefts1,YRights1))
+			YDom1 =\= 0,
+			( popcount(YDom1) =:= 1 ->
+				Y is msb(YDom1)
+			;
+				append(YLefts0, Lefts, YLefts1),
+				append(YRights0, Rights, YRights1),
+				put_attr(Y, clp_distinct, dom_neq(YDom1,YLefts1,YRights1))
+			)
 		;
 			put_attr(Y, clp_distinct, dom_neq(Dom,Lefts,Rights))
 		)
