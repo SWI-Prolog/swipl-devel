@@ -337,9 +337,9 @@ source_file(File) :-
 
 %	prolog_load_context(+Key, -Value)
 %
-%	Provides context information for term_expansion and directives.
-%	Note that only the line-number info is valid for the
-%	'$stream_position'.  Largely Quintus compatible.
+%	Provides context information for  term_expansion and directives.
+%	Note  that  only  the  line-number  info    is   valid  for  the
+%	'$stream_position'. Largely Quintus compatible.
 
 :- module_transparent
 	prolog_load_context/2.
@@ -347,6 +347,8 @@ source_file(File) :-
 prolog_load_context(module, Module) :-
 	$set_source_module(Module, Module).
 prolog_load_context(file, F) :-
+	source_location(F, _).
+prolog_load_context(source, F) :-	% SICStus compatibility
 	source_location(F, _).
 prolog_load_context(stream, S) :-
 	source_location(F, _),
