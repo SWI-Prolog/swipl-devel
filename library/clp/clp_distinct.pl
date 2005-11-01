@@ -125,7 +125,7 @@ exclude_list([V|Vs], Val, Mask) :-
 		get_attr(V, clp_distinct, dom_neq(VDom0,VLefts,VRights)),
 		VDom1 is VDom0 /\ Mask,
 		VDom1 =\= 0,
-		( 1 << msb(VDom1) =:= VDom1 ->
+		( popcount(VDom1) =:= 1 ->
 			V is msb(VDom1)
 		;
 			put_attr(V, clp_distinct, dom_neq(VDom1,VLefts,VRights))
@@ -192,7 +192,7 @@ reduce_from_others([X|Xs], Dom) :-
 		;
 			NXDom is XDom /\ \Dom,
 			NXDom =\= 0,
-			( 1 << msb(NXDom) =:= NXDom ->
+			( popcount(NXDom) =:= 1 ->
 				X is msb(NXDom)
 			;
 				put_attr(X, clp_distinct, dom_neq(NXDom,XLeft,XRight))
