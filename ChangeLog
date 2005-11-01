@@ -8,7 +8,7 @@
 					--------------------------------------
 
 
-  * ADDED: library(clp/clp_distinct.pl.  Contributed by  Markus Triska.
+  * ADDED: library(clp/clp_distinct.pl).  Contributed by  Markus Triska.
 
   * COMPAT: prolog_load_context/2 to support the SICStus key `source'.
     Bart Demoen.
