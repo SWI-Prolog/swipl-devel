@@ -59,11 +59,13 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.36 relative to 5.5.35
+Patches in 5.5.37 relative to 5.5.36
 ====================================
 
- * Fixed integer arithmetic for	large negative values.
- * Fixed UTF-16 I/O on Windows.
+ * New constraints my Markus Triska: clp_distinct and clp_tuples.
+ * New integer functions: lsb/1 and popcount/1
+ * Some portability issues
+ * Minor stuff
 
 Packages
 ========
