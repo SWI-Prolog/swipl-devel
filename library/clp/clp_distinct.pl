@@ -1,0 +1,248 @@
+/*  $Id$
+
+    Part of SWI-Prolog
+
+    Author:        Markus Triska
+    E-mail:        triska@gmx.at
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 2005, Markus Triska
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+*/
+
+%%%%%%% clp_distinct.pl - Weak arc consistent all_distinct/1 constraint %%%%%
+
+% For details, see Neng-Fa Zhou, 2005:
+%      "Programming Finite-Domain Constraint Propagators in Action Rules"
+
+% Domains are represented as bit-vectors, with the i-th bit being set
+% if "i" is in the domain.
+
+:- module(clp_distinct,
+	[
+		vars_in/2,
+		vars_in/3,
+		all_distinct/1
+	]).
+:- use_module(library(lists)).
+
+vars_in(Vs, From, To) :-
+	findall(D, between(From,To,D), Domain),
+	vars_in(Vs, Domain).
+
+vars_in(Xs, Dom) :-
+	domain_bitvector(Dom, 0, Bitvec),
+	vars_in_(Xs, Dom, Bitvec).
+
+vars_in_([], _, _).
+vars_in_([V|Vs], Dom, Bitvec) :-
+	( var(V) ->
+		( get_attr(V, clp_distinct, dom_neq(VBV,VLeft,VRight)) ->
+			Bitvec1 is VBV /\ Bitvec,
+			put_attr(V, clp_distinct, dom_neq(Bitvec1,VLeft,VRight))
+		;
+			put_attr(V, clp_distinct, dom_neq(Bitvec, [], []))
+		)
+	;
+		memberchk(V, Dom)
+	),
+	vars_in_(Vs, Dom, Bitvec).
+
+domain_bitvector([], Bitvec, Bitvec).
+domain_bitvector([D|Ds], Bitvec0, Bitvec) :-
+	Bitvec1 is Bitvec0 \/ (1 << D),
+	domain_bitvector(Ds, Bitvec1, Bitvec).
+	
+
+all_distinct(Ls) :-
+	all_distinct(Ls, []),
+	outof_reducer(Ls).
+
+outof_reducer([]).
+outof_reducer([X|Xs]) :-
+	( var(X) ->
+		get_attr(X, clp_distinct, dom_neq(Dom,Lefts,Rights)),
+		outof_reducer(Lefts, Rights, X, Dom)
+	;
+		true
+	),
+	outof_reducer(Xs).
+
+all_distinct([], _).
+all_distinct([X|Right], Left) :-
+	\+ list_contains(Right, X),
+	outof(X, Left, Right),
+	all_distinct(Right, [X|Left]).
+
+
+outof(X, Left, Right) :-
+	( var(X) ->
+		get_attr(X, clp_distinct, dom_neq(Dom, XLefts, XRights)),
+		put_attr(X, clp_distinct, dom_neq(Dom, [Left|XLefts], [Right|XRights]))
+	;
+		exclude_fire([Left], [Right], X)
+	).
+
+
+exclude_fire(Lefts, Rights, E) :-
+	Mask is \ ( 1 << E),
+	exclude_fire(Lefts, Rights, E, Mask).
+
+exclude_fire([], [], _, _).
+exclude_fire([Left|Ls], [Right|Rs], E, Mask) :-
+	exclude_list(Left, E, Mask),
+	exclude_list(Right, E, Mask),
+	exclude_fire(Ls, Rs, E, Mask).
+
+
+exclude_list([], _, _).
+exclude_list([V|Vs], Val, Mask) :-
+	( var(V) ->
+		get_attr(V, clp_distinct, dom_neq(VDom0,VLefts,VRights)),
+		VDom1 is VDom0 /\ Mask,
+		VDom1 =\= 0,
+		( 1 << msb(VDom1) =:= VDom1 ->
+			V is msb(VDom1)
+		;
+			put_attr(V, clp_distinct, dom_neq(VDom1,VLefts,VRights))
+		)
+	;
+		V =\= Val
+	),
+	exclude_list(Vs, Val, Mask).
+
+attr_unify_hook(dom_neq(Dom,Lefts,Rights), Y) :-
+	( ground(Y) ->
+		Dom /\ (1 << Y) =\= 0,
+		exclude_fire(Lefts, Rights, Y)
+	;
+		
+		\+ lists_contain(Lefts, Y),
+		\+ lists_contain(Rights, Y),
+		( get_attr(Y, clp_distinct, dom_neq(YDom0,YLefts0,YRights0)) ->
+			YDom1 is YDom0 /\ Dom,
+			append(YLefts0, Lefts, YLefts1),
+			append(YRights0, Rights, YRights1),
+			put_attr(Y, clp_distinct, dom_neq(YDom1,YLefts1,YRights1))
+		;
+			put_attr(Y, clp_distinct, dom_neq(Dom,Lefts,Rights))
+		)
+	).
+
+lists_contain([X|Xs], Y) :-
+	( list_contains(X, Y) ->
+		true
+	;
+		lists_contain(Xs, Y)
+	).
+
+list_contains([X|Xs], Y) :-
+	( X == Y ->
+		true
+	;
+		list_contains(Xs, Y)
+	).
+
+
+outof_reducer([], [], _, _).
+outof_reducer([L|Ls], [R|Rs], Var, Dom) :-
+	append(L, R, Others),
+	bitvec_ones(Dom, 0, N),
+	num_subsets(Others, Dom, 0, Num),
+	( Num >= N ->
+		fail
+	; Num =:= (N - 1) ->
+		reduce_from_others(Others, Dom)
+	;
+		true
+	),
+	outof_reducer(Ls, Rs, Var, Dom).
+
+
+reduce_from_others([], _).
+reduce_from_others([X|Xs], Dom) :-
+	( var(X) ->
+		get_attr(X, clp_distinct, dom_neq(XDom,XLeft,XRight)),
+		( is_subset(Dom, XDom) ->
+			true
+		;
+			NXDom is XDom /\ \Dom,
+			NXDom =\= 0,
+			( 1 << msb(NXDom) =:= NXDom ->
+				X is msb(NXDom)
+			;
+				put_attr(X, clp_distinct, dom_neq(NXDom,XLeft,XRight))
+			)
+		)
+	;
+		true
+	),
+	reduce_from_others(Xs, Dom).
+
+num_subsets([], _Dom, Num, Num).
+num_subsets([S|Ss], Dom, Num0, Num) :-
+	( var(S) ->
+		get_attr(S, clp_distinct, dom_neq(SDom,_,_)),
+		( is_subset(Dom, SDom) ->
+			Num1 is Num0 + 1
+		;
+			Num1 = Num0
+		)
+	;
+		Num1 = Num0
+	),
+	num_subsets(Ss, Dom, Num1, Num).
+
+
+   % true iff S is a subset of Dom - should be a GMP binding (subsumption)
+
+is_subset(Dom, S) :-
+	S \/ Dom =:= Dom.
+
+
+   % should be a GMP binding, number of ones in binary notation of X
+
+bitvec_ones(X, N0, N) :-
+	( X =:= 0 ->
+		N0 = N
+	;
+		N1 is N0 + ( X /\ 1),
+		SX is X >> 1,
+		bitvec_ones(SX, N1, N)
+	).
+
+   % should be a GMP binding, least significant bit
+
+lsb(X, N0, N) :-
+	( X /\ 1 =:= 1 ->
+		N0 = N
+	;
+		N1 is N0 + 1,
+		SX is X >> 1,
+		lsb(SX, N1, N)
+	).
+
+
+attr_portray_hook(dom_neq(Dom,_,_), _) :-
+	Max is msb(Dom),
+	lsb(Dom, 0, LSB),
+	write(LSB-Max).
