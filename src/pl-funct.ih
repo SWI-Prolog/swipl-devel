@@ -171,3 +171,5 @@
 #define FUNCTOR_warning3     MK_FUNCTOR(170, 3)
 #define FUNCTOR_xor2         MK_FUNCTOR(171, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(172, 1)
+#define FUNCTOR_lsb1         MK_FUNCTOR(173, 1)
+#define FUNCTOR_popcount1    MK_FUNCTOR(174, 1)

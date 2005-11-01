@@ -401,10 +401,22 @@ gmp(ceil-1) :-
 	A is ceil(1e20),
 	integer(A),
 	1e20 =:= float(A).
+gmp(msb-0) :-
+	0 =:= msb(0).
 gmp(msb-1) :-
 	10 =:= msb(1<<10).
 gmp(msb-2) :-
 	100 =:= msb(1<<100).
+gmp(lsb-0) :-
+	0 =:= lsb(0).
+gmp(lsb-1) :-
+	10 =:= lsb(1<<10).
+gmp(lsb-2) :-
+	100 =:= lsb(1<<100).
+gmp(popcount-1) :-
+	1 =:= popcount(1<<5).
+gmp(popcount-2) :-
+	1 =:= popcount(1<<100).
 gmp(fac-1) :-
 	fac(25, X),
 	X == 15511210043330985984000000. % computed with bc

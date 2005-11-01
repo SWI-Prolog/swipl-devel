@@ -551,3 +551,5 @@
 #define ATOM_yfx          MK_ATOM(550)
 #define ATOM_yfy          MK_ATOM(551)
 #define ATOM_zero_divisor MK_ATOM(552)
+#define ATOM_lsb          MK_ATOM(553)
+#define ATOM_popcount     MK_ATOM(554)

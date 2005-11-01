@@ -1648,6 +1648,16 @@ ar_negation(Number n1, Number r)
 
 
 static int
+notLessThanZero(const char *f, int a, Number n)
+{ GET_LD
+  term_t t = PL_new_term_ref();
+      
+  PL_unify_number(t, n);
+  return PL_error(f, a, NULL, ERR_DOMAIN,
+		  ATOM_not_less_than_zero, t);
+}
+
+static int
 ar_msb(Number n1, Number r)
 { if ( !toIntegerNumber(n1) )
     return PL_error("msb", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -1655,7 +1665,7 @@ ar_msb(Number n1, Number r)
   switch(n1->type)
   { case V_INTEGER:
       if (  n1->value.i < 0 )
-	goto domerror;
+	return notLessThanZero("msb", 1, n1);
 
       r->value.i = msb64(n1->value.i);
       r->type = V_INTEGER;
@@ -1663,7 +1673,7 @@ ar_msb(Number n1, Number r)
 #ifdef O_GMP
     case V_MPZ:
       if ( mpz_sgn(n1->value.mpz) < 0 )
-	goto domerror;
+	return notLessThanZero("msb", 1, n1);
       if ( mpz_sgn(n1->value.mpz) == 0 )
       { r->value.i = 0;
       } else		/* is binary print-size the best we can do?? */
@@ -1675,16 +1685,94 @@ ar_msb(Number n1, Number r)
     default:
       assert(0);
   }
+}
 
-domerror:
-  { GET_LD
-    term_t t = PL_new_term_ref();
-      
-    PL_unify_number(t, n1);
-    return PL_error("msb", 1, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, t);
+
+static int
+lsb64(int64_t i)
+{ int j = 0;
+  
+  if ( i == 0 )
+    return 0;
+
+  if (!(i & LL(0xffffffff))) {i >>= 32; j += 32;}
+  if (!(i &     LL(0xffff))) {i >>= 16; j += 16;}
+  if (!(i &       LL(0xff))) {i >>=  8; j +=  8;}
+  if (!(i &	   LL(0xf))) {i >>=  4; j +=  4;}
+  if (!(i &        LL(0x3))) {i >>=  2; j +=  2;}
+  if (!(i &        LL(0x1))) j++;
+
+  return j;
+}
+
+
+static int
+ar_lsb(Number n1, Number r)
+{ if ( !toIntegerNumber(n1) )
+    return PL_error("lsb", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+
+  switch(n1->type)
+  { case V_INTEGER:
+      if (  n1->value.i < 0 )
+	return notLessThanZero("lsb", 1, n1);
+
+      r->value.i = lsb64(n1->value.i);
+      r->type = V_INTEGER;
+      succeed;
+#ifdef O_GMP
+    case V_MPZ:
+      if ( mpz_sgn(n1->value.mpz) < 0 )
+	return notLessThanZero("lsb", 1, n1);
+      r->value.i = mpz_scan1(n1->value.mpz, 0);
+      r->type = V_INTEGER;
+      succeed;
+#endif
+    default:
+      assert(0);
   }
 }
+
+
+static int
+popcount64(int64_t i)
+{ int c, j;
+  int64_t m = LL(1);
+
+  for(j=0,c=0; j<sizeof(i)*8; j++, m<<=1)
+  { if ( i&m )
+      c++;
+  }
+
+  return c;
+}
+
+
+static int
+ar_popcount(Number n1, Number r)
+{ if ( !toIntegerNumber(n1) )
+    return PL_error("popcount", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+
+  switch(n1->type)
+  { case V_INTEGER:
+      if (  n1->value.i < 0 )
+	return notLessThanZero("popcount", 1, n1);
+
+      r->value.i = popcount64(n1->value.i);
+      r->type = V_INTEGER;
+      succeed;
+#ifdef O_GMP
+    case V_MPZ:
+      if ( mpz_sgn(n1->value.mpz) < 0 )
+	return notLessThanZero("popcount", 1, n1);
+      r->value.i = mpz_popcount(n1->value.mpz);
+      r->type = V_INTEGER;
+      succeed;
+#endif
+    default:
+      assert(0);
+  }
+}
+
 
 
 static int
@@ -2303,7 +2391,9 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_e0,		ar_e),
 
   ADD(FUNCTOR_cputime0,		ar_cputime),
-  ADD(FUNCTOR_msb1,		ar_msb)
+  ADD(FUNCTOR_msb1,		ar_msb),
+  ADD(FUNCTOR_lsb1,		ar_lsb),
+  ADD(FUNCTOR_popcount1,	ar_popcount)
 };
 
 #undef ADD

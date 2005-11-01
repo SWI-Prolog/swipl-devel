@@ -4093,10 +4093,6 @@ Bitwise `exclusive or' \arg{IntExpr1} and \arg{IntExpr2}.
 Bitwise negation.  The returned value is the one's complement of
 \arg{IntExpr}.
 
-    \predicate{msb}{1}{+IntExpr}
-Position of the most significant bit in binary notation.  \arg{IntExpr}
-must evaluate to a positive integer.  The MSB of 1 is 0.%
-	\footnote{msb/1 is compatible to hProlog}
     \predicate{sqrt}{1}{+Expr}
 $\arg{Result} = \sqrt{\arg{Expr}}$
     \predicate{sin}{1}{+Expr}
@@ -4135,6 +4131,29 @@ Evaluates to the mathematical constant $e$ (2.718282).
 Evaluates to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.
 \end{description}
+
+
+\paragraph{Bitvector functions}
+
+The functions below are not covered by the standard.  The msb/1 function
+is compatible to hProlog. The others are private extensions that improve
+handling of ---unbounded--- integers as bit-vectors.  
+
+\begin{description}
+    \predicate{msb}{1}{+IntExpr}
+Position of the most significant bit in binary notation.  \arg{IntExpr}
+must evaluate to a positive integer.  The MSB of 0 and 1 are both 0
+
+    \predicate{lsb}{1}{+IntExpr}
+Position of the least significant bit in binary notation.
+\arg{IntExpr} must evaluate to a positive integer. The LSB of of 0 and 1
+are both 0.
+
+    \predicate{popcount}{1}{+IntExpr}
+Return the number of 1s in the binary representation of the positive
+integer \arg{IntExpr}.
+\end{description}
+
 
 \section{Adding Arithmetic Functions}	\label{sec:extendarith}
 

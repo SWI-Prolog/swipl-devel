@@ -617,6 +617,7 @@ suggest predicates from a keyword.
 \functionsummary{integer}{1}{Round to nearest integer}
 \functionsummary{log}{1}{Natural logarithm}
 \functionsummary{log10}{1}{10 base logarithm}
+\functionsummary{lsb}{1}{Least significant bit}
 \functionsummary{max}{2}{Maximum of two numbers}
 \functionsummary{min}{2}{Minimum of two numbers}
 \functionsummary{msb}{1}{Most significant bit}
@@ -630,6 +631,7 @@ suggest predicates from a keyword.
 \functionsummary{round}{1}{Round to nearest integer}
 \functionsummary{truncate}{1}{Truncate float to integer}
 \functionsummary{pi}{0}{Mathematical constant}
+\functionsummary{popcount}{1}{Count 1s in a bitvector}
 \functionsummary{sign}{1}{Extract sign of value}
 \functionsummary{sin}{1}{Sine}
 \functionsummary{sqrt}{1}{Square root}

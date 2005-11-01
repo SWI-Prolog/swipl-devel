@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+  * ADDED: functions lsb/1 and popcount/1 to improve support for handling
+    GMP numbers as bitvectors.  Enhanced clp_distinct.pl to use these
+    functions.  Suggested by Markus Triska.
+
   * ADDED: library(clp/clp_distinct.pl).  Contributed by  Markus Triska.
 
   * COMPAT: prolog_load_context/2 to support the SICStus key `source'.

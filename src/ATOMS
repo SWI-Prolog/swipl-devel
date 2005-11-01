@@ -563,6 +563,8 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
+A lsb			"lsb"
+A popcount		"popcount"
 
 F abs			1
 F access		1
@@ -737,3 +739,5 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
+F lsb			1
+F popcount		1

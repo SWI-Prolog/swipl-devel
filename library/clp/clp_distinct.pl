@@ -166,7 +166,7 @@ list_contains([X|Xs], Y) :-
 outof_reducer([], [], _, _).
 outof_reducer([L|Ls], [R|Rs], Var, Dom) :-
 	append(L, R, Others),
-	bitvec_ones(Dom, 0, N),
+	N is popcount(Dom),
 	num_subsets(Others, Dom, 0, Num),
 	( Num >= N ->
 		fail
@@ -218,31 +218,7 @@ num_subsets([S|Ss], Dom, Num0, Num) :-
 is_subset(Dom, S) :-
 	S \/ Dom =:= Dom.
 
-
-   % should be a GMP binding, number of ones in binary notation of X
-
-bitvec_ones(X, N0, N) :-
-	( X =:= 0 ->
-		N0 = N
-	;
-		N1 is N0 + ( X /\ 1),
-		SX is X >> 1,
-		bitvec_ones(SX, N1, N)
-	).
-
-   % should be a GMP binding, least significant bit
-
-lsb(X, N0, N) :-
-	( X /\ 1 =:= 1 ->
-		N0 = N
-	;
-		N1 is N0 + 1,
-		SX is X >> 1,
-		lsb(SX, N1, N)
-	).
-
-
 attr_portray_hook(dom_neq(Dom,_,_), _) :-
 	Max is msb(Dom),
-	lsb(Dom, 0, LSB),
-	write(LSB-Max).
+	Min is lsb(Dom),
+	write(Min-Max).
