@@ -45,6 +45,27 @@
 	]).
 :- use_module(library(lists)).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This library uses the following arribute value:
+
+	dom_neq(Domain, Left, Right)
+
+Domain is an unbounded  (GMP)  integer   representing  the  domain  as a
+bit-vector, meaning N is in the domain if 0 =\= Domain /\ (1<<N).
+
+Left and Right are both lists of lists of variables. Each of those lists
+corresponds to one all_distinct constraint the  variable is involved in,
+and "left" and "right" means literally which  variables are to the left,
+and which to the right in the first, second etc. of those constraints.
+
+all_distinct([A,B,C,D]), all_distinct([X,Y,C,F,E]) causes the following 
+attributes for "C":
+
+	Left:  [[A,B],[X,Y]]
+	Right: [[D],[F,E]]
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 vars_in(Xs, From, To) :-
 	Bitvec is (1<<(To+1)) - (1<<From),
 	vars_in_(Xs, Bitvec).
