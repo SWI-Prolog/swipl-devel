@@ -12,7 +12,7 @@ The \pllib{clp/clp_distinct} module provides the following constraints:
 		distinct. All variables must already be assigned domains
 		(via vars_in/2 or vars_in/3) when this constraint is posted.
 
-	\predicate{vars_in}{2}{+Vars, Domain}
+	\predicate{vars_in}{2}{+Vars, +Domain}
 		Where \arg{Vars} is a list of variables and \arg{Domain} is
 		a list of non-negative integers. Each variable of \arg{Vars}
 		is constrained to be in \arg{Domain}.
