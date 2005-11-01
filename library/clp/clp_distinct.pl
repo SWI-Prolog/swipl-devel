@@ -45,16 +45,16 @@
 	]).
 :- use_module(library(lists)).
 
-vars_in(Vs, From, To) :-
-	findall(D, between(From,To,D), Domain),
-	vars_in(Vs, Domain).
+vars_in(Xs, From, To) :-
+	Bitvec is (1<<(To+1)) - (1<<From),
+	vars_in_(Xs, Bitvec).
 
 vars_in(Xs, Dom) :-
 	domain_bitvector(Dom, 0, Bitvec),
-	vars_in_(Xs, Dom, Bitvec).
+	vars_in_(Xs, Bitvec).
 
-vars_in_([], _, _).
-vars_in_([V|Vs], Dom, Bitvec) :-
+vars_in_([], _).
+vars_in_([V|Vs], Bitvec) :-
 	( var(V) ->
 		( get_attr(V, clp_distinct, dom_neq(VBV,VLeft,VRight)) ->
 			Bitvec1 is VBV /\ Bitvec,
@@ -63,9 +63,9 @@ vars_in_([V|Vs], Dom, Bitvec) :-
 			put_attr(V, clp_distinct, dom_neq(Bitvec, [], []))
 		)
 	;
-		memberchk(V, Dom)
+		0 =\= Bitvec /\ (1<<V)
 	),
-	vars_in_(Vs, Dom, Bitvec).
+	vars_in_(Vs, Bitvec).
 
 domain_bitvector([], Bitvec, Bitvec).
 domain_bitvector([D|Ds], Bitvec0, Bitvec) :-
