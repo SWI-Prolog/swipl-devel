@@ -58,6 +58,8 @@ is available in ../packages/ltx2html. After   installing Prolog and with
 Prolog in your PATH, a simple "make   install" should suffice to install
 this in $HOME/bin
 
+Finally, check the Makefile, notably the definition of PL.
+
 Targets:
 
 	make online	- Generate the library/MANUAL file and index
