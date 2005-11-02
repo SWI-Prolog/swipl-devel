@@ -228,11 +228,7 @@ defaultPostScriptFont(FontObj f)
 Int
 getWidthFont(FontObj f, CharArray txt)
 { if ( isDefault(txt) )
-  { if ( getB16Font(f) == ON )
-      txt = (CharArray) CtoName("xx");
-    else
-      txt = (CharArray) CtoName("x");
-  }
+    txt = (CharArray) NAME_x;
 
   d_ensure_display();			/* TBD */
 
