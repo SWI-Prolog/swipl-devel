@@ -486,7 +486,7 @@ getDeletePrefixCharArray(CharArray n, CharArray s)
 }
 
 
-static CharArray
+CharArray
 getSubCharArray(CharArray n, Int start, Int end)
 { string s;
   int x, y;

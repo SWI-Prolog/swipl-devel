@@ -1,6 +1,6 @@
 #define COMMON(type) SO_LOCAL type
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/chararray.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/chararray.c */
 COMMON(status)	initialiseCharArray(CharArray n, CharArray value);
 COMMON(Name)	getValueCharArray(CharArray n);
 COMMON(status)	equalCharArray(CharArray n1, CharArray n2, Bool ign_case);
@@ -14,6 +14,7 @@ COMMON(CharArray) getDowncaseCharArray(CharArray n);
 COMMON(CharArray) getAppendCharArray(CharArray n1, CharArray n2);
 COMMON(CharArray) getDeleteSuffixCharArray(CharArray n, CharArray s);
 COMMON(CharArray) getEnsureSuffixCharArray(CharArray n, CharArray s);
+COMMON(CharArray) getSubCharArray(CharArray n, Int start, Int end);
 COMMON(Int)	getSizeCharArray(Any n);
 COMMON(void)	initCharArrays(void);
 COMMON(CharArray) CtoScratchCharArray(const char *s);
@@ -22,7 +23,7 @@ COMMON(void)	doneScratchCharArray(CharArray n);
 COMMON(CharArray) CtoCharArray(char *s);
 COMMON(status)	makeClassCharArray(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/editor.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/editor.c */
 COMMON(status)	normaliseEditor(Editor e, Int start, Int end);
 COMMON(Any)	ReceiverOfEditor(Editor e);
 COMMON(status)	forwardModifiedEditor(Editor e, Bool val);
@@ -36,10 +37,10 @@ COMMON(status)	backgroundEditor(Editor e, Any bg);
 COMMON(status)	colourEditor(Editor e, Any c);
 COMMON(status)	makeClassEditor(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/fragment.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/fragment.c */
 COMMON(status)	makeClassFragment(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/keybinding.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/keybinding.c */
 COMMON(Any)	getFunctionKeyBinding(KeyBinding kb, EventId id);
 COMMON(status)	functionKeyBinding(KeyBinding kb, EventId id, Any f);
 COMMON(status)	typedKeyBinding(KeyBinding kb, Any id, Graphical receiver);
@@ -48,7 +49,7 @@ COMMON(KeyBinding) KeyBindingText(void);
 COMMON(KeyBinding) KeyBindingTextItem(void);
 COMMON(KeyBinding) KeyBindingTextItemView(void);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/regex.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/regex.c */
 COMMON(status)	ignoreCaseRegex(Regex re, Bool val);
 COMMON(status)	compileRegex(Regex re, Bool optimize);
 COMMON(status)	search_string_regex(Regex re, String s);
@@ -58,7 +59,7 @@ COMMON(status)	matchRegex(Regex re, Any obj, Int start, Int end);
 COMMON(Int)	getRegisterEndRegex(Regex re, Int which);
 COMMON(status)	makeClassRegex(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/str.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/str.c */
 COMMON(int)	str_allocsize(String s);
 COMMON(void)	str_pad(String s);
 COMMON(void)	str_alloc(String s);
@@ -104,7 +105,7 @@ COMMON(tmp_string *) str_tmp_init(tmp_string *tmp);
 COMMON(wint_t)	str_tmp_put(tmp_string *tmp, wint_t c);
 COMMON(void)	str_tmp_done(tmp_string *tmp);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/string.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/string.c */
 COMMON(StringObj) create_string_from_str(String s, int tmp);
 COMMON(StringObj) StringToString(String s);
 COMMON(StringObj) StringToTempString(String s);
@@ -121,14 +122,14 @@ COMMON(status)	str_insert_string(StringObj str, Int where, String s);
 COMMON(StringObj) getSubString(StringObj n, Int start, Int end);
 COMMON(status)	makeClassString(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/style.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/style.c */
 COMMON(status)	boldStyle(Style s, Bool on);
 COMMON(status)	makeClassStyle(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/syntax.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/syntax.c */
 COMMON(status)	makeClassSyntaxTable(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/textbuffer.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/textbuffer.c */
 COMMON(status)	changedTextBuffer(TextBuffer tb);
 COMMON(status)	ChangedRegionTextBuffer(TextBuffer tb, Int start, Int end);
 COMMON(status)	ChangedFragmentListTextBuffer(TextBuffer tb);
@@ -163,11 +164,11 @@ COMMON(status)	insert_textbuffer(TextBuffer tb, int where, int times, String s);
 COMMON(status)	delete_textbuffer(TextBuffer tb, int where, int length);
 COMMON(status)	makeClassTextBuffer(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/textcursor.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/textcursor.c */
 COMMON(status)	setTextCursor(TextCursor c, Int x, Int y, Int w, Int h, Int b);
 COMMON(status)	makeClassTextCursor(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/textimage.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/textimage.c */
 COMMON(status)	InsertTextImage(TextImage ti, Int where, Int amount);
 COMMON(status)	ChangedRegionTextImage(TextImage ti, Int from, Int to);
 COMMON(status)	ChangedEntireTextImage(TextImage ti);
@@ -191,10 +192,10 @@ COMMON(Int)	getEndOfLineCursorTextImage(TextImage ti, Int here);
 COMMON(status)	ensureVisibleTextImage(TextImage ti, Int caret);
 COMMON(status)	makeClassTextImage(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/textmargin.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/textmargin.c */
 COMMON(status)	makeClassTextMargin(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/undo.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/undo.c */
 COMMON(void)	destroyUndoBuffer(UndoBuffer ub);
 COMMON(Int)	getUndoTextBuffer(TextBuffer tb);
 COMMON(status)	undoTextBuffer(TextBuffer tb);
@@ -206,14 +207,14 @@ COMMON(void)	register_insert_textbuffer(TextBuffer tb, long int where, long int 
 COMMON(void)	register_delete_textbuffer(TextBuffer tb, long where, long len);
 COMMON(void)	register_change_textbuffer(TextBuffer tb, long int where, long int len);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/utf8.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/utf8.c */
 COMMON(char *)	F_UTF8_GET_CHAR(const char *in, int *chr);
 COMMON(char *)	F_UTF8_PUT_CHAR(char *out, int chr);
 COMMON(unsigned int) F_UTF8_STRLEN(const char *s, unsigned int len);
 COMMON(unsigned int) F_UTF8_ENCLENW(const wchar_t *s, unsigned int len);
 COMMON(unsigned int) F_UTF8_ENCLENA(const char *s, unsigned int len);
 
-/* /staff/jan/src/pl/packages/xpce/src/txt/i18n.c */
+/* /swi40/jan/src/pl/packages/xpce/src/txt/i18n.c */
 COMMON(wchar_t *) charArrayToWC(CharArray ca, size_t *len);
 COMMON(char *)	charArrayToUTF8(CharArray ca);
 COMMON(char *)	charArrayToMB(CharArray ca);

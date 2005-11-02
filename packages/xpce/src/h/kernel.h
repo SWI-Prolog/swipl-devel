@@ -1536,6 +1536,8 @@ typedef long	AnswerMark;
 #include "../adt/proto.h"
 #include "../rel/proto.h"
 
+#define getSubName(n, f, t) (Name)getSubCharArray((Name)(n), f, t)
+
 					/* Interface callback stubs */
 __pce_export void	Cprintf(const char *fmt, ...);
 __pce_export void	Cvprintf(const char *fmt, va_list args);

@@ -148,13 +148,18 @@ getConvertType(Class class, Name name)
 
 Name
 getNameType(Type t)
-{ char *s = strName(t->fullname);
+{ String str = &t->fullname->data;
 
-  if ( iscsym(*s) )
-  { while(iscsym(*s))
-      s++;
-    if ( *s == '=' )
-      return CtoName(s+1);
+  if ( str->size > 0 && iscsym(str_fetch(str,0)) )
+  { int i;
+
+    for(i=1; i<str->size; i++)
+    { if ( iscsym(str_fetch(str, i)) )
+	continue;
+      if ( str_fetch(str, i) == '=' )
+      { answer(getSubName(t->fullname, toInt(i+1), DEFAULT));
+      }
+    }
   }
 
   return t->fullname;

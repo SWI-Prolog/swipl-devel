@@ -2,6 +2,8 @@
 			   ==============
 
 
+* FIXED: Unicode support in class type.  type<-name.
+
 * FIXED: Bug#111: @pce->write and friends to deal with Unicode arguments.
   Dmitry.
 
