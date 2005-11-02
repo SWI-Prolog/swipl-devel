@@ -2,7 +2,12 @@
 			   ==============
 
 
-* FIXED: Unicode support in class type.  type<-name.
+* FIXED: Bug#108: Unicode support in the classes type, class and method
+  to allow for unicode names in programming.  New code also fixes
+  potential buffer overruns caused by invalid programs.  Dmitry.
+
+* FIXED: Bug in class name that can cause identity problems with names
+  that have used wide-character representations as intermediate.
 
 * FIXED: Bug#111: @pce->write and friends to deal with Unicode arguments.
   Dmitry.

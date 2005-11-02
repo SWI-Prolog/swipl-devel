@@ -73,6 +73,27 @@ str_alloc(String s)
 }
 
 
+#define STR_RING_SIZE 16
+static char *str_ring[STR_RING_SIZE] = {NULL};
+int    str_ring_ptr = 0;
+
+static void
+str_ring_alloc(String s)
+{ int size = str_allocsize(s);
+
+  if ( !str_ring[str_ring_ptr] )
+  { str_ring[str_ring_ptr] = pceMalloc(size);
+  } else
+  { str_ring[str_ring_ptr] = pceRealloc(str_ring[str_ring_ptr], size);
+  }
+  s->s_textA = str_ring[str_ring_ptr];
+  s->readonly = TRUE;
+
+  if ( ++str_ring_ptr == STR_RING_SIZE )
+    str_ring_ptr = 0;
+}
+
+
 void
 str_unalloc(String s)
 { if ( s->s_textA && !s->readonly )
@@ -132,6 +153,37 @@ str_set_ascii(String str, char *text)
 { int len = strlen(text);
 
   return str_set_n_ascii(str, len, text);
+}
+
+
+status
+str_set_utf8(String str, const char *text)
+{ const char *s = text;
+  const char *e = &text[strlen(s)];
+  int iswide = ENC_ISOL1;
+  int len = 0;
+
+  while(s<e)
+  { int chr;
+
+    s = utf8_get_char(s, &chr);
+    if ( chr > 0xff )
+      iswide = ENC_WCHAR;
+    len++;
+  }
+
+  str_inithdr(str, iswide);
+  str->size = len;
+  str_ring_alloc(str);			/* NOTE: temporary space */
+
+  for(len=0, s=text; s<e; len++)
+  { int chr;
+
+    s = utf8_get_char(s, &chr);
+    str_store(str, len, chr);
+  }
+
+  succeed;
 }
 
 

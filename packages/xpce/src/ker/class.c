@@ -23,6 +23,7 @@
 */
 
 #include <h/kernel.h>
+#include <h/text.h>
 #include <itf/c.h>
 #include <h/interface.h>		/* hostCallProc() */
 
@@ -2041,11 +2042,12 @@ getSuperClassNameClass(Class cl)
 
 static Name
 getManIdClass(Class class)
-{ char buf[LINESIZE];
+{ static Name cdot = NULL;
 
-  sprintf(buf, "C.%s", strName(class->name));
+  if ( !cdot )
+    cdot = CtoName("C.");
 
-  answer(CtoName(buf));
+  answer(getAppendName(cdot, class->name));
 }
 
 
@@ -2055,69 +2057,71 @@ getManIndicatorClass(Class class)
 }
 
 
-static StringObj
-getManHeaderClass(Class cl)
-{ char buf[LINESIZE];
-  Vector nms;
+static status
+append_class_header(Class cl, TextBuffer tb)
+{ appendTextBuffer(tb, (CharArray)cl->name, ONE);
+  CAppendTextBuffer(tb, "(");
 
-  realiseClass(cl);
-  nms = cl->term_names;
-
-  strcpy(buf, strName(cl->name));
-  strcat(buf, "(");
-
-  if ( isNil(nms) )
-    strcat(buf, "...object...");
-  else
+  if ( isNil(cl->term_names) )
+  { CAppendTextBuffer(tb, "...object...");
+  } else
   { int i;
     
-    for(i=1; i<=valInt(nms->size); i++)
+    for(i=1; i<=valInt(cl->term_names->size); i++)
     { if ( i != 1 )
-    	strcat(buf, ", ");
-      strcat(buf, strName(getElementVector(nms, toInt(i))));
+    	CAppendTextBuffer(tb, ", ");
+      appendTextBuffer(tb, getElementVector(cl->term_names, toInt(i)), ONE);
     }
   }
-  strcat(buf, ")");
+  CAppendTextBuffer(tb, ")");
 
-  answer(CtoString(buf));
+  succeed;
+}
+
+
+static StringObj
+getManHeaderClass(Class cl)
+{ TextBuffer tb;
+  StringObj str;
+
+  realiseClass(cl);
+
+  tb = newObject(ClassTextBuffer, EAV);
+  tb->undo_buffer_size = ZERO;
+
+  append_class_header(cl, tb);
+
+  str = getContentsTextBuffer(tb, ZERO, DEFAULT);
+  doneObject(tb);
+
+  answer(str);
 }
 
 
 static StringObj
 getManSummaryClass(Class cl)
-{ char buf[LINESIZE];
-  Vector nms;
+{ TextBuffer tb;
+  StringObj str;
 
   realiseClass(cl);
-  nms = cl->term_names;	
 
-  buf[0] = EOS;
-  strcat(buf, "C\t");
+  tb = newObject(ClassTextBuffer, EAV);
+  tb->undo_buffer_size = ZERO;
 
-  strcat(buf, strName(cl->name));
-  strcat(buf, "(");
-
-  if ( isNil(nms) )
-    strcat(buf, "...object...");
-  else
-  { int i;
-    
-    for(i=1; i<=valInt(nms->size); i++)
-    { if ( i != 1 )
-    	strcat(buf, ", ");
-      strcat(buf, strName(getElementVector(nms, toInt(i))));
-    }
-  }
-  strcat(buf, ")");
+  CAppendTextBuffer(tb, "C\t");
+  append_class_header(cl, tb);
 
   if ( notNil(cl->summary) )
-  { strcat(buf, "\t");
-    strcat(buf, strName(cl->summary));
+  { CAppendTextBuffer(tb, "\t");
+    appendTextBuffer(tb, (CharArray)cl->summary, ONE);
   }
   if ( send(cl, NAME_hasHelp, EAV) )
-    strcat(buf, " (+)");
+    CAppendTextBuffer(tb, " (+)");
 
-  answer(CtoString(buf));
+  str = getContentsTextBuffer(tb, ZERO, DEFAULT);
+  doneObject(tb);
+
+  answer(str);
 }
 #endif /*O_RUNTIME*/
 

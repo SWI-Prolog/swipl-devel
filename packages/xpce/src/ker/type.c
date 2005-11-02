@@ -27,6 +27,7 @@
 #include <h/trace.h>
 #include <h/graphics.h>
 #include <math.h>
+#include <wctype.h>
 
 #define MAX_TYPE_TRANSLATE_NESTING 10
 
@@ -283,58 +284,6 @@ l2:
 
   fail;
 }
-
-
-#if 0
-status
-specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
-{ while(t1->kind == NAME_alias)
-    t1 = t1->context;
-  while(t2->kind == NAME_alias)
-    t2 = t2->context;
-
-  if ( t1 == t2 ||			/* Equivalence */
-       (t1->context == t2->context && t1->kind == t2->kind) )
-    succeed;
-					/* normal subclassing */
-  if ( t1->kind == NAME_class && t2->kind == NAME_class &&
-       isAClass(t1->context, t2->context) )
-    succeed;
-  
-					/* class object */
-  if ( t2->kind == NAME_object && t1->kind == NAME_class &&
-       !SpecialClass(t1->context) )
-    succeed;
-
-					/* relative to any */
-  if ( t2->kind == NAME_any &&
-       !(t1->kind == NAME_class && SpecialClass(t1->context)) )
-    succeed;
-
-  if ( t2->kind == NAME_unchecked )
-    succeed;
-
-					/* special types. */
-  if ( t1->kind == NAME_nameOf )
-    return specialisedType(TypeName, t2);
-  if ( t1->kind == NAME_intRange )
-    return specialisedType(TypeInt, t2);
-  if ( t1->kind == NAME_realRange )
-    return specialisedType(TypeReal, t2);
-  if ( t1->kind == NAME_char )
-    return specialisedType(TypeInt, t2);
-
-  if ( notNil(t2->supers) )
-  { Cell cell;
-
-    for_cell(cell, t2->supers)
-      if ( specialisedType(t1, cell->value) )
-      	succeed;
-  }
-
-  fail;
-}
-#endif
 
 
 status
@@ -1161,15 +1110,13 @@ Type syntax:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct
-{ char *start;
-  char *end;
-  char text[LINESIZE];
+{ wchar_t *start;
+  wchar_t *end;
+  wchar_t text[LINESIZE];
 } str_part, *StrPart;
 
 
-forwards void	strip_string(StrPart);
-forwards void	init_string(StrPart, String);
-forwards int	suffix_string(StrPart, char *);
+typedef const unsigned char * cucharp;
 
 static void
 strip_string(StrPart s)
@@ -1180,13 +1127,28 @@ strip_string(StrPart s)
 }
 
 
-static void
+static status
 init_string(StrPart s, String t)
-{ assert(isstrA(t));
-  strcpy(s->text, (char *)t->s_text);
+{ if ( t->size >= LINESIZE )
+    fail;
+
+  if ( isstrA(t) )
+  { wchar_t *o = s->text;
+    cucharp i = (cucharp)t->s_textA;
+    cucharp e = &i[t->size];
+
+    while(i<e)
+      *o++ = *i++;
+    *o = EOS;
+  } else
+  { wcscpy(s->text, t->s_textW);
+  }
+      
   s->start = s->text;
   s->end = &s->text[t->size - 1];
   strip_string(s);
+
+  succeed;
 }
 
 
@@ -1196,12 +1158,12 @@ suffix.  If so, delete the suffix and trailing blanks.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-suffix_string(StrPart s, char *suff)
-{ char *ts = suff + strlen(suff) - 1;
-  char *es = s->end;
+suffix_string(StrPart s, const char *suff)
+{ cucharp  ts = (cucharp)(suff + strlen(suff) - 1);
+  wchar_t *es = s->end;
 
   for(; *ts == *es; ts--, es--)
-  { if ( ts == suff )
+  { if ( ts == (cucharp)suff )
     { es--;
       while(*es == ' ' && es >= s->start)
     	es--;
@@ -1221,8 +1183,9 @@ suffix_string(StrPart s, char *suff)
 
 
 static int
-prefix_string(StrPart s, char *pref)
-{ char *q = s->start;
+prefix_string(StrPart s, const char *prefix)
+{ wchar_t *q = s->start;
+  cucharp pref = (cucharp)prefix;
 
   while(*pref && *pref == *q)
     pref++, q++;
@@ -1241,9 +1204,9 @@ prefix_string(StrPart s, char *pref)
 static Type
 name_of_type(StrPart str)
 { if ( *str->start == '{' && *str->end == '}' )
-  { Type type = newObject(ClassType, CtoName(str->start),
+  { Type type = newObject(ClassType, WCToName(str->start, -1),
 			  NAME_nameOf, newObject(ClassChain, EAV), EAV);
-    char *s, *e;
+    wchar_t *s, *e;
 
     str->start++;
     strip_string(str);
@@ -1253,7 +1216,7 @@ name_of_type(StrPart str)
       for(e=s-1; e > str->start && *e == ' '; e--)
 	;
       e[1] = EOS;
-      appendChain(type->context, CtoName(str->start));
+      appendChain(type->context, WCToName(str->start, -1));
       str->start = s+1;
       strip_string(str);
     }
@@ -1267,14 +1230,14 @@ name_of_type(StrPart str)
 
 static Type
 int_range_type(StrPart str)
-{ char *e, *e2;
+{ wchar_t *e, *e2;
   long low, high;
   Type type;
 
   if ( *(e=str->start) == '.' )
     low = PCE_MIN_INT;
   else
-  { low = strtol(str->start, &e, 10);
+  { low = wcstol(str->start, &e, 10);
     if ( e == str->start )
       fail;
   }
@@ -1287,11 +1250,11 @@ int_range_type(StrPart str)
   if ( e == str->end + 1 )
     high = PCE_MAX_INT;
   else
-  { high = strtol(e, &e2, 10);
+  { high = wcstol(e, &e2, 10);
     if ( e2 != str->end+1 )
       fail;
   }
-  type = newObject(ClassType, CtoName(str->start), NAME_intRange, EAV);
+  type = newObject(ClassType, WCToName(str->start, -1), NAME_intRange, EAV);
 
   assign(type, context, newObject(ClassTuple,
 				  toInt(low), toInt(high), EAV));
@@ -1302,24 +1265,24 @@ int_range_type(StrPart str)
 
 static Type
 real_range_type(StrPart str)
-{ char *e0, *e, *e2;
+{ wchar_t *e0, *e, *e2;
   double low, high;
   Type type;
   Real l = NIL, h = NIL;
 
-  low = cstrtod(str->start, &e0);
+  low = wcstod(str->start, &e0);
   for( e=e0; *e == ' '; e++ )
     ;
   if ( e[0] != '.' || e[1] != '.' )
     fail;
   e += 2;
-  high = cstrtod(e, &e2);
+  high = wcstod(e, &e2);
   if ( e2 != str->end+1 )
     fail;
   if ( e2 == e && e0 == str->start )
     fail;				/* no high nor low */
 
-  type = newObject(ClassType, CtoName(str->start), NAME_realRange, EAV);
+  type = newObject(ClassType, WCToName(str->start, -1), NAME_realRange, EAV);
   if ( e2 > e )
     h = CtoReal(high);
   if ( e0 > str->start )
@@ -1332,24 +1295,24 @@ real_range_type(StrPart str)
 
 static Type
 disjunctive_type(StrPart str)
-{ char *s;
+{ wchar_t *s;
 
-  if ( (s = strchr(str->start, '|')) != NULL )
+  if ( (s = wcschr(str->start, '|')) != NULL )
   { Type type;
-    char *e;
-    Name name = CtoName(str->start);
+    wchar_t *e;
+    Name name = WCToName(str->start, -1);
 
     *s = EOS;
-    TRY(type = CtoType(str->start));
+    TRY(type = WCtoType(str->start));
     TRY(type = getCopyType(type, name));
     s++;
-    while( s < str->end && (e = strchr(s, '|')) != NULL )
+    while( s < str->end && (e = wcschr(s, '|')) != NULL )
     { *e = EOS;
-      superType(type, CtoType(s));
+      superType(type, WCtoType(s));
       s = e+1;
     }
     if ( s < str->end )
-      superType(type, CtoType(s));
+      superType(type, WCtoType(s));
 
     return type;
   }
@@ -1360,8 +1323,8 @@ disjunctive_type(StrPart str)
 
 static Type
 kind_type(StrPart str)
-{ char *s;
-  char *e;
+{ wchar_t *s;
+  wchar_t *e;
   Name name, kind;
   Type type;
 
@@ -1374,18 +1337,18 @@ kind_type(StrPart str)
   if ( *e != ':' )
     fail;
 
-  name = CtoName(str->start);
+  name = WCToName(str->start, -1);
   *s = EOS;
-  kind = CtoName(str->start);
+  kind = WCToName(str->start, -1);
   str->start = e + 1;
   strip_string(str);
 
   TRY(type = newObject(ClassType, name, kind, EAV));
 
-  if ( equalName(kind, NAME_alien) )
-    assign(type, context, CtoName(str->start));
-  else if ( equalName(kind, NAME_member) )
-    assign(type, context, CtoType(str->start));
+  if ( kind == NAME_alien )
+    assign(type, context, WCToName(str->start, -1));
+  else if ( kind == NAME_member )
+    assign(type, context, WCtoType(str->start));
   else
   { errorPce(type, NAME_noTypeKind, kind);
     fail;
@@ -1397,8 +1360,8 @@ kind_type(StrPart str)
 
 static Type
 named_type(StrPart str)
-{ char *s;
-  char *e;
+{ wchar_t *s;
+  wchar_t *e;
   Name name, argname;
   Type type, rval;
 
@@ -1407,18 +1370,18 @@ named_type(StrPart str)
 
   for(s = str->start; iscsym(*s); s++)
     ;
-  for(e=s; isblank(*e); e++)
+  for(e=s; iswspace(*e); e++)
     ;
   if ( *e != '=' )
     fail;
 
-  name = CtoName(str->start);
+  name = WCToName(str->start, -1);
   *s = EOS;
-  argname = CtoName(str->start);
+  argname = WCToName(str->start, -1);
   str->start = e + 1;
   strip_string(str);
 
-  TRY(type = CtoType(str->start));
+  TRY(type = WCtoType(str->start));
   TRY(rval = newObject(ClassType, name, NAME_alias, type, EAV));
   assign(rval, vector, type->vector);
   assign(rval, argument_name, argname);
@@ -1442,13 +1405,13 @@ nameToType(Name name)
 
   if ( prefix_string(&str, "alien:") )
   { TRY(type = newObject(ClassType, name, NAME_alien, EAV));
-    assign(type, context, CtoName(str.start));
+    assign(type, context, WCToName(str.start, -1));
 
     return type;
   }
 
   if ( suffix_string(&str, "...") )	/* SimpleType ... */
-  { Name sn = CtoName(str.start);
+  { Name sn = WCToName(str.start, -1);
     Type st;
 
     if ( (st = nameToType(sn)) )
@@ -1479,7 +1442,7 @@ nameToType(Name name)
     }
 
     if ( changed )
-    { Name sn = CtoName(str.start);
+    { Name sn = WCToName(str.start, -1);
       Type st;
 
       if ( (st = nameToType(sn)) )
@@ -1509,7 +1472,7 @@ nameToType(Name name)
       if ( (type = kind_type(&str)) )
 	return type;
 
-      return createClassType(CtoName(str.start));
+      return createClassType(WCToName(str.start, -1));
     }
   }
 

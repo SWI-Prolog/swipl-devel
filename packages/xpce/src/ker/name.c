@@ -514,7 +514,7 @@ character string.
 
 Name
 StringToName(String s)
-{ int hashkey = stringHashValue(s);
+{ int hashkey;
   Name *namep;
   string s2;
   void *do_free = NULL;
@@ -543,7 +543,7 @@ StringToName(String s)
   }
 
 canonical:
-
+  hashkey = stringHashValue(s);
   for( namep = &name_table[hashkey]; *namep; )
   { if ( str_eq(&(*namep)->data, s) )
       answer(*namep);

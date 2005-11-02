@@ -600,13 +600,14 @@ swritefv(int (*out)(void*, wint_t), void *closure,
 	    case 'N':
 	    { if ( argc <= 0 )
 	      { str_set_ascii(&a, "(nil)");
+		a.readonly = TRUE;
 	      } else if ( !toString(argv[0], &a) )
 	      { Any pn;
 
 		ServiceMode(PCE_EXEC_SERVICE,
 			    pn = get(argv[0], NAME_printName, EAV));
 		if ( !(pn && toString(pn, &a)) )
-		  str_set_ascii(&a, pp(argv[0])); /* TBD: wide char version */
+		  str_set_utf8(&a, pp(argv[0]));
 	      }
 
 	    outstr:
@@ -643,7 +644,7 @@ swritefv(int (*out)(void*, wint_t), void *closure,
 	    { if ( argc <= 0 )
 		str_set_ascii(&a, "(nil)");
 	      else
-		str_set_ascii(&a, pp(argv[0])); /* TBD: wide char version */
+		str_set_utf8(&a, pp(argv[0]));
 
 	      goto outstr;
 	    }

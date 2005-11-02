@@ -276,6 +276,7 @@ cpdata(to, from, type, n)
 #define	CtoInt(i)	toInt(i)		/* int --> Int */
 #define CtoName(s)	(Name)cToPceName((s))	/* const char * --> Name */
 #define CtoType(s)	nameToType(CtoName(s))  /* char * --> type object */
+#define WCtoType(s)	nameToType(WCToName(s, -1)) /* wchar_t * --> type object */
 #define	pp(x)		pcePP((Any)(x))		/* interface name */
 #define get             getPCE          	/* avoid common name-conflict */
 #define send            sendPCE         	/* same */
@@ -1536,7 +1537,7 @@ typedef long	AnswerMark;
 #include "../adt/proto.h"
 #include "../rel/proto.h"
 
-#define getSubName(n, f, t) (Name)getSubCharArray((Name)(n), f, t)
+#define getSubName(n, f, t) (Name)getSubCharArray((CharArray)(n), f, t)
 
 					/* Interface callback stubs */
 __pce_export void	Cprintf(const char *fmt, ...);

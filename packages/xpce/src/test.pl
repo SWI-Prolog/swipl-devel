@@ -530,6 +530,20 @@ regex(regex-5) :-			% end-of-line in partial-matches
 
 
 		 /*******************************
+		 *	       TYPES		*
+		 *******************************/
+
+type(type-1) :-
+	get(@pce, convert, '0..3', type, Type),
+	get(Type, kind, int_range),
+	get(Type, context, tuple(0, 3)).
+type(type-2) :-
+	get(@pce, convert, '0.2..32', type, Type),
+	get(Type, kind, real_range),
+	get(Type, context, tuple(0.2, 32.0)).
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -615,6 +629,7 @@ testset(asfile).			% test pce_open and friends
 testset(selection).			% X11 selection
 testset(image).				% Simple image manipulation
 testset(regex).				% Regular expression matches
+testset(type).				% Check type logic
 
 %	testdir(Dir)
 %	

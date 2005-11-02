@@ -26,6 +26,7 @@
 #include <h/graphics.h>
 #include <h/lang.h>
 #include <h/unix.h>
+#include <h/text.h>
 
 static status	 contextClassVariable(ClassVariable cv, Class context);
 static StringObj getDefault(Class class, Name name, int accept_default);
@@ -451,13 +452,30 @@ refine_class_variable(Class cl, const char *name_s, const char *def)
 
 static Name
 getManIdClassVariable(ClassVariable cv)
-{ char buf[LINESIZE];
+{ wchar_t buf[LINESIZE];
+  wchar_t *nm, *o;
+  Name ctx = ((Class)cv->context)->name;
+  int len;
+  Name rc;
 
-  sprintf(buf, "R.%s.%s",
-	  strName(((Class)cv->context)->name),
-	  strName(cv->name));
+  len = 4 + ctx->data.size + cv->name->data.size;
+  if ( len < LINESIZE )
+    nm = buf;
+  else
+    nm = pceMalloc(sizeof(wchar_t)*len);
 
-  answer(CtoName(buf));
+  o = nm;
+  *o++ = 'R';
+  *o++ = '.';
+  wcscpy(o, nameToWC(ctx, &len)); o += len;
+  *o++ = '.';
+  wcscpy(o, nameToWC(cv->name, &len)); o += len;
+
+  rc = WCToName(nm, o-nm);
+  if ( nm != buf )
+    pceFree(nm);
+
+  answer(rc);
 }
 
 
@@ -469,38 +487,58 @@ getManIndicatorClassVariable(ClassVariable cv)
 
 static StringObj
 getManSummaryClassVariable(ClassVariable cv)
-{ char buf[LINESIZE];
+{ TextBuffer tb;
+  StringObj str;
   StringObj tmp;
 
-  buf[0] = EOS;
-  strcat(buf, "R\t");
+  tb = newObject(ClassTextBuffer, EAV);
+  tb->undo_buffer_size = ZERO;
+  CAppendTextBuffer(tb, "R\t");
 
-  strcat(buf, strName(((Class)cv->context)->name));
-  strcat(buf, ".");
-  strcat(buf, strName(cv->name));
-  strcat(buf, ": ");
-  strcat(buf, strName(getCapitaliseName(cv->type->fullname)));
+  appendTextBuffer(tb, (CharArray)((Class)cv->context)->name, ONE);
+  CAppendTextBuffer(tb, ".");
+  appendTextBuffer(tb, (CharArray)cv->name, ONE);
+  CAppendTextBuffer(tb, ": ");
+  appendTextBuffer(tb, (CharArray)getCapitaliseName(cv->type->fullname), ONE);
 
   if ( (tmp = getSummaryClassVariable(cv)) )
-  { strcat(buf, "\t");
-    strcat(buf, strName(tmp));
+  { CAppendTextBuffer(tb, "\t");
+    appendTextBuffer(tb, (CharArray)tmp, ONE);
   }
   if ( send(cv, NAME_hasHelp, EAV) )
-    strcat(buf, " (+)");
+    CAppendTextBuffer(tb, " (+)");
 
-  answer(CtoString(buf));
+  str = getContentsTextBuffer(tb, ZERO, DEFAULT);
+  doneObject(tb);
+
+  answer(str);
 }
 
 
 static Name
 getPrintNameClassVariable(ClassVariable cv)
-{ char buf[LINESIZE];
+{ wchar_t buf[LINESIZE];
+  wchar_t *nm, *o;
+  Name ctx = ((Class)cv->context)->name;
+  int len;
+  Name rc;
+  
+  len = 2 + ctx->data.size + cv->name->data.size;
+  if ( len < LINESIZE )
+    nm = buf;
+  else
+    nm = pceMalloc(sizeof(wchar_t)*len);
 
-  sprintf(buf, "%s.%s",
-	  strName(((Class)cv->context)->name),
-	  strName(cv->name));
+  o = nm;
+  wcscpy(o, nameToWC(ctx, &len)); o += len;
+  *o++ = '.';
+  wcscpy(o, nameToWC(cv->name, &len)); o += len;
 
-  answer(CtoName(buf));
+  rc = WCToName(nm, o-nm);
+  if ( nm != buf )
+    pceFree(nm);
+
+  answer(rc);
 }
 
 

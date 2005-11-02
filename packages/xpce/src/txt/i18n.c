@@ -398,6 +398,9 @@ WCToName(const wchar_t *wc, size_t len)
 { if ( wc )
   { string s;
 
+    if ( len == (size_t)-1 )
+      len = wcslen(wc);
+
     str_set_n_wchar(&s, len, (wchar_t *)wc);
 
     return StringToName(&s);

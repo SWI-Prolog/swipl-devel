@@ -28,6 +28,7 @@
 #include <h/interface.h>
 #include <itf/c.h>
 #include <h/unix.h>
+#include <h/text.h>
 
 static status	typesMethod(Method m, Vector types);
 static Name	getContextNameMethod(Method m);
@@ -311,14 +312,34 @@ getSummaryMethod(Method m)
 #ifndef O_RUNTIME
 static Name
 getManIdMethod(Method m)
-{ char buf[LINESIZE];
+{ wchar_t buf[LINESIZE];
+  wchar_t *nm, *o;
+  Name ctx = getContextNameMethod(m);
+  int len;
+  Name rc;
 
-  sprintf(buf, "M.%s.%c.%s",
-	  strName(getContextNameMethod(m)),
-	  instanceOfObject(m, ClassSendMethod) ? 'S' : 'G',
-	  strName(m->name));
+  len = 6 + ctx->data.size + m->name->data.size;
+  if ( len < LINESIZE )
+    nm = buf;
+  else
+    nm = pceMalloc(sizeof(wchar_t)*len);
+  
+  o = nm;
+  *o++ = 'M';
+  *o++ = '.';
+  wcscpy(o, nameToWC(ctx, &len));
+  o += len;
+  *o++ = '.';
+  *o++ = instanceOfObject(m, ClassSendMethod) ? 'S' : 'G';
+  *o++ = '.';
+  wcscpy(o, nameToWC(m->name, &len));
+  o += len;
 
-  answer(CtoName(buf));
+  rc = WCToName(nm, o-nm);
+  if ( nm != buf )
+    pceFree(nm);
+
+  answer(rc);
 }
 
 
@@ -330,50 +351,53 @@ getManIndicatorMethod(Method m)
 
 static StringObj
 getManSummaryMethod(Method m)
-{ char buf[LINESIZE];
+{ TextBuffer tb;
+  StringObj str;
   Vector types = m->types;
   StringObj s;
-  char *e;
 
-  buf[0] = EOS;
-  strcat(buf, "M\t");
+  tb = newObject(ClassTextBuffer, EAV);
+  tb->undo_buffer_size = ZERO;
+  CAppendTextBuffer(tb, "M\t");
 
-  strcat(buf, strName(getContextNameMethod(m)));
-  strcat(buf, " ");
+  appendTextBuffer(tb, (CharArray)getContextNameMethod(m), ONE);
+  CAppendTextBuffer(tb, " ");
   
-  strcat(buf, strName(getAccessArrowMethod(m)));
-  strcat(buf, strName(m->name));
+  appendTextBuffer(tb, (CharArray)getAccessArrowMethod(m), ONE);
+  appendTextBuffer(tb, (CharArray)m->name, ONE);
 
-  e = buf + strlen(buf);
   if ( types->size != ZERO )
   { int i;
 
-    strcat(e, ": ");
+    CAppendTextBuffer(tb, ": ");
     for(i = 1; i <= valInt(types->size); i++)
     { Type t = getElementVector(types, toInt(i));
 
       if ( i != 1 )
-	strcat(e, ", ");
+	CAppendTextBuffer(tb, ", ");
 
-      strcat(e, strName(t->fullname));
+      appendTextBuffer(tb, (CharArray)t->fullname, ONE);
     }
   }
 
   if ( instanceOfObject(m, ClassGetMethod) )
   { GetMethod gm = (GetMethod) m;
 
-    strcat(e, " -->");
-    strcat(e, strName(gm->return_type->fullname));
+    CAppendTextBuffer(tb, " -->");
+    appendTextBuffer(tb, (CharArray)gm->return_type->fullname, ONE);
   }
 
   if ( (s = getSummaryMethod(m)) )
-  { strcat(buf, "\t");
-    strcat(buf, strName(s));
+  { CAppendTextBuffer(tb, "\t");
+    appendTextBuffer(tb, (CharArray)s, ONE);
   }
   if ( send(m, NAME_hasHelp, EAV) )
-    strcat(buf, " (+)");
+    CAppendTextBuffer(tb, " (+)");
 
-  answer(CtoString(buf));
+  str = getContentsTextBuffer(tb, ZERO, DEFAULT);
+  doneObject(tb);
+
+  answer(str);
 }
 
 #else

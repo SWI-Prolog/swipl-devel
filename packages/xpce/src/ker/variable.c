@@ -24,6 +24,7 @@
 
 #include <h/kernel.h>
 #include <h/trace.h>
+#include <h/text.h>
 
 static status	initialiseVariable(Variable var, Name name, Type type,
 				   Name access, StringObj doc, Name group,
@@ -373,13 +374,32 @@ getContextNameVariable(Variable v)
 #ifndef O_RUNTIME
 static Name
 getManIdVariable(Variable v)
-{ char buf[LINESIZE];
+{ wchar_t buf[LINESIZE];
+  wchar_t *nm, *o;
+  Name ctx = getContextNameVariable(v);
+  int len;
+  Name rc;
 
-  sprintf(buf, "V.%s.%s",
-	  strName(getContextNameVariable(v)),
-	  strName(v->name));
+  len = 4 + ctx->data.size + v->name->data.size;
+  if ( len < LINESIZE )
+    nm = buf;
+  else
+    nm = pceMalloc(sizeof(wchar_t)*len);
+  
+  o = nm;
+  *o++ = 'V';
+  *o++ = '.';
+  wcscpy(o, nameToWC(ctx, &len));
+  o += len;
+  *o++ = '.';
+  wcscpy(o, nameToWC(v->name, &len));
+  o += len;
 
-  answer(CtoName(buf));
+  rc = WCToName(nm, o-nm);
+  if ( nm != buf )
+    pceFree(nm);
+
+  answer(rc);
 }
 
 
@@ -391,44 +411,64 @@ getManIndicatorVariable(Variable v)
 
 static StringObj
 getManSummaryVariable(Variable v)
-{ char buf[LINESIZE];
+{ TextBuffer tb;
+  StringObj str;
 
-  buf[0] = EOS;
-  strcat(buf, "V\t");
+  tb = newObject(ClassTextBuffer, EAV);
+  tb->undo_buffer_size = ZERO;
+  CAppendTextBuffer(tb, "V\t");
 
   if ( instanceOfObject(v->context, ClassClass) )
   { Class class = v->context;
 
-    strcat(buf, strName(class->name));
-    strcat(buf, " ");
+    appendTextBuffer(tb, (CharArray)class->name, ONE);
+    CAppendTextBuffer(tb, " ");
   }
   
-  strcat(buf, strName(getAccessArrowVariable(v)));
-  strcat(buf, strName(v->name));
-  strcat(buf, ": ");
-  strcat(buf, strName(v->type->fullname));
+  appendTextBuffer(tb, (CharArray)getAccessArrowVariable(v), ONE);
+  appendTextBuffer(tb, (CharArray)v->name, ONE);
+  CAppendTextBuffer(tb, ": ");
+  appendTextBuffer(tb, (CharArray)v->type->fullname, ONE);
   if ( notNil(v->summary) )
-  { strcat(buf, "\t");
-    strcat(buf, strName(v->summary));
+  { CAppendTextBuffer(tb, "\t");
+    appendTextBuffer(tb, (CharArray)v->summary, ONE);
   }
   if ( send(v, NAME_hasHelp, EAV) )
-    strcat(buf, " (+)");
+    CAppendTextBuffer(tb, " (+)");
 
-  answer(CtoString(buf));
+  str = getContentsTextBuffer(tb, ZERO, DEFAULT);
+  doneObject(tb);
+
+  answer(str);
 }
 #endif /*O_RUNTIME*/
 
 
 static Name
 getPrintNameVariable(Variable var)
-{ char buf[LINESIZE];
+{ wchar_t buf[LINESIZE];
+  wchar_t *nm, *o;
+  Name ctx = getContextNameVariable(var);
+  int len;
+  Name rc;
 
-  sprintf(buf, "%s %s%s",
-	  strName(getContextNameVariable(var)),
-	  strName(getAccessArrowVariable(var)),
-	  strName(var->name));
+  len = 5 + ctx->data.size + var->name->data.size;
+  if ( len < LINESIZE )
+    nm = buf;
+  else
+    nm = pceMalloc(sizeof(wchar_t)*len);
+  
+  o = nm;
+  wcscpy(o, nameToWC(ctx, &len)); o += len;
+  *o++ = ' ';
+  wcscpy(o, nameToWC(getAccessArrowVariable(var), &len)); o += len;
+  wcscpy(o, nameToWC(var->name, &len)); o += len;
+  
+  rc = WCToName(nm, o-nm);
+  if ( nm != buf )
+    pceFree(nm);
 
-  answer(CtoName(buf));
+  answer(rc);
 }
 
 

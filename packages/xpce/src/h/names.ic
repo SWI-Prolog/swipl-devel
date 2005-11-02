@@ -2190,6 +2190,7 @@
   BUILTIN_NAME("twips")
   BUILTIN_NAME("type")
   BUILTIN_NAME("type_loop")
+  BUILTIN_NAME("type_name_too_long")
   BUILTIN_NAME("typed")
   BUILTIN_NAME("types")
   BUILTIN_NAME("un_answer")

@@ -347,6 +347,22 @@ insertTextBuffer(TextBuffer tb, Int where, CharArray ca, Int times)
 
 
 status
+CAppendTextBuffer(TextBuffer tb, const char *text)
+{ string s;
+
+  str_set_ascii(&s, text);
+  insert_textbuffer_shift(tb,
+			  tb->size,
+			  1,
+			  &s,
+			  FALSE);
+
+  return changedTextBuffer(tb);
+
+}
+
+
+status
 appendTextBuffer(TextBuffer tb, CharArray ca, Int times)
 { if ( isDefault(times) )
     times = ONE;

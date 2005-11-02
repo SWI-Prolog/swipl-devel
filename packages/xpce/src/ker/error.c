@@ -560,6 +560,8 @@ static const error_def errors[] =
     "%IReference-count of %O drops below zero" },
   { NAME_stringTooLong,		ET_FATAL,
     "%O: string too long (%d; max = 134217727)" },
+  { NAME_typeNameTooLong,	ET_FATAL,
+    "%O: type name too long (max = %d)" },
   { NAME_maxRecordSize,		0,
     "%O: max record-size is %d" },
 
