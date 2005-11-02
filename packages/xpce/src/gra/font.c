@@ -30,16 +30,20 @@ static Int	getPointsFont(FontObj f);
 
 static Name
 fontName(Name family, Name style, Int points)
-{ char buf[100];
-  char *s;
+{ string s;
+  Any av[3];
+  Name rc;
 
-  s = strcpyskip(buf, strName(family));
-  *s++ = '_';
-  s = strcpyskip(s, strName(style));
-  if ( notDefault(points) )
-    sprintf(s, "_%ld", valInt(points));
+  av[0] = family;
+  av[1] = style;
+  av[2] = points;
 
-  return CtoKeyword(buf);
+  str_writefv(&s, (CharArray)CtoTempString("%s_%s_%d"), 3, av);
+  
+  rc = StringToName(&s);
+  str_unalloc(&s);
+
+  return rc;
 }
 
 
