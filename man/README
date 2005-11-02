@@ -36,3 +36,31 @@ Summaries
 For each described predicate  there  MUST  be   an  entry  in  the  file
 summary.doc.  Note  that  the  content   of    this   file   is  ordered
 alphabetically.
+
+Documenting libraries
+---------------------
+
+Libraries are documented in their own file  in the lib subdirectory. The
+library file has to be added to  the input statements of lib/library.doc
+and the LIBFILES macro of the Makefile.   The summary of libraries is in
+the file lib/summary.doc. Please update   this  with summary information
+for your library.
+
+Generating the documentation
+----------------------------
+
+You need a recent latex installation,  including pdflatex. We use teTeX.
+You also need to install the fixed-width font libraries available in the
+txt subdirectory. The README there explains how this must be installed.
+
+For the HTML, you also need to install the Prolog based latex2html. This
+is available in ../packages/ltx2html. After   installing Prolog and with
+Prolog in your PATH, a simple "make   install" should suffice to install
+this in $HOME/bin
+
+Targets:
+
+	make online	- Generate the library/MANUAL file and index
+	make pdf	- Generate MANUAL.pdf
+	make html	- Generate the HTML version
+	make clean	- Remove generated intermediate files.
