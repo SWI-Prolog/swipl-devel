@@ -133,6 +133,18 @@ linkSubClass(Class super, Class sub)
 }
 
 
+static void
+defaultAssocClass(Class class)
+{ static Name suffix;
+
+  if ( !suffix )
+    suffix = CtoName("_class");
+
+  newAssoc(getAppendName(class->name, suffix), class);
+}
+
+
+
 Class
 defineClass(Name name, Name super, StringObj summary, SendFunc makefunction)
 { Class class, superclass;
@@ -155,15 +167,7 @@ defineClass(Name name, Name super, StringObj summary, SendFunc makefunction)
     assign(class, sub_classes, NIL);
 
   assign(class, realised, OFF);
-  { char tmp[LINESIZE];
-    char *s, *d = tmp;
-
-    appendHashTable(classTable, class->name, class);
-    for(s = strName(class->name); (*d++ = *s++); );
-    d--;
-    for(s = "_class"; (*d++ = *s++); );
-    newAssoc(CtoKeyword(tmp), class);
-  }
+  defaultAssocClass(class);
   appendHashTable(classTable, name, class);
   protectObject(class);
   createdObject(class, NAME_new);
@@ -360,13 +364,8 @@ fill_slots_class(Class class, Class super)
     assign(class, freed_messages,       NIL);
   }
 
-  { char tmp[LINESIZE];
-
-    appendHashTable(classTable, class->name, class);
-    sprintf(tmp, "%s_class", strName(class->name));
-    newAssoc(CtoKeyword(tmp), class);
-  }
-
+  defaultAssocClass(class);
+  appendHashTable(classTable, class->name, class);
   protectObject(class);
 
   succeed;
