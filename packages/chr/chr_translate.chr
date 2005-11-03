@@ -248,6 +248,7 @@ get_constraint_mode(FA,Q) <=>
 
 %%% M A Y   T R I G G E R %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+may_trigger(FA) <=> \+ has_active_occurrence(FA) | fail.
 constraint_mode(FA,Mode), indexed_argument(FA,I) \ may_trigger(FA) <=> 
   nth(I,Mode,M),
   M \== (+) |
@@ -3006,8 +3007,8 @@ constraint_code(Constraint, L, T)
 constraint_prelude(F/A, Clause) :-
 	vars_susp(A,Vars,Susp,VarsSusp),
 	Head =.. [ F | Vars],
+	make_suspension_continuation_goal(F/A,VarsSusp,Continuation),
 	build_head(F,A,[0],VarsSusp,Delegate),
-	get_target_module(Mod),
 	FTerm =.. [F|Vars],
 	( chr_pp_flag(debugable,on) ->
 		use_auxiliary_predicate(insert_constraint_internal),
@@ -3017,7 +3018,7 @@ constraint_prelude(F/A, Clause) :-
                 Inactive = (arg(2,Susp,Mutable), 'chr update_mutable'(inactive,Mutable)),	
 		Clause = 
 			( Head :-
-				insert_constraint_internal(Stored,Vars2,Susp,Mod:Delegate,FTerm,Vars),
+				insert_constraint_internal(Stored,Vars2,Susp,Continuation,FTerm,Vars),
 				InsertCall,
 				AttachCall,
 				Inactive,
@@ -3042,6 +3043,15 @@ constraint_prelude(F/A, Clause) :-
 	;
 		Clause = ( Head  :- Delegate )
 	). 
+
+make_suspension_continuation_goal(F/A,VarsSusp,Goal) :-
+	( may_trigger(F/A) ->
+		get_target_module(Mod),
+		build_head(F,A,[0],VarsSusp,Delegate),
+		Goal = Mod:Delegate
+	;
+		Goal = true
+	).
 
 %===============================================================================
 constraints has_active_occurrence/1, has_active_occurrence/2.
@@ -3097,14 +3107,13 @@ is_used_auxiliary_predicate(P) <=> fail.
 
 gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	vars_susp(A,Args,Susp,AllArgs),
-	build_head(F,A,[0],AllArgs,Closure),
+	make_suspension_continuation_goal(F/A,AllArgs,Closure),
 	( may_trigger(F/A) ->
 		make_name('attach_',F/A,AttachF),
 		Attach =.. [AttachF,Vars,Susp]
 	;
 		Attach = true
 	),
-	get_target_module(Mod),
 	FTerm =.. [F|Args],
 	generate_insert_constraint_call(F/A,Susp,InsertCall),
 	use_auxiliary_predicate(insert_constraint_internal),
@@ -3112,7 +3121,7 @@ gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	Goal =
 	(
 		( var(Susp) ->
-			insert_constraint_internal(Stored,Vars,Susp,Mod:Closure,FTerm,Args)
+			insert_constraint_internal(Stored,Vars,Susp,Closure,FTerm,Args)
 		; 
 			activate_constraint(Stored,Vars,Susp,_)
 		),
@@ -3126,15 +3135,12 @@ gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 
 gen_insert_constraint_internal_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	vars_susp(A,Args,Susp,AllArgs),
+	make_suspension_continuation_goal(F/A,AllArgs,Cont),
 	( may_trigger(F/A) ->
 		make_name('attach_',F/A,AttachF),
-		Attach =.. [AttachF,Vars,Susp],
-		build_head(F,A,[0],AllArgs,Closure),
-		get_target_module(Mod),
-		Cont = Mod : Closure
+		Attach =.. [AttachF,Vars,Susp]
 	;
-		Attach = true,
-		Cont = true
+		Attach = true
 	),
 	FTerm =.. [F|Args],
 	generate_insert_constraint_call(F/A,Susp,InsertCall),

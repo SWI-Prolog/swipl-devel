@@ -1,6 +1,7 @@
 Nov 3, 2005
 
   * TS: Removed strip_attributes code.
+  * TS: Fixed bug that causes new constraints to be added on triggering.
 
 Oct 25, 2005
 
