@@ -2022,10 +2022,7 @@ rule(N,Rule) \ prev_guard_list(RuleNb,N,H,G,GuardList,M,GH) <=>
     H1 \== [], 
     append(H1,H2,Heads),
     make_head_matchings_explicit(Heads,UniqueVarsHeads,Matchings),
-    term_variables(UniqueVarsHeads+H,HVars),
-    strip_attributes(HVars,HVarAttrs),	% this seems to be necessairy to get past the setof
     setof(Renaming,chr_translate:head_subset(UniqueVarsHeads,H,Renaming),Renamings),
-    restore_attributes(HVars,HVarAttrs),
     Renamings \= []
     |
     compute_derived_info(Matchings,Renamings,UniqueVarsHeads,Heads,G2,M,H,GH,DerivedInfo,GH_New1),
