@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * FIXED: QLF and saved-state handling of big clauses (>65000 VM
+    codes).  Matt Lilley.
+
   * ADDED: functions lsb/1 and popcount/1 to improve support for handling
     GMP numbers as bitvectors.  Enhanced clp_distinct.pl to use these
     functions.  Suggested by Markus Triska.

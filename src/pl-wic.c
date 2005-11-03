@@ -983,7 +983,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 
 	DEBUG(2, Sdprintf("."));
 	clause = (Clause) allocHeap(sizeofClause(ncodes));
-	clause->code_size = (unsigned short) ncodes;
+	clause->code_size = (unsigned int) ncodes;
 	clause->line_no = (unsigned short) getInt(fd);
 
 	{ SourceFile sf = (void *) loadXR(fd);
@@ -1015,7 +1015,8 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	  int n = 0;
 	  int narg = codeTable[op].arguments;
 	  
-	  DEBUG(3, Sdprintf("\t%s (%d args)\n", codeTable[op].name, narg));
+	  DEBUG(3, Sdprintf("\t%s (%d args) from %ld\n",
+			    codeTable[op].name, narg, Stell(fd)));
 	  *bp++ = encode(op);
 	  switch(codeTable[op].argtype)
 	  { case CA1_PROC:
@@ -1691,6 +1692,9 @@ saveWicClause(Clause clause, IOSTREAM *fd)
     int n = 0;
 
     putNum(op, fd);
+    DEBUG(3, Sdprintf("\t%s (%d args) at %ld\n", 
+		      codeTable[op].name, codeTable[op].arguments,
+		      Stell(fd)));
     switch(codeTable[op].argtype)
     { case CA1_PROC:
       { Procedure p = (Procedure) *bp++;
