@@ -2,6 +2,8 @@
 			   ==============
 
 
+* FIXED: Bug#117: new(X, 9).  Dmitry.
+
 * FIXED: Bug#108: Unicode support in the classes type, class and method
   to allow for unicode names in programming.  New code also fixes
   potential buffer overruns caused by invalid programs.  Dmitry.

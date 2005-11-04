@@ -1553,7 +1553,11 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 					/* PL_get_integer() translates */
 					/* `whole' floats to integers */
     if ( PL_is_integer(t) && GetInteger(t, &r) )
+    { if ( new )
+	goto type_error;
+
       return cToPceInteger(r);
+    }
 
 #ifdef O_STRING
   { char *s;
@@ -1571,6 +1575,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
       return cToPceReal(f);
 
 					/* anything else */
+  type_error:
     ThrowException(EX_TYPE, ATOM_object, t);
     return PCE_FAIL;
   }
