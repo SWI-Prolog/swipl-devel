@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: plld: schedule .a files with the libraries.  Roberto Bagnara.
+
   * FIXED: Bug#116: shell/0 on Windows.  Dmitry.
 
   * FIXED: QLF and saved-state handling of big clauses (>65000 VM

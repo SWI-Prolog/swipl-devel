@@ -510,7 +510,7 @@ static extdef extdefs[] =
 #ifdef WIN32
   { "lib",	&libs },
 #else
-  { "a",	&ofiles },
+  { "a",	&libs },
 #endif
   { "c",	&cfiles },
   { "cpp",	&cppfiles },
