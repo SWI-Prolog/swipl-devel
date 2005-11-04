@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: Bug#116: shell/0 on Windows.  Dmitry.
+
   * FIXED: QLF and saved-state handling of big clauses (>65000 VM
     codes).  Matt Lilley.
 

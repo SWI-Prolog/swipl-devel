@@ -650,8 +650,11 @@ shell(Command) :-
 	shell(Command, 0).
 
 shell :-
-	getenv('SHELL', Shell), !,
+	getenv('SHELL', Shell), !,	% Unix, also Cygwin
 	shell(Shell).
+shell :-
+	getenv(comspec, ComSpec), !,	% Windows
+	shell(ComSpec).
 shell :-
 	shell('/bin/sh').
 
