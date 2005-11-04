@@ -3127,18 +3127,27 @@ gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	generate_insert_constraint_call(F/A,Susp,InsertCall),
 	use_auxiliary_predicate(insert_constraint_internal),
 	use_auxiliary_predicate(activate_constraint),
-	Goal =
-	(
-		( var(Susp) ->
-			insert_constraint_internal(Stored,Vars,Susp,Closure,FTerm,Args)
-		; 
-			activate_constraint(Stored,Vars,Susp,_)
-		),
-		( Stored == yes ->
+	( has_active_occurrence(F/A) ->
+		Goal =
+		(
+			( var(Susp) ->
+				insert_constraint_internal(Stored,Vars,Susp,Closure,FTerm,Args)
+			; 
+				activate_constraint(Stored,Vars,Susp,_)
+			),
+			( Stored == yes ->
+				InsertCall,	
+				Attach
+			;
+				true
+			)
+		)
+	;
+		Goal =
+		(
+			insert_constraint_internal(Stored,Vars,Susp,Closure,FTerm,Args),
 			InsertCall,	
 			Attach
-		;
-			true
 		)
 	).
 

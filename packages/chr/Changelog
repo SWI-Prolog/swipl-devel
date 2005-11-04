@@ -1,5 +1,7 @@
 Nov 4, 2005
 
+  * TS: Small optimization of code for constraints
+	without any active occurrence.
   * TS: Fixed bug caused by previous bug fix:
         added only_ground_indexed_arguments/1 test
 	to separate out that meaning from may_trigger/1.
