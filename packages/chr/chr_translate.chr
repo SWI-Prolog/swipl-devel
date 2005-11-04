@@ -410,7 +410,7 @@ set_constraint_indices([],M) :-
 	N is M - 1,
 	max_constraint_index(N).
 set_constraint_indices([C|Cs],N) :-
-	( ( chr_pp_flag(debugable, on) ; may_trigger(C) ;  is_stored(C), get_store_type(C,default)) ->
+	( ( chr_pp_flag(debugable, on) ; \+ only_ground_indexed_arguments(C) ;  is_stored(C), get_store_type(C,default)) ->
 		constraint_index(C,N),
 		M is N + 1,
 		set_constraint_indices(Cs,M)
@@ -1068,7 +1068,7 @@ late_allocation([C|Cs]) :-
 %%	attach_$CONSTRAINT
 generate_attach_detach_a_constraint_all([],[]).
 generate_attach_detach_a_constraint_all([Constraint|Constraints],Clauses) :-
-	( ( chr_pp_flag(debugable,on) ; may_trigger(Constraint)) ->
+	( ( chr_pp_flag(debugable,on) ; \+ only_ground_indexed_arguments(Constraint)) ->
 		generate_attach_a_constraint(Constraint,Clauses1),
 		generate_detach_a_constraint(Constraint,Clauses2)
 	;
@@ -1270,7 +1270,7 @@ generate_detach_body_n(F/A,Var,Susp,Body) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 generate_indexed_variables_clauses(Constraints,Clauses) :-
-	( forsome(C,Constraints,chr_translate:may_trigger(C)) ->
+	( forsome(C,Constraints,\+ chr_translate:only_ground_indexed_arguments(C)) ->
 		generate_indexed_variables_clauses_(Constraints,Clauses)
 	;
 		Clauses = []
@@ -1441,7 +1441,7 @@ global_indexed_variables_clause(Constraints,List,Tail) :-
 	( is_used_auxiliary_predicate(chr_indexed_variables) ->
 		List = [Clause|Tail],
 		( chr_pp_flag(reduced_indexing,on) ->
-			( forsome(C,Constraints,chr_translate:may_trigger(C)) ->
+			( forsome(C,Constraints,\+ chr_translate:only_ground_indexed_arguments(C)) ->
 				Body = (Susp =.. [_,_,_,_,_,_,Term|_], '$indexed_variables'(Term,Vars))
 			;
 				Body = true,
@@ -3081,10 +3081,10 @@ gen_cond_attach_clause(F/A,Id,L,T) :-
 		get_allocation_occurrence(F/A,AllocationOccurrence),
 		get_max_occurrence(F/A,MaxOccurrence),
 		( chr_pp_flag(debugable,off), MaxOccurrence < AllocationOccurrence ->
-			( may_trigger(F/A) ->
-				gen_cond_attach_goal(F/A,Body,AllArgs,Args,Susp)
-			;
+			( only_ground_indexed_arguments(F/A) ->
 				gen_insert_constraint_internal_goal(F/A,Body,AllArgs,Args,Susp)
+			;
+				gen_cond_attach_goal(F/A,Body,AllArgs,Args,Susp)
 			)
 		; 	vars_susp(A,Args,Susp,AllArgs),
 			gen_uncond_attach_goal(F/A,Susp,Body,_)
@@ -3117,11 +3117,11 @@ is_used_auxiliary_predicate(P) <=> fail.
 gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	vars_susp(A,Args,Susp,AllArgs),
 	make_suspension_continuation_goal(F/A,AllArgs,Closure),
-	( may_trigger(F/A) ->
+	( only_ground_indexed_arguments(F/A) ->
+		Attach = true
+	;
 		make_name('attach_',F/A,AttachF),
 		Attach =.. [AttachF,Vars,Susp]
-	;
-		Attach = true
 	),
 	FTerm =.. [F|Args],
 	generate_insert_constraint_call(F/A,Susp,InsertCall),
@@ -3145,7 +3145,7 @@ gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 gen_insert_constraint_internal_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	vars_susp(A,Args,Susp,AllArgs),
 	make_suspension_continuation_goal(F/A,AllArgs,Cont),
-	( may_trigger(F/A) ->
+	( \+ only_ground_indexed_arguments(F/A) ->
 		make_name('attach_',F/A,AttachF),
 		Attach =.. [AttachF,Vars,Susp]
 	;
@@ -3162,7 +3162,7 @@ gen_insert_constraint_internal_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	).
 
 gen_uncond_attach_goal(FA,Susp,AttachGoal,Generation) :-
-	( may_trigger(FA) ->
+	( \+ only_ground_indexed_arguments(FA) ->
 		make_name('attach_',FA,AttachF),
 		Attach =.. [AttachF,Vars,Susp]
 	;
@@ -3887,7 +3887,7 @@ gen_cond_susp_detachment(Id,Susp,FA,SuspDetachment) :-
 		  (get_allocation_occurrence(FA,AO),
 		   get_max_occurrence(FA,MO), 
 		   MO < AO )), 
-		  \+ may_trigger(FA), chr_pp_flag(late_allocation,on) ->
+		  only_ground_indexed_arguments(FA), chr_pp_flag(late_allocation,on) ->
 			SuspDetachment = true
 		;
 			gen_uncond_susp_detachment(Susp,FA,UnCondSuspDetachment),
@@ -3907,7 +3907,7 @@ gen_cond_susp_detachment(Id,Susp,FA,SuspDetachment) :-
 
 gen_uncond_susp_detachment(Susp,FA,SuspDetachment) :-
    ( is_stored(FA) ->
-	( may_trigger(FA) ->
+	( \+ only_ground_indexed_arguments(FA) ->
 		make_name('detach_',FA,Fct),
 		Detach =.. [Fct,Vars,Susp]
 	;

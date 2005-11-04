@@ -9,4 +9,4 @@ option(optimize,full).
 a(X) # ID, b(X) <=> true pragma passive(ID).
 
 passive_check :-
-	a(X).
+	a(_).
