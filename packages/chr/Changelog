@@ -1,3 +1,9 @@
+Nov 4, 2005
+
+  * TS: Fixed bug caused by previous bug fix:
+        added only_ground_indexed_arguments/1 test
+	to separate out that meaning from may_trigger/1.
+
 Nov 3, 2005
 
   * TS: Removed strip_attributes code.
