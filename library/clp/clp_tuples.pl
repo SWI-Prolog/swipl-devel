@@ -33,84 +33,47 @@
 
 :- module(clp_tuples,
 	[
-		tuples_in/2,
-		tuples_in/3
+		tuples_in/2
 	]).
 
 :- use_module(library('clp/bounds')).
-:- use_module(library('clp/clp_events')).
-
-   % Entry point for notifications by bounds.pl Similar to attr_unify_hook/2.
-
-notify_hook(T) :-
-	( var(T) ->
-		get_attr(T, clp_tuples, rel_tuple(Relation,Tuple)),
-		relation_unifiable_(Relation, Tuple, Us),
-		Us \= [],
-		( Us = [Single] ->
-			Single = Tuple
-		; Us == Relation ->
-			true
-		;
-			put_attr(T, clp_tuples, rel_tuple(Us,Tuple)),
-			update_tuplevars(Tuple, Tuple, Us),
-			tuple_domain(Tuple, Us)
-		)
-	;
-		true
-	).
 
 
-
-   % A tuple variable was unified with Y. Find the tuples in relation that
-   % the new resulting tuple can still be unified with and update all other
-   % tuple variables accordingly.
-
-attr_unify_hook(rel_tuple(Relation,Tuple), Y) :-
-	%format("val: ~w tuple: ~w\n", [Y, Tuple]),
+trigger_exps([]).
+trigger_exps([rel_tuple(Relation,Tuple)|Es]) :-
 	( ground(Tuple) ->
 		memberchk(Tuple, Relation)
 	;
-		relation_unifiable_(Relation, Tuple, Us),
+		relation_unifiable(Relation, Tuple, Us),
 		Us \= [],
 		( Us = [Single] ->
 			Tuple = Single
 		;
-			( var(Y) ->
-				put_attr(Y, clp_tuples, rel_tuple(Us,Tuple))
-			;
-				true
-			),
-			( Us == Relation ->
-				true
-			;
-				update_tuplevars(Tuple, Tuple, Us),
-				tuple_domain(Tuple, Us)
-			)
+			tuple_domain(Tuple, Us)
 		)
-	).
+	),
+	trigger_exps(Es).
 
-update_tuplevars([], _, _).
-update_tuplevars([T|Ts], Tuple, Relation) :-
-	( var(T) ->
-		put_attr(T, clp_tuples, rel_tuple(Relation, Tuple))
+
+attr_unify_hook(tuples(Exps), Y) :-
+	trigger_exps(Exps),
+	( var(Y) ->
+		( get_attr(Y, clp_tuples, tuples(YExps)) ->
+			append(Exps, YExps, NExps)
+		;
+			NExps = Exps
+		),
+		put_attr(Y, clp_tuples, tuples(NExps))
 	;
 		true
-	),
-	update_tuplevars(Ts, Tuple, Relation).
+	).
+
 
 tuples_in(Tuples, Relation) :-
-	tuples_in(Tuples, Relation, []).
-
-tuples_in(Tuples, Relation, Opts) :-
 	ground(Relation),
 	bind_unique(Tuples, Relation),
-	( memberchk(propagate(full), Opts) ->
-		full_tuples_constrain(Tuples, Relation, Opts)
-	;
-		approx_tuples_domain(Tuples, Relation),
-		tuples_freeze(Tuples, Relation, Opts)
-	).
+	approx_tuples_domain(Tuples, Relation),
+	tuples_freeze(Tuples, Relation).
 
 bind_unique([], _).
 bind_unique([Tuple|Ts], Relation) :-
@@ -123,18 +86,6 @@ bind_unique([Tuple|Ts], Relation) :-
 	),
 	bind_unique(Ts, Relation).
 
-
-full_tuples_constrain([], _, _).
-full_tuples_constrain([Tuple|Tuples], Relation, Opts) :-
-	relation_unifiable_(Relation, Tuple, Matching),
-	Matching \= [],
-	( Matching = [Single] ->
-		Single = Tuple
-	;
-		tuple_domain(Tuple, Matching),
-		tuple_freeze(Tuple, Tuple, Matching, Opts)
-	),
-	full_tuples_constrain(Tuples, Relation, Opts).
 
 
    % The following predicates find component-wise extrema in the relation.
@@ -179,68 +130,42 @@ tuple_domain(Tuple, Relation) :-
 
 
    % Set up the attributes for each tuple variable.
-   % Attributes are rel_tuple(Rel, Tuple) terms:
+   % Attribute is a list of rel_tuple(Rel,Tuple) terms:
    %    Rel: the relation of which Tuple must be an element
    %    Tuple: the tuple to which this variable belongs
    % Note that the variable is itself part of the Tuple of its attribute.
 
-tuple_freeze([],  _, _, _Opts).
-tuple_freeze([T|Ts], Tuple, Relation, Opts) :-
+tuple_freeze([],  _, _).
+tuple_freeze([T|Ts], Tuple, Relation) :-
 	( var(T) ->
-		put_attr(T, clp_tuples, rel_tuple(Relation,Tuple)),
-		( memberchk(subscribe(bounds), Opts) ->
-			subscribe(T, bounds, bounds, clp_tuples:notify_hook(T))
+		( get_attr(T, clp_tuples, tuples(Exps)) ->
+			NExps = [rel_tuple(Relation,Tuple)|Exps]
 		;
-			true
-		)
+			NExps = [rel_tuple(Relation,Tuple)]
+		),
+		put_attr(T, clp_tuples, tuples(NExps))
 	;
 		true
 	),
-	tuple_freeze(Ts, Tuple, Relation, Opts).
+	tuple_freeze(Ts, Tuple, Relation).
 
-tuples_freeze([], _, _).
-tuples_freeze([Tuple|Tuples], Relation, Opts) :-
-	tuple_freeze(Tuple, Tuple, Relation, Opts),
-	tuples_freeze(Tuples, Relation, Opts).
+tuples_freeze([], _).
+tuples_freeze([Tuple|Tuples], Relation) :-
+	tuple_freeze(Tuple, Tuple, Relation),
+	tuples_freeze(Tuples, Relation).
 
 
+   % Find all tuples in the relation that can unify with Tuple,
+   % ignoring constraints.
 
-many_unifiable([R|Rs], Tuple, Count0) :-
-	( \+(\+ R = Tuple) ->
-		Count1 is Count0 + 1,
-		( Count1 >= 3 ->
-			true
-		;
-			many_unifiable(Rs, Tuple, Count1)
-		)
+relation_unifiable([], _, []).
+relation_unifiable([R|Rs], Tuple, Us) :-
+	( unifiable(R, Tuple, _) ->
+		Us = [R|Rest]
 	;
-		many_unifiable(Rs, Tuple, Count0)
-	).
-
-   % Like relation_unifiable_, but resorts to not taking it too seriously
-   % if there are "many" tuples that unify (in which case nothing at all
-   % is filtered).
- 
-relation_unifiable(Relation, Tuple, Us) :-
-	( many_unifiable(Relation, Tuple, 0) ->
-		Us = Relation
-	;
-		relation_unifiable_(Relation, Tuple, Us)
-	).
-
-   % Find all tuples in the relation that can unify with Tuple.
-   % Note that we can not use unifiable/3 because that does not take into
-   % account attributed variables, most notably not constraints set up
-   % by bounds.pl. No bindings must be generated, hence \+\+.
-
-relation_unifiable_([], _, []).
-relation_unifiable_([R|Rs], Tuple, Us) :-
-	( \+(\+ R = Tuple) ->
-		Us = [R|Rest],
-		relation_unifiable_(Rs, Tuple, Rest)
-	;
-		relation_unifiable_(Rs, Tuple, Us)
-	).
+		Us = Rest
+	),
+	relation_unifiable(Rs, Tuple, Rest).
 
 attr_portray_hook(rel_tuple(_Rel,_), _) :-
 	write(clp_tuples).
