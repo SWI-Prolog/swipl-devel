@@ -543,13 +543,21 @@ promoteToRealNumber(Number n)
       break;
 #ifdef O_GMP
     case V_MPZ:
-      n->value.f = mpz_get_d(n->value.mpz);
+    { double val = mpz_get_d(n->value.mpz);
+
+      clearNumber(n);
+      n->value.f = val;
       n->type = V_REAL;
       break;
+    }
     case V_MPQ:
-      n->value.f = mpq_get_d(n->value.mpq);
+    { double val = mpq_get_d(n->value.mpq);
+
+      clearNumber(n);
+      n->value.f = val;
       n->type = V_REAL;
       break;
+    }
 #endif
     case V_REAL:
       break;

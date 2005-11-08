@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * FIXED: Memory leak in arithmetic combining GMP numbers with floats.
+    Dmitry.
+
   * FIXED: plld: schedule .a files with the libraries.  Roberto Bagnara.
 
   * FIXED: Bug#116: shell/0 on Windows.  Dmitry.
