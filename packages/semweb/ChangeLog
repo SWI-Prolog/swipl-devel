@@ -1,3 +1,8 @@
+Nov 9, 2005
+
+  * FIXED: generate correct XML for datatypes in defined namespaces.
+    Ilmars Poikans.
+
 Oct 11, 2005
 
   * FIXED: rdf_split_url/3 to detect local part more in line with current

@@ -1055,7 +1055,7 @@ used_namespaces(List, DB) :-
 	(   rdf_db(S, P, O, DB),
 	    add_ns(S, Set),
 	    add_ns(P, Set),
-	    add_ns(O, Set),
+	    add_ns_obj(O, Set),
 	    fail
 	;   true
 	),
@@ -1071,11 +1071,22 @@ ns_abbreviations([_|T0], T) :-
 	
 
 add_ns(S, Set) :-
-	atom(S),
 	rdf_url_namespace(S, Full),
 	Full \== '', !,
 	add_nb_set(Full, Set).
 add_ns(_, _).
+
+add_ns_obj(O, Set) :-
+	atom(O),
+	rdf_url_namespace(O, Full),
+	Full \== '', !,
+	add_nb_set(Full, Set).
+add_ns_obj(literal(type(Type, _)), Set) :-
+	atom(Type), !,
+	rdf_url_namespace(Type, Full),
+	Full \== '', !,
+	add_nb_set(Full, Set).
+add_ns_obj(_,_).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1303,9 +1314,10 @@ save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 		       [Indent, NameText, LangText])
 	    )
 	;   Literal = type(Type, Value)
-	->  rdf_id(Type, DefNS, TypeText),
+	->  stream_property(Out, encoding(Encoding)),
+	    rdf_value(Type, QVal, Encoding),
 	    format(Out, '~N~*|<~w rdf:datatype="~w">',
-		   [Indent, NameText, TypeText])
+		   [Indent, NameText, QVal])
 	;   atomic(Literal)
 	->  format(Out, '~N~*|<~w>', [Indent, NameText]),
 	    Value = Literal
