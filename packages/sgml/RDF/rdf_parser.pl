@@ -446,6 +446,8 @@ canonical_uri(URI, Base, Global) :-	% use our generic library
 %	RDF URIs are encoded  Unicode  strings.   First  the  unicode is
 %	translated using UTF-8 and then  the   result  is represented as
 %	US-ASCII using %XX sequences. Here we have to do the reverse.
+%	
+%	NOTE: this encoding is known under the name IRI.
 
 decode_uri(Encoded, Decoded) :-
 	sub_atom(Encoded, _, _, _, '%'), !,
