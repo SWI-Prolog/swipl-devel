@@ -1,3 +1,8 @@
+Nov 10, 2005
+
+  * TS: Two more bug fixes for constraints without
+	active occurrences that trigger.
+
 Nov 4, 2005
 
   * TS: Small optimization of code for constraints

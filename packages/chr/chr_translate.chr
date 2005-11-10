@@ -3114,20 +3114,19 @@ use_auxiliary_predicate(P) \ is_used_auxiliary_predicate(P) <=> true.
 
 is_used_auxiliary_predicate(P) <=> fail.
 
+	% only called for constraints with
+	% at least one
+	% non-ground indexed argument	
 gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	vars_susp(A,Args,Susp,AllArgs),
 	make_suspension_continuation_goal(F/A,AllArgs,Closure),
-	( only_ground_indexed_arguments(F/A) ->
-		Attach = true
-	;
-		make_name('attach_',F/A,AttachF),
-		Attach =.. [AttachF,Vars,Susp]
-	),
+	make_name('attach_',F/A,AttachF),
+	Attach =.. [AttachF,Vars,Susp],
 	FTerm =.. [F|Args],
 	generate_insert_constraint_call(F/A,Susp,InsertCall),
 	use_auxiliary_predicate(insert_constraint_internal),
 	use_auxiliary_predicate(activate_constraint),
-	( has_active_occurrence(F/A) ->
+	( may_trigger(F/A) ->
 		Goal =
 		(
 			( var(Susp) ->

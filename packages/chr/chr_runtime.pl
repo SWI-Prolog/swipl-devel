@@ -172,7 +172,7 @@ run_suspensions([S|Next] ) :-
 	    call( Goal),
 	    					% get_mutable( Post, Mref), % XXX Inlined
 	    ( Mref = mutable(triggered) ->	% Post==triggered ->
-		update_mutable( removed, Mref)
+		update_mutable( active, Mref)	% catching constraints that did not do anything
 	    ;
 		true
 	    )
@@ -215,7 +215,7 @@ run_suspensions_d([S|Next] ) :-
 	    ),	
 	    					% get_mutable( Post, Mref), % XXX Inlined
 	    ( Mref = mutable(triggered) ->	% Post==triggered ->
-		update_mutable( removed, Mref)
+		update_mutable( active, Mref)   % catching constraints that did not do anything
 	    ;
 		true
 	    )
