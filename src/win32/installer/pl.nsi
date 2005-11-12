@@ -182,7 +182,6 @@ Section "CLP"
   SetOutPath $INSTDIR\library\clp
   File pl\library\clp\bounds.pl
   File pl\library\clp\clp_events.pl
-  File pl\library\clp\clp_tuples.pl
   File pl\library\clp\clp_distinct.pl
 SectionEnd
 
