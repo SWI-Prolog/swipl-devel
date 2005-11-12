@@ -526,7 +526,7 @@ modify_case_atom(term_t in, term_t out, int down)
 	    }
 	    break;
 	  } else
-	  { tout.text.t[i] = c;
+	  { tout.text.t[i] = (char)c;
 	  }
 	}
       } else				/* upcase */
@@ -540,7 +540,7 @@ modify_case_atom(term_t in, term_t out, int down)
 	    }
 	    break;
 	  } else
-	  { tout.text.t[i] = c;
+	  { tout.text.t[i] = (char)c;
 	  }
 	}
       } 

@@ -1684,6 +1684,7 @@ ar_msb(Number n1, Number r)
 #endif
     default:
       assert(0);
+      fail;
   }
 }
 
@@ -1729,6 +1730,7 @@ ar_lsb(Number n1, Number r)
 #endif
     default:
       assert(0);
+      fail;
   }
 }
 
@@ -1770,6 +1772,7 @@ ar_popcount(Number n1, Number r)
 #endif
     default:
       assert(0);
+      fail;
   }
 }
 

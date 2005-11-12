@@ -2793,7 +2793,7 @@ value:
       t->object.real = load_double(in);
       break;
     case 'T':
-    { int i;
+    { unsigned int i;
       char *s;
 
       t->objtype = OBJ_TERM;

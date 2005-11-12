@@ -350,7 +350,7 @@ status
 CAppendTextBuffer(TextBuffer tb, const char *text)
 { string s;
 
-  str_set_ascii(&s, text);
+  str_set_ascii(&s, (char*)text);
   insert_textbuffer_shift(tb,
 			  tb->size,
 			  1,

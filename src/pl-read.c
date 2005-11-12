@@ -1152,7 +1152,7 @@ scan_number(cucharp *s, int b, Number n)
 
 
 static int
-escape_char(cucharp in, ucharp *end, unsigned int quote)
+escape_char(cucharp in, ucharp *end, int quote)
 { int base, xdigits;
   int chr;
   int c;
