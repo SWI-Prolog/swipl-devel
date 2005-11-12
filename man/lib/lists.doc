@@ -1,4 +1,5 @@
 \libdoc{lists}{List Manipulation}
+\label{sec:lib:lists}
 
 This library provides commonly accepted basic predicates for list
 manipulation in the Prolog community. Some additional list manipulations
