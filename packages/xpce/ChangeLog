@@ -2,6 +2,9 @@
 			   ==============
 
 
+VERSION 6.5.37, distributed with SWI-Prolog 5.5.37
+==================================================
+
 * FIXED: Bug#117: new(X, 9).  Dmitry.
 
 * FIXED: Bug#108: Unicode support in the classes type, class and method

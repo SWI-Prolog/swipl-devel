@@ -71,7 +71,7 @@ all:	objects
 
 objects::
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) ); fi; \
+	    if [ -r $$p/Makefile ]; then $(MAKE) -C $$p || exit 1; fi; \
         done
 
 install::

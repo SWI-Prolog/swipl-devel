@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+==================================
+VERSION 5.5.37 (November 12, 2005)
+==================================
+
   * FIXED: Memory leak in arithmetic combining GMP numbers with floats.
     Dmitry.
 

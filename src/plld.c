@@ -794,9 +794,9 @@ parseOptions(int argc, char **argv)
     } else if ( strprefix(opt, "-L") )		/* -L<libdir> */
     { appendArgList(&libdirs, &opt[2]);
     } else if ( streq(opt, "-lccmalloc") )	/* -lccmalloc */
-    { appendArgList(&lastlibs, &opt[2]);
+    { appendArgList(&lastlibs, opt);
     } else if ( strprefix(opt, "-l") )		/* -l<lib> */
-    { appendArgList(&libs, &opt[2]);
+    { appendArgList(&libs, opt);
     }
   }
 }
@@ -1154,8 +1154,8 @@ linkBaseExecutable()
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
   appendArgList(&ldoptions, pllib);		/* -lpl */
-  concatArgList(&ldoptions, "-l", &libs);	/* libraries */
-  concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
+  concatArgList(&ldoptions, "", &libs);		/* libraries */
+  concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #endif
 
   if ( !nostate )
@@ -1205,8 +1205,8 @@ linkSharedObject()
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   appendArgList(&ldoptions, "-lplimp");		/* kernel import library */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
-  concatArgList(&ldoptions, "-l", &libs);	/* libraries */
-  concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
+  concatArgList(&ldoptions, "", &libs);		/* libraries */
+  concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /*__CYGWIN32__*/
 #ifdef SO_FORMAT_LDFLAGS			/* must specify output too */
   { char tmp[MAXPATHLEN];
@@ -1226,8 +1226,8 @@ linkSharedObject()
 #endif
   { appendArgList(&ldoptions, pllib);		/* -lpl */
   }
-  concatArgList(&ldoptions, "-l", &libs);	/* libraries */
-  concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
+  concatArgList(&ldoptions, "", &libs);		/* libraries */
+  concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #ifdef __BEOS__
   appendArgList(&ldoptions, plexe);		/* last is executable */
 #endif
