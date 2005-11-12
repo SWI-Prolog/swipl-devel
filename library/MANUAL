@@ -610,7 +610,7 @@ arithmetic  uses the  GNU  GMP  library to  provided  _u_n_b_o_u_n_d_e_
 arithmetic  as well  as rational  arithmetic.    Adding GMP  support  is
 sponsored  by Scientific  Software and  Systems Limited,  www.sss.co.nz.
 This version also incorporates clp(r) by Christian  Holzbaur, brought to
-SWI-Prolog by Tom Schrijvers and Leslie De Koninck (section ????).
+SWI-Prolog by Tom Schrijvers and Leslie De Koninck (section 11.11).
 
 
 11..77 DDoonnaattee ttoo tthhee SSWWII--PPrroolloogg pprroojjeecctt
@@ -7476,7 +7476,7 @@ ccuurrrreenntt__aarriitthhmmeettiicc__ffuunnccttiioon
 44..2288 BBuuiilltt--iinn lliisstt ooppeerraattiioonnss
 
 Most  list operations  are defined  in the  library  lists described  in
-section ????.   Some that are  implemented with more low-level  primitives
+section 11.1.  Some that are implemented with  more low-level primitives
 are built-in and described here.
 
 
@@ -15986,8 +15986,8 @@ _?_E_x_p_r #\= _?_E_x_p_r
 
 ssuumm((_+_V_a_r_s_,_+_O_p_,_?_V_a_l_u_e))
     Here  _V_a_r_s is a  list of variables  and integers, _O_p  is one of  the
-    binary constraint relation  symbols abovePand _V_a_l_u_e is an integer or
-    variable.  It represents the constraint (  _V_a_r_s) _O_p _V_a_l_u_e.
+    binary constraint relation  symbols above and _V_a_l_u_e is an integer or
+    variable.  It represents the constraint (SUM_V_a_r_s) _O_p _V_a_l_u_e.
 
 
 lleexx__cchhaaiinn((_+_V_a_r_s_L_i_s_t_s))
