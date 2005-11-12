@@ -84,7 +84,8 @@
 		sum/3,
 		lex_chain/1,
 		indomain/1,
-		check/1
+		check/1,
+		tuples_in/2
 	]).
 
 :- use_module(library('clp/clp_events')).
@@ -1684,11 +1685,125 @@ trigger_exp(mydiv2(A,B),X) :-
 trigger_exp(mydiv3(A,B),X) :-
 	mydiv(A,X,B,no).
 
+trigger_exp(rel_tuple(Relation,Tuple), _) :-
+	( ground(Tuple) ->
+		memberchk(Tuple, Relation)
+	;
+		relation_unifiable(Relation, Tuple, Us),
+		Us \= [],
+		( Us = [Single] ->
+			Single = Tuple
+		;
+			( Us == Relation ->
+				true
+			;
+				tuple_domain(Tuple, Us)
+			)
+		)
+	).
+	
+
 memberchk_eq(X,[Y|Ys],Z) :-
    (   X == Y ->
        Z = Y
    ;   memberchk_eq(X,Ys,Z)
    ).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+tuples_in(Tuples, Relation) :-
+	ground(Relation),
+	bind_unique(Tuples, Relation),
+	approx_tuples_domain(Tuples, Relation),
+	tuples_freeze(Tuples, Relation).
+
+bind_unique([], _).
+bind_unique([Tuple|Ts], Relation) :-
+	relation_unifiable(Relation, Tuple, Us),
+	Us \= [],
+	( Us = [Single] ->
+		Single = Tuple
+	;
+		true
+	),
+	bind_unique(Ts, Relation).
+
+
+   % The following predicates find component-wise extrema in the relation.
+
+relation_mins_maxs(Relation, Mins, Maxs) :-
+	Relation = [R|_],
+	relation_mins_maxs(Relation, R, Mins, R, Maxs).
+
+relation_mins_maxs([], Mins, Mins, Maxs, Maxs).
+relation_mins_maxs([R|Rs], Mins0, Mins, Maxs0, Maxs) :-
+	components_mins_maxs(R, Mins0, Mins1, Maxs0, Maxs1),
+	relation_mins_maxs(Rs, Mins1, Mins, Maxs1, Maxs).
+
+components_mins_maxs([], [], [], [], []).
+components_mins_maxs([C|Cs], [Min0|Mins0], [Min|Mins], [Max0|Maxs0], [Max|Maxs]) :-
+	Min is min(Min0, C),
+	Max is max(Max0, C),
+	components_mins_maxs(Cs, Mins0, Mins, Maxs0, Maxs).
+
+
+   % Approximate the domains of each tuple variable for all tuples.
+   % Heuristics: Take component-wise mins/maxs of the relation.
+
+approx_tuples_domain(Tuples, Relation) :-
+	relation_mins_maxs(Relation, Mins, Maxs),
+	constrain_domains(Tuples, Mins, Maxs).
+
+constrain_domains([], _, _).
+constrain_domains([Tuple|Tuples], Mins, Maxs) :-
+	constrain_domain(Tuple, Mins, Maxs),
+	constrain_domains(Tuples, Mins, Maxs).
+
+constrain_domain([], [], []).
+constrain_domain([T|Ts], [Min|Mins], [Max|Maxs]) :-
+	T in Min..Max,
+	constrain_domain(Ts, Mins, Maxs).
+
+tuple_domain(Tuple, Relation) :-
+	relation_mins_maxs(Relation, Mins, Maxs),
+	constrain_domain(Tuple, Mins, Maxs).
+
+   % Set up the attributes for each tuple variable.
+   % Attributes are rel_tuple(Rel, Tuple) terms:
+   %    Rel: the relation of which Tuple must be an element
+   %    Tuple: the tuple to which this variable belongs
+   % Note that the variable is itself part of the Tuple of its attribute.
+
+tuple_freeze([],  _, _).
+tuple_freeze([T|Ts], Tuple, Relation) :-
+	( var(T) ->
+		get(T, L, U, Exp),
+		put(T, L, U, [rel_tuple(Relation,Tuple)|Exp])
+	;
+		true
+	),
+	tuple_freeze(Ts, Tuple, Relation).
+
+tuples_freeze([], _).
+tuples_freeze([Tuple|Tuples], Relation) :-
+	tuple_freeze(Tuple, Tuple, Relation),
+	tuples_freeze(Tuples, Relation).
+
+   % Find all tuples in the relation that can unify with Tuple, not
+   % taking into account attributes (like constraints), as that would
+   % trigger attr_unify_hook recursively.
+
+relation_unifiable([], _, []).
+relation_unifiable([R|Rs], Tuple, Us) :-
+	( unifiable(R, Tuple, _) ->
+		Us = [R|Rest]
+	;
+		Rest = Us
+	),
+	relation_unifiable(Rs, Tuple, Rest).
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 active_state(state(active)).

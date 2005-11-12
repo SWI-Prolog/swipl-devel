@@ -34,7 +34,8 @@
     supported encodings.  Richard O'Keefe.
 
   * ADDED: library(clp/clp_tuples.pl), Symbolic constraints on tuples.
-    Contributed by  Markus Triska.
+    Later moved these predicates to clp/bounds.pl. Contributed by
+    Markus Triska.
 
   * PORT: Bug#110: Solaris float handling.  Andreas Vögele.
 

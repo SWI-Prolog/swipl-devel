@@ -31,6 +31,13 @@ The following constraints are supported:
 	\infixop{in}{-Vars}{+Range}
 		A list of variables \arg{Vars} are restriced to be in range
 		\arg{Range}.
+	\predicate{tuples_in}{2}{+Tuples, +Extension}
+        	Where \arg{Tuples} is a list of tuples (lists) of variables
+        	and integers, each of length~$N$, and \arg{Extension} is a list
+        	of tuples of integers, each of length~$N$. Each tuple of 
+		\arg{Tuples} is constrained to be in the relation
+		defined by \arg{Extension}. See \secref{ex:tuplesin} for
+		an example.
 	\infixop{#>}{?Expr}{?Expr}
 		The left-hand expression is constrained to be greater than the
 		right-hand expressions.
@@ -144,11 +151,11 @@ occurrences([X|Xs],Value,Acc,Count) :-
 \end{itemlist}
 
 
-\subsection{Example}			%\label{sec:example}
+\subsection{Example 1: Send+More=Money}
 %================
 
-The following is an implementation of the classic alphametics
-puzzle SEND + MORE = MONEY:
+The following is an implementation of the classic alphametics puzzle
+SEND + MORE = MONEY:
 
 \begin{code}
 :- use_module(library('clp/bounds')).
@@ -170,6 +177,39 @@ send([[S,E,N,D], [M,O,R,E], [M,O,N,E,Y]])  :-
               all_different(Digits),
               label(Digits).
 \end{code}
+
+\subsection{Example 2: Using tuples_in for a train schedule}
+\label{sec:ex:tuplesin}
+
+This example demonstrates tuples_in/2. A train schedule is represented
+as a list~$Ts$ of quadruples, denoting departure and arrival places and
+times for each train. The \emph{path/3} predicate given below
+constrains~$Ps$ to a feasible journey from~$A$ to~$D$ via 3~trains that
+are part of the given schedule.
+
+\begin{code}
+:- use_module(library(bounds)).
+:- use_module(library(clp_tuples)).
+
+schedule(Ts) :-
+	Ts = [[1,2,0,1],[2,3,4,5],[2,3,0,1],[3,4,5,6],[3,4,2,3],[3,4,8,9]].
+
+path(A, D, Ps) :-
+	schedule(Ts),
+	Ps = [[A,B,_T0,T1],[B,C,T2,T3],[C,D,T4,_T5]],
+	tuples_in(Ps, Ts),
+	T2 #> T1,
+	T4 #> T3.
+\end{code}
+
+An example query:
+
+\begin{code}
+?- path(1, 4, Ps), flatten(Ps, Vars), label(Vars).
+
+Ps = [[1, 2, 0, 1], [2, 3, 4, 5], [3, 4, 8, 9]]
+\end{code}
+
 
 \subsection{SICStus clp(FD) compatibility}	%\label{sec:sicstus_compat}
 %======================================

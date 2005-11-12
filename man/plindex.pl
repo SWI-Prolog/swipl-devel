@@ -373,9 +373,10 @@ function_type -->
 	skip_blanks,
 	(   alpha(_),
 	    alpha(_)
+	->  []
 	;   "PL_"
 	),
-	atom(_),
+	alphas(_),
 	skip_blanks,
 	optional(0'(),
 	optional(0'*),

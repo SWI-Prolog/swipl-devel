@@ -37,5 +37,4 @@ documented at all.
 \input{url}
 \input{bounds}
 \input{clpr}
-\input{clptuples}
 \input{clpdistinct}

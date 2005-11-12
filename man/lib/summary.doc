@@ -93,13 +93,7 @@ This library is only available on Windows systems.
 \predicatesummary{label}{1}{Solve constraints for variables}
 \predicatesummary{lex_chain}{1}{Constraint on lexicographic ordering}
 \predicatesummary{sum}{3}{Constraint sum of variables}
-\end{summarylist}
-
-\subsection{\pllib{clp/clp_tuples}}
-
-\begin{summarylist}{ll}
 \predicatesummary{tuples_in}{2}{Symbolic constraints on tuples}
-\predicatesummary{tuples_in}{3}{Symbolic constraints on tuples}
 \end{summarylist}
 
 \subsection{\pllib{clp/clp_distinct}}

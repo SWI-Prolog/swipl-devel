@@ -39,8 +39,7 @@ BETAMAN=	~www/SWI-Prolog/BETA/Manual
 LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 		lib/registry.tex lib/check.tex lib/url.tex lib/debug.tex \
 		lib/lists.tex lib/bounds.tex lib/clpr.tex lib/gensym.tex \
-		lib/nbset.tex lib/clptuples.tex lib/clpdistinct.tex \
-		lib/summary.tex
+		lib/nbset.tex lib/clpdistinct.tex lib/summary.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex ide.tex license.tex threads.tex $(LIBFILES) \
