@@ -303,7 +303,7 @@ a client.  On success, it creates a new socket for the client and
 binds the identifier to \arg{Slave}.   \arg{Peer} is bound to the
 IP-address of the client.
 
-    \predicate{tcp_connect}{+Socket. +Host:+Port}
+    \predicate{tcp_connect}{2}{+Socket, +Host:+Port}
 Client-interface to connect a socket to a given \arg{Port} on a given
 \arg{Host}.  After successful completion, \index{tcp_open_socket/3}\predref{tcp_open_socket}{3} can be used to
 create I/O-Streams to the remote socket.

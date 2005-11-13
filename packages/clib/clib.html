@@ -17,10 +17,10 @@
 <HR>
 <CENTER>
 <I>Jan Wielemaker <BR>
-SWI, <BR>
+HCS, <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
+E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></I>
 </CENTER>
 <HR>
 </BLOCKQUOTE>
@@ -366,9 +366,9 @@ identifier to <VAR>Slave</VAR>. <VAR>Peer</VAR> is bound to the
 IP-address of the client.
 
 <P>
-<DT><A NAME="tcp_connect/+Socket. +Host:+Port"><STRONG>tcp_connect</STRONG>(<VAR>+Socket. 
+<DT><A NAME="tcp_connect/2"><STRONG>tcp_connect</STRONG>(<VAR>+Socket, 
 +Host:+Port</VAR>)</A><DD>
-lient-interface to connect a socket to a given <VAR>Port</VAR> on a 
+Client-interface to connect a socket to a given <VAR>Port</VAR> on a 
 given
 <VAR>Host</VAR>. After successful completion, <A NAME="idx:tcpopensocket3:23"></A><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A> 
 can be used to create I/O-Streams to the remote socket.
@@ -1087,8 +1087,7 @@ and parts, but I believe the answer is `no'.
 <A HREF="#idx:tcpbind2:18">4</A> <A HREF="#idx:tcpbind2:21">4</A>
 <DT><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A><DD>
 <A HREF="#idx:tcpclosesocket1:12">4</A> <A HREF="#idx:tcpclosesocket1:15">4</A> <A HREF="#idx:tcpclosesocket1:17">4</A>
-<DT><A HREF="#tcp_connect/+Socket. +Host:+Port">tcp_connect/+Socket. 
-+Host:+Port</A><DD>
+<DT><A HREF="#tcp_connect/2">tcp_connect/2</A><DD>
 <DT><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A><DD>
 <A HREF="#idx:tcpfcntl3:32">4.2</A>
 <DT><A HREF="#tcp_host_to_address/2">tcp_host_to_address/2</A><DD>
