@@ -602,10 +602,6 @@ Name of the file the data should be stored in.
 \end{description}
 \end{description}
 
-{\bf NOTE} This library is only built and installed if the maildrop
-libraries are installed on your system.
-
-
 \section{Unix password encryption library}
 
 The \pllib{crypt} library defines crypt/2 for encrypting and testing
