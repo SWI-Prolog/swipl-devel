@@ -827,7 +827,37 @@ writeTerm2(term_t t, int prec, write_options *options)
   if ( !PL_get_name_arity(t, &functor, &arity) )
   { return writePrimitive(t, options);
   } else
-  { if ( false(options, PL_WRT_IGNOREOPS) )
+  { if ( functor == ATOM_isovar &&			/* $VAR/1 */
+	 true(options, PL_WRT_NUMBERVARS) )
+    { int n;
+      atom_t a;
+      term_t arg = PL_new_term_ref();
+
+      PL_get_arg(1, t, arg);
+      if ( PL_get_integer(arg, &n) && n >= 0 )
+      { int i = n % 26;
+	int j = n / 26;
+	char buf[16];
+
+	if ( j == 0 )
+	{ buf[0] = i+'A';
+	  buf[1] = EOS;
+	} else
+	{ sprintf(buf, "%c%d", i+'A', j);
+	}
+
+	return PutToken(buf, out);
+      }
+      if ( PL_get_atom(arg, &a) )
+      { write_options o2 = *options;
+	clear(&o2, PL_WRT_QUOTED);
+	
+	return writeAtom(a, &o2);
+      }	    
+    }
+
+
+    if ( false(options, PL_WRT_IGNOREOPS) )
     { term_t arg = PL_new_term_ref();
 
       if ( arity == 1 )
@@ -850,33 +880,6 @@ writeTerm2(term_t t, int prec, write_options *options)
 	  succeed;
 	}
   
-	if ( functor == ATOM_isovar &&			/* $VAR/1 */
-	     true(options, PL_WRT_NUMBERVARS) )
-	{ int n;
-	  atom_t a;
-
-	  PL_get_arg(1, t, arg);
-	  if ( PL_get_integer(arg, &n) && n >= 0 )
-	  { int i = n % 26;
-	    int j = n / 26;
-	    char buf[16];
-
-	    if ( j == 0 )
-	    { buf[0] = i+'A';
-	      buf[1] = EOS;
-	    } else
-	    { sprintf(buf, "%c%d", i+'A', j);
-	    }
-
-	    return PutToken(buf, out);
-	  }
-	  if ( PL_get_atom(arg, &a) )
-	  { write_options o2 = *options;
-	    clear(&o2, PL_WRT_QUOTED);
-	    
-	    return writeAtom(a, &o2);
-	  }	    
-	}
 					  /* op <term> */
 	if ( currentOperator(options->module, functor, OP_PREFIX,
 			     &op_type, &op_pri) )

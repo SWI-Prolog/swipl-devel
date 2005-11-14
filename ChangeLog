@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+  * FIXED: Bug#118: interaction numbervars and ignore_ops options in
+    write_term.  Bart Demoen.
+
+
 ==================================
 VERSION 5.5.37 (November 12, 2005)
 ==================================
