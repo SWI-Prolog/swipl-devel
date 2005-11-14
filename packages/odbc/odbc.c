@@ -38,7 +38,6 @@ Stefano  De  Giorgi  (s.degiorgi@tin.it).
 #include <windows.h>
 #define HAVE_MKTIME 1
 #define HAVE_GMTIME 1
-#define SQLULEN SQLUINTEGER
 #else
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -60,8 +59,11 @@ static int odbc_debuglevel = 0;
 #include <time.h>
 #include <limits.h>			/* LONG_MAX, etc. */
 
-#ifdef WIN32
-typedef DWORD SQLLEN;
+#ifndef HAVE_SQLLEN
+#define SQLLEN DWORD
+#endif
+#ifndef HAVE_SQLULEN
+#define SQLULEN SQLUINTEGER
 #endif
 
 #include <SWI-Stream.h>

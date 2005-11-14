@@ -1,3 +1,8 @@
+Nov 14, 2005
+
+* PORT: make configure check for the types SQLLEN and SQLULEN.  Anjo
+  Anjewierden.
+
 Oct 12, 2005
 
 * PORT: Stricter typing, look for Mac native iodbc library.

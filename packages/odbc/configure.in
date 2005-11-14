@@ -87,6 +87,9 @@ fi
 
 AC_CHECK_HEADERS(malloc.h sql.h time.h)
 AC_CHECK_FUNCS(localtime mktime gmtime timegm)
+AC_CHECK_TYPES([SQLLEN, SQLULEN],,,
+	       [#include <sql.h>
+	       ])
 
 if test "$havelib" = yes &&
    test "$ac_cv_header_sql_h" = yes; then

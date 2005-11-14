@@ -33,6 +33,12 @@
 /* Define to 1 if you have the `mktime' function. */
 #undef HAVE_MKTIME
 
+/* Define to 1 if the system has the type `SQLLEN'. */
+#undef HAVE_SQLLEN
+
+/* Define to 1 if the system has the type `SQLULEN'. */
+#undef HAVE_SQLULEN
+
 /* Define to 1 if you have the <sql.h> header file. */
 #undef HAVE_SQL_H
 
