@@ -41,7 +41,11 @@ struct pce_file_handle
 { Any		object;			/* object `file-i-fied' */
   long		point;			/* current position */
   int		flags;			/* general flags field */
+  IOENC		encoding;		/* Stream encoding used */
+  int		my_flags;		/* private flags */
 };
+
+#define		MY_ISSTREAM	0x0001	/* data a a byte-stream */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Open flags recognised:
@@ -94,7 +98,7 @@ allocFileHandle()
 
 
 int
-pceOpen(Any obj, int flags)
+pceOpen(Any obj, int flags, void *encoding)
 { int handle = allocFileHandle();
   PceFileHandle h;
 
@@ -132,7 +136,22 @@ pceOpen(Any obj, int flags)
   addRefObj(obj);			/* so existence check is safe */
   h->flags = flags;
   h->point = 0L;
+  h->my_flags = 0;
+
+  if ( instanceOfObject(obj, ClassStream) )
+  { h->my_flags |= MY_ISSTREAM;
+    h->encoding = ENC_OCTET;
+  } else
+  { h->encoding = ENC_WCHAR;
+  }
+
   handles[handle] = h;
+
+  if ( encoding )
+  { IOENC *ep = encoding;
+
+    *ep = h->encoding;
+  }
 
   return handle;
 }
@@ -176,23 +195,27 @@ pceWrite(int handle, const char *buf, int size)
       return -1;
     }
 
-    assert(size%sizeof(wchar_t) == 0);
-    
-    for(f=wbuf; f<end; f++)
-    { if ( *f > 0xff )
-	break;
-    }
-  
-    if ( f == end )
-    { charA *asc = alloca(size);
-      charA *t = asc;
-  
-      for(f=wbuf; f<end; )
-	*t++ = (charA)*f++;
-  
-      str_set_n_ascii(&s, size/sizeof(wchar_t), (char*)asc);
+    if ( (h->my_flags & MY_ISSTREAM) )
+    { str_set_n_ascii(&s, size, (char*)buf);
     } else
-    { str_set_n_wchar(&s, size/sizeof(wchar_t), (wchar_t*)wbuf);
+    { assert(size%sizeof(wchar_t) == 0);
+    
+      for(f=wbuf; f<end; f++)
+      { if ( *f > 0xff )
+	  break;
+      }
+    
+      if ( f == end )
+      { charA *asc = alloca(size);
+	charA *t = asc;
+    
+	for(f=wbuf; f<end; )
+	  *t++ = (charA)*f++;
+    
+	str_set_n_ascii(&s, size/sizeof(wchar_t), (char*)asc);
+      } else
+      { str_set_n_wchar(&s, size/sizeof(wchar_t), (wchar_t*)wbuf);
+      }
     }
 
     ca = StringToScratchCharArray(&s);

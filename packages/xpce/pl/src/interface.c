@@ -2600,6 +2600,7 @@ IOFUNCTIONS pceFunctions =
 static foreign_t
 pl_pce_open(Term t, Term mode, Term plhandle)
 { PceObject obj;
+  IOENC enc;
 
   if ( (obj = termToReceiver(t)) )
   { int flags, sflags = SIO_LBUF|SIO_RECORDPOS;
@@ -2627,10 +2628,9 @@ pl_pce_open(Term t, Term mode, Term plhandle)
       return ThrowException(EX_DOMAIN, ATOM_io_mode, mode);
     }
 
-    if ( (handle = pceOpen(obj, flags)) >= 0 )
+    if ( (handle = pceOpen(obj, flags, (void *)&enc)) >= 0 )
     { IOSTREAM *s = Snew((void *)(long)handle, sflags, &pceFunctions);
-
-      s->encoding = ENC_WCHAR;
+      s->encoding = enc;
 
       return PL_open_stream(plhandle, s);
     } else

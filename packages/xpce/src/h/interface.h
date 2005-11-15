@@ -499,7 +499,7 @@ __pce_export void	pceGetMethod(PceClass class,
 
 #define PCE_OPEN_MAX	64		/* statically allocated max open */
 
-__pce_export int	pceOpen(PceObject obj, int flags);
+__pce_export int	pceOpen(PceObject obj, int flags, void *encoding);
 __pce_export int	pceClose(int handle);
 __pce_export int	pceWrite(int handle, const char *buf, int size);
 __pce_export int	pceRead(int handle, char *buf, int size);

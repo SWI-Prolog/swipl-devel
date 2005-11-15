@@ -2,6 +2,9 @@
 			   ==============
 
 
+* FIXED: Encoding issue with pce_open/3 on stream objects (crashes
+  XPCE httpd).  Anjo Anjewierden.
+
 VERSION 6.5.37, distributed with SWI-Prolog 5.5.37
 ==================================================
 
