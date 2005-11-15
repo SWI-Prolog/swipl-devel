@@ -2,6 +2,9 @@
 			   ==============
 
 
+* ENHANCED: cleanup ENC_WCHAR issues.  Use new encoding API to protect
+  from unsolicitated changes in the encoding of text-strings.
+
 * FIXED: Encoding issue with pce_open/3 on stream objects (crashes
   XPCE httpd).  Anjo Anjewierden.
 

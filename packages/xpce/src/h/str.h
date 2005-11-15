@@ -51,9 +51,6 @@ typedef struct _string
 #define s_textA		text_union.textA
 #define s_textW	text_union.textW
 
-#define ENC_ISOL1 (0)			/* 8-bit ISO-Latin-1 encoding */
-#define ENC_WCHAR (1)			/* Wchar UCS/UNICODE encoding */
-
 #define isstrA(s) ((s)->iswide == 0)	/* 8-bit string */
 #define isstrW(s) ((s)->iswide == 1)	/* 16-bit string */
 

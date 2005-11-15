@@ -960,7 +960,7 @@ getReadFile(FileObj f, Int n)
   if ( f->encoding == NAME_octet )
   { s = answerObject(ClassString, EAV);
     str_unalloc(&s->data);
-    str_inithdr(&s->data, ENC_ISOL1);
+    str_inithdr(&s->data, FALSE);
     s->data.size = size;
     str_alloc(&s->data);
 

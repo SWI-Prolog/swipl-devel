@@ -30,7 +30,7 @@
 #ifdef WIN32
 typedef __int64 int64_t;
 #else
-#include <stdint.h>			/* specific-width integers */
+#include <inttypes.h>			/* more portable than stdint.h */
 #endif
 
 #ifdef __cplusplus
@@ -238,7 +238,7 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 /* Control-operations */
 #define SIO_GETSIZE	(1)		/* get size of underlying object */
 #define SIO_GETFILENO	(2)		/* get underlying file (if any) */
-#define SIO_SETENCODING (3)		/* set encoding  */
+#define SIO_SETENCODING	(3)		/* modify encoding of stream */
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
@@ -325,7 +325,7 @@ PL_EXPORT(int)		Sfpasteof(IOSTREAM *s);
 PL_EXPORT(int)		Sferror(IOSTREAM *s);
 PL_EXPORT(void)		Sclearerr(IOSTREAM *s);
 PL_EXPORT(void)		Sseterr(IOSTREAM *s, int which, const char *message);
-PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC enc);
+PL_EXPORT(int)		Ssetenc(IOSTREAM *s, IOENC new, IOENC *old);
 PL_EXPORT(int)		Sflush(IOSTREAM *s);
 PL_EXPORT(long)		Ssize(IOSTREAM *s);
 PL_EXPORT(long)		Sseek(IOSTREAM *s, long pos, int whence);

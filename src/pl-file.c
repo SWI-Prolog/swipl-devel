@@ -1233,8 +1233,12 @@ pl_set_stream(term_t stream, term_t attr)
 	  goto error;
 	}
 
-	s->encoding = enc;
-	goto ok;
+	if ( Ssetenc(s, enc, NULL) == 0 )
+	  goto ok;
+
+	PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		 ATOM_encoding, ATOM_stream, stream);
+	goto error;
       } else if ( aname == ATOM_representation_errors )
       { atom_t val;
 

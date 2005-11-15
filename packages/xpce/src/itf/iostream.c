@@ -26,8 +26,6 @@
 #include <h/unix.h>
 #include <errno.h>
 
-#undef ENC_WCHAR			/* conflict str.h/stream.h */
-
 		 /*******************************
 		 *      OBJECT --> IOSTREAM	*
 		 *******************************/

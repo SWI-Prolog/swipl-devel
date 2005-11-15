@@ -1231,9 +1231,22 @@ Sseterr(IOSTREAM *s, int flag, const char *message)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Set the encoding of a stream. The enc   argument is the new encoding. If
+old is not NULL, the old encoding is written to the given location.
+
+Please note that not all code changing  the encoding call Ssetenc at the
+moment.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
-Ssetenc(IOSTREAM *s, IOENC enc)
-{ if ( s->functions->control )
+Ssetenc(IOSTREAM *s, IOENC enc, IOENC *old)
+{ if ( old )
+    *old = s->encoding;
+  if ( enc == s->encoding )
+    return 0;
+
+  if ( s->functions->control )
   { if ( (*s->functions->control)(s->handle,
 				  SIO_SETENCODING, 
 				  (void *)&enc) != 0 )
@@ -1243,7 +1256,6 @@ Ssetenc(IOSTREAM *s, IOENC enc)
   s->encoding = enc;
   return 0;
 }
-
 
 		 /*******************************
 		 *	      FLUSH		*

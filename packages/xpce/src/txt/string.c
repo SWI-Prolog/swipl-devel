@@ -45,7 +45,7 @@ create_string_from_str(String s, int tmp)
 	goto canonical;
     }
 
-    str_inithdr(&s2, ENC_ISOL1);
+    str_inithdr(&s2, FALSE);
     s2.size = s->size;
     if ( !(s2.s_textA = alloca(s->size)) )
     { s2.s_textA = pceMalloc(s->size);
@@ -153,7 +153,7 @@ promoteString(StringObj s)
 status
 initialiseStringv(StringObj str, CharArray fmt, int argc, Any *argv)
 { if ( isDefault(fmt) )
-  { str_inithdr(&str->data, ENC_ISOL1);
+  { str_inithdr(&str->data, FALSE);
     str->data.size = 0;
     str_alloc(&str->data);
   } else if ( (Name) fmt == name_procent_s &&

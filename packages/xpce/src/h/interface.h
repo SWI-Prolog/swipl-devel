@@ -504,6 +504,7 @@ __pce_export int	pceClose(int handle);
 __pce_export int	pceWrite(int handle, const char *buf, int size);
 __pce_export int	pceRead(int handle, char *buf, int size);
 __pce_export long	pceSeek(int handle, long offset, int whence);
+__pce_export int	pceControl(int handle, int cmd, void *closure);
 __pce_export const char *pceOsError();
 
 					/* flags for pceOpen() (or'ed) */
@@ -516,6 +517,8 @@ __pce_export const char *pceOsError();
 #define PCE_SEEK_SET	0
 #define PCE_SEEK_CUR	1
 #define PCE_SEEK_END	2
+
+#define PCE_SETENCODING	1		/* pceControl() commands */
 
 		 /*******************************
 		 *	       MISC		*

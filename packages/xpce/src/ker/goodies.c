@@ -696,7 +696,7 @@ status
 str_writefv(String s, CharArray format, int argc, const Any *argv)
 { int len;
 
-  str_inithdr(s, ENC_ISOL1);
+  str_inithdr(s, FALSE);
   s->size = 0;
   swritefv(put_void_str, s, &format->data, argc, argv);
   len = s->size;

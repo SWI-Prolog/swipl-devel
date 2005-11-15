@@ -238,14 +238,29 @@ Srlc_close(void *handle)
   return 0;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The role of this function is to stop  changing the encoding of the plwin
+output. We must return -1 for  SIO_SETENCODING   for  this. As we do not
+implement any of the other control operations   we  simply return -1 for
+all commands we may be requested to handle.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+Srlc_control(void *handle, int cmd, void *closure)
+{ return -1;
+}
+
+
 static IOFUNCTIONS rlc_functions;
 
 static void
 rlc_bind_terminal(rlc_console c)
-{ rlc_functions	      = *Sinput->functions;
-  rlc_functions.read  = Srlc_read;
-  rlc_functions.write = Srlc_write;
-  rlc_functions.close = Srlc_close;
+{ rlc_functions	        = *Sinput->functions;
+  rlc_functions.read    = Srlc_read;
+  rlc_functions.write	= Srlc_write;
+  rlc_functions.close   = Srlc_close;
+  rlc_functions.control = Srlc_control;
 
   Sinput->functions  = &rlc_functions;
   Soutput->functions = &rlc_functions;

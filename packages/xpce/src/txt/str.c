@@ -127,7 +127,7 @@ str_set_n_ascii(String str, int len, char *text)
 { if ( len > STR_MAX_SIZE )
     return errorPce(NIL, NAME_stringTooLong, toInt(len));
 
-  str_inithdr(str, ENC_ISOL1);
+  str_inithdr(str, FALSE);
   str->size = len;
   str->s_textA = (charA *) text;
 
@@ -140,7 +140,7 @@ str_set_n_wchar(String str, int len, wchar_t *text)
 { if ( len > STR_MAX_SIZE )
     return errorPce(NIL, NAME_stringTooLong, toInt(len));
 
-  str_inithdr(str, ENC_WCHAR);
+  str_inithdr(str, TRUE);
   str->size = len;
   str->s_textW = text;
 
@@ -160,7 +160,7 @@ status
 str_set_utf8(String str, const char *text)
 { const char *s = text;
   const char *e = &text[strlen(s)];
-  int iswide = ENC_ISOL1;
+  int iswide = FALSE;
   int len = 0;
 
   while(s<e)
@@ -168,7 +168,7 @@ str_set_utf8(String str, const char *text)
 
     s = utf8_get_char(s, &chr);
     if ( chr > 0xff )
-      iswide = ENC_WCHAR;
+      iswide = TRUE;
     len++;
   }
 
@@ -198,7 +198,7 @@ str_set_static(String str, const char *text)
   if ( len > STR_MAX_SIZE )
     return errorPce(NIL, NAME_stringTooLong, toInt(len));
 
-  str_inithdr(str, ENC_ISOL1);
+  str_inithdr(str, FALSE);
   str->readonly = TRUE;
   str->size = len;
   str->s_textA = (charA *) text;
@@ -744,7 +744,7 @@ str_from_char(String s, char c)
   text[0] = c;
   text[1] = '\0';
 
-  str_inithdr(s, ENC_ISOL1);
+  str_inithdr(s, FALSE);
   s->s_textA  = text;
   s->size     = 1;
 }
@@ -756,7 +756,7 @@ str_from_char16(String s, int c)
   text[0] = c;
   text[1] = '\0';
 
-  str_inithdr(s, ENC_WCHAR);
+  str_inithdr(s, FALSE);
   s->s_textW = text;
   s->size     = 1;
 }

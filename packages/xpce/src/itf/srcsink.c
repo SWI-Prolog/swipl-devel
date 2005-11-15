@@ -140,7 +140,7 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
 
     if ( ss->encoding == NAME_octet ||
 	 ss->encoding == NAME_iso_latin_1 )
-    { str_inithdr(&s, ENC_ISOL1);
+    { str_inithdr(&s, FALSE);
       s.size = size;
       str_alloc(&s);
 
@@ -163,7 +163,7 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
     { int c;
       long n = 0;
 
-      str_inithdr(&s, ENC_ISOL1);
+      str_inithdr(&s, FALSE);
       s.size = 256;
       s.s_textA = pceMalloc(s.size);
 

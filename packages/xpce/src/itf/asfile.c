@@ -38,12 +38,15 @@ of objects.
 typedef struct pce_file_handle * PceFileHandle;
 
 struct pce_file_handle
-{ Any		object;			/* object `file-i-fied' */
+{ long		magic;			/* PCE_IO_MAGIC */
+  Any		object;			/* object `file-i-fied' */
   long		point;			/* current position */
   int		flags;			/* general flags field */
   IOENC		encoding;		/* Stream encoding used */
   int		my_flags;		/* private flags */
 };
+
+#define 	PCE_IO_MAGIC	0x72eb9ace
 
 #define		MY_ISSTREAM	0x0001	/* data a a byte-stream */
 
@@ -146,6 +149,7 @@ pceOpen(Any obj, int flags, void *encoding)
   }
 
   handles[handle] = h;
+  h->magic = PCE_IO_MAGIC;
 
   if ( encoding )
   { IOENC *ep = encoding;
@@ -164,6 +168,7 @@ pceClose(int handle)
   if ( handle >= 0 && handle < max_handles &&
        (h = handles[handle]) )
   { delRefObject(NIL, h->object);	/* handles deferred unalloc() */
+    h->magic = 0;
     unalloc(sizeof(struct pce_file_handle), h);
     handles[handle] = NULL;
 
@@ -175,13 +180,30 @@ pceClose(int handle)
 }
 
 
+static PceFileHandle
+findHandle(int handle)
+{ PceFileHandle h;
+
+  if ( handle >= 0 &&
+       handle < max_handles &&
+       (h = handles[handle]) &&
+       h->magic == PCE_IO_MAGIC )
+    return h;
+
+  errno = EBADF;
+  return NULL;
+}
+
+
+
 int
 pceWrite(int handle, const char *buf, int size)
 { PceFileHandle h;
 
-  if ( handle >= 0 && handle < max_handles &&
-       (h = handles[handle]) &&
-       h->flags & (PCE_RDWR|PCE_WRONLY) )
+  if ( !(h=findHandle(handle)) )
+    return -1;
+
+  if ( h->flags & (PCE_RDWR|PCE_WRONLY) )
   { string s;
     CharArray ca;
     status rval;
@@ -247,7 +269,7 @@ pceSeek(int handle, long offset, int whence)
 
   offset /= sizeof(wchar_t);
 
-  if ( handle >= 0 && handle < max_handles && (h = handles[handle]) )
+  if ( (h=findHandle(handle)) )
   { Int size;
 
     if ( isFreedObj(h->object) )
@@ -291,9 +313,10 @@ int
 pceRead(int handle, char *buf, int size)
 { PceFileHandle h;
 
-  if ( handle >= 0 && handle < max_handles &&
-       (h = handles[handle]) &&
-       h->flags & (PCE_RDWR|PCE_RDONLY) )
+  if ( !(h=findHandle(handle)) )
+    return -1;
+
+  if ( h->flags & (PCE_RDWR|PCE_RDONLY) )
   { Any argv[2];
     CharArray sub;
     int chread;
@@ -336,6 +359,25 @@ pceRead(int handle, char *buf, int size)
     return -1;
   }
 }
+
+
+int
+pceControl(int handle, int cmd, void *closure)
+{ PceFileHandle h;
+
+  if ( !(h=findHandle(handle)) )
+    return -1;
+
+  switch(cmd)
+  { case PCE_SETENCODING:
+      if ( (h->my_flags & MY_ISSTREAM) )
+	return 0;
+  }
+
+  errno = EPERM;
+  return -1;
+}
+
 
 
 const char *

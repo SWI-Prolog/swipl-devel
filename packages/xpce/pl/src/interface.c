@@ -2589,11 +2589,23 @@ Sclose_pce(void *handle)
 }
 
 
+static int
+Scontrol_pce(void *handle, int cmd, void *closure)
+{ switch(cmd)
+  { case SIO_SETENCODING:
+      return pceControl(fdFromHandle(handle), PCE_SETENCODING, closure);
+  }
+
+  return -1;
+}
+
+
 IOFUNCTIONS pceFunctions =
 { Sread_pce,
   Swrite_pce,
   Sseek_pce,
-  Sclose_pce
+  Sclose_pce,
+  Scontrol_pce
 };
 
 

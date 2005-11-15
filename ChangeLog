@@ -8,6 +8,10 @@
 					--------------------------------------
 
 
+  * ADDED: Ssetenc() to negotiate manipulation of stream encoding.  Used
+    to protect encoding on plwin.exe as well as pce_open/3 for anything
+    but socket-related streams.
+
   * FIXED: Bug#118: interaction numbervars and ignore_ops options in
     write_term.  Bart Demoen.
 
