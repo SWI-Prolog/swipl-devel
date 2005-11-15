@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: avoid loosing the next input character after abort.
+
   * FIXED: memory leak and off-by-one buffer overfflow reading from the
     console through GNU readline.
 

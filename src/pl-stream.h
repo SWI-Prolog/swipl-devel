@@ -304,6 +304,7 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 
 PL_EXPORT(void)		SinitStreams();
 PL_EXPORT(void)		Scleanup(void);
+PL_EXPORT(void)		Sreset(void);
 PL_EXPORT(int)		S__fupdatefilepos(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
 					/* byte I/O */

@@ -3022,6 +3022,16 @@ Sclosehook(void (*hook)(IOSTREAM *s))
 		 *******************************/
 
 void
+Sreset(void)
+{ IOSTREAM *s = Sinput;
+
+  if ( s && s->magic == SIO_MAGIC )
+  { s->bufp = s->limitp = s->buffer;
+  }
+} 
+
+
+void
 Scleanup(void)
 { close_hook *p, *next;
   int i;
