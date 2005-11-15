@@ -307,10 +307,9 @@ Sread_readline(void *handle, char *buf, int size)
       }
 
       if ( line )
-      { char *s;
-	int l = strlen(line);
+      { int l = strlen(line);
 	  
-	if ( l > size )
+	if ( l >= size )
 	{ PL_warning("Input line too long");	/* must be tested! */
 	  l = size-1;
 	}
@@ -318,13 +317,8 @@ Sread_readline(void *handle, char *buf, int size)
 	buf[l++] = '\n';
 	rval = l;
 
-	for(s = line; *s; s++)
-	{ if ( (*s & 0xff) > ' ' )
-	    break;
-	}
-
-        if ( !*s )			/* blanks only! */
-	  free(line);
+	/*Sdprintf("Read: '%s'\n", line);*/
+	free(line);
       } else
 	rval = 0;
     }
