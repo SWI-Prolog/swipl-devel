@@ -1231,6 +1231,20 @@ Sseterr(IOSTREAM *s, int flag, const char *message)
 }
 
 
+int
+Ssetenc(IOSTREAM *s, IOENC enc)
+{ if ( s->functions->control )
+  { if ( (*s->functions->control)(s->handle,
+				  SIO_SETENCODING, 
+				  (void *)&enc) != 0 )
+      return -1;
+  }
+
+  s->encoding = enc;
+  return 0;
+}
+
+
 		 /*******************************
 		 *	      FLUSH		*
 		 *******************************/
