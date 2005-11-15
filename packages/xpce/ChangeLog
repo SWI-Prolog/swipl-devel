@@ -2,6 +2,8 @@
 			   ==============
 
 
+* ADDED: Emacs buffer menu: kill selected buffer on DEL and backspace keys.
+
 * ENHANCED: cleanup ENC_WCHAR issues.  Use new encoding API to protect
   from unsolicitated changes in the encoding of text-strings.
 

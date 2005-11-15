@@ -101,6 +101,20 @@ initialise(B, Emacs:emacs) :->
 	send(B, attach_popup),
 	send(B, dict, Emacs?buffer_list).
 
+typed(B, Ev:event, Delegate:[bool]) :->
+	"Map DEL and backspace to kill selected buffer"::
+	(   (   get(Ev, id, 'DEL')
+	    ;   get(Ev, id, backspace)
+	    ),
+	    get(B, selection, _)
+	->  send(B, kill_selection)
+	;   send_super(B, typed, Ev, Delegate)
+	).
+	
+kill_selection(B) :->
+	get(B, selection, DI),
+	send(DI?object, kill).
+
 attach_popup(B) :->
 	"Attach the popup menu"::
 	send(B, popup, new(P, popup)),
