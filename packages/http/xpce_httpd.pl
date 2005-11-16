@@ -43,6 +43,11 @@
 	http_server(:, ?),
 	http_server(:, ?, +).
 
+%	@http_servers: keep track of them and avoid the servers being
+%	garbage collected.
+
+:- pce_global(@http_servers, new(chain)).
+
 %:- debug(connection).
 
 http_current_server(Goal, Port) :-
@@ -116,7 +121,12 @@ initialise(S, Goal:prolog, Port:[int]) :->
 	send(S, record_separator, @http_end_line_regex),
 	send(S, input_message, message(@receiver, input, @arg1)),
 	send(S, accept_message, message(@arg1, accepted)),
-	send(S, listen, reuse := @on).
+	send(S, listen, reuse := @on),
+	send(@http_servers, append, S).
+
+unlink(S) :->
+	send(@http_servers, delete_all, S),
+	send_super(S, unlink).
 
 :- pce_group(connection).
 
