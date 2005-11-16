@@ -382,6 +382,7 @@ layout(col,	   0-0, empty).
 layout(area,	   1-0, empty).
 layout(input,	   1-0, empty).
 layout(option,	   1-0, empty).
+layout(param,	   1-0, empty).
 
 layout(p,	   2-1, -).		% omited close
 layout(td,	   0-0, 0-0).

@@ -895,7 +895,9 @@ Finish up the clause.
     requireStack(local,
 		 clause.variables*sizeof(word) +
 		 sizeofClause(clause.code_size) +
-		 sizeof(*cref));
+		 sizeof(*cref) +
+		 (int)argFrameP((LocalFrame)NULL, MAXARITY));
+					/* Needed for new frame arguments */
 
     cref = (ClauseRef)p;
     p = addPointer(p, sizeof(*cref));
