@@ -112,6 +112,8 @@ Xterm_control(void *handle, int action, void *arg)
       *rval = xt->fd;
       return 0;
     }
+    case SIO_SETENCODING:
+      return 0;
     default:
       return -1;
   }

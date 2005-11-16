@@ -39,6 +39,8 @@ Scontrol_rc(void *handle, int action, void *arg)
       *rval = m->size;
       return 0;
     }
+    case SIO_SETENCODING:
+      return 0;
     default:
       return -1;
   }

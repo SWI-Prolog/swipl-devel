@@ -2304,6 +2304,8 @@ Scontrol_file(void *handle, int action, void *arg)
       }
       return -1;
     }
+    case SIO_SETENCODING:
+      return 0;
     default:
       return -1;
   }
