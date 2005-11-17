@@ -1495,7 +1495,7 @@ common_variables(T,Ts,Vs) :-
 gen_get_mod_constraints(Mod,L,Goal,Susps) :-
    (   L == [] ->
        Goal = 
-       (   'chr global_term_ref_1'(Global),
+       (   'chr default_store'(Global),
            get_attr(Global,Mod,TSusps),
 	   TSusps = Susps
        )

@@ -1750,7 +1750,7 @@ gen_get_mod_constraints(L,Goal,Susps) :-
    get_target_module(Mod),
    (   L == [] ->
        Goal = 
-       (   'chr global_term_ref_1'(Global),
+       (   'chr default_store'(Global),
            get_attr(Global,Mod,TSusps),
 	   TSusps = Susps
        )

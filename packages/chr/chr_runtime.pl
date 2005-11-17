@@ -85,7 +85,7 @@
 	    'chr allocate_constraint'/4,
 	    'chr activate_constraint'/3,
 
-	    'chr global_term_ref_1'/1,
+	    'chr default_store'/1,
 
 	    'chr via_1'/2,
 	    'chr via_2'/3,
@@ -289,7 +289,7 @@ not_locked( V) :-
 	;
             Susp =.. [_,_,_,_,_,_,_|Args],
 	    term_variables( Args, Vars),
-	    global_term_ref_1( Global),
+	    default_store( Global),
 	    Agenda = [Global|Vars]
 	).
 
@@ -298,15 +298,15 @@ not_locked( V) :-
 	( var(X) ->
 		X = V
 	; atomic(X) ->
-		global_term_ref_1(V)
+		default_store(V)
 	; nonground(X,V) ->
 		true
 	;
-		global_term_ref_1(V)
+		default_store(V)
 	).
 % 'chr via_1'( X, V) :- var(X), !, X=V.
 % 'chr via_1'( T, V) :- compound(T), nonground( T, V), ! .
-% 'chr via_1'( _, V) :- global_term_ref_1( V).
+% 'chr via_1'( _, V) :- default_store( V).
 
 'chr via_2'(X,Y,V) :- 
 	( var(X) -> 
@@ -318,13 +318,13 @@ not_locked( V) :-
 	; compound(Y), nonground(Y,V) ->
 		true
 	;
-		global_term_ref_1(V)
+		default_store(V)
 	).
 % 'chr via_2'( X, _, V) :- var(X), !, X=V.
 % 'chr via_2'( _, Y, V) :- var(Y), !, Y=V.
 % 'chr via_2'( T, _, V) :- compound(T), nonground( T, V), ! .
 % 'chr via_2'( _, T, V) :- compound(T), nonground( T, V), ! .
-% 'chr via_2'( _, _, V) :- global_term_ref_1( V).
+% 'chr via_2'( _, _, V) :- default_store( V).
 
 %
 % The second arg is a witness.
@@ -336,7 +336,7 @@ not_locked( V) :-
 	( nonground(L,V) ->
 		true
 	;
-		global_term_ref_1(V)
+		default_store(V)
 	).
 
 nonground( Term, V) :-
@@ -399,12 +399,12 @@ constraint_generation( Susp, State, Generation) :-
 	( compound(State) ->			% passive/1
 	    term_variables( State, Vs),
 	    'chr none_locked'( Vs),
-	    global_term_ref_1( Global),
+	    default_store( Global),
 	    Vars = [Global|Vs]
 	; State==removed ->			% the price for eager removal ...
 	    Susp =.. [_,_,_,_,_,_,_|Args],
 	    term_variables( Args, Vs),
-	    global_term_ref_1( Global),
+	    default_store( Global),
 	    Vars = [Global|Vs]
 	;
 	    Vars = []
@@ -413,7 +413,7 @@ constraint_generation( Susp, State, Generation) :-
 'chr insert_constraint_internal'( [Global|Vars], Self, Closure, F, Args) :-
 	term_variables( Args, Vars),
 	'chr none_locked'( Vars),
-	global_term_ref_1( Global),
+	default_store( Global),
 	'chr empty_history'( History),
 	create_mutable( active, Mref),
 	create_mutable( 0, Gref),
@@ -424,7 +424,7 @@ constraint_generation( Susp, State, Generation) :-
 insert_constraint_internal( [Global|Vars], Self, Term, Closure, F, Args) :-
 	term_variables( Term, Vars),
 	'chr none_locked'( Vars),
-	global_term_ref_1( Global),
+	default_store( Global),
 	'chr empty_history'( History),
 	create_mutable( active, Mref),
 	create_mutable( 0, Gref),
@@ -463,10 +463,10 @@ update_mutable(V,M) :-
 	setarg(1,M,V).
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-'chr global_term_ref_1'(X) :-
-	global_term_ref_1(X).
+'chr default_store'(X) :-
+	default_store(X).
 
-global_term_ref_1(X) :-
+default_store(X) :-
 	nb_getval(chr_global,X).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

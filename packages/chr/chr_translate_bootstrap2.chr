@@ -1434,7 +1434,7 @@ generate_insert_constraint_body(default,C,Susp,Body) :-
 	),
 	Body =
 	(
-		'chr global_term_ref_1'(Store),
+		'chr default_store'(Store),
 		AttachBody
 	).
 generate_insert_constraint_body(multi_hash(Indexes),C,Susp,Body) :-
@@ -1483,14 +1483,14 @@ generate_delete_constraint_body(default,C,Susp,Body) :-
 		generate_detach_body_1(C,Store,Susp,DetachBody),
 		Body =
 		(
-			'chr global_term_ref_1'(Store),
+			'chr default_store'(Store),
 			DetachBody
 		)
 	;
 		generate_detach_body_n(C,Store,Susp,DetachBody),
 		Body =
 		(
-			'chr global_term_ref_1'(Store),
+			'chr default_store'(Store),
 			DetachBody
 		)
 	).
@@ -1655,7 +1655,7 @@ enumerate_store_body(default,C,Susp,Body) :-
 	get_max_constraint_index(MaxIndex),
 	Body1 = 
 	(
-		'chr global_term_ref_1'(GlobalStore),
+		'chr default_store'(GlobalStore),
 		get_attr(GlobalStore,Mod,Attr)
 	),
 	( MaxIndex > 1 ->
@@ -2649,7 +2649,7 @@ gen_get_mod_constraints(L,Goal,Susps) :-
    get_target_module(Mod),
    (   L == [] ->
        Goal = 
-       (   'chr global_term_ref_1'(Global),
+       (   'chr default_store'(Global),
            get_attr(Global,Mod,TSusps),
 	   TSusps = Susps
        )

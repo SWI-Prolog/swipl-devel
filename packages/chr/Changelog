@@ -1,3 +1,7 @@
+Nov 17, 2005
+
+  * TS*: Renamed global_term_ref_1 to default_store.
+
 Nov 10, 2005
 
   * TS: Two more bug fixes for constraints without
