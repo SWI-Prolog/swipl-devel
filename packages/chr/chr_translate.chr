@@ -447,7 +447,7 @@ chr_translate(Declarations,NewDeclarations) :-
 		storage_analysis(Constraints),
 		observation_analysis(Constraints),
 		ai_observation_analysis(Constraints),
-		late_allocation(Constraints),
+		late_allocation_analysis(Constraints),
 		assume_constraint_stores(Constraints),
 		set_constraint_indices(Constraints),
 		% end analysis
@@ -3687,9 +3687,6 @@ is_ground(GroundVars,Term) :-
 		memberchk_eq(Term,GroundVars)
 	).
 
-rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict):-
-	rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict,[],[],[],[],_).
-	
 rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict,PrevHs,PrevSusps,AttrDict) :-
 	rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NVarDict,PrevHs,PrevSusps,AttrDict,[],_).
 
@@ -5125,9 +5122,6 @@ ai_observation_top(AG,odom(AG,EmptyS)) :-
 
 ai_observation_leq(odom(AG,S1),odom(AG,S2)) :-
 	ord_subset(S2,S1).
-
-ai_observation_observe(odom(AG,S),AC,odom(AG,NS)) :-
-	ord_del_element(S,AC,NS).
 
 ai_observation_observe_list(odom(AG,S),ACs,odom(AG,NS)) :-
 	list_to_ord_set(ACs,ACSet),

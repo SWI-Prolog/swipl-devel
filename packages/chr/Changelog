@@ -1,5 +1,8 @@
 Nov 17, 2005
 
+  * TS: Removed two dead predicates in chr_translate.chr
+	and hooked up the late_storage_analysis
+	that was being bypassed.
   * TS: Renamed global_term_ref_1 to default_store.
   * TS: Removed redundant predicate values_ht.
 
