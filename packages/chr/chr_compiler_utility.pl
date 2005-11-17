@@ -3,7 +3,7 @@
     Part of CHR (Constraint Handling Rules)
 
     Author:        Tom Schrijvers
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Tom.Schrijvers@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2005-2006, K.U. Leuven
 

@@ -1,6 +1,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Author:	Tom Schrijvers
-% Email:	Tom.Schrijvers@cs.kuleuven.ac.be
+% Email:	Tom.Schrijvers@cs.kuleuven.be
 % Copyright:	K.U.Leuven 2004
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- module(a_star,

@@ -174,7 +174,7 @@ Jul 17, 2004
 
    "The new version of the compiler contains several new optimizations, both
     fully automatic, such as the antimonotny-based delay avoidance (see
-    http://www.cs.kuleuven.ac.be/publicaties/rapporten/cw/CW385.abs.html for
+    http://www.cs.kuleuven.be/publicaties/rapporten/cw/CW385.abs.html for
     the technical report), and enabled by mode declarations (see CHR
     documentation), such as hashtable-based constraint indexes."
 

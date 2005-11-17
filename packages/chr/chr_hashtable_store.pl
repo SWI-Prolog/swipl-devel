@@ -1,5 +1,5 @@
 % author: Tom Schrijvers
-% email:  Tom.Schrijvers@cs.kuleuven.ac.be
+% email:  Tom.Schrijvers@cs.kuleuven.be
 % copyright: K.U.Leuven, 2004
 
 :- module(chr_hashtable_store,

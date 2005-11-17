@@ -4,7 +4,7 @@
 
     Author:        Christian Holzbaur and Tom Schrijvers
     E-mail:        christian@ai.univie.ac.at
-		   Tom.Schrijvers@cs.kuleuven.ac.be
+		   Tom.Schrijvers@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2003-2004, K.U. Leuven
 
@@ -56,7 +56,7 @@
 %%          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 
 %%	
-%%	* modified by Tom Schrijvers, K.U.Leuven, Tom.Schrijvers@cs.kuleuven.ac.be
+%%	* modified by Tom Schrijvers, K.U.Leuven, Tom.Schrijvers@cs.kuleuven.be
 %%		- ported to hProlog
 %%		- modified for eager suspension removal
 %%

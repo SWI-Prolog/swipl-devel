@@ -3,7 +3,7 @@
     Part of CHR (Constraint Handling Rules)
 
     Author:        Tom Schrijvers
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Tom.Schrijvers@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
     Copyright (C): 2003-2004, K.U. Leuven
 
@@ -40,7 +40,7 @@
 %%
 %% hProlog CHR compiler:
 %%
-%%	* by Tom Schrijvers, K.U. Leuven, Tom.Schrijvers@cs.kuleuven.ac.be
+%%	* by Tom Schrijvers, K.U. Leuven, Tom.Schrijvers@cs.kuleuven.be
 %%
 %%	* based on the SICStus CHR compilation by Christian Holzbaur
 %%
