@@ -3841,7 +3841,7 @@ On most today platforms these are 64-bit IEEE floating point numbers.
 \end{itemlist}
 
 Arithmetic functions that require integer arguments accept, in addition
-to integers, rational numbers with denoninator `1' and floating point
+to integers, rational numbers with denominator `1' and floating point
 numbers that can be accurately converted to integers.  If the required
 argument is a float the argument is converted to float.  Note that
 conversion of integers to floating point numbers may raise an overflow
@@ -4034,7 +4034,7 @@ A = 3602879701896397 rdiv 36028797018963968
 Convert the \arg{Expr} to a rational number or integer.  The function
 is similar to rational/1, but the result is only accurate within the
 rounding error of floating point numbers, generally producing a much
-smaller denoninator.%
+smaller denominator.%
 	\footnote{The names rational/1 and rationalize/1 as well as
 		  their semantics are inspired by Common Lisp.}
 
