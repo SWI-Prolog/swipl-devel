@@ -1,6 +1,7 @@
 Nov 17, 2005
 
-  * TS*: Renamed global_term_ref_1 to default_store.
+  * TS: Renamed global_term_ref_1 to default_store.
+  * TS: Removed redundant predicate values_ht.
 
 Nov 10, 2005
 
