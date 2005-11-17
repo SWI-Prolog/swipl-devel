@@ -1068,7 +1068,7 @@ late_allocation([C|Cs]) :-
 %%	attach_$CONSTRAINT
 generate_attach_detach_a_constraint_all([],[]).
 generate_attach_detach_a_constraint_all([Constraint|Constraints],Clauses) :-
-	( ( chr_pp_flag(debugable,on) ; \+ only_ground_indexed_arguments(Constraint)) ->
+	( ( chr_pp_flag(debugable,on) ; is_stored(Constraint), \+ only_ground_indexed_arguments(Constraint)) ->
 		generate_attach_a_constraint(Constraint,Clauses1),
 		generate_detach_a_constraint(Constraint,Clauses2)
 	;
