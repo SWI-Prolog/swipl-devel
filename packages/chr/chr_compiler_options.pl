@@ -240,6 +240,12 @@ option_definition(observation,ai,Flags) :-
 option_definition(solver_events,NMod,Flags) :-
 	Flags =	[solver_events - NMod].
 
+option_definition(toplevel_show_store,on,Flags) :-
+	Flags = [toplevel_show_store - on].
+
+option_definition(toplevel_show_store,off,Flags) :-
+	Flags = [toplevel_show_store - off].
+
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),
 	set_chr_pp_flag(Name,DefaultValue),
@@ -274,6 +280,7 @@ chr_pp_flag_definition(occurrence_subsumption,[off,on]).
 chr_pp_flag_definition(observation,[off,on]).
 chr_pp_flag_definition(show,[off,on]).
 chr_pp_flag_definition(solver_events,[none,_]).
+chr_pp_flag_definition(toplevel_show_store,[on,off]).
 
 chr_pp_flag(Name,Value) :-
 	atom_concat('$chr_pp_',Name,GlobalVar),

@@ -5,6 +5,9 @@ Nov 18, 2005
 	on maximal number of arguments.
   * TS: Removed some redundant intermediate predicates
 	in chr_runtime.pl.
+  * TS: It is now possible to disable the printing
+	of the CHR constraint store per module,
+	through the option toplevel_show_store on/off
 
 Nov 17, 2005
 

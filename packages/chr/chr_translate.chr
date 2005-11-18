@@ -76,6 +76,9 @@
 %%
 %% MORE TODO
 %%
+%%	* generate code to empty all constraint stores of a module (Bart Demoen)
+%%	* variable suspension: only look upto necessary depth and necessary number 
+%%	  of arguments into term (Thom Fruehwirth: global constraints)
 %%	* ground matching seems to be not optimized for compound terms
 %%	  in case of simpagation_head2 and propagation occurrences
 %%	* Do not unnecessarily generate store operations.
@@ -511,7 +514,7 @@ generate_counter_code(Clauses) :-
 % SWI-Prolog specific
 chr_module_declaration(CHRModuleDeclaration) :-
 	get_target_module(Mod),
-	( Mod \== chr_translate ->
+	( Mod \== chr_translate, chr_pp_flag(toplevel_show_store,on) ->
 		CHRModuleDeclaration = [
 			(:- multifile chr:'$chr_module'/1),
 			chr:'$chr_module'(Mod)	
