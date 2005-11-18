@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.37/XPCE 6.5.37 development release
+SWI-Prolog 5.5.38/XPCE 6.5.38 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -59,23 +59,23 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.37 relative to 5.5.36
+Patches in 5.5.38 relative to 5.5.37
 ====================================
 
- * New constraints my Markus Triska: clp_distinct.  New constraint added
-   to bounds.pl: tuples_in/2.
- * New integer functions: lsb/1 and popcount/1
- * Memory leak related to GMP arithmetic, converting GMP number to float
-   for intermediate result.
- * Fixed saved-state handling for huge clauses.
- * Some portability issues
- * Minor stuff
+ * Fixed crash in meta-calling huge goals.
+ * Some input fixes: avoid loosing next character after abort and
+   memory leak in readline interface.
+ * Added Encoding negotiation with external streams.
+ * Fixed numbervars/ignore_ops interaction error in write_term.
 
 Packages
 ========
  
- * XPCE: Unicode patches.  Now allows for unicode class-names
+ * XPCE: Use encoding negotiation to allow changing encoding on Prolog
+   streams related to XPCE sockets.
  * SemWeb: Fix saving triple-sets using datatypes.
+ * HTTP: Avoid XPCE based servers to be garbage collected when started
+   from the GUI.
 
 Incompatible changes
 ====================
