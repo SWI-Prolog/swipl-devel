@@ -9,6 +9,7 @@ Nov 18, 2005
 	of the CHR constraint store per module,
 	through the option toplevel_show_store on/off
   * TS: Synchronized with hProlog
+  * TS: bug fix in functional dependency analysis
 
 Nov 17, 2005
 

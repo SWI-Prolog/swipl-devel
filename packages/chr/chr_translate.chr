@@ -3530,6 +3530,11 @@ discover_unique_pattern(PragmaRule,F/A,RuleNb,Pattern,Key) :-
 	),
 	check_unique_constraints(C1,C2,Guard,RuleNb,List),
 	term_variables(C1,Vs),
+	\+ ( 
+		member(V1,Vs),
+		lookup_eq(List,V1,V2),
+		memberchk_eq(V2,Vs)
+	),
 	select_pragma_unique_variables(Vs,List,Key1),
 	copy_term_nat(C1-Key1,Pattern-Key),
 	functor(C1,F,A).
