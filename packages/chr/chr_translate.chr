@@ -178,6 +178,8 @@ option(optimize,full).
 
 	may_trigger/1,
 	only_ground_indexed_arguments/1,
+	none_suspended_on_variables/0,
+	are_none_suspended_on_variables/0,
 	
 	store_type/2,
 	get_store_type/2,
@@ -267,6 +269,10 @@ constraint_mode(FA,Mode), indexed_argument(FA,I) \ only_ground_indexed_arguments
 		fail.
 only_ground_indexed_arguments(_) <=>
 	true.
+
+none_suspended_on_variables \ none_suspended_on_variables <=> true.
+none_suspended_on_variables \ are_none_suspended_on_variables <=> true.
+are_none_suspended_on_variables <=> fail.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 store_type(FA,atom_hash(Index)) <=> store_type(FA,multi_hash([Index])).
@@ -1273,10 +1279,10 @@ generate_detach_body_n(F/A,Var,Susp,Body) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 generate_indexed_variables_clauses(Constraints,Clauses) :-
-	( forsome(C,Constraints,\+ chr_translate:only_ground_indexed_arguments(C)) ->
-		generate_indexed_variables_clauses_(Constraints,Clauses)
-	;
+	( are_none_suspended_on_variables ->
 		Clauses = []
+	;
+		generate_indexed_variables_clauses_(Constraints,Clauses)
 	).
 
 generate_indexed_variables_clauses_([],[]).
@@ -1344,25 +1350,34 @@ generate_remove_clause(List,Tail) :-
 	( is_used_auxiliary_predicate(remove_constraint_internal) ->
 		List = [RemoveClause|Tail],
 		use_auxiliary_predicate(chr_indexed_variables),
-		RemoveClause = 
-		(
-			remove_constraint_internal(Susp, Agenda, Delete) :-
-				arg( 2, Susp, Mref),
-				Mref = mutable(State), % get_mutable( State, Mref), % XXX Inlined
-				'chr update_mutable'( removed, Mref),		% mark in any case
-				( compound(State) ->			% passive/1
-				    Agenda = [],
-				    Delete = no
-				; State==removed ->
-				    Agenda = [],
-				    Delete = no
-				%; State==triggered ->
-				%     Agenda = []
-				;
-				    Delete = yes,
-				    chr_indexed_variables(Susp,Agenda)
-				)
-		)
+		( are_none_suspended_on_variables ->
+			RemoveClause = 
+			(
+			    remove_constraint_internal(Susp) :-
+			    	arg( 2, Susp, Mref),
+			    	chr_runtime:update_mutable( removed, Mref)
+			)
+		;
+			RemoveClause = 
+			(
+				remove_constraint_internal(Susp, Agenda, Delete) :-
+					arg( 2, Susp, Mref),
+					Mref = mutable(State), % get_mutable( State, Mref), % XXX Inlined
+					'chr update_mutable'( removed, Mref),		% mark in any case
+					( compound(State) ->			% passive/1
+					    Agenda = [],
+					    Delete = no
+					; State==removed ->
+					    Agenda = [],
+					    Delete = no
+					%; State==triggered ->
+					%     Agenda = []
+					;
+					    Delete = yes,
+					    chr_indexed_variables(Susp,Agenda)
+					)
+			)
+		)    
 	;
 		List = Tail
 	).
@@ -1422,19 +1437,36 @@ generate_allocate_clause(List,Tail) :-
 
 generate_insert_constraint_internal(List,Tail) :-
 	( is_used_auxiliary_predicate(insert_constraint_internal) ->
-		List = [Clause|Tail],
-		use_auxiliary_predicate(chr_indexed_variables),
-		Clause =
-		(
-			insert_constraint_internal(yes, Vars, Self, Closure, F, Args) :-
-				Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
-				chr_indexed_variables(Self,Vars),
-				'chr none_locked'(Vars),
-				Mref = mutable(active),
-				Gref = mutable(0),
-				Href = mutable(History),
-				'chr empty_history'(History),
-				'chr gen_id'(Id)
+		( are_none_suspended_on_variables ->
+			List = [Clause1,Clause2|Tail],
+			% is clause1 needed????
+			Clause1 =
+			    (
+				insert_constraint_internal(yes, [], Self, Closure, F, Args) :-
+					Self =.. [suspension,Id,mutable(active),Closure,mutable(0),mutable(t),F|Args],
+					'chr gen_id'(Id)
+			    ),
+			Clause2 =
+			    (
+				insert_constraint_internal(Self, F, Args) :-
+					Self =.. [suspension,Id,mutable(active),true,mutable(0),mutable(t),F|Args],
+					'chr gen_id'(Id)
+			    )
+		;
+			List = [Clause|Tail],
+			use_auxiliary_predicate(chr_indexed_variables),
+			Clause =
+			(
+				insert_constraint_internal(yes, Vars, Self, Closure, F, Args) :-
+					Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
+					chr_indexed_variables(Self,Vars),
+					'chr none_locked'(Vars),
+					Mref = mutable(active),
+					Gref = mutable(0),
+					Href = mutable(History),
+					'chr empty_history'(History),
+					'chr gen_id'(Id)
+			)
 		)
 	;
 		List = Tail
@@ -1444,11 +1476,11 @@ global_indexed_variables_clause(Constraints,List,Tail) :-
 	( is_used_auxiliary_predicate(chr_indexed_variables) ->
 		List = [Clause|Tail],
 		( chr_pp_flag(reduced_indexing,on) ->
-			( forsome(C,Constraints,\+ chr_translate:only_ground_indexed_arguments(C)) ->
-				Body = (Susp =.. [_,_,_,_,_,_,Term|_], '$indexed_variables'(Term,Vars))
-			;
+			( are_none_suspended_on_variables ->
 				Body = true,
 				Vars = []
+			;
+				Body = (Susp =.. [_,_,_,_,_,_,Term|_], '$indexed_variables'(Term,Vars))
 			),	
 			Clause = ( chr_indexed_variables(Susp,Vars) :- Body )
 		;
@@ -1486,7 +1518,7 @@ generate_attach_increment_one(Clause) :-
 		'chr not_locked'(Var),
 		( get_attr(Var,Mod,VarSusps) ->
 			sort(VarSusps,SortedVarSusps),
-			merge(Susps,SortedVarSusps,MergedSusps),
+			'chr merge_attributes'(Susps,SortedVarSusps,MergedSusps),
 			put_attr(Var,Mod,MergedSusps)
 		;
 			put_attr(Var,Mod,Susps)
@@ -2980,6 +3012,12 @@ check_storage_head2(Head,O,H1,B) :-
 %%                                           |_|
 
 constraints_code(Constraints,Clauses) :-
+	(chr_pp_flag(reduced_indexing,on), 
+		    \+ forsome(C,Constraints,\+ chr_translate:only_ground_indexed_arguments(C)) ->
+	    none_suspended_on_variables
+	;
+	    true
+        ),
 	constraints_code1(Constraints,L,[]),
 	clean_clauses(L,Clauses).
 
@@ -2989,7 +3027,7 @@ option(mode,constraints_code1(+,+,+)).
 %-------------------------------------------------------------------------------
 constraints_code1([],L,T) <=> L = T.
 constraints_code1([C|RCs],L,T) 
-	<=> 
+	<=>
 		constraint_code(C,L,T1),
 		constraints_code1(RCs,T1,T).
 %===============================================================================
@@ -3013,6 +3051,7 @@ constraint_code(Constraint, L, T)
 		Id = [0],
 		occurrences_code(Constraint,1,Id,NId,L1,L2),
 		gen_cond_attach_clause(Constraint,NId,L2,T).
+
 %===============================================================================
 %%	Generate prelude predicate for a constraint.
 %%	f(...) :- f/a_0(...,Susp).
@@ -3165,11 +3204,19 @@ gen_insert_constraint_internal_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	FTerm =.. [F|Args],
 	generate_insert_constraint_call(F/A,Susp,InsertCall),
 	use_auxiliary_predicate(insert_constraint_internal),
-	Goal =
-	(
+	( are_none_suspended_on_variables ->
+	    Goal =
+	    (
+		insert_constraint_internal(Susp,FTerm,Args),
+		InsertCall
+	    )
+	;
+	    Goal =
+	    (
 		insert_constraint_internal(_,Vars,Susp,Cont,FTerm,Args),
 		InsertCall,
 		Attach
+	    )
 	).
 
 gen_uncond_attach_goal(FA,Susp,AttachGoal,Generation) :-
@@ -3208,7 +3255,8 @@ max_occurrence(C,MO) \ occurrences_code(C,O,Id,NId,L,T)
 	 <=> 	O > MO 
 	|	NId = Id, L = T.
 occurrences_code(C,O,Id,NId,L,T) 
-	<=> 	occurrence_code(C,O,Id,Id1,L,L1), 
+	<=>
+		occurrence_code(C,O,Id,Id1,L,L1), 
 		NO is O + 1,
 		occurrences_code(C,NO,Id1,NId,L1,T).
 %-------------------------------------------------------------------------------
@@ -3232,6 +3280,7 @@ occurrence(C,O,RuleNb,ID), rule(RuleNb,PragmaRule) \ occurrence_code(C,O,Id,NId,
 				gen_alloc_inc_clause(C,O,Id,L1,T)
 			)
 		).
+
 occurrence_code(C,O,_,_,_,_)
 	<=>	
 		format('occurrence_code/6: missing information to compile ~w:~w\n',[C,O]),fail.
@@ -3928,8 +3977,17 @@ gen_uncond_susp_detachment(Susp,FA,SuspDetachment) :-
 	),
 	generate_delete_constraint_call(FA,Susp,DeleteCall),
 	use_auxiliary_predicate(remove_constraint_internal),
-	SuspDetachment = 
-	(
+	( are_none_suspended_on_variables ->
+	    SuspDetachment = 
+	    (
+		DebugEvent,
+		remove_constraint_internal(Susp),
+		DeleteCall,
+		Detach
+	    )
+	;
+	    SuspDetachment = 
+	    (
 		DebugEvent,
 		remove_constraint_internal(Susp, Vars, Delete),
 		( Delete == yes ->
@@ -3938,6 +3996,7 @@ gen_uncond_susp_detachment(Susp,FA,SuspDetachment) :-
 		;
 			true
 		)
+	    )
 	)
    ;
 	SuspDetachment = true
@@ -4334,38 +4393,56 @@ propagation_nested_code([Head|RestHeads],PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,
    inc_id(Id,IncId),
    propagation_nested_code(RestHeads,[Head|PreHeads],RestIDs,Rule,RuleNb,FA,O,IncId,L2,T).
 
-propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
-   Rule = rule(_,_,Guard,Body),
-   get_prop_inner_loop_vars(PreHeads,[CurrentHead,Guard,Body],PreVarsAndSusps,VarDict1,Susp,RestSusps),
-   gen_var(OtherSusp),
-   gen_var(OtherSusps),
-   functor(CurrentHead,OtherF,OtherA),
-   gen_vars(OtherA,OtherVars),
-   Suspension =.. [suspension,_,State,_,_,_,_|OtherVars],
-   create_get_mutable(active,State,GetMutable),
-   CurrentSuspTest = (
-      OtherSusp = Suspension,
-      GetMutable
-   ),
-   ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],
-   build_head(F,A,Id,ClauseVars,ClauseHead),
-   RecursiveVars = [OtherSusps|PreVarsAndSusps],
-   build_head(F,A,Id,RecursiveVars,RecursiveHead),
-   RecursiveCall = RecursiveHead,
-   CurrentHead =.. [_|OtherArgs],
-   pairup(OtherArgs,OtherVars,OtherPairs),
-   get_constraint_mode(OtherF/OtherA,Mode),
-   head_arg_matches(OtherPairs,Mode,VarDict1,Matching,VarDict),
- 
-   different_from_other_susps(CurrentHead,OtherSusp,PreHeads,RestSusps,DiffSuspGoals), 
-   guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
+check_fd_lookup_condition(_,_,_,_) :- fail.
+%check_fd_lookup_condition(F,A,_,_) :-
+%	get_store_type(F/A,global_singleton), !.
+%check_fd_lookup_condition(F,A,CurrentHead,PreHeads) :-
+%	get_functional_dependency(F/A,1,P,K),
+%	copy_term(P-K,CurrentHead-Key),
+%	term_variables(PreHeads,PreVars),
+%	intersect_eq(Key,PreVars,Key).		
 
-   (   BodyCopy \== true, is_observed(F/A,O) ->
-       gen_uncond_attach_goal(F/A,Susp,Attach,Generation),
-       gen_state_cond_call(Susp,A,RecursiveCall,Generation,ConditionalRecursiveCall)
-   ;   Attach = true,
-       ConditionalRecursiveCall = RecursiveCall
-   ),
+propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
+	Rule = rule(_,_,Guard,Body),
+	gen_var_susp_list_for_b(PreHeads,[CurrentHead,Guard,Body],VarDict1,PreVarsAndSuspsList,FirstVarsSusp,AllSusps,PrevIterators),
+	flatten(PreVarsAndSuspsList,PreVarsAndSusps),
+	init(AllSusps,RestSusps),
+	last(AllSusps,Susp),	
+	gen_var(OtherSusp),
+	gen_var(OtherSusps),
+	functor(CurrentHead,OtherF,OtherA),
+	gen_vars(OtherA,OtherVars),
+	Suspension =.. [suspension,_,State,_,_,_,_|OtherVars],
+	create_get_mutable(active,State,GetMutable),
+	CurrentSuspTest = (
+	   OtherSusp = Suspension,
+	   GetMutable
+	),
+	ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],
+	build_head(F,A,Id,ClauseVars,ClauseHead),
+	( check_fd_lookup_condition(OtherF,OtherA,CurrentHead,PreHeads) ->	% iterator (OtherSusps) is empty at runtime
+		universal_search_iterator_failure_vars(PreHeads,Id,PreVarsAndSuspsList,FirstVarsSusp,PrevIterators,PreVarsAndSusps1,PrevId),
+		RecursiveVars = PreVarsAndSusps1
+	;
+		RecursiveVars = [OtherSusps|PreVarsAndSusps],
+		PrevId = Id
+	),
+	build_head(F,A,PrevId,RecursiveVars,RecursiveHead),
+	RecursiveCall = RecursiveHead,
+	CurrentHead =.. [_|OtherArgs],
+	pairup(OtherArgs,OtherVars,OtherPairs),
+	get_constraint_mode(OtherF/OtherA,Mode),
+	head_arg_matches(OtherPairs,Mode,VarDict1,Matching,VarDict),
+	
+	different_from_other_susps(CurrentHead,OtherSusp,PreHeads,RestSusps,DiffSuspGoals), 
+	guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
+	
+	(   BodyCopy \== true, is_observed(F/A,O) ->
+	    gen_uncond_attach_goal(F/A,Susp,Attach,Generation),
+	    gen_state_cond_call(Susp,A,RecursiveCall,Generation,ConditionalRecursiveCall)
+	;   Attach = true,
+	    ConditionalRecursiveCall = RecursiveCall
+	),
 
 	( is_least_occurrence(RuleNb) ->
 		NovelProduction = true,
@@ -4415,24 +4492,6 @@ history_susps(RestIDs,ReversedRestSusps,Susp,ID,HistorySusps) :-
 	sort(IDSusps,SortedIDSusps),
 	pairup(_,HistorySusps,SortedIDSusps).
 
-get_prop_inner_loop_vars([Head],Terms,HeadVars,VarDict,Susp,[]) :-
-	!,
-	functor(Head,F,A),
-	head_info(Head,A,_Vars,Susp,VarsSusp,Pairs),
-	get_constraint_mode(F/A,Mode),
-	head_arg_matches(Pairs,Mode,[],_,VarDict),
-	extra_active_delegate_variables(Head,Terms,VarDict,ExtraVars),
-	append(VarsSusp,ExtraVars,HeadVars).
-get_prop_inner_loop_vars([Head|Heads],Terms,VarsSusps,NVarDict,MainSusp,[Susp|RestSusps]) :-
-	get_prop_inner_loop_vars(Heads,[Head|Terms],RestVarsSusp,VarDict,MainSusp,RestSusps),
-	functor(Head,F,A),
-	gen_var(Susps),
-	head_info(Head,A,_Vars,Susp,_VarsSusp,Pairs),
-	get_constraint_mode(F/A,Mode),
-	head_arg_matches(Pairs,Mode,VarDict,_,NVarDict),
-	passive_delegate_variables(Head,Heads,Terms,NVarDict,HeadVars),
-	append(HeadVars,[Susp,Susps|RestVarsSusp],VarsSusps).
-
 gen_var_susp_list_for([Head],Terms,VarDict,HeadVars,VarsSusp,Susp) :-
    !,
    functor(Head,F,A),
@@ -4451,23 +4510,48 @@ gen_var_susp_list_for([Head|Heads],Terms,NVarDict,VarsSusps,Rest,Susps) :-
 	passive_delegate_variables(Head,Heads,Terms,NVarDict,HeadVars),
 	append(HeadVars,[Susp,Susps|Rest],VarsSusps).
 
-pre_vars_and_susps([Head],Terms,HeadVars,VarDict,[]) :-
+	% returns
+	%	VarDict		for the copies of variables in the original heads
+	%	VarsSuspsList	list of lists of arguments for the successive heads
+	%	FirstVarsSusp	top level arguments
+	%	SuspList	list of all suspensions
+	%	Iterators	list of all iterators
+gen_var_susp_list_for_b([Head],NextHeads,VarDict,[HeadVars],VarsSusp,[Susp],[]) :-
 	!,
 	functor(Head,F,A),
-	head_info(Head,A,_Vars,_Susp,VarsSusp,HeadPairs),
+	head_info(Head,A,_Vars,Susp,VarsSusp,HeadPairs),			% make variables for argument positions
 	get_constraint_mode(F/A,Mode),
-	head_arg_matches(HeadPairs,Mode,[],_,VarDict),
-	extra_active_delegate_variables(Head,Terms,VarDict,ExtraVars),
-	append(VarsSusp,ExtraVars,HeadVars).
-pre_vars_and_susps([Head|Heads],Terms,NVSs,NVarDict,[Susp|Susps]) :-
-	pre_vars_and_susps(Heads,[Head|Terms],VSs,VarDict,Susps),
+	head_arg_matches(HeadPairs,Mode,[],_,VarDict),				% copy variables inside arguments, build dictionary
+	extra_active_delegate_variables(Head,NextHeads,VarDict,ExtraVars),	% decide what additional variables are needed
+	append(VarsSusp,ExtraVars,HeadVars).					% add additional variables to head variables
+gen_var_susp_list_for_b([Head|Heads],NextHeads,NVarDict,[Vars|RestVars],FirstVarsSusp,[Susp|SuspList],[Susps|Iterators]) :-
+%	gen_var_susp_list_for_b(Heads,[Head|NextHeads],VarDict,RestVars,FirstVarsSusp,[SuspList],Iterators),
+	gen_var_susp_list_for_b(Heads,[Head|NextHeads],VarDict,RestVars,FirstVarsSusp,SuspList,Iterators),	% needed almost an hour to find this nasty typo/bug
 	functor(Head,F,A),
-	gen_var(NextSusps),
+	gen_var(Susps),
 	head_info(Head,A,_Vars,Susp,_VarsSusp,HeadPairs),
 	get_constraint_mode(F/A,Mode),
 	head_arg_matches(HeadPairs,Mode,VarDict,_,NVarDict),
+	passive_delegate_variables(Head,Heads,NextHeads,NVarDict,HeadVars),
+	append(HeadVars,[Susp,Susps],Vars).
+
+get_prop_inner_loop_vars([Head],Terms,HeadVars,VarDict,Susp,[]) :-
+	!,
+	functor(Head,F,A),
+	head_info(Head,A,_Vars,Susp,VarsSusp,Pairs),
+	get_constraint_mode(F/A,Mode),
+	head_arg_matches(Pairs,Mode,[],_,VarDict),
+	extra_active_delegate_variables(Head,Terms,VarDict,ExtraVars),
+	append(VarsSusp,ExtraVars,HeadVars).
+get_prop_inner_loop_vars([Head|Heads],Terms,VarsSusps,NVarDict,MainSusp,[Susp|RestSusps]) :-
+	get_prop_inner_loop_vars(Heads,[Head|Terms],RestVarsSusp,VarDict,MainSusp,RestSusps),
+	functor(Head,F,A),
+	gen_var(Susps),
+	head_info(Head,A,_Vars,Susp,_VarsSusp,Pairs),
+	get_constraint_mode(F/A,Mode),
+	head_arg_matches(Pairs,Mode,VarDict,_,NVarDict),
 	passive_delegate_variables(Head,Heads,Terms,NVarDict,HeadVars),
-	append(HeadVars,[Susp,NextSusps|VSs],NVSs).
+	append(HeadVars,[Susp,Susps|RestVarsSusp],VarsSusps).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -4531,15 +4615,11 @@ order_score(default,Head,_ID,KnownVars,RestHeads,RuleNb,Score) :-
 	order_score_vars(HeadVars,KnownVars,RestVars,Score).
 order_score(multi_hash(Indexes),Head,_ID,KnownVars,RestHeads,RuleNb,Score) :-
 	order_score_indexes(Indexes,Head,KnownVars,0,Score).
-order_score(global_ground,Head,ID,_KnownVars,_RestHeads,RuleNb,Score) :-
-	functor(Head,F,A),
-	( Vars == [] ->
-		Score =	10	% guaranteed O(1)
-	; A == 0 ->			% flag constraint
-		Score = 1000		% O(1)? [CHECK: no deleted/triggered/... constraints in store?]
-	; A > 0 ->
-		Score = 10000
-	).
+order_score(global_ground,Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
+	term_variables(Head,HeadVars),
+	term_variables(RestHeads,RestVars),
+	order_score_vars(HeadVars,KnownVars,RestVars,Score_),
+	Score is Score_ * 2.
 order_score(global_singleton,_Head,ID,_KnownVars,_RestHeads,_RuleNb,Score) :-
 	Score = 1.		% guaranteed O(1)
 			
@@ -4868,24 +4948,48 @@ validate_store_type_assumptions([C|Cs]) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % new code generation
 universal_search_iterator_end([CurrentHead|PrevHeads],NextHeads,Rule,F/A,Id,L,T) :-
-   Rule = rule(_,_,Guard,Body),
-   gen_var_susp_list_for(PrevHeads,[CurrentHead,NextHeads,Guard,Body],_,VarsAndSusps,AllButFirst,FirstSusp),
-   Vars = [ [] | VarsAndSusps],
-   build_head(F,A,Id,Vars,Head),
-   (   Id = [0|_] ->
-       next_id(Id,PrevId),
-       PrevVarsAndSusps = AllButFirst
-   ;
-       dec_id(Id,PrevId),
-       PrevVarsAndSusps = [FirstSusp|AllButFirst]
-   ),
-   build_head(F,A,PrevId,PrevVarsAndSusps,PredecessorCall),
-   Clause = ( Head :- PredecessorCall),
-   L = [Clause | T].
+	Rule = rule(H1,_,Guard,Body),
+	( H1 == [],
+	  functor(CurrentHead,CF,CA),
+	  check_fd_lookup_condition(CF,CA,CurrentHead,PrevHeads) ->
+		L = T
+	;
+		gen_var_susp_list_for_b(PrevHeads,[CurrentHead,NextHeads,Guard,Body],_,VarsAndSuspsList,FirstVarsSusp,_,PrevIterators),
+		universal_search_iterator_failure_vars(PrevHeads,Id,VarsAndSuspsList,FirstVarsSusp,PrevIterators,PrevVarsAndSusps,PrevId),
+		flatten(VarsAndSuspsList,VarsAndSusps),
+		Vars = [ [] | VarsAndSusps],
+		build_head(F,A,Id,Vars,Head),
+		build_head(F,A,PrevId,PrevVarsAndSusps,PredecessorCall),
+		Clause = ( Head :- PredecessorCall),
+		L = [Clause | T]
+	).
+
+	% skips back intelligently over global_singleton lookups
+universal_search_iterator_failure_vars(PrevHeads,Id,VarsAndSuspsList,BaseCallArgs,PrevIterators,PrevVarsAndSusps,PrevId) :-
+	( Id = [0|_] ->
+		next_id(Id,PrevId),
+		PrevVarsAndSusps = BaseCallArgs
+	;
+		VarsAndSuspsList = [_|AllButFirstList],
+		dec_id(Id,PrevId1),
+		( PrevHeads  = [PrevHead|PrevHeads1],
+		  functor(PrevHead,F,A),
+		  check_fd_lookup_condition(F,A,PrevHead,PrevHeads1) ->
+			PrevIterators = [_|PrevIterators1],
+			universal_search_iterator_failure_vars(PrevHeads1,PrevId1,AllButFirstList,BaseCallArgs,PrevIterators1,PrevVarsAndSusps,PrevId)
+		;
+			PrevId = PrevId1,
+			flatten(AllButFirstList,AllButFirst),
+			PrevIterators = [PrevIterator|_],
+			PrevVarsAndSusps = [PrevIterator|AllButFirst]
+		)
+	).
 
 universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,Id,L,T) :-
 	Rule = rule(_,_,Guard,Body),
-	pre_vars_and_susps(PreHeads,[CurrentHead,NextHead,RestHeads,Guard,Body],PreVarsAndSusps,VarDict,PreSusps),
+	gen_var_susp_list_for_b(PreHeads,[CurrentHead,NextHead,RestHeads,Guard,Body],VarDict,PreVarsAndSuspsList,FirstVarsSusp,AllSusps,PrevIterators),
+	init(AllSusps,PreSusps),
+	flatten(PreVarsAndSuspsList,PreVarsAndSusps),
 	gen_var(OtherSusps),
 	functor(CurrentHead,OtherF,OtherA),
 	gen_vars(OtherA,OtherVars),
@@ -4911,8 +5015,15 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 	append([NextSusps|CurrentHeadVars],[OtherSusp,OtherSusps|PreVarsAndSusps],NestedVars),
 	build_head(F,A,NestedId,NestedVars,NestedHead),
 	
-	RecursiveVars = [OtherSusps|PreVarsAndSusps],
-	build_head(F,A,Id,RecursiveVars,RecursiveHead),
+	( check_fd_lookup_condition(OtherF,OtherA,CurrentHead,PreHeads) ->	% iterator (OtherSusps) is empty at runtime
+		universal_search_iterator_failure_vars(PreHeads,Id,PreVarsAndSuspsList,FirstVarsSusp,PrevIterators,PreVarsAndSusps1,PrevId),
+		RecursiveVars = PreVarsAndSusps1
+	;
+		RecursiveVars = [OtherSusps|PreVarsAndSusps],
+		PrevId = Id
+	),
+	build_head(F,A,PrevId,RecursiveVars,RecursiveHead),
+
 	Clause = (
 	   ClauseHead :-
 	   (   CurrentSuspTest,
@@ -4923,6 +5034,7 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 	   )
 	),   
 	L = [Clause|T].
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

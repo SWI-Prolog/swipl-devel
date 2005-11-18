@@ -66,7 +66,6 @@
 %% SWI-Prolog changes
 %% 
 %% 	* Added initialization directives for saved-states
-%%	* Renamed merge/3 --> sbag_merge/3 (name conflict)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 :- module(chr_runtime,
