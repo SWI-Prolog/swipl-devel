@@ -4807,7 +4807,8 @@ assume_constraint_stores([C|Cs]) :-
 	  is_stored(C),
 	  get_store_type(C,default) ->
 		get_indexed_arguments(C,IndexedArgs),
-		findall(Index,(sublist(Index,IndexedArgs), Index \== []),Indexes),
+		findall(Index,(sublist(Index,IndexedArgs), Index \== []),UnsortedIndexes),
+		predsort(longer_list,UnsortedIndexes,Indexes),
 		( get_functional_dependency(C,1,Pattern,Key), 
 		  all_distinct_var_args(Pattern), Key == [] ->
 			assumed_store_type(C,global_singleton)
@@ -4818,6 +4819,16 @@ assume_constraint_stores([C|Cs]) :-
 		true
 	),
 	assume_constraint_stores(Cs).
+
+longer_list(R,L1,L2) :-
+	length(L1,N1),
+	length(L2,N2),
+	compare(Rt,N2,N1),
+	( Rt == (=) ->
+		compare(R,L1,L2)
+	;
+		R = Rt
+	).
 
 all_distinct_var_args(Term) :-
 	Term =.. [_|Args],

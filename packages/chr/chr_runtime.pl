@@ -146,10 +146,6 @@ show_store(Mod) :-
 	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-'chr merge_attributes'( As, Bs, Cs) :-
-	sbag_union(As,Bs,Cs).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr run_suspensions'( Slots) :-
 	    run_suspensions( Slots).
 
@@ -289,7 +285,7 @@ not_locked( V) :-
 	;
             Susp =.. [_,_,_,_,_,_,_|Args],
 	    term_variables( Args, Vars),
-	    default_store( Global),
+	    'chr default_store'( Global),
 	    Agenda = [Global|Vars]
 	).
 
@@ -298,15 +294,15 @@ not_locked( V) :-
 	( var(X) ->
 		X = V
 	; atomic(X) ->
-		default_store(V)
+		'chr default_store'(V)
 	; nonground(X,V) ->
 		true
 	;
-		default_store(V)
+		'chr default_store'(V)
 	).
 % 'chr via_1'( X, V) :- var(X), !, X=V.
 % 'chr via_1'( T, V) :- compound(T), nonground( T, V), ! .
-% 'chr via_1'( _, V) :- default_store( V).
+% 'chr via_1'( _, V) :- 'chr default_store'( V).
 
 'chr via_2'(X,Y,V) :- 
 	( var(X) -> 
@@ -318,13 +314,13 @@ not_locked( V) :-
 	; compound(Y), nonground(Y,V) ->
 		true
 	;
-		default_store(V)
+		'chr default_store'(V)
 	).
 % 'chr via_2'( X, _, V) :- var(X), !, X=V.
 % 'chr via_2'( _, Y, V) :- var(Y), !, Y=V.
 % 'chr via_2'( T, _, V) :- compound(T), nonground( T, V), ! .
 % 'chr via_2'( _, T, V) :- compound(T), nonground( T, V), ! .
-% 'chr via_2'( _, _, V) :- default_store( V).
+% 'chr via_2'( _, _, V) :- 'chr default_store'( V).
 
 %
 % The second arg is a witness.
@@ -336,7 +332,7 @@ not_locked( V) :-
 	( nonground(L,V) ->
 		true
 	;
-		default_store(V)
+		'chr default_store'(V)
 	).
 
 nonground( Term, V) :-
@@ -399,12 +395,12 @@ constraint_generation( Susp, State, Generation) :-
 	( compound(State) ->			% passive/1
 	    term_variables( State, Vs),
 	    'chr none_locked'( Vs),
-	    default_store( Global),
+	    'chr default_store'( Global),
 	    Vars = [Global|Vs]
 	; State==removed ->			% the price for eager removal ...
 	    Susp =.. [_,_,_,_,_,_,_|Args],
 	    term_variables( Args, Vs),
-	    default_store( Global),
+	    'chr default_store'( Global),
 	    Vars = [Global|Vs]
 	;
 	    Vars = []
@@ -413,7 +409,7 @@ constraint_generation( Susp, State, Generation) :-
 'chr insert_constraint_internal'( [Global|Vars], Self, Closure, F, Args) :-
 	term_variables( Args, Vars),
 	'chr none_locked'( Vars),
-	default_store( Global),
+	'chr default_store'( Global),
 	'chr empty_history'( History),
 	create_mutable( active, Mref),
 	create_mutable( 0, Gref),
@@ -424,7 +420,7 @@ constraint_generation( Susp, State, Generation) :-
 insert_constraint_internal( [Global|Vars], Self, Term, Closure, F, Args) :-
 	term_variables( Term, Vars),
 	'chr none_locked'( Vars),
-	default_store( Global),
+	'chr default_store'( Global),
 	'chr empty_history'( History),
 	create_mutable( active, Mref),
 	create_mutable( 0, Gref),
@@ -464,9 +460,6 @@ update_mutable(V,M) :-
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr default_store'(X) :-
-	default_store(X).
-
-default_store(X) :-
 	nb_getval(chr_global,X).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -489,23 +482,21 @@ sbag_member( E, [Head|Tail], _) :-
 	    'chr sbag_del_element'( Xs, Elem, Xss)
 	).
 
-sbag_union( A, B, C) :-
-	sbag_merge( A, B, C).
-
-sbag_merge([],Ys,Ys).
-sbag_merge([X | Xs],YL,R) :-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+'chr merge_attributes'([],Ys,Ys).
+'chr merge_attributes'([X | Xs],YL,R) :-
   ( YL = [Y | Ys] ->
       arg(1,X,XId),
       arg(1,Y,YId),	
        ( XId < YId ->
            R = [X | T],
-           sbag_merge(Xs,YL,T)
+           'chr merge_attributes'(Xs,YL,T)
        ; XId > YId ->
            R = [Y | T],
-           sbag_merge([X|Xs],Ys,T)
+           'chr merge_attributes'([X|Xs],Ys,T)
        ;
            R = [X | T],
-           sbag_merge(Xs,Ys,T)
+           'chr merge_attributes'(Xs,Ys,T)
        )    
   ;
        R = [X | Xs]

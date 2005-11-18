@@ -13,6 +13,9 @@
 :- constraints prime/1.
 :- constraints cleanup/1.
 
+option(debug,off).
+option(optimize,full).
+
 candidate(1) <=> true.
 candidate(N) <=> prime(N), N1 is N - 1, candidate(N1).
 

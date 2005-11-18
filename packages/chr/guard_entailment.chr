@@ -428,15 +428,6 @@ try(A,X) :- (known(A) ->
 		true).
 
 
-lookup([],[],_,_) :- fail.
-lookup([K|R],[V|R2],X,Y) :-
-    (X == K ->
-	Y=V
-    ;
-	lookup(R,R2,X,Y)
-    ).
-
-
 add_args_unif([],[],true).
 add_args_unif([X|RX],[Y|RY],(X=Y,RC)) :-
     add_args_unif(RX,RY,RC).
