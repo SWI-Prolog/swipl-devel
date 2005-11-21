@@ -84,6 +84,10 @@ static void initHeapDebug(void);
 #ifndef WM_MOUSEWHEEL			/* sometimes not defined */
 #define WM_MOUSEWHEEL 0x020A
 #endif
+#ifndef WM_UNICHAR
+#define WM_UNICHAR 0x109
+#define UNICODE_NOCHAR 0xFFFF
+#endif
 
 #include <stdlib.h>
 #include <io.h>
@@ -1083,6 +1087,10 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     break2:
       break;
     }
+	case WM_UNICHAR:
+	  chr = wParam;
+	  typed_char(b, chr);
+	  return 0;
     case WM_SYSCHAR:	typed_char(b, ESC); /* Play escape-something */
     case WM_CHAR:	chr = wParam;
 

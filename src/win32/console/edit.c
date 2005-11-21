@@ -608,7 +608,7 @@ read_line(rlc_console b)
       else
 	func = dispatch_meta[c&0xff];
     } else
-    { if ( c > 256 )
+    { if ( c >= 256 )
 	func = insert_self;
       else
 	func = dispatch_table[c&0xff];
