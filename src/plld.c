@@ -871,13 +871,13 @@ fillDefaultOptions()
 
   tmpPath(&ctmp,   "ctmp-");
   tmpPath(&pltmp,  "pltmp-");
-#if defined(__CYGWIN32__)
-/* Compile generates .exe files on CygWin */
+#if defined(__CYGWIN__)
+/* Compile generates .exe files on Cygwin */
   replaceExtension(ctmp, "exe", tmp);
   free(ctmp);
   ctmp = strdup(tmp);
 #endif
-#if defined(WIN32) || defined(__CYGWIN32__)
+#if defined(WIN32) || defined(__CYGWIN__)
 /* Saved states have the .exe extension under Windows */
   replaceExtension(pltmp, embed_shared ? "dll" : "exe", tmp);
   free(pltmp);
@@ -1199,7 +1199,7 @@ linkSharedObject()
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /*WIN32*/
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
@@ -1207,7 +1207,7 @@ linkSharedObject()
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
-#else /*__CYGWIN32__*/
+#else /*__CYGWIN__*/
 #ifdef SO_FORMAT_LDFLAGS			/* must specify output too */
   { char tmp[MAXPATHLEN];
     tmp[0] = UNQUOTED;
@@ -1231,7 +1231,7 @@ linkSharedObject()
 #ifdef __BEOS__
   appendArgList(&ldoptions, plexe);		/* last is executable */
 #endif
-#endif /*__CYGWIN32__*/
+#endif /*__CYGWIN__*/
 #endif /*WIN32*/
 
   callprog(ld, &ldoptions);

@@ -278,7 +278,7 @@ WinStrError(int error, ...)
 		      GetUserDefaultLangID(),
 		      msg,
 		      sizeof(msg),
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 		      args) )		/* Cygwin is according to docs ... */
 #else
 		      (char **)args) )

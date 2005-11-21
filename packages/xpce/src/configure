@@ -2980,8 +2980,8 @@ _ACEOF
 	LDSOFLAGS="-b"
 	;;
     *cygwin*)
-	echo "$as_me:$LINENO: checking \"Setup for CygWin\"" >&5
-echo $ECHO_N "checking \"Setup for CygWin\"... $ECHO_C" >&6
+	echo "$as_me:$LINENO: checking \"Setup for Cygwin\"" >&5
+echo $ECHO_N "checking \"Setup for Cygwin\"... $ECHO_C" >&6
 	WITHX11=false
 	VWS=msw
 

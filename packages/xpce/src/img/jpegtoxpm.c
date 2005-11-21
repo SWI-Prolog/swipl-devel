@@ -40,7 +40,7 @@
 
 #ifdef HAVE_LIBJPEG
 
-#if defined(__CYGWIN32__)		/* avoid redefinition of INT32 */
+#if defined(__CYGWIN__)		/* avoid redefinition of INT32 */
 #define XMD_H
 #endif
 #include <jpeglib.h>

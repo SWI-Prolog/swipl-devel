@@ -223,7 +223,7 @@ $(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
 		    sort -u >> $@
 
-# Create pl.def, required for exporting symbols from pl.exe for the CygWin
+# Create pl.def, required for exporting symbols from pl.exe for the Cygwin
 # platform
 
 $(DEF):		$(srcdir)/pl-itf.h

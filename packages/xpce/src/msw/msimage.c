@@ -37,7 +37,7 @@
 
 #ifdef O_XPM
 #define FOR_MSW 1
-#ifdef __CYGWIN32__XXX
+#ifdef __CYGWIN__XXX
 #include <xpm.h>
 #else
 #include <msw/xpm.h>

@@ -66,7 +66,7 @@ special  declarations  on  exported  symbols.  So,  a  symbol  is  local
 (static), shared between the objects building   an executable or DLL (no
 special declaration) or exported from the executable or DLL.
 
-Both using native Microsoft MSVC as well   as recent CygWin (tested 1.1)
+Both using native Microsoft MSVC as well   as recent Cygwin (tested 1.1)
 compilers support __declspec(...) for exporting symbols.
 
 As SWI-Prolog.h can be included seperately or together with this file we
@@ -79,7 +79,7 @@ duplicated this stuff.
 #define __WIN32__
 #endif
 
-#if (defined(__WIN32__) || defined(__CYGWIN32__)) && !defined(__LCC__)
+#if (defined(__WIN32__) || defined(__CYGWIN__)) && !defined(__LCC__)
 #define HAVE_DECLSPEC
 #endif
 

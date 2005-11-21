@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifdef __CYGWIN32__
+#ifdef __CYGWIN__
 #define __USE_W32_SOCKETS
 #define HAVE_WINSOCK 1
 #endif

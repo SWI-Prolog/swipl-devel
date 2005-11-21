@@ -52,7 +52,7 @@ stuff.
 #define __WIN32__
 #endif
 
-#if (defined(__WIN32__) || defined(__CYGWIN32__)) && !defined(__LCC__)
+#if (defined(__WIN32__) || defined(__CYGWIN__)) && !defined(__LCC__)
 #define HAVE_DECLSPEC
 #endif
 
@@ -214,7 +214,7 @@ PL_EXPORT(IOSTREAM *)	S__getiob(void);	/* get DLL's __iob[] address */
 
 PL_EXPORT_DATA(IOFUNCTIONS)  Sfilefunctions;	/* OS file functions */
 PL_EXPORT_DATA(int)	     Slinesize;		/* Sgets() linesize */
-#if defined(__CYGWIN32__) && !defined(PL_KERNEL)
+#if defined(__CYGWIN__) && !defined(PL_KERNEL)
 #define S__iob S__getiob()
 #else
 PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */

@@ -405,7 +405,7 @@ EOF
 	LDSOFLAGS="-b"
 	;;
     *cygwin*)
-	AC_MSG_CHECKING("Setup for CygWin")
+	AC_MSG_CHECKING("Setup for Cygwin")
 	WITHX11=false
 	VWS=msw
 	AC_DEFINE(WIN32_GRAPHICS, 1, 
