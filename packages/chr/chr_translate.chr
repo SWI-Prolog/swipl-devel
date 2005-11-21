@@ -1355,7 +1355,7 @@ generate_remove_clause(List,Tail) :-
 			(
 			    remove_constraint_internal(Susp) :-
 			    	arg( 2, Susp, Mref),
-			    	chr_runtime:update_mutable( removed, Mref)
+			    	'chr update_mutable'( removed, Mref)
 			)
 		;
 			RemoveClause = 
@@ -3908,7 +3908,7 @@ guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy) :-
 	term_variables(RestGuardList,GuardVars),
 	term_variables(RestGuardListCopyCore,GuardCopyVars),
 	( chr_pp_flag(guard_locks,on),
-          bagof(('chr lock'(Y)) - (chr_runtime:unlock(Y)),
+          bagof(('chr lock'(Y)) - ('chr unlock'(Y)),
                 X ^ (lists:member(X,GuardVars),		% X is a variable appearing in the original guard
                      pairlist:lookup_eq(VarDict,X,Y),            % translate X into new variable
                      memberchk_eq(Y,GuardCopyVars)      % redundant check? or multiple entries for X possible?

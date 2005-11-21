@@ -93,7 +93,7 @@
 	    'chr lock'/1,
 	    'chr unlock'/1,
 	    'chr not_locked'/1,
-            'chr none_locked'/1,
+	    'chr none_locked'/1,
 
 	    'chr update_mutable'/2,
 	    'chr get_mutable'/2,
@@ -156,18 +156,18 @@ show_store(Mod) :-
 run_suspensions([]).
 run_suspensions([S|Next] ) :-
 	arg( 2, S, Mref),
-	Mref = mutable(Status), % get_mutable( Status, Mref), % XXX Inlined
+	Mref = mutable(Status), % 'chr get_mutable'( Status, Mref), % XXX Inlined
 	( Status==active ->
-	    update_mutable( triggered, Mref),
+	    'chr update_mutable'( triggered, Mref),
 	    arg( 4, S, Gref),
-	    Gref = mutable(Gen), % get_mutable( Gen, Gref), % XXX Inlined
+	    Gref = mutable(Gen), % 'chr get_mutable'( Gen, Gref), % XXX Inlined
 	    Generation is Gen+1,
-	    update_mutable( Generation, Gref),
+	    'chr update_mutable'( Generation, Gref),
 	    arg( 3, S, Goal),
 	    call( Goal),
-	    					% get_mutable( Post, Mref), % XXX Inlined
+	    					% 'chr get_mutable'( Post, Mref), % XXX Inlined
 	    ( Mref = mutable(triggered) ->	% Post==triggered ->
-		update_mutable( active, Mref)	% catching constraints that did not do anything
+		'chr update_mutable'( active, Mref)	% catching constraints that did not do anything
 	    ;
 		true
 	    )
@@ -187,13 +187,13 @@ run_suspensions([S|Next] ) :-
 run_suspensions_d([]).
 run_suspensions_d([S|Next] ) :-
 	arg( 2, S, Mref),
-	Mref = mutable(Status), % get_mutable( Status, Mref), % XXX Inlined
+	Mref = mutable(Status), % 'chr get_mutable'( Status, Mref), % XXX Inlined
 	( Status==active ->
-	    update_mutable( triggered, Mref),
+	    'chr update_mutable'( triggered, Mref),
 	    arg( 4, S, Gref),
-	    Gref = mutable(Gen), % get_mutable( Gen, Gref), % XXX Inlined
+	    Gref = mutable(Gen), % 'chr get_mutable'( Gen, Gref), % XXX Inlined
 	    Generation is Gen+1,
-	    update_mutable( Generation, Gref),
+	    'chr update_mutable'( Generation, Gref),
 	    arg( 3, S, Goal),
 	    ( 
 		'chr debug_event'(wake(S)),
@@ -208,9 +208,9 @@ run_suspensions_d([S|Next] ) :-
 		'chr debug_event'(redo(S)),
 		fail
 	    ),	
-	    					% get_mutable( Post, Mref), % XXX Inlined
+	    					% 'chr get_mutable'( Post, Mref), % XXX Inlined
 	    ( Mref = mutable(triggered) ->	% Post==triggered ->
-		update_mutable( active, Mref)   % catching constraints that did not do anything
+		'chr update_mutable'( active, Mref)   % catching constraints that did not do anything
 	    ;
 		true
 	    )
@@ -222,16 +222,7 @@ run_suspensions_d([S|Next] ) :-
 locked:attr_unify_hook(_,_) :- fail.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-'chr lock'(T) :- 
-	lock(T).
-
-'chr unlock'(T) :-
-	unlock(T).
-
-'chr not_locked'(T) :-
-	not_locked(T).
-
-lock(T) :-
+'chr lock'(T) :-
 	( var(T)
 	-> put_attr(T, locked, x)
         ;  term_variables(T,L),
@@ -241,7 +232,7 @@ lock(T) :-
 lockv([]).
 lockv([T|R]) :- put_attr( T, locked, x), lockv(R).
 
-unlock(T) :-
+'chr unlock'(T) :-
 	( var(T)
 	-> del_attr(T, locked)
 	;  term_variables(T,L),
@@ -253,10 +244,13 @@ unlockv([T|R]) :- del_attr( T, locked), unlockv(R).
 
 'chr none_locked'( []).
 'chr none_locked'( [V|Vs]) :-
-	not_locked( V),
-	'chr none_locked'( Vs).
+	( get_attr(V, locked, _) ->
+		fail
+	;
+		'chr none_locked'(Vs)
+	).
 
-not_locked( V) :- 
+'chr not_locked'(V) :-
 	( var( V) ->
   		( get_attr( V, locked, _) ->
 			fail
@@ -273,8 +267,8 @@ not_locked( V) :-
 %
 'chr remove_constraint_internal'( Susp, Agenda) :-
 	arg( 2, Susp, Mref),
-	Mref = mutable(State), % get_mutable( State, Mref), % XXX Inlined
-	update_mutable( removed, Mref),		% mark in any case
+	Mref = mutable(State), % 'chr get_mutable'( State, Mref), % XXX Inlined
+	'chr update_mutable'( removed, Mref),		% mark in any case
 	( compound(State) ->			% passive/1
 	    Agenda = []
 	; State==removed ->
@@ -299,9 +293,6 @@ not_locked( V) :-
 	;
 		'chr default_store'(V)
 	).
-% 'chr via_1'( X, V) :- var(X), !, X=V.
-% 'chr via_1'( T, V) :- compound(T), nonground( T, V), ! .
-% 'chr via_1'( _, V) :- 'chr default_store'( V).
 
 'chr via_2'(X,Y,V) :- 
 	( var(X) -> 
@@ -315,11 +306,6 @@ not_locked( V) :-
 	;
 		'chr default_store'(V)
 	).
-% 'chr via_2'( X, _, V) :- var(X), !, X=V.
-% 'chr via_2'( _, Y, V) :- var(Y), !, Y=V.
-% 'chr via_2'( T, _, V) :- compound(T), nonground( T, V), ! .
-% 'chr via_2'( _, T, V) :- compound(T), nonground( T, V), ! .
-% 'chr via_2'( _, _, V) :- 'chr default_store'( V).
 
 %
 % The second arg is a witness.
@@ -341,7 +327,7 @@ nonground( Term, V) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr novel_production'( Self, Tuple) :-
 	arg( 5, Self, Ref),
-	Ref = mutable(History), % get_mutable( History, Ref), % XXX Inlined
+	Ref = mutable(History), % 'chr get_mutable'( History, Ref), % XXX Inlined
 	( get_assoc( Tuple, History, _) ->
 	    fail
 	;
@@ -354,25 +340,25 @@ nonground( Term, V) :-
 %
 'chr extend_history'( Self, Tuple) :-
 	arg( 5, Self, Ref),
-	Ref = mutable(History), % get_mutable( History, Ref), % XXX Inlined
+	Ref = mutable(History), % 'chr get_mutable'( History, Ref), % XXX Inlined
 	put_assoc( Tuple, History, x, NewHistory),
-	update_mutable( NewHistory, Ref).
+	'chr update_mutable'( NewHistory, Ref).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 constraint_generation( Susp, State, Generation) :-
 	arg( 2, Susp, Mref),
-	Mref = mutable(State), % get_mutable( State, Mref), % XXX Inlined
+	Mref = mutable(State), % 'chr get_mutable'( State, Mref), % XXX Inlined
 	arg( 4, Susp, Gref),
-	Gref = mutable(Generation). % get_mutable( Generation, Gref). 	% not incremented meanwhile % XXX Inlined
+	Gref = mutable(Generation). % 'chr get_mutable'( Generation, Gref). 	% not incremented meanwhile % XXX Inlined
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr allocate_constraint'( Closure, Self, F, Args) :-
-	'chr empty_history'( History),
-	create_mutable( passive(Args), Mref),
-	create_mutable( 0, Gref),
-	create_mutable( History, Href),
-	'chr gen_id'( Id),
-	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args].
+	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
+	create_mutable(0, Gref),
+	'chr empty_history'(History),
+	create_mutable(History, Href),
+	create_mutable(passive(Args), Mref),
+	'chr gen_id'( Id).
 
 %
 % 'chr activate_constraint'( -, +, -).
@@ -381,65 +367,57 @@ constraint_generation( Susp, State, Generation) :-
 %
 'chr activate_constraint'( Vars, Susp, Generation) :-
 	arg( 2, Susp, Mref),
-	Mref = mutable(State), % get_mutable( State, Mref),  % XXX Inlined
-	update_mutable( active, Mref),
+	Mref = mutable(State), % 'chr get_mutable'( State, Mref),  % XXX Inlined
+	'chr update_mutable'( active, Mref),
 	( nonvar(Generation) ->			% aih
 	    true
 	;
 	    arg( 4, Susp, Gref),
-	    Gref = mutable(Gen), % get_mutable( Gen, Gref), % XXX Inlined
+	    Gref = mutable(Gen), % 'chr get_mutable'( Gen, Gref), % XXX Inlined
 	    Generation is Gen+1,
-	    update_mutable( Generation, Gref)
+	    'chr update_mutable'( Generation, Gref)
 	),
 	( compound(State) ->			% passive/1
 	    term_variables( State, Vs),
 	    'chr none_locked'( Vs),
-	    'chr default_store'( Global),
-	    Vars = [Global|Vs]
-	; State==removed ->			% the price for eager removal ...
+	    Vars = [Global|Vs],
+	    'chr default_store'(Global)
+	; State == removed ->			% the price for eager removal ...
 	    Susp =.. [_,_,_,_,_,_,_|Args],
 	    term_variables( Args, Vs),
-	    'chr default_store'( Global),
-	    Vars = [Global|Vs]
+	    Vars = [Global|Vs],
+	    'chr default_store'(Global)
 	;
 	    Vars = []
 	).
 
-'chr insert_constraint_internal'( [Global|Vars], Self, Closure, F, Args) :-
-	term_variables( Args, Vars),
-	'chr none_locked'( Vars),
-	'chr default_store'( Global),
-	'chr empty_history'( History),
-	create_mutable( active, Mref),
-	create_mutable( 0, Gref),
-	create_mutable( History, Href),
-	'chr gen_id'( Id),
-	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args].
+'chr insert_constraint_internal'([Global|Vars], Self, Closure, F, Args) :-
+	'chr default_store'(Global),
+	term_variables(Args,Vars),
+	'chr none_locked'(Vars),
+	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
+	create_mutable(active, Mref),
+	create_mutable(0, Gref),
+	create_mutable(History, Href),
+	'chr empty_history'(History),
+	'chr gen_id'(Id).
 
-insert_constraint_internal( [Global|Vars], Self, Term, Closure, F, Args) :-
+insert_constraint_internal([Global|Vars], Self, Term, Closure, F, Args) :-
+	'chr default_store'(Global),
 	term_variables( Term, Vars),
 	'chr none_locked'( Vars),
-	'chr default_store'( Global),
 	'chr empty_history'( History),
 	create_mutable( active, Mref),
 	create_mutable( 0, Gref),
 	create_mutable( History, Href),
 	'chr gen_id'( Id),
 	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args].
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-change_state( Susp, State) :-
-	arg( 2, Susp, Mref),
-	update_mutable( State, Mref).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr empty_history'( E) :- empty_assoc( E).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr gen_id'( Id) :-
-	incval( id, Id).
-
-incval(id,Id) :-
 	nb_getval(id,Id),
 	NextId is Id + 1,
 	nb_setval(id,NextId).
@@ -447,14 +425,9 @@ incval(id,Id) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 create_mutable(V,mutable(V)).
  
-'chr get_mutable'(V, mutable(V)).  
+'chr get_mutable'(V,mutable(V)).  
  
 'chr update_mutable'(V,M) :-
-	setarg(1,M,V).
-
-get_mutable(V, mutable(V)).  
-
-update_mutable(V,M) :-
 	setarg(1,M,V).
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
