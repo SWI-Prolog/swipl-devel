@@ -23,6 +23,7 @@ AC_SUBST(EXTRAOBJ)
 AC_SUBST(BOOTFILE)
 AC_SUBST(PLLIB)			dnl libpl.a
 AC_SUBST(PLSO)			dnl libpl.so
+AC_SUBST(SONAMEOPT)		dnl ld options for linking shared objects
 AC_SUBST(USEPLLIB)		dnl -lpl
 AC_SUBST(LNLIBS)		dnl libs to link with Prolog
 AC_SUBST(LDEXE)
@@ -269,15 +270,15 @@ fi
 
 case "$ARCH" in
     *cygwin*)
-	AC_MSG_CHECKING("Cygwin ...")
-        configmmappedstacks=no
-	AC_DEFINE(HAVE_VIRTUALALLOC, 1,
-		  [On Cygwin we should use VirtualAlloc()])
-	AC_DEFINE(NO_SEGV_HANDLING)
-	LDEXE="../src/ldcygwin"
-	AC_MSG_RESULT("Use VirtualAlloc")
+dnl	AC_MSG_CHECKING("Cygwin ...")
+dnl        configmmappedstacks=no
+dnl	AC_DEFINE(HAVE_VIRTUALALLOC, 1,
+dnl		  [On Cygwin we should use VirtualAlloc()])
+dnl	AC_DEFINE(NO_SEGV_HANDLING)
+dnl	LDEXE="../src/ldcygwin"
+dnl	AC_MSG_RESULT("Use VirtualAlloc")
 	EXTRAHDR=def
-	INSTALLTARGET="$INSTALLTARGET install-implib"
+dnl	INSTALLTARGET="$INSTALLTARGET install-implib"
         ;;
     *aix*)
 	EXTRAHDR=exports
@@ -1229,9 +1230,9 @@ dnl		  [Arguments to pass to sprintf() to create SO_LDFLAGS])
 	;;
   *cygwin*)
 	SO_EXT="dll"
-	SO_LD="dllwrap"
 	SO_pic=""
 	SO_PIC=""
+	DLLIBVAR=PATH
 	;;
 # Seems we can simple add the executable add the end.  This is arranged
 # in plld.c based on the the __BEOS__ symbol.
@@ -1254,7 +1255,21 @@ AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
 		   [Flags for compiling position-independent BIG object])
 AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
 		   [Name of the SWI-Prolog executable (normally pl)])
-PLSO=libpl.$SO_EXT
+case "$ARCH" in
+  *cygwin*)
+	dnl On Cygwin the DLL itself is supposed to be unversioned.
+	dnl Creating the unversioned DLL name by symlinking against
+	dnl the versioned DLL is not necessary. The PLSO resp. SHARED
+	dnl target is only kept for dependency reasons.  Maybe this
+	dnl should be dropped
+	PLSO=cygpl.$SO_EXT
+	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libpl.dll.a $(DEF)'
+	;;
+  *)
+	PLSO=libpl.$SO_EXT
+	SONAMEOPT=-Wl,-soname=$PLSO.$PLVERSION
+	;;
+esac
 
 fi	dnl dlopen or shl_load
 
@@ -1264,7 +1279,14 @@ if test "$MKSHARED" = yes; then
   MKLIBS="$MKLIBS sharedlib"
   CMFLAGS="$CMFLAGS $SO_PIC"
   LDFLAGS="$LDFLAGS $SO_PATH"
-  LNLIBS="$USEPLLIB"
+  case "$ARCH" in
+    *cygwin*)
+	LNLIBS="$LIBS"
+	;;
+    *)
+	LNLIBS="$USEPLLIB"
+	;;
+  esac
   AC_DEFINE(O_SHARED_KERNEL, 1,
   	    "Define if Prolog kernel is in shared object")
 else

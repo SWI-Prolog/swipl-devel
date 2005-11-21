@@ -887,6 +887,14 @@ fillDefaultOptions()
   { fprintf(stderr, "%s: \"-o out\" required for linking shared object\n", plld);
     exit(1);
   }
+#if defined(__CYGWIN__)
+  /* Tack correct suffix to out, otherwise cat in createOutput fails. */
+  if ( out )
+  { replaceExtension(out, shared || embed_shared ? "dll" : "exe", tmp);
+    /* Dont call free(out), it could be an argv member. */
+    out = strdup(tmp);
+  }
+#endif
   defaultPath(&out, PROG_OUT);
 
   defaultProgram(&plgoal,     "$welcome");
@@ -941,7 +949,11 @@ getPrologOptions()
 	  defaultPath(&plbase, v);
 	else if ( streq(name, "PLARCH") )
 	  defaultPath(&plarch, v);
+#ifdef __CYGWIN__
+	else if ( streq(name, "PLLIBS") )	/* Always required. */
+#else
 	else if ( streq(name, "PLLIBS") && !shared )
+#endif
 	  addOptionString(v);
 	else if ( streq(name, "PLLIB") )
 	  defaultProgram(&pllib, v);
@@ -1200,10 +1212,11 @@ linkSharedObject()
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /*WIN32*/
 #ifdef __CYGWIN__
+  prependArgList(&ldoptions, SO_LDFLAGS);
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
-  appendArgList(&ldoptions, "-lplimp");		/* kernel import library */
+  appendArgList(&ldoptions, pllib);		/* -lpl */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */

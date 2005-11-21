@@ -719,7 +719,11 @@ PL_EXPORT(int) PL_chars_to_term(const char *chars,
 
 PL_EXPORT(int)		PL_initialise(int argc, char **argv);
 PL_EXPORT(int)		PL_is_initialised(int *argc, char ***argv);
+#ifdef __CYGWIN__
+PL_EXPORT(void)		PL_install_readline(void);
+#else
 install_t		PL_install_readline(void);
+#endif
 PL_EXPORT(int)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
 PL_EXPORT(void)		PL_halt(int status) NORETURN;

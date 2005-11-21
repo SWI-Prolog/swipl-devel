@@ -92,7 +92,7 @@ RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 SOEXT=@SO_EXT@
 SHARED=@PLSO@
 SHAREDV=$(SHARED).$(PLVERSION)
-SONAMEOPT=-Wl,-soname=@PLSO@.$(PLVERSION)
+SONAMEOPT=@SONAMEOPT@
 LIBRARYDIR=${PLBASE}/library
 MKLIBS=@MKLIBS@
 DEVPL=./pl.sh
@@ -189,12 +189,18 @@ $(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
 			$(COFLAGS) -o $@ \
 			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 else
+ifeq ($(SOEXT),dll)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
+		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
+			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+else
 $(RUNTIMEDIR)/$(SHAREDV):	dirs $(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
 			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
 		( cd ../lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
+endif
 endif
 
 rc-lib:
@@ -217,10 +223,11 @@ def:		$(DEF)
 
 $(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $@
-		grep '^__pl_export' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
+		grep '^PL_EXPORT' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
 		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
+		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
 		    sort -u >> $@
 
 # Create pl.def, required for exporting symbols from pl.exe for the Cygwin
@@ -228,10 +235,11 @@ $(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
 
 $(DEF):		$(srcdir)/pl-itf.h
 		echo EXPORTS > $@
-		grep '^__pl_export' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
+		grep '^PL_EXPORT' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
 		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
+		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
 		    sort -u >> $@
 
 $(CINCLUDE):	$(srcdir)/pl-itf.h $(INCLUDEDIR)
@@ -323,10 +331,17 @@ ifeq ($(SOEXT),dylib)
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
 		fi
 else
+ifeq ($(SOEXT),dll)
+		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
+		  $(INSTALL_PROGRAM) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(ARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/libpl.dll.a $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
+		fi
+else
 		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
 		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
 		( cd $(DESTDIR)$(PLBASE)/lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
 		fi
+endif
 endif
 
 install-implib::

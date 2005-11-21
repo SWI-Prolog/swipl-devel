@@ -11,6 +11,9 @@
 VERSION 5.5.38 (November 18, 2005)
 ==================================
 
+  * PORT: Added many patches for updated support for the Cygwin environment.
+    Contributed by Corinna Vinschen, Redhat.
+
   * FIXED: Possible crash in meta-calling large terms.  Matt Lilley.
 
   * FIXED: avoid loosing the next input character after abort.
