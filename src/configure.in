@@ -1257,11 +1257,6 @@ AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
 		   [Name of the SWI-Prolog executable (normally pl)])
 case "$ARCH" in
   *cygwin*)
-	dnl On Cygwin the DLL itself is supposed to be unversioned.
-	dnl Creating the unversioned DLL name by symlinking against
-	dnl the versioned DLL is not necessary. The PLSO resp. SHARED
-	dnl target is only kept for dependency reasons.  Maybe this
-	dnl should be dropped
 	PLSO=cygpl.$SO_EXT
 	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libpl.dll.a $(DEF)'
 	;;

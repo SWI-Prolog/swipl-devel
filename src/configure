@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS COFLAGS CWFLAGS CMFLAGS CIFLAGS AR MKDIR ETAGS LDFLAGS ARCH PLSHARED PL RT PLVERSION VPATH COUTOPT INSTALLTARGET EXTRAOBJ BOOTFILE PLLIB PLSO USEPLLIB LNLIBS LDEXE EXTRAHDR SO_EXT MKLIBS BUILDDIR CNFG DLLIBVAR CC CFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT RANLIB ac_ct_RANLIB build build_cpu build_vendor build_os host host_cpu host_vendor host_os MAKE AWK SED INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CPP EGREP ALLOCA LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS COFLAGS CWFLAGS CMFLAGS CIFLAGS AR MKDIR ETAGS LDFLAGS ARCH PLSHARED PL RT PLVERSION VPATH COUTOPT INSTALLTARGET EXTRAOBJ BOOTFILE PLLIB PLSO SONAMEOPT USEPLLIB LNLIBS LDEXE EXTRAHDR SO_EXT MKLIBS BUILDDIR CNFG DLLIBVAR CC CFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT RANLIB ac_ct_RANLIB build build_cpu build_vendor build_os host host_cpu host_vendor host_os MAKE AWK SED INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CPP EGREP ALLOCA LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -4558,23 +4558,7 @@ fi
 
 case "$ARCH" in
     *cygwin*)
-	echo "$as_me:$LINENO: checking \"Cygwin ...\"" >&5
-echo $ECHO_N "checking \"Cygwin ...\"... $ECHO_C" >&6
-        configmmappedstacks=no
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_VIRTUALALLOC 1
-_ACEOF
-
-	cat >>confdefs.h <<\_ACEOF
-#define NO_SEGV_HANDLING 1
-_ACEOF
-
-	LDEXE="../src/ldcygwin"
-	echo "$as_me:$LINENO: result: \"Use VirtualAlloc\"" >&5
-echo "${ECHO_T}\"Use VirtualAlloc\"" >&6
 	EXTRAHDR=def
-	INSTALLTARGET="$INSTALLTARGET install-implib"
         ;;
     *aix*)
 	EXTRAHDR=exports
@@ -13932,9 +13916,9 @@ _ACEOF
 	;;
   *cygwin*)
 	SO_EXT="dll"
-	SO_LD="dllwrap"
 	SO_pic=""
 	SO_PIC=""
+	DLLIBVAR=PATH
 	;;
 # Seems we can simple add the executable add the end.  This is arranged
 # in plld.c based on the the __BEOS__ symbol.
@@ -13975,7 +13959,16 @@ cat >>confdefs.h <<_ACEOF
 #define PROG_PL "$PL"
 _ACEOF
 
-PLSO=libpl.$SO_EXT
+case "$ARCH" in
+  *cygwin*)
+	PLSO=cygpl.$SO_EXT
+	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libpl.dll.a $(DEF)'
+	;;
+  *)
+	PLSO=libpl.$SO_EXT
+	SONAMEOPT=-Wl,-soname=$PLSO.$PLVERSION
+	;;
+esac
 
 fi
 
@@ -13983,7 +13976,14 @@ if test "$MKSHARED" = yes; then
   MKLIBS="$MKLIBS sharedlib"
   CMFLAGS="$CMFLAGS $SO_PIC"
   LDFLAGS="$LDFLAGS $SO_PATH"
-  LNLIBS="$USEPLLIB"
+  case "$ARCH" in
+    *cygwin*)
+	LNLIBS="$LIBS"
+	;;
+    *)
+	LNLIBS="$USEPLLIB"
+	;;
+  esac
 
 cat >>confdefs.h <<\_ACEOF
 #define O_SHARED_KERNEL 1
@@ -14651,6 +14651,7 @@ s,@EXTRAOBJ@,$EXTRAOBJ,;t t
 s,@BOOTFILE@,$BOOTFILE,;t t
 s,@PLLIB@,$PLLIB,;t t
 s,@PLSO@,$PLSO,;t t
+s,@SONAMEOPT@,$SONAMEOPT,;t t
 s,@USEPLLIB@,$USEPLLIB,;t t
 s,@LNLIBS@,$LNLIBS,;t t
 s,@LDEXE@,$LDEXE,;t t
