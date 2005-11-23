@@ -139,6 +139,10 @@ member_attribute(A) :-
 %		# base_uri(+URI)
 %		Determines the reference URI.
 %		
+%		# db(DB)
+%		When loading from a stream, the source is taken from
+%		this option or -if non-existent- from base_uri.
+%		
 %		# lang(LanguageID)
 %		Set initial language (as xml:lang)
 %		
@@ -171,7 +175,7 @@ process_rdf(File, OnObject, Options0) :-
 	->  Source = BaseURI
 	;   is_stream(File)
 	->  In = File,
-	    Source = BaseURI
+	    option(db(Source), Options, BaseURI)
 	;   open(File, read, In, [type(binary)]),
 	    Close = In,
 	    Source = File
