@@ -63,6 +63,9 @@ done
 relf="`echo $to | sed -e 's,[^/][^/]*/,../,g' -e 's,[^/][^/]*$,,'`$from"
 
 rm -f "$abs_to"
+# Cygwin specific test to find out if a symlink exists with a .exe suffix.
+# Newer ln(1) create symlinks to executables also with a .exe suffix.
+[ -s "$abs_to".exe ] && rm -f "$abs_to".exe
 
 # Now, all can be in vain due to other symbolic links.  If this is the case,
 # link absolute after all.
