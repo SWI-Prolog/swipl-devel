@@ -805,7 +805,7 @@ create_prolog_hidden_window(rlc_console c)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Capturing fatal signals doesn't appear to work   inside  a DLL, hence we
-cpature them in the application and tell   Prolog to print the stack and
+capture them in the application and tell   Prolog to print the stack and
 abort.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 

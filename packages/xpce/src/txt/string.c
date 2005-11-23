@@ -293,15 +293,14 @@ status
 insertCharacterString(StringObj str, Int chr, Int where, Int times)
 { int tms = isDefault(times) ? 1 : valInt(times);
   wint_t c = valInt(chr);
+  int iswide = (c <= 0xff);
+  LocalString(buf, iswide, tms);
+  int i;
 
-  { LocalString(buf, c <= 0xff ? FALSE : TRUE, tms);
-    int i;
-
-    for(i=0; i<tms; i++)
-      str_store(buf, i, c);
-    buf->size = tms;
-    str_insert_string(str, where, buf);
-  }
+  for(i=0; i<tms; i++)
+    str_store(buf, i, c);
+  buf->size = tms;
+  str_insert_string(str, where, buf);
 
   succeed;
 }
