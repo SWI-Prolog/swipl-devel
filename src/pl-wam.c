@@ -1303,7 +1303,11 @@ right_recursion:
     }
     if ( var_occurs_in(t1, t2) )
       fail;
+#ifdef O_ATTVAR
+    *t1 = isAttVar(w2) ? makeRef(t2) : w2;
+#else
     *t1 = w2;
+#endif
     Trail(t1);
     succeed;
   }
@@ -1311,10 +1315,21 @@ right_recursion:
   { if ( var_occurs_in(t2, t1) )
       fail;
 
+#ifdef O_ATTVAR
+    *t2 = isAttVar(w1) ? makeRef(t1) : w1;
+#else
     *t2 = w1;
+#endif
     Trail(t2);
     succeed;
   }
+
+#ifdef O_ATTVAR
+  if ( isAttVar(w1) )
+    return assignAttVar(t1, t2 PASS_LD);
+  if ( isAttVar(w2) )
+    return assignAttVar(t2, t1 PASS_LD);
+#endif
 
   if ( w1 == w2 )
     succeed;

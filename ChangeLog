@@ -11,6 +11,9 @@
 VERSION 5.5.38 (November 18, 2005)
 ==================================
 
+  * FIXED: Add support for attributed variables in unify_with_occurs_check/2.
+    Tom Schrijvers.
+
   * PORT: Added many patches for updated support for the Cygwin environment.
     Contributed by Corinna Vinschen, Redhat.
 
