@@ -791,11 +791,14 @@ do_unload(Spec) :-
 
 %	rdf_source(?Source)
 %	
-%	Query the loaded sources
+%	Query the loaded sources.  
 
 rdf_source(File) :-
-	rdf_sources_(Sources),
+	rdf_source(File,_,_,_).		% loaded files
+rdf_source(File) :- 
+	rdf_sources_(Sources),		% other sources
 	member(File, Sources),
+	\+ rdf_source(File,_,_,_),
 	rdf_statistics_(triples(File, Triples)),
 	Triples > 0.
 
