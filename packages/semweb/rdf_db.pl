@@ -213,7 +213,8 @@ global(NS, Local, Global) :-
 rdf_global_term(Var, Var) :-
 	var(Var), !.
 rdf_global_term(NS:Local, Global) :-
-	rdf_global_id(NS:Local, Global).
+	rdf_global_id(NS:Local, Global0), !,
+	Global = Global0.
 rdf_global_term([H0|T0], [H|T]) :- !,
 	rdf_global_term(H0, H),
 	rdf_global_term(T0, T).

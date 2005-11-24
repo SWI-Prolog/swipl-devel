@@ -1,3 +1,8 @@
+Nov 24, 2005
+
+  * FIXED: Choicepoint in rdf_global_term/2, returning incorrect result
+    on backtracking.
+
 Nov 9, 2005
 
   * FIXED: generate correct XML for datatypes in defined namespaces.
