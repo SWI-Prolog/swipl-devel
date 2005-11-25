@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog Natural Language Processing Primitives</TITLE>
+</HEAD>
+<BODY BGCOLOR="white"> 
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<CENTER>
+
+<H1>SWI-Prolog Natural Language Processing Primitives</H1>
+
+</CENTER>
+<HR>
+<CENTER>
+<I>Jan Wielemaker <BR>
+HCS, <BR>
+University of Amsterdam <BR>
+The Netherlands <BR>
+E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></I>
+</CENTER>
+<HR>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<CENTER><H3>Abstract</H3></Center>
+<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+This package contains some well known basic rountines for natural 
+language processing and information retrieval.
+</TABLE>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<LI><A HREF="#sec:1"><B>1 Double Metaphone -- Phonetic string matching</B></A>
+<UL>
+<LI><A HREF="#sec:1.1">1.1 Origin and Copyright</A>
+</UL>
+<LI><A HREF="#sec:2"><B>2 Installation</B></A>
+<UL>
+<LI><A HREF="#sec:2.1">2.1 Unix systems</A>
+</UL>
+</UL>
+
+<P>
+
+<H2><A NAME="sec:1">1 Double Metaphone -- Phonetic string matching</A></H2>
+
+<P>The library <CODE>library(double_metaphone)</CODE> implements the <EM>Double 
+Metaphone</EM> algorithm developed by Lawrence Philips and described in 
+``The Double-Metaphone Search Algorithm'' by L Philips, C/C++ User’s 
+Journal, 2000. Double Metaphone creates a key from a word that 
+represents its phonetic properties. Two words with the same Double 
+Metaphone are supposed to sound similar. The Double Metaphone algorithm 
+is an improved version of the <EM>Soundex</EM> algorithm.
+
+<DL>
+
+<P>
+<DT><A NAME="double_metaphone/2"><STRONG>double_metaphone</STRONG>(<VAR>+In, 
+-MetaPhone</VAR>)</A><DD>
+Same as <A NAME="idx:doublemetaphone3:1"></A><A HREF="#double_metaphone/3">double_metaphone/3</A>, 
+but only returning the primary metaphone.
+
+<P>
+<DT><A NAME="double_metaphone/3"><STRONG>double_metaphone</STRONG>(<VAR>+In, 
+-MetaPhone, -AltMetaphone</VAR>)</A><DD>
+Create metaphone and alternative metaphone from <VAR>In</VAR>. The 
+primary metaphone is based on english, while the secondary deals with 
+common alternative pronounciation in other languages. <VAR>In</VAR> is 
+either and atom, string object, code- or character list. The metaphones 
+are always returned as atoms.
+</DL>
+
+<H3><A NAME="sec:1.1">1.1 Origin and Copyright</A></H3>
+
+<P>The Double Metaphone algorithm is copied from the Perl library that 
+holds the following copyright notice. To the best of our knowledge the 
+Perl license is compatible to the SWI-Prolog license schema and 
+therefore including this module poses no additional license conditions.
+<BLOCKQUOTE> Copyright 2000, Maurice Aubrey &lt;maurice@hevanet.com&gt;. 
+All rights reserved.
+
+<P>This code is based heavily on the C++ implementation by Lawrence 
+Philips and incorporates several bug fixes courtesy of Kevin Atkinson 
+&lt;kevina@users.sourceforge.net&gt;.
+
+<P>This module is free software; you may redistribute it and/or modify 
+it under the same terms as Perl itself.
+</BLOCKQUOTE>
+
+<H2><A NAME="sec:2">2 Installation</A></H2>
+
+<H3><A NAME="sec:2.1">2.1 Unix systems</A></H3>
+
+<P>Installation on Unix system uses the commonly found <EM>configure</EM>,
+<EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
+installed before building this package. If SWI-Prolog is not installed 
+as <B>pl</B>, the environment variable <CODE>PL</CODE> must be set to 
+the name of the SWI-Prolog executable. Installation is now accomplished 
+using:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+% ./configure
+% make
+% make install
+</PRE>
+</TABLE>
+
+<P>This installs the foreign libraries in <CODE>$PLBASE/lib/$PLARCH</CODE> 
+and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
+<CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
+
+<H1><A NAME="document-index">Index</A></H1>
+
+<DL>
+
+<P>
+<DT><STRONG>D</STRONG><DD>
+<DT><A HREF="#double_metaphone/2">double_metaphone/2</A><DD>
+<DT><A HREF="#double_metaphone/3">double_metaphone/3</A><DD>
+<A HREF="#idx:doublemetaphone3:1">1</A>
+</DL>
+
+</BODY></HTML>

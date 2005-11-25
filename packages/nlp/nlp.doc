@@ -1,0 +1,104 @@
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{html}
+\sloppy
+\makeindex
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog NLP library}
+
+\begin{document}
+
+\title{SWI-Prolog Natural Language Processing Primitives}
+\author{Jan Wielemaker \\
+	HCS, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{wielemak@science.uva.nl}}
+
+\maketitle
+
+\begin{abstract}
+This package contains some well known basic rountines for natural
+language processing and information retrieval.
+\end{abstract}
+
+\pagebreak
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+\section{Double Metaphone -- Phonetic string matching}
+
+The library \pllib{double_metaphone} implements the \emph{Double
+Metaphone} algorithm developed by Lawrence Philips and described in
+``The Double-Metaphone Search Algorithm'' by L Philips, C/C++ User’s
+Journal, 2000. Double Metaphone creates a key from a word that
+represents its phonetic properties. Two words with the same Double
+Metaphone are supposed to sound similar. The Double Metaphone algorithm
+is an improved version of the \emph{Soundex} algorithm.
+
+\begin{description}
+    \predicate{double_metaphone}{2}{+In, -MetaPhone}
+Same as double_metaphone/3, but only returning the primary metaphone.
+    \predicate{double_metaphone}{3}{+In, -MetaPhone, -AltMetaphone}
+Create metaphone and alternative metaphone from \arg{In}.  The primary
+metaphone is based on english, while the secondary deals with common
+alternative pronounciation in other languages.  \arg{In} is either
+and atom, string object, code- or character list.  The metaphones
+are always returned as atoms.
+\end{description}
+
+
+\subsection{Origin and Copyright}
+
+The Double Metaphone algorithm is copied from the Perl library that
+holds the following copyright notice.  To the best of our knowledge
+the Perl license is compatible to the SWI-Prolog license schema and
+therefore including this module poses no additional license conditions.
+
+\begin{quote}
+Copyright 2000, Maurice Aubrey <maurice@hevanet.com>. 
+All rights reserved.
+
+This code is based heavily on the C++ implementation by Lawrence Philips
+and incorporates several bug fixes courtesy of Kevin Atkinson
+<kevina@users.sourceforge.net>.
+
+This module is free software; you may redistribute it and/or modify it
+under the same terms as Perl itself.
+\end{quote}
+
+\section{Installation}
+
+\subsection{Unix systems}
+
+Installation on Unix system uses the commonly found {\em configure},
+{\em make} and {\em make install} sequence. SWI-Prolog should be
+installed before building this package. If SWI-Prolog is not installed
+as \program{pl}, the environment variable \env{PL} must be set to the
+name of the SWI-Prolog executable. Installation is now accomplished
+using:
+
+\begin{code}
+% ./configure
+% make
+% make install
+\end{code}
+
+This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
+the Prolog library files in \file{$PLBASE/library}, where
+\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+\printindex
+
+\end{document}
+
