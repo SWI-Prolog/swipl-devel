@@ -1450,7 +1450,7 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="double_metaphone.$SO"
+TARGETS="double_metaphone.$SO porter_stem.$SO"
 
 for ac_prog in gmake make
 do

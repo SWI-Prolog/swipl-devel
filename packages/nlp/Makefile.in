@@ -46,11 +46,15 @@ LIBPL=		@PLTARGETS@
 TARGETS=	@TARGETS@
 
 DMPOBJ=		double_metaphone.o
+STEMOBJ=	porter_stem.o
 
 all:		$(TARGETS)
 
 double_metaphone.@SO@:	$(DMPOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(DMPOBJ)
+
+porter_stem.@SO@:	$(STEMOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(STEMOBJ)
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)

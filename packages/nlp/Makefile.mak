@@ -12,11 +12,14 @@ PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 
 DMPOBJ=		double_metaphone.obj
+STEMOBJ=	porter_stem.obj
 
-all:		double_metaphone.dll
+all:		double_metaphone.dll porter_stem.dll
 
 double_metaphone.dll:	$(DMPOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(DMPOBJ) $(PLLIB)
+porter_stem.dll:	$(STEMOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(STEMOBJ) $(PLLIB)
 
 !IF "$(CFG)" == "rt"
 install:	idll
@@ -36,17 +39,22 @@ check::
 
 idll::
 		copy double_metaphone.dll "$(BINDIR)"
+		copy porter_stem.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy double_metaphone.pdb "$(BINDIR)"
+		copy porter_stem.pdb "$(BINDIR)"
 !ENDIF
 
 ilib::
 		copy double_metaphone.pl "$(PLBASE)\library"
+		copy porter_stem.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 uninstall::
 		del "$(BINDIR)\double_metaphone.dll"
+		del "$(BINDIR)\porter_stem.dll"
 		del "$(PLBASE)\library\double_metaphone.pl"
+		del "$(PLBASE)\library\porter_stem.pl"
 		$(MAKEINDEX)
 
 html-install::

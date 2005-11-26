@@ -77,6 +77,36 @@ This module is free software; you may redistribute it and/or modify it
 under the same terms as Perl itself.
 \end{quote}
 
+\section{Porter Stem -- Determine stem and related routines}
+
+The \pllib{porter_stem} library implements the stemming algorithm
+described by Porter in Porter, 1980, ``An algorithm for suffix
+stripping'', Program, Vol. 14, no. 3, pp 130-137. The library comes with
+some additional predicates that are commonly used in the context of
+stemming.
+
+\begin{description}
+    \predicate{porter_stem}{2}{+In, -Stem}
+Determine the stem of \arg{In}.  \arg{In} must represent ASCII text.
+The predicate unaccent_atom/2 may be used to remove accents from
+ISO Latin-1 text.  \arg{Stem} is unified with the resulting stem
+in lowercase.
+
+    \predicate{unaccent_atom}{2}{+In, -ASCII}
+If in is general ISO Latin-1 text with accents, \arg{ASCII} is unified
+with a plain ASCII version of the string. This predicate should be used
+before porter_stem/2 if the input may contain accents.
+
+    \predicate{tokenize_atom}{2}{+In, -TokenList}
+Break the text \arg{In} into words, numbers and punctuation characters.
+
+    \predicate{atom_to_stem_list}{2}{+In, -ListOfStems}
+Combines the three above routines, returning a list holding an atom
+with the stem of each word encountered and numbers for encountered
+numbers.
+\end{description}
+
+
 \section{Installation}
 
 \subsection{Unix systems}
