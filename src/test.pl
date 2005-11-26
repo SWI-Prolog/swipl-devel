@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@science.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2004, University of Amsterdam
+    Copyright (C): 1985-2005, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -259,11 +259,19 @@ arithmetic(floor-1) :-
 	0 is floor(0.9),
 	-1 is floor(-0.1),
 	-1 is floor(-0.9).
+arithmetic(floor-2) :-
+	0 is floor(9 rdiv 10),
+	-1 is floor(-1 rdiv 10),
+	-1 is floor(-9 rdiv 10).
 arithmetic(ceil-1) :-
 	0 is ceil(0.0),
 	1 is ceil(0.9),
 	0 is ceil(-0.1),
 	0 is ceil(-0.9).
+arithmetic(ceil-2) :-
+	1 is ceil(9 rdiv 10),
+	0 is ceil(-1 rdiv 10),
+	0 is ceil(-9 rdiv 10).
 
 
 		 /*******************************

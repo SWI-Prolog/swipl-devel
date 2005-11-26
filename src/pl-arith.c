@@ -1938,86 +1938,119 @@ ar_float(Number n1, Number r)
 
 static int				/* ISO Prolog: R --> Z */
 ar_floor(Number n1, Number r)
-{ if ( intNumber(n1) )
-  { cpNumber(r, n1);
-  } else
-  {
-#ifdef HAVE_FLOOR
-    double f = floor(n1->value.f);
-    if ( f >= (double)PLMININT && f <= (double)PLMAXINT )
-    { r->type = V_INTEGER;
-      r->value.i = (int64_t)f;
-    } else
-    {
+{ switch(n1->type)
+  { case V_INTEGER:
+      cpNumber(r, n1);
+      succeed;
 #ifdef O_GMP
-      mpz_init_set_d(r->value.mpz, f);
+    case V_MPZ:
+      cpNumber(r, n1);
+      succeed;
+    case V_MPQ:
       r->type = V_MPZ;
-#else
-      return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
+      mpz_init(r->value.mpz);
+      mpz_set_q(r->value.mpz, n1->value.mpq);
+      if ( mpq_sgn(n1->value.mpq) < 0 &&
+	   mpz_cmp_si(mpq_denref(n1->value.mpq), 1L) != 0 )
+	mpz_sub_ui(r->value.mpz, r->value.mpz, 1L);
+      succeed;
 #endif
-    }
+    case V_REAL:
+    {
+#ifdef HAVE_FLOOR
+      double f = floor(n1->value.f);
+      if ( f >= (double)PLMININT && f <= (double)PLMAXINT )
+      { r->type = V_INTEGER;
+	r->value.i = (int64_t)f;
+      } else
+      {
+#ifdef O_GMP
+	mpz_init_set_d(r->value.mpz, f);
+	r->type = V_MPZ;
+#else
+	return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
+#endif
+      }
 #else /*HAVE_FLOOR*/
-    if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
-    { r->value.i = (int64_t)n1->value.f;
-      if ( n1->value.f < 0 && (real)r->value.i > n1->value.f )
-	r->value.i--;
-      r->type = V_INTEGER;
-    } else
-    { 
+      if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
+      { r->value.i = (int64_t)n1->value.f;
+	if ( n1->value.f < 0 && (real)r->value.i > n1->value.f )
+	  r->value.i--;
+	r->type = V_INTEGER;
+      } else
+      { 
 #ifdef O_GMP:
-      r->type = V_MPZ;
-      mpz_init_set_d(r->value.mpz, n1->value.f);
-      if ( n1->value.f < 0 && 
-	   mpz_get_d(r->value.mpz) > n1->value.f )
-	mpz_sub_ui(r->value.mpz, 1L);
+	r->type = V_MPZ;
+	mpz_init_set_d(r->value.mpz, n1->value.f);
+	if ( n1->value.f < 0 && 
+	     mpz_get_d(r->value.mpz) > n1->value.f )
+	  mpz_sub_ui(r->value.mpz, r->value.mpz, 1L);
 #else
-      return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
+	return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
+      }
+#endif /*HAVE_FLOOR*/
     }
-#endif
   }
+
   succeed;
 }
 
 
 static int				/* ISO Prolog: R --> Z */
 ar_ceil(Number n1, Number r)
-{ if ( intNumber(n1) )
-  { cpNumber(r, n1);
-  } else
-  {
-#ifdef HAVE_CEIL
-    double f = ceil(n1->value.f);
-    if ( f >= (double)PLMININT && f <= (double)PLMAXINT )
-    { r->type = V_INTEGER;
-      r->value.i = (int64_t)f;
-    } else
-    {
+{ switch(n1->type)
+  { case V_INTEGER:
+      cpNumber(r, n1);
+      succeed;
 #ifdef O_GMP
-      mpz_init_set_d(r->value.mpz, f);
+    case V_MPZ:
+      cpNumber(r, n1);
+      succeed;
+    case V_MPQ:
       r->type = V_MPZ;
-#else
-      return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
+      mpz_init(r->value.mpz);
+      mpz_set_q(r->value.mpz, n1->value.mpq);
+      if ( mpq_sgn(n1->value.mpq) > 0 &&
+	   mpz_cmp_si(mpq_denref(n1->value.mpq), 1L) != 0 )
+	mpz_add_ui(r->value.mpz, r->value.mpz, 1L);
+      succeed;
 #endif
-    }
-#else /*HAVE_CEIL*/
-    if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
-    { r->value.i = (int64_t)n1->value.f;
-      if ( (real)r->value.i < n1->value.f )
-	r->value.i++;
-      r->type = V_INTEGER;
-    } else
+    case V_REAL:
     {
-#ifdef O_GMP:
-      r->type = V_MPZ;
-      mpz_init_set_d(r->value.mpz, n1->value.f);
-      if ( mpz_get_d(r->value.mpz) < n1->value.f )
-	mpz_add_ui(r->value.mpz, 1L);
+#ifdef HAVE_CEIL
+       double f = ceil(n1->value.f);
+       if ( f >= (double)PLMININT && f <= (double)PLMAXINT )
+       { r->type = V_INTEGER;
+	 r->value.i = (int64_t)f;
+       } else
+       {
+#ifdef O_GMP
+         mpz_init_set_d(r->value.mpz, f);
+	 r->type = V_MPZ;
 #else
-      return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
+         return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
-    }
+       }
+#else /*HAVE_CEIL*/
+       if ( n1->value.f > (double)PLMININT && n1->value.f < (double)PLMAXINT )
+       { r->value.i = (int64_t)n1->value.f;
+	 if ( (real)r->value.i < n1->value.f )
+	   r->value.i++;
+	 r->type = V_INTEGER;
+       } else
+       {
+#ifdef O_GMP:
+         r->type = V_MPZ;
+	 mpz_init_set_d(r->value.mpz, n1->value.f);
+	 if ( mpz_get_d(r->value.mpz) < n1->value.f )
+	   mpz_add_ui(r->value.mpz, r->value.mpz, 1L);
+#else
+         return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
+#endif
+       }
 #endif /*HAVE_CEIL*/
+    }
   }
 
   succeed;
