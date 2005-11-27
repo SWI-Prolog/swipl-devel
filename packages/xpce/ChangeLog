@@ -2,6 +2,11 @@
 			   ==============
 
 
+* MODIFIED: `graphical->request_compute: Val' invokes ->compute if the
+  already registered compute request has a different value.  This generally
+  should fix applications using this feature, but it may cause loops in
+  computation.
+
 VERSION 6.5.38, distributed with SWI-Prolog 5.5.38
 ==================================================
 

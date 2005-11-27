@@ -605,6 +605,8 @@ requestComputeGraphical(Any obj, Any val)
   if ( isDefault(val) )
     val = ON;
 
+  if ( notNil(gr->request_compute) && gr->request_compute != val )
+    ComputeGraphical(gr);
   assign(gr, request_compute, val);
     
   if ( instanceOfObject(gr, ClassWindow) && gr->displayed == ON )
