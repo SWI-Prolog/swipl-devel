@@ -126,11 +126,12 @@ sub_var(X, Term) :-
 %	Count number of times Goal succeeds.
 
 count(Goal, Count) :-
-	flag('$occurs_count', Old, 0),
+	State = count(0),
 	(   Goal,
-	    flag('$occurs_count', X, X+1),
+	    arg(1, State, N0),
+	    N is N0 + 1,
+	    nb_setarg(1, State, N),
 	    fail
-	;   flag('$occurs_count', Count0, Old)
-	),
-	Count0 = Count.
+	;   arg(1, State, Count)
+	).
 
