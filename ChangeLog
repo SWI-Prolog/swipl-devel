@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Started package `nlp', providing some basics from the natural
+    language processing and information retrieval community.  Currently
+    stripping accents, Porter stem and Double Metaphone.
+
   * ADDED: library('clp/simplex') for solving linear programming problems.
     Contributed by Markus Triska.
 

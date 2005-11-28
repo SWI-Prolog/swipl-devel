@@ -338,6 +338,18 @@ Section "Table package"
   File pl\doc\packages\table.html
 SectionEnd
 
+Section "NLP package"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\bin
+  File pl\bin\porter_stem.dll
+  File pl\bin\double_metaphone.dll
+  SetOutPath $INSTDIR\library
+  File pl\library\porter_stem.pl
+  File pl\library\double_metaphone.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\nlp.html
+SectionEnd
+
 Section "C Debugging Symbols (.pdb files)"
   SectionIn 3
   SetOutPath $INSTDIR\bin
