@@ -104,6 +104,21 @@ This library is only available on Windows systems.
 \predicatesummary{vars_in}{3}{Declare domain of variable as interval}
 \end{summarylist}
 
+\subsection{\pllib{clp/simplex}}
+
+\begin{summarylist}{ll}
+\predicatesummary{assignment}{2}{Cost matrix for linear programming state}
+\predicatesummary{constraint}{3}{Add linear constraint to state}
+\predicatesummary{constraint}{4}{Add named linear constraint to state}
+\predicatesummary{gen_state}{1}{Create empty linear programming state}
+\predicatesummary{maximize}{3}{Maximize objective in linear programming state}
+\predicatesummary{minimize}{3}{Minimize objective in linear programming state}
+\predicatesummary{objective}{2}{Determine value of objective in state}
+\predicatesummary{shadow_price}{3}{Determine shadow price in solved state}
+\predicatesummary{transportation}{4}{Solve linear transportation problem}
+\predicatesummary{variable_value}{3}{Extract variable from solved state}
+\end{summarylist}
+
 \subsection{\pllib{clpr}}
 
 \begin{summarylist}{ll}
@@ -116,3 +131,4 @@ This library is only available on Windows systems.
 \predicatesummary{bb_inf}{5}{Determine infimum of expression}
 \predicatesummary{dump}{3}{Dump constraints on variables}
 \end{summarylist}
+

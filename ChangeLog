@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: library('clp/simplex') for solving linear programming problems.
+    Contributed by Markus Triska.
+
   * FIXED: floor and ceil using rational numbers.  Markus Triska.
 
 ==================================

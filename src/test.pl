@@ -2237,6 +2237,7 @@ testset(resource).
 
 testdir('Tests/attvar').
 testdir('Tests/charset').
+testdir('Tests/clp').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
 

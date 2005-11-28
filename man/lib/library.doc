@@ -38,3 +38,4 @@ documented at all.
 \input{bounds}
 \input{clpr}
 \input{clpdistinct}
+\input{simplex}

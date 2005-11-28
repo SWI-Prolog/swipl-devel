@@ -1,0 +1,109 @@
+\libdoc{simplex}{Solve linear programming problems}
+\label{sec:lib:simplex}
+
+\makebox[\linewidth]{\hfill Author: \emph{Markus Triska}}
+
+\noindent
+The \pllib{simplex} module provides the following predicates:
+
+\begin{description}
+	\predicate{assignment}{2}{+Cost, -Assignment}
+		\arg{Cost} is a list of lists representing the quadratic
+		cost matrix, where element (i,j) denotes the cost of
+		assigning entity $i$ to entity $j$. An assignment with
+		minimal cost is computed and unified with \arg{Assignment}
+		as a list of lists, representing an adjacency matrix.
+
+	\predicate{constraint}{3}{+Constraint, +S0, -S}
+		Adds a linear or integrality constraint to the linear program
+		corresponding to state \arg{S0}. A linear constraint
+		is of the form "Left Op	C", where "Left" is a list of
+		Coefficient*Variable terms (variables in the context of linear
+		programs can be atoms or compound terms) and C is a
+		non-negative numeric constant. The list represents the sum of
+		its elements. \arg{Op} can be =, =< or >=. The coefficient "1"
+		can be omitted. An integrality constraint is of the form
+		integral(Variable) and constrains Variable to an
+		integral value.
+
+	\predicate{constraint}{4}{+Name, +Constraint, +S0, -S}
+		Like constraint/3, and attaches the name \arg{Name} (an atom
+		or compound term) to the new constraint.
+
+	\predicate{gen_state}{1}{-State}
+		Generates an initial state corresponding to an empty linear
+		program.
+
+	\predicate{maximize}{3}{+Objective, +S0, -S}
+		Maximizes the objective function, stated as a list of
+		"Coefficient*Variable" terms that represents the sum of its
+		elements, with respect to the linear program corresponding to
+		state \arg{S0}. \arg{S} is unified with an internal
+		representation of the solved instance.
+
+	\predicate{minimize}{3}{+Objective, +S0, -S}
+		Analogous to maximize/3.
+
+	\predicate{objective}{2}{+State, -Objective}
+		Unifies \arg{Objective} with the result of the objective
+		function at the obtained extremum. \arg{State} must correspond
+		to a solved instance.
+
+	\predicate{shadow_price}{3}{+State, +Name, -Value}
+		Unifies \arg{Value} with the shadow price corresponding to
+		the linear constraint whose name is \arg{Name}. \arg{State}
+		must correspond to a solved instance.
+
+	\predicate{transportation}{4}{+Supplies, +Demands, +Costs, -Transport}
+		\arg{Supplies} and \arg{Demands} are both lists of positive
+		numbers. Their respective sums must be equal. \arg{Costs} is
+		a list of lists representing the cost matrix, where an entry
+		(i,j) denotes the cost of transporting one unit from $i$
+		to $j$. A transportation plan having minimum cost is
+		computed and unified with \arg{Transport} in the form of a
+		list of lists that represents the transportation matrix, where
+		element (i,j) denotes how many units to ship from $i$ to $j$.
+
+	\predicate{variable_value}{3}{+State, +Variable, -Value}
+		\arg{Value} is unified with the value obtained for
+		\arg{Variable}. \arg{State} must correspond to a solved
+		instance.
+
+\end{description}
+All numeric quantities are converted to rationals via rationalize/1, and
+rational arithmetic is used throughout solving linear programs. In the
+current implementation, all variables are implicitly constrained to be
+non-negative. This may change in future versions, and non-negativity
+constraints should therefore be stated explicitly.
+
+\subsection{Example}
+This is the "radiation therapy" example, taken from "Introduction to
+Operations Research" by Hillier and Lieberman. DCG notation is used to
+implicitly thread the state through posting the constraints:
+
+\begin{code}
+:- use_module(library(simplex)).
+
+post_constraints -->
+	constraint([0.3*x1, 0.1*x2] =< 2.7),
+	constraint([0.5*x1, 0.5*x2] = 6),
+	constraint([0.6*x1, 0.4*x2] >= 6),
+	constraint([x1] >= 0),
+	constraint([x2] >= 0).
+
+radiation(S) :-
+	gen_state(S0),
+	post_constraints(S0, S1),
+	minimize([0.4*x1, 0.5*x2], S1, S).
+\end{code}
+
+An example query:
+\begin{code}
+?- radiation(S), variable_value(S, x1, Val1), variable_value(S, x2, Val2).
+
+Val1 = 15 rdiv 2
+Val2 = 9 rdiv 2 ;
+\end{code}
+
+
+%end-of-file
