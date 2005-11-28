@@ -30,7 +30,9 @@ E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></I>
 <CENTER><H3>Abstract</H3></Center>
 <TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
 This package contains some well known basic rountines for natural 
-language processing and information retrieval.
+language processing and information retrieval. The current version of 
+this package is very limited, which makes the name somewhat misleading. 
+Suggestions and contributions are welcome.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -40,9 +42,14 @@ language processing and information retrieval.
 <UL>
 <LI><A HREF="#sec:1.1">1.1 Origin and Copyright</A>
 </UL>
-<LI><A HREF="#sec:2"><B>2 Installation</B></A>
+<LI><A HREF="#sec:2"><B>2 Porter Stem -- Determine stem and related 
+routines</B></A>
 <UL>
-<LI><A HREF="#sec:2.1">2.1 Unix systems</A>
+<LI><A HREF="#sec:2.1">2.1 Origin and Copyright</A>
+</UL>
+<LI><A HREF="#sec:3"><B>3 Installation</B></A>
+<UL>
+<LI><A HREF="#sec:3.1">3.1 Unix systems</A>
 </UL>
 </UL>
 
@@ -93,9 +100,67 @@ Philips and incorporates several bug fixes courtesy of Kevin Atkinson
 it under the same terms as Perl itself.
 </BLOCKQUOTE>
 
-<H2><A NAME="sec:2">2 Installation</A></H2>
+<H2><A NAME="sec:2">2 Porter Stem -- Determine stem and related routines</A></H2>
 
-<H3><A NAME="sec:2.1">2.1 Unix systems</A></H3>
+<P>The <CODE>library(porter_stem)</CODE> library implements the stemming 
+algorithm described by Porter in Porter, 1980, ``An algorithm for suffix 
+stripping'', Program, Vol. 14, no. 3, pp 130-137. The library comes with 
+some additional predicates that are commonly used in the context of 
+stemming.
+
+<DL>
+
+<P>
+<DT><A NAME="porter_stem/2"><STRONG>porter_stem</STRONG>(<VAR>+In, -Stem</VAR>)</A><DD>
+Determine the stem of <VAR>In</VAR>. <VAR>In</VAR> must represent ISO 
+Latin-1 text. The <A NAME="idx:porterstem2:2"></A><A HREF="#porter_stem/2">porter_stem/2</A> 
+predicate first maps <VAR>In</VAR> to lower case, then removes all 
+accents as in <A NAME="idx:unaccentatom2:3"></A><A HREF="#unaccent_atom/2">unaccent_atom/2</A> 
+and finally applies the Porter stem algorithm.
+
+<P>
+<DT><A NAME="unaccent_atom/2"><STRONG>unaccent_atom</STRONG>(<VAR>+In, 
+-ASCII</VAR>)</A><DD>
+If <VAR>In</VAR> is general ISO Latin-1 text with accents, <VAR>ASCII</VAR> 
+is unified with a plain ASCII version of the string. Note that the 
+current version only deals with ISO Latin-1 atoms.
+
+<P>
+<DT><A NAME="tokenize_atom/2"><STRONG>tokenize_atom</STRONG>(<VAR>+In, 
+-TokenList</VAR>)</A><DD>
+Break the text <VAR>In</VAR> into words, numbers and punctuation 
+characters. Tokens are created to the following rules:
+
+<P>
+<TABLE BORDER=0 FRAME=void RULES=groups>
+<TR VALIGN=top><TD><CODE>[-+][0-9]+(\.[0-9]+)?([eE][0-9]+)</CODE> </TD><TD>number </TD></TR>
+<TR VALIGN=top><TD><CODE>[:alpha:][:alnum:]+</CODE> </TD><TD>word </TD></TR>
+<TR VALIGN=top><TD><CODE>[:space:]+</CODE> </TD><TD>skipped </TD></TR>
+<TR VALIGN=top><TD>anything else</TD><TD>single-character</TD></TR>
+</TABLE>
+
+<P>It is likely that future versions of this library will provide
+<A NAME="idx:tokenizeatom3:4"></A><B>tokenize_atom/3</B> with additional 
+options to modify space handling as well as the definition of words.
+
+<P>
+<DT><A NAME="atom_to_stem_list/2"><STRONG>atom_to_stem_list</STRONG>(<VAR>+In, 
+-ListOfStems</VAR>)</A><DD>
+Combines the three above routines, returning a list holding an atom with 
+the stem of each word encountered and numbers for encountered numbers.
+</DL>
+
+<H3><A NAME="sec:2.1">2.1 Origin and Copyright</A></H3>
+
+<P>The origin of this implementation is unknown. Phrasing of the header 
+suggests the code is meant to be shared, so we assume it is in the 
+public domain. The code has been modified by Jan Wielemaker. He removed 
+all global variables to make the code thread-safe added the unaccent and 
+tokenize code and created the SWI-Prolog binding.
+
+<H2><A NAME="sec:3">3 Installation</A></H2>
+
+<H3><A NAME="sec:3.1">3.1 Unix systems</A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -122,10 +187,22 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <DL>
 
 <P>
+<DT><STRONG>A</STRONG><DD>
+<DT><A HREF="#atom_to_stem_list/2">atom_to_stem_list/2</A><DD>
 <DT><STRONG>D</STRONG><DD>
 <DT><A HREF="#double_metaphone/2">double_metaphone/2</A><DD>
 <DT><A HREF="#double_metaphone/3">double_metaphone/3</A><DD>
 <A HREF="#idx:doublemetaphone3:1">1</A>
+<DT><STRONG>P</STRONG><DD>
+<DT><A HREF="#porter_stem/2">porter_stem/2</A><DD>
+<A HREF="#idx:porterstem2:2">2</A>
+<DT><STRONG>T</STRONG><DD>
+<DT><A HREF="#tokenize_atom/2">tokenize_atom/2</A><DD>
+<DT>tokenize_atom/3<DD>
+<A HREF="#idx:tokenizeatom3:4">2</A>
+<DT><STRONG>U</STRONG><DD>
+<DT><A HREF="#unaccent_atom/2">unaccent_atom/2</A><DD>
+<A HREF="#idx:unaccentatom2:3">2</A>
 </DL>
 
 </BODY></HTML>

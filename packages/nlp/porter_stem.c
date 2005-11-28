@@ -348,12 +348,16 @@ stem(char * p, int i, int j)
 
 /* SWI-Prolog hooks */
 
+static int unaccent(const char *in, size_t len, char *out, size_t size);
+
 static foreign_t
 pl_stem(term_t t_in, term_t t_stem)
 { char *word;
   unsigned int len, end;
   char *f, *t, *s, *ew;
   char buf[1024];
+  char plain[1024];
+  int l;
 
   if ( !PL_get_nchars(t_in, &len, &word, CVT_ALL|CVT_EXCEPTION) )
   { if ( PL_is_number(t_in) )
@@ -365,11 +369,24 @@ pl_stem(term_t t_in, term_t t_stem)
   for(f=word, t=s; f<ew; )
     *t++ = tolower(*f++);
 
+  if ( (l=unaccent(s, t-s, plain, sizeof(plain))) < sizeof(plain) )
+  { if ( l >= 0 )
+    { if ( s != buf )
+	PL_free(s);
+      s = plain;
+    }
+  } else
+  { char *s2 = PL_malloc(l+1);
+    unaccent(s, t-s, s2, l+1);
+    if ( s != buf )
+      PL_free(s);
+  }
+
   end = stem(s, 0, len - 1);
   s[end + 1] = '\0';
   
   PL_unify_atom_chars(t_stem, s);
-  if ( s != buf )
+  if ( s != plain )
     PL_free(s);
 
   return TRUE;

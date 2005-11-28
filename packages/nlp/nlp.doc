@@ -25,7 +25,9 @@
 
 \begin{abstract}
 This package contains some well known basic rountines for natural
-language processing and information retrieval.
+language processing and information retrieval.  The current version
+of this package is very limited, which makes the name somewhat
+misleading.  Suggestions and contributions are welcome.
 \end{abstract}
 
 \pagebreak
@@ -87,24 +89,45 @@ stemming.
 
 \begin{description}
     \predicate{porter_stem}{2}{+In, -Stem}
-Determine the stem of \arg{In}.  \arg{In} must represent ASCII text.
-The predicate unaccent_atom/2 may be used to remove accents from
-ISO Latin-1 text.  \arg{Stem} is unified with the resulting stem
-in lowercase.
+Determine the stem of \arg{In}. \arg{In} must represent ISO Latin-1
+text. The porter_stem/2 predicate first maps \arg{In} to lower case,
+then removes all accents as in unaccent_atom/2 and finally applies the
+Porter stem algorithm.
 
     \predicate{unaccent_atom}{2}{+In, -ASCII}
-If in is general ISO Latin-1 text with accents, \arg{ASCII} is unified
-with a plain ASCII version of the string. This predicate should be used
-before porter_stem/2 if the input may contain accents.
+If \arg{In} is general ISO Latin-1 text with accents, \arg{ASCII} is
+unified with a plain ASCII version of the string.  Note that the current
+version only deals with ISO Latin-1 atoms.
 
     \predicate{tokenize_atom}{2}{+In, -TokenList}
 Break the text \arg{In} into words, numbers and punctuation characters.
+Tokens are created to the following rules:
+
+\begin{tabular}{ll}
+\verb$[-+][0-9]+(\.[0-9]+)?([eE][0-9]+)$	& number \\
+\verb$[:alpha:][:alnum:]+$			& word \\
+\verb$[:space:]+$				& skipped \\
+anything else					& single-character
+\end{tabular}
+
+It is likely that future versions of this library will provide
+tokenize_atom/3 with additional options to modify space handling as
+well as the definition of words.
 
     \predicate{atom_to_stem_list}{2}{+In, -ListOfStems}
 Combines the three above routines, returning a list holding an atom
 with the stem of each word encountered and numbers for encountered
 numbers.
 \end{description}
+
+
+\subsection{Origin and Copyright}
+
+The origin of this implementation is unknown. Phrasing of the header
+suggests the code is meant to be shared, so we assume it is in the
+public domain.  The code has been modified by Jan Wielemaker.  He
+removed all global variables to make the code thread-safe added the
+unaccent and tokenize code and created the SWI-Prolog binding.
 
 
 \section{Installation}
