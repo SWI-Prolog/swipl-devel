@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.38/XPCE 6.5.38 development release
+SWI-Prolog 5.5.39/XPCE 6.5.39 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -59,23 +59,25 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.38 relative to 5.5.37
+Patches in 5.5.39 relative to 5.5.38
 ====================================
 
- * Fixed crash in meta-calling huge goals.
- * Some input fixes: avoid loosing next character after abort and
-   memory leak in readline interface.
- * Added Encoding negotiation with external streams.
- * Fixed numbervars/ignore_ops interaction error in write_term.
+ * New library clp/simplex for solving linear programming problems.
+   Contributed by Markus Triska.
+ * More Cygwin patches.
+ * Fixed floor and ceil functions for rational numbers
+ * Minor patches
+
 
 Packages
 ========
  
- * XPCE: Use encoding negotiation to allow changing encoding on Prolog
-   streams related to XPCE sockets.
- * SemWeb: Fix saving triple-sets using datatypes.
- * HTTP: Avoid XPCE based servers to be garbage collected when started
-   from the GUI.
+ * Semweb library: removed unwanted choicepoint that could cause various
+   problems.
+ * XPCE: change to ->request_compute.  Their may be cases where the new
+   behaviour causes old ->compute implementations to loop.
+ * New package NLP, providing Porter stem and Double Metaphone algorithms.
+
 
 Incompatible changes
 ====================

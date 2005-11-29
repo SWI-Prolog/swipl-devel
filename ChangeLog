@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==================================
+VERSION 5.5.39 (November 29, 2005)
+==================================
+
   * PORT: More Cygwin issues by Corinna Vinschen.
 
   * FIXED: library(occurs), occurrences_of_*() predicates to be thread-safe.
