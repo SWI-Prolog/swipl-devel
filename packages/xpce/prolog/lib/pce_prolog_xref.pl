@@ -363,6 +363,8 @@ process_directive(ensure_loaded(Modules), Src) :-
 	process_use_module(Modules, Src).
 process_directive(load_files(Files, _Options), Src) :-
 	process_use_module(Files, Src).
+process_directive(include(Files), Src) :-
+	process_include(Files, Src).
 process_directive(dynamic(Dynamic), Src) :-
 	assert_dynamic(Src, Dynamic).
 process_directive(thread_local(Dynamic), Src) :-
@@ -639,6 +641,40 @@ xref_public_list(File, Path, Public, Src) :-
 	open_source(Path, Fd),		% skips possible #! line
 	call_cleanup(read(Fd, ModuleDecl), close(Fd)),
 	ModuleDecl = (:- module(_, Public)).
+
+
+		 /*******************************
+		 *	       INCLUDE		*
+		 *******************************/
+
+process_include([], _) :- !.
+process_include([H|T], Src) :- !,
+	process_include(H, Src),
+	process_include(T, Src).
+process_include(File, Src) :-
+	catch(read_src_to_terms(File, Src, Terms), _, fail), !,
+	process_terms(Terms, Src).
+process_include(_, _).
+
+process_terms([], _).
+process_terms([H|T], Src) :-
+	process(H, Src),
+	process_terms(T, Src).
+
+read_src_to_terms(File, Src, Terms) :-
+	xref_source_file(File, Path, Src),
+	open_source(Path, Fd),
+	call_cleanup(read_clauses(Fd, Terms),
+		     close(Fd)).
+	
+read_clauses(In, Terms) :-
+	read_clause(In, C0),
+	read_clauses(C0, In, Terms).
+
+read_clauses(end_of_file, _, []) :- !.
+read_clauses(Term, In, [Term|T]) :-
+	read_clause(In, C),
+	read_clauses(C, In, T).
 
 
 		 /*******************************

@@ -1,6 +1,7 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: pce_prolog_xref.pl: process terms in :- include directives.
 
 * MODIFIED: `graphical->request_compute: Val' invokes ->compute if the
   already registered compute request has a different value.  This generally
