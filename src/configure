@@ -13650,6 +13650,26 @@ fi
 done
 fi # mmap
 
+case "$ARCH" in
+    *cygwin*)
+	if test ! "$MMAP_STACK" = "1"; then
+		echo "$as_me:$LINENO: checking \"Cygwin ...\"" >&5
+echo $ECHO_N "checking \"Cygwin ...\"... $ECHO_C" >&6
+		configmmappedstacks=no
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_VIRTUALALLOC 1
+_ACEOF
+
+		cat >>confdefs.h <<\_ACEOF
+#define NO_SEGV_HANDLING 1
+_ACEOF
+
+		echo "$as_me:$LINENO: result: \"Use VirtualAlloc\"" >&5
+echo "${ECHO_T}\"Use VirtualAlloc\"" >&6
+	fi
+        ;;
+esac
 if test "$ac_cv_func_dlopen" = "yes" || \
    test "$ac_cv_func_shl_load" = "yes"; then
 

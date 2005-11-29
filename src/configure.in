@@ -270,15 +270,7 @@ fi
 
 case "$ARCH" in
     *cygwin*)
-dnl	AC_MSG_CHECKING("Cygwin ...")
-dnl        configmmappedstacks=no
-dnl	AC_DEFINE(HAVE_VIRTUALALLOC, 1,
-dnl		  [On Cygwin we should use VirtualAlloc()])
-dnl	AC_DEFINE(NO_SEGV_HANDLING)
-dnl	LDEXE="../src/ldcygwin"
-dnl	AC_MSG_RESULT("Use VirtualAlloc")
 	EXTRAHDR=def
-dnl	INSTALLTARGET="$INSTALLTARGET install-implib"
         ;;
     *aix*)
 	EXTRAHDR=exports
@@ -1100,6 +1092,18 @@ fi
 done
 fi # mmap
 
+case "$ARCH" in
+    *cygwin*)
+	if test ! "$MMAP_STACK" = "1"; then
+		AC_MSG_CHECKING("Cygwin ...")
+		configmmappedstacks=no
+		AC_DEFINE(HAVE_VIRTUALALLOC, 1,
+			  [On Cygwin we should use VirtualAlloc()])
+		AC_DEFINE(NO_SEGV_HANDLING)
+		AC_MSG_RESULT("Use VirtualAlloc")
+	fi
+        ;;
+esac
 if test "$ac_cv_func_dlopen" = "yes" || \
    test "$ac_cv_func_shl_load" = "yes"; then
 

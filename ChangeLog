@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: More Cygwin issues by Corinna Vinschen.
+
   * FIXED: library(occurs), occurrences_of_*() predicates to be thread-safe.
 
   * ADDED: Started package `nlp', providing some basics from the natural
