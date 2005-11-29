@@ -1260,7 +1260,6 @@ double_metaphone2(term_t from, term_t prim)
 { return double_metaphone3(from, prim, 0);
 }
 
-
 install_t
 install_double_metaphone()
 { PL_register_foreign("double_metaphone", 2, double_metaphone2, 0);

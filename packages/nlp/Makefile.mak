@@ -10,6 +10,7 @@
 
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
+CFLAGS=$(CFLAGS) /D__SWI_PROLOG__
 
 DMPOBJ=		double_metaphone.obj
 STEMOBJ=	porter_stem.obj

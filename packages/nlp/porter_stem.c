@@ -684,7 +684,8 @@ pl_atom_to_stem_list(term_t text, term_t stems)
 		 *	      INSTALL		*
 		 *******************************/
 
-install_t install()
+install_t
+install()
 { PL_register_foreign("porter_stem",       2, pl_stem,     0);
   PL_register_foreign("unaccent_atom",	   2, pl_unaccent, 0);
   PL_register_foreign("tokenize_atom",	   2, pl_tokenize, 0);
