@@ -603,7 +603,11 @@ requestComputeGraphical(Any obj, Any val)
     succeed;
 
   if ( isDefault(val) )
-    val = ON;
+  { val = ON;
+  } else if ( isNil(val) )
+  { assign(gr, request_compute, val);
+    succeed;
+  }
 
   if ( notNil(gr->request_compute) && gr->request_compute != val )
     ComputeGraphical(gr);
