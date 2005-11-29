@@ -11,6 +11,9 @@
 VERSION 5.5.39 (November 29, 2005)
 ==================================
 
+  * FIXED: Bug#122: Crash in GC on last-call to an autoloaded procedure
+    where the autoloader calls the garbage collector.  Fabien Todescato.
+
   * PORT: More Cygwin issues by Corinna Vinschen.
 
   * FIXED: library(occurs), occurrences_of_*() predicates to be thread-safe.
