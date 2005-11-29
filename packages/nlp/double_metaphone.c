@@ -154,23 +154,23 @@ GetLength(metastring * s)
 }
 */
 
-static char
+static int
 GetAt(metastring * s, int pos)
 {
     if ((pos < 0) || (pos >= s->length))
-	return '\0';
+	return 0;
 
-    return ((char) *(s->str + pos));
+    return s->str[pos]&0xff;
 }
 
 
 static void
-SetAt(metastring * s, int pos, char c)
+SetAt(metastring * s, int pos, int c)
 {
     if ((pos < 0) || (pos >= s->length))
 	return;
 
-    *(s->str + pos) = c;
+    s->str[pos] = c;
 }
 
 
