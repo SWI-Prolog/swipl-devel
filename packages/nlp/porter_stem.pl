@@ -37,4 +37,4 @@
 	  ]).
 
 :- initialization
-   load_foreign_library(porter_stem).
+   load_foreign_library(foreign(porter_stem)).
