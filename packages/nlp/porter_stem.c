@@ -369,7 +369,7 @@ pl_stem(term_t t_in, term_t t_stem)
   for(f=word, t=s; f<ew; )
     *t++ = tolower(*f++);
 
-  if ( (l=unaccent(s, t-s, plain, sizeof(plain))) < sizeof(plain) )
+  if ( (l=unaccent(s, t-s, plain, sizeof(plain))) < (int)sizeof(plain) )
   { if ( l >= 0 )
     { if ( s != buf )
 	PL_free(s);
@@ -685,7 +685,7 @@ pl_atom_to_stem_list(term_t text, term_t stems)
 		 *******************************/
 
 install_t
-install()
+install_porter_stem()
 { PL_register_foreign("porter_stem",       2, pl_stem,     0);
   PL_register_foreign("unaccent_atom",	   2, pl_unaccent, 0);
   PL_register_foreign("tokenize_atom",	   2, pl_tokenize, 0);
