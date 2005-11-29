@@ -158,12 +158,13 @@
 :- include(chr_op).
 :- op(1150, fx, chr_type).
 :- op(1130, xfx, --->).
-:- op(1150, fx, (+)).
-:- op(1150, fx, (-)).
-:- op(1150, fx, (?)).
+:- op(980, fx, (+)).
+:- op(980, fx, (-)).
+:- op(980, fx, (?)).
 
 option(debug,off).
 option(optimize,full).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- constraints 
@@ -468,7 +469,8 @@ chr_translate(Declarations,NewDeclarations) :-
 		append_lists([Clauses0,
 			      StoreClauses,
 			      ConstraintClauses,
-			      CHRModuleDeclaration
+			      CHRModuleDeclaration,
+			      [end_of_file]
 			     ],
 			     NewDeclarations)
 	).
@@ -556,17 +558,22 @@ partition_clauses([C|Cs],Ds,Rs,OCs) :-
       OCs = ROCs
   ;   C = (handler _) ->
       format('CHR compiler WARNING: ~w.\n',[C]),
-      format('    `-->  SICStus compatibility: ignoring handler/1 declaration.\n',[]),
+      format('    `-->  compatibility: ignoring handler/1 declaration.\n',[]),
       Ds = RDs,
       Rs = RRs,
       OCs = ROCs
   ;   C = (rules _) ->
       format('CHR compiler WARNING: ~w.\n',[C]),
-      format('    `-->  SICStus compatibility: ignoring rules/1 declaration.\n',[]),
+      format('    `-->  compatibility: ignoring rules/1 declaration.\n',[]),
       Ds = RDs,
       Rs = RRs,
       OCs = ROCs
   ;   C = option(OptionName,OptionValue) ->
+      handle_option(OptionName,OptionValue),
+      Ds = RDs,
+      Rs = RRs,
+      OCs = ROCs
+  ;   C = (:- chr_option(OptionName,OptionValue)) ->
       handle_option(OptionName,OptionValue),
       Ds = RDs,
       Rs = RRs,

@@ -1,3 +1,15 @@
+Nov 29, 2005
+  * BD: chr_swi.pl: Removed code that took Handler for Module (in chr_expand(end_of_file)
+                    Added :- chr_option(_,_) with same meaning as option(_,_)
+                    is_chr_file: .chr is no longer a recognised suffix
+                    added use_module(library(lists))
+                    changed calls to source_location/2 into prolog_load_context/2
+  * BD: chr_translate.chr: chr_translate/2: added end_of_file to translated program
+                           adapted SICStus compatibility message
+                           made :- chr_option(_,_) available
+                           changed precedence of + - ? to 980 (these ops are
+                                     probably not local enough to the module)
+
 Nov 21, 2005
 
   * TS: Further synchronization with hProlog.

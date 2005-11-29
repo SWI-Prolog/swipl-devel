@@ -57,6 +57,7 @@
 
 user:file_search_path(chr, library(chr)).
 
+:- use_module(library(lists)).
 :- use_module(chr(chr_translate)).
 :- use_module(chr(chr_runtime)).
 :- use_module(chr(chr_debug)).
@@ -77,8 +78,7 @@ user:file_search_path(chr, library(chr)).
 %		:- end_constraints.
 %
 %	As they are not we have to   use  some heuristics. We assume any
-%	file is a CHR after we've seen :- constraints ... or if the file
-%	is named *.chr
+%	file is a CHR after we've seen :- constraints ... 
 
 chr_expandable((:- constraints _)).
 chr_expandable((constraints _)).
@@ -98,13 +98,12 @@ chr_expandable((_ pragma _)) :-
 	is_chr_file.
 chr_expandable(option(_, _)) :-
 	is_chr_file.
+chr_expandable((:- chr_option(_, _))) :-
+	is_chr_file.
 
 is_chr_file :-
-	source_location(File, _Line),
-	(   chr_term(File, _)
-	->  true
-	;   file_name_extension(_, chr, File)
-	).
+	prolog_load_context(file,File),
+	chr_term(File, _), !.
 
 %	chr_expand(+Term, -Expansion)
 %	
@@ -113,7 +112,7 @@ is_chr_file :-
 
 chr_expand(Term, []) :-
 	chr_expandable(Term), !,
-	source_location(File, _Line),
+	prolog_load_context(file,File),
 	assert(chr_term(File, Term)).
 chr_expand(end_of_file,
 	   [ (:- use_module(chr(chr_runtime))),
@@ -122,23 +121,16 @@ chr_expand(end_of_file,
 	   | Program
 	   ]) :-
 	is_chr_file,
-	source_location(File, _Line),
+	prolog_load_context(file,File),
 	findall(T, retract(chr_term(File, T)), CHR0),
 	CHR0 \== [],
 %	length(CHR0, NDecls),
 %	format('Translating ~w declarations~n', [NDecls]),
 	prolog_load_context(module, Module),
-	(   Module == user
-	->  (	memberchk(handler(Handler), CHR0)
-	    ->	true
-	    ;	gensym(chr_handler, Handler)
-	    )
-	;   Handler = Module
-	),
 	add_debug_decl(CHR0, CHR1),
 	add_optimise_decl(CHR1, CHR),
 	call_chr_translate(File,
-			   [ (:- module(Handler, []))
+			   [ (:- module(Module, []))
 			   | CHR
 			   ],
 			   Program0),
@@ -166,18 +158,19 @@ add_optimise_decl(CHR, CHR).
 
 %	call_chr_translate(+File, +In, -Out)
 %	
-%	The entire chr_translate/2 translation may   fail, in which we'd
+%	The entire chr_translate/2 translation may fail, in which case we'd
 %	better issue a warning  rather  than   simply  ignoring  the CHR
 %	declarations.
 
 call_chr_translate(_, In, _Out) :-
-	   ( chr_translate(In, Out0) ->
-		nb_setval(chr_translated_program,Out0),
-		fail
-	    ).
+	( chr_translate(In, Out0) ->
+	    nb_setval(chr_translated_program,Out0),
+	    fail
+	).
 call_chr_translate(_, _In, Out) :-
-	    nb_current(chr_translated_program,Out),!,nb_delete(chr_translated_program).
-	
+	nb_current(chr_translated_program,Out), !,
+	nb_delete(chr_translated_program).
+
 call_chr_translate(File, _, []) :-
 	print_message(error, chr(compilation_failed(File))).
 
