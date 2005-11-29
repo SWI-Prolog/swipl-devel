@@ -6,3 +6,5 @@ autom4te.cache
 chr.pl
 chr_translate.pl
 chr_translate_bootstrap1.pl
+chr_translate_bootstrap2.pl
+guard_entailment.pl
