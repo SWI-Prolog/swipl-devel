@@ -4275,9 +4275,8 @@ execution can continue at `next_instruction'
 	     && trueFeature(TAILRECURSION_FEATURE)
 #endif
 	   )
-	{ Definition ndef = getProcDefinedDefinition(lTop, PC,
-						     (Procedure) *PC++
-						     PASS_LD);
+	{ Procedure proc = (Procedure) *PC++;
+	  Definition ndef = getProcDefinedDefinition(lTop, PC, proc PASS_LD);
 	  arity = ndef->functor->arity;
 
 	  if ( true(FR, FR_WATCHED) )
