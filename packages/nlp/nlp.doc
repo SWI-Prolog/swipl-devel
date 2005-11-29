@@ -24,7 +24,7 @@
 \maketitle
 
 \begin{abstract}
-This package contains some well known basic rountines for natural
+This package contains some well known basic routines for natural
 language processing and information retrieval.  The current version
 of this package is very limited, which makes the name somewhat
 misleading.  Suggestions and contributions are welcome.
@@ -126,7 +126,7 @@ numbers.
 The origin of this implementation is unknown. Phrasing of the header
 suggests the code is meant to be shared, so we assume it is in the
 public domain.  The code has been modified by Jan Wielemaker.  He
-removed all global variables to make the code thread-safe added the
+removed all global variables to make the code thread-safe, added the
 unaccent and tokenize code and created the SWI-Prolog binding.
 
 
