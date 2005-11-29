@@ -380,13 +380,14 @@ pl_stem(term_t t_in, term_t t_stem)
     unaccent(s, t-s, s2, l+1);
     if ( s != buf )
       PL_free(s);
+    s = s2;
   }
 
   end = stem(s, 0, len - 1);
   s[end + 1] = '\0';
   
   PL_unify_atom_chars(t_stem, s);
-  if ( s != plain )
+  if ( s != plain && s != buf )
     PL_free(s);
 
   return TRUE;
