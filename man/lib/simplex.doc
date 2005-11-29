@@ -1,8 +1,9 @@
 \libdoc{simplex}{Solve linear programming problems}
 \label{sec:lib:simplex}
 
-\makebox[\linewidth]{\hfill Author: \emph{Markus Triska}}
+\makebox[\linewidth]{\hfill Author: \emph{Markus Triska}}\vspace{2ex}
 
+\noindent
 A linear programming problem consists of a set of (linear) constraints, a
 number of variables and a linear objective function. The goal is to assign
 values to the variables so as to maximize (or minimize) the value of the
