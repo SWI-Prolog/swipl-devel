@@ -220,6 +220,10 @@ check_files :-
 
 ignore_file('INDEX.pl').
 ignore_file('plwin.opt').
+ignore_file('pl2xpce.pdb').
+ignore_file('double_metaphone.pdb').
+ignore_file('porter_stem.pdb').
+
 
 		 /*******************************
 		 *	       RUN IT		*
