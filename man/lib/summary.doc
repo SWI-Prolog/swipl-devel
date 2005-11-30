@@ -107,16 +107,16 @@ This library is only available on Windows systems.
 \subsection{\pllib{clp/simplex}}
 
 \begin{summarylist}{ll}
-\predicatesummary{assignment}{2}{Cost matrix for linear programming state}
+\predicatesummary{assignment}{2}{Solve assignment problem}
 \predicatesummary{constraint}{3}{Add linear constraint to state}
 \predicatesummary{constraint}{4}{Add named linear constraint to state}
-\predicatesummary{gen_state}{1}{Create empty linear programming state}
-\predicatesummary{maximize}{3}{Maximize objective in linear programming state}
-\predicatesummary{minimize}{3}{Minimize objective in linear programming state}
-\predicatesummary{objective}{2}{Determine value of objective in state}
-\predicatesummary{shadow_price}{3}{Determine shadow price in solved state}
-\predicatesummary{transportation}{4}{Solve linear transportation problem}
-\predicatesummary{variable_value}{3}{Extract variable from solved state}
+\predicatesummary{gen_state}{1}{Create empty linear program}
+\predicatesummary{maximize}{3}{Maximize objective function in to linear constraints}
+\predicatesummary{minimize}{3}{Minimize objective function in to linear constraints}
+\predicatesummary{objective}{2}{Fetch value of objective function}
+\predicatesummary{shadow_price}{3}{Fetch shadow price in solved state}
+\predicatesummary{transportation}{4}{Solve transportation problem}
+\predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
 \end{summarylist}
 
 \subsection{\pllib{clpr}}

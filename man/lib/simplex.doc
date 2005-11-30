@@ -9,7 +9,7 @@ number of variables and a linear objective function. The goal is to assign
 values to the variables so as to maximize (or minimize) the value of the
 objective function while satisfying all constraints.
 
-Many optimization problems can be modelled in this way. Consider a
+Many optimization problems can be modeled in this way. Consider having a
 knapsack with fixed capacity C, and a number of items with sizes s(i) and
 values v(i). The goal is to put as many items as possible in the knapsack
 (not exceeding its capacity) while maximizing the sum of their values.
@@ -89,8 +89,7 @@ All numeric quantities are converted to rationals via rationalize/1, and
 rational arithmetic is used throughout solving linear programs. In the
 current implementation, all variables are implicitly constrained to be
 non-negative. This may change in future versions, and non-negativity
-constraints should therefore be stated explicitly if they are not
-implied.
+constraints should therefore be stated explicitly.
 
 \subsection{Example 1}
 This is the "radiation therapy" example, taken from "Introduction to
