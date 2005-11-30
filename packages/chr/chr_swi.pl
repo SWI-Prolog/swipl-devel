@@ -29,6 +29,7 @@
     the GNU General Public License.
 */
 
+%% SWI begin
 :- module(chr,
 	  [ op( 700, xfx, ::),
 	    op(1180, xfx, ==>),
@@ -49,6 +50,33 @@
 	    chr_notrace/0,
 	    chr_leash/1			% +Ports
 	  ]).
+%% SWI end
+
+%% SICStus begin
+%% :- module(chr,
+%% 	  [ chr_show_store/1,		% +Module
+%% 	    find_chr_constraint/1,	% +Pattern
+%% 	    chr_trace/0,
+%% 	    chr_notrace/0,
+%% 	    chr_leash/1			% +Ports
+%% 	  ]).
+%% 
+%% :- op( 700, xfx, ::),
+%% 	op(1180, xfx, ==>),
+%% 	op(1180, xfx, <=>),
+%% 	op(1150, fx, constraints),
+%% 	op(1150, fx, handler),
+%% 	op(1150, fx, rules),
+%% 	op(1100, xfx, \),
+%% 	op(1200, xfx, @),
+%% 	op(1190, xfx, pragma),
+%% 	op( 500, yfx, #),
+%% 	op(1150, fx, chr_type),
+%% 	op(1130, xfx, --->),
+%% 	op(1150, fx, (?)).
+%% SICStus end
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 :- multifile user:file_search_path/2.
@@ -60,7 +88,7 @@ user:file_search_path(chr, library(chr)).
 :- use_module(library(lists)).
 :- use_module(chr(chr_translate)).
 :- use_module(chr(chr_runtime)).
-:- use_module(chr(chr_debug)).
+%% :- use_module(chr(chr_debug)).
 :- use_module(chr(chr_messages)).
 :- use_module(library(gensym)).
 :- use_module(chr(chr_hashtable_store)).

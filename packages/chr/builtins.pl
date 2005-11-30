@@ -13,6 +13,10 @@
 :- use_module(hprolog).
 :- use_module(library(lists)).
 
+%% SICStus begin
+%% :- use_module(library(terms),[term_variables/2]).
+%% SICStus end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 negate_b(A,B) :- once(negate(A,B)).
 negate((A,B),NotB) :- A==true,negate(B,NotB). % added by jon

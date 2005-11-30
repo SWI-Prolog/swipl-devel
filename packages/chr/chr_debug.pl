@@ -29,31 +29,36 @@
     the GNU General Public License.
 */
 
-:- module(chr_debug,
-	  [ chr_show_store/1, % +Module
-            find_chr_constraint/1
-	  ]).
-:- use_module(chr(chr_runtime)).
-:- use_module(library(lists)).
-:- set_prolog_flag(generate_debug_info, false).
+%% Empty for now
+%% should not be used anywhere therefore ...
 
+a syntax error - look up 2 lines !
 
-%	chr_show_store(+Module)
-%	
-%	Prints all suspended constraints of module   Mod to the standard
-%	output.
-
-chr_show_store(Mod) :-
-	(
-		Mod:'$enumerate_suspensions'(Susp),
-		arg(6,Susp,C),
-		print(C),nl, % allows use of portray to control printing
-		fail
-	;
-		true
-	).
-
-find_chr_constraint(C) :-
-	chr:'$chr_module'(Mod),
-	Mod:'$enumerate_suspensions'(Susp),
-	arg(6,Susp,C).
+%% :- module(chr_debug,
+%% 	  [ chr_show_store/1, % +Module
+%%             find_chr_constraint/1
+%% 	  ]).
+%% :- use_module(chr(chr_runtime)).
+%% :- use_module(library(lists)).
+%% :- set_prolog_flag(generate_debug_info, false).
+%% 
+%% 
+%% %	chr_show_store(+Module)
+%% %	
+%% %	Prints all suspended constraints of module   Mod to the standard
+%% %	output.
+%% 
+%% chr_show_store(Mod) :-
+%% 	(
+%% 		Mod:'$enumerate_suspensions'(Susp),
+%% 		arg(6,Susp,C),
+%% 		print(C),nl, % allows use of portray to control printing
+%% 		fail
+%% 	;
+%% 		true
+%% 	).
+%% 
+%% find_chr_constraint(C) :-
+%% 	chr:'$chr_module'(Mod),
+%% 	Mod:'$enumerate_suspensions'(Susp),
+%% 	arg(6,Susp,C).

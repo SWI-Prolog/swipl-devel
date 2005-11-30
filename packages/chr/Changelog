@@ -1,3 +1,32 @@
+Nov 30, 2005
+  * BD: chr_runtime.pl:
+           chr_init for SICStus
+           included contents of chr_debug.pl
+           removed show_store/1
+           create_mutable changed into 'chr create_mutable'
+           got rid of explicit inlining and did it by goal expansion
+           inlining also of 'chr default_store'
+  * BD: chr_swi.pl:
+           removed :- use_module(chr(chr_debug))
+           module header: version for SICStus
+  * BD: chr_debug.pl: emptied
+  * BD: chr_translate.chr:
+	   system specific declarations factored out in insert_declarations
+	   changed two atom_concat/3 into atomic_concat/3 (because arg 2 was sometimes an int)
+  * BD: chr_compiler_utility.pl:
+	   put atomic_concat/3 there 
+	   adapted atom_concat_list/2 to use it
+  * BD: chr_swi_bootstrap.pl:
+	   introduced chr_swi_bootstrap/2 for ease of porting
+	   exported also chr_compile/3
+           porting code for get_time stuff/read_term/absolute_file_name
+  * BD: builtins.pl, a_star.pl, clean_code.pl:
+	   some ifdefs
+
+
+Nov 29, 2005
+  * BD: hprolog.pl: removed strip_attributes/2 and restore_attributes/2
+
 Nov 29, 2005
   * BD: chr_swi.pl: Removed code that took Handler for Module (in chr_expand(end_of_file)
                     Added :- chr_option(_,_) with same meaning as option(_,_)

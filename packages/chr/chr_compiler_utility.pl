@@ -44,6 +44,7 @@
 	, my_term_copy/3
 	, my_term_copy/4
 	, atom_concat_list/2
+	, atomic_concat/3
 	, init/2
 	, member2/3
 	, select2/6
@@ -234,7 +235,24 @@ my_term_copy_list([X|Xs],Dict1,Dict3,[Y|Ys]) :-
 atom_concat_list([X],X) :- ! .
 atom_concat_list([X|Xs],A) :-
 	atom_concat_list(Xs,B),
-	atom_concat(X,B,A).
+	atomic_concat(X,B,A).
+
+atomic_concat(A,B,C) :-
+	make_atom(A,AA),
+	make_atom(B,BB),
+	atom_concat(AA,BB,C).
+
+make_atom(A,AA) :-
+	(
+	  atom(A) ->
+	  AA = A
+	;
+	  number(A) ->
+	  number_codes(A,AL),
+	  atom_codes(AA,AL)
+	).
+
+	    
 
 set_elems([],_).
 set_elems([X|Xs],X) :-

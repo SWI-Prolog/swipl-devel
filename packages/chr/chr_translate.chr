@@ -495,13 +495,25 @@ store_management_preds(Constraints,Clauses) :-
 			     ]
 			     ,Clauses).
 
-insert_declarations(Clauses0, Clauses) :-
-	append(Clauses0, 
-		  [ :- use_module(chr(chr_runtime)) 
+%% SWI begin
+extra_declaration([ :- use_module(chr(chr_runtime))
 		  , :- use_module(chr(chr_hashtable_store))
 		  , :- use_module(library('clp/clp_events'))
-		  ],
-		  Clauses).
+		  ]).
+%% SWI end
+
+%% SICStus begin
+%% extra_declaration([ :- use_module(chr(chr_runtime))
+%% 		  , :- use_module(chr(chr_hashtable_store))
+%%                   , (:- use_module(chr(hprolog)))
+%% 		  ]).
+%% SICStus end
+
+
+
+insert_declarations(Clauses0, Clauses) :-
+	extra_declaration(Decls),
+	append(Clauses0, Decls, Clauses).
 
 generate_counter_code(Clauses) :-
 	( chr_pp_flag(store_counter,on) ->
@@ -519,7 +531,7 @@ generate_counter_code(Clauses) :-
 		Clauses = []
 	).
 
-% SWI-Prolog specific
+% for systems with multifile declaration
 chr_module_declaration(CHRModuleDeclaration) :-
 	get_target_module(Mod),
 	( Mod \== chr_translate, chr_pp_flag(toplevel_show_store,on) ->
@@ -4743,7 +4755,7 @@ buildName(Fct,Aty,List,Result) :-
    ( may_trigger(Fct/Aty) ; get_allocation_occurrence(Fct/Aty,AO), get_max_occurrence(Fct/Aty,MO), 
    MO >= AO ) ; List \= [0])) ) ) -> 
 	atom_concat(Fct, (/) ,FctSlash),
-	atom_concat(FctSlash,Aty,FctSlashAty),
+	atomic_concat(FctSlash,Aty,FctSlashAty),
 	buildName_(List,FctSlashAty,Result)
    ;
 	Result = Fct
@@ -4753,7 +4765,7 @@ buildName_([],Name,Name).
 buildName_([N|Ns],Name,Result) :-
   buildName_(Ns,Name,Name1),
   atom_concat(Name1,'__',NameDash),    % '_' is a char :-(
-  atom_concat(NameDash,N,Result).
+  atomic_concat(NameDash,N,Result).
 
 vars_susp(A,Vars,Susp,VarsSusp) :-
    length(Vars,A),

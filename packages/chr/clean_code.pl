@@ -22,6 +22,10 @@
 
 :- use_module(hprolog, [memberchk_eq/2]).
 
+%% SICStus begin
+%% :- use_module(library(terms),[term_variables/2]).
+%% SICStus end
+
 clean_clauses([],[]).
 clean_clauses([C|Cs],[NC|NCs]) :-
 	clean_clause(C,NC),
