@@ -48,12 +48,12 @@ all:
 	@echo "==============================================================="
 
 install:	tex.@SO@
-	mkdir -p $(LIBDIR)/lib/$(PLARCH)
-	$(INSTALL_DATA) tex.@SO@ $(LIBDIR)/lib/$(PLARCH)
-	$(INSTALL_PROGRAM) latex2html $(bindir)
-	for f in $(LIB); do $(INSTALL_DATA) $$f $(LIBDIR); done
-	mkdir -p $(LIBDIR)/icons
-	for f in icons/*.gif; do $(INSTALL_DATA) $$f $(LIBDIR)/icons; done
+	mkdir -p $(DESTDIR)$(LIBDIR)/lib/$(PLARCH)
+	$(INSTALL_DATA) tex.@SO@ $(DESTDIR)$(LIBDIR)/lib/$(PLARCH)
+	$(INSTALL_PROGRAM) latex2html $(DESTDIR)$(bindir)
+	for f in $(LIB); do $(INSTALL_DATA) $$f $(DESTDIR)$(LIBDIR); done
+	mkdir -p $(DESTDIR)$(LIBDIR)/icons
+	for f in icons/*.gif; do $(INSTALL_DATA) $$f $(DESTDIR)$(LIBDIR)/icons; done
 
 tex.@SO@:		$(OBJ)
 	$(LD) $(LDFLAGS) -o $@ $(OBJ)
