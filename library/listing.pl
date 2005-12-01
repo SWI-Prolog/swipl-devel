@@ -218,13 +218,13 @@ do_portray_clause(Out, (Head :- Body)) :- !,
 	write(Out, ' :-'), 
 	(   nonvar(Body),
 	    Body = Module:LocalBody
-	->  nl, portray_indent(Out, 1),
-	    format('~q:', [Module]),
-	    nl, portray_indent(Out, 1),
-	    write('(   '),
+	->  nl(Out), portray_indent(Out, 1),
+	    format(Out, '~q:', [Module]),
+	    nl(Out), portray_indent(Out, 1),
+	    write(Out, '(   '),
 	    portray_body(LocalBody, 2, noindent, Out),
-	    nl, portray_indent(Out, 1),
-	    write(')')
+	    nl(Out), portray_indent(Out, 1),
+	    write(Out, ')')
 	;   portray_body(Body, 2, indent, Out)
 	),
 	put(Out, 0'.), nl(Out).
