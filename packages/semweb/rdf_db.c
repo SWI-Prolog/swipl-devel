@@ -4842,7 +4842,7 @@ typedef struct agenda
 } agenda;
 
 #ifndef offsetof
-#define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
+#define offsetof(structure, field) ((unsigned long) &(((structure *)NULL)->field))
 #endif
 #define CHUNK_SIZE(n) offsetof(chunk, nodes[n])
 
