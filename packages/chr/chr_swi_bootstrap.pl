@@ -36,7 +36,9 @@
 	  , chr_compile_step4/2		% +CHRFile, -PlFile
 	  , chr_compile/3
 	  ]).
-:- use_module(library(listing)).	% portray_clause/2
+%% SWI begin
+:- use_module(library(listing)). % portray_clause/2
+%% SWI end
 :- include('chr_op').
 
 		 /*******************************
@@ -85,15 +87,17 @@ specific_declarations([:- use_module('chr_runtime'),
 %% 		       (:- use_module('hpattvars')),
 %% 		       (:- use_module('b_globval')),
 %% 		       (:- use_module('hprolog')),  % needed ?
+%%                     (:- use_module(library(terms),[term_variables/2])),
 %% 		       (:- set_prolog_flag(discontiguous_warnings,off)),
 %% 		       (:- set_prolog_flag(single_var_warnings,off))|Tail], Tail).
 %% SICStus end
 
 
+
 insert_declarations(Clauses0, Clauses) :-
 	specific_declarations(Decls,Tail),
-	(Clauses0 = [:- module(M,E)|FileBody] ->
-	    Clauses = [ :- module(M,E)|Decls],
+	(Clauses0 = [(:- module(M,E))|FileBody] ->
+	    Clauses = [ (:- module(M,E))|Decls],
 	    Tail = FileBody
 	;
 	    Clauses = Decls,

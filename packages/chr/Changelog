@@ -1,3 +1,26 @@
+Dec 2, 2005
+  * BD: chr_translate.chr, chr_translate_bootstrap2.chr
+	   mutables "abstracted"
+  * BD: chr_translate_bootstrap1.chr
+	   atomic_concat - some duplicate code of it is in more than one file :-(
+	   create_get_mutable definitions if-deffed
+	   verbosity_on/0 for porting
+	hprolog.pl
+	   definitions of init_store/2, get_store/2, update_store/2
+	   and of make_init_store_goal/make_get_store_goal/make_update_store_goal
+	   removed prolog_flag/3 (seemed  nowhere used)
+	chr_translate_bootstrap2.chr
+	   make_init_store_goal/make_get_store_goal/make_update_store_goal introduced
+	   verbosity_on/0 for porting
+	chr_translate_bootstrap.pl
+	   atom_concat -> atomic_concat
+	   verbosity_on/0 for porting
+	   conditional import van library(terms)
+	chr_translate.chr
+	   make_init_store_goal etc. introduced
+	create_get_mutable_ref wherever needed (chr_translate*)
+
+
 Nov 30, 2005
   * BD: chr_runtime.pl:
            chr_init for SICStus

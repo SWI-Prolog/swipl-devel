@@ -97,6 +97,7 @@
 
 	    'chr update_mutable'/2,
 	    'chr get_mutable'/2,
+	    'chr create_mutable'/2,
 
 	    'chr novel_production'/2,
 	    'chr extend_history'/2,
@@ -127,6 +128,13 @@
 :- use_module(hprolog).
 :- use_module(library(lists)).
 :- include(chr_op).
+
+%% SICStus begin
+%% :- use_module(library(terms),[term_variables/2]).
+%% :- use_module(hpattvars).
+%% :- use_module(b_globval).
+%% SICStus end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -192,7 +200,7 @@ user:goal_expansion('chr default_store'(X),        nb_getval(chr_global,X)).
 %% user:goal_expansion('chr get_mutable'(Val,Var),    get_mutable(Val,Var)).
 %% user:goal_expansion('chr update_mutable'(Val,Var), update_mutable(Val,Var)).
 %% user:goal_expansion('chr create_mutable'(Val,Var), create_mutable(Val,Var)).
-%% user:goal_expansion('chr default_store'(X),        global_term_ref_1(A)).
+%% user:goal_expansion('chr default_store'(A),        global_term_ref_1(A)).
 %% SICStus end
 
 
@@ -450,8 +458,8 @@ constraint_generation( Susp, State, Generation) :-
 	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
 	'chr create_mutable'(active, Mref),
 	'chr create_mutable'(0, Gref),
-	'chr create_mutable'(History, Href),
 	'chr empty_history'(History),
+	'chr create_mutable'(History, Href),
 	'chr gen_id'(Id).
 
 insert_constraint_internal([Global|Vars], Self, Term, Closure, F, Args) :-

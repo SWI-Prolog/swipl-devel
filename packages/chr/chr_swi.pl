@@ -50,16 +50,25 @@
 	    chr_notrace/0,
 	    chr_leash/1			% +Ports
 	  ]).
+
+:- set_prolog_flag(generate_debug_info, false).
+
+:- use_module(library(gensym)).
+
+:- multifile user:file_search_path/2.
+:- dynamic   user:file_search_path/2.
+:- dynamic   chr_translated_program/1.
+
+user:file_search_path(chr, library(chr)).
+
+:- use_module(chr(chr_translate)).
+:- use_module(chr(chr_runtime)).
+:- use_module(chr(chr_messages)).
+:- use_module(chr(chr_hashtable_store)).
 %% SWI end
 
 %% SICStus begin
-%% :- module(chr,
-%% 	  [ chr_show_store/1,		% +Module
-%% 	    find_chr_constraint/1,	% +Pattern
-%% 	    chr_trace/0,
-%% 	    chr_notrace/0,
-%% 	    chr_leash/1			% +Ports
-%% 	  ]).
+%% :- module(chr,[]).
 %% 
 %% :- op( 700, xfx, ::),
 %% 	op(1180, xfx, ==>),
@@ -74,24 +83,21 @@
 %% 	op(1150, fx, chr_type),
 %% 	op(1130, xfx, --->),
 %% 	op(1150, fx, (?)).
+%% 
+%% :- multifile user:file_search_path/2.
+%% :- dynamic   user:file_search_path/2.
+%% :- dynamic   chr_translated_program/1.
+%% 
+%% user:file_search_path(chr, library(chr)).
+%% 
+%% 
+%% :- use_module('chr/chr_translate').
+%% :- use_module('chr/chr_runtime').
+%% :- use_module('chr/chr_messages').
+%% :- use_module('chr/chr_hashtable_store').
 %% SICStus end
 
-
-:- set_prolog_flag(generate_debug_info, false).
-
-:- multifile user:file_search_path/2.
-:- dynamic   user:file_search_path/2.
-:- dynamic   chr_translated_program/1.
-
-user:file_search_path(chr, library(chr)).
-
 :- use_module(library(lists)).
-:- use_module(chr(chr_translate)).
-:- use_module(chr(chr_runtime)).
-%% :- use_module(chr(chr_debug)).
-:- use_module(chr(chr_messages)).
-:- use_module(library(gensym)).
-:- use_module(chr(chr_hashtable_store)).
 
 :- dynamic
 	chr_term/2.			% File, Term
@@ -138,16 +144,26 @@ is_chr_file :-
 %	Extract CHR declarations and rules from the file and run the
 %	CHR compiler when reaching end-of-file.
 
+%% SWI begin
+extra_declarations([(:- use_module(chr(chr_runtime))),
+		    (:- style_check(-discontiguous)), % no need to restore; file ends
+		    (:- set_prolog_flag(generate_debug_info, false))
+		   | Tail], Tail).
+%% SWI end
+
+%% SICStus begin
+%% extra_declarations([(:-use_module(chr(chr_runtime)))
+%% 		     , (:- use_module(library(terms),[term_variables/2]))
+%% 		     , (:-use_module(chr(hpattvars)))
+%% 		     | Tail], Tail).		   
+%% SICStus end
+
 chr_expand(Term, []) :-
 	chr_expandable(Term), !,
 	prolog_load_context(file,File),
 	assert(chr_term(File, Term)).
-chr_expand(end_of_file,
-	   [ (:- use_module(chr(chr_runtime))),
-	     (:- style_check(-discontiguous)), % no need to restore; file ends
-	     (:- set_prolog_flag(generate_debug_info, false))
-	   | Program
-	   ]) :-
+chr_expand(end_of_file, FinalProgram) :-
+	extra_declarations(FinalProgram,Program),
 	is_chr_file,
 	prolog_load_context(file,File),
 	findall(T, retract(chr_term(File, T)), CHR0),
@@ -172,15 +188,27 @@ delete_header(L, L).
 add_debug_decl(CHR, CHR) :-
 	memberchk(option(debug, _), CHR), !.
 add_debug_decl(CHR, [option(debug, Debug)|CHR]) :-
-	(   current_prolog_flag(generate_debug_info, true)
+	(   chr_current_prolog_flag(generate_debug_info, true)
 	->  Debug = on
 	;   Debug = off
 	).
 
+%% SWI begin
+chr_current_prolog_flag(Flag,Val) :- current_prolog_flag(Flag,Val).
+%% SWI end
+
+%% SICStus begin
+%% chr_current_prolog_flag(generate_debug_info, _) :- fail.
+%% chr_current_prolog_flag(optimize,true).
+%% chr_current_prolog_flag(chr_toplevel_show_store,true).
+%% SICStus end
+
+
+
 add_optimise_decl(CHR, CHR) :-
 	memberchk(option(optimize, _), CHR), !.
 add_optimise_decl(CHR, [option(optimize, full)|CHR]) :-
-	current_prolog_flag(optimize, true), !.
+	chr_current_prolog_flag(optimize, true), !.
 add_optimise_decl(CHR, CHR).
 
 
@@ -265,7 +293,9 @@ prolog:message(chr(CHR)) -->
 		 *	 TOPLEVEL PRINTING	*	
 		 *******************************/
 
+%% SWI begin
 :- set_prolog_flag(chr_toplevel_show_store,true).
+%% SWI end
 
 :- multifile chr:'$chr_module'/1.
 
@@ -278,7 +308,7 @@ prolog:message(query(YesNo,Bindings)) --> !,
         '$messages':prolog_message(query(YesNo,Bindings)).
 
 print_all_stores :-
-	( current_prolog_flag(chr_toplevel_show_store,true),
+	( chr_current_prolog_flag(chr_toplevel_show_store,true),
 	  catch(nb_getval(chr_global, _), _, fail),
 	  chr:'$chr_module'(Mod),
 	  chr_show_store(Mod),

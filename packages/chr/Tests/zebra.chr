@@ -1,7 +1,7 @@
 :- module(zebra,[zebra/0]).
 :- use_module(library(chr)).
 
-%:- use_module(lib / lists).
+:- use_module(library(lists)).
 
 /*     
 1.   The Englishman lives in the red house.

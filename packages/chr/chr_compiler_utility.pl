@@ -54,6 +54,12 @@
 
 :- use_module(pairlist).
 :- use_module(library(lists), [permutation/2]).
+
+%% SICStus begin
+%% use_module(library(terms),[term_variables/2]).
+%% SICStus end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 is_variant(A,B) :-
 	copy_term_nat(A,AC),

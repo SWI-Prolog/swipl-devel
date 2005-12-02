@@ -128,6 +128,11 @@
 :- use_module(library(ordsets)).
 :- include(chr_op).
 
+%% SICStus begin
+%% :- use_module(library(terms),[term_variables/2]).
+%% SICStus end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 %% Translation
@@ -1183,7 +1188,7 @@ discover_unique_pattern(PragmaRule,RuleNb,Pattern) :-
 	select_pragma_unique_variables(List,Vs,Key),
 	Pattern0 = unique(C1,Key),
 	copy_term(Pattern0,Pattern),
-	( prolog_flag(verbose,V), V == yes ->
+	( verbosity_on ->
 		format('Found unique pattern ~w in rule ~d~@\n', 
 			[Pattern,RuleNb,(Name=yes(N) -> write(": "),write(N) ; true)])
 	;
@@ -1428,7 +1433,7 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],Pragmas,PrevHs,PrevSusps,Act
 		nth(Pos,SuspsList,VarSusps)
 	),
 	different_from_other_susps(H,Susp,PrevHs,PrevSusps,DiffSuspGoals),
-	create_get_mutable(active,State,GetMutable),
+	create_get_mutable_ref(active,State,GetMutable),
 	Goal1 = 
 	(
 		'chr sbag_member'(Susp,VarSusps),
@@ -1768,7 +1773,7 @@ simpagation_head2_worker_body(Head2,Head1,ID1,RestHeads1,IDs1,RestHeads2,IDs2,Ru
    head_arg_matches(Head1Pairs,VarDict1,FirstMatching,VarDict2),
 
    OtherSuspension =.. [suspension,_,OtherState,_,_,_,_|OtherVars],
-   create_get_mutable(active,OtherState,GetMutable),
+   create_get_mutable_ref(active,OtherState,GetMutable),
    IteratorSuspTest =
       (   OtherSusp = OtherSuspension,
           GetMutable
@@ -1842,8 +1847,8 @@ simpagation_head2_worker_body(Head2,Head1,ID1,RestHeads1,IDs1,RestHeads2,IDs2,Ru
 gen_state_cond_call(Susp,N,Call,Generation,ConditionalCall) :-
    length(Args,N),
    Suspension =.. [suspension,_,State,_,NewGeneration,_,_|Args],
-   create_get_mutable(active,State,GetState),
-   create_get_mutable(Generation,NewGeneration,GetGeneration),
+   create_get_mutable_ref(active,State,GetState),
+   create_get_mutable_ref(Generation,NewGeneration,GetGeneration),
    ConditionalCall =
       (   Susp = Suspension,
 	  GetState,
@@ -1988,7 +1993,7 @@ propagation_body(CurrentHead,PreHeads,Rule,RuleNb,RestHeadNb,F/A,Mod,Id,L,T) :-
    functor(CurrentHead,_OtherF,OtherA),
    gen_vars(OtherA,OtherVars),
    Suspension =.. [suspension,_,State,_,_,_,_|OtherVars],
-   create_get_mutable(active,State,GetMutable),
+   create_get_mutable_ref(active,State,GetMutable),
    CurrentSuspTest = (
       OtherSusp = Suspension,
       GetMutable
@@ -2111,7 +2116,7 @@ propagation_accumulator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,N,C
 	OtherSuspension =.. [suspension,_,State,_,_,_,_|OtherVars],
 
 	different_from_other_susps(CurrentHead,OtherSusp,PreHeads,PreSusps,DiffSuspGoals),
-	create_get_mutable(active,State,GetMutable),
+	create_get_mutable_ref(active,State,GetMutable),
 	CurrentSuspTest = (
 	   OtherSusp = OtherSuspension,
 	   GetMutable,
@@ -2281,14 +2286,15 @@ order_score_vars([V|Vs],KnownVars,RestVars,Score,NScore) :-
 %% |___|_| |_|_|_|_| |_|_|_| |_|\__, |
 %%                              |___/ 
 
-create_get_mutable(V,M,GM) :-
-	GM = (M = mutable(V)).
-	% GM = 'chr get_mutable'(V,M)
-	%( ground(V) ->
-	%	GM = (M == mutable(V))
-	%;
-	%	GM = (M = mutable(V))
-	%).
+%% SWI begin
+create_get_mutable_ref(V,M,GM) :- GM = (M = mutable(V)).
+%% SWI end
+
+%% SICStus begin
+create_get_mutable_ref(V,M,GM) :- GM = (get_mutable(V,M)).
+%% SICStus end
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2415,14 +2421,14 @@ build_head(F,A,Id,Args,Head) :-
 
 buildName(Fct,Aty,List,Result) :-
    atom_concat(Fct, (/) ,FctSlash),
-   atom_concat(FctSlash,Aty,FctSlashAty),
+   atomic_concat(FctSlash,Aty,FctSlashAty),
    buildName_(List,FctSlashAty,Result).
 
 buildName_([],Name,Name).
 buildName_([N|Ns],Name,Result) :-
   buildName_(Ns,Name,Name1),
   atom_concat(Name1,'__',NameDash),    % '_' is a char :-(
-  atom_concat(NameDash,N,Result).
+  atomic_concat(NameDash,N,Result).
 
 vars_susp(A,Vars,Susp,VarsSusp) :-
    length(Vars,A),
@@ -2463,7 +2469,23 @@ list2conj([G|Gs],C) :-
 atom_concat_list([X],X) :- ! .
 atom_concat_list([X|Xs],A) :-
 	atom_concat_list(Xs,B),
-	atom_concat(X,B,A).
+	atomic_concat(X,B,A).
+
+atomic_concat(A,B,C) :-
+	make_atom(A,AA),
+	make_atom(B,BB),
+	atom_concat(AA,BB,C).
+
+make_atom(A,AA) :-
+	(
+	  atom(A) ->
+	  AA = A
+	;
+	  number(A) ->
+	  number_codes(A,AL),
+	  atom_codes(AA,AL)
+	).
+
 
 set_elems([],_).
 set_elems([X|Xs],X) :-
@@ -2486,3 +2508,10 @@ default(X,Def) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% SWI begin
+verbosity_on :- prolog_flag(verbose,V), V == yes.
+%% SWI end
+
+%% SICStus begin
+%% verbosity_on.  % at the moment
+%% SICStus end

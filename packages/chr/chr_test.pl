@@ -5,9 +5,10 @@
     Copyright (C) 1996 University of Amsterdam. All rights reserved.
 */
 
-:- asserta(user:file_search_path(chr, '.')).
-:- asserta(user:file_search_path(library, '.')).
-:- use_module(chr).			% == library(chr)
+%% :- asserta(user:file_search_path(chr, '.')).
+%% :- asserta(user:file_search_path(library, '.')).
+:- use_module(library(chr)).
+%%  :- use_module(chr).			% == library(chr)
 
 :- set_prolog_flag(optimise, true).
 %:- set_prolog_flag(trace_gc, true).

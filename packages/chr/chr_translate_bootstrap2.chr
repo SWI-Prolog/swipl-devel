@@ -407,21 +407,32 @@ store_management_preds(Constraints,Clauses) :-
 			     ,StoreClauses]
 			     ,Clauses).
 
+
+%% SWI begin
+specific_declarations([:- use_module('chr_runtime'),
+		       :- use_module('chr_hashtable_store'),
+		       :- style_check(-singleton),
+		       :- style_check(-discontiguous)
+		      |Tail],Tail).
+%% SWI end
+
+%% SICStus begin
+%% specific_declarations([(:- use_module('chr_runtime')),
+%% 		       (:- use_module('chr_hashtable_store')),
+%% 		       (:- set_prolog_flag(discontiguous_warnings,off)),
+%% 		       (:- set_prolog_flag(single_var_warnings,off))
+%% 		      |Tail],Tail).
+%% SICStus end
+
+
 insert_declarations(Clauses0, Clauses) :-
-	(   Clauses0 = [:- module(M,E)|FileBody]
-	->  Clauses = [ :- module(M,E),
-			:- use_module('chr_runtime'),
-			:- use_module('chr_hashtable_store'),
-			:- style_check(-singleton),
-			:- style_check(-discontiguous)
-		      | FileBody
-		      ]
-	;   Clauses = [ :- use_module('chr_runtime'),
-			:- use_module('chr_hashtable_store'),
-			:- style_check(-singleton),
-			:- style_check(-discontiguous)
-		      | Clauses0
-		      ]
+	specific_declarations(Decls,Tail),
+	( Clauses0 = [ (:- module(M,E))|FileBody] ->
+	    Clauses = [ (:- module(M,E))|Decls],
+	    Tail = FileBody
+	;
+	    Clauses = Decls,
+	    Tail = Clauses0
 	).
 
 
@@ -1157,7 +1168,7 @@ generate_remove_clause(RemoveClause) :-
 	(
 		remove_constraint_internal(Susp, Agenda, Delete) :-
 			arg( 2, Susp, Mref),
-			Mref = mutable(State), % get_mutable( State, Mref), % XXX Inlined
+			'chr get_mutable'( State, Mref),
 			'chr update_mutable'( removed, Mref),		% mark in any case
 			( compound(State) ->			% passive/1
 			    Agenda = [],
@@ -1178,13 +1189,13 @@ generate_activate_clause(ActivateClause) :-
 	(
 		activate_constraint(Store, Vars, Susp, Generation) :-
 			arg( 2, Susp, Mref),
-			Mref = mutable(State), % get_mutable( State, Mref),  % XXX Inlined
+			'chr get_mutable'( State, Mref), 
 			'chr update_mutable'( active, Mref),
 			( nonvar(Generation) ->			% aih
 			    true
 			;
 			    arg( 4, Susp, Gref),
-			    Gref = mutable(Gen), % get_mutable( Gen, Gref), % XXX Inlined
+			    'chr get_mutable'( Gen, Gref),
 			    Generation is Gen+1,
 			    'chr update_mutable'( Generation, Gref)
 			),
@@ -1206,11 +1217,11 @@ generate_allocate_clause(AllocateClause) :-
 	(
 		allocate_constraint( Closure, Self, F, Args) :-
 			Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
-			Gref = mutable(0),	
+			'chr create_mutable'(0,Gref), % Gref = mutable(0),	
 			'chr empty_history'(History),
-			Href = mutable(History),
+			'chr create_mutable'(History,Href), % Href = mutable(History),
 			chr_indexed_variables(Self,Vars),
-			Mref = mutable(passive(Vars)),
+			'chr create_mutable'(passive(Vars),Mref), % Mref = mutable(passive(Vars)),
 			'chr gen_id'( Id)
 	).
 
@@ -1221,10 +1232,10 @@ generate_insert_constraint_internal(Clause) :-
 			Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
 			chr_indexed_variables(Self,Vars),
 			'chr none_locked'(Vars),
-			Mref = mutable(active),
-			Gref = mutable(0),
-			Href = mutable(History),
+			'chr create_mutable'(active,Mref), % Mref = mutable(active),
+			'chr create_mutable'(0,Gref), % Gref = mutable(0),
 			'chr empty_history'(History),
+			'chr create_mutable'(History,Href), % Href = mutable(History),
 			'chr gen_id'(Id)
 	).
 
@@ -1441,10 +1452,12 @@ generate_insert_constraint_body(multi_hash(Indexes),C,Susp,Body) :-
 	generate_multi_hash_insert_constraint_bodies(Indexes,C,Susp,Body).
 generate_insert_constraint_body(global_ground,C,Susp,Body) :-
 	global_ground_store_name(C,StoreName),
+	make_get_store_goal(StoreName,Store,GetStoreGoal),
+	make_update_store_goal(StoreName,[Susp|Store],UpdateStoreGoal),
 	Body =
 	(
-		nb_getval(StoreName,Store),
-		b_setval(StoreName,[Susp|Store])
+		GetStoreGoal,     % nb_getval(StoreName,Store),
+		UpdateStoreGoal   % b_setval(StoreName,[Susp|Store])
 	).
 generate_insert_constraint_body(multi_store(StoreTypes),C,Susp,Body) :-
 	find_with_var_identity(
@@ -1462,10 +1475,11 @@ generate_multi_hash_insert_constraint_bodies([],_,_,true).
 generate_multi_hash_insert_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
 	multi_hash_store_name(FA,Index,StoreName),
 	multi_hash_key(FA,Index,Susp,KeyBody,Key),
+	make_get_store_goal(StoreName,Store,GetStoreGoal),
 	Body =
 	(
 		KeyBody,
-		nb_getval(StoreName,Store),
+	        GetStoreGoal, % nb_getval(StoreName,Store),
 		insert_ht(Store,Key,Susp)
 	),
 	generate_multi_hash_insert_constraint_bodies(Indexes,FA,Susp,Bodies).
@@ -1498,11 +1512,13 @@ generate_delete_constraint_body(multi_hash(Indexes),C,Susp,Body) :-
 	generate_multi_hash_delete_constraint_bodies(Indexes,C,Susp,Body).
 generate_delete_constraint_body(global_ground,C,Susp,Body) :-
 	global_ground_store_name(C,StoreName),
+	make_get_store_goal(StoreName,Store,GetStoreGoal),
+	make_update_store_goal(StoreName,NStore,UpdateStoreGoal),
 	Body =
 	(
-		nb_getval(StoreName,Store),
+		GetStoreGoal, % nb_getval(StoreName,Store),
 		'chr sbag_del_element'(Store,Susp,NStore),
-		b_setval(StoreName,NStore)
+		UpdateStoreGoal % b_setval(StoreName,NStore)
 	).
 generate_delete_constraint_body(multi_store(StoreTypes),C,Susp,Body) :-
 	find_with_var_identity(
@@ -1520,10 +1536,11 @@ generate_multi_hash_delete_constraint_bodies([],_,_,true).
 generate_multi_hash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
 	multi_hash_store_name(FA,Index,StoreName),
 	multi_hash_key(FA,Index,Susp,KeyBody,Key),
+	make_get_store_goal(StoreName,Store,GetStoreGoal),
 	Body =
 	(
 		KeyBody,
-		nb_getval(StoreName,Store),
+		GetStoreGoal, % nb_getval(StoreName,Store),
 		delete_ht(Store,Key,Susp)
 	),
 	generate_multi_hash_delete_constraint_bodies(Indexes,FA,Susp,Bodies).
@@ -1565,21 +1582,24 @@ multi_store_generate_store_code([ST|STs],C,L,T) :-
 multi_hash_store_initialisations([],_,L,L).
 multi_hash_store_initialisations([Index|Indexes],FA,L,T) :-
 	multi_hash_store_name(FA,Index,StoreName),
-	L = [(:- (new_ht(HT),nb_setval(StoreName,HT)) )|L1],
+	make_init_store_goal(StoreName,HT,InitStoreGoal),
+	L = [(:- (new_ht(HT),InitStoreGoal)) | L1],
 	multi_hash_store_initialisations(Indexes,FA,L1,T).
 
 global_ground_store_initialisation(C,L,T) :-
 	global_ground_store_name(C,StoreName),
-	L = [(:- nb_setval(StoreName,[]))|T].
+	make_init_store_goal(StoreName,[],InitStoreGoal),
+	L = [(:- InitStoreGoal)|T].
 
 multi_hash_via_lookups([],_,L,L).
 multi_hash_via_lookups([Index|Indexes],C,L,T) :-
 	multi_hash_via_lookup_name(C,Index,PredName),
 	Head =.. [PredName,Key,SuspsList],
 	multi_hash_store_name(C,Index,StoreName),
+	make_get_store_goal(StoreName,HT,GetStoreGoal),
 	Body = 
 	(
-		nb_getval(StoreName,HT),
+		GetStoreGoal, % nb_getval(StoreName,HT),
 		lookup_ht(HT,Key,SuspsList)
 	),
 	L = [(Head :- Body)|L1],
@@ -1673,9 +1693,10 @@ enumerate_store_body(multi_hash([Index|_]),C,Susp,Body) :-
 	multi_hash_enumerate_store_body(Index,C,Susp,Body).
 enumerate_store_body(global_ground,C,Susp,Body) :-
 	global_ground_store_name(C,StoreName),
+	make_get_store_goal(StoreName,List,GetStoreGoal),
 	Body =
 	(
-		nb_getval(StoreName,List),
+		GetStoreGoal, % nb_getval(StoreName,List),
 		'chr sbag_member'(Susp,List)
 	).
 enumerate_store_body(multi_store(STs),C,Susp,Body) :-
@@ -1686,9 +1707,10 @@ enumerate_store_body(multi_store(STs),C,Susp,Body) :-
 
 multi_hash_enumerate_store_body(I,C,Susp,B) :-
 	multi_hash_store_name(C,I,StoreName),
+	make_get_store_goal(StoreName,HT,GetStoreGoal),
 	B =
 	(
-		nb_getval(StoreName,HT),
+		GetStoreGoal, % nb_getval(StoreName,HT),
 		value_ht(HT,Susp)	
 	).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2328,7 +2350,7 @@ discover_unique_pattern(PragmaRule,RuleNb,Pattern) :-
 	select_pragma_unique_variables(List,Vs,Key),
 	Pattern0 = unique(C1,Key),
 	copy_term(Pattern0,Pattern),
-	( prolog_flag(verbose,V), V == yes ->
+	( verbosity_on ->
 		format('Found unique pattern ~w in rule ~d~@\n', 
 			[Pattern,RuleNb,(Name=yes(N) -> write(": "),write(N) ; true)])
 	;
@@ -2579,7 +2601,7 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],Pragmas,PrevHs,PrevSusps,Act
 	head_arg_matches(Pairs,VarDict,MatchingGoal,VarDict1),
 	Suspension =.. [suspension,_,State,_,_,_,_|Vars],
 	different_from_other_susps(H,Susp,PrevHs,PrevSusps,DiffSuspGoals),
-	create_get_mutable(active,State,GetMutable),
+	create_get_mutable_ref(active,State,GetMutable),
 	Goal1 = 
 	(
 		'chr sbag_member'(Susp,VarSusps),
@@ -2942,7 +2964,7 @@ simpagation_head2_worker_body(Head2,Head1,ID1,RestHeads1,IDs1,RestHeads2,IDs2,Pr
    head_arg_matches(Head1Pairs,VarDict1,FirstMatching,VarDict2),
 
    OtherSuspension =.. [suspension,_,OtherState,_,_,_,_|OtherVars],
-   create_get_mutable(active,OtherState,GetMutable),
+   create_get_mutable_ref(active,OtherState,GetMutable),
    IteratorSuspTest =
       (   OtherSusp = OtherSuspension,
           GetMutable
@@ -3029,8 +3051,8 @@ simpagation_head2_worker_body(Head2,Head1,ID1,RestHeads1,IDs1,RestHeads2,IDs2,Pr
 gen_state_cond_call(Susp,N,Call,Generation,ConditionalCall) :-
    length(Args,N),
    Suspension =.. [suspension,_,State,_,NewGeneration,_,_|Args],
-   create_get_mutable(active,State,GetState),
-   create_get_mutable(Generation,NewGeneration,GetGeneration),
+   create_get_mutable_ref(active,State,GetState),
+   create_get_mutable_ref(Generation,NewGeneration,GetGeneration),
    ConditionalCall =
       (   Susp = Suspension,
 	  GetState,
@@ -3170,7 +3192,7 @@ propagation_body(CurrentHead,PreHeads,Rule,RuleNb,RestHeadNb,F/A,Id,L,T) :-
    functor(CurrentHead,_OtherF,OtherA),
    gen_vars(OtherA,OtherVars),
    Suspension =.. [suspension,_,State,_,_,_,_|OtherVars],
-   create_get_mutable(active,State,GetMutable),
+   create_get_mutable_ref(active,State,GetMutable),
    CurrentSuspTest = (
       OtherSusp = Suspension,
       GetMutable
@@ -3303,7 +3325,7 @@ propagation_accumulator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,Id,
 	OtherSuspension =.. [suspension,_,State,_,_,_,_|OtherVars],
 
 	different_from_other_susps(CurrentHead,OtherSusp,PreHeads,PreSusps,DiffSuspGoals),
-	create_get_mutable(active,State,GetMutable),
+	create_get_mutable_ref(active,State,GetMutable),
 	CurrentSuspTest = (
 	   OtherSusp = OtherSuspension,
 	   GetMutable,
@@ -3463,8 +3485,13 @@ order_score_vars([V|Vs],KnownVars,RestVars,Score,NScore) :-
 %% |___|_| |_|_|_|_| |_|_|_| |_|\__, |
 %%                              |___/ 
 
-create_get_mutable(V,M,GM) :-
-	GM = (M = mutable(V)).
+%% SWI begin
+create_get_mutable_ref(V,M,GM) :- GM = (M = mutable(V)).
+%% SWI end
+
+%% SICStus begin
+%% create_get_mutable_ref(V,M,GM) :- GM = get_mutable(V,M).
+%% SICStus end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -3501,14 +3528,14 @@ build_head(F,A,Id,Args,Head) :-
 
 buildName(Fct,Aty,List,Result) :-
    atom_concat(Fct, (/) ,FctSlash),
-   atom_concat(FctSlash,Aty,FctSlashAty),
+   atomic_concat(FctSlash,Aty,FctSlashAty),
    buildName_(List,FctSlashAty,Result).
 
 buildName_([],Name,Name).
 buildName_([N|Ns],Name,Result) :-
   buildName_(Ns,Name,Name1),
   atom_concat(Name1,'__',NameDash),    % '_' is a char :-(
-  atom_concat(NameDash,N,Result).
+  atomic_concat(NameDash,N,Result).
 
 vars_susp(A,Vars,Susp,VarsSusp) :-
    length(Vars,A),
@@ -3559,7 +3586,23 @@ list2disj([G|Gs],C) :-
 atom_concat_list([X],X) :- ! .
 atom_concat_list([X|Xs],A) :-
 	atom_concat_list(Xs,B),
-	atom_concat(X,B,A).
+	atomic_concat(X,B,A).
+
+atomic_concat(A,B,C) :-
+	make_atom(A,AA),
+	make_atom(B,BB),
+	atom_concat(AA,BB,C).
+
+make_atom(A,AA) :-
+	(
+	  atom(A) ->
+	  AA = A
+	;
+	  number(A) ->
+	  number_codes(A,AL),
+	  atom_codes(AA,AL)
+	).
+
 
 make_name(Prefix,F/A,Name) :-
 	atom_concat_list([Prefix,F,(/),A],Name).
@@ -3616,7 +3659,7 @@ lookup_passive_head(multi_hash(Indexes),Head,_PreJoin,VarDict,Goal,AllSusps) :-
 lookup_passive_head(global_ground,Head,PreJoin,_VarDict,Goal,AllSusps) :-
 	functor(Head,F,A),
 	global_ground_store_name(F/A,StoreName),
-	Goal = nb_getval(StoreName,AllSusps),
+	make_get_store_goal(StoreName,AllSusps,Goal), % Goal = nb_getval(StoreName,AllSusps),
 	update_store_type(F/A,global_ground).
 lookup_passive_head(multi_store(StoreTypes),Head,PreJoin,VarDict,Goal,AllSusps) :-
 	once((
@@ -3657,3 +3700,13 @@ validate_store_type_assumptions([]).
 validate_store_type_assumptions([C|Cs]) :-
 	validate_store_type_assumption(C),
 	validate_store_type_assumptions(Cs).	
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% SWI begin
+verbosity_on :- prolog_flag(verbose,V), V == yes.
+%% SWI end
+
+%% SICStus begin
+%% verbosity_on.  % at the moment
+%% SICStus end

@@ -34,6 +34,9 @@
 	, chr_pp_flag/2
 	]).
 	
+%% SICStus begin
+%% :- use_module(hprolog).
+%% SICStus end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Global Options

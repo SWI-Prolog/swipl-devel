@@ -1,6 +1,5 @@
 :- module(hprolog,
-	  [ prolog_flag/3,		% +Flag, -Old, +New
-	    append_lists/2,		% +ListOfLists, -List
+	  [ append_lists/2,		% +ListOfLists, -List
 	    nth/3,			% ?Index, ?List, ?Element
 	    substitute/4,		% +OldVal, +OldList, +NewVal, -NewList
 	    memberchk_eq/2,		% +Val, +List
@@ -11,20 +10,27 @@
 	    or_list/2,			% +ListOfInts, -BitwiseOr
 	    sublist/2,
 	    min_list/2,
-	    chr_delete/3
+	    chr_delete/3,
+	    init_store/2,
+	    get_store/2,
+	    update_store/2,
+	    make_get_store_goal/3,
+	    make_update_store_goal/3,
+	    make_init_store_goal/3
 	  ]).
 :- use_module(library(lists)).
 
-%	prolog_flag(+Flag, -Old, +New)
-%	
-%	Combine ISO prolog flag reading and writing
+init_store(Name,Value) :- nb_setval(Name,Value).
 
-prolog_flag(Flag, Old, New) :-
-	current_prolog_flag(Flag, Old),
-	(   Old == New
-	->  true
-	;   set_prolog_flag(Flag, New)
-	).
+get_store(Name,Value) :- nb_getval(Name,Value).
+
+update_store(Name,Value) :- b_setval(Name,Value).
+
+make_init_store_goal(Name,Value,Goal) :- Goal = nb_setval(Name,Value).
+
+make_get_store_goal(Name,Value,Goal) :- Goal = nb_getval(Name,Value).
+
+make_update_store_goal(Name,Value,Goal) :- Goal = b_setval(Name,Value).
 
 
 		 /*******************************
