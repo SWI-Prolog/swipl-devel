@@ -999,13 +999,11 @@ delete_from_all([Num-A0|As0], Del, [Num-A|As]) :-
 	delete(A0, _-Del, A),
 	delete_from_all(As0, Del, As).
 
-set_nth0(I, Ls0, Element, Ls) :-
-	set_nth0(0, I, Ls0, Element, Ls).
 
-set_nth0(Nth, Nth, [_|Ls], Element, [Element|Ls]) :- !.
-set_nth0(Curr, Nth, [L|Ls], Element, [L|Ss]) :-
-	Curr1 is Curr + 1,
-	set_nth0(Curr1, Nth, Ls, Element, Ss).
+set_nth0(0, [_|Ls], Element, [Element|Ls]) :- !.
+set_nth0(Curr, [L|Ls], Element, [L|Ss]) :-
+	Curr1 is Curr - 1,
+	set_nth0(Curr1, Ls, Element, Ss).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
