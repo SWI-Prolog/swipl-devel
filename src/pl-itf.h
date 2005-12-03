@@ -541,6 +541,19 @@ PL_EXPORT(PL_blob_t*)	PL_find_blob_type(const char* name);
 PL_EXPORT(int)		PL_unregister_blob_type(PL_blob_t *type);
 
 
+#ifdef __GNU_MP__
+
+		 /*******************************
+		 *	       GMP		*
+		 *******************************/
+
+PL_EXPORT(int)	PL_get_mpz(term_t t, mpz_t mpz);
+PL_EXPORT(int)	PL_get_mpq(term_t t,  mpq_t mpq);
+PL_EXPORT(int)	PL_unify_mpz(term_t t, mpz_t mpz);
+PL_EXPORT(int)	PL_unify_mpq(term_t t, mpq_t mpq);
+
+#endif /*__GNU_MP__*/
+
 		 /*******************************
 		 *	  FILENAME SUPPORT	*
 		 *******************************/

@@ -1624,6 +1624,69 @@ used from the callback functions described in \secref{blobtype}.
 \end{description}
 
 
+\subsection{Exchanging GMP numbers}
+
+If SWI-Prolog is linked with the GNU Multiple Precision Arithmetic
+Library (GMP, used by default), the foreign interface provides functions
+for exchanging numeric values to GMP types.  To access these functions
+the header \verb$<gmp.h>$ must be included \emph{before}
+\verb$<SWI-Prolog.h>$.   Here is an example exploiting the function
+mpz_nextprime():
+
+\begin{code}
+#include <gmp.h>
+#include <SWI-Prolog.h>
+
+static foreign_t
+next_prime(term_t n, term_t prime)
+{ mpz_t mpz;
+  int rc;
+
+  mpz_init(mpz);
+  if ( PL_get_mpz(n, mpz) )
+  { mpz_nextprime(mpz, mpz);
+    
+    rc = PL_unify_mpz(prime, mpz);
+  } else
+    rc = FALSE;
+
+  mpz_clear(mpz);
+  return rc;
+}
+
+install_t
+install()
+{ PL_register_foreign("next_prime", 2, next_prime, 0);
+}
+\end{code}
+
+\begin{description}
+    \cfunction{int}{PL_get_mpz}{term_t t, mpz_t mpz}
+If \arg{t} represents an integer \arg{mpz} is filled with the value and
+the function returns \const{TRUE}. Otherwise \arg{mpz} is untouched and
+the function returns \const{FALSE}.  Note that \arg{mpz} must have been
+initialised before calling this function and must be cleared using
+mpz_clear() to reclaim any storage associated with it.
+
+    \cfunction{int}{PL_get_mpq}{term_t t, mpq_t mpq}
+If \arg{t} is an integer or rational number (term \functor{rdiv}{2})
+\arg{mpq} is filled with the \emph{normalise} rational number and the
+function returns \const{TRUE}.  Otherwise \arg{mpq} is untouched and
+the function returns \const{FALSE}.  Note that \arg{mpq} must have been
+initialised before calling this function and must be cleared using
+mpq_clear() to reclaim any storage associated with it.
+
+    \cfunction{int}{PL_unify_mpz}{term_t t, mpz_t mpz}
+Unify \arg{t} with the integer value represented by \arg{mpz} and return
+\arg{TRUE} on success.  The \arg{mpz} argument is not changed.
+
+    \cfunction{int}{PL_unify_mpq}{term_t t, mpq_t mpq}
+Unify \arg{t} with a rational number represented by \arg{mpq} and return
+\arg{TRUE} on success.  Note that \arg{t} is unified with an integer if
+the denominator is 1.  The \arg{mpq} argument is not changed.
+\end{description}
+
+
 \subsection{Calling Prolog from C}
 
 The Prolog engine can be called from C. There are two interfaces for

@@ -669,3 +669,96 @@ cpNumber(Number to, Number from)
 }
 
 
+		 /*******************************
+		 *	 PUBLIC INTERFACE	*
+		 *******************************/
+
+#ifdef O_GMP
+
+int
+PL_get_mpz(term_t t, mpz_t mpz)
+{ GET_LD
+  Word p = valTermRef(t);
+  
+  deRef(p);
+  if ( isInteger(*p) )
+  { number n;
+
+    get_integer(*p, &n);
+    promoteToMPZNumber(&n);
+    mpz_set(mpz, n.value.mpz);
+    clearNumber(&n);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+int
+PL_get_mpq(term_t t, mpq_t mpq)
+{ if ( PL_is_rational(t) )
+  { GET_LD
+    number n;
+    
+    if ( valueExpression(t, &n PASS_LD) )
+    { switch(n.type)
+      { case V_INTEGER:
+	  if ( n.value.i >= LONG_MIN && n.value.i <= LONG_MAX )
+	  { mpq_set_si(mpq, n.value.i, 1L);
+	    return TRUE;
+	  }
+	  promoteToMPZNumber(&n);
+	  /*FALLTHROUGH*/
+	case V_MPZ:
+	  mpq_set_z(mpq, n.value.mpz);
+	  clearNumber(&n);
+	  return TRUE;
+	case V_MPQ:
+	  mpq_set(mpq, n.value.mpq);
+	  clearNumber(&n);
+	  return TRUE;
+	default:
+	  ;
+      }
+      clearNumber(&n);
+    }	 
+  }
+
+  return FALSE;
+}
+
+
+int
+PL_unify_mpz(term_t t, mpz_t mpz)
+{ number n;
+  int rc;
+
+  n.type = V_MPZ;
+  mpz_init(n.value.mpz);
+  mpz_set(n.value.mpz, mpz);
+
+  rc = PL_unify_number(t, &n);
+  clearNumber(&n);
+
+  return rc;
+}
+
+
+int
+PL_unify_mpq(term_t t, mpq_t mpq)
+{ number n;
+  int rc;
+
+  n.type = V_MPQ;
+  mpq_init(n.value.mpq);
+  mpq_set(n.value.mpq, mpq);
+
+  rc = PL_unify_number(t, &n);
+  clearNumber(&n);
+
+  return rc;
+}
+
+#endif /*O_GMP*/

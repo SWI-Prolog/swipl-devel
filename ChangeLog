@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Foreign functions to exchange GMP numbers.  Roberto Bagnara.
+
   * FIXED: library(listing) sending some of its output to current output
     rather than the specified stream.
 
