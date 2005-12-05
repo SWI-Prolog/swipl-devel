@@ -89,12 +89,15 @@ rdfs_subproperty_of(SubProperty, Property) :-
 %	rdfs:subPropertyOf relation as well  as   cycles.  Note  that by
 %	definition all classes are  subclass   of  rdfs:Resource, a case
 %	which is dealt with by the 1st and 3th clauses :-(
+%	
+%	According to production 2.4 "rdfs:Datatype", Each instance of
+%	rdfs:Datatype is a subclass of rdfs:Literal.  
 
 rdfs_subclass_of(Class, Super) :-
 	rdf_equal(rdfs:'Resource', Resource),
 	Super == Resource, !,
 	(   nonvar(Class)
-	->  true
+	->  true			% must check for being a class?
 	;   rdfs_individual_of(Class, rdfs:'Class')
 	).
 rdfs_subclass_of(Class, Super) :-
@@ -105,6 +108,15 @@ rdfs_subclass_of(Class, Super) :-
 	\+ rdf_reachable(Class, rdfs:subClassOf, rdfs:'Resource'),
 	rdfs_individual_of(Class, rdfs:'Class'),
 	rdf_equal(Super, rdfs:'Resource').
+rdfs_subclass_of(Class, Super) :-	% production 2.4
+	(   nonvar(Class)
+	->  rdfs_individual_of(Class, rdfs:'Datatype'),
+	    \+ rdf_reachable(Class, rdfs:subClassOf, rdfs:'Literal'),
+	    rdf_equal(Super, rdfs:'Literal')
+	;   nonvar(Super)
+	->  rdfs_subclass_of(Super, rdfs:'Literal'),
+	    rdfs_individual_of(Class, rdfs:'Datatype')
+	).
 
 
 		 /*******************************

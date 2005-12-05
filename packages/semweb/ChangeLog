@@ -1,3 +1,8 @@
+Dec 5, 2005
+
+  * ADDED: Each instance of rdfs:Datatype is a subclass of rdfs:Literal
+    to the rules of rdf_subclass_of/2.
+
 Nov 24, 2005
 
   * FIXED: Choicepoint in rdf_global_term/2, returning incorrect result
