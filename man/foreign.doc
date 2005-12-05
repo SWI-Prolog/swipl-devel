@@ -1625,6 +1625,7 @@ used from the callback functions described in \secref{blobtype}.
 
 
 \subsection{Exchanging GMP numbers}
+\label{sec:gmpforeign}
 
 If SWI-Prolog is linked with the GNU Multiple Precision Arithmetic
 Library (GMP, used by default), the foreign interface provides functions

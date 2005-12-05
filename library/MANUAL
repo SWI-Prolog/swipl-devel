@@ -1686,6 +1686,10 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          :- set_prolog_flag(generate_debug_info, false)  to  hide  their
          details from a normal trace.
 
+    ggmmpp__vveerrssiioonn _(_i_n_t_e_g_e_r_)
+         If  Prolog is  linked  with  GMP,  this flag  gives  the  major
+         version of the GMP library used.  See also section 9.6.7.
+
     ggnnuu__lliibbpptthhrreeaadd__vveerrssiioonn _(_a_t_o_m_)
          Linux systems only.   Reports the  version of the Linux  thread
          library used.  See section 8.2.1 for how it may affect you.

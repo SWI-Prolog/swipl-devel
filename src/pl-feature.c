@@ -803,6 +803,9 @@ initFeatures()
   defFeature("min_tagged_integer", FT_INTEGER|FF_READONLY, PLMINTAGGEDINT);
 #ifdef O_GMP
   defFeature("bounded",		   FT_BOOL|FF_READONLY,	   FALSE, 0);
+#ifdef __GNU_MP__
+  defFeature("gmp_version",	   FT_INTEGER|FF_READONLY, __GNU_MP__);
+#endif
 #else
   defFeature("bounded",		   FT_BOOL|FF_READONLY,	   TRUE, 0);
 #endif

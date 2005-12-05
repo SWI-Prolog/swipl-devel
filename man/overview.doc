@@ -1087,6 +1087,10 @@ details from a normal trace.%
 		  hidden from the debugger. The name anticipates on
 		  anticipated changes to the compiler.}
 
+    \prologflagitem{gmp_version}{integer}{r}
+If Prolog is linked with GMP, this flag gives the major version of the
+GMP library used.  See also \secref{gmpforeign}.
+
     \prologflagitem{gnu_libpthread_version}{atom}{r}
 Linux systems only.  Reports the version of the Linux thread library
 used.  See \secref{nptl} for how it may affect you.
