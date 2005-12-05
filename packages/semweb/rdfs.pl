@@ -110,11 +110,12 @@ rdfs_subclass_of(Class, Super) :-
 	rdf_equal(Super, rdfs:'Resource').
 rdfs_subclass_of(Class, Super) :-	% production 2.4
 	(   nonvar(Class)
-	->  rdfs_individual_of(Class, rdfs:'Datatype'),
+	->  rdf_has(Class, rdf:type, CType),
+	    rdf_reachable(CType, rdfs:subClassOf, rdfs:'Datatype'),
 	    \+ rdf_reachable(Class, rdfs:subClassOf, rdfs:'Literal'),
 	    rdf_equal(Super, rdfs:'Literal')
 	;   nonvar(Super)
-	->  rdfs_subclass_of(Super, rdfs:'Literal'),
+	->  rdf_reachable(Super, rdfs:subClassOf, rdfs:'Literal'),
 	    rdfs_individual_of(Class, rdfs:'Datatype')
 	).
 
