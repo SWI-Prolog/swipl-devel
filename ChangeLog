@@ -7,12 +7,15 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: prolog flag timezone.
+
   * ADDED: Foreign functions to exchange GMP numbers.  Roberto Bagnara.
 
   * FIXED: library(listing) sending some of its output to current output
     rather than the specified stream.
 
   * ENHANCED: More flexible matching in library(prolog_clause).
+
 
 ==================================
 VERSION 5.5.39 (November 29, 2005)

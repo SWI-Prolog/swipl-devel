@@ -67,6 +67,7 @@ want to be able to have a lot and don't harm thread_create/3 too much.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void	setArgvFeature();
+static void	setTZFeature();
 
 typedef struct _feature
 { short		flags;			/* Type | Flags */
@@ -868,6 +869,7 @@ initFeatures()
 #endif
 
   setArgvFeature();
+  setTZFeature();
 }
 
 
@@ -887,4 +889,12 @@ setArgvFeature()
   }
 
   defFeature("argv", FT_TERM, l);
+}
+
+
+static void
+setTZFeature()
+{ tzset();
+
+  defFeature("timezone", FT_INTEGER|FF_READONLY, timezone);
 }

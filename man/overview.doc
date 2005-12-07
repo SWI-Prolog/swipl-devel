@@ -14,8 +14,8 @@ interactive application simply by starting the program:
 
 \begin{code}
 machine% pl
-Welcome to SWI-Prolog (Version 5.2.0)
-Copyright (c) 1990-2003 University of Amsterdam.
+Welcome to SWI-Prolog (Version 5.6.0)
+Copyright (c) 1990-2005 University of Amsterdam.
 SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions.
 Please visit http://www.swi-prolog.org for details.
@@ -1239,6 +1239,11 @@ Determines whether or not tail-recursion optimisation is enabled.
 Normally the value of this flag is equal to the \const{debug} flag.  As
 programs may run out of stack if tail-recursion optimisation is omitted,
 it is sometimes necessary to enable it during debugging.
+
+    \prologflagitem{timezone}{integer}{r}
+Offset in seconds west of GMT of the current timezone. Set at
+initialization time from the \const{timezone} variable associated
+with the POSIX tzset() function.  See also convert_time/2.
 
     \prologflagitem{toplevel_print_anon}{bool}{rw}
 If \const{true}, toplevel variables starting with an underscore
