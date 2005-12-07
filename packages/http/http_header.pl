@@ -582,14 +582,27 @@ now -->
 	},
 	rfc_date(Time).
 
+%	rfc_date(+Time, //)
+%	
+%	Write time according to RFC1123 specification as required by the
+%	RFC2616 HTTP protocol specs. This isn't  ideal yet. We should be
+%	using gmtime() to get  GMT  rather   than  compensating  for the
+%	timezone (what about daylight savng time)?
+%	
+%	Also, this is a bit expensive, about 30uS on an AMD2600+
+
 rfc_date(Time) -->
-	{ convert_time(Time, CDate)
+	{ (   current_prolog_flag(timezone, Offset)
+	  ->  T is Time	+ Offset
+	  ;   T = Time
+	  ),
+	  convert_time(T, CDate)
 	},
-	sub(CDate, 1-3),
-	", ",
-	sub(CDate, 5-7),
-	sub(CDate, 21-4),
-	sub(CDate, 11-9).
+	sub(CDate, 1-3), ", ",		% ddd
+	sub0(CDate, 9-2), " ",		% DD
+	sub(CDate, 5-3), " ",		% mmm
+	sub(CDate, 21-4), " ",		% YYYY
+	sub(CDate, 12-8), " GMT".	% HH:MM:SS
 
 sub(String, From-Len) -->
 	{ substring(String, From, Len, S),
@@ -597,6 +610,16 @@ sub(String, From-Len) -->
 	},
 	string(Chars).
 	
+sub0(String, From-Len) -->
+	{ substring(String, From, Len, S),
+	  string_to_list(S, Chars)
+	},
+	str0(Chars).
+	
+str0([]) --> [].
+str0([0' |T]) --> !, "0", str0(T).
+str0([C|T])   --> [C], str0(T).
+
 
 		 /*******************************
 		 *	   REQUEST DCG		*
