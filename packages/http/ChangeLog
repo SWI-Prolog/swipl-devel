@@ -1,3 +1,8 @@
+Dec 7, 2005
+
+  * Added http_timestamp/2  to http_header.pl.  Also changed the time
+    representation to be compatible to the current RFC1132 standard.
+
 Nov 16, 2005
 
   * Avoid XPCE http servers to be garbage collected.

@@ -35,6 +35,8 @@
 	    http_reply/2,		% +What, +Stream
 	    http_reply/3,		% +What, +Stream, +HdrExtra
 
+	    http_timestamp/2,		% +Time, -HTTP string
+
 	    http_post_data/3,		% +Stream, +Data, +HdrExtra
 
 	    http_read_header/2,		% +Fd, -Header
@@ -619,6 +621,15 @@ sub0(String, From-Len) -->
 str0([]) --> [].
 str0([0' |T]) --> !, "0", str0(T).
 str0([C|T])   --> [C], str0(T).
+
+
+%	http_timestamp(+Time, -Atom)
+%	
+%	Generate a description of a Time in HTTP format (RFC1123)
+
+http_timestamp(Time, Atom) :-
+	phrase(rfc_date(Time), Codes),
+	atom_codes(Atom, Codes).
 
 
 		 /*******************************
