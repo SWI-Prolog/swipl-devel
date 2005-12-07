@@ -811,7 +811,7 @@ rdf_source(File) :-
 rdf_make :-
 	forall((rdf_source(File, Time, _Triples, _),
 		Time \== 0),
-	       rdf_load(File)).
+	       catch(rdf_load(File), _, true)).
 
 
 %	cache_file(+Base, -CacheFile)

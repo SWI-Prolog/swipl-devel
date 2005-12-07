@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==================================
+VERSION 5.5.40 (December 07, 2005)
+==================================
+
   * ADDED: prolog flag timezone.
 
   * ADDED: Foreign functions to exchange GMP numbers.  Roberto Bagnara.
