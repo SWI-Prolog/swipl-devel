@@ -670,8 +670,24 @@ noMoreAttrs ::=
 %	
 %	It Element0 contains xml:lang = Lang, strip it from the
 %	attributes list and update lang(_) in the Options
+%	
+%	Remove all xmlns=_, xmlns:_=_ and xml:_=_.  Only succeed
+%	if something changed.
 
-modify_state(element(Name, Attrs0, Content), Options0,
+modify_state(E0, O0, E, O) :-
+	modify_states([base, lang, xmlns], M, E0, O0, E, O),
+	M \== [].
+
+modify_states([], [], E, O, E, O).
+modify_states([How|TH0], [How|TH], E0, O0, E, O) :-
+	modify_state(How, E0, O0, E1, O1), !,
+	modify_states(TH0, TH, E1, O1, E, O).
+modify_states([_|TH0], TH, E0, O0, E, O) :-
+	modify_states(TH0, TH, E0, O0, E, O).
+
+
+modify_state(base,
+	     element(Name, Attrs0, Content), Options0,
 	     element(Name, Attrs, Content),  Options) :-
 	select(xml:base=Base1, Attrs0, Attrs), !,
 	(   select(base_uri(Base0), Options0, Options1)
@@ -682,7 +698,7 @@ modify_state(element(Name, Attrs0, Content), Options0,
 	remove_fragment(Base1, Base2),
 	canonical_uri(Base2, Base0, Base),
 	Options = [base_uri(Base)|Options1].
-modify_state(element(Name, Attrs0, Content), Options0,
+modify_state(lang, element(Name, Attrs0, Content), Options0,
 	     element(Name, Attrs, Content),  Options) :-
 	select(xml:lang=Lang, Attrs0, Attrs),
 	\+ memberchk(ignore_lang(true), Options0), !,
@@ -691,6 +707,23 @@ modify_state(element(Name, Attrs0, Content), Options0,
 	->  Options = Options1
 	;   Options = [lang(Lang)|Options1]
 	).
+modify_state(xmlns,
+	     element(Name, Attrs0, Content), Options,
+	     element(Name, Attrs, Content), Options) :-
+	clean_xmlns_attr(Attrs0, Attrs),
+	Attrs \== Attrs0.
+
+clean_xmlns_attr([], []).
+clean_xmlns_attr([H=_|T0], T) :-
+	xml_attr(H), !,
+	clean_xmlns_attr(T0, T).
+clean_xmlns_attr([H|T0], [H|T]) :-
+	clean_xmlns_attr(T0, T).
+
+xml_attr(xmlns).
+xml_attr(xmlns:_).
+xml_attr(xml:_).
+
 
 %	remove_fragment(+URI, -WithoutFragment)
 %	

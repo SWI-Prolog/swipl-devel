@@ -1,3 +1,7 @@
+Dec 8, 2005
+
+  * FIXED: xmlns attributes in descriptions.  Bijan Parsia
+
 Nov 23, 2005
 
   * ADDED: option db(DB) to parse_rdf/2.
