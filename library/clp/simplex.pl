@@ -275,9 +275,8 @@ maximize_mip(Z, S0, S) :-
 	( Is == [] ->
 		S = Solved
 	;
-		% order of integrality constraints play an important role
-		% in branch and bound - reverse order so that branching is
-		% done in the same order as the user stated them
+		% arrange it so that branch and bound branches on variables
+		% in the same order the integrality constraints were stated in
 		reverse(Is, Is1),
 		state_set_integrals(S0, Is1, S1),
 		branch_and_bound(Z, Solved, _, _, S1, S, 1)
