@@ -92,14 +92,14 @@ http_reply(file(Type, File), Out, HrdExtra) :- !,
 	phrase(reply_header(file(Type, File), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	open(File, read, In, [type(binary)]),
-	copy_stream_data(In, Out),
-	close(In).
+	call_cleanup(copy_stream_data(In, Out),
+		     close(In)).
 http_reply(tmp_file(Type, File), Out, HrdExtra) :- !,
 	phrase(reply_header(tmp_file(Type, File), HrdExtra), Header),
 	format(Out, '~s', [Header]),
 	open(File, read, In, [type(binary)]),
-	copy_stream_data(In, Out),
-	close(In).
+	call_cleanup(copy_stream_data(In, Out),
+		     close(In)).
 http_reply(stream(In, Len), Out, HdrExtra) :- !,
 	phrase(reply_header(cgi_data(Len), HdrExtra), Header),
 	format(Out, '~s', [Header]),

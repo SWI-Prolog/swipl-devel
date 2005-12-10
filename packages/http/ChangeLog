@@ -1,3 +1,9 @@
+Dec 10, 2005
+
+  * Enhanced robustness of the server to malicious clients by using
+    call_cleanup wrappers around the code doing the actual reply.  Old
+    code lead to memory and file-descriptor leaking.
+
 Dec 7, 2005
 
   * Added http_timestamp/2  to http_header.pl.  Also changed the time

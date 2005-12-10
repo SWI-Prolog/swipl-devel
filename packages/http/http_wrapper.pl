@@ -79,11 +79,8 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    ;   seek(TmpIn, 0, current, Pos),
 		Size is Length - Pos
 	    ),
-	    http_reply(stream(TmpIn, Size), Out, Header),
-	    flush_output(Out),
-	    set_stream(Out, encoding(octet)),
-	    close(TmpIn),
-	    free_memory_file(MemFile),
+	    call_cleanup(reply(TmpIn, Size, Out, Header),
+			 cleanup(TmpIn, Out, MemFile)),
 	    memberchk(connection(Close), Header)
 	;   free_memory_file(MemFile),
 	    map_exception(E, Reply, HdrExtra),
@@ -94,6 +91,17 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    ;   Close = close
 	    )
 	).
+
+
+reply(TmpIn, Size, Out, Header) :-
+	http_reply(stream(TmpIn, Size), Out, Header),
+	flush_output(Out).
+
+cleanup(TmpIn, Out, MemFile) :-
+	set_stream(Out, encoding(octet)),
+	close(TmpIn),
+	free_memory_file(MemFile).
+
 
 %	map_exception(+Exception, -Reply, -HdrExtra)
 %	
