@@ -35,6 +35,7 @@
 		assignment/2,
 		constraint/3,
 		constraint/4,
+		constraint_add/4,
 		gen_state/1,
 		maximize/3,
 		minimize/3,
@@ -148,6 +149,8 @@ state_names(state(_,Names,_,_,_), Names).
 
 state_integrals(state(_,_,_,_,Is), Is).
 
+state_set_constraints(state(VID,Ns,_,As,Is), Cs, state(VID,Ns,Cs,As,Is)).
+
 state_set_integrals(state(VID,Ns,Cs,As,_), Is, state(VID,Ns,Cs,As,Is)).
 
 
@@ -178,6 +181,22 @@ constraint(Name, C, S0, S) :-
 		constraint_normalize(Name, C, CN, S0, S1, Artificial),
 		state_add_constraint(CN, S1, S2),
 		state_add_artifical(Artificial, S2, S)
+	).
+
+constraint_add(Name, A, S0, S) :-
+	state_names(S0, Names),
+	memberchk([Name,Var], Names),
+	state_constraints(S0, Cs),
+	add_left(Cs, Var, A, Cs1),
+	state_set_constraints(S0, Cs1, S).
+
+add_left([c(Var, Left0, Right)|Cs], V, A, [c(Var, Left, Right)|Rest]) :-
+	( Var == V ->
+		append(A, Left0, Left),
+		Rest = Cs
+	;
+		Left0 = Left,
+		add_left(Cs, V, A, Rest)
 	).
 
 branching_variable(State, Variable) :-
@@ -415,17 +434,17 @@ constraint_normalize(Name, C0, C, S0, S, Artificial) :-
 	Right0 >= 0,
 	Right is rationalize(Right0),
 	C1 =.. [Op,Left,Right],
-	constraint_normalize_(Name, C1, C, S0, S, Artificial).
+	constraint_normalize_(C1, Name, C, S0, S, Artificial).
 
-constraint_normalize_(Name, As0 =< B0, c(Slack, As1, B0), S0, S, []) :-
+constraint_normalize_(As0 =< B0, Name, c(Slack, As1, B0), S0, S, []) :-
 	As1 = [1*Slack|As0],
 	state_next_var(Slack, S0, S1),
 	state_add_name(Name, Slack, S1, S).
-constraint_normalize_(Name, As0 = B0, c(AID, As1, B0), S0, S, [(-1)*AID]) :-
+constraint_normalize_(As0 = B0, Name, c(AID, As1, B0), S0, S, [(-1)*AID]) :-
 	As1 = [1*AID|As0],
 	state_next_var(AID, S0, S1),
 	state_add_name(Name, AID, S1, S).
-constraint_normalize_(Name, As0 >= B0, c(AID, As1, B0), S0, S, [(-1)*AID]) :-
+constraint_normalize_(As0 >= B0, Name, c(AID, As1, B0), S0, S, [(-1)*AID]) :-
 	state_next_var(Slack, S0, S1),
 	state_next_var(AID, S1, S2),
 	state_add_name(Name, AID, S2, S),
