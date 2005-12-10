@@ -81,6 +81,7 @@ mime_extension(pdf,  application/pdf).
 mime_extension(doc,  application/msword).
 					% Java classes
 mime_extension(class, application/'octet-stream').
+mime_extension(js,    text/javascript).
 					% Some image formats
 mime_extension(jpg,  image/jpeg).
 mime_extension(jpeg, image/jpeg).
@@ -89,3 +90,4 @@ mime_extension(png,  image/png).
 mime_extension(tif,  image/tiff).
 mime_extension(tiff, image/tiff).
 mime_extension(xpm,  image/'x-xpixmap').
+mime_extension(ico,  image/'x-ico').
