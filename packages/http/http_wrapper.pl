@@ -79,8 +79,10 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    ;   seek(TmpIn, 0, current, Pos),
 		Size is Length - Pos
 	    ),
-	    call_cleanup(reply(TmpIn, Size, Out, Header),
-			 cleanup(TmpIn, Out, MemFile)),
+					% http_wrapper/5 is module transparent
+	    call_cleanup(httpd_wrapper:reply(TmpIn, Size, Out, Header),
+			 httpd_wrapper:cleanup(TmpIn, Out, MemFile)),
+
 	    memberchk(connection(Close), Header)
 	;   free_memory_file(MemFile),
 	    map_exception(E, Reply, HdrExtra),
