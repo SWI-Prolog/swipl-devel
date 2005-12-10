@@ -45,6 +45,11 @@ The \pllib{simplex} module provides the following predicates:
 		Like constraint/3, and attaches the name \arg{Name} (an atom
 		or compound term) to the new constraint.
 
+	\predicate{constraint_add}{4}{+Name, +Left, +S0, -S}
+		\arg{Left} is a list of Coefficient*Variable terms. The terms
+		are added to the left-hand side of the constraint named
+		\arg{Name}. \arg{S} is unified with the resulting state.
+
 	\predicate{gen_state}{1}{-State}
 		Generates an initial state corresponding to an empty linear
 		program.
