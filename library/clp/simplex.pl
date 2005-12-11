@@ -206,17 +206,22 @@ branching_variable(State, Variable) :-
 	\+ integer(Value).
 
 
-worth_investigating(ZStar0, _) :-
+worth_investigating(ZStar0, _, _) :-
 	var(ZStar0).
-worth_investigating(ZStar0, Z) :-
+worth_investigating(ZStar0, AllInt, Z) :-
 	nonvar(ZStar0),
-	Z > ZStar0.
+	( AllInt =:= 1 ->
+		Z1 is floor(Z)
+	;
+		Z1 = Z
+	),
+	Z1 > ZStar0.
 
 % branch & bound could benefit greatly from reoptimization techniques!
 
-branch_and_bound(Objective, Solved, ZStar0, ZStar, S0, S, Found) :-
+branch_and_bound(Objective, Solved, AllInt, ZStar0, ZStar, S0, S, Found) :-
 	objective(Solved, Z),
-	( worth_investigating(ZStar0, Z) ->
+	( worth_investigating(ZStar0, AllInt, Z) ->
 		( branching_variable(Solved, BrVar) ->
 			variable_value(Solved, BrVar, Value),
 			Value1 is floor(Value),
@@ -247,14 +252,14 @@ branch_and_bound(Objective, Solved, ZStar0, ZStar, S0, S, Found) :-
 					FirstSolved = SubSolved2,
 					SecondSolved = SubSolved1
 				),
-				branch_and_bound(Objective, FirstSolved, ZStar0, ZStar1, First, Solved1, Found1),
-				branch_and_bound(Objective, SecondSolved, ZStar1, ZStar2, Second, Solved2, Found2)
+				branch_and_bound(Objective, FirstSolved, AllInt, ZStar0, ZStar1, First, Solved1, Found1),
+				branch_and_bound(Objective, SecondSolved, AllInt, ZStar1, ZStar2, Second, Solved2, Found2)
 			; Sub1Feasible =:= 1 ->
-				branch_and_bound(Objective, SubSolved1, ZStar0, ZStar1, SubProb1, Solved1, Found1),
+				branch_and_bound(Objective, SubSolved1, AllInt, ZStar0, ZStar1, SubProb1, Solved1, Found1),
 				Found2 = 0
 			; Sub2Feasible =:= 1 ->
 				Found1 = 0,
-				branch_and_bound(Objective, SubSolved2, ZStar0, ZStar2, SubProb2, Solved2, Found2)
+				branch_and_bound(Objective, SubSolved2, AllInt, ZStar0, ZStar2, SubProb2, Solved2, Found2)
 			;
 				Found1 = 0,
 				Found2 = 0
@@ -298,8 +303,20 @@ maximize_mip(Z, S0, S) :-
 		% in the same order the integrality constraints were stated in
 		reverse(Is, Is1),
 		state_set_integrals(S0, Is1, S1),
-		branch_and_bound(Z, Solved, _, _, S1, S, 1)
+		( all_integers(Z, Is1) ->
+			AllInt = 1
+		;
+			AllInt = 0
+		),
+		branch_and_bound(Z, Solved, AllInt, _, _, S1, S, 1)
 	).
+
+all_integers([], _).
+all_integers([Coeff*V|Rest], Is) :-
+	integer(Coeff),
+	memberchk(V, Is),
+	all_integers(Rest, Is).
+
 
 
 minimize(Z0, S0, S) :-
