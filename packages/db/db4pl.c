@@ -1120,8 +1120,8 @@ typedef struct _server_info
 
 
 static void
-pl_db_error(const char *prefix, char *buffer)
-{ Sdprintf("%s%s\n", prefix, buffer);
+pl_db_error(const DB_ENV *dbenv, const char *prefix, const char *msg)
+{ Sdprintf("%s%s\n", prefix, msg);
 }
 
 
@@ -1331,6 +1331,7 @@ static foreign_t
 pl_db_atom(term_t handle, term_t atom, term_t id)
 { dbh *db;
   atom_t a;
+  long lv;
   atomid_t aid;
     
   if ( !get_db(handle, &db) )
@@ -1341,8 +1342,10 @@ pl_db_atom(term_t handle, term_t atom, term_t id)
       return FALSE;
 
     return PL_unify_integer(id, aid);
-  } else if ( PL_get_long(id, &aid) )
-  { if ( !pl_atom_from_db(db, aid, &a) )
+  } else if ( PL_get_long(id, &lv) )
+  { aid = (atomid_t)lv;
+
+    if ( !pl_atom_from_db(db, aid, &a) )
       return FALSE;
 
     return PL_unify_atom(atom, a);

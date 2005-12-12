@@ -1,0 +1,9 @@
+MacOSX issues
+-------------
+
+The location of the header and library are a bit strange in the current
+DarwinPorts system.  I got the system to build using:
+
+ % CIFLAGS=-I/opt/local/include/db4 LIBDB=db-4 ./configure
+ % make
+ % make install

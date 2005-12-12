@@ -1316,6 +1316,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+if text -z "$LIBDB"; then LIBDB=db; fi
 if test -z "$CIFLAGS" -a ! -z "$CPPFLAGS"; then CIFLAGS="$CPPFLAGS"; fi
 
 # Check whether --enable-mt or --disable-mt was given.
@@ -3878,14 +3879,14 @@ _ACEOF
 
 fi
 
-
-echo "$as_me:$LINENO: checking for db_create in -ldb" >&5
-echo $ECHO_N "checking for db_create in -ldb... $ECHO_C" >&6
-if test "${ac_cv_lib_db_db_create+set}" = set; then
+as_ac_Lib=`echo "ac_cv_lib_$LIBDB''_db_create" | $as_tr_sh`
+echo "$as_me:$LINENO: checking for db_create in -l$LIBDB" >&5
+echo $ECHO_N "checking for db_create in -l$LIBDB... $ECHO_C" >&6
+if eval "test \"\${$as_ac_Lib+set}\" = set"; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-ldb  $LIBS"
+LIBS="-l$LIBDB  $LIBS"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -3930,26 +3931,23 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_lib_db_db_create=yes
+  eval "$as_ac_Lib=yes"
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_lib_db_db_create=no
+eval "$as_ac_Lib=no"
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_db_db_create" >&5
-echo "${ECHO_T}$ac_cv_lib_db_db_create" >&6
-if test $ac_cv_lib_db_db_create = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBDB 1
-_ACEOF
-
-  LIBS="-ldb $LIBS"
-
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Lib'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_Lib'}'`" >&6
+if test `eval echo '${'$as_ac_Lib'}'` = yes; then
+  LIBS="-l$LIBDB $LIBS"; HAVEDB=yes
+else
+  HAVEDB=no
 fi
 
 
@@ -4178,7 +4176,7 @@ done
 
 echo "$as_me:$LINENO: checking Whether environment is sane" >&5
 echo $ECHO_N "checking Whether environment is sane... $ECHO_C" >&6
-if test "$ac_cv_lib_db_db_create" = "yes"; then
+if test "$HAVEDB" = "yes"; then
    echo "$as_me:$LINENO: result: library ok" >&5
 echo "${ECHO_T}library ok" >&6;
 else

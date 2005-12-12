@@ -1,3 +1,7 @@
+Dec 12, 2005
+
+* PORT: Various issues to get compiled on MacOS X.
+
 Sep 14, 2004
 
 * FIXED: Bug#185: handle types.  Sandro Hawke.
