@@ -111,58 +111,99 @@ objective(State, Obj) :-
    % interface functions that access tableau components
 
 tableau_objective(tableau(Obj, _, _, _), Obj).
-
 tableau_rows(tableau(_, _, _, Rows), Rows).
-
 tableau_indicators(tableau(_, _, Inds, _), Inds).
-
 tableau_variables(tableau(_, Vars, _, _), Vars).
 
 
    % interface functions that access and modify state components
 
    % state is a structure of the form
-   %     state(Num, Names, Cs, As, Is)
+   %     state(Num, Names, Cs, Is)
    % Num: used to obtain new unique names for slack variables in a side-effect
    %      free way (increased by one and threaded through)
    % Names: list of [Name,Var], correspondence between constraint-names and
    %      names of slack/artificial variables to obtain shadow prices later
-   % Cs: list of normalized constraints
-   % As: list of artificial variables
+   % Cs: list of constraints
    % Is: list of integer variables
 
-gen_state(state(0,[],[],[],[])).
+   % constraints are initially represented as c(Name, Left, Op, Right),
+   % and after normalizing as c(Var, Left, Right). Name of unnamed constraints
+   % is 0. The distinction is important for merging constraints (mainly in
+   % branch and bound) with existing ones.
 
-state_add_constraint(C, state(VID,Ns,Cs,As,Is), state(VID,Ns,[C|Cs],As,Is)).
+constraint_name(c(Name, _, _, _), Name).
+constraint_op(c(_, _, Op, _), Op).
+constraint_left(c(_, Left, _, _), Left).
+constraint_right(c(_, _, _, Right), Right).
 
-state_add_artifical(A, state(VID,Ns,Cs,As,Is), state(VID,Ns,Cs,[A|As],Is)).
+gen_state(state(0,[],[],[])).
 
-state_add_name(Name, Var, state(VID,Ns,Cs,As,Is), state(VID,[[Name,Var]|Ns],Cs,As,Is)).
+state_add_constraint(C, S0, S) :-
+	( constraint_name(C, 0), constraint_left(C, [_Coeff*_Var]) ->
+		state_merge_constraint(C, S0, S)
+	;
+		state_add_constraint_(C, S0, S)
+	).
 
-state_add_integral(Var, state(VID,Ns,Cs,As,Is), state(VID,Ns,Cs,As,[Var|Is])).
+state_add_constraint_(C, state(VID,Ns,Cs,Is), state(VID,Ns,[C|Cs],Is)).
 
-state_constraints(state(_, _, Cs, _, _), Cs).
+state_merge_constraint(C, S0, S) :-
+	constraint_left(C, [Coeff0*Var0]),
+	constraint_right(C, Right0),
+	constraint_op(C, Op),
+	( Coeff0 =:= 0 ->
+		( Op == (=) ->
+			Right0 =:= 0,
+			S0 = S
+		; Op == (=<) ->
+			S0 = S
+		; Op == (>=) ->
+			Right0 =:= 0,
+			S0 = S
+		)
+	; Coeff0 < 0 ->
+		state_add_constraint_(C, S0, S)
+	;
+		Right is Right0 rdiv Coeff0,
+		state_constraints(S0, Cs),
+		(  member_rest(c(0, [1*Var0], Op, CRight), Cs, RestCs) ->
+			( Op == (=) ->
+				CRight =:= Right,
+				S0 = S
+			; Op == (=<) ->
+				NewRight is min(Right, CRight),
+				NewCs = [c(0, [1*Var0], Op, NewRight)|RestCs],
+				state_set_constraints(NewCs, S0, S)
+			; Op == (>=) ->
+				NewRight is max(Right, CRight),
+				NewCs = [c(0, [1*Var0], Op, NewRight)|RestCs],
+				state_set_constraints(NewCs, S0, S)
+			)
+		;
+			state_add_constraint_(c(0, [1*Var0], Op, Right), S0, S)
+		)
+	).
 
-state_artificials(state(_, _, _, As, _), As).
 
-state_names(state(_,Names,_,_,_), Names).
+state_add_name(Name, Var, state(VID,Ns,Cs,Is), state(VID,[[Name,Var]|Ns],Cs,Is)).
 
-state_integrals(state(_,_,_,_,Is), Is).
+state_add_integral(Var, state(VID,Ns,Cs,Is), state(VID,Ns,Cs,[Var|Is])).
 
-state_set_constraints(state(VID,Ns,_,As,Is), Cs, state(VID,Ns,Cs,As,Is)).
-
-state_set_integrals(state(VID,Ns,Cs,As,_), Is, state(VID,Ns,Cs,As,Is)).
+state_constraints(state(_, _, Cs, _), Cs).
+state_names(state(_,Names,_,_), Names).
+state_integrals(state(_,_,_,Is), Is).
+state_set_constraints(Cs, state(VID,Ns,_,Is), state(VID,Ns,Cs,Is)).
+state_set_integrals(Is, state(VID,Ns,Cs,_), state(VID,Ns,Cs,Is)).
 
 
 state_next_var(VarID0, S0, S) :-
-	S0 = state(VarID0,Names,Cs,As,Is),
+	S0 = state(VarID0,Names,Cs,Is),
 	VarID1 is VarID0 + 1,
-	S = state(VarID1,Names,Cs,As,Is).
+	S = state(VarID1,Names,Cs,Is).
 
 solved_tableau(solved(Tableau, _, _), Tableau).
-
 solved_names(solved(_, Names,_), Names).
-
 solved_integrals(solved(_,_,Is), Is).
 
 
@@ -178,20 +219,20 @@ constraint(Name, C, S0, S) :-
 	( C = integral(Var) ->
 		state_add_integral(Var, S0, S)
 	;
-		constraint_normalize(Name, C, CN, S0, S1, Artificial),
-		state_add_constraint(CN, S1, S2),
-		state_add_artifical(Artificial, S2, S)
+		C =.. [Op, Left0, Right0],
+		coeff_one(Left0, Left),
+		Right0 >= 0,
+		Right is rationalize(Right0),
+		state_add_constraint(c(Name, Left, Op, Right), S0, S)
 	).
 
 constraint_add(Name, A, S0, S) :-
-	state_names(S0, Names),
-	memberchk([Name,Var], Names),
 	state_constraints(S0, Cs),
-	add_left(Cs, Var, A, Cs1),
-	state_set_constraints(S0, Cs1, S).
+	add_left(Cs, Name, A, Cs1),
+	state_set_constraints(Cs1, S0, S).
 
-add_left([c(Var, Left0, Right)|Cs], V, A, [c(Var, Left, Right)|Rest]) :-
-	( Var == V ->
+add_left([c(Name,Left0,Op,Right)|Cs], V, A, [c(Name,Left,Op,Right)|Rest]) :-
+	( Name == V ->
 		append(A, Left0, Left),
 		Rest = Cs
 	;
@@ -217,7 +258,6 @@ worth_investigating(ZStar0, AllInt, Z) :-
 	),
 	Z1 > ZStar0.
 
-% branch & bound could benefit greatly from reoptimization techniques!
 
 branch_and_bound(Objective, Solved, AllInt, ZStar0, ZStar, S0, S, Found) :-
 	objective(Solved, Z),
@@ -227,13 +267,13 @@ branch_and_bound(Objective, Solved, AllInt, ZStar0, ZStar, S0, S, Found) :-
 			Value1 is floor(Value),
 			Value2 is Value1 + 1,
 			constraint([BrVar] =< Value1, S0, SubProb1),
-			constraint([BrVar] >= Value2, S0, SubProb2),
 			( maximize_(Objective, SubProb1, SubSolved1) ->
 				Sub1Feasible = 1,
 				objective(SubSolved1, Obj1)
 			;
 				Sub1Feasible = 0
 			),
+			constraint([BrVar] >= Value2, S0, SubProb2),
 			( maximize_(Objective, SubProb2, SubSolved2) ->
 				Sub2Feasible = 1,
 				objective(SubSolved2, Obj2)
@@ -302,7 +342,7 @@ maximize_mip(Z, S0, S) :-
 		% arrange it so that branch and bound branches on variables
 		% in the same order the integrality constraints were stated in
 		reverse(Is, Is1),
-		state_set_integrals(S0, Is1, S1),
+		state_set_integrals(Is1, S0, S1),
 		( all_integers(Z, Is1) ->
 			AllInt = 1
 		;
@@ -333,21 +373,44 @@ minimize(Z0, S0, S) :-
 	state_integrals(S0, Is),
 	S = solved(tableau(Obj1, Vars, Inds, Rows), Names, Is).
 
-% solve a (relaxed) LP in standard form
+op_pendant((>=), (=<)).
+op_pendant((=<), (>=)).
+
+constraints_collapse([], []).
+constraints_collapse([C|Cs], Colls) :-
+	C = c(Name, Left, Op, Right),
+	( Name == 0, Left = [1*Var], op_pendant(Op, P) ->
+		Pendant = c(0, [1*Var], P, Right),
+		( member_rest(Pendant, Cs, Rest) ->
+			Colls = [c(0, Left, (=), Right)|CollRest],
+			CsLeft = Rest
+		;
+			Colls = [C|CollRest],
+			CsLeft = Cs
+		)
+	;
+		Colls = [C|CollRest],
+		CsLeft = Cs
+	),
+	constraints_collapse(CsLeft, CollRest).
+
+   % solve a (relaxed) LP in standard form
 
 maximize_(Z, S0, S) :-
-	state_constraints(S0, Cs),
-	state_artificials(S0, As0),
+	state_constraints(S0, Cs0),
+	constraints_collapse(Cs0, Cs1),
+	constraints_normalize(Cs1, Cs, As0, [], S0, S1),
 	flatten(As0, As1),
-	sort(As1, As2),
-	( As2 == [] ->
+	( As1 == [] ->
 		make_tableau(Z, Cs, Tableau0),
 		simplex(Tableau0, Tableau),
-		state_names(S0, Names),
-		state_integrals(S0, Is),
+		state_names(S1, Names),
+		state_integrals(S1, Is),
 		S = solved(Tableau, Names, Is)
 	;
-		two_phase_simplex(Z, As2, S0, S)
+		state_names(S1, Names),
+		state_integrals(S1, Is),
+		two_phase_simplex(Z, Cs, As1, Names, Is, S)
 	).
 
 make_tableau(Z, Cs, Tableau) :-
@@ -378,9 +441,8 @@ proper_form([_Coeff*A|As], Variables, Rows, Obj0, Obj) :-
 	proper_form(As, Variables, Rows, Obj1, Obj).
 
 
-two_phase_simplex(Z, As, S0, S) :-
+two_phase_simplex(Z, Cs, As, Names, Is, S) :-
         % phase 1: minimize sum of articifial variables
-	state_constraints(S0, Cs),
 	make_tableau(As, Cs, Tableau0),
 	Tableau0 = tableau(Obj0, Variables, Inds, Rows),
 	proper_form(As, Variables, Rows, Obj0, Obj),
@@ -389,17 +451,22 @@ two_phase_simplex(Z, As, S0, S) :-
 	all_vars_zero(As, solved(Tableau2, _, _)),
         % phase 2: ignore artificial variables and solve actual LP
 	tableau_rows(Tableau2, Rows2),
+	eliminate_artificial(As, Rows2, Rows3),
 	list_nths(As, Variables, Nths0),
 	nths_to_zero(Nths0, Inds, Inds1),
 	linsum_row(Variables, Z, Objective),
 	all_times(Objective, (-1), Objective1),
 	ObjRow0 = row(z, Objective1, 0),
-	proper_form(Z, Variables, Rows2, ObjRow0, ObjRow),
-	Tableau3 = tableau(ObjRow, Variables, Inds1, Rows2),
+	proper_form(Z, Variables, Rows3, ObjRow0, ObjRow),
+	Tableau3 = tableau(ObjRow, Variables, Inds1, Rows3),
 	simplex(Tableau3, Tableau),
-	state_names(S0, Names),
-	state_integrals(S0, Is),
-	S = solved(Tableau,Names, Is).
+	S = solved(Tableau, Names, Is).
+
+eliminate_artificial([], Rows, Rows).
+eliminate_artificial([_Coeff*Var|Rest], Rows0, Rows) :-
+	delete(Rows0, row(Var, _, _), Rows1),
+	eliminate_artificial(Rest, Rows1, Rows).
+
 
 nths_to_zero([], Inds, Inds).
 nths_to_zero([Nth|Nths], Inds0, Inds) :-
@@ -445,23 +512,25 @@ constraints_rows([C|Cs], Vars, [R|Rs]) :-
 	R = row(Var, Left, Right),
 	constraints_rows(Cs, Vars, Rs).
 
-constraint_normalize(Name, C0, C, S0, S, Artificial) :-
-	C0 =.. [Op,Left0,Right0],
-	coeff_one(Left0, Left),
-	Right0 >= 0,
-	Right is rationalize(Right0),
-	C1 =.. [Op,Left,Right],
-	constraint_normalize_(C1, Name, C, S0, S, Artificial).
+constraints_normalize([], [], As, As, S, S).
+constraints_normalize([C0|Cs0], [C|Cs], [Art|AsRest], As, S0, S) :-
+	constraint_op(C0, Op),
+	constraint_left(C0, Left),
+	constraint_right(C0, Right),
+	constraint_name(C0, Name),
+	Con =.. [Op, Left, Right],
+	constraint_normalize(Con, Name, C, S0, S1, Art),
+	constraints_normalize(Cs0, Cs, AsRest, As, S1, S).
 
-constraint_normalize_(As0 =< B0, Name, c(Slack, As1, B0), S0, S, []) :-
+constraint_normalize(As0 =< B0, Name, c(Slack, As1, B0), S0, S, []) :-
 	As1 = [1*Slack|As0],
 	state_next_var(Slack, S0, S1),
 	state_add_name(Name, Slack, S1, S).
-constraint_normalize_(As0 = B0, Name, c(AID, As1, B0), S0, S, [(-1)*AID]) :-
+constraint_normalize(As0 = B0, Name, c(AID, As1, B0), S0, S, [(-1)*AID]) :-
 	As1 = [1*AID|As0],
 	state_next_var(AID, S0, S1),
 	state_add_name(Name, AID, S1, S).
-constraint_normalize_(As0 >= B0, Name, c(AID, As1, B0), S0, S, [(-1)*AID]) :-
+constraint_normalize(As0 >= B0, Name, c(AID, As1, B0), S0, S, [(-1)*AID]) :-
 	state_next_var(Slack, S0, S1),
 	state_next_var(AID, S1, S2),
 	state_add_name(Name, AID, S2, S),
@@ -499,8 +568,25 @@ pivot_column(Tableau, PCol) :-
 	tableau_objective(Tableau, Objective),
 	tableau_indicators(Tableau, Indicators),
 	Objective = row(_, Left, _),
-	Left = [Coeff0|_],
-	pivot_column(Left, Indicators, Coeff0, 0, 0, PCol).
+	first_negative(Left, Indicators, 0, Index0, Val, RestL, RestI),
+	Index1 is Index0 + 1,
+	pivot_column(RestL, RestI, Val, Index1, Index0, PCol).
+
+first_negative([L|Ls], [I|Is], Index0, N, Val, RestL, RestI) :-
+	Index1 is Index0 + 1,
+	( I =:= 0 ->
+		first_negative(Ls, Is, Index1, N, Val, RestL, RestI)
+	;
+		( L < 0 ->
+			N = Index0,
+			Val = L,
+			RestL = Ls,
+			RestI = Is
+		;
+			first_negative(Ls, Is, Index1, N, Val, RestL, RestI)
+		)
+	).
+
 
 pivot_column([], _, _, _, N, N).
 pivot_column([L|Ls], [I|Is], Coeff0, Index0, N0, N) :-
@@ -739,7 +825,7 @@ cols_forget_constraints([Col0|Cols0], [Col|Cols]) :-
 	cols_forget_constraints(Cols0, Cols).
 
 
-% compute value of the objective function (useful for debugging)
+   % compute value of the objective function (useful for debugging)
 
 rows_sum([], _, N, N).
 rows_sum([bv(NRow,NCol,_)|BVs], Rows, N0, N) :-
@@ -902,16 +988,16 @@ constrain_basis([Var|Vs], Uis, Vjs, Rows) :-
 	constrain_basis(Vs, Uis, Vjs, Rows).
 
 
-% Vogel's approximation method used for finding an initial solution of the
-% transportation problem
+   % Vogel's approximation method used for finding an initial solution of the
+   % transportation problem
 
 
-% The following predicates compute the difference for each row/column
-% (difference = arithmetic difference between smallest and next-to-smallest
-%               unit cost still remaining in a row/column)
-% as we then want to select the row/col with the largest difference, we
-% actually compute the negative difference to sort in reverse order.
-% We also keep track of the element with least unit cost for later.
+   % The following predicates compute the difference for each row/column
+   % (difference = arithmetic difference between smallest and next-to-smallest
+   %               unit cost still remaining in a row/column)
+   % as we then want to select the row/col with the largest difference, we
+   % actually compute the negative difference to sort in reverse order.
+   % We also keep track of the element with least unit cost for later.
 
 rows_with_diffs([], []).
 rows_with_diffs([NR-Costs|NRs], [Diff-(NR,NC)|Rest]) :-
@@ -920,7 +1006,7 @@ rows_with_diffs([NR-Costs|NRs], [Diff-(NR,NC)|Rest]) :-
 	Diff is First - Second,
 	rows_with_diffs(NRs, Rest).
 
-% the same for column-differences:
+   % the same for column-differences:
 
 cols_with_diffs([], []).
 cols_with_diffs([NC-Costs|NCs], [Diff-(NR,NC)|Rest]) :-
@@ -930,7 +1016,7 @@ cols_with_diffs([NC-Costs|NCs], [Diff-(NR,NC)|Rest]) :-
 	cols_with_diffs(NCs, Rest).
 
 
-% entry-point for Vogel's approximation method
+   % entry-point for Vogel's approximation method
 
 vogel_approximation(Supplies, Demands, Costs, Basis) :-
 	number_list(Costs, 0, NumberedCosts),
@@ -938,11 +1024,11 @@ vogel_approximation(Supplies, Demands, Costs, Basis) :-
 	number_list(TCosts, 0, NumberedTCosts),
 	vogel_iterate(NumberedCosts, NumberedTCosts, Supplies, Demands, Basis, []).
 
-% each row of the cost matrix is represented as NR-Costs,
-% with NR being the row number (in the original matrix), and costs are of
-% the form Cost-NC, NC being the column in the original matrix.
-% columns are stored analogously. this way, it is easy to remove rows and
-% columns and still maintain information where they originally were.
+   % each row of the cost matrix is represented as NR-Costs,
+   % with NR being the row number (in the original matrix), and costs are of
+   % the form Cost-NC, NC being the column in the original matrix.
+   % columns are stored analogously. this way, it is easy to remove rows and
+   % columns and still maintain information where they originally were.
 
 number_list([], _, []).
 number_list([E|Es], N0, [N0-E1|Rest]) :-
