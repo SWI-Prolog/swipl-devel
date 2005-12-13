@@ -123,11 +123,11 @@
 :- use_module(find).
 :- include(chr_op2).
 
-option(debug,off).
-option(optimize,full).
+:- chr_option(debug,off).
+:- chr_option(optimize,full).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- constraints 
+:- chr_constraints
 
 	constraint/2,				% constraint(F/A,ConstraintIndex)
 	get_constraint/2,
@@ -187,25 +187,25 @@ option(optimize,full).
 	get_rule/2
 	. 
 
-option(mode,constraint(+,+)).
-option(mode,constraint_count(+)).
-option(mode,constraint_index(+,+)).
-option(mode,max_constraint_index(+)).
-option(mode,target_module(+)).
-option(mode,attached(+,+)).
-option(mode,indexed_argument(+,+)).
-option(mode,constraint_mode(+,+)).
-option(mode,may_trigger(+)).
-option(mode,store_type(+,+)).
-option(mode,actual_store_types(+,+)).
-option(mode,assumed_store_type(+,+)).
-option(mode,rule_count(+)).
-option(mode,passive(+,+)).
-option(mode,pragma_unique(+,+,?)).
-option(mode,occurrence(+,+,+,+)).
-option(mode,max_occurrence(+,+)).
-option(mode,allocation_occurrence(+,+)).
-option(mode,rule(+,+)).
+:- chr_option(mode,constraint(+,+)).
+:- chr_option(mode,constraint_count(+)).
+:- chr_option(mode,constraint_index(+,+)).
+:- chr_option(mode,max_constraint_index(+)).
+:- chr_option(mode,target_module(+)).
+:- chr_option(mode,attached(+,+)).
+:- chr_option(mode,indexed_argument(+,+)).
+:- chr_option(mode,constraint_mode(+,+)).
+:- chr_option(mode,may_trigger(+)).
+:- chr_option(mode,store_type(+,+)).
+:- chr_option(mode,actual_store_types(+,+)).
+:- chr_option(mode,assumed_store_type(+,+)).
+:- chr_option(mode,rule_count(+)).
+:- chr_option(mode,passive(+,+)).
+:- chr_option(mode,pragma_unique(+,+,?)).
+:- chr_option(mode,occurrence(+,+,+,+)).
+:- chr_option(mode,max_occurrence(+,+)).
+:- chr_option(mode,allocation_occurrence(+,+)).
+:- chr_option(mode,rule(+,+)).
 
 constraint(FA,Index)  \ get_constraint(Query,Index)
 	<=> Query = FA.
@@ -480,7 +480,7 @@ partition_clauses([C|Cs],Ds,Rs,OCs) :-
       Ds = RDs,
       Rs = RRs,
       OCs = ROCs
-  ;   C = option(OptionName,OptionValue) ->
+  ;   C = (:- chr_option(OptionName,OptionValue)) ->
       handle_option(OptionName,OptionValue),
       Ds = RDs,
       Rs = RRs,
@@ -492,12 +492,8 @@ partition_clauses([C|Cs],Ds,Rs,OCs) :-
   partition_clauses(Cs,RDs,RRs,ROCs).
 
 is_declaration(D, Constraints) :-		%% constraint declaration
-  ( D = (:- Decl) ->
-	true
-  ;
-	D = Decl
-  ),
-  Decl =.. [constraints,Cs],
+  D = (:- Decl),
+  ( Decl =.. [chr_constraints,Cs] ; Decl =.. [chr_constraint,Cs]),
   conj2list(Cs,Constraints).
 
 %% Data Declaration

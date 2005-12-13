@@ -35,6 +35,8 @@
 	    op(1180, xfx, ==>),
 	    op(1180, xfx, <=>),
 	    op(1150, fx, constraints),
+	    op(1150, fx, chr_constraints),
+	    op(1150, fx, chr_constraint),
 	    op(1150, fx, handler),
 	    op(1150, fx, rules),
 	    op(1100, xfx, \),
@@ -65,6 +67,9 @@ user:file_search_path(chr, library(chr)).
 :- use_module(chr(chr_runtime)).
 :- use_module(chr(chr_messages)).
 :- use_module(chr(chr_hashtable_store)).
+
+:- use_module(chr(chr_compiler_errors)).
+
 %% SWI end
 
 %% SICStus begin
@@ -116,10 +121,13 @@ user:file_search_path(chr, library(chr)).
 
 chr_expandable((:- constraints _)).
 chr_expandable((constraints _)).
+chr_expandable((:- chr_constraints _)).
+chr_expandable((:- chr_constraint _)).
 chr_expandable((:- chr_type _)).
 chr_expandable((chr_type _)).
-chr_expandable((handler _)) :-
-	is_chr_file.
+chr_expandable(option(_, _)).
+chr_expandable((:- chr_option(_, _))).
+chr_expandable((handler _)).
 chr_expandable((rules _)) :-
 	is_chr_file.
 chr_expandable((_ <=> _)) :-
@@ -129,10 +137,6 @@ chr_expandable((_ @ _)) :-
 chr_expandable((_ ==> _)) :-
 	is_chr_file.
 chr_expandable((_ pragma _)) :-
-	is_chr_file.
-chr_expandable(option(_, _)) :-
-	is_chr_file.
-chr_expandable((:- chr_option(_, _))) :-
 	is_chr_file.
 
 is_chr_file :-
@@ -173,11 +177,16 @@ chr_expand(end_of_file, FinalProgram) :-
 	prolog_load_context(module, Module),
 	add_debug_decl(CHR0, CHR1),
 	add_optimise_decl(CHR1, CHR),
-	call_chr_translate(File,
+	catch(call_chr_translate(File,
 			   [ (:- module(Module, []))
 			   | CHR
 			   ],
 			   Program0),
+		chr_error(Error),
+		(	print_chr_error(Error),
+			fail
+		)
+	),
 	delete_header(Program0, Program).
 
 
@@ -185,9 +194,11 @@ delete_header([(:- module(_,_))|T0], T) :- !,
 	delete_header(T0, T).
 delete_header(L, L).
 
+add_debug_decl(chr, chr) :-
+	memberchk(option(debug, _), chr), !.
 add_debug_decl(CHR, CHR) :-
-	memberchk(option(debug, _), CHR), !.
-add_debug_decl(CHR, [option(debug, Debug)|CHR]) :-
+	memberchk((:- chr_option(debug, _)), CHR), !.
+add_debug_decl(CHR, [:- chr_option(debug, Debug)|CHR]) :-
 	(   chr_current_prolog_flag(generate_debug_info, true)
 	->  Debug = on
 	;   Debug = off

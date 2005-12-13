@@ -155,19 +155,23 @@
 :- use_module(guard_entailment).
 :- use_module(chr_compiler_options).
 :- use_module(chr_compiler_utility).
+:- use_module(chr_compiler_errors).
 :- include(chr_op).
 :- op(1150, fx, chr_type).
 :- op(1130, xfx, --->).
 :- op(980, fx, (+)).
 :- op(980, fx, (-)).
 :- op(980, fx, (?)).
+:- op(1150, fx, constraints).
+:- op(1150, fx, chr_constraints).
+:- op(1150, fx, chr_constraint).
 
-option(debug,off).
-option(optimize,full).
+:- chr_option(debug,off).
+:- chr_option(optimize,full).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- constraints 
+:- chr_constraints 
 	target_module/1,			% target_module(Module)
 	get_target_module/1,
 
@@ -211,28 +215,28 @@ option(optimize,full).
 	is_least_occurrence/1
 	. 
 
-option(check_guard_bindings,off).
+:- chr_option(check_guard_bindings,off).
 
-option(mode,target_module(+)).
-option(mode,indexed_argument(+,+)).
-option(mode,constraint_mode(+,+)).
-option(mode,may_trigger(+)).
-option(mode,store_type(+,+)).
-option(mode,actual_store_types(+,+)).
-option(mode,assumed_store_type(+,+)).
-option(mode,rule_count(+)).
-option(mode,passive(+,+)).
-option(mode,occurrence(+,+,+,+)).
-option(mode,max_occurrence(+,+)).
-option(mode,allocation_occurrence(+,+)).
-option(mode,rule(+,+)).
-option(mode,least_occurrence(+,+)).
-option(mode,is_least_occurrence(+)).
+:- chr_option(mode,target_module(+)).
+:- chr_option(mode,indexed_argument(+,+)).
+:- chr_option(mode,constraint_mode(+,+)).
+:- chr_option(mode,may_trigger(+)).
+:- chr_option(mode,store_type(+,+)).
+:- chr_option(mode,actual_store_types(+,+)).
+:- chr_option(mode,assumed_store_type(+,+)).
+:- chr_option(mode,rule_count(+)).
+:- chr_option(mode,passive(+,+)).
+:- chr_option(mode,occurrence(+,+,+,+)).
+:- chr_option(mode,max_occurrence(+,+)).
+:- chr_option(mode,allocation_occurrence(+,+)).
+:- chr_option(mode,rule(+,+)).
+:- chr_option(mode,least_occurrence(+,+)).
+:- chr_option(mode,is_least_occurrence(+)).
 
-option(type_definition,type(list,[ [], [any|list] ])).
-option(type_definition,type(constraint,[ any / any ])).
+:- chr_option(type_definition,type(list,[ [], [any|list] ])).
+:- chr_option(type_definition,type(constraint,[ any / any ])).
 
-option(type_declaration,constraint_mode(constraint,list)).
+:- chr_option(type_declaration,constraint_mode(constraint,list)).
 
 target_module(_) \ target_module(_) <=> true.
 target_module(Mod) \ get_target_module(Query)
@@ -328,18 +332,17 @@ max_occurrence(C,MO), new_occurrence(C,RuleNb,ID) <=>
 	occurrence(C,NO,RuleNb,ID), 
 	max_occurrence(C,NO).
 new_occurrence(C,RuleNb,ID) <=>
-	format('ERROR: new_occurrence: missing max_occurrence for ~w in rule ~w\n',[C,RuleNb]),
-	fail.
+	chr_error(internal,'new_occurrence: missing max_occurrence for ~w in rule ~w\n',[C,RuleNb]).
 
 max_occurrence(C,MON) \ get_max_occurrence(C,Q)
 	<=> Q = MON.
 get_max_occurrence(C,Q)
-	<=> format('WARNING: get_max_occurrence: missing max occurrence for ~w\n',[C]), Q = 0.
+	<=> chr_error(internal,'get_max_occurrence: missing max occurrence for ~w\n',[C]).
 
 occurrence(C,ON,Rule,ID) \ get_occurrence(C,ON,QRule,QID)
 	<=> Rule = QRule, ID = QID.
 get_occurrence(C,O,_,_)
-	<=> format('get_occurrence: missing occurrence ~w:~w\n',[C,O]), fail.
+	<=> chr_error(internal,'get_occurrence: missing occurrence ~w:~w\n',[]).
 
 % A L L O C C A T I O N   O C C U R R E N C E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -395,14 +398,14 @@ get_rule(_,_)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% C O N S T R A I N T   I N D E X %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-constraints
+:- chr_constraints
 	constraint_index/2,			% constraint_index(F/A,DefaultStoreAndAttachedIndex)
 	get_constraint_index/2,			
 	max_constraint_index/1,			% max_constraint_index(MaxDefaultStoreAndAttachedIndex)
 	get_max_constraint_index/1.
 
-option(mode,constraint_index(+,+)).
-option(mode,max_constraint_index(+)).
+:- chr_option(mode,constraint_index(+,+)).
+:- chr_option(mode,max_constraint_index(+)).
 
 constraint_index(C,Index) \ get_constraint_index(C,Query)
 	<=> Query = Index.
@@ -569,18 +572,17 @@ partition_clauses([C|Cs],Ds,Rs,OCs) :-
       Rs = RRs,
       OCs = ROCs
   ;   C = (handler _) ->
-      format('CHR compiler WARNING: ~w.\n',[C]),
-      format('    `-->  compatibility: ignoring handler/1 declaration.\n',[]),
+      chr_warning(deprecated(C),'SICStus compatibility: ignoring handler/1 declaration.\n',[]),
       Ds = RDs,
       Rs = RRs,
       OCs = ROCs
   ;   C = (rules _) ->
-      format('CHR compiler WARNING: ~w.\n',[C]),
-      format('    `-->  compatibility: ignoring rules/1 declaration.\n',[]),
+      chr_warning(deprecated(C),'SICStus compatibility: ignoring rules/1 declaration.\n',[]),
       Ds = RDs,
       Rs = RRs,
       OCs = ROCs
   ;   C = option(OptionName,OptionValue) ->
+      chr_warning(deprecated(C),'Instead use :- chr_option(~w,~w).\n',[OptionName,OptionValue]),
       handle_option(OptionName,OptionValue),
       Ds = RDs,
       Rs = RRs,
@@ -597,14 +599,21 @@ partition_clauses([C|Cs],Ds,Rs,OCs) :-
   partition_clauses(Cs,RDs,RRs,ROCs).
 
 is_declaration(D, Constraints) :-		%% constraint declaration
-  ( D = (:- Decl) ->
-	true
-  ;
-	D = Decl
-  ),
-
-  Decl =.. [constraints,Cs],
-  conj2list(Cs,Constraints0),
+	( D = (:- Decl), Decl =.. [F,Cs], (F == (chr_constraints) ; F == (chr_constraint)) ->
+  		conj2list(Cs,Constraints0)
+	;
+		( D = (:- Decl) ->
+			Decl =.. [constraints,Cs]
+		;
+			D =.. [constraints,Cs]
+		),
+  		conj2list(Cs,Constraints0),
+		( length(Constraints0,1) ->
+			chr_warning(deprecated(D),'Instead use :- chr_constraint ~w.\n',[Cs])
+		;
+			chr_warning(deprecated(D),'Instead use :- chr_constraints ~w.\n',[Cs])
+		)
+	),
   extract_type_mode(Constraints0,Constraints).
 
 extract_type_mode([],[]).
@@ -621,11 +630,11 @@ extract_types_and_modes([],[],[]).
 extract_types_and_modes([+(T)|R],[T|R2],[(+)|R3]) :- !,extract_types_and_modes(R,R2,R3).
 extract_types_and_modes([?(T)|R],[T|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
 extract_types_and_modes([-(T)|R],[T|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
+extract_types_and_modes([(+)|R],[any|R2],[(+)|R3]) :- !,extract_types_and_modes(R,R2,R3).
+extract_types_and_modes([(?)|R],[any|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
+extract_types_and_modes([(-)|R],[any|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
 extract_types_and_modes([Illegal|R],_,_) :- 
-    format('CHR compiler ERROR: Illegal mode/type declaration "~w".\n',
-	       [Illegal]),
-    format('    `--> correct syntax is +type, -type or ?type.\n',[]),
-    fail.
+    chr_error(syntax(Illegal),'Illegal mode/type declaration.\n\tCorrect syntax is +type, -type or ?type\n\tor +, - or ?.\n',[]).
 
 is_type_definition(D) :-
   ( D = (:- TDef) ->
@@ -638,8 +647,7 @@ is_type_definition(D) :-
 	tdisj2list(Def,DefList),
   	type_definition(Name,DefList)
   ;
-    format('CHR compiler WARNING: Illegal type definition "~w".\n',[TypeDef]),
-    format('    `--> Ignoring this malformed type definition.\n',[])
+    chr_warning(syntax,'Illegal type definition "~w".\n\tIgnoring this malformed type definition.\n',[TypeDef])
   ).
 
 % no removal of fails, e.g. :- type bool --->  true ; fail.
@@ -770,9 +778,7 @@ check_declared_constraints(Constraints) :-
 check_declared_constraints([],_).
 check_declared_constraints([C|Cs],Acc) :-
 	( memberchk_eq(C,Acc) ->
-		format('CHR compiler ERROR: constraint ~w multiply defined.\n',[C]),
-		format('    `--> Remove redundant declaration!\n',[]),
-		fail
+		chr_error(syntax(C),'Constraint ~w multiply defined.\n\tRemove redundant declaration!\n',[C])
 	;
 		true
 	),
@@ -800,11 +806,7 @@ check_head_constraints([Constr|Rest],Decls,PragmaRule) :-
 	( member(F/A,Decls) ->
 		check_head_constraints(Rest,Decls,PragmaRule)
 	;
-		format('CHR compiler ERROR: Undeclared constraint ~w in head of ~@.\n',
-		       [F/A,format_rule(PragmaRule)]),
-		format('    `--> Constraint should be one of ~w.\n',[Decls]),
-		fail
-	).
+		chr_error(syntax(Constr),'Undeclared constraint ~w in head of ~@.\n\tConstraint should be one of ~w.\n', [F/A,format_rule(PragmaRule),Decls])	).
 
 check_pragmas([],_).
 check_pragmas([Pragma|Pragmas],PragmaRule) :-
@@ -813,10 +815,7 @@ check_pragmas([Pragma|Pragmas],PragmaRule) :-
 
 check_pragma(Pragma,PragmaRule) :-
 	var(Pragma), !,
-	format('CHR compiler ERROR: invalid pragma ~w in ~@.\n',
-               [Pragma,format_rule(PragmaRule)]),
-	format('    `--> Pragma should not be a variable!\n',[]),
-	fail.
+	chr_error(syntax(Pragma),'Invalid pragma ~w in ~@.\n\tPragma should not be a variable!\n',[Pragma,format_rule(PragmaRule)]).
 check_pragma(passive(ID), PragmaRule) :-
 	!,
 	PragmaRule = pragma(_,ids(IDs1,IDs2),_,_,RuleNb),
@@ -825,28 +824,22 @@ check_pragma(passive(ID), PragmaRule) :-
 	; memberchk_eq(ID,IDs2) ->
 		true
 	;
-		format('CHR compiler ERROR: invalid identifier ~w in pragma passive in ~@.\n',
-                       [ID,format_rule(PragmaRule)]),
-		fail
+		chr_error(syntax(ID),'Invalid identifier ~w in pragma passive in ~@.\n', [ID,format_rule(PragmaRule)])
 	),
 	passive(RuleNb,ID).
 
 check_pragma(Pragma, PragmaRule) :-
 	Pragma = already_in_heads,
 	!,
-	format('CHR compiler WARNING: currently unsupported pragma ~w in ~@.\n',[Pragma,format_rule(PragmaRule)]),
-	format('    `--> Pragma is ignored. Termination and correctness may be affected \n',[]).
+	chr_warning(unsupported_pragma(Pragma,PragmaRule),'Termination and correctness may be affected.\n',[]).
 
 check_pragma(Pragma, PragmaRule) :-
 	Pragma = already_in_head(_),
 	!,
-	format('CHR compiler WARNING: currently unsupported pragma ~w in ~@.\n',[Pragma,format_rule(PragmaRule)]),
-	format('    `--> Pragma is ignored. Termination and correctness may be affected \n',[]).
+	chr_warning(unsupported_pragma(Pragma,PragmaRule),'Termination and correctness may be affected.\n',[]).
 	
 check_pragma(Pragma,PragmaRule) :-
-	format('CHR compiler ERROR: invalid pragma ~w in ~@.\n',[Pragma,format_rule(PragmaRule)]),
-	format('    `--> Pragma should be one of passive/1!\n',[]),
-	fail.
+	chr_error(syntax(Pragma),'Invalid pragma ~w in ~@.\n', [Pragma,format_rule(PragmaRule)]).
 
 format_rule(PragmaRule) :-
 	PragmaRule = pragma(_,_,_,MaybeName,N),
@@ -942,16 +935,16 @@ is_observed(C,O) :-
 	is_self_observer(C),
 	ai_is_observed(C,O).
 
-constraints
+:- chr_constraints
 	observes/2,
 	spawns_observer/2,
 	observes_indirectly/2,
 	is_self_observer/1
 	.
 
-option(mode,observes(+,+)).
-option(mode,spawns_observer(+,+)).
-option(mode,observes_indirectly(+,+)).
+:- chr_option(mode,observes(+,+)).
+:- chr_option(mode,spawns_observer(+,+)).
+:- chr_option(mode,observes_indirectly(+,+)).
 
 spawns_observer(C1,C2) \ spawns_observer(C1,C2) <=> true.
 observes(C1,C2) \ observes(C1,C2) <=> true.
@@ -1315,8 +1308,8 @@ generate_indexed_variables_clauses_([C|Cs],Clauses) :-
 	generate_indexed_variables_clauses_(Cs,RestClauses).
 
 %===============================================================================
-constraints generate_indexed_variables_clause/2.
-option(mode,generate_indexed_variables_clause(+,+)).
+:- chr_constraints generate_indexed_variables_clause/2.
+:- chr_option(mode,generate_indexed_variables_clause(+,+)).
 %-------------------------------------------------------------------------------
 constraint_mode(F/A,ArgModes) \ generate_indexed_variables_clause(F/A,Clause) <=>
 	functor(Term,F,A),
@@ -1336,8 +1329,7 @@ constraint_mode(F/A,ArgModes) \ generate_indexed_variables_clause(F/A,Clause) <=
 			Body
 		).	
 generate_indexed_variables_clause(FA,_) <=>
-	format('ERROR: generate_indexed_variables_clause: missing mode info for ~w\n',[FA]),
-	fail.
+	chr_error(internal,'generate_indexed_variables_clause: missing mode info for ~w.\n',[FA]).
 %===============================================================================
 
 create_indexed_variables_body([],[],_,_,_,empty,0).
@@ -1847,7 +1839,7 @@ generate_insert_constraint_call(FA,Susp,Call) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- constraints 
+:- chr_constraints 
 	module_initializer/1,
 	module_initializers/1.
 
@@ -2045,14 +2037,14 @@ multi_hash_enumerate_store_body(I,C,Susp,B) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-:- constraints
+:- chr_constraints
 	prev_guard_list/7,
 	simplify_guards/1,
 	set_all_passive/1.
 
-option(mode,prev_guard_list(+,+,+,+,+,+,+)).
-option(mode,simplify_guards(+)).
-option(mode,set_all_passive(+)).
+:- chr_option(mode,prev_guard_list(+,+,+,+,+,+,+)).
+:- chr_option(mode,simplify_guards(+)).
+:- chr_option(mode,set_all_passive(+)).
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    GUARD SIMPLIFICATION
@@ -2359,11 +2351,7 @@ rule(RuleNb,Rule) \ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]) <=>
     Rule = pragma(rule(Head1,Head2,G,B),Ids,Pragmas,Name,RuleNb),
     append(M,GuardList,Info),
     guard_entailment:entails_guard(Info,fail) |
-    format('CHR compiler WARNING: heads will never match in ~@.\n',[format_rule(Rule)]),
-    format('    `-->  In the refined operational semantics (rules applied in textual order)\n',[]),
-    format('          this rule will never fire! (given the declared types/modes)\n',[]),
-    format('          Removing this redundant rule by making all its heads passive...\n',[]),
-    format('          ... next warning is caused by this ...\n',[]),
+    chr_warning(weird_program,'Heads will never match in ~@.\n\tThis rule will never fire!\n',[format_rule(Rule)]),
     set_all_passive(RuleNb).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2516,9 +2504,7 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]),rule(RuleNb,Rule) ==>
     Rule = pragma(rule(_,_,G,_),_Ids,_Pragmas,_Name,RuleNb),
     conj2list(G,GL),
     guard_entailment:entails_guard(GL,fail) |
-    format('CHR compiler WARNING: guard will always fail in ~@.\n',[format_rule(Rule)]),
-    format('          Removing this redundant rule by making all its heads passive...\n',[]),
-    format('          ... next warning is caused by this ...\n',[]),
+    chr_warning(weird_program,'Guard will always fail in ~@.\n\tThis rule will never fire!\n',[format_rule(Rule)]),
     set_all_passive(RuleNb).
 
 
@@ -2527,14 +2513,14 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]),rule(RuleNb,Rule) ==>
 %    OCCURRENCE SUBSUMPTION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- constraints
+:- chr_constraints
 	first_occ_in_rule/4,
 	next_occ_in_rule/6,
 	multiple_occ_constraints_checked/1.
 
-option(mode,first_occ_in_rule(+,+,+,+)).
-option(mode,next_occ_in_rule(+,+,+,+,+,+)).
-option(mode,multiple_occ_constraints_checked(+)).
+:- chr_option(mode,first_occ_in_rule(+,+,+,+)).
+:- chr_option(mode,next_occ_in_rule(+,+,+,+,+,+)).
+:- chr_option(mode,multiple_occ_constraints_checked(+)).
 
 
 
@@ -2750,7 +2736,7 @@ extract_explicit_matchings(A,D) :- !,
 %    TYPE INFORMATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- constraints
+:- chr_constraints
 	type_definition/2,
 	constraint_type/2,
 	get_type_definition/2,
@@ -2758,10 +2744,10 @@ extract_explicit_matchings(A,D) :- !,
 	add_type_information/3.
 
 
-option(mode,type_definition(?,?)).
-option(mode,constraint_type(+,+)).
-option(mode,add_type_information(+,+,?)).
-option(type_declaration,add_type_information(list,list,any)).
+:- chr_option(mode,type_definition(?,?)).
+:- chr_option(mode,constraint_type(+,+)).
+:- chr_option(mode,add_type_information(+,+,?)).
+:- chr_option(type_declaration,add_type_information(list,list,any)).
 
 type_definition(T,D) \ get_type_definition(T2,Def) <=> 
 	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A) |
@@ -2791,10 +2777,7 @@ constraint_mode(F/A,Modes)
 
 add_type_information([Head|R],_,TypeInfo) <=>
     functor(Head,F,A),
-    format('CHR compiler ERROR: mode information missing for ~w.\n',[F/A]),
-    format('    `-->  Most likely this is a bug in the compiler itself.\n',[]),
-    format('          Please contact the maintainers.\n',[]),
-    fail.
+    chr_error(internal,'Mode information missing for ~w.\n',[F/A]).
 
 
 add_mode_info([],[],true).
@@ -2822,8 +2805,7 @@ types2condition([Type|Types],[Arg|Args],[RealArg|RAs],[Mode|Modes],TI) :-
 	    TI = [C|RTI],
 	    types2condition(Types,Args,RAs,Modes,RTI)
 	;
-	    format('CHR compiler ERROR: Undefined type ~w.\n',[Type]),
-	    fail
+	    chr_error(internal,'Undefined type ~w.\n',[Type])
 	)
     ).
 
@@ -2871,8 +2853,7 @@ real_type(Def,Arg,RealArg,C) :-
 	    )
 	)
     ;
-	format('CHR compiler ERROR: Illegal type definition (must be nonvar).\n',[]),
-	fail
+	chr_error(internal,'Illegal type definition (must be nonvar).\n',[])
     ).	
 nested_types([],[],[],true).
 nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
@@ -2886,15 +2867,14 @@ nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
 	    C = (Cond, RC),
 	    nested_types(RT,RA,RRA,RC)
 	;
-	    format('CHR compiler ERROR: Undefined type ~w inside type definition.\n',[T]),
-	    fail
+	    chr_error(internal,'Undefined type ~w inside type definition.\n',[T])
 	)
     ).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- constraints
+:- chr_constraints
 	stored/3, % constraint,occurrence,(yes/no/maybe)
 	stored_completing/3,
 	stored_complete/3,
@@ -2902,13 +2882,13 @@ nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
 	is_finally_stored/1,
 	check_all_passive/2.
 
-option(mode,stored(+,+,+)).
-option(type_declaration,stored(any,int,storedinfo)).
-option(type_definition,type(storedinfo,[yes,no,maybe])).
-option(mode,stored_complete(+,+,+)).
-option(mode,maybe_complementary_guards(+,+,?,?)).
-option(mode,guard_list(+,+,+,+)).
-option(mode,check_all_passive(+,+)).
+:- chr_option(mode,stored(+,+,+)).
+:- chr_option(type_declaration,stored(any,int,storedinfo)).
+:- chr_option(type_definition,type(storedinfo,[yes,no,maybe])).
+:- chr_option(mode,stored_complete(+,+,+)).
+:- chr_option(mode,maybe_complementary_guards(+,+,?,?)).
+:- chr_option(mode,guard_list(+,+,+,+)).
+:- chr_option(mode,check_all_passive(+,+)).
 
 % change yes in maybe when yes becomes passive
 passive(RuleNb,ID), occurrence(C,O,RuleNb,ID) \ 
@@ -2942,8 +2922,7 @@ passive(RuleNb,Id) \ check_all_passive(RuleNb,[Id|IDs]) <=>
     check_all_passive(RuleNb,IDs).
 
 rule(RuleNb,Rule) \ check_all_passive(RuleNb,[]) <=> 
-    format('CHR compiler WARNING: all heads passive in ~@.\n',[format_rule(Rule)]),
-    format('    `-->  Rule never fires. Check your program, this might be a bug!\n',[]).
+    chr_warning(weird_program,'All heads passive in ~@.\n\tThis rule never fires. Please check your program.\n',[format_rule(Rule)]).
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
@@ -3062,8 +3041,8 @@ constraints_code(Constraints,Clauses) :-
 	clean_clauses(L,Clauses).
 
 %===============================================================================
-constraints constraints_code1/3.
-option(mode,constraints_code1(+,+,+)).
+:- chr_constraints constraints_code1/3.
+:- chr_option(mode,constraints_code1(+,+,+)).
 %-------------------------------------------------------------------------------
 constraints_code1([],L,T) <=> L = T.
 constraints_code1([C|RCs],L,T) 
@@ -3071,8 +3050,8 @@ constraints_code1([C|RCs],L,T)
 		constraint_code(C,L,T1),
 		constraints_code1(RCs,T1,T).
 %===============================================================================
-constraints constraint_code/3.
-option(mode,constraint_code(+,+,+)).
+:- chr_constraints constraint_code/3.
+:- chr_option(mode,constraint_code(+,+,+)).
 %-------------------------------------------------------------------------------
 %% 	Generate code for a single CHR constraint
 constraint_code(Constraint, L, T) 
@@ -3145,7 +3124,7 @@ make_suspension_continuation_goal(F/A,VarsSusp,Goal) :-
 	).
 
 %===============================================================================
-constraints has_active_occurrence/1, has_active_occurrence/2.
+:- chr_constraints has_active_occurrence/1, has_active_occurrence/2.
 %-------------------------------------------------------------------------------
 has_active_occurrence(C) <=> has_active_occurrence(C,1).
 
@@ -3184,11 +3163,11 @@ gen_cond_attach_clause(F/A,Id,L,T) :-
 		L = T
 	).	
 
-constraints 
+:- chr_constraints 
 	use_auxiliary_predicate/1,
 	is_used_auxiliary_predicate/1.
 
-option(mode,use_auxiliary_predicate(+)).
+:- chr_option(mode,use_auxiliary_predicate(+)).
 
 use_auxiliary_predicate(P) \ use_auxiliary_predicate(P) <=> true.
 
@@ -3288,8 +3267,8 @@ gen_uncond_attach_goal(FA,Susp,AttachGoal,Generation) :-
 	).
 
 %-------------------------------------------------------------------------------
-constraints occurrences_code/6.
-option(mode,occurrences_code(+,+,+,+,+,+)).
+:- chr_constraints occurrences_code/6.
+:- chr_option(mode,occurrences_code(+,+,+,+,+,+)).
 %-------------------------------------------------------------------------------
 max_occurrence(C,MO) \ occurrences_code(C,O,Id,NId,L,T)
 	 <=> 	O > MO 
@@ -3300,8 +3279,8 @@ occurrences_code(C,O,Id,NId,L,T)
 		NO is O + 1,
 		occurrences_code(C,NO,Id1,NId,L1,T).
 %-------------------------------------------------------------------------------
-constraints occurrence_code/6.
-option(mode,occurrence_code(+,+,+,+,+,+)).
+:- chr_constraints occurrence_code/6.
+:- chr_option(mode,occurrence_code(+,+,+,+,+,+)).
 %-------------------------------------------------------------------------------
 occurrence(C,O,RuleNb,ID), passive(RuleNb,ID) \ occurrence_code(C,O,Id,NId,L,T) 
 	<=> 	NId = Id, L = T.
@@ -3323,7 +3302,7 @@ occurrence(C,O,RuleNb,ID), rule(RuleNb,PragmaRule) \ occurrence_code(C,O,Id,NId,
 
 occurrence_code(C,O,_,_,_,_)
 	<=>	
-		format('occurrence_code/6: missing information to compile ~w:~w\n',[C,O]),fail.
+		chr_error(internal,'occurrence_code/6: missing information to compile ~w:~w\n',[C,O]).
 %-------------------------------------------------------------------------------
 
 %%	Generate code based on one removed head of a CHR rule
@@ -3521,11 +3500,11 @@ update_unit_dictionary2([V|Vs],This,Dict,NDict,GIDs,NGIDs) :-
 %% | |_| | | | | | (_| | |_| |  __/  | || | | |  _|  __/ | |  __/ | | | (_|  __/
 %%  \___/|_| |_|_|\__, |\__,_|\___| |___|_| |_|_|  \___|_|  \___|_| |_|\___\___|
 %%                   |_|                                                        
-constraints
+:- chr_constraints
 	functional_dependency/4,
 	get_functional_dependency/4.
 
-option(mode,functional_dependency(+,+,?,?)).
+:- chr_option(mode,functional_dependency(+,+,?,?)).
 
 allocation_occurrence(C,AO), occurrence(C,O,RuleNb,_) \ functional_dependency(C,RuleNb,Pattern,Key)
 	<=>
@@ -5097,7 +5076,7 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 % TODO: 
 %   stronger analysis domain [research]
 
-constraints
+:- chr_constraints
 	initial_call_pattern/1,
 	call_pattern/1,
 	final_answer_pattern/2,
@@ -5110,17 +5089,17 @@ constraints
 	ai_is_observed/2,
 	depends_on_as/3.
 
-option(mode,initial_call_pattern(+)).
-option(mode,call_pattern(+)).
-option(mode,final_answer_pattern(+,+)).
-option(mode,abstract_constraints(+)).
-option(mode,depends_on(+,+)).
-option(mode,depends_on_as(+,+,+)).
-option(mode,depends_on_ap(+,+,+,+)).
-option(mode,depends_on_goal(+,+)).
-option(mode,ai_observed(+,+)).
-option(mode,ai_is_observed(+,+)).
-option(mode,ai_not_observed(+,+)).
+:- chr_option(mode,initial_call_pattern(+)).
+:- chr_option(mode,call_pattern(+)).
+:- chr_option(mode,final_answer_pattern(+,+)).
+:- chr_option(mode,abstract_constraints(+)).
+:- chr_option(mode,depends_on(+,+)).
+:- chr_option(mode,depends_on_as(+,+,+)).
+:- chr_option(mode,depends_on_ap(+,+,+,+)).
+:- chr_option(mode,depends_on_goal(+,+)).
+:- chr_option(mode,ai_observed(+,+)).
+:- chr_option(mode,ai_is_observed(+,+)).
+:- chr_option(mode,ai_not_observed(+,+)).
 
 ai_observed(C,O) \ ai_not_observed(C,O) <=> true.
 ai_not_observed(C,O) \ ai_not_observed(C,O) <=> true.

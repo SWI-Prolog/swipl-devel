@@ -8,7 +8,7 @@
 :- module(leq,[leq/0]).
 :- use_module(library(chr)).
 
-:- constraints leq/2.
+:- chr_constraints leq/2.
 
 reflexivity  @ leq(X,X) <=> true.
 antisymmetry @ leq(X,Y), leq(Y,X) <=> X = Y.

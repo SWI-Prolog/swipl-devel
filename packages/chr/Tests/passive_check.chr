@@ -1,10 +1,10 @@
 :- module(passive_check,[passive_check/0]).
 :- use_module(library(chr)).
 
-:- constraints a/1, b/1.
+:- chr_constraints a/1, b/1.
 
-option(debug,off).
-option(optimize,full).
+:- chr_option(debug,off).
+:- chr_option(optimize,full).
 
 a(X) # ID, b(X) <=> true pragma passive(ID).
 

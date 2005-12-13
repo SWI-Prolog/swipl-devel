@@ -194,7 +194,7 @@ partition_clauses([C|Cs],Ds,Rs,OCs,Mod) :-
       Ds = RDs,
       Rs = RRs,
       OCs = ROCs
-  ;   C = option(OptionName,OptionValue) ->
+  ;   C = (:- chr_option(OptionName,OptionValue)) ->
       handle_option(OptionName,OptionValue),
       Ds = RDs,
       Rs = RRs,
@@ -206,12 +206,8 @@ partition_clauses([C|Cs],Ds,Rs,OCs,Mod) :-
   partition_clauses(Cs,RDs,RRs,ROCs,Mod).
 
 is_declaration(D, Constraints) :-		%% constraint declaration
-  ( D = (:- Decl) ->
-	true
-  ;
-	D = Decl
-  ),
-  Decl =.. [constraints,Cs],
+  D = (:- Decl),
+  ( Decl =.. [chr_constraints,Cs] ; Decl =.. [chr_constraint,Cs]),
   conj2list(Cs,Constraints).
 
 %% Data Declaration

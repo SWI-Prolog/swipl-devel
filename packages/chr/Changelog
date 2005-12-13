@@ -1,3 +1,11 @@
+Dec 12, 2005
+
+  * TS: option and constraints declarations are now deprecated. They
+        are replaced by chr_option and chr_constraint(s).
+  * TR: Made an interface for warnings and errors. Errors now implemented
+        with exceptions.
+  * TR: Revised documentation.
+
 Dec 2, 2005
   * BD: chr_translate.chr, chr_translate_bootstrap2.chr
 	   mutables "abstracted"

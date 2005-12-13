@@ -39,7 +39,7 @@
 %% SWI begin
 :- use_module(library(listing)). % portray_clause/2
 %% SWI end
-:- include('chr_op').
+:- include(chr_op).
 
 		 /*******************************
 		 *    FILE-TO-FILE COMPILER	*
