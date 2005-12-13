@@ -38,12 +38,12 @@ implementation. For a more thorough review of CHR we refer the reader to
 
 In \secref{SyntaxAndSemantics} we present the syntax of CHR in Prolog and
 explain informally its operational semantics. Next, \secref{practical}
-deals with practical issues of writing and compiling hProlog programs
+deals with practical issues of writing and compiling Prolog programs
 containing CHR. \Secref{debugging} explains the currently primitive CHR
 debugging facilities. \Secref{predicates} provides a few useful predicates
 to inspect the constraint store and \secref{examples} illustrates CHR with
 two example programs. In \secref{sicstus-chr} some compatibility issues with
-SICStus CHR are listed. Finally, \secref{guidelines} concludes with a few
+older versions of this system and SICStus' CHR system. Finally, \secref{guidelines} concludes with a few
 practical guidelines for using CHR.
 
 
@@ -53,7 +53,7 @@ practical guidelines for using CHR.
 \subsection{Syntax}
 %-----------------
 
-The syntax of CHR rules in hProlog is the following:
+The syntax of CHR rules is the following:
 
 \begin{code}
 rules --> rule, rules.
@@ -76,7 +76,7 @@ simpagation_rule --> head, [atom('\')], head, [atom('<=>')],
 head --> constraints.
 
 constraints --> constraint, constraint_id.
-constraints --> constraint, [atom(',')], constraints.
+constraints --> constraint, constraint_id, [atom(',')], constraints.
 
 constraint --> compound_term.
 
@@ -151,7 +151,7 @@ The simpagation rule removes the constraints in its head after the
 $\backslash$ and then calls its body. It is an optimization of
 simplification rules of the form: \[constraints_1, constraints_2 <=>
 constraints_1, body \] Namely, in the simpagation form: \[ constraints_1
-\backslash constraints_2 <=> body \] The \arg{constraints_1}
+\backslash constraints_2 <=> body \] The $\mathit{constraints}_1$
 constraints are not called in the body.
 \end{itemlist}
 
@@ -175,10 +175,10 @@ Additional pragmas may be released in the future.
 \paragraph{Options}
 %- - - - - - - - -
 It is possible to specify options that apply to all the CHR rules in the module.
-Options are specified with the \texttt{option/2} declaration:
+Options are specified with the \texttt{chr_option/2} declaration:
 
 \begin{code}
-                option(Option,Value).
+                :- chr_option(Option,Value).
 \end{code}
 
 and may appear in the file anywhere after the first constraints declaration.
@@ -209,63 +209,63 @@ derived from the prolog flag \const{generate_debug_info}, which
 is \const{true} by default.  See \cmdlineoption{-nodebug}.
 If debugging is enabled, optimization should be disabled.
 
-	\termitem{mode}{}
-This option specifies the mode for a particular constraint. The
-value is a term with functor and arity equal to that of a constraint.
-The arguments can be one of \texttt{-}, \texttt{+} or \texttt{?}.
-The latter is the default. The meaning is the following:
-	\begin{description}
-	\termitem{-}{} The corresponding argument of every occurrence
-	of the constraint is always unbound.
-	\termitem{+}{} The corresponding argument of every occurrence
-	of the constraint is always ground.
-	\termitem{?}{} The corresponding argument of every occurrence
-	of the constraint can have any instantiation, which may change
-	over time. This is the default value.
-	\end{description}
-The declaration is used by the compiler for various optimizations. 
-Note that it is up to the user the ensure that the mode declaration
-is correct with respect to the use of the constraint.
-This option may occur once for each constraint.
-
-	\termitem{type_declaration}{}
-This option specifies the argument types for a particular constraint. The
-value is a term with functor and arity equal to that of a constraint.
-The arguments can be a user-defined type or one of
-the built-in types:
-	\begin{description}
-	\termitem{int}{} The corresponding argument of every occurrence
-	of the constraint is an integer number.
-	\termitem{float}{} \ldots a floating point number.
-	\termitem{number}{} \ldots a number.
-	\termitem{natural}{} \ldots a positive integer.
-	\termitem{any}{} The corresponding argument of every occurrence
-	of the constraint can have any type. This is the default value.
-	\end{description}
-
-Currently, type declarations are only used to improve certain
-optimizations (guard simplification, occurrence subsumption, \ldots).
-
-	\termitem{type_definition}{}
-This option defines a new user-defined type which can be used in
-type declarations. The value is a term of the form
-\texttt{type(} \textsf{name} \texttt{,} \textsf{list} \texttt{)}, where
-\textsf{name} is a term and \textsf{list} is a list of alternatives.
-Variables can be used to define generic types. Recursive definitions
-are allowed. Examples are 
-
-\begin{code}
-type(bool,[true,false]).
-type(complex_number,[float + float * i]).
-type(binary_tree(T),[ leaf(T) | node(binary_tree(T),binary_tree(T)) ]).
-type(list(T),[ [] | [T | list(T)]).
-\end{code}
-
-
+% 	\termitem{mode}{}
+% This option specifies the mode for a particular constraint. The
+% value is a term with functor and arity equal to that of a constraint.
+% The arguments can be one of \texttt{-}, \texttt{+} or \texttt{?}.
+% The latter is the default. The meaning is the following:
+% 	\begin{description}
+% 	\termitem{-}{} The corresponding argument of every occurrence
+% 	of the constraint is always unbound.
+% 	\termitem{+}{} The corresponding argument of every occurrence
+% 	of the constraint is always ground.
+% 	\termitem{?}{} The corresponding argument of every occurrence
+% 	of the constraint can have any instantiation, which may change
+% 	over time. This is the default value.
+% 	\end{description}
+% The declaration is used by the compiler for various optimizations. 
+% Note that it is up to the user the ensure that the mode declaration
+% is correct with respect to the use of the constraint.
+% This option may occur once for each constraint.
+% 
+% 	\termitem{type_declaration}{}
+% This option specifies the argument types for a particular constraint. The
+% value is a term with functor and arity equal to that of a constraint.
+% The arguments can be a user-defined type or one of
+% the built-in types:
+% 	\begin{description}
+% 	\termitem{int}{} The corresponding argument of every occurrence
+% 	of the constraint is an integer number.
+% 	\termitem{float}{} \ldots a floating point number.
+% 	\termitem{number}{} \ldots a number.
+% 	\termitem{natural}{} \ldots a positive integer.
+% 	\termitem{any}{} The corresponding argument of every occurrence
+% 	of the constraint can have any type. This is the default value.
+% 	\end{description}
+% 
+% Currently, type declarations are only used to improve certain
+% optimizations (guard simplification, occurrence subsumption, \ldots).
+% 
+% 	\termitem{type_definition}{}
+% This option defines a new user-defined type which can be used in
+% type declarations. The value is a term of the form
+% \texttt{type(} \textsf{name} \texttt{,} \textsf{list} \texttt{)}, where
+% \textsf{name} is a term and \textsf{list} is a list of alternatives.
+% Variables can be used to define generic types. Recursive definitions
+% are allowed. Examples are 
+% 
+% \begin{code}
+% type(bool,[true,false]).
+% type(complex_number,[float + float * i]).
+% type(binary_tree(T),[ leaf(T) | node(binary_tree(T),binary_tree(T)) ]).
+% type(list(T),[ [] | [T | list(T)]).
+% \end{code}
+% 
+ 
 \end{description}
-
-The above mode, type_declaration and type_definition options are deprecated. 
-The new syntax is described below.
+ 
+% The above mode, type_declaration and type_definition options are deprecated. 
+% The new syntax is described below.
 
 \section{CHR in SWI-Prolog Programs}		\label{sec:practical}
 %===========================
@@ -279,51 +279,86 @@ never load different \fileext{chr} files with the same CHR module name.
 
 \subsection{Constraint declaration}
 
-Every constraint used in CHR rules has to be declared.
-There are two ways to do this. The old style is as follows:
+Every constraint used in CHR rules has to be declared with
+a \predref{chr\_constraint}{1} declaration by the {\em constraint
+specifier}. For convenience multiple consttraints may be declared at once
+with the \predref{chr\_constraints} declaration followed by a comma-separated
+list of constraints specifier.
+
+A constraint specifier is, in its compact form, \texttt{$F$/$A$} where $F$ and $A$ are respectively
+the functor and the arity of the constraint, e.g.: 
 
 \begin{code}
-option(type_definition,type(list(T),[ [] , [T|list(T)] ]).
-option(mode,foo(+,?)).
-option(type_declaration,foo(list(int),float)).
-:- constraints foo/2, bar/0.
+:- chr_constraint foo/1.
+:- chr_constraints bar/2, baz/3.
 \end{code}
 
-The new style is as follows:
+In its extended form, a constraint specifier is \texttt{$c$($A_1$,\ldots,$A_n$)}
+where $c$ is the constraint's functor, $n$ its arity and the $A_i$ are argument
+specifiers. An argument specifier is a mode, optionally followed by a type. E.g.
+\begin{code}
+:- chr_constraint get_value(+,?).
+:- chr_constraints domain(?int,+list(int)), 
+                   alldifferent(?list(int)).
+\end{code}
 
+A mode is one of:
+	\begin{description}
+	\termitem{-}{} The corresponding argument of every occurrence
+	of the constraint is always unbound.
+	\termitem{+}{} The corresponding argument of every occurrence
+	of the constraint is always ground.
+	\termitem{?}{} The corresponding argument of every occurrence
+	of the constraint can have any instantiation, which may change
+	over time. This is the default value.
+	\end{description}
+
+A type can be a user-defined type or one of
+the built-in types:
+	\begin{description}
+	\termitem{int}{} The corresponding argument of every occurrence
+	of the constraint is an integer number.
+	\termitem{float}{} \ldots a floating point number.
+	\termitem{number}{} \ldots a number.
+	\termitem{natural}{} \ldots a positive integer.
+	\termitem{any}{} The corresponding argument of every occurrence
+	of the constraint can have any type. This is the default value.
+	\end{description}
+
+A user-defined type is defined with a \predref{chr\_type}{1} declaration. For example, types
+for lists, trees and colors could be defined as:
 \begin{code}
 :- chr_type list(T) ---> [] ; [T|list(T)].
-:- constraints foo(+list(int),?float), bar.
+:- chr_type tree(T) ---> nil ; tree(T,tree(T),tree(T)).
+:- chr_type color   ---> red ; blue ; green.
 \end{code}
 
-
 \subsection{Compilation}
+%--------------------
 
-The SWI-Prolog CHR compiler exploits term_expansion/2 rules to translate
-the constraint handling rules to plain Prolog. These rules are loaded
-from the library \pllib{chr}.   They are activated if the compiled file
-has the \fileext{chr} extension or after finding a declaration of the
-format below.
+The SWI-Prolog CHR compiler exploits \predref{term\_expansion}{2} rules to translate the
+constraint handling rules to plain Prolog. These rules are loaded from the
+library \pllib{chr}. They are activated if the compiled file has the \fileext{chr}
+extension or after finding a declaration of the format below.
 
 \begin{code}
-:- constraints ...
+:- chr_constraints ...
 \end{code}
 
 It is adviced to define CHR rules in a module file, where the module
-declaration is immediately followed by including the \pllib{chr}
-library as examplified below:
+declaration is immediately followed by including the library(chr) library
+as examplified below:
 
 \begin{code}
 :- module(zebra, [ zebra/0 ]).
 :- use_module(library(chr)).
 
-:- constraints ...
+:- chr_constraints ...
 \end{code}
 
-Using this style CHR rules can be defined in ordinary Prolog
-\fileext{pl} files and the operator definitions required by CHR do not
-leak into modules where they might cause conflicts.
-
+Using this style CHR rules can be defined in ordinary Prolog .pl files and
+the operator definitions required by CHR do not leak into modules where they
+might cause conflicts.
 
 \section{Debugging}			\label{sec:debugging}
 %=================
@@ -473,7 +508,7 @@ The program below defines a solver with one constraint,
 :- module(leq,[cycle/3, leq/2]).
 :- use_module(library(chr)).
 
-:- constraints leq/2.
+:- chr_constraints leq/2.
 reflexivity  @ leq(X,X) <=> true.
 antisymmetry @ leq(X,Y), leq(Y,X) <=> X = Y.
 idempotence  @ leq(X,Y) \ leq(X,Y) <=> true.
@@ -493,7 +528,8 @@ constraint solver.
 :- module(dom,[dom/2]).
 :- use_module(library(chr)).
 
-:- constraints dom/2. 
+:- chr_constraints dom(?int,+list(int)). 
+:- chr_type list(T) ---> [] ; [T|list(T)].
 
 dom(X,[]) <=> fail.
 dom(X,[Y]) <=> X = Y.
@@ -503,14 +539,29 @@ dom(X,L1), dom(X,L2) <=> intersection(L1,L2,L3), dom(X,L3).
 		
 \end{itemize}
 
-\section{Compatibility with SICStus CHR} 		\label{sec:sicstus-chr}
+\section{Backwards Compatibility} 		\label{sec:sicstus-chr}
 %==================
 
-There are small differences between CHR in SWI-Prolog and SICStus.
-Besides differences in available options and pragmas, the following
-differences should be noted:
+There are small differences between the current K.U.Leuven CHR system
+in SWI-Prolog, older versions of the same system and SICStus' CHR system.
+
+The current system maps old syntactic elements onto new ones and ignores a
+number of no longer required elements. However, for each a {\em deprecated}
+warning is issued. You are strongly urged to replace or remove deprecated
+features.
+
+Besides differences in available options and pragmas, the following differences
+should be noted:
 
 \begin{itemlist}
+        \item [The \predref{constraints}{1} declaration]
+This declaration is deprecated. It has been replaced with the
+\predref{chr_constraint}{1} and \predref{chr_constraints}{1} declarations.
+
+        \item [The \predref{option}{2} declaration]
+This declaration is deprecated. It has been replaced with the
+\predref{chr_option}{2} declaration.
+
         \item [The \predref{handler}{1} declaration]
 In SICStus every CHR module requires a \predref{handler}{1}
 declaration declaring a unique handler name. This declaration is valid
@@ -557,4 +608,14 @@ share one or more variables.
     \item [Mode and type declarations]
 Provide mode and type declarations to get more efficient program execution.
 Make sure to disable debug (-nodebug) and enable optimization (-O).
+
+    \item [Compile once, run many times]
+Does consulting your CHR program take a long time in SWI-Prolog? Probably
+it takes the CHR compiler a long time to compile the CHR rules into Prolog
+code. When you disable optimizations the CHR compiler will be a lot quicker,
+but you may loose performance. Alternatively, you can just use SWI-Prolog's
+\predref{qcompile}{1} to generate a \fileext{qlf} file once from your
+\fileext{pl} file. This fileext{qlf} contains the generated code of the
+CHR compiler (be it in a binary format). When you consult the \fileext{qlf}
+file, the CHR compiler is not invoked and consultation is much faster.
 \end{itemlist}
