@@ -22,7 +22,7 @@ AC_SUBST(SONAMEFLAG)
 AC_SUBST(SOWHOLEARCHIVE)
 AC_SUBST(LD_RUN_PATH)
 
-if text -z "$LIBDB"; then LIBDB=db; fi
+if test -z "$LIBDB"; then LIBDB=db; fi
 if test -z "$CIFLAGS" -a ! -z "$CPPFLAGS"; then CIFLAGS="$CPPFLAGS"; fi
 
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],

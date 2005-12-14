@@ -1316,7 +1316,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-if text -z "$LIBDB"; then LIBDB=db; fi
+if test -z "$LIBDB"; then LIBDB=db; fi
 if test -z "$CIFLAGS" -a ! -z "$CPPFLAGS"; then CIFLAGS="$CPPFLAGS"; fi
 
 # Check whether --enable-mt or --disable-mt was given.
