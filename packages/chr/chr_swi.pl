@@ -35,7 +35,7 @@
 	    op(1180, xfx, ==>),
 	    op(1180, xfx, <=>),
 	    op(1150, fx, constraints),
-	    op(1150, fx, chr_constraints),
+	    op(1150, fx, chr_constraint),
 	    op(1150, fx, chr_constraint),
 	    op(1150, fx, handler),
 	    op(1150, fx, rules),
@@ -121,7 +121,7 @@ user:file_search_path(chr, library(chr)).
 
 chr_expandable((:- constraints _)).
 chr_expandable((constraints _)).
-chr_expandable((:- chr_constraints _)).
+chr_expandable((:- chr_constraint _)).
 chr_expandable((:- chr_constraint _)).
 chr_expandable((:- chr_type _)).
 chr_expandable((chr_type _)).
@@ -194,10 +194,10 @@ delete_header([(:- module(_,_))|T0], T) :- !,
 	delete_header(T0, T).
 delete_header(L, L).
 
-add_debug_decl(chr, chr) :-
-	memberchk(option(debug, _), chr), !.
 add_debug_decl(CHR, CHR) :-
-	memberchk((:- chr_option(debug, _)), CHR), !.
+	member(option(Name, _), CHR), Name == debug, !.
+add_debug_decl(CHR, CHR) :-
+	member((:- chr_option(Name, _)), CHR), Name == debug, !.
 add_debug_decl(CHR, [:- chr_option(debug, Debug)|CHR]) :-
 	(   chr_current_prolog_flag(generate_debug_info, true)
 	->  Debug = on

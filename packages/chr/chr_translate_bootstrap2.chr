@@ -127,7 +127,7 @@
 :- chr_option(optimize,full).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- chr_constraints
+:- chr_constraint
 
 	constraint/2,				% constraint(F/A,ConstraintIndex)
 	get_constraint/2,
@@ -493,7 +493,7 @@ partition_clauses([C|Cs],Ds,Rs,OCs) :-
 
 is_declaration(D, Constraints) :-		%% constraint declaration
   D = (:- Decl),
-  ( Decl =.. [chr_constraints,Cs] ; Decl =.. [chr_constraint,Cs]),
+  ( Decl =.. [chr_constraint,Cs] ; Decl =.. [chr_constraint,Cs]),
   conj2list(Cs,Constraints).
 
 %% Data Declaration

@@ -15,12 +15,13 @@
 :- use_module(library(lists)).
 :- use_module(hprolog).
 :- use_module(builtins).
+:- use_module(chr_compiler_errors).
 
 :- chr_option(debug,off).
 :- chr_option(optimize,full).
 
 
-:- chr_constraints known/1,test/1,cleanup/0,variables/1.
+:- chr_constraint known/1,test/1,cleanup/0,variables/1.
 
 % knowing the same thing twice is redundant
 idempotence @ known(G) \ known(G) <=> true.
@@ -421,7 +422,7 @@ simplify([G|R],[SG|RS]) :-
 try(A,X) :- (known(A) ->
 		true
 	    ;
-		format(' ERROR: entailment checker: this is not supposed to happen.\n',[])
+		chr_error(internal,'Entailment Checker: try/2.\n',[])
 	    ),
 	 (test(X) -> 
 		fail

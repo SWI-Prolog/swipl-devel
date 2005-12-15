@@ -207,7 +207,7 @@ partition_clauses([C|Cs],Ds,Rs,OCs,Mod) :-
 
 is_declaration(D, Constraints) :-		%% constraint declaration
   D = (:- Decl),
-  ( Decl =.. [chr_constraints,Cs] ; Decl =.. [chr_constraint,Cs]),
+  ( Decl =.. [chr_constraint,Cs] ; Decl =.. [chr_constraint,Cs]),
   conj2list(Cs,Constraints).
 
 %% Data Declaration

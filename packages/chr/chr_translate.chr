@@ -163,7 +163,6 @@
 :- op(980, fx, (-)).
 :- op(980, fx, (?)).
 :- op(1150, fx, constraints).
-:- op(1150, fx, chr_constraints).
 :- op(1150, fx, chr_constraint).
 
 :- chr_option(debug,off).
@@ -171,7 +170,7 @@
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- chr_constraints 
+:- chr_constraint 
 	target_module/1,			% target_module(Module)
 	get_target_module/1,
 
@@ -398,7 +397,7 @@ get_rule(_,_)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% C O N S T R A I N T   I N D E X %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- chr_constraints
+:- chr_constraint
 	constraint_index/2,			% constraint_index(F/A,DefaultStoreAndAttachedIndex)
 	get_constraint_index/2,			
 	max_constraint_index/1,			% max_constraint_index(MaxDefaultStoreAndAttachedIndex)
@@ -441,6 +440,7 @@ set_constraint_indices([C|Cs],N) :-
 %% Translation
 
 chr_translate(Declarations,NewDeclarations) :-
+	chr_info(banner,'\tThe K.U.Leuven CHR System\t\n\t\tContributors:\tTom Schrijvers, Jon Sneyers, Bart Demoen,\n\t\t\t\tJan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/\~~toms/CHR/\n',[]),
 	init_chr_pp_flags,
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
 	check_declared_constraints(Constraints0),
@@ -599,7 +599,7 @@ partition_clauses([C|Cs],Ds,Rs,OCs) :-
   partition_clauses(Cs,RDs,RRs,ROCs).
 
 is_declaration(D, Constraints) :-		%% constraint declaration
-	( D = (:- Decl), Decl =.. [F,Cs], (F == (chr_constraints) ; F == (chr_constraint)) ->
+	( D = (:- Decl), Decl =.. [F,Cs], F == (chr_constraint) ->
   		conj2list(Cs,Constraints0)
 	;
 		( D = (:- Decl) ->
@@ -611,7 +611,7 @@ is_declaration(D, Constraints) :-		%% constraint declaration
 		( length(Constraints0,1) ->
 			chr_warning(deprecated(D),'Instead use :- chr_constraint ~w.\n',[Cs])
 		;
-			chr_warning(deprecated(D),'Instead use :- chr_constraints ~w.\n',[Cs])
+			chr_warning(deprecated(D),'Instead use :- chr_constraint ~w.\n',[Cs])
 		)
 	),
   extract_type_mode(Constraints0,Constraints).
@@ -935,7 +935,7 @@ is_observed(C,O) :-
 	is_self_observer(C),
 	ai_is_observed(C,O).
 
-:- chr_constraints
+:- chr_constraint
 	observes/2,
 	spawns_observer/2,
 	observes_indirectly/2,
@@ -1308,7 +1308,7 @@ generate_indexed_variables_clauses_([C|Cs],Clauses) :-
 	generate_indexed_variables_clauses_(Cs,RestClauses).
 
 %===============================================================================
-:- chr_constraints generate_indexed_variables_clause/2.
+:- chr_constraint generate_indexed_variables_clause/2.
 :- chr_option(mode,generate_indexed_variables_clause(+,+)).
 %-------------------------------------------------------------------------------
 constraint_mode(F/A,ArgModes) \ generate_indexed_variables_clause(F/A,Clause) <=>
@@ -1839,7 +1839,7 @@ generate_insert_constraint_call(FA,Susp,Call) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- chr_constraints 
+:- chr_constraint 
 	module_initializer/1,
 	module_initializers/1.
 
@@ -2037,7 +2037,7 @@ multi_hash_enumerate_store_body(I,C,Susp,B) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-:- chr_constraints
+:- chr_constraint
 	prev_guard_list/7,
 	simplify_guards/1,
 	set_all_passive/1.
@@ -2513,7 +2513,7 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]),rule(RuleNb,Rule) ==>
 %    OCCURRENCE SUBSUMPTION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- chr_constraints
+:- chr_constraint
 	first_occ_in_rule/4,
 	next_occ_in_rule/6,
 	multiple_occ_constraints_checked/1.
@@ -2736,7 +2736,7 @@ extract_explicit_matchings(A,D) :- !,
 %    TYPE INFORMATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- chr_constraints
+:- chr_constraint
 	type_definition/2,
 	constraint_type/2,
 	get_type_definition/2,
@@ -2874,7 +2874,7 @@ nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- chr_constraints
+:- chr_constraint
 	stored/3, % constraint,occurrence,(yes/no/maybe)
 	stored_completing/3,
 	stored_complete/3,
@@ -3041,7 +3041,7 @@ constraints_code(Constraints,Clauses) :-
 	clean_clauses(L,Clauses).
 
 %===============================================================================
-:- chr_constraints constraints_code1/3.
+:- chr_constraint constraints_code1/3.
 :- chr_option(mode,constraints_code1(+,+,+)).
 %-------------------------------------------------------------------------------
 constraints_code1([],L,T) <=> L = T.
@@ -3050,7 +3050,7 @@ constraints_code1([C|RCs],L,T)
 		constraint_code(C,L,T1),
 		constraints_code1(RCs,T1,T).
 %===============================================================================
-:- chr_constraints constraint_code/3.
+:- chr_constraint constraint_code/3.
 :- chr_option(mode,constraint_code(+,+,+)).
 %-------------------------------------------------------------------------------
 %% 	Generate code for a single CHR constraint
@@ -3124,7 +3124,7 @@ make_suspension_continuation_goal(F/A,VarsSusp,Goal) :-
 	).
 
 %===============================================================================
-:- chr_constraints has_active_occurrence/1, has_active_occurrence/2.
+:- chr_constraint has_active_occurrence/1, has_active_occurrence/2.
 %-------------------------------------------------------------------------------
 has_active_occurrence(C) <=> has_active_occurrence(C,1).
 
@@ -3163,7 +3163,7 @@ gen_cond_attach_clause(F/A,Id,L,T) :-
 		L = T
 	).	
 
-:- chr_constraints 
+:- chr_constraint 
 	use_auxiliary_predicate/1,
 	is_used_auxiliary_predicate/1.
 
@@ -3267,7 +3267,7 @@ gen_uncond_attach_goal(FA,Susp,AttachGoal,Generation) :-
 	).
 
 %-------------------------------------------------------------------------------
-:- chr_constraints occurrences_code/6.
+:- chr_constraint occurrences_code/6.
 :- chr_option(mode,occurrences_code(+,+,+,+,+,+)).
 %-------------------------------------------------------------------------------
 max_occurrence(C,MO) \ occurrences_code(C,O,Id,NId,L,T)
@@ -3279,7 +3279,7 @@ occurrences_code(C,O,Id,NId,L,T)
 		NO is O + 1,
 		occurrences_code(C,NO,Id1,NId,L1,T).
 %-------------------------------------------------------------------------------
-:- chr_constraints occurrence_code/6.
+:- chr_constraint occurrence_code/6.
 :- chr_option(mode,occurrence_code(+,+,+,+,+,+)).
 %-------------------------------------------------------------------------------
 occurrence(C,O,RuleNb,ID), passive(RuleNb,ID) \ occurrence_code(C,O,Id,NId,L,T) 
@@ -3500,7 +3500,7 @@ update_unit_dictionary2([V|Vs],This,Dict,NDict,GIDs,NGIDs) :-
 %% | |_| | | | | | (_| | |_| |  __/  | || | | |  _|  __/ | |  __/ | | | (_|  __/
 %%  \___/|_| |_|_|\__, |\__,_|\___| |___|_| |_|_|  \___|_|  \___|_| |_|\___\___|
 %%                   |_|                                                        
-:- chr_constraints
+:- chr_constraint
 	functional_dependency/4,
 	get_functional_dependency/4.
 
@@ -5076,7 +5076,7 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 % TODO: 
 %   stronger analysis domain [research]
 
-:- chr_constraints
+:- chr_constraint
 	initial_call_pattern/1,
 	call_pattern/1,
 	final_answer_pattern/2,

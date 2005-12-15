@@ -7,7 +7,7 @@
 :- module(fibonacci,[fibonacci/0]).
 :- use_module(library(chr)).
 
-:- chr_constraints fibonacci/2, cleanup/1.
+:- chr_constraint fibonacci/2, cleanup/1.
 
 %% fibonacci(N,M) is true iff  M is the Nth Fibonacci number.
 

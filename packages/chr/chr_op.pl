@@ -37,7 +37,6 @@
 :- op(1180, xfx, ==>).
 :- op(1180, xfx, <=>).
 :- op(1150, fx, constraints).
-:- op(1150, fx, chr_constraints).
 :- op(1150, fx, chr_constraint).
 :- op(1150, fx, handler).
 :- op(1150, fx, rules).

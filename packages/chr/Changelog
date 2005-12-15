@@ -1,3 +1,16 @@
+Dec 25, 2004
+
+  * TS: Removed chr_constraints declaration again, in favor
+	of only the chr_constraint declaration and modified
+	documentation accordingly.
+  * TS: Modified documentation based on recommendations of Bart Demoen.
+  * TS: Added chr_info/3 predicate to chr_compiler_errors, as suggested by
+	Jon Sneyers. Now print banner on calling compiler.
+
+Dec 13, 2005
+
+  * TS: warnings are now written to user_error stream.
+
 Dec 12, 2005
 
   * TS: option and constraints declarations are now deprecated. They

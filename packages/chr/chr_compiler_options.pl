@@ -38,21 +38,19 @@
 %% :- use_module(hprolog).
 %% SICStus end
 
+:- use_module(chr_compiler_errors).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Global Options
 %
 
-handle_option(Var,Value) :- 
-	var(Var), !,
-	format('CHR compiler ERROR: ~w.\n',[option(Var,Value)]),
-	format('    `--> First argument should be an atom, not a variable.\n',[]),
-	fail.
+handle_option(Name,Value) :- 
+	var(Name), !,
+	chr_error(syntax(:- chr_option(Name,Value)),'First argument should be an atom, not a variable.\n',[]).
 
 handle_option(Name,Value) :- 
 	var(Value), !,
-	format('CHR compiler ERROR: ~w.\n',[option(Name,Value)]),
-	format('    `--> Second argument should be a nonvariable.\n',[]),
-	fail.
+	chr_error(syntax(:- chr_option(Name,Value)),'Second argument cannot be a variable.\n',[]).
 
 handle_option(Name,Value) :-
 	option_definition(Name,Value,Flags),
@@ -61,15 +59,10 @@ handle_option(Name,Value) :-
 
 handle_option(Name,Value) :- 
 	\+ option_definition(Name,_,_), !,
-	setof(N,_V ^ _F ^ (option_definition(N,_V,_F)),Ns),
-	format('CHR compiler WARNING: ~w.\n',[option(Name,Value)]),
-	format('    `--> Invalid option name ~w: should be one of ~w.\n',[Name,Ns]).
+	chr_error(syntax(:- chr_option(Name,Value)),'Invalid option name ~w: consult the manual for valid options.\n',[Name]).
 
 handle_option(Name,Value) :- 
-	findall(V,option_definition(Name,V,_),Vs), 
-	format('CHR compiler ERROR: ~w.\n',[option(Name,Value)]),
-	format('    `--> Invalid value ~w: should be one of ~w.\n',[Value,Vs]),
-	fail.
+	chr_error(syntax(:- chr_option(Name,Value)),'Invalid option value ~w: consult the manual for valid option values.\n',[Value]).
 
 option_definition(optimize,experimental,Flags) :-
 	Flags = [ functional_dependency_analysis  - on,
@@ -211,8 +204,13 @@ option_definition(debug,off,Flags) :-
         option_definition(optimize,full,Flags2),
         Flags = [ debugable - off | Flags2].
 option_definition(debug,on,Flags) :-
-	% TODO: should not be allowed when nodebug flag is set in SWI-Prolog
-        Flags = [ debugable - on ].
+	( current_prolog_flag(generate_debug_info,off) ->
+		% TODO: should not be allowed when nodebug flag is set in SWI-Prolog
+		chr_warning(any,':- chr_option(debug,on) inconsistent with current_prolog_flag(generate_debug_info,off\n\tCHR option is ignored!\n)',[]),
+		Flags = []
+	;
+       		Flags = [ debugable - on ]
+	).
 
 option_definition(store_counter,off,[]).
 option_definition(store_counter,on,[store_counter-on]).

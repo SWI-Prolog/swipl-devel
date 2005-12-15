@@ -22,7 +22,7 @@
 14.  The Norwegian lives next to the blue house.
 */
 
-:- chr_constraints domain/2, diff/2, cleanup/0.
+:- chr_constraint domain/2, diff/2, cleanup/0.
 
 zebra :-
 	solve(Solution),

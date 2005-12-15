@@ -2,7 +2,7 @@
 
 :- use_module(library(chr)).
 
-:- chr_constraints a/1, b/2.
+:- chr_constraint a/1, b/2.
 
 a(X) # ID , b(X,R) <=> R = 1 pragma passive(ID).
 
