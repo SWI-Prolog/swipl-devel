@@ -1,8 +1,7 @@
 \chapter{CHR: Constraint Handling Rules} 		\label{sec:chr}
 
-This chapter is written by Tom Schrijvers, K.U. Leuven for the hProlog
-system. Adjusted by Jan Wielemaker to fit the SWI-Prolog documentation
-infrastructure and remove hProlog specific references.
+This chapter is written by Tom Schrijvers, K.U. Leuven, and adjustments by
+Jan Wielemaker.
 
 The CHR system of SWI-Prolog is the K.U.Leuven CHR system.  The runtime
 environment is written by Christian Holzbaur and Tom Schrijvers while the
@@ -97,6 +96,11 @@ actual_pragmas --> actual_pragma, [atom(',')], actual_pragmas.
 actual_pragma --> [atom('passive(')], variable, [atom(')')].
 
 \end{code}
+
+Note that the guard of a rule may not contain any goal that binds a variable
+in the head of the rule with a nonvariable or with another variable in the
+head of the rule. It may however bind variables that do not appear in the
+head of the rule, e.g. an auxiliary variable introduced in the guard.
 
 \subsection{Semantics}
 %--------------------
@@ -193,13 +197,13 @@ any guard fails when it binds a variable that appears in the head of the rule.
 When the option is off, the behavior of a binding in the guard is undefined.
 
         \termitem{optimize}{}
-This is an experimental option controlling the degree of optimization.
+This option controls the degree of optimization.
 Possible values are \texttt{full}, to enable all available
 optimizations, and \texttt{off} (default), to disable all optimizations.  
 The default is derived from the SWI-Prolog flag \const{optimise}, where
 \const{true} is mapped to \const{full}.  Therefore the commandline
 option \cmdlineoption{-O} provides full CHR optimization.
-If optimization is enabled, debugging should be disabled.
+If optimization is enabled, debugging must be disabled.
 
 	\termitem{debug}{}
 This options enables or disables the possibility to debug the CHR code.
@@ -207,7 +211,7 @@ Possible values are \texttt{on} (default) and \texttt{off}. See
 \secref{debugging} for more details on debugging.  The default is
 derived from the prolog flag \const{generate_debug_info}, which
 is \const{true} by default.  See \cmdlineoption{-nodebug}.
-If debugging is enabled, optimization should be disabled.
+If debugging is enabled, optimization must be disabled.
 
 % 	\termitem{mode}{}
 % This option specifies the mode for a particular constraint. The
@@ -273,24 +277,24 @@ If debugging is enabled, optimization should be disabled.
 
 \subsection{Embedding in Prolog Programs}
 
-The CHR constraints defined in a particulary \fileext{chr} file are
+The CHR constraints defined in a \fileext{pl} file are
 associated with a module. The default module is \const{user}. One should
-never load different \fileext{chr} files with the same CHR module name.
+never load different \fileext{pl} files with the same CHR module name.
 
 \subsection{Constraint declaration}
 
-Every constraint used in CHR rules has to be declared with
-a \predref{chr\_constraint}{1} declaration by the {\em constraint
-specifier}. For convenience multiple consttraints may be declared at once
-with the \predref{chr\_constraints} declaration followed by a comma-separated
-list of constraints specifier.
+Every constraint used in CHR rules has to be declared with a
+\predref{chr\_constraint}{1}. declaration by the {\em constraint
+specifier}. For convenience multiple consttraints may be declared at once with
+the same \predref{chr\_constraint} declaration followed by a comma-separated
+list of constraint specifiers.
 
 A constraint specifier is, in its compact form, \texttt{$F$/$A$} where $F$ and $A$ are respectively
-the functor and the arity of the constraint, e.g.: 
+the functor name and arity of the constraint, e.g.: 
 
 \begin{code}
 :- chr_constraint foo/1.
-:- chr_constraints bar/2, baz/3.
+:- chr_constraint bar/2, baz/3.
 \end{code}
 
 In its extended form, a constraint specifier is \texttt{$c$($A_1$,\ldots,$A_n$)}
@@ -298,7 +302,7 @@ where $c$ is the constraint's functor, $n$ its arity and the $A_i$ are argument
 specifiers. An argument specifier is a mode, optionally followed by a type. E.g.
 \begin{code}
 :- chr_constraint get_value(+,?).
-:- chr_constraints domain(?int,+list(int)), 
+:- chr_constraint domain(?int,+list(int)), 
                    alldifferent(?list(int)).
 \end{code}
 
@@ -313,8 +317,13 @@ A mode is one of:
 	over time. This is the default value.
 	\end{description}
 
-A type can be a user-defined type or one of
-the built-in types:
+A type can be a user-defined type or one of the built-in types. A type
+comprises a (possibly inifinite) set of values. The type declaration for
+a constraint argument means that for every instance of that constraint the
+corresponding argument is only ever bound to values in that set. It does not
+state that the argument necessarily has to be bound to a value.
+
+The built-in types are:
 	\begin{description}
 	\termitem{int}{} The corresponding argument of every occurrence
 	of the constraint is an integer number.
@@ -326,7 +335,7 @@ the built-in types:
 	\end{description}
 
 A user-defined type is defined with a \predref{chr\_type}{1} declaration. For example, types
-for lists, trees and colors could be defined as:
+for lists, trees and colors are defined as:
 \begin{code}
 :- chr_type list(T) ---> [] ; [T|list(T)].
 :- chr_type tree(T) ---> nil ; tree(T,tree(T),tree(T)).
@@ -342,18 +351,18 @@ library \pllib{chr}. They are activated if the compiled file has the \fileext{ch
 extension or after finding a declaration of the format below.
 
 \begin{code}
-:- chr_constraints ...
+:- chr_constraint ...
 \end{code}
 
 It is adviced to define CHR rules in a module file, where the module
 declaration is immediately followed by including the library(chr) library
-as examplified below:
+as exemplified below:
 
 \begin{code}
 :- module(zebra, [ zebra/0 ]).
 :- use_module(library(chr)).
 
-:- chr_constraints ...
+:- chr_constraint ...
 \end{code}
 
 Using this style CHR rules can be defined in ordinary Prolog .pl files and
@@ -502,22 +511,18 @@ Here are two example constraint solvers written in CHR.
 \begin{itemize}
     \item
 The program below defines a solver with one constraint, 
-\predref{leq}{2}, which is a less-than-or-equal constraint.
+\predref{leq}{2}, which is a less-than-or-equal constraint, also known as
+a partial order constraint.
 
 \begin{code}
-:- module(leq,[cycle/3, leq/2]).
+:- module(leq,[leq/2]).
 :- use_module(library(chr)).
 
-:- chr_constraints leq/2.
+:- chr_constraint leq/2.
 reflexivity  @ leq(X,X) <=> true.
 antisymmetry @ leq(X,Y), leq(Y,X) <=> X = Y.
 idempotence  @ leq(X,Y) \ leq(X,Y) <=> true.
 transitivity @ leq(X,Y), leq(Y,Z) ==> leq(X,Z).
-
-cycle(X,Y,Z):-
-        leq(X,Y),
-        leq(Y,Z),
-        leq(Z,X).
 \end{code}
 
     \item
@@ -528,7 +533,7 @@ constraint solver.
 :- module(dom,[dom/2]).
 :- use_module(library(chr)).
 
-:- chr_constraints dom(?int,+list(int)). 
+:- chr_constraint dom(?int,+list(int)). 
 :- chr_type list(T) ---> [] ; [T|list(T)].
 
 dom(X,[]) <=> fail.
@@ -556,7 +561,7 @@ should be noted:
 \begin{itemlist}
         \item [The \predref{constraints}{1} declaration]
 This declaration is deprecated. It has been replaced with the
-\predref{chr_constraint}{1} and \predref{chr_constraints}{1} declarations.
+\predref{chr_constraint}{1} declaration.
 
         \item [The \predref{option}{2} declaration]
 This declaration is deprecated. It has been replaced with the
@@ -575,9 +580,13 @@ declaration is valid syntax in SWI-Prolog, but has no effect. A
 warning is given during compilation.
 
 	\item [Guard bindings]
-The \texttt{check_guard_bindings} option only turns
-invalid calls to unification into failure, whereas in SICStus
-also invalid calls to other built-ins are dealt with.
+The \texttt{check_guard_bindings} option only turns invalid calls to
+unification into failure. In SICStus this option does more: it intercepts
+instantiation errors from Prolog built-ins such as \predref{is}{2} and
+turns them into failure. In SWI-Prolog, we do not go this far, as we like
+to separate concerns more. The CHR comiler is aware of the CHR code, the Prolog
+system and programmer should be aware of the appropriate meaning of the
+Prolog goals used in guards and bodies of CHR rules.
 \end{itemlist}
 
 
