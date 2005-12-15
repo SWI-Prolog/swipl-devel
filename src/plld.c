@@ -35,6 +35,7 @@ embedded application.
 #define UNQUOTED_PREFIX "\1"
 
 #ifdef WIN32
+#include <config/win32.h>
 #include <process.h>
 #include <io.h>
 #define off_t long

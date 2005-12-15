@@ -24,8 +24,8 @@
 
 #if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
 #define _WIN32_WINNT 0x0400
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 
 #include "pl-incl.h"
 #include "pl-utf8.h"
