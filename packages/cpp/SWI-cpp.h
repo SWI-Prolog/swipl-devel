@@ -24,7 +24,9 @@
 
 #include <SWI-Prolog.h>
 #include <string.h>
+#ifndef __APPLE__
 #include <malloc.h>
+#endif
 
 #ifdef __BORLANDC__
 #define __inline inline 

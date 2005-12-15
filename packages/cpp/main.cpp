@@ -1,5 +1,5 @@
 #include "SWI-cpp.h"
-#include <iostream.h>
+#include <iostream>
 
 int
 main(int argc, char **argv)
@@ -15,6 +15,6 @@ main(int argc, char **argv)
   try
   { return q.next_solution() ? 0 : 1;
   } catch ( PlException &ex )
-  { cerr << (char *)ex << endl;
+  { std::cerr << (char *)ex << std::endl;
   }
 }
