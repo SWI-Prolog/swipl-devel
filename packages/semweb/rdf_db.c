@@ -3830,6 +3830,13 @@ discard_transaction(rdf_db *db)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note  (*)  rdf-monitors  can  modify  the    database   by  opening  new
+transactions. Therefore we first close the  transaction to allow opening
+new ones. TBD: get  this  clear.   Monitors  have  only  restricted read
+access?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 commit_transaction(rdf_db *db)
 { transaction_record *tr, *next;
@@ -3861,63 +3868,65 @@ commit_transaction(rdf_db *db)
     return FALSE;
   }
 
+  while( (tr=db->tr_first) )		/* See above (*) */
+  { db->tr_first = db->tr_last = NULL;
+
 					/* real commit */
-  for(tr=db->tr_first; tr; tr = next)
-  { next = tr->next;
-
-    switch(tr->type)
-    { case TR_MARK:
-	break;
-      case TR_ASSERT:
-	link_triple(db, tr->triple);
-        db->generation++;
-	break;
-      case TR_RETRACT:
-	if ( !tr->triple->erased )	/* already erased */
-	{ erase_triple(db, tr->triple);
+    for(; tr; tr = next)
+    { next = tr->next;
+  
+      switch(tr->type)
+      { case TR_MARK:
+	  break;
+	case TR_ASSERT:
+	  link_triple(db, tr->triple);
 	  db->generation++;
+	  break;
+	case TR_RETRACT:
+	  if ( !tr->triple->erased )	/* already erased */
+	  { erase_triple(db, tr->triple);
+	    db->generation++;
+	  }
+	  break;
+	case TR_UPDATE:
+	  erase_triple_silent(db, tr->triple);
+	  link_triple_silent(db, tr->update.triple);
+	  db->generation++;
+	  broadcast(EV_UPDATE, tr->triple, tr->update.triple);
+	  break;
+	case TR_UPDATE_SRC:
+	  if ( tr->triple->source != tr->update.src.atom )
+	  { if ( tr->triple->source )
+	      unregister_source(db, tr->triple);
+	    tr->triple->source = tr->update.src.atom;
+	    if ( tr->triple->source )
+	      register_source(db, tr->triple);
+	  }
+	  tr->triple->line = tr->update.src.line;
+	  db->generation++;
+	  break;
+	case TR_UPDATE_MD5:
+	{ source *src = tr->update.md5.source;
+	  md5_byte_t *digest = tr->update.md5.digest;
+	  if ( digest )
+	  { sum_digest(digest, src->digest);
+	    src->md5 = TRUE;
+	    rdf_free(db, digest, sizeof(md5_byte_t)*16);
+	  } else
+	  { src->md5 = FALSE;
+	  }
+	  break;
 	}
-	break;
-      case TR_UPDATE:
-	erase_triple_silent(db, tr->triple);
-        link_triple_silent(db, tr->update.triple);
-	db->generation++;
-	broadcast(EV_UPDATE, tr->triple, tr->update.triple);
-	break;
-      case TR_UPDATE_SRC:
-        if ( tr->triple->source != tr->update.src.atom )
-	{ if ( tr->triple->source )
-	    unregister_source(db, tr->triple);
-	  tr->triple->source = tr->update.src.atom;
-	  if ( tr->triple->source )
-	    register_source(db, tr->triple);
-	}
-        tr->triple->line = tr->update.src.line;
-	db->generation++;
-	break;
-      case TR_UPDATE_MD5:
-      { source *src = tr->update.md5.source;
-	md5_byte_t *digest = tr->update.md5.digest;
-	if ( digest )
-	{ sum_digest(digest, src->digest);
-	  src->md5 = TRUE;
-	  rdf_free(db, digest, sizeof(md5_byte_t)*16);
-	} else
-	{ src->md5 = FALSE;
-	}
-	break;
+	case TR_RESET:
+	  reset_db(db);
+	  break;
+	default:
+	  assert(0);
       }
-      case TR_RESET:
-	reset_db(db);
-        break;
-      default:
-	assert(0);
+  
+      rdf_free(db, tr, sizeof(*tr));
     }
-
-    rdf_free(db, tr, sizeof(*tr));
   }
-
-  db->tr_first = db->tr_last = NULL;
 
   return TRUE;
 }

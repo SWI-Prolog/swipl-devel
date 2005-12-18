@@ -424,6 +424,34 @@ rdf_retractall(nopred-1) :-
 
 
 		 /*******************************
+		 *	       MONITOR		*
+		 *******************************/
+
+do_monitor(assert(S, P, O, DB)) :-
+	atom(O),
+	ip(P, IP),
+	rdf_transaction(rdf_assert(O, IP, S, DB)).
+do_monitor(retract(S, P, O, DB)) :-
+	atom(O),
+	ip(P, IP),
+	rdf_transaction(rdf_retractall(O, IP, S, DB)).
+
+ip(a, ia).
+ip(b, ib).
+
+monitor(transaction-1) :-
+	rdf_reset_db,
+	rdf_monitor(do_monitor, []),
+	rdf_transaction(rdf_assert(x, a, y, db)),
+	rdf_monitor(do_monitor, [-all]),
+	findall(rdf(S,P,O), rdf(S,P,O), DB),
+	DB == [ rdf(x, a, y),
+		rdf(y, ia, x)
+	      ].
+
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -506,6 +534,7 @@ testset(transaction).
 testset(label).
 testset(match).
 testset(rdf_retractall).
+testset(monitor).
 
 %	testdir(Dir)
 %	
