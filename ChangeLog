@@ -7,7 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: pl-stream.h: avoid 'new' (work around MSVC 7 bug).  Alan Baljeu.
+
   * PORT: Visual studio 2003 (MSVC 8) issues
+
 
 ==================================
 VERSION 5.5.40 (December 07, 2005)
