@@ -10,17 +10,6 @@ SCRIPT
 On Solaris #!/usr/bin/pl -q -t main -f calls Prolog as
 /usr/bin/pl "-q" <file>
 
-
-=======
-INPUT HANDLING:
----------------
-
-Provide Quintus-like alternate input sources, so input from server-sockets
-can be mixed with the toplevel without loosing the toplevel.  Other aim:
-Allow Unix/X11 version of XPCE to run without X11 display but with active
-sockets.  Problems: Windows compatibility, X11 handling. 
-
-
 ISO:
 ----
 
@@ -35,84 +24,20 @@ FEATURES:
 	  file.
 
 
-FOREIGN CLAUSES:
-----------------
-
-Aim: store programs in external resources. Most promising resource is a
-mapped file. External clauses are fully transparent to the user, but
-might be read-only.
-
-Requirements:
-
-	* PIC (Position Independent Code)
-	VM code only uses relative branches, so this is no problem.  8
-	instructions refer to atoms, functors or predicates.  These need
-	to be doubled, where PIC version uses the external symbol-table
-	to relate the symbol to the internal one.
-
-	* Finding clauses
-	firstClause() and findClause() should get hookable at the predicate
-	level.  This implies that the choice-point handle returned to the
-	VM should get abstract.  Possibly this can be unified to the
-	foreign/internal distinction. already present.
-
-	* Hooks into assert/retract
-
-
-REDESIGN:
----------
-
-With the introduction of `external predicates' we would have three types
-of predicates.  Time to rationalise a bit.  The following operations on
-procedures can be identified:
-
-	* Starting it
-	* Retrying it
-	* Modifying it
-
-STARTING procedures can easily be rationalised by providing special start
-instructions as normal Prolog VM code.  So, a foreign procedure becomes an
-ordinary Prolog procedure whose single clause has a single instruction:
-
-	I_FOREIGN <procedure-pointer>
-or
-	I_NDET_FOREIGN <procedure-pointer>
-
-For RETRYING, there simply are too many options.  The following cases,
-requiring totally different actions can be distinguished:
-
-	* Retry to a jump-location in the current clause
-	* Retry to the next clause (in same predicate)
-	* Retry to the next clause/frame
-	* Retry foreign predicate
-
-Affected:
-
-	* pl-wam.c
-	* pl-comp.c (?)
-	* pl-gc.c
-	* pl-trace.c
-
-STEPS:
-------
-
-Database design:
-
-	* Symbol-table
-	* Adapted compiler
-	* Clause Index
-
-MISC ISSUES:
-------------
-
-	* Is it safe to create a foreign frame and call-back while another
-	  query is in progress?  I think it is, but this should be checked,
-	  documented and handled by a test-procedure.
-
-WINDOWS ISSUES:
+UNICODE support
 ---------------
 
-	* After installing icons one needs the following to tell the
-	  explorer:  Must be added to the regtry library!
+	* Incomplete support in packages
+		- ODBC
+			- No support at all
+		- JPL
+			- No support at all
+		- XPCE
+			- Limited XIM support for X11 version
+			- No input method support in Windows version
 
-	  SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nil, nil);
+64-bit integers
+---------------
+
+	- Realise full compatibility of 32- and 64-bit saved states.
+	- Option to disable it on platforms that cannot support it.

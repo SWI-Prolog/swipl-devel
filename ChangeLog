@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=================================
+VERSION 5.6.0 (December 22, 2005)
+=================================
+
   * FIXED: Float/integer indexing problems that can cause both slow access
     and much too large datastructures for the index.
 

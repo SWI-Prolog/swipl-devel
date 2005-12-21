@@ -1,85 +1,57 @@
-SWI-Prolog 5.5.39/XPCE 6.5.39 development release
+SWI-Prolog 5.6.0/XPCE 6.6.0 stable release
+==========================================
 
-Planned features in 5.5.x relative to 5.4.x and their status
-============================================================
+Highlights of changes since 5.4.x
+=================================
 
-  * UNICODE support
+Unicode support
+---------------
 
-      Realised
-      --------
+The basic SWI-Prolog engine and many of   the important packages now the
+UNICODE character set. This simplifies   applications handling documents
+of several characters sets simultaneously,   something which is commonly
+found in web-applications. Prolog can now  represent any HTML, SGML, XML
+or  RDF  document   without   loss    of   information   or  complicated
+representations.
 
-	- Realised kernel representation of wide atoms and strings
-	- Changed built-in predicates to deal with this transparently
-	- Added encoding property on streams, allowing for
+Especially programs manipulating character sets   other than ISO-Latin-1
+must be checked. The  predicates  get_code/2   and  get_byte/2  are  now
+different! Character codes are indenpendent  of   the  locale,  but code
+using explicit numeric character  codes  must   be  updated  to  use the
+UNICODE values or -better- the 0'<char> syntax
 
-		- ISO Latin-1
-		- C-library default multibyte encoding
-		- UTF-8
-		- UNICODE (LE/BE)
-
-	- Updated the MS-Windows console (plwin.exe/plterm.dll) to run
-	  in MS UNICODE mode
-	- Updated `XOS' layer around MS-Windows to access Windows UNICODE
-	  filenames through UTF-8 encoding.
-	- Support wide characters in SGML/XML parser.
-	- Support wide characters in most of XPCE.
-	- Support for BOM (Byte Order Marker) for UNICODE and UTF-8 files.
-
-      Lacking
-      -------
-
-	- Incomplete support in packages
-		- ODBC
-			- No support at all
-		- JPL
-			- No support at all
-		- XPCE
-			- Limited XIM support for X11 version
-			- No input method support in Windows version
-
-  * More constraint libraries
-
-	- Received clp(r): Constraint Logic Programming over Reals by
-	  Leslie De Koninck, K.U. Leuven, supervised by Bart Demoen and
-	  Tom Schrijvers.
-
-	  This library is added to the default installation.  Should be
-	  considered beta code.
-
-  * Wider integers
-
-	- Provide 64-bit integers, also for 32-bit platforms.
-	- Added GMP support
-	- Tested on Linux, Windows, and MacOS.
-
-      Lacking
-      -------
-
-	- Realise full compatibility of 32- and 64-bit saved states.
-	- Possible alignment problems on some platforms
-	- Option to disable it on platforms that cannot support it.
-
-Patches in 5.5.39 relative to 5.5.38
-====================================
-
- * New library clp/simplex for solving linear programming problems.
-   Contributed by Markus Triska.
- * More Cygwin patches.
- * Fixed floor and ceil functions for rational numbers
- * Minor patches
+Please check the section name "Wide character encodings on streams" in
+the manual for further reference.
 
 
-Packages
-========
- 
- * Semweb library: removed unwanted choicepoint that could cause various
-   problems.
- * XPCE: change to ->request_compute.  Their may be cases where the new
-   behaviour causes old ->compute implementations to loop.
- * New package NLP, providing Porter stem and Double Metaphone algorithms.
+Unbounded integer and rational arithmetic
+-----------------------------------------
+
+By default SWI-Prolog is now linked   against the GNU Multiple Precision
+arithmetic library (GMP), This provides unbounded arithetic as expressed
+in the ISO Prolog flag `bounded' absence of the Prolog flags min_integer
+and max_integer. With this  change  the   dubious  silent  conversion of
+integer to float on arithmetic overflow   as  well conversion of `whole'
+floats to integers has been removed.
+
+Rational arithmetic allows for expressions such as
+
+	?- A is 1 rdiv 4 + 5 rdiv 6.
+
+	A = 13 rdiv 12
 
 
-Incompatible changes
-====================
+New and improved constraint libraries
+-------------------------------------
 
-  (none)
+5.6.0 has a much faster version  of   the  CHR constraint library by Tom
+Schrijvers, clp(r) by Leslie  de  Koninck   as  well  as  some dedicated
+constraint libraries by Markus Triska.
+
+
+Semantic Web library
+--------------------
+
+There are many additions to the  semantic web infra-structure, including
+full  thread-safety,  transaction  support  and   triggers  in  the  RDF
+store.
