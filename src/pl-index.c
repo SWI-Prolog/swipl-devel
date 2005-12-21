@@ -117,7 +117,11 @@ of buckets. This used to be simple, but now that our tag bits are on the
 left side, simply masking will put most things on the same hash-entry as
 it is very common for all clauses of   a predicate to have the same type
 of object. Hence, we now use exclusive or of the real value part and the
-tag-bits.
+tag-bits. 
+
+NOTE: this function must be kept consistent with arg1Key() in pl-comp.c!
+NOTE: This function returns 0 on non-indexable   fields, which is why we
+guarantee that the value is non-0 for indexable values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline int
@@ -139,29 +143,40 @@ indexOfWord(word w ARG_LD)
       case TAG_INTEGER:
 	if ( storage(w) != STG_INLINE )
 	{ Word p = valIndirectP(w);
+	  word key;
 
 #if SIZEOF_LONG == 4
           DEBUG(9, Sdprintf("Index for %lld = 0x%x\n",
 			    valBignum(w), p[0]^p[1]));
-	  return p[0]^p[1];
+	  key = p[0]^p[1];
 #else
- 	  return p[0];
+ 	  key = p[0];
 #endif
+	  if ( !key )
+	    key++;
+          return key;
 	}
       case TAG_ATOM:
 	break;				/* atom_t */
       case TAG_FLOAT:
       { Word p = valIndirectP(w);
+	word key;
 	
 	switch(WORDS_PER_DOUBLE)
 	{ case 2:
-	    return p[0]^p[1];
+	    key = p[0]^p[1];
+	    break;
 	  case 1:
-	    return p[0];
+	    key = p[0];
+	    break;
 	  default:
 	    assert(0);
 	    return 0L;
 	}
+
+	if ( !key )
+	  key++;
+	return key;
       }
       case TAG_COMPOUND:
 	w = *valPtr(w);			/* functor_t */

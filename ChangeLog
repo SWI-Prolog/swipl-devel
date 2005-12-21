@@ -7,10 +7,13 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Float/integer indexing problems that can cause both slow access
+    and much too large datastructures for the index.
+
   * PORT: pl-stream.h: avoid 'new' (work around MSVC 7 bug).  Alan Baljeu.
 
-  * PORT: Visual studio 2003 (MSVC 8) issues
-
+  * PORT: Visual studio 2003 (MSVC 8) issues.  Basic Prolog passes the
+    test suite, but XPCE crashes quickly.
 
 ==================================
 VERSION 5.5.40 (December 07, 2005)

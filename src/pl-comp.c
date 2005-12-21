@@ -2185,6 +2185,9 @@ decompileArg1()  is  a  simplified  version   of  decompileHead().   Its
 function is to extract the relevant   information  for (re)computing the
 index information for indexing on the   first argument (the 99.9% case).
 See reindexClause().
+
+NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
+pl-index.c!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -2216,26 +2219,38 @@ arg1Key(Clause clause, word *key)
 	*key = (word)PC[0] ^ (word)PC[1];
         succeed;
       case H_INTEGER:
+      { word k;
 #if SIZEOF_LONG == 4
-	*key = (word)*PC;		/* indexOfWord() picks 64-bits */
-        if ( (long)*key < 0L )
-	  *key ^= -1L;
-	DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, *key));
+	k = (word)*PC;			/* indexOfWord() picks 64-bits */
+        if ( (long)k < 0L )
+	  k ^= -1L;
+	DEBUG(9, Sdprintf("key for %ld = 0x%x\n", *PC, k));
 #else
-	*key = (word)*PC;
+	k = (word)*PC;
 #endif
+	if ( !k )
+	  k++;
+        *key = k;
 	succeed;
+      }
       case H_FLOAT:			/* tbd */
+      { word k;
 	switch(WORDS_PER_DOUBLE)
 	{ case 2:
-	    *key = (word)PC[0] ^ (word)PC[1];
-	    succeed;
+	    k = (word)PC[0] ^ (word)PC[1];
+	    break;
 	  case 1:
-	    *key = (word)PC[0];
-	    succeed;
+	    k = (word)PC[0];
+	    break;
 	  default:
 	    assert(0);
 	}
+      
+	if ( !k )
+	  k++;
+	*key = k;
+        succeed;
+      }
       case H_INDIRECT:
       case H_FIRSTVAR:
       case H_VAR:
