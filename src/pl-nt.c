@@ -24,8 +24,11 @@
 
 #if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
 #define _WIN32_WINNT 0x0400
-#include <winsock2.h>
+/* Please note that on some windows versions these includes must be
+   reversed.  Only, I do not know the proper conditions ...
+*/
 #include <windows.h>
+#include <winsock2.h>
 
 #include "pl-incl.h"
 #include "pl-utf8.h"

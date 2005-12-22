@@ -35,7 +35,9 @@ embedded application.
 #define UNQUOTED_PREFIX "\1"
 
 #ifdef WIN32
+#ifdef VC8				/* needed on visual studio 8 */
 #include <config/win32.h>
+#endif
 #include <process.h>
 #include <io.h>
 #define off_t long
