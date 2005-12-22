@@ -12,13 +12,13 @@ PLHOME=..\..
 !include ..\..\src\rules.mk
 PKGDLL=db4pl
 
-DBDIR=		..\..\..\db-4.1.25.NC
-LIBDB=		libdb41
-DBLIB=		$(DBDIR)\build_win32\Release\$(LIBDB).lib
-DBDLL=		$(DBDIR)\build_win32\Release\$(LIBDB).dll
+DBDIR=		C:\Program Files\Sleepycat Software\Berkeley DB 4.3.29
+LIBDB=		libdb43
+DBLIB=		"$(DBDIR)\lib\$(LIBDB).lib"
+DBDLL=		"$(DBDIR)\bin\$(LIBDB).dll"
 DBDEFS=		-DHAVE_SET_RPC_SERVER
 
-INCLUDE=$(INCLUDE);$(DBDIR)\build_win32
+INCLUDE=$(INCLUDE);$(DBDIR)\include
 
 CFLAGS=$(CFLAGS) $(DBDEFS)
 
