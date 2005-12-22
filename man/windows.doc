@@ -16,7 +16,7 @@
 
 \title{SWI-Prolog for MS-Windows}
 \author{Jan Wielemaker \\
-	SWI, \\
+	HCS (formerly SWI), \\
 	University of Amsterdam \\
 	The Netherlands \\
 	E-mail: \email{jan@swi-prolog.org}}
@@ -24,7 +24,7 @@
 \maketitle
 
 \begin{abstract}
-This document should get you started using SWI-Prolog on MS-Windows. It
+This document gets you started using SWI-Prolog on MS-Windows. It
 also describes the components and issues that are specific to
 MS-Windows. It is by no means a manual or Prolog tutorial. The reference
 manual is available online or can be downloaded in HTML and PDF format
@@ -314,13 +314,23 @@ An embedded executable is created from C, C++ and Prolog files using
 
 \section{The installation}
 
+
+\subsection{Supported Windows versions}			\label{sec:winver}
+
+SWI-Prolog 5.5.x and later are UNICODE applications, requiring Windows
+NT or later (2000, XP). Although Microsoft provides a library that
+allows such program to run under Windows 95/98/ME, this library is
+licenced such that it cannot be used with Open Source software. Users of
+these old operating systems are forced to stick with version 5.4.7.
+
+
 \subsection{Choosing the file-extension}		\label{sec:ext}
 
 By default, Prolog uses the \fileext{pl} extension to indicate Prolog
-source-files.  Unfortunately this extension conflicts with the Perl
+source-files. Unfortunately this extension conflicts with the Perl
 language. If you want to use both on the same Windows machine SWI-Prolog
-allows you to choose a different extension during the installation.  The
-extension \fileext{pro} is a commonly used alternative.  If portability
+allows you to choose a different extension during the installation. The
+extension \fileext{pro} is a commonly used alternative. If portability
 is an issue, it is advised to use the alternative extension only for the
 \emph{load file}, the source-file that loads the entire program and use
 the normal \fileext{pl} extension for libraries and files loaded from

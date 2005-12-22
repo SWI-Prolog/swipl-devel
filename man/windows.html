@@ -17,7 +17,7 @@
 <HR>
 <CENTER>
 <I>Jan Wielemaker <BR>
-SWI, <BR>
+HCS (formerly SWI), <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
 E-mail: <A HREF="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></I>
@@ -29,13 +29,12 @@ E-mail: <A HREF="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></I>
 </BLOCKQUOTE>
 <CENTER><H3>Abstract</H3></Center>
 <TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
-This document should get you started using SWI-Prolog on MS-Windows. It 
-also describes the components and issues that are specific to 
-MS-Windows. It is by no means a manual or Prolog tutorial. The reference 
-manual is available online or can be downloaded in HTML and PDF format 
-from the <A HREF="http://www.swi-prolog.org/">SWI-Prolog website</A>, 
-which also provides links to books, online tutorials and other Prolog 
-related material.
+This document gets you started using SWI-Prolog on MS-Windows. It also 
+describes the components and issues that are specific to MS-Windows. It 
+is by no means a manual or Prolog tutorial. The reference manual is 
+available online or can be downloaded in HTML and PDF format from the <A HREF="http://www.swi-prolog.org/">SWI-Prolog 
+website</A>, which also provides links to books, online tutorials and 
+other Prolog related material.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -56,9 +55,10 @@ related material.
 </UL>
 <LI><A HREF="#sec:3"><B>3 The installation</B></A>
 <UL>
-<LI><A HREF="#sec:3.1">3.1 Choosing the file-extension</A>
-<LI><A HREF="#sec:3.2">3.2 Installed programs</A>
-<LI><A HREF="#sec:3.3">3.3 Installed Registry keys and menus</A>
+<LI><A HREF="#sec:3.1">3.1 Supported Windows versions</A>
+<LI><A HREF="#sec:3.2">3.2 Choosing the file-extension</A>
+<LI><A HREF="#sec:3.3">3.3 Installed programs</A>
+<LI><A HREF="#sec:3.4">3.4 Installed Registry keys and menus</A>
 </UL>
 <LI><A HREF="#sec:4"><B>4 The SWI-Prolog community and foundation</B></A>
 <UL>
@@ -390,7 +390,17 @@ using
 
 <H2><A NAME="sec:3">3 The installation</A></H2>
 
-<H3><A NAME="sec:3.1">3.1 Choosing the file-extension</A></H3>
+<H3><A NAME="sec:3.1">3.1 Supported Windows versions</A></H3>
+
+<A NAME="sec:winver"></A>
+
+<P>SWI-Prolog 5.5.x and later are UNICODE applications, requiring 
+Windows NT or later (2000, XP). Although Microsoft provides a library 
+that allows such program to run under Windows 95/98/ME, this library is 
+licenced such that it cannot be used with Open Source software. Users of 
+these old operating systems are forced to stick with version 5.4.7.
+
+<H3><A NAME="sec:3.2">3.2 Choosing the file-extension</A></H3>
 
 <A NAME="sec:ext"></A>
 
@@ -405,7 +415,7 @@ alternative extension only for the
 use the normal <CODE>.pl</CODE> extension for libraries and files loaded 
 from other files.
 
-<H3><A NAME="sec:3.2">3.2 Installed programs</A></H3>
+<H3><A NAME="sec:3.3">3.3 Installed programs</A></H3>
 
 <P>The following tools and programs are installed:
 
@@ -470,10 +480,10 @@ structured files as tables </TD></TR>
 
 </CENTER>
 
-<H3><A NAME="sec:3.3">3.3 Installed Registry keys and menus</A></H3>
+<H3><A NAME="sec:3.4">3.4 Installed Registry keys and menus</A></H3>
 
 <P>The filetype <CODE>.pl</CODE> or chosen alternative (see <A HREF="#sec:ext">section 
-3.1</A>) is associated to <B>plwin.exe</B>. A chosen folder (default 
+3.2</A>) is associated to <B>plwin.exe</B>. A chosen folder (default 
 SWI-Prolog) is added to the start-menu holding shortcuts to Prolog and 
 some related utilities. The following registry keys are in use:
 
@@ -575,7 +585,7 @@ and refer to SWI-Prolog in publications.
 <P>
 <DT><A NAME=note-1 HREF="windows.html#back-to-note-1">note-1</A><DD>
 The .PL file extension can be changed during installation. See <A HREF="#sec:ext">section 
-3.1</A>.
+3.2</A>.
 <DT><A NAME=note-2 HREF="windows.html#back-to-note-2">note-2</A><DD>
 On most installations, single-character commands are executed without 
 waiting for the <font size=-1>RETURN</font> key.
