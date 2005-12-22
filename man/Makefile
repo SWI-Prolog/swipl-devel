@@ -32,7 +32,7 @@ PDF=		MANUAL.pdf
 ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
 
-WWWMAN=		~ftp/SWI-Prolog/Manual
+WWWMAN=		~www/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
 BETAMAN=	~www/SWI-Prolog/BETA/Manual
 
