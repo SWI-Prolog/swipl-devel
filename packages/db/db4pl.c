@@ -82,6 +82,14 @@ static int     opt_transactions;	/* are transactions enabled? */
 
 #define mkfunctor(n, a) PL_new_functor(PL_new_atom(n), a)
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TBD: Thread-safe version
+
+	- Deal with transactions and threads
+	- Safe register/unregister
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #ifdef WIN32
 #define NOSIG(code) { code; }
 #else
