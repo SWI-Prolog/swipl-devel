@@ -178,4 +178,13 @@ windows.pdf:	windows.tex
 windows.html:	windows.tex
 		latex2html windows
 
+################################################################
+# MacOsX readme
+################################################################
+
+macosx.pdf:	macosx.tex
+		./runtex --pdf macosx
+macosx.html:	macosx.tex
+		latex2html macosx
+
 # EOF #
