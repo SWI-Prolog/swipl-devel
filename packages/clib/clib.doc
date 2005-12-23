@@ -240,15 +240,21 @@ while the second sets the last-modified time to the current time.
 
 \section{Socket library}
 
-The \pllib{socket} library provides TCP inet-domain sockets from
+The \pllib{socket} library provides TCP and UDP inet-domain sockets from
 SWI-Prolog, both client and server-side communication. The interface of
 this library is very close to the Unix socket interface, also supported
-by the MS-Windows {\em winsock} API.  Since SWI-Prolog 4.0, XPCE is part
-of SWI-Prolog and offers \class{socket}.  XPCE provides an event-driven
-interface to sockets, handling multiple open sockets in paralel.
+by the MS-Windows {\em winsock} API.  SWI-Prolog applications that wish
+to communicate with multiple sources have three options:
 
-In the future we hope to provide a more high-level socket interface
-defined in Prolog and based on these primitives.
+\begin{enumerate}
+    \item Use I/O multiplexing based on wait_for_input/3.  On Windows
+          systems this can only be used for sockets, not for general
+	  (device-) file handles.
+    \item Use multiple threads, handling either a single blocking socket
+          or a pool using I/O multiplexing as above.
+    \item Using XPCE's class \class{socket} which synchronises socket
+          events in the GUI event-loop.
+\end{enumerate}
 
 \begin{description}
     \predicate{tcp_socket}{1}{-SocketId}
@@ -311,6 +317,11 @@ Set options on the socket.  Defined options are:
     \termitem{reuseaddr}{}
 Allow servers to reuse a port without the system being completely sure
 the port is no longer in use.
+
+    \termitem{broadcast}{}
+UDP sockets only: broadcast the package to all addresses matching the
+address.  The address is normally the address of the local subnet
+(i.e. 192.168.1.0).
 
     \termitem{dispatch}{Bool}
 In GUI environments (using XPCE or the Windows plwin.exe executable)
@@ -477,6 +488,38 @@ client(In, Out, _Peer) :-
 	close(Out),
 	delete_stream_from_pool(In).
 \end{code}
+
+
+\subsection{UDP protocol support}
+
+The current library provides limited support for UDP packets. The UDP
+protocol is a \emph{connection-less} and \emph{unreliable} datagram
+based protocol. That means that messages sent may or may not arrive at
+the client side and may arrive in a different order as they are sent.
+UDP messages are often used for streaming media or for service discovery
+using the broadcasting mechanism.
+
+\begin{description}
+    \predicate{udp_socket}{1}{-Socket}
+Similar to tcp_socket/1, but create a socket using the \const{SOCK_DGRAM}
+protocol, ready for UDP connections.
+
+    \predicate{udp_receive}{4}{+Socket, -Data, -From, +Options}
+Wait for and return the next datagram. The data is returned as a
+Prolog string object (see string_to_list/2). \arg{From} is a term of the
+format \mbox{ip(\arg{A},\arg{B},\arg{C},\arg{D}):\arg{Port}} indicating
+the sender of the message. \arg{Options} is currently unused.
+\arg{Socket} can be waited for using wait_for_input/3.
+
+    \predicate{udp_send}{4}{+Socket, +Data, +To, +Options}
+Send a UDP message.  Data is a string, atom or code-list providing the
+data.  \arg{To} is an address of the form \arg{Host}:\arg{Port} where
+Host is either the hostname or a term ip/4.  \arg{Options} is currently unused.
+
+A broadcast is achieved by using \term{tcp_setopt}{Socket, broadcast}
+prior to sending the datagram and using the local network mask for the
+ip/4 term,
+\end{description}
 
 
 \section{CGI Support library}

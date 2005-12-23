@@ -49,6 +49,7 @@
 #endif
 
 static atom_t ATOM_reuseaddr;		/* "reuseaddr" */
+static atom_t ATOM_broadcast;		/* "broadcast" */
 static atom_t ATOM_dispatch;		/* "dispatch" */
 static atom_t ATOM_nonblock;		/* "nonblock" */
 static atom_t ATOM_infinite;		/* "infinite" */
@@ -146,6 +147,11 @@ pl_setopt(term_t Socket, term_t opt)
   if ( PL_get_name_arity(opt, &a, &arity) )
   { if ( a == ATOM_reuseaddr && arity == 0 )
     { if ( nbio_setopt(socket, TCP_REUSEADDR, TRUE) == 0 )
+	return TRUE;
+
+      return FALSE;
+    } else if ( a == ATOM_broadcast && arity == 0 )
+    { if ( nbio_setopt(socket, UDP_BROADCAST, TRUE) == 0 )
 	return TRUE;
 
       return FALSE;
@@ -258,21 +264,109 @@ pl_open_socket(term_t Socket, term_t Read, term_t Write)
 
 
 		 /*******************************
+		 *	    UDP SOCKETS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+udp_receive(+Socket, -String, -From, +Options)
+udp_send(+String, +String, +To, +Options)
+
+From/To are of the format <Host>:<Port>
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define UDP_MAXDATA 4096
+
+static int
+unify_address(term_t t, struct sockaddr_in *addr)
+{ term_t av = PL_new_term_refs(2);
+
+  if ( !nbio_unify_ip4(av+0, ntohl(addr->sin_addr.s_addr)) ||
+       !PL_unify_integer(av+1, ntohs(addr->sin_port)) )
+    return FALSE;
+
+  return PL_unify_term(t, PL_FUNCTOR_CHARS, ":", 2,
+		       PL_TERM, av+0,
+		       PL_TERM, av+1);
+}
+
+
+static foreign_t
+udp_receive(term_t Socket, term_t Data, term_t From, term_t Options)
+{ struct sockaddr_in sockaddr;
+  int alen = sizeof(sockaddr);
+  int socket;
+  int flags = 0;
+  char buf[UDP_MAXDATA];
+  ssize_t n;
+
+  if ( !tcp_get_socket(Socket, &socket) ||
+       !nbio_get_sockaddr(From, &sockaddr) )
+    return FALSE;
+  
+  if ( (n=recvfrom(socket, buf, sizeof(buf), flags,
+		   (struct sockaddr*)&sockaddr, &alen)) == -1 )
+    return nbio_error(errno, TCP_ERRNO);
+
+  if ( !PL_unify_string_nchars(Data, n, buf) )
+    return FALSE;
+
+  return unify_address(From, &sockaddr);
+}
+
+
+static foreign_t
+udp_send(term_t Socket, term_t Data, term_t To, term_t Options)
+{ struct sockaddr_in sockaddr;
+  int alen = sizeof(sockaddr);
+  int socket;
+  int flags = 0L;
+  char *data;
+  unsigned int dlen;
+  ssize_t n;
+
+  if ( !PL_get_nchars(Data, &dlen, &data, CVT_ALL|CVT_EXCEPTION) )
+    return FALSE;
+
+  if ( !tcp_get_socket(Socket, &socket) ||
+       !nbio_get_sockaddr(To, &sockaddr) )
+    return FALSE;
+
+  if ( (n=sendto(socket, data, dlen, flags,
+		 (struct sockaddr*)&sockaddr, alen)) == -1 )
+    return nbio_error(errno, TCP_ERRNO);
+
+  return TRUE;
+}
+
+
+		 /*******************************
 		 *	PROLOG CONNECTION	*
 		 *******************************/
 
 static foreign_t
-pl_socket(term_t socket)
+create_socket(term_t socket, int type)
 { int sock;
 
   if ( !nbio_init("socket") )
     return FALSE;
 
-  sock = nbio_socket(AF_INET, SOCK_STREAM, 0);
+  sock = nbio_socket(AF_INET, type, 0);
   if ( sock < 0 )
     return FALSE;
 
   return tcp_unify_socket(socket, sock);
+}
+
+
+static foreign_t
+tcp_socket(term_t socket)
+{ return create_socket(socket, SOCK_STREAM);
+}
+
+
+static foreign_t
+udp_socket(term_t socket)
+{ return create_socket(socket, SOCK_DGRAM);
 }
 
 
@@ -530,6 +624,7 @@ pl_debug(term_t val)
 install_t
 install_socket()
 { ATOM_reuseaddr  = PL_new_atom("reuseaddr");
+  ATOM_broadcast  = PL_new_atom("broadcast");
   ATOM_dispatch   = PL_new_atom("dispatch");
   ATOM_nonblock   = PL_new_atom("nonblock");
   ATOM_infinite   = PL_new_atom("infinite");
@@ -544,12 +639,16 @@ install_socket()
   PL_register_foreign("tcp_connect",          2, pl_connect,	      0);
   PL_register_foreign("tcp_listen",           2, pl_listen,           0);
   PL_register_foreign("tcp_open_socket",      3, pl_open_socket,      0);
-  PL_register_foreign("tcp_socket",           1, pl_socket,           0);
+  PL_register_foreign("tcp_socket",           1, tcp_socket,          0);
   PL_register_foreign("tcp_close_socket",     1, pl_close_socket,     0);
   PL_register_foreign("tcp_setopt",           2, pl_setopt,           0);
   PL_register_foreign("tcp_host_to_address",  2, pl_host_to_address,  0);
   PL_register_foreign("gethostname",          1, pl_gethostname,      0);
   PL_register_foreign("tcp_select",           3, tcp_select,          0);
+
+  PL_register_foreign("udp_socket",           1, udp_socket,          0);
+  PL_register_foreign("udp_receive",	      4, udp_receive,	      0);
+  PL_register_foreign("udp_send",	      4, udp_send,	      0);
 }
 
 

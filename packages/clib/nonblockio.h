@@ -86,7 +86,8 @@ typedef enum				/* nbio_setopt() commands */
   TCP_REUSEADDR,
   TCP_DISPATCH,
   TCP_INSTREAM,
-  TCP_OUTSTREAM
+  TCP_OUTSTREAM,
+  UDP_BROADCAST
 } nbio_option;
 
 typedef enum

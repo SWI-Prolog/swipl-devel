@@ -1265,6 +1265,18 @@ nbio_setopt(int socket, nbio_option opt, ...)
 
       break;
     }
+    case UDP_BROADCAST:
+    { int val = va_arg(args, int);
+
+      if( setsockopt(socket, SOL_SOCKET, SO_BROADCAST,
+		     (const char *)&val, sizeof(val)) == -1)
+      { nbio_error(h_errno, TCP_HERRNO);
+	rc = -1;
+      } else
+	rc = 0;
+
+      break;
+    }
     case TCP_DISPATCH:
     { int val = va_arg(args, int);
       plsocket *s = lookupSocket(socket);
@@ -1354,18 +1366,27 @@ or the name of a registered port (e.g. 'smtp').
 
 int
 nbio_get_sockaddr(term_t Address, struct sockaddr_in *addr)
-{ struct hostent *host;
-  char           *hostName = NULL;
-  int		  port;
+{ int		  port;
 	
   addr->sin_family = AF_INET;
+  addr->sin_addr.s_addr = INADDR_ANY;
 
   if ( PL_is_functor(Address, FUNCTOR_module2) )
-  { term_t arg = PL_new_term_ref();
+  { char *hostName;
+    term_t arg = PL_new_term_ref();
 
     PL_get_arg(1, Address, arg);
-    if ( !PL_get_atom_chars(arg, &hostName) )
-      return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1, arg, "atom");
+    if ( PL_get_atom_chars(arg, &hostName) )
+    { struct hostent *host;
+
+      if( !(host = gethostbyname(hostName)) )
+	return nbio_error(h_errno, TCP_HERRNO);
+      if ( (int)sizeof(addr->sin_addr) < host->h_length )
+	return PL_warning("Oops, host address too long!");
+      memcpy(&addr->sin_addr, host->h_addr, host->h_length);
+    } else if ( !nbio_get_ip(arg, &addr->sin_addr) )
+    { return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1, arg, "atom|ip/4");
+    }
 
     PL_get_arg(2, Address, arg);
     if ( !nbio_get_port(arg, &port) )
@@ -1375,15 +1396,6 @@ nbio_get_sockaddr(term_t Address, struct sockaddr_in *addr)
   } else if ( !nbio_get_port(Address, &port) )
     return FALSE;
 
-  if ( hostName )
-  { if( !(host = gethostbyname(hostName)) )
-      return nbio_error(h_errno, TCP_HERRNO);
-    if ( (int)sizeof(addr->sin_addr) < host->h_length )
-      return PL_warning("Oops, host address too long!");
-    memcpy(&addr->sin_addr, host->h_addr, host->h_length);
-  } else
-    addr->sin_addr.s_addr = INADDR_ANY;
-	
   addr->sin_port = htons((short)port);
 
   return TRUE;

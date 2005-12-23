@@ -1,3 +1,7 @@
+Dec 23, 2005
+
+  * Start work on UDP support in socket.pl.
+
 Oct 14, 2005
 
   * Fixed signedness error in library memfile, returning incorrect values
