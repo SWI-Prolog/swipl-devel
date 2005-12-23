@@ -198,7 +198,7 @@ add_debug_decl(CHR, CHR) :-
 	member(option(Name, _), CHR), Name == debug, !.
 add_debug_decl(CHR, CHR) :-
 	member((:- chr_option(Name, _)), CHR), Name == debug, !.
-add_debug_decl(CHR, [:- chr_option(debug, Debug)|CHR]) :-
+add_debug_decl(CHR, [(:- chr_option(debug, Debug))|CHR]) :-
 	(   chr_current_prolog_flag(generate_debug_info, true)
 	->  Debug = on
 	;   Debug = off
