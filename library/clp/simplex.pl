@@ -956,7 +956,7 @@ tableau_with_diffs(Rows0, Basis, NRows, NCols) :-
 	% make it a bit easier for bounds.pl: constrain first the row
 	% where much propagation is possible, only then the rest,
 	% in the hope to avoid too many unconstrained variables
-	findall(BV, (BV = bv(NMaxRow, _, _),member(BV, Basis)), BVs),
+	sublist(=(bv(NMaxRow, _, _)), Basis, BVs),
 	constrain_basis(BVs, Uis, Vjs, Rows0),
 	constrain_basis(Basis, Uis, Vjs, Rows0),
 	constrain_diffs(Rows0, Uis, Vjs).
