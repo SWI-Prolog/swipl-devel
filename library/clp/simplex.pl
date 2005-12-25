@@ -37,6 +37,8 @@
 		constraint/4,
 		constraint_add/4,
 		gen_state/1,
+		gen_state_clpr/1,
+		gen_state_clpr/2,
 		maximize/3,
 		minimize/3,
 		objective/2,
@@ -46,23 +48,273 @@
 	]).
 
 :- use_module(library(bounds)).
+:- use_module(library(clpr)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CLP(R) bindings
+% the (unsolved) state is stored as a structure of the form
+%    clpr_state(Options, Cs, Is)
+% Options: list of Option=Value pairs, currently only eps=Eps
+% Cs: list of constraints, i.e., structures of the form
+%    c(Name, Left, Op, Right)
+%    anonymous constraints have Name == 0
+% Is: list of integral variables
+
+gen_state_clpr(State) :-
+	gen_state_clpr([], State).
+
+gen_state_clpr(Options, State) :-
+	( memberchk(eps=_, Options) ->
+		Options1 = Options
+	;
+		Options1 = [eps=1e-6|Options]
+	),
+	State = clpr_state(Options1, [], []).
+
+clpr_state_options(clpr_state(Os, _, _), Os).
+clpr_state_constraints(clpr_state(_, Cs, _), Cs).
+clpr_state_integrals(clpr_state(_, _, Is), Is).
+clpr_state_add_integral(I, clpr_state(Os, Cs, Is), clpr_state(Os, Cs, [I|Is])).
+clpr_state_add_constraint(C, clpr_state(Os, Cs, Is), clpr_state(Os, [C|Cs], Is)).
+clpr_state_set_constraints(Cs, clpr_state(Os,_,Is), clpr_state(Os, Cs, Is)).
+
+clpr_constraint(Name, Constraint, S0, S) :-
+	( Constraint = integral(Var) ->
+		clpr_state_add_integral(Var, S0, S)
+	;
+		Constraint =.. [Op,Left,Right],
+		coeff_one(Left, Left1),
+		clpr_state_add_constraint(c(Name, Left1, Op, Right), S0, S)
+	).
+
+clpr_constraint(Constraint, S0, S) :-
+	clpr_constraint(0, Constraint, S0, S).
+
+clpr_shadow_price(clpr_solved(_,_,Duals,_), Name, Value) :-
+	memberchk(Name-Value0, Duals),
+	Value is Value0.
+	%( var(Value0) ->
+	%	Value = 0
+	%;
+	%	Value is Value0
+	%).
+	
+
+
+clpr_make_variables(Cs, Aliases) :-
+	clpr_constraints_variables(Cs, Variables0, []),
+	sort(Variables0, Variables1),
+	clpr_aliases(Variables1, Aliases).
+
+clpr_constraints_variables([]) -->
+	[].
+clpr_constraints_variables([c(_, Left, _, _)|Cs]) -->
+	variables(Left),
+	clpr_constraints_variables(Cs).
+
+clpr_aliases([], []).
+clpr_aliases([Var|Vars], [Var-_|Rest]) :-
+	clpr_aliases(Vars, Rest).
+
+clpr_set_up([], _).
+clpr_set_up([C|Cs], Aliases) :-
+	C = c(_Name, Left, Op, Right),
+	clpr_translate_linsum(Left, Aliases, LinSum),
+	CLPRConstraint =.. [Op, LinSum, Right],
+	clpr:{ CLPRConstraint },
+	clpr_set_up(Cs, Aliases).
+
+clpr_set_up_noneg([], _).
+clpr_set_up_noneg([Var|Vs], Aliases) :-
+	memberchk(Var-CLPVar, Aliases),
+	{ CLPVar >= 0 },
+	clpr_set_up_noneg(Vs, Aliases).
+
+clpr_translate_linsum([], _, 0).
+clpr_translate_linsum([Coeff*Var|Ls], Aliases, LinSum) :-
+	memberchk(Var-CLPVar, Aliases),
+	LinSum = Coeff*CLPVar + LinRest,
+	clpr_translate_linsum(Ls, Aliases, LinRest).
+
+clpr_dual(Objective0, S0, DualValues) :-
+	clpr_state_constraints(S0, Cs0),
+	clpr_constraints_variables(Cs0, Variables0, []),
+	sort(Variables0, Variables1),
+	clpr_standard_form(Cs0, Cs1),
+	clpr_include_all_vars(Cs1, Variables1, Cs2),
+	clpr_merge_into(Variables1, Objective0, Objective, []),
+	clpr_unique_names(Cs2, 0, Names),
+	clpr_constraints_coefficients(Cs2, Coefficients),
+	transpose(Coefficients, TCs),
+	clpr_dual_constraints(TCs, Objective, Names, DualConstraints),
+	clpr_nonneg_constraints(Cs2, Names, DualNonNeg, []),
+	append(DualConstraints, DualNonNeg, DualConstraints1),
+	clpr_dual_objective(Cs2, Names, DualObjective),
+	clpr_make_variables(DualConstraints1, Aliases),
+	clpr_set_up(DualConstraints1, Aliases),
+	clpr_translate_linsum(DualObjective, Aliases, LinExpr),
+	minimize(LinExpr),
+	Aliases = DualValues.
+
+
+
+clpr_dual_objective([], _, []).
+clpr_dual_objective([C|Cs], [Name|Names], [Right*Name|Os]) :-
+	C = c(_, _, _, Right),
+	clpr_dual_objective(Cs, Names, Os).
+
+clpr_nonneg_constraints([], _, Nons, Nons).
+clpr_nonneg_constraints([C|Cs], [Name|Names], Nons0, Nons) :-
+	C = c(_, _, Op, _),
+	( Op == (=<) ->
+		Nons0 = [c(0, [1*Name], (>=), 0)|Rest]
+	;
+		Nons0 = Rest
+	),
+	clpr_nonneg_constraints(Cs, Names, Rest, Nons).
+	
+
+clpr_dual_constraints([], [], _, []).
+clpr_dual_constraints([Coeffs|Cs], [O*_|Os], Names, [Constraint|Constraints]) :-
+	clpr_dual_linsum(Coeffs, Names, Linsum),
+	Constraint = c(0, Linsum, (>=), O),
+	clpr_dual_constraints(Cs, Os, Names, Constraints).
+
+
+clpr_dual_linsum([], [], []).
+clpr_dual_linsum([Coeff|Coeffs], [Name|Names], [Coeff*Name|Rest]) :-
+	clpr_dual_linsum(Coeffs, Names, Rest).
+	
+
+clpr_constraints_coefficients([], []).
+clpr_constraints_coefficients([C|Cs], [Coeff|Coeffs]) :-
+	C = c(_, Left, _, _),
+	all_coeffs(Left, Coeff),
+	clpr_constraints_coefficients(Cs, Coeffs).
+
+all_coeffs([], []).
+all_coeffs([Coeff*_|Cs], [Coeff|Rest]) :-
+	all_coeffs(Cs, Rest).
+
+
+clpr_unique_names([], _, []).
+clpr_unique_names([C0|Cs0], Num, [N|Ns]) :-
+	C0 = c(Name, _, _, _),
+	( Name == 0 ->
+		N = Num,
+		Num1 is Num + 1
+	;
+		N = Name,
+		Num1 = Num
+	),
+	clpr_unique_names(Cs0, Num1, Ns).
+
+clpr_include_all_vars([], _, []).
+clpr_include_all_vars([C0|Cs0], Variables, [C|Cs]) :-
+	C0 = c(Name, Left0, Op, Right),
+	clpr_merge_into(Variables, Left0, Left, []),
+	C = c(Name, Left, Op, Right),
+	clpr_include_all_vars(Cs0, Variables, Cs).
+
+clpr_merge_into([], _, Ls, Ls).
+clpr_merge_into([V|Vs], Left, Ls0, Ls) :-
+	( member(Coeff*V, Left) ->
+		Ls0 = [Coeff*V|Rest]
+	;
+		Ls0 = [0*V|Rest]
+	),
+	clpr_merge_into(Vs, Left, Rest, Ls).
+
+
+
+
+clpr_maximize(Expr0, S0, S) :-
+	coeff_one(Expr0, Expr),
+	clpr_state_constraints(S0, Cs),
+	clpr_make_variables(Cs, Aliases),
+	clpr_set_up(Cs, Aliases),
+	clpr_constraints_variables(Cs, Variables0, []),
+	sort(Variables0, Variables1),
+	clpr_set_up_noneg(Variables1, Aliases),
+	clpr_translate_linsum(Expr, Aliases, LinExpr),
+	clpr_state_integrals(S0, Is),
+	( Is == [] ->
+		maximize(LinExpr),
+		Sup is LinExpr,
+		clpr_dual(Expr, S0, DualValues),
+		S = clpr_solved(Sup, Aliases, DualValues, S0)
+	;
+		clpr_state_options(S0, Options),
+		memberchk(eps=Eps, Options),
+		clpr_fetch_vars(Is, Aliases, Vars),
+		bb_inf(Vars, -LinExpr, Sup, Vertex, Eps),
+		clpr_merge_vars(Is, Vertex, Values),
+		% what about the dual in MIPs?
+		Sup1 is -Sup,
+		S = clpr_solved(Sup1, Values, [], S0)
+	).
+
+clpr_minimize(Expr0, S0, S) :-
+	coeff_one(Expr0, Expr1),
+	clpr_all_negate(Expr1, Expr2),
+	clpr_maximize(Expr2, S0, S1),
+	S1 = clpr_solved(Sup, Values, Duals, S0),
+	Inf is -Sup,
+	S = clpr_solved(Inf, Values, Duals, S0).
+
+clpr_merge_vars([], [], []).
+clpr_merge_vars([I|Is], [V|Vs], [I-V|Rest]) :-
+	clpr_merge_vars(Is, Vs, Rest).
+
+clpr_fetch_vars([], _, []).
+clpr_fetch_vars([Var|Vars], Aliases, [X|Xs]) :-
+	memberchk(Var-X, Aliases),
+	clpr_fetch_vars(Vars, Aliases, Xs).
+
+clpr_variable_value(clpr_solved(_, Aliases, _, _), Variable, Value) :-
+	memberchk(Variable-Value0, Aliases),
+	Value is Value0.
+	%( var(Value0) ->
+	%	Value = 0
+	%;
+	%	Value is Value0
+	%).
+
+clpr_objective(clpr_solved(Obj, _, _, _), Obj).
+
+clpr_standard_form([], []).
+clpr_standard_form([c(Name, Left, Op, Right)|Cs], [S|Ss]) :-
+	clpr_standard_form_(Op, Name, Left, Right, S),
+	clpr_standard_form(Cs, Ss).
+
+clpr_standard_form_((=), Name, Left, Right, c(Name, Left, (=), Right)).
+clpr_standard_form_((>=), Name, Left, Right, c(Name, Left1, (=<), Right1)) :-
+	Right1 is -Right,
+	clpr_all_negate(Left, Left1).
+clpr_standard_form_((=<), Name, Left, Right, c(Name, Left, (=<), Right)).
+
+clpr_all_negate([], []).
+clpr_all_negate([Coeff0*Var|As], [Coeff1*Var|Ns]) :-
+	Coeff1 is -Coeff0,
+	clpr_all_negate(As, Ns).
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % General Simplex Algorithm
-
-   % Structures used:
-   %
-   % tableau(Objective, Variables, Indicators, Constraints)
-   %   *) objective function, represented as row
-   %   *) list of variables corresponding to columns
-   %   *) indicators denoting which variables are still active
-   %   *) constraints as rows
-   %
-   % row(Var, Left, Right)
-   %   *) the basic variable corresponding to this row
-   %   *) coefficients of the left-hand side of the constraint
-   %   *) right-hand side of the constraint
-   %
+% Structures used:
+%
+% tableau(Objective, Variables, Indicators, Constraints)
+%   *) objective function, represented as row
+%   *) list of variables corresponding to columns
+%   *) indicators denoting which variables are still active
+%   *) constraints as rows
+%
+% row(Var, Left, Right)
+%   *) the basic variable corresponding to this row
+%   *) coefficients of the left-hand side of the constraint
+%   *) right-hand side of the constraint
+%
 
 
 find_row(Variable, [Row|Rows], R) :-
@@ -75,12 +327,17 @@ find_row(Variable, [Row|Rows], R) :-
 
 
 variable_value(State, Variable, Value) :-
-	solved_tableau(State, Tableau),
-	tableau_rows(Tableau, Rows),
-	( find_row(Variable, Rows, Row) ->
-		Row = row(_, _, Value)
-	;
-		Value = 0
+	functor(State, F, _),
+	( F == solved ->
+		solved_tableau(State, Tableau),
+		tableau_rows(Tableau, Rows),
+		( find_row(Variable, Rows, Row) ->
+			Row = row(_, _, Value)
+		;
+			Value = 0
+		)
+	; F == clpr_solved ->
+		clpr_variable_value(State, Variable, Value)
 	).
 
 all_vars_zero([], _).
@@ -93,20 +350,31 @@ list_first(Ls, F, Index) :-
 	once(nth0(Index, Ls, F)).
 
 shadow_price(State, Name, Value) :-
-	solved_tableau(State, Tableau),
-	tableau_objective(Tableau, Objective),
-	Objective = row(_, Left, _),
-	tableau_variables(Tableau, Variables),
-	solved_names(State, Names),
-	memberchk([Name,Var], Names),
-	list_first(Variables, Var, Nth0),
-	nth0(Nth0, Left, Value).
+	functor(State, F, _),
+	( F == solved ->
+		solved_tableau(State, Tableau),
+		tableau_objective(Tableau, Objective),
+		Objective = row(_, Left, _),
+		tableau_variables(Tableau, Variables),
+		solved_names(State, Names),
+		memberchk([Name,Var], Names),
+		list_first(Variables, Var, Nth0),
+		nth0(Nth0, Left, Value)
+	; F == clpr_solved ->
+		clpr_shadow_price(State, Name, Value)
+	).
+		
 
 
 objective(State, Obj) :-
-	solved_tableau(State, Tableau),
-	tableau_objective(Tableau, Objective),
-	Objective = row(_, _, Obj).
+	functor(State, F, _),
+	( F == solved ->
+		solved_tableau(State, Tableau),
+		tableau_objective(Tableau, Objective),
+		Objective = row(_, _, Obj)
+	;
+		clpr_objective(State, Obj)
+	).
 
    % interface functions that access tableau components
 
@@ -208,28 +476,46 @@ solved_integrals(solved(_,_,Is), Is).
 
 
 constraint(C, S0, S) :-
-	( C = integral(Var) ->
-		state_add_integral(Var, S0, S)
-	;
-		constraint(0, C, S0, S)
+	functor(S0, F, _),
+	( F == state ->
+		( C = integral(Var) ->
+			state_add_integral(Var, S0, S)
+		;
+			constraint(0, C, S0, S)
+		)
+	; F == clpr_state ->
+		clpr_constraint(C, S0, S)
 	).
 
 
 constraint(Name, C, S0, S) :-
-	( C = integral(Var) ->
-		state_add_integral(Var, S0, S)
-	;
-		C =.. [Op, Left0, Right0],
-		coeff_one(Left0, Left),
-		Right0 >= 0,
-		Right is rationalize(Right0),
-		state_add_constraint(c(Name, Left, Op, Right), S0, S)
+	functor(S0, F, _),
+	( F == state ->
+		( C = integral(Var) ->
+			state_add_integral(Var, S0, S)
+		;
+			C =.. [Op, Left0, Right0],
+			coeff_one(Left0, Left),
+			Right0 >= 0,
+			Right is rationalize(Right0),
+			state_add_constraint(c(Name, Left, Op, Right), S0, S)
+		)
+	; F == clpr_state ->
+		clpr_constraint(Name, C, S0, S)
 	).
 
 constraint_add(Name, A, S0, S) :-
-	state_constraints(S0, Cs),
-	add_left(Cs, Name, A, Cs1),
-	state_set_constraints(Cs1, S0, S).
+	functor(S0, F, _),
+	( F == state ->
+		state_constraints(S0, Cs),
+		add_left(Cs, Name, A, Cs1),
+		state_set_constraints(Cs1, S0, S)
+	; F == clpr_state ->
+		clpr_state_constraints(S0, Cs),
+		add_left(Cs, Name, A, Cs1),
+		clpr_state_set_constraints(Cs1, S0, S)
+	).
+		
 
 add_left([c(Name,Left0,Op,Right)|Cs], V, A, [c(Name,Left,Op,Right)|Rest]) :-
 	( Name == V ->
@@ -331,7 +617,12 @@ branch_and_bound(Objective, Solved, AllInt, ZStar0, ZStar, S0, S, Found) :-
 
 maximize(Z0, S0, S) :-
 	coeff_one(Z0, Z1),
-	maximize_mip(Z1, S0, S).
+	functor(S0, F, _),
+	( F == state ->
+		maximize_mip(Z1, S0, S)
+	; F == clpr_state ->
+		clpr_maximize(Z1, S0, S)
+	).
 
 maximize_mip(Z, S0, S) :-
 	maximize_(Z, S0, Solved),
@@ -361,17 +652,22 @@ all_integers([Coeff*V|Rest], Is) :-
 
 minimize(Z0, S0, S) :-
 	coeff_one(Z0, Z1),
-	linsum_negate(Z1, Z2),
-	maximize_mip(Z2, S0, S1),
-	solved_tableau(S1, Tableau),
-	solved_names(S1, Names),
-	Tableau = tableau(Obj, Vars, Inds, Rows),
-	Obj = row(z, Left0, Right0),
-	all_times(Left0, (-1), Left),
-	Right is -Right0,
-	Obj1 = row(z, Left, Right),
-	state_integrals(S0, Is),
-	S = solved(tableau(Obj1, Vars, Inds, Rows), Names, Is).
+	functor(S0, F, _),
+	( F == state ->
+		linsum_negate(Z1, Z2),
+		maximize_mip(Z2, S0, S1),
+		solved_tableau(S1, Tableau),
+		solved_names(S1, Names),
+		Tableau = tableau(Obj, Vars, Inds, Rows),
+		Obj = row(z, Left0, Right0),
+		all_times(Left0, (-1), Left),
+		Right is -Right0,
+		Obj1 = row(z, Left, Right),
+		state_integrals(S0, Is),
+		S = solved(tableau(Obj1, Vars, Inds, Rows), Names, Is)
+	; F == clpr_state ->
+		clpr_minimize(Z1, S0, S)
+	).
 
 op_pendant((>=), (=<)).
 op_pendant((=<), (>=)).
@@ -724,13 +1020,12 @@ variables([_Coeff*Var|Rest]) -->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % streamlined simplex algorithm for transportation problems
-
-   % structures used:
-   % cost matrix:
-   %   *) row(Cols), Cols is a list of cells
-   %   *) cell(Cost, Value, Diff)
-   % basic variables:
-   %   *) bv(Row, Col, Value)
+% structures used:
+% cost matrix:
+%   *) row(Cols), Cols is a list of cells
+%   *) cell(Cost, Value, Diff)
+% basic variables:
+%   *) bv(Row, Col, Value)
 
 
 cell_cost(cell(Cost, _, _), Cost).
