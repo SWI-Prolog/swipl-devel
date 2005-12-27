@@ -419,7 +419,7 @@ Section "Shell Extensions" SecShell
   IfErrors 0 NoError
     MessageBox MB_OK "Could not write registry to register filetypes\n \
 		      You may wish to retry the installation with\n \
-		      sufficient previleges or accept the ${EXT} files\n \
+		      sufficient privileges or accept the ${EXT} files\n \
 		      cannot be opened from the shell and Prolog does not\n \
 		      appear in the start menu"
 NoError:
