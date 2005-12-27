@@ -321,7 +321,7 @@ the port is no longer in use.
     \termitem{broadcast}{}
 UDP sockets only: broadcast the package to all addresses matching the
 address.  The address is normally the address of the local subnet
-(i.e. 192.168.1.0).
+(i.e. 192.168.1.255).  See udp_send/4.
 
     \termitem{dispatch}{Bool}
 In GUI environments (using XPCE or the Windows plwin.exe executable)
@@ -517,8 +517,8 @@ data.  \arg{To} is an address of the form \arg{Host}:\arg{Port} where
 Host is either the hostname or a term ip/4.  \arg{Options} is currently unused.
 
 A broadcast is achieved by using \term{tcp_setopt}{Socket, broadcast}
-prior to sending the datagram and using the local network mask for the
-ip/4 term,
+prior to sending the datagram and using the local network broadcast
+address as a ip/4 term.
 \end{description}
 
 

@@ -848,6 +848,10 @@ nbio_select(int n,
 
 static functor_t FUNCTOR_module2;
 static functor_t FUNCTOR_ip4;
+static functor_t FUNCTOR_ip1;
+static atom_t ATOM_any;
+static atom_t ATOM_broadcast;
+static atom_t ATOM_loopback;
 
 static plsocket *sockets;
 static int initialised = FALSE;		/* Windows only */
@@ -1140,6 +1144,10 @@ nbio_init(const char *module)
 
   FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
   FUNCTOR_ip4     = PL_new_functor(PL_new_atom("ip"), 4);
+  FUNCTOR_ip1     = PL_new_functor(PL_new_atom("ip"), 1);
+  ATOM_any	  = PL_new_atom("any");
+  ATOM_broadcast  = PL_new_atom("broadcast");
+  ATOM_loopback   = PL_new_atom("loopback");
 
 #ifdef WIN32
 { WSADATA WSAData;
@@ -1421,6 +1429,23 @@ nbio_get_ip(term_t ip4, struct in_addr *ip)
     memcpy(ip, &hip, sizeof(hip));
 
     return TRUE;
+  } else if ( PL_is_functor(ip4, FUNCTOR_ip1) )
+  { term_t a = PL_new_term_ref();
+    atom_t id;
+
+    PL_get_arg(1, ip4, a);
+    if ( PL_get_atom(a, &id) )
+    { if ( id == ATOM_any )
+	ip->s_addr = INADDR_ANY;
+      else if ( id == ATOM_broadcast )
+	ip->s_addr = INADDR_BROADCAST;
+      else if ( id == ATOM_loopback )
+	ip->s_addr = INADDR_LOOPBACK;
+      else
+	return FALSE;
+
+      return TRUE;
+    }
   }
 
   return FALSE;
