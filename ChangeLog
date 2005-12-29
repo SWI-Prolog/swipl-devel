@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: expand_term/2 bypass expansion for variables.  Paulo Moura.
+
 =================================
 VERSION 5.6.0 (December 22, 2005)
 =================================

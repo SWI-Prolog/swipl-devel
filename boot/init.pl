@@ -1372,6 +1372,9 @@ $load_goal(use_module(_, _)) :- flag($compiling, wic, wic).
 :- user:dynamic(goal_expansion/2).
 :- user:multifile(goal_expansion/2).
 
+expand_term(Var, Expanded) :-
+	var(Var), !,
+	Expanded = Var.
 expand_term(Term, Expanded) :-		% local term-expansion
 	$term_expansion_module(Module),
 	Module:term_expansion(Term, Expanded0), !,
