@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Online manual index handling (double 'Overview').   
+    Pierpaolo BERNARDI.
+
   * FIXED: expand_term/2 bypass expansion for variables.  Paulo Moura.
 
 =================================
