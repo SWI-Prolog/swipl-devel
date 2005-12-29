@@ -565,8 +565,8 @@ valueExpression(term_t t, Number r ARG_LD)
 
       _PL_get_arg(n+1, t, h0+n);
       if ( valueExpression(h0+n, &n1 PASS_LD) )
-      { clearNumber(&n1);
-	_PL_put_number(h0+n, &n1);
+      { _PL_put_number(h0+n, &n1);
+	clearNumber(&n1);
       } else
       { PL_close_foreign_frame(fid);
 	fail;

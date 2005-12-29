@@ -332,6 +332,7 @@ floattest(float-8) :-
 :- arithmetic_function(twice/1).
 :- arithmetic_function(mean/2).
 :- arithmetic_function(euler/0).
+:- arithmetic_function(idiv/2).
 
 ten(10).
 twice(X, R) :-
@@ -340,6 +341,11 @@ mean(X1, X2, R) :-
 	R is (X1 + X2)/2.
 
 euler(2.71828).
+
+idiv(Dd,Dr,Iq):-
+        Q is Dd/Dr,
+        rational(Q,Qt,Qn),
+        Iq is Qt//Qn.
 
 arithmetic_functions(func-1) :-
 	A is ten, A =:= 10.
@@ -351,6 +357,12 @@ arithmetic_functions(func-4) :-
         Exp = 6*euler*7*1,		% test functions corrupting stack
         EE is Exp,
 	EE =:= 6*euler*7*1.
+arithmetic_functions(idiv-1) :-
+	(   current_prolog_flag(bounded, false)
+	->  Qi is idiv(3 rdiv 2,2 rdiv 5),
+	    Qi == 3
+	;   true
+	).
 
 
 		 /*******************************
