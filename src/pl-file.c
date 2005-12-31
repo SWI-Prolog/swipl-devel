@@ -2590,6 +2590,7 @@ static int
 stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t name;
   stream_context *ctx = getStreamContext(s);
+  int i;
   
   if ( PL_get_atom(prop, &name) )
   { alias *a;
@@ -2599,9 +2600,16 @@ stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 	return TRUE;
     }
     
+    if ( (i=standardStreamIndexFromName(name)) >= 0 &&
+	 i < 6 &&
+	 s == LD->IO.streams[i] )
+      return TRUE;
+
     return FALSE;
   }
 
+  if ( (i=standardStreamIndexFromStream(s)) >= 0 && i < 3 )
+    return PL_unify_atom(prop, standardStreams[i]);
   if ( ctx->alias_head )
     return PL_unify_atom(prop, ctx->alias_head->name);
 
