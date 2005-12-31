@@ -50,7 +50,8 @@ using the command below. In addition to the port named
 \const{swi-prolog-devel} providing the development version.
 
 \begin{code}
-% port install swi-prolog
+% sudo port -d selfupdate       # make sure we have the latest portfiles
+% sudo port install swi-prolog
 \end{code}
 
 The swi-prolog port depends on \const{readline}, \const{ncurses}
