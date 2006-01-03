@@ -3,7 +3,7 @@
     Part of CPL(R) (Constraint Logic Programming over Reals)
 
     Author:        Leslie De Koninck
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
     Copyright (C): 2004, K.U. Leuven and
@@ -40,34 +40,27 @@
 
 :- module(store,
 	[
-		add_linear_11/3,
-		add_linear_f1/4,
-		add_linear_ff/5,
-		normalize_scalar/2,
-		delete_factor/4,
-		mult_linear_factor/3,
-		nf_rhs_x/4,
-		indep/2,
-		isolate/3,
-		nf_substitute/4,
-		mult_hom/3,
-		nf2sum/3,
-		nf_coeff_of/3,
-		renormalize/2	
+	    add_linear_11/3,
+	    add_linear_f1/4,
+	    add_linear_ff/5,
+	    normalize_scalar/2,
+	    delete_factor/4,
+	    mult_linear_factor/3,
+	    nf_rhs_x/4,
+	    indep/2,
+	    isolate/3,
+	    nf_substitute/4,
+	    mult_hom/3,
+	    nf2sum/3,
+	    nf_coeff_of/3,
+	    renormalize/2	
 	]).
-:- use_module(arith_r,
-	[
-		arith_normalize/2
-	]).
-
 
 % normalize_scalar(S,[N,Z])
 %
 % Transforms a scalar S into a linear expression [S,0]
 
-normalize_scalar(S,[N,Z]) :-
-	arith_normalize(S,N),
-	Z = 0.0.
+normalize_scalar(S,[S,0.0]).
 
 % renormalize(List,Lin)
 %
@@ -77,8 +70,7 @@ normalize_scalar(S,[N,Z]) :-
 % the constant part of the linear expression; when a variable X is bound to
 % another variable Y, the scalars of both are added)
 
-renormalize(List,Lin) :-
-	List = [I,R|Hom],
+renormalize([I,R|Hom],Lin) :-
 	length(Hom,Len),
 	renormalize_log(Len,Hom,[],Lin0),
 	add_linear_11([I,R],Lin0,Lin).
@@ -114,8 +106,7 @@ renormalize_log_one(X,Term,Res) :-
 	var(X),
 	Term = l(X*K,_),
 	get_attr(X,itf3,(_,_,_,order(OrdX),_)), % Order might have changed
-	Z = 0.0,
-	Res = [Z,Z,l(X*K,OrdX)].
+	Res = [0.0,0.0,l(X*K,OrdX)].
 renormalize_log_one(X,Term,Res) :-
 	nonvar(X),
 	Term = l(X*K,_),
@@ -154,33 +145,23 @@ add_linear_ffh([l(X*Kx,OrdX)|Xs],Ka,Ys,Kb,Zs) :-
 add_linear_ffh([],X,Kx,OrdX,Xs,Zs,Ka,_) :- mult_hom([l(X*Kx,OrdX)|Xs],Ka,Zs).
 add_linear_ffh([l(Y*Ky,OrdY)|Ys],X,Kx,OrdX,Xs,Zs,Ka,Kb) :-
 	compare(Rel,OrdX,OrdY),
-	(
-		Rel = (=),
-		!,
-		Kz is Kx*Ka+Ky*Kb,
-		(
-		  TestKz is Kz - 0.0,	% Kz =:= 0
-		  TestKz =< 1e-010,
-		  TestKz >= -1e-010 ->
-
-			!,
-			add_linear_ffh(Xs,Ka,Ys,Kb,Zs)
-		;
-			Zs = [l(X*Kz,OrdX)|Ztail],
-			add_linear_ffh(Xs,Ka,Ys,Kb,Ztail)
-		)
-	;
-		Rel = (<),
-		!,
-		Zs = [l(X*Kz,OrdX)|Ztail],
-		Kz is Kx*Ka,
-		add_linear_ffh(Xs,Y,Ky,OrdY,Ys,Ztail,Kb,Ka)
-	;
-		Rel = (>),
-		!,
-		Zs = [l(Y*Kz,OrdY)|Ztail],
-		Kz is Ky*Kb,
-		add_linear_ffh(Ys,X,Kx,OrdX,Xs,Ztail,Ka,Kb)
+	(   Rel = (=)
+	->  Kz is Kx*Ka+Ky*Kb,
+	    (   % Kz =:= 0
+		Kz =< 1.0e-10,
+		Kz >= -1.0e-10
+	    ->  add_linear_ffh(Xs,Ka,Ys,Kb,Zs)
+	    ;   Zs = [l(X*Kz,OrdX)|Ztail],
+		add_linear_ffh(Xs,Ka,Ys,Kb,Ztail)
+	    )
+	;   Rel = (<)
+	->  Zs = [l(X*Kz,OrdX)|Ztail],
+	    Kz is Kx*Ka,
+	    add_linear_ffh(Xs,Y,Ky,OrdY,Ys,Ztail,Kb,Ka)
+	;   Rel = (>)
+	->  Zs = [l(Y*Kz,OrdY)|Ztail],
+	    Kz is Ky*Kb,
+	    add_linear_ffh(Ys,X,Kx,OrdX,Xs,Ztail,Ka,Kb)
      	).
 
 % add_linear_f1(LinA,Ka,LinB,LinC)
@@ -210,32 +191,22 @@ add_linear_f1h([l(X*Kx,OrdX)|Xs],Ka,Ys,Zs) :-
 add_linear_f1h([],X,Kx,OrdX,Xs,Zs,Ka) :- mult_hom([l(X*Kx,OrdX)|Xs],Ka,Zs).
 add_linear_f1h([l(Y*Ky,OrdY)|Ys],X,Kx,OrdX,Xs,Zs,Ka) :-
 	compare(Rel,OrdX,OrdY),
-	(
-		Rel = (=),
-		!,
-		Kz is Kx*Ka+Ky,
-		(
-		  TestKz is Kz - 0.0,	% Kz =:= 0
-		  TestKz =< 1e-010,
-		  TestKz >= -1e-010 ->
-
-			!,
-			add_linear_f1h(Xs,Ka,Ys,Zs)
-		;
-			Zs = [l(X*Kz,OrdX)|Ztail],
-			add_linear_f1h(Xs,Ka,Ys,Ztail)
-		)
-	;
-		Rel = (<),
-		!,
-		Zs = [l(X*Kz,OrdX)|Ztail],
-		Kz is Kx*Ka,
-		add_linear_f1h(Xs,Ka,[l(Y*Ky,OrdY)|Ys],Ztail)
- 	;
-		Rel = (>),
-		!,
-		Zs = [l(Y*Ky,OrdY)|Ztail],
-		add_linear_f1h(Ys,X,Kx,OrdX,Xs,Ztail,Ka)
+	(   Rel = (=)
+	->  Kz is Kx*Ka+Ky,
+	    (   % Kz =:= 0.0
+		Kz =< 1.0e-10,
+		Kz >= -1.0e-10
+	    ->  add_linear_f1h(Xs,Ka,Ys,Zs)
+	    ;   Zs = [l(X*Kz,OrdX)|Ztail],
+		add_linear_f1h(Xs,Ka,Ys,Ztail)
+	    )
+	;   Rel = (<)
+	->  Zs = [l(X*Kz,OrdX)|Ztail],
+	    Kz is Kx*Ka,
+	    add_linear_f1h(Xs,Ka,[l(Y*Ky,OrdY)|Ys],Ztail)
+ 	;   Rel = (>)
+	->  Zs = [l(Y*Ky,OrdY)|Ztail],
+	    add_linear_f1h(Ys,X,Kx,OrdX,Xs,Ztail,Ka)
 	).
 
 % add_linear_11(LinA,LinB,LinC)
@@ -265,31 +236,21 @@ add_linear_11h([l(X*Kx,OrdX)|Xs],Ys,Zs) :-
 add_linear_11h([],X,Kx,OrdX,Xs,[l(X*Kx,OrdX)|Xs]).
 add_linear_11h([l(Y*Ky,OrdY)|Ys],X,Kx,OrdX,Xs,Zs) :-
 	compare(Rel,OrdX,OrdY),
-	(
-		Rel = (=),
-		!,
-		Kz is Kx+Ky,
-		(
-		  TestKz is Kz - 0.0,	% Kz =:= 0
-		  TestKz =< 1e-010,
-		  TestKz >= -1e-010 ->
-
-			!,
-			add_linear_11h(Xs,Ys,Zs)
-		;
-			Zs = [l(X*Kz,OrdX)|Ztail],
-			add_linear_11h(Xs,Ys,Ztail)
-		)
-	;
-		Rel = (<),
-		!,
-		Zs = [l(X*Kx,OrdX)|Ztail],
-		add_linear_11h(Xs,Y,Ky,OrdY,Ys,Ztail)
-	;
-		Rel = (>),
-		!,
-		Zs = [l(Y*Ky,OrdY)|Ztail],
-		add_linear_11h(Ys,X,Kx,OrdX,Xs,Ztail)
+	(   Rel = (=)
+	->  Kz is Kx+Ky,
+	    (   % Kz =:= 0.0
+		Kz =< 1.0e-10,
+		Kz >= -1.0e-10
+	    ->  add_linear_11h(Xs,Ys,Zs)
+	    ;   Zs = [l(X*Kz,OrdX)|Ztail],
+		add_linear_11h(Xs,Ys,Ztail)
+	    )
+	;   Rel = (<)
+	->  Zs = [l(X*Kx,OrdX)|Ztail],
+	    add_linear_11h(Xs,Y,Ky,OrdY,Ys,Ztail)
+	;   Rel = (>)
+	->  Zs = [l(Y*Ky,OrdY)|Ztail],
+	    add_linear_11h(Ys,X,Kx,OrdX,Xs,Ztail)
 	).
 
 % mult_linear_factor(Lin,K,Res)
@@ -299,8 +260,8 @@ add_linear_11h([l(Y*Ky,OrdY)|Ys],X,Kx,OrdX,Xs,Zs) :-
 
 mult_linear_factor(Lin,K,Mult) :-
 	TestK is K - 1.0,	% K =:= 1
-	TestK =< 1e-010,
-	TestK >= -1e-010,	% avoid copy
+	TestK =< 1.0e-10,
+	TestK >= -1.0e-10,	% avoid copy
 	!,
 	Mult = Lin.
 mult_linear_factor(Lin,K,Res) :-
@@ -348,16 +309,12 @@ delete_factor(OrdV,Lin,Res,Coeff) :-
 delete_factor_hom(VOrd,[Car|Cdr],RCdr,RKoeff) :-
 	Car = l(_*Koeff,Ord),
 	compare(Rel,VOrd,Ord),
-	(
-		Rel= (=),
-		!,
-		RCdr = Cdr,
-		RKoeff=Koeff
-	;
-		Rel= (>),
-		!,
-		RCdr = [Car|RCdr1],
-		delete_factor_hom(VOrd,Cdr,RCdr1,RKoeff)
+	(   Rel= (=)
+	->  RCdr = Cdr,
+	    RKoeff=Koeff
+	;   Rel= (>)
+	->  RCdr = [Car|RCdr1],
+	    delete_factor_hom(VOrd,Cdr,RCdr1,RKoeff)
 	).
 
 
@@ -365,10 +322,8 @@ delete_factor_hom(VOrd,[Car|Cdr],RCdr,RKoeff) :-
 %
 % Linear expression Lin contains the term l(X*Coeff,OrdX)
 
-nf_coeff_of(Lin,VOrd,Coeff) :-
-	Lin = [_,_|Hom],
-	nf_coeff_hom(Hom,VOrd,Coeff),
-	!.
+nf_coeff_of([_,_|Hom],VOrd,Coeff) :-
+	nf_coeff_hom(Hom,VOrd,Coeff).
 
 % nf_coeff_hom(Lin,OrdX,Coeff)
 %
@@ -377,14 +332,10 @@ nf_coeff_of(Lin,VOrd,Coeff) :-
 
 nf_coeff_hom([l(_*K,OVar)|Vs],OVid,Coeff) :-
 	compare(Rel,OVid,OVar),
-	(
-		Rel = (=),
-		!,
-		Coeff = K
-	;
-		Rel = (>),
-		!,
-		nf_coeff_hom(Vs,OVid,Coeff)
+	(   Rel = (=)
+	->  Coeff = K
+	;   Rel = (>)
+	->  nf_coeff_hom(Vs,OVid,Coeff)
 	).
 
 % nf_rhs_x(Lin,OrdX,Rhs,K)
@@ -413,12 +364,13 @@ isolate(OrdN,Lin,Lin1) :-
 indep(Lin,OrdX) :-
 	Lin = [I,_|[l(_*K,OrdY)]],
 	OrdX == OrdY,
-	TestK is K - 1.0,	% K =:= 1
-	TestK =< 1e-010,
-	TestK >= -1e-010,
-	TestI is I - 0.0,	% I =:= 0
-	TestI =< 1e-010,
-	TestI >= -1e-010.
+	% K =:= 1.0
+	TestK is K - 1.0,
+	TestK =< 1.0e-10,
+	TestK >= -1.0e-10,
+	% I =:= 0
+	I =< 1.0e-10,
+	I >= -1.0e-10.
 
 % nf2sum(Lin,Sofar,Term)
 %
@@ -427,29 +379,23 @@ indep(Lin,OrdX) :-
 
 nf2sum([],I,I).
 nf2sum([X|Xs],I,Sum) :-
-	(
-	  TestI is I - 0.0,	% I =:= 0
-	  TestI =< 1e-010,
-	  TestI >= -1e-010 ->
-
-		X = l(Var*K,_),
- 		( 
-		  TestK is K - 1.0,	% K =:= 1
-		  TestK =< 1e-010,
-		  TestK >= -1e-010 ->
-
-			hom2sum(Xs,Var,Sum)
-		;
-	 	  TestK is K - -1.0,	% K =:= -1
-		  TestK =< 1e-010,
-		  TestK >= -1e-010 ->
-	  
-			hom2sum(Xs,-Var,Sum)
-		;
-			hom2sum(Xs,K*Var,Sum)
-		)
-	;
-      		hom2sum([X|Xs],I,Sum)
+	(   % I =:= 0.0
+	    I =< 1.0e-10,
+	    I >= -1.0e-10
+	->  X = l(Var*K,_),
+ 	    (   % K =:= 1.0
+		TestK is K - 1.0,
+		TestK =< 1.0e-10,
+		TestK >= -1.0e-10
+	    ->  hom2sum(Xs,Var,Sum)
+	    ;   % K =:= -1.0
+		TestK is K + 1.0,
+		TestK =< 1.0e-10,
+		TestK >= -1.0e-10
+	    ->  hom2sum(Xs,-Var,Sum)
+	    ;	hom2sum(Xs,K*Var,Sum)
+	    )
+	;   hom2sum([X|Xs],I,Sum)
  	).
 
 % hom2sum(Hom,Sofar,Term) 
@@ -461,25 +407,20 @@ nf2sum([X|Xs],I,Sum) :-
 
 hom2sum([],Term,Term).
 hom2sum([l(Var*K,_)|Cs],Sofar,Term) :-
-	(
-	  TestK is K - 1.0,	% K =:= 1
-	  TestK =< 1e-010,
-	  TestK >= -1e-010 ->
-	
-		Next = Sofar + Var
-	;
-	  TestK is K - -1.0,	% K =:= -1
-	  TestK =< 1e-010,
-	  TestK >= -1e-010 ->
-  
-		Next = Sofar - Var
-
-	;
-	  K - 0.0 < -1e-010 ->
-	
-		Ka is -K,
-		Next = Sofar - Ka*Var
-	;
-		Next = Sofar + K*Var
+	(   % K =:= 1.0
+	    TestK is K - 1.0,
+	    TestK =< 1.0e-10,
+	    TestK >= -1.0e-10
+	->  Next = Sofar + Var
+	;   % K =:= -1.0
+	    TestK is K + 1.0,
+	    TestK =< 1.0e-10,
+	    TestK >= -1.0e-10
+	->  Next = Sofar - Var
+	;   % K < 0.0
+	    K < -1.0e-10
+	->  Ka is -K,
+	    Next = Sofar - Ka*Var
+	;   Next = Sofar + K*Var
 	),
 	hom2sum(Cs,Next,Term).

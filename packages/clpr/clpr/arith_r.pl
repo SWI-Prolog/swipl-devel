@@ -3,7 +3,7 @@
     Part of CPL(R) (Constraint Logic Programming over Reals)
 
     Author:        Leslie De Koninck
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
     Copyright (C): 2004, K.U. Leuven and
@@ -40,46 +40,13 @@
 
 :- module(arith_r, 
 	[
-	    arith_eps/1,
-	    arith_normalize/2,
 	    integerp/1,
 	    integerp/2
 	]).
 
-arith_eps(1.0e-10).				% for Monash #zero expansion 1.0e-12
-eps(1.0e-10,-1.0e-10).
-
-arith_normalize(X,Norm) :- 
-	var(X),
-	!,
-	raise_exception(instantiation_error(arith_normalize(X,Norm),1)).
-arith_normalize(rat(N,D),Norm) :- rat_float(N,D,Norm).
-arith_normalize(X,Norm) :- 
-	number(X),
-	Norm is float(X).
-
 integerp(X) :-
-	floor(/*float?*/X)=:=X.
+	floor(X)=:=X.
 
 integerp(X,I) :-
-	floor(/*float?*/X)=:=X,
+	floor(X)=:=X,
 	I is integer(X).
-
-% copied from arith.pl.
-
-rat_float(Nx,Dx,F) :-
-	limit_encoding_length(Nx,Dx,1023,Nxl,Dxl),
-	F is Nxl / Dxl.
-
-limit_encoding_length(0,D,_,0,D) :- !.	% msb ...
-limit_encoding_length(N,D,Bits,Nl,Dl) :-
-	Shift is min(max(msb(abs(N)),msb(D))-Bits,
-	min(msb(abs(N)),msb(D))),
-	Shift > 0,
-	!,
-	Ns is N>>Shift,
-	Ds is D>>Shift,
-	Gcd is gcd(Ns,Ds),
-	Nl is Ns//Gcd,
-	Dl is Ds//Gcd.
-limit_encoding_length(N,D,_,N,D).

@@ -3,7 +3,7 @@
     Part of CPL(R) (Constraint Logic Programming over Reals)
 
     Author:        Leslie De Koninck
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
     Copyright (C): 2004, K.U. Leuven and
@@ -41,41 +41,41 @@
 
 :- module(ineq,
 	[
-		ineq/4,
-		ineq_one/4,
-		ineq_one_n_n_0/1,
-		ineq_one_n_p_0/1,
-		ineq_one_s_n_0/1,
-		ineq_one_s_p_0/1
+	    ineq/4,
+	    ineq_one/4,
+	    ineq_one_n_n_0/1,
+	    ineq_one_n_p_0/1,
+	    ineq_one_s_n_0/1,
+	    ineq_one_s_p_0/1
 	]).
 :- use_module(bv,
 	[
-		backsubst/3,
-		backsubst_delta/4,
-		basis_add/2,
-		dec_step/2,
-		deref/2,
-		determine_active_dec/1,
-		determine_active_inc/1,
-		export_binding/1,
-		get_or_add_class/2,
-		inc_step/2,
-		lb/3,
-		pivot_a/4,
-		rcbl_status/6,
-		reconsider/1,
-		same_class/2,
-		solve/1,
-		ub/3,
-		unconstrained/4,
-		var_intern/3,
-		var_with_def_intern/4
+	    backsubst/3,
+	    backsubst_delta/4,
+	    basis_add/2,
+	    dec_step/2,
+	    deref/2,
+	    determine_active_dec/1,
+	    determine_active_inc/1,
+	    export_binding/1,
+	    get_or_add_class/2,
+	    inc_step/2,
+	    lb/3,
+	    pivot_a/4,
+	    rcbl_status/6,
+	    reconsider/1,
+	    same_class/2,
+	    solve/1,
+	    ub/3,
+	    unconstrained/4,
+	    var_intern/3,
+	    var_with_def_intern/4
 	]).
 :- use_module(store,
 	[
-		add_linear_11/3,
-		add_linear_ff/5,
-		normalize_scalar/2
+	    add_linear_11/3,
+	    add_linear_ff/5,
+	    normalize_scalar/2
 	]).
 
 % ineq(H,I,Nf,Strictness)
@@ -98,60 +98,42 @@ ineq_cases([_|_],_,Lin,Strictness,_,_) :-
 %
 % Checks whether a grounded inequality I < 0 or I =< 0 is satisfied.
 
-ineq_ground(strict,I) :- I - 0.0 < -1e-010.	% I < 0
-ineq_ground(nonstrict,I) :- I - 0.0 < 1e-010.	% I =< 0
+ineq_ground(strict,I) :- I < -1.0e-10.		% I < 0
+ineq_ground(nonstrict,I) :- I < 1.0e-10.	% I =< 0
 
 % ineq_one(Strictness,X,K,I)
 %
-% Solves the inequality K*X + I < 0 or K*X + I =< 9
+% Solves the inequality K*X + I < 0 or K*X + I =< 0
 
 ineq_one(strict,X,K,I) :-
-	(
-	  K > 1e-010 ->		% K > 0
-	
-		(
-		  I >= -1e-010,	% I =:= 0
-		  I =< 1e-010 ->
-
-			ineq_one_s_p_0(X)	% K*X < 0, K > 0 => X < 0
-		;
-			Inhom is I/K,
-			ineq_one_s_p_i(X,Inhom)	% K*X + I < 0, K > 0 => X + I/K < 0
-		)
-	;
-		(
-		  I >= -1e-010,	% I =:= 0
-		  I =< 1e-010  ->
-
-			ineq_one_s_n_0(X)	% K*X < 0, K < 0 => -X < 0
-		;
-			Inhom is -I/K,
-			ineq_one_s_n_i(X,Inhom)	% K*X + I < 0, K < 0 => -X - I/K < 0
-		)
+	(   K > 1.0e-10 % K > 0.0
+	->  (   I >= -1.0e-10, % I =:= 0.0
+		I =< 1.0e-10
+	    ->  ineq_one_s_p_0(X)	% K*X < 0, K > 0 => X < 0
+	    ;   Inhom is I/K,
+		ineq_one_s_p_i(X,Inhom)	% K*X + I < 0, K > 0 => X + I/K < 0
+	    )
+	;   (   I >= -1.0e-10, % I =:= 0.0
+		I =< 1.0e-10
+	    ->  ineq_one_s_n_0(X)	% K*X < 0, K < 0 => -X < 0
+	    ;   Inhom is -I/K,
+		ineq_one_s_n_i(X,Inhom)	% K*X + I < 0, K < 0 => -X - I/K < 0
+	    )
 	).
 ineq_one(nonstrict,X,K,I) :-
-	(
-	  K > 1e-010 ->		% K > 0
-
-		(
-		  I >= -1e-010,	% I =:= 0
-		  I =< 1e-010 ->
-
-			ineq_one_n_p_0(X)	% K*X =< 0, K > 0 => X =< 0
-		;
-			Inhom is I/K,
-			ineq_one_n_p_i(X,Inhom)	% K*X + I =< 0, K > 0 => X + I/K =< 0
-		)
-	;
-		(
-		  I >= -1e-010,	% I =:= 0
-		  I =< 1e-010 ->
-
-			ineq_one_n_n_0(X)	% K*X =< 0, K < 0 => -X =< 0
-		;
-			Inhom is -I/K,
-			ineq_one_n_n_i(X,Inhom)	% K*X + I =< 0, K < 0 => -X - I/K =< 0
-		)
+	(   K > 1.0e-10 % K > 0.0
+	->  (   I >= -1.0e-10,	% I =:= 0
+		I =< 1.0e-10
+	    ->  ineq_one_n_p_0(X)	% K*X =< 0, K > 0 => X =< 0
+	    ;   Inhom is I/K,
+		ineq_one_n_p_i(X,Inhom)	% K*X + I =< 0, K > 0 => X + I/K =< 0
+	    )
+	;   (   I >= -1.0e-10,	% I =:= 0
+		I =< 1.0e-10
+	    ->  ineq_one_n_n_0(X)	% K*X =< 0, K < 0 => -X =< 0
+	    ;   Inhom is -I/K,
+		ineq_one_n_n_i(X,Inhom)	% K*X + I =< 0, K < 0 => -X - I/K =< 0
+	    )
 	).
 
 % --------------------------- strict ----------------------------
@@ -208,75 +190,59 @@ ineq_one_s_n_i(X,I) :- var_intern(t_l(I),X,2). % puts a strict inactive lowerbou
 %
 % Solves the inequality X < 0 where X has linear equation Hom + Inhom
 
-ineq_one_old_s_p_0([],_,Ix) :- Ix < -1e-010. % X = I: Ix < 0
+ineq_one_old_s_p_0([],_,Ix) :- Ix < -1.0e-10. % X = I: Ix < 0
 ineq_one_old_s_p_0([l(Y*Ky,_)|Tail],X,Ix) :-
-	(	
-	  Tail = [] ->	% X = K*Y + I
-		
-		Bound is -Ix/Ky,
-		update_indep(strict,Y,Ky,Bound)	% X < 0, X = K*Y + I => Y < -I/K or Y > -I/K (depending on K)
-	;
-	  Tail = [_|_] ->
-		
-		get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-		udus(Type,X,Lin,0.0,Old)	% update strict upperbound
+	(   Tail = [] % X = K*Y + I
+	->  Bound is -Ix/Ky,
+	    update_indep(strict,Y,Ky,Bound)	% X < 0, X = K*Y + I => Y < -I/K or Y > -I/K (depending on K)
+	;   Tail = [_|_]
+	->  get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
+	    udus(Type,X,Lin,0.0,Old)	% update strict upperbound
 	).
 
 % ineq_one_old_s_p_0(Hom,X,Inhom)
 %
 % Solves the inequality X > 0 where X has linear equation Hom + Inhom
 
-ineq_one_old_s_n_0([],_,Ix) :- Ix > 1e-010. % X = I: Ix > 0
+ineq_one_old_s_n_0([],_,Ix) :- Ix > 1.0e-10. % X = I: Ix > 0
 ineq_one_old_s_n_0([l(Y*Ky,_)|Tail], X, Ix) :-
-	(
-	  Tail = [] ->	% X = K*Y + I 
-
-		Coeff is -Ky,
-		Bound is Ix/Coeff,
-		update_indep(strict,Y,Coeff,Bound)
-	;	
-	  Tail = [_|_] ->
-
-		get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-		udls(Type,X,Lin,0.0,Old)	% update strict lowerbound
+	(   Tail = []	% X = K*Y + I 
+	->  Coeff is -Ky,
+	    Bound is Ix/Coeff,
+	    update_indep(strict,Y,Coeff,Bound)
+	;   Tail = [_|_]
+	->  get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
+	    udls(Type,X,Lin,0.0,Old)	% update strict lowerbound
 	).
 
 % ineq_one_old_s_p_i(Hom,C,X,Inhom)
 %
 % Solves the inequality X + C < 0 where X has linear equation Hom + Inhom
 
-ineq_one_old_s_p_i([],I,_,Ix) :- Ix + I < -1e-010. % X = I
+ineq_one_old_s_p_i([],I,_,Ix) :- Ix + I < -1.0e-10. % X = I
 ineq_one_old_s_p_i([l(Y*Ky,_)|Tail],I,X,Ix) :-
-	(
-	  Tail = [] ->	% X = K*Y + I
-		
-		Bound is -(Ix+I)/Ky,
-		update_indep(strict,Y,Ky,Bound)
-	;
-	  Tail = [_|_] ->
-
-		Bound is -I,
-		get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-		udus(Type,X,Lin,Bound,Old)	% update strict upperbound
+	(   Tail = []	% X = K*Y + I
+	->  Bound is -(Ix + I)/Ky,
+	    update_indep(strict,Y,Ky,Bound)
+	;   Tail = [_|_]
+	->  Bound is -I,
+	    get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
+	    udus(Type,X,Lin,Bound,Old)	% update strict upperbound
 	).
 
 % ineq_one_old_s_n_i(Hom,C,X,Inhom)
 %
 % Solves the inequality X  - C > 0 where X has linear equation Hom + Inhom
 
-ineq_one_old_s_n_i([],I,_,Ix) :- -Ix + I < -1e-010. % X = I
+ineq_one_old_s_n_i([],I,_,Ix) :- -Ix + I < -1.0e-10. % X = I
 ineq_one_old_s_n_i([l(Y*Ky,_)|Tail],I,X,Ix) :-
-	(
-	  Tail = [] ->	% X = K*Y + I
-		
-		Coeff is -Ky,
-		Bound is (Ix-I)/Coeff,
-		update_indep(strict,Y,Coeff,Bound)
-	;
-	  Tail = [_|_] ->
-
-		get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-		udls(Type,X,Lin,I,Old)	% update strict lowerbound
+	(   Tail = []	% X = K*Y + I
+	->  Coeff is -Ky,
+	    Bound is (Ix - I)/Coeff,
+	    update_indep(strict,Y,Coeff,Bound)
+	;   Tail = [_|_]
+	->  get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
+	    udls(Type,X,Lin,I,Old)	% update strict lowerbound
 	).
 
 % -------------------------- nonstrict --------------------------
@@ -334,75 +300,59 @@ ineq_one_n_n_i(X,I) :-
 %
 % Solves the inequality X =< 0 where X has linear equation Hom + Inhom
 
-ineq_one_old_n_p_0([],_,Ix) :- Ix < 1e-010. % X =I
+ineq_one_old_n_p_0([],_,Ix) :- Ix < 1.0e-10. % X =I
 ineq_one_old_n_p_0([l(Y*Ky,_)|Tail],X,Ix) :-
-	(
-	  Tail = [] -> 	%  X = K*Y + I
-		
-		Bound is -Ix/Ky,	
-		update_indep(nonstrict,Y,Ky,Bound)
-	;
-	  Tail = [_|_] ->
-
-		get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-		udu(Type,X,Lin,0.0,Old)	% update nonstrict upperbound
+	(   Tail = []	%  X = K*Y + I
+	->  Bound is -Ix/Ky,	
+	    update_indep(nonstrict,Y,Ky,Bound)
+	;   Tail = [_|_]
+	->  get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
+	    udu(Type,X,Lin,0.0,Old)	% update nonstrict upperbound
 	).
 
 % ineq_one_old_n_n_0(Hom,X,Inhom)
 %
 % Solves the inequality X >= 0 where X has linear equation Hom + Inhom
 
-ineq_one_old_n_n_0([],_,Ix) :- Ix > -1e-010.	% X = I
+ineq_one_old_n_n_0([],_,Ix) :- Ix > -1.0e-10.	% X = I
 ineq_one_old_n_n_0([l(Y*Ky,_)|Tail], X, Ix) :-
-	(
-	  Tail = [] ->	% X = K*Y + I
-
-		Coeff is -Ky,
-		Bound is Ix/Coeff,
-		update_indep(nonstrict,Y,Coeff,Bound)
-	;
-	  Tail = [_|_] ->
-
-		get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-		udl(Type,X,Lin,0.0,Old)	% update nonstrict lowerbound
+	(   Tail = []	% X = K*Y + I
+	->  Coeff is -Ky,
+	    Bound is Ix/Coeff,
+	    update_indep(nonstrict,Y,Coeff,Bound)
+	;   Tail = [_|_]
+	->  get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
+	    udl(Type,X,Lin,0.0,Old)	% update nonstrict lowerbound
 	).
 
 % ineq_one_old_n_p_i(Hom,C,X,Inhom)
 %
 % Solves the inequality X  + C =< 0 where X has linear equation Hom + Inhom
 
-ineq_one_old_n_p_i([],I,_,Ix) :- Ix + I < 1e-010.	% X = I
+ineq_one_old_n_p_i([],I,_,Ix) :- Ix + I < 1.0e-10.	% X = I
 ineq_one_old_n_p_i([l(Y*Ky,_)|Tail],I,X,Ix) :-
-	(
-	  Tail = [] ->	% X = K*Y + I
-		
-		Bound is -(Ix+I)/Ky,
-		update_indep(nonstrict,Y,Ky,Bound)
-	;
-	  Tail = [_|_] ->
-
-		Bound is -I,
-		get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-		udu(Type,X,Lin,Bound,Old)	% update nonstrict upperbound
+	(   Tail = []	% X = K*Y + I
+	->  Bound is -(Ix + I)/Ky,
+	    update_indep(nonstrict,Y,Ky,Bound)
+	;   Tail = [_|_]
+	->  Bound is -I,
+	    get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
+	    udu(Type,X,Lin,Bound,Old)	% update nonstrict upperbound
 	).
 
 % ineq_one_old_n_n_i(Hom,C,X,Inhom)
 %
 % Solves the inequality X  - C >= 0 where X has linear equation Hom + Inhom
 
-ineq_one_old_n_n_i([],I,_,Ix) :- -Ix + I < 1e-010. % X = I
+ineq_one_old_n_n_i([],I,_,Ix) :- -Ix + I < 1.0e-10. % X = I
 ineq_one_old_n_n_i([l(Y*Ky,_)|Tail],I,X,Ix) :-
-	(
-	  Tail = [] ->
-
-		Coeff is -Ky,
-		Bound is (Ix-I)/Coeff,
-		update_indep(nonstrict,Y,Coeff,Bound)
-	;
-	  Tail = [_|_] ->
-
-		get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-		udl(Type,X,Lin,I,Old)
+	(   Tail = []
+	->  Coeff is -Ky,
+	    Bound is (Ix - I)/Coeff,
+	    update_indep(nonstrict,Y,Coeff,Bound)
+	;   Tail = [_|_]
+	->  get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
+	    udl(Type,X,Lin,I,Old)
 	).
 
 % ---------------------------------------------------------------
@@ -413,16 +363,14 @@ ineq_one_old_n_n_i([l(Y*Ky,_)|Tail],I,X,Ix) :-
 
 ineq_more([],I,_,Strictness) :- ineq_ground(Strictness,I).	% I < 0 or I =< 0
 ineq_more([l(X*K,_)|Tail],Id,Lind,Strictness) :-
-	(		% X*K < Id or X*K =< Id
-	  Tail = [] ->	% one var: update bound instead of slack introduction
-		
-		get_or_add_class(X,_),	% makes sure X belongs to a class
- 		Bound is -Id/K,	
- 		update_indep(Strictness,X,K,Bound)	% new bound
-   	;
-	  Tail = [_|_] ->
-
-		ineq_more(Strictness,Lind)
+	(   Tail = []
+	->  % X*K < Id or X*K =< Id
+	    % one var: update bound instead of slack introduction
+	    get_or_add_class(X,_),	% makes sure X belongs to a class
+ 	    Bound is -Id/K,	
+ 	    update_indep(Strictness,X,K,Bound)	% new bound
+   	;   Tail = [_|_]
+	->  ineq_more(Strictness,Lind)
 	).
 
 % ineq_more(Strictness,Lin)
@@ -430,43 +378,41 @@ ineq_more([l(X*K,_)|Tail],Id,Lind,Strictness) :-
 % Solves the inequality Lin < 0 or Lin =< 0
 
 ineq_more(strict,Lind) :-
-	(
-	  unconstrained(Lind,U,K,Rest) -> 	% never fails, no implied value
-						% Lind < 0 => Rest < -K*U where U has no bounds
-						
-       		var_intern(t_l(0.0),S,2),	% create slack variable S
-		get_attr(S,itf3,(_,_,_,order(OrdS),_)),
-		Ki is -1.0/K,
-		add_linear_ff(Rest,Ki,[0.0,0.0,l(S*1.0,OrdS)],Ki,LinU),	% U = (-1/K)*Rest + (-1/K)*S 
-		LinU = [_,_|Hu],
- 		get_or_add_class(U,Class),
-		same_class(Hu,Class),	% put all variables of new lin. eq. of U in the same class
-		get_attr(U,itf3,(_,_,_,order(OrdU),class(ClassU),_)),
-		backsubst(ClassU,OrdU,LinU)	% substitute U by new lin. eq. everywhere in the class
-	;
-		var_with_def_intern(t_u(0.0),S,Lind,1),		% Lind < 0 => Lind = S with S < 0	
-		basis_add(S,_),					% adds S to the basis
-		determine_active_dec(Lind),			% activate bounds
-		reconsider(S)					% reconsider basis
+	(   unconstrained(Lind,U,K,Rest)
+	->  % never fails, no implied value
+	    % Lind < 0 => Rest < -K*U where U has no bounds
+	    var_intern(t_l(0.0),S,2),	% create slack variable S
+	    get_attr(S,itf3,(_,_,_,order(OrdS),_)),
+	    Ki is -1.0/K,
+	    add_linear_ff(Rest,Ki,[0.0,0.0,l(S*1.0,OrdS)],Ki,LinU),	% U = (-1/K)*Rest + (-1/K)*S 
+	    LinU = [_,_|Hu],
+ 	    get_or_add_class(U,Class),
+	    same_class(Hu,Class),	% put all variables of new lin. eq. of U in the same class
+	    get_attr(U,itf3,(_,_,_,order(OrdU),class(ClassU),_)),
+	    backsubst(ClassU,OrdU,LinU)	% substitute U by new lin. eq. everywhere in the class
+	;   var_with_def_intern(t_u(0.0),S,Lind,1),	% Lind < 0 => Lind = S with S < 0	
+	    basis_add(S,_),			% adds S to the basis
+	    determine_active_dec(Lind),		% activate bounds
+	    reconsider(S)			% reconsider basis
 	).
 ineq_more(nonstrict,Lind) :-
-	(
-	  unconstrained(Lind,U,K,Rest) ->	% never fails, no implied value
-						% Lind =< 0 => Rest =< -K*U where U has no bounds
-		var_intern(t_l(0.0),S,0),	% create slack variable S
-		Ki is -1.0/K,
-		get_attr(S,itf3,(_,_,_,order(OrdS),_)),
-		add_linear_ff(Rest,Ki,[0.0,0.0,l(S*1.0,OrdS)],Ki,LinU),	% U = (-1K)*Rest + (-1/K)*S
-		LinU = [_,_|Hu],
-		get_or_add_class(U,Class),
-		same_class(Hu,Class),	% put all variables of new lin. eq of U in the same class
-		get_attr(U,itf3,(_,_,_,order(OrdU),class(ClassU),_)),
-		backsubst(ClassU,OrdU,LinU)	% substitute U by new lin. eq. everywhere in the class
-	;	% all variables are constrained
-		var_with_def_intern(t_u(0.0),S,Lind,0),	% Lind =< 0 => Lind = S with S =< 0
-		basis_add(S,_),				% adds S to the basis
-		determine_active_dec(Lind),
-		reconsider(S)
+	(   unconstrained(Lind,U,K,Rest)
+	->  % never fails, no implied value
+	    % Lind =< 0 => Rest =< -K*U where U has no bounds
+	    var_intern(t_l(0.0),S,0),	% create slack variable S
+	    Ki is -1.0/K,
+	    get_attr(S,itf3,(_,_,_,order(OrdS),_)),
+	    add_linear_ff(Rest,Ki,[0.0,0.0,l(S*1.0,OrdS)],Ki,LinU),	% U = (-1K)*Rest + (-1/K)*S
+	    LinU = [_,_|Hu],
+	    get_or_add_class(U,Class),
+	    same_class(Hu,Class),	% put all variables of new lin. eq of U in the same class
+	    get_attr(U,itf3,(_,_,_,order(OrdU),class(ClassU),_)),
+	    backsubst(ClassU,OrdU,LinU)	% substitute U by new lin. eq. everywhere in the class
+	;   % all variables are constrained
+	    var_with_def_intern(t_u(0.0),S,Lind,0),	% Lind =< 0 => Lind = S with S =< 0
+	    basis_add(S,_),				% adds S to the basis
+	    determine_active_dec(Lind),
+	    reconsider(S)
 	).
 
 
@@ -477,21 +423,15 @@ ineq_more(nonstrict,Lind) :-
 
 update_indep(strict,X,K,Bound) :-
 	get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-	(
-	  K < -1e-010 ->
-
-		uils(Type,X,Lin,Bound,Old)	% update independent lowerbound strict
-	;
-		uius(Type,X,Lin,Bound,Old)	% update independent upperbound strict
+	(   K < -1.0e-10
+	->  uils(Type,X,Lin,Bound,Old)	% update independent lowerbound strict
+	;   uius(Type,X,Lin,Bound,Old)	% update independent upperbound strict
 	).
 update_indep(nonstrict,X,K,Bound) :-
 	get_attr(X,itf3,(type(Type),strictness(Old),lin(Lin),_)),
-	(
-	  K < -1e-010 ->
-
-		uil(Type,X,Lin,Bound,Old)	% update independent lowerbound nonstrict
-	;
-		uiu(Type,X,Lin,Bound,Old)	% update independent upperbound nonstrict
+	(   K < -1.0e-10
+	->  uil(Type,X,Lin,Bound,Old)	% update independent lowerbound nonstrict
+	;   uiu(Type,X,Lin,Bound,Old)	% update independent upperbound nonstrict
 	).
 
 
@@ -533,83 +473,61 @@ update_indep(nonstrict,X,K,Bound) :-
 udl(t_none,X,Lin,Bound,_Sold) :-
 	get_attr(X,itf3,(_,_,Li,order(Ord),RAtt)),
 	put_attr(X,itf3,(type(t_l(Bound)),strictness(0),Li,order(Ord),RAtt)),
-	(
-	  unconstrained(Lin,Uc,Kuc,Rest) ->
-
-		% X = Lin => -1/K*Rest + 1/K*X = U where U has no bounds
-		Ki is -1.0/Kuc,
-		add_linear_ff(Rest,Ki,[0.0,0.0,l(X* -1.0,Ord)],Ki,LinU),
-		get_attr(Uc,itf3,(_,_,_,order(OrdU),class(Class),_)),
-		backsubst(Class,OrdU,LinU)
-	;
-		% no unconstrained variables in Lin: make X part of basis and reconsider
-		basis_add(X,_),
-		determine_active_inc(Lin),
-		reconsider(X)
+	(   unconstrained(Lin,Uc,Kuc,Rest)
+	->  % X = Lin => -1/K*Rest + 1/K*X = U where U has no bounds
+	    Ki is -1.0/Kuc,
+	    add_linear_ff(Rest,Ki,[0.0,0.0,l(X* -1.0,Ord)],Ki,LinU),
+	    get_attr(Uc,itf3,(_,_,_,order(OrdU),class(Class),_)),
+	    backsubst(Class,OrdU,LinU)
+	;   % no unconstrained variables in Lin: make X part of basis and reconsider
+	    basis_add(X,_),
+	    determine_active_inc(Lin),
+	    reconsider(X)
 	).
 udl(t_l(L),X,Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true	% new bound is smaller than old one: keep old
-	;
-	  TestBL > 1e-010 ->
-
-		% new bound is larger than old one: use new and reconsider basis
-		Strict is Sold /\ 1,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_l(Bound)),strictness(Strict),RAtt)),
-		reconsider_lower(X,Lin,Bound)	% makes sure that Lin still satisfies lowerbound Bound
-	;
-		true	% new bound is equal to old one, new one is nonstrict: keep old
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true	% new bound is smaller than old one: keep old
+	;   TestBL > 1.0e-10
+	->  % new bound is larger than old one: use new and reconsider basis
+	    Strict is Sold /\ 1,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_l(Bound)),strictness(Strict),RAtt)),
+	    reconsider_lower(X,Lin,Bound)	% makes sure that Lin still satisfies lowerbound Bound
+	;   true	% new bound is equal to old one, new one is nonstrict: keep old
 	).	
 		
 udl(t_u(U),X,Lin,Bound,_Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		fail	% new bound is larger than upperbound: fail
-	; 
-	  TestUB > 1e-010 ->
-
-		% new bound is smaller than upperbound: add new and reconsider basis
-		get_attr(X,itf3,(_,RAtt)),
-		put_attr(X,itf3,(type(t_lu(Bound,U)),RAtt)),
-		reconsider_lower(X,Lin,Bound)	% makes sure that Lin still satisfies lowerbound Bound
-	;
-		solve_bound(Lin,Bound)	% new bound is equal to upperbound: solve
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  fail	% new bound is larger than upperbound: fail
+	;   TestUB > 1.0e-10
+	->  % new bound is smaller than upperbound: add new and reconsider basis
+	    get_attr(X,itf3,(_,RAtt)),
+	    put_attr(X,itf3,(type(t_lu(Bound,U)),RAtt)),
+	    reconsider_lower(X,Lin,Bound)	% makes sure that Lin still satisfies lowerbound Bound
+	;   solve_bound(Lin,Bound)	% new bound is equal to upperbound: solve
 	).	
 udl(t_lu(L,U),X,Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true	% smaller than lowerbound: keep 
-	;
-	  TestBL > 1e-010 ->	% larger than lowerbound: check upperbound
-
-		TestUB is U - Bound,
-		(
-		  TestUB < -1e-010 ->
-
-			fail	% larger than upperbound: fail
-		;
-		  TestUB > 1e-010 ->
-
-			% smaller than upperbound: use new and reconsider basis
-			Strict is Sold /\ 1,
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt)),
-			reconsider_lower(X,Lin,Bound)
-		;
-			% equal to upperbound: if strictness matches => solve
-			Sold /\ 1 =:= 0,
-			solve_bound(Lin,Bound)
-		)
-	;
-		true	% equal to lowerbound and nonstrict: keep
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true	% smaller than lowerbound: keep 
+	;   TestBL > 1.0e-10
+	->  % larger than lowerbound: check upperbound
+	    TestUB is U - Bound,
+	    (   TestUB < -1.0e-10
+	    ->  fail	% larger than upperbound: fail
+	    ;   TestUB > 1.0e-10
+	    ->  % smaller than upperbound: use new and reconsider basis
+		Strict is Sold /\ 1,
+		get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt)),
+		reconsider_lower(X,Lin,Bound)
+	    ;   % equal to upperbound: if strictness matches => solve
+		Sold /\ 1 =:= 0,
+		solve_bound(Lin,Bound)
+	    )
+	;   true	% equal to lowerbound and nonstrict: keep
 	).
 	
 % udls(Type,X,Lin,Bound,Strict)
@@ -621,66 +539,53 @@ udl(t_lu(L,U),X,Lin,Bound,Sold) :-
 udls(t_none,X,Lin,Bound,_Sold) :-
 	get_attr(X,itf3,(_,_,Li,order(Ord),RAtt)),
 	put_attr(X,itf3,(type(t_l(Bound)),strictness(2),Li,order(Ord),RAtt)),
-	(	
-	  unconstrained(Lin,Uc,Kuc,Rest) ->	
-
-		% X = Lin => U = -1/K*Rest + 1/K*X with U an unconstrained variable
-		Ki is -1.0/Kuc,
-		add_linear_ff(Rest,Ki,[0.0,0.0,l(X* -1.0,Ord)],Ki,LinU),
-		get_attr(Uc,itf3,(_,_,_,order(OrdU),class(Class),_)),
-		backsubst(Class,OrdU,LinU)
-	;
-		% no unconstrained variables: add X to basis and reconsider basis
-		basis_add(X,_),
-		determine_active_inc(Lin),
-		reconsider(X)
+	(   unconstrained(Lin,Uc,Kuc,Rest)
+	->  % X = Lin => U = -1/K*Rest + 1/K*X with U an unconstrained variable
+	    Ki is -1.0/Kuc,
+	    add_linear_ff(Rest,Ki,[0.0,0.0,l(X* -1.0,Ord)],Ki,LinU),
+	    get_attr(Uc,itf3,(_,_,_,order(OrdU),class(Class),_)),
+	    backsubst(Class,OrdU,LinU)
+	;   % no unconstrained variables: add X to basis and reconsider basis
+	    basis_add(X,_),
+	    determine_active_inc(Lin),
+	    reconsider(X)
 	).
 udls(t_l(L),X,Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true	% smaller than lowerbound: keep
-	;
-	  TestBL > 1e-010 ->
-
-		% larger than lowerbound: use new and reconsider basis
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_l(Bound)),strictness(Strict),RAtt)),
-		reconsider_lower(X,Lin,Bound)
-	;
-		% equal to lowerbound: check strictness
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true	% smaller than lowerbound: keep
+	;   TestBL > 1.0e-10
+	->  % larger than lowerbound: use new and reconsider basis
+	    Strict is Sold \/ 2,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_l(Bound)),strictness(Strict),RAtt)),
+	    reconsider_lower(X,Lin,Bound)
+	;   % equal to lowerbound: check strictness
+	    Strict is Sold \/ 2,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 udls(t_u(U),X,Lin,Bound,Sold) :-
-	U - Bound > 1e-010,	% smaller than upperbound: set new bound
+	U - Bound > 1.0e-10,	% smaller than upperbound: set new bound
 	Strict is Sold \/ 2,
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt)),
 	reconsider_lower(X,Lin,Bound).
 udls(t_lu(L,U),X,Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true	% smaller than lowerbound: keep
-	;
-	  TestBL > 1e-010 ->
-
-		% larger than lowerbound: check upperbound and possibly use new and reconsider basis
-		U - Bound > 1e-010,
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt)),
-		reconsider_lower(X,Lin,Bound)
-	;
-		% equal to lowerbound: put new strictness
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true	% smaller than lowerbound: keep
+	;   TestBL > 1.0e-10
+	->  % larger than lowerbound: check upperbound and possibly use new and reconsider basis
+	    U - Bound > 1.0e-10,
+	    Strict is Sold \/ 2,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt)),
+	    reconsider_lower(X,Lin,Bound)
+	;   % equal to lowerbound: put new strictness
+	    Strict is Sold \/ 2,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 
 % udu(Type,X,Lin,Bound,Strict)
@@ -692,83 +597,60 @@ udls(t_lu(L,U),X,Lin,Bound,Sold) :-
 udu(t_none,X,Lin,Bound,_Sold) :-
 	get_attr(X,itf3,(_,_,Li,order(Ord),RAtt)),
 	put_attr(X,itf3,(type(t_u(Bound)),strictness(0),Li,order(Ord),RAtt)),
-	(
-	  unconstrained(Lin,Uc,Kuc,Rest) ->
-
-		% X = Lin => U = -1/K*Rest + 1/K*X with U an unconstrained variable
-		Ki is -1.0/Kuc,
-		add_linear_ff(Rest,Ki,[0.0,0.0,l(X* -1.0,Ord)],Ki,LinU),
-		get_attr(Uc,itf3,(_,_,_,order(OrdU),class(Class),_)),
-		backsubst(Class,OrdU,LinU)
-	;
-		% no unconstrained variables: add X to basis and reconsider basis
-		basis_add(X,_),
-		determine_active_dec(Lin),	% try to lower R
-		reconsider(X)
+	(   unconstrained(Lin,Uc,Kuc,Rest)
+	->  % X = Lin => U = -1/K*Rest + 1/K*X with U an unconstrained variable
+	    Ki is -1.0/Kuc,
+	    add_linear_ff(Rest,Ki,[0.0,0.0,l(X* -1.0,Ord)],Ki,LinU),
+	    get_attr(Uc,itf3,(_,_,_,order(OrdU),class(Class),_)),
+	    backsubst(Class,OrdU,LinU)
+	;   % no unconstrained variables: add X to basis and reconsider basis
+	    basis_add(X,_),
+	    determine_active_dec(Lin),	% try to lower R
+	    reconsider(X)
 	).
 udu(t_u(U),X,Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true	% larger than upperbound: keep
-	;
-	  TestUB > 1e-010 ->
-
-		% smaller than upperbound: update and reconsider basis
-		Strict is Sold /\ 2,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_u(Bound)),strictness(Strict),RAtt)),
-		reconsider_upper(X,Lin,Bound)
-	;
-		true	% equal to upperbound and nonstrict: keep
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true	% larger than upperbound: keep
+	;   TestUB > 1.0e-10
+	->  % smaller than upperbound: update and reconsider basis
+	    Strict is Sold /\ 2,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_u(Bound)),strictness(Strict),RAtt)),
+	    reconsider_upper(X,Lin,Bound)
+	;   true	% equal to upperbound and nonstrict: keep
 	).
 udu(t_l(L),X,Lin,Bound,_Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		fail	% smaller than lowerbound: fail
-	;
-	  TestBL > 1e-010 ->
-
-		% larger than lowerbound: use new and reconsider basis
-		get_attr(X,itf3,(_,RAtt)),
-		put_attr(X,itf3,(type(t_lu(L,Bound)),RAtt)),
-		reconsider_upper(X,Lin,Bound)
-	;
-		solve_bound(Lin,Bound)	% equal to lowerbound: solve
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  fail	% smaller than lowerbound: fail
+	;   TestBL > 1.0e-10
+	->  % larger than lowerbound: use new and reconsider basis
+	    get_attr(X,itf3,(_,RAtt)),
+	    put_attr(X,itf3,(type(t_lu(L,Bound)),RAtt)),
+	    reconsider_upper(X,Lin,Bound)
+	;   solve_bound(Lin,Bound)	% equal to lowerbound: solve
 	).
 udu(t_lu(L,U),X,Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true	% larger than upperbound: keep
-	;
-	  TestUB > 1e-010 ->
-
-		% smaller than upperbound: check lowerbound
-		TestBL is Bound-L,
-		(
-		  TestBL < -1e-010 ->
-
-			fail	% smaller than lowerbound: fail
-		;
-		  TestBL > 1e-010 ->
-
-			% larger than lowerbound: update and reconsider basis
-			Strict is Sold /\ 2,
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt)),
-			reconsider_upper(X,Lin,Bound)
-		;
-			% equal to lowerbound: check strictness and possibly solve
-			Sold /\ 2 =:= 0,
-			solve_bound(Lin,Bound)
-		)
-	;
-		true	% equal to upperbound and nonstrict: keep
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true	% larger than upperbound: keep
+	;   TestUB > 1.0e-10
+	->  % smaller than upperbound: check lowerbound
+	    TestBL is Bound - L,
+	    (   TestBL < -1.0e-10
+	    ->  fail	% smaller than lowerbound: fail
+	    ;   TestBL > 1.0e-10
+	    ->  % larger than lowerbound: update and reconsider basis
+		Strict is Sold /\ 2,
+		get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt)),
+		reconsider_upper(X,Lin,Bound)
+	    ;   % equal to lowerbound: check strictness and possibly solve
+		Sold /\ 2 =:= 0,
+		solve_bound(Lin,Bound)
+	    )
+	;   true	% equal to upperbound and nonstrict: keep
 	).
 
 % udus(Type,X,Lin,Bound,Strict)
@@ -780,66 +662,53 @@ udu(t_lu(L,U),X,Lin,Bound,Sold) :-
 udus(t_none,X,Lin,Bound,_Sold) :-
 	get_attr(X,itf3,(_,_,Li,order(Ord),RAtt)),
 	put_attr(X,itf3,(type(t_u(Bound)),strictness(1),Li,order(Ord),RAtt)),
-	(
-	  unconstrained(Lin,Uc,Kuc,Rest) ->
-
-		% X = Lin => U = -1/K*Rest + 1/K*X with U an unconstrained variable
-		Ki is -1.0/Kuc,
-		add_linear_ff(Rest,Ki,[0.0,0.0,l(X* -1.0,Ord)],Ki,LinU),
-		get_attr(Uc,itf3,(_,_,_,order(OrdU),class(Class),_)),
-		backsubst(Class,OrdU,LinU)
-	;
-		% no unconstrained variables: add X to basis and reconsider basis
-		basis_add(X,_),
-		determine_active_dec(Lin),
-		reconsider(X)
+	(   unconstrained(Lin,Uc,Kuc,Rest)
+	->   % X = Lin => U = -1/K*Rest + 1/K*X with U an unconstrained variable
+	    Ki is -1.0/Kuc,
+	    add_linear_ff(Rest,Ki,[0.0,0.0,l(X* -1.0,Ord)],Ki,LinU),
+	    get_attr(Uc,itf3,(_,_,_,order(OrdU),class(Class),_)),
+	    backsubst(Class,OrdU,LinU)
+	;   % no unconstrained variables: add X to basis and reconsider basis
+	    basis_add(X,_),
+	    determine_active_dec(Lin),
+	    reconsider(X)
 	).
 udus(t_u(U),X,Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true	% larger than upperbound: keep
-	;
-	  TestUB > 1e-010 ->
-
-		% smaller than upperbound: update bound and reconsider basis
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_u(Bound)),strictness(Strict),RAtt)),
-		reconsider_upper(X,Lin,Bound)
-	;	
-		% equal to upperbound: set new strictness
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true	% larger than upperbound: keep
+	;   TestUB > 1.0e-10
+	->  % smaller than upperbound: update bound and reconsider basis
+	    Strict is Sold \/ 1,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_u(Bound)),strictness(Strict),RAtt)),
+	    reconsider_upper(X,Lin,Bound)
+	;   % equal to upperbound: set new strictness
+	    Strict is Sold \/ 1,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 udus(t_l(L),X,Lin,Bound,Sold) :-
-	Bound - L > 1e-010,	% larger than lowerbound: update and reconsider basis
+	Bound - L > 1.0e-10,	% larger than lowerbound: update and reconsider basis
 	Strict is Sold \/ 1,
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt)),
 	reconsider_upper(X,Lin,Bound).
 udus(t_lu(L,U),X,Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true	% larger than upperbound: keep
-	;
-	  TestUB > 1e-010 ->
-
-		% smaller than upperbound: check lowerbound, possibly update and reconsider basis
-		Bound - L > 1e-010,
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt)),
-		reconsider_upper(X,Lin,Bound)		
-	;
-		% equal to upperbound: update strictness
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true	% larger than upperbound: keep
+	;   TestUB > 1.0e-10
+	->  % smaller than upperbound: check lowerbound, possibly update and reconsider basis
+	    Bound - L > 1.0e-10,
+	    Strict is Sold \/ 1,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt)),
+	    reconsider_upper(X,Lin,Bound)		
+	;   % equal to upperbound: update strictness
+	    Strict is Sold \/ 1,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 
 % uiu(Type,X,Lin,Bound,Strict)
@@ -852,179 +721,123 @@ uiu(t_none,X,_Lin,Bound,_) :-	% X had no bounds
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_u(Bound)),strictness(0),RAtt)).
 uiu(t_u(U),X,_Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true	% larger than upperbound: keep
-	;
-	  TestUB > 1e-010 ->
-
-		% smaller than upperbound: update.
-		Strict is Sold /\ 2,	% update strictness: strictness of lowerbound is kept,
-					% strictness of upperbound is set to non-strict
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_u(Bound)),strictness(Strict),RAtt))
-	;
-		true	% equal to upperbound and nonstrict: keep 
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true	% larger than upperbound: keep
+	;   TestUB > 1.0e-10
+	->  % smaller than upperbound: update.
+	    Strict is Sold /\ 2,	% update strictness: strictness of lowerbound is kept,
+	    				% strictness of upperbound is set to non-strict
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_u(Bound)),strictness(Strict),RAtt))
+	;   true	% equal to upperbound and nonstrict: keep 
 	).
 uiu(t_l(L),X,Lin,Bound,_Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		fail	% Lowerbound was smaller than new upperbound: fail
-    	;
-	  TestBL > 1e-010 ->
-
-		% Upperbound is larger than lowerbound: store new bound
-		get_attr(X,itf3,(_,RAtt)),
-		put_attr(X,itf3,(type(t_lu(L,Bound)),RAtt))
-	;
-		solve_bound(Lin,Bound) % Lowerbound was equal to new upperbound: solve
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  fail	% Lowerbound was smaller than new upperbound: fail
+    	;   TestBL > 1.0e-10
+	->   % Upperbound is larger than lowerbound: store new bound
+	    get_attr(X,itf3,(_,RAtt)),
+	    put_attr(X,itf3,(type(t_lu(L,Bound)),RAtt))
+	;   solve_bound(Lin,Bound) % Lowerbound was equal to new upperbound: solve
 	).
 uiu(t_L(L),X,Lin,Bound,_Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		fail	% Same as for t_l
-	;
-	  TestBL > 1e-010 ->
-
-		% Same as for t_l (new bound becomes t_Lu)
-		get_attr(X,itf3,(_,RAtt)),
-		put_attr(X,itf3,(type(t_Lu(L,Bound)),RAtt))
-	;
-		solve_bound(Lin,Bound)	% Same as for t_l
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  fail	% Same as for t_l
+	;   TestBL > 1.0e-10
+	->  % Same as for t_l (new bound becomes t_Lu)
+	    get_attr(X,itf3,(_,RAtt)),
+	    put_attr(X,itf3,(type(t_Lu(L,Bound)),RAtt))
+	;   solve_bound(Lin,Bound)	% Same as for t_l
 	).
 uiu(t_lu(L,U),X,Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true	% Upperbound was smaller than new bound: keep
-	;
-	  TestUB > 1e-010 ->
-
-		TestBL is Bound-L,	% Upperbound was larger than new bound: check lowerbound
-		(
-		  TestBL < -1e-010 ->
-
-			fail	% Lowerbound was larger than new bound: fail
-		;
-		  TestBL > 1e-010 ->
-
-			% Lowerbound was smaller than new bound: store new bound
-			Strict is Sold /\ 2,
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt))
-		;
-			% Lowerbound was equal to new bound: solve
-			Sold /\ 2 =:= 0,	% Only solve when strictness matches
-			solve_bound(Lin,Bound)
-		)
-	;
-		true	% Upperbound was equal to new bound and new bound non-strict: keep
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true	% Upperbound was smaller than new bound: keep
+	;   TestUB > 1.0e-10
+	->  TestBL is Bound - L,	% Upperbound was larger than new bound: check lowerbound
+	    (   TestBL < -1.0e-10
+	    ->	fail	% Lowerbound was larger than new bound: fail
+	    ;   TestBL > 1.0e-10
+	    ->  % Lowerbound was smaller than new bound: store new bound
+		Strict is Sold /\ 2,
+		get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt))
+	    ;	% Lowerbound was equal to new bound: solve
+		Sold /\ 2 =:= 0,	% Only solve when strictness matches
+		solve_bound(Lin,Bound)
+	    )
+	;   true	% Upperbound was equal to new bound and new bound non-strict: keep
 	).
 uiu(t_Lu(L,U),X,Lin,Bound,Sold) :-	% See t_lu case
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true
-	;
-	  TestUB > 1e-010 ->
-
-		TestBL is Bound-L,
-		(
-		  TestBL < -1e-010 ->
-
-			fail
-		;
-		  TestBL > 1e-010 ->
-
-			Strict is Sold /\ 2,
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_Lu(L,Bound)),strictness(Strict),RAtt))
-		;
-			Sold /\ 2 =:= 0,
-			solve_bound(Lin,Bound)
-		)
-	;
- 		true
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true
+	;   TestUB > 1.0e-10
+	->  TestBL is Bound - L,
+	    (   TestBL < -1.0e-10
+	    ->  fail
+	    ;   TestBL > 1.0e-10
+	    ->  Strict is Sold /\ 2,
+		get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_Lu(L,Bound)),strictness(Strict),RAtt))
+	    ;   Sold /\ 2 =:= 0,
+		solve_bound(Lin,Bound)
+	    )
+	;   true
 	).
 uiu(t_U(U),X,_Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true	% larger than upperbound: keep
-	;
-	  TestUB > 1e-010 ->
-
-		% smaller than active upperbound: check how much active upperbound can be lowered.
-		% if enough, just lower bound, otherwise update the bound, make X dependent and reconsider basis 
-		Strict is Sold /\ 2,
-		(
-		  get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
-		  lb(ClassX,OrdX,Vlb-Vb-Lb),
-		  Bound - (Lb+U) < 1e-010 ->
-
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_U(Bound)),strictness(Strict),RAtt)),
-			pivot_a(Vlb,X,Vb,t_u(Bound)),
-			reconsider(X)
-		;
-			get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),	
-			put_attr(X,itf3,(type(t_U(Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
-			Delta is Bound-U,
-			backsubst_delta(ClassX,OrdX,X,Delta)
-		)
-	;
-		true	% equal to upperbound and non-strict: keep
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true	% larger than upperbound: keep
+	;   TestUB > 1.0e-10
+	->  % smaller than active upperbound: check how much active upperbound can be lowered.
+	    % if enough, just lower bound, otherwise update the bound, make X dependent and reconsider basis 
+	    Strict is Sold /\ 2,
+	    (   get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
+		lb(ClassX,OrdX,Vlb-Vb-Lb),
+		Bound - (Lb + U) < 1.0e-10
+	    ->  get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_U(Bound)),strictness(Strict),RAtt)),
+		pivot_a(Vlb,X,Vb,t_u(Bound)),
+		reconsider(X)
+	    ;   get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),	
+		put_attr(X,itf3,(type(t_U(Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
+		Delta is Bound - U,
+		backsubst_delta(ClassX,OrdX,X,Delta)
+	    )
+	;   true	% equal to upperbound and non-strict: keep
 	).
 uiu(t_lU(L,U),X,Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true	% larger than upperbound: keep
-	;
-	  TestUB > 1e-010 ->
-
-		TestBL is Bound-L,
-		(
-		  TestBL < -1e-010 ->
-
-			fail	% smaller than lowerbound: fail
-		;
-		  TestBL > 1e-010 ->
-
-			% larger than lowerbound: see t_U case for rest
-			Strict is Sold /\ 2,
-			(
-			  get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
-			  lb(ClassX,OrdX,Vlb-Vb-Lb),
-			  Bound - (Lb+U) < 1e-010 ->
-
-				get_attr(X,itf3,(_,_,RAtt)),
-				put_attr(X,itf3,(type(t_lU(L,Bound)),strictness(Strict),RAtt)),
-				pivot_a(Vlb,X,Vb,t_lu(L,Bound)),
-				reconsider(X)
-			;
-				get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
-				put_attr(X,itf3,(type(t_lU(L,Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
-				Delta is Bound-U,
-				backsubst_delta(ClassX,OrdX,X,Delta)
-			)
-		;
-			% equal to lowerbound: check strictness and solve
-			Sold /\ 2 =:= 0,
-			solve_bound(Lin,Bound)
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true	% larger than upperbound: keep
+	;   TestUB > 1.0e-10
+	->  TestBL is Bound-L,
+	    (   TestBL < -1.0e-10
+	    ->  fail	% smaller than lowerbound: fail
+	    ;   TestBL > 1.0e-10
+	    ->  % larger than lowerbound: see t_U case for rest
+		Strict is Sold /\ 2,
+		(   get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
+		    lb(ClassX,OrdX,Vlb-Vb-Lb),
+		    Bound - (Lb + U) < 1.0e-10
+		->  get_attr(X,itf3,(_,_,RAtt)),
+		    put_attr(X,itf3,(type(t_lU(L,Bound)),strictness(Strict),RAtt)),
+		    pivot_a(Vlb,X,Vb,t_lu(L,Bound)),
+		    reconsider(X)
+		;   get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
+		    put_attr(X,itf3,(type(t_lU(L,Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
+		    Delta is Bound - U,
+		    backsubst_delta(ClassX,OrdX,X,Delta)
 		)
-	;	
-		true	% equal to upperbound and non-strict: keep
+	    ;	% equal to lowerbound: check strictness and solve
+		Sold /\ 2 =:= 0,
+		solve_bound(Lin,Bound)
+	    )
+	;   true	% equal to upperbound and non-strict: keep
 			% smaller than upperbound: check lowerbound
 	).
 
@@ -1038,128 +851,97 @@ uius(t_none,X,_Lin,Bound,_Sold) :-
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_u(Bound)),strictness(1),RAtt)).
 uius(t_u(U),X,_Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true
-	;
-	  TestUB > 1e-010 ->
-
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_u(Bound)),strictness(Strict),RAtt))
-	;
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true
+	;   TestUB > 1.0e-10
+	->  Strict is Sold \/ 1,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_u(Bound)),strictness(Strict),RAtt))
+	;   Strict is Sold \/ 1,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 uius(t_l(L),X,_Lin,Bound,Sold) :-
-	Bound - L > 1e-010,
+	Bound - L > 1.0e-10,
 	Strict is Sold \/ 1,
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt)).
 uius(t_L(L),X,_Lin,Bound,Sold) :-
-	Bound - L > 1e-010,
+	Bound - L > 1.0e-10,
 	Strict is Sold \/ 1,
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_Lu(L,Bound)),strictness(Strict),RAtt)).
 uius(t_lu(L,U),X,_Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true
-	;
-	  TestUB > 1e-010 ->
-
-		Bound - L > 1e-010,
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt))
-	;
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true
+	;   TestUB > 1.0e-10
+	->  Bound - L > 1.0e-10,
+	    Strict is Sold \/ 1,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_lu(L,Bound)),strictness(Strict),RAtt))
+	;   Strict is Sold \/ 1,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 uius(t_Lu(L,U),X,_Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true
-	;
-	  TestUB > 1e-010 ->
-
-		Bound - L > 1e-010,
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_Lu(L,Bound)),strictness(Strict),RAtt))
-	;
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true
+	;   TestUB > 1.0e-10
+	->  Bound - L > 1.0e-10,
+	    Strict is Sold \/ 1,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_Lu(L,Bound)),strictness(Strict),RAtt))
+	;   Strict is Sold \/ 1,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 uius(t_U(U),X,_Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true
-	;
-	  TestUB > 1e-010 ->
-
-		Strict is Sold \/ 1,
-		(
-		  get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
-		  lb(ClassX,OrdX,Vlb-Vb-Lb),
-		  Bound - (Lb+U) < 1e-010 ->
-
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_U(Bound)),strictness(Strict),RAtt)),
-			pivot_a(Vlb,X,Vb,t_u(Bound)),
-			reconsider(X)
-		;
-			get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
-			put_attr(X,itf3,(type(t_U(Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
-			Delta is Bound-U,
-			backsubst_delta(ClassX,OrdX,X,Delta)
-		)
-	;
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true
+	;   TestUB > 1.0e-10
+	->  Strict is Sold \/ 1,
+	    (   get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
+		lb(ClassX,OrdX,Vlb-Vb-Lb),
+		Bound - (Lb + U) < 1.0e-10
+	    ->  get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_U(Bound)),strictness(Strict),RAtt)),
+		pivot_a(Vlb,X,Vb,t_u(Bound)),
+		reconsider(X)
+	    ;   get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
+		put_attr(X,itf3,(type(t_U(Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
+		Delta is Bound - U,
+		backsubst_delta(ClassX,OrdX,X,Delta)
+	    )
+	;   Strict is Sold \/ 1,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 uius(t_lU(L,U),X,_Lin,Bound,Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		true
-	;
-	  TestUB > 1e-010 ->
-
-		Bound - L > 1e-010,
-		Strict is Sold \/ 1,
-		(
-		  get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
-		  lb(ClassX,OrdX,Vlb-Vb-Lb),
-		  Bound - (Lb+U) < 1e-010 ->
-
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_lU(L,Bound)),strictness(Strict),RAtt)),
-			pivot_a(Vlb,X,Vb,t_lu(L,Bound)),
-			reconsider(X)
-		;
-			get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
-			put_attr(X,itf3,(type(t_lU(L,Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
-			Delta is Bound-U,
-			backsubst_delta(ClassX,OrdX,X,Delta)
-		)
-	;
-		Strict is Sold \/ 1,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  true
+	;   TestUB > 1.0e-10
+	->  Bound - L > 1.0e-10,
+	    Strict is Sold \/ 1,
+	    (   get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
+		lb(ClassX,OrdX,Vlb-Vb-Lb),
+		Bound - (Lb + U) < 1.0e-10
+	    ->  get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_lU(L,Bound)),strictness(Strict),RAtt)),
+		pivot_a(Vlb,X,Vb,t_lu(L,Bound)),
+		reconsider(X)
+	    ;	get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
+		put_attr(X,itf3,(type(t_lU(L,Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
+		Delta is Bound - U,
+		backsubst_delta(ClassX,OrdX,X,Delta)
+	    )
+	;   Strict is Sold \/ 1,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 
 % uil(Type,X,Lin,Bound,Strict)
@@ -1173,169 +955,113 @@ uil(t_none,X,_Lin,Bound,_Sold) :-
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_l(Bound)),strictness(0),RAtt)).
 uil(t_l(L),X,_Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 -> 
-
-		true
-	;
-	  TestBL > 1e-010 ->
-
-		Strict is Sold /\ 1,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_l(Bound)),strictness(Strict),RAtt))
-	;
-		true
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  Strict is Sold /\ 1,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_l(Bound)),strictness(Strict),RAtt))
+	;   true
 	).
 uil(t_u(U),X,Lin,Bound,_Sold) :-
 	TestUB is U - Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		fail
-	;
-	  TestUB > 1e-010 ->
-
-		get_attr(X,itf3,(_,RAtt)),
-		put_attr(X,itf3,(type(t_lu(Bound,U)),RAtt))
-	;
-		solve_bound(Lin,Bound)
+	(   TestUB < -1.0e-10
+	->  fail
+	;   TestUB > 1.0e-10
+	->  get_attr(X,itf3,(_,RAtt)),
+	    put_attr(X,itf3,(type(t_lu(Bound,U)),RAtt))
+	;   solve_bound(Lin,Bound)
 	).
 uil(t_U(U),X,Lin,Bound,_Sold) :-
-	TestUB is U-Bound,
-	(
-	  TestUB < -1e-010 ->
-
-		fail
-	;
-	  TestUB > 1e-010 ->
-
-		get_attr(X,itf3,(_,RAtt)),
-		put_attr(X,itf3,(type(t_lU(Bound,U)),RAtt))
-	;
-		solve_bound(Lin,Bound)
+	TestUB is U - Bound,
+	(   TestUB < -1.0e-10
+	->  fail
+	;   TestUB > 1.0e-10
+	->  get_attr(X,itf3,(_,RAtt)),
+	    put_attr(X,itf3,(type(t_lU(Bound,U)),RAtt))
+	;   solve_bound(Lin,Bound)
 	).
 uil(t_lu(L,U),X,Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true
-	;
-	  TestBL > 1e-010 ->
-	
-		TestUB is U-Bound,
-		(
-		  TestUB < -1e-010 ->
-
-			fail
-		;
-		  TestUB > 1e-010 ->
-
-			Strict is Sold /\ 1,
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt))
-		;
-			Sold /\ 1 =:= 0,
-			solve_bound(Lin,Bound)
-		)
-	;
-		true
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  TestUB is U - Bound,
+	    (   TestUB < -1.0e-10
+	    ->  fail
+	    ;   TestUB > 1.0e-10
+	    ->  Strict is Sold /\ 1,
+		get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt))
+	    ;   Sold /\ 1 =:= 0,
+		solve_bound(Lin,Bound)
+	    )
+	;   true
 	).
 uil(t_lU(L,U),X,Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true
-	;
-	  TestBL > 1e-010 ->
-
-		TestUB is U-Bound,
-		(
-		  TestUB < -1e-010 ->
-
-			fail
-		;
-		  TestUB > 1e-010 ->
-	
-			Strict is Sold /\ 1,
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_lU(Bound,U)),strictness(Strict),RAtt))
-		;
-			Sold /\ 1 =:= 0,
-			solve_bound(Lin,Bound)
-		)
-	;
-		true
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  TestUB is U - Bound,
+	    (   TestUB < -1.0e-10
+	    ->  fail
+	    ;   TestUB > 1.0e-10
+	    ->  Strict is Sold /\ 1,
+		get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_lU(Bound,U)),strictness(Strict),RAtt))
+	    ;   Sold /\ 1 =:= 0,
+		solve_bound(Lin,Bound)
+	    )
+	;   true
 	).
 uil(t_L(L),X,_Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true
-	;
-	  TestBL > 1e-010 ->
-
-		Strict is Sold /\ 1,
-		(
-		  get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
-		  ub(ClassX,OrdX,Vub-Vb-Ub),
-		  Bound - (Ub + L) > -1e-010 ->	
-
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_L(Bound)),strictness(Strict),RAtt)),
-			pivot_a(Vub,X,Vb,t_l(Bound)),
-			reconsider(X)
-		;
-			get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
-			put_attr(X,itf3,(type(t_L(Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
-			Delta is Bound-L,
-			backsubst_delta(ClassX,OrdX,X,Delta)
-		)
-	;
-		true
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  Strict is Sold /\ 1,
+	    (   get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
+		ub(ClassX,OrdX,Vub-Vb-Ub),
+		Bound - (Ub + L) > -1.0e-10
+	    ->  get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_L(Bound)),strictness(Strict),RAtt)),
+		pivot_a(Vub,X,Vb,t_l(Bound)),
+		reconsider(X)
+	    ;   get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
+		put_attr(X,itf3,(type(t_L(Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
+		Delta is Bound - L,
+		backsubst_delta(ClassX,OrdX,X,Delta)
+	    )
+	;   true
 	).
 uil(t_Lu(L,U),X,Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-	
-		true
-	;
-	  TestBL > 1e-010 ->
-
-		TestUB is U-Bound,
-		(
-		  TestUB < -1e-010 ->
-
-			fail
-		;
-		  TestUB > 1e-010 ->
-
-			Strict is Sold /\ 1,
-			(
-			  get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
-			  ub(ClassX,OrdX,Vub-Vb-Ub),
-			  Bound - (Ub + L) > -1e-010 ->
-
-				get_attr(X,itf3,(_,_,RAtt)),
-				put_attr(X,itf3,(type(t_Lu(Bound,U)),strictness(Strict),RAtt)),
-				pivot_a(Vub,X,Vb,t_lu(Bound,U)),
-				reconsider(X)
-			;
-				get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
-				put_attr(X,itf3,(type(t_Lu(Bound,U)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
-				Delta is Bound-L,
-				backsubst_delta(ClassX,OrdX,X,Delta)
-			)
-		;
-			Sold /\ 1 =:= 0,
-			solve_bound(Lin,Bound)
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  TestUB is U - Bound,
+	    (   TestUB < -1.0e-10
+	    ->  fail
+	    ;   TestUB > 1.0e-10
+	    ->  Strict is Sold /\ 1,
+		(   get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
+		    ub(ClassX,OrdX,Vub-Vb-Ub),
+		    Bound - (Ub + L) > -1.0e-10
+		->  get_attr(X,itf3,(_,_,RAtt)),
+		    put_attr(X,itf3,(type(t_Lu(Bound,U)),strictness(Strict),RAtt)),
+		    pivot_a(Vub,X,Vb,t_lu(Bound,U)),
+		    reconsider(X)
+		;   get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
+		    put_attr(X,itf3,(type(t_Lu(Bound,U)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
+		    Delta is Bound - L,
+		    backsubst_delta(ClassX,OrdX,X,Delta)
 		)
-	;
-		true
+	    ;	Sold /\ 1 =:= 0,
+		solve_bound(Lin,Bound)
+	    )
+	;   true
 	).
 
 % uils(Type,X,Lin,Bound,Strict)
@@ -1348,129 +1074,97 @@ uils(t_none,X,_Lin,Bound,_Sold) :-
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_l(Bound)),strictness(2),RAtt)).
 uils(t_l(L),X,_Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true
-	;
-	  TestBL > 1e-010 ->
-
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_l(Bound)),strictness(Strict),RAtt))
-		
-	;
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  Strict is Sold \/ 2,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_l(Bound)),strictness(Strict),RAtt))
+	;   Strict is Sold \/ 2,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 uils(t_u(U),X,_Lin,Bound,Sold) :-
-	U - Bound > 1e-010,
+	U - Bound > 1.0e-10,
 	Strict is Sold \/ 2,
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt)).
 uils(t_U(U),X,_Lin,Bound,Sold) :-
-	U - Bound > 1e-010,
+	U - Bound > 1.0e-10,
 	Strict is Sold \/ 2,
 	get_attr(X,itf3,(_,_,RAtt)),
 	put_attr(X,itf3,(type(t_lU(Bound,U)),strictness(Strict),RAtt)).
 uils(t_lu(L,U),X,_Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true
-	;
-	  TestBL > 1e-010 ->
-
-		U - Bound > 1e-010,
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt))
-	;
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  U - Bound > 1.0e-10,
+	    Strict is Sold \/ 2,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_lu(Bound,U)),strictness(Strict),RAtt))
+	;   Strict is Sold \/ 2,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 uils(t_lU(L,U),X,_Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true
-	;
-	  TestBL > 1e-010 ->
-
-		U - Bound > 1e-010,
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(_,_,RAtt)),
-		put_attr(X,itf3,(type(t_lU(Bound,U)),strictness(Strict),RAtt))
-	;
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  U - Bound > 1.0e-10,
+	    Strict is Sold \/ 2,
+	    get_attr(X,itf3,(_,_,RAtt)),
+	    put_attr(X,itf3,(type(t_lU(Bound,U)),strictness(Strict),RAtt))
+	;   Strict is Sold \/ 2,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 uils(t_L(L),X,_Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true
-	;
-	  TestBL > 1e-010 ->
-
-		Strict is Sold \/ 2,
-		(
-		  get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
-		  ub(ClassX,OrdX,Vub-Vb-Ub),
-		  Bound - (Ub + L) > -1e-010 ->
-	
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_L(Bound)),strictness(Strict),RAtt)),
-			pivot_a(Vub,X,Vb,t_l(Bound)),
-			reconsider(X)
-		;
-			get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
-			put_attr(X,itf3,(type(t_L(Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
-			Delta is Bound-L,
-			backsubst_delta(ClassX,OrdX,X,Delta)
-		)
-	;
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  Strict is Sold \/ 2,
+	    (   get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
+		ub(ClassX,OrdX,Vub-Vb-Ub),
+		Bound - (Ub + L) > -1.0e-10
+	    ->  get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_L(Bound)),strictness(Strict),RAtt)),
+		pivot_a(Vub,X,Vb,t_l(Bound)),
+		reconsider(X)
+	    ;   get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
+		put_attr(X,itf3,(type(t_L(Bound)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
+		Delta is Bound - L,
+		backsubst_delta(ClassX,OrdX,X,Delta)
+	    )
+	;   Strict is Sold \/ 2,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 uils(t_Lu(L,U),X,_Lin,Bound,Sold) :-
-	TestBL is Bound-L,
-	(
-	  TestBL < -1e-010 ->
-
-		true
-	;
-	  TestBL > 1e-010 ->
-
-		U - Bound > 1e-010,
-		Strict is Sold \/ 2,
-		(
-		  get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
-		  ub(ClassX,OrdX,Vub-Vb-Ub),
-		  Bound - (Ub + L) > -1e-010 ->
-
-			get_attr(X,itf3,(_,_,RAtt)),
-			put_attr(X,itf3,(type(t_Lu(Bound,U)),strictness(Strict),RAtt)),
-			pivot_a(Vub,X,Vb,t_lu(Bound,U)),
-			reconsider(X)
-		;
-			get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
-			put_attr(X,itf3,(type(t_Lu(Bound,U)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
-			Delta is Bound-L,
-			backsubst_delta(ClassX,OrdX,X,Delta)
-		)
-	;
-		Strict is Sold \/ 2,
-		get_attr(X,itf3,(Ty,_,RAtt)),
-		put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
+	TestBL is Bound - L,
+	(   TestBL < -1.0e-10
+	->  true
+	;   TestBL > 1.0e-10
+	->  U - Bound > 1.0e-10,
+	    Strict is Sold \/ 2,
+	    (   get_attr(X,itf3,(_,_,_,order(OrdX),class(ClassX),_)),
+		ub(ClassX,OrdX,Vub-Vb-Ub),
+		Bound - (Ub + L) > -1.0e-10
+	    ->  get_attr(X,itf3,(_,_,RAtt)),
+		put_attr(X,itf3,(type(t_Lu(Bound,U)),strictness(Strict),RAtt)),
+		pivot_a(Vub,X,Vb,t_lu(Bound,U)),
+		reconsider(X)
+	    ;   get_attr(X,itf3,(_,_,Li,order(OrdX),class(ClassX),RAtt)),
+		put_attr(X,itf3,(type(t_Lu(Bound,U)),strictness(Strict),Li,order(OrdX),class(ClassX),RAtt)),
+		Delta is Bound - L,
+		backsubst_delta(ClassX,OrdX,X,Delta)
+	    )
+	;   Strict is Sold \/ 2,
+	    get_attr(X,itf3,(Ty,_,RAtt)),
+	    put_attr(X,itf3,(Ty,strictness(Strict),RAtt))
 	).
 
 % reconsider_upper(X,Lin,U)
@@ -1484,7 +1178,7 @@ uils(t_Lu(L,U),X,_Lin,Bound,Sold) :-
 
 reconsider_upper(X,Lin,U) :-
 	Lin = [I,R|H],
-	R + I - U > -1e-010,	% violation
+	R + I - U > -1.0e-10,	% violation
 	!,
 	dec_step(H,Status),	% we want to decrement R
 	rcbl_status(Status,X,[],Binds,[],u(U)),
@@ -1502,7 +1196,7 @@ reconsider_upper( _, _, _).
 
 reconsider_lower(X,Lin,L) :-
 	Lin = [I,R|H],
-	R+I - L < 1e-010,	% violation
+	R + I - L < 1.0e-10,	% violation
 	!,
 	inc_step(H,Status),	% we want to increment R
 	rcbl_status(Status,X,[],Binds,[],l(L)),
@@ -1519,8 +1213,8 @@ reconsider_lower(_,_,_).
 % Lin is the linear equation of X, a variable whose bounds have narrowed to value Bound
 
 solve_bound(Lin,Bound) :-
-	Bound >= -1e-010,
-	Bound =< 1e-010,
+	Bound >= -1.0e-10,
+	Bound =< 1.0e-10,
 	!,
 	solve(Lin).
 solve_bound(Lin,Bound) :-

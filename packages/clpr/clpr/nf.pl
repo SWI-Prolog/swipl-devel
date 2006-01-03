@@ -3,7 +3,7 @@
     Part of CPL(R) (Constraint Logic Programming over Reals)
 
     Author:        Leslie De Koninck
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
     Copyright (C): 2004, K.U. Leuven and
@@ -41,54 +41,50 @@
 
 :- module(nf,
 	[
-		{}/1,
-		nf/2,
-		entailed/1,
-		split/3,
-		repair/2,
-		nf_constant/2,
-		wait_linear/3,
-		nf2term/2
-		
+	    {}/1,
+	    nf/2,
+	    entailed/1,
+	    split/3,
+	    repair/2,
+	    nf_constant/2,
+	    wait_linear/3,
+	    nf2term/2
 	]).
 
 :- use_module(geler,
 	[
-		geler/2
+	    geler/2
 	]).
 :- use_module(bv,
 	[
-		export_binding/2,
-		log_deref/4,
-		solve/1,
-		'solve_<'/1,
-		'solve_=<'/1,
-		'solve_=\\='/1
+	    export_binding/2,
+	    log_deref/4,
+	    solve/1,
+	    'solve_<'/1,
+	    'solve_=<'/1,
+	    'solve_=\\='/1
 	]).
 :- use_module(ineq,
 	[
-		ineq_one/4,
-		ineq_one_s_p_0/1,
-		ineq_one_s_n_0/1,
-		ineq_one_n_p_0/1,
-		ineq_one_n_n_0/1
+	    ineq_one/4,
+	    ineq_one_s_p_0/1,
+	    ineq_one_s_n_0/1,
+	    ineq_one_n_p_0/1,
+	    ineq_one_n_n_0/1
 	]).
 :- use_module(store,
 	[
-		add_linear_11/3,
-		normalize_scalar/2
+	    add_linear_11/3,
+	    normalize_scalar/2
 	]).
 :- use_module(nfr,
 	[
-		transg/3
+	    transg/3
 	]).
 :- use_module(arith_r,
 	[
-		arith_eps/1,
-		arith_normalize/2,
-		integerp/2
+	    integerp/2
 	]).
-
 
 % -------------------------------------------------------------------------
 
@@ -271,27 +267,23 @@ submit_eq_c(A,B,Rest) :-
 % case c11: k+cX^1=0 or k+cX^-1=0
 submit_eq_c1([],v(K,[X^P]),I) :-
 	var(X),
-	(
-		P =  1,
-		!,
-		Val is -I/K,
-		export_binding(X,Val)
-	;
-		P = -1,
-		!,
-		Val is -K/I,
-		export_binding(X,Val)
+	(   P =  1,
+	    !,
+	    Val is -I/K,
+	    export_binding(X,Val)
+	;   P = -1,
+	    !,
+	    Val is -K/I,
+	    export_binding(X,Val)
 	).
 % case c12: non-linear, invertible: cNL(X)^1+k=0 => inv(NL)(-k/c) = 0 ; 
 %				    cNL(X)^-1+k=0 => inv(NL)(-c/k) = 0
 submit_eq_c1([],v(K,[NL^P]),I) :-
 	nonvar(NL),
-	(
-		P =  1,
-		Y is -I/K
-	;
-		P = -1,
-		Y is -K/I
+	(   P =  1,
+	    Y is -I/K
+	;   P = -1,
+	    Y is -K/I
 	),
 	nl_invertible(NL,X,Y,Inv),
 	!,
@@ -344,17 +336,14 @@ submit_lt([B|Bs],A) :- submit_lt_c(Bs,A,B).
 % c < 0
 submit_lt_b([],I) :- 
 	!,
-	I - 0.0 < -1e-010.
+	I < -1.0e-10.
 % cX^1 < 0 : if c < 0 then X > 0, else X < 0
 submit_lt_b([X^1],K) :-
 	var(X),
 	!,
-	(
-	  0.0 - K < -1e-010 ->
-	
-		ineq_one_s_p_0(X) % X is strictly positive
-	;
-		ineq_one_s_n_0(X) % X is strictly negative
+	(   K > 1e-010
+	->  ineq_one_s_p_0(X)	% X is strictly negative
+	;   ineq_one_s_n_0(X)	% X is strictly positive
 	).
 % non-linear => geler
 submit_lt_b(P,K) :-
@@ -375,13 +364,10 @@ submit_lt_c([],A,B) :-
 % linear < 0 => solve, non-linear < 0 => geler
 submit_lt_c(Rest,A,B) :-
 	Norm = [A,B|Rest],
-	(
-	  linear(Norm) ->
-	
-		'solve_<'(Norm)
-	;
-		term_variables(Norm,Vs),
-		geler(Vs,nf:resubmit_lt(Norm))
+	(   linear(Norm)
+	->  'solve_<'(Norm)
+	;   term_variables(Norm,Vs),
+	    geler(Vs,nf:resubmit_lt(Norm))
 	).
 
 % submit_le(Nf)
@@ -410,17 +396,14 @@ submit_le([B|Bs],A) :- submit_le_c(Bs,A,B).
 % c =< 0
 submit_le_b([],I) :- 
 	!,
-	I - 0.0 < 1e-010.
+	I < 1.0e-10.
 % cX^1 =< 0: if c < 0 then X >= 0, else X =< 0
 submit_le_b([X^1],K) :-
   	var(X),
 	!,
-	(
-	  0.0 - K < -1e-010 ->
-
-		ineq_one_n_p_0(X)	% X is non-strictly positive
-	;
-		ineq_one_n_n_0(X)	% X is non-strictly negative
+	(   K > 1.0e-10
+	->  ineq_one_n_p_0(X)	% X is non-strictly negative
+	;   ineq_one_n_n_0(X)	% X is non-strictly positive
 	).
 %  cX^P =< 0 => geler
 submit_le_b(P,K) :-
@@ -441,13 +424,10 @@ submit_le_c([],A,B) :-
 % A, B & Rest are linear => solve, otherwise => geler
 submit_le_c(Rest,A,B) :- 
 	Norm = [A,B|Rest],
-	(
-	  linear(Norm) ->
-
-		'solve_=<'(Norm)
-	;
-		term_variables(Norm,Vs),
-		geler(Vs,nf:resubmit_le(Norm))
+	(   linear(Norm)
+	->  'solve_=<'(Norm)
+	;   term_variables(Norm,Vs),
+	    geler(Vs,nf:resubmit_le(Norm))
 	).
 
 % submit_ne(Nf)
@@ -456,24 +436,16 @@ submit_le_c(Rest,A,B) :-
 % if Nf is a constant => check constant = 0, else if Nf is linear => solve else => geler 
 
 submit_ne(Norm1) :-  
-	(
-	  nf_constant(Norm1,K) ->
-
-		TestK is K - 0.0,	% K =\= 0
-		(
-		  TestK < -1e-010 ->
-
-			true
-		;
-			TestK > 1e-010
-		)
-	;
-	  linear(Norm1) ->
-	
-		'solve_=\\='(Norm1)
-	;
-		term_variables(Norm1,Vs),
-		geler(Vs,nf:resubmit_ne(Norm1))
+	(   nf_constant(Norm1,K)
+	->  % K =\= 0
+	    (   K < -1.0e-10
+	    ->	true
+	    ;	K > 1.0e-10
+	    )
+	;   linear(Norm1)
+	->  'solve_=\\='(Norm1)
+	;   term_variables(Norm1,Vs),
+	    geler(Vs,nf:resubmit_ne(Norm1))
 	).
 
 % linear(A)
@@ -488,7 +460,8 @@ linear([A|As]) :-
 
 % linear_ps(A)
 % 
-% Succeeds when A = V^1 with V a variable. This reflects the linearity of v(_,A).
+% Succeeds when A = V^1 with V a variable.
+% This reflects the linearity of v(_,A).
 
 linear_ps([]).
 linear_ps([V^1]) :- var(V).	% excludes sin(_), ...
@@ -501,14 +474,11 @@ linear_ps([V^1]) :- var(V).	% excludes sin(_), ...
 %
 wait_linear(Term,Var,Goal) :-  
 	nf(Term,Nf),
-	(
-	  linear(Nf) ->
-
-		Var = Nf,
-		call(Goal)
-	;
-		term_variables(Nf,Vars),
-		geler(Vars,nf:wait_linear_retry(Nf,Var,Goal))
+	(   linear(Nf)
+	->  Var = Nf,
+	    call(Goal)
+	;   term_variables(Nf,Vars),
+	    geler(Vars,nf:wait_linear_retry(Nf,Var,Goal))
  	).
 %
 % geler clients
@@ -527,50 +497,42 @@ resubmit_ne(N) :-
 	submit_ne(Norm).
 wait_linear_retry(Nf0,Var,Goal) :-
 	repair(Nf0,Nf),
-	(
-	  linear(Nf) ->
-	
-		Var = Nf,
-		call(Goal)
-	;
-		term_variables(Nf,Vars),
-		geler(Vars,nf:wait_linear_retry(Nf,Var,Goal))
+	(   linear(Nf)
+	->  Var = Nf,
+	    call(Goal)
+	;   term_variables(Nf,Vars),
+	    geler(Vars,nf:wait_linear_retry(Nf,Var,Goal))
  	).
 % -----------------------------------------------------------------------
 
 % nl_invertible(F,X,Y,Res)
 % 
-% Res is the evaluation of the inverse of nonlinear function F in variable X where X is Y
+% Res is the evaluation of the inverse of nonlinear function F in variable X
+% where X is Y
 
 nl_invertible(sin(X),X,Y,Res) :- Res is asin(Y).
 nl_invertible(cos(X),X,Y,Res) :- Res is acos(Y).
 nl_invertible(tan(X),X,Y,Res) :- Res is atan(Y).
 nl_invertible(exp(B,C),X,A,Res) :-
-	(
-	  nf_constant(B,Kb) ->
-	
-		0.0 - A < -1e-010,
-		0.0 - Kb < -1e-010,
-		TestKb is Kb - 1.0,
-		(
-		  TestKb < -1e-010 ->
-
-			true
-		;
-			TestKb > 1e-010
-		),
-		X = C, % note delayed unification
-		Res is log(A)/log(Kb)
-	;
-		nf_constant(C,Kc),
-		\+ (
-			TestA is A - 0.0,	% A =:= 0
-			TestA =< 1e-010,
-			TestA >= -1e-010,
-			Kc - 0.0 < 1e-010	% Kc =< 0
-		   ),
-		X = B, % note delayed unification
-		Res is A**(1.0/Kc)
+	(   nf_constant(B,Kb)
+	->  A > 1.0e-10,
+	    Kb > 1.0e-10,
+	    TestKb is Kb - 1.0,
+	    (
+		TestKb < -1.0e-10
+	    ->	true
+	    ;	TestKb > 1.0e-10
+	    ),
+	    X = C, % note delayed unification
+	    Res is log(A)/log(Kb)
+	;   nf_constant(C,Kc),
+	    \+ (
+		A =< 1.0e-10,	% A =:= 0
+		A >= -1.0e-10,
+		Kc < 1.0e-10	% Kc =< 0
+	    ),
+	    X = B, % note delayed unification
+	    Res is A**(1.0/Kc)
 	).
 
 % -----------------------------------------------------------------------
@@ -586,34 +548,21 @@ nl_invertible(exp(B,C),X,A,Res) :-
 nf(X,Norm) :- 
 	var(X),
 	!,
-	Norm = [v(One,[X^1])],
-	One = 1.0.
+	Norm = [v(1.0,[X^1])].
 nf(X,Norm) :- 
 	number(X),
 	!,
 	nf_number(X,Norm).
 %
-nf(rat(N,D),Norm) :- 
-	!,
-	nf_number(rat(N,D),Norm).
-%
 nf(#(Const),Norm) :-
 	monash_constant(Const,Value),
 	!,
-	(
-	  rat(1,1) = 1.0 ->
-		
-		nf_number(Value,Norm)		% swallows #(zero) ... ok in Q
-	;
-		arith_normalize(Value,N),	% in R we want it
-		Norm = [v(N,[])]
-	).
+	Norm = [v(Value,[])].
 %
 nf(-A,Norm) :- 
 	!,
 	nf(A,An),
-	K = -1.0,
-	nf_mul_factor(v(K,[]),An,Norm).
+	nf_mul_factor(v(-1.0,[]),An,Norm).
 nf(+A,Norm) :- 
 	!,
 	nf(A,Norm).
@@ -658,28 +607,15 @@ nf(Term,_) :-
 
 % nf_number(N,Res)
 % 
-% If N is a number, N is normalized (in R: n is converted to a float; in Q: n is converted to a normalized rational)
+% If N is a number, N is normalized
 
 nf_number(N,Res) :-
-	nf_number(N),
-	arith_normalize(N,Normal),
-	(
-	  TestNormal is Normal - 0.0,	% Normal =:= 0
-	  TestNormal =< 1e-010,
-	  TestNormal >= -1e-010 ->
-	  
-		Res = []
-	;
-		Res = [v(Normal,[])]
-	).
-
-% checks whether N is a number (standard Prolog number or rational)
-nf_number(N) :- 
 	number(N),
-	!.	/* MC 980507 */
-nf_number(N) :-
-	compound(N),
-	N=rat(_,_).	% sicstus
+	(   N =< 1.0e-10,	% N =:= 0
+	    N >= -1.0e-10
+	->  Res = []
+	;   Res = [v(N,[])]
+	).
 
 nonlin_1(abs(X),X,abs(Y),Y).
 nonlin_1(sin(X),X,sin(Y),Y).
@@ -692,33 +628,23 @@ nonlin_2(pow(A,B),A,B,exp(X,Y),X,Y).	% pow->exp
 nonlin_2(A^B,A,B,exp(X,Y),X,Y).
 
 nf_nonlin_1(Skel,An,S1,Norm) :-
-	(
-	  nf_constant(An,S1) ->
-	
-		nl_eval(Skel,Res),
-		nf_number(Res,Norm)
-	;
-		S1 = An,
-		One = 1.0,
-		Norm = [v(One,[Skel^1])]).
+	(   nf_constant(An,S1)
+	->  nl_eval(Skel,Res),
+	    nf_number(Res,Norm)
+	;   S1 = An,
+	    Norm = [v(1.0,[Skel^1])]).
 nf_nonlin_2(Skel,A1n,A2n,S1,S2,Norm) :-
-	(
-	  nf_constant(A1n,S1),
-	  nf_constant(A2n,S2) ->
-	
-		nl_eval(Skel,Res),
-		nf_number(Res,Norm)
-	;
-	  Skel=exp(_,_),
-	  nf_constant(A2n,Exp),
-	  integerp(Exp,I) ->
-	
-		nf_power(I,A1n,Norm)
-	;
-		S1 = A1n,
-		S2 = A2n,
-		One = 1.0,
-		Norm = [v(One,[Skel^1])]
+	(   nf_constant(A1n,S1),
+	    nf_constant(A2n,S2)
+	->  nl_eval(Skel,Res),
+	    nf_number(Res,Norm)
+	;   Skel=exp(_,_),
+	    nf_constant(A2n,Exp),
+	    integerp(Exp,I)
+	->  nf_power(I,A1n,Norm)
+	;   S1 = A1n,
+	    S2 = A2n,
+	    Norm = [v(1.0,[Skel^1])]
 	).
 
 % evaluates non-linear functions in one variable where the variable is bound
@@ -726,7 +652,8 @@ nl_eval(abs(X),R) :- R is abs(X).
 nl_eval(sin(X),R) :- R is sin(X).
 nl_eval(cos(X),R) :- R is cos(X).
 nl_eval(tan(X),R) :- R is tan(X).
-% evaluates non-linear functions in two variables where both variables are bound
+% evaluates non-linear functions in two variables where both variables are
+% bound
 nl_eval(min(X,Y),R) :- R is min(X,Y).
 nl_eval(max(X,Y),R) :- R is max(X,Y).
 nl_eval(exp(X,Y),R) :- R is X**Y.
@@ -738,7 +665,7 @@ monash_constant(X,_) :-
 monash_constant(p,3.14259265).
 monash_constant(pi,3.14259265).
 monash_constant(e,2.71828182).
-monash_constant(zero,Eps) :- arith_eps(Eps).
+monash_constant(zero,1.0e-10).
 
 %
 % check if a Nf consists of just a constant
@@ -757,13 +684,10 @@ nf_constant([v(K,[])],K).
 
 split([],[],Z) :- Z = 0.0.
 split([First|T],H,I) :-  
-	(
-	  First = v(I,[]) ->
-
-		H = T
-	;
-		I = 0.0,
-		H = [First|T]
+	(   First = v(I,[])
+	->  H = T
+	;   I = 0.0,
+	    H = [First|T]
 	).
 
 % nf_add(A,B,C): merges two normalized additions into a new normalized addition
@@ -796,15 +720,12 @@ nf_add_case(>,A,As,Cs,B,Bs,_,_,_) :-
 	nf_add(Bs,A,As,Rest).
 nf_add_case(=,_,As,Cs,_,Bs,Ka,Kb,Pa) :-
 	Kc is Ka + Kb,
-	(
-	  TestKc = Kc - 0.0,	% Kc =:= 0
-	  TestKc =< 1e-010,
-	  TestKc >= -1e-010 ->	
-		
-		nf_add(As,Bs,Cs)
-	;	    
-		Cs = [v(Kc,Pa)|Rest],
-		nf_add(As,Bs,Rest)
+	(   % Kc =:= 0.0
+	    Kc =< 1.0e-10,
+	    Kc >= -1.0e-10
+	->  nf_add(As,Bs,Cs)
+	;   Cs = [v(Kc,Pa)|Rest],
+	    nf_add(As,Bs,Rest)
 	).
 
 nf_mul(A,B,Res) :-  
@@ -840,14 +761,11 @@ nf_add_2_case(<,Af,Bf,[Af,Bf],_,_,_).
 nf_add_2_case(>,Af,Bf,[Bf,Af],_,_,_).
 nf_add_2_case(=,_, _,Res,Ka,Kb,Pa) :-
 	Kc is Ka + Kb,
-	(
-	  TestKc is Kc - 0.0,	% Kc =:= 0
-	  TestKc =< 1e-010,
-	  TestKc >= -1e-010 ->
-
-		Res = []
-	;
-		Res=[v(Kc,Pa)]
+	(   % Kc =:= 0
+	    Kc =< 1.0e-10,
+	    Kc >= -1.0e-10
+	->  Res = []
+	;   Res = [v(Kc,Pa)]
 	).
 
 % nf_mul_k(A,B,C)
@@ -928,13 +846,10 @@ pmerge_case(>,A,As,Res,B,Bs,_,_,_) :-
 	pmerge(Bs,A,As,Tail).
 pmerge_case(=,_,As,Res,_,Bs,Ka,Kb,Xa) :-
 	Kc is Ka + Kb,
-	(
-	  Kc=:=0 ->
-	
-		pmerge(As,Bs,Res)
-	;
-		Res = [Xa^Kc|Tail],
-		pmerge(As,Bs,Tail)
+	(   Kc =:= 0
+	->  pmerge(As,Bs,Res)
+	;   Res = [Xa^Kc|Tail],
+	    pmerge(As,Bs,Tail)
 	).
 
 % nf_div(Factor,In,Out) 
@@ -951,7 +866,7 @@ nf_div([v(K,P)],Sum,Res) :-
 	Ki is 1.0/K,
 	mult_exp(P,-1,Pi),
 	nf_mul_factor(v(Ki,Pi),Sum,Res).
-nf_div(D,A,[v(One,[(A/D)^1])]) :- One = 1.0.
+nf_div(D,A,[v(1.0,[(A/D)^1])]).
 
 % zero_division
 %
@@ -975,24 +890,17 @@ mult_exp([X^P|Xs],K,[X^I|Tail]) :-
 nf_power(N,Sum,Norm) :-  
 	integer(N),
 	compare(Rel,N,0),
-	(
-	  Rel = (<) ->
-	
-		Pn is -N,
-      		% nf_power_pos(Pn,Sum,Inorm),
-		binom(Sum,Pn,Inorm),
-		One = 1.0,
-		nf_div(Inorm,[v(One,[])],Norm)
-	;
-	  Rel = (>) ->
-		
-		% nf_power_pos(N,Sum,Norm)
-      		binom(Sum,N,Norm)
-	; 
-	  Rel = (=) ->	% 0^0 is indeterminate but we say 1
-
-		One = 1.0,
-		Norm = [v(One,[])]
+	(   Rel = (<)
+	->  Pn is -N,
+      	    % nf_power_pos(Pn,Sum,Inorm),
+	    binom(Sum,Pn,Inorm),
+	    nf_div(Inorm,[v(1.0,[])],Norm)
+	;   Rel = (>)
+	->  % nf_power_pos(N,Sum,Norm)
+      	    binom(Sum,N,Norm)
+	;   Rel = (=)
+	->  % 0^0 is indeterminate but we say 1
+	    Norm = [v(1.0,[])]
 	).
 %
 % N>0
@@ -1014,26 +922,19 @@ binom(Sum,1,Power) :-
 	Power = Sum.
 binom([],_,[]).
 binom([A|Bs],N,Power) :- 
-	( 
-	  Bs = [] ->
-
-	
-		nf_power_factor(A,N,Ap),
-		Power = [Ap]
-	;
-	  Bs = [_|_] ->
-	
-		One = 1.0,
-		factor_powers(N,A,v(One,[]),Pas),
-		sum_powers(N,Bs,[v(One,[])],Pbs,[]),
-		combine_powers(Pas,Pbs,0,N,1,[],Power)
+	(   Bs = []
+	->  nf_power_factor(A,N,Ap),
+	    Power = [Ap]
+	;   Bs = [_|_]
+	->  factor_powers(N,A,v(1.0,[]),Pas),
+	    sum_powers(N,Bs,[v(1.0,[])],Pbs,[]),
+	    combine_powers(Pas,Pbs,0,N,1,[],Power)
 	).
 
 combine_powers([],[],_,_,_,Pi,Pi).
 combine_powers([A|As],[B|Bs],L,R,C,Pi,Po) :- 
 	nf_mul(A,B,Ab),
-	arith_normalize(C,Cn),
-	nf_mul_k(Ab,Cn,Abc),
+	nf_mul_k(Ab,C,Abc),
 	nf_add(Abc,Pi,Pii),
 	L1 is L+1,
 	R1 is R-1,
@@ -1041,8 +942,7 @@ combine_powers([A|As],[B|Bs],L,R,C,Pi,Po) :-
 	combine_powers(As,Bs,L1,R1,C1,Pii,Po).
 
 nf_power_factor(v(K,P),N,v(Kn,Pn)) :- 
-	arith_normalize(N,Nn),
-	Kn is K**Nn,
+	Kn is K**N,
 	mult_exp(P,N,Pn).
 
 factor_powers(0,_,Prev,[[Prev]]) :- !.
@@ -1078,8 +978,7 @@ repair_log(N,A0,A2,R) :-
 
 repair_term(K,P,Norm) :-
 	length(P,Len),
-	One = 1.0,
-	repair_p_log(Len,P,[],Pr,[v(One,[])],Sum),
+	repair_p_log(Len,P,[],Pr,[v(1.0,[])],Sum),
 	nf_mul_factor(v(K,Pr),Sum,Norm).
 
 repair_p_log(0,Ps,Ps,[],L0,L0) :- !.
@@ -1110,7 +1009,7 @@ repair_p(Term,P,[],L0,L1) :-
 % digested -> cuts after repair of args!
 %
 repair_p_one(Term,TermN) :- 
-	nf_number(Term,TermN),		% freq. shortcut for nf/2 case below
+	nf_number(Term,TermN),	% freq. shortcut for nf/2 case below
 	!.
 repair_p_one(A1/A2,TermN) :-
 	repair(A1,A1n),
@@ -1141,7 +1040,7 @@ nf_length([_|R],Li,Lo) :-
 % transforms a normal form into a readable term
 
 % empty normal form = 0
-nf2term([],Z) :- Z = 0.0.
+nf2term([],0.0).
 % term is first element (+ next elements) 
 nf2term([F|Fs],T) :-
 	f02t(F,T0),	% first element
@@ -1158,83 +1057,70 @@ yfx([F|Fs],T0,TN) :-
 % transforms the first element of the normal form (something of the form v(K,P))
 % into a readable term
 f02t(v(K,P),T) :-
-	(
-	  P = [] ->	% just a constant
-	
-		T = K
-	;
-	  TestK is K - 0.0,	% K =:= 0
-	  TestK =< 1e-010,
-	  TestK >= -1e-010 ->	% constant = 1,P =\= [], don't show constant
-		
-		p2term(P,T)
-	;
-	  TestK is K - -1.0,	% K =:= -1
-	  TestK =< 1e-010,
-	  TestK >= -1e-010 ->
-
-		T = -Pt,				% constant = -1, P =\= [], only show sign (-)				p2term(P,Pt)
-		p2term(P,Pt)
-	;
-		T = K*Pt,
-		p2term(P,Pt)
+	(   % just a constant
+	    P = []
+	->  T = K
+	;   % K =:= 1
+	    TestK is K - 1.0,
+	    TestK =< 1.0e-10,
+	    TestK >= -1.0e-10
+	->  p2term(P,T)
+	;   % K =:= -1
+	    TestK is K + 1.0,
+	    TestK =< 1.0e-10,
+	    TestK >= -1.0e-10
+	->  T = -Pt,
+	    p2term(P,Pt)
+	;   T = K*Pt,
+	    p2term(P,Pt)
 	).
 
 % f02t(v(K,P),T,Op)
 %
-% transforms a next element of the normal form (something of the form v(K,P)) into a readable term
+% transforms a next element of the normal form (something of the form v(K,P))
+% into a readable term
 fn2t(v(K,P),Term,Op) :-
-	(
-	  TestK is K - 1.0,	% K =:= 1
-	  TestK =< 1e-010,
-	  TestK >= -1e-010 ->	% no constant, Op = +
-	
-		Term = Pt,
-		Op = +
-	; 	
-	  TestK is K - -1.0,	% K =:= -1
-	  TestK =< 1e-010,
-	  TestK >= -1e-010 ->	% no constant, Op = -
-
-		Term = Pt,
-		Op = -
-	;
-	  K - 0.0 < -1e-010 ->		% constant, Op = -
-	
-		Kf is -K,
-		Term = Kf*Pt,
-		Op = -
- 	;				% constant, Op = +
-      		Term = K*Pt,
-		Op = +
+	(   % K =:= 1
+	    TestK is K - 1.0,
+	    TestK =< 1.0e-10,
+	    TestK >= -1.0e-10
+	->  Term = Pt,
+	    Op = +
+	;   % K =:= -1
+	    TestK is K + 1.0,
+	    TestK =< 1.0e-10,
+	    TestK >= -1.0e-10
+	->  Term = Pt,
+	    Op = -
+	;   % K < 0
+	    K < -1.0e-10
+	->  Kf is -K,
+	    Term = Kf*Pt,
+	    Op = -
+ 	;   % K > 0
+	    Term = K*Pt,
+	    Op = +
   	),
 	p2term(P,Pt).
 
 % transforms the P part in v(_,P) into a readable term
 p2term([X^P|Xs],Term) :-
-	(
-	  Xs = [] ->
-	
-		pe2term(X,Xt),
-		exp2term(P,Xt,Term)
-	;
-	  Xs = [_|_] ->
-	
-		Term = Xst*Xtp,
-		pe2term(X,Xt),
-		exp2term(P,Xt,Xtp),
-		p2term(Xs,Xst)
+	(   Xs = []
+	->  pe2term(X,Xt),
+	    exp2term(P,Xt,Term)
+	;   Xs = [_|_]
+	->  Term = Xst*Xtp,
+	    pe2term(X,Xt),
+	    exp2term(P,Xt,Xtp),
+	    p2term(Xs,Xst)
 	).
 
 % 
 exp2term(1,X,X) :- !.
-exp2term(-1,X,One/X) :- 
-	!,
-	One = 1.0.
+exp2term(-1,X,1.0/X) :- !. 
 exp2term(P,X,Term) :-
-	arith_normalize(P,Pn),
-	% Term = exp(X,Pn).
-	Term = X^Pn.
+	% Term = exp(X,Pn)
+	Term = X^P.
 
 pe2term(X,Term) :- 
 	var(X),

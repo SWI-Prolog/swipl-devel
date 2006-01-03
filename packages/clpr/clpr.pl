@@ -1,9 +1,9 @@
 /*  $Id$
 
     Part of CPL(R) (Constraint Logic Programming over Reals)
-
+    
     Author:        Leslie De Koninck
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
     Copyright (C): 2004, K.U. Leuven and
@@ -38,24 +38,23 @@
     the GNU General Public License.
 */
 
-
 :- module(clpr,
 	[
-		{}/1, 
-		maximize/1,
-		minimize/1, 
-		inf/2, inf/4, sup/2, sup/4,
-		bb_inf/3,
-		bb_inf/5,
-		ordering/1,
-		entailed/1,
-		dump/3, projecting_assert/1
+	    {}/1,
+	    maximize/1,
+	    minimize/1,
+	    inf/2, inf/4, sup/2, sup/4,
+	    bb_inf/3,
+	    bb_inf/5,
+	    ordering/1,
+	    entailed/1,
+	    dump/3, projecting_assert/1
 	]).
 
 %
 % Don't report export of private predicates from clpr
 %
-:- multifile 
+:- multifile
 	user:portray_message/2.
 
 :- dynamic
@@ -63,28 +62,30 @@
 %
 user:portray_message(warning,import(_,_,clpr,private)).
 
-:- load_files([ 'clpr/arith_r',
-		'clpr/itf3',
-		'clpr/store',
-		'clpr/geler',
-		'clpr/nfr',
-		'clpr/class',
-		'clpr/nf',
-		'clpr/project',
-		'clpr/bv',
-		'clpr/ineq',
-		'clpr/redund',
-		'clpr/fourmotz',
-		'clpr/bb',
-		'clpr/dump'
-	      ],
-	      [ if(not_loaded),
-		silent(true)
-	      ]).
-
+:- load_files(
+	[
+	    'clpr/arith_r',
+    	    'clpr/itf3',
+	    'clpr/store',
+	    'clpr/geler',
+	    'clpr/nfr',
+	    'clpr/class',
+	    'clpr/nf',
+	    'clpr/project',
+	    'clpr/bv',
+	    'clpr/ineq',
+	    'clpr/redund',
+	    'clpr/fourmotz',
+	    'clpr/bb',
+	    'clpr/dump'
+	],
+	[
+	    if(not_loaded),
+	    silent(true)
+	]).
 
 		 /*******************************
-		 *	 TOPLEVEL PRINTING	*	
+		 *	 TOPLEVEL PRINTING	*
 		 *******************************/
 
 :- multifile
@@ -95,8 +96,8 @@ user:portray_message(warning,import(_,_,clpr,private)).
 %         '$messages':prolog_message(query(YesNo)).
 
 prolog:message(query(YesNo,Bindings)) --> !,
-	{ dump_toplevel_bindings(Bindings,Constraints)},
-	{ dump_format(Constraints,Format) },
+	{dump_toplevel_bindings(Bindings,Constraints)},
+	{dump_format(Constraints,Format)},
 	Format,
         '$messages':prolog_message(query(YesNo,Bindings)).
 
@@ -106,29 +107,26 @@ dump_toplevel_bindings(Bindings,Constraints) :-
 
 dump_vars_names([],_,[],[]).
 dump_vars_names([Name=Term|Rest],Seen,Vars,Names) :-
-	( var(Term), 
-	  (
-		get_attr(Term,itf3,_)
-	  ;
-		get_attr(Term,geler_r,_)
-	  ),
-	  \+ memberchk_eq(Term,Seen) ->
-		Vars = [Term|RVars],
-		Names = [Name|RNames],
-		NSeen = [Term|Seen]
-	;
-		Vars = RVars,
-		Names = RNames,
-		Seen = NSeen
+	(   var(Term),
+	    (   get_attr(Term,itf3,_)
+	    ;   get_attr(Term,geler_r,_)
+	    ),
+	    \+ memberchk_eq(Term,Seen)
+	->  Vars = [Term|RVars],
+	    Names = [Name|RNames],
+	    NSeen = [Term|Seen]
+	;   Vars = RVars,
+	    Names = RNames,
+	    Seen = NSeen
 	),
-	dump_vars_names( Rest,NSeen,RVars,RNames).
+	dump_vars_names(Rest,NSeen,RVars,RNames).
 
 dump_format([],[]).
 dump_format([X|Xs],['{~w}'-[X],nl|Rest]) :-
 	dump_format(Xs,Rest).
 
-memberchk_eq(X, [Y|Ys]) :-
-   (   X == Y
-   ->  true
-   ;   memberchk_eq(X, Ys)
-   ).
+memberchk_eq(X,[Y|Ys]) :-
+	(   X == Y
+	->  true
+	;   memberchk_eq(X,Ys)
+	).
