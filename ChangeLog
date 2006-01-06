@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#131: error handling in lock-option of open/4.
+    Holger Kanwischer.
+
   * FIXED: stream_property(X, alias(A)) for standard streams.  Paulo Moura.
 
   * FIXED: Bug#130: Prolog arithmetic functions using rationals.  Koos Dering.

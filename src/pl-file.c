@@ -2179,7 +2179,7 @@ openStream(term_t file, term_t mode, term_t options)
     else
     { term_t l = PL_new_term_ref();
       PL_put_atom(l, lock);
-      PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_lock, lock);
+      PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_lock, l);
       return NULL;
     }
   }

@@ -1967,7 +1967,10 @@ file(ext-1) :-
 	atom_codes(Base, [1074, 1086, 1079, 1076]),
 	atom_codes(Ext, [1091, 1093, 1072]).
 file(ext-2) :-
-	\+ file_name_extension(foo, _, 'bar.pl'). 	% Bug#69
+	\+ file_name_extension(foo, _, 'bar.pl'). 	% Bug#69
+file(open-1) :-
+	catch(open(foobar, read, _, [lock(qqq)]), E, true),
+	E =@= error(domain_error(lock, qqq), context(system:open/4, _)).
 
 
 touch(File) :-
