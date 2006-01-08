@@ -345,6 +345,28 @@ baseNameW(TCHAR *name)
 }
 
 
+typedef struct
+{ char *name;
+  DWORD flag;
+} ofn_namedef;
+
+static ofn_namedef ofn_namedefs[] =
+{ { "allowmultiselect", OFN_ALLOWMULTISELECT },
+  { "createprompt", OFN_CREATEPROMPT },
+  { "filemustexist", OFN_FILEMUSTEXIST },
+  { "hidereadonly", OFN_HIDEREADONLY },
+  { "nodereferencelinks", OFN_NODEREFERENCELINKS  },
+  { "nonetworkbutton", OFN_NONETWORKBUTTON },
+  { "noreadonlyreturn ", OFN_NOREADONLYRETURN },
+  { "notestfilecreate", OFN_NOTESTFILECREATE },
+  { "overwriteprompt", OFN_OVERWRITEPROMPT },
+  { "pathmustexist", OFN_PATHMUSTEXIST },
+  { "readonly", OFN_READONLY },
+  { "shareaware", OFN_SHAREAWARE },
+  { NULL, 0 }
+};
+
+
 Name
 getWinFileNameDisplay(DisplayObj d,
 		      Name mode,	/* open, save */
@@ -352,7 +374,8 @@ getWinFileNameDisplay(DisplayObj d,
 		      CharArray title,
 		      CharArray file,	/* default file */
 		      Directory dir,	/* initial dir */
-		      Any owner)	/* owner window */
+		      Any owner,	/* owner window */
+		      Chain options)	/* Flags */
 { OPENFILENAME ofn;
   HWND hwnd;
   Name rval = 0;
@@ -438,9 +461,23 @@ getWinFileNameDisplay(DisplayObj d,
   if ( notDefault(title) )
   ofn.lpstrTitle = nameToTCHAR(title);
 
-  ofn.Flags = (OFN_HIDEREADONLY|
-	       OFN_NOCHANGEDIR);
+  ofn.Flags = OFN_NOCHANGEDIR;
 	       
+  if ( notDefault(options) )
+  { Cell cell;
+
+    for_cell(cell, options)
+    { if ( isName(cell->value) )
+      { ofn_namedef *dp = ofn_namedefs;
+
+	for(; dp->name; dp++)
+	{ if ( streq(strName(cell->value), dp->name) )
+	    ofn.Flags |= dp->flag;
+	}
+      }
+    }
+  }
+
   if ( mode == NAME_open )
   { ofn.Flags |= OFN_FILEMUSTEXIST;
     tmpb = GetOpenFileName(&ofn);

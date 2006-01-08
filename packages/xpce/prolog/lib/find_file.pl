@@ -113,7 +113,7 @@ get_file(F, Exists, Ext, Dir, Default, File) :-
 	),
 	get(F, label, Label),
 	get(@display, win_file_name, Mode, Filters,
-	    Label, Default, DefDir, File),
+	    Label, Default, DefDir, @default, chain(overwriteprompt), File),
 	file_directory_name(File, NewDir),
 	send(F, slot, directory, NewDir).
 get_file(F, Exists, Ext, Dir, Default, File) :-

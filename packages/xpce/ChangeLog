@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* COMPAT: changed library(find_file) to confirm on overwrite on both the
+  private file prompter and the Windows one.  Jelmer Jellema.
+
 VERSION 6.6.0, distributed with SWI-Prolog 5.6.0
 ================================================
 

@@ -191,7 +191,8 @@ Name		getWinFileNameDisplay(DisplayObj d,
 				      CharArray title,
 				      CharArray file,
 				      Directory dir,
-				      Any owner);
+				      Any owner,
+				      Chain options);
 void		destroyThreadWindows(Class class);
 
 #include "msproto.h"
