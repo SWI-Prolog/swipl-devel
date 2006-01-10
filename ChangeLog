@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+================================
+VERSION 5.6.1 (January 10, 2006)
+================================
+
   * CLEANUP: Various type issues.  Peter Ludemann.
 
   * FIXED: Bug#131: error handling in lock-option of open/4.
