@@ -46,6 +46,9 @@
 #include <string.h>
 #ifdef WIN32
 #include <malloc.h>
+#endif
+
+#ifndef HAVE_SSIZE_T
 #define ssize_t int
 #endif
 

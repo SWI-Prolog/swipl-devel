@@ -1,3 +1,7 @@
+Jan 10, 2006
+
+  * UDP ssize_t portability issues
+
 Dec 23, 2005
 
   * Start work on UDP support in socket.pl.

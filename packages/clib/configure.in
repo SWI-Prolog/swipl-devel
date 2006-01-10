@@ -143,6 +143,11 @@ AC_CHECK_TYPES(socklen_t, [], [],
 #include <sys/types.h>
 #include <sys/socket.h>
 ])
+AC_CHECK_TYPES(ssize_t, [], [],
+[
+#include <sys/types.h>
+#include <sys/socket.h>
+])
 
 AC_MSG_CHECKING(_XOPEN_SOURCE)
 AC_TRY_COMPILE(
