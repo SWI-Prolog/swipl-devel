@@ -46,6 +46,7 @@
 #include <string.h>
 #ifdef WIN32
 #include <malloc.h>
+#define ssize_t int
 #endif
 
 static atom_t ATOM_reuseaddr;		/* "reuseaddr" */

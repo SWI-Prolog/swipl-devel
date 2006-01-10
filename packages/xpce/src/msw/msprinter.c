@@ -319,6 +319,7 @@ openWinPrinter(WinPrinter prt)
 				       DEFAULT,
 				       DEFAULT,
 				       DEFAULT,
+				       DEFAULT,
 				       DEFAULT)) )
       { if ( !_xos_os_filename(strName(to), fname, sizeof(fname)) )
 	  return errorPce(prt, NAME_representation, NAME_nameTooLong);
