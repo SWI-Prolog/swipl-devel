@@ -645,7 +645,7 @@ aliasThread(int tid, atom_t name)
 		    ERR_PERMISSION, ATOM_thread, ATOM_create, obj);
   }
 
-  addHTable(threadTable, (void *)name, (void *)tid);
+  addHTable(threadTable, (void *)name, (void *)(long)tid);
   PL_register_atom(name);
   threads[tid].name = name;
 
@@ -1022,7 +1022,7 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
     { Symbol s;
 
       if ( (s = lookupHTable(threadTable, (void *)name)) )
-	i = (int)s->value;
+	i = (int)(long)s->value;
     }
   }
 
@@ -2107,7 +2107,7 @@ get_message_queue(term_t t, message_queue **queue, int create)
   { Symbol s = lookupHTable(threadTable, (void *)id);
 
     if ( s )
-    { tid = (int)s->value;
+    { tid = (int)(long)s->value;
       goto thread_queue;
     }
   }

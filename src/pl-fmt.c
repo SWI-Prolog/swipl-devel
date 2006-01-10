@@ -219,10 +219,10 @@ pl_format_predicate(term_t chr, term_t descr)
   if ( !format_predicates )
     format_predicates = newHTable(8);
   
-  if ( (s = lookupHTable(format_predicates, (void *)c)) )
+  if ( (s = lookupHTable(format_predicates, (void *)(long)c)) )
     s->value = proc;
   else
-    addHTable(format_predicates, (void *)c, proc);
+    addHTable(format_predicates, (void *)(long)c, proc);
 
   succeed;
 }

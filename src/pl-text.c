@@ -64,6 +64,7 @@ bufsize_text(PL_chars_t *text, unsigned int len)
       break;
     default:
       assert(0);
+      unit = sizeof(char);		/*NOTREACHED*/
   }
 
   return len*unit;
@@ -108,7 +109,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     PL_get_number(l, &n);
     switch(n.type)
     { case V_INTEGER:
-	sprintf(text->buf, INT64_FORMAT, valInteger(w) );
+	sprintf(text->buf, INT64_FORMAT, n.value.i);
         text->text.t    = text->buf;
 	text->length    = strlen(text->text.t);
 	text->storage   = PL_CHARS_LOCAL;

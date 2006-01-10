@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * CLEANUP: Various type issues.  Peter Ludemann.
+
   * FIXED: Bug#131: error handling in lock-option of open/4.
     Holger Kanwischer.
 

@@ -455,6 +455,7 @@ current_op(Module m, int inherit,
     }
     default:
       assert(0);
+      fail;				/*NOTREACHED*/
   }
 
   Mark(mrk);
