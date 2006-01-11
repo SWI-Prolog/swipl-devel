@@ -41,6 +41,7 @@
 :- use_module(http_header).
 :- use_module(library(debug)).
 :- use_module(library(memfile)).
+:- use_module(library(lists)).
 :- use_module(dcg_basics).
 
 :- multifile
@@ -155,12 +156,14 @@ http_get(Parts, Data, Options) :-
 
 http_do_get(Parts, Data, Options) :-
 	connect(Parts, Read, Write, Options),
-	(   memberchk(proxy(_,_), Options)
+	(   select(proxy(_,_), Options, Options1)
 	->  parse_url(Location, Parts)
-	;   http_location(Parts, Location)
+	;   http_location(Parts, Location),
+	    Options1 = Options
 	),
 	memberchk(host(Host), Parts),
-	http_write_header(Write, 'GET', Location, Host, Options, ReplyOptions),
+	http_write_header(Write, 'GET', Location, Host,
+			  Options1, ReplyOptions),
 	write(Write, '\r\n'),
 	flush_output(Write),
 	http_read_reply(Read, Data, ReplyOptions), !.
