@@ -437,6 +437,12 @@ gmp(popcount-1) :-
 	1 =:= popcount(1<<5).
 gmp(popcount-2) :-
 	1 =:= popcount(1<<100).
+gmp(shift-1) :-
+	A is 1<<54, B is A<<8,
+	B =:= 4611686018427387904.
+gmp(shift-2) :-
+	A is 1<<55, B is A<<8,
+	B =:= 9223372036854775808.
 gmp(fac-1) :-
 	fac(25, X),
 	X == 15511210043330985984000000. % computed with bc
