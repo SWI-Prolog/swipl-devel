@@ -1,3 +1,7 @@
+Jan 11, 2006
+
+  * FIXED: Avoid exception in rdf_unload/1
+
 Dec 18, 2005
 
   * FIXED: Added simpleminded handling for updating the database from

@@ -778,9 +778,11 @@ rdf_unload(Spec) :-
 	->  do_unload(Spec)
 	;   absolute_file_name(Spec,
 			       [ access(read),
-				 extensions([rdf,rdfs,owl,''])
-			       ], File),
-	    do_unload(File)
+				 extensions([rdf,rdfs,owl,'']),
+				 file_errors(fail)
+			       ], File)
+	->  do_unload(File)
+	;   true
 	).
 	
 do_unload(Spec) :-
