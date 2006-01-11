@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#133: reading non-decimal numbers that do not fit in 64-bit.
+    Holger Kanwischer.
+
   * FIXED: Bug#132: radix domain checking for format/3 using ~r.
     Holger Kanwischer.
 

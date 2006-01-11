@@ -1118,7 +1118,8 @@ scan_number(cucharp *s, int b, Number n)
       promoteToMPZNumber(n);
 
       while((d = digitValue(b, *q)) >= 0)
-      { mpz_mul_ui(n->value.mpz, n->value.mpz, b);
+      { q++;
+	mpz_mul_ui(n->value.mpz, n->value.mpz, b);
 	mpz_add_ui(n->value.mpz, n->value.mpz, d);
       }
       *s = q;
