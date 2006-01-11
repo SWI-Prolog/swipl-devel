@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#134: left-shift (<<) hitting 64-bit boundary.  Holger
+    Kanwischer.
+
   * FIXED: Bug#133: reading non-decimal numbers that do not fit in 64-bit.
     Holger Kanwischer.
 
