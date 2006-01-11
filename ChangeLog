@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#132: radix domain checking for format/3 using ~r.
+    Holger Kanwischer.
+
 ================================
 VERSION 5.6.1 (January 10, 2006)
 ================================

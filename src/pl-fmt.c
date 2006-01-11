@@ -515,9 +515,18 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		    arg = 0;
 		  initBuffer(&b);
 		  if ( c == 'd' || c == 'D' )
-		    formatNumber(c == 'D', arg, 10, TRUE, &i, (Buffer)&b);
-		  else
+		  { formatNumber(c == 'D', arg, 10, TRUE, &i, (Buffer)&b);
+		  } else
+		  { if ( arg < 1 || arg > 36 )
+		    { term_t r = PL_new_term_ref();
+		      
+		      PL_put_integer(r, arg);
+		      Sunlock(fd);
+		      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+				      ATOM_radix, r);
+		    }
 		    formatNumber(FALSE, 0, arg, c == 'r', &i, (Buffer)&b);
+		  }
 		  clearNumber(&i);
 		  outstring0(&state, baseBuffer(&b, char));			
 		  discardBuffer(&b);

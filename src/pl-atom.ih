@@ -553,3 +553,4 @@
 #define ATOM_zero_divisor MK_ATOM(552)
 #define ATOM_lsb          MK_ATOM(553)
 #define ATOM_popcount     MK_ATOM(554)
+#define ATOM_radix        MK_ATOM(555)
