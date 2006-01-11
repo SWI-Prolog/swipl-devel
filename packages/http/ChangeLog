@@ -1,5 +1,6 @@
 Jan 11, 2006
 
+  * Added: handling of 302 redirect messages in http_get/3.
   * Fix http_get/3 with sgml plugin and proxy option.  Usenet, `mans'.
 
 Dec 10, 2005

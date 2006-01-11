@@ -166,7 +166,13 @@ http_do_get(Parts, Data, Options) :-
 			  Options1, ReplyOptions),
 	write(Write, '\r\n'),
 	flush_output(Write),
-	http_read_reply(Read, Data, ReplyOptions), !.
+	http_read_reply(Read, Data0, ReplyOptions), !,
+	(   Data0 = redirect(Redirect)
+	->  debug(http(redirect), 'Redirect to ~w', [Redirect]),
+	    parse_url(Redirect, Parts, NewParts),
+	    http_get(NewParts, Data, Options)
+	;   Data = Data0
+	).
 http_do_get(Parts, _Data, _Options) :-
 	throw(error(failed(http_get, Parts), _)).
 
@@ -174,11 +180,15 @@ http_read_reply(In, Data, Options) :-
 	between(0, 1, _),
 	    http_read_reply_header(In, Fields),
 	\+ memberchk(status(continue, _), Fields), !,
-	(   memberchk(reply_header(Fields), Options)
-	->  true
-	;   true
+	(   memberchk(status(302, _), Fields),
+	    memberchk(location(Location), Fields)
+	->  Data = redirect(Location)
+	;   (   memberchk(reply_header(Fields), Options)
+	    ->  true
+	    ;   true
+	    ),
+	    http_read_data(In, Fields, Data, Options)
 	),
-	http_read_data(In, Fields, Data, Options),
 	(   memberchk(connection(Connection), Fields),
 	    downcase_atom(Connection, 'keep-alive')
 	->  true
