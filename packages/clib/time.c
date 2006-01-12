@@ -136,8 +136,6 @@ regions in the code.  To make a start:
 static void	on_alarm(int sig);
 
 static module_t	   MODULE_user;
-static atom_t	   ATOM_true;
-static atom_t	   ATOM_false;
 static atom_t	   ATOM_remove;
 static atom_t	   ATOM_done;
 static atom_t	   ATOM_next;
@@ -580,18 +578,8 @@ get_timer(term_t t, Event *ev)
 
 static int
 pl_get_bool_ex(term_t arg, int *val)
-{ atom_t a;
-
-  if ( PL_get_atom(arg, &a) )
-  { if ( a == ATOM_true )
-    { *val = TRUE;
-      return TRUE;
-    }
-    if ( a == ATOM_false )
-    { *val = FALSE;
-      return FALSE;
-    }
-  }
+{ if ( PL_get_bool(arg, val) )
+    return TRUE;
 
   return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 0, arg, "bool");
 }
@@ -768,8 +756,6 @@ install()
   FUNCTOR_alarm1  = PL_new_functor(PL_new_atom("$alarm"), 1);
   FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
 
-  ATOM_true	  = PL_new_atom("true");
-  ATOM_false	  = PL_new_atom("false");
   ATOM_remove	  = PL_new_atom("remove");
   ATOM_done	  = PL_new_atom("done");
   ATOM_next	  = PL_new_atom("next");
