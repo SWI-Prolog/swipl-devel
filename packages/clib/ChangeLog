@@ -1,3 +1,8 @@
+Jan 12, 2006
+
+  * Fixed: rewrote most of time.c, providing alarm/4 using portable
+    pthread code.
+
 Jan 10, 2006
 
   * UDP ssize_t portability issues

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -29,6 +29,7 @@
     the GNU General Public License.
 */
 
+#define O_DEBUG 1			/* provides time:time_debug(+Level) */
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -88,49 +89,102 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 
 
 #else /*WIN32*/
+
+#define SHARED_TABLE 1
+
 #include <time.h>
 #include <sys/time.h>
+
 #endif /*WIN32*/
 
 #ifdef O_DEBUG
-#define DEBUG(g) g
+static int debuglevel = 0;
+#define DEBUG(n, g) if ( debuglevel >= n ) g
+
+static foreign_t
+pl_time_debug(term_t n)
+{ return PL_get_integer(n, &debuglevel);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+glibc defines backtrace() and friends to  print the calling context. For
+debugging this is just great,  as   the  problem  generally appear after
+generating an exception.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef HAVE_EXECINFO_H
+#define BACKTRACE 1
+
+#if BACKTRACE
+#include <execinfo.h>
+#include <string.h>
+
+static void
+print_trace (void)
+{ void *array[100];
+  size_t size;
+  char **strings;
+  size_t i;
+     
+  size = backtrace(array, sizeof(array)/sizeof(void *));
+  strings = backtrace_symbols(array, size);
+     
+#ifdef _REENTRANT
+  Sdprintf("on_alarm() Prolog-context [thread %d]:\n", PL_thread_self());
 #else
-#define DEBUG(g) ((void)0)
+  Sdprintf("on_alarm() Prolog-context:\n");
 #endif
+  PL_action(PL_ACTION_BACKTRACE, 3);
+
+  Sdprintf("on_alarm() C-context:\n");
+  
+  for(i = 0; i < size; i++)
+  { if ( !strstr(strings[i], "checkData") )
+      Sdprintf("\t[%d] %s\n", i, strings[i]);
+  }
+       
+  free(strings);
+}
+#endif /*BACKTRACE*/
+#endif /*HAVE_EXECINFO_H*/
+#else /*O_DEBUG*/
+#define DEBUG(n, g) ((void)0)
+#endif /*O_DEBUG*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines support for timing during execution. Most of this is
-highly system dependent, and currently running on Unix systems providing
-the setitimer() and  friends  functions.   See  time.pl  for  user-level
-documentation.
+highly system dependent.
 
 Design
 ======
 
+The module contains three implementations:
+
+	* Windows
+	The Windows versions is based on multimedia timer objects.
+	
+	* Unix setitimer (single threaded)
+	This implementation uses setitimer() and SIGALRM.  Whenever
+	something is changed, re_schedule() is called to set the
+	alarm clock for the next wakeup.
+
+	* Unix scheduler thread
+	This implementation uses a table shared between all threads and
+	a thread that waits for the next signal to be send using
+	pthread_cond_timedwait().  The signal SIGALRM is then delivered
+	using pthread_kill() to the scheduled thread.
+
 This module keeps a double-linked  list   of  `scheduled events' that is
 tagged with and annotated using  the   absolute  time  it should happen.
 These  times  are  represented  using   the  struct  timeval,  providing
-microsecond resolution.
+microsecond   resolution.   If   the     SHARED_TABLE    version   (Unix
+multithreaded), there is one table for all  events. In the other designs
+each thread has its own table.
 
-Whenever an event is added  or   deleted,  the  system calls schedule(),
-which takes the current time, checks which  event should be the next one
-executed and sets a timer to call on_alarm() at that time.
-
-Problems
-========
-
-Various locking and asynchronous issues in the  Prolog kernel need to be
-checked and validated. Notably throwing an exception might not always be
-guarded appropriately. We should distinguish   various types of critical
-regions in the code.  To make a start:
-
-	* Places where it is not save to execute Prolog code
-		- When GC is running
-		- If the clause-index is being rebuild (maybe ok?)
-
-	* Places where it is not save to long_jmp()
-		- State is inconsistent
-		- Garbage will not be cleaned
+The  signal  handler  uses  the  PL_SIGSYNC    option  to  be  scheduled
+synchronous with the Prolog activity  and   eb  able to throw exceptions
+(the most common alarm activity).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void	on_alarm(int sig);
@@ -142,6 +196,7 @@ static atom_t	   ATOM_next;
 static atom_t	   ATOM_scheduled;
 static functor_t   FUNCTOR_module2;
 static functor_t   FUNCTOR_alarm1;
+static functor_t   FUNCTOR_alarm4;
 static predicate_t PREDICATE_call1;
 
 #define EV_MAGIC	1920299187	/* Random magic number */
@@ -158,6 +213,12 @@ typedef struct event
   unsigned long  flags;			/* misc flags */
   long		 magic;			/* validate magic */
   struct timeval at;			/* Time to deliver */
+#ifdef SHARED_TABLE
+  pthread_t	 thread_id;		/* Thread to call in */
+#ifdef O_DEBUG
+  int		 pl_thread_id;		/* Prolog thread ID */
+#endif
+#endif
 #ifdef WIN32
   UINT		 mmid;			/* MultiMedia timer id */
   DWORD		 tid;			/* thread-id of Prolog thread */
@@ -171,7 +232,20 @@ typedef struct
   Event scheduled;			/* The one we scheduled for */
 } schedule;
 
-#ifdef _REENTRANT
+#ifdef SHARED_TABLE
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t cond   = PTHREAD_COND_INITIALIZER;
+static int scheduler_running = FALSE;	/* is scheduler running? */
+static pthread_t scheduler;		/* thread id of scheduler */
+
+#define LOCK()   pthread_mutex_lock(&mutex);
+#define UNLOCK() pthread_mutex_unlock(&mutex);
+#else
+#define LOCK()   (void)0
+#define UNLOCK() (void)0
+#endif /*SHARED_TABLE*/
+
+#if defined(_REENTRANT) && !defined(SHARED_TABLE)
 
 static pthread_key_t key;
 
@@ -195,20 +269,17 @@ free_schedule(void *closure)
   PL_free(s);
 }
 
-#else /*_REENTRANT*/
+#else /*defined(_REENTRANT) && !defined(SHARED_TABLE)*/
 
 static schedule the_schedule;		/* the schedule */
-
 #define TheSchedule() (&the_schedule)	/* current schedule */
 
-#endif
+#endif  /*defined(_REENTRANT) && !defined(SHARED_TABLE)*/
 
 int signal_function_set = FALSE;	/* signal function is set */
 static handler_t signal_function;	/* Current signal function */
 
-#ifdef WIN32
 static void uninstallEvent(Event ev);
-#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate the event, maintaining a time-sorted list of scheduled events.
@@ -217,8 +288,6 @@ Allocate the event, maintaining a time-sorted list of scheduled events.
 static Event
 allocEvent(struct timeval *at)
 { Event ev = malloc(sizeof(*ev));
-  Event e;
-  schedule *sched = TheSchedule();
 
   if ( !ev )
   { pl_error(NULL, 0, NULL, ERR_ERRNO, errno);
@@ -229,13 +298,22 @@ allocEvent(struct timeval *at)
   ev->at = *at;
   ev->magic = EV_MAGIC;
 
-  DEBUG(Sdprintf("allocEvent(%d.%06d)\n", at->tv_sec, at->tv_usec));
+  return ev;
+}
+
+
+static void
+insertEvent(Event ev)
+{ schedule *sched = TheSchedule();
+  Event e;
+
+  DEBUG(1, Sdprintf("insertEvent(%d.%06d)\n", ev->at.tv_sec, ev->at.tv_usec));
 
   for(e = sched->first; e; e = e->next)
   { struct timeval d;
 
-    d.tv_sec  = at->tv_sec  - e->at.tv_sec;
-    d.tv_usec = at->tv_usec - e->at.tv_usec;
+    d.tv_sec  = ev->at.tv_sec  - e->at.tv_sec;
+    d.tv_usec = ev->at.tv_usec - e->at.tv_usec;
     if ( d.tv_usec < 0 )
     { d.tv_sec--;
       d.tv_usec += 1000000;
@@ -251,7 +329,7 @@ allocEvent(struct timeval *at)
       if ( sched->first == e )			/* allocated as first */
 	sched->first = ev;
 
-      return ev;
+      return;
     } else
     { if ( e->next )
 	continue;
@@ -259,13 +337,11 @@ allocEvent(struct timeval *at)
       ev->previous = e;			/* end of the list */
       e->next = ev;
 
-      return ev;
+      return;
     }
   }
 
   sched->first = ev;
-
-  return ev;
 }
 
 
@@ -293,6 +369,7 @@ freeEvent(Event ev)
 }
 
 
+#ifndef SHARED_TABLE
 static void
 callEvent(Event ev)
 { term_t goal = PL_new_term_ref();
@@ -305,7 +382,7 @@ callEvent(Event ev)
 		    PREDICATE_call1,
 		    goal);
 }
-
+#endif
 
 
 static void
@@ -314,7 +391,7 @@ cleanupHandler()
 #ifndef WIN32
   struct itimerval v;
 
-  DEBUG(Sdprintf("Removed timer\n"));
+  DEBUG(1, Sdprintf("Removed timer\n"));
   memset(&v, 0, sizeof(v));
   setitimer(ITIMER_REAL, &v, NULL);	/* restore? */
 #endif
@@ -341,12 +418,8 @@ cleanup()
   schedule *sched = TheSchedule();
 
   for(ev=sched->first; ev; ev = next)
-  {
-#ifdef WIN32
+  { next = ev->next;
     uninstallEvent(ev);
-#endif
-    next = ev->next;
-    freeEvent(ev);
   }
 
   cleanupHandler();
@@ -390,6 +463,8 @@ static int
 installEvent(Event ev, double t)
 { MMRESULT rval;
 
+  insertEvent(ev);
+
   rval = timeSetEvent((int)(t*1000),
 		      50,			/* resolution (milliseconds) */
 		      callTimer,
@@ -409,14 +484,169 @@ installEvent(Event ev, double t)
 
 static void
 uninstallEvent(Event ev)
-{ if ( ev->mmid )
+{ if ( TheSchedule()->scheduled == ev )
+    ev->flags |= EV_DONE;
+
+  if ( ev->mmid )
   { timeKillEvent(ev->mmid);
     ev->mmid = 0;
   }
+
+  freeEvent(ev);
 }
 
 
 #else /*WIN32*/
+
+#ifdef SHARED_TABLE
+
+static Event
+nextEvent(schedule *sched)
+{ Event ev;
+
+  for(ev=sched->first; ev; ev = ev->next)
+  { if ( ev->flags & (EV_DONE|EV_FIRED) )
+      continue;
+
+    return ev;
+  }
+
+  return NULL;
+}
+
+
+static void *
+alarm_loop(void * closure)
+{ schedule *sched = TheSchedule();
+
+  LOCK();
+  for(;;)
+  { Event ev = nextEvent(sched);
+
+    if ( ev )
+    { struct timespec timeout;
+      int rc;
+
+      timeout.tv_sec  = ev->at.tv_sec;
+      timeout.tv_nsec = ev->at.tv_usec*1000;
+
+      DEBUG(1, Sdprintf("Waiting ...\n"));
+      rc = pthread_cond_timedwait(&cond, &mutex, &timeout);
+
+      switch( rc )
+      { case ETIMEDOUT:
+	  DEBUG(1, Sdprintf("Signalling %d (= %d) ...\n",
+			    ev->pl_thread_id, ev->thread_id));
+	  sched->scheduled = ev;
+	  ev->flags |= EV_FIRED;
+	  pthread_kill(ev->thread_id, SIGALRM);
+	  break;
+	case EINTR:
+	  continue;
+      }
+    } else
+    { int rc = pthread_cond_wait(&cond, &mutex);
+
+      if ( rc == EINTR )
+	continue;
+    }
+  }
+  UNLOCK();
+
+  return NULL;
+}
+
+
+static void
+on_alarm(int sig)
+{ Event ev;
+  schedule *sched = TheSchedule();
+  pthread_t self = pthread_self();
+  term_t goal = 0;
+  module_t module = NULL;
+
+  DEBUG(1, Sdprintf("Signal received in %d (= %d)\n",
+		    PL_thread_self(), self));
+#ifdef BACKTRACE
+  DEBUG(10, print_trace());
+#endif
+
+  LOCK();
+  for(ev = sched->first; ev; ev=ev->next)
+  { assert(ev->magic == EV_MAGIC);
+
+    if ( (ev->flags & EV_FIRED) &&
+	 pthread_equal(self, ev->thread_id) )
+    { ev->flags &= ~EV_FIRED;
+
+      DEBUG(1, Sdprintf("Calling event\n"));
+      ev->flags |= EV_DONE;
+      module = ev->module;
+      goal = PL_new_term_ref();
+      PL_recorded(ev->goal, goal);
+
+      if ( ev->flags & EV_REMOVE )
+	freeEvent(ev);
+      break;
+    }
+  }
+  UNLOCK();
+
+  if ( goal )
+  { PL_call_predicate(module,
+		      PL_Q_PASS_EXCEPTION,
+		      PREDICATE_call1,
+		      goal);
+  }
+}
+
+
+static int
+installEvent(Event ev, double t)
+{ LOCK();
+
+  ev->thread_id = pthread_self();
+#ifdef O_DEBUG
+  ev->pl_thread_id = PL_thread_self();
+#endif
+
+  if ( !scheduler_running )
+  { pthread_attr_t attr;
+    int rc;
+
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_attr_setstacksize(&attr, 1024);
+
+    if ( (rc=pthread_create(&scheduler, &attr, alarm_loop, NULL)) )
+      return pl_error("alarm", 4, "Failed to start schedule thread",
+		      ERR_ERRNO, rc);
+    pthread_attr_destroy(&attr);
+
+    DEBUG(1, Sdprintf("Started scheduler thread\n"));
+    scheduler_running = TRUE;
+  }
+
+  insertEvent(ev);
+  pthread_cond_signal(&cond);
+  UNLOCK();
+
+  return TRUE;
+}
+
+
+static void
+uninstallEvent(Event ev)
+{ LOCK();
+  if ( TheSchedule()->scheduled == ev )
+    ev->flags |= EV_DONE;
+  freeEvent(ev);
+  pthread_cond_signal(&cond);
+  UNLOCK();
+}
+
+
+#else /*SHARED_TABLE*/
 
 static void
 re_schedule()
@@ -441,7 +671,7 @@ re_schedule()
 
     if ( left.tv_sec < 0 ||
 	 (left.tv_sec == 0 && left.tv_usec == 0) )
-    { DEBUG(Sdprintf("Passed\n"));
+    { DEBUG(1, Sdprintf("Passed\n"));
 
       callEvent(ev);		/* Time has passed.  What about exceptions? */
 
@@ -449,7 +679,7 @@ re_schedule()
     }
 
     sched->scheduled = ev;	/* This is the scheduled one */
-    DEBUG(Sdprintf("Scheduled for %d.%06d\n", ev->at.tv_sec, ev->at.tv_usec));
+    DEBUG(1, Sdprintf("Scheduled for %d.%06d\n", ev->at.tv_sec, ev->at.tv_usec));
 
     v.it_value            = left;
     v.it_interval.tv_sec  = 0;
@@ -460,51 +690,6 @@ re_schedule()
     return;
   }
 }
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-glibc defines backtrace() and friends to  print the calling context. For
-debugging this is just great,  as   the  problem  generally appear after
-generating an exception.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef O_DEBUG
-#ifdef HAVE_EXECINFO_H
-#define BACKTRACE 1
-
-#if BACKTRACE
-#include <execinfo.h>
-#include <string.h>
-
-static void
-print_trace (void)
-{ void *array[100];
-  size_t size;
-  char **strings;
-  size_t i;
-     
-  size = backtrace(array, sizeof(array)/sizeof(void *));
-  strings = backtrace_symbols(array, size);
-     
-#ifdef _REENTRANT
-  Sdprintf("on_alarm() Prolog-context [thread %d]:\n", PL_thread_self());
-#else
-  Sdprintf("on_alarm() Prolog-context:\n");
-#endif
-  PL_action(PL_ACTION_BACKTRACE, 3);
-
-  Sdprintf("on_alarm() C-context:\n");
-  
-  for(i = 0; i < size; i++)
-  { if ( !strstr(strings[i], "checkData") )
-      Sdprintf("\t[%d] %s\n", i, strings[i]);
-  }
-       
-  free(strings);
-}
-#endif /*BACKTRACE*/
-#endif /*HAVE_EXECINFO_H*/
-#endif /*O_DEBUG*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This one is  asynchronously  called  from   the  hook  registered  using
@@ -538,7 +723,33 @@ on_alarm(int sig)
   re_schedule();
 }
 
+
+static int
+installEvent(Event ev, double t)
+{ insertEvent(ev);
+  re_schedule();
+
+  return TRUE;
+}
+
+
+static void
+uninstallEvent(Event ev)
+{ if ( TheSchedule()->scheduled == ev )
+  { ev->flags |= EV_DONE;
+    re_schedule();
+  }
+
+  freeEvent(ev);
+}
+
+#endif /*SHARED_TABLE*/
 #endif /*WIN32*/
+
+
+		 /*******************************
+		 *	PROLOG CONNECTION	*
+		 *******************************/
 
 static int
 unify_timer(term_t t, Event ev)
@@ -646,14 +857,10 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   ev->module = m;
   ev->goal = PL_record(callable);
 
-#ifdef WIN32
   if ( !installEvent(ev, t) )
   { freeEvent(ev);
     return FALSE;
   }
-#else
-  re_schedule();
-#endif
 
   return TRUE;
 }
@@ -672,45 +879,39 @@ remove_alarm(term_t alarm)
   if ( !get_timer(alarm, &ev) )
     return FALSE;
 
-  if ( TheSchedule()->scheduled == ev )
-  { ev->flags |= EV_DONE;
-#ifndef WIN32
-    re_schedule();
-#endif
-  }
-
-#ifdef WIN32
   uninstallEvent(ev);
-#endif
-  freeEvent(ev);
 
   return TRUE;
 }
 
 
 foreign_t
-current_alarm(term_t time, term_t goal, term_t id, term_t status, control_t h)
+current_alarms(term_t time, term_t goal, term_t id, term_t status,
+	       term_t matching)
 { Event ev;
-  term_t g;
-  fid_t fid;
+  term_t next = PL_new_term_ref();
+  term_t g    = PL_new_term_ref();
+  term_t tail = PL_copy_term_ref(matching);
+  term_t head = PL_new_term_ref();
+  term_t av   = PL_new_term_refs(4);
+#ifdef SHARED_TABLE
+  pthread_t self = pthread_self();
+#endif
 
-  switch(PL_foreign_control(h))
-  { case PL_FIRST_CALL:
-      ev = TheSchedule()->first;
-      break;
-    case PL_REDO:
-      ev = PL_foreign_context_address(h);
-      break;
-    default:
-    case PL_CUTTED:
-      return TRUE;
-  }
+  LOCK();
+  ev = TheSchedule()->first;
 
-  g = PL_new_term_ref();
-  fid = PL_open_foreign_frame();
-
-  for(; ev; PL_rewind_foreign_frame(fid), ev = ev->next)
+  for(; ev; ev = ev->next)
   { atom_t s;
+    double at;
+    fid_t fid;
+
+#ifdef SHARED_TABLE
+    if ( !pthread_equal(self, ev->thread_id) )
+      continue;
+#endif
+
+    fid = PL_open_foreign_frame();
 
     if ( ev->flags & EV_DONE )
       s = ATOM_done;
@@ -720,32 +921,47 @@ current_alarm(term_t time, term_t goal, term_t id, term_t status, control_t h)
       s = ATOM_scheduled;
     
     if ( !PL_unify_atom(status, s) )
-      continue;
+      goto nomatch;
 
     PL_recorded(ev->goal, g);
     if ( !PL_unify_term(goal,
 			PL_FUNCTOR, FUNCTOR_module2,
 			  PL_ATOM, PL_module_name(ev->module),
 			  PL_TERM, g) )
-      continue;
+      goto nomatch;
 
-    if ( !PL_unify_float(time, (double)ev->at.tv_sec +
-			       (double)ev->at.tv_usec / 1000000.0) )
-      continue;
+    at = (double)ev->at.tv_sec + (double)ev->at.tv_usec / 1000000.0;
+    if ( !PL_unify_float(time, at) )
+      goto nomatch;
 
     if ( !unify_timer(id, ev) )
-      continue;
+      goto nomatch;
       
-    PL_close_foreign_frame(fid);
+    PL_discard_foreign_frame(fid);
 
-    if ( ev->next )
-      PL_retry_address(ev->next);
+    PL_put_float(av+0, at);		/* time */
+    PL_recorded(ev->goal, av+1);	/* goal */
+    PL_put_variable(av+2);		/* id */
+    unify_timer(av+2, ev);
+    PL_put_atom(av+3, s);		/* status */
+    PL_cons_functor_v(next, FUNCTOR_alarm4, av);
 
-    return TRUE;
+    if ( PL_unify_list(tail, head, tail) &&
+	 PL_unify(head, next) )
+    { continue;
+    } else
+    { PL_close_foreign_frame(fid);
+      UNLOCK();
+
+      return FALSE;
+    }
+
+  nomatch:
+    PL_discard_foreign_frame(fid);
   }
+  UNLOCK();
 
-  PL_close_foreign_frame(fid);
-  return FALSE;
+  return PL_unify_nil(tail);
 }
 
 
@@ -754,6 +970,7 @@ install()
 { MODULE_user	  = PL_new_module(PL_new_atom("user"));
 
   FUNCTOR_alarm1  = PL_new_functor(PL_new_atom("$alarm"), 1);
+  FUNCTOR_alarm4  = PL_new_functor(PL_new_atom("alarm"), 4);
   FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
 
   ATOM_remove	  = PL_new_atom("remove");
@@ -763,12 +980,15 @@ install()
 
   PREDICATE_call1 = PL_predicate("call", 1, "user");
 
-  PL_register_foreign("alarm",        4, alarm4,       PL_FA_TRANSPARENT);
-  PL_register_foreign("alarm",        3, alarm3,       PL_FA_TRANSPARENT);
-  PL_register_foreign("remove_alarm", 1, remove_alarm, 0);
-  PL_register_foreign("current_alarm",4, current_alarm,PL_FA_NONDETERMINISTIC);
+  PL_register_foreign("alarm",          4, alarm4,         PL_FA_TRANSPARENT);
+  PL_register_foreign("alarm",          3, alarm3,         PL_FA_TRANSPARENT);
+  PL_register_foreign("remove_alarm",   1, remove_alarm,   0);
+  PL_register_foreign("current_alarms", 5, current_alarms, 0);
+#ifdef O_DEBUG
+  PL_register_foreign("time_debug",	1, pl_time_debug,  0);
+#endif
 
-#ifdef _REENTRANT
+#if defined(_REENTRANT) && !defined(SHARED_TABLE)
   pthread_key_create(&key, free_schedule);
 #endif
   installHandler();
@@ -779,7 +999,7 @@ install_t
 uninstall()
 { cleanup();
 
-#ifdef _REENTRANT
+#if defined(_REENTRANT) && !defined(SHARED_TABLE)
   pthread_key_delete(key);
 #endif
 }

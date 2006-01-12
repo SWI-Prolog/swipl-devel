@@ -36,6 +36,7 @@
 	    current_alarm/4,		% ?At, ?:Goal, ?Id, ?Status
 	    call_with_time_limit/2	% +Time, :Callable
 	  ]).
+:- use_module(library(lists)).
 
 %	alarm(+Time, :Callable, -Id)
 %	alarm(+Time, :Callable, -Id, +Options)
@@ -83,3 +84,6 @@ call_with_time_limit(Time, Goal) :-
 	alarm(Time, throw(time_limit_exceeded), Id),
 	call_cleanup(once(Goal), time:remove_alarm(Id)).
 		     
+current_alarm(Time, Goal, Id, Status) :-
+	current_alarms(Time, Goal, Id, Status, List),
+	member(alarm(Time, Goal, Id, Status), List).
