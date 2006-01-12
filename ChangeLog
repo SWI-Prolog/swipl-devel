@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bind prolog flag system_thread_id to the thread identifier on
+    Linux in 2.6 kernels.
+
   * FIXED: readline signal interaction (causes problems in alarm/4).
 
   * FIXED: Bug#134: left-shift (<<) hitting 64-bit boundary.  Holger

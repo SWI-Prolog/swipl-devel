@@ -91,6 +91,9 @@
 /* Define to 1 if you have the `fork' function. */
 #undef HAVE_FORK
 
+/* Define to 1 if you have the `fpclass' function. */
+#undef HAVE_FPCLASS
+
 /* Define to 1 if you have the `fpclassify' function. */
 #undef HAVE_FPCLASSIFY
 
@@ -121,6 +124,9 @@
 /* Define to 1 if you have the `getrusage' function. */
 #undef HAVE_GETRUSAGE
 
+/* Define if you have Linux gettid() */
+#undef HAVE_GETTID
+
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
@@ -132,6 +138,9 @@
 
 /* Define to 1 if you have the `grantpt' function. */
 #undef HAVE_GRANTPT
+
+/* Define to 1 if you have the <ieeefp.h> header file. */
+#undef HAVE_IEEEFP_H
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -547,7 +556,7 @@
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
-/* #! breaks arguments */
+/* breaks arguments */
 #undef SCRIPT_BREAKDOWN_ARGS
 
 /* Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV */

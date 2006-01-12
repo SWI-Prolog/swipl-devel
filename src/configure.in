@@ -535,6 +535,19 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
 
+AC_MSG_CHECKING("linux gettid")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <linux/unistd.h>
+_syscall0(pid_t,gettid)
+],
+[ pid_t t = gettid();
+], AC_DEFINE(HAVE_GETTID, 1,
+	     [Define if you have Linux gettid()])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
 AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(int,  4)
 AC_CHECK_SIZEOF(long long, 8)

@@ -73,6 +73,10 @@ APPROACH
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
+#if defined(__linux__) && defined(HAVE_GETTID)
+#include <linux/unistd.h>
+_syscall0(pid_t,gettid)
+#endif
 
 #ifdef HAVE_SEMA_INIT			/* Solaris */
 #include <synch.h>
@@ -814,13 +818,11 @@ system_thread_id(PL_thread_info_t *info)
 #endif
 }
 
-
-
 static void
 set_system_thread_id(PL_thread_info_t *info)
 { 
-#ifdef __linux__
-  info->pid = getpid();
+#ifdef HAVE_GETTID
+  info->pid = gettid();
 #else
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
