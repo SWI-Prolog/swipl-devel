@@ -344,9 +344,13 @@ interruptHandler() in pl-trace.c which in   turn re-routes the interrupt
 to the main thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#undef LD
+#define LD LOCAL_LD
+
 static void
 dispatch_signal(int sig, int sync)
-{ SigHandler sh = &GD->sig_handlers[sig];
+{ GET_LD
+  SigHandler sh = &GD->sig_handlers[sig];
   fid_t fid;
   LocalFrame lTopSave;
   int saved_current_signal;
@@ -360,6 +364,11 @@ dispatch_signal(int sig, int sync)
   }
 #endif
 
+  DEBUG(1, Sdprintf("Got signal %d in thread %d (=%d) %s\n",
+		    sig, LD->thread.info->pl_tid,
+		    pthread_self(),
+		    sync ? " (sync)" : " (async)"));
+	
   lTopSave = lTop;
   saved_current_signal = LD->current_signal;
 
@@ -441,6 +450,8 @@ dispatch_signal(int sig, int sync)
   unblockGC(PASS_LD1);
 }
 
+#undef LD
+#define LD GLOBAL_LD
 
 static void
 pl_signal_handler(int sig)

@@ -28,7 +28,7 @@ library. Existence of this  this  library   is  detected  by  configure.
 Binding is achieved by rebinding the read function of the Sinput stream. 
 
 This  module  only  depends  on  the  public  interface  as  defined  by
-SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-strea.h).
+SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-stream.h).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -178,6 +178,113 @@ static char *my_prompt   = NULL;
 static int   in_readline = 0;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Signal handling wrapper.
+
+This is tricky. The GNU readline   library places signal handlers around
+the   below   given   signals.   They    re-send   all   signals   using
+kill(getpid(),sig). This goes wrong in our  multi-threaded context as it
+will send signals meant for a thread (using pthread_kill()) to the wrong
+thread. The library time.pl from the  clib   package  was victim of this
+behaviour.
+
+We disable readline's signal handling  using   rl_catch_signals  = 0 and
+redo the work ourselves, where we call   the handler directly instead of
+re-sending the signal. See  "info  readline"   for  details  on readline
+signal handling issues.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ int			signo;		/* number of the signal */
+  struct sigaction	old_state;	/* old state for the signal */
+} sigstate;
+
+static void rl_sighandler(int sig);
+
+static sigstate signals[] =
+{ { SIGINT },
+#ifdef SIGTSTP
+  { SIGTSTP },
+  { SIGTTOU },
+  { SIGTTIN },
+#endif
+  { SIGALRM },
+  { SIGTERM },
+  { SIGQUIT },
+  { -1 },
+};
+
+
+static void
+prepare_signals()
+{ sigstate *s;
+
+  for(s=signals; s->signo != -1; s++)
+  { struct sigaction new;
+
+    memset(&new, 0, sizeof(new));	
+    new.sa_handler = rl_sighandler;
+    sigaction(s->signo, &new, &s->old_state);
+  }
+}
+
+
+static void
+restore_signals()
+{ sigstate *s;
+
+  for(s=signals; s->signo != -1; s++)
+  { sigaction(s->signo, &s->old_state, NULL);
+  }
+}
+
+
+static void
+rl_sighandler(int sig)
+{ sigstate *s;
+
+  DEBUG(3, Sdprintf("Signal %d in readline\n", sig));
+
+  if ( sig == SIGINT )
+    rl_free_line_state ();
+  rl_cleanup_after_signal ();
+  restore_signals();
+
+  for(s=signals; s->signo != -1; s++)
+  { if ( s->signo == sig )
+    { void (*func)(int) = s->old_state.sa_handler;
+
+      if ( func == SIG_DFL )
+      { unblockSignal(sig);
+	DEBUG(3, Sdprintf("Re-sending signal\n"));
+	kill(getpid(), sig);
+      } else if ( func != SIG_IGN )
+      { (*func)(sig);
+      }
+
+      break;
+    }
+  }
+
+  DEBUG(3, Sdprintf("Resetting after signal\n"));
+  prepare_signals();
+  rl_reset_after_signal ();
+  Sreset();
+}
+
+
+static char *
+pl_readline(const char *prompt)
+{ char *line;
+
+  prepare_signals();
+  line = readline(prompt);
+  restore_signals();
+
+  return line;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The GNU-readline library is not reentrant (or does not appear to be so).
 Therefore we will detect this and simply   call  the default function if
 reentrant access is tried.
@@ -291,14 +398,14 @@ Sread_readline(void *handle, char *buf, int size)
 	  rl_discard_argument();
 	  rl_deprep_terminal();
 	  rl_readline_state = (RL_STATE_INITIALIZED);
-	  line = readline(prompt);
+	  line = pl_readline(prompt);
 	  rl_prep_terminal(FALSE);
 	  rl_readline_state = state;
 #ifdef HAVE_RL_DONE
 	  rl_done = 0;
 #endif
 	} else
-	  line = readline(prompt);
+	  line = pl_readline(prompt);
 	in_readline--;
 
 	if ( my_prompt )
@@ -390,6 +497,7 @@ PL_install_readline()
     return;
 #endif
 
+  rl_catch_signals = 0;
   rl_readline_name = "Prolog";
   rl_attempted_completion_function = prolog_completion;
 #ifdef __WIN32__
