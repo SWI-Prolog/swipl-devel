@@ -603,7 +603,7 @@ reperror(int c, IOSTREAM *s)
     if ( (s->flags & SIO_REPXML) )
       sprintf(buf, "&#%d;", c);
     else
-      sprintf(buf, "\\%x\\", c);
+      sprintf(buf, "\\x%x\\", c);
 
     for(q = buf; *q; q++)
     { if ( put_byte(*q, s) < 0 )
