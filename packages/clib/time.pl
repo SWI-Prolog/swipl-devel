@@ -87,3 +87,14 @@ call_with_time_limit(Time, Goal) :-
 current_alarm(Time, Goal, Id, Status) :-
 	current_alarms(Time, Goal, Id, Status, List),
 	member(alarm(Time, Goal, Id, Status), List).
+
+		 /*******************************
+		 *	  HANDLE MESSAGES	*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(time_limit_exceeded) -->
+	[ 'Time limit exceeded' ].
+
