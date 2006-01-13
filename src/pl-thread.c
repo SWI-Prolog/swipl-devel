@@ -333,6 +333,7 @@ static int	get_message_queue(term_t t, message_queue **queue,
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static int	unify_thread(term_t id, PL_thread_info_t *info);
 static pl_mutex *mutexCreate(atom_t name);
+static double   ThreadCPUTime(PL_thread_info_t *info, int which);
 
 
 		 /*******************************
@@ -462,7 +463,7 @@ free_prolog_thread(void *data)
   LOCK();
   destroy_message_queue(&ld->thread.messages);
   GD->statistics.threads_finished++;
-  GD->statistics.thread_cputime += CpuTime(CPU_USER);
+  GD->statistics.thread_cputime += ThreadCPUTime(info, CPU_USER);
 
   info->thread_data = NULL;
   ld->thread.info = NULL;		/* avoid a loop */
@@ -2956,8 +2957,6 @@ PL_destroy_engine(PL_engine_t e)
 		 *	     STATISTICS		*
 		 *******************************/
 
-static void	sync_statistics(PL_thread_info_t *info, atom_t key);
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 thread_statistics(+Thread, +Key, -Value)
     Same as statistics(+Key, -Value) but operates on another thread.
@@ -2989,10 +2988,13 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 
   if ( !PL_get_atom(A2, &k) )
     k = 0;
+
   if ( k == ATOM_heapused )
     ld = LD;
-
-  sync_statistics(info, k);
+  else if ( k == ATOM_cputime || k == ATOM_runtime )
+    ld->statistics.user_cputime = ThreadCPUTime(info, CPU_USER);
+  else if ( k == ATOM_system_time )
+    ld->statistics.system_cputime = ThreadCPUTime(info, CPU_SYSTEM);
 
   if ( LD == ld )		/* self: unlock first to avoid deadlock */
   { UNLOCK();
@@ -3015,31 +3017,25 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 #define nano * 0.0000001
 #define ntick 1.0			/* manual says 100.0 ??? */
 
-static void
-sync_statistics(PL_thread_info_t *info, atom_t key)
-{ if ( key == ATOM_cputime || key == ATOM_runtime || key == ATOM_system_time )
-  { double t;
-    FILETIME created, exited, kerneltime, usertime;
-    HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
+static double
+ThreadCPUTime(PL_thread_info_t *info, int which)
+{ double t;
+  FILETIME created, exited, kerneltime, usertime;
+  HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
 
-    if ( GetThreadTimes(win_thread,
-			&created, &exited, &kerneltime, &usertime) )
-    { FILETIME *p;
+  if ( GetThreadTimes(win_thread,
+		      &created, &exited, &kerneltime, &usertime) )
+  { FILETIME *p;
 
-      if ( key == ATOM_system_time )
-	p = &kerneltime;
-      else
-	p = &usertime;
+    if ( which == CPU_SYSTEM )
+      p = &kerneltime;
+    else
+      p = &usertime;
 
-      t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
-      t += (double)p->dwLowDateTime  * (ntick nano);
+    t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
+    t += (double)p->dwLowDateTime  * (ntick nano);
 
-      if ( key == ATOM_system_time )
-	info->thread_data->statistics.system_cputime = t;
-      else
-	info->thread_data->statistics.user_cputime = t;
-    }
-  }
+    return t;
 }
 
 #else /*WIN32*/
@@ -3152,41 +3148,44 @@ get_procps_entry(int tid)
 }
 
 
-static void
-sync_statistics(PL_thread_info_t *info, atom_t key)
-{ if ( key == ATOM_cputime || key == ATOM_runtime || key == ATOM_system_time )
-  { procps_entry *e;
+static double
+ThreadCPUTime(PL_thread_info_t *info, int which)
+{ procps_entry *e;
 
-    if ( (e=get_procps_entry(info->pid)) )
-    { char buffer[1000];
-      char *s;
-      long long ticks;
-      int i, n, nth = 10;			/* user time */
+  if ( (e=get_procps_entry(info->pid)) )
+  { char buffer[1000];
+    char *s;
+    long long ticks;
+    int i, n, nth = 10;			/* user time */
 
-      if ( key == ATOM_system_time )
-	nth++;
+    if ( which == CPU_SYSTEM )
+      nth++;
 
-      lseek(e->fd, e->offset, SEEK_SET);
-      n = read(e->fd, buffer, sizeof(buffer)-1);
-      if ( n >= 0 )
-	buffer[n] = EOS;
-      
-      for(s=buffer, i=0; i<nth; i++, s++)
-      { while(*s != ' ')
-	  s++;
-      }
-
-      ticks = atoll(s);
-      if ( key == ATOM_system_time )
-      { info->thread_data->statistics.system_cputime = (double)ticks/100.0;
-      } else
-      { info->thread_data->statistics.user_cputime = (double)ticks/100.0;
-      }
+    lseek(e->fd, e->offset, SEEK_SET);
+    n = read(e->fd, buffer, sizeof(buffer)-1);
+    if ( n >= 0 )
+      buffer[n] = EOS;
+    
+    for(s=buffer, i=0; i<nth; i++, s++)
+    { while(*s != ' ')
+	s++;
     }
+
+    ticks = atoll(s);
+    return (double)ticks/100.0;
   }
+
+  return 0.0;
 }
 
 #else /*LINUX_PROCFS*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Code that probably only works  on   Linux  2.4  systems, where CpuTime()
+returns the per-thread time. This isn't very   nice as the time is store
+in LD in addition to being returned, but it  is ok for now and Linux 2.4
+is almost dead anyway.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 SyncUserCPU(int sig)
@@ -3202,21 +3201,19 @@ SyncSystemCPU(int sig)
 }
 
 
-static void
-sync_statistics(PL_thread_info_t *info, atom_t key)
-{ if ( (key == ATOM_cputime ||
-	key == ATOM_runtime ||
-	key == ATOM_system_time) &&
-       info->thread_data != LD
-     )
+static double
+ThreadCPUTime(PL_thread_info_t *info, int which)
+{ if ( info->thread_data == LD )
+  { return CpuTime(which);
+  } else
   { struct sigaction old;
     struct sigaction new;
 
     sem_init(sem_mark_ptr, USYNC_THREAD, 0);
     memset(&new, 0, sizeof(new));
-    if ( key == ATOM_cputime || key == ATOM_runtime )
+    if ( which == CPU_USER )
       new.sa_handler = SyncUserCPU;
-    else /*if ( key == ATOM_system_time )*/
+    else 
       new.sa_handler = SyncSystemCPU;
 
     new.sa_flags   = SA_RESTART;
@@ -3227,6 +3224,11 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
     }
     sem_destroy(&sem_mark);
     sigaction(SIG_FORALL, &old, NULL);
+
+    if ( which == CPU_USER )
+      return LD->statistics.user_cputime;
+    else
+      return LD->statistics.system_cputime;
   }
 }
 
