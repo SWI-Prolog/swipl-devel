@@ -556,7 +556,6 @@ raw_read_quoted(int q, ReadData _PL_rd)
   while((c=getchrq()) != EOF && c != q)
   { if ( c == '\\' && DO_CHARESCAPE )
     { int base;
-      int xdigits;
 
       addToBuffer(c, _PL_rd);
 
@@ -565,21 +564,19 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	  goto eofinstr;
 	case 'x':			/* \xNN\ */
 	  addToBuffer(c, _PL_rd);
-	  base = 16;
-	  xdigits = 2;
-	  goto xdigits;
-	default:
-	  addToBuffer(c, _PL_rd);
-	  if ( digitValue(8, c) >= 0 )	/* \NNN\ */
-	  { base = 8;
-	    xdigits = 2;
-	  } else
-	    continue;			/* \symbolic-control-char */
-	xdigits:
 	  c = getchrq();
-	  while( xdigits-- > 0 && digitValue(base, c) >= 0 )
-	  { addToBuffer(c, _PL_rd);
+	  if ( c == EOF )
+	    goto eofinstr;
+	  if ( digitValue(16, c) >= 0 )
+	  { base = 16;
+	    addToBuffer(c, _PL_rd);
+
+	  xdigits:
 	    c = getchrq();
+	    while( digitValue(base, c) >= 0 )
+	    { addToBuffer(c, _PL_rd);
+	      c = getchrq();
+	    }
 	  }
 	  if ( c == EOF )
 	    goto eofinstr;
@@ -587,6 +584,18 @@ raw_read_quoted(int q, ReadData _PL_rd)
 	  if ( c == q )
 	    return TRUE;
 	  continue;
+	default:
+	  addToBuffer(c, _PL_rd);
+	  if ( digitValue(8, c) >= 0 )	/* \NNN\ */
+	  { base = 8;
+	    goto xdigits;
+	  } else if ( c == '\n' )	/* \<newline> */
+	  { c = getchrq();
+	    if ( c == EOF )
+	      goto eofinstr;
+	    addToBuffer(c, _PL_rd);
+	  }
+	  continue;			/* \symbolic-control-char */
       }
     } else if (c == '\n' &&
 	       newlines++ > MAXNEWLINES &&
@@ -1154,7 +1163,7 @@ scan_number(cucharp *s, int b, Number n)
 
 static int
 escape_char(cucharp in, ucharp *end, int quote)
-{ int base, xdigits;
+{ int base;
   int chr;
   int c;
   cucharp e;
@@ -1210,22 +1219,21 @@ again:
       c = *in++;
       if ( digitValue(16, c) >= 0 )
       { base = 16;
-	xdigits = 1;
 	goto numchar;
       } else
+      { in--;
 	OK('x');
+      }
     default:
       if ( c >= '0' && c <= '7' )	/* octal number */
       { int dv;
 
 	base = 8;
-	xdigits = 2;
 
       numchar:
 	chr = digitValue(base, c);
 	c = *in++;
-	while(xdigits-- > 0 &&
-	      (dv = digitValue(base, c)) >= 0 )
+	while( (dv = digitValue(base, c)) >= 0 )
 	{ chr = chr * base + dv;
 	  c = *in++;
 	}

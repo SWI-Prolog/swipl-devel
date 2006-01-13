@@ -100,17 +100,25 @@ syntax(op-8) :-				% assume 200 fy and 500 yfx
 	atom_to_term("- - a", -(-(a)), []).
 syntax(atom-1) :-
 	atom_codes('\003\\'\n\x80\', X),
-	X = [3, 39, 10, 128].
+	X == [3, 39, 10, 128].
 syntax(char-1) :-
-	10 = 0'\n.
+	10 == 0'\n.
 syntax(char-2) :-
-	52 = 0'\x34.
+	52 == 0'\x34.
 syntax(char-3) :-
 	"\\" =:= 0'\\.
 syntax(string-1) :-
-	'\c ' = ''.
+	'\c ' == ''.
 syntax(string-2) :-
-	'x\c y' = xy.
+	'x\c y' == xy.
+syntax(quote-1) :-			% not really clear this is ok
+	'\x' == x.
+syntax(quote-2) :-
+	'\x61' == a.
+syntax(quote-3) :-
+	'\x61\' == a.
+syntax(quote-4) :-
+	char_code('\'', 39).
 syntax(number-2) :-
 	catch(atom_to_term('2\'', _, _), E, true),
 	E = error(syntax_error(illegal_number), _).

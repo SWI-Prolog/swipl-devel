@@ -7,8 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: proper writing of escape sequences for
-    representation_errors(prolog) on streams.  Pierre Nugues.
+  * FIXED: writing of escape sequences for representation_errors(prolog)
+    on streams.  Also fixed reading of '\x61\' and similar sequences.
+    Pierre Nugues.
 
   * FIXED: Make thread time statistics work properly in Linux 2.6 kernels.
     Also some cleanup of the statistics code.
