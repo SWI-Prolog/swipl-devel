@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+================================
+VERSION 5.6.2 (January 13, 2006)
+================================
+
   * FIXED: writing of escape sequences for representation_errors(prolog)
     on streams.  Also fixed reading of '\x61\' and similar sequences.
     Pierre Nugues.
