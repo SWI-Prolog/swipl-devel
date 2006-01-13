@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -2972,6 +2972,7 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 { PL_thread_info_t *info;
   PL_local_data_t *ld;
   int rval;
+  atom_t k;
 
   LOCK();
   if ( !get_thread(A1, &info, TRUE) )
@@ -2986,22 +2987,20 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 		    ATOM_statistics, ATOM_thread, A1);
   }
 
-  if ( LD != ld )
-  { atom_t k;
+  if ( !PL_get_atom(A2, &k) )
+    k = 0;
+  if ( k == ATOM_heapused )
+    ld = LD;
 
-    if ( !PL_get_atom(A2, &k) )
-      k = 0;
-
-    sync_statistics(info, k);
-    if ( k == ATOM_heapused )
-      ld = LD;
-  }
+  sync_statistics(info, k);
 
   if ( LD == ld )		/* self: unlock first to avoid deadlock */
-    UNLOCK();
+  { UNLOCK();
+    return pl_statistics_ld(A2, A3, ld PASS_LD);
+  }
+
   rval = pl_statistics_ld(A2, A3, ld PASS_LD);
-  if ( LD != ld )
-    UNLOCK();
+  UNLOCK();
 
   return rval;
 }
@@ -3045,11 +3044,22 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
 
 #else /*WIN32*/
 
-#ifdef __linux__
-#define LINUX_PROC 1
-#endif
+#ifdef LINUX_PROCFS
 
-#ifdef LINUX_PROC
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unfortunately POSIX threads does not define a   way  to get the CPU time
+per thread. Some systems do have mechanisms  for that. POSIX does define
+clock_gettime(CLOCK_THREAD_CPUTIME_ID), but it certainly doesn't work in
+Linux 2.6.8.
+
+Autoconf detects the presense of  /proc  and   we  read  the values from
+there. This is rather slow. To make things not  too bad we use a pool of
+open handles to entries in the /proc  table. All this junk should really
+be moved into a file trying to implement  thread CPU time for as many as
+possible platforms. If you happen to know  such a library, please let me
+know.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #include <fcntl.h>
 
 #define CACHED_PROCPS_ENTRIES 5
@@ -3064,11 +3074,67 @@ typedef struct
 static procps_entry procps_entries[CACHED_PROCPS_ENTRIES]; /* cached entries */
 
 static procps_entry*
+reclaim_procps_entry()
+{ procps_entry *e, *low;
+  int i; int lowc;
+
+  low=e=procps_entries;
+  lowc=low->usecoount;
+
+  for(e++, i=0; i<CACHED_PROCPS_ENTRIES; e++, i++)
+  { if ( e->usecoount < lowc )
+    { lowc = e->usecoount;
+      low = e;
+    }
+  }
+  for(e=procps_entries, i=0; i<CACHED_PROCPS_ENTRIES; e++, i++)
+    e->usecoount = 0;
+
+  if ( low->tid )
+  { close(low->fd);
+    memset(low, 0, sizeof(*low));
+  }
+
+  return low;
+}
+
+
+static procps_entry *
+open_procps_entry(procps_entry *e, int tid)
+{ char fname[256];
+  int fd;
+
+  sprintf(fname, "/proc/self/task/%d/stat", tid);
+  if ( (fd=open(fname, O_RDONLY)) >= 0 )
+  { char buffer[1000];
+    int pos;
+
+    pos = read(fd, buffer, sizeof(buffer)-1);
+    if ( pos > 0 )
+    { char *bp;
+
+      buffer[pos] = EOS;
+      if ( (bp=strrchr(buffer, ')')) )
+      { e->tid = tid;
+	e->fd = fd;
+	e->offset = (bp-buffer)+4;
+	e->usecoount = 1;
+	
+	return e;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
+static procps_entry*
 get_procps_entry(int tid)
 { int i;
   procps_entry *e;
 
-  for(e=procps_entries, i=0; i<CACHED_PROCPS_ENTRIES; i++)
+  for(e=procps_entries, i=0; i<CACHED_PROCPS_ENTRIES; e++, i++)
   { if ( e->tid == tid )
     { e->usecoount++;
 
@@ -3076,38 +3142,15 @@ get_procps_entry(int tid)
     }
   }
 
-  for(e=procps_entries, i=0; i<CACHED_PROCPS_ENTRIES; i++)
+  for(e=procps_entries, i=0; i<CACHED_PROCPS_ENTRIES; e++, i++)
   { if ( e->tid == 0 )
-    { char fname[256];
-      int fd;
-
-      sprintf(fname, "/proc/self/task/%d/stat", tid);
-      if ( (fd=open(fname, O_RDONLY)) >= 0 )
-      { char buffer[1000];
-	int pos;
-
-	pos = read(fd, buffer, sizeof(buffer)-1);
-	if ( pos > 0 )
-	{ char *bp;
-
-	  buffer[pos] = EOS;
-	  if ( (bp=strrchr(buffer, ')')) )
-	  { e->tid = tid;
-	    e->fd = fd;
-	    e->offset = (bp-buffer)+4;
-	    e->usecoount = 1;
-
-	    return e;
-	  }
-	}
-      }
-
-      return NULL;
-    }
+      return open_procps_entry(e, tid);
   }
 
-  return NULL;				/* TBD: update from cache */
+  e = reclaim_procps_entry();
+  return open_procps_entry(e, tid);
 }
+
 
 static void
 sync_statistics(PL_thread_info_t *info, atom_t key)
@@ -3118,13 +3161,15 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
     { char buffer[1000];
       char *s;
       long long ticks;
-      int i, nth = 10;			/* user time */
+      int i, n, nth = 10;			/* user time */
 
       if ( key == ATOM_system_time )
 	nth++;
 
       lseek(e->fd, e->offset, SEEK_SET);
-      read(e->fd, buffer, sizeof(buffer));
+      n = read(e->fd, buffer, sizeof(buffer)-1);
+      if ( n >= 0 )
+	buffer[n] = EOS;
       
       for(s=buffer, i=0; i<nth; i++, s++)
       { while(*s != ' ')
@@ -3133,15 +3178,15 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
 
       ticks = atoll(s);
       if ( key == ATOM_system_time )
-      { info->thread_data->statistics.user_cputime = (double)ticks/100.0;
-      } else
       { info->thread_data->statistics.system_cputime = (double)ticks/100.0;
+      } else
+      { info->thread_data->statistics.user_cputime = (double)ticks/100.0;
       }
     }
   }
 }
 
-#else /*LINUX_PROC*/
+#else /*LINUX_PROCFS*/
 
 static void
 SyncUserCPU(int sig)
@@ -3159,7 +3204,11 @@ SyncSystemCPU(int sig)
 
 static void
 sync_statistics(PL_thread_info_t *info, atom_t key)
-{ if ( key == ATOM_cputime || key == ATOM_runtime || key == ATOM_system_time )
+{ if ( (key == ATOM_cputime ||
+	key == ATOM_runtime ||
+	key == ATOM_system_time) &&
+       info->thread_data != LD
+     )
   { struct sigaction old;
     struct sigaction new;
 
@@ -3181,7 +3230,7 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
   }
 }
 
-#endif /*LINUX_PROC*/
+#endif /*LINUX_PROCFS*/
 #endif /*WIN32*/
 
 

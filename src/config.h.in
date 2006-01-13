@@ -492,6 +492,9 @@
 /* String used to prefix all symbols requested through dlsym() */
 #undef LD_SYMBOL_PREFIX
 
+/* Define if you have Linux 2.6 compatible /proc */
+#undef LINUX_PROCFS
+
 /* Define if mmap() can be used to allocate stacks */
 #undef MMAP_STACK
 

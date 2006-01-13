@@ -548,6 +548,16 @@ _syscall0(pid_t,gettid)
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 
+AC_MSG_CHECKING("linux 2.6 /proc")
+if test -f /proc/$$/task/$$/stat -a \
+	`cat /proc/$$/task/$$/stat | wc -w` = "41"; then
+   AC_MSG_RESULT(yes)
+   AC_DEFINE(LINUX_PROCFS, 26,
+	     [Define if you have Linux 2.6 compatible /proc])
+else
+   AC_MSG_RESULT(no)
+fi
+
 AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(int,  4)
 AC_CHECK_SIZEOF(long long, 8)
