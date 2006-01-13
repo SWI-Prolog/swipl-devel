@@ -3072,6 +3072,15 @@ typedef struct
 
 static procps_entry procps_entries[CACHED_PROCPS_ENTRIES]; /* cached entries */
 
+static void
+close_procps_entry(procps_entry *e)
+{ if ( e->tid )
+  { close(e->fd);
+    memset(e, 0, sizeof(*e));
+  }
+}
+
+
 static procps_entry*
 reclaim_procps_entry()
 { procps_entry *e, *low;
@@ -3086,13 +3095,11 @@ reclaim_procps_entry()
       low = e;
     }
   }
+
   for(e=procps_entries, i=0; i<CACHED_PROCPS_ENTRIES; e++, i++)
     e->usecoount = 0;
 
-  if ( low->tid )
-  { close(low->fd);
-    memset(low, 0, sizeof(*low));
-  }
+  close_procps_entry(low);
 
   return low;
 }
@@ -3168,6 +3175,9 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
     n = read(e->fd, buffer, sizeof(buffer)-1);
     if ( n >= 0 )
       buffer[n] = EOS;
+					/* most likely does not need reuse */
+    if ( info->status != PL_THREAD_RUNNING )
+      close_procps_entry(e);
     
     for(s=buffer, i=0; i<nth; i++, s++)
     { while(*s != ' ')
