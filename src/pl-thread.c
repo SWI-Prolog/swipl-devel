@@ -3036,6 +3036,9 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
     t += (double)p->dwLowDateTime  * (ntick nano);
 
     return t;
+  }
+
+  return 0.0;
 }
 
 #else /*WIN32*/
