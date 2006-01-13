@@ -3045,6 +3045,104 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
 
 #else /*WIN32*/
 
+#ifdef __linux__
+#define LINUX_PROC 1
+#endif
+
+#ifdef LINUX_PROC
+#include <fcntl.h>
+
+#define CACHED_PROCPS_ENTRIES 5
+
+typedef struct
+{ int tid;				/* process id */
+  int fd;				/* file descriptor */
+  int offset;				/* start of numbers */
+  int usecoount;
+} procps_entry;
+
+static procps_entry procps_entries[CACHED_PROCPS_ENTRIES]; /* cached entries */
+
+static procps_entry*
+get_procps_entry(int tid)
+{ int i;
+  procps_entry *e;
+
+  for(e=procps_entries, i=0; i<CACHED_PROCPS_ENTRIES; i++)
+  { if ( e->tid == tid )
+    { e->usecoount++;
+
+      return e;
+    }
+  }
+
+  for(e=procps_entries, i=0; i<CACHED_PROCPS_ENTRIES; i++)
+  { if ( e->tid == 0 )
+    { char fname[256];
+      int fd;
+
+      sprintf(fname, "/proc/self/task/%d/stat", tid);
+      if ( (fd=open(fname, O_RDONLY)) >= 0 )
+      { char buffer[1000];
+	int pos;
+
+	pos = read(fd, buffer, sizeof(buffer)-1);
+	if ( pos > 0 )
+	{ char *bp;
+
+	  buffer[pos] = EOS;
+	  if ( (bp=strrchr(buffer, ')')) )
+	  { e->tid = tid;
+	    e->fd = fd;
+	    e->offset = (bp-buffer)+4;
+	    e->usecoount = 1;
+
+	    return e;
+	  }
+	}
+      }
+
+      return NULL;
+    }
+  }
+
+  return NULL;				/* TBD: update from cache */
+}
+
+static void
+sync_statistics(PL_thread_info_t *info, atom_t key)
+{ if ( key == ATOM_cputime || key == ATOM_runtime || key == ATOM_system_time )
+  { procps_entry *e;
+
+    if ( (e=get_procps_entry(info->pid)) )
+    { char buffer[1000];
+      char *s;
+      long long ticks;
+      int i, nth = 10;			/* user time */
+
+      if ( key == ATOM_system_time )
+	nth++;
+
+      lseek(e->fd, e->offset, SEEK_SET);
+      read(e->fd, buffer, sizeof(buffer));
+      
+      for(s=buffer, i=0; i<nth; i++, s++)
+      { while(*s != ' ')
+	  s++;
+      }
+
+      ticks = atoll(s);
+      if ( key == ATOM_system_time )
+      { info->thread_data->statistics.user_cputime = (double)ticks/100.0;
+      } else
+      { info->thread_data->statistics.system_cputime = (double)ticks/100.0;
+      }
+    }
+  }
+}
+
+#else /*LINUX_PROC*/
+
 static void
 SyncUserCPU(int sig)
 { LD->statistics.user_cputime = CpuTime(CPU_USER);
@@ -3083,6 +3181,7 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
   }
 }
 
+#endif /*LINUX_PROC*/
 #endif /*WIN32*/
 
 
