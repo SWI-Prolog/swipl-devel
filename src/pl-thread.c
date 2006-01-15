@@ -432,6 +432,7 @@ free_prolog_thread(void *data)
 { PL_local_data_t *ld = data;
   PL_thread_info_t *info;
   int acknowlege;
+  double time;
 
   if ( !threads_ready )
     return;				/* Post-mortem */
@@ -459,11 +460,12 @@ free_prolog_thread(void *data)
   /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadSignals(ld);
+  time = ThreadCPUTime(info, CPU_USER);
 
   LOCK();
   destroy_message_queue(&ld->thread.messages);
   GD->statistics.threads_finished++;
-  GD->statistics.thread_cputime += ThreadCPUTime(info, CPU_USER);
+  GD->statistics.thread_cputime += time;
 
   info->thread_data = NULL;
   ld->thread.info = NULL;		/* avoid a loop */
@@ -852,13 +854,13 @@ start_thread(void *closure)
 
   blockSignal(SIGINT);			/* only the main thread processes */
 					/* Control-C */
+  set_system_thread_id(info);		/* early to get exit code ok */
+
   if ( !initialise_thread(info) )
   { info->status = PL_THREAD_NOMEM;
     return (void *)TRUE;
   }
     
-  set_system_thread_id(info);
-
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 

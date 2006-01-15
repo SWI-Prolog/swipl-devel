@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Thread resource exception handling in Linux 2.6.  Keri Harris.
+
 ================================
 VERSION 5.6.2 (January 13, 2006)
 ================================
