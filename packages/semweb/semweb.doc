@@ -474,8 +474,10 @@ As rdf_load/1, providing additional options.  The options are handed
 to the RDF parser as implemented by process_rdf/3.
 
     \predicate{rdf_unload}{1}{+Spec}
-Remove all triples loaded from \arg{Spec}. In the current implementation
-\arg{Spec} must refer to a file.
+Remove all triples loaded from \arg{Spec}. \arg{Spec} is either the name
+of a loaded database (see rdf_source/1) or a file specification. If
+\arg{Spec} does not refer to a loaded database the predicate succeeds
+silently.
 
     \predicate{rdf_save}{1}{+File}
 Save all known triples to the given \arg{File}.  Same as
