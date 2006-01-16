@@ -354,18 +354,16 @@ parse_url(URL, BaseURL, Attributes) :-
 	    delete(BaseA1, search(_), BaseA2),
 	    delete(BaseA2, fragment(_), BaseA3),
 	    phrase(uri(Protocol, URIA0), Codes),
-	    select(path(LocalPath), URIA0, URIA1),
+	    select(path(LocalPath), URIA0, URIA1), !,
 	    globalise_path(LocalPath, BasePath, Path),
 	    append(BaseA3, [path(Path)|URIA1], Attributes)
 	).
-
 parse_url(URL, BaseURL, Attributes) :-
 	parse_url(BaseURL, BaseAttributes), 
 	memberchk(path(BasePath), BaseAttributes), 
-	(memberchk(path(LocalPath), Attributes) ->
-	    globalise_path(LocalPath, BasePath, Path)
-	; 
-	    Path= BasePath
+	(   memberchk(path(LocalPath), Attributes)
+	->  globalise_path(LocalPath, BasePath, Path)
+	;   Path = BasePath
 	), 	 
 	append([path(Path)|Attributes], BaseAttributes, GlobalAttributes), 
 	phrase(curl(GlobalAttributes), Chars), 
