@@ -167,7 +167,8 @@ http_do_get(Parts, Data, Options) :-
 	write(Write, '\r\n'),
 	flush_output(Write),
 	http_read_reply(Read, Data0, ReplyOptions), !,
-	(   Data0 = redirect(Redirect)
+	(   Data0 = redirect(Redirect),
+	    nonvar(Redirect)
 	->  debug(http(redirect), 'Redirect to ~w', [Redirect]),
 	    parse_url(Redirect, Parts, NewParts),
 	    http_get(NewParts, Data, Options)

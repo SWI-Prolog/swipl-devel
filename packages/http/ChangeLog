@@ -1,3 +1,8 @@
+Jan 16, 2006
+
+  * Fixed redirect handling if the option to(Stream) is given.  
+    Jacco van Ossenbruggen.
+
 Jan 11, 2006
 
   * Added: handling of 302 redirect messages in http_get/3.
