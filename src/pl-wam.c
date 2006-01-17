@@ -1288,6 +1288,9 @@ right_recursion:
     w2 = *t2;
   }
 
+  if ( t1 == t2 )
+    succeed;
+
   if ( isVar(w1) )
   { if ( isVar(w2) )
     { if ( t1 < t2 )			/* always point downwards */
@@ -1295,8 +1298,6 @@ right_recursion:
 	Trail(t2);
 	succeed;
       }
-      if ( t1 == t2 )
-	succeed;
       *t1 = makeRef(t2);
       Trail(t1);
       succeed;
@@ -1326,9 +1327,15 @@ right_recursion:
 
 #ifdef O_ATTVAR
   if ( isAttVar(w1) )
+  { if ( var_occurs_in(t1, t2) )
+      fail;
     return assignAttVar(t1, t2 PASS_LD);
+  }
   if ( isAttVar(w2) )
+  { if ( var_occurs_in(t2, t1) )
+      fail;
     return assignAttVar(t2, t1 PASS_LD);
+  }
 #endif
 
   if ( w1 == w2 )

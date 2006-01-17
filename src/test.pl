@@ -177,6 +177,30 @@ unify(cycle-2) :-			% Kuniaki Mukai
 
 
 		 /*******************************
+		 *    UNIFY-WITH-OCCURS-CHECK	*
+		 *******************************/
+
+occurs_check(simple-1) :-
+	\+ unify_with_occurs_check(A, list(A)).
+occurs_check(simple-2) :-
+	unify_with_occurs_check(_A, _B).
+occurs_check(attvar-1) :-		% test wakeup
+	freeze(X, X = Y),
+	unify_with_occurs_check(X, a), 
+	Y == a.
+occurs_check(attvar-2) :-		% test occurs-check
+	freeze(A, true),
+	\+ unify_with_occurs_check(A, list(A)).
+occurs_check(attvar-3) :-
+	freeze(A, true),
+	unify_with_occurs_check(A, A).
+occurs_check(attvar-4) :-
+	freeze(A, true),
+	freeze(B, true),
+	unify_with_occurs_check(A, B).
+
+
+		 /*******************************
 		 *	       CYCLIC		*
 		 *******************************/
 
@@ -2209,6 +2233,7 @@ testset(syntax).
 testset(write_test).
 testset(format_test).
 testset(unify).
+testset(occurs_check).
 testset(arithmetic).
 testset(arithmetic_functions).
 testset(floattest).

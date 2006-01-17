@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: unify_with_occurs_check/2 fails to to occurs-check with
+    attributed variables.  Tom Schrijvers.
+
   * FIXED: Thread resource exception handling in Linux 2.6.  Keri Harris.
 
 ================================
