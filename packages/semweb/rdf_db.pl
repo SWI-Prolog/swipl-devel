@@ -97,10 +97,11 @@
 	    rdf_match_label/3,		% +How, +String, +Label
 	    rdf_split_url/3,		% ?Base, ?Local, ?URL
 	    rdf_url_namespace/2,	% +URL, ?Base
+	    rdf_quote_uri/2,		% +URI, -Quoted
 
 	    rdf_debug/1,		% Set verbosity
 
-	    (rdf_meta)/1,			% +Heads
+	    (rdf_meta)/1,		% +Heads
 	    op(1150, fx, (rdf_meta))
 	  ]).
 :- use_module(library(rdf)).

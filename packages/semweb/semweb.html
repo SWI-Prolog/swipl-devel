@@ -739,6 +739,12 @@ Close the work opened with <A NAME="idx:rdfsaveheader2:38"></A><A HREF="#rdf_sav
 Save everything known about <VAR>Subject</VAR> that matches <VAR>FileRef</VAR>. 
 Using an variable for <VAR>FileRef</VAR> saves all triples with
 <VAR>Subject</VAR>.
+
+<P>
+<DT><A NAME="rdf_quote_uri/+URI, -Quoted"><STRONG>rdf_quote_uri</STRONG>(<VAR>+URI, 
+-Quoted</VAR>)</A><DD>
+uote a UNICODE <VAR>URI</VAR>. First the Unicode is represented as UTF-8 
+and then the unsafe characters are mapped to be represented as US-ASCII.
 </DL>
 
 <H4><A NAME="sec:3.4.2">3.4.2 Fast loading and saving</A></H4>
@@ -1954,6 +1960,7 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdf_node/1">rdf_node/1</A><DD>
 <DT><A HREF="#rdf_predicate_property/2">rdf_predicate_property/2</A><DD>
 <A HREF="#idx:rdfpredicateproperty2:9">3.2</A> <A HREF="#idx:rdfpredicateproperty2:67">3.7</A>
+<DT><A HREF="#rdf_quote_uri/+URI, -Quoted">rdf_quote_uri/+URI, -Quoted</A><DD>
 <DT><A HREF="#rdf_reachable/3">rdf_reachable/3</A><DD>
 <A HREF="#idx:rdfreachable3:70">3.7</A>
 <DT><A HREF="#rdf_register_ns/2">rdf_register_ns/2</A><DD>
