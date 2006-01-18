@@ -200,7 +200,7 @@ _xos_home()				/* expansion of ~ */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Map a UTF-8 string in Prolog internal representation to a UNICODE string
-to be used with the Windows UNIODE access functions.
+to be used with the Windows UNICODE access functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 wchar_t *
