@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Bug#136: actually use directory argument in display<-win_directory.
+  Holger Kanwischer.
+
 VERSION 6.6.1, distributed with SWI-Prolog 5.6.1
 ================================================
 
