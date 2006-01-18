@@ -586,11 +586,11 @@ getWinDirectoryDisplay(DisplayObj d,
     bi.lpszTitle = nameToTCHAR(title);
   bi.ulFlags = BIF_RETURNONLYFSDIRS;
   if ( notDefault(dir) )
-  { wchar_t *windir[MAXPATHLEN];
+  { wchar_t windir[MAXPATHLEN];
 
-    bi.lParam = (LPARARM)_xos_os_filenameW(nameToFN(dir->path),
-					   windir,
-					   sizeof(windir)/sizeof(wchar_t));
+    bi.lParam = (LPARAM)_xos_os_filenameW(nameToFN(dir->path),
+					  windir,
+					  sizeof(windir)/sizeof(wchar_t));
     if ( bi.lParam )
       bi.lpfn = BrowseCallbackProc;
   }
