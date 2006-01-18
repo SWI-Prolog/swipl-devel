@@ -123,8 +123,11 @@ class_variable(varmark_style, style*,
 	       style(background := honeydew,
 		     underline := @on)).
 
-variable(varmark_style, style*,       get, "How to mark variables").
-variable(has_var_marks, bool := @off, get, "Optimise a bit").
+variable(varmark_style,    style*,       get, "How to mark variables").
+variable(has_var_marks,    bool := @off, get, "Optimise a bit").
+variable(var_marked_caret, int*,	 get, "Last caret at ->mark_variable").
+variable(var_marked_gen,   int*,	 get, "Last generation").
+
 
 icon(_, I:image) :<-
 	"Return icon for mode"::
@@ -779,7 +782,9 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	    ),
 	    arg(2, P, E0),
 	    get(TB, find, E0, '.', 1, end, End)
-	;   Error = EPos:Msg,
+	;   get(M, forward_clause, Start, End),
+	    send(M, remove_syntax_fragments, Start, End),
+	    Error = EPos:Msg,
 	    (	Repair \== @off
 	    ->  send(M, caret, EPos)
 	    ;	true
@@ -863,9 +868,9 @@ pce_ifhostproperty(prolog(quintus),
 	EP is EP0 + Start)).
 
 
-check_clause(M, From:[int]) :->
+check_clause(M, From:from=[int], Repair:repair=[bool]) :->
 	"Check syntax of clause"::
-	get(M, check_clause, From, _).
+	get(M, check_clause, From, Repair, _).
 
 
 unmark_singletons(M, P) :-
@@ -1018,7 +1023,7 @@ typed(M, Id:'event|event_id', Editor:editor) :->
 	->  get(M, caret, Caret),
 	    get(M, text_buffer, TB),
 	    (   send(regex('[_A-Z][a-zA-Z_0-9]*.?'), match, TB, Caret, 0)
-	    ->  send(M, mark_variable)
+	    ->  send(M, mark_variable, @on)
 	    ;   true
 	    )
 	;   true
@@ -1029,7 +1034,7 @@ new_caret_position(M, NewCaret:int) :->
 	send_super(M, new_caret_position, NewCaret),
 	(   get(M, varmark_style, Style),
 	    Style \== @nil
-	->  send(M, mark_variable)
+	->  send(M, mark_variable, @on)
 	;   true
 	).
 
@@ -1038,21 +1043,38 @@ varmark_style(M, Style:style*) :->
 	send(M, slot, varmark_style, Style),
 	send(M, style, varmark, Style).
 
-mark_variable(M) :->
+mark_variable(M, Check:[bool]) :->
 	"Mark variable around caret"::
 	send(M, unmark_variables),
 	get(M, caret, Caret),
-	(   get(M, prolog_term, @default, @on, Pos, Clause),
-	    find_variable(Pos, Clause, Caret, Var)
-	->  get(M, text_buffer, TB),
-	    send(M, slot, has_var_marks, @on),
-	    (   subterm_position(Var, Clause, Pos, F-T),
-		Len is T - F,
-		new(_, emacs_colour_fragment(TB, F, Len, varmark)),
-		fail
-	    ;   true
+	get(M, text_buffer, TB),
+	get(M, generation, Gen),
+	(   get(M, var_marked_caret, Caret),
+	    get(M, var_marked_gen, Gen)
+	->  true
+	;   send(M, slot, var_marked_caret, Caret),
+	    send(M, slot, var_marked_gen, Gen),
+
+	    get(M, beginning_of_clause, Caret, Start),
+	    (   get(M, prolog_term, Start, @on, Pos, Clause)
+	    ->  (   Check == @on
+		->  send(M, check_clause, Start, @off)
+		;   true
+		),
+		(   find_variable(Pos, Clause, Caret, Var)
+		->  get(M, text_buffer, TB),
+		    send(M, slot, has_var_marks, @on),
+		    (   subterm_position(Var, Clause, Pos, F-T),
+			Len is T - F,
+			new(_, emacs_colour_fragment(TB, F, Len, varmark)),
+			fail
+		    ;   true
+		    )
+		;   true
+		)
+	    ;   get(M, forward_clause, Start, End),
+		send(M, remove_syntax_fragments, Start, End)
 	    )
-	;   true
 	).
 
 unmark_variables(M) :->
