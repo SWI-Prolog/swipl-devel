@@ -100,6 +100,7 @@ user:file_search_path(chr, library(chr)).
 %% :- use_module('chr/chr_runtime').
 %% :- use_module('chr/chr_messages').
 %% :- use_module('chr/chr_hashtable_store').
+%% :- use_module('chr/hprolog').
 %% SICStus end
 
 :- use_module(library(lists)).
