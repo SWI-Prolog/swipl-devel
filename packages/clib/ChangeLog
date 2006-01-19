@@ -1,3 +1,8 @@
+Jan 19, 2006
+
+  * Fixed: Bug#137: make time.c compile for single-threaded operation
+    Keri Harris.
+
 Jan 12, 2006
 
   * Fixed: rewrote most of time.c, providing alarm/4 using portable

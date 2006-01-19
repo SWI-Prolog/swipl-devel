@@ -90,7 +90,9 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 
 #else /*WIN32*/
 
+#ifdef _REENTRANT
 #define SHARED_TABLE 1
+#endif
 
 #include <time.h>
 #include <sys/time.h>
@@ -707,7 +709,7 @@ on_alarm(int sig)
   schedule *sched = TheSchedule();
 
 #ifdef BACKTRACE
-  print_trace();
+  DEBUG(10, print_trace());
 #endif
 
   if ( (ev=sched->scheduled) )
