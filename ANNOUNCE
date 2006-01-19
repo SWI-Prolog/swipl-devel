@@ -55,3 +55,20 @@ Semantic Web library
 There are many additions to the  semantic web infra-structure, including
 full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
+
+
+Version 5.6.3 Patches relative to 5.6.2
+=======================================
+
+Prolog
+
+  * Fixed Attributed variable handling in unify_with_occurs_check/2
+  * Fixed thread resource-error handling in Linux 2.6
+  * Fixed unwanted choicepoint in library(url)
+
+Packages
+  
+  * SGML: fixed in/excluded group syntax in DTD
+  * XPCE: honour directory argument in @display<-win_directory method,
+    PceEmacs: more aggressive colouring of current clause.
+  * Semweb: exported rdf_quote_uri/2 for Unicode quoting of URIs.

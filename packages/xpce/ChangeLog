@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.3, distributed with SWI-Prolog 5.6.3
+================================================
+
 * ENHANCED: PceEmacs colouring: more aggressive colouring of the current
   clause.
 
