@@ -1,3 +1,8 @@
+Jan 19, 2006
+
+  * FIXED: Allow for different deparators in in/excluded namegroup.
+    Anjo Anjewierden.
+
 Jul 7, 2005
 
   * ADDED: entiry(+Name, +Value) to (re-)define CDATA entity values.

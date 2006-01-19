@@ -58,8 +58,7 @@ typedef struct locbuf
 static const ichar *	itake_name(dtd *dtd, const ichar *in, dtd_symbol **id);
 static const ichar *	itake_entity_name(dtd *dtd, const ichar *in,
 					  dtd_symbol **id);
-static const ichar *	itake_namegroup(dtd *dtd,
-					charfunc sep, const ichar *decl,
+static const ichar *	itake_namegroup(dtd *dtd, const ichar *decl,
 					dtd_symbol **names, int *n);
 static const ichar *	iskip_layout(dtd *dtd, const ichar *in);
 static dtd_parser *	clone_dtd_parser(dtd_parser *p);
@@ -2162,18 +2161,20 @@ isee_ngsep(dtd *dtd, const ichar *decl, charfunc *sep)
 
 
 static const ichar *
-itake_namegroup(dtd *dtd, charfunc sep, const ichar *decl,
+itake_namegroup(dtd *dtd, const ichar *decl,
 		dtd_symbol **names, int *n)
 { const ichar *s;
   int en = 0;
 
   if ( (s=isee_func(dtd, decl, CF_GRPO)) )
-  { for(;;)
+  { charfunc ngs = CF_NG;
+
+    for(;;)
     { if ( !(decl=itake_name(dtd, s, &names[en++])) )
       { gripe(ERC_SYNTAX_ERROR, "Name expected", s);
 	return NULL;
       }
-      if ( (s=isee_func(dtd, decl, sep)) )
+      if ( (s=isee_ngsep(dtd, decl, &ngs)) )
       { decl = iskip_layout(dtd, s);
 	continue;
       }
@@ -2312,7 +2313,7 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
       l = &def->included;
 
     decl++;
-    if ( (s=itake_namegroup(dtd, CF_OR, decl, ng, &ns)) )
+    if ( (s=itake_namegroup(dtd, decl, ng, &ns)) )
     { int i;
 
       decl = s;
@@ -2500,7 +2501,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 
       at->type = AT_NOTATION;
       decl=s;
-      if ( (s=itake_namegroup(dtd, CF_OR, decl, ng, &ns)) )
+      if ( (s=itake_namegroup(dtd, decl, ng, &ns)) )
       { decl = s;
 
 	for(i=0; i<ns; i++)
