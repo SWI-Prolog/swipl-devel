@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Allow calling PL_new_functor() before PL_initialise().
+
+
 ================================
 VERSION 5.6.3 (January 19, 2006)
 ================================

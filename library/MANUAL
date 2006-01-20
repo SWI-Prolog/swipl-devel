@@ -13,7 +13,7 @@
 
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._0_, _D_e_c_e_m_b_e_r _2_0_0_5
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._4_, _J_a_n_u_a_r_y _2_0_0_6
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                     wielemak@science.uva.nl
@@ -39,7 +39,7 @@ primitives.
 This  document gives an overview of the features, system limits
 and built-in predicates.
 
-Copyright Oc 1990--2005, University of Amsterdam
+Copyright Oc 1990--2006, University of Amsterdam
 
 
 CChhaapptteerr 11..  IINNTTRROODDUUCCTTIIOONN
@@ -14361,9 +14361,10 @@ JPL using a C-glue between the Java and Prolog C-interfaces.
 The  most   simple  embedded   program  is   below.      The   interface
 function  PL_initialise()  mmuusstt  be  called  before  any  of  the  other
 SWI-Prolog  foreign  language  functions  described  in   this  chapter,
-except for PL_initialise_hook(), PL_new_atom()and PL_register_foreign().
-PL_initialise() interprets  all the command-line  arguments, except  for
-the -t toplevel flag that is interpreted by PL_toplevel().
+except  for  PL_initialise_hook(),   PL_new_atom(),  PL_new_functor()  and
+PL_register_foreign().   PL_initialise() interprets all the  command-line
+arguments,  except  for the  -t toplevel  flag  that is  interpreted  by
+PL_toplevel().
 
 int
 main(int argc, char **argv)

@@ -293,7 +293,10 @@ PL_new_atom_nchars(unsigned int len, const char *s)
 
 functor_t
 PL_new_functor(atom_t f,  int a)
-{ return lookupFunctorDef(f, a);
+{ if ( !GD->initialised )
+    initFunctors();
+
+  return lookupFunctorDef(f, a);
 }
 
 
