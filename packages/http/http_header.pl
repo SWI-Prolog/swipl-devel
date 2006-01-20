@@ -44,6 +44,8 @@
 	  ]).
 :- use_module(library(readutil)).
 :- use_module(library(debug)).
+:- use_module(library(lists)).
+:- use_module(library(url)).
 :- use_module(dcg_basics).
 :- use_module(html_write).
 :- use_module(mimetype).
@@ -496,6 +498,13 @@ field_to_prolog(cookie, ValueChars, Cookies) :- !,
 field_to_prolog(set_cookie, ValueChars, SetCookie) :- !,
 	debug(cookie, 'SetCookie: ~s', [ValueChars]),
 	phrase(set_cookie(SetCookie), ValueChars).
+field_to_prolog(host, ValueChars, Host) :- !,
+	(   append(HostChars, [0':|PortChars], ValueChars),
+	    catch(number_codes(Port, PortChars), _, fail)
+	->  atom_codes(HostName, HostChars),
+	    Host = HostName:Port
+	;   atom_codes(Host, ValueChars)
+	).
 field_to_prolog(_, ValueChars, Atom) :-
 	atom_codes(Atom, ValueChars).
 
@@ -816,13 +825,16 @@ parse_header(Text, Header) :-
 	phrase(header(Header), Text),
 	debug(header, 'Fields: ~w~n', [Header]).
 
-
-header([Att|T]) -->
+header(List) -->
 	header_field(Name, Value), !,
-	{ Att =.. [Name, Value]
+	{ mkfield(Name, Value, List, Tail)
 	},
 	blanks,
-	header(T).
+	header(Tail).
 header([]) -->
 	blanks,
 	[].
+
+mkfield(host, Host:Port, [host(Host),port(Port)|Tail], Tail) :- !.
+mkfield(Name, Value, [Att|Tail], Tail) :-
+	Att =.. [Name, Value].

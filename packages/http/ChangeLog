@@ -1,3 +1,8 @@
+Jan 20, 2006
+
+  * Map Host:  <host>:<port> into host(Host), port(Port) when reading
+    HTTP requests.
+
 Jan 16, 2006
 
   * Fixed redirect handling if the option to(Stream) is given.  

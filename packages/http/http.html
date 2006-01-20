@@ -585,6 +585,14 @@ request parameters. The predefined fields are:
 <DL>
 
 <P>
+<DT><STRONG>host</STRONG>(<VAR>Host</VAR>)<DD>
+If the request contains <CODE>Host: </CODE><VAR>Host</VAR>, Host is 
+unified with the host-name. If <VAR>Host</VAR> is of the format &lt;<VAR>host</VAR>&gt;:&lt;<VAR>port</VAR>&gt;
+<VAR>Host</VAR> only describes &lt;<VAR>host</VAR>&gt; and a field <CODE>port(Port)</CODE> 
+where
+<VAR>Port</VAR> is an integer is added.
+
+<P>
 <DT><STRONG>input</STRONG>(<VAR>Stream</VAR>)<DD>
 The <VAR>Stream</VAR> is passed along, allowing to read more data or 
 requests from the same stream. This field is always present.
@@ -597,6 +605,15 @@ This field is present if the header has been parsed successfully.
 <P>
 <DT><STRONG>path</STRONG>(<VAR>Path</VAR>)<DD>
 Path associated to the request. This field is always present.
+
+<P>
+<DT><STRONG>peer</STRONG>(<VAR>Peer</VAR>)<DD>
+<VAR>Peer</VAR> is a term <CODE>ip(A,B,C,D)</CODE> containing the IP 
+address of the contacting host.
+
+<P>
+<DT><STRONG>port</STRONG>(<VAR>Port</VAR>)<DD>
+Port requested. See <CODE>host</CODE> for details.
 
 <P>
 <DT><STRONG>search</STRONG>(<VAR>ListOfNameValue</VAR>)<DD>

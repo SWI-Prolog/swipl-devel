@@ -438,6 +438,12 @@ of parsing the first line of the request, followed by the additional
 request parameters.  The predefined fields are:
 
 \begin{description}
+    \termitem{host}{Host}
+If the request contains \verb$Host: $\arg{Host}, Host is unified
+with the host-name.  If \arg{Host} is of the format <host>:<port>
+\arg{Host} only describes <host> and a field \term{port}{Port} where
+\arg{Port} is an integer is added.
+
     \termitem{input}{Stream}
 The \arg{Stream} is passed along, allowing to read more data or
 requests from the same stream.  This field is always present.
@@ -448,6 +454,13 @@ field is present if the header has been parsed successfully.
 
     \termitem{path}{Path}
 Path associated to the request.  This field is always present.
+
+    \termitem{peer}{Peer}
+\arg{Peer} is a term \term{ip}{A,B,C,D} containing the IP address of
+the contacting host.
+
+    \termitem{port}{Port}
+Port requested.  See \const{host} for details.
 
     \termitem{search}{ListOfNameValue}
 Search-specification of URI. This is the part after the \chr{?},
