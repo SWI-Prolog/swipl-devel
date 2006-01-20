@@ -31,6 +31,7 @@
 
 :- module(emacs_prolog_mode, []).
 :- use_module(library(pce)).
+:- use_module(library(operators)).
 :- use_module(library(emacs_extend)).
 :- use_module(library(prolog_predicate)).
 :- use_module(library(pce_prolog_xref)).
@@ -42,6 +43,7 @@
 	   , default/3
 	   , forall/2
 	   , ignore/1
+	   , last/2
 	   , list_to_set/2
 	   , member/2
 	   , memberchk/2
@@ -762,7 +764,7 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	),
 	get(M, text_buffer, TB),
 	pce_open(TB, read, Fd),
-	read_term_from_stream(Fd, Start, T, Error, S, P),
+	read_term_from_stream(TB, Fd, Start, T, Error, S, P),
 	close(Fd),
 	(   Error == none
 	->  (	send(M, has_send_method, colourise_term)
@@ -793,26 +795,30 @@ check_clause(M, From:from=[int], Repair:repair=[bool], End:int) :<-
 	    fail
 	).
 
-read_term_from_stream(Fd, Start, T, Error, S, P) :-
+read_term_from_stream(TB, Fd, Start, T, Error, S, P) :-
 	retractall(syntax_error(_)),
 	alternate_syntax(_Name, Setup, Restore),
+	findall(Op, xref_op(TB, Op), Ops),
+	push_operators(Ops),
 	Setup,
 	seek(Fd, Start, bof, _),
 	read_with_errors(Fd, Start, T, Error, S, P),
 	Restore,
+	pop_operators,
 	(   Error == none
 	->  true
 	;   assert(syntax_error(Error)),
 	    fail
 	), !.
-read_term_from_stream(_, _, _, Error, _, _) :-
+read_term_from_stream(_, _, _, _, Error, _, _) :-
 	setof(E, retract(syntax_error(E)), Es),
 	last(Es, Error).
 
 pce_ifhostproperty(prolog(swi),
 (read_with_errors(Fd, _Start, T, Error, Singletons, TermPos) :-
 	catch(read_term(Fd, T, [ singletons(Singletons),
-				 subterm_positions(TermPos)
+				 subterm_positions(TermPos),
+				 module(emacs_prolog_mode)
 			       ]),
 	      Error0,
 	      true),
@@ -998,7 +1004,7 @@ prolog_term(M, From:[int], Silent:[bool], TermPos:[prolog], Clause:prolog) :<-
 	  ),
 	  get(M, text_buffer, TB),
 	  pce_open(TB, read, Fd),
-	  read_term_from_stream(Fd, Start, Clause, Error, _S, P),
+	  read_term_from_stream(TB, Fd, Start, Clause, Error, _S, P),
 	  close(Fd),
 	  ignore(P = TermPos),
 	  (   Error == none
@@ -1045,7 +1051,6 @@ varmark_style(M, Style:style*) :->
 
 mark_variable(M, Check:[bool]) :->
 	"Mark variable around caret"::
-	send(M, unmark_variables),
 	get(M, caret, Caret),
 	get(M, text_buffer, TB),
 	get(M, generation, Gen),
@@ -1055,6 +1060,7 @@ mark_variable(M, Check:[bool]) :->
 	;   send(M, slot, var_marked_caret, Caret),
 	    send(M, slot, var_marked_gen, Gen),
 
+	    send(M, unmark_variables),
 	    get(M, beginning_of_clause, Caret, Start),
 	    (   get(M, prolog_term, Start, @on, Pos, Clause)
 	    ->  (   Check == @on

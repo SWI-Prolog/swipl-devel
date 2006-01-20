@@ -36,6 +36,7 @@
 	    xref_defined/3,		% ?Source. ?Callable, -How
 	    xref_exported/2,		% ?Source, ?Callable
 	    xref_module/2,		% ?Source, ?Module
+	    xref_op/2,			% ?Source, ?Op
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
 	    xref_built_in/1,		% ?Callable
@@ -62,6 +63,7 @@
 	imported/3,			% Head, Src, From
 	exported/2,			% Head, Src
 	xmodule/2,			% Module, Src
+	xop/2,				% Src, Op
 	source/1,			% Src
 	used_class/2,			% Name, Src
 	defined_class/5,		% Name, Super, Summary, Src, Line
@@ -139,18 +141,19 @@ xref_cleanup(state(Xref, Ref, Style, SM)) :-
 	'$style_check'(_, Style),
 	'$set_source_module'(_, SM).
 
-%	xref_push_op(+Prec, +Type, :Name)
+%	xref_push_op(Source, +Prec, +Type, :Name)
 %	
 %	Define operators into the default source module and register
 %	them to be undone by pop_operators/0.
 
-xref_push_op(P, T, N0) :- !,
+xref_push_op(Src, P, T, N0) :- !,
 	(   N0 = _:_
 	->  N = N0
 	;   '$set_source_module'(M, M),
 	    N = M:N0
 	),
 	push_op(P, T, N),
+	assert_op(Src, op(P,T,N)),
 	debug(xref, ':- ~w.', [op(P,T,N)]).
 
 
@@ -168,6 +171,7 @@ xref_clean(Source) :-
 	retractall(imported(_, Src, _From)),
 	retractall(exported(_, Src)),
 	retractall(xmodule(_, Src)),
+	retractall(xop(Src, _)),
 	retractall(source(Src)),
 	retractall(used_class(_, Src)),
 	retractall(defined_class(_, _, _, Src, _)),
@@ -241,6 +245,15 @@ xref_module(Source, Module) :-
 	canonical_source(Source, Src),
 	xmodule(Module, Src).
 
+%	xref_op(?Source, ?op(P,T,N))
+%	
+%	Give the operators active inside the module. This is intended to
+%	setup the environment for incremental parsing of a term from the
+%	source-file.
+
+xref_op(Source, Op) :-
+	canonical_source(Source, Src),
+	xop(Src, Op).
 
 xref_built_in(Head) :-
 	system_predicate(Head).
@@ -379,8 +392,8 @@ process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
 process_directive(pce_autoload(Name, From), Src) :-
 	assert_defined_class(Src, Name, imported_from(From)).
 
-process_directive(op(P, A, N), _) :-
-	xref_push_op(P, A, N).
+process_directive(op(P, A, N), Src) :-
+	xref_push_op(Src, P, A, N).
 process_directive(style_check(X), _) :-
 	style_check(X).
 process_directive(system_module, _) :-
@@ -626,8 +639,8 @@ process_pce_import(Name/Arity, Src, Path) :-
 	->  assert_import(Src, Name/Arity, Path)
 	;   true
 	).
-process_pce_import(op(P,T,N), _, _) :-
-	xref_push_op(P, T, N).
+process_pce_import(op(P,T,N), Src, _) :-
+	xref_push_op(Src, P, T, N).
 
 %	xref_public_list(+File, -Path, -Public, +Src)
 %	
@@ -815,8 +828,16 @@ assert_import(Src, [H|T], From) :- !,
 assert_import(Src, Name/Arity, From) :- !,
 	functor(Term, Name, Arity),
 	assert(imported(Term, Src, From)).
-assert_import(_, op(P,T,N), _) :-
-	xref_push_op(P,T,N).
+assert_import(Src, op(P,T,N), _) :-
+	xref_push_op(Src, P,T,N).
+
+%	assert_op(+Src, op(P,T,N))
+
+assert_op(Src, op(P,T,_:N)) :-
+	(   xop(Src, op(P,T,N))
+	->  true
+	;   assert(xop(Src, op(P,T,N)))
+	).
 
 %	assert_module(+Src, +Module)
 %	
@@ -848,8 +869,8 @@ assert_export(Src, Name0/Arity) :-
 	),
 	functor(Term, Name, Arity),
 	assert(exported(Term, Src)).
-assert_export(_, op(P, A, N)) :-
-	xref_push_op(P, A, N).
+assert_export(Src, op(P, A, N)) :-
+	xref_push_op(Src, P, A, N).
 
 assert_dynamic(Src, (A, B)) :- !,
 	assert_dynamic(Src, A),
