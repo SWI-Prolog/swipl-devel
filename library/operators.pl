@@ -38,14 +38,12 @@
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Often, one  wants to define  operators to improve  the  readibility of
-some very  specific code.  Operators in  Prolog are global objects and
-changing operators changes syntax  and  possible semantics of existing
-sources.   For this   reason   it is   desirable to  reset    operator
-declarations after   the code that  needs  them   has been read.  This
-module defines a  rather cruel  method to do  this.  In  the future it
-might be better to  limit operator definitions  to  the file they  are
-declated (like style_check/1).
+Often, one wants to define operators to  improve the readibility of some
+very specific code. Operators in Prolog  are global objects and changing
+operators changes syntax and possible semantics of existing sources. For
+this reason it is desirable  to   reset  operator declarations after the
+code that needs them has been read.   This module defines a rather cruel
+-but portable- method to do this. 
 
 Usage:
 
@@ -59,9 +57,15 @@ hello_world World :-
 
 :- pop_operators.
 
-This module started its life as  part   of  the  XPCE graphics system to
-scope the method definition operators within class definitions. It moved
-to the generic SWI-Prolog library in version 5.3.9.
+NOTE: In recent versions of SWI-Prolog operators   are local to a module
+and can be exported using the syntax   below.  This is not portable, but
+otherwise a more structured approach for operator handling.
+
+:- module(mymodule,
+	  [ mypred/1,
+	    op(500, fx, myop)
+	  ]).
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- thread_local
