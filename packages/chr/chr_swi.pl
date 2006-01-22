@@ -31,8 +31,7 @@
 
 %% SWI begin
 :- module(chr,
-	  [ op( 700, xfx, ::),
-	    op(1180, xfx, ==>),
+	  [ op(1180, xfx, ==>),
 	    op(1180, xfx, <=>),
 	    op(1150, fx, constraints),
 	    op(1150, fx, chr_constraint),
@@ -75,8 +74,7 @@ user:file_search_path(chr, library(chr)).
 %% SICStus begin
 %% :- module(chr,[]).
 %% 
-%% :- op( 700, xfx, ::),
-%% 	op(1180, xfx, ==>),
+%% :- op(1180, xfx, ==>),
 %% 	op(1180, xfx, <=>),
 %% 	op(1150, fx, constraints),
 %% 	op(1150, fx, handler),

@@ -291,4 +291,13 @@ chr_pp_flag(Name,Value) :-
 	;
 		V = Value
 	).
+
+chr_user_specified_options(Name,Value) :-
+	atom_concat('$chr_pp_',Name,GlobalVar),
+	nb_getval(GlobalVar,V),
+	( V == [] ->
+		chr_pp_flag_definition(Name,[Value|_])
+	;
+		V = Value
+	).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

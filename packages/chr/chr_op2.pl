@@ -36,7 +36,6 @@
 
 % old version, without the type/mode operators
 
-:- op( 700, xfx, ::).
 :- op(1180, xfx, ==>).
 :- op(1180, xfx, <=>).
 :- op(1150, fx, constraints).

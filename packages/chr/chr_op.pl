@@ -33,7 +33,6 @@
 %%
 %% Operator Priorities
 
-:- op( 700, xfx, ::).
 :- op(1180, xfx, ==>).
 :- op(1180, xfx, <=>).
 :- op(1150, fx, constraints).

@@ -1,4 +1,6 @@
+Jan 19, 2006
 
+  * TS: Removed operator declaration for '::'. No longer used.
 
 Dec 23, 2005
 
