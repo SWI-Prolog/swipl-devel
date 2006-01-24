@@ -17,6 +17,7 @@ PLARCH=@PLARCH@
 PLINCL=@PLINCL@
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
+EXDIR=$(PKGDOC)/examples/cppproxy
 DESTDIR=
 
 CC=@CC@
@@ -44,6 +45,11 @@ INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		cpp_codegen.pl cpp_interface.pl cpp_server.pl typedef.pl
 HDR=		SWI-proxy.cpp SWI-proxy.h
+EXAMPLES=	Makefile README parms.pl \
+		person.pl person.cpp \
+		sqrt.pl sqrt.cpp \
+		time.pl time.cpp
+EXAMPLEEXE=	run
 TARGETS=	serialize.@SO@
 
 all:		$(TARGETS)
@@ -75,6 +81,12 @@ html-install::
 pdf-install::
 		mkdir -p $(PKGDOC)
 		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)$(PKGDOC)
+
+install-examples::
+		mkdir -p $(DESTDIR)$(EXDIR)
+		(cd examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
+		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(DESTDIR)$(EXDIR))
+
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
