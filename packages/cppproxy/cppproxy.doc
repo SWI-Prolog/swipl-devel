@@ -472,8 +472,21 @@ Port on which to bind the server.  Default is 4224.
 \end{description}
 \end{description}
 
+
 \section{Putting it all together: a complete example}
 \label{sec:example}
+
+The base-classes for the runtime system are installed in the SWI-Prolog
+include directory as \file{SWI-proxy.cpp} and its header
+\file{SWI-proxy.h}. These files are \emph{not} compiled into a library.
+Considering compatibility between different compilers and compilation
+models (threading, etc.) it is thought to be easier to include this code
+into the target project using the source-code.
+
+The directory examples (installed as
+\file{.../pl/doc/packages/examples/cppproxy}) contains some stand-alone
+examples as well as a \file{README} explaining how to compile and run
+the examples.
 
 
 \section{Status}
