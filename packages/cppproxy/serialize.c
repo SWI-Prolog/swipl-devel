@@ -242,7 +242,7 @@ pl_write_atom(term_t stream, term_t atom)
        PL_get_nchars(atom, &len, &str, CVT_ATOMIC|CVT_EXCEPTION) )
   { const unsigned char *q = (const unsigned char *)str;
     IOENC oenc = s->encoding;
-    int i;
+    unsigned int i;
 
     if ( !write_int32(s, len, stream) )
       return FALSE;

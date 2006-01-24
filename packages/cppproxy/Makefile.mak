@@ -11,10 +11,16 @@
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 
+LIBDIR=		$(PLBASE)\library\cppproxy
+EXAMPLES=	Makefile parms.pl \
+		person.pl person.cpp \
+		sqrt.pl sqrt.cpp \
+		time.pl time.cpp
+
 all:		serialize.dll
 
-serialize.dll:	serialize.c
-		$(LD) /dll /out:$@ $(LDFLAGS) serialize.c
+serialize.dll:	serialize.obj
+		$(LD) /dll /out:$@ $(LDFLAGS) serialize.obj $(PLLIB)
 
 install:	idll ilib
 
@@ -29,7 +35,7 @@ check::
 ################################################################
 
 idll::
-		serialize.dll "$(BINDIR)"
+		copy serialize.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy serialize.pdb "$(BINDIR)"
 !ENDIF
@@ -53,8 +59,13 @@ uninstall::
 		del "$(PLBASE)\include\SWI-proxy.h"
 		$(MAKEINDEX)
 
-html-install::
+html-install:	install-examples
 		copy cppproxy.html "$(PKGDOC)"
+
+install-examples::
+		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"
+		cd examples & copy README "$(EXDIR)"\README.TXT
+		cd examples & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
 
 xpce-install::
 
