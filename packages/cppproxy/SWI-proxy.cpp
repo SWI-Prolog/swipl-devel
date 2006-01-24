@@ -28,20 +28,22 @@
 
 #include "SWI-proxy.h"
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <string.h>
 #include <stdio.h>
 
+
 #ifdef WIN32
+
+#include <io.h>
+#include <winsock2.h>
+typedef size_t socklen_t;
+
 void
 PlProxy::startSocketLib()
 { WSADATA WSAData;
 
   if ( WSAStartup(MAKEWORD(2,0), &WSAData) )
-    throw(PlSocketException("WSAStartup");
+    throw(PlSocketException("WSAStartup", 0));
 }
 
 void
@@ -50,6 +52,11 @@ PlProxy::stopSocketLib()
 }
 
 #else /*WIN32*/
+
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <netdb.h>
+#include <netinet/in.h>
 
 #define closesocket(s) close(s)
 #define startSocketLib()
@@ -169,7 +176,7 @@ PlProxy::readQueryReply()
 
       receive_atom(s);
       closeQuery();
-      throw(PlException(s));
+      throw(PlException(s.c_str()));
     }
     case 'E':				/* Communication/system error */
     { string s;
@@ -178,14 +185,14 @@ PlProxy::readQueryReply()
 
       receive_atom(s);
       closeQuery();
-      throw(PlException(s));
+      throw(PlException(s.c_str()));
     }
     default:
     { closeQuery();
 
       string s = "Unexpected query reply: ";
       s += c;
-      throw(PlException(s));
+      throw(PlException(s.c_str()));
     }
   }
 
@@ -381,15 +388,26 @@ PlProxy::receive(long &v)
 void
 PlProxy::receive(string &s)
 { long len;
+  char buffer[512];
+  char *buf;
 
   receive(len);
-  char buf[len+1];
+  if ( len < sizeof(buffer)-1 )
+
+    buf = buffer;
+  else if ( !(buf = (char *)malloc(len+1)) )
+    throw(PlException("no memory"));
 
   if ( fread(buf, 1, len, in) != (size_t)len )
+  { if ( buf != buffer )
+      free(buf);
     throw(PlSocketException("receive atom", errno));
+  }
   buf[len] = '\0';
   
   s = buf;
+  if ( buf != buffer )
+    free(buf);
 }
 
 

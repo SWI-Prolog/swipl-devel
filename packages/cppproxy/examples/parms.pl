@@ -23,5 +23,15 @@ compile(CPP, Exe) :-
 		'g++ -DPORT=~w -I. -I.. -I../../../../include -o ~w ~w',
 		[Port, Exe, CPP]),
 	shell(Cmd).
+compile(CPP, Exe) :-
+	port(Port),
+	current_prolog_flag(c_cc, cl), !, % Windows MSVC
+	sformat(Cmd,
+		'cl.exe /nologo /DPORT=~w /DWIN32 /GX \
+		 /I. /I.. /I../../../include /I../../../../include \
+		 -o ~w ~w wsock32.lib',
+		[Port, Exe, CPP]),
+%	writeln(Cmd),
+	shell(Cmd).
 	
 port(5000).

@@ -39,37 +39,42 @@ public:
 
 int
 main(int argc, char **argv)
-{ PersonProxy proxy("localhost", PORT);
-  long maxage;
+{ try
+  { PersonProxy proxy("localhost", PORT);
+    long maxage;
+    
+    if ( argc == 2 )
+    { maxage = atoi(argv[1]);
+    } else
+    { maxage = 50;
+    }
   
-  if ( argc == 2 )
-  { maxage = atoi(argv[1]);
-  } else
-  { maxage = 50;
-  }
-
-  try
-  { person p;
-    p.first_name = "Jan";
-    p.last_name = "Wielemaker";
-    p.age = 45;
-
-    proxy.add_person(p);
+    try
+    { person p;
+      p.first_name = "Jan";
+      p.last_name = "Wielemaker";
+      p.age = 45;
+  
+      proxy.add_person(p);
+    } catch ( PlException &ex )
+    { cerr << ex << endl;
+      return 1;
+    }
+  
+    try
+    { find_person_younger_than q(&proxy);
+      person p;
+  
+      while( q.next_solution(maxage, p) )
+	cout << p.first_name << " " << p.last_name << " " << p.age << endl;
+    } catch ( PlException &ex )
+    { cerr << ex << endl;
+      return 1;
+    }
+  
+    return 0;
   } catch ( PlException &ex )
   { cerr << ex << endl;
     return 1;
   }
-
-  try
-  { find_person_younger_than q(&proxy);
-    person p;
-
-    while( q.next_solution(maxage, p) )
-      cout << p.first_name << " " << p.last_name << " " << p.age << endl;
-  } catch ( PlException &ex )
-  { cerr << ex << endl;
-    return 1;
-  }
-
-  return 0;
 }

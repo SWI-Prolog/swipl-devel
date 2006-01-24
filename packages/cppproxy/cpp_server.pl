@@ -67,9 +67,9 @@ cpp_server(Options) :-
 	tcp_listen(Socket, 5),
 	thread_create(cpp_accept(Socket, Options), _,
 		      [ alias(cpp_accept),
-			local(16),
-			global(16),
-			trail(16)
+			local(32),
+			global(32),
+			trail(32)
 		      ]).
 
 cpp_accept(Socket, Options) :-
