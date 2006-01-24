@@ -135,7 +135,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl \
 	tty.pl readln.pl readutil.pl make.pl option.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
-	netscape.pl url.pl main.pl assoc.pl nb_set.pl \
+	www_browser.pl url.pl main.pl assoc.pl nb_set.pl \
 	threadutil.pl qpforeign.pl dif.pl when.pl \
 	checklast.pl checkselect.pl operators.pl \
 	prolog_stack.pl prolog_clause.pl

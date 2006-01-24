@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module(netscape,
+:- module(www_browser,
 	  [ www_open_url/1,		% +UrlOrSpec
 	    expand_url_path/2		% +Spec, -URL
 	  ]).
@@ -40,39 +40,82 @@
 %	Based on a windows-only version by Bob Wielinga.
 %
 %	On Unix life is a bit harder as there is no established standard
-%	to figure out which browser to open.
+%	to figure out which browser to open.  We try:
+%	
+%		* The start-program `open' (Mac and some Unix systems).
+%		* Prolog flag `browser'
+%		* Variable BROWSER
+%		* All known browsers
 
 www_open_url(Spec) :-
 	current_prolog_flag(windows, true), !,
 	expand_url_path(Spec, URL),
 	call(win_shell(open, URL)).	% fool xref
 www_open_url(Spec) :-
-	(   getenv('BROWSER', Browser)
+	has_command(open), !,
+	expand_url_path(Spec, URL),
+	sformat(Cmd, 'open "~w"', [URL]),
+	shell(Cmd).
+www_open_url(Spec) :-
+	(   current_prolog_flag(browser, Browser)
 	->  true
-	;   Browser = netscape
+	;   getenv('BROWSER', Browser)
+	->  true
+	;   known_browser(Browser, _),
+	    has_command(Browser)
 	),
 	expand_url_path(Spec, URL),
 	www_open_url(Browser, URL).
 
 www_open_url(Browser, URL) :-
-	netscape_compatible(Browser), !,
-	sformat(Cmd0, '~w -remote "xfeDoCommand(openBrowser)"', [Browser]),
+	compatible(Browser, netscape), !,
+	sformat(Cmd0, '"~w" -remote "xfeDoCommand(openBrowser)"', [Browser]),
 	(   shell(Cmd0, 0)
-	->  sformat(Cmd, '~w -remote "openURL(~w)" &', [Browser, URL]),
+	->  sformat(Cmd, '"~w" -remote "openURL(~w)" &', [Browser, URL]),
 	    shell(Cmd)
-	;   sformat(Cmd, '~w "~w" &', [Browser, URL]),
+	;   sformat(Cmd, '"~w" "~w" &', [Browser, URL]),
 	    shell(Cmd)
 	).
 www_open_url(Browser, URL) :-
-	sformat(Cmd, '~w "~w" &', [Browser, URL]),
+	sformat(Cmd, '"~w" "~w" &', [Browser, URL]),
 	shell(Cmd).
 
-netscape_compatible(Browser) :-
+compatible(Browser, With) :-
 	file_base_name(Browser, Base),
-	netscape_base(Base).
+	known_browser(Base, With).
 
-netscape_base(netscape).
-netscape_base(mozilla).
+:- multifile
+	known_browser/2.
+
+known_browser(firefox,   netscape).
+known_browser(mozilla,   netscape).
+known_browser(netscape,  netscape).
+known_browser(konquerer, -).
+
+
+%	has_command(+Command)
+%	
+%	Succeeds if Command is in  $PATH.   Works  for Unix systems. For
+%	Windows we have to test for executable extensions.
+
+:- dynamic
+	command_cache/2.
+:- volatile
+	command_cache/2.
+
+has_command(Command) :-
+	command_cache(Command, Path), !,
+	Path \== (-).
+has_command(Command) :-
+	(   getenv('PATH', Path),
+	    concat_atom(Parts, ':', Path),
+	    member(Part, Parts),
+	    concat_atom([Part, Command], /, Exe),
+	    access_file(Exe, execute)
+	->  assert(command_cache(Command, Exe))
+	;   assert(command_cache(Command, -)),
+	    fail
+	).
 
 
 		 /*******************************

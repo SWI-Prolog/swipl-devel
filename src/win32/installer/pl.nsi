@@ -112,7 +112,7 @@ Section "Base system (required)"
   File pl\library\shell.pl
 
 ; WEB STUFF
-  File pl\library\netscape.pl
+  File pl\library\www_browser.pl
   File pl\library\url.pl
 
 ; MISC

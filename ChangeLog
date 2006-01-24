@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Renamed library(netscape) into library(www_browser).  Extended
+    and modernised browser detection.  Now also works on MacOSX.
+
   * ADDED: Allow calling PL_new_functor() before PL_initialise().
 
 
