@@ -38,6 +38,7 @@
 #include <io.h>
 #include <winsock2.h>
 typedef size_t socklen_t;
+typedef unsigned int ssize_t;
 
 void
 PlProxy::startSocketLib()
@@ -508,7 +509,7 @@ sockbuf::overflow(int_type c)
     char_type *wp = pbase();
 
     do
-    { written = ::write(sock_fd, wp, count);
+    { written = ::send(sock_fd, wp, count, 0);
 
       if( written > 0 )
       { count -= written;
@@ -539,7 +540,7 @@ sockbuf::underflow()
 { int_type ret = traits_type::eof();
   ssize_t count;
 
-  if( (count = ::read(sock_fd, inbuf, inbuf_size)) > 0 )
+  if( (count = ::recv(sock_fd, inbuf, inbuf_size, 0)) > 0 )
   { setg(inbuf, inbuf, inbuf + count);
 
     ret = traits_type::to_int_type(*inbuf);
