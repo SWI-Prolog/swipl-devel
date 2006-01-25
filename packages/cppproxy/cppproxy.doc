@@ -491,7 +491,7 @@ the examples.
 
 \section{Status}
 
-The current implementation is a demonstrator.  Issues to be resolved in
+The current implementation is a demonstrator. Issues to be resolved in
 future versions of this package include
 
 \begin{itemlist}
@@ -520,6 +520,12 @@ communication startup.
 \end{itemlist}
 
 
+\subsection{Portability}
+
+The system is designed to be portable using any modern C++ compiler. It
+has been tested on Linux using g++ 3.3.4 and MS-Windows using MSVC 6.
+
+
 \section{Installation}
 
 \subsection{Unix systems}
@@ -537,9 +543,29 @@ using:
 % make install
 \end{code}
 
-This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
-the Prolog library files in \file{$PLBASE/library}, where
+This installs the foreign library \file{serialize} in
+\file{$PLBASE/lib/$PLARCH} and the Prolog library files in
+\file{$PLBASE/library} and the files \file{SWI-proxy.cpp} and
+\file{SWI-proxy.h} in \file{$PLBASE/include}, where
 \file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+\subsection{Windows system}
+
+If you have successfully installed the system from source you can
+install this package using
+
+\begin{code}
+% nmake /f Makefile.mak
+% nmake /f Makefile.mak install
+\end{code}
+
+If not, compile serialize.c using the command below and install the
+files by hand or using the makefile after setting the variable PLBASE
+to the base of the installed Prolog system.
+
+\begin{code}
+% plld -o serialize serialize.c
+\end{code}
 
 \printindex
 

@@ -12,6 +12,7 @@ PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 
 LIBDIR=		$(PLBASE)\library\cppproxy
+EXDIR=		$(PKGDOC)\examples\cppproxy
 EXAMPLES=	Makefile parms.pl \
 		person.pl person.cpp \
 		sqrt.pl sqrt.cpp \
