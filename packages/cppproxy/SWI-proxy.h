@@ -31,6 +31,7 @@
 #include <sstream>
 #include <stdio.h>
 #include <errno.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -108,15 +109,13 @@ class PlQuery
 		 *******************************/
 
 class PlProxy
-{ int  sock;				/* client connection socket */
+{ iostream *ios;
   int debuglevel;
   qstatus qstack[MAX_QUERY_NESTING];
   int     qnest;
-  FILE *in, *out;			/* FILE handles */
 
   void initvars()
-  { sock = -1; 
-    in = out = NULL;
+  { ios = NULL; 
     debuglevel = 0;
     qnest = -1;				/* no query in progress */
   }
@@ -196,6 +195,47 @@ public:
   void receive_float(double &f);
   void receive_begin_term(const char *name, int arity);
   void receive_end_term() {}
+};
+
+
+		 /*******************************
+		 *	  SOCKET BUFFERING	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Class sockbuf is derived  from  the  C++   class  streambuf  do  do  the
+buffering  for  raw  streams.  Unlike  many    other  such  libraries  I
+deliberately decided not  to  encapsulates   sockets  entirely  into  an
+object. Creating the socket, connecting, etc. is   all left to the user.
+This part only does the buffering.
+
+This code is derived from code   containing  the copyright notice below.
+The code is split into two parts,  things are renamed, slightly modified
+and comments and layout has been  changed.   Don't  blame  Chris for any
+problems.
+
+// Copyright 2005, Chris Frey.  To God be the glory.
+// You are free to use, modify, redistribute, and sublicense this code,
+// as long as this copyright message is not removed from the source,
+// and as long as the existence of any changes are noted in the source
+// as well.  (i.e. You don't need a complete history, just don't claim
+// that the modified code was written entirely by me -- include your own
+// copyright notice as well.)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+class sockbuf : public streambuf
+{ int sock_fd;
+  char_type *inbuf, *outbuf;
+  size_t inbuf_size;
+  size_t outbuf_size;
+
+public:
+  sockbuf(int fd, size_t size);
+  ~sockbuf();
+
+  virtual int overflow(int_type c);
+  virtual int sync();
+  virtual int underflow();
 };
 
 

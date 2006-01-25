@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 
 #ifdef WIN32
@@ -85,30 +86,23 @@ PlProxy::openProlog(const char *host, int port)
     throw(PlSocketException("resolve hostname", errno));
   memcpy(&a.sin_addr, hp->h_addr, hp->h_length);
 
+  int sock;
+
   if ( (sock = socket(PF_INET, SOCK_STREAM, 0)) < 0 )
     throw(PlSocketException("create socket", errno));
   if ( connect(sock, addr, sizeof(a)) < 0 )
     throw(PlSocketException("connect", errno));
 
-  if ( !(in = fdopen(sock, "r")) ||
-       !(out = fdopen(sock, "w")) )
-    throw(PlSocketException("create streams", errno));
+  sockbuf *nb = new sockbuf(sock, 1024);
+  ios = new iostream(nb);
 }
 
 
 void
 PlProxy::closeProlog()
-{ if ( in )
-  { fclose(in);
-    in = NULL;
-  }
-  if ( out )
-  { fclose(out);
-    out = NULL;
-  }
-  if ( sock >= 0 )
-  { closesocket(sock);
-    sock = -1;
+{ if ( ios )
+  { delete ios;
+    ios = NULL;
   }
 
   stopSocketLib();
@@ -132,7 +126,7 @@ PlProxy::debug(const char *s)
 
 void
 PlProxy::openQuery(const char *module, const char *predicate, int arity)
-{ putc('q', out);
+{ ios->put('q');
   send(module);
   send(predicate);
   send(arity);
@@ -143,7 +137,7 @@ PlProxy::openQuery(const char *module, const char *predicate, int arity)
 void
 PlProxy::closeQuery()
 { if ( get_status() == QSTAT_MORE )
-  { fputc('!', out);
+  { ios->put('!');
     flush();
   }
 
@@ -155,7 +149,7 @@ qstatus
 PlProxy::readQueryReply()
 { flush();
 
-  switch(int c = getc(in))
+  switch(int c = ios->get())
   { case 'f':				/* failure */
       debug("fail");
       set_status(QSTAT_FAIL);
@@ -232,7 +226,7 @@ PlProxy::runNonDetQuery()
     case QSTAT_TRUE:
       return FALSE;
     case QSTAT_MORE:
-      putc(';', out);
+      ios->put(';');
       break;
     default:
       break;
@@ -258,33 +252,32 @@ PlProxy::runNonDetQuery()
 
 void
 PlProxy::send_begin_term(const char *name, int arity)
-{ putc('c', out);
+{ ios->put('c');
   send(name);
   send(arity);
 }
 
 void
 PlProxy::send_int(long i)
-{ putc('i', out);
+{ ios->put('i');
   send(i);
 }
 
 void
 PlProxy::send_float(double f)
-{ putc('f', out);
+{ ios->put('f');
   send(f);
 }
 
 void
 PlProxy::send_atom(const char *s)
-{ putc('a', out);
+{ ios->put('a');
   send(s);
 }
 
 void
 PlProxy::flush()
-{ if ( fflush(out) != 0 )
-    throw(PlSocketException("write", errno));
+{ ios->flush();				/* TBD: error handling? */
 }
 
 
@@ -328,8 +321,7 @@ PlProxy::send(const char *name)
 void
 PlProxy::send(const char *name, size_t len)
 { send(len);
-  if ( ::fwrite(name, 1, len, out) != len )
-    throw(PlSocketException("send", errno));
+  ios->write(name, len);		/* TBD: error handling */
 }
 
 
@@ -345,8 +337,7 @@ PlProxy::send(long val)
   buf[2] = val>>8 &0xff;
   buf[3] = val	  &0xff;
 
-  if ( ::fwrite(buf, 1, 4, out) != 4 )
-    throw(PlSocketException("send", errno));
+  ios->write(buf, 4);			/* TBD: error handling */
 }
 
 
@@ -357,8 +348,7 @@ PlProxy::send(double f)
 
   fix_byte_order();
   for(i=0; i<sizeof(double); i++)
-  { if ( putc(cl[double_byte_order[i]], out) < 0 )
-      throw(PlSocketException("send", errno));
+  { ios->put(cl[double_byte_order[i]]);	/* TBD: error handling */
   }
 }
 
@@ -373,7 +363,7 @@ PlProxy::receive(long &v)
 { long val = 0;
   
   for(int i=0; i<4; i++)
-  { int c = getc(in);
+  { int c = ios->get();
 
     if ( c == EOF )
       throw(PlSocketException("receive int", errno));
@@ -393,16 +383,11 @@ PlProxy::receive(string &s)
 
   receive(len);
   if ( len < sizeof(buffer)-1 )
-
     buf = buffer;
   else if ( !(buf = (char *)malloc(len+1)) )
     throw(PlException("no memory"));
 
-  if ( fread(buf, 1, len, in) != (size_t)len )
-  { if ( buf != buffer )
-      free(buf);
-    throw(PlSocketException("receive atom", errno));
-  }
+  ios->read(buf, len);			/* TBD: error handling and free */
   buf[len] = '\0';
   
   s = buf;
@@ -419,7 +404,7 @@ PlProxy::receive(double &val)
 
   fix_byte_order();
   for(i=0; i<sizeof(double); i++)
-  { int c = getc(in);
+  { int c = ios->get();
     
     if ( c == -1 )
       throw(PlSocketException("receive float", errno));
@@ -432,7 +417,7 @@ PlProxy::receive(double &val)
 
 void
 PlProxy::expect_chr(int c)
-{ int got = getc(in);
+{ int got = ios->get();
 
   if ( got != c )
     throw(PlSerializationException(c, got));
@@ -480,3 +465,85 @@ PlProxy::receive_atom(string &s)
   receive(s);
 }
 
+
+		 /*******************************
+		 *	  SOCKET BUFFER		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+See copyright claims in SWI-proxy.h with the header of this class.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+sockbuf::sockbuf(int fd, size_t size) : sock_fd(fd)
+{ inbuf = new char_type[size];
+  inbuf_size = size;
+  setg(inbuf, inbuf, inbuf);
+
+  outbuf = new char_type[size + 1];
+  outbuf_size = size;
+  setp(outbuf, outbuf + outbuf_size);
+}
+
+sockbuf::~sockbuf()
+{ sync();
+  close(sock_fd);
+  delete [] inbuf;
+  delete [] outbuf;
+}
+
+
+int
+sockbuf::overflow(int_type c)
+{ bool have_extra = (c != traits_type::eof());
+  ssize_t count = pptr() - pbase();
+
+  if( have_extra )
+  { *(pptr()) = traits_type::to_char_type(c);
+    count++;
+  }
+
+  if( count > 0 )
+  { ssize_t written;
+    char_type *wp = pbase();
+
+    do
+    { written = ::write(sock_fd, wp, count);
+
+      if( written > 0 )
+      { count -= written;
+	assert(count >= 0);
+	wp += written;
+      } else
+      { return traits_type::eof();
+      }
+    } while(count);
+    
+    setp(outbuf, outbuf + outbuf_size);
+  }
+
+  return traits_type::not_eof(c);
+}
+
+
+int
+sockbuf::sync()
+{ if ( overflow(traits_type::eof()) == traits_type::eof() )
+      return -1;
+  return 0;
+} 
+
+
+int
+sockbuf::underflow()
+{ int_type ret = traits_type::eof();
+  ssize_t count;
+
+  if( (count = ::read(sock_fd, inbuf, inbuf_size)) > 0 )
+  { setg(inbuf, inbuf, inbuf + count);
+
+    ret = traits_type::to_int_type(*inbuf);
+  }
+
+  return ret;
+}
