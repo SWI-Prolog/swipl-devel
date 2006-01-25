@@ -40,7 +40,7 @@
 :- use_module(cpp_interface).
 :- use_module(typedef).
 
-:- debug(cpp(_)).
+%:- debug(cpp(_)).
 
 
 		 /*******************************
