@@ -34,7 +34,7 @@ This        file        is         copied          verbatim         from
 http://lua-users.org/wiki/PipesOnWindows, where it is   contributed  for
 using pipes with the LUA programming  language. LUA is distributed under
 the MIT licence which is claimed to be compatible (but less restrictive)
-to the LGPL license. Whe  therefore  assume   we  can  use  this file in
+with the LGPL license. We  therefore  assume   we  can  use this file in
 SWI-Prolog without introducing new license problems.
 
 If you find this file and know better, please contact info@swi-prolog.org.

@@ -1821,7 +1821,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     }
 
     if ( (index = indexArithFunction(fdef, ci->module)) < 0 )
-    { return PL_error(NULL, 0, "No such aritmetic function",
+    { return PL_error(NULL, 0, "No such arithmetic function",
 			ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
     }
 
