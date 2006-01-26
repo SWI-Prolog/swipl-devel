@@ -563,8 +563,16 @@ AC_CHECK_SIZEOF(int,  4)
 AC_CHECK_SIZEOF(long long, 8)
 
 if test "$configgmp" = "yes"; then
-  AC_CHECK_HEADERS(gmp.h)
-  AC_CHECK_LIB(gmp, main)
+  AC_CHECK_LIB(gmp, main,
+	       check_gmp_h=yes,
+	       WARN_NO_GMP=yes)
+  if test "$check_gmp_h" = "yes"; then
+    AC_CHECK_HEADER(gmp.h,
+		    AC_DEFINE(HAVE_GMP_H, 1,
+			      [ Define to 1 if you have the <gmp.h> header file. ])
+		    LIBS="-lgmp $LIBS"
+		    WARN_NO_GMP=yes)
+  fi
 fi
 
 AC_DEFINE(INT64_FORMAT, ["%lld"],
@@ -1357,6 +1365,18 @@ cat << _EOM_
 * readline do "make distclean" and re-configure SWI-Prolog.
 *
 * On SuSE Linux, readline is in the RPM package readline-devel
+****************************************************************
+
+_EOM_
+fi
+
+if test "$WARN_NO_GMP" = yes; then
+cat << _EOM_
+****************************************************************
+* Could not find libgmp or gmp.h.  GMP enables SWI-Prolog 
+* support for unbounded integer arithmetic and rational numbers.
+* 
+* See README.gmp for details.
 ****************************************************************
 
 _EOM_

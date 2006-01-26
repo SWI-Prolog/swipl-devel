@@ -62,6 +62,15 @@ term_expansion((:- if(G)), []) :-
 	->  asserta(include_code(true))
 	;   asserta(include_code(false))
 	).
+term_expansion((:- else), []) :-
+	(   retract(include_code(X))
+	->  (   X == true
+	    ->  X2 = false 
+	    ;   X2 = true
+	    ),
+	    asserta(include_code(X2))
+	;   throw(error(context_error(no_if), _))
+	).
 term_expansion((:- endif), []) :-
 	retract(include_code(_)), !.
 
@@ -291,19 +300,11 @@ arithmetic(floor-1) :-
 	0 is floor(0.9),
 	-1 is floor(-0.1),
 	-1 is floor(-0.9).
-arithmetic(floor-2) :-
-	0 is floor(9 rdiv 10),
-	-1 is floor(-1 rdiv 10),
-	-1 is floor(-9 rdiv 10).
 arithmetic(ceil-1) :-
 	0 is ceil(0.0),
 	1 is ceil(0.9),
 	0 is ceil(-0.1),
 	0 is ceil(-0.9).
-arithmetic(ceil-2) :-
-	1 is ceil(9 rdiv 10),
-	0 is ceil(-1 rdiv 10),
-	0 is ceil(-9 rdiv 10).
 
 
 		 /*******************************
@@ -389,12 +390,6 @@ arithmetic_functions(func-4) :-
         Exp = 6*euler*7*1,		% test functions corrupting stack
         EE is Exp,
 	EE =:= 6*euler*7*1.
-arithmetic_functions(idiv-1) :-
-	(   current_prolog_flag(bounded, false)
-	->  Qi is idiv(3 rdiv 2,2 rdiv 5),
-	    Qi == 3
-	;   true
-	).
 
 
 		 /*******************************
@@ -430,6 +425,12 @@ ratp(Count, In, Out) :-
         T is In + (In rdiv 2),
 	ratp(Count0, T, Out).
 
+idiv(Dd,Dr,Iq):-
+        Q is Dd/Dr,
+        rational(Q,Qt,Qn),
+        Iq is Qt//Qn.
+
+
 gmp(neg-1) :-				% check conversion of PLMININT
 	A is -9223372036854775808,
 	-A =:= 9223372036854775808.
@@ -449,10 +450,18 @@ gmp(floor-1) :-
 	A is floor(1e20),
 	integer(A),
 	1e20 =:= float(A).
+gmp(floor-2) :-
+	0 is floor(9 rdiv 10),
+	-1 is floor(-1 rdiv 10),
+	-1 is floor(-9 rdiv 10).
 gmp(ceil-1) :-
 	A is ceil(1e20),
 	integer(A),
 	1e20 =:= float(A).
+gmp(ceil-2) :-
+	1 is ceil(9 rdiv 10),
+	0 is ceil(-1 rdiv 10),
+	0 is ceil(-9 rdiv 10).
 gmp(msb-0) :-
 	0 =:= msb(0).
 gmp(msb-1) :-
@@ -595,6 +604,12 @@ gmp(fmtf-1) :-
 	ratp(999, 1, X),
 	sformat(S, '~5f', [X]),
 	sub_atom(S, _, _, 0, '935376.65824').
+gmp(idiv-1) :-
+	(   current_prolog_flag(bounded, false)
+	->  Qi is idiv(3 rdiv 2,2 rdiv 5),
+	    Qi == 3
+	;   true
+	).
 
 :- endif.
 

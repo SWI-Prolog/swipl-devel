@@ -1,5 +1,7 @@
 :- module(linprog, [linprog/0]).
 
+:- if(current_prolog_flag(bounded, false)). % GMP implies rational
+
 :- dynamic user:file_search_path/2.
 :- prolog_load_context(directory, Dir),
    atom_concat(Dir, '/../../../packages/clpr', Lib0),
@@ -11,6 +13,7 @@
 linprog :-
 	radiation,
 	transport.
+
 
 radiation :-
 	gen_state(S0),
@@ -36,3 +39,8 @@ transport :-
 		   [0, 7, 0, 0],
 		   [3, 5, 0, 6]].
 
+:- else.
+
+linprog.
+
+:- endif.

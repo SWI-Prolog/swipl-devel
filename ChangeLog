@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Better check for GMP support, better message if GMP is not found
+    and cleanup of test-suite to skip all GMP dependent tests if GMP is
+    not present.
+
   * MODIFIED: Renamed library(netscape) into library(www_browser).  Extended
     and modernised browser detection.  Now also works on MacOSX.
 
