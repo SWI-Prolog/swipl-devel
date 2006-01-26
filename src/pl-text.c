@@ -619,7 +619,8 @@ utf8tobuffer(wchar_t c, Buffer buf)
 
 int
 PL_mb_text(PL_chars_t *text, int flags)
-{ IOENC target = ((flags&REP_UTF8) ? ENC_UTF8 :
+{ int norep = -1;
+  IOENC target = ((flags&REP_UTF8) ? ENC_UTF8 :
 		  (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
 
   if ( text->encoding != target )
@@ -642,7 +643,8 @@ PL_mb_text(PL_chars_t *text, int flags)
 	  for( ; s<e; s++)
 	  { if ( !wctobuffer(*s, &mbs, b) )
 	    { unfindBuffer(BUF_RING);
-	      fail;
+	      norep = *s;
+	      goto rep_error;
 	    }
 	  }
 	  wctobuffer(0, &mbs, b);
@@ -669,7 +671,8 @@ PL_mb_text(PL_chars_t *text, int flags)
 	    for( ; w<e; w++)
 	    { if ( !wctobuffer(*w, &mbs, b) )
 	      { unfindBuffer(BUF_RING);
-		fail;
+		norep = *w;
+		goto rep_error;
 	      }
 	    }
 	    wctobuffer(0, &mbs, b);
@@ -690,6 +693,20 @@ PL_mb_text(PL_chars_t *text, int flags)
   }
 
   succeed;
+
+rep_error:
+  if ( (flags & CVT_EXCEPTION) )
+  { char msg[128];
+
+    sprintf(msg,
+	    "Cannot represent char U%04x using %s encoding",
+	    norep, 
+	    target == ENC_ISO_LATIN_1 ? "ISO Latin-1" : "current locale");
+
+    return PL_error(NULL, 0, msg, ERR_REPRESENTATION, ATOM_encoding);
+  }
+
+  fail;
 }
 
 

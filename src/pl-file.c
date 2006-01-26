@@ -2187,7 +2187,8 @@ openStream(term_t file, term_t mode, term_t options)
   *h = EOS;
 
 					/* FILE */
-  if ( PL_get_chars(file, &path, CVT_ATOM|CVT_STRING|CVT_INTEGER|REP_FN) )
+  if ( PL_get_chars(file, &path,
+		    CVT_ATOM|CVT_STRING|CVT_INTEGER|CVT_EXCEPTION|REP_FN) )
   { if ( !(s = Sopen_file(path, how)) )
     { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
 	       ATOM_open, ATOM_source_sink, file);
@@ -2214,8 +2215,7 @@ openStream(term_t file, term_t mode, term_t options)
   }
 #endif /*HAVE_POPEN*/
   else
-  { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, file);
-    return NULL;
+  { return NULL;
   }
 
   s->encoding = enc;
@@ -3904,38 +3904,37 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
   char *b = NULL, *e = NULL, *f;
   char buf[MAXPATHLEN];
 
-  if ( PL_get_chars(full, &f, CVT_ALL|REP_FN) )
-  { char *s = f + strlen(f);		/* ?base, ?ext, +full */
-
-    while(*s != '.' && *s != '/' && s > f)
-      s--;
-    if ( *s == '.' )
-    { if ( PL_get_chars(ext, &e, CVT_ALL|REP_FN) )
-      { if ( e[0] == '.' )
-	  e++;
-	if ( trueFeature(FILE_CASE_FEATURE) )
-	{ TRY(strcmp(&s[1], e) == 0);
+  if ( !PL_is_variable(full) )
+  { if ( PL_get_chars(full, &f, CVT_ALL|CVT_EXCEPTION|REP_FN) )
+    { char *s = f + strlen(f);		/* ?base, ?ext, +full */
+  
+      while(*s != '.' && *s != '/' && s > f)
+	s--;
+      if ( *s == '.' )
+      { if ( PL_get_chars(ext, &e, CVT_ALL|REP_FN) )
+	{ if ( e[0] == '.' )
+	    e++;
+	  if ( trueFeature(FILE_CASE_FEATURE) )
+	  { TRY(strcmp(&s[1], e) == 0);
+	  } else
+	  { TRY(strcasecmp(&s[1], e) == 0);
+	  }
 	} else
-	{ TRY(strcasecmp(&s[1], e) == 0);
+	{ TRY(PL_unify_chars(ext, PL_ATOM|REP_FN, -1, &s[1]));
 	}
-      } else
-      { TRY(PL_unify_chars(ext, PL_ATOM|REP_FN, -1, &s[1]));
+	if ( s-f > MAXPATHLEN )
+	  return name_too_long();
+	strncpy(buf, f, s-f);
+	buf[s-f] = EOS;
+  
+	return PL_unify_chars(base, PL_ATOM|REP_FN, -1, buf);
       }
-      if ( s-f > MAXPATHLEN )
-	return name_too_long();
-      strncpy(buf, f, s-f);
-      buf[s-f] = EOS;
-
-      return PL_unify_chars(base, PL_ATOM|REP_FN, -1, buf);
+      if ( PL_unify_atom_chars(ext, "") &&
+	   PL_unify(full, base) )
+	PL_succeed;
     }
-    if ( PL_unify_atom_chars(ext, "") &&
-	 PL_unify(full, base) )
-      PL_succeed;
-
     PL_fail;
-  } else if ( !PL_is_variable(full) )
-    return PL_error("file_name_extension", 3, NULL, ERR_TYPE,
-		    ATOM_atom, full);
+  }
 
   if ( PL_get_chars_ex(base, &b, CVT_ALL|BUF_RING|REP_FN) &&
        PL_get_chars_ex(ext, &e, CVT_ALL|REP_FN) )
