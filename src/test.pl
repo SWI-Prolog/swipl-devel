@@ -365,7 +365,6 @@ floattest(float-8) :-
 :- arithmetic_function(twice/1).
 :- arithmetic_function(mean/2).
 :- arithmetic_function(euler/0).
-:- arithmetic_function(idiv/2).
 
 ten(10).
 twice(X, R) :-
@@ -374,11 +373,6 @@ mean(X1, X2, R) :-
 	R is (X1 + X2)/2.
 
 euler(2.71828).
-
-idiv(Dd,Dr,Iq):-
-        Q is Dd/Dr,
-        rational(Q,Qt,Qn),
-        Iq is Qt//Qn.
 
 arithmetic_functions(func-1) :-
 	A is ten, A =:= 10.
@@ -424,6 +418,8 @@ ratp(Count, In, Out) :-
         succ(Count0, Count),
         T is In + (In rdiv 2),
 	ratp(Count0, T, Out).
+
+:- arithmetic_function(idiv/2).
 
 idiv(Dd,Dr,Iq):-
         Q is Dd/Dr,
