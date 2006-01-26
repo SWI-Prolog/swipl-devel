@@ -59,49 +59,26 @@ therefore you have to use braces.
 		*          DIRECTIVES           *
 		*********************************/
 
-dynamic((Spec, More)) :- !,
-	dynamic(Spec),
-	dynamic(More).
-dynamic(Spec) :-
-	$set_predicate_attribute(Spec, (dynamic), 1).
+$set_pattr([], _) :- !.
+$set_pattr([H|T], Attr) :- !,		% ISO
+	$set_pattr(H, Attr),
+	$set_pattr(T, Attr).
+$set_pattr((A,B), Attr) :- !,		% ISO and traditional
+	$set_pattr(A, Attr),
+	$set_pattr(B, Attr).
+$set_pattr(A, Attr) :-
+	$set_predicate_attribute(A, Attr, 1).
 
-multifile((Spec, More)) :- !,
-	multifile(Spec),
-	multifile(More).
-multifile(Spec) :-
-	$set_predicate_attribute(Spec, (multifile), 1).
-
-module_transparent((Spec, More)) :- !,
-	module_transparent(Spec),
-	module_transparent(More).
-module_transparent(Spec) :-
-	$set_predicate_attribute(Spec, transparent, 1).
-
-discontiguous((Spec, More)) :- !,
-	discontiguous(Spec),
-	discontiguous(More).
-discontiguous(Spec) :-
-	$set_predicate_attribute(Spec, (discontiguous), 1).
-
-volatile((Spec, More)) :- !,
-	volatile(Spec),
-	volatile(More).
-volatile(Spec) :-
-	$set_predicate_attribute(Spec, (volatile), 1).
-
-thread_local((Spec, More)) :- !,
-	thread_local(Spec),
-	thread_local(More).
-thread_local(Spec) :-
-	$set_predicate_attribute(Spec, (thread_local), 1).
-
-noprofile((Spec, More)) :- !,
-	noprofile(Spec),
-	noprofile(More).
-noprofile(Spec) :-
-	'$set_predicate_attribute'(Spec, (noprofile), 1).
+dynamic(Spec)		 :- $set_pattr(Spec, (dynamic)).
+multifile(Spec)		 :- $set_pattr(Spec, (multifile)).
+module_transparent(Spec) :- $set_pattr(Spec, transparent).
+discontiguous(Spec)	 :- $set_pattr(Spec, (discontiguous)).
+volatile(Spec)		 :- $set_pattr(Spec, (volatile)).
+thread_local(Spec)	 :- $set_pattr(Spec, (thread_local)).
+noprofile(Spec)		 :- $set_pattr(Spec, (noprofile)).
 
 :- module_transparent
+	$set_pattr/2,
 	(dynamic)/1,
 	(multifile)/1,
 	(module_transparent)/1,

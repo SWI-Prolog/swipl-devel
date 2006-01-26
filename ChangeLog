@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Allow for ISO :- dynamic([a/1, b/2]).   Roger Scowen.
+
   * ENHANCED: Better error messages if locale cannot represent filenames.
     Richard O'Keefe.
 
