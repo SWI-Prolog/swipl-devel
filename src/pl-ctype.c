@@ -717,6 +717,21 @@ char _PL_char_types[] = {
 };
 
 
+typedef struct
+{ const char *name;
+  IOENC encoding;
+} enc_map;
+
+static const enc_map map[] =
+{ { "UTF-8",	  ENC_UTF8 },
+  { "utf8",	  ENC_UTF8 },
+  { "ISO8859-1",  ENC_ISO_LATIN_1 },
+  { "ISO8859_1",  ENC_ISO_LATIN_1 },
+  { "iso88591",   ENC_ISO_LATIN_1 },
+  { "iso_8859_1", ENC_ISO_LATIN_1 },
+  { NULL, ENC_UNKNOWN }
+};
+
 IOENC
 initEncoding()
 { if ( LD )
@@ -729,18 +744,15 @@ initEncoding()
       LD->encoding = ENC_ANSI;		/* text encoding */
 
       if ( enc && (enc = strchr(enc, '.')) )
-      { enc++;				/* skip '.' */
+      { const enc_map *m;
+	enc++;				/* skip '.' */
 
-	if ( strcmp(enc, "UTF-8") == 0 )
-	  LD->encoding = ENC_UTF8;
-	else if ( strcmp(enc, "utf8") == 0 )
-	  LD->encoding = ENC_UTF8;
-	else if ( strcmp(enc, "ISO8859-1") == 0 )
-	  LD->encoding = ENC_ISO_LATIN_1;
-	else if ( strcmp(enc, "ISO8859_1") == 0 )
-	  LD->encoding = ENC_ISO_LATIN_1;
-	else if ( strcmp(enc, "iso88591") == 0 )
-	  LD->encoding = ENC_ISO_LATIN_1;
+	for ( m=map; m->name; m++ )
+	{ if ( strcmp(enc, m->name) == 0 )
+	  { LD->encoding = m->encoding;
+	    break;
+	  }
+	}
       }
     }
 
