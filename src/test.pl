@@ -1963,36 +1963,6 @@ file(cwd-1) :-
 	working_directory(CWD, CWD),
 	exists_directory(CWD),
 	same_file(CWD, '.').
-file(mkdir-1) :-			% create Cyrillic directory
-	atom_codes(Dir, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
-	catch(delete_directory(Dir), _, true),
-	make_directory(Dir),
-	exists_directory(Dir),
-	working_directory(Old, Dir),
-	working_directory(O2, '..'),
-	same_file(Old, '.'),
-	same_file(O2, Dir),
-	delete_directory(Dir).
-file(file-1) :-				% create Cyrillic file
-	atom_codes(File, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
-	Term = hello(world),
-	catch(delete_file(File), _, true),
-	open(File, write, Out),
-	format(Out, '~q.~n', [Term]),
-	close(Out),
-	exists_file(File),
-	open(File, read, In),
-	read(In, Read),
-	close(In),
-	Read =@= Term,
-	delete_file(File).
-file(absfile-1) :-
-	atom_codes(File, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
-	absolute_file_name(File, Path),
-	file_directory_name(Path, Dir),
-	same_file(Dir, '.'),
-	file_base_name(Path, Base),
-	Base == File.
 file(absfile-2) :-			% canoniseDir() caching issues
 	X = 'pl-test-x',
 	Y = 'pl-test-y',
@@ -2010,11 +1980,6 @@ file(absfile-2) :-			% canoniseDir() caching issues
 	delete_file(YF),
 	delete_directory(Y),
 	atom_concat(_, YF, Abs2).
-file(ext-1) :-
-	atom_codes(File, [1074, 1086, 1079, 1076, 0'., 1091, 1093, 1072]),
-	file_name_extension(Base, Ext, File),
-	atom_codes(Base, [1074, 1086, 1079, 1076]),
-	atom_codes(Ext, [1091, 1093, 1072]).
 file(ext-2) :-
 	\+ file_name_extension(foo, _, 'bar.pl'). 	% Bug#69
 file(open-1) :-
@@ -2025,6 +1990,47 @@ file(open-1) :-
 touch(File) :-
 	open(File, update, Out),
 	close(Out).
+
+		 /*******************************
+		 *	UNICODE FILENAMES	*
+		 *******************************/
+
+unicode_file(mkdir-1) :-			% create Cyrillic directory
+	atom_codes(Dir, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	catch(delete_directory(Dir), _, true),
+	make_directory(Dir),
+	exists_directory(Dir),
+	working_directory(Old, Dir),
+	working_directory(O2, '..'),
+	same_file(Old, '.'),
+	same_file(O2, Dir),
+	delete_directory(Dir).
+unicode_file(file-1) :-				% create Cyrillic file
+	atom_codes(File, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	Term = hello(world),
+	catch(delete_file(File), _, true),
+	open(File, write, Out),
+	format(Out, '~q.~n', [Term]),
+	close(Out),
+	exists_file(File),
+	open(File, read, In),
+	read(In, Read),
+	close(In),
+	Read =@= Term,
+	delete_file(File).
+unicode_file(absfile-1) :-
+	atom_codes(File, [1074, 1086, 1079, 1076, 1091, 1093, 1072]),
+	absolute_file_name(File, Path),
+	file_directory_name(Path, Dir),
+	same_file(Dir, '.'),
+	file_base_name(Path, Base),
+	Base == File.
+unicode_file(ext-1) :-
+	atom_codes(File, [1074, 1086, 1079, 1076, 0'., 1091, 1093, 1072]),
+	file_name_extension(Base, Ext, File),
+	atom_codes(Base, [1074, 1086, 1079, 1076]),
+	atom_codes(Ext, [1091, 1093, 1072]).
+
 
 		 /*******************************
 		 *		SEEK		*
@@ -2075,8 +2081,14 @@ ctype(code_type-4) :-
 ctype(code_type-5) :-
 	code_type(48, digit(W)),
 	W == 0.
-ctype(code_type-6) :-
-	char_code(X, 1080), code_type(X, alnum).
+
+		 /*******************************
+		 *	       WCTYPE		*
+		 *******************************/
+
+wctype(code_type-6) :-
+	char_code(X, 1080),
+	code_type(X, alnum).
 
 
 		 /*******************************
@@ -2287,14 +2299,42 @@ testset(popen) :-
 	current_prolog_flag(pipe, true).
 testset(timeout).
 testset(file).
+testset(unicode_file) :-
+	unicode_file_locale.
 testset(seek).
 testset(load_program).
 testset(ctype).
+testset(wctype) :-
+	wide_character_types.
 testset(thread) :-
 	current_prolog_flag(threads, true).
 testset(mutex) :-
 	current_prolog_flag(threads, true).
 testset(resource).
+
+%	unicode_file_locale/0
+%	
+%	True if out filesystem can   handle Unicode filenames. Difficult
+%	to have a good test.
+
+unicode_file_locale :-
+	current_prolog_flag(encoding, utf8), !.
+unicode_file_locale :-
+	catch(file_name_extension(_,_,[1050]), E, true),
+	(   var(E)
+	->  true
+	;   E \= error(representation_error(encoding), _)
+	).
+
+%	wide_character_types
+%	
+%	True if the  character  classification   routines  work  on wide
+%	characters. Hard to say when this is  the case. On some machines
+%	the wide character versions always work,  on others only for the
+%	codepages covered by the locale.
+
+wide_character_types :-
+	current_prolog_flag(encoding, utf8), !.
 
 %	testdir(Dir)
 %	

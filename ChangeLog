@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * Make test suite skip Unicode filename and character classification
+    tests in non-unicode environments. 
+
   * FIXED: Allow for ISO :- dynamic([a/1, b/2]).   Roger Scowen.
 
   * ENHANCED: Better error messages if locale cannot represent filenames.
