@@ -38,8 +38,9 @@ This file realises the low-level support   for  indexing literals in the
 semantic web library. The idea is to   make a map from abstracted tokens
 from each literal to  the  exact   literals.  Abstraction  introduces  a
 certain amount of ambiguity that  makes   fuzzy  matching possible. Good
-abstraction candidates are the Porter  Stem   algorithm  and  the Double
-Metaphone algorithm. Both are provide by the SWI-Prolog NLP package.
+abstraction candidates are the Porter Stem  or Snowbal algorithm and the
+Double Metaphone algorithm. Both  are  provide   by  the  SWI-Prolog NLP
+package.
 
 Basic query provides a  set  of   abstracted  terms  and  requests those
 literals containing all of  them.  Ideally   we  would  like to maintain
@@ -198,7 +199,7 @@ find_in_atom_set(atom_set *as, atom_t a)
     { return (atom_t*)cp;
     }
 
-    if ( ap == ep )
+    if ( ap == ep-1 )
     { if ( a > *ap )
 	ap++;
       return (atom_t*)ap;
