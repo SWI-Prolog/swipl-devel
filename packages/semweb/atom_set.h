@@ -61,5 +61,6 @@ typedef struct avl_tree
 void avl_init(avl_tree *tree);
 void avl_destroy(avl_tree *tree);
 int  avl_insert(avl_tree *tree, atom_t key, avl_node **node);
+avl_node *avl_find_node(avl_tree *tree, atom_t key);
 
 #endif /*ATOM_SET_H_INCLUDED*/

@@ -120,9 +120,6 @@ avl_insert_node(avl_tree *tree, avl_node **n, atom_t key)
 { int tmp;
   int dif;
 
-  if ( !n )
-    n = &tree->root;
-
   if ( !(*n) )
   { *n = avl_new_node(tree);
     (*n)->key = key;
@@ -162,6 +159,30 @@ avl_insert(avl_tree *tree, atom_t key, avl_node **node)
 
   return rc;
 }
+
+
+static avl_node *
+avl_find_n(avl_tree *tree, avl_node *n, atom_t key)
+{ while(n)
+  { int dif = COMPARE(tree, key, n->key);
+
+    if ( dif < 0)
+    { n = n->left;
+    } else if ( dif > 0 )
+    { n = n->right;
+    } else
+    { return n;
+    }
+  }
+
+  return NULL;
+}
+
+
+avl_node *
+avl_find_node(avl_tree *tree, atom_t key)
+{ return avl_find_n(tree, tree->root, key);
+} 
 
 
 #ifdef AVL_DELETE
@@ -372,23 +393,6 @@ avl_delete(avl_tree *tree, avl_node **n, avl_dataset *key)
 }
 
 #endif /*AVL_DELETE*/
-
-const avl_node *
-avl_find(avl_tree *tree, avl_node *n, atom_t key)
-{ int dif;
-
-  if ( !n )
-    return NULL;
-
-  dif = COMPARE(tree, key, n->key);
-  if ( dif < 0 )
-  { return avl_find(tree, n->left, key);
-  } else if ( dif > 0)
-  { return avl_find(tree, n->right, key);
-  }
-
-  return n;
-}
 
 
 static avl_node *

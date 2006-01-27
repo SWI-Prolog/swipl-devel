@@ -5879,6 +5879,8 @@ rdf_version(term_t v)
 install_t
 install_rdf_db()
 { int i=0;
+  extern install_t install_atom_map(void);
+
   MKFUNCTOR(literal, 1);
   MKFUNCTOR(error, 2);
   MKFUNCTOR(type_error, 2);
@@ -5990,4 +5992,6 @@ install_rdf_db()
   PL_register_foreign("rdf_atom_md5",	3, rdf_atom_md5,    0);
 #endif
   PL_register_foreign("rdf_quote_uri",	2, rdf_quote_uri,   0);
+
+  install_atom_map();
 }

@@ -101,6 +101,11 @@
 
 	    rdf_debug/1,		% Set verbosity
 
+	    rdf_new_literal_map/1,	% -Handle
+	    rdf_destroy_literal_map/1,	% +Handle
+	    rdf_insert_literal_map/3,	% +Handle, +Key, +Literal
+	    rdf_find_literal_map/3,	% +Handle, +KeyList, -Literals
+
 	    (rdf_meta)/1,		% +Heads
 	    op(1150, fx, (rdf_meta))
 	  ]).
