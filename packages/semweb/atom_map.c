@@ -192,17 +192,17 @@ find_in_atom_set(atom_set *as, atom_t a)
   { const atom_t *cp = ap+(ep-ap)/2;
     
     if ( a < *cp )
-    { ep = cp;
+    { if ( ep == cp )
+	return (atom_t*)cp;
+      ep = cp;
     } else if ( a > *cp )
-    { ap = cp;
+    { if ( ap == cp )
+      { cp++;
+	return (atom_t*)cp;
+      }
+      ap = cp;
     } else
     { return (atom_t*)cp;
-    }
-
-    if ( ap == ep-1 )
-    { if ( a > *ap )
-	ap++;
-      return (atom_t*)ap;
     }
   }
 }
@@ -229,17 +229,15 @@ insert_atom_set(atom_set *as, atom_t a)
     { atom_t *na;
       size_t newsize = as->allocated*2;
 
-      if ( (na = malloc(sizeof(atom_t)*newsize)) )
-      { size_t i = ap-as->atoms;
-	memcpy(na, as->atoms, ptr_diff(ap, as->atoms));
-	na[i++] = a;
-	memcpy(&na[i], ap, ptr_diff(&as->atoms[as->size], ap));
-      } else
+      if ( !(na = realloc(as->atoms, sizeof(atom_t)*newsize)) )
 	return FALSE;
-    } else
-    { memmove(ap+1, ap, ptr_diff(&as->atoms[as->size], ap));
-      *ap = a;
+      ap += na-as->atoms;
+      as->atoms = na;
+      as->allocated = newsize;
     }
+
+    memmove(ap+1, ap, ptr_diff(&as->atoms[as->size], ap));
+    *ap = a;
   }
 
   return TRUE;
