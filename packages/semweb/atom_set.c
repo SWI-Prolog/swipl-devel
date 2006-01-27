@@ -152,8 +152,15 @@ avl_insert_node(avl_tree *tree, avl_node **n, atom_t key)
 
 
 int
-avl_insert(avl_tree *tree, atom_t key)
-{ return avl_insert_node(tree, &tree->root, key);
+avl_insert(avl_tree *tree, atom_t key, avl_node **node)
+{ avl_node *cnode = tree->root;
+  int rc;
+
+  rc = avl_insert_node(tree, &cnode, key);
+  if ( node )
+    *node = cnode;
+
+  return rc;
 }
 
 

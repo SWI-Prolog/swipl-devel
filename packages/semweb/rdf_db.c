@@ -1451,7 +1451,7 @@ is_sub_property_of(predicate *sub, predicate *p, avl_tree *seen)
 
     if ( sub == p )
       return TRUE;
-    if ( avl_insert(seen, p->name) != 1 )
+    if ( avl_insert(seen, p->name, NULL) != 1 )
       return FALSE;
 
     c = sub->subPropertyOf.head;
@@ -1540,8 +1540,8 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
       { if ( (which == DISTINCT_DIRECT && byp->predicate == p) ||
 	     (which != DISTINCT_DIRECT && isSubPropertyOf(byp->predicate, p)) )
 	{ total++;
-	  avl_insert(&subject_set, byp->subject);
-	  avl_insert(&object_set, object_hash(byp)); /* NOTE: not exact! */
+	  avl_insert(&subject_set, byp->subject, NULL);
+	  avl_insert(&object_set, object_hash(byp), NULL); /* NOTE: not exact! */
 	}
       }
     }
