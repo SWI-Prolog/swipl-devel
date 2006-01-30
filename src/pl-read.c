@@ -373,8 +373,12 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 		    PL_INT64, source_char_no);
   }
 
-  _PL_rd->has_exception = TRUE;
-  PL_put_term(_PL_rd->exception, ex);
+  if ( _PL_rd )
+  { _PL_rd->has_exception = TRUE;
+    PL_put_term(_PL_rd->exception, ex);
+  } else
+  { PL_raise_exception(ex);
+  }
 
   fail;
 }
@@ -562,6 +566,10 @@ raw_read_quoted(int q, ReadData _PL_rd)
       switch( (c=getchrq()) )
       { case EOF:
 	  goto eofinstr;
+	case 'u':			/* \uXXXX */
+	case 'U':			/* \UXXXXXXXX */
+	  addToBuffer(c, _PL_rd);
+	  continue;
 	case 'x':			/* \xNN\ */
 	  addToBuffer(c, _PL_rd);
 	  c = getchrq();
@@ -1161,8 +1169,14 @@ scan_number(cucharp *s, int b, Number n)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+escape_char() decodes a \<chr> specification that can appear either in a
+quoted atom/string or as a  character   specification  such as 0'\n. The
+return value is EOF and an exception is pushed on illegal sequences.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-escape_char(cucharp in, ucharp *end, int quote)
+escape_char(cucharp in, ucharp *end, int quote, ReadData _PL_rd)
 { int base;
   int chr;
   int c;
@@ -1215,6 +1229,24 @@ again:
       OK('\t');
     case 'v':
       OK(11);				/* 11 is ASCII Vertical Tab */
+    case 'u':				/* \uXXXX */
+    case 'U':				/* \UXXXXXXXX */
+    { int digits = (c == 'u' ? 4 : 8);
+      chr = 0;
+
+      while(digits-- > 0)
+      { int dv;
+
+	c = *in++;
+	if ( (dv=digitValue(16, c)) >= 0 )
+	{ chr = (chr<<4)+dv;
+	} else
+	{ errorWarning("Illegal \\u or \\U sequence", 0, _PL_rd);
+	  return EOF;
+	}
+      }
+      OK(chr);
+    }
     case 'x':
       c = *in++;
       if ( digitValue(16, c) >= 0 )
@@ -1274,7 +1306,7 @@ addUTF8Buffer(Buffer b, int c)
 }
 
 
-static void
+static int
 get_string(unsigned char *in, unsigned char **end, Buffer buf,
 	   ReadData _PL_rd)
 { int quote;
@@ -1292,9 +1324,9 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
       } else
 	break;
     } else if ( c == '\\' && DO_CHARESCAPE )
-    { c = escape_char(in, &in, quote);
+    { c = escape_char(in, &in, quote, _PL_rd);
       if ( c == EOF )
-	continue;
+	return FALSE;
       addUTF8Buffer(buf, c);
 
       continue;
@@ -1312,6 +1344,8 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
 
   if ( end )
     *end = in;
+
+  return TRUE;
 }  
 
 
@@ -1364,7 +1398,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
       { int chr;
 	
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
-	{ chr = escape_char(in+3, end, 0);
+	{ chr = escape_char(in+3, end, 0, NULL);
 	} else
 	{ *end = utf8_get_uchar(in+2, &chr);
 	}
@@ -1659,7 +1693,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  PL_chars_t txt;
 
 		  initBuffer(&b);
-		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
+		  if ( !get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd) )
+		    fail;
 		  txt.text.t    = baseBuffer(&b, char);
 		  txt.length    = entriesBuffer(&b, char);
 		  txt.storage   = PL_CHARS_HEAP;
@@ -1677,7 +1712,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  int type;
 
 		  initBuffer(&b);
-		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
+		  if ( !get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd) )
+		    fail;
 		  txt.text.t    = baseBuffer(&b, char);
 		  txt.length    = entriesBuffer(&b, char);
 		  txt.storage   = PL_CHARS_HEAP;
@@ -1709,7 +1745,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  PL_chars_t txt;
 
 		  initBuffer(&b);
-		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
+		  if ( !get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd) )
+		    fail;
 		  txt.text.t    = baseBuffer(&b, char);
 		  txt.length    = entriesBuffer(&b, char);
 		  txt.storage   = PL_CHARS_HEAP;

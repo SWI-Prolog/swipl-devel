@@ -312,6 +312,7 @@ PL_EXPORT(int)		Sputc(int c, IOSTREAM *s);
 PL_EXPORT(int)		Sfgetc(IOSTREAM *s);
 PL_EXPORT(int)		Sungetc(int c, IOSTREAM *s);
 					/* multibyte I/O */
+PL_EXPORT(int)		Scanrepresent(int c, IOSTREAM *s);
 PL_EXPORT(int)		Sputcode(int c, IOSTREAM *s);
 PL_EXPORT(int)		Sgetcode(IOSTREAM *s);
 PL_EXPORT(int)		Sungetcode(int c, IOSTREAM *s);

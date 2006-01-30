@@ -193,6 +193,7 @@
 \Sdirective
 \Sdcg
 \Scurl
+\SxXX
 \Bc
 \Bn
 \Br

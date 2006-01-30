@@ -415,6 +415,7 @@ special('Sneck',  (:-)).
 special('Sdirective',  (?-)).
 special('Sdcg',  (-->)).
 special('Scurl',  ({})).
+special('SxXX',  'xXX..\\').
 special('Bc', '\\c').
 special('Bn', '\\n').
 special('Br', '\\r').

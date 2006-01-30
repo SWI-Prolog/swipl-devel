@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: \uXXXX and \UXXXXXXXX syntax support and various enhancements
+    in read and write as well as the documentation of escape sequences.
+    Richard O'Keefe.
+
   * Make test suite skip Unicode filename and character classification
     tests in non-unicode environments. 
 

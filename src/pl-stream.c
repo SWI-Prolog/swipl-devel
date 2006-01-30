@@ -600,10 +600,13 @@ reperror(int c, IOSTREAM *s)
   { char buf[16];
     const char *q;
 
-    if ( (s->flags & SIO_REPXML) )
+    if ( (s->flags & SIO_REPPL) )
+    { if ( c <= 0xffff )
+	sprintf(buf, "\\u%04X", c);
+      else
+	sprintf(buf, "\\U%08X", c);
+    } else
       sprintf(buf, "&#%d;", c);
-    else
-      sprintf(buf, "\\x%x\\", c);
 
     for(q = buf; *q; q++)
     { if ( put_byte(*q, s) < 0 )
@@ -735,6 +738,45 @@ Sputcode(int c, IOSTREAM *s)
   }
 
   return S__updatefilepos(s, c);
+}
+
+
+int
+Scanrepresent(int c, IOSTREAM *s)
+{ switch(s->encoding)
+  { case ENC_OCTET:
+    case ENC_ISO_LATIN_1:
+      if ( c <= 0xff )
+	return 0;
+      return -1;
+    case ENC_ASCII:
+      if ( c < 0x7f )
+	return 0;
+      return -1;
+    case ENC_ANSI:
+    { mbstate_t state;
+      char b[MB_LEN_MAX];
+
+      memset(&state, 0, sizeof(state));
+      if ( wcrtomb(b, (wchar_t)c, &state) >= 0 )
+	return 0;
+      return -1;
+    }
+    case ENC_WCHAR:
+      if ( sizeof(wchar_t) > 2 )
+	return 0;
+    /*FALLTHROUGH*/
+    case ENC_UNICODE_BE:
+    case ENC_UNICODE_LE:
+      if ( c <= 0xffff )
+	return 0;
+      return -1;
+    case ENC_UTF8:
+      return 0;
+    default:
+      assert(0);
+      return -1;
+  }
 }
 
 

@@ -83,6 +83,7 @@ sub printTeX
   s/{~}/{\\Stilde}/g;
   s/{%}/{\\Spercent}/g;
   s/{{}}/{\\Scurl}/g;
+  s/{xXX..\\}/{\\SxXX}/g;
 
   s/\\file@([^@]+)@/\\file{\1}/g;
   s/\\htmloutput@([^@]+)@/\\htmloutput{\1}/g;

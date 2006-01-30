@@ -107,7 +107,7 @@ varName(term_t t, char *name)
 #define AT_SPECIAL	5
 
 static int
-atomType(atom_t a)
+atomType(atom_t a, IOSTREAM *fd)
 { Atom atom = atomValue(a);
   char *s = atom->name;
   int len = atom->length;
@@ -116,7 +116,7 @@ atomType(atom_t a)
     return AT_QUOTE;
 
   if ( isLower(*s) )
-  { for(++s; --len > 0 && isAlpha(*s); s++)
+  { for(++s; --len > 0 && isAlpha(*s) && Scanrepresent(*s, fd)==0; s++)
       ;
     return len == 0 ? AT_LOWER : AT_QUOTE;
   }
@@ -128,7 +128,7 @@ atomType(atom_t a)
   { if ( len >= 2 && s[0] == '/' && s[1] == '*' )
       return AT_QUOTE;
 
-    for(++s; --len > 0 && isSymbol(*s); s++)
+    for(++s; --len > 0 && isSymbol(*s) && Scanrepresent(*s, fd)==0; s++)
       ;
 
     return len == 0 ? AT_SYMBOL : AT_QUOTE;
@@ -407,7 +407,7 @@ writeAtom(atom_t a, write_options *options)
     return writeBlob(a, options);
 
   if ( true(options, PL_WRT_QUOTED) )
-  { switch( atomType(a) )
+  { switch( atomType(a, options->out) )
     { case AT_LOWER:
       case AT_SYMBOL:
       case AT_SOLO:
@@ -447,12 +447,13 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 
   if ( flags & PL_WRT_QUOTED )
   { pl_wchar_t quote = L'\'';
+    int rc;
 
     if ( isLowerW(*s) )
     { pl_wchar_t *q;
 
       for(q=s; q<e; q++)
-      { if ( !isAlphaW(*q) )
+      { if ( !isAlphaW(*q) || Scanrepresent(*q, fd) < 0 )
 	  break;
       }
       if ( q == e )
@@ -465,7 +466,9 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
     { TRY(putQuoted(*s++, quote, flags, fd));
     }
 
-    return Putc(quote, fd);
+    rc = Putc(quote, fd);
+
+    return rc;
   }
 
 unquoted:
@@ -1080,7 +1083,13 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   options.out = s;
   PutOpenToken(EOF, s);			/* reset this */
-  writeTerm(term, 1200, &options);
+  if ( (options.flags & PL_WRT_QUOTED) && !(s->flags&SIO_REPPL) )
+  { s->flags |= SIO_REPPL;
+    writeTerm(term, 1200, &options);
+    s->flags &= ~SIO_REPPL;
+  } else
+  { writeTerm(term, 1200, &options);
+  }
 
   return streamStatus(s);
 }

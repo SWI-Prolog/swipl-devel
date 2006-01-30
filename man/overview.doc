@@ -1506,10 +1506,10 @@ garbage collection.  These features are controlled using prolog flags
 
 \section{Syntax Notes}				\label{sec:syntax}
 
-SWI-Prolog uses standard `Edinburgh' syntax. A description of this
-syntax can be found in the Prolog books referenced in the introduction.
-Below are some non-standard or non-common constructs that are accepted
-by SWI-Prolog:
+SWI-Prolog uses ISO-Prolog standard syntax, which is closely compatible
+to Edinburgh Prolog syntax. A description of this syntax can be found in
+the Prolog books referenced in the introduction. Below are some
+non-standard or non-common constructs that are accepted by SWI-Prolog:
 
 \begin{itemlist}
     \item [\exam{0'<char>}]
@@ -1572,19 +1572,26 @@ Carriage-return only (i.e.\ go back to the start of the line).
 Horizontal tab-character.
     \escapeitem{v}
 Vertical tab-character (ASCII 11).
-    \escapeitem{x23}
-Hexadecimal specification of a character. \verb$23$ is just an example.
-The `x' may be followed by a maximum of 2 hexadecimal digits.  The
-closing \verb$\$ is optional.  The code \verb$\xa\3$ emits the character
-10 (hexadecimal `a') followed by `3'.  The code \verb$\x201$ emits
-32 (hexadecimal `20') followed by `1'.  According to ISO, the closing
-\verb$\$ is obligatory and the number of digits is unlimited.  The
-SWI-Prolog definition allows for ISO compatible specification, but
-is compatible with other implementations.
+    \escapeitem{xXX..\}
+Hexadecimal specification of a character. The closing \verb$\$ is
+obligatory according to the ISO standard, but optional in SWI-Prolog to
+enhance compatibility to the older Edinburgh standard. The code
+\verb$\xa\3$ emits the character 10 (hexadecimal `a') followed by `3'.
+Characters specified this way are interpreted as Unicode characters. See
+also \verb$\u$.
+    \escapeitem{uXXXX}
+Unicode character specification where the character is specified using
+\emph{exactly} 4 hexadecimal digits.  This is an extension to the ISO
+standard fixing two problems.  First of all, where \verb$\x$ defines
+a numeric character code, it doesn't specify the character set in which
+the character should be interpreted.  Second, it is not needed to
+use the idiosyncratic closing \chr{\} ISO Prolog syntax.
+    \escapeitem{UXXXXXXXX}
+Same as \verb$\uXXXX$, but using 8 digits to cover the whole Unicode
+set.
     \escapeitem{40}
 Octal character specification.  The rules and remarks for hexadecimal
-specifications apply to octal specifications too, but the maximum
-allowed number of octal digits is 3.
+specifications apply to octal specifications as well.
     \escapeitem{<character>}
 Any character immediately preceded by a \chr{\} and not covered by the
 above escape sequences is copied verbatim. Thus, \verb$'\\'$ is an atom
