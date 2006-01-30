@@ -5314,8 +5314,8 @@ _ACEOF
 fi
 done
 
-  echo "$as_me:$LINENO: checking \"wether mutex support recursive locking\"" >&5
-echo $ECHO_N "checking \"wether mutex support recursive locking\"... $ECHO_C" >&6
+  echo "$as_me:$LINENO: checking \"whether mutex support recursive locking\"" >&5
+echo $ECHO_N "checking \"whether mutex support recursive locking\"... $ECHO_C" >&6
   echo '#include "confdefs.h"' > conftest.c
   cat $srcdir/test/recmutex.c >> conftest.c
   (eval $ac_link) 2>&5
