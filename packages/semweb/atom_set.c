@@ -420,6 +420,7 @@ avl_init(avl_tree *tree)
 { tree->magic       = AVL_MAGIC;
   tree->root        = NULL;
   tree->size        = 0L;
+  tree->destroy_node= NULL;
   tree->block1.next = NULL;
   tree->block1.left = FREE_CHUNK_SIZE;
   tree->free_list   = &tree->block1;
