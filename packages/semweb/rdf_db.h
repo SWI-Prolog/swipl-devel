@@ -140,6 +140,7 @@ typedef struct triple
   atom_t	type_or_lang;		/* Type or language for literals */
   atom_t	source;			/* where it comes from */
   struct triple*next[INDEX_TABLES];	/* hash-table next links */
+					/* flags */
   unsigned	objtype : 3;
   unsigned	indexed : 3;		/* Partials: BY_* */
   unsigned	qualifier : 2;		/* Lang/Type qualifier */
@@ -148,7 +149,8 @@ typedef struct triple
   unsigned	match   : 3;		/* How to match literals */
   unsigned	inversed : 1;		/* Partials: using inverse match */
   unsigned	is_duplicate : 1;	/* I'm a duplicate */
-  unsigned	duplicates : 18;	/* Duplicate count */
+  unsigned	duplicates : 17;	/* Duplicate count */
+					/* Total: 32 */
   unsigned long line;			/* source-line number */
 } triple;
 

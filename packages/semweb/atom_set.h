@@ -53,6 +53,7 @@ typedef struct avl_tree
 { long		 magic;			/* magic code */
   avl_node      *root;
   long		 size;			/* # nodes in the tree */
+  void		(*destroy_node)(avl_node*node);
   avl_free_list *free_list;
   avl_free_list  block1;
 } avl_tree;

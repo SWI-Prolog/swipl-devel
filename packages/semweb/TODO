@@ -2,3 +2,15 @@
 
 * Add indexing on source, to speedup saving a particular source as well as
   rdf_retractall(_,_,_,Src).
+
+* Literal handling
+	- Add literals as first-class citizens using an binary tree
+		- Provides indexed prefix search
+		- Generate event on create/destroy
+		
+What about type and language
+	Type     --> URL
+	Language --> 2 character code
+		--> no conflict
+
+rdf_register_type(+Url, :Convert, :Compare)

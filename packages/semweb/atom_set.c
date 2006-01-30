@@ -426,9 +426,23 @@ avl_init(avl_tree *tree)
 }
 
 
+static void
+avl_destroy_nodes(avl_node *node, void (*destroy_node)(avl_node *node))
+{ if ( node->left )
+    avl_destroy_nodes(node->left, destroy_node);
+  if ( node->right )
+    avl_destroy_nodes(node->right, destroy_node);
+
+  (*destroy_node)(node);
+}
+
+
 void
 avl_destroy(avl_tree *tree)
 { avl_free_list *l, *n;
+
+  if ( tree->destroy_node )
+    avl_destroy_nodes(tree->root, tree->destroy_node);
 
   for(l=tree->free_list; l != &tree->block1; l=n)
   { n = l->next;
@@ -437,3 +451,5 @@ avl_destroy(avl_tree *tree)
 
   tree->magic = 0;
 }
+
+

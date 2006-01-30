@@ -32,6 +32,7 @@
 #include <SWI-Prolog.h>
 #include "atom_set.h"
 #include <string.h>
+#include <assert.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file realises the low-level support   for  indexing literals in the
@@ -256,6 +257,14 @@ destroy_atom_set(atom_set *as)
 }
 
 
+static void
+destroy_map_node(avl_node *node)
+{ assert(node->value);
+
+  PL_unregister_atom(node->key);
+  destroy_atom_set(node->value);
+}
+
 
 		 /*******************************
 		 *	   TREE INTERFACE	*
@@ -269,6 +278,7 @@ new_atom_map(term_t handle)
     return resource_error("memory");
 
   avl_init(t);
+  t->destroy_node = destroy_map_node;
 
   return unify_atom_map(handle, t);
 }
