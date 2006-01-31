@@ -3,14 +3,17 @@
 * Add indexing on source, to speedup saving a particular source as well as
   rdf_retractall(_,_,_,Src).
 
-* Literal handling
-	- Add literals as first-class citizens using an binary tree
-		- Provides indexed prefix search
-		- Generate event on create/destroy
-		
-What about type and language
-	Type     --> URL
-	Language --> 2 character code
-		--> no conflict
+LITERALS AS FIRST CLASS CITIZENS:
+=================================
 
-rdf_register_type(+Url, :Convert, :Compare)
+Step 1: making them into distinct objects.
+
+	* V0 (before distinct objects, using Artchive database)
+		# Triples: 3918374
+		Memory: 254 MB
+		Initial image (after ?- triple20): 905MB
+
+Step 2: sharing
+
+	* Use atom-set to index on resource/string/etc.
+	* Use literal-set (like atom-set) for literals with same resource/string

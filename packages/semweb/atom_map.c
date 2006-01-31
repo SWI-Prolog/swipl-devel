@@ -261,7 +261,7 @@ static void
 destroy_map_node(avl_node *node)
 { assert(node->value);
 
-  PL_unregister_atom(node->key);
+  PL_unregister_atom((atom_t)node->key);
   destroy_atom_set(node->value);
 }
 
@@ -308,7 +308,7 @@ insert_atom_map(term_t handle, term_t from, term_t to)
        !get_atom_ex(to, &a2) )
     return FALSE;
   
-  avl_insert(tree, a1, &node);
+  avl_insert_atom(tree, a1, &node);
   if ( !node->value )
   { PL_register_atom(a1);
 
@@ -354,7 +354,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     if ( !get_atom_ex(head, &a) )
       return FALSE;
     
-    if ( (node = avl_find_node(tree, a)) )
+    if ( (node = avl_find_node_atom(tree, a)) )
     { if ( ns+1 >= MAX_SETS )
 	return resource_error("max_search_atoms");
 

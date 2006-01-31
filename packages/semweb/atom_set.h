@@ -35,8 +35,8 @@
 typedef struct avl_node
 { struct avl_node *left;
   struct avl_node *right;
-  atom_t key;
   int bal;				/* balance */
+  void *key;				/* associated key */
   void *value;				/* associated value */
 } avl_node;
 
@@ -54,6 +54,7 @@ typedef struct avl_tree
   avl_node      *root;
   long		 size;			/* # nodes in the tree */
   void		(*destroy_node)(avl_node*node);
+  int		(*compare)(void* v1, void *n2);
   avl_free_list *free_list;
   avl_free_list  block1;
 } avl_tree;
@@ -61,7 +62,12 @@ typedef struct avl_tree
 
 void avl_init(avl_tree *tree);
 void avl_destroy(avl_tree *tree);
-int  avl_insert(avl_tree *tree, atom_t key, avl_node **node);
-avl_node *avl_find_node(avl_tree *tree, atom_t key);
+int  avl_insert(avl_tree *tree, void *key, avl_node **node);
+avl_node *avl_find_node(avl_tree *tree, void *key);
+
+#define avl_insert_atom(tree, key, nodeptr) \
+	avl_insert(tree, (void*)(key), nodeptr)
+#define avl_find_node_atom(tree, key) \
+	avl_find_node(tree, (void*)(key))
 
 #endif /*ATOM_SET_H_INCLUDED*/

@@ -7,10 +7,19 @@
 #define AVL_NONE 0
 #define AVL_RIGHT 1
 
-#define COMPARE(tree, v1, v2) \
-	((v1) < (v2) ? -1 : (v1) > (v2) ? 1 : 0)
-
 static avl_node	*avl_new_node(avl_tree *tree);
+
+static int
+avl_compare(avl_tree *tree, void *v1, void *v2)
+{ if ( tree->compare )
+  { return (*tree->compare)(v1, v2);
+  } else
+  { char *k1 = v1;
+    char *k2 = v2;
+    
+    return ((k1) < (k2) ? -1 : (k1) > (k2) ? 1 : 0);
+  }
+}
 
 static void
 avl_rotate_left(avl_node **n)
@@ -116,7 +125,7 @@ avl_rightgrown(avl_node **n)
 
 
 static int
-avl_insert_node(avl_tree *tree, avl_node **n, atom_t key)
+avl_insert_node(avl_tree *tree, avl_node **n, void * key)
 { int tmp;
   int dif;
 
@@ -129,7 +138,7 @@ avl_insert_node(avl_tree *tree, avl_node **n, atom_t key)
     return 1;				/* added a node */
   }
 
-  dif = COMPARE(tree, key, (*n)->key);
+  dif = avl_compare(tree, key, (*n)->key);
   if ( dif < 0)
   { if ( (tmp = avl_insert_node(tree, &(*n)->left, key)) == 1 )
     { return avl_leftgrown(n);
@@ -149,9 +158,9 @@ avl_insert_node(avl_tree *tree, avl_node **n, atom_t key)
 
 
 static avl_node *
-avl_find_n(avl_tree *tree, avl_node *n, atom_t key)
+avl_find_n(avl_tree *tree, avl_node *n, void * key)
 { while(n)
-  { int dif = COMPARE(tree, key, n->key);
+  { int dif = avl_compare(tree, key, n->key);
 
     if ( dif < 0)
     { n = n->left;
@@ -167,7 +176,7 @@ avl_find_n(avl_tree *tree, avl_node *n, atom_t key)
 
 
 int
-avl_insert(avl_tree *tree, atom_t key, avl_node **node)
+avl_insert(avl_tree *tree, void * key, avl_node **node)
 { int rc;
 
   rc = avl_insert_node(tree, &tree->root, key);
@@ -179,7 +188,7 @@ avl_insert(avl_tree *tree, atom_t key, avl_node **node)
 
 
 avl_node *
-avl_find_node(avl_tree *tree, atom_t key)
+avl_find_node(avl_tree *tree, void * key)
 { return avl_find_n(tree, tree->root, key);
 } 
 
@@ -351,7 +360,7 @@ avl_delete(avl_tree *tree, avl_node **n, avl_dataset *key)
   if ( !(*n) )
     return -1;				/* not found */
 
-  dif = COMPARE(tree, key, (*n)->d);
+  dif = avl_compare(tree, key, (*n)->d);
   if ( dif < 0)
   { if ( (tmp = avl_remove(tree, &(*n)->left, key)) == 1 )
     { return avl_leftshrunk(n);
@@ -421,6 +430,7 @@ avl_init(avl_tree *tree)
   tree->root        = NULL;
   tree->size        = 0L;
   tree->destroy_node= NULL;
+  tree->compare     = NULL;
   tree->block1.next = NULL;
   tree->block1.left = FREE_CHUNK_SIZE;
   tree->free_list   = &tree->block1;
