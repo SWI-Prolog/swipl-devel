@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#140: Various DESTDIR issues when installing the PDF
+    documentation. Keri Harris.
+
   * ADDED: \uXXXX and \UXXXXXXXX syntax support and various enhancements
     in read and write as well as the documentation of escape sequences.
     Richard O'Keefe.
