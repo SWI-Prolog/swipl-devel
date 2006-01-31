@@ -1769,21 +1769,21 @@ rdf_sources(term_t list)
 
 
 		 /*******************************
-		 *	       OBJECT		*
+		 *	     LITERALS		*
 		 *******************************/
 
-static object *
-new_object(rdf_db *db)
-{ object *obj = rdf_malloc(db, sizeof(*obj));
-  memset(obj, 0, sizeof(*obj));
+static literal *
+new_literal(rdf_db *db)
+{ literal *lit = rdf_malloc(db, sizeof(*lit));
+  memset(lit, 0, sizeof(*lit));
 
-  return obj;
+  return lit;
 }
 
 
 static void
-free_object(rdf_db *db, object *obj)
-{ rdf_free(db, obj, sizeof(*obj));
+free_literal(rdf_db *db, literal *lit)
+{ rdf_free(db, lit, sizeof(*lit));
 }
 
 
@@ -1834,7 +1834,7 @@ static triple *
 new_triple(rdf_db *db)
 { triple *t = rdf_malloc(db, sizeof(*t));
   memset(t, 0, sizeof(*t));
-  t->object = new_object(db);
+  t->object = new_literal(db);
 
   return t;
 }
@@ -1842,7 +1842,7 @@ new_triple(rdf_db *db)
 
 static void
 free_triple(rdf_db *db, triple *t)
-{ free_object(db, t->object);
+{ free_literal(db, t->object);
   rdf_free(db, t, sizeof(*t));
 }
 
@@ -1855,8 +1855,8 @@ Prolog backtracking context references them.
 
 static triple *
 save_triple(rdf_db *db, triple *t)
-{ triple *copy = rdf_malloc(db, sizeof(triple) + sizeof(object));
-  object *obj  = (object*)&copy[1];
+{ triple *copy = rdf_malloc(db, sizeof(triple) + sizeof(literal));
+  literal *obj  = (literal*)&copy[1];
   
   *copy = *t;
   *obj  = *t->object;
@@ -1868,7 +1868,7 @@ save_triple(rdf_db *db, triple *t)
 
 static void
 free_saved_triple(rdf_db *db, triple *t)
-{ rdf_free(db, t, sizeof(triple) + sizeof(object));
+{ rdf_free(db, t, sizeof(triple) + sizeof(literal));
 }
 
 
@@ -4073,7 +4073,7 @@ rdf(term_t subject, term_t predicate, term_t object,
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
     { triple t, *p;
-      struct object obj;
+      literal obj;
       
       memset(&t, 0, sizeof(t));
       memset(&obj, 0, sizeof(obj));
@@ -4280,7 +4280,7 @@ choicepoints.
 static int
 update_triple(rdf_db *db, term_t action, triple *t)
 { term_t a = PL_new_term_ref();
-  object tmpobj;
+  literal tmpobj;
   triple tmp, *new;
   int i;
 
@@ -4311,7 +4311,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
     tmp.predicate = p;
   } else if ( PL_is_functor(action, FUNCTOR_object1) )
   { triple t2;
-    object obj;
+    literal obj;
 
     memset(&t2, 0, sizeof(t2));
     memset(&obj, 0, sizeof(obj));
@@ -4375,7 +4375,7 @@ static foreign_t
 rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
 	    term_t action)
 { triple t, *p;
-  struct object obj;
+  literal obj;
   int indexed = BY_SP;
   int done = 0;
   rdf_db *db = DB;
@@ -4897,7 +4897,7 @@ typedef struct agenda
   visited **hash;			/* hash-table for cycle detection */
   int	  hash_size;
   int     size;				/* size of the agenda */
-  object  pattern_object;		/* object of the pattern */
+  literal pattern_object;		/* object of the pattern */
   triple  pattern;			/* partial triple used as pattern */
   atom_t  target;			/* resource we are seaching for */
   struct chunk  *chunk;			/* node-allocation chunks */

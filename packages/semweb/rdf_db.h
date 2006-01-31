@@ -122,7 +122,7 @@ typedef struct source
 } source;  
 
 
-typedef struct object
+typedef struct literal
 { union
   { atom_t	resource;
     atom_t	string;
@@ -138,7 +138,7 @@ typedef struct object
   unsigned	qualifier : 2;		/* Lang/Type qualifier */
   unsigned	shared : 1;		/* member of shared table */
   unsigned	references : 24;	/* # references to me */
-} object;
+} literal;
 
 
 #define t_match next[0]
@@ -146,10 +146,11 @@ typedef struct object
 typedef struct triple
 { atom_t	subject;
   predicate*	predicate;
-  object*	object;
+  literal *	object;
   atom_t	source;			/* where it comes from */
   struct triple*next[INDEX_TABLES];	/* hash-table next links */
 					/* flags */
+  unsigned	object_is_resource : 1;	/* Object is a resource */
   unsigned	indexed : 3;		/* Partials: BY_* */
   unsigned	erased  : 1;		/* If TRUE, triple is erased */
   unsigned	first   : 1;		/* I'm the first on subject */
