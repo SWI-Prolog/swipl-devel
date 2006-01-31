@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: translation of t --> [a,b], ....  Richard O'Keefe.
+
   * FIXED: Bug#140: Various DESTDIR issues when installing the PDF
     documentation. Keri Harris.
 
