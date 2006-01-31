@@ -122,12 +122,8 @@ typedef struct source
 } source;  
 
 
-#define t_match next[0]
-
-typedef struct triple
-{ atom_t	subject;
-  predicate*	predicate;
-  union
+typedef struct object
+{ union
   { atom_t	resource;
     atom_t	string;
     long	integer;
@@ -136,20 +132,29 @@ typedef struct triple
     { record_t  record;
       unsigned int len;
     } term;				/* external record */
-  } object;
+  } value;
   atom_t	type_or_lang;		/* Type or language for literals */
+  unsigned	objtype : 3;
+  unsigned	qualifier : 2;		/* Lang/Type qualifier */
+} object;
+
+
+#define t_match next[0]
+
+typedef struct triple
+{ atom_t	subject;
+  predicate*	predicate;
+  object*	object;
   atom_t	source;			/* where it comes from */
   struct triple*next[INDEX_TABLES];	/* hash-table next links */
 					/* flags */
-  unsigned	objtype : 3;
   unsigned	indexed : 3;		/* Partials: BY_* */
-  unsigned	qualifier : 2;		/* Lang/Type qualifier */
   unsigned	erased  : 1;		/* If TRUE, triple is erased */
   unsigned	first   : 1;		/* I'm the first on subject */
   unsigned	match   : 3;		/* How to match literals */
   unsigned	inversed : 1;		/* Partials: using inverse match */
   unsigned	is_duplicate : 1;	/* I'm a duplicate */
-  unsigned	duplicates : 17;	/* Duplicate count */
+  unsigned	duplicates : 16;	/* Duplicate count */
 					/* Total: 32 */
   unsigned long line;			/* source-line number */
 } triple;

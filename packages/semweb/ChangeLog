@@ -1,3 +1,7 @@
+Jan 31, 2006
+
+  * INTERNAL: 1-st step making literals first class citizens.
+
 Jan 17, 2006
 
   * ADDED: exported rdf_quote_uri/2 implementing unicode quoting rules for
