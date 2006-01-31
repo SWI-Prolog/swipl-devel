@@ -136,6 +136,8 @@ typedef struct object
   atom_t	type_or_lang;		/* Type or language for literals */
   unsigned	objtype : 3;
   unsigned	qualifier : 2;		/* Lang/Type qualifier */
+  unsigned	shared : 1;		/* member of shared table */
+  unsigned	references : 24;	/* # references to me */
 } object;
 
 
