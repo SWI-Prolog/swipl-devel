@@ -1779,6 +1779,7 @@ static literal *
 new_literal(rdf_db *db)
 { literal *lit = rdf_malloc(db, sizeof(*lit));
   memset(lit, 0, sizeof(*lit));
+  lit->references = 1;
 
   return lit;
 }
@@ -1786,7 +1787,15 @@ new_literal(rdf_db *db)
 
 static void
 free_literal(rdf_db *db, literal *lit)
-{ rdf_free(db, lit, sizeof(*lit));
+{ if ( --lit->references == 0 )
+    rdf_free(db, lit, sizeof(*lit));
+}
+
+
+static literal *
+copy_literal(rdf_db *db, literal *lit)
+{ lit->references++;
+  return lit;
 }
 
 
@@ -1846,6 +1855,7 @@ static triple *
 new_triple(rdf_db *db)
 { triple *t = rdf_malloc(db, sizeof(*t));
   memset(t, 0, sizeof(*t));
+  t->allocated = TRUE;
 
   return t;
 }
@@ -1855,14 +1865,18 @@ static void
 free_triple(rdf_db *db, triple *t)
 { if ( t->object_is_literal) 
     free_literal(db, t->object.literal);
-  rdf_free(db, t, sizeof(*t));
+
+  if ( t->allocated )
+    rdf_free(db, t, sizeof(*t));
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Save a triple in the permanent heap.  Right   now  this is only used for
-backtracking context. There is no need to register the atoms here as the
-Prolog backtracking context references them.
+Save a triple in the permanent heap.  This is only used for backtracking
+context. There is no need  to  register   the  atoms  here as the Prolog
+backtracking context references them. Triples allocated this way are not
+modified  until  they  are  destroyed  and    must  be  destroyed  using
+free_saved_triple();
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static triple *
@@ -4150,7 +4164,7 @@ rdf(term_t subject, term_t predicate, term_t object,
     { triple t, *p;
       
       memset(&t, 0, sizeof(t));
-      if ( get_partial_triple(db, subject, predicate, object, src, &t) != TRUE )
+      if ( get_partial_triple(db, subject, predicate, object, src, &t) == -1 )
 	return FALSE;
 
       if ( !RDLOCK(db) )
@@ -4188,13 +4202,16 @@ rdf(term_t subject, term_t predicate, term_t object,
 	    goto inv_alt;
 	  }
 	  RDUNLOCK(db);
+	  free_triple(db, &t);
           return TRUE;
 	}
       }
 
       if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&t) )
 	goto inverse;
+
       RDUNLOCK(db);
+      free_triple(db, &t);
       return FALSE;
     }
     case PL_REDO:
@@ -4352,15 +4369,13 @@ choicepoints.
 static int
 update_triple(rdf_db *db, term_t action, triple *t)
 { term_t a = PL_new_term_ref();
-  literal tmplit;
   triple tmp, *new;
   int i;
 					/* Create copy in local memory */
   tmp = *t;
+  tmp.allocated = FALSE;
   if ( t->object_is_literal )
-  { tmplit = *t->object.literal;
-    tmp.object.literal = &tmplit;
-  }
+    tmp.object.literal = copy_literal(db, t->object.literal);
 
   if ( !PL_get_arg(1, action, a) )
     return type_error(action, "rdf_action");
@@ -4393,9 +4408,12 @@ update_triple(rdf_db *db, term_t action, triple *t)
     if ( match_object(&t2, &tmp) &&
 	 ( !t2.object_is_literal ||
 	   t2.object.literal->qualifier == tmp.object.literal->qualifier ) )
+    { free_triple(db, &t2);
       return TRUE;
+    }
 
-					/* TBD: Check allocation */
+    if ( tmp.object_is_literal )
+      free_literal(db, tmp.object.literal);
     if ( (tmp.object_is_literal = t2.object_is_literal) )
     { tmp.object.literal = t2.object.literal;
     } else
@@ -4429,11 +4447,15 @@ update_triple(rdf_db *db, term_t action, triple *t)
   new = new_triple(db);
   new->subject		 = tmp.subject;
   new->predicate	 = tmp.predicate;
-  new->object		 = tmp.object;		/* assumes tmp has allocated it */
-  new->object_is_literal = tmp.object_is_literal;
+  if ( (new->object_is_literal = tmp.object_is_literal) )
+  { new->object.literal = copy_literal(db, tmp.object.literal);
+  } else
+  { new->object.resource = tmp.object.resource;
+  }
   new->source		 = tmp.source;
   new->line		 = tmp.line;
 
+  free_triple(db, &tmp);
   lock_atoms(new);
 
   if ( db->tr_first )

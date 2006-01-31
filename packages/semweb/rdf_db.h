@@ -162,6 +162,7 @@ typedef struct triple
   unsigned	match   : 3;		/* How to match literals */
   unsigned	inversed : 1;		/* Partials: using inverse match */
   unsigned	is_duplicate : 1;	/* I'm a duplicate */
+  unsigned	allocated : 1;		/* Triple is allocated */
   unsigned	duplicates : 16;	/* Duplicate count */
 					/* Total: 32 */
 } triple;
