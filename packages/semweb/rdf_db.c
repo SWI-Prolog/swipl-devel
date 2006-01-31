@@ -983,32 +983,35 @@ get_bool_arg_ex(int a, term_t t, int *val)
 
 static void
 print_object(triple *t)
-{ switch(t->object->objtype)
-  { case OBJ_RESOURCE:
-      Sdprintf("%s", PL_atom_chars(t->object->value.resource));
-      break;
-    case OBJ_STRING:
-      Sdprintf("\"%s\"", PL_atom_chars(t->object->value.string));
-      break;
-    case OBJ_INTEGER:
-      Sdprintf("%ld", t->object->value.integer);
-      break;
-    case OBJ_DOUBLE:
-      Sdprintf("%f", t->object->value.real);
-      break;
-    case OBJ_TERM:
-    { fid_t fid = PL_open_foreign_frame();
-      term_t term = PL_new_term_ref();
+{ if ( t->object_is_literal )
+  { literal *lit = t->object.literal;
 
-      PL_recorded_external(t->object->value.term.record, term);
-      PL_write_term(Serror, term, 1200,
-		    PL_WRT_QUOTED|PL_WRT_NUMBERVARS|PL_WRT_PORTRAY);
-      break;
-      PL_discard_foreign_frame(fid);
-      break;
+    switch(lit->objtype)
+    { case OBJ_STRING:
+	Sdprintf("\"%s\"", PL_atom_chars(lit->value.string));
+	break;
+      case OBJ_INTEGER:
+	Sdprintf("%ld", lit->value.integer);
+	break;
+      case OBJ_DOUBLE:
+	Sdprintf("%f", lit->value.real);
+	break;
+      case OBJ_TERM:
+      { fid_t fid = PL_open_foreign_frame();
+	term_t term = PL_new_term_ref();
+  
+	PL_recorded_external(lit->value.term.record, term);
+	PL_write_term(Serror, term, 1200,
+		      PL_WRT_QUOTED|PL_WRT_NUMBERVARS|PL_WRT_PORTRAY);
+	break;
+	PL_discard_foreign_frame(fid);
+	break;
+      }
+      default:
+	assert(0);
     }
-    default:
-      assert(0);
+  } else
+  { Sdprintf("%s", PL_atom_chars(t->object.resource));
   }
 }
 
@@ -1787,6 +1790,15 @@ free_literal(rdf_db *db, literal *lit)
 }
 
 
+static void
+alloc_literal_triple(rdf_db *db, triple *t)
+{ if ( !t->object_is_literal )
+  { t->object.literal = new_literal(db);
+    t->object_is_literal = TRUE;
+  }
+}
+
+
 		 /*******************************
 		 *	      TRIPLES		*
 		 *******************************/
@@ -1834,7 +1846,6 @@ static triple *
 new_triple(rdf_db *db)
 { triple *t = rdf_malloc(db, sizeof(*t));
   memset(t, 0, sizeof(*t));
-  t->object = new_literal(db);
 
   return t;
 }
@@ -1842,7 +1853,8 @@ new_triple(rdf_db *db)
 
 static void
 free_triple(rdf_db *db, triple *t)
-{ free_literal(db, t->object);
+{ if ( t->object_is_literal) 
+    free_literal(db, t->object.literal);
   rdf_free(db, t, sizeof(*t));
 }
 
@@ -1855,20 +1867,31 @@ Prolog backtracking context references them.
 
 static triple *
 save_triple(rdf_db *db, triple *t)
-{ triple *copy = rdf_malloc(db, sizeof(triple) + sizeof(literal));
-  literal *obj  = (literal*)&copy[1];
+{ if ( t->object_is_literal )
+  { triple *copy = rdf_malloc(db, sizeof(triple) + sizeof(literal));
+    literal *lit  = (literal*)&copy[1];
   
-  *copy = *t;
-  *obj  = *t->object;
-  copy->object = obj;
+    *copy = *t;
+    *lit  = *t->object.literal;
+    copy->object.literal = lit;
 
-  return copy;
+    return copy;
+  } else
+  { triple *copy = rdf_malloc(db, sizeof(triple));
+
+    *copy = *t;
+
+    return copy;
+  }
 }
 
 
 static void
 free_saved_triple(rdf_db *db, triple *t)
-{ rdf_free(db, t, sizeof(triple) + sizeof(literal));
+{ rdf_free(db, t,
+	   t->object_is_literal ?
+	   	sizeof(triple) + sizeof(literal) :
+		sizeof(triple));
 }
 
 
@@ -1927,21 +1950,25 @@ case_insensitive_atom_hash(atom_t a)
 
 static unsigned long
 object_hash(triple *t)
-{ switch(t->object->objtype)
-  { case OBJ_RESOURCE:
-      return t->object->value.resource;
-    case OBJ_STRING:
-      return case_insensitive_atom_hash(t->object->value.string);
-    case OBJ_INTEGER:
-      return t->object->value.integer;
-    case OBJ_DOUBLE:
-      return t->object->value.integer;		/* TBD: get all bits */
-    case OBJ_TERM:
-      return string_hashA((const char*)t->object->value.term.record,
-			  t->object->value.term.len);
-    default:
-      assert(0);
-      return 0;
+{ if ( t->object_is_literal )
+  { literal *lit = t->object.literal;
+
+    switch(lit->objtype)
+    { case OBJ_STRING:
+	return case_insensitive_atom_hash(lit->value.string);
+      case OBJ_INTEGER:
+	return lit->value.integer;
+      case OBJ_DOUBLE:
+	return lit->value.integer;		/* TBD: get all bits */
+      case OBJ_TERM:
+	return string_hashA((const char*)lit->value.term.record,
+			    lit->value.term.len);
+      default:
+	assert(0);
+	return 0;
+    }
+  } else
+  { return t->object.resource;
   }
 }
 
@@ -2062,9 +2089,9 @@ link_triple_silent(rdf_db *db, triple *t)
 
 					/* keep track of subPropertyOf */
   if ( t->predicate->name == ATOM_subPropertyOf &&
-       t->object->objtype == OBJ_RESOURCE )
+       t->object_is_literal == FALSE )
   { predicate *me    = lookup_predicate(db, t->subject);
-    predicate *super = lookup_predicate(db, t->object->value.resource);
+    predicate *super = lookup_predicate(db, t->object.resource);
 
     addSubPropertyOf(db, me, super);
   }
@@ -2246,9 +2273,9 @@ erase_triple_silent(rdf_db *db, triple *t)
     update_duplicates_del(db, t);
 
     if ( t->predicate->name == ATOM_subPropertyOf &&
-	 t->object->objtype == OBJ_RESOURCE )
+	 t->object_is_literal == FALSE )
     { predicate *me    = lookup_predicate(db, t->subject);
-      predicate *super = lookup_predicate(db, t->object->value.resource);
+      predicate *super = lookup_predicate(db, t->object.resource);
 
       delSubPropertyOf(db, me, super);
     }
@@ -2277,41 +2304,56 @@ erase_triple(rdf_db *db, triple *t)
 
 static int
 match_object(triple *t, triple *p)
-{ if ( p->object->objtype )			/* something is filled in */
-  { if ( p->object->objtype != t->object->objtype )
-      return FALSE;
+{ if ( p->object_is_literal )
+  { if ( t->object_is_literal )
+    { literal *plit = p->object.literal;
+      literal *tlit = t->object.literal;
 
-    switch( p->object->objtype )
-    { case OBJ_RESOURCE:
-	return t->object->value.resource == p->object->value.resource;
-      case OBJ_STRING:
-        if ( p->object->qualifier && t->object->qualifier && t->object->qualifier != p->object->qualifier )
-	  return FALSE;
-	if ( p->object->type_or_lang && t->object->type_or_lang != p->object->type_or_lang )
-	  return FALSE;
-	if ( p->object->value.string )
-	{ if ( t->object->value.string != p->object->value.string )
-	  { if ( p->match )
-	      return match(p->match, p->object->value.string, t->object->value.string);
-	    else
-	      return FALSE;
-	  }
-	}
+      if ( !plit->objtype )
 	return TRUE;
-      case OBJ_INTEGER:
-	return t->object->value.integer == p->object->value.integer;
-      case OBJ_DOUBLE:
-	return t->object->value.real == p->object->value.real;
-      case OBJ_TERM:
-	if ( p->object->value.term.len != t->object->value.term.len )
-	  return FALSE;
-	return memcmp(t->object->value.term.record, p->object->value.term.record,
-		      p->object->value.term.len) == 0;
-      default:
-	assert(0);
-    }
 
+      if ( plit->objtype != tlit->objtype )
+	return FALSE;
+    
+      switch( plit->objtype )
+      { case OBJ_STRING:
+	  if ( plit->qualifier && tlit->qualifier &&
+	       tlit->qualifier != plit->qualifier )
+	    return FALSE;
+	  if ( plit->type_or_lang && 
+	       tlit->type_or_lang != plit->type_or_lang )
+	    return FALSE;
+	  if ( plit->value.string )
+	  { if ( tlit->value.string != plit->value.string )
+	    { if ( p->match )
+	      { return match(p->match,
+			     plit->value.string, tlit->value.string);
+	      } else
+	      { return FALSE;
+	      }
+	    }
+	  }
+	  return TRUE;
+	case OBJ_INTEGER:
+	  return tlit->value.integer == plit->value.integer;
+	case OBJ_DOUBLE:
+	  return tlit->value.real == plit->value.real;
+	case OBJ_TERM:
+	  if ( plit->value.term.len != tlit->value.term.len )
+	    return FALSE;
+	  return memcmp(tlit->value.term.record, plit->value.term.record,
+			plit->value.term.len) == 0;
+	default:
+	  assert(0);
+      }
+    }
     return FALSE;
+  } else
+  { if ( p->object.resource )
+    { if ( t->object_is_literal || 
+	   (p->object.resource != t->object.resource) )
+	return FALSE;
+    }
   }
 
   return TRUE;
@@ -2546,49 +2588,52 @@ write_triple(rdf_db *db, IOSTREAM *out, triple *t, save_context *ctx)
   save_atom(db, out, t->subject, ctx);
   save_atom(db, out, t->predicate->name, ctx);
 
-  if ( t->object->qualifier )
-  { assert(t->object->type_or_lang);
-    Sputc(t->object->qualifier == Q_LANG ? 'l' : 't', out);
-    save_atom(db, out, t->object->type_or_lang, ctx);
-  }
+  if ( t->object_is_literal )
+  { literal *lit = t->object.literal;
 
-  switch(t->object->objtype)
-  { case OBJ_RESOURCE:
-      Sputc('R', out);
-      save_atom(db, out, t->object->value.resource, ctx);
-      break;
-    case OBJ_STRING:
-      Sputc('L', out);
-      save_atom(db, out, t->object->value.string, ctx);
-      break;
-    case OBJ_INTEGER:
-      Sputc('I', out);
-      save_int(out, t->object->value.integer);
-      break;
-    case OBJ_DOUBLE:
-    { double f = t->object->value.real;
-      unsigned char *cl = (unsigned char *)&f;
-      unsigned int i;
-      
-      Sputc('F', out);
-      for(i=0; i<sizeof(double); i++)
-	Sputc(cl[double_byte_order[i]], out);
-
-      break;
+    if ( lit->qualifier )
+    { assert(lit->type_or_lang);
+      Sputc(lit->qualifier == Q_LANG ? 'l' : 't', out);
+      save_atom(db, out, lit->type_or_lang, ctx);
     }
-    case OBJ_TERM:
-    { const char *s = t->object->value.term.record;
-      int len = t->object->value.term.len;
-      
-      Sputc('T', out);
-      save_int(out, len);
-      while(--len >= 0)
-	Sputc(*s++, out);
 
-      break;
+    switch(lit->objtype)
+    { case OBJ_STRING:
+	Sputc('L', out);
+	save_atom(db, out, lit->value.string, ctx);
+	break;
+      case OBJ_INTEGER:
+	Sputc('I', out);
+	save_int(out, lit->value.integer);
+	break;
+      case OBJ_DOUBLE:
+      { double f = lit->value.real;
+	unsigned char *cl = (unsigned char *)&f;
+	unsigned int i;
+	
+	Sputc('F', out);
+	for(i=0; i<sizeof(double); i++)
+	  Sputc(cl[double_byte_order[i]], out);
+  
+	break;
+      }
+      case OBJ_TERM:
+      { const char *s = lit->value.term.record;
+	int len = lit->value.term.len;
+	
+	Sputc('T', out);
+	save_int(out, len);
+	while(--len >= 0)
+	  Sputc(*s++, out);
+  
+	break;
+      }
+      default:
+	assert(0);
     }
-    default:
-      assert(0);
+  } else
+  { Sputc('R', out);
+    save_atom(db, out, t->object.resource, ctx);
   }
 
   save_atom(db, out, t->source, ctx);
@@ -2815,51 +2860,60 @@ load_double(IOSTREAM *fd)
 static int
 load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 { triple *t = new_triple(db);
+  int c;
 
   t->subject   = load_atom(db, in, ctx);
   t->predicate = lookup_predicate(db, load_atom(db, in, ctx));
-value:
-  switch(Sgetc(in))
-  { case 'R':
-      t->object->objtype = OBJ_RESOURCE;
-      t->object->value.resource = load_atom(db, in, ctx);
-      break;
-    case 'L':
-      t->object->objtype = OBJ_STRING;
-      t->object->value.resource = load_atom(db, in, ctx);
-      break;
-    case 'I':
-      t->object->objtype = OBJ_INTEGER;
-      t->object->value.integer = load_int(in);
-      break;
-    case 'F':
-      t->object->objtype = OBJ_DOUBLE;
-      t->object->value.real = load_double(in);
-      break;
-    case 'T':
-    { unsigned int i;
-      char *s;
+  if ( (c=Sgetc(in)) == 'R' )
+  { t->object.resource = load_atom(db, in, ctx);
+  } else
+  { literal *lit = new_literal(db);
 
-      t->object->objtype = OBJ_TERM;
-      t->object->value.term.len = load_int(in);
-      t->object->value.term.record = rdf_malloc(db, t->object->value.term.len);
-      s = (char *)t->object->value.term.record;
+    memset(lit, 0, sizeof(*lit));
+    t->object_is_literal = TRUE;
+    t->object.literal = lit;
 
-      for(i=0; i<t->object->value.term.len; i++)
-	s[i] = Sgetc(in);
-
-      break;
+  value:
+    switch(c)
+    { case 'L':
+	lit->objtype = OBJ_STRING;
+	lit->value.resource = load_atom(db, in, ctx);
+	break;
+      case 'I':
+	lit->objtype = OBJ_INTEGER;
+	lit->value.integer = load_int(in);
+	break;
+      case 'F':
+	lit->objtype = OBJ_DOUBLE;
+	lit->value.real = load_double(in);
+	break;
+      case 'T':
+      { unsigned int i;
+	char *s;
+  
+	lit->objtype = OBJ_TERM;
+	lit->value.term.len = load_int(in);
+	lit->value.term.record = rdf_malloc(db, lit->value.term.len);
+	s = (char *)lit->value.term.record;
+  
+	for(i=0; i<lit->value.term.len; i++)
+	  s[i] = Sgetc(in);
+  
+	break;
+      }
+      case 'l':
+	lit->qualifier = Q_LANG;
+	lit->type_or_lang = load_atom(db, in, ctx);
+	c = Sgetc(in);
+	goto value;
+      case 't':
+	lit->qualifier = Q_TYPE;
+	lit->type_or_lang = load_atom(db, in, ctx);
+	c = Sgetc(in);
+	goto value;
+      default:
+	assert(0);
     }
-    case 'l':
-      t->object->qualifier = Q_LANG;
-      t->object->type_or_lang = load_atom(db, in, ctx);
-      goto value;
-    case 't':
-      t->object->qualifier = Q_TYPE;
-      t->object->type_or_lang = load_atom(db, in, ctx);
-      goto value;
-    default:
-      assert(0);
   }
   t->source = load_atom(db, in, ctx);
   t->line   = load_int(in);
@@ -2986,6 +3040,7 @@ md5_triple(triple *t, md5_byte_t *digest)
   unsigned int len;
   md5_byte_t tmp[2];
   const char *s;
+  literal *lit;
 
   md5_init(&state);
   s = PL_blob_data(t->subject, &len, NULL);
@@ -2994,37 +3049,42 @@ md5_triple(triple *t, md5_byte_t *digest)
   s = PL_blob_data(t->predicate->name, &len, NULL);
   md5_append(&state, (const md5_byte_t *)s, len);
   tmp[0] = 'O';
-  tmp[1] = (char)t->object->objtype;
-  md5_append(&state, tmp, 2);
-  switch(t->object->objtype)
-  { case OBJ_RESOURCE:
-      s = PL_blob_data(t->object->value.resource, &len, NULL);
-      break;
-    case OBJ_STRING:
-      s = PL_blob_data(t->object->value.string, &len, NULL);
-      break;
-    case OBJ_INTEGER:			/* TBD: byte order issues */
-      s = (const char *)&t->object->value.integer;
-      len = sizeof(t->object->value.integer);
-      break;
-    case OBJ_DOUBLE:
-      s = (const char *)&t->object->value.real;
-      len = sizeof(t->object->value.real);
-      break;
-    case OBJ_TERM:
-      s = (const char *)t->object->value.term.record;
-      len = t->object->value.term.len;
-      break;
-    default:
-      assert(0);
+  if ( t->object_is_literal )
+  { lit = t->object.literal;
+
+    tmp[1] = (char)lit->objtype;
+    switch(lit->objtype)
+    { case OBJ_STRING:
+	s = PL_blob_data(lit->value.string, &len, NULL);
+	break;
+      case OBJ_INTEGER:			/* TBD: byte order issues */
+	s = (const char *)&lit->value.integer;
+	len = sizeof(lit->value.integer);
+	break;
+      case OBJ_DOUBLE:
+	s = (const char *)&lit->value.real;
+	len = sizeof(lit->value.real);
+	break;
+      case OBJ_TERM:
+	s = (const char *)lit->value.term.record;
+	len = lit->value.term.len;
+	break;
+      default:
+	assert(0);
+    }
+  } else
+  { s = PL_blob_data(t->object.resource, &len, NULL);
+    tmp[1] = 0x1;			/* was OBJ_RESOURCE */
+    lit = NULL;
   }
+  md5_append(&state, tmp, 2);
   md5_append(&state, (const md5_byte_t *)s, len);
-  if ( t->object->qualifier )
-  { assert(t->object->type_or_lang);
+  if ( lit && lit->qualifier )
+  { assert(lit->type_or_lang);
     md5_append(&state,
-	       (const md5_byte_t *)(t->object->qualifier == Q_LANG ? "l" : "t"),
+	       (const md5_byte_t *)(lit->qualifier == Q_LANG ? "l" : "t"),
 	       1);
-    s = PL_blob_data(t->object->type_or_lang, &len, NULL);
+    s = PL_blob_data(lit->type_or_lang, &len, NULL);
     md5_append(&state, (const md5_byte_t *)s, len);
   }
   if ( t->source )
@@ -3164,15 +3224,18 @@ in the predicate structure.
 static void
 lock_atoms(triple *t)
 { PL_register_atom(t->subject);
-  switch(t->object->objtype)
-  { case OBJ_RESOURCE:
-      PL_register_atom(t->object->value.resource);
-      break;
-    case OBJ_STRING:
-      PL_register_atom(t->object->value.string);
-      if ( t->object->qualifier )
-	PL_register_atom(t->object->type_or_lang);
-      break;
+  if ( t->object_is_literal )
+  { literal *lit = t->object.literal;
+
+    switch(lit->objtype)
+    { case OBJ_STRING:
+	PL_register_atom(lit->value.string);
+	if ( lit->qualifier )
+	  PL_register_atom(lit->type_or_lang);
+	break;
+    }
+  } else
+  { PL_register_atom(t->object.resource);
   }
 }
 
@@ -3180,15 +3243,18 @@ lock_atoms(triple *t)
 static void
 unlock_atoms(triple *t)
 { PL_unregister_atom(t->subject);
-  switch(t->object->objtype)
-  { case OBJ_RESOURCE:
-      PL_unregister_atom(t->object->value.resource);
-      break;
-    case OBJ_STRING:
-      PL_unregister_atom(t->object->value.string);
-      if ( t->object->qualifier )
-	PL_unregister_atom(t->object->type_or_lang);
-      break;
+  if ( t->object_is_literal )
+  { literal *lit = t->object.literal;
+
+    switch(lit->objtype)
+    { case OBJ_STRING:
+	PL_unregister_atom(lit->value.string);
+	if ( lit->qualifier )
+	  PL_unregister_atom(lit->type_or_lang);
+	break;
+    }
+  } else
+  { PL_unregister_atom(t->object.resource);
   }
 }
 
@@ -3215,42 +3281,47 @@ get_lit_atom_ex(term_t t, atom_t *a, int flags)
 
 
 static int
-get_literal(term_t lit, triple *t, int flags)
-{ if ( PL_get_atom(lit, &t->object->value.string) )
-  { t->object->objtype = OBJ_STRING;
-  } else if ( PL_is_integer(lit) && PL_get_long(lit, &t->object->value.integer) )
-  { t->object->objtype = OBJ_INTEGER;
-  } else if ( PL_get_float(lit, &t->object->value.real) )
-  { t->object->objtype = OBJ_DOUBLE;
-  } else if ( PL_is_functor(lit, FUNCTOR_lang2) )
+get_literal(rdf_db *db, term_t litt, triple *t, int flags)
+{ literal *lit;
+
+  alloc_literal_triple(db, t);
+  lit = t->object.literal;
+
+  if ( PL_get_atom(litt, &lit->value.string) )
+  { lit->objtype = OBJ_STRING;
+  } else if ( PL_is_integer(litt) && PL_get_long(litt, &lit->value.integer) )
+  { lit->objtype = OBJ_INTEGER;
+  } else if ( PL_get_float(litt, &lit->value.real) )
+  { lit->objtype = OBJ_DOUBLE;
+  } else if ( PL_is_functor(litt, FUNCTOR_lang2) )
   { term_t a = PL_new_term_ref();
     
-    PL_get_arg(1, lit, a);
-    if ( !get_lit_atom_ex(a, &t->object->type_or_lang, flags) )
+    PL_get_arg(1, litt, a);
+    if ( !get_lit_atom_ex(a, &lit->type_or_lang, flags) )
       return FALSE;
-    PL_get_arg(2, lit, a);
-    if ( !get_lit_atom_ex(a, &t->object->value.string, flags) )
+    PL_get_arg(2, litt, a);
+    if ( !get_lit_atom_ex(a, &lit->value.string, flags) )
       return FALSE;
 
-    t->object->qualifier = Q_LANG;
-    t->object->objtype = OBJ_STRING;
-  } else if ( PL_is_functor(lit, FUNCTOR_type2) &&
+    lit->qualifier = Q_LANG;
+    lit->objtype = OBJ_STRING;
+  } else if ( PL_is_functor(litt, FUNCTOR_type2) &&
 	      !(flags & LIT_TYPED) )	/* avoid recursion */
   { term_t a = PL_new_term_ref();
     
-    PL_get_arg(1, lit, a);
-    if ( !get_lit_atom_ex(a, &t->object->type_or_lang, flags) )
+    PL_get_arg(1, litt, a);
+    if ( !get_lit_atom_ex(a, &lit->type_or_lang, flags) )
       return FALSE;
-    t->object->qualifier = Q_TYPE;
-    PL_get_arg(2, lit, a);
+    lit->qualifier = Q_TYPE;
+    PL_get_arg(2, litt, a);
 
-    return get_literal(a, t, LIT_TYPED|flags);
-  } else if ( !PL_is_ground(lit) )
+    return get_literal(db, a, t, LIT_TYPED|flags);
+  } else if ( !PL_is_ground(litt) )
   { if ( !(flags & LIT_PARTIAL) )
-      return type_error(lit, "rdf_object");
+      return type_error(litt, "rdf_object");
   } else
-  { t->object->value.term.record = PL_record_external(lit, &t->object->value.term.len);
-    t->object->objtype = OBJ_TERM;
+  { lit->value.term.record = PL_record_external(litt, &lit->value.term.len);
+    lit->objtype = OBJ_TERM;
   }
 
   return TRUE;
@@ -3258,14 +3329,14 @@ get_literal(term_t lit, triple *t, int flags)
 
 
 static int
-get_object(term_t object, triple *t)
-{ if ( PL_get_atom(object, &t->object->value.resource) )
-    t->object->objtype = OBJ_RESOURCE;
-  else if ( PL_is_functor(object, FUNCTOR_literal1) )
+get_object(rdf_db *db, term_t object, triple *t)
+{ if ( PL_get_atom(object, &t->object.resource) )
+  { assert(!t->object_is_literal);
+  } else if ( PL_is_functor(object, FUNCTOR_literal1) )
   { term_t a = PL_new_term_ref();
     
     PL_get_arg(1, object, a);
-    return get_literal(a, t, 0);
+    return get_literal(db, a, t, 0);
   } else
     return type_error(object, "rdf_object");
 
@@ -3338,7 +3409,7 @@ get_triple(rdf_db *db,
 	   triple *t)
 { if ( !get_atom_ex(subject, &t->subject) ||
        !get_predicate(db, predicate, &t->predicate) ||
-       !get_object(object, t) )
+       !get_object(db, object, t) )
     return FALSE;
 
   return TRUE;
@@ -3371,16 +3442,20 @@ get_partial_triple(rdf_db *db,
     return rc;
 					/* the object */
   if ( object && !PL_is_variable(object) )
-  { if ( PL_get_atom(object, &t->object->value.resource) )
-      t->object->objtype = OBJ_RESOURCE;
-    else if ( PL_is_functor(object, FUNCTOR_literal1) )
+  { if ( PL_get_atom(object, &t->object.resource) )
+    { assert(!t->object_is_literal);
+    } else if ( PL_is_functor(object, FUNCTOR_literal1) )
     { term_t a = PL_new_term_ref();
       
       PL_get_arg(1, object, a);
-      if ( !get_literal(a, t, LIT_PARTIAL) )
+      if ( !get_literal(db, a, t, LIT_PARTIAL) )
 	return FALSE;
     } else if ( PL_is_functor(object, FUNCTOR_literal2) )
     { term_t a = PL_new_term_ref();
+      literal *lit;
+
+      alloc_literal_triple(db, t);
+      lit = t->object.literal;
       
       PL_get_arg(1, object, a);
       if ( PL_is_functor(a, FUNCTOR_exact1) )
@@ -3396,9 +3471,9 @@ get_partial_triple(rdf_db *db,
       else 
 	return domain_error(a, "match_type");
       PL_get_arg(1, a, a);
-      if ( !get_atom_or_var_ex(a, &t->object->value.string) )
+      if ( !get_atom_or_var_ex(a, &lit->value.string) )
 	return FALSE;
-      t->object->objtype = OBJ_STRING;
+      lit->objtype = OBJ_STRING;
     } else
       return type_error(object, "rdf_object");
   }
@@ -3410,11 +3485,14 @@ get_partial_triple(rdf_db *db,
     t->indexed |= BY_S;
   if ( t->predicate )
     t->indexed |= BY_P;
-  if ( t->object->objtype == OBJ_STRING && 
-       t->object->value.string &&
-       t->match <= STR_MATCH_EXACT )
-    t->indexed |= BY_O;
-  else if ( t->object->objtype == OBJ_RESOURCE )
+  if ( t->object_is_literal )
+  { literal *lit = t->object.literal;
+
+    if ( lit->objtype == OBJ_STRING && 
+	 lit->value.string &&
+	 t->match <= STR_MATCH_EXACT )
+      t->indexed |= BY_O;
+  } else if ( t->object.resource )
     t->indexed |= BY_O;
 
   db->indexed[t->indexed]++;		/* statistics */
@@ -3438,20 +3516,14 @@ inverse_partial_triple(triple *t)
 
   if ( !t->inversed &&
        (!t->predicate || (i=t->predicate->inverse_of)) &&
-       t->object->objtype <= OBJ_RESOURCE )	/* also allow OBJ_UNTYPED */
-  { atom_t o = t->object->value.resource;
+       !t->object_is_literal )
+  { atom_t o = t->object.resource;
 
-    if ( (t->object->value.resource = t->subject) )
-      t->object->objtype = OBJ_RESOURCE;
+    t->object.resource = t->subject;
     t->subject = o;
 
     if ( t->predicate )
-    { if ( i == t->predicate )		/* symmetric */
-      { 
-      } else
-      { t->predicate = i;
-      }
-    }
+      t->predicate = i;
 
     t->indexed  = by_inverse[t->indexed];
     t->inversed = TRUE;
@@ -3516,18 +3588,20 @@ same_source(triple *t1, triple *t2)
 
 static int
 put_value(term_t v, triple *t)
-{ switch(t->object->objtype)
+{ literal *lit = t->object.literal;
+
+  switch(lit->objtype)
   { case OBJ_STRING:
-      PL_put_atom(v, t->object->value.string);
+      PL_put_atom(v, lit->value.string);
       break;
     case OBJ_INTEGER:
-      PL_put_integer(v, t->object->value.integer);
+      PL_put_integer(v, lit->value.integer);
       break;
     case OBJ_DOUBLE:
-      PL_put_float(v, t->object->value.real);
+      PL_put_float(v, lit->value.real);
       break;
     case OBJ_TERM:
-      PL_recorded_external(t->object->value.term.record, v);
+      PL_recorded_external(lit->value.term.record, v);
       break;
     default:
       assert(0);
@@ -3541,11 +3615,10 @@ put_value(term_t v, triple *t)
 
 static int
 unify_object(term_t object, triple *t)
-{ if ( t->object->objtype == OBJ_RESOURCE )
-  { return PL_unify_atom(object, t->object->value.resource);
-  } else
+{ if ( t->object_is_literal )
   { term_t v = PL_new_term_ref();
     term_t lit = PL_new_term_ref();
+    literal *l = t->object.literal;
 
     put_value(v, t);
 
@@ -3554,18 +3627,18 @@ unify_object(term_t object, triple *t)
     else if ( PL_is_functor(object, FUNCTOR_literal2) )
       PL_get_arg(2, object, lit);
 
-    if ( t->object->qualifier )
+    if ( l->qualifier )
     { functor_t qf;
 
-      assert(t->object->type_or_lang);
+      assert(l->type_or_lang);
 
-      if ( t->object->qualifier == Q_LANG )
+      if ( l->qualifier == Q_LANG )
 	qf = FUNCTOR_lang2;
       else
 	qf = FUNCTOR_type2;
 
       if ( PL_unify_term(lit, PL_FUNCTOR, qf,
-			   PL_ATOM, t->object->type_or_lang,
+			   PL_ATOM, l->type_or_lang,
 			   PL_TERM, v) )
 	return TRUE;
 
@@ -3573,7 +3646,7 @@ unify_object(term_t object, triple *t)
     } else if ( PL_unify(lit, v) )
     { return TRUE;
     } else if ( PL_is_functor(lit, FUNCTOR_lang2) &&
-		t->object->objtype == OBJ_STRING )
+		l->objtype == OBJ_STRING )
     { term_t a = PL_new_term_ref();
       PL_get_arg(2, lit, a);
       return PL_unify(a, v);
@@ -3583,6 +3656,8 @@ unify_object(term_t object, triple *t)
       return PL_unify(a, v);
     } else
       return FALSE;
+  } else
+  { return PL_unify_atom(object, t->object.resource);
   }
 }
 
@@ -4073,11 +4148,8 @@ rdf(term_t subject, term_t predicate, term_t object,
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
     { triple t, *p;
-      literal obj;
       
       memset(&t, 0, sizeof(t));
-      memset(&obj, 0, sizeof(obj));
-      t.object = &obj;
       if ( get_partial_triple(db, subject, predicate, object, src, &t) != TRUE )
 	return FALSE;
 
@@ -4280,13 +4352,15 @@ choicepoints.
 static int
 update_triple(rdf_db *db, term_t action, triple *t)
 { term_t a = PL_new_term_ref();
-  literal tmpobj;
+  literal tmplit;
   triple tmp, *new;
   int i;
-
+					/* Create copy in local memory */
   tmp = *t;
-  tmpobj = *t->object;
-  tmp.object = &tmpobj;
+  if ( t->object_is_literal )
+  { tmplit = *t->object.literal;
+    tmp.object.literal = &tmplit;
+  }
 
   if ( !PL_get_arg(1, action, a) )
     return type_error(action, "rdf_action");
@@ -4311,19 +4385,22 @@ update_triple(rdf_db *db, term_t action, triple *t)
     tmp.predicate = p;
   } else if ( PL_is_functor(action, FUNCTOR_object1) )
   { triple t2;
-    literal obj;
 
     memset(&t2, 0, sizeof(t2));
-    memset(&obj, 0, sizeof(obj));
-    t2.object = &obj;
 
-    if ( !get_object(a, &t2) )
+    if ( !get_object(db, a, &t2) )
       return FALSE;
     if ( match_object(&t2, &tmp) &&
-	 t2.object->qualifier == tmp.object->qualifier )
+	 ( !t2.object_is_literal ||
+	   t2.object.literal->qualifier == tmp.object.literal->qualifier ) )
       return TRUE;
 
-    *tmp.object = *t2.object;
+					/* TBD: Check allocation */
+    if ( (tmp.object_is_literal = t2.object_is_literal) )
+    { tmp.object.literal = t2.object.literal;
+    } else
+    { tmp.object.resource = t2.object.resource;
+    }
   } else if ( PL_is_functor(action, FUNCTOR_source1) )
   { triple t2;
 
@@ -4350,11 +4427,13 @@ update_triple(rdf_db *db, term_t action, triple *t)
     tmp.next[i] = NULL;
 
   new = new_triple(db);
-  new->subject	    = tmp.subject;
-  new->predicate    = tmp.predicate;
-  *new->object      = *tmp.object;
-  new->source	    = tmp.source;
-  new->line	    = tmp.line;
+  new->subject		 = tmp.subject;
+  new->predicate	 = tmp.predicate;
+  new->object		 = tmp.object;		/* assumes tmp has allocated it */
+  new->object_is_literal = tmp.object_is_literal;
+  new->source		 = tmp.source;
+  new->line		 = tmp.line;
+
   lock_atoms(new);
 
   if ( db->tr_first )
@@ -4375,17 +4454,14 @@ static foreign_t
 rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
 	    term_t action)
 { triple t, *p;
-  literal obj;
   int indexed = BY_SP;
   int done = 0;
   rdf_db *db = DB;
     
   memset(&t, 0, sizeof(t));
-  memset(&obj, 0, sizeof(obj));
-  t.object = &obj;
 
-  if ( !get_triple(db, subject, predicate, object, &t) ||
-       !get_src(src, &t) )
+  if ( !get_src(src, &t) ||
+       !get_triple(db, subject, predicate, object, &t) )
     return FALSE;
   
   if ( !WRLOCK(db, FALSE) )
@@ -4897,7 +4973,6 @@ typedef struct agenda
   visited **hash;			/* hash-table for cycle detection */
   int	  hash_size;
   int     size;				/* size of the agenda */
-  literal pattern_object;		/* object of the pattern */
   triple  pattern;			/* partial triple used as pattern */
   atom_t  target;			/* resource we are seaching for */
   struct chunk  *chunk;			/* node-allocation chunks */
@@ -4958,7 +5033,6 @@ save_agenda(rdf_db *db, agenda *a)
 { agenda *r = rdf_malloc(db, sizeof(*r));
 
   *r = *a;
-  r->pattern.object = &r->pattern_object;
 
   return r;
 }
@@ -5053,7 +5127,7 @@ can_reach_target(rdf_db *db, agenda *a)
   triple *p;
 
   if ( indexed & BY_S )			/* subj ---> */
-  { a->pattern.object->value.resource = a->target;
+  { a->pattern.object.resource = a->target;
     indexed |= BY_O;
   } else
   { a->pattern.subject = a->target;
@@ -5069,7 +5143,7 @@ can_reach_target(rdf_db *db, agenda *a)
   }
 
   if ( a->pattern.indexed & BY_S )	
-  { a->pattern.object->value.resource = 0;
+  { a->pattern.object.resource = 0;
   } else
   { a->pattern.subject = 0;
   }
@@ -5088,7 +5162,7 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource)
   if ( indexed & BY_S )			/* subj ---> */
   { a->pattern.subject = resource;
   } else
-  { a->pattern.object->value.resource = resource;
+  { a->pattern.object.resource = resource;
   }
 
   if ( a->target && can_reach_target(db, a) )
@@ -5098,7 +5172,7 @@ bf_expand(rdf_db *db, agenda *a, atom_t resource)
   p = db->table[indexed][triple_hash(db, &a->pattern, indexed)];
   for( ; p; p = p->next[indexed])
   { if ( match_triples(p, &a->pattern, MATCH_SUBPROPERTY) )
-    { atom_t found = (indexed & BY_S) ? p->object->value.resource : p->subject;
+    { atom_t found = (indexed & BY_S) ? p->object.resource : p->subject;
       visited *v;
 
       v = append_agenda(db, a, found);
@@ -5172,7 +5246,6 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	return instantiation_error(pred);
 
       memset(&a, 0, sizeof(a));
-      a.pattern.object = &a.pattern_object;
 
       if ( !PL_is_variable(subj) )		/* subj .... obj */
       { switch(get_partial_triple(db, subj, pred, 0, 0, &a.pattern))
@@ -5181,9 +5254,9 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	  case -1:
 	    return FALSE;
 	}
-	a.target = a.pattern.object->value.resource;
+	a.target = a.pattern.object.resource;
 	target_term = obj;
-      } else if ( !PL_is_variable(obj) ) 	/* obj .... subj */
+      } else if ( PL_is_atom(obj) )		/* obj .... subj */
       {	switch(get_partial_triple(db, 0, pred, obj, 0, &a.pattern))
 	{ case 0:
 	    return directly_attached(pred, obj, subj);
@@ -5200,7 +5273,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       if ( (a.pattern.indexed & BY_S) ) 	/* subj ... */
 	append_agenda(db, &a, a.pattern.subject);
       else
-	append_agenda(db, &a, a.pattern.object->value.resource);
+	append_agenda(db, &a, a.pattern.object.resource);
       a.to_return = a.head;
       a.to_expand = a.head;
 

@@ -39,7 +39,7 @@
 		 *******************************/
 
 #define OBJ_UNTYPED	0x0		/* partial: don't know */
-#define	OBJ_RESOURCE	0x1
+/*#define OBJ_RESOURCE	0x1*/
 #define OBJ_STRING	0x2
 #define OBJ_INTEGER	0x3
 #define OBJ_DOUBLE	0x4
@@ -146,11 +146,16 @@ typedef struct literal
 typedef struct triple
 { atom_t	subject;
   predicate*	predicate;
-  literal *	object;
+  union
+  { literal *	literal;
+    atom_t	resource;
+  } object;
   atom_t	source;			/* where it comes from */
+  unsigned long line;			/* source-line number */
+					/* indexing */
   struct triple*next[INDEX_TABLES];	/* hash-table next links */
 					/* flags */
-  unsigned	object_is_resource : 1;	/* Object is a resource */
+  unsigned	object_is_literal : 1;	/* Object is a literal */
   unsigned	indexed : 3;		/* Partials: BY_* */
   unsigned	erased  : 1;		/* If TRUE, triple is erased */
   unsigned	first   : 1;		/* I'm the first on subject */
@@ -159,7 +164,6 @@ typedef struct triple
   unsigned	is_duplicate : 1;	/* I'm a duplicate */
   unsigned	duplicates : 16;	/* Duplicate count */
 					/* Total: 32 */
-  unsigned long line;			/* source-line number */
 } triple;
 
 
