@@ -470,6 +470,10 @@ reachable(2) :-
 	rdf_reachable(a, p, d).
 reachable(3) :-
 	graph,
+	rdf_reachable(a, p, X),
+	X == c, !.
+reachable(4) :-
+	graph,
 	findall(O, rdf_reachable(a, p, O), Os),
 	Os = [a,b,c,d].
 
