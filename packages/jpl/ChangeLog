@@ -1,3 +1,7 @@
+Jan 31, 2006
+
+  * CONFIG: Windows-XP configure problem on amd64.  Keri Harris.
+
 Oct 28, 2004
 
   * CONFIG: Bug#197: Handle absolute path for JAVAC.  Owen Cliffe.
