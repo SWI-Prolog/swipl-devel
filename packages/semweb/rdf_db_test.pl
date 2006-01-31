@@ -450,6 +450,29 @@ monitor(transaction-1) :-
 	      ].
 
 
+		 /*******************************
+		 *	    REACHABLE		*
+		 *******************************/
+
+graph(a, p, b).
+graph(b, p, c).
+graph(c, p, d).
+graph(b, p, d).
+
+graph :-
+	forall(graph(S,P,O),
+	       rdf_assert(S,P,O)).
+
+reachable(1) :-
+	rdf_reachable(a, x, a).
+reachable(2) :-
+	graph,
+	rdf_reachable(a, p, d).
+reachable(3) :-
+	graph,
+	findall(O, rdf_reachable(a, p, O), Os),
+	Os = [a,b,c,d].
+
 
 		 /*******************************
 		 *	      SCRIPTS		*
@@ -535,6 +558,7 @@ testset(label).
 testset(match).
 testset(rdf_retractall).
 testset(monitor).
+testset(reachable).
 
 %	testdir(Dir)
 %	
