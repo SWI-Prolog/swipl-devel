@@ -36,9 +36,11 @@ install::
 rpm-install:	install
 
 pdf-install::
+		mkdir -p $(DESTDIR)$(PKGDOC)
 		$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)$(PKGDOC)
 
 html-install::
+		mkdir -p $(DESTDIR)$(PKGDOC)
 		$(INSTALL_DATA) $(DOC).html $(DESTDIR)$(PKGDOC)
 
 uninstall::

@@ -162,7 +162,7 @@ exjava-install:	exjava-compile
 		$(INSTALL_DATA) examples/java/SemWeb/test.rdf $(DESTDIR)$(EXJAVA)/SemWeb
 
 pdf-install::
-		mkdir -p $(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
 		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)$(PKGDOC)
 
 uninstall::

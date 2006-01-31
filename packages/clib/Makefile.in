@@ -106,7 +106,7 @@ html-install::
 		$(INSTALL) -m 644 clib.html $(DESTDIR)$(PKGDOC)
 
 pdf-install::
-		mkdir -p $(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
 		$(INSTALL) -m 644 clib.pdf $(DESTDIR)$(PKGDOC)
 
 uninstall::

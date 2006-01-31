@@ -74,7 +74,7 @@ html-install:	install-examples
 		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)$(PKGDOC)
 
 pdf-install:	install-examples
-		mkdir -p $(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
 		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)$(PKGDOC)
 
 install-examples::

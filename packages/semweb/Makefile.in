@@ -85,12 +85,12 @@ ln-install:	$(TARGETS) $(LIBPL)
 rpm-install:	install
 
 html-install::
-		mkdir -p $(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
 		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)$(PKGDOC)
 		$(INSTALL) -m 644 modules.gif $(DESTDIR)$(PKGDOC)
 
 pdf-install::
-		mkdir -p $(PKGDOC)
+		mkdir -p $(DESTDIR)$(PKGDOC)
 		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)$(PKGDOC)
 
 uninstall::
