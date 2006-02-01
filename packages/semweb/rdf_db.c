@@ -4505,9 +4505,12 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
     return FALSE;
   
   if ( !WRLOCK(db, FALSE) )
+  { free_triple(db, &t);
     return FALSE;
+  }
   if ( !update_hash(db) )
   { WRUNLOCK(db);
+    free_triple(db, &t);
     return FALSE;
   }
   p = db->table[indexed][triple_hash(db, &t, indexed)];
@@ -4515,11 +4518,13 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
   { if ( match_triples(p, &t, MATCH_EXACT) )
     { if ( !update_triple(db, action, p) )
       { WRUNLOCK(db);
+	free_triple(db, &t);
 	return FALSE;			/* type errors */
       }
       done++;
     }
   }
+  free_triple(db, &t);
   WRUNLOCK(db);
 
   return done ? TRUE : FALSE;
