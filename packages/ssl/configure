@@ -4031,7 +4031,7 @@ if test "$ac_cv_lib_ssl_SSL_library_init" = yes &&
   TARGETS="ssl4pl.$SO"
 else
   echo "ERROR:   Cannot find ssl library"
-  echo "WARNING: SSL interface will not be build"
+  echo "WARNING: SSL interface will not be built"
   TARGETS=""
 fi
 

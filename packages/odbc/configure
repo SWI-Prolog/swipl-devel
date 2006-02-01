@@ -4354,7 +4354,7 @@ if test "$havelib" = yes &&
   TARGETS="odbc4pl.$SO"
 else
   echo "ERROR:   Cannot find odbc library or the header sql.h"
-  echo "WARNING: ODBC interface will not be build"
+  echo "WARNING: ODBC interface will not be built"
   TARGETS=""
 fi
 
