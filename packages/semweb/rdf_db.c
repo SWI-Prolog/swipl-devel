@@ -31,6 +31,9 @@
 #include <windows.h>
 #include <malloc.h>			/* alloca() */
 #else
+#if !defined(__GNUC__) && defined(HAVE_ALLOCA_H)
+#include <alloca.h>
+#endif
 #include <pthread.h>
 #include <errno.h>
 #endif
@@ -1003,7 +1006,6 @@ print_object(triple *t)
 	PL_recorded_external(lit->value.term.record, term);
 	PL_write_term(Serror, term, 1200,
 		      PL_WRT_QUOTED|PL_WRT_NUMBERVARS|PL_WRT_PORTRAY);
-	break;
 	PL_discard_foreign_frame(fid);
 	break;
       }
@@ -1205,13 +1207,13 @@ free_predicate(rdf_db *db, predicate *p)
 #endif
 
 
-static __inline int
+static inline int
 is_dummy_root(predicate *p)
 { return p && !p->name;			/* no name --> dummy root */
 }
 
 
-static __inline int
+static inline int
 is_virgin_dummy_root(predicate *p)
 { return is_dummy_root(p) && !p->siblings.head;
 }
@@ -2117,7 +2119,7 @@ ok:
 }
 
 
-static __inline void
+static inline void
 link_triple(rdf_db *db, triple *t)
 { link_triple_silent(db, t);
   broadcast(EV_ASSERT, t, NULL);
@@ -2309,7 +2311,7 @@ erase_triple_silent(rdf_db *db, triple *t)
 }
 
 
-static __inline void
+static inline void
 erase_triple(rdf_db *db, triple *t)
 { erase_triple_silent(db, t);
   broadcast(EV_RETRACT, t, NULL);
@@ -2502,7 +2504,7 @@ destroy_saved(rdf_db *db, save_context *ctx)
 }
 
 #define LONGBITSIZE (sizeof(long)*8)
-#define PLMINLONG   ((long)(1L<<(LONGBITSIZE-1)))
+#define PLMINLONG   ((long)(1UL<<(LONGBITSIZE-1)))
 
 static void
 save_int(IOSTREAM *fd, long n)
@@ -5718,7 +5720,7 @@ get_atom_text(atom_t atom, text *txt)
 }
 
 
-__inline wint_t
+inline wint_t
 fetch(const text *txt, int i)
 { return txt->a ? (wint_t)txt->a[i] : (wint_t)txt->w[i];
 }

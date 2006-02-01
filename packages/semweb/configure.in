@@ -68,6 +68,7 @@ AC_HEADER_STDC
 CFLAGS="$CMFLAGS"
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
+AC_C_INLINE
 
 if test ! -z "$GCC"; then
     COFLAGS="-O2 -fno-strict-aliasing"
