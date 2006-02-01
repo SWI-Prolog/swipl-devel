@@ -1,6 +1,15 @@
+Feb 1, 2006
+
+  * INTERNAL: completed first step of new literal handling code.  System
+    passes internal tests under valgrind memory tests.  Fixed two
+    memory leaks that pre-dated this change: using terms as literals
+    and reclaiming the temporary datastructures using in rdf_save_db/2.
+
 Jan 31, 2006
 
   * INTERNAL: 1-st step making literals first class citizens.
+  * NOTE: The changes are numerous.  Be aware of possible stability
+    problems.
 
 Jan 17, 2006
 
