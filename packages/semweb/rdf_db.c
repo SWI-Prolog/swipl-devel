@@ -1817,6 +1817,38 @@ alloc_literal_triple(rdf_db *db, triple *t)
 }
 
 
+static void
+lock_atoms_literal(literal *lit)
+{ if ( !lit->atoms_locked )
+  { lit->atoms_locked = TRUE;
+
+    switch(lit->objtype)
+    { case OBJ_STRING:
+	PL_register_atom(lit->value.string);
+	if ( lit->qualifier )
+	  PL_register_atom(lit->type_or_lang);
+	break;
+    }
+  }
+}
+
+
+static void
+unlock_atoms_literal(literal *lit)
+{ if ( lit->atoms_locked )
+  { lit->atoms_locked = FALSE;
+
+    switch(lit->objtype)
+    { case OBJ_STRING:
+	PL_unregister_atom(lit->value.string);
+	if ( lit->qualifier )
+	  PL_unregister_atom(lit->type_or_lang);
+	break;
+    }
+  }
+}
+
+
 		 /*******************************
 		 *	      TRIPLES		*
 		 *******************************/
@@ -1872,7 +1904,9 @@ new_triple(rdf_db *db)
 
 static void
 free_triple(rdf_db *db, triple *t)
-{ if ( t->object_is_literal) 
+{ unlock_atoms(t);
+
+  if ( t->object_is_literal) 
     free_literal(db, t->object.literal);
 
   if ( t->allocated )
@@ -2188,7 +2222,6 @@ rehash_triples(rdf_db *db)
   for(t=db->by_none; t && t->erased; t=t2)
   { t2 = t->next[BY_NONE];
 
-    unlock_atoms(t);
     free_triple(db, t);
     db->freed++;
 
@@ -2209,7 +2242,6 @@ rehash_triples(rdf_db *db)
     for( ; t2 && t2->erased; t2=t3 )
     { t3 = t2->next[BY_NONE];
 
-      unlock_atoms(t2);
       free_triple(db, t2);
       db->freed++;
     }
@@ -3258,38 +3290,30 @@ in the predicate structure.
 
 static void
 lock_atoms(triple *t)
-{ PL_register_atom(t->subject);
-  if ( t->object_is_literal )
-  { literal *lit = t->object.literal;
+{ if ( !t->atoms_locked )
+  { t->atoms_locked = TRUE;
 
-    switch(lit->objtype)
-    { case OBJ_STRING:
-	PL_register_atom(lit->value.string);
-	if ( lit->qualifier )
-	  PL_register_atom(lit->type_or_lang);
-	break;
+    PL_register_atom(t->subject);
+    if ( t->object_is_literal )
+    { lock_atoms_literal(t->object.literal);
+    } else
+    { PL_register_atom(t->object.resource);
     }
-  } else
-  { PL_register_atom(t->object.resource);
   }
 }
 
 
 static void
 unlock_atoms(triple *t)
-{ PL_unregister_atom(t->subject);
-  if ( t->object_is_literal )
-  { literal *lit = t->object.literal;
+{ if ( t->atoms_locked )
+  { t->atoms_locked = FALSE;
 
-    switch(lit->objtype)
-    { case OBJ_STRING:
-	PL_unregister_atom(lit->value.string);
-	if ( lit->qualifier )
-	  PL_unregister_atom(lit->type_or_lang);
-	break;
+    PL_unregister_atom(t->subject);
+    if ( t->object_is_literal )
+    { unlock_atoms_literal(t->object.literal);
+    } else
+    { PL_unregister_atom(t->object.resource);
     }
-  } else
-  { PL_unregister_atom(t->object.resource);
   }
 }
 
@@ -3936,11 +3960,9 @@ static void
 free_transaction(rdf_db *db, transaction_record *tr)
 { switch(tr->type)
   { case TR_ASSERT:
-      unlock_atoms(tr->triple);
       free_triple(db, tr->triple);
       break;
     case TR_UPDATE:
-      unlock_atoms(tr->update.triple);
       free_triple(db, tr->update.triple);
       break;
     case TR_UPDATE_MD5:
@@ -4156,8 +4178,7 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
 
   lock_atoms(t);
   if ( !WRLOCK(db, FALSE) )
-  { unlock_atoms(t);
-    free_triple(db, t);
+  { free_triple(db, t);
     return FALSE;
   }
 
@@ -5516,7 +5537,6 @@ erase_triples(rdf_db *db)
   for(t=db->by_none; t; t=n)
   { n = t->next[BY_NONE];
 
-    unlock_atoms(t);
     free_triple(db, t);
     db->freed++;
   }

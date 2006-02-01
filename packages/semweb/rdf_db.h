@@ -137,7 +137,8 @@ typedef struct literal
   unsigned	objtype : 3;
   unsigned	qualifier : 2;		/* Lang/Type qualifier */
   unsigned	shared : 1;		/* member of shared table */
-  unsigned	term_loaded : 1;	/* OBJ_TERM is loaded from a quick save file */
+  unsigned	term_loaded : 1;	/* OBJ_TERM from quick save file */
+  unsigned	atoms_locked : 1;	/* Atoms have been locked */
   unsigned	references : 24;	/* # references to me */
 } literal;
 
@@ -164,6 +165,7 @@ typedef struct triple
   unsigned	inversed : 1;		/* Partials: using inverse match */
   unsigned	is_duplicate : 1;	/* I'm a duplicate */
   unsigned	allocated : 1;		/* Triple is allocated */
+  unsigned	atoms_locked : 1;	/* Atoms have been locked */
   unsigned	duplicates : 16;	/* Duplicate count */
 					/* Total: 32 */
 } triple;
