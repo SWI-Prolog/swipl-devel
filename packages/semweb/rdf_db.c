@@ -1790,7 +1790,14 @@ new_literal(rdf_db *db)
 static void
 free_literal(rdf_db *db, literal *lit)
 { if ( --lit->references == 0 )
+  { if ( lit->objtype == OBJ_TERM )
+    { if ( lit->term_loaded )
+	rdf_free(db, lit->value.term.record, lit->value.term.len);
+      else
+	PL_erase_external(lit->value.term.record);
+    }
     rdf_free(db, lit, sizeof(*lit));
+  }
 }
 
 
@@ -2921,6 +2928,7 @@ load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 	lit->objtype = OBJ_TERM;
 	lit->value.term.len = load_int(in);
 	lit->value.term.record = rdf_malloc(db, lit->value.term.len);
+	lit->term_loaded = TRUE;	/* see free_literal() */
 	s = (char *)lit->value.term.record;
   
 	for(i=0; i<lit->value.term.len; i++)
@@ -3306,6 +3314,11 @@ get_lit_atom_ex(term_t t, atom_t *a, int flags)
   return type_error(t, "atom");
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_literal() processes the argument  of  a   literal/1  term  passes as
+object.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 get_literal(rdf_db *db, term_t litt, triple *t, int flags)

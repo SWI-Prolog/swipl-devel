@@ -137,6 +137,7 @@ typedef struct literal
   unsigned	objtype : 3;
   unsigned	qualifier : 2;		/* Lang/Type qualifier */
   unsigned	shared : 1;		/* member of shared table */
+  unsigned	term_loaded : 1;	/* OBJ_TERM is loaded from a quick save file */
   unsigned	references : 24;	/* # references to me */
 } literal;
 
