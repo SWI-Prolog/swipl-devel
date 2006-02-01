@@ -2499,7 +2499,20 @@ init_saved(rdf_db *db, save_context *ctx)
 static void
 destroy_saved(rdf_db *db, save_context *ctx)
 { if ( ctx->saved_table )
+  { saved **s = ctx->saved_table;
+    int i;
+
+    for(i=0; i<ctx->saved_size; i++, s++)
+    { saved *c, *n;
+
+      for(c=*s; c; c = n)
+      { n = c->next;
+	free(c);
+      }
+    }
+  
     rdf_free(db, ctx->saved_table, ctx->saved_size*sizeof(*ctx->saved_table));
+  }
 }
 
 #define LONGBITSIZE (sizeof(long)*8)
@@ -2884,7 +2897,6 @@ load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
   } else
   { literal *lit = new_literal(db);
 
-    memset(lit, 0, sizeof(*lit));
     t->object_is_literal = TRUE;
     t->object.literal = lit;
 
