@@ -1850,6 +1850,123 @@ unlock_atoms_literal(literal *lit)
 
 
 		 /*******************************
+		 *	     LITERAL DB		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compare_literals() sorts literals.  Ordering is defined as:
+
+	* Numeric literals < string literals < term literals
+	* Numeric literals (int and float) are sorted by value
+	* String literals are sorted alhabetically
+		- case independent, but uppercase before lowercase
+		- locale (strcoll) sorting?
+		- first on string, then on type, then on language
+	* Terms are sorted on Prolog standard order of terms
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+cmp_atoms(atom_t a1, atom_t a2)
+{ return 0;				/* TBD */
+}
+
+
+static int
+compare_literals(void *p1, void *p2)
+{ literal *l1 = p1;
+  literal *l2 = p2;
+
+  if ( l1->objtype == l2->objtype )
+  { switch(l1->objtype)
+    { case OBJ_INTEGER:
+      { long v1 = l1->value.integer;
+	long v2 = l2->value.integer;
+	return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
+      }
+      case OBJ_DOUBLE:
+      { double v1 = (double)l1->value.integer;
+	double v2 = (double)l2->value.integer;
+	return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
+      }
+      case OBJ_STRING:
+      { int rc = cmp_atoms(l1->value.string, l2->value.string);
+	if ( rc == 0 )
+	{				/* TBD */
+	}
+	return rc;
+      }
+      case OBJ_TERM:
+      { fid_t fid = PL_open_foreign_frame();
+	term_t t1 = PL_new_term_ref();
+	term_t t2 = PL_new_term_ref();
+	int rc;
+
+	PL_recorded_external(l1->value.term.record, t1);
+	PL_recorded_external(l2->value.term.record, t2);
+	rc = PL_compare(t1, t2);
+
+	PL_discard_foreign_frame(fid);
+      }
+      default:
+	assert(0);
+        return 0;
+    }
+  } else if ( l1->objtype == OBJ_INTEGER && l2->objtype == OBJ_DOUBLE )
+  { double v1 = (double)l1->value.integer;
+    double v2 = l2->value.real;
+    return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
+  } else if ( l1->objtype == OBJ_DOUBLE && l2->objtype == OBJ_INTEGER )
+  { double v1 = l1->value.real;
+    double v2 = (double)l2->value.integer;
+    return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
+  } else
+  { return l1->objtype - l2->objtype;
+  }
+}
+
+
+static void
+free_literal_node(avl_node *node)
+{ rdf_db *db = DB;
+
+  free_literal(db, node->value);
+}
+
+
+static void
+init_literal_table(rdf_db *db)
+{ db->literals = rdf_malloc(db, sizeof(*db->literals));
+  avl_init(db->literals);
+  db->literals->compare = compare_literals;
+  db->literals->destroy_node = free_literal_node;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+share_literal() takes a literal  and  replaces   it  with  one  from the
+literal database if there is a match.   On a match, the argument literal
+is destroyed. Without a match it adds   the  literal to the database and
+returns it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static literal *
+share_literal(rdf_db *db, literal *from)
+{ avl_node *node;
+
+  if ( (node = avl_find_node(db->literals, from)) )
+  { literal *l2 = node->key;
+    l2->references++;
+    free_literal(db, from);
+
+    return l2;
+  } else
+  { avl_insert(db->literals, from, NULL);
+    return from;
+  }
+}
+
+
+		 /*******************************
 		 *	      TRIPLES		*
 		 *******************************/
 
@@ -1877,6 +1994,7 @@ init_tables(rdf_db *db)
 
   init_pred_table(db);
   init_source_table(db);
+  init_literal_table(db);
 }
 
 
@@ -3101,6 +3219,17 @@ rdf_load_db(term_t stream, term_t id)
 		 *	     MD5 SUPPORT	*
 		 *******************************/
 
+/* md5_type is used to keep the MD5 independent from the internal
+   numbers
+*/
+static const char md5_type[] =
+{ 0x0,					/* OBJ_UNKNOWN */
+  0x3,					/* OBJ_INTEGER */
+  0x4,					/* OBJ_DOUBLE */
+  0x2,					/* OBJ_STRING */
+  0x5					/* OBJ_TERM */
+};
+
 static void
 md5_triple(triple *t, md5_byte_t *digest)
 { md5_state_t state;
@@ -3116,10 +3245,10 @@ md5_triple(triple *t, md5_byte_t *digest)
   s = PL_blob_data(t->predicate->name, &len, NULL);
   md5_append(&state, (const md5_byte_t *)s, len);
   tmp[0] = 'O';
+  tmp[1] = md5_type[lit->objtype];
   if ( t->object_is_literal )
   { lit = t->object.literal;
 
-    tmp[1] = (char)lit->objtype;
     switch(lit->objtype)
     { case OBJ_STRING:
 	s = PL_blob_data(lit->value.string, &len, NULL);
@@ -3141,7 +3270,6 @@ md5_triple(triple *t, md5_byte_t *digest)
     }
   } else
   { s = PL_blob_data(t->object.resource, &len, NULL);
-    tmp[1] = 0x1;			/* was OBJ_RESOURCE */
     lit = NULL;
   }
   md5_append(&state, tmp, 2);

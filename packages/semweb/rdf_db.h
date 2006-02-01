@@ -24,6 +24,7 @@
 
 #ifndef RDFDB_H_INCLUDED
 #define RDFDB_H_INCLUDED
+#include "atom_set.h"
 #ifdef WITH_MD5
 #include "md5.h"
 #endif
@@ -38,12 +39,12 @@
 		 *               C		*
 		 *******************************/
 
+/* Keep consistent with md5_type[] in rdf_db.c! */
 #define OBJ_UNTYPED	0x0		/* partial: don't know */
-/*#define OBJ_RESOURCE	0x1*/
-#define OBJ_STRING	0x2
-#define OBJ_INTEGER	0x3
-#define OBJ_DOUBLE	0x4
-#define OBJ_TERM	0x5
+#define OBJ_INTEGER	0x1
+#define OBJ_DOUBLE	0x2
+#define OBJ_STRING	0x3
+#define OBJ_TERM	0x4
 
 #define Q_NONE		0x0
 #define Q_LANG		0x1
@@ -266,6 +267,8 @@ typedef struct rdf_db
 #endif
   int			writer;
   int			readers;
+
+  avl_tree	       *literals;
 } rdf_db;
 
 #endif /*RDFDB_H_INCLUDED*/
