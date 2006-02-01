@@ -130,7 +130,7 @@ pop_location(dtd_parser *p, locbuf *saved)
 }
 
 
-static __inline void
+static inline void
 _sgml_cplocation(dtd_srcloc *d, dtd_srcloc *loc)
 { d->type    = loc->type;
   d->name    = loc->name;
@@ -173,7 +173,7 @@ dec_location(dtd_srcloc *l, int chr)
 		 *   CLASSIFICATION PRIMITIVES	*
 		 *******************************/
 
-static __inline int
+static inline int
 HasClass(dtd *dtd, wint_t chr, int mask)
 { if ( chr <= 0xff )
     return (dtd->charclass->class[(chr)] & (mask));
@@ -4646,7 +4646,7 @@ recover_parser(dtd_parser *p)
 }
 
 
-static __inline void
+static inline void
 setlocation(dtd_srcloc *d, dtd_srcloc *loc, int line, int lpos)
 { d->line    = line;
   d->linepos = lpos;

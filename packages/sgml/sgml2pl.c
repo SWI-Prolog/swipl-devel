@@ -2113,8 +2113,6 @@ dtd_prop_entities(dtd *dtd, term_t list)
   }
 
   return PL_unify_nil(tail);
-
-  return FALSE;
 }
 
 

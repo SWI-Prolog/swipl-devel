@@ -610,7 +610,7 @@ load_sgml_file_to_charp(const char *file, int normalise_rsre, int *length)
 	{ int nl;
 	  int last_is_lf;
 
-	  last_is_lf = (s > 0 && s[-1] == '\n');
+	  last_is_lf = (len > 0 && s[-1] == '\n');
 
 	  for(s=r, nl=0; *s; s++)
 	  { if ( *s == '\n' && s>r && s[-1] != '\r' )
