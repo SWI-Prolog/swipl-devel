@@ -4221,10 +4221,13 @@ rdf(term_t subject, term_t predicate, term_t object,
 	      continue;
 
 	    if ( match_triples(p, &t, flags) )
-	    { t.next[0] = p;
-	      
+	    { triple *next;
+
+	      t.next[0] = p;
 	      db->active_queries++;
-	      PL_retry_address(save_triple(db, &t));
+	      next = save_triple(db, &t);
+	      free_triple(db, &t);
+	      PL_retry_address(next);
 	    }
 	  }
 
@@ -4435,7 +4438,9 @@ update_triple(rdf_db *db, term_t action, triple *t)
     memset(&t2, 0, sizeof(t2));
 
     if ( !get_object(db, a, &t2) )
+    { free_triple(db, &t2);
       return FALSE;
+    }
     if ( match_object(&t2, &tmp) &&
 	 ( !t2.object_is_literal ||
 	   t2.object.literal->qualifier == tmp.object.literal->qualifier ) )
