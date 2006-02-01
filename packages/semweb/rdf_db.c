@@ -2402,9 +2402,8 @@ match_triples(triple *t, triple *p, unsigned flags)
 					/* last; may be expensive */
   if ( p->predicate && t->predicate != p->predicate )
   { if ( (flags & MATCH_SUBPROPERTY) )
-    { if ( !isSubPropertyOf(t->predicate, p->predicate) )
-	return FALSE;
-    } else
+      return isSubPropertyOf(t->predicate, p->predicate);
+    else
       return FALSE;
   }
   return TRUE;
@@ -4166,7 +4165,7 @@ rdf(term_t subject, term_t predicate, term_t object,
     { triple t, *p;
       
       memset(&t, 0, sizeof(t));
-      if ( get_partial_triple(db, subject, predicate, object, src, &t) == -1 )
+      if ( get_partial_triple(db, subject, predicate, object, src, &t) != TRUE )
 	return FALSE;
 
       if ( !RDLOCK(db) )

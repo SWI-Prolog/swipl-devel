@@ -451,6 +451,17 @@ monitor(transaction-1) :-
 
 
 		 /*******************************
+		 *	   SUB-PROPERTY		*
+		 *******************************/
+
+
+
+subproperty(1) :-
+	rdf_assert(a, p, b),
+	\+ rdf_has(_, p2, b, _).
+
+
+		 /*******************************
 		 *	    REACHABLE		*
 		 *******************************/
 
@@ -562,6 +573,7 @@ testset(label).
 testset(match).
 testset(rdf_retractall).
 testset(monitor).
+testset(subproperty).
 testset(reachable).
 
 %	testdir(Dir)
