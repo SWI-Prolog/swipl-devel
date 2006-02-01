@@ -1,3 +1,7 @@
+Feb 1, 2006
+
+  * FIXED: Remove DOS ^M from files in maildrop package.  Richard O'Keefe.
+
 Jan 19, 2006
 
   * Fixed: Bug#137: make time.c compile for single-threaded operation
