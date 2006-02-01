@@ -35,7 +35,7 @@ embedded application.
 #define UNQUOTED_PREFIX "\1"
 
 #ifdef WIN32
-#ifdef VC8				/* needed on visual studio 8 */
+#if (_MSC_VER >= 1400)			/* VC8 */
 #include <config/win32.h>
 #endif
 #include <process.h>

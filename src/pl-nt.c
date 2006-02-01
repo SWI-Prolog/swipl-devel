@@ -24,11 +24,13 @@
 
 #if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
 #define _WIN32_WINNT 0x0400
-/* Please note that on some windows versions these includes must be
-   reversed.  Only, I do not know the proper conditions ...
-*/
+#if (_MSC_VER >= 1400)
+#include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
+#else
+#include <windows.h>			/* Needed for MSVC 5&6 */
 #include <winsock2.h>
+#endif
 
 #include "pl-incl.h"
 #include "pl-utf8.h"

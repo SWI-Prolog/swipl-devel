@@ -60,11 +60,9 @@ typedef struct
 			  { FMT_ERROR("not enough arguments"); \
 			  } \
 			}
-#define FMT_ERROR(fmt)	do \
-			{ Sunlock(fd); \
-			  return PL_error(NULL, 0, NULL, ERR_FORMAT, fmt); \
-			} while(0)
-#define FMT_ARG(c, a)	return Sunlock(fd), \
+#define FMT_ERROR(fmt)	return (void)Sunlock(fd), \
+			  PL_error(NULL, 0, NULL, ERR_FORMAT, fmt)
+#define FMT_ARG(c, a)	return (void)Sunlock(fd), \
 			       PL_error(NULL, 0, NULL, \
 					ERR_FORMAT_ARG, c, a)
 

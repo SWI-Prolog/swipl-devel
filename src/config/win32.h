@@ -26,6 +26,9 @@
 /* config.h.in.  Generated automatically from configure.in by autoheader.  */
 
 #define __WIN32__ 1
+#if !defined(VC8) && (_MSC_VER >= 1400)	/* Visual studio 8 */
+#define VC8 1				/* (aka Microsoft 2005 VC++ */
+#undef
 
 typedef unsigned long sigset_t;		/* we don't have this */
 typedef int mode_t;
