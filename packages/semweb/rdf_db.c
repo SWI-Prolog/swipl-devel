@@ -4177,13 +4177,18 @@ rdf(term_t subject, term_t predicate, term_t object,
     { triple t, *p;
       
       memset(&t, 0, sizeof(t));
-      if ( get_partial_triple(db, subject, predicate, object, src, &t) != TRUE )
+      if ( get_partial_triple(db, subject, predicate, object, src, &t) != TRUE )	
+      { free_triple(db, &t);
 	return FALSE;
+      }
 
       if ( !RDLOCK(db) )
+      { free_triple(db, &t);
 	return FALSE;
+      }
       if ( !update_hash(db) )
       { RDUNLOCK(db);
+	free_triple(db, &t);
 	return FALSE;
       }
 
