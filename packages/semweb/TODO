@@ -16,4 +16,5 @@ Step 1: making them into distinct objects.
 Step 2: sharing
 
 	* Use atom-set to index on resource/string/etc.
-	* Use literal-set (like atom-set) for literals with same resource/string
+	* Remove literals from tree if last references is gone
+	* Ensure fast reclaim on rdf_reset_db.
