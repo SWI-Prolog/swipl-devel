@@ -89,6 +89,10 @@ the library for embedding is in
 The required libraries for linking
 .B libpl.a
 .TP
+.B PLCFLAGS
+Flags that need to be passed to the C-compiler to generate compatible
+code.
+.TP
 .B PLLDFLAGS
 Flags that need to be passed to the C-linker for linking embedded executables.
 .TP

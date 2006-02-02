@@ -1063,6 +1063,7 @@ runtime_vars(int format)
   printvar("PLARCH",	ARCH, format);
   printvar("PLLIBS",	C_LIBS, format);
   printvar("PLLIB",	C_PLLIB, format);
+  printvar("PLCFLAGS",  C_CFLAGS, format);
   printvar("PLLDFLAGS", C_LDFLAGS, format);
 #ifdef SO_EXT
   printvar("PLSOEXT",	SO_EXT, format);

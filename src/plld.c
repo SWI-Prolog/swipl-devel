@@ -962,6 +962,10 @@ getPrologOptions()
 	  defaultProgram(&pllib, v);
 	else if ( streq(name, "PLLDFLAGS") && !shared )
 	  appendArgList(&ldoptions, v);
+	else if ( streq(name, "PLCFLAGS") )
+	{ appendArgList(&coptions, v);
+	  appendArgList(&cppoptions, v);
+	}
 	else if ( streq(name, "PLSOEXT") )
 	  soext = strdup(v);
 	else if ( streq(name, "PLTHREADS") && streq(v, "yes") )

@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Pass main compiler CFLAGS using plld.  Richard O'Keefe.
+
   * PORT: Fixed paths when using install-sh.  Richard O'Keefe.
 
   * ENHANCED: translation of t --> [a,b], ....  Richard O'Keefe.
