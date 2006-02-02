@@ -2186,7 +2186,7 @@ compatibility with older records.
 \cfunction{char *}{PL_record_external}{term_t +t, unsigned int *len}
     Record the term \arg{t} into the Prolog database as recorda/3 and
     return an opaque handle to the term.  The returned handle remains
-    valid until PL_erase() is called on it.
+    valid until PL_erase_external() is called on it.
 
     It is allowed to copy the data and use PL_recorded_external() on
     the copy.  The user is responsible for the memory management of
