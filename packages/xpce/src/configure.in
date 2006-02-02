@@ -362,7 +362,7 @@ EOF
 	    fi
 	fi
 	if test -z "$GCC"; then
-	    CMFLAGS="$CMFLAGS -K"
+	    CMFLAGS="$CMFLAGS -KPIC"
 	fi
 	;;
     *sunos*)
@@ -374,7 +374,7 @@ EOF
 	    SOEXTRAOBJ=Initialize.o
 	fi
 	if test -z "$GCC"; then
-	    CMFLAGS="$CMFLAGS -K"
+	    CMFLAGS="$CMFLAGS -KPIC"
 	fi
 	;;
     *linux*)
