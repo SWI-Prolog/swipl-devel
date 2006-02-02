@@ -260,7 +260,7 @@ parms.h:	Makefile
 		@echo "#define C_LIBS	    \"$(LNLIBS)\""     >> $@%
 		@echo "#define C_PLLIB	    \"$(USEPLLIB)\""   >> $@%
 		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
-		@echo "#define C_CFLAGS	    \"$(CFLAGS)\""     >> $@%
+		@echo "#define C_CFLAGS	    \"$(CMFLAGS) $(CIFLAGS)\"" >> $@%
 		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> $@%
 		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
 

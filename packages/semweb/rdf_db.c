@@ -177,6 +177,7 @@ static functor_t FUNCTOR_triples2;
 static functor_t FUNCTOR_subjects1;
 static functor_t FUNCTOR_predicates1;
 static functor_t FUNCTOR_duplicates1;
+static functor_t FUNCTOR_literals1;
 static functor_t FUNCTOR_subject1;
 static functor_t FUNCTOR_predicate1;
 static functor_t FUNCTOR_object1;
@@ -246,6 +247,29 @@ static void	record_transaction(rdf_db *db,
 				   tr_type type, triple *t);
 static void	record_md5_transaction(rdf_db *db,
 				       source *src, md5_byte_t *digest);
+
+
+		 /*******************************
+		 *	   TEXT HANDLING	*
+		 *******************************/
+
+typedef unsigned char charA;
+typedef wchar_t       charW;
+
+typedef struct text
+{ const charA *a;
+  const charW *w;
+  unsigned int length;
+} text;
+
+
+static int get_atom_text(atom_t atom, text *txt);
+
+inline wint_t
+fetch(const text *txt, int i)
+{ return txt->a ? (wint_t)txt->a[i] : (wint_t)txt->w[i];
+}
+
 
 
 		 /*******************************
@@ -1861,13 +1885,35 @@ compare_literals() sorts literals.  Ordering is defined as:
 	* String literals are sorted alhabetically
 		- case independent, but uppercase before lowercase
 		- locale (strcoll) sorting?
+		- delete dyadrics
 		- first on string, then on type, then on language
 	* Terms are sorted on Prolog standard order of terms
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 cmp_atoms(atom_t a1, atom_t a2)
-{ return 0;				/* TBD */
+{ text t1, t2;
+  int i;
+  
+  if ( !get_atom_text(a1, &t1) ||
+       !get_atom_text(a2, &t2) )
+  { return (long)a1-(long)a2;		/* non-text atoms? */
+  }
+
+  if ( t1.a && t2.a )
+    return strcmp(t1.a, t2.a);
+  if ( t1.w && t2.w )
+    return wcscmp(t1.w, t2.w);
+  
+  for(i=0; ; i++)
+  { wint_t c1 = fetch(&t1, i);
+    wint_t c2 = fetch(&t2, i);
+    
+    if ( c1 != c2 )
+      return c1-c2;
+    if ( c1 == 0 )
+      return 0;
+  }
 }
 
 
@@ -1891,7 +1937,9 @@ compare_literals(void *p1, void *p2)
       case OBJ_STRING:
       { int rc = cmp_atoms(l1->value.string, l2->value.string);
 	if ( rc == 0 )
-	{				/* TBD */
+	{ if ( l1->qualifier == l2->qualifier )
+	    return cmp_atoms(l1->type_or_lang, l2->type_or_lang);
+	  return l1->qualifier - l2->qualifier;
 	}
 	return rc;
       }
@@ -1906,6 +1954,7 @@ compare_literals(void *p1, void *p2)
 	rc = PL_compare(t1, t2);
 
 	PL_discard_foreign_frame(fid);
+	return rc;
       }
       default:
 	assert(0);
@@ -2251,6 +2300,8 @@ link_triple_silent(rdf_db *db, triple *t)
   db->by_none_tail = t;
 
   link_triple_hash(db, t);
+  if ( t->object_is_literal )
+    t->object.literal = share_literal(db, t->object.literal);
 
   if ( update_duplicates_add(db, t) )
     goto ok;				/* is a duplicate */
@@ -3245,9 +3296,9 @@ md5_triple(triple *t, md5_byte_t *digest)
   s = PL_blob_data(t->predicate->name, &len, NULL);
   md5_append(&state, (const md5_byte_t *)s, len);
   tmp[0] = 'O';
-  tmp[1] = md5_type[lit->objtype];
   if ( t->object_is_literal )
   { lit = t->object.literal;
+    tmp[1] = md5_type[lit->objtype];
 
     switch(lit->objtype)
     { case OBJ_STRING:
@@ -3270,6 +3321,7 @@ md5_triple(triple *t, md5_byte_t *digest)
     }
   } else
   { s = PL_blob_data(t->object.resource, &len, NULL);
+    tmp[1] = 0x1;			/* old OBJ_RESOURCE */
     lit = NULL;
   }
   md5_append(&state, tmp, 2);
@@ -5548,7 +5600,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 		 *	     STATISTICS		*
 		 *******************************/
 
-static functor_t keys[12];		/* initialised in install_rdf_db() */
+static functor_t keys[16];		/* initialised in install_rdf_db() */
 
 static int
 unify_statistics(rdf_db *db, term_t key, functor_t f)
@@ -5577,6 +5629,8 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
   { v = db->agenda_created;
   } else if ( f == FUNCTOR_duplicates1 )
   { v = db->duplicates;
+  } else if ( f == FUNCTOR_literals1 )
+  { v = db->literals->size;
   } else if ( f == FUNCTOR_triples2 && PL_is_functor(key, f) )
   { source *src;
     term_t a = PL_new_term_ref();
@@ -5756,9 +5810,6 @@ likely to have the same bugs. If  you   find  one, please fix it in both
 branches!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef unsigned char charA;
-typedef wchar_t       charW;
-
 static const charA *
 nextwordA(const charA *s)
 { while(*s && isalnum(*s))
@@ -5885,13 +5936,6 @@ retry_like:
 }
 
 
-typedef struct text
-{ const charA *a;
-  const charW *w;
-  unsigned int length;
-} text;
-
-
 static int
 get_atom_text(atom_t atom, text *txt)
 { if ( (txt->a = (const charA*)PL_atom_nchars(atom, &txt->length)) )
@@ -5904,12 +5948,6 @@ get_atom_text(atom_t atom, text *txt)
   }
 
   return FALSE;
-}
-
-
-inline wint_t
-fetch(const text *txt, int i)
-{ return txt->a ? (wint_t)txt->a[i] : (wint_t)txt->w[i];
 }
 
 
@@ -6242,6 +6280,7 @@ install_rdf_db()
   MKFUNCTOR(literal, 2);
   MKFUNCTOR(searched_nodes, 1);
   MKFUNCTOR(duplicates, 1);
+  MKFUNCTOR(literals, 1);
   MKFUNCTOR(symmetric, 1);
   MKFUNCTOR(transitive, 1);
   MKFUNCTOR(inverse_of, 1);
@@ -6283,6 +6322,7 @@ install_rdf_db()
   keys[i++] = FUNCTOR_predicates1;
   keys[i++] = FUNCTOR_searched_nodes1;
   keys[i++] = FUNCTOR_duplicates1;
+  keys[i++] = FUNCTOR_literals1;
   keys[i++] = FUNCTOR_triples2;
   keys[i++] = FUNCTOR_gc2;
   keys[i++] = FUNCTOR_rehash2;

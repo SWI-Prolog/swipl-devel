@@ -47,8 +47,8 @@
 #define OBJ_TERM	0x4
 
 #define Q_NONE		0x0
-#define Q_LANG		0x1
-#define Q_TYPE		0x2
+#define Q_TYPE		0x1
+#define Q_LANG		0x2
 
 #define BY_NONE	0x00			/* 0 */
 #define BY_S	0x01			/* 1 */
