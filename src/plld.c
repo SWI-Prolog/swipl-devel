@@ -960,7 +960,7 @@ getPrologOptions()
 	  addOptionString(v);
 	else if ( streq(name, "PLLIB") )
 	  defaultProgram(&pllib, v);
-	else if ( streq(name, "PLLDFLAGS") && !shared )
+	else if ( streq(name, "PLLDFLAGS") )
 	  appendArgList(&ldoptions, v);
 	else if ( streq(name, "PLCFLAGS") )
 	{ appendArgList(&coptions, v);
@@ -979,8 +979,10 @@ getPrologOptions()
 	  continue;
 
 	if ( verbose )
-	  printf("\t\t%s=\"%s\"\n", name, v);
-      }	
+	  fprintf(stderr, "\t\t%s=\"%s\"\n", name, v);
+      }	else
+      { fprintf(stderr, "Unparsed Prolog option: %s\n", buf);
+      }
     }
 
     pclose(fd);
