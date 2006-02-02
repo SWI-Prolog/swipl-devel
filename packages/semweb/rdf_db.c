@@ -1901,7 +1901,7 @@ cmp_atoms(atom_t a1, atom_t a2)
   }
 
   if ( t1.a && t2.a )
-    return strcmp(t1.a, t2.a);
+    return strcmp((const char *)t1.a, (const char *)t2.a);
   if ( t1.w && t2.w )
     return wcscmp(t1.w, t2.w);
   
@@ -1978,13 +1978,14 @@ static void
 free_literal_node(avl_node *node)
 { rdf_db *db = DB;
 
-  free_literal(db, node->value);
+  free_literal(db, node->key);
 }
 
 
 static void
 init_literal_table(rdf_db *db)
-{ db->literals = rdf_malloc(db, sizeof(*db->literals));
+{ if ( !db->literals )
+    db->literals = rdf_malloc(db, sizeof(*db->literals));
   avl_init(db->literals);
   db->literals->compare = compare_literals;
   db->literals->destroy_node = free_literal_node;
@@ -2010,6 +2011,7 @@ share_literal(rdf_db *db, literal *from)
     return l2;
   } else
   { avl_insert(db->literals, from, NULL);
+    from->references++;			/* TBD, this is from tree */
     return from;
   }
 }
@@ -5773,6 +5775,8 @@ reset_db(rdf_db *db)
   erase_sources(db);
   db->need_update = FALSE;
   db->agenda_created = 0;
+  avl_destroy(db->literals);
+  init_literal_table(db);
 }
 
 

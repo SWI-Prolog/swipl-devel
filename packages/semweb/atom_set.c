@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "atom_set.h"
+#define AVL_DELETE 1
 
 #define AVL_LEFT -1
 #define AVL_NONE 0
@@ -314,7 +315,7 @@ avl_findhighest(avl_node *target,avl_node **n,int *res)
     return 1;
   }
 
-  target->d = (*n)->d;
+  target->key = (*n)->key;
   tmp = *n;
   *n = (*n)->left;
   free(tmp);
@@ -341,7 +342,7 @@ avl_findlowest(avl_node *target, avl_node **n, int *res)
     return 1;
   }
 
-  target->d = (*n)->d;
+  target->key = (*n)->key;
   tmp = *n;
   *n = (*n)->right;
   free(tmp);
@@ -349,8 +350,9 @@ avl_findlowest(avl_node *target, avl_node **n, int *res)
   return 1;
 }
 
+
 int
-avl_delete(avl_tree *tree, avl_node **n, avl_dataset *key)
+avl_delete(avl_tree *tree, avl_node **n, void *key)
 { int tmp = 1;
   int dif;
 
@@ -360,15 +362,15 @@ avl_delete(avl_tree *tree, avl_node **n, avl_dataset *key)
   if ( !(*n) )
     return -1;				/* not found */
 
-  dif = avl_compare(tree, key, (*n)->d);
+  dif = avl_compare(tree, key, (*n)->key);
   if ( dif < 0)
-  { if ( (tmp = avl_remove(tree, &(*n)->left, key)) == 1 )
+  { if ( (tmp = avl_delete(tree, &(*n)->left, key)) == 1 )
     { return avl_leftshrunk(n);
     }
 
     return tmp;
   } else if ( dif > 0 )
-  { if ( (tmp = avl_remove(tree,&(*n)->right,key)) == 1 )
+  { if ( (tmp = avl_delete(tree,&(*n)->right,key)) == 1 )
     { return avl_rightshrunk(n);
     }
 
@@ -452,7 +454,7 @@ void
 avl_destroy(avl_tree *tree)
 { avl_free_list *l, *n;
 
-  if ( tree->destroy_node )
+  if ( tree->destroy_node && tree->root )
     avl_destroy_nodes(tree->root, tree->destroy_node);
 
   for(l=tree->free_list; l != &tree->block1; l=n)
