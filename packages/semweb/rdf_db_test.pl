@@ -253,6 +253,12 @@ lshare(4) :-
 	rdf_retractall(a,c,literal(aap)),
 	rdf_statistics(literals(X)),
 	X == 0.
+lshare(5) :-
+	rdf_assert(a,b,literal(aap)),
+	rdf_assert(a,b,literal(aap)),
+	rdf_retractall(a,b,literal(aap)),
+	rdf_statistics(literals(X)),
+	X == 0.
 
 
 		 /*******************************
