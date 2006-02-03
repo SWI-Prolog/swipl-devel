@@ -479,6 +479,8 @@ rdf_statistics(lookup(Index, Count)) :-
 	Count \== 0.
 rdf_statistics(searched_nodes(Count)) :-
 	rdf_statistics_(searched_nodes(Count)).
+rdf_statistics(literals(Count)) :-
+	rdf_statistics_(literals(Count)).
 rdf_statistics(triples_by_file(File, Count)) :-
 	(   var(File)
 	->  rdf_source(File),

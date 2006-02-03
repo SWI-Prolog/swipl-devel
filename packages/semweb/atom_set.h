@@ -55,6 +55,7 @@ typedef struct avl_tree
   long		 size;			/* # nodes in the tree */
   void		(*destroy_node)(avl_node*node);
   int		(*compare)(void* v1, void *n2);
+  avl_node	*free_nodes;		/* linked on left */
   avl_free_list *free_list;
   avl_free_list  block1;
 } avl_tree;

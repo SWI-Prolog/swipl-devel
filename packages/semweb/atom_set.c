@@ -408,7 +408,8 @@ avl_delete(avl_tree *tree, avl_node **n, void *key)
 
 static void
 avl_free_node(avl_tree *tree, avl_node *node)
-{ /*TBD: make free-list*/
+{ node->left = tree->free_nodes;
+  tree->free_nodes = node;
 }
 
 #endif /*AVL_DELETE*/
@@ -417,6 +418,15 @@ static avl_node *
 avl_new_node(avl_tree *tree)
 { avl_free_list *l;
   avl_node *n;
+
+#ifdef AVL_DELETE
+  if ( tree->free_nodes )
+  { n = tree->free_nodes;
+    tree->free_nodes = n->left;
+
+    return n;
+  }
+#endif
 
   l = tree->free_list;
   if ( l->left == 0 )
@@ -441,6 +451,7 @@ avl_init(avl_tree *tree)
   tree->size        = 0L;
   tree->destroy_node= NULL;
   tree->compare     = NULL;
+  tree->free_nodes  = NULL;
   tree->block1.next = NULL;
   tree->block1.left = FREE_CHUNK_SIZE;
   tree->free_list   = &tree->block1;

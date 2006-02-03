@@ -1998,13 +1998,11 @@ compare_literals(void *p1, void *p2)
 }
 
 
-static void
-free_literal_node(avl_node *node)
-{ rdf_db *db = DB;
-
-  free_literal(db, node->key);
-}
-
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Create the sorted literal tree. Note  that   we  do  not register a free
+handler  for  the  tree  as  nodes   are  either  already  destroyed  by
+free_literal() or by rdf_reset_db().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 init_literal_table(rdf_db *db)
@@ -2012,8 +2010,6 @@ init_literal_table(rdf_db *db)
     db->literals = rdf_malloc(db, sizeof(*db->literals));
   avl_init(db->literals);
   db->literals->compare = compare_literals;
-//  See comments with free_literal()
-//  db->literals->destroy_node = free_literal_node;
 }
 
 
