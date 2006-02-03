@@ -1009,33 +1009,52 @@ get_bool_arg_ex(int a, term_t t, int *val)
 #define PRT_SRC	0x1
 
 static void
+print_literal(literal *lit)
+{ switch(lit->objtype)
+  { case OBJ_STRING:
+      switch(lit->qualifier)
+      { case Q_TYPE:
+	  Sdprintf("%s^^\"%s\"",
+		   PL_atom_chars(lit->type_or_lang),
+		   PL_atom_chars(lit->value.string));
+	  break;
+	case Q_LANG:
+	  Sdprintf("%s@\"%s\"",
+		   PL_atom_chars(lit->type_or_lang),
+		   PL_atom_chars(lit->value.string));
+	  break;
+	default:
+	  Sdprintf("\"%s\"",
+		   PL_atom_chars(lit->value.string));
+	  break;
+      }
+      break;
+    case OBJ_INTEGER:
+      Sdprintf("%ld", lit->value.integer);
+      break;
+    case OBJ_DOUBLE:
+      Sdprintf("%f", lit->value.real);
+      break;
+    case OBJ_TERM:
+    { fid_t fid = PL_open_foreign_frame();
+      term_t term = PL_new_term_ref();
+
+      PL_recorded_external(lit->value.term.record, term);
+      PL_write_term(Serror, term, 1200,
+		    PL_WRT_QUOTED|PL_WRT_NUMBERVARS|PL_WRT_PORTRAY);
+      PL_discard_foreign_frame(fid);
+      break;
+    }
+    default:
+      assert(0);
+  }
+}
+
+
+static void
 print_object(triple *t)
 { if ( t->object_is_literal )
-  { literal *lit = t->object.literal;
-
-    switch(lit->objtype)
-    { case OBJ_STRING:
-	Sdprintf("\"%s\"", PL_atom_chars(lit->value.string));
-	break;
-      case OBJ_INTEGER:
-	Sdprintf("%ld", lit->value.integer);
-	break;
-      case OBJ_DOUBLE:
-	Sdprintf("%f", lit->value.real);
-	break;
-      case OBJ_TERM:
-      { fid_t fid = PL_open_foreign_frame();
-	term_t term = PL_new_term_ref();
-  
-	PL_recorded_external(lit->value.term.record, term);
-	PL_write_term(Serror, term, 1200,
-		      PL_WRT_QUOTED|PL_WRT_NUMBERVARS|PL_WRT_PORTRAY);
-	PL_discard_foreign_frame(fid);
-	break;
-      }
-      default:
-	assert(0);
-    }
+  { print_literal(t->object.literal);
   } else
   { Sdprintf("%s", PL_atom_chars(t->object.resource));
   }
@@ -1930,8 +1949,8 @@ compare_literals(void *p1, void *p2)
 	return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
       }
       case OBJ_DOUBLE:
-      { double v1 = (double)l1->value.integer;
-	double v2 = (double)l2->value.integer;
+      { double v1 = l1->value.real;
+	double v2 = l2->value.real;
 	return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
       }
       case OBJ_STRING:
@@ -1963,11 +1982,11 @@ compare_literals(void *p1, void *p2)
   } else if ( l1->objtype == OBJ_INTEGER && l2->objtype == OBJ_DOUBLE )
   { double v1 = (double)l1->value.integer;
     double v2 = l2->value.real;
-    return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
+    return v1 < v2 ? -1 : v1 > v2 ? 1 : -1;
   } else if ( l1->objtype == OBJ_DOUBLE && l2->objtype == OBJ_INTEGER )
   { double v1 = l1->value.real;
     double v2 = (double)l2->value.integer;
-    return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
+    return v1 < v2 ? -1 : v1 > v2 ? 1 : 1;
   } else
   { return l1->objtype - l2->objtype;
   }
@@ -2005,12 +2024,25 @@ share_literal(rdf_db *db, literal *from)
 
   if ( (node = avl_find_node(db->literals, from)) )
   { literal *l2 = node->key;
+
+    DEBUG(2,
+	  Sdprintf("Replace %p by %p:\n", from, l2);
+	  Sdprintf("\tfrom: "); print_literal(from);
+	  Sdprintf("\n\tto: "); print_literal(l2);
+	  Sdprintf("\n"));
+    
     l2->references++;
     free_literal(db, from);
 
     return l2;
   } else
   { avl_insert(db->literals, from, NULL);
+
+    DEBUG(2,
+	  Sdprintf("Insert into %p: ", from);
+	  print_literal(from);
+	  Sdprintf("\n"));
+
     from->references++;			/* TBD, this is from tree */
     return from;
   }
