@@ -423,7 +423,7 @@ avl_new_node(avl_tree *tree)
   if ( tree->free_nodes )
   { n = tree->free_nodes;
     tree->free_nodes = n->left;
-
+    memset(n, 0, sizeof(*n));
     return n;
   }
 #endif
