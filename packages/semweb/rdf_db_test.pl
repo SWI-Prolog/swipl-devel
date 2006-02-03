@@ -229,6 +229,32 @@ lang(save) :-
 	    fail
 	).
 
+
+		 /*******************************
+		 *	 LITERAL SHARING	*
+		 *******************************/
+
+lshare(1) :-
+	rdf_assert(a,b,literal(aap)),
+	rdf_statistics(literals(1)).
+lshare(2) :-
+	rdf_assert(a,b,literal(aap)),
+	rdf_retractall(a,b,literal(aap)),
+	rdf_statistics(literals(X)),
+	X == 0.
+lshare(3) :-
+	rdf_assert(a,b,literal(aap)),
+	rdf_assert(a,c,literal(aap)),	% shared
+	rdf_statistics(literals(1)).
+lshare(4) :-
+	rdf_assert(a,b,literal(aap)),
+	rdf_assert(a,c,literal(aap)),
+	rdf_retractall(a,b,literal(aap)),
+	rdf_retractall(a,c,literal(aap)),
+	rdf_statistics(literals(X)),
+	X == 0.
+
+
 		 /*******************************
 		 *	  WIDE CHARACTERS	*
 		 *******************************/
@@ -563,6 +589,7 @@ script_failed(File, Except) :-
 
 testset(resource).
 testset(literal).
+testset(lshare).
 testset(same).
 testset(typed).
 testset(lang).

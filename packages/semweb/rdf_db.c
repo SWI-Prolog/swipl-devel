@@ -2109,7 +2109,7 @@ static void
 free_triple(rdf_db *db, triple *t)
 { unlock_atoms(t);
 
-  if ( t->object_is_literal) 
+  if ( t->object_is_literal && t->object.literal ) 
     free_literal(db, t->object.literal);
 
   if ( t->allocated )
@@ -2551,6 +2551,13 @@ erase_triple_silent(rdf_db *db, triple *t)
     db->erased++;
     t->predicate->triple_count--;
     unregister_source(db, t);
+
+    if ( t->object_is_literal )
+    { literal *lit = t->object.literal;
+
+      t->object.literal = NULL;
+      free_literal(db, lit);		/* TBD: thread-safe? */
+    }
   }
 }
 
@@ -3526,7 +3533,8 @@ unlock_atoms(triple *t)
 
     PL_unregister_atom(t->subject);
     if ( t->object_is_literal )
-    { unlock_atoms_literal(t->object.literal);
+    { if ( t->object.literal )
+	unlock_atoms_literal(t->object.literal);
     } else
     { PL_unregister_atom(t->object.resource);
     }
