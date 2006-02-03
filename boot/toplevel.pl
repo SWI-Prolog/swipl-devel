@@ -208,7 +208,8 @@ path_sep -->
 path_sep -->
 	[:].
 
-$string(X) --> {X=[_|_]}, X.
+$string([]) --> [].
+$string([H|T]) --> [H], $string(T).
 
 $eos([], []).
 
