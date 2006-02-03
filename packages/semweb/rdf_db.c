@@ -1833,7 +1833,12 @@ new_literal(rdf_db *db)
 static void
 free_literal(rdf_db *db, literal *lit)
 { if ( --lit->references == 0 )
-  { if ( lit->objtype == OBJ_TERM )
+  { if ( lit->shared )
+    { lit->shared = FALSE;
+      avl_delete(db->literals, &db->literals->root, lit);
+    }
+
+    if ( lit->objtype == OBJ_TERM )
     { if ( lit->term_loaded )
 	rdf_free(db, lit->value.term.record, lit->value.term.len);
       else
@@ -2007,7 +2012,8 @@ init_literal_table(rdf_db *db)
     db->literals = rdf_malloc(db, sizeof(*db->literals));
   avl_init(db->literals);
   db->literals->compare = compare_literals;
-  db->literals->destroy_node = free_literal_node;
+//  See comments with free_literal()
+//  db->literals->destroy_node = free_literal_node;
 }
 
 
@@ -2043,7 +2049,7 @@ share_literal(rdf_db *db, literal *from)
 	  print_literal(from);
 	  Sdprintf("\n"));
 
-    from->references++;			/* TBD, this is from tree */
+    from->shared = TRUE;
     return from;
   }
 }

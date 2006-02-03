@@ -60,10 +60,11 @@ typedef struct avl_tree
 } avl_tree;
 
 
-void avl_init(avl_tree *tree);
-void avl_destroy(avl_tree *tree);
-int  avl_insert(avl_tree *tree, void *key, avl_node **node);
+void	  avl_init(avl_tree *tree);
+void	  avl_destroy(avl_tree *tree);
+int	  avl_insert(avl_tree *tree, void *key, avl_node **node);
 avl_node *avl_find_node(avl_tree *tree, void *key);
+int	  avl_delete(avl_tree *tree, avl_node **n, void *key);
 
 #define avl_insert_atom(tree, key, nodeptr) \
 	avl_insert(tree, (void*)(key), nodeptr)

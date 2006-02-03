@@ -196,6 +196,8 @@ avl_find_node(avl_tree *tree, void * key)
 
 #ifdef AVL_DELETE
 
+static void	avl_free_node(avl_tree *tree, avl_node *node);
+
 static int
 avl_leftshrunk(avl_node **n)
 { switch((*n)->bal)
@@ -296,7 +298,7 @@ avl_rightshrunk(avl_node **n)
 }
 
 static int
-avl_findhighest(avl_node *target,avl_node **n,int *res)
+avl_findhighest(avl_tree *tree, avl_node *target,avl_node **n,int *res)
 { avl_node *tmp;
 
   *res = 1;
@@ -305,7 +307,7 @@ avl_findhighest(avl_node *target,avl_node **n,int *res)
   }
 
   if ( (*n)->right)
-  { if ( !avl_findhighest(target,&(*n)->right,res) )
+  { if ( !avl_findhighest(tree, target, &(*n)->right, res) )
     { return 0;
     }
     if(*res == 1)
@@ -318,13 +320,13 @@ avl_findhighest(avl_node *target,avl_node **n,int *res)
   target->key = (*n)->key;
   tmp = *n;
   *n = (*n)->left;
-  free(tmp);
+  avl_free_node(tree, tmp);
 
   return 1;
 }
 
 static int
-avl_findlowest(avl_node *target, avl_node **n, int *res)
+avl_findlowest(avl_tree *tree, avl_node *target, avl_node **n, int *res)
 { avl_node *tmp;
 
   *res = 1;
@@ -332,7 +334,7 @@ avl_findlowest(avl_node *target, avl_node **n, int *res)
     return 0;
 
   if ( (*n)->left )
-  { if ( !avl_findlowest(target,&(*n)->left,res) )
+  { if ( !avl_findlowest(tree, target, &(*n)->left,res) )
     { return 0;
     }
     if ( *res == 1 )
@@ -345,7 +347,7 @@ avl_findlowest(avl_node *target, avl_node **n, int *res)
   target->key = (*n)->key;
   tmp = *n;
   *n = (*n)->right;
-  free(tmp);
+  avl_free_node(tree, tmp);
 
   return 1;
 }
@@ -378,7 +380,7 @@ avl_delete(avl_tree *tree, avl_node **n, void *key)
   }
 
   if ( (*n)->left )
-  { if ( avl_findhighest(*n, &((*n)->left), &tmp) )
+  { if ( avl_findhighest(tree, *n, &((*n)->left), &tmp) )
     { if ( tmp == 1 )
       { tmp = avl_leftshrunk(n);
       }
@@ -387,7 +389,7 @@ avl_delete(avl_tree *tree, avl_node **n, void *key)
     }
   }
   if ( (*n)->right )
-  { if ( avl_findlowest(*n, &((*n)->right), &tmp))
+  { if ( avl_findlowest(tree, *n, &((*n)->right), &tmp))
     { if ( tmp == 1 )
       { tmp = avl_rightshrunk(n);
       }
@@ -397,13 +399,19 @@ avl_delete(avl_tree *tree, avl_node **n, void *key)
   }
 
   tree->size--;
+  if ( tree->destroy_node )
+    (*tree->destroy_node)(*n);
   *n = NULL;
 
   return 1;
 }
 
-#endif /*AVL_DELETE*/
+static void
+avl_free_node(avl_tree *tree, avl_node *node)
+{ /*TBD: make free-list*/
+}
 
+#endif /*AVL_DELETE*/
 
 static avl_node *
 avl_new_node(avl_tree *tree)
