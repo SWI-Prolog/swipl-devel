@@ -21,5 +21,12 @@ Step 2: sharing [OK]
 	* Remove literals from tree if last references is gone
 	* Ensure fast reclaim on rdf_reset_db.
 
+Step 3: Fix sorting
 
+	* Ignore case and diadrics
 
+Step 3: Use it:
+
+	* rdf(S,P,literal(prefix(Prefix), L)).
+	* rdf(S,P,literal(gt(NumOrString), L)).
+	* Events for created/destroyed literals

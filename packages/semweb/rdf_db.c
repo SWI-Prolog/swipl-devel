@@ -77,9 +77,11 @@ typedef enum
   EV_ASSERT_LOAD = 0x0002,		/* triple */
   EV_RETRACT     = 0x0004,		/* triple */
   EV_UPDATE      = 0x0008,		/* old, new */
-  EV_TRANSACTION = 0x0010,		/* id, begin/end */
-  EV_LOAD	 = 0x0020,		/* id, begin/end */
-  EV_REHASH	 = 0x0040		/* begin/end */
+  EV_NEW_LITERAL = 0x0010,		/* literal */
+  EV_OLD_LITERAL = 0x0020,		/* literal */
+  EV_TRANSACTION = 0x0040,		/* id, begin/end */
+  EV_LOAD	 = 0x0080,		/* id, begin/end */
+  EV_REHASH	 = 0x0100		/* begin/end */
 } broadcast_id;
 
 static void broadcast(broadcast_id id, void *a1, void *a2);
@@ -209,6 +211,8 @@ static functor_t FUNCTOR_core1;
 static functor_t FUNCTOR_assert4;
 static functor_t FUNCTOR_retract4;
 static functor_t FUNCTOR_update5;
+static functor_t FUNCTOR_new_literal1;
+static functor_t FUNCTOR_old_literal1;
 static functor_t FUNCTOR_transaction2;
 static functor_t FUNCTOR_load2;
 static functor_t FUNCTOR_rehash1;
@@ -1835,6 +1839,7 @@ free_literal(rdf_db *db, literal *lit)
 { if ( --lit->references == 0 )
   { if ( lit->shared )
     { lit->shared = FALSE;
+      broadcast(EV_OLD_LITERAL, lit, NULL);
       avl_delete(db->literals, &db->literals->root, lit);
     }
 
@@ -2046,6 +2051,7 @@ share_literal(rdf_db *db, literal *from)
 	  Sdprintf("\n"));
 
     from->shared = TRUE;
+    broadcast(EV_NEW_LITERAL, from, NULL);
     return from;
   }
 }
@@ -2564,8 +2570,8 @@ erase_triple_silent(rdf_db *db, triple *t)
 
 static inline void
 erase_triple(rdf_db *db, triple *t)
-{ erase_triple_silent(db, t);
-  broadcast(EV_RETRACT, t, NULL);
+{ broadcast(EV_RETRACT, t, NULL);
+  erase_triple_silent(db, t);
 }
 
 
@@ -3875,10 +3881,8 @@ same_source(triple *t1, triple *t2)
 
 
 static int
-put_value(term_t v, triple *t)
-{ literal *lit = t->object.literal;
-
-  switch(lit->objtype)
+put_literal_value(term_t v, literal *lit)
+{ switch(lit->objtype)
   { case OBJ_STRING:
       PL_put_atom(v, lit->value.string);
       break;
@@ -3900,50 +3904,58 @@ put_value(term_t v, triple *t)
 }
 
 
+static int
+unify_literal(term_t lit, literal *l)
+{ term_t v = PL_new_term_ref();
+
+  put_literal_value(v, l);
+
+  if ( l->qualifier )
+  { functor_t qf;
+
+    assert(l->type_or_lang);
+
+    if ( l->qualifier == Q_LANG )
+      qf = FUNCTOR_lang2;
+    else
+      qf = FUNCTOR_type2;
+
+    if ( PL_unify_term(lit, PL_FUNCTOR, qf,
+			 PL_ATOM, l->type_or_lang,
+			 PL_TERM, v) )
+      return TRUE;
+
+    return PL_unify(lit, v);		/* allow rdf(X, Y, literal(foo)) */
+  } else if ( PL_unify(lit, v) )
+  { return TRUE;
+  } else if ( PL_is_functor(lit, FUNCTOR_lang2) &&
+	      l->objtype == OBJ_STRING )
+  { term_t a = PL_new_term_ref();
+    PL_get_arg(2, lit, a);
+    return PL_unify(a, v);
+  } else if ( PL_is_functor(lit, FUNCTOR_type2) )
+  { term_t a = PL_new_term_ref();
+    PL_get_arg(2, lit, a);
+    return PL_unify(a, v);
+  } else
+    return FALSE;
+}
+
+
 
 static int
 unify_object(term_t object, triple *t)
 { if ( t->object_is_literal )
-  { term_t v = PL_new_term_ref();
-    term_t lit = PL_new_term_ref();
-    literal *l = t->object.literal;
-
-    put_value(v, t);
+  { term_t lit = PL_new_term_ref();
 
     if ( PL_unify_functor(object, FUNCTOR_literal1) )
       PL_get_arg(1, object, lit);
     else if ( PL_is_functor(object, FUNCTOR_literal2) )
       PL_get_arg(2, object, lit);
-
-    if ( l->qualifier )
-    { functor_t qf;
-
-      assert(l->type_or_lang);
-
-      if ( l->qualifier == Q_LANG )
-	qf = FUNCTOR_lang2;
-      else
-	qf = FUNCTOR_type2;
-
-      if ( PL_unify_term(lit, PL_FUNCTOR, qf,
-			   PL_ATOM, l->type_or_lang,
-			   PL_TERM, v) )
-	return TRUE;
-
-      return PL_unify(lit, v);		/* allow rdf(X, Y, literal(foo)) */
-    } else if ( PL_unify(lit, v) )
-    { return TRUE;
-    } else if ( PL_is_functor(lit, FUNCTOR_lang2) &&
-		l->objtype == OBJ_STRING )
-    { term_t a = PL_new_term_ref();
-      PL_get_arg(2, lit, a);
-      return PL_unify(a, v);
-    } else if ( PL_is_functor(lit, FUNCTOR_type2) )
-    { term_t a = PL_new_term_ref();
-      PL_get_arg(2, lit, a);
-      return PL_unify(a, v);
-    } else
+    else
       return FALSE;
+
+    return unify_literal(lit, t->object.literal);
   } else
   { return PL_unify_atom(object, t->object.resource);
   }
@@ -4742,10 +4754,10 @@ update_triple(rdf_db *db, term_t action, triple *t)
   if ( db->tr_first )
   { record_update_transaction(db, t, new);
   } else
-  { erase_triple_silent(db, t);
+  { broadcast(EV_UPDATE, t, new);
+    erase_triple_silent(db, t);
     link_triple_silent(db, new);
     db->generation++;
-    broadcast(EV_UPDATE, t, new);
   }
 
   return TRUE;
@@ -4960,6 +4972,22 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	  
 	PL_cons_functor_v(tmp+4, action, a);
 	PL_cons_functor_v(term, FUNCTOR_update5, tmp);
+	break;
+      }
+      case EV_NEW_LITERAL:
+      { literal *lit = a1;
+	term_t tmp = PL_new_term_refs(1);
+	
+	unify_literal(tmp, lit);
+	PL_cons_functor_v(term, FUNCTOR_new_literal1, tmp);
+	break;
+      }
+      case EV_OLD_LITERAL:
+      { literal *lit = a1;
+	term_t tmp = PL_new_term_refs(1);
+	
+	unify_literal(tmp, lit);
+	PL_cons_functor_v(term, FUNCTOR_old_literal1, tmp);
 	break;
       }
       case EV_TRANSACTION:
@@ -6342,6 +6370,8 @@ install_rdf_db()
   MKFUNCTOR(assert, 4);
   MKFUNCTOR(retract, 4);
   MKFUNCTOR(update, 5);
+  MKFUNCTOR(new_literal, 1);
+  MKFUNCTOR(old_literal, 1);
   MKFUNCTOR(transaction, 2);
   MKFUNCTOR(load, 2);
   MKFUNCTOR(rehash, 1);

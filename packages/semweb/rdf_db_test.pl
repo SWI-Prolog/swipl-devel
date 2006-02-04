@@ -619,9 +619,12 @@ testdir('Tests').
 	failed/1,
 	blocked/2.
 
+watch(_).
+
 test :-
 	retractall(failed(_)),
 	retractall(blocked(_,_)),
+	rdf_monitor(watch, []),	% check consistency
 	forall(testset(Set), runtest(Set)),
 	scripts,
 	statistics,
