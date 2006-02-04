@@ -818,6 +818,12 @@ A triple has been asserted.
 A triple has been deleted.
     \termitem{update}{+S, +P, +O, +DB, +Action}
 A triple has been updated.
+    \termitem{new_literal}{+Literal}
+A new literal has been created.  \arg{Literal} is the argument of 
+\term{literal}{Arg} of the triple's object.  This event is introduced
+in version 2.5.0 of this library.
+    \termitem{old_literal}{+Literal}
+The literal \arg{Literal} is no longer used by any triple. 
     \termitem{transaction}{+BeginOrEnd, +Id}
 Mark begin or end of the \emph{commit} of a toplevel transaction started
 by rdf_transaction/2. \arg{BeginOrEnd} is \const{begin} or \const{end}.

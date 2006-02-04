@@ -29,7 +29,7 @@
 #include "md5.h"
 #endif
 
-#define RDF_VERSION 20301		/* 2.3.1 */
+#define RDF_VERSION 20500		/* 2.5.0 */
 
 #define URL_subPropertyOf \
 	"http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
