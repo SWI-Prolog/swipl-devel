@@ -317,6 +317,7 @@ avl_findhighest(avl_tree *tree, avl_node *target,avl_node **n,int *res)
     return 1;
   }
 
+  tree->size--;
   target->key = (*n)->key;
   tmp = *n;
   *n = (*n)->left;
@@ -344,6 +345,7 @@ avl_findlowest(avl_tree *tree, avl_node *target, avl_node **n, int *res)
     return 1;
   }
 
+  tree->size--;
   target->key = (*n)->key;
   tmp = *n;
   *n = (*n)->right;
@@ -399,8 +401,7 @@ avl_delete(avl_tree *tree, avl_node **n, void *key)
   }
 
   tree->size--;
-  if ( tree->destroy_node )
-    (*tree->destroy_node)(*n);
+  avl_free_node(tree, *n);
   *n = NULL;
 
   return 1;
@@ -408,7 +409,9 @@ avl_delete(avl_tree *tree, avl_node **n, void *key)
 
 static void
 avl_free_node(avl_tree *tree, avl_node *node)
-{ node->left = tree->free_nodes;
+{ if ( tree->destroy_node )
+    (*tree->destroy_node)(node);
+  node->left = tree->free_nodes;
   tree->free_nodes = node;
 }
 
