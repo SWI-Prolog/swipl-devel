@@ -4047,8 +4047,6 @@ static void				/* t is about to be deleted */
 update_duplicates_del(rdf_db *db, triple *t)
 { const int indexed = BY_SP;
 
-  db->duplicates--;
-
   if ( t->duplicates )			/* I am the principal one */
   { triple *d;
       
@@ -4056,6 +4054,7 @@ update_duplicates_del(rdf_db *db, triple *t)
 	  print_triple(t, PRT_SRC);
 	  Sdprintf(": Deleting %p, %d duplicates: ", t, t->duplicates));
 
+    db->duplicates--;
     d = db->table[indexed][triple_hash(db, t, indexed)];
     for( ; d; d = d->next[indexed] )
     { if ( d != t && match_triples(d, t, MATCH_EXACT) )
@@ -4075,6 +4074,7 @@ update_duplicates_del(rdf_db *db, triple *t)
 	  print_triple(t, PRT_SRC);
 	  Sdprintf(": Deleting, is a duplicate: "));
 
+    db->duplicates--;
     d = db->table[indexed][triple_hash(db, t, indexed)];
     for( ; d; d = d->next[indexed] )
     { if ( d != t && match_triples(d, t, MATCH_EXACT) )

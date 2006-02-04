@@ -6,15 +6,20 @@
 LITERALS AS FIRST CLASS CITIZENS:
 =================================
 
-Step 1: making them into distinct objects.
+Step 1: making them into distinct objects. [OK]
 
 	* V0 (before distinct objects, using Artchive database)
 		# Triples: 3918374
 		Memory: 254 MB
 		Initial image (after ?- triple20): 905MB
+	* V1 (shared literals)
+		Memory: 239 MB
 
-Step 2: sharing
+Step 2: sharing [OK]
 
 	* Use atom-set to index on resource/string/etc.
 	* Remove literals from tree if last references is gone
 	* Ensure fast reclaim on rdf_reset_db.
+
+
+
