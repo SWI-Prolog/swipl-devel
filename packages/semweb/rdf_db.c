@@ -1954,8 +1954,8 @@ compare_literals(void *p1, void *p2)
   if ( l1->objtype == l2->objtype )
   { switch(l1->objtype)
     { case OBJ_INTEGER:
-      { long v1 = l1->value.integer;
-	long v2 = l2->value.integer;
+      { int64_t v1 = l1->value.integer;
+	int64_t v2 = l2->value.integer;
 	return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
       }
       case OBJ_DOUBLE:
@@ -3583,7 +3583,7 @@ get_literal(rdf_db *db, term_t litt, triple *t, int flags)
 
   if ( PL_get_atom(litt, &lit->value.string) )
   { lit->objtype = OBJ_STRING;
-  } else if ( PL_is_integer(litt) && PL_get_long(litt, &lit->value.integer) )
+  } else if ( PL_is_integer(litt) && PL_get_int64(litt, &lit->value.integer) )
   { lit->objtype = OBJ_INTEGER;
   } else if ( PL_get_float(litt, &lit->value.real) )
   { lit->objtype = OBJ_DOUBLE;
@@ -3887,7 +3887,8 @@ put_literal_value(term_t v, literal *lit)
       PL_put_atom(v, lit->value.string);
       break;
     case OBJ_INTEGER:
-      PL_put_integer(v, lit->value.integer);
+      PL_put_variable(v);
+      PL_unify_int64(v, lit->value.integer);
       break;
     case OBJ_DOUBLE:
       PL_put_float(v, lit->value.real);

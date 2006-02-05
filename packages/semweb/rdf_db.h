@@ -127,7 +127,7 @@ typedef struct literal
 { union
   { atom_t	resource;
     atom_t	string;
-    long	integer;
+    int64_t	integer;
     double	real;
     struct
     { record_t  record;
