@@ -22,6 +22,125 @@ avl_compare(avl_tree *tree, void *v1, void *v2)
   }
 }
 
+		 /*******************************
+		 *	      FIND		*
+		 *******************************/
+
+static avl_node *
+avl_find_n(avl_tree *tree, avl_node *n, void * key)
+{ while(n)
+  { int dif = avl_compare(tree, key, n->key);
+
+    if ( dif < 0)
+    { n = n->left;
+    } else if ( dif > 0 )
+    { n = n->right;
+    } else
+    { return n;
+    }
+  }
+
+  return NULL;
+}
+
+
+avl_node *
+avl_find_node(avl_tree *tree, void *key)
+{ return avl_find_n(tree, tree->root, key);
+} 
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+avl_find_ge()
+avl_next()
+avl_destroy_enum()
+
+This interface allows for  enumerating  all   elements  in  a key-range.
+avl_find_ge() finds the first node whose  key   is  larger or equal to a
+given  key.  avl_next()  returns  the    next  node.  avl_destroy_enum()
+destroyes memory allocated for the enum (if any).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+static inline avl_node *
+push_node(avl_enum *e, avl_node *node)
+{ e->parents[e->current++] = node;
+
+  return node;
+}
+
+
+static inline avl_node *
+pop_node(avl_enum *e)
+{ if ( --e->current >= 0 )
+    return e->parents[e->current];
+
+  return NULL;
+}
+
+
+avl_node *
+avl_find_ge(avl_tree *tree, void *key, avl_enum *e)
+{ avl_node *node = tree->root;
+
+  e->tree    = tree;
+  e->current = 0;
+  
+  for(;;)
+  { int diff = avl_compare(tree, node->key, key);
+
+    push_node(e, node);
+	
+    if ( diff < 0 )
+    { if ( node->left )
+      { node = node->left;
+      } else
+      { return node;			/* key > target */
+      }
+    } else if ( diff > 0 )
+    { if ( node->right )
+      { node = node->right;
+      } else
+      { return NULL;			/* all are lower */
+      }
+    } else
+    { return node;			/* equal hit */
+    }
+  }
+}
+
+
+avl_node *
+avl_next(avl_enum *e)
+{ avl_node *n = pop_node(e);
+
+  if ( n->right )
+  { n = push_node(e, n->right);
+    while(n->left)
+      n = push_node(e, n->left);
+    push_node(e, n);
+    return n;
+  }
+
+  if ( (n=pop_node(e)) )
+  { return n;
+  }
+
+  return NULL;
+}
+
+
+void
+avl_destroy_enum(avl_enum *e)
+{
+}
+
+
+		 /*******************************
+		 *	       INSERT		*
+		 *******************************/
+
+
 static void
 avl_rotate_left(avl_node **n)
 { avl_node *tmp = *n;
@@ -158,24 +277,6 @@ avl_insert_node(avl_tree *tree, avl_node **n, void * key)
 }
 
 
-static avl_node *
-avl_find_n(avl_tree *tree, avl_node *n, void * key)
-{ while(n)
-  { int dif = avl_compare(tree, key, n->key);
-
-    if ( dif < 0)
-    { n = n->left;
-    } else if ( dif > 0 )
-    { n = n->right;
-    } else
-    { return n;
-    }
-  }
-
-  return NULL;
-}
-
-
 int
 avl_insert(avl_tree *tree, void * key, avl_node **node)
 { int rc;
@@ -188,10 +289,10 @@ avl_insert(avl_tree *tree, void * key, avl_node **node)
 }
 
 
-avl_node *
-avl_find_node(avl_tree *tree, void * key)
-{ return avl_find_n(tree, tree->root, key);
-} 
+
+		 /*******************************
+		 *	      DELETE		*
+		 *******************************/
 
 
 #ifdef AVL_DELETE
@@ -416,6 +517,11 @@ avl_free_node(avl_tree *tree, avl_node *node)
 }
 
 #endif /*AVL_DELETE*/
+
+
+		 /*******************************
+		 *	 TREE MANAGEMENT	*
+		 *******************************/
 
 static avl_node *
 avl_new_node(avl_tree *tree)

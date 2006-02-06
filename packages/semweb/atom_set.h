@@ -61,11 +61,24 @@ typedef struct avl_tree
 } avl_tree;
 
 
+#define AVL_ENUM_MAX 32			/* balanced tree, allows for 2**32 */
+					/* nodes */
+
+typedef struct avl_enum
+{ avl_tree *tree;
+  int current;
+  avl_node *parents[AVL_ENUM_MAX];
+} avl_enum;
+
+
 void	  avl_init(avl_tree *tree);
 void	  avl_destroy(avl_tree *tree);
 int	  avl_insert(avl_tree *tree, void *key, avl_node **node);
 avl_node *avl_find_node(avl_tree *tree, void *key);
 int	  avl_delete(avl_tree *tree, avl_node **n, void *key);
+avl_node *avl_find_ge(avl_tree *tree, void *key, avl_enum *e);
+avl_node *avl_next(avl_enum *e);
+void	  avl_destroy_enum(avl_enum *e);
 
 #define avl_insert_atom(tree, key, nodeptr) \
 	avl_insert(tree, (void*)(key), nodeptr)
