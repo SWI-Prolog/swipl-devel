@@ -525,6 +525,24 @@ idempotence  @ leq(X,Y) \ leq(X,Y) <=> true.
 transitivity @ leq(X,Y), leq(Y,Z) ==> leq(X,Z).
 \end{code}
 
+When the above program is saved in a file and loaded in SWI-Prolog, you can
+call the \predref{leq}{2} constraints in a query, e.g.:
+\begin{code}
+?- leq(X,Y), leq(Y,Z).
+leq(_G23837, _G23841)
+leq(_G23838, _G23841)
+leq(_G23837, _G23838)
+
+X = _G23837{leq = ...}
+Y = _G23838{leq = ...}
+Z = _G23841{leq = ...}
+
+Yes
+\end{code}
+When the query succeeds, the SWI-Prolog toplevel prints the content of the
+CHR constraint store and displays the bindings generate during the query. Some of the query variables may have been bound to
+attributed variables, as you see in the above example.
+
     \item
 The program below implements a simple finite domain
 constraint solver.
@@ -541,7 +559,18 @@ dom(X,[Y]) <=> X = Y.
 dom(X,L) <=> nonvar(X) | memberchk(X,L).
 dom(X,L1), dom(X,L2) <=> intersection(L1,L2,L3), dom(X,L3).
 \end{code}
-		
+
+When the above program is saved in a file and loaded in SWI-Prolog, you can
+call the \predref{dom}{2} constraints in a query, e.g.:
+
+\begin{code}	
+?- dom(A,[1,2,3]), dom(A,[3,4,5]).
+
+A = 3
+
+Yes
+\end{code}
+	
 \end{itemize}
 
 \section{Backwards Compatibility} 		\label{sec:sicstus-chr}
