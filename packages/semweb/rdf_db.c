@@ -1903,43 +1903,6 @@ unlock_atoms_literal(literal *lit)
 
 
 		 /*******************************
-		 *	  PREFIX SEARCH		*
-		 *******************************/
-
-#if 0
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-We know
-
-	p->object_is_literal = TRUE
-	p->object.literal->objtype = OBJ_STRING
-	p->match == STR_MATCH_PREFIX
-	We hold RDLOCK();
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-literal_prefix_search_first(rdf_db *db,
-			    term_t subject, term_t predicate, term_t object,
-			    term_t src, term_t realpred, unsigned flags,
-			    triple *p, 
-{ avl_enum e;
-  avl_node *n;
-
-  if ( (n=avl_find_ge(db->literals, p->object.literal, &e)) )
-  { 
-  }
-}
-
-
-static int
-literal_prefix_search_next(rdf_db *db,
-			   term_t subject, term_t predicate, term_t object,
-			   term_t src, term_t realpred, unsigned flags,
-			   triple *p, 
-{
-}
-#endif
-
-		 /*******************************
 		 *	     LITERAL DB		*
 		 *******************************/
 
@@ -2214,26 +2177,41 @@ case_insensitive_atom_hash(atom_t a)
 
 
 static unsigned long
+literal_hash(literal *lit)
+{ switch(lit->objtype)
+  { case OBJ_STRING:
+      return case_insensitive_atom_hash(lit->value.string);
+#if SIZEOF_LONG == 4
+    case OBJ_INTEGER:
+    { long *p = (long *)&lit->value.integer;
+      return p[0] ^ p[1];
+    }
+    case OBJ_DOUBLE:
+    { long *p = (long *)&lit->value.real;
+      return p[0] ^ p[1];
+    }
+#else
+    case OBJ_INTEGER:
+      return lit->value.integer;
+    case OBJ_DOUBLE:
+      return lit->value.integer;	/* assume union allocation */
+#endif
+    case OBJ_TERM:
+      return string_hashA((const char*)lit->value.term.record,
+			  lit->value.term.len);
+    default:
+      assert(0);
+      return 0;
+  }
+}
+
+
+static unsigned long
 object_hash(triple *t)
 { if ( t->object_is_literal )
-  { literal *lit = t->object.literal;
-
-    switch(lit->objtype)
-    { case OBJ_STRING:
-	return case_insensitive_atom_hash(lit->value.string);
-      case OBJ_INTEGER:
-	return lit->value.integer;
-      case OBJ_DOUBLE:
-	return lit->value.integer;		/* TBD: get all bits */
-      case OBJ_TERM:
-	return string_hashA((const char*)lit->value.term.record,
-			    lit->value.term.len);
-      default:
-	assert(0);
-	return 0;
-    }
+  { return literal_hash(t->object.literal);
   } else
-  { return t->object.resource;
+  { return atom_hash(t->object.resource);
   }
 }
 
@@ -2252,7 +2230,7 @@ triple_hash(rdf_db *db, triple *t, int which)
       v = predicate_hash(t->predicate->root);
       break;
     case BY_O:
-      v = atom_hash(object_hash(t));
+      v = object_hash(t);
       break;
     case BY_SP:
       v = atom_hash(t->subject) ^ predicate_hash(t->predicate->root);
@@ -4446,37 +4424,74 @@ typedef struct search_state
   unsigned 	locked : 1;		/* State has been locked */
   unsigned	allocated : 1;		/* State has been allocated */
   unsigned	flags;			/* Misc flags controlling search */
+  avl_enum     *literal_state;		/* Literal search state */
   triple       *cursor;			/* Pointer in triple DB */
   triple	pattern;		/* Pattern triple */
 } search_state;
 
 
+static void	free_search_state(search_state *state);
+
+static void
+init_cursor_from_literal(search_state *state, literal *lit)
+{ triple *p = &state->pattern;
+  unsigned long iv;
+  int i;
+
+  p->indexed |= BY_O;
+  switch(p->indexed)
+  { case BY_O:
+      iv = literal_hash(lit);
+      break;
+    case BY_OP:
+      iv = predicate_hash(p->predicate->root) ^ literal_hash(lit);
+      break;
+    default:
+      assert(0);
+  }
+
+  i = (int)(iv % (long)state->db->table_size[p->indexed]);
+  state->cursor = state->db->table[p->indexed][i];
+}
+
+
 static int
 init_search_state(search_state *state)
-{ triple *p;
+{ triple *p = &state->pattern;
 
   if ( get_partial_triple(state->db,
 			  state->subject, state->predicate, state->object,
-			  state->src,
-			  &state->pattern) != TRUE )	
-  { free_triple(state->db, &state->pattern);
+			  state->src, p) != TRUE )	
+  { free_triple(state->db, p);
     return FALSE;
   }
   
   if ( !RDLOCK(state->db) )
-  { free_triple(state->db, &state->pattern);
+  { free_triple(state->db, p);
     return FALSE;
   }
   state->locked = TRUE;
   if ( !update_hash(state->db) )
-  { RDUNLOCK(state->db);
-    free_triple(state->db, &state->pattern);
+  { free_search_state(state);
     return FALSE;
   }
 
-  p = &state->pattern;
-  state->cursor = state->db->table[p->indexed]
-    				  [triple_hash(state->db, p, p->indexed)];
+  if ( p->match == STR_MATCH_PREFIX && p->indexed != BY_SP )
+  { avl_node *node;
+
+    state->literal_state = rdf_malloc(state->db, sizeof(*state->literal_state));
+    if ( (node = avl_find_ge(state->db->literals,
+			     p->object.literal,
+			     state->literal_state)) )
+    { init_cursor_from_literal(state, node->key);
+    } else
+    { free_search_state(state);
+      return FALSE;
+    }
+  } else
+  { state->cursor = state->db->table[p->indexed]
+    				    [triple_hash(state->db, p, p->indexed)];
+  }
 
   return TRUE;
 }
@@ -4489,6 +4504,8 @@ free_search_state(search_state *state)
   }
 
   free_triple(state->db, &state->pattern);
+  if ( state->literal_state )
+    rdf_free(state->db, state->literal_state, sizeof(*state->literal_state));
   if ( state->allocated )		/* also means redo! */
   { state->db->active_queries--;
     rdf_free(state->db, state, sizeof(*state));
@@ -4514,7 +4531,7 @@ next_search_state(search_state *state)
 { triple *t = state->cursor;
   triple *p = &state->pattern;
 
-inv:
+retry:
   for( ; t; t = t->next[p->indexed])
   { if ( t->is_duplicate && !state->src )
       continue;
@@ -4546,9 +4563,20 @@ inv:
       return TRUE;
     }
   }
+
   if ( (state->flags & MATCH_INVERSE) && inverse_partial_triple(p) )
   { t = state->db->table[p->indexed][triple_hash(state->db, p, p->indexed)];
-    goto inv;
+    goto retry;
+  }
+
+  if ( state->literal_state )
+  { avl_node *node;
+
+    if ( (node = avl_next(state->literal_state)) )
+    { init_cursor_from_literal(state, node->key);
+
+      goto retry;
+    }
   }
 
   return FALSE;

@@ -87,7 +87,7 @@ avl_find_ge(avl_tree *tree, void *key, avl_enum *e)
   e->current = 0;
   
   for(;;)
-  { int diff = avl_compare(tree, node->key, key);
+  { int diff = avl_compare(tree, key, node->key);
 
     push_node(e, node);
 	
