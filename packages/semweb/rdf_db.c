@@ -1921,10 +1921,11 @@ literal_prefix_search_first(rdf_db *db,
 			    term_t subject, term_t predicate, term_t object,
 			    term_t src, term_t realpred, unsigned flags,
 			    triple *p, 
-{ avl_state *state = find_literal_ge(db, p->object.literal);
+{ avl_enum e;
+  avl_node *n;
 
-  if ( lit )
-  { // while lit is prefix try to match triple
+  if ( (n=avl_find_ge(db->literals, p->object.literal, &e)) )
+  { 
   }
 }
 
@@ -4481,117 +4482,117 @@ rdf(term_t subject, term_t predicate, term_t object,
 
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
-    { triple t, *p;
+    { triple p, *t;
       
-      memset(&t, 0, sizeof(t));
-      if ( get_partial_triple(db, subject, predicate, object, src, &t) != TRUE )	
-      { free_triple(db, &t);
+      memset(&p, 0, sizeof(p));
+      if ( get_partial_triple(db, subject, predicate, object, src, &p) != TRUE )	
+      { free_triple(db, &p);
 	return FALSE;
       }
 
       if ( !RDLOCK(db) )
-      { free_triple(db, &t);
+      { free_triple(db, &p);
 	return FALSE;
       }
       if ( !update_hash(db) )
       { RDUNLOCK(db);
-	free_triple(db, &t);
+	free_triple(db, &p);
 	return FALSE;
       }
 
     inverse:
-      p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
-      for( ; p; p = p->next[t.indexed])
-      { if ( match_triples(p, &t, flags) )
-	{ if ( !unify_triple(subject, retpred, object, src, p, t.inversed) )
+      t = db->table[p.indexed][triple_hash(db, &p, p.indexed)];
+      for( ; t; t = t->next[p.indexed])
+      { if ( match_triples(t, &p, flags) )
+	{ if ( !unify_triple(subject, retpred, object, src, t, p.inversed) )
 	    continue;
 	  if ( realpred && PL_is_variable(predicate) )
 	    PL_unify(predicate, retpred);
 
-	  p=p->next[t.indexed];
+	  t=t->next[p.indexed];
 	inv_alt:
-	  for(; p; p = p->next[t.indexed])
-	  { if ( p->is_duplicate && !src )
+	  for(; t; t = t->next[p.indexed])
+	  { if ( t->is_duplicate && !src )
 	      continue;
 
-	    if ( match_triples(p, &t, flags) )
+	    if ( match_triples(t, &p, flags) )
 	    { triple *next;
 
-	      t.next[0] = p;
+	      p.next[0] = t;
 	      db->active_queries++;
-	      next = save_triple(db, &t);
-	      free_triple(db, &t);
+	      next = save_triple(db, &p);
+	      free_triple(db, &p);
 	      PL_retry_address(next);
 	    }
 	  }
 
-	  if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&t) )
-	  { p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
+	  if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&p) )
+	  { t = db->table[p.indexed][triple_hash(db, &p, p.indexed)];
 	    goto inv_alt;
 	  }
 	  RDUNLOCK(db);
-	  free_triple(db, &t);
+	  free_triple(db, &p);
           return TRUE;
 	}
       }
 
-      if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&t) )
+      if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&p) )
 	goto inverse;
 
       RDUNLOCK(db);
-      free_triple(db, &t);
+      free_triple(db, &p);
       return FALSE;
     }
     case PL_REDO:
-    { triple *p, *t = PL_foreign_context_address(h);
+    { triple *t, *p = PL_foreign_context_address(h);
 
-      p = t->next[0];
+      t = p->next[0];
     retry_inv:
-      for( ; p; p = p->next[t->indexed])
-      { if ( p->is_duplicate && !src )
+      for( ; t; t = t->next[p->indexed])
+      { if ( t->is_duplicate && !src )
 	  continue;
 
-	if ( match_triples(p, t, flags) )
-	{ if ( !unify_triple(subject, retpred, object, src, p, t->inversed) )
+	if ( match_triples(t, p, flags) )
+	{ if ( !unify_triple(subject, retpred, object, src, t, p->inversed) )
 	    continue;
 	  if ( realpred && PL_is_variable(predicate) )
 	    PL_unify(predicate, retpred);
 
-	  p=p->next[t->indexed];
+	  t=t->next[p->indexed];
 	retry_inv_alt:
-	  for(; p; p = p->next[t->indexed])
-	  { if ( match_triples(p, t, flags) )
-	    { t->next[0] = p;
+	  for(; t; t = t->next[p->indexed])
+	  { if ( match_triples(t, p, flags) )
+	    { p->next[0] = t;
 	      
-	      PL_retry_address(t);
+	      PL_retry_address(p);
 	    }
 	  }
 
-	  if ( (flags & MATCH_INVERSE) && inverse_partial_triple(t) )
-	  { p = db->table[t->indexed][triple_hash(db, t, t->indexed)];
+	  if ( (flags & MATCH_INVERSE) && inverse_partial_triple(p) )
+	  { t = db->table[p->indexed][triple_hash(db, p, p->indexed)];
 	    goto retry_inv_alt;
 	  }
 
-	  free_saved_triple(db, t);
+	  free_saved_triple(db, p);
 	  db->active_queries--;
 	  RDUNLOCK(db);
           return TRUE;
 	}
       }
-      if ( (flags & MATCH_INVERSE) && inverse_partial_triple(t) )
-      { p = db->table[t->indexed][triple_hash(db, t, t->indexed)];
+      if ( (flags & MATCH_INVERSE) && inverse_partial_triple(p) )
+      { t = db->table[p->indexed][triple_hash(db, p, p->indexed)];
 	goto retry_inv;
       }
-      free_saved_triple(db, t);
+      free_saved_triple(db, p);
       db->active_queries--;
       RDUNLOCK(db);
       return FALSE;
     }
     case PL_CUTTED:
-    { triple *t = PL_foreign_context_address(h);
+    { triple *p = PL_foreign_context_address(h);
 
       db->active_queries--;
-      free_saved_triple(db, t);
+      free_saved_triple(db, p);
       RDUNLOCK(db);
       return TRUE;
     }
