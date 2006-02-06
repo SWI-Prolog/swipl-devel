@@ -98,10 +98,10 @@ avl_find_ge(avl_tree *tree, void *key, avl_enum *e)
   for(;;)
   { int diff = avl_compare(tree, key, node->key);
 
-    push_node(e, node);
-	
     if ( diff < 0 )
-    { if ( node->left )
+    { push_node(e, node);
+	
+      if ( node->left )
       { node = node->left;
       } else
       { return node;			/* key > target */
@@ -113,7 +113,7 @@ avl_find_ge(avl_tree *tree, void *key, avl_enum *e)
       { return NULL;			/* all are lower */
       }
     } else
-    { return node;			/* equal hit */
+    { return push_node(e, node);	/* equal hit */
     }
   }
 }

@@ -477,6 +477,7 @@ prefix(2) :- tprefix(a).
 prefix(3) :- tprefix(aa).
 prefix(4) :- tprefix(aaa).
 prefix(5) :- tprefix(aaaa).
+prefix(6) :- tprefix(aaaaa).
 				
 	
 		 /*******************************

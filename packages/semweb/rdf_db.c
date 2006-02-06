@@ -2057,6 +2057,27 @@ share_literal(rdf_db *db, literal *from)
 }
 
 
+#ifdef O_DEBUG
+static void
+dump_lnode(avl_node *node)
+{ if ( node->left )
+    dump_lnode(node->left);
+  print_literal(node->key);
+  Sdprintf("\n");
+  if ( node->right )
+    dump_lnode(node->right);
+}
+
+static foreign_t
+dump_literals()
+{ rdf_db *db = DB;
+  
+  dump_lnode(db->literals->root);
+  return TRUE;
+}
+#endif
+
+
 		 /*******************************
 		 *	      TRIPLES		*
 		 *******************************/
@@ -4534,6 +4555,10 @@ allow_retry_state(search_state *state)
 }
 
 
+/* TBD: simplify.   Maybe split for resource and literal search, as
+   both involve mutual exclusive complications to this routine,
+*/
+
 static int
 next_search_state(search_state *state)
 { triple *t = state->cursor;
@@ -4562,7 +4587,13 @@ retry:
       t=t->next[p->indexed];
     inv_alt:
       for(; t; t = t->next[p->indexed])
-      { if ( match_triples(t, p, state->flags) )
+      { if ( state->literal_state )
+	{ if ( !(t->object_is_literal &&
+		 t->object.literal == state->literal_cursor) )
+	    continue;
+	}
+
+	if ( match_triples(t, p, state->flags) )
 	{ state->cursor = t;
 	  
 	  return TRUE;			/* non-deterministic */
@@ -4588,7 +4619,21 @@ retry:
   { avl_node *node;
 
     if ( (node = avl_next(state->literal_state)) )
-    { init_cursor_from_literal(state, node);
+    { if ( p->match == STR_MATCH_PREFIX )
+      { literal *lit = node->key;
+
+	if ( !match(STR_MATCH_PREFIX,
+		    p->object.literal->value.string,
+		    lit->value.string) )
+	{ DEBUG(3,
+		Sdprintf("Terminated literal iteration from ");
+		print_literal(lit);
+		Sdprintf("\n"));
+	  return FALSE;			/* no longer a prefix */
+	}
+      }
+
+      init_cursor_from_literal(state, node);
       t = state->cursor;
 
       goto retry;
@@ -6527,14 +6572,16 @@ install_rdf_db()
   PL_register_foreign("rdf_transaction",2, rdf_transaction, META);
   PL_register_foreign("rdf_monitor_",   2, rdf_monitor,     META);
   PL_register_foreign("rdf_broadcast_", 2, rdf_broadcast,   0);
-#ifdef O_DEBUG
-  PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
-#endif
 #ifdef WITH_MD5
   PL_register_foreign("rdf_md5",	2, rdf_md5,	    0);
   PL_register_foreign("rdf_atom_md5",	3, rdf_atom_md5,    0);
 #endif
   PL_register_foreign("rdf_quote_uri",	2, rdf_quote_uri,   0);
+
+#ifdef O_DEBUG
+  PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
+  PL_register_foreign("rdf_dump_literals", 0, dump_literals, 0);
+#endif
 
   install_atom_map();
 }
