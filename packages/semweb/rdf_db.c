@@ -2160,44 +2160,6 @@ free_triple(rdf_db *db, triple *t)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Save a triple in the permanent heap.  This is only used for backtracking
-context. There is no need  to  register   the  atoms  here as the Prolog
-backtracking context references them. Triples allocated this way are not
-modified  until  they  are  destroyed  and    must  be  destroyed  using
-free_saved_triple();
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static triple *
-save_triple(rdf_db *db, triple *t)
-{ if ( t->object_is_literal )
-  { triple *copy = rdf_malloc(db, sizeof(triple) + sizeof(literal));
-    literal *lit  = (literal*)&copy[1];
-  
-    *copy = *t;
-    *lit  = *t->object.literal;
-    copy->object.literal = lit;
-
-    return copy;
-  } else
-  { triple *copy = rdf_malloc(db, sizeof(triple));
-
-    *copy = *t;
-
-    return copy;
-  }
-}
-
-
-static void
-free_saved_triple(rdf_db *db, triple *t)
-{ rdf_free(db, t,
-	   t->object_is_literal ?
-	   	sizeof(triple) + sizeof(literal) :
-		sizeof(triple));
-}
-
-
 static unsigned long
 string_hashA(const char *t, unsigned int len)
 { unsigned int value = 0;
@@ -4474,130 +4436,173 @@ rdf_assert3(term_t subject, term_t predicate, term_t object)
 }
 
 
+typedef struct search_state
+{ rdf_db       *db;			/* our database */
+  term_t	subject;		/* Prolog term references */
+  term_t 	object;
+  term_t 	predicate;
+  term_t 	src;
+  term_t 	realpred;
+  unsigned 	locked : 1;		/* State has been locked */
+  unsigned	allocated : 1;		/* State has been allocated */
+  unsigned	flags;			/* Misc flags controlling search */
+  triple       *cursor;			/* Pointer in triple DB */
+  triple	pattern;		/* Pattern triple */
+} search_state;
+
+
+static int
+init_search_state(search_state *state)
+{ triple *p;
+
+  if ( get_partial_triple(state->db,
+			  state->subject, state->predicate, state->object,
+			  state->src,
+			  &state->pattern) != TRUE )	
+  { free_triple(state->db, &state->pattern);
+    return FALSE;
+  }
+  
+  if ( !RDLOCK(state->db) )
+  { free_triple(state->db, &state->pattern);
+    return FALSE;
+  }
+  state->locked = TRUE;
+  if ( !update_hash(state->db) )
+  { RDUNLOCK(state->db);
+    free_triple(state->db, &state->pattern);
+    return FALSE;
+  }
+
+  p = &state->pattern;
+  state->cursor = state->db->table[p->indexed]
+    				  [triple_hash(state->db, p, p->indexed)];
+
+  return TRUE;
+}
+
+
+static void
+free_search_state(search_state *state)
+{ if ( state->locked )
+  { RDUNLOCK(state->db);
+  }
+
+  free_triple(state->db, &state->pattern);
+  if ( state->allocated )		/* also means redo! */
+  { state->db->active_queries--;
+    rdf_free(state->db, state, sizeof(*state));
+  }  
+}
+
+
+static foreign_t
+allow_retry_state(search_state *state)
+{ if ( !state->allocated )
+  { search_state *copy = rdf_malloc(state->db, sizeof(*copy));
+    *copy = *state;
+
+    state = copy;
+  }
+
+  PL_retry_address(state);
+}
+
+
+static int
+next_search_state(search_state *state)
+{ triple *t = state->cursor;
+  triple *p = &state->pattern;
+
+inv:
+  for( ; t; t = t->next[p->indexed])
+  { if ( t->is_duplicate && !state->src )
+      continue;
+
+    if ( match_triples(t, p, state->flags) )
+    { term_t retpred = state->realpred ? state->realpred : state->predicate;
+      if ( !unify_triple(state->subject, retpred, state->object,
+			 state->src, t, p->inversed) )
+	continue;
+      if ( state->realpred && PL_is_variable(state->predicate) )
+	PL_unify(state->predicate, retpred);
+
+      t=t->next[p->indexed];
+    inv_alt:
+      for(; t; t = t->next[p->indexed])
+      { if ( match_triples(t, p, state->flags) )
+	{ state->cursor = t;
+	  
+	  return TRUE;			/* non-deterministic */
+	}
+      }
+
+      if ( (state->flags & MATCH_INVERSE) && inverse_partial_triple(p) )
+      { t = state->db->table[p->indexed][triple_hash(state->db, p, p->indexed)];
+	goto inv_alt;
+      }
+
+      state->cursor = NULL;		/* deterministic */
+      return TRUE;
+    }
+  }
+  if ( (state->flags & MATCH_INVERSE) && inverse_partial_triple(p) )
+  { t = state->db->table[p->indexed][triple_hash(state->db, p, p->indexed)];
+    goto inv;
+  }
+
+  return FALSE;
+}
+
+
+
 static foreign_t
 rdf(term_t subject, term_t predicate, term_t object,
     term_t src, term_t realpred, control_t h, unsigned flags)
-{ term_t retpred = realpred ? realpred : predicate;
-  rdf_db *db = DB;
+{ rdf_db *db = DB;
+  search_state *state;
 
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
-    { triple p, *t;
-      
-      memset(&p, 0, sizeof(p));
-      if ( get_partial_triple(db, subject, predicate, object, src, &p) != TRUE )	
-      { free_triple(db, &p);
+    { search_state buf;
+
+      state = &buf;
+      memset(state, 0, sizeof(*state));
+      state->db	       = db;
+      state->subject   = subject;
+      state->object    = object;
+      state->predicate = predicate;
+      state->src       = src;
+      state->realpred  = realpred;
+      state->flags     = flags;
+
+      if ( !init_search_state(state) )
 	return FALSE;
-      }
 
-      if ( !RDLOCK(db) )
-      { free_triple(db, &p);
-	return FALSE;
-      }
-      if ( !update_hash(db) )
-      { RDUNLOCK(db);
-	free_triple(db, &p);
-	return FALSE;
-      }
-
-    inverse:
-      t = db->table[p.indexed][triple_hash(db, &p, p.indexed)];
-      for( ; t; t = t->next[p.indexed])
-      { if ( match_triples(t, &p, flags) )
-	{ if ( !unify_triple(subject, retpred, object, src, t, p.inversed) )
-	    continue;
-	  if ( realpred && PL_is_variable(predicate) )
-	    PL_unify(predicate, retpred);
-
-	  t=t->next[p.indexed];
-	inv_alt:
-	  for(; t; t = t->next[p.indexed])
-	  { if ( t->is_duplicate && !src )
-	      continue;
-
-	    if ( match_triples(t, &p, flags) )
-	    { triple *next;
-
-	      p.next[0] = t;
-	      db->active_queries++;
-	      next = save_triple(db, &p);
-	      free_triple(db, &p);
-	      PL_retry_address(next);
-	    }
-	  }
-
-	  if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&p) )
-	  { t = db->table[p.indexed][triple_hash(db, &p, p.indexed)];
-	    goto inv_alt;
-	  }
-	  RDUNLOCK(db);
-	  free_triple(db, &p);
-          return TRUE;
-	}
-      }
-
-      if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&p) )
-	goto inverse;
-
-      RDUNLOCK(db);
-      free_triple(db, &p);
-      return FALSE;
+      goto search;
     }
     case PL_REDO:
-    { triple *t, *p = PL_foreign_context_address(h);
+    { int rc;
 
-      t = p->next[0];
-    retry_inv:
-      for( ; t; t = t->next[p->indexed])
-      { if ( t->is_duplicate && !src )
-	  continue;
+      state = PL_foreign_context_address(h);
+      assert(state->subject == subject);
 
-	if ( match_triples(t, p, flags) )
-	{ if ( !unify_triple(subject, retpred, object, src, t, p->inversed) )
-	    continue;
-	  if ( realpred && PL_is_variable(predicate) )
-	    PL_unify(predicate, retpred);
-
-	  t=t->next[p->indexed];
-	retry_inv_alt:
-	  for(; t; t = t->next[p->indexed])
-	  { if ( match_triples(t, p, flags) )
-	    { p->next[0] = t;
-	      
-	      PL_retry_address(p);
-	    }
-	  }
-
-	  if ( (flags & MATCH_INVERSE) && inverse_partial_triple(p) )
-	  { t = db->table[p->indexed][triple_hash(db, p, p->indexed)];
-	    goto retry_inv_alt;
-	  }
-
-	  free_saved_triple(db, p);
-	  db->active_queries--;
-	  RDUNLOCK(db);
-          return TRUE;
-	}
+    search:
+      if ( (rc=next_search_state(state)) )
+      { if ( state->cursor )
+	  return allow_retry_state(state);
       }
-      if ( (flags & MATCH_INVERSE) && inverse_partial_triple(p) )
-      { t = db->table[p->indexed][triple_hash(db, p, p->indexed)];
-	goto retry_inv;
-      }
-      free_saved_triple(db, p);
-      db->active_queries--;
-      RDUNLOCK(db);
-      return FALSE;
+
+      free_search_state(state);
+      return rc;
     }
     case PL_CUTTED:
-    { triple *p = PL_foreign_context_address(h);
+    { search_state *state = PL_foreign_context_address(h);
 
-      db->active_queries--;
-      free_saved_triple(db, p);
-      RDUNLOCK(db);
+      free_search_state(state);
       return TRUE;
     }
     default:
-      RDUNLOCK(db);
       assert(0);
       return FALSE;
   }
