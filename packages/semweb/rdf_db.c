@@ -4573,7 +4573,12 @@ retry:
   { avl_node *node;
 
     if ( (node = avl_next(state->literal_state)) )
-    { init_cursor_from_literal(state, node->key);
+    { DEBUG(3,
+	    Sdprintf("Trying literal ");
+	    print_literal(node->key);
+	    Sdprintf("\n"));
+      init_cursor_from_literal(state, node->key);
+      t = state->cursor;
 
       goto retry;
     }
@@ -4617,7 +4622,7 @@ rdf(term_t subject, term_t predicate, term_t object,
 
     search:
       if ( (rc=next_search_state(state)) )
-      { if ( state->cursor )
+      { if ( state->cursor || state->literal_state )
 	  return allow_retry_state(state);
       }
 

@@ -79,6 +79,15 @@ pop_node(avl_enum *e)
 }
 
 
+static inline avl_node *
+current_node(avl_enum *e)
+{ if ( e->current >= 1 )
+    return e->parents[e->current-1];
+
+  return NULL;
+}
+
+
 avl_node *
 avl_find_ge(avl_tree *tree, void *key, avl_enum *e)
 { avl_node *node = tree->root;
@@ -110,6 +119,12 @@ avl_find_ge(avl_tree *tree, void *key, avl_enum *e)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Last pushed node is  the  node  returned.   All  nodes  to  the left are
+considered `done'. We must return all nodes   to  the right, followed by
+the parent.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 avl_node *
 avl_next(avl_enum *e)
 { avl_node *n = pop_node(e);
@@ -118,15 +133,10 @@ avl_next(avl_enum *e)
   { n = push_node(e, n->right);
     while(n->left)
       n = push_node(e, n->left);
-    push_node(e, n);
     return n;
   }
 
-  if ( (n=pop_node(e)) )
-  { return n;
-  }
-
-  return NULL;
+  return current_node(e);
 }
 
 
