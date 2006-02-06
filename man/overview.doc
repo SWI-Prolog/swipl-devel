@@ -1694,7 +1694,8 @@ provide the encoding/1 directive that can be used to switch between
 encodings that are compatible to US-ASCII (\const{ascii},
 \const{iso_latin_1}, \const{utf8} and many locales).  See also
 \secref{intsrcfile} for writing Prolog files with non-us-ascii
-characters.
+characters.  For additional information and Unicode resources, please
+visit \url{http://www.unicode.org/}.
 
 SWI-Prolog currently defines and supports the following encodings:
 
