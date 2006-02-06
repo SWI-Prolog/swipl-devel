@@ -4425,6 +4425,7 @@ typedef struct search_state
   unsigned	allocated : 1;		/* State has been allocated */
   unsigned	flags;			/* Misc flags controlling search */
   avl_enum     *literal_state;		/* Literal search state */
+  literal      *literal_cursor;		/* pointer in current literal */
   triple       *cursor;			/* Pointer in triple DB */
   triple	pattern;		/* Pattern triple */
 } search_state;
@@ -4433,11 +4434,17 @@ typedef struct search_state
 static void	free_search_state(search_state *state);
 
 static void
-init_cursor_from_literal(search_state *state, literal *lit)
+init_cursor_from_literal(search_state *state, avl_node *cursor)
 { triple *p = &state->pattern;
+  literal *lit = cursor->key;
   unsigned long iv;
   int i;
 
+  DEBUG(3,
+	Sdprintf("Trying literal search for ");
+	print_literal(lit);
+	Sdprintf("\n"));
+  
   p->indexed |= BY_O;
   switch(p->indexed)
   { case BY_O:
@@ -4452,6 +4459,7 @@ init_cursor_from_literal(search_state *state, literal *lit)
 
   i = (int)(iv % (long)state->db->table_size[p->indexed]);
   state->cursor = state->db->table[p->indexed][i];
+  state->literal_cursor = cursor->key;
 }
 
 
@@ -4483,7 +4491,7 @@ init_search_state(search_state *state)
     if ( (node = avl_find_ge(state->db->literals,
 			     p->object.literal,
 			     state->literal_state)) )
-    { init_cursor_from_literal(state, node->key);
+    { init_cursor_from_literal(state, node);
     } else
     { free_search_state(state);
       return FALSE;
@@ -4536,6 +4544,13 @@ retry:
   { if ( t->is_duplicate && !state->src )
       continue;
 
+					/* hash-collision, skip */
+    if ( state->literal_state )
+    { if ( !(t->object_is_literal &&
+	     t->object.literal == state->literal_cursor) )
+	continue;
+    }
+
     if ( match_triples(t, p, state->flags) )
     { term_t retpred = state->realpred ? state->realpred : state->predicate;
       if ( !unify_triple(state->subject, retpred, state->object,
@@ -4573,11 +4588,7 @@ retry:
   { avl_node *node;
 
     if ( (node = avl_next(state->literal_state)) )
-    { DEBUG(3,
-	    Sdprintf("Trying literal ");
-	    print_literal(node->key);
-	    Sdprintf("\n"));
-      init_cursor_from_literal(state, node->key);
+    { init_cursor_from_literal(state, node);
       t = state->cursor;
 
       goto retry;

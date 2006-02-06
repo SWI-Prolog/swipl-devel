@@ -451,30 +451,32 @@ match(7) :-				% test backtracking
 		 *	       PREFIX		*
 		 *******************************/
 
-prefix_data(s1, p1, aaaaa).
-prefix_data(s2, p2, aaabb).
-prefix_data(s2, p3, aaccc).
+prefix_data(s, p, aaaaa).
+prefix_data(s, p, aaaab).
+prefix_data(s, p, aaabb).
+prefix_data(s, p, aaacc).
+prefix_data(s, p, aaccc).
+prefix_data(s, p, adddd).
 
 mkprefix_db :-
 	forall(prefix_data(S,P,O),
 	       rdf_assert(S, P, literal(O))).
 
-prefix(1) :-
+tprefix(Prefix) :-
 	mkprefix_db,
-	findall(rdf(A,B,L), rdf(A,B,literal(prefix(aa), L)),
-		List),
-	findall(rdf(A,B,L), prefix_data(A,B,L), L2),
-	L2 == List.
-prefix(2) :-
-	Prefix = aaa,
-	mkprefix_db,
-	findall(rdf(A,B,L), rdf(A,B,literal(prefix(Prefix), L)),
-		List),
+	findall(rdf(A,B,L), rdf(A,B,literal(prefix(Prefix), L)), List),
 	findall(rdf(A,B,L),
 		(   prefix_data(A,B,L),
 		    sub_atom(L, 0, _, _, Prefix)
 		), L2),
+%	writeln(List),
 	L2 == List.
+
+prefix(1) :- tprefix('').
+prefix(2) :- tprefix(a).
+prefix(3) :- tprefix(aa).
+prefix(4) :- tprefix(aaa).
+prefix(5) :- tprefix(aaaa).
 				
 	
 		 /*******************************
