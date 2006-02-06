@@ -1903,6 +1903,42 @@ unlock_atoms_literal(literal *lit)
 
 
 		 /*******************************
+		 *	  PREFIX SEARCH		*
+		 *******************************/
+
+#if 0
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We know
+
+	p->object_is_literal = TRUE
+	p->object.literal->objtype = OBJ_STRING
+	p->match == STR_MATCH_PREFIX
+	We hold RDLOCK();
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+literal_prefix_search_first(rdf_db *db,
+			    term_t subject, term_t predicate, term_t object,
+			    term_t src, term_t realpred, unsigned flags,
+			    triple *p, 
+{ avl_state *state = find_literal_ge(db, p->object.literal);
+
+  if ( lit )
+  { // while lit is prefix try to match triple
+  }
+}
+
+
+static int
+literal_prefix_search_next(rdf_db *db,
+			   term_t subject, term_t predicate, term_t object,
+			   term_t src, term_t realpred, unsigned flags,
+			   triple *p, 
+{
+}
+#endif
+
+		 /*******************************
 		 *	     LITERAL DB		*
 		 *******************************/
 
