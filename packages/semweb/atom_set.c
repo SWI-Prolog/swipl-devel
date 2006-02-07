@@ -110,7 +110,7 @@ avl_find_ge(avl_tree *tree, void *key, avl_enum *e)
     { if ( node->right )
       { node = node->right;
       } else
-      { return NULL;			/* all are lower */
+      { return current_node(e);
       }
     } else
     { return push_node(e, node);	/* equal hit */

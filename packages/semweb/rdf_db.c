@@ -1920,10 +1920,41 @@ compare_literals() sorts literals.  Ordering is defined as:
 	* Terms are sorted on Prolog standard order of terms
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static inline int
+cmpA(int c1, int c2, int *dl2)
+{ int k1 = sort_pointA(c1);
+  int k2 = sort_pointA(c2);
+  int d;
+
+  if ( (d=((k1>>8)-(k2>>8))) == 0 )
+  { if ( *dl2 == 0 )
+      *dl2 = (k1&0xff) - (k2&0xff);
+  }
+
+  return d;
+}
+
+
+static inline int
+cmpW(int c1, int c2, int *dl2)
+{ int k1 = sort_point(c1);
+  int k2 = sort_point(c2);
+  int d;
+
+  if ( (d=((k1>>8)-(k2>>8))) == 0 )
+  { if ( *dl2 == 0 )
+      *dl2 = (k1&0xff) - (k2&0xff);
+  }
+
+  return d;
+}
+
+
 static int
 cmp_atoms(atom_t a1, atom_t a2)
 { text t1, t2;
   int i;
+  int dl2 = 0;
   
   if ( !get_atom_text(a1, &t1) ||
        !get_atom_text(a2, &t2) )
@@ -1935,9 +1966,9 @@ cmp_atoms(atom_t a1, atom_t a2)
     const charA *s2 = t2.a;
     int d;
 
-    while((d=(sort_pointA(*s1)-sort_pointA(*s2))) == 0)
+    while((d=cmpA(*s1, *s2, &dl2)) == 0)
     { if ( *s1 == 0 )
-	return 0;
+	return dl2;
       s1++, s2++;
     }
     return d;
@@ -1947,9 +1978,9 @@ cmp_atoms(atom_t a1, atom_t a2)
     const charW *s2 = t2.w;
     int d;
 
-    while((d=(sort_point(*s1)-sort_point(*s2))) == 0)
+    while((d=cmpW(*s1, *s2, &dl2)) == 0)
     { if ( *s1 == 0 )
-	return 0;
+	return dl2;
       s1++, s2++;
     }
     return d;
@@ -1960,11 +1991,11 @@ cmp_atoms(atom_t a1, atom_t a2)
     wint_t c2 = fetch(&t2, i);
     int d;
 
-    d = sort_point(c1)-sort_point(c2);
+    d = cmpW(c1, c2, &dl2);
     if ( d != 0 )
       return d;
     if ( c1 == 0 )
-      return 0;
+      return dl2;
   }
 }
 
