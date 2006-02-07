@@ -50,6 +50,7 @@
 #include "atom_set.h"
 #ifdef WITH_MD5
 #include "md5.h"
+#include "unicode_map.c"
 
 #undef UNLOCK
 
@@ -1930,16 +1931,38 @@ cmp_atoms(atom_t a1, atom_t a2)
   }
 
   if ( t1.a && t2.a )
-    return strcmp((const char *)t1.a, (const char *)t2.a);
+  { const charA *s1 = t1.a;
+    const charA *s2 = t2.a;
+    int d;
+
+    while((d=(sort_pointA(*s1)-sort_pointA(*s2))) == 0)
+    { if ( *s1 == 0 )
+	return 0;
+      s1++, s2++;
+    }
+    return d;
+  }
   if ( t1.w && t2.w )
-    return wcscmp(t1.w, t2.w);
+  { const charW *s1 = t1.w;
+    const charW *s2 = t2.w;
+    int d;
+
+    while((d=(sort_point(*s1)-sort_point(*s2))) == 0)
+    { if ( *s1 == 0 )
+	return 0;
+      s1++, s2++;
+    }
+    return d;
+  }
   
   for(i=0; ; i++)
   { wint_t c1 = fetch(&t1, i);
     wint_t c2 = fetch(&t2, i);
-    
-    if ( c1 != c2 )
-      return c1-c2;
+    int d;
+
+    d = sort_point(c1)-sort_point(c2);
+    if ( d != 0 )
+      return d;
     if ( c1 == 0 )
       return 0;
   }
@@ -4625,7 +4648,7 @@ retry:
 	if ( !match(STR_MATCH_PREFIX,
 		    p->object.literal->value.string,
 		    lit->value.string) )
-	{ DEBUG(3,
+	{ DEBUG(1,
 		Sdprintf("Terminated literal iteration from ");
 		print_literal(lit);
 		Sdprintf("\n"));
@@ -6027,12 +6050,15 @@ nextwordA(const charA *s)
 }
 
 
+#define cmp_pointA(i) (sort_pointA(i)>>8)
+
+
 static int
 matchA(int how, const charA *f, const charA *l)
 { switch(how)
   { case STR_MATCH_EXACT:
     { for( ; *l && *f; l++, f++ )
-      { if ( tolower(*l) != tolower(*f) )
+      { if ( cmp_pointA(*l) != cmp_pointA(*f) )
 	  return FALSE;
       }
       if ( *l == '\0' && *f == '\0' )
@@ -6042,7 +6068,7 @@ matchA(int how, const charA *f, const charA *l)
     }
     case STR_MATCH_PREFIX:
     { for( ; *l && *f; l++, f++ )
-      { if ( tolower(*l) != tolower(*f) )
+      { if ( cmp_pointA(*l) != cmp_pointA(*f) )
 	  return FALSE;
       }
       if ( *f == '\0' )
@@ -6056,7 +6082,7 @@ matchA(int how, const charA *f, const charA *l)
   
       for(h=l; *h; h++)
       { for( l=h,f=f0; *l && *f; l++, f++ )
-	{ if ( tolower(*l) != tolower(*f) )
+	{ if ( cmp_pointA(*l) != cmp_pointA(*f) )
 	    break;
 	}
 	if ( *f == '\0' )
@@ -6073,7 +6099,7 @@ matchA(int how, const charA *f, const charA *l)
   
       for(h=l; *h; h = nextwordA(h))
       { for( l=h,f=f0; *l && *f; l++, f++ )
-	{ if ( tolower(*l) != tolower(*f) )
+	{ if ( cmp_pointA(*l) != cmp_pointA(*f) )
 	    break;
 	}
 	if ( *f == '\0' )
@@ -6100,7 +6126,7 @@ matchA(int how, const charA *f, const charA *l)
 	    return TRUE;
 
 	search_like:
-	  while ( *l && tolower(*l) != tolower(*f) )
+	  while ( *l && cmp_pointA(*l) != cmp_pointA(*f) )
 	    l++;
 
 	  if ( *l )
@@ -6118,7 +6144,7 @@ matchA(int how, const charA *f, const charA *l)
 	    goto retry_like;
 	}
 
-	if ( tolower(*l) != tolower(*f) )
+	if ( cmp_pointA(*l) != cmp_pointA(*f) )
 	  goto retry_like;
       }
       if ( *l == '\0' && (*f == '\0' ||
@@ -6168,6 +6194,8 @@ nextword(text *txt, unsigned int i)
 }
 
 
+#define cmp_point(i) (sort_point(i)>>8)
+
 
 static int
 match(int how, atom_t search, atom_t label)
@@ -6189,7 +6217,7 @@ match(int how, atom_t search, atom_t label)
       { unsigned int i;
 
 	for(i=0; i<l.length; i++ )
-	{ if ( towlower(fetch(&l, i)) != towlower(fetch(&f, i)) )
+	{ if ( cmp_point(fetch(&l, i)) != cmp_point(fetch(&f, i)) )
 	    return FALSE;
 	}
 
@@ -6203,7 +6231,7 @@ match(int how, atom_t search, atom_t label)
       { unsigned int i;
 
 	for(i=0; i<f.length; i++ )
-	{ if ( towlower(fetch(&l, i)) != towlower(fetch(&f, i)) )
+	{ if ( cmp_point(fetch(&l, i)) != cmp_point(fetch(&f, i)) )
 	    return FALSE;
 	}
 
@@ -6218,7 +6246,7 @@ match(int how, atom_t search, atom_t label)
 
 	for(s=0; s+f.length <= l.length; s++)
 	{ for(i=0; i<f.length; i++)
-	  { if ( towlower(fetch(&l, i+s)) != towlower(fetch(&f, i)) )
+	  { if ( cmp_point(fetch(&l, i+s)) != cmp_point(fetch(&f, i)) )
 	      goto snext;
 	  }
 	  return TRUE;
@@ -6235,7 +6263,7 @@ match(int how, atom_t search, atom_t label)
 
 	for(s=0; s+f.length <= l.length; s = nextword(&l, s))
 	{ for(i=0; i<f.length; i++)
-	  { if ( towlower(fetch(&l, i+s)) != towlower(fetch(&f, i)) )
+	  { if ( cmp_point(fetch(&l, i+s)) != cmp_point(fetch(&f, i)) )
 	      goto wnext;
 	  }
 	  if ( i+s == l.length || !iswalnum(fetch(&l,i+s)) )
@@ -6264,7 +6292,7 @@ match(int how, atom_t search, atom_t label)
 
 	search_like:
 	  while ( il < l.length &&
-		  towlower(fetch(&l, il)) != towlower(fetch(&f, ip)) )
+		  cmp_point(fetch(&l, il)) != cmp_point(fetch(&f, ip)) )
 	    il++;
 
 	  if ( il < l.length )
@@ -6282,7 +6310,7 @@ match(int how, atom_t search, atom_t label)
 	    goto retry_like;
 	}
 
-	if ( towlower(fetch(&l, il)) != towlower(fetch(&f, ip)) )
+	if ( cmp_point(fetch(&l, il)) != cmp_point(fetch(&f, ip)) )
 	  goto retry_like;
       }
       if ( il == l.length && (ip == f.length ||

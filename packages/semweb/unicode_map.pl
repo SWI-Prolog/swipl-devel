@@ -148,7 +148,12 @@ write_footer(Out, _Options) :-
 		  if ( cp < UNICODE_MAP_SIZE && ucoll_map[cp] )\n    \
 		    return ucoll_map[cp][code&0xff];\n\
 		\n  \
-		  return code<<8;\n\
+		  return (code<<8) + 0x80;\n\
+		}\n\n', []),
+	format(Out,
+	       'static int\n\
+		sort_pointA(int code)\n\
+		{ return ucp0x00[code&0xff];\n\
 		}\n\n', []).
 	
 
@@ -181,7 +186,7 @@ char_to_code(Code, Value) :-
 	(   utolower(Code, Lower),
 	    Lower \== Code
 	->  Cc = Lower,
-	    CFlags = 0
+	    CFlags = 0x00
 	;   Cc = Code,
 	    CFlags = 0x80
 	),
@@ -198,7 +203,7 @@ non_empty_map(CP, Map) :-
 
 empty_map([], _, _).
 empty_map([H|T], I, CP) :-
-	H =:= (CP*256+I)<<8, 
+	H =:= (CP*256+I)<<8+0x80, 
 	I2 is I + 1,
 	empty_map(T, I2, CP).
 
