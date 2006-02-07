@@ -451,33 +451,52 @@ match(7) :-				% test backtracking
 		 *	       PREFIX		*
 		 *******************************/
 
-prefix_data(s, p, aaaaa).
-prefix_data(s, p, aaaab).
-prefix_data(s, p, aaabb).
-prefix_data(s, p, aaacc).
-prefix_data(s, p, aaccc).
-prefix_data(s, p, adddd).
+prefix_data(s, p1, aaaaa).
+prefix_data(s, p1, aaaab).
+prefix_data(s, p1, aaabb).
+prefix_data(s, p1, aaacc).
+prefix_data(s, p1, aaccc).
+prefix_data(s, p1, adddd).
 
-mkprefix_db :-
+prefix_data(s, p2, 'BBBBB').
+prefix_data(s, p2, 'bbbbb').
+prefix_data(s, p2, 'bbbcc').
+prefix_data(s, p2, 'BBBcc').
+
+mkprefix_db(P) :-
 	forall(prefix_data(S,P,O),
 	       rdf_assert(S, P, literal(O))).
 
-tprefix(Prefix) :-
-	mkprefix_db,
-	findall(rdf(A,B,L), rdf(A,B,literal(prefix(Prefix), L)), List),
-	findall(rdf(A,B,L),
-		(   prefix_data(A,B,L),
-		    sub_atom(L, 0, _, _, Prefix)
+tprefix(P, Prefix) :-
+	mkprefix_db(P),
+	findall(rdf(A,P,L), rdf(A,P,literal(prefix(Prefix), L)), List),
+	findall(rdf(A,P,L),
+		(   prefix_data(A,P,L),
+		    case_prefix(Prefix, L)
 		), L2),
 %	writeln(List),
 	L2 == List.
 
-prefix(1) :- tprefix('').
-prefix(2) :- tprefix(a).
-prefix(3) :- tprefix(aa).
-prefix(4) :- tprefix(aaa).
-prefix(5) :- tprefix(aaaa).
-prefix(6) :- tprefix(aaaaa).
+case_prefix(Prefix, Atom) :-
+	atom_codes(Prefix, PC),
+	atom_codes(Atom, AC),
+	prefix_codes(PC, AC).
+
+prefix_codes([], _).
+prefix_codes([H0|T0], [H|T]) :-
+	code_type(L, to_lower(H0)),
+	code_type(L, to_lower(H)),
+	prefix_codes(T0, T).
+
+prefix(1) :- tprefix(p1, '').
+prefix(2) :- tprefix(p1, a).
+prefix(3) :- tprefix(p1, aa).
+prefix(4) :- tprefix(p1, aaa).
+prefix(5) :- tprefix(p1, aaaa).
+prefix(6) :- tprefix(p1, aaaaa).
+prefix(7) :- tprefix(p2, bbbb).
+prefix(8) :- tprefix(p2, bbbbb).
+prefix(9) :- tprefix(p2, 'BBBBB').
 				
 	
 		 /*******************************
