@@ -85,7 +85,7 @@ property(simple_lowercase_mapping(_)).
 property(simple_titlecase_mapping(_)).
 
 :- dynamic
-	handle/1.
+	handle/1.
 :- volatile
 	handle/1.
 
