@@ -655,7 +655,7 @@ check_pragma(Pragma, PragmaRule) :-
 	!,
 	PragmaRule = pragma(_,_,_,_,RuleNb),
 	pragma_unique(RuleNb,ID,Vars),
-	format('CHR compiler WARNING: undocument pragma ~w in ~@.\n',[Pragma,format_rule(PragmaRule)]),
+	format('CHR compiler WARNING: undocumented pragma ~w in ~@.\n',[Pragma,format_rule(PragmaRule)]),
 	format('    `--> Only use this pragma if you know what you are doing.\n',[]).
 
 check_pragma(Pragma, PragmaRule) :-
