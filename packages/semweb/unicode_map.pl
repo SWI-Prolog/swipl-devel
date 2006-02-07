@@ -41,6 +41,14 @@ involved in adopting large `can-do-everything' external libraries.
 
 We believe it  deals  correctly  with   the  Western  languages,  Greek,
 Cyrillic and other languages with similar handling of diacritics. 
+
+
+UPPERCASE
+
+For Prolog it makes more sense  to   map  to uppercase as the cannonical
+case. However, we wish to order first on  uppercase and to be able to do
+prefix matches we need to search on the  lowest value. Hence, we use the
+uppercase version for sorting.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- dynamic
@@ -57,8 +65,12 @@ Cyrillic and other languages with similar handling of diacritics.
 %	
 %		# first_codepage [0]
 %		Code page to start
+%		
 %		# last_codepage [127]
 %		Code page to end.
+%		
+%		# case(UpperOrLower)
+%		Canonise to upper (default) or lower case.
 
 write_unicode_collate_map(File, Options) :-
 	open(File, write, Out),
@@ -139,7 +151,11 @@ write_header(Out, Options) :-
 	format(Out,
 	       '#define UNICODE_MAP_SIZE ~d~n~n', [Size]).
 
-write_footer(Out, _Options) :-
+write_footer(Out, Options) :-
+	(   memberchk(case(lower), Options)
+	->  Add = '+0x80'
+	;   Add = ''
+	),
 	format(Out,
 	       'static int\n\
 		sort_point(int code)\n\
@@ -148,8 +164,8 @@ write_footer(Out, _Options) :-
 		  if ( cp < UNICODE_MAP_SIZE && ucoll_map[cp] )\n    \
 		    return ucoll_map[cp][code&0xff];\n\
 		\n  \
-		  return (code<<8) + 0x80;\n\
-		}\n\n', []),
+		  return (code<<8)~w;\n\
+		}\n\n', [Add]),
 	format(Out,
 	       'static int\n\
 		sort_pointA(int code)\n\
@@ -170,19 +186,20 @@ table(CP, Map, Options) :-
 	option(first_codepage(First), Options, 0),
 	option(last_codepage(Last), Options, 127),
 	between(First, Last, CP),	
-	findall(M, char(CP, M), Map),	% now
-	non_empty_map(CP, Map).
+	findall(M, char(CP, M, Options), Map),	% now
+	non_empty_map(CP, Map, Options).
 
-char(CP, Value) :-
+char(CP, Value, Options) :-
 	between(0, 255, I),
 	Code is 256*CP+I,
-	(   char_to_code(Code, Value)
+	(   char_to_code(Code, Value, Options)
 	->  true
 	;   format('Failed on ~d~n', [Code]),
 	    Value is Code<<8
 	).
 	
-char_to_code(Code, Value) :-
+char_to_code(Code, Value, Options) :-
+	memberchk(case(lower), Options), !,
 	(   utolower(Code, Lower),
 	    Lower \== Code
 	->  Cc = Lower,
@@ -197,15 +214,34 @@ char_to_code(Code, Value) :-
 	    Value is Base << 8 \/ CFlags \/ DiaV
 	;   Value is Cc << 8 \/ CFlags
 	).
+char_to_code(Code, Value, _Options) :-
+	(   utoupper(Code, Upper),
+	    Upper \== Code
+	->  Cc = Upper,
+	    CFlags = 0x80
+	;   Cc = Code,
+	    CFlags = 0x00
+	),
+	assertion(integer(Cc)),
+	(   rm_diacritics(Cc, Base, Dia),
+	    assertion(integer(Base))
+	->  diacritic_code(Dia, DiaV),
+	    Value is Base << 8 \/ CFlags \/ DiaV
+	;   Value is Cc << 8 \/ CFlags
+	).
 
-non_empty_map(CP, Map) :-
-	\+ empty_map(Map, 0, CP).
+non_empty_map(CP, Map, Options) :-
+	(   memberchk(case(lower), Options)
+	->  Add is 0x80
+	;   Add = 0
+	),
+	\+ empty_map(Map, 0, CP, Add).
 
-empty_map([], _, _).
-empty_map([H|T], I, CP) :-
-	H =:= (CP*256+I)<<8+0x80, 
+empty_map([], _, _, _).
+empty_map([H|T], I, CP, Add) :-
+	H =:= ((CP*256+I)<<8) + Add, 
 	I2 is I + 1,
-	empty_map(T, I2, CP).
+	empty_map(T, I2, CP, Add).
 
 
 		 /*******************************
@@ -214,6 +250,9 @@ empty_map([H|T], I, CP) :-
 
 utolower(Code, Lower) :-
 	unicode_property(Code, simple_lowercase_mapping(Lower)).
+
+utoupper(Code, Upper) :-
+	unicode_property(Code, simple_uppercase_mapping(Upper)).
 
 
 		 /*******************************

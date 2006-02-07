@@ -496,7 +496,8 @@ prefix(5) :- tprefix(p1, aaaa).
 prefix(6) :- tprefix(p1, aaaaa).
 prefix(7) :- tprefix(p2, bbbb).
 prefix(8) :- tprefix(p2, bbbbb).
-prefix(9) :- tprefix(p2, 'BBBBB').
+prefix(9) :- tprefix(p2, 'Bbbbb').
+prefix(10) :- tprefix(p2, 'BBBBB').
 				
 	
 		 /*******************************
