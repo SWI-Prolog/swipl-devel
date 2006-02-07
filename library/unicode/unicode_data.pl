@@ -101,7 +101,7 @@ property(simple_titlecase_mapping(_)).
    ).
 
 table(Handle) :-
-	handle(Handle).
+	handle(Handle), !.
 table(Handle) :-
 	absolute_file_name(unicode('UnicodeData.txt'),
 			   Path,
