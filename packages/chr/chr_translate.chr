@@ -303,7 +303,9 @@ validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type
 validate_store_type_assumption(C), actual_store_types(C,STs), store_type(C,_) 		% user assumption
 	<=> 
 		store_type(C,multi_store(STs)).
-validate_store_type_assumption(_) 
+validate_store_type_assumption(C), assumed_store_type(C,_)				% no lookups on constraint
+	<=> store_type(C,global_ground).
+validate_store_type_assumption(C) 
 	<=> true.
 
 rule_count(C), inc_rule_count(NC)
@@ -692,7 +694,11 @@ parse_rule(RI,R) :-
 rule(RI,Name,R) :-
 	RI = (RI2 pragma P), !,			%% pragmas
 	is_rule(RI2,R1,IDs),
-	conj2list(P,Ps),
+	( var(P) ->
+		Ps = [_]			% intercept variable
+	;
+		conj2list(P,Ps)
+	),
 	inc_rule_count(RuleCount),
 	R = pragma(R1,IDs,Ps,Name,RuleCount).
 rule(RI,Name,R) :-

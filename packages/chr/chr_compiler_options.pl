@@ -95,22 +95,6 @@ option_definition(optimize,full,Flags) :-
 		  reduced_indexing	   - on
 		].
 
-option_definition(optimize,sicstus,Flags) :-
-	Flags = [ functional_dependency_analysis  - off,
-                  check_unnecessary_active - simplification,
-		  reorder_heads		   - off,
-		  set_semantics_rule	   - off,
-		  storage_analysis	   - off,
-		  guard_via_reschedule     - off,
-		  guard_simplification	   - off,
-		  check_impossible_rules   - off,
-		  occurrence_subsumption   - off,
-		  observation		   - off,
-		  ai_observation_analysis	   - off,
-		  late_allocation	   - off,
-		  reduced_indexing	   - off
-		].
-
 option_definition(optimize,off,Flags) :-
 	Flags = [ functional_dependency_analysis  - off,
                   check_unnecessary_active - off,

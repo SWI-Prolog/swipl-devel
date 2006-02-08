@@ -108,6 +108,9 @@ pair_all_with([X|Xs],Y,[X-Y|Rest]) :-
 conj2list(Conj,L) :-				%% transform conjunctions to list
   conj2list(Conj,L,[]).
 
+conj2list(Var,L,T) :-
+	var(Var), !,
+	L = [Var|T].
 conj2list(Conj,L,T) :-
   Conj = (true,G2), !,
   conj2list(G2,L,T).

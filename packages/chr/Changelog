@@ -1,3 +1,8 @@
+Feb 9, 2006
+
+  * TS: Removed obsolete experimental optimization option.
+  * TS: Correctly report variable pragmas!
+
 Jan 19, 2006
 
   * TS: Removed operator declaration for '::'. No longer used.
