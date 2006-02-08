@@ -2,6 +2,7 @@ Feb 9, 2006
 
   * TS: Removed obsolete experimental optimization option.
   * TS: Correctly report variable pragmas!
+  * TS: No constraints declared is no longer a special case.
 
 Jan 19, 2006
 

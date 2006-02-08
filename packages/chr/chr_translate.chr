@@ -446,39 +446,35 @@ chr_translate(Declarations,NewDeclarations) :-
 	init_chr_pp_flags,
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
 	check_declared_constraints(Constraints0),
-	( Constraints0 == [] ->
-		insert_declarations(OtherClauses, NewDeclarations)
-	;
-		generate_show_constraint(Constraints0,Constraints,Rules0,Rules),
-		add_constraints(Constraints),
-		add_rules(Rules),
-		% start analysis
-		check_rules(Rules,Constraints),
-		add_occurrences(Rules),
-		functional_dependency_analysis(Rules),
-		set_semantics_rules(Rules),
-		symmetry_analysis(Rules),
-		guard_simplification,
-		storage_analysis(Constraints),
-		observation_analysis(Constraints),
-		ai_observation_analysis(Constraints),
-		late_allocation_analysis(Constraints),
-		assume_constraint_stores(Constraints),
-		set_constraint_indices(Constraints),
-		% end analysis
-		constraints_code(Constraints,ConstraintClauses),
-		validate_store_type_assumptions(Constraints),
-		store_management_preds(Constraints,StoreClauses),	% depends on actual code used
-	  	insert_declarations(OtherClauses, Clauses0),
-		chr_module_declaration(CHRModuleDeclaration),
-		append_lists([Clauses0,
-			      StoreClauses,
-			      ConstraintClauses,
-			      CHRModuleDeclaration,
-			      [end_of_file]
-			     ],
-			     NewDeclarations)
-	).
+	generate_show_constraint(Constraints0,Constraints,Rules0,Rules),
+	add_constraints(Constraints),
+	add_rules(Rules),
+	% start analysis
+	check_rules(Rules,Constraints),
+	add_occurrences(Rules),
+	functional_dependency_analysis(Rules),
+	set_semantics_rules(Rules),
+	symmetry_analysis(Rules),
+	guard_simplification,
+	storage_analysis(Constraints),
+	observation_analysis(Constraints),
+	ai_observation_analysis(Constraints),
+	late_allocation_analysis(Constraints),
+	assume_constraint_stores(Constraints),
+	set_constraint_indices(Constraints),
+	% end analysis
+	constraints_code(Constraints,ConstraintClauses),
+	validate_store_type_assumptions(Constraints),
+	store_management_preds(Constraints,StoreClauses),	% depends on actual code used
+	insert_declarations(OtherClauses, Clauses0),
+	chr_module_declaration(CHRModuleDeclaration),
+	append_lists([Clauses0,
+		      StoreClauses,
+		      ConstraintClauses,
+		      CHRModuleDeclaration,
+		      [end_of_file]
+		     ],
+		     NewDeclarations).
 
 store_management_preds(Constraints,Clauses) :-
 		generate_attach_detach_a_constraint_all(Constraints,AttachAConstraintClauses),

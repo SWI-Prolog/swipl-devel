@@ -129,14 +129,10 @@ chr_expandable((:- chr_option(_, _))).
 chr_expandable((handler _)).
 chr_expandable((rules _)) :-
 	is_chr_file.
-chr_expandable((_ <=> _)) :-
-	is_chr_file.
-chr_expandable((_ @ _)) :-
-	is_chr_file.
-chr_expandable((_ ==> _)) :-
-	is_chr_file.
-chr_expandable((_ pragma _)) :-
-	is_chr_file.
+chr_expandable((_ <=> _)).
+chr_expandable((_ @ _)).
+chr_expandable((_ ==> _)).
+chr_expandable((_ pragma _)).
 
 is_chr_file :-
 	prolog_load_context(file,File),
