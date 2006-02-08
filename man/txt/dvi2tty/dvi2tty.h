@@ -3,8 +3,8 @@ Copyright (C) 1988 M.J.E. Mol 1989, 1990"
 
 #include <stdio.h>
 #include <string.h>
-#if defined(MSDOS)
 #include <stdlib.h>
+#if defined(MSDOS)
 #include <alloc.h>     /* changed from malloc.h  (aci 17/6/91) */
 #endif
 

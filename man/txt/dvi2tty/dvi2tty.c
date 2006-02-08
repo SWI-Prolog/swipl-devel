@@ -178,7 +178,6 @@ void    usage     (int);
 char *  getenv    ();
 FILE *  popen     ();
 
-void    main      ();
 void    setoption ();
 void    getargs   ();
 void    getpages  ();
@@ -195,7 +194,8 @@ void    usage     ();
 /*                                                                          */
 /****************************************************************************/
 
-void main(argc, argv)
+int
+main(argc, argv)
 int argc;
 char ** argv;
 {
@@ -445,7 +445,7 @@ char *str;
             }
         }
     }
-    if ((str[j] != ' ') && (str[j] != NULL)) {
+    if ((str[j] != ' ') && (str[j] != 0)) {
         usage(gae);
     }
     currentpage = firstpage;
