@@ -1,0 +1,2 @@
+[element(document, [name=value], ['\n  ', element(ul, [], ['\n    ', element(li, [], ['Line one']), '\n    ', element(li, [], ['Line with ', element(em, [], [emphasised]), ' text']), '\n  ']), '\n\n', element(p, [], ['This is a nice paragraph with some ', element(b, [], [bold]), ' text']), '\n\n'])].
+[].

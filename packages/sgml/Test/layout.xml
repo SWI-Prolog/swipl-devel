@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<document name="value">
+  <ul>
+    <li>Line one</li>
+    <li>Line with <em>emphasised</em> text</li>
+  </ul>
+
+<p>This is a nice paragraph with some <b>bold</b> text</p>
+
+</document>
