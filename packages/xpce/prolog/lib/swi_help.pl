@@ -647,13 +647,13 @@ section_separator -->
 	"-", !.
 
 name_and_arity(Name, Arity) -->
-	[C1|CT],
+	string(NameCodes),
 	"/",
 	(   integer(Arity)
 	->  []
 	;   "_"
 	), !,
-	{ atom_codes(Name, [C1|CT])
+	{ atom_codes(Name, NameCodes)
 	}.
 
 pl_function(Name) -->
@@ -668,6 +668,12 @@ pl_function(Name) -->
 	  atom_codes(Name, Chars)
 	}.
 
+
+string([]) -->
+	[].
+string([H|T]) -->
+	[H],
+	string(T).
 
 word([C0|CT]) -->
 	[C0],

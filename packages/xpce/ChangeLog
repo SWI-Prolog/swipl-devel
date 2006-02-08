@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* Fixed: DCG for manual operations.
+
 * ENHANCED: Operator handling in PceEmacs Prolog mode.
 
 
