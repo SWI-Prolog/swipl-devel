@@ -209,16 +209,16 @@ chr_current_prolog_flag(Flag,Val) :- current_prolog_flag(Flag,Val).
 
 %% SICStus begin
 %% chr_current_prolog_flag(generate_debug_info, _) :- fail.
-%% chr_current_prolog_flag(optimize,true).
+%% chr_current_prolog_flag(optimize,full).
 %% chr_current_prolog_flag(chr_toplevel_show_store,true).
 %% SICStus end
 
 
 
 add_optimise_decl(CHR, CHR) :-
-	memberchk(option(optimize, _), CHR), !.
-add_optimise_decl(CHR, [option(optimize, full)|CHR]) :-
-	chr_current_prolog_flag(optimize, true), !.
+	memberchk((:- chr_option(optimize, _)), CHR), !.
+add_optimise_decl(CHR, [(:- chr_option(optimize, full))|CHR]) :-
+	chr_current_prolog_flag(optimize, full), !.
 add_optimise_decl(CHR, CHR).
 
 
