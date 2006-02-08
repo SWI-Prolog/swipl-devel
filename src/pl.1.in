@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH @PL@ 1L "Feb 26, 2002" "SWI-Prolog 5.0"
+.TH @PL@ 1L "Feb 8, 2006" "SWI-Prolog 5"
 .SH NAME
 @PL@ \- SWI-Prolog @PLVERSION@
 .SH SYNOPSIS
@@ -384,8 +384,8 @@ The SWI-Prolog web-home at
 .I http://www.swi-prolog.org 
 .PP
 Jan\ Wielemaker
-.IR "SWI-Prolog 5.0 Reference Manual" at
-.I http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/
+.IR "SWI-Prolog Reference Manual" at
+.I http://gollem.science.uva.nl/SWI-Prolog/Manual/
 .PP
 Documentation on the add-on packages in
 .I @prefix@/lib/@PL@-@PLVERSION@/boot/doc
@@ -412,7 +412,7 @@ The license terms are in the file
 or on the GNU website at
 .I http://www.gnu.org.
 .SH COPYRIGHT
-Copyright (c) 1993\-2002 University of Amsterdam.
+Copyright (c) 1993\-2006 University of Amsterdam.
 .SH AUTHOR
 Jan Wielemaker
 
