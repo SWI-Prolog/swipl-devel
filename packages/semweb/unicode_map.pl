@@ -159,7 +159,7 @@ write_footer(Out, Options) :-
 	format(Out,
 	       'static int\n\
 		sort_point(int code)\n\
-		{ int cp = code % 256;\n\
+		{ int cp = code / 256;\n\
 		\n  \
 		  if ( cp < UNICODE_MAP_SIZE && ucoll_map[cp] )\n    \
 		    return ucoll_map[cp][code&0xff];\n\

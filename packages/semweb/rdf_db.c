@@ -275,6 +275,11 @@ fetch(const text *txt, int i)
 { return txt->a ? (wint_t)txt->a[i] : (wint_t)txt->w[i];
 }
 
+static size_t
+tlen(const text *txt)
+{ return txt->a ? strlen((char*)txt->a) : wcslen(txt->w);
+}
+
 
 
 		 /*******************************
@@ -1899,6 +1904,51 @@ unlock_atoms_literal(literal *lit)
 	  PL_unregister_atom(lit->type_or_lang);
 	break;
     }
+  }
+}
+
+
+		 /*******************************
+		 *	    FIND FIRST		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Given an atom, return a new  one   that  has all its characters modified
+such that it appears first in the   set  of atoms considered equal after
+case canonisation and diacritics removal. This   is  required for prefix
+search to find the first atom of the set.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static atom_t
+first_atom(atom_t a)
+{ text t;
+
+  if ( !get_atom_text(a, &t) )
+  { PL_register_atom(a);
+    return a;
+  } else
+  { size_t len = tlen(&t);
+    wchar_t buf[256];
+    wchar_t *out, *s;
+    int i;
+    wint_t c;
+    atom_t rc;
+    
+    if ( len <= 256 )
+      out = buf;
+    else
+      out = PL_malloc(len*sizeof(wchar_t));
+    
+    for(s=out,i=0; (c=fetch(&t,i)); s++,i++)
+    { *s = sort_point(c)>>8;
+    }
+
+    rc = PL_new_atom_wchars(len, out);
+
+    if ( out != buf )
+      PL_free(out);
+
+    return rc;
   }
 }
 
@@ -4561,11 +4611,14 @@ init_search_state(search_state *state)
 
   if ( p->match == STR_MATCH_PREFIX && p->indexed != BY_SP )
   { avl_node *node;
+    literal lit;
 
+    lit = *p->object.literal;
+    lit.value.string = first_atom(lit.value.string); /* first in sort-set */
     state->literal_state = rdf_malloc(state->db, sizeof(*state->literal_state));
-    if ( (node = avl_find_ge(state->db->literals,
-			     p->object.literal,
-			     state->literal_state)) )
+    node = avl_find_ge(state->db->literals, &lit, state->literal_state);
+    PL_unregister_atom(lit.value.string);
+    if ( node )
     { init_cursor_from_literal(state, node);
     } else
     { free_search_state(state);

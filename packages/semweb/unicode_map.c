@@ -1011,7 +1011,7 @@ static const int32_t* const ucoll_map[UNICODE_MAP_SIZE] =
 
 static int
 sort_point(int code)
-{ int cp = code % 256;
+{ int cp = code / 256;
 
   if ( cp < UNICODE_MAP_SIZE && ucoll_map[cp] )
     return ucoll_map[cp][code&0xff];
