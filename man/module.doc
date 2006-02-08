@@ -566,7 +566,7 @@ collect(Bag) :-
 \end{figure}
 
 
-\subsection{Emulating meta_predicate/1}		\label{sec:metapredicate}
+\subsection{Emulating meta_predicate}		\label{sec:metapredicate}
 
 The Quintus meta_predicate/1 directive can in many cases be replaced by
 the transparent declaration. Below is the definition of meta_predicate/1

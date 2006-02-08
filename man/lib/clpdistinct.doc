@@ -1,4 +1,4 @@
-\libdoc{clp/clp_distinct}{Weak arc consistent all_distinct/1 constraint}
+\libdoc{clp/clp_distinct}{Weak arc consistent `all_distinct' constraint}
 \label{sec:lib:clpdistinct}
 
 \makebox[\linewidth]{\hfill Author: \emph{Markus Triska}}

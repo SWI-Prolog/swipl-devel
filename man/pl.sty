@@ -2,13 +2,15 @@
 
 % Test for PDF generation using pdflatex
 
-\newif\ifpdf
-\ifx\pdfoutput\undefined
-   \pdffalse
-\else
-   \pdfoutput=1
-   \pdftrue
-\fi
+\usepackage{ifpdf}
+%Old tex versions
+%\newif\ifpdf
+%\ifx\pdfoutput\undefined
+%   \pdffalse
+%\else
+%   \pdfoutput=1
+%   \pdftrue
+%\fi
 
 % Get hyperrefs to work
 
@@ -190,7 +192,7 @@
 \newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
 \newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
 \newcommand{\demo}[1]{{\sf #1}\index{#1 \string\idxtype{demo}}}
-\newcommand{\pllib}[1]{{\tt #1}\index{#1 \string\idxtype{library}}}
+\newcommand{\pllib}[1]{{\texttt{#1}}\index{#1 \string\idxtype{library}}}
 \newcommand{\clib}[1]{{\tt #1}\index{#1 \string\idxtype{library}}}
 \newcommand{\tool}[1]{{\em #1}\index{#1 \string\idxtype{tool}}}
 \newcommand{\menuref}[1]{\textsf{#1}\index{#1 \string\idxtype{menu}}}
@@ -207,13 +209,13 @@
 \newcommand{\except}[1]{\mbox{\tt #1}}
 \newcommand{\exam}[1]{\mbox{\tt #1}}
 \newcommand{\module}[1]{\mbox{\reffont #1}}
-\newcommand{\fileext}[1]{\mbox{\tt .#1}}
+\newcommand{\fileext}[1]{\mbox{\texttt{.#1}}}
 \newcommand{\option}[1]{\mbox{\tt #1}}
 \newcommand{\cmdlineoption}[1]{\mbox{\tt #1}}
 \newcommand{\argoption}[2]{\mbox{\tt #1 \em #2}}
-\newcommand{\ctype}[1]{{\tt #1}}
+\newcommand{\ctype}[1]{{\texttt{#1}}}
 \newcommand{\op}[1]{{\tt #1}}
-\newcommand{\program}[1]{{\tt #1}}
+\newcommand{\program}[1]{\texttt{#1}}
 \newcommand{\manpage}[2]{{\bf #1}(#2)}
 \newcommand{\chr}[1]{{\tt #1}}
 \newcommand{\jargon}[1]{{\em #1}}

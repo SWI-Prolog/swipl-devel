@@ -211,7 +211,7 @@ the level of this frame minus 1).
 \end{description}
 
 
-\section{Hooks using the exception/3 predicate}	\label{sec:exception3}
+\section{Hooks using the exception predicate}	\label{sec:exception3}
 
 This section describes the predicate exception/3, which may be defined
 by the user in the module \module{user} as a multifile predicate. Unlike
