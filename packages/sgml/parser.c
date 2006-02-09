@@ -3275,6 +3275,7 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 	      { if ( dtd->dialect != DL_SGML )
 		  gripe(ERC_SYNTAX_WARNING,
 			"Value short-hand in XML mode", decl);
+		atts[attn].flags	= 0;
 		atts[attn].definition   = a;
 		atts[attn].value.textW  = NULL;
 		atts[attn].value.number = 0;

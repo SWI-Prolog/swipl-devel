@@ -1,3 +1,8 @@
+Feb 9, 2006
+
+  * FIXED: valgrind detected memory error.  Not sure whether or not it was
+    a real error.
+
 Feb 1, 2006
 
   * PORT: Detect inline behaviour of compiler in configure
