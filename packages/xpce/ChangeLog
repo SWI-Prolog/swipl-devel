@@ -1,7 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
-* Fixed: DCG for manual operations.
+* FIXED: offset issue in win_printer.  Tom Conlon.
+
+* FIXED: DCG for manual operations.
 
 * ENHANCED: Operator handling in PceEmacs Prolog mode.
 
