@@ -121,22 +121,16 @@ user:file_search_path(chr, library(chr)).
 chr_expandable((:- constraints _)).
 chr_expandable((constraints _)).
 chr_expandable((:- chr_constraint _)).
-chr_expandable((:- chr_constraint _)).
 chr_expandable((:- chr_type _)).
 chr_expandable((chr_type _)).
 chr_expandable(option(_, _)).
 chr_expandable((:- chr_option(_, _))).
 chr_expandable((handler _)).
-chr_expandable((rules _)) :-
-	is_chr_file.
+chr_expandable((rules _)).
 chr_expandable((_ <=> _)).
 chr_expandable((_ @ _)).
 chr_expandable((_ ==> _)).
 chr_expandable((_ pragma _)).
-
-is_chr_file :-
-	prolog_load_context(file,File),
-	chr_term(File, _), !.
 
 %	chr_expand(+Term, -Expansion)
 %	
@@ -163,12 +157,9 @@ chr_expand(Term, []) :-
 	assert(chr_term(File, Term)).
 chr_expand(end_of_file, FinalProgram) :-
 	extra_declarations(FinalProgram,Program),
-	is_chr_file,
 	prolog_load_context(file,File),
 	findall(T, retract(chr_term(File, T)), CHR0),
 	CHR0 \== [],
-%	length(CHR0, NDecls),
-%	format('Translating ~w declarations~n', [NDecls]),
 	prolog_load_context(module, Module),
 	add_debug_decl(CHR0, CHR1),
 	add_optimise_decl(CHR1, CHR),
