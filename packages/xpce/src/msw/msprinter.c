@@ -665,7 +665,7 @@ drawInWinPrinter(WinPrinter prt, Any obj, Point pos)
   if ( instanceOfObject(obj, ClassGraphical) )
   { Graphical gr = obj;
 
-    ComputeGraphical(gr);
+    ComputeGraphical(getRootGraphical(gr));
     bb = gr->area;
   } else /* if ( instanceOfObject(obj, ClassChain) ) */
   { Cell cell;
@@ -675,7 +675,7 @@ drawInWinPrinter(WinPrinter prt, Any obj, Point pos)
     { Graphical gr = cell->value;
 
       if ( instanceOfObject(gr, ClassGraphical) )
-      { ComputeGraphical(gr);
+      { ComputeGraphical(getRootGraphical(gr));
 	unionNormalisedArea(bb, gr->area);
       }
     }
@@ -683,6 +683,7 @@ drawInWinPrinter(WinPrinter prt, Any obj, Point pos)
 
 
   d_hdc(prt->ws_ref->hdc, DEFAULT, DEFAULT, FALSE);
+  d_offset(0,0);			/* needed for proper init */
 
   if ( instanceOfObject(obj, ClassGraphical) )
   { Graphical gr = obj;
