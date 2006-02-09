@@ -40,7 +40,8 @@
 	    http_post_data/3,		% +Stream, +Data, +HdrExtra
 
 	    http_read_header/2,		% +Fd, -Header
-	    http_join_headers/3		% +Default, +InHdr, -OutHdr
+	    http_join_headers/3,	% +Default, +InHdr, -OutHdr
+	    http_update_encoding/3	% +HeaderIn, -Encoding, -HeaderOut
 	  ]).
 :- use_module(library(readutil)).
 :- use_module(library(debug)).
@@ -214,6 +215,7 @@ html_message_lines([Fmt|T]) --> !,
 	html_message_lines(T).
 
 %	http_join_headers(+Default, +Header, -Out)
+%	
 %	Append headers from Default to Header if they are not
 %	already part of it.
 
@@ -225,6 +227,32 @@ http_join_headers([H|T], Hdr0, Hdr) :-
 	http_join_headers(T, Hdr0, Hdr).
 http_join_headers([H|T], Hdr0, [H|Hdr]) :-
 	http_join_headers(T, Hdr0, Hdr).
+
+
+%	http_update_encoding(+HeaderIn, -Encoding, -HeaderOut)
+%	
+%	Allow for rewrite of the  header,   adjusting  the  encoding. We
+%	distinguish three options. If  the   user  announces  `text', we
+%	always use UTF-8 encoding. If   the user announces charset=utf-8
+%	we  use  UTF-8  and  otherwise  we  use  octet  (raw)  encoding.
+%	Alternatively we could dynamically choose for ASCII, ISO-Latin-1
+%	or UTF-8.
+
+http_update_encoding(Header0, utf8, [content_type(Type)|Header]) :-
+	select(content_type(Type0), Header0, Header),
+	sub_atom(Type0, 0, _, _, 'text/'), !,
+	(   sub_atom(Type0, S, _, _, ';')
+	->  sub_atom(Type0, 0, B, _, S)
+	;   B = Type0
+	),
+	atom_concat(B, '; charset=UTF-8', Type).
+http_update_encoding(Header, utf8, Header) :-
+	memberchk(content_type(Type), Header),
+	(   sub_atom(Type, _, _, _, 'UTF-8')
+	;   sub_atom(Type, _, _, _, 'utf-8')
+	), !.
+http_update_encoding(Header, octet, Header).
+
 
 		 /*******************************
 		 *	    POST SUPPORT	*
@@ -244,13 +272,13 @@ http_post_data(file(Type, File), Out, HdrExtra) :- !,
 	phrase(post_header(file(Type, File), HdrExtra), Header),
 	format(Out, '~s', [Header]),
 	open(File, read, In),
-	copy_stream_data(In, Out),
-	close(In).
+	call_cleanup(copy_stream_data(In, Out),
+		     close(In)).
 http_post_data(cgi_stream(In, Len), Out, HdrExtra) :- !,
-	http_read_header(In, CgiHeader),
+	http_read_header(In, Header),
 	seek(In, 0, current, Pos),
 	Size is Len - Pos,
-	http_join_headers(HdrExtra, CgiHeader, Hdr2),
+	http_join_headers(HdrExtra, Header, Hdr2),
 	phrase(reply_header(cgi_data(Size), Hdr2), Header),
 	format(Out, '~s', [Header]),
 	copy_stream_data(In, Out, Size).

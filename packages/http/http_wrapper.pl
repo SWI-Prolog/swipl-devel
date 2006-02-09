@@ -71,7 +71,7 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    open_memory_file(MemFile, read, TmpIn),
 	    http_read_header(TmpIn, CgiHeader),
 	    join_cgi_header(Request, CgiHeader, Header0),
-	    update_encoding(Header0, Encoding, Header),
+	    http_update_encoding(Header0, Encoding, Header),
 	    set_stream(Out, encoding(Encoding)),
 	    (	Encoding == utf8
 	    ->  utf8_position_memory_file(MemFile, BytePos, ByteSize),
@@ -123,30 +123,6 @@ map_exception(http_reply(Reply, HdrExtra),
 map_exception(E,
 	      server_error(E),
 	      [connection(close)]).
-
-%	update_encoding(+HeaderIn, -Encoding, -HeaderOut)
-%	
-%	Allow for rewrite of the  header,   adjusting  the  encoding. We
-%	distinguish three options. If  the   user  announces  `text', we
-%	always use UTF-8 encoding. If   the user announces charset=utf-8
-%	we  use  UTF-8  and  otherwise  we  use  octet  (raw)  encoding.
-%	Alternatively we could dynamically choose for ASCII, ISO-Latin-1
-%	or UTF-8.
-
-update_encoding(Header0, utf8, [content_type(Type)|Header]) :-
-	select(content_type(Type0), Header0, Header),
-	sub_atom(Type0, 0, _, _, 'text/'), !,
-	(   sub_atom(Type0, S, _, _, ';')
-	->  sub_atom(Type0, 0, B, _, S)
-	;   B = Type0
-	),
-	atom_concat(B, '; charset=UTF-8', Type).
-update_encoding(Header, utf8, Header) :-
-	memberchk(content_type(Type), Header),
-	(   sub_atom(Type, _, _, _, 'UTF-8')
-	;   sub_atom(Type, _, _, _, 'utf-8')
-	), !.
-update_encoding(Header, octet, Header).
 
 
 %	join_cgi_header(+Request, +CGIHeader, -Header)
