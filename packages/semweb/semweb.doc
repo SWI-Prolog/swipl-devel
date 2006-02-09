@@ -286,8 +286,8 @@ both language) are sorted alphabetically.%
 The ordered tree is used for indexed execution of
 \term{literal}{\term{prefix}{Prefix}, Literal} as well as
 \term{literal}{\term{like}{Like}, Literal} if \arg{Like} does not start
-with a `*'.
-
+with a `*'.  Note that results of quereies that are use the tree index
+are returned in alphabetical order.
 
 
 \subsection{Predicate properties}		\label{sec:predproperty}
