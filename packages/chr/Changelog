@@ -1,3 +1,7 @@
+Feb 9, 2006
+
+  * JW: Fix "make check" path issues.
+
 Feb 10, 2006
 
   * TS: Removed all is_chr_file tests when loading file.
