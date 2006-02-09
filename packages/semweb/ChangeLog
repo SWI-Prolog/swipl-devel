@@ -1,3 +1,7 @@
+Feb 9, 2006
+
+  * Finished first version of indexed prefix and `like' search.
+
 Feb 5, 2006
 
   * Allow 64-bit integers as arguments of literal(Int).

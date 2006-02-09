@@ -1920,12 +1920,11 @@ search to find the first atom of the set.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static atom_t
-first_atom(atom_t a)
+first_atom(atom_t a, int match)
 { text t;
 
   if ( !get_atom_text(a, &t) )
-  { PL_register_atom(a);
-    return a;
+  { return (atom_t)0;			/* not a textual atom */
   } else
   { size_t len = tlen(&t);
     wchar_t buf[256];
@@ -1940,7 +1939,12 @@ first_atom(atom_t a)
       out = PL_malloc(len*sizeof(wchar_t));
     
     for(s=out,i=0; (c=fetch(&t,i)); s++,i++)
-    { *s = sort_point(c)>>8;
+    { if ( c == '*' && match == STR_MATCH_LIKE )
+      { if ( i == 0 )			/* like '*...' */
+	  return (atom_t)0;
+	len = i;			/* only up to the first * */
+      }
+      *s = sort_point(c)>>8;
     }
 
     rc = PL_new_atom_wchars(len, out);
@@ -2018,7 +2022,7 @@ cmp_atoms(atom_t a1, atom_t a2)
 
     while((d=cmpA(*s1, *s2, &dl2)) == 0)
     { if ( *s1 == 0 )
-	return dl2;
+	goto eq;
       s1++, s2++;
     }
     return d;
@@ -2030,7 +2034,7 @@ cmp_atoms(atom_t a1, atom_t a2)
 
     while((d=cmpW(*s1, *s2, &dl2)) == 0)
     { if ( *s1 == 0 )
-	return dl2;
+	goto eq;
       s1++, s2++;
     }
     return d;
@@ -2045,8 +2049,14 @@ cmp_atoms(atom_t a1, atom_t a2)
     if ( d != 0 )
       return d;
     if ( c1 == 0 )
-      return dl2;
+      goto eq;
   }
+
+eq:
+  if ( dl2 )
+    return dl2;
+
+  return (long)a1-(long)a2;	/* only signal equal on the same atom */
 }
 
 
@@ -4549,6 +4559,7 @@ typedef struct search_state
   unsigned 	locked : 1;		/* State has been locked */
   unsigned	allocated : 1;		/* State has been allocated */
   unsigned	flags;			/* Misc flags controlling search */
+  atom_t	prefix;			/* prefix and like search */
   avl_enum     *literal_state;		/* Literal search state */
   literal      *literal_cursor;		/* pointer in current literal */
   triple       *cursor;			/* Pointer in triple DB */
@@ -4609,15 +4620,17 @@ init_search_state(search_state *state)
     return FALSE;
   }
 
-  if ( p->match == STR_MATCH_PREFIX && p->indexed != BY_SP )
+  if ( (p->match == STR_MATCH_PREFIX ||	p->match == STR_MATCH_LIKE) &&
+       p->indexed != BY_SP &&
+       (state->prefix = first_atom(p->object.literal->value.string, p->match)))
   { avl_node *node;
     literal lit;
 
     lit = *p->object.literal;
-    lit.value.string = first_atom(lit.value.string); /* first in sort-set */
-    state->literal_state = rdf_malloc(state->db, sizeof(*state->literal_state));
+    lit.value.string = state->prefix;
+    state->literal_state = rdf_malloc(state->db,
+				      sizeof(*state->literal_state));
     node = avl_find_ge(state->db->literals, &lit, state->literal_state);
-    PL_unregister_atom(lit.value.string);
     if ( node )
     { init_cursor_from_literal(state, node);
     } else
@@ -4640,6 +4653,8 @@ free_search_state(search_state *state)
   }
 
   free_triple(state->db, &state->pattern);
+  if ( state->prefix )
+    PL_unregister_atom(state->prefix);
   if ( state->literal_state )
     rdf_free(state->db, state->literal_state, sizeof(*state->literal_state));
   if ( state->allocated )		/* also means redo! */
@@ -4726,12 +4741,10 @@ retry:
   { avl_node *node;
 
     if ( (node = avl_next(state->literal_state)) )
-    { if ( p->match == STR_MATCH_PREFIX )
+    { if ( state->prefix )
       { literal *lit = node->key;
 
-	if ( !match(STR_MATCH_PREFIX,
-		    p->object.literal->value.string,
-		    lit->value.string) )
+	if ( !match(STR_MATCH_PREFIX, state->prefix, lit->value.string) )
 	{ DEBUG(1,
 		Sdprintf("Terminated literal iteration from ");
 		print_literal(lit);

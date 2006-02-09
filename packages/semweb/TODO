@@ -10,8 +10,9 @@ Step 1: making them into distinct objects. [OK]
 
 	* V0 (before distinct objects, using Artchive database)
 		# Triples: 3918374
-		Memory: 254 MB
+		Memory: 391 MB
 		Initial image (after ?- triple20): 905MB
+		Load time (gollem): 245.29 sec.
 	* V1 (shared literals)
 		Memory: 239 MB
 

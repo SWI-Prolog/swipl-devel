@@ -33,9 +33,10 @@ Like the standards themselves (RDF, RDFS and OWL) this infrastructure
 is modular.  It consists of Prolog packages for reading, querying and
 storing semantic web documents as well as XPCE libraries that provide
 visualisation and editing.  The Prolog libraries can be used without
-the XPCE GUI modules.  The library can handle upto about 2 million
-\emph{RDF triples} on current commonly used hardware (256MB memory,
-Pentium 1.5Ghz).
+the XPCE GUI modules.  The library has been actively used with upto 10
+million triples, using approximately 1GB of memory.  Its scalability
+is limited by memory only.  The library can be used both on 32-bit 
+and 64-bit platforms.
 \end{abstract}
 
 \vfill
@@ -134,15 +135,18 @@ the given language.
 
     \termitem{type}{TypeID, Value}
 Used for attributes qualified using the \const{rdf:datatype}
-\arg{TypeID}. The \arg{Value} is either the textual representation
-or a natural Prolog representation.  See the option
-\term{convert_typed_literal}{:Convertor} of the parser.  The storage
-layer provides efficient handling of atoms, integers and floats.  All
-other data is represented as a Prolog record.
+\arg{TypeID}. The \arg{Value} is either the textual representation or a
+natural Prolog representation. See the option
+\term{convert_typed_literal}{:Convertor} of the parser. The storage
+layer provides efficient handling of atoms, integers (64-bit) and floats
+(native C-doubles).  All other data is represented as a Prolog
+record.
 \end{description}
 
 For string querying purposes, \arg{Object} can be of the form
-\term{literal}{+Query, -Value}, where \arg{Query} is one of
+\term{literal}{+Query, -Value}, where \arg{Query} is one of the
+terms below.  Details of literal matching and indexing are described
+in \secref{litindex}.
 
     \begin{description}
 	\termitem{exact}{+Text}
@@ -232,6 +236,58 @@ Enumerate resources appearing as a subject in a triple.  The main reason
 for this predicate is to generate the known subjects \emph{without
 duplicates} as one gets using \term{rdf}{Subject, _, _}.
 \end{description}
+
+
+\subsubsection{Literal matching and indexing}	\label{sec:litindex}
+
+Starting with version 2.5.0 of this library, literal values are ordered
+and indexed using a balanced binary tree (AVL tree).  The aim of this
+index is threefold.
+
+\begin{itemize}
+    \item Unlike hash-tables, binary trees allow for efficient
+	  \jargon{prefix} matching.  Prefix matching is very useful in
+	  interactive applications to provide feedback while typing such
+	  as auto-completion.
+
+    \item Having a table of unique literals we generate creation and
+	  destruction events (see rdf_monitor/2).  These events can
+	  be used to maintain additional indexing on literals, such
+	  as `by word'.
+    
+    \item A binary table allow for fast interval matching on typed
+          numeric literals.\footnote{Not yet implemented}
+\end{itemize}
+
+As string literal matching is most frequently used for searching
+purposes, the match is executed case-insensitive and after removal of
+diacritics. Case matching and diacritics removal is based on Unicode
+character properties and independent from the current locale. Case
+conversion is based on the `simple uppercase mapping' defined by Unicode
+and diacritic removal on the `decomposition type'. The approach is
+lightweight, but somewhat simpleminded for some languages. The
+tables are generated for Unicode characters upto 0x7fff.  For more
+information, please check the source-code of the mapping-table generator
+\file{unicode_map.pl} available in the sources of this package.
+
+Currently the total order of literals is first based on the type of
+literal using the ordering $$numeric < string < term$$ Numeric values
+(integer and float) are ordered by value, integers preceed floats if
+they represent the same value. strings are sorted alphabetically after
+case-mapping and diacritic removal as described above. If they match
+equal, uppercase preceeds lowercase and diacritics are ordered on their
+unicode value.  If they still compare equal literals without any
+qualifier preceeds literals with a type qualifier which preceeds
+literals with a language qualifier.  Same qualifiers (both type or
+both language) are sorted alphabetically.%
+    \footnote{The ordering defined above may change in future versions
+	      to deal with new queries for literals.}
+
+The ordered tree is used for indexed execution of
+\term{literal}{\term{prefix}{Prefix}, Literal} as well as
+\term{literal}{\term{like}{Like}, Literal} if \arg{Like} does not start
+with a `*'.
+
 
 
 \subsection{Predicate properties}		\label{sec:predproperty}
@@ -936,6 +992,10 @@ Number of files loaded through rdf_load/1.
 
 	\termitem{subjects}{-Count}
 Number of unique values for the first field of the triple set.
+
+	\termitem{literals}{-Count}
+Total number of unique literal values in the database.  See also
+\secref{litindex}.
 
 	\termitem{triples}{-Count}
 Total number of triples in the database.

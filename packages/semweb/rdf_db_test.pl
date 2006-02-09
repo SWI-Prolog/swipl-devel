@@ -499,7 +499,12 @@ prefix(8) :- tprefix(p2, bbbbb).
 prefix(9) :- tprefix(p2, 'Bbbbb').
 prefix(10) :- tprefix(p2, 'BBBBB').
 				
-	
+prefix(like-1) :-
+	mkprefix_db(_),
+	findall(L, rdf(_,_,literal(like('a*b'), L)), Ls),
+	Ls = [aaaab, aaabb].
+
+
 		 /*******************************
 		 *	     RETRACTALL		*
 		 *******************************/
