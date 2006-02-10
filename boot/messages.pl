@@ -279,8 +279,9 @@ prolog_message(profile_no_cpu_time) -->
 prolog_message(non_ascii(Text, Type)) -->
 	[ 'Unquoted ~w with non-portable characters: ~w'-[Type, Text] ].
 prolog_message(io_warning(Stream, Message)) -->
-	{ stream_property(Stream,
-			  position('$stream_position'(_, LineNo, LinePos))),
+	{ stream_property(Stream, Position),
+	  stream_position_data(line_count, Position, LineNo),
+	  stream_position_data(line_position, Position, LinePos),
 	  (   stream_property(Stream, file_name(File))
 	  ->  Obj = File
 	  ;   Obj = Stream

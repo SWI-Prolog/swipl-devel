@@ -2801,10 +2801,11 @@ retry:
   if ( rval )
   { if ( tpos && source_line_no > 0 )
       rval = PL_unify_term(tpos,
-			   PL_FUNCTOR, FUNCTOR_stream_position3,
+			   PL_FUNCTOR, FUNCTOR_stream_position4,
 			   PL_INT64, source_char_no,
-			   PL_INT,  source_line_no,
-			   PL_INT,  0); /* should be charpos! */
+			   PL_INT, source_line_no,
+			   PL_INT, 0, 		/* should be charpos! */
+			   PL_INT, 0);		/* should be byteno */
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
     { Undo(m);

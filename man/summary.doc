@@ -89,6 +89,7 @@ suggest predicates from a keyword.
 \predicatesummary{between}{3}{Integer range checking/generating}
 \predicatesummary{block}{3}{Start a block (`catch'/`throw')}
 \predicatesummary{break}{0}{Start interactive toplevel}
+\predicatesummary{byte_count}{2}{Byte-position in a stream}
 \predicatesummary{call}{1}{Call a goal}
 \predicatesummary{call}{[2..]}{Call with additional arguments}
 \predicatesummary{call_cleanup}{3}{Guard a goal with a cleaup-handler}
@@ -475,6 +476,7 @@ suggest predicates from a keyword.
 \predicatesummary{stack_parameter}{4}{Some systems: Query/Set runtime stack parameter}
 \predicatesummary{statistics}{0}{Show execution statistics}
 \predicatesummary{statistics}{2}{Obtain collected statistics}
+\predicatesummary{stream_position_data}{3}{Access fields from stream position}
 \predicatesummary{stream_property}{2}{Get stream properties}
 \predicatesummary{string}{1}{Type check for string}
 \predicatesummary{string_concat}{3}{atom_concat/3 for strings}

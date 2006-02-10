@@ -153,7 +153,7 @@ lineno(File, Char, Line) :-
 	Line = Line0.
 
 lineno_(Fd, Char, L) :-
-	stream_property(Fd, position('$stream_position'(C,L0,_))),
+	stream_property(Fd, position('$stream_position'(C,L0,_,_))),
 	C > Char, !,
 	L is L0-1.
 lineno_(Fd, Char, L) :-

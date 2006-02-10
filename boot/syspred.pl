@@ -46,6 +46,7 @@
 	, dwim_match/2
 	, source_file/1
 	, prolog_load_context/2
+	, stream_position_data/3
 	, current_predicate/2
 	, $defined_predicate/1
 	, predicate_property/2
@@ -360,6 +361,21 @@ prolog_load_context(directory, D) :-
 	file_directory_name(F, D).
 prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
 	source_location(_, L).
+
+		 /*******************************
+		 *	      STREAMS		*
+		 *******************************/
+
+%	stream_position_data(?Field, +Pos, ?Date)
+%	
+%	Extract values from stream position objects. $stream_position is
+%	of the format '$stream_position'(Byte, Char, Line, LinePos)
+
+stream_position_data(char_count,    '$stream_position'(Char,_,_,_), Char).
+stream_position_data(line_count,    '$stream_position'(_,Line,_,_), Line).
+stream_position_data(line_position, '$stream_position'(_,_,LPos,_), LPos).
+stream_position_data(byte_count,    '$stream_position'(_,_,_,Byte), Byte).
+
 
 		 /*******************************
 		 *	      CONTROL		*

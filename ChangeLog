@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Added byte-position to stream-position terms.  This means
+    that code relying on $stream_position(Char,Line,LinePos) breaks. The
+    new version provides stream_position_data/3 (compatible to SICStus)
+    for extracting the field in a portable manner.
+
   * PORT: Pass main compiler CFLAGS using plld.  Richard O'Keefe.
 
   * PORT: Fixed paths when using install-sh.  Richard O'Keefe.

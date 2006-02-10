@@ -716,7 +716,7 @@ F spy			1
 F sqrt			1
 F star			2
 F stream		4
-F stream_position	3
+F stream_position	4
 F string		2
 F string_position	2
 F syntax_error		1

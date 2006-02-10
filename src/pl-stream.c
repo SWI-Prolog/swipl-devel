@@ -118,7 +118,6 @@ static int	S__flushbuf(IOSTREAM *s);
 static void	run_close_hooks(IOSTREAM *s);
 static int	S__removebuf(IOSTREAM *s);
 
-#define S__fupdatefilepos(s, c) S___fupdatefilepos(s, c)
 
 #ifdef O_PLMT
 #define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
@@ -488,48 +487,70 @@ ok:
 		 *******************************/
 
 
-inline int
-S___fupdatefilepos(IOSTREAM *s, int c)
-{ IOPOS *p;
+static inline void
+update_linepos(IOSTREAM *s, int c)
+{ IOPOS *p = s->position;
 
-#if 1
-  if ( s->magic != SIO_MAGIC )
-  { if ( s->magic == SIO_CMAGIC )
-      PL_error(NULL, 0, NULL, ERR_CLOSED_STREAM, s);
-					/* PL_error() should not return */
-    fatalError("Did you load a pre-3.1.2 foreign package?"); 
-  }
-#endif
-
-  if ( (p = s->position) )
-  { switch(c)
-    { case '\n':
-	p->lineno++;
-        p->linepos = 0;
-	s->flags &= ~SIO_NOLINEPOS;
+  switch(c)
+  { case '\n':
+      p->lineno++;
+      p->linepos = 0;
+      s->flags &= ~SIO_NOLINEPOS;
 #ifdef __WIN32__
-	if ( s->flags & O_TEXT )
-	  p->charno++;			/* writes one extra! */
+      if ( s->flags & O_TEXT )
+	p->charno++;			/* writes one extra! */
 #endif
-        break;
-      case '\r':
-	p->linepos = 0;
-        s->flags &= ~SIO_NOLINEPOS;
-	break;
-      case '\b':
-	if ( p->linepos > 0 )
-	  p->linepos--;
-	break;
-      case EOF:
-	return c;
-      case '\t':
-	p->linepos |= 7;
-      default:
-	p->linepos++;
-    }
-  
+      break;
+    case '\r':
+      p->linepos = 0;
+      s->flags &= ~SIO_NOLINEPOS;
+      break;
+    case '\b':
+      if ( p->linepos > 0 )
+	p->linepos--;
+      break;
+    case EOF:
+      break;
+    case '\t':
+      p->linepos |= 7;
+    default:
+      p->linepos++;
+  }
+}
+
+
+
+int
+S__fupdatefilepos_getc(IOSTREAM *s, int c)
+{ IOPOS *p = s->position;
+
+  update_linepos(s, c);
+  p->byteno++;
+  p->charno++;
+
+  return c;
+}
+
+
+static inline int
+S__updatefilepos(IOSTREAM *s, int c)
+{ IOPOS *p = s->position;
+
+  if ( p )
+  { update_linepos(s, c);
     p->charno++;
   }
+
+  return c;
+}
+
+
+static inline int
+get_byte(IOSTREAM *s)
+{ int c = Snpgetc(s);
+
+  if ( s->position )
+    s->position->byteno++;
 
   return c;
 }
@@ -547,6 +568,9 @@ put_byte(int c, IOSTREAM *s)
       return -1;
     }
   }
+
+  if ( s->position )
+    s->position->byteno++;
 
   return c;
 }
@@ -576,16 +600,23 @@ Sfgetc(IOSTREAM *s)
 }
 
 
+static inline void
+unget_byte(int c, IOSTREAM *s)
+{ IOPOS *p = s->position;
+
+  *--s->bufp = c;
+  if ( p )
+  { p->charno--;
+    p->byteno--;
+    s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS);
+  }
+}
+
+
 int
 Sungetc(int c, IOSTREAM *s)
 { if ( s->bufp > s->unbuffer )
-  { IOPOS *p = s->position;
-
-    *--s->bufp = c;
-    if ( p )
-    { p->charno--;
-      s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS);
-    }
+  { unget_byte(c, s);
 
     return c;
   }
@@ -791,10 +822,10 @@ retry:
   switch(s->encoding)
   { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
-      c = Snpgetc(s);
+      c = get_byte(s);
       break;
     case ENC_ASCII:
-    { c = Snpgetc(s);
+    { c = get_byte(s);
       if ( c > 128 )
 	Sseterr(s, SIO_WARN, "non-ASCII character");
       break;
@@ -811,7 +842,7 @@ retry:
       }
 
       for(;;)
-      { if ( (c = Snpgetc(s)) == EOF )
+      { if ( (c = get_byte(s)) == EOF )
 	{ if ( n == 0 )
 	    return EOF;
 	  else
@@ -835,7 +866,7 @@ retry:
       goto out;
     }
     case ENC_UTF8:
-    { c = Snpgetc(s);
+    { c = get_byte(s);
       if ( c == EOF )
 	break;
 
@@ -845,7 +876,7 @@ retry:
 
 	code = UTF8_FBV(c,extra);
 	for( ; extra > 0; extra-- )
-	{ int c2 = Snpgetc(s);
+	{ int c2 = get_byte(s);
 	  
 	  if ( !ISUTF8_CB(c2) )
 	  { Sseterr(s, SIO_WARN, "Illegal UTF-8 Sequence");
@@ -863,10 +894,10 @@ retry:
     case ENC_UNICODE_LE:
     { int c1, c2;
 
-      c1 = Snpgetc(s);
+      c1 = get_byte(s);
       if ( c1 == EOF )
 	return EOF;
-      c2 = Snpgetc(s);
+      c2 = get_byte(s);
 
       if ( c2 == EOF )
       { Sseterr(s, SIO_WARN, "EOF in unicode character");
@@ -886,7 +917,7 @@ retry:
       int n;
 
       for(n=0; n<sizeof(pl_wchar_t); n++)
-      { int c1 = Snpgetc(s);
+      { int c1 = get_byte(s);
 
 	if ( c1 == EOF )
 	{ if ( n == 0 )
@@ -942,7 +973,7 @@ Sungetcode(int c, IOSTREAM *s)
 	return -1;			/* illegal */
     simple:
       if ( s->bufp > s->unbuffer )
-      { *--s->bufp = c;
+      { unget_byte(c, s);
         return c;
       }
       return -1;			/* no room */
@@ -965,7 +996,7 @@ Sungetcode(int c, IOSTREAM *s)
       { int i;
 
 	for(i=n-1; i>=0; i--)
-	{ *--s->bufp = b[i];
+	{ unget_byte(b[i], s);
 	}
 
         return c;
@@ -986,7 +1017,7 @@ Sungetcode(int c, IOSTREAM *s)
 	end = utf8_put_char(buf, c);
 	if ( s->bufp - s->unbuffer >= end-buf )
 	{ for(p=end-1; p>=buf; p--)
-	  { *--s->bufp = *p;
+	  { unget_byte(*p, s);
 	  }
 
           return c;
@@ -1000,8 +1031,8 @@ Sungetcode(int c, IOSTREAM *s)
 	return -1;
 
       if ( s->bufp-1 > s->unbuffer )
-      { *--s->bufp = c&0xff;
-        *--s->bufp = (c>>8)&0xff;
+      { unget_byte(c&0xff, s);
+	unget_byte((c>>8)&0xff, s);
 
         return c;
       }
@@ -1012,8 +1043,8 @@ Sungetcode(int c, IOSTREAM *s)
 	return -1;
 
       if ( s->bufp-1 > s->unbuffer )
-      { *--s->bufp = (c>>8)&0xff;
-        *--s->bufp = c&0xff;
+      { unget_byte((c>>8)&0xff, s);
+	unget_byte(c&0xff, s);
 
         return c;
       }
@@ -1023,8 +1054,11 @@ Sungetcode(int c, IOSTREAM *s)
     { pl_wchar_t chr = c;
 
       if ( s->bufp-sizeof(chr) >= s->unbuffer )
-      { s->bufp -= sizeof(chr);
-	memcpy(s->bufp, &chr, sizeof(chr));
+      { char *p = (char*)&chr;
+	int n;
+
+	for(n=sizeof(chr); --n>=0; )
+	  unget_byte(p[n], s);
 
 	return c;
       }
@@ -3011,13 +3045,6 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
   s->magic  = SIO_MAGIC;
 
   return s;
-}
-
-#undef S__fupdatefilepos
-
-int
-S__fupdatefilepos(IOSTREAM *s, int c)
-{ return S___fupdatefilepos(s, c);
 }
 
 		 /*******************************

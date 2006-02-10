@@ -2621,10 +2621,11 @@ static int
 stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 { if ( s->position )
   { return PL_unify_term(prop,
-			 PL_FUNCTOR, FUNCTOR_stream_position3,
+			 PL_FUNCTOR, FUNCTOR_stream_position4,
 			   PL_INT64, s->position->charno,
 			   PL_INT, s->position->lineno,
-			   PL_INT, s->position->linepos);
+			   PL_INT, s->position->linepos,
+			   PL_INT64, s->position->byteno);
   }
 
   fail;
@@ -3059,28 +3060,33 @@ word
 pl_set_stream_position(term_t stream, term_t pos)
 { GET_LD
   IOSTREAM *s;
-  int64_t charno, linepos, lineno;
+  int64_t charno, byteno;
+  long linepos, lineno;
   term_t a = PL_new_term_ref();
 
   if ( !(getRepositionableStream(stream, &s)) )
     fail;
 
-  if ( !PL_is_functor(pos, FUNCTOR_stream_position3) ||
+  if ( !PL_is_functor(pos, FUNCTOR_stream_position4) ||
        !PL_get_arg(1, pos, a) ||
        !PL_get_int64(a, &charno) ||
        !PL_get_arg(2, pos, a) ||
-       !PL_get_int64(a, &lineno) ||
+       !PL_get_long(a, &lineno) ||
        !PL_get_arg(3, pos, a) ||
-       !PL_get_int64(a, &linepos) )
+       !PL_get_long(a, &linepos) || 
+       !PL_get_arg(4, pos, a) ||
+       !PL_get_int64(a, &byteno) )
   { releaseStream(s);
     return PL_error("stream_position", 3, NULL,
 		    ERR_DOMAIN, ATOM_stream_position, pos);
   }
 
+					/* TBD: use byteno */
   if ( Sseek64(s, charno, SIO_SEEK_SET) != charno )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_reposition, ATOM_stream, stream);
 
+  s->position->byteno  = byteno;
   s->position->charno  = charno;
   s->position->lineno  = (int)lineno;
   s->position->linepos = (int)linepos;
@@ -3176,47 +3182,62 @@ pl_current_output(term_t stream)
 }
 
 
-word
-pl_character_count(term_t stream, term_t count)
+static
+PRED_IMPL("byte_count", 2, byte_count, 0)
 { IOSTREAM *s;
 
-  if ( getStreamWithPosition(stream, &s) )
+  if ( getStreamWithPosition(A1, &s) )
+  { int64_t n = s->position->byteno;
+
+    releaseStream(s);
+    return PL_unify_int64(A2, n);
+  }
+
+  fail;
+}
+
+
+static
+PRED_IMPL("character_count", 2, character_count, 0)
+{ IOSTREAM *s;
+
+  if ( getStreamWithPosition(A1, &s) )
   { int64_t n = s->position->charno;
 
     releaseStream(s);
-    return PL_unify_int64(count, n);
+    return PL_unify_int64(A2, n);
   }
 
   fail;
 }
 
 
-word
-pl_line_count(term_t stream, term_t count)
+static
+PRED_IMPL("line_count", 2, line_count, 0)
 { GET_LD
   IOSTREAM *s;
 
-  if ( getStreamWithPosition(stream, &s) )
+  if ( getStreamWithPosition(A1, &s) )
   { long n = s->position->lineno;
 
     releaseStream(s);
-    return PL_unify_integer(count, n);
+    return PL_unify_integer(A2, n);
   }
 
   fail;
 }
 
 
-word
-pl_line_position(term_t stream, term_t count)
+static
+PRED_IMPL("line_position", 2, line_position, 0)
 { GET_LD
   IOSTREAM *s;
 
-  if ( getStreamWithPosition(stream, &s) )
+  if ( getStreamWithPosition(A1, &s) )
   { long n = s->position->linepos;
 
     releaseStream(s);
-    return PL_unify_integer(count, n);
+    return PL_unify_integer(A2, n);
   }
 
   fail;
@@ -4089,4 +4110,8 @@ BeginPredDefs(file)
   PRED_DEF("get0", 2, get_code2, 0)
   PRED_DEF("get0", 1, get_code1, 0)
   PRED_DEF("is_stream", 1, is_stream, 0)
+  PRED_DEF("byte_count", 2, byte_count, 0)
+  PRED_DEF("character_count", 2, character_count, 0)
+  PRED_DEF("line_count", 2, line_count, 0)
+  PRED_DEF("line_position", 2, line_position, 0)
 EndPredDefs

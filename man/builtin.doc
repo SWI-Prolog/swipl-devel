@@ -374,6 +374,7 @@ Is true if the predicate specified by \arg{Pred} was loaded from file
 absolute_file_name/2). Can be used with any instantiation pattern,
 but the database only maintains the source file for each predicate.
 See also clause_property/2.
+
     \predicate{prolog_load_context}{2}{?Key, ?Value}
 Determine loading context.  The following keys are defined:
 \begin{center}
@@ -390,8 +391,9 @@ Determine loading context.  The following keys are defined:
 			files being loaded using include/1. \\
 \const{stream}        & Stream identifier (see current_input/1) \\
 \const{directory}     & Directory in which \arg{File} lives. \\
-\const{term_position} & Position of last term read.  Term
-                       of the form \mbox{\tt '\$stream_position'(0,<Line>,0,0,0)} \\
+\const{term_position} & Position of last term read.  Term of the form
+			\mbox{\tt '\$stream_position'(0,<Line>,0,0,0)}.
+			See also stream_position_data/3. \\
 \hline
 \end{tabular}
 \end{center}
@@ -2266,9 +2268,9 @@ True if \arg{Stream} has mode \const{write}, \const{append} or
 \const{update}.
 
     \termitem{position}{Term}
-Unify \arg{Term} with the current stream-position.  A stream-position
-is a term of format \term{\$stream_position}{CharIndex, LineNo,
-LinePos}.  See also set_stream_position/2.
+Unify \arg{Term} with the current stream-position. A stream-position is
+an opaque term whose fields can be extracted using
+stream_position_data/3. See also set_stream_position/2.
 
     \termitem{reposition}{Bool}
 Unify \arg{Bool} with \arg{true} if the position of the stream can
@@ -2311,6 +2313,16 @@ or handle.
 Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is
 a term as returned by stream_property/2 using the \term{position}{Pos}
 property.  See also seek/4.
+
+    \predicate{stream_position_data/3}{3}{?Field, +Position, -Data}
+Extracts information from the opaque stream position term as returned
+by stream_property/2 requesting the \term{position}{Position} property.
+\arg{Field} is one of \const{line_count}, \const{line_position},
+\const{char_count} or \const{byte_count}.  See also line_count/2,
+line_position/2, char_count/2 and byte_count/2.%
+	\footnote{Introduced in version 5.6.4 after extending the
+		  position term with a byte-count.  Compatible with
+		  SICStus Prolog.}
 
     \predicate{seek}{4}{+Stream, +Offset, +Method, -NewLocation}
 Reposition the current point of the given \arg{Stream}.  \arg{Method}
@@ -2592,10 +2604,17 @@ write an incomplete term:
 	...,
 \end{code}
 
+    \predicate{byte_count}{2}{+Stream, -Count}
+Byte-position in \arg{Stream}.  For binary streams this is the same
+as character_count/2.  For text files the number may be different due
+to multibyte encodings or additional record separators (such as
+Control-M in Windows).
+
     \predicate{character_count}{2}{+Stream, -Count}
 Unify \arg{Count} with the current character index.  For input streams
 this is the number of characters read since the open, for output
 streams this is the number of characters written. Counting starts at 0.
+
     \predicate{line_count}{2}{+Stream, -Count}
 Unify \arg{Count} with the number of lines read or written.  Counting
 starts at 1.

@@ -124,9 +124,11 @@ typedef struct io_functions
 } IOFUNCTIONS;
 
 typedef struct io_position
-{ int64_t		charno;		/* character position in file */
+{ int64_t		byteno;		/* byte-position in file */
+  int64_t		charno;		/* character position in file */
   int			lineno;		/* lineno in file */
   int			linepos;	/* position in line */
+  long			reserved[2];	/* future extensions */
 } IOPOS;
 
 					/* NOTE: check with encoding_names */
@@ -227,13 +229,13 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 #define Sgetchar()	Sgetc(Sinput)
 #define Sputchar(c)	Sputc((c), Soutput)
 
-#define S__updatefilepos(s, c) \
-	((s)->position ? S__fupdatefilepos((s), (c)) \
+#define S__updatefilepos_getc(s, c) \
+	((s)->position ? S__fupdatefilepos_getc((s), (c)) \
 		       : (c))
 
 #define Snpgetc(s) ((s)->bufp < (s)->limitp ? (int)(*(s)->bufp++)&0xff \
 					    : S__fillbuf(s))
-#define Sgetc(s) S__updatefilepos((s), Snpgetc(s))
+#define Sgetc(s) S__updatefilepos_getc((s), Snpgetc(s))
 
 /* Control-operations */
 #define SIO_GETSIZE	(1)		/* get size of underlying object */
@@ -306,6 +308,7 @@ PL_EXPORT(void)		SinitStreams();
 PL_EXPORT(void)		Scleanup(void);
 PL_EXPORT(void)		Sreset(void);
 PL_EXPORT(int)		S__fupdatefilepos(IOSTREAM *s, int c);
+PL_EXPORT(int)		S__fupdatefilepos_getc(IOSTREAM *s, int c);
 PL_EXPORT(int)		S__fillbuf(IOSTREAM *s);
 					/* byte I/O */
 PL_EXPORT(int)		Sputc(int c, IOSTREAM *s);

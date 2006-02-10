@@ -32,7 +32,7 @@ length_test(File) :-
 	call_cleanup(test_lines(In), close(In)).
 
 test_lines(In) :-
-	stream_property(In, position('$stream_position'(_, LineNo, _))),
+	line_count(In, LineNo),
 	catch_messages(read_line_to_codes(In, Line), Messages),
 	(   append(Before, "|", Line)
 	->  length(Before, Len),
