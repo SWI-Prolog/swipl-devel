@@ -1722,6 +1722,10 @@ shifted rather than doing it.
 
 #define VAR_MARK (0x1<<LMASK_BITS|TAG_VAR)
 
+#define COPY_SHARE 0x01			/* Allow sharing ground terms */
+#define COPY_ATTRS 0x02			/* do copy attributes */
+
+
 static inline void
 TrailCyclic(Word p ARG_LD)
 { requireStack(argument, sizeof(Word));
@@ -1730,7 +1734,7 @@ TrailCyclic(Word p ARG_LD)
 
 
 static inline void
-exitCyclicCopy(Word *m ARG_LD)
+exitCyclicCopy(Word *m, int flags ARG_LD)
 { Word *sp;
 
   for(sp = aTop; sp > m; )
@@ -1745,17 +1749,22 @@ exitCyclicCopy(Word *m ARG_LD)
       } else
       { *p = *p2;			/* cyclic terms */
       }
-    } else				/* attributed variable */
+    } else
     { Word old = *--sp;
+
+      if ( !(flags&COPY_ATTRS) )
+      { Word p2 = valPAttVar(*p);
+
+	assert(*p2 == VAR_MARK);
+	setVar(*p2);
+      }
+
       *p = consPtr(old, STG_GLOBAL|TAG_ATTVAR);
     }
   }
   aTop = sp;
 }
 
-
-#define COPY_SHARE 0x01			/* Allow sharing ground terms */
-#define COPY_ATTRS 0x02			/* do copy attributes */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FALSE: term cannot be shared
@@ -1780,18 +1789,26 @@ again:
       }
     }
     case TAG_VAR:
-    case_var:
       *to = VAR_MARK;
       *from = makeRef(to);
       TrailCyclic(from PASS_LD);
       return FALSE;
     case TAG_ATTVAR:
-    { Word p;
+    { Word p = valPAttVar(*from);
 
       if ( !(flags & COPY_ATTRS) )
-	goto case_var;
+      { if ( *p == VAR_MARK )
+	{ *to = makeRef(p);
+	  return FALSE;
+	} else
+	{ *to = VAR_MARK;
+	  *from = consPtr(to, STG_GLOBAL|TAG_ATTVAR);
+	  TrailCyclic(p PASS_LD);
+	  TrailCyclic(from PASS_LD);
+	  return FALSE;
+	}
+      }
 
-      p = valPAttVar(*from);
       if ( isAttVar(*p) )		/* already copied */
       { *to = makeRefG(p);
         return FALSE;
@@ -1848,7 +1865,7 @@ again:
 	if ( (flags & COPY_SHARE) )
 	{ ground &= do_copy_term(from, to, flags PASS_LD);
 	  if ( ground )
-	  { exitCyclicCopy(am PASS_LD);
+	  { exitCyclicCopy(am, flags PASS_LD);
 	    gTop = oldtop;
 	    *to0 = *from0;
 	    DEBUG(2, Sdprintf("Shared\n"));
@@ -1871,10 +1888,10 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
   Word *m = aTop;
+  int flags = COPY_SHARE|COPY_ATTRS;
 
-  do_copy_term(valTermRef(A1), valTermRef(copy),
-	       COPY_SHARE|COPY_ATTRS PASS_LD);
-  exitCyclicCopy(m PASS_LD);
+  do_copy_term(valTermRef(A1), valTermRef(copy), flags PASS_LD);
+  exitCyclicCopy(m, flags PASS_LD);
   
   return PL_unify(copy, A2);
 }
@@ -1883,10 +1900,10 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
 static void
 duplicate_term(term_t in, term_t copy ARG_LD)
 { Word *m = aTop;
+  int flags = COPY_ATTRS;
 
-  do_copy_term(valTermRef(in), valTermRef(copy),
-	       COPY_ATTRS PASS_LD);
-  exitCyclicCopy(m PASS_LD);
+  do_copy_term(valTermRef(in), valTermRef(copy), flags PASS_LD);
+  exitCyclicCopy(m, flags PASS_LD);
 }
 
 
@@ -1906,9 +1923,10 @@ PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
   Word *m = aTop;
+  int flags = COPY_SHARE;
 
-  do_copy_term(valTermRef(A1), valTermRef(copy), COPY_SHARE PASS_LD);
-  exitCyclicCopy(m PASS_LD);
+  do_copy_term(valTermRef(A1), valTermRef(copy), flags PASS_LD);
+  exitCyclicCopy(m, flags PASS_LD);
   
   return PL_unify(copy, A2);
 }

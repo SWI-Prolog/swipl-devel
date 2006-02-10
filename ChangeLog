@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: copy_term_nat/2 deleted attributes from term being copied.
+    Leslie de Koninck.
+
   * MODIFIED: Added byte-position to stream-position terms.  This means
     that code relying on $stream_position(Char,Line,LinePos) breaks. The
     new version provides stream_position_data/3 (compatible to SICStus)

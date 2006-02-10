@@ -1722,13 +1722,21 @@ copy_term(reset-1) :-			% reset cycle resetting for shared
 	A = [a:b,c:d|_],		% terms.
 	copy_term(A,_B),
 	A = [a:b,c:d|_].
-copy_term(nat-1) :-
+copy_term(nat-1) :-			% shared variables
 	put_attr(X, foo, y),
-	copy_term_nat(x(X,X), Y),
-	Y = x(A,B),
-	A == B,
-	var(A),
-	\+ attvar(A).
+	T = x(X,X),
+	copy_term_nat(T, Y),
+	Y = x(A,B), A == B, var(A), \+ attvar(A),
+	T = x(C,D), C == D, var(C), get_attr(C, foo, y).
+copy_term(nat-2) :-			% cyclic term
+	put_attr(X, foo, x),
+	T = t(T,X),
+	copy_term_nat(T, Y),
+	A = t(A,B),
+	Y = A,
+	var(B), \+ attvar(B),
+	arg(2, T, X2),
+	get_attr(X2, foo, x).
 
 
 		 /*******************************
