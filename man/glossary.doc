@@ -27,7 +27,7 @@ constants or text.
     \glossitem{backtracking}
 Searching process used by Prolog.  If a predicate offers multiple
 \g{clauses} to solve a \g{goal}, they are tried one-by-one until
-one \g{succeeds}.  If a subsequent part of the prove is not satisfied
+one \g{succeeds}.  If a subsequent part of the proof is not satisfied
 with the resulting \g{variable} \g{binding}, it may ask for
 an alternative \g{solution} (= \g{binding} of the \g{variables}),
 causing Prolog to reject the previously chosen \g{clause} and try the
