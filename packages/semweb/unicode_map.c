@@ -1,5 +1,5 @@
 #ifdef WIN32
-typedef int in32_t;
+typedef int int32_t;
 #else
 #include <inttypes.h>
 #endif

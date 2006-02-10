@@ -16,7 +16,7 @@ PKGDLL=rdf_db
 
 LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs owl.owl
-OBJ=		rdf_db.obj md5.obj atom_set.obj
+OBJ=		rdf_db.obj md5.obj atom_set.obj atom_map.obj
 
 all:		$(PKGDLL).dll
 

@@ -247,7 +247,7 @@ insert_atom_set(atom_set *as, atom_t a)
 
 static void
 destroy_atom_set(atom_set *as)
-{ int i;
+{ size_t i;
 
   for(i=0; i<as->size; i++)
     PL_unregister_atom(as->atoms[i]);
@@ -342,7 +342,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
   term_t tail = PL_copy_term_ref(keys);
   term_t head = PL_new_term_ref();
   atom_set *s0;
-  int ca;
+  size_t ca;
 
   if ( !get_atom_map(handle, &tree) )
     return FALSE;

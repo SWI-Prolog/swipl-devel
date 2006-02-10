@@ -41,6 +41,11 @@
 #define DEBUG(g) ((void)0)
 #define ZERO_TERM_LEN (-1)		/* terminated by nul */
 
+#ifdef WIN32
+#define inline __inline
+#endif
+
+
 		 /*******************************
 		 *	    LOCAL TYPES		*
 		 *******************************/

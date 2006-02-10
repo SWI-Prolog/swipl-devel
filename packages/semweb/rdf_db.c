@@ -30,6 +30,10 @@
 #ifdef WIN32
 #include <windows.h>
 #include <malloc.h>			/* alloca() */
+#define inline __inline
+#ifndef SIZEOF_LONG
+#define SIZEOF_LONG 4
+#endif
 #else
 #if !defined(__GNUC__) && defined(HAVE_ALLOCA_H)
 #include <alloca.h>
@@ -3001,7 +3005,7 @@ write_triple(rdf_db *db, IOSTREAM *out, triple *t, save_context *ctx)
 	break;
       case OBJ_INTEGER:
 	Sputc('I', out);
-	save_int(out, lit->value.integer);
+	save_int(out, lit->value.integer); /* TBD: 64-bit int */
 	break;
       case OBJ_DOUBLE:
       { double f = lit->value.real;

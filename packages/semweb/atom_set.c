@@ -3,6 +3,9 @@
 #include <string.h>
 #include "atom_set.h"
 #define AVL_DELETE 1
+#ifdef WIN32
+#define inline __inline
+#endif
 
 #define AVL_LEFT -1
 #define AVL_NONE 0
