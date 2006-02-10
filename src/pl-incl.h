@@ -37,6 +37,7 @@
 #define C_LIBS	     ""
 #define C_STATICLIBS ""
 #define C_CC	     "cl"
+#define C_CFLAGS     "/MD /GX"
 #define C_LDFLAGS    ""
 #if defined(_DEBUG)
 #define C_PLLIB	    "libplD.lib"
