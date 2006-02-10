@@ -1,3 +1,7 @@
+Feb 10, 2006
+
+  * Make http_post deal with Unicode data.
+
 Jan 20, 2006
 
   * Map Host:  <host>:<port> into host(Host), port(Port) when reading

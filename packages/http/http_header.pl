@@ -47,6 +47,7 @@
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(url)).
+:- use_module(library(memfile)).
 :- use_module(dcg_basics).
 :- use_module(html_write).
 :- use_module(mimetype).
@@ -254,6 +255,28 @@ http_update_encoding(Header, utf8, Header) :-
 http_update_encoding(Header, octet, Header).
 
 
+%	content_length_in_encoding(+Encoding, +In, -Bytes)
+%	
+%	Determine hom much bytes are required to represent the data from
+%	stream In using the given encoding.  Fails if the data cannot be
+%	represented with the given encoding.
+
+content_length_in_encoding(Enc, Stream, Bytes) :-
+	open_null_stream(Out),
+	set_stream(Out, encoding(Enc)),
+	stream_property(Stream, position(Here)),
+	(   catch(copy_stream_data(Stream, Out), _, fail)
+	->  byte_count(Out, Bytes0)
+	;   true
+	),
+	close(Out),
+	set_stream_position(Stream, Here),
+	(   var(Bytes0)
+	->  fail
+	;   Bytes = Bytes0
+	).
+
+
 		 /*******************************
 		 *	    POST SUPPORT	*
 		 *******************************/
@@ -271,17 +294,22 @@ http_post_data(file(File), Out, HdrExtra) :- !,
 http_post_data(file(Type, File), Out, HdrExtra) :- !,
 	phrase(post_header(file(Type, File), HdrExtra), Header),
 	format(Out, '~s', [Header]),
-	open(File, read, In),
+	open(File, read, In, [type(binary)]),
 	call_cleanup(copy_stream_data(In, Out),
 		     close(In)).
-http_post_data(cgi_stream(In, Len), Out, HdrExtra) :- !,
-	http_read_header(In, Header),
-	seek(In, 0, current, Pos),
-	Size is Len - Pos,
+http_post_data(cgi_stream(In, _Len), Out, HdrExtra) :- !,
+	debug(obsolete, 'Obsolete 2nd argument in cgi_stream(In,Len)', []),
+	http_post_data(cgi_stream(In), Out, HdrExtra).
+http_post_data(cgi_stream(In), Out, HdrExtra) :- !,
+	http_read_header(In, Header0),
+	http_update_encoding(Header0, Encoding, Header),
+	content_length_in_encoding(Encoding, In, Size),
 	http_join_headers(HdrExtra, Header, Hdr2),
 	phrase(reply_header(cgi_data(Size), Hdr2), Header),
 	format(Out, '~s', [Header]),
-	copy_stream_data(In, Out, Size).
+	set_stream(Out, encoding(Encoding)),
+	call_cleanup(copy_stream_data(In, Out),
+		     set_stream(Out, encoding(octet))).
 http_post_data(form(Fields), Out, HdrExtra) :- !,
 	parse_url_search(Codes, Fields),
 	length(Codes, Size),
