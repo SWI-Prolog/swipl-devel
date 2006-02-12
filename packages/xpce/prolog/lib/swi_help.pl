@@ -481,7 +481,7 @@ regex(predicate2, '\\w+/\\[\\d+[-,]\\d+\\]').
 regex(function,   'PL_\\w+\\(\\)').
 regex(section,	  '([Ss]ection|[Cc]hapter)\\s+\\d+(\\.\\d+)*').
 regex(location,	  '([a-zA-Z]:)?(/[-_a-zA-Z0-9~+=.]*)+:\\d+').
-regex(clause,	  '\\d+-th clause of \\w+:.*/\\d+').
+regex(clause,	  '\\d+-th clause of \\w+:[^\n]+/\\d+').
 regex(method,     '\\w+(->|<-)\\w+').
 
 regex_object(Id, Re) :-
@@ -845,19 +845,19 @@ try_to_edit(Spec) :-
 	send(@emacs, goto_source_location, source_location(File, Line)).
 
 source(File, Line) -->			% path:line
-	[F0|FT],
+	string(FileCodes),
 	":",
 	integer(Line), !,
-	{ atom_codes(File, [F0|FT])
+	{ atom_codes(File, FileCodes)
 	}.
 source(File, Line) -->			% n-th clause of module:name/arity
 	integer(NClause),
 	"-th clause of ",
-	[M0|MT], ":",
-	[N0|NT], "/",
+	string(MCodes), ":",
+	string(NCodes), "/",
 	integer(Arity),
-	{ atom_codes(Name, [N0|NT]),
-	  atom_codes(Module, [M0|MT]),
+	{ atom_codes(Name, NCodes),
+	  atom_codes(Module, MCodes),
 	  functor(Head, Name, Arity),
 	  nth_clause(Module:Head, NClause, CRef),
 	  clause_property(CRef, file(File)),
