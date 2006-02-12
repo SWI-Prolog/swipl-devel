@@ -1,3 +1,7 @@
+Feb 12, 2006
+
+  * ENHANCED: xml_write/3: if encoding is `text', write the data as UTF-8
+
 Feb 9, 2006
 
   * FIXED: valgrind detected memory error.  Not sure whether or not it was

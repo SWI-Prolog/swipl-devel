@@ -91,6 +91,11 @@ stage.
 %	will use (character) entities.
 
 xml_write(Stream, Data, Options) :-
+	stream_property(Stream, encoding(text)), !,
+	set_stream(Stream, encoding(utf8)),
+	call_cleanup(xml_write(Stream, Data, Options),
+		     set_stream(Stream, encoding(text))).
+xml_write(Stream, Data, Options) :-
 	new_state(State),
 	set_state(State, dialect, xml),
 	init_state(Options, State),
