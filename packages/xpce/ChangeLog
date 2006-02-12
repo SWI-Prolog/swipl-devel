@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.4, distributed with SWI-Prolog 5.6.4
+================================================
+
 * FIXED: offset issue in win_printer.  Tom Conlon.
 
 * FIXED: DCG for manual operations.

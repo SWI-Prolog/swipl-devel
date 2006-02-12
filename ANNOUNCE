@@ -57,18 +57,23 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.3 Patches relative to 5.6.2
+Version 5.6.4 Patches relative to 5.6.3
 =======================================
 
 Prolog
 
-  * Fixed Attributed variable handling in unify_with_occurs_check/2
-  * Fixed thread resource-error handling in Linux 2.6
-  * Fixed unwanted choicepoint in library(url)
-
+  * Fixed copy_term_nat/2.
+  * Extended stream position information with byte-position.  Added
+    stream_position_data/3 to access stream position terms (used to
+    be '$stream_position'(Char,Line,LinePos), now is
+    '$stream_position'(Char,Line,LinePos,Byte)).  Also added byte_count/2.
+  * Various portability and installation issues.
+  * Add \uXXXX and \UXXXXXXXX escape sequences to quoted atoms.
+							    
 Packages
   
-  * SGML: fixed in/excluded group syntax in DTD
-  * XPCE: honour directory argument in @display<-win_directory method,
-    PceEmacs: more aggressive colouring of current clause.
-  * Semweb: exported rdf_quote_uri/2 for Unicode quoting of URIs.
+  * SGML: xml_write/3 now defaults to writing UTF-8 for general text streams.
+  * Semweb: Promote literals to first class citizens organised in an AVL
+    tree.  Provides *much* faster prefix and like search for literals.
+  * XPCE: Fixed offset issues for printing in Windows.
+

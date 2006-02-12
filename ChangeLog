@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=================================
+VERSION 5.6.4 (February 12, 2006)
+=================================
+
   * FIXED: copy_term_nat/2 deleted attributes from term being copied.
     Leslie de Koninck.
 
