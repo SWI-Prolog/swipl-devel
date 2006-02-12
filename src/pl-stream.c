@@ -677,14 +677,8 @@ Sputcode(int c, IOSTREAM *s)
 	break;
       }
     simple:
-      if ( s->bufp < s->limitp )
-      { *s->bufp++ = (char)c;
-      } else
-      { if ( S__flushbufc(c, s) < 0 )
-	{ s->lastc = EOF;
-	  return -1;
-	}
-      }
+      if ( put_byte(c, s) < 0 )
+	return -1;
       break;
     case ENC_ASCII:
       if ( c >= 128 )

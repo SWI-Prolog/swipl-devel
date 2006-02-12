@@ -265,7 +265,8 @@ content_length_in_encoding(Enc, Stream, Bytes) :-
 	open_null_stream(Out),
 	set_stream(Out, encoding(Enc)),
 	stream_property(Stream, position(Here)),
-	(   catch(copy_stream_data(Stream, Out), _, fail)
+	(   catch((copy_stream_data(Stream, Out),
+		   flush_output(Out)), _, fail)
 	->  byte_count(Out, Bytes0)
 	;   true
 	),
