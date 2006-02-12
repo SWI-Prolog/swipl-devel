@@ -140,7 +140,7 @@ write_header(Out, Options) :-
 	Size is Last+1,
 	format(Out,
 	       '#ifdef WIN32\n\
-		typedef int in32_t;\n\
+		typedef int int32_t;\n\
 		#else\n\
 		#include <inttypes.h>\n\
 		#endif\n\n', []),
