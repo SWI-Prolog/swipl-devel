@@ -3104,7 +3104,7 @@ faults%
               need to catch illegal instantiations first.}
 If \arg{Term} is an atom or number, \arg{Functor} will be unified with
 \arg{Term} and arity will be unified with the integer 0 (zero).
-    \predicate{arg}{3}{?Arg, ?Term, ?Value}
+    \predicate{arg}{3}{?Arg, +Term, ?Value}
 \arg{Term} should be instantiated to a term, \arg{Arg} to an integer
 between 1 and the arity of \arg{Term}. \arg{Value} is unified with the
 \arg{Arg}-th argument of \arg{Term}.  \arg{Arg} may also be unbound.
@@ -3112,7 +3112,8 @@ In this case \arg{Value} will be unified with the successive arguments
 of the term. On successful unification, \arg{Arg} is unified with the
 argument number. Backtracking yields alternative solutions.%
     \footnote{The instantiation pattern (-, +, ?) is an extension to
-              `standard' Prolog.}
+              `standard' Prolog.  Some systems provide genarg/3 that
+	      covers this pattern.}
 The predicate arg/3 fails silently if $\arg{Arg} = 0$ or
 $\arg{Arg} > \mbox{\em arity}$ and raises the exception
 \errorterm{domain_error}{not_less_then_zero, \arg{Arg}} if $\arg{Arg} <

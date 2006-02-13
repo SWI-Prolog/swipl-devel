@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: arg/3 documentation.  Markus Triska.
+
 =================================
 VERSION 5.6.4 (February 12, 2006)
 =================================
