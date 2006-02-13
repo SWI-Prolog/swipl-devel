@@ -34,10 +34,12 @@
 
     creates: newcert.pem
 
-4. /usr/local/ssl/misc/CA.pl -pkcs12 "Jan's Client Certificate"
+4.  Move to server/client directory:
 
-    apenootX
-    ----- extra -----
-    aapjesX
+    mv newreq.pem server/server-key.pem
+    mv newcert.pem server/server-cert.pem
 
-    creates: newcert.p12
+    Repeat 2-4 for client site using these move commands:
+
+    mv newreq.pem client/client-key.pem
+    mv newcert.pem client/client-cert.pem
