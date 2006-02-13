@@ -1,3 +1,8 @@
+Feb 13, 2006
+
+  * Created new, 20 years valid, certificates to make the tests work and
+    do not expire for the time being.
+
 Sep 28, 2005
 
   * Avoid ERR_print_error_fp().  Matt Lilley.

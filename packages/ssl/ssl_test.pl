@@ -36,7 +36,7 @@
 :- use_module(library(readutil)).
 
 %:- debug(connection).
-%:- debug(_).
+:- debug(_).
 
 :- dynamic
 	option/1,			% Options to test
@@ -130,11 +130,11 @@ client :-
 	ssl_init(SSL, client,
 		 [ host('localhost'),
                    port(1111),
-                   cert(true),
-                   peer_cert(true),
+%                  cert(true),
+%                  peer_cert(true),
 		   cacert_file('etc/demoCA/cacert.pem'),
-		   certificate_file('etc/client/client-sign.pem'),
-		   key_file('etc/client/client-sign-key.pem'),
+		   certificate_file('etc/client/client-cert.pem'),
+		   key_file('etc/client/client-key.pem'),
 %		   password('apenoot2'),
 		   pem_password_hook(get_client_pwd)
 		 ]),

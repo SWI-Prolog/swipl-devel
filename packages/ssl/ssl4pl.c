@@ -285,7 +285,7 @@ pl_pem_passwd_hook(PL_SSL *config, char *buf, int size)
   term_t av = PL_new_term_refs(2);
   predicate_t pred = (predicate_t) config->pl_ssl_cb_pem_passwd_data;
   char *passwd = NULL;
-  int len;
+  unsigned int len;
     
   /*
    * hook(+SSL, -Passwd)
