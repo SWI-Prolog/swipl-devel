@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Try to be more clever finding a browser. Jochem Liem.
+
   * FIXED: arg/3 documentation.  Markus Triska.
 
 =================================

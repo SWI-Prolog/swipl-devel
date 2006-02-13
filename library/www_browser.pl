@@ -33,6 +33,7 @@
 	  [ www_open_url/1,		% +UrlOrSpec
 	    expand_url_path/2		% +Spec, -URL
 	  ]).
+:- use_module(library(lists)).
 
 %	www_open_url(+Url)
 %
@@ -47,23 +48,25 @@
 %		* Variable BROWSER
 %		* All known browsers
 
-www_open_url(Spec) :-
+www_open_url(Spec) :-			% user configured
+	(   current_prolog_flag(browser, Browser)
+	;   getenv('BROWSER', Browser)
+	),
+	has_command(Browser), !,
+	expand_url_path(Spec, URL),
+	www_open_url(Browser, URL).
+www_open_url(Spec) :-			% Windows shell
 	current_prolog_flag(windows, true), !,
 	expand_url_path(Spec, URL),
 	call(win_shell(open, URL)).	% fool xref
-www_open_url(Spec) :-
+www_open_url(Spec) :-			% Unix `open document'
 	has_command(open), !,
 	expand_url_path(Spec, URL),
 	sformat(Cmd, 'open "~w"', [URL]),
 	shell(Cmd).
-www_open_url(Spec) :-
-	(   current_prolog_flag(browser, Browser)
-	->  true
-	;   getenv('BROWSER', Browser)
-	->  true
-	;   known_browser(Browser, _),
-	    has_command(Browser)
-	),
+www_open_url(Spec) :-			% something we know
+	known_browser(Browser, _),
+	has_command(Browser), !,
 	expand_url_path(Spec, URL),
 	www_open_url(Browser, URL).
 
@@ -91,6 +94,7 @@ known_browser(firefox,   netscape).
 known_browser(mozilla,   netscape).
 known_browser(netscape,  netscape).
 known_browser(konquerer, -).
+known_browser(opera,     -).
 
 
 %	has_command(+Command)
@@ -108,9 +112,14 @@ has_command(Command) :-
 	Path \== (-).
 has_command(Command) :-
 	(   getenv('PATH', Path),
-	    concat_atom(Parts, ':', Path),
+	    (	current_prolog_flag(windows, true)
+	    ->  Sep = (;)
+	    ;   Sep = (:)
+	    ),
+	    concat_atom(Parts, Sep, Path),
 	    member(Part, Parts),
-	    concat_atom([Part, Command], /, Exe),
+	    prolog_to_os_filename(PlPart, Part),
+	    concat_atom([PlPart, Command], /, Exe),
 	    access_file(Exe, execute)
 	->  assert(command_cache(Command, Exe))
 	;   assert(command_cache(Command, -)),
