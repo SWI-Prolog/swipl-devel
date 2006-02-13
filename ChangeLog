@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: new AVL implementation of library(assoc) from work by various
+    authors, merged and documented by Markus Triska.  The argument order of
+    gen_assoc/3 has been modified from the original DEC10 library 
+    for compatibility woth Quintus and SICStus.
+
   * ENHANCED: Try to be more clever finding a browser. Jochem Liem.
 
   * FIXED: arg/3 documentation.  Markus Triska.
