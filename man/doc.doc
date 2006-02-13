@@ -1,3 +1,4 @@
+
 \documentclass[11pt,twoside]{report}
 \usepackage{pl}
 \usepackage{html}
@@ -37,7 +38,7 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{6}
-\newcommand{\vpatch}{4}
+\newcommand{\vpatch}{5}
 \newcommand{\vmonth}{February}
 \newcommand{\vyear}{2006}
 
@@ -101,30 +102,30 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 \newcommand{\uvaaddress}{%
 \parbox[b]{\uvawidth}{%
     \begin{center}
-        \LARGE
-              University of Amsterdam \\[3mm]
-        \small
-        Human-Computer Studies (HCS, formerly SWI) \\%
-           Kruislaan 419, 1098 VA~~Amsterdam \\%
-                    The Netherlands \\%
-                Tel. (+31) 20 8884671
+ \LARGE
+       University of Amsterdam \\[3mm]
+ \small
+ Human-Computer Studies (HCS, formerly SWI) \\%
+    Kruislaan 419, 1098 VA~~Amsterdam \\%
+      The Netherlands \\%
+  Tel. (+31) 20 8884671
     \end{center}}}
 
 \raisebox{4cm}{
 \parbox{\textwidth}{%
     \makebox[\textwidth]{%
         \includegraphics{figs/swipl}
-        \hfill%
-        \raisebox{15mm}{\uvaaddress}}
+ \hfill%
+ \raisebox{15mm}{\uvaaddress}}
 }}
 \vfil\vfil\vfil
 \begin{center}
-        {\Huge \bf SWI-Prolog \versionshort \\[3mm]
-         \LARGE Reference Manual} \\[3mm]
+ {\Huge \bf SWI-Prolog \versionshort \\[3mm]
+  \LARGE Reference Manual} \\[3mm]
         {\it Updated for version \versionlong} \\[10mm]
-        {\large \it Jan Wielemaker} \\[0mm]
-        {\large \email{wielemak@science.uva.nl}} \\[0mm]
-        {\large http://www.swi-prolog.org}
+ {\large \it Jan Wielemaker} \\[0mm]
+ {\large \email{wielemak@science.uva.nl}} \\[0mm]
+ {\large http://www.swi-prolog.org}
 \end{center}
 
 \vfil

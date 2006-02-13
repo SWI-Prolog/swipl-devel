@@ -59,6 +59,7 @@ suggest predicates from a keyword.
 \predicatesummary{apropos}{1}{\pllib{online_help} Search manual}
 \predicatesummary{arg}{3}{Access argument of a term}
 \predicatesummary{arithmetic_function}{1}{Register an evaluable function}
+\predicatesummary{assoc_to_list}{2}{Convert association tree to list}
 \predicatesummary{assert}{1}{Add a clause to the database}
 \predicatesummary{assert}{2}{Add a clause to the database, give reference}
 \predicatesummary{asserta}{1}{Add a clause to the database (first)}
@@ -181,6 +182,7 @@ suggest predicates from a keyword.
 \oppredsummary{dynamic}{1}{fx}{1150}{Indicate predicate definition may change}
 \predicatesummary{edit}{0}{Edit current script- or associated file}
 \predicatesummary{edit}{1}{Edit a file, predicate, module (extensible)}
+\predicatesummary{empty_assoc}{1}{Create/test empty association tree}
 \predicatesummary{empty_nb_set}{1}{Test/create an empty non-backtrackable set}
 \predicatesummary{encoding}{1}{Define encoding inside a source file}
 \predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
@@ -226,10 +228,13 @@ suggest predicates from a keyword.
 \predicatesummary{garbage_collect}{0}{Invoke the garbage collector}
 \predicatesummary{garbage_collect_atoms}{0}{Invoke the atom garbage collector}
 \predicatesummary{garbage_collect_clauses}{0}{Invoke clause garbage collector}
+\predicatesummary{gen_assoc}{3}{Enumerate members of association tree}
 \predicatesummary{gen_nb_set}{2}{Generate members of non-backtrackable set}
 \predicatesummary{gensym}{2}{Generate unique atoms from a base}
 \predicatesummary{get}{1}{Read first non-blank character}
 \predicatesummary{get}{2}{Read first non-blank character from a stream}
+\predicatesummary{get_assoc}{3}{Fetch key from association tree}
+\predicatesummary{get_assoc}{5}{Fetch key from association tree}
 \predicatesummary{get0}{1}{Read next character}
 \predicatesummary{get0}{2}{Read next character from a stream}
 \predicatesummary{get_attr}{3}{Fetch named attribute from a variable}
@@ -277,6 +282,7 @@ suggest predicates from a keyword.
 \predicatesummary{line_count}{2}{Line number on stream}
 \predicatesummary{line_position}{2}{Character position in line on stream}
 \predicatesummary{list_debug_topics}{0}{List registered topics for debugging}
+\predicatesummary{list_to_assoc}{2}{Create association tree from list}
 \predicatesummary{list_to_set}{2}{Remove duplicates from a list}
 \predicatesummary{listing}{0}{List program in current module}
 \predicatesummary{listing}{1}{List predicate}
@@ -287,9 +293,12 @@ suggest predicates from a keyword.
 \predicatesummary{make_directory}{1}{Create a folder on the file system}
 \predicatesummary{make_library_index}{1}{Create autoload file INDEX.pl}
 \predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
+\predicatesummary{map_assoc}{2}{Map association tree}
+\predicatesummary{map_assoc}{3}{Map association tree}
 \predicatesummary{maplist}{2}{Apply predicate on all elements}
 \predicatesummary{maplist}{3}{Map elements pairwise}
 \predicatesummary{maplist}{4}{Map triples of elements}
+\predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{merge}{3}{Merge two sorted lists}
 \predicatesummary{merge_set}{3}{Merge two sorted sets}
@@ -299,6 +308,7 @@ suggest predicates from a keyword.
 \predicatesummary{message_queue_size}{2}{Query number of waiting terms in queue}
 \predicatesummary{message_to_string}{2}{Translate message-term to string}
 \predicatesummary{meta_predicate}{1}{Quintus compatibility}
+\predicatesummary{min_assoc}{3}{Lowest key in association tree}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
 \oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta predicate}
@@ -349,6 +359,7 @@ suggest predicates from a keyword.
 \predicatesummary{open_resource}{3}{Open a program resource as a stream}
 \predicatesummary{open_shared_object}{2}{UNIX: Open shared library (.so file)}
 \predicatesummary{open_shared_object}{3}{UNIX: Open shared library (.so file)}
+\predicatesummary{ord_list_to_assoc}{2}{Convert ordered list to assoc}
 \predicatesummary{pce_dispatch}{1}{Run XPCE GUI in seperate thread}
 \predicatesummary{pce_call}{1}{Run goal in XPCE GUI thread}
 \predicatesummary{peek_byte}{1}{Read byte without removing}
@@ -399,6 +410,7 @@ suggest predicates from a keyword.
 \predicatesummary{protocolling}{1}{On what file is user interaction logged}
 \predicatesummary{put}{1}{Write a character}
 \predicatesummary{put}{2}{Write a character on a stream}
+\predicatesummary{put_assoc}{4}{Add Key-Value to association tree}
 \predicatesummary{put_attr}{3}{Put attribute on a variable}
 \predicatesummary{put_attrs}{2}{Set/replace all attributes on a variable}
 \predicatesummary{put_byte}{1}{Write a byte}

@@ -27,6 +27,7 @@ documented at all.
 \end{quote}
 
 \input{lists}
+\input{assoc}
 \input{nbset}
 \input{gensym}
 \input{check}

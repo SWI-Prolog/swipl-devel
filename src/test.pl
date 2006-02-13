@@ -2349,6 +2349,7 @@ wide_character_types :-
 %	Enumerate directories holding tests.
 
 testdir('Tests/attvar').
+testdir('Tests/library').
 testdir('Tests/charset').
 testdir('Tests/clp').
 testdir('Tests/thread') :-
