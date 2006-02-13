@@ -2314,7 +2314,7 @@ Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is
 a term as returned by stream_property/2 using the \term{position}{Pos}
 property.  See also seek/4.
 
-    \predicate{stream_position_data/3}{3}{?Field, +Position, -Data}
+    \predicate{stream_position_data}{3}{?Field, +Position, -Data}
 Extracts information from the opaque stream position term as returned
 by stream_property/2 requesting the \term{position}{Position} property.
 \arg{Field} is one of \const{line_count}, \const{line_position},

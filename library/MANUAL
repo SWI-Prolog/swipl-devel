@@ -3574,7 +3574,9 @@ pprroolloogg__llooaadd__ccoonntteexxtt((_?_K_e_y_, _?_
       | stream        |Stream identifier (see current_input/1)        |
       | directory     |Directory in which _F_i_l_e lives.                 |
       | term_position |Position of last  term read.  Term of  the form|
-      |_______________|'$stream_position'(0,<_L_i_n_e>,0,0,0)_____________|
+
+      |               |'$stream_position'(0,<_L_i_n_e>,0,0,0).    See  also|
+      |_______________|stream_position_data/3.________________________|
 
     Quintus compatibility predicate.  See also source_location/2.
 
@@ -5467,8 +5469,8 @@ ssttrreeaamm__pprrooppeerrttyy((_?_S_t_r_e_a_m_, _?_S_
 
     ppoossiittiioonn((_T_e_r_m))
          Unify  _T_e_r_m  with the  current  stream-position.     A  stream-
-         position  is  a  term   of  format  $stream_position(_C_h_a_r_I_n_d_e_x_,
-         _L_i_n_e_N_o_, _L_i_n_e_P_o_s).  See also set_stream_position/2.
+         position is an opaque term whose fields can  be extracted using
+         stream_position_data/3.  See also set_stream_position/2.
 
     rreeppoossiittiioonn((_B_o_o_l))
          Unify _B_o_o_l  with _t_r_u_e  if  the position  of the  stream can  be
@@ -5512,6 +5514,14 @@ sseett__ssttrreeaamm__ppoossiittiioonn((_+_S_t_r_e_a_
     Set  the  current  position  of _S_t_r_e_a_m  to  _P_o_s.    _P_o_s  is  a  term
     as  returned by stream_property/2 using the position(_P_o_s)  property.
     See also seek/4.
+
+
+ssttrreeaamm__ppoossiittiioonn__ddaattaa((_?_F_i_e_l_d_, _+_P_o_s_i_t_i_o_n_, _-_D_a_t_a))
+    Extracts  information  from  the  opaque  stream  position  term  as
+    returned  by  stream_property/2  requesting  the  position(_P_o_s_i_t_i_o_n)
+    property.   _F_i_e_l_d is one of line_count, line_position, char_count or
+    byte_count.    See also line_count/2,  line_position/2,  char_count/2
+    and byte_count/2.
 
 
 sseeeekk((_+_S_t_r_e_a_m_, _+_O_f_f_s_e_t_, _+_M_e_t_h_o_d_, _-_N_e_w_L_o_c_a_t_i_o_n))
@@ -5776,6 +5786,13 @@ wwaaiitt__ffoorr__iinnppuutt((_+_L_i_s_t_O_f_S_t_r_e_
             set_stream(In, timeout(10)),
             catch(read(In, Term), _, (close(Out), close(In), fail)),
             ...,
+
+
+bbyyttee__ccoouunntt((_+_S_t_r_e_a_m_, _-_C_o_u_n_t))
+    Byte-position  in _S_t_r_e_a_m.   For binary streams  this is the same  as
+    character_count/2.   For text files the number may be  different due
+    to  multibyte encodings  or  additional record  separators (such  as
+    Control-M in Windows).
 
 
 cchhaarraacctteerr__ccoouunntt((_+_S_t_r_e_a_m_, _-_C_o_u_n_t))
@@ -17106,7 +17123,7 @@ aattoomm
 bbaacckkttrraacckkiinngg
     Searching  process used by Prolog.   If a predicate offers  multiple
     _c_l_a_u_s_e_s  to  solve  a _g_o_a_l,  they  are  tried one-by-one  until  one
-    _s_u_c_c_e_e_d_s.    If  a subsequent  part of  the prove  is not  satisfied
+    _s_u_c_c_e_e_d_s.    If  a subsequent  part of  the proof  is not  satisfied
     with  the resulting _v_a_r_i_a_b_l_e _b_i_n_d_i_n_g, it may ask for  an alternative
     _s_o_l_u_t_i_o_n (= _b_i_n_d_i_n_g  of the _v_a_r_i_a_b_l_e_s), causing Prolog to reject the
     previously chosen _c_l_a_u_s_e and try the next one.
@@ -17742,316 +17759,318 @@ Bibliography
                                   _A_r_t _o_f _P_r_o_l_o_g.  MIT Press,  Cambridge,
                                   Massachusetts, 1986.
 
-                                  1211
+                                  1213
 
 
 Index
 
 'MANUAL' _l_i_b_r_a_r_y, 43
---disable-segv-handling, 1005
--lpl _l_i_b_r_a_r_y, 1006
--lreadline _l_i_b_r_a_r_y, 1034
+--disable-segv-handling, 1007
+-lpl _l_i_b_r_a_r_y, 1008
+-lreadline _l_i_b_r_a_r_y, 1036
 .pl, 85
 .pro, 85
 ?=/2, 184
-=:=/2, 427
-/\/2, 461
-=\=/2, 426
+=:=/2, 429
+/\/2, 463
+=\=/2, 428
 |/2, 193
-#=/2, 1113
-#>=/2, 1111
-#>/2, 1109
-#=</2, 1112
-#</2, 1110
-#\=/2, 1114
+#=/2, 1115
+#>=/2, 1113
+#>/2, 1111
+#=</2, 1114
+#</2, 1112
+#\=/2, 1116
 ,/2, 191
-{}/1, 1136
+{}/1, 1138
 !/0, 190
 !/1, 225
 /, 86
-//2, 436
-./2, 445
+//2, 438
+./2, 447
 =/2, 174
 ==/2, 172
-#<=>/2, 1130
->=/2, 425
->/2, 422
-^/2, 476
-///2, 439
+#<=>/2, 1132
+>=/2, 427
+>/2, 424
+^/2, 478
+///2, 441
 ->/2, 194
-=</2, 424
-#<=/2, 1129
-<</2, 459
-</2, 423
--/1, 432
--/2, 434, 1122
+=</2, 426
+#<=/2, 1131
+<</2, 461
+</2, 425
+-/1, 434
+-/2, 436, 1124
 \=/2, 176
-\/1, 463
+\/1, 465
 \==/2, 173
 \+/1, 196
-\//2, 460
-+/2, 433, 1120
-**/2, 475
-#=>/2, 1128
->>/2, 458
+\//2, 462
++/2, 435, 1122
+**/2, 477
+#=>/2, 1130
+>>/2, 460
 ;/2, 192
 *->/2, 195
 =@=/2, 177
 \=@=/2, 178
 @>=/2, 182
 @>/2, 181
-*/2, 435, 1121
+*/2, 437, 1123
 @=</2, 180
 @</2, 179
-=../2, 371
+=../2, 373
 \, 86
-_PL_get_arg(), 854
+_PL_get_arg(), 856
 
 abolish/1, 17, 230, 231
-abolish/2, 231, 794
+abolish/2, 231, 796
 abolish/[1
    2], 60
-abort/0, 41, 51, 60, 275, 285, 577,
-      715, 760, 982, 992
-abs/1, 441, 1126
+abort/0, 41, 51, 60, 275, 286, 579,
+      717, 762, 984, 994
+abs/1, 443, 1128
 absolute_file_name/2, 32,  113, 125,
-      563, 565, 573, 1028
+      565, 567, 575, 1030
 absolute_file_name/3, 60,  62,  112,
-      122,   563,  564,  792,  977,
-      978, 1085, 1086
+      122,   565,  566,  794,  979,
+      980, 1087, 1088
 absolute_file_name/[2
-   3], 60, 121, 564
-access_file/2, 60, 553, 564
-acos/1, 469
-acquire(), 920
+   3], 60, 121, 566
+access_file/2, 60, 555, 566
+acos/1, 471
+acquire(), 922
 acyclic_term/1, 168, 169
-add_import_module/3, 671, 672
-add_nb_set/2, 1059
-add_nb_set/3, 1059--1061
-address/2, 753
-all_different/1, 1117
-all_distinct/1, 1149, 1152, 1154
+add_import_module/3, 673, 674
+add_nb_set/2, 1061
+add_nb_set/3, 1061--1063
+address/2, 755
+all_different/1, 1119
+all_distinct/1, 1151, 1154, 1156
 Alpha
    DEC, 16
-append/1, 287, 291
-append/3, 392, 1037
+append/1, 288, 292
+append/3, 394, 1039
 apply/2, 200
-apropos/1, 45, 46, 62, 1184
-arg/3, 370
-arithmetic_function/1,   483,   484,
-      958
-asin/1, 468
+apropos/1, 45, 46, 62, 1186
+arg/3, 372
+arithmetic_function/1,   485,   486,
+      960
+asin/1, 470
 assert/1, 112,  120, 229, 235--238,
-      249,   253,  254,  267,  657,
-      676, 695, 752, 1190
+      249,   253,  254,  267,  659,
+      678, 697, 754, 1192
 assert/2, 238--240, 247, 270
 asserta/1, 41, 120, 236
 asserta/2, 239, 247
-assertion/1, 1079
-assertions, 1079
-assertz/1, 237, 1190
+assertion/1, 1081
+assertions, 1081
+assertz/1, 237, 1192
 assertz/2, 240, 247
-assignment/2, 1156
-assoc _l_i_b_r_a_r_y, 1057
-assume/1, 1079
-at_end_of_stream/0, 342
-at_end_of_stream/1, 343, 346
+assignment/2, 1158
+assoc _l_i_b_r_a_r_y, 1059
+assume/1, 1081
+at_end_of_stream/0, 344
+at_end_of_stream/1, 345, 348
 at_end_of_stream/[0
-   1], 280, 1081
-at_halt/1, 132,  133, 578, 732, 994,
-      1003
-at_initialization/1, 132, 134, 999
-atan/1, 470
-atan/2, 471
-atom/1, 162, 824
-atom_chars/2,   21,  60,  111,  327,
-      382, 384, 386, 400
-atom_codes/2,  21,  60,  111,  382--
-      384, 388, 400
-atom_concat/3, 392, 393, 408
-atom_length/2, 60, 395, 407
-atom_number/2, 388
-atom_prefix/2, 396
-atom_to_term/3, 347, 391
+   1], 280, 1083
+at_halt/1, 132,  133, 580, 734, 996,
+      1005
+at_initialization/1, 132, 134, 1001
+atan/1, 472
+atan/2, 473
+atom/1, 162, 826
+atom_chars/2,   21,  60,  111,  329,
+      384, 386, 388, 402
+atom_codes/2,  21,  60,  111,  384--
+      386, 390, 402
+atom_concat/3, 394, 395, 410
+atom_length/2, 60, 397, 409
+atom_number/2, 390
+atom_prefix/2, 398
+atom_to_term/3, 349, 393
 atomic/1, 164
-attach_console/0, 764, 765, 982
-attr_portray_hook/2, 348, 685
-attr_unify_hook/2, 62, 679, 684
-attvar/1, 680
-autoload/0, 117, 1020, 1022, 1071
+attach_console/0, 766, 767, 984
+attr_portray_hook/2, 350, 687
+attr_unify_hook/2, 62, 681, 686
+attvar/1, 682
+autoload/0, 117, 1022, 1024, 1073
 
-b_getval/2, 697, 699
-b_setval/2, 695, 696
+b_getval/2, 699, 701
+b_setval/2, 697, 698
 backcomp _l_i_b_r_a_r_y, 17, 21
-bagof/3, 73, 130, 497--499
-bb_inf/3, 1143
-bb_inf/5, 1142, 1143
-between/3, 418, 1049
+bagof/3, 73, 130, 499--501
+bb_inf/3, 1145
+bb_inf/5, 1144, 1145
+between/3, 420, 1051
 block/3, 221, 222
 BOM, 76
-break/0, 41, 51, 576, 715, 982
+break/0, 41, 51, 578, 717, 984
 Byte Order Mark, 76
+byte_count/2, 284, 304
 call/1,  21,  130, 166,  198,  200,
-      208, 596, 619, 621, 691, 936
+      208, 598, 621, 623, 693, 938
 call/2, 199
 call/[2-6], 199
 call_cleanup/2, 205, 206
-call_cleanup/3, 205, 756
-call_cleanup/[2-3], 757
-call_shared_object_function/2, 790
+call_cleanup/3, 205, 758
+call_cleanup/[2-3], 759
+call_shared_object_function/2, 792
 call_with_depth_limit/3, 204
 callable/1, 166
 catch/3,  17,  19,  207--210,  221,
-      306,   363,  619,  726,  734,
-      735, 1174, 1179, 1180
-ceil/1, 457
-ceiling/1, 456, 457
-char_code/2, 111, 385
-char_conversion/2, 60, 414, 415
-char_type/2, 399--402
+      308,   365,  621,  728,  736,
+      737, 1176, 1181, 1182
+ceil/1, 459
+ceiling/1, 458, 459
+char_code/2, 111, 387
+char_conversion/2, 60, 416, 417
+char_count/2, 284
+char_type/2, 401--404
 character set, 70
-character_count/2, 303
-chdir/1, 573, 574
-check _l_i_b_r_a_r_y, 119, 267, 1068, 1201
-check/0, 117, 1068, 1069
+character_count/2, 304, 305
+chdir/1, 575, 576
+check _l_i_b_r_a_r_y, 119, 267, 1070, 1203
+check/0, 117, 1070, 1071
 check_old_select/0, 22
 checkselect _l_i_b_r_a_r_y, 22
-chr _l_i_b_r_a_r_y, 712, 716
-chr_leash/1, 719
-chr_notrace/0, 715, 718
-chr_option/2, 708
-chr_show_store/1, 720
-chr_trace/0, 715, 717
+chr _l_i_b_r_a_r_y, 714, 718
+chr_leash/1, 721
+chr_notrace/0, 717, 720
+chr_option/2, 710
+chr_show_store/1, 722
+chr_trace/0, 717, 719
 clause/2, 269, 270
-clause/3, 238, 247, 270, 272, 1024
+clause/3, 238, 247, 270, 272, 1026
 clause/[2
-   3], 60, 1034
-clause_property/2, 125, 272, 1173
+   3], 60, 1036
+clause_property/2, 125, 272, 1175
 clib
-   package, 1003
+   package, 1005
 close/1, 273, 278
 close/2, 279
-close_dde_conversation/1, 632
-close_shared_object/1, 789
-clp/bounds _l_i_b_r_a_r_y, 1104, 1207
-clp/clp_distinct   _l_i_b_r_a_r_y,    1148,
-      1208
-clp/simplex _l_i_b_r_a_r_y, 1209
-clpr _l_i_b_r_a_r_y, 1134, 1210
-code_type/2, 398, 400, 401
-COM, 918
+close_dde_conversation/1, 634
+close_shared_object/1, 791
+clp/bounds _l_i_b_r_a_r_y, 1106, 1209
+clp/clp_distinct   _l_i_b_r_a_r_y,    1150,
+      1210
+clp/simplex _l_i_b_r_a_r_y, 1211
+clpr _l_i_b_r_a_r_y, 1136, 1212
+code_type/2, 400, 402, 403
+COM, 920
 commandline
    arguments, 41
-compare(), 922
-compare/3, 73, 183, 493, 968
+compare(), 924
+compare/3, 73, 183, 495, 970
 compile_predicates/1, 253, 254
 compiling/0, 135, 141
 completion
    TAB, 92
 compound/1, 165
-concat_atom/2, 393, 394
-concat_atom/3, 394
-constraint/3, 1157, 1158
-constraint/4, 1158
-constraint_add/4, 1159
+concat_atom/2, 395, 396
+concat_atom/3, 396
+constraint/3, 1159, 1160
+constraint/4, 1160
+constraint_add/4, 1161
 consult/1,  36,  39, 53,  62,  100,
       112--115,   140,   141,  255,
-      361, 606
-context_module/1, 667, 942
-convert_time/2, 60, 544, 545
-convert_time/8, 544, 545
+      363, 608
+context_module/1, 669, 944
+convert_time/2, 60, 546, 547
+convert_time/8, 546, 547
 convert_time/[2
-   8], 562
-copy_stream_data/2, 345, 346
-copy_stream_data/3, 344
-copy_term/2, 73, 376, 381, 689, 697
-copy_term_nat/2, 689
-cos/1, 466
-cputime/0, 479
-ctype _l_i_b_r_a_r_y, 398
-current_arithmetic_function/1, 485
+   8], 564
+copy_stream_data/2, 347, 348
+copy_stream_data/3, 346
+copy_term/2, 73, 378, 383, 691, 699
+copy_term_nat/2, 691
+cos/1, 468
+cputime/0, 481
+ctype _l_i_b_r_a_r_y, 400
+current_arithmetic_function/1, 487
 current_atom/1, 260
-current_blob/2, 261, 919
-current_char_conversion/2, 414, 415
+current_blob/2, 261, 921
+current_char_conversion/2, 416, 417
 current_flag/1, 263
-current_foreign_library/2, 795
-current_format_predicate/2, 522
+current_foreign_library/2, 797
+current_format_predicate/2, 524
 current_functor/2, 262
-current_input/1, 126, 292, 299
+current_input/1, 126, 293, 300
 current_key/1, 264
-current_module/1, 665
-current_module/2, 666
-current_mutex/3, 761
-current_op/3, 412
-current_output/1, 293, 300
+current_module/1, 667
+current_module/2, 668
+current_mutex/3, 763
+current_op/3, 414
+current_output/1, 294, 301
 current_predicate/1, 266
 current_predicate/2, 265, 266
 current_prolog_flag/2, 21,  41,  59,
       60,  63,  67,  71, 111,  113,
-      171,   210,  213,  347,  352,
-      363,   580,  606,  637,  784,
-      796,  917,  997, 1006,  1035,
-      1190
+      171,   210,  213,  349,  354,
+      365,   582,  608,  639,  786,
+      798,  919,  999, 1008,  1037,
+      1192
 current_signal/3, 218, 219
 current_stream/3, 21, 281
-current_thread/2,   728,  729,  732,
-      735
+current_thread/2,   730,  731,  734,
+      737
 cyclic terms, 73
 cyclic_term/1, 168, 169
 
 DCG, 112, 226
-dde_current_connection/2, 640
-dde_current_service/2, 639
-dde_execute/2, 634
-dde_poke/4, 635
-dde_register_service/2, 637
-dde_request/3, 633
-dde_unregister_service/1, 638
-debug _l_i_b_r_a_r_y, 107, 1073
-debug/0,  51, 210,  595, 597,  598,
-      982
-debug/1, 1074, 1076, 1077
-debug/3, 1073, 1074
+dde_current_connection/2, 642
+dde_current_service/2, 641
+dde_execute/2, 636
+dde_poke/4, 637
+dde_register_service/2, 639
+dde_request/3, 635
+dde_unregister_service/1, 640
+debug _l_i_b_r_a_r_y, 107, 1075
+debug/0,  51, 210,  597, 599,  600,
+      984
+debug/1, 1076, 1078, 1079
+debug/3, 1075, 1076
 debugging
    exceptions, 210
-debugging/0,  62,  595, 599,  1078,
-      1183
-debugging/1, 1073, 1075
+debugging/0,  62,  597, 601,  1080,
+      1185
+debugging/1, 1075, 1077
 DEC
    Alpha, 16
-default_module/2, 674
-del_attr/2, 683, 686
-delete/3, 1040
-delete_directory/1, 572
-delete_file/1, 559
-delete_import_module/2, 671--673
-deterministic/1, 1175
+default_module/2, 676
+del_attr/2, 685, 688
+delete/3, 1042
+delete_directory/1, 574
+delete_file/1, 561
+delete_import_module/2, 673--675
+deterministic/1, 1177
 Development environment, 82
-dif _l_i_b_r_a_r_y, 694
-dif/2, 73, 184, 693, 694
+dif _l_i_b_r_a_r_y, 696
+dif/2, 73, 184, 695, 696
 discontiguous/1, 252, 256
-display/1, 511, 880
+display/1, 513, 882
 display/[1
    2], 17
 displayq/[1
    2], 17
-downcase_atom/2, 399, 402, 403
-dump/3, 1144
+downcase_atom/2, 401, 404, 405
+dump/3, 1146
 dup/2, 21
 dup_stream/2, 21
-duplicate_term/2,   73,  376,   379,
-      381, 698
-dwim_match/2, 268, 642, 643
-dwim_match/3, 643
+duplicate_term/2,   73,  378,   381,
+      383, 700
+dwim_match/2, 268, 644, 645
+dwim_match/3, 645
 dwim_predicate/2, 268
 dynamic/1, 60,  229, 252--254, 267,
-      663, 751, 752, 1070
+      665, 753, 754, 1072
 
-e/0, 478
+e/0, 480
 edit/0, 144
 edit/1,  23, 60,  62, 92,  95, 100,
       108,   119,   142--145,  147,
-      1070
+      1072
 edit_source/1, 148
 editor _c_l_a_s_s, 91, 96
 Emacs, 42
@@ -18059,537 +18078,537 @@ emacs/[0
    1], 95
 emacs/prolog_colour _l_i_b_r_a_r_y, 99
 emacs/swi_prolog _l_i_b_r_a_r_y, 23
-empty_nb_set/1, 1058
+empty_nb_set/1, 1060
 encoding/1, 75, 118
-ensure_loaded/1, 53, 112, 115, 651
-entailed/1, 1137
+ensure_loaded/1, 53, 112, 115, 653
+entailed/1, 1139
 erase/1, 238, 241, 247, 270
-eval_license/0, 1195--1197
-exception/3, 62, 1179, 1180
+eval_license/0, 1197--1199
+exception/3, 62, 1181, 1182
 exceptions
    debugging, 210
-exists_directory/1, 558
-exists_file/1, 60, 554
+exists_directory/1, 560
+exists_file/1, 60, 556
 exit/2, 222, 223
-exp/1, 474
-expand_answer/2, 581, 582
-expand_file_name/2,  60,  113,  538,
-      541, 563, 564, 567
+exp/1, 476
+expand_answer/2, 583, 584
+expand_file_name/2,  60,  113,  540,
+      543, 565, 566, 569
 expand_file_search_path/2, 122
 expand_goal/2, 60, 128, 130, 131
-expand_query/4, 581
+expand_query/4, 583
 expand_term/2, 128--130, 226
 explain/1, 47
 explain/2, 48
-export/1, 660, 669
-export_list/2, 670
+export/1, 662, 671
+export_list/2, 672
 
 fail/0, 187
 fail/1, 224
 feature/2, 21
-file_base_name/2, 556
-file_directory_name/2, 555
-file_name_extension/3, 566
+file_base_name/2, 558
+file_directory_name/2, 557
+file_name_extension/3, 568
 file_search_path/2, 39, 41,  60, 62,
       63,  66, 87,  113,  114, 121,
-      123,  792,  978, 1008,  1025,
-      1028, 1031
-fileerrors/2, 60, 306
-findall/3, 73, 130, 186, 497, 676
-flag/3, 248, 263, 379
-flatten/2, 1047
-float/1, 158, 428, 449
-float_fractional_part/1, 452
-float_integer_part/1, 453, 454
-floor/1, 455
-flush_output/0, 320
-flush_output/1, 214, 321, 346
+      123,  794,  980, 1010,  1027,
+      1030, 1033
+fileerrors/2, 60, 308
+findall/3, 73, 130, 186, 499, 678
+flag/3, 248, 263, 381
+flatten/2, 1049
+float/1, 158, 430, 451
+float_fractional_part/1, 454
+float_integer_part/1, 455, 456
+floor/1, 457
+flush_output/0, 322
+flush_output/1, 214, 323, 348
 flush_output/[0
-   1], 275, 322
-foo/0, 1190
-foo/3, 1190
-forall/2, 130, 506
-format/1, 214, 515
-format/2, 516--518, 1074
-format/3, 214, 429, 430, 516, 517
+   1], 275, 324
+foo/0, 1192
+foo/3, 1192
+forall/2, 130, 508
+format/1, 214, 517
+format/2, 518--520, 1076
+format/3, 214, 431, 432, 518, 519
 format/[1
-   2], 60, 347, 507
+   2], 60, 349, 509
 format/[2
    3], 71
-format_predicate/2, 521
-freeze/2, 690, 691, 693
-frozen/2, 692
-FTP, 1098
-functor/3, 6, 165, 166, 369, 703
+format_predicate/2, 523
+freeze/2, 692, 693, 695
+frozen/2, 694
+FTP, 1100
+functor/3, 6, 165, 166, 371, 705
 
-garbage_collect/0, 624
-garbage_collect_atoms/0, 625, 995
+garbage_collect/0, 626
+garbage_collect_atoms/0, 627, 997
 garbage_collect_clauses/0, 137--139
-gen_nb_set/2, 1061
-gen_state/1, 1160
-gensym _l_i_b_r_a_r_y, 1064
-gensym/2, 1065
-get/1, 331
-get/2, 332
-get0/1, 275, 329, 330
-get0/2, 330
-get_attr/3, 682, 686
-get_attrs/2, 687, 688
-get_byte/1, 323, 329, 333
-get_byte/2, 324, 328, 334
+gen_nb_set/2, 1063
+gen_state/1, 1162
+gensym _l_i_b_r_a_r_y, 1066
+gensym/2, 1067
+get/1, 333
+get/2, 334
+get0/1, 275, 331, 332
+get0/2, 332
+get_attr/3, 684, 688
+get_attrs/2, 689, 690
+get_byte/1, 325, 331, 335
+get_byte/2, 326, 330, 336
 get_byte/[1
    2], 111
-get_char/1, 325, 327, 337
-get_char/2, 328, 338
+get_char/1, 327, 329, 339
+get_char/2, 330, 340
 get_char/[1
    2], 111
-get_code/1, 325, 329, 335, 339, 341
-get_code/2, 75,  326, 328, 330, 336,
-      344, 346
+get_code/1, 327, 331, 337, 341, 343
+get_code/2, 75,  328, 330, 332, 338,
+      346, 348
 get_code/[1
    2], 111
-get_single_char/1, 41, 60, 341
-get_time/1, 543--545, 562
-getenv/2, 537, 538, 1088
-global_url/3, 1101
-GMP, 429
+get_single_char/1, 41, 60, 343
+get_time/1, 545--547, 564
+getenv/2, 539, 540, 1090
+global_url/3, 1103
+GMP, 431
 GNU-Emacs, 42
 go/0, 40
 goal_expansion/2,   62,  112,   128,
-      130, 131, 1073
+      130, 131, 1075
 Graphics, 8
-ground/1, 167, 251, 828
+ground/1, 167, 251, 830
 GUI, 8
 guitracer/0,  23,   102--104,  108,
-      588, 592
+      590, 594
 
-halt/0, 51, 578, 579
-halt/1, 579, 982
+halt/0, 51, 580, 581
+halt/1, 581, 984
 halt/[0
    1], 133
 hash/1, 257, 258
 hash_term/2, 73, 250, 251, 257, 258
-help/0, 44, 62, 1026, 1184
-help/1, 43--45, 60, 62, 1184
+help/0, 44, 62, 1028, 1186
+help/1, 43--45, 60, 62, 1186
 helpidx _l_i_b_r_a_r_y, 43
 hooks, 62
-HTTP, 1098
-http_load _l_i_b_r_a_r_y, 113, 1186
-http_location/2, 1102
+HTTP, 1100
+http_load _l_i_b_r_a_r_y, 113, 1188
+http_location/2, 1104
 IDE, 82
-ignore/1, 130, 203, 619, 726
+ignore/1, 130, 203, 621, 728
 immediate
    update view, 249
-import/1, 650, 653, 660
-import_module/2, 671, 672, 674
-in/2, 1106, 1107
-in_pce_thread/1, 777, 778
+import/1, 652, 655, 662
+import_module/2, 673, 674, 676
+in/2, 1108, 1109
+in_pce_thread/1, 779, 780
 include/1, 112, 113, 116, 126
 index/1, 250, 257, 258, 267
-indomain/1, 1118
-inf/2, 1138
+indomain/1, 1120
+inf/2, 1140
 infinite trees, 73
-initialization/1,  134,  695,  731,
-      785, 1024
-install/0, 1025
+initialization/1,  134,  697,  733,
+      787, 1026
+install/0, 1027
 integer
-   unbounded, 429
-integer/1, 157, 448
-interactor/0, 285, 764
+   unbounded, 431
+integer/1, 157, 450
+interactor/0, 286, 766
 internationalization, 74
-intersection/3, 1053
-is/2, 428, 429, 449, 484, 1048
-is_absolute_file_name/1, 565
-is_list/1, 487, 1051
-is_set/1, 1051
+intersection/3, 1055
+is/2, 430, 431, 451, 486, 1050
+is_absolute_file_name/1, 567
+is_list/1, 489, 1053
+is_set/1, 1053
 is_stream/1, 282
 iso latin 1, 70
 
-Java, 918
+Java, 920
 
-keysort/2, 492, 493
+keysort/2, 494, 495
 
-label/1, 1119
-last/2, 1044
-leash/1, 51, 603, 604, 719, 1177
-length/2, 489
-lex_chain/1, 1116
+label/1, 1121
+last/2, 1046
+leash/1, 51, 605, 606, 721, 1179
+length/2, 491
+lex_chain/1, 1118
 library_directory/1,  62,  63,  114,
       120
 library_directory/2, 66
-license/1, 1198
-license/2, 1197, 1198
-license:license/3, 1197
+license/1, 1200
+license/2, 1199, 1200
+license:license/3, 1199
 likes/2, 36
-limit_stack/2, 623, 626
-line_count/2, 285, 304, 525
-line_position/2, 285, 305, 525
-list_autoload/0, 1069--1071
-list_debug_topics/0, 1073, 1078
-list_redefined/0, 1069, 1072
-list_to_set/2, 1052
-list_undefined/0, 119, 1069--1071
+limit_stack/2, 625, 628
+line_count/2, 284, 286, 306, 527
+line_position/2, 284, 286, 307, 527
+list_autoload/0, 1071--1073
+list_debug_topics/0, 1075, 1080
+list_redefined/0, 1071, 1074
+list_to_set/2, 1054
+list_undefined/0, 119, 1071--1073
 listing/0, 151
 listing/1, 51, 150, 151
-lists _l_i_b_r_a_r_y, 486, 1036, 1202
+lists _l_i_b_r_a_r_y, 488, 1038, 1204
 load_files/1, 62
 load_files/2, 60,  62, 75, 113, 114,
-      1185, 1186
-load_foreign_library/1,  793,  1006,
-      1025
-load_foreign_library/2, 792, 793
+      1187, 1188
+load_foreign_library/1,  795,  1008,
+      1027
+load_foreign_library/2, 794, 795
 load_foreign_library/[1
-   2], 121, 787
-log/1, 472
-log10/1, 473
+   2], 121, 789
+log/1, 474
+log10/1, 475
 logical
    update view, 249
-lsb/1, 481
+lsb/1, 483
 
 MacOS X, 7
 main/0, 58
 make/0,  7, 63,  66, 93,  100, 108,
       113, 119, 137
-make_directory/1, 571
+make_directory/1, 573
 make_library_index/1, 63, 64
 make_library_index/2, 63, 65
 make_library_index/[1
    2], 66
 manpce/0, 78
-maplist/2, 501
-maplist/3, 502, 658, 1022
-maplist/4, 503
-max/1, 1141
-max/2, 443, 444, 1123
-maximize/3, 1161, 1162
-member/2, 51,  205, 271,  488, 564,
-      1038, 1041
-memberchk/2, 488
+maplist/2, 503
+maplist/3, 504, 660, 1024
+maplist/4, 505
+max/1, 1143
+max/2, 445, 446, 1125
+maximize/3, 1163, 1164
+member/2, 51,  205, 271,  490, 566,
+      1040, 1043
+memberchk/2, 490
 memory
    layout, 79
-merge/3, 494
-merge_set/3, 495
+merge/3, 496
+merge_set/3, 497
 message_hook/3, 20, 62, 212--215
-message_queue_create/1,  740,   744,
-      745
-message_queue_destroy/1, 745
-message_queue_size/2, 748
+message_queue_create/1,  742,   746,
+      747
+message_queue_destroy/1, 747
+message_queue_size/2, 750
 message_to_string/2, 213, 215, 216
-meta_predicate/1, 664, 676, 677
-min/1, 1140
-min/2, 444, 1124
-minimize/3, 1162
-mod/2, 437, 1125
-module/1, 675
-module/2, 128, 410, 649, 662, 669
-module_transparent/1,    267,   663,
-      676, 942, 1190
-msb/1, 479, 480
-msort/2, 491, 492
+meta_predicate/1, 666, 678, 679
+min/1, 1142
+min/2, 446, 1126
+minimize/3, 1164
+mod/2, 439, 1127
+module/1, 677
+module/2, 128, 412, 651, 664, 671
+module_transparent/1,    267,   665,
+      678, 944, 1192
+msb/1, 481, 482
+msort/2, 493, 494
 multifile/1,  142,  252, 255,  267,
-      1070, 1182, 1190
-mutex_create/1, 754, 756, 757
-mutex_destroy/1, 755
-mutex_lock/1, 757, 758
-mutex_statistics/0, 737
-mutex_trylock/1, 758
-mutex_unlock/1, 759
-mutex_unlock_all/0, 760
+      1072, 1184, 1192
+mutex_create/1, 756, 758, 759
+mutex_destroy/1, 757
+mutex_lock/1, 759, 760
+mutex_statistics/0, 739
+mutex_trylock/1, 760
+mutex_unlock/1, 761
+mutex_unlock_all/0, 762
 
-name/2, 382, 389
-nb_current/2, 701
-nb_delete/1, 702
-nb_getval/2, 699
-nb_linkarg/3, 379--381
-nb_linkval/2, 380, 381, 700, 703
-nb_set _l_i_b_r_a_r_y, 1057
-nb_set_to_list/2, 1063
-nb_setarg/3, 378--381, 1057
-nb_setval/2,  379,  381,  695,  698,
-      700, 703
-nbset _l_i_b_r_a_r_y, 1057
-netmask/4, 997
-netscape _l_i_b_r_a_r_y, 1087, 1203
-nextto/3, 1039
-nl/0, 308
-nl/1, 309
+name/2, 384, 391
+nb_current/2, 703
+nb_delete/1, 704
+nb_getval/2, 701
+nb_linkarg/3, 381--383
+nb_linkval/2, 382, 383, 702, 705
+nb_set _l_i_b_r_a_r_y, 1059
+nb_set_to_list/2, 1065
+nb_setarg/3, 380--383, 1059
+nb_setval/2,  381,  383,  697,  700,
+      702, 705
+nbset _l_i_b_r_a_r_y, 1059
+netmask/4, 999
+netscape _l_i_b_r_a_r_y, 1089, 1205
+nextto/3, 1041
+nl/0, 310
+nl/1, 311
 nl/[0
-   1], 511
-nodebug/0, 598
-nodebug/1, 1076, 1077
-noguitracer/0, 102, 104, 108, 593
+   1], 513
+nodebug/0, 600
+nodebug/1, 1078, 1079
+noguitracer/0, 102, 104, 108, 595
 nonvar/1, 156
-noprofile/1, 619
-noprotocol/0, 586
-nospy/1, 51, 62, 601, 1183
-nospyall/0, 62, 602, 1183
+noprofile/1, 621
+noprotocol/0, 588
+nospy/1, 51, 62, 603, 1185
+nospyall/0, 62, 604, 1185
 not/1, 130, 201
-notrace/0, 591, 717, 718
-notrace/1, 596
-nth0/3, 1042
-nth1/3, 1043
-nth_clause/3, 271, 272, 1173
+notrace/0, 593, 719, 720
+notrace/1, 598
+nth0/3, 1044
+nth1/3, 1045
+nth_clause/3, 271, 272, 1175
 number
-   rational, 429
-number/1, 161, 1048
-number_chars/2, 21, 111, 386, 387
-number_codes/2,  21, 111,  382, 387,
-      388
-numbervars/3, 348, 372, 373
-numbervars/4, 372, 373
+   rational, 431
+number/1, 161, 1050
+number_chars/2, 21, 111, 388, 389
+number_codes/2,  21, 111,  384, 389,
+      390
+numbervars/3, 350, 374, 375
+numbervars/4, 374, 375
 numbervars/[3
    4], 73
-numlist/3, 1049
-objective/2, 1163
+numlist/3, 1051
+objective/2, 1165
 on_signal/3, 19, 218, 219
 once/1,  130, 202,  203, 205,  218,
-      596, 610, 756, 947
+      598, 612, 758, 949
 one_character_atom/1, 186
-op/3, 21, 110, 252, 348, 411, 412
+op/3, 21, 110, 252, 350, 413, 414
 open/3, 60, 273, 274, 276
 open/4, 13, 75,  76, 111, 275, 276,
-      280,  284,  285,  343,  1085,
-      1086
-open_dde_conversation/3, 631
+      280,  285,  286,  345,  1087,
+      1088
+open_dde_conversation/3, 633
 open_null_stream/1, 277
-open_resource/3,   18,  1019,  1026,
-      1029
-open_shared_object/2, 60,  784, 787,
-      788
-open_shared_object/3, 788
+open_resource/3,   18,  1021,  1028,
+      1031
+open_shared_object/2, 60,  786, 789,
+      790
+open_shared_object/3, 790
 operator
-   and modules, 410
+   and modules, 412
 
 package
-   clib, 1003
-parse_url/2, 1099, 1100, 1102
-parse_url/3, 1100
-path/3, 1132
-pce_call/1, 778, 780
-pce_dispatch/1, 778, 779
-peek_byte/1, 333
-peek_byte/2, 334
+   clib, 1005
+parse_url/2, 1101, 1102, 1104
+parse_url/3, 1102
+path/3, 1134
+pce_call/1, 780, 782
+pce_dispatch/1, 780, 781
+peek_byte/1, 335
+peek_byte/2, 336
 peek_byte/[1
    2], 111
-peek_char/1, 337
-peek_char/2, 338
+peek_char/1, 339
+peek_char/2, 340
 peek_char/[1
    2], 111
-peek_code/1, 335
-peek_code/2, 336
+peek_code/1, 337
+peek_code/2, 338
 peek_code/[1
    2], 111
-permutation/2, 1046
+permutation/2, 1048
 phrase/2, 226, 227
 phrase/3, 226, 228
-pi/0, 477
-PL_abort_hook(), 992
-PL_abort_unhook(), 993
-PL_action(), 982
-PL_agc_hook(), 995
-PL_atom_chars(), 817
-PL_atom_nchars(), 868
-PL_atom_wchars(), 871
-PL_blob_data(), 930
-PL_BLOB_NOCOPY, 919
-PL_BLOB_TEXT, 919
-PL_BLOB_UNIQUE, 919
-PL_call(), 947
-PL_call_predicate(), 946
-PL_chars_to_term(), 916
-PL_cleanup(), 1003
-PL_close_foreign_frame(), 950
-PL_close_query(), 945
-PL_compare(), 968
-PL_cons_functor(), 896
-PL_cons_functor_v(), 897
-PL_cons_list(), 898
-PL_context(), 954
-PL_copy_term_ref(), 801
-PL_create_engine(), 773
-PL_cut_query(), 944
-PL_destroy_engine(), 774
-PL_discard_foreign_frame(), 951
-PL_dispatch_hook(), 991
-PL_erase(), 973
-PL_erase_external(), 976
-PL_exception(), 961
-PL_fail(), 808
-PL_foreign_context(), 813
-PL_foreign_context_address(), 814
-PL_foreign_control(), 812
-PL_free(), 1014
-PL_functor_arity(), 820
-PL_functor_name(), 819
-PL_get_arg(), 853
-PL_get_atom(), 839
-PL_get_atom_chars(), 840
-PL_get_atom_nchars(), 856
-PL_get_blob(), 929
-PL_get_bool(), 847
-PL_get_chars(), 842
-PL_get_file_name(), 978
-PL_get_float(), 849
-PL_get_functor(), 850
-PL_get_head(), 877
-PL_get_int64(), 846
-PL_get_integer(), 844
-PL_get_list(), 876
-PL_get_list_chars(), 843
-PL_get_list_nchars(), 857
-PL_get_long(), 845
-PL_get_module(), 852
-PL_get_mpq(), 933
-PL_get_mpz(), 932
-PL_get_name_arity(), 851
-PL_get_nchars(), 858
-PL_get_nil(), 879
-PL_get_pointer(), 848
-PL_get_string_chars(), 841
-PL_get_tail(), 878
-PL_get_wchars(), 872
-PL_halt(), 1004
-PL_handle_signals(), 965
-PL_initialise(), 999
-PL_install_readline(), 1001
-PL_is_atom(), 829
-PL_is_atomic(), 836
-PL_is_blob(), 926
-PL_is_compound(), 833
-PL_is_float(), 832
-PL_is_functor(), 834
-PL_is_ground(), 828
-PL_is_initialised(), 1000
-PL_is_integer(), 831
-PL_is_list(), 835
-PL_is_number(), 837
-PL_is_string(), 830
-PL_is_variable(), 827
-PL_license(), 1199
-PL_malloc(), 1012
-PL_module_name(), 956
-PL_new_atom(), 816
-PL_new_atom_nchars(), 867
-PL_new_atom_wchars(), 870
-PL_new_functor(), 818
-PL_new_module(), 957
-PL_new_term_ref(), 799
-PL_new_term_refs(), 800
-PL_next_solution(), 943
-PL_on_halt(), 994
-PL_open_foreign_frame(), 949
-PL_open_query(), 942
-PL_pred(), 938
-PL_predicate(), 939
-PL_predicate_info(), 940
-PL_put_atom(), 883
-PL_put_atom_chars(), 884
-PL_put_atom_nchars(), 859
-PL_put_blob(), 928
-PL_put_float(), 891
-PL_put_functor(), 892
-PL_put_int64(), 889
-PL_put_integer(), 888
-PL_put_list(), 893
-PL_put_list_chars(), 887
-PL_put_list_nchars(), 862
-PL_put_list_ncodes(), 861
-PL_put_nil(), 894
-PL_put_pointer(), 890
-PL_put_string_chars(), 885
-PL_put_string_nchars(), 860, 886
-PL_put_term(), 895
-PL_put_variable(), 882
-PL_query(), 984
-PL_quote(), 917
-PL_raise(), 964
-PL_raise_exception(), 959
-PL_realloc(), 1013
-PL_record(), 971
-PL_record_external(), 974
-PL_recorded(), 972
-PL_recorded_external(), 975
-PL_register_atom(), 822
-PL_register_extensions(), 989
+pi/0, 479
+PL_abort_hook(), 994
+PL_abort_unhook(), 995
+PL_action(), 984
+PL_agc_hook(), 997
+PL_atom_chars(), 819
+PL_atom_nchars(), 870
+PL_atom_wchars(), 873
+PL_blob_data(), 932
+PL_BLOB_NOCOPY, 921
+PL_BLOB_TEXT, 921
+PL_BLOB_UNIQUE, 921
+PL_call(), 949
+PL_call_predicate(), 948
+PL_chars_to_term(), 918
+PL_cleanup(), 1005
+PL_close_foreign_frame(), 952
+PL_close_query(), 947
+PL_compare(), 970
+PL_cons_functor(), 898
+PL_cons_functor_v(), 899
+PL_cons_list(), 900
+PL_context(), 956
+PL_copy_term_ref(), 803
+PL_create_engine(), 775
+PL_cut_query(), 946
+PL_destroy_engine(), 776
+PL_discard_foreign_frame(), 953
+PL_dispatch_hook(), 993
+PL_erase(), 975
+PL_erase_external(), 978
+PL_exception(), 963
+PL_fail(), 810
+PL_foreign_context(), 815
+PL_foreign_context_address(), 816
+PL_foreign_control(), 814
+PL_free(), 1016
+PL_functor_arity(), 822
+PL_functor_name(), 821
+PL_get_arg(), 855
+PL_get_atom(), 841
+PL_get_atom_chars(), 842
+PL_get_atom_nchars(), 858
+PL_get_blob(), 931
+PL_get_bool(), 849
+PL_get_chars(), 844
+PL_get_file_name(), 980
+PL_get_float(), 851
+PL_get_functor(), 852
+PL_get_head(), 879
+PL_get_int64(), 848
+PL_get_integer(), 846
+PL_get_list(), 878
+PL_get_list_chars(), 845
+PL_get_list_nchars(), 859
+PL_get_long(), 847
+PL_get_module(), 854
+PL_get_mpq(), 935
+PL_get_mpz(), 934
+PL_get_name_arity(), 853
+PL_get_nchars(), 860
+PL_get_nil(), 881
+PL_get_pointer(), 850
+PL_get_string_chars(), 843
+PL_get_tail(), 880
+PL_get_wchars(), 874
+PL_halt(), 1006
+PL_handle_signals(), 967
+PL_initialise(), 1001
+PL_install_readline(), 1003
+PL_is_atom(), 831
+PL_is_atomic(), 838
+PL_is_blob(), 928
+PL_is_compound(), 835
+PL_is_float(), 834
+PL_is_functor(), 836
+PL_is_ground(), 830
+PL_is_initialised(), 1002
+PL_is_integer(), 833
+PL_is_list(), 837
+PL_is_number(), 839
+PL_is_string(), 832
+PL_is_variable(), 829
+PL_license(), 1201
+PL_malloc(), 1014
+PL_module_name(), 958
+PL_new_atom(), 818
+PL_new_atom_nchars(), 869
+PL_new_atom_wchars(), 872
+PL_new_functor(), 820
+PL_new_module(), 959
+PL_new_term_ref(), 801
+PL_new_term_refs(), 802
+PL_next_solution(), 945
+PL_on_halt(), 996
+PL_open_foreign_frame(), 951
+PL_open_query(), 944
+PL_pred(), 940
+PL_predicate(), 941
+PL_predicate_info(), 942
+PL_put_atom(), 885
+PL_put_atom_chars(), 886
+PL_put_atom_nchars(), 861
+PL_put_blob(), 930
+PL_put_float(), 893
+PL_put_functor(), 894
+PL_put_int64(), 891
+PL_put_integer(), 890
+PL_put_list(), 895
+PL_put_list_chars(), 889
+PL_put_list_nchars(), 864
+PL_put_list_ncodes(), 863
+PL_put_nil(), 896
+PL_put_pointer(), 892
+PL_put_string_chars(), 887
+PL_put_string_nchars(), 862, 888
+PL_put_term(), 897
+PL_put_variable(), 884
+PL_query(), 986
+PL_quote(), 919
+PL_raise(), 966
+PL_raise_exception(), 961
+PL_realloc(), 1015
+PL_record(), 973
+PL_record_external(), 976
+PL_recorded(), 974
+PL_recorded_external(), 977
+PL_register_atom(), 824
+PL_register_extensions(), 991
 PL_register_extensions_in_module(),
-      988
-PL_register_foreign(), 987
-PL_register_foreign_in_module(), 986
-PL_reset_term_refs(), 802
-PL_retry(), 810
-PL_retry_address(), 811
-PL_rewind_foreign_frame(), 952
-PL_same_compound(), 969
-PL_set_engine(), 775
-PL_signal(), 963
-PL_strip_module(), 955
-PL_succeed(), 807
-PL_term_type(), 826
-PL_thread_at_exit(), 771
-PL_thread_attach_engine(), 769
-PL_thread_destroy_engine(), 770
-PL_thread_self(), 768
-PL_throw(), 960
-PL_toplevel(), 1002
-PL_unify(), 900
-PL_unify_arg(), 914
-PL_unify_atom(), 901
-PL_unify_atom_chars(), 903
-PL_unify_atom_nchars(), 863
-PL_unify_blob(), 927
-PL_unify_chars(), 902
-PL_unify_float(), 909
-PL_unify_functor(), 911
-PL_unify_int64(), 908
-PL_unify_integer(), 907
-PL_unify_list(), 912
-PL_unify_list_chars(), 904
-PL_unify_list_nchars(), 866
-PL_unify_list_ncodes(), 865
-PL_unify_mpq(), 935
-PL_unify_mpz(), 934
-PL_unify_nil(), 913
-PL_unify_pointer(), 910
-PL_unify_string_chars(), 905
-PL_unify_string_nchars(), 864, 906
-PL_unify_term(), 915
-PL_unify_wchars(), 873
-PL_unify_wchars_diff(), 874
-PL_unregister_atom(), 823
-PL_unregister_blob_type(), 924
-PL_warning(), 980
-plus/3, 199, 420
-PLVERSION, 1015
-popcount/1, 482
-portray/1,  51, 62,  88, 347,  348,
-      356, 358, 942, 996, 1182
+      990
+PL_register_foreign(), 989
+PL_register_foreign_in_module(), 988
+PL_reset_term_refs(), 804
+PL_retry(), 812
+PL_retry_address(), 813
+PL_rewind_foreign_frame(), 954
+PL_same_compound(), 971
+PL_set_engine(), 777
+PL_signal(), 965
+PL_strip_module(), 957
+PL_succeed(), 809
+PL_term_type(), 828
+PL_thread_at_exit(), 773
+PL_thread_attach_engine(), 771
+PL_thread_destroy_engine(), 772
+PL_thread_self(), 770
+PL_throw(), 962
+PL_toplevel(), 1004
+PL_unify(), 902
+PL_unify_arg(), 916
+PL_unify_atom(), 903
+PL_unify_atom_chars(), 905
+PL_unify_atom_nchars(), 865
+PL_unify_blob(), 929
+PL_unify_chars(), 904
+PL_unify_float(), 911
+PL_unify_functor(), 913
+PL_unify_int64(), 910
+PL_unify_integer(), 909
+PL_unify_list(), 914
+PL_unify_list_chars(), 906
+PL_unify_list_nchars(), 868
+PL_unify_list_ncodes(), 867
+PL_unify_mpq(), 937
+PL_unify_mpz(), 936
+PL_unify_nil(), 915
+PL_unify_pointer(), 912
+PL_unify_string_chars(), 907
+PL_unify_string_nchars(), 866, 908
+PL_unify_term(), 917
+PL_unify_wchars(), 875
+PL_unify_wchars_diff(), 876
+PL_unregister_atom(), 825
+PL_unregister_blob_type(), 926
+PL_warning(), 982
+plus/3, 199, 422
+PLVERSION, 1017
+popcount/1, 484
+portray/1,  51, 62,  88, 349,  350,
+      358, 360, 944, 998, 1184
 portray_clause/1, 150, 152, 153
 portray_clause/2, 152, 153
-predicate_property/2, 258, 267, 670
-predsort/3, 493
+predicate_property/2, 258, 267, 672
+predsort/3, 495
 preprocessor/2, 136
-print/1, 348,  356, 358,  511, 516,
-      942
-print/2, 357
+print/1, 350,  358, 360,  513, 518,
+      944
+print/2, 359
 print/[1
-   2], 347
+   2], 349
 print_message/2,  20,  60, 62,  113,
-      133,   212--215,   363,  726,
-      728, 1074
+      133,   212--215,   365,  728,
+      730, 1076
 print_message_lines/3, 20, 213--215
 profile file, 39
-profile/1, 613, 614
-profile/3, 614, 1034
-profiler/2, 617
-prolog/0,  41, 60,  286, 576,  580,
-      581, 675, 1002, 1175
+profile/1, 615, 616
+profile/3, 616, 1036
+profiler/2, 619
+prolog/0,  41, 60,  287, 578,  582,
+      583, 677, 1004, 1177
 prolog:debug_control_hook/1,     62,
-      1183
-prolog:help_hook/1, 62, 1184
-prolog:show_profile_hook/2, 615
-prolog_choice_attribute/3,     1174,
-      1177
-prolog_current_frame/1, 1172, 1173
+      1185
+prolog:help_hook/1, 62, 1186
+prolog:show_profile_hook/2, 617
+prolog_choice_attribute/3,     1176,
+      1179
+prolog_current_frame/1, 1174, 1175
 prolog_edit:edit_command/2, 62, 148
 prolog_edit:edit_source/1,  62,  91,
       108, 143, 147
@@ -18597,344 +18616,346 @@ prolog_edit:load/0, 149
 prolog_edit:locate/2, 146
 prolog_edit:locate/3,  62, 142, 143,
       145--147
-prolog_file_type/2, 112, 123, 564
-prolog_frame_attribute/3, 272, 1173,
-      1177
-prolog_frame_attribute/4, 1177
+prolog_file_type/2, 112, 123, 566
+prolog_frame_attribute/3, 272, 1175,
+      1179
+prolog_frame_attribute/4, 1179
 prolog_ide _c_l_a_s_s, 107
 prolog_ide/1, 106, 107
-prolog_list_goal/1, 62, 1182
+prolog_list_goal/1, 62, 1184
 prolog_load_context/2, 126, 127
-prolog_load_file/2, 62, 113, 1185
-prolog_server _l_i_b_r_a_r_y, 286
-prolog_skip_level/2, 1178
-prolog_to_os_filename/2,   86,   565,
-      568
+prolog_load_file/2, 62, 113, 1187
+prolog_server _l_i_b_r_a_r_y, 287
+prolog_skip_level/2, 1180
+prolog_to_os_filename/2,   86,   567,
+      570
 prolog_trace_interception/4,     62,
-      101, 592, 1173, 1174, 1177
-prompt/2, 365--367
-prompt1/1, 367
-protocol/1, 584, 585, 587
-protocola/1, 585, 587
-protocolling/1, 587
+      101, 594, 1175, 1176, 1179
+prompt/2, 367--369
+prompt1/1, 369
+protocol/1, 586, 587, 589
+protocola/1, 587, 589
+protocolling/1, 589
 prove/3, 93
-put/1, 310, 311
-put/2, 311
-put_attr/3, 680, 681, 684, 686
-put_attrs/2, 688
-put_byte/1, 312
-put_byte/2, 313
+put/1, 312, 313
+put/2, 313
+put_attr/3, 682, 683, 686, 688
+put_attrs/2, 690
+put_byte/1, 314
+put_byte/2, 315
 put_byte/[1
    2], 111
-put_char/1, 310, 314, 316
-put_char/2, 315
+put_char/1, 312, 316, 318
+put_char/2, 317
 put_char/[1
    2], 111
-put_code/1, 310, 316, 317
-put_code/2, 75, 317, 344, 346
+put_code/1, 312, 318, 319
+put_code/2, 75, 319, 346, 348
 put_code/[1
    2], 111
 
 qcompile/1, 113, 135, 140, 141
-qsave_program/1, 1021
+qsave_program/1, 1023
 qsave_program/2,  14,  58,  60,  88,
-      106, 1019, 1020, 1026
+      106, 1021, 1022, 1028
 qsave_program/[1
    2],  13,  18, 41,  57, 60,  134,
-      267,  785,  999, 1008,  1022,
-      1024
+      267,  787, 1001,  1010, 1024,
+      1026
 quiet, 41, 213
-quintus _l_i_b_r_a_r_y, 21, 664, 677
+quintus _l_i_b_r_a_r_y, 21, 666, 679
 
-random/1, 446
+random/1, 448
 rational
-   number, 429
-rational/1,  159,  160,  429,  430,
-      450, 451
-rational/3, 429
-rationalize/1, 429,  430, 450, 451,
-      1166
-rdiv/2, 429, 430, 436, 440
-read/1, 60, 80, 275, 320, 354, 359,
-      361,   363,  366,  404,  606,
-      703, 1086
-read/2, 302, 360
-read_clause/1, 361, 362, 606
-read_clause/2, 362
-read_file_to_codes/3, 1085
-read_file_to_terms/3, 1086
-read_history/6, 365
-read_line_to_codes/2, 1081, 1082
-read_line_to_codes/3, 1081, 1082
-read_link/3, 569
-read_pending_input/3, 346
-read_stream_to_codes/2, 1083, 1084
-read_stream_to_codes/3, 1084
-read_term/2, 60, 361, 363--365, 391
-read_term/3, 363, 364, 414, 581
+   number, 431
+rational/1,  159,  160,  431,  432,
+      452, 453
+rational/3, 431
+rationalize/1, 431,  432, 452, 453,
+      1168
+rdiv/2, 431, 432, 438, 442
+read/1, 60, 80, 275, 322, 356, 361,
+      363,   365,  368,  406,  608,
+      705, 1088
+read/2, 303, 362
+read_clause/1, 363, 364, 608
+read_clause/2, 364
+read_file_to_codes/3, 1087
+read_file_to_terms/3, 1088
+read_history/6, 367
+read_line_to_codes/2, 1083, 1084
+read_line_to_codes/3, 1083, 1084
+read_link/3, 571
+read_pending_input/3, 348
+read_stream_to_codes/2, 1085, 1086
+read_stream_to_codes/3, 1086
+read_term/2, 60, 363, 365--367, 393
+read_term/3, 365, 366, 416, 583
 read_term/[2
-   3], 363
-readutil _l_i_b_r_a_r_y, 90, 1080, 1204
+   3], 365
+readutil _l_i_b_r_a_r_y, 90, 1082, 1206
 reconsult/1, 112
 recorda/2, 242
 recorda/3, 73, 241,  243, 247, 264,
-      695, 970, 971, 974
+      697, 972, 973, 976
 recorded/2, 246
-recorded/3, 245, 247, 1024
+recorded/3, 245, 247, 1026
 recordz/2, 244
 recordz/3, 73, 243
 redefine_system_predicate/1,     11,
-      232, 1190
+      232, 1192
 registry, 78
-registry _l_i_b_r_a_r_y, 1089, 1205
-registry_delete_key/1, 1094
-registry_get_key/2, 1090
-registry_get_key/3, 1091
-registry_set_key/2, 1092
-registry_set_key/3, 1093
-release(), 921
+registry _l_i_b_r_a_r_y, 1091, 1207
+registry_delete_key/1, 1096
+registry_get_key/2, 1092
+registry_get_key/3, 1093
+registry_set_key/2, 1094
+registry_set_key/3, 1095
+release(), 923
 reload_library_index/0, 66
-rem/2, 438
-rename_file/2, 560
+rem/2, 440
+rename_file/2, 562
 repeat/0, 186, 189, 204
-require/1, 117, 1022
-reset_gensym/0, 1067
-reset_gensym/1, 1066
-reset_profiler/0, 614, 618
-resource/3, 18, 60, 62, 1019, 1020,
-      1026, 1028, 1029
+require/1, 117, 1024
+reset_gensym/0, 1069
+reset_gensym/1, 1068
+reset_profiler/0, 616, 620
+resource/3, 18, 60, 62, 1021, 1022,
+      1028, 1030, 1031
 retract/1, 112, 120, 229, 230, 233,
-      249, 253, 254, 267, 676, 752
+      249, 253, 254, 267, 678, 754
 retractall/1, 229, 230, 234
-reverse/2, 649, 1045
-RFC-1738, 1098
-rl_add_history/1, 1189
-rl_read_init_file/1, 1188
+reverse/2, 651, 1047
+RFC-1738, 1100
+rl_add_history/1, 1191
+rl_read_init_file/1, 1190
 rlimit _l_i_b_r_a_r_y, 25
-round/1, 447, 448
+round/1, 449, 450
 
-same_file/2, 557
-see/1, 20, 273, 275, 287--289
-seeing/1, 287, 288, 292
-seek/4, 280, 283, 284
-seen/0, 294
-select/3, 22, 1041
+same_file/2, 559
+see/1, 20, 273, 275, 288--290
+seeing/1, 288, 289, 293
+seek/4, 280, 283, 285
+seen/0, 295
+select/3, 22, 1043
 set_feature/2, 21
-set_input/1, 285, 289, 297
-set_output/1, 290, 298
+set_input/1, 286, 290, 298
+set_output/1, 291, 299
 set_prolog_flag/2, 21,  49, 59,  61,
-      421
-set_prolog_IO/3, 286
-set_stream/2,  75,  275,  280,  285,
-      286, 302
-set_stream_position/2, 280, 283, 284
-set_tty/2, 527
-setarg/3, 376, 378,  379, 381, 681,
-      703
-setenv/2, 538
-setlocale/3, 540
-setof/3, 73, 130, 499
-sformat/2, 519
-sformat/3, 347, 518
-shadow_price/3, 1164
-shell/0, 532, 541
-shell/1, 86, 148, 531, 541
-shell/2, 530
-shell/[0-2], 538
+      423
+set_prolog_IO/3, 287
+set_stream/2,  75,  275,  280,  286,
+      287, 303
+set_stream_position/2, 280, 283, 285
+set_tty/2, 529
+setarg/3, 378, 380,  381, 383, 683,
+      705
+setenv/2, 540
+setlocale/3, 542
+setof/3, 73, 130, 501
+sformat/2, 521
+sformat/3, 349, 520
+shadow_price/3, 1166
+shell/0, 534, 543
+shell/1, 86, 148, 533, 543
+shell/2, 532
+shell/[0-2], 540
 shell/[1
-   2], 530
-shell_register_dde/6, 1096
-shell_register_file_type/4,     1095,
-      1096
-shell_register_prolog/1, 1097
-show_profile/1, 614, 616
-show_profile/2, 615
-sign/1, 442
+   2], 532
+shell_register_dde/6, 1098
+shell_register_file_type/4,     1097,
+      1098
+shell_register_prolog/1, 1099
+show_profile/1, 616, 618
+show_profile/2, 617
+sign/1, 444
 silent, 213
-simplex _l_i_b_r_a_r_y, 1155
-sin/1, 465
-size_file/2, 561
-size_nb_set/2, 1062
-skip/1, 339, 340
-skip/2, 340
-sleep/1, 645
-socket _l_i_b_r_a_r_y, 302
-Solaris, 733
-sort/2, 490, 491, 493, 499, 1052
+simplex _l_i_b_r_a_r_y, 1157
+sin/1, 467
+size_file/2, 563
+size_nb_set/2, 1064
+skip/1, 341, 342
+skip/2, 342
+sleep/1, 647
+socket _l_i_b_r_a_r_y, 303
+Solaris, 735
+sort/2, 492, 493, 495, 501, 1054
 source_file/1, 124
 source_file/2, 125, 141, 267
 source_file/[1
-   2], 666
+   2], 668
 source_location/2, 126, 127
 spy/1, 51,  60, 62, 102,  103, 108,
-      600, 1183
-sqrt/1, 464
+      602, 1185
+sqrt/1, 466
 stack
    memory management, 79
-stack_parameter/4, 628
+stack_parameter/4, 630
 startup file, 39
-statistics _l_i_b_r_a_r_y, 611
-statistics/0, 609
-statistics/2, 479, 608, 736, 738
+statistics _l_i_b_r_a_r_y, 613
+statistics/0, 611
+statistics/2, 481, 610, 738, 740
+stream_position_data/3,  126,   280,
+      284
 stream_property/2,   76,  275,  280,
-      283--285, 363
-string/1, 163, 516
-string_concat/3, 392, 408
-string_length/2, 407
-string_to_atom/2, 405
-string_to_list/2, 406
-strip_module/3, 668
-style_check/1,  80,  81,  256,  606,
-      1190
-sub_atom/5, 397, 409
-sub_string/5, 409
-sublist/3, 504
-subset/2, 1056
-subtract/3, 1054
-succ/2, 419
-sum/3, 1115
-sumlist/2, 1048
-sup/2, 1139
-swi/pce_profile _l_i_b_r_a_r_y, 611
+      283--286, 365
+string/1, 163, 518
+string_concat/3, 394, 410
+string_length/2, 409
+string_to_atom/2, 407
+string_to_list/2, 408
+strip_module/3, 670
+style_check/1,  80,  81,  256,  608,
+      1192
+sub_atom/5, 399, 411
+sub_string/5, 411
+sublist/3, 506
+subset/2, 1058
+subtract/3, 1056
+succ/2, 421
+sum/3, 1117
+sumlist/2, 1050
+sup/2, 1141
+swi/pce_profile _l_i_b_r_a_r_y, 613
 swi_edit _l_i_b_r_a_r_y, 149
 swi_help _l_i_b_r_a_r_y, 43
-swritef/2, 513
-swritef/3, 512
+swritef/2, 515
+swritef/3, 514
 
 TAB
    completion, 92
-tab/1, 318
-tab/2, 319
-tan/1, 467
-tell/1,  20,  273, 275,  287,  288,
-      290, 291
-telling/1, 287, 288, 293
+tab/1, 320
+tab/2, 321
+tan/1, 469
+tell/1,  20,  273, 275,  288,  289,
+      291, 292
+telling/1, 288, 289, 294
 term_expansion/2,   62,  112,  128--
-      130, 135, 141, 581
-term_to_atom/2, 347, 390, 916
-term_variables/2, 73, 363, 374, 375
-term_variables/3, 374, 375
+      130, 135, 141, 583
+term_to_atom/2, 349, 392, 918
+term_variables/2, 73, 365, 376, 377
+term_variables/3, 376, 377
 terms
    cyclic, 73
-thread_at_exit/1, 732, 771
-thread_create/3, 726, 729, 777, 779
-thread_detach/1, 726, 729
-thread_exit/1, 728, 730, 735
-thread_get_message/1, 742, 746
-thread_get_message/2, 746
-thread_initialization/1, 731
-thread_inititialization/1, 695
-thread_join/2, 726, 728, 730, 735
-thread_local/1, 253, 267, 751, 752
-thread_peek_message/1, 742, 743, 747
-thread_peek_message/2, 747
-thread_self/1,  60,  727, 729,  732,
-      741
-thread_send_message/2, 741, 744
-thread_setconcurrency/2, 733
-thread_signal/2, 750, 760, 964
-thread_statistics/3, 736, 738
-threads/0, 763
+thread_at_exit/1, 734, 773
+thread_create/3, 728, 731, 779, 781
+thread_detach/1, 728, 731
+thread_exit/1, 730, 732, 737
+thread_get_message/1, 744, 748
+thread_get_message/2, 748
+thread_initialization/1, 733
+thread_inititialization/1, 697
+thread_join/2, 728, 730, 732, 737
+thread_local/1, 253, 267, 753, 754
+thread_peek_message/1, 744, 745, 749
+thread_peek_message/2, 749
+thread_self/1,  60,  729, 731,  734,
+      743
+thread_send_message/2, 743, 746
+thread_setconcurrency/2, 735
+thread_signal/2, 752, 762, 966
+thread_statistics/3, 738, 740
+threads/0, 765
 throw/1, 17, 51, 73, 207--209, 221,
-      577,   735,  749,  750,  959,
-      961, 1179, 1180
-time/1, 479, 610, 613, 614
-time_file/2, 542, 544, 562
-tmp_file/2, 570
-told/0, 295
+      579,   737,  751,  752,  961,
+      963, 1181, 1182
+time/1, 481, 612, 615, 616
+time_file/2, 544, 546, 564
+tmp_file/2, 572
+told/0, 296
 trace/0,  51,  60, 102,  103,  108,
-      589, 595, 717, 718, 750, 982
-trace/1, 60, 594
-trace/2, 595
-tracing/0, 590
-transportation/4, 1165
-trim_stacks/0, 60, 623, 624, 627
+      591, 597, 719, 720, 752, 984
+trace/1, 60, 596
+trace/2, 597
+tracing/0, 592
+transportation/4, 1167
+trim_stacks/0, 60, 625, 626, 629
 true/0, 60, 188, 204
-truncate/1, 454
-tty_get_capability/2, 528
-tty_get_capability/3, 524, 526
-tty_goto/2, 525, 527
-tty_put/2, 526, 527
-tty_size/2, 528
-ttyflush/0, 322, 511
-tuples_in/2, 1108, 1132
+truncate/1, 456
+tty_get_capability/2, 530
+tty_get_capability/3, 526, 528
+tty_goto/2, 527, 529
+tty_put/2, 528, 529
+tty_size/2, 530
+ttyflush/0, 324, 513
+tuples_in/2, 1110, 1134
 UCS, 74
 UNICODE, 74
 unifiable/3, 185
 unify_with_occurs_check/2, 175
-union/3, 1055
+union/3, 1057
 Unix, 7
 unix, 60
-unix/1, 21, 541
-unknown/2, 63, 605, 660, 1035
-unload_foreign_library/1, 794
-unsetenv/1, 539
-upcase_atom/2, 399, 403
+unix/1, 21, 543
+unknown/2, 63, 607, 662, 1037
+unload_foreign_library/1, 796
+unsetenv/1, 541
+upcase_atom/2, 401, 405
 update view, 249
-URL, 534
-url _l_i_b_r_a_r_y, 1087, 1098, 1206
-use_module/1, 62, 87, 651
-use_module/2, 63, 652
+URL, 536
+url _l_i_b_r_a_r_y, 1089, 1100, 1208
+use_module/1, 62, 87, 653
+use_module/2, 63, 654
 use_module/[1
    2],  53,  100,  112,  113,  115,
-      650, 653, 655, 669, 1190
+      652, 655, 657, 671, 1192
 user profile file, 39
-user:prolog_load_file/2, 1186
+user:prolog_load_file/2, 1188
 UTF-8, 74
 utf-8, 111
 
-var/1, 12, 155, 680, 824
-variable_value/3, 1166
-vars_in/2, 1149, 1150
-vars_in/3, 1149, 1151
+var/1, 12, 155, 682, 826
+variable_value/3, 1168
+vars_in/2, 1151, 1152
+vars_in/3, 1151, 1153
 verbose, 41
-visible/1, 604, 1177
-volatile/1, 267, 752, 1023
+visible/1, 606, 1179
+volatile/1, 267, 754, 1025
 
-wait_for_input/3, 285, 302
-when _l_i_b_r_a_r_y, 693
-when/2, 73, 693
-wildcard_match/2, 644
-win_exec/2, 530, 533, 534
-win_has_menu/0, 549
-win_insert_menu/2, 549--551
-win_insert_menu_item/4, 549, 551
-win_registry_get_value/3, 536
-win_shell/2, 530, 534, 535, 1088
-win_window_pos/1, 548
+wait_for_input/3, 286, 303
+when _l_i_b_r_a_r_y, 695
+when/2, 73, 695
+wildcard_match/2, 646
+win_exec/2, 532, 535, 536
+win_has_menu/0, 551
+win_insert_menu/2, 551--553
+win_insert_menu_item/4, 551, 553
+win_registry_get_value/3, 538
+win_shell/2, 532, 536, 537, 1090
+win_window_pos/1, 550
 Window interface, 8
-window_title/2, 547
+window_title/2, 549
 Windows, 7
 windows, 60
-with_mutex/2, 756, 757, 766
-working_directory/2,  541, 564, 573,
-      574
-write(), 923
-write/1,  60,  73, 352,  356,  390,
-      395, 511, 516, 842, 880, 923
-write/2, 353
-write_canonical/1, 350, 516
-write_canonical/2, 351
+with_mutex/2, 758, 759, 768
+working_directory/2,  543, 566, 575,
+      576
+write(), 925
+write/1,  60,  73, 354,  358,  392,
+      397, 513, 518, 844, 882, 925
+write/2, 355
+write_canonical/1, 352, 518
+write_canonical/2, 353
 write_canonical/[1
    2], 17
-write_term/2,  51,  60,  175,  348--
-      350, 404, 511, 516, 685
-write_term/3, 60, 62, 349, 372
+write_term/2,  51,  60,  175,  350--
+      352, 406, 513, 518, 687
+write_term/3, 60, 62, 351, 374
 write_term/[2
    3], 17, 60
-writef/1, 510
-writef/2, 32, 71, 347, 511, 512
+writef/1, 512
+writef/2, 32, 71, 349, 513, 514
 writef/[1
-   2], 507
-writeln/1, 509
-writeq/1, 354, 511, 516
-writeq/2, 355
-www_form_encode/2, 1103
-www_open_url/1, 1088
+   2], 509
+writeln/1, 511
+writeq/1, 356, 513, 518
+writeq/2, 357
+www_form_encode/2, 1105
+www_open_url/1, 1090
 
 X-Windows, 7
 X11, 8
-xor/2, 462
+xor/2, 464
 XPCE, 8
 
-                                  1212
+                                  1214
