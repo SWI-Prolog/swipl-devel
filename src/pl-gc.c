@@ -595,8 +595,11 @@ mark_foreign_trail_refs()
   FliFrame fr = fli_context;
 
   for( ; fr; fr = fr->parent )
-  { needsRelocation(&fr->mark.trailtop);
-    alien_into_relocation_chain(&fr->mark.trailtop, STG_TRAIL, STG_LOCAL PASS_LD);
+  { SECURE(assert(fr->magic == FLI_MAGIC));
+
+    needsRelocation(&fr->mark.trailtop);
+    alien_into_relocation_chain(&fr->mark.trailtop,
+				STG_TRAIL, STG_LOCAL PASS_LD);
   }
 }
 
@@ -1930,6 +1933,9 @@ check_trail()
 
       assert(onGlobal(gp));
       key += checkData(gp);
+    } else
+    { SECURE(assert(onStack(global, te->address) ||
+		    onStackArea(local, te->address)));
     }
   }
 
