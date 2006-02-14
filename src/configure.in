@@ -541,6 +541,7 @@ AC_CHECK_FUNCS(rint aint floor ceil isnan isinf tcsetattr cfmakeraw getpid)
 AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
 AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r)
 AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll fpclassify fpclass)
+AC_CHECK_FUNCS(setenv)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
@@ -581,7 +582,7 @@ if test "$configgmp" = "yes"; then
     AC_CHECK_HEADER(gmp.h,
 		    AC_DEFINE(HAVE_GMP_H, 1,
 			      [ Define to 1 if you have the <gmp.h> header file. ])
-		    LIBS="-lgmp $LIBS"
+		    LIBS="-lgmp $LIBS",
 		    WARN_NO_GMP=yes)
   fi
 fi

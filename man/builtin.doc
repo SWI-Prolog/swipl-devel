@@ -4810,21 +4810,31 @@ Please note that environment variable names are case-sensitive on Unix
 systems and case-insensitive on Windows.
 
     \predicate{setenv}{2}{+Name, +Value}
-Set environment variable.  \arg{Name} and \arg{Value} should be
+Set an environment variable.  \arg{Name} and \arg{Value} must be
 instantiated to atoms or integers.  The environment variable will be
 passed to shell/[0-2] and can be requested using getenv/2.  They also
-influence expand_file_name/2.
+influence expand_file_name/2.  Environment variables are shared between
+threads.  Depending on the underlying C library, setenv/2 and unsetenv/1
+may not be thread-safe and may cause memory leaks.  Only changing the
+environment once and before starting threads is safe in all versions
+of SWI-Prolog.
 
     \predicate{unsetenv}{1}{+Name}
-Remove environment variable from the environment.
+Remove an environment variable from the environment. Some systems lack
+the underlying unsetenv() library function. On these systems unsetenv/1
+sets the variable to the empty string.
 
     \predicate{setlocale}{3}{+Category, -Old, +New}
 Set/Query the \jargon{locale} setting which tells the C-library how to
-interpret text-files, write numbers, dates, etc.  Category is one of
+interpret text-files, write numbers, dates, etc. Category is one of
 \const{all}, \const{collate}, \const{ctype}, \const{messages},
-\const{monetary}, \const{numeric} or \const{time}.  For details,
-please consult the C-library locale documentation.  See also
-\secref{encoding}.
+\const{monetary}, \const{numeric} or \const{time}. For details, please
+consult the C-library locale documentation. See also \secref{encoding}.
+Please note that the locale is shared between all threads and
+thread-safe usage of setlocale/3 is in general not possible. Do locale
+operations before starting threads or thoroughly study threading aspects
+of locale support in your environment before use in multi-threaded
+environments.
 
     \predicate{unix}{1}{+Command}
 This predicate comes from the Quintus compatibility library and provides
@@ -4864,7 +4874,7 @@ command-line arguments. See also \secref{cmdlinecomp}.
 
 \begin{code}
 main :-
-	unix(argv(Argv)),
+	current_prolog_flag(argv, Argv),
 	append(_PrologArgs, [--|AppArgs], Argv), !,
 	main(AppArgs).
 \end{code}
@@ -5163,6 +5173,7 @@ also absolute_file_name/2 and chdir/1.%
 	\bug{Some of the file-I/O predicates use local filenames.  
 	     Changing directory while file-bound streams are open causes
 	     wrong results on telling/1, seeing/1 and current_stream/3}
+Note that the working directory is shared between all threads.
 
     \predicate{chdir}{1}{+Path}
 Compatibility predicate.  New code should use working_directory/2.

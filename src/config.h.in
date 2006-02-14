@@ -319,6 +319,9 @@
 /* Define to 1 if you have the `sem_init' function. */
 #undef HAVE_SEM_INIT
 
+/* Define to 1 if you have the `setenv' function. */
+#undef HAVE_SETENV
+
 /* Define to 1 if you have the `setlocale' function. */
 #undef HAVE_SETLOCALE
 

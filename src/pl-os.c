@@ -2222,11 +2222,16 @@ getenvl(const char *name)
 }
 #endif
 
-#if HAVE_PUTENV
+#if defined(HAVE_PUTENV) || defined(HAVE_SETENV)
 
 int
 Setenv(char *name, char *value)
-{ char *buf = alloca(strlen(name) + strlen(value) + 2);
+{ 
+#ifdef HAVE_SETENV
+  if ( setenv(name, value, TRUE) != 0 )
+    return PL_error("setenv", 2, NULL, ERR_NOMEM);
+#else
+  char *buf = alloca(strlen(name) + strlen(value) + 2);
 
   if ( buf )
   { Ssprintf(buf, "%s=%s", name, value);
@@ -2235,7 +2240,7 @@ Setenv(char *name, char *value)
       return PL_error("setenv", 2, NULL, ERR_NOMEM);
   } else
     return PL_error("setenv", 2, NULL, ERR_NOMEM);
-
+#endif
   succeed;
 }
 
@@ -2247,6 +2252,9 @@ Unsetenv(char *name)
 
   succeed;
 #else
+  if ( !getenv(name) )
+    succeed;
+
   return Setenv(name, "");
 #endif
 }

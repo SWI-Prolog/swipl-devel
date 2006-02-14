@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT/CLEANUP: Various issues around setenv/2 and unsetenv/1.  Richard
+    O'Keefe.
+
   * FIXED: proper error signalling in rdiv/2 on division-by-zero.  Mike
     Elston.
 
