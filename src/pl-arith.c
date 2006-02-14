@@ -1391,6 +1391,9 @@ ar_rdiv(Number n1, Number n2, Number r)
   { promoteToMPQNumber(n1);
     promoteToMPQNumber(n2);
     
+    if ( mpz_sgn(mpq_numref(n2->value.mpq)) == 0 )
+      return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
+
     r->type = V_MPQ;
     mpq_init(r->value.mpq);
     mpq_div(r->value.mpq, n1->value.mpq, n2->value.mpq);

@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: proper error signalling in rdiv/2 on division-by-zero.  Mike
+    Elston.
+
   * MODIFIED: new AVL implementation of library(assoc) from work by various
     authors, merged and documented by Markus Triska.  The argument order of
     gen_assoc/3 has been modified from the original DEC10 library 
