@@ -597,6 +597,7 @@ mark_foreign_trail_refs()
   for( ; fr; fr = fr->parent )
   { SECURE(assert(fr->magic == FLI_MAGIC));
 
+    DEBUG(3, Sdprintf("Marking foreign frame %p\n", fr));
     needsRelocation(&fr->mark.trailtop);
     alien_into_relocation_chain(&fr->mark.trailtop,
 				STG_TRAIL, STG_LOCAL PASS_LD);
@@ -938,6 +939,58 @@ should it be accessible and otherwise it really is garbage.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static GCTrailEntry
+early_reset_vars(mark *m, Word top, GCTrailEntry te, int *assignments ARG_LD)
+{ GCTrailEntry tm = (GCTrailEntry)m->trailtop;
+
+  for( ; te >= tm; te-- )		/* early reset of vars */
+  { 
+#if O_DESTRUCTIVE_ASSIGNMENT
+    if ( isTrailVal(te->address) )
+    { Word tard = val_ptr(te[-1].address);
+
+      if ( tard >= top )
+      { te->address = 0;
+	te--;
+	te->address = 0;
+	trailcells_deleted += 2;
+      } else if ( is_marked(tard) )
+      { (*assignments)++;
+      } else
+      { Word gp;
+	DEBUG(3, Sdprintf("Early reset of assignment at %p (*=0x%lx)\n",
+		 tard, *tard));
+	gp = val_ptr(te->address);
+	assert(onGlobal(gp));
+	*tard = *gp;
+	unmark(tard);
+
+	te->address = 0;
+	te--;
+	te->address = 0;
+	trailcells_deleted += 2;
+      }
+    } else
+#endif
+    { Word tard = val_ptr(te->address);
+
+      if ( tard >= top )		/* above local stack */
+      { SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
+	te->address = 0;
+	trailcells_deleted++;
+      } else if ( !is_marked(tard) )	/* garbage */
+      { setVar(*tard);
+	DEBUG(3, Sdprintf("Early reset at %p\n", tard));
+	te->address = 0;
+	trailcells_deleted++;
+      }
+    }
+  }
+  
+  return te;
+}
+
+
+static GCTrailEntry
 mark_choicepoints(Choice ch, GCTrailEntry te)
 { GET_LD
 
@@ -955,49 +1008,7 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
       top = (Word)ch;
     }
 
-    for( ; te >= tm; te-- )		/* early reset of vars */
-    { 
-#if O_DESTRUCTIVE_ASSIGNMENT
-      if ( isTrailVal(te->address) )
-      { Word tard = val_ptr(te[-1].address);
-
-	if ( tard >= top )
-	{ te->address = 0;
-	  te--;
-	  te->address = 0;
-	  trailcells_deleted += 2;
-	} else if ( is_marked(tard) )
-	{ assignments++;
-	} else
-	{ Word gp;
-	  DEBUG(3, Sdprintf("Early reset of assignment at %p (*=0x%lx)\n",
-		   tard, *tard));
-	  gp = val_ptr(te->address);
-	  assert(onGlobal(gp));
-	  *tard = *gp;
-	  unmark(tard);
-
-	  te->address = 0;
-	  te--;
-	  te->address = 0;
-	  trailcells_deleted += 2;
-	}
-      } else
-#endif
-      { Word tard = val_ptr(te->address);
-
-	if ( tard >= top )		/* above local stack */
-	{ SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
-	  te->address = 0;
-	  trailcells_deleted++;
-	} else if ( !is_marked(tard) )	/* garbage */
-	{ setVar(*tard);
-	  DEBUG(3, Sdprintf("Early reset at %p\n", tard));
-	  te->address = 0;
-	  trailcells_deleted++;
-	}
-      }
-    }
+    te = early_reset_vars(&ch->mark, top, te, &assignments PASS_LD);
 
 #if O_DESTRUCTIVE_ASSIGNMENT
     if ( assignments >= 2 )
@@ -1157,6 +1168,13 @@ update_relocation_chain(Word current, Word dest ARG_LD)
     current = valPtr(val);
     tag = tag(val);
     val = get_value(current);
+    DEBUG(3,
+	  { FliFrame f;
+
+	    f = addPointer(current, - offset(fliFrame, mark.trailtop));
+	    if ( onStack(local, f) && f->magic == FLI_MAGIC )
+	      Sdprintf("Updating trail-mark of foreign frame at %p\n", f);
+	  })
     set_value(current, makePtr(dest, tag PASS_LD));
     relocated_cells++;
   } while( is_first(current) );
@@ -1933,9 +1951,14 @@ check_trail()
 
       assert(onGlobal(gp));
       key += checkData(gp);
+#ifdef O_SECURE
     } else
-    { SECURE(assert(onStack(global, te->address) ||
-		    onStackArea(local, te->address)));
+    { if ( onStackArea(global, te->address) )
+      { if ( !onStack(global, te->address) )
+	{ Sdprintf("Trail-ptr: %p, gTop = %p\n", te->address, gTop);
+	}
+      }
+#endif
     }
   }
 
