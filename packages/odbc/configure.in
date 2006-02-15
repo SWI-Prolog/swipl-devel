@@ -80,9 +80,13 @@ else
 fi
 
 havelib=no
-AC_CHECK_LIB(odbc, SQLAllocEnv, havelib=yes)
+AC_CHECK_LIB(odbc, SQLAllocEnv,
+	     LIBS="-lodbc $LIBS"
+	     havelib=yes)
 if test $havelib = no; then
-  AC_CHECK_LIB(iodbc, SQLAllocEnv, havelib=yes)
+  AC_CHECK_LIB(iodbc, SQLAllocEnv,
+	       LIBS="-liodbc $LIBS"
+	       havelib=yes)
 fi
 
 AC_CHECK_HEADERS(malloc.h sql.h time.h)

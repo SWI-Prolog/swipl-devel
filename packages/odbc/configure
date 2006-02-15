@@ -3812,7 +3812,8 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_odbc_SQLAllocEnv" >&5
 echo "${ECHO_T}$ac_cv_lib_odbc_SQLAllocEnv" >&6
 if test $ac_cv_lib_odbc_SQLAllocEnv = yes; then
-  havelib=yes
+  LIBS="-lodbc $LIBS"
+	     havelib=yes
 fi
 
 if test $havelib = no; then
@@ -3881,7 +3882,8 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_iodbc_SQLAllocEnv" >&5
 echo "${ECHO_T}$ac_cv_lib_iodbc_SQLAllocEnv" >&6
 if test $ac_cv_lib_iodbc_SQLAllocEnv = yes; then
-  havelib=yes
+  LIBS="-liodbc $LIBS"
+	       havelib=yes
 fi
 
 fi

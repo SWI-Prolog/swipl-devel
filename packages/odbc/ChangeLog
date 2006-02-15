@@ -1,3 +1,7 @@
+Feb 15, 2006
+
+* Bug#140: Fix setting LIBS in configure.  Sandro Hawke.
+
 Nov 14, 2005
 
 * PORT: make configure check for the types SQLLEN and SQLULEN.  Anjo
