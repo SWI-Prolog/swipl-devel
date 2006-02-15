@@ -713,6 +713,19 @@ cleanup_2(b).
 cleanup_3 :-
 	fail.
 
+ex(error("Nice term")).
+
+genex1(1) :- ex(Ex), throw(Ex).
+genex1(2).
+
+genex2(1).
+genex2(2) :- ex(Ex), throw(Ex).
+genex2(3).
+
+genex3(1).
+genex3(2).
+genex3(3) :- ex(Ex), throw(Ex).
+
 cleanup(clean-1) :-
 	retractall(clean_rval(_)),
 	call_cleanup(cleanup_1, R, assert(clean_rval(R))),
@@ -742,7 +755,15 @@ cleanup(clean-8) :-
 	call_cleanup(bagof(x, cleanup_1, _Xs), Reason,
 		     assert(clean_rval(Reason))),
 	retract(clean_rval(exit)).
-
+cleanup(findall-1) :-
+	catch(findall(X, genex1(X), _), E, true),
+	ex(Ex), E == Ex.
+cleanup(findall-2) :-
+	catch(findall(X, genex2(X), _), E, true),
+	ex(Ex), E == Ex.
+cleanup(findall-3) :-
+	catch(findall(X, genex3(X), _), E, true),
+	ex(Ex), E == Ex.
 
 
 		 /*******************************

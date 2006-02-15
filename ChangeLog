@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Use call_cleanup in findall/3 and friends to enhance error
+    recovery.  Added more test cases.
+
   * FIXED: GC issue in PL_discard_foreign_frame().  Notably shows up in
     embeded C++ applications, but affect a wider class of programs.
     The bug often shows up as a GC internal error of the form
