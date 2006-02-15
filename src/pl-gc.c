@@ -589,22 +589,6 @@ mark_term_refs()
 }
 
 
-static void
-mark_foreign_trail_refs()
-{ GET_LD
-  FliFrame fr = fli_context;
-
-  for( ; fr; fr = fr->parent )
-  { SECURE(assert(fr->magic == FLI_MAGIC));
-
-    DEBUG(3, Sdprintf("Marking foreign frame %p\n", fr));
-    needsRelocation(&fr->mark.trailtop);
-    alien_into_relocation_chain(&fr->mark.trailtop,
-				STG_TRAIL, STG_LOCAL PASS_LD);
-  }
-}
-
-
 #ifdef O_GVAR
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -939,8 +923,10 @@ should it be accessible and otherwise it really is garbage.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static GCTrailEntry
-early_reset_vars(mark *m, Word top, GCTrailEntry te, int *assignments ARG_LD)
+early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 { GCTrailEntry tm = (GCTrailEntry)m->trailtop;
+  GCTrailEntry te0 = te;
+  int assignments = 0;
 
   for( ; te >= tm; te-- )		/* early reset of vars */
   { 
@@ -954,7 +940,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te, int *assignments ARG_LD)
 	te->address = 0;
 	trailcells_deleted += 2;
       } else if ( is_marked(tard) )
-      { (*assignments)++;
+      { assignments++;
       } else
       { Word gp;
 	DEBUG(3, Sdprintf("Early reset of assignment at %p (*=0x%lx)\n",
@@ -986,20 +972,46 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te, int *assignments ARG_LD)
     }
   }
   
+#if O_DESTRUCTIVE_ASSIGNMENT
+  if ( assignments >= 2 )
+    mergeTrailedAssignments(te0, tm, assignments PASS_LD);
+#endif
+
   return te;
 }
 
 
 static GCTrailEntry
-mark_choicepoints(Choice ch, GCTrailEntry te)
+mark_foreign_frame(FliFrame fr, GCTrailEntry te)
+{ GET_LD
+
+  SECURE(assert(fr->magic == FLI_MAGIC));
+
+  te = early_reset_vars(&fr->mark, (Word)fr, te PASS_LD);
+
+  DEBUG(3, Sdprintf("Marking foreign frame %p\n", fr));
+  needsRelocation(&fr->mark.trailtop);
+  alien_into_relocation_chain(&fr->mark.trailtop,
+			      STG_TRAIL, STG_LOCAL PASS_LD);
+
+  return te;
+}
+
+
+static GCTrailEntry
+mark_choicepoints(Choice ch, GCTrailEntry te, FliFrame *flictx)
 { GET_LD
 
   for( ; ch; ch = ch->parent )
   { LocalFrame fr = ch->frame;
-    GCTrailEntry tm = (GCTrailEntry)ch->mark.trailtop;
-    GCTrailEntry te0 = te;
     Word top;
-    int assignments = 0;
+
+    while((char*)*flictx > (char*)ch)
+    { FliFrame fr = *flictx;
+
+      te = mark_foreign_frame(fr, te);
+      *flictx = fr->parent;
+    }
 
     if ( ch->type == CHP_CLAUSE )
       top = argFrameP(fr, fr->predicate->functor->arity);
@@ -1008,19 +1020,14 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
       top = (Word)ch;
     }
 
-    te = early_reset_vars(&ch->mark, top, te, &assignments PASS_LD);
-
-#if O_DESTRUCTIVE_ASSIGNMENT
-    if ( assignments >= 2 )
-      mergeTrailedAssignments(te0, tm, assignments PASS_LD);
-#endif
+    te = early_reset_vars(&ch->mark, top, te PASS_LD);
 
     needsRelocation(&ch->mark.trailtop);
-    alien_into_relocation_chain(&ch->mark.trailtop, STG_TRAIL, STG_LOCAL PASS_LD);
+    alien_into_relocation_chain(&ch->mark.trailtop,
+				STG_TRAIL, STG_LOCAL PASS_LD);
     SECURE(trailtops_marked--);
 
-    mark_environments(fr,
-		      ch->type == CHP_JUMP ? ch->value.PC : NULL);
+    mark_environments(fr, ch->type == CHP_JUMP ? ch->value.PC : NULL);
   }
 
   return te;
@@ -1043,16 +1050,20 @@ mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
   QueryFrame query;
   GCTrailEntry te = (GCTrailEntry)tTop - 1;
+  FliFrame flictx = fli_context;
 
   trailcells_deleted = 0;
 
   for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
   { query = mark_environments(fr, NULL);
-    te    = mark_choicepoints(ch, te);
+    te    = mark_choicepoints(ch, te, &flictx);
 
     assert(query->magic == QID_MAGIC);
   }
   
+  for( ; flictx; flictx = flictx->parent)
+    te = mark_foreign_frame(flictx, te);
+
   DEBUG(2, Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
 }
 
@@ -1108,7 +1119,6 @@ mark_phase(LocalFrame fr, Choice ch)
   mark_trail();
 #endif
   mark_stacks(fr, ch);
-  mark_foreign_trail_refs();
 #if O_SECURE
   if ( !scan_global(TRUE) )
     sysError("Global stack corrupted after GC mark-phase");
@@ -1954,10 +1964,7 @@ check_trail()
 #ifdef O_SECURE
     } else
     { if ( onStackArea(global, te->address) )
-      { if ( !onStack(global, te->address) )
-	{ Sdprintf("Trail-ptr: %p, gTop = %p\n", te->address, gTop);
-	}
-      }
+	assert(onStack(global, te->address));
 #endif
     }
   }

@@ -370,6 +370,7 @@ PL_discard_foreign_frame(fid_t id)
 { GET_LD
   FliFrame fr = (FliFrame) valTermRef(id);
 
+  DEBUG(8, Sdprintf("Discarding foreign frame %p\n", fr));
   fli_context = fr->parent;
   Undo(fr->mark);
   lTop = (LocalFrame) fr;

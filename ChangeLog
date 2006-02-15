@@ -7,6 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: GC issue in PL_discard_foreign_frame().  Notably shows up in
+    embeded C++ applications, but affect a wider class of programs.
+    The bug often shows up as a GC internal error of the form
+    After down phase: relocation_cells = X; relocated_cells = Y,
+    but other problems can be caused by it as well.  Alan Baljeu.  
+
   * PORT/CLEANUP: Various issues around setenv/2 and unsetenv/1.  Richard
     O'Keefe.
 
