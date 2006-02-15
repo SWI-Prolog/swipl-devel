@@ -211,17 +211,60 @@ the level of this frame minus 1).
 \end{description}
 
 
+\section{Adding context to errors: prolog_exception_hook}
+\label{sec:excepthook}
+
+The hook prolog_exception_hook/4 has been introduced in SWI-Prolog 5.6.5
+to provide dedicated exception handling facilities for application
+frameworks.  For example non-interactive server applications that
+wish to provide extensive context for exceptions for offline debugging.
+
+\begin{description}
+    \predicate{prolog_exception_hook}{4}{+ExceptionIn, -ExceptionOut,
+					 +Frame, +CatcherFrame}
+This hook predicate, if defined in the module \const{user}, is between
+raising an exception and handling it. It is intended to allow a program
+adding additional context to an exception to simplify diagnosing the
+problem. \arg{ExceptionIn} is the exception term as raised by throw/1 or
+one of the bullt-in predicates. The output argument \arg{ExceptionOut}
+describes the exception that is actually raised. \arg{Frame} is the
+innermost frame. See prolog_frame_attribute/3 and the library
+\pllib{prolog_stack} for getting information from this.
+\arg{CatcherFrame} is a reference to the frame calling the matching
+catch/3 or \const{none} of the exception is not caught.
+
+The hook is run in `nodebug' mode. If it succeeds \arg{ExceptionOut} is
+considered the current exception. If it fails, \arg{ExceptionIn} is used
+for further processing. The hook is \emph{never} called recursively.
+The hook is \emph{not} allowed to modify \arg{ExceptionOut} in such
+as way that it no longer unifies with the catching frame.
+
+Typically, prolog_exception_hook/4 is used to fill the second argument
+of \term{error}{Formal, Context} exceptions. \arg{Formal} is
+deifned by the ISO standard, while SWI-Prolog defines \arg{Context} 
+as a term \term{context}{Location, Message}.  \arg{Location} is bound
+to a term <name>/<arity> by the kernel.  This hook can be used to add
+more information on the calling context, such as a full stack trace.
+
+Applications that use exceptions as part of normal processing must
+do a quick test of the environment before starting expensive gathering
+information on the state of the program.
+
+The hook can call trace/0 to enter trace mode immediately.
+
+\end{description}
+
+
 \section{Hooks using the exception predicate}	\label{sec:exception3}
 
 This section describes the predicate exception/3, which may be defined
 by the user in the module \module{user} as a multifile predicate. Unlike
-the name suggests, this is actually a \jargon{hook} predicate.
-Exceptions are handled by the ISO predicates catch/3 and throw/1.  They
-all frames created after the matching catch/3 to be discarded
-immediately.
+the name suggests, this is actually a \jargon{hook} predicate that has
+no relation to Prolog exceptions as defined by the ISO predicates
+catch/3 and throw/1.
 
 The predicate exception/3 is called by the kernel on a couple of events,
-allowing the user to alter the behaviour on some predefined events.
+allowing the user to alter the behaviour on predefined events.
 
 \begin{description}
     \predicate{exception}{3}{+Exception, +Context, -Action}

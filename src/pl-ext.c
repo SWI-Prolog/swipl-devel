@@ -612,6 +612,8 @@ initBuildIns(void)
 #ifdef O_ATTVAR
   PROCEDURE_dwakeup1	     = lookupProcedure(FUNCTOR_dwakeup1,	  m);
 #endif
+  PROCEDURE_exception_hook4  = 
+	PL_predicate("prolog_exception_hook", 4, "user");
 					/* allow debugging in call/1 */
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS);
   set(PROCEDURE_dcall1->definition, DYNAMIC);

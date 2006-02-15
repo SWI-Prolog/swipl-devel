@@ -776,6 +776,7 @@ COMMON(word) 		pl_prolog_current_frame(term_t fr);
 COMMON(word) 		pl_prolog_frame_attribute(term_t fr, term_t key, term_t val);
 COMMON(foreign_t) 	pl_prolog_choice_attribute(term_t fr, term_t key, term_t val);
 COMMON(void) 		callEventHook(int ev, ...);
+COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
 
 /* pl-util.c */
 COMMON(char) 		digitName(int n, bool small);

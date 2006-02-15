@@ -754,13 +754,15 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
       
       blockGC(PASS_LD1);
       if ( reason == FINISH_EXCEPT )
-      {	word pending = *valTermRef(exception_bin);
+      {	term_t pending = PL_new_term_ref();
+
+	*valTermRef(pending) = *valTermRef(exception_bin);
 
 	exception_term = 0;
 	*valTermRef(exception_bin) = 0;
 	rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
 	if ( rval || !ex )
-	{ *valTermRef(exception_bin) = pending;
+	{ *valTermRef(exception_bin) = *valTermRef(pending);
 	  exception_term = exception_bin;
 	}
       } else
@@ -1517,6 +1519,54 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
   }
 
   fail;
+}
+
+
+static int
+exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
+{ if ( PROCEDURE_exception_hook4->definition->definition.clauses )
+  { if ( !LD->exception.in_hook++ )
+    { fid_t fid, wake;
+      qid_t qid;
+      term_t av;
+      int debug, rc;
+  
+      blockGC(PASS_LD1);
+      wake = saveWakeup(PASS_LD1);
+      fid = PL_open_foreign_frame();
+      av = PL_new_term_refs(4);
+  
+      PL_put_term(av+0, exception_bin);
+      PL_put_frame(av+2, fr);
+      if ( catcher )
+	catcher = parentFrame(catcher);
+      PL_put_frame(av+3, catcher);
+  
+      qid = PL_open_query(MODULE_user, PL_Q_NODEBUG,
+			  PROCEDURE_exception_hook4, av);
+      rc = PL_next_solution(qid);
+      debug = debugstatus.debugging;
+      PL_cut_query(qid);
+      debugstatus.debugging = debug;
+  
+      if ( rc )
+	PL_put_term(exception_bin, av+1);
+      else
+	PL_put_term(exception_bin, av+0);
+  
+      exception_term = exception_bin;
+      PL_close_foreign_frame(fid);
+      restoreWakeup(wake PASS_LD);
+      unblockGC(PASS_LD1);
+      LD->exception.in_hook--;
+
+      return rc;
+    } else
+    { PL_warning("Recursive exception in prolog_exception_hook/4");
+    }
+  }
+
+  return FALSE;
 }
 
 
@@ -2970,6 +3020,12 @@ the moment the code marked (**) handles this not very elegant
 
 	SECURE(checkData(catcher));	/* verify all data on stacks stack */
 	SECURE(checkStacks(FR, LD->choicepoints));
+
+	if ( exception_hook(FR, catchfr PASS_LD) )
+	{ catcher = valTermRef(exception_term);
+	  except = *catcher;
+	  /*catchfr = findCatcher(FR, catcher PASS_LD); already unified */
+	}
 
 #if O_DEBUGGER
 	if ( !catchfr &&

@@ -7,6 +7,13 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=================================
+VERSION 5.6.5 (February 15, 2006)
+=================================
+
+  * ADDED: prolog_exception_hook/4: add context to exceptions.  After
+    discussion on the mailinglist.
+
   * ENHANCED: Use call_cleanup in findall/3 and friends to enhance error
     recovery.  Added more test cases.
 

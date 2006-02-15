@@ -64,7 +64,7 @@ PL_unify_frame(term_t t, LocalFrame fr)
 }
 
 
-static void
+void
 PL_put_frame(term_t t, LocalFrame fr)
 { if ( fr )
   { assert(fr >= lBase && fr < lTop);

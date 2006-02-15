@@ -219,6 +219,7 @@ typedef struct
     Procedure	true0;
     Procedure	fail0;
     Procedure	event_hook1;
+    Procedure	exception_hook4;
     Procedure	print_message2;
     Procedure	foreign_registered2;	/* $foreign_registered/2 */
     Procedure	prolog_trace_interception4;
@@ -332,6 +333,7 @@ typedef struct PL_local_data
     term_t	printed;		/* already printed exception */
     term_t	tmp;			/* tmp for errors */
     term_t	pending;		/* used by the debugger */
+    int		in_hook;		/* inside exception_hook() */
   } exception;
 
 #ifdef O_ATTVAR

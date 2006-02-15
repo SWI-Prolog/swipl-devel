@@ -31,6 +31,7 @@
 
 :- module(prolog_stack,
 	  [ get_prolog_backtrace/2,	% +MaxDepth, -Stack
+	    get_prolog_backtrace/3,	% +Frame, +MaxDepth, -Stack
 	    print_prolog_backtrace/2,	% +Stream, +Stack
 	    backtrace/1			% +MaxDepth
 	  ]).
@@ -63,6 +64,9 @@ subject to change.
 
 get_prolog_backtrace(MaxDepth, Stack) :-
 	prolog_current_frame(Fr),
+	get_prolog_backtrace(Fr, MaxDepth, Stack).
+
+get_prolog_backtrace(Fr, MaxDepth, Stack) :-
 	prolog_frame_attribute(Fr, pc, PC),
 	prolog_frame_attribute(Fr, parent, Parent),
 	backtrace(MaxDepth, Parent, PC, Stack).
@@ -95,29 +99,44 @@ predicate_indicator(G, Name/Arity) :-
 %	
 %	Print a stacktrace in human readable form.
 
-print_prolog_backtrace(_, []) :- !.
-print_prolog_backtrace(Stream, [H|T]) :-
-	print_frame(Stream, H),
-	print_prolog_backtrace(Stream, T).
+print_prolog_backtrace(Stream, Backtrace) :-
+	phrase(message(Backtrace), Lines),
+	print_message_lines(Stream, '', Lines).
 
-print_frame(Stream, frame(Level, foreign(Name/Arity), _)) :- !,
-	format(Stream, '   [~D] ~w/~d <foreign>~n',
-	       [Level, Name, Arity]).
-print_frame(Stream, frame(Level, Clause, PC)) :-
-	subgoal_position(Clause, PC, File, CharA, _CharZ),
-	File \= @(_),			% Pce Object
-	lineno(File, CharA, Line),
-	(   user:prolog_clause_name(Clause, PredName)
-	->  true
-	;   nth_clause(Head, _N, Clause),
-	    predicate_name(Head, PredName)
-	), !,
-	format(Stream, '   [~D] ~w at ~w:~d~n',
-	       [Level, PredName, File, Line]).
-print_frame(Stream, frame(Level, Clause, _PC)) :-
-	clause_name(Clause, ClauseName),
-	format(Stream, '   [~D] ~w <no source>~n',
-	       [Level, ClauseName]).
+message([]) -->
+	[].
+message([H|T]) -->
+	message(H),
+	(   {T == []}
+	->  []
+	;   [nl],
+	    message(T)
+	).
+
+message(frame(Level, foreign(Name/Arity))) -->
+	level(Level),
+	[ '~w/~d <foreign>'-[Name, Arity] ].
+message(frame(Level, Clause, PC)) -->
+	{ subgoal_position(Clause, PC, File, CharA, _CharZ),
+	  File \= @(_),			% XPCE Object reference
+	  lineno(File, CharA, Line),
+	  (   user:prolog_clause_name(Clause, PredName)
+	  ->  true
+	  ;   nth_clause(Head, _N, Clause),
+	      predicate_name(user:Head, PredName)
+	  )
+	}, !,
+	level(Level),
+	[ '~w at ~w:~d'-[PredName, File, Line] ].
+message(frame(Level, Clause, _PC)) -->
+	{ clause_name(Clause, ClauseName)
+	},
+	level(Level),
+	[ '~w <no source>'-[ClauseName] ].
+
+level(Level) -->
+	[ '~|~t[~D]~8+ '-[Level] ].
+
 
 %	backtrace(+MaxDepth)
 %	

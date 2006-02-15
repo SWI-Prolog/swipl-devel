@@ -17051,17 +17051,58 @@ pprroolloogg__sskkiipp__lleevveell((_-_O_l_d_, _+_N_e_
     frame (i.e., the level of this frame minus 1).
 
 
-1122..33 HHooookkss uussiinngg tthhee eexxcceeppttiioonn pprreeddiiccaattee
+1122..33 AAddddiinngg ccoonntteexxtt ttoo eerrrroorrss::  pprroolloogg__eexxcceeppttiioonn__hhooookk
+
+The hook prolog_exception_hook/4 has been introduced in SWI-Prolog 5.6.5
+to  provide  dedicated exception  handling  facilities  for  application
+frameworks.   For example non-interactive server applications that  wish
+to provide extensive context for exceptions for offline debugging.
+
+
+pprroolloogg__eexxcceeppttiioonn__hhooookk((_+_E_x_c_e_p_t_i_o_n_I_n_, _-_E_x_c_e_p_t_i_o_n_O_u_t_, _+_F_r_a_m_e_, _+_C_a_t_c_h_e_r_F_r_a_m_e))
+
+    This   hook  predicate,   if  defined   in  the   module  user,   is
+    between  raising  an exception  and handling  it.    It is  intended
+    to  allow a  program adding  additional context to  an exception  to
+    simplify  diagnosing  the problem.    _E_x_c_e_p_t_i_o_n_I_n  is the  exception
+    term  as  raised  by throw/1  or  one  of the  bullt-in  predicates.
+    The  output  argument  _E_x_c_e_p_t_i_o_n_O_u_t  describes  the  exception  that
+    is  actually  raised.      _F_r_a_m_e  is  the  innermost  frame.     See
+    prolog_frame_attribute/3 and  the library  prolog_stack for  getting
+    information  from this.   _C_a_t_c_h_e_r_F_r_a_m_e is  a reference to the  frame
+    calling  the  matching  catch/3 or  none  of  the exception  is  not
+    caught.
+
+    The  hook is run in `nodebug' mode.  If it succeeds  _E_x_c_e_p_t_i_o_n_O_u_t is
+    considered the current  exception.  If it fails, _E_x_c_e_p_t_i_o_n_I_n is used
+    for further processing.   The hook is _n_e_v_e_r called recursively.  The
+    hook  is _n_o_t allowed to modify  _E_x_c_e_p_t_i_o_n_O_u_t in such as way that  it
+    no longer unifies with the catching frame.
+
+    Typically,   prolog_exception_hook/4 is  used  to  fill  the  second
+    argument  of error(_F_o_r_m_a_l_, _C_o_n_t_e_x_t) exceptions.   _F_o_r_m_a_l is  deifned
+    by  the  ISO  standard,   while  SWI-Prolog  defines  _C_o_n_t_e_x_t  as  a
+    term  context(_L_o_c_a_t_i_o_n_,  _M_e_s_s_a_g_e).    _L_o_c_a_t_i_o_n is  bound to  a  term
+    <_n_a_m_e>/<_a_r_i_t_y>  by the kernel.    This hook can  be used to  add more
+    information on the calling context, such as a full stack trace.
+
+    Applications  that use exceptions as part of normal  processing must
+    do  a  quick  test  of the  environment  before  starting  expensive
+    gathering information on the state of the program.
+
+    The hook can call trace/0 to enter trace mode immediately.
+
+
+1122..44 HHooookkss uussiinngg tthhee eexxcceeppttiioonn pprreeddiiccaattee
 
 This section describes  the predicate exception/3, which may  be defined
 by the  user in the module  user as a multifile  predicate.  Unlike  the
-name  suggests, this  is  actually a  _h_o_o_k predicate.    Exceptions  are
-handled by  the ISO  predicates catch/3 and  throw/1.   They all  frames
-created after the matching catch/3 to be discarded immediately.
+name suggests,  this is actually a _h_o_o_k  predicate that has no  relation
+to  Prolog exceptions  as  defined by  the  ISO predicates  catch/3  and
+throw/1.
 
 The  predicate exception/3  is  called by  the  kernel  on a  couple  of
-events,  allowing the user  to alter  the behaviour  on some  predefined
-events.
+events, allowing the user to alter the behaviour on predefined events.
 
 
 eexxcceeppttiioonn((_+_E_x_c_e_p_t_i_o_n_, _+_C_o_n_t_e_x_t_, _-_A_c_t_i_o_n))
@@ -17085,7 +17126,7 @@ eexxcceeppttiioonn((_+_E_x_c_e_p_t_i_o_n_, _+_C_o_n_t_
          sense if the exception handler has defined the predicate.
 
 
-1122..44 HHooookkss ffoorr iinntteeggrraattiinngg lliibbrraarriieess
+1122..55 HHooookkss ffoorr iinntteeggrraattiinngg lliibbrraarriieess
 
 Some libraries  realise an entirely new  programming paradigm on top  of
 Prolog.   An example is  XPCE which adds  an object-system to Prolog  as
@@ -17147,7 +17188,7 @@ pprroolloogg::hheellpp__hhooookk((_+_A_c_t_i_o_n))
          Hook in apropos/1 on the topic _W_h_a_t.
 
 
-1122..55 HHooookkss ffoorr llooaaddiinngg ffiilleess
+1122..66 HHooookkss ffoorr llooaaddiinngg ffiilleess
 
 All  loading of  source-files is  achieved by  load_files/2.   The  hook
 prolog_load_file/2 can be  used to  load Prolog code  from non-files  or
@@ -17163,7 +17204,7 @@ uusseerr::pprroolloogg__llooaadd__ffiillee((_+_S_p_e_
     from an HTTP server.
 
 
-1122..66 RReeaaddlliinnee IInntteerraaccttiioonn
+1122..77 RReeaaddlliinnee IInntteerraaccttiioonn
 
 The       following       predicates       are        available       if
 current_prolog_flag(readline, true) succeeds.      They  allow  for  di-
@@ -17842,20 +17883,20 @@ Bibliography
                                   _A_r_t _o_f _P_r_o_l_o_g.  MIT Press,  Cambridge,
                                   Massachusetts, 1986.
 
-                                  1226
+                                  1228
 
 
 Index
 
-'MANUAL' _l_i_b_r_a_r_y, 43                 www_open_url/1, 1103
---disable-segv-handling, 1007
--lpl _l_i_b_r_a_r_y, 1008                   X-Windows, 7
--lreadline _l_i_b_r_a_r_y, 1036             X11, 8
-.pl, 85                              xor/2, 464
-.pro, 85                             XPCE, 8
-?=/2, 184
-=:=/2, 429
-/\/2, 463
+'MANUAL' _l_i_b_r_a_r_y, 43                 writeq/1, 356, 513, 518
+--disable-segv-handling, 1007        writeq/2, 357
+-lpl _l_i_b_r_a_r_y, 1008                   www_form_encode/2, 1118
+-lreadline _l_i_b_r_a_r_y, 1036             www_open_url/1, 1103
+.pl, 85
+.pro, 85                             X-Windows, 7
+?=/2, 184                            X11, 8
+=:=/2, 429                           xor/2, 464
+/\/2, 463                            XPCE, 8
 =\=/2, 428
 |/2, 193
 #=/2, 1128
@@ -17936,20 +17977,20 @@ Alpha
 append/1, 288, 292
 append/3, 394, 1039
 apply/2, 200
-apropos/1, 45, 46, 62, 1199
+apropos/1, 45, 46, 62, 1201
 arg/3, 372
 arithmetic_function/1,   485,   486,
       960
 asin/1, 470
 assert/1, 112,  120, 229, 235--238,
       249,   253,  254,  267,  659,
-      678, 697, 754, 1205
+      678, 697, 754, 1207
 assert/2, 238--240, 247, 270
 asserta/1, 41, 120, 236
 asserta/2, 239, 247
 assertion/1, 1094
 assertions, 1094
-assertz/1, 237, 1205
+assertz/1, 237, 1207
 assertz/2, 240, 247
 assignment/2, 1171
 assoc _l_i_b_r_a_r_y, 1059, 1072
@@ -18005,7 +18046,7 @@ call_with_depth_limit/3, 204
 callable/1, 166
 catch/3,  17,  19,  207--210,  221,
       308,   365,  621,  728,  736,
-      737, 1189, 1194, 1195
+      737, 1189, 1195--1197
 ceil/1, 459
 ceiling/1, 458, 459
 char_code/2, 111, 387
@@ -18015,7 +18056,7 @@ char_type/2, 401--404
 character set, 70
 character_count/2, 304, 305
 chdir/1, 575, 576
-check _l_i_b_r_a_r_y, 119, 267, 1083, 1216
+check _l_i_b_r_a_r_y, 119, 267, 1083, 1218
 check/0, 117, 1083, 1084
 check_old_select/0, 22
 checkselect _l_i_b_r_a_r_y, 22
@@ -18036,11 +18077,11 @@ close/1, 273, 278
 close/2, 279
 close_dde_conversation/1, 634
 close_shared_object/1, 791
-clp/bounds _l_i_b_r_a_r_y, 1119, 1222
+clp/bounds _l_i_b_r_a_r_y, 1119, 1224
 clp/clp_distinct   _l_i_b_r_a_r_y,    1163,
-      1223
-clp/simplex _l_i_b_r_a_r_y, 1224
-clpr _l_i_b_r_a_r_y, 1149, 1225
+      1225
+clp/simplex _l_i_b_r_a_r_y, 1226
+clpr _l_i_b_r_a_r_y, 1149, 1227
 code_type/2, 400, 402, 403
 COM, 920
 commandline
@@ -18094,7 +18135,7 @@ current_prolog_flag/2, 21,  41,  59,
       171,   210,  213,  349,  354,
       365,   582,  608,  639,  786,
       798,  919,  999, 1008,  1037,
-      1205
+      1207
 current_signal/3, 218, 219
 current_stream/3, 21, 281
 current_thread/2,   730,  731,  734,
@@ -18118,7 +18159,7 @@ debug/3, 1088, 1089
 debugging
    exceptions, 210
 debugging/0,  62,  597, 601,  1093,
-      1198
+      1200
 debugging/1, 1088, 1090
 DEC
    Alpha, 16
@@ -18168,8 +18209,8 @@ encoding/1, 75, 118
 ensure_loaded/1, 53, 112, 115, 653
 entailed/1, 1152
 erase/1, 238, 241, 247, 270
-eval_license/0, 1210--1212
-exception/3, 62, 1194, 1195
+eval_license/0, 1212--1214
+exception/3, 62, 1196, 1197
 exceptions
    debugging, 210
 exists_directory/1, 560
@@ -18210,8 +18251,8 @@ flush_output/0, 322
 flush_output/1, 214, 323, 348
 flush_output/[0
    1], 275, 324
-foo/0, 1205
-foo/3, 1205
+foo/0, 1207
+foo/3, 1207
 forall/2, 130, 508
 format/1, 214, 517
 format/2, 518--520, 1089
@@ -18276,12 +18317,12 @@ halt/[0
    1], 133
 hash/1, 257, 258
 hash_term/2, 73, 250, 251, 257, 258
-help/0, 44, 62, 1028, 1199
-help/1, 43--45, 60, 62, 1199
+help/0, 44, 62, 1028, 1201
+help/1, 43--45, 60, 62, 1201
 helpidx _l_i_b_r_a_r_y, 43
 hooks, 62
 HTTP, 1113
-http_load _l_i_b_r_a_r_y, 113, 1201
+http_load _l_i_b_r_a_r_y, 113, 1203
 http_location/2, 1117
 IDE, 82
 ignore/1, 130, 203, 621, 728
@@ -18324,9 +18365,9 @@ lex_chain/1, 1131
 library_directory/1,  62,  63,  114,
       120
 library_directory/2, 66
-license/1, 1213
-license/2, 1212, 1213
-license:license/3, 1212
+license/1, 1215
+license/2, 1214, 1215
+license:license/3, 1214
 likes/2, 36
 limit_stack/2, 625, 628
 line_count/2, 284, 286, 306, 527
@@ -18339,10 +18380,10 @@ list_to_set/2, 1054
 list_undefined/0, 119, 1084--1086
 listing/0, 151
 listing/1, 51, 150, 151
-lists _l_i_b_r_a_r_y, 488, 1038, 1217
+lists _l_i_b_r_a_r_y, 488, 1038, 1219
 load_files/1, 62
 load_files/2, 60,  62, 75, 113, 114,
-      1200, 1201
+      1202, 1203
 load_foreign_library/1,  795,  1008,
       1027
 load_foreign_library/2, 794, 795
@@ -18395,11 +18436,11 @@ mod/2, 439, 1140
 module/1, 677
 module/2, 128, 412, 651, 664, 671
 module_transparent/1,    267,   665,
-      678, 944, 1205
+      678, 944, 1207
 msb/1, 481, 482
 msort/2, 493, 494
 multifile/1,  142,  252, 255,  267,
-      1085, 1197, 1205
+      1085, 1199, 1207
 mutex_create/1, 756, 758, 759
 mutex_destroy/1, 757
 mutex_lock/1, 759, 760
@@ -18421,7 +18462,7 @@ nb_setval/2,  381,  383,  697,  700,
       702, 705
 nbset _l_i_b_r_a_r_y, 1072
 netmask/4, 999
-netscape _l_i_b_r_a_r_y, 1102, 1218
+netscape _l_i_b_r_a_r_y, 1102, 1220
 nextto/3, 1041
 nl/0, 310
 nl/1, 311
@@ -18433,8 +18474,8 @@ noguitracer/0, 102, 104, 108, 595
 nonvar/1, 156
 noprofile/1, 621
 noprotocol/0, 588
-nospy/1, 51, 62, 603, 1198
-nospyall/0, 62, 604, 1198
+nospy/1, 51, 62, 603, 1200
+nospyall/0, 62, 604, 1200
 not/1, 130, 201
 notrace/0, 593, 719, 720
 notrace/1, 598
@@ -18578,7 +18619,7 @@ PL_is_list(), 837
 PL_is_number(), 839
 PL_is_string(), 832
 PL_is_variable(), 829
-PL_license(), 1214
+PL_license(), 1216
 PL_malloc(), 1014
 PL_module_name(), 958
 PL_new_atom(), 818
@@ -18675,7 +18716,7 @@ plus/3, 199, 422
 PLVERSION, 1017
 popcount/1, 484
 portray/1,  51, 62,  88, 349,  350,
-      358, 360, 944, 998, 1197
+      358, 360, 944, 998, 1199
 portray_clause/1, 150, 152, 153
 portray_clause/2, 152, 153
 predicate_property/2, 258, 267, 672
@@ -18697,8 +18738,8 @@ profiler/2, 619
 prolog/0,  41, 60,  287, 578,  582,
       583, 677, 1004, 1190
 prolog:debug_control_hook/1,     62,
-      1198
-prolog:help_hook/1, 62, 1199
+      1200
+prolog:help_hook/1, 62, 1201
 prolog:show_profile_hook/2, 617
 prolog_choice_attribute/3,     1189,
       1192
@@ -18710,17 +18751,19 @@ prolog_edit:load/0, 149
 prolog_edit:locate/2, 146
 prolog_edit:locate/3,  62, 142, 143,
       145--147
+prolog_exception_hook/4, 1194, 1195
 prolog_file_type/2, 112, 123, 566
 prolog_frame_attribute/3, 272, 1188,
-      1192
+      1192, 1195
 prolog_frame_attribute/4, 1192
 prolog_ide _c_l_a_s_s, 107
 prolog_ide/1, 106, 107
-prolog_list_goal/1, 62, 1197
+prolog_list_goal/1, 62, 1199
 prolog_load_context/2, 126, 127
-prolog_load_file/2, 62, 113, 1200
+prolog_load_file/2, 62, 113, 1202
 prolog_server _l_i_b_r_a_r_y, 287
 prolog_skip_level/2, 1193
+prolog_stack _l_i_b_r_a_r_y, 1195
 prolog_to_os_filename/2,   86,   567,
       570
 prolog_trace_interception/4,     62,
@@ -18788,7 +18831,7 @@ read_term/2, 60, 363, 365--367, 393
 read_term/3, 365, 366, 416, 583
 read_term/[2
    3], 365
-readutil _l_i_b_r_a_r_y, 90, 1095, 1219
+readutil _l_i_b_r_a_r_y, 90, 1095, 1221
 reconsult/1, 112
 recorda/2, 242
 recorda/3, 73, 241,  243, 247, 264,
@@ -18798,9 +18841,9 @@ recorded/3, 245, 247, 1026
 recordz/2, 244
 recordz/3, 73, 243
 redefine_system_predicate/1,     11,
-      232, 1205
+      232, 1207
 registry, 78
-registry _l_i_b_r_a_r_y, 1104, 1220
+registry _l_i_b_r_a_r_y, 1104, 1222
 registry_delete_key/1, 1109
 registry_get_key/2, 1105
 registry_get_key/3, 1106
@@ -18822,8 +18865,8 @@ retract/1, 112, 120, 229, 230, 233,
 retractall/1, 229, 230, 234
 reverse/2, 651, 1047
 RFC-1738, 1113
-rl_add_history/1, 1204
-rl_read_init_file/1, 1203
+rl_add_history/1, 1206
+rl_read_init_file/1, 1205
 rlimit _l_i_b_r_a_r_y, 25
 round/1, 449, 450
 
@@ -18881,7 +18924,7 @@ source_file/[1
    2], 668
 source_location/2, 126, 127
 spy/1, 51,  60, 62, 102,  103, 108,
-      602, 1198
+      602, 1200
 sqrt/1, 466
 stack
    memory management, 79
@@ -18901,7 +18944,7 @@ string_to_atom/2, 407
 string_to_list/2, 408
 strip_module/3, 670
 style_check/1,  80,  81,  256,  608,
-      1205
+      1207
 sub_atom/5, 399, 411
 sub_string/5, 411
 sublist/3, 506
@@ -18953,13 +18996,14 @@ thread_statistics/3, 738, 740
 threads/0, 765
 throw/1, 17, 51, 73, 207--209, 221,
       579,   737,  751,  752,  961,
-      963, 1194, 1195
+      963, 1195--1197
 time/1, 481, 612, 615, 616
 time_file/2, 544, 546, 564
 tmp_file/2, 572
 told/0, 296
 trace/0,  51,  60, 102,  103,  108,
-      591, 597, 719, 720, 752, 984
+      591,   597,  719,  720,  752,
+      984, 1195
 trace/1, 60, 596
 trace/2, 597
 tracing/0, 592
@@ -18988,14 +19032,14 @@ unsetenv/1, 540, 541
 upcase_atom/2, 401, 405
 update view, 249
 URL, 536
-url _l_i_b_r_a_r_y, 1102, 1113, 1221
+url _l_i_b_r_a_r_y, 1102, 1113, 1223
 use_module/1, 62, 87, 653
 use_module/2, 63, 654
 use_module/[1
    2],  53,  100,  112,  113,  115,
-      652, 655, 657, 671, 1205
+      652, 655, 657, 671, 1207
 user profile file, 39
-user:prolog_load_file/2, 1201
+user:prolog_load_file/2, 1203
 UTF-8, 74
 utf-8, 111
 
@@ -19043,8 +19087,5 @@ writef/2, 32, 71, 349, 513, 514
 writef/[1
    2], 509
 writeln/1, 511
-writeq/1, 356, 513, 518
-writeq/2, 357
-www_form_encode/2, 1118
 
-                                  1227
+                                  1229
