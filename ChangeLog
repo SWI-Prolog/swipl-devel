@@ -11,6 +11,8 @@
 VERSION 5.6.5 (February 15, 2006)
 =================================
 
+  * FIXED: incompatibility in GCD handling introduced by recent changes.
+
   * ADDED: prolog_exception_hook/4: add context to exceptions.  After
     discussion on the mailinglist.
 

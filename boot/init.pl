@@ -1638,8 +1638,10 @@ $t_body(List, S, SR, C) :-
 	List = [X|T], !,
 	(   T == []
 	->  C = 'C'(S, X, SR)
-	;   $append(List, SR, OL)
-	->  C = (S = OL)
+	;   is_list(T)
+	->  $append(List, SR, OL),
+	    C = (S = OL)
+	;   C = $append(List, SR, S)	% Deals with [H|T] in body
 	).
 $t_body(!, S, S, !) :- !.
 $t_body({}, S, S, true) :- !.
