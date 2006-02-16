@@ -864,8 +864,7 @@ client, \arg{Out} is an output stream to the client and \arg{Goal}
 defines the goal realising the body.  \arg{Connection} is unified to 
 \const{'Keep-alive'} if both ends of the connection want to continue the
 connection or \const{close} if either side wishes to close the
-connection.  The only option provided is \term{request}{-Request}, 
-providing the executed request to the caller.
+connection.
 
 This predicate reads an HTTP request-header from \arg{In}, redirects
 current output to a memory file and then runs \exam{call(Goal,
@@ -873,6 +872,17 @@ Request)}, watching for exceptions and failure. If \arg{Goal} executes
 successfully it generates a complete reply from the created output.
 Otherwise it generates an HTTP server error with additional context
 information derived from the exception.
+
+http_wrapper/5 supports the following options:
+
+\begin{description}
+    \termitem{request}{-Request}
+Return the executed request to the caller.
+
+    \termitem{peer}{+Peer}
+Add peer(Peer) to the request header handed to \arg{Goal}.  The format
+of \arg{Peer} is defined by tcp_accept/3 from the clib package.
+\end{description}
 
     \predicate{http_current_request}{1}{-Request}
 Get access to the currently executing request.  \arg{Request} is the
