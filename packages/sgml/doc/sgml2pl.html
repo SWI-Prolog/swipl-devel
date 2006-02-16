@@ -1610,8 +1610,9 @@ elements are written using increasing indentation. This introduces
 (depending on the mode and defined whitespace handling) CDATA sequences
 with only layout between elements when read back in.  If <a name="const:false%4"><b><tt>false</tt></b></a>, no
 layout characters are added.  As this mode does not need to analyse the
-document it is faster and guarantees correct output when read back.  Unfortunately the output is hardly human readable and cause problems with many
-editors.
+document it is faster and guarantees correct output when read back. 
+Unfortunately the output is hardly human readable and causes problems 
+with many editors.
     
 <dt>&nbsp;<br>
 <b>indent(<var>Integer</var>)</b><dd>
@@ -1624,6 +1625,18 @@ Set the initial namespace map.  <var>Map</var> is a list of
 <var>Name</var> = <var>URI</var>.  This option, together with <a name="const:header"><b><tt>header</tt></b></a> and
 <a name="const:ident"><b><tt>ident</tt></b></a> is added to use <a href="#xml_write/3"><b>xml_write/3</b></a> to generate XML
 that is embedded in a larger XML document.
+    
+<dt>&nbsp;<br>
+<b>net(<var>Bool</var>)</b><dd>
+Use/do not use <b><em>Null End Tags</em></b>. For XML, this applies only to
+empty elements, so you get <code>&lt;foo/&gt;</code> (default,
+<code>net(true)</code>) or <code>&lt;foo&gt;&lt;/foo&gt;</code>
+(<code>net(false)</code>). For SGML, this applies to empty elements, so
+you get <code>&lt;foo&gt;</code> (if foo is declared to be <a name="const:EMPTY"><b><tt>EMPTY</tt></b></a> in the DTD),
+<code>&lt;foo&gt;&lt;/foo&gt;</code> (default, <code>net(false)</code>) or
+<code>&lt;foo//</code> (<code>net(true)</code>).  In SGML code, short character
+content not containing <a name="const:/%3"><b><tt>/</tt></b></a> can be emitted as <code>&lt;b&gt;xxx&lt;/b&gt;</code>
+(default, <code>net(false) or </code><code>&lt;b/xxx/</code> (<code>net(true)</code>)
 </dl>
 
 
@@ -1867,12 +1880,13 @@ deleted. This is not yet implemented.
 <li><a href="#const:#IMPLIED"><b><tt>#IMPLIED</tt></b></a>
 <li><a href="#const:#pcdata"><b><tt>#pcdata</tt></b></a> [ <a href="#const:#pcdata%2">2</a>]
 <li><a href="#const:-"><b><tt>-</tt></b></a>
-<li><a href="#const:/"><b><tt>/</tt></b></a> [ <a href="#const:/%2">2</a>]
+<li><a href="#const:/"><b><tt>/</tt></b></a> [ <a href="#const:/%2">2</a> <a href="#const:/%3">3</a>]
 <li><a href="#const:/&gt;"><b><tt>/&gt;</tt></b></a>
 <li><a href="#const::"><b><tt>:</tt></b></a>
 <li><a href="#const:&lt;&gt;&amp;'&quot;"><b><tt>&lt;&gt;&amp;'&quot;</tt></b></a>
 <li><a href="#const:CDATA"><b><tt>CDATA</tt></b></a> [ <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a> <a href="#const:CDATA%7">7</a>]
 <li><a href="#const:DOCTYPE"><b><tt>DOCTYPE</tt></b></a> [ <a href="#const:DOCTYPE%2">2</a> <a href="#const:DOCTYPE%3">3</a> <a href="#const:DOCTYPE%4">4</a>]
+<li><a href="#const:EMPTY"><b><tt>EMPTY</tt></b></a>
 <li><a href="#const:NAMES"><b><tt>NAMES</tt></b></a>
 <li><a href="#const:NDATA"><b><tt>NDATA</tt></b></a>
 <li><a href="#const:NOTATION"><b><tt>NOTATION</tt></b></a>

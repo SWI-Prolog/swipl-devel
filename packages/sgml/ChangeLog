@@ -1,3 +1,8 @@
+Feb 16, 2006
+
+  * ENHANCED: various improvements of the sgml_write.pl library by Richard
+    O'Keefe.
+
 Feb 12, 2006
 
   * ENHANCED: xml_write/3: if encoding is `text', write the data as UTF-8

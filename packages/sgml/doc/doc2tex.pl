@@ -40,7 +40,7 @@ doc2tex(In) :-
 	tell(Old).
 	
 x :-
-	doc2tex(doc).
+	doc2tex(sgml2pl).
 
 v :-
 	shell('acroread x.pdf &').

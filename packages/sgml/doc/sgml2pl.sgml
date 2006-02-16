@@ -1202,8 +1202,9 @@ elements are written using increasing indentation. This introduces
 (depending on the mode and defined whitespace handling) CDATA sequences
 with only layout between elements when read back in.  If <c/false/, no
 layout characters are added.  As this mode does not need to analyse the
-document it is faster and guarantees correct output when read back.  Unfortunately the output is hardly human readable and cause problems with many
-editors.
+document it is faster and guarantees correct output when read back. 
+Unfortunately the output is hardly human readable and causes problems 
+with many editors.
     <termitem>indent(Integer)
 Set the initial element indentation.  It more than zero, the indent
 is written before the document.
@@ -1212,6 +1213,17 @@ Set the initial namespace map.  <aref/Map/ is a list of
 <var/Name/ = <var/URI/.  This option, together with <c/header/ and
 <c/ident/ is added to use <pref>xml_write/3</pref> to generate XML
 that is embedded in a larger XML document.
+    <termitem>net(Bool)
+
+Use/do not use <jargon/Null End Tags/. For XML, this applies only to
+empty elements, so you get <verb><foo/></verb> (default,
+<term>net(true)</term>) or <verb><foo></foo></verb>
+(<term>net(false)</term>). For SGML, this applies to empty elements, so
+you get <verb><foo></verb> (if foo is declared to be <c/EMPTY/ in the DTD),
+<verb><foo></foo></verb> (default, <term>net(false)</term>) or
+<verb><foo//</verb> (<term>net(true)</term>).  In SGML code, short character
+content not containing <c>/</c> can be emitted as <verb><b>xxx</b></verb>
+(default, <term>net(false) or <verb><b/xxx/</verb> (<term>net(true)</term>)
 </argdef>
 
     <pred>sgml_write(+Stream, +Term, +Options)
