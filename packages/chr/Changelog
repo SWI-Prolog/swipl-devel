@@ -1,3 +1,11 @@
+<<<<<<< Changelog
+Feb 8, 2006
+  * BD: chr_swi.pl: option(optimize --> :- chr_option(optimize
+
+Jan 19, 2006
+  * BD: chr_swi.pl - use_module(hprolog added for SICStus port
+
+=======
 Feb 9, 2006
 
   * JW: Fix "make check" path issues.
@@ -12,6 +20,7 @@ Feb 9, 2006
   * TS: Correctly report variable pragmas!
   * TS: No constraints declared is no longer a special case.
 
+>>>>>>> 1.51
 Jan 19, 2006
 
   * TS: Removed operator declaration for '::'. No longer used.

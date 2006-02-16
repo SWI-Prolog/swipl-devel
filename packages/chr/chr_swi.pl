@@ -169,7 +169,7 @@ chr_expand(end_of_file, FinalProgram) :-
 			   ],
 			   Program0),
 		chr_error(Error),
-		(	print_chr_error(Error),
+		(	chr_compiler_errors:print_chr_error(Error),
 			fail
 		)
 	),
@@ -203,7 +203,7 @@ chr_current_prolog_flag(Flag,Val) :- current_prolog_flag(Flag,Val).
 
 
 add_optimise_decl(CHR, CHR) :-
-	memberchk((:- chr_option(optimize, _)), CHR), !.
+	\+(\+(memberchk((:- chr_option(optimize, _)), CHR))), !.
 add_optimise_decl(CHR, [(:- chr_option(optimize, full))|CHR]) :-
 	chr_current_prolog_flag(optimize, full), !.
 add_optimise_decl(CHR, CHR).
