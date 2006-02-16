@@ -1525,12 +1525,13 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
 static int
 exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
 { if ( PROCEDURE_exception_hook4->definition->definition.clauses )
-  { if ( !LD->exception.in_hook++ )
+  { if ( !LD->exception.in_hook )
     { fid_t fid, wake;
       qid_t qid;
       term_t av;
       int debug, rc;
   
+      LD->exception.in_hook++;
       blockGC(PASS_LD1);
       wake = saveWakeup(PASS_LD1);
       fid = PL_open_foreign_frame();

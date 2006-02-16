@@ -64,21 +64,26 @@ subject to change.
 
 get_prolog_backtrace(MaxDepth, Stack) :-
 	prolog_current_frame(Fr),
-	get_prolog_backtrace(Fr, MaxDepth, Stack).
-
-get_prolog_backtrace(Fr, MaxDepth, Stack) :-
 	prolog_frame_attribute(Fr, pc, PC),
 	prolog_frame_attribute(Fr, parent, Parent),
 	backtrace(MaxDepth, Parent, PC, Stack).
 
+get_prolog_backtrace(Fr, MaxDepth, Stack) :-
+	backtrace(MaxDepth, Fr, call, Stack).
+
 backtrace(0, _, _, []) :- !.
-backtrace(MaxDepth, Fr, PC, [frame(Level, Clause, PC)|Stack]) :-
+backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 	prolog_frame_attribute(Fr, level, Level),
 	(   PC == foreign
 	->  prolog_frame_attribute(Fr, goal, Goal),
 	    predicate_indicator(Goal, Pred),
-	    Clause = foreign(Pred)
-	;   prolog_frame_attribute(Fr, clause, Clause)
+	    Where = foreign(Pred)
+	;   PC == call
+	->  prolog_frame_attribute(Fr, goal, Goal),
+	    predicate_indicator(Goal, Pred),
+	    Where = call(Pred)
+	;   prolog_frame_attribute(Fr, clause, Clause),
+	    Where = clause(Clause, PC)
 	),
 	(   prolog_frame_attribute(Fr, pc, PC2)
 	->  true
@@ -90,10 +95,20 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Clause, PC)|Stack]) :-
 	;   Stack = []
 	).
 
-predicate_indicator(_:G, Name) :- !,
-	predicate_indicator(G, Name).
+predicate_indicator(M:G, PI) :- !,
+	(   public_module(M)
+	->  predicate_indicator(G, PI)
+	;   PI = M/PI2,
+	    predicate_indicator(G, PI2)
+	).
 predicate_indicator(G, Name/Arity) :-
 	functor(G, Name, Arity).
+
+public_module(user) :- !.
+public_module(system) :- !.
+public_module(M) :-
+	sub_atom(M, 0, _, _, $).
+
 
 %	print_prolog_backtrace(+Stream, +Backtrace)
 %	
@@ -113,10 +128,15 @@ message([H|T]) -->
 	    message(T)
 	).
 
-message(frame(Level, foreign(Name/Arity))) -->
+message(frame(Level, Where)) -->
 	level(Level),
-	[ '~w/~d <foreign>'-[Name, Arity] ].
-message(frame(Level, Clause, PC)) -->
+	where(Where).
+
+where(foreign(PI)) -->
+	[ '~w <foreign>'-[PI] ].
+where(call(PI)) -->
+	[ '~w'-[PI] ].
+where(clause(Clause, PC)) -->
 	{ subgoal_position(Clause, PC, File, CharA, _CharZ),
 	  File \= @(_),			% XPCE Object reference
 	  lineno(File, CharA, Line),
@@ -126,12 +146,10 @@ message(frame(Level, Clause, PC)) -->
 	      predicate_name(user:Head, PredName)
 	  )
 	}, !,
-	level(Level),
 	[ '~w at ~w:~d'-[PredName, File, Line] ].
-message(frame(Level, Clause, _PC)) -->
+where(clause(Clause, _PC)) -->
 	{ clause_name(Clause, ClauseName)
 	},
-	level(Level),
 	[ '~w <no source>'-[ClauseName] ].
 
 level(Level) -->
