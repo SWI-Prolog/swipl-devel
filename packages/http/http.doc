@@ -376,7 +376,7 @@ the server.
 
 The server-body is the code that handles the request and formulates a
 reply. To facilitate all mentioned setups, the body is driven by
-http_wrapper/3. The goal is called with the parsed request (see
+http_wrapper/5. The goal is called with the parsed request (see
 \secref{request}) as argument and \const{current_output} set to a
 temporary buffer. Its task is closely related to the task of a CGI
 script; it must write a header declaring holding at least the
@@ -654,7 +654,7 @@ The created server opens a server socket at the selected address and
 waits for incoming connections. On each accepted connection it collects
 input until an HTTP request is complete. Then it opens an input stream
 on the collected data and using the output stream directed to the XPCE
-\class{socket} it calls http_wrapper/3. This approach is fundamentally
+\class{socket} it calls http_wrapper/5. This approach is fundamentally
 different compared to the other approaches:
 
 \begin{itemlist}
@@ -812,7 +812,7 @@ is in \file{inetd_httpd}, defining http_server/1:
 
 \begin{description}
     \predicate{http_server}{2}{:Goal, +Options}
-Initialises and runs http_wrapper/3 in a loop until failure or
+Initialises and runs http_wrapper/5 in a loop until failure or
 end-of-file.  This server does not support the \arg{Port} option
 as the port is specified with the \program{inetd} configuration.
 The only supported option is \arg{After}.
@@ -854,10 +854,11 @@ To be done.
 
 The body is called by the module \pllib{http/http_wrapper.pl}. This
 module realises the communication between the I/O streams and the body
-described in \secref{body}. The interface is realised by http_wrapper/3:
+described in \secref{body}. The interface is realised by
+http_wrapper/5:
 
 \begin{description}
-    \predicate{http_wrapper}{3}{:Goal, +In, +Out, -Connection, +Options}
+    \predicate{http_wrapper}{5}{:Goal, +In, +Out, -Connection, +Options}
 Handle an HTTP request where \arg{In} is an input stream from the
 client, \arg{Out} is an output stream to the client and \arg{Goal}
 defines the goal realising the body.  \arg{Connection} is unified to 
@@ -872,6 +873,11 @@ Request)}, watching for exceptions and failure. If \arg{Goal} executes
 successfully it generates a complete reply from the created output.
 Otherwise it generates an HTTP server error with additional context
 information derived from the exception.
+
+    \predicate{http_current_request}{1}{-Request}
+Get access to the currently executing request.  \arg{Request} is the
+same as handed to \arg{Goal} of http_wrapper/5.  Raises an existence
+error if there is no request in progress.
 \end{description}
 
 

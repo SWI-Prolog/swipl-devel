@@ -30,7 +30,8 @@
 */
 
 :- module(httpd_wrapper,
-	  [ http_wrapper/5	% :Goal, +In, +Out, -Connection, +Options
+	  [ http_wrapper/5,		% :Goal, +In, +Out, -Conn, +Options
+	    http_current_request/1	% -Request
 	  ]).
 :- use_module(http_header).
 :- use_module(library(memfile)).
@@ -60,10 +61,12 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	open_memory_file(MemFile, write, TmpOut),
 	current_output(OldOut),
 	set_output(TmpOut),
+	b_setval(http_request, Request),
 	(   catch(call(Goal, Request), E, true)
 	->  true
 	;   E = failed
 	),
+	nb_delete(http_request),
 	set_output(OldOut),
 	close(TmpOut),
 	(   var(E)
@@ -167,3 +170,10 @@ extend_request([peer(P)|T], R0, R) :- !,
 extend_request([_|T], R0, R) :- !,
 	extend_request(T, R0, R).
 
+
+%	http_current_request(-Request)
+%	
+%	Returns the HTTP request currently being processed.
+
+http_current_request(Request) :-
+	b_getval(http_request, Request).
