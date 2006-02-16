@@ -8,8 +8,11 @@
 					--------------------------------------
 
 =================================
-VERSION 5.6.5 (February 15, 2006)
+VERSION 5.6.5 (February 16, 2006)
 =================================
+
+  * MODIFIED: various internals in library(prolog_stack).  Code relying on
+    the Prolog structure for representing the stack must be updated.
 
   * FIXED: incompatibility in GCD handling introduced by recent changes.
 
