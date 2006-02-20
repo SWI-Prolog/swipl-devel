@@ -435,7 +435,7 @@ state_merge_constraint(C, S0, S) :-
 	;
 		Right is Right0 rdiv Coeff0,
 		state_constraints(S0, Cs),
-		(  member_rest(c(0, [1*Var0], Op, CRight), Cs, RestCs) ->
+		(  select(c(0, [1*Var0], Op, CRight), Cs, RestCs) ->
 			( Op == (=) ->
 				CRight =:= Right,
 				S0 = S
@@ -677,7 +677,7 @@ constraints_collapse([C|Cs], Colls) :-
 	C = c(Name, Left, Op, Right),
 	( Name == 0, Left = [1*Var], op_pendant(Op, P) ->
 		Pendant = c(0, [1*Var], P, Right),
-		( member_rest(Pendant, Cs, Rest) ->
+		( select(Pendant, Cs, Rest) ->
 			Colls = [c(0, Left, (=), Right)|CollRest],
 			CsLeft = Rest
 		;
@@ -1189,14 +1189,10 @@ min_donors([bv(_, _, Val)|Ds], Min0, Min) :-
 	Min1 is min(Val, Min0),
 	min_donors(Ds, Min1, Min).
 
-member_rest(E, [E|Rest], Rest).
-member_rest(E, [L|Ls], [L|Rest]) :-
-	member_rest(E, Ls, Rest).
-
 
 chain_reaction(From, Basis, Donors, Recipients) :-
 	From = v(Row, Col, _),
-	member_rest(bv(BRow, Col, Value), Basis, Basis1),
+	select(bv(BRow, Col, Value), Basis, Basis1),
 	BRow =\= Row,
 	Curr = bv(BRow, Col, Value),
 	Donors = [Curr|RestDonors],
@@ -1204,7 +1200,7 @@ chain_reaction(From, Basis, Donors, Recipients) :-
 
 chain_reaction_col(TargetRow, From, Basis, Dons0, Dons, Recs0, Recs) :-
 	From = bv(_, FCol, _),
-	member_rest(bv(BRow, FCol, Value), Basis, Basis1),
+	select(bv(BRow, FCol, Value), Basis, Basis1),
 	Curr = bv(BRow, FCol, Value),
 	Dons0 = [Curr|Rest],
 	chain_reaction_row(TargetRow, Curr, Basis1, Rest, Dons, Recs0, Recs).
@@ -1215,7 +1211,7 @@ chain_reaction_row(TargetRow, From, Basis, Dons0, Dons, Recs0, Recs) :-
 		Dons0 = Dons,
 		Recs0 = Recs
 	;
-		member_rest(bv(FRow, BCol, Value), Basis, Basis1),
+		select(bv(FRow, BCol, Value), Basis, Basis1),
 		Curr = bv(FRow, BCol, Value),
 		Recs0 = [Curr|Rest],
 		chain_reaction_col(TargetRow, Curr, Basis1, Dons0, Dons, Rest, Recs)
