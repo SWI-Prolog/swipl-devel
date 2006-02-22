@@ -72,6 +72,13 @@ static int debuglevel = 0;
 #define DEBUG(n, g) ((void)0);
 #endif
 
+#ifdef O_SECURE
+#define SECURE(g) g
+#else
+#define SECURE(g) (void)0
+#endif
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The ids form a mask. This must be kept consistent with monitor_mask/2 in
 rdf_db.pl!
@@ -2978,7 +2985,7 @@ save_atom(rdf_db *db, IOSTREAM *out, atom_t a, save_context *ctx)
     for(i=0; i<len; i++, wchars++)
     { wint_t c = *wchars;
 
-      assert(c>=0 && c <= 0x10ffff);
+      SECURE(assert(c>=0 && c <= 0x10ffff));
       Sputcode(c, out);
     } 
     out->encoding = enc;
@@ -3237,7 +3244,7 @@ load_atom(rdf_db *db, IOSTREAM *in, ld_context *ctx)
       in->encoding = ENC_UTF8;
       for(i=0; i<len; i++)
       { w[i] = Sgetcode(in);
-	assert(w[i]>=0 && w[i] <= 0x10ffff);
+	SECURE(assert(w[i]>=0 && w[i] <= 0x10ffff));
       }
       in->encoding = enc;
 	  
