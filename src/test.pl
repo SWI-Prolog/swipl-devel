@@ -1818,10 +1818,7 @@ term_atom(term_to_atom-2) :-
 		 *******************************/
 
 os(getenv-1) :-
-	(   current_prolog_flag(unix, true)
-	->  getenv('HOME', _)
-	;   true
-	).
+	getenv('PATH', _).		% should be around on most OSes
 os(setenv-1) :-
 	setenv(pltestsetenv, yes),
 	getenv(pltestsetenv, X),
