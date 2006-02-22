@@ -468,7 +468,7 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	  switch(*s)
 	  { case 'L':	GD->options.localSize    = size; goto next;
 	    case 'G':	GD->options.globalSize   = size;
-	    		GD->options.argumentSize = size/8;
+	    		GD->options.argumentSize = size/4;
 							 goto next;
 	    case 'T':	GD->options.trailSize    = size; goto next;
 	    case 'A':	GD->options.argumentSize = size; goto next;

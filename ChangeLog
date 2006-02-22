@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: handling of default argument stack limits.  Used for dealing
+    with cyclic terms.
+
 =================================
 VERSION 5.6.5 (February 16, 2006)
 =================================

@@ -891,7 +891,7 @@ enforce_limit(long *size, long maxarea, const char *name)
   { if ( *size != LONG_MAX )		/* user demanded maximum */
       Sdprintf("WARNING: Maximum stack size for %s stack is %d MB\n",
 	       name, (MAXTAGGEDPTR+1) / (1 MB));
-    *size = MAXTAGGEDPTR;
+    *size = MAXTAGGEDPTR+1;
   }
 }
 
@@ -904,10 +904,10 @@ initPrologStacks(long local, long global, long trail, long argument)
   if ( maxarea > 1024 MB )		/* 64-bit machines */
     maxarea = 1024 MB;
 
-  enforce_limit(&local,	   maxarea, "local");
-  enforce_limit(&global,   maxarea, "global");
-  enforce_limit(&trail,	   maxarea, "trail");
-  enforce_limit(&argument, 64 MB,   "argument");
+  enforce_limit(&local,	   maxarea,  "local");
+  enforce_limit(&global,   maxarea,  "global");
+  enforce_limit(&trail,	   maxarea,  "trail");
+  enforce_limit(&argument, global/2, "argument");
 
   if ( !allocStacks(local, global, trail, argument) )
     fail;

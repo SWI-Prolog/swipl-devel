@@ -566,6 +566,7 @@ A zero_divisor		"zero_divisor"
 A lsb			"lsb"
 A popcount		"popcount"
 A radix			"radix"
+A argumentlimit		"argumentlimit"
 
 F abs			1
 F access		1

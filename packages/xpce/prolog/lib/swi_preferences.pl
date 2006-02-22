@@ -128,9 +128,10 @@ copy_file(From, To) :-
 		 *	    STACK SIZES		*
 		 *******************************/
 
-stack(local,  locallimit,  localSize).
-stack(global, globallimit, globalSize).
-stack(trail,  traillimit,  trailSize).
+stack(local,    locallimit,    localSize).
+stack(global,   globallimit,   globalSize).
+stack(trail,    traillimit,    trailSize).
+stack(argument, argumentlimit, argumentSize).
 
 :- pce_begin_class(prolog_preferences, dialog,
 		   "Edit the default preferences").

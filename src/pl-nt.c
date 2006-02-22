@@ -776,6 +776,11 @@ getDefaultsFromRegistry()
   { setStacksFromKey(key);
     RegCloseKey(key);
   }
+
+#ifdef O_CYCLIC
+  if ( GD->defaults.argument == DEFARGUMENT )
+    GD->defaults.argument GD->defaults.global/4;
+#endif
 }
 
 		 /*******************************

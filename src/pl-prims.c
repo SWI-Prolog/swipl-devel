@@ -3191,6 +3191,8 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = usedStack(global);
   else if (key == ATOM_globallimit)
     v->value.i = limitStack(global);
+  else if (key == ATOM_argumentlimit)
+    v->value.i = limitStack(argument);
   else if (key == ATOM_atoms)				/* atoms */
     v->value.i = GD->statistics.atoms;
   else if (key == ATOM_functors)			/* functors */
