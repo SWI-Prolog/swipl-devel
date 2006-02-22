@@ -1,3 +1,7 @@
+Feb 22, 2006
+
+  * Fixed ordering issue on wide-character atoms.
+
 Feb 9, 2006
 
   * Finished first version of indexed prefix and `like' search.

@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        wielemal@science.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2006, University of Amsterdam
 
@@ -278,12 +278,6 @@ inline wint_t
 fetch(const text *txt, int i)
 { return txt->a ? (wint_t)txt->a[i] : (wint_t)txt->w[i];
 }
-
-static size_t
-tlen(const text *txt)
-{ return txt->a ? strlen((char*)txt->a) : wcslen(txt->w);
-}
-
 
 
 		 /*******************************
@@ -1930,7 +1924,7 @@ first_atom(atom_t a, int match)
   if ( !get_atom_text(a, &t) )
   { return (atom_t)0;			/* not a textual atom */
   } else
-  { size_t len = tlen(&t);
+  { size_t len = t.length;
     wchar_t buf[256];
     wchar_t *out, *s;
     int i;
@@ -2013,7 +2007,11 @@ cmp_atoms(atom_t a1, atom_t a2)
 { text t1, t2;
   int i;
   int dl2 = 0;
+  int n;
   
+  if ( a1 == a2 )
+    return 0;
+
   if ( !get_atom_text(a1, &t1) ||
        !get_atom_text(a2, &t2) )
   { return (long)a1-(long)a2;		/* non-text atoms? */
@@ -2031,29 +2029,41 @@ cmp_atoms(atom_t a1, atom_t a2)
     }
     return d;
   }
+
+  n = (t1.length < t2.length ? t1.length : t2.length);
+
   if ( t1.w && t2.w )
   { const charW *s1 = t1.w;
     const charW *s2 = t2.w;
     int d;
 
-    while((d=cmpW(*s1, *s2, &dl2)) == 0)
-    { if ( *s1 == 0 )
-	goto eq;
-      s1++, s2++;
+    for(;;)
+    { if ( n-- == 0 )
+      { d = t1.length - t2.length;
+	if ( d == 0 )
+	  goto eq;
+	return d;
+      }
+      if ( (d=cmpW(*s1, *s2, &dl2)) != 0 )
+	return d;
     }
-    return d;
   }
   
   for(i=0; ; i++)
-  { wint_t c1 = fetch(&t1, i);
-    wint_t c2 = fetch(&t2, i);
-    int d;
+  { int d;
 
-    d = cmpW(c1, c2, &dl2);
-    if ( d != 0 )
+    if ( n-- == 0 )
+    { d = t1.length - t2.length;
+      if ( d == 0 )
+	goto eq;
       return d;
-    if ( c1 == 0 )
-      goto eq;
+    } else
+    { wint_t c1 = fetch(&t1, i);
+      wint_t c2 = fetch(&t2, i);
+
+      if ( (d=cmpW(c1, c2, &dl2)) != 0 )
+	return d;
+    }
   }
 
 eq:
@@ -2965,8 +2975,12 @@ save_atom(rdf_db *db, IOSTREAM *out, atom_t a, save_context *ctx)
     Sputc('W', out);
     save_int(out, len);
     out->encoding = ENC_UTF8;
-    for(i=0; i<len; i++, chars++)
-      Sputcode(*wchars++, out);
+    for(i=0; i<len; i++, wchars++)
+    { wint_t c = *wchars;
+
+      assert(c>=0 && c <= 0x10ffff);
+      Sputcode(c, out);
+    } 
     out->encoding = enc;
   } else
     return FALSE;
@@ -3222,7 +3236,9 @@ load_atom(rdf_db *db, IOSTREAM *in, ld_context *ctx)
 
       in->encoding = ENC_UTF8;
       for(i=0; i<len; i++)
-	w[i] = Sgetcode(in);
+      { w[i] = Sgetcode(in);
+	assert(w[i]>=0 && w[i] <= 0x10ffff);
+      }
       in->encoding = enc;
 	  
       a = PL_new_atom_wchars(len, w);

@@ -34,6 +34,7 @@ available test sets. The public goals are:
 
 data(string, '').
 data(string, 'This is a nice string').
+data(string, '\u0411\u0435\u0441\u043f\u043b\u0430\u0442\u043d\u0430\u044f').
 
 data(int, 0).
 data(int, -67).
