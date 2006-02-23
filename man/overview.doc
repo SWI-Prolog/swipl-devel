@@ -939,7 +939,8 @@ On Windows systems, this is set to the filename-extension (e.g.\
 
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
-See \secref{autoload}.
+Note that autoloading only works if the flag \const{unknown} is
+\emph{not} set to \const{fail}. See \secref{autoload}.
 
     \prologflagitem{backquoted_string}{bool}{rw}
 If \const{true} (default \const{false}), read translates text between
@@ -1281,7 +1282,9 @@ Determines the behaviour if an undefined procedure is encountered.  If
 \const{fail}, the predicates fails silently.  If \const{warn}, a warning
 is printed, and execution continues as if the predicate was not defined
 and if \const{error} (default), an \except{existence_error} exception
-is raised.  This flag is local to each module.
+is raised.  This flag is local to each module.  Switching this flag to
+\const{fail} disables autoloading and thus forces complete and
+consistent use of use_module/[1,2] to load the required libraries.
 
     \prologflagitem{verbose}{Atom}{rw}
 This flags is used by print_message/2.  If its value is \const{silent},
