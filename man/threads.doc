@@ -325,8 +325,8 @@ in its queue and continues execution using \arg{A} is \const{gnat}.
    thread_get_message(a(A)),
 
    <thread 2>
-   thread_send_message(b(gnu)),
-   thread_send_message(a(gnat)),
+   thread_send_message(Thread_1, b(gnu)),
+   thread_send_message(Thread_1, a(gnat)),
 \end{code}
 
 See also thread_peek_message/1.
