@@ -2583,7 +2583,7 @@ growStacks(LocalFrame fr, Choice ch, Code PC, long l, long g, long t)
 
     if ( t )
     { tsize = nextStackSize((Stack) &LD->stacks.trail, t);
-      tb = xrealloc(tb, tsize);
+      tb = PL_realloc(tb, tsize);
       shift_status.trail_shifts++;
     }
 

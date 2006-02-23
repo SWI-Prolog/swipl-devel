@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: removed call to xrealloc().  Roberto Bagnara.
+
   * FIXED: handling of default argument stack limits.  Used for dealing
     with cyclic terms.
 
