@@ -39,6 +39,8 @@
 
 :- meta_predicate
 	http_wrapper(:, +, +, -, +).
+:- multifile
+	http:request_expansion/2.
 
 %	http_wrapper(:Goal, +In, +Out, -Close, +Options)
 %
@@ -54,15 +56,18 @@
 %	  request(-Request)		Return the request to the caller
 %	  peer(+Peer)			IP address of client
 
-http_wrapper(Goal, In, Out, Close, Options) :-
+http_wrapper(GoalSpec, In, Out, Close, Options) :-
+	strip_module(GoalSpec, Module, Goal),
+	wrapper(Module:Goal, In, Out, Close, Options).
+
+wrapper(Goal, In, Out, Close, Options) :-
 	http_read_request(In, Request0),
-	extend_request(Options, Request0, Request),
+	extend_request(Options, Request0, Request1),
 	new_memory_file(MemFile),
 	open_memory_file(MemFile, write, TmpOut),
 	current_output(OldOut),
 	set_output(TmpOut),
-	b_setval(http_request, Request),
-	(   catch(call(Goal, Request), E, true)
+	(   catch(call_handler(Goal, Request1, Request), E, true)
 	->  true
 	;   E = failed
 	),
@@ -82,9 +87,8 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	    ;   seek(TmpIn, 0, current, Pos),
 		Size is Length - Pos
 	    ),
-					% http_wrapper/5 is module transparent
-	    call_cleanup(httpd_wrapper:reply(TmpIn, Size, Out, Header),
-			 httpd_wrapper:cleanup(TmpIn, Out, MemFile)),
+	    call_cleanup(reply(TmpIn, Size, Out, Header),
+			 cleanup(TmpIn, Out, MemFile)),
 
 	    memberchk(connection(Close), Header)
 	;   free_memory_file(MemFile),
@@ -98,6 +102,12 @@ http_wrapper(Goal, In, Out, Close, Options) :-
 	).
 
 
+call_handler(Goal, Request0, Request) :-
+	expand_request(Request0, Request),
+	b_setval(http_request, Request),
+	call(Goal, Request).
+
+
 reply(TmpIn, Size, Out, Header) :-
 	http_reply(stream(TmpIn, Size), Out, Header),
 	flush_output(Out).
@@ -106,6 +116,18 @@ cleanup(TmpIn, Out, MemFile) :-
 	set_stream(Out, encoding(octet)),
 	close(TmpIn),
 	free_memory_file(MemFile).
+
+
+%	expand_request(+Request0, -Request)
+%	
+%	Allow  for  general   rewrites   of    a   request   by  calling
+%	http:request_expansion/2.
+
+expand_request(R0, R) :-
+	http:request_expansion(R0, R1),		% Hook
+	R1 \== R0, !,
+	expand_request(R1, R).
+expand_request(R, R).
 
 
 %	map_exception(+Exception, -Reply, -HdrExtra)
