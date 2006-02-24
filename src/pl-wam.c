@@ -1543,6 +1543,8 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
 	catcher = parentFrame(catcher);
       PL_put_frame(av+3, catcher);
   
+      exception_term = 0;
+      setVar(*valTermRef(exception_bin));
       qid = PL_open_query(MODULE_user, PL_Q_NODEBUG,
 			  PROCEDURE_exception_hook4, av);
       rc = PL_next_solution(qid);
@@ -1550,12 +1552,9 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
       PL_cut_query(qid);
       debugstatus.debugging = debug;
   
-      if ( rc )
-	PL_put_term(exception_bin, av+1);
-      else
-	PL_put_term(exception_bin, av+0);
-  
+      PL_put_term(exception_bin, rc ? av+1 : av+0);
       exception_term = exception_bin;
+      
       PL_close_foreign_frame(fid);
       restoreWakeup(wake PASS_LD);
       unblockGC(PASS_LD1);
