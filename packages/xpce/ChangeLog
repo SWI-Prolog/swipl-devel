@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#146: Unicode handling of window->drop_files.  Dmitry.
+
+
 VERSION 6.6.4, distributed with SWI-Prolog 5.6.4
 ================================================
 
