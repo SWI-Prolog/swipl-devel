@@ -73,15 +73,16 @@ XPCE</A>
 <LI><A HREF="#sec:3.4.6">3.4.6 As CGI script</A>
 </UL>
 <LI><A HREF="#sec:3.5">3.5 The wrapper library</A>
-<LI><A HREF="#sec:3.6">3.6 Handling HTTP headers</A>
-<LI><A HREF="#sec:3.7">3.7 The <CODE>library(http/html_write)</CODE> 
+<LI><A HREF="#sec:3.6">3.6 Debugging Servers</A>
+<LI><A HREF="#sec:3.7">3.7 Handling HTTP headers</A>
+<LI><A HREF="#sec:3.8">3.8 The <CODE>library(http/html_write)</CODE> 
 library</A>
 <UL>
-<LI><A HREF="#sec:3.7.1">3.7.1 Emitting HTML documents</A>
-<LI><A HREF="#sec:3.7.2">3.7.2 Adding rules for html/1</A>
-<LI><A HREF="#sec:3.7.3">3.7.3 Generating layout</A>
-<LI><A HREF="#sec:3.7.4">3.7.4 Examples</A>
-<LI><A HREF="#sec:3.7.5">3.7.5 Remarks on the <CODE>library(http/html_write)</CODE> 
+<LI><A HREF="#sec:3.8.1">3.8.1 Emitting HTML documents</A>
+<LI><A HREF="#sec:3.8.2">3.8.2 Adding rules for html/1</A>
+<LI><A HREF="#sec:3.8.3">3.8.3 Generating layout</A>
+<LI><A HREF="#sec:3.8.4">3.8.4 Examples</A>
+<LI><A HREF="#sec:3.8.5">3.8.5 Remarks on the <CODE>library(http/html_write)</CODE> 
 library</A>
 </UL>
 </UL>
@@ -360,7 +361,7 @@ and passing the additional extra headers from <VAR>ExtraHeader</VAR>.
 <P>
 <DT><STRONG>html</STRONG>(<VAR>+HTMLTokens</VAR>)<DD>
 Send an HTML token string as produced by the library <CODE>library(html_write)</CODE> 
-described in section <A HREF="#sec:htmlwrite">section 3.7</A>.
+described in section <A HREF="#sec:htmlwrite">section 3.8</A>.
 
 <P>
 <DT><STRONG>file</STRONG>(<VAR>+File</VAR>)<DD>
@@ -1217,7 +1218,22 @@ applying rewrite rules as defined by http:request_expansion/2. Raises an
 existence error if there is no request in progress.
 </DL>
 
-<H3><A NAME="sec:3.6">3.6 Handling HTTP headers</A></H3>
+<H3><A NAME="sec:3.6">3.6 Debugging Servers</A></H3>
+
+<A NAME="sec:debug"></A>
+
+<P>The library <CODE>library(http/http_error.pl)</CODE> defines a hook 
+that decorates uncaught exceptions with a stack-trace. This will 
+generate a <EM>500 internal server error</EM> document with a 
+stack-trace. To enable this feature, simply load this library. Please do 
+note that providing error information to the user simplifies the job of 
+a hacker trying to compromise your server. It is therefore not 
+recommended to load this file by default.
+
+<P>The example program <CODE>calc.pl</CODE> has the error handler loaded 
+which can be triggered by forcing a divide-by-zero in the calculator.
+
+<H3><A NAME="sec:3.7">3.7 Handling HTTP headers</A></H3>
 
 <A NAME="sec:httpheader"></A>
 
@@ -1245,7 +1261,7 @@ is one of:
 Produce a HTML page using <A NAME="idx:printhtml1:38"></A><A HREF="#print_html/1">print_html/1</A>, 
 normally generated using the
 <CODE>library(http/html_write)</CODE> described in <A HREF="#sec:htmlwrite">section 
-3.7</A>.
+3.8</A>.
 
 <P>
 <DT><STRONG>file</STRONG>(<VAR>+MimeType, +Path</VAR>)<DD>
@@ -1299,7 +1315,7 @@ from a Prolog exception term (see <A NAME="idx:printmessage2:39"></A><B>print_me
 
 </DL>
 
-<H3><A NAME="sec:3.7">3.7 The <CODE>library(http/html_write)</CODE> 
+<H3><A NAME="sec:3.8">3.8 The <CODE>library(http/html_write)</CODE> 
 library</A></H3>
 
 <A NAME="sec:htmlwrite"></A>
@@ -1372,7 +1388,7 @@ Emit <TT>&amp;&lt;<VAR>Entity</VAR>&gt;;</TT>.
 Emit HTML element <VAR>Tag</VAR> using <VAR>Content</VAR> and no 
 attributes.
 <VAR>Content</VAR> is handled to <A NAME="idx:html1:47"></A><A HREF="#html/1">html/1</A>. 
-See <A HREF="#sec:htmllayout">section 3.7.3</A> for details on the 
+See <A HREF="#sec:htmllayout">section 3.8.3</A> for details on the 
 automatically generated layout.
 
 <P>
@@ -1470,7 +1486,7 @@ End an element. See <A NAME="idx:htmlbegin1:56"></A><A HREF="#html_begin/1">html
 for details.
 </DL>
 
-<H4><A NAME="sec:3.7.1">3.7.1 Emitting HTML documents</A></H4>
+<H4><A NAME="sec:3.8.1">3.8.1 Emitting HTML documents</A></H4>
 
 <P>The <A NAME="idx:html1:57"></A><A HREF="#html/1">html/1</A> grammar 
 rules translates a specification into a list of atoms and layout 
@@ -1501,7 +1517,7 @@ characters will be produced. Knowing the length is needed to provide the <CODE>C
 field of an HTTP reply-header.
 </DL>
 
-<H4><A NAME="sec:3.7.2">3.7.2 Adding rules for html/1</A></H4>
+<H4><A NAME="sec:3.8.2">3.8.2 Adding rules for html/1</A></H4>
 
 <P>In some cases it is practical to extend the translations imposed by
 <A NAME="idx:html1:60"></A><A HREF="#html/1">html/1</A>. When using XPCE 
@@ -1531,7 +1547,7 @@ Emit the text in <VAR>Atom</VAR> suitable for use as an SGML attribute,
 inserting entity-references for the SGML special characters <CODE>&lt;&amp;&gt;'"</CODE>.
 </DL>
 
-<H4><A NAME="sec:3.7.3">3.7.3 Generating layout</A></H4>
+<H4><A NAME="sec:3.8.3">3.8.3 Generating layout</A></H4>
 
 <A NAME="sec:htmllayout"></A>
 
@@ -1561,7 +1577,7 @@ additional layout. See also <A NAME="idx:printhtml12:64"></A><A HREF="#print_htm
 Please consult the library source for examples.
 </DL>
 
-<H4><A NAME="sec:3.7.4">3.7.4 Examples</A></H4>
+<H4><A NAME="sec:3.8.4">3.8.4 Examples</A></H4>
 
 <P>In the following example we will generate a table of Prolog 
 predicates we find from the SWI-Prolog help system based on a keyword. 
@@ -1634,7 +1650,7 @@ apropos_predicate(Pattern, pred(Name, Arity, Summary)) :-
 </PRE>
 </TABLE>
 
-<H4><A NAME="sec:3.7.5">3.7.5 Remarks on the <CODE>library(http/html_write)</CODE> 
+<H4><A NAME="sec:3.8.5">3.8.5 Remarks on the <CODE>library(http/html_write)</CODE> 
 library</A></H4>
 
 <P>This library is the result of various attempts to reach at a more 
@@ -1766,7 +1782,7 @@ Currently atom-garbage collection is activated after the creation of
 <A HREF="#idx:absolutefilename23:68">4</A>
 <DT><STRONG>B</STRONG><DD>
 <DT>body/1<DD>
-<A HREF="#idx:body1:50">3.7</A>
+<A HREF="#idx:body1:50">3.8</A>
 <DT><STRONG>C</STRONG><DD>
 <DT>close/1<DD>
 <A HREF="#idx:close1:1">2.1</A>
@@ -1774,23 +1790,23 @@ Currently atom-garbage collection is activated after the creation of
 <DT>file_mime_type/2<DD>
 <A HREF="#idx:filemimetype2:10">2.2</A>
 <DT>format/2<DD>
-<A HREF="#idx:format2:40">3.7</A> <A HREF="#idx:format2:66">3.7.5</A>
+<A HREF="#idx:format2:40">3.8</A> <A HREF="#idx:format2:66">3.8.5</A>
 <DT><STRONG>G</STRONG><DD>
 <DT>goal_expansion/2<DD>
-<A HREF="#idx:goalexpansion2:67">3.7.5</A>
+<A HREF="#idx:goalexpansion2:67">3.8.5</A>
 <DT><STRONG>H</STRONG><DD>
 <DT>head/1<DD>
-<A HREF="#idx:head1:49">3.7</A>
+<A HREF="#idx:head1:49">3.8</A>
 <DT><A HREF="#html/1">html/1</A><DD>
-<A HREF="#idx:html1:41">3.7</A> <A HREF="#idx:html1:43">3.7</A> <A HREF="#idx:html1:47">3.7</A> <A HREF="#idx:html1:52">3.7</A> <A HREF="#idx:html1:55">3.7</A> <A HREF="#idx:html1:57">3.7.1</A> <B>3.7.1</B> <A HREF="#idx:html1:60">3.7.2</A> <A HREF="#idx:html1:61">3.7.2</A> <A HREF="#idx:html1:62">3.7.2</A> <A HREF="#idx:html1:63">3.7.3</A>
+<A HREF="#idx:html1:41">3.8</A> <A HREF="#idx:html1:43">3.8</A> <A HREF="#idx:html1:47">3.8</A> <A HREF="#idx:html1:52">3.8</A> <A HREF="#idx:html1:55">3.8</A> <A HREF="#idx:html1:57">3.8.1</A> <B>3.8.1</B> <A HREF="#idx:html1:60">3.8.2</A> <A HREF="#idx:html1:61">3.8.2</A> <A HREF="#idx:html1:62">3.8.2</A> <A HREF="#idx:html1:63">3.8.3</A>
 <DT><A HREF="#html_begin/1">html_begin/1</A><DD>
-<A HREF="#idx:htmlbegin1:56">3.7</A>
+<A HREF="#idx:htmlbegin1:56">3.8</A>
 <DT><A HREF="#html_end/1">html_end/1</A><DD>
 <DT>html_print/[1,2]<DD>
-<A HREF="#idx:htmlprint12:58">3.7.1</A>
+<A HREF="#idx:htmlprint12:58">3.8.1</A>
 <DT><A HREF="#html_print_length/2">html_print_length/2</A><DD>
 <DT><A HREF="#html_quoted/1">html_quoted/1</A><DD>
-<A HREF="#idx:htmlquoted1:45">3.7</A>
+<A HREF="#idx:htmlquoted1:45">3.8</A>
 <DT><A HREF="#html_quoted_attribute/1">html_quoted_attribute/1</A><DD>
 <DT><A HREF="#html_write:expand/1">html_write:expand/1</A><DD>
 <DT><A HREF="#html_write:layout/3">html_write:layout/3</A><DD>
@@ -1811,7 +1827,7 @@ Currently atom-garbage collection is activated after the creation of
 <DT><A HREF="#http_read_request/2">http_read_request/2</A><DD>
 <A HREF="#idx:httpreadrequest2:4">2.2</A> <A HREF="#idx:httpreadrequest2:21">3.3</A> <A HREF="#idx:httpreadrequest2:22">3.3</A>
 <DT><A HREF="#http_reply/3">http_reply/3</A><DD>
-<A HREF="#idx:httpreply3:18">3.1.1</A> <A HREF="#idx:httpreply3:19">3.1.1</A> <A HREF="#idx:httpreply3:37">3.6</A>
+<A HREF="#idx:httpreply3:18">3.1.1</A> <A HREF="#idx:httpreply3:19">3.1.1</A> <A HREF="#idx:httpreply3:37">3.7</A>
 <DT><A HREF="#http:request_expansion/2">http:request_expansion/2</A><DD>
 <DT>http_server/1<DD>
 <A HREF="#idx:httpserver1:31">3.4.4</A>
@@ -1843,22 +1859,22 @@ Currently atom-garbage collection is activated after the creation of
 <A HREF="#idx:mimepack3:11">2.2</A> <A HREF="#idx:mimepack3:12">2.2</A>
 <DT><STRONG>P</STRONG><DD>
 <DT><A HREF="#page/1">page/1</A><DD>
-<A HREF="#idx:page1:51">3.7</A>
+<A HREF="#idx:page1:51">3.8</A>
 <DT><A HREF="#page/2">page/2</A><DD>
-<A HREF="#idx:page2:48">3.7</A> <A HREF="#idx:page2:53">3.7</A>
+<A HREF="#idx:page2:48">3.8</A> <A HREF="#idx:page2:53">3.8</A>
 <DT>page/[1,2]<DD>
-<A HREF="#idx:page12:54">3.7</A>
+<A HREF="#idx:page12:54">3.8</A>
 <DT>pp/1<DD>
 <A HREF="#idx:pp1:24">3.3.1</A>
 <DT>predicate/5<DD>
-<A HREF="#idx:predicate5:65">3.7.4</A>
+<A HREF="#idx:predicate5:65">3.8.4</A>
 <DT><A HREF="#print_html/1">print_html/1</A><DD>
-<A HREF="#idx:printhtml1:38">3.6</A>
+<A HREF="#idx:printhtml1:38">3.7</A>
 <DT><A HREF="#print_html/2">print_html/2</A><DD>
 <DT>print_html/[1,2]<DD>
-<A HREF="#idx:printhtml12:42">3.7</A> <A HREF="#idx:printhtml12:44">3.7</A> <A HREF="#idx:printhtml12:64">3.7.3</A>
+<A HREF="#idx:printhtml12:42">3.8</A> <A HREF="#idx:printhtml12:44">3.8</A> <A HREF="#idx:printhtml12:64">3.8.3</A>
 <DT>print_message/2<DD>
-<A HREF="#idx:printmessage2:39">3.6</A>
+<A HREF="#idx:printmessage2:39">3.7</A>
 <DT><STRONG>R</STRONG><DD>
 <DT>reply/1<DD>
 <A HREF="#idx:reply1:26">3.4.2</A>
@@ -1866,7 +1882,7 @@ Currently atom-garbage collection is activated after the creation of
 <DT>set_stream/2<DD>
 <A HREF="#idx:setstream2:2">2.1</A>
 <DT>sformat/3<DD>
-<A HREF="#idx:sformat3:46">3.7</A>
+<A HREF="#idx:sformat3:46">3.8</A>
 <DT>shell/1<DD>
 <A HREF="#idx:shell1:69">4</A>
 <DT>socket<DD>

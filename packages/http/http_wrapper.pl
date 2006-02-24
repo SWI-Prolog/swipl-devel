@@ -63,18 +63,8 @@ http_wrapper(GoalSpec, In, Out, Close, Options) :-
 wrapper(Goal, In, Out, Close, Options) :-
 	http_read_request(In, Request0),
 	extend_request(Options, Request0, Request1),
-	new_memory_file(MemFile),
-	open_memory_file(MemFile, write, TmpOut),
-	current_output(OldOut),
-	set_output(TmpOut),
-	(   catch(call_handler(Goal, Request1, Request), E, true)
-	->  true
-	;   E = failed
-	),
-	nb_delete(http_request),
-	set_output(OldOut),
-	close(TmpOut),
-	(   var(E)
+	call_handler(Goal, Request1, Request, Error, MemFile),
+	(   var(Error)
 	->  size_memory_file(MemFile, Length),
 	    open_memory_file(MemFile, read, TmpIn),
 	    http_read_header(TmpIn, CgiHeader),
@@ -92,7 +82,7 @@ wrapper(Goal, In, Out, Close, Options) :-
 
 	    memberchk(connection(Close), Header)
 	;   free_memory_file(MemFile),
-	    map_exception(E, Reply, HdrExtra),
+	    map_exception(Error, Reply, HdrExtra),
 	    http_reply(Reply, Out, HdrExtra),
 	    flush_output(Out),
 	    (	memberchk(connection(Close), HdrExtra)
@@ -102,11 +92,27 @@ wrapper(Goal, In, Out, Close, Options) :-
 	).
 
 
+%	call_handler(:Goal, +RequestIn, -RequestOut, -Error, -MemFile)
+%	
+%	Process RequestIn using Goal, producing CGI data in MemFile
+
+call_handler(Goal, Request0, Request, Error, MemFile) :-
+	new_memory_file(MemFile),
+	open_memory_file(MemFile, write, TmpOut),
+	current_output(OldOut),
+	set_output(TmpOut),
+	(   catch(call_handler(Goal, Request0, Request), Error, true)
+	->  true
+	;   Error = failed
+	),
+	nb_delete(http_request),
+	set_output(OldOut),
+	close(TmpOut).
+
 call_handler(Goal, Request0, Request) :-
 	expand_request(Request0, Request),
 	b_setval(http_request, Request),
 	call(Goal, Request).
-
 
 reply(TmpIn, Size, Out, Header) :-
 	http_reply(stream(TmpIn, Size), Out, Header),

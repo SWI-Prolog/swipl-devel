@@ -968,11 +968,25 @@ existence error if there is no request in progress.
 \end{description}
 
 
+\subsection{Debugging Servers}				\label{sec:debug}
+
+The library \pllib{http/http_error.pl} defines a hook that decorates
+uncaught exceptions with a stack-trace. This will generate a \emph{500
+internal server error} document with a stack-trace. To enable this
+feature, simply load this library.  Please do note that providing 
+error information to the user simplifies the job of a hacker trying
+to compromise your server.  It is therefore not recommended to load
+this file by default.
+
+The example program \file{calc.pl} has the error handler loaded which
+can be triggered by forcing a divide-by-zero in the calculator.
+
+
 \subsection{Handling HTTP headers}			\label{sec:httpheader}
 
 The library \pllib{http/http_header} provides primitives for parsing and
 composing HTTP headers. Its functionality is normally hidden by the
-other parts of the HTTP server and client libraries.  We provide a brief
+other parts of the HTTP server and client libraries. We provide a brief
 overview of http_reply/3 which can be accessed from the reply body using
 an exception as explain in \secref{httpspecials}.
 

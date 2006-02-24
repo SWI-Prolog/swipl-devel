@@ -11,6 +11,7 @@
 :- use_module(library('http/thread_httpd')).
 :- use_module(library('http/html_write')).
 :- use_module(library('http/http_session')).
+:- use_module(library('http/http_error')).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This demo shows session state  management   in  a very simple calculator
