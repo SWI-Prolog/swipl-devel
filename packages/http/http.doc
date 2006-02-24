@@ -422,6 +422,65 @@ last time.
 \end{description}
 
 
+\subsection{Session management}			\label{sec:session}
+
+The library \pllib{http/http_session.pl} provides cookie-based session
+management.  The library installes a session-id cookie using the hook
+http:request_expansion/2.  It allows querying the session and provides
+a simple assert/retract based store to store information related to a
+session.  Note that session management only works with the threaded
+and XPCE based server frameworks as the inetd based server starts a
+server for each request.
+
+The examples contain the file \file{calc.pl}, which realises a simple
+calculator with internal state.
+
+
+\begin{description}
+    \predicate{http_set_session_options}{1}{+Options}
+Set options for the session manager.  Defined options are:
+    \begin{description}
+	\termitem{timeout}{+Seconds}
+Max idle time of a session.  Session cookies are deleted if no request
+is received within the specified time.   The value `0' disables timeout
+handling.
+	\termitem{cookie}{+Atom}
+Name of the cookie to use for session management.  The default is
+\const{swipl_session}.
+	\termitem{path}{+Atom}
+Path with which to associate the session management.  Default is
+\const{/}, associating it with the entire server.
+    \end{description}
+
+    \predicate{http_session_id}{-Id}
+Returns an identifier for the current session.  The identifier is an
+atom.
+
+    \predicate{http_current_session}{?Id, ?Data}
+Enumerate sessions and associated data. All sessions have the
+\arg{Data} item \term{idle}{Seconds}, describing the current idle-time
+of the session. Other data elements are added by the user using
+http_session_assert/1 and friends.
+
+    \predicate{http_session_asserta}{+Term}
+Associate \arg{Term} with the current session, before any other
+associated term.
+
+    \predicate{http_session_assert}{+Term}
+Associate \arg{Term} with the current session, after any other associated
+term.
+
+    \predicate{http_session_retract}{?Term}
+Non-deterministically retract terms associated with the current session.
+
+    \predicate{http_session_retractall}{+Term}
+Retract all matching terms from associated with the current session.
+
+    \predicate{http_session_data}{?Term}
+Enumerate all associated terms that unify with \arg{Term}.
+\end{description}
+
+
 \subsection{Request format}			\label{sec:request}
 
 The body-code (see \secref{body}) is driven by a \arg{Request}.  This
@@ -884,10 +943,28 @@ Add peer(Peer) to the request header handed to \arg{Goal}.  The format
 of \arg{Peer} is defined by tcp_accept/3 from the clib package.
 \end{description}
 
+    \predicate{http:request_expansion}{2}{+RequestIn, -RequestOut}
+This \jargon{multifile} hook predicate is called just before the goal
+that produces the body, while the output is already redirected to
+collect the reply. If it succeeds it must return a valid modified
+request. It is allowed to throw exceptions as defined in
+\secref{httpspecials}. It is intended for operations such as mapping
+paths, deny access for certain requests or manage cookies. If it writes
+output, these must be HTTP header fields that are added \emph{before}
+header fields written by the body. The example below is from the
+session management library (see \secref{session}) sets a cookie.
+
+\begin{code}
+	...,
+	format('Set-Cookie: ~w=~w; path=~w~n', [Cookie, SessionID, Path]),
+	...,
+\end{code}
+
     \predicate{http_current_request}{1}{-Request}
 Get access to the currently executing request.  \arg{Request} is the
-same as handed to \arg{Goal} of http_wrapper/5.  Raises an existence
-error if there is no request in progress.
+same as handed to \arg{Goal} of http_wrapper/5 \emph{after} applying
+rewrite rules as defined by http:request_expansion/2. Raises an
+existence error if there is no request in progress.
 \end{description}
 
 

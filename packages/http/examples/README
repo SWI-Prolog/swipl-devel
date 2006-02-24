@@ -2,6 +2,7 @@ This is a simple demo of the  HTTP server facilities, providing a simple
 body and the three documented server instantiations.
 
 The server main programs are:
+-----------------------------
 
 	# demo_threads.pl
 	Run threaded server. Requires SWI-Prolog with thread-support.
@@ -19,6 +20,17 @@ The server main programs are:
 	to /etc/inetd.conf (adjust as needed):
 
 	4001 stream tcp nowait nobody /usr/sbin/tcpd /usr/lib/pl-5.1.4/library/http/demo/demo_inetd
+
+Session management demo:
+------------------------
+
+	# calc.pl
+	Multi-threaded server with session management using the
+	html_write.pl library.  See source for usage.
+
+
+Client demo
+-----------
 
 	# demo_client.pl
 	Simple multi-threaded client to test the server under

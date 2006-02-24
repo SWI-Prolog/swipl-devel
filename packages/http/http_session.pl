@@ -133,7 +133,8 @@ open_session(SessionID) :-
 valid_session_id(SessionID) :-
 	current_session(SessionID),
 	get_time(Now),
-	(   session_setting(timeout(Timeout))
+	(   session_setting(timeout(Timeout)),
+	    Timeout > 0
 	->  last_used(SessionID, Last),
 	    Idle is Now - Last,
 	    (	Idle =< Timeout
@@ -186,7 +187,8 @@ http_current_session(SessionID, Data) :-
 	get_time(Now),
 	last_used(SessionID, Last),
 	Idle is Now - Last,
-	(   session_setting(timeout(Timeout))
+	(   session_setting(timeout(Timeout)),
+	    Timeout > 0
 	->  Idle =< Timeout
 	;   true
 	),
@@ -209,7 +211,8 @@ delete_session(SessionId) :-
 %	Delete dead sessions.  When should we be calling this?
 
 http_gc_sessions :-
-	session_setting(timeout(Timeout)), !,
+	session_setting(timeout(Timeout)),
+	Timeout > 0, !,
 	get_time(Now),
 	(   last_used(SessionID, Last),
 	    Idle is Now - Last,
