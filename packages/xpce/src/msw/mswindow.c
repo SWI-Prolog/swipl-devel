@@ -115,7 +115,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	   (nfiles = DragQueryFile(hdrop, (UINT)-1, NULL, 0)) >= 0 )
       { Chain files;
       	Point pos;
-	char buf[MAXPATHLEN];
+	wchar_t buf[MAXPATHLEN];
 	AnswerMark mark;
 	int i;
 
@@ -128,9 +128,8 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		      for(i=0; i<nfiles; i++)
 		      { int namlen;
 
-			namlen = DragQueryFile(hdrop, i, buf, sizeof(buf)-1);
-			buf[namlen] = EOS;
-			appendChain(files, CtoName(buf));
+			namlen = DragQueryFileW(hdrop, i, buf, MAXPATHLEN);
+			appendChain(files, WCToName(buf, namlen));
 		      }
 			  
 		      DragFinish(hdrop);		/* reclaims memory */

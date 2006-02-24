@@ -779,7 +779,7 @@ getDefaultsFromRegistry()
 
 #ifdef O_CYCLIC
   if ( GD->defaults.argument == DEFARGUMENT )
-    GD->defaults.argument GD->defaults.global/4;
+    GD->defaults.argument = GD->defaults.global/4;
 #endif
 }
 
