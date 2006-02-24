@@ -7,6 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=================================
+VERSION 5.6.6 (February 24, 2006)
+=================================
+
+  * FIXED: Bug in prolog_exception_hook/4 if handler failed.
+
   * FIXED: Bug#147: Unicode support in win_registry_get_value/3.  Dmitry.
 
   * FIXED: removed call to xrealloc().  Roberto Bagnara.

@@ -57,23 +57,18 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.4 Patches relative to 5.6.3
+Version 5.6.6 Patches relative to 5.6.4
 =======================================
 
 Prolog
 
-  * Fixed copy_term_nat/2.
-  * Extended stream position information with byte-position.  Added
-    stream_position_data/3 to access stream position terms (used to
-    be '$stream_position'(Char,Line,LinePos), now is
-    '$stream_position'(Char,Line,LinePos,Byte)).  Also added byte_count/2.
-  * Various portability and installation issues.
-  * Add \uXXXX and \UXXXXXXXX escape sequences to quoted atoms.
+  * Added prolog_exception_hook/4
+  * Fixed Unicode support accessing the Windows registry
+  * Larger defaults for argument stack (large cyclic terms).
 							    
 Packages
   
-  * SGML: xml_write/3 now defaults to writing UTF-8 for general text streams.
-  * Semweb: Promote literals to first class citizens organised in an AVL
-    tree.  Provides *much* faster prefix and like search for literals.
-  * XPCE: Fixed offset issues for printing in Windows.
+  * HTTP: Added http_session.pl and http_error.pl
+  * Semweb: Fix in literal ordering on unicode literals (crash)
+  * XPCE: Fixed dropping Unicode filenames (Windows)
 
