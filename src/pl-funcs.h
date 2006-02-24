@@ -895,7 +895,6 @@ COMMON(const)  char *	dlerror(void);
 COMMON(void *) 		dlsym(void *handle, char *symbol);
 COMMON(int) 		dlclose(void *handle);
 #endif /*EMULATE_DLOPEN*/
-COMMON(foreign_t) 	pl_get_registry_value(term_t Key, term_t Name, term_t Value);
 COMMON(void) 		getDefaultsFromRegistry(void);
 
 /* pl-rc.c */

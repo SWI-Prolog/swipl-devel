@@ -695,14 +695,18 @@ reg_open_key(const wchar_t *which, int create)
 
 #define MAXREGSTRLEN 1024
 
-foreign_t
-pl_get_registry_value(term_t Key, term_t Name, term_t Value)
+static
+PRED_IMPL("win_registry_get_value", 3, win_registry_get_value, 0) 
 { DWORD type;
   BYTE  data[MAXREGSTRLEN];
   DWORD len = sizeof(data);
   unsigned int klen, namlen;
   wchar_t *k, *name;
   HKEY key;
+
+  term_t Key = A1;
+  term_t Name = A2;
+  term_t Value = A3;
 
   if ( !PL_get_wchars(Key, &klen, &k, CVT_ATOM|CVT_EXCEPTION) ||
        !PL_get_wchars(Name, &namlen, &name, CVT_ATOM|CVT_ATOM) )
@@ -717,7 +721,7 @@ pl_get_registry_value(term_t Key, term_t Name, term_t Value)
     switch(type)
     { case REG_SZ:
 	return PL_unify_wchars(Value, PL_ATOM,
-			       len/sizeof(wchar_t), (wchar_t*)data);
+			       len/sizeof(wchar_t)-1, (wchar_t*)data);
       case REG_DWORD:
 	return PL_unify_integer(Value, *((DWORD *)data));
       default:
@@ -794,6 +798,7 @@ getDefaultsFromRegistry()
 BeginPredDefs(win)
   PRED_DEF("win_shell", 2, win_shell2, 0)
   PRED_DEF("win_shell", 3, win_shell3, 0)
+  PRED_DEF("win_registry_get_value", 3, win_registry_get_value, 0) 
 EndPredDefs
 
 #endif /*__WINDOWS__*/

@@ -106,7 +106,6 @@ static const PL_extension foreigns[] = {
 #ifdef __WIN32__
   FRG("win_exec",		2, pl_win_exec,			0),
   FRG("win_module_file",	2, pl_win_module_file,		0),
-  FRG("win_registry_get_value", 3, pl_get_registry_value,	0),
 #endif
 
   FRG("$on_signal",		4, pl_on_signal,	     META),
