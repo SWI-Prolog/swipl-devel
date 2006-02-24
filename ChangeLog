@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#147: Unicode support in win_registry_get_value/3.  Dmitry.
+
   * FIXED: removed call to xrealloc().  Roberto Bagnara.
 
   * FIXED: handling of default argument stack limits.  Used for dealing
