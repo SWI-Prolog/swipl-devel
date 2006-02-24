@@ -638,15 +638,17 @@ dlclose(void *handle)
 		 *	      REGISTRY		*
 		 *******************************/
 
+#define wstreq(s,q) (wcscmp((s), (q)) == 0)
+
 static HKEY
-reg_open_key(const char *which, int create)
+reg_open_key(const wchar_t *which, int create)
 { HKEY key = HKEY_CURRENT_USER;
   DWORD disp;
   LONG rval;
 
   while(*which)
-  { char buf[256];
-    char *s;
+  { wchar_t buf[256];
+    wchar_t *s;
     HKEY tmp;
 
     for(s=buf; *which && !(*which == '/' || *which == '\\'); )
@@ -655,22 +657,22 @@ reg_open_key(const char *which, int create)
     if ( *which )
       which++;
 
-    if ( streq(buf, "HKEY_CLASSES_ROOT") )
+    if ( wstreq(buf, L"HKEY_CLASSES_ROOT") )
     { key = HKEY_CLASSES_ROOT;
       continue;
-    } else if ( streq(buf, "HKEY_CURRENT_USER") )
+    } else if ( wstreq(buf, L"HKEY_CURRENT_USER") )
     { key = HKEY_CURRENT_USER;
       continue;
-    } else if ( streq(buf, "HKEY_LOCAL_MACHINE") )
+    } else if ( wstreq(buf, L"HKEY_LOCAL_MACHINE") )
     { key = HKEY_LOCAL_MACHINE;
       continue;
-    } else if ( streq(buf, "HKEY_USERS") )
+    } else if ( wstreq(buf, L"HKEY_USERS") )
     { key = HKEY_USERS;
       continue;
     }
 
     DEBUG(2, Sdprintf("Trying %s\n", buf));
-    if ( RegOpenKeyEx(key, buf, 0L, KEY_READ, &tmp) == ERROR_SUCCESS )
+    if ( RegOpenKeyExW(key, buf, 0L, KEY_READ, &tmp) == ERROR_SUCCESS )
     { RegCloseKey(key);
       key = tmp;
       continue;
@@ -679,7 +681,7 @@ reg_open_key(const char *which, int create)
     if ( !create )
       return NULL;
 
-    rval = RegCreateKeyEx(key, buf, 0, "", 0,
+    rval = RegCreateKeyExW(key, buf, 0, L"", 0,
 			  KEY_ALL_ACCESS, NULL, &tmp, &disp);
     RegCloseKey(key);
     if ( rval == ERROR_SUCCESS )
@@ -698,27 +700,29 @@ pl_get_registry_value(term_t Key, term_t Name, term_t Value)
 { DWORD type;
   BYTE  data[MAXREGSTRLEN];
   DWORD len = sizeof(data);
-  char *k;
-  char *name;
+  unsigned int klen, namlen;
+  wchar_t *k, *name;
   HKEY key;
 
-  if ( !PL_get_chars_ex(Key, &k, CVT_ATOM) ||
-       !PL_get_chars_ex(Name, &name, CVT_ATOM) )
+  if ( !PL_get_wchars(Key, &klen, &k, CVT_ATOM|CVT_EXCEPTION) ||
+       !PL_get_wchars(Name, &namlen, &name, CVT_ATOM|CVT_ATOM) )
     return FALSE;
   if ( !(key=reg_open_key(k, FALSE)) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, PL_new_atom("key"), Key);
 
   DEBUG(9, Sdprintf("key = %p, name = %s\n", key, name));
-  if ( RegQueryValueEx(key, name, NULL, &type, data, &len) == ERROR_SUCCESS )
+  if ( RegQueryValueExW(key, name, NULL, &type, data, &len) == ERROR_SUCCESS )
   { RegCloseKey(key);
 
     switch(type)
     { case REG_SZ:
-	return PL_unify_atom_chars(Value, data);
+	return PL_unify_wchars(Value, PL_ATOM,
+			       len/sizeof(wchar_t), (wchar_t*)data);
       case REG_DWORD:
 	return PL_unify_integer(Value, *((DWORD *)data));
       default:
-	return warning("get_registry_value/2: Unknown registery-type");
+	warning("get_registry_value/2: Unknown registery-type: %d", type);
+        fail;
     }
   }
 
@@ -768,11 +772,11 @@ void
 getDefaultsFromRegistry()
 { HKEY key;
 
-  if ( (key = reg_open_key("HKEY_LOCAL_MACHINE/Software/SWI/Prolog", FALSE)) )
+  if ( (key = reg_open_key(L"HKEY_LOCAL_MACHINE/Software/SWI/Prolog", FALSE)) )
   { setStacksFromKey(key);
     RegCloseKey(key);
   }
-  if ( (key = reg_open_key("HKEY_CURRENT_USER/Software/SWI/Prolog", FALSE)) )
+  if ( (key = reg_open_key(L"HKEY_CURRENT_USER/Software/SWI/Prolog", FALSE)) )
   { setStacksFromKey(key);
     RegCloseKey(key);
   }
