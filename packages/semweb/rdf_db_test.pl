@@ -348,6 +348,11 @@ update(object-6) :-			% drop lang
 	rdf_update(x, a, literal(lang(en, hallo)),
 		   object(literal(hallo))),
 	rdf(x, a, literal(hallo)).
+update(object-7) :-			% transaction update
+	rdf_assert(x, a, literal(lang(en, hallo))),
+	rdf_transaction(rdf_update(x, a, literal(lang(en, hallo)),
+				   object(literal(hallo)))),
+	rdf(x, a, literal(hallo)).
 
 
 		 /*******************************

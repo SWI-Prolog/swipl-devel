@@ -4446,10 +4446,10 @@ commit_transaction(rdf_db *db)
 	  }
 	  break;
 	case TR_UPDATE:
+	  broadcast(EV_UPDATE, tr->triple, tr->update.triple);
 	  erase_triple_silent(db, tr->triple);
 	  link_triple_silent(db, tr->update.triple);
 	  db->generation++;
-	  broadcast(EV_UPDATE, tr->triple, tr->update.triple);
 	  break;
 	case TR_UPDATE_SRC:
 	  if ( tr->triple->source != tr->update.src.atom )
