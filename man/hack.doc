@@ -257,35 +257,42 @@ The hook can call trace/0 to enter trace mode immediately.
 
 \section{Hooks using the exception predicate}	\label{sec:exception3}
 
-This section describes the predicate exception/3, which may be defined
+This section describes the predicate exception/3, which can be defined
 by the user in the module \module{user} as a multifile predicate. Unlike
 the name suggests, this is actually a \jargon{hook} predicate that has
 no relation to Prolog exceptions as defined by the ISO predicates
 catch/3 and throw/1.
 
 The predicate exception/3 is called by the kernel on a couple of events,
-allowing the user to alter the behaviour on predefined events.
+allowing the user to `fix' errors just in time events.   The mechanism
+allows for \jargon{lazy} creation of objects such as predicates.
 
 \begin{description}
     \predicate{exception}{3}{+Exception, +Context, -Action}
 Dynamic predicate, normally not defined. Called by the Prolog system on
-run-time exceptions that can be repaired `just in time'. Currently
-exception/3 is only used for trapping undefined predicates. The values
+run-time exceptions that can be repaired `just in time'.  The values
 for \arg{Exception} are described below.  See also catch/3 and throw/1.
+
+If this hook predicate succeeds it must instantiate the \arg{Action}
+argument to the atom \const{fail} to make the operation fail silently,
+\const{retry} to tell Prolog to retry the operation or \const{error} to
+make the system generate an exception. The action \const{retry} only
+makes sense if this hook modified the environment such that the
+operation can now succeed without error.
 
 \begin{description}
     \termitem{undefined_predicate}{}
-If \arg{Exception} is \const{undefined_predicate} \arg{Context} is
-instantiated to a term \arg{Name}/\arg{Arity}. \arg{Name} refers to the
-name and \arg{Arity} to the arity of the undefined predicate. If the
-definition module of the predicate is not \arg{user}, \arg{Context} will
-be of the form \mbox{\tt <Module>:<Name>/<Arity>}. If the predicate
-fails Prolog will generate an \except{esistence_error} exception. If the
-predicate succeeds it should instantiate the last argument either to the
-atom \const{fail} to tell Prolog to fail the predicate, the atom
-\const{retry} to tell Prolog to retry the predicate or \const{error} to
-make the system generate an exception. The action \const{retry} only
-makes sense if the exception handler has defined the predicate.
+\arg{Context} is instantiated to a term \arg{Name}/\arg{Arity}.
+\arg{Name} refers to the name and \arg{Arity} to the arity of the
+undefined predicate. If the definition module of the predicate is not
+\arg{user}, \arg{Context} will be of the form \mbox{\tt
+<Module>:<Name>/<Arity>}. If the predicate fails Prolog will generate an
+\except{excistence_error} exception.
+
+    \termitem{undefined_global_variable}{}
+\arg{Context} is instantiated to the name of the missing global
+variable. The hook must call nb_setval/2 or b_setval/2 before returning
+with the action \const{retry}.
 \end{description}
 \end{description}
 

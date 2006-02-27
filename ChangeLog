@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: allow `repairing' undefined global variables.  After discussion
+    on mailinglist.
+
 =================================
 VERSION 5.6.6 (February 24, 2006)
 =================================

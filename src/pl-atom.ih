@@ -555,3 +555,4 @@
 #define ATOM_popcount     MK_ATOM(554)
 #define ATOM_radix        MK_ATOM(555)
 #define ATOM_argumentlimit MK_ATOM(556)
+#define ATOM_undefined_global_variable MK_ATOM(557)

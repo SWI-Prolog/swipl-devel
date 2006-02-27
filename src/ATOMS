@@ -567,6 +567,7 @@ A lsb			"lsb"
 A popcount		"popcount"
 A radix			"radix"
 A argumentlimit		"argumentlimit"
+A undefined_global_variable	"undefined_global_variable"
 
 F abs			1
 F access		1

@@ -1534,7 +1534,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     aauuttoollooaadd _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true (default) autoloading of library functions  is enabled.
-         See section 2.13.
+         Note that  autoloading only works  if the  flag unknown is  _n_o_t
+         set to fail.  See section 2.13.
 
     bbaacckkqquuootteedd__ssttrriinngg _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If  true   (default  false),   read  translates  text   between
@@ -1885,7 +1886,9 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          warn,  a warning  is printed,  and  execution continues  as  if
          the  predicate was  not  defined  and if  error  (default),  an
          existence_error exception is  raised.   This flag  is local  to
-         each module.
+         each module.  Switching this flag to  fail disables autoloading
+         and thus forces complete and consistent use of use_module/[1,2]
+         to load the required libraries.
 
     vveerrbboossee _(_A_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
          This flags is used by print_message/2.  If its value is silent,
@@ -11060,8 +11063,8 @@ tthhrreeaadd__ggeett__mmeessssaaggee((_?_T_e_r_m))
        thread_get_message(a(A)),
 
        <thread 2>
-       thread_send_message(b(gnu)),
-       thread_send_message(a(gnat)),
+       thread_send_message(Thread_1, b(gnu)),
+       thread_send_message(Thread_1, a(gnat)),
 
     See also thread_peek_message/1.
 
@@ -17095,35 +17098,41 @@ pprroolloogg__eexxcceeppttiioonn__hhooookk((_+_E_x_c_
 
 1122..44 HHooookkss uussiinngg tthhee eexxcceeppttiioonn pprreeddiiccaattee
 
-This section describes  the predicate exception/3, which may  be defined
+This section describes  the predicate exception/3, which can  be defined
 by the  user in the module  user as a multifile  predicate.  Unlike  the
 name suggests,  this is actually a _h_o_o_k  predicate that has no  relation
 to  Prolog exceptions  as  defined by  the  ISO predicates  catch/3  and
 throw/1.
 
 The  predicate exception/3  is  called by  the  kernel  on a  couple  of
-events, allowing the user to alter the behaviour on predefined events.
+events, allowing  the user  to `fix' errors  just in time  events.   The
+mechanism allows for _l_a_z_y creation of objects such as predicates.
 
 
 eexxcceeppttiioonn((_+_E_x_c_e_p_t_i_o_n_, _+_C_o_n_t_e_x_t_, _-_A_c_t_i_o_n))
     Dynamic  predicate,  normally not  defined.   Called  by the  Prolog
-    system  on  run-time  exceptions  that  can  be  repaired  `just  in
-    time'.   Currently exception/3  is only used for trapping  undefined
-    predicates.   The  values for  _E_x_c_e_p_t_i_o_n are described  below.   See
-    also catch/3 and throw/1.
+    system  on run-time exceptions that can be repaired `just  in time'.
+    The values for _E_x_c_e_p_t_i_o_n  are described below.  See also catch/3 and
+    throw/1.
+
+    If  this  hook predicate  succeeds it  must  instantiate the  _A_c_t_i_o_n
+    argument  to the  atom  fail to  make the  operation fail  silently,
+    retry  to tell Prolog  to retry the operation  or error to make  the
+    system generate an exception.   The action retry only makes sense if
+    this  hook modified the environment such that the operation  can now
+    succeed without error.
 
     uunnddeeffiinneedd__pprreeddiiccaattee
-         If _E_x_c_e_p_t_i_o_n is undefined_predicate _C_o_n_t_e_x_t is  instantiated to
-         a term  _N_a_m_e/_A_r_i_t_y.    _N_a_m_e refers  to the  name  and _A_r_i_t_y  to
-         the  arity of  the  undefined predicate.    If  the  definition
-         module of  the predicate is  not _u_s_e_r, _C_o_n_t_e_x_t  will be of  the
-         form <_M_o_d_u_l_e>:<_N_a_m_e>/<_A_r_i_t_y>.   If  the  predicate fails  Prolog
-         will generate an  esistence_error exception.  If the  predicate
-         succeeds it should instantiate the last argument  either to the
-         atom fail to tell Prolog to fail the predicate,  the atom retry
-         to tell  Prolog to  retry the predicate  or error  to make  the
-         system generate  an exception.    The action  retry only  makes
-         sense if the exception handler has defined the predicate.
+         _C_o_n_t_e_x_t is instantiated to  a term _N_a_m_e/_A_r_i_t_y.  _N_a_m_e  refers to
+         the name  and _A_r_i_t_y to  the arity  of the undefined  predicate.
+         If the definition module of the predicate is  not _u_s_e_r, _C_o_n_t_e_x_t
+         will be of  the form <_M_o_d_u_l_e>:<_N_a_m_e>/<_A_r_i_t_y>.   If the  predicate
+         fails Prolog will generate an excistence_error exception.
+
+    uunnddeeffiinneedd__gglloobbaall__vvaarriiaabbllee
+         _C_o_n_t_e_x_t  is instantiated  to the  name  of the  missing  global
+         variable.  The hook  must call nb_setval/2 or b_setval/2 before
+         returning with the action retry.
 
 
 1122..55 HHooookkss ffoorr iinntteeggrraattiinngg lliibbrraarriieess
@@ -18023,7 +18032,7 @@ attvar/1, 682
 autoload/0, 117, 1022, 1024, 1086
 
 b_getval/2, 699, 701
-b_setval/2, 697, 698
+b_setval/2, 697, 698, 1197
 backcomp _l_i_b_r_a_r_y, 17, 21
 bagof/3, 73, 130, 499--501
 bb_inf/3, 1158
@@ -18459,7 +18468,7 @@ nb_set _l_i_b_r_a_r_y, 1072
 nb_set_to_list/2, 1078
 nb_setarg/3, 380--383, 1072
 nb_setval/2,  381,  383,  697,  700,
-      702, 705
+      702, 705, 1197
 nbset _l_i_b_r_a_r_y, 1072
 netmask/4, 999
 netscape _l_i_b_r_a_r_y, 1102, 1220
@@ -19036,7 +19045,7 @@ url _l_i_b_r_a_r_y, 1102, 1113, 1223
 use_module/1, 62, 87, 653
 use_module/2, 63, 654
 use_module/[1
-   2],  53,  100,  112,  113,  115,
+   2], 53,  60, 100, 112, 113, 115,
       652, 655, 657, 671, 1207
 user profile file, 39
 user:prolog_load_file/2, 1203

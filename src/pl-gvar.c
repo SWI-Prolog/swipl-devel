@@ -153,23 +153,77 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
 }
 
 
+typedef enum
+{ gvar_fail,
+  gvar_retry,
+  gvar_error
+} gvar_action;
+
+
+static gvar_action
+auto_define_gvar(atom_t name)
+{ GET_LD
+  static predicate_t pred;
+  fid_t fid = PL_open_foreign_frame();
+  term_t av = PL_new_term_refs(3);
+  gvar_action rc = gvar_error;
+
+  if ( !pred )
+    pred = PL_predicate("exception", 3, "user");
+
+  PL_put_atom(av+0, ATOM_undefined_global_variable);
+  PL_put_atom(av+1, name);
+
+  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) )
+  { atom_t action;			/* retry, error, fail */
+
+    if ( (rc=PL_get_atom_ex(av+2, &action)) )
+    { if ( action == ATOM_retry )
+	rc = gvar_retry;
+      else if ( action == ATOM_fail )
+	rc = gvar_fail;
+    }
+  }
+
+
+  PL_close_foreign_frame(fid);
+
+  return rc;
+}
+
+
 static int
 getval(term_t var, term_t value ARG_LD)
 { atom_t name;
+  int i;
 
   if ( !PL_get_atom_ex(var, &name) )
     fail;
 
-  if ( LD->gvar.nb_vars )
-  { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
+  for(i=0; i<2; i++)
+  { if ( LD->gvar.nb_vars )
+    { Symbol s = lookupHTable(LD->gvar.nb_vars, (void*)name);
     
-    if ( s )
-    { word w = (word)s->value;
+      if ( s )
+      { word w = (word)s->value;
+	
+	return unify_ptrs(valTermRef(value), &w PASS_LD);
+      }
+    }
 
-      return unify_ptrs(valTermRef(value), &w PASS_LD);
+    switch(auto_define_gvar(name))
+    { case gvar_fail:
+	fail;
+      case gvar_retry:
+	continue;
+      case gvar_error:
+	if ( exception_term )
+	  fail;				/* error from handler */
+        goto error;
     }
   }
 
+error:
   return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
 		  ATOM_variable, var);
 }
