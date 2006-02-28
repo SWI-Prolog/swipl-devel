@@ -1,3 +1,7 @@
+Feb 28, 2006
+
+  * Moved atom-specific operations to new source file atom.c
+
 Feb 27, 2006
 
   * Fixed: crash in rdf_update/4 modifying a literal under a transaction.
