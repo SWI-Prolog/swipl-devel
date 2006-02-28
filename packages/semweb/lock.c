@@ -257,7 +257,7 @@ lockout_readers(rwlock *lock)
 
 
 void
-REALLOW_READERS(rwlock *lock)
+reallow_readers(rwlock *lock)
 { EnterCriticalSection(&lock->mutex);
   lock->allow_readers = TRUE;
   LeaveCriticalSection(&lock->mutex);
