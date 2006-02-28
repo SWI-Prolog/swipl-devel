@@ -29,8 +29,13 @@
     the GNU General Public License.
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <SWI-Prolog.h>
 #include "atom_set.h"
+#include "lock.h"
 #include <string.h>
 #include <assert.h>
 
@@ -64,6 +69,19 @@ TBD: destroy nodes when destroying the tree
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define AM_MAGIC	0x6ab19e8e
+
+typedef struct atom_map
+{ long		magic;			/* AM_MAGIC */
+  rwlock	lock;			/* Multi-threaded access */
+  avl_tree	tree;			/* AVL tree */
+} atom_map;
+
+
+#define RDLOCK(map)			rdlock(&map->lock)
+#define WRLOCK(map, allowreaders)	wrlock(&map->lock, allowreaders)
+#define WRUNLOCK(map)			unlock(&map->lock, FALSE)
+#define RDUNLOCK(map)			unlock(&map->lock, TRUE)
 
 		 /*******************************
 		 *	     BASIC STUFF	*
@@ -114,17 +132,17 @@ resource_error(const char *what)
 
 
 static int
-get_atom_map(term_t t, avl_tree **tree)
+get_atom_map(term_t t, atom_map **map)
 { if ( PL_is_functor(t, FUNCTOR_atom_map1) )
   { term_t a = PL_new_term_ref();
     void *ptr;
 
     _PL_get_arg(1, t, a);
     if ( PL_get_pointer(a, &ptr) )
-    { avl_tree *avl = ptr;
+    { atom_map *am = ptr;
 
-      if ( avl->magic == AVL_MAGIC )
-      { *tree = avl;
+      if ( am->magic == AM_MAGIC )
+      { *map = am;
         return TRUE;
       }
     }
@@ -135,9 +153,9 @@ get_atom_map(term_t t, avl_tree **tree)
 
 
 static int
-unify_atom_map(term_t t, avl_tree *tree)
+unify_atom_map(term_t t, atom_map *map)
 { return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_atom_map1,
-		            PL_POINTER, tree);
+		            PL_POINTER, map);
 }
 
 
@@ -278,26 +296,30 @@ destroy_map_node(avl_node *node)
 
 static foreign_t
 new_atom_map(term_t handle)
-{ avl_tree *t;
+{ atom_map *m;
 
-  if ( !(t=malloc(sizeof(*t))) )
+  if ( !(m=malloc(sizeof(*m))) )
     return resource_error("memory");
 
-  avl_init(t);
-  t->destroy_node = destroy_map_node;
+  init_lock(&m->lock);
+  avl_init(&m->tree);
+  m->magic = AM_MAGIC;
+  m->tree.destroy_node = destroy_map_node;
 
-  return unify_atom_map(handle, t);
+  return unify_atom_map(handle, m);
 }
 
 
 static foreign_t
 destroy_atom_map(term_t handle)
-{ avl_tree *tree;
+{ atom_map *m;
 
-  if ( !get_atom_map(handle, &tree) )
+  if ( !get_atom_map(handle, &m) )
     return FALSE;
 
-  avl_destroy(tree);
+  m->magic = 0;
+  destroy_lock(&m->lock);
+  avl_destroy(&m->tree);
 
   return TRUE;
 }
@@ -305,16 +327,19 @@ destroy_atom_map(term_t handle)
 
 static foreign_t
 insert_atom_map(term_t handle, term_t from, term_t to)
-{ avl_tree *tree;
+{ atom_map *map;
   avl_node *node;
   atom_t a1, a2;
 
-  if ( !get_atom_map(handle, &tree) ||
+  if ( !get_atom_map(handle, &map) ||
        !get_atom_ex(from, &a1) ||
        !get_atom_ex(to, &a2) )
     return FALSE;
   
-  avl_insert_atom(tree, a1, &node);
+  if ( !WRLOCK(map, FALSE) )
+    return FALSE;
+
+  avl_insert_atom(&map->tree, a1, &node);
   if ( !node->value )
   { PL_register_atom(a1);
 
@@ -324,6 +349,8 @@ insert_atom_map(term_t handle, term_t from, term_t to)
   { if ( !(insert_atom_set(node->value, a2)) )
       return resource_error("memory");
   }
+
+  WRUNLOCK(map);
 
   return TRUE;
 }
@@ -342,7 +369,7 @@ cmp_atom_set_size(const void *p1, const void *p2)
 
 static foreign_t
 find_atom_map(term_t handle, term_t keys, term_t literals)
-{ avl_tree  *tree;
+{ atom_map  *map;
   atom_set  *as[MAX_SETS];		/* TBD */
   int ns = 0;
   term_t tail = PL_copy_term_ref(keys);
@@ -350,7 +377,10 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
   atom_set *s0;
   size_t ca;
 
-  if ( !get_atom_map(handle, &tree) )
+  if ( !get_atom_map(handle, &map) )
+    return FALSE;
+
+  if ( !RDLOCK(map) )
     return FALSE;
 
   while(PL_get_list(tail, head, tail))
@@ -358,19 +388,21 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     avl_node *node;
   
     if ( !get_atom_ex(head, &a) )
-      return FALSE;
+      goto failure;
     
-    if ( (node = avl_find_node_atom(tree, a)) )
+    if ( (node = avl_find_node_atom(&map->tree, a)) )
     { if ( ns+1 >= MAX_SETS )
 	return resource_error("max_search_atoms");
 
       as[ns++] = node->value;
     } else
-    { return FALSE;
+    { goto failure;
     }
   }
   if ( !PL_get_nil(tail) )
-    return type_error(tail, "list");
+  { type_error(tail, "list");
+    goto failure;
+  }
 
   qsort(as, ns, sizeof(*as), cmp_atom_set_size);
   s0 = as[0];
@@ -384,18 +416,23 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     for(i=1; i<ns; i++)
     { if ( !in_atom_set(as[i], a) ) 
       { if ( a > as[i]->atoms[as[i]->size-1] )
-	  return FALSE;
+	  goto failure;
 	goto next;
       }
     }
     
     if ( !PL_unify_list(tail, head, tail) ||
 	 !PL_unify_atom(head, a) )
-      return FALSE;
+      goto failure;
 next:;
   }
 
+  RDUNLOCK(map);
   return PL_unify_nil(tail);
+
+failure:
+  RDUNLOCK(map);
+  return FALSE;
 }
 
 

@@ -353,10 +353,25 @@ init_lock(rwlock *lock)
 
   bytes = sizeof(int)*PL_query(PL_QUERY_MAX_THREADS);
 
-  lock->read_by_thread = rdf_malloc(db, bytes);
+  if ( !(lock->read_by_thread = malloc(bytes)) )
+    return FALSE;
   memset(lock->read_by_thread, 0, bytes);
 
   return TRUE;
+}
+
+
+int
+destroy_lock(rwlock *lock)
+{ DestroyCriticalSection(&lock->mutex);
+  DestroyCriticalSection(&lock->misc_mutex);
+  win32_cond_destroy(&lock->wrcondvar);
+  win32_cond_destroy(&lock->rdcondvar);
+  win32_cond_destroy(&lock->upcondvar);
+
+  free(lock->read_by_thread);
+
+  return TRUE;  
 }
 
 #else /*WIN32*/
@@ -609,6 +624,21 @@ init_lock(rwlock *lock)
   return TRUE;
 }
 
+
+int
+destroy_lock(rwlock *lock)
+{ if ( !pthread_mutex_destroy(&lock->mutex) ||
+       !pthread_mutex_destroy(&lock->misc_mutex) ||
+       !pthread_cond_destroy(&lock->wrcondvar) ||
+       !pthread_cond_destroy(&lock->rdcondvar) ||
+       !pthread_cond_destroy(&lock->upcondvar) )
+    return FALSE;
+
+  free(lock->read_by_thread);
+
+  return TRUE;
+}
+
 #endif /*WIN32*/
 
 
@@ -662,6 +692,12 @@ init_lock(rwlock *lock)
   lock->readers = 0;
 
   return TRUE;
+}
+
+
+int
+destroy_lock(rwlock *lock)
+{ return TRUE;  
 }
 
 #endif /*_REENTRANT*/

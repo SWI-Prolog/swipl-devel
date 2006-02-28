@@ -64,5 +64,6 @@ int	unlock(rwlock *lock, int rd);
 int	lock_misc(rwlock *lock);
 int	unlock_misc(rwlock *lock);
 int	init_lock(rwlock *lock);
+int	destroy_lock(rwlock *lock);
 
 #endif /*LOCK_H_INCLUDED*/
