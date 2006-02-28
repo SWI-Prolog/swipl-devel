@@ -154,6 +154,12 @@ get_atom_ex(term_t t, atom_t *a)
 		 *	     ATOM SETS		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A set of atoms (literals) is a   sorted  array of atom-handles. They are
+sorted simply by handle as we are  not   interested  in the value in the
+actual atom.  Search is implemeted as binary search.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define AS_INITIAL_SIZE 4
 
 typedef struct atom_set

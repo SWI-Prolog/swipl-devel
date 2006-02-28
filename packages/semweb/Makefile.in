@@ -52,7 +52,8 @@ LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs owl.owl
 TARGETS=	rdf_db.@SO@
 
-RDFDBOBJ=	rdf_db.o atom.o md5.o atom_set.o atom_map.o
+RDFDBOBJ=	rdf_db.o atom.o lock.o md5.o atom_set.o atom_map.o \
+		debug.o
 
 all:		$(TARGETS)
 

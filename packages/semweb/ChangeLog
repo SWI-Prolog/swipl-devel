@@ -1,6 +1,9 @@
 Feb 28, 2006
 
-  * Moved atom-specific operations to new source file atom.c
+  * Modularization
+    - Moved atom-specific operations to new source file atom.c
+    - Moved locking operations to new source lock.c
+    - Moved debugging support to new source debug.c
 
 Feb 27, 2006
 

@@ -28,6 +28,7 @@
 #ifdef WITH_MD5
 #include "md5.h"
 #endif
+#include "lock.h"
 
 #define RDF_VERSION 20500		/* 2.5.0 */
 
@@ -234,31 +235,10 @@ typedef struct rdf_db
   transaction_record *tr_first;		/* first transaction record */
   transaction_record *tr_last;		/* last transaction record */
   int		tr_nesting;		/* nesting depth of transactions */
-#ifdef _REENTRANT
-#ifdef WIN32
-  CRITICAL_SECTION	mutex;
-  CRITICAL_SECTION	hash_mutex;
-  win32_cond_t		rdcondvar;
-  win32_cond_t		wrcondvar;
-  win32_cond_t		upcondvar;
-#else
-  pthread_mutex_t	mutex;
-  pthread_mutex_t	hash_mutex;
-  pthread_cond_t	rdcondvar;
-  pthread_cond_t	wrcondvar;
-  pthread_cond_t	upcondvar;
-#endif
-  int			waiting_readers;
-  int			waiting_writers;
-  int			waiting_upgrade;
-  int		       *read_by_thread;
-  int			allow_readers;
-  int			lock_level;	/* recursive locks */
-#endif
-  int			writer;
-  int			readers;
 
-  avl_tree	       *literals;
+  rwlock	lock;			/* threaded access */
+
+  avl_tree     *literals;
 } rdf_db;
 
 #endif /*RDFDB_H_INCLUDED*/
