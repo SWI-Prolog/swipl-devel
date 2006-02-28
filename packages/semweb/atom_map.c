@@ -20,22 +20,18 @@
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
 */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
+#include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include "atom_set.h"
 #include "lock.h"
+#include "atom.h"
+#include "debug.h"
 #include <string.h>
 #include <assert.h>
 
@@ -100,7 +96,7 @@ init_functors()
 { MKFUNCTOR(error, 2);
   MKFUNCTOR(type_error, 2);
   MKFUNCTOR(resource_error, 1);
-  FUNCTOR_atom_map1 = PL_new_functor(PL_new_atom("$atom_map"), 1);
+  FUNCTOR_atom_map1 = PL_new_functor(PL_new_atom("$literal_map"), 1);
 }
 
 
@@ -173,11 +169,14 @@ typedef void *datum;
 #define ATOM_TAG_BITS 7
 #define ATOM_TAG 0x1
 
+#define tag(d)		((long)(d)&0x1)
+#define isAtomDatum(d)  ((long)(d)&ATOM_TAG)
+
 static int atom_mask;
 
 static void
 init_datum_store()
-{ atom_t a = PL_new_atom("[]");
+{ atom_t a = PL_new_atom("hdowefho");
   
   atom_mask = a & ((1<<(ATOM_TAG_BITS-1))-1);
 }
@@ -186,8 +185,19 @@ init_datum_store()
 static inline atom_t
 atom_from_datum(datum d)
 { unsigned long v = (unsigned long)d;
+  atom_t a;
 
-  return (v<<(ATOM_TAG_BITS-1))|atom_mask;
+  a  = ((v&~0x1)<<(ATOM_TAG_BITS-1))|atom_mask;
+  DEBUG(9, Sdprintf("0x%lx --> %s\n", v, PL_atom_chars(a)));
+  return a;
+}
+
+
+static inline long
+long_from_datum(datum d)
+{ unsigned long v = (unsigned long)d;
+
+  return (v>>1);
 }
 
 
@@ -199,7 +209,10 @@ get_datum(term_t t, datum* d)
   if ( PL_get_atom(t, &a) )
   { unsigned long v = (a>>(ATOM_TAG_BITS-1))|ATOM_TAG;
 
+    SECURE(assert(atom_from_datum((datum)v) == a));
+
     *d = (datum)v;
+    DEBUG(9, Sdprintf("Atom %s --> 0x%lx\n", PL_atom_chars(a), v));
     return TRUE;
   } else if ( PL_get_long(t, &l) )
   { *d = (datum)(l<<1);			/* TBD: verify range */
@@ -214,10 +227,10 @@ static int
 unify_datum(term_t t, datum d)
 { unsigned long v = (unsigned long)d;
 
-  if ( v&ATOM_TAG )
+  if ( isAtomDatum(v) )
     return PL_unify_atom(t, atom_from_datum(d));
   else
-    return PL_unify_integer(t, v>>1);
+    return PL_unify_integer(t, long_from_datum(d));
 }
 
 
@@ -225,7 +238,7 @@ static void
 lock_datum(datum d)
 { unsigned long v = (unsigned long)d;
 
-  if ( v&ATOM_TAG )
+  if ( isAtomDatum(v) )
     return PL_register_atom(atom_from_datum(d));
 }
 
@@ -234,8 +247,29 @@ static void
 unlock_datum(datum d)
 { unsigned long v = (unsigned long)d;
 
-  if ( v&ATOM_TAG )
+  if ( isAtomDatum(v) )
     return PL_unregister_atom(atom_from_datum(d));
+}
+
+
+static int
+cmp_datum(void *p1, void *p2)
+{ datum d1 = p1;
+  datum d2 = p2;
+  int d;
+
+  if ( (d=(tag(d1)-tag(d2))) == 0 )
+  { if ( isAtomDatum(d1) )
+    { return cmp_atoms(atom_from_datum(d1), atom_from_datum(d2));
+    } else
+    { long l1 = long_from_datum(d1);
+      long l2 = long_from_datum(d2);
+      
+      return l1 > l2 ? 1 : l1 < l2 ? -1 : 0;
+    }
+  }
+
+  return d;
 }
 
 
@@ -376,6 +410,7 @@ new_atom_map(term_t handle)
   avl_init(&m->tree);
   m->magic = AM_MAGIC;
   m->tree.destroy_node = destroy_map_node;
+  m->tree.compare = cmp_datum;
 
   return unify_atom_map(handle, m);
 }
