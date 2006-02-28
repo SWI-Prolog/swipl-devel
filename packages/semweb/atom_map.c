@@ -406,6 +406,7 @@ new_atom_map(term_t handle)
   if ( !(m=malloc(sizeof(*m))) )
     return resource_error("memory");
 
+  memset(m, 0, sizeof(*m));
   init_lock(&m->lock);
   avl_init(&m->tree);
   m->magic = AM_MAGIC;
