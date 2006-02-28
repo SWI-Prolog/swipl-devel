@@ -3300,7 +3300,7 @@ load_triple(rdf_db *db, IOSTREAM *in, ld_context *ctx)
     switch(c)
     { case 'L':
 	lit->objtype = OBJ_STRING;
-	lit->value.resource = load_atom(db, in, ctx);
+	lit->value.string = load_atom(db, in, ctx);
 	break;
       case 'I':
 	lit->objtype = OBJ_INTEGER;

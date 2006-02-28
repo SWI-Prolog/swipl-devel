@@ -125,8 +125,7 @@ typedef struct source
 
 typedef struct literal
 { union
-  { atom_t	resource;
-    atom_t	string;
+  { atom_t	string;
     int64_t	integer;
     double	real;
     struct
