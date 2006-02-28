@@ -159,12 +159,83 @@ unify_atom_map(term_t t, atom_map *map)
 }
 
 
-static int
-get_atom_ex(term_t t, atom_t *a)
-{ if ( !PL_get_atom(t, a) )
-    return type_error(t, "atom");
+		 /*******************************
+		 *	       DATUM		*
+		 *******************************/
 
-  return TRUE;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Datum is either an atom or a 31-bit  signed integer. Atoms are shifted 7
+bits
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef void *datum;
+
+#define ATOM_TAG_BITS 7
+#define ATOM_TAG 0x1
+
+static int atom_mask;
+
+static void
+init_datum_store()
+{ atom_t a = PL_new_atom("[]");
+  
+  atom_mask = a & ((1<<(ATOM_TAG_BITS-1))-1);
+}
+
+
+static inline atom_t
+atom_from_datum(datum d)
+{ unsigned long v = (unsigned long)d;
+
+  return (v<<(ATOM_TAG_BITS-1))|atom_mask;
+}
+
+
+static int
+get_datum(term_t t, datum* d)
+{ atom_t a;
+  long l;
+
+  if ( PL_get_atom(t, &a) )
+  { unsigned long v = (a>>(ATOM_TAG_BITS-1))|ATOM_TAG;
+
+    *d = (datum)v;
+    return TRUE;
+  } else if ( PL_get_long(t, &l) )
+  { *d = (datum)(l<<1);			/* TBD: verify range */
+    return TRUE;
+  }
+
+  return type_error(t, "atom or integer");
+}
+
+
+static int
+unify_datum(term_t t, datum d)
+{ unsigned long v = (unsigned long)d;
+
+  if ( v&ATOM_TAG )
+    return PL_unify_atom(t, atom_from_datum(d));
+  else
+    return PL_unify_integer(t, v>>1);
+}
+
+
+static void
+lock_datum(datum d)
+{ unsigned long v = (unsigned long)d;
+
+  if ( v&ATOM_TAG )
+    return PL_register_atom(atom_from_datum(d));
+}
+
+
+static void
+unlock_datum(datum d)
+{ unsigned long v = (unsigned long)d;
+
+  if ( v&ATOM_TAG )
+    return PL_unregister_atom(atom_from_datum(d));
 }
 
 
@@ -183,16 +254,16 @@ actual atom.  Search is implemeted as binary search.
 typedef struct atom_set
 { size_t  size;				/* # cells in use */
   size_t  allocated;			/* # cells allocated */
-  atom_t *atoms;			/* allocated cells */
+  datum *atoms;			/* allocated cells */
 } atom_set;
 
 
 static atom_set *
-new_atom_set(atom_t a0)
+new_atom_set(datum a0)
 { atom_set *as;
 
   if ( (as = malloc(sizeof(*as))) &&
-       (as->atoms = malloc(sizeof(atom_t)*AS_INITIAL_SIZE)) )
+       (as->atoms = malloc(sizeof(datum)*AS_INITIAL_SIZE)) )
   { as->size = 1;
     as->allocated = AS_INITIAL_SIZE;
     as->atoms[0] = a0;
@@ -203,39 +274,39 @@ new_atom_set(atom_t a0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-find_in_atom_set(atom_set *as, atom_t  a)  returns   a  pointer  to  the
+find_in_atom_set(atom_set *as, datum  a)  returns   a  pointer  to  the
 location of the atom or, if the atom  isn't there, to the first location
 *after* the atom
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static atom_t *
-find_in_atom_set(atom_set *as, atom_t a)
-{ const atom_t *ap = (const atom_t *)as->atoms;
-  const atom_t *ep = &ap[as->size];
+static datum *
+find_in_atom_set(atom_set *as, datum a)
+{ const datum *ap = (const datum *)as->atoms;
+  const datum *ep = &ap[as->size];
 
   for(;;)
-  { const atom_t *cp = ap+(ep-ap)/2;
+  { const datum *cp = ap+(ep-ap)/2;
     
     if ( a < *cp )
     { if ( ep == cp )
-	return (atom_t*)cp;
+	return (datum*)cp;
       ep = cp;
     } else if ( a > *cp )
     { if ( ap == cp )
       { cp++;
-	return (atom_t*)cp;
+	return (datum*)cp;
       }
       ap = cp;
     } else
-    { return (atom_t*)cp;
+    { return (datum*)cp;
     }
   }
 }
 
 
 static int
-in_atom_set(atom_set *as, atom_t a)
-{ atom_t *ap = find_in_atom_set(as, a);
+in_atom_set(atom_set *as, datum a)
+{ datum *ap = find_in_atom_set(as, a);
 
   return *ap == a;
 }
@@ -244,17 +315,17 @@ in_atom_set(atom_set *as, atom_t a)
 #define ptr_diff(p1, p2) ((char *)(p1) - (char *)(p2))
 
 static int
-insert_atom_set(atom_set *as, atom_t a)
-{ atom_t *ap = find_in_atom_set(as, a);
+insert_atom_set(atom_set *as, datum a)
+{ datum *ap = find_in_atom_set(as, a);
   
   if ( *ap != a )
-  { PL_register_atom(a);
+  { lock_datum(a);
 
     if ( ++as->size > as->allocated )
-    { atom_t *na;
+    { datum *na;
       size_t newsize = as->allocated*2;
 
-      if ( !(na = realloc(as->atoms, sizeof(atom_t)*newsize)) )
+      if ( !(na = realloc(as->atoms, sizeof(datum)*newsize)) )
 	return FALSE;
       ap += na-as->atoms;
       as->atoms = na;
@@ -274,7 +345,7 @@ destroy_atom_set(atom_set *as)
 { size_t i;
 
   for(i=0; i<as->size; i++)
-    PL_unregister_atom(as->atoms[i]);
+    unlock_datum(as->atoms[i]);
 
   free(as->atoms);
   free(as);
@@ -285,7 +356,7 @@ static void
 destroy_map_node(avl_node *node)
 { assert(node->value);
 
-  PL_unregister_atom((atom_t)node->key);
+  unlock_datum(node->key);
   destroy_atom_set(node->value);
 }
 
@@ -329,11 +400,11 @@ static foreign_t
 insert_atom_map(term_t handle, term_t from, term_t to)
 { atom_map *map;
   avl_node *node;
-  atom_t a1, a2;
+  datum a1, a2;
 
   if ( !get_atom_map(handle, &map) ||
-       !get_atom_ex(from, &a1) ||
-       !get_atom_ex(to, &a2) )
+       !get_datum(from, &a1) ||
+       !get_datum(to, &a2) )
     return FALSE;
   
   if ( !WRLOCK(map, FALSE) )
@@ -341,7 +412,7 @@ insert_atom_map(term_t handle, term_t from, term_t to)
 
   avl_insert_atom(&map->tree, a1, &node);
   if ( !node->value )
-  { PL_register_atom(a1);
+  { lock_datum(a1);
 
     if ( !(node->value = new_atom_set(a2)) )
       return resource_error("memory");
@@ -384,10 +455,10 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     return FALSE;
 
   while(PL_get_list(tail, head, tail))
-  { atom_t a;
+  { datum a;
     avl_node *node;
   
-    if ( !get_atom_ex(head, &a) )
+    if ( !get_datum(head, &a) )
       goto failure;
     
     if ( (node = avl_find_node_atom(&map->tree, a)) )
@@ -410,7 +481,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
   PL_put_term(tail, literals);
 
   for(ca=0; ca<s0->size; ca++)
-  { atom_t a = s0->atoms[ca];
+  { datum a = s0->atoms[ca];
     int i;
 
     for(i=1; i<ns; i++)
@@ -422,7 +493,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     }
     
     if ( !PL_unify_list(tail, head, tail) ||
-	 !PL_unify_atom(head, a) )
+	 !unify_datum(head, a) )
       goto failure;
 next:;
   }
@@ -439,6 +510,7 @@ failure:
 install_t
 install_atom_map()
 { init_functors();
+  init_datum_store();
 
   PL_register_foreign("rdf_new_literal_map",     1, new_atom_map,     0);
   PL_register_foreign("rdf_destroy_literal_map", 1, destroy_atom_map, 0);
