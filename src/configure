@@ -3869,6 +3869,13 @@ echo "${ECHO_T}no" >&6
 fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 	;;
+    *alpha*)
+	if test "$GCC" = "yes"; then
+	  CMFLAGS="$CMFLAGS -mieee"
+	else
+	  CMFLAGS="$CMFLAGS -ieee"
+	fi
+	;;
 esac
 
 echo "$as_me:$LINENO: checking for inline" >&5

@@ -229,8 +229,13 @@ else
 fi
 
 dnl ****************************************************************
+dnl Other special flags
+dnl
 dnl On SCO Unix, there are ELF and COFF binaries.  We want elf to
 dnl provide for dlopen() and friends.  With help from Tamas Laufer!
+dnl
+dnl On Alpha machines we need to enable IEEE float arithmetic to avoid
+dnl FPE signals on float underflow/overflow
 dnl ****************************************************************
 
 case "$ARCH" in
@@ -247,6 +252,13 @@ case "$ARCH" in
 	AC_MSG_RESULT(yes),
 	AC_MSG_RESULT(no)
 	CFLAGS="$old_cflags")
+	;;
+    *alpha*)
+	if test "$GCC" = "yes"; then
+	  CMFLAGS="$CMFLAGS -mieee"
+	else
+	  CMFLAGS="$CMFLAGS -ieee"
+	fi
 	;;
 esac
 
