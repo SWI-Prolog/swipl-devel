@@ -314,7 +314,7 @@ location of the atom or, if the atom  isn't there, to the first location
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static datum *
-find_in_atom_set(atom_set *as, datum a)
+find_in_atom_set(atom_set *as, datum a, int *found)
 { const datum *ap = (const datum *)as->atoms;
   const datum *ep = &ap[as->size];
 
@@ -323,16 +323,20 @@ find_in_atom_set(atom_set *as, datum a)
     
     if ( a < *cp )
     { if ( ep == cp )
+      { *found = FALSE;
 	return (datum*)cp;
+      }
       ep = cp;
     } else if ( a > *cp )
     { if ( ap == cp )
       { cp++;
+	*found = FALSE;
 	return (datum*)cp;
       }
       ap = cp;
     } else
-    { return (datum*)cp;
+    { *found = TRUE;
+      return (datum*)cp;
     }
   }
 }
@@ -340,9 +344,11 @@ find_in_atom_set(atom_set *as, datum a)
 
 static int
 in_atom_set(atom_set *as, datum a)
-{ datum *ap = find_in_atom_set(as, a);
+{ int found;
 
-  return *ap == a;
+  find_in_atom_set(as, a, &found);
+
+  return found;
 }
 
 
@@ -350,9 +356,10 @@ in_atom_set(atom_set *as, datum a)
 
 static int
 insert_atom_set(atom_set *as, datum a)
-{ datum *ap = find_in_atom_set(as, a);
+{ int found;
+  datum *ap = find_in_atom_set(as, a, &found);
   
-  if ( *ap != a )
+  if ( !found )
   { lock_datum(a);
 
     if ( ++as->size > as->allocated )
