@@ -89,9 +89,16 @@ static functor_t FUNCTOR_error2;
 static functor_t FUNCTOR_type_error2;
 static functor_t FUNCTOR_resource_error1;
 static functor_t FUNCTOR_atom_map1;
+static atom_t	 ATOM_all;
+static atom_t	 ATOM_prefix;
+static atom_t	 ATOM_le;
+static atom_t	 ATOM_ge;
+static atom_t	 ATOM_between;
 
 #define MKFUNCTOR(n,a) \
 	FUNCTOR_ ## n ## a = PL_new_functor(PL_new_atom(#n), a)
+#define MKATOM(n) \
+	ATOM_ ## n = PL_new_atom(#n)
 
 static void
 init_functors()
@@ -99,6 +106,12 @@ init_functors()
   MKFUNCTOR(type_error, 2);
   MKFUNCTOR(resource_error, 1);
   FUNCTOR_atom_map1 = PL_new_functor(PL_new_atom("$literal_map"), 1);
+
+  MKATOM(all);
+  MKATOM(prefix);
+  MKATOM(le);
+  MKATOM(ge);
+  MKATOM(between);
 }
 
 
@@ -479,6 +492,11 @@ destroy_atom_map(term_t handle)
 }
 
 
+		 /*******************************
+		 *	       INSERT		*
+		 *******************************/
+
+
 static foreign_t
 insert_atom_map(term_t handle, term_t from, term_t to)
 { atom_map *map;
@@ -509,6 +527,10 @@ insert_atom_map(term_t handle, term_t from, term_t to)
   return TRUE;
 }
 
+
+		 /*******************************
+		 *	       DELETE		*
+		 *******************************/
 
 static foreign_t
 delete_atom_map2(term_t handle, term_t from)
@@ -567,6 +589,10 @@ delete_atom_map3(term_t handle, term_t from, term_t to)
   return TRUE;
 }
 
+
+		 /*******************************
+		 *	      SEARCH		*
+		 *******************************/
 
 static int
 cmp_atom_set_size(const void *p1, const void *p2)
@@ -650,6 +676,50 @@ failure:
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+rdf_keys_in_literal_map(+Map, +Spec, -Keys)
+
+Spec is one of
+
+	* all
+	* prefix(Text)			atoms only
+	* ge(Low)			integers only
+	* le(High)
+	* between(Low, High)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static foreign_t
+rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
+{ atom_map *map;
+  term_t tail = PL_copy_term_ref(keys);
+  term_t head = PL_new_term_ref();
+  atom_t name;
+  int arity;
+
+  if ( !get_atom_map(handle, &map) )
+    return FALSE;
+
+  if ( !RDLOCK(map) )
+    return FALSE;
+
+  if ( !PL_get_name_arity(spec, &name, &arity) )
+    type_error(spec, "key-specifier");
+
+  if ( name == ATOM_all )
+  {
+  }
+
+  RDUNLOCK(map);
+
+  return PL_unify_nil(tail);
+}
+
+
+
+		 /*******************************
+		 *	     REGISTER		*
+		 *******************************/
+
 install_t
 install_atom_map()
 { init_functors();
@@ -661,4 +731,5 @@ install_atom_map()
   PL_register_foreign("rdf_delete_literal_map",  3, delete_atom_map3, 0);
   PL_register_foreign("rdf_delete_literal_map",  2, delete_atom_map2, 0);
   PL_register_foreign("rdf_find_literal_map",    3, find_atom_map,    0);
+  PL_register_foreign("rdf_keys_in_literal_map", 3, rdf_keys_in_literal_map,0);
 }
