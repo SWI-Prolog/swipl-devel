@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -107,6 +107,7 @@
 	    rdf_delete_literal_map/3,	% +Handle, +Key, +Literal
 	    rdf_delete_literal_map/2,	% +Handle, +Key
 	    rdf_find_literal_map/3,	% +Handle, +KeyList, -Literals
+	    rdf_keys_in_literal_map/3,	% +Handle, +Spec, -Keys
 
 	    (rdf_meta)/1,		% +Heads
 	    op(1150, fx, (rdf_meta))

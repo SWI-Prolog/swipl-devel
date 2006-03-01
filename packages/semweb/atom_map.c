@@ -143,6 +143,15 @@ resource_error(const char *what)
 
 
 static int
+get_atom_ex(term_t t, atom_t *a)
+{ if ( PL_get_atom(t, a) )
+    return TRUE;
+
+  return type_error(t, "atom");
+}
+
+
+static int
 get_atom_map(term_t t, atom_map **map)
 { if ( PL_is_functor(t, FUNCTOR_atom_map1) )
   { term_t a = PL_new_term_ref();
@@ -216,18 +225,24 @@ long_from_datum(datum d)
 }
 
 
+static inline datum
+atom_to_datum(atom_t a)
+{ unsigned long v = (a>>(ATOM_TAG_BITS-1))|ATOM_TAG;
+
+  SECURE(assert(atom_from_datum((datum)v) == a));
+  DEBUG(9, Sdprintf("Atom %s --> 0x%lx\n", PL_atom_chars(a), v));
+
+  return (datum)v;
+}
+
+
 static int
 get_datum(term_t t, datum* d)
 { atom_t a;
   long l;
 
   if ( PL_get_atom(t, &a) )
-  { unsigned long v = (a>>(ATOM_TAG_BITS-1))|ATOM_TAG;
-
-    SECURE(assert(atom_from_datum((datum)v) == a));
-
-    *d = (datum)v;
-    DEBUG(9, Sdprintf("Atom %s --> 0x%lx\n", PL_atom_chars(a), v));
+  { *d = atom_to_datum(a);
     return TRUE;
   } else if ( PL_get_long(t, &l) )
   { *d = (datum)(l<<1);			/* TBD: verify range */
@@ -688,6 +703,24 @@ Spec is one of
 	* between(Low, High)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+unify_keys(term_t head, term_t tail, avl_node *node)
+{ if ( node->left )
+  { if ( !unify_keys(head, tail, node->left) )
+      return FALSE;
+  }
+  
+  if ( !PL_unify_list(tail, head, tail) ||
+       !unify_datum(head, node->key) )
+    return FALSE;
+
+  if ( node->right )
+    return unify_keys(head, tail, node->right);
+
+  return TRUE;
+}
+
+
 static foreign_t
 rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
 { atom_map *map;
@@ -706,12 +739,51 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
     type_error(spec, "key-specifier");
 
   if ( name == ATOM_all )
-  {
+  { avl_node *node = map->tree.root;
+
+    if ( !unify_keys(head, tail, node) )
+      goto failure;
+  } else if ( name == ATOM_prefix && arity == 1 )
+  { term_t a = PL_new_term_ref();
+    atom_t prefix, first_a;
+    avl_enum state;
+    avl_node *node;
+    datum first;
+
+    PL_get_arg(1, spec, a);
+    if ( !get_atom_ex(a, &prefix) )
+      goto failure;
+    first_a = first_atom(prefix, STR_MATCH_PREFIX);
+    first = atom_to_datum(first_a);
+    
+    if ( (node = avl_find_ge(&map->tree, first, &state)) )
+    { for(;;)
+      { assert(isAtomDatum(node->key));
+
+	if ( !PL_unify_list(tail, head, tail) ||
+	     !unify_datum(head, node->key) )
+	{ avl_destroy_enum(&state);
+	  goto failure;
+	}
+
+	if ( !(node = avl_next(&state)) ||
+	     !match_atoms(STR_MATCH_PREFIX,
+			  first_a, atom_from_datum(node->key)) )
+	  break;
+      }
+      avl_destroy_enum(&state);
+    } else
+    { goto failure;
+    }
   }
 
   RDUNLOCK(map);
 
   return PL_unify_nil(tail);
+
+failure:
+  RDUNLOCK(map);
+  return FALSE;
 }
 
 
