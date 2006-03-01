@@ -574,6 +574,14 @@ AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(int,  4)
 AC_CHECK_SIZEOF(long long, 8)
 
+if test "$ac_cv_sizeof_long" = 8; then
+  AC_DEFINE(INT64_FORMAT, ["%ld"],
+	    [printf format for int64_t datatype])
+else
+  AC_DEFINE(INT64_FORMAT, ["%lld"],
+	    [printf format for int64_t datatype])
+fi
+
 if test "$configgmp" = "yes"; then
   AC_CHECK_LIB(gmp, main,
 	       check_gmp_h=yes,
@@ -586,9 +594,6 @@ if test "$configgmp" = "yes"; then
 		    WARN_NO_GMP=yes)
   fi
 fi
-
-AC_DEFINE(INT64_FORMAT, ["%lld"],
-	  [printf format for int64_t datatype])
 
 AC_MSG_CHECKING("Boot filename");
 BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc

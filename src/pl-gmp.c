@@ -263,7 +263,7 @@ skipMPZOnCharp(const char *data)
 
 static void
 mpz_init_set_si64(mpz_t mpz, int64_t i)
-{ DEBUG(2, Sdprintf("Converting %lld to MPZ\n", i));
+{ DEBUG(2, Sdprintf("Converting " INT64_FORMAT " to MPZ\n", i));
 
   if ( i >= LONG_MIN && i <= LONG_MAX )
   { mpz_init_set_si(mpz, (long)i);

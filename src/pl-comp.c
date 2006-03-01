@@ -3647,7 +3647,7 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 
 	  cpInt64Data(p, bp);
 	  n += WORDS_PER_INT64;
-	  Sfprintf(out, " %lld", val);
+	  Sfprintf(out, " " INT64_FORMAT, val);
 	  break;
 	}
 	case CA1_FLOAT:

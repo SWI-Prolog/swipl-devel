@@ -12094,6 +12094,20 @@ _ACEOF
 
 
 
+if test "$ac_cv_sizeof_long" = 8; then
+
+cat >>confdefs.h <<\_ACEOF
+#define INT64_FORMAT "%ld"
+_ACEOF
+
+else
+
+cat >>confdefs.h <<\_ACEOF
+#define INT64_FORMAT "%lld"
+_ACEOF
+
+fi
+
 if test "$configgmp" = "yes"; then
   echo "$as_me:$LINENO: checking for main in -lgmp" >&5
 echo $ECHO_N "checking for main in -lgmp... $ECHO_C" >&6
@@ -12311,12 +12325,6 @@ fi
 
   fi
 fi
-
-
-cat >>confdefs.h <<\_ACEOF
-#define INT64_FORMAT "%lld"
-_ACEOF
-
 
 echo "$as_me:$LINENO: checking \"Boot filename\"" >&5
 echo $ECHO_N "checking \"Boot filename\"... $ECHO_C" >&6;

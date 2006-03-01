@@ -458,7 +458,7 @@ getInt64(IOSTREAM *fd)
   { first <<= (INT64BITSIZE-6);
     first >>= (INT64BITSIZE-6);
 
-    DEBUG(4, Sdprintf("getInt64() --> %lld\n", first));
+    DEBUG(4, Sdprintf("getInt64() --> " INT64_FORMAT "\n", first));
     return first;
   }
 
@@ -488,7 +488,7 @@ getInt64(IOSTREAM *fd)
   first <<= shift;
   first >>= shift;
   
-  DEBUG(4, Sdprintf("getInt64() --> %lld\n", first));
+  DEBUG(4, Sdprintf("getInt64() --> " INT64_FORMAT "\n", first));
   return first;
 }
 

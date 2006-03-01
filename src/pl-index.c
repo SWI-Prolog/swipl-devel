@@ -146,7 +146,7 @@ indexOfWord(word w ARG_LD)
 	  word key;
 
 #if SIZEOF_LONG == 4
-          DEBUG(9, Sdprintf("Index for %lld = 0x%x\n",
+          DEBUG(9, Sdprintf("Index for " INT64_FORMAT " = 0x%x\n",
 			    valBignum(w), p[0]^p[1]));
 	  key = p[0]^p[1];
 #else
