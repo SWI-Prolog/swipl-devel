@@ -152,6 +152,15 @@ get_atom_ex(term_t t, atom_t *a)
 
 
 static int
+get_long_ex(term_t t, long *v)
+{ if ( PL_get_long(t, v) )
+    return TRUE;
+
+  return type_error(t, "integer");
+}
+
+
+static int
 get_atom_map(term_t t, atom_map **map)
 { if ( PL_is_functor(t, FUNCTOR_atom_map1) )
   { term_t a = PL_new_term_ref();
@@ -195,6 +204,10 @@ typedef void *datum;
 
 #define tag(d)		((long)(d)&0x1)
 #define isAtomDatum(d)  ((long)(d)&ATOM_TAG)
+#define isIntDatum(d)	!isAtomDatum(d)
+
+#define MAP_MIN_INT	(-(long)(1L<<(sizeof(long)*8 - 1 - 1)))
+#define MAP_MAX_INT	(-MAP_MIN_INT - 1)
 
 static int atom_mask;
 
@@ -236,6 +249,12 @@ atom_to_datum(atom_t a)
 }
 
 
+static inline datum
+long_to_datum(long v)
+{ return (datum)(v<<1);
+}
+
+
 static int
 get_datum(term_t t, datum* d)
 { atom_t a;
@@ -245,7 +264,7 @@ get_datum(term_t t, datum* d)
   { *d = atom_to_datum(a);
     return TRUE;
   } else if ( PL_get_long(t, &l) )
-  { *d = (datum)(l<<1);			/* TBD: verify range */
+  { *d = long_to_datum(l);			/* TBD: verify range */
     return TRUE;
   }
 
@@ -721,6 +740,40 @@ unify_keys(term_t head, term_t tail, avl_node *node)
 }
 
 
+static int
+between_keys(atom_map *map, long min, long max, term_t head, term_t tail) 
+{ avl_enum state;
+  avl_node *node;
+  int count = 0;
+
+  DEBUG(2, Sdprintf("between %ld .. %ld\n", min, max));
+
+  if ( (node = avl_find_ge(&map->tree, long_to_datum(min), &state)) &&
+       isIntDatum(node->key) )
+  { for(;;)
+    { if ( long_from_datum(node->key) > max )
+	break;
+
+      if ( !PL_unify_list(tail, head, tail) ||
+	   !unify_datum(head, node->key) )
+      { avl_destroy_enum(&state);
+	return 0;
+      }
+
+      count++;
+
+      if ( !(node = avl_next(&state)) ||
+	   !isIntDatum(node->key) )
+	break;
+    }
+
+    avl_destroy_enum(&state);
+  }
+
+  return count;
+}
+
+
 static foreign_t
 rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
 { atom_map *map;
@@ -773,8 +826,38 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
       }
       avl_destroy_enum(&state);
     } else
-    { goto failure;
-    }
+      goto failure;
+  } else if ( (name == ATOM_ge || name == ATOM_le) && arity == 1 )
+  { term_t a = PL_new_term_ref();
+    long val, min, max;
+
+    PL_get_arg(1, spec, a);
+    if ( !get_long_ex(a, &val) )
+      goto failure;
+
+    if ( name == ATOM_ge )
+      min = val, max = MAP_MAX_INT;
+    else
+      max = val, min = MAP_MIN_INT;
+    
+    if ( !between_keys(map, min, max, head, tail) )
+      goto failure;
+  } else if ( name == ATOM_between && arity == 2 )
+  { term_t a = PL_new_term_ref();
+    long min, max;
+
+    PL_get_arg(1, spec, a);
+    if ( !get_long_ex(a, &min) )
+      goto failure;
+    PL_get_arg(2, spec, a);
+    if ( !get_long_ex(a, &max) )
+      goto failure;
+
+    if ( !between_keys(map, min, max, head, tail) )
+      goto failure;
+  } else
+  { type_error(spec, "key-specifier");
+    goto failure;
   }
 
   RDUNLOCK(map);
