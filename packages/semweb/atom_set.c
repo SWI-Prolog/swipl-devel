@@ -411,8 +411,27 @@ avl_rightshrunk(avl_node **n)
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+While deleting, we found the node we must delete in `target'. `n' starts
+off as &target->left
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+swap_kv(avl_node *n1, avl_node *n2)
+{ void *k1 = n1->key;
+  void *v1 = n1->value;
+
+  n1->key   = n2->key;
+  n1->value = n2->value;
+  n2->key   = k1;
+  n2->value = v1;
+}
+
+
 static int
-avl_findhighest(avl_tree *tree, avl_node *target,avl_node **n,int *res)
+avl_findhighest(avl_tree *tree, avl_node *target, avl_node **n, int *res)
 { avl_node *tmp;
 
   *res = 1;
@@ -420,11 +439,11 @@ avl_findhighest(avl_tree *tree, avl_node *target,avl_node **n,int *res)
   { return 0;
   }
 
-  if ( (*n)->right)
+  if ( (*n)->right )
   { if ( !avl_findhighest(tree, target, &(*n)->right, res) )
     { return 0;
     }
-    if(*res == 1)
+    if ( *res == 1 )
     { *res = avl_rightshrunk(n);
     }
 
@@ -432,7 +451,7 @@ avl_findhighest(avl_tree *tree, avl_node *target,avl_node **n,int *res)
   }
 
   tree->size--;
-  target->key = (*n)->key;
+  swap_kv(target, *n);
   tmp = *n;
   *n = (*n)->left;
   avl_free_node(tree, tmp);
@@ -460,7 +479,7 @@ avl_findlowest(avl_tree *tree, avl_node *target, avl_node **n, int *res)
   }
 
   tree->size--;
-  target->key = (*n)->key;
+  swap_kv(target, *n);
   tmp = *n;
   *n = (*n)->right;
   avl_free_node(tree, tmp);

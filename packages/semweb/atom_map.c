@@ -76,6 +76,8 @@ typedef struct atom_map
 
 #define RDLOCK(map)			rdlock(&map->lock)
 #define WRLOCK(map, allowreaders)	wrlock(&map->lock, allowreaders)
+#define LOCKOUT_READERS(map)		lockout_readers(&map->lock)
+#define REALLOW_READERS(map)		reallow_readers(&map->lock)
 #define WRUNLOCK(map)			unlock(&map->lock, FALSE)
 #define RDUNLOCK(map)			unlock(&map->lock, TRUE)
 
@@ -273,6 +275,22 @@ cmp_datum(void *p1, void *p2)
 }
 
 
+static const char *
+format_datum(datum d, char *buf)
+{ static char tmp[20];
+
+  if ( isAtomDatum(d) )
+    return PL_atom_chars(atom_from_datum(d));
+
+  if ( !buf )
+    buf = tmp;
+  Ssprintf(buf, "%ld", long_from_datum(d));
+
+  return buf;
+}
+
+
+
 		 /*******************************
 		 *	     ATOM SETS		*
 		 *******************************/
@@ -362,7 +380,7 @@ insert_atom_set(atom_set *as, datum a)
   if ( !found )
   { lock_datum(a);
 
-    if ( ++as->size > as->allocated )
+    if ( as->size == as->allocated )
     { datum *na;
       size_t newsize = as->allocated*2;
 
@@ -372,12 +390,29 @@ insert_atom_set(atom_set *as, datum a)
       as->atoms = na;
       as->allocated = newsize;
     }
+    assert(as->size < as->allocated);
 
     memmove(ap+1, ap, ptr_diff(&as->atoms[as->size], ap));
+    as->size++;
     *ap = a;
   }
 
   return TRUE;
+}
+
+
+static int
+delete_atom_set(atom_set *as, datum a)
+{ int found;
+  datum *ap = find_in_atom_set(as, a, &found);
+
+  if ( found )
+  { unlock_datum(a);
+    as->size--;
+    memmove(ap, ap+1, ptr_diff(&as->atoms[as->size], ap));
+  }
+
+  return found;
 }
 
 
@@ -396,6 +431,11 @@ destroy_atom_set(atom_set *as)
 static void
 destroy_map_node(avl_node *node)
 { assert(node->value);
+
+  DEBUG(2,
+	char b[20];
+	Sdprintf("Destroying node with key = %s\n",
+		 format_datum(node->value, b)));
 
   unlock_datum(node->key);
   destroy_atom_set(node->value);
@@ -470,6 +510,64 @@ insert_atom_map(term_t handle, term_t from, term_t to)
 }
 
 
+static foreign_t
+delete_atom_map2(term_t handle, term_t from)
+{ atom_map *map;
+  avl_node *node;
+  datum a;
+
+  if ( !get_atom_map(handle, &map) ||
+       !get_datum(from, &a) )
+    return FALSE;
+  
+  if ( !WRLOCK(map, TRUE) )
+    return FALSE;
+
+  if ( (node = avl_find_node_atom(&map->tree, a)) )
+  { LOCKOUT_READERS(map);
+    avl_delete(&map->tree, &map->tree.root, a);
+    REALLOW_READERS(map);
+  }
+
+  WRUNLOCK(map);
+
+  return TRUE;
+}
+
+
+static foreign_t
+delete_atom_map3(term_t handle, term_t from, term_t to)
+{ atom_map *map;
+  avl_node *node;
+  datum a1, a2;
+
+  if ( !get_atom_map(handle, &map) ||
+       !get_datum(from, &a1) ||
+       !get_datum(to, &a2) )
+    return FALSE;
+  
+  if ( !WRLOCK(map, TRUE) )
+    return FALSE;
+
+  if ( (node = avl_find_node_atom(&map->tree, a1)) &&
+       in_atom_set(node->value, a2) )
+  { atom_set *as = node->value;
+
+    LOCKOUT_READERS(map);
+    if ( delete_atom_set(as, a2) )
+    { if ( as->size == 0 )
+      { avl_delete(&map->tree, &map->tree.root, a1);
+      }
+    }
+    REALLOW_READERS(map);
+  }
+
+  WRUNLOCK(map);
+
+  return TRUE;
+}
+
+
 static int
 cmp_atom_set_size(const void *p1, const void *p2)
 { const atom_set *ap1 = p1;
@@ -508,7 +606,9 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     { if ( ns+1 >= MAX_SETS )
 	return resource_error("max_search_atoms");
 
-      as[ns++] = node->value;
+      as[ns] = node->value;
+      DEBUG(2, Sdprintf("Found atom-set of size %d\n", as[ns]->size));
+      ns++;
     } else
     { goto failure;
     }
@@ -558,5 +658,7 @@ install_atom_map()
   PL_register_foreign("rdf_new_literal_map",     1, new_atom_map,     0);
   PL_register_foreign("rdf_destroy_literal_map", 1, destroy_atom_map, 0);
   PL_register_foreign("rdf_insert_literal_map",  3, insert_atom_map,  0);
+  PL_register_foreign("rdf_delete_literal_map",  3, delete_atom_map3, 0);
+  PL_register_foreign("rdf_delete_literal_map",  2, delete_atom_map2, 0);
   PL_register_foreign("rdf_find_literal_map",    3, find_atom_map,    0);
 }
