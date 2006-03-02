@@ -108,6 +108,7 @@
 	    rdf_delete_literal_map/2,	% +Handle, +Key
 	    rdf_find_literal_map/3,	% +Handle, +KeyList, -Literals
 	    rdf_keys_in_literal_map/3,	% +Handle, +Spec, -Keys
+	    rdf_statistics_literal_map/2, % +Handle, +Name(-Arg...)
 
 	    (rdf_meta)/1,		% +Heads
 	    op(1150, fx, (rdf_meta))

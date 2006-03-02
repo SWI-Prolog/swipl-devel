@@ -1130,6 +1130,14 @@ integer \arg{Max}.
 Unify \arg{Answer} with all keys between \arg{Min} and \arg{Max}
 (including).
     \end{description}
+
+    \predicate{rdf_statistics_literal_map}{2}{+Map, +Key(-Arg...)}
+Query some statistics of the map.  Provides keys are:
+    \begin{description}
+	\termitem{size}{-Keys, -Relations}
+Unify \arg{Keys} with the total key-count of the index and
+\arg{Relation} with the total \arg{Key}-\arg{Value} count.
+    \end{description}
 \end{description}
 
 

@@ -65,6 +65,7 @@ Searching is done using
 
 typedef struct atom_map
 { long		magic;			/* AM_MAGIC */
+  long		value_count;		/* total # values */
   rwlock	lock;			/* Multi-threaded access */
   avl_tree	tree;			/* AVL tree */
 } atom_map;
@@ -85,6 +86,7 @@ static functor_t FUNCTOR_error2;
 static functor_t FUNCTOR_type_error2;
 static functor_t FUNCTOR_resource_error1;
 static functor_t FUNCTOR_atom_map1;
+static functor_t FUNCTOR_size2;
 static atom_t	 ATOM_all;
 static atom_t	 ATOM_prefix;
 static atom_t	 ATOM_le;
@@ -99,10 +101,12 @@ static atom_t	 ATOM_key;
 
 static void
 init_functors()
-{ MKFUNCTOR(error, 2);
+{ FUNCTOR_atom_map1 = PL_new_functor(PL_new_atom("$literal_map"), 1);
+
+  MKFUNCTOR(error, 2);
   MKFUNCTOR(type_error, 2);
   MKFUNCTOR(resource_error, 1);
-  FUNCTOR_atom_map1 = PL_new_functor(PL_new_atom("$literal_map"), 1);
+  MKFUNCTOR(size, 2);
 
   MKATOM(all);
   MKATOM(prefix);
@@ -449,7 +453,7 @@ insert_atom_set(atom_set *as, datum a)
       size_t newsize = as->allocated*2;
 
       if ( !(na = realloc(as->atoms, sizeof(datum)*newsize)) )
-	return FALSE;
+	return -1;
       ap += na-as->atoms;
       as->atoms = na;
       as->allocated = newsize;
@@ -459,9 +463,11 @@ insert_atom_set(atom_set *as, datum a)
     memmove(ap+1, ap, ptr_diff(&as->atoms[as->size], ap));
     as->size++;
     *ap = a;
+
+    return 1;
   }
 
-  return TRUE;
+  return 0;
 }
 
 
@@ -571,9 +577,15 @@ insert_atom_map(term_t handle, term_t from, term_t to)
 
     if ( !(node->value = new_atom_set(a2)) )
       return resource_error("memory");
+    map->value_count++;
   } else
-  { if ( !(insert_atom_set(node->value, a2)) )
+  { int rc;
+
+    if ( (rc=insert_atom_set(node->value, a2)) < 0 )
       return resource_error("memory");
+
+    if ( rc )
+      map->value_count++;
   }
 
   WRUNLOCK(map);
@@ -600,7 +612,10 @@ delete_atom_map2(term_t handle, term_t from)
     return FALSE;
 
   if ( (node = avl_find_node_atom(&map->tree, a)) )
-  { LOCKOUT_READERS(map);
+  { atom_set *as = node->value;
+
+    LOCKOUT_READERS(map);
+    map->value_count -= as->size;
     avl_delete(&map->tree, &map->tree.root, a);
     REALLOW_READERS(map);
   }
@@ -631,7 +646,8 @@ delete_atom_map3(term_t handle, term_t from, term_t to)
 
     LOCKOUT_READERS(map);
     if ( delete_atom_set(as, a2) )
-    { if ( as->size == 0 )
+    { map->value_count--;
+      if ( as->size == 0 )
       { avl_delete(&map->tree, &map->tree.root, a1);
       }
     }
@@ -904,21 +920,52 @@ failure:
 }
 
 
+		 /*******************************
+		 *	    STATISTICS		*
+		 *******************************/
+
+
+term_t
+rdf_statistics_literal_map(term_t map, term_t key)
+{ atom_map *m;
+
+  if ( !get_atom_map(map, &m) )
+    return FALSE;
+  
+  if ( PL_is_functor(key, FUNCTOR_size2) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, key, a);
+    if ( !PL_unify_integer(a, m->tree.size) )
+      return FALSE;
+    PL_get_arg(2, key, a);
+
+    return PL_unify_integer(a, m->value_count);
+  }
+
+  return type_error(key, "statistics_key");
+}
+
+
+
 
 		 /*******************************
 		 *	     REGISTER		*
 		 *******************************/
+
+#define PRED(n,a,f,o) PL_register_foreign(n,a,f,o)
 
 install_t
 install_atom_map()
 { init_functors();
   init_datum_store();
 
-  PL_register_foreign("rdf_new_literal_map",     1, new_atom_map,     0);
-  PL_register_foreign("rdf_destroy_literal_map", 1, destroy_atom_map, 0);
-  PL_register_foreign("rdf_insert_literal_map",  3, insert_atom_map,  0);
-  PL_register_foreign("rdf_delete_literal_map",  3, delete_atom_map3, 0);
-  PL_register_foreign("rdf_delete_literal_map",  2, delete_atom_map2, 0);
-  PL_register_foreign("rdf_find_literal_map",    3, find_atom_map,    0);
-  PL_register_foreign("rdf_keys_in_literal_map", 3, rdf_keys_in_literal_map,0);
+  PRED("rdf_new_literal_map",	     1,	new_atom_map,		    0);
+  PRED("rdf_destroy_literal_map",    1,	destroy_atom_map,	    0);
+  PRED("rdf_insert_literal_map",     3,	insert_atom_map,	    0);
+  PRED("rdf_delete_literal_map",     3,	delete_atom_map3,	    0);
+  PRED("rdf_delete_literal_map",     2,	delete_atom_map2,	    0);
+  PRED("rdf_find_literal_map",	     3,	find_atom_map,		    0);
+  PRED("rdf_keys_in_literal_map",    3,	rdf_keys_in_literal_map,    0);
+  PRED("rdf_statistics_literal_map", 2,	rdf_statistics_literal_map, 0);
 }

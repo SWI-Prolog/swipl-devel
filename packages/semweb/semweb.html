@@ -1471,6 +1471,20 @@ Unify <VAR>Answer</VAR> with all keys between <VAR>Min</VAR> and <VAR>Max</VAR>
 (including).
 </DL>
 
+<P>
+<DT><A NAME="rdf_statistics_literal_map/2"><STRONG>rdf_statistics_literal_map</STRONG>(<VAR>+Map, 
++Key(-Arg...)</VAR>)</A><DD>
+Query some statistics of the map. Provides keys are:
+
+<DL>
+
+<P>
+<DT><STRONG>size</STRONG>(<VAR>-Keys, -Relations</VAR>)<DD>
+Unify <VAR>Keys</VAR> with the total key-count of the index and
+<VAR>Relation</VAR> with the total <VAR>Key</VAR>-<VAR>Value</VAR> 
+count.
+</DL>
+
 </DL>
 
 <H3><A NAME="sec:3.9">3.9 Issues with rdf_db</A></H3>
@@ -2195,6 +2209,7 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdfs_subproperty_of/2">rdfs_subproperty_of/2</A><DD>
 <DT><A HREF="#rdf_statistics/1">rdf_statistics/1</A><DD>
 <A HREF="#idx:rdfstatistics1:69">3.7</A>
+<DT><A HREF="#rdf_statistics_literal_map/2">rdf_statistics_literal_map/2</A><DD>
 <DT><A HREF="#rdf_subject/1">rdf_subject/1</A><DD>
 <DT><A HREF="#rdf_transaction/1">rdf_transaction/1</A><DD>
 <A HREF="#idx:rdftransaction1:27">3.3.2</A> <A HREF="#idx:rdftransaction1:28">3.3.2</A> <A HREF="#idx:rdftransaction1:29">3.3.2</A>
