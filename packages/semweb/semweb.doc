@@ -1063,12 +1063,13 @@ between threads, using a locking strategy that allows for multiple
 concurrent readers.
 
 Typically, this module is used together with rdf_monitor/2 on the
-channals \const{new_literal} and \const{old_literal} to index an index
-of words that appear in a literal. Further abstraction using Porter
-stemming or Metaphone can be used to create additional search indices.
-These can map either directly to the literal values, or indirectly to
-the plain word-map. The SWI-Prolog NLP package provides complimentary
-building blocks, such as a tokenizer, Porter stem and Double Metaphone.
+channals \const{new_literal} and \const{old_literal} to maintain an
+index of words that appear in a literal. Further abstraction using
+Porter stemming or Metaphone can be used to create additional search
+indices. These can map either directly to the literal values, or
+indirectly to the plain word-map. The SWI-Prolog NLP package provides
+complimentary building blocks, such as a tokenizer, Porter stem and
+Double Metaphone.
 
 
 \begin{description}
