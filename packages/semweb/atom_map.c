@@ -139,6 +139,20 @@ resource_error(const char *what)
 
 
 static int
+representation_error(const char *what)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR_CHARS, "representation_error", 1,
+		        PL_CHARS, what,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+
+static int
 get_atom_ex(term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     return TRUE;
@@ -260,7 +274,10 @@ get_datum(term_t t, datum* d)
   { *d = atom_to_datum(a);
     return TRUE;
   } else if ( PL_get_long(t, &l) )
-  { *d = long_to_datum(l);			/* TBD: verify range */
+  { if ( l < MAP_MIN_INT || l > MAP_MAX_INT )
+      return representation_error("integer_range");
+
+    *d = long_to_datum(l);			/* TBD: verify range */
     return TRUE;
   }
 
