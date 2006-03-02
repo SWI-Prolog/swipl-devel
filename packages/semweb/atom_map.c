@@ -45,11 +45,10 @@ Double Metaphone algorithm. Both  are  provide   by  the  SWI-Prolog NLP
 package.
 
 Basic query provides a  set  of   abstracted  terms  and  requests those
-literals containing all of  them.  Ideally   we  would  like to maintain
-ordered sets of literals and do set-intersection on them to achieve good
-linear performance.
+literals containing all of them. We   maintain  ordered sets of literals
+and do set-intersection on them to achieve good linear performance.
 
-Some current artchive statistics (porter stem)
+Some current E-culture project statistics (porter stem)
 
 	  # stems: 0.4 million
 	  # literals: 0.9 million
@@ -59,10 +58,7 @@ Av. literals/stem: about 8.
 
 Searching is done using
 
-	atom_map_query(SetOfAbstract, -Literals)
-
-TBD: destroy nodes when destroying the tree
-
+	rdf_find_literal_map(Map, SetOfAbstract, -Literals)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define AM_MAGIC	0x6ab19e8e
@@ -232,7 +228,7 @@ atom_from_datum(datum d)
 
 static inline long
 long_from_datum(datum d)
-{ unsigned long v = (unsigned long)d;
+{ long v = (long)d;
 
   return (v>>1);
 }
@@ -314,6 +310,8 @@ cmp_datum(void *p1, void *p2)
     { long l1 = long_from_datum(d1);
       long l2 = long_from_datum(d2);
       
+      DEBUG(2, Sdprintf("cmp_datum(%ld, %ld)\n", l1, l2));
+
       return l1 > l2 ? 1 : l1 < l2 ? -1 : 0;
     }
   }
@@ -744,7 +742,6 @@ static int
 between_keys(atom_map *map, long min, long max, term_t head, term_t tail) 
 { avl_enum state;
   avl_node *node;
-  int count = 0;
 
   DEBUG(2, Sdprintf("between %ld .. %ld\n", min, max));
 
@@ -757,10 +754,8 @@ between_keys(atom_map *map, long min, long max, term_t head, term_t tail)
       if ( !PL_unify_list(tail, head, tail) ||
 	   !unify_datum(head, node->key) )
       { avl_destroy_enum(&state);
-	return 0;
+	return FALSE;
       }
-
-      count++;
 
       if ( !(node = avl_next(&state)) ||
 	   !isIntDatum(node->key) )
@@ -770,7 +765,7 @@ between_keys(atom_map *map, long min, long max, term_t head, term_t tail)
     avl_destroy_enum(&state);
   }
 
-  return count;
+  return TRUE;
 }
 
 
@@ -825,8 +820,7 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
 	  break;
       }
       avl_destroy_enum(&state);
-    } else
-      goto failure;
+    }
   } else if ( (name == ATOM_ge || name == ATOM_le) && arity == 1 )
   { term_t a = PL_new_term_ref();
     long val, min, max;
