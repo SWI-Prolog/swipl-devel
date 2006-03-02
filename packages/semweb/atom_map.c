@@ -519,6 +519,7 @@ destroy_atom_map(term_t handle)
   m->magic = 0;
   destroy_lock(&m->lock);
   avl_destroy(&m->tree);
+  free(m);
 
   return TRUE;
 }
