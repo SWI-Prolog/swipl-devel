@@ -245,6 +245,25 @@ installed, programs can be linked using the \program{plld} command
 described in the manual.
 
 
+\section{Known problems}
+
+\begin{itemlist}
+    \item [XPCE keyboard lockup]
+It is known that XPCE keyboard input locks up on some keys on some
+international keyboard layouts.  The problem is related to XIM
+(X Input Method), but it is unclear what is going wrong and whether
+the problem is with the MacOS port of X11 or XPCE.
+
+    \item [XPCE programs do not open]
+A problem has been reported where starting XPCE programs, including the
+IDE components such as help, PceEmacs, etc. causes the program to hang.
+In the end, it turned out the fontconfig/freetype library used by XPCE
+to render Unicode fonts builds a database on first invocation. This
+process can take several minutes. Ones created, XPCE applications start
+quickly.
+\end{itemlist}
+
+
 \section{The SWI-Prolog community and foundation}
 
 \subsection{Web-site and mailinglists}

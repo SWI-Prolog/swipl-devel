@@ -51,11 +51,12 @@ other Prolog related material.
 <LI><A HREF="#sec:3.4">3.4 Some useful commands</A>
 </UL>
 <LI><A HREF="#sec:4"><B>4 Using SWI-Prolog with C/C++</B></A>
-<LI><A HREF="#sec:5"><B>5 The SWI-Prolog community and foundation</B></A>
+<LI><A HREF="#sec:5"><B>5 Known problems</B></A>
+<LI><A HREF="#sec:6"><B>6 The SWI-Prolog community and foundation</B></A>
 <UL>
-<LI><A HREF="#sec:5.1">5.1 Web-site and mailinglists</A>
-<LI><A HREF="#sec:5.2">5.2 About license conditions</A>
-<LI><A HREF="#sec:5.3">5.3 Supporting SWI-Prolog</A>
+<LI><A HREF="#sec:6.1">6.1 Web-site and mailinglists</A>
+<LI><A HREF="#sec:6.2">6.2 About license conditions</A>
+<LI><A HREF="#sec:6.3">6.3 Supporting SWI-Prolog</A>
 </UL>
 </UL>
 
@@ -305,9 +306,29 @@ environment, providing <B>gcc</B>. If all paths are properly installed,
 programs can be linked using the <B>plld</B> command described in the 
 manual.
 
-<H2><A NAME="sec:5">5 The SWI-Prolog community and foundation</A></H2>
+<H2><A NAME="sec:5">5 Known problems</A></H2>
 
-<H3><A NAME="sec:5.1">5.1 Web-site and mailinglists</A></H3>
+<P>
+<UL>
+<LI><I>XPCE keyboard lockup</I><BR>
+It is known that XPCE keyboard input locks up on some keys on some 
+international keyboard layouts. The problem is related to XIM (X Input 
+Method), but it is unclear what is going wrong and whether the problem 
+is with the MacOS port of X11 or XPCE.
+
+<P>
+<LI><I>XPCE programs do not open</I><BR>
+A problem has been reported where starting XPCE programs, including the 
+IDE components such as help, PceEmacs, etc. causes the program to hang. 
+In the end, it turned out the fontconfig/freetype library used by XPCE 
+to render Unicode fonts builds a database on first invocation. This 
+process can take several minutes. Ones created, XPCE applications start 
+quickly.
+</UL>
+
+<H2><A NAME="sec:6">6 The SWI-Prolog community and foundation</A></H2>
+
+<H3><A NAME="sec:6.1">6.1 Web-site and mailinglists</A></H3>
 
 <P>The SWI-Prolog web-site is located at <A HREF="http://www.swi-prolog.org/">http://www.swi-prolog.org/</A>. 
 Part of the web is powered by <A HREF="http://twiki.org/">TWiki</A>, a
@@ -317,7 +338,7 @@ the archive of the mailinglist and allows to (de)register the
 mailinglist. Finally, it incorporates Bugzilla, the Mozilla project 
 bugtracking system, for reporting bugs and tracking issues.
 
-<H3><A NAME="sec:5.2">5.2 About license conditions</A></H3>
+<H3><A NAME="sec:6.2">6.2 About license conditions</A></H3>
 
 <P>The SWI-Prolog license allows it to be used in a wide variety of 
 environments, including closed-source commercial applications. In 
@@ -340,7 +361,7 @@ covered by the GNU General Public License.
 <P>This exception is a proven construct used for <EM>libgcc</EM>, the 
 GNU C-compiler runtime library.
 
-<H3><A NAME="sec:5.3">5.3 Supporting SWI-Prolog</A></H3>
+<H3><A NAME="sec:6.3">6.3 Supporting SWI-Prolog</A></H3>
 
 <P>There are several ways to support SWI-Prolog:
 
@@ -384,7 +405,7 @@ waiting for the <font size=-1>RETURN</font> key.
 <A HREF="#idx:edit1:2">3.3</A>
 <DT><STRONG>F</STRONG><DD>
 <DT>file_search_path/2<DD>
-<A HREF="#idx:filesearchpath2:5">5.3</A>
+<A HREF="#idx:filesearchpath2:5">6.3</A>
 <DT><STRONG>G</STRONG><DD>
 <DT><A HREF="#gtrace/0">gtrace/0</A><DD>
 <DT><STRONG>H</STRONG><DD>
