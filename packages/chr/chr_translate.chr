@@ -1994,7 +1994,8 @@ generate_attach_code(Constraints,[Enumerate|L]) :-
 	enumerate_stores_code(Constraints,Enumerate),
 	generate_attach_code(Constraints,L,T),
 	module_initializers(Initializers),
-	T = [('$chr_initialization' :- Initializers),(:- '$chr_initialization')].
+	prolog_global_variables_code(PrologGlobalVariables),
+	T = [('$chr_initialization' :- Initializers),(:- '$chr_initialization')|PrologGlobalVariables].
 
 generate_attach_code([],L,L).
 generate_attach_code([C|Cs],L,T) :-
@@ -2021,6 +2022,7 @@ multi_store_generate_attach_code([ST|STs],C,L,T) :-
 multi_hash_store_initialisations([],_,L,L).
 multi_hash_store_initialisations([Index|Indexes],FA,L,T) :-
 	multi_hash_store_name(FA,Index,StoreName),
+	prolog_global_variable(StoreName),
 	make_init_store_goal(StoreName,HT,InitStoreGoal),
 	module_initializer((new_ht(HT),InitStoreGoal)),
 %% 	module_initializer((new_ht(HT),nb_setval(StoreName,HT))),
@@ -2029,12 +2031,14 @@ multi_hash_store_initialisations([Index|Indexes],FA,L,T) :-
 
 global_ground_store_initialisation(C,L,T) :-
 	global_ground_store_name(C,StoreName),
+	prolog_global_variable(StoreName),
 	make_init_store_goal(StoreName,[],InitStoreGoal),
 	module_initializer(InitStoreGoal),
 %% 	module_initializer(nb_setval(StoreName,[])),
 	L = T.
 global_singleton_store_initialisation(C,L,T) :-
 	global_singleton_store_name(C,StoreName),
+	prolog_global_variable(StoreName),
 	make_init_store_goal(StoreName,[],InitStoreGoal),
 	module_initializer(InitStoreGoal),
 %% 	module_initializer(nb_setval(StoreName,[])),
@@ -2103,6 +2107,38 @@ global_ground_store_name(F/A,Name) :-
 global_singleton_store_name(F/A,Name) :-
 	get_target_module(Mod),		
 	atom_concat_list(['$chr_store_global_singleton_',Mod,(:),F,(/),A],Name).
+
+:- chr_constraint
+	prolog_global_variable/1,
+	prolog_global_variables/1.
+
+:- chr_option(mode,prolog_global_variable(+)).
+:- chr_option(mode,prolog_global_variable(2)).
+
+prolog_global_variable(Name) \ prolog_global_variable(Name) <=> true.
+
+prolog_global_variables(List), prolog_global_variable(Name) <=> 
+	List = [Name|Tail],
+	prolog_global_variables(Tail).
+prolog_global_variables(List) <=> List = [].
+
+prolog_global_variables_code(Code) :-
+	prolog_global_variables(Names),
+	( Names == [] ->
+		Code = []
+	;
+		findall('$chr_prolog_global_variable'(Name),member(Name,Names),NameDeclarations),
+		Code = [(:- dynamic user:exception/3),
+			(:- multifile user:exception/3),
+			user:exception(undefined_global_variable,Name,retry) :-
+			(
+				'$chr_prolog_global_variable'(Name),
+				'$chr_initialization'
+			)
+	       		|
+			NameDeclarations
+			]
+	).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 enumerate_stores_code(Constraints,Clause) :-
 	Head = '$enumerate_suspensions'(Susp),

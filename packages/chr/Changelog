@@ -1,9 +1,8 @@
 Mar 2, 2006
 
   * TS: Use exception/3 hook to catch undefined 
-        global variables of chr_runtime.pl,
+        global variables of chr_runtime.pl and CHR modules,
 	for multi-threaded programs and saved states.
-	Global variables in CHR modules still to do.
 
 Feb 9, 2006
 
