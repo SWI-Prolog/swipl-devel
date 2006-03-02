@@ -66,9 +66,9 @@ handle_option(Name,Value) :-
 
 option_definition(optimize,experimental,Flags) :-
 	Flags = [ functional_dependency_analysis  - on,
-                  check_unnecessary_active - off,
+                  check_unnecessary_active - full,
 		  reorder_heads		   - on,
-		  set_semantics_rule	   - off,
+		  set_semantics_rule	   - on,
 		  storage_analysis	   - on,
 		  guard_via_reschedule     - on,
 		  guard_simplification	   - on,
@@ -77,7 +77,8 @@ option_definition(optimize,experimental,Flags) :-
 		  observation		   - on,
 		  ai_observation_analysis  - on,
 		  late_allocation	   - on,
-		  reduced_indexing	   - on
+		  reduced_indexing	   - on,
+		  term_indexing		   - on
 		].
 option_definition(optimize,full,Flags) :-
 	Flags = [ functional_dependency_analysis  - on,
@@ -231,6 +232,11 @@ option_definition(toplevel_show_store,on,Flags) :-
 option_definition(toplevel_show_store,off,Flags) :-
 	Flags = [toplevel_show_store - off].
 
+option_definition(term_indexing,on,Flags) :-
+	Flags = [term_indexing - on].
+optioff_definitioff(term_indexing,off,Flags) :-
+	Flags = [term_indexing - off].
+
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),
 	set_chr_pp_flag(Name,DefaultValue),
@@ -266,6 +272,7 @@ chr_pp_flag_definition(observation,[off,on]).
 chr_pp_flag_definition(show,[off,on]).
 chr_pp_flag_definition(solver_events,[none,_]).
 chr_pp_flag_definition(toplevel_show_store,[on,off]).
+chr_pp_flag_definition(term_indexing,[off,on]).
 
 chr_pp_flag(Name,Value) :-
 	atom_concat('$chr_pp_',Name,GlobalVar),

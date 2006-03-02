@@ -1,28 +1,25 @@
-<<<<<<< Changelog
-Feb 8, 2006
-  * BD: chr_swi.pl: option(optimize --> :- chr_option(optimize
+Mar 2, 2006
 
-Jan 19, 2006
-  * BD: chr_swi.pl - use_module(hprolog added for SICStus port
+  * TS: Use exception/3 hook to catch undefined 
+        global variables of chr_runtime.pl,
+	for multi-threaded programs and saved states.
+	Global variables in CHR modules still to do.
 
-=======
 Feb 9, 2006
 
   * JW: Fix "make check" path issues.
-
-Feb 10, 2006
-
   * TS: Removed all is_chr_file tests when loading file.
 
-Feb 9, 2006
+Feb 8, 2006
 
+  * BD: chr_swi.pl: option(optimize --> :- chr_option(optimize
   * TS: Removed obsolete experimental optimization option.
   * TS: Correctly report variable pragmas!
   * TS: No constraints declared is no longer a special case.
 
->>>>>>> 1.51
 Jan 19, 2006
 
+  * BD: chr_swi.pl - use_module(hprolog added for SICStus port
   * TS: Removed operator declaration for '::'. No longer used.
 
 Dec 23, 2005

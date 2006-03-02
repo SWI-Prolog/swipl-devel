@@ -168,7 +168,6 @@
 :- chr_option(debug,off).
 :- chr_option(optimize,full).
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- chr_constraint 
 	target_module/1,			% target_module(Module)
@@ -570,12 +569,12 @@ partition_clauses([C|Cs],Ds,Rs,OCs) :-
       Rs = RRs,
       OCs = ROCs
   ;   C = (handler _) ->
-      chr_warning(deprecated(C),'SICStus compatibility: ignoring handler/1 declaration.\n',[]),
+      chr_warning(deprecated(C),'Backward compatibility: ignoring handler/1 declaration.\n',[]),
       Ds = RDs,
       Rs = RRs,
       OCs = ROCs
   ;   C = (rules _) ->
-      chr_warning(deprecated(C),'SICStus compatibility: ignoring rules/1 declaration.\n',[]),
+      chr_warning(deprecated(C),'Backward compatibility: ignoring rules/1 declaration.\n',[]),
       Ds = RDs,
       Rs = RRs,
       OCs = ROCs
@@ -606,13 +605,9 @@ is_declaration(D, Constraints) :-		%% constraint declaration
 			D =.. [constraints,Cs]
 		),
   		conj2list(Cs,Constraints0),
-		( length(Constraints0,1) ->
-			chr_warning(deprecated(D),'Instead use :- chr_constraint ~w.\n',[Cs])
-		;
-			chr_warning(deprecated(D),'Instead use :- chr_constraint ~w.\n',[Cs])
-		)
+		chr_warning(deprecated(D),'Instead use :- chr_constraint ~w.\n',[Cs])
 	),
-  extract_type_mode(Constraints0,Constraints).
+	extract_type_mode(Constraints0,Constraints).
 
 extract_type_mode([],[]).
 extract_type_mode([F/A|R],[F/A|R2]) :- !,extract_type_mode(R,R2).
@@ -857,7 +852,27 @@ check_rule_indexing(PragmaRule) :-
 	term_variables(H1-H2,HeadVars),
 	remove_anti_monotonic_guards(G,HeadVars,NG),
 	check_indexing(H1,NG-H2),
-	check_indexing(H2,NG-H1).
+	check_indexing(H2,NG-H1),
+	% EXPERIMENT
+	( chr_pp_flag(term_indexing,on) -> 
+		term_variables(G,GuardVariables),
+		append(H1,H2,Heads),
+		check_specs_indexing(Heads,GuardVariables,Specs)
+	;
+		true
+	).
+
+:- chr_constraint
+	indexing_spec/2,
+	get_indexing_spec/2.
+
+indexing_spec(FA,Spec) \ get_indexing_spec(FA,R) <=> R = Spec.
+get_indexing_spec(_,Spec) <=> Spec = [].
+
+indexing_spec(FA,Specs1), indexing_spec(FA,Specs2)
+	<=>
+		append(Specs1,Specs2,Specs),
+		indexing_spec(FA,Specs).
 
 remove_anti_monotonic_guards(G,Vars,NG) :-
 	conj2list(G,GL),
@@ -901,6 +916,44 @@ check_indexing([Arg|Args],I,FA,OtherVars) :-
 	term_variables(Arg,NVars),
 	append(NVars,OtherVars,NOtherVars),
 	check_indexing(Args,J,FA,NOtherVars).	
+
+check_specs_indexing([],_,[]).
+check_specs_indexing([Head|Heads],Variables,Specs) :-
+	Specs = [Spec|RSpecs],
+	term_variables(Heads,OtherVariables,Variables),
+	check_spec_indexing(Head,OtherVariables,Spec),
+	term_variables(Head,NVariables,Variables),
+	check_specs_indexing(Heads,NVariables,RSpecs).
+
+check_spec_indexing(Head,OtherVariables,Spec) :-
+	functor(Head,F,A),
+	Spec = spec(F,A,ArgSpecs),
+	Head =.. [_|Args],
+	check_args_spec_indexing(Args,1,OtherVariables,ArgSpecs),
+	indexing_spec(F/A,[ArgSpecs]).
+
+check_args_spec_indexing([],_,_,[]).
+check_args_spec_indexing([Arg|Args],I,OtherVariables,ArgSpecs) :-
+	term_variables(Args,Variables,OtherVariables),
+	( check_arg_spec_indexing(Arg,I,Variables,ArgSpec) ->
+		ArgSpecs = [ArgSpec|RArgSpecs]
+	;
+		ArgSpecs = RArgSpecs
+	),
+	J is I + 1,
+	term_variables(Arg,NOtherVariables,OtherVariables),
+	check_args_spec_indexing(Args,J,NOtherVariables,RArgSpecs).
+
+check_arg_spec_indexing(Arg,I,Variables,ArgSpec) :-
+	( var(Arg) ->
+		memberchk_eq(Arg,Variables),
+		ArgSpec = specinfo(I,any,[])
+	;
+		functor(Arg,F,A),
+		ArgSpec = specinfo(I,F/A,[ArgSpecs]),
+		Arg =.. [_|Args],
+		check_args_spec_indexing(Args,1,Variables,ArgSpecs)
+	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1315,15 +1368,20 @@ generate_indexed_variables_clauses_([C|Cs],Clauses) :-
 %-------------------------------------------------------------------------------
 constraint_mode(F/A,ArgModes) \ generate_indexed_variables_clause(F/A,Clause) <=>
 	functor(Term,F,A),
-	Term =.. [_|Args],
-	create_indexed_variables_body(Args,ArgModes,Vars,1,F/A,MaybeBody,N),
-	( MaybeBody == empty ->
-	
-		Body = (Vars = [])
-	; N == 0 ->
-		Body = term_variables(Susp,Vars)
-	; 
-		MaybeBody = Body
+	get_indexing_spec(F/A,Specs),
+	( chr_pp_flag(term_indexing,on) ->
+		spectermvars(Specs,Term,F,A,Body,Vars)
+	;
+		Term =.. [_|Args],
+		create_indexed_variables_body(Args,ArgModes,Vars,1,F/A,MaybeBody,N),
+		( MaybeBody == empty ->
+		
+			Body = (Vars = [])
+		; N == 0 ->
+			Body = term_variables(Susp,Vars)
+		; 
+			MaybeBody = Body
+		)
 	),
 	Clause = 
 		( '$indexed_variables'(Susp,Vars) :-
@@ -1351,6 +1409,86 @@ create_indexed_variables_body([V|Vs],[Mode|Modes],Vars,I,FA,Body,N) :-
 		Body = RBody,
 		N is M + 1
 	).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% EXPERIMENTAL
+spectermvars(Specs,Term,F,A,Goal,Vars) :-
+	Term =.. [_|Args],
+	spectermvars(Args,1,Specs,F,A,Vars,[],Goal).	
+
+spectermvars([],B,_,_,A,L,L,true) :- B > A, !.
+spectermvars([Arg|Args],I,Specs,F,A,L,T,Goal) :-
+	Goal = (ArgGoal,RGoal),
+	argspecs(Specs,I,TempArgSpecs,RSpecs),
+	merge_argspecs(TempArgSpecs,ArgSpecs),
+	arggoal(ArgSpecs,Arg,ArgGoal,L,L1),
+	J is I + 1,
+	spectermvars(Args,J,RSpecs,F,A,L1,T,RGoal).
+
+argspecs([],_,[],[]).
+argspecs([[]|Rest],I,ArgSpecs,RestSpecs) :-
+	argspecs(Rest,I,ArgSpecs,RestSpecs).
+argspecs([[specinfo(J,Spec,Args)|Specs]|Rest],I,ArgSpecs,RestSpecs) :-
+	( I == J ->
+		ArgSpecs = [specinfo(J,Spec,Args)|RArgSpecs],
+		( Specs = [] ->	
+			RRestSpecs = RestSpecs
+		;
+			RestSpecs = [Specs|RRestSpecs]
+		)
+	;
+		ArgSpecs = RArgSpecs,
+		RestSpecs = [[specinfo(J,Spec,Args)|Specs]|RRestSpecs]
+	),
+	argspecs(Rest,I,RArgSpecs,RRestSpecs).
+
+merge_argspecs(In,Out) :-
+	sort(In,Sorted),
+	merge_argspecs_(Sorted,Out).
+	
+merge_argspecs_([],[]).
+merge_argspecs_([X],R) :- !, R = [X].
+merge_argspecs_([specinfo(I,F1,A1),specinfo(I,F2,A2)|Rest],R) :-
+	( (F1 == any ; F2 == any) ->
+		merge_argspecs_([specinfo(I,any,[])|Rest],R)	
+	; F1 == F2 ->
+		append(A1,A2,A),
+		merge_argspecs_([specinfo(I,F1,A)|Rest],R)	
+	;
+		R = [specinfo(I,F1,A1)|RR],
+		merge_argspecs_([specinfo(I,F2,A2)|Rest],RR)
+	).
+
+arggoal(List,Arg,Goal,L,T) :-
+	( List == [] ->
+		L = T,
+		Goal = true
+	; List = [specinfo(_,any,_)] ->
+		Goal = term_variables(Arg,L,T)
+	;
+		Goal =
+		( var(Arg) ->
+			L = [Arg|T]
+		;
+			Cases
+		),
+		arggoal_cases(List,Arg,L,T,Cases)
+	).
+
+arggoal_cases([],_,L,T,L=T).
+arggoal_cases([specinfo(_,FA,ArgSpecs)|Rest],Arg,L,T,Cases) :-
+	( ArgSpecs == [] ->
+		Cases = RCases
+	; ArgSpecs == [[]] ->
+		Cases = RCases
+	; FA = F/A ->
+		Cases = (Case ; RCases),
+		functor(Term,F,A),
+		Term =.. [_|Args],
+		Case = (Arg = Term -> ArgsGoal),
+		spectermvars(Args,1,ArgSpecs,F,A,L,T,ArgsGoal)
+	),
+	arggoal_cases(Rest,Arg,L,T,RCases).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 generate_extra_clauses(Constraints,List) :-
 	generate_activate_clause(List,Tail0),
@@ -3045,6 +3183,7 @@ constraints_code(Constraints,Clauses) :-
 %===============================================================================
 :- chr_constraint constraints_code1/3.
 :- chr_option(mode,constraints_code1(+,+,+)).
+:- chr_option(type_declaration,constraints_code(list,any,any)).
 %-------------------------------------------------------------------------------
 constraints_code1([],L,T) <=> L = T.
 constraints_code1([C|RCs],L,T) 

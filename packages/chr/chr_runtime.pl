@@ -141,6 +141,18 @@
 %   I N I T I A L I S A T I O N
 
 %% SWI begin
+:- dynamic user:exception/3.
+:- multifile user:exception/3.
+
+user:exception(undefined_global_variable, Name, retry) :-
+	chr_runtime_global_variable(Name),
+	chr_init.
+
+chr_runtime_global_variable(id).
+chr_runtime_global_variable(chr_global).
+chr_runtime_global_variable(chr_debug).
+chr_runtime_global_variable(chr_debug_history).
+
 chr_init :-
 	nb_setval(id,0),
 	nb_setval(chr_global,_),
