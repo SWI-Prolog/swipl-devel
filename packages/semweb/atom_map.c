@@ -90,6 +90,7 @@ static atom_t	 ATOM_prefix;
 static atom_t	 ATOM_le;
 static atom_t	 ATOM_ge;
 static atom_t	 ATOM_between;
+static atom_t	 ATOM_key;
 
 #define MKFUNCTOR(n,a) \
 	FUNCTOR_ ## n ## a = PL_new_functor(PL_new_atom(#n), a)
@@ -108,6 +109,7 @@ init_functors()
   MKATOM(le);
   MKATOM(ge);
   MKATOM(between);
+  MKATOM(key);
 }
 
 
@@ -533,9 +535,11 @@ destroy_atom_map(term_t handle)
   if ( !get_atom_map(handle, &m) )
     return FALSE;
 
-  m->magic = 0;
-  destroy_lock(&m->lock);
+  WRLOCK(m, FALSE);
   avl_destroy(&m->tree);
+  m->magic = 0;
+  WRUNLOCK(m);
+  destroy_lock(&m->lock);
   free(m);
 
   return TRUE;
@@ -809,6 +813,24 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
 
     if ( !unify_keys(head, tail, node) )
       goto failure;
+  } else if ( name == ATOM_key && arity == 1 )
+  { term_t a = PL_new_term_ref();
+    datum d;
+    avl_node *node;
+
+    PL_get_arg(1, spec, a);
+    if ( !get_datum(a, &d) )
+      goto failure;
+
+    if ( (node = avl_find_node_atom(&map->tree, d)) )
+    { atom_set *as = node->value;
+      int size = as->size;
+
+      RDUNLOCK(map);
+      assert(size > 0);
+
+      return PL_unify_integer(keys, size);
+    }
   } else if ( name == ATOM_prefix && arity == 1 )
   { term_t a = PL_new_term_ref();
     atom_t prefix, first_a;

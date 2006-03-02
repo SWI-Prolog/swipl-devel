@@ -111,6 +111,7 @@ Currently the following indexing is provided.
 \end{itemize}
 
 \subsection{Query the RDF database}
+\label{sec:rdfquery}
 
 \begin{description}
     \predicate{rdf}{3}{?Subject, ?Predicate, ?Object}
@@ -1049,24 +1050,101 @@ Major + 100 \times Minor + Patch$.
 \end{description}
 
 
+\subsection{Literal maps: Creating additional indices on literals}
+\label{sec:rdflitmap}
+
+`Literal maps' provide a relation between literal values, intended to
+create additional indexes on literals. The current implementation can
+only deal with integers and atoms (string literals). A literal map
+maintains an ordered set of \jargon{keys}. The ordering uses the same
+rules as described in \secref{litindex}. Each key is associated with an
+ordered set of \jargon{values}. Literal map objects can be shared
+between threads, using a locking strategy that allows for multiple
+concurrent readers.
+
+Typically, this module is used together with rdf_monitor/2 on the
+channals \const{new_literal} and \const{old_literal} to index an index
+of words that appear in a literal. Further abstraction using Porter
+stemming or Metaphone can be used to create additional search indices.
+These can map either directly to the literal values, or indirectly to
+the plain word-map. The SWI-Prolog NLP package provides complimentary
+building blocks, such as a tokenizer, Porter stem and Double Metaphone.
+
+
+\begin{description}
+    \predicate{rdf_new_literal_map}{1}{-Map}
+Create a new literal map, returning an opaque handle.
+
+    \predicate{rdf_destroy_literal_map}{1}{+Map}
+Destroy a literal map. After this call, further use of the \arg{Map}
+handle  is illegal.  Additional synchronisation is needed if maps that
+are shared between threads are destroyed to guarantee the handle is
+no longer used.
+
+    \predicate{rdf_insert_literal_map}{3}{+Map, +Key, +Value}
+Add a relation between \arg{Key} and \arg{Value} to the map.  If
+this relation already exists no action is performed.
+
+    \predicate{rdf_delete_literal_map}{2}{+Map, +Key}
+Delete \arg{Key} and all associated values from the map.  Succeeds
+always.
+
+    \predicate{rdf_delete_literal_map}{2}{+Map, +Key, +Value}
+Delete the association between \arg{Key} and \arg{Value} from the map.
+Succeeds always.
+
+    \predicate{rdf_find_literal_map}{3}{+Map, +KeyList, -ValueList}
+Unify \arg{ValueList} with an ordered set of values associated to
+all keys from \arg{KeyList}.  I.e.\ perform an \jargon{intersection}
+of the value-sets associated with the keys.
+
+    \predicate{rdf_keys_in_literal_map}{3}{+Map, +Spec, -Answer}
+Realises various queries on the key-set:
+
+    \begin{description}
+	\termitem{all}{}
+Unify \arg{Answer} with an ordered list of all keys.
+
+	\termitem{key}{+Key}
+Succeeds if \arg{Key} is a key in the map and unify \arg{Answer}
+with the number of values associated with the key.  This provides
+a fast test of existence without fetching the possibly large associated
+value set as with rdf_find_literal_map/3.
+
+	\termitem{prefix}{+Prefix}
+Unify \arg{Answer} with an ordered set of all keys that have the
+given prefix.  See \secref{rdfquery} for details on prefix matching.
+\arg{Prefix} must be an atom. This call is intended for auto-completion
+in user interfaces.
+
+	\termitem{ge}{+Min}
+Unify \arg{Answer} with all keys that are larger or equal to the 
+integer \arg{Min}.
+
+	\termitem{le}{+Max}
+Unify \arg{Answer} with all keys that are smaller or equal to the 
+integer \arg{Max}.
+
+
+	\termitem{between}{+Min, +Max}
+Unify \arg{Answer} with all keys between \arg{Min} and \arg{Max}
+(including).
+    \end{description}
+\end{description}
+
+
 \subsection{Issues with rdf_db}				\label{sec:rdfissues}
 
 This RDF low-level module has been created after two year experimenting
 with a plain Prolog based module and a brief evaluation of a second
 generation pure Prolog implementation. The aim was to be able to handle
-upto about 2 million triples on standard (notebook) hardware and deal
+upto about 5 million triples on standard (notebook) hardware and deal
 efficiently with \const{subPropertyOf} which was identified as a crucial
 feature of RDFS to realise fusion of different data-sets.
 
 The following issues are identified and not solved in suitable manner.
 
 \begin{description}
-    \item [Logical update] as provided by Prolog means that active queries
-are not affected by subsequent modification of the database. The current
-C-based implementation adheres the \jargon{immediate} update model,
-mainly because the current foreign language interface does not provide
-the required information to realise logical updates in C.
-
     \item [\const{subPropertyOf} of \const{subPropertyOf}] is not
 supported.
 

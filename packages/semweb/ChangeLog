@@ -1,3 +1,8 @@
+Mar 2, 2006
+
+  * Documented first version of literal maps, providing additional indexing
+    on literal values.
+
 Feb 28, 2006
 
   * Modularization
