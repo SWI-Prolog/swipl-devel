@@ -1079,7 +1079,11 @@ Create a new literal map, returning an opaque handle.
 Destroy a literal map. After this call, further use of the \arg{Map}
 handle  is illegal.  Additional synchronisation is needed if maps that
 are shared between threads are destroyed to guarantee the handle is
-no longer used.
+no longer used.  In some scenarios rdf_reset_literal_map/1
+provides a safe alternative.
+
+    \predicate{rdf_reset_literal_map}{1}{+Map}
+Delete all content from the literal map.  
 
     \predicate{rdf_insert_literal_map}{3}{+Map, +Key, +Value}
 Add a relation between \arg{Key} and \arg{Value} to the map.  If

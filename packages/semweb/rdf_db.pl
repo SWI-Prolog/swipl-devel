@@ -103,6 +103,7 @@
 
 	    rdf_new_literal_map/1,	% -Handle
 	    rdf_destroy_literal_map/1,	% +Handle
+	    rdf_reset_literal_map/1,	% +Handle
 	    rdf_insert_literal_map/3,	% +Handle, +Key, +Literal
 	    rdf_delete_literal_map/3,	% +Handle, +Key, +Literal
 	    rdf_delete_literal_map/2,	% +Handle, +Key
