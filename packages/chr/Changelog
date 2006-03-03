@@ -1,3 +1,6 @@
+Mar 3, 2006
+  * BD: lots of changes related to porting to SICStus
+
 Mar 2, 2006
 
   * TS: Use exception/3 hook to catch undefined 
