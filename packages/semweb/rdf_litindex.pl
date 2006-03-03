@@ -37,7 +37,6 @@
 :- use_module(rdf_db).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
-:- use_module(library(ordsets)).
 :- use_module(library(porter_stem)).
 :- use_module(library(double_metaphone)).
 
@@ -95,8 +94,9 @@ set_option(Term) :-
 rdf_find_literals(Spec, Literals) :-
 	compile_spec(Spec, DNF),
 	token_index(Map),
-	lookup(DNF, Map, Sets),
-	ord_union(Sets, Literals).
+	lookup(DNF, Map, SuperSet),
+	flatten(SuperSet, Set0),
+	sort(Set0, Literals).
 
 lookup(false, _, []) :- !.
 lookup(or(H0,T0), Map, [H|T]) :- !,
@@ -107,8 +107,7 @@ lookup(H0, Map, [H]) :-
 	
 lookup1(Conj, Map, Literals) :-
 	phrase(conj_to_list(Conj), List),
-	rdf_find_literal_map(Map, List, Literals0),
-	sort(Literals0, Literals).	% TBD: Semweb order is different!
+	rdf_find_literal_map(Map, List, Literals).
 
 conj_to_list(and(A,B)) --> !,
 	conj_to_list(A),
@@ -196,19 +195,6 @@ dnf1(and(or(B,C), A0), or(P,Q)) :- !,
 	dnf1(and(A0,B), P),
 	dnf1(and(A0,C), Q).
 dnf1(DNF, DNF).
-
-
-%	ord_union(+ListOfSets, -Union)
-%	
-%	Should eventually use a  comparison   predicate  from the rdf_db
-%	library, so we do not need to go from semweb literal ordering to
-%	Prolog standard order of terms first.
-
-ord_union([], []).
-ord_union([X], [X]) :- !.
-ord_union([H1,H2|T], Union) :-
-	ord_union(H1, H2, H),
-	ord_union([H|T], Union).
 
 
 		 /*******************************
