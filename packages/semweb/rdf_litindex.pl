@@ -1,3 +1,35 @@
+/*  $Id$
+
+    Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 2006, University of Amsterdam
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+*/
+
+
 :- module(rdf_litindex,
 	  [ rdf_literal_index/1,	% +Options
 	    rdf_find_literals/2		% +Spec, -ListOfLiterals
@@ -174,11 +206,7 @@ add_tokens([H|T], Literal, Map) :-
 	    ;   forall(new_token(H), true)
 	    ),
 	    rdf_insert_literal_map(Map, H, Literal),
-	    rdf_statistics_literal_map(Map, size(Keys, Values)),
-	    (   Keys mod 1000 =:= 0
-	    ->  verbose('\rKeys: ~t~D~15|~tValues: ~D~35|', [Keys, Values])
-	    ;   true
-	    )
+	    progress(Map, 'Tokens')
 	),
 	add_tokens(T, Literal, Map).
 
@@ -258,6 +286,7 @@ stem([], _).
 stem([Token|T], Map) :-
 	porter_stem(Token, Stem),
 	rdf_insert_literal_map(Map, Stem, Token),
+	progress(Map, 'Porter'),
 	stem(T, Map).
 	       
 
@@ -282,13 +311,14 @@ metaphone_index(Map) :-
 fill_metaphone_index(PorterMap) :-
 	token_index(TokenMap),
 	rdf_keys_in_literal_map(TokenMap, all, Tokens),
-	stem(Tokens, PorterMap).
+	metaphone(Tokens, PorterMap).
 
-stem([], _).
-stem([Token|T], Map) :-
+metaphone([], _).
+metaphone([Token|T], Map) :-
 	double_metaphone(Token, SoundEx),
 	rdf_insert_literal_map(Map, SoundEx, Token),
-	stem(T, Map).
+	progress(Map, 'Metaphone'),
+	metaphone(T, Map).
 	       
 
 add_metaphone(Token, Map) :-
@@ -305,3 +335,13 @@ verbose(Fmt, Args) :-
 	format(user_error, Fmt, Args).
 verbose(_, _).
 
+progress(Map, Which) :-
+	setting(verbose(true)), !,
+	rdf_statistics_literal_map(Map, size(Keys, Values)),
+	(   Keys mod 1000 =:= 0
+	->  format(user_error,
+		   '\r~w: Keys: ~t~D~15|~tValues: ~D~35|',
+		   [Which, Keys, Values])
+	;   true
+	).
+progress(_,_).
