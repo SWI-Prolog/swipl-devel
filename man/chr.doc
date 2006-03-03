@@ -284,9 +284,9 @@ never load different \fileext{pl} files with the same CHR module name.
 \subsection{Constraint declaration}
 
 Every constraint used in CHR rules has to be declared with a
-\predref{chr\_constraint}{1}. declaration by the {\em constraint
+chr_constraint/1. declaration by the {\em constraint
 specifier}. For convenience multiple consttraints may be declared at once with
-the same \predref{chr\_constraint} declaration followed by a comma-separated
+the same \predref{chr_constraint} declaration followed by a comma-separated
 list of constraint specifiers.
 
 A constraint specifier is, in its compact form, \texttt{$F$/$A$} where $F$ and $A$ are respectively
@@ -334,7 +334,7 @@ The built-in types are:
 	of the constraint can have any type. This is the default value.
 	\end{description}
 
-A user-defined type is defined with a \predref{chr\_type}{1} declaration. For example, types
+A user-defined type is defined with a chr_type/1 declaration. For example, types
 for lists, trees and colors are defined as:
 \begin{code}
 :- chr_type list(T) ---> [] ; [T|list(T)].
@@ -345,10 +345,11 @@ for lists, trees and colors are defined as:
 \subsection{Compilation}
 %--------------------
 
-The SWI-Prolog CHR compiler exploits \predref{term\_expansion}{2} rules to translate the
-constraint handling rules to plain Prolog. These rules are loaded from the
-library \pllib{chr}. They are activated if the compiled file has the \fileext{chr}
-extension or after finding a declaration of the format below.
+The SWI-Prolog CHR compiler exploits term_expansion/2 rules to
+translate the constraint handling rules to plain Prolog. These rules are
+loaded from the library \pllib{chr}. They are activated if the compiled
+file has the \fileext{chr} extension or after finding a declaration of
+the format below.
 
 \begin{code}
 :- chr_constraint ...
@@ -511,7 +512,7 @@ Here are two example constraint solvers written in CHR.
 \begin{itemize}
     \item
 The program below defines a solver with one constraint, 
-\predref{leq}{2}, which is a less-than-or-equal constraint, also known as
+leq/2, which is a less-than-or-equal constraint, also known as
 a partial order constraint.
 
 \begin{code}
@@ -526,7 +527,7 @@ transitivity @ leq(X,Y), leq(Y,Z) ==> leq(X,Z).
 \end{code}
 
 When the above program is saved in a file and loaded in SWI-Prolog, you can
-call the \predref{leq}{2} constraints in a query, e.g.:
+call the leq/2 constraints in a query, e.g.:
 \begin{code}
 ?- leq(X,Y), leq(Y,Z).
 leq(_G23837, _G23841)
@@ -561,7 +562,7 @@ dom(X,L1), dom(X,L2) <=> intersection(L1,L2,L3), dom(X,L3).
 \end{code}
 
 When the above program is saved in a file and loaded in SWI-Prolog, you can
-call the \predref{dom}{2} constraints in a query, e.g.:
+call the dom/2 constraints in a query, e.g.:
 
 \begin{code}	
 ?- dom(A,[1,2,3]), dom(A,[3,4,5]).
@@ -588,30 +589,30 @@ Besides differences in available options and pragmas, the following differences
 should be noted:
 
 \begin{itemlist}
-        \item [The \predref{constraints}{1} declaration]
+        \item [The constraints/1 declaration]
 This declaration is deprecated. It has been replaced with the
-\predref{chr_constraint}{1} declaration.
+chr_constraint/1 declaration.
 
-        \item [The \predref{option}{2} declaration]
+        \item [The option/2 declaration]
 This declaration is deprecated. It has been replaced with the
-\predref{chr_option}{2} declaration.
+chr_option/2 declaration.
 
-        \item [The \predref{handler}{1} declaration]
-In SICStus every CHR module requires a \predref{handler}{1}
+        \item [The handler/1 declaration]
+In SICStus every CHR module requires a handler/1
 declaration declaring a unique handler name. This declaration is valid
 syntax in SWI-Prolog, but will have no effect. A warning will be given
 during compilation.
 
-        \item [The \predref{rules}{1} declaration]
+        \item [The rules/1 declaration]
 In SICStus, for every CHR module it is possible to only enable a subset
-of the available rules through the \predref{rules}{1} declaration. The
+of the available rules through the rules/1 declaration. The
 declaration is valid syntax in SWI-Prolog, but has no effect. A
 warning is given during compilation.
 
 	\item [Guard bindings]
 The \texttt{check_guard_bindings} option only turns invalid calls to
 unification into failure. In SICStus this option does more: it intercepts
-instantiation errors from Prolog built-ins such as \predref{is}{2} and
+instantiation errors from Prolog built-ins such as is/2 and
 turns them into failure. In SWI-Prolog, we do not go this far, as we like
 to separate concerns more. The CHR comiler is aware of the CHR code, the Prolog
 system and programmer should be aware of the appropriate meaning of the
@@ -652,7 +653,7 @@ Does consulting your CHR program take a long time in SWI-Prolog? Probably
 it takes the CHR compiler a long time to compile the CHR rules into Prolog
 code. When you disable optimizations the CHR compiler will be a lot quicker,
 but you may loose performance. Alternatively, you can just use SWI-Prolog's
-\predref{qcompile}{1} to generate a \fileext{qlf} file once from your
+qcompile/1 to generate a \fileext{qlf} file once from your
 \fileext{pl} file. This fileext{qlf} contains the generated code of the
 CHR compiler (be it in a binary format). When you consult the \fileext{qlf}
 file, the CHR compiler is not invoked and consultation is much faster.

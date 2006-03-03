@@ -492,7 +492,7 @@ SWI-Prolog arithmetic uses the GNU GMP library to provided
 Adding GMP support is sponsored by Scientific Software and Systems
 Limited, \url{www.sss.co.nz}. This version also incorporates clp(r) by
 Christian Holzbaur, brought to SWI-Prolog by Tom Schrijvers and Leslie
-De Koninck (\secref{lib:clpr}).
+De Koninck (\secref{lib:clpqr}).
 
 \subsection{Version 5.6 Release Notes} \label{sec:rel-5.6}
 

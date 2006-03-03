@@ -37,6 +37,6 @@ documented at all.
 \input{registry}
 \input{url}
 \input{bounds}
-\input{clpr}
+\input{clpqr}
 \input{clpdistinct}
 \input{simplex}

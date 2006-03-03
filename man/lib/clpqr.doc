@@ -1,0 +1,214 @@
+\libdoc{clpqr}{Constraint Logic Programming over Rationals and Reals}
+\label{sec:lib:clpqr}
+
+\begin{quote}
+Author: \emph{Leslie De Koninck}, K.U. Leuven
+\end{quote}
+
+This CLP(Q,R) system is a port of the CLP(Q,R) system of Sicstus
+Prolog by Christian Holzbaur: Holzbaur C.: OFAI clp(q,r) Manual,
+Edition 1.3.3, Austrian Research Institute for Artificial Intelligence,
+Vienna, TR-95-09, 1995.%
+	\footnote{http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09}
+This manual is roughly based on the manual of the above mentioned CLP(Q,R)
+implementation.
+
+The CLP(Q,R) system consists of two components: the CLP(Q) library for handling
+constraints over the rational numbers and the CLP(R) library for handling
+constraints over the real numbers (using floating point numbers as
+representation). Both libraries offer the same predicates (with exception of
+\predref{bb_inf}{4} in CLP(Q) and \predref{bb_inf}{5} in CLP(R)). It is allowed
+to use both libraries in one program, but using both CLP(Q) and CLP(R)
+constraints on the same variable will result in an exception.
+
+Please note that the \pllib{clpqr} library is \emph{not} an
+\jargon{autoload} library and therefore this library must be loaded
+explicitely before using it:
+
+\begin{code}
+:- use_module(library(clpq)).
+\end{code}
+
+or
+
+\begin{code}
+:- use_module(library(clpr)).
+\end{code}
+
+\subsection{Solver predicates}
+%=============================
+
+The following predicates are provided to work with constraints:
+
+\begin{description}
+	\predicate{{}}{1}{+Constraints}
+Adds the constraints given by \arg{Constraints} to the constraint store.
+
+	\predicate{entailed}{1}{+Constraint}
+Succeeds if \arg{Constraint} is necessarily true within the current
+constraint store. This means that adding the negation of the constraint
+to the store results in failure.
+
+	\predicate{inf}{2}{+Expression, -Inf}
+Computes the infimum of \arg{Expression} within the current state of the
+constraint store and returns that infimum in \arg{Inf}. This predicate
+does not change the constraint store.
+
+	\predicate{sup}{2}{+Expression, -Sup}
+Computes the supremum of \arg{Expression} within the current state of
+the constraint store and returns that supremum in \arg{Sup}. This
+predicate does not change the constraint store.
+
+	\predicate{min}{1}{+Expression}
+Minimizes \arg{Expression} within the current constraint store. This is
+the same as computing the infimum and equation the expression to that
+infimum.
+
+	\predicate{max}{1}{+Expression}
+Maximizes \arg{Expression} within the current constraint store. This is
+the same as computing the supremum and equating the expression to that
+supremum.
+
+	\predicate{bb_inf}{5}{+Ints, +Expression, -Inf, -Vertex, +Eps}
+This predicate is offered in CLP(R) only. It computes the infimum of
+\arg{Expression} within the current constraint
+store, with the additional constraint that in that infimum, all
+variables in \arg{Ints} have integral values. \arg{Vertex} will contain
+the values of \arg{Ints} in the infimum. \arg{Eps} denotes how much a
+value may differ from an integer to be considered an integer. E.g.\ when
+\arg{Eps} = 0.001, then X = 4.999 will be considered as an integer (5 in
+this case). \arg{Eps} should be between 0 and 0.5.
+
+	\predicate{bb_inf}{5}{+Ints, +Expression, -Inf, -Vertex}
+This predicate is offered in CLP(Q) only. It behaves the same as 
+\predref{bb_inf}{5} but does not use an error margin. 
+
+	\predicate{bb_inf}{3}{+ints, +Expression, -Inf}
+The same as \predref{bb_inf}{5} or \predref{bb_inf}{4} but without returning
+the values of the integers. In CLP(R), an error margin of 0.001 is used.
+
+	\predicate{dump}{3}{+Target, +Newvars, -CodedAnswer}
+Returns the constraints on \arg{Target} in the list \arg{CodedAnswer}
+where all variables of \arg{Target} have veen replaced by \arg{NewVars}.
+This operation does not change the constraint store. E.g.\ in
+
+\begin{code}
+dump([X,Y,Z],[x,y,z],Cons)
+\end{code}
+
+Cons will contain the constraints on X, Y and Z where these variables
+have been replaced by atoms x, y and z.
+ 
+\end{description}
+
+\subsection{Syntax of the predicate arguments}
+%=============================================
+
+The arguments of the predicates defined in the subsection above are
+defined in \tabref{clpqrbnf}. Failing to meet the syntax rules will
+result in an exception.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|lrl|p{0.5\linewidth}|}
+\hline
+<Constraints> \isa <Constraint>				& single constraint \\
+	      \ora <Constraint> , <Constraints>		& conjunction \\
+	      \ora <Constraint> ; <Constraints>		& disjunction \\
+
+<Constraint> \isa <Expression> {<} <Expression>		& less than \\
+	     \ora <Expression> {>} <Expression>		& greater than \\
+	     \ora <Expression> {=<} <Expression>	& less or equal \\
+	     \ora {<=}(<Expression>, <Expression>)	& less or equal \\
+	     \ora <Expression> {>=} <Expression>	& greater or equal \\
+	     \ora <Expression> {=\=} <Expression>	& not equal \\
+	     \ora <Expression> =:= <Expression>		& equal \\
+	     \ora <Expression> = <Expression>		& equal \\
+
+<Expression> \isa <Variable>				& Prolog variable \\
+	     \ora <Number>				& Prolog number (float, integer) \\
+	     \ora +<Expression>				& unary plus \\
+	     \ora -<Expression>				& unary minus \\
+	     \ora <Expression> + <Expression>		& addition \\
+	     \ora <Expression> - <Expression>		& substraction \\
+	     \ora <Expression> * <Expression>		& multiplication \\
+	     \ora <Expression> / <Expression>		& division \\
+	     \ora abs(<Expression>)			& absolute value \\
+	     \ora sin(<Expression>)			& sine \\
+	     \ora cos(<Expression>)			& cosine \\
+	     \ora tan(<Expression>)			& tangent \\
+	     \ora exp(<Expression>)			& exponent \\
+	     \ora pow(<Expression>)			& exponent \\
+	     \ora <Expression> {^} <Expression>		& exponent \\
+	     \ora min(<Expression>, <Expression>)	& minimum \\
+	     \ora max(<Expression>, <Expression>)	& maximum \\
+\hline
+\end{tabular}
+    \caption{CLP(Q,R) constraint BNF}
+    \label{tab:clpqrbnf}
+\end{center}
+\end{table}
+
+
+\subsection{Use of unification}
+
+Instead of using the \predref{{}}{1} predicate, you can also use the standard
+unification mechanism to store constraints. The following code samples
+are equivalent:
+
+\begin{itemlist}
+
+\item [Unification with a variable]
+
+\begin{code}
+{X =:= Y}
+{X = Y}
+X = Y
+\end{code}
+
+\item [Unification with a number]
+
+\begin{code}
+{X =:= 5.0}
+{X = 5.0}
+X = 5.0
+\end{code}
+	
+\end{itemlist}
+
+\subsection{Non-linear constraints}
+%==================================
+
+The CLP(Q,R) system deals only passively with non-linear constraints. They
+remain in a passive state until certain conditions are satisfied. These
+conditions, which are called the isolation axioms, are given in
+\tabref{clpqraxioms}.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|p{0.3\linewidth}|p{0.3\linewidth}|}
+\hline
+$A = B * C$ & B or C is ground			& A = 5 * C or A = B * 4 \\
+	    & A and (B or C) are ground		& 20 = 5 * C or 20 = B * 4 \\
+\hline
+$A = B / C$ & C is ground			& A = B / 3 \\
+	    & A and B are ground		& 4 = 12 / C \\
+\hline
+$X = min(Y,Z)$ & Y and Z are ground		& X = min(4,3) \\
+$X = max(Y,Z)$ & Y and Z are ground		& X = max(4,3) \\
+$X = abs(Y)$   & Y is ground			& X = abs(-7) \\
+\hline
+$X = pow(Y,Z)$ & X and Y are ground		& 8 = 2 {^} Z \\
+$X = exp(Y,Z)$ & X and Z are ground		& 8 = Y {^} 3 \\
+$X = Y$ {^} $Z$  & Y and Z are ground		& X = 2 {^} 3 \\
+\hline
+$X = sin(Y)$	& X is ground			& 1 = sin(Y) \\
+$X = cos(Y)$	& Y is ground			& X = sin(1.5707) \\
+$X = tan(Y)$    && \\
+\hline
+\end{tabular}
+	\caption{CLP(Q,R) isolating axioms}
+	\label{tab:clpqraxioms}
+\end{center}
+\end{table}
+

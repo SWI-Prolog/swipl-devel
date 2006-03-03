@@ -119,16 +119,17 @@ This library is only available on Windows systems.
 \predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
 \end{summarylist}
 
-\subsection{\pllib{clpr}}
+\subsection{\pllib{clpqr}}
 
 \begin{summarylist}{ll}
 \predicatesummary{entailed}{1}{Check if constraint is entailed}
-\predicatesummary{inf}{2}{Determine lower-bound of variable}
-\predicatesummary{sup}{2}{Determine upper-bound of variable}
-\predicatesummary{min}{1}{Determine lower-bound of variable}
-\predicatesummary{max}{1}{Determine upper-bound of variable}
-\predicatesummary{bb_inf}{3}{Determine infimum of expression}
-\predicatesummary{bb_inf}{5}{Determine infimum of expression}
+\predicatesummary{inf}{2}{Find the infimum of an expression}
+\predicatesummary{sup}{2}{Find the supremum of an expression}
+\predicatesummary{min}{1}{Minimizes an expression}
+\predicatesummary{max}{1}{Maximizes an expression}
+\predicatesummary{bb_inf}{3}{Infimum of expression for mixed-integer problems}
+\predicatesummary{bb_inf}{4}{Infimum of expression for mixed-integer problems}    
+\predicatesummary{bb_inf}{5}{Infimum of expression for mixed-integer problems}
 \predicatesummary{dump}{3}{Dump constraints on variables}
 \end{summarylist}
 
