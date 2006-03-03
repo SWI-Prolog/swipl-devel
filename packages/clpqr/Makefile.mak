@@ -13,13 +13,17 @@ LIBDIR=$(PLBASE)\library
 EXDIR=$(PKGDOC)\examples\clpr
 CLPDIR=$(LIBDIR)\clp
 CLPRDIR=$(CLPDIR)\clpr
+CLPQDIR=$(CLPDIR)\clpq
+CLPQRDIR=$(CLPDIR)\clpqr
 PL="$(PLHOME)\bin\plcon.exe"
 
-
-CLPRPRIV=	arith_r.pl bb.pl bv.pl class.pl dump.pl fourmotz.pl \
-		geler.pl ineq.pl itf3.pl nf.pl nfr.pl ordering.pl \
-		project.pl redund.pl store.pl ugraphs.pl
-LIBPL=		clpr.pl
+CLPRPRIV=	bb_r.pl bv_r.pl fourmotz_r.pl ineq_r.pl \
+		itf_r.pl nf_r.pl store_r.pl
+CLPQPRIV=	bb_q.pl bv_q.pl fourmotz_q.pl ineq_q.pl \
+		itf_q.pl nf_q.pl store_q.pl
+CLPQPRIV=	class.pl dump.pl geler.pl itf.pl ordering.pl \
+		project.pl redund.pl ugraphs.pl
+LIBPL=		clpr.pl clpq.pl
 EXAMPLES=	
 
 all::
@@ -34,11 +38,17 @@ install::
 !ELSE
 install::
 		@if not exist "$(CLPRDIR)\$(NULL)" $(MKDIR) "$(CLPRDIR)"
+		@if not exist "$(CLPQDIR)\$(NULL)" $(MKDIR) "$(CLPQDIR)"
+		@if not exist "$(CLPQRDIR)\$(NULL)" $(MKDIR) "$(CLPQRDIR)"
 		@for %f in ($(LIBPL)) do \
 		    copy "%f" "$(CLPDIR)"
 		@for %f in ($(CLPRPRIV)) do \
 		    copy "clpr\%f" "$(CLPRDIR)"
-		copy README "$(CLPRDIR)\README.TXT"
+		@for %f in ($(CLPQPRIV)) do \
+		    copy "clpq\%f" "$(CLPQDIR)"
+		@for %f in ($(CLPQRPRIV)) do \
+		    copy "clpqr\%f" "$(CLPQRDIR)"        
+		copy README "$(CLPQRDIR)\README.TXT"
 !ENDIF
 
 html-install:	install-examples
@@ -53,13 +63,15 @@ xpce-install::
 uninstall::
 		@for %f in ($(LIBPL)) do \
 		    del "$(CLPDIR)\%f"
-		@for %f in ($(CLPDIR)) do \
+		@for %f in ($(CLPRPRIV)) do \
 		    del "$(CLPRDIR)\%f"
-		del "$(CLPRDIR)\README.TXT"
+		@for %f in ($(CLPQPRIV)) do \
+		    del "$(CLPQDIR)\%f"    
+		@for %f in ($(CLPQRPRIV)) do \
+		    del "$(CLPQRDIR)\%f"
+		del "$(CLPQRDIR)\README.TXT"
 
 clean::
 		if exist *~ del *~
 
 distclean:	clean
-
-

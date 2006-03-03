@@ -1,10 +1,7 @@
-				SWI-Prolog CLP(R)
-				-----------------
+			    SWI-Prolog CLP(Q,R)
+			    -------------------
 
-
-Author: Leslie De Koninck, K.U. Leuven as part of a thesis with supervisor
-	Bart Demoen and daily advisor Tom Schrijvers. Integrated into
-	the main SWI-Prolog source by Jan Wielemaker.
+Author: Leslie De Koninck, K.U.Leuven
 
 This software is based  on  the   CLP(Q,R)  implementation  by Christian
 Holzbauer and released with permission from  all above mentioned authors

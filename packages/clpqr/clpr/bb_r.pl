@@ -3,7 +3,7 @@
     Part of CPL(R) (Constraint Logic Programming over Reals)
 
     Author:        Leslie De Koninck
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
     Copyright (C): 2004, K.U. Leuven and
@@ -38,35 +38,31 @@
     the GNU General Public License.
 */
 
-
-:- module(bb,
+:- module(bb_r,
 	[
-		bb_inf/3,	
-		bb_inf/5,
-		vertex_value/2
+	    bb_inf/3,	
+	    bb_inf/5,
+	    vertex_value/2
 	]).
-:- use_module(bv,
+:- use_module(bv_r,
 	[
-		deref/2,
-		deref_var/2,
-		determine_active_dec/1,
-		inf/2,
-		iterate_dec/2,
-		sup/2,
-		var_with_def_assign/2
+	    deref/2,
+	    deref_var/2,
+	    determine_active_dec/1,
+	    inf/2,
+	    iterate_dec/2,
+	    sup/2,
+	    var_with_def_assign/2
 	]).
-:- use_module(nf,
-	[	{}/1,
-		entailed/1,
-		nf/2,
-		nf_constant/2,
-		repair/2,
-		wait_linear/3		
+:- use_module(nf_r,
+	[
+	    {}/1,
+	    entailed/1,
+	    nf/2,
+	    nf_constant/2,
+	    repair/2,
+	    wait_linear/3		
 	]).
-		
-
-
-:- dynamic blackboard_incumbent/1.
 		
 % bb_inf(Ints,Term,Inf)
 %
@@ -91,13 +87,7 @@ bb_inf(Is,Term,Inf,Vertex,Eps) :-
 
 bb_inf_internal(Is,Lin,Eps,_,_) :-
 	bb_intern(Is,IsNf,Eps),
-	(
-	  retract(blackboard_incumbent(_)) -> 
-
-		true
-	;
-		true
-	),
+	nb_delete(prov_opt),
 	repair(Lin,LinR),	% bb_narrow ...
 	deref(LinR,Lind),
 	var_with_def_assign(Dep,Lind),
@@ -105,8 +95,9 @@ bb_inf_internal(Is,Lin,Eps,_,_) :-
 	bb_loop(Dep,IsNf,Eps),
 	fail.
 bb_inf_internal(_,_,_,Inf,Vertex) :-
-	retract(blackboard_incumbent(InfVal-Vertex)),	% GC
-	{ Inf =:= InfVal }.
+	catch(nb_getval(prov_opt,InfVal-Vertex),_,fail),
+	{Inf =:= InfVal},
+	nb_delete(prov_opt).
 
 % bb_loop(Opt,Is,Eps)
 %
@@ -118,20 +109,11 @@ bb_loop(Opt,Is,Eps) :-
 	bb_reoptimize(Opt,Inf),
 	bb_better_bound(Inf),
 	vertex_value(Is,Ivs),
-	(
-	  bb_first_nonint(Is,Ivs,Eps,Viol,Floor,Ceiling) ->
-
-		bb_branch(Viol,Floor,Ceiling),
-		bb_loop(Opt,Is,Eps)
-	;	
-		round_values(Ivs,RoundVertex),
-		(
-		  retract(blackboard_incumbent(_)) ->
-
-			assert(blackboard_incumbent(Inf-RoundVertex))
-		;
-			assert(blackboard_incumbent(Inf-RoundVertex))
-		)
+	(   bb_first_nonint(Is,Ivs,Eps,Viol,Floor,Ceiling)
+	->  bb_branch(Viol,Floor,Ceiling),
+	    bb_loop(Opt,Is,Eps)
+	;   round_values(Ivs,RoundVertex),
+	    nb_setval(prov_opt,Inf-RoundVertex) % new provisional optimum
 	).
 
 % bb_reoptimize(Obj,Inf)
@@ -152,10 +134,7 @@ bb_reoptimize(Obj,Inf) :-
 % Checks if the new infimum Inf is better than the previous one (if such exists).
 
 bb_better_bound(Inf) :-
-	blackboard_incumbent(Inc-_),
-	!,
-	Inf - Inc < -1e-010.
-bb_better_bound(_).
+	catch((nb_getval(prov_opt,Inc-_),Inf - Inc < -1.0e-10),_,true).
 
 % bb_branch(V,U,L)
 %
@@ -164,31 +143,26 @@ bb_better_bound(_).
 bb_branch(V,U,_) :- {V =< U}.
 bb_branch(V,_,L) :- {V >= L}.
 
-% vertex_value(Vars,Rhss)
+% vertex_value(Vars,Values)
 %
-% Returns in Rhss, the Rhs values corresponding to the Vars via rhs_value/2.
+% Returns in <Values> the current values of the variables in <Vars>.
 
 vertex_value([],[]).
 vertex_value([X|Xs],[V|Vs]) :-
 	rhs_value(X,V),
 	vertex_value(Xs,Vs).
 
-% rhs_value(X,Rhs)
+% rhs_value(X,Value)
 %
-% Returns the Rhs value of variable X. This is the value by which the
-% variable is actively bounded. If X is a nonvar, the value of X is returned.
+% Returns in <Value> the current value of variable <X>.
 
 rhs_value(Xn,Value) :- 
-	(
-	  nonvar(Xn) ->
-
-		Value = Xn
-	;
-	  var(Xn) ->
-
-		deref_var(Xn,Xd),
-		Xd = [I,R|_],
-		Value is R+I
+	(   nonvar(Xn)
+	->  Value = Xn
+	;   var(Xn)
+	->  deref_var(Xn,Xd),
+	    Xd = [I,R|_],
+	    Value is R+I
 	).
 
 % bb_first_nonint(Ints,Rhss,Eps,Viol,Floor,Ceiling)
@@ -199,16 +173,13 @@ rhs_value(Xn,Value) :-
 % Viol. The floor and ceiling of its actual bound is returned in Floor and Ceiling.
 
 bb_first_nonint([I|Is],[Rhs|Rhss],Eps,Viol,F,C) :-
-	(
-	  Floor is float(floor(Rhs+1e-010)),
-	  Ceiling is float(ceiling(Rhs-1e-010)),
-	  Eps - min(Rhs-Floor,Ceiling-Rhs) < -1e-010 ->
-
-		Viol = I,
-		F = Floor,
-		C = Ceiling
-	;
-		bb_first_nonint(Is,Rhss,Eps,Viol,F,C)
+	(   Floor is floor(Rhs+1.0e-10),
+	    Ceiling is ceiling(Rhs-1.0e-10),
+	    Eps - min(Rhs-Floor,Ceiling-Rhs) < -1.0e-10
+	->  Viol = I,
+	    F = Floor,
+	    C = Ceiling
+	;   bb_first_nonint(Is,Rhss,Eps,Viol,F,C)
 	).
 
 % round_values([X|Xs],[Xr|Xrs])
@@ -217,7 +188,7 @@ bb_first_nonint([I|Is],[Rhs|Rhss],Eps,Viol,F,C) :-
 
 round_values([],[]).
 round_values([X|Xs],[Y|Ys]) :-
-	Y = float(round(X)),
+	Y is round(X),
 	round_values(Xs,Ys).
 
 % bb_intern([X|Xs],[Xi|Xis],Eps)
@@ -255,7 +226,7 @@ bb_intern([v(One,[V^1])],X,_,_) :-
 	bb_narrow_lower(X),
 	bb_narrow_upper(X).
 bb_intern(_,_,Term,_) :-
-	raise_exception(instantiation_error(bb_inf(Term,_,_),1)).
+	throw(instantiation_error(bb_inf(Term,_,_),1)).
 
 % bb_narrow_lower(X)
 %
@@ -265,19 +236,13 @@ bb_intern(_,_,Term,_) :-
 % (second integer if X is to be strict larger than the first integer).
 
 bb_narrow_lower(X) :-
-	(
-	  inf(X,Inf) ->
-
-		Bound is float(ceiling(Inf-1e-010)),
-		(
-		  entailed(X > Bound) ->
-
-			{X >= Bound+1}
-		;
-			{X >= Bound}
-		)
-	;
-		true
+	(   inf(X,Inf)
+	->  Bound is ceiling(Inf-1.0e-10),
+	    (   entailed(X > Bound)
+	    ->  {X >= Bound+1}
+	    ;   {X >= Bound}
+	    )
+	;   true
 	).
 
 % bb_narrow_upper(X)
@@ -285,17 +250,11 @@ bb_narrow_lower(X) :-
 % See bb_narrow_lower/1. This predicate handles the upper bound.
 
 bb_narrow_upper(X) :-
-	(
-	  sup(X,Sup) ->
-
-		Bound is float(floor(Sup+1e-010)),
-		(
-		  entailed(X < Bound) ->
-	
-			{X =< Bound-1}
-		;
-			{X =< Bound}
-		)
-	;
-		true
+	(   sup(X,Sup)
+	->  Bound is floor(Sup+1.0e-10),
+	    (   entailed(X < Bound)
+	    ->  {X =< Bound-1}
+	    ;   {X =< Bound}
+	    )
+	;   true
 	).

@@ -1,21 +1,20 @@
-/*  $Id$
+/*  
 
-    Part of CPL(R) (Constraint Logic Programming over Reals)
+    Part of CLP(Q,R) (Constraint Logic Programming over Rationals and Reals)
 
     Author:        Leslie De Koninck
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
-    Copyright (C): 2004, K.U. Leuven and
+    Copyright (C): 2006, K.U. Leuven and
 		   1992-1995, Austrian Research Institute for
 		              Artificial Intelligence (OFAI),
 			      Vienna, Austria
 
-    This software is part of Leslie De Koninck's master thesis, supervised
-    by Bart Demoen and daily advisor Tom Schrijvers.  It is based on CLP(Q,R)
-    by Christian Holzbaur for SICStus Prolog and distributed under the
-    license details below with permission from all mentioned authors.
-
+    This software is based on CLP(Q,R) by Christian Holzbaur for SICStus
+    Prolog and distributed under the license details below with permission from
+    all mentioned authors.
+    
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
     as published by the Free Software Foundation; either version 2
@@ -38,22 +37,15 @@
     the GNU General Public License.
 */
 
-
 :- module(redund,
 	[
-		redundancy_vars/1,
-		systems/3
-	]).
-:- use_module(bv,
-	[
-		detach_bounds/1,
-		intro_at/3
+	    redundancy_vars/1,
+	    systems/3
 	]).
 :- use_module(class,
 	[
-		class_allvars/2
+	    class_allvars/2
 	]).
-:- use_module(nf, [{}/1]).
 
 %
 % redundancy removal (semantic definition)
@@ -70,19 +62,17 @@
 
 systems([],Si,Si).
 systems([V|Vs],Si,So) :-
-	(
-	  var(V),
-	  get_attr(V,itf3,(_,_,_,_,class(C),_)),
-	  not_memq(Si,C) ->
-
-		systems(Vs,[C|Si],So)
-	;
-		systems(Vs,Si,So)
+	(   var(V),
+	    get_attr(V,itf,Att),
+	    arg(6,Att,class(C)),
+	    not_memq(Si,C)
+	->  systems(Vs,[C|Si],So)
+	;   systems(Vs,Si,So)
 	).
 
 % not_memq(Lst,El)
 %
-% Succeeds if El is not a member of Lst (doesn't use unification).
+% Succeeds if El is not a member of Lst (does not use unification).
 
 not_memq([],_).
 not_memq([Y|Ys],X) :-
@@ -124,13 +114,12 @@ redundancy_vs(Vs) :-
 	!.
 redundancy_vs([]).
 redundancy_vs([V|Vs]) :-
-	(
-	  get_attr(V,itf3,(type(Type),strictness(Strict),_)),
-	  redundant(Type,V,Strict) ->
-
-		redundancy_vs(Vs)
-	;
-		redundancy_vs(Vs)
+	(   get_attr(V,itf,Att),
+	    arg(2,Att,type(Type)),
+	    arg(3,Att,strictness(Strict)),
+	    redundant(Type,V,Strict)
+	->  redundancy_vs(Vs)
+	;   redundancy_vs(Vs)
 	).
 
 % redundant(Type,Var,Strict)
@@ -141,100 +130,97 @@ redundancy_vs([V|Vs]) :-
 % doesn't necessarily mean a redundant bound.
 
 redundant(t_l(L),X,Strict) :-
-	detach_bounds(X),	% drop temporarily
+	get_attr(X,itf,Att),
+	arg(1,Att,CLP),
+	detach_bounds(CLP,X),	% drop temporarily
 	% if not redundant, backtracking will restore bound
-	negate_l(Strict,L,X),
+	negate_l(Strict,CLP,L,X),
 	red_t_l.	% negate_l didn't fail, redundant bound
 redundant(t_u(U),X,Strict) :-
-	detach_bounds(X),
-	negate_u(Strict,U,X),
+	get_attr(X,itf,Att),
+	arg(1,Att,CLP),
+	detach_bounds(CLP,X),
+	negate_u(Strict,CLP,U,X),
 	red_t_u.
 redundant(t_lu(L,U),X,Strict) :-
 	strictness_parts(Strict,Sl,Su),
-	(
-	  get_attr(X,itf3,(_,_,RAtt)),
-	  put_attr(X,itf3,(type(t_u(U)),strictness(Su),RAtt)),
-	  negate_l(Strict,L,X) ->
-		red_t_l,
-		(
-		  redundant(t_u(U),X,Strict) ->
-
-			true
-		 ;
-			true
-		)
-	;
-	  get_attr(X,itf3,(_,_,RAtt)),
-	  put_attr(X,itf3,(type(t_l(L)),strictness(Sl),RAtt)),
-	  negate_u(Strict,U,X) ->
-
-		red_t_u
-	;
-		true
+	(   get_attr(X,itf,Att),
+	    arg(1,Att,CLP),
+	    setarg(2,Att,type(t_u(U))),
+	    setarg(3,Att,strictness(Su)),
+	    negate_l(Strict,CLP,L,X)
+	->  red_t_l,
+	    (   redundant(t_u(U),X,Strict)
+	    ->  true
+	    ;   true
+	    )
+	;   get_attr(X,itf,Att),
+	    arg(1,Att,CLP),
+	    setarg(2,Att,type(t_l(L))),
+	    setarg(3,Att,strictness(Sl)),
+	    negate_u(Strict,CLP,U,X)
+	->  red_t_u
+	;   true
 	).
 redundant(t_L(L),X,Strict) :-
+	get_attr(X,itf,Att),
+	arg(1,Att,CLP),
 	Bound is -L,
-	intro_at(X,Bound,t_none),	% drop temporarily
-	detach_bounds(X),
-	negate_l(Strict,L,X),
+	intro_at(CLP,X,Bound,t_none),	% drop temporarily
+	detach_bounds(CLP,X),
+	negate_l(Strict,CLP,L,X),
 	red_t_L.
 redundant(t_U(U),X,Strict) :-
+	get_attr(X,itf,Att),
+	arg(1,Att,CLP),
 	Bound is -U,
-	intro_at(X,Bound,t_none),	% drop temporarily
-	detach_bounds(X),
-	negate_u(Strict,U,X),
+	intro_at(CLP,X,Bound,t_none),	% drop temporarily
+	detach_bounds(CLP,X),
+	negate_u(Strict,CLP,U,X),
 	red_t_U.
 redundant(t_Lu(L,U),X,Strict) :-
 	strictness_parts(Strict,Sl,Su),
-	(
-	  Bound is -L,
-	  intro_at(X,Bound,t_u(U)),
-	  get_attr(X,itf3,(Ty,_,RAtt)),
-	  put_attr(X,itf3,(Ty,strictness(Su),RAtt)),
-	  negate_l(Strict,L,X) ->
-
-		red_t_l,
-		(
-		  redundant(t_u(U),X,Strict) ->
-
-			true
-		;
-			true
-		)
-	;
-	  get_attr(X,itf3,(_,_,RAtt)),
-	  put_attr(X,itf3,(type(t_L(L)),strictness(Sl),RAtt)),
-	  negate_u(Strict,U,X) ->
-
-		red_t_u
-	;
-		true
+	(   Bound is -L,
+	    get_attr(X,itf,Att),
+	    arg(1,Att,CLP),
+	    intro_at(CLP,X,Bound,t_u(U)),
+	    get_attr(X,itf,Att2), % changed?
+	    setarg(3,Att2,strictness(Su)),
+	    negate_l(Strict,CLP,L,X)
+	->  red_t_l,
+	    (   redundant(t_u(U),X,Strict)
+	    ->  true
+	    ;   true
+	    )
+	;   get_attr(X,itf,Att),
+	    arg(1,Att,CLP),
+	    setarg(2,Att,type(t_L(L))),
+	    setarg(3,Att,strictness(Sl)),
+	    negate_u(Strict,CLP,U,X)
+	->  red_t_u
+	;   true
 	).
 redundant(t_lU(L,U),X,Strict) :-
 	strictness_parts(Strict,Sl,Su),
-	(
-	  get_attr(X,itf3,(_,_,RAtt)),
-	  put_attr(X,itf3,(type(t_U(U)),strictness(Su),RAtt)),
-	  negate_l(Strict,L,X) ->
-
-		red_t_l,
-		(
-		  redundant(t_U(U),X,Strict) ->
-
-			true
-		;
-			true
-		)
-	;
-	  Bound is -U,
-	  intro_at(X,Bound,t_l(L)),
-	  get_attr(X,itf3,(Ty,_,RAtt)),
-	  put_attr(X,itf3,(Ty,strictness(Sl),RAtt)),
-	  negate_u(Strict,U,X) ->
-
-		red_t_u
-	;
-		true
+	(   get_attr(X,itf,Att),
+	    arg(1,Att,CLP),
+	    setarg(2,Att,type(t_U(U))),
+	    setarg(3,Att,strictness(Su)),
+	    negate_l(Strict,CLP,L,X)
+	->  red_t_l,
+	    (   redundant(t_U(U),X,Strict)
+	    ->  true
+	    ;   true
+	    )
+	;   get_attr(X,itf,Att),
+	    arg(1,Att,CLP),
+	    Bound is -U,
+	    intro_at(CLP,X,Bound,t_l(L)),
+	    get_attr(X,itf,Att2), % changed?
+	    setarg(3,Att2,strictness(Sl)),
+	    negate_u(Strict,CLP,U,X)
+	->  red_t_u
+	;   true
 	).
 
 % strictness_parts(Strict,Lower,Upper)
@@ -252,23 +238,23 @@ strictness_parts(Strict,Lower,Upper) :-
 % In other words: if adding the inverse of the lowerbound (X < L or X =< L)
 % does not result in a failure, this predicate fails.
 
-negate_l(0,L,X) :- 
-	{ L > X },
+negate_l(0,CLP,L,X) :- 
+	CLP:{L > X},
 	!,
 	fail.
-negate_l(1,L,X) :- 
-	{ L > X },
+negate_l(1,CLP,L,X) :- 
+	CLP:{L > X},
 	!,
 	fail.
-negate_l(2,L,X) :-
-	{ L >= X },
+negate_l(2,CLP,L,X) :-
+	CLP:{L >= X},
 	!,
 	fail.
-negate_l(3,L,X) :-
-	{ L >= X },
+negate_l(3,CLP,L,X) :-
+	CLP:{L >= X},
 	!,
 	fail.
-negate_l(_,_,_).
+negate_l(_,_,_,_).
 
 % negate_u(Strict,Upperbound,X)
 %
@@ -276,23 +262,31 @@ negate_l(_,_,_).
 % In other words: if adding the inverse of the upperbound (X > U or X >= U)
 % does not result in a failure, this predicate fails.
 
-negate_u(0,U,X) :-
-	{ U < X },
+negate_u(0,CLP,U,X) :-
+	CLP:{U < X},
 	!,
 	fail.
-negate_u(1,U,X) :- 
-	{ U =< X },
+negate_u(1,CLP,U,X) :- 
+	CLP:{U =< X},
 	!,
 	fail.
-negate_u(2,U,X) :- 
-	{ U < X },
+negate_u(2,CLP,U,X) :- 
+	CLP:{U < X},
 	!,
 	fail.
-negate_u(3,U,X) :- 
-	{ U =< X },
+negate_u(3,CLP,U,X) :- 
+	CLP:{U =< X},
 	!,
 	fail.
-negate_u(_,_,_).
+negate_u(_,_,_,_).
+
+% CLP(Q,R)
+
+detach_bounds(clpq,X) :- bv_q:detach_bounds(X).
+detach_bounds(clpr,X) :- bv_r:detach_bounds(X).
+
+intro_at(clpq,A,B,C) :- bv_q:intro_at(A,B,C).
+intro_at(clpr,A,B,C) :- bv_r:intro_at(A,B,C).
 
 % Profiling: these predicates are called during redundant and can be used
 % to count the number of redundant bounds.
@@ -301,4 +295,3 @@ red_t_l.
 red_t_u.
 red_t_L.
 red_t_U.
-

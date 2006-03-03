@@ -65,7 +65,8 @@
 	    ord_union/3,
 	    ord_union/4,
 	    ord_disjoint/2,
-	    ord_intersection/3
+	    ord_intersection/3,
+	    ord_subtract/3
 	  ]).
 
 

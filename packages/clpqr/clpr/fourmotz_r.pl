@@ -1,9 +1,9 @@
 /*  $Id$
 
-    Part of CPL(R) (Constraint Logic Programming over Reals)
+    Part of CLP(R) (Constraint Logic Programming over Reals)
 
     Author:        Leslie De Koninck
-    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
     Copyright (C): 2004, K.U. Leuven and
@@ -39,39 +39,39 @@
 */
 
 
-:- module(fourmotz,
+:- module(fourmotz_r,
 	[
-		fm_elim/3
+	    fm_elim/3
 	]).
-:- use_module(bv,
+:- use_module(bv_r,
 	[
-		allvars/2,
-		basis_add/2,
-		detach_bounds/1,
-		pivot/4,	
-		var_with_def_intern/4
+	    allvars/2,
+	    basis_add/2,
+	    detach_bounds/1,
+	    pivot/4,	
+	    var_with_def_intern/4
 	]).
-:- use_module(class,
+:- use_module('../clpqr/class',
 	[
-		class_allvars/2
+	    class_allvars/2
 	]).
-:- use_module(project,
+:- use_module('../clpqr/project',
 	[
-		drop_dep/1,
-		drop_dep_one/1,
-		make_target_indep/2
+	    drop_dep/1,
+	    drop_dep_one/1,
+	    make_target_indep/2
 	]).
-:- use_module(redund,
+:- use_module('../clpqr/redund',
 	[
-		redundancy_vars/1
+	    redundancy_vars/1
 	]).
-:- use_module(store,
+:- use_module(store_r,
 	[
-		add_linear_11/3,
-		add_linear_f1/4,
-		indep/2,
-		nf_coeff_of/3,
-		normalize_scalar/2
+	    add_linear_11/3,
+	    add_linear_f1/4,
+	    indep/2,
+	    nf_coeff_of/3,
+	    normalize_scalar/2
 	]).
 		
 
@@ -87,15 +87,13 @@ fm_elim(Vs,Target,Pivots) :-
 
 prefilter([],[]).
 prefilter([V|Vs],Res) :-
-	(
-	  get_attr(V,itf3,(Ty,St,Li,Or,Cl,Fo,No,n,_,Ke)),
-	  occurs(V) ->	% V is a nontarget variable that occurs in a bounded linear equation 
-
-		Res = [V|Tail],
-		put_attr(V,itf3,(Ty,St,Li,Or,Cl,Fo,No,n,keep_indep,Ke)),
-		prefilter(Vs,Tail)
-	;
-		prefilter(Vs,Res)
+	(   get_attr(V,itf,Att),
+	    arg(9,Att,n),
+	    occurs(V) % V is a nontarget variable that occurs in a bounded linear equation
+	->  Res = [V|Tail],
+	    setarg(10,Att,keep_indep),
+	    prefilter(Vs,Tail)
+	;   prefilter(Vs,Res)
 	).
 
 %
@@ -106,14 +104,12 @@ fm_elim_int([],_,Pivots) :-	% done
 	unkeep(Pivots).
 fm_elim_int(Vs,Target,Pivots) :-
 	Vs = [_|_],
-	(
-	  best(Vs,Best,Rest) ->
-
-		occurences(Best,Occ),
-		elim_min(Best,Occ,Target,Pivots,NewPivots)
-	;			% give up
-		NewPivots = Pivots,
-		Rest = []
+	(   best(Vs,Best,Rest)
+	->  occurences(Best,Occ),
+	    elim_min(Best,Occ,Target,Pivots,NewPivots)
+	;   % give up
+	    NewPivots = Pivots,
+	    Rest = []
 	),
 	fm_elim_int(Rest,Target,NewPivots).
 
@@ -137,7 +133,10 @@ best(Vs,Best,Rest) :-
 fm_cp_filter(Vs,Delta,N) :-
 	length(Vs,Len),	% Len = number of variables in Vs
 	mem(Vs,X,Vst),	% Selects a variable X in Vs, Vst is the list of elements after X in Vs
-	get_attr(X,itf3,(_,_,lin(Lin),order(OrdX),_,_,_,n,_)),	% no target variable
+	get_attr(X,itf,Att),
+	arg(4,Att,lin(Lin)),
+	arg(5,Att,order(OrdX)),
+	arg(9,Att,n),	% no target variable
 	indep(Lin,OrdX),	% X is an independent variable
 	occurences(X,Occ),	
 	Occ = [_|_],
@@ -185,9 +184,12 @@ elim_min(V,Occ,Target,Pivots,NewPivots) :-
 %
 reverse_pivot([]).
 reverse_pivot([I:D|Ps]) :-
-	get_attr(D,itf3,(type(Dt),St,Li,Or,Cl,Fo,No,Ta,KI,_)),
-	put_attr(D,itf3,(type(Dt),St,Li,Or,Cl,Fo,No,Ta,KI,n)),	% no longer
-	get_attr(I,itf3,(_,_,_,order(OrdI),class(ClI),_)),
+	get_attr(D,itf,AttD),
+	arg(2,AttD,type(Dt)),
+	setarg(11,AttD,n), % no longer
+	get_attr(I,itf,AttI),
+	arg(5,AttI,order(OrdI)),
+	arg(6,AttI,class(ClI)),
 	pivot(D,ClI,OrdI,Dt),
 	reverse_pivot(Ps).
 
@@ -197,8 +199,8 @@ reverse_pivot([I:D|Ps]) :-
 
 unkeep([]).
 unkeep([_:D|Ps]) :-
-	get_attr(D,itf3,(Ty,St,Li,Or,Cl,Fo,No,Ta,KI,_)),
-	put_attr(D,itf3,(Ty,St,Li,Or,Cl,Fo,No,Ta,KI,n)),
+	get_attr(D,itf,Att),
+	setarg(11,Att,n),
 	drop_dep_one(D),
 	unkeep(Ps).
 
@@ -218,8 +220,7 @@ fm_detach([V:_|Vs]) :-
 
 activate_crossproduct([]).
 activate_crossproduct([lez(Strict,Lin)|News]) :-
-	Z = 0.0,
-	var_with_def_intern(t_u(Z),Var,Lin,Strict),
+	var_with_def_intern(t_u(0.0),Var,Lin,Strict),
 	% Var belongs to same class as elements in Lin
 	basis_add(Var,_),
 	activate_crossproduct(News).
@@ -252,26 +253,29 @@ crossproduct([A|As]) -->
 crossproduct([],_) --> [].
 crossproduct([B:Kb|Bs],A:Ka) -->
 	{
-	  get_attr(A,itf3,(type(Ta),strictness(Sa),lin(LinA),_)),
-	  get_attr(B,itf3,(type(Tb),strictness(Sb),lin(LinB),_)),
-	  K is -Kb/Ka,
-	  add_linear_f1(LinA,K,LinB,Lin)	% Lin doesn't contain the target variable anymore
+	    get_attr(A,itf,AttA),
+	    arg(2,AttA,type(Ta)),
+	    arg(3,AttA,strictness(Sa)),
+	    arg(4,AttA,lin(LinA)),
+	    get_attr(B,itf,AttB),
+	    arg(2,AttB,type(Tb)),
+	    arg(3,AttB,strictness(Sb)),
+	    arg(4,AttB,lin(LinB)),
+	    K is -Kb/Ka,
+	    add_linear_f1(LinA,K,LinB,Lin)	% Lin doesn't contain the target variable anymore
 	},
-	(
-	  { 0.0 - K < -1e-010 } ->		% K > 0: signs were opposite
-
-		{ Strict is Sa \/ Sb },
-		cross_lower(Ta,Tb,K,Lin,Strict),
-		cross_upper(Ta,Tb,K,Lin,Strict)
-	;					% La =< A =< Ua -> -Ua =< -A =< -La
-       
-		{
-		  flip(Ta,Taf),
-		  flip_strict(Sa,Saf),
-		  Strict is Saf \/ Sb
-		},
-		cross_lower(Taf,Tb,K,Lin,Strict),
-		cross_upper(Taf,Tb,K,Lin,Strict)
+	(   { K > 1.0e-10 } % K > 0: signs were opposite
+	->  { Strict is Sa \/ Sb },
+	    cross_lower(Ta,Tb,K,Lin,Strict),
+	    cross_upper(Ta,Tb,K,Lin,Strict)
+	;   % La =< A =< Ua -> -Ua =< -A =< -La
+    	    {
+		flip(Ta,Taf),
+		flip_strict(Sa,Saf),
+		Strict is Saf \/ Sb
+	    },
+	    cross_lower(Taf,Tb,K,Lin,Strict),
+	    cross_upper(Taf,Tb,K,Lin,Strict)
 	),
 	crossproduct(Bs,A:Ka).
 
@@ -291,14 +295,13 @@ crossproduct([B:Kb|Bs],A:Ka) -->
 
 cross_lower(Ta,Tb,K,Lin,Strict) -->
 	{
-	  lower(Ta,La),
-	  lower(Tb,Lb),
-	  !,
-	  L is K*La+Lb,
-	  normalize_scalar(L,Ln),
-	  Mone = -1.0,
-	  add_linear_f1(Lin,Mone,Ln,Lhs),
-	  Sl is Strict >> 1			% normalize to upper bound
+	    lower(Ta,La),
+	    lower(Tb,Lb),
+	    !,
+	    L is K*La+Lb,
+	    normalize_scalar(L,Ln),
+	    add_linear_f1(Lin,-1.0,Ln,Lhs),
+	    Sl is Strict >> 1 % normalize to upper bound
 	},
 	[ lez(Sl,Lhs) ].
 cross_lower(_,_,_,_,_) --> [].
@@ -311,13 +314,13 @@ cross_lower(_,_,_,_,_) --> [].
 
 cross_upper(Ta,Tb,K,Lin,Strict) -->
 	{
-	  upper(Ta,Ua),
-	  upper(Tb,Ub),
-	  !,
-	  U is -(K*Ua+Ub),
-	  normalize_scalar(U,Un),
-	  add_linear_11(Un,Lin,Lhs),
-	  Su is Strict /\ 1			% normalize to upper bound
+	    upper(Ta,Ua),
+	    upper(Tb,Ub),
+	    !,
+	    U is -(K*Ua+Ub),
+	    normalize_scalar(U,Un),
+	    add_linear_11(Un,Lin,Lhs),
+	    Su is Strict /\ 1 % normalize to upper bound
 	},
 	[ lez(Su,Lhs) ].
 cross_upper(_,_,_,_,_) --> [].
@@ -385,18 +388,17 @@ cp_card([A|As],Ci,Co) :-
 
 cp_card([],_,Ci,Ci).
 cp_card([B:Kb|Bs],A:Ka,Ci,Co) :-
-	get_attr(A,itf3,(type(Ta),_)),
-	get_attr(B,itf3,(type(Tb),_)),
+	get_attr(A,itf,AttA),
+	arg(2,AttA,type(Ta)),
+	get_attr(B,itf,AttB),
+	arg(2,AttB,type(Tb)),
 	K is -Kb/Ka,
-	(
-	  0.0- K < -1e-010 ->		% K > 0: signs were opposite
-
-		cp_card_lower(Ta,Tb,Ci,Cii),
-		cp_card_upper(Ta,Tb,Cii,Ciii)
-	;
-		flip(Ta,Taf),
-		cp_card_lower(Taf,Tb,Ci,Cii),
-		cp_card_upper(Taf,Tb,Cii,Ciii)
+	(   K > 1.0e-10 % K > 0: signs were opposite
+	->  cp_card_lower(Ta,Tb,Ci,Cii),
+	    cp_card_upper(Ta,Tb,Cii,Ciii)
+	;   flip(Ta,Taf),
+	    cp_card_lower(Taf,Tb,Ci,Cii),
+	    cp_card_upper(Taf,Tb,Cii,Ciii)
 	),
 	cp_card(Bs,A:Ka,Ciii,Co).
 
@@ -431,7 +433,9 @@ cp_card_upper(_,_,Si,Si).
 % of V in the linear equation of D.
 
 occurences(V,Occ) :-
-	get_attr(V,itf3,(_,_,_,order(OrdV),class(C),_)),
+	get_attr(V,itf,Att),
+	arg(5,Att,order(OrdV)),
+	arg(6,Att,class(C)),
 	class_allvars(C,All),
 	occurences(All,OrdV,Occ).
 
@@ -445,15 +449,14 @@ occurences(De,_,[]) :-
 	var(De),
 	!.
 occurences([D|De],OrdV,Occ) :-
-	(
-	  get_attr(D,itf3,(type(Type),_,lin(Lin),_)),
-	  occ_type_filter(Type),
-	  nf_coeff_of(Lin,OrdV,K) ->
-
-		Occ = [D:K|Occt],
-		occurences(De,OrdV,Occt)
-	;
-		occurences(De,OrdV,Occ)
+	(   get_attr(D,itf,Att),
+	    arg(2,Att,type(Type)),
+	    arg(4,Att,lin(Lin)),
+	    occ_type_filter(Type),
+	    nf_coeff_of(Lin,OrdV,K)
+	->  Occ = [D:K|Occt],
+	    occurences(De,OrdV,Occt)
+	;   occurences(De,OrdV,Occ)
 	).
 
 % occ_type_filter(Type)
@@ -474,7 +477,9 @@ occ_type_filter(t_Lu(_,_)).
 % =\= t_none.
 
 occurs(V) :-
-	get_attr(V,itf3,(_,_,_,order(OrdV),class(C),_)),
+	get_attr(V,itf,Att),
+	arg(5,Att,order(OrdV)),
+	arg(6,Att,class(C)),
 	class_allvars(C,All),
 	occurs(All,OrdV).
 
@@ -488,12 +493,11 @@ occurs(De,_) :-
 	!,
 	fail.
 occurs([D|De],OrdV) :-
-	(
-	  get_attr(D,itf3,(type(Type),_,lin(Lin),_)),
-	  occ_type_filter(Type),
-	  nf_coeff_of(Lin,OrdV,_) ->
-
-		true
-	;
-		occurs(De,OrdV)
+	(   get_attr(D,itf,Att),
+	    arg(2,Att,type(Type)),
+	    arg(4,Att,lin(Lin)),
+	    occ_type_filter(Type),
+	    nf_coeff_of(Lin,OrdV,_)
+	->  true
+	;   occurs(De,OrdV)
 	).

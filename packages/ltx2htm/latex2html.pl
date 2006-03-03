@@ -1307,6 +1307,7 @@ cmd(Font, group(Old), group([font(Font)|Old1]), HTML) :-
 html_font(em, 		html('<EM>'), 		html('</EM>')).
 html_font(bf, 		html('<B>'),  		html('</B>')).
 html_font(it, 		html('<I>'),  		html('</I>')).
+html_font(mathit,	html('<I>'),  		html('</I>')).
 html_font(cal, 		html('<I>'),  		html('</I>')).
 html_font(tt, 		html('<TT>'), 		html('</TT>')).
 html_font(sf, 		html('<B>'),  		html('</B>')).

@@ -1,5 +1,5 @@
 ################################################################
-# SWI-Prolog CLPR package
+# SWI-Prolog CLPQR package
 # Author:    Jan Wielemaker. jan@swi.psy.uva.nl
 # Copyright: LGPL (see COPYING or www.gnu.org
 ################################################################
@@ -16,17 +16,22 @@ PCEHOME=../../xpce
 LIBDIR=$(PLBASE)/library
 CLPDIR=$(LIBDIR)/clp
 CLPRDIR=$(CLPDIR)/clpr
-EXDIR=$(PKGDOC)/examples/clpr
+CLPQDIR=$(CLPDIR)/clpq
+CLPQRDIR=$(CLPDIR)/clpqr
+EXDIR=$(PKGDOC)/examples/clpqr
 DESTDIR=
 
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-CLPRPRIV=	arith_r.pl bb.pl bv.pl class.pl dump.pl fourmotz.pl \
-		geler.pl ineq.pl itf3.pl nf.pl nfr.pl ordering.pl \
-		project.pl redund.pl store.pl ugraphs.pl
-LIBPL=		clpr.pl
+CLPRPRIV=	bb_r.pl bv_r.pl fourmotz_r.pl ineq_r.pl \
+		itf_r.pl nf_r.pl store_r.pl
+CLPQPRIV=	bb_q.pl bv_q.pl fourmotz_q.pl ineq_q.pl \
+		itf_q.pl nf_q.pl store_q.pl
+CLPQRPRIV=	class.pl dump.pl geler.pl itf.pl ordering.pl \
+		project.pl redund.pl ugraphs.pl
+LIBPL=		clpr.pl clpq.pl
 EXAMPLES=	
 
 all::
@@ -35,9 +40,13 @@ all::
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(CLPDIR)
 		mkdir -p $(DESTDIR)$(CLPRDIR)
+		mkdir -p $(DESTDIR)$(CLPQDIR)
+		mkdir -p $(DESTDIR)$(CLPQRDIR)
 		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(CLPDIR)
 		(cd clpr && $(INSTALL_DATA) $(CLPRPRIV) $(DESTDIR)$(CLPRDIR))
-		$(INSTALL_DATA) README $(DESTDIR)$(CLPRDIR)
+		(cd clpq && $(INSTALL_DATA) $(CLPQPRIV) $(DESTDIR)$(CLPQDIR))
+		(cd clpqr && $(INSTALL_DATA) $(CLPQRPRIV) $(DESTDIR)$(CLPQRDIR))
+		$(INSTALL_DATA) README $(DESTDIR)$(CLPQRDIR)
 
 rpm-install:	install
 
@@ -52,6 +61,8 @@ install-examples::
 uninstall:
 		(cd $(CLPDIR) && rm -f $(LIBPL))
 		rm -rf $(CLPRDIR)
+		rm -rf $(CLPQDIR)
+		rm -rf $(CLPQRDIR)
 
 check::
 #		$(PL) -q -f clpr_test.pl -g test,halt -t 'halt(1)'

@@ -123,6 +123,7 @@
 \sl
 \sf
 \it
+\mathit
 \rm
 \tt
 \Huge

@@ -1,6 +1,6 @@
-/*  $Id$
+/*  
 
-    Part of CPL(R) (Constraint Logic Programming over Reals)
+    Part of CLP(R) (Constraint Logic Programming over Reals)
 
     Author:        Leslie De Koninck
     E-mail:        Leslie.DeKoninck@cs.kuleuven.be
@@ -38,185 +38,46 @@
     the GNU General Public License.
 */
 
-
-% attribute = (type(_),strictness(_),lin(_),order(_),class(_),forward(_),
-%		nonzero,target,keep_indep,keep)
-
-:- module(itf3,
+:- module(itf_r,
 	[
-	    dump_linear/4,
-	    dump_nonzero/4
+	    do_checks/8
 	]).
-:- use_module(bv,
+:- use_module(bv_r,
 	[
 	    deref/2,
 	    detach_bounds_vlv/5,
-	    dump_var/6,
-	    dump_nz/5,
 	    solve/1,
 	    solve_ord_x/3
 	]).
-:- use_module(nf,
+:- use_module(nf_r,
 	[
 	    nf/2
 	]).
-:- use_module(store,
+:- use_module(store_r,
 	[
 	    add_linear_11/3,
 	    indep/2,
 	    nf_coeff_of/3
 	]).
-:- use_module(class,
+:- use_module('../clpqr/class',
 	[
 	    class_drop/2
 	]).
 
-this_linear_solver(clpr).
-
-%
-% Parametrize the answer presentation mechanism
-% (toplevel,compiler/debugger ...)
-%
-:- dynamic presentation_context/1.
-
-% replaces the old presentation context by a new one.
-presentation_context(Old,New) :-
-	clause(presentation_context(Current), _),
-  	!,
-  	Current = Old,
-  	retractall(presentation_context(_)),
-  	assert(presentation_context(New)).
-presentation_context(toplevel,New) :- 
-	assert(presentation_context(New)). %default
-
-%
-% attribute_goal( V, V:Atts) :- get_atts( V, Atts).
-%
-attribute_goal(V,Goal) :-
-	presentation_context(Cont,Cont),
-	dump_linear(V,Cont,Goals,Gtail),
-	dump_nonzero(V,Cont,Gtail,[]),
-	l2wrapped(Goals,Goal).
-
-l2wrapped([],true).
-l2wrapped([X|Xs],Conj) :-
-	(   Xs = [],
-	    wrap(X,Conj)
-	;   Xs = [_|_],
-	    wrap(X,Xw),
-	    Conj = (Xw,Xc),
-	    l2wrapped(Xs,Xc)
-	).
-
-%
-% Tests should be pulled out of the loop ...
-%
-wrap(C,W) :-
-	prolog_flag(typein_module,Module),
-	this_linear_solver(Solver),
-	(   Module == Solver
-	->  W = {C}
-	;   predicate_property(Module:{_},imported_from(Solver))
-	->  W = {C}
-	;   W = Solver:{C}
-	).
-
-dump_linear(V,Context) -->
-	{
-	    get_attr(V,itf3,(type(Type),_,lin(Lin),_)),
-	    !,
-	    Lin = [I,_|H]
-	},
-	%
-	% This happens if not all target variables can be made independent
-	% Example: examples/option.pl:
-	% | ?- go2(S,W).
-	%
-	% W = 21/4,
-	% S>=0,
-	% S<50 ? ;
-	%
-	% W>5,
-	% S=221/4-W,		  this line would be missing !!!
-	% W=<21/4
-	%
-	(   {
-		Type=t_none
-	    ;	get_attr(V,itf3,(_,_,_,_,_,_,_,n,_))
-	    }
-	->  []
-	;   dump_v(Context,t_none,V,I,H)
-	),
-  	(   {
-		Type=t_none,
-		get_attr(V,itf3,(_,_,_,_,_,_,_,n,_))
-	    }
-	->  % nonzero produces such
-	    []
-	;   dump_v(Context,Type,V,I,H)
-	).
-dump_linear(_,_) --> [].
-
-dump_v(toplevel,Type,V,I,H) --> dump_var(Type,V,I,H).
-% dump_v(compiler,Type,V,I,H) --> compiler_dump_var(Type,V,I,H).
-
-dump_nonzero(V,Cont) -->
-	{
-	    get_attr(V,itf3,(_,_,lin(Lin),_,_,_,nonzero,_)),
-	    !,
-	    Lin = [I,_|H]
-	},
-	dump_nz(Cont,V,H,I).
-dump_nonzero(_,_) --> [].
-
-dump_nz(toplevel,V,H,I) --> dump_nz(V,H,I).
-% dump_nz(compiler,V,H,I) --> compiler_dump_nz(V,H,I).
-
-numbers_only(Y) :- 
-	var(Y),
-	!.
-numbers_only(Y) :-
-	number(Y),
-	!.
-numbers_only(Y) :-
-	this_linear_solver(Solver),
-	(   Solver == clpr
-	->  What = 'a real number'
-	;   Solver == clpq
-	->  What = 'a rational number'
-	),
-	raise_exception(type_error(_X = Y,2,What,Y)).
-
-attr_unify_hook((n,n,n,n,n,n,n,_),_) :- !.
-attr_unify_hook((_,_,_,_,_,forward(F),_),Y) :-
-	!,
-	fwd_deref(F,Y).
-attr_unify_hook((Ty,St,Li,Or,Cl,_,No,_),Y) :-
+do_checks(Y,Ty,St,Li,Or,Cl,No,Later) :-
 	numbers_only(Y),
 	verify_nonzero(No,Y),
 	verify_type(Ty,St,Y,Later,[]),
 	verify_lin(Or,Cl,Li,Y),
-	call_list(Later).
+	maplist(call,Later).
 
-% call_list(List)
-%
-% Calls all the goals in List.
-
-call_list([]).
-call_list([G|Gs]) :-
-	call(G),
-	call_list(Gs).
-
-%%%%
-fwd_deref(X,Y) :-
-	nonvar(X),
-	X = Y.
-fwd_deref(X,Y) :-
-	var(X),
-	(   get_attr(X,itf3,(_,_,_,_,_,forward(F),_))
-	->  fwd_deref(F,Y)
-	;   X = Y
-	).
+numbers_only(Y) :-
+	(   var(Y)
+	;   integer(Y)
+	;   float(Y)
+	;   throw(type_error(_X = Y,2,'a real number',Y))
+	),
+	!.
 
 % verify_nonzero(Nonzero,Y)
 %
@@ -224,18 +85,17 @@ fwd_deref(X,Y) :-
 % (if possible, otherwise set Y to be nonzero)
 
 verify_nonzero(nonzero,Y) :-
-	!,
 	(   var(Y)
-	->  (   get_attr(Y,itf3,(A,B,C,D,E,F,_,H))
-	    ->  put_attr(Y,itf3,(A,B,C,D,E,F,nonzero,H))
-	    ;   put_attr(Y,itf3,(n,n,n,n,n,n,nonzero,n,n,n))
+	->  (   get_attr(Y,itf,Att)
+	    ->  setarg(8,Att,nonzero)
+	    ;   put_attr(Y,itf,t(clpr,n,n,n,n,n,n,nonzero,n,n,n))
 	    )
 	;   (   Y < -1.0e-10
 	    ->	true
 	    ;	Y > 1.0e-10
 	    )
 	).
-verify_nonzero(_,_). % X is not nonzero
+verify_nonzero(n,_). % X is not nonzero
 
 % verify_type(type(Type),strictness(Strict),Y,[OL|OLT],OLT)
 %
@@ -244,9 +104,8 @@ verify_nonzero(_,_). % X is not nonzero
 % the type and strictness
 
 verify_type(type(Type),strictness(Strict),Y) -->
-	!,
 	verify_type2(Y,Type,Strict).
-verify_type(_,_,_) --> [].
+verify_type(n,n,_) --> [].
 
 verify_type2(Y,TypeX,StrictX) -->
 	{var(Y)},
@@ -328,14 +187,14 @@ verify_type_var(t_lU(L,U),Y,S) -->
 llb(S,L,V) -->
 	{S /\ 2 =:= 0},
 	!,
-	[{L =< V}].
-llb(_,L,V) --> [{L < V}].
+	[clpr:{L =< V}].
+llb(_,L,V) --> [clpr:{L < V}].
 
 lub(S,U,V) -->
 	{S /\ 1 =:= 0},
 	!,
-	[{V =< U}].
-lub(_,U,V) -->	[{V < U}].
+	[clpr:{V =< U}].
+lub(_,U,V) -->	[clpr:{V < U}].
 
 %
 % We used to drop X from the class/basis to avoid trouble with subsequent

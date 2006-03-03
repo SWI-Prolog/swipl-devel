@@ -1,20 +1,19 @@
-/*  $Id$
+/* 
 
-    Part of CPL(R) (Constraint Logic Programming over Reals)
+    Part of CLP(Q) (Constraint Logic Programming over Rationals)
     
     Author:        Leslie De Koninck
     E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
-    Copyright (C): 2004, K.U. Leuven and
+    Copyright (C): 2006, K.U. Leuven and
 		   1992-1995, Austrian Research Institute for
 		              Artificial Intelligence (OFAI),
 			      Vienna, Austria
 
-    This software is part of Leslie De Koninck's master thesis, supervised
-    by Bart Demoen and daily advisor Tom Schrijvers.  It is based on CLP(Q,R)
-    by Christian Holzbaur for SICStus Prolog and distributed under the
-    license details below with permission from all mentioned authors.
+    This software is based on CLP(Q,R) by Christian Holzbaur for SICStus
+    Prolog and distributed under the license details below with permission from
+    all mentioned authors.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -38,21 +37,21 @@
     the GNU General Public License.
 */
 
-:- module(clpr,
+:- module(clpq,
 	[
 	    {}/1,
 	    maximize/1,
 	    minimize/1,
 	    inf/2, inf/4, sup/2, sup/4,
 	    bb_inf/3,
-	    bb_inf/5,
+	    bb_inf/4,
 	    ordering/1,
 	    entailed/1,
-	    dump/3, projecting_assert/1
+	    dump/3%, projecting_assert/1
 	]).
 
 %
-% Don't report export of private predicates from clpr
+% Don't report export of private predicates from clpq
 %
 :- multifile
 	user:portray_message/2.
@@ -60,24 +59,25 @@
 :- dynamic
 	user:portray_message/2.
 %
-user:portray_message(warning,import(_,_,clpr,private)).
+user:portray_message(warning,import(_,_,clpq,private)).
 
 :- load_files(
 	[
-	    'clpr/arith_r',
-    	    'clpr/itf3',
-	    'clpr/store',
-	    'clpr/geler',
-	    'clpr/nfr',
-	    'clpr/class',
-	    'clpr/nf',
-	    'clpr/project',
-	    'clpr/bv',
-	    'clpr/ineq',
-	    'clpr/redund',
-	    'clpr/fourmotz',
-	    'clpr/bb',
-	    'clpr/dump'
+	    'clpq/bb_q',
+	    'clpq/bv_q',
+	    'clpq/fourmotz_q',
+	    'clpq/ineq_q',
+	    'clpq/itf_q',
+	    'clpq/nf_q',
+	    'clpq/store_q',
+	    'clpqr/class',
+	    'clpqr/dump',
+	    'clpqr/geler',
+	    'clpqr/itf',
+	    'clpqr/ordering',
+	    'clpqr/project',
+	    'clpqr/redund',
+	    'clpqr/ugraphs'
 	],
 	[
 	    if(not_loaded),
@@ -108,8 +108,8 @@ dump_toplevel_bindings(Bindings,Constraints) :-
 dump_vars_names([],_,[],[]).
 dump_vars_names([Name=Term|Rest],Seen,Vars,Names) :-
 	(   var(Term),
-	    (   get_attr(Term,itf3,_)
-	    ;   get_attr(Term,geler_r,_)
+	    (   get_attr(Term,itf,_)
+	    ;   get_attr(Term,geler,_)
 	    ),
 	    \+ memberchk_eq(Term,Seen)
 	->  Vars = [Term|RVars],

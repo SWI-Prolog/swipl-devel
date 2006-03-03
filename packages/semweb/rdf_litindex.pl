@@ -99,19 +99,19 @@ rdf_find_literals(Spec, Literals) :-
 
 lookup([], _, []).
 lookup([H0|T0], Map, [H|T]) :-
-	rdf_find_literal_map(Map, H0, H1),
+	rdf_find_literal_map(Map, [H0], H1),
 	sort(H1, H),			% TBD: Semweb order is different!
 	lookup(T0, Map, T).
 	
 compile_spec(sounds(Like), Disjunction) :- !,
 	metaphone_index(Map),
 	double_metaphone(Like, Key),
-	rdf_find_literal_map(Map, Key, Tokens),
+	rdf_find_literal_map(Map, [Key], Tokens),
 	list_to_or(Tokens, Disjunction).
 compile_spec(stem(Like), Disjunction) :- !,
 	porter_index(Map),
 	porter_stem(Like, Key),
-	rdf_find_literal_map(Map, Key, Tokens),
+	rdf_find_literal_map(Map, [Key], Tokens),
 	list_to_or(Tokens, Disjunction).
 compile_spec(or(A0, B0), or(A,B)) :- !,
 	compile_spec(A0, A),
@@ -135,7 +135,7 @@ list_to_or([H|T0], or(H, T)) :-
 %	Prolog standard order of terms first.
 
 ord_union([], []).
-ord_union([X], [X]).
+ord_union([X], [X]) :- !.
 ord_union([H1,H2|T], Union) :-
 	ord_union(H1, H2, H),
 	ord_union([H|T], Union).
@@ -201,7 +201,7 @@ add_tokens([], _, _).
 add_tokens([H|T], Literal, Map) :-
 	(   no_index_token(H)
 	->  true
-	;   (   rdf_keys_in_literal_map(Map, H, _)
+	;   (   rdf_keys_in_literal_map(Map, key(H), _)
 	    ->  true
 	    ;   forall(new_token(H), true)
 	    ),
@@ -284,9 +284,12 @@ fill_porter_index(PorterMap) :-
 
 stem([], _).
 stem([Token|T], Map) :-
-	porter_stem(Token, Stem),
-	rdf_insert_literal_map(Map, Stem, Token),
-	progress(Map, 'Porter'),
+	(   atom(Token)
+	->  porter_stem(Token, Stem),
+	    rdf_insert_literal_map(Map, Stem, Token),
+	    progress(Map, 'Porter')
+	;   true
+	),
 	stem(T, Map).
 	       
 
@@ -315,9 +318,12 @@ fill_metaphone_index(PorterMap) :-
 
 metaphone([], _).
 metaphone([Token|T], Map) :-
-	double_metaphone(Token, SoundEx),
-	rdf_insert_literal_map(Map, SoundEx, Token),
-	progress(Map, 'Metaphone'),
+	(   atom(Token)
+	->  double_metaphone(Token, SoundEx),
+	    rdf_insert_literal_map(Map, SoundEx, Token),
+	    progress(Map, 'Metaphone')
+	;   true
+	),
 	metaphone(T, Map).
 	       
 
