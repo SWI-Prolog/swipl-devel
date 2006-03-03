@@ -12,7 +12,7 @@
                          SSWWII--PPrroolloogg 55..66
 
                         RReeffeerreennccee MMaannuuaall
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._5_, _F_e_b_r_u_a_r_y _2_0_0_6
+             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._7_, _M_a_r_c_h _2_0_0_6
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                     wielemak@science.uva.nl
@@ -16391,20 +16391,30 @@ following ways from the SICStus clp(FD) solver:
     max_integer and min_integer + 1.
 
 
-1111..1122 clpr::  CCoonnssttrraaiinntt LLooggiicc PPrrooggrraammmmiinngg oovveerr RReeaallss
+1111..1122 clpqr::  CCoonnssttrraaiinntt LLooggiicc PPrrooggrraammmmiinngg oovveerr RRaattiioonnaallss aanndd RReeaallss
 
-    Author:   _L_e_s_l_i_e _D_e  _K_o_n_i_n_c_k, K.U.  Leuven as part  of a thesis
-    with supervisor Bart Demoen and daily advisor Tom Schrijvers.
+    Author:  _L_e_s_l_i_e _D_e _K_o_n_i_n_c_k, K.U. Leuven
 
-This CLP(R) system  is a port of  the CLP(Q,R) system of Sicstus  Prolog
+This CLP(Q,R) system is a port of the CLP(Q,R)  system of Sicstus Prolog
 by Christian  Holzbaur:   Holzbaur C.:   OFAI  clp(q,r) Manual,  Edition
 1.3.3, Austrian Research Institute for Artificial  Intelligence, Vienna,
-TR-95-09,  1995.    This port  only contains  the part  concerning  real
-arithmetics.   This manual is roughly based  on the manual of the  above
-mentioned CLP(QR) implementation.
+TR-95-09,  1995.   This manual  is roughly  based on the  manual of  the
+above mentioned CLP(Q,R) implementation.
 
-Please  note that  the  clpr library  is  _n_o_t  an _a_u_t_o_l_o_a_d  library  and
+The CLP(Q,R) system consists of two components:  the  CLP(Q) library for
+handling constraints  over the rational numbers  and the CLP(R)  library
+for handling  constraints over  the real numbers  (using floating  point
+numbers as  representation).  Both  libraries offer the same  predicates
+(with exception  of bb_inf/4 in  CLP(Q) and bb_inf/5  in CLP(R)). It  is
+allowed to use both libraries in one program, but  using both CLP(Q) and
+CLP(R) constraints on the same variable will result in an exception.
+
+Please  note that  the clpqr  library  is _n_o_t  an _a_u_t_o_l_o_a_d  library  and
 therefore this library must be loaded explicitely before using it:
+
+:- use_module(library(clpq)).
+
+or
 
 :- use_module(library(clpr)).
 
@@ -16449,18 +16459,24 @@ mmaaxx((_+_E_x_p_r_e_s_s_i_o_n))
 
 
 bbbb__iinnff((_+_I_n_t_s_, _+_E_x_p_r_e_s_s_i_o_n_, _-_I_n_f_, _-_V_e_r_t_e_x_, _+_E_p_s))
-    Computes  the infimum  of _E_x_p_r_e_s_s_i_o_n within  the current  constraint
-    store,  with the  additional constraint  that in  that infimum,  all
-    variables  in _I_n_t_s have  integral values.   _V_e_r_t_e_x will contain  the
-    values  of _I_n_t_s in the  infimum.  _E_p_s  denotes how much a value  may
-    differ  from an integer to be considered an integer.  E.g.  when _E_p_s
-    = 0.001, then X  = 4.999 will be considered as an integer (5 in this
-    case).  _E_p_s should be between 0 and 0.5.
+    This  predicate  is  offered  in  CLP(R) only.     It  computes  the
+    infimum of _E_x_p_r_e_s_s_i_o_n  within the current constraint store, with the
+    additional  constraint that in that  infimum, all variables in  _I_n_t_s
+    have  integral values.   _V_e_r_t_e_x will contain  the values of _I_n_t_s  in
+    the  infimum.   _E_p_s  denotes how  much a  value may  differ from  an
+    integer to be considered  an integer.  E.g. when _E_p_s = 0.001, then X
+    =  4.999 will be  considered as an  integer (5 in this  case).   _E_p_s
+    should be between 0 and 0.5.
+
+
+bbbb__iinnff((_+_I_n_t_s_, _+_E_x_p_r_e_s_s_i_o_n_, _-_I_n_f_, _-_V_e_r_t_e_x))
+    This  predicate is offered in CLP(Q) only.   It behaves the  same as
+    bb_inf/5 but does not use an error margin.
 
 
 bbbb__iinnff((_+_i_n_t_s_, _+_E_x_p_r_e_s_s_i_o_n_, _-_I_n_f))
-    The  same  as  bb_inf/5 but  without  returning the  values  of  the
-    integers and with an eps of 0.001.
+    The  same as bb_inf/5 or  bb_inf/4 but without returning the  values
+    of the integers.  In CLP(R), an error margin of 0.001 is used.
 
 
 dduummpp((_+_T_a_r_g_e_t_, _+_N_e_w_v_a_r_s_, _-_C_o_d_e_d_A_n_s_w_e_r))
@@ -16512,7 +16528,7 @@ ________________________________________________________________________________
 |                 | min(<_E_x_p_r_e_s_s_i_o_n>, <_E_x_p_r_e_s_s_i_o_n>) |minimum                             |
 
 |_________________|_max(<_E_x_p_r_e_s_s_i_o_n>,_<_E_x_p_r_e_s_s_i_o_n>)_|maximum_____________________________|_
-                   Table 11.1:  CLP(R) constraint BNF
+                  Table 11.1:  CLP(Q,R) constraint BNF
 
 
   1111..1122..33 UUssee ooff uunniiffiiccaattiioonn
@@ -16534,29 +16550,29 @@ o _U_n_i_f_i_c_a_t_i_o_n _w_i_t_h _a _n_u_m_b_e_r
 
 1111..1122..44 NNoonn--lliinneeaarr ccoonnssttrraaiinnttss
 
-In this version, non-linear constraints do not get  solved until certain
-conditions  are satisfied.    We  call  these conditions  the  isolation
-axioms.  They are given in table 11.2.
+The CLP(Q,R)  system deals only  passively with non-linear  constraints.
+They remain in  a passive state until certain conditions  are satisfied.
+These conditions,  which are called the  isolation axioms, are given  in
+table 11.2.
      ______________________________________________________________
      | A =B *C     |B or C is ground       |A = 5 *  C or A = B * |
      |             |                       |4                     |
      |              |A  and  (B or  C)  are|20 = 5  * C or 20 = B |
      |______________|ground________________|*_4___________________|_
      | A =B=C      |C is ground            |A = B / 3             |
-
      |______________|A_and_B_are_ground____|4_=_12_/_C____________|_
+
      | X =min(Y; Z) |Y and Z are ground    |X = min(4,3)          |
      | X =max(Y; Z) |Y and Z are ground    |X = max(4,3)          |
      |_X_=abs(Y_)___|Y_is_ground___________|X_=_abs(-7)___________|_
      | X =pow(Y; Z) |X and Y are ground    |8 = 2 ^ Z             |
      | X =exp(Y; Z) |X and Z are ground    |8 = Y ^ 3             |
      |_X_=Y__^_Z___|Y_and_Z_are_ground_____|X_=_2_^_3_____________|_
-
      | X =sin(Y )   X|is ground            |1 = sin(Y)            |
+
      | X =cos(Y )   Y|is ground            |X = sin(1.5707)       |
      |_X_=tan(Y_)___|______________________|______________________|_
-
-                  Table 11.2:  CLP(R) isolating axioms
+                 Table 11.2:  CLP(Q,R) isolating axioms
 
 
 1111..1133 clp/clp_distinct::  WWeeaakk aarrcc ccoonnssiisstteenntt ``aallll__ddiissttiinncctt'' ccoonnssttrraaiinntt
@@ -17791,15 +17807,17 @@ This library is only available on Windows systems.
  variable_value/3  Fetch value of variable in solved state
 
 
-1144..44..1100 clpr
+1144..44..1100 clpqr
 
  entailed/1  Check if constraint is entailed
- inf/2       Determine lower-bound of variable
- sup/2       Determine upper-bound of variable
- min/1       Determine lower-bound of variable
- max/1       Determine upper-bound of variable
- bb_inf/3    Determine infimum of expression
- bb_inf/5    Determine infimum of expression
+ inf/2       Find the infimum of an expression
+ sup/2       Find the supremum of an expression
+ min/1       Minimizes an expression
+ max/1       Maximizes an expression
+ bb_inf/3    Infimum of expression for mixed-integer problems
+ bb_inf/4    Infimum of expression for mixed-integer problems
+ bb_inf/5    Infimum of expression for mixed-integer problems
+
  dump/3      Dump constraints on variables
 
 
@@ -17892,28 +17910,28 @@ Bibliography
                                   _A_r_t _o_f _P_r_o_l_o_g.  MIT Press,  Cambridge,
                                   Massachusetts, 1986.
 
-                                  1228
+                                  1229
 
 
 Index
 
-'MANUAL' _l_i_b_r_a_r_y, 43                 writeq/1, 356, 513, 518
---disable-segv-handling, 1007        writeq/2, 357
--lpl _l_i_b_r_a_r_y, 1008                   www_form_encode/2, 1118
--lreadline _l_i_b_r_a_r_y, 1036             www_open_url/1, 1103
-.pl, 85
-.pro, 85                             X-Windows, 7
-?=/2, 184                            X11, 8
-=:=/2, 429                           xor/2, 464
-/\/2, 463                            XPCE, 8
-=\=/2, 428
-|/2, 193
-#=/2, 1128
+'MANUAL' _l_i_b_r_a_r_y, 43                 write_term/3, 60, 62, 351, 374
+--disable-segv-handling, 1007        write_term/[2
+-lpl _l_i_b_r_a_r_y, 1008                      3], 17, 60
+-lreadline _l_i_b_r_a_r_y, 1036             writef/1, 512
+.pl, 85                              writef/2, 32, 71, 349, 513, 514
+.pro, 85                             writef/[1
+?=/2, 184                               2], 509
+=:=/2, 429                           writeln/1, 511
+/\/2, 463                            writeq/1, 356, 513, 518
+=\=/2, 428                           writeq/2, 357
+|/2, 193                             www_form_encode/2, 1118
+#=/2, 1128                           www_open_url/1, 1103
 #>=/2, 1126
-#>/2, 1124
-#=</2, 1127
-#</2, 1125
-#\=/2, 1129
+#>/2, 1124                           X-Windows, 7
+#=</2, 1127                          X11, 8
+#</2, 1125                           xor/2, 464
+#\=/2, 1129                          XPCE, 8
 ,/2, 191
 {}/1, 1151
 !/0, 190
@@ -17980,28 +17998,28 @@ add_nb_set/2, 1074
 add_nb_set/3, 1074--1076
 address/2, 755
 all_different/1, 1132
-all_distinct/1, 1164, 1167, 1169
+all_distinct/1, 1165, 1168, 1170
 Alpha
    DEC, 16
 append/1, 288, 292
 append/3, 394, 1039
 apply/2, 200
-apropos/1, 45, 46, 62, 1201
+apropos/1, 45, 46, 62, 1202
 arg/3, 372
 arithmetic_function/1,   485,   486,
       960
 asin/1, 470
 assert/1, 112,  120, 229, 235--238,
       249,   253,  254,  267,  659,
-      678, 697, 754, 1207
+      678, 697, 754, 1208
 assert/2, 238--240, 247, 270
 asserta/1, 41, 120, 236
 asserta/2, 239, 247
 assertion/1, 1094
 assertions, 1094
-assertz/1, 237, 1207
+assertz/1, 237, 1208
 assertz/2, 240, 247
-assignment/2, 1171
+assignment/2, 1172
 assoc _l_i_b_r_a_r_y, 1059, 1072
 assoc_to_list/2, 1060
 assume/1, 1094
@@ -18032,10 +18050,10 @@ attvar/1, 682
 autoload/0, 117, 1022, 1024, 1086
 
 b_getval/2, 699, 701
-b_setval/2, 697, 698, 1197
+b_setval/2, 697, 698, 1198
 backcomp _l_i_b_r_a_r_y, 17, 21
 bagof/3, 73, 130, 499--501
-bb_inf/3, 1158
+bb_inf/3, 1159
 bb_inf/5, 1157, 1158
 between/3, 420, 1051
 block/3, 221, 222
@@ -18055,7 +18073,7 @@ call_with_depth_limit/3, 204
 callable/1, 166
 catch/3,  17,  19,  207--210,  221,
       308,   365,  621,  728,  736,
-      737, 1189, 1195--1197
+      737, 1190, 1196--1198
 ceil/1, 459
 ceiling/1, 458, 459
 char_code/2, 111, 387
@@ -18065,32 +18083,34 @@ char_type/2, 401--404
 character set, 70
 character_count/2, 304, 305
 chdir/1, 575, 576
-check _l_i_b_r_a_r_y, 119, 267, 1083, 1218
+check _l_i_b_r_a_r_y, 119, 267, 1083, 1219
 check/0, 117, 1083, 1084
 check_old_select/0, 22
 checkselect _l_i_b_r_a_r_y, 22
 chr _l_i_b_r_a_r_y, 714, 718
+chr_constraint/1, 713, 724
 chr_leash/1, 721
 chr_notrace/0, 717, 720
-chr_option/2, 710
+chr_option/2, 710, 724
 chr_show_store/1, 722
 chr_trace/0, 717, 719
+chr_type/1, 713
 clause/2, 269, 270
 clause/3, 238, 247, 270, 272, 1026
 clause/[2
    3], 60, 1036
-clause_property/2, 125, 272, 1188
+clause_property/2, 125, 272, 1189
 clib
    package, 1005
 close/1, 273, 278
 close/2, 279
 close_dde_conversation/1, 634
 close_shared_object/1, 791
-clp/bounds _l_i_b_r_a_r_y, 1119, 1224
-clp/clp_distinct   _l_i_b_r_a_r_y,    1163,
-      1225
-clp/simplex _l_i_b_r_a_r_y, 1226
-clpr _l_i_b_r_a_r_y, 1149, 1227
+clp/bounds _l_i_b_r_a_r_y, 1119, 1225
+clp/clp_distinct   _l_i_b_r_a_r_y,    1164,
+      1226
+clp/simplex _l_i_b_r_a_r_y, 1227
+clpqr _l_i_b_r_a_r_y, 1149, 1228
 code_type/2, 400, 402, 403
 COM, 920
 commandline
@@ -18104,9 +18124,10 @@ completion
 compound/1, 165
 concat_atom/2, 395, 396
 concat_atom/3, 396
-constraint/3, 1172, 1173
-constraint/4, 1173
-constraint_add/4, 1174
+constraint/3, 1173, 1174
+constraint/4, 1174
+constraint_add/4, 1175
+constraints/1, 724
 consult/1,  36,  39, 53,  62,  100,
       112--115,   140,   141,  255,
       363, 608
@@ -18144,7 +18165,7 @@ current_prolog_flag/2, 21,  41,  59,
       171,   210,  213,  349,  354,
       365,   582,  608,  639,  786,
       798,  919,  999, 1008,  1037,
-      1207
+      1208
 current_signal/3, 218, 219
 current_stream/3, 21, 281
 current_thread/2,   730,  731,  734,
@@ -18168,7 +18189,7 @@ debug/3, 1088, 1089
 debugging
    exceptions, 210
 debugging/0,  62,  597, 601,  1093,
-      1200
+      1201
 debugging/1, 1088, 1090
 DEC
    Alpha, 16
@@ -18178,7 +18199,7 @@ delete/3, 1042
 delete_directory/1, 574
 delete_file/1, 561
 delete_import_module/2, 673--675
-deterministic/1, 1190
+deterministic/1, 1191
 Development environment, 82
 dif _l_i_b_r_a_r_y, 696
 dif/2, 73, 184, 695, 696
@@ -18188,8 +18209,9 @@ display/[1
    2], 17
 displayq/[1
    2], 17
+dom/2, 723
 downcase_atom/2, 401, 404, 405
-dump/3, 1159
+dump/3, 1160
 dup/2, 21
 dup_stream/2, 21
 duplicate_term/2,   73,  378,   381,
@@ -18218,8 +18240,8 @@ encoding/1, 75, 118
 ensure_loaded/1, 53, 112, 115, 653
 entailed/1, 1152
 erase/1, 238, 241, 247, 270
-eval_license/0, 1212--1214
-exception/3, 62, 1196, 1197
+eval_license/0, 1213--1215
+exception/3, 62, 1197, 1198
 exceptions
    debugging, 210
 exists_directory/1, 560
@@ -18260,8 +18282,8 @@ flush_output/0, 322
 flush_output/1, 214, 323, 348
 flush_output/[0
    1], 275, 324
-foo/0, 1207
-foo/3, 1207
+foo/0, 1208
+foo/3, 1208
 forall/2, 130, 508
 format/1, 214, 517
 format/2, 518--520, 1089
@@ -18281,7 +18303,7 @@ garbage_collect_atoms/0, 627, 997
 garbage_collect_clauses/0, 137--139
 gen_assoc/3, 1062
 gen_nb_set/2, 1076
-gen_state/1, 1175
+gen_state/1, 1176
 gensym _l_i_b_r_a_r_y, 1079
 gensym/2, 1080
 get/1, 333
@@ -18324,14 +18346,15 @@ halt/0, 51, 580, 581
 halt/1, 581, 984
 halt/[0
    1], 133
+handler/1, 724
 hash/1, 257, 258
 hash_term/2, 73, 250, 251, 257, 258
-help/0, 44, 62, 1028, 1201
-help/1, 43--45, 60, 62, 1201
+help/0, 44, 62, 1028, 1202
+help/1, 43--45, 60, 62, 1202
 helpidx _l_i_b_r_a_r_y, 43
 hooks, 62
 HTTP, 1113
-http_load _l_i_b_r_a_r_y, 113, 1203
+http_load _l_i_b_r_a_r_y, 113, 1204
 http_location/2, 1117
 IDE, 82
 ignore/1, 130, 203, 621, 728
@@ -18355,7 +18378,7 @@ integer/1, 157, 450
 interactor/0, 286, 766
 internationalization, 74
 intersection/3, 1055
-is/2, 430, 431, 451, 486, 1050
+is/2, 430, 431, 451, 486, 724, 1050
 is_absolute_file_name/1, 567
 is_list/1, 489, 1053
 is_set/1, 1053
@@ -18368,15 +18391,16 @@ keysort/2, 494, 495
 
 label/1, 1134
 last/2, 1046
-leash/1, 51, 605, 606, 721, 1192
+leash/1, 51, 605, 606, 721, 1193
 length/2, 491
+leq/2, 723
 lex_chain/1, 1131
 library_directory/1,  62,  63,  114,
       120
 library_directory/2, 66
-license/1, 1215
-license/2, 1214, 1215
-license:license/3, 1214
+license/1, 1216
+license/2, 1215, 1216
+license:license/3, 1215
 likes/2, 36
 limit_stack/2, 625, 628
 line_count/2, 284, 286, 306, 527
@@ -18389,10 +18413,10 @@ list_to_set/2, 1054
 list_undefined/0, 119, 1084--1086
 listing/0, 151
 listing/1, 51, 150, 151
-lists _l_i_b_r_a_r_y, 488, 1038, 1219
+lists _l_i_b_r_a_r_y, 488, 1038, 1220
 load_files/1, 62
 load_files/2, 60,  62, 75, 113, 114,
-      1202, 1203
+      1203, 1204
 load_foreign_library/1,  795,  1008,
       1027
 load_foreign_library/2, 794, 795
@@ -18422,7 +18446,7 @@ maplist/4, 505
 max/1, 1156
 max/2, 445, 446, 1138
 max_assoc/3, 1068
-maximize/3, 1176, 1177
+maximize/3, 1177, 1178
 member/2, 51,  205, 271,  490, 566,
       1040, 1043
 memberchk/2, 490
@@ -18440,16 +18464,16 @@ meta_predicate/1, 666, 678, 679
 min/1, 1155
 min/2, 446, 1139
 min_assoc/3, 1069
-minimize/3, 1177
+minimize/3, 1178
 mod/2, 439, 1140
 module/1, 677
 module/2, 128, 412, 651, 664, 671
 module_transparent/1,    267,   665,
-      678, 944, 1207
+      678, 944, 1208
 msb/1, 481, 482
 msort/2, 493, 494
 multifile/1,  142,  252, 255,  267,
-      1085, 1199, 1207
+      1085, 1200, 1208
 mutex_create/1, 756, 758, 759
 mutex_destroy/1, 757
 mutex_lock/1, 759, 760
@@ -18468,10 +18492,10 @@ nb_set _l_i_b_r_a_r_y, 1072
 nb_set_to_list/2, 1078
 nb_setarg/3, 380--383, 1072
 nb_setval/2,  381,  383,  697,  700,
-      702, 705, 1197
+      702, 705, 1198
 nbset _l_i_b_r_a_r_y, 1072
 netmask/4, 999
-netscape _l_i_b_r_a_r_y, 1102, 1220
+netscape _l_i_b_r_a_r_y, 1102, 1221
 nextto/3, 1041
 nl/0, 310
 nl/1, 311
@@ -18483,14 +18507,14 @@ noguitracer/0, 102, 104, 108, 595
 nonvar/1, 156
 noprofile/1, 621
 noprotocol/0, 588
-nospy/1, 51, 62, 603, 1200
-nospyall/0, 62, 604, 1200
+nospy/1, 51, 62, 603, 1201
+nospyall/0, 62, 604, 1201
 not/1, 130, 201
 notrace/0, 593, 719, 720
 notrace/1, 598
 nth0/3, 1044
 nth1/3, 1045
-nth_clause/3, 271, 272, 1188
+nth_clause/3, 271, 272, 1189
 number
    rational, 431
 number/1, 161, 1050
@@ -18502,7 +18526,7 @@ numbervars/4, 374, 375
 numbervars/[3
    4], 73
 numlist/3, 1051
-objective/2, 1178
+objective/2, 1179
 on_signal/3, 19, 218, 219
 once/1,  130, 202,  203, 205,  218,
       598, 612, 758, 949
@@ -18521,6 +18545,7 @@ open_shared_object/2, 60,  786, 789,
 open_shared_object/3, 790
 operator
    and modules, 412
+option/2, 724
 ord_list_to_assoc/2, 1070
 
 package
@@ -18628,7 +18653,7 @@ PL_is_list(), 837
 PL_is_number(), 839
 PL_is_string(), 832
 PL_is_variable(), 829
-PL_license(), 1216
+PL_license(), 1217
 PL_malloc(), 1014
 PL_module_name(), 958
 PL_new_atom(), 818
@@ -18725,7 +18750,7 @@ plus/3, 199, 422
 PLVERSION, 1017
 popcount/1, 484
 portray/1,  51, 62,  88, 349,  350,
-      358, 360, 944, 998, 1199
+      358, 360, 944, 998, 1200
 portray_clause/1, 150, 152, 153
 portray_clause/2, 152, 153
 predicate_property/2, 258, 267, 672
@@ -18745,14 +18770,14 @@ profile/1, 615, 616
 profile/3, 616, 1036
 profiler/2, 619
 prolog/0,  41, 60,  287, 578,  582,
-      583, 677, 1004, 1190
+      583, 677, 1004, 1191
 prolog:debug_control_hook/1,     62,
-      1200
-prolog:help_hook/1, 62, 1201
+      1201
+prolog:help_hook/1, 62, 1202
 prolog:show_profile_hook/2, 617
-prolog_choice_attribute/3,     1189,
-      1192
-prolog_current_frame/1, 1187, 1188
+prolog_choice_attribute/3,     1190,
+      1193
+prolog_current_frame/1, 1188, 1189
 prolog_edit:edit_command/2, 62, 148
 prolog_edit:edit_source/1,  62,  91,
       108, 143, 147
@@ -18760,23 +18785,23 @@ prolog_edit:load/0, 149
 prolog_edit:locate/2, 146
 prolog_edit:locate/3,  62, 142, 143,
       145--147
-prolog_exception_hook/4, 1194, 1195
+prolog_exception_hook/4, 1195, 1196
 prolog_file_type/2, 112, 123, 566
-prolog_frame_attribute/3, 272, 1188,
-      1192, 1195
-prolog_frame_attribute/4, 1192
+prolog_frame_attribute/3, 272, 1189,
+      1193, 1196
+prolog_frame_attribute/4, 1193
 prolog_ide _c_l_a_s_s, 107
 prolog_ide/1, 106, 107
-prolog_list_goal/1, 62, 1199
+prolog_list_goal/1, 62, 1200
 prolog_load_context/2, 126, 127
-prolog_load_file/2, 62, 113, 1202
+prolog_load_file/2, 62, 113, 1203
 prolog_server _l_i_b_r_a_r_y, 287
-prolog_skip_level/2, 1193
-prolog_stack _l_i_b_r_a_r_y, 1195
+prolog_skip_level/2, 1194
+prolog_stack _l_i_b_r_a_r_y, 1196
 prolog_to_os_filename/2,   86,   567,
       570
 prolog_trace_interception/4,     62,
-      101, 594, 1188, 1189, 1192
+      101, 594, 1189, 1190, 1193
 prompt/2, 367--369
 prompt1/1, 369
 protocol/1, 586, 587, 589
@@ -18801,7 +18826,7 @@ put_code/2, 75, 319, 346, 348
 put_code/[1
    2], 111
 
-qcompile/1, 113, 135, 140, 141
+qcompile/1, 113, 135, 140, 141, 725
 qsave_program/1, 1023
 qsave_program/2,  14,  58,  60,  88,
       106, 1021, 1022, 1028
@@ -18819,7 +18844,7 @@ rational/1,  159,  160,  431,  432,
       452, 453
 rational/3, 431
 rationalize/1, 431,  432, 452, 453,
-      1181
+      1182
 rdiv/2, 431, 432, 438, 442
 read/1, 60, 80, 275, 322, 356, 361,
       363,   365,  368,  406,  608,
@@ -18840,7 +18865,7 @@ read_term/2, 60, 363, 365--367, 393
 read_term/3, 365, 366, 416, 583
 read_term/[2
    3], 365
-readutil _l_i_b_r_a_r_y, 90, 1095, 1221
+readutil _l_i_b_r_a_r_y, 90, 1095, 1222
 reconsult/1, 112
 recorda/2, 242
 recorda/3, 73, 241,  243, 247, 264,
@@ -18850,9 +18875,9 @@ recorded/3, 245, 247, 1026
 recordz/2, 244
 recordz/3, 73, 243
 redefine_system_predicate/1,     11,
-      232, 1207
+      232, 1208
 registry, 78
-registry _l_i_b_r_a_r_y, 1104, 1222
+registry _l_i_b_r_a_r_y, 1104, 1223
 registry_delete_key/1, 1109
 registry_get_key/2, 1105
 registry_get_key/3, 1106
@@ -18874,10 +18899,11 @@ retract/1, 112, 120, 229, 230, 233,
 retractall/1, 229, 230, 234
 reverse/2, 651, 1047
 RFC-1738, 1113
-rl_add_history/1, 1206
-rl_read_init_file/1, 1205
+rl_add_history/1, 1207
+rl_read_init_file/1, 1206
 rlimit _l_i_b_r_a_r_y, 25
 round/1, 449, 450
+rules/1, 724
 
 same_file/2, 559
 see/1, 20, 273, 275, 288--290
@@ -18902,7 +18928,7 @@ setlocale/3, 542
 setof/3, 73, 130, 501
 sformat/2, 521
 sformat/3, 349, 520
-shadow_price/3, 1179
+shadow_price/3, 1180
 shell/0, 534, 543
 shell/1, 86, 148, 533, 543
 shell/2, 532
@@ -18917,7 +18943,7 @@ show_profile/1, 616, 618
 show_profile/2, 617
 sign/1, 444
 silent, 213
-simplex _l_i_b_r_a_r_y, 1170
+simplex _l_i_b_r_a_r_y, 1171
 sin/1, 467
 size_file/2, 563
 size_nb_set/2, 1077
@@ -18933,7 +18959,7 @@ source_file/[1
    2], 668
 source_location/2, 126, 127
 spy/1, 51,  60, 62, 102,  103, 108,
-      602, 1200
+      602, 1201
 sqrt/1, 466
 stack
    memory management, 79
@@ -18953,7 +18979,7 @@ string_to_atom/2, 407
 string_to_list/2, 408
 strip_module/3, 670
 style_check/1,  80,  81,  256,  608,
-      1207
+      1208
 sub_atom/5, 399, 411
 sub_string/5, 411
 sublist/3, 506
@@ -18978,7 +19004,7 @@ tell/1,  20,  273, 275,  288,  289,
       291, 292
 telling/1, 288, 289, 294
 term_expansion/2,   62,  112,  128--
-      130, 135, 141, 583
+      130, 135, 141, 583, 714
 term_to_atom/2, 349, 392, 918
 term_variables/2, 73, 365, 376, 377
 term_variables/3, 376, 377
@@ -19005,18 +19031,18 @@ thread_statistics/3, 738, 740
 threads/0, 765
 throw/1, 17, 51, 73, 207--209, 221,
       579,   737,  751,  752,  961,
-      963, 1195--1197
+      963, 1196--1198
 time/1, 481, 612, 615, 616
 time_file/2, 544, 546, 564
 tmp_file/2, 572
 told/0, 296
 trace/0,  51,  60, 102,  103,  108,
       591,   597,  719,  720,  752,
-      984, 1195
+      984, 1196
 trace/1, 60, 596
 trace/2, 597
 tracing/0, 592
-transportation/4, 1180
+transportation/4, 1181
 trim_stacks/0, 60, 625, 626, 629
 true/0, 60, 188, 204
 truncate/1, 456
@@ -19041,23 +19067,23 @@ unsetenv/1, 540, 541
 upcase_atom/2, 401, 405
 update view, 249
 URL, 536
-url _l_i_b_r_a_r_y, 1102, 1113, 1223
+url _l_i_b_r_a_r_y, 1102, 1113, 1224
 use_module/1, 62, 87, 653
 use_module/2, 63, 654
 use_module/[1
    2], 53,  60, 100, 112, 113, 115,
-      652, 655, 657, 671, 1207
+      652, 655, 657, 671, 1208
 user profile file, 39
-user:prolog_load_file/2, 1203
+user:prolog_load_file/2, 1204
 UTF-8, 74
 utf-8, 111
 
 var/1, 12, 155, 682, 826
-variable_value/3, 1181
-vars_in/2, 1164, 1165
-vars_in/3, 1164, 1166
+variable_value/3, 1182
+vars_in/2, 1165, 1166
+vars_in/3, 1165, 1167
 verbose, 41
-visible/1, 606, 1192
+visible/1, 606, 1193
 volatile/1, 267, 754, 1025
 
 wait_for_input/3, 286, 303
@@ -19088,13 +19114,5 @@ write_canonical/[1
    2], 17
 write_term/2,  51,  60,  175,  350--
       352, 406, 513, 518, 687
-write_term/3, 60, 62, 351, 374
-write_term/[2
-   3], 17, 60
-writef/1, 512
-writef/2, 32, 71, 349, 513, 514
-writef/[1
-   2], 509
-writeln/1, 511
 
-                                  1229
+                                  1230
