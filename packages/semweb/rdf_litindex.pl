@@ -37,6 +37,7 @@
 :- use_module(rdf_db).
 :- use_module(library(debug)).
 :- use_module(library(lists)).
+:- use_module(library(ordsets)).
 :- use_module(library(porter_stem)).
 :- use_module(library(double_metaphone)).
 
@@ -92,40 +93,107 @@ set_option(Term) :-
 %	TBD: numbers
 
 rdf_find_literals(Spec, Literals) :-
-	compile_spec(Spec, Conjunctions),
+	compile_spec(Spec, DNF),
 	token_index(Map),
-	lookup(Conjunctions, Map, Sets),
+	lookup(DNF, Map, Sets),
 	ord_union(Sets, Literals).
 
-lookup([], _, []).
-lookup([H0|T0], Map, [H|T]) :-
-	rdf_find_literal_map(Map, [H0], H1),
-	sort(H1, H),			% TBD: Semweb order is different!
+lookup(false, _, []) :- !.
+lookup(or(H0,T0), Map, [H|T]) :- !,
+	lookup1(H0, Map, H),
 	lookup(T0, Map, T).
+lookup(H0, Map, [H]) :-
+	lookup1(H0, Map, H).
 	
-compile_spec(sounds(Like), Disjunction) :- !,
+lookup1(Conj, Map, Literals) :-
+	phrase(conj_to_list(Conj), List),
+	rdf_find_literal_map(Map, List, Literals0),
+	sort(Literals0, Literals).	% TBD: Semweb order is different!
+
+conj_to_list(and(A,B)) --> !,
+	conj_to_list(A),
+	conj_to_list(B).
+conj_to_list(L) -->
+	[L].
+
+
+%	compile_spec(+Spec, -Compiled)
+%	
+%	Compile a specification as above into disjunctive normal form
+
+compile_spec(Spec, DNF) :-
+	expand_fuzzy(Spec, Spec2),
+	nnf(Spec2, NNF),
+	dnf(NNF, DNF).
+
+
+expand_fuzzy(Var, _) :-
+	var(Var), !,
+	throw(error(instantiation_error, _)).
+expand_fuzzy(sounds(Like), Or) :- !,
 	metaphone_index(Map),
 	double_metaphone(Like, Key),
 	rdf_find_literal_map(Map, [Key], Tokens),
-	list_to_or(Tokens, Disjunction).
-compile_spec(stem(Like), Disjunction) :- !,
+	list_to_or(Tokens, Or).
+expand_fuzzy(stem(Like), Or) :- !,
 	porter_index(Map),
 	porter_stem(Like, Key),
 	rdf_find_literal_map(Map, [Key], Tokens),
-	list_to_or(Tokens, Disjunction).
-compile_spec(or(A0, B0), or(A,B)) :- !,
-	compile_spec(A0, A),
-	compile_spec(B0, B).
-compile_spec(and(A0, B0), and(A,B)) :- !,
-	compile_spec(A0, A),
-	compile_spec(B0, B).
-compile_spec(Token, Token) :-
-	atomic(Token).
+	list_to_or(Tokens, Or).
+expand_fuzzy(or(A0, B0), or(A,B)) :- !,
+	expand_fuzzy(A0, A),
+	expand_fuzzy(B0, B).
+expand_fuzzy(and(A0, B0), and(A,B)) :- !,
+	expand_fuzzy(A0, A),
+	expand_fuzzy(B0, B).
+expand_fuzzy(Token, Token) :-
+	atomic(Token), !.
+expand_fuzzy(Token, _) :-
+	throw(error(type_error(Token, boolean_expression), _)).
+
 
 list_to_or([], false) :- !.
 list_to_or([X], X) :- !.
 list_to_or([H|T0], or(H, T)) :-
 	list_to_or(T0, T).
+
+
+%	nnf(+Formula, -NNF)
+%	
+%	Rewrite to Negative Normal Form, meaning negations only appear
+%	around literals.
+
+nnf(not(not(A0)), A) :- !,
+	nnf(A0, A).
+nnf(not(and(A0,B0)), or(A,B)) :- !,
+	nnf(not(A0), A),
+	nnf(not(B0), B).
+nnf(not(or(A0,B0)), and(A,B)) :- !,
+	nnf(not(A0), A),
+	nnf(not(B0), B).
+nnf(A, A).
+
+
+%	dnf(+NNF, -DNF)
+%	
+%	Convert a formula in NNF to Disjunctive Normal Form (DNF)
+
+dnf(or(A0,B0), or(A, B)) :- !,
+	dnf(A0, A),
+	dnf(B0, B).
+dnf(and(A0,B0), DNF):- !,
+	dnf(A0, A1),
+	dnf(B0, B1),
+	dnf1(and(A1,B1), DNF).
+dnf(DNF, DNF).
+
+dnf1(and(A0, or(B,C)), or(P,Q)) :- !,
+	dnf1(and(A0,B), P),
+	dnf1(and(A0,C), Q).
+dnf1(and(or(B,C), A0), or(P,Q)) :- !,
+	dnf1(and(A0,B), P),
+	dnf1(and(A0,C), Q).
+dnf1(DNF, DNF).
 
 
 %	ord_union(+ListOfSets, -Union)
@@ -346,7 +414,7 @@ progress(Map, Which) :-
 	rdf_statistics_literal_map(Map, size(Keys, Values)),
 	(   Keys mod 1000 =:= 0
 	->  format(user_error,
-		   '\r~w: Keys: ~t~D~15|~tValues: ~D~35|',
+		   '\r~t~w: ~12|Keys: ~t~D~15+ Values: ~t~D~20+',
 		   [Which, Keys, Values])
 	;   true
 	).

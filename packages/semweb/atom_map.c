@@ -706,7 +706,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
       DEBUG(2, Sdprintf("Found atom-set of size %d\n", as[ns]->size));
       ns++;
     } else
-    { goto failure;
+    { goto empty;
     }
   }
   if ( !PL_get_nil(tail) )
@@ -726,7 +726,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     for(i=1; i<ns; i++)
     { if ( !in_atom_set(as[i], a) ) 
       { if ( a > as[i]->atoms[as[i]->size-1] )
-	  goto failure;
+	  goto empty;
 	goto next;
       }
     }
@@ -737,6 +737,7 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
 next:;
   }
 
+empty:
   RDUNLOCK(map);
   return PL_unify_nil(tail);
 
