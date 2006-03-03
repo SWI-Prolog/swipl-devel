@@ -1,6 +1,7 @@
 #include <SWI-Prolog.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "atom_set.h"
 #define AVL_DELETE 1
 #ifdef WIN32
@@ -52,6 +53,93 @@ avl_find_node(avl_tree *tree, void *key)
 { return avl_find_n(tree, tree->root, key);
 } 
 
+
+#ifdef NEED_AVL_CHECK
+
+#include <stdio.h>
+
+static int
+avl_check_tree(avl_tree *tree, avl_node *n)
+{ if ( n->left )
+  { assert(avl_compare(tree, n->left->key, n->key) < 0);
+    if ( !avl_check_tree(tree, n->left) )
+      return 0;
+  }
+  if ( n->right )
+  { assert(avl_compare(tree, n->right->key, n->key) > 0);
+    if ( !avl_check_tree(tree, n->right) )
+      return 0;
+  }
+
+  return 1;
+}
+
+
+int
+avl_check(avl_tree *tree)
+{ return avl_check_tree(tree, tree->root);
+}
+
+
+static int
+find_naive(avl_node *n, void *key, char *path)
+{ if ( n->key == key )
+  { *path = 'x';
+    return 1;
+  }
+
+  if ( n->left )
+  { *path++ = 'L';
+    if ( find_naive(n->left, key, path) )
+      return TRUE;
+    path--;
+  }
+
+  if ( n->right )
+  { *path++ = 'R';
+    if ( find_naive(n->right, key, path) )
+      return TRUE;
+    path--;
+  }
+  
+  return 0;
+}
+
+
+int
+avl_check_key(avl_tree *tree, void *key)
+{ char path[30];			/* LR...x */
+
+  if ( find_naive(tree->root, key, path) )
+  { char *p = path;
+    avl_node *n = tree->root;
+
+    while(n)
+    { int dif = avl_compare(tree, key, n->key);
+
+      if ( dif < 0)
+      { assert(*p == 'L');
+	p++;
+	n = n->left;
+      } else if ( dif > 0 )
+      { assert(*p == 'R');
+	p++;
+	n = n->right;
+      } else
+      { assert(*p == 'x');
+	fprintf(stderr, "Tree OK\n");
+	return 1;
+      }
+    }
+
+    assert(0);
+  } else
+    fprintf(stderr, "Not in tree\n");
+
+  return 0;
+}
+
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 avl_find_ge()

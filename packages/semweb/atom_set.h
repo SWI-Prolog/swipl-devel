@@ -79,6 +79,10 @@ int	  avl_delete(avl_tree *tree, avl_node **n, void *key);
 avl_node *avl_find_ge(avl_tree *tree, void *key, avl_enum *e);
 avl_node *avl_next(avl_enum *e);
 void	  avl_destroy_enum(avl_enum *e);
+#ifdef NEED_AVL_CHECK
+int	  avl_check(avl_tree *tree);
+int	  avl_check_key(avl_tree *tree, void *key);
+#endif
 
 #define avl_insert_atom(tree, key, nodeptr) \
 	avl_insert(tree, (void*)(key), nodeptr)
