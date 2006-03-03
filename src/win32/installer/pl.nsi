@@ -187,11 +187,14 @@ Section "CLP"
   File pl\library\clp\simplex.pl
 SectionEnd
 
-Section "CLP on real numbers: CLP(R)"
+Section "CLP on real and rational numbers: CLP(Q,R)"
   SectionIn 1 3
   SetOutPath $INSTDIR\library\clp
   File /r pl\library\clp\clpr
+  File /r pl\library\clp\clpq
+  File /r pl\library\clp\clpqr
   File pl\library\clp\clpr.pl
+  File pl\library\clp\clpq.pl
 SectionEnd
 
 Section "Demo files"
