@@ -654,7 +654,7 @@ it takes the CHR compiler a long time to compile the CHR rules into Prolog
 code. When you disable optimizations the CHR compiler will be a lot quicker,
 but you may loose performance. Alternatively, you can just use SWI-Prolog's
 qcompile/1 to generate a \fileext{qlf} file once from your
-\fileext{pl} file. This fileext{qlf} contains the generated code of the
+\fileext{pl} file. This \fileext{qlf} contains the generated code of the
 CHR compiler (be it in a binary format). When you consult the \fileext{qlf}
 file, the CHR compiler is not invoked and consultation is much faster.
 \end{itemlist}
