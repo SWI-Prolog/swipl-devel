@@ -8,8 +8,6 @@
 		a_star/4
 	]).
 
-:- use_module(library(lists)).
-
 :- use_module(binomialheap).
 
 :- use_module(find).

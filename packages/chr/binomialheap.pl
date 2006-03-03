@@ -19,7 +19,7 @@
 		find_min_q/2
 	]).	
 
-:- use_module(library(lists)).
+:- use_module(library(lists),[reverse/2]).
 
 % data Tree a = Node a [Tree a]
 % type BinQueue a = [Maybe (Tree a)]

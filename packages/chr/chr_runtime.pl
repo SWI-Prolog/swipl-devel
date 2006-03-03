@@ -124,12 +124,11 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                                                        
-:- use_module(library(assoc)).
 :- use_module(hprolog).
-:- use_module(library(lists)).
 :- include(chr_op).
 
 %% SICStus begin
+%% :- use_module(library(lists),[memberchk/2]).
 %% :- use_module(library(terms),[term_variables/2]).
 %% :- use_module(hpattvars).
 %% :- use_module(b_globval).
@@ -198,17 +197,33 @@ find_chr_constraint(C) :-
 % so that       user:goal_expansion(G,G). also works (but do not add such a rule)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% SWI begin
 :- multifile user:goal_expansion/2.
 :- dynamic   user:goal_expansion/2.
 
-%% SWI begin
 user:goal_expansion('chr get_mutable'(Val,Var),    Var=mutable(Val)).
 user:goal_expansion('chr update_mutable'(Val,Var), setarg(1,Var,Val)).
 user:goal_expansion('chr create_mutable'(Val,Var), Var=mutable(Val)).
 user:goal_expansion('chr default_store'(X),        nb_getval(chr_global,X)).
 %% SWI end
 
+% goal_expansion seems too different in SICStus 4 for me to cater for in a
+% decent way at this moment - so I stick with the old way to do this
+% so that it doesn't get lost, the code from Mats for SICStus 4 is included in comments
+
+
+%% Mats begin
+%% goal_expansion('chr get_mutable'(Val,Var),    Lay, _M, get_mutable(Val,Var), Lay).
+%% goal_expansion('chr update_mutable'(Val,Var), Lay, _M, update_mutable(Val,Var), Lay).
+%% goal_expansion('chr create_mutable'(Val,Var), Lay, _M, create_mutable(Val,Var), Lay).
+%% goal_expansion('chr default_store'(A),        Lay, _M, global_term_ref_1(A), Lay).
+%% Mats begin
+
+
 %% SICStus begin
+%% :- multifile user:goal_expansion/2.
+%% :- dynamic   user:goal_expansion/2.
+%% 
 %% user:goal_expansion('chr get_mutable'(Val,Var),    get_mutable(Val,Var)).
 %% user:goal_expansion('chr update_mutable'(Val,Var), update_mutable(Val,Var)).
 %% user:goal_expansion('chr create_mutable'(Val,Var), create_mutable(Val,Var)).
@@ -400,7 +415,7 @@ nonground( Term, V) :-
 'chr novel_production'( Self, Tuple) :-
 	arg( 5, Self, Ref),
 	'chr get_mutable'( History, Ref),
-	( get_assoc( Tuple, History, _) ->
+	( get_ds( Tuple, History, _) ->
 	    fail
 	;
 	    true
@@ -413,7 +428,7 @@ nonground( Term, V) :-
 'chr extend_history'( Self, Tuple) :-
 	arg( 5, Self, Ref),
 	'chr get_mutable'( History, Ref),
-	put_assoc( Tuple, History, x, NewHistory),
+	put_ds( Tuple, History, x, NewHistory),
 	'chr update_mutable'( NewHistory, Ref).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -486,7 +501,7 @@ insert_constraint_internal([Global|Vars], Self, Term, Closure, F, Args) :-
 	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-'chr empty_history'( E) :- empty_assoc( E).
+'chr empty_history'( E) :- empty_ds( E).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr gen_id'( Id) :-

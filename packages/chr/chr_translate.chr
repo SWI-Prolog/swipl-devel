@@ -142,9 +142,18 @@
 :- module(chr_translate,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
 	  ]).
-:- use_module(library(lists)).
+:- use_module(library(lists),[member/2, append/3,reverse/2,permutation/2,last/2]).
 :- use_module(hprolog).
-:- use_module(library(assoc)).
+
+%% SICStus begin
+%% :- use_module(library(lists),[memberchk/2,is_list/1]).
+%% SICStus end
+
+
+%% for release 4 SICStus begin
+%% :- use_module(library(samsort)).
+%% for release 4 SICStus end
+
 :- use_module(pairlist).
 :- use_module(library(ordsets)).
 :- use_module(a_star).
@@ -259,14 +268,14 @@ get_constraint_mode(FA,Q) <=>
 
 may_trigger(FA) <=> \+ has_active_occurrence(FA) | fail.
 constraint_mode(FA,Mode), indexed_argument(FA,I) \ may_trigger(FA) <=> 
-  nth(I,Mode,M),
+  nth1(I,Mode,M),
   M \== (+) |
   is_stored(FA). 
 may_trigger(FA) <=> chr_pp_flag(debugable,on).	% in debug mode, we assume everything can be triggered
 
 constraint_mode(FA,Mode), indexed_argument(FA,I) \ only_ground_indexed_arguments(FA)
 	<=>
-		nth(I,Mode,M),
+		nth1(I,Mode,M),
 		M \== (+)
 	|
 		fail.
@@ -441,7 +450,7 @@ set_constraint_indices([C|Cs],N) :-
 %% Translation
 
 chr_translate(Declarations,NewDeclarations) :-
-	chr_info(banner,'\tThe K.U.Leuven CHR System\t\n\t\tContributors:\tTom Schrijvers, Jon Sneyers, Bart Demoen,\n\t\t\t\tJan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/\~~toms/CHR/\n',[]),
+	chr_info(banner,'\tThe K.U.Leuven CHR System\t\n\t\tContributors:\tTom Schrijvers, Jon Sneyers, Bart Demoen,\n\t\t\t\tJan Wielemaker\n\t\tCopyright:\tK.U.Leuven, Belgium\n\t\tURL:\t\thttp://www.cs.kuleuven.be/~~toms/CHR/\n',[]),
 	init_chr_pp_flags,
 	partition_clauses(Declarations,Constraints0,Rules0,OtherClauses),
 	check_declared_constraints(Constraints0),
@@ -467,13 +476,13 @@ chr_translate(Declarations,NewDeclarations) :-
 	store_management_preds(Constraints,StoreClauses),	% depends on actual code used
 	insert_declarations(OtherClauses, Clauses0),
 	chr_module_declaration(CHRModuleDeclaration),
-	append_lists([Clauses0,
-		      StoreClauses,
-		      ConstraintClauses,
-		      CHRModuleDeclaration,
-		      [end_of_file]
-		     ],
-		     NewDeclarations).
+	append([Clauses0,
+		StoreClauses,
+		ConstraintClauses,
+		CHRModuleDeclaration,
+		[end_of_file]
+	       ],
+	       NewDeclarations).
 
 store_management_preds(Constraints,Clauses) :-
 		generate_attach_detach_a_constraint_all(Constraints,AttachAConstraintClauses),
@@ -484,16 +493,16 @@ store_management_preds(Constraints,Clauses) :-
 		generate_insert_delete_constraints(Constraints,DeleteClauses),
 		generate_attach_code(Constraints,StoreClauses),
 		generate_counter_code(CounterClauses),
-		append_lists([AttachAConstraintClauses
-			     ,IndexedClauses
-			     ,AttachIncrementClauses
-			     ,AttrUnifyHookClauses
-			     ,ExtraClauses
-			     ,DeleteClauses
-			     ,StoreClauses
-			     ,CounterClauses
-			     ]
-			     ,Clauses).
+		append([AttachAConstraintClauses
+		       ,IndexedClauses
+		       ,AttachIncrementClauses
+		       ,AttrUnifyHookClauses
+		       ,ExtraClauses
+		       ,DeleteClauses
+		       ,StoreClauses
+		       ,CounterClauses
+		       ]
+		      ,Clauses).
 
 %% SWI begin
 extra_declaration([ :- use_module(chr(chr_runtime))
@@ -503,10 +512,7 @@ extra_declaration([ :- use_module(chr(chr_runtime))
 %% SWI end
 
 %% SICStus begin
-%% extra_declaration([ (:- use_module(library('chr/chr_runtime')))
-%% 		  , (:- use_module(library('chr/chr_hashtable_store')))
-%%                   , (:- use_module(library('chr/hprolog')))
-%% 		  ]).
+%% extra_declaration([]).
 %% SICStus end
 
 
@@ -1152,7 +1158,7 @@ generate_attach_detach_a_constraint_all([Constraint|Constraints],Clauses) :-
 		Clauses2 = []
 	),	
 	generate_attach_detach_a_constraint_all(Constraints,Clauses3),
-	append_lists([Clauses1,Clauses2,Clauses3],Clauses).
+	append([Clauses1,Clauses2,Clauses3],Clauses).
 
 generate_attach_a_constraint(Constraint,[Clause1,Clause2]) :-
 	generate_attach_a_constraint_empty_list(Constraint,Clause1),
@@ -1230,13 +1236,13 @@ generate_attach_body_n(F/A,Var,Susp,Body) :-
 	or_pattern(Position,Pattern),
 	get_max_constraint_index(Total),
 	make_attr(Total,Mask,SuspsList,Attr),
-	nth(Position,SuspsList,Susps),
+	nth1(Position,SuspsList,Susps),
 	substitute(Susps,SuspsList,[Susp|Susps],SuspsList1),
 	make_attr(Total,Mask,SuspsList1,NewAttr1),
 	substitute(Susps,SuspsList,[Susp],SuspsList2),
 	make_attr(Total,NewMask,SuspsList2,NewAttr2),
 	copy_term(SuspsList,SuspsList3),
-	nth(Position,SuspsList3,[Susp]),
+	nth1(Position,SuspsList3,[Susp]),
 	chr_delete(SuspsList3,[Susp],RestSuspsList),
 	set_elems(RestSuspsList,[]),
 	make_attr(Total,Pattern,SuspsList3,NewAttr3),
@@ -1316,7 +1322,7 @@ generate_detach_body_n(F/A,Var,Susp,Body) :-
 	and_pattern(Position,DelPattern),
 	get_max_constraint_index(Total),
 	make_attr(Total,Mask,SuspsList,Attr),
-	nth(Position,SuspsList,Susps),
+	nth1(Position,SuspsList,Susps),
 	substitute(Susps,SuspsList,[],SuspsList1),
 	make_attr(Total,NewMask,SuspsList1,Attr1),
 	substitute(Susps,SuspsList,NewSusps,SuspsList2),
@@ -2130,10 +2136,11 @@ prolog_global_variables_code(Code) :-
 		findall('$chr_prolog_global_variable'(Name),member(Name,Names),NameDeclarations),
 		Code = [(:- dynamic user:exception/3),
 			(:- multifile user:exception/3),
-			user:exception(undefined_global_variable,Name,retry) :-
-			(
+			(user:exception(undefined_global_variable,Name,retry) :-
+			        (
 				'$chr_prolog_global_variable'(Name),
 				'$chr_initialization'
+			        )
 			)
 	       		|
 			NameDeclarations
@@ -3967,7 +3974,7 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
 		;
 			get_constraint_index(F/A,Pos),
 			make_attr(N,_Mask,SuspsList,Attr),
-			nth(Pos,SuspsList,VarSusps)
+			nth1(Pos,SuspsList,VarSusps)
 		),
 		create_get_mutable_ref(active,State,GetMutable),
 		get_constraint_mode(F/A,Mode),
@@ -4027,11 +4034,6 @@ check_unique_keys([V|Vs],Dict) :-
 different_from_other_susps(Head,Susp,Heads,Susps,DiffSuspGoals) :-
 	different_from_other_susps_(Heads,Susps,Head,Susp,DiffSuspGoalList),
 	list2conj(DiffSuspGoalList,DiffSuspGoals).
-% 	( bagof(DiffSuspGoal, Pos ^ ( nth(Pos,Heads,PreHead), \+ Head \= PreHead, nth(Pos,Susps,PreSusp), DiffSuspGoal = (Susp \== PreSusp) ),DiffSuspGoalList) ->
-% 	     list2conj(DiffSuspGoalList,DiffSuspGoals)
-% 	;
-% 	     DiffSuspGoals = true
-% 	).
 
 different_from_other_susps_(_,[],_,_,[]) :- !.
 different_from_other_susps_([PreHead|Heads],[PreSusp|Susps],Head,Susp,List) :-
@@ -4982,7 +4984,7 @@ lookup_passive_head(default,Head,PreJoin,VarDict,Goal,AllSusps) :-
 		functor(Head,F,A),
 		get_constraint_index(F/A,Pos),
 		make_attr(N,_,SuspsList,Attr),
-		nth(Pos,SuspsList,AllSusps)
+		nth1(Pos,SuspsList,AllSusps)
 	).
 lookup_passive_head(multi_hash(Indexes),Head,_PreJoin,VarDict,Goal,AllSusps) :-
 	once((
@@ -5445,7 +5447,7 @@ depends_on_ap(CP,CPP,CPD,Delete), final_answer_pattern(CPP,APP),
 	final_answer_pattern(CP,AP).
 
 ai_observation_lub(odom(AG,S1),odom(AG,S2),odom(AG,S3)) :-
-	ord_intersect(S1,S2,S3).
+	ord_intersection(S1,S2,S3).
 
 ai_observation_top(AG,odom(AG,EmptyS)) :-
 	ord_empty(EmptyS).

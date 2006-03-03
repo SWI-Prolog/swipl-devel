@@ -122,9 +122,11 @@
 :- module(chr_translate_bootstrap1,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
 	  ]).
-:- use_module(library(lists)).
+:- use_module(library(lists),[append/3,member/2,permutation/2,reverse/2]).
+%% SICStus begin
+%% :- use_module(library(lists),[memberchk/2]).
+%% SICStus end
 :- use_module(hprolog).
-:- use_module(library(assoc)).
 :- use_module(pairlist).
 :- use_module(library(ordsets)).
 :- include(chr_op2).
@@ -216,11 +218,11 @@ chr_translate(Declarations,NewDeclarations) :-
 		set_constraint_indices(Decls,1),
 		store_management_preds(Decls,StoreClauses),
 		constraints_code(Decls,NRules,ConstraintClauses),
-		append_lists([OtherClauses,
-			      StoreClauses,
-			      ConstraintClauses
-			     ],
-			     NewDeclarations)
+		append([OtherClauses,
+			StoreClauses,
+			ConstraintClauses
+		       ],
+		       NewDeclarations)
 	),
 	chr_clear.
 
@@ -228,10 +230,10 @@ store_management_preds(Constraints,Clauses) :-
 		generate_attach_detach_a_constraint_all(Constraints,AttachAConstraintClauses),
 		generate_attach_increment(AttachIncrementClauses),
 		generate_attr_unify_hook(AttrUnifyHookClauses),
-		append_lists([AttachAConstraintClauses
-			     ,AttachIncrementClauses
-			     ,AttrUnifyHookClauses]
-			     ,Clauses).
+		append([AttachAConstraintClauses
+		       ,AttachIncrementClauses
+		       ,AttrUnifyHookClauses]
+		      ,Clauses).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -587,7 +589,7 @@ generate_attach_detach_a_constraint_all([Constraint|Constraints],Clauses) :-
 		Clauses2 = []
 	),	
 	generate_attach_detach_a_constraint_all(Constraints,Clauses3),
-	append_lists([Clauses1,Clauses2,Clauses3],Clauses).
+	append([Clauses1,Clauses2,Clauses3],Clauses).
 
 generate_attach_a_constraint(Constraint,[Clause1,Clause2]) :-
 	generate_attach_a_constraint_empty_list(Constraint,Clause1),
@@ -631,13 +633,13 @@ generate_attach_a_constraint_t_p(CFct / CAty,Clause) :-
 	or_pattern(Position,Pattern),
 	get_max_constraint_index(Total),
 	make_attr(Total,Mask,SuspsList,Attr),
-	nth(Position,SuspsList,Susps),
+	nth1(Position,SuspsList,Susps),
 	substitute(Susps,SuspsList,[Susp|Susps],SuspsList1),
 	make_attr(Total,Mask,SuspsList1,NewAttr1),
 	substitute(Susps,SuspsList,[Susp],SuspsList2),
 	make_attr(Total,NewMask,SuspsList2,NewAttr2),
 	copy_term(SuspsList,SuspsList3),
-	nth(Position,SuspsList3,[Susp]),
+	nth1(Position,SuspsList3,[Susp]),
 	chr_delete(SuspsList3,[Susp],RestSuspsList),
 	set_elems(RestSuspsList,[]),
 	make_attr(Total,Pattern,SuspsList3,NewAttr3),
@@ -707,7 +709,7 @@ generate_detach_a_constraint_t_p(CFct / CAty,Clause) :-
 	and_pattern(Position,DelPattern),
 	get_max_constraint_index(Total),
 	make_attr(Total,Mask,SuspsList,Attr),
-	nth(Position,SuspsList,Susps),
+	nth1(Position,SuspsList,Susps),
 	substitute(Susps,SuspsList,[],SuspsList1),
 	make_attr(Total,NewMask,SuspsList1,Attr1),
 	substitute(Susps,SuspsList,NewSusps,SuspsList2),
@@ -1331,7 +1333,7 @@ unique_analyse_optimise_main([PRule|PRules],N,PatternList,[NPRule|NPRules]) :-
 	Ids = ids(Ids1,Ids2),
 	apply_unique_patterns_to_constraints(H1,Ids1,NPatternList,MorePragmas1),
 	apply_unique_patterns_to_constraints(H2,Ids2,NPatternList,MorePragmas2),
-	append_lists([MorePragmas1,MorePragmas2,Pragmas],NPragmas),
+	append([MorePragmas1,MorePragmas2,Pragmas],NPragmas),
 	NPRule = pragma(Rule,Ids,NPragmas,Name),
 	N1 is N + 1,
 	unique_analyse_optimise_main(PRules,N1,NPatternList,NPRules).
@@ -1370,9 +1372,9 @@ apply_unique_pattern(Constraint,Id,Pattern,Pragma) :-
 %	variables from Term2 and their corresponding values in Term1.
 
 subsumes(Term1,Term2,Unifier) :-
-	empty_assoc(S0),
+	empty_ds(S0),
 	subsumes_aux(Term1,Term2,S0,S),
-	assoc_to_list(S,L),
+	ds_to_list(S,L),
 	build_unifier(L,Unifier).
 
 subsumes_aux(Term1, Term2, S0, S) :-
@@ -1383,10 +1385,10 @@ subsumes_aux(Term1, Term2, S0, S) :-
         ;   Term1 == Term2
 	->  S = S0
 	;   var(Term2),
-	    get_assoc(Term1,S0,V)
+	    get_ds(Term1,S0,V)
 	->  V == Term2, S = S0
 	;   var(Term2),
-	    put_assoc(Term1, S0, Term2, S)
+	    put_ds(Term1, S0, Term2, S)
         ).
 
 subsumes_aux(0, _, _, S, S) :- ! .
@@ -1674,7 +1676,7 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],Pragmas,PrevHs,PrevSusps,Act
 	;
 		get_constraint_index(Fct/Aty,Pos),
 		make_attr(N,_Mask,SuspsList,Attr),
-		nth(Pos,SuspsList,VarSusps)
+		nth1(Pos,SuspsList,VarSusps)
 	),
 	different_from_other_susps(H,Susp,PrevHs,PrevSusps,DiffSuspGoals),
 	create_get_mutable_ref(active,State,GetMutable),
@@ -1714,7 +1716,7 @@ check_unique_keys([V|Vs],Dict) :-
 
 % Generates tests to ensure the found constraint differs from previously found constraints
 different_from_other_susps(Head,Susp,Heads,Susps,DiffSuspGoals) :-
-	( bagof(DiffSuspGoal, Pos ^ ( nth(Pos,Heads,PreHead), \+ Head \= PreHead, nth(Pos,Susps,PreSusp), DiffSuspGoal = (Susp \== PreSusp) ),DiffSuspGoalList) ->
+	( bagof(DiffSuspGoal, Pos ^ ( nth1(Pos,Heads,PreHead), \+ Head \= PreHead, nth1(Pos,Susps,PreSusp), DiffSuspGoal = (Susp \== PreSusp) ),DiffSuspGoalList) ->
 	     list2conj(DiffSuspGoalList,DiffSuspGoals)
 	;
 	     DiffSuspGoals = true
@@ -1993,7 +1995,7 @@ simpagation_head2_prelude(Head,Head1,Rest,F/A,Id1,L,T) :-
 		functor(Head1,F1,A1),
 		get_constraint_index(F1/A1,Pos),
 		make_attr(N,_,SuspsList,Attr),
-		nth(Pos,SuspsList,AllSusps)
+		nth1(Pos,SuspsList,AllSusps)
 	),
 
 	(   Id1 == [0] ->	% create suspension
@@ -2260,7 +2262,7 @@ propagation_prelude(Head,[First|Rest],Rule,F/A,Id,L,T) :-
 	functor(First,FirstFct,FirstAty),
 	make_attr(N,_Mask,SuspsList,Attr),
 	get_constraint_index(FirstFct/FirstAty,Pos),
-	nth(Pos,SuspsList,Susps)
+	nth1(Pos,SuspsList,Susps)
    ),
 
    (   Id == [0] ->
@@ -2453,7 +2455,7 @@ propagation_accumulator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,Id,
 	;
 	     get_constraint_index(NextF/NextA,Position),
 	     make_attr(N,_Mask,SuspsList,Attr),
-	     nth(Position,SuspsList,NextSusps)
+	     nth1(Position,SuspsList,NextSusps)
 	),
 	inc_id(Id,NestedId),
 	ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],

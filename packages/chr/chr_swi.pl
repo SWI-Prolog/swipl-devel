@@ -69,6 +69,7 @@ user:file_search_path(chr, library(chr)).
 
 :- use_module(chr(chr_compiler_errors)).
 
+:- use_module(library(lists),[member/2]).
 %% SWI end
 
 %% SICStus begin
@@ -99,9 +100,9 @@ user:file_search_path(chr, library(chr)).
 %% :- use_module('chr/chr_messages').
 %% :- use_module('chr/chr_hashtable_store').
 %% :- use_module('chr/hprolog').
+%% :- use_module(library(lists),[member/2, memberchk/2]).
 %% SICStus end
 
-:- use_module(library(lists)).
 
 :- dynamic
 	chr_term/2.			% File, Term

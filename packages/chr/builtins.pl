@@ -11,7 +11,7 @@
 	]).
 
 :- use_module(hprolog).
-:- use_module(library(lists)).
+:- use_module(library(lists),[append/3]).
 
 %% SICStus begin
 %% :- use_module(library(terms),[term_variables/2]).

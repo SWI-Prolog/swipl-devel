@@ -84,6 +84,7 @@ specific_declarations([:- use_module('chr_runtime'),
 
 %% SICStus begin
 %% specific_declarations([(:- use_module('chr_runtime')),
+%%                     (:-use_module(chr_hashtable_store)),
 %% 		       (:- use_module('hpattvars')),
 %% 		       (:- use_module('b_globval')),
 %% 		       (:- use_module('hprolog')),  % needed ?

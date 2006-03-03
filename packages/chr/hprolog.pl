@@ -1,5 +1,5 @@
 :- module(hprolog,
-	  [ append_lists/2,		% +ListOfLists, -List
+	  [ append/2,		        % +ListOfLists, -List
 	    nth/3,			% ?Index, ?List, ?Element
 	    substitute/4,		% +OldVal, +OldList, +NewVal, -NewList
 	    memberchk_eq/2,		% +Val, +List
@@ -16,9 +16,22 @@
 	    update_store/2,
 	    make_get_store_goal/3,
 	    make_update_store_goal/3,
-	    make_init_store_goal/3
+	    make_init_store_goal/3,
+
+	    empty_ds/1,
+	    ds_to_list/2,
+	    get_ds/3,
+	    put_ds/4
+	    
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(assoc)).
+
+empty_ds(DS) :- empty_assoc(DS).
+ds_to_list(DS,LIST) :- assoc_to_list(DS,LIST).
+get_ds(A,B,C) :- get_assoc(A,B,C).
+put_ds(A,B,C,D) :- put_assoc(A,B,C,D).
+
 
 init_store(Name,Value) :- nb_setval(Name,Value).
 
@@ -37,16 +50,16 @@ make_update_store_goal(Name,Value,Goal) :- Goal = b_setval(Name,Value).
 		 *      MORE LIST OPERATIONS	*
 		 *******************************/
 
-%	append_lists(+ListOfLists, -List)
+%	append(+ListOfLists, -List)
 %	
 %	Convert a one-level nested list into a flat one.  E.g.
-%	append_lists([[a,b], [c]], X) --> X = [a,b,c].  See also
+%	append([[a,b], [c]], X) --> X = [a,b,c].  See also
 %	flatten/3.
 
-append_lists([],[]).
-append_lists([X|Xs],L) :-
+append([],[]).
+append([X|Xs],L) :-
 	append(X,T,L),
-	append_lists(Xs,T).
+	append(Xs,T).
 
 
 %	nth(?Index, ?List, ?Element)

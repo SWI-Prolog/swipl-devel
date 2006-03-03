@@ -121,15 +121,17 @@
 :- module(chr_translate,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
 	  ]).
-:- use_module(library(lists)).
+%% SWI begin
+:- use_module(library(lists),[member/2,append/3,permutation/2,reverse/2]).
+%% SWI end
 :- use_module(hprolog).
-:- use_module(library(assoc)).
 :- use_module(pairlist).
 :- use_module(library(ordsets)).
 :- include(chr_op).
 
 %% SICStus begin
 %% :- use_module(library(terms),[term_variables/2]).
+%% :- use_module(library(lists),[member/2,memberchk/2,append/3,permutation/2,reverse/2]).
 %% SICStus end
 
 
@@ -151,14 +153,14 @@ chr_translate(Declarations,NewDeclarations) :-
 		generate_attach_increment(Decls,Mod,AttachIncrementClauses),
 		generate_attr_unify_hook(Decls,Mod,AttrUnifyHookClauses),
 		constraints_code(Decls,NRules,Mod,ConstraintClauses),
-		append_lists([ OtherClauses,
-			       AttachAConstraintClauses,
-			       DettachAConstraintClauses,
-			       AttachIncrementClauses,
-			       AttrUnifyHookClauses,
-			       ConstraintClauses
-			     ],
-			     NewDeclarations)
+		append([ OtherClauses,
+			 AttachAConstraintClauses,
+			 DettachAConstraintClauses,
+			 AttachIncrementClauses,
+			 AttrUnifyHookClauses,
+			 ConstraintClauses
+		       ],
+		       NewDeclarations)
 	).
 
 
@@ -540,13 +542,13 @@ generate_attach_a_constraint_t_p(Total,Position,CFct / CAty ,Mod,Clause) :-
 	RecursiveCall =.. [Fct,Vars,Susp],
 	or_pattern(Position,Pattern),
 	make_attr(Total,Mask,SuspsList,Attr),
-	nth(Position,SuspsList,Susps),
+	nth1(Position,SuspsList,Susps),
 	substitute(Susps,SuspsList,[Susp|Susps],SuspsList1),
 	make_attr(Total,Mask,SuspsList1,NewAttr1),
 	substitute(Susps,SuspsList,[Susp],SuspsList2),
 	make_attr(Total,NewMask,SuspsList2,NewAttr2),
 	copy_term(SuspsList,SuspsList3),
-	nth(Position,SuspsList3,[Susp]),
+	nth1(Position,SuspsList3,[Susp]),
 	chr_delete(SuspsList3,[Susp],RestSuspsList),
 	set_elems(RestSuspsList,[]),
 	make_attr(Total,Pattern,SuspsList3,NewAttr3),
@@ -622,7 +624,7 @@ generate_detach_a_constraint_t_p(Total,Position,CFct / CAty ,Mod,Clause) :-
 	or_pattern(Position,Pattern),
 	and_pattern(Position,DelPattern),
 	make_attr(Total,Mask,SuspsList,Attr),
-	nth(Position,SuspsList,Susps),
+	nth1(Position,SuspsList,Susps),
 	substitute(Susps,SuspsList,[],SuspsList1),
 	make_attr(Total,NewMask,SuspsList1,Attr1),
 	substitute(Susps,SuspsList,NewSusps,SuspsList2),
@@ -1102,7 +1104,7 @@ unique_analyse_optimise_main([PRule|PRules],N,PatternList,[NPRule|NPRules]) :-
 	Ids = ids(Ids1,Ids2),
 	apply_unique_patterns_to_constraints(H1,Ids1,NPatternList,MorePragmas1),
 	apply_unique_patterns_to_constraints(H2,Ids2,NPatternList,MorePragmas2),
-	append_lists([MorePragmas1,MorePragmas2,Pragmas],NPragmas),
+	append([MorePragmas1,MorePragmas2,Pragmas],NPragmas),
 	NPRule = pragma(Rule,Ids,NPragmas,Name),
 	N1 is N + 1,
 	unique_analyse_optimise_main(PRules,N1,NPatternList,NPRules).
@@ -1141,9 +1143,9 @@ apply_unique_pattern(Constraint,Id,Pattern,Pragma) :-
 %	variables from Term2 and their corresponding values in Term1.
 
 subsumes(Term1,Term2,Unifier) :-
-	empty_assoc(S0),
+	empty_ds(S0),
 	subsumes_aux(Term1,Term2,S0,S),
-	assoc_to_list(S,L),
+	ds_to_list(S,L),
 	build_unifier(L,Unifier).
 
 subsumes_aux(Term1, Term2, S0, S) :-
@@ -1154,10 +1156,10 @@ subsumes_aux(Term1, Term2, S0, S) :-
         ;   Term1 == Term2
 	->  S = S0
 	;   var(Term2),
-	    get_assoc(Term1,S0,V)
+	    get_ds(Term1,S0,V)
 	->  V == Term2, S = S0
 	;   var(Term2),
-	    put_assoc(Term1, S0, Term2, S)
+	    put_ds(Term1, S0, Term2, S)
         ).
 
 subsumes_aux(0, _, _, S, S) :- ! .
@@ -1424,9 +1426,9 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],Pragmas,PrevHs,PrevSusps,Act
 	( N == 1 ->
 		VarSusps = Attr
 	;
-		nth(Pos,Constraints,Fct/Aty), !,
+		nth1(Pos,Constraints,Fct/Aty), !,
 		make_attr(N,_Mask,SuspsList,Attr),
-		nth(Pos,SuspsList,VarSusps)
+		nth1(Pos,SuspsList,VarSusps)
 	),
 	different_from_other_susps(H,Susp,PrevHs,PrevSusps,DiffSuspGoals),
 	create_get_mutable_ref(active,State,GetMutable),
@@ -1465,7 +1467,7 @@ check_unique_keys([V|Vs],Dict) :-
 
 % Generates tests to ensure the found constraint differs from previously found constraints
 different_from_other_susps(Head,Susp,Heads,Susps,DiffSuspGoals) :-
-	( bagof(DiffSuspGoal, Pos ^ ( nth(Pos,Heads,PreHead), \+ Head \= PreHead, nth(Pos,Susps,PreSusp), DiffSuspGoal = (Susp \== PreSusp) ),DiffSuspGoalList) ->
+	( bagof(DiffSuspGoal, Pos ^ ( nth1(Pos,Heads,PreHead), \+ Head \= PreHead, nth1(Pos,Susps,PreSusp), DiffSuspGoal = (Susp \== PreSusp) ),DiffSuspGoalList) ->
 	     list2conj(DiffSuspGoalList,DiffSuspGoals)
 	;
 	     DiffSuspGoals = true
@@ -1473,7 +1475,7 @@ different_from_other_susps(Head,Susp,Heads,Susps,DiffSuspGoals) :-
 
 passive_head_via(Head,PrevHeads,AttrDict,Constraints,Mod,VarDict,Goal,Attr,NewAttrDict) :-
 	functor(Head,F,A),
-	nth(Pos,Constraints,F/A),!,
+	nth1(Pos,Constraints,F/A),!,
 	common_variables(Head,PrevHeads,CommonVars),
 	translate(CommonVars,VarDict,Vars),
 	or_pattern(Pos,Bit),
@@ -1704,9 +1706,9 @@ simpagation_head2_prelude(Head,Head1,Rest,F/A,_I,N,Constraints,Mod,Id1,L,T) :-
 		AllSusps = Attr
 	;
 		functor(Head1,F1,A1),
-		nth(Pos,Constraints,F1/A1), !,
+		nth1(Pos,Constraints,F1/A1), !,
 		make_attr(N,_,SuspsList,Attr),
-		nth(Pos,SuspsList,AllSusps)
+		nth1(Pos,SuspsList,AllSusps)
 	),
 
 	(   Id1 == [0] ->	% create suspension
@@ -1946,8 +1948,8 @@ propagation_prelude(Head,[First|Rest],Rule,F/A,N,Constraints,Mod,Id,L,T) :-
    ;
 	functor(First,FirstFct,FirstAty),
 	make_attr(N,_Mask,SuspsList,Attr),
-        nth(Pos,Constraints,FirstFct/FirstAty), !,
-	nth(Pos,SuspsList,Susps)
+        nth1(Pos,Constraints,FirstFct/FirstAty), !,
+	nth1(Pos,SuspsList,Susps)
    ),
 
    (   Id == [0] ->
@@ -2125,9 +2127,9 @@ propagation_accumulator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,N,C
 	( N == 1 ->
 	     NextSusps = Attr
 	;
-	     nth(Position,Constraints,NextF/NextA), !,
+	     nth1(Position,Constraints,NextF/NextA), !,
 	     make_attr(N,_Mask,SuspsList,Attr),
-	     nth(Position,SuspsList,NextSusps)
+	     nth1(Position,SuspsList,NextSusps)
 	),
 	inc_id(Id,NestedId),
 	ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],
@@ -2287,7 +2289,7 @@ create_get_mutable_ref(V,M,GM) :- GM = (M = mutable(V)).
 %% SWI end
 
 %% SICStus begin
-create_get_mutable_ref(V,M,GM) :- GM = (get_mutable(V,M)).
+%% create_get_mutable_ref(V,M,GM) :- GM = (get_mutable(V,M)).
 %% SICStus end
 
 

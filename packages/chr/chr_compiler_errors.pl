@@ -10,7 +10,7 @@
 % chr_info(+Type,+FormattedMessage,+MessageParameters)
 
 chr_info(_,Message,Params) :-
-	( current_prolog_flag(verbose,silent) ->
+	( \+verbosity_on ->
 		true
 	;
 		long_line_with_equality_signs,
@@ -19,12 +19,21 @@ chr_info(_,Message,Params) :-
 		long_line_with_equality_signs
 	).
 
+
+%% SWI begin
+verbosity_on :- prolog_flag(verbose,V), V == yes.
+%% SWI end
+
+%% SICStus begin
+%% verbosity_on.  % at the moment
+%% SICStus end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % chr_warning(+Type,+FormattedMessage,+MessageParameters)
 
 chr_warning(deprecated(Term),Message,Params) :- !,
 	long_line_with_equality_signs,
-	format(user_error,'CHR compiler WARNING: deprecated syntax	~w.\n',[Term]),	
+	format(user_error,'CHR compiler WARNING: deprecated syntax      ~w.\n',[Term]),	
 	format(user_error,'    `--> ',[]),
 	format(user_error,Message,Params),
         format(user_error,'    Support for deprecated syntax will be discontinued in the near future!\n',[]),

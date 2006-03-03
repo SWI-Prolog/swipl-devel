@@ -12,7 +12,7 @@
 
 % :- use_module(library(chr)).
 :- include(chr_op).
-:- use_module(library(lists)).
+:- use_module(library(lists),[append/3]).
 :- use_module(hprolog).
 :- use_module(builtins).
 :- use_module(chr_compiler_errors).
