@@ -237,8 +237,11 @@ monitor_literal(new_literal(Literal)) :-
 	register_literal(Literal).
 monitor_literal(old_literal(Literal)) :-
 	unregister_literal(Literal).
-monitor_literal(reset) :-
+monitor_literal(transaction(begin, reset)) :-
+	rdf_monitor(monitor_literal, [-old_literal]),
 	clean_token_index.
+monitor_literal(transaction(end, reset)) :-
+	rdf_monitor(monitor_literal, [+old_literal]).
 
 
 %	register_literal(+Literal)

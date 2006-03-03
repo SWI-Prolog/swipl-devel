@@ -488,6 +488,12 @@ avl_findlowest(avl_tree *tree, avl_node *target, avl_node **n, int *res)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return:
+	-1: not in the tree
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 int
 avl_delete(avl_tree *tree, avl_node **n, void *key)
 { int tmp = 1;

@@ -1190,7 +1190,8 @@ free_literal(rdf_db *db, literal *lit)
   { if ( lit->shared )
     { lit->shared = FALSE;
       broadcast(EV_OLD_LITERAL, lit, NULL);
-      avl_delete(db->literals, &db->literals->root, lit);
+      if ( avl_delete(db->literals, &db->literals->root, lit) == -1 )
+	assert(0);
     }
 
     if ( lit->objtype == OBJ_TERM )
