@@ -84,9 +84,11 @@ typedef struct atom_map
 
 static functor_t FUNCTOR_error2;
 static functor_t FUNCTOR_type_error2;
+static functor_t FUNCTOR_domain_error2;
 static functor_t FUNCTOR_resource_error1;
 static functor_t FUNCTOR_atom_map1;
 static functor_t FUNCTOR_size2;
+static functor_t FUNCTOR_not1;
 static atom_t	 ATOM_all;
 static atom_t	 ATOM_prefix;
 static atom_t	 ATOM_le;
@@ -105,8 +107,10 @@ init_functors()
 
   MKFUNCTOR(error, 2);
   MKFUNCTOR(type_error, 2);
+  MKFUNCTOR(domain_error, 2);
   MKFUNCTOR(resource_error, 1);
   MKFUNCTOR(size, 2);
+  MKFUNCTOR(not, 1);
 
   MKATOM(all);
   MKATOM(prefix);
@@ -123,6 +127,20 @@ type_error(term_t actual, const char *expected)
 
   PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
 		      PL_FUNCTOR, FUNCTOR_type_error2,
+		        PL_CHARS, expected,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
+domain_error(term_t actual, const char *expected)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_domain_error2,
 		        PL_CHARS, expected,
 		        PL_TERM, actual,
 		      PL_VARIABLE);
@@ -664,12 +682,21 @@ delete_atom_map3(term_t handle, term_t from, term_t to)
 		 *	      SEARCH		*
 		 *******************************/
 
+typedef struct
+{ atom_set *set;
+  int      neg;				/* not(Lit) */
+} pn_set;
+
+
 static int
 cmp_atom_set_size(const void *p1, const void *p2)
-{ const atom_set *ap1 = p1;
-  const atom_set *ap2 = p2;
+{ const pn_set *ap1 = p1;
+  const pn_set *ap2 = p2;
 
-  return ap1->size - ap2->size;
+  if ( ap1->neg != ap2->neg )
+    return ap1->neg ? 1 : -1;		/* all negatives at the end */
+
+  return ap1->set->size - ap2->set->size;
 }
 
 
@@ -678,8 +705,9 @@ cmp_atom_set_size(const void *p1, const void *p2)
 static foreign_t
 find_atom_map(term_t handle, term_t keys, term_t literals)
 { atom_map  *map;
-  atom_set  *as[MAX_SETS];		/* TBD */
+  pn_set    as[MAX_SETS];		/* TBD */
   int ns = 0;
+  term_t tmp = PL_new_term_ref();
   term_t tail = PL_copy_term_ref(keys);
   term_t head = PL_new_term_ref();
   atom_set *s0;
@@ -694,18 +722,27 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
   while(PL_get_list(tail, head, tail))
   { datum a;
     avl_node *node;
-  
-    if ( !get_datum(head, &a) )
-      goto failure;
+    int neg = FALSE;
+
+    if ( PL_is_functor(head, FUNCTOR_not1) )
+    { PL_get_arg(1, head, tmp);
+      if ( !get_datum(tmp, &a) )
+	goto failure;
+      neg = TRUE;
+    } else
+    { if ( !get_datum(head, &a) )
+	goto failure;
+    }
     
     if ( (node = avl_find_node_atom(&map->tree, a)) )
     { if ( ns+1 >= MAX_SETS )
 	return resource_error("max_search_atoms");
 
-      as[ns] = node->value;
-      DEBUG(2, Sdprintf("Found atom-set of size %d\n", as[ns]->size));
+      as[ns].set = node->value;
+      as[ns].neg = neg;
+      DEBUG(2, Sdprintf("Found atom-set of size %d\n", as[ns].set->size));
       ns++;
-    } else
+    } else if ( !neg )
     { goto empty;
     }
   }
@@ -715,7 +752,12 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
   }
 
   qsort(as, ns, sizeof(*as), cmp_atom_set_size);
-  s0 = as[0];
+  if ( ns==0 || as[0].neg )
+  { domain_error(keys, "keywords");
+    goto failure;
+  }
+    
+  s0 = as[0].set;
 
   PL_put_term(tail, literals);
 
@@ -724,10 +766,15 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     int i;
 
     for(i=1; i<ns; i++)
-    { if ( !in_atom_set(as[i], a) ) 
-      { if ( a > as[i]->atoms[as[i]->size-1] )
-	  goto empty;
-	goto next;
+    { if ( !as[i].neg )
+      { if ( !in_atom_set(as[i].set, a) ) 
+	{ if ( a > as[i].set->atoms[as[i].set->size-1] )
+	    goto empty;
+	  goto next;
+	}
+      } else
+      { if ( in_atom_set(as[i].set, a) )
+	  goto next;
       }
     }
     

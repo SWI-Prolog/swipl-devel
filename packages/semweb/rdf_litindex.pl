@@ -31,8 +31,8 @@
 
 
 :- module(rdf_litindex,
-	  [ rdf_literal_index/1,	% +Options
-	    rdf_find_literals/2		% +Spec, -ListOfLiterals
+	  [ rdf_set_literal_index_option/1,	% +Options
+	    rdf_find_literals/2			% +Spec, -ListOfLiterals
 	  ]).
 :- use_module(rdf_db).
 :- use_module(library(debug)).
@@ -58,10 +58,10 @@ setting(index_stems(true)).
 setting(index_metaphone(true)).
 setting(verbose(true)).
 
-rdf_literal_index([]).
-rdf_literal_index([H|T]) :-
+rdf_set_literal_index_option([]).
+rdf_set_literal_index_option([H|T]) :-
 	set_option(H),
-	rdf_literal_index(T).
+	rdf_set_literal_index_option(T).
 
 set_option(Term) :-
 	functor(Term, Name, Arity),
@@ -146,6 +146,8 @@ expand_fuzzy(or(A0, B0), or(A,B)) :- !,
 expand_fuzzy(and(A0, B0), and(A,B)) :- !,
 	expand_fuzzy(A0, A),
 	expand_fuzzy(B0, B).
+expand_fuzzy(not(A0), not(A)) :- !,
+	expand_fuzzy(A0, A).
 expand_fuzzy(Token, Token) :-
 	atomic(Token), !.
 expand_fuzzy(Token, _) :-
@@ -414,7 +416,7 @@ progress(Map, Which) :-
 	rdf_statistics_literal_map(Map, size(Keys, Values)),
 	(   Keys mod 1000 =:= 0
 	->  format(user_error,
-		   '\r~t~w: ~12|Keys: ~t~D~15+ Values: ~t~D~20+',
+		   '\r~t~w: ~12|Keys: ~t~D~15+; Values: ~t~D~20+',
 		   [Which, Keys, Values])
 	;   true
 	).
