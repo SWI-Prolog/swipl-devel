@@ -1,5 +1,6 @@
 Mar 3, 2006
   * BD: lots of changes related to porting to SICStus
+  * TS: Now exception/3 hook is only used in SWI-Prolog
 
 Mar 2, 2006
 

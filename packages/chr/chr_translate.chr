@@ -2031,7 +2031,6 @@ multi_hash_store_initialisations([Index|Indexes],FA,L,T) :-
 	prolog_global_variable(StoreName),
 	make_init_store_goal(StoreName,HT,InitStoreGoal),
 	module_initializer((new_ht(HT),InitStoreGoal)),
-%% 	module_initializer((new_ht(HT),nb_setval(StoreName,HT))),
 	L1 = L,
 	multi_hash_store_initialisations(Indexes,FA,L1,T).
 
@@ -2040,14 +2039,12 @@ global_ground_store_initialisation(C,L,T) :-
 	prolog_global_variable(StoreName),
 	make_init_store_goal(StoreName,[],InitStoreGoal),
 	module_initializer(InitStoreGoal),
-%% 	module_initializer(nb_setval(StoreName,[])),
 	L = T.
 global_singleton_store_initialisation(C,L,T) :-
 	global_singleton_store_name(C,StoreName),
 	prolog_global_variable(StoreName),
 	make_init_store_goal(StoreName,[],InitStoreGoal),
 	module_initializer(InitStoreGoal),
-%% 	module_initializer(nb_setval(StoreName,[])),
 	L = T.
 
 multi_hash_via_lookups([],_,L,L).
@@ -2128,6 +2125,7 @@ prolog_global_variables(List), prolog_global_variable(Name) <=>
 	prolog_global_variables(Tail).
 prolog_global_variables(List) <=> List = [].
 
+%% SWI begin
 prolog_global_variables_code(Code) :-
 	prolog_global_variables(Names),
 	( Names == [] ->
@@ -2146,6 +2144,10 @@ prolog_global_variables_code(Code) :-
 			NameDeclarations
 			]
 	).
+%% SWI end
+%% SICStus begin
+prolog_global_variables_code([]).
+%% SICStus end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 enumerate_stores_code(Constraints,Clause) :-
 	Head = '$enumerate_suspensions'(Susp),
