@@ -1261,7 +1261,9 @@ cmd(leq, math, '=<').
 cmd(equiv, math, '==').
 cmd(longrightarrow, math, '-->').
 cmd(geq, math, '>=').
+cmd(leq, math, '=<').
 cmd(ge, math, '>=').
+cmd(le, math, '<').
 cmd(pm, math, html('&#177;')).
 cmd(langle, math, '<').
 cmd(rangle, math, '>').

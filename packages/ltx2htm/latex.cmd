@@ -199,6 +199,8 @@
 \times
 \equiv
 \pi
+\le
+\ge
 \leq
 \geq
 \neq
