@@ -36,7 +36,13 @@
 	
 %% SICStus begin
 %% :- use_module(hprolog).
+%% local_current_prolog_flag(_,_) :- fail.
 %% SICStus end
+
+%% SWI begin
+local_current_prolog_flag(X,Y) :- current_prolog_flag(X,Y).
+%% SWI end
+
 
 :- use_module(chr_compiler_errors).
 
@@ -189,7 +195,7 @@ option_definition(debug,off,Flags) :-
         option_definition(optimize,full,Flags2),
         Flags = [ debugable - off | Flags2].
 option_definition(debug,on,Flags) :-
-	( current_prolog_flag(generate_debug_info,off) ->
+	( local_current_prolog_flag(generate_debug_info,off) ->
 		% TODO: should not be allowed when nodebug flag is set in SWI-Prolog
 		chr_warning(any,':- chr_option(debug,on) inconsistent with current_prolog_flag(generate_debug_info,off\n\tCHR option is ignored!\n)',[]),
 		Flags = []

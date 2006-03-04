@@ -512,7 +512,7 @@ extra_declaration([ :- use_module(chr(chr_runtime))
 %% SWI end
 
 %% SICStus begin
-%% extra_declaration([]).
+%% extra_declaration([(:- use_module(library('chr/hprolog'),[term_variables/3]))]).
 %% SICStus end
 
 

@@ -1,3 +1,7 @@
+Mar 4, 2006
+  * BD: small changes in chr_compiler_options.pl and chr_translate.chr
+	affecting only the SICStus port
+
 Mar 3, 2006
   * BD: lots of changes related to porting to SICStus
   * TS: Now exception/3 hook is only used in SWI-Prolog
