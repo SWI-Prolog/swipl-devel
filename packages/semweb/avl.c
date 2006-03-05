@@ -81,6 +81,7 @@ summary:
 	- Added includes
 	- Swapped various arguments
 	- Changes some of the interfaces
+	- Added enumeration interface
 **/
 
      /* some common #defines used throughout most of my files */
@@ -619,6 +620,109 @@ avl_free(AVLtree *rootp,
 }				/* avl_free */
 
 
+		 /*******************************
+		 *    ENUMERATION INTERFACE	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+avl_find_ge()
+avl_next()
+avl_destroy_enum()
+
+This interface allows for  enumerating  all   elements  in  a key-range.
+avl_find_ge() finds the first node whose  key   is  larger or equal to a
+given  key.  avl_next()  returns  the    next  node.  avl_destroy_enum()
+destroyes memory allocated for the enum (if any).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+static inline AVLtree
+push_node(avl_enum *e, AVLtree node)
+{ e->parents[e->current++] = node;
+
+  return node;
+}
+
+
+static inline AVLtree
+pop_node(avl_enum *e)
+{ if ( --e->current >= 0 )
+    return e->parents[e->current];
+
+  return NULL;
+}
+
+
+static inline AVLtree
+current_node(avl_enum *e)
+{ if ( e->current >= 1 )
+    return e->parents[e->current-1];
+
+  return NULL;
+}
+
+
+void *
+avl_find_ge(AVL_TREE tree, void *data, avl_enum *e)
+{ AVLtree node = tree->root;
+
+  e->tree    = tree;
+  e->current = 0;
+  
+  for(;;)
+  { int diff = (*tree->compar)(data, node->data, IS_NULL);
+
+    if ( diff < 0 )
+    { push_node(e, node);
+	
+      if ( node->subtree[LEFT] )
+      { node = node->subtree[LEFT];
+      } else
+      { return node->data;		/* key > target */
+      }
+    } else if ( diff > 0 )
+    { if ( node->subtree[RIGHT] )
+      { node = node->subtree[RIGHT];
+      } else
+      { if ( (node = current_node(e)) )
+	  return node->data;
+
+	return NULL;
+      }
+    } else
+    { return push_node(e, node)->data;	/* equal hit */
+    }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Last pushed node is  the  node  returned.   All  nodes  to  the left are
+considered `done'. We must return all nodes   to  the right, followed by
+the parent.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void *
+avl_next(avl_enum *e)
+{ AVLtree n = pop_node(e);
+
+  if ( n->subtree[RIGHT] )
+  { n = push_node(e, n->subtree[RIGHT]);
+    while(n->subtree[LEFT])
+      n = push_node(e, n->subtree[LEFT]);
+    return n;
+  }
+
+  n = current_node(e);
+  
+  return n ? n->data : NULL;
+}
+
+
+void
+avl_destroy_enum(avl_enum *e)
+{
+}
 
 
 /**********************************************************************

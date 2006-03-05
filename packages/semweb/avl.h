@@ -76,6 +76,19 @@ typedef struct avl_tree
   int	      isize;	      /* item data size */
 } *AVL_TREE;
 
+#define AVL_ENUM_MAX 32			/* balanced tree, allows for 2**32 */
+					/* nodes */
+
+typedef struct avl_enum
+{ AVL_TREE tree;
+  int current;
+  AVLtree parents[AVL_ENUM_MAX];
+} avl_enum;
+
+void *avl_find_ge(AVL_TREE tree, void *key, avl_enum *e);
+void *avl_next(avl_enum *e);
+void avl_destroy_enum(avl_enum *e);
+
      /* Constructor and Destructor functions for AVL trees:
      *          avlfree is a macro for avldispose in the fashion
      *          of free(). It assumes certain default values
