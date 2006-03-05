@@ -449,6 +449,11 @@ avl_leftshrunk(avl_node **n)
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Right-side of *n has lost a node: we must restore balance.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 avl_rightshrunk(avl_node **n)
 { switch((*n)->bal)
@@ -556,7 +561,7 @@ avl_findlowest(avl_tree *tree, avl_node *target, avl_node **n, int *res)
     return 0;
 
   if ( (*n)->left )
-  { if ( !avl_findlowest(tree, target, &(*n)->left,res) )
+  { if ( !avl_findlowest(tree, target, &(*n)->left, res) )
     { return 0;
     }
     if ( *res == 1 )
