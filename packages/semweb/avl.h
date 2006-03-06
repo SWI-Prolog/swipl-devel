@@ -69,10 +69,11 @@ typedef struct avl_tree
 { AVLtree     root;           /* pointer to the root node of the tree */
   long        count;          /* number of nodes in the tree */
 			      /* function used to compare keys */
+  void	     *client_data;		/* arbitrary client data */
   int         (*compar)(void *l, void*r, NODE type); 
   void        (*destroy)(void *data); 
-  void*	      (*alloc)(size_t size);
-  void	      (*free)(void* data, size_t size);
+  void*	      (*alloc)(void *cdata, size_t size);
+  void	      (*free)(void *cdata, void* data, size_t size);
   int	      isize;	      /* item data size */
 } avl_tree, *AVL_TREE;
 
@@ -96,11 +97,11 @@ void  avlfinddestroy(avl_enum *e);
      *          for the order in which children are traversed.
      */
 extern AVL_TREE     avlinit(AVL_TREE tree,
-			    size_t isize,
+			    void *cdata, size_t isize,
 			    int (*compare)(void *l, void*r, NODE type),
 			    void (*destroy)(void *d),
-			    void* (*alloc)(size_t bytes),
-			    void (*free)(void *data, size_t bytes));
+			    void* (*alloc)(void *cdata, size_t bytes),
+			    void (*free)(void *cdata, void *ptr, size_t size));
 extern void         avlfree(AVL_TREE tree);
 
        /* Routine for manipulating/accessing each data item in a tree */

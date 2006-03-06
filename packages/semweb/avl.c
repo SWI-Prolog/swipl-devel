@@ -136,7 +136,7 @@ new_node(AVL_TREE tree, void *data)
 { AVLtree root;
 
   if ( tree->alloc )
-    root = (*tree->alloc)(sizeofnode(tree->isize));
+    root = (*tree->alloc)(tree->client_data, sizeofnode(tree->isize));
   else
     root = ckalloc(sizeofnode(tree->isize));
 
@@ -160,7 +160,7 @@ free_node(AVL_TREE tree, AVLtree *rootp)
     (*tree->destroy)(root->data);
 
   if ( tree->free )
-    (*tree->free)(root, sizeofnode(tree->isize));
+    (*tree->free)(tree->client_data, root, sizeofnode(tree->isize));
   else
     free(root);
   
@@ -749,17 +749,18 @@ avlfinddestroy(avl_enum *e)
 */
 PUBLIC AVL_TREE
 avlinit(AVL_TREE tree,
-	size_t isize,
+	void *cdata, size_t isize,
 	int (*compare)(void *l, void*r, NODE type),
 	void (*destroy)(void *data),
-	void* (*alloc)(size_t bytes),
-	void (*free)(void *data, size_t bytes))
+	void* (*alloc)(void *cdata, size_t bytes),
+	void (*free)(void *cdata, void *data, size_t bytes))
 { tree->root = NULL_TREE;
   tree->compar = compare;
   tree->destroy = destroy;
   tree->alloc = alloc;
   tree->free = free;
   tree->isize = isize;
+  tree->client_data = cdata;
   tree->count = 0;
 
   return (AVL_TREE) tree;

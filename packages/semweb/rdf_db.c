@@ -948,12 +948,12 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
       }
     }
 
-    avl_destroy(&subject_set);
-    avl_destroy(&object_set);
-
     p->distinct_count[which]    = total;
     p->distinct_subjects[which] = subject_set.size;
     p->distinct_objects[which]  = object_set.size;
+
+    avl_destroy(&subject_set);
+    avl_destroy(&object_set);
 
     if ( which == DISTINCT_DIRECT )
       p->distinct_updated[DISTINCT_DIRECT] = total;

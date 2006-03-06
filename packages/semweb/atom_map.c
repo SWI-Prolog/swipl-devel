@@ -564,7 +564,7 @@ cmp_node_data(void *l, void *r, NODE type)
 static void
 init_tree_map(atom_map *m)
 { avlinit(&m->tree,
-	  sizeof(node_data),
+	  NULL, sizeof(node_data),
 	  cmp_node_data,
 	  free_node_data,		/* destroy */
 	  NULL,				/* alloc */
@@ -581,12 +581,7 @@ new_atom_map(term_t handle)
 
   memset(m, 0, sizeof(*m));
   init_lock(&m->lock);
-  avlinit(&m->tree,
-	  sizeof(node_data),
-	  cmp_node_data,
-	  NULL,				/* destroy */
-	  NULL,				/* alloc */
-	  NULL);			/* free */
+  init_tree_map(m);
   m->magic = AM_MAGIC;
 
   return unify_atom_map(handle, m);
