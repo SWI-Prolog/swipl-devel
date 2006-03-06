@@ -131,11 +131,11 @@ ckalloc(int size)
 *               return the address of the new node
 */
 static AVLtree
-new_node(void *data, size_t size)
+new_node(AVL_TREE tree, void *data)
 { AVLtree root = ckalloc(sizeof(*root));
   
-  root->data = ckalloc(size);
-  memcpy(root->data, data, size);
+  root->data = ckalloc(tree->isize);
+  memcpy(root->data, data, tree->isize);
   root->bal = BALANCED;
   root->subtree[LEFT] = root->subtree[RIGHT] = NULL_TREE;
 
@@ -148,11 +148,10 @@ new_node(void *data, size_t size)
 *                  reset the node pointer to NULL
 */
 static void
-free_node(AVLtree *rootp)
-{ AVLtree tree = *rootp;
+free_node(AVL_TREE tree, AVLtree *rootp)
+{ AVLtree root = *rootp;
 
-//  free(tree->data);
-  free(tree);
+  free(root);
   
   *rootp = NULL_TREE;
 }				/* free_node */
@@ -372,28 +371,27 @@ avl_find(void *data, AVLtree tree, int (*compar) (void *l, void *r, NODE))
 *                compar     --  name of the function to compare 2 data items
 */
 static short
-avl_insert(void **data, unsigned int size, AVLtree *rootp,
-	   int (*compar) (void *l, void *r, NODE type))
+avl_insert(AVL_TREE tree, AVLtree *rootp, void **data)
 { short increase;
   int cmp;
 
   if (*rootp == NULL_TREE)
   {				/* insert new node here */
-    *rootp = new_node(*data, size);
+    *rootp = new_node(tree, *data);
     *data = NULL;		/* set return value in data */
     return HEIGHT_CHANGED;
   }
-  /* if */
-  cmp = (*compar) (*data, (*rootp)->data, IS_NULL);	/* compare data items */
+
+  cmp = (*tree->compar)(*data, (*rootp)->data, IS_NULL);
 
   if (cmp < 0)
   {				/* insert into the left subtree */
-    increase = -avl_insert(data, size, &((*rootp)->subtree[LEFT]), compar);
+    increase = -avl_insert(tree, &((*rootp)->subtree[LEFT]), data);
     if (*data != NULL)
       return HEIGHT_UNCHANGED;
   } else if (cmp > 0)
   {				/* insert into the right subtree */
-    increase = avl_insert(data, size, &((*rootp)->subtree[RIGHT]), compar);
+    increase = avl_insert(tree, &((*rootp)->subtree[RIGHT]), data);
     if (*data != NULL)
       return HEIGHT_UNCHANGED;
   } else
@@ -425,7 +423,8 @@ avl_insert(void **data, unsigned int size, AVLtree *rootp,
 *                compar     --  name of function to compare 2 data items
 */
 static short
-avl_delete(void **data, AVLtree * rootp, int (*compar) ( /* ??? */ ))
+avl_delete(AVL_TREE tree, AVLtree *rootp, void **data,
+	   int (*compar)(void*, void*, NODE))
 { short decrease;
   int cmp;
   AVLtree old_root = *rootp;
@@ -438,16 +437,16 @@ avl_delete(void **data, AVLtree * rootp, int (*compar) ( /* ??? */ ))
     return HEIGHT_UNCHANGED;
   }
 
-  cmp = compar(*data, (*rootp)->data, nd_typ);	/* compare data items */
+  cmp = (*compar)(*data, (*rootp)->data, nd_typ);
 
   if (cmp < 0)
   {				/* delete from left subtree */
-    decrease = -avl_delete(data, &((*rootp)->subtree[LEFT]), compar);
+    decrease = -avl_delete(tree, &((*rootp)->subtree[LEFT]), data, compar);
     if (*data == NULL)
       return HEIGHT_UNCHANGED;
   } else if (cmp > 0)
   {				/* delete from right subtree */
-    decrease = avl_delete(data, &((*rootp)->subtree[RIGHT]), compar);
+    decrease = avl_delete(tree, &((*rootp)->subtree[RIGHT]), data, compar);
     if (*data == NULL)
       return HEIGHT_UNCHANGED;
   } else
@@ -474,18 +473,20 @@ avl_delete(void **data, AVLtree * rootp, int (*compar) ( /* ??? */ ))
     switch (nd_typ)
     {				/* what kind of node are we removing? */
       case IS_LEAF:
-	free_node(rootp);	/* free the leaf, its height     */
+	free_node(tree, rootp);	/* free the leaf, its height     */
 	return HEIGHT_CHANGED;	/* changes from 1 to 0, return 1 */
 
       case IS_RBRANCH:		/* only child becomes new root */
       case IS_LBRANCH:
 	*rootp = (*rootp)->subtree[dir];
-	free_node(&old_root);	/* free the deleted node */
+	free_node(tree, &old_root);	/* free the deleted node */
 	return HEIGHT_CHANGED;	/* we just shortened the "dir" subtree */
 
       case IS_TREE:
-	decrease = avl_delete(&((*rootp)->data),
-			      &((*rootp)->subtree[RIGHT]), avl_min);
+	decrease = avl_delete(tree, 
+			      &((*rootp)->subtree[RIGHT]),
+			      &((*rootp)->data),
+			      avl_min);
         break;
       case IS_NULL:		/* JW: Added */
 	break;
@@ -625,13 +626,13 @@ avl_free(AVLtree *rootp,
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-avl_find_ge()
-avl_next()
-avl_destroy_enum()
+avlfindfirst()
+avlfindnext()
+avlfinddestroy()
 
 This interface allows for  enumerating  all   elements  in  a key-range.
 avl_find_ge() finds the first node whose  key   is  larger or equal to a
-given  key.  avl_next()  returns  the    next  node.  avl_destroy_enum()
+given  key.  avlfindnext()  returns  the    next  node.  avlfinddestroy()
 destroyes memory allocated for the enum (if any).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -663,7 +664,7 @@ current_node(avl_enum *e)
 
 
 void *
-avl_find_ge(AVL_TREE tree, void *data, avl_enum *e)
+avlfindfirst(AVL_TREE tree, void *data, avl_enum *e)
 { AVLtree node = tree->root;
 
   e->tree    = tree;
@@ -703,14 +704,14 @@ the parent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void *
-avl_next(avl_enum *e)
+avlfindnext(avl_enum *e)
 { AVLtree n = pop_node(e);
 
   if ( n->subtree[RIGHT] )
   { n = push_node(e, n->subtree[RIGHT]);
     while(n->subtree[LEFT])
       n = push_node(e, n->subtree[LEFT]);
-    return n;
+    return n->data;
   }
 
   n = current_node(e);
@@ -720,7 +721,7 @@ avl_next(avl_enum *e)
 
 
 void
-avl_destroy_enum(avl_enum *e)
+avlfinddestroy(avl_enum *e)
 {
 }
 
@@ -821,10 +822,7 @@ avlcount(AVL_TREE tree)
 */
 PUBLIC void *
 avlins(AVL_TREE tree, void *data)
-{ avl_insert(&data,
-	     tree->isize,
-	     &tree->root,
-	     tree->compar);
+{ avl_insert(tree, &tree->root, &data);
   if ( data == NULL )
     tree->count++;
 
@@ -838,7 +836,7 @@ avlins(AVL_TREE tree, void *data)
 */
 PUBLIC int
 avldel(AVL_TREE tree, void *data)
-{ avl_delete(&data, &tree->root, tree->compar);
+{ avl_delete(tree, &tree->root, &data, tree->compar);
   if ( data != NULL )
   { free(data);
     tree->count--;
@@ -869,7 +867,7 @@ PUBLIC void *
 avldelmin(AVL_TREE tree)
 { void *data;
 
-  avl_delete(&data, &tree->root, avl_min);
+  avl_delete(tree, &tree->root, &data, avl_min);
   if ( data != NULL )
     tree->count--;
 
@@ -896,7 +894,7 @@ PUBLIC void *
 avldelmax(AVL_TREE tree)
 { void *data;
 
-  avl_delete(&data, &tree->root, avl_max);
+  avl_delete(tree, &tree->root, &data, avl_max);
   if ( data != NULL )
     tree->count--;
 

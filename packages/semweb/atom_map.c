@@ -28,7 +28,7 @@
 
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
-#include "atom_set.h"
+#include "avl.h"
 #include "lock.h"
 #include "atom.h"
 #include "debug.h"
@@ -69,6 +69,30 @@ typedef struct atom_map
   rwlock	lock;			/* Multi-threaded access */
   avl_tree	tree;			/* AVL tree */
 } atom_map;
+
+typedef void *datum;
+
+#define S_MAGIC 0x8734abcd
+
+typedef struct atom_set
+{ size_t  size;				/* # cells in use */
+  size_t  allocated;			/* # cells allocated */
+  datum *atoms;			/* allocated cells */
+#ifdef O_SECURE
+  long	  magic;
+#endif
+} atom_set;
+
+
+#define ND_MAGIC 0x67b49a23
+
+typedef struct node_data
+{ datum		key;
+  atom_set     *values;
+#ifdef O_SECURE
+  long		magic;
+#endif
+} node_data;
 
 
 #define RDLOCK(map)			rdlock(&map->lock)
@@ -231,8 +255,6 @@ Datum is either an atom or a 31-bit  signed integer. Atoms are shifted 7
 bits
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef void *datum;
-
 #define ATOM_TAG_BITS 7
 #define ATOM_TAG 0x1
 
@@ -247,7 +269,7 @@ static int atom_mask;
 
 static void
 init_datum_store()
-{ atom_t a = PL_new_atom("hdowefho");
+{ atom_t a = PL_new_atom("[]");
   
   atom_mask = a & ((1<<(ATOM_TAG_BITS-1))-1);
 }
@@ -338,7 +360,7 @@ unlock_datum(datum d)
 }
 
 
-static int
+static inline int
 cmp_datum(void *p1, void *p2)
 { datum d1 = p1;
   datum d2 = p2;
@@ -389,13 +411,6 @@ actual atom.  Search is implemeted as binary search.
 
 #define AS_INITIAL_SIZE 4
 
-typedef struct atom_set
-{ size_t  size;				/* # cells in use */
-  size_t  allocated;			/* # cells allocated */
-  datum *atoms;			/* allocated cells */
-} atom_set;
-
-
 static atom_set *
 new_atom_set(datum a0)
 { atom_set *as;
@@ -405,6 +420,7 @@ new_atom_set(datum a0)
   { as->size = 1;
     as->allocated = AS_INITIAL_SIZE;
     as->atoms[0] = a0;
+    SECURE(as->magic = S_MAGIC);
   }
   
   return as;
@@ -421,6 +437,8 @@ static datum *
 find_in_atom_set(atom_set *as, datum a, int *found)
 { const datum *ap = (const datum *)as->atoms;
   const datum *ep = &ap[as->size];
+
+  SECURE(assert(as->magic == S_MAGIC));
 
   for(;;)
   { const datum *cp = ap+(ep-ap)/2;
@@ -517,22 +535,40 @@ destroy_atom_set(atom_set *as)
 
 
 static void
-destroy_map_node(avl_node *node)
-{ assert(node->value);
-
-  DEBUG(2,
+delete_node_data(node_data *data)
+{ DEBUG(2,
 	char b[20];
 	Sdprintf("Destroying node with key = %s\n",
-		 format_datum(node->value, b)));
+		 format_datum(data->key, b)));
 
-  unlock_datum(node->key);
-  destroy_atom_set(node->value);
+  unlock_datum(data->key);
+  destroy_atom_set(data->values);
 }
 
 
 		 /*******************************
 		 *	   TREE INTERFACE	*
 		 *******************************/
+
+static int
+cmp_node_data(void *l, void *r, NODE type)
+{ node_data *d1 = l;
+  node_data *d2 = r;
+
+  return cmp_datum(d1->key, d2->key);
+}
+
+
+static void
+init_tree_map(atom_map *m)
+{ avlinit(&m->tree,
+	  sizeof(node_data),
+	  cmp_node_data,
+	  NULL,				/* destroy */
+	  NULL,				/* alloc */
+	  NULL);			/* free */
+}
+
 
 static foreign_t
 new_atom_map(term_t handle)
@@ -543,10 +579,13 @@ new_atom_map(term_t handle)
 
   memset(m, 0, sizeof(*m));
   init_lock(&m->lock);
-  avl_init(&m->tree);
+  avlinit(&m->tree,
+	  sizeof(node_data),
+	  cmp_node_data,
+	  NULL,				/* destroy */
+	  NULL,				/* alloc */
+	  NULL);			/* free */
   m->magic = AM_MAGIC;
-  m->tree.destroy_node = destroy_map_node;
-  m->tree.compare = cmp_datum;
 
   return unify_atom_map(handle, m);
 }
@@ -560,7 +599,7 @@ destroy_atom_map(term_t handle)
     return FALSE;
 
   WRLOCK(m, FALSE);
-  avl_destroy(&m->tree);
+  avlfree(&m->tree);
   m->magic = 0;
   WRUNLOCK(m);
   destroy_lock(&m->lock);
@@ -578,32 +617,38 @@ destroy_atom_map(term_t handle)
 static foreign_t
 insert_atom_map(term_t handle, term_t from, term_t to)
 { atom_map *map;
-  avl_node *node;
-  datum a1, a2;
+  datum a2;
+  node_data search, *data;
+
 
   if ( !get_atom_map(handle, &map) ||
-       !get_datum(from, &a1) ||
+       !get_datum(from, &search.key) ||
        !get_datum(to, &a2) )
     return FALSE;
   
   if ( !WRLOCK(map, FALSE) )
     return FALSE;
 
-  avl_insert_atom(&map->tree, a1, &node);
-  if ( !node->value )
-  { lock_datum(a1);
-
-    if ( !(node->value = new_atom_set(a2)) )
-      return resource_error("memory");
-    map->value_count++;
-  } else
+  search.values = NULL;
+  if ( (data=avlfind(&map->tree, &search)) )
   { int rc;
 
-    if ( (rc=insert_atom_set(node->value, a2)) < 0 )
+    SECURE(assert(data->magic == ND_MAGIC));
+
+    if ( (rc=insert_atom_set(data->values, a2)) < 0 )
       return resource_error("memory");
 
     if ( rc )
       map->value_count++;
+  } else
+  { if ( !(search.values = new_atom_set(a2)) )
+      return resource_error("memory");
+    lock_datum(search.key);
+    SECURE(search.magic = ND_MAGIC);
+
+    data = avlins(&map->tree, &search);
+    assert(!data);
+    map->value_count++;
   }
 
   WRUNLOCK(map);
@@ -619,22 +664,21 @@ insert_atom_map(term_t handle, term_t from, term_t to)
 static foreign_t
 delete_atom_map2(term_t handle, term_t from)
 { atom_map *map;
-  avl_node *node;
-  datum a;
+  node_data search;
+  node_data *data;
 
   if ( !get_atom_map(handle, &map) ||
-       !get_datum(from, &a) )
+       !get_datum(from, &search.key) )
     return FALSE;
   
   if ( !WRLOCK(map, TRUE) )
     return FALSE;
 
-  if ( (node = avl_find_node_atom(&map->tree, a)) )
-  { atom_set *as = node->value;
-
-    LOCKOUT_READERS(map);
-    map->value_count -= as->size;
-    avl_delete(&map->tree, &map->tree.root, a);
+  search.values = NULL;
+  if ( (data = avlfind(&map->tree, &search)) )
+  { LOCKOUT_READERS(map);
+    map->value_count -= data->values->size;
+    avldel(&map->tree, data);
     REALLOW_READERS(map);
   }
 
@@ -647,26 +691,26 @@ delete_atom_map2(term_t handle, term_t from)
 static foreign_t
 delete_atom_map3(term_t handle, term_t from, term_t to)
 { atom_map *map;
-  avl_node *node;
-  datum a1, a2;
+  node_data *data, search;
+  datum a2;
 
   if ( !get_atom_map(handle, &map) ||
-       !get_datum(from, &a1) ||
+       !get_datum(from, &search.key) ||
        !get_datum(to, &a2) )
     return FALSE;
   
   if ( !WRLOCK(map, TRUE) )
     return FALSE;
 
-  if ( (node = avl_find_node_atom(&map->tree, a1)) &&
-       in_atom_set(node->value, a2) )
-  { atom_set *as = node->value;
+  if ( (data = avlfind(&map->tree, &search)) &&
+       in_atom_set(data->values, a2) )
+  { atom_set *as = data->values;
 
     LOCKOUT_READERS(map);
     if ( delete_atom_set(as, a2) )
     { map->value_count--;
       if ( as->size == 0 )
-      { avl_delete(&map->tree, &map->tree.root, a1);
+      { avldel(&map->tree, data);
       }
     }
     REALLOW_READERS(map);
@@ -720,25 +764,24 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
     return FALSE;
 
   while(PL_get_list(tail, head, tail))
-  { datum a;
-    avl_node *node;
+  { node_data *data, search;
     int neg = FALSE;
 
     if ( PL_is_functor(head, FUNCTOR_not1) )
     { PL_get_arg(1, head, tmp);
-      if ( !get_datum(tmp, &a) )
+      if ( !get_datum(tmp, &search.key) )
 	goto failure;
       neg = TRUE;
     } else
-    { if ( !get_datum(head, &a) )
+    { if ( !get_datum(head, &search.key) )
 	goto failure;
     }
     
-    if ( (node = avl_find_node_atom(&map->tree, a)) )
+    if ( (data = avlfind(&map->tree, &search)) )
     { if ( ns+1 >= MAX_SETS )
 	return resource_error("max_search_atoms");
 
-      as[ns].set = node->value;
+      as[ns].set = data->values;
       as[ns].neg = neg;
       DEBUG(2, Sdprintf("Found atom-set of size %d\n", as[ns].set->size));
       ns++;
@@ -806,19 +849,25 @@ Spec is one of
 	* between(Low, High)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-unify_keys(term_t head, term_t tail, avl_node *node)
-{ if ( node->left )
-  { if ( !unify_keys(head, tail, node->left) )
+/* TBD: should use avlwalk(), but this isn't fine as it does not allow a
+   failure return and does not allow passing our term-handles
+*/
+
+static int unify_keys(term_t head, term_t tail, AVLnode *node)
+{ node_data *data;
+
+  if ( node->subtree[LEFT] )
+  { if ( !unify_keys(head, tail, node->subtree[LEFT]) )
       return FALSE;
   }
   
+  data = node->data;
   if ( !PL_unify_list(tail, head, tail) ||
-       !unify_datum(head, node->key) )
+       !unify_datum(head, data->key) )
     return FALSE;
 
-  if ( node->right )
-    return unify_keys(head, tail, node->right);
+  if ( node->subtree[RIGHT] )
+    return unify_keys(head, tail, node->subtree[RIGHT]);
 
   return TRUE;
 }
@@ -827,28 +876,30 @@ unify_keys(term_t head, term_t tail, avl_node *node)
 static int
 between_keys(atom_map *map, long min, long max, term_t head, term_t tail) 
 { avl_enum state;
-  avl_node *node;
+  node_data *data, search;
 
   DEBUG(2, Sdprintf("between %ld .. %ld\n", min, max));
 
-  if ( (node = avl_find_ge(&map->tree, long_to_datum(min), &state)) &&
-       isIntDatum(node->key) )
+  search.key = long_to_datum(min);
+  search.values = NULL;
+  if ( (data = avlfindfirst(&map->tree, &search, &state)) &&
+       isIntDatum(data->key) )
   { for(;;)
-    { if ( long_from_datum(node->key) > max )
+    { if ( long_from_datum(data->key) > max )
 	break;
 
       if ( !PL_unify_list(tail, head, tail) ||
-	   !unify_datum(head, node->key) )
-      { avl_destroy_enum(&state);
+	   !unify_datum(head, data->key) )
+      { avlfinddestroy(&state);
 	return FALSE;
       }
 
-      if ( !(node = avl_next(&state)) ||
-	   !isIntDatum(node->key) )
+      if ( !(data = avlfindnext(&state)) ||
+	   !isIntDatum(data->key) )
 	break;
     }
 
-    avl_destroy_enum(&state);
+    avlfinddestroy(&state);
   }
 
   return TRUE;
@@ -873,22 +924,21 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
     type_error(spec, "key-specifier");
 
   if ( name == ATOM_all )
-  { avl_node *node = map->tree.root;
+  { AVLnode *node = map->tree.root;
 
     if ( !unify_keys(head, tail, node) )
       goto failure;
   } else if ( name == ATOM_key && arity == 1 )
   { term_t a = PL_new_term_ref();
-    datum d;
-    avl_node *node;
+    node_data *data, search;
 
     PL_get_arg(1, spec, a);
-    if ( !get_datum(a, &d) )
+    if ( !get_datum(a, &search.key) )
       goto failure;
 
-    if ( (node = avl_find_node_atom(&map->tree, d)) )
-    { atom_set *as = node->value;
-      int size = as->size;
+    search.values = NULL;
+    if ( (data = avlfind(&map->tree, &search)) )
+    { int size = data->values->size;
 
       RDUNLOCK(map);
       assert(size > 0);
@@ -899,32 +949,32 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
   { term_t a = PL_new_term_ref();
     atom_t prefix, first_a;
     avl_enum state;
-    avl_node *node;
-    datum first;
+    node_data *data, search;
 
     PL_get_arg(1, spec, a);
     if ( !get_atom_ex(a, &prefix) )
       goto failure;
     first_a = first_atom(prefix, STR_MATCH_PREFIX);
-    first = atom_to_datum(first_a);
-    
-    if ( (node = avl_find_ge(&map->tree, first, &state)) )
-    { for(;;)
-      { assert(isAtomDatum(node->key));
 
-	if ( !PL_unify_list(tail, head, tail) ||
-	     !unify_datum(head, node->key) )
-	{ avl_destroy_enum(&state);
-	  goto failure;
-	}
+    search.key = atom_to_datum(first_a);
+    search.values = NULL;
 
-	if ( !(node = avl_next(&state)) ||
-	     !match_atoms(STR_MATCH_PREFIX,
-			  first_a, atom_from_datum(node->key)) )
-	  break;
+    for(data = avlfindfirst(&map->tree, &search, &state);
+	data;
+	data=avlfindnext(&state))
+    { assert(isAtomDatum(data->key));
+
+      if ( !match_atoms(STR_MATCH_PREFIX,
+			first_a, atom_from_datum(data->key)) )
+	break;
+
+      if ( !PL_unify_list(tail, head, tail) ||
+	   !unify_datum(head, data->key) )
+      { avlfinddestroy(&state);
+	goto failure;
       }
-      avl_destroy_enum(&state);
     }
+    avlfinddestroy(&state);
   } else if ( (name == ATOM_ge || name == ATOM_le) && arity == 1 )
   { term_t a = PL_new_term_ref();
     long val, min, max;
@@ -981,8 +1031,8 @@ rdf_reset_literal_map(term_t handle)
 
   if ( !WRLOCK(map, FALSE) )
     return FALSE;
-  avl_destroy(&map->tree);
-  avl_init(&map->tree);
+  avlfree(&map->tree);
+  init_tree_map(map);
   map->value_count = 0;
   WRUNLOCK(map);
 
@@ -1007,7 +1057,7 @@ rdf_statistics_literal_map(term_t map, term_t key)
   { term_t a = PL_new_term_ref();
 
     PL_get_arg(1, key, a);
-    if ( !PL_unify_integer(a, m->tree.size) )
+    if ( !PL_unify_integer(a, m->tree.count) )
       return FALSE;
     PL_get_arg(2, key, a);
 

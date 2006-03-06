@@ -111,7 +111,7 @@ vk(prefix(Prefix)) :-
 	prefix_keys(Prefix, KeysOK),
 	(   KeysOK == Keys
 	->  true
-	;   format('~p (must be ~p~n', [Keys, KeysOK])
+	;   format('prefix(~w): ~p (must be ~p)~n', [Prefix, Keys, KeysOK])
 	).
 vk(ge(Min)) :-
 	map(Map),
@@ -119,7 +119,7 @@ vk(ge(Min)) :-
 	between_keys(Min, 0x5fffffff, KeysOK),
 	(   KeysOK == Keys
 	->  true
-	;   format('~p (must be ~p~n', [Keys, KeysOK])
+	;   format('ge(~w): ~p (must be ~p)~n', [Min, Keys, KeysOK])
 	).
 vk(le(Max)) :-
 	map(Map),
@@ -127,7 +127,7 @@ vk(le(Max)) :-
 	between_keys(-0x60000000, Max, KeysOK),
 	(   KeysOK == Keys
 	->  true
-	;   format('~p (must be ~p~n', [Keys, KeysOK])
+	;   format('le(~w): ~p (must be ~p)~n', [Max, Keys, KeysOK])
 	).
 vk(between(Min, Max)) :-
 	map(Map),
@@ -135,7 +135,8 @@ vk(between(Min, Max)) :-
 	between_keys(Min, Max, KeysOK),
 	(   KeysOK == Keys
 	->  true
-	;   format('~p (must be ~p~n', [Keys, KeysOK])
+	;   format('between(~w, ~w): ~p (must be ~p)~n',
+		   [Min, Max, Keys, KeysOK])
 	).
 
 prefix_keys(Prefix, Keys) :-
