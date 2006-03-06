@@ -334,13 +334,39 @@ The built-in types are:
 	of the constraint can have any type. This is the default value.
 	\end{description}
 
-A user-defined type is defined with a chr_type/1 declaration. For example, types
-for lists, trees and colors are defined as:
+User-defined types are algebraic data types, similar to those in Haskell
+or the discriminated unions in Mercury.  An algebraic data type is defined using
 \begin{code}
-:- chr_type list(T) ---> [] ; [T|list(T)].
-:- chr_type tree(T) ---> nil ; tree(T,tree(T),tree(T)).
-:- chr_type color   ---> red ; blue ; green.
+:- chr_type type ---> body. 
 \end{code}
+If the type term is a functor of arity zero
+(i.e. one having zero arguments), it names a monomorphic type. Otherwise, it
+names a polymorphic type; the arguments of the functor must be distinct type
+variables. The body term is defined as a sequence of constructor definitions
+separated by semi-colons.
+
+Each constructor definition must be a functor whose arguments (if
+any) are types. Discriminated union definitions must be transparent:
+all type variables occurring in the body must also occur in the type.
+
+Here are some examples of algebraic data type definitions:
+\begin{code}
+:- chr_type color ---> red ; blue ; yellow ; green.
+
+:- chr_type tree --->  empty ; leaf(int) ; branch(tree, tree).
+
+:- chr_type list(T) --->    [] ; [T | list(T)].
+
+:- chr_type pair(T1, T2) ---> (T1 - T2).
+\end{code}
+
+Each algebraic data type definition introduces a distinct type. 
+Two algebraic data types that have the same bodies are considered to be
+distinct types (name equivalence). 
+
+Constructors may be overloaded among different types: there may be any number
+of constructors with a given name and arity, so long as they all have different
+types. 
 
 \subsection{Compilation}
 %--------------------
