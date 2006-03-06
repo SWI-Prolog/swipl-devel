@@ -59,7 +59,7 @@ typedef  short  DIRECTION;
 typedef struct avl_node
 { struct avl_node  *subtree[2];		/* LEFT and RIGHT subtrees */
   short       bal;			/* balance factor */
-  void	      *data;			/* data on my back */
+  char	      data[1];			/* data on my back */
 } AVLnode, *AVLtree;
 
 /* End Internal definitions */
@@ -70,7 +70,7 @@ typedef struct avl_tree
   long        count;          /* number of nodes in the tree */
 			      /* function used to compare keys */
   int         (*compar)(void *l, void*r, NODE type); 
-  void        (*destroy)(void *data, VISIT v, NODE type, int level); 
+  void        (*destroy)(void *data); 
   void*	      (*alloc)(size_t size);
   void	      (*free)(void* data, size_t size);
   int	      isize;	      /* item data size */
@@ -98,12 +98,10 @@ void  avlfinddestroy(avl_enum *e);
 extern AVL_TREE     avlinit(AVL_TREE tree,
 			    size_t isize,
 			    int (*compare)(void *l, void*r, NODE type),
-			    void (*destroy)(void *d, VISIT v, NODE t, int l),
+			    void (*destroy)(void *d),
 			    void* (*alloc)(size_t bytes),
 			    void (*free)(void *data, size_t bytes));
-extern void         avldispose(AVL_TREE tree, SIBLING_ORDER);
-#define avlfree(x)  avldispose((x), LEFT_TO_RIGHT)
-
+extern void         avlfree(AVL_TREE tree);
 
        /* Routine for manipulating/accessing each data item in a tree */
 extern void      avlwalk(AVL_TREE, void(*) (), SIBLING_ORDER);
@@ -120,12 +118,12 @@ extern void    *avlfind(AVL_TREE tree, void *data);
 
 
        /* Routines to search for the minimal item of a tree */
-extern void     *avldelmin(AVL_TREE tree);
+extern int	avldelmin(AVL_TREE tree, void *data);
 extern void     *avlfindmin(AVL_TREE tree);
 
 
        /* Routines to search for the maximal item of a tree */
-extern void     *avldelmax(AVL_TREE tree);
+extern int      avldelmax(AVL_TREE tree, void *data);
 extern void     *avlfindmax(AVL_TREE tree);
 
 #endif /* AVL_H_INCLUDED */

@@ -535,8 +535,10 @@ destroy_atom_set(atom_set *as)
 
 
 static void
-delete_node_data(node_data *data)
-{ DEBUG(2,
+free_node_data(void *ptr)
+{ node_data *data = ptr;
+
+  DEBUG(2,
 	char b[20];
 	Sdprintf("Destroying node with key = %s\n",
 		 format_datum(data->key, b)));
@@ -564,7 +566,7 @@ init_tree_map(atom_map *m)
 { avlinit(&m->tree,
 	  sizeof(node_data),
 	  cmp_node_data,
-	  NULL,				/* destroy */
+	  free_node_data,		/* destroy */
 	  NULL,				/* alloc */
 	  NULL);			/* free */
 }
@@ -861,7 +863,7 @@ static int unify_keys(term_t head, term_t tail, AVLnode *node)
       return FALSE;
   }
   
-  data = node->data;
+  data = (node_data*)node->data;
   if ( !PL_unify_list(tail, head, tail) ||
        !unify_datum(head, data->key) )
     return FALSE;

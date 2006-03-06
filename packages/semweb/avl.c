@@ -98,10 +98,11 @@ summary:
 
 #define  NEXTERN		/* dont include "extern" declarations from header files */
 
-#include  <stdio.h>
-#include  <stdlib.h>
-#include  <string.h>
-#include  "avl.h"		/* public types for avl trees */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include "avl.h"		/* public types for avl trees */
 
 /************************************************************************
 *       Auxillary functions
@@ -132,9 +133,13 @@ ckalloc(int size)
 */
 static AVLtree
 new_node(AVL_TREE tree, void *data)
-{ AVLtree root = ckalloc(sizeof(*root));
-  
-  root->data = ckalloc(tree->isize);
+{ AVLtree root;
+
+  if ( tree->alloc )
+    root = (*tree->alloc)(sizeofnode(tree->isize));
+  else
+    root = ckalloc(sizeofnode(tree->isize));
+
   memcpy(root->data, data, tree->isize);
   root->bal = BALANCED;
   root->subtree[LEFT] = root->subtree[RIGHT] = NULL_TREE;
@@ -151,7 +156,13 @@ static void
 free_node(AVL_TREE tree, AVLtree *rootp)
 { AVLtree root = *rootp;
 
-  free(root);
+  if ( tree->destroy )
+    (*tree->destroy)(root->data);
+
+  if ( tree->free )
+    (*tree->free)(root, sizeofnode(tree->isize));
+  else
+    free(root);
   
   *rootp = NULL_TREE;
 }				/* free_node */
@@ -423,7 +434,7 @@ avl_insert(AVL_TREE tree, AVLtree *rootp, void **data)
 *                compar     --  name of function to compare 2 data items
 */
 static short
-avl_delete(AVL_TREE tree, AVLtree *rootp, void **data,
+avl_delete(AVL_TREE tree, AVLtree *rootp, void *data, int *found,
 	   int (*compar)(void*, void*, NODE))
 { short decrease;
   int cmp;
@@ -432,27 +443,31 @@ avl_delete(AVL_TREE tree, AVLtree *rootp, void **data,
   DIRECTION dir = (nd_typ == IS_LBRANCH) ? LEFT : RIGHT;
 
   if (*rootp == NULL_TREE)
-  {				/* data not found */
-    *data = NULL;		/* set return value in data */
+  { 				/* data not found */
+    if ( found )
+      *found = FALSE;
     return HEIGHT_UNCHANGED;
   }
 
-  cmp = (*compar)(*data, (*rootp)->data, nd_typ);
+  cmp = (*compar)(data, (*rootp)->data, nd_typ);
 
   if (cmp < 0)
   {				/* delete from left subtree */
-    decrease = -avl_delete(tree, &((*rootp)->subtree[LEFT]), data, compar);
-    if (*data == NULL)
+    decrease = -avl_delete(tree, &((*rootp)->subtree[LEFT]), data, found, compar);
+    if ( found && *found == FALSE )
       return HEIGHT_UNCHANGED;
   } else if (cmp > 0)
   {				/* delete from right subtree */
-    decrease = avl_delete(tree, &((*rootp)->subtree[RIGHT]), data, compar);
-    if (*data == NULL)
+    decrease = avl_delete(tree, &((*rootp)->subtree[RIGHT]), data, found, compar);
+    if ( found && *found == FALSE )
       return HEIGHT_UNCHANGED;
   } else
   {				/* cmp == 0 */
-    decrease = 0;		/* JW: Added */
-    *data = (*rootp)->data;	/* set return value in data */
+    decrease = 0;		/* JW: Silence compiler */
+    if ( found )
+      *found = TRUE;
+    if ( data && data != (*rootp)->data )
+      memcpy(data, (*rootp)->data, tree->isize); 
 
       /***********************************************************************
       *  At this point we know "cmp" is zero and "*rootp" points to
@@ -485,10 +500,11 @@ avl_delete(AVL_TREE tree, AVLtree *rootp, void **data,
       case IS_TREE:
 	decrease = avl_delete(tree, 
 			      &((*rootp)->subtree[RIGHT]),
-			      &((*rootp)->data),
+			      (*rootp)->data, NULL,
 			      avl_min);
         break;
-      case IS_NULL:		/* JW: Added */
+      case IS_NULL:		/* JW: Silence compiler.  Cannot happen */
+	assert(0);
 	break;
     }				/* switch */
   }				/* else */
@@ -577,48 +593,19 @@ avl_walk(AVLtree tree, void (*action)(void *data,
 }				/* avl_walk */
 
 
-
-/************************************************************************
-*       Walk an AVL tree, de-allocating space for each node
-*       and performing a given function at each node
-*       (such as de-allocating the user-defined data item).
-************************************************************************/
-
-
 /*
 * avl_free() -- free up space for all nodes in a given tree
-*              performing "action" upon each data item encountered.
-*
-*       (only perform "action" if it is a non-null function)
 */
 static void
-avl_free(AVLtree *rootp,
-	 void (*action)(void *d, VISIT v, NODE t, int l),
-	 SIBLING_ORDER sibling_order, int level)
-{ DIRECTION dir1 = (sibling_order == LEFT_TO_RIGHT) ? LEFT : RIGHT;
-  DIRECTION dir2 = OPPOSITE(dir1);
-  NODE node = node_type(*rootp);
+avl_free(AVL_TREE tree, AVLtree *rootp)
+{ if ( (*rootp)->subtree[LEFT] != NULL_TREE )
+    avl_free(tree, &(*rootp)->subtree[LEFT]);
 
-  if (*rootp != NULL_TREE)
-  { if (action != NULL_ACTION)
-    { (*action) ((*rootp)->data, PREORDER, node, level);
-    }
-    if ((*rootp)->subtree[dir1] != NULL_TREE)
-    { avl_free(&((*rootp)->subtree[dir1]), action, sibling_order, level + 1);
-    }
-    if (action != NULL_ACTION)
-    { (*action) ((*rootp)->data, INORDER, node, level);
-    }
-    if ((*rootp)->subtree[dir2] != NULL_TREE)
-    { avl_free(&((*rootp)->subtree[dir2]), action, sibling_order, level + 1);
-    }
-    if (action != NULL_ACTION)
-    { (*action) ((*rootp)->data, POSTORDER, node, level);
-    }
-    free(*rootp);
-  }
-  /* if non-empty tree */
-}				/* avl_free */
+  if ( (*rootp)->subtree[RIGHT] != NULL_TREE )
+    avl_free(tree, &(*rootp)->subtree[RIGHT]);
+
+  free_node(tree, rootp);
+}
 
 
 		 /*******************************
@@ -764,7 +751,7 @@ PUBLIC AVL_TREE
 avlinit(AVL_TREE tree,
 	size_t isize,
 	int (*compare)(void *l, void*r, NODE type),
-	void (*destroy)(void *data, VISIT v, NODE type, int level),
+	void (*destroy)(void *data),
 	void* (*alloc)(size_t bytes),
 	void (*free)(void *data, size_t bytes))
 { tree->root = NULL_TREE;
@@ -784,8 +771,8 @@ avlinit(AVL_TREE tree,
 * avldispose() -- free up all space associated with the given tree structure.
 */
 PUBLIC void
-avldispose(AVL_TREE tree, SIBLING_ORDER sibling_order)
-{ avl_free(&(tree->root), tree->destroy, sibling_order, 1);
+avlfree(AVL_TREE tree)
+{ avl_free(tree, &(tree->root));
 }				/* avldispose */
 
 
@@ -836,17 +823,11 @@ avlins(AVL_TREE tree, void *data)
 */
 PUBLIC int
 avldel(AVL_TREE tree, void *data)
-{ avl_delete(tree, &tree->root, &data, tree->compar);
-  if ( data != NULL )
-  { free(data);
-    tree->count--;
+{ int found;
 
-    return TRUE;
-  }
-
-  return FALSE;
-}				/* avldel */
-
+  avl_delete(tree, &tree->root, data, &found, tree->compar);
+  return found;
+}
 
 
 /*
@@ -863,15 +844,15 @@ avlfind(AVL_TREE tree, void *data)
 /*
 * avldelmin() -- delete the minimal item from the given tree structure
 */
-PUBLIC void *
-avldelmin(AVL_TREE tree)
-{ void *data;
+PUBLIC int
+avldelmin(AVL_TREE tree, void *data)
+{ int found;
 
-  avl_delete(tree, &tree->root, &data, avl_min);
-  if ( data != NULL )
+  avl_delete(tree, &tree->root, data, &found, avl_min);
+  if ( found )
     tree->count--;
 
-  return data;
+  return found;
 }				/* avldelmin */
 
 
@@ -890,15 +871,15 @@ avlfindmin(AVL_TREE tree)
 /*
 * avldelmax() -- delete the maximal item from the given tree structure
 */
-PUBLIC void *
-avldelmax(AVL_TREE tree)
-{ void *data;
+PUBLIC int
+avldelmax(AVL_TREE tree, void *data)
+{ int found;
 
-  avl_delete(tree, &tree->root, &data, avl_max);
-  if ( data != NULL )
+  avl_delete(tree, &tree->root, data, &found, avl_max);
+  if ( found )
     tree->count--;
 
-  return data;
+  return found;
 }				/* avldelmax */
 
 
