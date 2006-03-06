@@ -7,9 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Memory leak in format ~f using rational numbers as arguments.
+    Mike Elston.
+
   * PORT: Float issues on Alpha.  Roberto Bagnara.  Also found a bug in
-    GCC 4.0.2 on Alpha/Linux.  Reported to GCC bugzilla.  Work-around
-    at http://gollem.science.uva.nl/SWI-Prolog/mailinglist/archive/2006/q1/0234.html
+    GCC 4.0.2 on Alpha/Linux.  Reported to GCC bugzilla.  Work-around at
+http://gollem.science.uva.nl/SWI-Prolog/mailinglist/archive/2006/q1/0234.html
 
   * ADDED: allow `repairing' undefined global variables.  After discussion
     on mailinglist.

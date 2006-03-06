@@ -981,6 +981,7 @@ formatFloat(int how, int arg, Number f, Buffer out)
 	growBuffer(out, size);		/* reserve for -.e<null> */
 	written = gmp_snprintf(baseBuffer(out, char), size, tmp, mpf);
       }
+      mpf_clear(mpf);
       out->top = out->base + written;
 
       return baseBuffer(out, char);
