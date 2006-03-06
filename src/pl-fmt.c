@@ -582,8 +582,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		    { IOSTREAM *old = Scurout;
 
 		      Scurout = fd;
-		      (*f)(argv);
+		      rc = (*f)(argv);
 		      Scurout = old;
+		      if ( !rc )
+			goto out;
 
 		      state.column = fd->position->linepos;
 		    } else
