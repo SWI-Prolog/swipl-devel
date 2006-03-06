@@ -423,6 +423,26 @@ avl_insert(AVL_TREE tree, AVLtree *rootp, void **data)
 }				/* avl_insert */
 
 
+static void
+memswap(void *p1, void *p2, size_t size)
+{ char *s1 = p1;
+  char *s2 = p2;
+  char buf[256];
+
+  while(size > 0)
+  { int bytes = (size > sizeof(buf) ? sizeof(buf) : size);
+
+    memcpy(buf, s1, bytes);
+    memcpy(s1, s2, bytes);
+    memcpy(s2, buf, bytes);
+
+    s1 += bytes;
+    s2 += bytes;
+    size -= bytes;
+  }
+}
+
+
 /*
 * avl_delete() -- delete an item from the given tree
 *
@@ -467,7 +487,11 @@ avl_delete(AVL_TREE tree, AVLtree *rootp, void *data, int *found,
     if ( found )
       *found = TRUE;
     if ( data && data != (*rootp)->data )
-      memcpy(data, (*rootp)->data, tree->isize); 
+    { if ( found )
+	memcpy(data, (*rootp)->data, tree->isize); 
+      else
+	memswap(data, (*rootp)->data, tree->isize);
+    }
 
       /***********************************************************************
       *  At this point we know "cmp" is zero and "*rootp" points to
