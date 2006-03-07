@@ -853,6 +853,9 @@ avldel(AVL_TREE tree, void *data)
 { int found;
 
   avl_delete(tree, &tree->root, data, &found, tree->compar);
+  if ( found )
+    tree->count--;
+
   return found;
 }
 

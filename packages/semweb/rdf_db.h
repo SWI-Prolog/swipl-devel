@@ -24,7 +24,7 @@
 
 #ifndef RDFDB_H_INCLUDED
 #define RDFDB_H_INCLUDED
-#include "atom_set.h"
+#include "avl.h"
 #ifdef WITH_MD5
 #include "md5.h"
 #endif
@@ -238,7 +238,7 @@ typedef struct rdf_db
 
   rwlock	lock;			/* threaded access */
 
-  avl_tree     *literals;
+  avl_tree      literals;
 } rdf_db;
 
 #endif /*RDFDB_H_INCLUDED*/

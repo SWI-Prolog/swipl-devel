@@ -53,7 +53,7 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <ctype.h>
-#include "atom_set.h"
+#include "avl.h"
 #ifdef WITH_MD5
 #include "md5.h"
 #include "atom.h"
@@ -515,6 +515,94 @@ free_list(rdf_db *db, list *list)
 
 
 		 /*******************************
+		 *	     ATOM SETS		*
+		 *******************************/
+
+
+#define CHUNKSIZE 1024
+
+typedef struct mchunk
+{ struct mchunk *next;
+  int used;
+  char buf[CHUNKSIZE];
+} mchunk;
+
+typedef struct
+{ avl_tree tree;
+  mchunk *node_store;
+  mchunk store0;
+} atomset;
+
+
+static void *
+alloc_node_atomset(void *ptr, size_t size)
+{ void *p;
+  atomset *as = ptr;
+
+  assert(size < CHUNKSIZE);
+
+  if ( as->node_store->used + size > CHUNKSIZE )
+  { mchunk *ch = malloc(sizeof(mchunk));
+
+    ch->used = 0;
+    ch->next = as->node_store;
+    as->node_store = ch;
+  }
+
+  p = &as->node_store->buf[as->node_store->used];
+  as->node_store->used += size;
+
+  return p;
+}
+
+
+static void
+free_node_atomset(void *ptr, void *data, size_t size)
+{ assert(0);
+}
+
+
+static int
+cmp_long_ptr(void *p1, void *p2, NODE type)
+{ long *l1 = p1;
+  long *l2 = p2;
+
+  return *l1 < *l2 ? -1 : *l1 > *l2 ? 1 : 0;
+}
+
+
+static void
+init_atomset(atomset *as)
+{ avlinit(&as->tree, as, sizeof(atom_t),
+	  cmp_long_ptr,
+	  NULL,
+	  alloc_node_atomset,
+	  free_node_atomset);
+  
+  as->node_store = &as->store0;
+  as->node_store->next = NULL;
+  as->node_store->used = 0;
+}
+
+
+static void
+destroy_atomset(atomset *as)
+{ mchunk *ch, *next;
+
+  for(ch=as->node_store; ch != &as->store0; ch = next)
+  { next = ch->next;
+    free(ch);
+  }
+}
+
+
+static int
+add_atomset(atomset *as, atom_t atom)
+{ return avlins(&as->tree, &atom) ? FALSE : TRUE;
+}
+
+
+		 /*******************************
 		 *	    PREDICATES		*
 		 *******************************/
 
@@ -847,13 +935,13 @@ See whether sub is p or a subproperty of p.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-is_sub_property_of(predicate *sub, predicate *p, avl_tree *seen)
+is_sub_property_of(predicate *sub, predicate *p, atomset *seen)
 { for(;;)
   { cell *c;
 
     if ( sub == p )
       return TRUE;
-    if ( avl_insert_atom(seen, p->name, NULL) != 1 )
+    if ( !add_atomset(seen, p->name) )
       return FALSE;
 
     c = sub->subPropertyOf.head;
@@ -870,7 +958,7 @@ is_sub_property_of(predicate *sub, predicate *p, avl_tree *seen)
 
 static int
 isSubPropertyOf(predicate *sub, predicate *p)
-{ avl_tree seen;
+{ atomset seen;
   int rc;
 
   DEBUG(2, Sdprintf("isSubPropertyOf(%s, %s)\n",
@@ -880,9 +968,9 @@ isSubPropertyOf(predicate *sub, predicate *p)
   if ( sub->root == p )
     return TRUE;
 
-  avl_init(&seen);
+  init_atomset(&seen);
   rc = is_sub_property_of(sub, p, &seen);
-  avl_destroy(&seen);
+  destroy_atomset(&seen);
 
   return rc;
 }
@@ -924,8 +1012,8 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
       return TRUE;
   }
 
-  { avl_tree subject_set;
-    avl_tree object_set;
+  { atomset subject_set;
+    atomset object_set;
     triple t;
     triple *byp;
 
@@ -933,8 +1021,8 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
     t.predicate = p;
     t.indexed |= BY_P;
 
-    avl_init(&subject_set);
-    avl_init(&object_set);
+    init_atomset(&subject_set);
+    init_atomset(&object_set);
     for(byp = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
 	byp;
 	byp = byp->next[t.indexed])
@@ -942,18 +1030,18 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
       { if ( (which == DISTINCT_DIRECT && byp->predicate == p) ||
 	     (which != DISTINCT_DIRECT && isSubPropertyOf(byp->predicate, p)) )
 	{ total++;
-	  avl_insert_atom(&subject_set, byp->subject, NULL);
-	  avl_insert_atom(&object_set, object_hash(byp), NULL); /* NOTE: not exact! */
+	  add_atomset(&subject_set, byp->subject);
+	  add_atomset(&object_set, object_hash(byp)); /* NOTE: not exact! */
 	}
       }
     }
 
     p->distinct_count[which]    = total;
-    p->distinct_subjects[which] = subject_set.size;
-    p->distinct_objects[which]  = object_set.size;
+    p->distinct_subjects[which] = subject_set.tree.count;
+    p->distinct_objects[which]  = object_set.tree.count;
 
-    avl_destroy(&subject_set);
-    avl_destroy(&object_set);
+    destroy_atomset(&subject_set);
+    destroy_atomset(&object_set);
 
     if ( which == DISTINCT_DIRECT )
       p->distinct_updated[DISTINCT_DIRECT] = total;
@@ -1190,7 +1278,11 @@ free_literal(rdf_db *db, literal *lit)
   { if ( lit->shared )
     { lit->shared = FALSE;
       broadcast(EV_OLD_LITERAL, lit, NULL);
-      if ( avl_delete(db->literals, &db->literals->root, lit) == -1 )
+      DEBUG(2,
+	    Sdprintf("Delete %p from literal table: ", lit);
+	    print_literal(lit);
+	    Sdprintf("\n"));
+      if ( !avldel(&db->literals, &lit) )
 	assert(0);
     }
 
@@ -1271,9 +1363,9 @@ compare_literals() sorts literals.  Ordering is defined as:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-compare_literals(void *p1, void *p2)
-{ literal *l1 = p1;
-  literal *l2 = p2;
+compare_literals(void *p1, void *p2, NODE type)
+{ literal *l1 = *(literal**)p1;
+  literal *l2 = *(literal**)p2;
 
   if ( l1->objtype == l2->objtype )
   { switch(l1->objtype)
@@ -1327,6 +1419,18 @@ compare_literals(void *p1, void *p2)
 }
 
 
+static void*
+avl_malloc(void *ptr, size_t size)
+{ return rdf_malloc(ptr, size);
+}
+
+
+static void
+avl_free(void *ptr, void *data, size_t size)
+{ rdf_free(ptr, data, size);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create the sorted literal tree. Note  that   we  do  not register a free
 handler  for  the  tree  as  nodes   are  either  already  destroyed  by
@@ -1335,10 +1439,12 @@ free_literal() or by rdf_reset_db().
 
 static void
 init_literal_table(rdf_db *db)
-{ if ( !db->literals )
-    db->literals = rdf_malloc(db, sizeof(*db->literals));
-  avl_init(db->literals);
-  db->literals->compare = compare_literals;
+{ avlinit(&db->literals,
+	  db, sizeof(literal*),
+	  compare_literals,
+	  NULL,
+	  avl_malloc,
+	  avl_free);
 }
 
 
@@ -1351,10 +1457,10 @@ returns it.
 
 static literal *
 share_literal(rdf_db *db, literal *from)
-{ avl_node *node;
+{ literal **data;
 
-  if ( (node = avl_find_node(db->literals, from)) )
-  { literal *l2 = node->key;
+  if ( (data = avlfind(&db->literals, &from)) )
+  { literal *l2 = *data;
 
     DEBUG(2,
 	  Sdprintf("Replace %p by %p:\n", from, l2);
@@ -1367,10 +1473,10 @@ share_literal(rdf_db *db, literal *from)
 
     return l2;
   } else
-  { avl_insert(db->literals, from, NULL);
+  { avlins(&db->literals, &from);
 
     DEBUG(2,
-	  Sdprintf("Insert into %p: ", from);
+	  Sdprintf("Insert %p into literal table: ", from);
 	  print_literal(from);
 	  Sdprintf("\n"));
 
@@ -1383,20 +1489,23 @@ share_literal(rdf_db *db, literal *from)
 
 #ifdef O_DEBUG
 static void
-dump_lnode(avl_node *node)
-{ if ( node->left )
-    dump_lnode(node->left);
-  print_literal(node->key);
+dump_lnode(AVLtree node)
+{ literal **litp;
+
+  if ( node->subtree[LEFT] )
+    dump_lnode(node->subtree[LEFT]);
+  litp = (literal**)node->data;
+  print_literal(*litp);
   Sdprintf("\n");
-  if ( node->right )
-    dump_lnode(node->right);
+  if ( node->subtree[RIGHT] )
+    dump_lnode(node->subtree[RIGHT]);
 }
 
 static foreign_t
 dump_literals()
 { rdf_db *db = DB;
   
-  dump_lnode(db->literals->root);
+  dump_lnode(db->literals.root);
   return TRUE;
 }
 #endif
@@ -3786,24 +3895,23 @@ typedef struct search_state
 static void	free_search_state(search_state *state);
 
 static void
-init_cursor_from_literal(search_state *state, avl_node *cursor)
+init_cursor_from_literal(search_state *state, literal *cursor)
 { triple *p = &state->pattern;
-  literal *lit = cursor->key;
   unsigned long iv;
   int i;
 
   DEBUG(3,
 	Sdprintf("Trying literal search for ");
-	print_literal(lit);
+	print_literal(cursor);
 	Sdprintf("\n"));
   
   p->indexed |= BY_O;
   switch(p->indexed)
   { case BY_O:
-      iv = literal_hash(lit);
+      iv = literal_hash(cursor);
       break;
     case BY_OP:
-      iv = predicate_hash(p->predicate->root) ^ literal_hash(lit);
+      iv = predicate_hash(p->predicate->root) ^ literal_hash(cursor);
       break;
     default:
       assert(0);
@@ -3811,7 +3919,7 @@ init_cursor_from_literal(search_state *state, avl_node *cursor)
 
   i = (int)(iv % (long)state->db->table_size[p->indexed]);
   state->cursor = state->db->table[p->indexed][i];
-  state->literal_cursor = cursor->key;
+  state->literal_cursor = cursor;
 }
 
 
@@ -3839,16 +3947,16 @@ init_search_state(search_state *state)
   if ( (p->match == STR_MATCH_PREFIX ||	p->match == STR_MATCH_LIKE) &&
        p->indexed != BY_SP &&
        (state->prefix = first_atom(p->object.literal->value.string, p->match)))
-  { avl_node *node;
-    literal lit;
-
+  { literal lit;
+    literal **rlitp, *slitp = &lit;
+    
     lit = *p->object.literal;
     lit.value.string = state->prefix;
     state->literal_state = rdf_malloc(state->db,
 				      sizeof(*state->literal_state));
-    node = avl_find_ge(state->db->literals, &lit, state->literal_state);
-    if ( node )
-    { init_cursor_from_literal(state, node);
+    rlitp = avlfindfirst(&state->db->literals, &slitp, state->literal_state);
+    if ( rlitp )
+    { init_cursor_from_literal(state, *rlitp);
     } else
     { free_search_state(state);
       return FALSE;
@@ -3954,11 +4062,11 @@ retry:
   }
 
   if ( state->literal_state )
-  { avl_node *node;
+  { literal **litp;
 
-    if ( (node = avl_next(state->literal_state)) )
+    if ( (litp = avlfindnext(state->literal_state)) )
     { if ( state->prefix )
-      { literal *lit = node->key;
+      { literal *lit = *litp;
 
 	if ( !match_atoms(STR_MATCH_PREFIX, state->prefix, lit->value.string) )
 	{ DEBUG(1,
@@ -3969,7 +4077,7 @@ retry:
 	}
       }
 
-      init_cursor_from_literal(state, node);
+      init_cursor_from_literal(state, *litp);
       t = state->cursor;
 
       goto retry;
@@ -5170,7 +5278,7 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
   } else if ( f == FUNCTOR_duplicates1 )
   { v = db->duplicates;
   } else if ( f == FUNCTOR_literals1 )
-  { v = db->literals->size;
+  { v = db->literals.count;
   } else if ( f == FUNCTOR_triples2 && PL_is_functor(key, f) )
   { source *src;
     term_t a = PL_new_term_ref();
@@ -5313,7 +5421,7 @@ reset_db(rdf_db *db)
   erase_sources(db);
   db->need_update = FALSE;
   db->agenda_created = 0;
-  avl_destroy(db->literals);
+  avlfree(&db->literals);
   init_literal_table(db);
 }
 
