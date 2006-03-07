@@ -52,9 +52,6 @@ being flexible to ordering of tokens.
 :- volatile
 	literal_map/2.
 
-setting(index_tokens(true)).
-setting(index_stems(true)).
-setting(index_metaphone(true)).
 setting(verbose(true)).
 
 rdf_set_literal_index_option([]).

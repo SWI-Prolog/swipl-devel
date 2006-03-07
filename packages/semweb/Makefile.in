@@ -48,7 +48,7 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl
+LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl rdf_litindex.pl
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs owl.owl
 TARGETS=	rdf_db.@SO@
 

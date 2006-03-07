@@ -1050,6 +1050,51 @@ Major + 100 \times Minor + Patch$.
 \end{description}
 
 
+\subsection{Library rdf_litindex: Indexing words in literals}
+\label{sec:rdflitindex}
+
+The library \pllib{semweb/rdf_litindex.pl} exploits the primitives
+of \secref{rdflitmap} and the NLP package to provide indexing on words
+inside literal constants.  It also allows for fuzzy matching using
+stemming and `sounds-like' based on the \jargon{double metaphone}
+algorithm of the NLP package.
+
+\begin{description}
+    \predicate{rdf_find_literals}{+Spec, -ListOfLiterals}
+Find literals (without type or language specification) that satisfy
+\arg{Spec}. The required indices are created as needed and kept
+up-to-date using hooks registered with rdf_monitor/2.  \arg{Spec}
+is defined as:
+
+    \begin{description}
+	\termitem{and}{Spec1, Spec2}
+Intersection of both specifications.
+
+	\termitem{or}{Spec1, Spec2}
+Union of both specifications.
+
+	\termitem{not}{Spec}
+Negation of \arg{Spec}.  After translation of the full specification to
+\jargon{Disjunctive Normal Form} (DNF), negations are only allowed
+inside a conjunction with at least one positive literal.
+
+	\termitem{sounds(Like)}
+Matches all literals containing at least one word that `sounds like'
+\arg{Like} using the double metaphone algorithm.  See NLP package for
+details.
+
+	\termitem{stem{Like}}
+Matches all literals containing at least one word that has the same stem
+as \arg{Like} using the Porter stem algorithm.  See NLP package for
+details.
+
+	\termitem{Token}{}
+Matches all literals containing the given token.  See tokenize_atom/2
+of the NLP package for details.
+    \end{description}
+\end{description}
+
+
 \subsection{Literal maps: Creating additional indices on literals}
 \label{sec:rdflitmap}
 
@@ -1569,6 +1614,17 @@ servers from Java, while the Prolog client can be used to access the
 Sesame SeRQL server.  For further details, see the
 \url[project
 home]{http://gollem.science.uva.nl/twiki/pl/bin/view/Library/SeRQL}.
+
+
+\section*{Acknowledgements}
+
+This research was supported by the following projects: MIA and
+MultimediaN project (www.multimedian.nl) funded through the BSIK
+programme of the Dutch Government and the FP-6 project HOPS of the
+European Commision.
+
+The implementation of AVL trees is based on libavl by Brad Appleton.
+See the source file \file{avl.c} for details.
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
