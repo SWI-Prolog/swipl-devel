@@ -79,6 +79,7 @@ set_option(Term) :-
 %	Spec ::= not(Spec)
 %	Spec ::= sounds(Like)
 %	Spec ::= stem(Like)
+%	Spec ::= prefix(Prefix)
 %	Spec ::= Token
 %	
 %	sounds(Like) and stem(Like) both map to  a disjunction. First we
@@ -135,6 +136,10 @@ expand_fuzzy(stem(Like), Or) :- !,
 	porter_index(Map),
 	porter_stem(Like, Key),
 	rdf_find_literal_map(Map, [Key], Tokens),
+	list_to_or(Tokens, Or).
+expand_fuzzy(prefix(Prefix), Or) :- !,
+	token_index(Map),
+	rdf_keys_in_literal_map(Map, prefix(Prefix), Tokens),
 	list_to_or(Tokens, Or).
 expand_fuzzy(or(A0, B0), or(A,B)) :- !,
 	expand_fuzzy(A0, A),
