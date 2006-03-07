@@ -139,7 +139,7 @@ cmp_atoms(atom_t a1, atom_t a2)
     const charW *s2 = t2.w;
     int d;
 
-    for(;;)
+    for(;;s1++, s2++)
     { if ( n-- == 0 )
       { d = t1.length - t2.length;
 	if ( d == 0 )
