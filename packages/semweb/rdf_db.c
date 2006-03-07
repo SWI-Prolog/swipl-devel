@@ -393,7 +393,7 @@ print_literal(literal *lit)
 	    Sputc('L', Serror);
 	    Sputc('"', Serror);
 	    for(i=0; i<len; i++)
-	    { if ( w[i] < 255 )
+	    { if ( w[i] < 0x7f )
 		Sputc(w[i], Serror);
 	      else
 		Sfprintf(Serror, "\\\\u%04x", w[i]);
@@ -1515,7 +1515,57 @@ share_literal(rdf_db *db, literal *from)
 }
 
 
-#ifdef O_DEBUG
+#ifdef O_SECURE
+static literal **
+add_literals(AVLtree node, literal **p)
+{ literal **litp;
+
+  if ( node->subtree[LEFT] )
+    p = add_literals(node->subtree[LEFT], p);
+  litp = (literal**)node->data;
+  *p++ = *litp;
+  if ( node->subtree[RIGHT] )
+    p = add_literals(node->subtree[RIGHT], p);
+
+  return p;
+}
+
+
+static foreign_t
+check_transitivity()
+{ rdf_db *db = DB;
+  literal **array = malloc(sizeof(literal*)*db->literals.count);
+  literal **p = array;
+  int i,j;
+
+  add_literals(db->literals.root, p);
+  Sdprintf("Checking %ld literals ...\n", db->literals.count);
+
+  for(i=0; i<db->literals.count; i++)
+  { int end;
+
+    Sdprintf("\r%6ld", i);
+    end = i+100;
+    if ( end > db->literals.count )
+      end = db->literals.count;
+
+    for(j=i+1; j<end; j++)
+    { if ( compare_literals(&array[i], &array[j], IS_NULL) >= 0 )
+      { Sdprintf("\nERROR: i,j=%d,%d: ", i, j);
+	print_literal(array[i]);
+	Sdprintf(" >= ");
+	print_literal(array[j]);
+	Sdprintf("\n");
+      }
+    }
+  }
+
+  free(array);
+
+  return TRUE;
+}
+
+
 static void
 dump_lnode(AVLtree node)
 { literal **litp;
@@ -5728,7 +5778,10 @@ install_rdf_db()
 
 #ifdef O_DEBUG
   PL_register_foreign("rdf_debug",      1, rdf_debug,       0);
+#endif
+#ifdef O_SECURE
   PL_register_foreign("rdf_dump_literals", 0, dump_literals, 0);
+  PL_register_foreign("rdf_check_literals", 0, check_transitivity, 0);
 #endif
 
   install_atom_map();
