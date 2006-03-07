@@ -1298,7 +1298,7 @@ free_literal(rdf_db *db, literal *lit)
 { if ( --lit->references == 0 )
   { unlock_atoms_literal(lit);
 
-    if ( lit->shared )
+    if ( lit->shared && !db->resetting )
     { lit->shared = FALSE;
       broadcast(EV_OLD_LITERAL, lit, NULL);
       DEBUG(2,
@@ -4068,6 +4068,7 @@ allow_retry_state(search_state *state)
 { if ( !state->allocated )
   { search_state *copy = rdf_malloc(state->db, sizeof(*copy));
     *copy = *state;
+    copy->allocated = TRUE;
 
     state = copy;
   }
@@ -5491,13 +5492,17 @@ erase_predicates(rdf_db *db)
 
 static void
 reset_db(rdf_db *db)
-{ erase_triples(db);
+{ db->resetting = TRUE;
+
+  erase_triples(db);
   erase_predicates(db);
   erase_sources(db);
   db->need_update = FALSE;
   db->agenda_created = 0;
   avlfree(&db->literals);
   init_literal_table(db);
+
+  db->resetting = FALSE;
 }
 
 
