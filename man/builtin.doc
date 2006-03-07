@@ -755,7 +755,7 @@ Succeeds if \arg{Term} is bound to a floating point number.
     \predicate{rational}{1}{+Term}
 Succeeds if \arg{Term} is bound to a rational number.  Rational numbers
 include integers.
-    \predicate{rational}{1}{+Term, -Numerator, -Denominator}
+    \predicate{rational}{3}{+Term, -Numerator, -Denominator}
 True if \arg{Term} is a rational number with given \arg{Numerator} and
 \arg{Denominator}.  The \arg{Numerator} and \arg{Denominator} are in
 canonical form, which means \arg{Denominator} is a positive integer and
@@ -787,7 +787,7 @@ Succeeds if \arg{Term} contains cycles, i.e.\ is an infinite term.
 See also acyclic_term/1 and \secref{cyclic}.%
 	\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
 		  compatible to SICStus Prolog.  Some Prolog systems
-		  supporting cyclic terms use is_cyclic/1.}
+		  supporting cyclic terms use \nopredref{is_cyclic}{1}.}
     \predicate{acyclic_term}{1}{+Term}
 Succeeds if \arg{Term} does not contain cycles,  i.e.\ can be processed
 recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
@@ -2319,7 +2319,7 @@ Extracts information from the opaque stream position term as returned
 by stream_property/2 requesting the \term{position}{Position} property.
 \arg{Field} is one of \const{line_count}, \const{line_position},
 \const{char_count} or \const{byte_count}.  See also line_count/2,
-line_position/2, char_count/2 and byte_count/2.%
+line_position/2, character_count/2 and byte_count/2.%
 	\footnote{Introduced in version 5.6.4 after extending the
 		  position term with a byte-count.  Compatible with
 		  SICStus Prolog.}
@@ -3112,8 +3112,8 @@ In this case \arg{Value} will be unified with the successive arguments
 of the term. On successful unification, \arg{Arg} is unified with the
 argument number. Backtracking yields alternative solutions.%
     \footnote{The instantiation pattern (-, +, ?) is an extension to
-              `standard' Prolog.  Some systems provide genarg/3 that
-	      covers this pattern.}
+              `standard' Prolog. Some systems provide
+	      \nopredref{genarg}{3} that covers this pattern.}
 The predicate arg/3 fails silently if $\arg{Arg} = 0$ or
 $\arg{Arg} > \mbox{\em arity}$ and raises the exception
 \errorterm{domain_error}{not_less_then_zero, \arg{Arg}} if $\arg{Arg} <
@@ -3171,10 +3171,10 @@ variable and assign the next \verb|$VAR|(N) term to it or (default)
     \predicate{term_variables}{2}{+Term, -List}
 Unify \arg{List} with a list of variables, each sharing with a unique variable
 of \arg{Term}.%
-	\footnote{This predicate used to be called free_variables/2. The
-		  name term_variables/2 is more widely used.  The old
-		  predicate is still available from the library
-		  \pllib{backcomp}.}
+	\footnote{This predicate used to be called
+	\nopredref{free_variables}{2}. The name term_variables/2 is more
+	widely used. The old predicate is still available from the
+	library \pllib{backcomp}.}
 See also term_variables/3.  For example:
 
 \begin{code}
@@ -3309,10 +3309,11 @@ X = [h, e, l, l, o]
     \predicate{char_code}{2}{?Atom, ?Code}
 Convert between character and character code for a single
 character.%
-	\footnote{This is also called atom_char/2 in older versions of
-		  SWI-Prolog as well as some other Prolog
-		  implementations.  atom_char/2 is available from
-		  the library  \file{backcomp.pl}}
+	\footnote{This is also called \nopredref{atom_char}{2} in older
+	versions of SWI-Prolog as well as some other Prolog
+	implementations. The \nopredref{atom_char}{2} predicate is
+	available from the library \file{backcomp.pl}}
+
     \predicate{number_chars}{2}{?Number, ?CharList}
 Similar to atom_chars/2, but converts between a number and its
 representation as a list of one-character atoms. Fails with a
@@ -4230,12 +4231,13 @@ primitives are built-in and described here.
 Succeeds if \arg{Term} is bound to the empty list (\exam{[]}) or a term with
 functor `\const{.}' and arity~2 and the second argument is a list.%
 	\footnote{In versions before 5.0.1, is_list/1 just checked for
-		  \const{[]} or \exam{[_|_]} and proper_list/1 had the
-		  role of the current is_list/1.  The current definition
-		  is conform the de-facto standard. Assuming proper
-		  coding standards, there should only be very few cases
-		  where a quick-and-dirty is_list/1 is a good choice.
-		  Richard O'Keefe pointed at this issue.}
+		  \const{[]} or \exam{[_|_]} and
+		  \nopredref{proper_list}{1} had the role of the current
+		  is_list/1. The current definition is conform the
+		  de-facto standard. Assuming proper coding standards,
+		  there should only be very few cases where a
+		  quick-and-dirty is_list/1 is a good choice. Richard
+		  O'Keefe pointed at this issue.}
 This predicate acts as if defined by the following definition:
 
 \begin{code}
@@ -4369,7 +4371,7 @@ we will phrase this as ``\arg{Predicate} is applied on \ldots''
 the end of the list or \arg{Pred} fails. In the latter case the
 maplist/2 fails.%
 	\footnote{The maplist/2 predicate replaces the obsolete
-		  checklist/2 predicate.}
+		  \nopredref{checklist}{2} predicate.}
 
     \predicate{maplist}{3}{+Pred, ?List1, ?List2}
 Apply \arg{Pred} on all successive pairs of elements from \arg{List1}

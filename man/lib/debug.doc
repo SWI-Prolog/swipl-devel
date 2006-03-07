@@ -58,9 +58,9 @@ your application.
 If \arg{Goal} fails the system prints a message, followed by a
 stack-trace and starts the debugger.
 
-In older versions of this library this predicate was called assume/1.
-Code using assume/1 is automatically converted while printing a warning
-on the first occurrence.
+In older versions of this library this predicate was called
+\nopredref{assume}{1}. Code using \nopredref{assume}{1} is automatically
+converted while printing a warning on the first occurrence.
 
 \end{description}
 

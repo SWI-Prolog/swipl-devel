@@ -79,7 +79,7 @@ value may differ from an integer to be considered an integer. E.g.\ when
 \arg{Eps} = 0.001, then X = 4.999 will be considered as an integer (5 in
 this case). \arg{Eps} should be between 0 and 0.5.
 
-	\predicate{bb_inf}{5}{+Ints, +Expression, -Inf, -Vertex}
+	\predicate{bb_inf}{4}{+Ints, +Expression, -Inf, -Vertex}
 This predicate is offered in CLP(Q) only. It behaves the same as 
 \predref{bb_inf}{5} but does not use an error margin. 
 

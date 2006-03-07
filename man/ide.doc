@@ -295,7 +295,7 @@ a simple predicate that checks all loaded source files to see which
 ones you have modified.  It then reloads these files, considering the
 module from which the file was loaded originally. This greatly
 simplifies the trace-edit-verify development cycle.  After the tracer
-reveals there is something wrong with prove/3, you do:
+reveals there is something wrong with \nopredref{prove}{3}, you do:
 
 \begin{code}
 ?- edit(prove).

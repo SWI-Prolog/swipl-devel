@@ -238,9 +238,11 @@ necessary for saved-states and threads. Saved-states to not store global
 variables, which implies they have to be declared with initialization/1
 to recreate them after loading the saved state.  Each thread has
 its own set of global variables, starting with an empty set.  Using
-thread_inititialization/1 to define a global variable it will be
+thread_initialization/1 to define a global variable it will be
 defined, restored after reloading a saved state and created in all
-threads that are created \emph{after} the registration.
+threads that are created \emph{after} the registration.  Finally,
+global variables can be initialized using the exception hook called
+exception/3.  The latter technique is by CHR (see \chapref{chr}.
 
 
 \begin{description}

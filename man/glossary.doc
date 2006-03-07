@@ -109,8 +109,9 @@ only cooperate directly with the C and C++ computer languages.
 
     \glossitem{functor}
 Combination of name and \g{arity} of a \g{compound} term.  The term
-\term{foo}{a, b, c} is said to be a term belonging to the functor foo/3.
-foo/0 is used to refer to the \g{atom} \const{foo}.
+\term{foo}{a, b, c} is said to be a term belonging to the functor
+\nopredref{foo}{3}. \nopredref{foo}{0} is used to refer to the \g{atom}
+\const{foo}.
 
     \glossitem{goal}
 Question stated to the Prolog engine.  A \g{goal} is either an \g{atom}

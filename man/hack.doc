@@ -172,7 +172,7 @@ A cut has been executed.  See \term{cut_call}{PC} for more information.
 \end{description}
 
 \arg{Frame} is a reference to the current local stack frame, which can
-be examined using prolog_frame_attribute/4. \arg{Choice} is a reference
+be examined using prolog_frame_attribute/3. \arg{Choice} is a reference
 to the last choice-point and can be examined using
 prolog_choice_attribute/3. \arg{Action} should be unified with one of
 the atoms \const{continue} (just continue execution), \const{retry}

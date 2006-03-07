@@ -481,7 +481,7 @@ all easily fixed however.
   o feature/2_, set_feature/2
     These  are replaced by  the ISO  compliant current_prolog_flag/2 and
     set_prolog_flag/2.   The library  backcomp provides definitions  for
-    feature/2 and set_feature/2, so no source hhaass to be updated.
+    these predicates, so no source mmuusstt be updated.
 
   o _A_c_c_e_s_s_i_n_g _c_o_m_m_a_n_d_-_l_i_n_e _a_r_g_u_m_e_n_t_s
     This  used  to   be  provided  by  the  undocumented  '$argv'/1  and
@@ -1973,7 +1973,7 @@ portability.
     (Quintus/SICStus).
 
   o term_expansion/2
-    Hook  into  load_files/1  to  modify  read  terms  before  they  are
+    Hook  into  load_files/2  to  modify  read  terms  before  they  are
     compiled (macro-processing) (most Prolog system).
 
   o goal_expansion/2
@@ -5521,9 +5521,9 @@ sseett__ssttrreeaamm__ppoossiittiioonn((_+_S_t_r_e_a_
 ssttrreeaamm__ppoossiittiioonn__ddaattaa((_?_F_i_e_l_d_, _+_P_o_s_i_t_i_o_n_, _-_D_a_t_a))
     Extracts  information  from  the  opaque  stream  position  term  as
     returned  by  stream_property/2  requesting  the  position(_P_o_s_i_t_i_o_n)
-    property.   _F_i_e_l_d is one of line_count, line_position, char_count or
-    byte_count.    See also line_count/2,  line_position/2,  char_count/2
-    and byte_count/2.
+    property.        _F_i_e_l_d   is  one   of   line_count,   line_position,
+    char_count or  byte_count.   See  also line_count/2, line_position/2,
+    character_count/2 and byte_count/2.
 
 
 sseeeekk((_+_S_t_r_e_a_m_, _+_O_f_f_s_e_t_, _+_M_e_t_h_o_d_, _-_N_e_w_L_o_c_a_t_i_o_n))
@@ -10065,10 +10065,12 @@ available  during the  program  lifetime,  but some  considerations  are
 necessary  for saved-states  and threads.    Saved-states  to not  store
 global  variables,   which  implies  they  have  to  be   declared  with
 initialization/1 to recreate them  after loading the saved state.   Each
-thread has its own set of global variables, starting  with an empty set.
-Using thread_inititialization/1 to define  a global variable it will  be
-defined,  restored after  reloading a  saved state  and  created in  all
-threads that are created _a_f_t_e_r the registration.
+thread  has its  own set  of global  variables, starting  with an  empty
+set.    Using thread_initialization/1  to define  a global  variable  it
+will be  defined, restored  after reloading  a saved  state and  created
+in  all threads  that are  created  _a_f_t_e_r the  registration.    Finally,
+global  variables can  be initialized  using the  exception hook  called
+exception/3.  The latter technique is by CHR (see chapter 7.
 
 
 bb__sseettvvaall((_+_N_a_m_e_, _+_V_a_l_u_e))
@@ -17056,7 +17058,7 @@ pprroolloogg__ttrraaccee__iinntteerrcceeppttiioonn((_
          information.
 
     _F_r_a_m_e  is  a  reference to  the  current local  stack  frame,  which
-    can  be  examined  using  prolog_frame_attribute/4.     _C_h_o_i_c_e  is  a
+    can  be  examined  using  prolog_frame_attribute/3.     _C_h_o_i_c_e  is  a
     reference  to  the  last  choice-point and  can  be  examined  using
     prolog_choice_attribute/3.   _A_c_t_i_o_n  should be unified  with one  of
     the  atoms  continue (just  continue  execution), retry  (retry  the
@@ -17937,22 +17939,22 @@ Bibliography
 
 Index
 
-'MANUAL' _l_i_b_r_a_r_y, 43                 write_term/[2
---disable-segv-handling, 1007           3], 17, 60
--lpl _l_i_b_r_a_r_y, 1008                   writef/1, 512
--lreadline _l_i_b_r_a_r_y, 1036             writef/2, 32, 71, 349, 513, 514
-.pl, 85                              writef/[1
-.pro, 85                                2], 509
-?=/2, 184                            writeln/1, 511
-=:=/2, 429                           writeq/1, 356, 513, 518
-/\/2, 463                            writeq/2, 357
-=\=/2, 428                           www_form_encode/2, 1118
-|/2, 193                             www_open_url/1, 1103
+'MANUAL' _l_i_b_r_a_r_y, 43
+--disable-segv-handling, 1007
+-lpl _l_i_b_r_a_r_y, 1008
+-lreadline _l_i_b_r_a_r_y, 1036
+.pl, 85
+.pro, 85
+?=/2, 184
+=:=/2, 429
+/\/2, 463
+=\=/2, 428
+|/2, 193
 #=/2, 1128
-#>=/2, 1126                          X-Windows, 7
-#>/2, 1124                           X11, 8
-#=</2, 1127                          xor/2, 464
-#</2, 1125                           XPCE, 8
+#>=/2, 1126
+#>/2, 1124
+#=</2, 1127
+#</2, 1125
 #\=/2, 1129
 ,/2, 191
 {}/1, 1151
@@ -18044,7 +18046,6 @@ assertz/2, 240, 247
 assignment/2, 1172
 assoc _l_i_b_r_a_r_y, 1059, 1072
 assoc_to_list/2, 1060
-assume/1, 1094
 at_end_of_stream/0, 344
 at_end_of_stream/1, 345, 348
 at_end_of_stream/[0
@@ -18070,19 +18071,20 @@ attr_portray_hook/2, 350, 687
 attr_unify_hook/2, 62, 681, 686
 attvar/1, 682
 autoload/0, 117, 1022, 1024, 1086
-
 b_getval/2, 699, 701
 b_setval/2, 697, 698, 1198
 backcomp _l_i_b_r_a_r_y, 17, 21
 bagof/3, 73, 130, 499--501
 bb_inf/3, 1159
-bb_inf/5, 1157, 1158
+bb_inf/4, 1158
+bb_inf/5, 1157
 between/3, 420, 1051
 block/3, 221, 222
 BOM, 76
 break/0, 41, 51, 578, 717, 984
 Byte Order Mark, 76
 byte_count/2, 284, 304
+
 call/1,  21,  130, 166,  198,  200,
       208, 598, 621, 623, 693, 938
 call/2, 199
@@ -18100,10 +18102,9 @@ ceil/1, 459
 ceiling/1, 458, 459
 char_code/2, 111, 387
 char_conversion/2, 60, 416, 417
-char_count/2, 284
 char_type/2, 401--404
 character set, 70
-character_count/2, 304, 305
+character_count/2, 284, 304, 305
 chdir/1, 575, 576
 check _l_i_b_r_a_r_y, 119, 267, 1083, 1219
 check/0, 117, 1083, 1084
@@ -18262,7 +18263,7 @@ ensure_loaded/1, 53, 112, 115, 653
 entailed/1, 1152
 erase/1, 238, 241, 247, 270
 eval_license/0, 1213--1215
-exception/3, 62, 1197, 1198
+exception/3, 62, 697, 1197, 1198
 exceptions
    debugging, 210
 exists_directory/1, 560
@@ -18280,10 +18281,8 @@ explain/1, 47
 explain/2, 48
 export/1, 662, 671
 export_list/2, 672
-
 fail/0, 187
 fail/1, 224
-feature/2, 21
 file_base_name/2, 558
 file_directory_name/2, 557
 file_name_extension/3, 568
@@ -18303,8 +18302,6 @@ flush_output/0, 322
 flush_output/1, 214, 323, 348
 flush_output/[0
    1], 275, 324
-foo/0, 1208
-foo/3, 1208
 forall/2, 130, 508
 format/1, 214, 517
 format/2, 518--520, 1089
@@ -18354,7 +18351,6 @@ getenv/2, 539, 540, 1103
 global_url/3, 1116
 GMP, 431
 GNU-Emacs, 42
-go/0, 40
 goal_expansion/2,   62,  112,   128,
       130, 131, 1088
 Graphics, 8
@@ -18409,7 +18405,6 @@ iso latin 1, 70
 Java, 920
 
 keysort/2, 494, 495
-
 label/1, 1134
 last/2, 1046
 leash/1, 51, 605, 606, 721, 1193
@@ -18422,7 +18417,6 @@ library_directory/2, 66
 license/1, 1216
 license/2, 1215, 1216
 license:license/3, 1215
-likes/2, 36
 limit_stack/2, 625, 628
 line_count/2, 284, 286, 306, 527
 line_position/2, 284, 286, 307, 527
@@ -18435,7 +18429,6 @@ list_undefined/0, 119, 1084--1086
 listing/0, 151
 listing/1, 51, 150, 151
 lists _l_i_b_r_a_r_y, 488, 1038, 1220
-load_files/1, 62
 load_files/2, 60,  62, 75, 113, 114,
       1203, 1204
 load_foreign_library/1,  795,  1008,
@@ -18450,7 +18443,6 @@ logical
 lsb/1, 483
 
 MacOS X, 7
-main/0, 58
 make/0,  7, 63,  66, 93,  100, 108,
       113, 119, 137
 make_directory/1, 573
@@ -18547,6 +18539,7 @@ numbervars/4, 374, 375
 numbervars/[3
    4], 73
 numlist/3, 1051
+
 objective/2, 1179
 on_signal/3, 19, 218, 219
 once/1,  130, 202,  203, 205,  218,
@@ -18568,7 +18561,6 @@ operator
    and modules, 412
 option/2, 724
 ord_list_to_assoc/2, 1070
-
 package
    clib, 1005
 parse_url/2, 1114, 1115, 1117
@@ -18810,7 +18802,6 @@ prolog_exception_hook/4, 1195, 1196
 prolog_file_type/2, 112, 123, 566
 prolog_frame_attribute/3, 272, 1189,
       1193, 1196
-prolog_frame_attribute/4, 1193
 prolog_ide _c_l_a_s_s, 107
 prolog_ide/1, 106, 107
 prolog_list_goal/1, 62, 1200
@@ -18828,7 +18819,6 @@ prompt1/1, 369
 protocol/1, 586, 587, 589
 protocola/1, 587, 589
 protocolling/1, 589
-prove/3, 93
 put/1, 312, 313
 put/2, 313
 put_assoc/4, 1071
@@ -18861,9 +18851,8 @@ quintus _l_i_b_r_a_r_y, 21, 666, 679
 random/1, 448
 rational
    number, 431
-rational/1,  159,  160,  431,  432,
-      452, 453
-rational/3, 431
+rational/1, 159, 431, 432, 452, 453
+rational/3, 160, 431
 rationalize/1, 431,  432, 452, 453,
       1182
 rdiv/2, 431, 432, 438, 442
@@ -18925,14 +18914,12 @@ rl_read_init_file/1, 1206
 rlimit _l_i_b_r_a_r_y, 25
 round/1, 449, 450
 rules/1, 724
-
 same_file/2, 559
 see/1, 20, 273, 275, 288--290
 seeing/1, 288, 289, 293
 seek/4, 280, 283, 285
 seen/0, 295
 select/3, 22, 1043
-set_feature/2, 21
 set_input/1, 286, 290, 298
 set_output/1, 291, 299
 set_prolog_flag/2, 21,  49, 59,  61,
@@ -19037,8 +19024,7 @@ thread_detach/1, 728, 731
 thread_exit/1, 730, 732, 737
 thread_get_message/1, 744, 748
 thread_get_message/2, 748
-thread_initialization/1, 733
-thread_inititialization/1, 697
+thread_initialization/1, 697, 733
 thread_join/2, 728, 730, 732, 737
 thread_local/1, 253, 267, 753, 754
 thread_peek_message/1, 744, 745, 749
@@ -19074,6 +19060,7 @@ tty_put/2, 528, 529
 tty_size/2, 530
 ttyflush/0, 324, 513
 tuples_in/2, 1123, 1147
+
 UCS, 74
 UNICODE, 74
 unifiable/3, 185
@@ -19106,7 +19093,6 @@ vars_in/3, 1165, 1167
 verbose, 41
 visible/1, 606, 1193
 volatile/1, 267, 754, 1025
-
 wait_for_input/3, 286, 303
 when _l_i_b_r_a_r_y, 695
 when/2, 73, 695
@@ -19136,5 +19122,21 @@ write_canonical/[1
 write_term/2,  51,  60,  175,  350--
       352, 406, 513, 518, 687
 write_term/3, 60, 62, 351, 374
+write_term/[2
+   3], 17, 60
+writef/1, 512
+writef/2, 32, 71, 349, 513, 514
+writef/[1
+   2], 509
+writeln/1, 511
+writeq/1, 356, 513, 518
+writeq/2, 357
+www_form_encode/2, 1118
+www_open_url/1, 1103
+
+X-Windows, 7
+X11, 8
+xor/2, 464
+XPCE, 8
 
                                   1230

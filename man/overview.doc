@@ -29,7 +29,7 @@ After starting Prolog, one normally loads a program into it using
 consult/1, which---for historical reasons---may be abbreviated by
 putting the name of the program file between square brackets.  The
 following goal loads the file \file{likes.pl} containing clauses for
-the predicates likes/2:
+the predicates \nopredref{likes}{2}:
 
 \begin{code}
 ?- [likes].
@@ -149,9 +149,9 @@ machine% pl -s load.pl -g go -t halt
 \end{code}
 
 It tells SWI-Prolog to load \file{load.pl}, start the application using
-the \jargon{entry-point} go/0 and ---instead of entering the interactive
-toplevel--- exit after completing go/0.  The \cmdlineoption{-q} may be
-used to supress all informational messages.
+the \jargon{entry-point} \nopredref{go}{0} and ---instead of entering
+the interactive toplevel--- exit after completing \nopredref{go}{0}. The
+\cmdlineoption{-q} may be used to supress all informational messages.
 
 In MS-Windows, the same can be achieved using a short-cut with
 appropriately defined commandline arguments. A typically seen
@@ -848,8 +848,8 @@ qsave_program/2.
 \end{quote}
 
 For example, to create a stand-alone executable that starts by executing
-main/0 and for which the source is loaded through \file{load.pl}, use
-the command
+\nopredref{main}{0} and for which the source is loaded through
+\file{load.pl}, use the command
 
 \begin{code}
 % pl --goal=main --stand_alone=true -o myprog -c load.pl
@@ -1365,7 +1365,7 @@ Hook into absolute_file_name/3 to define new library directories.
 Hook into absolute_file_name/3 to define new search-paths
 (Quintus/SICStus).
     \item [term_expansion/2]
-Hook into load_files/1 to modify read terms before they are compiled
+Hook into load_files/2 to modify read terms before they are compiled
 (macro-processing) (most Prolog system).
     \item [goal_expansion/2]
 Same as term_expansion/2 for individual goals (SICStus).

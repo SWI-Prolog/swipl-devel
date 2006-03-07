@@ -364,10 +364,10 @@ user:goal_expansion(atom_chars(A,B), atom_codes(A,B)).
 \end{code}
     \item [number_chars/2]
 Same applies for number_chars/2 and number_codes/2.
-    \item [feature/2, set_feature/2]
+    \item [\nopredref{feature}{2}, \nopredref{set_feature}{2}]
 These are replaced by the ISO compliant current_prolog_flag/2 and
 set_prolog_flag/2.  The library \pllib{backcomp} provides definitions
-for feature/2 and set_feature/2, so no source {\bf has} to be updated.
+for these predicates, so no source {\bf must} be updated.
     \item [Accessing command-line arguments]    
 This used to be provided by the undocumented '\$argv'/1 and Quintus
 compatible library unix/1.  Now there is also documented
