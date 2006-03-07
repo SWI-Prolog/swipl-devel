@@ -239,6 +239,7 @@ static predicate_t PRED_call1;
 static int update_duplicates_add(rdf_db *db, triple *t);
 static void update_duplicates_del(rdf_db *db, triple *t);
 static void unlock_atoms(triple *t);
+static void unlock_atoms_literal(literal *lit);
 static int  update_hash(rdf_db *db);
 static int  triple_hash(rdf_db *db, triple *t, int which);
 static unsigned long object_hash(triple *t);
@@ -378,9 +379,29 @@ print_literal(literal *lit)
 		   PL_atom_chars(lit->value.string));
 	  break;
 	default:
-	  Sdprintf("\"%s\"",
-		   PL_atom_chars(lit->value.string));
+	{ unsigned int len;
+	  const char *s;
+	  const wchar_t *w;
+
+	  if ( (s = PL_atom_nchars(lit->value.string, &len)) )
+	  { if ( strlen(s) == len )
+	      Sdprintf("\"%s\"", s);
+	    else
+	      Sdprintf("\"%s\" (len=%d)", s, len);
+	  } else if ( (w = PL_atom_wchars(lit->value.string, &len)) )
+	  { int i;
+	    Sputc('L', Serror);
+	    Sputc('"', Serror);
+	    for(i=0; i<len; i++)
+	    { if ( w[i] < 255 )
+		Sputc(w[i], Serror);
+	      else
+		Sfprintf(Serror, "\\\\u%04x", w[i]);
+	    }
+	    Sputc('"', Serror);
+	  }
 	  break;
+	}
       }
       break;
     case OBJ_INTEGER:
@@ -1275,7 +1296,9 @@ new_literal(rdf_db *db)
 static void
 free_literal(rdf_db *db, literal *lit)
 { if ( --lit->references == 0 )
-  { if ( lit->shared )
+  { unlock_atoms_literal(lit);
+
+    if ( lit->shared )
     { lit->shared = FALSE;
       broadcast(EV_OLD_LITERAL, lit, NULL);
       DEBUG(2,
@@ -1283,7 +1306,11 @@ free_literal(rdf_db *db, literal *lit)
 	    print_literal(lit);
 	    Sdprintf("\n"));
       if ( !avldel(&db->literals, &lit) )
+      { Sdprintf("Failed to delete %p (size=%ld): ", lit, db->literals.count);
+	print_literal(lit);
+	Sdprintf("\n");
 	assert(0);
+      }
     }
 
     if ( lit->objtype == OBJ_TERM )
@@ -1381,6 +1408,7 @@ compare_literals(void *p1, void *p2, NODE type)
       }
       case OBJ_STRING:
       { int rc = cmp_atoms(l1->value.string, l2->value.string);
+	
 	if ( rc == 0 )
 	{ if ( l1->qualifier == l2->qualifier )
 	    return cmp_atoms(l1->type_or_lang, l2->type_or_lang);
@@ -2975,10 +3003,7 @@ unlock_atoms(triple *t)
   { t->atoms_locked = FALSE;
 
     PL_unregister_atom(t->subject);
-    if ( t->object_is_literal )
-    { if ( t->object.literal )
-	unlock_atoms_literal(t->object.literal);
-    } else
+    if ( !t->object_is_literal )
     { PL_unregister_atom(t->object.resource);
     }
   }
