@@ -622,13 +622,15 @@ avl_walk(AVLtree tree, void (*action)(void *data,
 */
 static void
 avl_free(AVL_TREE tree, AVLtree *rootp)
-{ if ( (*rootp)->subtree[LEFT] != NULL_TREE )
-    avl_free(tree, &(*rootp)->subtree[LEFT]);
+{ if ( *rootp )
+  { if ( (*rootp)->subtree[LEFT] != NULL_TREE )
+      avl_free(tree, &(*rootp)->subtree[LEFT]);
 
-  if ( (*rootp)->subtree[RIGHT] != NULL_TREE )
-    avl_free(tree, &(*rootp)->subtree[RIGHT]);
+    if ( (*rootp)->subtree[RIGHT] != NULL_TREE )
+      avl_free(tree, &(*rootp)->subtree[RIGHT]);
 
-  free_node(tree, rootp);
+    free_node(tree, rootp);
+  }
 }
 
 
