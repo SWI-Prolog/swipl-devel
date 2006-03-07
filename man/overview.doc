@@ -1630,12 +1630,37 @@ SWI-Prolog has limited support for infinite trees, also known as cyclic
 terms. Full support requires special code in all builtin predicates that
 require recursive exploration of a term. The current version supports
 cycles terms in the pure Prolog kernel including the garbage collector
-and in the following predicates: \predref{=}{2}, \predref{==}{2},
-\predref{\==}{2}, \predref{\=}{2}, \predref{=@=}{2}, \predref{\=@=}{2},
-\predref{@<}{2}, \predref{@=<}{2}, \predref{@>}{2}, \predref{@>=}{2},
-compare/3, \predref{=..}{2}, copy_term/2, duplicate_term/2, write/1,
-dif/2, when/2, term_variables/2, numbervars/[3,4], hash_term/2,
-recorda/3, recordz/3, findall/3, bagof/3, setof/3, throw/1.
+and in the following predicates:
+\predref{=..}{2},
+\predref{==}{2},
+\predref{=@=}{2},
+\predref{=}{2},
+\predref{@<}{2},
+\predref{@=<}{2},
+\predref{@>=}{2},
+\predref{@>}{2},
+\predref{\==}{2},
+\predref{\=@=}{2},
+\predref{\=}{2},
+acyclic_term/1,
+bagof/3,
+compare/3,
+copy_term/2,
+cyclic_term/1,
+dif/2,
+duplicate_term/2,
+findall/3,
+ground/1,
+hash_term/2,
+numbervars/[3,4],
+recorda/3,
+recordz/3,
+setof/3,
+term_variables/2,
+throw/1,
+when/2,
+write/1 (incomplete)
+.
 
 
 \section{Wide character support}		\label{sec:widechars}
