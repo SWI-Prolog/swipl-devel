@@ -21,24 +21,68 @@ I.~Bratko.
 \newblock {\em Prolog Programming for Artificial Intelligence}.
 \newblock Addison-Wesley, Reading, Massachusetts, 1986.
 
+\bibitem[Butenhof, 1997]{Butenhof:1997:PPT}
+David~R. Butenhof.
+\newblock {\em Programming with {POSIX} threads}.
+\newblock Ad{\-d}i{\-s}on-Wes{\-l}ey, Reading, MA, USA, 1997.
+
 \bibitem[Clocksin \& Melish, 1987]{Clocksin:87}
 W.~F. Clocksin and C.~S. Melish.
 \newblock {\em Programming in Prolog}.
 \newblock Springer-Verlag, New York, {T}hird, {R}evised and {E}xtended edition,
   1987.
 
+\bibitem[Demoen, 2002]{Demoen:CW350}
+Bart Demoen.
+\newblock {D}ynamic attributes, their h{P}rolog implementation, and a first
+  evaluation.
+\newblock Report CW 350, Department of Computer Science, K.U.Leuven, Leuven,
+  Belgium, oct 2002.
+\newblock URL =
+  http://www.cs.kuleuven.ac.be/publicaties/rapporten/cw/CW350.abs.html.
+
 \bibitem[Deransart {\em et al.}, 1996]{Deransart:96}
 P.~Deransart, A.~Ed-Dbali, and L.~Cervoni.
 \newblock {\em Prolog: The Standard}.
 \newblock Springer-Verlag, New York, 1996.
+
+\bibitem[Fr\"uhwirth, ]{chrSite}
+T.~Fr\"uhwirth.
+\newblock {Thom Fruehwirth's} constraint handling rules website.
+\newblock
+  http://www.informatik.uni-ulm.de/pm/mitarbeiter/fruehwirth/chr-intro.html.
+
+\bibitem[Fr\"uhwirth, 1998]{Freuhwirth:98}
+T.~Fr\"uhwirth.
+\newblock {Theory and Practice of Constraint Handling Rules}.
+\newblock In P.~Stuckey and K.~Marriot, editors, {\em Special Issue on
+  Constraint Logic Programming}, volume~37, October 1998.
+
+\bibitem[Graham {\em et al.}, 1982]{graham82gprof}
+Susan~L. Graham, Peter~B. Kessler, and Marshall~K. McKusick.
+\newblock gprof: a call graph execution profiler.
+\newblock In {\em {SIGPLAN} Symposium on Compiler Construction}, pages
+  120--126, 1982.
+
+\bibitem[Hodgson, 1998]{stdprolog:98}
+Jonathan Hodgson.
+\newblock validation suite for conformance with part 1 of the standard, 1998,
+  \url{http://www.sju.edu/{\tt\string~}jhodgson/pub/suite.tar.gz}.
+
+\bibitem[Holzbaur, 1990]{holzbaur:1992}
+Christian Holzbaur.
+\newblock Realization of forward checking in logic programming through extended
+  unification.
+\newblock Report TR-90-11, Oesterreichisches Forschungsinstitut fuer Artificial
+  Intelligence, Wien, Austria, 1990.
 
 \bibitem[Kernighan \& Ritchie, 1978]{Kernighan:78}
 B.~W. Kernighan and D.~M. Ritchie.
 \newblock {\em The {C} Programming Language}.
 \newblock Prentice-Hall, Englewood Cliffs, New Jersey, 1978.
 
-\bibitem[OKeefe, 1990]{Keefe:90}
-R.~A. OKeefe.
+\bibitem[O'Keefe, 1990]{Keefe:90}
+R.~A. O'Keefe.
 \newblock {\em The Craft of Prolog}.
 \newblock MIT Press, Massachussetts, 1990.
 
@@ -54,11 +98,5 @@ F.~Pereira.
 L.~Sterling and E.~Shapiro.
 \newblock {\em The Art of Prolog}.
 \newblock MIT Press, Cambridge, Massachusetts, 1986.
-
-\bibitem[Warren, 1983]{Warren:83b}
-D.~H.~D. Warren.
-\newblock The runtime environment for a prolog compiler using a copy algorithm.
-\newblock Technical Report 83/052, SUNY and Stone Brook, New York, 1983.
-\newblock Major revision March 1984.
 
 \end{thebibliography}

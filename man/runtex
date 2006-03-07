@@ -128,14 +128,15 @@ fi
 
 cont=yes
 done=0
-while [ $cont = "yes" ]; do
+while [ $cont != "no" ]; do
+    cont=maybe
 
 					# fix index problems
     if [ -r $doc.idx ]; then
+	cp $doc.idx $doc.idx.$$
         if [ -x $appbase/correctindex ]; then
 	    $appbase/correctindex $doc.idx
 	fi
-	cp $doc.idx $doc.idx.$$
 	if [ -r $appbase/makeindex.ist ]; then
 	    makeindex -s $appbase/makeindex.ist $doc
 	else
@@ -143,7 +144,16 @@ while [ $cont = "yes" ]; do
 	fi
     fi 
     if [ -r $doc.aux && grep -qw bibdata $doc.aux ]; then
+	if [ -f $doc.bbl ]; then cp $doc.bbl$$; fi
         bibtex $doc
+	if [ -r $doc.bbl -a -r $doc.bbl.$$ ]; then
+	   if cmp -s $doc.bbl $doc.bbl.$$; then
+	      true
+	   else
+	      cont=yes
+	      echo "*** Bibtex output changed.  Rerunning $tex ***"
+	   fi
+	fi
     fi
     if [ `basename $tex` = pdflatex -a -r $appbase/Makefile.pdf ]; then
         make -f $appbase/Makefile.pdf
@@ -156,20 +166,22 @@ while [ $cont = "yes" ]; do
     fi
     if grep -q "$rerun" $doc.log; then
         echo "*** Cross-references changed.  Rerunning $tex ***"
+	cont=yes
     else
         if [ -r $doc.idx -a -r $doc.idx.$$ ]; then
 	   if cmp -s $doc.idx $doc.idx.$$; then
-	      cont=no
+	      true
 	   else
+	      ls -l $doc.idx $doc.idx.$$
+	      cont=yes
 	      echo "*** Index changed.  Rerunning $tex ***"
 	   fi
-	else
-	   cont=no
         fi
     fi
     rm -f $doc.idx.$$
     done=$(($done+1))
     if [ $done = $maxruns ]; then cont=no; fi
+    if [ $cont = maybe ]; then cont=no; fi
 done
 
 
