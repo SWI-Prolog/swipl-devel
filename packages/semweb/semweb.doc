@@ -1261,7 +1261,23 @@ for it.
 
 \index{RDF-Schema}%
 The \pllib{rdfs} library adds interpretation of the triple store in
-terms of concepts from RDF-Schema (RDFS).  
+terms of concepts from RDF-Schema (RDFS). There are two ways to provide
+support for more high level languages in RDF.  One is to view such 
+languages as a set of \jargon{entailment rules}.  In this model the
+rdfs library would provide a predicate \predref{rdfs}{3} providing
+the same functionality as rdf/3 on union of the raw graph and triples
+that can be derived by applying the RDFS entailment rules.
+
+Alternatively, RDFS provides a view on the RDF store in terms of
+individuals, classes, properties, etc., and we can provide predicates
+that query the database with this view in mind.  This is the approach
+taken in the \pllib{rdfs.pl} library, providing calls like
+\term{rdfs_individual_of}{?Resource, ?Class}.%
+	\footnote{The SeRQL language is based on querying the deductive
+		  closure of the triple set. The SWI-Prolog SeRQL
+		  library provides \jargon{entailment modules} that
+		  take the approach outlined above.}
+
 
 \subsection{Hierarchy and class-individual relations}
 
