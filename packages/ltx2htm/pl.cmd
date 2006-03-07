@@ -15,6 +15,7 @@
 \glossitem{-}=item
 \menuitem{+}{+}=item		1 0
 \predref{+}{-}
+\nopredref{+}{-}
 \functor{+}{-}
 \compound{+}{+}
 \funcref{+}{+}

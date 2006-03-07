@@ -107,6 +107,9 @@ cmd(predref({RawName}, {Arity}), #lref(RefName, Text)) :-
 	clean_name(RawName, Name),
 	predicate_refname(Name, Arity, RefName),
 	sformat(Text, '~w/~w', [Name, Arity]).
+cmd(nopredref({RawName}, {Arity}), Text) :-
+	clean_name(RawName, Name),
+	sformat(Text, '~w/~w', [Name, Arity]).
 cmd(functor({RawName}, {Arity}), Text) :-
 	clean_name(RawName, Name),
 	sformat(Text, '~w/~w', [Name, Arity]).
