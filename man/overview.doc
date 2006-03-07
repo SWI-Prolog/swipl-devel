@@ -1028,10 +1028,9 @@ stacks. In earlier days this had consequenses for foreign code. As of
 version 2.5, this is no longer the case.
 
 Systems using `sparse-memory management' are a bit faster as there is no
-stack-shifter, and checking the stack-boundary is often realised by the
-hardware using a `guard-page'. Also, memory is actually returned to the
-system after a garbage collection or call to trim_stacks/0 (called by
-prolog/0 after finishing a user-query).
+stack-shifter. On most systems using sparse-memory management memory is
+actually returned to the system after a garbage collection or call to
+trim_stacks/0 (called by prolog/0 after finishing a user-query).
 
     \prologflagitem{editor}{atom}{rw}
 Determines the editor used by edit/1. See \secref{listing} for

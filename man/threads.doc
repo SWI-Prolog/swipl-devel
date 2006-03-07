@@ -256,14 +256,9 @@ non-compliance with several aspects of POSIX. However, there is one
 advantage. Where pthread does not provide a way to get statistics per
 thread, we could get this info from the process-oriented times()
 function.  Since the 2.6.x kernels, Linux by default now uses the
-\jargon{NPTL} implementation which is POSIX compliant.  Unfortunately
-it does not (yet) provide extensions to get per-thread CPU usage
-statistics.
-
-This affects the predicates statistics/2 and thread_statistics/3. On
-linuxthreads both report per-thread values, while on NPTL both report
-overall process values.  On Linux systems, the prolog flag 
-\const{gnu_libpthread_version} indicates the thread model used.
+\jargon{NPTL} implementation which is POSIX compliant.  Unfortunately,
+getting per-thread CPU statistics involves reading /proc and is
+therefore too slow for some applications.
 
 SWI-Prolog is setup to run with the default thread model.  Unfortunately
 there is no way to modify this at runtime, but there is a way to select
