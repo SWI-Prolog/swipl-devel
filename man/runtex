@@ -142,7 +142,7 @@ while [ $cont = "yes" ]; do
 	    makeindex $doc
 	fi
     fi 
-    if [ -r $doc.blg ]; then
+    if [ -r $doc.aux && grep -qw bibdata $doc.aux ]; then
         bibtex $doc
     fi
     if [ `basename $tex` = pdflatex -a -r $appbase/Makefile.pdf ]; then
