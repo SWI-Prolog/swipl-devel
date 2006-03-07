@@ -1628,12 +1628,11 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          for foreign code.   As  of version 2.5,  this is no longer  the
          case.
 
-         Systems using  `sparse-memory management' are  a bit faster  as
-         there is no  stack-shifter, and checking the stack-boundary  is
-         often realised  by the hardware  using a  `guard-page'.   Also,
-         memory  is actually  returned to  the  system after  a  garbage
-         collection or call  to trim_stacks/0 (called by prolog/0  after
-         finishing a user-query).
+         Systems  using  `sparse-memory management'  are  a  bit  faster
+         as  there  is  no  stack-shifter.     On   most  systems  using
+         sparse-memory management  memory  is actually  returned to  the
+         system  after a  garbage collection  or  call to  trim_stacks/0
+         (called by prolog/0 after finishing a user-query).
 
     eeddiittoorr _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
          Determines the  editor used  by edit/1.   See  section 4.4  for
@@ -10430,12 +10429,39 @@ aannyy
     The  corresponding argument  of every occurrence  of the  constraint
     can have any type.  This is the default value.
 
-A  user-defined type  is defined  with a  chr_type/1 declaration.    For
-example, types for lists, trees and colors are defined as:
+User-defined  types  are algebraic  data  types,  similar  to  those  in
+Haskell or the discriminated unions in Mercury.   An algebraic data type
+is defined using
 
-:- chr_type list(T) ---> [] ; [T|list(T)].
-:- chr_type tree(T) ---> nil ; tree(T,tree(T),tree(T)).
-:- chr_type color   ---> red ; blue ; green.
+:- chr_type type ---> body.
+
+If  the type  term is  a functor  of arity  zero (i.e.  one having  zero
+arguments),  it  names a  monomorphic  type.    Otherwise,  it  names  a
+polymorphic type;  the arguments  of the functor  must be distinct  type
+variables.    The body  term is  defined as  a  sequence of  constructor
+definitions separated by semi-colons.
+
+Each constructor definition  must be a functor whose arguments  (if any)
+are types.   Discriminated union definitions  must be transparent:   all
+type variables occurring in the body must also occur in the type.
+
+Here are some examples of algebraic data type definitions:
+
+:- chr_type color ---> red ; blue ; yellow ; green.
+
+:- chr_type tree --->  empty ; leaf(int) ; branch(tree, tree).
+
+:- chr_type list(T) --->    [] ; [T | list(T)].
+
+:- chr_type pair(T1, T2) ---> (T1 - T2).
+
+Each algebraic  data type definition  introduces a distinct  type.   Two
+algebraic data  types that  have the  same bodies are  considered to  be
+distinct types (name equivalence).
+
+Constructors may be overloaded among different types:  there  may be any
+number of constructors with a given name and arity, so  long as they all
+have different types.
 
 
 77..33..33 CCoommppiillaattiioonn
@@ -10739,7 +10765,7 @@ constraint solvers and how to do so efficiently.
     rules  into Prolog  code.   When you  disable optimizations the  CHR
     compiler  will be  a lot  quicker,  but you  may loose  performance.
     Alternatively, you  can just use SWI-Prolog's qcompile/1 to generate
-    a  .qlf file once from your .pl file.  This fileextqlf  contains the
+    a  .qlf  file once  from your  .pl file.    This  .qlf contains  the
     generated  code of  the CHR  compiler (be  it in  a binary  format).
     When you consult the  .qlf file, the CHR compiler is not invoked and
     consultation is much faster.
@@ -10996,14 +11022,10 @@ approach  has  various  disadvantages,  such  as  poor  performance  and
 non-compliance  with several  aspects of  POSIX. However,  there is  one
 advantage.   Where  pthread does  not provide  a way  to get  statistics
 per thread,  we could  get this info  from the process-oriented  times()
-function.  Since  the 2.6.x kernels, Linux by default now uses  the _N_P_T_L
-implementation which  is POSIX  compliant.   Unfortunately  it does  not
-(yet) provide extensions to get per-thread CPU usage statistics.
-
-This affects  the predicates statistics/2  and thread_statistics/3.   On
-linuxthreads  both  report   per-thread  values,  while  on   NPTL  both
-report  overall process  values.    On Linux  systems, the  prolog  flag
-gnu_libpthread_version indicates the thread model used.
+function.    Since the  2.6.x kernels,  Linux  by default  now uses  the
+_N_P_T_L implementation  which is POSIX compliant.   Unfortunately,  getting
+per-thread CPU  statistics involves reading /proc  and is therefore  too
+slow for some applications.
 
 SWI-Prolog   is  setup   to   run  with   the  default   thread   model.
 Unfortunately  there is  no way  to modify  this at  runtime, but  there
@@ -17915,23 +17937,23 @@ Bibliography
 
 Index
 
-'MANUAL' _l_i_b_r_a_r_y, 43                 write_term/3, 60, 62, 351, 374
---disable-segv-handling, 1007        write_term/[2
--lpl _l_i_b_r_a_r_y, 1008                      3], 17, 60
--lreadline _l_i_b_r_a_r_y, 1036             writef/1, 512
-.pl, 85                              writef/2, 32, 71, 349, 513, 514
-.pro, 85                             writef/[1
-?=/2, 184                               2], 509
-=:=/2, 429                           writeln/1, 511
-/\/2, 463                            writeq/1, 356, 513, 518
-=\=/2, 428                           writeq/2, 357
-|/2, 193                             www_form_encode/2, 1118
-#=/2, 1128                           www_open_url/1, 1103
-#>=/2, 1126
-#>/2, 1124                           X-Windows, 7
-#=</2, 1127                          X11, 8
-#</2, 1125                           xor/2, 464
-#\=/2, 1129                          XPCE, 8
+'MANUAL' _l_i_b_r_a_r_y, 43                 write_term/[2
+--disable-segv-handling, 1007           3], 17, 60
+-lpl _l_i_b_r_a_r_y, 1008                   writef/1, 512
+-lreadline _l_i_b_r_a_r_y, 1036             writef/2, 32, 71, 349, 513, 514
+.pl, 85                              writef/[1
+.pro, 85                                2], 509
+?=/2, 184                            writeln/1, 511
+=:=/2, 429                           writeq/1, 356, 513, 518
+/\/2, 463                            writeq/2, 357
+=\=/2, 428                           www_form_encode/2, 1118
+|/2, 193                             www_open_url/1, 1103
+#=/2, 1128
+#>=/2, 1126                          X-Windows, 7
+#>/2, 1124                           X11, 8
+#=</2, 1127                          xor/2, 464
+#</2, 1125                           XPCE, 8
+#\=/2, 1129
 ,/2, 191
 {}/1, 1151
 !/0, 190
@@ -18094,7 +18116,6 @@ chr_notrace/0, 717, 720
 chr_option/2, 710, 724
 chr_show_store/1, 722
 chr_trace/0, 717, 719
-chr_type/1, 713
 clause/2, 269, 270
 clause/3, 238, 247, 270, 272, 1026
 clause/[2
@@ -18967,7 +18988,7 @@ stack_parameter/4, 630
 startup file, 39
 statistics _l_i_b_r_a_r_y, 613
 statistics/0, 611
-statistics/2, 481, 610, 738, 740
+statistics/2, 481, 610, 738
 stream_position_data/3,  126,   280,
       284
 stream_property/2,   76,  275,  280,
@@ -19027,7 +19048,7 @@ thread_self/1,  60,  729, 731,  734,
 thread_send_message/2, 743, 746
 thread_setconcurrency/2, 735
 thread_signal/2, 752, 762, 966
-thread_statistics/3, 738, 740
+thread_statistics/3, 738
 threads/0, 765
 throw/1, 17, 51, 73, 207--209, 221,
       579,   737,  751,  752,  961,
@@ -19114,5 +19135,6 @@ write_canonical/[1
    2], 17
 write_term/2,  51,  60,  175,  350--
       352, 406, 513, 518, 687
+write_term/3, 60, 62, 351, 374
 
                                   1230
