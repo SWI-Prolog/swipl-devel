@@ -235,6 +235,7 @@ typedef struct rdf_db
   transaction_record *tr_first;		/* first transaction record */
   transaction_record *tr_last;		/* last transaction record */
   int		tr_nesting;		/* nesting depth of transactions */
+  int 		resetting;		/* We are in rdf_reset_db() */
 
   rwlock	lock;			/* threaded access */
 
