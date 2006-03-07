@@ -30,6 +30,7 @@
 {abstract}
 {quote}
 {verbatim}=verbatim
+{alltt}=verbatim
 {code}=verbatim
 {titlepage}
 {minipage}{-}
