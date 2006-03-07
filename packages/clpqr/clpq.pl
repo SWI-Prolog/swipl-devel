@@ -47,6 +47,7 @@
 	    bb_inf/4,
 	    ordering/1,
 	    entailed/1,
+	    clp_type/2,
 	    dump/3%, projecting_assert/1
 	]).
 

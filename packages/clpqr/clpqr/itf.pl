@@ -44,8 +44,13 @@
 :- module(itf,
 	[
 	    dump_linear/3,
-	    dump_nonzero/3
+	    dump_nonzero/3,
+	    clp_type/2
 	]).
+
+clp_type(Var,Type) :- 
+	get_attr(Var,itf,Att),
+	arg(1,Att,Type).
 
 dump_linear(V) -->
 	{

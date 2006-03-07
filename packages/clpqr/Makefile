@@ -7,7 +7,7 @@
 .SUFFIXES: .tex .dvi .doc .pl
 
 SHELL=/bin/sh
-PLBASE=/staff/jan/lib/pl-5.6.6
+PLBASE=/home/leslie/lib/pl-5.6.0
 PLARCH=i686-linux
 PL=pl
 XPCEBASE=$(PLBASE)/xpce
