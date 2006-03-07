@@ -72,7 +72,7 @@ AC_C_INLINE
 AC_CHECK_SIZEOF(long)
 
 if test ! -z "$GCC"; then
-    COFLAGS="-O2 -fno-strict-aliasing"
+    COFLAGS="-O3 -fno-strict-aliasing"
     CWFLAGS=-Wall
 else
     COFLAGS=-O

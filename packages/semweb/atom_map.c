@@ -114,6 +114,7 @@ static functor_t FUNCTOR_atom_map1;
 static functor_t FUNCTOR_size2;
 static functor_t FUNCTOR_not1;
 static atom_t	 ATOM_all;
+static atom_t	 ATOM_case;
 static atom_t	 ATOM_prefix;
 static atom_t	 ATOM_le;
 static atom_t	 ATOM_ge;
@@ -137,6 +138,7 @@ init_functors()
   MKFUNCTOR(not, 1);
 
   MKATOM(all);
+  MKATOM(case);
   MKATOM(prefix);
   MKATOM(le);
   MKATOM(ge);
@@ -942,11 +944,12 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
 
       return PL_unify_integer(keys, size);
     }
-  } else if ( name == ATOM_prefix && arity == 1 )
+  } else if ( (name == ATOM_prefix || name == ATOM_case) && arity == 1 )
   { term_t a = PL_new_term_ref();
     atom_t prefix, first_a;
     avl_enum state;
     node_data *data, search;
+    int match = (name == ATOM_prefix ? STR_MATCH_PREFIX : STR_MATCH_EXACT);
 
     PL_get_arg(1, spec, a);
     if ( !get_atom_ex(a, &prefix) )
@@ -961,7 +964,7 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
 	data=avlfindnext(&state))
     { assert(isAtomDatum(data->key));
 
-      if ( !match_atoms(STR_MATCH_PREFIX,
+      if ( !match_atoms(match,
 			first_a, atom_from_datum(data->key)) )
 	break;
 

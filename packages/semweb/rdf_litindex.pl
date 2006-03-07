@@ -32,7 +32,8 @@
 
 :- module(rdf_litindex,
 	  [ rdf_set_literal_index_option/1,	% +Options
-	    rdf_find_literals/2			% +Spec, -ListOfLiterals
+	    rdf_find_literals/2,		% +Spec, -ListOfLiterals
+	    rdf_token_expansions/2		% +Spec, -Expansions
 	  ]).
 :- use_module(rdf_db).
 :- use_module(library(debug)).
@@ -92,26 +93,79 @@ set_option(Term) :-
 rdf_find_literals(Spec, Literals) :-
 	compile_spec(Spec, DNF),
 	token_index(Map),
-	lookup(DNF, Map, SuperSet),
+	lookup(DNF, Map, _, SuperSet),
 	flatten(SuperSet, Set0),
 	sort(Set0, Literals).
 
-lookup(false, _, []) :- !.
-lookup(or(H0,T0), Map, [H|T]) :- !,
-	lookup1(H0, Map, H),
-	lookup(T0, Map, T).
-lookup(H0, Map, [H]) :-
-	lookup1(H0, Map, H).
+%	rdf_token_expansions(+Spec, -Extensions)
+%	
+%	Determine which extensions of  a   token  contribute  to finding
+%	literals.
+
+rdf_token_expansions(prefix(Prefix), [prefix(Prefix, Tokens)]) :-
+	token_index(Map),
+	rdf_keys_in_literal_map(Map, prefix(Prefix), Tokens).
+rdf_token_expansions(sounds(Like), [sounds(Like, Tokens)]) :-
+	metaphone_index(Map),
+	rdf_find_literal_map(Map, [Like], Tokens).
+rdf_token_expansions(stem(Like), [stem(Like, Tokens)]) :-
+	porter_index(Map),
+	rdf_find_literal_map(Map, [Like], Tokens).
+rdf_token_expansions(Spec, Expansions) :-
+	compile_spec(Spec, DNF),
+	token_index(Map),
+	lookup(DNF, Map, SCS, _),
+	flatten(SCS, CS),
+	sort(CS, Expansions0),
+	join_expansions(Expansions0, Expansions).
+
+join_expansions([], []).
+join_expansions([H0|T0], [H|T]) :-
+	untag(H0, Tag, V0),
+	Tag =.. L0,
+	append(L0, [[V0|Values]], L1),
+	H =.. L1,
+	join_expansions_by_tag(T0, Tag, T1, Values),
+	join_expansions(T1, T).
+
+join_expansions_by_tag([H|T0], Tag, T, [V0|VT]) :-
+	untag(H, Tag, V0), !,
+	join_expansions_by_tag(T0, Tag, T, VT).
+join_expansions_by_tag(L, _, L, []).
 	
-lookup1(Conj, Map, Literals) :-
+lookup(false, _, [], []) :- !.
+lookup(or(H0,T0), Map, [CH|CT], [H|T]) :- !,
+	lookup(H0, Map, CH, H),
+	lookup(T0, Map, CT, T).
+lookup(H0, Map, [C], [H]) :-
+	lookup1(H0, Map, C, H).
+	
+lookup1(Conj, Map, Cond, Literals) :-
 	phrase(conj_to_list(Conj), List),
-	rdf_find_literal_map(Map, List, Literals).
+	rdf_find_literal_map(Map, List, Literals),
+	(   Literals \== []
+	->  phrase(conj_to_cond(Conj), Cond)
+	;   Cond = []
+	).
 
 conj_to_list(and(A,B)) --> !,
 	conj_to_list(A),
 	conj_to_list(B).
+conj_to_list(Tagged) -->
+	{ untag(Tagged, L) }, !,
+	[L].
 conj_to_list(L) -->
 	[L].
+
+
+conj_to_cond(and(A,B)) --> !,
+	conj_to_cond(A),
+	conj_to_cond(B).
+conj_to_cond(Tagged) -->
+	{ untag(Tagged, _) }, !,
+	[ Tagged ].
+conj_to_cond(_) -->
+	[].
 
 
 %	compile_spec(+Spec, -Compiled)
@@ -131,16 +185,20 @@ expand_fuzzy(sounds(Like), Or) :- !,
 	metaphone_index(Map),
 	double_metaphone(Like, Key),
 	rdf_find_literal_map(Map, [Key], Tokens),
-	list_to_or(Tokens, Or).
+	list_to_or(Tokens, sounds(Like), Or).
 expand_fuzzy(stem(Like), Or) :- !,
 	porter_index(Map),
 	porter_stem(Like, Key),
 	rdf_find_literal_map(Map, [Key], Tokens),
-	list_to_or(Tokens, Or).
+	list_to_or(Tokens, stem(Like), Or).
 expand_fuzzy(prefix(Prefix), Or) :- !,
 	token_index(Map),
 	rdf_keys_in_literal_map(Map, prefix(Prefix), Tokens),
-	list_to_or(Tokens, Or).
+	list_to_or(Tokens, prefix(Prefix), Or).
+expand_fuzzy(case(String), Or) :- !,
+	token_index(Map),
+	rdf_keys_in_literal_map(Map, case(String), Tokens),
+	list_to_or(Tokens, case(String), Or).
 expand_fuzzy(or(A0, B0), or(A,B)) :- !,
 	expand_fuzzy(A0, A),
 	expand_fuzzy(B0, B).
@@ -155,11 +213,27 @@ expand_fuzzy(Token, _) :-
 	throw(error(type_error(Token, boolean_expression), _)).
 
 
-list_to_or([], false) :- !.
-list_to_or([X], X) :- !.
-list_to_or([H|T0], or(H, T)) :-
-	list_to_or(T0, T).
+list_to_or([], _, false) :- !.
+list_to_or([X], How, One) :- !,
+	tag(How, X, One).
+list_to_or([H0|T0], How, or(H, T)) :-
+	tag(How, H0, H),
+	list_to_or(T0, How, T).
 
+tag(sounds(X), Y, sounds(X,Y)).
+tag(stem(X),   Y, stem(X,Y)).
+tag(prefix(X), Y, prefix(X,Y)).
+tag(case(X),   Y, case(X,Y)).
+
+untag(sounds(_,Y), Y).
+untag(stem(_,Y),   Y).
+untag(prefix(_,Y), Y).
+untag(case(_,Y),   Y).
+
+untag(sounds(X,Y), sounds(X), Y).
+untag(stem(X,Y),   stem(X), Y).
+untag(prefix(X,Y), prefix(X), Y).
+untag(case(X,Y),   case(X), Y).
 
 %	nnf(+Formula, -NNF)
 %	
@@ -304,6 +378,11 @@ no_index_token(X) :-
 	atom_length(X, 1), !.
 no_index_token(X) :-
 	float(X), !.
+no_index_token(X) :-			% TBD: only small integers can
+	integer(X),			% be indexed
+	(   X < -1000000000
+	;   X > 1000000000
+	), !.
 no_index_token(and).
 no_index_token(an).
 no_index_token(or).

@@ -1,6 +1,7 @@
 \documentclass[11pt]{article}
 \usepackage{times}
 \usepackage{pl}
+\usepackage{alltt}
 \usepackage{html}
 \usepackage{verbatim}
 \sloppy
@@ -1078,22 +1079,60 @@ Negation of \arg{Spec}.  After translation of the full specification to
 \jargon{Disjunctive Normal Form} (DNF), negations are only allowed
 inside a conjunction with at least one positive literal.
 
-	\termitem{sounds(Like)}
+	\termitem{case}{Word}
+Matches all literals containing the word \arg{Word}, doing the match
+case insensitive and after removing diacritics.
+
+	\termitem{stem}{Like}
+Matches all literals containing at least one word that has the same stem
+as \arg{Like} using the Porter stem algorithm.  See NLP package for
+details.
+
+	\termitem{sounds}{Like}
 Matches all literals containing at least one word that `sounds like'
 \arg{Like} using the double metaphone algorithm.  See NLP package for
 details.
 
-	\termitem{stem{Like}}
-Matches all literals containing at least one word that has the same stem
-as \arg{Like} using the Porter stem algorithm.  See NLP package for
-details.
+	\termitem{prefix}{Prefix}
+Matches all literals containing at least one word that starts with
+Prefix, discarding diacritics and case.
 
 	\termitem{Token}{}
 Matches all literals containing the given token.  See tokenize_atom/2
 of the NLP package for details.
     \end{description}
+
+    \predicate{rdf_token_expansions}{+Spec, -Expansions}
+Uses the same database as rdf_find_literals/2 to find possible
+expansions of \arg{Spec}, i.e.\ which words `sound like', `have prefix',
+etc. \arg{Spec} is a compound expression as in rdf_find_literals/2.
+\arg{Expansions} is unified to a list of terms \term{sounds}{Like,
+Words}, \term{stem}{Like, Words} or \term{prefix}{Prefix, Words}. On
+compound expressions, only combinations that provide literals are
+returned.  Below is an example after loading the ULAN%
+	\footnote{Unified List of Artist Names from the Getty
+		  Foundation.}
+database and showing all words that sounds like `rembrandt' and
+appear together in a literal with the word `Rijn'.  Finding this
+result from the 228,710 literals contained in ULAN requires 0.54
+milliseconds (AMD 1600+).
+
+\begin{code}
+?- rdf_token_expansions(and('Rijn', sounds(rembrandt)), L).
+
+L = [sounds(rembrandt, ['Rambrandt', 'Reimbrant', 'Rembradt',
+			'Rembrand', 'Rembrandt', 'Rembrandtsz',
+			'Rembrant', 'Rembrants', 'Rijmbrand'])]
+\end{code}
 \end{description}
 
+Here is another example, illustrating handling of diacritics:
+
+\begin{quote}\begin{alltt}
+?- rdf_token_expansions(case(cafe), L).
+
+L = [case(cafe, [cafe, caf\'e])]
+\end{alltt}\end{quote}
 
 \subsection{Literal maps: Creating additional indices on literals}
 \label{sec:rdflitmap}
