@@ -692,7 +692,7 @@ test :-
 	rdf_monitor(watch, []),	% check consistency
 	forall(testset(Set), runtest(Set)),
 	scripts,
-	statistics,
+%	statistics,
 	report_blocked,
 	report_failed.
 
