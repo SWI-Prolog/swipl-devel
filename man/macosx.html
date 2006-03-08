@@ -123,7 +123,7 @@ PATH=$PATH:/opt/local/bin
 
 % swipl
 Welcome to SWI-Prolog (Multi-threaded, Version 5.6.0)
-Copyright (c) 1990-2005 University of Amsterdam.
+Copyright (c) 1990-2006 University of Amsterdam.
 SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions.
 Please visit http://www.swi-prolog.org for details.
@@ -134,7 +134,7 @@ For help, use ?- help(Topic). or ?- apropos(Word).
 </PRE>
 </TABLE>
 
-<P>If X11 is properly configure, the help system of the graphics 
+<P>If X11 is properly configured, the help system of the graphics 
 subsystem XPCE can now be started using the command below.
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -310,11 +310,23 @@ manual.
 
 <P>
 <UL>
-<LI><I>XPCE keyboard lockup</I><BR>
-It is known that XPCE keyboard input locks up on some keys on some 
-international keyboard layouts. The problem is related to XIM (X Input 
-Method), but it is unclear what is going wrong and whether the problem 
-is with the MacOS port of X11 or XPCE.
+<LI><I>XPCE and the meta-key</I><BR>
+By default, the `Meta' key is bound to X11 <EM>modifier 1</EM> which is 
+set by the `Alt' key. This doesn't work very well for the Mac as the Alt 
+key is comonly used to create alternative characters, while the Command 
+key, which is used for composing commands, is bound to the X11 <EM>modifier 
+2</EM>. For the Apple we therefore bind the XPCE meta modifier to the 
+X11 modifier 2. Whereever the documentation mentions Alt-X or Meta-X 
+this must be read as <EM>Command-X</EM>.
+
+<P>
+<LI><I>Threaded XPCE programs</I><BR>
+XPCE normally initializes Xlib for multi-threaded access using 
+XInitThreads(). It turns out the MacOS X X11 version (tested on Tiger) 
+causes a deadlock on certain keys. We now do not call XInitThreads(). As 
+Xlib access is synchronised using the currently global XPCE lock and 
+XPCE/Prolog interfacing is designed to have only a single Prolog thread 
+talking to XPCE this should not be a serious problem.
 
 <P>
 <LI><I>XPCE programs do not open</I><BR>
