@@ -37,7 +37,20 @@
 #define INTENSITY(r, g, b) ((r*20 + g*32 + b*18)/(20+32+18))
 
 XtAppContext	ThePceXtAppContext;	/* X toolkit application context */
-static unsigned int	MetaMask = Mod1Mask;	/* Key-mask for meta */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The Mac keyboard has a bit different   viewpoint. Alt is primairily used
+for creating non-ascii characters, while the command key is used to give
+commands. The command key is by default passed as `Mod2'.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef __APPLE__
+#define DefMetaMask Mod2Mask
+#else
+#define DefMetaMask Mod1Mask
+#endif
+
+static unsigned int MetaMask = DefMetaMask;	/* Key-mask for meta */
   
 
 		 /*******************************
@@ -84,6 +97,26 @@ extern XtAppContext _XtDefaultAppContext(void);
 #define XtCreateApplicationContext _XtDefaultAppContext
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) XInitThreads() must  be  called  if   multiple  thread  access  Xlib
+functions concurrently. Given the  current  locking,   I  think  this is
+cannot happen as we lock the central  XPCE   lock  both if we receive an
+event and if we send a message from Prolog. 
+
+Nevertheless, XPCE uses this  flag  to   prepare  for  more fine-grained
+locking. It turns out the X11 version  distributed with MacOSX has a but
+that causes a deadlock in handling dead-keys.  Therefore, we do not lock
+for the Mac.  Here is the stack-trace:
+
+#1  0x900019cc in pthread_mutex_lock ()
+#2  0x9ba85b9c in _XLockDisplay ()
+#3  0x9ba61054 in XPutBackEvent ()
+#4  0x9baba0b4 in _XimLocalFilter ()
+#5  0x9ba8548c in XFilterEvent ()
+#6  0x9bde9538 in _XtDefaultDispatcher ()
+#7  0x9bde97b0 in XtDispatchEvent ()
+#8  0x9bdf5934 in XtAppProcessEvent ()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void *
 pceXtAppContext(void * ctx)
@@ -93,6 +126,7 @@ pceXtAppContext(void * ctx)
       XSetErrorHandler(x_error_handler);
     } else
     { 
+#ifndef __APPLE__			/* See above (*) */
 #if defined(_REENTRANT) && defined(HAVE_XINITTHREADS)
       if ( XPCE_mt == TRUE )
 	XInitThreads();
@@ -100,6 +134,7 @@ pceXtAppContext(void * ctx)
 	XPCE_mt = -1;
 #else
 	XPCE_mt = -1;
+#endif
 #endif
 
       XtToolkitInitialize();

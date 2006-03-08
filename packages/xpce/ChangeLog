@@ -1,8 +1,14 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.7, distributed with SWI-Prolog 5.6.7
+================================================
+
+* FIXED: Do not initialize XLib threads on MacOS to avoid a deadlock entering
+  certain keys.  Reported several times.
+
 * ADDED: Allow binding different X11 modifiers to the Meta Key.
-  See display->meta_modifier.
+  See display->meta_modifier.  By default bind Meta to the Mac command-key.
 
 
 VERSION 6.6.6, distributed with SWI-Prolog 5.6.6
