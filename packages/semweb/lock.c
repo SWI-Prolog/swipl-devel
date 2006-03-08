@@ -380,7 +380,6 @@ destroy_lock(rwlock *lock)
 		 *	   POSIX VERSION	*
 		 *******************************/
 
-#include <pthread.h>
 #include <errno.h>
 
 int

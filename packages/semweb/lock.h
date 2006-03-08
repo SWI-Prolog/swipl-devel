@@ -29,6 +29,12 @@
 #include <config.h>
 #endif
 
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <pthread.h>
+#endif
+
 typedef struct rwlock
 {
 #ifdef _REENTRANT
