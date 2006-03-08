@@ -7,7 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: format ~w: report errors of write/1
+==============================
+VERSION 5.6.7 (March 08, 2006)
+==============================
+
+  * FIXED: format ~w: report errors of write/1. Matt Lilley.
 
   * FIXED: Memory leak in format ~f using rational numbers as arguments.
     Mike Elston.
@@ -15,6 +19,8 @@
   * PORT: Float issues on Alpha.  Roberto Bagnara.  Also found a bug in
     GCC 4.0.2 on Alpha/Linux.  Reported to GCC bugzilla.  Work-around at
 http://gollem.science.uva.nl/SWI-Prolog/mailinglist/archive/2006/q1/0234.html
+    Turned out to be a bug in the kernel headers.  Uncomment HAVE_GETTID
+    in config.h on systems with 2.4 kernels.
 
   * ADDED: allow `repairing' undefined global variables.  After discussion
     on mailinglist.
