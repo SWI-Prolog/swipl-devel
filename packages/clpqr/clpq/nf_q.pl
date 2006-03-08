@@ -93,9 +93,7 @@ goal_expansion(geler(X,Y),geler(clpq,X,Y)).
 	throw(instantiation_error({Rel},1)).
 {R,Rs} :-
 	!,
-	{R},
-	!,
-	{Rs}.
+	{R},{Rs}.
 {R;Rs} :-
 	!,
 	({R};{Rs}). % for entailment checking
