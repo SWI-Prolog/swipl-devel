@@ -34,6 +34,9 @@
 #include "debug.h"
 #include <string.h>
 #include <assert.h>
+#ifdef WIN32
+#define inline __inline
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file realises the low-level support   for  indexing literals in the
@@ -349,7 +352,7 @@ lock_datum(datum d)
 { unsigned long v = (unsigned long)d;
 
   if ( isAtomDatum(v) )
-    return PL_register_atom(atom_from_datum(d));
+    PL_register_atom(atom_from_datum(d));
 }
 
 
@@ -358,7 +361,7 @@ unlock_datum(datum d)
 { unsigned long v = (unsigned long)d;
 
   if ( isAtomDatum(v) )
-    return PL_unregister_atom(atom_from_datum(d));
+    PL_unregister_atom(atom_from_datum(d));
 }
 
 

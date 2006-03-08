@@ -103,6 +103,9 @@ summary:
 #include <string.h>
 #include <assert.h>
 #include "avl.h"		/* public types for avl trees */
+#ifdef WIN32
+#define inline __inline
+#endif
 
 /************************************************************************
 *       Auxillary functions
@@ -598,7 +601,7 @@ avl_walk(AVLtree tree, void (*action)(void *data,
   DIRECTION dir2 = OPPOSITE(dir1);
   NODE node = node_type(tree);
 
-  if ((tree != NULL_TREE) && (action != NULL_ACTION))
+  if ( tree && action )
   { (*action) (tree->data, PREORDER, node, level, (int)tree->bal);
 
     if (tree->subtree[dir1] != NULL_TREE)

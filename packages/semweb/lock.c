@@ -329,7 +329,7 @@ unlock_misc(rwlock *lock)
 }
 
 
-static int
+int
 init_lock(rwlock *lock)
 { int bytes;
 
@@ -363,8 +363,8 @@ init_lock(rwlock *lock)
 
 int
 destroy_lock(rwlock *lock)
-{ DestroyCriticalSection(&lock->mutex);
-  DestroyCriticalSection(&lock->misc_mutex);
+{ DeleteCriticalSection(&lock->mutex);
+  DeleteCriticalSection(&lock->misc_mutex);
   win32_cond_destroy(&lock->wrcondvar);
   win32_cond_destroy(&lock->rdcondvar);
   win32_cond_destroy(&lock->upcondvar);

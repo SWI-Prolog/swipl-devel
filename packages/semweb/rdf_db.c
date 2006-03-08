@@ -389,7 +389,7 @@ print_literal(literal *lit)
 	    else
 	      Sdprintf("\"%s\" (len=%d)", s, len);
 	  } else if ( (w = PL_atom_wchars(lit->value.string, &len)) )
-	  { int i;
+	  { unsigned int i;
 	    Sputc('L', Serror);
 	    Sputc('"', Serror);
 	    for(i=0; i<len; i++)

@@ -1164,10 +1164,12 @@ static senddecl send_display[] =
      NAME_selection, "Set the (textual) selection"),
   SM(NAME_copy, 1, "char_array", copyDisplay,
      NAME_selection, "Copy to selection and cut_buffer"),
-  SM(NAME_screenSaver, 1, "bool", screenSaverDisplay,
-     NAME_x, "Activate (@on) or deactivate (@off) screensaver"),
+#ifndef WIN32_GRAPHICS
   SM(NAME_metaModifier, 1, "name", metaModifierDisplay,
-     NAME_x, "Set the X modifier that is associated with META-")
+     NAME_x, "Set the X modifier that is associated with META-"),
+#endif
+  SM(NAME_screenSaver, 1, "bool", screenSaverDisplay,
+     NAME_x, "Activate (@on) or deactivate (@off) screensaver")
 };
 
 /* Get Methods */

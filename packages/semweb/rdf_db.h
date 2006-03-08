@@ -193,18 +193,6 @@ typedef struct transaction_record
 } transaction_record;
 
 
-#if defined(_REENTRANT) && defined(WIN32)
-enum
-{ SIGNAL     = 0,
-  MAX_EVENTS = 1
-} win32_event_t;
-
-typedef struct
-{ HANDLE events[MAX_EVENTS];		/* events to be signalled */
-  int    waiters;			/* # waiters */
-} win32_cond_t;
-#endif
-
 typedef struct rdf_db
 { triple       *by_none, *by_none_tail;
   triple      **table[INDEX_TABLES];
