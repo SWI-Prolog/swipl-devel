@@ -1358,6 +1358,7 @@
   BUILTIN_NAME("message_text")
   BUILTIN_NAME("messages")
   BUILTIN_NAME("meta")
+  BUILTIN_NAME("meta_modifier")
   BUILTIN_NAME("method")
   BUILTIN_NAME("mid")
   BUILTIN_NAME("middle")

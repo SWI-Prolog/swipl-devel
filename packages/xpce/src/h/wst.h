@@ -29,6 +29,9 @@
 
 #ifdef WIN32_GRAPHICS			/* additional ones */
 #include <msw/msproto.h>
+#else
+COMMON(status)	metaModifierDisplay(DisplayObj d, Name name);
 #endif
+
 
 #endif /* _PCE_WST_INCLUDED */

@@ -1165,7 +1165,9 @@ static senddecl send_display[] =
   SM(NAME_copy, 1, "char_array", copyDisplay,
      NAME_selection, "Copy to selection and cut_buffer"),
   SM(NAME_screenSaver, 1, "bool", screenSaverDisplay,
-     NAME_x, "Activate (@on) or deactivate (@off) screensaver")
+     NAME_x, "Activate (@on) or deactivate (@off) screensaver"),
+  SM(NAME_metaModifier, 1, "name", metaModifierDisplay,
+     NAME_x, "Set the X modifier that is associated with META-")
 };
 
 /* Get Methods */

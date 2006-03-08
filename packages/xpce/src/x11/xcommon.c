@@ -37,6 +37,8 @@
 #define INTENSITY(r, g, b) ((r*20 + g*32 + b*18)/(20+32+18))
 
 XtAppContext	ThePceXtAppContext;	/* X toolkit application context */
+static unsigned int	MetaMask = Mod1Mask;	/* Key-mask for meta */
+  
 
 		 /*******************************
 		 *       X11 APP CONTEXT	*
@@ -641,7 +643,7 @@ keycode_to_name(Any sw, XEvent *event)
     if ( has_sym )
     { switch(sym)
       { case XK_BackSpace:
-	  if ( event->xkey.state & Mod1Mask )
+	  if ( event->xkey.state & MetaMask )
 	    return toInt(8+META_OFFSET);
 					/* cannot be a buffer overflow */
 	return NAME_backspace;
@@ -651,7 +653,7 @@ keycode_to_name(Any sw, XEvent *event)
     if ( count == 1 )
     { int c = wbuf[0];
       
-      if ( event->xkey.state & Mod1Mask )	/* meta depressed */
+      if ( event->xkey.state & MetaMask )	/* meta depressed */
 	c += META_OFFSET;
       
       return toInt(c);
@@ -677,7 +679,7 @@ keycode_to_name(Any sw, XEvent *event)
 
     switch(sym)				/* special ones */
     { case XK_BackSpace:
-	if ( event->xkey.state & Mod1Mask )
+	if ( event->xkey.state & MetaMask )
 	  return toInt(8+META_OFFSET);
         return NAME_backspace;
     }
@@ -685,7 +687,7 @@ keycode_to_name(Any sw, XEvent *event)
     if ( count == 1 )
     { int c = buf[0] & 0xff;
       
-      if ( event->xkey.state & Mod1Mask )	/* meta depressed */
+      if ( event->xkey.state & MetaMask )	/* meta depressed */
 	c += META_OFFSET;
       
       return toInt(c);
@@ -698,7 +700,7 @@ keycode_to_name(Any sw, XEvent *event)
       if ( (e = utf8_get_char(buf, &c)) && e-buf == count )
       { DEBUG(NAME_event, Cprintf("\t-->UTF-8 sequence for %d\n", c));
 	
-	if ( event->xkey.state & Mod1Mask )	/* meta depressed */
+	if ( event->xkey.state & MetaMask )	/* meta depressed */
 	  c += META_OFFSET;
 
 	return toInt(c);
@@ -796,7 +798,7 @@ state_to_buttons(unsigned int state, Name name)
   if ( state & Button5Mask )	r |= BUTTON_ms_button5;
   if ( state & ShiftMask )	r |= BUTTON_shift;
   if ( state & ControlMask )	r |= BUTTON_control;
-  if ( state & Mod1Mask )	r |= BUTTON_meta;
+  if ( state & MetaMask )	r |= BUTTON_meta;
 
   if ( name == NAME_msLeftDown )
     r |= BUTTON_ms_left;
@@ -946,6 +948,37 @@ CtoEvent(Any window, XEvent *event)	/* window or frame */
     attributeObject(ev, ctx_name, ctx);
 
   return ev;
+}
+
+
+typedef struct
+{ const char *name;
+  unsigned int mask;
+} modmask;
+
+static const modmask modmasks[] = 
+{ { "mod1", Mod1Mask },
+  { "mod2", Mod2Mask },
+  { "mod3", Mod3Mask },
+  { "mod4", Mod4Mask },
+  { "mod5", Mod5Mask },
+  { NULL, 0 }
+};
+
+
+status
+metaModifierDisplay(DisplayObj d, Name name)
+{ const char *s = strName(name);
+  const modmask *mm = modmasks;
+
+  for( ; mm->name; mm++)
+  { if ( streq(s, mm->name) )
+    { MetaMask = mm->mask;
+      succeed;
+    }
+  }
+  
+  fail;
 }
 
 
