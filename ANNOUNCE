@@ -57,18 +57,24 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.6 Patches relative to 5.6.4
+Version 5.6.7 Patches relative to 5.6.6
 =======================================
 
 Prolog
 
-  * Added prolog_exception_hook/4
-  * Fixed Unicode support accessing the Windows registry
-  * Larger defaults for argument stack (large cyclic terms).
+  * Fixed error handling of ~w in format/3
+  * Fixed memory leak in format ~f using rational numbers
+  * Fixed float error handling on Alpha processors
 							    
 Packages
   
-  * HTTP: Added http_session.pl and http_error.pl
-  * Semweb: Fix in literal ordering on unicode literals (crash)
-  * XPCE: Fixed dropping Unicode filenames (Windows)
+  * CHR: Exploit global variable exceptions, making CHR programs
+    work across saved-states and in multiple threads.
+  * CLP(QR): Leslie provided a combined CLP(Q,R) package that replaces
+    the old CLP(R) library.  SWI-Prolog now also has CLP(Q), exploiting
+    GMP provided rational arithmetic.
+  * Semweb: Many internal changes.  New library rdf_litindex.pl provides
+    indexing inside literals.
+  * XPCE: Fixed input problems on the Mac: bind Command-key to meta and
+    avoid lockup on some input keys.  Finally ...
 
