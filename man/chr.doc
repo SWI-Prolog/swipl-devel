@@ -81,6 +81,7 @@ constraint --> compound_term.
 
 constraint_id --> [].
 constraint_id --> [atom('#')], variable.
+constraint_id --> [atom('#')], [atom('passive')] .
 
 guard --> [].
 guard --> goal, [atom('|')].
@@ -172,9 +173,18 @@ The semantics of the pragmas are:
     \termitem{passive}{Identifier}
 The constraint in the head of a rule \arg{Identifier} can only match a
 passive constraint in that rule.
+There is an abbreviated syntax for this pragma. Instead of:
+\begin{code}
+                ..., c # Id, ... <=> ... pragma passive(Id)
+\end{code}
+you can also write 
+\begin{code}
+                ..., c # passive, ... <=> ...
+\end{code}
 \end{description}
 
 Additional pragmas may be released in the future.
+
 
 \paragraph{Options}
 %- - - - - - - - -
@@ -327,6 +337,10 @@ The built-in types are:
 	\begin{description}
 	\termitem{int}{} The corresponding argument of every occurrence
 	of the constraint is an integer number.
+	\termitem{dense_int}{} The corresponding argument of every occurrence
+	of the constraint is an integer that can be used as an array index.
+	Note that if this argument takes values in $[0,n]$, the array takes
+	$O(n)$ space.
 	\termitem{float}{} \ldots a floating point number.
 	\termitem{number}{} \ldots a number.
 	\termitem{natural}{} \ldots a positive integer.
@@ -367,6 +381,13 @@ distinct types (name equivalence).
 Constructors may be overloaded among different types: there may be any number
 of constructors with a given name and arity, so long as they all have different
 types. 
+
+Aliases can be defined using ==. For example, if your program uses lists
+of lists of integers, you can define an alias as follows:
+\begin{code}
+:- chr_type lli == list(list(int)).
+\end{code}
+
 
 \subsection{Compilation}
 %--------------------
@@ -640,7 +661,7 @@ The \texttt{check_guard_bindings} option only turns invalid calls to
 unification into failure. In SICStus this option does more: it intercepts
 instantiation errors from Prolog built-ins such as is/2 and
 turns them into failure. In SWI-Prolog, we do not go this far, as we like
-to separate concerns more. The CHR comiler is aware of the CHR code, the Prolog
+to separate concerns more. The CHR compiler is aware of the CHR code, the Prolog
 system and programmer should be aware of the appropriate meaning of the
 Prolog goals used in guards and bodies of CHR rules.
 \end{itemlist}
