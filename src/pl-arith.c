@@ -428,7 +428,7 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
   qid_t qid;
   int rval;
 
-  qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, f->proc, av);
+  qid = PL_open_query(NULL, PL_Q_PASS_EXCEPTION, f->proc, av);
 
   if ( PL_next_solution(qid) )
   { rval = valueExpression(av+arity-1, r PASS_LD);
@@ -438,7 +438,8 @@ prologFunction(ArithFunction f, term_t av, Number r ARG_LD)
   { term_t except;
 
     if ( (except = PL_exception(qid)) )
-    { rval = PL_raise_exception(except);		/* pass exception */
+    { rval = FALSE;
+      PL_close_query(qid);
     } else
     { PL_close_query(qid);
 

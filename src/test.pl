@@ -365,6 +365,8 @@ floattest(float-8) :-
 :- arithmetic_function(twice/1).
 :- arithmetic_function(mean/2).
 :- arithmetic_function(euler/0).
+:- arithmetic_function(fail/0).
+:- arithmetic_function(except/0).
 
 ten(10).
 twice(X, R) :-
@@ -373,6 +375,11 @@ mean(X1, X2, R) :-
 	R is (X1 + X2)/2.
 
 euler(2.71828).
+
+fail(_) :- fail.
+
+except(_) :-
+	throw(error(foobar)).
 
 arithmetic_functions(func-1) :-
 	A is ten, A =:= 10.
@@ -384,6 +391,13 @@ arithmetic_functions(func-4) :-
         Exp = 6*euler*7*1,		% test functions corrupting stack
         EE is Exp,
 	EE =:= 6*euler*7*1.
+arithmetic_functions(fail-1) :-
+	catch(_ is fail, E, true),
+	compound(E), E = error(E2, _),
+	compound(E2), E2 = failure_error(_).
+arithmetic_functions(except-1) :-
+	catch(_ is except, E, true),
+	E == error(foobar).
 
 
 		 /*******************************
