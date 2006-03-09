@@ -19,7 +19,8 @@ LIBPL=		chr_runtime.pl chr_op.pl chr_translate.pl chr_debug.pl \
 		find.pl a_star.pl binomialheap.pl builtins.pl \
 		chr_hashtable_store.pl listmap.pl guard_entailment.pl \
 		chr_compiler_options.pl chr_compiler_utility.pl \
-		chr_compiler_errors.pl
+		chr_compiler_errors.pl \
+		chr_integertable_store.pl
 CHRPL=		chr_swi.pl
 EXAMPLES=	chrfreeze.chr fib.chr gcd.chr primes.chr \
 		bool.chr family.chr fibonacci.chr leq.chr listdom.chr \

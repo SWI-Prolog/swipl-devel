@@ -178,8 +178,15 @@ chr_init :-
 chr_show_store(Mod) :-
 	(
 		Mod:'$enumerate_suspensions'(Susp),
-		arg(6,Susp,C),
+%		arg(6,Susp,C),
+		Susp =.. [_,_,_,_,_,_,F|Arg],
+		functor(F,Fun,_),
+		C =.. [Fun|Arg],
+%		term_variables(C,Vars),
+%		erase_attributes(Vars),
+%		writeln(C),
 		print(C),nl, % allows use of portray to control printing
+
 		fail
 	;
 		true
@@ -535,14 +542,19 @@ insert_constraint_internal([Global|Vars], Self, Term, Closure, F, Args) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%'chr sbag_member'( Head, [Head]) :- !.
+%'chr sbag_member'( Head, [Head|Tail]).
+%'chr sbag_member'( Elem, [_|Tail]) :- 
+%    'chr sbag_member'( Elem, Tail).
+        
 'chr sbag_member'( Element, [Head|Tail]) :-
       sbag_member( Element, Tail, Head).
 
 % auxiliary to avoid choicepoint for last element
-
-sbag_member( E, _,	     E).
-sbag_member( E, [Head|Tail], _) :-
-	sbag_member( E, Tail, Head).
+        % does it really avoid the choicepoint? -jon
+ sbag_member( E, _,	     E).
+ sbag_member( E, [Head|Tail], _) :-
+ 	sbag_member( E, Tail, Head).
  
 'chr sbag_del_element'( [],	  _,	[]).
 'chr sbag_del_element'( [X|Xs], Elem, Set2) :-

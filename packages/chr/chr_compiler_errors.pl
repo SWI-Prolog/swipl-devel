@@ -55,6 +55,12 @@ chr_warning(unsupported_pragma(Pragma,Rule),Message,Params) :- !,
 	format(user_error,Message,Params),
         format(user_error,'    Pragma is ignored!\n',[]),
 	long_line_with_equality_signs.
+chr_warning(problem_pragma(Pragma,Rule),Message,Params) :- !,
+	long_line_with_equality_signs,
+	format(user_error,'CHR compiler WARNING: unsupported pragma ~w in ~@.\n',[Pragma,format_rule(Rule)]),	
+	format(user_error,'    `--> ',[]),
+	format(user_error,Message,Params),
+	long_line_with_equality_signs.
 
 chr_warning(_,Message,Params) :-
 	long_line_with_equality_signs,
@@ -84,6 +90,12 @@ print_chr_error(internal,Message,Params) :- !,
 	format(user_error,'    `--> ',[]),
 	format(user_error,Message,Params),
         format(user_error,'    Please contact tom.schrijvers@cs.kuleuven.be.\n'),
+	long_line_with_equality_signs.
+
+print_chr_error(cyclic_alias(Alias),Message,Params) :- !,
+	long_line_with_equality_signs,
+	format(user_error,'CHR compiler ERROR: cyclic alias "~w".\n',[Alias]),	
+	format(user_error,'    `--> Aborting compilation.\n',[]),
 	long_line_with_equality_signs.
 
 print_chr_error(_,Message,Params) :-

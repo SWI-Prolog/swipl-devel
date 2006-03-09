@@ -507,6 +507,7 @@ store_management_preds(Constraints,Clauses) :-
 %% SWI begin
 extra_declaration([ :- use_module(chr(chr_runtime))
 		  , :- use_module(chr(chr_hashtable_store))
+		  , :- use_module(chr(chr_integertable_store))
 		  , :- use_module(library('clp/clp_events'))
 		  ]).
 %% SWI end
@@ -646,7 +647,11 @@ is_type_definition(D) :-
 	tdisj2list(Def,DefList),
   	type_definition(Name,DefList)
   ;
-    chr_warning(syntax,'Illegal type definition "~w".\n\tIgnoring this malformed type definition.\n',[TypeDef])
+	( TypeDef = (Alias == Name) ->
+  	    type_alias(Alias,Name)
+  	;
+	    chr_warning(syntax,'Illegal type definition "~w".\n\tIgnoring this malformed type definition.\n',[TypeDef])
+	)
   ).
 
 % no removal of fails, e.g. :- type bool --->  true ; fail.
@@ -690,30 +695,31 @@ parse_rule(RI,R) :-
 
 rule(RI,Name,R) :-
 	RI = (RI2 pragma P), !,			%% pragmas
-	is_rule(RI2,R1,IDs),
 	( var(P) ->
 		Ps = [_]			% intercept variable
 	;
 		conj2list(P,Ps)
 	),
 	inc_rule_count(RuleCount),
-	R = pragma(R1,IDs,Ps,Name,RuleCount).
+	R = pragma(R1,IDs,Ps,Name,RuleCount),
+	is_rule(RI2,R1,IDs,R).
 rule(RI,Name,R) :-
-	is_rule(RI,R1,IDs),
 	inc_rule_count(RuleCount),
-	R = pragma(R1,IDs,[],Name,RuleCount).
+	R = pragma(R1,IDs,[],Name,RuleCount),
+	is_rule(RI,R1,IDs,R).
 
-is_rule(RI,R,IDs) :-				%% propagation rule
+
+is_rule(RI,R,IDs,RC) :-				%% propagation rule
    RI = (H ==> B), !,
    conj2list(H,Head2i),
-   get_ids(Head2i,IDs2,Head2),
+   get_ids(Head2i,IDs2,Head2,RC),
    IDs = ids([],IDs2),
    (   B = (G | RB) ->
        R = rule([],Head2,G,RB)
    ;
        R = rule([],Head2,true,B)
    ).
-is_rule(RI,R,IDs) :-				%% simplification/simpagation rule
+is_rule(RI,R,IDs,RC) :-				%% simplification/simpagation rule
    RI = (H <=> B), !,
    (   B = (G | RB) ->
        Guard = G,
@@ -724,28 +730,44 @@ is_rule(RI,R,IDs) :-				%% simplification/simpagation rule
    (   H = (H1 \ H2) ->
        conj2list(H1,Head2i),
        conj2list(H2,Head1i),
-       get_ids(Head2i,IDs2,Head2,0,N),
-       get_ids(Head1i,IDs1,Head1,N,_),
+       get_ids(Head2i,IDs2,Head2,0,N,RC),
+       get_ids(Head1i,IDs1,Head1,N,_,RC),
        IDs = ids(IDs1,IDs2)
    ;   conj2list(H,Head1i),
        Head2 = [],
-       get_ids(Head1i,IDs1,Head1),
+       get_ids(Head1i,IDs1,Head1,RC),
        IDs = ids(IDs1,[])
    ),
    R = rule(Head1,Head2,Guard,Body).
 
-get_ids(Cs,IDs,NCs) :-
-	get_ids(Cs,IDs,NCs,0,_).
+get_ids(Cs,IDs,NCs,RC) :-
+	get_ids(Cs,IDs,NCs,0,_,RC).
 
-get_ids([],[],[],N,N).
-get_ids([C|Cs],[N|IDs],[NC|NCs],N,NN) :-
-	( C = (NC # N) ->
-		true
-	;
+get_ids([],[],[],N,N,_).
+get_ids([C|Cs],[N|IDs],[NC|NCs],N,NN,RC) :-
+	( C = (NC # N1) ->
+		(var(N1) ->
+			N1 = N
+		;
+			check_direct_pragma(N1,N,RC)
+		)
+	;	
 		NC = C
 	),
 	M is N + 1,
-	get_ids(Cs,IDs,NCs, M,NN).
+	get_ids(Cs,IDs,NCs, M,NN,RC).
+
+direct_pragma(passive).
+check_direct_pragma(passive,N,R) :- 
+	R = pragma(_,ids(IDs1,IDs2),_,_,RuleNb), passive(RuleNb,N).
+check_direct_pragma(Abbrev,N,RC) :- 
+	(direct_pragma(X),
+	 atom_concat(Abbrev,Remainder,X) ->
+	    chr_warning(problem_pragma(Abbrev,RC),'completed "~w" to "~w"\n',[Abbrev,X])
+	;
+	    chr_warning(unsupported_pragma(Abbrev,RC),'',[])
+	).
+
 
 is_module_declaration((:- module(Mod)),Mod).
 is_module_declaration((:- module(Mod,_)),Mod).
@@ -1643,7 +1665,9 @@ global_indexed_variables_clause(Constraints,List,Tail) :-
 				Body = true,
 				Vars = []
 			;
-				Body = (Susp =.. [_,_,_,_,_,_,Term|_], '$indexed_variables'(Term,Vars))
+				Body = (Susp =.. [_,_,_,_,_,_|Term], 
+				Term1 =.. Term,
+				'$indexed_variables'(Term1,Vars))
 			),	
 			Clause = ( chr_indexed_variables(Susp,Vars) :- Body )
 		;
@@ -1859,6 +1883,8 @@ generate_insert_constraint_body(default,C,Susp,Body) :-
 		'chr default_store'(Store),
 		AttachBody
 	).
+generate_insert_constraint_body(multi_inthash(Indexes),C,Susp,Body) :-
+	generate_multi_inthash_insert_constraint_bodies(Indexes,C,Susp,Body).
 generate_insert_constraint_body(multi_hash(Indexes),C,Susp,Body) :-
 	generate_multi_hash_insert_constraint_bodies(Indexes,C,Susp,Body).
 generate_insert_constraint_body(global_ground,C,Susp,Body) :-
@@ -1889,6 +1915,17 @@ generate_insert_constraint_body(multi_store(StoreTypes),C,Susp,Body) :-
 		),
 	list2conj(Bodies,Body).
 
+generate_multi_inthash_insert_constraint_bodies([],_,_,true).
+generate_multi_inthash_insert_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
+	multi_hash_store_name(FA,Index,StoreName),
+	multi_hash_key(FA,Index,Susp,KeyBody,Key),
+	Body =
+	(
+		KeyBody,
+		nb_getval(StoreName,Store),
+		insert_iht(Store,Key,Susp)
+	),
+	generate_multi_inthash_insert_constraint_bodies(Indexes,FA,Susp,Bodies).
 generate_multi_hash_insert_constraint_bodies([],_,_,true).
 generate_multi_hash_insert_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
 	multi_hash_store_name(FA,Index,StoreName),
@@ -1931,6 +1968,8 @@ generate_delete_constraint_body(default,C,Susp,Body) :-
 			DetachBody
 		)
 	).
+generate_delete_constraint_body(multi_inthash(Indexes),C,Susp,Body) :-
+	generate_multi_inthash_delete_constraint_bodies(Indexes,C,Susp,Body).
 generate_delete_constraint_body(multi_hash(Indexes),C,Susp,Body) :-
 	generate_multi_hash_delete_constraint_bodies(Indexes,C,Susp,Body).
 generate_delete_constraint_body(global_ground,C,Susp,Body) :-
@@ -1962,6 +2001,17 @@ generate_delete_constraint_body(multi_store(StoreTypes),C,Susp,Body) :-
 	),
 	list2conj(Bodies,Body).
 
+generate_multi_inthash_delete_constraint_bodies([],_,_,true).
+generate_multi_inthash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
+	multi_hash_store_name(FA,Index,StoreName),
+	multi_hash_key(FA,Index,Susp,KeyBody,Key),
+	Body =
+	(
+		KeyBody,
+		nb_getval(StoreName,Store),
+		delete_iht(Store,Key,Susp)
+	),
+	generate_multi_inthash_delete_constraint_bodies(Indexes,FA,Susp,Bodies).
 generate_multi_hash_delete_constraint_bodies([],_,_,true).
 generate_multi_hash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
 	multi_hash_store_name(FA,Index,StoreName),
@@ -2010,6 +2060,9 @@ generate_attach_code([C|Cs],L,T) :-
 	generate_attach_code(Cs,L1,T). 
 
 generate_attach_code(default,_,L,L).
+generate_attach_code(multi_inthash(Indexes),C,L,T) :-
+	multi_inthash_store_initialisations(Indexes,C,L,L1),
+	multi_inthash_via_lookups(Indexes,C,L1,T).
 generate_attach_code(multi_hash(Indexes),C,L,T) :-
 	multi_hash_store_initialisations(Indexes,C,L,L1),
 	multi_hash_via_lookups(Indexes,C,L1,T).
@@ -2025,6 +2078,13 @@ multi_store_generate_attach_code([ST|STs],C,L,T) :-
 	generate_attach_code(ST,C,L,L1),
 	multi_store_generate_attach_code(STs,C,L1,T).	
 
+multi_inthash_store_initialisations([],_,L,L).
+multi_inthash_store_initialisations([Index|Indexes],FA,L,T) :-
+	multi_hash_store_name(FA,Index,StoreName),
+	module_initializer((new_iht(HT),nb_setval(StoreName,HT))),
+	% L = [(:- (chr_integertable_store:new_ht(HT),nb_setval(StoreName,HT)) )|L1],
+	L1 = L,
+	multi_inthash_store_initialisations(Indexes,FA,L1,T).
 multi_hash_store_initialisations([],_,L,L).
 multi_hash_store_initialisations([Index|Indexes],FA,L,T) :-
 	multi_hash_store_name(FA,Index,StoreName),
@@ -2047,6 +2107,18 @@ global_singleton_store_initialisation(C,L,T) :-
 	module_initializer(InitStoreGoal),
 	L = T.
 
+multi_inthash_via_lookups([],_,L,L).
+multi_inthash_via_lookups([Index|Indexes],C,L,T) :-
+	multi_hash_via_lookup_name(C,Index,PredName),
+	Head =.. [PredName,Key,SuspsList],
+	multi_hash_store_name(C,Index,StoreName),
+	Body = 
+	(
+		nb_getval(StoreName,HT),
+		lookup_iht(HT,Key,SuspsList)
+	),
+	L = [(Head :- Body)|L1],
+	multi_inthash_via_lookups(Indexes,C,L1,T).
 multi_hash_via_lookups([],_,L,L).
 multi_hash_via_lookups([Index|Indexes],C,L,T) :-
 	multi_hash_via_lookup_name(C,Index,PredName),
@@ -2149,6 +2221,11 @@ prolog_global_variables_code(Code) :-
 prolog_global_variables_code([]).
 %% SICStus end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%sbag_member_call(S,L,sysh:mem(S,L)).
+sbag_member_call(S,L,'chr sbag_member'(S,L)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 enumerate_stores_code(Constraints,Clause) :-
 	Head = '$enumerate_suspensions'(Susp),
 	enumerate_store_bodies(Constraints,Susp,Bodies),
@@ -2177,24 +2254,29 @@ enumerate_store_body(default,C,Susp,Body) :-
 	),
 	( MaxIndex > 1 ->
 		NIndex is Index + 1,
+		sbag_member_call(Susp,List,Sbag),
 		Body2 =	
 		(
 			arg(NIndex,Attr,List),
-			'chr sbag_member'(Susp,List)	
+			Sbag
 		)
 	;
-		Body2 = 'chr sbag_member'(Susp,Attr)
+		sbag_member_call(Susp,Attr,Sbag),
+		Body2 = Sbag
 	),
 	Body = (Body1,Body2).
+enumerate_store_body(multi_inthash([Index|_]),C,Susp,Body) :-
+	multi_inthash_enumerate_store_body(Index,C,Susp,Body).
 enumerate_store_body(multi_hash([Index|_]),C,Susp,Body) :-
 	multi_hash_enumerate_store_body(Index,C,Susp,Body).
 enumerate_store_body(global_ground,C,Susp,Body) :-
 	global_ground_store_name(C,StoreName),
+	sbag_member_call(Susp,List,Sbag),
 	make_get_store_goal(StoreName,List,GetStoreGoal),
 	Body =
 	(
 		GetStoreGoal, % nb_getval(StoreName,List),
-		'chr sbag_member'(Susp,List)
+		Sbag
 	).
 enumerate_store_body(global_singleton,C,Susp,Body) :-
 	global_singleton_store_name(C,StoreName),
@@ -2210,6 +2292,13 @@ enumerate_store_body(multi_store(STs),C,Susp,Body) :-
 		enumerate_store_body(ST,C,Susp,Body)
 	)).
 
+multi_inthash_enumerate_store_body(I,C,Susp,B) :-
+	multi_hash_store_name(C,I,StoreName),
+	B =
+	(
+		nb_getval(StoreName,HT),
+		value_iht(HT,Susp)	
+	).
 multi_hash_enumerate_store_body(I,C,Susp,B) :-
 	multi_hash_store_name(C,I,StoreName),
 	make_get_store_goal(StoreName,HT,GetStoreGoal),
@@ -2284,7 +2373,10 @@ rule(N,Rule) \ prev_guard_list(RuleNb,N,H,G,GuardList,M,GH) <=>
     H1 \== [], 
     append(H1,H2,Heads),
     make_head_matchings_explicit(Heads,UniqueVarsHeads,Matchings),
+%    term_variables(UniqueVarsHeads+H,HVars),
+%    strip_attributes(HVars,HVarAttrs),	% this seems to be necessairy to get past the setof
     setof(Renaming,chr_translate:head_subset(UniqueVarsHeads,H,Renaming),Renamings),
+%    restore_attributes(HVars,HVarAttrs),
     Renamings \= []
     |
     compute_derived_info(Matchings,Renamings,UniqueVarsHeads,Heads,G2,M,H,GH,DerivedInfo,GH_New1),
@@ -2923,6 +3015,7 @@ extract_explicit_matchings(A,D) :- !,
 
 :- chr_constraint
 	type_definition/2,
+	type_alias/2,
 	constraint_type/2,
 	get_type_definition/2,
 	get_constraint_type/2,
@@ -2930,9 +3023,18 @@ extract_explicit_matchings(A,D) :- !,
 
 
 :- chr_option(mode,type_definition(?,?)).
+:- chr_option(mode,type_alias(?,?)).
 :- chr_option(mode,constraint_type(+,+)).
 :- chr_option(mode,add_type_information(+,+,?)).
 :- chr_option(type_declaration,add_type_information(list,list,any)).
+
+type_alias(T,T) <=>
+   chr_error(cyclic_alias(T),'',[]).
+type_alias(T,B) \ type_alias(A,T) <=> type_alias(A,B).
+
+type_alias(T,D) \ get_type_definition(T2,Def) <=> 
+	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A) |
+	copy_term((T,D),(T1,D1)),T1=T2, get_type_definition(D1,Def).
 
 type_definition(T,D) \ get_type_definition(T2,Def) <=> 
 	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A) |
@@ -3011,6 +3113,7 @@ item2list(N,L) :- L = [N].
 
 builtin_type(X,Arg,true) :- var(X),!.
 builtin_type(any,Arg,true).
+builtin_type(dense_int,Arg,(integer(Arg),Arg>=0)).
 builtin_type(int,Arg,integer(Arg)).
 builtin_type(number,Arg,number(Arg)).
 builtin_type(float,Arg,float(Arg)).
@@ -3274,7 +3377,7 @@ constraint_prelude(F/A, Clause) :-
                 Inactive = (arg(2,Susp,Mutable), 'chr update_mutable'(inactive,Mutable)),	
 		Clause = 
 			( Head :-
-				insert_constraint_internal(Stored,Vars2,Susp,Continuation,FTerm,Vars),
+				insert_constraint_internal(Stored,Vars2,Susp,Continuation,F,Vars),
 				InsertCall,
 				AttachCall,
 				Inactive,
@@ -3377,7 +3480,7 @@ gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 		Goal =
 		(
 			( var(Susp) ->
-				insert_constraint_internal(Stored,Vars,Susp,Closure,FTerm,Args)
+				insert_constraint_internal(Stored,Vars,Susp,Closure,F,Args)
 			; 
 				activate_constraint(Stored,Vars,Susp,_)
 			),
@@ -3391,7 +3494,7 @@ gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	;
 		Goal =
 		(
-			insert_constraint_internal(Stored,Vars,Susp,Closure,FTerm,Args),
+			insert_constraint_internal(Stored,Vars,Susp,Closure,F,Args),
 			InsertCall,	
 			Attach
 		)
@@ -3412,13 +3515,13 @@ gen_insert_constraint_internal_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	( are_none_suspended_on_variables ->
 	    Goal =
 	    (
-		insert_constraint_internal(Susp,FTerm,Args),
+		insert_constraint_internal(Susp,F,Args),
 		InsertCall
 	    )
 	;
 	    Goal =
 	    (
-		insert_constraint_internal(_,Vars,Susp,Cont,FTerm,Args),
+		insert_constraint_internal(_,Vars,Susp,Cont,F,Args),
 		InsertCall,
 		Attach
 	    )
@@ -3545,7 +3648,7 @@ gen_allocation(Vars,Susp,F/A,VarsSusp,ConstraintAllocationGoal) :-
 	),
 	FTerm =.. [F|Vars],
 	use_auxiliary_predicate(allocate_constraint),
-	ConstraintAllocationGoal = allocate_constraint(Cont, Susp, FTerm, Vars).
+	ConstraintAllocationGoal = allocate_constraint(Cont, Susp, F, Vars).
 
 gen_occ_allocation(FA,O,Vars,Susp,VarsSusp,ConstraintAllocationGoal) :-
 	get_allocation_occurrence(FA,AO),
@@ -3609,6 +3712,7 @@ dependency_insert([X|Xs],Unit,GIDs,L) :-
 build_units(Retrievals,Guard,InitialDict,Units) :-
 	build_retrieval_units(Retrievals,1,N,InitialDict,Dict,Units,Tail),
 	build_guard_units(Guard,N,Dict,Tail).
+
 
 build_retrieval_units([],N,N,Dict,Dict,L,L).
 build_retrieval_units([U|Us],N,M,Dict,NDict,L,T) :-
@@ -3964,7 +4068,8 @@ rest_heads_retrieval_and_matching(Heads,IDs,ActiveHead,GoalList,Susps,VarDict,NV
 
 rest_heads_retrieval_and_matching_n([],_,_,_,_,[],[],VarDict,VarDict,AttrDict,GroundVars,GroundVars) :-
 	instantiate_pattern_goals(AttrDict).
-rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,[Goal|Goals],[Susp|Susps],VarDict,NVarDict,AttrDict,GroundVars,NGroundVars) :-
+rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
+    [Goal|Goals],[Susp|Susps],VarDict,NVarDict,AttrDict,GroundVars,NGroundVars) :-
 	functor(H,F,A),
 	head_info(H,A,Vars,_,_,Pairs),
 	get_store_type(F/A,StoreType),
@@ -3981,10 +4086,12 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
 		create_get_mutable_ref(active,State,GetMutable),
 		get_constraint_mode(F/A,Mode),
 		head_arg_matches(Pairs,Mode,VarDict,MatchingGoal,VarDict1,GroundVars,GroundVars1),
+		NPairs = Pairs,
+		sbag_member_call(Susp,VarSusps,Sbag),
 		ExistentialLookup = 	(
 						ViaGoal,
-						'chr sbag_member'(Susp,VarSusps),
-						Susp = Suspension,
+						Sbag,
+						Susp = Suspension,		% not inlined
 						GetMutable
 					)
 	;
@@ -3996,13 +4103,30 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],PrevHs,PrevSusps,ActiveHead,
 	),
 	Suspension =.. [suspension,_,State,_,_,_,_|Vars],
 	different_from_other_susps(H,Susp,PrevHs,PrevSusps,DiffSuspGoals),
+	append(NPairs,VarDict1,DA_),		% order important here
+	translate(GroundVars1,DA_,GroundVarsA),
+	translate(GroundVars1,VarDict1,GroundVarsB),
+	inline_matching_goal(MatchingGoal,MatchingGoal2,GroundVarsA,GroundVarsB),
 	Goal = 
 	(
 		ExistentialLookup,
 		DiffSuspGoals,
-		MatchingGoal
+		MatchingGoal2
 	),
 	rest_heads_retrieval_and_matching_n(Hs,IDs,[H|PrevHs],[Susp|PrevSusps],ActiveHead,Goals,Susps,VarDict1,NVarDict,NewAttrDict,GroundVars1,NGroundVars).
+
+inline_matching_goal(A==B,true,GVA,GVB) :- 
+    memberchk_eq(A,GVA),
+    memberchk_eq(B,GVB),
+    A=B, !.
+    
+    
+inline_matching_goal(A=B,true,_,_) :- A=B, !.
+inline_matching_goal((A,B),(A2,B2),GVA,GVB) :- !,
+    inline_matching_goal(A,A2,GVA,GVB),
+    inline_matching_goal(B,B2,GVA,GVB).
+inline_matching_goal(X,X,_,_).
+
 
 filter_mode([],_,_,[]).
 filter_mode([Arg-Var|Rest],[_-V|R],[M|Ms],Modes) :-
@@ -4099,7 +4223,7 @@ guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy) :-
 	list2conj(GuardCopyList,GuardCopy).
 
 guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy) :-
-	Rule = rule(_,_,Guard,Body),
+	Rule = rule(H,_,Guard,Body),
 	conj2list(Guard,GuardList),
 	split_off_simple_guard(GuardList,VarDict,GuardPrefix,RestGuardList),
 	my_term_copy(GuardPrefix-RestGuardList,VarDict,VarDict2,GuardPrefixCopy-RestGuardListCopyCore),
@@ -4107,6 +4231,9 @@ guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy) :-
 	append(GuardPrefixCopy,[RestGuardCopy],GuardCopyList),
 	term_variables(RestGuardList,GuardVars),
 	term_variables(RestGuardListCopyCore,GuardCopyVars),
+	% variables that are declared to be ground don't need to be locked
+	ground_vars(H,GroundVars),	
+	list_difference_eq(GuardVars,GroundVars,GuardVars_),
 	( chr_pp_flag(guard_locks,on),
           bagof(('chr lock'(Y)) - ('chr unlock'(Y)),
                 X ^ (lists:member(X,GuardVars),		% X is a variable appearing in the original guard
@@ -4373,7 +4500,8 @@ simpagation_head2_new_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule
    gen_vars(OtherA,OtherVars),
    head_info(CurrentHead,OtherA,OtherVars,OtherSusp,_VarsSusp,HeadPairs),
    get_constraint_mode(OtherF/OtherA,Mode),
-   head_arg_matches(HeadPairs,Mode,VarDict,FirstMatching,VarDict1),
+%   head_arg_matches(HeadPairs,Mode,VarDict,FirstMatching,VarDict1),
+   head_arg_matches(HeadPairs,Mode,VarDict,FirstMatching,VarDict1,[],GroundVars),
 
    OtherSuspension =.. [suspension,_,State,_,_,_,_|OtherVars],
    different_from_other_susps(CurrentHead,OtherSusp,PreHeads,PreSusps,DiffSuspGoals),
@@ -4498,7 +4626,7 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
 	build_head(F,A,NextId,VarsSusp,NextHead),
 	
 	get_constraint_mode(F/A,Mode),
-	head_arg_matches(HeadPairs,Mode,[],HeadMatching,VarDict),
+	head_arg_matches(HeadPairs,Mode,[],HeadMatching,VarDict,[],GroundVars),
 	guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
 	gen_occ_allocation(F/A,O,Vars,Susp,VarsSusp,Allocation),
 	
@@ -4592,6 +4720,7 @@ propagation_nested_code([],[CurrentHead|PreHeads],RestIDs,Rule,RuleNb,FA,O,Id,L,
    universal_search_iterator_end([CurrentHead|PreHeads],[],Rule,FA,Id,L,L1),
    propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L1,T).
 
+
 propagation_nested_code([Head|RestHeads],PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,T) :-
    universal_search_iterator_end(PreHeads,[Head|RestHeads],Rule,FA,Id,L,L1),
    universal_search_iterator([Head|RestHeads],PreHeads,Rule,FA,Id,L1,L2),
@@ -4648,12 +4777,12 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	;   Attach = true,
 	    ConditionalRecursiveCall = RecursiveCall
 	),
-
 	( is_least_occurrence(RuleNb) ->
 		NovelProduction = true,
 		ExtendHistory   = true
 	;	  
 		get_occurrence(F/A,O,_,ID),
+
 		history_susps(RestIDs,[OtherSusp|RestSusps],Susp,ID,HistorySusps),
    		Tuple =.. [t,RuleNb|HistorySusps],
 		bagof('chr novel_production'(X,Y),( lists:member(X,HistorySusps), Y = TupleVar) ,NovelProductionsList),
@@ -4814,10 +4943,13 @@ order_score(Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
 	get_store_type(F/A,StoreType),
 	order_score(StoreType,Head,ID,KnownVars,RestHeads,RuleNb,Score).
 
+
 order_score(default,Head,_ID,KnownVars,RestHeads,RuleNb,Score) :-
 	term_variables(Head,HeadVars),
 	term_variables(RestHeads,RestVars),
 	order_score_vars(HeadVars,KnownVars,RestVars,Score).
+order_score(multi_inthash(Indexes),Head,_ID,KnownVars,RestHeads,RuleNb,Score) :-
+	order_score_indexes(Indexes,Head,KnownVars,0,Score).
 order_score(multi_hash(Indexes),Head,_ID,KnownVars,RestHeads,RuleNb,Score) :-
 	order_score_indexes(Indexes,Head,KnownVars,0,Score).
 order_score(global_ground,Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
@@ -4988,11 +5120,28 @@ lookup_passive_head(default,Head,PreJoin,VarDict,Goal,AllSusps) :-
 		make_attr(N,_,SuspsList,Attr),
 		nth1(Pos,SuspsList,AllSusps)
 	).
+lookup_passive_head(multi_inthash(Indexes),Head,_PreJoin,VarDict,Goal,AllSusps) :-
+	once((
+		member(Index,Indexes),
+		multi_hash_key_args(Index,Head,KeyArgs),	
+		(translate(KeyArgs,VarDict,KeyArgCopies) ;
+		 ground(KeyArgs), KeyArgCopies = KeyArgs )
+	)),
+	( KeyArgCopies = [KeyCopy] ->
+		true
+	;
+		KeyCopy =.. [k|KeyArgCopies]
+	),
+	functor(Head,F,A),
+	multi_hash_via_lookup_name(F/A,Index,ViaName),
+	Goal =.. [ViaName,KeyCopy,AllSusps],
+	update_store_type(F/A,multi_inthash([Index])).
 lookup_passive_head(multi_hash(Indexes),Head,_PreJoin,VarDict,Goal,AllSusps) :-
 	once((
 		member(Index,Indexes),
 		multi_hash_key_args(Index,Head,KeyArgs),	
-		translate(KeyArgs,VarDict,KeyArgCopies)
+		(translate(KeyArgs,VarDict,KeyArgCopies) ;
+		 ground(KeyArgs), KeyArgCopies = KeyArgs )
 	)),
 	( KeyArgCopies = [KeyCopy] ->
 		true
@@ -5035,11 +5184,12 @@ existential_lookup(multi_store(StoreTypes),Head,PreJoin,VarDict,SuspTerm,State,G
 		member(ST,StoreTypes),
 		existential_lookup(ST,Head,PreJoin,VarDict,SuspTerm,State,Goal,Susp,Pairs,NPairs)
 	)).
-existential_lookup(multi_hash(Indexes),Head,_PreJoin,VarDict,SuspTerm,State,Goal,Susp,Pairs,NPairs) :- !,
+existential_lookup(multi_inthash(Indexes),Head,_PreJoin,VarDict,SuspTerm,State,Goal,Susp,Pairs,NPairs) :- !,
 	once((
 		member(Index,Indexes),
 		multi_hash_key_args(Index,Head,KeyArgs),	
-		translate(KeyArgs,VarDict,KeyArgCopies)
+		(translate(KeyArgs,VarDict,KeyArgCopies) ;
+		 ground(KeyArgs), KeyArgCopies = KeyArgs )
 	)),
 	( KeyArgCopies = [KeyCopy] ->
 		true
@@ -5050,23 +5200,52 @@ existential_lookup(multi_hash(Indexes),Head,_PreJoin,VarDict,SuspTerm,State,Goal
 	multi_hash_via_lookup_name(F/A,Index,ViaName),
 	LookupGoal =.. [ViaName,KeyCopy,AllSusps],
 	create_get_mutable_ref(active,State,GetMutable),
+	sbag_member_call(Susp,AllSusps,Sbag),
 	Goal =	(
 			LookupGoal,
-			'chr sbag_member'(Susp,AllSusps),
-			Susp = SuspTerm,
+			Sbag,
+			Susp = SuspTerm,		% not inlined
+			GetMutable
+		),
+	hash_index_filter(Pairs,Index,NPairs),
+	update_store_type(F/A,multi_inthash([Index])).
+existential_lookup(multi_hash(Indexes),Head,_PreJoin,VarDict,SuspTerm,State,Goal,Susp,Pairs,NPairs) :- !,
+	once((
+		member(Index,Indexes),
+		multi_hash_key_args(Index,Head,KeyArgs),	
+		(translate(KeyArgs,VarDict,KeyArgCopies) ;
+		 ground(KeyArgs), KeyArgCopies = KeyArgs )
+	)),
+	( KeyArgCopies = [KeyCopy] ->
+		true
+	;
+		KeyCopy =.. [k|KeyArgCopies]
+	),
+	functor(Head,F,A),
+	multi_hash_via_lookup_name(F/A,Index,ViaName),
+	LookupGoal =.. [ViaName,KeyCopy,AllSusps],
+	sbag_member_call(Susp,AllSusps,Sbag),
+	create_get_mutable_ref(active,State,GetMutable),
+	Goal =	(
+			LookupGoal,
+			Sbag,
+			Susp = SuspTerm,		% not inlined
 			GetMutable
 		),
 	hash_index_filter(Pairs,Index,NPairs),
 	update_store_type(F/A,multi_hash([Index])).
 existential_lookup(StoreType,Head,PreJoin,VarDict,SuspTerm,State,Goal,Susp,Pairs,Pairs) :-
 	lookup_passive_head(StoreType,Head,PreJoin,VarDict,UGoal,Susps),	
+	sbag_member_call(Susp,Susps,Sbag),
 	create_get_mutable_ref(active,State,GetMutable),
 	Goal =	(
 			UGoal,
-			'chr sbag_member'(Susp,Susps),
-			Susp = SuspTerm,
+			Sbag,
+			Susp = SuspTerm,		% not inlined
 			GetMutable
 		).
+
+
 
 hash_index_filter(Pairs,Index,NPairs) :-
 	( integer(Index) ->
@@ -5104,7 +5283,19 @@ assume_constraint_stores([C|Cs]) :-
 		  all_distinct_var_args(Pattern), Key == [] ->
 			assumed_store_type(C,global_singleton)
 		;
+		    ( get_constraint_type(C,Type),
+		    findall(Index,(sublist(Index,IndexedArgs), Index = [I],
+		    nth(I,Type,dense_int)),IndexesA),
+		    IndexesA \== [] ->
+			list_difference_eq(Indexes,IndexesA,IndexesB),
+			( IndexesB \== [] ->
+			    assumed_store_type(C,multi_store([multi_inthash(IndexesA),multi_hash(IndexesB),global_ground]))	
+			;
+			    assumed_store_type(C,multi_store([multi_inthash(IndexesA),global_ground]))	
+			)
+		    ;
 			assumed_store_type(C,multi_store([multi_hash(Indexes),global_ground]))	
+		    )
 		)
 	;
 		true
@@ -5290,7 +5481,8 @@ ai_not_observed(C,O) \ ai_is_observed(C,O) <=> fail.
 ai_is_observed(_,_) <=> true.
 
 ai_observation_analysis(ACs) :-
-    ( chr_pp_flag(ai_observation_analysis,on) ->
+    ( chr_pp_flag(ai_observation_analysis,on),
+	get_target_module(Module), Module \== chr_translate ->
 	list_to_ord_set(ACs,ACSet),
 	abstract_constraints(ACs),
 	ai_observation_schedule_initial_calls(ACs)
@@ -5374,24 +5566,40 @@ call_pattern(odom(AC,Set)), abstract_constraints(ACs)
 		call_pattern(CP),
 		depends_on(odom(AC,Set),CP).
 
+	% AbstractSimplify (passive)
+call_pattern(odom(occ(C,O),Set)), abstract_constraints(ACs), occurrence(C,O,RuleNb,ID), rule(RuleNb,Rule)
+==>
+	Rule = pragma(rule(H1,H2,G,Body),ids(IDs1,_),_,_,_),
+	memberchk_eq(ID,IDs1), is_passive(RuleNb,ID) |
+%	 writeln('  - AbstractSimplify(passive)'(C,O)),
+	% DEFAULT
+	NO is O + 1,
+	DCP = odom(occ(C,NO),Set),
+	call_pattern(DCP),
+%	final_answer_pattern(odom(occ(C,O),Set),odom([],Set)),
+	depends_on(odom(occ(C,O),Set),DCP).
+
+
 	% AbstractSimplify
 call_pattern(odom(occ(C,O),Set)), abstract_constraints(ACs), occurrence(C,O,RuleNb,ID), rule(RuleNb,Rule) ==>
 	Rule = pragma(rule(H1,H2,G,Body),ids(IDs1,_),_,_,_),
-	memberchk_eq(ID,IDs1) |
-	% writeln('  - AbstractSimplify'),
+	memberchk_eq(ID,IDs1), \+ is_passive(RuleNb,ID) |
+%	 writeln('  - AbstractSimplify'(C,O)),
 	% SIMPLIFICATION
 	select2(ID,_,IDs1,H1,_,RestH1),
 	ai_observation_abstract_constraints(RestH1,ACs,ARestHeads),
 	ai_observation_observe_list(odom([],Set),ARestHeads,odom([],Set1)),
 	ai_observation_abstract_constraints(H2,ACs,AH2),
 	ai_observation_observe_list(odom([],Set1),AH2,odom([],Set2)),
-	ai_observation_abstract_goal(Body,ACs,AG),
+	ai_observation_abstract_goal_(H1,H2,G,Body,ACs,AG),
 	call_pattern(odom(AG,Set2)),
 	% DEFAULT
 	NO is O + 1,
 	DCP = odom(occ(C,NO),Set),
 	call_pattern(DCP),
-	depends_on_as(odom(occ(C,O),Set),odom(AG,Set2),DCP).
+	depends_on_as(odom(occ(C,O),Set),odom(AG,Set2),DCP),
+	% DEADLOCK AVOIDANCE
+	final_answer_pattern(odom(occ(C,O),Set),odom([],Set)).
 
 depends_on_as(CP,CPS,CPD),
 	final_answer_pattern(CPS,APS),
@@ -5399,12 +5607,25 @@ depends_on_as(CP,CPS,CPD),
 	ai_observation_lub(APS,APD,AP),
 	final_answer_pattern(CP,AP).	
 
+	% AbstractPropagate (passive)
+call_pattern(odom(occ(C,O),Set)), abstract_constraints(ACs), occurrence(C,O,RuleNb,ID), rule(RuleNb,Rule) ==>
+	Rule = pragma(rule(H1,H2,G,Body),ids(_,IDs2),_,_,_),
+	memberchk_eq(ID,IDs2), is_passive(RuleNb,ID)
+	|
+%	 writeln('  - AbstractPropagate (passive)'(C,O)),
+	% DEFAULT
+	NO is O + 1,
+	DCP = odom(occ(C,NO),Set),
+	call_pattern(DCP),
+	final_answer_pattern(odom(occ(C,O),Set),odom([],Set)),
+	depends_on(odom(occ(C,O),Set),DCP).
+
 	% AbstractPropagate
 call_pattern(odom(occ(C,O),Set)), abstract_constraints(ACs), occurrence(C,O,RuleNb,ID), rule(RuleNb,Rule) ==>
 	Rule = pragma(rule(H1,H2,G,Body),ids(_,IDs2),_,_,_),
-	memberchk_eq(ID,IDs2)
+	memberchk_eq(ID,IDs2), \+ is_passive(RuleNb,ID)
 	|
-	% writeln('  - AbstractPropagate'),
+%	 writeln('  - AbstractPropagate'(C,O)),
 	% observe partners
 	select2(ID,_,IDs2,H2,_,RestH2),
 	ai_observation_abstract_constraints(RestH2,ACs,ARestHeads),
@@ -5412,7 +5633,7 @@ call_pattern(odom(occ(C,O),Set)), abstract_constraints(ACs), occurrence(C,O,Rule
 	ai_observation_abstract_constraints(H1,ACs,AH1),
 	ai_observation_observe_list(odom([],Set1),AH1,odom([],Set2)),
 	ord_add_element(Set2,C,Set3),
-	ai_observation_abstract_goal(Body,ACs,AG),
+	ai_observation_abstract_goal_(H1,H2,G,Body,ACs,AG),
 	call_pattern(odom(AG,Set3)),
 	( ord_memberchk(C,Set2) ->
 		Delete = no
@@ -5469,24 +5690,47 @@ ai_observation_abstract_constraint(C,ACs,AC) :-
 ai_observation_abstract_constraints(Cs,ACs,NACs) :-
 	findall(NAC,(member(C,Cs),ai_observation_abstract_constraint(C,ACs,NAC)),NACs).
 
-ai_observation_abstract_goal(G,ACs,AG) :-
-	ai_observation_abstract_goal(G,ACs,AG,[]).
+ai_observation_abstract_goal_(H1,H2,Guard,G,ACs,AG) :-
+	% also guard: e.g. b, c(X) ==> Y=X | p(Y).
+	term_variables((H1,H2,Guard),HVars),
+	append(H1,H2,Heads),
+	% variables that are declared to be ground are safe,
+	ground_vars(Heads,GroundVars),	
+	% so we remove them from the list of 'dangerous' head variables
+	list_difference_eq(HVars,GroundVars,HV),
+	ai_observation_abstract_goal(G,ACs,AG,[],HV),!.
+	% HV are 'dangerous' variables, all others are fresh and safe
+	
+ground_vars([],[]).
+ground_vars([H|Hs],GroundVars) :-
+	functor(H,F,A),
+	get_constraint_mode(F/A,Mode),
+	head_info(H,A,_Vars,_Susp,_HeadVars,HeadPairs),
+	head_arg_matches(HeadPairs,Mode,[],_FirstMatching,_VarDict1,[],GroundVars1),
+	ground_vars(Hs,GroundVars2),
+	append(GroundVars1,GroundVars2,GroundVars).
 
-ai_observation_abstract_goal((G1,G2),ACs,List,Tail) :- !,	% conjunction
-	ai_observation_abstract_goal(G1,ACs,List,IntermediateList),
-	ai_observation_abstract_goal(G2,ACs,IntermediateList,Tail).
-ai_observation_abstract_goal((G1;G2),ACs,List,Tail) :- !,   	% disjunction
-	ai_observation_abstract_goal(G1,ACs,List,IntermediateList),
-	ai_observation_abstract_goal(G2,ACs,IntermediateList,Tail).
-ai_observation_abstract_goal((G1->G2),ACs,List,Tail) :- !,  	% if-then
-	ai_observation_abstract_goal(G1,ACs,List,IntermediateList),
-	ai_observation_abstract_goal(G2,ACs,IntermediateList,Tail).
-ai_observation_abstract_goal(C,ACs,[AC|Tail],Tail) :-	   	
+ai_observation_abstract_goal((G1,G2),ACs,List,Tail,HV) :- !,	% conjunction
+	ai_observation_abstract_goal(G1,ACs,List,IntermediateList,HV),
+	ai_observation_abstract_goal(G2,ACs,IntermediateList,Tail,HV).
+ai_observation_abstract_goal((G1;G2),ACs,List,Tail,HV) :- !,   	% disjunction
+	ai_observation_abstract_goal(G1,ACs,List,IntermediateList,HV),
+	ai_observation_abstract_goal(G2,ACs,IntermediateList,Tail,HV).
+ai_observation_abstract_goal((G1->G2),ACs,List,Tail,HV) :- !,  	% if-then
+	ai_observation_abstract_goal(G1,ACs,List,IntermediateList,HV),
+	ai_observation_abstract_goal(G2,ACs,IntermediateList,Tail,HV).
+ai_observation_abstract_goal(C,ACs,[AC|Tail],Tail,HV) :-	   	
 	ai_observation_abstract_constraint(C,ACs,AC), !.	% CHR constraint
-ai_observation_abstract_goal(true,_,Tail,Tail) :- !.
-ai_observation_abstract_goal(writeln(_),_,Tail,Tail) :- !.
-ai_observation_abstract_goal(G,_,[AG|Tail],Tail) :-
-	AG = builtin. % default case if goal is not recognized
+ai_observation_abstract_goal(true,_,Tail,Tail,_) :- !.
+ai_observation_abstract_goal(writeln(_),_,Tail,Tail,_) :- !.
+% non-CHR constraint is safe if it only binds fresh variables
+ai_observation_abstract_goal(G,_,Tail,Tail,HV) :- 
+	binds_b(G,Vars),
+	intersect_eq(Vars,HV,[]), 
+%	writeln(safe(G)),
+	!.	
+ai_observation_abstract_goal(G,_,[AG|Tail],Tail,_) :-
+	AG = builtin. % default case if goal is not recognized/safe
 
 ai_observation_is_observed(odom(_,ACSet),AC) :-
 	\+ ord_memberchk(AC,ACSet).
