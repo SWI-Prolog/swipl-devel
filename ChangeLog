@@ -7,7 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: Handle exceptions from arithmetic functions.  Mauro Di Nuzzo.
+  * FIXED: Handle exceptions from arithmetic functions defined in Prolog.
+    Mauro Di Nuzzo.
 
 ==============================
 VERSION 5.6.7 (March 08, 2006)
@@ -19,10 +20,9 @@ VERSION 5.6.7 (March 08, 2006)
     Mike Elston.
 
   * PORT: Float issues on Alpha.  Roberto Bagnara.  Also found a bug in
-    GCC 4.0.2 on Alpha/Linux.  Reported to GCC bugzilla.  Work-around at
-http://gollem.science.uva.nl/SWI-Prolog/mailinglist/archive/2006/q1/0234.html
-    Turned out to be a bug in the kernel headers.  Uncomment HAVE_GETTID
-    in config.h on systems with 2.4 kernels.
+    GCC 4.0.2 on Alpha/Linux.  Reported to GCC bugzilla. Turned out to
+    be a bug in the kernel headers.  Uncomment HAVE_GETTID in config.h
+    on systems with 2.4 kernels.
 
   * ADDED: allow `repairing' undefined global variables.  After discussion
     on mailinglist.
@@ -47,7 +47,7 @@ VERSION 5.6.5 (February 16, 2006)
   * MODIFIED: various internals in library(prolog_stack).  Code relying on
     the Prolog structure for representing the stack must be updated.
 
-  * FIXED: incompatibility in GCD handling introduced by recent changes.
+  * FIXED: incompatibility in DCG handling introduced by recent changes.
 
   * ADDED: prolog_exception_hook/4: add context to exceptions.  After
     discussion on the mailinglist.
