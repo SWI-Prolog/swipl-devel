@@ -640,7 +640,7 @@ Call tdebug/1 in all running threads.
     \predicate{tnodebug}{1}{+ThreadId}
 Disable debugging thread \arg{ThreadId}.
 
-    \predicate{tnodebug}
+    \predicate{tnodebug}{0}{}
 Disable debugging in all threads.
 
     \predicate{tspy}{2}{:Spec, +ThreadId}
