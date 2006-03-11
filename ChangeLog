@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Kill xterms associated with threads on halt.
+
   * PORT: port open_xterm/4 to MacOS X.
 
   * ADDED: Moved thread-debugging utilities from SeRQL library to main
