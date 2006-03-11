@@ -250,6 +250,9 @@ suggest predicates from a keyword.
 \predicatesummary{getenv}{2}{Get shell environment variable}
 \predicatesummary{goal_expansion}{2}{Hook for macro-expanding goals}
 \predicatesummary{ground}{1}{Verify term holds no unbound variables}
+\predicatesummary{gdebug}{0}{Debug using graphical tracer}
+\predicatesummary{gspy}{1}{Spy using graphical tracer}
+\predicatesummary{gtrace}{0}{Trace using graphical tracer}
 \predicatesummary{guitracer}{0}{Install hooks for the graphical debugger}
 \predicatesummary{halt}{0}{Exit from Prolog}
 \predicatesummary{halt}{1}{Exit from Prolog with status}

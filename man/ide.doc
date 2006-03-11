@@ -630,6 +630,15 @@ command \menu{Prolog/Break at}{Control-c b}.
     \predicate{noguitracer}{0}{}
 Disable the hooks installed by guitracer/0, reverting to normal
 text-console based tracing.
+
+    \predicate{gtrace}{0}{}
+Utility defined as \exam{guitracer,trace}.
+
+    \predicate{gdebug}{0}{}
+Utility defined as \exam{guitracer,debug}.
+
+    \predicate{gspy}{1}{+Predicate}
+Utility defined as \exam{guitracer,spy(Predicate)}.
 \end{description}
 
 \section{The Prolog Navigator}		\label{sec:navigator}
