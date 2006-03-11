@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -33,8 +33,19 @@
 	  [ thread_run_interactor/0,	% interactor main loop
 	    threads/0,			% List available threads
 	    interactor/0,		% Create a new interactor
-	    attach_console/0		% Create an xterm-console for thread.
+	    attach_console/0,		% Create an xterm-console for thread.
+
+	    tspy/1,			% :Spec
+	    tspy/2,			% :Spec, +ThreadId
+	    tdebug/0,
+	    tdebug/1,			% +ThreadId
+	    tnodebug/0,
+	    tnodebug/1,			% +ThreadId
+	    tprofile/1			% +ThreadId
 	  ]).
+
+:- module_transparent
+	tspy/1.
 
 %	threads
 %
@@ -128,7 +139,76 @@ detach_console(Id) :-
 	catch(close(Out), _, true),
 	catch(close(Err), _, true).
 
+
+		 /*******************************
+		 *	    DEBUGGING		*
+		 *******************************/
 		
+%	tspy(:Spec)
+%	tspy(:Spec, +ThreadId
+%	
+%	Trap the graphical debugger on reaching Spec in the specified or
+%	any thread.
+
+tspy(Spec) :-
+	spy(Spec),
+	tdebug.
+
+tspy(Spec, ThreadID) :-
+	spy(Spec),
+	tdebug(ThreadID).
+
+
+%	tdebug
+%	tdebug(+Thread)
+%	
+%	Enable debug-mode, trapping the graphical debugger on reaching
+%	spy-points or errors.
+
+tdebug :-
+	forall(current_thread(Id, running),
+	       thread_signal(Id, debug)).
+
+tdebug(ThreadID) :-
+	thread_signal(ThreadID, debug).
+
+
+%	tnodebug
+%	tnodebug(+Thread)
+%	
+%	Disable debug-mode in all threads or the specified Thread.
+
+tnodebug :-
+	forall(current_thread(Id, running),
+	       thread_signal(Id, nodebug)).
+
+tnodebug(ThreadID) :-
+	thread_signal(ThreadID, nodebug).
+
+
+		 /*******************************
+		 *	 REMOTE PROFILING	*
+		 *******************************/
+
+%	tprofile(+Thread)
+%	
+%	Profile the operation of Thread until the user hits a key.
+
+tprofile(Thread) :-
+	thread_signal(Thread, 
+		      (	  reset_profiler,
+			  profiler(_, true)
+		      )),
+	format('Running profiler in thread ~w (press return to store) ...',
+	       [Thread]),
+	flush_output,
+	get0(_),
+	thread_signal(Thread,
+		      (	  profiler(_, false),
+			  show_profile(plain, 25)
+		      )).
+
+
 		 /*******************************
 		 *	       HOOKS		*
 		 *******************************/
