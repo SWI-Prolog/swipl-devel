@@ -45,7 +45,8 @@
 	  ]).
 
 :- module_transparent
-	tspy/1.
+	tspy/1,
+	tspy/2.
 
 %	threads
 %
@@ -167,11 +168,10 @@ tspy(Spec, ThreadID) :-
 
 tdebug :-
 	forall(current_thread(Id, running),
-	       thread_signal(Id, debug)).
+	       thread_signal(Id, gdebug)).
 
 tdebug(ThreadID) :-
-	thread_signal(ThreadID, debug).
-
+	thread_signal(ThreadID, gdebug).
 
 %	tnodebug
 %	tnodebug(+Thread)

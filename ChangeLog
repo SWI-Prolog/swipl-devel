@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: port open_xterm/4 to MacOS X.
+
   * ADDED: Moved thread-debugging utilities from SeRQL library to main
     library and documented them.  gdebug, tdebug, tnodebug, tspy, tprofile.
     See chapter on threads for details.

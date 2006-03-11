@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,7 @@
 #endif
 
 #include "pl-incl.h"
-#if defined(HAVE_GRANTPT) && defined(HAVE_SYS_STROPTS_H) && defined(O_PLMT)
+#if defined(HAVE_GRANTPT) && defined(O_PLMT)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Open an alternative  xterm-console.  Used   to  support  multi-threading
@@ -47,7 +47,9 @@ anyway we use this as an alternative test.
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#ifdef HAVE_SYS_STROPTS_H
 #include <sys/stropts.h>	/* needed for ioctl(fd, I_PUSH, "..") */
+#endif
 #include <termios.h>
 #include <signal.h>
  
@@ -143,15 +145,29 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err)
   char *titlechars;
 
   if ( !PL_get_chars(title, &titlechars, CVT_ALL) )
-    return PL_error("open_xterm", 3, NULL, ERR_TYPE, ATOM_text, title);
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, title);
 
-  master = open("/dev/ptmx", O_RDWR);
+#ifdef HAVE_POSIX_OPENPT
+  if ( (master = posix_openpt(O_RDWR)) < 0 )
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "posix_openpt");
+#else
+  if ( (master = open("/dev/ptmx", O_RDWR)) < 0 )
+  { term_t file = PL_new_term_ref();
+
+    PL_put_atom_chars(file, "/dev/ptmx");
+    return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
+		    ATOM_open, ATOM_file, file);
+  }
+#endif
+
   grantpt(master);                             
   unlockpt(master);
   slavename = ptsname(master);
   slave = open(slavename, O_RDWR);
+#ifdef HAVE_SYS_STROPTS_H
   ioctl(slave, I_PUSH, "ptem"); 
   ioctl(slave, I_PUSH, "ldterm");
+#endif
  
   tcgetattr(slave, &termio);
   termio.c_lflag &= ~ECHO;
