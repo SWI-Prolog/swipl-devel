@@ -37,9 +37,7 @@ multi-threading asks for a modern Unix   version  anyhow, this should be
 ok.
 
 In principle, asking for  HAVE_GRANTPT  should   do,  but  I  don't want
-portability problems for users of   the  single-threaded version. Cygwin
-doesn't provide <sys/stropts.h> and as it is   of  little use for Cygwin
-anyway we use this as an alternative test.
+portability problems for users of   the  single-threaded version.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <stdio.h>
@@ -90,13 +88,29 @@ Xterm_write(void *handle, char *buffer, int count)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Normally we kill the xterm if all   file-descriptors  are closed. If the
+thread  cannot  be  killed  however,   dieIO()    will   kill  only  the
+file-descriptors that are not in use and may   fail to kill all of them.
+Therefore we kill on the first occasion.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 Xterm_close(void *handle)
 { xterm *xt = handle;
 
+  DEBUG(1, Sdprintf("Closing xterm-handle (count = %d)\n", xt->count));
+
+  if ( GD->cleaning != CLN_NORMAL && xt->pid )
+  { kill(xt->pid, SIGKILL);
+    xt->pid = 0;
+  }
+
   if ( --xt->count == 0 )
   { close(xt->fd);
-    kill(xt->pid, SIGKILL);
+    if ( xt->pid )
+      kill(xt->pid, SIGKILL);
+    freeHeap(xt, sizeof(*xt));
   }
   
   return 0;
