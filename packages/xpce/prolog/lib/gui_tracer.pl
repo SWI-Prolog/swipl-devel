@@ -34,7 +34,8 @@
 	    noguitracer/0,		% Switch it off
 	    prolog_break_at/3,		% +File, +Line, +Pos
 	    gtrace/0,			% Start tracer and trace
-	    gspy/1			% Start tracer and set spypoint
+	    gspy/1,			% Start tracer and set spypoint
+	    gdebug/0			% Start tracer and debug
 	  ]).
 
 :- module_transparent
@@ -80,6 +81,14 @@ gtrace :-
 gspy(Predicate) :-
 	guitracer,
 	spy(Predicate).
+
+%	gdebug
+%	
+%	Like debug/0, but uses the graphical tracer.
+
+gdebug :-
+	guitracer,
+	debug.
 
 %	prolog_break_at(+File, +Line, +Pos)
 %
