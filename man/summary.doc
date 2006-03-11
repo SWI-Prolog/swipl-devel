@@ -509,6 +509,8 @@ suggest predicates from a keyword.
 \predicatesummary{swritef}{3}{Formatted write on a string}
 \predicatesummary{tab}{1}{Output number of spaces}
 \predicatesummary{tab}{2}{Output number of spaces on a stream}
+\predicatesummary{tdebug}{0}{Switch all threads into debug mode}
+\predicatesummary{tdebug}{1}{Switch a thread into debug mode}
 \predicatesummary{tell}{1}{Change current output stream}
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
@@ -534,13 +536,18 @@ suggest predicates from a keyword.
 \predicatesummary{time}{1}{Determine time needed to execute goal}
 \predicatesummary{time_file}{2}{Get last modification time of file}
 \predicatesummary{tmp_file}{2}{Create a temporary filename}
+\predicatesummary{tnodebug}{0}{Switch off debug mode in all threads}
+\predicatesummary{tnodebug}{1}{Switch off debug mode in a thread}
 \predicatesummary{told}{0}{Close current output}
+\predicatesummary{tprofile}{1}{Profile a thread for some period}
 \predicatesummary{trace}{0}{Start the tracer}
 \predicatesummary{trace}{1}{Set trace-point on predicate}
 \predicatesummary{trace}{2}{Set/Clear trace-point on ports}
 \predicatesummary{tracing}{0}{Query status of the tracer}
 \predicatesummary{trim_stacks}{0}{Release unused memory resources}
 \predicatesummary{true}{0}{Succeed}
+\predicatesummary{tspy}{1}{Set spy point and enable debugging in all threads}
+\predicatesummary{tspy}{2}{Set spy point and enable debugging in a thread}
 \predicatesummary{tty_get_capability}{3}{Get terminal parameter}
 \predicatesummary{tty_goto}{2}{Goto position on screen}
 \predicatesummary{tty_put}{2}{Write control string to terminal}

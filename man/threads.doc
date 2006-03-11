@@ -595,7 +595,21 @@ joined to reclaim their resources.
 Create a new console and run the Prolog toplevel in this new console.
 See also attach_console/0.  In the Windows version a new interactor
 can also be created from the {\sf Run/New thread} menu.
+\end{description}
 
+
+\subsection{Debugging threads}
+\label{sec:threaddebug}
+
+Support for debugging threads is still very limited. Debug and trace
+mode are flags that are local to each thread. Individual threads can be
+debugged either using the graphical debugger described in
+\secref{guitracer} (see tspy/1 and friends) or by attaching a console to
+the thread and running the traditional commandline debugger (see
+attach_console/0).
+
+
+\begin{description}
     \predicate{attach_console}{0}{}
 If the current thread has no console attached yet, attach one and
 redirect the user streams (input, output, and error) to the new console
@@ -611,6 +625,51 @@ following sequence starts the tracer on this thread:
 \begin{code}
 ?- thread_signal(10, (attach_console, trace)).
 \end{code}
+
+    \predicate{tdebug}{1}{+ThreadId}
+Prepare \arg{ThreadId} for debugging using the graphical tracer.  This
+implies installing the tracer hooks in the thread and switching the
+thread to debug-mode using debug/0.  The call is injected into the
+thread using thread_signal/2.  We refer to the documentation of this
+predicate for asynchronous interaction with threads.  New threads
+created inherit their debugmode from the thread that created them.
+
+    \predicate{tdebug}{0}{}
+Call tdebug/1 in all running threads.
+
+    \predicate{tnodebug}{1}{+ThreadId}
+Disable debugging thread \arg{ThreadId}.
+
+    \predicate{tnodebug}
+Disable debugging in all threads.
+
+    \predicate{tspy}{2}{:Spec, +ThreadId}
+Set a spy-point as spy/1 and enable the thread for debugging using
+tdebug/1.  Note that a spy-point is a global flag on a predicate that
+is visible from all threads.  Spy points are honoured in all threads
+that are in debug-mode and ignored in threads that are in nodebug
+mode.
+
+    \predicate{tspy}{1}{:Spec}
+Set a spy-point as spy/1 and enable debugging in all threads using
+tdebug/0.  Note that removing spy-points can be done using nospy/1.
+Disabling spy-points in	a specific thread is achieved by tnodebug/1.
+\end{description}
+
+\subsection{Profiling threads}
+\label{sec:tprofile}
+
+In the current implementation, at most one thread can be profiled at
+any moment.  Any thread can call profile/1 to profile the execution
+of some part of its code.  The predicate tprofile/1 allows for profiling
+the execution of another thread until the user stops collecting profile
+data.
+
+\begin{description}
+    \predicate{tprofile}{1}{+ThreadId}
+Start collecting profile data in \arg{ThreadId} and ask the user to hit
+<return> to stop the profiler.  See \secref{profile} for details on the
+execution profiler.
 \end{description}
 
 
