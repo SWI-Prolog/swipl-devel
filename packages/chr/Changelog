@@ -1,14 +1,18 @@
+Mar 11, 2006
+  
+  * TS: Renamed global variable id to chr_id in chr_runtime.pl.
+
 Mar 9, 2006
   * JS: Synchronization with experimental version:
         - minor optimizations, e.g. efficient lookups with statically known
-          instantiated data
+          instantiated data 
         - new alternative syntax for passive declarations
 	- new dense_int built-in type + underlying store
 	- new type alias definitions, like in Mercury
 
 Mar 4, 2006
   * BD: small changes in chr_compiler_options.pl and chr_translate.chr
-	affecting only the SICStus port
+ 	affecting only the SICStus port
 
 Mar 3, 2006
   * BD: lots of changes related to porting to SICStus

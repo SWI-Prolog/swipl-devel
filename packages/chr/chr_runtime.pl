@@ -147,13 +147,13 @@ user:exception(undefined_global_variable, Name, retry) :-
 	chr_runtime_global_variable(Name),
 	chr_init.
 
-chr_runtime_global_variable(id).
+chr_runtime_global_variable(chr_id).
 chr_runtime_global_variable(chr_global).
 chr_runtime_global_variable(chr_debug).
 chr_runtime_global_variable(chr_debug_history).
 
 chr_init :-
-	nb_setval(id,0),
+	nb_setval(chr_id,0),
 	nb_setval(chr_global,_),
 	nb_setval(chr_debug,mutable(off)),          % XXX
 	nb_setval(chr_debug_history,mutable([],0)). % XXX
@@ -161,7 +161,7 @@ chr_init :-
 
 %% SICStus begin
 %% chr_init :-
-%% 	        nb_setval(id,0).
+%% 	        nb_setval(chr_id,0).
 %% SICStus end
 
 :- initialization chr_init.
@@ -512,9 +512,9 @@ insert_constraint_internal([Global|Vars], Self, Term, Closure, F, Args) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr gen_id'( Id) :-
-	nb_getval(id,Id),
+	nb_getval(chr_id,Id),
 	NextId is Id + 1,
-	nb_setval(id,NextId).
+	nb_setval(chr_id,NextId).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
