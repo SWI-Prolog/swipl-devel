@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Moved thread-debugging utilities from SeRQL library to main
+    library and documented them.  gdebug, tdebug, tnodebug, tspy, tprofile.
+    See chapter on threads for details.
+
   * FIXED: Handle exceptions from arithmetic functions defined in Prolog.
     Mauro Di Nuzzo.
 
