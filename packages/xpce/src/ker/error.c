@@ -395,6 +395,8 @@ static const error_def errors[] =
     "%N: Failed to convert program default %O" },
   { NAME_winMetafile, 		ET_WARNING,
     "%O: API operation %s failed: %s" },
+  { NAME_x11Threads, 		ET_WARNING,
+    "%O: Cannot change X11 threading: display is already open" },
 
 					/* Save/Load */
   { NAME_newSaveVersion,	ET_IGNORED|EF_PRINT,

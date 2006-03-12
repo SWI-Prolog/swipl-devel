@@ -1167,6 +1167,8 @@ static senddecl send_display[] =
 #ifndef WIN32_GRAPHICS
   SM(NAME_metaModifier, 1, "name", metaModifierDisplay,
      NAME_x, "Set the X modifier that is associated with META-"),
+  SM(NAME_x11Threads, 1, "bool", X11ThreadsDisplay,
+     NAME_x, "Setup X11 of multi-threading?"),
 #endif
   SM(NAME_screenSaver, 1, "bool", screenSaverDisplay,
      NAME_x, "Activate (@on) or deactivate (@off) screensaver")

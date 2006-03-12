@@ -31,6 +31,7 @@
 #include <msw/msproto.h>
 #else
 COMMON(status)	metaModifierDisplay(DisplayObj d, Name name);
+COMMON(status)	X11ThreadsDisplay(DisplayObj d, Bool val);
 #endif
 
 

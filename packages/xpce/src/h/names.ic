@@ -2367,6 +2367,7 @@
   BUILTIN_NAME("write_ln")
   BUILTIN_NAME("ws_ref")
   BUILTIN_NAME("x")
+  BUILTIN_NAME("x11_threads")
   BUILTIN_NAME("x11_wheel_mouse")
   BUILTIN_NAME("x_caret")
   BUILTIN_NAME("x_error")

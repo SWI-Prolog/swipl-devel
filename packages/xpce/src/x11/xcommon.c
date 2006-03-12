@@ -118,6 +118,12 @@ for the Mac.  Here is the stack-trace:
 #8  0x9bdf5934 in XtAppProcessEvent ()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef __APPLE__
+static int use_x_init_threads = TRUE;
+#else
+static int use_x_init_threads = FALSE;
+#endif
+
 void *
 pceXtAppContext(void * ctx)
 { if ( ThePceXtAppContext == NULL )
@@ -126,15 +132,15 @@ pceXtAppContext(void * ctx)
       XSetErrorHandler(x_error_handler);
     } else
     { 
-#ifndef __APPLE__			/* See above (*) */
 #if defined(_REENTRANT) && defined(HAVE_XINITTHREADS)
       if ( XPCE_mt == TRUE )
-	XInitThreads();
-      else
-	XPCE_mt = -1;
+      { if ( use_x_init_threads )
+	  XInitThreads();
+      } else
+      { XPCE_mt = -1;
+      }
 #else
 	XPCE_mt = -1;
-#endif
 #endif
 
       XtToolkitInitialize();
@@ -155,6 +161,18 @@ pceXtAppContext(void * ctx)
 
   return ThePceXtAppContext;
 }
+
+
+status
+X11ThreadsDisplay(DisplayObj d, Bool val)
+{ if ( ThePceXtAppContext )
+    return errorPce(d, NAME_x11Threads);
+
+  use_x_init_threads = (val == ON ? TRUE : FALSE);
+
+  succeed;
+}
+
 
 		 /*******************************
 		 *	 WIDGET REFERENCE	*
