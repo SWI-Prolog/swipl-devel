@@ -1039,8 +1039,9 @@ new_caret_position(M, NewCaret:int) :->
 	"Mark variables around caret"::
 	send_super(M, new_caret_position, NewCaret),
 	(   get(M, varmark_style, Style),
-	    Style \== @nil
-	->  send(M, mark_variable, @on)
+	    Style \== @nil,
+	    send(M, mark_variable, @on),
+	    true
 	;   true
 	).
 
