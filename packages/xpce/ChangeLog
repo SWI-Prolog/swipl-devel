@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.8, distributed with SWI-Prolog 5.6.8
+================================================
+
 * ADDED: display->x11_threads.  Provides a work-around for MacOS X11
   problems.
 

@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==============================
+VERSION 5.6.8 (March 12, 2006)
+==============================
+
   * FIXED: Kill xterms associated with threads on halt.
 
   * PORT: port open_xterm/4 to MacOS X.
