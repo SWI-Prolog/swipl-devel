@@ -785,11 +785,15 @@ add_base_url(Options, File, [base_uri(Base)|Options]) :-
 %	the source from the database.
 
 rdf_unload(Spec) :-
-	(   is_stream(Spec)
+	(   (   is_stream(Spec)
+	    ;   Spec = stream(_)
+	    )
 	->  throw(error(permission_error(rdf_db, unload, Spec), _))
 	;   atom(Spec),
 	    rdf_statistics_(triples(Spec, _)),
-	    rdf(_,_,_,Spec)
+	    (	rdf(_,_,_,Spec)
+	    ;   rdf(_,_,_,Spec:_)
+	    )
 	->  do_unload(Spec)
 	;   absolute_file_name(Spec,
 			       [ access(read),
