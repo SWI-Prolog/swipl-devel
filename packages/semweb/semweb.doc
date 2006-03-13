@@ -1102,7 +1102,7 @@ Matches all literals containing the given token.  See tokenize_atom/2
 of the NLP package for details.
     \end{description}
 
-    \predicate{rdf_token_expansions}{+Spec, -Expansions}
+    \predicate{rdf_token_expansions}{2}{+Spec, -Expansions}
 Uses the same database as rdf_find_literals/2 to find possible
 expansions of \arg{Spec}, i.e.\ which words `sound like', `have prefix',
 etc. \arg{Spec} is a compound expression as in rdf_find_literals/2.
@@ -1124,7 +1124,6 @@ L = [sounds(rembrandt, ['Rambrandt', 'Reimbrant', 'Rembradt',
 			'Rembrand', 'Rembrandt', 'Rembrandtsz',
 			'Rembrant', 'Rembrants', 'Rijmbrand'])]
 \end{code}
-\end{description}
 
 Here is another example, illustrating handling of diacritics:
 
@@ -1133,6 +1132,26 @@ Here is another example, illustrating handling of diacritics:
 
 L = [case(cafe, [cafe, caf\'e])]
 \end{alltt}\end{quote}
+
+    \predicate{rdf_tokenize_literal}{2}{+Literal, -Tokens}
+Tokenize a literal, returning a list of atoms and integers in the range
+$-1073741824 \ldots 1073741823$. As tokenization is in general domain
+and task-dependent this predicate first calls the hook
+\term{rdf_litindex:tokenization}{Literal, -Tokens}. On failure it
+calls tokenize_atom/2 from the NLP package and deletes the following:
+atoms of length 1, floats, integers that are out of range and the
+english words \const{and}, \const{an}, \const{or}, \const{of},
+\const{on}, \const{in}, \const{this} and \const{the}.  Deletion first
+calls the hook \term{rdf_litindex:exclude_from_index}{token, X}.  This
+hook is called as follows:
+
+\begin{code}
+no_index_token(X) :-
+	exclude_from_index(token, X), !.
+no_index_token(X) :-
+	...
+\end{code}
+\end{description}
 
 \subsection{Literal maps: Creating additional indices on literals}
 \label{sec:rdflitmap}

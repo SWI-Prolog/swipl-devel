@@ -32,6 +32,7 @@
 
 :- module(rdf_litindex,
 	  [ rdf_set_literal_index_option/1,	% +Options
+	    rdf_tokenize_literal/2,		% +Literal, -Tokens
 	    rdf_find_literals/2,		% +Spec, -ListOfLiterals
 	    rdf_token_expansions/2		% +Spec, -Expansions
 	  ]).
@@ -52,6 +53,10 @@ being flexible to ordering of tokens.
 	setting/1.
 :- volatile
 	literal_map/2.
+:- multifile
+	tokenization/2,			% +Literal, -Tokens
+	exclude_from_index/2.		% +Which, +Token
+
 
 setting(verbose(true)).
 
@@ -325,8 +330,8 @@ monitor_literal(transaction(end, reset)) :-
 %	Associate the tokens of a literal with the literal itself.
 
 register_literal(Literal) :-
-	(   text_of(Literal, Text)
-	->  tokenize_atom(Text, Tokens),
+	(   rdf_tokenize_literal(Literal, Tokens)
+	->  text_of(Literal, Text),
 	    literal_map(tokens, Map),
 	    add_tokens(Tokens, Text, Map)
 	;   true
@@ -334,15 +339,12 @@ register_literal(Literal) :-
 
 add_tokens([], _, _).
 add_tokens([H|T], Literal, Map) :-
-	(   no_index_token(H)
+	(   rdf_keys_in_literal_map(Map, key(H), _)
 	->  true
-	;   (   rdf_keys_in_literal_map(Map, key(H), _)
-	    ->  true
-	    ;   forall(new_token(H), true)
-	    ),
-	    rdf_insert_literal_map(Map, H, Literal),
-	    progress(Map, 'Tokens')
+	;   forall(new_token(H), true)
 	),
+	rdf_insert_literal_map(Map, H, Literal),
+	progress(Map, 'Tokens'),
 	add_tokens(T, Literal, Map).
 
 
@@ -356,7 +358,7 @@ unregister_literal(Literal) :-
 	text_of(Literal, Text),
 	(   rdf(_,_,literal(Text))
 	->  true			% still something left
-	;   tokenize_atom(Text, Tokens),
+	;   rdf_tokenize_literal(Literal, Tokens),
 	    literal_map(tokens, Map),
 	    del_tokens(Tokens, Text, Map)
 	).
@@ -367,6 +369,26 @@ del_tokens([H|T], Literal, Map) :-
 	del_tokens(T, Literal, Map).
 
 
+%	rdf_tokenize_literal(+Literal, -Tokens)
+%	
+%	Tokenize a literal. We make  this   hookable  as tokenization is
+%	generally domain dependent.
+
+rdf_tokenize_literal(Literal, Tokens) :-
+	rdf_tokenization(Literal, Tokens), !. 		% Hook
+rdf_tokenize_literal(Literal, Tokens) :-
+	text_of(Literal, Text),
+	tokenize_atom(Text, Tokens0),
+	select_tokens(Tokens0, Tokens).
+
+select_tokens([], []).
+select_tokens([H|T0], T) :-
+	no_index_token(H), !,
+	select_tokens(T0, T).
+select_tokens([H|T0], [H|T]) :-
+	select_tokens(T0, T).
+
+
 %	no_index_token/1
 %	
 %	Tokens we do not wish to index,   as  they creat huge amounts of
@@ -375,14 +397,14 @@ del_tokens([H|T], Literal, Map) :-
 %	good criterium as it often rules out popular domain terms.
 
 no_index_token(X) :-
+	exclude_from_index(token, X), !.
+no_index_token(X) :-
 	atom_length(X, 1), !.
 no_index_token(X) :-
 	float(X), !.
 no_index_token(X) :-			% TBD: only small integers can
 	integer(X),			% be indexed
-	(   X < -1000000000
-	;   X > 1000000000
-	), !.
+	\+ between(-1073741824, 1073741823, X), !.
 no_index_token(and).
 no_index_token(an).
 no_index_token(or).

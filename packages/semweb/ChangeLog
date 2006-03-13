@@ -1,3 +1,8 @@
+Mar 13, 2006
+
+  * Added rdf_tokenize_literal/2 and hooks to re-use and customize literal
+    tokenization.
+
 Mar 7, 2006
 
   * Completed integration of new AVL implementation.
