@@ -788,7 +788,9 @@ find_atom_map(term_t handle, term_t keys, term_t literals)
       DEBUG(2, Sdprintf("Found atom-set of size %d\n", as[ns].set->size));
       ns++;
     } else if ( !neg )
-    { goto empty;
+    { RDUNLOCK(map);		/* failure on positive literal: empty */
+
+      return PL_unify_nil(literals);
     }
   }
   if ( !PL_get_nil(tail) )
