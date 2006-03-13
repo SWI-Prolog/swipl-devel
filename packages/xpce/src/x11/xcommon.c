@@ -119,9 +119,9 @@ for the Mac.  Here is the stack-trace:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef __APPLE__
-static int use_x_init_threads = TRUE;
-#else
 static int use_x_init_threads = FALSE;
+#else
+static int use_x_init_threads = TRUE;
 #endif
 
 void *
