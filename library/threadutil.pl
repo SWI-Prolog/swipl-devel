@@ -218,6 +218,7 @@ tprofile(Thread) :-
 
 user:message_hook(trace_mode(on), _, Lines) :-
 	\+ has_console,
+	\+ current_prolog_flag(gui_tracer, true),
 	attach_console,
 	print_message_lines(user_error, '% ', Lines).
 	
