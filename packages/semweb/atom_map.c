@@ -947,6 +947,7 @@ rdf_keys_in_literal_map(term_t handle, term_t spec, term_t keys)
 
       return PL_unify_integer(keys, size);
     }
+    goto failure;
   } else if ( (name == ATOM_prefix || name == ATOM_case) && arity == 1 )
   { term_t a = PL_new_term_ref();
     atom_t prefix, first_a;
