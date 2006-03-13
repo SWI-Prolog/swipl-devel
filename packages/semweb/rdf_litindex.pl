@@ -375,7 +375,7 @@ del_tokens([H|T], Literal, Map) :-
 %	generally domain dependent.
 
 rdf_tokenize_literal(Literal, Tokens) :-
-	rdf_tokenization(Literal, Tokens), !. 		% Hook
+	tokenization(Literal, Tokens), !. 		% Hook
 rdf_tokenize_literal(Literal, Tokens) :-
 	text_of(Literal, Text),
 	tokenize_atom(Text, Tokens0),
