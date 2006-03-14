@@ -1,3 +1,7 @@
+Mar 14, 2006
+
+  * Added: rdf_persistency.pl, copied from SeRQL library.
+
 Mar 13, 2006
 
   * Added rdf_tokenize_literal/2 and hooks to re-use and customize literal

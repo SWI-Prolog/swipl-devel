@@ -1275,6 +1275,84 @@ for it.
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	    PERSISTENCY		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Module rdf_persistency}		\label{sec:persistency}
+
+\index{Persistent store}%
+The \pllib{semweb/rdf_persistency} provides reliable persistent storage
+for the RDF data.  The store uses a directory with files for each source
+(see rdf_source/1) present in the database.  Each source is represented
+by two files, one in binary format (see rdf_save_db/2) representing the
+base state and one represented as Prolog terms representing the changes
+made since the base state.  The latter is called the \jargon{journal}.
+
+
+\begin{description}
+    \predicate{rdf_attach_db}{2}{+Directory, +Options}
+Attach \arg{Directory} as the persistent database. If \arg{Directory}
+does not exist it is created. Otherwise all sources defined in the
+directory are loaded into the RDF database. Loading a source means
+loading the base state (if any) and replaying the journal (if any). The
+current implementation does not synchronise triples that are in the
+store before attaching a database. They are not removed from the
+database, nor added to the presistent store. Different merging options
+may be supported through the \arg{Options} argument later. \arg{Options}
+is currently ignored. 
+
+The database is locked against concurrent access using a file
+\file{lock}. An attempt to attach a locked database raises a
+\const{permission_error} exception.
+
+    \predicate{rdf_detach_db}{0}{}
+Detaches the persistent store.  No triples are removed from the RDF
+triple store.
+
+    \predicate{rdf_current_db}{1}{-Directory}
+Unify \arg{Directory} with the current database directory.  Fails if no
+persistent database is attached.
+
+    \predicate{rdf_flush_journals}{1}{+Options}
+Flush dirty journals.  With the option \term{min_size}{KB} only journals
+larger than \arg{KB} Kbytes are merged with the base state.  Flushing a
+journal takes the following steps, ensuring a stable state can be
+recovered at any moment.
+    \begin{enumerate}
+        \item	Save the current database in a new file using the
+		extension \fileext{new}.
+	\item	On success, delete the journal
+	\item	On success, atomically move the \fileext{new} file
+		over the base state.
+    \end{enumerate}
+
+Note that journals are \emph{not} merged automatically for two reasons.
+First of all, some applications may decide never to merge as the journal
+contains a complete \jargon{changelog} of the database.  Second, merging
+large databases can be slow and the application may wish to schedule
+such actions at quiet times or scheduled maintenance periods.
+\end{description}
+
+The above predicates suffice for most applications.  The predicates
+below provide access to the journal files and the base state files
+and are intented to provide additional services, such as reasoning 
+about the journals, loaded files, etc.
+
+\begin{description}
+    \predicate{rdf_journal_file}{2}{?DB, ?JournalFile}
+True if \arg{DB} is a known database that has an active journal in
+\arg{JournalFile}.  Currently the format of the journalfiles is 
+undocumented.  Being Prolog terms they are mostly self-explaining.
+
+    \predicate{rdf_db_to_file}{2}{?DB, ?FileBase}
+Convert between \arg{DB} (see rdf_source/1) and file base-file used
+for storing information on this database.  The full file is located
+in the directory described by rdf_current_db/1 and has the extension
+\fileext{trp} for the base state and \fileext{jrn} for the journal.
+\end{description}
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		 %	       RDFS		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
