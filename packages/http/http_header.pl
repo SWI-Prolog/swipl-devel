@@ -666,20 +666,20 @@ rfc_date(Time) -->
 	  ),
 	  convert_time(T, CDate)
 	},
-	sub(CDate, 1-3), ", ",		% ddd
-	sub0(CDate, 9-2), " ",		% DD
-	sub(CDate, 5-3), " ",		% mmm
-	sub(CDate, 21-4), " ",		% YYYY
-	sub(CDate, 12-8), " GMT".	% HH:MM:SS
+	sub(CDate, 0-3), ", ",		% ddd
+	sub0(CDate, 8-2), " ",		% DD
+	sub(CDate, 4-3), " ",		% mmm
+	sub(CDate, 20-4), " ",		% YYYY
+	sub(CDate, 11-8), " GMT".	% HH:MM:SS
 
 sub(String, From-Len) -->
-	{ substring(String, From, Len, S),
+	{ sub_string(String, From, Len, _, S),
 	  string_to_list(S, Chars)
 	},
 	string(Chars).
 	
 sub0(String, From-Len) -->
-	{ substring(String, From, Len, S),
+	{ sub_string(String, From, Len, _, S),
 	  string_to_list(S, Chars)
 	},
 	str0(Chars).
