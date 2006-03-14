@@ -109,8 +109,8 @@ typedef struct source
   atom_t	    name;		/* name of the source */
   int		    triple_count;	/* # triples associated to it */
 #ifdef WITH_MD5
-  md5_byte_t 	    digest[16];		/* MD5 digest */
   unsigned	    md5 : 1;		/* do/don't record MD5 */
+  md5_byte_t 	    digest[16];		/* MD5 digest */
 #endif
 } source;  
 

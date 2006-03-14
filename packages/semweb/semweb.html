@@ -1384,9 +1384,9 @@ metaphone</EM> algorithm of the NLP package.
 <DL>
 
 <P>
-<DT><A NAME="rdf_find_literals/+Spec, -ListOfLiterals"><STRONG>rdf_find_literals</STRONG>(<VAR>+Spec, 
+<DT><A NAME="rdf_find_literals/2"><STRONG>rdf_find_literals</STRONG>(<VAR>+Spec, 
 -ListOfLiterals</VAR>)</A><DD>
-ind literals (without type or language specification) that satisfy
+Find literals (without type or language specification) that satisfy
 <VAR>Spec</VAR>. The required indices are created as needed and kept 
 up-to-date using hooks registered with <A NAME="idx:rdfmonitor2:72"></A><A HREF="#rdf_monitor/2">rdf_monitor/2</A>. <VAR>Spec</VAR> 
 is defined as:
@@ -1439,10 +1439,10 @@ of the NLP package for details.
 <P>
 <DT><A NAME="rdf_token_expansions/2"><STRONG>rdf_token_expansions</STRONG>(<VAR>+Spec, 
 -Expansions</VAR>)</A><DD>
-Uses the same database as <A NAME="idx:rdffindliterals2:74"></A><B>rdf_find_literals/2</B> 
+Uses the same database as <A NAME="idx:rdffindliterals2:74"></A><A HREF="#rdf_find_literals/2">rdf_find_literals/2</A> 
 to find possible expansions of <VAR>Spec</VAR>, i.e. which words `sound 
 like', `have prefix', etc. <VAR>Spec</VAR> is a compound expression as 
-in <A NAME="idx:rdffindliterals2:75"></A><B>rdf_find_literals/2</B>.
+in <A NAME="idx:rdffindliterals2:75"></A><A HREF="#rdf_find_literals/2">rdf_find_literals/2</A>.
 <VAR>Expansions</VAR> is unified to a list of terms <CODE>sounds(Like, 
 Words)</CODE>, <CODE>stem(Like, Words)</CODE> or <CODE>prefix(Prefix, 
 Words)</CODE>. On compound expressions, only combinations that provide 
@@ -2295,10 +2295,8 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdfe_update/4">rdfe_update/4</A><DD>
 <DT><A HREF="#rdf_find_literal_map/3">rdf_find_literal_map/3</A><DD>
 <A HREF="#idx:rdffindliteralmap3:79">3.9</A>
-<DT>rdf_find_literals/2<DD>
+<DT><A HREF="#rdf_find_literals/2">rdf_find_literals/2</A><DD>
 <A HREF="#idx:rdffindliterals2:74">3.8</A> <A HREF="#idx:rdffindliterals2:75">3.8</A>
-<DT><A HREF="#rdf_find_literals/+Spec, -ListOfLiterals">rdf_find_literals/+Spec, 
--ListOfLiterals</A><DD>
 <DT><A HREF="#rdf_generation/1">rdf_generation/1</A><DD>
 <A HREF="#idx:rdfgeneration1:20">3.3.1</A>
 <DT><A HREF="#rdf_global_id/2">rdf_global_id/2</A><DD>

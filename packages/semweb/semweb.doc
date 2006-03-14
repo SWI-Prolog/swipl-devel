@@ -579,7 +579,9 @@ interpreted using \arg{XMLLang}.
     \end{description}
 
     \predicate{rdf_source}{1}{?File}
-Test or enumerate the files loaded using rdf_load/1.
+Test or enumerate the sources known in the database. This is the
+name-part of the 4-th argument of rdf/4.  If a file is loaded using
+rdf_load/1, this is the name of the loaded file.
 
     \predicate{rdf_make}{0}{}
 Re-load all RDF sourcefiles (see rdf_source/1) that have changed since
@@ -1061,7 +1063,7 @@ stemming and `sounds-like' based on the \jargon{double metaphone}
 algorithm of the NLP package.
 
 \begin{description}
-    \predicate{rdf_find_literals}{+Spec, -ListOfLiterals}
+    \predicate{rdf_find_literals}{2}{+Spec, -ListOfLiterals}
 Find literals (without type or language specification) that satisfy
 \arg{Spec}. The required indices are created as needed and kept
 up-to-date using hooks registered with rdf_monitor/2.  \arg{Spec}
