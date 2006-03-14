@@ -1109,7 +1109,7 @@ Calls \arg{Goal}.  If \arg{Goal} is completely finished, either
 by deterministic success, failure, its choicepoint being cut or
 raising an exception and \arg{Catcher} unifies to the termination
 code (see below), \arg{Cleanup} is called.  Success or failure of
-\arg{Cleanup} is ignored and possibly choicepoints it created are
+\arg{Cleanup} is ignored and possible choicepoints it created are
 destroyed (as once/1).  If cleanup throws an exception this is
 executed as normal.%
 	\bug{During the execution of \arg{Cleanup}, garbage collection
