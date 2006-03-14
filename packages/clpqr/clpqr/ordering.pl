@@ -50,6 +50,10 @@
 	    class_get_prio/2,
 	    class_put_prio/2
 	]).
+:- use_module(itf,
+	[
+	    clp_type/2
+	]).
 :- use_module(ugraphs,
 	[
 	    add_edges/3,
@@ -57,8 +61,9 @@
 	    top_sort/2
 	]).
 :- use_module(library(lists),
-	      [ append/3
-	      ]).
+	[
+	    append/3
+	]).
 
 ordering(X) :-
 	var(X),
@@ -99,7 +104,7 @@ arrangement(_,_) :- throw(unsatisfiable_ordering).
 join_class([],_).
 join_class([X|Xs],Class) :-
 	(   var(X)
-	->  class_get_clp(Class,CLP),
+	->  clp_type(X,CLP),
 	    (   CLP = clpr
 	    ->  bv_r:var_intern(X,Class)
 	    ;   bv_q:var_intern(X,Class)
