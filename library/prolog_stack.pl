@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2004, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -98,7 +98,7 @@ backtrace(MaxDepth, Fr, PC, [frame(Level, Where)|Stack]) :-
 predicate_indicator(M:G, PI) :- !,
 	(   public_module(M)
 	->  predicate_indicator(G, PI)
-	;   PI = M/PI2,
+	;   PI = M:PI2,
 	    predicate_indicator(G, PI2)
 	).
 predicate_indicator(G, Name/Arity) :-
