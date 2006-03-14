@@ -57,24 +57,28 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.7 Patches relative to 5.6.6
+Version 5.6.8 Patches relative to 5.6.7
 =======================================
 
 Prolog
 
-  * Fixed error handling of ~w in format/3
-  * Fixed memory leak in format ~f using rational numbers
-  * Fixed float error handling on Alpha processors
+  * Fixed and provide xterm-console for thread in MacOS
+  * Added some primitives to improve thread debugging.  See tspy/1 and
+    friends.
+  * Fixed exception handling from user-defined functions.
 							    
 Packages
   
-  * CHR: Exploit global variable exceptions, making CHR programs
-    work across saved-states and in multiple threads.
-  * CLP(QR): Leslie provided a combined CLP(Q,R) package that replaces
-    the old CLP(R) library.  SWI-Prolog now also has CLP(Q), exploiting
-    GMP provided rational arithmetic.
   * Semweb: Many internal changes.  New library rdf_litindex.pl provides
     indexing inside literals.
-  * XPCE: Fixed input problems on the Mac: bind Command-key to meta and
-    avoid lockup on some input keys.  Finally ...
+  * Semweb: Added rdf_persistency.pl, providing persistent storage for
+    the RDF database.  This library is moved from the SeRQL package
+    after having proved its value.  Some fixes and extensions to the
+    literal indexing code.
+  * XPCE: There is a bug in the MacOS XIM code that causes a deadlock
+    entering keys using Alt-key if we enable threading in X11.  Turns
+    out most applications run fine without threading in Xlib enabled,
+    but the graphical debugger causes a crash.  Bug filed with Apple.
+    As a work-around there is send(@display, x11_threads, @on).  See
+    documentation for the issues.
 
