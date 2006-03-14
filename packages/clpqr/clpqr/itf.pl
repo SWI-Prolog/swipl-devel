@@ -49,8 +49,11 @@
 	]).
 
 clp_type(Var,Type) :- 
-	get_attr(Var,itf,Att),
-	arg(1,Att,Type).
+	(   get_attr(Var,itf,Att)
+	->  arg(1,Att,Type)
+	;   get_attr(Var,geler,Att)
+	->  arg(1,Att,Type)
+	).
 
 dump_linear(V) -->
 	{
