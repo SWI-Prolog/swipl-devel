@@ -979,7 +979,8 @@ canonical_source(Object, Ref) :-
 	Object = @Ref.
 canonical_source(Ref, Ref) :-
 	integer(Ref), !.
-canonical_source(user, user) :- !.
+canonical_source(User, user) :-
+	User == user, !.
 canonical_source(Source, Src) :-
 	absolute_file_name(Source,
 			   [ file_type(prolog),
