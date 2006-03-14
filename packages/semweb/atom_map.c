@@ -857,22 +857,25 @@ Spec is one of
    failure return and does not allow passing our term-handles
 */
 
-static int unify_keys(term_t head, term_t tail, AVLnode *node)
+static int
+unify_keys(term_t head, term_t tail, AVLnode *node)
 { node_data *data;
 
-  if ( node->subtree[LEFT] )
-  { if ( !unify_keys(head, tail, node->subtree[LEFT]) )
+  if ( node )
+  { if ( node->subtree[LEFT] )
+    { if ( !unify_keys(head, tail, node->subtree[LEFT]) )
+	return FALSE;
+    }
+    
+    data = (node_data*)node->data;
+    if ( !PL_unify_list(tail, head, tail) ||
+	 !unify_datum(head, data->key) )
       return FALSE;
+  
+    if ( node->subtree[RIGHT] )
+      return unify_keys(head, tail, node->subtree[RIGHT]);
   }
   
-  data = (node_data*)node->data;
-  if ( !PL_unify_list(tail, head, tail) ||
-       !unify_datum(head, data->key) )
-    return FALSE;
-
-  if ( node->subtree[RIGHT] )
-    return unify_keys(head, tail, node->subtree[RIGHT]);
-
   return TRUE;
 }
 
