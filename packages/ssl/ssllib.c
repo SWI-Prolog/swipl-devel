@@ -850,7 +850,7 @@ ssl_config(PL_SSL *config)
     
     (void) SSL_CTX_set_verify( config->pl_ssl_ctx
                              , (config->pl_ssl_peer_cert_required)
-                               ? SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE
+                               ? SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT
                                : SSL_VERIFY_NONE
                              , ssl_cb_cert_verify
                              ) ;

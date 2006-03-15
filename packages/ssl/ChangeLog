@@ -1,3 +1,8 @@
+Mar 15, 2006
+
+  * Accept clients only f they have a certificate if peer_cert(true) is
+    set in the server.  With patch from Jiri Moninec.  Thanks.
+
 Feb 13, 2006
 
   * Created new, 20 years valid, certificates to make the tests work and
