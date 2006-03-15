@@ -181,8 +181,10 @@ colourise_buffer(Fd, M) :-
 	    (	colourise_term(Term, TB, TermPos),
 		send(M, mark_singletons, Term, Singletons, TermPos)
 	    ->	true
-	    ;	print_message(warning,
-			      format('Failed to colourise ~p~n', [Term]))
+	    ;	arg(1, TermPos, From),
+	        print_message(warning,
+			      format('Failed to colourise ~p at index ~d~n',
+				     [Term, From]))
 	    ),
 	    Term == end_of_file, !.
 
@@ -503,6 +505,13 @@ colourise_dcg_goal(Goal, _, TB, Pos) :-
 %	
 %	Colourise access to a single goal.
 
+					% Deal with list as goal (consult)
+colourise_goal(Goal, _, TB, list_position(F,T,Elms,_)) :- !,
+	FT is F + 1,
+	AT is T - 1,
+	colour_item(goal(built_in, Goal), TB, F-FT),
+	colour_item(goal(built_in, Goal), TB, AT-T),
+	colourise_file_list(Goal, TB, Elms).
 colourise_goal(Goal, Origin, TB, Pos) :-
 	nonvar(Goal),
 	goal_colours(Goal, ClassSpec-ArgSpecs), !, % specified
@@ -863,7 +872,6 @@ goal_colours(thread_local(_),	     built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
-goal_colours([_|_],		     built_in-file).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
 goal_colours(load_files(_,_),	     built_in-[file,classify]).

@@ -3,7 +3,7 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
     Copyright (C): 1985-2002, University of Amsterdam
 
@@ -39,6 +39,7 @@
 	    xref_op/2,			% ?Source, ?Op
 	    xref_clean/1,		% +Source
 	    xref_current_source/1,	% ?Source
+	    xref_done/2,		% +Source, -Time
 	    xref_built_in/1,		% ?Callable
 	    xref_expand/2,		% +Term, -Expanded
 	    xref_source_file/3,		% +Spec, -Path, +Source
@@ -64,7 +65,7 @@
 	exported/2,			% Head, Src
 	xmodule/2,			% Module, Src
 	xop/2,				% Src, Op
-	source/1,			% Src
+	source/2,			% Src, Time
 	used_class/2,			% Name, Src
 	defined_class/5,		% Name, Super, Summary, Src, Line
 	(mode)/2.			% Mode, Src
@@ -114,7 +115,8 @@ verbose :-
 xref_source(Source) :-
 	canonical_source(Source, Src),
 	xref_clean(Src),
-	assert(source(Src)),
+	get_time(Now),
+	assert(source(Src, Now)),
 	xref_setup(State),
 	call_cleanup(collect(Src), xref_cleanup(State)).
 
@@ -172,7 +174,7 @@ xref_clean(Source) :-
 	retractall(exported(_, Src)),
 	retractall(xmodule(_, Src)),
 	retractall(xop(Src, _)),
-	retractall(source(Src)),
+	retractall(source(Src, _)),
 	retractall(used_class(_, Src)),
 	retractall(defined_class(_, _, _, Src, _)),
 	retractall(mode(_, Src)).
@@ -187,7 +189,16 @@ xref_clean(Source) :-
 %	Check what sources have been analysed.
 
 xref_current_source(Source) :-
-	source(Source).
+	source(Source, _Time).
+
+
+%	xref_done(+Source, -Time)
+%	
+%	Cross-reference executed at Time
+
+xref_done(Source, Time) :-
+	canonical_source(Source, Src),
+	source(Src, Time).
 
 
 %	xref_called(+Source, ?Called, ?By)
@@ -722,7 +733,7 @@ chr_expandable(option(_, _)) :-
 	is_chr_file.
 
 is_chr_file :-
-	source(Src),
+	source(Src, _),
 	mode(chr, Src), !.
 
 process_chr(@(_Name, Rule), Src) :-

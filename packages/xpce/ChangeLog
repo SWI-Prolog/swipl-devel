@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceEmacs: colouring lists as a goal (consult).
+
 * ENHANCED: library(pce_toc).  Allow hooking collapse of a node.  See
   ->collapse_node.
 
