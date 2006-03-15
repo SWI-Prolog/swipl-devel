@@ -444,6 +444,109 @@ html_print_length([H|T], L0, L) :-
 
 
 		 /*******************************
+		 *	PCE EMACS SUPPORT	*
+		 *******************************/
+
+:- multifile
+	emacs_prolog_colours:goal_colours/2,
+	emacs_prolog_colours:style/2,
+	emacs_prolog_colours:identify/2,
+	prolog:called_by/2.
+
+emacs_prolog_colours:goal_colours(html(HTML,_,_),
+				  built_in-[Colours, classify, classify]) :-
+	html_colours(HTML, Colours).
+emacs_prolog_colours:goal_colours(page(HTML,_,_),
+				  built_in-[Colours, classify, classify]) :-
+	html_colours(HTML, Colours).
+emacs_prolog_colours:goal_colours(page(Head, Body,_,_),
+				  built_in-[HC, BC, classify, classify]) :-
+	html_colours(Head, HC),
+	html_colours(Body, BC).
+emacs_prolog_colours:goal_colours(pagehead(HTML,_,_),
+				  built_in-[Colours, classify, classify]) :-
+	html_colours(HTML, Colours).
+emacs_prolog_colours:goal_colours(pagebody(HTML,_,_),
+				  built_in-[Colours, classify, classify]) :-
+	html_colours(HTML, Colours).
+
+
+					% TBD: Check with do_expand!
+html_colours(\List, classify) :-
+	is_list(List), !.
+html_colours(\_, built_in-[dcg]) :- !.
+html_colours(&(Entity), built_in-[entity(Entity)]) :- !.
+html_colours(List, built_in-ListColours) :-
+	is_list(List), !,
+	maplist(html_colours, List, ListColours).
+html_colours(Term, TermColours) :-
+	compound(Term), !,
+	Term =.. [Name|Args],
+	(   Args = [One]
+	->  TermColours = html(Name)-ArgColours,
+	    (   layout(Name, _, empty)
+	    ->  ArgColours = classify
+	    ;   html_colours(One, Colours),
+		ArgColours = [Colours]
+	    )
+	;   Args = [_,Content]
+	->  TermColours = html(Name)-[classify, Colours],
+	    html_colours(Content, Colours)
+	;   TermColours = error
+	).
+html_colours(_, classify).
+
+
+% TBD: Better colours
+
+emacs_prolog_colours:style(html(_), style(bold := @on,
+					  colour := dark_green)).
+emacs_prolog_colours:style(entity(_), style(colour := dark_green)).
+
+
+emacs_prolog_colours:identify(html(Element), Summary) :-
+	sformat(Summary, '~w: HTML element', [Element]).
+emacs_prolog_colours:identify(entity(Entity), Summary) :-
+	sformat(Summary, '~w: SGML entity', [Entity]).
+
+
+%	prolog:called_by(+Goal, -Called)
+%	
+%	Hook into library(pce_prolog_xref).  Called is a list of callable
+%	or callable+N to indicate (DCG) arglist extension.
+
+
+prolog:called_by(html(HTML,_,_), Called) :-
+	phrase(called_by(HTML), Called).
+prolog:called_by(page(HTML,_,_), Called) :-
+	phrase(called_by(HTML), Called).
+prolog:called_by(page(Head,Body,_,_), Called) :-
+	phrase(called_by([Head,Body]), Called).
+prolog:called_by(pagehead(HTML,_,_), Called) :-
+	phrase(called_by(HTML), Called).
+prolog:called_by(pagebody(HTML,_,_), Called) :-
+	phrase(called_by(HTML), Called).
+
+called_by(Var) -->
+	{ var(Var) }, !,
+	[].
+called_by(\G) --> !,
+	  [G+2].
+called_by([]) --> !,
+	[].
+called_by([H|T]) --> !,
+	called_by(H),
+	called_by(T).
+called_by(Term) --> 
+	{ compound(Term), !,
+	  Term =.. [_|Args]
+	},
+	called_by(Args).
+called_by(_) -->
+	[].
+
+
+		 /*******************************
 		 *	      MESSAGES		*
 		 *******************************/
 
