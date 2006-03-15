@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: library(pce_toc).  Allow hooking collapse of a node.  See
+  ->collapse_node.
+
 VERSION 6.6.8, distributed with SWI-Prolog 5.6.8
 ================================================
 

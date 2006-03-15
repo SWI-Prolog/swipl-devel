@@ -150,6 +150,11 @@ expand_node(TW, Id:any) :->
 	get(TW, node, Id, Node),
 	send(Node, slot, collapsed, @off).
 
+collapse_node(TW, Id:any) :->
+	"Define collapsing of node 'id'"::
+	get(TW, node, Id, Node),
+	send(Node, hide_sons).
+
 popup(_TW, _Id:any, _Popup:popup) :<-
 	"Return a menu for this node"::
 	fail.
@@ -175,6 +180,11 @@ expand_root(T) :->
 	"Expand the root-node"::
 	get(T?tree, root, Node),
 	ignore(send(Node, collapsed, @off)).
+
+clear(T) :->
+	"Remove the nodes, not the tree"::
+	get(T, tree, Tree),
+	send(Tree, clear, destroy).
 
 :- pce_group(scroll).
 
@@ -364,7 +374,9 @@ collapsed(Node, Val:bool*) :->
 	(   get(Node, collapsed, Val)
 	->  true
 	;   (	Val == @on
-	    ->	send(Node, hide_sons)
+	    ->	get(Node?tree, window, TocWindow),
+		get(Node, identifier, Id),
+		send(TocWindow, collapse_node, Id)
 	    ;	Val == @off
 	    ->	get(Node?tree, window, TocWindow),
 		get(Node, identifier, Id),
@@ -580,8 +592,8 @@ initialise(TF,
 	),
 	send(TF, send_super, initialise, Id, toc_image(Label, I)),
 	(   CanExpand == @off
-	->  send(TF, collapsed, @nil)
-	;   send(TF, collapsed, @on)
+	->  send_class(TF, node, collapsed(@nil))
+	;   send_class(TF, node, collapsed(@on))
 	).
 
 :- pce_group(appearance).
