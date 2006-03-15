@@ -485,29 +485,40 @@ html_colours(Term, TermColours) :-
 	(   Args = [One]
 	->  TermColours = html(Name)-ArgColours,
 	    (   layout(Name, _, empty)
-	    ->  ArgColours = classify
+	    ->  attr_colours(One, ArgColours)
 	    ;   html_colours(One, Colours),
 		ArgColours = [Colours]
 	    )
-	;   Args = [_,Content]
-	->  TermColours = html(Name)-[classify, Colours],
+	;   Args = [AList,Content]
+	->  TermColours = html(Name)-[AColours, Colours],
+	    attr_colours(AList, AColours),
 	    html_colours(Content, Colours)
 	;   TermColours = error
 	).
 html_colours(_, classify).
 
+attr_colours(Term, list-Elements) :-
+	is_list(Term), !,
+	maplist(attr_colours, Term, Elements).
+attr_colours(Term, html_attribute(Name)-[classify]) :-
+	compound(Term),
+	Term =.. [Name,_], !.
+attr_colours(_, error).
 
 % TBD: Better colours
 
 emacs_prolog_colours:style(html(_), style(bold := @on,
-					  colour := dark_green)).
-emacs_prolog_colours:style(entity(_), style(colour := dark_green)).
+					  colour := magenta4)).
+emacs_prolog_colours:style(entity(_), style(colour := magenta4)).
+emacs_prolog_colours:style(html_attribute(_), style(colour := magenta4)).
 
 
 emacs_prolog_colours:identify(html(Element), Summary) :-
-	sformat(Summary, '~w: HTML element', [Element]).
+	sformat(Summary, '~w: SGML element', [Element]).
 emacs_prolog_colours:identify(entity(Entity), Summary) :-
 	sformat(Summary, '~w: SGML entity', [Entity]).
+emacs_prolog_colours:identify(html_attribute(Attr), Summary) :-
+	sformat(Summary, '~w: SGML attribute', [Attr]).
 
 
 %	prolog:called_by(+Goal, -Called)
