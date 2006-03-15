@@ -178,13 +178,9 @@ chr_init :-
 chr_show_store(Mod) :-
 	(
 		Mod:'$enumerate_suspensions'(Susp),
-%		arg(6,Susp,C),
 		Susp =.. [_,_,_,_,_,_,F|Arg],
 		functor(F,Fun,_),
 		C =.. [Fun|Arg],
-%		term_variables(C,Vars),
-%		erase_attributes(Vars),
-%		writeln(C),
 		print(C),nl, % allows use of portray to control printing
 
 		fail

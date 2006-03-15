@@ -1,3 +1,14 @@
+Mar 16, 2006
+
+  * TS: Fixed subtle bug in ai_observation analysis,
+        that caused goal sequences to only generate
+        the optimistic default answer pattern, leading
+        to invalid 'not observed' conclusions.
+  * TS: Variable indexing/suspension analysis now ignores functor/3
+        in guards. Could be extended to other built-ins
+        that cause an error when arguments are not
+        properly instantiated.
+
 Mar 11, 2006
   
   * TS: Renamed global variable id to chr_id in chr_runtime.pl.

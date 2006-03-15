@@ -883,7 +883,7 @@ check_rule_indexing(PragmaRule) :-
 	check_indexing(H2,NG-H1),
 	% EXPERIMENT
 	( chr_pp_flag(term_indexing,on) -> 
-		term_variables(G,GuardVariables),
+		term_variables(NG,GuardVariables),
 		append(H1,H2,Heads),
 		check_specs_indexing(Heads,GuardVariables,Specs)
 	;
@@ -909,8 +909,10 @@ remove_anti_monotonic_guards(G,Vars,NG) :-
 
 remove_anti_monotonic_guard_list([],_,[]).
 remove_anti_monotonic_guard_list([G|Gs],Vars,NGs) :-
-	( G = var(X),
-          memberchk_eq(X,Vars) ->
+	( G = var(X), memberchk_eq(X,Vars) ->
+		NGs = RGs
+	; G = functor(Term,Functor,Arity),			% isotonic
+	  \+ memberchk_eq(Functor,Vars), \+ memberchk_eq(Arity,Vars) ->
 		NGs = RGs
 	;
 		NGs = [G|RGs]
@@ -5534,8 +5536,8 @@ call_pattern(odom([G|Gs],Set)) ==>
 	depends_on_goal(odom([G|Gs],Set),CP1),
 	call_pattern(CP1).
 
-depends_on_goal(CP1,CP2), final_answer_pattern(CP2,AP2) \ depends_on(CP1,_)
-	<=> true.
+depends_on_goal(CP1,CP2), final_answer_pattern(CP2,AP2) \ depends_on(CP1,_) # ID
+	<=> true pragma passive(ID).
 depends_on_goal(CP1,CP2), final_answer_pattern(CP2,AP2)
 	==> 
 		CP1 = odom([_|Gs],_),
