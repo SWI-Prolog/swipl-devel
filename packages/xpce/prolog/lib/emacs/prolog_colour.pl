@@ -44,6 +44,7 @@ User extension hooks.
 
 :- multifile
 	style/2,
+	identify/2,
 	term_colours/2,
 	goal_colours/2,
 	goal_classification/2.
@@ -1154,6 +1155,9 @@ specified_item(extern(M), Term, TB, Pos) :- !,
 					% classify as body
 specified_item(body, Term, TB, Pos) :- !,
 	colourise_body(Term, TB, Pos).
+					% DCG goal in body
+specified_item(dcg, Term, TB, Pos) :- !,
+	colourise_dcg(Term, [], TB, Pos).
 					% assert/retract arguments
 specified_item(db, Term, TB, Pos) :- !,
 	colourise_db(Term, TB, Pos).
@@ -1219,6 +1223,12 @@ specified_item(FuncSpec-[ArgSpec], {Term}, TB,
 	specified_item(FuncSpec, {Term}, TB, F-T),
 	specified_item(ArgSpec, Term, TB, ArgPos).
 					% Specified
+specified_item(FuncSpec-ElmSpec, List, TB, list_position(F,T,ElmPos,_)) :- !,
+	FT is F + 1,
+	AT is T - 1,
+	colour_item(FuncSpec, TB, F-FT),
+	colour_item(FuncSpec, TB, AT-T),
+	specified_list(ElmSpec, List, TB, ElmPos).
 specified_item(Class, _, TB, Pos) :-
 	colour_item(Class, TB, Pos).
 
@@ -1232,6 +1242,7 @@ specified_items(Spec, Term, TB, PosList) :-
 
 
 specified_arglist([], _, _, _, _).
+specified_arglist(_, _, _, _, []) :- !.			% Excess specification args
 specified_arglist([S0|ST], N, T, TB, [P0|PT]) :-
 	arg(N, T, Term),
 	specified_item(S0, Term, TB, P0),
@@ -1244,6 +1255,17 @@ specified_argspec([P0|PT], Spec, N, T, TB) :-
 	specified_item(Spec, Term, TB, P0),
 	NN is N + 1,
 	specified_argspec(PT, Spec, NN, T, TB).
+
+
+%	specified_list(+Spec, +List, +TB, +PosList)
+
+specified_list([], [], _, []).
+specified_list([HS|TS], [H|T], TB, [HP|TP]) :- !,
+	specified_item(HS, H, TB, HP),
+	specified_list(TS, T, TB, TP).
+specified_list(Spec, [H|T], TB, [HP|TP]) :-
+	specified_item(Spec, H, TB, HP),
+	specified_list(Spec, T, TB, TP).
 
 :- emacs_end_mode.
 
@@ -1415,6 +1437,9 @@ identify(F) :->
 %	
 %	Generate an identifying description for the predicate.
 
+identify_pred(Term, _, Summary) :-
+	identify(Term, String),
+	new(Summary, string(String)).
 identify_pred(built_in, F, Summary) :-	% SWI-Prolog documented built-in
 	get(F, predicate, Pred),
 	get(Pred, summary, Summary0), !,
@@ -1669,6 +1694,8 @@ identify(F) :->
 	identify_fragment(Term, F, Summary), !,
 	send(F, report, status, Summary).
 
+identify_fragment(Term,  _, Summary) :-
+	identify(Term, Summary), !.
 identify_fragment(var,  _, 'Variable').
 identify_fragment(file(Path), _, Summary) :-
 	new(Summary, string('File %s', Path)).

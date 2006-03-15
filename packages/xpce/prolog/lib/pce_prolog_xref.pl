@@ -85,9 +85,6 @@
 %
 %	Define meta-predicates.  See the examples in this file for details.
 
-:- dynamic
-	prolog:called_by/2,		% +Goal, -Called
-	prolog:meta_goal/2.		% +Goal, -Pattern
 :- multifile
 	prolog:called_by/2,		% +Goal, -Called
 	prolog:meta_goal/2.		% +Goal, -Pattern
