@@ -510,6 +510,7 @@ list_colours(Last, Colours) :-		% improper list
 
 attr_colours(Var, classify) :-
 	var(Var), !.
+attr_colours([], classify) :- !.
 attr_colours(Term, list-Elements) :-
 	Term = [_|_], !,
 	attr_list_colours(Term, Elements).
