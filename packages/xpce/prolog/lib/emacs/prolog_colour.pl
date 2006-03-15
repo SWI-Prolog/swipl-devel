@@ -1223,12 +1223,12 @@ specified_item(FuncSpec-[ArgSpec], {Term}, TB,
 	specified_item(FuncSpec, {Term}, TB, F-T),
 	specified_item(ArgSpec, Term, TB, ArgPos).
 					% Specified
-specified_item(FuncSpec-ElmSpec, List, TB, list_position(F,T,ElmPos,_)) :- !,
+specified_item(FuncSpec-ElmSpec, List, TB, list_position(F,T,ElmPos,TailPos)) :- !,
 	FT is F + 1,
 	AT is T - 1,
 	colour_item(FuncSpec, TB, F-FT),
 	colour_item(FuncSpec, TB, AT-T),
-	specified_list(ElmSpec, List, TB, ElmPos).
+	specified_list(ElmSpec, List, TB, ElmPos, TailPos).
 specified_item(Class, _, TB, Pos) :-
 	colour_item(Class, TB, Pos).
 
@@ -1257,15 +1257,18 @@ specified_argspec([P0|PT], Spec, N, T, TB) :-
 	specified_argspec(PT, Spec, NN, T, TB).
 
 
-%	specified_list(+Spec, +List, +TB, +PosList)
+%	specified_list(+Spec, +List, +TB, +PosList, TailPos)
 
-specified_list([], [], _, []).
-specified_list([HS|TS], [H|T], TB, [HP|TP]) :- !,
+specified_list([], [], _, [], _).
+specified_list([HS|TS], [H|T], TB, [HP|TP], TailPos) :- !,
 	specified_item(HS, H, TB, HP),
-	specified_list(TS, T, TB, TP).
-specified_list(Spec, [H|T], TB, [HP|TP]) :-
+	specified_list(TS, T, TB, TP, TailPos).
+specified_list(Spec, [H|T], TB, [HP|TP], TailPos) :-
 	specified_item(Spec, H, TB, HP),
-	specified_list(Spec, T, TB, TP).
+	specified_list(Spec, T, TB, TP, TailPos).
+specified_list(_, _, _, [], none) :- !.
+specified_list(Spec, Tail, TB, [], TailPos) :-
+	specified_item(Spec, Tail, TB, TailPos).
 
 :- emacs_end_mode.
 

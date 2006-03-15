@@ -472,13 +472,15 @@ emacs_prolog_colours:goal_colours(pagebody(HTML,_,_),
 
 
 					% TBD: Check with do_expand!
+html_colours(Var, classify) :-
+	var(Var), !.
 html_colours(\List, classify) :-
 	is_list(List), !.
 html_colours(\_, built_in-[dcg]) :- !.
 html_colours(&(Entity), built_in-[entity(Entity)]) :- !.
 html_colours(List, built_in-ListColours) :-
-	is_list(List), !,
-	maplist(html_colours, List, ListColours).
+	List = [_|_], !,
+	list_colours(List, ListColours).
 html_colours(Term, TermColours) :-
 	compound(Term), !,
 	Term =.. [Name|Args],
@@ -497,15 +499,32 @@ html_colours(Term, TermColours) :-
 	).
 html_colours(_, classify).
 
+list_colours(Var, classify) :-
+	var(Var), !.
+list_colours([], []).
+list_colours([H0|T0], [H|T]) :- !,
+	html_colours(H0, H),
+	list_colours(T0, T).
+list_colours(Last, Colours) :-		% improper list
+	html_colours(Last, Colours).
+
+attr_colours(Var, classify) :-
+	var(Var), !.
 attr_colours(Term, list-Elements) :-
-	is_list(Term), !,
-	maplist(attr_colours, Term, Elements).
+	Term = [_|_], !,
+	attr_list_colours(Term, Elements).
 attr_colours(Term, html_attribute(Name)-[classify]) :-
 	compound(Term),
 	Term =.. [Name,_], !.
 attr_colours(_, error).
 
-% TBD: Better colours
+attr_list_colours(Var, classify) :-
+	var(Var), !.
+attr_list_colours([], []).
+attr_list_colours([H0|T0], [H|T]) :-
+	attr_colours(H0, H),
+	attr_list_colours(T0, T).
+
 
 emacs_prolog_colours:style(html(_), style(bold := @on,
 					  colour := magenta4)).
@@ -542,7 +561,7 @@ called_by(Var) -->
 	{ var(Var) }, !,
 	[].
 called_by(\G) --> !,
-	  [G+2].
+	[G+2].
 called_by([]) --> !,
 	[].
 called_by([H|T]) --> !,
