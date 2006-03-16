@@ -46,6 +46,13 @@
 :- dynamic
 	debugging/2.
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+See manual for details. With XPCE, you can use the call below to start a
+graphical monitorring tool.
+
+	?- prolog_ide(debug_monitor).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 %	debugging(?Topic)
 %
 %	Check whether we are debugging Topic or enumerate the topics we
@@ -192,4 +199,4 @@ user:goal_expansion(assume(G), Goal) :-
 	prolog:message/3.
 
 prolog:message(assumption_failed(G)) -->
-	[ 'Assumption failed: ~p'-[G] ].
+	[ 'Assertion failed: ~p'-[G] ].
