@@ -3,7 +3,7 @@
     Part of CLP(Q,R) (Constraint Logic Programming over Rationals and Reals)
 
     Author:        Leslie De Koninck
-    E-mail:        Leslie.DeKoninck@cs.kuleuven.ac.be
+    E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
     Copyright (C): 2006, K.U. Leuven and
@@ -185,10 +185,7 @@ drop_dep([V|Vs]) :-
 
 drop_dep_one(V) :-
 	get_attr(V,itf,Att),
-	arg(1,Att,CLP),
-	arg(2,Att,t_none),
-	arg(4,Att,lin(Lin)),
-	arg(5,Att,order(OrdV)),
+	Att = t(CLP,type(t_none),_,lin(Lin),order(OrdV),_,_,n,n,_,n),
 	\+ indep(CLP,Lin,OrdV),
 	!,
 	setarg(2,Att,n),
@@ -284,11 +281,12 @@ arrange_pivot(Xs) :-
 	!.
 arrange_pivot([X|Xs]) :-
 	(   get_attr(X,itf,AttX),
+	    arg(8,AttX,n), % not for nonzero
 	    arg(1,AttX,CLP),
 	    arg(2,AttX,type(t_none)),
 	    arg(4,AttX,lin(Lin)),
 	    arg(5,AttX,order(OrdX)),
-	    Lin = [_,_|[l(Y*_,_)|_]],
+	    Lin = [_,_,l(Y*_,_)|_],
 	    get_attr(Y,itf,AttY),
 	    arg(5,AttY,order(OrdY)),
 	    arg(6,AttY,class(Class)),
