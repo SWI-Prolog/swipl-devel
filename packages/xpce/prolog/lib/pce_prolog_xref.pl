@@ -455,9 +455,6 @@ meta_args(I, Arity, Decl, Head, Meta) :-
 	      *             BODY	      *
 	      ********************************/
 
-xref_meta(G, Meta) :-			% call user extensions
-	prolog:meta_goal(G, Meta).
-
 xref_meta((A, B), 		[A, B]).
 xref_meta((A; B), 		[A, B]).
 xref_meta((A| B), 		[A, B]).
@@ -512,6 +509,9 @@ xref_meta(ifmaintainer(G),	[G]).	% used in manual
 xref_meta(listen(_, G),		[G]).	% library(broadcast)
 xref_meta(listen(_, _, G),	[G]).
 xref_meta(in_pce_thread(G),	[G]).
+
+xref_meta(G, Meta) :-			% call user extensions
+	prolog:meta_goal(G, Meta).
 
 %	process_body(+Body, +Origin, +Src)
 %	
