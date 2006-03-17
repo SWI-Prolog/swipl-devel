@@ -814,18 +814,14 @@ assert_called(_, _, Goal) :-
 assert_called(Src, Origin, Goal) :-
 	called(Goal, Src, Origin), !.
 assert_called(Src, Origin, Goal) :-
-	functor(Origin, OName, OArity),
-	functor(OTerm, OName, OArity),
-	functor(Goal, Name, Arity),
-	functor(Term, Name, Arity),
+	generalise(Origin, OTerm),
+	generalise(Goal, Term),
 	assert(called(Term, Src, OTerm)).
 
-assert_defined(_, _Module:_Head) :- !.	% defining in another module.  Bah!
 assert_defined(Src, Goal) :-
 	defined(Goal, Src, _), !.
 assert_defined(Src, Goal) :-
-	functor(Goal, Name, Arity),
-	functor(Term, Name, Arity),
+	generalise(Goal, Term),
 	flag(xref_src_line, Line, Line),
 	assert(defined(Term, Src, Line)).
 
@@ -940,6 +936,30 @@ assert_defined_class(Src, Name, imported_from(File)) :-
 		/********************************
 		*            UTILITIES		*
 		********************************/
+
+%	generalise(+Callable, -General)
+%	
+%	Generalise a callable term.
+
+generalise(Var, Var) :-
+	var(Var), !.			% error?
+generalise(X, _) :-
+	debug(xref, 'Generalise ~w', [X]),
+	fail.
+generalise(pce_principal:send_implementation(Id, _, _),
+	   pce_principal:send_implementation(Id, _, _)) :-
+	atom(Id), !.
+generalise(pce_principal:get_implementation(Id, _, _, _),
+	   pce_principal:get_implementation(Id, _, _, _)) :-
+	atom(Id), !.
+generalise(Module:Goal0, Module:Goal) :-
+	atom(Module), !,
+	generalise(Goal0, Goal).
+generalise(Term0, Term) :-
+	callable(Term0),
+	functor(Term0, Name, Arity),
+	functor(Term, Name, Arity).
+
 
 %	xref_source_file(+Spec, -File, +Src)
 %	
