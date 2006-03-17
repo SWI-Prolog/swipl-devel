@@ -165,6 +165,7 @@ file_info(F, File:name) :->
 
 :- pce_begin_class(xref_file_tree, toc_window,
 		   "Show loaded files as a tree").
+:- use_class_template(arm).
 
 initialise(Tree) :->
 	send_super(Tree, initialise),
@@ -267,8 +268,8 @@ compare(DN, Node:toc_node, Diff:{smaller,equal,larger}) :<-
 initialise(FN, File:name) :->
 	"Create from a file"::
 	absolute_file_name(File, Path),
-	file_base_name(Path, Base),
-	send_super(FN, initialise, Base, Path).
+	send_super(FN, initialise, new(T, xref_file_text(Path)), Path),
+	send(T, default_action, info).
 
 parent_id(FN, ParentId:name) :<-
 	"Get id for the parent"::
@@ -488,17 +489,23 @@ edit(T) :->
 :- pce_begin_class(xref_file_text, text,
 		   "Represent a file-name").
 
+variable(path,		 name,	       get, "Filename represented").
+variable(default_action, name := edit, both, "Default on click").
+
 initialise(TF, File:name) :->
 	absolute_file_name(File, Path),
 	short_file_name(Path, ShortId),
 	short_file_name_to_atom(ShortId, Label),
 	send_super(TF, initialise, Label),
-	send(TF, name, Path).
+	send(TF, slot, path, Path).
 
 :- pce_global(@xref_file_text_recogniser,
-	      new(handler_group(@arm_recogniser,
-				click_gesture(left, '', single, 
-					      message(@receiver, edit))))).
+	      make_xref_file_text_recogniser).
+
+make_xref_file_text_recogniser(G) :-
+	new(C, click_gesture(left, '', single, 
+			     message(@receiver, run_default_action))),
+	new(G, handler_group(C, @arm_recogniser)).
 
 event(T, Ev:event) :->
 	(   send_super(T, event, Ev)
@@ -510,14 +517,22 @@ arm(TF, Val:bool) :->
 	"Preview activiity"::
 	(   Val == @on
 	->  send(TF, underline, @on),
-	    send(TF, report, status, 'File %s', TF?name)
+	    send(TF, report, status, 'File %s', TF?path)
 	;   send(TF, underline, @off),
 	    send(TF, report, status, '')
 	).
 
+run_default_action(T) :->
+	get(T, default_action, Def),
+	send(T, Def).
+
 edit(T) :->
-	get(T, name, Path),
+	get(T, path, Path),
 	edit(file(Path)).
+
+info(T) :->
+	get(T, path, Path),
+	send(T?frame, file_info, Path).
 
 :- pce_end_class(xref_file_text).
 
@@ -538,12 +553,17 @@ make_xref_horizontal_format(F) :-
 initialise(IT, File:name, Imported:prolog) :->
 	send_super(IT, initialise),
 	send(IT, format, @xref_horizontal_format),
-	send(IT, display, new(FI, xref_file_text(File))),
-	send(IT, name, FI?name),
+	send(IT, display, new(F, xref_file_text(File))),
+	send(F, name, file_text),
 	to_predicate_indicator(Imported, PI),
 	send(IT, slot, pi, PI),
 	send(IT, show_called_by).
 	
+path(IT, Path:name) :<-
+	"Represented file"::
+	get(IT, member, file_text, Text),
+	get(Text, path, Path).
+
 callable(IT, Callable:prolog) :<-
 	get(IT, pi, PI),
 	to_callable(PI, Callable).
@@ -563,7 +583,7 @@ show_called_by(IT) :->
 
 called_by(IT, ByList:prolog) :<-
 	"Return list of callables satisfied by the import"::
-	get(IT, name, Source),
+	get(IT, path, Source),
 	get(IT, callable, Callable),
 	findall(By, used_in(Source, Callable, By), ByList).
 
@@ -590,7 +610,7 @@ called_by_popup(IT, P:popup) :<-
 
 edit_called_by(IT, Called:prolog) :->
 	"Edit file on the predicate Called"::
-	get(IT, name, Source),
+	get(IT, path, Source),
 	(   Called == '<export>'
 	->  edit(file(Source))
 	;   xref_defined(Source, Called, Def)
