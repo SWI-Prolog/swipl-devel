@@ -1,17 +1,18 @@
 :- module(pce_xref_gui,
 	  [ pce_xref/0
 	  ]).
-:- use_module(library(pce)).
-:- use_module(library(persistent_frame)).
-:- use_module(library(tabbed_window)).
-:- use_module(library(toolbar)).
-:- use_module(library(pce_report)).
-:- use_module(library(pce_util)).
-:- use_module(library(pce_toc)).
-:- use_module(library(pce_prolog_xref)).
+:- use_module(pce).
+:- use_module(persistent_frame).
+:- use_module(tabbed_window).
+:- use_module(toolbar).
+:- use_module(pce_report).
+:- use_module(pce_util).
+:- use_module(pce_toc).
+:- use_module(pce_arm).
+:- use_module(pce_prolog_xref).
+:- use_module(tabular).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
-:- use_module(library(tabular)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 XPCE based font-end of the Prolog cross-referencer.  Tasks:
@@ -302,6 +303,7 @@ compare(FN, Node:toc_node, Diff:{smaller,equal,larger}) :<-
 
 :- pce_begin_class(prolog_file_info, window,
 		   "Show information on File").
+:- use_class_template(arm).
 
 variable(tabular,     tabular, get, "Displayed table").
 variable(prolog_file, name*,   get, "Displayed Prolog file").
@@ -456,8 +458,9 @@ unqualify(_, PI, PI).
 
 
 :- pce_global(@xref_predicate_text_recogniser,
-	      new(click_gesture(left, '', single, 
-				message(@receiver, edit)))).
+	      new(handler_group(@arm_recogniser,
+				click_gesture(left, '', single, 
+					      message(@receiver, edit))))).
 
 event(T, Ev:event) :->
 	(   send_super(T, event, Ev)
@@ -465,6 +468,15 @@ event(T, Ev:event) :->
 	;   send(@xref_predicate_text_recogniser, event, Ev)
 	).
 
+
+arm(TF, Val:bool) :->
+	"Preview activiity"::
+	(   Val == @on
+	->  send(TF, underline, @on),
+	    send(TF, report, status, 'Predicate %s', TF?string)
+	;   send(TF, underline, @off),
+	    send(TF, report, status, '')
+	).
 
 edit(T) :->
 	get(T, pi, PI),
@@ -484,8 +496,9 @@ initialise(TF, File:name) :->
 	send(TF, name, Path).
 
 :- pce_global(@xref_file_text_recogniser,
-	      new(click_gesture(left, '', single, 
-				message(@receiver, edit)))).
+	      new(handler_group(@arm_recogniser,
+				click_gesture(left, '', single, 
+					      message(@receiver, edit))))).
 
 event(T, Ev:event) :->
 	(   send_super(T, event, Ev)
@@ -493,6 +506,14 @@ event(T, Ev:event) :->
 	;   send(@xref_file_text_recogniser, event, Ev)
 	).
 
+arm(TF, Val:bool) :->
+	"Preview activiity"::
+	(   Val == @on
+	->  send(TF, underline, @on),
+	    send(TF, report, status, 'File %s', TF?name)
+	;   send(TF, underline, @off),
+	    send(TF, report, status, '')
+	).
 
 edit(T) :->
 	get(T, name, Path),
@@ -544,7 +565,14 @@ called_by(IT, ByList:prolog) :<-
 	"Return list of callables satisfied by the import"::
 	get(IT, name, Source),
 	get(IT, callable, Callable),
-	findall(By, xref_called(Source, Callable, By), ByList).
+	findall(By, used_in(Source, Callable, By), ByList).
+
+%	used_in(+Source, +Callable, -CalledBy)
+
+used_in(Source, Callable, By) :-
+	xref_called(Source, Callable, By).
+used_in(Source, Callable, '<export>') :-
+	xref_exported(Source, Callable).
 
 :- pce_group(event).
 
@@ -563,11 +591,14 @@ called_by_popup(IT, P:popup) :<-
 edit_called_by(IT, Called:prolog) :->
 	"Edit file on the predicate Called"::
 	get(IT, name, Source),
-	xref_defined(Source, Called, Def),
-	(   Def = local(Line)
-	->  edit(file(Source, line(Line)))
-	;   term_to_atom(Def, Text),
-	    send(IT, report, warning, 'Don''t know how to edit %s', Text)
+	(   Called == '<export>'
+	->  edit(file(Source))
+	;   xref_defined(Source, Called, Def)
+	->  (   Def = local(Line)
+	    ->  edit(file(Source, line(Line)))
+	    ;   term_to_atom(Def, Text),
+		send(IT, report, warning, 'Don''t know how to edit %s', Text)
+	    )
 	).
 
 :- pce_end_class(xref_imported_by).
@@ -906,6 +937,7 @@ callable_to_label(pce_principal:send_implementation(Id,_,_), Id) :-
 	atom(Id), !.
 callable_to_label(pce_principal:get_implementation(Id,_,_,_), Id) :-
 	atom(Id), !.
+callable_to_label('<export>', '<export>').
 callable_to_label(Callable, Label) :-
 	to_predicate_indicator(Callable, PI),
 	unqualify(@off, PI, T0),
