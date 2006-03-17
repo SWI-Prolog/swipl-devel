@@ -37,9 +37,12 @@
 
 delegate_to(layout_manager).
 
-initialise(TD) :->
+initialise(TD, Table:[table]) :->
 	send_super(TD, initialise),
-	send(TD, layout_manager, new(_, table)).
+	(   Table == @default
+	->  send(TD, layout_manager, new(_, tabular_table))
+	;   send(TD, layout_manager, Table)
+	).
 
 :- pce_group(appearance).
 
@@ -162,3 +165,52 @@ sort_rows(TD, Col:int, FromRow:int) :->
 	format('~p: Sorting rows below ~w on column ~w~n', [TD, FromRow, Col]).
 
 :- pce_end_class(tabular).
+
+
+		 /*******************************
+		 *	    THE TABLE		*
+		 *******************************/
+
+:- pce_begin_class(tabular_table, table,
+		   "The layout manager class tabular").
+
+stretched_column(Table, Col:table_column, W:int) :->
+	"Adjust the size of cells holding a wrapped text"::
+	get(Col, index, Index),
+	send(Col, for_all, message(Table, stretched_cell, @arg1, W, Index)),
+	send_super(Table, stretched_column, Col, W).
+
+stretched_cell(T, Cell:table_cell, W:int, ColN:int) :->
+	(   get(Cell, image, Graphical),
+	    send(Graphical, has_send_method, margin)
+	->  get(Cell, col_span, Span),
+	    get(Cell, column, Col0),
+	    EndCol is Col0+Span,
+	    cell_width(Col0, EndCol, ColN, W, T, 0, TotalW),
+	    TextW is TotalW - 15,
+	    send(Graphical, margin, TextW, wrap)
+	;   get(Cell, image, Graphical),
+	    get(Graphical, class, device)
+	->  get(Cell, col_span, Span),
+	    get(Cell, column, Col0),
+	    EndCol is Col0+Span,
+	    cell_width(Col0, EndCol, ColN, W, T, 0, TotalW),
+	    TextW is TotalW - 15,
+	    send(Graphical, format, width, TextW)
+	;   true
+	).
+
+%	Determine the width of a spanned cell.
+
+cell_width(End, End, _, _, _, W, W) :- !.
+cell_width(C, End, N, W, T, W0, Width) :-
+	(   C == N
+	->  W1 is W0 + W
+	;   get(T, column, C, Col),
+	    get(Col, width, WC),
+	    W1 is W0 + WC
+	),
+	C2 is C + 1,
+	cell_width(C2, End, N, W, T, W1, Width).
+
+:- pce_end_class(tabular_table).
