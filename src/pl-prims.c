@@ -1461,7 +1461,7 @@ static
 PRED_IMPL("term_variables", 2, term_variables2, 0)
 { PRED_LD
 
-  return term_variables(A1, A2, 0 PASS_LD);
+  return term_variables(A1, PL_copy_term_ref(A2), 0 PASS_LD);
 }
 
 
@@ -1469,7 +1469,7 @@ static
 PRED_IMPL("term_variables", 3, term_variables3, 0)
 { PRED_LD
 
-  return term_variables(A1, A2, A3 PASS_LD);
+  return term_variables(A1, PL_copy_term_ref(A2), A3 PASS_LD);
 }
 
 

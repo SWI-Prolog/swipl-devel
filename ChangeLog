@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Behaviour of term_variables/2,3 in the tracer.  Leslie de
+    Koninck.
+
 ==============================
 VERSION 5.6.8 (March 12, 2006)
 ==============================
