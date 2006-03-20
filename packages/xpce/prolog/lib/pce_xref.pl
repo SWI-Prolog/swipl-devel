@@ -9,6 +9,7 @@
 :- use_module(pce_util).
 :- use_module(pce_toc).
 :- use_module(pce_arm).
+:- use_module(pce_tagged_connection).
 :- use_module(pce_prolog_xref).
 :- use_module(tabular).
 :- use_module(library(lists)).
@@ -120,6 +121,9 @@ update(F) :->
 	send(F, xref_all),
 	get(F, member, browsers, Tabs),
 	send(Tabs?members, for_some,
+	     message(@arg1, update)),
+	get(F, member, workspaces, WSs),
+	send(WSs?members, for_some,
 	     message(@arg1, update)).
 
 xref_all(F) :->
@@ -156,7 +160,74 @@ file_info(F, File:name) :->
 :- pce_begin_class(prolog_xref_depgraph, picture,
 		   "Workspace showing dependecies").
 
+update(P) :->
+	send(P, clear, destroy),
+	forall((source_file(X),atom(X)),
+	       send(P, append, X)),
+	send(P, update_links),
+	send(P, layout).
+
+append(P, File:name) :->
+	get(P, node, File, _).
+
+node(G, File:name, Gr:xref_file_graph_node) :<-
+	"Get the node representing File"::
+	(   get(G, member, File, Gr)
+	->  true
+	;   send(G, display, new(Gr, xref_file_graph_node(File)))
+	).
+	
+update_links(G) :->
+	"Add all export links"::
+	send(G?graphicals, for_all,
+	     if(message(@arg1, instance_of, xref_file_graph_node),
+		message(@arg1, create_export_links))).
+
+layout(G) :->
+	"Do graph layout"::
+	get(G?graphicals, find_all,
+	    message(@arg1, instance_of, xref_file_graph_node), Nodes),
+	get(Nodes, delete_head, First),
+	send(First, layout, iterations := 1000, network := Nodes).
+
+
 :- pce_end_class(prolog_xref_depgraph).
+
+:- pce_begin_class(xref_file_graph_node, xref_file_text).
+
+:- send(@class, handle, handle(w/2, 0, link, north)).
+:- send(@class, handle, handle(w, h/2, link, west)).
+:- send(@class, handle, handle(w/2, h, link, south)).
+:- send(@class, handle, handle(0, h/2, link, east)).
+
+create_export_links(N) :->
+	"Create the export links to other files"::
+	get(N, path, Exporter),
+	forall(export_link(Exporter, Importer, Callables),
+	       (   get(N?device, node, Importer, INode),
+		   new(_, xref_export_connection(N, INode, Callables)))).
+
+:- pce_end_class(xref_file_graph_node).
+
+:- pce_begin_class(xref_export_connection, tagged_connection).
+
+initialise(C, From:xref_file_graph_node, To:xref_file_graph_node,
+	   Callables:prolog) :->
+	send_super(C, initialise, From, To),
+	send(C, arrows, second),
+	length(Callables, N),
+	send(C, tag, text(string('(%d)', N))).
+
+:- pce_end_class(xref_export_connection).
+
+
+export_link(ExportFile, ImportFile, Callables) :-
+	setof(Callable,
+	      (	  xref_exported(ExportFile, Callable),
+		  xref_defined(ImportFile, Callable, imported(ExportFile)),
+		  atom(ImportFile)
+	      ), Callables0),
+	sort_callables(Callables0, Callables).
 
 
 		 /*******************************
@@ -547,6 +618,7 @@ initialise(TF, File:name) :->
 	short_file_name(Path, ShortId),
 	short_file_name_to_atom(ShortId, Label),
 	send_super(TF, initialise, Label),
+	send(TF, name, Path),
 	send(TF, slot, path, Path).
 
 :- pce_global(@xref_file_text_recogniser,
