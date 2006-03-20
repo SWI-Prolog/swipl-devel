@@ -257,6 +257,16 @@ initMutexes()
     simpleMutexInit(&m->mutex);
 }
 
+static void
+deleteMutexes()
+{ counting_mutex *m;
+  int n = sizeof(_PL_mutexes)/sizeof(*m);
+  int i;
+
+  for(i=0, m=_PL_mutexes; i<n; i++, m++)
+    simpleMutexDelete(&m->mutex);
+}
+
 
 BOOL WINAPI
 DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
@@ -268,6 +278,8 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
       initMutexes();
       break;
     case DLL_PROCESS_DETACH:
+      deleteMutexes();
+      break;
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
       break;

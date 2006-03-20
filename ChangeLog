@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Some Windows path problems and cleanup issues.  Patch by
+    Marc-Antoine Ruel.
+
   * FIXED: Behaviour of term_variables/2,3 in the tracer.  Leslie de
     Koninck.
 

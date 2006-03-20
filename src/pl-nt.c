@@ -24,7 +24,7 @@
 
 #if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
 #define _WIN32_WINNT 0x0400
-#if (_MSC_VER >= 1400)
+#if (_MSC_VER >= 1300)
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
 #else

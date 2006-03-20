@@ -29,7 +29,7 @@ EXJAVAS=	Exceptions Exceptions2 Family FamilyMT Test Test2 Time \
 CFLAGS =	$(CFLAGS) \
 		-I"$(JAVA_HOME)\include" \
 		-I"$(JAVA_HOME)\include\win32"
-LIBS =		$(LIBS) $(JAVA_HOME)\lib\jvm.lib
+LIBS =		$(LIBS) "$(JAVA_HOME)\lib\jvm.lib"
 
 OBJ=		src\c\jpl.obj
 
