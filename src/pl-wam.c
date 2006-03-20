@@ -1529,7 +1529,7 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
     { fid_t fid, wake;
       qid_t qid;
       term_t av;
-      int debug, rc;
+      int debug, trace, rc;
   
       LD->exception.in_hook++;
       blockGC(PASS_LD1);
@@ -1549,9 +1549,13 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
 			  PROCEDURE_exception_hook4, av);
       rc = PL_next_solution(qid);
       debug = debugstatus.debugging;
+      trace = debugstatus.tracing;
       PL_cut_query(qid);
-      debugstatus.debugging = debug;
-  
+      if ( debug )			/* user switched on debugging */
+	debugstatus.debugging = TRUE;
+      if ( trace )
+	debugstatus.tracing = TRUE;
+
       PL_put_term(exception_bin, rc ? av+1 : av+0);
       exception_term = exception_bin;
       
