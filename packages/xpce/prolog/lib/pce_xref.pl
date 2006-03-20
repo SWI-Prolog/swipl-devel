@@ -235,7 +235,7 @@ initialise(DN, Dir:name) :->
 	->  true
 	;   file_base_name(Dir, Name)
 	),
-	send_super(DN, initialise, Name, Dir).
+	send_super(DN, initialise, xref_directory_text(Dir, Name), Dir).
 
 parent_id(FN, ParentId:name) :<-
 	"Get id for the parent"::
@@ -585,6 +585,38 @@ info(T) :->
 	send(T?frame, file_info, Path).
 
 :- pce_end_class(xref_file_text).
+
+
+:- pce_begin_class(xref_directory_text, text,
+		   "Represent a directory-name").
+
+variable(path,		 name,	       get, "Filename represented").
+
+initialise(TF, Dir:name, Label:[name]) :->
+	absolute_file_name(Dir, Path),
+	(   Label == @default
+	->  file_base_name(Path, TheLabel)
+	;   TheLabel = Label
+	),
+	send_super(TF, initialise, Label),
+	send(TF, slot, path, Path).
+
+event(T, Ev:event) :->
+	(   send_super(T, event, Ev)
+	->  true
+	;   send(@arm_recogniser, event, Ev)
+	).
+
+arm(TF, Val:bool) :->
+	"Preview activiity"::
+	(   Val == @on
+	->  send(TF, underline, @on),
+	    send(TF, report, status, 'Directory %s', TF?path)
+	;   send(TF, underline, @off),
+	    send(TF, report, status, '')
+	).
+
+:- pce_end_class(xref_directory_text).
 
 
 :- pce_begin_class(xref_imported_by, figure,
