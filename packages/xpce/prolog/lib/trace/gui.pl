@@ -667,12 +667,13 @@ bindings(B, Bindings:prolog) :->
 	send(B, background, white),
 	pce_open(B, write, Fd),
 	forall(member(Vars=Value, Bindings),
-	       send(B, append_binding, Vars, Value, Fd)),
+	       send(B, append_binding, Vars, value(Value), Fd)),
 	close(Fd),
 	send(B, caret, 0).
 
-append_binding(B, Names:prolog, Value:prolog, Fd:prolog) :->
+append_binding(B, Names:prolog, ValueTerm:prolog, Fd:prolog) :->
 	"Add a binding to the browser"::
+	ValueTerm = value(Value),	% protect :=, ?, etc.
 	(   var(Value),
 	    setting(show_unbound, false)
 	->  true
