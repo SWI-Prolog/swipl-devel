@@ -29,7 +29,7 @@
     the GNU General Public License.
 */
 
-:- module(pce_xref,
+:- module(pce_prolog_xref,
 	  [ xref_source/1,		% +Source
 	    xref_called/2,		% ?Source, ?Callable
 	    xref_called/3,		% ?Source, ?Callable, ?By
