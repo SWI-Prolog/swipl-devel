@@ -355,6 +355,14 @@ update(V) :->
 	).
 
 
+module(W, Module:name) :<-
+	"Module associated with this file"::
+	get(W, prolog_file, File),
+	(   xref_module(File, Module)
+	->  true
+	;   Module = user		% TBD: does not need to be true!
+	).
+
 :- pce_group(info).
 
 show_info(W) :->
@@ -366,6 +374,7 @@ show_info(W) :->
 	send(T, next_row),
 	send(W, show_module),
 	send(W, show_modified),
+	send(W, show_undefined),
 	send(W, show_exports),
 	true.
 
@@ -396,8 +405,8 @@ show_exports(W) :->
 	    Exports \== []
 	->  get(W, tabular, T),
 	    BG = (background := khaki1),
-	    send(T, append, 'Export', huge, center, BG),
-	    send(T, append, 'Imported by', huge, center, BG),
+	    send(T, append, 'Export', bold, center, BG),
+	    send(T, append, 'Imported by', bold, center, BG),
 	    send(T, next_row),
 	    sort_callables(Exports, Sorted),
 	    forall(member(Callable, Sorted),
@@ -409,7 +418,7 @@ show_export(W, File:name, Module:name, Callable:prolog) :->
 	get(W, tabular, T),
 	send(T, append, xref_predicate_text(Module:Callable, @off)),
 	findall(In, exported_to(File, Callable, In), InL),
-	send(T, append, new(XL, xref_imported_by_list)),
+	send(T, append, new(XL, xref_graphical_list)),
 	(   InL == []
 	->  true
 	;   sort_files(InL, Sorted),
@@ -434,6 +443,47 @@ exported_to(ExportFile, Callable, ImportFile) :-
 	xref_called(ImportFile, Callable),
 	\+ xref_defined(ImportFile, Callable, _).
 
+
+show_undefined(W) :->
+	"Add underfined predicates to table"::
+	get(W, prolog_file, File),
+	findall(Undef, undefined(File, Undef), UndefList),
+	(   UndefList == []
+	->  true
+	;   BG = (background := khaki1),
+	    get(W, tabular, T),
+	    send(T, append, 'Undefined', bold, center, BG),
+	    send(T, append, 'Called by', bold, center, BG),
+	    send(T, next_row),
+	    sort_callables(UndefList, Sorted),
+	    forall(member(Callable, Sorted),
+		   send(W, show_undef, Callable))
+	).
+
+show_undef(W, Callable:prolog) :->
+	"Show undefined predicate"::
+	get(W, prolog_file, File),
+	get(W, module, Module),
+	get(W, tabular, T),
+	send(T, append, new(I, xref_predicate_text(Module:Callable, @off))),
+	send(I, colour, red),
+	send(T, append, new(L, xref_graphical_list)),
+	findall(By, xref_called(File, Callable, By), By),
+	sort_callables(By, Sorted),
+	forall(member(P, Sorted),
+	       send(L, append, xref_predicate_text(Module:P, @off))),
+	send(T, next_row).
+	
+
+undefined(File, Undef) :-
+	xref_called(File, Undef),
+	\+ (   xref_defined(File, Undef, _)
+	   ;   built_in_predicate(Undef)
+	   ).
+
+built_in_predicate(Goal) :-
+	predicate_property(system:Goal, built_in), !.
+built_in_predicate(module(_, _)).
 
 :- pce_end_class(prolog_file_info).
 
@@ -624,7 +674,7 @@ edit_called_by(IT, Called:prolog) :->
 :- pce_end_class(xref_imported_by).
 
 
-:- pce_begin_class(xref_imported_by_list, figure,
+:- pce_begin_class(xref_graphical_list, figure,
 		   "Show list of exports to files").
 
 variable(wrap, {extend,wrap,wrap_fixed_width,clip} := extend, get,
@@ -634,7 +684,7 @@ initialise(XL) :->
 	send_super(XL, initialise),
 	send(XL, margin, 500, wrap).
 
-append(XL, I:xref_imported_by) :->
+append(XL, I:graphical) :->
 	(   send(XL?graphicals, empty)
 	->  true
 	;   send(XL, display, text(', '))
@@ -643,10 +693,10 @@ append(XL, I:xref_imported_by) :->
 
 :- pce_group(layout).
 
-:- pce_global(@xref_imported_by_list_format,
-	      make_xref_imported_by_list_format).
+:- pce_global(@xref_graphical_list_format,
+	      make_xref_graphical_list_format).
 
-make_xref_imported_by_list_format(F) :-
+make_xref_graphical_list_format(F) :-
 	new(F, format(horizontal, 500, @off)),
 	send(F, column_sep, 0),
 	send(F, row_sep, 0).
@@ -665,7 +715,7 @@ margin(T, Width:int*, How:[{wrap,wrap_fixed_width,clip}]) :->
 	;   tbd
 	).
 
-:- pce_end_class(xref_imported_by_list).
+:- pce_end_class(xref_graphical_list).
 
 
 
@@ -936,7 +986,8 @@ to_callable(In, _) :-
 sort_callables(Callables, Sorted) :-
 	key_callables(Callables, Tagged),
 	keysort(Tagged, KeySorted),
-	unkey(KeySorted, Sorted).
+	unkey(KeySorted, SortedList),
+	ord_list_to_set(SortedList, Sorted).
 
 key_callables([], []).
 key_callables([H0|T0], [k(Name, Arity, Module)-H0|T]) :-
@@ -950,6 +1001,21 @@ key_callables([H0|T0], [k(Name, Arity, Module)-H0|T]) :-
 unkey([], []).
 unkey([_-H|T0], [H|T]) :-
 	unkey(T0, T).
+
+%	ord_list_to_set(+OrdList, -OrdSet)
+%	
+%	Removed duplicates (after unification) from an ordered list,
+%	creating a set.
+
+ord_list_to_set([], []).
+ord_list_to_set([H|T0], [H|T]) :-
+	ord_remove_same(H, T0, T1),
+	ord_list_to_set(T1, T).
+
+ord_remove_same(H, [H|T0], T) :- !,
+	ord_remove_same(H, T0, T).
+ord_remove_same(_, L, L).
+
 
 %	callable_to_label(+Callable, -Label)
 
