@@ -15,6 +15,9 @@
 :- use_module(library(lists)).
 :- use_module(library(debug)).
 
+setting(warn_autoload,     true).
+setting(hide_system_files, true).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 XPCE based font-end of the Prolog cross-referencer.  Tasks:
 
@@ -159,13 +162,36 @@ file_info(F, File:name) :->
 
 :- pce_begin_class(prolog_xref_depgraph, picture,
 		   "Workspace showing dependecies").
+:- use_class_template(arm).
+
+initialise(W) :->
+	send_super(W, initialise),
+	send(W, popup, new(P, popup)),
+	send_list(P, append,
+		  [ menu_item(layout, message(W, layout))
+		  ]).
 
 update(P) :->
+	get(P, sources, Sources),
 	send(P, clear, destroy),
-	forall((source_file(X),atom(X)),
-	       send(P, append, X)),
+	forall(member(Src, Sources),
+	       send(P, append, Src)),
 	send(P, update_links),
 	send(P, layout).
+
+sources(_, Sources:prolog) :<-
+	findall(S, dep_source(S), Sources).
+
+%	dep_source(?Src)
+%	
+%	Generate all sources for the dependecy graph one-by-one.
+
+dep_source(Src) :-
+	source_file(Src),
+	(   setting(hide_system_files, true)
+	->  \+ library_file(Src)
+	;   true
+	).
 
 append(P, File:name) :->
 	get(P, node, File, _).
@@ -174,7 +200,9 @@ node(G, File:name, Gr:xref_file_graph_node) :<-
 	"Get the node representing File"::
 	(   get(G, member, File, Gr)
 	->  true
-	;   send(G, display, new(Gr, xref_file_graph_node(File)))
+	;   dep_source(File),
+	    get(G?visible, center, Center),
+	    send(G, display, new(Gr, xref_file_graph_node(File)), Center)
 	).
 	
 update_links(G) :->
@@ -188,7 +216,10 @@ layout(G) :->
 	get(G?graphicals, find_all,
 	    message(@arg1, instance_of, xref_file_graph_node), Nodes),
 	get(Nodes, delete_head, First),
-	send(First, layout, iterations := 1000, network := Nodes).
+	send(First, layout,
+	     nominal := 100,
+	     iterations := 1000,
+	     network := Nodes).
 
 
 :- pce_end_class(prolog_xref_depgraph).
@@ -200,12 +231,30 @@ layout(G) :->
 :- send(@class, handle, handle(w/2, h, link, south)).
 :- send(@class, handle, handle(0, h/2, link, east)).
 
+initialise(N, File:name) :->
+	send_super(N, initialise, File),
+	send(N, font, bold),
+	send(N, background, grey80).
+
 create_export_links(N) :->
 	"Create the export links to other files"::
 	get(N, path, Exporter),
 	forall(export_link(Exporter, Importer, Callables),
 	       (   get(N?device, node, Importer, INode),
-		   new(_, xref_export_connection(N, INode, Callables)))).
+		   new(L, xref_export_connection(N, INode, Callables)),
+		   send(L, hide))).
+
+:- pce_global(@xref_file_graph_node_recogniser,
+	      make_xref_file_graph_node_recogniser).
+
+make_xref_file_graph_node_recogniser(G) :-
+	new(G, move_gesture(left, '')).
+
+event(N, Ev:event) :->
+	(   send_super(N, event, Ev)
+	->  true
+	;   send(@xref_file_graph_node_recogniser, event, Ev)
+	).
 
 :- pce_end_class(xref_file_graph_node).
 
@@ -216,7 +265,8 @@ initialise(C, From:xref_file_graph_node, To:xref_file_graph_node,
 	send_super(C, initialise, From, To),
 	send(C, arrows, second),
 	length(Callables, N),
-	send(C, tag, text(string('(%d)', N))).
+	send(C, tag, new(T, text(string('(%d)', N)))),
+	send(T, colour, grey40).
 
 :- pce_end_class(xref_export_connection).
 
@@ -225,7 +275,8 @@ export_link(ExportFile, ImportFile, Callables) :-
 	setof(Callable,
 	      (	  xref_exported(ExportFile, Callable),
 		  xref_defined(ImportFile, Callable, imported(ExportFile)),
-		  atom(ImportFile)
+		  atom(ImportFile),
+		  xref_called(ImportFile, Callable)
 	      ), Callables0),
 	sort_callables(Callables0, Callables).
 
@@ -523,7 +574,11 @@ show_undefined(W) :->
 	->  true
 	;   BG = (background := khaki1),
 	    get(W, tabular, T),
-	    send(T, append, 'Undefined', bold, center, BG),
+	    (	setting(warn_autoload, true)
+	    ->  Label = 'Undefined/autoload'
+	    ;   Label = 'Undefined'
+	    ),
+	    send(T, append, Label, bold, center, BG),
 	    send(T, append, 'Called by', bold, center, BG),
 	    send(T, next_row),
 	    sort_callables(UndefList, Sorted),
@@ -536,8 +591,8 @@ show_undef(W, Callable:prolog) :->
 	get(W, prolog_file, File),
 	get(W, module, Module),
 	get(W, tabular, T),
-	send(T, append, new(I, xref_predicate_text(Module:Callable, @off))),
-	send(I, colour, red),
+	send(T, append,
+	     xref_predicate_text(Module:Callable, @off, undefined)),
 	send(T, append, new(L, xref_graphical_list)),
 	findall(By, xref_called(File, Callable, By), By),
 	sort_callables(By, Sorted),
@@ -548,13 +603,36 @@ show_undef(W, Callable:prolog) :->
 
 undefined(File, Undef) :-
 	xref_called(File, Undef),
-	\+ (   xref_defined(File, Undef, _)
-	   ;   built_in_predicate(Undef)
-	   ).
+	\+ defined(File, Undef, _).
+
+%	defined(+File, +Callable, -HowDefined)
+%	
+%	True if Callable is defined in File.
+
+defined(File, Called, How) :-
+	xref_defined(File, Called, How0), !,
+	How = How0.
+defined(_, Called, How) :-
+	built_in_predicate(Called), !,
+	How = builtin.
+defined(_, Called, How) :-
+	setting(warn_autoload, false),
+	autoload_predicate(Called), !,
+	How = autoload.
+defined(_, Called, How) :-
+	setting(warn_autoload, false),
+	global_predicate(Called), !,
+	How = global.
 
 built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
 built_in_predicate(module(_, _)).
+
+autoload_predicate(Goal) :-
+	'$autoload':library_index(Goal, _, _).
+
+global_predicate(Goal) :-
+	predicate_property(user:Goal, _), !.
 
 :- pce_end_class(prolog_file_info).
 
@@ -564,20 +642,40 @@ built_in_predicate(module(_, _)).
 
 class_variable(colour, colour, dark_green).
 
-variable(pi,	prolog,	get, "Predicate indicator").
+variable(pi,		 prolog, get, "Predicate indicator").
+variable(classification, [name], get, "Classification of the predicate").
 
-initialise(T, Spec:prolog, Qualify:[bool]) :->
+initialise(T, Spec:prolog, Qualify:[bool], Class:[{undefined}]) :->
 	"Create from callable or predicate indicator"::
 	to_predicate_indicator(Spec, PI),
 	send(T, slot, pi, PI),
 	unqualify(Qualify, PI, Term),
 	term_to_atom(Term, Text),
-	send_super(T, initialise, Text).
+	send_super(T, initialise, Text),
+	send(T, classification, Class).
        
-
 unqualify(@off, _:PI, PI) :- !.
 unqualify(_, PI, PI).
 
+callable(IT, Callable:prolog) :<-
+	get(IT, pi, PI),
+	to_callable(PI, Callable).
+
+classification(T, Class:[{undefined}]) :->
+	send(T, slot, classification, Class),
+	(   Class == undefined
+	->  get(T, callable, Callable),
+	    strip_module(Callable, _, Plain),
+	    (	autoload_predicate(Plain)
+	    ->  send(T, colour, navy_blue),
+		send(T, slot, classification, autoload)
+	    ;   global_predicate(Plain)
+	    ->  send(T, colour, navy_blue),
+		send(T, slot, classification, global)
+	    ;   send(T, colour, red)
+	    )
+	;   true
+	).
 
 :- pce_global(@xref_predicate_text_recogniser,
 	      new(handler_group(@arm_recogniser,
@@ -595,7 +693,11 @@ arm(TF, Val:bool) :->
 	"Preview activiity"::
 	(   Val == @on
 	->  send(TF, underline, @on),
-	    send(TF, report, status, 'Predicate %s', TF?string)
+	    (	get(TF, classification, Class),
+		Class \== @default
+	    ->  send(TF, report, status, '%s predicate %s', Class?capitalise, TF?string)
+	    ;   send(TF, report, status, 'Predicate %s', TF?string)
+	    )
 	;   send(TF, underline, @off),
 	    send(TF, report, status, '')
 	).
