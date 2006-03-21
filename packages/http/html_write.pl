@@ -562,7 +562,10 @@ called_by(Var) -->
 	{ var(Var) }, !,
 	[].
 called_by(\G) --> !,
-	[G+2].
+	(   { is_list(G) }
+	->  []
+	;   [G+2]
+	).
 called_by([]) --> !,
 	[].
 called_by([H|T]) --> !,

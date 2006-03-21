@@ -39,7 +39,7 @@
 :- use_module(pce_boot(pce_principal)).
 
 
-%	pce_catch_error(?Errors, Goal)
+%	pce_catch_error(?Errors, :Goal)
 %
 %	Run goal, fail silently on indicated errors.  If the first argument
 %	is a variable, any error will be catched.
@@ -47,15 +47,17 @@
 pce_catch_error(Error, Goal) :-
 	var(Error), !,
 	send(@pce, catch_error, @default),
-	(   Goal
-	->  send(@pce, catch_pop)
-	;   send(@pce, catch_pop),
-	    fail
-	).
+	call_cleanup((Goal, !), send(@pce, catch_pop)).
 pce_catch_error(Errors, Goal) :-
 	send(@pce, catch_error, Errors),
-	(   Goal
-	->  send(@pce, catch_pop)
-	;   send(@pce, catch_pop),
-	    fail
-	).
+	call_cleanup((Goal, !), send(@pce, catch_pop)).
+
+
+%	Allow for expandable goals in pce_catch_error/2.
+
+:- multifile
+	user:goal_expansion/2.
+
+goal_expansion(pce_catch_error(Error, Goal0),
+	       pce_catch_error(Error, Goal)) :-
+	expand_goal(Goal0, Goal).

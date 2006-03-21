@@ -418,9 +418,11 @@ process_directive(meta_predicate(Meta), _) :-
 process_directive(arithmetic_function(Name/Arity), Src) :-
 	PredArity is Arity + 1,
 	functor(Goal, Name, PredArity),
-	assert_called(Src, '<directive>', Goal).
+	flag(xref_src_line, Line, Line),
+	assert_called(Src, '<directive>'(Line), Goal).
 process_directive(Goal, Src) :-
-	process_body(Goal, '<directive>', Src).
+	flag(xref_src_line, Line, Line),
+	process_body(Goal, '<directive>'(Line), Src).
 
 %	process_meta_predicate(+Decl)
 %	
@@ -947,15 +949,13 @@ assert_defined_class(Src, Name, imported_from(File)) :-
 
 generalise(Var, Var) :-
 	var(Var), !.			% error?
-generalise(X, _) :-
-	debug(xref, 'Generalise ~w', [X]),
-	fail.
 generalise(pce_principal:send_implementation(Id, _, _),
 	   pce_principal:send_implementation(Id, _, _)) :-
 	atom(Id), !.
 generalise(pce_principal:get_implementation(Id, _, _, _),
 	   pce_principal:get_implementation(Id, _, _, _)) :-
 	atom(Id), !.
+generalise('<directive>'(Line), '<directive>'(Line)) :- !.
 generalise(Module:Goal0, Module:Goal) :-
 	atom(Module), !,
 	generalise(Goal0, Goal).

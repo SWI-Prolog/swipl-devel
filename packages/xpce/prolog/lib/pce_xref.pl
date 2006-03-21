@@ -557,7 +557,7 @@ show_exports(W) :->
 
 show_export(W, File:name, Module:name, Callable:prolog) :->
 	get(W, tabular, T),
-	send(T, append, xref_predicate_text(Module:Callable, @off)),
+	send(T, append, xref_predicate_text(Module:Callable)),
 	findall(In, exported_to(File, Callable, In), InL),
 	send(T, append, new(XL, xref_graphical_list)),
 	(   InL == []
@@ -611,12 +611,12 @@ show_undef(W, Callable:prolog) :->
 	get(W, module, Module),
 	get(W, tabular, T),
 	send(T, append,
-	     xref_predicate_text(Module:Callable, @off, undefined)),
+	     xref_predicate_text(Module:Callable, undefined)),
 	send(T, append, new(L, xref_graphical_list)),
 	findall(By, xref_called(File, Callable, By), By),
 	sort_callables(By, Sorted),
 	forall(member(P, Sorted),
-	       send(L, append, xref_predicate_text(Module:P, @off))),
+	       send(L, append, xref_predicate_text(Module:P, called_by, File))),
 	send(T, next_row).
 	
 
@@ -663,13 +663,18 @@ class_variable(colour, colour, dark_green).
 
 variable(callable,	 prolog, get, "Predicate indicator").
 variable(classification, [name], get, "Classification of the predicate").
+variable(file,		 name*,  get, "File of predicate").
 
-initialise(T, Callable0:prolog, _Qualify:[bool], Class:[{undefined}]) :->
+initialise(T, Callable0:prolog, Class:[{undefined,called_by}], File:[name]) :->
 	"Create from callable or predicate indicator"::
 	single_qualify(Callable0, Callable),
 	send(T, slot, callable, Callable),
 	callable_to_label(Callable, Label),
 	send_super(T, initialise, Label),
+	(   File \== @default
+	->  send(T, slot, file, File)
+	;   true
+	),
 	send(T, classification, Class).
        
 %	single_qualify(+Term, -Qualified)
@@ -692,7 +697,7 @@ pi(IT, PI:prolog) :<-
 	get(IT, callable, Callable),
 	to_predicate_indicator(Callable, PI).
 
-classification(T, Class:[{undefined}]) :->
+classification(T, Class:[name]) :->
 	send(T, slot, classification, Class),
 	(   Class == undefined
 	->  get(T, callable, Callable),
@@ -734,8 +739,9 @@ arm(TF, Val:bool) :->
 	).
 
 edit(T) :->
+	get(T, file, File),
 	get(T, callable, Callable),
-	edit_callable(Callable).
+	edit_callable(Callable, File).
 
 :- pce_end_class(xref_predicate_text).
 
@@ -1265,23 +1271,32 @@ callable_to_label(pce_principal:send_implementation(Id,_,_), Id) :-
 	atom(Id), !.
 callable_to_label(pce_principal:get_implementation(Id,_,_,_), Id) :-
 	atom(Id), !.
-callable_to_label('<export>', '<export>').
+callable_to_label('<export>', '<export>') :- !.
+callable_to_label('<directive>'(Line), Label) :- !,
+	atom_concat('<directive>@', Line, Label).
+callable_to_label(_:'<directive>'(Line), Label) :- !,
+	atom_concat('<directive>@', Line, Label).
 callable_to_label(Callable, Label) :-
 	to_predicate_indicator(Callable, PI),
 	unqualify(@off, PI, T0),
 	term_to_atom(T0, Label).
 
-%	edit_callable(+Callable)
+%	edit_callable(+Callable, +File)
 
-edit_callable(pce_principal:send_implementation(Id,_,_)) :-
+edit_callable(pce_principal:send_implementation(Id,_,_), _) :-
 	atom(Id),
 	concat_atom([Class,Method], ->, Id), !,
 	edit(send(Class, Method)).
-edit_callable(pce_principal:get_implementation(Id,_,_,_)) :-
+edit_callable(pce_principal:get_implementation(Id,_,_,_), _) :-
 	atom(Id),
 	concat_atom([Class,Method], <-, Id), !,
 	edit(get(Class, Method)).
-edit_callable(Callable) :-
+edit_callable('<directive>'(Line), File) :-
+	File \== @nil, !,
+	edit(file(File, line(Line))).
+edit_callable(_:'<directive>'(Line), File) :-
+	File \== @nil, !,
+	edit(file(File, line(Line))).
+edit_callable(Callable, _) :-
 	to_predicate_indicator(Callable, PI),
 	edit(PI).
-
