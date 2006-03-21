@@ -1551,10 +1551,10 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
       debug = debugstatus.debugging;
       trace = debugstatus.tracing;
       PL_cut_query(qid);
-      if ( debug )			/* user switched on debugging */
-	debugstatus.debugging = TRUE;
-      if ( trace )
-	debugstatus.tracing = TRUE;
+      if ( rc )				/* pass user setting trace/debug */
+      { if ( debug ) debugstatus.debugging = TRUE;
+	if ( trace ) debugstatus.tracing = TRUE;
+      }
 
       PL_put_term(exception_bin, rc ? av+1 : av+0);
       exception_term = exception_bin;
