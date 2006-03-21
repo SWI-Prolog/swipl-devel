@@ -66,6 +66,8 @@ initialise(F) :->
 	new(BrowserTabs, tabbed_window),
 	send(BrowserTabs, left, new(WSTabs, tabbed_window)),
 	send(BrowserTabs, name, browsers),
+	send(BrowserTabs, hor_shrink, 10),
+	send(BrowserTabs, hor_stretch, 10),
 	send(WSTabs, name, workspaces),
 	send_list([BrowserTabs, WSTabs], label_popup, F?tab_popup),
 	send(new(TD, tool_dialog(F)), above, BrowserTabs),
@@ -168,7 +170,9 @@ initialise(W) :->
 	send_super(W, initialise),
 	send(W, popup, new(P, popup)),
 	send_list(P, append,
-		  [ menu_item(layout, message(W, layout))
+		  [ menu_item(layout, message(W, layout)),
+		    gap,
+		    menu_item(clear, message(W, clear, destroy))
 		  ]).
 
 update(P) :->
@@ -194,13 +198,14 @@ dep_source(Src) :-
 	).
 
 append(P, File:name) :->
-	get(P, node, File, _).
+	get(P, node, File, @on, _).
 
-node(G, File:name, Gr:xref_file_graph_node) :<-
+node(G, File:name, Create:[bool], Gr:xref_file_graph_node) :<-
 	"Get the node representing File"::
 	(   get(G, member, File, Gr)
 	->  true
-	;   dep_source(File),
+	;   Create == @on,
+	    dep_source(File),
 	    get(G?visible, center, Center),
 	    send(G, display, new(Gr, xref_file_graph_node(File)), Center)
 	).
@@ -241,8 +246,16 @@ create_export_links(N) :->
 	get(N, path, Exporter),
 	forall(export_link(Exporter, Importer, Callables),
 	       (   get(N?device, node, Importer, INode),
-		   new(L, xref_export_connection(N, INode, Callables)),
-		   send(L, hide))).
+		   send(N, link, INode, Callables))).
+
+link(N, INode:xref_file_graph_node, Callables:prolog) :->
+	"Create export link to INode"::
+	(   get(N, connections, INode, CList),
+	    get(CList, find, @arg1?from == N, C)
+	->  send(C, callables, Callables)
+	;   new(L, xref_export_connection(N, INode, Callables)),
+	    send(L, hide)
+	).
 
 :- pce_global(@xref_file_graph_node_recogniser,
 	      make_xref_file_graph_node_recogniser).
@@ -260,13 +273,19 @@ event(N, Ev:event) :->
 
 :- pce_begin_class(xref_export_connection, tagged_connection).
 
+variable(callables, prolog, get, "Callables in Import/export link").
+
 initialise(C, From:xref_file_graph_node, To:xref_file_graph_node,
 	   Callables:prolog) :->
 	send_super(C, initialise, From, To),
 	send(C, arrows, second),
+	send(C, slot, callables, Callables),
 	length(Callables, N),
 	send(C, tag, new(T, text(string('(%d)', N)))),
 	send(T, colour, grey40).
+
+callables(C, Callables:prolog) :->
+	send(C, slot, callables, Callables). % TBD: update tag?
 
 :- pce_end_class(xref_export_connection).
 
@@ -642,24 +661,36 @@ global_predicate(Goal) :-
 
 class_variable(colour, colour, dark_green).
 
-variable(pi,		 prolog, get, "Predicate indicator").
+variable(callable,	 prolog, get, "Predicate indicator").
 variable(classification, [name], get, "Classification of the predicate").
 
-initialise(T, Spec:prolog, Qualify:[bool], Class:[{undefined}]) :->
+initialise(T, Callable0:prolog, _Qualify:[bool], Class:[{undefined}]) :->
 	"Create from callable or predicate indicator"::
-	to_predicate_indicator(Spec, PI),
-	send(T, slot, pi, PI),
-	unqualify(Qualify, PI, Term),
-	term_to_atom(Term, Text),
-	send_super(T, initialise, Text),
+	single_qualify(Callable0, Callable),
+	send(T, slot, callable, Callable),
+	callable_to_label(Callable, Label),
+	send_super(T, initialise, Label),
 	send(T, classification, Class).
        
+%	single_qualify(+Term, -Qualified)
+%	
+%	Strip redundant M: from the term, leaving at most one qualifier.
+
+single_qualify(_:Q0, Q) :-
+	is_qualified(Q0), !,
+	single_qualify(Q0, Q).
+single_qualify(Q, Q).
+
+is_qualified(M:_) :-
+	atom(M).
+
 unqualify(@off, _:PI, PI) :- !.
 unqualify(_, PI, PI).
 
-callable(IT, Callable:prolog) :<-
-	get(IT, pi, PI),
-	to_callable(PI, Callable).
+pi(IT, PI:prolog) :<-
+	"Get predicate as predicate indicator (Name/Arity)"::
+	get(IT, callable, Callable),
+	to_predicate_indicator(Callable, PI).
 
 classification(T, Class:[{undefined}]) :->
 	send(T, slot, classification, Class),
@@ -703,8 +734,8 @@ arm(TF, Val:bool) :->
 	).
 
 edit(T) :->
-	get(T, pi, PI),
-	edit(PI).
+	get(T, callable, Callable),
+	edit_callable(Callable).
 
 :- pce_end_class(xref_predicate_text).
 
@@ -729,7 +760,12 @@ initialise(TF, File:name) :->
 make_xref_file_text_recogniser(G) :-
 	new(C, click_gesture(left, '', single, 
 			     message(@receiver, run_default_action))),
-	new(G, handler_group(C, @arm_recogniser)).
+	new(P, popup_gesture(new(Popup, popup))),
+	new(G, handler_group(C, P, @arm_recogniser)),
+	send_list(Popup, append,
+		  [ menu_item(edit, message(@arg1, edit)),
+		    menu_item(info, message(@arg1, info))
+		  ]).
 
 event(T, Ev:event) :->
 	(   send_super(T, event, Ev)
@@ -1234,4 +1270,18 @@ callable_to_label(Callable, Label) :-
 	to_predicate_indicator(Callable, PI),
 	unqualify(@off, PI, T0),
 	term_to_atom(T0, Label).
+
+%	edit_callable(+Callable)
+
+edit_callable(pce_principal:send_implementation(Id,_,_)) :-
+	atom(Id),
+	concat_atom([Class,Method], ->, Id), !,
+	edit(send(Class, Method)).
+edit_callable(pce_principal:get_implementation(Id,_,_,_)) :-
+	atom(Id),
+	concat_atom([Class,Method], <-, Id), !,
+	edit(get(Class, Method)).
+edit_callable(Callable) :-
+	to_predicate_indicator(Callable, PI),
+	edit(PI).
 
