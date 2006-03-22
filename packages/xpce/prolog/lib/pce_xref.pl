@@ -10,7 +10,9 @@
 :- use_module(pce_toc).
 :- use_module(pce_arm).
 :- use_module(pce_tagged_connection).
+:- use_module(dragdrop).
 :- use_module(pce_prolog_xref).
+:- use_module(print_graphics).
 :- use_module(tabular).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
@@ -165,6 +167,7 @@ file_info(F, File:name) :->
 :- pce_begin_class(prolog_xref_depgraph, picture,
 		   "Workspace showing dependecies").
 :- use_class_template(arm).
+:- use_class_template(print_graphics).
 
 initialise(W) :->
 	send_super(W, initialise),
@@ -172,10 +175,30 @@ initialise(W) :->
 	send_list(P, append,
 		  [ menu_item(layout, message(W, layout)),
 		    gap,
-		    menu_item(clear, message(W, clear, destroy))
+		    menu_item(view_whole_project, message(W, show_project)),
+		    gap,
+		    menu_item(clear, message(W, clear, destroy)),
+		    gap,
+		    menu_item(print, message(W, print))
 		  ]).
 
 update(P) :->
+	"Initial screen"::
+	send(P, display,
+	     new(T, text('Drag files to dependebcy view\n\
+			  or use background menu to show the whole project')),
+	     point(10,10)),
+	send(T, name, intro_text),
+	send(T, colour, grey50).
+
+remove_intro_text(P) :->
+	"Remove the introductionary text"::
+	(   get(P, member, intro_text, Text)
+	->  send(Text, destroy)
+	;   true
+	).
+
+show_project(P) :->
 	get(P, sources, Sources),
 	send(P, clear, destroy),
 	forall(member(Src, Sources),
@@ -200,14 +223,18 @@ dep_source(Src) :-
 append(P, File:name) :->
 	get(P, node, File, @on, _).
 
-node(G, File:name, Create:[bool], Gr:xref_file_graph_node) :<-
+node(G, File:name, Create:[bool], Pos:[point], Gr:xref_file_graph_node) :<-
 	"Get the node representing File"::
 	(   get(G, member, File, Gr)
 	->  true
 	;   Create == @on,
 	    dep_source(File),
-	    get(G?visible, center, Center),
-	    send(G, display, new(Gr, xref_file_graph_node(File)), Center)
+	    (	Pos == @default
+	    ->  get(G?visible, center, At)
+	    ;   At = Pos
+	    ),
+	    send(G, display, new(Gr, xref_file_graph_node(File)), At),
+	    send(G, remove_intro_text)
 	).
 	
 update_links(G) :->
@@ -216,7 +243,7 @@ update_links(G) :->
 	     if(message(@arg1, instance_of, xref_file_graph_node),
 		message(@arg1, create_export_links))).
 
-layout(G) :->
+layout(G, MoveOnly:[chain]) :->
 	"Do graph layout"::
 	get(G?graphicals, find_all,
 	    message(@arg1, instance_of, xref_file_graph_node), Nodes),
@@ -224,8 +251,34 @@ layout(G) :->
 	send(First, layout,
 	     nominal := 100,
 	     iterations := 1000,
-	     network := Nodes).
+	     network := Nodes,
+	     move_only := MoveOnly).
 
+
+:- pce_group(dragdrop).
+
+drop(G, Obj:xref_file_text, Pos:point) :->
+	"Drop a file on the graph"::
+	get(Obj, path, File),
+	(   get(G, node, File, Node)
+	->  send(Node, flash)
+	;   get(G, node, File, @on, Pos, Node),
+	    send(G, update_links)
+	).
+
+preview_drop(G, Obj:xref_file_text*, Pos:point) :->
+	"Show preview of drop"::
+	(   Obj == @nil
+	->  send(G, report, status, '')
+	;   get(Obj, device, G)
+	->  send(Obj, move, Pos)
+	;   get(Obj, path, File),
+	    get(Obj, string, Label),
+	    (   get(G, node, File, _Node)
+	    ->  send(G, report, status, '%s: already in graph', Label)
+	    ;   send(G, report, status, 'Add %s to graph', Label)
+	    )
+	).
 
 :- pce_end_class(prolog_xref_depgraph).
 
@@ -241,12 +294,29 @@ initialise(N, File:name) :->
 	send(N, font, bold),
 	send(N, background, grey80).
 
-create_export_links(N) :->
+create_export_links(N, Add:[bool]) :->
 	"Create the export links to other files"::
 	get(N, path, Exporter),
 	forall(export_link(Exporter, Importer, Callables),
-	       (   get(N?device, node, Importer, INode),
-		   send(N, link, INode, Callables))).
+	       create_export_link(N, Add, Importer, Callables)).
+
+create_export_link(From, Add, Importer, Callables) :-
+	(   get(From?device, node, Importer, Add, INode)
+	->  send(From, link, INode, Callables)
+	;   true
+	).
+
+create_import_links(N, Add:[bool]) :->
+	"Create the import links from other files"::
+	get(N, path, Importer),
+	forall(export_link(Exporter, Importer, Callables),
+	       create_import_link(N, Add, Exporter, Callables)).
+
+create_import_link(From, Add, Importer, Callables) :-
+	(   get(From?device, node, Importer, Add, INode)
+	->  send(INode, link, From, Callables)
+	;   true
+	).
 
 link(N, INode:xref_file_graph_node, Callables:prolog) :->
 	"Create export link to INode"::
@@ -264,9 +334,43 @@ make_xref_file_graph_node_recogniser(G) :-
 	new(G, move_gesture(left, '')).
 
 event(N, Ev:event) :->
-	(   send_super(N, event, Ev)
+	"Add moving (overrule supreclass"::
+	(   send(@xref_file_graph_node_recogniser, event, Ev)
 	->  true
-	;   send(@xref_file_graph_node_recogniser, event, Ev)
+	;   send_super(N, event, Ev)
+	).
+
+popup(N, Popup:popup) :<-
+	get_super(N, popup, Popup),
+	send_list(Popup, append,
+		  [ gap,
+		    menu_item(show_exports,
+			      message(@arg1, show_import_exports, export)),
+		    menu_item(show_imports,
+			      message(@arg1, show_import_exports, import)),
+		    gap,
+		    menu_item(hide,
+			      message(@arg1, destroy))
+		  ]).
+
+show_import_exports(N, Which:{import,export}) :->
+	"Show who I'm exporting to"::
+	get(N, device, G),
+	get(G?graphicals, find_all,
+	    message(@arg1, instance_of, xref_file_graph_node), Nodes0),
+	(   Which == export
+	->  send(N, create_export_links, @on)
+	;   send(N, create_import_links, @on)
+	),
+	send(G, update_links),
+	get(G?graphicals, find_all,
+	    message(@arg1, instance_of, xref_file_graph_node), Nodes),
+	send(Nodes, subtract, Nodes0),
+	(   send(Nodes, empty)
+	->  send(N, report, status, 'No nodes added')
+	;   send(G, layout, Nodes),
+	    get(Nodes, size, Size),
+	    send(N, report, status, '%d nodes added', Size)
 	).
 
 :- pce_end_class(xref_file_graph_node).
@@ -290,12 +394,26 @@ callables(C, Callables:prolog) :->
 :- pce_end_class(xref_export_connection).
 
 
+%	export_link(+ExportingFile, -ImportingFile, -Callables)
+%	export_link(-ExportingFile, +ImportingFile, -Callables)
+%	
+%	Callables are exported from ExportingFile to ImportingFile.
+
 export_link(ExportFile, ImportFile, Callables) :-
+	nonvar(ExportFile), !,
 	setof(Callable,
 	      (	  xref_exported(ExportFile, Callable),
 		  xref_defined(ImportFile, Callable, imported(ExportFile)),
 		  atom(ImportFile),
 		  xref_called(ImportFile, Callable)
+	      ), Callables0),
+	sort_callables(Callables0, Callables).
+export_link(ExportFile, ImportFile, Callables) :-
+	nonvar(ImportFile),
+	setof(Callable,
+	      (	  xref_called(ImportFile, Callable),
+		  xref_defined(ImportFile, Callable, imported(ExportFile)),
+		  atom(ExportFile)
 	      ), Callables0),
 	sort_callables(Callables0, Callables).
 
@@ -310,6 +428,7 @@ export_link(ExportFile, ImportFile, Callables) :-
 
 initialise(Tree) :->
 	send_super(Tree, initialise),
+	send(Tree, drag_and_drop, @on),
 	send(Tree, clear).
 
 collapse_node(_, _:any) :->
@@ -766,8 +885,13 @@ initialise(TF, File:name) :->
 make_xref_file_text_recogniser(G) :-
 	new(C, click_gesture(left, '', single, 
 			     message(@receiver, run_default_action))),
-	new(P, popup_gesture(new(Popup, popup))),
-	new(G, handler_group(C, P, @arm_recogniser)),
+	new(P, popup_gesture(@arg1?popup)),
+	new(D, drag_and_drop_gesture(left)),
+	send(D, cursor, @default),
+	new(G, handler_group(C, D, P, @arm_recogniser)).
+
+popup(_, Popup:popup) :<-
+	new(Popup, popup),
 	send_list(Popup, append,
 		  [ menu_item(edit, message(@arg1, edit)),
 		    menu_item(info, message(@arg1, info))
