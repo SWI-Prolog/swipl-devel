@@ -488,7 +488,6 @@ export_link(ExportFile, ImportFile, Callables) :-
 
 initialise(Tree) :->
 	send_super(Tree, initialise),
-	send(Tree, drag_and_drop, @on),
 	send(Tree, clear).
 
 collapse_node(_, _:any) :->

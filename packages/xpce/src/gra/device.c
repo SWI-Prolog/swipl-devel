@@ -328,6 +328,8 @@ eventDevice(Any obj, EventObj ev)
     for_chain(dev->pointed, gr,
 	      if ( !done && postEvent(ev, gr, DEFAULT) )
 	        done = TRUE);
+    if ( done )
+      succeed;
 
     return eventGraphical(dev, ev);
   }
