@@ -320,14 +320,14 @@ eventDevice(Any obj, EventObj ev)
 { Device dev = obj;
 
   if ( dev->active != OFF )
-  { Cell cell;
+  { Graphical gr;
+    int done = FALSE;
 
     updatePointedDevice(dev, ev);
   
-    for_cell(cell, dev->pointed)
-    { if ( postEvent(ev, cell->value, DEFAULT) )
-	succeed;
-    }
+    for_chain(dev->pointed, gr,
+	      if ( !done && postEvent(ev, gr, DEFAULT) )
+	        done = TRUE);
 
     return eventGraphical(dev, ev);
   }

@@ -117,7 +117,8 @@ cancelGesture(Gesture g, EventObj ev)
   addCodeReference(fe);
   assign(g, active, OFF);
   send(sw, NAME_focus, NIL, EAV);
-  send(sw, NAME_event, fe, EAV);
+  if ( notNil(fe) )
+    send(sw, NAME_event, fe, EAV);
 
   addCodeReference(ev);
   oev = sw->current_event;
