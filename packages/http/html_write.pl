@@ -514,6 +514,7 @@ attr_colours([], classify) :- !.
 attr_colours(Term, list-Elements) :-
 	Term = [_|_], !,
 	attr_list_colours(Term, Elements).
+attr_colours(Name=_, built_in-[html_attribute(Name), classify]) :- !.
 attr_colours(Term, html_attribute(Name)-[classify]) :-
 	compound(Term),
 	Term =.. [Name,_], !.
