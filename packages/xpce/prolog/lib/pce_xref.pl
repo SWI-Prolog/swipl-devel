@@ -250,7 +250,7 @@ layout(G, MoveOnly:[chain]) :->
 	"Do graph layout"::
 	get(G?graphicals, find_all,
 	    message(@arg1, instance_of, xref_file_graph_node), Nodes),
-	get(Nodes, delete_head, First),
+	get(Nodes, head, First),
 	send(First, layout,
 	     nominal := 100,
 	     iterations := 1000,
@@ -694,6 +694,7 @@ show_info(W) :->
 	send(W, show_module),
 	send(W, show_modified),
 	send(W, show_undefined),
+	send(W, show_not_called),
 	send(W, show_exports),
 	true.
 
@@ -802,34 +803,37 @@ undefined(File, Undef) :-
 	xref_called(File, Undef),
 	\+ defined(File, Undef, _).
 
-%	defined(+File, +Callable, -HowDefined)
-%	
-%	True if Callable is defined in File.
+show_not_called(W) :->
+	"Show predicates that are not called"::
+	get(W, prolog_file, File),
+	findall(NotCalled, not_called(File, NotCalled), NotCalledList),
+	(   NotCalledList == []
+	->  true
+	;   BG = (background := khaki1),
+	    get(W, tabular, T),
+	    send(T, append, 'Not called', bold, center, colspan := 2, BG),
+	     send(T, next_row),
+	    sort_callables(NotCalledList, Sorted),
+	    forall(member(Callable, Sorted),
+		   send(W, show_not_called_pred, Callable))
+	).
 
-defined(File, Called, How) :-
-	xref_defined(File, Called, How0), !,
-	How = How0.
-defined(_, Called, How) :-
-	built_in_predicate(Called), !,
-	How = builtin.
-defined(_, Called, How) :-
-	setting(warn_autoload, false),
-	autoload_predicate(Called), !,
-	How = autoload.
-defined(_, Called, How) :-
-	setting(warn_autoload, false),
-	global_predicate(Called), !,
-	How = global.
+show_not_called_pred(W, Callable:prolog) :->
+	"Show a not-called predicate"::
+	get(W, module, Module),
+	get(W, tabular, T),
+	send(T, append,
+	     xref_predicate_text(Module:Callable, not_called)),
+	send(T, next_row).
 
-built_in_predicate(Goal) :-
-	predicate_property(system:Goal, built_in), !.
-built_in_predicate(module(_, _)).
+not_called(File, NotCalled) :-
+	xref_defined(File, NotCalled, How),
+	How \= imported(_),
+	How \= (multifile),
+	\+ (   xref_called(File, NotCalled)
+	   ;   xref_exported(File, NotCalled)
+	   ).
 
-autoload_predicate(Goal) :-
-	'$autoload':library_index(Goal, _, _).
-
-global_predicate(Goal) :-
-	predicate_property(user:Goal, _), !.
 
 :- pce_end_class(prolog_file_info).
 
@@ -843,7 +847,9 @@ variable(callable,	 prolog, get, "Predicate indicator").
 variable(classification, [name], get, "Classification of the predicate").
 variable(file,		 name*,  get, "File of predicate").
 
-initialise(T, Callable0:prolog, Class:[{undefined,called_by}], File:[name]) :->
+initialise(T, Callable0:prolog,
+	   Class:[{undefined,called_by,not_called}],
+	   File:[name]) :->
 	"Create from callable or predicate indicator"::
 	single_qualify(Callable0, Callable),
 	send(T, slot, callable, Callable),
@@ -888,6 +894,8 @@ classification(T, Class:[name]) :->
 		send(T, slot, classification, global)
 	    ;   send(T, colour, red)
 	    )
+	;   Class == not_called
+	->  send(T, colour, red)
 	;   true
 	).
 
@@ -1343,6 +1351,49 @@ key_file(File, Key-File) :-
 		 /*******************************
 		 *	     PREDICATES		*
 		 *******************************/
+
+%	defined(+File, +Callable, -HowDefined)
+%	
+%	True if Callable is defined in File.
+
+defined(File, Called, How) :-
+	xref_defined(File, Called, How0), !,
+	How = How0.
+defined(_, Called, How) :-
+	built_in_predicate(Called), !,
+	How = builtin.
+defined(_, Called, How) :-
+	setting(warn_autoload, false),
+	autoload_predicate(Called), !,
+	How = autoload.
+defined(_, Called, How) :-
+	setting(warn_autoload, false),
+	global_predicate(Called), !,
+	How = global.
+
+%	built_in_predicate(+Callable)
+%	
+%	True if Callable is a built-in
+
+built_in_predicate(Goal) :-
+	predicate_property(system:Goal, built_in), !.
+built_in_predicate(module(_, _)).
+
+%	autoload_predicate(+Callable)
+%	
+%	True if Callable can be autoloaded.  TBD: make sure the autoload
+%	index is up-to-date.
+
+autoload_predicate(Goal) :-
+	'$autoload':library_index(Goal, _, _).
+
+%	global_predicate(+Callable)
+%	
+%	True if Callable can  be  auto-imported   from  the  global user
+%	module.
+
+global_predicate(Goal) :-
+	predicate_property(user:Goal, _), !.
 
 %	to_predicate_indicator(+Term, -PI)
 %	
