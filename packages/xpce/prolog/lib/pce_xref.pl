@@ -830,6 +830,7 @@ not_called(File, NotCalled) :-
 	xref_defined(File, NotCalled, How),
 	How \= imported(_),
 	How \= (multifile),
+	NotCalled \= _:_,		% dubious
 	\+ (   xref_called(File, NotCalled)
 	   ;   xref_exported(File, NotCalled)
 	   ).
