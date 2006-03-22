@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: device->event to be safe against events changing the displayed
+  graphicals.
+
+* ADDED: pce_xref/0: graphical frontend to the cross-referencer.  Many
+  enhancements to the cross-referencer itself and its interaction with the
+  other libraries.
+
 * FIXED: PceEmacs: colouring lists as a goal (consult).
 
 * ENHANCED: library(pce_toc).  Allow hooking collapse of a node.  See

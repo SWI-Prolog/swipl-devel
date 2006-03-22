@@ -80,7 +80,7 @@ initialise(F) :->
 		    append(new(prolog_xref_predicate_list), predicates)
 		  ]),
 	send_list(WSTabs,
-		  [ append(new(prolog_xref_depgraph), dependencies)
+		  [ append(new(xref_depgraph), dependencies)
 		  ]),
 	send(F, fill_toolbar, TD).
 	
@@ -164,7 +164,7 @@ file_info(F, File:name) :->
 		 *	      WORKSPACE		*
 		 *******************************/
 
-:- pce_begin_class(prolog_xref_depgraph, picture,
+:- pce_begin_class(xref_depgraph, picture,
 		   "Workspace showing dependecies").
 :- use_class_template(arm).
 :- use_class_template(print_graphics).
@@ -223,12 +223,15 @@ dep_source(Src) :-
 append(P, File:name) :->
 	get(P, node, File, @on, _).
 
-node(G, File:name, Create:[bool], Pos:[point], Gr:xref_file_graph_node) :<-
+node(G, File:name, Create:[bool|{always}], Pos:[point],
+     Gr:xref_file_graph_node) :<-
 	"Get the node representing File"::
 	(   get(G, member, File, Gr)
 	->  true
-	;   Create == @on,
-	    dep_source(File),
+	;   (   Create == @on
+	    ->  dep_source(File)
+	    ;   Create == always
+	    ),
 	    (	Pos == @default
 	    ->  get(G?visible, center, At)
 	    ;   At = Pos
@@ -262,7 +265,7 @@ drop(G, Obj:xref_file_text, Pos:point) :->
 	get(Obj, path, File),
 	(   get(G, node, File, Node)
 	->  send(Node, flash)
-	;   get(G, node, File, @on, Pos, Node),
+	;   get(G, node, File, always, Pos, Node),
 	    send(G, update_links)
 	).
 
@@ -280,7 +283,7 @@ preview_drop(G, Obj:xref_file_text*, Pos:point) :->
 	    )
 	).
 
-:- pce_end_class(prolog_xref_depgraph).
+:- pce_end_class(xref_depgraph).
 
 :- pce_begin_class(xref_file_graph_node, xref_file_text).
 
@@ -385,13 +388,70 @@ initialise(C, From:xref_file_graph_node, To:xref_file_graph_node,
 	send(C, arrows, second),
 	send(C, slot, callables, Callables),
 	length(Callables, N),
-	send(C, tag, new(T, text(string('(%d)', N)))),
-	send(T, colour, grey40).
+	send(C, tag, xref_export_connection_tag(C, N)).
 
 callables(C, Callables:prolog) :->
 	send(C, slot, callables, Callables). % TBD: update tag?
 
+called_by_popup(Conn, P:popup) :<-
+	"Create popup to show relating predicates"::
+	new(P, popup(called_by, message(Conn, edit_callable, @arg1))),
+	get(Conn, callables, Callables),
+	get(Conn?to, path, ImportFile),
+	sort_callables(Callables, Sorted),
+	forall(member(C, Sorted),
+	       append_io_callable(P, ImportFile, C)).
+
+%	append_io_callable(+Popup, -ImportFile, +Callable)
+
+append_io_callable(P, ImportFile, Callable) :-
+	callable_to_label(Callable, Label),
+	send(P, append, new(MI, menu_item(@nil, @default, Label))),
+	send(MI, popup, new(P2, popup)),
+	send(P2, append,
+	     menu_item(prolog('<definition>'(Callable)),
+		       @default, definition?label_name)),
+	send(P2, append, gap),
+	findall(By, used_in(ImportFile, Callable, By), ByList0),
+	sort_callables(ByList0, ByList),
+	forall(member(C, ByList),
+	       ( callable_to_label(C, CLabel),
+		 send(P2, append, menu_item(prolog(C), @default, CLabel)))).
+
+edit_callable(C, Callable:prolog) :->
+	"Edit definition or callers"::
+	(   Callable = '<definition>'(Def)
+	->  get(C?from, path, ExportFile),
+	    edit_callable(Def, ExportFile)
+	;   get(C?to, path, ImportFile),
+	    edit_callable(Callable, ImportFile)
+	).
+	
 :- pce_end_class(xref_export_connection).
+
+
+:- pce_begin_class(xref_export_connection_tag, text,
+		   "Text showing import/export count").
+
+variable(connection, xref_export_connection, get, "Related connection").
+
+initialise(Tag, C:xref_export_connection, N:int) :->
+	send(Tag, slot, connection, C),
+	send_super(Tag, initialise, string('(%d)', N)),
+	send(Tag, colour, blue),
+	send(Tag, underline, @on).
+
+:- pce_global(@xref_export_connection_tag_recogniser,
+	      new(popup_gesture(@receiver?connection?called_by_popup, left))).
+
+event(Tag, Ev:event) :->
+	(   send_super(Tag, event, Ev)
+	->  true
+	;   send(@xref_export_connection_tag_recogniser, event, Ev)
+	).
+
+:- pce_end_class(xref_export_connection_tag).
+
 
 
 %	export_link(+ExportingFile, -ImportingFile, -Callables)
@@ -1033,15 +1093,7 @@ called_by_popup(IT, P:popup) :<-
 edit_called_by(IT, Called:prolog) :->
 	"Edit file on the predicate Called"::
 	get(IT, path, Source),
-	(   Called == '<export>'
-	->  edit(file(Source))
-	;   xref_defined(Source, Called, Def)
-	->  (   Def = local(Line)
-	    ->  edit(file(Source, line(Line)))
-	    ;   term_to_atom(Def, Text),
-		send(IT, report, warning, 'Don''t know how to edit %s', Text)
-	    )
-	).
+	edit_callable(Called, Source).
 
 :- pce_end_class(xref_imported_by).
 
@@ -1407,6 +1459,11 @@ callable_to_label(Callable, Label) :-
 
 %	edit_callable(+Callable, +File)
 
+edit_callable('<export>', File) :- !,
+	edit(file(File)).
+edit_callable(Callable, File) :-
+	xref_defined(File, Callable, local(Line)), !,
+	edit(file(File, line(Line))).
 edit_callable(pce_principal:send_implementation(Id,_,_), _) :-
 	atom(Id),
 	concat_atom([Class,Method], ->, Id), !,
