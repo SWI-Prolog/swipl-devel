@@ -4553,6 +4553,7 @@ do_broadcast(term_t term, long mask)
 }
 
 
+/* No longer used, but we keep it for if we need it again
 static foreign_t
 rdf_broadcast(term_t term, term_t mask)
 { long msk;
@@ -4563,7 +4564,7 @@ rdf_broadcast(term_t term, term_t mask)
   do_broadcast(term, msk);
   return TRUE;
 }
-
+*/
 
 static void
 broadcast(broadcast_id id, void *a1, void *a2)
@@ -5774,7 +5775,7 @@ install_rdf_db()
 					4, rdf_estimate_complexity, 0);
   PL_register_foreign("rdf_transaction",2, rdf_transaction, META);
   PL_register_foreign("rdf_monitor_",   2, rdf_monitor,     META);
-  PL_register_foreign("rdf_broadcast_", 2, rdf_broadcast,   0);
+/*PL_register_foreign("rdf_broadcast_", 2, rdf_broadcast,   0);*/
 #ifdef WITH_MD5
   PL_register_foreign("rdf_md5",	2, rdf_md5,	    0);
   PL_register_foreign("rdf_atom_md5",	3, rdf_atom_md5,    0);

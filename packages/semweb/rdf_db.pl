@@ -504,23 +504,6 @@ index(rdf(+,-,+), 5).
 index(rdf(-,+,+), 6).
 index(rdf(+,+,+), 7).
 
-triples_on_relation(Rel, Count) :-
-	count_solutions(rdf(_,Rel,_), Count).
-
-%	count_solutions(+Goal, -Count)
-%	
-%	Count the number of times Goal succeeds.
-
-count_solutions(Goal, Count) :-
-	flag(rdf_db_count_solutions, Old, 0),
-	(   catch(Goal, E, (flag(rdf_db_count_solutions, _, Old),
-			    throw(E))),
-	    flag(rdf_db_count_solutions, C, C+1),
-	    fail
-	;   flag(rdf_db_count_solutions, C, Old)
-	),
-	Count = C.
-
 
 		 /*******************************
 		 *	     PREDICATES		*
@@ -614,9 +597,9 @@ monitor_mask(unload,	   0x1000).
 					% mask for all
 monitor_mask(all,	   0xffff).
 
-rdf_broadcast(Term, MaskName) :-
-	monitor_mask(MaskName, Mask),
-	rdf_broadcast_(Term, Mask).
+%rdf_broadcast(Term, MaskName) :-
+%	monitor_mask(MaskName, Mask),
+%	rdf_broadcast_(Term, Mask).
 
 
 		 /*******************************
