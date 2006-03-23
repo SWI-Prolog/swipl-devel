@@ -17,8 +17,9 @@
 :- use_module(library(lists)).
 :- use_module(library(debug)).
 
-setting(warn_autoload,     true).
-setting(hide_system_files, true).
+setting(warn_autoload,      true).
+setting(hide_system_files,  true).
+setting(hide_profile_files, true).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 XPCE based font-end of the Prolog cross-referencer.  Tasks:
@@ -141,7 +142,7 @@ xref_file(F, File:name) :->
 	"XREF a single file if not already done"::
 	(   xref_done(File, Time),
 	    catch(time_file(File, Modified), _, fail),
-	    Modified < Time
+	    Modified == Time
 	->  true
 	;   send(F, report, progress, 'XREF %s', File),
 	    xref_source(File),
@@ -217,6 +218,10 @@ dep_source(Src) :-
 	(   setting(hide_system_files, true)
 	->  \+ library_file(Src)
 	;   true
+	),
+	(   setting(hide_profile_files, true)
+	->  \+ profile_file(Src)
+	;   true
 	).
 
 append(P, File:name) :->
@@ -249,6 +254,12 @@ layout(G, MoveOnly:[chain]) :->
 	"Do graph layout"::
 	get(G?graphicals, find_all,
 	    message(@arg1, instance_of, xref_file_graph_node), Nodes),
+	get(Nodes, find_all, not(@arg1?connections), UnConnected),
+	send(Nodes, subtract, UnConnected),
+	new(Pos, point(10,10)),
+	send(UnConnected, for_all,
+	     and(message(@arg1, position, Pos),
+		 message(Pos, offset, 0, 25))),
 	get(Nodes, head, First),
 	send(First, layout,
 	     nominal := 100,
@@ -478,11 +489,21 @@ export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module export
 	xref_called(ImportFile, Callable),
 	atom(ImportFile),
 	ExportFile \== ImportFile.
-export_link_1(ExportFile, ImportFile, Callable) :-
+export_link_1(ExportFile, ImportFile, Callable) :-	% module import
 	nonvar(ImportFile),
+	xref_module(ImportFile, _), !,
 	xref_called(ImportFile, Callable),
 	xref_defined(ImportFile, Callable, imported(ExportFile)),
 	atom(ExportFile).
+export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module import
+	xref_called(ImportFile, Callable),
+	\+ (  xref_defined(ImportFile, Callable, How),
+	      How \= import(_)
+	   ),
+	(   xref_defined(ImportFile, Callable, import(ExportFile))
+	;   defined(ExportFile, Callable),
+	    \+ xref_module(ExportFile, _)
+	).
 
 
 		 /*******************************
@@ -924,7 +945,8 @@ show_not_called_pred(W, Callable:prolog) :->
 	get(W, module, Module),
 	get(W, tabular, T),
 	send(T, append,
-	     xref_predicate_text(Module:Callable, not_called, File)),
+	     xref_predicate_text(Module:Callable, not_called, File),
+	     colspan := 2),
 	send(T, next_row).
 
 :- pce_end_class(prolog_file_info).
@@ -1427,6 +1449,19 @@ library_file(Path) :-
 	current_prolog_flag(home, Home),
 	sub_atom(Path, 0, _, _, Home).
 
+%	profile_file(+Path)
+%	
+%	True if path is a personalisation file.  This is a bit hairy.
+
+profile_file(Path) :-
+	short_file_name(Path, user_profile(File)),
+	known_profile_file(File).
+
+known_profile_file('.plrc').
+known_profile_file('pl.ini').
+known_profile_file('.pceemacsrc').
+known_profile_file(File) :-
+	sub_atom(File, 0, _, _, 'lib/xpce/emacs').
 
 %	sort_files(+Files, -Sorted)
 %	
