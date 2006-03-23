@@ -888,6 +888,7 @@ exported_to(ExportFile, Callable, ImportFile) :-
 	'$autoload':library_index(Callable, _, ExportFileNoExt),
 	file_name_extension(ExportFileNoExt, _, ExportFile),
 	xref_called(ImportFile, Callable),
+	atom(ImportFile),
 	\+ xref_defined(ImportFile, Callable, _).
 
 show_imports(W) :->
