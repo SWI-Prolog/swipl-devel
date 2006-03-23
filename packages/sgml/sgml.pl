@@ -326,14 +326,10 @@ load_html_file(File, Term) :-
 		 *	      UTIL		*
 		 *******************************/
 
-%	option(Option(?Value), OptionList, Default)
-
-option(Opt, Options) :-
-	memberchk(Opt, Options), !.
-option(Opt, Options) :-
-	functor(Opt, OptName, 1),
-	arg(1, Opt, OptVal),
-	memberchk(OptName=OptVal, Options), !.
+%	select_option(Option(?Value), +OptionList, -RestList)
+%	
+%	Get  value  for  Option,  returning   the  unparsed  options  in
+%	RestList.
 
 select_option(Opt, Options, Rest) :-
 	select(Opt, Options, Rest), !.

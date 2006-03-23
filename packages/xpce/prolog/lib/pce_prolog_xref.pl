@@ -400,8 +400,6 @@ process_directive(multifile(Dynamic), Src) :-
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
-process_directive(load_foreign_library(File), Src) :-
-	process_foreign(File, Src).
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
 	assert_defined_class(Src, Name, Meta, Super, Doc).
 process_directive(pce_autoload(Name, From), Src) :-
@@ -561,6 +559,10 @@ process_body(Goal, Origin, Src) :-
 	process_called_list(Called, Origin, Src).
 process_body(Goal, Origin, Src) :-
 	process_xpce_goal(Goal, Origin, Src), !.
+process_body(load_foreign_library(File), _Origin, Src) :-
+	process_foreign(File, Src).
+process_body(load_foreign_library(File, _Init), _Origin, Src) :-
+	process_foreign(File, Src).
 process_body(Goal, Origin, Src) :-
 	xref_meta(Goal, Metas), !,
 	assert_called(Src, Origin, Goal),
@@ -752,8 +754,8 @@ process_foreign(Spec, Src) :-
 process_foreign_defined([], _, _).
 process_foreign_defined([H|T], M, Src) :-
 	(   H = M:Head
-	->  assert_foreign(Head, Src)
-	;   assert_foreign(H, Src)
+	->  assert_foreign(Src, Head)
+	;   assert_foreign(Src, H)
 	),
 	process_foreign_defined(T, M, Src).
 

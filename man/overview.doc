@@ -880,16 +880,17 @@ environments.
 
 \begin{description}
     \predicate{current_prolog_flag}{2}{?Key, -Value}
+
 The predicate current_prolog_flag/2 defines an interface to installation
 features: options compiled in, version, home, etc. With both arguments
 unbound, it will generate all defined prolog-flags. With the `Key'
-instantiated it unify the value of the prolog-flag. Features come in
-three types: boolean prolog-flags, prolog-flags with an atom value and
-prolog-flags with an integer value. Some prolog flags are not defined in
-all versions, which is normally indicated in the documentation below as
-\textit{``if present and true''}. A boolean prolog-flag is true iff the
-prolog-flag is present {\bf and} the \arg{Value} is the atom
-\const{true}.   Tests for such flags should be written as below.
+instantiated it unify the value of the prolog-flag. Flag values are
+typed. Flags marked as \const{bool} can have the values \const{true} and
+\const{false}. Some prolog flags are not defined in all versions, which
+is normally indicated in the documentation below as \textit{``if present
+and true''}. A boolean prolog-flag is true iff the prolog-flag is
+present {\bf and} the \arg{Value} is the atom \const{true}. Tests for
+such flags should be written as below.
 
 \begin{code}
 	(   current_prolog_flag(windows, true)
@@ -1192,6 +1193,20 @@ flag is implementation dependent.
 If true, \exam{open(pipe(command), mode, Stream)}, etc.\ are supported.
 Can be changed to disable the use of pipes in applications testing this
 feature.  Not recommended.
+
+    \prologflagitem{prompt_alternatives_no_bindings}{bool}{rw}
+If present and true, the toplevel prints for alternatives if the query
+succeeded with pending choicepoint, regardless of whether or not the
+query has variables. As there are no variables to bind it prints
+the answer \textit{More?}.  Here is an example
+
+\begin{code}
+?- set_prolog_flag(prompt_alternatives_no_bindings, true).
+?- (write(hello);write(world)).
+hello
+More? ;
+world
+\end{code}
 
     \prologflagitem{readline}{bool}{r}
 If true, SWI-Prolog is linked with the readline library.  This is done

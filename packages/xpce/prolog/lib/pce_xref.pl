@@ -184,7 +184,7 @@ initialise(W) :->
 update(P) :->
 	"Initial screen"::
 	send(P, display,
-	     new(T, text('Drag files to dependebcy view\n\
+	     new(T, text('Drag files to dependency view\n\
 			  or use background menu to show the whole project')),
 	     point(10,10)),
 	send(T, name, intro_text),
@@ -529,9 +529,10 @@ append_node(Tree, Node:toc_node) :->
 	send(Parent, son, Node).
 	
 sort(Tree) :->
-	forall(member(Name, [alias, '.', /]),
+	forall(top_node(Name),
 	       (   get(Tree, node, Name, Node),
-		   send(Node, sort_sons, ?(@arg1, compare, @arg2))
+		   send(Node, sort_sons, ?(@arg1, compare, @arg2)),
+		   send(Node?sons, for_all, message(@arg1, sort))
 	       )).
 
 select_node(Tree, File:name) :->
@@ -615,6 +616,11 @@ initialise(FN, File:name) :->
 	send_super(FN, initialise, new(T, xref_file_text(Path)), Path),
 	send(T, default_action, info).
 
+basename(FN, BaseName:name) :<-
+	"Get basename of the file for sorting"::
+	get(FN, identifier, File),
+	file_base_name(File, BaseName).
+
 parent_id(FN, ParentId:name) :<-
 	"Get id for the parent"::
 	get(FN, identifier, Path),
@@ -631,8 +637,8 @@ compare(FN, Node:toc_node, Diff:{smaller,equal,larger}) :<-
 	"Compare for sorting children"::
 	(   send(Node, instance_of, prolog_directory_node)
 	->  Diff = larger
-	;   get(FN, label, L1),
-	    get(Node, label, L2),
+	;   get(FN, basename, L1),
+	    get(Node, basename, L2),
 	    get(L1, compare, L2, Diff)
 	).
 

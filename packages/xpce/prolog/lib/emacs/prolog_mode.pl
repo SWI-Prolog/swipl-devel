@@ -381,6 +381,7 @@ find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
 	get(For, head, @off, Head),
 	(   (   xref_defined(TB, Head, local(Line))		% local
 	    ;	xref_defined(TB, Head, constraint(Line))
+	    ;   xref_defined(TB, Head, foreign(Line))
 	    )
 	->  (   NewWindow == @on
 	    ->	get(M, text_buffer, TB),

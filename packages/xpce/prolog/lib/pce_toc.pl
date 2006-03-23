@@ -96,7 +96,7 @@ variable(drag_and_drop,	bool := @off, get, "Allow drag-and-drop").
 
 initialise(TW) :->
 	"Create window and display empty toc_tree"::
-	send(TW, send_super, initialise),
+	send_super(TW, initialise),
 	send(TW, scrollbars, both),
 	send(TW, hor_shrink, 0),
 	send(TW, hor_stretch, 1),
@@ -206,7 +206,7 @@ scroll_vertical(TW,
 	    get(VA, bottom_side, VABottom),
 	    VABottom > BBBottom
 	->  true
-	;   send(TW, send_super, scroll_vertical, Direction, Unit, Amount),
+	;   send_super(TW, scroll_vertical, Direction, Unit, Amount),
 	    get(TW, visible, area(_, AY, _, _)),
 	    (   AY < 0
 	    ->  send(TW, scroll_to, point(0,0))
@@ -285,7 +285,7 @@ variable(nodes,	hash_table, get, "Id --> node mapping").
 initialise(TC) :->
 	"Create the tree, setting style and geometry"::
 	send(TC, slot, nodes, new(hash_table)),
-	send(TC, send_super, initialise),
+	send_super(TC, initialise),
 	send(TC, direction, list),
 	send(TC, level_gap, 17).
 
@@ -337,7 +337,7 @@ variable(identifier, [any], 		none, "Identification handle").
 
 initialise(TN, Id:any, Image:toc_image) :->
 	send(TN, slot, identifier, Id),
-	send(TN, send_super, initialise, Image).
+	send_super(TN, initialise, Image).
 
 
 identifier(TN, Id:any) :<-
@@ -351,7 +351,7 @@ identifier(TN, Id:any) :<-
 
 son(TN, Son:toc_node) :->
 	"Add a son below this node"::
-	send(TN, send_super, son, Son),
+	send_super(TN, son, Son),
 	get(Son, identifier, Id),
 	get(TN?tree, nodes, Nodes),
 	send(Nodes, append, Id, Son).
@@ -366,7 +366,7 @@ unlink(TN) :->
 	->  true
 	;   true
 	),
-	send(TN, send_super, unlink).
+	send_super(TN, unlink).
 
 
 collapsed(Node, Val:bool*) :->
@@ -407,8 +407,8 @@ hide_sons(Node) :->
 can_expand(TF, Val:bool) :->
 	"Whether or not the node can be expanded"::
 	(   Val == @off
-	->  send(TF, send_super, collapsed, @nil)
-	;   send(TF, send_super, collapsed, @on)
+	->  send_super(TF, collapsed, @nil)
+	;   send_super(TF, collapsed, @on)
 	).
 
 :- pce_group(appearance).
@@ -488,7 +488,7 @@ make_toc_node_format(F) :-
 :- pce_begin_class(toc_image, device, "TOC node object").
 
 initialise(TF, Label:'char_array|graphical', Img:image) :->
-	send(TF, send_super, initialise),
+	send_super(TF, initialise),
 	send(TF, format, @toc_node_format),
 	send(TF, display, bitmap(Img)),
 	(   send(Label, instance_of, char_array)
@@ -590,7 +590,7 @@ initialise(TF,
 	->  image(folder, closed, I)
 	;   I = CollapsedImg
 	),
-	send(TF, send_super, initialise, Id, toc_image(Label, I)),
+	send_super(TF, initialise, Id, toc_image(Label, I)),
 	(   CanExpand == @off
 	->  send_class(TF, node, collapsed(@nil))
 	;   send_class(TF, node, collapsed(@on))
@@ -633,7 +633,7 @@ open(TF) :->
 	->  send(Node, collapsed, @off)
 	;   Collapsed == @off
 	->  send(Node, collapsed, @on)
-	;   send(Node, send_super, open)
+	;   send_super(Node, open)
 	).
 
 :- pce_end_class.
@@ -646,7 +646,7 @@ open(TF) :->
 
 initialise(TF, Label:'char_array|graphical', Id:[any], Img:[image]) :->
 	default(Img, resource(file), I),
-	send(TF, send_super, initialise, Id, toc_image(Label, I)),
+	send_super(TF, initialise, Id, toc_image(Label, I)),
 	send(TF, collapsed, @nil).
 
 :- pce_group(build).

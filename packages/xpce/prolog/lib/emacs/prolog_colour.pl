@@ -953,6 +953,7 @@ def_style(goal(extern(_),_),	style(colour := blue,
 				      underline := @on)).
 def_style(goal(recursion,_),	style(underline := @on)).
 def_style(goal(meta,_),		style(colour := red4)). % same as var
+def_style(goal(foreign(_),_),	style(colour := darkturquoise)).
 def_style(goal(local(_),_),	@default).
 def_style(goal(constraint(_),_), style(colour := darkcyan)).
 
@@ -1364,13 +1365,11 @@ has_source(F) :->
 	get(F, text_buffer, TB),
 	get(F, head, Head),
 	(   xref_defined(TB, Head, local(_Line))
-	->  true
 	;   xref_defined(TB, Head, constraint(_Line))
-	->  true
+	;   xref_defined(TB, Head, foreign(_Line))
 	;   xref_defined(TB, Head, imported(_From))
-	->  true
 	;   get(prolog_predicate(Head), source, _)
-	).
+	), !.
 
 
 %	->edit
@@ -1468,6 +1467,8 @@ identify_pred(autoload, F, Summary) :-	% Autoloaded predicates
 	new(Summary, string('%N: autoload from %s', F, Source)).
 identify_pred(local(Line), F, Summary) :-	% Local predicates
 	new(Summary, string('%N: locally defined at line %d', F, Line)).
+identify_pred(foreign(Line), F, Summary) :-	% Foreign predicates
+	new(Summary, string('%N: foreign (C/C++) loaded at line %d', F, Line)).
 identify_pred(constraint(Line), F, Summary) :-	% Local constraint
 	new(Summary, string('%N: constraint defined at line %d', F, Line)).
 identify_pred(imported(From), F, Summary) :-
