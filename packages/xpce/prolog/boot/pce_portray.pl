@@ -109,7 +109,7 @@ user:prolog_predicate_name(pce_principal:get_implementation(Id0, _, _, _),
 
 user:prolog_clause_name(Ref, Name) :-
 	clause(Head, _, Ref),
-	prolog_predicate_name(Head, Name).
+	user:prolog_predicate_name(Head, Name).
 
 
 		 /*******************************

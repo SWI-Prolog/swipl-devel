@@ -918,13 +918,12 @@ pce_functor(get_super).
 
 head_colours(file_search_path(_,_), hook-[identifier,classify]).
 head_colours(library_directory(_),  hook-[file]).
-head_colours(message_hook(_,_,_),   hook-[classify,classify,classify]).
-head_colours(portray(_),	    hook-[classify]).
 head_colours(resource(_,_,_),	    hook-[identifier,classify,file]).
-head_colours(term_expansion(_,_),   hook-[classify,classify]).
-head_colours(goal_expansion(_,_),   hook-[classify,classify]).
-head_colours(prolog_trace_interception(_,_,_,_),
-				    hook-classify).
+
+head_colours(M:H, Colours) :-
+	atom(M), callable(H),
+	xref_hook(M:H), !,
+	Colours = hook - [ hook, hook-classify ].
 head_colours(M:H, Colours) :-
 	M == user,
 	head_colours(H, HC),

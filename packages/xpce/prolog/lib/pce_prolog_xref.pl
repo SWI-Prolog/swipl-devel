@@ -553,7 +553,10 @@ xref_hook(user:portray(_)).
 xref_hook(user:file_search_path(_,_)).
 xref_hook(user:library_directory(_)).
 xref_hook(user:message_hook(_,_,_)).
+xref_hook(user:prolog_list_goal(_)).
 xref_hook(user:prolog_trace_interception(_,_,_,_)).
+xref_hook(user:prolog_clause_name(_,_)).
+xref_hook(user:prolog_predicate_name(_,_)).
 xref_hook(shlib:unload_all_foreign_libraries).
 
 
