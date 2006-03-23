@@ -627,7 +627,7 @@ pce_goal(new(_,_), new(-, new)).
 pce_goal(send(_,_), send(arg, msg)).
 pce_goal(send_class(_,_,_), send_class(arg, arg, msg)).
 pce_goal(get(_,_,_), get(arg, msg, -)).
-pce_goal(get_class(_,_,_), get_class(arg, arg, msg, -)).
+pce_goal(get_class(_,_,_,_), get_class(arg, arg, msg, -)).
 pce_goal(get_chain(_,_,_), get_chain(arg, msg, -)).
 pce_goal(get_object(_,_,_), get_object(arg, msg, -)).
 

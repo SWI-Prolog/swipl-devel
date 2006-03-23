@@ -406,3 +406,11 @@ quote(0'>) --> "&gt;".
 quote(0'") --> "&quot;".
 quote(0'&) --> "&amp;".
 quote(X)   --> [X].
+
+
+		 /*******************************
+		 *	       XREF		*
+		 *******************************/
+
+:- multifile prolog:meta_goal/2.
+prolog:meta_goal(process_rdf(_,G,_), [G+2]).
