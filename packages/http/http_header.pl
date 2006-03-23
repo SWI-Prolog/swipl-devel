@@ -378,9 +378,6 @@ post_header(cgi_data(Size), HdrExtra) -->
 		 *       OUTPUT HEADER DCG	*
 		 *******************************/
 
-reply_header(What) -->
-	reply_header(What, []).
-
 reply_header(string(String), HdrExtra) -->
 	reply_header(string(text/plain, String), HdrExtra).
 reply_header(string(Type, String), HdrExtra) -->
