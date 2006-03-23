@@ -40,11 +40,6 @@ XPCE based font-end of the Prolog cross-referencer.  Tasks:
 		- Using use_module/1
 		- Using use_module/2
 
-Requires two types of files
-
-		- Application
-		- Libraries		% Files under file_search_path(library)
-
 ================================================================
 NOTE: This is work in progress.  It is very incomplete and most
 likely not ready for real use.
@@ -94,8 +89,12 @@ tab_popup(_F, P:popup) :<-
 
 fill_toolbar(F, TD:tool_dialog) :->
 	send(TD, append, new(File, popup(file))),
+	send(TD, append, new(View, popup(view))),
 	send_list(File, append,
 		  [ menu_item(exit, message(F, destroy))
+		  ]),
+	send_list(View, append,
+		  [ menu_item(refresh, message(F, update))
 		  ]).
 
 :- pce_group(parts).
@@ -498,7 +497,8 @@ expand_node(_, _:any) :->
 
 update(FL) :->
 	send(FL, clear),
-	send(FL, append_all_sourcefiles).
+	send(FL, append_all_sourcefiles),
+	send(FL, set_flags).
 
 append_all_sourcefiles(FL) :->
 	"Append all files loaded into Prolog"::
@@ -510,9 +510,8 @@ clear(Tree) :->
 	"Remove all nodes, recreate the toplevel"::
 	send_super(Tree, clear),
 	send(Tree, root, new(Root, toc_folder(project, project))),
-	send(Tree, son, project, toc_folder('.', '.')),
-	send(Tree, son, project, toc_folder(alias, alias)),
-	send(Tree, son, project, toc_folder(/, /)),
+	forall(top_node(Name),
+	       send(Tree, son, project, toc_folder(Name, Name))),
 	send(Root, for_all, message(@arg1, collapsed, @off)).
 
 append(Tree, File:name) :->
@@ -542,11 +541,23 @@ select_node(Tree, File:name) :->
 	;   true
 	).
 
+set_flags(Tree) :->
+	"Set alert-flags on all nodes"::
+	forall(top_node(Name),
+	       (   get(Tree, node, Name, Node),
+		   send(Node?sons, for_all, message(@arg1, set_flags)))).
+
+top_node('.').
+top_node('alias').
+top_node('/').
+
 :- pce_end_class(xref_file_tree).
 
 
 :- pce_begin_class(prolog_directory_node, toc_folder,
 		   "Represent a directory").
+
+variable(flags, name*, get, "Warning status").
 
 initialise(DN, Dir:name) :->
 	"Create a directory node"::
@@ -578,11 +589,25 @@ compare(DN, Node:toc_node, Diff:{smaller,equal,larger}) :<-
 	    get(L1, compare, L2, Diff)
 	).
 
+set_flags(DN) :->
+	"Set alert images"::
+	send(DN?sons, for_all, message(@arg1, set_flags)),
+	(   get(DN?sons, find, @arg1?flags \== ok, _Node)
+	->  send(DN, collapsed_image, @xref_alert_closedir),
+	    send(DN, expanded_image, @xref_alert_opendir),
+	    send(DN, slot, flags, alert)
+	;   send(DN, collapsed_image, @xref_ok_closedir),
+	    send(DN, expanded_image, @xref_ok_opendir),
+	    send(DN, slot, flags, ok)
+	).
+
 :- pce_end_class(prolog_directory_node).
 
 
 :- pce_begin_class(prolog_file_node, toc_file,
 		   "Represent a file").
+
+variable(flags, name*, get, "Warning status").
 
 initialise(FN, File:name) :->
 	"Create from a file"::
@@ -610,6 +635,49 @@ compare(FN, Node:toc_node, Diff:{smaller,equal,larger}) :<-
 	    get(Node, label, L2),
 	    get(L1, compare, L2, Diff)
 	).
+
+set_flags(FN) :->
+	"Set alert images"::
+	get(FN, identifier, File),
+	(   file_warnings(File, _)
+	->  send(FN, image, @xref_alert_file),
+	    send(FN, slot, flags, alert)
+	;   send(FN, image, @xref_ok_file),
+	    send(FN, slot, flags, ok)
+	).
+
+:- pce_global(@xref_ok_file,
+	      make_xref_image([ image('16x16/doc.xpm'),
+				image('16x16/ok.xpm')
+			      ])).
+:- pce_global(@xref_alert_file,
+	      make_xref_image([ image('16x16/doc.xpm'),
+				image('16x16/alert.xpm')
+			      ])).
+
+:- pce_global(@xref_ok_opendir,
+	      make_xref_image([ image('16x16/opendir.xpm'),
+				image('16x16/ok.xpm')
+			      ])).
+:- pce_global(@xref_alert_opendir,
+	      make_xref_image([ image('16x16/opendir.xpm'),
+				image('16x16/alert.xpm')
+			      ])).
+
+:- pce_global(@xref_ok_closedir,
+	      make_xref_image([ image('16x16/closedir.xpm'),
+				image('16x16/ok.xpm')
+			      ])).
+:- pce_global(@xref_alert_closedir,
+	      make_xref_image([ image('16x16/closedir.xpm'),
+				image('16x16/alert.xpm')
+			      ])).
+
+make_xref_image([First|More], Image) :-
+	new(Image, image(@nil, 0, 0, pixmap)),
+	send(Image, copy, First),
+	forall(member(I2, More),
+	       send(Image, draw_in, bitmap(I2))).
 
 :- pce_end_class(prolog_file_node).
 
@@ -799,10 +867,6 @@ show_undef(W, Callable:prolog) :->
 	send(T, next_row).
 	
 
-undefined(File, Undef) :-
-	xref_called(File, Undef),
-	\+ defined(File, Undef, _).
-
 show_not_called(W) :->
 	"Show predicates that are not called"::
 	get(W, prolog_file, File),
@@ -825,16 +889,6 @@ show_not_called_pred(W, Callable:prolog) :->
 	send(T, append,
 	     xref_predicate_text(Module:Callable, not_called)),
 	send(T, next_row).
-
-not_called(File, NotCalled) :-
-	xref_defined(File, NotCalled, How),
-	How \= imported(_),
-	How \= (multifile),
-	NotCalled \= _:_,		% dubious
-	\+ (   xref_called(File, NotCalled)
-	   ;   xref_exported(File, NotCalled)
-	   ).
-
 
 :- pce_end_class(prolog_file_info).
 
@@ -1532,3 +1586,47 @@ edit_callable(_:'<directive>'(Line), File) :-
 edit_callable(Callable, _) :-
 	to_predicate_indicator(Callable, PI),
 	edit(PI).
+
+
+		 /*******************************
+		 *	      WARNINGS		*
+		 *******************************/
+
+%	file_warnings(+File:atom, -Warnings:list(atom))
+%	
+%	Unify Warnings with a list  of   dubious  things  found in File.
+%	Intended to create icons.  Fails if the file is totally ok.
+
+file_warnings(File, Warnings) :-
+	setof(W, file_warning(File, W), Warnings).
+
+file_warning(File, undefined) :-
+	undefined(File, _) -> true.
+file_warning(File, not_called) :-
+	not_called(File, _) -> true.
+
+
+%	not_called(+File, -Callable)
+%	
+%	Callable is a term defined in File, and for which no callers can
+%	be found.
+
+not_called(File, NotCalled) :-
+	xref_defined(File, NotCalled, How),
+	How \= imported(_),
+	How \= (multifile),
+	NotCalled \= _:_,		% dubious
+	\+ (   xref_called(File, NotCalled)
+	   ;   xref_exported(File, NotCalled)
+	   ;   xref_hook(NotCalled)
+	   ).
+
+
+%	undefined(+File, -Callable)
+%	
+%	Callable is called in File, but no definition can be found.
+
+undefined(File, Undef) :-
+	xref_called(File, Undef),
+	\+ defined(File, Undef, _).
+

@@ -362,3 +362,13 @@ option(Opt, _, Def) :-
 
 prolog:message(httpd_stopped_worker(Self)) -->
 	[ 'Stopped worker ~p'-[Self] ].
+
+
+		 /*******************************
+		 *	      XREF		*
+		 *******************************/
+
+:- multifile
+	prolog:meta_goal/2.
+
+prolog:meta_goal(http_server(G, _), [G+1]).

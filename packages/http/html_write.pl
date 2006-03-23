@@ -518,6 +518,8 @@ attr_colours(Name=_, built_in-[html_attribute(Name), classify]) :- !.
 attr_colours(Term, html_attribute(Name)-[classify]) :-
 	compound(Term),
 	Term =.. [Name,_], !.
+attr_colours(Name, html_attribute(Name)) :-
+	atom(Name), !.
 attr_colours(_, error).
 
 attr_list_colours(Var, classify) :-

@@ -45,6 +45,7 @@
 	    xref_source_file/3,		% +Spec, -Path, +Source
 	    xref_public_list/4,		% +Path, -Export, +Src
 	    xref_meta/2,		% +Goal, -Called
+	    xref_hook/1,		% ?Callable
 					% XPCE class references
 	    xref_used_class/2,		% ?Source, ?ClassName
 	    xref_defined_class/3	% ?Source, ?ClassName, -How
@@ -436,7 +437,9 @@ process_meta_predicate(Decl) :-
 	functor(Decl, Name, Arity),
 	functor(Head, Name, Arity),
 	meta_args(1, Arity, Decl, Head, Meta),
-	(   prolog:meta_goal(Head, _)
+	(   (   prolog:meta_goal(Head, _)
+	    ;   prolog:called_by(Head, _)
+	    )
 	->  true
 	;   assert(prolog:meta_goal(Head, Meta))
 	).
@@ -482,6 +485,9 @@ xref_meta(\+(G),		[G]).
 xref_meta(ignore(G),		[G]).
 xref_meta(once(G),		[G]).
 xref_meta(initialization(G),	[G]).
+xref_meta(retract(Rule),	[G]) :- head_of(Rule, G).
+xref_meta(clause(G, _),		[G]).
+xref_meta(clause(G, _, _),	[G]).
 xref_meta(phrase(G, _A),	[G+2]).
 xref_meta(phrase(G, _A, _R),	[G+2]).
 xref_meta(catch(A, _, B),	[A, B]).
@@ -514,6 +520,27 @@ xref_meta(in_pce_thread(G),	[G]).
 
 xref_meta(G, Meta) :-			% call user extensions
 	prolog:meta_goal(G, Meta).
+
+%	head_of(+Rule, -Head)
+%	
+%	Get the head for a retract call.
+
+head_of(Var, _) :-
+	var(Var), !, fail.
+head_of((Head :- _), Head).
+head_of(Head, Head).
+
+%	xref_hook(?Callable)
+%	
+%	Definition of known hooks.  Hooks  that   can  be  called in any
+%	module are unqualified.  Other  hooks   are  qualified  with the
+%	module where they are called.
+
+xref_hook(term_expansion(_,_)).
+xref_hook(goal_expansion(_,_)).
+xref_hook(prolog:message(_,_,_)).
+xref_hook(user:portray(_)).
+
 
 %	process_body(+Body, +Origin, +Src)
 %	
