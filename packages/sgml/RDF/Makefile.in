@@ -42,8 +42,11 @@ all:
 		@echo "Nothing to do for this package"
 
 install:	$(LIBPL) xpce-install
-		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)$(PLBASE)/library
+		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(PLBASE)/library
 		$(PL) -f none -g make -t halt
+
+ln-install::
+		@$(MAKE) INSTALL_DATA=../../ln-install install
 
 xpce-install:	$(XPCEPL)
 		if [ -d $(DESTDIR)$(XPCEBASE) ]; then \
