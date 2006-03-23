@@ -502,6 +502,7 @@ export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module import
 	   ),
 	(   xref_defined(ImportFile, Callable, import(ExportFile))
 	;   defined(ExportFile, Callable),
+	    atom(ExportFile),
 	    \+ xref_module(ExportFile, _)
 	).
 
@@ -800,6 +801,7 @@ show_info(W) :->
 	send(W, show_undefined),
 	send(W, show_not_called),
 	send(W, show_exports),
+	send(W, show_imports),
 	true.
 
 show_module(W) :->
@@ -887,6 +889,33 @@ exported_to(ExportFile, Callable, ImportFile) :-
 	file_name_extension(ExportFileNoExt, _, ExportFile),
 	xref_called(ImportFile, Callable),
 	\+ xref_defined(ImportFile, Callable, _).
+
+show_imports(W) :->
+	"Show predicates we import"::
+	get(W, prolog_file, File),
+	findall(E-Cs,
+		setof(C, export_link_1(E, File, C), Cs),
+		Pairs),
+	(   Pairs \== []
+	->  sort(Pairs, Sorted),	% TBD: use sort_files/2
+	    (   xref_module(File, _)
+	    ->  send(W, show_export_header, from, imports)
+	    ;	send(W, show_export_header, from, uses)
+	    ),
+	    forall(member(E-Cs, Sorted),
+		   send(W, show_import, E, Cs))
+	;   true
+	).
+
+show_import(W, File:name, Callables:prolog) :->
+	"Show imports from file"::
+	get(W, tabular, T),
+	send(T, append, xref_file_text(File)),
+	send(T, append, new(XL, xref_graphical_list)),
+	sort_callables(Callables, Sorted),
+	forall(member(C,Sorted),
+	       send(XL, append, xref_predicate_text(C, @default, File))),
+	send(T, next_row).
 
 
 show_undefined(W) :->
@@ -1255,7 +1284,8 @@ margin(T, Width:int*, How:[{wrap,wrap_fixed_width,clip}]) :->
 	    send(T, format, @rdf_composite_format)
 	;   send(T, slot, wrap, How),
 	    How == wrap
-	->  new(F, format(horizontal, Width, @off)),
+	->  FmtWidth is max(10, Width),
+	    new(F, format(horizontal, FmtWidth, @off)),
 	    send(F, column_sep, 0),
 	    send(F, row_sep, 0),
 	    send(T, format, F)
@@ -1593,17 +1623,36 @@ sort_callables(Callables, Sorted) :-
 	ord_list_to_set(SortedList, Sorted).
 
 key_callables([], []).
-key_callables([H0|T0], [k(Name, Arity, Module)-H0|T]) :-
-	predicate_indicator(H0, PI),
+key_callables([H0|T0], [Key-H0|T]) :-
+	key_callable(H0, Key),
+	key_callables(T0, T).
+	
+key_callable(Callable, k(Name, Arity, Module)) :-
+	predicate_indicator(Callable, PI),
 	(   PI = Name/Arity
 	->  Module = user
 	;   PI = Module:Name/Arity
-	),
-	key_callables(T0, T).
-	
+	).
+
 unkey([], []).
 unkey([_-H|T0], [H|T]) :-
 	unkey(T0, T).
+
+%	sort_by_callable_key(+Callable-Keyed, -Sorted)
+%	
+%	Sort a list of Callable-Value pairs by Callable
+
+sort_by_callable_key(CKeyed, Sorted) :-
+	key_callables_keys(CKeyed, Tagged),
+	keysort(Tagged, KeySorted),
+	unkey(KeySorted, Sorted).
+
+key_callables_keys([], []).
+key_callables_keys([H|T0], [K-H|T]) :-
+	H = Callable-_,
+	key_callable(Callable, K),
+	key_callables_keys(T0, T).
+	
 
 %	ord_list_to_set(+OrdList, -OrdSet)
 %	
