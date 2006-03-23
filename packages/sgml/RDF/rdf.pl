@@ -83,12 +83,6 @@ xml_to_rdf(XML, BaseURI, Triples) :-
 	xml_to_rdf(XML, Triples, [base_uri(BaseURI)]).
 
 
-set_anon_prefix([], []) :- !.
-set_anon_prefix(BaseURI, [Ref]) :-
-	concat_atom(['__', BaseURI, '#'], AnonBase),
-	asserta(anon_prefix(AnonBase), Ref).
-
-
 		 /*******************************
 		 *	 POST-PROCESSING	*
 		 *******************************/
