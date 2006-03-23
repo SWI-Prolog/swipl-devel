@@ -37,13 +37,14 @@
 	    read_file_to_codes/3,	% +File, -Codes, +Options
 	    read_file_to_terms/3	% +File, -Terms, +Options
 	  ]).
+:- use_module(library(shlib)).
 :- use_module(library(lists), [select/3]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This library provides some commonly used   reading  predicates. As these
 predicates have proven to be time-critical in some applications we moved
 them to C. For compatibility as well  as to reduce system dependency, we
-link  the  foreign  code  ar  runtime    and   fallback  to  the  Prolog
+link  the  foreign  code  at  runtime    and   fallback  to  the  Prolog
 implementation if the shared object cannot be found.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -218,3 +219,9 @@ file_option(file_errors(_)).
 file_option(relative_to(_)).
 file_option(expand(_)).
 
+		 /*******************************
+		 *	       XREF		*
+		 *******************************/
+
+:- multifile prolog:meta_goal/2.
+prolog:meta_goal(split_options(_,G,_,_), [G+1]).

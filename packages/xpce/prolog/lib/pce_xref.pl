@@ -864,7 +864,7 @@ show_undef(W, Callable:prolog) :->
 	get(W, module, Module),
 	get(W, tabular, T),
 	send(T, append,
-	     xref_predicate_text(Module:Callable, undefined)),
+	     xref_predicate_text(Module:Callable, undefined, File)),
 	send(T, append, new(L, xref_graphical_list)),
 	findall(By, xref_called(File, Callable, By), By),
 	sort_callables(By, Sorted),
@@ -890,10 +890,11 @@ show_not_called(W) :->
 
 show_not_called_pred(W, Callable:prolog) :->
 	"Show a not-called predicate"::
+	get(W, prolog_file, File),
 	get(W, module, Module),
 	get(W, tabular, T),
 	send(T, append,
-	     xref_predicate_text(Module:Callable, not_called)),
+	     xref_predicate_text(Module:Callable, not_called, File)),
 	send(T, next_row).
 
 :- pce_end_class(prolog_file_info).
@@ -978,8 +979,10 @@ arm(TF, Val:bool) :->
 	->  send(TF, underline, @on),
 	    (	get(TF, classification, Class),
 		Class \== @default
-	    ->  send(TF, report, status, '%s predicate %s', Class?capitalise, TF?string)
-	    ;   send(TF, report, status, 'Predicate %s', TF?string)
+	    ->  send(TF, report, status,
+		     '%s predicate %s', Class?capitalise, TF?string)
+	    ;   send(TF, report, status,
+		     'Predicate %s', TF?string)
 	    )
 	;   send(TF, underline, @off),
 	    send(TF, report, status, '')
@@ -1573,8 +1576,15 @@ callable_to_label(Callable, Label) :-
 edit_callable('<export>', File) :- !,
 	edit(file(File)).
 edit_callable(Callable, File) :-
-	xref_defined(File, Callable, local(Line)), !,
-	edit(file(File, line(Line))).
+	local_callable(Callable, File, Local),
+	(   (   xref_defined(File, Local, local(Line))
+	    ;   xref_defined(File, Local, foreign(Line))
+	    )
+	->  edit(file(File, line(Line)))
+	;   autoload_predicate(Local)
+	->  functor(Local, Name, Arity),
+	    edit(Name/Arity)
+	).
 edit_callable(pce_principal:send_implementation(Id,_,_), _) :-
 	atom(Id),
 	concat_atom([Class,Method], ->, Id), !,
@@ -1592,6 +1602,10 @@ edit_callable(_:'<directive>'(Line), File) :-
 edit_callable(Callable, _) :-
 	to_predicate_indicator(Callable, PI),
 	edit(PI).
+
+local_callable(M:Callable, File, Callable) :-
+	xref_module(File, M), !.
+local_callable(Callable, _, Callable).
 
 
 		 /*******************************
@@ -1625,6 +1639,8 @@ not_called(File, NotCalled) :-
 	\+ (   xref_called(File, NotCalled)
 	   ;   xref_exported(File, NotCalled)
 	   ;   xref_hook(NotCalled)
+	   ;   xref_module(File, Module),
+	       xref_hook(Module:NotCalled)
 	   ).
 
 

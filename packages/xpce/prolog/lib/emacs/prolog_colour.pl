@@ -849,6 +849,11 @@ goal_classification(SS, expanded) :-	% XPCE (TBD)
 
 classify_head(TB, Goal, exported) :-
 	xref_exported(TB, Goal), !.
+classify_head(_TB, Goal, hook) :-
+	xref_hook(Goal), !.
+classify_head(TB, Goal, hook) :-
+	xref_module(TB, M),
+	xref_hook(M:Goal), !.
 classify_head(TB, Goal, unreferenced) :-
 	\+ xref_called(TB, Goal), !.
 classify_head(TB, Goal, How) :-

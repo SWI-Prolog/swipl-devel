@@ -90,7 +90,8 @@
 :- multifile
 	prolog:called_by/2,		% +Goal, -Called
 	prolog:meta_goal/2.		% +Goal, -Pattern
-
+:- dynamic
+	meta_goal/2.
 
 		 /*******************************
 		 *	     BUILT-INS		*
@@ -443,9 +444,10 @@ process_meta_predicate(Decl) :-
 	meta_args(1, Arity, Decl, Head, Meta),
 	(   (   prolog:meta_goal(Head, _)
 	    ;   prolog:called_by(Head, _)
+	    ;   meta_goal(Head, _)
 	    )
 	->  true
-	;   assert(prolog:meta_goal(Head, Meta))
+	;   assert(meta_goal(Head, Meta))
 	).
 
 meta_args(I, Arity, _, _, []) :-
@@ -524,6 +526,9 @@ xref_meta(in_pce_thread(G),	[G]).
 
 xref_meta(G, Meta) :-			% call user extensions
 	prolog:meta_goal(G, Meta).
+xref_meta(G, Meta) :-			% Generated from :- meta_predicate
+	meta_goal(G, Meta).
+
 
 %	head_of(+Rule, -Head)
 %	
@@ -542,8 +547,14 @@ head_of(Head, Head).
 
 xref_hook(term_expansion(_,_)).
 xref_hook(goal_expansion(_,_)).
+xref_hook(resource(_,_,_)).
 xref_hook(prolog:message(_,_,_)).
 xref_hook(user:portray(_)).
+xref_hook(user:file_search_path(_,_)).
+xref_hook(user:library_directory(_)).
+xref_hook(user:message_hook(_,_,_)).
+xref_hook(user:prolog_trace_interception(_,_,_,_)).
+xref_hook(shlib:unload_all_foreign_libraries).
 
 
 %	process_body(+Body, +Origin, +Src)
@@ -568,6 +579,10 @@ process_body(Goal, Origin, Src) :-
 	assert_called(Src, Origin, Goal),
 	process_called_list(Metas, Origin, Src).
 process_body(Goal, Origin, Src) :-
+	asserting_goal(Goal, Rule), !,
+	assert_called(Src, Origin, Goal),
+	process_assert(Rule, Origin, Src).
+process_body(Goal, Origin, Src) :-
 	assert_called(Src, Origin, Goal).
 
 process_called_list([], _, _).
@@ -587,6 +602,18 @@ process_meta(A+N, Origin, Src) :- !,
 	).
 process_meta(G, Origin, Src) :-
 	process_body(G, Origin, Src).
+
+asserting_goal(assert(Rule), Rule).
+asserting_goal(asserta(Rule), Rule).
+asserting_goal(assertz(Rule), Rule).
+asserting_goal(assert(Rule,_), Rule).
+asserting_goal(asserta(Rule,_), Rule).
+asserting_goal(assertz(Rule,_), Rule).
+
+process_assert(0, _, _) :- !.		% catch variables
+process_assert(_:-Body, Origin, Src) :- !,
+	process_body(Body, Origin, Src).
+process_assert(_, _, _).
 
 
 		 /*******************************
