@@ -793,8 +793,9 @@ show_info(W) :->
 	get(W, tabular, T),
 	BG = (background := khaki1),
 	get(W, prolog_file, File),
-
-	send(T, append, File, huge, center, colspan := 2, BG),
+	new(FG, xref_file_text(File)),
+	send(FG, font, huge),
+	send(T, append, FG, halign := center, colspan := 2, BG),
 	send(T, next_row),
 	send(W, show_module),
 	send(W, show_modified),
