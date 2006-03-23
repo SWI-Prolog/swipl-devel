@@ -34,7 +34,8 @@
 	  ]).
 :- use_module(library(shlib)).
 
-:- load_foreign_library(foreign(mime), install_mime).
+:- initialization
+   load_foreign_library(foreign(mime), install_mime).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines an interface to   the rfc2045 (MIME) parsing library
