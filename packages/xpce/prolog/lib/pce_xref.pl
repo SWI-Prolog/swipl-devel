@@ -458,23 +458,31 @@ event(Tag, Ev:event) :->
 %	
 %	Callables are exported from ExportingFile to ImportingFile.
 
-export_link(ExportFile, ImportFile, Callables) :-
+export_link(ExportFile, ImportingFile, Callables) :-
+	setof(Callable,
+	      export_link_1(ExportFile, ImportingFile, Callable),
+	      Callables0),
+	sort_callables(Callables0, Callables).
+
+
+export_link_1(ExportFile, ImportFile, Callable) :-       % module export
+	nonvar(ExportFile),
+	xref_module(ExportFile, _), !,
+	xref_exported(ExportFile, Callable),
+	xref_defined(ImportFile, Callable, imported(ExportFile)),
+	atom(ImportFile),
+	xref_called(ImportFile, Callable).
+export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module export
 	nonvar(ExportFile), !,
-	setof(Callable,
-	      (	  xref_exported(ExportFile, Callable),
-		  xref_defined(ImportFile, Callable, imported(ExportFile)),
-		  atom(ImportFile),
-		  xref_called(ImportFile, Callable)
-	      ), Callables0),
-	sort_callables(Callables0, Callables).
-export_link(ExportFile, ImportFile, Callables) :-
+	defined(ExportFile, Callable),
+	xref_called(ImportFile, Callable),
+	atom(ImportFile),
+	ExportFile \== ImportFile.
+export_link_1(ExportFile, ImportFile, Callable) :-
 	nonvar(ImportFile),
-	setof(Callable,
-	      (	  xref_called(ImportFile, Callable),
-		  xref_defined(ImportFile, Callable, imported(ExportFile)),
-		  atom(ExportFile)
-	      ), Callables0),
-	sort_callables(Callables0, Callables).
+	xref_called(ImportFile, Callable),
+	xref_defined(ImportFile, Callable, imported(ExportFile)),
+	atom(ExportFile).
 
 
 		 /*******************************
@@ -741,6 +749,7 @@ clear(W) :->
 update(V) :->
 	"Show information on the current file"::
 	send(V, clear),
+	send(V, scroll_to, point(0,0)),
 	(   get(V, prolog_file, File),
 	    File \== @nil
 	->  send(V, show_info)
@@ -797,20 +806,30 @@ show_exports(W) :->
 	(   xref_module(File, Module),
 	    findall(E, xref_exported(File, E), Exports),
 	    Exports \== []
-	->  get(W, tabular, T),
-	    BG = (background := khaki1),
-	    send(T, append, 'Export', bold, center, BG),
-	    send(T, append, 'Imported by', bold, center, BG),
-	    send(T, next_row),
+	->  send(W, show_export_header, export, imported_by),
 	    sort_callables(Exports, Sorted),
 	    forall(member(Callable, Sorted),
-		   send(W, show_export, File, Module, Callable))
+		   send(W, show_module_export, File, Module, Callable))
+	;   findall(C-Fs, setof(F, export_link_1(File, F, C), Fs), Pairs0),
+	    Pairs0 \== []
+	->  send(W, show_export_header, defined, used_by),
+	    keysort(Pairs0, Pairs),	% TBD
+	    forall(member(Callable-ImportFiles, Pairs),
+		   send(W, show_file_export, Callable, ImportFiles))
 	;   true
 	).
 
-show_export(W, File:name, Module:name, Callable:prolog) :->
+show_export_header(W, Left:name, Right:name) :->
 	get(W, tabular, T),
-	send(T, append, xref_predicate_text(Module:Callable)),
+	BG = (background := khaki1),
+	send(T, append, Left?label_name, bold, center, BG),
+	send(T, append, Right?label_name, bold, center, BG),
+	send(T, next_row).
+
+show_module_export(W, File:name, Module:name, Callable:prolog) :->
+	get(W, prolog_file, File),
+	get(W, tabular, T),
+	send(T, append, xref_predicate_text(Module:Callable, @default, File)),
 	findall(In, exported_to(File, Callable, In), InL),
 	send(T, append, new(XL, xref_graphical_list)),
 	(   InL == []
@@ -821,6 +840,17 @@ show_export(W, File:name, Module:name, Callable:prolog) :->
 	),
 	send(T, next_row).
 	
+show_file_export(W, Callable:prolog, ImportFiles:prolog) :->
+	get(W, prolog_file, File),
+	get(W, tabular, T),
+	send(T, append, xref_predicate_text(Callable, @default, File)),
+	send(T, append, new(XL, xref_graphical_list)),
+	sort_files(ImportFiles, Sorted),
+	forall(member(F, Sorted),
+	       send(XL, append, xref_imported_by(F, Callable))),
+	send(T, next_row).
+
+
 %	exported_to(+ExportFile, +Callable, -ImportFile)
 %	
 %	ImportFile imports Callable from ExportFile.  The second clause
@@ -1631,10 +1661,9 @@ file_warning(File, not_called) :-
 %	Callable is a term defined in File, and for which no callers can
 %	be found.
 
-not_called(File, NotCalled) :-
-	xref_defined(File, NotCalled, How),
-	How \= imported(_),
-	How \= (multifile),
+not_called(File, NotCalled) :-		% module version
+	xref_module(File, _), !,
+	defined(File, NotCalled),
 	NotCalled \= _:_,		% dubious
 	\+ (   xref_called(File, NotCalled)
 	   ;   xref_exported(File, NotCalled)
@@ -1642,13 +1671,34 @@ not_called(File, NotCalled) :-
 	   ;   xref_module(File, Module),
 	       xref_hook(Module:NotCalled)
 	   ).
+not_called(File, NotCalled) :-		% non-module version
+	defined(File, NotCalled),
+	\+ (   xref_called(ImportFile, NotCalled),
+	       \+ xref_module(ImportFile, _)).
+	   
 
+%	defined(?File, ?Callable)
+%	
+%	True if Callable is defined in File and not imported.
+
+defined(File, Callable) :-
+	xref_defined(File, Callable, How),
+	How \= imported(_),
+	How \= (multifile).
 
 %	undefined(+File, -Callable)
 %	
-%	Callable is called in File, but no definition can be found.
+%	Callable is called in File, but no   definition can be found. If
+%	File is not a module file we   consider other files that are not
+%	module files.
 
 undefined(File, Undef) :-
+	xref_module(File, _), !,
 	xref_called(File, Undef),
 	\+ defined(File, Undef, _).
-
+undefined(File, Undef) :-
+	xref_called(File, Undef),
+	\+ (  defined(File, Undef)
+	   ;  defined(ExportFile, Undef),
+	      \+ xref_module(ExportFile, _)
+	   ).

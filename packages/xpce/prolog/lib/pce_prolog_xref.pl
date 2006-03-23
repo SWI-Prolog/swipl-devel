@@ -112,11 +112,26 @@ system_predicate(Head) :-
 verbose :-
 	debugging(xref).
 
+%	xref_source(+Source:file_specifier|buffer)
+%	
+%	Generate the cross-reference data  for   Source  if  not already
+%	done and the source is not modified.  Checking for modifications
+%	is only done for files.
+
+xref_source(Source) :-
+	canonical_source(Source, Src),
+	(   atom(Src)
+	->  time_file(Src, Modified),
+	    source(Src, Modified)
+	), !.
 xref_source(Source) :-
 	canonical_source(Source, Src),
 	xref_clean(Src),
-	get_time(Now),
-	assert(source(Src, Now)),
+	(   atom(Src)
+	->  time_file(Src, Modified)
+	;   get_time(Modified)		% Actually should be `generation'
+	),
+	assert(source(Src, Modified)),
 	xref_setup(State),
 	call_cleanup(collect(Src), xref_cleanup(State)).
 
