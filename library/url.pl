@@ -748,13 +748,13 @@ reserved(0'?).
 reserved(0':).
 reserved(0' ).
 
-national(0'{).
-national(0'}).
-national(0'[).
-national(0']).
-national(0'\\).
-national(0'^).
-national(0'~).
+%national(0'{).
+%national(0'}).
+%national(0'[).
+%national(0']).
+%national(0'\\).
+%national(0'^).
+%national(0'~).
 
 		 /*******************************
 		 *	     DCG BASICS		*
