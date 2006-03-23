@@ -32,6 +32,7 @@
 :- module(mime,
 	  [ mime_parse/2		% +Data, -Mime
 	  ]).
+:- use_module(library(shlib)).
 
 :- load_foreign_library(foreign(mime), install_mime).
 

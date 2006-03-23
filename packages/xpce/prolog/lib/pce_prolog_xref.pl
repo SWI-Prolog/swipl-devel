@@ -61,6 +61,7 @@
 	(thread_local)/2,		% Head, Src
 	(multifile)/2,			% Head, Src
 	defined/3,			% Head, Src, Line
+	foreign/3,			% Head, Src, Line
 	constraint/3,			% Head, Src, Line
 	imported/3,			% Head, Src, From
 	exported/2,			% Head, Src
@@ -167,6 +168,7 @@ xref_clean(Source) :-
 	retractall(dynamic(_, Src)),
 	retractall(multifile(_, Src)),
 	retractall(defined(_, Src, _Line)),
+	retractall(foreign(_, Src, _Line)),
 	retractall(constraint(_, Src, _Line)),
 	retractall(imported(_, Src, _From)),
 	retractall(exported(_, Src)),
@@ -237,6 +239,8 @@ xref_defined2((multifile), Src, Called) :-
 	multifile(Called, Src).
 xref_defined2(local(Line), Src, Called) :-
 	defined(Called, Src, Line).
+xref_defined2(foreign(Line), Src, Called) :-
+	foreign(Called, Src, Line).
 xref_defined2(constraint(Line), Src, Called) :-
 	constraint(Called, Src, Line).
 xref_defined2(imported(From), Src, Called) :-
@@ -396,6 +400,8 @@ process_directive(multifile(Dynamic), Src) :-
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
+process_directive(load_foreign_library(File), Src) :-
+	process_foreign(File, Src).
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
 	assert_defined_class(Src, Name, Meta, Super, Doc).
 process_directive(pce_autoload(Name, From), Src) :-
@@ -731,6 +737,27 @@ read_clauses(Term, In, [Term|T]) :-
 	read_clauses(C, In, T).
 
 
+%	process_foreign(+Spec, +Src)
+%	
+%	Process a load_foreign_library/1 call.
+
+process_foreign(Spec, Src) :-
+	current_foreign_library(Spec, Defined),
+	(   xmodule(Module, Src)
+	->  true
+	;   Module = user
+	),
+	process_foreign_defined(Defined, Module, Src).
+
+process_foreign_defined([], _, _).
+process_foreign_defined([H|T], M, Src) :-
+	(   H = M:Head
+	->  assert_foreign(Head, Src)
+	;   assert_foreign(H, Src)
+	),
+	process_foreign_defined(T, M, Src).
+
+
 		 /*******************************
 		 *	    CHR SUPPORT		*
 		 *******************************/
@@ -857,6 +884,13 @@ assert_defined(Src, Goal) :-
 	generalise(Goal, Term),
 	flag(xref_src_line, Line, Line),
 	assert(defined(Term, Src, Line)).
+
+assert_foreign(Src, Goal) :-
+	foreign(Goal, Src, _), !.
+assert_foreign(Src, Goal) :-
+	generalise(Goal, Term),
+	flag(xref_src_line, Line, Line),
+	assert(foreign(Term, Src, Line)).
 
 assert_import(_, [], _) :- !.
 assert_import(Src, [H|T], From) :- !,
