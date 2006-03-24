@@ -35,6 +35,7 @@
 	  portray_clause/1,		% +Clause
 	  portray_clause/2		% +Stream, +Clause
 	]).
+:- use_module(library(lists), [member/2]).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent

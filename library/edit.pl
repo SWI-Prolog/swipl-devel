@@ -33,7 +33,8 @@
 	  [ edit/1,			% +Spec
 	    edit/0
 	  ]).
-:- use_module(library(lists)).
+:- use_module(library(lists), [append/3, member/2, nth1/3]).
+:- use_module(library(make), [make/0]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module implements the generic editor  interface. It consists of two
