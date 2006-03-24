@@ -35,8 +35,8 @@
 	    predicate_name/2,		% +Head, -Name
 	    clause_name/2		% +ClauseRef, -Name
 	  ]).
-:- use_module(library(debug)).
-
+:- use_module(library(debug), [debug/3]).
+:- use_module(library(lists), [append/3]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module started life as part of the   GUI tracer. As it is generally
@@ -563,7 +563,7 @@ goal_expansion(GetSuperN, get_class(R, _, Msg, Answer), P, P) :-
 	append(Args, [Answer], AllArgs),
 	Msg =.. [Sel|Args].
 goal_expansion(G0, G, P, P) :-
-	goal_expansion(G0, G),
+	user:goal_expansion(G0, G),	% TBD: we need the module!
 	G0 \== G.			% \=@=?
 
 		 /*******************************
