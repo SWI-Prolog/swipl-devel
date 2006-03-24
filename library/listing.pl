@@ -188,14 +188,14 @@ notify_changed(_).
 
 %	portray_clause(+Clause)
 %
-%	Portray `Clause' on the current output stream.   Layout  of  the
-%	clause  is  to our best standards.  As the actual variable names
-%	are not available we use A, B, ... Deals with ';', '|',  '->'  and
+%	Portray `Clause' on the current  output   stream.  Layout of the
+%	clause is to our best standards.   As  the actual variable names
+%	are not available we use A, B, ... Deals with ';', '|', '->' and
 %	various calls via meta-call predicates.
 %
-%	The prolog_list_goal/1 hook is a dubious as it may lead to
-%	confusion if the heads relates to other bodies.  For now it
-%	is only used for XPCE methods and works just nice.
+%	The prolog_list_goal/1 hook is  a  dubious   as  it  may lead to
+%	confusion if the heads relates to other   bodies.  For now it is
+%	only used for XPCE methods and works just nice.
 %	
 %	Not really ...  It may confuse the source-level debugger.
 
@@ -229,12 +229,19 @@ do_portray_clause(Out, (Head :- Body)) :- !,
 	),
 	put(Out, 0'.), nl(Out).
 do_portray_clause(Out, (:-use_module(File, Imports))) :-
+	length(Imports, Len),
+	Len > 3, !,
 	format(Out, ':- use_module(~q,', [File]),
 	portray_list(Imports, 14, Out),
 	write(Out, ').\n').
-do_portray_clause(Out, (:-Directive)) :-
-	write(Out, ':- '), 
-	portray_body(Directive, 1, noindent, Out).
+do_portray_clause(Out, (:-module(Module, Exports))) :- !,
+	format(Out, ':- module(~q,', [Module]),
+	portray_list(Exports, 10, Out),
+	write(Out, ').\n').
+do_portray_clause(Out, (:-Directive)) :- !,
+	write(Out, ':-  '), 
+	portray_body(Directive, 1, noindent, Out),
+	write(Out, '.\n').
 do_portray_clause(Out, Fact) :-
 	do_portray_clause(Out, (Fact :- true)).
 
