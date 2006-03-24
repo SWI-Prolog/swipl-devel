@@ -1305,9 +1305,52 @@ margin(T, Width:int*, How:[{wrap,wrap_fixed_width,clip}]) :->
 :- pce_begin_class(prolog_xref_predicate_list, browser,
 		 "Show loaded files").
 
-update(_) :-> true.
+initialise(PL) :->
+	send_super(PL, initialise),
+	send(PL, popup, new(P, popup)),
+	send_list(P, append,
+		  [ menu_item(edit, message(@arg1, edit))
+		  ]).
+
+update(PL) :->
+	send(PL, clear),
+	forall((defined(File, Callable), atom(File), \+ library_file(File)),
+	       send(PL, append, Callable, @default, File)),
+	forall((xref_current_source(File), atom(File), \+library_file(File)),
+	       forall(undefined(File, Callable),
+		      send(PL, append, Callable, undefined, File))),
+	send(PL, sort).
+
+append(PL, Callable:prolog, Class:[name], File:[name]) :->
+	send_super(PL, append, prolog_predicate_item(Callable, Class, File)).
 
 :- pce_end_class(prolog_xref_predicate_list).
+
+
+:- pce_begin_class(prolog_predicate_item, dict_item,
+		   "Represent a Prolog predicate").
+
+variable(callable, prolog, get, "Callable term").
+variable(file,     name*,  get, "Origin file").
+
+initialise(PI, Callable0:prolog, _Class:[name], File:[name]) :->
+	"Create from callable, class and file"::
+	single_qualify(Callable0, Callable),
+	send(PI, slot, callable, Callable),
+	callable_to_label(Callable, Label),
+	send_super(PI, initialise, Label),
+	(   File \== @default
+	->  send(PI, slot, file, File)
+	;   true
+	).
+
+edit(PI) :->
+	"Edit Associated prediate"::
+	get(PI, file, File),
+	get(PI, callable, Callable),
+	edit_callable(Callable, File).
+
+:- pce_end_class(prolog_predicate_item).
 
 
 		 /*******************************
