@@ -1497,5 +1497,6 @@ in_time(Triples, ParseTime) -->
 :- multifile
 	prolog:meta_goal/2.
 
+prolog:meta_goal(rdf_transaction(G),	[G]).
 prolog:meta_goal(rdf_transaction(G,_),	[G]).
 prolog:meta_goal(rdf_monitor(G,_),	[G+1]).

@@ -1,5 +1,5 @@
 :- module(pce_xref_gui,
-	  [ pce_xref/0,
+	  [ gxref/0,
 	    xref_file_imports/2,	% +File, -Imports
 	    xref_file_exports/2		% +File, -Exports
 	  ]).
@@ -19,6 +19,7 @@
 :- use_module(library(lists)).
 :- use_module(library(debug)).
 :- use_module(library(autowin)).
+:- use_module(library(broadcast)).
 
 setting(warn_autoload,      true).
 setting(hide_system_files,  true).
@@ -42,8 +43,8 @@ XPCE based font-end of the Prolog cross-referencer.  Tasks:
 	* Export module import and export header
 		- Using require/1
 		- Using use_module/1
-		- Using use_module/2
-		- Export header for non-module files
+		- Using use_module/2				OK
+		- Export header for non-module files		OK
 
 ----------------
 NOTE: This is work in progress.  
@@ -52,13 +53,13 @@ Its in CVS as this makes it easier to maintain and as-is, the
 tools is now in a useable state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-pce_xref :-
-	send(new(XREF, prolog_xref), open),
+gxref :-
+	send(new(XREF, xref_frame), open),
 	send(XREF, wait),
 	send(XREF, update).
 
 
-:- pce_begin_class(prolog_xref, persistent_frame,
+:- pce_begin_class(xref_frame, persistent_frame,
 		   "GUI for the Prolog cross-referencer").
 
 initialise(F) :->
@@ -158,21 +159,15 @@ xref_file(F, File:name) :->
 file_info(F, File:name) :->
 	"Show summary info on File"::
 	get(F, workspace, file_info, @on, @on, Window),
-	send(Window, file, File).
+	send(Window, file, File),
+	broadcast(xref_refresh_file(File)).
 
 file_header(F, File:name) :->
 	"Create import/export header"::
 	get(F, workspace, header, @on, @on, View),
-	(   xref_module(File, _)
-	->  Decls = Imports
-	;   xref_file_exports(File, Export),
-	    Decls = [Export|Imports]
-	),
-	xref_file_imports(File, Imports),
-	send(View, clear),
-	send(View, declarations, Decls).
+	send(View, file_header, File).
 		     
-:- pce_end_class(prolog_xref).
+:- pce_end_class(xref_frame).
 
 
 		 /*******************************
@@ -532,7 +527,20 @@ export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module import
 
 initialise(Tree) :->
 	send_super(Tree, initialise),
-	send(Tree, clear).
+	send(Tree, clear),
+	listen(Tree, xref_refresh_file(File),
+	       send(Tree, refresh_file, File)).
+
+unlink(Tree) :->
+	unlisten(Tree),
+	send_super(Tree, unlink).
+
+refresh_file(Tree, File:name) :->
+	"Update given file"::
+	(   get(Tree, node, File, Node)
+	->  send(Node, set_flags)
+	;   true
+	).
 
 collapse_node(_, _:any) :->
 	true.
@@ -789,7 +797,8 @@ update(V) :->
 	send(V, scroll_to, point(0,0)),
 	(   get(V, prolog_file, File),
 	    File \== @nil
-	->  send(V, show_info)
+	->  send(V?frame, xref_file, File), % Make sure data is up-to-date
+	    send(V, show_info)
 	;   true
 	).
 
@@ -1158,6 +1167,14 @@ header(T) :->
 	get(T, path, Path),
 	send(T?frame, file_header, Path).
 
+prolog_source(T, Src:string) :<-
+	"Import declarations"::
+	get(T, path, File),
+	new(V, xref_view),
+	send(V, file_header, File),
+	get(V?text_buffer, contents, Src),
+	send(V, destroy).
+
 :- pce_end_class(xref_file_text).
 
 
@@ -1384,6 +1401,26 @@ initialise(V) :->
 	send_super(V, initialise),
 	send(V, font, fixed).
 
+file_header(View, File:name) :->
+	"Create import/export fileheader for File"::
+	(   xref_module(File, _)
+	->  Decls = Imports
+	;   xref_file_exports(File, Export),
+	    Decls = [Export|Imports]
+	),
+	xref_file_imports(File, Imports),
+	send(View, clear),
+	send(View, declarations, Decls),
+	(   (   nonvar(Export)
+	    ->  send(View, report, status,
+		     'Created module header for non-module file %s', File)
+	    ;   send(View, report, status,
+		     'Created import header for module file %s', File)
+	    )
+	->  true
+	;   true
+	).
+
 declarations(V, Decls:prolog) :->
 	pce_open(V, append, Out),
 	call_cleanup(print_decls(Decls, Out), close(Out)).
@@ -1518,21 +1555,21 @@ key_file(File, Key-File) :-
 		 *	     PREDICATES		*
 		 *******************************/
 
-%	defined(+File, +Callable, -HowDefined)
+%	available(+File, +Callable, -HowDefined)
 %	
-%	True if Callable is defined in File.
+%	True if Callable is available in File.
 
-defined(File, Called, How) :-
+available(File, Called, How) :-
 	xref_defined(File, Called, How0), !,
 	How = How0.
-defined(_, Called, How) :-
+available(_, Called, How) :-
 	built_in_predicate(Called), !,
 	How = builtin.
-defined(_, Called, How) :-
+available(_, Called, How) :-
 	setting(warn_autoload, false),
 	autoload_predicate(Called), !,
 	How = autoload.
-defined(_, Called, How) :-
+available(_, Called, How) :-
 	setting(warn_autoload, false),
 	global_predicate(Called), !,
 	How = global.
@@ -1793,10 +1830,10 @@ defined(File, Callable) :-
 undefined(File, Undef) :-
 	xref_module(File, _), !,
 	xref_called(File, Undef),
-	\+ defined(File, Undef, _).
+	\+ available(File, Undef, _).
 undefined(File, Undef) :-
 	xref_called(File, Undef),
-	\+ (  defined(File, Undef)
+	\+ (  available(File, Undef, _)
 	   ;  defined(ExportFile, Undef),
 	      \+ xref_module(ExportFile, _)
 	   ).
@@ -1856,7 +1893,8 @@ resolve_old_imports([H|T0], File, [H|UnRes], Imports) :-
 
 find_new_imports([], _, []).
 find_new_imports([H|T0], File, [FL-H|T]) :-
-	findall(F, resolve(H, F), FL),
+	findall(F, resolve(H, F), FL0),
+	sort(FL0, FL),
 	find_new_imports(T0, File, T).
 
 disambiguate_imports(Imports0, File, Imports) :-
@@ -1887,7 +1925,8 @@ ambiguous_imports([A-C|T0], [A-C|T], UnAmbig, Undef) :-
 %	Try to find files from which to resolve Callable.
 
 resolve(Callable, File) :-		% Export from module files
-	xref_exported(File, Callable).
+	xref_exported(File, Callable),
+	atom(File).
 resolve(Callable, File) :-		% Non-module files
 	defined(File, Callable),
 	atom(File),

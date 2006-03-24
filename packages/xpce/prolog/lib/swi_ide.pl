@@ -148,4 +148,14 @@ debug_monitor(IDE) :->
 	),
 	send(Monitor, open).
 
+xref(IDE) :->
+	"Open Cross-Referencer frontend"::
+	(   get(IDE, member, xref_frame, XREF)
+	->  send(XREF, open)
+	;   new(XREF, xref_frame),
+	    send(XREF, application, IDE),
+	    send(XREF, wait),
+	    send(XREF, update)
+	).
+
 :- pce_end_class(prolog_ide).

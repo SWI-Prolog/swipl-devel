@@ -1317,7 +1317,11 @@ silent.
 
 The print_message/2 predicate and its rules are in the file
 \file{<plhome>/boot/messages.pl}, which may be inspected for more
-information on the error messages and related error terms.
+information on the error messages and related error terms. If you need
+to report errors from your own predicates, we advise you to stick to the
+existing error terms if you can; but should you need to invent new ones,
+you can define corresponding error messages by asserting clauses for
+prolog:message. You will need to declare the predicate as multifile.
 
 See also message_to_string/2.
 
