@@ -81,6 +81,7 @@
 	  raise_exception/1,		% +Exception
 	  on_exception/3		% +Ball, :Goal, :Recover
 	]).
+:- use_module(library(lists), [member/2]).
 
 		/********************************
 		*      SYSTEM INTERACTION       *
