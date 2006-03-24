@@ -37,6 +37,7 @@
 	    current_foreign_library/2,	% ?LibFile, ?Public
 	    reload_foreign_libraries/0
 	  ]).
+:- use_module(library(lists), [reverse/2]).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
