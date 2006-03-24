@@ -1,5 +1,7 @@
 :- module(pce_xref_gui,
-	  [ pce_xref/0
+	  [ pce_xref/0,
+	    xref_file_imports/2,	% +File, -Imports
+	    xref_file_exports/2		% +File, -Exports
 	  ]).
 :- use_module(pce).
 :- use_module(persistent_frame).
@@ -16,6 +18,7 @@
 :- use_module(tabular).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
+:- use_module(library(autowin)).
 
 setting(warn_autoload,      true).
 setting(hide_system_files,  true).
@@ -24,30 +27,29 @@ setting(hide_profile_files, true).
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 XPCE based font-end of the Prolog cross-referencer.  Tasks:
 
-	* Cross-reference currently loaded program
-	* Generate module-dependency graph
+	* Cross-reference currently loaded program		OK
+	* Generate module-dependency graph			OK
 	* Information on
 		- Syntax and other encountered errors
-		- Export/Import relation between modules
-		- Undefined predicates
-		- Unused predicates
+		- Export/Import relation between modules	OK
+		- Undefined predicates				OK
+		- Unused predicates				OK
 	* Summary information
 		- Syntax and other encountered errors
 		- Exports never used (not for libs!)
 		- Undefined predicates
-		- Undefined predicates
-	* Export module import header
+		- Unused predicates
+	* Export module import and export header
 		- Using require/1
 		- Using use_module/1
 		- Using use_module/2
+		- Export header for non-module files
 
-================================================================
-NOTE: This is work in progress.  It is very incomplete and most
-likely not ready for real use.
+----------------
+NOTE: This is work in progress.  
 
-Its in CVS as this makes it easier to maintain and brave people
-can have a look and make sugestions.
-================================================================
+Its in CVS as this makes it easier to maintain and as-is, the
+tools is now in a useable state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 pce_xref :-
@@ -73,7 +75,7 @@ initialise(F) :->
 	send(F, append, BrowserTabs),
 	send_list(BrowserTabs,
 		  [ append(new(xref_file_tree), files),
-		    append(new(prolog_xref_predicate_list), predicates)
+		    append(new(xref_predicate_browser), predicates)
 		  ]),
 	send_list(WSTabs,
 		  [ append(new(xref_depgraph), dependencies)
@@ -117,6 +119,7 @@ workspace(F, Which:name, Create:[bool], Expose:bool, WS:window) :<-
 	).
 
 workspace_term(file_info, prolog_file_info).
+workspace_term(header,    xref_view).
 	    
 browser(F, Which:name, Browser:browser) :<-
 	"Find named browser"::
@@ -157,6 +160,18 @@ file_info(F, File:name) :->
 	get(F, workspace, file_info, @on, @on, Window),
 	send(Window, file, File).
 
+file_header(F, File:name) :->
+	"Create import/export header"::
+	get(F, workspace, header, @on, @on, View),
+	(   xref_module(File, _)
+	->  Decls = Imports
+	;   xref_file_exports(File, Export),
+	    Decls = [Export|Imports]
+	),
+	xref_file_imports(File, Imports),
+	send(View, clear),
+	send(View, declarations, Decls).
+		     
 :- pce_end_class(prolog_xref).
 
 
@@ -1108,7 +1123,8 @@ popup(_, Popup:popup) :<-
 	new(Popup, popup),
 	send_list(Popup, append,
 		  [ menu_item(edit, message(@arg1, edit)),
-		    menu_item(info, message(@arg1, info))
+		    menu_item(info, message(@arg1, info)),
+		    menu_item(header, message(@arg1, header))
 		  ]).
 
 event(T, Ev:event) :->
@@ -1137,6 +1153,10 @@ edit(T) :->
 info(T) :->
 	get(T, path, Path),
 	send(T?frame, file_info, Path).
+
+header(T) :->
+	get(T, path, Path),
+	send(T?frame, file_header, Path).
 
 :- pce_end_class(xref_file_text).
 
@@ -1302,7 +1322,7 @@ margin(T, Width:int*, How:[{wrap,wrap_fixed_width,clip}]) :->
 		 *	    PREDICATES		*
 		 *******************************/
 
-:- pce_begin_class(prolog_xref_predicate_list, browser,
+:- pce_begin_class(xref_predicate_browser, browser,
 		 "Show loaded files").
 
 initialise(PL) :->
@@ -1322,12 +1342,12 @@ update(PL) :->
 	send(PL, sort).
 
 append(PL, Callable:prolog, Class:[name], File:[name]) :->
-	send_super(PL, append, prolog_predicate_item(Callable, Class, File)).
+	send_super(PL, append, xref_predicate_dict_item(Callable, Class, File)).
 
-:- pce_end_class(prolog_xref_predicate_list).
+:- pce_end_class(xref_predicate_browser).
 
 
-:- pce_begin_class(prolog_predicate_item, dict_item,
+:- pce_begin_class(xref_predicate_dict_item, dict_item,
 		   "Represent a Prolog predicate").
 
 variable(callable, prolog, get, "Callable term").
@@ -1350,90 +1370,32 @@ edit(PI) :->
 	get(PI, callable, Callable),
 	edit_callable(Callable, File).
 
-:- pce_end_class(prolog_predicate_item).
+:- pce_end_class(xref_predicate_dict_item).
 
 
 		 /*******************************
 		 *	   UTIL CLASSES		*
 		 *******************************/
 
-:- pce_begin_class(formatted_view, view,
+:- pce_begin_class(xref_view, view,
 		   "View with additional facilities for formatting").
 
 initialise(V) :->
 	send_super(V, initialise),
-	send(V, font, normal),
-	send_list(V,
-		  [ style(h1, style(font := huge)),
-		    style(h2, style(font := large)),
-		    style(b,  style(font := bold)),
-		    style(tt, style(font := fixed)),
-		    style(predicate, style(colour := dark_green,
-					   underline := @on))
-		  ]),
-	send(V?image, recogniser,
-	     click_gesture(left, '', single,
-			   message(V, clicked,
-				   ?(@receiver, index, @event)))).
+	send(V, font, fixed).
 
-format(V, Style:name, Format:name, Args:prolog, OnClick:[prolog]) :->
-	"Append using Prolog format"::
-	sformat(String, Format, Args),
-	get(V, text_buffer, TB),
-	get(TB, size, Size0),
-	send(TB, append, String),
-	atom_length(String, Len),
-	new(_, formatted_view_fragment(TB, Size0, Len, Style, OnClick)),
-	send(V, caret, TB?size).
+declarations(V, Decls:prolog) :->
+	pce_open(V, append, Out),
+	call_cleanup(print_decls(Decls, Out), close(Out)).
 
-append_callable(V, Callable:prolog, Qualify:[bool]) :->
-	predicate_indicator(Callable, PI),
-	send(V, append_predicate_indicator, PI, Qualify).
+print_decls([], _) :- !.
+print_decls([H|T], Out) :- !,
+	print_decls(H, Out),
+	print_decls(T, Out).
+print_decls(Term, Out) :-
+	portray_clause(Out, Term).
 
-append_predicate_indicator(V, PI0:prolog, Qualify:bool) :->
-	(   Qualify == @off
-	->  strip_module(PI0, _, PI)
-	;   PI = PI0
-	),
-	send(V, format, predicate, '~w', PI, edit(PI0)).
-
-clicked(V, At:int) :->
-	"User clicked at caret position"::
-	send(V, caret, At),
-	(   get(V, find_fragment, message(@arg1, overlap, At), Frag),
-	    send(Frag, has_send_method, execute),
-	    send(Frag, execute)
-	->  true
-	;   true
-	).
-
-:- pce_group(event).
-
-
-:- pce_end_class(formatted_view).
-
-
-:- pce_begin_class(formatted_view_fragment, fragment).
-
-variable(on_click, prolog*, both, "Associated action").
-
-initialise(F, TB:text_buffer, Start:int, Len:int, Style:name,
-	   OnClick:[prolog]) :->
-	send_super(F, initialise, TB, Start, Len, Style),
-	send(F, include, both, @off),
-	(   OnClick \== @default
-	->  send(F, slot, on_click, OnClick)
-	;   true
-	).
-
-execute(F) :->
-	"Exevute associated action"::
-	get(F, on_click, Goal),
-	Goal \== @nil,
-	Goal.
-
-:- pce_end_class(formatted_view_fragment).
-
+:- pce_end_class(xref_view).
 
 
 		 /*******************************
@@ -1584,12 +1546,19 @@ built_in_predicate(Goal) :-
 built_in_predicate(module(_, _)).
 
 %	autoload_predicate(+Callable)
+%	autoload_predicate(+Callable, -File)
 %	
 %	True if Callable can be autoloaded.  TBD: make sure the autoload
 %	index is up-to-date.
 
 autoload_predicate(Goal) :-
 	'$autoload':library_index(Goal, _, _).
+
+
+autoload_predicate(Goal, File) :-
+	'$autoload':library_index(Goal, _, FileNoExt),
+	file_name_extension(FileNoExt, pl, File).
+
 
 %	global_predicate(+Callable)
 %	
@@ -1831,3 +1800,190 @@ undefined(File, Undef) :-
 	   ;  defined(ExportFile, Undef),
 	      \+ xref_module(ExportFile, _)
 	   ).
+
+
+		 /*******************************
+		 *    IMPORT/EXPORT HEADERS	*
+		 *******************************/
+
+%	file_imports(+File, -Imports)
+%	
+%	Determine which modules must  be  imported   into  this  one. It
+%	considers all called predicates that are   not covered by system
+%	predicates. Next, we have three sources to resolve the remaining
+%	predicates, which are tried in the   order below. The latter two
+%	is dubious.
+%	
+%		* Already existing imports
+%		* Imports from other files in the project
+%		* Imports from the (autoload) library
+%	
+%	We first resolve all imports to   absolute  files. Localizing is
+%	done afterwards.  Imports is a list of
+%	
+%		use_module(FileSpec, Callables)
+
+xref_file_imports(FileSpec, Imports) :-
+	canonical_filename(FileSpec, File),
+	findall(Called, called_no_builtin(File, Called), Resolve0),
+	resolve_old_imports(Resolve0, File, Resolve1, Imports0),
+	find_new_imports(Resolve1, File, Imports1),
+	disambiguate_imports(Imports1, File, Imports2),
+	flatten([Imports0, Imports2], ImportList),
+	keysort(ImportList, SortedByFile),
+	merge_by_key(SortedByFile, ImportsByFile),
+	maplist(make_import(File), ImportsByFile, Imports).
+	
+canonical_filename(FileSpec, File) :-
+	absolute_file_name(FileSpec,
+			   [ file_type(prolog),
+			     access(read),
+			     file_errors(fail)
+			   ],
+			   File).
+
+called_no_builtin(File, Callable) :-
+	xref_called(File, Callable),
+	\+ defined(File, Callable),
+	\+ built_in_predicate(Callable).
+
+resolve_old_imports([], _, [], []).
+resolve_old_imports([H|T0], File, UnRes, [From-H|T]) :-
+	xref_defined(File, H, imported(From)), !,
+	resolve_old_imports(T0, File, UnRes, T).
+resolve_old_imports([H|T0], File, [H|UnRes], Imports) :-
+	resolve_old_imports(T0, File, UnRes, Imports).
+
+find_new_imports([], _, []).
+find_new_imports([H|T0], File, [FL-H|T]) :-
+	findall(F, resolve(H, F), FL),
+	find_new_imports(T0, File, T).
+
+disambiguate_imports(Imports0, File, Imports) :-
+	ambiguous_imports(Imports0, Ambig, UnAmbig, _Undef),
+	(   Ambig == []
+	->  Imports = UnAmbig
+	;   new(D, xref_disambiguate_import_dialog(File, Ambig)),
+	    get(D, confirm_centered, Result),
+	    (	Result == ok
+	    ->  get(D, result, List),
+		send(D, destroy),
+		append(UnAmbig, List, Imports)
+	    )
+	).
+
+ambiguous_imports([], [], [], []).
+ambiguous_imports([[]-C|T0], Ambig, UnAmbig, [C|T]) :- !,
+	ambiguous_imports(T0, Ambig, UnAmbig, T).
+ambiguous_imports([[F]-C|T0], Ambig, [F-C|T], Undef) :- !,
+	ambiguous_imports(T0, Ambig, T, Undef).
+ambiguous_imports([A-C|T0], [A-C|T], UnAmbig, Undef) :-
+	is_list(A), !,
+	ambiguous_imports(T0, T, UnAmbig, Undef).
+
+
+%	resolve(+Callable, -File)
+%	
+%	Try to find files from which to resolve Callable.
+
+resolve(Callable, File) :-		% Export from module files
+	xref_exported(File, Callable).
+resolve(Callable, File) :-		% Non-module files
+	defined(File, Callable),
+	atom(File),
+	\+ xref_module(File, _).
+resolve(Callable, File) :-		% The Prolog autoload library
+	autoload_predicate(Callable, File).
+
+
+%	merge_by_key(+KeyedList, -ListOfKey-Values)
+%	
+%	Example: [a-x, a-y, b-z] --> [a-[x,y], b-[z]]
+
+merge_by_key([], []).
+merge_by_key([K-V|T0], [K-[V|Vs]|T]) :-
+	same_key(K, T0, Vs, T1),
+	merge_by_key(T1, T).
+
+same_key(K, [K-V|T0], [V|VT], T) :- !,
+	same_key(K, T0, VT, T).
+same_key(_, L, [], L).
+
+
+%	make_import(+RefFile, +ImportList, -UseModules)
+%	
+%	Glues it all together to make a list of directives.
+
+make_import(_RefFile, File-Imports, (:-use_module(ShortPath, PIs))) :-
+	short_file_name(File, ShortPath0),
+	remove_extension(ShortPath0, ShortPath),
+	sort_callables(Imports, SortedImports),
+	maplist(predicate_indicator, SortedImports, PIs).
+
+remove_extension(Term0, Term) :-
+	Term0 =.. [Alias,ShortPath0],
+	file_name_extension(ShortPath, pl, ShortPath0), !,
+	Term  =.. [Alias,ShortPath].
+remove_extension(ShortPath0, ShortPath) :-
+	atom(ShortPath0),
+	file_name_extension(ShortPath, pl, ShortPath0), !.
+remove_extension(Path, Path).
+
+:- pce_begin_class(xref_disambiguate_import_dialog, auto_sized_dialog,
+		   "Prompt for alternative sources").
+
+initialise(D, File:name, Ambig:prolog) :->
+	send_super(D, initialise, string('Disambiguate calls for %s', File)),
+	forall(member(Files-Callable, Ambig),
+	       send(D, append_row, File, Callable, Files)),
+	send(D, append, button(ok)),
+	send(D, append, button(cancel)).
+
+append_row(D, File:name, Callable:prolog, Files:prolog) :->
+	send(D, append, xref_predicate_text(Callable, @default, File)),
+	send(D, append, new(FM, menu(file, cycle)), right),
+	send(FM, append, menu_item(@nil, @default, '-- Select --')),
+	forall(member(Path, Files),
+	       (   short_file_name(Path, ShortId),
+		   short_file_name_to_atom(ShortId, Label),
+		   send(FM, append, menu_item(Path, @default, Label))
+	       )).
+
+result(D, Disam:prolog) :<-
+	"Get disambiguated files"::
+	get_chain(D, graphicals, Grs),
+	selected_files(Grs, Disam).
+
+selected_files([], []).
+selected_files([PreText,Menu|T0], [File-Callable|T]) :-
+	send(PreText, instance_of, xref_predicate_text),
+	send(Menu, instance_of, menu),
+	get(Menu, selection, File),
+	atom(File), !,
+	get(PreText, callable, Callable),
+	selected_files(T0, T).
+selected_files([_|T0], T) :-
+	selected_files(T0, T).
+
+
+ok(D) :->
+	send(D, return, ok).
+
+cancel(D) :->
+	send(D, destroy).
+
+:- pce_end_class(xref_disambiguate_import_dialog).
+
+%	xref_file_exports(+File, -Exports)
+%	
+%	Produce the export-header for non-module files.  Fails if the
+%	file is already a module file.
+
+xref_file_exports(FileSpec, (:- module(Module, Exports))) :-
+	canonical_filename(FileSpec, File),
+	\+ xref_module(File, _),
+	findall(C, export_link_1(File, _, C), Cs),
+	sort_callables(Cs, Sorted),
+	file_base_name(File, Base),
+	file_name_extension(Module, _, Base),
+	maplist(predicate_indicator, Sorted, Exports).
