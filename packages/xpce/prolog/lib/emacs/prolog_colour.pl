@@ -901,6 +901,7 @@ goal_colours(send(_,_),		     built_in-[pce_arg,pce_selector]).
 goal_colours(get(_,_,_),	     built_in-[pce_arg,pce_selector,pce_arg]).
 goal_colours(send_super(_,_),	     built_in-[pce_arg,pce_selector]).
 goal_colours(get_super(_,_),	     built_in-[pce_arg,pce_selector,pce_arg]).
+goal_colours(get_chain(_,_,_),	     built_in-[pce_arg,pce_selector,pce_arg]).
 goal_colours(Pce,		     built_in-pce_arg) :-
 	compound(Pce),
 	functor(Pce, Functor, _),
