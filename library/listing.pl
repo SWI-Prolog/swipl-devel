@@ -228,6 +228,13 @@ do_portray_clause(Out, (Head :- Body)) :- !,
 	;   portray_body(Body, 2, indent, Out)
 	),
 	put(Out, 0'.), nl(Out).
+do_portray_clause(Out, (:-use_module(File, Imports))) :-
+	format(Out, ':- use_module(~q,', [File]),
+	portray_list(Imports, 14, Out),
+	write(Out, ').\n').
+do_portray_clause(Out, (:-Directive)) :-
+	write(Out, ':- '), 
+	portray_body(Directive, 1, noindent, Out).
 do_portray_clause(Out, Fact) :-
 	do_portray_clause(Out, (Fact :- true)).
 
@@ -322,15 +329,57 @@ portray_meta(Out, Term, N, Indent) :-
 portray_meta(Out, Term, _, _) :-
 	pprint(Out, Term).	
 
+%	portray_list(+List, +Indent, +Out)
+%	
+%	Portray a list list this.  Right side for improper lists
+%	
+%		[ element1,		[ element1
+%		  element2,	OR	| tail
+%		]			]
+
+portray_list([], _, Out) :- !,
+	write(Out, []).
+portray_list(List, Indent, Out) :-
+	nl(Out), portray_indent_1(Out, Indent),
+	write(Out, '[ '),
+	EIndent is Indent + 2,
+	portray_list_elements(List, EIndent, Out),
+	nl(Out), portray_indent_1(Out, Indent),
+	write(Out, ']').
+
+portray_list_elements([H|T], EIndent, Out) :-
+	pprint(Out, H),
+	(   T == []
+	->  true
+	;   nonvar(T), T = [_|_]
+	->  write(Out, ',\n'),
+	    portray_indent_1(Out, EIndent),
+	    portray_list_elements(T, EIndent, Out)
+	;   nl(Out),
+	    Indent is EIndent - 2,
+	    portray_indent_1(Out, Indent),
+	    write(Out, '| '),
+	    pprint(Out, T)
+	).
+
+%	portray_indent(+Out, +Indent)
+%	portray_indent_1(+OUt, +Indent)
+%	
+%	Write indent, where Indent is in steps of 4 positions.  The _1
+%	version uses steps of 1 position
+
 portray_indent(Out, N) :-
-	Tab is N // 2, 
-	Space is (N mod 2) * 4, 
+	portray_indent_1(Out, N*4).
+
+portray_indent_1(Out, N) :-
+	Tab is N // 8, 
+	Space is N mod 8,
 	put_tabs(Out, Tab),
 	tab(Out, Space).
 
 put_tabs(Out, N) :-
 	N > 0, !,
-	put(Out, 9),
+	put(Out, 0'\t),
 	NN is N - 1,
 	put_tabs(Out, NN).
 put_tabs(_, _).
