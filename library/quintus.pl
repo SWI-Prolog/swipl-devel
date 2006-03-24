@@ -113,14 +113,6 @@ to_prolog(S, A) :-
 	name(A, L).
 
 
-%	file_exists(+File)
-%	Succeeds if `File' exists as a file or directory in the Unix file
-%	system.
-
-file_exists(File) :-
-	exists_file(File).
-
-
 		/********************************
 		*        META PREDICATES        *
 		*********************************/
