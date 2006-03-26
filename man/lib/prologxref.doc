@@ -1,0 +1,93 @@
+\libdoc{prologxref}{Cross-reference data collection library}
+
+This library collects information on defined and used objects in Prolog
+sourcefiles. Typically these are predicates, but we expect the library
+to deal with other types of objects in the future. The library is a
+building block for tools doing dependency tracking in applications.
+Dependency tracking is useful to reveal the structure of an unknown
+program or detect missing components at compile-time, but also for
+program transformation or minimising a program saved-state by only
+saving the reachable objects.
+
+This section gives a partial description of the library API, providing
+some insight in how you can use it for analysing your program.  The
+library should be further modularized, moving its knowledge about
+-for example- XPCE into a different file and allowing for adding
+knowledge about other libraries such as Logtalk.  \textbf{Please do not
+consider this interface rock-solid.}
+
+The library is exploited by two graphical tools in the SWI-Prolog
+environment. The XPCE frontend started by gxref/0 and described in
+\secref{xref} and PceEmacs (\secref{pceemacs}) which exploits this
+library for its syntax colouring.
+
+For all predicates described below, \arg{Source} is the source that is
+processed.  This is normally a filename in any notation acceptable to
+the file loading predicates (see load_files/2).  Using the hooks defined
+in \secref{xrefhooks} it can be anything else that can be translated
+into a Prolog stream holding Prolog source text.  \arg{Callable} is
+a callable term (see callable/1).  Callables do not carry a module
+qualifier unless the referred predicate is not in the module defined
+\arg{Source}.
+
+\begin{description}
+    \predicate{xref_source}{1}{+Source}
+Gather information on \arg{Source}. If \arg{Source} has already been
+processed and is still up-to-date according to the file timestamp, no
+action is taken. This predicate must be called on a file before
+information can be gathered.
+
+    \predicate{xref_current_source}{1}{?Source}
+\arg{Source} has been processed.
+
+    \predicate{xref_clean}{1}{+Source}
+Remove the information gathered for \arg{Source}
+
+    \predicate{xref_defined}{3}{?Source. ?Callable, -How}
+\arg{Callable} is defined in \arg{Source}.  \arg{How} is one of
+\begin{center}
+\begin{tabular}{ll}
+\term{dynamic}{}    		& Declared dynamic \\
+\term{thread_local}{}    	& Declared thread local \\
+\term{multifile}{}    		& Declared multifile \\
+\term{local}{Line}    		& First clause at Line \\
+\term{foreign}{Line}  		& Foreign library loaded a Line \\
+\term{constraint}{Line}		& CHR Constraint at Line \\
+\term{imported}{File}		& Imported from \arg{File} \\
+\end{tabular}
+\end{center}
+
+    \predicate{xref_called}{3}{?Source, ?Callable, ?By}
+\arg{Callable} is called in \arg{Source} by \arg{By}.
+
+    \predicate{xref_exported}{2}{?Source, ?Callable}
+\arg{Callable} is public (exported from the module).
+
+    \predicate{xref_module}{2}{?Source, ?Module}
+\arg{Source} is a module-file defining the given module.
+
+    \predicate{xref_built_in}{1}{?Callable}
+True if \arg{Callable} is a built-in predicate. Currently this is
+assumed for all predicates defined in the \const{system} module and
+having the property \const{built_in}.  Built-in predicates are not
+registered as `called'.
+\end{description}
+
+\subsubsection{Extending the library}
+
+The library provides hooks for extending its rules it uses for finding
+predicates called by some programming construct.
+
+\begin{description}
+    \predicate{prolog:called_by}{2}{+Goal, -Called}
+Where \arg{Goal} is a non-var subgoal appearing in called object
+(typically a clause-body). If it succeeds it must return a list of goals
+called by \arg{Goal}. As a special construct, if a term $Callable+N$ is
+returned, $N$ variable arguments are added to \arg{Callable} before
+further processing. For simple meta-calls a single fact suffices.
+Complex rules as used in the \pllib{html_write} library provided by the
+HTTP package examine the arguments and create a list of called objects.
+
+The current system cannot deal with the same name/arity in different
+modules that behave differently with respect to called arguments.
+\end{description}

@@ -254,6 +254,7 @@ suggest predicates from a keyword.
 \predicatesummary{gspy}{1}{Spy using graphical tracer}
 \predicatesummary{gtrace}{0}{Trace using graphical tracer}
 \predicatesummary{guitracer}{0}{Install hooks for the graphical debugger}
+\predicatesummary{gxref}{0}{Cross-reference loaded program}
 \predicatesummary{halt}{0}{Exit from Prolog}
 \predicatesummary{halt}{1}{Exit from Prolog with status}
 \predicatesummary{hash}{1}{Index predicate using a hash-table}

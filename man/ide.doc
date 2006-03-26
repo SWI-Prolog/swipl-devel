@@ -649,6 +649,9 @@ the GUI debugger or using the programmatic IDE interface described in
 \secref{idepreds}.
 
 
+\input{xref.tex}
+
+
 \section{Accessing the IDE from your program}	\label{sec:idepreds}
 
 Over the years a collection of IDE components have been developed,
@@ -682,6 +685,10 @@ Open a graphical window indicating existing threads and their status.
     \termitem{debug_monitor}{}
 Open a graphical frontend for the \pllib{debug} library that provides
 an overview of the topics and catches messages.
+
+    \termitem{xref}{}
+Open a graphical frontend for the cross-referencer that provides an overview
+of predicates and their callers.
 \end{description}
 \end{description}
 

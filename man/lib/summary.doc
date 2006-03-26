@@ -133,3 +133,18 @@ This library is only available on Windows systems.
 \predicatesummary{dump}{3}{Dump constraints on variables}
 \end{summarylist}
 
+\subsection{\pllib{prologxref}}
+
+\begin{summarylist}{ll}
+\predicatesummary{called_by}{2}{\hook{prolog} Extend cross-referencer}
+\predicatesummary{xref_builtin}{1}{Examine defined built-ins}
+\predicatesummary{xref_called}{3}{Examine called predicates}
+\predicatesummary{xref_clean}{1}{Remove analysis of source}
+\predicatesummary{xref_current_source}{1}{Examine cross-referenced sources}
+\predicatesummary{xref_defined}{3}{Examine defined predicates}
+\predicatesummary{xref_exported}{2}{Examine exported predicates}
+\predicatesummary{xref_module}{2}{Module defined by source}
+\predicatesummary{xref_source}{1}{Cross-reference analysis of source}
+
+\end{summarylist}
+

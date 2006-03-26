@@ -40,3 +40,4 @@ documented at all.
 \input{clpqr}
 \input{clpdistinct}
 \input{simplex}
+\input{prologxref}
