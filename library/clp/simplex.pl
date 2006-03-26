@@ -47,7 +47,6 @@
 		variable_value/3
 	]).
 
-:- use_module(library(bounds)).
 :- use_module(library(clpr)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -98,7 +97,7 @@ clpr_shadow_price(clpr_solved(_,_,Duals,_), Name, Value) :-
 	%;
 	%	Value is Value0
 	%).
-	
+
 
 
 clpr_make_variables(Cs, Aliases) :-
@@ -172,7 +171,7 @@ clpr_nonneg_constraints([C|Cs], [Name|Names], Nons0, Nons) :-
 		Nons0 = Rest
 	),
 	clpr_nonneg_constraints(Cs, Names, Rest, Nons).
-	
+
 
 clpr_dual_constraints([], [], _, []).
 clpr_dual_constraints([Coeffs|Cs], [O*_|Os], Names, [Constraint|Constraints]) :-
@@ -184,7 +183,7 @@ clpr_dual_constraints([Coeffs|Cs], [O*_|Os], Names, [Constraint|Constraints]) :-
 clpr_dual_linsum([], [], []).
 clpr_dual_linsum([Coeff|Coeffs], [Name|Names], [Coeff*Name|Rest]) :-
 	clpr_dual_linsum(Coeffs, Names, Rest).
-	
+
 
 clpr_constraints_coefficients([], []).
 clpr_constraints_coefficients([C|Cs], [Coeff|Coeffs]) :-
@@ -363,7 +362,7 @@ shadow_price(State, Name, Value) :-
 	; F == clpr_solved ->
 		clpr_shadow_price(State, Name, Value)
 	).
-		
+
 
 
 objective(State, Obj) :-
@@ -515,7 +514,7 @@ constraint_add(Name, A, S0, S) :-
 		add_left(Cs, Name, A, Cs1),
 		clpr_state_set_constraints(Cs1, S0, S)
 	).
-		
+
 
 add_left([c(Name,Left0,Op,Right)|Cs], V, A, [c(Name,Left,Op,Right)|Rest]) :-
 	( Name == V ->
@@ -1168,7 +1167,7 @@ update_tableau([bv(NRow,NCol,Value)|BVs], Rows0, Rows) :-
 merge_basis([], _, []).
 merge_basis([BV0|BVs0], Changed, [BV|BVs]) :-
 	BV0 = bv(Row, Col, _),
-	( member(bv(Row, Col, Value), Changed) ->
+	( memberchk(bv(Row, Col, Value), Changed) ->
 		BV = bv(Row, Col, Value)
 	;
 		BV0 = BV
@@ -1244,39 +1243,91 @@ tableau_with_diffs(Rows0, Basis, NRows, NCols) :-
 	keysort(NB, Sorted),
 	Sorted = [_Num-NMaxRow|_],
 	nth0(NMaxRow, Uis, 0),
-	% make it a bit easier for bounds.pl: constrain first the row
-	% where much propagation is possible, only then the rest,
-	% in the hope to avoid too many unconstrained variables
-	sublist(=(bv(NMaxRow, _, _)), Basis, BVs),
-	constrain_basis(BVs, Uis, Vjs, Rows0),
-	constrain_basis(Basis, Uis, Vjs, Rows0),
-	constrain_diffs(Rows0, Uis, Vjs).
+	uis_vjs_row([NMaxRow], [], [], [], Basis, Uis, Vjs, Rows0),
+	diffs(Rows0, Uis, Vjs).
 
-constrain_diffs([], _, _).
-constrain_diffs([Row|Rows], [Ui|Uis], Vjs) :-
+uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs) :-
+	( Rows == [] ->
+		( Cols == [] ->
+			true
+		;
+			uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs)
+		)
+	;
+		Rows = [NRow|Todo],
+		( memberchk(NRow, RowsVisited) ->
+			uis_vjs_row(Todo, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs)
+		;
+			nth0(NRow, Costs, Row),
+			Row = row(Cs),
+			nth0(NRow, Uis, Ui),
+			whole_row(Basis, NRow, Cs, Ui, Vjs, Cols, Cols1),
+			sort(Cols1, Cols2), % remove dups
+			uis_vjs_col(Todo, [NRow|RowsVisited], Cols2, ColsVisited, Basis, Uis, Vjs, Costs)
+		)
+	).
+
+whole_row([], _, _, _, _, ColsQueue, ColsQueue).
+whole_row([Var|Vs], NRow, Cols, Ui, Vjs, ColsQueue0, ColsQueue) :-
+	Var = bv(VNRow, VNCol, _),
+	( NRow =:= VNRow ->
+		nth0(VNCol, Cols, Cell),
+		cell_diff(Cell, 0),
+		cell_cost(Cell, Cost),
+		nth0(VNCol, Vjs, Vj),
+		Vj is Cost - Ui,
+		whole_row(Vs, NRow, Cols, Ui, Vjs, [VNCol|ColsQueue0], ColsQueue)
+	;
+		whole_row(Vs, NRow, Cols, Ui, Vjs, ColsQueue0, ColsQueue)
+	).
+
+
+uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs) :-
+	( Cols == [] ->
+		uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs)
+	;
+		Cols = [NCol|Todo],
+		( memberchk(NCol, ColsVisited) ->
+			uis_vjs_col(Rows, RowsVisited, Todo, ColsVisited, Basis, Uis, Vjs, Costs)
+		;
+			nth0(NCol, Vjs, Vj),
+			whole_col(Basis, NCol, Costs, Vj, Uis, Rows, Rows1),
+			sort(Rows1, Rows2), % remove dups
+			uis_vjs_row(Rows2, RowsVisited, Todo, [NCol|ColsVisited], Basis, Uis, Vjs, Costs)
+		)
+	).
+
+whole_col([], _, _, _, _, RowsQueue, RowsQueue).
+whole_col([Var|Vs], NCol, Rows, Vj, Uis, RowsQueue0, RowsQueue) :-
+	Var = bv(VNRow, VNCol, _),
+	( VNCol =:= NCol ->
+		nth0(VNRow, Rows, Row),
+		Row = row(Cs),
+		nth0(VNCol, Cs, Cell),
+		cell_diff(Cell, 0),
+		cell_cost(Cell, Cost),
+		nth0(VNRow, Uis, Ui),
+		Ui is Cost - Vj,
+		whole_col(Vs, NCol, Rows, Vj, Uis, [VNRow|RowsQueue0], RowsQueue)
+	;
+		whole_col(Vs, NCol, Rows, Vj, Uis, RowsQueue0, RowsQueue)
+	).
+
+
+
+diffs([], _, _).
+diffs([Row|Rows], [Ui|Uis], Vjs) :-
 	Row = row(Cols),
-	constrain_cols(Cols, Ui, Vjs),
-	constrain_diffs(Rows, Uis, Vjs).
+	diffs_(Cols, Ui, Vjs),
+	diffs(Rows, Uis, Vjs).
 
-constrain_cols([], _, _).
-constrain_cols([Col|Cols], Ui, [Vj|Vjs]) :-
+diffs_([], _, _).
+diffs_([Col|Cols], Ui, [Vj|Vjs]) :-
 	cell_diff(Col, Diff),
 	cell_cost(Col, Cost),
-	Diff #= Cost - Ui - Vj,
-	constrain_cols(Cols, Ui, Vjs).
+	Diff is Cost - Ui - Vj,
+	diffs_(Cols, Ui, Vjs).
 
-constrain_basis([], _, _, _).
-constrain_basis([Var|Vs], Uis, Vjs, Rows) :-
-	Var = bv(NRow, NCol, _),
-	nth0(NRow, Rows, Row),
-	Row = row(Cols),
-	nth0(NCol, Cols, Cell),
-	cell_diff(Cell, 0),
-	cell_cost(Cell, Cost),
-	nth0(NRow, Uis, Ui),
-	nth0(NCol, Vjs, Vj),
-	Vj #= Cost - Ui,
-	constrain_basis(Vs, Uis, Vjs, Rows).
 
 
    % Vogel's approximation method used for finding an initial solution of the
@@ -1333,18 +1384,18 @@ number_list_([E|Es], N0, [E-N0|Rest]) :-
 	number_list_(Es, N1, Rest).
 
 
-transpose(Matrix, TransPosed) :-
+transpose(Matrix, Transposed) :-
         Matrix = [Row|_],
-        transpose(Row,Matrix, TransPosed).
+        transpose(Row,Matrix, Transposed).
 
 transpose([], _, []).
-transpose([_|R], Matrix, [Row|RestTransPosed]) :-
-        takefirst(Matrix, NewMatrix, Row),
-        transpose(R, NewMatrix, RestTransPosed).
+transpose([_|Rest], Matrix, [Row|Rows]) :-
+        firsts(Matrix, NewMatrix, Row),
+        transpose(Rest, NewMatrix, Rows).
 
-takefirst([], [], []).
-takefirst([[X|R]|S], [R|T], [X|Q]) :-
-        takefirst(S, T, Q).
+firsts([], [], []).
+firsts([[F|Rs]|Rest], [Rs|Ts], [F|Fs]) :-
+        firsts(Rest, Ts, Fs).
 
 
 remaining_row([], _, _, _, Basis, Basis).
