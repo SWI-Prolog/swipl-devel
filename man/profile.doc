@@ -5,7 +5,7 @@ SWI-Prolog 5.1.10.  This profiler is based on ideas from \program{gprof}
 described in \cite{graham82gprof}.  The profiler consists of two parts:
 the information-gathering is built into the kernel,%
 	\footnote{There are two implementations; one based on
-		  setitimer() ising the \const{SIGPROF} signal and one
+		  setitimer() using the \const{SIGPROF} signal and one
 		  using Windows Multi Media (MM) timers. On other
 		  systems the profiler is not provided.}
 and a presentation component which is defined in the \pllib{statistics}
@@ -160,11 +160,13 @@ for details.
 \subsubsection{Profiling in the Windows Implementation}
 \label{sec:winprofile}
 
-Profiling in the Windows version is similar but, especially on Windows
-95/98/ME one should be aware of the implementation.%
+Profiling in the Windows version is similar but as profiling is a
+statistical process it is good to be aware of the implementation%
 	\footnote{We hereby acknowledge Lionel Fourquaux, who
 		  suggested the design described here after a
 		  newsnet enquiry.}
+for proper interpretation of the results.
+
 Windows does not provide timers that fire asynchronously, frequent and
 proportional to the CPU time used by the process. Windows does provide
 multi-media timers that can run at high frequency. Such timers however
@@ -174,14 +176,3 @@ installs such a timer running, for saving CPU time, rather inaccurately
 at about 100 Hz. Each time it is fired, it determines the millisecons
 CPU time used by Prolog since the last time it was fired. If this value
 is non-zero, active predicates are incremented with this value.
-
-On Windows 95/98/ME (DOS-based Windows), there is no possibility to
-get the CPU-time used by a thread or process. \textbf{Therefore, on
-these systems profiling results does not count CPU-time, but elapsed
-time.}  For sensible results on these systems, ensure the system has
-no other active tasks and be aware that I/O operations include the
-time Prolog is blocked waiting for data.
-
-
-
-

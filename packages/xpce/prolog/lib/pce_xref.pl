@@ -1579,8 +1579,8 @@ available(_, Called, How) :-
 %	True if Callable is a built-in
 
 built_in_predicate(Goal) :-
-	predicate_property(system:Goal, built_in), !.
-built_in_predicate(module(_, _)).
+	strip_module(Goal, _, Plain),
+	xref_built_in(Plain).
 
 %	autoload_predicate(+Callable)
 %	autoload_predicate(+Callable, -File)

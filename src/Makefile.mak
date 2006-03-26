@@ -84,7 +84,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
 	www_browser.pl url.pl win_menu.pl assoc.pl nb_set.pl \
 	qpforeign.pl dif.pl when.pl prolog_stack.pl prolog_clause.pl \
-	checklast.pl checkselect.pl operators.pl \
+	prolog_xref.pl checklast.pl checkselect.pl operators.pl \
 	$(PLWINLIBS)
 !IF "$(MT)" == "true"
 PLLIBS=$(PLLIBS) threadutil.pl

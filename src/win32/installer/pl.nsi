@@ -73,6 +73,7 @@ Section "Base system (required)"
   File pl\library\when.pl
   File pl\library\prolog_stack.pl
   File pl\library\prolog_clause.pl
+  File pl\library\prolog_xref.pl
 
 ; COMPATIBILITY
   File pl\library\backcomp.pl
