@@ -50,21 +50,9 @@
 	    xref_used_class/2,		% ?Source, ?ClassName
 	    xref_defined_class/3	% ?Source, ?ClassName, -How
 	  ]).
-:- use_module(library(debug),
-	      [ debug/3,
-		debugging/1
-	      ]).
-:- use_module(library(lists),
-	      [ append/3, member/2
-	      ]).
-:- use_module(library(operators),
-	      [ pop_operators/0,
-		push_op/3,
-		push_operators/1
-	      ]).
-:- use_module(library(shlib),
-	      [ current_foreign_library/2
-	      ]).
+:- use_module(library(operators)).
+:- use_module(library(lists)).
+:- use_module(library(debug)).
 
 :- dynamic
 	called/3,			% Head, Src, From
