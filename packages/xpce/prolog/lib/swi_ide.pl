@@ -51,6 +51,7 @@ the IDE components to the autoloading of one single predicate.
 :- pce_autoload(prolog_query_frame,    library('trace/query')).
 :- pce_autoload(prolog_thread_monitor, library('swi/thread_monitor')).
 :- pce_autoload(prolog_debug_monitor,  library('swi/pce_debug_monitor')).
+:- pce_autoload(xref_frame,	       library('pce_xref')).
 
 
 		 /*******************************
