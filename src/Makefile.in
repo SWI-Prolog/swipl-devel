@@ -3,11 +3,11 @@
 # $Id$
 #
 # Author:	Jan Wielemaker
-#		jan@swi.psy.uva.nl
-#		SWI
+#		wielemak@science.uva.nl
+#		HCS (formerly SWI)
 #		University of Amsterdam
-#    		Roetersstraat 15
-#		1018 WB  Amsterdam
+#    		Kruislaan 419
+#		1098 VA  Amsterdam
 #		The Netherlands
 #
 # This  Makefile  requires  GNU-Make,  often  installed  as  `gmake'  on
@@ -289,6 +289,9 @@ $(srcdir)/TAGS:	$(SRC)
 
 check:
 		$(DEVPL) -f $(srcdir)/test.pl -F none -g test,halt -t 'halt(1)'
+
+ln-install::
+		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install install
 
 install:	@INSTALLTARGET@
 install-version: install-arch install-libs install-vbins
