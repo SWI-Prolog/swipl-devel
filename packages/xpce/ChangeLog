@@ -1,8 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.9, distributed with SWI-Prolog 5.6.9
+================================================
+
 * FIXED: device->event to be safe against events changing the displayed
   graphicals.
+
+* ADDED: PceEmacs colour support for the http/html_write library.
 
 * ADDED: pce_xref/0: graphical frontend to the cross-referencer.  Many
   enhancements to the cross-referencer itself and its interaction with the

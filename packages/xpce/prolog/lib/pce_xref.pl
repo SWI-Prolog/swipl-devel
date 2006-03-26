@@ -1811,6 +1811,14 @@ not_called(File, NotCalled) :-		% non-module version
 	\+ (   xref_called(ImportFile, NotCalled),
 	       \+ xref_module(ImportFile, _)).
 	   
+%	xref_called(?Source, ?Callable) 
+%	
+%	True if Callable is called in   Source, after removing recursive
+%	calls.
+
+xref_called(Source, Callable) :-
+	xref_called(Source, Callable, By),
+	By \= Callable.			% recursive calls
 
 %	defined(?File, ?Callable)
 %	

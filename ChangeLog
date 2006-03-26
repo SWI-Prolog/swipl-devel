@@ -7,7 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-  * ADDED: library(prolog_xref): Cross-referencer core.
+==============================
+VERSION 5.6.9 (March 26, 2006)
+==============================
+
+  * ADDED: library(prolog_xref): Cross-referencer core.  Documented cross
+    referencer interfaces
 
   * FIXED: exception hook clears debugmode.
 

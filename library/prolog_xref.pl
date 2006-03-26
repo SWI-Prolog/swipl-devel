@@ -31,7 +31,6 @@
 
 :- module(prolog_xref,
 	  [ xref_source/1,		% +Source
-	    xref_called/2,		% ?Source, ?Callable
 	    xref_called/3,		% ?Source, ?Callable, ?By
 	    xref_defined/3,		% ?Source. ?Callable, -How
 	    xref_exported/2,		% ?Source, ?Callable
@@ -50,9 +49,11 @@
 	    xref_used_class/2,		% ?Source, ?ClassName
 	    xref_defined_class/3	% ?Source, ?ClassName, -How
 	  ]).
-:- use_module(library(operators)).
-:- use_module(library(lists)).
-:- use_module(library(debug)).
+:- use_module(library(debug), [debug/3, debugging/1]).
+:- use_module(library(lists), [append/3, member/2]).
+:- use_module(library(operators),
+	      [pop_operators/0, push_op/3, push_operators/1]).
+:- use_module(library(shlib), [current_foreign_library/2]).
 
 :- dynamic
 	called/3,			% Head, Src, From
@@ -225,15 +226,6 @@ xref_done(Source, Time) :-
 xref_called(Source, Called, By) :-
 	canonical_source(Source, Src),
 	called(Called, Src, By).
-
-%	xref_called(+Source, ?Called)
-%
-%	Called is called by 
-
-xref_called(Source, Called) :-
-	canonical_source(Source, Src),
-	called(Called, Src, By),
-	By \= Called.			% delete recursive calls
 
 
 %	xref_defined(+Source, +Goal, ?How)
@@ -584,6 +576,10 @@ process_body(Var, _, _) :-
 	var(Var), !.
 process_body(Goal, Origin, Src) :-
 	prolog:called_by(Goal, Called), !,
+	(   is_list(Called)
+	->  true
+	;   throw(error(type_error(list, Called), _))
+	),
 	assert_called(Src, Origin, Goal),
 	process_called_list(Called, Origin, Src).
 process_body(Goal, Origin, Src) :-

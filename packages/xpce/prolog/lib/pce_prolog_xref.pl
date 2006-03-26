@@ -31,7 +31,6 @@
 
 :- module(pce_prolog_xref,
 	  [ xref_source/1,		% +Source
-	    xref_called/2,		% ?Source, ?Callable
 	    xref_called/3,		% ?Source, ?Callable, ?By
 	    xref_defined/3,		% ?Source. ?Callable, -How
 	    xref_exported/2,		% ?Source, ?Callable

@@ -38,7 +38,7 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{6}
-\newcommand{\vpatch}{7}
+\newcommand{\vpatch}{8}
 \newcommand{\vmonth}{March}
 \newcommand{\vyear}{2006}
 

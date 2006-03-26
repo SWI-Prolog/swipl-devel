@@ -855,7 +855,7 @@ classify_head(TB, Goal, hook) :-
 	xref_module(TB, M),
 	xref_hook(M:Goal), !.
 classify_head(TB, Goal, unreferenced) :-
-	\+ xref_called(TB, Goal), !.
+	\+ (xref_called(TB, Goal, By), By \= Goal), !.
 classify_head(TB, Goal, How) :-
 	xref_defined(TB, Goal, How), !.
 classify_head(_TB, Goal, built_in) :-
