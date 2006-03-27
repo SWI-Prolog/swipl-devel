@@ -1401,6 +1401,9 @@ initialise(V) :->
 	send_super(V, initialise),
 	send(V, font, fixed).
 
+update(_) :->
+	true.				% or ->clear?  ->destroy?
+
 file_header(View, File:name) :->
 	"Create import/export fileheader for File"::
 	(   xref_module(File, _)
