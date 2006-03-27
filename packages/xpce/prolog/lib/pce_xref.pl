@@ -1504,7 +1504,8 @@ search_path(Alias, Dir, AliasLen, DirLen) :-
 	absolute_file_name(Spec, Dir0,
 			   [ file_type(directory),
 			     access(read),
-			     solutions(all)
+			     solutions(all),
+			     file_errors(fail)
 			   ]),
 	ensure_slash(Dir0, Dir),
 	atom_length(Dir, DirLen).
