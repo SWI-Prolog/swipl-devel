@@ -907,7 +907,8 @@ assert_called(Src, From, Goal) :-
 	var(From), !,
 	assert_called(Src, '<unknown>', Goal).
 assert_called(Src, Origin, M:G) :- !,
-	(   atom(M)
+	(   atom(M),
+	    callable(G)
 	->  (   xmodule(M, Src)
 	    ->  assert_called(Src, Origin, G)
 	    ;   called(M:G, Src, Origin)
