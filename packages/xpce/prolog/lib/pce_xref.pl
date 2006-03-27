@@ -195,7 +195,7 @@ initialise(W) :->
 update(P) :->
 	"Initial screen"::
 	send(P, display,
-	     new(T, text('Drag files to dependency view\n\
+	     new(T, text('Drag files or directories to dependency view\n\
 			  or use background menu to show the whole project')),
 	     point(10,10)),
 	send(T, name, intro_text),
@@ -280,27 +280,40 @@ layout(G, MoveOnly:[chain]) :->
 
 :- pce_group(dragdrop).
 
-drop(G, Obj:xref_file_text, Pos:point) :->
+drop(G, Obj:object, Pos:point) :->
 	"Drop a file on the graph"::
-	get(Obj, path, File),
-	(   get(G, node, File, Node)
-	->  send(Node, flash)
-	;   get(G, node, File, always, Pos, Node),
-	    send(G, update_links)
+	(   send(Obj, instance_of, xref_file_text)
+	->  get(Obj, path, File),
+	    (   get(G, node, File, Node)
+	    ->  send(Node, flash)
+	    ;   get(G, node, File, always, Pos, Node),
+		send(G, update_links)
+	    )
+	;   send(Obj, instance_of, xref_directory_text)
+	->  get(Obj, files, Files),
+	    layout_new(G,
+		       (   send(Files, for_all, message(G, append, @arg1)),
+			   send(G, update_links)
+		       ))
 	).
 
-preview_drop(G, Obj:xref_file_text*, Pos:point) :->
+preview_drop(G, Obj:object*, Pos:point) :->
 	"Show preview of drop"::
 	(   Obj == @nil
 	->  send(G, report, status, '')
-	;   get(Obj, device, G)
-	->  send(Obj, move, Pos)
-	;   get(Obj, path, File),
-	    get(Obj, string, Label),
-	    (   get(G, node, File, _Node)
-	    ->  send(G, report, status, '%s: already in graph', Label)
-	    ;   send(G, report, status, 'Add %s to graph', Label)
+	;   send(Obj, instance_of, xref_file_text)
+	->  (   get(Obj, device, G)
+	    ->  send(Obj, move, Pos)
+	    ;   get(Obj, path, File),
+		get(Obj, string, Label),
+		(   get(G, node, File, _Node)
+		->  send(G, report, status, '%s: already in graph', Label)
+		;   send(G, report, status, 'Add %s to graph', Label)
+		)
 	    )
+	;   send(Obj, instance_of, xref_directory_text)
+	->  get(Obj, path, Path),
+	    send(G, report, status, 'Add files from directory %s', Path)
 	).
 
 :- pce_end_class(xref_depgraph).
@@ -379,21 +392,26 @@ popup(N, Popup:popup) :<-
 show_import_exports(N, Which:{import,export}) :->
 	"Show who I'm exporting to"::
 	get(N, device, G),
+	layout_new(G, 
+		   (   (   Which == export
+		       ->  send(N, create_export_links, @on)
+		       ;   send(N, create_import_links, @on)
+		       ),
+		       send(G, update_links)
+		   )).
+
+layout_new(G, Goal) :-
 	get(G?graphicals, find_all,
 	    message(@arg1, instance_of, xref_file_graph_node), Nodes0),
-	(   Which == export
-	->  send(N, create_export_links, @on)
-	;   send(N, create_import_links, @on)
-	),
-	send(G, update_links),
+	Goal,
 	get(G?graphicals, find_all,
 	    message(@arg1, instance_of, xref_file_graph_node), Nodes),
 	send(Nodes, subtract, Nodes0),
 	(   send(Nodes, empty)
-	->  send(N, report, status, 'No nodes added')
+	->  send(G, report, status, 'No nodes added')
 	;   send(G, layout, Nodes),
 	    get(Nodes, size, Size),
-	    send(N, report, status, '%d nodes added', Size)
+	    send(G, report, status, '%d nodes added', Size)
 	).
 
 :- pce_end_class(xref_file_graph_node).
@@ -417,14 +435,15 @@ called_by_popup(Conn, P:popup) :<-
 	"Create popup to show relating predicates"::
 	new(P, popup(called_by, message(Conn, edit_callable, @arg1))),
 	get(Conn, callables, Callables),
+	get(Conn?from, path, ExportFile),
 	get(Conn?to, path, ImportFile),
 	sort_callables(Callables, Sorted),
 	forall(member(C, Sorted),
-	       append_io_callable(P, ImportFile, C)).
+	       append_io_callable(P, ImportFile, ExportFile, C)).
 
 %	append_io_callable(+Popup, -ImportFile, +Callable)
 
-append_io_callable(P, ImportFile, Callable) :-
+append_io_callable(P, ImportFile, ExportFile, Callable) :-
 	callable_to_label(Callable, Label),
 	send(P, append, new(MI, menu_item(@nil, @default, Label))),
 	send(MI, popup, new(P2, popup)),
@@ -432,7 +451,8 @@ append_io_callable(P, ImportFile, Callable) :-
 	     menu_item(prolog('<definition>'(Callable)),
 		       @default, definition?label_name)),
 	send(P2, append, gap),
-	findall(By, used_in(ImportFile, Callable, By), ByList0),
+	qualify_from_file(Callable, ExportFile, QCall),
+	findall(By, used_in(ImportFile, QCall, By), ByList0),
 	sort_callables(ByList0, ByList),
 	forall(member(C, ByList),
 	       ( callable_to_label(C, CLabel),
@@ -488,11 +508,16 @@ export_link(ExportFile, ImportingFile, Callables) :-
 
 export_link_1(ExportFile, ImportFile, Callable) :-       % module export
 	nonvar(ExportFile),
-	xref_module(ExportFile, _), !,
-	xref_exported(ExportFile, Callable),
-	xref_defined(ImportFile, Callable, imported(ExportFile)),
-	atom(ImportFile),
-	xref_called(ImportFile, Callable).
+	xref_module(ExportFile, Module), !,
+	(   xref_exported(ExportFile, Callable),
+	    xref_defined(ImportFile, Callable, imported(ExportFile)),
+	    xref_called(ImportFile, Callable)
+	;   defined(ExportFile, Callable),
+	    single_qualify(Module:Callable, QCall),
+	    xref_called(ImportFile, QCall)
+	),
+	ImportFile \== ExportFile,
+	atom(ImportFile).
 export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module export
 	nonvar(ExportFile), !,
 	defined(ExportFile, Callable),
@@ -501,19 +526,28 @@ export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module export
 	ExportFile \== ImportFile.
 export_link_1(ExportFile, ImportFile, Callable) :-	% module import
 	nonvar(ImportFile),
-	xref_module(ImportFile, _), !,
+	xref_module(ImportFile, Module), !,
 	xref_called(ImportFile, Callable),
-	xref_defined(ImportFile, Callable, imported(ExportFile)),
+	(   xref_defined(ImportFile, Callable, imported(ExportFile))
+	;   single_qualify(Module:Callable, QCall),
+	    xref_called(ExportFile, QCall)
+	),
+	ImportFile \== ExportFile,
 	atom(ExportFile).
 export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module import
 	xref_called(ImportFile, Callable),
 	\+ (  xref_defined(ImportFile, Callable, How),
 	      How \= import(_)
 	   ),
+					% see also undefined/2
 	(   xref_defined(ImportFile, Callable, import(ExportFile))
 	;   defined(ExportFile, Callable),
-	    atom(ExportFile),
 	    \+ xref_module(ExportFile, _)
+	;   Callable = _:_,
+	    defined(ExportFile, Callable)
+	;   Callable = M:G,
+	    defined(ExportFile, G),
+	    xref_module(ExportFile, M)
 	).
 
 
@@ -550,8 +584,12 @@ expand_node(_, _:any) :->
 
 update(FL) :->
 	send(FL, clear),
+	send(FL, report, progress, 'Building source tree ...'),
 	send(FL, append_all_sourcefiles),
-	send(FL, set_flags).
+	send(@display, synchronise),
+	send(FL, report, progress, 'Flagging files ...'),
+	send(FL, set_flags),
+	send(FL, report, done).
 
 append_all_sourcefiles(FL) :->
 	"Append all files loaded into Prolog"::
@@ -563,8 +601,9 @@ clear(Tree) :->
 	"Remove all nodes, recreate the toplevel"::
 	send_super(Tree, clear),
 	send(Tree, root, new(Root, toc_folder(project, project))),
-	forall(top_node(Name),
-	       send(Tree, son, project, toc_folder(Name, Name))),
+	forall(top_node(Name, Class),
+	       (   New =.. [Class, Name, Name],
+		   send(Tree, son, project, New))),
 	send(Root, for_all, message(@arg1, collapsed, @off)).
 
 append(Tree, File:name) :->
@@ -582,7 +621,7 @@ append_node(Tree, Node:toc_node) :->
 	send(Parent, son, Node).
 	
 sort(Tree) :->
-	forall(top_node(Name),
+	forall(top_node(Name, _),
 	       (   get(Tree, node, Name, Node),
 		   send(Node, sort_sons, ?(@arg1, compare, @arg2)),
 		   send(Node?sons, for_all, message(@arg1, sort))
@@ -597,13 +636,17 @@ select_node(Tree, File:name) :->
 
 set_flags(Tree) :->
 	"Set alert-flags on all nodes"::
-	forall(top_node(Name),
+	forall(top_node(Name, _),
 	       (   get(Tree, node, Name, Node),
-		   send(Node?sons, for_all, message(@arg1, set_flags)))).
+		   (   send(Node, instance_of, prolog_directory_node)
+		   ->  send(Node, set_flags)
+		   ;   send(Node?sons, for_all, message(@arg1, set_flags))
+		   )
+	       )).
 
-top_node('.').
-top_node('alias').
-top_node('/').
+top_node('.',		prolog_directory_node).
+top_node('alias',	toc_folder).
+top_node('/',		prolog_directory_node).
 
 :- pce_end_class(xref_file_tree).
 
@@ -613,9 +656,11 @@ top_node('/').
 
 variable(flags, name*, get, "Warning status").
 
-initialise(DN, Dir:name) :->
+initialise(DN, Dir:name, Label:[name]) :->
 	"Create a directory node"::
-	(   alias_path(Name, Dir)
+	(   Label \== @default
+	->  Name = Label
+	;   alias_path(Name, Dir)
 	->  true
 	;   file_base_name(Dir, Name)
 	),
@@ -653,7 +698,8 @@ set_flags(DN) :->
 	;   send(DN, collapsed_image, @xref_ok_closedir),
 	    send(DN, expanded_image, @xref_ok_opendir),
 	    send(DN, slot, flags, ok)
-	).
+	),
+	send(@display, synchronise).
 
 :- pce_end_class(prolog_directory_node).
 
@@ -703,7 +749,8 @@ set_flags(FN) :->
 	    send(FN, slot, flags, alert)
 	;   send(FN, image, @xref_ok_file),
 	    send(FN, slot, flags, ok)
-	).
+	),
+	send(@display, synchronise).
 
 :- pce_global(@xref_ok_file,
 	      make_xref_image([ image('16x16/doc.xpm'),
@@ -858,7 +905,12 @@ show_exports(W) :->
 	    sort_callables(Exports, Sorted),
 	    forall(member(Callable, Sorted),
 		   send(W, show_module_export, File, Module, Callable))
-	;   findall(C-Fs, setof(F, export_link_1(File, F, C), Fs), Pairs0),
+	;   true
+	),
+	(   findall(C-Fs,
+		    ( setof(F, export_link_1(File, F, C), Fs),
+		      \+ xref_exported(File, C)),
+		    Pairs0),
 	    Pairs0 \== []
 	->  send(W, show_export_header, defined, used_by),
 	    keysort(Pairs0, Pairs),	% TBD
@@ -894,9 +946,16 @@ show_file_export(W, Callable:prolog, ImportFiles:prolog) :->
 	send(T, append, xref_predicate_text(Callable, @default, File)),
 	send(T, append, new(XL, xref_graphical_list)),
 	sort_files(ImportFiles, Sorted),
+	qualify_from_file(Callable, File, QCall),
 	forall(member(F, Sorted),
-	       send(XL, append, xref_imported_by(F, Callable))),
+	       send(XL, append, xref_imported_by(F, QCall))),
 	send(T, next_row).
+
+qualify_from_file(Callable, _, Callable) :-
+	Callable = _:_, !.
+qualify_from_file(Callable, File, M:Callable) :-
+	xref_module(File, M), !.
+qualify_from_file(Callable, _, Callable).
 
 
 %	exported_to(+ExportFile, +Callable, -ImportFile)
@@ -1022,7 +1081,7 @@ initialise(T, Callable0:prolog,
 	"Create from callable or predicate indicator"::
 	single_qualify(Callable0, Callable),
 	send(T, slot, callable, Callable),
-	callable_to_label(Callable, Label),
+	callable_to_label(Callable, File, Label),
 	send_super(T, initialise, Label),
 	(   File \== @default
 	->  send(T, slot, file, File)
@@ -1041,9 +1100,6 @@ single_qualify(Q, Q).
 
 is_qualified(M:_) :-
 	atom(M).
-
-unqualify(@off, _:PI, PI) :- !.
-unqualify(_, PI, PI).
 
 pi(IT, PI:prolog) :<-
 	"Get predicate as predicate indicator (Name/Arity)"::
@@ -1192,10 +1248,28 @@ initialise(TF, Dir:name, Label:[name]) :->
 	send_super(TF, initialise, Label),
 	send(TF, slot, path, Path).
 
+files(DT, Files:chain) :<-
+	"List of files that belong to this directory"::
+	new(Files, chain),
+	get(DT, path, Path),
+	(   source_file(File),
+	    sub_atom(File, 0, _, _, Path),
+	    send(Files, append, File),
+	    fail ; true
+	).
+
+:- pce_global(@xref_directory_text_recogniser,
+	      make_xref_directory_text_recogniser).
+
+make_xref_directory_text_recogniser(G) :-
+	new(D, drag_and_drop_gesture(left)),
+	send(D, cursor, @default),
+	new(G, handler_group(D, @arm_recogniser)).
+
 event(T, Ev:event) :->
 	(   send_super(T, event, Ev)
 	->  true
-	;   send(@arm_recogniser, event, Ev)
+	;   send(@xref_directory_text_recogniser, event, Ev)
 	).
 
 arm(TF, Val:bool) :->
@@ -1213,7 +1287,7 @@ arm(TF, Val:bool) :->
 :- pce_begin_class(xref_imported_by, figure,
 		   "Indicate import of callable into file").
 
-variable(pi, prolog, get, "PI of imported predicate").
+variable(callable, prolog, get, "Callable term of imported predicate").
 
 :- pce_global(@xref_horizontal_format,
 	      make_xref_horizontal_format).
@@ -1228,18 +1302,13 @@ initialise(IT, File:name, Imported:prolog) :->
 	send(IT, format, @xref_horizontal_format),
 	send(IT, display, new(F, xref_file_text(File))),
 	send(F, name, file_text),
-	to_predicate_indicator(Imported, PI),
-	send(IT, slot, pi, PI),
+	send(IT, slot, callable, Imported),
 	send(IT, show_called_by).
 	
 path(IT, Path:name) :<-
 	"Represented file"::
 	get(IT, member, file_text, Text),
 	get(Text, path, Path).
-
-callable(IT, Callable:prolog) :<-
-	get(IT, pi, PI),
-	to_callable(PI, Callable).
 
 show_called_by(IT) :->
 	"Add number indicating calls"::
@@ -1260,8 +1329,17 @@ called_by(IT, ByList:prolog) :<-
 	get(IT, callable, Callable),
 	findall(By, used_in(Source, Callable, By), ByList).
 
-%	used_in(+Source, +Callable, -CalledBy)
+%	used_in(+Source, +QCallable, -CalledBy)
+%	
+%	Determine which the callers for   QCallable in Source. QCallable
+%	is qualified with the module of the exporting file (if any).
 
+used_in(Source, M:Callable, By) :-		% we are the same module
+	xref_module(Source, M), !,
+	xref_called(Source, Callable, By).
+used_in(Source, _:Callable, By) :-		% we imported
+	xref_defined(Source, Callable, imported(_)), !,
+	xref_called(Source, Callable, By).
 used_in(Source, Callable, By) :-
 	xref_called(Source, Callable, By).
 used_in(Source, Callable, '<export>') :-
@@ -1724,21 +1802,32 @@ ord_remove_same(H, [H|T0], T) :- !,
 ord_remove_same(_, L, L).
 
 
+%	callable_to_label(+Callable, +File, -Label)
 %	callable_to_label(+Callable, -Label)
 
-callable_to_label(pce_principal:send_implementation(Id,_,_), Id) :-
-	atom(Id), !.
-callable_to_label(pce_principal:get_implementation(Id,_,_,_), Id) :-
-	atom(Id), !.
-callable_to_label('<export>', '<export>') :- !.
-callable_to_label('<directive>'(Line), Label) :- !,
-	atom_concat('<directive>@', Line, Label).
-callable_to_label(_:'<directive>'(Line), Label) :- !,
-	atom_concat('<directive>@', Line, Label).
 callable_to_label(Callable, Label) :-
-	to_predicate_indicator(Callable, PI),
-	unqualify(@off, PI, T0),
-	term_to_atom(T0, Label).
+	callable_to_label(Callable, @nil, Label).
+
+callable_to_label(pce_principal:send_implementation(Id,_,_), _, Id) :-
+	atom(Id), !.
+callable_to_label(pce_principal:get_implementation(Id,_,_,_), _, Id) :-
+	atom(Id), !.
+callable_to_label('<export>', _, '<export>') :- !.
+callable_to_label('<directive>'(Line), _, Label) :- !,
+	atom_concat('<directive>@', Line, Label).
+callable_to_label(_:'<directive>'(Line), _, Label) :- !,
+	atom_concat('<directive>@', Line, Label).
+callable_to_label(Callable, File, Label) :-
+	to_predicate_indicator(Callable, PI0),
+	(   PI0 = M:PI1
+	->  (	atom(File),
+		xref_module(File, M)
+	    ->  PI = PI1
+	    ;   PI = PI0
+	    )
+	;   PI = PI0
+	),
+	term_to_atom(PI, Label).
 
 %	edit_callable(+Callable, +File)
 
@@ -1801,19 +1890,23 @@ file_warning(File, not_called) :-
 %	be found.
 
 not_called(File, NotCalled) :-		% module version
-	xref_module(File, _), !,
+	xref_module(File, Module), !,
 	defined(File, NotCalled),
-	NotCalled \= _:_,		% dubious
 	\+ (   xref_called(File, NotCalled)
 	   ;   xref_exported(File, NotCalled)
 	   ;   xref_hook(NotCalled)
-	   ;   xref_module(File, Module),
-	       xref_hook(Module:NotCalled)
+	   ;   xref_hook(Module:NotCalled)
+	   ;   xref_called(_, Module:NotCalled)
+	   ;   NotCalled = _:_,
+	       xref_called(_, NotCalled)
 	   ).
 not_called(File, NotCalled) :-		% non-module version
 	defined(File, NotCalled),
 	\+ (   xref_called(ImportFile, NotCalled),
-	       \+ xref_module(ImportFile, _)).
+	       \+ xref_module(ImportFile, _)
+	   ;   NotCalled = _:_,
+	       xref_called(_, NotCalled)
+	   ).
 	   
 %	xref_called(?Source, ?Callable) 
 %	
@@ -1830,6 +1923,7 @@ xref_called(Source, Callable) :-
 
 defined(File, Callable) :-
 	xref_defined(File, Callable, How),
+	atom(File),
 	How \= imported(_),
 	How \= (multifile).
 
@@ -1842,12 +1936,21 @@ defined(File, Callable) :-
 undefined(File, Undef) :-
 	xref_module(File, _), !,
 	xref_called(File, Undef),
-	\+ available(File, Undef, _).
+	(   \+ available(File, Undef, _)
+	->  true
+	;   Undef = _:_
+	->  \+ defined(_, Undef)
+	).
 undefined(File, Undef) :-
 	xref_called(File, Undef),
-	\+ (  available(File, Undef, _)
-	   ;  defined(ExportFile, Undef),
+	\+ (  available(File, Undef, _)		% local defined
+	   ;  defined(ExportFile, Undef),	% defined in non-module file
 	      \+ xref_module(ExportFile, _)
+	   ;  Undef = _:_,			% Defined as M:P
+	      defined(ExportFile, Undef)
+	   ;  Undef = M:G,			% Called M:P in module M
+	      defined(ExportFile, G),
+	      xref_module(ExportFile, M)
 	   ).
 
 

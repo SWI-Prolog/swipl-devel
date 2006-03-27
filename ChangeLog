@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED/ENHANCED: Cross-referencer: fixed two runtime errors.  Added support
+    for M:P calls (bug#154).  Allow dropping directories from file-tree to
+    dependency view.  Give the user something to see during the analysis.
+
+
 ==============================
 VERSION 5.6.9 (March 26, 2006)
 ==============================

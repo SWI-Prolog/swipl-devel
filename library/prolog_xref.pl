@@ -907,10 +907,16 @@ assert_called(Src, From, Goal) :-
 	var(From), !,
 	assert_called(Src, '<unknown>', Goal).
 assert_called(Src, Origin, M:G) :- !,
-	(   atom(M),
-	    xmodule(M, Src)
-	->  assert_called(Src, Origin, G)
-	;   true			% call to other module
+	(   atom(M)
+	->  (   xmodule(M, Src)
+	    ->  assert_called(Src, Origin, G)
+	    ;   called(M:G, Src, Origin)
+	    ->  true
+	    ;   generalise(Origin, OTerm),
+		generalise(G, GTerm),
+		assert(called(M:GTerm, Src, OTerm))
+	    )
+	;   true                        % call to variable module
 	).
 assert_called(_, _, Goal) :-
 	system_predicate(Goal), !.
