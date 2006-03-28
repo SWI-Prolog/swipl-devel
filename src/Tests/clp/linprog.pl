@@ -4,7 +4,7 @@
 
 :- dynamic user:file_search_path/2.
 :- prolog_load_context(directory, Dir),
-   atom_concat(Dir, '/../../../packages/clpr', Lib0),
+   atom_concat(Dir, '/../../../packages/clpqr', Lib0),
    absolute_file_name(Lib0, Lib),
    asserta(user:file_search_path(library, Lib)).
 
