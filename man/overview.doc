@@ -1655,7 +1655,7 @@ the C-library locale-based classification routines.
     \item [Quoted atoms and strings]
 Any character of any script can be used in quoted atoms and strings. The
 escape sequencs \verb$\uXXXX$ and \verb$\UXXXXXXXX$ (see
-\secref{charescapes}) were introduced to specify Unicode sourcecode in
+\secref{charescapes}) were introduced to specify Unicode code points in
 ASCII files.
 
     \item [Atoms and Variables]
@@ -1697,8 +1697,9 @@ variables of the same name.  The term \verb$t(_X, _X)$ is equivalent
 to \verb$t(X, X)$, which is \emph{different} from \verb$t(_, _)$.
 
 As Unicode requires variables to start with an underscore in many
-languages this schema needs to be extended.  First we define the
-two classes of named variables.
+languages this schema needs to be extended.%
+	\footnote{After a proposal by Richard O'Keefe.}
+First we define the two classes of named variables.
 
 \begin{itemlist}
     \item [Named singleton variables]
@@ -1723,10 +1724,10 @@ test(_). 	& \\
 test(_a).	& Singleton variables: [_a] \\
 test(A).	& Singleton variables: [A] \\
 test(_A).	& \\
-test(__a).	& Singleton-marked variables appearing more than once: [__a] \\
+test(__a).	& \\
 test(_, _).	& \\
 test(_a, _a).	& \\
-test(__a, __a). & \\
+test(__a, __a). & Singleton-marked variables appearing more than once: [__a] \\
 test(_A, _A).	& Singleton-marked variables appearing more than once: [_A] \\
 test(A, A).	& \\
 \hline
