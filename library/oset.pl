@@ -119,7 +119,7 @@ oset_dunion([], []).
 oset_dunion([H|T], DUnion) :-
     oset_dunion(T, H, DUnion).
 
-oset_dunion([], _DUnion, _DUnion).
+oset_dunion([], DUnion, DUnion).
 oset_dunion([H|T], DUnion0, DUnion) :-
     oset_union(H, DUnion0, DUnion1),
     oset_dunion(T, DUnion1, DUnion).

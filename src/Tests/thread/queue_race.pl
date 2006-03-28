@@ -41,8 +41,8 @@ workers_ready(N, N, _) :- !.
 workers_ready(N,
 	      NumberOfWorkers,
 	      WorkerMessageQueue) :-
-	thread_get_message(WorkerMessageQueue, worker_ready(_Id)),
-	verbose(ready(_Id)),
+	thread_get_message(WorkerMessageQueue, worker_ready(Id)),
+	verbose(ready(Id)),
 	M is N + 1,
 	workers_ready(M, NumberOfWorkers, WorkerMessageQueue).
 
