@@ -128,7 +128,7 @@ and Prolog performance considerations this might be more helpful than a
 better compiler without these facilities.
     \item [Flexibility]
 SWI-Prolog can easily be integrated with C, supporting non-determinism
-in Prolog calling C as well as C calling Prolog (see \secref{foreign}.
+in Prolog calling C as well as C calling Prolog (see \secref{foreign}).
 It can also be \jargon{embedded} embedded in external programs (see
 \secref{plld}). System predicates can be redefined locally to provide
 compatibility with other Prolog systems.

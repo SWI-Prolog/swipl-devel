@@ -266,6 +266,7 @@ parms.h:	Makefile
 
 $(OBJ):		parms.h $(srcdir)/pl-funct.ih
 pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c
+pl-read.o:	pl-umap.c
 
 $(srcdir)/pl-funct.ih:	$(srcdir)/ATOMS
 		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS

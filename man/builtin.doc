@@ -2969,12 +2969,14 @@ attempts to skip the erroneous term and fails.  On reaching end-of-file
 \arg{Term} is unified with the atom \const{end_of_file}.
     \predicate{read}{2}{+Stream, -Term}
 Read \arg{Term} from \arg{Stream}.
+
     \predicate{read_clause}{1}{-Term}
 Equivalent to read/1, but warns the user for variables only occurring
-once in a term (singleton variables) which do not start with an
-underscore if \exam{style_check(singleton)} is active (default).
-Used to read Prolog source files (see consult/1).  New code should
-use read_term/2 with the option \exam{singletons(warning)}.
+once in a term (singleton variables, see \secref{singleton}) which do
+not start with an underscore if \exam{style_check(singleton)} is active
+(default). Used to read Prolog source files (see consult/1). New code
+should use read_term/2 with the option \exam{singletons(warning)}.
+
     \predicate{read_clause}{2}{+Stream, -Term}
 Read a clause from \arg{Stream}.  See read_clause/1.
     \predicate{read_term}{2}{-Term, +Options}

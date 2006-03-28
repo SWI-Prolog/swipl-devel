@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "pl-umap.c"			/* Unicode map */
 
 typedef const unsigned char * cucharp;
 typedef       unsigned char * ucharp;
@@ -35,6 +36,24 @@ typedef       unsigned char * ucharp;
 
 #undef LD
 #define LD LOCAL_LD
+
+		 /*******************************
+		 *     UNICODE CLASSIFIERS	*
+		 *******************************/
+
+#define CharTypeW(c, t, w) \
+	((unsigned)(c) <= 0xff ? (_PL_char_types[(unsigned char)(c)] t) \
+			       : (uflagsW(c) & w))
+
+#define PlBlankW(c)	CharTypeW(c, <= SP, U_SEPARATOR)
+#define PlUpperW(c)	CharTypeW(c, == UC, U_UPPERCASE)
+#define PlIdStartW(c)	(c <= 0xff ? (isLower(c)||isUpper(c)||c=='_') \
+				   : uflagsW(c) & U_ID_START)
+#define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
+#define PlSymbolW(c)	CharTypeW(c, == SY, 0)
+#define PlPunctW(c)	CharTypeW(c, == PU, 0)
+#define PlSoloW(c)	CharTypeW(c, == SO, 0)
+
 
 		 /*******************************
 		 *	   CHAR-CONVERSION	*
@@ -385,7 +404,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 
 
 static void
-singletonWarning(const char **vars, int nvars)
+singletonWarning(const char *which, const char **vars, int nvars)
 { GET_LD
   fid_t cid = PL_open_foreign_frame();
   term_t l = PL_new_term_ref();
@@ -400,7 +419,7 @@ singletonWarning(const char **vars, int nvars)
   PL_unify_nil(a);
 
   printMessage(ATOM_warning,
-	       PL_FUNCTOR, FUNCTOR_singletons1,
+	       PL_FUNCTOR_CHARS, which, 1,
 	         PL_TERM,    l);
 
   PL_discard_foreign_frame(cid);
@@ -656,7 +675,11 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  rawSyntaxError("end_of_file");
 		}
 		if ( Sfpasteof(rb.stream) )
-		{ warning("Attempt to read past end-of-file");
+		{ term_t stream = PL_new_term_ref();
+
+		  PL_unify_stream_or_alias(stream, rb.stream);
+		  PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			   ATOM_input, ATOM_past_end_of_stream, stream);
 		  return NULL;
 		}
 		set_start_line;
@@ -777,7 +800,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			else
 			  ensure_space(c);
 			c = getchr();
-		      } while( c != EOF && isBlankW(c) );
+		      } while( c != EOF && PlBlankW(c) );
 		      goto handle_c;
 		    case SY:
 		      set_start_line;
@@ -787,6 +810,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			if ( c == '`' && _PL_rd->backquoted_string )
 			  break;
 		      } while( c != EOF && c <= 0xff && isSymbol(c) );
+					/* TBD: wide symbols? */
 		      dotseen = FALSE;
 		      goto handle_c;
 		    case LC:
@@ -795,7 +819,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      do
 		      { addToBuffer(c, _PL_rd);
 			c = getchr();
-		      } while( c != EOF && isAlphaW(c) );
+		      } while( c != EOF && PlIdContW(c) );
 		      dotseen = FALSE;
 		      goto handle_c;
 		    default:
@@ -804,15 +828,15 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      set_start_line;
 		  }
 		} else			/* > 255 */
-		{ if ( isAlphaW(c) )
+		{ if ( PlIdStartW(c) )
 		  { set_start_line;
 		    do
 		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
-		    } while( c != EOF && isAlphaW(c) );
+		    } while( c != EOF && PlIdContW(c) );
 		    dotseen = FALSE;
 		    goto handle_c;
-		  } else if ( isBlankW(c) )
+		  } else if ( PlBlankW(c) )
 		  { goto blank;
 		  } else
 		  { addToBuffer(c, _PL_rd);
@@ -930,14 +954,26 @@ lookupVariable(const char *name, unsigned int len, ReadData _PL_rd)
 }
 
 
-static bool
+static int
+warn_singleton(const char *name)	/* Name in UTF-8 */
+{ if ( name[0] != '_' )			/* not _*: always warn */
+    return TRUE;
+  if ( name[1] == '_' )			/* __*: never warn */
+    return FALSE;
+  if ( name[1] && !PlUpperW(name[1]) )	/* _a: warn */
+    return TRUE;
+  return FALSE;
+}
+
+
+static bool				/* TBD: new schema */
 check_singletons(ReadData _PL_rd ARG_LD)
 { if ( _PL_rd->singles != TRUE )	/* returns <name> = var bindings */
   { term_t list = PL_copy_term_ref(_PL_rd->singles);
     term_t head = PL_new_term_ref();
 
     for_vars(var,
-	     if ( var->times == 1 && var->name[0] != '_' )
+	     if ( var->times == 1 && warn_singleton(var->name) )
 	     {	if ( !PL_unify_list(list, head, list) ||
 		     !PL_unify_term(head,
 				    PL_FUNCTOR,    FUNCTOR_equals2,
@@ -951,14 +987,25 @@ check_singletons(ReadData _PL_rd ARG_LD)
   { const char *singletons[MAX_SINGLETONS];
     int i = 0;
 
+					/* singletons */
     for_vars(var,
-	     if ( var->times == 1 && var->name[0] != '_' )
+	     if ( var->times == 1 && warn_singleton(var->name) )
 	     { if ( i < MAX_SINGLETONS )
 		 singletons[i++] = var->name;
 	     });
 
     if ( i > 0 )
-      singletonWarning(singletons, i);
+      singletonWarning("singletons", singletons, i);
+
+    i = 0;				/* multiple _X* */
+    for_vars(var,
+	     if ( var->times > 1 && !warn_singleton(var->name) )
+	     { if ( i < MAX_SINGLETONS )
+		 singletons[i++] = var->name;
+	     });
+
+    if ( i > 0 )
+      singletonWarning("multitons", singletons, i);
 
     succeed;
   }
@@ -1021,7 +1068,7 @@ skipSpaces(cucharp in)
   for( ; *in; in=s)
   { s = utf8_get_uchar(in, &chr);
 
-    if ( !isBlankW(chr) )
+    if ( !PlBlankW(chr) )
       return (ucharp)in;
   }  
 
@@ -1030,14 +1077,14 @@ skipSpaces(cucharp in)
 
 
 static inline unsigned char *
-skipAlpha(unsigned char *in)
+SkipIdCont(unsigned char *in)
 { int chr;
   unsigned char *s;
 
   for( ; *in; in=s)
   { s = (unsigned char*)utf8_get_char((char*)in, &chr);
 
-    if ( !isAlphaW(chr) )
+    if ( !PlIdContW(chr) )
       return in;
   }  
 
@@ -1211,7 +1258,7 @@ again:
       if ( quote )
       { for( ; *in; in=e )
 	{ e = utf8_get_uchar(in, &c);
-	  if ( c == '\n' || !isBlankW(c) )
+	  if ( c == '\n' || !PlBlankW(c) )
 	    break;
 	}
 	goto skip_cont;
@@ -1561,11 +1608,12 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 
   rdhere = (unsigned char*)utf8_get_char((char *)rdhere, &c);
   if ( c > 0xff )
-  { if ( isLowerW(c) )
+  { if ( PlIdStartW(c) )
+    { if ( PlUpperW(c) )
+	goto upper;
       goto lower;
-    if ( isUpperW(c) )
-      goto upper;
-    goto case_solo;			/* dubious */
+    }
+    goto case_solo;			/* TBD: Need foreign symbols */
   }
 
   switch(_PL_char_types[c])
@@ -1573,7 +1621,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     lower:
 		{ PL_chars_t txt;
 
-		  rdhere = skipAlpha(rdhere);
+		  rdhere = SkipIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "atom");
 		  
@@ -1593,7 +1641,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		}
     case UC:
     upper:
-		{ rdhere = skipAlpha(rdhere);
+		{ rdhere = SkipIdCont(rdhere);
 		  if ( _PL_rd->styleCheck & CHARSET_CHECK )
 		    checkASCII(start, rdhere-start, "variable");
 		  if ( *rdhere == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
@@ -1621,7 +1669,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  if ( str_number(&rdhere[-1],
 				  &rdhere, &value, DO_CHARESCAPE) &&
 		       utf8_get_uchar(rdhere, &echr) &&
-		       !isAlphaW(echr) )
+		       !PlIdContW(echr) )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
 		    break;
@@ -2567,7 +2615,7 @@ backSkipBlanks(const unsigned char *start, const unsigned char *end)
       ;
     e = (unsigned char*)utf8_get_char((char*)s, &chr);
     assert(e == end);
-    if ( !isBlankW(chr) )
+    if ( !PlBlankW(chr) )
       return (unsigned char*)end;
   }
 

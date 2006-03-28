@@ -137,7 +137,7 @@ This library is only available on Windows systems.
 
 \begin{summarylist}{ll}
 \predicatesummary{called_by}{2}{\hook{prolog} Extend cross-referencer}
-\predicatesummary{xref_builtin}{1}{Examine defined built-ins}
+\predicatesummary{xref_built_in}{1}{Examine defined built-ins}
 \predicatesummary{xref_called}{3}{Examine called predicates}
 \predicatesummary{xref_clean}{1}{Remove analysis of source}
 \predicatesummary{xref_current_source}{1}{Examine cross-referenced sources}

@@ -232,8 +232,8 @@ B = a
 \g{Variable} appearing only one time in a \g{clause}. SWI-Prolog
 normally warns for this to avoid you making spelling mistakes.  If a
 variable appears on purpose only once in a clause, write it as \verb$_$
-(see \g{anonymous}) or make sure the first character is a \verb$_$.
-See also the style_check/1 option \const{singletons}.
+(see \g{anonymous}).  Rules for naming a variable and avoiding a warning
+are given in \secref{singleton}.
 
     \glossitem{solution}
 \g{Bindings} resulting from a successfully \g{prove}n \g{goal}.

@@ -1,4 +1,5 @@
 \libdoc{prologxref}{Cross-reference data collection library}
+\label{sec:lib:prologxref}
 
 This library collects information on defined and used objects in Prolog
 sourcefiles. Typically these are predicates, but we expect the library
@@ -43,7 +44,7 @@ information can be gathered.
     \predicate{xref_clean}{1}{+Source}
 Remove the information gathered for \arg{Source}
 
-    \predicate{xref_defined}{3}{?Source. ?Callable, -How}
+    \predicate{xref_defined}{3}{?Source, ?Callable, -How}
 \arg{Callable} is defined in \arg{Source}.  \arg{How} is one of
 \begin{center}
 \begin{tabular}{ll}

@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED/MODIFIED: library-independent unicode support for parsing text.
+    This modified atom/variable syntax for sourcecode holding characters
+    above 255.  Also made changes to singleton variable handling.  See
+    manual for details (section "Unicode Prolog source").
+
   * FIXED: possible crash after abort.
 
   * FIXED/ENHANCED: Cross-referencer: fixed two runtime errors.  Added support

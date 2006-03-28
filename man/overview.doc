@@ -1533,7 +1533,9 @@ non-standard or non-common constructs that are accepted by SWI-Prolog:
 This construct is not accepted by all Prolog systems that claim to have
 Edinburgh compatible syntax. It describes the character code of <char>.
 To test whether \chr{C} is a lower case character one can use
-\exam{between(0'a, 0'z, C)}.
+\exam{between(0'a, 0'z, C)}. If character codes are enabled (default)
+<char> can use \chr{\} escape sequences.  The sequence \verb$0'\t$
+represents the \textsc{tab} character using symbolic notation.
 
     \item [\exam{/* \ldots /* \ldots */ \ldots */}]
 The \exam{/* \ldots */} comment statement can be nested. This is useful
@@ -1614,7 +1616,6 @@ Any character immediately preceded by a \chr{\} and not covered by the
 above escape sequences is copied verbatim. Thus, \verb$'\\'$ is an atom
 consisting of a single \chr{\} and \verb$'\''$ and \verb$''''$ both
 describe the atom with a single~\verb$'$.
-
 \end{description}
 
 Character escaping is only available if the
@@ -1627,7 +1628,6 @@ to use the more widely supported format/[2,3] predicate instead. If you
 insist upon using writef/2, either switch \const{character_escapes} to
 \const{false}, or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
 
-
 \subsubsection{Syntax for non-decimal numbers}	\label{sec:nondecsyntax}
 
 SWI-Prolog implements both Edinburgh and ISO representations for
@@ -1636,6 +1636,102 @@ written as \exam{<radix>'<number>}, where <radix> is a number between 2
 and 36. ISO defines binary, octal and hexadecimal numbers using
 \exam{0{\em [bxo]}<number>}. For example: \verb$A is 0b100 \/ 0xf00$ is
 a valid expression. Such numbers are always unsigned.
+
+
+\subsubsection{Unicode Prolog source}		\label{sec:unicodesyntax}
+
+The ISO standard specifies the Prolog syntax in ASCII characters. As
+SWI-Prolog supports Unicode in sourcefiles we must extend the syntax.
+This section describes the implication for the sourcefiles, while
+writing international sourcefiles is described in \secref{intsrcfile}.
+
+The SWI-Prolog Unicode character classification is based on version
+4.1.0 of the Unicode standard. Please that char_type/2 and friends,
+intended to be used with all text except Prolog source code is based on
+the C-library locale-based classification routines.
+
+
+\begin{itemlist}
+    \item [Quoted atoms and strings]
+Any character of any script can be used in quoted atoms and strings. The
+escape sequencs \verb$\uXXXX$ and \verb$\UXXXXXXXX$ (see
+\secref{charescapes}) were introduced to specify Unicode sourcecode in
+ASCII files.
+
+    \item [Atoms and Variables]
+We handle them in one item as they are closely related.  The Unicode
+standard defines a syntax for identifiers in computer languages.%
+	\footnote{\url{http://www.unicode.org/reports/tr31/}}
+In this syntax identifiers start with \const{ID_Start} followed by a
+sequence of \const{ID_Continue} codes. Such sequences are handled as a
+single token in SWI-Prolog. The token is a \emph{variable} iff it starts
+with an uppercase character or an underscore (\chr{_}). Otherwise it is
+an atom.  Note that many languages do not not have the notion of
+character-case.  In such languages variables \emph{must} be written as 
+\verb$_name$.
+
+    \item [White space]
+All characters marked as separators in the Unicode tables are handled
+as layout characters.
+
+    \item [Other characters]
+The first 128 characters follow the ISO Prolog standard. All other
+characters not covered by the rules above are considered `solo'
+characters: they form single-character atoms. We would like to have a
+more appropriate distinction between what is known to Prolog as `solo'
+characters and `singleton' characters.
+\end{itemlist}
+
+
+\subsubsection{Singleton variable checking}	\label{sec:singleton}
+
+A singleton variable is a variable that appears only one time in a
+clause. It can always be replaced by \verb$_$, the \jargon{anonymous}
+variable. In some cases however people prefer to give the variable a
+name. As mistyping a variable is a common mistake, Prolog systems
+generally give a warning (controlled by style_check/1) if a variable is
+used only once. The system can be informed a variable is known to appear
+once by \emph{starting} it with an underscore. E.g.\ \verb$_Name$.
+Please note that any variable, except plain \verb$_$ shares with
+variables of the same name.  The term \verb$t(_X, _X)$ is equivalent
+to \verb$t(X, X)$, which is \emph{different} from \verb$t(_, _)$.
+
+As Unicode requires variables to start with an underscore in many
+languages this schema needs to be extended.  First we define the
+two classes of named variables.
+
+\begin{itemlist}
+    \item [Named singleton variables]
+Named singletons start with a double underscore (\verb$__$) or a single
+underscore followed by an uppercase letter.  E.g.\ \verb$__var$ or
+\verb$_Var$.
+
+    \item [Normal variables]
+All other variables are `normal' variables. Note this makes \verb$_var$
+a normal variable.%
+	\footnote{Some Prolog dialects write variables this way.}
+\end{itemlist}
+
+Any normal variable appearing exactly ones in the clause \emph{and}
+any named singleton variables appearing more than onces are reported.
+Below are some examples with warnings in the right column.
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+test(_). 	& \\
+test(_a).	& Singleton variables: [_a] \\
+test(A).	& Singleton variables: [A] \\
+test(_A).	& \\
+test(__a).	& Singleton-marked variables appearing more than once: [__a] \\
+test(_, _).	& \\
+test(_a, _a).	& \\
+test(__a, __a). & \\
+test(_A, _A).	& Singleton-marked variables appearing more than once: [_A] \\
+test(A, A).	& \\
+\hline
+\end{tabular}
+\end{center}
 
 
 \section{Infinite trees (cyclic terms)}		\label{sec:cyclic}
@@ -1736,8 +1832,9 @@ provide the encoding/1 directive that can be used to switch between
 encodings that are compatible to US-ASCII (\const{ascii},
 \const{iso_latin_1}, \const{utf8} and many locales).  See also
 \secref{intsrcfile} for writing Prolog files with non-us-ascii
-characters.  For additional information and Unicode resources, please
-visit \url{http://www.unicode.org/}.
+characters and \secref{unicodesyntax} for syntax issues. For additional
+information and Unicode resources, please visit
+\url{http://www.unicode.org/}.
 
 SWI-Prolog currently defines and supports the following encodings:
 
