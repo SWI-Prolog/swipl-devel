@@ -1370,9 +1370,9 @@ has_source(F) :->
 	"Test if there is source available"::
 	get(F, text_buffer, TB),
 	get(F, head, Head),
-	(   xref_defined(TB, Head, local(_Line))
-	;   xref_defined(TB, Head, constraint(_Line))
-	;   xref_defined(TB, Head, foreign(_Line))
+	(   xref_defined(TB, Head, local(Line))
+	;   xref_defined(TB, Head, constraint(Line))
+	;   xref_defined(TB, Head, foreign(Line))
 	;   xref_defined(TB, Head, imported(_From))
 	;   get(prolog_predicate(Head), source, _)
 	), !.

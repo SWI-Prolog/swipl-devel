@@ -1421,14 +1421,14 @@ update_port_menu(Popup, Port, Model) :-
 		send(Ports, for_all, message(Popup, append, @arg1))
 	    ;	send(Object, has_get_method, proto)
 	    ->  get(Object, proto, Proto),
-		forall(port(Proto, _Kind, Name, Port),
+		forall(port(Proto, _, Name, Port),
 		       send(Popup, append, Name))
 	    ;   get(Object, class_name, Proto)
-	    ->  forall(port(Proto, _Kind, Name, Port),
+	    ->  forall(port(Proto, _, Name, Port),
 		       send(Popup, append, Name))
 	    )
 	;   get(Model, expansion_class_name, Proto)
-	->  forall(port(Proto, _Kind, Name, Port),
+	->  forall(port(Proto, _, Name, Port),
 		   send(Popup, append, Name))
 	),
 	send(Popup, append, menu_item(@default, @default, 'other ...')).

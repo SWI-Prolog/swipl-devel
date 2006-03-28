@@ -242,10 +242,10 @@ run_directives([H|T]) :-
 	
 delete_prolog_methods(Class) :-
 	get(Class, name, ClassName),
-	(   pce_lazy_send_method(Selector, ClassName, _Binder),
+	(   pce_lazy_send_method(Selector, ClassName, _Binder1),
 	    send(Class, delete_send_method, Selector),
 	    fail
-	;   pce_lazy_get_method(Selector, ClassName, _Binder),
+	;   pce_lazy_get_method(Selector, ClassName, _Binder2),
 	    send(Class, delete_get_method, Selector),
 	    fail
 	;   true

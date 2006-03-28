@@ -138,9 +138,9 @@ man_relation(see_also).
 
 has_attribute(Obj, Selector) :-
 	man_attribute(Selector),
-	(   get(Obj?class, instance_variable, Selector, _Var)
+	(   get(Obj?class, instance_variable, Selector, _Var1)
 	;   send(Obj, has_get_method, man_card_class),
-	    get(Obj?man_card_class, instance_variable, Selector, _Var)
+	    get(Obj?man_card_class, instance_variable, Selector, _Var2)
 	), !.
 
 %	has_relation(+Object, +Selector)
@@ -148,9 +148,9 @@ has_attribute(Obj, Selector) :-
 
 has_relation(Obj, Selector) :-
 	man_relation(Selector),
-	(   get(Obj?class, instance_variable, Selector, _Var)
+	(   get(Obj?class, instance_variable, Selector, _Var1)
 	;   send(Obj, has_get_method, man_card_class),
-	    get(Obj?man_card_class, instance_variable, Selector, _Var)
+	    get(Obj?man_card_class, instance_variable, Selector, _Var2)
 	), !.
 
 %	has_attribute_value(+Obj, +Selector)

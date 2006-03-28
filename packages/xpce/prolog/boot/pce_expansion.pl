@@ -162,9 +162,9 @@ head_arg(1, A) :- !,
 	var(A).
 head_arg(_, A) :-
 	nonvar(A),
-	(   A = (_Var:TP)
+	(   A = (_:TP)
 	->  true
-	;   A = (_Var:Name=TP),
+	;   A = (_:Name=TP),
 	    atom(Name)
 	),
 	ground(TP).

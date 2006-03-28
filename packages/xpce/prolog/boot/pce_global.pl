@@ -67,9 +67,9 @@ global(Ref, Module, Goal) :-			  % just reconsult
 	;   reload_global(@Ref)
 	).
 global(Ref, Module, Goal) :-
-	'pce global goal'(Ref, Module, _G2), !,	  % definition changed
+	'pce global goal'(Ref, Module, _), !,	  % definition changed
 	reload_global(@Ref),
-	retractall('pce global goal'(Ref, Module, _G2)),
+	retractall('pce global goal'(Ref, Module, _)),
 	asserta('pce global goal'(Ref, Module, Goal)).
 global(Ref, _M1, new(Term)) :-			  % same definition
 	'pce global goal'(Ref, _M2, new(Term)), !.
