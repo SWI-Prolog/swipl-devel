@@ -72,9 +72,11 @@ prolog:xref_source_identifier(Ref, Ref) :-
 %	
 %	Find the directory of a PceEmacs buffer to resolve relative paths.
 
-prolog:xref_source_directory(Source, Dir) :-
-	object(Source),
-	catch(get(Source?file, absolute_path, Path), _, fail),
+prolog:xref_source_directory(SourceId, Dir) :-
+	integer(SourceId),
+	Obj = @SourceId,
+	object(Obj),
+	catch(get(Obj?file, absolute_path, Path), _, fail),
 	file_directory_name(Path, Dir).
 
 %	prolog:xref_open_source(+Source, -Stream)

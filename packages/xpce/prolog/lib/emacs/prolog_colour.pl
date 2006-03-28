@@ -635,7 +635,8 @@ colourise_files(Var, TB, P) :-
 	colour_item(var, TB, P).
 colourise_files(Spec0, TB, Pos) :-
 	strip_module(Spec0, _, Spec),
-	(   catch(xref_source_file(Spec, Path, TB), _, fail)
+	(   TB = @SourceId,		% HACK
+	    catch(xref_source_file(Spec, Path, SourceId), _, fail)
 	->  colour_item(file(Path), TB, Pos)
 	;   colour_item(nofile, TB, Pos)
 	).
