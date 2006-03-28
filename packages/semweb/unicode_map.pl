@@ -45,14 +45,14 @@ Cyrillic and other languages with similar handling of diacritics.
 
 UPPERCASE
 
-For Prolog it makes more sense  to   map  to uppercase as the cannonical
+For Prolog it makes more sense  to   map  to lowercase as the cannonical
 case. However, we wish to order first on  uppercase and to be able to do
 prefix matches we need to search on the  lowest value. Hence, we use the
 uppercase version for sorting.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- dynamic
-	diacritic/1,			% known diacritics.
+	diacritic/1,			% known diacritics
 	diacritic_code/2.		% +Diacritic, -Code (1..N)
 
 		 /*******************************
