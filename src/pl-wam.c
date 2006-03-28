@@ -2309,6 +2309,7 @@ Is there a way to make the compiler keep its mouth shut!?
     ffr = fli_context;
 
     FR = environment_frame;
+    DEF = FR->predicate;
     while(ffr && (void *)ffr > (void *)FR) /* discard foreign contexts */
       ffr = ffr->parent;
     fli_context = ffr;
