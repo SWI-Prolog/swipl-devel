@@ -636,9 +636,11 @@ expand_node(_, _:any) :->
 	true.
 
 update(FL) :->
+	get(FL, expanded_ids, Chain),
 	send(FL, clear),
 	send(FL, report, progress, 'Building source tree ...'),
 	send(FL, append_all_sourcefiles),
+	send(FL, expand_ids, Chain),
 	send(@display, synchronise),
 	send(FL, report, progress, 'Flagging files ...'),
 	send(FL, set_flags),
@@ -1967,6 +1969,9 @@ not_called(File, NotCalled) :-		% module version
 	   ;   xref_called(_, Module:NotCalled)
 	   ;   NotCalled = _:_,
 	       xref_called(_, NotCalled)
+	   ;   NotCalled = M:G,
+	       xref_called(File, G),
+	       xref_module(File, M)
 	   ).
 not_called(File, NotCalled) :-		% non-module version
 	defined(File, NotCalled),
@@ -1974,6 +1979,9 @@ not_called(File, NotCalled) :-		% non-module version
 	       \+ xref_module(ImportFile, _)
 	   ;   NotCalled = _:_,
 	       xref_called(_, NotCalled)
+	   ;   NotCalled = M:G,
+	       xref_called(File, G),
+	       xref_module(File, M)
 	   ).
 	   
 %	xref_called(?Source, ?Callable) 
