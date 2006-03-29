@@ -1199,11 +1199,12 @@ at_start_of_clause(M, Pos:[int]) :->
 
 backward_clause(M, Start:int, BOC:int) :<-
 	"Find start of clause or previous clause"::
-	(   send(M, at_start_of_clause, Start)
-	->  From is Start - 1
-	;   From is Start
-	),
-	get(M, beginning_of_clause, From, BOC).
+	get(M, beginning_of_clause, Start, BOC0),
+	(   BOC0 == Start
+	->  Start2 is max(0, BOC0-1),
+	    get(M, beginning_of_clause, Start2, BOC)
+	;   BOC = BOC0
+	).
 
 forward_clause(M, Arg:[int]) :->
 	"Go forwards by <arg> clauses"::
