@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceEmacs: failing bracket highlighting on syntax errors.  Enhanced
+  ->beginning_of_clause to be more careful with in-clause comments.
+
+
 VERSION 6.6.9, distributed with SWI-Prolog 5.6.9
 ================================================
 

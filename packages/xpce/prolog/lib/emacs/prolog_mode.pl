@@ -217,11 +217,12 @@ beginning_of_clause(E, Start:int, BOP:int) :<-
 		),
 		get(TB, skip_comment, BOP0, BOP)
 	    ;   get(@prolog_full_stop, register_start, SReg),
-		get(@prolog_full_stop, register_end, P0),
+	        get(@prolog_full_stop, register_end, EReg),
 		send(Here, value, SReg),
-		get(TB, skip_comment, P0, BOP),
+	        get(TB, scan_syntax, 0, SReg, tuple(code,_)),
+		get(TB, skip_comment, EReg, BOP),
 		BOP =< Start,
-		get(TB, scan_syntax, 0, BOP, tuple(code,_))
+		get(TB, scan_syntax, SReg, BOP, tuple(code,_))
 	    ).
 beginning_of_clause(E) :->
 	"Goto start of clause"::
