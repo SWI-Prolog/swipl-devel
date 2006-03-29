@@ -60,6 +60,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 		    "Mode for editing XPCE/Prolog sources",
 					% BINDINGS
 	[ insert_if_then_else	       = key('(') + key(';') + key('>'),
+	  insert_quote		       = key('"'),
 
 					% delete some things
 	  manual_entry		       = -button(help),
@@ -326,6 +327,17 @@ fill_paragraph(M, Justify:[int]) :->
 	    between(BOC, EOC, Caret)
 	->  send(M, indent_clause)
 	;   send_super(M, fill_paragraph, Justify)
+	).
+
+
+insert_quote(E, Times:[int], Char:char) :->
+	"Complete quote"::
+	send(E, insert_self, Times, Char),
+	get(E, caret, Here),
+	(   send(E, looking_at, ':->\n\\s*"', Here, 0)
+	->  send(E, insert, '"::'),
+	    send(E, caret, Here)
+	;   true
 	).
 
 

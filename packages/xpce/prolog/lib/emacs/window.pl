@@ -891,16 +891,17 @@ last_buffer(E, TB:text_buffer) :<-
 		 *          UTILITIES		*
 		 *******************************/
 
-looking_at(E, Re:regex, Where:[int]) :->
+looking_at(E, Re:regex, Where:[int], End:[int]) :->
 	"Test if regex macthes from the caret"::
 	(   Where == @default
 	->  get(E, caret, C)
 	;   C = Where
 	),
 	get(E, text_buffer, TB),
-	send(Re, match, TB, C).
+	send(Re, match, TB, C, End).
 
 :- pce_end_class.
+
 
 		 /*******************************
 		 *	    EMACS MODES		*
