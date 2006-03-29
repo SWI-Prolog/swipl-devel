@@ -1442,6 +1442,9 @@ $expand_clauses([H0|T0], [H|T]) :- !,
 $expand_clauses((Head :- Body), (Head :- ExpandedBody)) :-
 	nonvar(Body), !,
 	expand_goal(Body,  ExpandedBody).
+$expand_clauses((:- Body), (:- ExpandedBody)) :-
+	nonvar(Body), !,
+	expand_goal(Body,  ExpandedBody).
 $expand_clauses(Head, Head).
 
 expand_goal(A, B) :-

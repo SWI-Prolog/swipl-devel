@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: use goal_expansion/2 on directives.
+
   * ADDED/MODIFIED: library-independent unicode support for parsing text.
     This modified atom/variable syntax for sourcecode holding characters
     above 255.  Also made changes to singleton variable handling.  See
