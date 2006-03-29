@@ -1655,6 +1655,19 @@ available(_, Called, How) :-
 	setting(warn_autoload, false),
 	global_predicate(Called), !,
 	How = global.
+available(_, Called, How) :-
+	Called = _:_,
+	defined(_, Called), !,
+	How = module_qualified.
+available(_, M:G, How) :-
+	defined(ExportFile, G),
+	xref_module(ExportFile, M), !,
+	How = module_overruled.
+available(_, Called, How) :-
+	defined(ExportFile, Called),
+	\+ xref_module(ExportFile, _), !,
+	How == plain_file.
+
 
 %	built_in_predicate(+Callable)
 %	
@@ -1896,6 +1909,8 @@ not_called(File, NotCalled) :-		% module version
 	   ;   xref_exported(File, NotCalled)
 	   ;   xref_hook(NotCalled)
 	   ;   xref_hook(Module:NotCalled)
+	   ;   NotCalled = _:Goal,
+	       xref_hook(Goal)
 	   ;   xref_called(_, Module:NotCalled)
 	   ;   NotCalled = _:_,
 	       xref_called(_, NotCalled)
@@ -1936,22 +1951,12 @@ defined(File, Callable) :-
 undefined(File, Undef) :-
 	xref_module(File, _), !,
 	xref_called(File, Undef),
-	(   \+ available(File, Undef, _)
-	->  true
-	;   Undef = _:_
-	->  \+ defined(_, Undef)
-	).
+	\+ (  available(File, Undef, How),
+	      How \== plain_file
+	   ).
 undefined(File, Undef) :-
 	xref_called(File, Undef),
-	\+ (  available(File, Undef, _)		% local defined
-	   ;  defined(ExportFile, Undef),	% defined in non-module file
-	      \+ xref_module(ExportFile, _)
-	   ;  Undef = _:_,			% Defined as M:P
-	      defined(ExportFile, Undef)
-	   ;  Undef = M:G,			% Called M:P in module M
-	      defined(ExportFile, G),
-	      xref_module(ExportFile, M)
-	   ).
+	\+ available(File, Undef, _).
 
 
 		 /*******************************
