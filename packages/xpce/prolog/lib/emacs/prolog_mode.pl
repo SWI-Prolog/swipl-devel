@@ -287,16 +287,8 @@ insert_if_then_else(E, Times:[int], Char:char) :->
 	(   get(regex('\\s*(\\(|->|;)'), match, TB, SOL, L),
 	    Caret =:= SOL + L,
 	    get(E, beginning_of_if_then_else, OpenPos)
-	->  get(E, text_buffer, TB),
-	    get(TB, scan, Caret, line, 0, start, SOL),
-	    (   (   send(regex('\\s*(\\(|->|;)\n'), match,
-			 TB, SOL, Caret)
-		;   Caret =:= 1 + OpenPos
-		)
-	    ->  get(E, column, OpenPos, Col),
-		send(E, align, Col+4)
-	    ;   true
-	    )
+	->  get(E, column, OpenPos, Col),
+	    send(E, align, Col+4)
 	;   true
 	).
 
@@ -1080,7 +1072,10 @@ mark_variable(M, Check:[bool]) :->
 		    )
 		;   true
 		)
-	    ;   get(M, forward_clause, Start, End),
+	    ;   (   get(M, forward_clause, Start, End)
+		->  true
+		;   End = Caret		% or end of buffer?
+		),
 		send(M, remove_syntax_fragments, Start, End)
 	    )
 	).

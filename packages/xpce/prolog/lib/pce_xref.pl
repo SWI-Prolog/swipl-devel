@@ -2068,11 +2068,21 @@ same_key(_, L, [], L).
 %	
 %	Glues it all together to make a list of directives.
 
-make_import(_RefFile, File-Imports, (:-use_module(ShortPath, PIs))) :-
-	short_file_name(File, ShortPath0),
-	remove_extension(ShortPath0, ShortPath),
+make_import(RefFile, File-Imports, (:-use_module(ShortPath, PIs))) :-
+	local_filename(File, RefFile, ShortPath),
 	sort_callables(Imports, SortedImports),
 	maplist(predicate_indicator, SortedImports, PIs).
+
+local_filename(File, RefFile, ShortPath) :-
+	atom(RefFile), 
+	file_directory_name(File, Dir),
+	file_directory_name(RefFile, Dir), !,	% i.e. same dir
+	file_base_name(File, Base),
+	remove_extension(Base, ShortPath).
+local_filename(File, _RefFile, ShortPath) :-
+	short_file_name(File, ShortPath0),
+	remove_extension(ShortPath0, ShortPath).
+
 
 remove_extension(Term0, Term) :-
 	Term0 =.. [Alias,ShortPath0],
