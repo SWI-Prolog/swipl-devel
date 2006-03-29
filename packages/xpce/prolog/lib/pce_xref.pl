@@ -26,10 +26,12 @@ version('0.1.0').
 :- dynamic
 	setting/2.
 
-setting_menu([ warn_autoload
+setting_menu([ warn_autoload,
+	       warn_not_called
 	     ]).
 
 setting(warn_autoload,      false).
+setting(warn_not_called,    true).
 setting(hide_system_files,  true).
 setting(hide_profile_files, true).
 
@@ -1951,6 +1953,7 @@ file_warnings(File, Warnings) :-
 file_warning(File, undefined) :-
 	undefined(File, _) -> true.
 file_warning(File, not_called) :-
+	setting(warn_not_called, true),
 	not_called(File, _) -> true.
 
 
