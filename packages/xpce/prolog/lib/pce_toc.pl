@@ -186,6 +186,29 @@ clear(T) :->
 	get(T, tree, Tree),
 	send(Tree, clear, destroy).
 
+:- pce_group(state).
+
+
+expanded_ids(T, Ids:chain) :<-
+	"Chain holding the ids of all expanded nodes"::
+	new(Ids, chain),
+	(   get(T?tree, root, Root),
+	    Root \== @nil
+	->  send(Root, for_all,
+		 if(@arg1?collapsed == @off,
+		    message(Ids, append, @arg1?identifier)))
+	;   true
+	).
+
+expand_ids(T, Ids:chain) :->
+	"Expand the given ids"::
+	send(Ids, for_all, message(T, expand_id, @arg1)).
+
+expand_id(T, Id:any) :->
+	"Expand node with given ID"::
+	get(T, node, Id, Node),
+	send(Node, collapsed, @off).
+
 :- pce_group(scroll).
 
 scroll_vertical(TW,
