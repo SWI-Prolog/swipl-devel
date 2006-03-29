@@ -67,13 +67,13 @@ pcedemo :-
 
 
 fill_browser(B) :-
-	forall(demo(Name, Summary, _File, _Predicate),
+	forall(demo(Name, Summary, File, Predicate),
 	       send(B, append, dict_item(Name,
 					 string('%s	%s', Name, Summary)))),
 	send(B, append,
 	     dict_item('======Contributions====================',
 		       style := title)),
-	forall(contribution(Name, Summary, _Author, _File, _Predicate),
+	forall(contribution(Name, Summary, _Author, File, Predicate),
 	       send(B, append, dict_item(Name,
 					 string('%s	%s', Name, Summary)))).
 

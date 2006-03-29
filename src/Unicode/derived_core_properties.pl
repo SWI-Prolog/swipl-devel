@@ -2,10 +2,10 @@
 
     Part of SWI-Prolog
 
-    Author:        Jan Wielemaker and Richard O'Keefe
-    E-mail:        jan@swi.psy.uva.nl
+    Author:        Jan Wielemaker
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
