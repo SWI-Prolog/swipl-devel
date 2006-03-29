@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: regex->match on backward matches (executed as search).
+
 * FIXED: PceEmacs: failing bracket highlighting on syntax errors.  Enhanced
   ->beginning_of_clause to be more careful with in-clause comments.  Fixed
   ->backward_clause on directives.

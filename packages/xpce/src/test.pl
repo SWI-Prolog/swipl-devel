@@ -527,6 +527,10 @@ regex(regex-4) :-			% BOSONLY on branches
 regex(regex-5) :-			% end-of-line in partial-matches
 	get(regex('^.'), search, 'hello', 5, 0, X),
 	X == 0.
+regex(regex-6) :-
+	send(regex(hello), match, 'hello', 5, 0).
+regex(regex-7) :-
+	\+ send(regex(hello), match, 'hello ', 6, 0).
 
 
 		 /*******************************

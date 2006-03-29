@@ -390,7 +390,12 @@ search_regex(Regex re, Any obj, Int start, Int end, int flags)
 			NULL,
 			re->compiled->re_nsub+1, re->registers, 0);
 	  assert(rc == REG_OKAY);
-       adjust:
+	adjust:
+	  if ( flags == RE_MATCH )
+	  { if ( match+re->registers[0].rm_eo != from )
+	      fail;
+	  }
+
 	  for(n=0; n <= re->compiled->re_nsub; n++)
 	  { re->registers[n].rm_so += match;
 	    re->registers[n].rm_eo += match;
