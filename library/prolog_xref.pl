@@ -88,8 +88,9 @@
 %	Define meta-predicates.  See the examples in this file for details.
 
 :- multifile
-	prolog:called_by/2,			% +Goal, -Called
-	prolog:meta_goal/2.			% +Goal, -Pattern
+	prolog:called_by/2,		% +Goal, -Called
+	prolog:meta_goal/2,		% +Goal, -Pattern
+	prolog:hook/1.			% +Callable
 
 :- dynamic
 	meta_goal/2.
@@ -552,20 +553,25 @@ head_of(Head, Head).
 %	module are unqualified.  Other  hooks   are  qualified  with the
 %	module where they are called.
 
-xref_hook(term_expansion(_,_)).
-xref_hook(goal_expansion(_,_)).
-xref_hook(resource(_,_,_)).
-xref_hook(prolog:message(_,_,_)).
-xref_hook(user:portray(_)).
-xref_hook(user:file_search_path(_,_)).
-xref_hook(user:library_directory(_)).
-xref_hook(user:message_hook(_,_,_)).
-xref_hook(user:prolog_list_goal(_)).
-xref_hook(user:prolog_trace_interception(_,_,_,_)).
-xref_hook(user:prolog_clause_name(_,_)).
-xref_hook(user:prolog_predicate_name(_,_)).
-xref_hook(shlib:unload_all_foreign_libraries).
-xref_hook(pce_principal:pce_class(_,_,_,_,_,_)).
+xref_hook(Hook) :-
+	prolog:hook(Hook).
+xref_hook(Hook) :-
+	hook(Hook).
+
+hook(term_expansion(_,_)).
+hook(goal_expansion(_,_)).
+hook(resource(_,_,_)).
+hook(prolog:message(_,_,_)).
+hook(user:portray(_)).
+hook(user:file_search_path(_,_)).
+hook(user:library_directory(_)).
+hook(user:message_hook(_,_,_)).
+hook(user:prolog_list_goal(_)).
+hook(user:prolog_trace_interception(_,_,_,_)).
+hook(user:prolog_clause_name(_,_)).
+hook(user:prolog_predicate_name(_,_)).
+hook(shlib:unload_all_foreign_libraries).
+hook(pce_principal:pce_class(_,_,_,_,_,_)).
 
 
 %	process_body(+Body, +Origin, +Src)
