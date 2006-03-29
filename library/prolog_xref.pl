@@ -33,6 +33,7 @@
 	  [ xref_source/1,		% +Source
 	    xref_called/3,		% ?Source, ?Callable, ?By
 	    xref_defined/3,		% ?Source. ?Callable, -How
+	    xref_definition_line/2,	% +How, -Line
 	    xref_exported/2,		% ?Source, ?Callable
 	    xref_module/2,		% ?Source, ?Module
 	    xref_op/2,			% ?Source, ?Op
@@ -57,9 +58,9 @@
 
 :- dynamic
 	called/3,			% Head, Src, From
-	(dynamic)/2,			% Head, Src
-	(thread_local)/2,		% Head, Src
-	(multifile)/2,			% Head, Src
+	(dynamic)/3,			% Head, Src, Line
+	(thread_local)/3,		% Head, Src, Line
+	(multifile)/3,			% Head, Src, Line
 	defined/3,			% Head, Src, Line
 	foreign/3,			% Head, Src, Line
 	constraint/3,			% Head, Src, Line
@@ -183,7 +184,7 @@ xref_push_op(Src, P, T, N0) :- !,
 xref_clean(Source) :-
 	canonical_source(Source, Src),
 	retractall(called(_, Src, _Origin)),
-	retractall(dynamic(_, Src)),
+	retractall(dynamic(_, Src, Line)),
 	retractall(multifile(_, Src)),
 	retractall(defined(_, Src, Line)),
 	retractall(foreign(_, Src, Line)),
@@ -240,12 +241,12 @@ xref_defined(Source, Called, How) :-
 	canonical_source(Source, Src),
 	xref_defined2(How, Src, Called).
 
-xref_defined2((dynamic), Src, Called) :-
-	dynamic(Called, Src).
-xref_defined2((thread_local), Src, Called) :-
-	thread_local(Called, Src).
-xref_defined2((multifile), Src, Called) :-
-	multifile(Called, Src).
+xref_defined2(dynamic(Line), Src, Called) :-
+	dynamic(Called, Src, Line).
+xref_defined2(thread_local(Line), Src, Called) :-
+	thread_local(Called, Src, Line).
+xref_defined2(multifile(Line), Src, Called) :-
+	multifile(Called, Src, Line).
 xref_defined2(local(Line), Src, Called) :-
 	defined(Called, Src, Line).
 xref_defined2(foreign(Line), Src, Called) :-
@@ -254,6 +255,20 @@ xref_defined2(constraint(Line), Src, Called) :-
 	constraint(Called, Src, Line).
 xref_defined2(imported(From), Src, Called) :-
 	imported(Called, Src, From).
+
+
+%	xref_definition_line(+How, -Line)
+%	
+%	If the 3th argument of xref_defined contains line info, return
+%	this in Line.
+
+xref_definition_line(local(Line),	 Line).
+xref_definition_line(dynamic(Line),	 Line).
+xref_definition_line(thread_local(Line), Line).
+xref_definition_line(multifile(Line),	 Line).
+xref_definition_line(constraint(Line),	 Line).
+xref_definition_line(foreign(Line),	 Line).
+
 
 xref_exported(Source, Called) :-
 	canonical_source(Source, Src),
@@ -1006,9 +1021,10 @@ assert_dynamic(Src, (A, B)) :- !,
 assert_dynamic(_, _M:_Name/_Arity) :- !. % not local
 assert_dynamic(Src, Name/Arity) :-
 	functor(Term, Name, Arity),
-	(   thread_local(Term, Src)	% dynamic after thread_local has
+	(   thread_local(Term, Src, _)	% dynamic after thread_local has
 	->  true			% no effect
-	;   assert(dynamic(Term, Src))
+	;   flag(xref_src_line, Line, Line),
+	    assert(dynamic(Term, Src, Line))
 	).
 
 assert_thread_local(Src, (A, B)) :- !,
@@ -1017,7 +1033,8 @@ assert_thread_local(Src, (A, B)) :- !,
 assert_thread_local(_, _M:_Name/_Arity) :- !. % not local
 assert_thread_local(Src, Name/Arity) :-
 	functor(Term, Name, Arity),
-	assert(thread_local(Term, Src)).
+	flag(xref_src_line, Line, Line),
+	assert(thread_local(Term, Src, Line)).
 
 assert_multifile(Src, (A, B)) :- !,
 	assert_multifile(Src, A),
@@ -1025,7 +1042,8 @@ assert_multifile(Src, (A, B)) :- !,
 assert_multifile(_, _M:_Name/_Arity) :- !. % not local
 assert_multifile(Src, Name/Arity) :-
 	functor(Term, Name, Arity),
-	assert(multifile(Term, Src)).
+	flag(xref_src_line, Line, Line),
+	assert(multifile(Term, Src, Line)).
 
 assert_used_class(Src, Name) :-
 	used_class(Name, Src), !.

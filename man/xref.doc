@@ -65,6 +65,7 @@ menu to open the definition or select one of the callers.
 \postscriptfig[width=0.8\linewidth]{xrefchatdep}{Dependencies between
 source files of CHAT80}
 
+
 \paragraph{Module and non-module files}
 
 The cross-referencer threads module and non-module project files
@@ -78,3 +79,16 @@ command generates an appropriate module header and import list.  Note
 that the cross-referencer may have missed dependencies and does not
 deal with meta-predicates defined in one module and called in another.
 Such problems must be resolved manually.
+
+
+\paragraph{Settings}
+
+The following settings can be controlled from the \textsf{settings}
+menu:
+
+\begin{description}
+    \definition{Warn autoload}
+By default this is disabled.  When enabled, modules that require
+predicates to be autoloaded are flagged with a warning and the file
+info window of a module shows the required autoload predicates.
+\end{description}

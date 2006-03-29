@@ -949,10 +949,10 @@ def_style(goal(imported(_),_),	style(colour := blue)).
 def_style(goal(autoload,_), 	style(colour := navy_blue)).
 def_style(goal(global,_),	style(colour := navy_blue)).
 def_style(goal(undefined,_),	style(colour := red)).
-def_style(goal(thread_local,_), style(colour := magenta,
+def_style(goal(thread_local(_),_), style(colour := magenta,
 				      underline:= @on)).
-def_style(goal(dynamic,_), 	style(colour := magenta)).
-def_style(goal(multifile,_),	style(colour := navy_blue)).
+def_style(goal(dynamic(_),_), 	style(colour := magenta)).
+def_style(goal(multifile(_),_),	style(colour := navy_blue)).
 def_style(goal(expanded,_),	style(colour := blue,
 				      underline := @on)).
 def_style(goal(extern(_),_),	style(colour := blue,
@@ -1370,13 +1370,11 @@ has_source(F) :->
 	"Test if there is source available"::
 	get(F, text_buffer, TB),
 	get(F, head, Head),
-	(   xref_defined(TB, Head, local(Line))
-	;   xref_defined(TB, Head, constraint(Line))
-	;   xref_defined(TB, Head, foreign(Line))
+	(   xref_defined(TB, Head, How),
+	    xref_definition_line(How, _)
 	;   xref_defined(TB, Head, imported(_From))
 	;   get(prolog_predicate(Head), source, _)
 	), !.
-
 
 %	->edit
 %	
@@ -1480,7 +1478,7 @@ identify_pred(constraint(Line), F, Summary) :-	% Local constraint
 identify_pred(imported(From), F, Summary) :-
 	new(Summary, string('%N: imported from %s', F, From)).
 identify_pred(recursion, _, 'Recursive reference') :- !.
-identify_pred(dynamic, F, Summary) :-
+identify_pred(dynamic(_Line), F, Summary) :-
 	get(F, loaded_specifier, Spec),
 	(   predicate_property(Spec, number_of_clauses(N))
 	->  new(Summary, string('%N: dynamic predicate with %d clauses',

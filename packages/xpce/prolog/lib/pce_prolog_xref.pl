@@ -33,6 +33,7 @@
 	  [ xref_source/1,		% +Source
 	    xref_called/3,		% ?Source, ?Callable, ?By
 	    xref_defined/3,		% ?Source. ?Callable, -How
+	    xref_definition_line/2,	% +How, -Line
 	    xref_exported/2,		% ?Source, ?Callable
 	    xref_module/2,		% ?Source, ?Module
 	    xref_op/2,			% ?Source, ?Op

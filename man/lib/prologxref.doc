@@ -48,12 +48,12 @@ Remove the information gathered for \arg{Source}
 \arg{Callable} is defined in \arg{Source}.  \arg{How} is one of
 \begin{center}
 \begin{tabular}{ll}
-\term{dynamic}{}    		& Declared dynamic \\
-\term{thread_local}{}    	& Declared thread local \\
-\term{multifile}{}    		& Declared multifile \\
-\term{local}{Line}    		& First clause at Line \\
-\term{foreign}{Line}  		& Foreign library loaded a Line \\
-\term{constraint}{Line}		& CHR Constraint at Line \\
+\term{dynamic}{Line}    	& Declared dynamic at \arg{Line} \\
+\term{thread_local}{Line}    	& Declared thread local at \arg{Line} \\
+\term{multifile}{Line}    	& Declared multifile at \arg{Line} \\
+\term{local}{Line}    		& First clause at \arg{Line} \\
+\term{foreign}{Line}  		& Foreign library loaded at \arg{Line} \\
+\term{constraint}{Line}		& CHR Constraint at \arg{Line} \\
 \term{imported}{File}		& Imported from \arg{File} \\
 \end{tabular}
 \end{center}

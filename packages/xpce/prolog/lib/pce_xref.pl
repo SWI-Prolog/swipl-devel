@@ -29,7 +29,7 @@ version('0.1.0').
 setting_menu([ warn_autoload
 	     ]).
 
-setting(warn_autoload,      true).
+setting(warn_autoload,      false).
 setting(hide_system_files,  true).
 setting(hide_profile_files, true).
 
@@ -1903,9 +1903,8 @@ edit_callable('<export>', File) :- !,
 	edit(file(File)).
 edit_callable(Callable, File) :-
 	local_callable(Callable, File, Local),
-	(   (   xref_defined(File, Local, local(Line))
-	    ;   xref_defined(File, Local, foreign(Line))
-	    )
+	(   xref_defined(File, Local, How),
+	    xref_definition_line(How, Line)
 	->  edit(file(File, line(Line)))
 	;   autoload_predicate(Local)
 	->  functor(Local, Name, Arity),
@@ -1970,8 +1969,8 @@ not_called(File, NotCalled) :-		% module version
 	   ;   NotCalled = _:_,
 	       xref_called(_, NotCalled)
 	   ;   NotCalled = M:G,
-	       xref_called(File, G),
-	       xref_module(File, M)
+	       xref_called(ModFile, G),
+	       xref_module(ModFile, M)
 	   ).
 not_called(File, NotCalled) :-		% non-module version
 	defined(File, NotCalled),
@@ -1980,8 +1979,8 @@ not_called(File, NotCalled) :-		% non-module version
 	   ;   NotCalled = _:_,
 	       xref_called(_, NotCalled)
 	   ;   NotCalled = M:G,
-	       xref_called(File, G),
-	       xref_module(File, M)
+	       xref_called(ModFile, G),
+	       xref_module(ModFile, M)
 	   ).
 	   
 %	xref_called(?Source, ?Callable) 
