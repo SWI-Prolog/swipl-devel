@@ -287,8 +287,10 @@ dep_source(Src) :-
 	;   true
 	).
 
-append(P, File:name) :->
-	get(P, node, File, @on, _).
+append(P, File:name, Create:[bool|{always}]) :->
+	"Append File.  If Create == always also if a system file"::
+	default(Create, @on, C),
+	get(P, node, File, C, _).
 
 node(G, File:name, Create:[bool|{always}], Pos:[point],
      Gr:xref_file_graph_node) :<-
@@ -345,7 +347,8 @@ drop(G, Obj:object, Pos:point) :->
 	;   send(Obj, instance_of, xref_directory_text)
 	->  get(Obj, files, Files),
 	    layout_new(G,
-		       (   send(Files, for_all, message(G, append, @arg1)),
+		       (   send(Files, for_all,
+				message(G, append, @arg1, always)),
 			   send(G, update_links)
 		       ))
 	).
