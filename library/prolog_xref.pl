@@ -576,6 +576,8 @@ xref_hook(Hook) :-
 hook(term_expansion(_,_)).
 hook(goal_expansion(_,_)).
 hook(resource(_,_,_)).
+hook(attr_portray_hook(_,_)).
+hook(attr_unify_hook(_,_)).
 hook(prolog:message(_,_,_)).
 hook(user:portray(_)).
 hook(user:file_search_path(_,_)).
