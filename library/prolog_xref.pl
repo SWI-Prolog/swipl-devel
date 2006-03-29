@@ -587,6 +587,7 @@ hook(user:prolog_clause_name(_,_)).
 hook(user:prolog_predicate_name(_,_)).
 hook(shlib:unload_all_foreign_libraries).
 hook(pce_principal:pce_class(_,_,_,_,_,_)).
+hook(emacs_prolog_colours:goal_colours(_,_)).
 
 
 %	process_body(+Body, +Origin, +Src)
@@ -627,17 +628,22 @@ process_called_list([H|T], Origin, Src) :-
 	process_called_list(T, Origin, Src).
 
 process_meta(A+N, Origin, Src) :- !,
-	(   callable(A),
-	    \+ A = _:_
-	->  A =.. List,
-	    length(Rest, N),
-	    append(List, Rest, NList),
-	    Term =.. NList,
-	    process_body(Term, Origin, Src)
+	(   extend(A, N, AX)
+	->  process_body(AX, Origin, Src)
 	;   true
 	).
 process_meta(G, Origin, Src) :-
 	process_body(G, Origin, Src).
+
+extend(M:G, N, M:GX) :-
+	callable(G), !,
+	extend(G, N, GX).
+extend(G, N, GX) :-
+	callable(G),
+	G =.. List,
+	length(Rest, N),
+	append(List, Rest, NList),
+	GX =.. NList.
 
 asserting_goal(assert(Rule), Rule).
 asserting_goal(asserta(Rule), Rule).
