@@ -1032,9 +1032,8 @@ typed(M, Id:'event|event_id', Editor:editor) :->
 	"Extend variable marks"::
 	send_super(M, typed, Id, Editor),
 	(   object(M)			% Control-x k destroys the mode
-	->  get(M, caret, Caret),
-	    get(M, text_buffer, TB),
-	    (   send(regex('[_A-Z][a-zA-Z_0-9]*.?'), match, TB, Caret, 0)
+	->  (   get(M, varmark_style, Style),
+		Style \== @nil
 	    ->  send(M, mark_variable, @on)
 	    ;   true
 	    )

@@ -21,6 +21,14 @@
 :- use_module(library(autowin)).
 :- use_module(library(broadcast)).
 
+version('0.1.0').
+
+:- dynamic
+	setting/2.
+
+setting_menu([ warn_autoload
+	     ]).
+
 setting(warn_autoload,      true).
 setting(hide_system_files,  true).
 setting(hide_profile_files, true).
@@ -93,13 +101,29 @@ tab_popup(_F, P:popup) :<-
 
 fill_toolbar(F, TD:tool_dialog) :->
 	send(TD, append, new(File, popup(file))),
+	send(TD, append,
+	     new(Settings, popup(settings,
+				 message(F, setting, @arg1, @arg2)))),
 	send(TD, append, new(View, popup(view))),
+	send(TD, append, new(Help, popup(help))),
 	send_list(File, append,
 		  [ menu_item(exit, message(F, destroy))
 		  ]),
 	send_list(View, append,
 		  [ menu_item(refresh, message(F, update))
-		  ]).
+		  ]),
+	send_list(Help, append,
+		  [ menu_item(about, message(F, about))
+		  ]),
+	send(Settings, show_current, @on),
+	send(Settings, multiple_selection, @on),
+	send(F, update_setting_menu).
+	     
+about(_F) :->
+	version(Version),
+	send(@display, inform,
+	     string('SWI-Prolog cross-referencer version %s\n\
+		    By Jan Wielemaker', Version)).
 
 :- pce_group(parts).
 
@@ -167,6 +191,35 @@ file_header(F, File:name) :->
 	get(F, workspace, header, @on, @on, View),
 	send(View, file_header, File).
 		     
+:- pce_group(settings).
+
+update_setting_menu(F) :->
+	"Update the menu for the settings with the current values"::
+	get(F, member, tool_dialog, TD),
+	get(TD, member, menu_bar, MB),
+	get(MB, member, settings, Popup),
+	send(Popup, clear),
+	setting_menu(Entries),
+	(   member(Name, Entries),
+	    setting(Name, Value),
+	    send(Popup, append, new(MI, menu_item(Name))),
+	    (	Value == true
+	    ->	send(MI, selected, @on)
+	    ;	true
+	    ),
+	    fail ; true
+	).
+
+setting(F, S:name, PceVal:bool) :->
+	"Update setting and redo analysis"::
+	pce_to_prolog_bool(PceVal, Val),
+	retractall(setting(S, _)),
+	assert(setting(S, Val)),
+	send(F, update).
+
+pce_to_prolog_bool(@on, true).
+pce_to_prolog_bool(@off, false).
+
 :- pce_end_class(xref_frame).
 
 

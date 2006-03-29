@@ -565,6 +565,7 @@ xref_hook(user:prolog_trace_interception(_,_,_,_)).
 xref_hook(user:prolog_clause_name(_,_)).
 xref_hook(user:prolog_predicate_name(_,_)).
 xref_hook(shlib:unload_all_foreign_libraries).
+xref_hook(pce_principal:pce_class(_,_,_,_,_,_)).
 
 
 %	process_body(+Body, +Origin, +Src)
