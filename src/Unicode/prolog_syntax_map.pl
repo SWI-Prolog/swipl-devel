@@ -33,10 +33,11 @@
 	  [ main/0,
 	    write_syntax_map/2		% +File, +Options
 	  ]).
-:- use_module(derived_core_properties).
-:- use_module(library('unicode/unicode_data')).
-:- use_module(library(debug)).
-:- use_module(library(lists)).
+:- use_module(library(debug), [assertion/1]).
+:- use_module(library(lists), [member/2]).
+:- use_module(library(option), [option/3]).
+:- use_module(library('unicode/unicode_data'), [unicode_property/2]).
+:- use_module(derived_core_properties, [unicode_derived_core_property/2]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create a C structure and  access   functions  for  classification of the
