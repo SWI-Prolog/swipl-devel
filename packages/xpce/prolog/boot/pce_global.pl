@@ -105,9 +105,6 @@ register_handler :-
 :- initialization
 	register_handler.
 
-trap(@Ref) :-
-	trap_ref(Ref).
-
 trap_ref(Ref) :-
 	'pce global goal'(Ref, Module, Goal), !,
 	(   Goal = new(Term)
