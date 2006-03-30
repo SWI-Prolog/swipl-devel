@@ -375,6 +375,8 @@ requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
 		 *	     PROCESS		*
 		 *******************************/
 
+process(Var, _) :-
+	var(Var), !.			% Warn?
 process((:- Directive), Src) :- !,
 	process_directive(Directive, Src), !.
 process((?- Directive), Src) :- !,
@@ -387,6 +389,8 @@ process('$source_location'(_File, _Line):Clause, Src) :- !,
 process(Term, Src) :-
 	chr_expandable(Term), !,
 	process_chr(Term, Src).
+process(M:(Head :- Body), Src) :- !,
+	process(M:Head :- M:Body, Src).
 process(Head, Src) :-
 	assert_defined(Src, Head).
 
@@ -573,25 +577,32 @@ xref_hook(Hook) :-
 xref_hook(Hook) :-
 	hook(Hook).
 
-hook(term_expansion(_,_)).
-hook(goal_expansion(_,_)).
-hook(resource(_,_,_)).
+
 hook(attr_portray_hook(_,_)).
 hook(attr_unify_hook(_,_)).
+hook(goal_expansion(_,_)).
+hook(term_expansion(_,_)).
+hook(resource(_,_,_)).
+
+hook(emacs_prolog_colours:goal_colours(_,_)).
+hook(pce_principal:pce_class(_,_,_,_,_,_)).
+hook(prolog:locate_clauses(_,_)).
 hook(prolog:message(_,_,_)).
-hook(user:portray(_)).
+hook(prolog:debug_control_hook(_)).
+hook(prolog:help_hook(_)).
+hook(prolog:show_profile_hook(_,_)).
+hook(prolog_edit:load).
+hook(shlib:unload_all_foreign_libraries).
+hook(system:'$foreign_registered'(_, _)).
+hook(user:exception(_,_,_)).
 hook(user:file_search_path(_,_)).
 hook(user:library_directory(_)).
 hook(user:message_hook(_,_,_)).
-hook(user:prolog_list_goal(_)).
-hook(user:prolog_trace_interception(_,_,_,_)).
+hook(user:portray(_)).
 hook(user:prolog_clause_name(_,_)).
+hook(user:prolog_list_goal(_)).
 hook(user:prolog_predicate_name(_,_)).
-hook(user:exception(_,_,_)).
-hook(shlib:unload_all_foreign_libraries).
-hook(system:'$foreign_registered'(_, _)).
-hook(pce_principal:pce_class(_,_,_,_,_,_)).
-hook(emacs_prolog_colours:goal_colours(_,_)).
+hook(user:prolog_trace_interception(_,_,_,_)).
 
 
 %	process_body(+Body, +Origin, +Src)
