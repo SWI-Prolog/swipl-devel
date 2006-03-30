@@ -169,12 +169,6 @@ toggle_open_outline(M) :->
 open_body(_M, Body:fragment) :->
 	"Make hidden body visible and try to normalise on it"::
 	send(Body, style, outline_body).
-/*	doesn't feel very natural after all
-	head_fragment(Body, Head),
-	get(Head, start, Start),
-	get(Body, end, End),
-	send(M, normalise, Start, End).
-*/
 
 close_body(_M, Body:fragment) :->
 	"Make body invisible"::
@@ -187,13 +181,6 @@ body_fragment(Body, Body) :-
 body_fragment(Header, Body) :-
 	get(Header, next, F),
 	body_fragment(F, Body).
-
-head_fragment(Body, Body) :-
-	get(Body, style, outline_header), !.
-head_fragment(Header, Body) :-
-	get(Header, previous, F),
-	head_fragment(F, Body).
-
 
 open_all_outlines(M) :->
 	"Open all outlined fragments"::

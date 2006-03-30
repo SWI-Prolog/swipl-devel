@@ -591,3 +591,11 @@ prolog_value_argument(Obj, Arg, Value) :-
 prolog_value_argument(_, Arg, Arg).
 
 	
+		 /*******************************
+		 *	   XREF SUPPORT		*
+		 *******************************/
+
+:- multifile
+	prolog:called_by/2.
+
+prolog:called_by(register_config(G), [G+2]).

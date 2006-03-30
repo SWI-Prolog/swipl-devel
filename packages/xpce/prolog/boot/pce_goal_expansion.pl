@@ -41,6 +41,7 @@ expandable(send, A)       :- A >= 2.
 expandable(get, A)        :- A >= 3.
 expandable(send_super, A) :- A >= 2.
 expandable(get_super, A)  :- A >= 3.
+expandable(pce_catch_error, 2).
 
 %	Convert old send/get into new format.
 
@@ -91,6 +92,8 @@ expand(GetSuperN, get_class(R, Super, Msg, Answer)) :-
 	append(Args, [Answer], AllArgs),
 	Msg =.. [Sel|Args],
 	current_super_class(get_super, Super).
+expand(pce_catch_error(E,G), pce_catch_error(E, EG)) :-
+	expand_goal(G, EG).
 
 selector(Sel) :-
 	atom(Sel), !.
