@@ -589,6 +589,7 @@ hook(user:prolog_clause_name(_,_)).
 hook(user:prolog_predicate_name(_,_)).
 hook(user:exception(_,_,_)).
 hook(shlib:unload_all_foreign_libraries).
+hook(system:'$foreign_registered'(_, _)).
 hook(pce_principal:pce_class(_,_,_,_,_,_)).
 hook(emacs_prolog_colours:goal_colours(_,_)).
 
