@@ -639,8 +639,10 @@ process_meta(A+N, Origin, Src) :- !,
 process_meta(G, Origin, Src) :-
 	process_body(G, Origin, Src).
 
-extend(M:G, N, M:GX) :-
-	callable(G), !,
+extend(Var, _, _) :-
+	var(Var), !, fail.
+extend(M:G, N, M:GX) :- !,
+	callable(G),
 	extend(G, N, GX).
 extend(G, N, GX) :-
 	callable(G),
@@ -698,7 +700,7 @@ process_xpce_arg(msg, Term, Origin, Src) :-
 	;   true
 	).
 
-	
+process_new(_M:_Term, _, _) :- !.	% TBD: Calls on other modules!
 process_new(Term, Origin, Src) :-
 	assert_new(Src, Origin, Term),
 	(   arg(_, Term, Arg),
