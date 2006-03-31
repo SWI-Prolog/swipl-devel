@@ -448,9 +448,8 @@ process_directive(pce_expansion:pop_compile_operators, _) :-
 	pce_expansion:pop_compile_operators.
 process_directive(meta_predicate(Meta), _) :-
 	process_meta_predicate(Meta).
-process_directive(arithmetic_function(Name/Arity), Src) :-
-	PredArity is Arity + 1,
-	functor(Goal, Name, PredArity),
+process_directive(arithmetic_function(FSpec), Src) :-
+	arith_callable(FSpec, Goal), !,
 	flag(xref_src_line, Line, Line),
 	assert_called(Src, '<directive>'(Line), Goal).
 process_directive(Goal, Src) :-
@@ -603,6 +602,19 @@ hook(user:prolog_clause_name(_,_)).
 hook(user:prolog_list_goal(_)).
 hook(user:prolog_predicate_name(_,_)).
 hook(user:prolog_trace_interception(_,_,_,_)).
+
+
+%	arith_callable(+Spec, -Callable)
+%	
+%	Translate argument of arithmetic_function/1 into a callable term
+
+arith_callable(Var, _) :-
+	var(Var), !, fail.
+arith_callable(Module:Spec, Module:Goal) :- !,
+	arith_callable(Spec, Goal).
+arith_callable(Name/Arity, Goal) :-
+	PredArity is Arity + 1,
+	functor(Goal, Name, PredArity).
 
 
 %	process_body(+Body, +Origin, +Src)
