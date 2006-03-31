@@ -1,4 +1,5 @@
 %   $Id$
+%   
 %   File   : GRAPHS.PL
 %   Author : R.A.O'Keefe
 %   Updated: 20 March 1984
@@ -41,7 +42,8 @@
 	    transitive_closure/2,	% +Graph, -Closure
 	    transpose/2,		% +Graph, -NewGraph
 	    vertices/2,			% +Graph, -Vertices
-	    vertices_edges_to_ugraph/3	% +Vertices, +Edges, -Graph
+	    vertices_edges_to_ugraph/3,	% +Vertices, +Edges, -Graph
+	    ugraph_union/3		% +Graph1, +Graph2, -Graph
 	  ]).
 
 :- use_module(library(lists), [
@@ -178,26 +180,26 @@ split_on_del_vertices(=, _, _, [_|Vs], Vs, _, NG, NG).
 
 add_edges(Graph, Edges, NewGraph) :-
 	p_to_s_graph(Edges, G1),
-	graph_union(Graph, G1, NewGraph).
+	ugraph_union(Graph, G1, NewGraph).
 
-%	graph_union(+Set1, +Set2, ?Union)
+%	ugraph_union(+Set1, +Set2, ?Union)
 %   
 %	Is true when Union is the union of Set1 and Set2. This code is a
 %	copy of set union
 
-graph_union(Set1, [], Set1) :- !.
-graph_union([], Set2, Set2) :- !.
-graph_union([Head1-E1|Tail1], [Head2-E2|Tail2], Union) :-
+ugraph_union(Set1, [], Set1) :- !.
+ugraph_union([], Set2, Set2) :- !.
+ugraph_union([Head1-E1|Tail1], [Head2-E2|Tail2], Union) :-
 	compare(Order, Head1, Head2),
-	graph_union(Order, Head1-E1, Tail1, Head2-E2, Tail2, Union).
+	ugraph_union(Order, Head1-E1, Tail1, Head2-E2, Tail2, Union).
 
-graph_union(=, Head-E1,  Tail1, _-E2,     Tail2, [Head-Es|Union]) :-
+ugraph_union(=, Head-E1, Tail1, _-E2, Tail2, [Head-Es|Union]) :-
 	ord_union(E1, E2, Es),
-	graph_union(Tail1, Tail2, Union).
-graph_union(<, Head1, Tail1, Head2, Tail2, [Head1|Union]) :-
-	graph_union(Tail1, [Head2|Tail2], Union).
-graph_union(>, Head1, Tail1, Head2, Tail2, [Head2|Union]) :-
-	graph_union([Head1|Tail1], Tail2, Union).
+	ugraph_union(Tail1, Tail2, Union).
+ugraph_union(<, Head1, Tail1, Head2, Tail2, [Head1|Union]) :-
+	ugraph_union(Tail1, [Head2|Tail2], Union).
+ugraph_union(>, Head1, Tail1, Head2, Tail2, [Head2|Union]) :-
+	ugraph_union([Head1|Tail1], Tail2, Union).
 
 del_edges(Graph, Edges, NewGraph) :-
 	p_to_s_graph(Edges, G1),

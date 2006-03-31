@@ -152,6 +152,14 @@ the \jargon{sources} of \arg{RightGraph}.   Example:
 L = [1-[4], 2-[1,2,4], 3-[]]
 \end{code}
 
+    \predicate{ugraph_union}{3}{+Graph1, +Graph2, -NewGraph}
+\arg{NewGraph} is the union of \arg{Graph1} and \arg{Graph2}.   Example: 
+
+\begin{code}
+?- ugraph_union([1-[2],2-[3]],[2-[4],3-[1,2,4]],L).
+L = [1-[2], 2-[3,4], 3-[1,2,4]]
+\end{code}
+
     \predicate{top_sort}{2}{+Graph, -Sort}
 Generate the set of nodes \arg{Sort} as a topological sorting of graph
 \arg{Graph}, if one is possible. A toplogical sort is possible if the

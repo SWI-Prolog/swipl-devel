@@ -52,6 +52,7 @@
 \predicatesummary{top_sort}{3}{Sort graph topologically}
 \predicatesummary{transitive_closure}{2}{Create transitive closure of graph}
 \predicatesummary{reachable}{3}{Find all reachable vertices}
+\predicatesummary{ugraph_union}{3}{Union of two graphs}
 \end{summarylist}
 
 
