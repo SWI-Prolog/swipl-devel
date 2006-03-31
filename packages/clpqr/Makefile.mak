@@ -22,7 +22,7 @@ CLPRPRIV=	bb_r.pl bv_r.pl fourmotz_r.pl ineq_r.pl \
 CLPQPRIV=	bb_q.pl bv_q.pl fourmotz_q.pl ineq_q.pl \
 		itf_q.pl nf_q.pl store_q.pl
 CLPQRPRIV=	class.pl dump.pl geler.pl itf.pl ordering.pl \
-		project.pl redund.pl ugraphs.pl
+		project.pl redund.pl
 LIBPL=		clpr.pl clpq.pl
 EXAMPLES=	
 

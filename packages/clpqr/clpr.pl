@@ -79,7 +79,7 @@ user:portray_message(warning,import(_,_,clpr,private)).
 	    'clpqr/ordering',
 	    'clpqr/project',
 	    'clpqr/redund',
-	    'clpqr/ugraphs'
+	    library(ugraphs)
 	],
 	[
 	    if(not_loaded),

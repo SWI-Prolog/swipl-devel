@@ -54,11 +54,12 @@
 	[
 	    clp_type/2
 	]).
-:- use_module(ugraphs,
+:- use_module(library(ugraphs),
 	[
 	    add_edges/3,
 	    add_vertices/3,
-	    top_sort/2
+	    top_sort/2,
+	    ugraph_union/3
 	]).
 :- use_module(library(lists),
 	[
@@ -120,7 +121,7 @@ join_class([X|Xs],Class) :-
 combine(Ga,Gb,Gc) :-
 	normalize(Ga,Gan),
 	normalize(Gb,Gbn),
-	ugraphs:graph_union(Gan,Gbn,Gc).
+	ugraph_union(Gan,Gbn,Gc).
 
 %
 % both Ga and Gb might have their internal ordering invalidated
