@@ -167,12 +167,7 @@ some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if HAVE_SIGNAL
-
-#ifdef __WIN32__
-#define HAVE_SIGNALS !iswin32s()
-#else
 #define HAVE_SIGNALS 1
-#endif
 
 #define PLSIG_PREPARED 0x01		/* signal is prepared */
 #define PLSIG_THROW    0x02		/* throw signal(num, name) */

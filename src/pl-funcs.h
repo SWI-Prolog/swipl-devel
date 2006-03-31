@@ -527,9 +527,6 @@ COMMON(int) 		Unsetenv(char *name);
 COMMON(int) 		System(char *cmd);
 COMMON(char *) 		findExecutable(const char *module, char *buf);
 COMMON(int) 		Pause(real time);
-#if __WIN32__
-COMMON(int) 		iswin32s(void);
-#endif /*__WIN32__*/
 
 /* pl-prims.c */
 COMMON(word) 		pl_notunify(term_t t1, term_t t2);

@@ -134,10 +134,7 @@ initOs(void)
   initEnviron();
 
 #ifdef __WIN32__
-  if ( iswin32s() )
-    set(&features, DOS_FILE_NAMES_FEATURE);
-  else
-    set(&features, FILE_CASE_PRESERVING_FEATURE);
+  set(&features, FILE_CASE_PRESERVING_FEATURE);
 #else
   set(&features, FILE_CASE_FEATURE);
   set(&features, FILE_CASE_PRESERVING_FEATURE);

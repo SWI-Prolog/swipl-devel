@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * CLEANUP: Removed win32s support (windows 3.1 extender).
+
   * MODIFIED: use goal_expansion/2 on directives.
 
   * ADDED/MODIFIED: library-independent unicode support for parsing text.

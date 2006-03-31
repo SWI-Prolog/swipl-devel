@@ -93,17 +93,6 @@ PlMessage(const char *fm, ...)
   va_end(args);
 }
 
-		 /*******************************
-		 *	       WIN32		*
-		 *******************************/
-
-int
-iswin32s()
-{ if( GetVersion() & 0x80000000 && (GetVersion() & 0xFF) ==3)
-    return TRUE;
-  else
-    return FALSE;
-}
 
 
 		 /*******************************

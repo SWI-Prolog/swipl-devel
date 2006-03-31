@@ -726,8 +726,6 @@ initFeatures()
 { defFeature("iso",  FT_BOOL, FALSE, ISO_FEATURE);
   defFeature("arch", FT_ATOM|FF_READONLY, ARCH);
 #if __WIN32__
-  if ( iswin32s() )
-    defFeature("win32s", FT_BOOL|FF_READONLY, TRUE, 0);
   defFeature("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
   defFeature("version",	FT_INTEGER|FF_READONLY, PLVERSION);
