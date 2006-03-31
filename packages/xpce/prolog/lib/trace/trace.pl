@@ -49,8 +49,7 @@
 
 :- thread_local
 	last_action/1,
-	show_unify_as/2,
-	showing/1.
+	show_unify_as/2.
 
 user:prolog_trace_interception(Port, Frame, CHP, Action) :-
 	current_prolog_flag(gui_tracer, true),
@@ -248,8 +247,6 @@ show(StartFrame, CHP, Up, Port, Style) :-
 			    stack
 			  ]),
 	find_frame(Up, StartFrame, Port, PC, Frame),
-	retractall(showing(_)),
-	assert(showing(Frame)),
 	prolog_show_frame(Frame,
 			  [ pc(PC),
 			    port(Port),

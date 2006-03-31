@@ -605,7 +605,7 @@ hook(user:prolog_clause_name(_,_)).
 hook(user:prolog_list_goal(_)).
 hook(user:prolog_predicate_name(_,_)).
 hook(user:prolog_trace_interception(_,_,_,_)).
-
+hook(user:prolog_event_hook(_)).
 
 %	arith_callable(+Spec, -Callable)
 %	

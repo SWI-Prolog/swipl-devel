@@ -595,10 +595,10 @@ export_link_1(ExportFile, ImportFile, Callable) :-	% module import
 export_link_1(ExportFile, ImportFile, Callable) :-	% Non-module import
 	xref_called(ImportFile, Callable),
 	\+ (  xref_defined(ImportFile, Callable, How),
-	      How \= import(_)
+	      How \= imported(_)
 	   ),
 					% see also undefined/2
-	(   xref_defined(ImportFile, Callable, import(ExportFile))
+	(   xref_defined(ImportFile, Callable, imported(ExportFile))
 	;   defined(ExportFile, Callable),
 	    \+ xref_module(ExportFile, _)
 	;   Callable = _:_,
