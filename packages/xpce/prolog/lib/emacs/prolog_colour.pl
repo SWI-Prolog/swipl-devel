@@ -716,6 +716,33 @@ colourise_exports2([G0|GT], TB, [P0|PT]) :- !,
 	colourise_exports2(GT, TB, PT).
 colourise_exports2(_, _, _).
 
+
+%	colourise_imports(+List, +File, +TB, +Pos)
+%	
+%	Colourise import list from use_module/2, importing from File.
+
+colourise_imports(List, File, TB, Pos) :-
+	(   xref_public_list(File, _, Public, TB)
+	->  true
+	;   Public = []
+	),
+	colourise_imports(List, File, Public, TB, Pos).
+
+colourise_imports([], _, _, _, _).
+colourise_imports(List, File, Public, TB, list_position(_,_,ElmPos,Tail)) :- !,
+	(   Tail == none
+	->  true
+	;   colour_item(type_error(list), TB, Tail)
+	),
+	colourise_imports2(List, File, Public, TB, ElmPos).
+colourise_imports(_, _, _, TB, Pos) :-
+	colour_item(type_error(list), TB, Pos).	
+
+colourise_imports2([G0|GT], File, Public, TB, [P0|PT]) :- !,
+	colourise_declaration(G0, TB, P0),
+	colourise_imports2(GT, File, Public, TB, PT).
+colourise_imports2(_, _, _, _, _).
+
 %	colourise_declarations(+Term, +TB, +Pos)
 %	
 %	Colourise the Name/Arity lists of dynamic, multifile, etc
@@ -873,7 +900,7 @@ built_in_predicate(module(_, _)).
 
 goal_colours(module(_,_),	     built_in-[identifier,exports]).
 goal_colours(use_module(_),	     built_in-[file]).
-goal_colours(use_module(_,_),	     built_in-[file,classify]).
+goal_colours(use_module(File,_),     built_in-[file,imports(File)]).
 goal_colours(dynamic(_),	     built_in-[predicates]).
 goal_colours(thread_local(_),	     built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
@@ -1174,6 +1201,9 @@ specified_item(file, Term, TB, Pos) :- !,
 					% [Name/Arity, ...]
 specified_item(exports, Term, TB, Pos) :- !,
 	colourise_exports(Term, TB, Pos).
+					% [Name/Arity, ...]
+specified_item(imports(File), Term, TB, Pos) :- !,
+	colourise_imports(Term, File, TB, Pos).
 					% Name/Arity, ...
 specified_item(predicates, Term, TB, Pos) :- !,
 	colourise_declarations(Term, TB, Pos).

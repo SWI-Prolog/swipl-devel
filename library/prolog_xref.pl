@@ -407,8 +407,8 @@ process_directive(List, Src) :-
 	is_list(List), !,
 	process_directive(consult(List), Src).
 process_directive(use_module(Spec, Import), Src) :-
-	xref_source_file(Spec, Path, Src),
-	assert_import(Src, Import, Path).
+	xref_public_list(Spec, Path, Public, Src),
+	assert_import(Src, Import, Public, Path).
 process_directive(use_module(Modules), Src) :-
 	process_use_module(Modules, Src).
 process_directive(consult(Modules), Src) :-
@@ -999,14 +999,25 @@ assert_foreign(Src, Goal) :-
 	flag(xref_src_line, Line, Line),
 	assert(foreign(Term, Src, Line)).
 
-assert_import(_, [], _) :- !.
-assert_import(Src, [H|T], From) :- !,
-	assert_import(Src, H, From),
-	assert_import(Src, T, From).
-assert_import(Src, Name/Arity, From) :- !,
+%	assert_import(+Src, +ImportList, +From)
+%	assert_import(+Src, +ImportList, +PublicList, +From)
+
+assert_import(Src, Import, From) :-
+	assert_import(Src, Import, _, From).
+
+assert_import(_, [], _, _) :- !.
+assert_import(Src, [H|T], Public, From) :- !,
+	assert_import(Src, H, Public, From),
+	assert_import(Src, T, Public, From).
+assert_import(Src, Name/Arity, Public, From) :-
+	atom(Name), integer(Arity), !,
 	functor(Term, Name, Arity),
-	assert(imported(Term, Src, From)).
-assert_import(Src, op(P,T,N), _) :-
+	(   member(Name/Arity, Public)
+	->  assert(imported(Term, Src, From))
+	;   flag(xref_src_line, Line, Line),
+	    assert_called(Src, '<directive>'(Line), Term)
+	).
+assert_import(Src, op(P,T,N), _, _) :-
 	xref_push_op(Src, P,T,N).
 
 %	assert_op(+Src, op(P,T,N))
