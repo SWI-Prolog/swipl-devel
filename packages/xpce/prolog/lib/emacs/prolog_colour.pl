@@ -239,6 +239,8 @@ fix_operators(_, _).
 
 process_directive(style_check(X), _) :- !,
 	style_check(X).
+process_directive(system_mode(on), _) :- !,
+	style_check(+dollar).
 process_directive($(Name), _) :-
 	atom(Name),
 	style_check(+dollar),

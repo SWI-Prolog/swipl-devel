@@ -81,15 +81,15 @@ qsave_program(FileSpec, Options0) :-
 	->  delete_file(File)
 	;   true
 	),
-	$rc_open_archive(File, RC),
+	'$rc_open_archive'(File, RC),
 	make_header(RC, SaveClass, Options),
 	save_options(RC, [ class(SaveClass),
 			   init_file(InitFile)
 			 | Options
 			 ]),
 	save_resources(RC, SaveClass),
-	$rc_open(RC, $state, $prolog, write, StateFd),
-	$open_wic(StateFd),
+	'$rc_open'(RC, '$state', '$prolog', write, StateFd),
+	'$open_wic'(StateFd),
 	system_mode(on),		% generate system modules too
 	save_modules(SaveClass),
 	save_records,
@@ -99,12 +99,11 @@ qsave_program(FileSpec, Options0) :-
 	save_operators(SaveOps),
 	save_format_predicates,
 	save_functions,
-%	save_foreign_libraries,
 	system_mode(off),
-	$close_wic,
+	'$close_wic',
 	close(StateFd),
-	$rc_close_archive(RC),
-	$mark_executable(File),
+	'$rc_close_archive'(RC),
+	'$mark_executable'(File),
 	close_map.
 
 exe_file(Base, Exe) :-
@@ -115,7 +114,7 @@ exe_file(Exe, Exe).
 
 default_init_file(runtime, none) :- !.
 default_init_file(_,       InitFile) :-
-	$option(init_file, InitFile, InitFile).
+	'$option'(init_file, InitFile, InitFile).
 
 
 		 /*******************************
@@ -126,7 +125,7 @@ make_header(RC, _, Options) :-
 	option(Options, emulator/(-), OptVal, _),
 	OptVal \== -, !,
 	absolute_file_name(OptVal, [access(read)], Emulator),
-	$rc_append_file(RC, $header, $rc, none, Emulator).
+	'$rc_append_file'(RC, '$header', '$rc', none, Emulator).
 make_header(RC, _, Options) :-
 	(   current_prolog_flag(windows, true)
 	->  DefStandAlone = true
@@ -135,11 +134,11 @@ make_header(RC, _, Options) :-
 	option(Options, stand_alone/DefStandAlone, OptVal, _),
 	OptVal == true, !,
 	current_prolog_flag(executable, Executable),
-	$rc_append_file(RC, $header, $rc, none, Executable).
+	'$rc_append_file'(RC, '$header', '$rc', none, Executable).
 make_header(RC, SaveClass, _Options) :-
 	current_prolog_flag(unix, true),
 	current_prolog_flag(executable, Executable),
-	$rc_open(RC, $header, $rc, write, Fd),
+	'$rc_open'(RC, '$header', '$rc', write, Fd),
 	format(Fd, '#!/bin/sh~n', []),
 	format(Fd, '# SWI-Prolog saved state~n', []),
 	(   SaveClass == runtime
@@ -177,8 +176,8 @@ avoid a save-script loading itself.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 save_options(RC, Options) :-
-	$rc_open(RC, $options, $prolog, write, Fd),
-	(   $option(OptionName, OptionVal0, _),
+	'$rc_open'(RC, '$options', '$prolog', write, Fd),
+	(   '$option'(OptionName, OptionVal0, _),
 	        (   OptionName == home	% save home if not runtime
 		->  \+ memberchk(class(runtime), Options)
 		;   true
@@ -223,9 +222,9 @@ save_resource(RC, Name, Class, FileSpec) :-
 			   ], File), !,
 	feedback('~t~8|~w~t~32|~w~t~48|~w~n',
 		 [Name, Class, File]),
-	$rc_append_file(RC, Name, Class, none, File).
+	'$rc_append_file'(RC, Name, Class, none, File).
 save_resource(RC, Name, Class, _) :-
-	$rc_handle(SystemRC),
+	'$rc_handle'(SystemRC),
 	copy_resource(SystemRC, RC, Name, Class), !.
 save_resource(_, Name, Class, FileSpec) :-
 	print_message(warning,
@@ -234,8 +233,8 @@ save_resource(_, Name, Class, FileSpec) :-
 			    _)).
 
 copy_resources(ToRC) :-
-	$rc_handle(FromRC),
-	$rc_members(FromRC, List),
+	'$rc_handle'(FromRC),
+	'$rc_members'(FromRC, List),
 	(   member(rc(Name, Class), List),
 	    \+ user:resource(Name, Class, _),
 	    \+ reserved_resource(Name, Class),
@@ -244,13 +243,13 @@ copy_resources(ToRC) :-
 	;   true
 	).
 
-reserved_resource($header,	$rc).
-reserved_resource($state,	$prolog).
-reserved_resource($options,	$prolog).
+reserved_resource('$header',	'$rc').
+reserved_resource('$state',	'$prolog').
+reserved_resource('$options',	'$prolog').
 
 copy_resource(FromRC, ToRC, Name, Class) :-
-	$rc_open(FromRC, Name, Class, read, FdIn),
-	$rc_open(ToRC,	 Name, Class, write, FdOut),
+	'$rc_open'(FromRC, Name, Class, read, FdIn),
+	'$rc_open'(ToRC,	 Name, Class, write, FdOut),
 	feedback('~t~8|~w~t~24|~w~t~40|~w~n',
 		 [Name, Class, '<Copied from running state>']),
 	copy_stream_data(FdIn, FdOut),
@@ -295,7 +294,7 @@ save_autoload :-
 %	Saves a module
 
 save_module(M, SaveClass) :-
-	$qlf_start_module(M),
+	'$qlf_start_module'(M),
 	feedback('~n~nMODULE ~w~n', [M]),
 	save_unknown(M),
 	(   P = (M:H),
@@ -318,20 +317,20 @@ save_module(M, SaveClass) :-
 	    \+ predicate_property(P, (volatile)),
 	    nth_clause(P, _, Ref),
 	    feedback('.', []),
-	    $qlf_assert_clause(Ref, SaveClass),
+	    '$qlf_assert_clause'(Ref, SaveClass),
 	    fail
-	;   $qlf_end_part,
+	;   '$qlf_end_part',
 	    feedback('~n', [])
 	).
 	
-pred_attrib(dynamic,       P, $set_predicate_attribute(P, dynamic,       1)).
-pred_attrib(volatile,      P, $set_predicate_attribute(P, volatile,      1)).
-pred_attrib(thread_local,  P, $set_predicate_attribute(P, thread_local,  1)).
-pred_attrib(multifile,     P, $set_predicate_attribute(P, multifile,     1)).
-pred_attrib(transparent,   P, $set_predicate_attribute(P, transparent,   1)).
-pred_attrib(discontiguous, P, $set_predicate_attribute(P, discontiguous, 1)).
-pred_attrib(notrace,       P, $set_predicate_attribute(P, trace,         0)).
-pred_attrib(show_childs,   P, $set_predicate_attribute(P, hide_childs,   0)).
+pred_attrib(dynamic,       P, '$set_predicate_attribute'(P, dynamic,       1)).
+pred_attrib(volatile,      P, '$set_predicate_attribute'(P, volatile,      1)).
+pred_attrib(thread_local,  P, '$set_predicate_attribute'(P, thread_local,  1)).
+pred_attrib(multifile,     P, '$set_predicate_attribute'(P, multifile,     1)).
+pred_attrib(transparent,   P, '$set_predicate_attribute'(P, transparent,   1)).
+pred_attrib(discontiguous, P, '$set_predicate_attribute'(P, discontiguous, 1)).
+pred_attrib(notrace,       P, '$set_predicate_attribute'(P, trace,         0)).
+pred_attrib(show_childs,   P, '$set_predicate_attribute'(P, hide_childs,   0)).
 pred_attrib(indexed(Term), P, M:index(Term)) :-
 	strip_module(P, M, _).
 
@@ -347,7 +346,7 @@ save_attribute(P, Attribute) :-
 		 forall(between(2, Arity, N), arg(N, Term, 0))))
 	;   true
 	),
-	$add_directive_wic(D),
+	'$add_directive_wic'(D),
 	feedback('(~w) ', [Attribute]).
 
 save_attributes(P) :-
@@ -363,7 +362,7 @@ save_unknown(M) :-
 	current_prolog_flag(M:unknown, Unknown),
 	(   Unknown == error
 	->  true
-	;   $add_directive_wic(set_prolog_flag(M:unknown, Unknown))
+	;   '$add_directive_wic'(set_prolog_flag(M:unknown, Unknown))
 	).
 
 		 /*******************************
@@ -376,7 +375,7 @@ save_records :-
 	    feedback('~n~t~8|~w ', [X, V]),
 	    recorded(X, V, _),
 	    feedback('.', []),
-	    $add_directive_wic(recordz(X, V, _)),
+	    '$add_directive_wic'(recordz(X, V, _)),
 	    fail
 	;   true
 	).
@@ -391,7 +390,7 @@ save_flags :-
 	(   current_flag(X),
 	    flag(X, V, V),
 	    feedback('~t~8|~w = ~w~n', [X, V]),
-	    $add_directive_wic(flag(X, _, V)),
+	    '$add_directive_wic'(flag(X, _, V)),
 	    fail
 	;   true
 	).
@@ -402,14 +401,14 @@ save_flags :-
 
 default_import(system, _, _) :- !, fail.
 default_import(To, Head, _) :-
-	$get_predicate_attribute(To:Head, (dynamic), 1), !,
+	'$get_predicate_attribute'(To:Head, (dynamic), 1), !,
 	fail.
 default_import(user, Head, _) :- !,
-	$default_predicate(user:Head, system:Head).
+	'$default_predicate'(user:Head, system:Head).
 default_import(To, Head, _From) :-
-	$default_predicate(To:Head, user:Head).
+	'$default_predicate'(To:Head, user:Head).
 default_import(To, Head, _From) :-
-	$default_predicate(To:Head, system:Head).
+	'$default_predicate'(To:Head, system:Head).
 
 save_imports :-
 	feedback('~nIMPORTS~n~n', []),
@@ -417,7 +416,7 @@ save_imports :-
 	    \+ default_import(M, H, I),
 	    functor(H, F, A),
 	    feedback('~t~8|~w:~w/~d <-- ~w~n', [M, F, A, I]),
-	    $add_directive_wic(M:import(I:H)),
+	    '$add_directive_wic'(M:import(I:H)),
 	    fail
 	;   true
 	).	    
@@ -428,10 +427,10 @@ save_imports :-
 
 save_prolog_flags :-
 	feedback('~nPROLOG FLAGS~n~n', []),
-	$current_prolog_flag(Feature, Value, global, write, _Type),
+	'$current_prolog_flag'(Feature, Value, global, write, _Type),
 	\+ no_save_flag(Feature),
 	feedback('~t~8|~w: ~w~n', [Feature, Value]),
-	$add_directive_wic(qsave:restore_prolog_flag(Feature, Value)),
+	'$add_directive_wic'(qsave:restore_prolog_flag(Feature, Value)),
 	fail.
 save_prolog_flags.
 
@@ -460,7 +459,7 @@ save_operators(save) :- !,
 	append(Set, Deleted, Modify),
 	forall(member(O, Modify),
 	       (   feedback('~n~t~8|~w ', [O]),
-		   $add_directive_wic(O),
+		   '$add_directive_wic'(O),
 		   O)).
 save_operators(_).
 
@@ -504,7 +503,7 @@ save_format_predicates :-
 	qualify_head(Head, QHead),
 	D = format_predicate(Code, QHead),
 	feedback('~n~t~8|~w ', [D]),
-	$add_directive_wic(D),
+	'$add_directive_wic'(D),
 	fail.
 save_format_predicates.
 
@@ -525,20 +524,10 @@ save_functions :-
 	functor(PredHead, Name, PredArity),
 	D = '$arithmetic_function'(M:PredHead, Index),
 	feedback('~n~t~8|~w ', [D]),
-	$add_directive_wic(D),
+	'$add_directive_wic'(D),
 	fail.
 save_functions.
 
-
-		 /*******************************
-		 *       FOREIGN LIBRARIES	*
-		 *******************************/
-
-save_foreign_libraries :-
-	$c_current_predicate(_, shlib:reload_foreign_libraries), !,
-	feedback('~nFOREIGN LIBRARY HOOK~n', []),
-	$add_directive_wic(shlib:reload_foreign_libraries).
-save_foreign_libraries.
 
 
 		 /*******************************
@@ -627,6 +616,6 @@ check_type(bool, false).
 
 :- multifile prolog:message/3.
 
-message(no_resource(Name, Class, File)) -->
+prolog:message(no_resource(Name, Class, File)) -->
 	[ 'Could not find resource ~w/~w on ~w or system resources'-
 	  [Name, Class, File] ].

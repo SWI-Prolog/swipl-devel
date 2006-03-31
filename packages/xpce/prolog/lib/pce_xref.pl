@@ -1466,7 +1466,7 @@ margin(T, Width:int*, How:[{wrap,wrap_fixed_width,clip}]) :->
 	    send(F, column_sep, 0),
 	    send(F, row_sep, 0),
 	    send(T, format, F)
-	;   tbd
+	;   throw(tbd)
 	).
 
 :- pce_end_class(xref_graphical_list).
@@ -1803,21 +1803,6 @@ hidden_module(system) :- !.
 hidden_module(M) :-
 	sub_atom(M, 0, _, _, $).
 
-%	to_callable(+PI, -Callable)
-%	to_callable(+Callable, -Callable)
-%	
-%	Convert to a callable term
-
-to_callable(Module:PI, Callable) :-
-	atom(Module), !,
-	to_callable(PI, Callable).
-to_callable(Name/Arity, Callable) :- !,
-	functor(Callable, Name, Arity).
-to_callable(Callable, Callable) :-
-	callable(Callable), !.
-to_callable(In, _) :-
-	throw(error(type_error(In, callable_or_pi), _)).
-
 %	sort_callables(+List, -Sorted)
 %	
 %	Sort list of callable terms.
@@ -1843,22 +1828,6 @@ key_callable(Callable, k(Name, Arity, Module)) :-
 unkey([], []).
 unkey([_-H|T0], [H|T]) :-
 	unkey(T0, T).
-
-%	sort_by_callable_key(+Callable-Keyed, -Sorted)
-%	
-%	Sort a list of Callable-Value pairs by Callable
-
-sort_by_callable_key(CKeyed, Sorted) :-
-	key_callables_keys(CKeyed, Tagged),
-	keysort(Tagged, KeySorted),
-	unkey(KeySorted, Sorted).
-
-key_callables_keys([], []).
-key_callables_keys([H|T0], [K-H|T]) :-
-	H = Callable-_,
-	key_callable(Callable, K),
-	key_callables_keys(T0, T).
-	
 
 %	ord_list_to_set(+OrdList, -OrdSet)
 %	

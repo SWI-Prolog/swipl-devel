@@ -428,6 +428,8 @@ process_directive(multifile(Dynamic), Src) :-
 process_directive(module(Module, Export), Src) :-
 	assert_module(Src, Module),
 	assert_export(Src, Export).
+process_directive(system_mode(on), _Src) :- !,
+	style_check(+dollar).
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
 	assert_defined_class(Src, Name, Meta, Super, Doc).
 process_directive(pce_autoload(Name, From), Src) :-
@@ -541,6 +543,7 @@ xref_meta(profile(G),		[G]).
 xref_meta(at_halt(G),		[G]).
 xref_meta(call_with_time_limit(_, G), [G]).
 xref_meta(call_with_depth_limit(G, _, _), [G]).
+xref_meta('$add_directive_wic'(G), [G]).
 
 					% XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
