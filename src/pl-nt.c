@@ -246,10 +246,8 @@ findExecutable(const char *module, char *exe)
     hmod = NULL;
 
   if ( (n = GetModuleFileNameW(hmod, wbuf, MAXPATHLEN)) > 0 )
-  { char buf2[MAXPATHLEN];
-
-    wbuf[n] = EOS;
-    return _xos_long_file_name_toA(wbuf, buf2, MAXPATHLEN);
+  { wbuf[n] = EOS;
+    return _xos_long_file_name_toA(wbuf, exe, MAXPATHLEN);
   } else if ( module )
   { char buf[MAXPATHLEN];
     PrologPath(module, buf, sizeof(buf));
