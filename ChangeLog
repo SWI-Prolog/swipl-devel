@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Library ugraphs.pl.  Unweigthed graph library.  Copied from
+    YAP.  Integrated into SWI-Prolog library and documentation.
+
   * FIXED: Bug#160: Track called as result of auto-import from module
     user.  Holger Kanwischer.
 

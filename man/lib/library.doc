@@ -28,6 +28,7 @@ documented at all.
 
 \input{lists}
 \input{assoc}
+\input{ugraphs}
 \input{nbset}
 \input{gensym}
 \input{check}

@@ -2,11 +2,11 @@
 # Makefile for SWI-Prolog 3.x on MS-Windows
 #
 # Author:	Jan Wielemaker
-#		jan@swi.psy.uva.nl
-#		SWI
+#		wielemak@science.uva.nl
+#		HCS (formerly SWI)
 #		University of Amsterdam
-#    		Roetersstraat 15
-#		1018 WB  Amsterdam
+#    		Kruislaan 419
+#		1098 VA  Amsterdam
 #		The Netherlands
 #
 # Public targets:
@@ -79,7 +79,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	qsave.pl shlib.pl statistics.pl system.pl \
 	backcomp.pl gensym.pl listing.pl debug.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
-	edit.pl emacs_interface.pl shell.pl check.pl \
+	edit.pl emacs_interface.pl shell.pl check.pl ugraphs.pl \
 	tty.pl readln.pl readutil.pl make.pl option.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
 	www_browser.pl url.pl win_menu.pl assoc.pl nb_set.pl \

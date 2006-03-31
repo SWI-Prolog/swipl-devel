@@ -33,7 +33,29 @@
 \predicatesummary{union}{3}{Union of two sets}
 \end{summarylist}
 
-\subsection{\pllib{netscape}}
+\subsection{\pllib{ugraphs}}
+
+\begin{summarylist}{ll}
+\predicatesummary{vertices_edges_to_ugraph}{3}{Create unweighted graph}
+\predicatesummary{vertices}{2}{Find vertices in graph}
+\predicatesummary{edges}{2}{Find edges in graph}
+\predicatesummary{add_vertices}{3}{Add vertices to graph}
+\predicatesummary{del_vertices}{3}{Delete vertices from graph}
+\predicatesummary{add_edges}{3}{Add edges to graph}
+\predicatesummary{del_edges}{3}{Delete edges from graph}
+\predicatesummary{transpose}{2}{Invert the direction of all edges}
+\predicatesummary{neighbors}{3}{Find neighbors of vertice}
+\predicatesummary{neighbours}{3}{Find neighbors of vertice}
+\predicatesummary{complement}{2}{Inverse presense of edges}
+\predicatesummary{compose}{3}{}
+\predicatesummary{top_sort}{2}{Sort graph topologically}
+\predicatesummary{top_sort}{3}{Sort graph topologically}
+\predicatesummary{transitive_closure}{2}{Create transitive closure of graph}
+\predicatesummary{reachable}{3}{Find all reachable vertices}
+\end{summarylist}
+
+
+\subsection{\pllib{www_browser}}
 
 \begin{summarylist}{ll}
 \predicatesummary{www_open_url}{1}{Open a web-page in a browser}

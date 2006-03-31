@@ -136,7 +136,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	tty.pl readln.pl readutil.pl make.pl option.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
 	www_browser.pl url.pl main.pl assoc.pl nb_set.pl \
-	threadutil.pl qpforeign.pl dif.pl when.pl \
+	threadutil.pl qpforeign.pl dif.pl when.pl ugraphs.pl \
 	checklast.pl checkselect.pl operators.pl \
 	prolog_stack.pl prolog_clause.pl prolog_xref.pl
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl
