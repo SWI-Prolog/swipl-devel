@@ -1987,6 +1987,9 @@ not_called(File, NotCalled) :-		% non-module version
 	   ;   NotCalled = M:G,
 	       xref_called(ModFile, G),
 	       xref_module(ModFile, M)
+	   ;   xref_called(AutoImportFile, NotCalled),
+	       \+ defined(AutoImportFile, NotCalled),
+	       global_predicate(NotCalled)
 	   ).
 	   
 %	xref_called(?Source, ?Callable) 

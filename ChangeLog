@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#160: Track called as result of auto-import from module
+    user.  Holger Kanwischer.
+
   * FIXED: Bug#158: XREF handling of arithmetic_function directive with
     module qualifier.  Holger Kanwischer.
 
