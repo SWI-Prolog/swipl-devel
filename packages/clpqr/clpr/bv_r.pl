@@ -61,7 +61,7 @@
 	    iterate_dec/2,
 	    lb/3,
 	    pivot_a/4,
-	    pivot/4,
+	    pivot/5,
 	    rcbl_status/6,
 	    reconsider/1,
 	    same_class/2,
@@ -87,6 +87,7 @@
 :- use_module(store_r,
 	[
 	    add_linear_11/3,
+	    add_linear_f1/4,
 	    add_linear_ff/5,
 	    delete_factor/4,
 	    indep/2,
@@ -1101,6 +1102,7 @@ determine_active(t_lu(L,U),X,K,S) :-
 
 detach_bounds(V) :-
 	get_attr(V,itf,Att),
+	arg(2,Att,type(Type)),
 	arg(4,Att,lin(Lin)),
 	arg(5,Att,order(OrdV)),
 	arg(6,Att,class(Class)),
@@ -1110,10 +1112,10 @@ detach_bounds(V) :-
 	->  (   ub(Class,OrdV,Vub-Vb-_)
 	    ->	% exchange against thightest
 		class_basis_drop(Class,Vub),
-		pivot(Vub,Class,OrdV,Vb)
+		pivot(Vub,Class,OrdV,Vb,Type)
 	    ;   lb(Class,OrdV,Vlb-Vb-_)
 	    ->  class_basis_drop(Class,Vlb),
-		pivot(Vlb,Class,OrdV,Vb)
+		pivot(Vlb,Class,OrdV,Vb,Type)
 	    ;   true
 	    )
 	;   class_basis_drop(Class,V)
@@ -1121,14 +1123,15 @@ detach_bounds(V) :-
 
 detach_bounds_vlv(OrdV,Lin,Class,Var,NewLin) :-
 	(   indep(Lin,OrdV)
-	->  (   ub(Class,OrdV,Vub-Vb-_)
+	->  Lin = [_,R|_],
+	    (   ub(Class,OrdV,Vub-Vb-_)
 	    ->  % in verify_lin, class might contain two occurrences of Var,
 		% but it doesn't matter which one we delete
 		class_basis_drop(Class,Var),
-		pivot_vlv(Vub,Class,OrdV,Vb,NewLin)
+		pivot_vlv(Vub,Class,OrdV,Vb,R,NewLin)
 	    ;   lb(Class,OrdV,Vlb-Vb-_)
 	    ->  class_basis_drop(Class,Var),
-		pivot_vlv(Vlb,Class,OrdV,Vb,NewLin)
+		pivot_vlv(Vlb,Class,OrdV,Vb,R,NewLin)
 	    ;   NewLin = Lin
 	    )
 	;   NewLin = Lin,
@@ -1210,9 +1213,10 @@ pivot(Dep,Indep) :-
 pivot_a(Dep,Indep,Vb,Wd) :-
 	basis_pivot(Dep,Indep),
 	get_attr(Indep,itf,Att),
+	arg(2,Att,type(Type)),
 	arg(5,Att,order(Ord)),
 	arg(6,Att,class(Class)),
-	pivot(Dep,Class,Ord,Vb),
+	pivot(Dep,Class,Ord,Vb,Type),
 	get_attr(Indep,itf,Att2), %changed?
 	setarg(2,Att2,type(Wd)).
 
@@ -1247,7 +1251,7 @@ select_active_bound(t_u(_),0.0).
 select_active_bound(t_lu(_,_),0.0).
 
 
-% pivot(Dep,Class,IndepOrd,IndAct)
+% pivot(Dep,Class,IndepOrd,DepAct,IndAct)
 %
 % See pivot/2.
 % In addition, variable Indep with ordering IndepOrd has an active bound IndAct
@@ -1256,31 +1260,37 @@ select_active_bound(t_lu(_,_),0.0).
 %
 % Pivot taking care of rhs and active states
 %
-pivot(Dep,Class,IndepOrd,IndAct) :-
+pivot(Dep,Class,IndepOrd,DepAct,IndAct) :-
 	get_attr(Dep,itf,Att),
 	arg(4,Att,lin(H)),
 	arg(5,Att,order(DepOrd)),
-	setarg(2,Att,type(IndAct)),
-	select_active_bound(IndAct,Abv), % Dep or Indep
+	setarg(2,Att,type(DepAct)),
+	select_active_bound(DepAct,AbvD), % New current value for Dep
+	select_active_bound(IndAct,AbvI), % New current value of Indep
 	delete_factor(IndepOrd,H,H0,Coeff), % Dep = ... + Coeff*Indep + ...
+	Coeffm is -(Coeff+1),
+	add_linear_f1([0,AbvI],Coeffm,H0,H1),
 	K is -1.0/Coeff,
-	Abvm is -Abv,
-	add_linear_ff(H0,K,[0.0,Abvm,l(Dep* -1.0,DepOrd)],K,Lin),
+	AbvDm is -AbvD,
+	add_linear_ff(H1,K,[0.0,AbvDm,l(Dep* -1.0,DepOrd)],K,Lin),
 	    % Indep = -1/Coeff*... + 1/Coeff*Dep
 	backsubst(Class,IndepOrd,Lin).
 
-pivot_vlv(Dep,Class,IndepOrd,IndAct,Lin) :-
+pivot_vlv(Dep,Class,IndepOrd,DepAct,AbvI,Lin) :-
 	get_attr(Dep,itf,Att),
 	arg(4,Att,lin(H)),
 	arg(5,Att,order(DepOrd)),
-	setarg(2,Att,type(IndAct)),
-	select_active_bound(IndAct,Abv), % Dep or Indep
+	setarg(2,Att,type(DepAct)),
+	select_active_bound(DepAct,AbvD), % New current value for Dep
 	delete_factor(IndepOrd,H,H0,Coeff), % Dep = ... + Coeff*Indep + ...
+	AbvDm is -AbvD,
+	AbvIm is -AbvI,
+	add_linear_f1([0.0,AbvIm],Coeff,H0,H1),
 	K is -1.0/Coeff,
-	Abvm is -Abv,
-	add_linear_ff(H0,K,[0.0,Abvm,l(Dep* -1.0,DepOrd)],K,Lin),
+	add_linear_ff(H1,K,[0.0,AbvDm,l(Dep* -1.0,DepOrd)],K,Lin),
 	    % Indep = -1/Coeff*... + 1/Coeff*Dep
-	backsubst(Class,IndepOrd,Lin).
+	add_linear_11(Lin,[0.0,AbvIm],SubstLin),
+	backsubst(Class,IndepOrd,SubstLin).
 
 % backsubst_delta(Class,OrdX,X,Delta)
 %

@@ -48,7 +48,7 @@
 	    allvars/2,
 	    basis_add/2,
 	    detach_bounds/1,
-	    pivot/4,	
+	    pivot/5,	
 	    var_with_def_intern/4
 	]).
 :- use_module('../clpqr/class',
@@ -188,9 +188,10 @@ reverse_pivot([I:D|Ps]) :-
 	arg(2,AttD,type(Dt)),
 	setarg(11,AttD,n), % no longer
 	get_attr(I,itf,AttI),
+	arg(2,AttI,type(It)),
 	arg(5,AttI,order(OrdI)),
 	arg(6,AttI,class(ClI)),
-	pivot(D,ClI,OrdI,Dt),
+	pivot(D,ClI,OrdI,Dt,It),
 	reverse_pivot(Ps).
 
 % unkeep(Pivots)
