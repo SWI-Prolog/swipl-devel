@@ -340,8 +340,7 @@ static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks();
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
-static int	get_message_queue(term_t t, message_queue **queue,
-				  int create);
+static int	get_message_queue(term_t t, message_queue **queue);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 static int	unify_thread(term_t id, PL_thread_info_t *info);
 static pl_mutex *mutexCreate(atom_t name);
@@ -2004,7 +2003,7 @@ pl_thread_send_message(term_t queue, term_t msg)
 { message_queue *q;
 
   LOCK();
-  if ( !get_message_queue(queue, &q, TRUE) )
+  if ( !get_message_queue(queue, &q) )
   { UNLOCK();
     fail;
   }
@@ -2085,7 +2084,7 @@ unlocked_message_queue_create(term_t queue)
 */
 
 static int
-get_message_queue(term_t t, message_queue **queue, int create)
+get_message_queue(term_t t, message_queue **queue)
 { atom_t name;
   word id = 0;
   int tid;
@@ -2129,15 +2128,6 @@ get_message_queue(term_t t, message_queue **queue, int create)
     }
   }
 
-  if ( create && isTextAtom(id) )
-  { message_queue *new;
-
-    if ( (new = unlocked_message_queue_create(t)) )
-    { *queue = new;
-      return TRUE;
-    }
-  }
-
   return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
 }
 
@@ -2160,7 +2150,7 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   Symbol s;
 
   LOCK();
-  if ( !get_message_queue(A1, &q, FALSE) )
+  if ( !get_message_queue(A1, &q) )
   { UNLOCK();
     fail;
   }
@@ -2189,10 +2179,14 @@ static
 PRED_IMPL("message_queue_size", 2, message_queue_size, 0)
 { message_queue *q;
   thread_message *m;
-  int n;
-					/* Needs lock? */
-  if ( !get_message_queue(A1, &q, TRUE) )
+  int rc, n;
+
+  LOCK();
+  rc = get_message_queue(A1, &q);
+  UNLOCK();
+  if ( !rc )
     fail;
+
 
   simpleMutexLock(&q->mutex);
   for(n=0, m=q->head; m; m = m->next)
@@ -2213,9 +2207,12 @@ thread_get_message(-Message)
 static
 PRED_IMPL("thread_get_message", 2, thread_get_message, 0)
 { message_queue *q;
-
-					/* Needs lock? */
-  if ( !get_message_queue(A1, &q, TRUE) )
+  int rc;
+  
+  LOCK();
+  rc=get_message_queue(A1, &q);
+  UNLOCK();
+  if ( !rc )
     fail;
   
   return get_message(q, A2);
@@ -2225,8 +2222,12 @@ PRED_IMPL("thread_get_message", 2, thread_get_message, 0)
 static
 PRED_IMPL("thread_peek_message", 2, thread_peek_message, 0)
 { message_queue *q;
-
-  if ( !get_message_queue(A1, &q, TRUE) )
+  int rc;
+  
+  LOCK();
+  rc=get_message_queue(A1, &q);
+  UNLOCK();
+  if ( !rc )
     fail;
   
   return peek_message(q, A2);
