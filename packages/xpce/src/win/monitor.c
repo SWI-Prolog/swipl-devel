@@ -49,7 +49,7 @@ static char *T_initialise[] =
 /* Instance Variables */
 
 static vardecl var_monitor[] =
-{ IV(NAME_name, "name|int*", IV_BOTH,
+{ IV(NAME_name, "name|int*", IV_GET,
      NAME_name, "Name of the monitor"),
   IV(NAME_area, "area", IV_GET,
      NAME_area, "Area of the monitor")
