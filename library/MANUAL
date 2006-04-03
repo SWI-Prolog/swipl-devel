@@ -12,7 +12,7 @@
                          SSWWII--PPrroolloogg 55..66
 
                         RReeffeerreennccee MMaannuuaall
-             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._1_0_, _M_a_r_c_h _2_0_0_6
+             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._1_0_, _A_p_r_i_l _2_0_0_6
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                     wielemak@science.uva.nl
@@ -275,10 +275,10 @@ version.  Changes to the Prolog system include:
   o _R_e_d_e_f_i_n_i_t_i_o_n _o_f _s_y_s_t_e_m _p_r_e_d_i_c_a_t_e_s
     Redefinition  of system  predicates  was allowed  silently in  older
     versions.    Version 1.9  only allows it  if the  new definition  is
-    headed by a :- redefine_system_predicate/1 directive.
+    headed by a :- redefine_system_predicate/1 directive.top-level
 
   o _`_A_n_s_w_e_r_' _r_e_u_s_e
-    The  toplevel maintains  a table  of bindings  returned by  toplevel
+    The  top-level maintains a table  of bindings returned by  top-level
     goals  and  allows for  reuse  of these  bindings by  prefixing  the
     variables with the $ sign.  See section 2.8.
 
@@ -322,7 +322,7 @@ argument specification (see their respective manuals).   This allows for
 writing foreign  interfaces that  are easily portable  over these  three
 Prolog platforms.
 
-Apart from  various bug fixes  listed in the  Changelog file, these  are
+Apart from  various bug fixes  listed in the  ChangeLog file, these  are
 the main changes since 2.1.0:
 
   o _I_S_O _c_o_m_p_a_t_i_b_i_l_i_t_y
@@ -438,7 +438,7 @@ strings  as  lists  of  one-character  atoms  is   now  supported  (next
 to  character   codes  as  integers).      Many  more  exceptions   have
 been  added and  printing  of exceptions  and messages  is  rationalised
 using   Quintus   and   SICStus   Prolog   compatible   print_message/2,
-message_hook/3 and print_message_lines/3.   All predicates descriped  in
+message_hook/3 and print_message_lines/3.   All predicates described  in
 [Deransart _e_t _a_l_., 1996] are now implemented.
 
 As of version  3.3, SWI-Prolog adheres the  ISO _l_o_g_i_c_a_l _u_p_d_a_t_e _v_i_e_w  for
@@ -471,7 +471,7 @@ all easily fixed however.
     of  one-character atoms.    The behaviour  of the  old predicate  is
     available  in the  ---also ISO compliant---  atom_codes/2 predicate.
     Safest  repair is a  replacement of all  atom_chars  into atom_codes.
-    If you do not want to change any souce-code, you might want to use
+    If you do not want to change any source-code, you might want to use
 
     user:goal_expansion(atom_chars(A,B), atom_codes(A,B)).
 
@@ -529,7 +529,7 @@ important change:
     version  of select that enters the debugger if select is  called and
     the second argument is not a list.
 
-    This   library   can   be   loaded   explicitely   or   by   calling
+    This   library   can    be   loaded   explicitly   or   by   calling
     check_old_select/0.
 
 
@@ -544,7 +544,7 @@ Some useful tricks in the integrated environment:
 
   o _R_e_g_i_s_t_e_r _t_h_e _G_U_I _t_r_a_c_e_r
     Using  a call to guitracer/0,  hooks are installed that replace  the
-    normal command-line driven tracer with a graphical forntend.
+    normal command-line driven tracer with a graphical front-end.
 
   o _R_e_g_i_s_t_e_r _P_c_e_E_m_a_c_s _f_o_r _e_d_i_t_i_n_g _f_i_l_e_s
     From  your initialisation file.  you  can load emacs/swi_prolog that
@@ -587,7 +587,7 @@ threading and many related modifications to the kernel.
 Version  5.3.x   is  a  development   series  for  adding   coroutining,
 constraints, global variables,  cyclic terms (infinite trees) and  other
 goodies  to the  kernel.   The  package JPL,  providing a  bidirectional
-Java/Prolog  interface is  added  to the  common sourcetree  and  common
+Java/Prolog  interface is  added to  the common  source-tree and  common
 binary packages.
 
 
@@ -2717,7 +2717,7 @@ files using file_search_path/2.   This mechanism allows for  comfortable
 and readable specifications.
 
 Suppose  you  have  extensive  library  packages   on  graph-algorithms,
-set-operations  and  ui-primitives.     These  sub-projects  are  likely
+set-operations  and  GUI-primitives.    These  sub-projects  are  likely
 candidates for re-use in future projects.  A good choice  is to create a
 directory with sub-directories for each of these sub-projects.
 
@@ -2775,7 +2775,7 @@ list.
     environment.  It may start some of these tools.
 
 
-33..11..33 IInntteerrnnaattiioonnaall SSoouurrcceeffiilleess
+33..11..33 IInntteerrnnaattiioonnaall ssoouurrccee ffiilleess
 
 As  discussed  in   section  2.17,  SWI-Prolog  supports   international
 character  handling.   Its  internal encoding  is  UNICODE. I/O  streams
@@ -2785,7 +2785,7 @@ options for source-files not in US-ASCII.
 SWI-Prolog  can  read  files  in  any  of  the  encodings  described  in
 section 2.17.    Two encodings  are of particular  interest.   The  text
 encoding  deals with  the  current  _l_o_c_a_l_e,  the default  used  by  this
-computer for  representing textfiles.    The encodings utf8,  unicode_le
+computer for  representing text files.   The encodings  utf8, unicode_le
 and unicode_be are _U_N_I_C_O_D_E encodings:  they can represent---in  the same
 file---characters of  virtually any known language.   In addition,  they
 do so unambiguously.
@@ -2809,7 +2809,7 @@ source-file there are several options:
     local projects in countries with uniform locale conventions.
 
   o _U_s_i_n_g _U_T_F_-_8 _f_i_l_e_s
-    The  best way to specify sourcefiles with many  NON-ASCII characters
+    The best way  to specify source files with many NON-ASCII characters
     is  definitely the use  of UTF-8 encoding.   Prolog can be  notified
     two ways of  this encoding, using a UTF-8 _B_O_M (see section 2.17.1.1)
     or  using  the  directive  :- encoding(utf8)..    Many  todays  text
@@ -2918,8 +2918,8 @@ something wrong with prove/3, you do:
 
 Now  edit the  source,  possibly switching  to  other files  and  making
 multiple changes.   After  finishing invoke  make/0, either through  the
-editor UI () Compile/Make (Control-C Control-M)) or on  the toplevel and
-watch the files being reloaded.
+editor UI  () Compile/Make  (Control-C Control-M)) or  on the  top-level
+and watch the files being reloaded.
 
 ?- make.
 % show compiled into photo_gallery 0.03 sec, 3,360 bytes
@@ -2933,7 +2933,7 @@ watch the files being reloaded.
 Initially edit/1  uses the  editor specified in  the EDITOR  environment
 variable.   There are two ways to  force it to use the built-in  editor.
 One is to  set the prolog-flag editor  to pce_emacs and the other is  by
-starting the editor explictely using the emacs/[0,1] predicates.
+starting the editor explicitly using the emacs/[0,1] predicates.
 
 
 33..44..22 BBlluuffffiinngg tthhrroouugghh PPcceeEEmmaaccss
@@ -3067,7 +3067,7 @@ interpreting the  source as you  type it.   There  are three moments  at
 which PceEmacs checks (part of) the syntax.
 
   o _A_f_t_e_r _t_y_p_i_n_g _a .
-    After  typing a .  that is not preceeded  by a _s_y_m_b_o_l character  the
+    After  typing a .  that is  not preceded by  a _s_y_m_b_o_l character  the
     system  assumes you completed a clause,  tries to find the start  of
     this  clause and verifies the syntax.   If this process succeeds  it
     colours  the elements  of the  clause according to  the rules  given
@@ -3331,7 +3331,7 @@ interface called prolog_ide/1:
 
 pprroolloogg__iiddee((_+_A_c_t_i_o_n))
     This  predicate ensures the IDE  enabling XPCE component is  loaded,
-    creates  the XPCE class  _p_r_o_l_o_g___i_d_e  and sends _A_t_i_o_n  to its one  and
+    creates  the XPCE class _p_r_o_l_o_g___i_d_e and sends  _A_c_t_i_o_n to its one  and
     only  instance \index{@prolog_ide}\objectname{prolog_ide}.    _A_c_t_i_o_n
     is one of the following:
 
@@ -3351,11 +3351,11 @@ pprroolloogg__iiddee((_+_A_c_t_i_o_n))
          status.
 
     ddeebbuugg__mmoonniittoorr
-         Open a graphical frontend  for the debug library that  provides
+         Open a graphical front-end for the debug  library that provides
          an overview of the topics and catches messages.
 
     xxrreeff
-         Open  a  graphical  frontend  for  the   cross-referencer  that
+         Open  a  graphical  front-end  for  the  cross-referencer  that
          provides an overview of predicates and their callers.
 
 
@@ -9081,7 +9081,7 @@ sshhooww__pprrooffiillee((_+_S_t_y_l_e_, _+_N_u_m_b_e_
     added to the predicate.
 
     This  predicate first calls prolog:show_profile_hook/2.  If XPCE  is
-    loaded  this hook is used to  activate a GUI interface to  visialise
+    loaded  this hook is used to  activate a GUI interface to  visualise
     the profile results.
 
 
@@ -9104,7 +9104,7 @@ nnoopprrooffiillee((_+_N_a_m_e_/_+_A_r_i_t_y_, _._._.)
     Declares  the predicate _N_a_m_e/_A_r_i_t_y to be invisible to  the profiler.
     The  time  spend in  the  named predicate  is  added to  the  caller
     and  the  callees are  linked  directly  to the  caller.    This  is
-    particulary  useful  for  simple  meta-predicates  such  as  call/1,
+    particularly  useful  for  simple meta-predicates  such  as  call/1,
     ignore/1, catch/3, etc.
 
 
@@ -9179,12 +9179,12 @@ detected.   For example,  call/1 can call a  predicate that uses  call/1
 itself.   This  can be  viewed as a  recursive invocation,  but this  is
 generally not  desirable.   Recursion is currently  assumed if the  same
 predicate _w_i_t_h _t_h_e _s_a_m_e _p_a_r_e_n_t appears higher in the  call-graph.  Early
-experience with a some arbirary non-trivial programs are promising.
+experience with a some arbitrary non-trivial programs are promising.
 
 The last part of  the profiler collects statistics on the  CPU-time used
 in  each node.    On  systems  providing  setitimer() with  SIGPROF,  it
 `ticks' the  current node of  the call-tree each  time the timer  fires.
-On Windows a MM-timer  in a seperate thread checks 100 times  per second
+On Windows a MM-timer  in a separate thread checks 100 times  per second
 how much  time is  spent in  the profiled thread  and adds  this to  the
 current node.  See section 4.40.3.1 for details.
 
@@ -9198,10 +9198,10 @@ proper interpretation of the results.
 Windows  does not  provide  timers that  fire  asynchronously,  frequent
 and proportional  to the CPU  time used  by the process.   Windows  does
 provide multi-media timers that can run at high frequency.   Such timers
-however run  in a  seperate thread of  execution and  they are fired  on
+however run  in a  separate thread of  execution and  they are fired  on
 the wall-clock rather  than the amount of CPU  time used.  The  profiler
 installs such a timer running, for saving CPU  time, rather inaccurately
-at about 100 Hz.   Each time it is fired, it determines  the millisecons
+at about 100 Hz.  Each time it is fired,  it determines the milliseconds
 CPU time  used by  Prolog since the  last time it  was fired.   If  this
 value is non-zero, active predicates are incremented with this value.
 
@@ -10359,7 +10359,7 @@ by Jan Wielemaker.
 The CHR system of SWI-Prolog is the K.U.Leuven CHR system.   The runtime
 environment is  written by Christian Holzbaur  and Tom Schrijvers  while
 the compiler  is written by  Tom Schrijvers.   Both are integrated  with
-SWI-Prolog  and licenced  under  compatible conditions  with  permission
+SWI-Prolog  and licensed  under  compatible conditions  with  permission
 from the authors.
 
 The main reference for SWI-Prolog's CHR system is:
@@ -10374,7 +10374,7 @@ The main reference for SWI-Prolog's CHR system is:
 
 Constraint  Handling  Rules  (CHR)  is  a   committed-choice  rule-based
 language embedded  in Prolog.    It is designed  for writing  constraint
-solvers and is  particularily useful for providing  application-specific
+solvers and  is particularly  useful for providing  application-specific
 constraints.   It  has been  used in  many kinds  of applications,  like
 scheduling, model checking, abduction, type checking among many others.
 
@@ -10448,7 +10448,7 @@ actual_pragmas --> actual_pragma, [atom(',')], actual_pragmas.
 actual_pragma --> [atom('passive(')], variable, [atom(')')].
 
 Note that  the guard of  a rule may  not contain any  goal that binds  a
-variable in  the head  of the rule  with a  nonvariable or with  another
+variable in  the head of  the rule with a  non-variable or with  another
 variable in the  head of the rule.   It may however bind variables  that
 do  not appear  in the  head of  the rule,  e.g.  an auxiliary  variable
 introduced in the guard.
@@ -10485,7 +10485,7 @@ the latter case the active constraint becomes suspended.
 A  suspended constraint  is  eligible as  a  passive constraint  for  an
 active constraint.  The other way it may interact  again with the rules,
 is when a variable  appearing in the constraint becomes bound  to either
-a nonvariable or  another variable involved in one or  more constraints.
+a non-variable or another variable involved in one  or more constraints.
 In that  case the  constraint is triggered,  i.e. it  becomes an  active
 constraint and all the rules are tried.
 
@@ -10556,7 +10556,7 @@ ooppttiimmiizzee
     are full, to  enable all available optimizations, and off (default),
     to  disable all  optimizations.   The  default is  derived from  the
     SWI-Prolog  flag optimise, where true is mapped to full.   Therefore
-    the  commandline  option -O  provides  full CHR  optimization.    If
+    the  command-line option  -O  provides full  CHR optimization.    If
     optimization is enabled, debugging must be disabled.
 
 ddeebbuugg
@@ -10581,7 +10581,7 @@ with the same CHR module name.
 
 Every  constraint  used  in  CHR  rules  has  to  be   declared  with  a
 chr_constraint/1.    declaration  by  the _c_o_n_s_t_r_a_i_n_t  _s_p_e_c_i_f_i_e_r.     For
-convenience  multiple consttraints  may  be declared  at once  with  the
+convenience  multiple constraints  may  be  declared at  once  with  the
 same chr_constraint/declaration  followed by a  comma-separated list  of
 constraint specifiers.
 
@@ -10615,11 +10615,11 @@ A mode is one of:
     can  have any instantiation,  which may change over  time.  This  is
     the default value.
 
-A  type can  be  a  user-defined type  or  one  of the  built-in  types.
-A  type comprises  a  (possibly inifinite)  set of  values.    The  type
-declaration for a  constraint argument means that for every  instance of
-that constraint the corresponding argument is only ever  bound to values
-in that set.  It does not state that the  argument necessarily has to be
+A type can be a user-defined type or one of the built-in  types.  A type
+comprises a  (possibly infinite) set  of values.   The type  declaration
+for  a  constraint  argument means  that  for  every  instance  of  that
+constraint the  corresponding argument is only  ever bound to values  in
+that set.   It does  not state that the  argument necessarily has to  be
 bound to a value.
 
 The built-in types are:
@@ -10696,7 +10696,7 @@ format below.
 
 :- chr_constraint ...
 
-It is  adviced to define CHR  rules in a  module file, where the  module
+It is  advised to define CHR  rules in a  module file, where the  module
 declaration  is  immediately  followed  by  including  the  library(chr)
 library as exemplified below:
 
@@ -10772,7 +10772,7 @@ When enabled  the tracer will  step through the  call, exit, fail,  wake
 and apply  ports, accepting  debug commands,  and simply  write out  the
 other ports.
 
-The following debug commans are currently supported:
+The following debug commands are currently supported:
 
         CHR debug options:
 
@@ -10800,10 +10800,10 @@ Their meaning is:
     Disable the tracer.
 
   o _b_r_e_a_k
-    Enter a recursive Prolog toplevel.  See break/0.
+    Enter a recursive Prolog top-level.  See break/0.
 
   o _a_b_o_r_t
-    Exit to the toplevel.  See abort/0.
+    Exit to the top-level.  See abort/0.
 
   o _f_a_i_l
     Insert failure in execution.
@@ -10842,9 +10842,9 @@ cchhrr__lleeaasshh((_+_S_p_e_c))
 cchhrr__sshhooww__ssttoorree((_+_M_o_d))
     Prints  all  suspended constraints  of module  _M_o_d  to the  standard
     output.   This predicate  is automatically called by the  SWI-Prolog
-    toplevel  at the end  of each query  for every CHR module  currently
+    top-level  at the end of each  query for every CHR module  currently
     loaded.    The prolog-flag  chr_toplevel_show_store controls  whether
-    the  toplevel shows the constraint stores.   The value true  enables
+    the  top-level shows the constraint stores.  The value  true enables
     it.  Any other value disables it.
 
 
@@ -10879,10 +10879,11 @@ Here are two example constraint solvers written in CHR.
 
     Yes
 
-    When the query  succeeds, the SWI-Prolog toplevel prints the content
-    of  the  CHR constraint  store and  displays  the bindings  generate
-    during  the query.  Some of the query variables may have  been bound
-    to attributed variables, as you see in the above example.
+    When  the  query  succeeds,  the  SWI-Prolog  top-level  prints  the
+    content  of  the  CHR constraint  store  and displays  the  bindings
+    generate  during  the  query.    Some  of the  query  variables  may
+    have  been bound to  attributed variables, as  you see in the  above
+    example.
 
   o The  program  below implements  a  simple finite  domain  constraint
     solver.
@@ -10996,7 +10997,7 @@ constraint solvers and how to do so efficiently.
 CChhaapptteerr 88..  MMUULLTTII--TTHHRREEAADDEEDD AAPPPPLLIICCAATTIIOONNSS
 
 SWI-Prolog multithreading is  based on standard C-language  multithread-
-ing support.   It  is not like _P_a_r_L_o_g  or other paralel  implementations
+ing support.   It is not  like _P_a_r_L_o_g or other parallel  implementations
 of the Prolog language.   Prolog threads have their own stacks  and only
 share the  Prolog _h_e_a_p:   predicates,  records, flags  and other  global
 non-backtrackable data.  SWI-Prolog thread support is  designed with the
@@ -11034,7 +11035,7 @@ with the Windows native API for smoother and faster operation.
 
 tthhrreeaadd__ccrreeaattee((_:_G_o_a_l_, _-_I_d_, _+_O_p_t_i_o_n_s))
     Create  a new Prolog thread  (and underlying C-thread) and start  it
-    by  executing  _G_o_a_l.   If  the thread  is created  succesfully,  the
+    by  executing _G_o_a_l.    If the  thread is  created successfully,  the
     thread-identifier  of the created thread is unified to _I_d.   _O_p_t_i_o_n_s
     is  a list of  options.   The currently  defined options are  below.
     Stack  size options can also take  the value inf or infinite,  which
@@ -11042,27 +11043,27 @@ tthhrreeaadd__ccrreeaattee((_:_G_o_a_l_, _-_I_d_, _+_O
 
     llooccaall((_K_-_B_y_t_e_s))
          Set the  limit to  which  the local  stack of  this thread  may
-         grow.   If omited,  the limit  of the  calling thread is  used.
-         See also the -L commandline option.
+         grow.   If omitted,  the limit of the  calling thread is  used.
+         See also the -L command-line option.
 
     gglloobbaall((_K_-_B_y_t_e_s))
          Set the  limit to  which the global  stack of  this thread  may
-         grow.   If omited,  the limit  of the  calling thread is  used.
-         See also the -G commandline option.
+         grow.   If omitted,  the limit of the  calling thread is  used.
+         See also the -G command-line option.
 
     ttrraaiill((_K_-_B_y_t_e_s))
          Set the  limit to  which  the trail  stack of  this thread  may
-         grow.   If omited,  the limit  of the  calling thread is  used.
-         See also the -T commandline option.
+         grow.   If omitted,  the limit of the  calling thread is  used.
+         See also the -T command-line option.
 
     aarrgguummeenntt((_K_-_B_y_t_e_s))
          Set the limit  to which the argument  stack of this thread  may
-         grow.   If omited,  the limit  of the  calling thread is  used.
-         See also the -A commandline option.
+         grow.   If omitted,  the limit of the  calling thread is  used.
+         See also the -A command-line option.
 
     ssttaacckk((_K_-_B_y_t_e_s))
          Set  the  limit  to which  the  system  stack  of  this  thread
-         may  grow.    The  default,  mimimum  and  maximum  values  are
+         may  grow.    The  default,  minimum  and  maximum  values  are
          system-dependant.
 
     aalliiaass((_A_l_i_a_s_N_a_m_e))
@@ -11230,7 +11231,7 @@ mmuutteexx__ssttaattiissttiiccss
     with  dynamic predicates.  For  each mutex two numbers are  printed:
     the  number  of times  the  mutex was  acquired  and the  number  of
     _c_o_l_l_i_s_i_o_n_s:   the number  times the calling  thread has to wait  for
-    the  mutex.   The collistion-count  is not  available on Windows  as
+    the  mutex.   The  collision-count is  not available  on Windows  as
     this  would break portability  to Windows-95/98/ME or  significantly
     harm  performance.   Generally collision count  is close to zero  on
     single-CPU hardware.
@@ -11284,7 +11285,7 @@ tthhrreeaadd__sseenndd__mmeessssaaggee((_+_Q_u_e_u_e_
 
     If  more than one thread is waiting for messages on the  given queue
     and  at least one of these is waiting with a  partially instantiated
-    _T_e_r_m,  the waiting threads are _a_l_l sent a wakeup signal,  starting a
+    _T_e_r_m, the waiting  threads are _a_l_l sent a wake-up signal, starting a
     rush  for the available messages in  the queue.  This behaviour  can
     seriously  harm performance  with many threads  waiting on the  same
     queue  as all-but-the-winner  perform a useless  scan of the  queue.
@@ -11331,7 +11332,7 @@ mmeessssaaggee__qquueeuuee__ccrreeaattee((_?_Q_u_e_u_
 mmeessssaaggee__qquueeuuee__ddeessttrrooyy((_+_Q_u_e_u_e))
     Destroy  a message queue created with message_queue_create/1.   It is
     _n_o_t allows to destroy  the queue of a thread.  Neither is it allowed
-    to  destroy a queue other threads are waiting for or,  for anynymous
+    to  destroy a queue other threads are waiting for or,  for anonymous
     message queues, may try to wait for later.
 
 
@@ -11460,7 +11461,7 @@ tthhrreeaadd__llooccaall _+_F_u_n_c_t_o_r_/_+_A_r_i_t_
 
     foo(gnat).
 
-    DDIISSCCLLAAIIMMEERR  Whether or  not this  declaration is  apropriate in  the
+    DDIISSCCLLAAIIMMEERR  Whether or  not this declaration  is appropriate in  the
     sense  of the proper mechanism to  reach the goal is still  debated.
     If  you have strong feeling in favour or against, please  share them
     in the SWI-Prolog mailing list.
@@ -11508,7 +11509,7 @@ mmuutteexx__ddeessttrrooyy((_+_M_u_t_e_x_I_d))
 
 
 wwiitthh__mmuutteexx((_+_M_u_t_e_x_I_d_, _:_G_o_a_l))
-    Execute  _G_o_a_l while holding _M_u_t_e_x_I_d.  If _G_o_a_l  leaves choicepointes,
+    Execute  _G_o_a_l while holding _M_u_t_e_x_I_d.  If _G_o_a_l  leaves choice-points,
     these  are  destroyed  (as  in  once/1).    The  mutex  is  unlocked
     regardless  of whether _G_o_a_l succeeds, fails or raises  an exception.
     An  exception thrown by _G_o_a_l is  re-thrown after the mutex has  been
@@ -11533,8 +11534,8 @@ mmuutteexx__lloocckk((_+_M_u_t_e_x_I_d))
     Please  note that  locking and  unlocking mutexes  should be  paired
     carefully.    Especially make  sure to  unlock mutexes  even if  the
     protected  code  fails or  raises an  exception.    For most  common
-    cases  use  with_mutex/2,  wich  provides a  safer way  for  handling
-    prolog-level  mutexes.  The predicate  call_cleanup/[2-3]is  another
+    cases  use with_mutex/2,  which provides  a safer  way for  handling
+    Prolog-level  mutexes.  The predicate  call_cleanup/[2-3]is  another
     way  to  guarantee  that  the  mutex  is  unlocked  while  retaining
     non-determinism.
 
@@ -11558,7 +11559,7 @@ mmuutteexx__uunnlloocckk__aallll
 
 ccuurrrreenntt__mmuutteexx((_?_M_u_t_e_x_I_d_, _?_T_h_r_e_a_d_I_d_, _?_C_o_u_n_t))
     Enumerates  all existing  mutexes.   If the  mutex is  held by  some
-    thread,  _T_h_r_e_a_d_I_d  is  unified with  the  identifier of  te  holding
+    thread,  _T_h_r_e_a_d_I_d  is unified  with the  identifier  of the  holding
     thread and _C_o_u_n_t with  the recursive count of the mutex.  Otherwise,
     _T_h_r_e_a_d_I_d is [] and _C_o_u_n_t is 0.
 
@@ -11577,7 +11578,7 @@ tthhrreeaaddss
 
 
 iinntteerraaccttoorr
-    Create  a  new console  and  run the  Prolog  toplevel in  this  new
+    Create  a  new console  and run  the Prolog  top-level  in this  new
     console.   See also attach_console/0.  In the Windows version  a new
     interactor can also be created from the Run/New thread menu.
 
@@ -11588,7 +11589,7 @@ Support  for  debugging threads  is  still  very  limited.    Debug  and
 trace  mode are  flags  that  are local  to  each  thread.    Individual
 threads can  be debugged either using  the graphical debugger  described
 in  section 3.5  (see tspy/1  and  friends) or  by attaching  a  console
-to  the thread  and running  the traditional  commandline debugger  (see
+to the  thread and  running the traditional  command-line debugger  (see
 attach_console/0).
 
 
@@ -11614,7 +11615,7 @@ ttddeebbuugg((_+_T_h_r_e_a_d_I_d))
     thread  to debug-mode  using debug/0.    The call  is injected  into
     the  thread using thread_signal/2.   We  refer to the  documentation
     of  this predicate for asynchronous  interaction with threads.   New
-    threads  created  inherit  their  debugmode  from  the  thread  that
+    threads  created  inherit  their  debug-mode from  the  thread  that
     created them.
 
 
@@ -11675,7 +11676,7 @@ creating an _e_n_g_i_n_e in  each thread from which you call Prolog.   Wit
 creating an engine, a thread can only use functions that  do _n_o_t use the
 term_t type (for example PL_new_atom()).
 
-The system  supports two models.   Section  8.6.1 describes the  orginal
+The system supports  two models.   Section 8.6.1 describes the  original
 one-to-one mapping.   In this schema  a native thread attaches a  Prolog
 thread if  it needs  to call Prolog  and detaches is  when finished,  as
 opposed to the  model from section 8.6.2  where threads temporary use  a
@@ -11693,7 +11694,7 @@ has  a   Prolog  engine  attached.      If   another  C-thread  in   the
 system  wishes to  call Prolog  it  must first  attach an  engine  using
 PL_thread_attach_engine() and call  PL_thread_destroy_engine()after  all
 Prolog  work is  finished.    This  model  is especially  suitable  with
-long  running threads  that  need  to do  Prolog  work  regulary.    See
+long  running threads  that  need to  do Prolog  work  regularly.    See
 section 8.6.2 for the alternative many-to-many model.
 
 
@@ -17924,7 +17925,7 @@ ffaaiill
     A _g_o_a_l is said to haved failed if it could not be _p_r_o_v_e_n.
 
 ffllooaatt
-    Computers  cripled representation of a real number.   Represented as
+    Computers crippled representation  of a real number.  Represented as
     `IEEE double'.
 
 ffoorreeiiggnn
@@ -17974,7 +17975,7 @@ iinntteerrpprreetteedd
     than executing instructions  from an (abstract) instruction set that
     is not or only indirectly related to Prolog.
 
-mmeettaa pprreeddiiccaattee
+mmeettaa--pprreeddiiccaattee
     A  _p_r_e_d_i_c_a_t_e that reasons about other _p_r_e_d_i_c_a_t_e_s, either  by calling
     them, (re)defining them or querying _p_r_o_p_e_r_t_i_e_s.
 
@@ -17986,7 +17987,7 @@ mmoodduullee
 
 mmoodduullee ttrraannssppaarreenntt [[pprreeddiiccaattee]]
     A  _p_r_e_d_i_c_a_t_e that  does not change  the _c_o_n_t_e_x_t  _m_o_d_u_l_e.   Sometimes
-    also called a _m_e_t_a _p_r_e_d_i_c_a_t_e.
+    also called a _m_e_t_a_-_p_r_e_d_i_c_a_t_e.
 
 mmuullttiiffiillee [[pprreeddiiccaattee]]
     Predicate  for which  the  definition is  distributed over  multiple
@@ -17996,13 +17997,13 @@ nneecckk
     Operator (:-) separating _h_e_a_d from _b_o_d_y in a _c_l_a_u_s_e.
 
 ooppeerraattoorr
-    Symbol (_a_t_o_m) that  may be placed before its _o_p_e_r_a_n_t (prefix), after
-    its _o_p_e_r_a_n_t (postfix) or between its two _o_p_e_r_a_n_t_s (infix).
+    Symbol (_a_t_o_m) that  may be placed before its _o_p_e_r_a_n_d (prefix), after
+    its _o_p_e_r_a_n_d (postfix) or between its two _o_p_e_r_a_n_d_s (infix).
 
     In  Prolog, the expression a+b is exactly the same as  the canonical
     term +(a,b).
 
-ooppeerraanntt
+ooppeerraanndd
     _A_r_g_u_m_e_n_t of an _o_p_e_r_a_t_o_r.
 
 pprreecceeddeennccee
