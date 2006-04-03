@@ -155,9 +155,30 @@ ws_quit_display(DisplayObj d)
 }
 
 
+static BOOL CALLBACK
+next_monitor(HMONITOR m, HDC hdc, LPRECT rect, LPARAM closure)
+{ DisplayObj d = (DisplayObj)closure;
+
+  appendChain(d->monitors,
+	      newObject(ClassMonitor,
+			d->monitors->size, /* TBD: Name? */
+			newObject(ClassArea,
+				  toInt(rect->left),
+				  toInt(rect->top),
+				  toInt(rect->right - rect->left),
+				  toInt(rect->bottom - rect->top),
+				  EAV),
+			EAV));
+
+  return TRUE;
+}
+
+
 status
 ws_init_monitors_display(DisplayObj d)
-{
+{ assign(d->mnonitors, newObject(ClassChain, EAV));
+
+  EnumDisplayMonitors(NULL, NULL, next_monitor, (LPARAM)d);
 
   succeed;
 }
