@@ -123,3 +123,7 @@ COMMON(status)	makeClassWindow(Class class);
 /* /staff/jan/src/pl/packages/xpce/src/win/application.c */
 COMMON(void)	resetApplications(void);
 COMMON(status)	makeClassApplication(Class class);
+
+/* /staff/jan/src/pl/packages/xpce/src/win/monitor.c */
+COMMON(status)	initialiseMonitor(Monitor m, Name name, Area a);
+COMMON(status)	makeClassMonitor(Class class);

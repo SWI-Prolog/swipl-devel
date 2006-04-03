@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Query available physical monitors.  Currently X11 version only
+  if Xinerama is enabled.
+
 * FIXED: regex->match on backward matches (executed as search).
 
 * FIXED: PceEmacs: failing bracket highlighting on syntax errors.  Enhanced

@@ -1381,6 +1381,8 @@
   BUILTIN_NAME("modifier")
   BUILTIN_NAME("modifiers")
   BUILTIN_NAME("modify")
+  BUILTIN_NAME("monitor")
+  BUILTIN_NAME("monitors")
   BUILTIN_NAME("monochrome")
   BUILTIN_NAME("month")
   BUILTIN_NAME("month_name")

@@ -452,6 +452,52 @@ ws_events_queued_display(DisplayObj d)
   fail;
 }
 
+#ifdef HAVE_X11_EXTENSIONS_XINERAMA_H
+#include <X11/extensions/Xinerama.h>
+#endif
+
+status
+ws_init_monitors_display(DisplayObj d)
+{
+#ifdef HAVE_X11_EXTENSIONS_XINERAMA_H
+  DisplayWsXref r = d->ws_ref;
+  XineramaScreenInfo *screens;
+  int count;
+
+  if ( r && r->display_xref &&
+       XineramaIsActive(r->display_xref) &&
+       (screens = XineramaQueryScreens(r->display_xref, &count)) )
+  { int i;
+    
+    assign(d, monitors, newObject(ClassChain, EAV));
+    for(i=0; i<count; i++)
+    { appendChain(d->monitors,
+		  newObject(ClassMonitor, toInt(screens[i].screen_number),
+			    newObject(ClassArea,
+				      toInt(screens[i].x_org),
+				      toInt(screens[i].y_org),
+				      toInt(screens[i].width),
+				      toInt(screens[i].height), EAV), EAV));
+    }
+
+    XFree(screens);
+  } else
+#endif
+  { Size sz = getSizeDisplay(d);
+
+    if ( sz )
+    { assign(d, monitors, newObject(ClassChain, EAV));
+      appendChain(d->monitors,
+		  newObject(ClassMonitor, toInt(0),
+			    newObject(ClassArea, toInt(0), toInt(0),
+				      sz->w, sz->h, EAV), EAV));
+    }
+  }
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	    CUT-BUFFER		*
 		 *******************************/

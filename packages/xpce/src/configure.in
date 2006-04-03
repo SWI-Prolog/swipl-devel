@@ -834,6 +834,12 @@ esac
 CPPFLAGS="$XINCLUDES ${CPPFLAGS}"
 CIFLAGS="$XINCLUDES ${CIFLAGS}"
 
+AC_CHECK_LIB(Xinerama, main,
+	     [XLIBS="-lXinerama $XLIBS"]
+	     AC_DEFINE(HAVE_LIBXINERAMA, 1,
+		       "Define if you have the Xinerama library"))
+AC_CHECK_HEADERS(X11/extensions/Xinerama.h)
+
 fi dnl WITHX11
 
 dnl Check the critical but not very standard libXpm and libjpeg libraries

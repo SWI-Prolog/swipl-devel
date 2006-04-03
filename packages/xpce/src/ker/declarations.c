@@ -302,6 +302,9 @@ static struct class_definition classdefs[] =
   { NAME_modifier, NAME_object, makeClassModifier,
     &ClassModifier, "Condition on shift, control and meta-keys" },
 
+  { NAME_monitor, NAME_object, makeClassMonitor,
+    &ClassMonitor, "Physical monitor on the display" },
+
   { NAME_moveGesture, NAME_gesture, makeClassMoveGesture,
     &ClassMoveGesture, "Gesture to move an object by dragging" },
 

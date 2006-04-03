@@ -154,6 +154,15 @@ ws_quit_display(DisplayObj d)
 { exitDraw(0);
 }
 
+
+status
+ws_init_monitors_display(DisplayObj d)
+{
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	  MOUSE TRACKING	*
 		 *******************************/

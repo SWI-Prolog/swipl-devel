@@ -762,6 +762,7 @@ NewClass(displayobj)
   Name		address;		/* Display address specification */
   HashTable	font_table;		/* Table holding font-mappings */
   Chain		frames;			/* Created frames on this display */
+  Chain		monitors;		/* Physical monitors attached */
   Chain		inspect_handlers;	/* Event-handlers for inspector */
   Colour	foreground;		/* Window default foreground */
   Colour	background;		/* Window default background */
@@ -899,6 +900,10 @@ NewClass(timer)
   WsRef		ws_ref;			/* Window System Reference */
 End;
 
+NewClass(monitor)
+  Any		name;			/* Name of the physical monitor */
+  Area		area;			/* Area on the display */
+End;
 
 		 /*******************************
 		 *	      EVENTS		*

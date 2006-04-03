@@ -33,6 +33,7 @@ COMMON(status)	ws_opened_display(DisplayObj d);
 COMMON(void)	ws_open_display(DisplayObj d);
 COMMON(void)	ws_quit_display(DisplayObj d);
 COMMON(status)	ws_init_graphics_display(DisplayObj d);
+COMMON(status)	ws_init_monitors_display(DisplayObj d);
 COMMON(void)	ws_foreground_display(DisplayObj d, Colour c);
 COMMON(void)	ws_background_display(DisplayObj d, Colour c);
 COMMON(void)	ws_draw_in_display(DisplayObj d, Graphical gr, Bool invert, Bool subtoo);

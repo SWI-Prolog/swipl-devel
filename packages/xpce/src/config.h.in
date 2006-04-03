@@ -88,6 +88,9 @@
 /* "Define if you have the socket library (-lsocket)." */
 #undef HAVE_LIBSOCKET
 
+/* "Define if you have the Xinerama library" */
+#undef HAVE_LIBXINERAMA
+
 /* "Define if you have the Xpm library (-lXpm)." */
 #undef HAVE_LIBXPM
 
@@ -239,6 +242,9 @@
 
 /* Define to 1 if you have the `vsscanf' function. */
 #undef HAVE_VSSCANF
+
+/* Define to 1 if you have the <X11/extensions/Xinerama.h> header file. */
+#undef HAVE_X11_EXTENSIONS_XINERAMA_H
 
 /* Define to 1 if you have the <X11/xpm.h> header file. */
 #undef HAVE_X11_XPM_H

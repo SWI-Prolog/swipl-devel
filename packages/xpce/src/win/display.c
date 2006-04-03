@@ -114,6 +114,7 @@ openDisplay(DisplayObj d)
   ws_foreground_display(d, d->foreground);
   ws_background_display(d, d->background);
   ws_init_graphics_display(d);
+  ws_init_monitors_display(d);
 
   BLACK_COLOUR = newObject(ClassColour, NAME_black, EAV);
   WHITE_COLOUR = newObject(ClassColour, NAME_white, EAV);
@@ -360,6 +361,14 @@ getDotsPerInchDisplay(DisplayObj d)
 
   fail;
 }
+
+static Chain
+getMonitorsDisplay(DisplayObj d)
+{ openDisplay(d);
+
+  answer(d->monitors);
+}
+
 
 		/********************************
 		*          CUT BUFFERS		*
@@ -1083,6 +1092,8 @@ static vardecl var_display[] =
      NAME_font, "Mapping for logical font-names to fonts"),
   IV(NAME_frames, "chain", IV_GET,
      NAME_organisation, "Frames displayed on this display"),
+  IV(NAME_monitors, "chain", IV_NONE,
+     NAME_organisation, "Physical monitors attached"),
   IV(NAME_inspectHandlers, "chain", IV_GET,
      NAME_event, "Chain of handlers to support inspector tools"),
   SV(NAME_foreground, "colour", IV_GET|IV_STORE, foregroundDisplay,
@@ -1199,6 +1210,8 @@ static getdecl get_display[] =
      NAME_dimension, "Width of the display in pixels"),
   GM(NAME_dotsPerInch, 0, "size", NULL, getDotsPerInchDisplay,
      NAME_dimension, "Resolution in dots per inch"),
+  GM(NAME_monitors, 0, "chain*", NULL, getMonitorsDisplay,
+     NAME_organisation, "Physical monitors attached"),
   GM(NAME_fontAlias, 1, "font", "name=name", getFontAliasDisplay,
      NAME_font, "Lookup logical name"),
   GM(NAME_connectionFd, 0, "int", NULL, getConnectionFdDisplay,
