@@ -1,7 +1,7 @@
 \chapter{Multi-threaded applications} \label{sec:threads}
 
 SWI-Prolog multithreading is based on standard C-language multithreading
-support. It is not like {\em ParLog} or other paralel implementations of
+support. It is not like {\em ParLog} or other parallel implementations of
 the Prolog language. Prolog threads have their own stacks and only share
 the Prolog \emph{heap}: predicates, records, flags and other global
 non-backtrackable data.  SWI-Prolog thread support is designed with the
@@ -45,7 +45,7 @@ faster operation.
 \begin{description}
     \predicate{thread_create}{3}{:Goal, -Id, +Options}
 Create a new Prolog thread (and underlying C-thread) and start it
-by executing \arg{Goal}.  If the thread is created succesfully, the
+by executing \arg{Goal}.  If the thread is created successfully, the
 thread-identifier of the created thread is unified to \arg{Id}.
 \arg{Options} is a list of options.  The currently defined options are
 below.  Stack size options can also take the value \const{inf} or
@@ -55,27 +55,27 @@ by the platform.
 \begin{description}
     \termitem{local}{K-Bytes}
 Set the limit to which the local stack of this thread may grow.  If
-omited, the limit of the calling thread is used.  See also the
-\cmdlineoption{-L} commandline option.
+omitted, the limit of the calling thread is used.  See also the
+\cmdlineoption{-L} command-line option.
 
     \termitem{global}{K-Bytes}
 Set the limit to which the global stack of this thread may grow.  If
-omited, the limit of the calling thread is used. See also the
-\cmdlineoption{-G} commandline option.
+omitted, the limit of the calling thread is used. See also the
+\cmdlineoption{-G} command-line option.
 
     \termitem{trail}{K-Bytes}
 Set the limit to which the trail stack of this thread may grow.  If
-omited, the limit of the calling thread is used. See also the
-\cmdlineoption{-T} commandline option.
+omitted, the limit of the calling thread is used. See also the
+\cmdlineoption{-T} command-line option.
 
     \termitem{argument}{K-Bytes}
 Set the limit to which the argument stack of this thread may grow.  If
-omited, the limit of the calling thread is used. See also the
-\cmdlineoption{-A} commandline option.
+omitted, the limit of the calling thread is used. See also the
+\cmdlineoption{-A} command-line option.
 
     \termitem{stack}{K-Bytes}
 Set the limit to which the system stack of this thread may grow.  The
-default, mimimum and maximum values are system-dependant.
+default, minimum and maximum values are system-dependant.
 
     \termitem{alias}{AliasName}
 Associate an `alias-name' with the thread.  This named may be used to
@@ -240,7 +240,7 @@ Print usage statistics on internal mutexes and mutexes associated
 with dynamic predicates.  For each mutex two numbers are printed:
 the number of times the mutex was acquired and the number of
 \jargon{collisions}: the number times the calling thread has to
-wait for the mutex.  The collistion-count is not available on
+wait for the mutex.  The collision-count is not available on
 Windows as this would break portability to Windows-95/98/ME or
 significantly harm performance.  Generally collision count is
 close to zero on single-CPU hardware.
@@ -295,7 +295,7 @@ thus lost. This call returns immediately.
 
 If more than one thread is waiting for messages on the given queue and
 at least one of these is waiting with a partially instantiated
-\arg{Term}, the waiting threads are \emph{all} sent a wakeup signal,
+\arg{Term}, the waiting threads are \emph{all} sent a wake-up signal,
 starting a rush for the available messages in the queue.  This behaviour
 can seriously harm performance with many threads waiting on the same
 queue as all-but-the-winner perform a useless scan of the queue. If
@@ -342,7 +342,7 @@ and \arg{Queue} is unified to its identifier.
 Destroy a message queue created with message_queue_create/1.  It is
 \emph{not} allows to destroy the queue of a thread.  Neither is it
 allowed to destroy a queue other threads are waiting for or, for
-anynymous message queues, may try to wait for later.%
+anonymous message queues, may try to wait for later.%
 	\bug{None of these constraints are properly enforced by the
 	     system in the current implementation.  It is therefore
 	     advised not to delete queues unless you are absolutely
@@ -478,7 +478,7 @@ empty clause-list.
 foo(gnat).
 \end{code}
 
-\textbf{DISCLAIMER} Whether or not this declaration is apropriate in
+\textbf{DISCLAIMER} Whether or not this declaration is appropriate in
 the sense of the proper mechanism to reach the goal is still debated.
 If you have strong feeling in favour or against, please share them
 in the SWI-Prolog mailing list.
@@ -530,7 +530,7 @@ further references yield an \except{existence_error} exception.
 
     \predicate{with_mutex}{2}{+MutexId, :Goal}
 Execute \arg{Goal} while holding \arg{MutexId}.  If \arg{Goal} leaves
-choicepointes, these are destroyed (as in once/1).  The mutex is unlocked
+choice-points, these are destroyed (as in once/1).  The mutex is unlocked
 regardless of whether \arg{Goal} succeeds, fails or raises an exception.
 An exception thrown by \arg{Goal} is re-thrown after the mutex has been
 successfully unlocked.  See also mutex_create/1 and call_cleanup/3.
@@ -553,7 +553,7 @@ implies named mutexes need not be declared explicitly.
 Please note that locking and unlocking mutexes should be paired
 carefully. Especially make sure to unlock mutexes even if the protected
 code fails or raises an exception. For most common cases use
-with_mutex/2, wich provides a safer way for handling prolog-level
+with_mutex/2, which provides a safer way for handling Prolog-level
 mutexes.  The predicate call_cleanup/[2-3] is another way to guarantee
 that the mutex is unlocked while retaining non-determinism.
 
@@ -573,7 +573,7 @@ also thread_signal/2.
 
     \predicate{current_mutex}{3}{?MutexId, ?ThreadId, ?Count}
 Enumerates all existing mutexes.  If the mutex is held by some thread,
-\arg{ThreadId} is unified with the identifier of te holding thread and
+\arg{ThreadId} is unified with the identifier of the holding thread and
 \arg{Count} with the recursive count of the mutex. Otherwise,
 \arg{ThreadId} is \const{[]} and \arg{Count} is 0.
 \end{description}
@@ -592,7 +592,7 @@ threads (finished threads that are not detached, nor waited for) are
 joined to reclaim their resources.
 
     \predicate{interactor}{0}{}
-Create a new console and run the Prolog toplevel in this new console.
+Create a new console and run the Prolog top-level in this new console.
 See also attach_console/0.  In the Windows version a new interactor
 can also be created from the {\sf Run/New thread} menu.
 \end{description}
@@ -605,7 +605,7 @@ Support for debugging threads is still very limited. Debug and trace
 mode are flags that are local to each thread. Individual threads can be
 debugged either using the graphical debugger described in
 \secref{guitracer} (see tspy/1 and friends) or by attaching a console to
-the thread and running the traditional commandline debugger (see
+the thread and running the traditional command-line debugger (see
 attach_console/0).
 
 
@@ -632,7 +632,7 @@ implies installing the tracer hooks in the thread and switching the
 thread to debug-mode using debug/0.  The call is injected into the
 thread using thread_signal/2.  We refer to the documentation of this
 predicate for asynchronous interaction with threads.  New threads
-created inherit their debugmode from the thread that created them.
+created inherit their debug-mode from the thread that created them.
 
     \predicate{tdebug}{0}{}
 Call tdebug/1 in all running threads.
@@ -690,7 +690,7 @@ Without creating an engine, a thread can only use functions that do
 \emph{not} use the \type{term_t} type (for example PL_new_atom()).
 
 The system supports two models.  \Secref{threadoneone} describes the
-orginal one-to-one mapping.  In this schema a native thread attaches
+original one-to-one mapping.  In this schema a native thread attaches
 a Prolog thread if it needs to call Prolog and detaches is when
 finished, as opposed to the model from \secref{threadmanymany} where
 threads temporary use a Prolog engine.
@@ -708,7 +708,7 @@ Prolog engine attached. If another C-thread in the system wishes to call
 Prolog it must first attach an engine using PL_thread_attach_engine()
 and call PL_thread_destroy_engine() after all Prolog work is finished.
 This model is especially suitable with long running threads that need
-to do Prolog work regulary.  See \secref{threadmanymany} for the
+to do Prolog work regularly.  See \secref{threadmanymany} for the
 alternative many-to-many model.
 
 \begin{description}

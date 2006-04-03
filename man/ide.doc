@@ -86,7 +86,7 @@ files using file_search_path/2.  This mechanism allows for comfortable
 and readable specifications.
 
 Suppose you have extensive library packages on graph-algorithms,
-set-operations and ui-primitives. These sub-projects are likely
+set-operations and GUI-primitives. These sub-projects are likely
 candidates for re-use in future projects. A good choice is to create a
 directory with sub-directories for each of these sub-projects.  
 
@@ -148,7 +148,7 @@ environment.  It may start some of these tools.
 \end{itemlist}
 
 
-\subsection{International Sourcefiles}		\label{sec:intsrcfile}
+\subsection{International source files}		\label{sec:intsrcfile}
 
 As discussed in \secref{widechars}, SWI-Prolog supports international
 character handling.  Its internal encoding is UNICODE.  I/O streams
@@ -158,7 +158,7 @@ options for source-files not in US-ASCII.
 SWI-Prolog can read files in any of the encodings described in
 \secref{widechars}. Two encodings are of particular interest. The
 \const{text} encoding deals with the current \jargon{locale}, the
-default used by this computer for representing textfiles. The encodings
+default used by this computer for representing text files. The encodings
 \const{utf8}, \const{unicode_le} and \const{unicode_be} are
 \jargon{UNICODE} encodings: they can represent---in the same
 file---characters of virtually any known language.   In addition, they
@@ -188,7 +188,7 @@ this technique.  In other words, it is fine for local projects in
 countries with uniform locale conventions.
 
     \item [Using UTF-8 files]
-The best way to specify sourcefiles with many NON-ASCII characters is
+The best way to specify source files with many NON-ASCII characters is
 definitely the use of UTF-8 encoding. Prolog can be notified two ways of
 this encoding, using a UTF-8 \jargon{BOM} (see \secref{bom}) or using
 the directive \exam{:- encoding(utf8).}.   Many todays text editors,
@@ -304,7 +304,7 @@ reveals there is something wrong with \nopredref{prove}{3}, you do:
 Now edit the source, possibly switching to other files and making
 multiple changes.  After finishing invoke make/0, either through
 the editor UI (\menu{Compile/Make}{Control-C Control-M}) or on
-the toplevel and watch the files being reloaded.%
+the top-level and watch the files being reloaded.%
     \footnote{Watching these files is a good habit.  If expected
 	      files are not reloaded you may have forgotten to save
 	      them from the editor or you may have been editing the
@@ -323,7 +323,7 @@ the toplevel and watch the files being reloaded.%
 Initially edit/1 uses the editor specified in the \env{EDITOR}
 environment variable. There are two ways to force it to use the built-in
 editor. One is to set the prolog-flag \const{editor} to
-\const{pce_emacs} and the other is by starting the editor explictely
+\const{pce_emacs} and the other is by starting the editor explicitly
 using the emacs/[0,1] predicates.
 
 \subsection{Bluffing through PceEmacs} 	\label{sec:emacsbluff}
@@ -332,7 +332,7 @@ PceEmacs closely mimics Richard Stallman's GNU-Emacs commands, adding
 features from modern window-based editors to make it more acceptable for
 beginners.%
     \footnote{Decent merging with MS-Windows control-key conventions is
-	      difficult as many conflict with GNU-Emacs.  Expecially
+	      difficult as many conflict with GNU-Emacs.  Especially
 	      the cut/copy/paste commands conflict with important
 	      GNU-Emacs commands.}
 
@@ -464,7 +464,7 @@ which PceEmacs checks (part of) the syntax.
 
 \begin{itemlist}
     \item [After typing a \chr{.}]
-After typing a \chr{.} that is not preceeded by a \jargon{symbol}
+After typing a \chr{.} that is not preceded by a \jargon{symbol}
 character the system assumes you completed a clause, tries to find the
 start of this clause and verifies the syntax. If this process succeeds
 it colours the elements of the clause according to the rules given
@@ -664,7 +664,7 @@ single interface called prolog_ide/1:
 \begin{description}
     \predicate{prolog_ide}{1}{+Action}
 This predicate ensures the IDE enabling XPCE component is loaded,
-creates the XPCE class \class{prolog_ide} and sends \arg{Ation}
+creates the XPCE class \class{prolog_ide} and sends \arg{Action}
 to its one and only instance \verb$@prolog_ide$.  \arg{Action} is one
 of the following:
 
@@ -683,11 +683,11 @@ Opens a little window to run Prolog queries from a GUI component.
 Open a graphical window indicating existing threads and their status.
 
     \termitem{debug_monitor}{}
-Open a graphical frontend for the \pllib{debug} library that provides
+Open a graphical front-end for the \pllib{debug} library that provides
 an overview of the topics and catches messages.
 
     \termitem{xref}{}
-Open a graphical frontend for the cross-referencer that provides an overview
+Open a graphical front-end for the cross-referencer that provides an overview
 of predicates and their callers.
 \end{description}
 \end{description}

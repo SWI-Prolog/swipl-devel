@@ -43,7 +43,7 @@ If \arg{Style} is \const{cumulative} the time spent in its siblings
 (callees) is added to the predicate.
 
 This predicate first calls prolog:show_profile_hook/2. If XPCE is loaded
-this hook is used to activate a GUI interface to visialise the
+this hook is used to activate a GUI interface to visualise the
 profile results.
 
     \predicate{show_profile}{1}{+Number}
@@ -62,7 +62,7 @@ statistics.
     \predicate{noprofile}{1}{+Name/+Arity, \ldots}
 Declares the predicate \arg{Name}/\arg{Arity} to be invisible to the
 profiler. The time spend in the named predicate is added to the caller
-and the callees are linked directly to the caller.  This is particulary
+and the callees are linked directly to the caller.  This is particularly
 useful for simple meta-predicates such as call/1, ignore/1, catch/3,
 etc.
 \end{description}
@@ -145,13 +145,13 @@ detected. For example, call/1 can call a predicate that uses call/1
 itself. This can be viewed as a recursive invocation, but this is
 generally not desirable. Recursion is currently assumed if the same
 predicate \emph{with the same parent} appears higher in the call-graph.
-Early experience with a some arbirary non-trivial programs are
+Early experience with a some arbitrary non-trivial programs are
 promising.
 
 The last part of the profiler collects statistics on the CPU-time
 used in each node. On systems providing setitimer() with
 \const{SIGPROF}, it `ticks' the current node of the call-tree each
-time the timer fires.  On Windows a MM-timer in a seperate thread
+time the timer fires.  On Windows a MM-timer in a separate thread
 checks 100 times per second how much time is spent in the profiled
 thread and adds this to the current node.  See \secref{winprofile}
 for details.
@@ -170,9 +170,9 @@ for proper interpretation of the results.
 Windows does not provide timers that fire asynchronously, frequent and
 proportional to the CPU time used by the process. Windows does provide
 multi-media timers that can run at high frequency. Such timers however
-run in a seperate thread of execution and they are fired on the
+run in a separate thread of execution and they are fired on the
 wall-clock rather than the amount of CPU time used. The profiler
 installs such a timer running, for saving CPU time, rather inaccurately
-at about 100 Hz. Each time it is fired, it determines the millisecons
+at about 100 Hz. Each time it is fired, it determines the milliseconds
 CPU time used by Prolog since the last time it was fired. If this value
 is non-zero, active predicates are incremented with this value.

@@ -6,7 +6,7 @@ Jan Wielemaker.
 The CHR system of SWI-Prolog is the K.U.Leuven CHR system.  The runtime
 environment is written by Christian Holzbaur and Tom Schrijvers while the
 compiler is written by Tom Schrijvers. Both are integrated with SWI-Prolog
-and licenced under compatible conditions with permission from the authors.
+and licensed under compatible conditions with permission from the authors.
 
 The main reference for SWI-Prolog's CHR system is:
 \begin{itemize}
@@ -21,7 +21,7 @@ Contributions (Fr\"uhwirth, T. and Meister, M., eds.), pp. 1--5, 2004.
 
 Constraint Handling Rules (CHR) is a committed-choice rule-based language
 embedded in Prolog. It is designed for writing constraint solvers and is
-particularily useful for providing application-specific constraints.
+particularly useful for providing application-specific constraints.
 It has been used in many kinds of applications, like scheduling,
 model checking, abduction, type checking among many others.
 
@@ -99,7 +99,7 @@ actual_pragma --> [atom('passive(')], variable, [atom(')')].
 \end{code}
 
 Note that the guard of a rule may not contain any goal that binds a variable
-in the head of the rule with a nonvariable or with another variable in the
+in the head of the rule with a non-variable or with another variable in the
 head of the rule. It may however bind variables that do not appear in the
 head of the rule, e.g. an auxiliary variable introduced in the guard.
 
@@ -133,7 +133,7 @@ the latter case the active constraint becomes suspended.
 
 A suspended constraint is eligible as a passive constraint for an active
 constraint. The other way it may interact again with the rules, is when
-a variable appearing in the constraint becomes bound to either a nonvariable
+a variable appearing in the constraint becomes bound to either a non-variable
 or another variable involved in one or more constraints. In that case the
 constraint is triggered, i.e.\ it becomes an active constraint and all
 the rules are tried.
@@ -211,7 +211,7 @@ This option controls the degree of optimization.
 Possible values are \texttt{full}, to enable all available
 optimizations, and \texttt{off} (default), to disable all optimizations.  
 The default is derived from the SWI-Prolog flag \const{optimise}, where
-\const{true} is mapped to \const{full}.  Therefore the commandline
+\const{true} is mapped to \const{full}.  Therefore the command-line
 option \cmdlineoption{-O} provides full CHR optimization.
 If optimization is enabled, debugging must be disabled.
 
@@ -295,7 +295,7 @@ never load different \fileext{pl} files with the same CHR module name.
 
 Every constraint used in CHR rules has to be declared with a
 chr_constraint/1. declaration by the {\em constraint
-specifier}. For convenience multiple consttraints may be declared at once with
+specifier}. For convenience multiple constraints may be declared at once with
 the same \predref{chr_constraint} declaration followed by a comma-separated
 list of constraint specifiers.
 
@@ -328,7 +328,7 @@ A mode is one of:
 	\end{description}
 
 A type can be a user-defined type or one of the built-in types. A type
-comprises a (possibly inifinite) set of values. The type declaration for
+comprises a (possibly infinite) set of values. The type declaration for
 a constraint argument means that for every instance of that constraint the
 corresponding argument is only ever bound to values in that set. It does not
 state that the argument necessarily has to be bound to a value.
@@ -402,7 +402,7 @@ the format below.
 :- chr_constraint ...
 \end{code}
 
-It is adviced to define CHR rules in a module file, where the module
+It is advised to define CHR rules in a module file, where the module
 declaration is immediately followed by including the library(chr) library
 as exemplified below:
 
@@ -477,7 +477,7 @@ When enabled the tracer will step through the \const{call},
 \const{exit}, \const{fail}, \const{wake} and \const{apply} ports,
 accepting debug commands, and simply write out the other ports.
 
-The following debug commans are currently supported:
+The following debug commands are currently supported:
 
 \begin{verbatim}
         CHR debug options:
@@ -504,9 +504,9 @@ Print list of ancestor call and wake ports.
 	\termitem{nodebug}{}
 Disable the tracer.
 	\termitem{break}{}
-Enter a recursive Prolog toplevel.  See break/0.
+Enter a recursive Prolog top-level.  See break/0.
 	\termitem{abort}{}
-Exit to the toplevel.  See abort/0.
+Exit to the top-level.  See abort/0.
 	\termitem{fail}{}
 Insert failure in execution.
 	\termitem{help}{}
@@ -541,9 +541,9 @@ See also leash/1.
 
     \predicate{chr_show_store}{1}{+Mod}
 Prints all suspended constraints of module \arg{Mod} to the standard
-output. This predicate is automatically called by the SWI-Prolog toplevel at
+output. This predicate is automatically called by the SWI-Prolog top-level at
 the end of each query for every CHR module currently loaded.  The prolog-flag
-\const{chr_toplevel_show_store} controls whether the toplevel shows the
+\const{chr_toplevel_show_store} controls whether the top-level shows the
 constraint stores. The value \const{true} enables it.  Any other value
 disables it.
 
@@ -587,7 +587,7 @@ Z = _G23841{leq = ...}
 
 Yes
 \end{code}
-When the query succeeds, the SWI-Prolog toplevel prints the content of the
+When the query succeeds, the SWI-Prolog top-level prints the content of the
 CHR constraint store and displays the bindings generate during the query. Some of the query variables may have been bound to
 attributed variables, as you see in the above example.
 

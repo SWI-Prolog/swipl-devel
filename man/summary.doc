@@ -89,7 +89,7 @@ suggest predicates from a keyword.
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
 \predicatesummary{block}{3}{Start a block (`catch'/`throw')}
-\predicatesummary{break}{0}{Start interactive toplevel}
+\predicatesummary{break}{0}{Start interactive top-level}
 \predicatesummary{byte_count}{2}{Byte-position in a stream}
 \predicatesummary{call}{1}{Call a goal}
 \predicatesummary{call}{[2..]}{Call with additional arguments}
@@ -116,7 +116,7 @@ suggest predicates from a keyword.
 \predicatesummary{close_dde_conversation}{1}{Win32: Close DDE channel}
 \predicatesummary{close_shared_object}{1}{UNIX:  Close shared library (.so file)}
 \predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
-\predicatesummary{compile_predicates}{1}{Compile dynamoc code to static}
+\predicatesummary{compile_predicates}{1}{Compile dynamic code to static}
 
 \predicatesummary{compiling}{0}{Is this a compilation run?}
 \predicatesummary{compound}{1}{Test for compound term}
@@ -172,7 +172,7 @@ suggest predicates from a keyword.
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
 \predicatesummary{deterministic}{1}{Test deterministicy of current clause}
-\predicatesummary{dif}{2}{Contrain two terms to be different}
+\predicatesummary{dif}{2}{Constrain two terms to be different}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
 \predicatesummary{downcase_atom}{2}{Convert atom to lower-case}
 \predicatesummary{duplicate_term}{2}{Create a copy of a term}
@@ -270,7 +270,7 @@ suggest predicates from a keyword.
 \predicatesummary{index}{1}{Change clause indexing}
 \predicatesummary{initialization}{1}{Initialization directive}
 \predicatesummary{integer}{1}{Type check for integer}
-\predicatesummary{interactor}{0}{Start new thread with console and toplevel}
+\predicatesummary{interactor}{0}{Start new thread with console and top-level}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_list}{1}{Type check for a list}
@@ -315,7 +315,7 @@ suggest predicates from a keyword.
 \predicatesummary{min_assoc}{3}{Lowest key in association tree}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
-\oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta predicate}
+\oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta-predicate}
 \predicatesummary{msort}{2}{Sort, do not remove duplicates}
 \oppredsummary{multifile}{1}{fx}{1150}{Indicate distributed definition of predicate}
 \predicatesummary{mutex_create}{1}{Create a thread-synchronisation device}
@@ -340,7 +340,7 @@ suggest predicates from a keyword.
 \predicatesummary{nodebug}{1}{Disable debug-topic}
 \predicatesummary{noguitracer}{0}{Disable the graphical debugger}
 \predicatesummary{nonvar}{1}{Type check for bound term}
-\predicatesummary{noprofile}{1}{Hide (meta) predicate for the profiler}
+\predicatesummary{noprofile}{1}{Hide (meta-) predicate for the profiler}
 \predicatesummary{noprotocol}{0}{Disable logging of user interaction}
 \predicatesummary{nospy}{1}{Remove spy point}
 \predicatesummary{nospyall}{0}{Remove all spy points}
@@ -364,7 +364,7 @@ suggest predicates from a keyword.
 \predicatesummary{open_shared_object}{2}{UNIX: Open shared library (.so file)}
 \predicatesummary{open_shared_object}{3}{UNIX: Open shared library (.so file)}
 \predicatesummary{ord_list_to_assoc}{2}{Convert ordered list to assoc}
-\predicatesummary{pce_dispatch}{1}{Run XPCE GUI in seperate thread}
+\predicatesummary{pce_dispatch}{1}{Run XPCE GUI in separate thread}
 \predicatesummary{pce_call}{1}{Run goal in XPCE GUI thread}
 \predicatesummary{peek_byte}{1}{Read byte without removing}
 \predicatesummary{peek_byte}{2}{Read byte without removing}
@@ -390,7 +390,7 @@ suggest predicates from a keyword.
 \predicatesummary{profile}{3}{Obtain execution statistics}
 \predicatesummary{profile_count}{3}{Obtain profile results on a predicate}
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
-\predicatesummary{prolog}{0}{Run interactive toplevel}
+\predicatesummary{prolog}{0}{Run interactive top-level}
 \predicatesummary{prolog_choice_attribute}{3}{Examine the choice-point stack}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
 \predicatesummary{prolog_edit:locate}{2}{Locate targets for edit/1}
@@ -401,7 +401,7 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_exception_hook}{4}{Rewrite exceptions}
 \predicatesummary{prolog_file_type}{2}{Define meaning of file extension}
 \predicatesummary{prolog_frame_attribute}{3}{Obtain information on a goal environment}
-\predicatesummary{prolog_ide}{1}{Program access to the development enviroment}
+\predicatesummary{prolog_ide}{1}{Program access to the development environment}
 \predicatesummary{prolog_list_goal}{1}{\hook{user} Intercept tracer 'L' command}
 \predicatesummary{prolog_load_context}{2}{Context information for directives}
 \predicatesummary{prolog_load_file}{2}{\hook{user} Program load_files/2}
@@ -479,7 +479,7 @@ suggest predicates from a keyword.
 \predicatesummary{show_profile}{1}{Show results of the profiler}
 \predicatesummary{show_profile}{2}{Show results of the profiler}
 \predicatesummary{size_file}{2}{Get size of a file in characters}
-\predicatesummary{size_nb_set}{2}{Dtermine size of non-backtrackable set}
+\predicatesummary{size_nb_set}{2}{Determine size of non-backtrackable set}
 \predicatesummary{skip}{1}{Skip to character in current input}
 \predicatesummary{skip}{2}{Skip to character on stream}
 \predicatesummary{rl_add_history}{1}{Add line to readline(3) history}
@@ -555,7 +555,7 @@ suggest predicates from a keyword.
 \predicatesummary{tty_size}{2}{Get row/column size of the terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
 \predicatesummary{unify_with_occurs_check}{2}{Logically sound unification}
-\predicatesummary{unifiable}{3}{Determing binding required for unification}
+\predicatesummary{unifiable}{3}{Determining binding required for unification}
 \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
@@ -657,7 +657,7 @@ suggest predicates from a keyword.
 \section{Operators}		\label{sec:opsummary}
 
 \begin{summarylist}{lrD{f}{f}{-1}l}
-\opsummary{1}{fx}{$}{Bind toplevel variable}
+\opsummary{1}{fx}{$}{Bind top-level variable}
 \opsummary{200}{xfy}{^}{Predicate}
 \opsummary{200}{xfy}{^}{Arithmetic function}
 \opsummary{300}{xfx}{mod}{Arithmetic function}

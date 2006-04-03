@@ -167,9 +167,9 @@ version.  Changes to the Prolog system include:
     \item [Redefinition of system predicates]
 Redefinition of system predicates was allowed silently in older versions.
 Version 1.9 only allows it if the new definition is headed by a
-:- redefine_system_predicate/1 directive.
+:- redefine_system_predicate/1 directive.top-level
     \item [`Answer' reuse]
-The toplevel maintains a table of bindings returned by toplevel goals and
+The top-level maintains a table of bindings returned by top-level goals and
 allows for reuse of these bindings by prefixing the variables with the \$
 sign.  See \secref{topvars}.
     \item [Better source code administration]
@@ -212,7 +212,7 @@ argument specification (see their respective manuals). This allows for
 writing foreign interfaces that are easily portable over these three
 Prolog platforms.
 
-Apart from various bug fixes listed in the Changelog file, these
+Apart from various bug fixes listed in the ChangeLog file, these
 are the main changes since 2.1.0:
 
 \begin{itemlist}
@@ -325,7 +325,7 @@ as lists of one-character atoms is now supported (next to character
 codes as integers). Many more exceptions have been added and printing of
 exceptions and messages is rationalised using Quintus and SICStus Prolog
 compatible print_message/2, message_hook/3 and print_message_lines/3.
-All predicates descriped in \cite{Deransart:96} are now implemented.
+All predicates described in \cite{Deransart:96} are now implemented.
 
 As of version 3.3, SWI-Prolog adheres the ISO \jargon{logical update view}
 for dynamic predicates.  See \secref{update} for details.
@@ -357,7 +357,7 @@ This predicate is now ISO compliant and thus generates a list of
 one-character atoms.  The behaviour of the old predicate is available
 in the ---also ISO compliant--- atom_codes/2 predicate.  Safest repair
 is a replacement of all \const{atom_chars} into \const{atom_codes}.  If
-you do not want to change any souce-code, you might want to use
+you do not want to change any source-code, you might want to use
 
 \begin{code}
 user:goal_expansion(atom_chars(A,B), atom_codes(A,B)).
@@ -411,7 +411,7 @@ print references to select/3 in your source code and install a version
 of select that enters the debugger if select is called and the second
 argument is not a list.
 
-This library can be loaded explicitely or by calling check_old_select/0.
+This library can be loaded explicitly or by calling check_old_select/0.
 \end{itemlist}
 
 
@@ -427,7 +427,7 @@ Some useful tricks in the integrated environment:
 \begin{itemlist}
     \item [Register the GUI tracer]
 Using a call to guitracer/0, hooks are installed that replace the normal
-command-line driven tracer with a graphical forntend.
+command-line driven tracer with a graphical front-end.
 
     \item [Register PceEmacs for editing files]
 From your initialisation file. you can load \pllib{emacs/swi_prolog} that
@@ -473,7 +473,7 @@ and many related modifications to the kernel.
 Version 5.3.x is a development series for adding coroutining,
 constraints, global variables, cyclic terms (infinite trees) and other
 goodies to the kernel.  The package JPL, providing a bidirectional
-Java/Prolog interface is added to the common sourcetree and common
+Java/Prolog interface is added to the common source-tree and common
 binary packages.
 
 

@@ -44,7 +44,7 @@ application.  It has been brought to the Mac using the
 
 \subsection{Using Darwinports}
 
-Users of the Darwinport system can install the system just like any port
+Users of the Darwinports system can install the system just like any port
 using the command below. In addition to the port named
 \const{swi-prolog} providing the stable version, there is a port called
 \const{swi-prolog-devel} providing the development version.
@@ -60,7 +60,7 @@ The swi-prolog port depends on \const{readline}, \const{ncurses}
 \subsection{From the installer}
 
 Opening and installing the meta installer installs the required ports
-from the Darwinport system.  The programs are installed in the directory
+from the Darwinports system.  The programs are installed in the directory
 \file{/opt/local/bin}.  The main executable is named \file{swipl}.
 
 \section{Running SWI-Prolog}
@@ -209,7 +209,7 @@ Normally used after editing one or more files.
 
     \predicate{trace}{0}{}
 Start the interactive debugger.  There are three ways to use this.
-Entered as a single goal at the toplevel, the next query will be
+Entered as a single goal at the top-level, the next query will be
 traced.  Alternatively it can be used in conjunction with the goal
 to be debugged: \exam{?- trace, run.} and finally you can include it
 in your program to start tracing at a particular point or under a
@@ -227,7 +227,7 @@ debugger.
 
     \predicate{apropos}{1}{+Keyword}
 Search for all predicates that contain \arg{Keyword} in their name
-or short description.  If a gui environment is available the results
+or short description.  If a GUI environment is available the results
 are hyperlinks.  Otherwise use help/1 to get details on selected
 hits.
 
@@ -239,7 +239,7 @@ C interface function.
 
 \section{Using SWI-Prolog with C/C++}
 
-To use SWI-Prolog with C or C++ code you must install Apples xcode
+To use SWI-Prolog with C or C++ code you must install Apples Xcode
 environment, providing \program{gcc}. If all paths are properly
 installed, programs can be linked using the \program{plld} command
 described in the manual.
@@ -251,10 +251,10 @@ described in the manual.
     \item [XPCE and the meta-key]
 By default, the `Meta' key is bound to X11 \jargon{modifier 1} which
 is set by the `Alt' key.  This doesn't work very well for the Mac as
-the Alt key is comonly used to create alternative characters, while
+the Alt key is commonly used to create alternative characters, while
 the Command key, which is used for composing commands, is bound to the
 X11 \jargon{modifier 2}.  For the Apple we therefore bind the XPCE
-meta modifier to the X11 modifier 2.  Whereever the documentation
+meta modifier to the X11 modifier 2.  Wherever the documentation
 mentions Alt-X or Meta-X this must be read as \emph{Command-X}.
 
     \item [Threaded XPCE programs]
@@ -278,14 +278,14 @@ quickly.
 
 \section{The SWI-Prolog community and foundation}
 
-\subsection{Web-site and mailinglists}
+\subsection{Web-site and mailing lists}
 
 The SWI-Prolog web-site is located at \url{http://www.swi-prolog.org/}.
 Part of the web is powered by \url[TWiki]{http://twiki.org/}, a
 \emph{wiki} web that can be edited by any registered user and used to
 exchange ideas, problems and solutions.  The web also provides access
-to the archive of the mailinglist and allows to (de)register the
-mailinglist.  Finally, it incorporates Bugzilla, the Mozilla project
+to the archive of the mailing list and allows to (de)register the
+mailing list.  Finally, it incorporates Bugzilla, the Mozilla project
 bugtracking system, for reporting bugs and tracking issues.
 
 

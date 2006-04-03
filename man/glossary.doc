@@ -100,7 +100,7 @@ person(john).
 A \g{goal} is said to haved failed if it could not be \g{proven}.
 
     \glossitem{float}
-Computers cripled representation of a real number.  Represented as
+Computers crippled representation of a real number.  Represented as
 `IEEE double'.
 
     \glossitem{foreign}
@@ -151,7 +151,7 @@ to prove a \g{goal} by directly reading the \g{clauses} rather than
 executing instructions from an (abstract) instruction set that is not
 or only indirectly related to Prolog.
 
-    \glossitem{meta predicate}
+    \glossitem{meta-predicate}
 A \g{predicate} that reasons about other \g{predicates}, either by
 calling them, (re)defining them or querying \g{properties}.
 
@@ -163,7 +163,7 @@ their definition available to other modules.
 
     \glossitem{module transparent [predicate]}
 A \g{predicate} that does not change the \g{context module}.  Sometimes
-also called a \g{meta predicate}.
+also called a \g{meta-predicate}.
 
     \glossitem{multifile [predicate]}
 Predicate for which the definition is distributed over multiple
@@ -173,13 +173,13 @@ source-files.  See multifile/1.
 Operator (\const{:-}) separating \g{head} from \g{body} in a \g{clause}.
 
     \glossitem{operator}
-Symbol (\g{atom}) that may be placed before its \g{operant} (prefix),
-after its \g{operant} (postfix) or between its two \g{operants} (infix).
+Symbol (\g{atom}) that may be placed before its \g{operand} (prefix),
+after its \g{operand} (postfix) or between its two \g{operands} (infix).
 
 In Prolog, the expression \verb$a+b$ is exactly the same as the
 canonical term \verb$+(a,b)$.
 
-    \glossitem{operant}
+    \glossitem{operand}
 \g{Argument} of an \g{operator}.
 
     \glossitem{precedence}
