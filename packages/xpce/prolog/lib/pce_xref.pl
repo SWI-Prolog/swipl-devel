@@ -1058,7 +1058,7 @@ show_import(W, File:name, Callables:prolog) :->
 	send(T, append, xref_file_text(File)),
 	send(T, append, new(XL, xref_graphical_list)),
 	sort_callables(Callables, Sorted),
-	forall(member(C,Sorted),
+	forall(member(C, Sorted),
 	       send(XL, append, xref_predicate_text(C, @default, File))),
 	send(T, next_row).
 
