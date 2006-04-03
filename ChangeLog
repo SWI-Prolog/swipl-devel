@@ -10,7 +10,7 @@
   * FIXED/MODIFIED: thread_send_message/2, thread_get_message/2,
     thread_peek_message/2 and message_queue_size/2 now raise an exception
     if the queue doesn't exist instead of creating a queue.  Paulo
-    Mauro.
+    Moura.
 
   * ADDED: Library ugraphs.pl.  Unweigthed graph library.  Copied from
     YAP.  Integrated into SWI-Prolog library and documentation.
