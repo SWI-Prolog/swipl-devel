@@ -176,7 +176,7 @@ next_monitor(HMONITOR m, HDC hdc, LPRECT rect, LPARAM closure)
 
 status
 ws_init_monitors_display(DisplayObj d)
-{ assign(d->mnonitors, newObject(ClassChain, EAV));
+{ assign(d, monitors, newObject(ClassChain, EAV));
 
   EnumDisplayMonitors(NULL, NULL, next_monitor, (LPARAM)d);
 
