@@ -22,6 +22,7 @@ COMMON(status)	bellDisplay(DisplayObj d, Int vol);
 COMMON(Size)	getSizeDisplay(DisplayObj d);
 COMMON(Int)	getWidthDisplay(DisplayObj d);
 COMMON(Int)	getHeightDisplay(DisplayObj d);
+COMMON(Monitor) getMonitorDisplay(DisplayObj d, Any obj);
 COMMON(status)	looseSelectionDisplay(DisplayObj d, Name which);
 COMMON(status)	confirmDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv);
 COMMON(status)	informDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv);

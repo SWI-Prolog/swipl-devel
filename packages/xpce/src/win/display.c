@@ -374,7 +374,7 @@ getMonitorsDisplay(DisplayObj d)
 }
 
 
-static Monitor
+Monitor
 getMonitorDisplay(DisplayObj d, Any obj)
 { Cell cell;
 
@@ -410,7 +410,7 @@ getMonitorDisplay(DisplayObj d, Any obj)
       }
     }
 
-    doneObject(tmp);
+    considerPreserveObject(tmp);
     return best;
   }
 
