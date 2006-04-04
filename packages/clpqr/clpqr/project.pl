@@ -289,10 +289,11 @@ arrange_pivot([X|Xs]) :-
 	    arg(5,AttX,order(OrdX)),
 	    Lin = [_,_,l(Y*_,_)|_],
 	    get_attr(Y,itf,AttY),
+	    arg(2,AttY,type(IndAct)),
 	    arg(5,AttY,order(OrdY)),
 	    arg(6,AttY,class(Class)),
 	    compare(>,OrdY,OrdX)
-	->  pivot(CLP,X,Class,OrdY,t_none),
+	->  pivot(CLP,X,Class,OrdY,t_none,IndAct),
 	    arrange_pivot(Xs)
 	;   arrange_pivot(Xs)
 	).

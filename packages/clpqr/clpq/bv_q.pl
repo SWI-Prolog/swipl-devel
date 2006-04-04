@@ -1238,12 +1238,13 @@ pivot(Dep,Class,IndepOrd,DepAct,IndAct) :-
 	select_active_bound(DepAct,AbvD), % New current value for Dep
 	select_active_bound(IndAct,AbvI), % Old current value of Indep
 	delete_factor(IndepOrd,H,H0,Coeff), % Dep = ... + Coeff*Indep + ...
-	Coeffm is -(Coeff+1),
-	add_linear_f1([0,AbvI],Coeffm,H0,H1),
-	K is -1 rdiv Coeff,
 	AbvDm is -AbvD,
-	add_linear_ff(H1,K,[0,AbvDm,l(Dep* -1,DepOrd)],K,Lin),
+	AbvIm is -AbvI,
+	add_linear_f1([0,AbvIm],Coeff,H0,H1),
+	K is -1 rdiv Coeff,
+	add_linear_ff(H1,K,[0,AbvDm,l(Dep* -1,DepOrd)],K,H2),
 	    % Indep = -1/Coeff*... + 1/Coeff*Dep
+	add_linear_11(H2,[0,AbvIm],Lin),
 	backsubst(Class,IndepOrd,Lin).
 
 % Rewrite Dep = ... + Coeff*Indep + ...
