@@ -52,7 +52,11 @@ static vardecl var_monitor[] =
 { IV(NAME_name, "name|int*", IV_GET,
      NAME_name, "Name of the monitor"),
   IV(NAME_area, "area", IV_GET,
-     NAME_area, "Area of the monitor")
+     NAME_area, "Area of the monitor"),
+  IV(NAME_workArea, "area", IV_GET,
+     NAME_area, "User area of the monitor"),
+  IV(NAME_primary, "bool", IV_GET,
+     NAME_monitor, "If @on, this is the primary monitor")
 };
 
 /* Send Methods */

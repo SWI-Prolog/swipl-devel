@@ -155,13 +155,26 @@ ws_quit_display(DisplayObj d)
 }
 
 
+#define COMPILE_MULTIMON_STUBS 1
+#include "multimon.h"
+
 static BOOL CALLBACK
 next_monitor(HMONITOR m, HDC hdc, LPRECT rect, LPARAM closure)
 { DisplayObj d = (DisplayObj)closure;
+  MONITORINFOEX info;
+  Any name;
+
+  memset(&info, 0, sizeof(info));
+  info.cbSize = sizeof(info);
+  if ( GetMonitorInfo(m, &info) )
+  { name = CtoName(info.szDevice);
+  } else
+  { name = d->monitors->size;
+  }
 
   appendChain(d->monitors,
 	      newObject(ClassMonitor,
-			d->monitors->size, /* TBD: Name? */
+			name,
 			newObject(ClassArea,
 				  toInt(rect->left),
 				  toInt(rect->top),
@@ -169,6 +182,17 @@ next_monitor(HMONITOR m, HDC hdc, LPRECT rect, LPARAM closure)
 				  toInt(rect->bottom - rect->top),
 				  EAV),
 			EAV));
+  if ( isName(name) )
+  { if ( info.dwFlags & MONITORINFOF_PRIMARY )
+      assign(mon, primary, ON);
+    assign(mon, work_area,
+	   newObject(ClassArea,
+		     toInt(info.rcWork->left),
+		     toInt(info.rcWork->top),
+		     toInt(info.rcWork->right - info.rcWork->left),
+		     toInt(info.rcWork->bottom - info.rcWork->top),
+		     EAV),
+  }
 
   return TRUE;
 }

@@ -222,7 +222,7 @@ WINOBJS=	win\browser.obj win\decorate.obj win\dialog.obj \
 		win\display.obj win\displaymgr.obj win\frame.obj \
 		win\picture.obj win\setup.obj win\tile.obj \
 		win\view.obj win\window.obj win\application.obj \
-		win\tileadjust.obj
+		win\tileadjust.obj win\monitor.obj
 
 ################################################################
 # IMG 		--- Platform independent low-level image stuff

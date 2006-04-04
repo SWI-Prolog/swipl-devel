@@ -903,6 +903,8 @@ End;
 NewClass(monitor)
   Any		name;			/* Name of the physical monitor */
   Area		area;			/* Area on the display */
+  Area		work_area;		/* Application area */
+  Bool		primary;		/* Monitor is primary */
 End;
 
 		 /*******************************
