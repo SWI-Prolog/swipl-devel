@@ -1,8 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
-* ADDED: Query available physical monitors.  See class monitor.  This is
-  work on progress fixing Bug#82.  Holger Kanwischer.
+* ADDED: Query available physical monitors.  See class monitor.  Added
+  monitor argument to frame->center, frame->open_centered, etc. This 
+  fixes Bug#82.  Holger Kanwischer.
 
 * FIXED: regex->match on backward matches (executed as search).
 

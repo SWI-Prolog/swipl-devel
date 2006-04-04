@@ -41,7 +41,7 @@ COMMON(status)	makeClassDisplayManager(Class class);
 
 /* /staff/jan/src/pl/packages/xpce/src/win/frame.c */
 COMMON(Any)	getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise);
-COMMON(Any)	getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab);
+COMMON(Any)	getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab, Monitor mon);
 COMMON(status)	createdFrame(FrameObj fr);
 COMMON(status)	exposeFrame(FrameObj fr);
 COMMON(status)	hideFrame(FrameObj fr);

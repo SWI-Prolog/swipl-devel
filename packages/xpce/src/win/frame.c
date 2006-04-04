@@ -26,8 +26,8 @@
 #include <h/graphics.h>
 
 TileObj		getTileFrame(FrameObj);
-forwards int	get_position_from_center_frame(FrameObj, Point, int *, int *);
-static void	ensure_on_display(FrameObj, int *, int *);
+forwards int	get_position_from_center_frame(FrameObj, Monitor, Point, int *, int *);
+static void	ensure_on_display(FrameObj, Monitor, int *, int *);
 static status	closedFrame(FrameObj, Bool);
 static status	openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise);
 static status	doneMessageFrame(FrameObj fr, Code msg);
@@ -204,15 +204,15 @@ getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
 
 
 Any
-getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab)
+getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab, Monitor mon)
 { int x, y;
   Point p2;
   Any rval;
 
   TRY( send(fr, NAME_create, EAV) );
 
-  get_position_from_center_frame(fr, pos, &x, &y);
-  ensure_on_display(fr, &x, &y);
+  get_position_from_center_frame(fr, mon, pos, &x, &y);
+  ensure_on_display(fr, mon, &x, &y);
   p2 = tempObject(ClassPoint, toInt(x), toInt(y), EAV);
 
   rval = getConfirmFrame(fr, p2, grab, OFF);
@@ -285,15 +285,15 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
 
 
 static status
-openCenteredFrame(FrameObj fr, Point pos, Bool grab)
+openCenteredFrame(FrameObj fr, Point pos, Bool grab, Monitor mon)
 { int x, y;
   int rval;
   Point p2;
 
   TRY( send(fr, NAME_create, EAV) );
 
-  get_position_from_center_frame(fr, pos, &x, &y);
-  ensure_on_display(fr, &x, &y);
+  get_position_from_center_frame(fr, mon, pos, &x, &y);
+  ensure_on_display(fr, DEFAULT, &x, &y);
   p2 = answerObject(ClassPoint, toInt(x), toInt(y), EAV);
   rval = openFrame(fr, p2, grab, OFF);
   doneObject(p2);
@@ -598,13 +598,50 @@ hiddenFrame(FrameObj fr)
 		*       AREA MANAGEMENENT	*
 		********************************/
 
-static int
-get_position_from_center_frame(FrameObj fr, Point pos, int *x, int *y)
-{ if ( isDefault(pos) )
-  { Size sz = getSizeDisplay(fr->display);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get XY coordinate of frame if  its  center   must  be  at pos. If Pos is
+DEFAULT it is centered in the given   monitor. If the monitor is default
+too, we deduce the most recent monitor from the event.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    *x = valInt(sz->w) / 2;
-    *y = valInt(sz->h) / 2;
+static Monitor
+CurrentMonitor(FrameObj fr)
+{ DisplayObj d = fr->display;
+  Monitor mon;
+
+  if ( isOpenFrameStatus(fr->status) )
+  { if ( notNil(d) && (mon=getMonitorDisplay(d, fr->area)) )
+      return mon;
+  } else if ( notNil(d) && instanceOfObject(EVENT->value, ClassEvent) )
+  { EventObj ev = EVENT->value;
+
+    if ( (mon=getMonitorDisplay(d, getPositionEvent(ev, d))) )
+      return mon;
+  }
+
+  if ( isNil(d) )
+    d = CurrentDisplay(fr);
+
+  if ( notNil(d->monitors) )
+    return getHeadChain(d->monitors);
+
+  return NULL;
+}
+
+
+static int
+get_position_from_center_frame(FrameObj fr, Monitor mon, Point pos,
+			       int *x, int *y)
+{ if ( isDefault(pos) )
+  { if ( isDefault(mon) )
+      mon = CurrentMonitor(fr);
+
+    if ( mon )
+    { *x = valInt(mon->area->x) + valInt(mon->area->w)/2;
+      *y = valInt(mon->area->y) + valInt(mon->area->h)/2;
+    } else
+    { *x = *y = 0;
+    }
   } else
   { *x = valInt(pos->x);
     *y = valInt(pos->y);
@@ -618,17 +655,23 @@ get_position_from_center_frame(FrameObj fr, Point pos, int *x, int *y)
 
 
 static void
-ensure_on_display(FrameObj fr, int *x, int *y)
-{ Size sz = getSizeDisplay(fr->display);
+ensure_on_display(FrameObj fr, Monitor mon, int *x, int *y)
+{ int rm, bm;
 
-  if ( *x + valInt(fr->area->w) > valInt(sz->w) )
-    *x -= *x + valInt(fr->area->w) - valInt(sz->w);
-  if ( *y + valInt(fr->area->w) > valInt(sz->w) )
-    *y -= *y + valInt(fr->area->w) - valInt(sz->w);
-  if ( *x < 0 )
-    *x = 0;
-  if ( *y < 0 )
-    *y = 0;
+  if ( isDefault(mon) )
+    mon = CurrentMonitor(fr);
+
+  rm = valInt(mon->area->x) + valInt(mon->area->w);
+  bm = valInt(mon->area->y) + valInt(mon->area->h);
+
+  if ( *x + valInt(fr->area->w) > rm )
+    *x -= *x + valInt(fr->area->w) - rm;
+  if ( *y + valInt(fr->area->h) > bm )
+    *y -= *y + valInt(fr->area->h) - bm;
+  if ( *x < valInt(mon->area->x) )
+    *x = valInt(mon->area->x);
+  if ( *y < valInt(mon->area->y) )
+    *y = valInt(mon->area->y);
 }
 
 
@@ -779,10 +822,10 @@ positionFrame(FrameObj fr, Point pos)
 
 
 static status
-centerFrame(FrameObj fr, Point pos)
+centerFrame(FrameObj fr, Point pos, Monitor mon)
 { int x, y;
 
-  get_position_from_center_frame(fr, pos, &x, &y);
+  get_position_from_center_frame(fr, mon, pos, &x, &y);
   return setFrame(fr, toInt(x), toInt(y), DEFAULT, DEFAULT);
 }
 
@@ -1580,8 +1623,8 @@ getThreadFrame(FrameObj fr)
 
 /* Type declarations */
 
-static char *T_centerADpointD_grabADboolD[] =
-        { "center=[point]", "grab=[bool]" };
+static char *T_openCentered[] =
+        { "center=[point]", "grab=[bool]", "monitor=[monitor]" };
 static char *T_busyCursor[] =
         { "cursor=[cursor]*", "block_input=[bool]" };
 static char *T_icon[] =
@@ -1605,6 +1648,8 @@ static char *T_set[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_grab_pointer[] =
 	{ "grab=bool", "cursor=[cursor]" };
+static char *T_center[] =
+	{ "center=[point]", "monitor=[monitor]" };
 
 /* Instance Variables */
 
@@ -1692,7 +1737,7 @@ static senddecl send_frame[] =
      NAME_appearance, "X-border width"),
   SM(NAME_showLabel, 1, "show=bool", showLabelFrame,
      NAME_appearance, "If @off, sets <->kind to `transient'"),
-  SM(NAME_center, 1, "center=[point]", centerFrame,
+  SM(NAME_center, 2, T_center, centerFrame,
      NAME_area, "Move the frame to make point its center"),
   SM(NAME_height, 1, "height=int", heightFrame,
      NAME_area, "Set height of frame"),
@@ -1734,7 +1779,7 @@ static senddecl send_frame[] =
      NAME_open, "Inform transients using ->show"),
   SM(NAME_open, 3, T_positionADpointD_grabADboolD_normaliseADboolD, openFrame,
      NAME_open, "->create and map on the display"),
-  SM(NAME_openCentered, 2, T_centerADpointD_grabADboolD, openCenteredFrame,
+  SM(NAME_openCentered, 3, T_openCentered, openCenteredFrame,
      NAME_open, "Open centered around point"),
   SM(NAME_uncreate, 0, NULL, uncreateFrame,
      NAME_open, "Destroy window-system counterpart"),
@@ -1817,7 +1862,7 @@ static getdecl get_frame[] =
      NAME_layout, "Find tile managing object"),
   GM(NAME_confirm, 3, "return_value=any", T_positionADpointD_grabADboolD_normaliseADboolD, getConfirmFrame,
      NAME_modal, "Start sub-eventloop until ->return"),
-  GM(NAME_confirmCentered, 2, "return_value=any", T_centerADpointD_grabADboolD, getConfirmCenteredFrame,
+  GM(NAME_confirmCentered, 3, "return_value=any", T_openCentered, getConfirmCenteredFrame,
      NAME_modal, "As <-confirm, but centered around point"),
   GM(NAME_catchAll, 1, "window", "window_name=name", getCatchAllFramev,
      NAME_organisation, "Get named window"),

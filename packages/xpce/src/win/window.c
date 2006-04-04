@@ -183,9 +183,10 @@ openWindow(PceWindow sw, Point pos, Bool normalise)
 
 
 static status
-openCenteredWindow(PceWindow sw, Point pos)
+openCenteredWindow(PceWindow sw, Point pos, Bool grab, Monitor mon)
 { if ( send(sw, NAME_create, EAV) && 
-       send(getFrameWindow(sw, DEFAULT), NAME_openCentered, pos, EAV) )
+       send(getFrameWindow(sw, DEFAULT), NAME_openCentered,
+	    pos, grab, mon, EAV) )
     succeed;
 
   fail;
@@ -201,10 +202,11 @@ getConfirmWindow(PceWindow sw, Point pos, Bool grab, Bool normalise)
 
 
 static Any
-getConfirmCenteredWindow(PceWindow sw, Point pos, Bool grab)
+getConfirmCenteredWindow(PceWindow sw, Point pos, Bool grab, Monitor mon)
 { TRY( send(sw, NAME_create, EAV) );
 
-  answer(getConfirmCenteredFrame(getFrameWindow(sw, DEFAULT), pos, grab));
+  answer(getConfirmCenteredFrame(getFrameWindow(sw, DEFAULT),
+				 pos, grab, mon));
 }
 
 
@@ -2129,7 +2131,7 @@ static char *T_scrollHV[] =
 static char *T_decorate[] =
         { "area=[{grow,shrink}]", "left_margin=[int]", "right_margin=[int]", "top_margin=[int]", "bottom_margin=[int]", "decorator=[window]" };
 static char *T_confirmCentered[] =
-        { "center=[point]", "grab=[bool]" };
+        { "center=[point]", "grab=[bool]", "monitor=[monitor]" };
 static char *T_typed[] =
         { "event|event_id", "delegate=[bool]" };
 static char *T_focus[] =
@@ -2275,7 +2277,7 @@ static senddecl send_window[] =
      NAME_open, "Create associated X-window structure"),
   SM(NAME_open, 2, T_open, openWindow,
      NAME_open, "Open associated frame on the display"),
-  SM(NAME_openCentered, 1, "[point]", openCenteredWindow,
+  SM(NAME_openCentered, 3, T_confirmCentered, openCenteredWindow,
      NAME_open, "Open frame centered around point"),
   SM(NAME_uncreate, 0, NULL, uncreateWindow,
      NAME_open, "Destroy associated X-window structure"),
@@ -2338,7 +2340,7 @@ static getdecl get_window[] =
   GM(NAME_winHandle, 0, "int", NULL, getWinHandleWindow,
      NAME_windows, "Fetch the MS-Windows HWND of the window (if any)"),
 #endif
-  GM(NAME_confirmCentered, 2, "any", T_confirmCentered, getConfirmCenteredWindow,
+  GM(NAME_confirmCentered, 3, "any", T_confirmCentered, getConfirmCenteredWindow,
      NAME_modal, "->confirm with frame centered around point"),
   GM(NAME_thread, 0, "int", NULL, getThreadWindow,
      NAME_thread, "Return system thread-id that owns the window")
