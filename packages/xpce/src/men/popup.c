@@ -146,8 +146,7 @@ on which to display the popup.
 static status
 openPopup(PopupObj p, Graphical gr, Point pos,
 	  Bool pos_is_pointer, Bool warp_pointer, Bool ensure_on_display)
-{ int dw, dh;				/* Display width and height */
-  PceWindow sw;
+{ PceWindow sw;
   int moved = FALSE;			/* Cursor needs be moved */
   int cx, cy;				/* mouse X-Y */
   int px, py;				/* Popup X-Y */
@@ -164,9 +163,6 @@ openPopup(PopupObj p, Graphical gr, Point pos,
   if ( isDefault(pos_is_pointer) )	pos_is_pointer = ON;
   if ( isDefault(warp_pointer) )	warp_pointer = ON;
   if ( isDefault(ensure_on_display) )	ensure_on_display = ON;
-
-  dw = valInt(getWidthDisplay(d));
-  dh = valInt(getHeightDisplay(d));
 
   sw = createPopupWindow(d);
   send(sw, NAME_display, p, EAV);
@@ -216,10 +212,24 @@ openPopup(PopupObj p, Graphical gr, Point pos,
   }
 
   if ( ensure_on_display == ON )
-  { if ( px < 0 )       moved = TRUE, px = 0;
-    if ( py < 0 )       moved = TRUE, py = 0;
-    if ( px + pw > dw ) moved = TRUE, px = dw - pw;
-    if ( py + ph > dh ) moved = TRUE, py = dh - ph;
+  { Monitor mon;			/* Monitor displaying gr */
+    int mx, my, mw, mh;			/* Monitor area */
+
+    if ( (mon=get(gr, NAME_monitor, EAV)) )
+    { mx = valInt(mon->area->x);
+      my = valInt(mon->area->y);
+      mw = valInt(mon->area->w);
+      mh = valInt(mon->area->h);
+    } else				/* Or give error? */
+    { mx = my = 0;
+      mw = valInt(getWidthDisplay(d));
+      mh = valInt(getHeightDisplay(d));
+    }
+
+    if ( px < mx )         moved = TRUE, px = mx;
+    if ( py < my )         moved = TRUE, py = my;
+    if ( px + pw > mw+mx ) moved = TRUE, px = mw+mx - pw;
+    if ( py + ph > mh+my ) moved = TRUE, py = mh+my - ph;
   }
 
   swfr = getFrameGraphical((Graphical) sw);
