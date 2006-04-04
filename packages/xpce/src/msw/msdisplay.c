@@ -163,35 +163,36 @@ next_monitor(HMONITOR m, HDC hdc, LPRECT rect, LPARAM closure)
 { DisplayObj d = (DisplayObj)closure;
   MONITORINFOEX info;
   Any name;
+  Monitor mon;
 
   memset(&info, 0, sizeof(info));
   info.cbSize = sizeof(info);
-  if ( GetMonitorInfo(m, &info) )
+  if ( GetMonitorInfo(m, (MONITORINFO*)&info) )
   { name = CtoName(info.szDevice);
   } else
   { name = d->monitors->size;
   }
 
   appendChain(d->monitors,
-	      newObject(ClassMonitor,
-			name,
-			newObject(ClassArea,
-				  toInt(rect->left),
-				  toInt(rect->top),
-				  toInt(rect->right - rect->left),
-				  toInt(rect->bottom - rect->top),
-				  EAV),
-			EAV));
+	      mon=newObject(ClassMonitor,
+			    name,
+			    newObject(ClassArea,
+				      toInt(rect->left),
+				      toInt(rect->top),
+				      toInt(rect->right - rect->left),
+				      toInt(rect->bottom - rect->top),
+				      EAV),
+			    EAV));
   if ( isName(name) )
   { if ( info.dwFlags & MONITORINFOF_PRIMARY )
       assign(mon, primary, ON);
     assign(mon, work_area,
 	   newObject(ClassArea,
-		     toInt(info.rcWork->left),
-		     toInt(info.rcWork->top),
-		     toInt(info.rcWork->right - info.rcWork->left),
-		     toInt(info.rcWork->bottom - info.rcWork->top),
-		     EAV),
+		     toInt(info.rcWork.left),
+		     toInt(info.rcWork.top),
+		     toInt(info.rcWork.right - info.rcWork.left),
+		     toInt(info.rcWork.bottom - info.rcWork.top),
+		     EAV));
   }
 
   return TRUE;
