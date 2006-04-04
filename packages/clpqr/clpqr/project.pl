@@ -143,10 +143,11 @@ make_target_indep([T|Ts],Ps0,Pst) :-
 	    nontarget(H,Nt)
 	->  Ps1 = [T:Nt|Ps0],
 	    get_attr(Nt,itf,AttN),
+	    arg(2,AttN,type(IndAct)),
 	    arg(5,AttN,order(Ord)),
 	    arg(6,AttN,class(Class)),
 	    setarg(11,AttN,keep),
-	    pivot(CLP,T,Class,Ord,Type)
+	    pivot(CLP,T,Class,Ord,Type,IndAct)
 	;   Ps1 = Ps0
 	),
 	make_target_indep(Ts,Ps1,Pst).
@@ -198,8 +199,8 @@ drop_dep_one(_).
 indep(clpq,Lin,OrdV) :- store_q:indep(Lin,OrdV).
 indep(clpr,Lin,OrdV) :- store_r:indep(Lin,OrdV).
 
-pivot(clpq,T,Class,Ord,Type) :- bv_q:pivot(T,Class,Ord,Type).
-pivot(clpr,T,Class,Ord,Type) :- bv_r:pivot(T,Class,Ord,Type).
+pivot(clpq,T,Class,Ord,Type,IndAct) :- bv_q:pivot(T,Class,Ord,Type,IndAct).
+pivot(clpr,T,Class,Ord,Type,IndAct) :- bv_r:pivot(T,Class,Ord,Type,IndAct).
 
 renormalize(clpq,Lin,New) :- store_q:renormalize(Lin,New).
 renormalize(clpr,Lin,New) :- store_r:renormalize(Lin,New).
@@ -281,7 +282,7 @@ arrange_pivot(Xs) :-
 	!.
 arrange_pivot([X|Xs]) :-
 	(   get_attr(X,itf,AttX),
-	    arg(8,AttX,n), % not for nonzero
+	    %arg(8,AttX,n), % not for nonzero
 	    arg(1,AttX,CLP),
 	    arg(2,AttX,type(t_none)),
 	    arg(4,AttX,lin(Lin)),
@@ -290,7 +291,7 @@ arrange_pivot([X|Xs]) :-
 	    get_attr(Y,itf,AttY),
 	    arg(5,AttY,order(OrdY)),
 	    arg(6,AttY,class(Class)),
-	    compare(<,OrdY,OrdX)
+	    compare(>,OrdY,OrdX)
 	->  pivot(CLP,X,Class,OrdY,t_none),
 	    arrange_pivot(Xs)
 	;   arrange_pivot(Xs)
