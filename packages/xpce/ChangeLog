@@ -1,8 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
-* ADDED: Query available physical monitors.  Currently X11 version only
-  if Xinerama is enabled.
+* ADDED: Query available physical monitors.  See class monitor.  This is
+  work on progress fixing Bug#82.  Holger Kanwischer.
 
 * FIXED: regex->match on backward matches (executed as search).
 
