@@ -1342,20 +1342,42 @@ diffs_([Col|Cols], Ui, [Vj|Vjs]) :-
    % We also keep track of the element with least unit cost for later.
 
 rows_with_diffs([], []).
-rows_with_diffs([NR-Costs|NRs], [Diff-(NR,NC)|Rest]) :-
-	keysort(Costs, Costs1),
-	Costs1 = [First-NC,Second-_|_],
-	Diff is First - Second,
+rows_with_diffs([NR-Costs|NRs], [Diff-row(NR,NC,Costs)|Rest]) :-
+	( Costs = [First-NC,Second-_|_] ->
+		Diff is First - Second
+	;
+		Diff = 0
+	),
 	rows_with_diffs(NRs, Rest).
 
    % the same for column-differences:
 
 cols_with_diffs([], []).
-cols_with_diffs([NC-Costs|NCs], [Diff-(NR,NC)|Rest]) :-
-	keysort(Costs, Costs1),
-	Costs1 = [First-NR,Second-_|_],
-	Diff is First - Second,
+cols_with_diffs([NC-Costs|NCs], [Diff-col(NC,NR,Costs)|Rest]) :-
+	( Costs = [First-NR,Second-_|_] ->
+		Diff is First - Second
+	;
+		Diff = 0
+	),
 	cols_with_diffs(NCs, Rest).
+
+recompute_diffs([], []).
+recompute_diffs([_-E|Es], [R|Rs]) :-
+	recompute_diff(E, R),
+	recompute_diffs(Es, Rs).
+
+recompute_diff(col(NC,_,Costs), Diff-col(NC,NR,Costs)) :-
+	( Costs = [First-NR, Second-_|_] ->
+		Diff is First - Second
+	;
+		Diff = 0
+	).
+recompute_diff(row(NR,_,Costs), Diff-row(NR,NC,Costs)) :-
+	( Costs = [First-NC, Second-_|_] ->
+		Diff is First - Second
+	;
+		Diff = 0
+	).
 
 
    % entry-point for Vogel's approximation method
@@ -1364,17 +1386,23 @@ vogel_approximation(Supplies, Demands, Costs, Basis) :-
 	number_list(Costs, 0, NumberedCosts),
 	transpose(Costs, TCosts),
 	number_list(TCosts, 0, NumberedTCosts),
-	vogel_iterate(NumberedCosts, NumberedTCosts, Supplies, Demands, Basis, []).
+	rows_with_diffs(NumberedCosts, Rows),
+	cols_with_diffs(NumberedTCosts, Cols),
+	keysort(Rows, Rows1),
+	keysort(Cols, Cols1),
+	vogel_iterate(Rows1, Cols1, Supplies, Demands, Basis, []).
 
-   % each row of the cost matrix is represented as NR-Costs,
+   % Each row of the cost matrix is represented as Diff-row(NR,N,Costs),
    % with NR being the row number (in the original matrix), and costs are of
-   % the form Cost-NC, NC being the column in the original matrix.
-   % columns are stored analogously. this way, it is easy to remove rows and
+   % the form Cost-NC, NC being the column in the original matrix. N is
+   % the column with minimal cost.
+   % Columns are stored analogously. This way, it is easy to remove rows and
    % columns and still maintain information where they originally were.
 
 number_list([], _, []).
-number_list([E|Es], N0, [N0-E1|Rest]) :-
+number_list([E|Es], N0, [N0-E2|Rest]) :-
 	number_list_(E, 0, E1),
+	keysort(E1, E2),
 	N1 is N0 + 1,
 	number_list(Es, N1, Rest).
 
@@ -1386,7 +1414,7 @@ number_list_([E|Es], N0, [E-N0|Rest]) :-
 
 transpose(Matrix, Transposed) :-
         Matrix = [Row|_],
-        transpose(Row,Matrix, Transposed).
+        transpose(Row, Matrix, Transposed).
 
 transpose([], _, []).
 transpose([_|Rest], Matrix, [Row|Rows]) :-
@@ -1416,28 +1444,22 @@ remaining_col([_-NR|Rest], NC, Supplies, Demand, Basis0, Basis) :-
 
 vogel_iterate(Rows, Cols, Supplies, Demands, Basis0, Basis) :-
 	( Cols = [SingleCol] ->
-		SingleCol = NC-Costs,
+		SingleCol = _-col(NC,_,Costs),
 		nth0(NC, Demands, Demand),
-		keysort(Costs, Costs1),
-		remaining_col(Costs1, NC, Supplies, Demand, Basis0, Basis)
+		remaining_col(Costs, NC, Supplies, Demand, Basis0, Basis)
 	; Rows = [SingleRow] ->
-		SingleRow = NR-Costs,
+		SingleRow = _-row(NR,_,Costs),
 		nth0(NR, Supplies, Supply),
-		keysort(Costs, Costs1),
-		remaining_row(Costs1, NR, Supply, Demands, Basis0, Basis)
+		remaining_row(Costs, NR, Supply, Demands, Basis0, Basis)
 	;
-		rows_with_diffs(Rows, RowsDiff),
-		cols_with_diffs(Cols, ColsDiff),
-		keysort(RowsDiff, RowsDiff1),
-		keysort(ColsDiff, ColsDiff1),
-		RowsDiff1 = [RDiff-MinRow|_],
-		ColsDiff1 = [CDiff-MinCol|_],
+		Rows = [RDiff-MinRow|_],
+		Cols = [CDiff-MinCol|_],
 		( RDiff < CDiff ->
 			% choose the row (with smallest negative difference)
-			MinRow = (BasicRow, BasicCol)
+			MinRow = row(BasicRow, BasicCol, _)
 		;
 			% choose the column
-			MinCol = (BasicRow, BasicCol)
+			MinCol = col(BasicCol, BasicRow, _)
 		),
 		nth0(BasicCol, Demands, DemandsBound),
 		nth0(BasicRow, Supplies, SupplyBound),
@@ -1448,18 +1470,24 @@ vogel_iterate(Rows, Cols, Supplies, Demands, Basis0, Basis) :-
 		set_nth0(BasicRow, Supplies, SupplyBound1, Supplies1),
 		Basis0 = [bv(BasicRow, BasicCol, Amount)|Basis1],
 		( DemandsBound1 =:= 0 ->
-			delete(Cols, BasicCol-_, Cols1),
-			delete_from_all(Rows, BasicCol, Rows1)
+			delete(Cols, _-col(BasicCol,_,_), Cols3),
+			delete_from_all(Rows, BasicCol, Rows1),
+			recompute_diffs(Rows1, Rows2),
+			keysort(Rows2, Rows3)
 		;
-			delete(Rows, BasicRow-_, Rows1),
-			delete_from_all(Cols, BasicRow, Cols1)
+			delete(Rows, _-row(BasicRow,_,_), Rows3),
+			delete_from_all(Cols, BasicRow, Cols1),
+			recompute_diffs(Cols1, Cols2),
+			keysort(Cols2, Cols3)
 		),
-		vogel_iterate(Rows1, Cols1, Supplies1, Demands1, Basis1, Basis)
+		vogel_iterate(Rows3, Cols3, Supplies1, Demands1, Basis1, Basis)
 	).
 
 delete_from_all([], _, []).
-delete_from_all([Num-A0|As0], Del, [Num-A|As]) :-
-	delete(A0, _-Del, A),
+delete_from_all([Diff-E0|As0], Del, [Diff-E|As]) :-
+	E0 =.. [Func,N1,N2,Costs],
+	delete(Costs, _-Del, Costs1),
+	E =.. [Func,N1,N2,Costs1],
 	delete_from_all(As0, Del, As).
 
 
