@@ -362,11 +362,59 @@ getDotsPerInchDisplay(DisplayObj d)
   fail;
 }
 
+		 /*******************************
+		 *	     MONITORS		*
+		 *******************************/
+
 static Chain
 getMonitorsDisplay(DisplayObj d)
 { openDisplay(d);
 
   answer(d->monitors);
+}
+
+
+static Monitor
+getMonitorDisplay(DisplayObj d, Any obj)
+{ Cell cell;
+
+  openDisplay(d);
+  if ( instanceOfObject(obj, ClassPoint) )
+  { Point pt = obj;
+
+    for_cell(cell, d->monitors)
+    { Monitor mon = cell->value;
+      
+      if ( pointInArea(mon->area, pt) )
+	return mon;
+    }
+  } else
+  { Area a = obj;
+    Monitor best = NULL;
+    Area tmp = tempObject(ClassArea, EAV);
+    int overlap = 0;
+
+    for_cell(cell, d->monitors)
+    { Monitor mon = cell->value;
+      
+      copyArea(tmp, a);
+      if ( intersectionArea(tmp, mon->area) )
+      { int val = valInt(tmp->w)*valInt(tmp->h);
+	
+	if ( val < 0 )
+	  val = -val;
+	if ( val > overlap )
+	{ best = mon;
+	  overlap = val;
+	}
+      }
+    }
+
+    doneObject(tmp);
+    return best;
+  }
+
+  fail;
 }
 
 
@@ -1211,7 +1259,9 @@ static getdecl get_display[] =
   GM(NAME_dotsPerInch, 0, "size", NULL, getDotsPerInchDisplay,
      NAME_dimension, "Resolution in dots per inch"),
   GM(NAME_monitors, 0, "chain*", NULL, getMonitorsDisplay,
-     NAME_organisation, "Physical monitors attached"),
+     NAME_monitor, "Physical monitors attached"),
+  GM(NAME_monitor, 1, "monitor", "point|area", getMonitorDisplay,
+     NAME_monitor, "Find monitor at position"),
   GM(NAME_fontAlias, 1, "font", "name=name", getFontAliasDisplay,
      NAME_font, "Lookup logical name"),
   GM(NAME_connectionFd, 0, "int", NULL, getConnectionFdDisplay,
