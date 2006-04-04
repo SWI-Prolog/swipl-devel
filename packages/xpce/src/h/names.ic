@@ -2359,6 +2359,7 @@
   BUILTIN_NAME("wmf")
   BUILTIN_NAME("word")
   BUILTIN_NAME("word_separator")
+  BUILTIN_NAME("work_area")
   BUILTIN_NAME("working_directory")
   BUILTIN_NAME("would_be_cyclic")
   BUILTIN_NAME("wrap")
