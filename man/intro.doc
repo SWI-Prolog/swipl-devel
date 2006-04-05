@@ -516,10 +516,10 @@ visit the page below.
 Some small parts of the Prolog code of SWI-Prolog are modified
 versions of the corresponding Edinburgh C-Prolog code: grammar rule
 compilation and writef/2.  Also some of the C-code originates from
-C-Prolog: finding the path of the currently running executable and the
-code underlying absolute_file_name/2.  Ideas on programming style and
-techniques originate from C-Prolog and Richard O'Keefe's {\em thief}
-editor.  An important source of inspiration are the programming
+C-Prolog: finding the path of the currently running executable and
+some of the code underlying absolute_file_name/2. Ideas on programming
+style and techniques originate from C-Prolog and Richard O'Keefe's {\em
+thief} editor. An important source of inspiration are the programming
 techniques introduced by Anjo Anjewierden in PCE version~1 and~2.
 
 I also would like to thank those who had the fade of using the early
@@ -548,3 +548,12 @@ beginners as well as valuable comments on proposed new developments.
 Scientific Software and Systems Limited, \url{www.sss.co.nz} has
 sponsored the development if the SSL library as well as unbounded
 integer and rational number arithmetic.
+
+Leslie de Koninck has made clp(QR) available to SWI-Prolog.
+
+Markus Triska has contributed to various libraries.
+
+Paulo Moura's great experience in maintaining Logtalk for many Prolog
+systems including SWI-Prolog has helped in many places fixing
+compatibility issues.  He also worked on the MacOS port and fixed many
+typos in the 5.6.9 release of the documentation.
