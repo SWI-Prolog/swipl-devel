@@ -329,7 +329,7 @@ The mechanism above is sufficient to create an acceptable module
 system.  There are however cases in which we would like to be able to
 overrule this schema and explicitly call a predicate in some module
 or assert explicitly in some module.  The first is useful to invoke
-goals in some module from the user's toplevel or to implement a
+goals in some module from the user's top-level or to implement a
 object-oriented system (see above).  The latter is useful to create
 and modify \jargon{dynamic modules} (see \secref{dynamic-modules}). 
 
@@ -425,7 +425,7 @@ Unify \arg{Module} with the context module of the current goal.
 context_module/1 itself is transparent.
 
     \predicate{strip_module}{3}{+Term, -Module, -Plain}
-Used in module transparent or meta predicates to extract the referenced
+Used in module transparent or meta-predicates to extract the referenced
 module and plain term. If \arg{Term} is a module-qualified term, i.e.\
 of the format \arg{Module}:\arg{Plain}, \arg{Module} and \arg{Plain}
 are unified to these values.  Otherwise \arg{Plain} is unified to
@@ -459,7 +459,7 @@ Delete \arg{Import} from the list of import modules for \arg{Module}.
 Fails silently if \arg{Import} is not in the list.
 
     \predicate{default_module}{2}{+Module, -Default}
-Succesively unifies \arg{Default} with the module names from which
+Successively unifies \arg{Default} with the module names from which
 a call in \arg{Module} attempts to use the definition.  For the
 module \const{user}, this will generate \const{user} and \const{system}.
 For any other module, this will generate the module itself, followed
@@ -469,7 +469,7 @@ Backward compatibility.  New code should use import_module/2.
 
     \predicate{module}{1}{+Module}
 The call \exam{module(\arg{Module})} may be used to switch the default
-working module for the interactive toplevel (see prolog/0).  This may
+working module for the interactive top-level (see prolog/0).  This may
 be used to when debugging a module. The example below lists the clauses
 of {file_of_label}/2 in the module \const{tex}.
 

@@ -12,7 +12,7 @@ and `?' denotes `either input or output'.%
     arity `3'.
 Finally, arguments may have the `:' specifier, which implies the
 argument is module-sensitive. Normally the argument is a
-\jargon{callable} term refering to a predicate in a specific module.
+\jargon{callable} term referring to a predicate in a specific module.
 See \secref{modules} for more information on module-handing.
 
 
@@ -64,7 +64,7 @@ peek_code(Stream, 97).
 \end{code}
 
 These multiple-representations are handled by a large number of built-in
-predicates, all of which are ISO-compatible. For converting betweem code
+predicates, all of which are ISO-compatible. For converting between code
 and character there is char_code/2. For breaking atoms and numbers into
 characters are are atom_chars/2, atom_codes/2, number_codes/2 and
 number_chars/2. For character I/O on streams there is get_char/[1,2],
@@ -187,7 +187,7 @@ loaded before.
     \termitem{imports}{ListOrAll}
 If \const{all} and the file is a module file, import all public
 predicates. Otherwise import only the named predicates. Each predicate
-is refered to as <name>/<arity>. This option has no effect if the file
+is referred to as <name>/<arity>. This option has no effect if the file
 is not a module file.
 
     \termitem{must_be_module}{Bool}
@@ -255,12 +255,12 @@ Equivalent to load_files(Files, [if(not_loaded)]).%
 		  if(changed).  Poor time management on some machines
 		  or due to copying often caused problems.  The make/0
 		  predicate deals with updating the running system
-		  after changing the sourcecode.}
+		  after changing the source code.}
 
     \predicate{include}{1}{+File}
 Pretend the terms in \arg{File} are in the source-file in which
 \exam{:- include(File)} appears.  The include construct is only
-honnoured if it appears as a directive in a source-file.  Normally
+honoured if it appears as a directive in a source-file.  Normally
 \arg{File} contains a sequence of directives.
 
     \predicate{require}{1}{+ListOfNameAndArity}
@@ -280,7 +280,7 @@ This will flag the predicate as `undefined'.  See also check/0 and
 autoload/0.
 
     \predicate{encoding}{1}{+Encoding}
-This directive can appear anywhere in a sourcefile to define how
+This directive can appear anywhere in a source file to define how
 characters are encoded in the remainder of the file.  It can be
 used in files that are encoded with a superset of US-ASCII,
 currently UTF-8 and ISO Latin-1.  See also \secref{encoding}.
@@ -386,7 +386,7 @@ Determine loading context.  The following keys are defined:
 \const{source}        & File loaded.  Returns the original Prolog file
 			when loading a \fileext{qlf} file. Compatible
 			to SICStus Prolog. \\
-\const{file}          & Currenrly equivalent to \const{file}.  In future
+\const{file}          & Currently equivalent to \const{file}.  In future
 			versions it may report a different values for
 			files being loaded using include/1. \\
 \const{stream}        & Stream identifier (see current_input/1) \\
@@ -446,7 +446,7 @@ of the form \arg{Module}:\arg{Goal} where \arg{Module} is instantiated,
 goal_expansion/2 is called on \arg{Goal} using rules from module
 \arg{Module} followed by \const{user}.
 
-Only goals apearing in the body of clauses when reading a source-file
+Only goals appearing in the body of clauses when reading a source-file
 are expanded using mechanism, and only if they appear literally in the
 clause, or as an argument to the meta-predicates not/1, call/1, once/1,
 ignore/1, findall/3, bagof/3, setof/3 or forall/2. A real predicate
@@ -520,14 +520,14 @@ while new goals use the reloaded definition, which is why the
 \jargon{retry} must be used \emph{after} the reload. This implies that
 clauses of predicates that are active during the reload cannot be
 reclaimed. Normally a small amount of dead clauses should not be an
-issue during development. Such clauses can be relaimed with
+issue during development. Such clauses can be reclaimed with
 garbage_collect_clauses/0.
 
 \begin{description}
     \predicate{garbage_collect_clauses}{0}
 Cleanup all \jargon{dirty} predicates, where dirty predicates are
 defined to be predicates that have both old and new definitions due 
-to reloading a sourcefile while the predicate was active.  Of course,
+to reloading a source file while the predicate was active.  Of course,
 predicates that are active using garbage_collect_clauses/0 cannot
 be reclaimed and remain \jargon{dirty}.  Predicate are -like atoms-
 shared resources and therefore all threads are suspended during the
@@ -538,8 +538,8 @@ execution of this predicate.
 \subsubsection{Threads and reloading running code}
 
 As of version 5.5.30, there is basic thread-safety for reloading
-sourcefiles while other threads are executing code defined in these
-sourcefiles.  Reloading a file freezes all threads after marking the
+source files while other threads are executing code defined in these
+source files.  Reloading a file freezes all threads after marking the
 active predicates originating from the file being reloaded.  The
 threads are resumed after the file has been loaded.  In addition,
 after completing loading the outermost file the system runs
@@ -555,7 +555,7 @@ can be constructed with dependent predicates.
 It provides some basic security for reloading files in multi-threaded
 applications during development.  In the above scenarios the system
 does not crash uncontrolled, but behaves like any broken program:
-it may return the wrong bindings, wrong thruth value or raise an
+it may return the wrong bindings, wrong truth value or raise an
 exception.
 
 Future versions may have an `update now' facility.  Such as facility
@@ -655,7 +655,7 @@ basename of a file, XPCE class, XPCE method, etc.
 
     \predicate{edit}{0}{}
 Edit the `default' file using edit/1.  The default file is the file
-loaded with the commandline option \cmdlineoption{-s} or, in windows,
+loaded with the command-line option \cmdlineoption{-s} or, in windows,
 the file loaded by double-clicking from the Windows shell.
 
     \predicate{prolog_edit:locate}{3}{+Spec, -FullSpec, -Location}
@@ -673,7 +673,7 @@ list will contain the term \term{file}{File} and ---if available--- the
 term \term{line}{Line}.
 
     \predicate{prolog_edit:locate}{2}{+Spec, -Location}
-Same as prolog_edit:locate/3, but only deals with fully-sepecified
+Same as prolog_edit:locate/3, but only deals with fully-specified
 objects.
 
     \predicate{prolog_edit:edit_source}{1}{+Location}
@@ -977,7 +977,7 @@ should use \predref{;}{2}.
 If-then and If-Then-Else. The \predref{->}{2} construct commits to
 the choices made at its left-hand side, destroying choice-points created
 inside the clause (by \predref{;}{2}), or by goals called by
-this clause. Unlike \predref{!}{0}, the choicepoint of the predicate as
+this clause. Unlike \predref{!}{0}, the choice-point of the predicate as
 a whole (due to multiple clauses) is \strong{not} destroyed. The
 combination \predref{;}{2} and \predref{->}{2} acts as if
 defines by:
@@ -1003,7 +1003,7 @@ semantics is the same as (\arg{Condition}, \arg{Action}). If
 of \arg{Condition} and \arg{Action}, otherwise execute \arg{Else}.
 
 The construct \arg{A} \verb$*->$ \arg{B}, i.e.\ without an
-\arg{Else} branche, is translated as the normal conjunction \arg{A},
+\arg{Else} branch, is translated as the normal conjunction \arg{A},
 \arg{B}.%
 	\bug{The decompiler implemented by clause/2 returns this
 	     construct as a normal conjunction too.}
@@ -1016,7 +1016,7 @@ indicate negation in Prolog).
 
 \section{Meta-Call Predicates}		\label{sec:metacall}
 
-Meta call predicates are used to call terms constructed at run time.
+Meta-call predicates are used to call terms constructed at run time.
 The basic meta-call mechanism offered by SWI-Prolog is to use
 variables as a subclause (which should of course be bound to a valid
 goal at runtime).  A meta-call is slower than a normal call as it
@@ -1096,20 +1096,20 @@ repeat :-
 	repeat.
 \end{code}
 
-As a result, call_with_depth_limit/3 may still loop inifitly on programs
+As a result, call_with_depth_limit/3 may still loop infinitely on programs
 that should theoretically finish in finite time. This problem can be
 cured by using Prolog equivalents to such built-in predicates.
 
 This predicate may be used for theorem-provers to realise techniques
-like \jargon{iterrative deepening}.  It was implemented after discussion
+like \jargon{iterative deepening}.  It was implemented after discussion
 with Steve Moyle \email{smoyle@ermine.ox.ac.uk}.
 
     \predicate{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
 Calls \arg{Goal}.  If \arg{Goal} is completely finished, either
-by deterministic success, failure, its choicepoint being cut or
+by deterministic success, failure, its choice-point being cut or
 raising an exception and \arg{Catcher} unifies to the termination
 code (see below), \arg{Cleanup} is called.  Success or failure of
-\arg{Cleanup} is ignored and possible choicepoints it created are
+\arg{Cleanup} is ignored and possible choice-points it created are
 destroyed (as once/1).  If cleanup throws an exception this is
 executed as normal.%
 	\bug{During the execution of \arg{Cleanup}, garbage collection
@@ -1121,14 +1121,14 @@ called.
 
 \begin{description}
     \termitem{exit}{}
-\arg{Goal} succeeded without leaving any choicepoints.
+\arg{Goal} succeeded without leaving any choice-points.
 
     \termitem{fail}{}
 \arg{Goal} failed.
 
     \termitem{!}{}
-\arg{Goal} succeeded with choicepoints and these are now discarded
-by the execution of a cut (or orther pruning of the search tree such as
+\arg{Goal} succeeded with choice-points and these are now discarded
+by the execution of a cut (or other pruning of the search tree such as
 if-then-else).
 
     \termitem{exception}{Exception}
@@ -1157,7 +1157,7 @@ term_in_stream(Term, In) :-
 Note that this predicate is impossible to implement in Prolog other then
 reading all terms into a list, close the file and call member/2 because
 without call_cleanup/3 there is no way to gain control if the
-choicepoint left by repeat is killed by a cut.
+choice-point left by repeat is killed by a cut.
 
 This predicate is a SWI-Prolog extension. See also call_cleanup/2 for
 compatibility to other Prolog implementations.
@@ -1184,7 +1184,7 @@ exceptions.
 Behaves as call/1 if no exception is raised when executing \arg{Goal}.
 If a exception is raised using throw/1 while \arg{Goal} executes, and
 the \arg{Goal} is the innermost goal for which \arg{Catcher} unifies
-with the argument of throw/1, all choicepoints generated by \arg{Goal}
+with the argument of throw/1, all choice-points generated by \arg{Goal}
 are cut, the system backtracks to the start of catch/3 while preserving
 the thrown exception term and \arg{Recover} is called as in call/1.
 
@@ -1203,7 +1203,7 @@ to a catch/3 call, backtrack and try to unify the copy of
 \arg{Exception} and backtracking until it actually found a matching
 catch/3 goal. The advantage is that we can start the debugger at the
 first possible location while preserving the entire exception context if
-there is no matching catch/3 goal. This aproach can lead to different
+there is no matching catch/3 goal. This approach can lead to different
 behaviour if \arg{Goal} and \arg{Catcher} of catch/3 call share
 variables.  We assume this to be highly unlikely and could not think
 of a scenario where this is useful.%
@@ -1229,13 +1229,13 @@ locate the error.
 
 With exception handling, things are different. A programmer may wish to
 trap an exception using catch/3 to avoid it reaching the user. If the
-exception is not handled by user-code, the interactive toplevel will
+exception is not handled by user-code, the interactive top-level will
 trap it to prevent termination.
 
 If we do not take special precautions, the context information
 associated with an unexpected exception (i.e, a programming error) is
 lost. Therefore, if an exception is raised, which is not caught using
-catch/3 and the toplevel is running, the error will be printed, and the
+catch/3 and the top-level is running, the error will be printed, and the
 system will enter trace mode.
 
 If the system is in an non-interactive callback from foreign code and
@@ -1260,7 +1260,7 @@ advised to switch on debug mode using the predicate debug/0.
 
 \subsection{The exception term}		\label{sec:exceptterm}
 
-Builtin predicates generates exceptions using a term
+Built-in predicates generates exceptions using a term
 \term{error}{Formal, Context}.  The first argument is the `formal'
 description of the error, specifying the class and generic defined
 context information.  When applicable, the ISO error-term definition
@@ -1372,13 +1372,13 @@ As of version 3.1.0, SWI-Prolog is capable to handle software interrupts
 (signals) in Prolog as well as in foreign (C) code (see \secref{csignal}).
 
 Signals are used to handle internal errors (execution of a non-existing
-CPU intruction, arithmetic domain errors, illegal memory access,
+CPU instruction, arithmetic domain errors, illegal memory access,
 resource overflow, etc.), as well as for dealing asynchronous
 inter-process communication.
 
 Signals are defined by the POSIX standard and part of all Unix machines.
 The MS-Windows Win32 provides a subset of the signal handling routines,
-lacking the vital funtionality to raise a signal in another thread for
+lacking the vital functionality to raise a signal in another thread for
 achieving asynchronous inter-process (or inter-thread) communication
 (Unix kill() function).
 
@@ -1390,9 +1390,9 @@ with similar environment-control predicates, the current value is
 retrieved using \exam{on_signal(Signal, Current, Current)}.
 
 The action description is an atom denoting the name of the predicate
-that will be called if \arg{Signal} arrives.  on_signal/3 is a meta
-predicate, which implies that <Module>:<Name> refers the <Name>/1 in
-the module <Module>.
+that will be called if \arg{Signal} arrives.  on_signal/3 is a 
+meta-predicate, which implies that <Module>:<Name> refers the <Name>/1 
+in the module <Module>.
 
 Two predicate-names have special meaning.  \const{throw} implies Prolog
 will map the signal onto a Prolog exception as described in
@@ -1483,7 +1483,7 @@ Before deciding to deal with signals in your application, please
 consider the following:
 
 \begin{itemlist}
-    \item[Portibility]
+    \item[Portability]
 On MS-Windows, the signal interface is severely limited. Different Unix
 brands support different sets of signals, and the relation between
 signal name and number may vary.
@@ -1520,7 +1520,7 @@ critical sections are generally very short.
 The block/3 predicate and friends have been introduced before ISO
 compatible catch/3 exception handling for compatibility with some
 Prolog implementation.  The only feature not covered by catch/3
-and throw/1 is the posibility to execute global cuts.  New code
+and throw/1 is the possibility to execute global cuts.  New code
 should use catch/3 and throw/1 to deal with exceptions.
 
 \begin{description}
@@ -1588,7 +1588,7 @@ Prolog control-constructs (\functor{\+}{1}, \functor{->}{2},
 \functor{;}/2, \functor{,}{2} and \functor{!}{0}) can be used in grammar
 rules.
 
-Grammar rule-sets are called using the builtin predicates phrase/2
+Grammar rule-sets are called using the built-in predicates phrase/2
 and phrase/3:
 
 \begin{description}
@@ -1832,8 +1832,8 @@ of the program execution.%
 		  Richard O'Keefe.  The implementation is allowed to
 		  optimise the predicate.  This is not yet implemented.
 		  In multi-threaded Prolog however, static code runs
-		  faster as it does not require synchronization.  This
-		  is particulary true on SMP hardware.}
+		  faster as it does not require synchronisation.  This
+		  is particularly true on SMP hardware.}
 
     \prefixop{multifile}{+Name/+Arity, \ldots}
 Informs the system that the specified predicate(s) may be defined over
@@ -1990,7 +1990,7 @@ predicate.  This property is set using multifile/1.
 
     \termitem{nodebug}{}
 Details of the predicate are not shown by the debugger. This is the
-default for builtin predicates.  User predicates can be compiled this
+default for built-in predicates.  User predicates can be compiled this
 way using the Prolog flag \const{generate_debug_info}.
 
     \termitem{notrace}{}
@@ -2085,7 +2085,7 @@ native I/O system is based on the ISO standard predicates open/3,
 close/1 and friends.%
 	\footnote{Actually based on Quintus Prolog, providing this interface
 		  before the ISO standard existed.}
-Being more widely portable and equiped with a clearer and more robust
+Being more widely portable and equipped with a clearer and more robust
 specification, new code is encouraged to use these predicates for
 manipulation of I/O streams.
 
@@ -2103,7 +2103,7 @@ resulting stream identifier is then passed as a parameter to the reading
 and writing predicates to specify the source or destination of the data.
 
 This schema is not vulnerable to filename and stream ambiguities as
-well as changes to the working directory.  New code is adviced to use
+well as changes to the working directory.  New code is advised to use
 these predicates to manage input and output streams.
 
 
@@ -2188,7 +2188,7 @@ Locks are acquired through the POSIX function fcntl() using the command
 released. Please note that fcntl() locks are {\em advisory} and
 therefore only other applications using the same advisory locks
 honour your lock. As there are many issues around locking in Unix,
-expecially related to NFS (network file system), please study the
+especially related to NFS (network file system), please study the
 fcntl() manual page before trusting your locks! 
 
 The \const{lock} option is a SWI-Prolog extension.
@@ -2338,12 +2338,12 @@ relative to the start of the stream.
 If the seek modifies the current location, the line number and character
 position in the line are set to 0.
 
-If the stream cannot be repostioned, a \const{reposition} error is
+If the stream cannot be repositioned, a \const{reposition} error is
 raised. The predicate seek/4 is compatible to Quintus Prolog, though the
 error conditions and signalling is ISO compliant. See also
 stream_property/2 and set_stream_position/2.  Please note that the use
 of seek/4 on non-binary files (see open/4) is of limited use as the
-reffered positions are byte offsets.
+referred positions are byte offsets.
 
     \predicate{set_stream}{2}{+Stream, +Attribute}
 Modify an attribute of an existing stream. \arg{Attribute} specifies
@@ -2398,7 +2398,7 @@ be represented by the encoding.  See also stream_property/2 and
     \termitem{file_name}{FileName}
 Set the file name associated to this stream.  This call can be used
 to set the file for error-locations if \arg{Stream} corresponds to
-\arg{FileName} and is not optained by opening the file directly but,
+\arg{FileName} and is not obtained by opening the file directly but,
 for example, through a network service.
 
     \termitem{tty}{Bool}
@@ -2497,7 +2497,7 @@ Otherwise a file with the specified name is opened.
 The behaviour is compatible to Edinburgh Prolog.  This is not without
 problems. Changing directory, non-file streams, multiple names referring
 to the same file easily lead to unexpected behaviour. New code,
-especially when managing multiple I/O channals should consider using
+especially when managing multiple I/O channels should consider using
 the ISO I/O predicates defined in \secref{isoIO}.
 
 \begin{description}
@@ -2611,7 +2611,7 @@ write an incomplete term:
     \predicate{byte_count}{2}{+Stream, -Count}
 Byte-position in \arg{Stream}.  For binary streams this is the same
 as character_count/2.  For text files the number may be different due
-to multibyte encodings or additional record separators (such as
+to multi-byte encodings or additional record separators (such as
 Control-M in Windows).
 
     \predicate{character_count}{2}{+Stream, -Count}
@@ -2638,7 +2638,7 @@ set to \arg{New}.%
               nofileerrors/0.  As this does not allow you to switch back
               to the old mode I think this definition is better.}
 
-With the introduction of exception-handling, it is adviced to use
+With the introduction of exception-handling, it is advised to use
 catch/3 to catch possibly file-errors and act accordingly.  Note that
 if \emph{fileerrors} is \const{off}, \emph{no} exception is generated.
 \end{description}
@@ -2805,7 +2805,7 @@ are rarely used, see open/4).
 Copy \arg{Len} codes from stream \arg{StreamIn} to \arg{StreamOut}.
 Note that the copy is done using the semantics of get_code/2 and
 put_code/2, taking care of possibly recoding that needs take place
-between two textfiles.  See \secref{encoding}.
+between two text files.  See \secref{encoding}.
 
     \predicate{copy_stream_data}{2}{+StreamIn, +StreamOut}
 Copy data all (remaining) data from stream \arg{StreamIn} to
@@ -2816,7 +2816,7 @@ Read input pending in the input buffer of \arg{StreamIn} and return
 it in the difference list \arg{Codes}-\arg{Tail}. I.e.\ the
 available characters codes are used to create the list \arg{Codes}
 ending in the tail \arg{Tail}.  This predicate is intended for 
-efficient unbuffered copying and filtering of input comming from
+efficient unbuffered copying and filtering of input coming from
 network connections or devices.
 
 The following code fragment realises efficient non-blocking copy of data
@@ -2898,7 +2898,7 @@ a(s(s(...)), [a, b|...])
 Yes
 \end{code}
 
-Used by the toplevel and debugger to limit screen output.  See also
+Used by the top-level and debugger to limit screen output.  See also
 the prolog-flags \const{toplevel_print_options} and
 \const{debugger_print_options}.
 
@@ -3282,7 +3282,7 @@ atom, number_codes/2 will generate a number or exception and name/2 will
 return a number if possible and an atom otherwise.
 
 The ISO standard defines atom_chars/2 to describe the `broken-up'
-atom as a list of one-character atoms instead of a list of codes.  Upto
+atom as a list of one-character atoms instead of a list of codes.  Up-to
 version 3.2.x, SWI-Prolog's atom_chars/2 behaved, compatible to
 Quintus and SICStus Prolog, like atom_codes.  As of 3.3.x SWI-Prolog
 atom_codes/2 and atom_chars/2 are compliant to the ISO standard.
@@ -3304,7 +3304,7 @@ is unbound and \arg{String} is a list of character codes, it will
     \predicate{atom_chars}{2}{?Atom, ?CharList}
 As atom_codes/2, but \arg{CharList} is a list of one-character atoms
 rather than a list of character codes%
-	\footnote{Upto version 3.2.x, atom_chars/2 behaved as the
+	\footnote{Up-to version 3.2.x, atom_chars/2 behaved as the
 		  current atom_codes/2.  The current definition is
 		  compliant with the ISO standard}.
 \begin{code}
@@ -3415,7 +3415,7 @@ after the match.
 A = 1, S = b
 \end{code}
 
-The implementation minimalises non-determinism and creation of atoms.
+The implementation minimises non-determinism and creation of atoms.
 This is a very flexible predicate that can do search, prefix- and
 suffix-matching, etc.
 \end{description}
@@ -3462,7 +3462,7 @@ primitives.
 \arg{Char} is a digit with value \arg{Weigth}. I.e.\ \exam{char_type(X,
 digit(6)} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
     \termitem{xdigit}{Weigth}
-\arg{Char} is a haxe-decimal digit with value \arg{Weigth}. I.e.\
+\arg{Char} is a hexa-decimal digit with value \arg{Weigth}. I.e.\
 \exam{char_type(a, xdigit(X)} yields \arg{X} = \exam{'10'}. Useful for
 parsing numbers.
     \termitem{graph}{}
@@ -3544,7 +3544,7 @@ stored as a byte array on the global (term) stack and thus destroyed on
 backtracking and reclaimed by the garbage collector.
 
 Strings were added to SWI-Prolog based on an early draft of the ISO
-standard, offerring a mechanism to represent temporary character data
+standard, offering a mechanism to represent temporary character data
 efficiently. As SWI-Prolog strings can handle 0-bytes, they
 are frequently used through the foreign language interface
 (\secref{foreign}) for storing arbitrary byte-sequences.
@@ -3576,7 +3576,7 @@ read/1 read text into strings, both controlled through Prolog flags. One
 is by setting the \const{double_quotes} flag to \const{string} and the
 other is by setting the \const{backquoted_string} flag to \const{true}.
 In latter case, \verb$`Hello world`$ is read into a string and
-write_term/2 prints strings between backquotes if \const{quoted} is
+write_term/2 prints strings between back-quotes if \const{quoted} is
 \const{true}. This flag provides compatibility to LPA Prolog string
 handling.
 
@@ -3612,7 +3612,7 @@ after the match.  See also sub_atom/5.
 
 \section{Operators}			\label{sec:operators}
 
-Operators are defined to improve the readibility of source-code.
+Operators are defined to improve the readability of source-code.
 For example, without operators, to write \exam{2*3+4*5} one would have
 to write \exam{+(*(2,3),*(4,5))}.  In Prolog, a number of operators have
 been predefined. All operators, except for the comma (,) can be
@@ -3625,11 +3625,11 @@ time lead to hard to understand the limits of your syntax. To ease the
 pain, as of SWI-Prolog 3.3.0, operators are local to the module in which
 they are defined. Operators can be exported from modules using a term
 \term{op}{Precedence, Type, Name} in the export list as specified by
-module/2. This is an extension specific to SWI-Prolog and the adviced
+module/2. This is an extension specific to SWI-Prolog and the advised
 mechanism of portability is not an important concern.
 
 The module-table of the module \const{user} acts as default table for
-all modules and can be modified explictly from inside a module to
+all modules and can be modified explicitly from inside a module to
 achieve compatibility to other Prolog systems:
 
 \begin{code}
@@ -3706,7 +3706,7 @@ with precedence \arg{Precedence}. See also op/3.
 \section{Character Conversion}		\label{sec:charconv}
 
 Although I wouldn't really know for what you would like to use these
-features, they are provided for ISO complicancy.
+features, they are provided for ISO compliance.
 
 \begin{description}
     \predicate{char_conversion}{2}{+CharIn, +CharOut}
@@ -3733,9 +3733,9 @@ functions are described in \secref{functions}.
 
 \subsection{Special purpose integer arithmetic}
 
-The predciates in this section provide more logical operations between
+The predicates in this section provide more logical operations between
 integers. They are not covered by the ISO standard, although they are
-`part of the comminuty' and found as either library or built-in in many
+`part of the community' and found as either library or built-in in many
 other Prolog systems.
 
 \begin{description}
@@ -3760,7 +3760,7 @@ called with a negative integer.  E.g.\ \term{succ}{X, 0} fails silently
 and \term{succ}{X, -1} raises a domain-error.%
 	\footnote{The behaviour to deal with natural numbers only was
 		  defined by Richard O'Keefe to support
-		  the common count-down-to-zero in a natural way.  Upto
+		  the common count-down-to-zero in a natural way.  Up-to
 		  5.1.8 succ/2 also accepted negative integers.}
 
     \predicate{plus}{3}{?Int1, ?Int2, ?Int3}
@@ -3842,7 +3842,7 @@ Internally, SWI-Prolog has three integer representations. Small integers
 (defined by the Prolog flag \const{max_tagged_integer}) are encoded
 directly. Larger integers are represented as 64-bit value on the
 global stack. Integers that do not fit in 64-bit are represented as
-serialized GNU MPZ structures on the global stack.
+serialised GNU MPZ structures on the global stack.
 
     \item [rational number]
 Rational numbers ($Q$) are quotients of two integers. Rational
@@ -3887,7 +3887,7 @@ integer or \jargon{fixed point} arithmetic under the addition,
 subtraction, multiplication and division.  To exploit rational
 arithmetic rdiv/2 should be used instead of `/' and floating point
 numbers must be converted to rational using rational/1.  Omitting the
-rational/1 on floats will convert a rational operant to float and continue
+rational/1 on floats will convert a rational operand to float and continue
 the arithmetic using floating point numbers.  Here are some examples.
 
 \begin{center}
@@ -3972,7 +3972,7 @@ Modulo:
 \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1} // \arg{IntExpr2})
 $\times$ \arg{IntExpr2}}
 The function mod/2 is implemented using the C \verb$%$ operator.  It's
-behaviour with negtive values is illustrated in the table below.
+behaviour with negative values is illustrated in the table below.
 
 \begin{center}
 \begin{tabular}{rcrcr}
@@ -4101,7 +4101,7 @@ Same as ceiling/1 (backward compatibility).
     \infixop{>>}{+IntExpr}{+IntExpr}
 Bitwise shift \arg{IntExpr1} by \arg{IntExpr2} bits to the right.  The
 operation performs \jargon{arithmetic shift}, which implies that the
-inserted most significant bits are copies of the orginal most
+inserted most significant bits are copies of the original most
 significant bit.
 
     \infixop{<<}{+IntExpr}{+IntExpr}
@@ -4192,7 +4192,7 @@ Arithmetic functions are module sensitive, that is they are only
 visible from the module in which the function is defined and declared.
 Global arithmetic functions should be defined and registered from
 module \const{user}.  Global definitions can be overruled locally in
-modules.  The builtin functions described above can be redefined as
+modules.  The built-in functions described above can be redefined as
 well.
 
 \begin{description}
@@ -4435,7 +4435,7 @@ Escape sequences to generate a single special character:
 \begin{center}
 \begin{tabular}{|l|p{3.5in}|}
 \hline
-\fmtseq{\n}   &  Output a nemline character (see also nl/[0,1]) \\
+\fmtseq{\n}   &  Output a newline character (see also nl/[0,1]) \\
 \fmtseq{\l}   &  Output a line separator (same as \fmtseq{\n}) \\
 \fmtseq{\r}   &  Output a carriage-return character (ASCII 13) \\
 \fmtseq{\t}   &  Output the ASCII character TAB (9) \\
@@ -4799,7 +4799,7 @@ registry key. \arg{Name} is the desired attribute name of the key.
 \type{DWORD}, the value is returned as an integer. If the value is a
 string it is returned as a Prolog atom. Other types are currently not
 supported. The default `root' is \const{HKEY_CURRENT_USER}. Other roots
-can be specified explicitely as \const{HKEY_CLASSES_ROOT},
+can be specified explicitly as \const{HKEY_CLASSES_ROOT},
 \const{HKEY_CURRENT_USER}, \const{HKEY_LOCAL_MACHINE} or
 \const{HKEY_USERS}.  The example below fetches the extension to use
 for Prolog files (see \file{README.TXT} on the Windows version):
@@ -4869,7 +4869,7 @@ Equivalent to calling working_directory/2. Use for compatibility
 only.
 
     \termitem{argv}{-Argv}
-Unify \arg{Argv} with the list of commandline arguments provides to
+Unify \arg{Argv} with the list of command-line arguments provides to
 this Prolog run. Please note that Prolog system-arguments and
 application arguments are separated by \const{--}.  Integer arguments
 are passed as Prolog integers, float arguments and Prolog floating
@@ -4901,7 +4901,7 @@ accessing time-information from files (see time_file/2).
 \begin{description}
     \predicate{get_time}{1}{-Time}
 Return the number of seconds that elapsed since the epoch of the POSIX,
-tim representation: January 1970, 0 hours. \arg{Time} is a floating
+time representation: January 1970, 0 hours. \arg{Time} is a floating
 point number.  The granularity is system dependent.
 
     \predicate{convert_time}{8}{+Time, -Year, -Month, -Day,
@@ -4960,7 +4960,7 @@ If present, activate the window.
 \end{description}
 
     \predicate{win_has_menu}{0}{}
-Suceeds if win_insert_menu/2 and win_insert_menu_item/4 are present.
+Succeeds if win_insert_menu/2 and win_insert_menu_item/4 are present.
 
     \predicate{win_insert_menu}{2}{+Label, +Before}
 Insert a new entry (pulldown) in the menu.  If the menu already contains
@@ -5131,7 +5131,7 @@ If the pattern does contains wildcard characters, only existing files
 and directories are returned.  Expanding a `pattern' without wildcard
 characters returns the argument, regardless on whether or not it exists.
 
-Before expanding wildchards, the construct \file{\$\arg{var}} is expanded
+Before expanding wildcards, the construct \file{\$\arg{var}} is expanded
 to the value of the environment variable \var{var} and a possible
 leading \verb$~$ character is expanded to the user's home directory.%
     \footnote{On Windows, the home directory is determined as follows:
@@ -5187,7 +5187,7 @@ Note that the working directory is shared between all threads.
 Compatibility predicate.  New code should use working_directory/2.
 \end{description}
 
-\section{User Toplevel Manipulation}	\label{sec:toplevel}
+\section{User Top-level Manipulation}	\label{sec:toplevel}
 
 \begin{description}
     \predicate{break}{0}{}
@@ -5240,7 +5240,7 @@ systems control-D).
 \end{description}
 
 The following two hooks allow for expanding queries and handling the
-result of a query.  These hooks are used by the toplevel variable 
+result of a query.  These hooks are used by the top-level variable 
 expansion mechanism described in \secref{topvars}.
 
 \begin{description}
@@ -5249,15 +5249,15 @@ Hook in module \const{user}, normally not defined.  \arg{Query} and
 \arg{Bindings} represents the query read from the user and the names
 of the free variables as obtained using read_term/3.  If this predicate
 succeeds, it should bind \arg{Expanded} and \arg{ExpandedBindings} to
-the query and bindings to be executed by the toplevel.  This predicate
-is used by the toplevel (prolog/0).  See also expand_answer/2 and
+the query and bindings to be executed by the top-level.  This predicate
+is used by the top-level (prolog/0).  See also expand_answer/2 and
 term_expansion/2.
 
     \predicate{expand_answer}{2}{+Bindings, -ExpandedBindings} Hook in
 module \const{user}, normally not defined. Expand the result of a
-successfully executed toplevel query. \arg{Bindings} is the query
+successfully executed top-level query. \arg{Bindings} is the query
 $<Name>=<Value>$ binding list from the query. \arg{ExpandedBindings}
-must be unified with the bindings the toplevel should print.
+must be unified with the bindings the top-level should print.
 \end{description}
 
 \section{Creating a Protocol of the User Interaction}	\label{sec:protocol}
@@ -5289,13 +5289,13 @@ unifies \arg{File} with the current protocol output file.
 This section is a reference to the debugger interaction predicates. A
 more use-oriented overview of the debugger is in \secref{debugoverview}.
 
-If you have installed XPCE, you can use the graphical frontend of the
-tracer.  This frontend is installed using the predicate guitracer/0.
+If you have installed XPCE, you can use the graphical front-end of the
+tracer.  This front-end is installed using the predicate guitracer/0.
 
 \begin{description}
     \predicate{trace}{0}{}
 Start the tracer. trace/0 itself cannot be seen in the tracer.  Note that
-the Prolog toplevel treats trace/0 special; it means `trace the next goal'.
+the Prolog top-level treats trace/0 special; it means `trace the next goal'.
     \predicate{tracing}{0}{}
 Succeeds when the tracer is currently switched on.  tracing/0 itself can
 not be seen in the tracer.
@@ -5303,7 +5303,7 @@ not be seen in the tracer.
 Stop the tracer. notrace/0 itself cannot be seen in the tracer.
     \predicate{guitracer}{0}{}
 Installs hooks (see prolog_trace_interception/4) into the system that
-redirects tracing information to a GUI frontend providing structured
+redirects tracing information to a GUI front-end providing structured
 access to variable-bindings, graphical overview of the stack and
 highlighting of relevant source-code.
     \predicate{noguitracer}{0}{}
@@ -5312,7 +5312,7 @@ Reverts back to the textual tracer.
 Equivalent to \exam{trace(\arg{Pred}, +all)}.
     \predicate{trace}{2}{+Pred, +Ports}
 Put a trace-point on all predicates satisfying the predicate specification
-\arg{Pred}. \arg{Ports} is a list of portnames (\const{call},
+\arg{Pred}. \arg{Ports} is a list of port names (\const{call},
 \const{redo}, \const{exit}, \const{fail}). The atom \const{all} refers
 to all ports. If the port is preceded by a \const{-} sign the
 trace-point is cleared for the port. If it is preceded by a \const{+}
@@ -5335,7 +5335,7 @@ is continued without asking for further information.  Examples:
 The predicate debugging/0 shows all currently defined trace-points.
     \predicate{notrace}{1}{+Goal}
 Call \arg{Goal}, but suspend the debugger while \arg{Goal} is executing.
-The current implementation cuts the choicepoints of \arg{Goal} after
+The current implementation cuts the choice-points of \arg{Goal} after
 successful completion. See once/1.  Later implementations may have the
 same semantics as call/1.
     \predicate{debug}{0}{}
@@ -5344,7 +5344,7 @@ disables tail-recursion optimisation and aggressive destruction of
 choice-points to make debugging information accessible.  Implemented
 by the Prolog flag \plflag{debug}.
     \predicate{nodebug}{0}{}
-Stop debugger.  Implementated by the prolog flag \plflag{debug}.  See
+Stop debugger.  Implemented by the prolog flag \plflag{debug}.  See
 also debug/0.
     \predicate{debugging}{0}{}
 Print debug status and spy points on current output stream.  See also
@@ -5679,7 +5679,7 @@ atom, indicating \arg{Goal} only handles requests on this topic or a
 variable that also appears in \arg{Goal}. \arg{Item} and \arg{Value} are
 variables that also appear in \arg{Goal}. \arg{Item} represents the
 request data as a Prolog atom.%
-    \footnote{Upto version 3.4.5 this was a list of character codes.
+    \footnote{Up-to version 3.4.5 this was a list of character codes.
 	      As recent versions have atom garbage collection there is
 	      no need for this anymore.}
 

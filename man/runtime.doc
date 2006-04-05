@@ -19,7 +19,7 @@ the two parts. This can be achieved using external commands (Unix:
 attach a startup script in front of the resource that starts the
 emulator with the proper options. This is the default under Unix.
 Finally, an emulator can be told to use a specified resource file
-using the \cmdlineoption{-x}{} commandline switch.
+using the \cmdlineoption{-x}{} command-line switch.
 
 
 \begin{description}
@@ -44,7 +44,7 @@ global   & \bf -G       & K-bytes       & Size (Limit) of global stack \\
 trail    & \bf -T       & K-bytes       & Size (Limit) of trail stack \\
 argument & \bf -A       & K-bytes       & Size (Limit) of argument stack \\
 goal     & \bf -g       & atom          & Initialisation goal \\
-toplevel & \bf -t       & atom          & Prolog toplevel goal \\
+toplevel & \bf -t       & atom          & Prolog top-level goal \\
 init_file& \bf -f       & atom          & Personal initialisation file \\
 \hline
 class	 &		& atom		& If \const{runtime}, only read
@@ -119,7 +119,7 @@ logtable(From, To) :-
 However, the following implementation refers to {log}/2 through the
 meta-predicate maplist/3.  Autoload will not be able to find the
 reference.  This problem may be fixed either by loading the
-module libtary(quintus) explicitly or use require/1 to tell the
+module library(quintus) explicitly or use require/1 to tell the
 system that the predicate {log}/2 is required by this module.
 
 \begin{code}
@@ -244,11 +244,11 @@ predicate resource/3. They are accessed using the predicate
 open_resource/3.
 
 Before going into details, let us start with an example.  Short texts
-can easily be expressed in Prolog sourcecode, but long texts are
+can easily be expressed in Prolog source code, but long texts are
 cumbersome.  Assume our application defines a command `help' that
 prints a helptext to the screen.  We put the content of the helptext
 into a file called \file{help.txt}.  The following code implements
-our help command such that \file{help.txt} is incorperated into the
+our help command such that \file{help.txt} is incorporated into the
 runtime executable.
 
 \begin{code}
@@ -322,7 +322,7 @@ resource found that has the specified \arg{Name}.  If successful,
 \arg{Stream} becomes a handle to a binary input stream, providing
 access to the content of the resource.
 
-The predicate open_resource/3 first checks resource/3.  When succesful
+The predicate open_resource/3 first checks resource/3.  When successful
 it will open the returned resource source-file.  Otherwise it will look
 in the programs resource database.  When creating a saved-state, the
 system normally saves the resource contents into the resource archive,
@@ -374,7 +374,7 @@ such as database files, configuration files, etc., the runtime version
 has to be able to locate these files. The file_search_path/2 mechanism
 in combination with the \cmdlineoption{-p}{alias} command-line argument
 is the preferred way to locate runtime files. The first step is to
-define an alias for the toplevel directory of your application. We will
+define an alias for the top-level directory of your application. We will
 call this directory \file{gnatdir} in our examples.
 			    
 A good place for storing data associated with SWI-Prolog runtime systems

@@ -79,7 +79,7 @@ user, either because a parent has the hide-childs attribute (all system
 predicates), or the system has no trace-me attribute.
 
     \termitem{pc}{}
-\arg{Value} is unified with the program-pointer saved on behalve of the
+\arg{Value} is unified with the program-pointer saved on behalf of the
 parent-goal if the parent-goal is not owned by a foreign predicate.
 
     \termitem{argument}{N}
@@ -101,17 +101,17 @@ Requests a reference to the frame to which the choice-point refers.
     \termitem{type}{}
 Requests the type.  Defined values are \const{clause} (the goal has
 alternative clauses), \const{foreign} (non-deterministic foreign
-predicate), \const{jump} (clause internal choicepoint), \const{top}
+predicate), \const{jump} (clause internal choice-point), \const{top}
 (first dummy choice-point), \const{catch} (catch/3 to allow for undo),
 \const{debug} (help the debugger), or \const{none} (has been deleted).
 \end{description}
 
 This predicate is used for the graphical debugger to show the
-choicepoint stack.
+choice-point stack.
 
     \predicate{deterministic}{1}{-Boolean}
 Unifies its argument with \const{true} if the clause in which is appears
-has not created any choicepoints since it was started.  There are few
+has not created any choice-points since it was started.  There are few
 realistic situations for using this predicate. It is used by the
 prolog/0 toplevel to check whether Prolog should prompt the user for
 alternatives.
@@ -133,16 +133,16 @@ the normal Prolog debugger actions are performed.
 
 \begin{description}
     \termitem{call}{}
-Normal extry through the call-port of the 4-port debugger.
+Normal entry through the call-port of the 4-port debugger.
 
     \termitem{redo}{}
-Normal extry through the call-port of the 4-port debugger. The
+Normal entry through the call-port of the 4-port debugger. The
 \const{redo} port signals resuming a predicate to generate alternative
 solutions.
 
     \termitem{unify}{}
 The unify-port represents the \jargon{neck} instruction, signalling the
-end of the head-matching process.  This port is normally unvisible.  See
+end of the head-matching process.  This port is normally invisible.  See
 leash/1 and visible/1.
 
     \termitem{exit}{}
@@ -241,7 +241,7 @@ as way that it no longer unifies with the catching frame.
 
 Typically, prolog_exception_hook/4 is used to fill the second argument
 of \term{error}{Formal, Context} exceptions. \arg{Formal} is
-deifned by the ISO standard, while SWI-Prolog defines \arg{Context} 
+defined by the ISO standard, while SWI-Prolog defines \arg{Context} 
 as a term \term{context}{Location, Message}.  \arg{Location} is bound
 to a term <name>/<arity> by the kernel.  This hook can be used to add
 more information on the calling context, such as a full stack trace.
@@ -287,7 +287,7 @@ operation can now succeed without error.
 undefined predicate. If the definition module of the predicate is not
 \arg{user}, \arg{Context} will be of the form \mbox{\tt
 <Module>:<Name>/<Arity>}. If the predicate fails Prolog will generate an
-\except{excistence_error} exception.
+\except{existence_error} exception.
 
     \termitem{undefined_global_variable}{}
 \arg{Context} is instantiated to the name of the missing global

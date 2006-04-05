@@ -264,7 +264,7 @@ Now, a new executable may be created by compiling this file and linking
 it to \file{libpl.a} from the runtime directory and the libraries
 required by both the extensions and the SWI-Prolog kernel. This may be
 done by hand, or using the \program{plld} utility described in
-secref{plld}. If the linking is preformed `by hand', the commandline
+secref{plld}. If the linking is performed `by hand', the command-line
 option \const{-dump-runtime-variables} (see \secref{cmdline}) can be
 used to obtain the required paths, libraries and linking options to link
 the new executable.
@@ -1231,7 +1231,7 @@ encoding of \arg{chars}.  Prolog types is one of
 \const{PL_CHAR_LIST}.  Representations is one of
 \const{REP_ISO_LATIN_T}, \const{REP_UTF8} or \const{REP_MB}.  See
 PL_get_chars() for a definition of the representation types.  If
-\arg{len} is \const{-1}, \arg{chars} is assumed to be nul-terminated.
+\arg{len} is \const{-1}, \arg{chars} is assumed to be null-terminated.
     \cfunction{int}{PL_unify_atom_chars}{term_t ?t, const char *chars}
 Unify \arg{t} with an atom created from \arg{chars}  and return non-zero
 on success.
@@ -1313,7 +1313,7 @@ Special attention is required when passing numbers. C `promotes' any
 integral smaller than \type{int} to \type{int}. I.e.\ the types
 \type{char}, \type{short} and \type{int} are all passed as \type{int}.
 In addition, on most 32-bit platforms \type{int} and \type{long} are the
-same. Upto version 4.0.5, only \const{PL_INTEGER} could be specified
+same. Up-to version 4.0.5, only \const{PL_INTEGER} could be specified
 which was taken from the stack as \type{long}. Such code fails when
 passing small integral types on machines where \type{int} is smaller
 than \type{long}. It is advised to use \const{PL_SHORT}, \const{PL_INT}
@@ -1341,12 +1341,12 @@ Create an atom from a UTF-8 string.
    \definition{\const{PL_UTF8_STRING} \arg{const char *}}
 Create a packed string object from a UTF-8 string.
    \definition{\const{PL_MBCHARS} \arg{const char *}}
-Create an atom from a multibyte string in the current locale.
+Create an atom from a multi-byte string in the current locale.
    \definition{\const{PL_MBCODES} \arg{const char *}}
-Create a list of character codes from a multibyte string in the current
+Create a list of character codes from a multi-byte string in the current
 locale.
    \definition{\const{PL_MBSTRING} \arg{const char *}}
-Create a packed string object from a multibyte string in the
+Create a packed string object from a multi-byte string in the
 current locale.
    \definition{\const{PL_MBCHARS} \arg{unsigned int, const wchar_t *}}
 Create an atom from a length and a wide character pointer.
@@ -1456,7 +1456,7 @@ call_chars(const char *goal)
     argument of PL_get_chars();
 
     In the current implementation, the string is surrounded by
-    \arg{chr} and any occurence of \arg{chr} is doubled.  In the
+    \arg{chr} and any occurrence of \arg{chr} is doubled.  In the
     future the behaviour will depend on the \const{character_escape}
     prolog-flag.  See current_prolog_flag/2.
 \end{description}
@@ -1530,7 +1530,7 @@ rather than the data pointed at.
 The \arg{name} field represents the type name as available to Prolog.
 See also current_blob/2. The other field are function pointers that must
 be initialised to proper functions or \const{NULL} to get the default
-behaviour of builtin atoms. Below are the defined member functions:
+behaviour of built-in atoms. Below are the defined member functions:
 
 \begin{description}
     \cfunction{void}{acquire}{atom_t a}
@@ -2052,8 +2052,8 @@ in any way, the native signal interface routines may be used.
 
 Some versions of SWI-Prolog, notably running on popular Unix platforms,
 handle \const{SIG_SEGV} for guarding the Prolog stacks. If the
-application whishes to handle this signal too, it should use PL_signal()
-to install its handler after initialisating Prolog. SWI-Prolog will pass
+application wishes to handle this signal too, it should use PL_signal()
+to install its handler after initialising Prolog. SWI-Prolog will pass
 \const{SIG_SEGV} to the user code if it detected the signal is not
 related to a Prolog stack overflow.
 
@@ -2074,7 +2074,7 @@ suitable environment for calling the interface functions described in
 this chapter and finally calls the registered user-handler.
 
 By default, signals are handled asynchronously (i.e.\ at the time they
-arrive). It is inheritly dangerous to call extensive code fragments,
+arrive). It is inherently dangerous to call extensive code fragments,
 and especially exception related code from asynchronous handlers. The
 interface allows for \jargon{synchronous} handling of signals. In this
 case the native OS handler just schedules the signal using PL_raise(),
@@ -2123,7 +2123,7 @@ soon as possible.
 
 \subsubsection{Recorded database}
 
-In some applications it is useful to store and retreive Prolog terms
+In some applications it is useful to store and retrieve Prolog terms
 from C-code.  For example, the XPCE graphical environment does this for
 storing arbitrary Prolog data as slot-data of XPCE objects.
 
@@ -2132,7 +2132,7 @@ level and the recorded terms are not visible from Prolog. The functions
 PL_recorded() and PL_erase() are the only functions that can operate on
 the stored term.
 
-Two groups of functions are provided.The first group (PL_record() and
+Two groups of functions are provided.  The first group (PL_record() and
 friends) store Prolog terms on the Prolog heap for retrieval during the
 same session. These functions are also used by recorda/3 and friends.
 The recorded database may be used to communicate Prolog terms between
@@ -2225,7 +2225,7 @@ controlling the conversion process. Options are:
 Return an absolute path to the requested file.
     \definition{\const{PL_FILE_OSPATH}}
 Return a the name using the hosting OS conventions.  On MS-Windows,
-\chr{\} is used to seperate directories rather than the canonical
+\chr{\} is used to separate directories rather than the canonical
 \chr{/}.
     \definition{\const{PL_FILE_SEARCH}}
 Invoke absolute_file_name/3.  This implies rules from file_search_path/2
@@ -2401,7 +2401,7 @@ argument is a \ctype{term_t} handle to the first argument. Further
 arguments can be reached by adding the offset (see also
 PL_new_term_refs()). The second argument is the arity, which defines the
 number of valid term-references in the argument vector.  The last argument
-is used for non-deterministic calls.  It is currently undocument and should
+is used for non-deterministic calls.  It is currently undocumented and should
 be defined of type \ctype{void*}.  Here is an example:
 
 \begin{code}
@@ -2495,7 +2495,7 @@ typedef int  (*PL_dispatch_hook_t)(void);
 Install a hook when abort/0 is executed. SWI-Prolog abort/0 is
 implemented using C setjmp()/longjmp() construct.  The hooks are
 executed in the reverse order of their registration after the longjmp()
-took place and before the Prolog toplevel is reinvoked. The type
+took place and before the Prolog top-level is reinvoked. The type
     \ctype{PL_abort_hook_t} is defined as:
 \begin{code}
 typedef void (*PL_abort_hook_t)(void);
@@ -2559,7 +2559,7 @@ combinations, there are three principal options for storing such data
 E.i.\ using the representation one would choose if there was no foreign
 interface required.
     \item[Opaque packed Prolog data]
-Data can also be represetented in a foreign structure and stored on the
+Data can also be represented in a foreign structure and stored on the
 Prolog stacks using PL_put_string_nchars() and retrieved using
 PL_get_string_chars().  It is generally good practice to wrap the
 string in a compound term with arity 1, so Prolog can identify the
@@ -2577,12 +2577,12 @@ The choice may be guided using the following distinctions
     \item[Is the data opaque to Prolog]
 With `opaque' data, we refer to data handled in foreign functions,
 passed around in Prolog, but of which Prolog never examines the contents
-of the data itself. If the data is opaque to Prolog, the choosen
+of the data itself. If the data is opaque to Prolog, the chosen
 representation does not depend on simple analysis by Prolog, and the
 selection will be driven solely by simplicity of the interface and
 performance (both in time and space).
     \item[How big is the data]
-Is effient encoding required?  For examine, a boolean aray may be
+Is efficient encoding required?  For examine, a boolean array may be
 expressed as a compound term, holding integers each of which contains
 a number of bits, or as a list of \const{true} and \const{false}.
     \item[What is the nature of the data]
@@ -2595,7 +2595,7 @@ and how important performance is.
 We can distinguish three cases.
     \begin{enumerate}
 	\item
-The lifetime is dictated by the accesibility of the data on the Prolog
+The lifetime is dictated by the accessibility of the data on the Prolog
 stacks. Their is no way by which the foreign code when the data becomes
 `garbage', and the data thus needs to be represented on the Prolog
 stacks using Prolog data-types. (2),
@@ -2614,7 +2614,7 @@ malloc() and a pointer may be passed.  See \secref{foreignnondet}.
 
 \subsubsection{Examples for storing foreign data}
 
-In this section, we wull outline some examples, covering typical cases.
+In this section, we will outline some examples, covering typical cases.
 In the first example, we will deal with extending Prolog's data
 representation with integer-sets, represented as bit-vectors.  In the
 second example, we look at handling a `netmask'.  Finally, we discuss
@@ -2623,7 +2623,7 @@ the outline of the DDE interface.
 \paragraph{Integer sets} with not-to-far-apart upper- and lower-bounds
 can be represented using bit-vectors. Common set operations, such as
 union, intersection, etc. are reduced to simple and'ing and or'ing the
-bitvectors. This can be done in Prolog, using a compound term holding
+bit-vectors. This can be done in Prolog, using a compound term holding
 integer arguments. Especially if the integers are kept below the maximum
 tagged integer value (see current_prolog_flag/2), this representation is
 fairly space-efficient (wasting 1 word for the functor and and 7 bits
@@ -2631,10 +2631,10 @@ per integer for the tags). Arithmetic can all be performed in Prolog
 too.
 
 For really demanding applications, foreign representation will perform
-better, especially time-wise. Bit-vectors are natrually expressed using
+better, especially time-wise. Bit-vectors are naturally expressed using
 string objects. If the string is wrapped in \functor{bitvector}{1},
-lower-bound of the vector is 0, and the upperbound is not defined, an
-implementation for getting and putting the setes as well as the
+lower-bound of the vector is 0, and the upper-bound is not defined, an
+implementation for getting and putting the sets as well as the
 union predicate for it is below.
 
 \begin{code}
@@ -2734,7 +2734,7 @@ relevant information.
 
 There are a couple of possibilities for representing the handle.  The
 choice depends on responsibilities and debugging facilities.  The
-simplest aproach is to using PL_unify_pointer() and PL_get_pointer().
+simplest approach is to using PL_unify_pointer() and PL_get_pointer().
 This approach is fast and easy, but has the drawbacks of (untyped)
 pointers: there is no reliable way to detect the validity of the
 pointer, not to verify it is pointing to a structure of the desired
@@ -2790,7 +2790,7 @@ runs the at_initialization/1 hooks and finally runs the
 \argoption{-g}{goal} hook.
 
 Special consideration is required for \verb$argv[0]$. On {\bf Unix},
-this argument passes the part of the commandline that is used
+this argument passes the part of the command-line that is used
 to locate the executable.  Prolog uses this to find the file holding
 the running executable.  The {\bf Windows} version uses this to find
 a \jargon{module} of the running executable.  If the specified module
@@ -2853,7 +2853,7 @@ for the argument vector \arg{argv}.
 
     \cfunction{void}{PL_install_readline}{}
 Installs the GNU-readline line-editor.  Embedded applications that do not
-use the Prolog toplevel should normally delete this line, shrinking the
+use the Prolog top-level should normally delete this line, shrinking the
 Prolog kernel significantly.  Note that the Windows version does not use
 GNU readline.
 
@@ -2917,7 +2917,7 @@ executable, but behaves much more reliable in complicated embedded
 situations.  In addition, as the process no longer handles segmentation
 violations, debugging foreign code linked to it is much easier.
 
-At runtime, it is adviced to pass the flag \cmdlineoption{-nosignals},
+At runtime, it is advised to pass the flag \cmdlineoption{-nosignals},
 which inhibits all default signal handling.  This has a few consequences
 though:
 
@@ -2929,7 +2929,7 @@ though:
 	  situation one should take appropriate action if Prolog
 	  streams are connected to pipes.
     \item Fatal errors normally cause Prolog to call PL_cleanup() and
-          exit().  It is adviced to call PL_cleanup() as part of the
+          exit().  It is advised to call PL_cleanup() as part of the
 	  exit-procedure of your application.
 \end{itemize}
 
@@ -2975,11 +2975,11 @@ state of the Prolog code.
 Linker used to link the raw executable.  Default is to use the C-compiler
 (Win32: link.exe).
     \cmdlineoptionitem{-cc}{C-compiler}
-Compiler for \fileext{c} files found on the commandline.  Default is the
+Compiler for \fileext{c} files found on the command-line.  Default is the
 compiler used to build SWI-Prolog (see current_prolog_flag/2) (Win32: cl.exe).
     \cmdlineoptionitem{-c++}{C++-compiler}
 Compiler for C++ sources (extensions \fileext{cpp}, \fileext{cxx},
-\fileext{cc} or \fileext{C}) files found on the commandline.  Default is
+\fileext{cc} or \fileext{C}) files found on the command-line.  Default is
 \program{c++} or \program{g++} if the C-compiler is \program{gcc})
 (Win32: cl.exe).
 
@@ -2988,7 +2988,7 @@ Just relink the kernel, do not add any Prolog code to the new kernel.
 This is used to create a new kernel holding additional foreign predicates
 on machines that do not support the shared-library (DLL) interface, or if
 building the state cannot be handled by the default procedure used by
-\program{plld}.  In the latter case the state is created seperately and
+\program{plld}.  In the latter case the state is created separately and
 appended to the kernel using \exam{cat <kernel> <state> > <out>}
 (Win32: \exam{copy /b <kernel>+<state> <out>})
 

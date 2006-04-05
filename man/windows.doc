@@ -109,14 +109,14 @@ non-proportional fonts.
 
     \definition{Settings/User init file ...}
 Edits the user personalisation file.  If no such file exists it first
-installes a default file as \file{pl.ini} that contains commonly used
+installs a default file as \file{pl.ini} that contains commonly used
 settings in comments.
 
     \definition{Settings/Stack sizes ...}
 Allows to define the maximum size to which the various Prolog stacks are
-allowed to grow. The system defaults are chosen to make errornous
+allowed to grow. The system defaults are chosen to make erroneous
 programs fail quickly on modest hardware.  Programs with large data
-structures or many choicepoints often need larger stacks.  Note that
+structures or many choice-points often need larger stacks.  Note that
 an active Prolog process growing over the size of the physical memory of
 your computer can make the system extremely slow.
 
@@ -210,7 +210,7 @@ Normally used after editing one or more files.
 
     \predicate{trace}{0}{}
 Start the interactive debugger.  There are three ways to use this.
-Entered as a single goal at the toplevel, the next query will be
+Entered as a single goal at the top-level, the next query will be
 traced.  Alternatively it can be used in conjunction with the goal
 to be debugged: \exam{?- trace, run.} and finally you can include it
 in your program to start tracing at a particular point or under a
@@ -228,7 +228,7 @@ debugger.
 
     \predicate{apropos}{1}{+Keyword}
 Search for all predicates that contain \arg{Keyword} in their name
-or short description.  If a gui environment is available the results
+or short description.  If a GUI environment is available the results
 are hyperlinks.  Otherwise use help/1 to get details on selected
 hits.
 
@@ -320,7 +320,7 @@ An embedded executable is created from C, C++ and Prolog files using
 SWI-Prolog 5.5.x and later are UNICODE applications, requiring Windows
 NT or later (2000, XP). Although Microsoft provides a library that
 allows such program to run under Windows 95/98/ME, this library is
-licenced such that it cannot be used with Open Source software. Users of
+licensed such that it cannot be used with Open Source software. Users of
 these old operating systems are forced to stick with version 5.4.7.
 
 
@@ -427,14 +427,14 @@ utilities. The following registry keys are in use:
 \section{The SWI-Prolog community and foundation}
 
 
-\subsection{Web-site and mailinglists}
+\subsection{Web-site and mailing lists}
 
 The SWI-Prolog web-site is located at \url{http://www.swi-prolog.org/}.
 Part of the web is powered by \url[TWiki]{http://twiki.org/}, a
 \emph{wiki} web that can be edited by any registered user and used to
 exchange ideas, problems and solutions.  The web also provides access
-to the archive of the mailinglist and allows to (de)register the
-mailinglist.  Finally, it incorporates Bugzilla, the Mozilla project
+to the archive of the mailing list and allows to (de)register the
+mailing list.  Finally, it incorporates Bugzilla, the Mozilla project
 bugtracking system, for reporting bugs and tracking issues.
 
 

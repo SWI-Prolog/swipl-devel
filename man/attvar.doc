@@ -16,7 +16,7 @@ for hProlog \cite{Demoen:CW350}.
 Binding an attributed variable schedules a goal to be executed at the
 first possible opportunity. In the current implementation the hooks are
 executed immediately after a successful unification of the clause-head
-or successful completion of a foreign language (builtin) predicate. Each
+or successful completion of a foreign language (built-in) predicate. Each
 attribute is associated to a module and the hook (attr_unify_hook/2) is
 executed in this module.  The example below realises a very simple and
 incomplete finite domain reasoner.
@@ -149,7 +149,7 @@ by fresh variables.
 \section{Coroutining}				\label{sec:coroutining}
 
 Coroutining deals with having Prolog goals scheduled for execution as
-soon as some conditions is fullfilled.  In Prolog the most commonly
+soon as some conditions is fulfilled.  In Prolog the most commonly
 used conditions is the instantiation (binding) of a variable. Scheduling
 a goal to execute immediately after a variable is bound allows may
 be used to avoid instantiation errors for some built-in predicates
@@ -212,7 +212,7 @@ or recorda/3.
 \begin{itemize}
     \item The value lives on the Prolog (global) stack.  This implies
           that lookup time is independent from the size of the term.
-	  This is particulary interesting for large data structures
+	  This is particularly interesting for large data structures
 	  such as parsed XML documents or the CHR global constraint
 	  store.
 
@@ -229,7 +229,7 @@ or recorda/3.
           consider module scoping in future versions.
 \end{itemize}
 
-Both b_setval/2 and nb_setval/2 implicitely create a variable if the
+Both b_setval/2 and nb_setval/2 implicitly create a variable if the
 referenced name does not already refer to a variable.
 
 Global variables may be initialised from directives to make them
@@ -241,7 +241,7 @@ its own set of global variables, starting with an empty set.  Using
 thread_initialization/1 to define a global variable it will be
 defined, restored after reloading a saved state and created in all
 threads that are created \emph{after} the registration.  Finally,
-global variables can be initialized using the exception hook called
+global variables can be initialised using the exception hook called
 exception/3.  The latter technique is by CHR (see \chapref{chr}.
 
 
@@ -270,7 +270,7 @@ initial value other than \const{[]} prior to backtrackable assignment.
 
     \predicate{nb_getval}{2}{+Name, -Value}
 The nb_getval/2 predicate is a synonym for b_getval/2, introduced for
-compatibility and symetry.  As most scenarios will use a particular
+compatibility and symmetry.  As most scenarios will use a particular
 global variable either using non-backtracable or backtrackable
 assignment, using nb_getval/2 can be used to document that the 
 variable is used non-backtracable.
@@ -281,7 +281,7 @@ it. This is a fast special-purpose variation of nb_setval/2 intended for
 expert users only because the semantics on backtracking to a point
 before creating the link are poorly defined for compound terms. The
 principal term is always left untouched, but backtracking behaviour on
-arguments is undone if the orginal assignment was \jargon{trailed} and
+arguments is undone if the original assignment was \jargon{trailed} and
 left alone otherwise, which implies that the history that created the
 term affects the behaviour on backtracking. Please consider the
 following example:
@@ -313,7 +313,7 @@ recently.  The implementation of them in SWI-Prolog is based on hProlog
 by Bart Demoen. In discussion with Bart it was decided that the
 semantics if hProlog nb_setval/2, which is equivalent to nb_linkval/2
 is not acceptable for normal Prolog users as the behaviour is influenced
-by how builtin predicates constructing terms (read/1, =../2, etc.) are
+by how built-in predicates constructing terms (read/1, =../2, etc.) are
 implemented.
 
 GNU-Prolog provides a rich set of global variables, including arrays.
