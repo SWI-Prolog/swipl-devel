@@ -31,8 +31,8 @@ static void	ensure_on_display(FrameObj, Monitor, int *, int *);
 static status	closedFrame(FrameObj, Bool);
 static status	openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise);
 static status	doneMessageFrame(FrameObj fr, Code msg);
-static status	geometryFrame(FrameObj fr, Name spec);
-static status	setFrame(FrameObj fr, Int x, Int y, Int w, Int h);
+static status	geometryFrame(FrameObj fr, Name spec, Monitor mon);
+static status	setFrame(FrameObj fr, Int x, Int y, Int w, Int h, Monitor mon);
 static status	flushFrame(FrameObj fr);
 static status	kindFrame(FrameObj fr, Name kind);
 static status	informTransientsFramev(FrameObj fr, Name selector,
@@ -258,9 +258,9 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
       if ( valInt(y) < 0 )	 y = ZERO;
     }
 
-    setFrame(fr, x, y, w, h);  
+    setFrame(fr, x, y, w, h, DEFAULT);  
   } else if ( notNil(fr->geometry) )
-  { ws_x_geometry_frame(fr, fr->geometry);
+  { ws_x_geometry_frame(fr, fr->geometry, DEFAULT);
   }					
 #ifdef WIN32				/* But in Windows `do-it-yourself' */
   else if ( notNil(fr->transient_for) )
@@ -424,7 +424,7 @@ createFrame(FrameObj fr)
   attachWmProtocolsFrame(fr);
 
   if ( isName(fr->geometry) )
-    geometryFrame(fr, fr->geometry);
+    geometryFrame(fr, fr->geometry, DEFAULT);
 
   for_cell(cell, fr->members)
   { updateCursorWindow(cell->value);
@@ -472,7 +472,7 @@ fitFrame(FrameObj fr)
 
   setFrame(fr, DEFAULT, DEFAULT,
 	   add(t->idealWidth, border),
-	   add(t->idealHeight, border));
+	   add(t->idealHeight, border), DEFAULT);
   assign(fr, fitting, OFF);
 
   succeed;
@@ -701,26 +701,45 @@ getBoundingBoxFrame(FrameObj fr)
 
 
 
+static Monitor
+getMonitorFrame(FrameObj fr)
+{ if ( notNil(fr->display) )
+    answer(getMonitorDisplay(fr->display, fr->area));
+
+  fail;
+}
+
+
+
 static Name
 getGeometryFrame(FrameObj fr)
 { int x, y, w, h;
 
   if ( ws_frame_bb(fr, &x, &y, &w, &h) )
-  { int dw, dh;
+  { int mx, my, mw, mh;
     int xn=FALSE, yn=FALSE;
-    Size size;
     char buf[100];
+    Monitor mon;
 
-    size = getSizeDisplay(fr->display);
-    dw = valInt(size->w);
-    dh = valInt(size->h);
+    if ( (mon=getMonitorFrame(fr)) )
+    { mx = valInt(mon->area->x);
+      my = valInt(mon->area->y);
+      mw = valInt(mon->area->w);
+      mh = valInt(mon->area->h);
+    } else
+    { Size size = getSizeDisplay(fr->display);
+      
+      mx = my = 0;
+      mw = valInt(size->w);
+      mh = valInt(size->h);
+    }
 
-    if ( x > (dw - (x+w))*2 )
-    { x = dw - (x+w);
+    if ( x-mx > ((mx+mw) - (x+w))*2 )	/* over 2/3th */
+    { x = (mx+mw) - (x+w);
       xn = TRUE;
     }
-    if ( y > (dh - (y+h))*2 )
-    { y = dh - (y+h);
+    if ( y-my > ((my+mh) - (y+h))*2 )
+    { y = (my+mh) - (y+h);
       yn = TRUE;
     }
 
@@ -734,6 +753,13 @@ getGeometryFrame(FrameObj fr)
     else
       sprintf(buf, "%dx%d%s%d%s%d",
 	      w, h, xn ? "-" : "+", x, yn ? "-" : "+", y);
+
+    if ( mon && fr->display->monitors->size != ONE )
+    { Int n = getIndexChain(fr->display->monitors, mon);
+
+      if ( n )
+	sprintf(buf+strlen(buf), "@%ld", valInt(n));
+    }
 
     answer(CtoName(buf));
   }
@@ -753,17 +779,17 @@ getImageFrame(FrameObj fr)
 
 
 static status
-geometryFrame(FrameObj fr, Name spec)
+geometryFrame(FrameObj fr, Name spec, Monitor mon)
 { assign(fr, geometry, spec);
 
-  ws_x_geometry_frame(fr, spec);
+  ws_x_geometry_frame(fr, spec, mon);
 
   succeed;
 }
 
 
 static status
-setFrame(FrameObj fr, Int x, Int y, Int w, Int h)
+setFrame(FrameObj fr, Int x, Int y, Int w, Int h, Monitor mon)
 { Area a = fr->area;
   Int ow = a->w;
   Int oh = a->h;
@@ -775,7 +801,7 @@ setFrame(FrameObj fr, Int x, Int y, Int w, Int h)
     assign(a, h, ONE);
 
   if ( createdFrame(fr) )
-  { ws_geometry_frame(fr, x, y, w, h);
+  { ws_geometry_frame(fr, x, y, w, h, mon);
 
     if ( ow != a->w || oh != a->h )
       resizeFrame(fr);
@@ -787,37 +813,37 @@ setFrame(FrameObj fr, Int x, Int y, Int w, Int h)
 
 static status
 xFrame(FrameObj fr, Int x)
-{ return setFrame(fr, x, DEFAULT, DEFAULT, DEFAULT);
+{ return setFrame(fr, x, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
 }
 
 
 static status
 yFrame(FrameObj fr, Int y)
-{ return setFrame(fr, DEFAULT, y, DEFAULT, DEFAULT);
+{ return setFrame(fr, DEFAULT, y, DEFAULT, DEFAULT, DEFAULT);
 }
 
 
 static status
 widthFrame(FrameObj fr, Int w)
-{ return setFrame(fr, DEFAULT, DEFAULT, w, DEFAULT);
+{ return setFrame(fr, DEFAULT, DEFAULT, w, DEFAULT, DEFAULT);
 }
 
 
 static status
 heightFrame(FrameObj fr, Int h)
-{ return setFrame(fr, DEFAULT, DEFAULT, DEFAULT, h);
+{ return setFrame(fr, DEFAULT, DEFAULT, DEFAULT, h, DEFAULT);
 }
 
 
 static status
 sizeFrame(FrameObj fr, Size sz)
-{ return setFrame(fr, DEFAULT, DEFAULT, sz->w, sz->h);
+{ return setFrame(fr, DEFAULT, DEFAULT, sz->w, sz->h, DEFAULT);
 }
 
 
 static status
 positionFrame(FrameObj fr, Point pos)
-{ return setFrame(fr, pos->x, pos->y, DEFAULT, DEFAULT);
+{ return setFrame(fr, pos->x, pos->y, DEFAULT, DEFAULT, DEFAULT);
 }
 
 
@@ -826,13 +852,13 @@ centerFrame(FrameObj fr, Point pos, Monitor mon)
 { int x, y;
 
   get_position_from_center_frame(fr, mon, pos, &x, &y);
-  return setFrame(fr, toInt(x), toInt(y), DEFAULT, DEFAULT);
+  return setFrame(fr, toInt(x), toInt(y), DEFAULT, DEFAULT, DEFAULT);
 }
 
 
 static status
 areaFrame(FrameObj fr, Area area)
-{ return setFrame(fr, area->x, area->y, area->w, area->h);
+{ return setFrame(fr, area->x, area->y, area->w, area->h, DEFAULT);
 }
 
 
@@ -1645,11 +1671,14 @@ static char *T_wmProtocol[] =
 static char *T_convertOldSlot[] =
         { "slot=name", "value=any" };
 static char *T_set[] =
-        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]",
+	  "monitor=[monitor]" };
 static char *T_grab_pointer[] =
 	{ "grab=bool", "cursor=[cursor]" };
 static char *T_center[] =
 	{ "center=[point]", "monitor=[monitor]" };
+static char *T_geometry[] =
+	{ "geometry=name", "monitor=[monitor]" };
 
 /* Instance Variables */
 
@@ -1676,7 +1705,7 @@ static vardecl var_frame[] =
      NAME_appearance, "Colourmap for the window's frame"),
   SV(NAME_area, "area", IV_GET|IV_STORE, areaFrame,
      NAME_area, "Area of the opened frame on the display"),
-  SV(NAME_geometry, "name*", IV_NONE|IV_STORE, geometryFrame,
+  IV(NAME_geometry, "name*", IV_NONE,
      NAME_area, "X-window geometry specification"),
   IV(NAME_members, "chain", IV_NONE,
      NAME_organisation, "Windows in the frame"),
@@ -1745,7 +1774,7 @@ static senddecl send_frame[] =
      NAME_area, "Move the frame on the display"),
   SM(NAME_position, 1, "position=point", positionFrame,
      NAME_area, "Move the frame on the display"),
-  SM(NAME_set, 4, T_set, setFrame,
+  SM(NAME_set, 5, T_set, setFrame,
      NAME_area, "Set XYWH of frame on display"),
   SM(NAME_size, 1, "size=size", sizeFrame,
      NAME_area, "Resize the frame"),
@@ -1755,6 +1784,8 @@ static senddecl send_frame[] =
      NAME_area, "Set X-coordinate of frame"),
   SM(NAME_y, 1, "x=int", yFrame,
      NAME_area, "Set Y-coordinate of frame"),
+  SM(NAME_geometry, 2, T_geometry, geometryFrame,
+     NAME_area, "X-window geometry specification"),
   SM(NAME_busyCursor, 2, T_busyCursor, busyCursorFrame,
      NAME_event, "Define (temporary) cursor for all windows in the frame"),
   SM(NAME_inputWindow, 1, "window", inputWindowFrame,
@@ -1848,6 +1879,8 @@ static getdecl get_frame[] =
      NAME_area, "Position on the display"),
   GM(NAME_size, 0, "size", NULL, getSizeFrame,
      NAME_area, "Size on the display"),
+  GM(NAME_monitor, 0, "monitor", NULL, getMonitorFrame,
+     NAME_organisation, "Monitor frame is displayed on"),
   GM(NAME_image, 1, "image", "[{bitmap,pixmap}]", getImageFrame,
      NAME_conversion, "Image with the pixels of the frame"),
   GM(NAME_keyboardFocus, 0, "window", NULL, getKeyboardFocusFrame,

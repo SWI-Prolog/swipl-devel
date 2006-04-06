@@ -445,6 +445,31 @@ resizeMessageWindow(PceWindow sw, Code msg)
 }
 
   
+static Monitor
+getMonitorWindow(PceWindow sw)
+{ if ( isNil(sw->device) )
+  { DisplayObj d = getDisplayGraphical((Graphical)sw);
+
+    if ( d )
+    { FrameObj fr;
+      int dx, dy;
+      struct area a;
+    
+      frame_offset_window(sw, &fr, &dx, &dy);
+      a = *fr->area;
+      a.x = toInt(valInt(a.x)+dx);
+      a.y = toInt(valInt(a.y)+dy);
+
+      answer(getMonitorDisplay(d, &a));
+    }
+
+    fail;
+  }
+
+  return getMonitorGraphical((Graphical)sw);
+}
+
+
 		/********************************
 		*           COMPUTING		*
 		********************************/
@@ -2332,6 +2357,8 @@ static getdecl get_window[] =
      NAME_area, "New area representing visible part"),
   GM(NAME_size, 0, "size", NULL, getSizeGraphical,
      NAME_area, "New size representing size (avoid class-variable)"),
+  GM(NAME_monitor, 0, "monitor", NULL, getMonitorWindow,
+     NAME_organisation, "Monitor window is displayed on"),
   GM(NAME_displayedCursor, 0, "cursor*", NULL, getDisplayedCursorDevice,
      NAME_cursor, "Currently displayed cursor"),
   GM(NAME_confirm, 3, "any", T_confirm, getConfirmWindow,

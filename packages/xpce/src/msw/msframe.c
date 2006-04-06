@@ -897,8 +897,8 @@ ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
 #define MIN_VISIBLE 32			/* pixels that must be visible */
 
 void
-ws_x_geometry_frame(FrameObj fr, Name spec)
-{ char *s = strName(spec);
+ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
+{ char *e, *s = strName(spec);
   UINT flags = SWP_NOACTIVATE|SWP_NOZORDER;
   int x, y, w, h, w0, h0;
   char signx[10], signy[10];
@@ -908,7 +908,19 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
   int dx, dy, dw, dh;
   RECT rect;
 
-  if ( SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0) )
+  if ( isDefault(mon) && (e=strchr(s)) )
+  { int n = atoi(e+1);
+
+    if ( !(mon = getNth0Chain(fr->display->monitors, toInt(n))) )
+      mon = (Monitor)DEFAULT;
+  }
+
+  if ( mon )
+  { dx = valInt(mon->work_area->x);
+    dy = valInt(mon->work_area->y);
+    dw = valInt(mon->work_area->w);
+    dh = valInt(mon->work_area->h);
+  } else if ( SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0) )
   { dx = rect.left;
     dy = rect.top;
     dw = rect.right - rect.left;
@@ -1000,7 +1012,7 @@ Used by `frame->set'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
+ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph, Monitor mon)
 { WsFrame f = fr->ws_ref;
 
   if ( f && f->hwnd )
@@ -1011,8 +1023,14 @@ ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
     
     rect.left   = valInt(fr->area->x);
     rect.top    = valInt(fr->area->y);
+    if ( notDefault(mon) )
+    { rect.left += valInt(mon->area->x);
+      rect.top  += valInt(mon->area->y);
+    }
     rect.right  = rect.left + valInt(fr->area->w);
     rect.bottom = rect.top  + valInt(fr->area->h);
+
+
     AdjustWindowRectEx(&rect, f->style, FALSE, f->styleex);
     if ( rect.left < 0 )
     { rect.right -= rect.left;

@@ -541,7 +541,7 @@ dndEventFrame(FrameObj fr, XEvent *xevent)
 		  { AnswerMark mark;
 		    Chain files;
 		    Point pos;
-		    char *s = i.drop_data;
+		    char *s = (char *)i.drop_data;
 		    char *e = s + i.drop_data_length;
 
 		    markAnswerStack(mark);
@@ -978,16 +978,19 @@ ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
 
 
 void
-ws_x_geometry_frame(FrameObj fr, Name spec)
+ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 { Widget wdg = widgetFrame(fr);
   
-  DEBUG(NAME_frame, Cprintf("ws_x_geometry_frame(%s, %s)\n",
-			    pp(fr), pp(spec)));
+  DEBUG(NAME_frame, Cprintf("ws_x_geometry_frame(%s, %s, %s)\n",
+			    pp(fr), pp(spec), pp(mon)));
 
   if ( wdg )
   { int x, y, w, h, mask;
     Int X, Y, W, H;
     char def[50];
+    char xspecbuf[50];
+    char *xspec = strName(spec);
+    char *e;
     Area a = fr->area;
     DisplayWsXref r = fr->display->ws_ref;
     Display *d = r->display_xref;
@@ -998,8 +1001,20 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 	    "%ldx%ld+%ld+%ld",
 	    valInt(a->w), valInt(a->h), valInt(a->x), valInt(a->y));
 
+    if ( (e=strchr(xspec, '@')) && e-xspec < sizeof(xspecbuf) )
+    { strncpy(xspecbuf, xspec, e-xspec);
+      xspec = xspecbuf;
+
+      if ( isDefault(mon) )
+      { int n = atoi(e+1);
+
+	if ( !(mon = getNth0Chain(fr->display->monitors, toInt(n))) )
+	  mon = (Monitor)DEFAULT;
+      }
+    }
+
     mask = XGeometry(d, DefaultScreen(d),
-		     strName(spec),
+		     xspec,
 		     def,
 		     isDefault(fr->border) ? 1 : valInt(fr->border),
 		     1, 1,
@@ -1051,13 +1066,13 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
     W = ( mask & WidthValue  ? toInt(w) : (Int) DEFAULT );
     H = ( mask & HeightValue ? toInt(h) : (Int) DEFAULT );
 
-    send(fr, NAME_set, X, Y, W, H, EAV);
+    send(fr, NAME_set, X, Y, W, H, mon, EAV);
   }
 }
 
 
 void
-ws_geometry_frame(FrameObj fr, Int x, Int y, Int w, Int h)
+ws_geometry_frame(FrameObj fr, Int x, Int y, Int w, Int h, Monitor mon)
 { Widget wdg = widgetFrame(fr);
 
   if ( wdg )
@@ -1074,6 +1089,11 @@ ws_geometry_frame(FrameObj fr, Int x, Int y, Int w, Int h)
     in.y      = valInt(fr->area->y);
     in.width  = valInt(fr->area->w);
     in.height = valInt(fr->area->h);
+
+    if ( notDefault(mon) )
+    { in.x += valInt(mon->area->x);
+      in.y += valInt(mon->area->y);
+    }
 
     DEBUG(NAME_frame, Cprintf("%s: doing widget geometry request\n", pp(fr)));
     XtMakeGeometryRequest(wdg, &in, &out);

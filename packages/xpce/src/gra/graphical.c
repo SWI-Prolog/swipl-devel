@@ -379,7 +379,7 @@ getDisplayGraphical(Graphical gr)
 }
 
 
-static Monitor
+Monitor
 getMonitorGraphical(Graphical gr)
 { DisplayObj d = getDisplayGraphical(gr);
   Point pt = NIL;
