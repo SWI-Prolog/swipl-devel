@@ -609,36 +609,36 @@ Path with which to associate the session management. Default is
 eturns an identifier for the current session. The identifier is an atom.
 
 <P>
-<DT><A NAME="http_current_session/?Id, ?Data"><STRONG>http_current_session</STRONG>(<VAR>?Id, 
+<DT><A NAME="http_current_session/2"><STRONG>http_current_session</STRONG>(<VAR>?Id, 
 ?Data</VAR>)</A><DD>
-numerate sessions and associated data. All sessions have the
+Enumerate sessions and associated data. All sessions have the
 <VAR>Data</VAR> item <CODE>idle(Seconds)</CODE>, describing the current 
 idle-time of the session. Other data elements are added by the user 
 using
-<A NAME="idx:httpsessionassert1:20"></A><B>http_session_assert/1</B> and 
-friends.
+<A NAME="idx:httpsessionassert1:20"></A><A HREF="#http_session_assert/1">http_session_assert/1</A> 
+and friends.
 
 <P>
-<DT><A NAME="http_session_asserta/+Term"><STRONG>http_session_asserta</STRONG>(<VAR>+Term</VAR>)</A><DD>
-ssociate <VAR>Term</VAR> with the current session, before any other 
+<DT><A NAME="http_session_asserta/1"><STRONG>http_session_asserta</STRONG>(<VAR>+Term</VAR>)</A><DD>
+Associate <VAR>Term</VAR> with the current session, before any other 
 associated term.
 
 <P>
-<DT><A NAME="http_session_assert/+Term"><STRONG>http_session_assert</STRONG>(<VAR>+Term</VAR>)</A><DD>
-ssociate <VAR>Term</VAR> with the current session, after any other 
+<DT><A NAME="http_session_assert/1"><STRONG>http_session_assert</STRONG>(<VAR>+Term</VAR>)</A><DD>
+Associate <VAR>Term</VAR> with the current session, after any other 
 associated term.
 
 <P>
-<DT><A NAME="http_session_retract/?Term"><STRONG>http_session_retract</STRONG>(<VAR>?Term</VAR>)</A><DD>
-on-deterministically retract terms associated with the current session.
+<DT><A NAME="http_session_retract/1"><STRONG>http_session_retract</STRONG>(<VAR>?Term</VAR>)</A><DD>
+Non-deterministically retract terms associated with the current session.
 
 <P>
-<DT><A NAME="http_session_retractall/+Term"><STRONG>http_session_retractall</STRONG>(<VAR>+Term</VAR>)</A><DD>
-etract all matching terms from associated with the current session.
+<DT><A NAME="http_session_retractall/1"><STRONG>http_session_retractall</STRONG>(<VAR>+Term</VAR>)</A><DD>
+Retract all matching terms from associated with the current session.
 
 <P>
-<DT><A NAME="http_session_data/?Term"><STRONG>http_session_data</STRONG>(<VAR>?Term</VAR>)</A><DD>
-numerate all associated terms that unify with <VAR>Term</VAR>.
+<DT><A NAME="http_session_data/1"><STRONG>http_session_data</STRONG>(<VAR>?Term</VAR>)</A><DD>
+Enumerate all associated terms that unify with <VAR>Term</VAR>.
 </DL>
 
 <H3><A NAME="sec:3.3">3.3 Request format</A></H3>
@@ -1812,8 +1812,7 @@ Currently atom-garbage collection is activated after the creation of
 <DT><A HREF="#html_write:layout/3">html_write:layout/3</A><DD>
 <DT><A HREF="#http_current_request/1">http_current_request/1</A><DD>
 <DT><A HREF="#http_current_server/2">http_current_server/2</A><DD>
-<DT><A HREF="#http_current_session/?Id, ?Data">http_current_session/?Id, 
-?Data</A><DD>
+<DT><A HREF="#http_current_session/2">http_current_session/2</A><DD>
 <DT><A HREF="#http_current_worker/2">http_current_worker/2</A><DD>
 <DT><A HREF="#http_get/3">http_get/3</A><DD>
 <A HREF="#idx:httpget3:6">2.2</A> <A HREF="#idx:httpget3:8">2.2</A>
@@ -1835,14 +1834,13 @@ Currently atom-garbage collection is activated after the creation of
 <A HREF="#idx:httpserver2:25">3.4.1</A>
 <DT><A HREF="#http_server/3">http_server/3</A><DD>
 <A HREF="#idx:httpserver3:30">3.4.3</A>
-<DT>http_session_assert/1<DD>
+<DT><A HREF="#http_session_assert/1">http_session_assert/1</A><DD>
 <A HREF="#idx:httpsessionassert1:20">3.2</A>
-<DT><A HREF="#http_session_asserta/+Term">http_session_asserta/+Term</A><DD>
-<DT><A HREF="#http_session_assert/+Term">http_session_assert/+Term</A><DD>
-<DT><A HREF="#http_session_data/?Term">http_session_data/?Term</A><DD>
+<DT><A HREF="#http_session_asserta/1">http_session_asserta/1</A><DD>
+<DT><A HREF="#http_session_data/1">http_session_data/1</A><DD>
 <DT><A HREF="#http_session_id/-Id">http_session_id/-Id</A><DD>
-<DT><A HREF="#http_session_retractall/+Term">http_session_retractall/+Term</A><DD>
-<DT><A HREF="#http_session_retract/?Term">http_session_retract/?Term</A><DD>
+<DT><A HREF="#http_session_retract/1">http_session_retract/1</A><DD>
+<DT><A HREF="#http_session_retractall/1">http_session_retractall/1</A><DD>
 <DT><A HREF="#http_set_session_options/1">http_set_session_options/1</A><DD>
 <DT><A HREF="#http_workers/2">http_workers/2</A><DD>
 <A HREF="#idx:httpworkers2:28">3.4.3</A>

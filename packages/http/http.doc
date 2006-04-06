@@ -456,27 +456,27 @@ Path with which to associate the session management.  Default is
 Returns an identifier for the current session.  The identifier is an
 atom.
 
-    \predicate{http_current_session}{?Id, ?Data}
+    \predicate{http_current_session}{2}{?Id, ?Data}
 Enumerate sessions and associated data. All sessions have the
 \arg{Data} item \term{idle}{Seconds}, describing the current idle-time
 of the session. Other data elements are added by the user using
 http_session_assert/1 and friends.
 
-    \predicate{http_session_asserta}{+Term}
+    \predicate{http_session_asserta}{1}{+Term}
 Associate \arg{Term} with the current session, before any other
 associated term.
 
-    \predicate{http_session_assert}{+Term}
+    \predicate{http_session_assert}{1}{+Term}
 Associate \arg{Term} with the current session, after any other associated
 term.
 
-    \predicate{http_session_retract}{?Term}
+    \predicate{http_session_retract}{1}{?Term}
 Non-deterministically retract terms associated with the current session.
 
-    \predicate{http_session_retractall}{+Term}
+    \predicate{http_session_retractall}{1}{+Term}
 Retract all matching terms from associated with the current session.
 
-    \predicate{http_session_data}{?Term}
+    \predicate{http_session_data}{1}{?Term}
 Enumerate all associated terms that unify with \arg{Term}.
 \end{description}
 
