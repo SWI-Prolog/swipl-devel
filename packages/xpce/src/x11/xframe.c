@@ -1003,6 +1003,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 
     if ( (e=strchr(xspec, '@')) && e-xspec < sizeof(xspecbuf) )
     { strncpy(xspecbuf, xspec, e-xspec);
+      xspecbuf[e-xspec] = EOS;
       xspec = xspecbuf;
 
       if ( isDefault(mon) )
@@ -1012,6 +1013,8 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 	  mon = (Monitor)DEFAULT;
       }
     }
+
+    DEBUG(NAME_frame, Cprintf("xspec=%s, mon=%s\n", xspec, pp(mon)));
 
     mask = XGeometry(d, DefaultScreen(d),
 		     xspec,

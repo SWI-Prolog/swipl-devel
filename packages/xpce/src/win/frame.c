@@ -742,23 +742,25 @@ getGeometryFrame(FrameObj fr)
     { y = (my+mh) - (y+h);
       yn = TRUE;
     }
-
+    x -= mx;
+    y -= my;
 					/* geometry-size denotes client area */
     w = valInt(fr->area->w);
     h = valInt(fr->area->h);
 
-    if ( fr->can_resize == OFF )
-      sprintf(buf, "%s%d%s%d",
-	      xn ? "-" : "+", x, yn ? "-" : "+", y);
+    if ( fr->can_resize != OFF )
+      sprintf(buf, "%dx%d", w, h);
     else
-      sprintf(buf, "%dx%d%s%d%s%d",
-	      w, h, xn ? "-" : "+", x, yn ? "-" : "+", y);
+      buf[0] = EOS;
+
+    sprintf(buf+strlen(buf),
+	    "%s%d%s%d", xn ? "-" : "+", x, yn ? "-" : "+", y);
 
     if ( mon && fr->display->monitors->size != ONE )
     { Int n = getIndexChain(fr->display->monitors, mon);
 
       if ( n )
-	sprintf(buf+strlen(buf), "@%ld", valInt(n));
+	sprintf(buf+strlen(buf), "@%ld", valInt(n)-1);
     }
 
     answer(CtoName(buf));

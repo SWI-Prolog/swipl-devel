@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: @monitor to frame->geometry specification.  Also added an extra
+  monitor argument to most of the frame dimension methods.  Work in progress
+  supporting multiple monitors.
+
 * ADDED: Query available physical monitors.  See class monitor.  Added
   monitor argument to frame->center, frame->open_centered, etc. This 
   fixes Bug#82.  Holger Kanwischer.
