@@ -26,6 +26,13 @@
 #include <h/interface.h>
 #include <h/unix.h>
 
+/* Allow compilation with old SDKs, also allow working with old OS
+   versions that do not provide the functions in user32.dll.
+*/
+
+#define COMPILE_MULTIMON_STUBS 1
+#include "multimon.h"
+
 void
 ws_flush_display(DisplayObj d)
 { ws_synchronise_display(d);
@@ -53,8 +60,13 @@ void
 ws_get_size_display(DisplayObj d, int *w, int *h)
 { HDC  hdc = GetDC(NULL);
 
+#if 0
   *w = GetDeviceCaps(hdc, HORZRES);
   *h = GetDeviceCaps(hdc, VERTRES);
+#else
+  *w = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+  *h = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+#endif
 
   ReleaseDC(NULL, hdc);
 }
@@ -154,9 +166,6 @@ ws_quit_display(DisplayObj d)
 { exitDraw(0);
 }
 
-
-#define COMPILE_MULTIMON_STUBS 1
-#include "multimon.h"
 
 static BOOL CALLBACK
 next_monitor(HMONITOR m, HDC hdc, LPRECT rect, LPARAM closure)
