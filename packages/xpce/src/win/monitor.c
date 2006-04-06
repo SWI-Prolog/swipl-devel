@@ -37,6 +37,33 @@ initialiseMonitor(Monitor m, Name name, Area a)
   succeed;
 }
 
+
+static Monitor
+getConvertMonitor(Class class, Any value)
+{ DisplayObj d = CurrentDisplay(NIL);
+
+  if ( d )
+  { Chain ch = get(d, NAME_monitors, EAV);
+
+    if ( ch && instanceOfObject(ch, ClassChain) )
+    { if ( isInteger(value) )
+	return getNth0Chain(ch, value);
+    } else
+    { Cell cell;
+
+      for_cell(cell, ch)
+      { Monitor m = cell->value;
+
+	if ( m->name == value)
+	  return m;
+      }
+    }
+  }
+
+  fail;
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -68,12 +95,10 @@ static senddecl send_monitor[] =
 
 /* Get Methods */
 
-#define get_monitor NULL
-/*
 static getdecl get_monitor[] =
-{ 
+{ GM(NAME_convert, 1, "monitor", "int|name", getConvertMonitor,
+     DEFAULT, "Convert number or name of monitor"),
 };
-*/
 
 /* Resources */
 
