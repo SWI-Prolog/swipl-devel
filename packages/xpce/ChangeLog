@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+
+VERSION 6.6.10, distributed with SWI-Prolog 5.6.10
+==================================================
+
 * FIXED: X11 version: frame->gemetry offset for open windows.
 
 * ADDED: @monitor to frame->geometry specification.  Also added an extra
