@@ -588,6 +588,10 @@ hook(resource(_,_,_)).
 
 hook(emacs_prolog_colours:goal_colours(_,_)).
 hook(pce_principal:pce_class(_,_,_,_,_,_)).
+hook(pce_principal:send_implementation(_,_,_)).
+hook(pce_principal:get_implementation(_,_,_,_)).
+hook(pce_principal:pce_lazy_get_method(_,_,_)).
+hook(pce_principal:pce_lazy_send_method(_,_,_)).
 hook(prolog:locate_clauses(_,_)).
 hook(prolog:message(_,_,_)).
 hook(prolog:debug_control_hook(_)).
@@ -966,6 +970,8 @@ assert_called(_, _, Var) :-
 assert_called(Src, From, Goal) :-
 	var(From), !,
 	assert_called(Src, '<unknown>', Goal).
+assert_called(_, _, Goal) :-
+	hide_called(Goal), !.
 assert_called(Src, Origin, M:G) :- !,
 	(   atom(M),
 	    callable(G)
@@ -987,6 +993,16 @@ assert_called(Src, Origin, Goal) :-
 	generalise(Origin, OTerm),
 	generalise(Goal, Term),
 	assert(called(Term, Src, OTerm)).
+
+%	hide_called(:Callable)
+%	
+%	Goals that should not turn up as being called. Hack. Eventually
+%	we should deal with that using an XPCE plugin.
+
+hide_called(pce_principal:send_implementation(_, _, _)).
+hide_called(pce_principal:get_implementation(_, _, _, _)).
+hide_called(pce_principal:pce_lazy_get_method(_,_,_)).
+hide_called(pce_principal:pce_lazy_send_method(_,_,_)).
 
 assert_defined(Src, Goal) :-
 	defined(Goal, Src, _), !.
