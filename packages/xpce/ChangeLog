@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: X11 version: frame->gemetry offset for open windows.
+
 * ADDED: @monitor to frame->geometry specification.  Also added an extra
   monitor argument to most of the frame dimension methods.  Work in progress
   supporting multiple monitors.

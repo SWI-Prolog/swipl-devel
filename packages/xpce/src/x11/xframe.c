@@ -977,6 +977,15 @@ ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ws_x_geometry_frame() updates the window position using an X geometry
+request.  
+
+The lines marked (*) were once needed. Current SuSE with KDE 3.4 doesn't
+need them. Unfortunately I do not  know   under  what conditions this is
+needed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 { Widget wdg = widgetFrame(fr);
@@ -1039,12 +1048,12 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 
       if ( (mask & XNegative) )
 	x -= wmw-mew-dx;
-      else
-	x += dx;
+      /*else				// (*) See above
+	x += dx;*/
       if ( (mask & YNegative) ) 
 	y -= wmh-meh-dy;
-      else
-	y += dy;
+      /*else
+	y += dy;*/
     } else
     { DEBUG(NAME_frame, Cprintf("No WM frame yet\n"));
     }
