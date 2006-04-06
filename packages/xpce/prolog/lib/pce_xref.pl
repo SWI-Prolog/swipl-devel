@@ -588,7 +588,11 @@ export_link_1(ExportFile, ImportFile, Callable) :-	% module import
 	xref_called(ImportFile, Callable),
 	(   xref_defined(ImportFile, Callable, imported(ExportFile))
 	;   single_qualify(Module:Callable, QCall),
-	    xref_called(ExportFile, QCall)
+	    QCall = M:G,
+	    (	defined(ExportFile, G),
+		xref_module(ExportFile, M)
+	    ;	defined(ExportFile, QCall)
+	    )
 	),
 	ImportFile \== ExportFile,
 	atom(ExportFile).

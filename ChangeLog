@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: XREF: avoid showing XPCE internal predicates.  Fixed import
+    into module files doing M:G calls.
+
   * DOC: Many typos fixed in the documentation by Paulo Moura.  Thanks!
 
   * FIXED/MODIFIED: thread_send_message/2, thread_get_message/2,
