@@ -908,14 +908,14 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
   int dx, dy, dw, dh;
   RECT rect;
 
-  if ( isDefault(mon) && (e=strchr(s)) )
+  if ( isDefault(mon) && (e=strchr(s, '@')) )
   { int n = atoi(e+1);
 
     if ( !(mon = getNth0Chain(fr->display->monitors, toInt(n))) )
       mon = (Monitor)DEFAULT;
   }
 
-  if ( mon )
+  if ( instanceOfObject(mon, ClassMonitor) )
   { dx = valInt(mon->work_area->x);
     dy = valInt(mon->work_area->y);
     dw = valInt(mon->work_area->w);
