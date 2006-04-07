@@ -454,6 +454,9 @@ process_directive(arithmetic_function(FSpec), Src) :-
 	arith_callable(FSpec, Goal), !,
 	flag(xref_src_line, Line, Line),
 	assert_called(Src, '<directive>'(Line), Goal).
+process_directive(format_predicate(_, Goal), Src) :- !,
+	flag(xref_src_line, Line, Line),
+	assert_called(Src, '<directive>'(Line), Goal).
 process_directive(Goal, Src) :-
 	flag(xref_src_line, Line, Line),
 	process_body(Goal, '<directive>'(Line), Src).
