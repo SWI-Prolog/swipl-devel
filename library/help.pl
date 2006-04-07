@@ -34,7 +34,7 @@
 	, help/0
 	, apropos/1
 	]).
-
+:- use_module(lists, [append/3, member/2]).
 :- use_module(library(helpidx)).
 
 :- multifile
@@ -80,7 +80,7 @@ give_help(Section) :-
 	show_help(Section, [From-To]).
 give_help(Function) :-
 	atom(Function),
-	concat('PL_', _, Function),
+	atom_concat('PL_', _, Function),
 	function(Function, From, To), !,
 	show_help(Function, [From-To]).
 give_help(Name) :-
@@ -131,7 +131,7 @@ show_help(_, Ranges) :-
 
 show_ranges([], _, _) :- !.
 show_ranges([From-To|Rest], Manual, Pager) :-
-	stream_position(Manual, _, '$stream_position'(From, 0, 0)),
+	seek(Manual, From, bof, _),
 	Range is To - From,
 	copy_chars(Range, Manual, Pager),
 	nl(Pager),
