@@ -348,8 +348,8 @@ ws_pointer_location_display(DisplayObj d, int *x, int *y)
 { POINT pt;
 
   if ( GetCursorPos(&pt) )
-  { x = (int)pt.x;
-    y = (int)pt.y;
+  { *x = (int)pt.x;
+    *y = (int)pt.y;
 
     succeed;
   }

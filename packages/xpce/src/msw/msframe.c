@@ -776,7 +776,7 @@ ws_place_frame(FrameObj fr)
   int fh = valInt(fr->area->h);
   int xborder, yborder, ycap;
 
-  if ( (mon=getMonitorDisplay(fr->display)) )
+  if ( (mon=getMonitorDisplay(fr->display, DEFAULT)) )
   { mx = valInt(mon->area->x);
     my = valInt(mon->area->y);
     mw = valInt(mon->area->w);
