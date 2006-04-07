@@ -2674,10 +2674,10 @@ pl_mutex_destroy(term_t mutex)
 { pl_mutex *m;
   Symbol s;
 
-  LOCK();
   if ( !get_mutex(mutex, &m, FALSE) )
     fail;
 
+  LOCK();
   if ( m->owner )
   { char msg[100];
     
