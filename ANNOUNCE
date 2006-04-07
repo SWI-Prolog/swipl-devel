@@ -57,28 +57,20 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.8 Patches relative to 5.6.7
-=======================================
+Version 5.6.10 Patches relative to 5.6.9
+========================================
 
 Prolog
 
-  * Fixed and provide xterm-console for thread in MacOS
-  * Added some primitives to improve thread debugging.  See tspy/1 and
-    friends.
-  * Fixed exception handling from user-defined functions.
+  * Various fixes and enchancements to the cross-referencer and frontend.
+  * Allow for Unicode indentiers in a more meaningful way.
+  * Added library ugraphs.pl
+  * Fixed online help without XPCE
+  * Fixed mutex_destroy
 							    
 Packages
   
-  * Semweb: Many internal changes.  New library rdf_litindex.pl provides
-    indexing inside literals.
-  * Semweb: Added rdf_persistency.pl, providing persistent storage for
-    the RDF database.  This library is moved from the SeRQL package
-    after having proved its value.  Some fixes and extensions to the
-    literal indexing code.
-  * XPCE: There is a bug in the MacOS XIM code that causes a deadlock
-    entering keys using Alt-key if we enable threading in X11.  Turns
-    out most applications run fine without threading in Xlib enabled,
-    but the graphical debugger causes a crash.  Bug filed with Apple.
-    As a work-around there is send(@display, x11_threads, @on).  See
-    documentation for the issues.
+  * XPCE: Added support for multiple monitors (window and popup placement).
+    See class monitor and various new methods that involve monitors.
+    Fixed regex->match on backward matches.  Some fixes to PceEmacs.
 
