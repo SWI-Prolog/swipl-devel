@@ -11,6 +11,9 @@
 VERSION 5.6.10 (April 06, 2006)
 ===============================
 
+  * FIXED: online help without XPCE.  Also some cleanup of the online
+    help module.  Sergey Tikhonov.
+
   * FIXED: XREF: avoid showing XPCE internal predicates.  Fixed import
     into module files doing M:G calls.
 
