@@ -1,7 +1,0 @@
-# Linux/i386 dependant part of the makefile.
-
-OPTIMIZE=-O2
-CC=gcc -ansi -Wall -funsigned-char
-LDFLAGS=-static
-
-include ../src/Makefile
