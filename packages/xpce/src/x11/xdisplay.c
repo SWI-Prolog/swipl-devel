@@ -452,6 +452,26 @@ ws_events_queued_display(DisplayObj d)
   fail;
 }
 
+
+status
+ws_pointer_location_display(DisplayObj d, int *x, int *y)
+{ DisplayWsXref r = d->ws_ref;
+  XWindowAttributes atts;
+  Window rr, cr;
+  int wx, wy;
+  unsigned int mask;
+
+  XGetWindowAttributes(r->display_xref, XtWindow(r->shell_xref), &atts);
+  if ( XQueryPointer(r->display_xref, atts.root, &rr, &cr,
+		     x, y, &wx, &wy, &mask) )
+  { succeed;
+  }
+
+  fail;
+}
+
+
+
 #ifdef HAVE_X11_EXTENSIONS_XINERAMA_H
 #include <X11/extensions/Xinerama.h>
 #endif

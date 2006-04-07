@@ -5,6 +5,10 @@
 VERSION 6.6.10, distributed with SWI-Prolog 5.6.10
 ==================================================
 
+* FIXED: Use current monitor for placement rather than display as a whole.
+
+* ADDED: `display<-pointer_location'.
+
 * FIXED: X11 version: frame->gemetry offset for open windows.
 
 * ADDED: @monitor to frame->geometry specification.  Also added an extra

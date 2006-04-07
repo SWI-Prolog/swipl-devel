@@ -770,38 +770,50 @@ static void
 ws_place_frame(FrameObj fr)
 { static int last_x = 0, last_y = 0;
   static int placed = 0;
-  int dw = valInt(getWidthDisplay(fr->display));
-  int dh = valInt(getHeightDisplay(fr->display));
+  Monitor mon;
+  int mx, my, mw, mh;
   int fw = valInt(fr->area->w);
   int fh = valInt(fr->area->h);
   int xborder, yborder, ycap;
+
+  if ( (mon=getMonitorDisplay(fr->display)) )
+  { mx = valInt(mon->area->x);
+    my = valInt(mon->area->y);
+    mw = valInt(mon->area->w);
+    mh = valInt(mon->area->h);
+  } else
+  { mx = my = 0;
+    mw = valInt(getWidthDisplay(fr->display));
+    mh = valInt(getHeightDisplay(fr->display));
+    mon = (Monitor)DEFAULT;
+  }
 
   ws_frame_border(fr, &xborder, &yborder, &ycap);
   yborder += ycap;
   
   if ( !placed++ )
-  { last_x = rand() % (dw-fw-2*PLACE_MARGIN);
-    last_y = rand() % (dh-fh-2*PLACE_MARGIN);
+  { last_x = rand() % (mw-fw-2*PLACE_MARGIN);
+    last_y = rand() % (mh-fh-2*PLACE_MARGIN);
   } else
   { last_x += PLACE_X_OFFSET;
     last_y += PLACE_Y_OFFSET;
   }
 
-  if ( last_x + fw > dw - PLACE_MARGIN )
+  if ( last_x + fw > mw - PLACE_MARGIN )
   { last_x = PLACE_MARGIN;
-    if ( last_x + fw > dw )
+    if ( last_x + fw > mw )
       last_x = 0;
   }
-  if ( last_y + fh > dh - PLACE_MARGIN )
+  if ( last_y + fh > mh - PLACE_MARGIN )
   { last_y = PLACE_MARGIN;
-    if ( last_y + fh > dh )
+    if ( last_y + fh > mh )
       last_y = 0;
   }
 
   last_x = max(xborder, last_x);
   last_y = max(yborder, last_y);
 
-  send(fr, NAME_set, toInt(last_x), toInt(last_y), EAV);
+  send(fr, NAME_set, toInt(last_x), toInt(last_y), DEFAULT, DEFAULT, mon, EAV);
 }
 
 

@@ -1660,6 +1660,7 @@
   BUILTIN_NAME("pointed")
   BUILTIN_NAME("pointed_objects")
   BUILTIN_NAME("pointer")
+  BUILTIN_NAME("pointer_location")
   BUILTIN_NAME("points")
   BUILTIN_NAME("poly")
   BUILTIN_NAME("pop")

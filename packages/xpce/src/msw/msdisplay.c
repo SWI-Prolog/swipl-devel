@@ -342,6 +342,22 @@ ws_events_queued_display(DisplayObj d)
 { return GetInputState() ? SUCCEED : FAIL;
 }
 
+
+status
+ws_pointer_location_display(DisplayObj d, int *x, int *y)
+{ POINT pt;
+
+  if ( GetCursorPos(&pt) )
+  { x = (int)pt.x;
+    y = (int)pt.y;
+
+    succeed;
+  }
+
+  fail;
+}
+
+
 		 /*******************************
 		 *     SELECTION HANDLING	*
 		 *******************************/

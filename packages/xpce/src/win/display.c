@@ -362,6 +362,19 @@ getDotsPerInchDisplay(DisplayObj d)
   fail;
 }
 
+static Point
+getPointerLocationDisplay(DisplayObj d)
+{ int x, y;
+
+  TRY(openDisplay(d));
+  if ( ws_pointer_location_display(d, &x, &y) )
+    answer(answerObject(ClassPoint, toInt(x), toInt(y), EAV));
+
+  fail;
+}
+
+
+
 		 /*******************************
 		 *	     MONITORS		*
 		 *******************************/
@@ -379,6 +392,12 @@ getMonitorDisplay(DisplayObj d, Any obj)
 { Cell cell;
 
   openDisplay(d);
+
+  if ( isDefault(obj) )
+  { if ( !(obj = getPointerLocationDisplay(d)) )
+      fail;
+  }
+
   if ( instanceOfObject(obj, ClassPoint) )
   { Point pt = obj;
 
@@ -1258,9 +1277,11 @@ static getdecl get_display[] =
      NAME_dimension, "Width of the display in pixels"),
   GM(NAME_dotsPerInch, 0, "size", NULL, getDotsPerInchDisplay,
      NAME_dimension, "Resolution in dots per inch"),
+  GM(NAME_pointerLocation, 0, "point", NULL, getPointerLocationDisplay,
+     NAME_event, "Current location of the pointer"),
   GM(NAME_monitors, 0, "chain*", NULL, getMonitorsDisplay,
      NAME_monitor, "Physical monitors attached"),
-  GM(NAME_monitor, 1, "monitor", "point|area", getMonitorDisplay,
+  GM(NAME_monitor, 1, "monitor", "[point|area]", getMonitorDisplay,
      NAME_monitor, "Find monitor at position"),
   GM(NAME_fontAlias, 1, "font", "name=name", getFontAliasDisplay,
      NAME_font, "Lookup logical name"),
