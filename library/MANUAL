@@ -625,10 +625,10 @@ the page below.
 
 11..88 AAcckknnoowwlleeddggeemmeennttss
 
-Some  small  parts  of  the  Prolog  code  of  SWI-Prolog  are  modified
-versions of  the corresponding  Edinburgh C-Prolog code:   grammar  rule
-compilation  and writef/2.    Also some  of the  C-code originates  from
-C-Prolog:  finding the path of the currently running  executable and the
+Some small parts of the Prolog code of SWI-Prolog  are modified versions
+of the corresponding Edinburgh C-Prolog code:   grammar rule compilation
+and  writef/2.    Also some  of  the  C-code originates  from  C-Prolog:
+finding the  path of the  currently running executable  and some of  the
 code underlying  absolute_file_name/2.   Ideas  on programming style  and
 techniques originate from  C-Prolog and Richard O'Keefe's _t_h_i_e_f  editor.
 An  important  source  of inspiration  are  the  programming  techniques
@@ -660,6 +660,15 @@ beginners as well as valuable comments on proposed new developments.
 Scientific  Software and  Systems Limited,  www.sss.co.nz has  sponsored
 the development  if the  SSL library  as well as  unbounded integer  and
 rational number arithmetic.
+
+Leslie de Koninck has made clp(QR) available to SWI-Prolog.
+
+Markus Triska has contributed to various libraries.
+
+Paulo  Moura's  great   experience  in  maintaining  Logtalk  for   many
+Prolog systems  including SWI-Prolog  has helped in  many places  fixing
+compatibility issues.   He also worked on the MacOS port and  fixed many
+typos in the 5.6.9 release of the documentation.
 
 
 CChhaapptteerr 22..  OOVVEERRVVIIEEWW
@@ -691,7 +700,7 @@ For help, use ?- help(Topic). or ?- apropos(Word).
 1 ?-
 
 After  starting Prolog,  one  normally loads  a  program into  it  using
-consult/1,  which---for  historical  reasons---may   be  abbreviated  by
+consult/1, which  --- for historical reasons  --- may be abbreviated  by
 putting the  name of  the program  file between  square brackets.    The
 following  goal loads  the  file  likes.pl containing  clauses  for  the
 predicates likes/2:
@@ -780,23 +789,23 @@ no file is loaded.
 
 22..33 IInniittiiaalliissaattiioonn ffiilleess aanndd ggooaallss
 
-Using  commandline  arguments  (see  section  2.4),  SWI-Prolog  can  be
+Using  command-line  arguments (see  section  2.4),  SWI-Prolog  can  be
 forced to  load files  and execute queries  for initialisation  purposes
 or  non-interactive operation.    The  most  commonly used  options  are
 -f file or  -s file to  make Prolog load  a file,  -g goal to define  an
-initialisation  goal and  -t goal to  define  the _t_o_p_l_e_v_e_l  _g_o_a_l.    The
+initialisation  goal and  -t goal to  define the  _t_o_p_-_l_e_v_e_l _g_o_a_l.    The
 following  is a  typical example  for starting  an application  directly
-from the commandline.
+from the command-line.
 
 machine% pl -s load.pl -g go -t halt
 
-It tells  SWI-Prolog to load  load.pl, start  the application using  the
-_e_n_t_r_y_-_p_o_i_n_t go/0 and ---instead of entering  the interactive toplevel---
-exit  after completing  go/0.    The  -q  may  be used  to  supress  all
-informational messages.
+It  tells  SWI-Prolog to  load  load.pl,  start  the  application  using
+the  _e_n_t_r_y_-_p_o_i_n_t  go/0  and  ---instead  of   entering  the  interactive
+top-level---  exit after  completing  go/0.    The  -q  may be  used  to
+suppress all informational messages.
 
 In  MS-Windows,  the  same  can  be  achieved  using  a  short-cut  with
-appropriately  defined  commandline   arguments.     A  typically   seen
+appropriately  defined  command-line  arguments.      A  typically  seen
 alternative  is to  write  a file  run.pl  with content  as  illustrated
 below.  Double-clicking run.pl will start the application.
 
@@ -810,9 +819,9 @@ are  a mean  to  deliver executables  that  do  not require  the  Prolog
 system.
 
 
-22..44 CCoommmmaanndd lliinnee ooppttiioonnss
+22..44 CCoommmmaanndd--lliinnee ooppttiioonnss
 
-The full set of command line options is given below:
+The full set of command-line options is given below:
 
 --hheellpp
     When  given as  the only  option, it summarises  the most  important
@@ -837,8 +846,8 @@ The full set of command line options is given below:
     cc -I$PLBASE/include -L$PLBASE/runtime/$PLARCH ...
 
 --qq
-    Set the prolog-flag  verbose to silent, supressing informational and
-    banner messages.
+    Set  the prolog-flag  verbose to  silent, suppressing  informational
+    and banner messages.
 
 --LL_s_i_z_e_[_k_m_]
     Give  local stack limit (2 Mbytes default).   Note that there  is no
@@ -915,13 +924,13 @@ The full set of command line options is given below:
     being expanded by the Unix shell.
 
 --tt _g_o_a_l
-    Use  _g_o_a_l  as  interactive  toplevel instead  of  the  default  goal
-    prolog/0.    _g_o_a_l  can be  a complex  term.   If  the toplevel  goal
+    Use  _g_o_a_l  as  interactive top-level  instead  of the  default  goal
+    prolog/0.    _g_o_a_l can  be a  complex term.   If  the top-level  goal
     succeeds  SWI-Prolog exits  with status  0.   If it  fails the  exit
     status  is  1.    This  flag also  determines  the goal  started  by
     break/0  and abort/0.   If you want to  stop the user from  entering
     interactive  mode  start the  application  with `-g goal'  and  give
-    `halt' as toplevel.
+    `halt' as top-level.
 
 --ttttyy
     Unix  only.      Switches  controlling  the  terminal  for  allowing
@@ -934,7 +943,7 @@ The full set of command line options is given below:
 --nnoossiiggnnaallss
     Inhibit any signal  handling by Prolog, a property that is sometimes
     desirable  for embedded  applications.   This option  sets the  flag
-    signals to false.  See section 9.6.20.1 for defails.
+    signals to false.  See section 9.6.20.1 for details.
 
 --xx _b_o_o_t_f_i_l_e
     Boot  from _b_o_o_t_f_i_l_e instead  of the system's default  boot file.   A
@@ -944,7 +953,7 @@ The full set of command line options is given below:
 --pp _a_l_i_a_s_=_p_a_t_h_1_[_:_p_a_t_h_2 _._._._]
     Define  a path alias for file_search_path.  _a_l_i_a_s is the name  of the
     alias,  _p_a_t_h_1 _._._.  is  a list of values for  the alias.  On  Windows
-    the  list-seperator is ;.   On other  systems it is :.   A value  is
+    the  list-separator is ;.   On other  systems it is :.   A value  is
     either  a term of the form  alias(value) or pathname.  The  computed
     aliases  are added  to file_search_path/2 using  asserta/1, so  they
     precede  predefined values  for the  alias.   See file_search_path/2
@@ -953,7 +962,7 @@ The full set of command line options is given below:
 --
     Stops  scanning for more  arguments, so you  can pass arguments  for
     your  application after this  one.   See current_prolog_flag/2 using
-    the flag argv for obtaining the commandline arguments.
+    the flag argv for obtaining the command-line arguments.
 
 The following options  are for system maintenance.   They are given  for
 reference only.
@@ -1063,7 +1072,7 @@ eexxppllaaiinn((_+_T_o_E_x_p_l_a_i_n_, _-_E_x_p_l_a_n_
     yields further explanations.
 
 
-22..77 CCoommmmaanndd lliinnee hhiissttoorryy
+22..77 CCoommmmaanndd--lliinnee hhiissttoorryy
 
 SWI-Prolog offers a query substitution mechanism called `history'.   The
 availability of  this feature is controlled  by set_prolog_flag/2,  using
@@ -1089,11 +1098,12 @@ these sequences appear in quoted atoms or strings.
                       Table 2.1:  History commands
 
 
-22..88 RReeuussee ooff ttoopplleevveell bbiinnddiinnggss
+22..88 RReeuussee ooff ttoopp--lleevveell bbiinnddiinnggss
 
-Bindings resulting from the successful execution of a  toplevel goal are
-asserted in a database.  These values may be  reused in further toplevel
-queries as $Var.  Only the latest binding is available.  Example:
+Bindings resulting  from the  successful execution of  a top-level  goal
+are asserted  in a  database.   These values  may be  reused in  further
+top-level  queries as  $Var.    Only the  latest binding  is  available.
+Example:
 1 ?- maplist(plus(1), "hello", X).
 
 X = [105,102,109,109,112]
@@ -1106,7 +1116,7 @@ Yes
 
 3 ?-
 
-                 Figure 2.1:  Reusing toplevel bindings
+                Figure 2.1:  Reusing top-level bindings
 
 Note that variables may be set by executing =/2:
 
@@ -1143,7 +1153,7 @@ tracer is started  by the trace/0 command,  when a spy point is  reached
 and the system is  in debugging mode (see spy/1 and debug/0) or  when an
 exception is raised.
 
-The interactive  toplevel goal trace/0 means  ``trace the next  query''.
+The interactive top-level  goal trace/0 means ``trace the next  query''.
 The  tracer shows  the  port,  displaying  the port  name,  the  current
 depth of  the recursion and  the goal.   The goal  is printed using  the
 Prolog predicate write_term/2.  The style is defined  by the prolog-flag
@@ -1175,7 +1185,7 @@ Yes
 On _l_e_a_s_h_e_d  _p_o_r_t_s (set  with the  predicate leash/1,  default are  call,
 exit, redo and  fail) the user is prompted  for an action.  All  actions
 are single character  commands which are executed wwiitthhoouutt waiting  for a
-return, unless the command line option -tty is active.  Tracer options:
+return, unless the command-line option -tty is active.  Tracer options:
 
 + ((SSppyy))
     Set a spy point (see spy/1) on the current predicate.
@@ -1295,7 +1305,7 @@ debugger is in section 4.38.
 
 During  program   development,  programs   are  normally  loaded   using
 consult/1, or the list abbreviation.  It is  common practice to organise
-a project  as a  collection of source-files  and a  _l_o_a_d_-_f_i_l_e, a  Prolog
+a project  as a  collection of source  files and a  _l_o_a_d_-_f_i_l_e, a  Prolog
 file  containing only  use_module/[1,2]  or ensure_loaded/1  directives,
 possibly  with a  definition  of the  _e_n_t_r_y_-_p_o_i_n_t  of the  program,  the
 predicate that  is normally used  to start  the program.   This file  is
@@ -1314,7 +1324,7 @@ Yes
 
 When  using  Windows,  the  user  may  open  load.pl  from  the  Windows
 explorer,  which will cause  plwin.exe to  be started  in the  directory
-holding load.pl.  Prolog loads load.pl before entering the toplevel.
+holding load.pl.  Prolog loads load.pl before entering the top-level.
 
 
 22..1100..22 FFoorr rruunnnniinngg tthhee rreessuulltt
@@ -1373,13 +1383,13 @@ ERROR: Arithmetic: `foo/0' is not a function
 
 TThhee  WWiinnddoowwss  vveerrssiioonn supports  the  #!  construct  too,   but  here  it
 serves  a rather  different role.    The  Windows shell  already  allows
-the  user to  start  Prolog source-files  directly through  the  Windows
+the  user to  start Prolog  source files  directly  through the  Windows
 file-type  association.   Windows  however makes  it rather  complicated
-to  provide  additional parameters,  such  as  the  required  stack-size
-for  an  individual Prolog  file.     The #!  line  provides  for  this,
-providing a  more flexible approach then  changing the global  defaults.
-The  following starts  Prolog  with unlimited  stack-size on  the  given
-source-file:
+to provide  additional parameters, such  as the required stack-size  for
+an individual  Prolog file.   The #! line  provides for this,  providing
+a  more flexible  approach  then changing  the  global  defaults.    The
+following starts  Prolog with unlimited stack-size  on the given  source
+file:
 
 #!/usr/bin/pl -L0 -T0 -G0 -s
 
@@ -1434,7 +1444,7 @@ but  machine-dependent,  executable.    This  process  is  described  in
 chapter 10.
 
 
-22..1100..22..44 CCoommppiillaattiioonn uussiinngg tthhee --cc ccoommmmaannddlliinnee ooppttiioonn
+22..1100..22..44 CCoommppiillaattiioonn uussiinngg tthhee --cc ccoommmmaanndd--lliinnee ooppttiioonn
 
 This mechanism loads a series of Prolog source files  and then creates a
 saved-state as qsave_program/2 does.  The command syntax is:
@@ -1624,7 +1634,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
     ddyynnaammiicc__ssttaacckkss _(_b_o_o_l_)
          If true,  the system uses some  form of `sparse-memory  manage-
          ment' to realise the stacks.  If  false, malloc()/realloc() are
-         used for  the stacks.   In earlier  days this had  consequenses
+         used for  the stacks.   In earlier  days this had  consequences
          for foreign code.   As  of version 2.5,  this is no longer  the
          case.
 
@@ -1654,7 +1664,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     ffiillee__nnaammee__vvaarriiaabblleess _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If   true  (default   false),   expand   $varname  and   ~   in
-         arguments  of  builtin-predicates  that  accept  a   file  name
+         arguments  of  built-in predicates  that  accept  a  file  name
          (open/3, exists_file/1,  access_file/2,  etc.).   The  predicate
          expand_file_name/2  should  be  used   to  expand   environment
          variables and wildcard patterns.  This  prolog-flag is intended
@@ -1682,7 +1692,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          trace/0,  spy/1,  etc.      Can  be  set  to  false  using  the
          -nodebug.   The  predicate load_files/2 restores  the value  of
          this  flag  after loading  a  file,  causing  modifications  to
-         be  local to  a  source-file.    Many  of  the  libraries  have
+         be  local to  a  source  file.    Many of  the  libraries  have
          :- set_prolog_flag(generate_debug_info, false)  to  hide  their
          details from a normal trace.
 
@@ -1700,8 +1710,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
     hhiissttoorryy _(_i_n_t_e_g_e_r_, _c_h_a_n_g_e_a_b_l_e_)
          If _i_n_t_e_g_e_r >0,  support Unix csh(1)  like history as described
          in section  2.7.    Otherwise,  only support  reusing  commands
-         through the  commandline editor.   The default  is to set  this
-         prolog-flag  to 0  if a  commandline  editor is  provided  (see
+         through the command-line  editor.  The  default is to set  this
+         prolog-flag to  0 if  a  command-line editor  is provided  (see
          prolog-flag readline) and 15 otherwise.
 
     hhoommee _(_a_t_o_m_)
@@ -1773,7 +1783,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     ooppttiimmiissee _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true, compile in optimised mode.  The initial  value is true
-         if Prolog was started with the -O commandline option.
+         if Prolog was started with the -O command-line option.
 
          Currently   optimise   compilation   implies   compilation   of
          arithmetic, and  deletion of redundant  true/0 that may  result
@@ -1795,8 +1805,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          applications testing this feature.  Not recommended.
 
     pprroommpptt__aalltteerrnnaattiivveess__nnoo__bbiinnddiinnggss _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If present and  true, the toplevel  prints for alternatives  if
-         the query  succeeded with  pending choicepoint,  regardless  of
+         If present and true,  the top-level prints for alternatives  if
+         the query  succeeded with pending  choice-point, regardless  of
          whether or  not  the query  has variables.    As  there are  no
          variables to  bind it  prints the  answer _M_o_r_e_?.    Here is  an
          example
@@ -1857,14 +1867,14 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          necessary to enable it during debugging.
 
     ttiimmeezzoonnee _(_i_n_t_e_g_e_r_)
-         Offset in seconds west of GMT of the current timezone.   Set at
-         initialization time from the timezone variable  associated with
-         the POSIX tzset() function.  See also convert_time/2.
+         Offset in seconds  west of GMT of  the current time-zone.   Set
+         at initialization  time from the  timezone variable  associated
+         with the POSIX tzset() function.  See also convert_time/2.
 
     ttoopplleevveell__pprriinntt__aannoonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
-         If true, toplevel variables starting with an underscore (_) are
-         printed normally.  If false they are hidden.   This may be used
-         to hide bindings in complex queries from the toplevel.
+         If true,  top-level variables starting  with an  underscore (_)
+         are printed normally.   If false they are hidden.  This  may be
+         used to hide bindings in complex queries from the top-level.
 
     ttoopplleevveell__pprriinntt__ooppttiioonnss _(_t_e_r_m_, _c_h_a_n_g_e_a_b_l_e_)
          This  argument   is  given   as  option-list   to  write_term/2
@@ -1873,7 +1883,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     ttoopplleevveell__vvaarr__ssiizzee _(_i_n_t_, _c_h_a_n_g_e_a_b_l_e_)
          Maximum  size counted  in  literals of  a  term returned  as  a
-         binding for a  variable in a toplevel  query that is saved  for
+         binding for a variable  in a top-level query that is  saved for
          re-use using the $ variable reference.  See section 2.8.
 
     ttrraaccee__ggcc _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
@@ -1904,7 +1914,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
 
     vveerrbboossee _(_A_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
          This flags is used by print_message/2.  If its value is silent,
-         messages of type informational  and banner are supressed.   The
+         messages of type informational and banner are suppressed.   The
          -q switches the value from the initial normal to silent.
 
     vveerrbboossee__aauuttoollooaadd _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
@@ -2162,7 +2172,7 @@ SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
 
 The processor character  set specifies the class of each  character used
 for parsing Prolog  source text.   Character classification is fixed  to
-use UCS/UNICODE as  provided by the C-library  wchar_t based  primitives.
+use UCS/Unicode as  provided by the C-library  wchar_t based  primitives.
 See also section 2.17.
 
 
@@ -2262,9 +2272,9 @@ are always unsigned.
 22..1155..11..44 UUnniiccooddee PPrroolloogg ssoouurrccee
 
 The ISO standard  specifies the Prolog syntax  in ASCII characters.   As
-SWI-Prolog supports  Unicode in sourcefiles we  must extend the  syntax.
-This  section  describes the  implication  for  the  sourcefiles,  while
-writing international sourcefiles is described in section 3.1.3.
+SWI-Prolog supports Unicode  in source files we must extend  the syntax.
+This  section describes  the implication  for  the source  files,  while
+writing international source files is described in section 3.1.3.
 
 The  SWI-Prolog Unicode  character classification  is  based on  version
 4.1.0 of  the Unicode standard.    Please that char_type/2 and  friends,
@@ -2272,8 +2282,8 @@ intended to be used with all text except Prolog source  code is based on
 the C-library locale-based classification routines.
 
   o _Q_u_o_t_e_d _a_t_o_m_s _a_n_d _s_t_r_i_n_g_s
-    Any   character  of  any  script   can  be  used  in  quoted   atoms
-    and  strings.    The  escape  sequencs  \uXXXX and  \UXXXXXXXX  (see
+    Any  character  of  any script  can  be  used in  quoted  atoms  and
+    strings.      The  escape  sequences  \uXXXX  and   \UXXXXXXXX  (see
     section 2.15.1.2) were  introduced to specify Unicode code points in
     ASCII files.
 
@@ -2326,7 +2336,7 @@ classes of named variables.
     normal variable.
 
 Any normal variable appearing  exactly ones in the clause _a_n_d  any named
-singleton variables appearing more  than onces are reported.   Below are
+singleton variables appearing  more than once are  reported.  Below  are
 some examples with warnings in the right column.
 
 ___________________________________________________________________________
@@ -2347,7 +2357,7 @@ ___________________________________________________________________________
 22..1166 IInnffiinniittee ttrreeeess ((ccyycclliicc tteerrmmss))
 
 SWI-Prolog  has  limited support  for  infinite  trees,  also  known  as
-cyclic  terms.    Full support  requires  special  code in  all  builtin
+cyclic  terms.   Full  support  requires special  code in  all  built-in
 predicates that require  recursive exploration of a  term.  The  current
 version  supports cycles  terms  in  the pure  Prolog  kernel  including
 the  garbage  collector  and  in  the  following   predicates:    =../2,
@@ -2364,8 +2374,8 @@ SWI-Prolog  supports _w_i_d_e  _c_h_a_r_a_c_t_e_r_s, characters  w
 above  255 that  cannot be  represented in  a single  _b_y_t_e.    _U_n_i_v_e_r_s_a_l
 _C_h_a_r_a_c_t_e_r  _S_e_t (UCS)  is the  ISO/IEC 10646  standard  that specifies  a
 unique  31-bits unsigned  integer  for any  character in  any  language.
-It is  a superset  of 16-bit  UNICODE, which in  turn is  a superset  of
-ISO  8859-1 (ISO  Latin-1),  a  superset  of US-ASCII.  UCS  can  handle
+It  is a  superset  of  16-bit Unicode,  which  in  turn is  a  superset
+of ISO  8859-1 (ISO  Latin-1), a  superset of US-ASCII.  UCS can  handle
 strings  holding  characters  from  multiple  languages   and  character
 classification (uppercase, lowercase, digit, etc.)   and operations such
 as case-conversion are unambiguously defined.
@@ -2394,7 +2404,7 @@ stream.   The most popular  one, especially in  the context of the  web,
 is UTF-8.   Bytes 0 ... 127 represent simply the  corresponding US-ASCII
 character, while bytes 128  ... 255 are used for multi-byte  encoding of
 characters placed  higher in the  UCS space.   Especially on  MS-Windows
-the  16-bit UNICODE  standard, represented  by pairs  of  bytes is  also
+the  16-bit Unicode  standard, represented  by pairs  of  bytes is  also
 popular.
 
 Prolog I/O streams  have a property called _e_n_c_o_d_i_n_g which  specifies the
@@ -2406,13 +2416,13 @@ encoding,  which   is  initialised  from  the  environment.      If  the
 environment variable  LANG ends  in "UTF-8", this  encoding is  assumed.
 Otherwise  the default  is  text and  the  translation  is left  to  the
 wide-character  functions  of the  C-library.         The  encoding  can
-be  specified explicitely  in  load_files/2 for  loading  Prolog  source
+be  specified  explicitly  in load_files/2  for  loading  Prolog  source
 with  an  alternative encoding,   open/4 when  opening  files  or  using
-set_stream/2 on  any  open  stream.    For  Prolog sourcefiles  we  also
+set_stream/2 on  any open  stream.    For Prolog  source  files we  also
 provide the  encoding/1 directive  that can  be used  to switch  between
 encodings  that are  compatible to  US-ASCII  (ascii, iso_latin_1,  utf8
 and  many  locales).     See  also  section  3.1.3  for  writing  Prolog
-files  with non-us-ascii  characters  and  section 2.15.1.4  for  syntax
+files  with non-US-ASCII  characters  and  section 2.15.1.4  for  syntax
 issues.  For additional information and Unicode  resources, please visit
 http://www.unicode.org/.
 
@@ -2431,7 +2441,7 @@ iissoo__llaattiinn__11
     stream to be read and written fully untranslated.
 
 tteexxtt
-    C-library  default locale encoding  for textfiles.   Files are  read
+    C-library  default locale encoding for text  files.  Files are  read
     and  written using the C-library functions mbrtowc()  and wcrtomb().
     This may be the  same as one of the other locales, notably it may be
     the  same as iso_latin_1 for western languages  and utf8 in a  UTF-8
@@ -2441,11 +2451,11 @@ uuttff88
     Multi-byte encoding of full UCS, compatible to ascii.  See above.
 
 uunniiccooddee__bbee
-    UNICODE  _B_i_g  _E_n_d_i_a_n.     Reads  input  in  pairs  of  bytes,   most
+    Unicode  _B_i_g  _E_n_d_i_a_n.     Reads  input  in  pairs  of  bytes,   most
     significant byte first.  Can only represent 16-bit characters.
 
 uunniiccooddee__llee
-    UNICODE  _L_i_t_t_l_e  _E_n_d_i_a_n.    Reads input  in  pairs of  bytes,  least
+    Unicode  _L_i_t_t_l_e  _E_n_d_i_a_n.    Reads input  in  pairs of  bytes,  least
     significant byte first.  Can only represent 16-bit characters.
 
 Note that not all encodings can represent all characters.   This implies
@@ -2462,16 +2472,16 @@ From  section  2.17.1,  you  may  have  got  the  impression  text-files
 are  complicated.   This  section  deals with  a related  topic,  making
 live  often easier  for the  user, but  providing another  worry to  the
 programmer.   BBOOMM or  _B_y_t_e _O_r_d_e_r _M_a_r_k_e_r is  a technique for  identifying
-UNICODE text-files as well  as the encoding they use.  Such  files start
-with  the UNICODE  character 0xFEFF,  a non-breaking,  zero-width  space
+Unicode text-files as well  as the encoding they use.  Such  files start
+with  the Unicode  character 0xFEFF,  a non-breaking,  zero-width  space
 character.   This is a pretty unique  sequence that is not likely to  be
-the start of  a non-UNICODE file and uniquely distinguishes  the various
-UNICODE file  formats.   As it is  a zero-width  blank, it even  doesn't
+the start of  a non-Unicode file and uniquely distinguishes  the various
+Unicode file  formats.   As it is  a zero-width  blank, it even  doesn't
 produce any output.  This solves all problems, or ...
 
 Some formats start of as US-ASCII and may contain  some encoding mark to
 switch to UTF-8,  such as the encoding="UTF-8" in  an XML header.   Such
-formats often explicitely  forbit the the use  of a UTF-8 BOM. In  other
+formats often  explicitly forbid the  the use of a  UTF-8 BOM. In  other
 cases there  is additional information telling  the encoding making  the
 use of a BOM redundant or even illegal.
 
@@ -2490,7 +2500,7 @@ writing a BOM can be requested using the option bom(_t_r_u_e) with open/4.
 SWI-Prolog has  a number of  memory areas which are  only enlarged to  a
 certain limit.   The  default sizes for these  areas should suffice  for
 most applications, but big  applications may require larger ones.   They
-are modified  by command  line options.    The table  below shows  these
+are  modified by  command-line options.    The table  below shows  these
 areas.   The first column  gives the option name  to modify the size  of
 the area.  The option character is immediately followed  by a number and
 optionally by  a k or  m.   With k or  no unit  indicator, the value  is
@@ -2570,9 +2580,9 @@ manpce/0, after which you find _P_r_e_f_e_r_e_n_c_e_s in the _F_i_
        |        |        |               when ||using long strings|
        |        |        |               in a ||clause.           |
        |        |        |               In ad||dition, this stack|
-       |        |        |               is us||ed by some builtin|
+       |        |        |               is us||ed by  some built-|
        |        |        |                    ||                  |
-       |        |        |               predi||cates  to   handle|
+       |        |        |               in pr||edicates to handle|
 
        |        |        |               cycli||c terms.   Its de-|
        |        |        |               fault|| size   limit  is |
@@ -19697,7 +19707,7 @@ ugraph _l_i_b_r_a_r_y, 1088
 ugraph_union/3, 1101
 ugraphs _l_i_b_r_a_r_y, 1088, 1266
 ugraphs.pl _l_i_b_r_a_r_y, 1088
-UNICODE, 76
+Unicode, 76
 unifiable/3, 192
 unify_with_occurs_check/2, 182
 union/3, 1073
