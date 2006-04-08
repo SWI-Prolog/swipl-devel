@@ -1065,17 +1065,17 @@ basis_transport([bv(NR,NC,_,Value)|Bs], Matrix0, Matrix) :-
 	set_nth0(NR, Matrix0, Row1, Matrix1),
 	basis_transport(Bs, Matrix1, Matrix).
 
-entering_variable(Rows, Basis, NRows, NCols, Var) :-
-	tableau_with_diffs(Rows, Basis, NRows, NCols),
-	entering_variable(Rows, 0, 0, Diff, _, Var),
+entering_variable(Rows, BBR, BBC, NRows, NCols, Var) :-
+	tableau_with_diffs(Rows, BBR, BBC, NRows, NCols),
+	entering_variable_(Rows, 0, 0, Diff, _, Var),
 	Diff < 0.
 
-entering_variable([], _, Diff, Diff, Var, Var).
-entering_variable([Row|Rs], CurrRow, Diff0, Diff, Var0, Var) :-
+entering_variable_([], _, Diff, Diff, Var, Var).
+entering_variable_([Row|Rs], CurrRow, Diff0, Diff, Var0, Var) :-
 	Row = row(Cols),
 	entering_variable(Cols, CurrRow, 0, Diff0, Diff1, Var0, Var1),
 	CurrRow1 is CurrRow + 1,
-	entering_variable(Rs, CurrRow1, Diff1, Diff, Var1, Var).
+	entering_variable_(Rs, CurrRow1, Diff1, Diff, Var1, Var).
 
 entering_variable([], _, _, Diff, Diff, Var, Var).
 entering_variable([cell(CC,CD)|Cols], CurrRow, CurrCol, Diff0, Diff, Var0, Var) :-
@@ -1100,10 +1100,13 @@ basis_objective([bv(_,_,Cost,Value)|BVs], N0, N) :-
 transportation_iterate(Rows, NRows, NCols, Basis0, Basis) :-
 	%basis_objective(Basis0, 0, Obj),
 	%format("sum: ~w\n", [Obj]),
-	findall(V, entering_variable(Rows, Basis0, NRows, NCols, V), Vs),
+	empty_assoc(Empty),
+	basis_by_col(Basis0, Empty, BBC),
+	basis_by_row(Basis0, Empty, BBR),
+	findall(V, entering_variable(Rows, BBR, BBC, NRows, NCols, V), Vs),
 	( Vs = [Entering] ->
 		Entering = v(ERow, ECol, ECost, _),
-		once(chain_reaction(Entering, Basis0, Donors, Recipients)),
+		once(chain_reaction(Entering, BBR, BBC, Donors, Recipients)),
 		Donors = [bv(_, _, _, D0)|_],
 		min_donors(Donors, D0, Min),
 		bvs_add(Recipients, Min, Recipients1),
@@ -1142,28 +1145,43 @@ min_donors([bv(_, _, _, Val)|Ds], Min0, Min) :-
 	min_donors(Ds, Min1, Min).
 
 
-chain_reaction(v(Row,Col,_,_), Basis, Donors, Recipients) :-
-	select(bv(BRow, Col, Cost, Value), Basis, Basis1),
+chain_reaction(v(Row,Col,_,_), BBR, BBC, Donors, Recipients) :-
+	get_assoc(Col, BBC, Cs0),
+	select(bv(BRow,Col,Cost,Value), Cs0, Cs1),
 	BRow =\= Row,
 	Curr = bv(BRow, Col, Cost, Value),
 	Donors = [Curr|RestDonors],
-	chain_reaction_row(Row, Curr, Basis1, RestDonors, [], Recipients, []).
+	put_assoc(Col, BBC, Cs1, BBC1),
+	get_assoc(BRow, BBR, Rs),
+	delete(Rs, bv(BRow,Col,_,_), Rs1),
+	put_assoc(BRow, BBR, Rs1, BBR1),
+	chain_reaction_row(Row, Curr, BBR1, BBC1, RestDonors, Recipients).
 
-chain_reaction_col(TargetRow, bv(_,FCol,_,_), Basis, Dons0, Dons, Recs0, Recs) :-
-	select(bv(BRow, FCol, Cost, Value), Basis, Basis1),
-	Curr = bv(BRow, FCol, Cost, Value),
-	Dons0 = [Curr|Rest],
-	chain_reaction_row(TargetRow, Curr, Basis1, Rest, Dons, Recs0, Recs).
+chain_reaction_col(TargetRow, bv(_,FCol,_,_), BBR, BBC, Dons, Recs) :-
+	get_assoc(FCol, BBC, Cs0),
+	select(Curr, Cs0, Cs1),
+	Curr = bv(FRow,FCol,_,_),
+	put_assoc(FCol, BBC, Cs1, BBC1),
+	get_assoc(FRow, BBR, Rs),
+	delete(Rs, bv(FRow,FCol,_,_), Rs1),
+	put_assoc(FRow, BBR, Rs1, BBR1),
+	Dons = [Curr|Rest],
+	chain_reaction_row(TargetRow, Curr, BBR1, BBC1, Rest, Recs).
 
-chain_reaction_row(TargetRow, bv(FRow,_,_,_), Basis, Dons0, Dons, Recs0, Recs) :-
+chain_reaction_row(TargetRow, bv(FRow,_,_,_), BBR, BBC, Dons, Recs) :-
 	( TargetRow =:= FRow ->
-		Dons0 = Dons,
-		Recs0 = Recs
+		Dons = [],
+		Recs = []
 	;
-		select(bv(FRow, BCol, Cost, Value), Basis, Basis1),
-		Curr = bv(FRow, BCol, Cost, Value),
-		Recs0 = [Curr|Rest],
-		chain_reaction_col(TargetRow, Curr, Basis1, Dons0, Dons, Rest, Recs)
+		get_assoc(FRow, BBR, Rs),
+		select(Curr, Rs, Rs1),
+		put_assoc(FRow, BBR, Rs1, BBR1),
+		Curr = bv(_,FCol,_,_),
+		get_assoc(FCol, BBC, Cs),
+		delete(Cs, bv(FRow,FCol,_,_), Cs1),
+		put_assoc(FCol, BBC, Cs1, BBC1),
+		Recs = [Curr|Rest],
+		chain_reaction_col(TargetRow, Curr, BBR1, BBC1, Dons, Rest)
 	).
 
 
@@ -1177,12 +1195,9 @@ rows_number_basic(I, N, BBR, NB0) :-
 	I1 is I + 1,
 	rows_number_basic(I1, N, BBR, Rest).
 
-tableau_with_diffs(Rows0, Basis, NRows, NCols) :-
+tableau_with_diffs(Rows0, BBR, BBC, NRows, NCols) :-
 	length(Uis, NRows),
 	length(Vjs, NCols),
-	empty_assoc(Empty),
-	basis_by_row(Basis, Empty, BBR),
-	basis_by_col(Basis, Empty, BBC),
 	rows_number_basic(0, NRows, BBR, NB),
 	keysort(NB, Sorted),
 	Sorted = [_Num-NMaxRow|_],
@@ -1191,23 +1206,23 @@ tableau_with_diffs(Rows0, Basis, NRows, NCols) :-
 	diffs(Rows0, Uis, Vjs).
 
 basis_by_col([], BBC, BBC).
-basis_by_col([bv(BR,BC,Cost,_)|Bs], BBC0, BBC) :-
+basis_by_col([bv(BR,BC,Cost,Value)|Bs], BBC0, BBC) :-
 	( get_assoc(BC, BBC0, Rows) ->
-		put_assoc(BC, BBC0, [row_cost(BR,Cost)|Rows], BBC1)
+		put_assoc(BC, BBC0, [bv(BR,BC,Cost,Value)|Rows], BBC1)
 	;
-		put_assoc(BC, BBC0, [row_cost(BR,Cost)], BBC1)
+		put_assoc(BC, BBC0, [bv(BR,BC,Cost,Value)], BBC1)
 	),
 	basis_by_col(Bs, BBC1, BBC).
 
 basis_by_row([], BBR, BBR).
-basis_by_row([bv(BR,BC,Cost,_)|Bs], BBR0, BBR) :-
+basis_by_row([bv(BR,BC,Cost,Value)|Bs], BBR0, BBR) :-
 	( get_assoc(BR, BBR0, Cols) ->
-		put_assoc(BR, BBR0, [col_cost(BC,Cost)|Cols], BBR1)
+		put_assoc(BR, BBR0, [bv(BR,BC,Cost,Value)|Cols], BBR1)
 	;
-		put_assoc(BR, BBR0, [col_cost(BC,Cost)], BBR1)
+		put_assoc(BR, BBR0, [bv(BR,BC,Cost,Value)], BBR1)
 	),
 	basis_by_row(Bs, BBR1, BBR).
-	
+
 
 uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs) :-
 	( Rows == [] ->
@@ -1230,7 +1245,7 @@ uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs) :-
 	).
 
 whole_row([], _, _, ColsQueue, ColsQueue).
-whole_row([col_cost(VNCol,Cost)|Vs], Ui, Vjs, ColsQueue0, ColsQueue) :-
+whole_row([bv(_,VNCol,Cost,_)|Vs], Ui, Vjs, ColsQueue0, ColsQueue) :-
 	nth0(VNCol, Vjs, Vj),
 	Vj is Cost - Ui,
 	whole_row(Vs, Ui, Vjs, [VNCol|ColsQueue0], ColsQueue).
@@ -1253,7 +1268,7 @@ uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs) :-
 	).
 
 whole_col([], _, _, RowsQueue, RowsQueue).
-whole_col([row_cost(VNRow,Cost)|Vs], Vj, Uis, RowsQueue0, RowsQueue) :-
+whole_col([bv(VNRow,_,Cost,_)|Vs], Vj, Uis, RowsQueue0, RowsQueue) :-
 	nth0(VNRow, Uis, Ui),
 	Ui is Cost - Vj,
 	whole_col(Vs, Vj, Uis, [VNRow|RowsQueue0], RowsQueue).
