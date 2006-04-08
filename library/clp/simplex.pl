@@ -1023,7 +1023,7 @@ variables([_Coeff*Var|Rest]) -->
 % structures used:
 % cost matrix:
 %   *) row(Cols), Cols is a list of cells
-%   *) cell(Row,Col,Cost)
+%   *) cell(Row,Col,Cost,Diff)
 % basic variables:
 %   *) bv(Row, Col, Cost, Value)
 
@@ -1036,7 +1036,7 @@ make_rows([C|Costs], R, [Row|Rows]) :-
 	make_rows(Costs, R1, Rows).
 
 make_cols([], _, _, []).
-make_cols([Cost|Cs], R, C, [cell(R,C,Cost1)|Cells]) :-
+make_cols([Cost|Cs], R, C, [cell(R,C,Cost1,_)|Cells]) :-
 	Cost1 is rationalize(Cost),
 	C1 is C + 1,
 	make_cols(Cs, R, C1, Cells).
@@ -1262,7 +1262,7 @@ diffs([row(Cols)|Rows], [Ui|Uis], Vjs, Diff0, Diff, Var0, Var) :-
 	diffs(Rows, Uis, Vjs, Diff1, Diff, Var1, Var).
 
 diffs_([], _, _, Diff, Diff, Var, Var).
-diffs_([cell(Row,Col,Cost)|Cols], Ui, [Vj|Vjs], Diff0, Diff, Var0, Var) :-
+diffs_([cell(Row,Col,Cost,CD)|Cols], Ui, [Vj|Vjs], Diff0, Diff, Var0, Var) :-
 	CD is Cost - Ui - Vj,
 	( CD < Diff0 ->
 		Var1 = v(Row,Col,Cost),
