@@ -1023,21 +1023,23 @@ variables([_Coeff*Var|Rest]) -->
 % structures used:
 % cost matrix:
 %   *) row(Cols), Cols is a list of cells
-%   *) cell(Cost, Diff)
+%   *) cell(Row,Col,Cost)
 % basic variables:
 %   *) bv(Row, Col, Cost, Value)
 
 
-make_rows([], []).
-make_rows([C|Costs], [Row|Rows]) :-
-	make_cols(C, Cols),
+make_rows([], _, []).
+make_rows([C|Costs], R, [Row|Rows]) :-
+	make_cols(C, R, 0, Cols),
 	Row = row(Cols),
-	make_rows(Costs, Rows).
+	R1 is R + 1,
+	make_rows(Costs, R1, Rows).
 
-make_cols([], []).
-make_cols([Cost|Cs], [cell(Cost1, _)|Cells]) :-
+make_cols([], _, _, []).
+make_cols([Cost|Cs], R, C, [cell(R,C,Cost1)|Cells]) :-
 	Cost1 is rationalize(Cost),
-	make_cols(Cs, Cells).
+	C1 is C + 1,
+	make_cols(Cs, R, C1, Cells).
 
 all_rationalize([], []).
 all_rationalize([A|As], [R|Rs]) :-
@@ -1045,7 +1047,7 @@ all_rationalize([A|As], [R|Rs]) :-
 	all_rationalize(As, Rs).
 
 transportation(Supplies, Demands, Costs, Transport) :-
-	make_rows(Costs, Rows0),
+	make_rows(Costs, 0, Rows0),
 	all_rationalize(Supplies, Supplies1),
 	all_rationalize(Demands, Demands1),
 	length(Supplies, NRows),
@@ -1066,28 +1068,8 @@ basis_transport([bv(NR,NC,_,Value)|Bs], Matrix0, Matrix) :-
 	basis_transport(Bs, Matrix1, Matrix).
 
 entering_variable(Rows, BBR, BBC, NRows, NCols, Var) :-
-	tableau_with_diffs(Rows, BBR, BBC, NRows, NCols),
-	entering_variable_(Rows, 0, 0, Diff, _, Var),
+	tableau_entering(Rows, BBR, BBC, NRows, NCols, Diff, Var),
 	Diff < 0.
-
-entering_variable_([], _, Diff, Diff, Var, Var).
-entering_variable_([Row|Rs], CurrRow, Diff0, Diff, Var0, Var) :-
-	Row = row(Cols),
-	entering_variable(Cols, CurrRow, 0, Diff0, Diff1, Var0, Var1),
-	CurrRow1 is CurrRow + 1,
-	entering_variable_(Rs, CurrRow1, Diff1, Diff, Var1, Var).
-
-entering_variable([], _, _, Diff, Diff, Var, Var).
-entering_variable([cell(CC,CD)|Cols], CurrRow, CurrCol, Diff0, Diff, Var0, Var) :-
-	( CD < Diff0 ->
-		Diff1 = CD,
-		Var1 = v(CurrRow, CurrCol, CC, CD)
-	;
-		Diff1 = Diff0,
-		Var1 = Var0
-	),
-	CurrCol1 is CurrCol + 1,
-	entering_variable(Cols, CurrRow, CurrCol1, Diff1, Diff, Var1, Var).
 
 
    % compute value of the objective function (useful for debugging)
@@ -1105,7 +1087,7 @@ transportation_iterate(Rows, NRows, NCols, Basis0, Basis) :-
 	basis_by_row(Basis0, Empty, BBR),
 	findall(V, entering_variable(Rows, BBR, BBC, NRows, NCols, V), Vs),
 	( Vs = [Entering] ->
-		Entering = v(ERow, ECol, ECost, _),
+		Entering = v(ERow, ECol, ECost),
 		once(chain_reaction(Entering, BBR, BBC, Donors, Recipients)),
 		Donors = [bv(_, _, _, D0)|_],
 		min_donors(Donors, D0, Min),
@@ -1145,7 +1127,7 @@ min_donors([bv(_, _, _, Val)|Ds], Min0, Min) :-
 	min_donors(Ds, Min1, Min).
 
 
-chain_reaction(v(Row,Col,_,_), BBR, BBC, Donors, Recipients) :-
+chain_reaction(v(Row,Col,_), BBR, BBC, Donors, Recipients) :-
 	get_assoc(Col, BBC, Cs0),
 	select(bv(BRow,Col,Cost,Value), Cs0, Cs1),
 	BRow =\= Row,
@@ -1195,7 +1177,7 @@ rows_number_basic(I, N, BBR, NB0) :-
 	I1 is I + 1,
 	rows_number_basic(I1, N, BBR, Rest).
 
-tableau_with_diffs(Rows0, BBR, BBC, NRows, NCols) :-
+tableau_entering(Rows0, BBR, BBC, NRows, NCols, Diff, Var) :-
 	length(Uis, NRows),
 	length(Vjs, NCols),
 	rows_number_basic(0, NRows, BBR, NB),
@@ -1203,7 +1185,7 @@ tableau_with_diffs(Rows0, BBR, BBC, NRows, NCols) :-
 	Sorted = [_Num-NMaxRow|_],
 	nth0(NMaxRow, Uis, 0),
 	uis_vjs_row([NMaxRow], [], [], [], BBR, BBC, Uis, Vjs, Rows0),
-	diffs(Rows0, Uis, Vjs).
+	diffs(Rows0, Uis, Vjs, 0, Diff, _, Var).
 
 basis_by_col([], BBC, BBC).
 basis_by_col([bv(BR,BC,Cost,Value)|Bs], BBC0, BBC) :-
@@ -1274,15 +1256,22 @@ whole_col([bv(VNRow,_,Cost,_)|Vs], Vj, Uis, RowsQueue0, RowsQueue) :-
 	whole_col(Vs, Vj, Uis, [VNRow|RowsQueue0], RowsQueue).
 
 
-diffs([], _, _).
-diffs([row(Cols)|Rows], [Ui|Uis], Vjs) :-
-	diffs_(Cols, Ui, Vjs),
-	diffs(Rows, Uis, Vjs).
+diffs([], _, _, Diff, Diff, Var, Var).
+diffs([row(Cols)|Rows], [Ui|Uis], Vjs, Diff0, Diff, Var0, Var) :-
+	diffs_(Cols, Ui, Vjs, Diff0, Diff1, Var0, Var1),
+	diffs(Rows, Uis, Vjs, Diff1, Diff, Var1, Var).
 
-diffs_([], _, _).
-diffs_([cell(Cost,Diff)|Cols], Ui, [Vj|Vjs]) :-
-	Diff is Cost - Ui - Vj,
-	diffs_(Cols, Ui, Vjs).
+diffs_([], _, _, Diff, Diff, Var, Var).
+diffs_([cell(Row,Col,Cost)|Cols], Ui, [Vj|Vjs], Diff0, Diff, Var0, Var) :-
+	CD is Cost - Ui - Vj,
+	( CD < Diff0 ->
+		Var1 = v(Row,Col,Cost),
+		Diff1 = CD
+	;
+		Var1 = Var0,
+		Diff1 = Diff0
+	),
+	diffs_(Cols, Ui, Vjs, Diff1, Diff, Var1, Var).
 
 
 
