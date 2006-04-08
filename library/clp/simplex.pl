@@ -1022,16 +1022,10 @@ variables([_Coeff*Var|Rest]) -->
 % structures used:
 % cost matrix:
 %   *) row(Cols), Cols is a list of cells
-%   *) cell(Cost, Value, Diff)
+%   *) cell(Cost, Diff)
 % basic variables:
-%   *) bv(Row, Col, Value)
+%   *) bv(Row, Col, Cost, Value)
 
-
-cell_cost(cell(Cost, _, _), Cost).
-
-cell_value(cell(_, Value, _), Value).
-
-cell_diff(cell(_, _, Diff), Diff).
 
 make_rows([], []).
 make_rows([C|Costs], [Row|Rows]) :-
@@ -1040,7 +1034,7 @@ make_rows([C|Costs], [Row|Rows]) :-
 	make_rows(Costs, Rows).
 
 make_cols([], []).
-make_cols([Cost|Cs], [cell(Cost1, 0, _)|Cells]) :-
+make_cols([Cost|Cs], [cell(Cost1, _)|Cells]) :-
 	Cost1 is rationalize(Cost),
 	make_cols(Cs, Cells).
 
@@ -1056,162 +1050,117 @@ transportation(Supplies, Demands, Costs, Transport) :-
 	length(Supplies, NRows),
 	length(Demands, NCols),
 	vogel_approximation(Supplies1, Demands1, Costs, Basis),
-	update_tableau(Basis, Rows0, Rows1),
-	transportation_iterate(Rows1, Basis, NRows, NCols, Rows2),
-	rows_transport(Rows2, Transport).
+	transportation_iterate(Rows0, NRows, NCols, Basis, Basis1),
+	length(Line, NCols),
+	maplist(=(0), Line),
+	length(Matrix, NRows),
+	maplist(=(Line), Matrix),
+	basis_transport(Basis1, Matrix, Transport).
 
-rows_transport([], []).
-rows_transport([R|Rs], [T|Ts]) :-
-	R = row(Cols),
-	cols_transport(Cols, T),
-	rows_transport(Rs, Ts).
+basis_transport([], Matrix, Matrix).
+basis_transport([bv(NR,NC,_,Value)|Bs], Matrix0, Matrix) :-
+	nth0(NR, Matrix0, Row0),
+	set_nth0(NC, Row0, Value, Row1),
+	set_nth0(NR, Matrix0, Row1, Matrix1),
+	basis_transport(Bs, Matrix1, Matrix).
 
-cols_transport([], []).
-cols_transport([Col|Cols], [T|Ts]) :-
-	cell_value(Col, T),
-	cols_transport(Cols, Ts).
+entering_variable(Rows, Basis, NRows, NCols, Var) :-
+	tableau_with_diffs(Rows, Basis, NRows, NCols),
+	entering_variable(Rows, 0, 0, Diff, _, Var),
+	Diff < 0.
 
-
-entering_variable(Rows, Var) :-
-	entering_variable(Rows, 0, 0, _, Var).
-
-entering_variable([], _, Found, Var, Var) :-
-	Found =:= 1.
-entering_variable([Row|Rs], CurrRow, Found0, Var0, Var) :-
+entering_variable([], _, Diff, Diff, Var, Var).
+entering_variable([Row|Rs], CurrRow, Diff0, Diff, Var0, Var) :-
 	Row = row(Cols),
-	entering_variable_(Cols, CurrRow, 0, Found0, Found1, Var0, Var1),
+	entering_variable(Cols, CurrRow, 0, Diff0, Diff1, Var0, Var1),
 	CurrRow1 is CurrRow + 1,
-	entering_variable(Rs, CurrRow1, Found1, Var1, Var).
+	entering_variable(Rs, CurrRow1, Diff1, Diff, Var1, Var).
 
-entering_variable_([], _, _, Found, Found, Var, Var).
-entering_variable_([Col|Cols], CurrRow, CurrCol, Found0, Found, Var0, Var) :-
-	Var0 = v(_, _, VarDiff),
-	cell_diff(Col, Diff),
-	( Diff < 0 ->
-		Found1 = 1,
-		( Found0 =:= 1 ->
-			( Diff < VarDiff ->
-				Var1 = v(CurrRow, CurrCol, Diff)
-			;
-				Var1 = Var0
-			)
-		;
-			Var1 = v(CurrRow, CurrCol, Diff)
-		)
+entering_variable([], _, _, Diff, Diff, Var, Var).
+entering_variable([cell(CC,CD)|Cols], CurrRow, CurrCol, Diff0, Diff, Var0, Var) :-
+	( CD < Diff0 ->
+		Diff1 = CD,
+		Var1 = v(CurrRow, CurrCol, CC, CD)
 	;
-		Var1 = Var0,
-		Found1 = Found0
+		Diff1 = Diff0,
+		Var1 = Var0
 	),
 	CurrCol1 is CurrCol + 1,
-	entering_variable_(Cols, CurrRow, CurrCol1, Found1, Found, Var1, Var).
-
-tableau_forget_constraints([], []).
-tableau_forget_constraints([Row0|Rows0], [Row|Rows]) :-
-	Row0 = row(Cols0),
-	cols_forget_constraints(Cols0, Cols),
-	Row = row(Cols),
-	tableau_forget_constraints(Rows0, Rows).
-
-cols_forget_constraints([], []).
-cols_forget_constraints([Col0|Cols0], [Col|Cols]) :-
-	Col0 = cell(Cost, Value, _),
-	Col = cell(Cost, Value, _),
-	cols_forget_constraints(Cols0, Cols).
+	entering_variable(Cols, CurrRow, CurrCol1, Diff1, Diff, Var1, Var).
 
 
    % compute value of the objective function (useful for debugging)
 
-rows_sum([], _, N, N).
-rows_sum([bv(NRow,NCol,_)|BVs], Rows, N0, N) :-
-	nth0(NRow, Rows, Row),
-	Row = row(Cols),
-	nth0(NCol, Cols, Col),
-	cell_cost(Col, Cost),
-	cell_value(Col, Value),
+basis_objective([], N, N).
+basis_objective([bv(_,_,Cost,Value)|BVs], N0, N) :-
 	N1 is N0 + Cost*Value,
-	rows_sum(BVs, Rows, N1, N).
+	basis_objective(BVs, N1, N).
 
-transportation_iterate(Rows0, Basis0, NRows, NCols, Rows) :-
-	%rows_sum(Basis0, Rows0, 0, Obj),
+transportation_iterate(Rows, NRows, NCols, Basis0, Basis) :-
+	%basis_objective(Basis0, 0, Obj),
 	%format("sum: ~w\n", [Obj]),
-	tableau_with_diffs(Rows0, Basis0, NRows, NCols),
-	( entering_variable(Rows0, Entering) ->
-		Entering = v(ERow, ECol, _),
+	findall(V, entering_variable(Rows, Basis0, NRows, NCols, V), Vs),
+	( Vs = [Entering] ->
+		Entering = v(ERow, ECol, ECost, _),
 		once(chain_reaction(Entering, Basis0, Donors, Recipients)),
-		Donors = [bv(_, _, D0)|_],
+		Donors = [bv(_, _, _, D0)|_],
 		min_donors(Donors, D0, Min),
 		bvs_add(Recipients, Min, Recipients1),
-		NegMin is -Min,
-		bvs_add(Donors, NegMin, Donors1),
+		bvs_add(Donors, -Min, Donors1),
 		append(Recipients1, Donors1, ChangedBasis),
-		EnterBV = bv(ERow, ECol, Min),
-		update_tableau([EnterBV|ChangedBasis], Rows0, Rows1),
+		EnterBV = bv(ERow, ECol, ECost, Min),
 		merge_basis(Basis0, ChangedBasis, Basis1),
-		memberchk(bv(LeavingRow,LeavingCol,0), Donors1),
-		delete(Basis1, bv(LeavingRow,LeavingCol,0), Basis2),
-		tableau_forget_constraints(Rows1, Rows2),
-		transportation_iterate(Rows2, [EnterBV|Basis2], NRows, NCols, Rows)
+		memberchk(bv(LeavingRow,LeavingCol,_,0), Donors1),
+		delete(Basis1, bv(LeavingRow,LeavingCol,_,0), Basis2),
+		transportation_iterate(Rows, NRows, NCols, [EnterBV|Basis2], Basis)
 	;
-		Rows0 = Rows
+		Basis0 = Basis
 	).
-
-update_tableau([], Rows, Rows).
-update_tableau([bv(NRow,NCol,Value)|BVs], Rows0, Rows) :-
-	nth0(NRow, Rows0, row(Cols0)),
-	nth0(NCol, Cols0, cell(Cost, _, _)),
-	set_nth0(NCol, Cols0, cell(Cost, Value, _), Cols1),
-	set_nth0(NRow, Rows0, row(Cols1), Rows1),
-	update_tableau(BVs, Rows1, Rows).
 
 
 merge_basis([], _, []).
 merge_basis([BV0|BVs0], Changed, [BV|BVs]) :-
-	BV0 = bv(Row, Col, _),
-	( memberchk(bv(Row, Col, Value), Changed) ->
-		BV = bv(Row, Col, Value)
+	BV0 = bv(Row, Col, _, _),
+	( memberchk(bv(Row, Col, Cost, Value), Changed) ->
+		BV = bv(Row, Col, Cost, Value)
 	;
-		BV0 = BV
+		BV = BV0
 	),
 	merge_basis(BVs0, Changed, BVs).
 
 
 bvs_add([], _, []).
-bvs_add([BV0|BVs0], Val, [BV|BVs]) :-
-	BV0 = bv(Row, Col, Value),
-	Value1 is Value + Val,
-	BV = bv(Row, Col, Value1),
+bvs_add([bv(NR,NC,C,V0)|BVs0], Val, [bv(NR,NC,C,V1)|BVs]) :-
+	V1 is V0 + Val,
 	bvs_add(BVs0, Val, BVs).
 
 
 min_donors([], Min, Min).
-min_donors([bv(_, _, Val)|Ds], Min0, Min) :-
+min_donors([bv(_, _, _, Val)|Ds], Min0, Min) :-
 	Min1 is min(Val, Min0),
 	min_donors(Ds, Min1, Min).
 
 
-chain_reaction(From, Basis, Donors, Recipients) :-
-	From = v(Row, Col, _),
-	select(bv(BRow, Col, Value), Basis, Basis1),
+chain_reaction(v(Row,Col,_,_), Basis, Donors, Recipients) :-
+	select(bv(BRow, Col, Cost, Value), Basis, Basis1),
 	BRow =\= Row,
-	Curr = bv(BRow, Col, Value),
+	Curr = bv(BRow, Col, Cost, Value),
 	Donors = [Curr|RestDonors],
 	chain_reaction_row(Row, Curr, Basis1, RestDonors, [], Recipients, []).
 
-chain_reaction_col(TargetRow, From, Basis, Dons0, Dons, Recs0, Recs) :-
-	From = bv(_, FCol, _),
-	select(bv(BRow, FCol, Value), Basis, Basis1),
-	Curr = bv(BRow, FCol, Value),
+chain_reaction_col(TargetRow, bv(_,FCol,_,_), Basis, Dons0, Dons, Recs0, Recs) :-
+	select(bv(BRow, FCol, Cost, Value), Basis, Basis1),
+	Curr = bv(BRow, FCol, Cost, Value),
 	Dons0 = [Curr|Rest],
 	chain_reaction_row(TargetRow, Curr, Basis1, Rest, Dons, Recs0, Recs).
 
-chain_reaction_row(TargetRow, From, Basis, Dons0, Dons, Recs0, Recs) :-
-	From = bv(FRow, _, _),
+chain_reaction_row(TargetRow, bv(FRow,_,_,_), Basis, Dons0, Dons, Recs0, Recs) :-
 	( TargetRow =:= FRow ->
 		Dons0 = Dons,
 		Recs0 = Recs
 	;
-		select(bv(FRow, BCol, Value), Basis, Basis1),
-		Curr = bv(FRow, BCol, Value),
+		select(bv(FRow, BCol, Cost, Value), Basis, Basis1),
+		Curr = bv(FRow, BCol, Cost, Value),
 		Recs0 = [Curr|Rest],
 		chain_reaction_col(TargetRow, Curr, Basis1, Dons0, Dons, Rest, Recs)
 	).
@@ -1227,7 +1176,7 @@ rows_number_basic(I, N, Basis, NB0, NB) :-
 	rows_number_basic(I1, N, Basis, Rest, NB).
 
 num_basic_in_row([], _, N, N).
-num_basic_in_row([bv(NR, _, _)|Bs], NRow, N0, N) :-
+num_basic_in_row([bv(NR, _, _, _)|Bs], NRow, N0, N) :-
 	( NR =:= NRow ->
 		N1 is N0 + 1
 	;
@@ -1268,12 +1217,8 @@ uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs) :-
 	).
 
 whole_row([], _, _, _, _, ColsQueue, ColsQueue).
-whole_row([Var|Vs], NRow, Cols, Ui, Vjs, ColsQueue0, ColsQueue) :-
-	Var = bv(VNRow, VNCol, _),
+whole_row([bv(VNRow,VNCol,Cost,_)|Vs], NRow, Cols, Ui, Vjs, ColsQueue0, ColsQueue) :-
 	( NRow =:= VNRow ->
-		nth0(VNCol, Cols, Cell),
-		cell_diff(Cell, 0),
-		cell_cost(Cell, Cost),
 		nth0(VNCol, Vjs, Vj),
 		Vj is Cost - Ui,
 		whole_row(Vs, NRow, Cols, Ui, Vjs, [VNCol|ColsQueue0], ColsQueue)
@@ -1298,14 +1243,8 @@ uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs) :-
 	).
 
 whole_col([], _, _, _, _, RowsQueue, RowsQueue).
-whole_col([Var|Vs], NCol, Rows, Vj, Uis, RowsQueue0, RowsQueue) :-
-	Var = bv(VNRow, VNCol, _),
+whole_col([bv(VNRow,VNCol,Cost,_)|Vs], NCol, Rows, Vj, Uis, RowsQueue0, RowsQueue) :-
 	( VNCol =:= NCol ->
-		nth0(VNRow, Rows, Row),
-		Row = row(Cs),
-		nth0(VNCol, Cs, Cell),
-		cell_diff(Cell, 0),
-		cell_cost(Cell, Cost),
 		nth0(VNRow, Uis, Ui),
 		Ui is Cost - Vj,
 		whole_col(Vs, NCol, Rows, Vj, Uis, [VNRow|RowsQueue0], RowsQueue)
@@ -1316,15 +1255,12 @@ whole_col([Var|Vs], NCol, Rows, Vj, Uis, RowsQueue0, RowsQueue) :-
 
 
 diffs([], _, _).
-diffs([Row|Rows], [Ui|Uis], Vjs) :-
-	Row = row(Cols),
+diffs([row(Cols)|Rows], [Ui|Uis], Vjs) :-
 	diffs_(Cols, Ui, Vjs),
 	diffs(Rows, Uis, Vjs).
 
 diffs_([], _, _).
-diffs_([Col|Cols], Ui, [Vj|Vjs]) :-
-	cell_diff(Col, Diff),
-	cell_cost(Col, Cost),
+diffs_([cell(Cost,Diff)|Cols], Ui, [Vj|Vjs]) :-
 	Diff is Cost - Ui - Vj,
 	diffs_(Cols, Ui, Vjs).
 
@@ -1427,18 +1363,18 @@ firsts([[F|Rs]|Rest], [Rs|Ts], [F|Fs]) :-
 
 
 remaining_row([], _, _, _, Basis, Basis).
-remaining_row([_-NC|Rest], NR, Supply, Demands, Basis0, Basis) :-
+remaining_row([Cost-NC|Rest], NR, Supply, Demands, Basis0, Basis) :-
 	nth0(NC, Demands, DemandBound),
 	Amount is min(DemandBound, Supply),
-	Basis0 = [bv(NR, NC, Amount)|Basis1],
+	Basis0 = [bv(NR, NC, Cost, Amount)|Basis1],
 	Supply1 is Supply - Amount,
 	remaining_row(Rest, NR, Supply1, Demands, Basis1, Basis).
 
 remaining_col([], _, _, _, Basis, Basis).
-remaining_col([_-NR|Rest], NC, Supplies, Demand, Basis0, Basis) :-
+remaining_col([Cost-NR|Rest], NC, Supplies, Demand, Basis0, Basis) :-
 	nth0(NR, Supplies, SupplyBound),
 	Amount is min(SupplyBound, Demand),
-	Basis0 = [bv(NR, NC, Amount)|Basis1],
+	Basis0 = [bv(NR, NC, Cost, Amount)|Basis1],
 	Demand1 is Demand - Amount,
 	remaining_col(Rest, NC, Supplies, Demand1, Basis1, Basis).
 
@@ -1468,7 +1404,9 @@ vogel_iterate(Rows, Cols, Supplies, Demands, Basis0, Basis) :-
 		SupplyBound1 is SupplyBound - Amount,
 		set_nth0(BasicCol, Demands, DemandsBound1, Demands1),
 		set_nth0(BasicRow, Supplies, SupplyBound1, Supplies1),
-		Basis0 = [bv(BasicRow, BasicCol, Amount)|Basis1],
+		memberchk(_-row(BasicRow,_,Cs), Rows),
+		memberchk(Cost-BasicCol, Cs),
+		Basis0 = [bv(BasicRow, BasicCol, Cost, Amount)|Basis1],
 		( DemandsBound1 =:= 0 ->
 			delete(Cols, _-col(BasicCol,_,_), Cols3),
 			delete_from_all(Rows, BasicCol, Rows1),
