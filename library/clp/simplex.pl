@@ -48,6 +48,7 @@
 	]).
 
 :- use_module(library(clpr)).
+:- use_module(library(assoc)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CLP(R) bindings
@@ -1167,91 +1168,95 @@ chain_reaction_row(TargetRow, bv(FRow,_,_,_), Basis, Dons0, Dons, Recs0, Recs) :
 
 
 
-rows_number_basic(N, N, _, NB, NB) :- !.
-rows_number_basic(I, N, Basis, NB0, NB) :-
-	num_basic_in_row(Basis, I, 0, Num),
+rows_number_basic(N, N, _, []) :- !.
+rows_number_basic(I, N, BBR, NB0) :-
+	get_assoc(I, BBR, Cols),
+	length(Cols, Num),
 	Num1 is -Num,
 	NB0 = [Num1-I|Rest],
 	I1 is I + 1,
-	rows_number_basic(I1, N, Basis, Rest, NB).
-
-num_basic_in_row([], _, N, N).
-num_basic_in_row([bv(NR, _, _, _)|Bs], NRow, N0, N) :-
-	( NR =:= NRow ->
-		N1 is N0 + 1
-	;
-		N1 = N0
-	),
-	num_basic_in_row(Bs, NRow, N1, N).
-
+	rows_number_basic(I1, N, BBR, Rest).
 
 tableau_with_diffs(Rows0, Basis, NRows, NCols) :-
 	length(Uis, NRows),
 	length(Vjs, NCols),
-	rows_number_basic(0, NRows, Basis, NB, []),
+	empty_assoc(Empty),
+	basis_by_row(Basis, Empty, BBR),
+	basis_by_col(Basis, Empty, BBC),
+	rows_number_basic(0, NRows, BBR, NB),
 	keysort(NB, Sorted),
 	Sorted = [_Num-NMaxRow|_],
 	nth0(NMaxRow, Uis, 0),
-	uis_vjs_row([NMaxRow], [], [], [], Basis, Uis, Vjs, Rows0),
+	uis_vjs_row([NMaxRow], [], [], [], BBR, BBC, Uis, Vjs, Rows0),
 	diffs(Rows0, Uis, Vjs).
 
-uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs) :-
+basis_by_col([], BBC, BBC).
+basis_by_col([bv(BR,BC,Cost,_)|Bs], BBC0, BBC) :-
+	( get_assoc(BC, BBC0, Rows) ->
+		put_assoc(BC, BBC0, [row_cost(BR,Cost)|Rows], BBC1)
+	;
+		put_assoc(BC, BBC0, [row_cost(BR,Cost)], BBC1)
+	),
+	basis_by_col(Bs, BBC1, BBC).
+
+basis_by_row([], BBR, BBR).
+basis_by_row([bv(BR,BC,Cost,_)|Bs], BBR0, BBR) :-
+	( get_assoc(BR, BBR0, Cols) ->
+		put_assoc(BR, BBR0, [col_cost(BC,Cost)|Cols], BBR1)
+	;
+		put_assoc(BR, BBR0, [col_cost(BC,Cost)], BBR1)
+	),
+	basis_by_row(Bs, BBR1, BBR).
+	
+
+uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs) :-
 	( Rows == [] ->
 		( Cols == [] ->
 			true
 		;
-			uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs)
+			uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
 		)
 	;
 		Rows = [NRow|Todo],
 		( memberchk(NRow, RowsVisited) ->
-			uis_vjs_row(Todo, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs)
+			uis_vjs_row(Todo, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
 		;
-			nth0(NRow, Costs, Row),
-			Row = row(Cs),
 			nth0(NRow, Uis, Ui),
-			whole_row(Basis, NRow, Cs, Ui, Vjs, Cols, Cols1),
+			get_assoc(NRow, BBR, Cs),
+			whole_row(Cs, Ui, Vjs, Cols, Cols1),
 			sort(Cols1, Cols2), % remove dups
-			uis_vjs_col(Todo, [NRow|RowsVisited], Cols2, ColsVisited, Basis, Uis, Vjs, Costs)
+			uis_vjs_col(Todo, [NRow|RowsVisited], Cols2, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
 		)
 	).
 
-whole_row([], _, _, _, _, ColsQueue, ColsQueue).
-whole_row([bv(VNRow,VNCol,Cost,_)|Vs], NRow, Cols, Ui, Vjs, ColsQueue0, ColsQueue) :-
-	( NRow =:= VNRow ->
-		nth0(VNCol, Vjs, Vj),
-		Vj is Cost - Ui,
-		whole_row(Vs, NRow, Cols, Ui, Vjs, [VNCol|ColsQueue0], ColsQueue)
-	;
-		whole_row(Vs, NRow, Cols, Ui, Vjs, ColsQueue0, ColsQueue)
-	).
+whole_row([], _, _, ColsQueue, ColsQueue).
+whole_row([col_cost(VNCol,Cost)|Vs], Ui, Vjs, ColsQueue0, ColsQueue) :-
+	nth0(VNCol, Vjs, Vj),
+	Vj is Cost - Ui,
+	whole_row(Vs, Ui, Vjs, [VNCol|ColsQueue0], ColsQueue).
 
 
-uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs) :-
+uis_vjs_col(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs) :-
 	( Cols == [] ->
-		uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, Basis, Uis, Vjs, Costs)
+		uis_vjs_row(Rows, RowsVisited, Cols, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
 	;
 		Cols = [NCol|Todo],
 		( memberchk(NCol, ColsVisited) ->
-			uis_vjs_col(Rows, RowsVisited, Todo, ColsVisited, Basis, Uis, Vjs, Costs)
+			uis_vjs_col(Rows, RowsVisited, Todo, ColsVisited, BBR, BBC, Uis, Vjs, Costs)
 		;
 			nth0(NCol, Vjs, Vj),
-			whole_col(Basis, NCol, Costs, Vj, Uis, Rows, Rows1),
+			get_assoc(NCol, BBC, Rs),
+			whole_col(Rs, Vj, Uis, Rows, Rows1),
 			sort(Rows1, Rows2), % remove dups
-			uis_vjs_row(Rows2, RowsVisited, Todo, [NCol|ColsVisited], Basis, Uis, Vjs, Costs)
+			uis_vjs_row(Rows2, RowsVisited, Todo, [NCol|ColsVisited], BBR, BBC, Uis, Vjs, Costs)
 		)
 	).
 
-whole_col([], _, _, _, _, RowsQueue, RowsQueue).
-whole_col([bv(VNRow,VNCol,Cost,_)|Vs], NCol, Rows, Vj, Uis, RowsQueue0, RowsQueue) :-
-	( VNCol =:= NCol ->
-		nth0(VNRow, Uis, Ui),
-		Ui is Cost - Vj,
-		whole_col(Vs, NCol, Rows, Vj, Uis, [VNRow|RowsQueue0], RowsQueue)
-	;
-		whole_col(Vs, NCol, Rows, Vj, Uis, RowsQueue0, RowsQueue)
-	).
-
+whole_col([], _, _, RowsQueue, RowsQueue).
+whole_col([row_cost(VNRow,Cost)|Vs], Vj, Uis, RowsQueue0, RowsQueue) :-
+	nth0(VNRow, Uis, Ui),
+	Ui is Cost - Vj,
+	whole_col(Vs, Vj, Uis, [VNRow|RowsQueue0], RowsQueue).
 
 
 diffs([], _, _).
