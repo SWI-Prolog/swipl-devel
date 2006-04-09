@@ -1239,8 +1239,12 @@ pl_univ(term_t t, term_t list)
 }
 
 
+		 /*******************************
+		 *	     NUMBERVARS		*
+		 *******************************/
+
 static int
-do_number_vars(term_t t, functor_t functor, av_action on_av, int n ARG_LD)
+do_number_vars(term_t t, nv_options *options, int n ARG_LD)
 { Word p;
 
 start:
@@ -1255,7 +1259,7 @@ start:
     word v;
 
     if ( isAttVar(*p) )
-    { switch(on_av)
+    { switch(options->on_attvar)
       { case AV_SKIP:
 	  return n;
 	case AV_ERROR:
@@ -1276,7 +1280,7 @@ start:
 #endif
     
     a = gTop;
-    a[0] = functor;
+    a[0] = options->functor;
     a[1] = makeNum(n);
     gTop += 2;
     
@@ -1312,7 +1316,7 @@ start:
 	  goto start;			/* right-recursion optimisation */
 	} else
 	{ _PL_get_arg(i, t, a);
-	  n = do_number_vars(a, functor, on_av, n PASS_LD);
+	  n = do_number_vars(a, options, n PASS_LD);
 	}
       }
     }
@@ -1323,10 +1327,10 @@ start:
 
 
 int
-numberVars(term_t t, functor_t functor, av_action on_av, int n ARG_LD)
+numberVars(term_t t, nv_options *options, int n ARG_LD)
 { term_t h2 = PL_copy_term_ref(t);
   Word *m = aTop;
-  int rval = do_number_vars(h2, functor, on_av, n PASS_LD);
+  int rval = do_number_vars(h2, options, n PASS_LD);
   unvisit(m PASS_LD);
 
   PL_reset_term_refs(h2);
@@ -1351,11 +1355,10 @@ static
 PRED_IMPL("numbervars", 4, numbervars, 0)
 { GET_LD
   int n;
-  functor_t functor;
   atom_t name = ATOM_isovar;		/* '$VAR' */
   atom_t av = ATOM_error;
   term_t t, end, options;
-  av_action on_av;
+  nv_options opts;
 
   t = PL_copy_term_ref(A1);
 
@@ -1378,16 +1381,16 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
     fail;
 
   if ( av == ATOM_error )
-    on_av = AV_ERROR;
+    opts.on_attvar = AV_ERROR;
   else if ( av == ATOM_skip )
-    on_av = AV_SKIP;
+    opts.on_attvar = AV_SKIP;
   else if ( av == ATOM_bind )
-    on_av = AV_BIND;
+    opts.on_attvar = AV_BIND;
   else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_numbervar_option, options);
 
-  functor = PL_new_functor(name, 1);
-  n = numberVars(t, functor, on_av, n PASS_LD);
+  opts.functor = PL_new_functor(name, 1);
+  n = numberVars(t, &opts, n PASS_LD);
   if ( n == -1 )
     return PL_error(NULL, 0, NULL,
 		    ERR_TYPE, ATOM_free_of_attvar, A1);

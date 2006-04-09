@@ -1916,6 +1916,11 @@ typedef enum
   AV_ERROR
 } av_action;
 
+typedef struct
+{ functor_t functor;			/* Functor to use ($VAR/1) */
+  av_action on_attvar;			/* How to handle attvars */
+} nv_options;
+
 
 		/********************************
 		*       READ WARNINGS           *

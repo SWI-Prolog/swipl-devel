@@ -1643,6 +1643,7 @@ static void
 saveQlfTerm(term_t t, IOSTREAM *fd ARG_LD)
 { int nvars;
   fid_t cid;
+  nv_options options;
 
   cid = PL_open_foreign_frame();
 
@@ -1650,7 +1651,9 @@ saveQlfTerm(term_t t, IOSTREAM *fd ARG_LD)
 	Sdprintf("Saving ");
 	PL_write_term(Serror, t, 1200, 0);
 	Sdprintf(" from %d ... ", Stell(fd)));
-  nvars = numberVars(t, FUNCTOR_var1, AV_SKIP, 0 PASS_LD);
+  options.functor = FUNCTOR_var1;
+  options.on_attvar = AV_SKIP;
+  nvars = numberVars(t, &options, 0 PASS_LD);
   putNum(nvars, fd);
   do_save_qlf_term(valTermRef(t), fd PASS_LD);	/* TBD */
   DEBUG(3, Sdprintf("to %d\n", Stell(fd)));
