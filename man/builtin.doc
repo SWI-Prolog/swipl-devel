@@ -734,7 +734,9 @@ List all predicates of the database using listing/1.
     \predicate{portray_clause}{1}{+Clause}
 Pretty print a clause. A clause should be specified as a term
 `\exam{<Head> :- <Body>}'. Facts are represented as `\exam{<Head> :-
-true}' or simply \exam{<Head>}.  See also portray_clause/2.
+true}' or simply \exam{<Head>}.  Variables in the clause are written
+as $A$, $B$, \ldots.  Singleton variables are written as \verb$_$.
+See also portray_clause/2.
 
     \predicate{portray_clause}{2}{+Stream, +Clause}
 Pretty print a clause to \arg{Stream}. See portray_clause/1 for details.
@@ -2928,45 +2930,63 @@ The default is \const{false}.
     \predicate{write_term}{3}{+Stream, +Term, +Options}
 As write_term/2, but output is sent to \arg{Stream} rather than the
 current output.
+
     \predicate{write_canonical}{1}{+Term}
 Write \arg{Term} on the current output stream using standard
 parenthesised prefix notation (i.e., ignoring operator declarations).
 Atoms that need quotes are quoted.  Terms written with this predicate
 can always be read back, regardless of current operator declarations.
-Equivalent to write_term/2 using the options \const{ignore_ops} and
-\const{quoted}.
+Equivalent to write_term/2 using the options \const{ignore_ops},
+\const{quoted} and \const{numbervars} after numbervars/4 using the
+\const{singletons} option.
+
+Note that due to the use of numbervars/4, non-ground terms must be
+written using a \emph{single} write_canonical/1 call.  This used to
+be the case anyhow, as garbage collection between multiple calls
+to one of the write predicates can change the \verb|_G|<NNN> identity
+of the variables.
+
     \predicate{write_canonical}{2}{+Stream, +Term}
 Write \arg{Term} in canonical form on \arg{Stream}.
+
     \predicate{write}{1}{+Term}
 Write \arg{Term} to the current output, using brackets and operators where
 appropriate.   See current_prolog_flag/2 for controlling floating point output format.
+
     \predicate{write}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}.
+
     \predicate{writeq}{1}{+Term}
 Write \arg{Term} to the current output, using brackets and operators where
 appropriate. Atoms that need quotes are quoted. Terms written with this
 predicate can be read back with read/1 provided the currently active
 operator declarations are identical.
+
     \predicate{writeq}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}, inserting quotes.
+
     \predicate{print}{1}{+Term}
 Prints \arg{Term} on the current output stream similar to write/1, 
 but for each (sub)term of \arg{Term} first the dynamic predicate
 portray/1 is called.  If this predicate succeeds \arg{print} assumes the
 (sub)term has been written.  This allows for user defined term writing.
+
     \predicate{print}{2}{+Stream, +Term}
 Print \arg{Term} to \arg{Stream}.
+
     \predicate{portray}{1}{+Term}
 A dynamic predicate, which can be defined by the user to change the
 behaviour of print/1 on (sub)terms.  For each subterm encountered that
 is not a variable print/1 first calls portray/1 using the term as
 argument.  For lists only the list as a whole is given to portray/1.  If
 portray succeeds print/1 assumes the term has been written.
+
     \predicate{read}{1}{-Term}
 Read the next Prolog term from the current input stream and unify it
 with \arg{Term}.  On a syntax error read/1 displays an error message, 
 attempts to skip the erroneous term and fails.  On reaching end-of-file
 \arg{Term} is unified with the atom \const{end_of_file}.
+
     \predicate{read}{2}{+Stream, -Term}
 Read \arg{Term} from \arg{Stream}.
 
@@ -3167,11 +3187,18 @@ Name of the functor to use instead of \verb|$VAR|.
 What to do if an attributed variable is encountered.  Options are
 \const{skip}, which causes numbervars/3 to ignore the attributed
 variable, \const{bind} which causes it to thread it as a normal
-variable and assign the next \verb|$VAR|(N) term to it or (default)
+variable and assign the next \verb|'$VAR'|(N) term to it or (default)
 \const{error} which raises the a \const{type_error} exception.%
 	\footnote{This behaviour was decided after a long discussion
 		  between David Reitter, Richard O'Keefe, Bart Demoen 
 		  and Tom Schrijvers.}
+
+	\termitem{singleton}{+Bool}
+If \const{true} (default \const{false}), numbervars/4 does singleton
+detection.  Singleton variables are unified with \verb|'$VAR'('_')|,
+causing them to be printed as \verb|_| by write_term/2 using the
+numbervars option.  This option is exploited by portray_clause/2
+and write_canonical/2.
     \end{description}
 
     \predicate{term_variables}{2}{+Term, -List}

@@ -1919,6 +1919,7 @@ typedef enum
 typedef struct
 { functor_t functor;			/* Functor to use ($VAR/1) */
   av_action on_attvar;			/* How to handle attvars */
+  int	    singletons;			/* Write singletons as $VAR('_') */
 } nv_options;
 
 

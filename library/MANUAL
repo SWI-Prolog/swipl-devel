@@ -4131,7 +4131,8 @@ lliissttiinngg
 ppoorrttrraayy__ccllaauussee((_+_C_l_a_u_s_e))
     Pretty  print a  clause.   A clause  should be specified  as a  term
     `<_H_e_a_d> :- <_B_o_d_y>'.    Facts are  represented as  `<_H_e_a_d> :- true'  or
-    simply <_H_e_a_d>.  See also portray_clause/2.
+    simply  <_H_e_a_d>.  Variables  in the clause are written as  A, B, ....
+    Singleton variables are written as _.  See also portray_clause/2.
 
 
 ppoorrttrraayy__ccllaauussee((_+_S_t_r_e_a_m_, _+_C_l_a_u_s_e))
@@ -6369,7 +6370,14 @@ wwrriittee__ccaannoonniiccaall((_+_T_e_r_m))
     Atoms  that  need  quotes are  quoted.    Terms  written  with  this
     predicate  can always be read  back, regardless of current  operator
     declarations.      Equivalent  to  write_term/2  using  the  options
-    ignore_ops and quoted.
+    ignore_ops,  quoted  and  numbervars after  numbervars/4  using  the
+    singletons option.
+
+    Note  that due to the use of numbervars/4, non-ground terms  must be
+    written  using a  _s_i_n_g_l_e write_canonical/1 call.   This  used to  be
+    the  case anyhow,  as garbage collection  between multiple calls  to
+    one  of the write predicates can change  the _G<_N_N_N> identity of the
+    variables.
 
 
 wwrriittee__ccaannoonniiccaall((_+_S_t_r_e_a_m_, _+_T_e_r_m))
@@ -6626,8 +6634,15 @@ nnuummbbeerrvvaarrss((_+_T_e_r_m_, _+_S_t_a_r_t_, _-_E
          What to do if  an attributed variable is encountered.   Options
          are skip,  which causes numbervars/3  to ignore the  attributed
          variable,  bind  which causes  it  to  thread it  as  a  normal
-         variable and assign  the next $VAR(N)  term to it or  (default)
+         variable and assign the next '$VAR'(N) term to  it or (default)
          error which raises the a type_error exception.
+
+    ssiinngglleettoonn((_+_B_o_o_l))
+         If   true  (default   false),   numbervars/4   does   singleton
+         detection.   Singleton variables are unified with  '$VAR'('_'),
+         causing  them  to  be  printed  as   _  by  write_term/2  using
+         the  numbervars  option.      This   option  is  exploited   by
+         portray_clause/2 and write_canonical/2.
 
 
 tteerrmm__vvaarriiaabblleess((_+_T_e_r_m_, _-_L_i_s_t))
@@ -18565,38 +18580,38 @@ Index
 #=</2, 1161                                404, 520, 525, 860, 898, 941
 #</2, 1159                           write/2, 362
 #\=/2, 1163                          write_canonical/1, 359, 525
-,/2, 198                             write_canonical/2, 360
+,/2, 198                             write_canonical/2, 360, 382
 {}/1, 1185                           write_canonical/[1
 !/0, 197                                2], 17
 !/1, 232                             write_term/2,  51,  60,  182,  357--
-/, 88                                      359, 413, 520, 525, 694
-//2, 445                             write_term/3, 60, 62, 358, 381
-./2, 454                             write_term/[2
-=/2, 181                                3], 17, 60
-==/2, 179                            writef/1, 519
-#<=>/2, 1179                         writef/2, 32, 71, 356, 520, 521
->=/2, 434                            writef/[1
->/2, 431                                2], 516
-^/2, 485                             writeln/1, 518
-///2, 448                            writeq/1, 363, 520, 525
-->/2, 201                            writeq/2, 364
-=</2, 433                            www_browser _l_i_b_r_a_r_y, 1267
-#<=/2, 1178                          www_form_encode/2, 1152
-<</2, 468                            www_open_url/1, 1137
-</2, 432
--/1, 441                             X-Windows, 7
--/2, 443, 1171                       X11, 8
-\=/2, 183                            xor/2, 471
-\/1, 472                             XPCE, 8
-\==/2, 180                           xref_built_in/1, 1228
-\+/1, 203                            xref_called/3, 1225
-\//2, 469                            xref_clean/1, 1223
-+/2, 442, 1169                       xref_current_source/1, 1222
-**/2, 484                            xref_defined/3, 1224
-#=>/2, 1177                          xref_exported/2, 1226
->>/2, 467                            xref_module/2, 1227
-;/2, 199                             xref_source/1, 1221
-*->/2, 202
+/, 88                                      359,  382,  413,   520,  525,
+//2, 445                                   694
+./2, 454                             write_term/3, 60, 62, 358, 381
+=/2, 181                             write_term/[2
+==/2, 179                               3], 17, 60
+#<=>/2, 1179                         writef/1, 519
+>=/2, 434                            writef/2, 32, 71, 356, 520, 521
+>/2, 431                             writef/[1
+^/2, 485                                2], 516
+///2, 448                            writeln/1, 518
+->/2, 201                            writeq/1, 363, 520, 525
+=</2, 433                            writeq/2, 364
+#<=/2, 1178                          www_browser _l_i_b_r_a_r_y, 1267
+<</2, 468                            www_form_encode/2, 1152
+</2, 432                             www_open_url/1, 1137
+-/1, 441
+-/2, 443, 1171                       X-Windows, 7
+\=/2, 183                            X11, 8
+\/1, 472                             xor/2, 471
+\==/2, 180                           XPCE, 8
+\+/1, 203                            xref_built_in/1, 1228
+\//2, 469                            xref_called/3, 1225
++/2, 442, 1169                       xref_clean/1, 1223
+**/2, 484                            xref_current_source/1, 1222
+#=>/2, 1177                          xref_defined/3, 1224
+>>/2, 467                            xref_exported/2, 1226
+;/2, 199                             xref_module/2, 1227
+*->/2, 202                           xref_source/1, 1221
 =@=/2, 184
 \=@=/2, 185
 @>=/2, 189
@@ -19161,7 +19176,7 @@ number_chars/2, 21, 118, 395, 396
 number_codes/2,  21, 118,  391, 396,
       397
 numbervars/3, 357, 381, 382
-numbervars/4, 381, 382
+numbervars/4, 359, 381, 382
 numbervars/[3
    4], 75
 numlist/3, 1067
@@ -19392,7 +19407,7 @@ popcount/1, 491
 portray/1,  51, 62,  90, 356,  357,
       365, 367, 960, 1014, 1245
 portray_clause/1, 157, 159, 160
-portray_clause/2, 159, 160
+portray_clause/2, 159, 160, 382
 predicate_property/2, 265, 274, 679
 predsort/3, 502
 preprocessor/2, 143

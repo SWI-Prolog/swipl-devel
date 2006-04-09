@@ -1653,6 +1653,7 @@ saveQlfTerm(term_t t, IOSTREAM *fd ARG_LD)
 	Sdprintf(" from %d ... ", Stell(fd)));
   options.functor = FUNCTOR_var1;
   options.on_attvar = AV_SKIP;
+  options.singletons = FALSE;		/* TBD: TRUE may be better! */
   nvars = numberVars(t, &options, 0 PASS_LD);
   putNum(nvars, fd);
   do_save_qlf_term(valTermRef(t), fd PASS_LD);	/* TBD */

@@ -7,6 +7,13 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: portray_clause/1,2 and write_canonical/1,2 print singleton
+    variables as _ and write_canonical/1,2 prints its variables as A, B, ...
+    Paulo Moura.
+
+  * ADDED: Option 'singletons(true)' to numbervars/4 to bind singleton
+    variables to '$VAR'('_').
+
   * FIXED: Bug#163: make XREF aware of format_predicate directives.  Holger
     Kanwischer.
 

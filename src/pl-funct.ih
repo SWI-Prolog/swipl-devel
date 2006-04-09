@@ -173,3 +173,4 @@
 #define FUNCTOR_xpceref1     MK_FUNCTOR(172, 1)
 #define FUNCTOR_lsb1         MK_FUNCTOR(173, 1)
 #define FUNCTOR_popcount1    MK_FUNCTOR(174, 1)
+#define FUNCTOR_isovar1      MK_FUNCTOR(175, 1)

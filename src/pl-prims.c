@@ -1281,7 +1281,12 @@ start:
     
     a = gTop;
     a[0] = options->functor;
-    a[1] = makeNum(n);
+    if ( options->singletons )
+    { a[1] = ATOM_anonvar;
+    } else
+    { a[1] = makeNum(n);
+      n++;
+    }
     gTop += 2;
     
 
@@ -1292,11 +1297,18 @@ start:
     { *p = v;
       Trail(p);
     }
-    
-    n++;
   } else if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
     int arity;
+
+    if ( options->singletons && f->definition == options->functor )
+    { Word p = &f->arguments[0];
+
+      if ( *p == ATOM_anonvar )
+      { *p = makeNum(n);
+        n++;
+      }
+    }
 
     if ( visited(f PASS_LD) )
       return n;
@@ -1342,6 +1354,7 @@ numberVars(term_t t, nv_options *options, int n ARG_LD)
 static const opt_spec numbervar_options[] = 
 { { ATOM_attvar,	    OPT_ATOM },
   { ATOM_functor_name,	    OPT_ATOM },
+  { ATOM_singletons,	    OPT_BOOL },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -1359,6 +1372,8 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
   atom_t av = ATOM_error;
   term_t t, end, options;
   nv_options opts;
+  
+  opts.singletons = FALSE;
 
   t = PL_copy_term_ref(A1);
 
@@ -1377,7 +1392,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
 
   if ( options &&
        !scan_options(options, 0, ATOM_numbervar_option, numbervar_options,
-		     &av, &name) )
+		     &av, &name, &opts.singletons) )
     fail;
 
   if ( av == ATOM_error )

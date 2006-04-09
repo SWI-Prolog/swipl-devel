@@ -568,6 +568,7 @@ A popcount		"popcount"
 A radix			"radix"
 A argumentlimit		"argumentlimit"
 A undefined_global_variable	"undefined_global_variable"
+A anonvar		"_"
 
 F abs			1
 F access		1
@@ -744,3 +745,4 @@ F xor			2
 F xpceref		1
 F lsb			1
 F popcount		1
+F isovar		1

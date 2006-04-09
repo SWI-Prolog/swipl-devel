@@ -1159,7 +1159,19 @@ pl_print2(term_t stream, term_t term)
 
 word
 pl_write_canonical2(term_t stream, term_t term)
-{ return do_write2(stream, term, PL_WRT_QUOTED|PL_WRT_IGNOREOPS);
+{ fid_t fid = PL_open_foreign_frame();
+  nv_options options;
+  word rc;
+
+  options.functor = FUNCTOR_isovar1;
+  options.on_attvar = AV_SKIP;
+  options.singletons = TRUE;
+  numberVars(term, &options, 0 PASS_LD);
+  rc = do_write2(stream, term,
+		 PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS);
+  PL_discard_foreign_frame(fid);
+
+  return rc;
 }
 
 word
