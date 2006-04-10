@@ -2,6 +2,9 @@
 			   ==============
 
 
+* FIXED: library(tabular): avoid sending ->margin to objects with a
+  different interpretation.
+
 * FIXED: PceEmacs: Preserve kill-location over marking variables.
   Pierpaolo Bernardi.
 

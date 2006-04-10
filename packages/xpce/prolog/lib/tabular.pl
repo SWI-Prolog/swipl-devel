@@ -182,7 +182,10 @@ stretched_column(Table, Col:table_column, W:int) :->
 
 stretched_cell(T, Cell:table_cell, W:int, ColN:int) :->
 	(   get(Cell, image, Graphical),
-	    send(Graphical, has_send_method, margin)
+	    send(Graphical, has_send_method, margin),
+	    get(Graphical, send_method, margin, tuple(_, Method)),
+	    get(Method, argument_type, 2, T2),
+	    send(T2, validate, wrap)
 	->  get(Cell, col_span, Span),
 	    get(Cell, column, Col0),
 	    EndCol is Col0+Span,
