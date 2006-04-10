@@ -1,3 +1,12 @@
+Apr 10, 2006
+
+  * Enhanced: rdf_persistency.pl: sort files by size, assuming the schema
+    are generally smaller and loading them first reduces re-hashing the
+    database.
+
+  * Enhanced: reduce the number of DB re-hashes by not calling the re-hash
+    if no subPropertyOf or predicate is involved.
+
 Mar 14, 2006
 
   * Added: rdf_persistency.pl, copied from SeRQL library.

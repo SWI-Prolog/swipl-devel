@@ -169,7 +169,10 @@ load_db :-
 find_dbs(DBs) :-
 	expand_file_name(*, Files),
 	dbs(Files, DBs0),
-	sort(DBs0, DBs).
+	sort(DBs0, DBs1),		% remove duplicates
+	maplist(key_by_size, DBs1, DBK),
+	keysort(DBK, DBK1),
+	unkey(DBK1, DBs).
 	
 dbs([], []).
 dbs([H0|T0], [H|T]) :-
@@ -182,6 +185,24 @@ dbs([_|T0], T) :-
 
 db_extension(trp).
 db_extension(jrn).
+
+key_by_size(DB, Size-DB) :-
+	rdf_db_to_file(DB, Base),
+	ext_size(Base, trp, S1),
+	ext_size(Base, jrn, S2),
+	Size is S1 + S2.
+
+ext_size(Base, Ext, Size) :-
+	file_name_extension(Base, Ext, File),
+	(   exists_file(File)
+	->  size_file(File, Size)
+	;   Size = 0
+	).
+
+unkey([], []).
+unkey([_-H|T0], [H|T]) :-
+	unkey(T0, T).
+
 
 %	load_source(+SnapshotFile)
 %	

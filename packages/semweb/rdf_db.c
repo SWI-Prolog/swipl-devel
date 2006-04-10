@@ -1010,9 +1010,6 @@ static int
 update_predicate_counts(rdf_db *db, predicate *p, int which)
 { long total = 0;
 
-  if ( !update_hash(db) )
-    return FALSE;
-
   if ( which == DISTINCT_DIRECT )
   { long changed = abs(p->triple_count - p->distinct_updated[DISTINCT_DIRECT]);
 
@@ -1032,6 +1029,9 @@ update_predicate_counts(rdf_db *db, predicate *p, int which)
     if ( changed < p->distinct_count[DISTINCT_SUB] )
       return TRUE;
   }
+
+  if ( !update_hash(db) )
+    return FALSE;
 
   { atomset subject_set;
     atomset object_set;
@@ -3998,6 +3998,12 @@ init_cursor_from_literal(search_state *state, literal *cursor)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) update_hash() is there to update  the   hash  after  a change to the
+predicate organization. If we do  not  have   a  predicate  or we do not
+search using rdf_has/3, this is not needed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 init_search_state(search_state *state)
 { triple *p = &state->pattern;
@@ -4014,9 +4020,11 @@ init_search_state(search_state *state)
     return FALSE;
   }
   state->locked = TRUE;
-  if ( !update_hash(state->db) )
-  { free_search_state(state);
-    return FALSE;
+  if ( p->predicate && (state->flags & MATCH_SUBPROPERTY) ) /* See (*) */
+  { if ( !update_hash(state->db) )
+    { free_search_state(state);
+      return FALSE;
+    }
   }
 
   if ( (p->match == STR_MATCH_PREFIX ||	p->match == STR_MATCH_LIKE) &&
@@ -4479,10 +4487,12 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
 
   if ( !WRLOCK(db, FALSE) )
     return FALSE;
+/*			No need, as we do not search with subPropertyOf
   if ( !update_hash(db) )
   { WRUNLOCK(db);
     return FALSE;
   }
+*/
   p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
