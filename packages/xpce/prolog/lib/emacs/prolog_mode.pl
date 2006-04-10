@@ -1055,6 +1055,15 @@ varmark_style(M, Style:style*) :->
 	send(M, slot, varmark_style, Style),
 	send(M, style, varmark, Style).
 
+%	(*)  Creating  fragments  finally  calls  ChangedRegionEditor(),
+%	which clears the kill-location. We  preserve   it  over the mark
+%	variables as this only concerns  colouring.   We  should fix the
+%	editor/fragment/textbuffer  interfaces  to  have  two  types  of
+%	changes  and  skip  resetting  the   kill-location  on  fragment
+%	changes. This however involves a lot of  changes while it is not
+%	likely to be a frequent  problem.   Therefore  this hack for the
+%	moment.
+
 mark_variable(M, Check:[bool]) :->
 	"Mark variable around caret"::
 	get(M, caret, Caret),
@@ -1066,6 +1075,7 @@ mark_variable(M, Check:[bool]) :->
 	;   send(M, slot, var_marked_caret, Caret),
 	    send(M, slot, var_marked_gen, Gen),
 
+	    get(M, slot, kill_location, KillLocation), 		%  (*)
 	    send(M, unmark_variables),
 	    get(M, beginning_of_clause, Caret, Start),
 	    (   get(M, prolog_term, Start, @on, Pos, Clause)
@@ -1089,7 +1099,8 @@ mark_variable(M, Check:[bool]) :->
 		;   End = Caret		% or end of buffer?
 		),
 		send(M, remove_syntax_fragments, Start, End)
-	    )
+	    ),
+	    send(M, slot, kill_location, KillLocation)
 	).
 
 unmark_variables(M) :->
