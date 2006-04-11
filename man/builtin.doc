@@ -769,27 +769,50 @@ Succeeds if \arg{Term} is bound to an integer or floating point number.%
 		  that number/1 implies atomic/1, number/1 fails on
 		  rational numbers. This will change if rational numbers
 		  become atomic.}
+
     \predicate{atom}{1}{+Term}
 Succeeds if \arg{Term} is bound to an atom.
+
     \predicate{string}{1}{+Term}
-Succeeds if \arg{Term} is bound to a string.
+Succeeds if \arg{Term} is bound to a string. Note that string here
+refers to the built-in atomic type string as described in
+\ecref{strings},  Text in double quotes such as \verb|"hello"|
+creates a \emph{list} of \emph{character codes}.  We illustrate
+the issues in the example queries below.
+
+\begin{code}
+?- write("hello").
+[104, 101, 108, 108, 111]
+?- string("hello").
+No
+?- is_list("hello").
+Yes
+\end{code}
+
     \predicate{atomic}{1}{+Term}
 Succeeds if \arg{Term} is bound to an atom, string, integer or floating
-point number.
+point number. Note that string refers to the built-in type. See
+string/1.  Strings in the classical Prolog sense are lists and therefore
+compound.
+
     \predicate{compound}{1}{+Term}
 Succeeds if \arg{Term} is bound to a compound term.  See also functor/3
 and =../2.
+
     \predicate{callable}{1}{+Term}
 Succeeds if \arg{Term} is bound to an atom or a compound term, so it can
 be handed without type-error to call/1, functor/3 and =../2.
+
     \predicate{ground}{1}{+Term}
 Succeeds if \arg{Term} holds no free variables.
+
     \predicate{cyclic_term}{1}{+Term}
 Succeeds if \arg{Term} contains cycles, i.e.\ is an infinite term.
 See also acyclic_term/1 and \secref{cyclic}.%
 	\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
 		  compatible to SICStus Prolog.  Some Prolog systems
 		  supporting cyclic terms use \nopredref{is_cyclic}{1}.}
+
     \predicate{acyclic_term}{1}{+Term}
 Succeeds if \arg{Term} does not contain cycles,  i.e.\ can be processed
 recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
