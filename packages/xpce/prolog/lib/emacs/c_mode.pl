@@ -48,8 +48,7 @@
 		      break_at_function = button(gdb),
 		      gdb_go		= button(gdb) + key('\\C-c\\C-g'),
 		      gdb_step		= button(gdb) + key('\\C-c\\C-s'),
-		      gdb_next		= button(gdb) + key('\\C-c\\C-n') +
-		      			  key('\\C-z'),
+		      gdb_next		= button(gdb) + key('\\C-c\\C-n'),
 		      gdb_print		= button(gdb) + key('\\C-c\\C-p'),
 		      prolog_manual     = button(prolog)
 		    ],
