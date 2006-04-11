@@ -155,6 +155,7 @@ while [ $cont != "no" ]; do
 	      echo "*** Bibtex output changed.  Rerunning $tex ***"
 	   fi
 	fi
+	rm -f $doc.bbl$$
     fi
     if [ `basename $tex` = pdflatex -a -r $appbase/Makefile.pdf ]; then
         make -f $appbase/Makefile.pdf
