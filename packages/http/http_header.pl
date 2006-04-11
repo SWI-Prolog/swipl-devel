@@ -65,19 +65,28 @@
 
 http_read_request(In, [input(In)|Request]) :-
 	read_line_to_codes(In, Codes),
-	debug(header, 'First line: ~s~n', [Codes]),
-	phrase(request(In, Request), Codes).
+	(   Codes == end_of_file
+	->  debug(header, 'end-of-file', [])
+	;   debug(header, 'First line: ~s~n', [Codes]),
+	    phrase(request(In, Request), Codes)
+	).
+
 
 %	http_read_reply_header(+FdIn, -Reply)
 %
-%	Read the HTTP reply header (if any).
+%	Read the HTTP reply header. Throws   an exception if the current
+%	input does not contain a valid reply header.
 
 http_read_reply_header(In, [input(In)|Reply]) :-
 	read_line_to_codes(In, Codes),
-	debug(header, 'First line: ~s~n', [Codes]),
-	(   phrase(reply(In, Reply), Codes)
-	->  true
-	;   throw(error(syntax(http_reply_header, Codes), _))
+	(   Codes == end_of_file
+	->  debug(header, 'end-of-file', []),
+	    throw(error(syntax(http_reply_header, end_of_file), _))
+	;   debug(header, 'First line: ~s~n', [Codes]),
+	    (   phrase(reply(In, Reply), Codes)
+	    ->  true
+	    ;   throw(error(syntax(http_reply_header, Codes), _))
+	    )
 	).
 
 

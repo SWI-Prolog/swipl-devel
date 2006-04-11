@@ -143,8 +143,9 @@ http_get(Parts, Data, Options) :-
 	memberchk(connection(Connection), Options),
 	downcase_atom(Connection, 'keep-alive'), !,
 	between(0, 1, _),
-	catch(http_do_get(Parts, Data, Options), error(io_error, _),
-	      (	  format(user_error, 'Error; retrying~n', []),
+	catch(http_do_get(Parts, Data, Options), E,
+	      (	  message_to_string(E, Msg),
+	          debug(keep_alive, 'Error: ~w; retrying~n', [Msg]),
 	          disconnect(Parts),
 		  fail
 	      )), !.
