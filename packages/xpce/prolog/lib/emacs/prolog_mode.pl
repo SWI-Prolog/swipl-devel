@@ -1075,7 +1075,8 @@ mark_variable(M, Check:[bool]) :->
 	;   send(M, slot, var_marked_caret, Caret),
 	    send(M, slot, var_marked_gen, Gen),
 
-	    get(M, slot, kill_location, KillLocation), 		%  (*)
+	    get(M, editor, E),
+	    get(E, slot, kill_location, KillLocation), 		%  (*)
 	    send(M, unmark_variables),
 	    get(M, beginning_of_clause, Caret, Start),
 	    (   get(M, prolog_term, Start, @on, Pos, Clause)
@@ -1100,7 +1101,7 @@ mark_variable(M, Check:[bool]) :->
 		),
 		send(M, remove_syntax_fragments, Start, End)
 	    ),
-	    send(M, slot, kill_location, KillLocation)
+	    send(E, slot, kill_location, KillLocation)
 	).
 
 unmark_variables(M) :->

@@ -6,7 +6,7 @@
   different interpretation.
 
 * FIXED: PceEmacs: Preserve kill-location over marking variables.
-  Pierpaolo Bernardi.
+  Also fixed repeating undo using ^Xu.  Pierpaolo Bernardi.
 
 VERSION 6.6.10, distributed with SWI-Prolog 5.6.10
 ==================================================

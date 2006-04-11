@@ -1340,6 +1340,7 @@ typedEditor(Editor e, EventId id)
 }
 
 
+
 static status
 event_editor(Editor e, EventObj ev)
 { if ( isAEvent(ev, NAME_focus) )
@@ -1444,8 +1445,8 @@ eventEditor(Editor e, EventObj ev)
 { status rval = event_editor(e, ev);
   
   if ( rval && !isFreedObj(e) )
-  { if ( isAEvent(ev, NAME_keyboard) ||
-	 (isAEvent(ev, NAME_button) /*&& isDownEvent(ev)*/) )
+  { if ( (isAEvent(ev, NAME_keyboard) || isAEvent(ev, NAME_button) ) &&
+	 e->bindings->prefix == NAME_ )
       markUndoTextBuffer(e->text_buffer);
 
     if ( notNil(e->text_buffer) && notNil(e->request_compute) )

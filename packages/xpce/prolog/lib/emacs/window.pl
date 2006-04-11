@@ -472,7 +472,7 @@ event(D, Ev:event) :->
 	(   get(D, prompter, Prompter),
 	    Prompter \== @nil
 	->  send(D, editor_event, Ev)
-	;   send(D, send_super, event, Ev)
+	;   send_super(D, event, Ev)
 	).
 
 
@@ -806,6 +806,7 @@ mode(E, ModeName:mode_name) :->
 	    ),
 	    send(E?text_buffer, mode, ModeName),
 	    send(E, syntax, Mode?syntax),
+	    send(E, bindings, Mode?bindings),
 	    send(E, setup_mode),
 	    send(E?device, setup_mode),
 	    send(E, report, status, 'Switched to ``%s'''' mode', ModeName)

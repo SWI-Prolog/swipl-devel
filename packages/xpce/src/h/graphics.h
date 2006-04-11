@@ -596,7 +596,18 @@ NewClass(edit_text_gesture)
   Bool		activate;		/* @on: focus on ->terminate */
 End;
 
-
+NewClass(key_binding)
+  ABSTRACT_RECOGNISER
+  Name		name;			/* Global name of this table */
+  Sheet		bindings;		/* Key-name --> function */
+  Chain		defaults;		/* Default tables to be used */
+  Any		default_function;	/* Function if not defined */
+  Name 		prefix;			/* Parsed prefix */
+  Int		argument;		/* Universal argument */
+  Name		status;			/* {universal_argument}* */
+  Int		saved_column;		/* {next,previous}_line column */
+  Code		condition;		/* General condition for activation */
+End;
 
 		/********************************
 		*          BROWSERS		*
