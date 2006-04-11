@@ -1,3 +1,25 @@
+Apr 11, 2006
+
+  * TS: Most runtime library predicates are now specialized
+	per constraint, avoiding generic =.. and lists code.
+
+	Mayor update to suspension term layout. Layout may now
+        differ from one constraint to the other. Some unused suspension
+        fields (continuation goal and generation number) are omitted.
+	Further analysis can remove more fields.
+
+        Default store constraints now each have
+        their own global variable: a list of all the suspensions.
+	Removal from this list is now O(1) thanks to setarg/1 and
+        back pointers in the suspension terms. This can cause time
+	time complexity improvements in solvers that always have 
+	variable indexing on their constraints.
+
+        Ground, non-indexed constraints are now removed from
+	their global list store in O(1), as for the default store.
+
+	Minor bug fixes in a number of places.
+
 Mar 16, 2006
 
   * TS: Fixed subtle bug in ai_observation analysis,

@@ -6,9 +6,11 @@
 	    intersect_eq/3,		% +List1, +List2, -Intersection
 	    list_difference_eq/3,	% +List, -Subtract, -Rest
 	    take/3,			% +N, +List, -FirstElements
+	    drop/3,			% +N, +List, -LastElements
 	    max_go_list/2,		% +List, -Max
 	    or_list/2,			% +ListOfInts, -BitwiseOr
-	    sublist/2,
+	    sublist/2,			% ?Sublist, +List
+	    bounded_sublist/3,		% ?Sublist, +List, +Bound
 	    min_list/2,
 	    chr_delete/3,
 	    init_store/2,
@@ -134,6 +136,14 @@ take(N, [H|TA], [H|TB]) :-
 	N2 is N - 1,
 	take(N2, TA, TB).
 
+%	Drop the first  N  elements  from   List  and  unify  the remainder  with
+%	LastElements.
+
+drop(0,LastElements,LastElements) :- !.
+drop(N,[_|Tail],LastElements) :-
+	N > 0,
+	N1 is N  - 1,
+	drop(N1,Tail,LastElements).
 
 %	max_go_list(+List, -Max)
 %	
@@ -162,6 +172,7 @@ or_list([H|T], Or0, Or) :-
 	or_list(T, Or1, Or).
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 sublist(L, L).
 sublist(Sub, [H|T]) :-
 	'$sublist1'(T, H, Sub).
@@ -172,6 +183,20 @@ sublist(Sub, [H|T]) :-
 '$sublist1'([H|T], X, [X|Sub]) :-
 	'$sublist1'(T, H, Sub).
 
+bounded_sublist(Sublist,_,_) :-
+	Sublist = [].
+bounded_sublist(Sublist,[H|List],Bound) :-
+	Bound > 0,
+	(
+		Sublist = [H|Rest],
+		NBound is Bound - 1,
+		bounded_sublist(Rest,List,NBound)
+	;
+		bounded_sublist(Sublist,List,Bound)
+	).
+	
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 min_list([H|T], Min) :-
 	'$min_list1'(T, H, Min).
 

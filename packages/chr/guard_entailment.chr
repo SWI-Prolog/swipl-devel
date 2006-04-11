@@ -282,8 +282,8 @@ distribute_unif3 @ test(X=A) <=>   nonvar(X),nonvar(A),functor(A,F,Arit),
 		X =.. [F|XArgs],
 		add_args_unif(XArgs,AArgs,ArgCond),
 		test(ArgCond).
-
-testvarunif @ variables(V) \ test(X=A) <=> \+ (memberchk_eq(A,V),memberchk_eq(X,V)) | X=A.
+% TOM: INCORRECT RULE?
+% testvarunif @ variables(V) \ test(X=A) <=> \+ (memberchk_eq(A,V),memberchk_eq(X,V)) | X=A.
 testvarunif @ variables(V) \ test(functor(X,F,A)) <=> 
                 var(X),ground(F),ground(A),\+ memberchk_eq(X,V) |
 		functor(X,F,A).       % X is a singleton variable

@@ -240,7 +240,7 @@ option_definition(toplevel_show_store,off,Flags) :-
 
 option_definition(term_indexing,on,Flags) :-
 	Flags = [term_indexing - on].
-optioff_definitioff(term_indexing,off,Flags) :-
+optioff_definition(term_indexing,off,Flags) :-
 	Flags = [term_indexing - off].
 
 init_chr_pp_flags :-

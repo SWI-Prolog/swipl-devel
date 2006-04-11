@@ -89,6 +89,9 @@
 	    'chr via_1'/2,
 	    'chr via_2'/3,
 	    'chr via'/2,
+	    'chr newvia_1'/2,
+	    'chr newvia_2'/3,
+	    'chr newvia'/2,
 
 	    'chr lock'/1,
 	    'chr unlock'/1,
@@ -177,21 +180,17 @@ chr_init :-
 
 chr_show_store(Mod) :-
 	(
-		Mod:'$enumerate_suspensions'(Susp),
-		Susp =.. [_,_,_,_,_,_,F|Arg],
-		functor(F,Fun,_),
-		C =.. [Fun|Arg],
-		print(C),nl, % allows use of portray to control printing
+		Mod:'$enumerate_constraints'(Constraint),
+		print(Constraint),nl, % allows use of portray to control printing
 
 		fail
 	;
 		true
 	).
 
-find_chr_constraint(C) :-
+find_chr_constraint(Constraint) :-
 	chr:'$chr_module'(Mod),
-	Mod:'$enumerate_suspensions'(Susp),
-	arg(6,Susp,C).
+	Mod:'$enumerate_constraints'(Constraint).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Inlining of some goals is good for performance
@@ -245,15 +244,15 @@ user:goal_expansion('chr default_store'(X),        nb_getval(chr_global,X)).
 
 run_suspensions([]).
 run_suspensions([S|Next] ) :-
-	arg( 2, S, Mref),
+	arg( 2, S, Mref), % ARGXXX
 	'chr get_mutable'( Status, Mref),
 	( Status==active ->
 	    'chr update_mutable'( triggered, Mref),
-	    arg( 4, S, Gref),
+	    arg( 4, S, Gref), % ARGXXX
 	    'chr get_mutable'( Gen, Gref),
 	    Generation is Gen+1,
 	    'chr update_mutable'( Generation, Gref),
-	    arg( 3, S, Goal),
+	    arg( 3, S, Goal), % ARGXXX
 	    call( Goal),
 	    'chr get_mutable'( Post, Mref),
 	    ( Post==triggered ->
@@ -276,15 +275,15 @@ run_suspensions([S|Next] ) :-
 
 run_suspensions_d([]).
 run_suspensions_d([S|Next] ) :-
-	arg( 2, S, Mref),
+	arg( 2, S, Mref), % ARGXXX
 	'chr get_mutable'( Status, Mref),
 	( Status==active ->
 	    'chr update_mutable'( triggered, Mref),
-	    arg( 4, S, Gref),
+	    arg( 4, S, Gref), % ARGXXX
 	    'chr get_mutable'( Gen, Gref),
 	    Generation is Gen+1,
 	    'chr update_mutable'( Generation, Gref),
-	    arg( 3, S, Goal),
+	    arg( 3, S, Goal), % ARGXXX
 	    ( 
 		'chr debug_event'(wake(S)),
 	        call( Goal)
@@ -356,7 +355,7 @@ unlockv([T|R]) :- del_attr( T, locked), unlockv(R).
 % Eager removal from all chains.
 %
 'chr remove_constraint_internal'( Susp, Agenda) :-
-	arg( 2, Susp, Mref),
+	arg( 2, Susp, Mref), % ARGXXX
 	'chr get_mutable'( State, Mref), 
 	'chr update_mutable'( removed, Mref),		% mark in any case
 	( compound(State) ->			% passive/1
@@ -373,6 +372,33 @@ unlockv([T|R]) :- del_attr( T, locked), unlockv(R).
 	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+'chr newvia_1'(X,V) :-
+	( var(X) ->
+		X = V
+	; 
+		nonground(X,V)
+	).
+
+'chr newvia_2'(X,Y,V) :- 
+	( var(X) -> 
+		X = V
+	; var(Y) ->
+		Y = V
+	; compound(X), nonground(X,V) ->
+		true
+	; 
+		compound(Y), nonground(Y,V)
+	).
+
+%
+% The second arg is a witness.
+% The formulation with term_variables/2 is
+% cycle safe, but it finds a list of all vars.
+% We need only one, and no list in particular.
+%
+'chr newvia'(L,V) :- nonground(L,V).
+%~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
+
 'chr via_1'(X,V) :-
 	( var(X) ->
 		X = V
@@ -416,7 +442,7 @@ nonground( Term, V) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr novel_production'( Self, Tuple) :-
-	arg( 5, Self, Ref),
+	arg( 5, Self, Ref), % ARGXXX
 	'chr get_mutable'( History, Ref),
 	( get_ds( Tuple, History, _) ->
 	    fail
@@ -429,21 +455,21 @@ nonground( Term, V) :-
 % goes in between the two calls.
 %
 'chr extend_history'( Self, Tuple) :-
-	arg( 5, Self, Ref),
+	arg( 5, Self, Ref), % ARGXXX
 	'chr get_mutable'( History, Ref),
 	put_ds( Tuple, History, x, NewHistory),
 	'chr update_mutable'( NewHistory, Ref).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 constraint_generation( Susp, State, Generation) :-
-	arg( 2, Susp, Mref),
+	arg( 2, Susp, Mref), % ARGXXX
 	'chr get_mutable'( State, Mref),
-	arg( 4, Susp, Gref),
+	arg( 4, Susp, Gref), % ARGXXX
 	'chr get_mutable'( Generation, Gref). 	% not incremented meanwhile 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr allocate_constraint'( Closure, Self, F, Args) :-
-	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
+	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args], % SUSPXXX
 	'chr create_mutable'(0, Gref),
 	'chr empty_history'(History),
 	'chr create_mutable'(History, Href),
@@ -456,13 +482,13 @@ constraint_generation( Susp, State, Generation) :-
 % The transition gc->active should be rare
 %
 'chr activate_constraint'( Vars, Susp, Generation) :-
-	arg( 2, Susp, Mref),
+	arg( 2, Susp, Mref), % ARGXXX
 	'chr get_mutable'( State, Mref),
 	'chr update_mutable'( active, Mref),
 	( nonvar(Generation) ->			% aih
 	    true
 	;
-	    arg( 4, Susp, Gref),
+	    arg( 4, Susp, Gref), % ARGXXX
 	    'chr get_mutable'( Gen, Gref),
 	    Generation is Gen+1,
 	    'chr update_mutable'( Generation, Gref)
@@ -485,7 +511,7 @@ constraint_generation( Susp, State, Generation) :-
 	'chr default_store'(Global),
 	term_variables(Args,Vars),
 	'chr none_locked'(Vars),
-	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
+	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args], % SUSPXXX
 	'chr create_mutable'(active, Mref),
 	'chr create_mutable'(0, Gref),
 	'chr empty_history'(History),
@@ -501,7 +527,7 @@ insert_constraint_internal([Global|Vars], Self, Term, Closure, F, Args) :-
 	'chr create_mutable'( 0, Gref),
 	'chr create_mutable'( History, Href),
 	'chr gen_id'( Id),
-	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args].
+	Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args]. % SUSPXXX
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr empty_history'( E) :- empty_ds( E).
@@ -565,8 +591,8 @@ insert_constraint_internal([Global|Vars], Self, Term, Closure, F, Args) :-
 'chr merge_attributes'([],Ys,Ys).
 'chr merge_attributes'([X | Xs],YL,R) :-
   ( YL = [Y | Ys] ->
-      arg(1,X,XId),
-      arg(1,Y,YId),	
+      arg(1,X,XId), % ARGXXX
+      arg(1,Y,YId),	 % ARGXXX
        ( XId < YId ->
            R = [X | T],
            'chr merge_attributes'(Xs,YL,T)

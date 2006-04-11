@@ -298,11 +298,11 @@ prolog:message(chr(CHR)) -->
 :- multifile chr:'$chr_module'/1.
 
 prolog:message(query(YesNo)) --> !,
-	['~@'-[chr:print_all_stores]],
+	['~@'-[once(chr:print_all_stores)]],
         '$messages':prolog_message(query(YesNo)).
 
 prolog:message(query(YesNo,Bindings)) --> !,
-	['~@'-[chr:print_all_stores]],
+	['~@'-[once(chr:print_all_stores)]],
         '$messages':prolog_message(query(YesNo,Bindings)).
 
 print_all_stores :-
