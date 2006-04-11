@@ -143,8 +143,9 @@ while [ $cont != "no" ]; do
 	    makeindex $doc
 	fi
     fi 
-    if [ -r $doc.aux && grep -qw bibdata $doc.aux ]; then
-	if [ -f $doc.bbl ]; then cp $doc.bbl$$; fi
+    if test -r $doc.aux && grep -qw bibdata $doc.aux; then
+	if [ -f $doc.bbl ]; then cp $doc.bbl $doc.bbl$$; fi
+	echo "%%% Running Bibtex"
         bibtex $doc
 	if [ -r $doc.bbl -a -r $doc.bbl.$$ ]; then
 	   if cmp -s $doc.bbl $doc.bbl.$$; then
