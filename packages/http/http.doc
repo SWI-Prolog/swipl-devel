@@ -481,6 +481,105 @@ Enumerate all associated terms that unify with \arg{Term}.
 \end{description}
 
 
+\subsection{Get parameters from HTML forms}
+\label{sec:httpparam}
+
+The library \pllib{http/http_parameters} provides two predicates to
+fetch HTTP request parameters as a type-checked list easily.  The
+library transparently handles both GET and POST requests.  It builds
+on top of the low-level request representation described in
+\secref{request}.
+
+\begin{description}
+    \predicate{http_parameters}{2}{+Request, ?Parameters}
+The predicate is passes the \arg{Request} as provided to the handler
+goal by http_wrapper/5 as well as a partially instantiated lists
+describing the requested parameters and their types. Each parameter
+specification in \arg{Parameters} is a term of the format
+\mbox{\arg{Name}(\arg{-Value}, \arg{+Options})}. \arg{Options} is
+a list of option terms describing the type, default, etc. If no options
+are specified the parameter must be present and its value is returned in
+\arg{Value} as an atom. If a parameter is missing the exception
+\term{error}{\term{existence_error}{form_data, Name}, _} is thrown.
+Defined options are:
+
+\begin{description}
+    \termitem{default}{Default}
+If the named parameter is missing, \arg{Value} is unified to
+\arg{Default}.
+
+    \termitem{optional}{true}
+If the named parameter is missing, \arg{Value} is left unbound and
+no error is generated.
+
+    \termitem{oneof}{List}
+Succeeds if the value is member of the given list.
+
+    \definition{length $> N$}
+Succeeds if value is an atom of more than $N$ characters.
+    \definition{length $>= N$}
+Succeeds if value is an atom of more or than equal to $N$ characters.
+    \definition{length $< N$}
+Succeeds if value is an atom of less than $N$ characters.
+    \definition{length $=< N$}
+Succeeds if value is an atom of length than or equal to $N$ characters.
+
+    \termitem{number}{}
+Convert value to a number.  Throws a type-error otherwise.
+    \termitem{integer}{}
+Convert value to an integer.  Throws a type-error otherwise.
+    \termitem{float}{}
+Convert value to a float. Integers are tranformed into fload.  Throws a
+type-error otherwise.
+\end{description}
+
+Below is an example
+
+\begin{code}
+reply(Request) :-
+	http_parameters(Request,
+			[ title(Title, [optional(true)]),
+			  name(Name, [ length >= 2 ]),
+			  age(Age, [integer])
+			]),
+	...
+\end{code}
+
+Same as \term{http_parameters}{Request, Parameters, []}
+
+    \predicate{http_parameters}{3}{+Request, ?Parameters, +Options}
+In addition to http_parameters/2, the following options are defined.
+
+\begin{description}
+    \termitem{form_data}{-Data}
+Return the entire set of provided \arg{Name}=\arg{Value} pairs from
+the GET or POST request.  All values are returned as atoms.
+
+    \termitem{attribute_declarations}{:Goal}
+If a parameter specification lacks the parameter options, call
+\term{call}{Goal, +ParamName, -Options} to find the options.  Intended
+to share declarations over many calls to http_parameters/3. Using
+this construct the above can be written as below.
+
+\begin{code}
+reply(Request) :-
+	http_parameters(Request,
+			[ title(Title),
+			  name(Name),
+			  age(Age)
+			],
+			[ attribute_declarations(param)
+			]),
+	...
+
+param(title, [optional(true)]).
+param(name,  [length >= 2 ]).
+param(age,   [integer]).
+\end{code}
+\end{description}
+\end{description}
+
+
 \subsection{Request format}			\label{sec:request}
 
 The body-code (see \secref{body}) is driven by a \arg{Request}.  This

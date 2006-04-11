@@ -1,5 +1,7 @@
 Apr 11, 2006
 
+  * ADDED: http_parameters library
+
   * FIXED: properly handle the server closing the connection if the connection
     is specified as Keep-alive in the client (http_get/3 and http_post/4).
 
