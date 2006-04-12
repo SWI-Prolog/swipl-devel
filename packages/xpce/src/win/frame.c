@@ -737,13 +737,15 @@ getGeometryFrame(FrameObj fr)
     if ( x-mx > ((mx+mw) - (x+w))*2 )	/* over 2/3th */
     { x = (mx+mw) - (x+w);
       xn = TRUE;
+    } else
+    { x -= mx;
     }
     if ( y-my > ((my+mh) - (y+h))*2 )
     { y = (my+mh) - (y+h);
       yn = TRUE;
+    } else
+    { y -= my;
     }
-    x -= mx;
-    y -= my;
 					/* geometry-size denotes client area */
     w = valInt(fr->area->w);
     h = valInt(fr->area->h);
@@ -795,6 +797,15 @@ setFrame(FrameObj fr, Int x, Int y, Int w, Int h, Monitor mon)
 { Area a = fr->area;
   Int ow = a->w;
   Int oh = a->h;
+
+  if ( notDefault(mon) )
+  { if ( notDefault(x) )
+      x = add(x, mon->area->x);
+    if ( notDefault(y) )
+      y = add(y, mon->area->y);
+
+    mon = DEFAULT;
+  }
 
   setArea(a, x, y, w, h);
   if ( valInt(a->w) <= 0 )		/* Window systems don't like that */

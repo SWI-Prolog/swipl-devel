@@ -928,10 +928,12 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
   }
 
   if ( instanceOfObject(mon, ClassMonitor) )
-  { dx = valInt(mon->work_area->x);
-    dy = valInt(mon->work_area->y);
-    dw = valInt(mon->work_area->w);
-    dh = valInt(mon->work_area->h);
+  { Area a = (notNil(mon->work_area) ? mon->work_area : mon->area);
+
+    dx = valInt(a->x);
+    dy = valInt(a->y);
+    dw = valInt(a->w);
+    dh = valInt(a->h);
   } else if ( SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0) )
   { dx = rect.left;
     dy = rect.top;
@@ -996,12 +998,14 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
   }
   
   if ( f && ok )
-  { if ( y < 0 )			/* above the screen */
+  { int mw = (w < MIN_VISIBLE ? MIN_VISIBLE : w);
+
+    if ( y < 0 )			/* above the screen */
       y = 0;
     if ( y > dh-MIN_VISIBLE )		/* below the screen */
       y = dh - MIN_VISIBLE;
-    if ( x+w < MIN_VISIBLE )		/* left of the screen */
-      x = MIN_VISIBLE-w;
+    if ( x+mw < MIN_VISIBLE )		/* left of the screen */
+      x = MIN_VISIBLE-mw;
     if ( x > dw-MIN_VISIBLE )		/* right of the screen */
       x = dw - MIN_VISIBLE;
     

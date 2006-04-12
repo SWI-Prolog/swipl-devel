@@ -981,10 +981,15 @@ ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
 ws_x_geometry_frame() updates the window position using an X geometry
 request.  
 
-The lines marked (*) were once needed. Current SuSE with KDE 3.4 doesn't
-need them. Unfortunately I do not  know   under  what conditions this is
-needed.
+This is a mess, totally unclear when  we   have  to  add which border to
+where. At the moment we do do-your-own,   copied mostly from the version
+in msw/msframe.c as the general one does   not understand the concept of
+multiple monitors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define MIN_VISIBLE 32			/* pixels that must be visible */
+#define SWP_NOMOVE 0x1
+#define SWP_NOSIZE 0x2
 
 void
 ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
@@ -994,89 +999,110 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 			    pp(fr), pp(spec), pp(mon)));
 
   if ( wdg )
-  { int x, y, w, h, mask;
-    Int X, Y, W, H;
-    char def[50];
-    char xspecbuf[50];
-    char *xspec = strName(spec);
-    char *e;
-    Area a = fr->area;
-    DisplayWsXref r = fr->display->ws_ref;
-    Display *d = r->display_xref;
-    Window wm, me = XtWindow(wdg);
-    int dx, dy;
+  { char *e, *s = strName(spec);
+    int x, y, w, h, w0, h0;
+    int ew, eh;
+    int dx, dy, dw, dh;
+    int flags = 0;
+    char signx[10], signy[10];
+    int ok=0;
+    Int X,Y,W,H;
+    int offX, offY;
 
-    sprintf(def,
-	    "%ldx%ld+%ld+%ld",
-	    valInt(a->w), valInt(a->h), valInt(a->x), valInt(a->y));
+    if ( isDefault(mon) && (e=strchr(s, '@')) )
+    { int n = atoi(e+1);
 
-    if ( (e=strchr(xspec, '@')) && e-xspec < sizeof(xspecbuf) )
-    { strncpy(xspecbuf, xspec, e-xspec);
-      xspecbuf[e-xspec] = EOS;
-      xspec = xspecbuf;
-
-      if ( isDefault(mon) )
-      { int n = atoi(e+1);
-
-	if ( !(mon = getNth0Chain(fr->display->monitors, toInt(n))) )
-	  mon = (Monitor)DEFAULT;
-      }
+      if ( !(mon = getNth0Chain(fr->display->monitors, toInt(n))) )
+	mon = (Monitor)DEFAULT;
     }
 
-    DEBUG(NAME_frame, Cprintf("xspec=%s, mon=%s\n", xspec, pp(mon)));
+    if ( instanceOfObject(mon, ClassMonitor) )
+    { Area a = (notNil(mon->work_area) ? mon->work_area : mon->area);
 
-    mask = XGeometry(d, DefaultScreen(d),
-		     xspec,
-		     def,
-		     isDefault(fr->border) ? 1 : valInt(fr->border),
-		     1, 1,
-		     0, 0,
-		     &x, &y, &w, &h);
-  
-    if ( me && (wm = getWMFrameFrame(fr, &dx, &dy)) && me != wm )
-    { Window root;
-      int mex, mey, wmx, wmy;
-      unsigned int mew, meh, wmw, wmh, mebw, wmbw;
-      unsigned depth;
-
-      XGetGeometry(d, me, &root, &mex, &mey, &mew, &meh, &mebw, &depth);
-      XGetGeometry(d, wm, &root, &wmx, &wmy, &wmw, &wmh, &wmbw, &depth);
-
-      DEBUG(NAME_frame,
-	    Cprintf("wmbw %d; mew %d; meh %d; wmw %d; wmh %d; dx %d; dy %d\n",
-		    wmbw, mew, meh, wmw, wmh, dx, dy));
-
-      if ( (mask & XNegative) )
-	x -= wmw-mew-dx;
-      /*else				// (*) See above
-	x += dx;*/
-      if ( (mask & YNegative) ) 
-	y -= wmh-meh-dy;
-      /*else
-	y += dy;*/
+      dx = valInt(a->x);
+      dy = valInt(a->y);
+      dw = valInt(a->w);
+      dh = valInt(a->h);
     } else
-    { DEBUG(NAME_frame, Cprintf("No WM frame yet\n"));
+    { dx = dy = 0;
+      dw = valInt(getWidthDisplay(fr->display));
+      dh = valInt(getHeightDisplay(fr->display));
     }
 
-    switch(mask & (XNegative|YNegative))
-    { case 0:
-	setGravityFrame(fr, NorthWestGravity);
-        break;
-      case XNegative|YNegative:
-	setGravityFrame(fr, SouthEastGravity);
+    if ( !ws_frame_bb(fr, &x, &y, &w0, &h0) )
+      return;
+    w = w0;
+    h = h0;
+    ew = w - valInt(fr->area->w);	/* width/height of decorations */
+    eh = h - valInt(fr->area->h);
+
+    getWMFrameFrame(fr, &offX, &offY);
+
+    switch(sscanf(s, "%dx%d%[+-]%d%[+-]%d", &w, &h, signx, &x, signy, &y))
+    { case 2:
+	/* w += ew; h += eh; */
+	flags |= SWP_NOMOVE;
+	ok++;
 	break;
-      case XNegative:
-	setGravityFrame(fr, NorthEastGravity);
+      case 6:
+	/* w += ew; h += eh; */
+	if ( signx[1] == '-' )
+	  x = -x;
+	if ( signy[1] == '-' )
+	  y = -y;
+	if ( signx[0] == '-' )
+	  x = dw - x - w - offX;
+	if ( signy[0] == '-' )
+	  y = dh - y - h - eh;		/* why not offY */
+	ok++;
 	break;
-      case YNegative:
-	setGravityFrame(fr, SouthWestGravity);
+      default:				/* [<Sign>]X<Sign>Y */
+	if ( sscanf(s, "%[+-]%d%[+-]%d", signx, &x, signy, &y) != 4 )
+	{ signx[0] = '+';
+	  if ( sscanf(s, "%d%[+-]%d", &x, signy, &y) != 3 )
+	    break;
+	}
+  
+	DEBUG(NAME_frame,
+	      Cprintf("signx = %s, x = %d, signy = %s,"
+		      "y = %d, w0 = %d, h0 = %d\n",
+		      signx, x, signy, y, w0, h0));
+  
+	flags |= SWP_NOSIZE;
+	if ( signx[1] == '-' )
+	  x = -x;
+	if ( signy[1] == '-' )
+	  y = -y;
+	if ( signx[0] == '-' )
+	  x = dw - x - w0 - offX;
+	if ( signy[0] == '-' )
+	  y = dh - y - h0 - eh;
+	ok++;
 	break;
     }
+    
+    if ( ok )
+    { int mw = (w < MIN_VISIBLE ? MIN_VISIBLE : w);
 
-    X = ( mask & XValue      ? toInt(x) : (Int) DEFAULT );
-    Y = ( mask & YValue      ? toInt(y) : (Int) DEFAULT );
-    W = ( mask & WidthValue  ? toInt(w) : (Int) DEFAULT );
-    H = ( mask & HeightValue ? toInt(h) : (Int) DEFAULT );
+      if ( y < 0 )			/* above the screen */
+	y = 0;
+      if ( y > dh-MIN_VISIBLE )		/* below the screen */
+	y = dh - MIN_VISIBLE;
+      if ( x+mw < MIN_VISIBLE )		/* left of the screen */
+	x = MIN_VISIBLE-mw;
+      if ( x > dw-MIN_VISIBLE )		/* right of the screen */
+	x = dw - MIN_VISIBLE;
+    }
+    
+    X = Y = W = H = (Int)DEFAULT;
+    if ( !(flags & SWP_NOMOVE) )
+    { X = toInt(x);
+      Y = toInt(y);
+    }
+    if ( !(flags & SWP_NOSIZE) )
+    { W = toInt(w);
+      H = toInt(h);
+    }
 
     send(fr, NAME_set, X, Y, W, H, mon, EAV);
   }
