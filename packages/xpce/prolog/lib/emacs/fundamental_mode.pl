@@ -954,7 +954,7 @@ describe_key(M) :->
 	),
 	get(M, bindings, Bindings),
 	get(Bindings, function, KeyName, MethodName),
-	(   MethodName == prefix
+	(   prefix_method(MethodName)
 	->  send(M, attribute, key_prefix, KeyName),
 	    send(M, report, status, 'Describe key: %s', KeyName)
 	;   send(M, focus_function, @nil),
@@ -965,6 +965,10 @@ describe_key(M) :->
 	    ;	send(M, report, inform, 'Key %s is not bound', KeyName)
 	    )
 	).
+
+prefix_method(prefix).
+prefix_method(prefix_or_cut).
+prefix_method(prefix_or_copy).
 
 key_binding_style(M, Style:key_binding_style) :->
 	"Switch keyboard accelerator style"::

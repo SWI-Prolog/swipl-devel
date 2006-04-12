@@ -2,6 +2,12 @@
 			   ==============
 
 
+* MODIFIED: PceEmacs/editor: ->delete_blank_lines (^X^O) is now GNU-Emacs
+  compatible.  Pierpaolo Bernardi.
+
+* FIXED: PceEmacs: C-hk (describe-key) using \C-c or \C-x prefix keys.
+  Pierpaolo Bernardi.
+
 * FIXED: library(tabular): avoid sending ->margin to objects with a
   different interpretation.
 
