@@ -2486,21 +2486,65 @@ justOneSpaceEditor(Editor e)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+GNU-Emacs:
+On blank line, delete all surrounding blank lines, leaving just one.
+On isolated blank line, delete that one.
+On nonblank line, delete any immediately following blank lines.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+isBlankLine(Editor e, Int sol)
+{ TextBuffer tb = e->text_buffer;
+  Int eol = getSkipBlanksTextBuffer(tb, sol, NAME_forward, OFF);
+  
+  if ( Fetch(e, valInt(eol)) == '\n' )
+  { Cprintf("blank at %s\n", pp(sol));
+    succeed;
+  }
+
+  fail;
+}
+
+
 static status
 deleteBlankLinesEditor(Editor e)
 { TextBuffer tb = e->text_buffer;
-  Int to, from;
+  Int to = ZERO, from = ZERO;
+  Int sol;
+  Int caret = NIL;
 
   MustBeEditable(e);
-
-  to = getScanTextBuffer(tb,
-			 getSkipBlanksTextBuffer(tb,e->caret,NAME_forward,ON),
-			 NAME_line, ZERO, NAME_start);
-  from = getSkipBlanksTextBuffer(tb, e->caret, NAME_backward, ON);
   
+  sol = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_start);
+
+  if ( !isBlankLine(e, sol) )
+  { sol = getScanTextBuffer(tb, e->caret, NAME_line, ONE, NAME_start);
+    if ( isBlankLine(e, sol) )
+    { from = sol;
+      to   = getSkipBlanksTextBuffer(tb, from, NAME_forward, ON);
+    }
+  } else
+  { from = getSkipBlanksTextBuffer(tb, e->caret, NAME_backward, ON);
+    to   = getSkipBlanksTextBuffer(tb, e->caret, NAME_forward, ON);
+
+    if ( valInt(to) > valInt(from) )
+    { int open = valInt(countLinesEditor(e, from, to)) > 2;
+
+      characterTextBuffer(tb, from, toInt('\n'));
+      from = add(from, ONE);
+      caret = from;
+      if ( open )
+      { characterTextBuffer(tb, from, toInt('\n'));
+	from = add(from, ONE);
+      }
+    }
+  }    
+
   if ( valInt(to) > valInt(from) )
   { deleteTextBuffer(tb, from, sub(to, from));
-    CaretEditor(e, from);
+    if ( notNil(caret) )
+      CaretEditor(e, caret);
   }  
 
   succeed;
