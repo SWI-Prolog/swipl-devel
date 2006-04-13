@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+===============================
+VERSION 5.6.11 (April 11, 2006)
+===============================
+
   * FIXED/MODIFIED: function truncate/1 to return an integer instead of
     a float.  Graham Thwaites.
 

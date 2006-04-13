@@ -57,20 +57,21 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.10 Patches relative to 5.6.9
-========================================
+Version 5.6.11 Patches relative to 5.6.10
+=========================================
 
 Prolog
 
-  * Various fixes and enchancements to the cross-referencer and frontend.
-  * Allow for Unicode indentiers in a more meaningful way.
-  * Added library ugraphs.pl
-  * Fixed online help without XPCE
-  * Fixed mutex_destroy
+  * Fixed truncate function to return an integer.
+  * Changed write_canonical/2 and portray_clause/2 to write variables
+    as A, B, ... and _.
+  * Some fixes to the cross-referencer.
 							    
 Packages
   
-  * XPCE: Added support for multiple monitors (window and popup placement).
-    See class monitor and various new methods that involve monitors.
-    Fixed regex->match on backward matches.  Some fixes to PceEmacs.
-
+  * XPCE: Some PceEmacs issues.  Some geometry issues, partly related to
+    the new multi-monitor approach.
+  * HTTP: Added http_parameters.pl.  Fixed some issues in http_client.pl
+    handling keep-alive connections.
+  * Semweb.  Some enhancement in re-hash timing that can cause big
+    preformance improvements on some benchmarks.
