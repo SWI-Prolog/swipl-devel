@@ -248,14 +248,30 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   setpos:
 #endif
     if ( normalise == ON )
-    { Size s = getSizeDisplay(fr->display);
-      int dw = valInt(s->w), dh = valInt(s->h);
+    { int mx, my, mw, mh;
       int fw = valInt(fr->area->w), fh = valInt(fr->area->h);
+      Area a;
+      Area tmp = tempObject(ClassArea,
+			    toInt(x), toInt(y), fr->area->w, fr->area->h, EAV);
+      Monitor mon = getMonitorDisplay(fr->display, tmp);
+      
+      considerPreserveObject(tmp);
 
-      if ( valInt(x) + fw > dw ) x = toInt(dw - fw);
-      if ( valInt(y) + fh > dh ) y = toInt(dh - fh);
-      if ( valInt(x) < 0 )       x = ZERO;
-      if ( valInt(y) < 0 )	 y = ZERO;
+      if ( !mon )
+	mon = getMonitorDisplay(fr->display, DEFAULT);
+      if ( !mon )
+	mon = getHeadChain(fr->display->monitors);
+      a = isNil(mon->work_area) ? mon->area : mon->work_area;
+
+      mx = valInt(a->x);
+      my = valInt(a->y);
+      mw = valInt(a->w);
+      mh = valInt(a->h);
+
+      if ( valInt(x) + fw > mx+mw ) x = toInt(mx+mw - fw);
+      if ( valInt(y) + fh > my+mh ) y = toInt(my+mh - fh);
+      if ( valInt(x) < mx ) x = toInt(mx);
+      if ( valInt(y) < my ) y = toInt(my);
     }
 
     setFrame(fr, x, y, w, h, DEFAULT);  
@@ -713,19 +729,28 @@ getMonitorFrame(FrameObj fr)
 
 static Name
 getGeometryFrame(FrameObj fr)
-{ int x, y, w, h;
+{ int x, y, ww, wh;
 
-  if ( ws_frame_bb(fr, &x, &y, &w, &h) )
+  if ( ws_frame_bb(fr, &x, &y, &ww, &wh) ) 	/* outer area */
   { int mx, my, mw, mh;
     int xn=FALSE, yn=FALSE;
     char buf[100];
     Monitor mon;
+    int cw, ch;
+
+    cw = valInt(fr->area->w);			/* Client area */
+    ch = valInt(fr->area->h);
 
     if ( (mon=getMonitorFrame(fr)) )
-    { mx = valInt(mon->area->x);
-      my = valInt(mon->area->y);
-      mw = valInt(mon->area->w);
-      mh = valInt(mon->area->h);
+    { Area a = (isNil(mon->work_area) ? mon->area : mon->work_area);
+
+      mx = valInt(a->x);
+      my = valInt(a->y);
+      mw = valInt(a->w);
+      mh = valInt(a->h);
+
+      DEBUG(NAME_geometry, Cprintf("%s on %s: %d %d %d %d\n", pp(fr), pp(mon),
+				   mx, my, mw, mh));
     } else
     { Size size = getSizeDisplay(fr->display);
       
@@ -734,24 +759,21 @@ getGeometryFrame(FrameObj fr)
       mh = valInt(size->h);
     }
 
-    if ( x-mx > ((mx+mw) - (x+w))*2 )	/* over 2/3th */
-    { x = (mx+mw) - (x+w);
+    if ( x-mx > ((mx+mw) - (x+ww))*2 )	/* over 2/3th */
+    { x = (mx+mw) - (x+ww);
       xn = TRUE;
     } else
     { x -= mx;
     }
-    if ( y-my > ((my+mh) - (y+h))*2 )
-    { y = (my+mh) - (y+h);
+    if ( y-my > ((my+mh) - (y+wh))*2 )
+    { y = (my+mh) - (y+wh);
       yn = TRUE;
     } else
     { y -= my;
     }
-					/* geometry-size denotes client area */
-    w = valInt(fr->area->w);
-    h = valInt(fr->area->h);
 
     if ( fr->can_resize != OFF )
-      sprintf(buf, "%dx%d", w, h);
+      sprintf(buf, "%dx%d", cw, ch);
     else
       buf[0] = EOS;
 

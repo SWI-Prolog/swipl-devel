@@ -1040,12 +1040,14 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 
     switch(sscanf(s, "%dx%d%[+-]%d%[+-]%d", &w, &h, signx, &x, signy, &y))
     { case 2:
-	/* w += ew; h += eh; */
+	w += ew;
+        h += eh;
 	flags |= SWP_NOMOVE;
 	ok++;
 	break;
       case 6:
-	/* w += ew; h += eh; */
+	w += ew;
+	h += eh;
 	if ( signx[1] == '-' )
 	  x = -x;
 	if ( signy[1] == '-' )
