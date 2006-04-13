@@ -2,6 +2,8 @@
 			   ==============
 
 
+* FIXED: Bug#82: various issues in gemetry management.
+
 * MODIFIED: PceEmacs/editor: ->delete_blank_lines (^X^O) is now GNU-Emacs
   compatible.  Pierpaolo Bernardi.
 

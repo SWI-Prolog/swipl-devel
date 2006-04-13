@@ -104,6 +104,7 @@ typedef struct
 { Widget	widget;
   Window	busy_window;
   int		win_gravity;
+  int		check_geometry_when_mapped;
 #ifdef O_XIM
   XIC		ic;			/* input context */
   Window	icwin;			/* Window for IC */

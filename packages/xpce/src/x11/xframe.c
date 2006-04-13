@@ -45,14 +45,18 @@ static status   updateAreaFrame(FrameObj fr, Int border);
 		 *	    REFERENCES		*
 		 *******************************/
 
-static frame_ws_ref *
+static FrameWsRef
 ensureWsRefFrame(FrameObj fr)
-{ if ( !fr->ws_ref )
-  { fr->ws_ref = alloc(sizeof(frame_ws_ref));
-    memset(fr->ws_ref, 0, sizeof(frame_ws_ref));
+{ FrameWsRef frws = fr->ws_ref;
+
+  if ( !frws )
+  { frws = alloc(sizeof(frame_ws_ref));
+    memset(frws, 0, sizeof(frame_ws_ref));
+    frws->check_geometry_when_mapped = TRUE;
+    fr->ws_ref = frws;
   }
 
-  return fr->ws_ref;
+  return frws;
 }
 
 
@@ -616,7 +620,7 @@ destroyFrame(Widget w, FrameObj fr, XtPointer data)
 
 static void
 x_event_frame(Widget w, FrameObj fr, XEvent *event)
-{ 
+{ FrameWsRef wsfr = fr->ws_ref;
 
   DEBUG(NAME_event, Cprintf("x_event_frame(): X-event %d on %s\n",
 			    event->xany.type, pp(fr)));
@@ -663,6 +667,11 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	send(cell->value, NAME_displayed, ON, EAV);
       updateAreaFrame(fr, DEFAULT);
       send(fr, NAME_mapped, ON, EAV);
+      if ( wsfr && wsfr->check_geometry_when_mapped &&
+	   notNil(fr->geometry) )	/* see ws_x_geometry_frame() */
+      { wsfr->check_geometry_when_mapped = FALSE;
+	ws_x_geometry_frame(fr, fr->geometry, DEFAULT);
+      }
       assign(fr, status, NAME_window);
 
 					/* some window managers don't */
@@ -713,9 +722,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 #endif
       { 
 #ifdef O_XIM
-	FrameWsRef wsfr;
-
-	if ( (wsfr = fr->ws_ref) && wsfr->ic )
+	if ( wsfr && wsfr->ic )
 	  XSetICFocus(wsfr->ic);
 #endif
 	send(fr, NAME_inputFocus, ON, EAV);
@@ -725,9 +732,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
     case FocusOut:
     { 
 #ifdef O_XIM
-	FrameWsRef wsfr;
-
-	if ( (wsfr = fr->ws_ref) && wsfr->ic )
+	if ( wsfr && wsfr->ic )
 	  XUnsetICFocus(wsfr->ic);
 #endif
       send(fr, NAME_inputFocus, OFF, EAV);
@@ -890,7 +895,7 @@ updateAreaFrame(FrameObj fr, Int border)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Returns the window which  we  believe   is  the  window manager's window
-encapsulating out window as well as the offset of the client-area of our
+encapsulating our window as well as the offset of the client-area of our
 window relative to the real outside  of the window-manager's window. The
 latter is used to correct the position if   we send ->geometry to a life
 window.
@@ -982,9 +987,12 @@ ws_x_geometry_frame() updates the window position using an X geometry
 request.  
 
 This is a mess, totally unclear when  we   have  to  add which border to
-where. At the moment we do do-your-own,   copied mostly from the version
-in msw/msframe.c as the general one does   not understand the concept of
-multiple monitors.
+where. At the moment we do do-your-own  as the system version doesn't do
+the monitor extension. Copied mostly from the version in msw/msframe.c.
+
+Note  that  the  computation  of  the   size  of  the  decorated  window
+(ws_frame_bb) works fine if the  window   is  displayed, but not before.
+Therefore we re-do our work if the window is mapped.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MIN_VISIBLE 32			/* pixels that must be visible */
@@ -1040,14 +1048,12 @@ ws_x_geometry_frame(FrameObj fr, Name spec, Monitor mon)
 
     switch(sscanf(s, "%dx%d%[+-]%d%[+-]%d", &w, &h, signx, &x, signy, &y))
     { case 2:
-	w += ew;
-        h += eh;
+	/*w += ew; h += eh;*/
 	flags |= SWP_NOMOVE;
 	ok++;
 	break;
       case 6:
-	w += ew;
-	h += eh;
+	/*w += ew; h += eh;*/
 	if ( signx[1] == '-' )
 	  x = -x;
 	if ( signy[1] == '-' )
