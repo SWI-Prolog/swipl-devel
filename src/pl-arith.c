@@ -2134,7 +2134,16 @@ ar_float_integer_part(Number n1, Number r)
 
 static int
 ar_truncate(Number n1, Number r)
-{ return ar_float_integer_part(n1, r);
+{ switch(n1->type)
+  { case V_REAL:
+      if ( n1->value.f >= 0.0 )
+	return ar_floor(n1, r);
+      else
+	return ar_ceil(n1, r);
+    default:
+      cpNumber(r, n1);
+      succeed;
+  }
 }
 
 

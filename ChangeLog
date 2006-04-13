@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED/MODIFIED: function truncate/1 to return an integer instead of
+    a float.  Graham Thwaites.
+
   * MODIFIED: portray_clause/1,2 and write_canonical/1,2 print singleton
     variables as _ and write_canonical/1,2 prints its variables as A, B, ...
     Paulo Moura.

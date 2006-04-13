@@ -4135,7 +4135,9 @@ Integer part of floating-point number. Negative if \arg{Expr} is
 negative, \arg{Expr} if \arg{Expr} is integer.
 
     \predicate{truncate}{1}{+Expr}
-Truncate \arg{Expr} to an integer.  Same as float_integer_part/1.
+Truncate \arg{Expr} to an integer.  If $\arg{Expr} \geq 0$ this is the
+same as \term{floor}{Expr}.  For $\arg{Expr} < 0$ this is the same as
+\term{ceil}{Expr}.  E.i.\ truncate rounds towards zero.
 
     \predicate{floor}{1}{+Expr}
 Evaluates \arg{Expr} and returns the largest integer smaller or equal

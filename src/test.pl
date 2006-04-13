@@ -305,6 +305,11 @@ arithmetic(ceil-1) :-
 	1 is ceil(0.9),
 	0 is ceil(-0.1),
 	0 is ceil(-0.9).
+arithmetic(truncate-1) :-
+	1 is truncate(1.1),
+	1 is truncate(1.9),
+	-1 is truncate(-1.1),
+	-1 is truncate(-1.9).
 
 
 		 /*******************************
