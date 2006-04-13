@@ -75,3 +75,5 @@ Packages
     handling keep-alive connections.
   * Semweb.  Some enhancement in re-hash timing that can cause big
     preformance improvements on some benchmarks.
+  * rdf2pl: Added library(rdf_write) to write a list of RDF triples as
+    RDF/XML.

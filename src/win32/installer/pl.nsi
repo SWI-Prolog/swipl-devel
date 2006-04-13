@@ -315,6 +315,7 @@ Section "RDF and Semantic Web Library"
   File pl\library\rdf_triple.pl
   File pl\library\rewrite.pl
   File pl\library\rdf_ntriples.pl
+  File pl\library\rdf_write.pl
   File /r pl\library\semweb
 
   SetOutPath $INSTDIR\doc\packages
