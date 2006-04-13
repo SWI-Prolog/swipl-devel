@@ -90,7 +90,10 @@ rdf_write_header(Out, Triples) :-
 
 xml_encoding(Out, Encoding) :-
 	stream_property(Out, encoding(Enc)),
-	xml_encoding_name(Enc, Encoding).
+	(   xml_encoding_name(Enc, Encoding)
+	->  true
+	;   throw(error(domain_error(rdf_encoding, Enc), _))
+	).
 
 xml_encoding_name(ascii,       'US-ASCII').
 xml_encoding_name(iso_latin_1, 'ISO-8859-1').
