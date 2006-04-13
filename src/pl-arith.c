@@ -2135,7 +2135,15 @@ ar_float_integer_part(Number n1, Number r)
 static int
 ar_truncate(Number n1, Number r)
 { switch(n1->type)
-  { case V_REAL:
+  { 
+#ifdef O_GMP
+    case V_MPQ:
+      if ( mpq_sgn(n1->value.mpq) >= 0 )
+	return ar_floor(n1, r);
+      else
+	return ar_ceil(n1, r);
+#endif
+    case V_REAL:
       if ( n1->value.f >= 0.0 )
 	return ar_floor(n1, r);
       else
