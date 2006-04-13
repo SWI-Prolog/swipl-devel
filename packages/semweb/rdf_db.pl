@@ -931,11 +931,11 @@ rdf_save2(File, Options) :-
 				  Out)).
 
 
-valid_encoding(ascii) :- !.
-valid_encoding(iso_latin_1) :- !.
-valid_encoding(utf8) :- !.
 valid_encoding(Enc) :-
-	throw(error(domain_error(encoding, Enc), _)).
+	(   xml_encoding_name(Enc, _)
+	->  true
+	;   throw(error(domain_error(encoding, Enc), _))
+	).
 
 
 cleanup_save(Reason,
@@ -1030,7 +1030,10 @@ rdf_save_header(Out, FileRef) :-	% compatibility
 	
 xml_encoding(Out, Encoding) :-
 	stream_property(Out, encoding(Enc)),
-	xml_encoding_name(Enc, Encoding).
+	(   xml_encoding_name(Enc, Encoding)
+	->  true
+	;   throw(error(domain_error(rdf_encoding, Enc), _))
+	).
 
 xml_encoding_name(ascii,       'US-ASCII').
 xml_encoding_name(iso_latin_1, 'ISO-8859-1').
