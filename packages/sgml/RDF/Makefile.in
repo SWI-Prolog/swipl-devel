@@ -35,7 +35,7 @@ INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		rdf.pl rdf_parser.pl rdf_triple.pl rewrite.pl \
-		rdf_ntriples.pl
+		rdf_ntriples.pl rdf_write.pl
 XPCEPL=		rdf_diagram.pl
 
 all:		

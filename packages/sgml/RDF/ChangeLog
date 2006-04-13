@@ -1,3 +1,7 @@
+Apr 13, 2006
+
+  * ADDED: library rdf_write to write an RDF file from a list of triples.
+
 Dec 8, 2005
 
   * FIXED: xmlns attributes in descriptions.  Bijan Parsia

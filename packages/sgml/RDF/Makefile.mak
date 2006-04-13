@@ -23,6 +23,7 @@ install::
 		copy rdf_triple.pl "$(PLBASE)\library"
 		copy rewrite.pl "$(PLBASE)\library"
 		copy rdf_ntriples.pl "$(PLBASE)\library"
+		copy rdf_write.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 !ENDIF
 
@@ -38,6 +39,8 @@ uninstall::
 		del "$(PLBASE)\library\rdf_parser.pl"
 		del "$(PLBASE)\library\rdf_triple.pl"
 		del "$(PLBASE)\library\rewrite.pl"
+		del "$(PLBASE)\library\rdf_ntriples.pl"
+		del "$(PLBASE)\library\rdf_write.pl"
 		$(MAKEINDEX)
 
 clean::

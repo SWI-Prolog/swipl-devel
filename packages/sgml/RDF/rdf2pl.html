@@ -17,10 +17,10 @@
 <HR>
 <CENTER>
 <I>Jan Wielemaker <BR>
-SWI, <BR>
+HCS, <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
+E-mail: <A HREF="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></I>
 </CENTER>
 <HR>
 </BLOCKQUOTE>
@@ -35,7 +35,8 @@ meta-data about web-resources. It has two representations providing the
 same semantics. RDF documents are normally transferred as XML documents 
 using the RDF-XML syntax. This format is unsuitable for processing. The 
 parser defined here converts an RDF-XML document into the <EM>triple</EM> 
-notation.
+notation. The library <CODE>library(rdf_write)</CODE> creates an RDF/XML 
+document from a list of triples.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -49,12 +50,13 @@ notation.
 <LI><A HREF="#sec:3.2">3.2 Name spaces</A>
 <LI><A HREF="#sec:3.3">3.3 Low-level access</A>
 </UL>
-<LI><A HREF="#sec:4"><B>4 Testing the RDF translator</B></A>
-<LI><A HREF="#sec:5"><B>5 Metrics</B></A>
-<LI><A HREF="#sec:6"><B>6 Installation</B></A>
+<LI><A HREF="#sec:4"><B>4 Writing RDF graphs</B></A>
+<LI><A HREF="#sec:5"><B>5 Testing the RDF translator</B></A>
+<LI><A HREF="#sec:6"><B>6 Metrics</B></A>
+<LI><A HREF="#sec:7"><B>7 Installation</B></A>
 <UL>
-<LI><A HREF="#sec:6.1">6.1 Unix systems</A>
-<LI><A HREF="#sec:6.2">6.2 Windows</A>
+<LI><A HREF="#sec:7.1">7.1 Unix systems</A>
+<LI><A HREF="#sec:7.2">7.2 Windows</A>
 </UL>
 </UL>
 
@@ -403,7 +405,46 @@ The option
 <CODE>expand_foreach</CODE> is not supported as the container may be in 
 a different description.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
 
-<H2><A NAME="sec:4">4 Testing the RDF translator</A></H2>
+<H2><A NAME="sec:4">4 Writing RDF graphs</A></H2>
+
+<P>The library <CODE>library(rdf_write)</CODE> provides the inverse of <A NAME="idx:loadrdf2:5"></A><A HREF="#load_rdf/2">load_rdf/2</A> 
+using the predicate <A NAME="idx:rdfwritexml2:6"></A><A HREF="#rdf_write_xml/2">rdf_write_xml/2</A>. 
+In most cases the RDF parser is used in combination with the Semweb 
+package providing <CODE>library(semweb/rdf_db)</CODE>. This library 
+defines <A NAME="idx:rdfsave2:7"></A><B>rdf_save/2</B> to save a named 
+RDF graph from the database to a file. This library writes a list of rdf 
+terms to a stream. It has been developed for the SeRQL server which 
+computes an RDF graph that needs to be transmitted in an HTTP request. 
+As we see this as a typical use-case scenario the library only provides 
+writing to a stream.
+
+<DL>
+
+<P>
+<DT><A NAME="rdf_write_xml/2"><STRONG>rdf_write_xml</STRONG>(<VAR>+Stream, 
++Triples</VAR>)</A><DD>
+Write an RDF/XML document to <VAR>Stream</VAR> from the list of <VAR>Triples</VAR>.
+<VAR>Stream</VAR> must use one of the following Prolog stream encodings:
+<CODE>ascii</CODE>, <CODE>iso_latin_1</CODE> or <CODE>utf8</CODE>. 
+Characters that cannot be represented in the encoding are represented as 
+XML entities. Using ASCII is a good idea for documents that can be 
+represented almost completely in ASCII. For more international documents 
+using UTF-8 creates a more compact document that is easier to read.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+rdf_write(File, Triples) :-
+        open(File, write, Out, [encoding(utf8)]),
+        call_cleanup(rdf_write_xml(Out, Triples),
+                     close(Out)).
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<H2><A NAME="sec:5">5 Testing the RDF translator</A></H2>
 
 <P>A test-suite and driver program are provided by <CODE>rdf_test.pl</CODE> 
 in the source directory. To run these tests, load this file into Prolog 
@@ -422,14 +463,14 @@ resulting triples.
 <P>
 <DT><A NAME="passed/1"><STRONG>passed</STRONG>(<VAR>+N</VAR>)</A><DD>
 Process <CODE>suite/tN.rdf</CODE> and store the resulting triples in
-<CODE>suite/ok/tN.pl</CODE> for later validation by <A NAME="idx:test0:5"></A><A HREF="#test/0">test/0</A>.
+<CODE>suite/ok/tN.pl</CODE> for later validation by <A NAME="idx:test0:8"></A><A HREF="#test/0">test/0</A>.
 
 <P>
 <DT><A NAME="test/0"><STRONG>test</STRONG></A><DD>
 Run all tests and classify the result.
 </DL>
 
-<H2><A NAME="sec:5">5 Metrics</A></H2>
+<H2><A NAME="sec:6">6 Metrics</A></H2>
 
 <P>It took three days to write and one to document the Prolog RDF 
 parser. A significant part of the time was spent understanding the RDF 
@@ -468,9 +509,9 @@ seconds Prolog startup time to process this file. The <A HREF="http://www.pro-so
 Solutions</A> parser (written in Perl) requires 1.5 seconds exluding 
 0.25 seconds startup time.
 
-<H2><A NAME="sec:6">6 Installation</A></H2>
+<H2><A NAME="sec:7">7 Installation</A></H2>
 
-<H3><A NAME="sec:6.1">6.1 Unix systems</A></H3>
+<H3><A NAME="sec:7.1">7.1 Unix systems</A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -492,7 +533,7 @@ using:
 where
 <CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
 
-<H3><A NAME="sec:6.2">6.2 Windows</A></H3>
+<H3><A NAME="sec:7.2">7.2 Windows</A></H3>
 
 <P>Run the file <CODE>setup.pl</CODE> by double clicking it. This will 
 install the required files into the SWI-Prolog directory and update the 

@@ -8,7 +8,7 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog RDF parser}
+\renewcommand{\runningtitle}{SWI-Prolog RDF IO}
 
 \newcommand{\elem}[1]{{\tt\string<#1\string>}}
 
@@ -16,10 +16,10 @@
 
 \title{SWI-Prolog RDF parser}
 \author{Jan Wielemaker \\
-	SWI, \\
+	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{jan@swi.psy.uva.nl}}
+	E-mail: \email{jan@swi-prolog.org}}
 
 \maketitle
 
@@ -30,7 +30,8 @@ meta-data about web-resources. It has two representations providing
 the same semantics. RDF documents are normally transferred as XML
 documents using the RDF-XML syntax. This format is unsuitable for
 processing. The parser defined here converts an RDF-XML document into
-the \jargon{triple} notation.
+the \jargon{triple} notation.  The library \pllib{rdf_write} creates
+an RDF/XML document from a list of triples.
 \end{abstract}
 
 \vfill
@@ -345,6 +346,37 @@ different description.%
 	\footnote{Older versions used the calling convention
 		  \term{process_rdf(+File, +BaseURI, :OnTriples}.  This
 		  order is still recognised for compatibility.}
+
+
+\section{Writing RDF graphs}
+
+The library \pllib{rdf_write} provides the inverse of load_rdf/2 using
+the predicate rdf_write_xml/2.  In most cases the RDF parser is used in
+combination with the Semweb package providing \pllib{semweb/rdf_db}.
+This library defines rdf_save/2 to save a named RDF graph from the
+database to a file. This library writes a list of rdf terms to a stream.
+It has been developed for the SeRQL server which computes an RDF graph
+that needs to be transmitted in an HTTP request.  As we see this as a
+typical use-case scenario the library only provides writing to a stream.
+
+\begin{description}
+    \predicate{rdf_write_xml}{2}{+Stream, +Triples}
+Write an RDF/XML document to \arg{Stream} from the list of \arg{Triples}.
+\arg{Stream} must use one of the following Prolog stream encodings:
+\const{ascii}, \const{iso_latin_1} or \const{utf8}.  Characters that
+cannot be represented in the encoding are represented as XML entities.
+Using ASCII is a good idea for documents that can be represented almost
+completely in ASCII.  For more international documents using UTF-8 creates
+a more compact document that is easier to read.
+
+\begin{code}
+rdf_write(File, Triples) :-
+	open(File, write, Out, [encoding(utf8)]),
+	call_cleanup(rdf_write_xml(Out, Triples),
+		     close(Out)).
+\end{code}
+\end{description}
+
 
 \section{Testing the RDF translator}
 
