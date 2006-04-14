@@ -4209,7 +4209,8 @@ guard_splitting(Rule,SplitGuardList) :-
 	term_variables(RestGuardList,GuardVars1),
 	% variables that are declared to be ground don't need to be locked
 	ground_vars(Heads,GroundVars),	
-	list_difference_eq(GuardVars1,GroundVars,GuardVars),
+	list_difference_eq(HeadVars,GroundVars,LockableHeadVars),
+	intersect_eq(LockableHeadVars,GuardVars1,GuardVars),
 	( chr_pp_flag(guard_locks,on),
           bagof(('chr lock'(X)) - ('chr unlock'(X)), (lists:member(X,GuardVars)), LocksUnlocks) ->
 		once(pairup(Locks,Unlocks,LocksUnlocks))
