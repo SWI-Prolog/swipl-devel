@@ -30,10 +30,11 @@ E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></I>
 <CENTER><H3>Abstract</H3></Center>
 <TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
 This article documents the package HTTP, a series of libraries for 
-accessing data on HTTP servers as well as provide HTTP server 
+accessing data on HTTP servers as well as providing HTTP server 
 capabilities from SWI-Prolog. Both server and client are modular 
 libraries. The server can be operated from the Unix <B>inetd</B> 
-super-daemon as well as as a stand-alone server.
+super-daemon as well as as a stand-alone server that runs on all 
+platforms supported by SWI-Prolog.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -311,9 +312,9 @@ it literally according to <VAR>Target</VAR>, which is one of:
 
 <P>
 <DT><STRONG>stream</STRONG>(<VAR>Output</VAR>)<DD>
-Append the data to the given stream, which should be a Prolog stream 
-open for writing. This can be used to return save the data in a 
-(memory-)file, XPCE object, forward it to process using a pipe, etc.
+Append the data to the given stream, which must be a Prolog stream open 
+for writing. This can be used to save the data in a (memory-)file, XPCE 
+object, forward it to process using a pipe, etc.
 
 <P>
 <DT><STRONG>atom</STRONG><DD>
@@ -387,7 +388,7 @@ Send data of the MIME type <CODE>application/x-www-form-urlencoded</CODE>
 as produced by browsers issuing a POST request from an HTML form.
 <VAR>ListOfParameter</VAR> is a list of <VAR>Name</VAR>=<VAR>Value</VAR> 
 or
-<CODE><VAR>Name</VAR>(Value)</CODE>.
+<VAR>Name</VAR>(<VAR>Value</VAR>) .
 
 <P>
 <DT><STRONG>form_data</STRONG>(<VAR>+ListOfData</VAR>)<DD>
@@ -606,8 +607,9 @@ Path with which to associate the session management. Default is
 </DL>
 
 <P>
-<DT><A NAME="http_session_id/-Id"><STRONG>http_session_id</STRONG>(<VAR>-Id</VAR>)</A><DD>
-eturns an identifier for the current session. The identifier is an atom.
+<DT><A NAME="http_session_id/1"><STRONG>http_session_id</STRONG>(<VAR>-Id</VAR>)</A><DD>
+Returns an identifier for the current session. The identifier is an 
+atom.
 
 <P>
 <DT><A NAME="http_current_session/2"><STRONG>http_current_session</STRONG>(<VAR>?Id, 
@@ -958,9 +960,9 @@ the users body code parallel from a pool of worker threads. As it avoids
 the state engine and copying required in the event-driven server it is 
 generally faster and capable to handle multiple requests concurrently.
 
-<P>This server is a harder to debug due to the involved threading. It 
-can provide fast communication to multiple clients and can be used for 
-more demanding embedded servers, such as agent platforms.
+<P>This server is harder to debug due to the involved threading. It can 
+provide fast communication to multiple clients and can be used for more 
+demanding embedded servers, such as agent platforms.
 
 <P>
 <LI><I>Using <CODE>library(inetd_httpd)</CODE> for server-per-client</I><BR>
@@ -1525,7 +1527,7 @@ Emit <TT>&amp;&lt;<VAR>Entity</VAR>&gt;;</TT>.
 <LI><I><CODE>Tag(Content)</CODE></I><BR>
 Emit HTML element <VAR>Tag</VAR> using <VAR>Content</VAR> and no 
 attributes.
-<VAR>Content</VAR> is handled to <A NAME="idx:html1:50"></A><A HREF="#html/1">html/1</A>. 
+<VAR>Content</VAR> is handed to <A NAME="idx:html1:50"></A><A HREF="#html/1">html/1</A>. 
 See <A HREF="#sec:htmllayout">section 3.9.3</A> for details on the 
 automatically generated layout.
 
@@ -1534,7 +1536,7 @@ automatically generated layout.
 Emit HTML element <VAR>Tag</VAR> using <VAR>Attributes</VAR> and <VAR>Content</VAR>.
 <VAR>Attributes</VAR> is either a single attribute of a list of 
 attributes. Each attributes is of the format <CODE>Name(Value)</CODE> or
-<CODE>Name(Value)</CODE>.
+<VAR>Name</VAR>=<VAR>Value</VAR>.
 </UL>
 
 <P>
@@ -1629,7 +1631,7 @@ for details.
 <P>The <A NAME="idx:html1:60"></A><A HREF="#html/1">html/1</A> grammar 
 rules translates a specification into a list of atoms and layout 
 instructions. Currently the layout instructions are terms of the format <CODE>nl(N)</CODE>, 
-requesting at least <VAR>N</VAR> newlines. Multiple consequtive <CODE>nl(1)</CODE> 
+requesting at least <VAR>N</VAR> newlines. Multiple consecutive <CODE>nl(1)</CODE> 
 terms are combined to an atom containing the maximum of the requested 
 number of newline characters.
 
@@ -1665,8 +1667,7 @@ rules for the output of the SWI-Prolog
 <CODE>library(sgml)</CODE> package.
 
 <P>The <A NAME="idx:html1:64"></A><A HREF="#html/1">html/1</A> rule 
-first calls the multifile ruleset html_write:expand/1. The other 
-predicates contain commonly rules for defining new rules.
+first calls the multifile ruleset html_write:expand/1.
 
 <DL>
 
@@ -1796,10 +1797,11 @@ satisfactory and Prolog-minded way to produce HTML text from a program.
 We have been using Prolog for the generation of web pages in a number of 
 projects. Just using <A NAME="idx:format2:69"></A><B>format/2</B> never 
 was a real option, generating error-prone HTML from clumsy syntax. We 
-started with a layour on top of format, keeping track of the current 
-nesting and thus always capable of properly closing the environment.
+started with a layour on top of <A NAME="idx:format2:70"></A><B>format/2</B>, 
+keeping track of the current nesting and thus always capable of properly 
+closing the environment.
 
-<P>DCG based translation however naturally exploits Prologs 
+<P>DCG based translation however naturally exploits Prolog's 
 term-rewriting primitives. If generation fails for whatever reason it is 
 easy to produce an alternative document (for example holding an error 
 message).
@@ -1811,9 +1813,9 @@ browser, selecting fragments from an analysed document and presenting
 parts of the XPCE documentation using a browser. It has proven to be 
 able to deal with generating pages quickly and comfortably.
 
-<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:70"></A><B>goal_expansion/2</B> 
+<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:71"></A><B>goal_expansion/2</B> 
 to do compile-time optimisation of the library. Quotation of known text 
-and invokation of sub-rules using the <CODE>\</CODE><VAR>RuleSet</VAR> 
+and invocation of sub-rules using the <CODE>\</CODE><VAR>RuleSet</VAR> 
 and
 &lt;<VAR>Module</VAR>&gt;:&lt;<VAR>RuleSet</VAR>&gt; operators are 
 costly operations in the analysis that can be done at compile-time.
@@ -1846,7 +1848,7 @@ If part of the query consists of filenames or directories, check them.
 This also applies to files you only read. Passing names as
 <CODE>/etc/passwd</CODE>, but also <CODE>../../../../../etc/passwd</CODE> 
 are tried by experienced hackers to learn about the system they want to 
-attack. So, expand provided names using <A NAME="idx:absolutefilename23:71"></A><B>absolute_file_name/[2,3]</B> 
+attack. So, expand provided names using <A NAME="idx:absolutefilename23:72"></A><B>absolute_file_name/[2,3]</B> 
 and verify they are inside a folder reserved for the server. Avoid 
 symbolic links from this subtree to the outside world. The example below 
 checks validity of filenames. The first call ensures proper canonisation 
@@ -1865,7 +1867,7 @@ check_file(File) :-
 
 <P>
 <LI><I>Check scripts</I><BR>
-Should input in any way activate external scripts using <A NAME="idx:shell1:72"></A><B>shell/1</B> 
+Should input in any way activate external scripts using <A NAME="idx:shell1:73"></A><B>shell/1</B> 
 or <CODE>open(pipe(Command), ...)</CODE>, verify the argument once more.
 
 <P>
@@ -1917,7 +1919,7 @@ Currently atom-garbage collection is activated after the creation of
 <P>
 <DT><STRONG>A</STRONG><DD>
 <DT>absolute_file_name/[2,3]<DD>
-<A HREF="#idx:absolutefilename23:71">4</A>
+<A HREF="#idx:absolutefilename23:72">4</A>
 <DT><STRONG>B</STRONG><DD>
 <DT>body/1<DD>
 <A HREF="#idx:body1:53">3.9</A>
@@ -1928,10 +1930,10 @@ Currently atom-garbage collection is activated after the creation of
 <DT>file_mime_type/2<DD>
 <A HREF="#idx:filemimetype2:10">2.2</A>
 <DT>format/2<DD>
-<A HREF="#idx:format2:43">3.9</A> <A HREF="#idx:format2:69">3.9.5</A>
+<A HREF="#idx:format2:43">3.9</A> <A HREF="#idx:format2:69">3.9.5</A> <A HREF="#idx:format2:70">3.9.5</A>
 <DT><STRONG>G</STRONG><DD>
 <DT>goal_expansion/2<DD>
-<A HREF="#idx:goalexpansion2:70">3.9.5</A>
+<A HREF="#idx:goalexpansion2:71">3.9.5</A>
 <DT><STRONG>H</STRONG><DD>
 <DT>head/1<DD>
 <A HREF="#idx:head1:52">3.9</A>
@@ -1980,7 +1982,7 @@ Currently atom-garbage collection is activated after the creation of
 <A HREF="#idx:httpsessionassert1:20">3.2</A>
 <DT><A HREF="#http_session_asserta/1">http_session_asserta/1</A><DD>
 <DT><A HREF="#http_session_data/1">http_session_data/1</A><DD>
-<DT><A HREF="#http_session_id/-Id">http_session_id/-Id</A><DD>
+<DT><A HREF="#http_session_id/1">http_session_id/1</A><DD>
 <DT><A HREF="#http_session_retract/1">http_session_retract/1</A><DD>
 <DT><A HREF="#http_session_retractall/1">http_session_retractall/1</A><DD>
 <DT><A HREF="#http_set_session_options/1">http_set_session_options/1</A><DD>
@@ -2024,7 +2026,7 @@ Currently atom-garbage collection is activated after the creation of
 <DT>sformat/3<DD>
 <A HREF="#idx:sformat3:49">3.9</A>
 <DT>shell/1<DD>
-<A HREF="#idx:shell1:72">4</A>
+<A HREF="#idx:shell1:73">4</A>
 <DT>socket<DD>
 <A HREF="#sec:3.5.2">3.5.2</A>
 <DT>ssl_init/3<DD>

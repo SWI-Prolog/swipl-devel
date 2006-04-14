@@ -25,10 +25,11 @@
 
 \begin{abstract}
 This article documents the package HTTP, a series of libraries for
-accessing data on HTTP servers as well as provide HTTP server
+accessing data on HTTP servers as well as providing HTTP server
 capabilities from SWI-Prolog. Both server and client are modular
 libraries. The server can be operated from the Unix \program{inetd}
-super-daemon as well as as a stand-alone server.
+super-daemon as well as as a stand-alone server that runs on all
+platforms supported by SWI-Prolog.
 \end{abstract}
 
 \vfill
@@ -217,9 +218,9 @@ Do not try to interpret the data according to the MIME-type, but return
 it literally according to \arg{Target}, which is one of:
     \begin{description}
         \termitem{stream}{Output}
-Append the data to the given stream, which should be a Prolog stream
-open for writing. This can be used to return save the data in a
-(memory-)file, XPCE object, forward it to process using a pipe, etc.
+Append the data to the given stream, which must be a Prolog stream open
+for writing. This can be used to save the data in a (memory-)file, XPCE
+object, forward it to process using a pipe, etc.
 
 	\termitem{atom}{}
 Return the result as an atom.  Though SWI-Prolog has no limit on the
@@ -280,7 +281,7 @@ of \arg{Stream} are used.
 Send data of the MIME type \const{application/x-www-form-urlencoded}
 as produced by browsers issuing a POST request from an HTML form.
 \arg{ListOfParameter} is a list of \arg{Name}=\arg{Value} or
-\term{\arg{Name}}{Value}.
+\mbox{\arg{Name}(\arg{Value})}.
 
 	\termitem{form_data}{+ListOfData}
 Send data of the MIME type \const{multipart/form-data} as produced by
@@ -452,7 +453,7 @@ Path with which to associate the session management.  Default is
 \const{/}, associating it with the entire server.
     \end{description}
 
-    \predicate{http_session_id}{-Id}
+    \predicate{http_session_id}{1}{-Id}
 Returns an identifier for the current session.  The identifier is an
 atom.
 
@@ -730,7 +731,7 @@ the users body code parallel from a pool of worker threads. As it avoids
 the state engine and copying required in the event-driven server it is
 generally faster and capable to handle multiple requests concurrently.
 
-This server is a harder to debug due to the involved threading.  It
+This server is harder to debug due to the involved threading.  It
 can provide fast communication to multiple clients and can be used for
 more demanding embedded servers, such as agent platforms.
 
@@ -1201,14 +1202,14 @@ Emit {\tt\&<Entity>;}.
 
     \item [\term{Tag}{Content}]
 Emit HTML element \arg{Tag} using \arg{Content} and no attributes.
-\arg{Content} is handled to html/1. See \secref{htmllayout} for details
+\arg{Content} is handed to html/1. See \secref{htmllayout} for details
 on the automatically generated layout.
 
     \item [\term{Tag}{Attributes, Content}]
 Emit HTML element \arg{Tag} using \arg{Attributes} and \arg{Content}.
 \arg{Attributes} is either a single attribute of a list of attributes.
 Each attributes is of the format \term{Name}{Value} or
-\term{Name}{Value}.
+\mbox{\arg{Name}=\arg{Value}}.
 \end{itemlist}
 
     \dcg{page}{2}{:HeadContent, :BodyContent}
@@ -1284,7 +1285,7 @@ End an element.  See html_begin/1 for details.
 The html/1 grammar rules translates a specification into a list of atoms
 and layout instructions. Currently the layout instructions are terms of
 the format \term{nl}{N}, requesting at least \arg{N} newlines. Multiple
-consequtive \term{nl}{1} terms are combined to an atom containing the
+consecutive \term{nl}{1} terms are combined to an atom containing the
 maximum of the requested number of newline characters.
 
 To simplify handing the data to a client or storing it into a file,
@@ -1305,13 +1306,12 @@ provide the \const{Content-length} field of an HTTP reply-header.
 \subsubsection{Adding rules for html/1}
 
 In some cases it is practical to extend the translations imposed by
-html/1. When using XPCE for example, it is comfortable to be
-able defining default translation to HTML for objects. We also used this
+html/1. When using XPCE for example, it is comfortable to be able
+defining default translation to HTML for objects. We also used this
 technique to define translation rules for the output of the SWI-Prolog
 \pllib{sgml} package.
 
 The html/1 rule first calls the multifile ruleset html_write:expand/1.
-The other predicates contain commonly rules for defining new rules.
 
 \begin{description}
     \dcg{html_write:expand}{1}{+Spec} Hook to add additional
@@ -1431,10 +1431,10 @@ satisfactory and Prolog-minded way to produce HTML text from a program.
 We have been using Prolog for the generation of web pages in a number of
 projects. Just using format/2 never was a real
 option, generating error-prone HTML from clumsy syntax.  We started
-with a layour on top of format, keeping track of the current nesting
+with a layour on top of format/2, keeping track of the current nesting
 and thus always capable of properly closing the environment.
 
-DCG based translation however naturally exploits Prologs term-rewriting
+DCG based translation however naturally exploits Prolog's term-rewriting
 primitives.  If generation fails for whatever reason it is easy to
 produce an alternative document (for example holding an error message).
 
@@ -1446,7 +1446,7 @@ able to deal with generating pages quickly and comfortably.
 
 In a future version we will probably define a goal_expansion/2 to do
 compile-time optimisation of the library. Quotation of known text and
-invokation of sub-rules using the \bsl\arg{RuleSet} and
+invocation of sub-rules using the \bsl\arg{RuleSet} and
 <Module>:<RuleSet> operators are costly operations in the analysis
 that can be done at compile-time.
 
