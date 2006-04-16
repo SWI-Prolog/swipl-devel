@@ -1397,7 +1397,10 @@ parseTeX(Input fd, CallBack func, void *ctx)
 	} while(!wbreak(c));
 	*s = EOS;
 	t.type = TOK_WORD;
-	t.value.string = buf;
+	if ( streq(buf, "[]") )
+	  t.value.string = "\\[]";
+	else
+	  t.value.string = buf;
 	(*func)(&t, ctx);
 
 	break;

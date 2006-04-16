@@ -350,6 +350,7 @@ translate_2(Group, Mode, Mode, HTML) :-			% {...}
 	Group = [_|_],
 	translate_group(Group, HTML).
 translate_2(~, Mode, Mode, html('&nbsp;')).		% ~
+translate_2('\\[]', Mode, Mode, html('[]')). 		% []
 translate_2(Atom0, Mode, Mode, Atom) :-			% Normal word
 	atomic(Atom0),
 	(   Mode = group(Atts),
