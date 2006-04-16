@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -1903,8 +1903,8 @@ step_counter(Name, NewVal) :-
 		 *******************************/
 
 cmd(rule({'\\linewidth'}, {_H}), [html('<hr>')]) :- !.
-cmd(rule({_W}, {_H}), []) :-
-	format('_W = ~w, H = ~w~n', [_W, _H]).
+cmd(rule({W}, {H}), []) :-
+	format('W = ~w, H = ~w~n', [W, H]).
 
 		 /*******************************
 		 *	      TABLES		*
