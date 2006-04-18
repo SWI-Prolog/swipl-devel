@@ -8,6 +8,15 @@
 					--------------------------------------
 
 ===============================
+VERSION 5.6.12 (April 18, 2006)
+===============================
+
+  * FIXED: Possible crash in call-back from C due to wrong timing of stack
+    allocation.  Very old bug.  Affects all versions and all programs,
+    though XPCE applications are extra vulnerable due to frequent call-backs.
+    Jochem Liem.
+
+===============================
 VERSION 5.6.11 (April 11, 2006)
 ===============================
 

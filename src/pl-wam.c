@@ -1897,6 +1897,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     lTop = addPointer(lTop, sizeof(word));
 #endif
 
+  requireStack(local, sizeof(struct queryFrame));
+
   qf	     = (QueryFrame) lTop;
   fr         = &qf->frame;
   fr->parent = NULL;
