@@ -2,6 +2,14 @@
 			   ==============
 
 
+VERSION 6.6.12, distributed with SWI-Prolog 5.6.12
+==================================================
+
+* ENHANCED: `text_buffer->for_all_fragments' to avoid use of alloca() for
+  large number of arguments.  Patchwork for problems in Windows with limited 
+  stack-sizes.  Pierpaolo Bernardi.
+
+
 VERSION 6.6.11, distributed with SWI-Prolog 5.6.11
 ==================================================
 

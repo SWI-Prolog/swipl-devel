@@ -554,22 +554,36 @@ static status
 forAllFragmentsTextBuffer(TextBuffer tb, Code msg)
 { int size = 0;
   Fragment f;
+  Fragment *argv;
+  int alloced = FALSE;
+  int i;
+  int rc = SUCCEED;
 
   for(f = tb->first_fragment; notNil(f); f = f->next)
     size++;
 
-  { ArgVector(argv, size);
-    int i = 0;
+  if ( size > 1024 || !(argv = alloca(size*sizeof(Fragment))) )
+  { argv = pceMalloc(size*sizeof(Fragment));
+    alloced = TRUE;
+  }
 
-    for(f = tb->first_fragment; notNil(f); f = f->next)
-      argv[i++] = f;
-    for(i=0; i<size; i++)
-    { if ( !isFreedObj(argv[i]) )
-	TRY(forwardCodev(msg, 1, &argv[i]));
+
+  for(i=0, f = tb->first_fragment; notNil(f); f = f->next)
+    argv[i++] = f;
+
+  for(i=0; i<size; i++)
+  { if ( !isFreedObj(argv[i]) )
+    { if ( !forwardCodev(msg, 1, (Any *)&argv[i]) )
+      { rc = FAIL;
+	break;
+      }
     }
   }
 
-  succeed;
+  if ( alloced )
+    pceFree(argv);
+
+  return rc;
 }
 
 
