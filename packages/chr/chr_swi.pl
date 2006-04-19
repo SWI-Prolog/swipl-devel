@@ -54,7 +54,6 @@
 
 :- set_prolog_flag(generate_debug_info, false).
 
-:- use_module(library(gensym)).
 
 :- multifile user:file_search_path/2.
 :- dynamic   user:file_search_path/2.
@@ -62,12 +61,16 @@
 
 user:file_search_path(chr, library(chr)).
 
-:- use_module(chr(chr_translate)).
-:- use_module(chr(chr_runtime)).
-:- use_module(chr(chr_messages)).
-:- use_module(chr(chr_hashtable_store)).
-
-:- use_module(chr(chr_compiler_errors)).
+:- load_files([ library(gensym),
+		chr(chr_translate),
+		chr(chr_runtime),
+		chr(chr_messages),
+		chr(chr_hashtable_store),
+		chr(chr_compiler_errors)
+	      ],
+	      [ if(not_loaded),
+		silent(true)
+	      ]).
 
 :- use_module(library(lists),[member/2]).
 %% SWI end
