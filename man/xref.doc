@@ -92,7 +92,7 @@ By default disabled.  If enabled, modules that require
 predicates to be autoloaded are flagged with a warning and the file
 info window of a module shows the required autoload predicates.
 
-    \definition{Warn autoload}
+    \definition{Warn not called}
 If enabled (default), the file-overview shows an alert icon for files
 that have predicates that are not called.
 \end{description}
