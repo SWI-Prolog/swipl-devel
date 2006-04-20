@@ -674,7 +674,8 @@ set_phase(SP) <=> active_phase(SP).
 % Entry point for new constraints. <Constraints> is either a constraint or a
 % conjunction of constraints.
 
-{C} :- 
+{C} :-
+	nonvar(C),
 	incremental(Inc),
 	cns(C,Inc),
 	(   Inc == false
@@ -690,7 +691,9 @@ set_phase(SP) <=> active_phase(SP).
 
 cns((Cons1,Cons2),Inc) :-
 	!,
+	nonvar(Cons1),
 	cns(Cons1,Inc),
+	nonvar(Cons2),
 	cns(Cons2,Inc).
 cns(Cons,Inc) :-
 	!,
@@ -754,6 +757,9 @@ new_constraint(X=<Y,Vars,Prb) <=>
 	->  X =< Y
 	;   prepared_constraint(X=<Y,Vars,Prb)
 	).
+new_constraint(F,_,_) <=> 
+	throw(error(syntax_error('Illegal constraint relation'),
+	    context({}/1,F))).
 
 % constraint(Constraint,Probe)
 %
@@ -1145,6 +1151,7 @@ chk_sol(_) <=> true.
 % change by using chk_sol/1.
 
 n_i_e_p_c(_,_,V) \ in_cons(V) <=> true.
+inverted_constraint(_,_,_,V) \ in_cons(V) <=> true.
 in_cons(_) <=> fail. 
 
 % check_id(ID,IE,Fail)
@@ -1163,6 +1170,12 @@ n_i_e_p_c(ID,BF,_), varlist_f(ID,n,BFV) \ check_id(ID,n,Fail) <=>
 	    ->	rem_cons(ID,n)
 	    ;	Fail = fail
 	    ).
+inverted_constraint(ID,n,BF,_), varlist_f(ID,n,BFV) \ check_id(ID,n,Fail) <=>
+	    true |
+	    (   max_reduced(n,BF,BFV)
+	    ->  rem_cons(ID,n)
+	    ;   Fail = fail
+	    ).
 check_id(_,_,_) <=> true.
 	    
 % rem_cons(ID,IE)
@@ -1172,6 +1185,7 @@ check_id(_,_,_) <=> true.
 
 rem_cons(ID,n) \ n_i_e_p_c(ID,_,_) <=> true.
 rem_cons(ID,n) \ n_i_e_p_c_pd(ID,_,_) <=> true.
+rem_cons(ID,n) \ inverted_constraint(ID,n,_,_) <=> true.
 rem_cons(ID,n) \ varlist_f(ID,n,_) <=> true.
 rem_cons(ID,n) \ varlist_d(ID,n,_,_) <=> true.
 
