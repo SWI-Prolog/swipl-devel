@@ -687,7 +687,7 @@ static struct i ia_product(struct i i1, struct i i2)
 		    fesetround(FE_UPWARD);
 		    i.r = i1.l*i2.l;
 		    break;
-		case 'p':
+		default:
 		    fesetround(FE_DOWNWARD);
 		    i.l = i1.l*i2.r;
 		    fesetround(FE_UPWARD);
@@ -710,7 +710,7 @@ static struct i ia_product(struct i i1, struct i i2)
 		    fesetround(FE_UPWARD);
 		    i.r = fmax(i1.r*i2.r,i1.l*i2.l);
 		    break;
-		case 'p':
+		default:
 		    fesetround(FE_DOWNWARD);
 		    i.l = i1.l*i2.r;
 		    fesetround(FE_UPWARD);
@@ -718,7 +718,7 @@ static struct i ia_product(struct i i1, struct i i2)
 		    break;
 	    }
 	    break;
-	case 'p':
+	default:
 	    switch (c2)
 	    {
 		case 'n':
@@ -733,7 +733,7 @@ static struct i ia_product(struct i i1, struct i i2)
 		    fesetround(FE_UPWARD);
 		    i.r = i1.r*i2.r;
 		    break;
-		case 'p':
+		default:
 		    fesetround(FE_DOWNWARD);
 		    i.l = i1.l*i2.l;
 		    fesetround(FE_UPWARD);
@@ -765,7 +765,7 @@ static struct i ia_quotient(struct i i1, struct i i2)
 		    i.l = -1.0/0.0;
 		    i.r = 1.0/0.0;
 		    break;
-		case 'p':
+		default:
 		    fesetround(FE_DOWNWARD);
 		    i.l = i1.l/i2.l;
 		    fesetround(FE_UPWARD);
@@ -786,7 +786,7 @@ static struct i ia_quotient(struct i i1, struct i i2)
 		    i.l = -1.0/0.0;
 		    i.r = 1.0/0.0;
 		    break;
-		case 'p':
+		default:
 		    fesetround(FE_DOWNWARD);
 		    i.l = i1.l/i2.l;
 		    fesetround(FE_UPWARD);
@@ -794,7 +794,7 @@ static struct i ia_quotient(struct i i1, struct i i2)
 		    break;
 	    }
 	    break;
-	case 'p':
+	default:
 	    switch (c2)
 	    {
 		case 'n':
@@ -807,7 +807,7 @@ static struct i ia_quotient(struct i i1, struct i i2)
 		    i.l = -1.0/0.0;
 		    i.r = 1.0/0.0;
 		    break;
-		case 'p':
+		default:
 		    fesetround(FE_DOWNWARD);
 		    i.l = i1.l/i2.r;
 		    fesetround(FE_UPWARD);
@@ -843,7 +843,7 @@ static struct i ia_power(struct i i1, int n)
 		fesetround(FE_UPWARD);
 		i.r  = pow(fmax(-i1.l,i1.r),n);
 		break;
-	    case 'p':
+	    default:
 		fesetround(FE_DOWNWARD);
 		i.l = pow(i1.l,n);
 		fesetround(FE_UPWARD);
@@ -1034,11 +1034,12 @@ static void ia_split(struct i i1, double factor, struct i* i2, struct i* i3)
     i2->r = splitpoint;
     i3->l = splitpoint;
 }
+/*
 static void print_interval(struct i i)
 {
     printf("[%.18e,%.18e]\n",i.l,i.r);
 }
-
+*/
 static char ia_class(struct i i)
 {
     if (copysign(1.0,i.r) == -1.0)

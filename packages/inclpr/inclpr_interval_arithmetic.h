@@ -84,7 +84,7 @@ static void c_to_p(struct i i, term_t t);
 static void two_c_to_p(struct i i1, struct i i2, term_t t);
 //
 static int pos_int_canonical_interval(struct i i1);
-static void print_interval(struct i i);
+//static void print_interval(struct i i);
 static struct i ia_sum(struct i i1, struct i i2);
 static struct i ia_difference(struct i i1, struct i i2);
 static struct i ia_product(struct i i1, struct i i2);
