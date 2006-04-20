@@ -74,7 +74,8 @@ check:		inclpr_check.pl
 ################################################################
 
 clean:
-		rm -f *~ *% config.log
+		rm -f *~ *% config.log $(IA)
+		
 
 distclean:	clean
 		rm -f config.h config.cache config.status Makefile
