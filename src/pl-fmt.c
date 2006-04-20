@@ -737,7 +737,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	      { term_t ex = PL_new_term_ref();
 
 		Sunlock(fd);
-		PL_put_atom(ex, codeToAtom(*(unsigned char *)fmt));
+		PL_put_atom(ex, codeToAtom(c));
 		return PL_error("format", 2, NULL, ERR_EXISTENCE,
 				PL_new_atom("format_character"),
 				ex);

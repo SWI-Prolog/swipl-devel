@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: wrong error and possible crash if format/3 finds an illegal ~
+    sequence.   Pierpaolo Bernardi.
+
 ===============================
 VERSION 5.6.12 (April 18, 2006)
 ===============================
