@@ -46,7 +46,7 @@ install:	$(IA)
 		(cd $(CLPDIR) && rm -f inclpr_compile.pl)
 
 %.@SO@: %.c
-		$(LD) -O3 -shared -o $@ $< -lm
+		$(LD) -O3 -shared -Wall -o $@ $< -lm
 
 rpm-install:	install
 
