@@ -18,10 +18,15 @@ CLPDIR=$(LIBDIR)/clp
 INCLPRDIR=$(CLPDIR)/inclpr
 EXDIR=$(PKGDOC)/examples/inclpr
 LD=@LD@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
 
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
+
+CFLAGS= $(COFLAGS) $(CWFLAGS) $(CMFLAGS)
 
 INCLPR_PRV=	inclpr_core.pl inclpr_consistency.pl inclpr_inversion.pl \
 		inclpr_interval_arithmetic.pl inclpr_symbolic_processing.pl \
@@ -46,7 +51,7 @@ install:	$(IA)
 		(cd $(CLPDIR) && rm -f inclpr_compile.pl)
 
 %.@SO@: %.c
-		$(LD) -O3 -shared -Wall -o $@ $< -lm
+		$(LD) -shared $(CFLAGS) -o $@ $< -lm
 
 rpm-install:	install
 
