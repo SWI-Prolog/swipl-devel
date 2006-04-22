@@ -3503,23 +3503,57 @@ extract_explicit_matchings(A,D) :- !,
 :- chr_option(mode,add_type_information(+,+,?)).
 :- chr_option(type_declaration,add_type_information(list,list,any)).
 
-type_alias(T,T) <=>
-   chr_error(cyclic_alias(T),'',[]).
-type_alias(T,B) \ type_alias(A,T) <=> type_alias(A,B).
+type_alias(T,T2) <=>
+   nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
+   copy_term((T,T2),(X,Y)),oneway_unification(Y,X) |
+   chr_error(type_error,'Cyclic alias definition: "~w".\n',[(T == T2)]).
+
+type_alias(T1,A1), type_alias(T2,A2) <=>
+   nonvar(T1),nonvar(T2),functor(T1,F,A),functor(T2,F,A),
+   \+ (T1\=T2) |
+   copy_term_nat(T1,T1_),
+   copy_term_nat(T2,T2_),
+   T1_ = T2_,
+   chr_error(type_error,
+   'Ambiguous type aliases: you have defined \n             "~w"\n             "~w"\n         resulting in two definitions for "~w".\n',[T1==A1,T2==A2,T1_]).
+
+type_alias(T,B) \ type_alias(X,T2) <=> 
+	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
+	copy_term_nat((X,T2,T,B),(X2,T3,T1,D1)),oneway_unification(T3,T1) |
+   	chr_info(type_information,'Inferring "~w" from "~w" and "~w".\n',[X2==D1,X==T2,T==B]),
+	type_alias(X2,D1).
+
+oneway_unification(X,Y) :-
+	term_variables(X,XVars),
+	chr_runtime:lockv(XVars),
+	X=Y,
+	chr_runtime:unlockv(XVars).
+
+get_type_definition(T,Def) <=> \+ ground(T) |
+   chr_error(type_error,'Non-ground type in constraint definition: "~w".\n',[T]).
 
 type_alias(T,D) \ get_type_definition(T2,Def) <=> 
-	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A) |
-	copy_term((T,D),(T1,D1)),T1=T2, get_type_definition(D1,Def).
+	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
+	copy_term_nat((T,D),(T1,D1)),T1=T2 | 
+	(get_type_definition(D1,Def) ->
+		true
+	;
+		chr_error(type_error,'Could not find type definition for "~w" (accessed via alias "~w").\n',[D1,T1]), fail
+	).
 
 type_definition(T,D) \ get_type_definition(T2,Def) <=> 
-	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A) |
-	copy_term((T,D),(T1,D1)),T1=T2,Def = D1.
-get_type_definition(_,_) <=> fail.
+	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
+	copy_term_nat((T,D),(T1,D1)),T1=T2 | Def = D1.
+get_type_definition(T2,Def) <=> 
+	builtin_type(T2,_,_) | Def = [T2].
+get_type_definition(X,Y) <=> fail.
+
 constraint_type(C,T) \ get_constraint_type(C,Type) <=> Type = T.
 get_constraint_type(_,_) <=> fail.
 
 add_type_information([],[],T) <=> T=true.
 
+buggy @ 
 constraint_mode(F/A,Modes) 
 \ add_type_information([Head|R],[RealHead|RRH],TypeInfo) <=>
     functor(Head,F,A) |
@@ -6416,6 +6450,11 @@ static_suspension_term(F/A,Suspension) :-
 	functor(Suspension,suspension,Arity).
 
 suspension_term_base(FA,Base) :-
+	suspension_term_base_fields(FA,Fields),
+	length(Fields,Base).
+
+suspension_term_base_fields(FA,Fields) :-
+	Fields = [id,state|Fields1],	
 	( chr_pp_flag(debugable,on) ->
 		% 1. ID
 		% 2. State
@@ -6423,82 +6462,89 @@ suspension_term_base(FA,Base) :-
 		% 4. Generation Number
 		% 5. Continuation Goal
 		% 6. Functor
-		Base = 6
-	;  only_ground_indexed_arguments(FA) ->
-		get_store_type(FA,StoreType),
-		basic_store_types(StoreType,BasicStoreTypes),
-		( memberchk(global_ground,BasicStoreTypes) ->
+		Fields1 = [history,generation,continuation,functor]
+	;  
+		Fields1 = [history|Fields2],
+		( only_ground_indexed_arguments(FA) ->
+			get_store_type(FA,StoreType),
+			basic_store_types(StoreType,BasicStoreTypes),
+			( memberchk(global_ground,BasicStoreTypes) ->
+				% 1. ID
+				% 2. State
+				% 3. Propagation History
+				% 4. Global List Prev
+				Fields2 = [global_list_prev]
+			;
+				% 1. ID
+				% 2. State
+				% 3. Propagation History
+				Fields2 = []
+			)
+		; may_trigger(FA) ->
+			% 1. ID
+			% 2. State
+			% 3. Propagation History
+			% 4. Generation Number
+			% 5. Continuation Goal
+			% 6. Global List Prev
+			Fields2 = [generation,continuation,global_list_prev]
+		;
 			% 1. ID
 			% 2. State
 			% 3. Propagation History
 			% 4. Global List Prev
-			Base = 4
-		;
-			% 1. ID
-			% 2. State
-			% 3. Propagation History
-			Base = 3
+			Fields2 = [global_list_prev]
 		)
-	; may_trigger(FA) ->
-		% 1. ID
-		% 2. State
-		% 3. Propagation History
-		% 4. Generation Number
-		% 5. Continuation Goal
-		% 6. Global List Prev
-		Base = 6
-	;
-		% 1. ID
-		% 2. State
-		% 3. Propagation History
-		% 4. Global List Prev
-		Base = 4
 	).
 
-get_static_suspension_term_field(id,FA,StaticSuspension,Field) :-
-	arg(1,StaticSuspension,Field).
-get_static_suspension_term_field(state,FA,StaticSuspension,Field) :-
-	arg(2,StaticSuspension,Field).
-get_static_suspension_term_field(history,FA,StaticSuspension,Field) :-
-	arg(3,StaticSuspension,Field).
-get_static_suspension_term_field(generation,FA,StaticSuspension,Field) :-
-	( ( may_trigger(FA) ; chr_pp_flag(debugable,on) ) ->
-		arg(4,StaticSuspension,Field)
-	;
-		chr_error(internal,'Trying to obtain generation number of ~w, which does not trigger!',[FA])
-	).
-get_static_suspension_term_field(continuation,FA,StaticSuspension,Field) :-
-	( ( may_trigger(FA) ; chr_pp_flag(debugable,on) ) ->
-		arg(5,StaticSuspension,Field)
-	;
-		chr_error(internal,'Trying to obtain continuation of ~w, which does not trigger!',[FA])
-	).
-get_static_suspension_term_field(functor,FA,StaticSuspension,Field) :-
-	( chr_pp_flag(debugable,on) ->
-		arg(6,StaticSuspension,Field)
-	;
-		chr_error(internal,'Trying to obtain functor of ~w!',[FA])
-	).
-get_static_suspension_term_field(global_list_prev,FA,StaticSuspension,Field) :-
-	(  chr_pp_flag(debugable,on) ->
-		chr_error(internal,'Trying to obtain global_list_prev of ~w in debug mode!',[FA])
-	;  only_ground_indexed_arguments(FA) ->
-		get_store_type(FA,StoreType),
-		basic_store_types(StoreType,BasicStoreTypes),
-		( memberchk(global_ground,BasicStoreTypes) ->
-			arg(4,StaticSuspension,Field)
-		;
-			chr_error(internal,'Trying to obtain global_list_prev of ~w, which does not trigger!',[FA])
-		)
-	; may_trigger(FA) ->
-		arg(6,StaticSuspension,Field)
-	;
-		arg(4,StaticSuspension,Field)
-	).
-get_static_suspension_term_field(arguments,FA,StaticSuspension,Field) :-
+get_static_suspension_term_field(FieldName,FA,StaticSuspension,Field) :-
+	suspension_term_base_fields(FA,Fields),
+	nth(Index,Fields,FieldName), !,
+	arg(Index,StaticSuspension,Field).
+% get_static_suspension_term_field(state,FA,StaticSuspension,Field) :-
+% 	arg(2,StaticSuspension,Field).
+% get_static_suspension_term_field(history,FA,StaticSuspension,Field) :-
+% 	arg(3,StaticSuspension,Field).
+% get_static_suspension_term_field(generation,FA,StaticSuspension,Field) :-
+% 	( ( may_trigger(FA) ; chr_pp_flag(debugable,on) ) ->
+% 		arg(4,StaticSuspension,Field)
+% 	;
+% 		chr_error(internal,'Trying to obtain generation number of ~w, which does not trigger!',[FA])
+% 	).
+% get_static_suspension_term_field(continuation,FA,StaticSuspension,Field) :-
+% 	( ( may_trigger(FA) ; chr_pp_flag(debugable,on) ) ->
+% 		arg(5,StaticSuspension,Field)
+% 	;
+% 		chr_error(internal,'Trying to obtain continuation of ~w, which does not trigger!',[FA])
+% 	).
+% get_static_suspension_term_field(functor,FA,StaticSuspension,Field) :-
+% 	( chr_pp_flag(debugable,on) ->
+% 		arg(6,StaticSuspension,Field)
+% 	;
+% 		chr_error(internal,'Trying to obtain functor of ~w!',[FA])
+% 	).
+% get_static_suspension_term_field(global_list_prev,FA,StaticSuspension,Field) :-
+% 	(  chr_pp_flag(debugable,on) ->
+% 		chr_error(internal,'Trying to obtain global_list_prev of ~w in debug mode!',[FA])
+% 	;  only_ground_indexed_arguments(FA) ->
+% 		get_store_type(FA,StoreType),
+% 		basic_store_types(StoreType,BasicStoreTypes),
+% 		( memberchk(global_ground,BasicStoreTypes) ->
+% 			arg(4,StaticSuspension,Field)
+% 		;
+% 			chr_error(internal,'Trying to obtain global_list_prev of ~w, which does not trigger!',[FA])
+% 		)
+% 	; may_trigger(FA) ->
+% 		arg(6,StaticSuspension,Field)
+% 	;
+% 		arg(4,StaticSuspension,Field)
+% 	).
+get_static_suspension_term_field(arguments,FA,StaticSuspension,Field) :- !,
 	suspension_term_base(FA,Base),
 	StaticSuspension =.. [_|Args],
 	drop(Base,Args,Field).
+get_static_suspension_term_field(_,FA,StaticSuspension,Field) :- 
+	chr_error(internal,'Trying to obtain global_list_prev of ~w, which does not trigger!',[FA]).
 
 get_dynamic_suspension_term_field(state,FA,DynamicSuspension,Field,Goal) :-
 	Goal = arg(2,DynamicSuspension,Field).

@@ -1,3 +1,13 @@
+Apr 22, 2005
+
+  * TS: Bug fix by Jon Sneyers:  type aliases now support built-in types.
+	Spotted by Mike Elston.
+
+  * TS: Small refactorings based on Ciao port experience.
+
+  * TS: Removed -singleton stylecheck option now that portray_clause
+	prints singleton variables as _.
+
 Apr 19, 2006
 
  * JW: Make library(chr) load its private stuff silent.

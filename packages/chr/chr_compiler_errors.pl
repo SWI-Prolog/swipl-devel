@@ -122,7 +122,7 @@ print_chr_error(internal,Message,Params) :- !,
         format(user_error,'    Please contact tom.schrijvers@cs.kuleuven.be.\n'),
 	long_line_with_equality_signs.
 
-print_chr_error(cyclic_alias(Alias),Message,Params) :- !,
+print_chr_error(cyclic_alias(Alias),_Message,_Params) :- !,
 	long_line_with_equality_signs,
 	format(user_error,'CHR compiler ERROR: cyclic alias "~w".\n',[Alias]),	
 	format(user_error,'    `--> Aborting compilation.\n',[]),

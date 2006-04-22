@@ -46,7 +46,8 @@
 
 find_with_var_identity(Template, IdVars, Goal, Answers) :-
         Key = foo(IdVars),
-        findall(Key - Template, Goal, As),
+	copy_term_nat(Template-Key-Goal,TemplateC-KeyC-GoalC),
+        findall(KeyC - TemplateC, GoalC, As),
         smash(As,Key,Answers).
 
 smash([],_,[]).

@@ -638,7 +638,7 @@ generate_attach_a_constraint_t_p(CFct / CAty,Clause) :-
 	make_attr(Total,Mask,SuspsList1,NewAttr1),
 	substitute(Susps,SuspsList,[Susp],SuspsList2),
 	make_attr(Total,NewMask,SuspsList2,NewAttr2),
-	copy_term(SuspsList,SuspsList3),
+	copy_term_nat(SuspsList,SuspsList3),
 	nth1(Position,SuspsList3,[Susp]),
 	chr_delete(SuspsList3,[Susp],RestSuspsList),
 	set_elems(RestSuspsList,[]),
@@ -853,6 +853,7 @@ generate_attr_unify_hook_many(N,Clause) :-
 	make_run_suspensions_loop(SortedSuspsList,WakeSortedSusps),
 	Body =
 	(
+		writeln(hook1),
 		SortGoals,
 		( var(Other) ->
 			( get_attr(Other,Mod,TOtherAttr) ->
@@ -1414,7 +1415,7 @@ discover_unique_pattern(PragmaRule,RuleNb,Pattern) :-
 	term_variables(C1,Vs),
 	select_pragma_unique_variables(List,Vs,Key),
 	Pattern0 = unique(C1,Key),
-	copy_term(Pattern0,Pattern),
+	copy_term_nat(Pattern0,Pattern),
 	( verbosity_on ->
 		format('Found unique pattern ~w in rule ~d~@\n', 
 			[Pattern,RuleNb,(Name=yes(N) -> write(": "),write(N) ; true)])

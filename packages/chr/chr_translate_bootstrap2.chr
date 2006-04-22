@@ -416,10 +416,9 @@ store_management_preds(Constraints,Clauses) :-
 
 
 %% SWI begin
-specific_declarations([:- use_module('chr_runtime'),
-		       :- use_module('chr_hashtable_store'),
-		       :- style_check(-singleton),
-		       :- style_check(-discontiguous)
+specific_declarations([:- use_module('chr_runtime')
+		      ,:- use_module('chr_hashtable_store')
+		      ,:- style_check(-discontiguous)
 		      |Tail],Tail).
 %% SWI end
 
@@ -596,7 +595,7 @@ is_module_declaration((:- module(Mod,_)),Mod).
 % Add rules
 add_rules([]).
 add_rules([Rule|Rules]) :-
-	Rule = pragma(_,_,_,_,RuleNb),
+	Rule = pragma(_Rule,_,_,_Name,RuleNb),
 	rule(RuleNb,Rule),
 	add_rules(Rules).
 
@@ -988,7 +987,7 @@ generate_attach_body_n(F/A,Var,Susp,Body) :-
 	make_attr(Total,Mask,SuspsList1,NewAttr1),
 	substitute(Susps,SuspsList,[Susp],SuspsList2),
 	make_attr(Total,NewMask,SuspsList2,NewAttr2),
-	copy_term(SuspsList,SuspsList3),
+	copy_term_nat(SuspsList,SuspsList3),
 	nth1(Position,SuspsList3,[Susp]),
 	delete(SuspsList3,[Susp],RestSuspsList),
 	set_elems(RestSuspsList,[]),
@@ -1961,36 +1960,6 @@ gen_uncond_attach_goal(FA,Susp,AttachGoal,Generation) :-
 		)
 	).
 
-occurrences_code(O,MO,C,Id,NId,L,T) :-
-	( O > MO ->
-		NId = Id,
-		L = T
-	;
-		occurrence_code(O,C,Id,Id1,L,L1),
-		NO is O + 1,
-		occurrences_code(NO,MO,C,Id1,NId,L1,T)
-	).
-
-occurrences_code(O,C,Id,NId,L,T) :-
-	get_occurrence(C,O,RuleNb,ID),
-	( is_passive(RuleNb,ID) ->
-		NId = Id,
-		L = T
-	;
-		get_rule(RuleNb,PragmaRule),
-		PragmaRule = pragma(rule(Heads1,Heads2,_,_),ids(IDs1,IDs2),_,_,_),	
-		( select2(IDs1,Heads1,ID,Head1,RIDs1,RHeads1) ->
-			NId = Id,
-			head1_code(Head1,RHeads1,RIDs1,PragmaRule,C,Id,L,T)
-		; select2(IDs2,Heads2,ID,Head2,RIDs2,RHeads2) ->
-			length(RHeads2,RestHeadNb),
-			head2_code(Head2,RHeads2,RIDs2,PragmaRule,RestHeadNb,C,Id,L,L1),
-			inc_id(Id,NId),
-			gen_alloc_inc_clause(C,Id,L1,T)
-		)
-	).
-
-
 %%	Generate all the code for a constraint based on all CHR rules
 rules_code([],_,Id,Id,L,L).
 rules_code([R |Rs],I,Id1,Id3,L,T) :-
@@ -2243,7 +2212,7 @@ update_unit_dictionary2([V|Vs],This,Dict,NDict,GIDs,NGIDs) :-
 %%  \___/|_| |_|_|\__, |\__,_|\___| |___|_| |_|_|  \___|_|  \___|_| |_|\___\___|
 %%                   |_|                                                        
 unique_analyse_optimise(Rules,NRules) :-
-		( chr_pp_flag(unique_analyse_optimise,on) ->
+		( chr_pp_flag(unique_analyse_optimise,on)->
 			unique_analyse_optimise_main(Rules,1,[],NRules)
 		;
 			NRules = Rules
@@ -2286,18 +2255,37 @@ apply_unique_patterns_to_constraints([C|Cs],[Id|Ids],Patterns,Pragmas) :-
 apply_unique_pattern(Constraint,Id,Pattern,Pragma) :-
 	Pattern = unique(PatternConstraint,PatternKey),
 	subsumes(Constraint,PatternConstraint,Unifier),
-	( setof(	V,
-			T^Term^Vs^(
+% 	( setof(	V,
+% 			T^Term^Vs^(
+% 				member(T,PatternKey),
+% 				lookup_eq(Unifier,T,Term),
+% 				term_variables(Term,Vs),
+% 				member(V,Vs)
+% 			),
+% 			Vars1) ->
+% 		true
+% 	;
+% 		Vars1 = []
+% 	),
+	find_with_var_identity(	V,
+			Unifier
+% 			(
+% 		
+% 				member(T,PatternKey),
+% 				lookup_eq(Unifier,T,Term),
+% 				term_variables(Term,Vs),
+% 				member(V,Vs)
+% 			)
+			,
+			(
 				member(T,PatternKey),
 				lookup_eq(Unifier,T,Term),
 				term_variables(Term,Vs),
 				member(V,Vs)
 			),
-			Vars) ->
-		true
-	;
-		Vars = []
-	),
+			Vars2),
+	sort(Vars2,Vars3),
+	Vars = Vars3,
 	Pragma = unique(Id,Vars).
 
 %	subsumes(+Term1, +Term2, -Unifier)
@@ -2352,7 +2340,7 @@ discover_unique_pattern(PragmaRule,RuleNb,Pattern) :-
 	term_variables(C1,Vs),
 	select_pragma_unique_variables(List,Vs,Key),
 	Pattern0 = unique(C1,Key),
-	copy_term(Pattern0,Pattern),
+	copy_term_nat(Pattern0,Pattern),
 	( verbosity_on ->
 		format('Found unique pattern ~w in rule ~d~@\n', 
 			[Pattern,RuleNb,(Name=yes(N) -> write(": "),write(N) ; true)])
@@ -2707,12 +2695,22 @@ guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy) :-
 	term_variables(RestGuardList,GuardVars),
 	term_variables(RestGuardListCopyCore,GuardCopyVars),
 	( chr_pp_flag(guard_locks,on),
-          bagof(('chr lock'(Y)) - ('chr unlock'(Y)),
-                X ^ (member(X,GuardVars),		% X is a variable appearing in the original guard
+%           bagof(('chr lock'(Y)) - ('chr unlock'(Y)),
+%                 X ^ (member(X,GuardVars),		% X is a variable appearing in the original guard
+%                      lookup_eq(VarDict,X,Y),            % translate X into new variable
+%                      memberchk_eq(Y,GuardCopyVars)      % redundant check? or multiple entries for X possible?
+%                     ),
+%                 LocksUnlocks)
+
+	  find_with_var_identity(('chr lock'(Y)) - ('chr unlock'(Y)),
+		VarDict,
+                (member(X,GuardVars),		% X is a variable appearing in the original guard
                      lookup_eq(VarDict,X,Y),            % translate X into new variable
                      memberchk_eq(Y,GuardCopyVars)      % redundant check? or multiple entries for X possible?
                     ),
-                LocksUnlocks) ->
+                LocksUnlocks)
+
+ ->
 		once(pairup(Locks,Unlocks,LocksUnlocks))
 	;
 		Locks = [],

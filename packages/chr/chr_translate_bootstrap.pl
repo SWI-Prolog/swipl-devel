@@ -411,7 +411,7 @@ handle_option(Name,Value) :-
 
 handle_option(Name,Value) :- 
 	\+ option_definition(Name,_,_), !,
-	setof(N,_V ^ _F ^ (option_definition(N,_V,_F)),Ns),
+	setof(N,V ^ F ^ (option_definition(N,V,F)),Ns),
 	format('CHR compiler ERROR: ~w.\n',[option(Name,Value)]),
 	format('    `--> Invalid option name ~w: should be one of ~w.\n',[Name,Ns]),
 	fail.
@@ -542,13 +542,13 @@ generate_attach_a_constraint_t_p(Total,Position,CFct / CAty ,Mod,Clause) :-
 	RecursiveCall =.. [Fct,Vars,Susp],
 	or_pattern(Position,Pattern),
 	make_attr(Total,Mask,SuspsList,Attr),
-	nth1(Position,SuspsList,Susps),
+	nth(Position,SuspsList,Susps),
 	substitute(Susps,SuspsList,[Susp|Susps],SuspsList1),
 	make_attr(Total,Mask,SuspsList1,NewAttr1),
 	substitute(Susps,SuspsList,[Susp],SuspsList2),
 	make_attr(Total,NewMask,SuspsList2,NewAttr2),
-	copy_term(SuspsList,SuspsList3),
-	nth1(Position,SuspsList3,[Susp]),
+	copy_term_nat(SuspsList,SuspsList3),
+	nth(Position,SuspsList3,[Susp]),
 	chr_delete(SuspsList3,[Susp],RestSuspsList),
 	set_elems(RestSuspsList,[]),
 	make_attr(Total,Pattern,SuspsList3,NewAttr3),
@@ -624,7 +624,7 @@ generate_detach_a_constraint_t_p(Total,Position,CFct / CAty ,Mod,Clause) :-
 	or_pattern(Position,Pattern),
 	and_pattern(Position,DelPattern),
 	make_attr(Total,Mask,SuspsList,Attr),
-	nth1(Position,SuspsList,Susps),
+	nth(Position,SuspsList,Susps),
 	substitute(Susps,SuspsList,[],SuspsList1),
 	make_attr(Total,NewMask,SuspsList1,Attr1),
 	substitute(Susps,SuspsList,NewSusps,SuspsList2),
@@ -759,6 +759,7 @@ generate_attr_unify_hook_many(N,Mod,Clause) :-
 	Head = attr_unify_hook(Attr,Other),
 	Body =
 	(
+		writeln(hook),
 		SortGoals,
 		( var(Other) ->
 			( get_attr(Other,Mod,TOtherAttr) ->
@@ -1185,7 +1186,7 @@ discover_unique_pattern(PragmaRule,RuleNb,Pattern) :-
 	term_variables(C1,Vs),
 	select_pragma_unique_variables(List,Vs,Key),
 	Pattern0 = unique(C1,Key),
-	copy_term(Pattern0,Pattern),
+	copy_term_nat(Pattern0,Pattern),
 	( verbosity_on ->
 		format('Found unique pattern ~w in rule ~d~@\n', 
 			[Pattern,RuleNb,(Name=yes(N) -> write(": "),write(N) ; true)])
@@ -1426,9 +1427,9 @@ rest_heads_retrieval_and_matching_n([H|Hs],[ID|IDs],Pragmas,PrevHs,PrevSusps,Act
 	( N == 1 ->
 		VarSusps = Attr
 	;
-		nth1(Pos,Constraints,Fct/Aty), !,
+		nth(Pos,Constraints,Fct/Aty), !,
 		make_attr(N,_Mask,SuspsList,Attr),
-		nth1(Pos,SuspsList,VarSusps)
+		nth(Pos,SuspsList,VarSusps)
 	),
 	different_from_other_susps(H,Susp,PrevHs,PrevSusps,DiffSuspGoals),
 	create_get_mutable_ref(active,State,GetMutable),
@@ -1467,7 +1468,7 @@ check_unique_keys([V|Vs],Dict) :-
 
 % Generates tests to ensure the found constraint differs from previously found constraints
 different_from_other_susps(Head,Susp,Heads,Susps,DiffSuspGoals) :-
-	( bagof(DiffSuspGoal, Pos ^ ( nth1(Pos,Heads,PreHead), \+ Head \= PreHead, nth1(Pos,Susps,PreSusp), DiffSuspGoal = (Susp \== PreSusp) ),DiffSuspGoalList) ->
+	( bagof(DiffSuspGoal, Pos ^ ( nth(Pos,Heads,PreHead), \+ Head \= PreHead, nth(Pos,Susps,PreSusp), DiffSuspGoal = (Susp \== PreSusp) ),DiffSuspGoalList) ->
 	     list2conj(DiffSuspGoalList,DiffSuspGoals)
 	;
 	     DiffSuspGoals = true
@@ -1475,7 +1476,7 @@ different_from_other_susps(Head,Susp,Heads,Susps,DiffSuspGoals) :-
 
 passive_head_via(Head,PrevHeads,AttrDict,Constraints,Mod,VarDict,Goal,Attr,NewAttrDict) :-
 	functor(Head,F,A),
-	nth1(Pos,Constraints,F/A),!,
+	nth(Pos,Constraints,F/A),!,
 	common_variables(Head,PrevHeads,CommonVars),
 	translate(CommonVars,VarDict,Vars),
 	or_pattern(Pos,Bit),
@@ -1706,9 +1707,9 @@ simpagation_head2_prelude(Head,Head1,Rest,F/A,_I,N,Constraints,Mod,Id1,L,T) :-
 		AllSusps = Attr
 	;
 		functor(Head1,F1,A1),
-		nth1(Pos,Constraints,F1/A1), !,
+		nth(Pos,Constraints,F1/A1), !,
 		make_attr(N,_,SuspsList,Attr),
-		nth1(Pos,SuspsList,AllSusps)
+		nth(Pos,SuspsList,AllSusps)
 	),
 
 	(   Id1 == [0] ->	% create suspension
@@ -1948,8 +1949,8 @@ propagation_prelude(Head,[First|Rest],Rule,F/A,N,Constraints,Mod,Id,L,T) :-
    ;
 	functor(First,FirstFct,FirstAty),
 	make_attr(N,_Mask,SuspsList,Attr),
-        nth1(Pos,Constraints,FirstFct/FirstAty), !,
-	nth1(Pos,SuspsList,Susps)
+        nth(Pos,Constraints,FirstFct/FirstAty), !,
+	nth(Pos,SuspsList,Susps)
    ),
 
    (   Id == [0] ->
@@ -2127,9 +2128,9 @@ propagation_accumulator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,N,C
 	( N == 1 ->
 	     NextSusps = Attr
 	;
-	     nth1(Position,Constraints,NextF/NextA), !,
+	     nth(Position,Constraints,NextF/NextA), !,
 	     make_attr(N,_Mask,SuspsList,Attr),
-	     nth1(Position,SuspsList,NextSusps)
+	     nth(Position,SuspsList,NextSusps)
 	),
 	inc_id(Id,NestedId),
 	ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],

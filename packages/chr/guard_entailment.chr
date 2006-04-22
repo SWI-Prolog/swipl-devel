@@ -347,7 +347,6 @@ clean_store3 @ cleanup <=> true.
 % End of CHR part
 %--------------------------------------
 
-
 entails_guard(List,Guard) :- 
     copy_term_nat((List,Guard),(CopyList,CopyGuard)),
     term_variables(CopyList,CLVars),
