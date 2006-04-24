@@ -1,3 +1,9 @@
+Apr 24, 2005
+
+  * TS: Guard entailment now first simplifies the formula it processes,
+	in order to reduce the number of disjunctions, to onbtain a smaller
+	search tree.
+
 Apr 22, 2005
 
   * TS: Bug fix by Jon Sneyers:  type aliases now support built-in types.

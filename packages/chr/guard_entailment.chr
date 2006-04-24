@@ -167,11 +167,11 @@ strict_leq_transitivity @ known(X=<Y),known(X=\=Y),known(Y=<Z),known(Y=\=Z) ==> 
 % Rules for =:=   (and =\=)
 %--------------------------------------
 
-groundeq2 @ known(X=:=Y) <=> number(X), number(Y), X=\=Y |  known(fail).
-groundneq2 @ known(X=\=Y) <=> number(X), number(Y), X=:=Y |  known(fail).
+groundeq2 @ known(X=:=Y) <=> number(X), number(Y), X=\=Y | known(fail).
+groundneq2 @ known(X=\=Y) <=> number(X), number(Y), X=:=Y | known(fail).
 
-neq_inconsistency  @ known(X=\=X) <=>  known(fail).
-inconsistency @ known(X=:=Y), known(X=\=Y) <=>  known(fail).
+neq_inconsistency  @ known(X=\=X) <=> known(fail).
+inconsistency @ known(X=:=Y), known(X=\=Y) <=> known(fail).
 
 eq_transitivity @ known(X=:=Y), known(Y=:=Z) ==> X \== Z | known(X=:=Z).
 
@@ -182,9 +182,9 @@ neq_symmetry @ known(X=\=Y) ==> known(Y=\=X).
 % Rules for number/1, float/1, integer/1
 %--------------------------------------
 
-notnumber @ known(number(X)) <=> nonvar(X), \+ number(X) |  known(fail).
-notfloat @ known(float(X)) <=> nonvar(X), \+ float(X)|  known(fail).
-notinteger @ known(integer(X)) <=> nonvar(X), \+ integer(X) | writeln(fail14_integer(X)), known(fail).
+notnumber @ known(number(X)) <=> nonvar(X), \+ number(X) | known(fail).
+notfloat @ known(float(X)) <=> nonvar(X), \+ float(X)| known(fail).
+notinteger @ known(integer(X)) <=> nonvar(X), \+ integer(X) | known(fail).
 int2number @ known(integer(X)) ==> known(number(X)).
 float2number @ known(float(X)) ==> known(number(X)).
 
@@ -193,19 +193,19 @@ float2number @ known(float(X)) ==> known(number(X)).
 % Rules for \+
 %--------------------------------------
 
-inconsistency2 @ known(X), known(\+ X) <=>  known(fail).
+inconsistency2 @ known(X), known(\+ X) <=> known(fail).
 
 
 %--------------------------------------
 % Rules for == and \==
 %--------------------------------------
 
-inconsistency3 @ known(X\==Y), known(X==Y) <=>  known(fail).
+inconsistency3 @ known(X\==Y), known(X==Y) <=> known(fail).
 eq_transitivity2 @ known(X==Y), known(Y==Z) ==> known(X==Z).
 neq_substitution @ known(X==Y), known(Y\==Z) ==> known(X\==Z).
 eq_symmetry2   @ known(X==Y) ==> known(Y==X).
 neq_symmetry2  @ known(X\==Y) ==> known(Y\==X).
-neq_inconsistency @ known(X\==X) ==>  known(fail).
+neq_inconsistency @ known(X\==X) ==> known(fail).
 functorsmatch@ known(X\==Y) <=> nonvar(X), nonvar(Y), functor(X,F,A) |
 				(functor(Y,F,A) ->
 				    X =.. [F|XArgs],
@@ -228,7 +228,7 @@ atomic2nonvar @ known(atomic(X)) ==> known(nonvar(X)).
 number2nonvar @ known(number(X)) ==> known(nonvar(X)).
 atom2nonvar @ known(atom(X)) ==> known(nonvar(X)).
 
-var_inconsistency @ known(var(X)), known(nonvar(X)) <=>  known(fail).
+var_inconsistency @ known(var(X)), known(nonvar(X)) <=> known(fail).
 
 
 %--------------------------------------
@@ -243,6 +243,9 @@ simplify_disj1d @ known(\+ A) \ known((A, C; B)) <=> known(B).
 
 simplify_disj2 @ known((fail; B)) <=> known(B).
 simplify_disj3 @ known((B ; fail)) <=> known(B).
+
+true_or_something_is_worthless1 @ known((true ; A)) <=> true.
+true_or_something_is_worthless2 @ known((A ; true)) <=> true.
 
 simplify_disj4 @ known(functor(X,F1,A1)) \ known((\+ functor(X,F,A); B)) <=>
     % F1 \== F or A1 \== A
@@ -351,7 +354,8 @@ entails_guard(List,Guard) :-
     copy_term_nat((List,Guard),(CopyList,CopyGuard)),
     term_variables(CopyList,CLVars),
     variables(CLVars),
-    entails_guard2(CopyList),
+    sort(CopyList,CopyList2),	% remove doubles
+    entails_guard2(CopyList2),
     !,test(CopyGuard),!,
     cleanup.
 
