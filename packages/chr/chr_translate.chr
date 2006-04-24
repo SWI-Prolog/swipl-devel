@@ -5270,6 +5270,7 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
    	( may_trigger(F/A), \+ has_no_history(RuleNb)->
 		use_auxiliary_predicate(novel_production),
 		use_auxiliary_predicate(extend_history),
+		does_use_history(F/A),
 		NovelProduction = '$novel_production'(Susp,RuleNb),	% optimisation of t(RuleNb,Susp)
 		ExtendHistory   = '$extend_history'(Susp,RuleNb)
    	;
@@ -5406,6 +5407,7 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
    		Tuple =.. [t,RuleNb|HistorySusps],
 		use_auxiliary_predicate(novel_production),
 		use_auxiliary_predicate(extend_history),
+		does_use_history(F/A),
 		bagof('$novel_production'(X,Y),( lists:member(X,HistorySusps), Y = TupleVar) ,NovelProductionsList),
 		list2conj(NovelProductionsList,NovelProductions),
 		NovelProduction = ( TupleVar = Tuple, NovelProductions),
@@ -6543,58 +6545,72 @@ get_static_suspension_term_field(arguments,FA,StaticSuspension,Field) :- !,
 	suspension_term_base(FA,Base),
 	StaticSuspension =.. [_|Args],
 	drop(Base,Args,Field).
-get_static_suspension_term_field(_,FA,StaticSuspension,Field) :- 
-	chr_error(internal,'Trying to obtain global_list_prev of ~w, which does not trigger!',[FA]).
+get_static_suspension_term_field(FieldName,FA,_StaticSuspension,_Field) :- 
+	chr_error(internal,'Trying to obtain field ~w of ~w, wich does not have it!',[FieldName,FA]).
 
-get_dynamic_suspension_term_field(state,FA,DynamicSuspension,Field,Goal) :-
-	Goal = arg(2,DynamicSuspension,Field).
-get_dynamic_suspension_term_field(generation,FA,DynamicSuspension,Field,Goal) :-
-	( ( may_trigger(FA) ; chr_pp_flag(debugable,on) ) ->
-		Goal = arg(4,DynamicSuspension,Field)
-	;
-		chr_error(internal,'Trying to obtain continuation of ~w, which does not trigger!',[FA])
-	).
-get_dynamic_suspension_term_field(global_list_prev,FA,DynamicSuspension,Field,Goal) :-
-	( chr_pp_flag(debugable,on) ->
-		chr_error(internal,'Trying to obtain global_list_prev of ~w in debug mode!',[FA])
-	; only_ground_indexed_arguments(FA) ->
-		get_store_type(FA,StoreType),
-		basic_store_types(StoreType,BasicStoreTypes),
-		( memberchk(global_ground,BasicStoreTypes) ->
-			Goal = arg(4,DynamicSuspension,Field)
-		;
-			chr_error(internal,'Trying to obtain global_list_prev of ~w, which does not trigger!',[FA])
-		)
-	; may_trigger(FA) ->
-		Goal = arg(6,DynamicSuspension,Field)
-	;
-		Goal = arg(4,DynamicSuspension,Field)
-	).
-get_dynamic_suspension_term_field(arguments,FA,DynamicSuspension,Field,Goal) :- 
+
+get_dynamic_suspension_term_field(FieldName,FA,DynamicSuspension,Field,Goal) :-
+	suspension_term_base_fields(FA,Fields),
+	nth(Index,Fields,FieldName), !,
+	Goal = arg(Index,DynamicSuspension,Field).	
+% get_dynamic_suspension_term_field(state,FA,DynamicSuspension,Field,Goal) :-
+% 	Goal = arg(2,DynamicSuspension,Field).
+% get_dynamic_suspension_term_field(generation,FA,DynamicSuspension,Field,Goal) :-
+% 	( ( may_trigger(FA) ; chr_pp_flag(debugable,on) ) ->
+% 		Goal = arg(4,DynamicSuspension,Field)
+% 	;
+% 		chr_error(internal,'Trying to obtain continuation of ~w, which does not trigger!',[FA])
+% 	).
+% get_dynamic_suspension_term_field(global_list_prev,FA,DynamicSuspension,Field,Goal) :-
+% 	( chr_pp_flag(debugable,on) ->
+% 		chr_error(internal,'Trying to obtain global_list_prev of ~w in debug mode!',[FA])
+% 	; only_ground_indexed_arguments(FA) ->
+% 		get_store_type(FA,StoreType),
+% 		basic_store_types(StoreType,BasicStoreTypes),
+% 		( memberchk(global_ground,BasicStoreTypes) ->
+% 			Goal = arg(4,DynamicSuspension,Field)
+% 		;
+% 			chr_error(internal,'Trying to obtain global_list_prev of ~w, which does not trigger!',[FA])
+% 		)
+% 	; may_trigger(FA) ->
+% 		Goal = arg(6,DynamicSuspension,Field)
+% 	;
+% 		Goal = arg(4,DynamicSuspension,Field)
+% 	).
+get_dynamic_suspension_term_field(arguments,FA,DynamicSuspension,Field,Goal) :- !,
 	static_suspension_term(FA,StaticSuspension),
 	get_static_suspension_term_field(arguments,FA,StaticSuspension,Field),	
 	Goal = (DynamicSuspension = StaticSuspension).
-get_dynamic_suspension_term_field(argument(I),FA,DynamicSuspension,Field,Goal) :- 
+get_dynamic_suspension_term_field(argument(I),FA,DynamicSuspension,Field,Goal) :- !,
 	suspension_term_base(FA,Base),
 	Index is I + Base,
 	Goal = arg(Index,DynamicSuspension,Field).
+get_dynamic_suspension_term_field(FieldName,FA,_DynamicSuspension,_Field,_Goal) :-
+	chr_error(internal,'Dynamic goal to get ~w of ~w, which does not have this field!',[FieldName,FA]).
 
-set_dynamic_suspension_term_field(global_list_prev,FA,DynamicSuspension,Field,Goal) :-
-	( chr_pp_flag(debugable,on) ->
-		chr_error(internal,'Trying to obtain global_list_prev of ~w in debug mode!',[FA])
-	; only_ground_indexed_arguments(FA) ->
-		get_store_type(FA,StoreType),
-		basic_store_types(StoreType,BasicStoreTypes),
-		( memberchk(global_ground,BasicStoreTypes) ->
-			Goal = setarg(4,DynamicSuspension,Field)
-		;
-			chr_error(internal,'Trying to obtain global_list_prev of ~w, which does not trigger!',[FA])
-		)
-	; may_trigger(FA) ->
-		Goal = setarg(6,DynamicSuspension,Field)
-	;
-		Goal = setarg(4,DynamicSuspension,Field)
-	).
+
+set_dynamic_suspension_term_field(FieldName,FA,DynamicSuspension,Field,Goal) :-
+	suspension_term_base_fields(FA,Fields),
+	nth(Index,Fields,FieldName), !,
+	Goal = setarg(Index,DynamicSuspension,Field).
+set_dynamic_suspension_term_field(FieldName,FA,_DynamicSuspension,_Field,_Goal) :-
+	chr_error(internal,'Dynamic goal to set ~w of ~w, which does not have this field!',[FieldName,FA]).
+% set_dynamic_suspension_term_field(global_list_prev,FA,DynamicSuspension,Field,Goal) :-
+% 	( chr_pp_flag(debugable,on) ->
+% 		chr_error(internal,'Trying to obtain global_list_prev of ~w in debug mode!',[FA])
+% 	; only_ground_indexed_arguments(FA) ->
+% 		get_store_type(FA,StoreType),
+% 		basic_store_types(StoreType,BasicStoreTypes),
+% 		( memberchk(global_ground,BasicStoreTypes) ->
+% 			Goal = setarg(4,DynamicSuspension,Field)
+% 		;
+% 			chr_error(internal,'Trying to obtain global_list_prev of ~w, which does not trigger!',[FA])
+% 		)
+% 	; may_trigger(FA) ->
+% 		Goal = setarg(6,DynamicSuspension,Field)
+% 	;
+% 		Goal = setarg(4,DynamicSuspension,Field)
+% 	).
 
 basic_store_types(multi_store(Types),Types) :- !.
 basic_store_types(Type,[Type]).
@@ -6613,3 +6629,21 @@ phase_end(Phase) \ delay_phase_end(Phase,Goal) <=> call(Goal).
 phase_end(Phase) <=> true.
 
 	
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Issues: run_suspension still has hardcoded argument index > 3
+
+:- chr_constraint
+	does_use_history/1,
+	uses_history/1,
+	novel_production_call/3.
+	
+
+:- chr_option(mode,does_usee_history(+)).
+
+does_use_history(FA) \ does_use_history(FA) <=> true.
+
+does_use_history(FA) \ uses_history(FA) <=> true.
+uses_history(_FA) <=> fail.
+
+does_use_history(FA) \ novel_production_call(FA,PossibleGoal,Goal) <=> Goal = PossibleGoal.
+novel_production_call(FA,_PossibleGoal,Goal) <=> Goal = true.
