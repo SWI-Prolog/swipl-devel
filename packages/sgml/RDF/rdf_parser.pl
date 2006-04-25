@@ -458,8 +458,10 @@ decode_uri(Encoded, Decoded) :-
 decode_uri(Encoded, Encoded).
 
 unescape_precent([], []).
-unescape_precent([0'%,D1,D2|T0], [H|T]) :- !,
-	H is (D1-0'0) * 16 + (D2-0'0),
+unescape_precent([0'%,C1,C2|T0], [H|T]) :- !,
+	code_type(C1, xdigit(D1)),
+	code_type(C2, xdigit(D2)),
+	H is D1*16 + D2,
 	unescape_precent(T0, T).
 unescape_precent([H|T0], [H|T]) :-
 	unescape_precent(T0, T).

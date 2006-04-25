@@ -1,3 +1,7 @@
+Apr 25, 2006
+
+  * FIXED: decoding of unicode-URIs using UTF-8 over %XX%XX.
+
 Apr 13, 2006
 
   * ADDED: library rdf_write to write an RDF file from a list of triples.
