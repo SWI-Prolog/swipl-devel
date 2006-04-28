@@ -204,7 +204,7 @@ This option controls whether guards should be checked for (illegal) variable
 bindings or not. Possible values for this option are \texttt{on}, to enable
 the checks, and \texttt{off}, to disable the checks. If this option is on,
 any guard fails when it binds a variable that appears in the head of the rule.
-When the option is off, the behavior of a binding in the guard is undefined.
+When the option is off (default), the behavior of a binding in the guard is undefined.
 
         \termitem{optimize}{}
 This option controls the degree of optimization.
