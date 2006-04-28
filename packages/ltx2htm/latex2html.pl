@@ -1166,7 +1166,8 @@ cmd(includegraphics(_Options, {File}), html(Img)) :-
 	ps_extension(Ext),
 	absolute_file_name(includegraphics(File),
 			   [ extensions([Ext]),
-			     access(read)
+			     access(read),
+			     file_errors(fail)
 			   ], PsFile),
 	file_name_extension(Base, Ext, PsFile),
 	file_base_name(Base, GifBase),
