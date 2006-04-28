@@ -494,7 +494,7 @@ utf8(C) -->
 	    utf8_cont(C3, 6),
 	    utf8_cont(C4, 0),
 	    {C is (C0\/0x3)<<24\/C1\/C2\/C3\/C4}
-	;   {C0/\0xfc =:= 0xf8}
+	;   {C0/\0xfe =:= 0xfc}
 	->  utf8_cont(C1, 24),
 	    utf8_cont(C2, 18),
 	    utf8_cont(C3, 12),
