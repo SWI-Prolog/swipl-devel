@@ -168,14 +168,14 @@ chr_expand(end_of_file, FinalProgram) :-
 	add_debug_decl(CHR0, CHR1),
 	add_optimise_decl(CHR1, CHR),
 	catch(call_chr_translate(File,
-			   [ (:- module(Module, []))
-			   | CHR
-			   ],
-			   Program0),
-		chr_error(Error),
-		(	chr_compiler_errors:print_chr_error(Error),
-			fail
-		)
+				   [ (:- module(Module, []))
+				   | CHR
+				   ],
+				   Program0),
+			chr_error(Error),
+			(	chr_compiler_errors:print_chr_error(Error),
+				fail
+			)
 	),
 	delete_header(Program0, Program).
 

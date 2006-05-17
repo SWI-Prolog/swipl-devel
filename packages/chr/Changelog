@@ -1,7 +1,21 @@
+May 17, 2005
+
+  * TS: Terminatino bug fixed in guard_entailment.
+
+  * TS:  Runtime library predicate run_suspensions is now specialized
+	per constraint, avoiding requirement of fixed suspension layout.
+
+  * TS:	Further update to suspension term layout. Only constraints for
+	which the propagation history is used get a history field.
+
+May 9, 2005
+
+  * TS: Ignore propagation rules with trivial body 'true'.
+
 Apr 24, 2005
 
   * TS: Guard entailment now first simplifies the formula it processes,
-	in order to reduce the number of disjunctions, to onbtain a smaller
+	in order to reduce the number of disjunctions, to obtain a smaller
 	search tree.
 
 Apr 22, 2005

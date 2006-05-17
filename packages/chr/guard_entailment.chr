@@ -38,13 +38,13 @@ fail_implies_everything @ known(fail) \ test(X) <=> true.
 % if it's known, it's entailed
 trivial_entailment @ known(G) \ test(G) <=> true.
 
-varfirst_nmatch @ test(X\==A) <=> nonvar(X) | test(A\==X).
 distribute_nmatch @ test(X\==A) <=> nonvar(A),functor(A,Fu,Ar) | 
 		A =.. [F|AArgs],
 		length(XArgs,Ar), B =.. [Fu|XArgs],
 		add_args_nmatch(XArgs,AArgs,ArgCond),
 		C = (\+ functor(X,Fu,Ar) ; (functor(X,Fu,Ar),X=B,ArgCond)),
 		test(C).
+varfirst_nmatch @ test(X\==A) <=> nonvar(X) | test(A\==X).
 
 % eq implies leq
 eq_implies_leq1 @ known(X=:=Y) \ test(X=<Y) <=> true.

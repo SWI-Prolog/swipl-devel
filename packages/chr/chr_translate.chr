@@ -90,7 +90,6 @@
 %%		NOTE: affects show_store/1
 %%	* multi-level store: variable - ground
 %%	* Do not maintain/check unnecessary propagation history
-%%		for rules that cannot be applied more than once
 %%		for reasons of anti-monotony 
 %%	* Strengthen storage analysis for propagation rules
 %%		reason about bodies of rules only containing constraints
@@ -817,11 +816,23 @@ check_rules([PragmaRule|Rest],Decls) :-
 
 check_rule(PragmaRule,Decls) :-
 	check_rule_indexing(PragmaRule),
+	check_trivial_propagation_rule(PragmaRule),
 	PragmaRule = pragma(Rule,_IDs,Pragmas,_Name,_N),
 	Rule = rule(H1,H2,_,_),
 	append(H1,H2,HeadConstraints),
 	check_head_constraints(HeadConstraints,Decls,PragmaRule),
 	check_pragmas(Pragmas,PragmaRule).
+
+	% Make all heads passive in trivial propagation rule
+	%	... ==> ... | true.
+check_trivial_propagation_rule(PragmaRule) :-
+	PragmaRule = pragma(Rule,IDs,Pragmas,Name,RuleNb),
+	( Rule = rule([],_,_,true) ->
+    		chr_warning(weird_program,'Ignoring propagation rule with empty body: ~@.\n\t\n',[format_rule(PragmaRule)]),
+		set_all_passive(RuleNb)
+	;
+		true
+	).
 
 check_head_constraints([],_,_).
 check_head_constraints([Constr|Rest],Decls,PragmaRule) :-
@@ -1565,7 +1576,7 @@ generate_extra_clauses(Constraints,List) :-
 	generate_insert_constraint_internal_clauses(Constraints,Tail2,Tail3),
 	generate_novel_production(Tail3,Tail4),
 	generate_extend_history(Tail4,Tail5),
-	generate_run_suspensions(Tail5,Tail6),
+	generate_run_suspensions_clauses(Constraints,Tail5,Tail6),
 	Tail6 = []. % global_indexed_variables_clause(Constraints,Tail6,[]).
 
 %~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
@@ -1759,8 +1770,13 @@ generate_allocate_clause(Constraint,List,Tail) :-
 		;
 			true
 		),
-		History = t,
-		get_static_suspension_term_field(history,Constraint,Suspension,Href),
+		( uses_history(Constraint) ->
+			History = t,
+			get_static_suspension_term_field(history,Constraint,Suspension,Href),
+			HistoryHandling = 'chr create_mutable'(History,Href) % Href = mutable(History)
+		;
+			HistoryHandling = true
+		),
 		% get_static_suspension_term_field(functor,Constraint,Suspension,F),
 		get_static_suspension_term_field(arguments,Constraint,Suspension,Args),
 		Self = Suspension,
@@ -1770,7 +1786,7 @@ generate_allocate_clause(Constraint,List,Tail) :-
 				% Self =.. Suspension, %[suspension,Id,Mref,Closure,Gref,Href,F|Args],
 				GenerationHandling, %'chr create_mutable'(0,Gref), % Gref = mutable(0),
 				% 'chr empty_history'(History),
-				'chr create_mutable'(History,Href), % Href = mutable(History),
+				HistoryHandling,
 				'chr create_mutable'(not_stored_yet,Mref),
 				'chr gen_id'( Id)
 		)
@@ -1803,7 +1819,6 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 	( is_used_auxiliary_predicate(insert_constraint_internal,Constraint) ->
 		Constraint = F/A,
 		length(Args,A),
-		History = t,
 		insert_constraint_internal_constraint_goal(Constraint, yes, Vars, Self, Closure, F, Args,Head),
 		static_suspension_term(Constraint,Suspension),
 		get_static_suspension_term_field(id,Constraint,Suspension,Id),
@@ -1821,8 +1836,13 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 		;
 			true
 		),
-		History = t,
-		get_static_suspension_term_field(history,Constraint,Suspension,Href),
+		( uses_history(Constraint) ->
+			History = t,
+			get_static_suspension_term_field(history,Constraint,Suspension,Href),
+	                HistoryHandling = 'chr create_mutable'(History,Href)
+		;
+			HistoryHandling = true
+		),
 		% get_static_suspension_term_field(functor,Constraint,Suspension,F),
 		get_static_suspension_term_field(arguments,Constraint,Suspension,Args),
 		Self = Suspension,
@@ -1835,7 +1855,7 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
                                         'chr create_mutable'(active,Mref),
 			                GenerationHandling, %'chr create_mutable'(0,Gref),
 			                % 'chr empty_history'(History),
-			                'chr create_mutable'(History,Href),
+					HistoryHandling,
 			                % Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
 					'chr gen_id'(Id)
 			    )
@@ -1850,7 +1870,8 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
                                         'chr create_mutable'(active,Mref), % Mref = mutable(active),
 			                'chr create_mutable'(0,Gref),   % Gref = mutable(0),
 			                % 'chr empty_history'(History),
-			                'chr create_mutable'(History,Href), % Href = mutable(History),
+			                % 'chr create_mutable'(History,Href), % Href = mutable(History),
+					HistoryHandling,
 			                'chr gen_id'(Id)
 			)
 		)
@@ -1900,37 +1921,51 @@ generate_extend_history(List,Tail) :-
 %~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
 % run_suspensions/2
 
-generate_run_suspensions(List,Tail) :-
-	( is_used_auxiliary_predicate(run_suspensions) ->
+generate_run_suspensions_clauses([],List,List).
+generate_run_suspensions_clauses([C|Cs],List,Tail) :-
+	generate_run_suspensions_clause(C,List,List1),
+	generate_run_suspensions_clauses(Cs,List1,Tail).
+
+run_suspensions_goal(Constraint,Suspensions,Goal) :-
+	run_suspensions_name(Constraint,Name),
+	Goal =.. [Name,Suspensions].
+	
+run_suspensions_name(Constraint,Name) :-
+	make_name('$run_suspensions_',Constraint,Name).
+
+generate_run_suspensions_clause(Constraint,List,Tail) :-
+	( is_used_auxiliary_predicate(run_suspensions,Constraint) ->
 		List = [Clause1,Clause2|Tail],
-		Clause1 =
-		(
-			'$run_suspensions'([])
-		),
+		run_suspensions_goal(Constraint,[],Clause1),
 		( chr_pp_flag(debugable,on) ->
+			run_suspensions_goal(Constraint,[Suspension|Suspensions],Clause2Head),
+			get_dynamic_suspension_term_field(state,Constraint,Suspension,Mref,GetMref),
+			get_dynamic_suspension_term_field(generation,Constraint,Suspension,Gref,GetGref),
+			get_dynamic_suspension_term_field(continuation,Constraint,Suspension,Continuation,GetContinuation),
+			run_suspensions_goal(Constraint,Suspensions,Clause2Recursion),
 			Clause2 =
 			(
-				'$run_suspensions'([S|Next] ) :-
-					arg( 2, S, Mref), % ARGXXX
+				Clause2Head :-
+					GetMref,
 					'chr get_mutable'( Status, Mref),
 					( Status==active ->
 					    'chr update_mutable'( triggered, Mref),
-					    arg( 4, S, Gref), % ARGXXX
+					    GetGref,
 					    'chr get_mutable'( Gen, Gref),
 					    Generation is Gen+1,
 					    'chr update_mutable'( Generation, Gref),
-					    arg( 5, S, Goal), % ARGXXX
+					    GetContinuation,
 					    ( 
-						'chr debug_event'(wake(S)),
-					        call( Goal)
+						'chr debug_event'(wake(Suspension)),
+					        call(Continuation)
 					    ;
-						'chr debug_event'(fail(S)), !,
+						'chr debug_event'(fail(Suspension)), !,
 						fail
 					    ),
 					    (
-						'chr debug_event'(exit(S))
+						'chr debug_event'(exit(Suspension))
 					    ;
-						'chr debug_event'(redo(S)),
+						'chr debug_event'(redo(Suspension)),
 						fail
 					    ),	
 					    'chr get_mutable'( Post, Mref),
@@ -1942,22 +1977,27 @@ generate_run_suspensions(List,Tail) :-
 					;
 					    true
 					),
-					'$run_suspensions'( Next)
+					Clause2Recursion
 			)
 		;
+			run_suspensions_goal(Constraint,[Suspension|Suspensions],Clause2Head),
+			get_dynamic_suspension_term_field(state,Constraint,Suspension,Mref,GetMref),
+			get_dynamic_suspension_term_field(generation,Constraint,Suspension,Gref,GetGref),
+			get_dynamic_suspension_term_field(continuation,Constraint,Suspension,Continuation,GetContinuation),
+			run_suspensions_goal(Constraint,Suspensions,Clause2Recursion),
 			Clause2 =
 			(
-				'$run_suspensions'([S|Next] ) :-
-					arg( 2, S, Mref), % ARGXXX
+				Clause2Head :-
+					GetMref,
 					'chr get_mutable'( Status, Mref),
 					( Status==active ->
 					    'chr update_mutable'( triggered, Mref),
-					    arg( 4, S, Gref), % ARGXXX
+					    GetGref,
 					    'chr get_mutable'( Gen, Gref),
 					    Generation is Gen+1,
 					    'chr update_mutable'( Generation, Gref),
-					    arg( 5, S, Goal), % ARGXXX
-					    call( Goal),
+					    GetContinuation,
+					    call( Continuation),
 					    'chr get_mutable'( Post, Mref),
 					    ( Post==triggered ->
 						'chr update_mutable'( active, Mref)	% catching constraints that did not do anything
@@ -1967,14 +2007,12 @@ generate_run_suspensions(List,Tail) :-
 					;
 					    true
 					),
-					'$run_suspensions'( Next)
+					Clause2Recursion
 			)
 		)
 	;
 		List = Tail
-	),!.
-generate_run_suspensions(List,Tail) :-
-	chr_error(internal,'generate_run_suspensions fails',[]).
+	).
 
 %~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
 
@@ -2152,8 +2190,8 @@ make_run_suspensions(Susps,Goal) :-
 
 make_run_suspensions(Index,Susps,Goal) :-
 	( get_indexed_constraint(Index,C), may_trigger(C) ->
-		use_auxiliary_predicate(run_suspensions),
-		Goal = '$run_suspensions'(Susps)
+		use_auxiliary_predicate(run_suspensions,C),
+		run_suspensions_goal(C,Susps,Goal)
 	;
 		Goal = true
 	).
@@ -5245,7 +5283,7 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
 	
 	% - recursive call -
 	RecursiveCall = NextHead,
-	( BodyCopy \== true, is_observed(F/A,O) ->
+	( Body \== true, is_observed(F/A,O) ->
 	    gen_uncond_attach_goal(F/A,Susp,Attachment,Generation),
 	    gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
 	;   Attachment = true,
@@ -5352,7 +5390,7 @@ check_fd_lookup_condition(_,_,_,_) :- fail.
 %	intersect_eq(Key,PreVars,Key).		
 
 propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
-	Rule = rule(_,_,Guard,Body),
+	Rule = rule(_,H2,Guard,Body),
 	gen_var_susp_list_for_b(PreHeads,[CurrentHead,Guard,Body],VarDict1,PreVarsAndSuspsList,FirstVarsSusp,AllSusps,PrevIterators),
 	flatten(PreVarsAndSuspsList,PreVarsAndSusps),
 	init(AllSusps,RestSusps),
@@ -5408,8 +5446,10 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 		use_auxiliary_predicate(novel_production),
 		use_auxiliary_predicate(extend_history),
 		does_use_history(F/A),
-		bagof('$novel_production'(X,Y),( lists:member(X,HistorySusps), Y = TupleVar) ,NovelProductionsList),
-		list2conj(NovelProductionsList,NovelProductions),
+		findall(Functor/Arity,(member(H,H2),functor(H,Functor,Arity)),ConstraintSymbols),	
+		novel_production_calls(ConstraintSymbols,HistorySusps,TupleVar,NovelProductions),
+		% bagof('$novel_production'(X,Y),( lists:member(X,HistorySusps), Y = TupleVar) ,NovelProductionsList),
+		% list2conj(NovelProductionsList,NovelProductions),
 		NovelProduction = ( TupleVar = Tuple, NovelProductions),
 		ExtendHistory   = '$extend_history'(Susp,TupleVar)
 	),
@@ -5442,6 +5482,11 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
          )
    ),
    L = [Clause|T].
+
+novel_production_calls([],[],_,true).
+novel_production_calls([ConstraintSymbol|ConstraintSymbols],[Suspension|Suspensions],Tuple,(Goal,Goals)) :-
+	delay_phase_end(validate_store_type_assumptions,novel_production_call(ConstraintSymbol,'$novel_production'(Suspension,Tuple),Goal)),
+	novel_production_calls(ConstraintSymbols,Suspensions,Tuple,Goals).
 
 history_susps(RestIDs,ReversedRestSusps,Susp,ID,HistorySusps) :-
 	reverse(ReversedRestSusps,RestSusps),
@@ -6466,7 +6511,11 @@ suspension_term_base_fields(FA,Fields) :-
 		% 6. Functor
 		Fields1 = [history,generation,continuation,functor]
 	;  
-		Fields1 = [history|Fields2],
+		( uses_history(FA) ->
+			Fields1 = [history|Fields2]
+		;
+			Fields1 = Fields2
+		),
 		( only_ground_indexed_arguments(FA) ->
 			get_store_type(FA,StoreType),
 			basic_store_types(StoreType,BasicStoreTypes),
