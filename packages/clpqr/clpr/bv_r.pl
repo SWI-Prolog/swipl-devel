@@ -6,15 +6,14 @@
     E-mail:        Leslie.DeKoninck@cs.kuleuven.be
     WWW:           http://www.swi-prolog.org
 		   http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09
-    Copyright (C): 2004, K.U. Leuven and
+    Copyright (C): 2006, K.U. Leuven and
 		   1992-1995, Austrian Research Institute for
 		              Artificial Intelligence (OFAI),
 			      Vienna, Austria
 
-    This software is part of Leslie De Koninck's master thesis, supervised
-    by Bart Demoen and daily advisor Tom Schrijvers.  It is based on CLP(Q,R)
-    by Christian Holzbaur for SICStus Prolog and distributed under the
-    license details below with permission from all mentioned authors.
+    This software is based on CLP(Q,R) by Christian Holzbaur for SICStus
+    Prolog and distributed under the license details below with permission from
+    all mentioned authors.
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -465,7 +464,7 @@ iterate_dec(OptVar,Opt) :-
 
 iterate_inc(OptVar,Opt) :-
 	get_attr(OptVar,itf,Att),
-	arg(4,Att,lin([I,R|H])),	
+	arg(4,Att,lin([I,R|H])),
 	inc_step(H,Status),
 	(   Status = applied
 	->  iterate_inc(OptVar,Opt)
@@ -479,6 +478,107 @@ iterate_inc(OptVar,Opt) :-
 % Searches left to right, does not try to find the 'best' pivot
 % Therefore we might discover unboundedness only after a few pivots
 %
+
+dec_step_cont([],optimum,Cont,Cont).
+dec_step_cont([l(V*K,OrdV)|Vs],Status,ContIn,ContOut) :-
+	get_attr(V,itf,Att),
+	arg(2,Att,type(W)),
+	arg(6,Att,class(Class)),
+	(   dec_step_2_cont(W,l(V*K,OrdV),Class,Status,ContIn,ContOut)
+	->  true
+	;   dec_step_cont(Vs,Status,ContIn,ContOut)
+	).
+
+inc_step_cont([],optimum,Cont,Cont).
+inc_step_cont([l(V*K,OrdV)|Vs],Status,ContIn,ContOut) :-
+	get_attr(V,itf,Att),
+	arg(2,Att,type(W)),
+	arg(6,Att,class(Class)),
+	(   inc_step_2_cont(W,l(V*K,OrdV),Class,Status,ContIn,ContOut)
+	->  true
+	;   inc_step_cont(Vs,Status,ContIn,ContOut)
+	).
+
+dec_step_2_cont(t_U(U),l(V*K,OrdV),Class,Status,ContIn,ContOut) :-
+	K > 1.0e-10,
+	(   lb(Class,OrdV,Vub-Vb-_)
+	->  % found a lower bound
+	    Status = applied,
+	    pivot_a(Vub,V,Vb,t_u(U)),
+	    replace_in_cont(ContIn,Vub,V,ContOut)
+	;   Status = unlimited(V,t_u(U)),
+	    ContIn = ContOut
+	).
+dec_step_2_cont(t_lU(L,U),l(V*K,OrdV),Class,applied,ContIn,ContOut) :-
+	K > 1.0e-10,
+	Init is L - U,
+	class_basis(Class,Deps),
+	lb(Deps,OrdV,V-t_Lu(L,U)-Init,Vub-Vb-_),
+	pivot_b(Vub,V,Vb,t_lu(L,U)),
+	replace_in_cont(ContIn,Vub,V,ContOut).
+dec_step_2_cont(t_L(L),l(V*K,OrdV),Class,Status,ContIn,ContOut) :-
+	K < -1.0e-10,
+	(   ub(Class,OrdV,Vub-Vb-_)
+	->  Status = applied,
+	    pivot_a(Vub,V,Vb,t_l(L)),
+	    replace_in_cont(ContIn,Vub,V,ContOut)
+	;   Status = unlimited(V,t_l(L)),
+	    ContIn = ContOut
+	).
+dec_step_2_cont(t_Lu(L,U),l(V*K,OrdV),Class,applied,ContIn,ContOut) :-
+	K < -1.0e-10,
+	Init is U - L,
+	class_basis(Class,Deps),
+	ub(Deps,OrdV,V-t_lU(L,U)-Init,Vub-Vb-_),
+	pivot_b(Vub,V,Vb,t_lu(L,U)),
+	replace_in_cont(ContIn,Vub,V,ContOut).
+dec_step_2_cont(t_none,l(V*_,_),_,unlimited(V,t_none),Cont,Cont).
+
+
+
+inc_step_2_cont(t_U(U),l(V*K,OrdV),Class,Status,ContIn,ContOut) :-
+	K < -1.0e-10,
+	(   lb(Class,OrdV,Vub-Vb-_)
+	->  Status = applied,
+	    pivot_a(Vub,V,Vb,t_u(U)),
+	    replace_in_cont(ContIn,Vub,V,ContOut)
+	;   Status = unlimited(V,t_u(U)),
+	    ContIn = ContOut
+	).
+inc_step_2_cont(t_lU(L,U),l(V*K,OrdV),Class,applied,ContIn,ContOut) :-
+	K < -1.0e-10,
+	Init is L - U,
+	class_basis(Class,Deps),
+	lb(Deps,OrdV,V-t_Lu(L,U)-Init,Vub-Vb-_),
+	pivot_b(Vub,V,Vb,t_lu(L,U)),
+	replace_in_cont(ContIn,Vub,V,ContOut).
+inc_step_2_cont(t_L(L),l(V*K,OrdV),Class,Status,ContIn,ContOut) :-
+	K > 1.0e-10,
+	(   ub(Class,OrdV,Vub-Vb-_)
+	->  Status = applied,
+	    pivot_a(Vub,V,Vb,t_l(L)),
+	    replace_in_cont(ContIn,Vub,V,ContOut)
+	;   Status = unlimited(V,t_l(L)),
+	    ContIn = ContOut
+	).
+inc_step_2_cont(t_Lu(L,U),l(V*K,OrdV),Class,applied,ContIn,ContOut) :-
+	K > 1.0e-10,
+	Init is U - L,
+	class_basis(Class,Deps),
+	ub(Deps,OrdV,V-t_lU(L,U)-Init,Vub-Vb-_),
+	pivot_b(Vub,V,Vb,t_lu(L,U)),
+	replace_in_cont(ContIn,Vub,V,ContOut).
+inc_step_2_cont(t_none,l(V*_,_),_,unlimited(V,t_none),Cont,Cont).
+
+replace_in_cont([],_,_,[]).
+replace_in_cont([H1|T1],X,Y,[H2|T2]) :-
+	(   H1 == X
+	->  H2 = Y,
+	    T1 = T2
+	;   H2 = H1,
+	    replace_in_cont(T1,X,Y,T2)
+	).
+
 dec_step([],optimum).
 dec_step([l(V*K,OrdV)|Vs],Status) :-
 	get_attr(V,itf,Att),
@@ -499,7 +599,7 @@ dec_step_2(t_U(U),l(V*K,OrdV),Class,Status) :-
 	).
 dec_step_2(t_lU(L,U),l(V*K,OrdV),Class,applied) :-
 	K > 1.0e-10,
-	Init is L-U,
+	Init is L - U,
 	class_basis(Class,Deps),
 	lb(Deps,OrdV,V-t_Lu(L,U)-Init,Vub-Vb-_),
 	pivot_b(Vub,V,Vb,t_lu(L,U)).
@@ -512,7 +612,7 @@ dec_step_2(t_L(L),l(V*K,OrdV),Class,Status) :-
 	).
 dec_step_2(t_Lu(L,U),l(V*K,OrdV),Class,applied) :-
 	K < -1.0e-10,
-	Init is U-L,
+	Init is U - L,
 	class_basis(Class,Deps),
 	ub(Deps,OrdV,V-t_lU(L,U)-Init,Vub-Vb-_),
 	pivot_b(Vub,V,Vb,t_lu(L,U)).
@@ -537,7 +637,7 @@ inc_step_2(t_U(U),l(V*K,OrdV),Class,Status) :-
 	).
 inc_step_2(t_lU(L,U),l(V*K,OrdV),Class,applied) :-
 	K < -1.0e-10,
-	Init is L-U,
+	Init is L - U,
 	class_basis(Class,Deps),
 	lb(Deps,OrdV,V-t_Lu(L,U)-Init,Vub-Vb-_),
 	pivot_b(Vub,V,Vb,t_lu(L,U)).
@@ -550,7 +650,7 @@ inc_step_2(t_L(L),l(V*K,OrdV),Class,Status) :-
 	).
 inc_step_2(t_Lu(L,U),l(V*K,OrdV),Class,applied) :-
 	K > 1.0e-10,
-	Init is U-L,
+	Init is U - L,
 	class_basis(Class,Deps),
 	ub(Deps,OrdV,V-t_lU(L,U)-Init,Vub-Vb-_),
 	pivot_b(Vub,V,Vb,t_lu(L,U)).
@@ -1378,10 +1478,37 @@ bs_collect_binding([_|_],_,_) --> [].
 
 rcbl([],Bind0,Bind0).
 rcbl([X|Continuation],Bind0,BindT) :-
-	(   rcb(X,Status,Violated) % have a culprit
-	->  rcbl_status(Status,X,Continuation,Bind0,BindT,Violated)
+	(   rcb_cont(X,Status,Violated,Continuation,NewContinuation) % have a culprit
+	->  rcbl_status(Status,X,NewContinuation,Bind0,BindT,Violated)
 	;   rcbl(Continuation,Bind0,BindT)
 	).
+
+rcb_cont(X,Status,Violated,ContIn,ContOut) :-
+	get_attr(X,itf,Att),
+	arg(2,Att,type(Type)),
+	arg(4,Att,lin([I,R|H])),
+	(   Type = t_l(L) % case 1: lowerbound: R + I should always be larger
+			  % than the lowerbound
+	->  R + I - L < 1.0e-10,
+	    Violated = l(L),
+	    inc_step_cont(H,Status,ContIn,ContOut)
+	;   Type = t_u(U) % case 2: upperbound: R + I should always be smaller
+			  % than the upperbound
+	->  R + I - U  > -1.0e-10,
+	    Violated = u(U),
+	    dec_step_cont(H,Status,ContIn,ContOut)
+	;   Type = t_lu(L,U) % case 3: check both
+	->  At is R + I,
+	    (   At - L < 1.0e-10
+	    ->	Violated = l(L),
+		inc_step_cont(H,Status,ContIn,ContOut)
+	    ;   At - U > -1.0e-10
+	    ->	Violated = u(U),
+		dec_step_cont(H,Status,ContIn,ContOut)
+	    )
+	). % other types imply nonbasic variable or unbounded variable
+
+
 
 %
 % reconsider one element of the basis
