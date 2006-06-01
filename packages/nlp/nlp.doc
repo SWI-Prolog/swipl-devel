@@ -123,11 +123,12 @@ numbers.
 
 \subsection{Origin and Copyright}
 
-The origin of this implementation is unknown. Phrasing of the header
-suggests the code is meant to be shared, so we assume it is in the
-public domain.  The code has been modified by Jan Wielemaker.  He
-removed all global variables to make the code thread-safe, added the
-unaccent and tokenize code and created the SWI-Prolog binding.
+The code is based on the original Public Domain implementation by Martin
+Porter as can be found at
+\url{http://www.tartarus.org/martin/PorterStemmer/}. The code has been
+modified by Jan Wielemaker. He removed all global variables to make the
+code thread-safe, added the unaccent and tokenize code and created the
+SWI-Prolog binding.
 
 
 \section{Installation}
