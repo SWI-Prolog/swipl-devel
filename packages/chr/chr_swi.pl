@@ -35,7 +35,6 @@
 	    op(1180, xfx, <=>),
 	    op(1150, fx, constraints),
 	    op(1150, fx, chr_constraint),
-	    op(1150, fx, chr_constraint),
 	    op(1150, fx, handler),
 	    op(1150, fx, rules),
 	    op(1100, xfx, \),
@@ -53,7 +52,6 @@
 	  ]).
 
 :- set_prolog_flag(generate_debug_info, false).
-
 
 :- multifile user:file_search_path/2.
 :- dynamic   user:file_search_path/2.
@@ -76,7 +74,13 @@ user:file_search_path(chr, library(chr)).
 %% SWI end
 
 %% SICStus begin
-%% :- module(chr,[]).
+%% :- module(chr,[
+%%	chr_trace/0,
+%%	chr_notrace/0,
+%%	chr_leash/0,
+%%	chr_flag/3,
+%%	chr_show_store/1
+%%	]).
 %% 
 %% :- op(1180, xfx, ==>),
 %% 	op(1180, xfx, <=>),
@@ -92,7 +96,6 @@ user:file_search_path(chr, library(chr)).
 %% 	op(1150, fx, (?)).
 %% 
 %% :- multifile user:file_search_path/2.
-%% :- dynamic   user:file_search_path/2.
 %% :- dynamic   chr_translated_program/1.
 %% 
 %% user:file_search_path(chr, library(chr)).
@@ -100,12 +103,11 @@ user:file_search_path(chr, library(chr)).
 %% 
 %% :- use_module('chr/chr_translate').
 %% :- use_module('chr/chr_runtime').
-%% :- use_module('chr/chr_messages').
 %% :- use_module('chr/chr_hashtable_store').
 %% :- use_module('chr/hprolog').
-%% :- use_module(library(lists),[member/2, memberchk/2]).
 %% SICStus end
 
+:- multifile chr:'$chr_module'/1.
 
 :- dynamic
 	chr_term/2.			% File, Term
@@ -150,7 +152,7 @@ extra_declarations([(:- use_module(chr(chr_runtime))),
 
 %% SICStus begin
 %% extra_declarations([(:-use_module(chr(chr_runtime)))
-%% 		     , (:- use_module(library(terms),[term_variables/2]))
+%% 		     , (:- use_module(chr(hprolog),[term_variables/2,term_variables/3]))
 %% 		     , (:-use_module(chr(hpattvars)))
 %% 		     | Tail], Tail).		   
 %% SICStus end
@@ -168,14 +170,14 @@ chr_expand(end_of_file, FinalProgram) :-
 	add_debug_decl(CHR0, CHR1),
 	add_optimise_decl(CHR1, CHR),
 	catch(call_chr_translate(File,
-				   [ (:- module(Module, []))
-				   | CHR
-				   ],
-				   Program0),
-			chr_error(Error),
-			(	chr_compiler_errors:print_chr_error(Error),
-				fail
-			)
+			   [ (:- module(Module, []))
+			   | CHR
+			   ],
+			   Program0),
+		chr_error(Error),
+		(	chr_compiler_errors:print_chr_error(Error),
+			fail
+		)
 	),
 	delete_header(Program0, Program).
 
@@ -197,14 +199,6 @@ add_debug_decl(CHR, [(:- chr_option(debug, Debug))|CHR]) :-
 %% SWI begin
 chr_current_prolog_flag(Flag,Val) :- current_prolog_flag(Flag,Val).
 %% SWI end
-
-%% SICStus begin
-%% chr_current_prolog_flag(generate_debug_info, _) :- fail.
-%% chr_current_prolog_flag(optimize,full).
-%% chr_current_prolog_flag(chr_toplevel_show_store,true).
-%% SICStus end
-
-
 
 add_optimise_decl(CHR, CHR) :-
 	\+(\+(memberchk((:- chr_option(optimize, _)), CHR))), !.
@@ -231,6 +225,7 @@ call_chr_translate(_, _In, Out) :-
 call_chr_translate(File, _, []) :-
 	print_message(error, chr(compilation_failed(File))).
 
+%% SWI begin
 
 		 /*******************************
 		 *      SYNCHRONISE TRACER	*
@@ -294,18 +289,14 @@ prolog:message(chr(CHR)) -->
 		 *	 TOPLEVEL PRINTING	*	
 		 *******************************/
 
-%% SWI begin
 :- set_prolog_flag(chr_toplevel_show_store,true).
-%% SWI end
-
-:- multifile chr:'$chr_module'/1.
 
 prolog:message(query(YesNo)) --> !,
-	['~@'-[once(chr:print_all_stores)]],
+	['~@'-[chr:print_all_stores]],
         '$messages':prolog_message(query(YesNo)).
 
 prolog:message(query(YesNo,Bindings)) --> !,
-	['~@'-[once(chr:print_all_stores)]],
+	['~@'-[chr:print_all_stores]],
         '$messages':prolog_message(query(YesNo,Bindings)).
 
 print_all_stores :-
@@ -327,5 +318,72 @@ print_all_stores :-
 
 user:term_expansion(In, Out) :-
 	chr_expand(In, Out).
-	
+%% SWI end
 
+%% SICStus begin
+
+:- dynamic
+	current_toplevel_show_store/1,
+	current_generate_debug_info/1,
+	current_optimize/1.
+
+current_toplevel_show_store(on).
+
+current_generate_debug_info(false).
+
+current_optimize(off).
+
+chr_current_prolog_flag(generate_debug_info, X) :-
+	chr_flag(generate_debug_info, X, X).
+chr_current_prolog_flag(optimize, X) :-
+	chr_flag(optimize, X, X).
+
+
+chr_flag(Flag, Old, New) :-
+	Goal = chr_flag(Flag,Old,New),
+	% must_be(Flag, oneof([toplevel_show_store,generate_debug_info,optimize]), Goal, 1),
+	chr_flag(Flag, Old, New, Goal).
+
+chr_flag(toplevel_show_store, Old, New, Goal) :-
+	clause(current_toplevel_show_store(Old), true, Ref),
+	(   New==Old -> true
+	;   must_be(New, oneof([on,off]), Goal, 3),
+	    erase(Ref),
+	    assertz(current_toplevel_show_store(New))
+	).
+chr_flag(generate_debug_info, Old, New, Goal) :-
+	clause(current_generate_debug_info(Old), true, Ref),
+	(   New==Old -> true
+	;   must_be(New, oneof([false,true]), Goal, 3),
+	    erase(Ref),
+	    assertz(current_generate_debug_info(New))
+	).
+chr_flag(optimize, Old, New, Goal) :-
+	clause(current_optimize(Old), true, Ref),
+	(   New==Old -> true
+	;   must_be(New, oneof([full,off]), Goal, 3),
+	    erase(Ref),
+	    assertz(current_optimize(New))
+	).
+
+
+all_stores_goal(Goal, CVAs) :-
+	chr_flag(toplevel_show_store, on, on), !,
+	findall(C-CVAs, find_chr_constraint(C), Pairs),
+	andify(Pairs, Goal, CVAs).
+all_stores_goal(true, _).
+
+andify([], true, _).
+andify([X-Vs|L], Conj, Vs) :- andify(L, X, Conj, Vs).
+
+andify([], X, X, _).
+andify([Y-Vs|L], X, (X,Conj), Vs) :- andify(L, Y, Conj, Vs).
+
+:- multifile user:term_expansion/6.
+
+user:term_expansion(In, _, Ids, Out, [], [chr|Ids]) :-
+	nonvar(In),
+	nonmember(chr, Ids),
+	chr_expand(In, Out), !.
+
+%% SICStus end

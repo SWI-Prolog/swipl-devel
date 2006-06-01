@@ -132,20 +132,13 @@
 :- module(chr_translate,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
 	  ]).
+%% SWI begin
 :- use_module(library(lists),[member/2, append/3,reverse/2,permutation/2,last/2]).
-:- use_module(hprolog).
-
-%% SICStus begin
-%% :- use_module(library(lists),[memberchk/2,is_list/1]).
-%% SICStus end
-
-
-%% for release 4 SICStus begin
-%% :- use_module(library(samsort)).
-%% for release 4 SICStus end
-
-:- use_module(pairlist).
 :- use_module(library(ordsets)).
+%% SWI end
+
+:- use_module(hprolog).
+:- use_module(pairlist).
 :- use_module(a_star).
 :- use_module(listmap).
 :- use_module(clean_code).
@@ -483,7 +476,6 @@ chr_translate(Declarations,NewDeclarations) :-
 
 store_management_preds(Constraints,Clauses) :-
 		generate_attach_detach_a_constraint_all(Constraints,AttachAConstraintClauses),
-		% generate_indexed_variables_clauses(Constraints,IndexedClauses),
 		generate_attach_increment(AttachIncrementClauses),
 		generate_attr_unify_hook(AttrUnifyHookClauses),
 		generate_extra_clauses(Constraints,ExtraClauses),
@@ -510,9 +502,8 @@ extra_declaration([ :- use_module(chr(chr_runtime))
 %% SWI end
 
 %% SICStus begin
-%% extra_declaration([(:- use_module(library('chr/hprolog'),[term_variables/3]))]).
+%% extra_declaration([]).
 %% SICStus end
-
 
 
 insert_declarations(Clauses0, Clauses) :-
@@ -643,12 +634,10 @@ is_type_definition(D) :-
   ( TypeDef = (Name ---> Def) ->
 	tdisj2list(Def,DefList),
   	type_definition(Name,DefList)
+  ; TypeDef = (Alias == Name) ->
+  	type_alias(Alias,Name)
   ;
-	( TypeDef = (Alias == Name) ->
-  	    type_alias(Alias,Name)
-  	;
-	    chr_warning(syntax,'Illegal type definition "~w".\n\tIgnoring this malformed type definition.\n',[TypeDef])
-	)
+	chr_warning(syntax,'Illegal type definition "~w".\n\tIgnoring this malformed type definition.\n',[TypeDef])
   ).
 
 % no removal of fails, e.g. :- type bool --->  true ; fail.
@@ -704,7 +693,6 @@ rule(RI,Name,R) :-
 	inc_rule_count(RuleCount),
 	R = pragma(R1,IDs,[],Name,RuleCount),
 	is_rule(RI,R1,IDs,R).
-
 
 is_rule(RI,R,IDs,RC) :-				%% propagation rule
    RI = (H ==> B), !,
@@ -764,7 +752,6 @@ check_direct_pragma(Abbrev,N,RC) :-
 	;
 	    chr_warning(unsupported_pragma(Abbrev,RC),'',[])
 	).
-
 
 is_module_declaration((:- module(Mod)),Mod).
 is_module_declaration((:- module(Mod,_)),Mod).
@@ -1404,52 +1391,6 @@ generate_detach_body_n(F/A,Var,Susp,Body) :-
 	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%generate_indexed_variables_clauses(Constraints,Clauses) :-
-%	( is_used_auxiliary_predicate(chr_indexed_variables) ->
-%		generate_indexed_variables_clauses_(Constraints,Clauses)
-%	;
-%		Clauses = []
-%	).
-%
-%generate_indexed_variables_clauses_([],[]).
-%generate_indexed_variables_clauses_([C|Cs],Clauses) :-
-%	( is_stored(C) ->
-%		Clauses = [Clause|RestClauses],
-%		generate_indexed_variables_clause(C,Clause)
-%	;
-%		Clauses = RestClauses
-%	),
-%	generate_indexed_variables_clauses_(Cs,RestClauses).
-%
-%%===============================================================================
-%:- chr_constraint generate_indexed_variables_clause/2.
-%:- chr_option(mode,generate_indexed_variables_clause(+,+)).
-%%-------------------------------------------------------------------------------
-%constraint_mode(F/A,ArgModes) \ generate_indexed_variables_clause(F/A,Clause) <=>
-%	functor(Term,F,A),
-%	Term =.. [_|Args],
-%	get_indexing_spec(F/A,Specs),
-%	( chr_pp_flag(term_indexing,on) ->
-%		spectermvars(Specs,Args,F,A,Body,Vars)
-%	;
-%		create_indexed_variables_body(Args,ArgModes,Vars,1,F/A,MaybeBody,N),
-%		( MaybeBody == empty ->
-%		
-%			Body = (Vars = [])
-%		; N == 0 ->
-%			Body = term_variables(Susp,Vars)
-%		; 
-%			MaybeBody = Body
-%		)
-%	),
-%	Clause = 
-%		( '$indexed_variables'(Susp,Vars) :-
-%			Susp = Term,
-%			Body
-%		).	
-%generate_indexed_variables_clause(FA,_) <=>
-%	chr_error(internal,'generate_indexed_variables_clause: missing mode info for ~w.\n',[FA]).
-%===============================================================================
 :- chr_constraint generate_indexed_variables_body/4.
 :- chr_option(mode,generate_indexed_variables_body(+,?,+,?)).
 %-------------------------------------------------------------------------------
@@ -1577,7 +1518,7 @@ generate_extra_clauses(Constraints,List) :-
 	generate_novel_production(Tail3,Tail4),
 	generate_extend_history(Tail4,Tail5),
 	generate_run_suspensions_clauses(Constraints,Tail5,Tail6),
-	Tail6 = []. % global_indexed_variables_clause(Constraints,Tail6,[]).
+	Tail6 = [].
 
 %~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
 % remove_constraint_internal/[1/3]
@@ -2886,10 +2827,7 @@ rule(N,Rule) \ prev_guard_list(RuleNb,N,H,G,GuardList,M,GH) <=>
     H1 \== [], 
     append(H1,H2,Heads),
     make_head_matchings_explicit(Heads,UniqueVarsHeads,Matchings),
-%    term_variables(UniqueVarsHeads+H,HVars),
-%    strip_attributes(HVars,HVarAttrs),	% this seems to be necessairy to get past the setof
     setof(Renaming,chr_translate:head_subset(UniqueVarsHeads,H,Renaming),Renamings),
-%    restore_attributes(HVars,HVarAttrs),
     Renamings \= []
     |
     compute_derived_info(Matchings,Renamings,UniqueVarsHeads,Heads,G2,M,H,GH,DerivedInfo,GH_New1),
@@ -3624,9 +3562,9 @@ add_mode_info([M|Modes],[A|Args],MI) :-
 
 types2condition([],[],[],[],[]).
 types2condition([Type|Types],[Arg|Args],[RealArg|RAs],[Mode|Modes],TI) :-
-    (get_type_definition(Type,Def) ->
+    ( get_type_definition(Type,Def) ->
 	type2condition(Def,Arg,RealArg,TC),
-	(Mode \== (+) ->
+	( Mode \== (+) ->
 	    TC_ = [(\+ ground(Arg))|TC]
 	;
 	    TC_ = TC
@@ -3635,12 +3573,8 @@ types2condition([Type|Types],[Arg|Args],[RealArg|RAs],[Mode|Modes],TI) :-
 	TI = [DisjTC|RTI],
 	types2condition(Types,Args,RAs,Modes,RTI)
     ;
-	( builtin_type(Type,Arg,C) ->
-	    TI = [C|RTI],
-	    types2condition(Types,Args,RAs,Modes,RTI)
-	;
-	    chr_error(internal,'Undefined type ~w.\n',[Type])
-	)
+	chr_error(internal,'Undefined type ~w.\n',[Type])
+	
     ).
 
 type2condition([],Arg,_,[]).
@@ -3692,18 +3626,13 @@ real_type(Def,Arg,RealArg,C) :-
     ).	
 nested_types([],[],[],true).
 nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
-    (get_type_definition(T,Def) ->
+    ( get_type_definition(T,Def) ->
 	type2condition(Def,A,RealA,TC),
 	list2disj(TC,DisjTC),
 	C = (DisjTC, RC),
 	nested_types(RT,RA,RRA,RC)
     ;
-	( builtin_type(T,A,Cond) ->
-	    C = (Cond, RC),
-	    nested_types(RT,RA,RRA,RC)
-	;
-	    chr_error(internal,'Undefined type ~w inside type definition.\n',[T])
-	)
+	chr_error(internal,'Undefined type ~w inside type definition.\n',[T])
     ).
 
 
@@ -3756,13 +3685,12 @@ rule(RuleNb,Rule),passive(RuleNb,Id) ==>
 passive(RuleNb,Id) \ check_all_passive(RuleNb,[Id|IDs]) <=>
     check_all_passive(RuleNb,IDs).
 
-rule(RuleNb,Rule) \ check_all_passive(RuleNb,[]) <=> 
+rule(RuleNb,Rule) \ check_all_passive(RuleNb,[]) <=>
     chr_warning(weird_program,'All heads passive in ~@.\n\tThis rule never fires. Please check your program.\n',[format_rule(Rule)]).
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
 % collect the storage information
-
 stored(C,O,yes) \ stored_completing(C,O,Yesses)
 	<=> NO is O + 1, NYesses is Yesses + 1,
 	    stored_completing(C,NO,NYesses).
@@ -3916,7 +3844,6 @@ constraint_prelude(F/A, Clause) :-
 	Head =.. [ F | Vars],
 	make_suspension_continuation_goal(F/A,VarsSusp,Continuation),
 	build_head(F,A,[0],VarsSusp,Delegate),
-	FTerm =.. [F|Vars],
 	( chr_pp_flag(debugable,on) ->
 		use_auxiliary_predicate(insert_constraint_internal,F/A),
 		generate_insert_constraint_call(F/A,Susp,InsertCall),
@@ -3930,6 +3857,7 @@ constraint_prelude(F/A, Clause) :-
 				InsertCall,
 				AttachCall,
 				Inactive,
+				'chr debug_event'(insert(Head#Susp)),
 			        (   
 					'chr debug_event'(call(Susp)),
 		   	                Delegate
@@ -3988,14 +3916,8 @@ gen_cond_attach_clause(F/A,Id,L,T) :-
 		; 	vars_susp(A,Args,Susp,AllArgs),
 			gen_uncond_attach_goal(F/A,Susp,Body,_)
 		),
-		( chr_pp_flag(debugable,on) ->
-			Constraint =.. [F|Args],
-			DebugEvent = 'chr debug_event'(insert(Constraint#Susp))
-		;
-			DebugEvent = true
-		),
 		build_head(F,A,Id,AllArgs,Head),
-		Clause = ( Head :- DebugEvent,Body ),
+		Clause = ( Head :- Body ),
 		L = [Clause | T]
 	;
 		L = T
@@ -4145,7 +4067,7 @@ occurrence(C,O,RuleNb,ID), rule(RuleNb,PragmaRule) \ occurrence_code(C,O,Id,NId,
 		PragmaRule = pragma(rule(Heads1,Heads2,_,_),ids(IDs1,IDs2),_,_,_),	
 		( select2(ID,Head1,IDs1,Heads1,RIDs1,RHeads1) ->
 			NId = Id,
-			head1_code(Head1,RHeads1,RIDs1,PragmaRule,C,O,Id,L,T)
+			head1_code(Head1,ID,RHeads1,RIDs1,PragmaRule,C,O,Id,L,T)
 		; select2(ID,Head2,IDs2,Heads2,RIDs2,RHeads2) ->
 			head2_code(Head2,RHeads2,RIDs2,PragmaRule,C,O,Id,L,L1),
 			inc_id(Id,NId),
@@ -4162,12 +4084,12 @@ occurrence_code(C,O,_,_,_,_)
 %-------------------------------------------------------------------------------
 
 %%	Generate code based on one removed head of a CHR rule
-head1_code(Head,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) :-
+head1_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) :-
 	PragmaRule = pragma(Rule,_,_,_Name,RuleNb),
 	Rule = rule(_,Head2,_,_),
 	( Head2 == [] ->
 		reorder_heads(RuleNb,Head,OtherHeads,OtherIDs,NOtherHeads,NOtherIDs),
-		simplification_code(Head,NOtherHeads,NOtherIDs,PragmaRule,FA,O,Id,L,T)
+		simplification_code(Head,ID,NOtherHeads,NOtherIDs,PragmaRule,FA,O,Id,L,T)
 	;
 		simpagation_head1_code(Head,OtherHeads,OtherIDs,PragmaRule,FA,Id,L,T)
 	).
@@ -4346,7 +4268,6 @@ dependency_insert([X|Xs],Unit,GIDs,L) :-
 build_units(Retrievals,Guard,InitialDict,Units) :-
 	build_retrieval_units(Retrievals,1,N,InitialDict,Dict,Units,Tail),
 	build_guard_units(Guard,N,Dict,Tail).
-
 
 build_retrieval_units([],N,N,Dict,Dict,L,L).
 build_retrieval_units([U|Us],N,M,Dict,NDict,L,T) :-
@@ -4565,12 +4486,11 @@ symmetry_analysis_heads([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
 %% |____/|_|_| |_| |_| .__/|_|_|_| |_|\___\__,_|\__|_|\___/|_| |_|
 %%                   |_| 
 
-simplification_code(Head,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
+simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	PragmaRule = pragma(Rule,_,Pragmas,_,_RuleNb),
 	head_info(Head,A,_Vars,Susp,HeadVars,HeadPairs),
 	build_head(F,A,Id,HeadVars,ClauseHead),
 	get_constraint_mode(F/A,Mode),
-
 	head_arg_matches(HeadPairs,Mode,[],FirstMatching,VarDict1,[],GroundVars),
 	
 	guard_splitting(Rule,GuardList),
@@ -4586,8 +4506,11 @@ simplification_code(Head,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
-		DebugTry   = 'chr debug_event'(  try([Susp|RestSusps],[],DebugGuard,DebugBody)),
-		DebugApply = 'chr debug_event'(apply([Susp|RestSusps],[],DebugGuard,DebugBody)),
+		pairup([ID|RestIDs],[Susp|Susps],UnsortedIDSuspPairs),
+		sort(UnsortedIDSuspPairs,SortedIDSuspPairs),
+		once(pairup(_,SortedSusps,SortedIDSuspPairs)),
+		DebugTry   = 'chr debug_event'(  try(SortedSusps,[],DebugGuard,DebugBody)),
+		DebugApply = 'chr debug_event'(apply(SortedSusps,[],DebugGuard,DebugBody)),
 		instrument_goal(ActualCut,DebugTry,DebugApply,Cut)
 	;
 		Cut = ActualCut
@@ -5373,7 +5296,6 @@ propagation_nested_code([],[CurrentHead|PreHeads],RestIDs,Rule,RuleNb,FA,O,Id,L,
    universal_search_iterator_end([CurrentHead|PreHeads],[],Rule,FA,Id,L,L1),
    propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L1,T).
 
-
 propagation_nested_code([Head|RestHeads],PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,T) :-
    universal_search_iterator_end(PreHeads,[Head|RestHeads],Rule,FA,Id,L,L1),
    universal_search_iterator([Head|RestHeads],PreHeads,Rule,FA,Id,L1,L2),
@@ -5440,7 +5362,6 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 		ExtendHistory   = true
 	;	  
 		get_occurrence(F/A,O,_,ID),
-
 		history_susps(RestIDs,[OtherSusp|RestSusps],Susp,ID,HistorySusps),
    		Tuple =.. [t,RuleNb|HistorySusps],
 		use_auxiliary_predicate(novel_production),
@@ -5448,8 +5369,6 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 		does_use_history(F/A),
 		findall(Functor/Arity,(member(H,H2),functor(H,Functor,Arity)),ConstraintSymbols),	
 		novel_production_calls(ConstraintSymbols,HistorySusps,TupleVar,NovelProductions),
-		% bagof('$novel_production'(X,Y),( lists:member(X,HistorySusps), Y = TupleVar) ,NovelProductionsList),
-		% list2conj(NovelProductionsList,NovelProductions),
 		NovelProduction = ( TupleVar = Tuple, NovelProductions),
 		ExtendHistory   = '$extend_history'(Susp,TupleVar)
 	),
@@ -5579,7 +5498,6 @@ get_prop_inner_loop_vars([Head|Heads],Terms,VarsSusps,NVarDict,MainSusp,[Susp|Re
 reorder_heads(RuleNb,Head,RestHeads,RestIDs,NRestHeads,NRestIDs) :-
 	( chr_pp_flag(reorder_heads,on), length(RestHeads,Length), Length =< 6 ->
 		reorder_heads_main(RuleNb,Head,RestHeads,RestIDs,NRestHeads,NRestIDs)
-		
 	;
 		NRestHeads = RestHeads,
 		NRestIDs = RestIDs
@@ -5610,7 +5528,6 @@ order_score(Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
 	functor(Head,F,A),
 	get_store_type(F/A,StoreType),
 	order_score(StoreType,Head,ID,KnownVars,RestHeads,RuleNb,Score).
-
 
 order_score(default,Head,_ID,KnownVars,RestHeads,RuleNb,Score) :-
 	term_variables(Head,HeadVars),
@@ -5725,7 +5642,7 @@ build_head(F,A,Id,Args,Head) :-
 	( may_trigger(F/A) ; 
 		get_allocation_occurrence(F/A,AO), 
 		get_max_occurrence(F/A,MO), 
-	MO >= AO) ) ->	
+	MO >= AO ) ) ->	
 	   Head =.. [Name|Args]
    ;
 	   init(Args,ArgsWOSusp),	% XXX not entirely correct!
@@ -5903,8 +5820,6 @@ existential_lookup(StoreType,Head,PreJoin,VarDict,SuspTerm,State,Goal,Susp,Pairs
 			Susp = SuspTerm,		% not inlined
 			GetMutable
 		).
-
-
 
 hash_index_filter(Pairs,Index,NPairs) :-
 	( integer(Index) ->
@@ -6311,7 +6226,7 @@ call_pattern(odom(occ(C,O),Set)), abstract_constraints(ACs), occurrence(C,O,Rule
 	Rule = pragma(rule(H1,H2,G,Body),ids(_,IDs2),_,_,_),
 	memberchk_eq(ID,IDs2), \+ is_passive(RuleNb,ID)
 	|
-%	 writeln('  - AbstractPropagate'(C,O)),
+	% writeln('  - AbstractPropagate'(C,O)),
 	% observe partners
 	once(select2(ID,_,IDs2,H2,_,RestH2)),
 	ai_observation_abstract_constraints(RestH2,ACs,ARestHeads),
@@ -6413,7 +6328,6 @@ ai_observation_abstract_goal(writeln(_),_,Tail,Tail,_) :- !.
 ai_observation_abstract_goal(G,_,Tail,Tail,HV) :- 
 	binds_b(G,Vars),
 	intersect_eq(Vars,HV,[]), 
-%	writeln(safe(G)),
 	!.	
 ai_observation_abstract_goal(G,_,[AG|Tail],Tail,_) :-
 	AG = builtin. % default case if goal is not recognized/safe

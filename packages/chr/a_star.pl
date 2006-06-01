@@ -14,10 +14,6 @@
 
 :- use_module(hprolog).
 
-%% SICStus begin
-%% :- use_module(library(terms),[term_variables/2]).
-%% SICStus end
-
 a_star(DataIn,FinalData,ExpandData,DataOut) :-
 	a_star_node(DataIn,0,InitialNode),
 	empty_q(NewQueue),

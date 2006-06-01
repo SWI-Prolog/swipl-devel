@@ -12,7 +12,6 @@
 
 % :- use_module(library(chr)).
 :- include(chr_op).
-:- use_module(library(lists),[append/3]).
 :- use_module(hprolog).
 :- use_module(builtins).
 :- use_module(chr_compiler_errors).
@@ -106,7 +105,7 @@ unify_vars2 @ known(X=Y) <=> var(Y) | X=Y.
 %functor @ known(functor(X,F,A)) <=> var(X),ground(F),ground(A) | functor(X,F,A).
 % TOM: BUG?
 % inconsistency4     @ known(X\=Y) <=> var(X),var(Y),X=Y | known(fail).
-inconsistency4     @ known(X\=Y) <=> ground(X),ground(Y),X=Y |  known(fail).
+inconsistency4     @ known(X\=Y) <=> ground(X),ground(Y),X=Y | known(fail).
 
 functor @ variables(V),known(functor(X,F,A)) <=> 
 	    var(X), ground(F), ground(A) | 
@@ -115,18 +114,18 @@ functor @ variables(V),known(functor(X,F,A)) <=>
 	    append(Args,V,NewV),
 	    variables(NewV).
 
-functor_inconsistency1 @ known(functor(X,F1,A1)) <=> nonvar(X), \+ functor(X,F1,A1) |  known(fail).
-negfunctor_trivial @ known(\+ functor(X,F1,A1)) <=> nonvar(X), functor(X,F1,A1) |  known(fail).
+functor_inconsistency1 @ known(functor(X,F1,A1)) <=> nonvar(X), \+ functor(X,F1,A1) | known(fail).
+negfunctor_trivial @ known(\+ functor(X,F1,A1)) <=> nonvar(X), functor(X,F1,A1) | known(fail).
 functor_inconsistency2 @ known(functor(X,F1,A1)), known(functor(X,F2,A2)) <=> 
 			nonvar(F1),nonvar(A1),nonvar(F2),nonvar(A2) 
 			% (F1 \= F2 ; A1 \= A2) is entailed by idempotence
-			|  known(fail).
-nunify_inconsistency @ known(X\=X) <=>  known(fail).
+			| known(fail).
+nunify_inconsistency @ known(X\=X) <=> known(fail).
 nonvar_unification @ known(X=Y) <=> nonvar(X), nonvar(Y),functor(X,F,A) |
 		    ( functor(Y,F,A),X=Y ->
 			true
 		    ;
-			 known(fail)
+			known(fail)
 		    ).
 nunify_expand    @ known(X\=Y) <=> var(X),nonvar(Y), functor(Y,F,A), A>0 |
 		    length(Args,A),
@@ -151,7 +150,7 @@ nunify_symmetry    @ known(X\=Y) ==> known(Y\=X).
 % Rules for =<
 %--------------------------------------
 
-groundleq2 @ known(X=<Y) <=> number(X), number(Y), X>Y |  known(fail).
+groundleq2 @ known(X=<Y) <=> number(X), number(Y), X>Y | known(fail).
 
 % only keep the strictest inequality
 remove_redundant_leq1 @ known(X=<Y) \ known(X=<Z) <=> number(Y), number(Z), Y=<Z | true.

@@ -87,7 +87,6 @@ specific_declarations([:- use_module('chr_runtime'),
 %% 		       (:- use_module('hpattvars')),
 %% 		       (:- use_module('b_globval')),
 %% 		       (:- use_module('hprolog')),  % needed ?
-%%                     (:- use_module(library(terms),[term_variables/2])),
 %% 		       (:- set_prolog_flag(discontiguous_warnings,off)),
 %% 		       (:- set_prolog_flag(single_var_warnings,off))|Tail], Tail).
 %% SICStus end
@@ -135,7 +134,7 @@ format_date(Out) :-
 %% SWI end
 
 %% SICStus begin
-%% :- use_module(library(system)).
+%% :- use_module(library(system), [datime/1]).
 %% format_date(Out) :-
 %% 	datime(datime(Year,Month,Day,Hour,Min,Sec)),
 %% 	format(Out, '    Date: ~d-~d-~d ~d:~d:~d~n~n', [Day,Month,Year,Hour,Min,Sec]).

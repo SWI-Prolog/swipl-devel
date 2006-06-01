@@ -131,8 +131,6 @@
 :- include(chr_op).
 
 %% SICStus begin
-%% :- use_module(library(lists),[memberchk/2]).
-%% :- use_module(library(terms),[term_variables/2]).
 %% :- use_module(hpattvars).
 %% :- use_module(b_globval).
 %% SICStus end
@@ -182,7 +180,6 @@ chr_show_store(Mod) :-
 	(
 		Mod:'$enumerate_constraints'(Constraint),
 		print(Constraint),nl, % allows use of portray to control printing
-
 		fail
 	;
 		true
@@ -564,11 +561,6 @@ insert_constraint_internal([Global|Vars], Self, Term, Closure, F, Args) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%'chr sbag_member'( Head, [Head]) :- !.
-%'chr sbag_member'( Head, [Head|Tail]).
-%'chr sbag_member'( Elem, [_|Tail]) :- 
-%    'chr sbag_member'( Elem, Tail).
-        
 'chr sbag_member'( Element, [Head|Tail]) :-
       sbag_member( Element, Tail, Head).
 

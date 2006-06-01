@@ -122,13 +122,12 @@
 :- module(chr_translate_bootstrap1,
 	  [ chr_translate/2		% +Decls, -TranslatedDecls
 	  ]).
+%% SWI begin
 :- use_module(library(lists),[append/3,member/2,permutation/2,reverse/2]).
-%% SICStus begin
-%% :- use_module(library(lists),[memberchk/2]).
-%% SICStus end
+:- use_module(library(ordsets)).
+%% SWI end
 :- use_module(hprolog).
 :- use_module(pairlist).
-:- use_module(library(ordsets)).
 :- include(chr_op2).
 
 
@@ -853,7 +852,6 @@ generate_attr_unify_hook_many(N,Clause) :-
 	make_run_suspensions_loop(SortedSuspsList,WakeSortedSusps),
 	Body =
 	(
-		writeln(hook1),
 		SortGoals,
 		( var(Other) ->
 			( get_attr(Other,Mod,TOtherAttr) ->

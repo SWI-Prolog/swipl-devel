@@ -1,4 +1,12 @@
-May 17, 2005
+Jun 1, 2006
+
+  * TS: Synchronization with SICStus version of K.U.Leuven CHR.
+
+  * TS: First few fixes to tracer. Cconstraints in simplification
+	rules are shown in textual order. Constraint insertions
+	are always shown.
+
+May 17, 2006
 
   * TS: Terminatino bug fixed in guard_entailment.
 
@@ -8,17 +16,17 @@ May 17, 2005
   * TS:	Further update to suspension term layout. Only constraints for
 	which the propagation history is used get a history field.
 
-May 9, 2005
+May 9, 2006
 
   * TS: Ignore propagation rules with trivial body 'true'.
 
-Apr 24, 2005
+Apr 24, 2006
 
   * TS: Guard entailment now first simplifies the formula it processes,
 	in order to reduce the number of disjunctions, to obtain a smaller
 	search tree.
 
-Apr 22, 2005
+Apr 22, 2006
 
   * TS: Bug fix by Jon Sneyers:  type aliases now support built-in types.
 	Spotted by Mike Elston.

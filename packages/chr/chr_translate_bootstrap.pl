@@ -123,17 +123,11 @@
 	  ]).
 %% SWI begin
 :- use_module(library(lists),[member/2,append/3,permutation/2,reverse/2]).
+:- use_module(library(ordsets)).
 %% SWI end
 :- use_module(hprolog).
 :- use_module(pairlist).
-:- use_module(library(ordsets)).
 :- include(chr_op).
-
-%% SICStus begin
-%% :- use_module(library(terms),[term_variables/2]).
-%% :- use_module(library(lists),[member/2,memberchk/2,append/3,permutation/2,reverse/2]).
-%% SICStus end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
@@ -411,7 +405,7 @@ handle_option(Name,Value) :-
 
 handle_option(Name,Value) :- 
 	\+ option_definition(Name,_,_), !,
-	setof(N,V ^ F ^ (option_definition(N,V,F)),Ns),
+	setof(N,_V ^ _F ^ (option_definition(N,_V,_F)),Ns),
 	format('CHR compiler ERROR: ~w.\n',[option(Name,Value)]),
 	format('    `--> Invalid option name ~w: should be one of ~w.\n',[Name,Ns]),
 	fail.
@@ -759,7 +753,6 @@ generate_attr_unify_hook_many(N,Mod,Clause) :-
 	Head = attr_unify_hook(Attr,Other),
 	Body =
 	(
-		writeln(hook),
 		SortGoals,
 		( var(Other) ->
 			( get_attr(Other,Mod,TOtherAttr) ->
