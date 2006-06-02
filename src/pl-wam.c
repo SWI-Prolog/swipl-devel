@@ -744,9 +744,11 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
 
   cid  = PL_open_foreign_frame();
 
-  if ( fr->predicate == PROCEDURE_call_cleanup3->definition )
+  if ( fr->predicate == PROCEDURE_call_cleanup3->definition &&
+       false(fr, FR_CATCHED) )		/* from handler */
   { term_t catcher = argFrameP(fr, 1) - (Word)lBase;
 
+    set(fr, FR_CATCHED);
     if ( unify_finished(catcher, reason) )
     { term_t clean = argFrameP(fr, 2) - (Word)lBase;
       term_t ex;
