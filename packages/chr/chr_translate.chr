@@ -4091,7 +4091,7 @@ head1_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) :-
 		reorder_heads(RuleNb,Head,OtherHeads,OtherIDs,NOtherHeads,NOtherIDs),
 		simplification_code(Head,ID,NOtherHeads,NOtherIDs,PragmaRule,FA,O,Id,L,T)
 	;
-		simpagation_head1_code(Head,OtherHeads,OtherIDs,PragmaRule,FA,Id,L,T)
+		simpagation_head1_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,Id,L,T)
 	).
 
 %% Generate code based on one persistent head of a CHR rule
@@ -4506,9 +4506,7 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
-		pairup([ID|RestIDs],[Susp|Susps],UnsortedIDSuspPairs),
-		sort(UnsortedIDSuspPairs,SortedIDSuspPairs),
-		once(pairup(_,SortedSusps,SortedIDSuspPairs)),
+		sort_by_key([Susp|Susps],[ID|RestIDs],SortedSusps),
 		DebugTry   = 'chr debug_event'(  try(SortedSusps,[],DebugGuard,DebugBody)),
 		DebugApply = 'chr debug_event'(apply(SortedSusps,[],DebugGuard,DebugBody)),
 		instrument_goal(ActualCut,DebugTry,DebugApply,Cut)
@@ -4893,7 +4891,7 @@ gen_uncond_susps_detachments([Susp|Susps],[Term|Terms],(SuspDetachment,SuspsDeta
 %% |____/|_|_| |_| |_| .__/ \__,_|\__, |\__,_|\__|_|\___/|_| |_| |_|
 %%                   |_|          |___/
 
-simpagation_head1_code(Head,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
+simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
    	PragmaRule = pragma(Rule,ids(_,Heads2IDs),Pragmas,_Name,_RuleNb),
    	Rule = rule(_Heads,Heads2,Guard,Body),
 
@@ -4911,17 +4909,19 @@ simpagation_head1_code(Head,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
 	guard_via_reschedule_new(NHeads,GuardList,Head,GuardCopyList,GetRestHeads,RescheduledTest),	
 
 	rest_heads_retrieval_and_matching(NHeads,NIDs,Head,GetRestHeads,Susps,VarDict1,VarDict,[],[],[],GroundVars,_),
-   split_by_ids(NIDs,Susps,OtherIDs,Susps1,Susps2), 
+	split_by_ids(NIDs,Susps,OtherIDs,Susps1,Susps1IDs,Susps2,Susps2IDs), 
 
-   guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
+	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
-   gen_uncond_susps_detachments(Susps1,RestHeads,SuspsDetachments),
-   gen_cond_susp_detachment(Id,Susp,F/A,SuspDetachment),
+	gen_uncond_susps_detachments(Susps1,RestHeads,SuspsDetachments),
+	gen_cond_susp_detachment(Id,Susp,F/A,SuspDetachment),
    
 	( chr_pp_flag(debugable,on) ->
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
-		DebugTry   = 'chr debug_event'(  try([Susp|Susps1],Susps2,DebugGuard,DebugBody)),
-		DebugApply = 'chr debug_event'(apply([Susp|Susps1],Susps2,DebugGuard,DebugBody)),
+		sort_by_key([Susp|Susps1],[ID|Susps1IDs],RemovedSusps),
+		sort_by_key(Susps2,Susps2IDs,KeptSusps),
+		DebugTry   = 'chr debug_event'(  try(RemovedSusps,KeptSusps,DebugGuard,DebugBody)),
+		DebugApply = 'chr debug_event'(apply(RemovedSusps,KeptSusps,DebugGuard,DebugBody)),
 		instrument_goal((!),DebugTry,DebugApply,Cut)
 	;
 		Cut = (!)
@@ -4948,6 +4948,20 @@ split_by_ids([I|Is],[S|Ss],I1s,S1s,S2s) :-
 	),
 	split_by_ids(Is,Ss,I1s,R1s,R2s).
 
+split_by_ids([],[],_,[],[],[],[]).
+split_by_ids([I|Is],[S|Ss],I1s,S1s,SI1s,S2s,SI2s) :-
+	( memberchk_eq(I,I1s) ->
+		S1s  = [S | R1s],
+		SI1s = [I|RSI1s],
+		S2s = R2s,
+		SI2s = RSI2s
+	;
+		S1s = R1s,
+		SI1s = RSI1s,
+		S2s = [S | R2s],
+		SI2s = [I|RSI2s]
+	),
+	split_by_ids(Is,Ss,I1s,R1s,RSI1s,R2s,RSI2s).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -5409,9 +5423,8 @@ novel_production_calls([ConstraintSymbol|ConstraintSymbols],[Suspension|Suspensi
 
 history_susps(RestIDs,ReversedRestSusps,Susp,ID,HistorySusps) :-
 	reverse(ReversedRestSusps,RestSusps),
-	pairup([ID|RestIDs],[Susp|RestSusps],IDSusps),
-	sort(IDSusps,SortedIDSusps),
-	pairup(_,HistorySusps,SortedIDSusps).
+	sort_by_key([Susp|RestSusps],[ID|RestIDs],HistorySusps).
+
 
 gen_var_susp_list_for([Head],Terms,VarDict,HeadVars,VarsSusp,Susp) :-
    !,

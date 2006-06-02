@@ -164,7 +164,7 @@ rule_head(H1, []) --> !,
 	heads(H1),
 	[ ' <=> ' ].
 rule_head(H1, H2) -->
-	heads(H1), [ ' \\ ' ], heads(H2).
+	heads(H2), [ ' \\ ' ], heads(H1), [' <=> '].
 
 
 rule_body(true, B) --> !,

@@ -50,6 +50,7 @@
 	, select2/6
 	, set_elems/2
 	, instrument_goal/4
+	, sort_by_key/3
 	]).
 
 :- use_module(pairlist).
@@ -282,3 +283,8 @@ select2(X, Y, [X1|Xs], [Y1|Ys], [X1|NXs], [Y1|NYs]) :-
 	select2(X, Y, Xs, Ys, NXs, NYs).
 
 instrument_goal(Goal,Pre,Post,(Pre,Goal,Post)).
+
+sort_by_key(List,Keys,SortedList) :-
+	pairup(Keys,List,Pairs),
+	sort(Pairs,SortedPairs),
+	once(pairup(_,SortedList,SortedPairs)).	
