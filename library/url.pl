@@ -40,6 +40,7 @@
 	    parse_url_search/2		% Form-data <-> Form fields
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(utf8)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Utility library to break down URL  specifications. This library is based
@@ -809,74 +810,91 @@ encoding used with the HTTP GET.
 %
 %	En/Decode between native value and application/x-www-form-encoded
 %	Maps space to +, keeps alnum, maps anything else to %XX and newlines
-%	to %od%oa.  When decoding, newlines appear as a single newline (10)
+%	to %OD%OA.  When decoding, newlines appear as a single newline (10)
 %	character.
 
 www_form_encode(Value, Encoded) :-
 	atomic(Value), !,
 	atom_codes(Value, Codes),
-	phrase(www_encode(EncCodes), Codes),
+	phrase(www_encode(Codes), EncCodes),
 	atom_codes(Encoded, EncCodes).
 www_form_encode(Value, Encoded) :-
 	atom_codes(Encoded, EncCodes),
 	phrase(www_decode(Codes), EncCodes),
 	atom_codes(Value, Codes).
 
-www_encode([0'+|T]) -->
-	" ", !,
-        www_encode(T).
-www_encode([C|T]) -->
-	alphanum(C), !,
+www_encode([0'\r, 0'\n|T]) --> !,
+	"%0D%0A",
 	www_encode(T).
-www_encode([C|T]) -->
-	no_enc_extra(C), !,
+www_encode([0'\n|T]) --> !,
+	"%0D%0A",
 	www_encode(T).
-www_encode(Enc) -->
-	(   "\r\n"
-	;   "\n"
-	), !,
-	{ append("%0D%0A", T, Enc)
-	},
+www_encode([H|T]) -->
+	percent_encode(H),
 	www_encode(T).
 www_encode([]) -->
-	[], !.
-www_encode([0'%,D1,D2|T]) -->
-	[C],
-	{ Dv1 is (C>>4 /\ 0xf),
-	  Dv2 is (C /\ 0xf),
-	  code_type(D1, xdigit(Dv1)),
-	  code_type(D2, xdigit(Dv2))
-	},
-	www_encode(T).
-	
-%	characters that do not need  encoding.   Officially  we can pass
-%	them encoded too, but it makes the   URL  less readable and some
-%	servers are broken, not running decoding   over the field value.
-%	The escapes below were added  as   a  work-around for broken OAI
-%	(Open Archive Initiative) servers.
+	"".
 
-no_enc_extra(0'_) --> "_".
-no_enc_extra(0':) --> ":".
-no_enc_extra(0'^) --> "^".
+percent_encode(0' ) --> "+".
+percent_encode(C) -->
+	{ unreserved(C)
+	}, !,
+	[C].
+percent_encode(C) -->
+	{ C =< 128 }, !,
+	percent_byte(C).
+percent_encode(C) -->			% Unicode characters
+	{ phrase(utf8_codes([C]), Bytes) },
+	percent_bytes(Bytes).
+
+percent_bytes([]) -->
+	"".
+percent_bytes([H|T]) -->
+	percent_byte(H),
+	percent_bytes(T).
+
+percent_byte(C) -->
+	[0'%, D1, D2],
+	{   nonvar(C)
+	->  Dv1 is (C>>4 /\ 0xf),
+	    Dv2 is (C /\ 0xf),
+	    code_type(D1, xdigit(Dv1)),
+	    code_type(D2, xdigit(Dv2))
+	;   code_type(D1, xdigit(Dv1)),
+	    code_type(D2, xdigit(Dv2)),
+	    C is ((Dv1)<<4) + Dv2
+	}.
+
+%	unreserved(+C)
+%	
+%	Characters that can be represented without procent escaping
+%	RFC 3986, section 2.3
+
+unreserved(C) :-
+	code_type(C, alnum),
+	C < 128.
+unreserved(0'-).
+unreserved(0'.).
+unreserved(0'_).
+unreserved(0'~).
+
+%	www_decode(-Codes, ...)
 
 www_decode([0' |T]) -->
 	"+", !,
         www_decode(T).
 www_decode([C|T]) -->
-	"%",
-	[ D1,D2 ], !,
-	{ code_type(D1, xdigit(Dv1)),
-	  code_type(D2, xdigit(Dv2)),
-	  C0 is ((Dv1)<<4) + Dv2
-	},
-	(   { C0 == 13
+	percent_byte(C0), !,
+	(   { C0 == 13			% %0D%0A --> \n
 	    },
 	    "%0",
-	    [D3],
-	    { code_type(D3, xdigit(10))
-	    }
+	    ( "A" ; "a" )
 	->  { C = 10
 	    }
+	;   { C0 >= 0xc0 },		% UTF-8 lead-in
+	    utf8_cont(Cs),
+	    { phrase(utf8_codes([C]), [C0|Cs]) }
+	->  []
 	;   { C = C0
 	    }
 	),
@@ -886,6 +904,15 @@ www_decode([C|T]) -->
 	www_decode(T).
 www_decode([]) -->
 	[].
+
+utf8_cont([H|T]) -->
+	percent_byte(H),
+	{ between(0x80, 0xbf, H) }, !,
+	utf8_cont(T).
+utf8_cont([]) -->
+	[].
+
+
 
 		 /*******************************
 		 *	     FORM DATA		*

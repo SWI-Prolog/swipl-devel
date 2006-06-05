@@ -38,6 +38,7 @@
 :- use_module(library(sgml)).		% xml_name/1
 :- use_module(library(lists)).
 :- use_module(library(url)).
+:- use_module(library(utf8)).
 
 :- op(500, fx, \?).			% Optional (attrs)
 
@@ -453,7 +454,7 @@ decode_uri(Encoded, Decoded) :-
 	sub_atom(Encoded, _, _, _, '%'), !,
 	atom_codes(Encoded, Codes),
 	unescape_precent(Codes, UTF8),
-	phrase(utf8_string(Unicodes), UTF8),
+	phrase(utf8_codes(Unicodes), UTF8),
 	atom_codes(Decoded, Unicodes).
 decode_uri(Encoded, Encoded).
 
@@ -465,49 +466,6 @@ unescape_precent([0'%,C1,C2|T0], [H|T]) :- !,
 	unescape_precent(T0, T).
 unescape_precent([H|T0], [H|T]) :-
 	unescape_precent(T0, T).
-
-utf8_string([H|T]) -->
-	utf8(H), !,
-	utf8_string(T).
-utf8_string([]) -->
-	[].
-
-utf8(C) -->
-	[C0],
-	(   {C0 < 0x80}
-	->  {C = C0}
-	;   {C0/\0xe0 =:= 0xc0}
-	->  utf8_cont(C1, 0),
-	    {C is (C0/\0x1f)<<6\/C1}
-	;   {C0/\0xf0 =:= 0xe0}
-	->  utf8_cont(C1, 6),
-	    utf8_cont(C2, 0),
-	    {C is (C0\/0xf)<<16\/C1\/C2}
-	;   {C0/\0xf8 =:= 0xf0}
-	->  utf8_cont(C1, 12),
-	    utf8_cont(C2, 6),
-	    utf8_cont(C3, 0),
-	    {C is (C0\/0x7)<<16\/C1\/C2\/C3}
-	;   {C0/\0xfc =:= 0xf8}
-	->  utf8_cont(C1, 18),
-	    utf8_cont(C2, 12),
-	    utf8_cont(C3, 6),
-	    utf8_cont(C4, 0),
-	    {C is (C0\/0x3)<<24\/C1\/C2\/C3\/C4}
-	;   {C0/\0xfe =:= 0xfc}
-	->  utf8_cont(C1, 24),
-	    utf8_cont(C2, 18),
-	    utf8_cont(C3, 12),
-	    utf8_cont(C4, 6),
-	    utf8_cont(C5, 0),
-	    {C is (C0\/0x1)<<30\/C1\/C2\/C3\/C4\/C5}
-	).
-
-utf8_cont(Val, Shift) -->
-	[C],
-	{ C/\0xc0 =:= 0x80,
-	  Val is (C/\0x3f)<<Shift
-	}.
 
 
 		 /*******************************

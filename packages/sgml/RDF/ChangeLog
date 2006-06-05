@@ -1,3 +1,8 @@
+Jun 5, 2006
+
+  * FIXED: use UTF-8 decoder from new library(utf8).  Our own internal one
+    was broken.
+
 Apr 25, 2006
 
   * FIXED: decoding of unicode-URIs using UTF-8 over %XX%XX.

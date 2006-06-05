@@ -116,6 +116,7 @@ Section "Base system (required)"
 ; WEB STUFF
   File pl\library\www_browser.pl
   File pl\library\url.pl
+  File pl\library\utf8.pl
 
 ; MISC
   File pl\library\am_match.pl
