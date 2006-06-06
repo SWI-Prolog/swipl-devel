@@ -4723,7 +4723,9 @@ bit more careful.
     exit_builtin_cont:			/* tracer already by callForeign() */
 	if ( (void *)BFR <= (void *)FR ) /* deterministic */
 	{ if ( false(DEF, FOREIGN) )
+	  { FR->clause = NULL;		/* leaveDefinition() destroys clause */
 	    leaveDefinition(DEF);
+	  }
 	  lTop = FR;
 	  DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
 			    predicateName(FR->predicate), loffset(lTop)));
