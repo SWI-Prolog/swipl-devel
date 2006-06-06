@@ -43,13 +43,9 @@
 :- use_module(library(utf8)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Utility library to break down URL  specifications. This library is based
-on RFC-1738 (http://rfc.sunsite.dk/rfc/rfc1738.html), specifying the URL
-syntax with a few commonly used extensions:
-
-	* Allow for ~ character in path-names.
-	* Assuming http as default protocol.
-	* Allow for file://<path>
+Utility library to break down URL   specifications. Originally this file
+was based on RFC-1738. In SWI-Prolog 5.6.13 it was upgraded to RFC 3986,
+notably covering UTF-8 encoding of Unicode characters in form-encoding.
 
 Public interface:
 
@@ -59,6 +55,7 @@ parse_url(+URL, -Parts)
     for all protocols.  Defined:
 
         protocol	All protocols
+	user		Network based protocols
 	host		Network based protocols
 	port		Network based protocols
 	path		file,http,ftp
@@ -67,12 +64,12 @@ parse_url(+URL, -Parts)
 
     For example:
 
-    ?- parse_url('http://swi.psy.uva.nl/message.cgi?msg=Hello+World%21', P).
+    ?- parse_url('http://www.swi-prolog.org/message.cgi?msg=Hello+World%21', P).
 
     P = [ protocol(http), 
 	  search([msg='Hello World!']), 
 	  path('/message.cgi'), 
-	  host('swi.psy.uva.nl')
+	  host('www.swi-prolog.org')
         ] 
 
 parse_url(-URL, +Parts)
@@ -104,6 +101,14 @@ http_location(?Parts, ?Location)
 	format(Stream, 'GET ~w HTTP/1.0\r\nHost: ~w\r\n\r\n',
 	       [ Location, Host ]),
 	...
+
+ISSUES:
+
+	* Lacks support for IP6 in parsing URIs
+	* Constructing could avoid percent encoding for some more
+	  characters
+	* Using + for spaces as used in forms may be active in too
+	  many places.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -186,29 +191,33 @@ curl(A) -->
 
 curl(file, A) -->
 	(   "//"
-	->  cpart(path, "", A)
-	;   cpart(path, "", A)
+	->  cpart("", path, "", A)
+	;   cpart("", path, "", A)
 	).
 curl(https, A) -->
 	curl(http, A).
 curl(http, A) -->
-	cpart(host, "//", A),
-	cpart(port, ":", A),
+	"//",
+	cpart("", user, "@", A),
+	cpart("", host, "", A),
+	cpart(":", port, "", A),
 	cpath(A),
 	csearch(A),
 	cfragment(A).
 
 curi(A) -->
-	cpart(path, "", A),
+	cpart("", path, "", A),
 	csearch(A).
 
-cpart(Field, Sep, A) -->
+cpart(Before, Field, After, A) -->
 	{ Term =.. [Field, Value],
 	  memberchk(Term, A)
 	}, !,
-	Sep,
-	catomic(Value).
-cpart(_,_,_) -->
+	Before,
+	{ atom_codes(Value, Codes) },
+	www_encode(Codes, ""),
+	After.
+cpart(_,_,_,_) -->
 	[].
 
 catomic(A, In, Out) :-
@@ -221,35 +230,9 @@ cpath(A) -->
 	{ memberchk(path(Path), A), !,
 	  atom_codes(Path, Codes)
 	},
-	cpath_chars(Codes).
+	www_encode(Codes, "/").
 cpath(_) -->
 	[].
-
-cpath_chars([]) --> !,
-	[].
-cpath_chars([H|T]) -->
-	cxpath_char(H),
-	cpath_chars(T).
-
-cxpath_char(C) -->
-	{ code_type(C, alnum)
-	; C == 0'/
-	; csafe(C)
-	}, !,
-	[C].
-cxpath_char(C) -->
-	cescape(C).
-
-cescape(C) -->
-	{ C < 256, !,
-	  DV1 is ((C>>4) /\ 0xf), code_type(D1, xdigit(DV1)),
-	  DV2 is (C /\ 0xf),      code_type(D2, xdigit(DV2))
-	},
-	[ 0'%, D1, D2 ].
-cescape(_) -->
-	{ throw(error(representation_error(unicode_character),
-		      context(parse_url/2), 'no unicode escape'))
-	}.
 
 %	csearch(+Attributes, //)
 
@@ -282,8 +265,8 @@ cparam(Name)-->
 	
 
 cform(Atom) --> 
-	{ www_form_encode(Atom, Encoded) }, 
-	catomic(Encoded). 
+	{ atom_codes(Atom, Codes) },
+	www_encode(Codes, "").
 
 %	cfragment(+Attributes, //)
 
@@ -292,26 +275,10 @@ cfragment(A) -->
 	  atom_codes(Frag, Codes)
 	},
 	"#",
-	cpath_chars(Codes).
+	www_encode(Codes, "").
 cfragment(_) -->
 	"".
 	
-%	Par 2.2: "Thus, only alphanumerics, the special characters
-%	"$-_.+!*'(),", and reserved characters used for their reserved 
-%	purposes may be used unencoded within a URL
-
-csafe(0'$).
-csafe(0'-).
-csafe(0'_).
-csafe(0'.).
-csafe(0'+).
-csafe(0'!).
-csafe(0'*).
-csafe(0'').
-csafe(0'().
-csafe(0')).
-csafe(0',).
-
 		
 		 /*******************************
 		 *	      PARSING		*
@@ -350,11 +317,10 @@ parse_url(URL, BaseURL, Attributes) :-
 	    ->  parse_url(BaseURL, BaseA0)
 	    ;	BaseA0 = BaseURL
 	    ),
-	    memberchk(protocol(Protocol), BaseA0),
 	    select(path(BasePath), BaseA0, BaseA1),
 	    delete(BaseA1, search(_), BaseA2),
 	    delete(BaseA2, fragment(_), BaseA3),
-	    phrase(uri(Protocol, URIA0), Codes),
+	    phrase(relative_uri(URIA0), Codes),
 	    select(path(LocalPath), URIA0, URIA1), !,
 	    globalise_path(LocalPath, BasePath, Path),
 	    append(BaseA3, [path(Path)|URIA1], Attributes)
@@ -404,163 +370,239 @@ make_path(Dir, Local, Path) :-
 
 
 absolute_url -->
-	identifier(_),
+	lwalpha(_),
+	schema_chars(_),
 	":", !.
-
-url(A) -->
-	case_insensitive("url:"), !,
-	url(A).
-url([protocol(Protocol)|A]) -->
-	identifier(Protocol),
-	":",
-	url(Protocol, A), !.
-url([protocol(http)|A]) -->
-	implicit_http(A).
-
-url(file, [path(Path)]) -->
-	(   "/"
-	->  path(Path0),
-	    { atom_concat(/, Path0, Path)
-	    }
-	;   { current_prolog_flag(windows, true)
-	    },
-	    alpha(DriveCode),
-	    ":",
-	    path(Path0),
-	    { char_code(Drive, DriveCode),
-	      concat_atom([Drive, :, Path0], Path)
-	    }
-	;   path(Path0),
-	    { absolute_file_name(Path0, Path)
-	    }
-	).
-
-url(http, Attributes) --> !,
-	"//",
-	implicit_http(Attributes).
-url(https, Attributes) --> !,
-	"//",
-	implicit_http(Attributes).
-
-implicit_http(Attributes) -->
-	hostport(A0),
-	http_location(A1),
-	{ append(A0, A1, Attributes)
-	}.
-
-http_location(Attributes) -->
-	(   "/"
-	->  path(Path0),
-	    { atom_concat(/, Path0, Path),
-	      A1 = [path(Path)]
-	    }
-	;   { A1 = [path(/)]		% assume / if no path is specified
-	    }
-	),
-	(   "?"
-	->  search(Search),
-	    { A2 = [search(Search)|A1]
-	    }
-	;   { A2 = A1
-	    }
-	),
-	(   "#"
-	->  fragment(Fragment),
-	    { A3 = [fragment(Fragment)|A2]
-	    }
-	;   { A3 = A2
-	    }
-	),
-	{ Attributes = A3
-	}.
-
-%	uri(+Protocol, -Attributes)
-%
-%	resolve attributes of local URL
-
-uri(http, [path(Path)|A1]) -->
-	path(Path),
-	(   "?"
-	->  search(Search),
-	    { A1 = [search(Search)|A2]
-	    }
-	;   { A1 = A2
-	    }
-	),
-	(   "#"
-	->  fragment(Fragment),
-	    { A2 = [fragment(Fragment)]
-	    }
-	;   { A2 = []
-	    }
-	).
-uri(file, [path(Path)|A2]) -->
-	path(Path),
-	(   "#"
-	->  fragment(Fragment),
-	    { A2 = [fragment(Fragment)]
-	    }
-	;   { A2 = []
-	    }
-	).
 
 
 		 /*******************************
-		 *	    URL ELEMENTS	*
+		 *	     SEQUENCES		*
 		 *******************************/
 
-hostport([host(Host)|A]) -->
-	host(Host),
-	(   ":"
-	->  integer(Port),
-	    { A = [port(Port)]
-	    }
-	;   { A = []
-	    }
-	).
+digits(L) -->
+	digits(L, []).
 
-host(H) -->
-	hostname(H), !.
-host(H) -->
-	hostnumber(H).
-
-hostname(Host) -->
-	hostpart(Part1),
-	(   "."
-	->  hostname(Domain),
-	    { concat_atom([Part1, '.', Domain], Host)
-	    }
-	;   { Host = Part1
-	    }
-	).
-
-hostnumber(Host) -->
-	integer(A),
-	".",
-	integer(B),
-	".",
-	integer(C),
-	".",
-	integer(D),
-	{ concat_atom([A,B,C,D], '.', Host)
-	}.
-
-path(Path) -->
-	segment(S0), !,
-	(   "/"
-	->  path(R),
-	    { concat_atom([S0, /, R], Path)
-	    }
-	;   { Path = S0
-	    }
-	).
-path('') -->
+digits([C|T0], T) -->
+	digit(C), !, 
+	digits(T0, T).
+digits(T, T) -->
 	[].
 
-segment(Segment) -->
-	xalphas(Chars), !,
-	{ atom_codes(Segment, Chars)
+
+digit(C, [C|T], T) :- code_type(C, digit).
+
+		 /*******************************
+		 *	      RFC-3986		*
+		 *******************************/
+
+%	uri(-Parts, //)
+
+url([protocol(Schema)|Parts]) -->
+	schema(Schema),
+	":", !,
+	hier_part(Parts, P2),
+	query(P2, P3),
+	fragment(P3, []).
+url([protocol(http)|Parts]) -->		% implicit HTTP
+	authority(Parts, [path(Path)]),
+	path_abempty(Path).
+
+relative_uri(Parts) -->
+	relative_part(Parts, P2),
+	query(P2, P3),
+	fragment(P3, []).
+
+relative_part(Parts, Tail) -->
+	"//", !,
+	authority(Parts, [path(Path)|Tail]),
+	path_abempty(Path).
+relative_part([path(Path)|T], T) -->
+	(   path_absolute(Path)
+	;   path_noschema(Path)
+	;   path_empty(Path)
+	), !.
+
+http_location([path(Path)|P2]) -->
+	path_abempty(Path),
+	query(P2, P3),
+	fragment(P3, []).
+
+%	schema(-Atom, //)
+%	
+%	Schema ::= ALPHA *(ALPHA|DIGIT|"+"|"-"|".")
+%
+%	Schema  is  case-insensitive  and  the    canonical  version  is
+%	lowercase.
+
+schema(Schema) -->
+	lwalpha(C0),
+	schema_chars(Codes),
+	{ atom_codes(Schema, [C0|Codes]) }.
+
+schema_chars([H|T]) -->
+	schema_char(H), !,
+	schema_chars(T).
+schema_chars([]) -->
+	[].
+	
+schema_char(H) -->
+	[C],
+	{ C < 128,
+	  (   code_type(C, alpha)
+	  ->  code_type(H, to_lower(C))
+	  ;   code_type(C, digit)
+	  ->  H = C
+	  ;   schema_extra(C)
+	  ->  H = C
+	  )
 	}.
+
+schema_extra(0'+).
+schema_extra(0'-).
+schema_extra(0'.).
+
+
+%	hier_part(+Schema, -Parts, ?Tail, //)
+%	
+%	Extract the hierarchy part.
+
+hier_part(Parts, Tail) -->
+	"//", !,
+	authority(Parts, [path(Path)|Tail]),
+	path_abempty(Path).
+hier_part([path(Path)|T], T) -->
+	(   path_absolute(Path)
+	;   path_rootless(Path)
+	;   path_empty(Path)
+	), !.
+
+authority(Parts, Tail) -->
+	user_info_chars(UserChars),
+	"@", !,
+	{ atom_codes(User, UserChars),
+	  Parts = [user(User),host(Host)|T0]
+	},
+	host(Host),
+	port(T0,Tail).
+authority([host(Host)|T0], Tail) -->
+	host(Host),
+	port(T0, Tail).
+	
+user_info_chars([H|T]) -->
+	user_info_char(H), !,
+	user_info_chars(T).
+user_info_chars([]) -->
+	[].
+
+user_info_char(_) --> "@", !, {fail}.
+user_info_char(C) --> pchar(C).
+	
+%host(Host) --> ip_literal(Host), !.		% TBD: IP6 addresses
+host(Host) --> ip4_address(Host), !.
+host(Host) --> reg_name(Host).
+
+ip4_address(Atom) -->
+	i256_chars(Chars, [0'.|T0]),
+	i256_chars(T0, [0'.|T1]),
+	i256_chars(T1, [0'.|T2]),
+	i256_chars(T2, []),
+	{ atom_codes(Atom, Chars) }.
+
+i256_chars(Chars, T) -->
+	digits(Chars, T),
+	\+ \+ { T = [],
+		Chars \== [],
+		number_codes(I, Chars),
+		I < 256
+	      }.
+
+reg_name(Host) -->
+	reg_name_chars(Chars),
+	{ atom_codes(Host, Chars) }.
+
+reg_name_chars([H|T]) -->
+	reg_name_char(H), !,
+	reg_name_chars(T).
+reg_name_chars([]) -->
+	[].
+
+reg_name_char(C) -->
+	pchar(C),
+	{ C \== 0':,
+	  C \== 0'@
+	}.
+
+port([port(Port)|T], T) -->
+	":", !,
+	digit(D0),
+	digits(Ds),
+	{ number_codes(Port, [D0|Ds]) }.
+port(T, T) -->
+	[].
+
+path_abempty(Path) -->
+	segments_chars(Chars, []),
+	{   Chars == []
+	->  Path = '/'
+	;   atom_codes(Path, Chars)
+	}.
+
+
+path_absolute(Path) -->
+	"/",
+	segment_nz_chars(Chars, T0),
+	segments_chars(T0, []),
+	{ atom_codes(Path, [0'/, Chars]) }.
+
+path_noschema(Path) -->
+	segment_nz_nc_chars(Chars, T0),
+	segments_chars(T0, []),
+	{ atom_codes(Path, Chars) }.
+
+path_rootless(Path) -->
+	segment_nz_chars(Chars, T0),
+	segments_chars(T0, []),
+	{ atom_codes(Path, Chars) }.
+
+path_empty('/') -->
+	"".
+
+segments_chars([0'/|Chars], T) -->
+	"/", !,
+	segment_chars(Chars, T0),
+	segments_chars(T0, T).
+segments_chars(T, T) -->
+	[].
+
+segment_chars([H|T0], T) -->
+	pchar(H), !,
+	segment_chars(T0, T).
+segment_chars(T, T) -->
+	[].
+
+segment_nz_chars([H|T0], T) -->
+	pchar(H),
+	segment_chars(T0, T).
+
+segment_nz_nc_chars([H|T0], T) -->
+	segment_nz_nc_char(H), !,
+	segment_nz_nc_chars(T0, T).
+segment_nz_nc_chars(T, T) -->
+	[].
+
+segment_nz_nc_char(_) --> ":", !, {fail}.
+segment_nz_nc_char(C) --> pchar(C).
+
+
+%	query(-Parts, ?Tail, //)
+%	
+%	Extract &Name=Value, ...
+
+query([search(Params)|T], T) -->
+	"?",
+	search(Params).
+query(T,T) -->
+	[].
 
 search([Parameter|Parameters])--> 
 	parameter(Parameter), !,  
@@ -579,221 +621,134 @@ parameter(Param)--> !,
         ;   { Param = Name }
         ).
 
-
 parameter_component(Component)-->
 	search_chars(String), 
 	{ atom_codes(Component, String) }. 
 
-
-fragment(Fragment) --> 
-	fragment_chars(FragmentChars), 
-	{ atom_codes(Fragment, FragmentChars) }. 
-
-
-		 /*******************************
-		 *	       BASICS		*
-		 *******************************/
-
-integer(I) -->
-	digit(D0),
-	digits(D),
-	{ number_chars(I, [D0|D])
-	}.
-
-		 /*******************************
-		 *	     SEQUENCES		*
-		 *******************************/
-
-digits([C|T]) -->
-	digit(C), !, 
-	digits(T).
-digits([]) -->
-	[].
-
-xalphas([C|T]) -->
-	xalpha(C), !, 
-	xalphas(T).
-xalphas([]) -->
-	[].
-
-search_chars([0' | T]) --> 
-	"+", !, 
-	search_chars(T). 
-	
 search_chars([C|T]) -->
 	search_char(C), !, 
 	search_chars(T).
 search_chars([]) -->
 	[].
 
-fragment_chars([C|T]) -->
-	fragment_char(C), !, 
+search_char(_) --> "&", !, { fail }.
+search_char(_) --> "=", !, { fail }.
+search_char(C) --> fragment_char(C).
+
+
+%	fragment(-Fragment, ?Tail, //)
+%	
+%	Extract the fragment (after the #)
+
+fragment([fragment(Fragment)|T], T) -->
+	"#", !,
+	fragment_chars(Codes),
+	{ atom_codes(Fragment, Codes) }.
+fragment(T, T) -->
+	[].
+
+fragment_chars([H|T]) -->
+	fragment_char(H), !,
 	fragment_chars(T).
 fragment_chars([]) -->
 	[].
 
-hostpart(Atom) -->
-	host_chars(Codes),
-	{ Codes = [_|_],
-	  atom_codes(Atom, Codes)
-	}.
 
-host_chars([H|T]) -->
-	host_char(H), !,
-	host_chars(T).
-host_chars([]) -->
-	[].
-
-host_char(X) -->
-	[X],
-	{   code_type(X, alnum)
-	;   host_extra(X)
-	}.
-
-host_extra(0'-).
-host_extra(0'_).
-host_extra(0'~).
-
-
-		 /*******************************
-		 *	  URL DCG BASICS	*
-		 *******************************/
-
-digit(C, [C|T], T) :- code_type(C, digit).
-alpha(C, [C|T], T) :- code_type(C, alpha).
-alphanum(C, [C|T], T) :- code_type(C, alnum).
-escape(C) -->
-	"%",
-	[C1, C2],
-	{ code_type(C1, xdigit(D1)),
-	  code_type(C2, xdigit(D2)),
-	  C is 16*D1 + D2
-	}.
-
-
-
-xalpha(C, [C|T], T) :-
-	(   code_type(C, alnum)		% alpha | digit
-	;   safe(C)
-	;   unsafe(C)
-	;   extra(C)
-	), !.
-xalpha(C) -->
-	escape(C).
-
-search_char(C, [C|T], T) :-
-	(   code_type(C, alnum)		% alpha | digit
-	;   search_char(C)
-	;   extra(C)
-	), !.
-search_char(C) -->
-	escape(C). 
-
-
-fragment_char(C, [C|T], T):- 
-	(   code_type(C, alnum)		% alpha | digit
-	;   safe(C)
-	;   unsafe(C)
-	;   extra(C)
-        ;   reserved(C)
-	), !.
-fragment_char(C) --> 
-	escape(C). 
-
-
-
-safe(0'$).
-safe(0'-).
-safe(0'_).
-safe(0'@).
-safe(0'.).
-safe(0'&).
-safe(0'+).
-
-%	unsafe(+Char)
+%	fragment_char(-Char)
 %	
-%	Succeeds  for  characters  commonly  used,  but  officially  not
-%	allowed.
+%	Find a fragment character.
 
-unsafe(0'~).
-unsafe(0'=).
-unsafe(0':).
+fragment_char(C)   --> pchar(C), !.
+fragment_char(0'/) --> "/", !.
+fragment_char(0'?) --> "?", !.
 
-search_char(0'$).
-search_char(0'-).
-search_char(0'_).
-search_char(0'@).
-search_char(0'.).
-search_char(0'+).
-search_char(0'~).			% JW: not official URL
-search_char(0'/).
-search_char(0';).
-search_char(0':).
-search_char(0'{).			% JW: not official URL, used by ASP
-search_char(0'}).			% JW: not official URL, used by ASP
-
-
-extra(0'!).
-extra(0'*).
-extra(0'").
-extra(0'').
-extra(0'().
-extra(0')).
-extra(0',).
-
-reserved(0'=).
-reserved(0';).
-reserved(0'/).
-reserved(0'#).
-reserved(0'?).
-reserved(0':).
-reserved(0' ).
-
-%national(0'{).
-%national(0'}).
-%national(0'[).
-%national(0']).
-%national(0'\\).
-%national(0'^).
-%national(0'~).
 
 		 /*******************************
-		 *	     DCG BASICS		*
+		 *	CHARACTER CLASSES	*
 		 *******************************/
 
-%	case_insensitive(+String)
-%
-%	match a string case insensitive.
+%	pchar(-Code, //)
+%	
+%	unreserved|pct_encoded|sub_delim|":"|"@"
+%	
+%	Performs UTF-8 decoding of percent encoded strings.
 
-case_insensitive([]) -->
-	[].
-case_insensitive([H|T]) -->
+pchar(0' ) --> "+", !.			% ?
+pchar(C) -->
 	[C],
-	{ code_type(H, to_lower(C))
-	},
-	case_insensitive(T).
+	{   unreserved(C)
+	;   sub_delim(C)
+	;   C == 0':
+        ;   C == 0'@
+	}, !.
+pchar(C) -->
+	percent_coded(C).
 
+%	lwalpha(-C, //)
+%	
+%	Demand alpha, return as lowercase
 
-%	identifier(-Id)
-%
-%	Match input string holding csym characters to an identifier
-
-identifier(Id) -->
-	chars(alpha, Chars),
-	{ name(Id, Chars)
+lwalpha(H) -->
+	[C],
+	{ C < 128,
+	  code_type(C, alpha),
+	  code_type(H, to_lower(C))
 	}.
 
-%	chars(+Type, -Chars)
-%
-%	Get as many as possible	characters of this type
+		 /*******************************
+		 *	RESERVED CHARACTERS	*
+		 *******************************/
 
-chars(Type, [C0|C]) -->
-	[C0],
-	{ code_type(C0, Type)
-	}, !,
-	chars(Type, C).
-chars(_, []) -->
-	[].
+%	reserved(?Code)
+%	
+%	URL reserved codes
+
+%reserved(Code) :-
+%	gen_delim(Code).
+%reserved(Code) :-
+%	sub_delim(Code).
+
+%	gen_delim(?Code)
+%	
+%	General delimeters
+
+%gen_delim(0':).
+%gen_delim(0'/).
+%gen_delim(0'?).
+%gen_delim(0'#).
+%gen_delim(0'[).
+%gen_delim(0']).
+%gen_delim(0'@).
+
+%	sub_delim(?Code)
+%	
+%	Sub-delimiters
+
+sub_delim(0'!).
+sub_delim(0'$).
+sub_delim(0'&).
+sub_delim(0'').
+sub_delim(0'().
+sub_delim(0')).
+sub_delim(0'*).
+sub_delim(0'+).
+sub_delim(0',).
+sub_delim(0';).
+sub_delim(0'=).
+
+
+%	unreserved(+C)
+%	
+%	Characters that can be represented without procent escaping
+%	RFC 3986, section 2.3
+
+unreserved(C) :-
+	code_type(C, alnum),
+	C < 128.
+unreserved(0'-).
+unreserved(0'.).
+unreserved(0'_).
+unreserved(0'~).
 
 
 		 /*******************************
@@ -816,34 +771,37 @@ encoding used with the HTTP GET.
 www_form_encode(Value, Encoded) :-
 	atomic(Value), !,
 	atom_codes(Value, Codes),
-	phrase(www_encode(Codes), EncCodes),
+	phrase(www_encode(Codes, ""), EncCodes),
 	atom_codes(Encoded, EncCodes).
 www_form_encode(Value, Encoded) :-
 	atom_codes(Encoded, EncCodes),
 	phrase(www_decode(Codes), EncCodes),
 	atom_codes(Value, Codes).
 
-www_encode([0'\r, 0'\n|T]) --> !,
+%	www_encode(+Codes, +ExtraUnescaped, //)
+
+www_encode([0'\r, 0'\n|T], Extra) --> !,
 	"%0D%0A",
-	www_encode(T).
-www_encode([0'\n|T]) --> !,
+	www_encode(T, Extra).
+www_encode([0'\n|T], Extra) --> !,
 	"%0D%0A",
-	www_encode(T).
-www_encode([H|T]) -->
-	percent_encode(H),
-	www_encode(T).
-www_encode([]) -->
+	www_encode(T, Extra).
+www_encode([H|T], Extra) -->
+	percent_encode(H, Extra),
+	www_encode(T, Extra).
+www_encode([], _) -->
 	"".
 
-percent_encode(0' ) --> "+".
-percent_encode(C) -->
+percent_encode(C, Extra) -->
 	{ unreserved(C)
+	; memberchk(C, Extra)
 	}, !,
 	[C].
-percent_encode(C) -->
+percent_encode(0' , _) --> "+".
+percent_encode(C, _) -->
 	{ C =< 128 }, !,
 	percent_byte(C).
-percent_encode(C) -->			% Unicode characters
+percent_encode(C, _) -->		% Unicode characters
 	{ phrase(utf8_codes([C]), Bytes) },
 	percent_bytes(Bytes).
 
@@ -865,25 +823,7 @@ percent_byte(C) -->
 	    C is ((Dv1)<<4) + Dv2
 	}.
 
-%	unreserved(+C)
-%	
-%	Characters that can be represented without procent escaping
-%	RFC 3986, section 2.3
-
-unreserved(C) :-
-	code_type(C, alnum),
-	C < 128.
-unreserved(0'-).
-unreserved(0'.).
-unreserved(0'_).
-unreserved(0'~).
-
-%	www_decode(-Codes, ...)
-
-www_decode([0' |T]) -->
-	"+", !,
-        www_decode(T).
-www_decode([C|T]) -->
+percent_coded(C) -->
 	percent_byte(C0), !,
 	(   { C0 == 13			% %0D%0A --> \n
 	    },
@@ -897,7 +837,15 @@ www_decode([C|T]) -->
 	->  []
 	;   { C = C0
 	    }
-	),
+	).
+
+%	www_decode(-Codes, ...)
+
+www_decode([0' |T]) -->
+	"+", !,
+        www_decode(T).
+www_decode([C|T]) -->
+	percent_coded(C), !,
 	www_decode(T).
 www_decode([C|T]) -->
 	[C], !,
