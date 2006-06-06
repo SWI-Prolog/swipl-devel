@@ -7,12 +7,16 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: library(url), www_form_encode/2 to perform UTF-8 based Unicode
-    encoding and decoding.
+  * FIXED: Atom-GC crash related to dynamic predicates.  Thanks to test
+    program by Sergey Tikhonov.
+
+  * FIXED: Bug#168: library(url), www_form_encode/2 to perform
+    UTF-8 based Unicode encoding and decoding.  Library now based on current
+    RFC3986.
 
   * ADDED: library(utf8): provide encoding and decoding of UTF-8 strings.
 
-  * FIXED: handling errors from thebn handler of call_cleanup/3.  Bart
+  * FIXED: handling errors from the handler of call_cleanup/3.  Bart
     Demoen and Marek Winkler.
 
   * FIXED: wrong error and possible crash if format/3 finds an illegal ~

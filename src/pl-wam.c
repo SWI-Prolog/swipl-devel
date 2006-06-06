@@ -1765,14 +1765,16 @@ discardFrame(LocalFrame fr, enum finished reason ARG_LD)
 
   if ( true(def, FOREIGN) )
   { if ( fr->clause )
-      discardForeignFrame(fr PASS_LD);
+    { discardForeignFrame(fr PASS_LD);
+      fr->clause = NULL;
+    }
   } else
+  { fr->clause = NULL;		/* leaveDefinition() may destroy clauses */
     leaveDefinition(def);
+  }
 
   if ( true(fr, FR_WATCHED) )
     frameFinished(fr, reason PASS_LD);
-
-  fr->clause = NULL;
 }
 
 
