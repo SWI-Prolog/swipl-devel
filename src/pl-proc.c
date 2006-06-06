@@ -2230,12 +2230,13 @@ reindexDefinition(Definition def)
   def->indexCardinality = cardinalityPattern(def->indexPattern);
   for(cref = def->definition.clauses; cref; cref = cref->next)
     reindexClause(cref->clause, def);
-  UNLOCKDEF(def);
 
   if ( do_hash )
   { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));
     hashDefinition(def, do_hash);
   }
+
+  UNLOCKDEF(def);
 }
 
 

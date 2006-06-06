@@ -696,7 +696,6 @@ hashDefinition(Definition def, int buckets)
   }
 
   succeed;
-
 }
 
 word
