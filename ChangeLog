@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Multi-threaded problem in dynamic predicate reindexing. 
+    Thanks to test program by Sergey Tikhonov.
+
   * FIXED: Atom-GC crash related to dynamic predicates.  Thanks to test
     program by Sergey Tikhonov.
 

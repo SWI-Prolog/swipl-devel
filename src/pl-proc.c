@@ -2172,11 +2172,9 @@ pl_default_predicate(term_t d1, term_t d2)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 reindexDefinition()
-    Rebuilds the clause index for the predicate.  This predicate is prepared
-    for multi-threading just by using enterDefinition()/leaveDefinition().
-    This implies two threads may do the same job at the same time, but I
-    think this is fully safe: they will create the same data and both
-    threads are guaranteed not to continue before this is completed.
+    Rebuilds the clause index for the predicate. This predicate is
+    called whenever NEED_REINDEX is set.  It locks the predicate and
+    checks the flag again to ensure proper multi-threaded behaviour.
 
     We cannot re-index if the predicate is referenced and hashed: other
     predicates are operating on the hashed clauses-lists.  If we are not
@@ -2192,11 +2190,14 @@ reindexDefinition(Definition def)
   int canindex = 0;
   int cannotindex = 0;
 
+  LOCKDEF(def);
+  if ( !(def->indexPattern & NEED_REINDEX) )
+  { UNLOCKDEF(def);
+    return;
+  }
+
   assert(def->references == 1 || !def->hash_info);
-
   DEBUG(2, Sdprintf("reindexDefinition(%s)\n", predicateName(def)));
-
-  enterDefinition(def);
   def->indexPattern &= ~NEED_REINDEX;
 
   if ( true(def, AUTOINDEX) || def->indexPattern == 0x1 )
@@ -2229,7 +2230,7 @@ reindexDefinition(Definition def)
   def->indexCardinality = cardinalityPattern(def->indexPattern);
   for(cref = def->definition.clauses; cref; cref = cref->next)
     reindexClause(cref->clause, def);
-  leaveDefinition(def);
+  UNLOCKDEF(def);
 
   if ( do_hash )
   { DEBUG(3, Sdprintf("hash(%s, %d)\n", predicateName(def), do_hash));

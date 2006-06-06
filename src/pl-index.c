@@ -383,8 +383,7 @@ findClause(ClauseRef cref, Word argv,
 
     return nextClauseArg1(cref, gen, next, key PASS_LD);
   } else if ( def->indexPattern & NEED_REINDEX )
-  { assert(def->hash_info == NULL);
-    reindexDefinition(def);
+  { reindexDefinition(def);
     return findClause(cref, argv, fr, def, next PASS_LD);
   } else
   { return nextClauseMultiIndexed(cref, gen, argv, def, next PASS_LD);
