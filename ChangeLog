@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==============================
+VERSION 5.6.13 (June 07, 2006)
+==============================
+
   * FIXED: Multi-threaded problem in dynamic predicate reindexing. 
     Thanks to test program by Sergey Tikhonov.
 
