@@ -4069,7 +4069,7 @@ occurrence(C,O,RuleNb,ID), rule(RuleNb,PragmaRule) \ occurrence_code(C,O,Id,NId,
 			NId = Id,
 			head1_code(Head1,ID,RHeads1,RIDs1,PragmaRule,C,O,Id,L,T)
 		; select2(ID,Head2,IDs2,Heads2,RIDs2,RHeads2) ->
-			head2_code(Head2,RHeads2,RIDs2,PragmaRule,C,O,Id,L,L1),
+			head2_code(Head2,ID,RHeads2,RIDs2,PragmaRule,C,O,Id,L,L1),
 			inc_id(Id,NId),
 			( unconditional_occurrence(C,O) ->
 				L1 = T
@@ -4095,12 +4095,12 @@ head1_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) :-
 	).
 
 %% Generate code based on one persistent head of a CHR rule
-head2_code(Head,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) :-
+head2_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) :-
 	PragmaRule = pragma(Rule,_,_,_Name,RuleNb),
 	Rule = rule(Head1,_,_,_),
 	( Head1 == [] ->
 		reorder_heads(RuleNb,Head,OtherHeads,OtherIDs,NOtherHeads,NOtherIDs),
-		propagation_code(Head,NOtherHeads,NOtherIDs,Rule,RuleNb,FA,O,Id,L,T)
+		propagation_code(Head,ID,NOtherHeads,NOtherIDs,Rule,RuleNb,FA,O,Id,L,T)
 	;
 		simpagation_head2_code(Head,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) 
 	).
@@ -4990,7 +4990,7 @@ simpagation_head2_code(Head2,RestHeads2,RestIDs,PragmaRule,FA,O,Id,L,T) :-
 	L1 = L2, Id1 = Id2,NextHeads = NHeads, PreHeads = [NHead,Head2], NextIDs = NIDs
    ),
    universal_search_iterator_end(PreHeads,NextHeads,Rule,FA,Id2,L2,L3),
-   simpagation_head2_new_worker(PreHeads,NextHeads,NextIDs,PragmaRule,FA,O,Id2,L3,T).
+   simpagation_head2_worker(PreHeads,NextHeads,NextIDs,PragmaRule,FA,O,Id2,L3,T).
 
 simpagation_universal_searches([],[],_,PreHeads,_,_,[],PreHeads,[],Id,Id,L,L).
 simpagation_universal_searches(Heads,[ID|IDs],IDs2,PreHeads,Rule,C,OutHeads,OutPreHeads,OutIDs,Id,NId,L,T) :-
@@ -5047,19 +5047,19 @@ delegate_variables(Term,Terms,VarDict,PrevVars,Vars) :-
 	
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-simpagation_head2_new_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule,F/A,O,Id,L,T) :-
-	   PragmaRule = pragma(Rule,ids(IDs1,_),Pragmas,_,RuleNb), 
-	   Rule = rule(_,_,Guard,Body),
-	   get_prop_inner_loop_vars(PreHeads,[CurrentHead,NextHeads,Guard,Body],PreVarsAndSusps,VarDict,Susp,PreSusps),
+simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule,F/A,O,Id,L,T) :-
+	PragmaRule = pragma(Rule,ids(IDs1,_),Pragmas,_,RuleNb), 
+	Rule = rule(_,_,Guard,Body),
+	get_prop_inner_loop_vars(PreHeads,[CurrentHead,NextHeads,Guard,Body],PreVarsAndSusps,VarDict,Susp,PreSusps),
 	
-	   gen_var(OtherSusp),
-	   gen_var(OtherSusps),
+	gen_var(OtherSusp),
+	gen_var(OtherSusps),
 	
-	   functor(CurrentHead,OtherF,OtherA),
-	   gen_vars(OtherA,OtherVars),
-	   head_info(CurrentHead,OtherA,OtherVars,OtherSusp,_VarsSusp,HeadPairs),
-	   get_constraint_mode(OtherF/OtherA,Mode),
-	   head_arg_matches(HeadPairs,Mode,VarDict,FirstMatching,VarDict1,[],GroundVars),
+	functor(CurrentHead,OtherF,OtherA),
+	gen_vars(OtherA,OtherVars),
+	head_info(CurrentHead,OtherA,OtherVars,OtherSusp,_VarsSusp,HeadPairs),
+	get_constraint_mode(OtherF/OtherA,Mode),
+	head_arg_matches(HeadPairs,Mode,VarDict,FirstMatching,VarDict1,[],GroundVars),
 	
 	% BEGIN NEW - Customizable suspension term layout	   
 	%  OtherSuspension =.. [suspension,_,State,_,_,_,_|OtherVars],
@@ -5197,7 +5197,7 @@ gen_state_cond_call(Susp,FA,Call,Generation,ConditionalCall) :-
 %% |_|   |_|  \___/| .__/ \__,_|\__, |\__,_|\__|_|\___/|_| |_|
 %%                 |_|          |___/                         
 
-propagation_code(Head,RestHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,T) :-
+propagation_code(Head,ID,RestHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,T) :-
 	( RestHeads == [] ->
 		propagation_single_headed(Head,Rule,RuleNb,FA,O,Id,L,T)
 	;   
@@ -5391,8 +5391,10 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
-		DebugTry   = 'chr debug_event'(  try([],[Susp,OtherSusp|RestSusps],DebugGuard,DebugBody)),
-		DebugApply = 'chr debug_event'(apply([],[Susp,OtherSusp|RestSusps],DebugGuard,DebugBody))
+		get_occurrence(F/A,O,_,ID),
+		sort_by_key([Susp,OtherSusp|RestSusps],[ID|RestIDs],KeptSusps),
+		DebugTry   = 'chr debug_event'(  try([],KeptSusps,DebugGuard,DebugBody)),
+		DebugApply = 'chr debug_event'(apply([],KeptSusps,DebugGuard,DebugBody))
 	;
 		DebugTry = true,
 		DebugApply = true

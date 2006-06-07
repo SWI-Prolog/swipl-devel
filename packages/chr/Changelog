@@ -1,3 +1,8 @@
+Jun 7, 2006
+
+  * TS: Next fix to tracer. Cconstraints in propagation
+	rules are shown in textual order.
+
 Jun 2, 2006
 
   * TS: Next few fixes to tracer. Constraints in simpagation rules
