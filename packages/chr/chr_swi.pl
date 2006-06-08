@@ -321,69 +321,68 @@ user:term_expansion(In, Out) :-
 %% SWI end
 
 %% SICStus begin
-
-:- dynamic
-	current_toplevel_show_store/1,
-	current_generate_debug_info/1,
-	current_optimize/1.
-
-current_toplevel_show_store(on).
-
-current_generate_debug_info(false).
-
-current_optimize(off).
-
-chr_current_prolog_flag(generate_debug_info, X) :-
-	chr_flag(generate_debug_info, X, X).
-chr_current_prolog_flag(optimize, X) :-
-	chr_flag(optimize, X, X).
-
-
-chr_flag(Flag, Old, New) :-
-	Goal = chr_flag(Flag,Old,New),
-	% must_be(Flag, oneof([toplevel_show_store,generate_debug_info,optimize]), Goal, 1),
-	chr_flag(Flag, Old, New, Goal).
-
-chr_flag(toplevel_show_store, Old, New, Goal) :-
-	clause(current_toplevel_show_store(Old), true, Ref),
-	(   New==Old -> true
-	;   must_be(New, oneof([on,off]), Goal, 3),
-	    erase(Ref),
-	    assertz(current_toplevel_show_store(New))
-	).
-chr_flag(generate_debug_info, Old, New, Goal) :-
-	clause(current_generate_debug_info(Old), true, Ref),
-	(   New==Old -> true
-	;   must_be(New, oneof([false,true]), Goal, 3),
-	    erase(Ref),
-	    assertz(current_generate_debug_info(New))
-	).
-chr_flag(optimize, Old, New, Goal) :-
-	clause(current_optimize(Old), true, Ref),
-	(   New==Old -> true
-	;   must_be(New, oneof([full,off]), Goal, 3),
-	    erase(Ref),
-	    assertz(current_optimize(New))
-	).
-
-
-all_stores_goal(Goal, CVAs) :-
-	chr_flag(toplevel_show_store, on, on), !,
-	findall(C-CVAs, find_chr_constraint(C), Pairs),
-	andify(Pairs, Goal, CVAs).
-all_stores_goal(true, _).
-
-andify([], true, _).
-andify([X-Vs|L], Conj, Vs) :- andify(L, X, Conj, Vs).
-
-andify([], X, X, _).
-andify([Y-Vs|L], X, (X,Conj), Vs) :- andify(L, Y, Conj, Vs).
-
-:- multifile user:term_expansion/6.
-
-user:term_expansion(In, _, Ids, Out, [], [chr|Ids]) :-
-	nonvar(In),
-	nonmember(chr, Ids),
-	chr_expand(In, Out), !.
-
+% 
+% :- dynamic
+% 	current_toplevel_show_store/1,
+% 	current_generate_debug_info/1,
+% 	current_optimize/1.
+% 
+% current_toplevel_show_store(on).
+% 
+% current_generate_debug_info(false).
+% 
+% current_optimize(off).
+% 
+% chr_current_prolog_flag(generate_debug_info, X) :-
+% 	chr_flag(generate_debug_info, X, X).
+% chr_current_prolog_flag(optimize, X) :-
+% 	chr_flag(optimize, X, X).
+% 
+% chr_flag(Flag, Old, New) :-
+% 	Goal = chr_flag(Flag,Old,New),
+% 	g must_be(Flag, oneof([toplevel_show_store,generate_debug_info,optimize]), Goal, 1),
+% 	chr_flag(Flag, Old, New, Goal).
+% 
+% chr_flag(toplevel_show_store, Old, New, Goal) :-
+% 	clause(current_toplevel_show_store(Old), true, Ref),
+% 	(   New==Old -> true
+% 	;   must_be(New, oneof([on,off]), Goal, 3),
+% 	    erase(Ref),
+% 	    assertz(current_toplevel_show_store(New))
+% 	).
+% chr_flag(generate_debug_info, Old, New, Goal) :-
+% 	clause(current_generate_debug_info(Old), true, Ref),
+% 	(   New==Old -> true
+% 	;   must_be(New, oneof([false,true]), Goal, 3),
+% 	    erase(Ref),
+% 	    assertz(current_generate_debug_info(New))
+% 	).
+% chr_flag(optimize, Old, New, Goal) :-
+% 	clause(current_optimize(Old), true, Ref),
+% 	(   New==Old -> true
+% 	;   must_be(New, oneof([full,off]), Goal, 3),
+% 	    erase(Ref),
+% 	    assertz(current_optimize(New))
+% 	).
+% 
+% 
+% all_stores_goal(Goal, CVAs) :-
+% 	chr_flag(toplevel_show_store, on, on), !,
+% 	findall(C-CVAs, find_chr_constraint(C), Pairs),
+% 	andify(Pairs, Goal, CVAs).
+% all_stores_goal(true, _).
+% 
+% andify([], true, _).
+% andify([X-Vs|L], Conj, Vs) :- andify(L, X, Conj, Vs).
+% 
+% andify([], X, X, _).
+% andify([Y-Vs|L], X, (X,Conj), Vs) :- andify(L, Y, Conj, Vs).
+% 
+% :- multifile user:term_expansion/6.
+% 
+% user:term_expansion(In, _, Ids, Out, [], [chr|Ids]) :-
+% 	nonvar(In),
+% 	nonmember(chr, Ids),
+% 	chr_expand(In, Out), !.
+% 
 %% SICStus end
