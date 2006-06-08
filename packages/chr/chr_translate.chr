@@ -4913,7 +4913,8 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
 
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
-	gen_uncond_susps_detachments(Susps1,RestHeads,SuspsDetachments),
+	sort_by_key(Susps1,Susps1IDs,SortedSusps1),
+	gen_uncond_susps_detachments(SortedSusps1,RestHeads,SuspsDetachments),
 	gen_cond_susp_detachment(Id,Susp,F/A,SuspDetachment),
    
 	( chr_pp_flag(debugable,on) ->

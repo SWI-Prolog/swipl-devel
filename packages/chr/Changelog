@@ -2,6 +2,8 @@ Jun 8, 2006
 
   * TS: Disabled some code only intended for SICStus.
 
+  * TS: Fixed bug in removal of constraints. Spotted by Leslie De Koninck.
+
 Jun 7, 2006
 
   * TS: Next fix to tracer. Cconstraints in propagation
