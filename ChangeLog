@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bugs in new url.pl.  Jiri Moninec.
+
+
 ==============================
 VERSION 5.6.13 (June 07, 2006)
 ==============================

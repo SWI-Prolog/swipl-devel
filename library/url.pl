@@ -180,59 +180,69 @@ http_location(Parts, Codes) :-		% LocationCodes --> Parts
 	phrase(http_location(Parts), Codes).
 
 
-curl(A0) -->
-	{ select(protocol(Protocol), A0, A1)
+curl(A) -->
+	{ memberchk(protocol(Protocol), A)
 	}, !,
 	catomic(Protocol),
 	":",
-	curl(Protocol, A1).
+	curl(Protocol, A).
 curl(A) -->
 	curl(http, A).
 
 curl(file, A) -->
 	(   "//"
-	->  cpart("", path, "", A)
-	;   cpart("", path, "", A)
+	->  cpath(A)
+	;   cpath(A)
 	).
 curl(https, A) -->
 	curl(http, A).
 curl(http, A) -->
 	"//",
-	cpart("", user, "@", A),
-	cpart("", host, "", A),
-	cpart(":", port, "", A),
+	cuser(A),
+	chost(A),
+	cport(A),
 	cpath(A),
 	csearch(A),
 	cfragment(A).
 
 curi(A) -->
-	cpart("", path, "", A),
+	cpath(A),
 	csearch(A).
 
-cpart(Before, Field, After, A) -->
-	{ Term =.. [Field, Value],
-	  memberchk(Term, A)
-	}, !,
-	Before,
-	{ atom_codes(Value, Codes) },
-	www_encode(Codes, ""),
-	After.
-cpart(_,_,_,_) -->
-	[].
+cpath(A) -->
+	(   { memberchk(path(Path), A) }
+	->  { atom_codes(Path, Codes) },
+	    www_encode(Codes, "/+:")
+	;   ""
+	).
+
+cuser(A) -->
+	(   { memberchk(user(User), A) }
+	->  { atom_codes(User, Codes) },
+	    www_encode(Codes, ":"),
+	    "@"
+	;   ""
+	).
+
+chost(A) -->
+	(   { memberchk(host(Host), A) }
+	->  { atom_codes(Host, Codes) },
+	    www_encode(Codes, "")
+	;   ""
+	).
+
+cport(A) -->
+	(   { memberchk(port(Port), A) }
+	->  { number_codes(Port, Codes) },
+	    ":",
+	    www_encode(Codes, "")
+	;   ""
+	).
+
 
 catomic(A, In, Out) :-
 	atom_codes(A, Codes),
 	append(Codes, Out, In).
-
-%	cpath(+Attributes, //)
-
-cpath(A) -->
-	{ memberchk(path(Path), A), !,
-	  atom_codes(Path, Codes)
-	},
-	www_encode(Codes, "/").
-cpath(_) -->
-	[].
 
 %	csearch(+Attributes, //)
 

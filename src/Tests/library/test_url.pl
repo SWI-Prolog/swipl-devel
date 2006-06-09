@@ -25,21 +25,21 @@ test_parse(URL, Parts) :-
 	sort(Parts, P2),
 	P1 == P2, !.
 test_parse(URL, _) :-
-	error('FAILED: parse_url(~q, Parts)~n', [URL]).
+	fmt_error('FAILED: parse_url(~q, Parts)~n', [URL]).
 	
 test_gen(URL, Parts) :-
-	parse_url(URL1, Parts),
-	(   URL1 == URL
+	(   parse_url(URL1, Parts),
+	    URL1 == URL
 	->  true
-	;   error('FAILED: parse_url(URL, ~q)~n', [Parts]),
-	    error('~q \\== ~q~n', [URL, URL1])
+	;   fmt_error('FAILED: parse_url(URL, ~q)~n', [Parts]),
+	    fmt_error('~q \\== ~q~n', [URL, URL1])
 	).
 	
 test_abs(Rel, Base, Abs) :-
 	(   global_url(Rel, Base, Abs0),
 	    Abs0 == Abs
 	->  true
-	;   error('FAILED: global_url(~q, ~q, ABS)~n', [Rel, Base])
+	;   fmt_error('FAILED: global_url(~q, ~q, ABS)~n', [Rel, Base])
 	).
 
 
@@ -92,7 +92,7 @@ abs('file.html?name=value',
     'http://gollem/top/index.html?a=b',
     'http://gollem/top/file.html?name=value').
 
-error(Fmt, Args) :-
+fmt_error(Fmt, Args) :-
 	format(user_error, Fmt, Args),
 	assert(error(Fmt, Args)).
 	
