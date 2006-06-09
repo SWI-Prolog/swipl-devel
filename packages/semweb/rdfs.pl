@@ -242,14 +242,14 @@ rdfs_class_property(Class, Property) :-
 %	parseType="Collection" as well as on Bag, Set and Alt. 
 
 rdfs_member(Element, Set) :-
-	rdfs_individual_of(Set, rdf:'List'), !,
+	rdf_has(Set, rdf:first, _),
 	rdfs_collection_member(Element, Set).
 rdfs_member(Element, Set) :-
 	rdfs_individual_of(Set, rdf:'Container'), !,
 	(   nonvar(Element)
 	->  rdf(Set, Predicate, Element),
 	    rdf_member_property(Predicate, _N)
-	;   between(1, 1000000000, N),
+	;   between(1, inifinite, N),
 	    rdf_member_property(Prop, N),
 	    (	rdf(Set, Prop, Member)
 	    ->	Member = Element
@@ -258,14 +258,11 @@ rdfs_member(Element, Set) :-
 	).
 
 rdfs_collection_member(Element, Set) :-
-	rdf_has(Set, rdf:first, Element),
-	assertion(rdfs_individual_of(Set, rdf:'List')).
+	rdf_has(Set, rdf:first, Element).
 rdfs_collection_member(Element, Set) :-
 	rdf_has(Set, rdf:rest, Tail), !,
 	rdfs_collection_member(Element, Tail).
-rdfs_collection_member(_, Set) :-
-	assertion(rdf_equal(Set, rdf:nil)),
-	fail.
+
 
 %	rdfs_list_to_prolog_list(+RDFSList, -PrologList)
 %	
