@@ -2,6 +2,9 @@
 			   ==============
 
 
+VERSION 6.6.12, distributed with SWI-Prolog 5.6.12
+==================================================
+
 * FIXED: compatibility problem in saved text_buffer objects between version
   5.4.7 and 5.6.13.  Tom Conlon.  There is still an issue.  While providing
   Unicode support the save format was changed, but the version was not
