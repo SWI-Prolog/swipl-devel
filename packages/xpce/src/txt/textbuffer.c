@@ -153,37 +153,41 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
   str_cphdr(&tb->buffer, str_nl(NULL));
   tb->tb_bufferA = pceMalloc(tb->allocated);
 
-  fd->encoding = ENC_UTF8;
-  for(i=0; i<tb->size; i++)
-  { chr = Sgetcode(fd);
-
-    if ( chr <= 0xff )
-      tb->tb_bufferA[i] = chr;
-    else
-      break;
-  }
-
-  if ( i < tb->size )			/* non-ISO characters: promote */
-  { charW *w = pceMalloc(tb->allocated * sizeof(charW));
-    const charA *f = Address(tb, 0);
-    const charA *e = &f[i];
-    charW *t = w;
-
-    while(f<e)
-      *t++ = *f++;
-
-    pceFree(tb->tb_bufferA);
-    tb->tb_bufferW = w;
-    tb->buffer.iswide = TRUE;
-    tb->tb_bufferW[i++] = chr;
-
-    for(; i<tb->size; i++)
+  if ( restoreVersion <= 17 )		/* PRE Unicode */
+  { Sfread(Address(tb, 0), sizeof(char), tb->size, fd);
+  } else
+  { fd->encoding = ENC_UTF8;
+    for(i=0; i<tb->size; i++)
     { chr = Sgetcode(fd);
 
-      tb->tb_bufferW[i] = chr;
+      if ( chr <= 0xff )
+	tb->tb_bufferA[i] = chr;
+      else
+	break;
     }
+
+    if ( i < tb->size )			/* non-ISO characters: promote */
+    { charW *w = pceMalloc(tb->allocated * sizeof(charW));
+      const charA *f = Address(tb, 0);
+      const charA *e = &f[i];
+      charW *t = w;
+  
+      while(f<e)
+	*t++ = *f++;
+  
+      pceFree(tb->tb_bufferA);
+      tb->tb_bufferW = w;
+      tb->buffer.iswide = TRUE;
+      tb->tb_bufferW[i++] = chr;
+  
+      for(; i<tb->size; i++)
+      { chr = Sgetcode(fd);
+  
+	tb->tb_bufferW[i] = chr;
+      }
+    }
+    fd->encoding = oenc;
   }
-  fd->encoding = oenc;
 
   tb->gap_start = tb->size;
   tb->gap_end = tb->allocated;
