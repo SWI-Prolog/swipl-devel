@@ -4665,8 +4665,7 @@ inline_matching_goal(A==B,true,GVA,GVB) :-
     memberchk_eq(B,GVB),
     A=B, !.
     
-    
-inline_matching_goal(A=B,true,_,_) :- A=B, !.
+% inline_matching_goal(A=B,true,_,_) :- A=B, !.
 inline_matching_goal((A,B),(A2,B2),GVA,GVB) :- !,
     inline_matching_goal(A,A2,GVA,GVB),
     inline_matching_goal(B,B2,GVA,GVB).
