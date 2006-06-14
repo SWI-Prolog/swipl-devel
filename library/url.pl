@@ -562,7 +562,7 @@ path_absolute(Path) -->
 	"/",
 	segment_nz_chars(Chars, T0),
 	segments_chars(T0, []),
-	{ atom_codes(Path, [0'/, Chars]) }.
+	{ atom_codes(Path, [0'/| Chars]) }.
 
 path_noschema(Path) -->
 	segment_nz_nc_chars(Chars, T0),

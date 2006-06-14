@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: ERROR: atom_codes/2: Cannot represent due to `character_code'
+    error in library(url).
+
 ==============================
 VERSION 5.6.14 (June 13, 2006)
 ==============================
