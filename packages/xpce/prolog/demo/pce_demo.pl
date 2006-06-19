@@ -85,8 +85,8 @@ open_demo(Browser) :-
 	    )
 	->  send(@display, inform, 'First select a demo')
 	;   get(DictItem, key, Name),
-	    (	(   demo(Name, _Summary, File, Predicate)
-		;   contribution(Name, _Summary, _Author, File, Predicate)
+	    (	(   demo(Name, Summary, File, Predicate)
+		;   contribution(Name, Summary, _Author, File, Predicate)
 		)
 	    ->  (   use_module(File)
 		->  (   Predicate
@@ -104,8 +104,8 @@ view_source(Browser) :-
 	(   DictItem == @nil
 	->  send(@display, inform, 'First select a demo')
 	;   get(DictItem, key, Name),
-	    (	demo(Name, _Summary, File, _Predicate)
-	    ;	contribution(Name, _Summary, _Author, File, _Predicate)
+	    (	demo(Name, Summary, File, Predicate)
+	    ;	contribution(Name, Summary, _Author, File, Predicate)
 	    ),
 	    (	locate_file(File, Path)
 	    ->	emacs(Path)
