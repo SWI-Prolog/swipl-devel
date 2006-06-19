@@ -124,7 +124,7 @@ check_type([H|T], Value0, Value) :-
 	->  check_type(T, Value1, Value)
 	;   check_type2(H, Value)
 	->  check_type(T, Value0, Value)
-	;   throw(error(type_error(H, Value), _))
+	;   throw(error(type_error(H, Value0), _))
 	).
 
 check_type3(number, Atom, Number) :-
