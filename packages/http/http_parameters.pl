@@ -122,7 +122,7 @@ check_type([], Value, Value).
 check_type([H|T], Value0, Value) :-
 	(   check_type3(H, Value0, Value1)
 	->  check_type(T, Value1, Value)
-	;   check_type2(H, Value)
+	;   check_type2(H, Value0)
 	->  check_type(T, Value0, Value)
 	;   throw(error(type_error(H, Value0), _))
 	).
