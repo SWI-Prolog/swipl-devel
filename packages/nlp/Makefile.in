@@ -59,13 +59,16 @@ porter_stem.@SO@:	$(STEMOBJ)
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		for f in $(TARGETS); do \
-		  $(INSTALL) -m 755 $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
+		  $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/lib/$(PLARCH); \
 		done
 		mkdir -p $(DESTDIR)$(PLBASE)/library
 		for f in $(LIBPL); do \
-		  $(INSTALL) -m 644 $$f $(DESTDIR)$(PLBASE)/library; \
+		  $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library; \
 		done
 		$(PL) -f none -g make -t halt
+
+ln-install::
+		$(MAKE) INSTALL_DATA="../ln-install" INSTALL_PROGRAM="../ln-install" install
 
 rpm-install:	install
 

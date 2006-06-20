@@ -1,3 +1,8 @@
+Jun 20, 2006
+
+ * Fix illegal memory reference in porter_stem.c
+ * Added development target ln-install
+
 Nov 29, 2005
  
  * First release
