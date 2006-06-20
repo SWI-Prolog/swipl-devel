@@ -4126,7 +4126,10 @@ emit_cdata(dtd_parser *p, int last)
 	  { dec_location(&p->location, c);
 	    size--;
 	    poke_ocharbuf(cdata, offset+size, '\0');
-	    c = fetch_ocharbuf(cdata, offset+size-1);
+	    if ( size > 0 )
+	      c = fetch_ocharbuf(cdata, offset+size-1);
+	    else
+	      c = 0;			/* HasClass(CH_RE) must fail */
 	  }
 	  if ( HasClass(dtd, c, CH_RE) )
 	  { dec_location(&p->location, c);

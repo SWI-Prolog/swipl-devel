@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2004, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -31,6 +31,7 @@
 
 :- module(xsdp_type,
 	  [ xsdp_type/1,		% ?Type
+	    xsdp_numeric_uri/1,		% ?URI
 	    xsdp_subtype_of/2,		% ?Type, ?Super
 	    xsdp_convert/3		% +Type, +Content, -Value
 	  ]).
@@ -141,9 +142,19 @@ term_expansion(xsd_local_ids, Clauses) :-
 		    atom_concat(NS, Type, URI)
 		),
 		Clauses).
+term_expansion(numeric_uirs, Clauses) :-
+	findall(xsdp_numeric_uri(URI),
+		(   (   integer_type(Type)
+		    ;	Type = float
+		    ;	Type = double
+		    ),
+		    xsd_local_id(URI, Type)
+		),
+		Clauses).
 
 integer_types.
 xsd_local_ids.
+numeric_uirs.
 
 %	xsdp_convert(+Type, +Content, -Value)
 %	
