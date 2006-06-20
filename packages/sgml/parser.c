@@ -1181,7 +1181,7 @@ free_dtd(dtd *dtd)
 }
 
 
-static char *xml_entities[] =
+static const char *xml_entities[] =
 { "lt CDATA \"&#60;\"",			/* < */
   "gt CDATA \"&#62;\"",			/* > */
   "amp CDATA \"&#38;\"",		/* & */
@@ -1205,7 +1205,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       }
       case DL_XML:
       case DL_XMLNS:
-      { ichar **el;
+      { const char **el;
 	dtd_parser p;
   
 	dtd->case_sensitive = TRUE;
@@ -1215,8 +1215,8 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
   
 	memset(&p, 0, sizeof(p));
 	p.dtd = dtd;
-	for(el = (ichar**)xml_entities; *el; el++)
-	  process_entity_declaration(&p, *el);
+	for(el = xml_entities; *el; el++)
+	  process_entity_declaration(&p, (const ichar*)*el);
   
 	break;
       }
