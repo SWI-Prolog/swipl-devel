@@ -293,7 +293,7 @@ static void step4(vars *vs)
                  if (ends("\05" "ement", vs)) break;
                  if (ends("\04" "ment", vs)) break;
                  if (ends("\03" "ent", vs)) break; return;
-       case 'o': if (ends("\03" "ion", vs) && (vs->b[vs->j] == 's' || vs->b[vs->j] == 't')) break;
+       case 'o': if (ends("\03" "ion", vs) && vs->j > 0 && (vs->b[vs->j] == 's' || vs->b[vs->j] == 't')) break;
                  if (ends("\02" "ou", vs)) break; return;
                  /* takes care of -ous */
        case 's': if (ends("\03" "ism", vs)) break; return;
