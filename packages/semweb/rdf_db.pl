@@ -730,7 +730,11 @@ rdf_load(Spec, Options0) :-
 	(   Action \== none
 	->  statistics(cputime, CpuLoaded),
 	    ParseTime is CpuLoaded - CpuOld,
-	    print_message(informational,
+	    (	memberchk(silent(true), Options)
+	    ->	Level = silent
+	    ;	Level = informational
+	    ),
+	    print_message(Level,
 			  rdf(loaded(Source, Triples, Load)))
 	;   true
 	).

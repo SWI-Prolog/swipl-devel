@@ -1,3 +1,7 @@
+Jun 21, 2006
+
+  * ADDED: silent(true) as option to rdf_load/2.
+
 Apr 10, 2006
 
   * Enhanced: rdf_persistency.pl: sort files by size, assuming the schema

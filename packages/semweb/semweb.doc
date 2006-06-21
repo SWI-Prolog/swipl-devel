@@ -529,7 +529,15 @@ holding the \fileext{rdf} files. Cached RDF files are loaded at approx.\
 
     \predicate{rdf_load}{2}{+FileOrList, +Options}
 As rdf_load/1, providing additional options.  The options are handed
-to the RDF parser as implemented by process_rdf/3.
+to the RDF parser and implemented by process_rdf/3.  In addition, the
+following options are provided:
+
+\begin{description}
+    \termitem{silent}{Bool}
+If \arg{Bool} is \const{true}, the message reporting completion is
+printed using level \const{silent}. Otherwise the level is
+\const{informational}.  See also print_message/2.
+\end{description}
 
     \predicate{rdf_unload}{1}{+Spec}
 Remove all triples loaded from \arg{Spec}. \arg{Spec} is either the name
