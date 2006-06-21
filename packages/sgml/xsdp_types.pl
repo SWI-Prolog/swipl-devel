@@ -31,7 +31,7 @@
 
 :- module(xsdp_type,
 	  [ xsdp_type/1,		% ?Type
-	    xsdp_numeric_uri/1,		% ?URI
+	    xsdp_numeric_uri/2,		% ?URI, ?Primary
 	    xsdp_subtype_of/2,		% ?Type, ?Super
 	    xsdp_convert/3		% +Type, +Content, -Value
 	  ]).
@@ -143,13 +143,14 @@ term_expansion(xsd_local_ids, Clauses) :-
 		),
 		Clauses).
 term_expansion(numeric_uirs, Clauses) :-
-	findall(xsdp_numeric_uri(URI),
-		(   (   integer_type(Type)
-		    ;	Type = float
-		    ;	Type = double
-		    ;	Type = decimal
+	findall(xsdp_numeric_uri(URI, PrimaryURI),
+		(   (   integer_type(Type),	Primary = integer
+		    ;	Type = float,		Primary = float
+		    ;	Type = double,		Primary = double
+		    ;	Type = decimal,		Primary = decimal
 		    ),
-		    xsd_local_id(URI, Type)
+		    xsd_local_id(URI, Type),
+		    xsd_local_id(PrimaryURI, Primary)
 		),
 		Clauses).
 
