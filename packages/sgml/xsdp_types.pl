@@ -147,6 +147,7 @@ term_expansion(numeric_uirs, Clauses) :-
 		(   (   integer_type(Type)
 		    ;	Type = float
 		    ;	Type = double
+		    ;	Type = decimal
 		    ),
 		    xsd_local_id(URI, Type)
 		),
