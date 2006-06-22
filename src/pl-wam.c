@@ -2148,7 +2148,10 @@ pl-comp.c
     &&H_VAR_LBL,
     &&B_CONST_LBL,
     &&H_CONST_LBL,
-    &&H_INDIRECT_LBL,
+    &&B_STRING_LBL,
+    &&H_STRING_LBL,
+    &&B_MPZ_LBL,
+    &&H_MPZ_LBL,
     &&B_INTEGER_LBL,
     &&H_INTEGER_LBL,
     &&B_INT64_LBL,
@@ -2214,7 +2217,6 @@ pl-comp.c
     &&C_FAIL_LBL,
 #endif /* O_COMPILE_OR */
 
-    &&B_INDIRECT_LBL,
 #if O_BLOCK
     &&I_CUT_BLOCK_LBL,
     &&B_EXIT_LBL,
@@ -2248,17 +2250,14 @@ pl-comp.c
 #define VMI(Name)		Name ## _LBL: \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
-#if VMCODE_IS_ADDRESS
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
 				  END_PROF(); \
 				  goto *(void *)((long)(*PC++)); \
 				}
-#else
-#define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
-				  END_PROF(); \
-				  goto *jmp_table[*PC++]; \
-				}
+#ifndef ASM_NOP
+#define ASM_NOP asm("nop")
 #endif
+#define SEPERATE_VMI ASM_NOP
 
 #else /* VMCODE_IS_ADDRESS */
 
@@ -2271,6 +2270,7 @@ code thiscode;
 				  END_PROF(); \
                                   goto next_instruction; \
 				}
+#define SEPERATE_VMI		(void)0
 
 #endif /* VMCODE_IS_ADDRESS */
 
@@ -2517,7 +2517,9 @@ variable, compare the numbers otherwise.
 General indirect in the head.  Used for strings only at the moment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    VMI(H_INDIRECT) MARK(HINDIR);
+    VMI(H_MPZ)    MARK(HMPZ);
+      SEPERATE_VMI;
+    VMI(H_STRING) MARK(HSTR);
       { Word k;
 
 	deRef2(ARGP++, k);
@@ -2593,10 +2595,12 @@ globalReal().
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-B_INDIRECT need to copy the  value  on   the  global  stack  because the
+B_STRING need to copy the  value  on   the  global  stack  because the
 XR-table might be freed due to a retract.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    VMI(B_INDIRECT) MARK(BIDT);
+    VMI(B_MPZ)	  MARK(BMPZ)
+      SEPERATE_VMI;
+    VMI(B_STRING) MARK(BSTR);
       { *ARGP++ = globalIndirectFromCode(&PC);
 	NEXT_INSTRUCTION;
       }
@@ -3517,6 +3521,7 @@ to give the compiler a hint to put ARGP not into a register.
 	Word p = (Word)PC;
 	int size;
 
+	p++;				/* skip indirect header */
 	n->type = V_MPZ;
 	n->value.mpz->_mp_size  = (int)*p++;
 	n->value.mpz->_mp_alloc = 0;	/* avoid de-allocating */
@@ -4005,13 +4010,7 @@ like nop, define the macro ASM_NOP in  your md-file to do something that
 1) has *no effect* and 2) is *not optimised* away by the compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_NOT)						MARK(C_NOT)
-#if VMCODE_IS_ADDRESS
-#ifdef ASM_NOP
-      ASM_NOP;
-#else
-      asm("nop");
-#endif
-#endif
+      SEPERATE_VMI;
     VMI(C_IFTHENELSE)
       MARK(C_ITE);
       { varFrame(FR, *PC++) = (word) BFR; /* == C_MARK */

@@ -50,7 +50,10 @@ const code_info codeTable[] = {
   CODE(H_VAR,		"h_var",	1, CA1_VAR),
   CODE(B_CONST,		"b_const",	1, CA1_DATA),
   CODE(H_CONST,		"h_const",	1, CA1_DATA),
-  CODE(H_INDIRECT,	"h_indirect",	0, CA1_STRING),
+  CODE(B_STRING,	"b_string",	0, CA1_STRING),
+  CODE(H_STRING,	"h_string",	0, CA1_STRING),
+  CODE(B_MPZ,		"b_mpz",	0, CA1_MPZ),
+  CODE(H_MPZ,		"h_mpz",	0, CA1_MPZ),
   CODE(B_INTEGER,	"b_integer",	1, CA1_INTEGER),
   CODE(H_INTEGER,	"h_integer",	1, CA1_INTEGER),
   CODE(B_INT64,		"b_int64",	WORDS_PER_INT64, CA1_INT64),
@@ -105,7 +108,6 @@ const code_info codeTable[] = {
   CODE(C_END,		"c_end",	0, 0),
   CODE(C_NOT,		"c_not",	2, CA1_VAR),
   CODE(C_FAIL,		"c_fail",	0, 0),
-  CODE(B_INDIRECT,	"b_indirect",	0, CA1_STRING),
 #if O_BLOCK
   CODE(I_CUT_BLOCK,	"i_cut_block",	0, 0),
   CODE(B_EXIT,		"b_exit",	0, 0),
@@ -1259,7 +1261,7 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
 	  }
 #endif
 	} else				/* MPZ NUMBER */
-	{ Output_0(ci, (where & A_HEAD) ? H_INDIRECT : B_INDIRECT);
+	{ Output_0(ci, (where & A_HEAD) ? H_MPZ : B_MPZ);
 	  Output_n(ci, p, n+1);
 	  return NONVOID;
 	}
@@ -1291,7 +1293,7 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
     { Word p = addressIndirect(*arg);
 
       int n  = wsizeofInd(*p);
-      Output_0(ci, (where & A_HEAD) ? H_INDIRECT : B_INDIRECT);
+      Output_0(ci, (where & A_HEAD) ? H_STRING : B_STRING);
       Output_n(ci, p, n+1);
       return NONVOID;
     }
@@ -1741,7 +1743,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 #endif
       } else				/* GMP */
       { Output_0(ci, A_MPZ);
-	Output_n(ci, p+1, n);
+	Output_n(ci, p, n+1);
       }
     }
     succeed;
@@ -1842,25 +1844,6 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 
 
 		 /*******************************
-		 *	    GMP SUPPORT		*
-		 *******************************/
-
-#ifdef O_GMP
-static Code
-skipMPZCodes(Code PC)
-{ Word p = PC;
-  int mpsize = (int)*p++;
-  int bsize  = sizeof(mp_limb_t) * abs(mpsize);
-  int wsize  = (bsize+sizeof(word)-1)/sizeof(word);
-  
-  p += wsize;
-
-  return (Code) p;
-}
-#endif
-
-
-		 /*******************************
 		 *	     ATOM-GC		*
 		 *******************************/
 
@@ -1887,8 +1870,11 @@ unregisterAtomsClause(Clause clause)
 	c = decode(replacedBreak(PC));
         goto again;
 #endif
-      case H_INDIRECT:		/* only skip the size of the */
-      case B_INDIRECT:		/* string + header */
+      case H_STRING:		/* only skip the size of the */
+      case B_STRING:		/* string + header */
+      case H_MPZ:
+      case B_MPZ:
+      case A_MPZ:
       { word m = PC[1];
 	PC += wsizeofInd(m)+1;
 	break;
@@ -1901,11 +1887,6 @@ unregisterAtomsClause(Clause clause)
 	  PL_unregister_atom(w);
 	break;
       }
-#ifdef O_GMP
-      case A_MPZ:
-	PC = skipMPZCodes(PC+1);
-        PC--;
-#endif
     }
   }
 }
@@ -2251,7 +2232,8 @@ arg1Key(Clause clause, word *key)
 	*key = k;
         succeed;
       }
-      case H_INDIRECT:
+      case H_STRING:
+      case H_MPZ:
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
@@ -2423,7 +2405,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	TRY(PL_unify_nil(argp));
         NEXTARG;
         continue;
-      case H_INDIRECT:
+      case H_STRING:
+      case H_MPZ:
         { word copy = globalIndirectFromCode(&PC);
 	  TRY(_PL_unify_atomic(argp, copy));
 	  NEXTARG;
@@ -2689,20 +2672,6 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 			    continue;
 			  }
-#ifdef O_GMP
-	case A_MPZ:
-			  { Word wp  = (Word)PC;
-			    Code end = skipMPZCodes(PC);
-			    int wsz  = (Word)end - wp;
-			    Word p = allocGlobal(2+wsz);
-			    *ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-			    *p++    = mkIndHdr(wsz, TAG_INTEGER);
-			    p[wsz]  = mkIndHdr(wsz, TAG_INTEGER);
-			    memcpy(p, wp, wsz*sizeof(word));
-			    PC = end;
-			    continue;
-			  }
-#endif
 	case B_FLOAT:
 	case A_DOUBLE:
 		  	  { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
@@ -2713,7 +2682,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 			    continue;
 			  }
-	case B_INDIRECT:
+	case B_STRING:
+	case A_MPZ:
+	case B_MPZ:
 	  		    *ARGP++ = globalIndirectFromCode(&PC);
 			    continue;
       { register int index;      
@@ -3344,15 +3315,11 @@ stepPC(Code PC)
 
   switch(codeTable[op].argtype)
   { case CA1_STRING:
+    case CA1_MPZ:
     { word m = *PC++;
       PC += wsizeofInd(m);
       break;
     }
-#ifdef O_GMP
-    case CA1_MPZ:
-      PC = skipMPZCodes(PC);
-      break;
-#endif
   }
 
   PC += codeTable[op].arguments;
@@ -3444,15 +3411,12 @@ pl_xr_member(term_t ref, term_t term, control_t h)
 	case CA1_INT64:
 	case CA1_FLOAT:
 	  break;
+	case CA1_MPZ:
 	case CA1_STRING:
 	{ word m = *PC++;
 	  PC += wsizeofInd(m);
 	  break;
 	}
-#ifdef O_GMP
-	case CA1_MPZ:
-	  PC = skipMPZCodes(PC);
-#endif
       }
 
       PC += codeTable[op].arguments;
@@ -3670,8 +3634,12 @@ wamListInstruction(IOSTREAM *out, Clause clause, Code bp)
 	}
 #ifdef O_GMP
 	case CA1_MPZ:
-	{ bp = skipMPZCodes(bp);
+	{ word m = *bp++;
+	  int  n = wsizeofInd(m);
+
 	  Sfprintf(out, " <GMP mpz integer>");
+	  bp += n;
+	  break;
 	}
 #endif
       }
@@ -4039,8 +4007,10 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
 	}
 	add_node(tail, 2 PASS_LD);
 	continue;
-      case H_INDIRECT:
-      case B_INDIRECT:
+      case H_STRING:
+      case B_STRING:
+      case H_MPZ:
+      case B_MPZ:
       { word m = PC[0];
 	PC += wsizeofInd(m)+1;
 	break;

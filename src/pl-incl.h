@@ -602,108 +602,109 @@ codes.
 #define H_VAR		((code)11)
 #define B_CONST		((code)12)		/* constant (atomic) */
 #define H_CONST		((code)13)
-#define H_INDIRECT	((code)14)		/* indirect in the head */
-#define B_INTEGER	((code)15)		/* bignum in the head */
-#define H_INTEGER	((code)16)		/* bignum in the body */
-#define B_INT64		((code)17)		/* bignum in the head */
-#define H_INT64		((code)18)		/* bignum in the body */
-#define B_FLOAT		((code)19)		/* double in the head */
-#define H_FLOAT		((code)20)		/* double in the body */
+#define B_STRING	((code)14)		/* String in body */
+#define H_STRING	((code)15)		/* String in the head */
+#define B_MPZ		((code)16)		/* String in body */
+#define H_MPZ		((code)17)		/* String in the head */
+#define B_INTEGER	((code)18)		/* bignum in the head */
+#define H_INTEGER	((code)19)		/* bignum in the body */
+#define B_INT64		((code)20)		/* bignum in the head */
+#define H_INT64		((code)21)		/* bignum in the body */
+#define B_FLOAT		((code)22)		/* double in the head */
+#define H_FLOAT		((code)23)		/* double in the body */
 
-#define B_FIRSTVAR	((code)21)		/* first occurrence of var */
-#define H_FIRSTVAR	((code)22)
-#define B_VOID		((code)23)		/* anonimous variables */
-#define H_VOID		((code)24)
-#define B_ARGFIRSTVAR	((code)25)		/* body vars nested in funct */
-#define B_ARGVAR	((code)26)
+#define B_FIRSTVAR	((code)24)		/* first occurrence of var */
+#define H_FIRSTVAR	((code)25)
+#define B_VOID		((code)26)		/* anonimous variables */
+#define H_VOID		((code)27)
+#define B_ARGFIRSTVAR	((code)28)		/* body vars nested in funct */
+#define B_ARGVAR	((code)29)
 
-#define H_NIL		((code)27)		/* [] in the head */
-#define B_NIL		((code)28)		/* [] in the body */
-#define H_LIST		((code)29)		/* ./2 in the head */
-#define H_RLIST		((code)30)		/* right-recursive list */
-#define B_LIST		((code)31)		/* ./2 in the body */
-#define B_RLIST		((code)32)		/* right-recursive list */
+#define H_NIL		((code)30)		/* [] in the head */
+#define B_NIL		((code)31)		/* [] in the body */
+#define H_LIST		((code)32)		/* ./2 in the head */
+#define H_RLIST		((code)33)		/* right-recursive list */
+#define B_LIST		((code)34)		/* ./2 in the body */
+#define B_RLIST		((code)35)		/* right-recursive list */
 
-#define B_VAR0		((code)33)		/* B_VAR 0 */
-#define B_VAR1		((code)34)		/* B_VAR 1 */
-#define B_VAR2		((code)35)		/* B_VAR 2 */
+#define B_VAR0		((code)36)		/* B_VAR 0 */
+#define B_VAR1		((code)37)		/* B_VAR 1 */
+#define B_VAR2		((code)38)		/* B_VAR 2 */
 
-#define I_USERCALL0	((code)36)		/* variable in body (call/1) */
-#define I_USERCALLN	((code)37)		/* call/[2...] */
-#define I_CUT		((code)38)		/* ! */
-#define I_APPLY		((code)39)		/* apply/2 */
+#define I_USERCALL0	((code)39)		/* variable in body (call/1) */
+#define I_USERCALLN	((code)40)		/* call/[2...] */
+#define I_CUT		((code)41)		/* ! */
+#define I_APPLY		((code)42)		/* apply/2 */
 
 #if O_COMPILE_ARITH
-#define A_ENTER		((code)40)		/* start arithmetic sequence */
-#define A_INTEGER	((code)41)		/* 32-bit signed int */
-#define A_INT64		((code)42)		/* 64-bit signed int */
-#define A_MPZ		((code)43)		/* GMP mpz_t */
-#define A_DOUBLE	((code)44)		/* 64-bit double */
-#define A_VAR0		((code)45)		/* variable-0 */
-#define A_VAR1		((code)46)		/* variable-1 */
-#define A_VAR2		((code)47)		/* variable-2 */
-#define A_VAR		((code)48)		/* variable-n */
-#define A_FUNC0		((code)49)		/* nullary arithmic function */
-#define A_FUNC1		((code)50)		/* unary arithmic function */
-#define A_FUNC2		((code)51)		/* binary arithmic function */
-#define A_FUNC		((code)52)		/* n-ary arithmic function */
-#define A_LT		((code)53)		/* < */
-#define A_GT		((code)54)		/* > */
-#define A_LE		((code)55)		/* =< */
-#define A_GE		((code)56)		/* >= */
-#define A_EQ		((code)57)		/* =:= */
-#define A_NE		((code)58)		/* =\= */
-#define A_IS		((code)59)		/* is */
+#define A_ENTER		((code)43)		/* start arithmetic sequence */
+#define A_INTEGER	((code)44)		/* 32-bit signed int */
+#define A_INT64		((code)45)		/* 64-bit signed int */
+#define A_MPZ		((code)46)		/* GMP mpz_t */
+#define A_DOUBLE	((code)47)		/* 64-bit double */
+#define A_VAR0		((code)48)		/* variable-0 */
+#define A_VAR1		((code)49)		/* variable-1 */
+#define A_VAR2		((code)50)		/* variable-2 */
+#define A_VAR		((code)51)		/* variable-n */
+#define A_FUNC0		((code)52)		/* nullary arithmic function */
+#define A_FUNC1		((code)53)		/* unary arithmic function */
+#define A_FUNC2		((code)54)		/* binary arithmic function */
+#define A_FUNC		((code)55)		/* n-ary arithmic function */
+#define A_LT		((code)56)		/* < */
+#define A_GT		((code)57)		/* > */
+#define A_LE		((code)58)		/* =< */
+#define A_GE		((code)59)		/* >= */
+#define A_EQ		((code)60)		/* =:= */
+#define A_NE		((code)61)		/* =\= */
+#define A_IS		((code)62)		/* is */
 #endif /* O_COMPILE_ARITH */
 
 #if O_COMPILE_OR
-#define C_OR		((code)60)		/* In-clause backtract point */
-#define C_JMP		((code)61)		/* Jump over code */
-#define C_MARK		((code)62)		/* Sub-clause cut mark */
-#define C_CUT		((code)63)		/* cut to corresponding mark */
-#define C_IFTHENELSE	((code)64)		/* if-then-else start */
-#define C_VAR		((code)65)		/* make a variable */
-#define C_END		((code)66)		/* dummy to help decompiler */
-#define C_NOT		((code)67)		/* same as C_IFTHENELSE */
-#define C_FAIL		((code)68)		/* fail */
+#define C_OR		((code)63)		/* In-clause backtract point */
+#define C_JMP		((code)64)		/* Jump over code */
+#define C_MARK		((code)65)		/* Sub-clause cut mark */
+#define C_CUT		((code)66)		/* cut to corresponding mark */
+#define C_IFTHENELSE	((code)67)		/* if-then-else start */
+#define C_VAR		((code)68)		/* make a variable */
+#define C_END		((code)69)		/* dummy to help decompiler */
+#define C_NOT		((code)70)		/* same as C_IFTHENELSE */
+#define C_FAIL		((code)71)		/* fail */
 #endif /* O_COMPILE_OR */
 
-#define B_INDIRECT	((code)69)		/* INDIRECT in body */
-
 #if O_BLOCK
-#define I_CUT_BLOCK	((code)70)		/* !(block) */
-#define B_EXIT		((code)71)		/* exit(block, rval) */
+#define I_CUT_BLOCK	((code)72)		/* !(block) */
+#define B_EXIT		((code)73)		/* exit(block, rval) */
 #endif /*O_BLOCK*/
 
 #if O_INLINE_FOREIGNS
-#define I_CALL_FV0	((code)72)		/* call foreign, no args */
-#define I_CALL_FV1	((code)73)		/* call foreign, 1 var arg */
-#define I_CALL_FV2	((code)74)		/* call foreign, 2 var args */
+#define I_CALL_FV0	((code)74)		/* call foreign, no args */
+#define I_CALL_FV1	((code)75)		/* call foreign, 1 var arg */
+#define I_CALL_FV2	((code)76)		/* call foreign, 2 var args */
 #endif /*O_INLINE_FOREIGNS*/
 
-#define I_FAIL		((code)75)		/* fail */
-#define I_TRUE		((code)76)		/* true */
+#define I_FAIL		((code)77)		/* fail */
+#define I_TRUE		((code)78)		/* true */
 
 #ifdef O_SOFTCUT
-#define C_SOFTIF	((code)77)		/* Start A *-> B ; C */
-#define C_SOFTCUT	((code)78)		/* `Cut' of A *-> B ; C */
+#define C_SOFTIF	((code)79)		/* Start A *-> B ; C */
+#define C_SOFTCUT	((code)80)		/* `Cut' of A *-> B ; C */
 #endif /*O_SOFTCUT*/
 
-#define I_EXITFACT	((code)79)		/* exit from a fact */
-#define D_BREAK		((code)80)		/* Debugger break-point */
+#define I_EXITFACT	((code)81)		/* exit from a fact */
+#define D_BREAK		((code)82)		/* Debugger break-point */
 
 #if O_CATCHTHROW
-#define I_CATCH		((code)81)		/* $catch (catch/3) */
-#define I_EXITCATCH	((code)82)		/* $exit_catch (catch/3) */
-#define B_THROW		((code)83)		/* throw(Exception) */
+#define I_CATCH		((code)83)		/* $catch (catch/3) */
+#define I_EXITCATCH	((code)84)		/* $exit_catch (catch/3) */
+#define B_THROW		((code)85)		/* throw(Exception) */
 #endif
 
-#define I_CONTEXT	((code)84)		/* Push context module */
-#define C_LCUT		((code)85)		/* ! local in \+ and -> */
-#define I_CALLCLEANUP	((code)86)		/* $call_cleanup */
-#define I_EXITCLEANUP	((code)87)		/* $exit_cleanup */
+#define I_CONTEXT	((code)86)		/* Push context module */
+#define C_LCUT		((code)87)		/* ! local in \+ and -> */
+#define I_CALLCLEANUP	((code)88)		/* $call_cleanup */
+#define I_EXITCLEANUP	((code)89)		/* $exit_cleanup */
 
-#define I_HIGHEST	((code)87)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)89)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 #include "pl-incl.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -173,8 +173,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 42			/* load all versions later >= X */
-#define VERSION 42			/* save version number */
+#define LOADVERSION 43			/* load all versions later >= X */
+#define VERSION 43			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -1075,6 +1075,30 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	      n++;
 	      break;
 	    }
+	    case CA1_MPZ:
+#ifdef O_GMP
+	    Sdprintf("Loading MPZ from %ld\n", Stell(fd));
+	    { int mpsize = getInt(fd);
+	      int l      = abs(mpsize)*sizeof(mp_limb_t);
+	      int wsz	 = (l+sizeof(word)-1)/sizeof(word);
+	      word m     = mkIndHdr(wsz+1, TAG_INTEGER);
+	      char *s;
+
+	      *bp++     = m;
+	      *bp++     = mpsize;
+	      s         = (char*)bp;
+	      bp[wsz-1] = 0L;
+	      bp       += wsz;
+
+	      while(--l >= 0)
+		*s++ = Getc(fd);
+	      Sdprintf("Loaded MPZ to %ld\n", Stell(fd));
+	      n++;
+	      break;
+	    }
+#else
+  	      fatalError("No support for MPZ numbers");
+#endif
 	  }
 	  for( ; n < narg; n++ )
 	    *bp++ = getInt(fd);
@@ -1762,6 +1786,24 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	n++;
 	break;
       }
+#ifdef O_GMP
+      case CA1_MPZ:
+      { word m = *bp++;
+	int wn = wsizeofInd(m);
+	int mpsize = (int)*bp;
+	int l = abs(mpsize)*sizeof(mp_limb_t);
+	char *s = (char*)&bp[1];
+	bp += wn;
+
+	Sdprintf("Saving MPZ from %ld\n", Stell(fd));
+	putNum(mpsize, fd);
+	while(--l >= 0)
+	  Sputc(*s++&0xff, fd);
+	Sdprintf("Saved MPZ to %ld\n", Stell(fd));
+	n++;
+	break;
+      }
+#endif
     }
     for( ; n < codeTable[op].arguments; n++ )
       putNum(*bp++, fd);

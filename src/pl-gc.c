@@ -724,8 +724,10 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	  c = decode(replacedBreak(PC));
 	  goto again;
 #endif
-	case H_INDIRECT:		/* only skip the size of the */
-	case B_INDIRECT:		/* string + header */
+	case H_STRING:			/* only skip the size of the */
+	case B_STRING:			/* string + header */
+	case H_MPZ:
+	case B_MPZ:
 	{ word m = PC[1];
 	  PC += wsizeofInd(m)+1;
 	  break;

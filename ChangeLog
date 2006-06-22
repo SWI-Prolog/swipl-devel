@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Quick load/sated state format handling of MPZ integers.  Mike
+    Elston.
+
   * FIXED: ERROR: atom_codes/2: Cannot represent due to `character_code'
     error in library(url).
 
