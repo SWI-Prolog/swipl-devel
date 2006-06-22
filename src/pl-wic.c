@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -1077,7 +1077,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	    }
 	    case CA1_MPZ:
 #ifdef O_GMP
-	    Sdprintf("Loading MPZ from %ld\n", Stell(fd));
+	    DEBUG(3, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
 	    { int mpsize = getInt(fd);
 	      int l      = abs(mpsize)*sizeof(mp_limb_t);
 	      int wsz	 = (l+sizeof(word)-1)/sizeof(word);
@@ -1092,7 +1092,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 
 	      while(--l >= 0)
 		*s++ = Getc(fd);
-	      Sdprintf("Loaded MPZ to %ld\n", Stell(fd));
+	      DEBUG(3, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
 	      n++;
 	      break;
 	    }
@@ -1795,11 +1795,11 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	char *s = (char*)&bp[1];
 	bp += wn;
 
-	Sdprintf("Saving MPZ from %ld\n", Stell(fd));
+	DEBUG(3, Sdprintf("Saving MPZ from %ld\n", Stell(fd)));
 	putNum(mpsize, fd);
 	while(--l >= 0)
 	  Sputc(*s++&0xff, fd);
-	Sdprintf("Saved MPZ to %ld\n", Stell(fd));
+	DEBUG(3, Sdprintf("Saved MPZ to %ld\n", Stell(fd)));
 	n++;
 	break;
       }
