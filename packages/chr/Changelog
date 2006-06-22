@@ -1,3 +1,8 @@
+Jun 22, 2006
+
+  * TS: Improved performance of ai_observation_analysis,
+	mainly via additional tabling and passive declarations.
+
 Jun 8, 2006
 
   * TS: Disabled some code only intended for SICStus.
