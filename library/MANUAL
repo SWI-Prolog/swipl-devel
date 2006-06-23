@@ -12,7 +12,7 @@
                          SSWWII--PPrroolloogg 55..66
 
                         RReeffeerreennccee MMaannuuaall
-             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._1_0_, _A_p_r_i_l _2_0_0_6
+             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._1_5_, _J_u_n_e _2_0_0_6
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                     wielemak@science.uva.nl
@@ -396,11 +396,11 @@ function.
 Version  2.9  is  the next  step  towards  version  3.0,  improving  ISO
 compliance  and introducing  ISO  compliant  exception handling.     New
 are catch/3, throw/1, abolish/1, write_term/[2,3], write_canonical/[1,2]
-and  the C-functions  PL_exception() and  PL_throw().    The  predicates
+and  the  C-functions PL_exception() and  PL_throw().    The  predicates
 display/[1,2] and  displayq/[1,2] have  been moved to  backcomp, so  old
 code referring to them will autoload them.
 
-The interface  to PL_open_query() has changed.    The _d_e_b_u_g argument  is
+The interface  to PL_open_query()  has changed.   The  _d_e_b_u_g argument  is
 replaced  by a  bitwise or'ed  _f_l_a_g_s argument.    The  values FALSE  and
 TRUE have their familiar meaning, making old code  using these constants
 compatible.   Non-zero values  other than TRUE  (1) will be  interpreted
@@ -418,7 +418,7 @@ and qsave_program/[1,2].
 
 Improvements   on  exception-handling.       Allows  relating   software
 interrupts (signals)  to exceptions,  handling signals in  Prolog and  C
-(see on_signal/3  and PL_signal()).   Prolog stack  overflows now  raise
+(see on_signal/3  and PL_signal()).    Prolog stack  overflows now  raise
 the resource_error  exception and thus  can be handled  in Prolog  using
 catch/3.
 
@@ -466,7 +466,7 @@ all easily fixed however.
     it  works in compound  goals passed  to call/1 and  is local to  the
     _c_o_n_d_i_t_i_o_n part of if-then-else as well as the argument of \+/1.
 
-  o atom_chars/2
+  o _a_t_o_m___c_h_a_r_s_/_2
     This  predicate  is now  ISO  compliant and  thus generates  a  list
     of  one-character atoms.    The behaviour  of the  old predicate  is
     available  in the  ---also ISO compliant---  atom_codes/2 predicate.
@@ -475,7 +475,7 @@ all easily fixed however.
 
     user:goal_expansion(atom_chars(A,B), atom_codes(A,B)).
 
-  o number_chars/2
+  o _n_u_m_b_e_r___c_h_a_r_s_/_2
     Same applies for number_chars/2 and number_codes/2.
 
   o feature/2_, set_feature/2
@@ -488,12 +488,12 @@ all easily fixed however.
     Quintus  compatible library unix/1.   Now  there is also  documented
     current_prolog_flag(_a_r_g_v_, _A_r_g_v).
 
-  o dup_stream/2
+  o _d_u_p___s_t_r_e_a_m_/_2
     Has  been deleted.   New  stream-aliases can deal  with most of  the
     problems  for which  dup_stream/2 was  designed and  dup/2 from  the
     _c_l_i_b package can with most others.
 
-  o op/3
+  o _o_p_/_3
     Operators  are now llooccaall ttoo mmoodduulleess.  This implies  any modification
     of  the operator-table does  not influence other  modules.  This  is
     consistent  with the proposed ISO behaviour and a necessity  to have
@@ -506,7 +506,7 @@ all easily fixed however.
     with  ISO (obligatory) character-escape sequences together  with old
     Edinburgh code.
 
-  o current_stream/3 _a_n_d _s_t_r_e_a_m___p_o_s_i_t_i_o_n
+  o _c_u_r_r_e_n_t___s_t_r_e_a_m_/_3 _a_n_d _s_t_r_e_a_m___p_o_s_i_t_i_o_n
     These predicates have been moved to quintus.
 
 
@@ -1979,64 +1979,64 @@ messages, debugging,  startup, shut-down, macro-expansion,  etc.   Below
 is  a  summary  of  all  defined  hooks  with  an  indication  of  their
 portability.
 
-  o portray/1
+  o _p_o_r_t_r_a_y_/_1
     Hook into write_term/3 to alter the way terms are printed (ISO).
 
-  o message_hook/3
+  o _m_e_s_s_a_g_e___h_o_o_k_/_3
     Hook  into  print_message/2 to  alter the  way system  messages  are
     printed (Quintus/SICStus).
 
-  o library_directory/1
+  o _l_i_b_r_a_r_y___d_i_r_e_c_t_o_r_y_/_1
     Hook  into absolute_file_name/3 to define  new library  directories.
     (most Prolog system).
 
-  o file_search_path/2
+  o _f_i_l_e___s_e_a_r_c_h___p_a_t_h_/_2
     Hook   into   absolute_file_name/3  to   define   new   search-paths
     (Quintus/SICStus).
 
-  o term_expansion/2
+  o _t_e_r_m___e_x_p_a_n_s_i_o_n_/_2
     Hook  into  load_files/2  to  modify  read  terms  before  they  are
     compiled (macro-processing) (most Prolog system).
 
-  o goal_expansion/2
+  o _g_o_a_l___e_x_p_a_n_s_i_o_n_/_2
     Same as term_expansion/2 for individual goals (SICStus).
 
-  o prolog_load_file/2
+  o _p_r_o_l_o_g___l_o_a_d___f_i_l_e_/_2
     Hook  into  load_files/2  to  load  other  data-formats  for  Prolog
     sources  from `non-file' resources.   The load_files/2 predicate  is
     the ancestor of consult/1, use_module/1, etc.
 
-  o prolog_edit:locate/3
+  o _p_r_o_l_o_g___e_d_i_t_:_l_o_c_a_t_e_/_3
     Hook into edit/1 to locate objects (SWI).
 
-  o prolog_edit:edit_source/1
+  o _p_r_o_l_o_g___e_d_i_t_:_e_d_i_t___s_o_u_r_c_e_/_1
     Hook into edit/1 to call some internal editor (SWI).
 
-  o prolog_edit:edit_command/2
+  o _p_r_o_l_o_g___e_d_i_t_:_e_d_i_t___c_o_m_m_a_n_d_/_2
     Hook into edit/1 to define the external editor to use (SWI).
 
-  o prolog_list_goal/1
+  o _p_r_o_l_o_g___l_i_s_t___g_o_a_l_/_1
     Hook  into the tracer  to list the  code associated to a  particular
     goal (SWI).
 
-  o prolog_trace_interception/4
+  o _p_r_o_l_o_g___t_r_a_c_e___i_n_t_e_r_c_e_p_t_i_o_n_/_4
     Hook into the tracer to handle trace-events (SWI).
 
-  o prolog:debug_control_hook/1
+  o _p_r_o_l_o_g_:_d_e_b_u_g___c_o_n_t_r_o_l___h_o_o_k_/_1
     Hook  in spy/1, nospy/1, nospyall/0 and debugging/0 to  extend these
     control-predicates to higher-level libraries.
 
-  o prolog:help_hook/1
+  o _p_r_o_l_o_g_:_h_e_l_p___h_o_o_k_/_1
     Hook in help/0, help/1 and apropos/1 to extend the help-system.
 
-  o resource/3
+  o _r_e_s_o_u_r_c_e_/_3
     Defines a new resource (not really a hook, but similar) (SWI).
 
-  o exception/3
+  o _e_x_c_e_p_t_i_o_n_/_3
     Old  attempt  to  a  generic  hook mechanism.     Handles  undefined
     predicates (SWI).
 
-  o attr_unify_hook/2
+  o _a_t_t_r___u_n_i_f_y___h_o_o_k_/_2
     Unification  hook for attributed variables.   Can be defined in  any
     module.  See section 6.1 for details.
 
@@ -2879,7 +2879,7 @@ must  be mastered  in  detail for  real  productive programming  and  if
 you  are familiar  with  a specific  editor  you  should not  be  forced
 to change.    You may  specify your  favourite editor  using the  prolog
 flag editor,  the environment variable EDITOR  or by defining rules  for
-prolog_edit:edit_source/1(see section 4.4).
+prolog_edit:edit_source/1 (see section 4.4).
 
 The  use  of  a built-in  editor,  which  is  selected  by  setting  the
 prolog-flag  editor to  pce_emacs,  has advantages.    The  XPCE  _e_d_i_t_o_r
@@ -3324,7 +3324,7 @@ WWaarrnn aauuttoollooaadd
     to  be  autoloaded are  flagged with  a warning  and  the file  info
     window of a module shows the required autoload predicates.
 
-WWaarrnn aauuttoollooaadd
+WWaarrnn nnoott ccaalllleedd
     If  enabled (default),  the file-overview  shows an  alert icon  for
     files that have predicates that are not called.
 
@@ -4017,7 +4017,7 @@ Any of  these parts may  be extended or redefined  by adding clauses  to
 various multi-file  (see multifile/1) predicates  defined in the  module
 prolog_edit.
 
-The built-in  edit specifications for edit/1  (see prolog_edit:locate/3)
+The built-in  edit specifications for  edit/1 (see prolog_edit:locate/3)
 are described below.
 
    ___________________________________________________________________
@@ -4035,10 +4035,10 @@ are described below.
 
 
 eeddiitt((_+_S_p_e_c_i_f_i_c_a_t_i_o_n))
-    First  exploits prolog_edit:locate/3to  translate _S_p_e_c_i_f_i_c_a_t_i_o_n into
+    First  exploits prolog_edit:locate/3 to translate  _S_p_e_c_i_f_i_c_a_t_i_o_n into
     a  list  of  _L_o_c_a_t_i_o_n_s.    If there  is  more than  one  `hit',  the
     user  is  asked  to select  from  the  locations found.     Finally,
-    prolog_edit:edit_source/1 is  used  to invoke  the user's  preferred
+    prolog_edit:edit_source/1  is used  to  invoke the  user's  preferred
     editor.   Typically, edit/1 can  be handed the name of  a predicate,
     module, basename of a file, XPCE class, XPCE method, etc.
 
@@ -4065,12 +4065,12 @@ pprroolloogg__eeddiitt::llooccaattee((_+_S_p_e_c_, _-_
 
 
 pprroolloogg__eeddiitt::llooccaattee((_+_S_p_e_c_, _-_L_o_c_a_t_i_o_n))
-    Same  as prolog_edit:locate/3, but  only deals with  fully-specified
+    Same  as prolog_edit:locate/3, but only  deals with  fully-specified
     objects.
 
 
 pprroolloogg__eeddiitt::eeddiitt__ssoouurrccee((_+_L_o_c_a_t_i_o_n))
-    Start  editor on _L_o_c_a_t_i_o_n.  See  prolog_edit:locate/3for  the format
+    Start  editor on _L_o_c_a_t_i_o_n.   See prolog_edit:locate/3 for the  format
     of  a location  term.   This  multi-file predicate  is normally  not
     defined.  If it succeeds, edit/1 assumes the editor is started.
 
@@ -4179,12 +4179,25 @@ aattoomm((_+_T_e_r_m))
 
 
 ssttrriinngg((_+_T_e_r_m))
-    Succeeds if _T_e_r_m is bound to a string.
+    Succeeds  if  _T_e_r_m  is  bound  to  a  string.     Note  that  string
+    here  refers to  the  built-in atomic  type string  as described  in
+    section  4.23, Text in double quotes such as "hello" creates  a _l_i_s_t
+    of  _c_h_a_r_a_c_t_e_r  _c_o_d_e_s.    We illustrate  the  issues in  the  example
+    queries below.
+
+    ?- write("hello").
+    [104, 101, 108, 108, 111]
+    ?- string("hello").
+    No
+    ?- is_list("hello").
+    Yes
 
 
 aattoommiicc((_+_T_e_r_m))
     Succeeds  if _T_e_r_m is bound to  an atom, string, integer or  floating
-    point number.
+    point  number.  Note that string  refers to the built-in type.   See
+    string/1.    Strings in  the classical  Prolog sense  are lists  and
+    therefore compound.
 
 
 ccoommppoouunndd((_+_T_e_r_m))
@@ -4619,7 +4632,7 @@ tthhrrooww((_+_E_x_c_e_p_t_i_o_n))
     where this is useful.
 
     If  an exception is raised in a callback from C (see chapter  9) and
-    not  caught in the same call-back,  PL_next_solution()fails and  the
+    not  caught in the  same call-back, PL_next_solution() fails and  the
     exception context can be retrieved using PL_exception().
 
 
@@ -4803,7 +4816,7 @@ oonn__ssiiggnnaall((_+_S_i_g_n_a_l_, _-_O_l_d_, _:_N_e
     section  4.9.   default resets  the handler  to the settings  active
     before SWI-Prolog manipulated the handler.
 
-    Signals  bound   to  a  foreign  function  through  PL_signal()  are
+    Signals   bound  to  a  foreign  function  through  PL_signal()  are
     reported using the term $foreign_function(_A_d_d_r_e_s_s).
 
     After  receiving a signal mapped to throw, the exception  raised has
@@ -4881,7 +4894,7 @@ consider the following:
     Signal   handling   is   not   completely  safe   in   the   current
     implementation,  especially  if throw  is used  in combination  with
     external  foreign  code.    The  system  will use  the  C  longjmp()
-    construct  to  direct control  to the  innermost PL_next_solution(),
+    construct  to  direct control  to  the innermost  PL_next_solution(),
     thus  forcing an external procedure to be abandoned at  an arbitrary
     moment.   Most likely not all SWI-Prologs own foreign code  is (yet)
     safe  too.   For  the multi-threaded  versions this  is even  worse:
@@ -7561,7 +7574,9 @@ ffllooaatt__iinntteeggeerr__ppaarrtt((_+_E_x_p_r))
 
 
 ttrruunnccaattee((_+_E_x_p_r))
-    Truncate _E_x_p_r to an integer.  Same as float_integer_part/1.
+    Truncate  _E_x_p_r to  an integer.    If _E_x_p_r>= 0  this is  the same  as
+    floor(_E_x_p_r).   For  _E_x_p_r< 0 this is  the same as  ceil(_E_x_p_r).  E.i.
+    truncate rounds towards zero.
 
 
 fflloooorr((_+_E_x_p_r))
@@ -9104,7 +9119,7 @@ sshhooww__pprrooffiillee((_+_S_t_y_l_e_, _+_N_u_m_b_e_
     _S_t_y_l_e  is cumulative  the time  spent in its  siblings (callees)  is
     added to the predicate.
 
-    This  predicate first calls prolog:show_profile_hook/2.  If XPCE  is
+    This  predicate first calls  prolog:show_profile_hook/2.   If XPCE  is
     loaded  this hook is used to  activate a GUI interface to  visualise
     the profile results.
 
@@ -10572,8 +10587,8 @@ cchheecckk__gguuaarrdd__bbiinnddiinnggss
     variable  bindings or not.  Possible values for this option  are on,
     to  enable the  checks, and off,  to disable  the checks.   If  this
     option is on, any  guard fails when it binds a variable that appears
-    in the head of the  rule.  When the option is off, the behavior of a
-    binding in the guard is undefined.
+    in  the head of  the rule.   When the option  is off (default),  the
+    behavior of a binding in the guard is undefined.
 
 ooppttiimmiizzee
     This  option controls the degree  of optimization.  Possible  values
@@ -11713,10 +11728,10 @@ SSWWII--PPrroolloogg..
 
 88..66..11 AA PPrroolloogg tthhrreeaadd ffoorr eeaacchh nnaattiivvee tthhrreeaadd ((oonnee--ttoo--oonnee))
 
-In  the  one-to-one  model,   the  thread  that  called  PL_initialise()
-has  a   Prolog  engine  attached.      If   another  C-thread  in   the
-system  wishes to  call Prolog  it  must first  attach an  engine  using
-PL_thread_attach_engine() and call  PL_thread_destroy_engine()after  all
+In  the one-to-one  model, the  thread  that called  PL_initialise()  has
+a  Prolog  engine  attached.     If  another  C-thread   in  the  system
+wishes  to   call  Prolog  it   must  first   attach  an  engine   using
+PL_thread_attach_engine()  and  call  PL_thread_destroy_engine()  after  all
 Prolog  work is  finished.    This  model  is especially  suitable  with
 long  running threads  that  need to  do Prolog  work  regularly.    See
 section 8.6.2 for the alternative many-to-many model.
@@ -11736,7 +11751,7 @@ int PPLL__tthhrreeaadd__aattttaacchh__eennggiinnee(_c_o
     default  attributes.  Otherwise it is a pointer to a  structure with
     the  definition below.   For any field  with value `0', the  default
     is  used.    The cancel  field may  be filled  with a  pointer to  a
-    function  that is  called when  PL_cleanup() terminates the  running
+    function  that is  called when  PL_cleanup()  terminates the  running
     Prolog  engines.  If this  function is not present or returns  FALSE
     pthread_cancel() is used.
 
@@ -11749,17 +11764,17 @@ int PPLL__tthhrreeaadd__aattttaacchh__eennggiinnee(_c_o
       int              (*cancel)(int thread);
     } PL_thread_attr_t;
 
-    The  structure may be  destroyed after PL_thread_attach_engine() has
+    The  structure may  be destroyed  after PL_thread_attach_engine()  has
     returned.    On success  it returns  the Prolog  identifier for  the
-    thread  (as returned by PL_thread_self()).   If an error occurs,  -1
-    is  returned.  If this  Prolog is not compiled for  multi-threading,
-    -2 is returned.
+    thread (as  returned by PL_thread_self()).  If  an error occurs, -1 is
+    returned.   If this Prolog  is not compiled for multi-threading,  -2
+    is returned.
 
 
 int PPLL__tthhrreeaadd__ddeessttrrooyy__eennggiinnee()
     Destroy  the  Prolog engine  in  the calling  thread.    Only  takes
-    effect  if  PL_thread_destroy_engine() is called  as many  times  as
-    PL_thread_attach_engine() in this thread.   Returns TRUE on  success
+    effect  if  PL_thread_destroy_engine()  is  called as  many  times  as
+    PL_thread_attach_engine() in this  thread.   Returns TRUE on  success
     and  FALSE if the calling thread  has no engine or this Prolog  does
     not support threads.
 
@@ -11808,9 +11823,9 @@ in the following identified cases:
 
 PL_engine_t PPLL__ccrreeaattee__eennggiinnee(_P_L___t_h_r_e_a_d___a_t_t_r___t _*_a_t_t_r_i_b_u_t_e_s)
     Create  a  new   Prolog  engine.     _a_t_t_r_i_b_u_t_e_s  is  described  with
-    PL_thread_attach_engine().   Any  thread can  make  this call  after
-    PL_initialise()  returned  success.    The  returned engine  is  not
-    attached  to any thread and lives  until PL_destroy_engine()is  used
+    PL_thread_attach_engine().    Any thread  can  make this  call  after
+    PL_initialise()  returned success.     The returned  engine  is  not
+    attached  to any thread  and lives until PL_destroy_engine() is  used
     on the returned handle.
 
     In  the  single-threaded  version  this call  always  returns  NULL,
@@ -12067,7 +12082,7 @@ llooaadd__ffoorreeiiggnn__lliibbrraarryy((_+_L_i_b_, _
     called  without arguments.    The return  value of  the function  is
     ignored.
 
-    The  _E_n_t_r_y  function  will  normally  call PL_register_foreign()  to
+    The  _E_n_t_r_y  function  will  normally  call  PL_register_foreign()  to
     declare functions in the library as foreign predicates.
 
 
@@ -12090,7 +12105,7 @@ uunnllooaadd__ffoorreeiiggnn__lliibbrraarryy((_+_L_i_
 ccuurrrreenntt__ffoorreeiiggnn__lliibbrraarryy((_-_L_i_b_, _-_P_r_e_d_i_c_a_t_e_s))
     Query  the currently loaded foreign libraries and  their predicates.
     _P_r_e_d_i_c_a_t_e_s  is  a  list  with  elements  of  the  form  _M_o_d_u_l_e_:_H_e_a_d,
-    indicating  the predicates installed with PL_register_foreign() when
+    indicating  the predicates installed with  PL_register_foreign()  when
     the entry-point of the library was called.
 
 Figure  9.1 connects  a Windows  message-box using  a foreign  function.
@@ -12194,16 +12209,16 @@ A term  reference is  a C unsigned  long, representing  the offset of  a
 variable on the Prolog environment-stack.  A foreign  function is passed
 term references for the predicate-arguments, one for each  argument.  If
 references for intermediate  results are needed, such references  may be
-created using PL_new_term_ref() or PL_new_term_refs().   These references
+created using  PL_new_term_ref() or  PL_new_term_refs().   These  references
 normally live till the foreign function returns control  back to Prolog.
-Their scope can  be explicitly limited using PL_open_foreign_frame() and
+Their scope  can be explicitly  limited using PL_open_foreign_frame()  and
 PL_close_foreign_frame()/PL_discard_foreign_frame().
 
 A term_t  always refers to a valid Prolog term (variable,  atom, integer,
 float  or compound  term).    A  term  lives either  until  backtracking
 takes  us back  to a  point before  the term  was created,  the  garbage
 collector  has collected  the  term or  the  term  was created  after  a
-PL_open_foreign_frame()and PL_discard_foreign_frame()has been called.
+PL_open_foreign_frame() and PL_discard_foreign_frame() has been called.
 
 The  foreign-interface functions  can either  _r_e_a_d,  _u_n_i_f_y or  _w_r_i_t_e  to
 term-references.   In the  this document we  use the following  notation
@@ -12221,17 +12236,17 @@ Term references are obtained in any of the following ways.
     arguments  as term-references.    These  references may  be read  or
     unified.  Writing to these variables causes undefined behaviour.
 
-  o _C_r_e_a_t_e_d _b_y PL_new_term_ref()
-    A  term  created  by  PL_new_term_ref() is normally  used  to  build
+  o _C_r_e_a_t_e_d _b_y _P_L___n_e_w___t_e_r_m___r_e_f_(_)
+    A  term  created  by  PL_new_term_ref()  is  normally  used  to  build
     temporary  terms or be  written by one  of the interface  functions.
-    For  example, PL_get_arg() writes a  reference to the  term-argument
-    in its last argument.
+    For example,  PL_get_arg() writes a reference  to the term-argument in
+    its last argument.
 
-  o _C_r_e_a_t_e_d _b_y PL_new_term_refs(_i_n_t _n)
+  o _C_r_e_a_t_e_d _b_y _P_L___n_e_w___t_e_r_m___r_e_f_s_(_i_n_t _n_)
     This   function  returns  a   set  of  term   refs  with  the   same
     characteristics as PL_new_term_ref().  See PL_open_query().
 
-  o _C_r_e_a_t_e_d _b_y PL_copy_term_ref(_t_e_r_m___t _t)
+  o _C_r_e_a_t_e_d _b_y _P_L___c_o_p_y___t_e_r_m___r_e_f_(_t_e_r_m___t _t_)
     Creates a new term-reference  to the same term as the argument.  The
     term may be written to.  See figure 9.3.
 
@@ -12250,7 +12265,7 @@ term_t PPLL__nneeww__tteerrmm__rreeff()
 term_t PPLL__nneeww__tteerrmm__rreeffss(_i_n_t _n)
     Return  _n  new  term  references.     The  first  term-reference  is
     returned.   The others are _t +1, _t +2, etc.   There are two reasons
-    for  using this function.   PL_open_query()expects the  arguments as
+    for  using this function.   PL_open_query() expects the arguments  as
     a  set of  consecutive term references  and _v_e_r_y time-critical  code
     requiring a number of term-references can be written as:
 
@@ -12276,7 +12291,7 @@ void PPLL__rreesseett__tteerrmm__rreeffss(_t_e_r_m___t _
     Note  that  returning  from  the  foreign  context  to  Prolog  will
     reclaim  all references  used in  the foreign  context.   This  call
     is  only necessary  if  references are  created inside  a loop  that
-    never  exits  back to  Prolog.    See  also  PL_open_foreign_frame(),
+    never  exits  back  to  Prolog.    See  also  PL_open_foreign_frame(),
     PL_close_foreign_frame() and PL_discard_foreign_frame().
 
 
@@ -12315,7 +12330,7 @@ pprreeddiiccaattee__tt Handle  to a  Prolog  predicate.    Predicate 
     forever (although they can loose their definition).
 
 qqiidd__tt Query         Identifier.                          Used         by
-    PL_open_query()/PL_next_solution()/PL_close_query() to  handle  back-
+    PL_open_query()/PL_next_solution()/PL_close_query()  to  handle   back-
     tracking from C.
 
 ffiidd__tt Frame         Identifier.                          Used         by
@@ -12337,7 +12352,7 @@ iinntt6644__tt Actually  part of  the C99  standard  rather than  Prolog.
     The  C99 type  int64_t  is defined  in the  stdint.h standard  header
     and  provides platform independent 64-bit  integers.  Portable  code
     accessing  Prolog should use this  type to exchange integer  values.
-    Please  note that PL_get_long() can return FALSE on Prolog  integers
+    Please  note that PL_get_long() can  return FALSE on Prolog  integers
     outside  the long domain.  Robust code should not assume any  of the
     integer fetching functions  to succeed if the Prolog term is know to
     be an integer.
@@ -12405,7 +12420,7 @@ different calls from Prolog:
 
 Both  the  context  information  and  the  type  of   call  is  provided
 by  an  argument  of  type  control_t  appended  to  the  argument  list
-for  deterministic foreign  functions.   The  macro PL_foreign_control()
+for  deterministic foreign  functions.    The macro  PL_foreign_control()
 extracts  the   type  of  call   from  the  control   argument.      The
 foreign  function  can  pass  a context  handle  using  the  PL_retry*()
 macros  and  extract  the handle  from  the  extra  argument  using  the
@@ -12416,16 +12431,16 @@ _(_r_e_t_u_r_n_) _f_o_r_e_i_g_n___t PPLL__rreettrryy((
     The  foreign function  succeeds while leaving  a choice  point.   On
     backtracking  over this  goal the  foreign function  will be  called
     again,  but the control argument now  indicates it is a `Redo'  call
-    and  the macro  PL_foreign_context() returns the  handle passed  via
-    PL_retry().   This handle  is a 30 bits  signed value (two bits  are
-    used  for status indication).  Defined  as return _PL_retry(_n).   See
+    and  the  macro PL_foreign_context() returns  the  handle passed  via
+    PL_retry().   This handle is  a 30 bits signed  value (two bits  are
+    used  for status indication).  Defined  as return _PL_retry(n).   See
     also PL_succeed().
 
 
 _(_r_e_t_u_r_n_) _f_o_r_e_i_g_n___t PPLL__rreettrryy__aaddddrreessss((_v_o_i_d _*))
-    As  PL_retry(),  but ensures  an address as  returned by malloc()  is
-    correctly  recovered  by PL_foreign_context_address().    Defined  as
-    return  _PL_retry_address(_n).  See also PL_succeed().
+    As  PL_retry(), but  ensures  an  address as  returned  by  malloc()
+    is  correctly recovered by  PL_foreign_context_address().  Defined  as
+    return  _PL_retry_address(n).  See also PL_succeed().
 
 
 _i_n_t PPLL__ffoorreeiiggnn__ccoonnttrrooll((_c_o_n_t_r_o_l___t))
@@ -12438,7 +12453,7 @@ _i_n_t PPLL__ffoorreeiiggnn__ccoonnttrrooll((_c_o_n_t_
 _l_o_n_g PPLL__ffoorreeiiggnn__ccoonntteexxtt((_c_o_n_t_r_o_l___t))
     Extracts  the context from the context  argument.  In the call  type
     is  PL_FIRST_CALL the context value is 0L. Otherwise it  is the value
-    returned  by the last PL_retry() associated with this goal  (both if
+    returned  by the last PL_retry() associated with this goal (both  if
     the call type is PL_REDO as PL_CUTTED).
 
 
@@ -12531,7 +12546,7 @@ provided:
 
 
 void PPLL__rreeggiisstteerr__aattoomm(_a_t_o_m___t _a_t_o_m)
-    Increment  the reference count  of the  atom by one.   PL_new_atom()
+    Increment  the reference  count of the  atom by  one.   PL_new_atom()
     performs  this automatically,  returning  an atom  with a  reference
     count of at least one.
 
@@ -12602,9 +12617,9 @@ int PPLL__tteerrmm__ttyyppee(_t_e_r_m___t)
     |________________________|compound_term_./2._______________________|
 
 The functions PL_is_<_t_y_p_e> are an alternative to PL_term_type().  The test
-PL_is_variable(_t_e_r_m) is equivalent to  PL_term_type(_t_e_r_m)== PL_VARIABLE,
+PL_is_variable(term) is equivalent to  PL_term_type(term) == PL_VARIABLE,
 but  the first  is considerably  faster.   On  the other  hand, using  a
-switch over  PL_term_type() is faster  and more readable  then using  an
+switch over  PL_term_type() is  faster and  more readable  then using  an
 if-then-else using  the functions  below.   All  these functions  return
 either TRUE or FALSE.
 
@@ -12640,8 +12655,8 @@ int PPLL__iiss__ccoommppoouunndd(_t_e_r_m___t)
 
 int PPLL__iiss__ffuunnccttoorr(_t_e_r_m___t_, _f_u_n_c_t_o_r___t)
     Returns  non-zero if _t_e_r_m  is compound and  its functor is  _f_u_n_c_t_o_r.
-    This  test is  equivalent to  PL_get_functor(),  followed by  testing
-    the functor, but easier to write and faster.
+    This test  is equivalent to PL_get_functor(),  followed by testing the
+    functor, but easier to write and faster.
 
 
 int PPLL__iiss__lliisstt(_t_e_r_m___t)
@@ -12666,8 +12681,8 @@ a pointer to the output value or a term-reference.
 
 int PPLL__ggeett__aattoomm(_t_e_r_m___t _+_t_, _a_t_o_m___t _*_a)
     If _t is an atom,  store the unique atom identifier over _a.  See also
-    PL_atom_chars() and PL_new_atom().   If there is  no need to  access
-    the data (characters)  of an atom, it is advised to manipulate atoms
+    PL_atom_chars() and PL_new_atom().  If there is no need  to access the
+    data  (characters) of  an atom,  it is advised  to manipulate  atoms
     using  their handle.  As the  atom is referenced by _t, it  will live
     at  least as long as _t does.   If longer live-time is required,  the
     atom should be locked using PL_register_atom().
@@ -12743,13 +12758,13 @@ int PPLL__ggeett__cchhaarrss(_t_e_r_m___t _+_t_, _c_h_a_
 
 
 int PPLL__ggeett__lliisstt__cchhaarrss(_+_t_e_r_m___t _l_, _c_h_a_r _*_*_s_, _u_n_s_i_g_n_e_d _f_l_a_g_s)
-    Same  as PL_get_chars(_l_, _s_, _C_V_T___L_I_S_T___f_l_a_g_s), provided _f_l_a_g_s  contains
+    Same  as PL_get_chars(l, s, CVT_LIST|flags), provided _f_l_a_g_s  contains
     no of the CVT_* flags.
 
 
 int PPLL__ggeett__iinntteeggeerr(_+_t_e_r_m___t _t_, _i_n_t _*_i)
     If  _t is  a Prolog  integer, assign  its value over  _i.   On  32-bit
-    machines,  this is the  same as PL_get_long(), but avoids a  warning
+    machines,  this is  the same as  PL_get_long(),  but avoids a  warning
     from the compiler.  See also PL_get_long().
 
 
@@ -12777,8 +12792,8 @@ int PPLL__ggeett__ppooiinntteerr(_t_e_r_m___t _+_t_, _v_
     In   the  current  system,   pointers  are  represented  by   Prolog
     integers,   but  need  some  manipulation  to  make  sure   they  do
     not  get  truncated   due  to  the  limited  Prolog  integer  range.
-    PL_put_pointer()/PL_get_pointer() guarantees pointers  in the  range
-    of malloc() are handled without truncating.
+    PL_put_pointer()/PL_get_pointer() guarantees pointers in the  range of
+    malloc() are handled without truncating.
 
 
 int PPLL__ggeett__ffllooaatt(_t_e_r_m___t _+_t_, _d_o_u_b_l_e _*_f)
@@ -12793,7 +12808,7 @@ int PPLL__ggeett__ffuunnccttoorr(_t_e_r_m___t _+_t_, _f_
 
 int PPLL__ggeett__nnaammee__aarriittyy(_t_e_r_m___t _+_t_, _a_t_o_m___t _*_n_a_m_e_, _i_n_t _*_a_r_i_t_y)
     If  _t is  compound or  an atom,  the functor-name  will be  assigned
-    over  _n_a_m_e and the arity over _a_r_i_t_y.   See also PL_get_functor() and
+    over  _n_a_m_e and the arity over  _a_r_i_t_y.  See  also PL_get_functor()  and
     PL_is_functor().
 
 
@@ -12808,8 +12823,8 @@ int PPLL__ggeett__aarrgg(_i_n_t _i_n_d_e_x_, _t_e_r_m___
 
 
 int _PPLL__ggeett__aarrgg(_i_n_t _i_n_d_e_x_, _t_e_r_m___t _+_t_, _t_e_r_m___t _-_a)
-    Same  as PL_get_arg(),  but no checking  is performed, nor whether  _t
-    is actually a term, nor whether _i_n_d_e_x is a valid argument-index.
+    Same as  PL_get_arg(), but no checking is performed,  nor whether _t is
+    actually a term, nor whether _i_n_d_e_x is a valid argument-index.
 
 
 99..66..33..33 EExxcchhaannggiinngg tteexxtt uussiinngg lleennggtthh aanndd ssttrriinngg
@@ -12891,7 +12906,7 @@ C library (glibc) this represents 32-bit UCS4 characters.
 
 
 atom_t PPLL__nneeww__aattoomm__wwcchhaarrss(_i_n_t _l_e_n_, _c_o_n_s_t _p_l___w_c_h_a_r___t _*_s)
-    Create  atom from wide-character string as PL_new_atom_nchars() does
+    Create  atom from wide-character  string as PL_new_atom_nchars()  does
     for ISO-Latin-1 strings.   It _s only contains ISO-Latin-1 characters
     a normal byte-array atom is created.
 
@@ -12899,16 +12914,16 @@ atom_t PPLL__nneeww__aattoomm__wwcchhaarrss(_i_n_t _l_e_
 pl_wchar_t* PPLL__aattoomm__wwcchhaarrss(_a_t_o_m___t _a_t_o_m_, _i_n_t _*_l_e_n)
     Extract  characters  from a  wide-character atom.    Fails  (returns
     NULL)  if  _a_t_o_m  is  not  a  wide-character  atom.     This  is  the
-    wide-character  version  of PL_atom_nchars().    Note  that only  one
-    of  these functions  succeeds  on a  particular atom.    Especially,
-    after  creating  an atom  with PL_new_atom_wchars(),  extracting  the
-    text  using  PL_atom_wchars()will  fail  of the  atom only  contains
-    ISO-Latin-1 characters.
+    wide-character  version of PL_atom_nchars().   Note that only one  of
+    these  functions succeeds on a  particular atom.  Especially,  after
+    creating an atom with  PL_new_atom_wchars(), extracting the text using
+    PL_atom_wchars()  will fail  of the  atom  only contains  ISO-Latin-1
+    characters.
 
 
 int PPLL__ggeett__wwcchhaarrss(_t_e_r_m___t _t_, _u_n_s_i_g_n_e_d _i_n_t _*_l_e_n_, _p_l___w_c_h_a_r___t _*_*_s_, _u_n_s_i_g_n_e_d _f_l_a_g_s)
 
-    Wide-character   version  of  PL_get_chars().     The  _f_l_a_g_s   argu-
+    Wide-character   version  of  PL_get_chars().      The  _f_l_a_g_s   argu-
     ment is the same as for PL_get_chars().
 
 
@@ -12922,7 +12937,7 @@ int PPLL__uunniiffyy__wwcchhaarrss(_t_e_r_m___t _t_, _i_
 
 int PPLL__uunniiffyy__wwcchhaarrss__ddiiffff(_t_e_r_m___t _+_t_, _t_e_r_m___t _-_t_a_i_l_, _i_n_t _t_y_p_e_, _u_n_s_i_g_n_e_d _i_n_t _l_e_n_, _c_o_n_s_t _p_l___w_c_h_a_r___t _*_s)
 
-    Difference   list  version   of  PL_unify_wchars(),  only   support-
+    Difference   list  version   of   PL_unify_wchars(),   only   support-
     ing the  types PL_CODE_LIST and PL_CHAR_LIST. It serves two purposes.
     It  allows  for returning  very long  lists from  data  read from  a
     stream  without the  need for  a resizing buffer  in C  and the  use
@@ -13032,8 +13047,8 @@ starting  at  the  leaves  and  subsequently  creating  compound  terms.
 Alternatively,   terms  may  be  created   `top-down',  first   creating
 a  compound  holding  only  variables  and   subsequently  unifying  the
 arguments.   This section  discusses functions  for the first  approach.
-This approach  is generally  used for  creating arguments  for PL_call()
-and PL_open_query.
+This approach is generally used for creating arguments for PL_call() and
+PL_open_query.
 
 
 void PPLL__ppuutt__vvaarriiaabbllee(_t_e_r_m___t _-_t)
@@ -13095,11 +13110,11 @@ void PPLL__ppuutt__ffuunnccttoorr(_t_e_r_m___t _-_t_, _f
 
 
 void PPLL__ppuutt__lliisstt(_t_e_r_m___t _-_l)
-    Same as PL_put_functor(_l_, _P_L___n_e_w___f_u_n_c_t_o_r_(_P_L___n_e_w___a_t_o_m_(_"_._"), 2)).
+    Same as PL_put_functor(l, PL_new_functor(PL_new_atom("."), 2)).
 
 
 void PPLL__ppuutt__nniill(_t_e_r_m___t _-_l)
-    Same as PL_put_atom_chars(_"_[_]_").
+    Same as PL_put_atom_chars("[]").
 
 
 void PPLL__ppuutt__tteerrmm(_t_e_r_m___t _-_t_1_, _t_e_r_m___t _+_t_2)
@@ -13131,9 +13146,9 @@ void PPLL__ccoonnss__ffuunnccttoorr(_t_e_r_m___t _-_h_, 
 
 
 void PPLL__ccoonnss__ffuunnccttoorr__vv(_t_e_r_m___t _-_h_, _f_u_n_c_t_o_r___t _f_, _t_e_r_m___t _a_0)
-    Creates  a compound term like PL_cons_functor(), but _a_0 is  an array
-    of  term references as  returned by PL_new_term_refs().   The  length
-    of  this array should match the number of arguments required  by the
+    Creates  a compound term like  PL_cons_functor(),  but _a_0 is an  array
+    of  term references as returned by PL_new_term_refs().  The  length of
+    this  array should  match the  number of arguments  required by  the
     functor.
 
 
@@ -13162,7 +13177,7 @@ void PPLL__ccoonnss__lliisstt(_t_e_r_m___t _-_l_, _t_e_r
 99..66..55 UUnniiffyyiinngg ddaattaa
 
 The  functions  of  this  sections  _u_n_i_f_y  terms  with  other  terms  or
-translated C-data structures.   Except for PL_unify(), the functions  of
+translated C-data structures.   Except for  PL_unify(), the functions  of
 this section  are specific  to SWI-Prolog.   They  have been  introduced
 to make translation  of old code easier,  but also because they  provide
 for a faster mechanism  for returning data to Prolog that  requires less
@@ -13212,7 +13227,7 @@ int PPLL__uunniiffyy__cchhaarrss(_t_e_r_m___t _?_t_, _i_
     bitwise  _o_r specifying the  Prolog target type  and the encoding  of
     _c_h_a_r_s.   Prolog types  is one of PL_ATOM, PL_STRING, PL_CODE_LIST  or
     PL_CHAR_LIST. Representations is one of  REP_ISO_LATIN_T, REP_UTF8 or
-    REP_MB.  See PL_get_chars() for a  definition of the  representation
+    REP_MB.  See PL_get_chars() for  a definition  of the  representation
     types.  If _l_e_n is -1, _c_h_a_r_s is assumed to be null-terminated.
 
 
@@ -13268,10 +13283,10 @@ int PPLL__uunniiffyy__lliisstt(_t_e_r_m___t _?_l_, _t_e_
     to  the head of  the list to _h  and a reference  to the tail of  the
     list  in _t.   This  reference may  be used for  subsequent calls  to
     this  function.   Suppose we  want to  return a list  of atoms  from
-    a  char **.   We could  use the example  described by PL_put_list(),
-    followed by  a call to PL_unify(), or we can use  the code below.  If
+    a  char **.   We could  use the  example described  by PL_put_list(),
+    followed by  a call to PL_unify(), or we can use the code  below.  If
     the  predicate argument is unbound,  the difference is minimal  (the
-    code  based on PL_put_list() is probably slightly  faster).  If  the
+    code  based on PL_put_list() is  probably slightly faster).   If  the
     argument  is bound, the code below may fail before reaching  the end
     of  the word-list, but even  if the unification succeeds, this  code
     avoids a duplicate (garbage) list and a deep unification.
@@ -13360,19 +13375,19 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
          Create a packed string  object from a multi-byte string  in the
          current locale.
 
-    PL_MBCHARS uunnssiiggnneedd iinntt,, ccoonnsstt wwcchhaarr__tt **
+    PL_NWCHARS uunnssiiggnneedd iinntt,, ccoonnsstt wwcchhaarr__tt **
          Create an atom from a length and a wide character pointer.
 
-    PL_MBCODES uunnssiiggnneedd iinntt,, ccoonnsstt wwcchhaarr__tt **
+    PL_NWCODES uunnssiiggnneedd iinntt,, ccoonnsstt wwcchhaarr__tt **
          Create an  list of  character codes from  a length  and a  wide
          character pointer.
 
-    PL_MBSTRING uunnssiiggnneedd iinntt,, ccoonnsstt wwcchhaarr__tt **
+    PL_NWSTRING uunnssiiggnneedd iinntt,, ccoonnsstt wwcchhaarr__tt **
          Create  a  packed  string object  from  a  length  and  a  wide
          character pointer.
 
     PL_SHORT sshhoorrtt
-         Unify the argument  with an integer,  as in PL_unify_integer().
+         Unify the  argument with an  integer, as  in PL_unify_integer().
          As short is promoted to int, PL_SHORT is a synonym for PL_INT.
 
     PL_INT iinntt
@@ -13385,7 +13400,7 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
          Unify the argument with an integer, as in PL_unify_integer().
 
     PL_DOUBLE ddoouubbllee
-         Unify  the  argument  with a  float,  as  in  PL_unify_float().
+         Unify  the  argument  with  a  float,  as  in  PL_unify_float().
          Note  that,  as the  argument  is  passed using  the  C  vararg
          conventions, a float must be casted to a double explicitly.
 
@@ -13401,7 +13416,7 @@ int PPLL__uunniiffyy__tteerrmm(_t_e_r_m___t _?_t_, _._._
 
     PL_TERM tteerrmm__tt
          Unify  a  subterm.    Note  this  may the  return  value  of  a
-         PL_new_term_ref()call to get access to a variable.
+         PL_new_term_ref() call to get access to a variable.
 
     PL_FUNCTOR ffuunnccttoorr__tt,, ......
          Unify the argument  with a compound  term.  This  specification
@@ -13547,14 +13562,14 @@ of built-in atoms.  Below are the defined member functions:
 
 
 void aaccqquuiirree(_a_t_o_m___t _a)
-    Called  if a new blob of this  type is created through PL_put_blob()
-    or  PL_unify_blob().   This  callback may be  used together with  the
+    Called  if a new blob  of this type is  created through PL_put_blob()
+    or  PL_unify_blob().   This callback  may be used  together with  the
     release hook to deal with reference counted external objects.
 
 
 int rreelleeaassee(_a_t_o_m___t _a)
     The  blob (atom)  _a is  about to  be released.    This function  can
-    retrieve  the data of the blob using PL_blob_data().  If  it returns
+    retrieve  the data of the blob  using PL_blob_data().  If it  returns
     FALSE the atom garbage collector will _n_o_t reclaim the atom.
 
 
@@ -13584,7 +13599,7 @@ int PPLL__uunnrreeggiisstteerr__bblloobb__ttyyppee(_P_L
     type  of possible  living blobs  to  unregistered, avoiding  further
     reference  to the type structure,  functions referred by it as  well
     as  the data.  This function  returns TRUE if no blobs of  this type
-    existed  and FALSE otherwise.  PL_unregister_blob_type() is intended
+    existed  and FALSE otherwise.   PL_unregister_blob_type() is  intended
     for  the  uninstall()  hook of  foreign  modules,  avoiding  further
     references to the module.
 
@@ -13695,15 +13710,14 @@ int PPLL__uunniiffyy__mmppqq(_t_e_r_m___t _t_, _m_p_q___
 
 99..66..88 CCaalllliinngg PPrroolloogg ffrroomm CC
 
-The  Prolog engine  can  be called  from  C.  There are  two  interfaces
-for  this.    For the  first,  a  term is  created  that could  be  used
-as an  argument to  call/1 and next  PL_call() is used  to call  Prolog.
-This  system is  simple, but  does not  allow to  inspect the  different
-answers  to a  non-deterministic  goal and  is  relatively slow  as  the
-runtime  system needs  to  find the  predicate.    The  other  interface
-is  based on  PL_open_query(),  PL_next_solution() and  PL_cut_query() or
-PL_close_query().     This mechanism  is  more powerful,  but  also  more
-complicated to use.
+The Prolog  engine can be  called from C. There  are two interfaces  for
+this.    For the  first, a  term is  created that  could be  used as  an
+argument to  call/1 and  next PL_call()  is used  to call Prolog.    This
+system is simple,  but does not allow  to inspect the different  answers
+to  a non-deterministic  goal  and is  relatively  slow as  the  runtime
+system needs  to find the predicate.   The  other interface is based  on
+PL_open_query(), PL_next_solution() and  PL_cut_query()  or PL_close_query().
+This mechanism is more powerful, but also more complicated to use.
 
 
 99..66..88..11 PPrreeddiiccaattee rreeffeerreenncceess
@@ -13723,16 +13737,16 @@ predicate_t PPLL__pprreedd(_f_u_n_c_t_o_r___t _f_, _m_o_d_
 
 predicate_t PPLL__pprreeddiiccaattee(_c_o_n_s_t _c_h_a_r _*_n_a_m_e_, _i_n_t _a_r_i_t_y_, _c_o_n_s_t _c_h_a_r_* _m_o_d_u_l_e)
 
-    Same   a  PL_pred(),   but   provides  a   more  convenient   inter-
-    face to the C-programmer.
+    Same   a  PL_pred(),   but  provides  a  more  convenient   interface
+    to the C-programmer.
 
 
 void PPLL__pprreeddiiccaattee__iinnffoo(_p_r_e_d_i_c_a_t_e___t _p_, _a_t_o_m___t _*_n_, _i_n_t _*_a_, _m_o_d_u_l_e___t _*_m)
     Return  information on the  predicate _p.   The  name is stored  over
     _n,  the  arity  over _a,  while  _m  receives the  definition  module.
     Note  that  the  latter need  not  be  the same  as  specified  with
-    PL_predicate().  If the predicate is imported  into the module given
-    to  PL_predicate(),  this function will  return the module where  the
+    PL_predicate().  If the predicate is imported into  the module given
+    to  PL_predicate(), this  function will return  the module where  the
     predicate is defined.
 
 
@@ -13743,8 +13757,8 @@ queries from C. Note that a foreign context can have  at most one active
 query.    This  implies it  is allowed  to  make strictly  nested  calls
 between  C and  Prolog (Prolog  calls C,  calls Prolog,  calls C,  etc.,
 but it  is nnoott  allowed to  open multiple queries  and start  generating
-solutions for  each of them by  calling PL_next_solution().   Be sure  to
-call PL_cut_query() or PL_close_query() on any  query you opened  before
+solutions for  each of them  by calling PL_next_solution().   Be sure  to
+call PL_cut_query()  or PL_close_query() on  any query  you opened  before
 opening the next or returning control back to Prolog.
 
 
@@ -13761,7 +13775,7 @@ qid_t PPLL__ooppeenn__qquueerryy(_m_o_d_u_l_e___t _c_t_x
     call  to PL_pred() or PL_predicate().   Note that  it is allowed  to
     store  this handle as global data  and reuse it for future  queries.
     The  term-reference _t_0 is the  first of a vector of  term-references
-    as returned by PL_new_term_refs(_n).
+    as returned by PL_new_term_refs(n).
 
     The  _f_l_a_g_s  arguments provides  some additional  options  concerning
     debugging  and  exception handling.    It  is a  bitwise or  of  the
@@ -13785,7 +13799,7 @@ qid_t PPLL__ooppeenn__qquueerryy(_m_o_d_u_l_e___t _c_t_x
 
     PL_Q_PASS_EXCEPTION
          As PL_Q_CATCH_EXCEPTION,  but do  not invalidate the  exception-
-         term  while   calling  PL_close_query().      This  option   is
+         term  while   calling  PL_close_query().       This  option   is
          experimental.
 
     The  example below opens a query to the predicate is_a/2  to find the
@@ -13819,13 +13833,13 @@ void PPLL__ccuutt__qquueerryy(_q_i_d)
 
 
 void PPLL__cclloossee__qquueerryy(_q_i_d)
-    As  PL_cut_query(), but  all data and  bindings created by the  query
+    As  PL_cut_query(),  but all  data and bindings  created by the  query
     are destroyed.
 
 
 int PPLL__ccaallll__pprreeddiiccaattee(_m_o_d_u_l_e___t _m_, _i_n_t _f_l_a_g_s_, _p_r_e_d_i_c_a_t_e___t _p_r_e_d_, _t_e_r_m___t _+_t_0)
 
-    Shorthand  for  PL_open_query(),  PL_next_solution(),  PL_cut_query(),
+    Shorthand   for  PL_open_query(),   PL_next_solution(),  PL_cut_query(),
     generating  a single solution.   The arguments  are the same as  for
     PL_open_query(), the return value is the same as PL_next_solution().
 
@@ -13842,7 +13856,7 @@ int PPLL__ccaallll(_t_e_r_m___t_, _m_o_d_u_l_e___t)
 
 The Prolog  data created and  term-references needed  to setup the  call
 and/or analyse  the result can  in most cases  be discarded right  after
-the  call.   PL_close_query() allows  for  destructing the  data,  while
+the  call.    PL_close_query()  allows  for destructing  the  data,  while
 leaving the  term-references.   The calls below may  be used to  destroy
 term-references and data.  See figure 9.4 for an example.
 
@@ -13862,7 +13876,7 @@ void PPLL__cclloossee__ffoorreeiiggnn__ffrraammee(_f_i_
 
 
 void PPLL__ddiissccaarrdd__ffoorreeiiggnn__ffrraammee(_f_i_d___t _i_d)
-    Same  as PL_close_foreign_frame(),  but also  undo all bindings  made
+    Same  as PL_close_foreign_frame(), but  also undo  all bindings  made
     since the open and destroy all Prolog data.
 
 
@@ -13938,12 +13952,12 @@ module_t PPLL__nneeww__mmoodduullee(_a_t_o_m___t _n_a_m_e
 
 99..66..1111 PPrroolloogg eexxcceeppttiioonnss iinn ffoorreeiiggnn ccooddee
 
-This     section    discusses     PL_exception(),     PL_throw()     and
-PL_raise_exception(),  the  interface functions  to  detect and  generate
-Prolog  exceptions from  C-code.    PL_throw()  and PL_raise_exception()
+This     section     discusses    PL_exception(),      PL_throw()     and
+PL_raise_exception(),  the   interface  functions  to  detect  and   gen-
+erate Prolog exceptions from C-code.  PL_throw() and PL_raise_exception()
 from  the  C-interface   to  raise  an  exception  from  foreign   code.
-PL_throw() exploits the  C-function longjmp()  to return immediately  to
-the  innermost PL_next_solution().   PL_raise_exception() registers  the
+PL_throw()  exploits the  C-function longjmp() to  return immediately  to
+the  innermost PL_next_solution().    PL_raise_exception()  registers  the
 exception term and returns FALSE. If a foreign  predicate returns FALSE,
 while  and exception-term  is  registered  a Prolog  exception  will  be
 raised by the virtual machine.
@@ -13951,26 +13965,25 @@ raised by the virtual machine.
 Calling these functions  outside the context of a function  implementing
 a foreign predicate results in undefined behaviour.
 
-PL_exception() may  be used  after a  call to  PL_next_solution() fails,
-and returns a  term reference to an  exception term if an exception  was
+PL_exception()  may be used after a call to  PL_next_solution() fails,  and
+returns  a term  reference to  an  exception term  if an  exception  was
 raised, and 0 otherwise.
 
-If  a C-function,  implementing  a predicate  calls Prolog  and  detects
-an  exception using  PL_exception(),  it can  handle  this exception,  or
-return  with the  exception.    Some caution  is required  though.    It
-is  nnoott allowed  to call  PL_close_query() or  PL_discard_foreign_frame()
-afterwards,  as  this  will  invalidate  the  exception  term.     Below
-is  the  code that  calls  a  Prolog defined  arithmetic  function  (see
-arithmetic_function/1).
+If a  C-function, implementing a predicate  calls Prolog and detects  an
+exception using PL_exception(), it can handle this exception,  or return
+with  the exception.    Some caution  is required  though.    It is  nnoott
+allowed to call PL_close_query() or PL_discard_foreign_frame() afterwards,
+as this  will invalidate the  exception term.   Below  is the code  that
+calls a Prolog defined arithmetic function (see arithmetic_function/1).
 
-If PL_next_solution() succeeds,  the result  is analysed and  translated
+If PL_next_solution()  succeeds, the  result is  analysed and  translated
 to  a number,  after  which the  query  is closed  and all  Prolog  data
-created  after  PL_open_foreign_frame() is  destroyed.    On  the  other
-hand,  if  PL_next_solution() fails  and  if an  exception  was  raised,
-just  pass it.     Otherwise generate  an  exception  (PL_error() is  an
+created  after  PL_open_foreign_frame()  is  destroyed.     On  the  other
+hand,  if  PL_next_solution()  fails and  if  an  exception  was  raised,
+just  pass  it.    Otherwise  generate an  exception  (PL_error()  is  an
 internal  call  for  building  the  standard  error  terms  and  calling
-PL_raise_exception()).    After this,  the Prolog  environment should  be
-discarded  using  PL_cut_query() and  PL_close_foreign_frame() to  avoid
+PL_raise_exception()).     After  this,  the  Prolog  environment  should
+be  discarded using  PL_cut_query()  and PL_close_foreign_frame() to  avoid
 invalidating the exception term.
 
 static int
@@ -14032,12 +14045,12 @@ int PPLL__rraaiissee__eexxcceeppttiioonn(_t_e_r_m___t _
 
 
 int PPLL__tthhrrooww(_t_e_r_m___t _e_x_c_e_p_t_i_o_n)
-    Similar  to PL_raise_exception(),  but returns using the C  longjmp()
+    Similar  to PL_raise_exception(), but returns  using the C  longjmp()
     function to the innermost PL_next_solution().
 
 
 term_t PPLL__eexxcceeppttiioonn(_q_i_d___t _q_i_d)
-    If  PL_next_solution() fails,  this  can be  due to  normal  failure
+    If  PL_next_solution()  fails, this  can  be  due to  normal  failure
     of  the  Prolog  call, or  because  an  exception was  raised  using
     throw/1.   This function returns  a handle to the exception term  if
     an exception was raised, or 0 if the Prolog goal simply failed..
@@ -14054,7 +14067,7 @@ in any way, the native signal interface routines may be used.
 
 Some versions of SWI-Prolog, notably running on  popular Unix platforms,
 handle SIG_SEGV  for guarding  the Prolog stacks.    If the  application
-wishes to handle  this signal too, it should use  PL_signal() to install
+wishes to handle  this signal too, it should  use PL_signal() to  install
 its handler  after initialising Prolog.   SWI-Prolog will  pass SIG_SEGV
 to the user  code if it detected the  signal is not related to a  Prolog
 stack overflow.
@@ -14081,12 +14094,12 @@ void (*)() PPLL__ssiiggnnaall(_s_i_g_, _f_u_n_c)
     fragments,  and especially exception related code  from asynchronous
     handlers.     The  interface  allows  for  _s_y_n_c_h_r_o_n_o_u_s  handling  of
     signals.   In  this case  the native OS  handler just schedules  the
-    signal  using PL_raise(),  which is checked by PL_handle_signals() at
+    signal  using PL_raise(),  which is checked by  PL_handle_signals()  at
     the  call- and redo-port.  This behaviour is realised by  or-ing _s_i_g
     with the constant PL_SIGSYNC.
 
     Signal    handling    routines    may   raise    exceptions    using
-    PL_raise_exception().      The  use  of  PL_throw()  is  not   safe.
+    PL_raise_exception().      The   use  of  PL_throw()  is  not   safe.
     If  a  synchronous handler  raises an  exception,  the exception  is
     delayed to the next call to PL_handle_signals();
 
@@ -14098,9 +14111,9 @@ int PPLL__rraaiissee(_i_n_t _s_i_g)
 
 
 int PPLL__hhaannddllee__ssiiggnnaallss(_v_o_i_d)
-    Handle  any signals pending from PL_raise().  PL_handle_signals() is
+    Handle  any signals pending from  PL_raise().   PL_handle_signals()  is
     called  at  each pass  through the  call- and  redo-port  at a  safe
-    point.   Exceptions raised by the handler using PL_raise_exception()
+    point.   Exceptions raised by the  handler using PL_raise_exception()
     are properly passed to the environment.
 
     The  user  may   call  this  function  inside  long-running  foreign
@@ -14134,10 +14147,10 @@ storing arbitrary Prolog data as slot-data of XPCE objects.
 
 Please note  that the  returned handles  have no meaning  at the  Prolog
 level  and  the recorded  terms  are  not  visible from  Prolog.     The
-functions PL_recorded() and PL_erase() are  the only functions that  can
+functions PL_recorded() and PL_erase() are the  only functions that  can
 operate on the stored term.
 
-Two groups of functions are provided.   The first group (PL_record() and
+Two groups of functions are  provided.  The first group (PL_record() and
 friends) store Prolog terms on the Prolog heap for  retrieval during the
 same session.   These functions are also used by recorda/3  and friends.
 The recorded  database may be used  to communicate Prolog terms  between
@@ -14147,7 +14160,7 @@ threads.
 record_t PPLL__rreeccoorrdd(_t_e_r_m___t _+_t)
     Record  the term _t into the Prolog database as recorda/3  and return
     an  opaque handle to  the term.   The returned handle remains  valid
-    until  PL_erase() is called on  it.   PL_recorded() is used to  copy
+    until  PL_erase()  is called on  it.   PL_recorded()  is used to  copy
     recorded terms back to the Prolog stack.
 
 
@@ -14161,7 +14174,7 @@ void PPLL__eerraassee(_r_e_c_o_r_d___t _r_e_c_o_r_d)
     Remove  the recorded term from  the Prolog database, reclaiming  all
     associated memory resources.
 
-The  second group  (headed  by PL_record_external()) provides  the  same
+The  second group  (headed  by  PL_record_external())  provides  the  same
 functionality, but the returned data has properties  that enable storing
 the  data on  an external  device.   It  has been  designed  to make  it
 possible to store Prolog terms fast an compact in  an external database.
@@ -14199,12 +14212,12 @@ char * PPLL__rreeccoorrdd__eexxtteerrnnaall(_t_e_r_m___t
     an  opaque handle to  the term.   The returned handle remains  valid
     until PL_erase_external() is called on it.
 
-    It  is allowed  to copy the  data and use  PL_recorded_external() on
+    It  is allowed  to copy  the data  and use  PL_recorded_external()  on
     the  copy.   The user  is responsible for  the memory management  of
     the  copy.    After copying,  the original  may  be discarded  using
     PL_erase_external().
 
-    PL_recorded_external() is used to  copy such recorded terms back  to
+    PL_recorded_external() is  used to copy  such recorded terms back  to
     the Prolog stack.
 
 
@@ -14221,7 +14234,7 @@ int PPLL__eerraassee__eexxtteerrnnaall(_c_h_a_r _*_r_e_
 
 99..66..1133..33 GGeettttiinngg ffiillee nnaammeess
 
-The function PL_get_file_name() provides access to Prolog filenames  and
+The function  PL_get_file_name() provides access  to Prolog filenames  and
 its  file-search mechanism  described  with absolute_file_name/3.    Its
 existence  is motivated  to realise  a uniform  interface  to deal  with
 file-properties, search, naming conventions etc. from foreign code.
@@ -14229,7 +14242,7 @@ file-properties, search, naming conventions etc. from foreign code.
 
 int PPLL__ggeett__ffiillee__nnaammee(_t_e_r_m___t _s_p_e_c_, _c_h_a_r _*_*_n_a_m_e_, _i_n_t _f_l_a_g_s)
     Translate   a  Prolog  term  into  a  file  name.     The   name  is
-    stored  in  the  static buffer  ring  described  with PL_get_chars()
+    stored  in  the  static  buffer  ring described  with  PL_get_chars()
     option  BUF_RING.  Conversion from the  internal UNICODE encoding  is
     done  using  standard C  library functions.    _f_l_a_g_s  is a  bit-mask
     controlling the conversion process.  Options are:
@@ -14264,9 +14277,9 @@ int PPLL__ggeett__ffiillee__nnaammee(_t_e_r_m___t _s_p_
 
 99..66..1144 EErrrroorrss aanndd wwaarrnniinnggss
 
-PL_warning() prints a  standard Prolog warning  message to the  standard
+PL_warning()  prints a standard  Prolog warning  message to the  standard
 error (user_error) stream.   Please note  that new code should  consider
-using  PL_raise_exception() to  raise a  Prolog  exception.    See  also
+using  PL_raise_exception() to  raise  a  Prolog exception.     See  also
 section 4.9.
 
 
@@ -14324,7 +14337,7 @@ int PPLL__aaccttiioonn(_i_n_t_, _._._.)
     | PL_ACTION_ATTACH_CONSOLE|Attach a console  to a thread if  it does|
     |________________________|not_have_one.__See_attach_console/0._____|
 
-                    Table 9.1:  PL_action() options
+                     Table 9.1:  PL_action() options
 
 
 99..66..1166 QQuueerryyiinngg PPrroolloogg
@@ -14355,7 +14368,7 @@ long PPLL__qquueerryy(_i_n_t)
     |                        |means 2.7.17.                            |
     | PL_QUERY_MAX_THREADS   |Return  the  maximum  number  of  threads|
     |                        |that  can  be created  in  this  version.|
-    |                        |Return  values  of  PL_thread_self()  are|
+    |                        |Return  values   of  PL_thread_self()  are|
     |                        |between 0 and this number.               |
 
     | PL_QUERY_ENCODING      |Return  the  default stream  encoding  of|
@@ -14397,7 +14410,7 @@ int PPLL__rreeggiisstteerr__ffoorreeiiggnn__iinn__mmood
     control_t  (see section  9.6.1.1).    If PL_FA_VARARGS is  provided,
     _f_u_n_c_t_i_o_n  is called  with three arguments.    The first argument  is
     a  term_t  handle to the  first argument.   Further arguments can  be
-    reached  by adding  the offset (see  also PL_new_term_refs()).    The
+    reached  by adding  the  offset (see  also PL_new_term_refs()).    The
     second  argument is  the arity,  which defines the  number of  valid
     term-references  in the argument vector.  The last argument  is used
     for  non-deterministic  calls.   It  is  currently undocumented  and
@@ -14427,8 +14440,8 @@ int PPLL__rreeggiisstteerr__ffoorreeiiggnn__iinn__mmood
 
 int PPLL__rreeggiisstteerr__ffoorreeiiggnn(_c_o_n_s_t _c_h_a_r _*_n_a_m_e_, _i_n_t _a_r_i_t_y_, _f_o_r_e_i_g_n___t _(_*_f_u_n_c_t_i_o_n_)_(_)_, _i_n_t _f_l_a_g_s)
 
-    Same    as   PL_register_foreign_in_module(),   passing    NULL   for
-    the _m_o_d_u_l_e.
+    Same   as  PL_register_foreign_in_module(),  passing   NULL  for   the
+    _m_o_d_u_l_e.
 
 
 void PPLL__rreeggiisstteerr__eexxtteennssiioonnss__iinn__mmoodduullee(_c_o_n_s_t _c_h_a_r _*_m_o_d_u_l_e_, _P_L___e_x_t_e_n_s_i_o_n _*_e)
@@ -14446,8 +14459,8 @@ void PPLL__rreeggiisstteerr__eexxtteennssiioonnss__iinn
       short         flags;                  /* Or of PL_FA_... */
     } PL_extension;
 
-    For  details,  see  PL_register_foreign_in_module().     Here  is  an
-    example of its usage:
+    For  details, see PL_register_foreign_in_module().  Here  is an example
+    of its usage:
 
     static PL_extension predicates[] = {
     { "foo",        1,      pl_foo, 0 },
@@ -14466,7 +14479,7 @@ void PPLL__rreeggiisstteerr__eexxtteennssiioonnss__iinn
 
 
 void PPLL__rreeggiisstteerr__eexxtteennssiioonnss( _P_L___e_x_t_e_n_s_i_o_n _*_e)
-    Same as  PL_register_extensions_in_module()using  NULL for the _m_o_d_u_l_e
+    Same  as PL_register_extensions_in_module()  using NULL for the  _m_o_d_u_l_e
     argument.
 
 
@@ -14498,7 +14511,7 @@ void PPLL__aabboorrtt__hhooookk(_P_L___a_b_o_r_t___h_o_
 
 
 int PPLL__aabboorrtt__uunnhhooookk(_P_L___a_b_o_r_t___h_o_o_k___t)
-    Remove  a hook installed with PL_abort_hook().  Returns FALSE  if no
+    Remove  a hook installed with  PL_abort_hook().   Returns FALSE if  no
     such hook is found, TRUE otherwise.
 
 
@@ -14506,7 +14519,7 @@ void PPLL__oonn__hhaalltt(_v_o_i_d _(_*_f_)_(_i_n_t_, _v
     Register  the function _f to be called if SWI-Prolog is halted.   The
     function  is  called with  two  arguments:   the  exit code  of  the
     process  (0 if this cannot  be determined on your operating  system)
-    and  the _c_l_o_s_u_r_e argument passed to the PL_on_halt()call.   See also
+    and  the _c_l_o_s_u_r_e argument passed to the PL_on_halt() call.   See also
     at_halt/1.
 
 
@@ -14558,8 +14571,8 @@ combinations, there are three principal options for storing such data
 
   o _O_p_a_q_u_e _p_a_c_k_e_d _P_r_o_l_o_g _d_a_t_a
     Data  can also be represented in  a foreign structure and stored  on
-    the  Prolog stacks using  PL_put_string_nchars()and retrieved  using
-    PL_get_string_chars().   It is generally good  practice to wrap  the
+    the  Prolog stacks  using PL_put_string_nchars()  and retrieved  using
+    PL_get_string_chars().   It is  generally good practice  to wrap  the
     string  in a compound term with arity 1, so Prolog can  identify the
     type.    portray/1 rules  may be  used to  streamline printing  such
     terms during development.
@@ -14729,7 +14742,7 @@ to a foreign data-structure containing the relevant information.
 
 There are a  couple of possibilities for  representing the handle.   The
 choice  depends on  responsibilities  and  debugging facilities.     The
-simplest approach  is to  using PL_unify_pointer() and PL_get_pointer().
+simplest  approach is  to using  PL_unify_pointer() and  PL_get_pointer().
 This  approach is  fast and  easy, but  has the  drawbacks of  (untyped)
 pointers:   there  is no  reliable way  to detect  the  validity of  the
 pointer, not  to verify  it is pointing  to a  structure of the  desired
@@ -14754,10 +14767,10 @@ C-language (compatible  to C++).   Embedding in  Java is achieved  using
 JPL using a C-glue between the Java and Prolog C-interfaces.
 
 The  most   simple  embedded   program  is   below.      The   interface
-function  PL_initialise()  mmuusstt  be  called  before  any  of  the  other
+function  PL_initialise()  mmuusstt  be   called  before  any  of  the  other
 SWI-Prolog  foreign  language  functions  described  in   this  chapter,
-except  for  PL_initialise_hook(),   PL_new_atom(),  PL_new_functor()  and
-PL_register_foreign().   PL_initialise() interprets all the  command-line
+except  for   PL_initialise_hook(),   PL_new_atom(),   PL_new_functor()   and
+PL_register_foreign().   PL_initialise()  interprets all the  command-line
 arguments,  except  for the  -t toplevel  flag  that is  interpreted  by
 PL_toplevel().
 
@@ -14797,7 +14810,7 @@ int PPLL__iinniittiiaalliissee(_i_n_t _a_r_g_c_, _c_h_a_
       o  Find the Prolog home  directory.  This process is  described in
          detail in section 9.8.
 
-    PL_initialise()  returns 1  if all  initialisation  succeeded and  0
+    PL_initialise() returns  1  if all  initialisation succeeded  and  0
     otherwise.
 
     In  most cases, _a_r_g_c and _a_r_g_v will be passed from the  main program.
@@ -14833,7 +14846,7 @@ int PPLL__iiss__iinniittiiaalliisseedd(_i_n_t _*_a_r_g_
     Test  whether the  Prolog engine  is already initialised.    Returns
     FALSE  if Prolog  is not  initialised and TRUE  otherwise.   If  the
     engine is initialised  and _a_r_g_c is not NULL, the argument count used
-    with  PL_initialise() is  stored in  _a_r_g_c.   Same  for the  argument
+    with  PL_initialise()  is stored  in _a_r_g_c.    Same  for the  argument
     vector _a_r_g_v.
 
 
@@ -14851,21 +14864,21 @@ int PPLL__ttoopplleevveell()
 
 void PPLL__cclleeaannuupp(_i_n_t _s_t_a_t_u_s)
     This  function performs  the reverse  of PL_initialise().   It  runs
-    the  PL_on_halt()and at_halt/1 handlers, closes all  streams (except
+    the  PL_on_halt()  and at_halt/1 handlers, closes all streams  (except
     for the `standard  I/O' streams which are flushed only), deallocates
     all  memory and restores all signal  handlers.  The _s_t_a_t_u_s  argument
     is  passed  to  the  various termination  hooks  and  indicates  the
     _e_x_i_t_-_s_t_a_t_u_s.
 
     This  function allows deleting and  restarting the Prolog system  in
-    the same  process.  Use it with care, as PL_initialise() is a costly
+    the  same process.  Use it with care, as PL_initialise()  is a costly
     function.   Unix  users should consider  using exec() (available  as
     part of the clib package,).
 
 
 int PPLL__hhaalltt(_i_n_t _s_t_a_t_u_s)
-    Cleanup  the Prolog environment using PL_cleanup() and calls  exit()
-    with  the  status argument.    As  PL_cleanup() can only  be  called
+    Cleanup  the Prolog environment using  PL_cleanup() and calls  exit()
+    with  the  status argument.    As  PL_cleanup()  can only  be  called
     from  the main thread, this function returns FALSE when  called from
     another thread as the main one.
 
@@ -14910,8 +14923,8 @@ all default signal handling.  This has a few consequences though:
     diagnose  broken pipes.  Depending on the situation one  should take
     appropriate action if Prolog streams are connected to pipes.
 
-  o Fatal errors  normally cause Prolog to call PL_cleanup() and exit().
-    It is  advised to call PL_cleanup()as part  of the exit-procedure of
+  o Fatal  errors normally cause Prolog to call PL_cleanup()  and exit().
+    It  is advised to call PL_cleanup() as part of  the exit-procedure of
     your application.
 
 
@@ -14923,7 +14936,7 @@ plld automates most of what is described in the previous sections.
 
 In the normal  usage, a copy is  made of the default embedding  template
 \ldots/pl/include/stub.c.    The  main()  routine is  modified  to  suit
-your  application.    PL_initialise() mmuusstt  be passed  the  program-name
+your  application.    PL_initialise()  mmuusstt  be passed  the  program-name
 (_a_r_g_v_[_0_])  (Win32:    the  executing  program  can   be  obtained  using
 GetModuleFileName()).   The other  elements of  the command-line may  be
 modified.  Next, plld is typically invoked as:
@@ -15149,7 +15162,7 @@ To do so, it will try the following steps until one succeeds.
     source installation.
 
 If  all fails  and  there is  no state  attached  to the  executable  or
-provided Windows module (see PL_initialise()), SWI-Prolog gives up.   If
+provided Windows module (see  PL_initialise()), SWI-Prolog gives up.   If
 a state is attached, the current working directory is used.
 
 The file_search_path/2 alias swi is set  to point to the home  directory
@@ -15228,24 +15241,24 @@ routines.     The  stacks  are  allocated  using  mmap()  on  most  Unix
 machines and using  VirtualAlloc() on windows.  SWI-Prolog  provides the
 functions below  as a  wrapper around  malloc().   Allocation errors  in
 these functions  trap SWI-Prolog's  fatal-error handler,  in which  case
-PL_malloc() or PL_realloc()do not return.
+PL_malloc() or PL_realloc() do not return.
 
-Portable applications must use PL_free() to release strings  returned by
-PL_get_chars()using  the BUF_MALLOC argument.   Portable applications may
-use both PL_malloc() and friends or malloc() and friends  but should not
+Portable applications must use  PL_free() to release strings  returned by
+PL_get_chars() using the BUF_MALLOC argument.  Portable  applications may
+use both PL_malloc() and friends or malloc() and friends but  should not
 mix these two sets of functions on the same memory.
 
 
 void * PPLL__mmaalllloocc(_s_i_z_e___t _b_y_t_e_s)
     Allocate  _b_y_t_e_s of  memory.    On failure  SWI-Prolog's fatal  error
     handler  is  called  and  PL_malloc()  does  not  return.     Memory
-    allocated  using these functions must use PL_realloc() and PL_free()
+    allocated  using these functions must use  PL_realloc() and PL_free()
     rather than realloc() and free().
 
 
 void * PPLL__rreeaalllloocc(_v_o_i_d _*_m_e_m_, _s_i_z_e___t _s_i_z_e)
     Change  the size of the  allocated chunk, possibly  moving it.   The
-    _m_e_m  argument  must  be  obtained  from a  previous  PL_malloc()  or
+    _m_e_m  argument  must  be  obtained  from  a  previous PL_malloc()  or
     PL_realloc() call.
 
 
@@ -15263,7 +15276,7 @@ incompatibilities.
 
 Source-code that  relies on new  features of  the foreign interface  can
 use  the  macro  PLVERSION to  find  the  version  of  SWI-Prolog.h  and
-PL_query() using  the  option PL_QUERY_VERSION to  find the  version  of
+PL_query()  using  the option  PL_QUERY_VERSION  to  find the  version  of
 the  attached Prolog  system.   Both  follow the  same numbering  schema
 explained with PL_query().
 
@@ -15328,9 +15341,9 @@ The  PL_unify_*()  functions are  lacking from  the  Quintus and  SICStus
 interface.    They can  easily  be emulated  or the  put/unify  approach
 should be used to write compatible code.
 
-The PL_open_foreign_frame()/PL_close_foreign_frame() combination is lack-
-ing from both other  Prologs.  SICStus has PL_new_term_refs(_0),  followed
-by PL_reset_term_refs()that allows for discarding term references.
+The PL_open_foreign_frame()/PL_close_foreign_frame() combination  is lacking
+from both  other Prologs.   SICStus has  PL_new_term_refs(0), followed  by
+PL_reset_term_refs() that allows for discarding term references.
 
 The  Prolog interface  for  the graphical  user interface  package  XPCE
 shares about  90% of the code  using a simple  macro layer to deal  with
@@ -15753,9 +15766,9 @@ development version, except for the following features:
     This  may  be used  to verify  your application  is  running in  the
     runtime environment rather than the development environment.
 
-  o clause/[2,3] _d_o _n_o_t _w_o_r_k _o_n _s_t_a_t_i_c _p_r_e_d_i_c_a_t_e_s
-    This  prolog-flag inhibits listing your program.  It is only  a very
-    limited protection however.
+  o _c_l_a_u_s_e_/_[_2_,_3
+    do not work  on static predicates] This prolog-flag inhibits listing
+    your program.  It is only a very limited protection however.
 
 The  following  fragment   is  an  example  for  building  the   runtime
 environment in  \env{HOME}/lib/rt-pl-3.2.0.   If  possible, the  shared-
@@ -16868,7 +16881,7 @@ send([[S,E,N,D], [M,O,R,E], [M,O,N,E,Y]])  :-
 
 This example demonstrates tuples_in/2.  A train schedule  is represented
 as a list  Ts of quadruples, denoting  departure and arrival places  and
-times for each  train.  The path/3  predicate given below constrains Ps
+times for each  train.  The _p_a_t_h_/_3  predicate given below constrains Ps
 to a  feasible journey from A  to D via 3  trains that are part  of the
 given schedule.
 
@@ -17390,9 +17403,9 @@ its syntax colouring.
 For  all predicates  described  below,  _S_o_u_r_c_e  is the  source  that  is
 processed.    This is  normally a  filename in  any notation  acceptable
 to the  file loading  predicates (see  load_files/2).    Using the  hooks
-defined in  section ???? it  can be anything else  that can be  translated
-into  a Prolog  stream  holding  Prolog source  text.    _C_a_l_l_a_b_l_e  is  a
-callable  term (see  callable/1).    Callables  do  not carry  a  module
+defined  in section  11.16.0.1  it can  be  anything  else that  can  be
+translated into a  Prolog stream holding Prolog  source text.   _C_a_l_l_a_b_l_e
+is a callable  term (see callable/1).   Callables do not carry a  module
 qualifier unless  the referred predicate  is not  in the module  defined
 _S_o_u_r_c_e.
 
@@ -18563,55 +18576,55 @@ Bibliography
 
 Index
 
-'MANUAL' _l_i_b_r_a_r_y, 43                 win_insert_menu/2, 558--560
---disable-segv-handling, 1023        win_insert_menu_item/4, 558, 560
--lpl _l_i_b_r_a_r_y, 1024                   win_registry_get_value/3, 545
--lreadline _l_i_b_r_a_r_y, 1052             win_shell/2, 539, 543, 544, 1137
-.pl, 87                              win_window_pos/1, 557
-.pro, 87                             Window interface, 8
-?=/2, 191                            window_title/2, 556
-=:=/2, 436                           Windows, 7
-/\/2, 470                            windows, 60
-=\=/2, 435                           with_mutex/2, 765, 766, 784
-|/2, 200                             working_directory/2, 550, 573,  582,
-#=/2, 1162                                 583
-#>=/2, 1160                          write(), 941
-#>/2, 1158                           write/1, 60,  75,  361,  365,  399,
-#=</2, 1161                                404, 520, 525, 860, 898, 941
-#</2, 1159                           write/2, 362
-#\=/2, 1163                          write_canonical/1, 359, 525
-,/2, 198                             write_canonical/2, 360, 382
-{}/1, 1185                           write_canonical/[1
-!/0, 197                                2], 17
-!/1, 232                             write_term/2,  51,  60,  182,  357--
-/, 88                                      359,  382,  413,   520,  525,
-//2, 445                                   694
-./2, 454                             write_term/3, 60, 62, 358, 381
-=/2, 181                             write_term/[2
-==/2, 179                               3], 17, 60
-#<=>/2, 1179                         writef/1, 519
->=/2, 434                            writef/2, 32, 71, 356, 520, 521
->/2, 431                             writef/[1
-^/2, 485                                2], 516
-///2, 448                            writeln/1, 518
-->/2, 201                            writeq/1, 363, 520, 525
-=</2, 433                            writeq/2, 364
-#<=/2, 1178                          www_browser _l_i_b_r_a_r_y, 1267
-<</2, 468                            www_form_encode/2, 1152
-</2, 432                             www_open_url/1, 1137
--/1, 441
--/2, 443, 1171                       X-Windows, 7
-\=/2, 183                            X11, 8
-\/1, 472                             xor/2, 471
-\==/2, 180                           XPCE, 8
-\+/1, 203                            xref_built_in/1, 1228
-\//2, 469                            xref_called/3, 1225
-+/2, 442, 1169                       xref_clean/1, 1223
-**/2, 484                            xref_current_source/1, 1222
-#=>/2, 1177                          xref_defined/3, 1224
->>/2, 467                            xref_exported/2, 1226
-;/2, 199                             xref_module/2, 1227
-*->/2, 202                           xref_source/1, 1221
+'MANUAL' _l_i_b_r_a_r_y, 43                 windows, 60
+--disable-segv-handling, 1023        with_mutex/2, 765, 766, 784
+-lpl _l_i_b_r_a_r_y, 1024                   working_directory/2, 550, 573,  582,
+-lreadline _l_i_b_r_a_r_y, 1052                   583
+.pl, 87                              write(), 941
+.pro, 87                             write/1, 60,  75,  361,  365,  399,
+?=/2, 191                                  404, 520, 525, 860, 898, 941
+=:=/2, 436                           write/2, 362
+/\/2, 470                            write_canonical/1, 359, 525
+=\=/2, 435                           write_canonical/2, 360, 382
+|/2, 200                             write_canonical/[1
+#=/2, 1162                              2], 17
+#>=/2, 1160                          write_term/2,  51,  60,  182,  357--
+#>/2, 1158                                 359,  382,  413,   520,  525,
+#=</2, 1161                                694
+#</2, 1159                           write_term/3, 60, 62, 358, 381
+#\=/2, 1163                          write_term/[2
+,/2, 198                                3], 17, 60
+{}/1, 1185                           writef/1, 519
+!/0, 197                             writef/2, 32, 71, 356, 520, 521
+!/1, 232                             writef/[1
+/, 88                                   2], 516
+//2, 445                             writeln/1, 518
+./2, 454                             writeq/1, 363, 520, 525
+=/2, 181                             writeq/2, 364
+==/2, 179                            www_browser _l_i_b_r_a_r_y, 1267
+#<=>/2, 1179                         www_form_encode/2, 1152
+>=/2, 434                            www_open_url/1, 1137
+>/2, 431
+^/2, 485                             X-Windows, 7
+///2, 448                            X11, 8
+->/2, 201                            xor/2, 471
+=</2, 433                            XPCE, 8
+#<=/2, 1178                          xref_built_in/1, 1228
+<</2, 468                            xref_called/3, 1225
+</2, 432                             xref_clean/1, 1223
+-/1, 441                             xref_current_source/1, 1222
+-/2, 443, 1171                       xref_defined/3, 1224
+\=/2, 183                            xref_exported/2, 1226
+\/1, 472                             xref_module/2, 1227
+\==/2, 180                           xref_source/1, 1221
+\+/1, 203
+\//2, 469
++/2, 442, 1169
+**/2, 484
+#=>/2, 1177
+>>/2, 467
+;/2, 199
+*->/2, 202
 =@=/2, 184
 \=@=/2, 185
 @>=/2, 189
@@ -18682,8 +18695,8 @@ at_initialization/1, 139, 141, 1017
 atan/1, 479
 atan/2, 480
 atom/1, 169, 842
-atom_chars/2,   21,  60,  118,  336,
-      391, 393, 395, 409
+atom_chars/2,  60,  118,  336,  391,
+      393, 395, 409
 atom_codes/2,  21,  60,  118,  391--
       393, 397, 409
 atom_concat/3, 401, 402, 417
@@ -18694,7 +18707,7 @@ atom_to_term/3, 356, 400
 atomic/1, 171
 attach_console/0, 773--775, 1000
 attr_portray_hook/2, 357, 694
-attr_unify_hook/2, 62, 688, 693
+attr_unify_hook/2, 688, 693
 attvar/1, 689
 autoload/0, 124, 1038, 1040, 1120
 
@@ -18741,13 +18754,13 @@ chr _l_i_b_r_a_r_y, 721, 725
 chr_constraint/1, 720, 731
 chr_leash/1, 728
 chr_notrace/0, 724, 727
-chr_option/2, 717, 731
+chr_option/2, 731
 chr_show_store/1, 729
 chr_trace/0, 724, 726
 clause/2, 276, 277
 clause/3, 245, 254, 277, 279, 1042
 clause/[2
-   3], 60, 1052
+   3], 60
 clause_property/2, 132, 279, 1234
 clib
    package, 1021
@@ -18818,7 +18831,7 @@ current_prolog_flag/2, 21,  41,  59,
       814,  935, 1015,  1024, 1053,
       1253
 current_signal/3, 225, 226
-current_stream/3, 21, 288
+current_stream/3, 288
 current_thread/2,   737,  738,  741,
       744
 cyclic terms, 75
@@ -18895,7 +18908,7 @@ ensure_loaded/1, 53, 119, 122, 660
 entailed/1, 1186
 erase/1, 245, 248, 254, 277
 eval_license/0, 1258--1260
-exception/3, 62, 704, 1242, 1243
+exception/3, 704, 1242, 1243
 exceptions
    debugging, 217
 exists_directory/1, 567
@@ -18919,17 +18932,17 @@ fail/1, 231
 file_base_name/2, 565
 file_directory_name/2, 564
 file_name_extension/3, 575
-file_search_path/2, 39, 41,  60, 62,
-      63,  66, 89,  112,  120, 121,
-      128,  130,  810,  996,  1026,
-      1043, 1046, 1049
+file_search_path/2, 39, 41,  60, 63,
+      66,  89, 112, 120,  121, 128,
+      130,  810,  996, 1026,  1043,
+      1046, 1049
 fileerrors/2, 60, 315
 findall/3, 75, 137, 193, 506, 685
 flag/3, 255, 270, 388
 flatten/2, 1065
 float/1, 165, 437, 458
 float_fractional_part/1, 461
-float_integer_part/1, 462, 463
+float_integer_part/1, 462
 floor/1, 464
 flush_output/0, 329
 flush_output/1, 221, 330, 355
@@ -18985,8 +18998,8 @@ getenv/2, 546, 547, 1137
 global_url/3, 1150
 GMP, 438
 GNU-Emacs, 42
-goal_expansion/2,   62,  119,   135,
-      137, 138, 1122
+goal_expansion/2,   119,  135,  137,
+      138, 1122
 Graphics, 8
 ground/1, 75, 174, 258, 846
 gspy/1, 109
@@ -19050,12 +19063,10 @@ leash/1, 51, 612, 613, 728, 1238
 length/2, 498
 leq/2, 730
 lex_chain/1, 1165
-library_directory/1,  62,  63,  121,
-      127
+library_directory/1, 63, 121, 127
 library_directory/2, 66
 license/1, 1261
 license/2, 1260, 1261
-license:license/3, 1260
 limit_stack/2, 632, 635
 line_count/2, 291, 293, 313, 534
 line_position/2, 291, 293, 314, 534
@@ -19106,7 +19117,7 @@ memory
    layout, 81
 merge/3, 503
 merge_set/3, 504
-message_hook/3, 20, 62, 219--222
+message_hook/3, 20, 219--222
 message_queue_create/1,  749,   753,
       754
 message_queue_destroy/1, 754
@@ -19185,7 +19196,7 @@ on_signal/3, 19, 225, 226
 once/1,  137, 209,  210, 212,  225,
       605, 619, 765, 965
 one_character_atom/1, 193
-op/3, 21, 117, 259, 357, 420, 421
+op/3, 259, 357, 420, 421
 open/3, 60, 280, 281, 283
 open/4, 13, 77,  78, 118, 282, 283,
       287,  292,  293,  352,  1134,
@@ -19206,7 +19217,6 @@ package
    clib, 1021
 parse_url/2, 1148, 1149, 1151
 parse_url/3, 1149
-path/3, 1181
 pce_call/1, 796, 798
 pce_dispatch/1, 796, 797
 pce_xref _l_i_b_r_a_r_y, 111
@@ -19404,8 +19414,8 @@ PL_warning(), 998
 plus/3, 206, 429
 PLVERSION, 1033
 popcount/1, 491
-portray/1,  51, 62,  90, 356,  357,
-      365, 367, 960, 1014, 1245
+portray/1, 51,  90, 356,  357, 365,
+      367, 960, 1014, 1245
 portray_clause/1, 157, 159, 160
 portray_clause/2, 159, 160, 382
 predicate_property/2, 265, 274, 679
@@ -19427,36 +19437,32 @@ profiler/2, 626
 prolog/0,  41, 60,  294, 585,  589,
       590, 684, 1020, 1236
 prolog:called_by/2, 1230
-prolog:debug_control_hook/1,     62,
-      1246
-prolog:help_hook/1, 62, 1247
-prolog:show_profile_hook/2, 624
+prolog:debug_control_hook/1, 1246
+prolog:help_hook/1, 1247
 prolog_choice_attribute/3,     1235,
       1238
 prolog_current_frame/1, 1233, 1234
-prolog_edit:edit_command/2, 62, 155
-prolog_edit:edit_source/1,  62,  93,
-      115, 150, 154
+prolog_edit:edit_command/2, 155
+prolog_edit:edit_source/1, 154
 prolog_edit:load/0, 156
 prolog_edit:locate/2, 153
-prolog_edit:locate/3,  62, 149, 150,
-      152--154
+prolog_edit:locate/3, 152
 prolog_exception_hook/4, 1240, 1241
 prolog_file_type/2, 119, 130, 573
 prolog_frame_attribute/3, 279, 1234,
       1238, 1241
 prolog_ide _c_l_a_s_s, 114
 prolog_ide/1, 113, 114
-prolog_list_goal/1, 62, 1245
+prolog_list_goal/1, 1245
 prolog_load_context/2, 133, 134
-prolog_load_file/2, 62, 120, 1248
+prolog_load_file/2, 120, 1248
 prolog_server _l_i_b_r_a_r_y, 294
 prolog_skip_level/2, 1239
 prolog_stack _l_i_b_r_a_r_y, 1241
 prolog_to_os_filename/2,   88,   574,
       577
-prolog_trace_interception/4,     62,
-      103, 601, 1234, 1235, 1238
+prolog_trace_interception/4,    103,
+      601, 1234, 1235, 1238
 prolog_xref _l_i_b_r_a_r_y, 111
 prologxref _l_i_b_r_a_r_y, 1220, 1275
 prompt/2, 374--376
@@ -19548,7 +19554,7 @@ require/1, 124, 1040
 reset_gensym/0, 1116
 reset_gensym/1, 1115
 reset_profiler/0, 623, 627
-resource/3, 18, 60, 62, 1037, 1038,
+resource/3,  18,  60,  1037,  1038,
       1044, 1046, 1047
 retract/1, 119, 127, 236, 237, 240,
       256, 260, 261, 274, 685, 761
@@ -19627,7 +19633,7 @@ stream_position_data/3,  133,   287,
       291
 stream_property/2,   78,  282,  287,
       290--293, 372
-string/1, 170, 525
+string/1, 170, 171, 525
 string_concat/3, 401, 417
 string_length/2, 416
 string_to_atom/2, 414
@@ -19677,8 +19683,7 @@ thread_join/2, 735, 737, 739, 744
 thread_local/1, 260, 274, 760, 761
 thread_peek_message/1, 751, 752, 756
 thread_peek_message/2, 756
-thread_self/1,  60,  736, 738,  741,
-      750
+thread_self/1, 60, 736, 741, 750
 thread_send_message/2, 750, 753
 thread_setconcurrency/2, 742
 thread_signal/2, 759, 769, 776, 982
@@ -19762,5 +19767,13 @@ when/2, 75, 702
 wildcard_match/2, 653
 win_exec/2, 539, 542, 543
 win_has_menu/0, 558
+win_insert_menu/2, 558--560
+win_insert_menu_item/4, 558, 560
+win_registry_get_value/3, 545
+win_shell/2, 539, 543, 544, 1137
+win_window_pos/1, 557
+Window interface, 8
+window_title/2, 556
+Windows, 7
 
                                   1277
