@@ -17,6 +17,77 @@ sub printTeX
   s/(\\index{[^}]*)\\index{[^}]*}([^}]*})/\1\2/g;
   s/(\\class(get|send|both){)\\index{[^}]*}/\1/g;
 
+# Prolog special arguments ...
+
+  s/\\file{([^}]*\\bnfmeta[^}]*)}/\\metafile{\1}/g;
+  s/\\file{([^}]*\\arg[^}]*)}/\\metafile{\1}/g;
+  s/\\file{([^}]+)}/\\file@\1@/g;
+  s/\\htmloutput{([^}]+)}/\\htmloutput@\1@/g;
+
+  s/{#!}/{\\Sexe}/g;
+  s/{#>}/{\\Scgt}/g;
+  s/{#>=}/{\\Scge}/g;
+  s/{#<}/{\\Sclt}/g;
+  s/{#=<}/{\\Scle}/g;
+  s/{#=}/{\\Sceq}/g;
+  s/{#\\=}/{\\Scne}/g;
+  s/{#<=>}/{\\Sequiv}/g;
+  s/{#<=}/{\\Slimpl}/g;
+  s/{#=>}/{\\Srimpl}/g;
+  s/{#=\\=}/{\\Scine}/g;
+  s/{#=:=}/{\\Scieq}/g;
+  s/{!}/{\\Scut}/g;
+  s/{,}/{\\Scomma}/g;
+  s/{->}/{\\Sifthen}/g;
+  s/{\*->}/{\\Ssoftcut}/g;
+  s/{\.}/{\\Sdot}/g;
+  s/{;}/{\\Ssemicolon}/g;
+  s/{<}/{\\Slt}/g;
+  s/{=}/{\\Seq}/g;
+  s/{=\.\.}/{\\Suniv}/g;
+  s/{=:=}/{\\Saeq}/g;
+  s/{=<}/{\\Sle}/g;
+  s/{<=}/{\\Sel}/g;
+  s/{==}/{\\Sequal}/g;
+  s/{=@=}/{\\Sstructeq}/g;
+  s/{\\=@=}/{\\Sstructneq}/g;
+  s/{=\\=}/{\\Sane}/g;
+  s/{>}/{\\Sgt}/g;
+  s/{>=}/{\\Sge}/g;
+  s/{@<}/{\\Stlt}/g;
+  s/{@=<}/{\\Stle}/g;
+  s/{@>}/{\\Stgt}/g;
+  s/{@>=}/{\\Stge}/g;
+  s/{\\\+}/{\\Snot}/g;
+  s/{\\=}/{\\Sne}/g;
+  s/{\\==}/{\\Snequal}/g;
+  s/{\^}/{\\Shat}/g;
+  s/{\|}/{\\Sbar}/g;
+  s/{\*}/{\\Stimes}/g;
+  s/{\*\*}/{\\Spow}/g;
+  s/{\+}/{\\Splus}/g;
+  s/{-}/{\\Sminus}/g;
+  s/{\/}/{\\Sdiv}/g;
+  s/{\/\/}/{\\Sidiv}/g;
+  s/{\/\\}/{\\Sand}/g;
+  s/{<<}/{\\Slshift}/g;
+  s/{>>}/{\\Srshift}/g;
+  s/{\\}/{\\Sneg}/g;
+  s/{\\\/}/{\\Sor}/g;
+  s/{\$}/{\\Sdollar}/g;
+  s/{\?}/{\\Squest}/g;
+  s/{:}/{\\Smodule}/g;
+  s/{:-}/{\\Sneck}/g;
+  s/{\?-}/{\\Sdirective}/g;
+  s/{-->}/{\\Sdcg}/g;
+  s/{~}/{\\Stilde}/g;
+  s/{%}/{\\Spercent}/g;
+  s/{{}}/{\\Scurl}/g;
+  s/{xXX..\\}/{\\SxXX}/g;
+
+  s/\\file@([^@]+)@/\\file{\1}/g;
+  s/\\htmloutput@([^@]+)@/\\htmloutput{\1}/g;
+
   print;
 }
 
