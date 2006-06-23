@@ -1348,11 +1348,11 @@ locale.
    \definition{\const{PL_MBSTRING} \arg{const char *}}
 Create a packed string object from a multi-byte string in the
 current locale.
-   \definition{\const{PL_MBCHARS} \arg{unsigned int, const wchar_t *}}
+   \definition{\const{PL_NWCHARS} \arg{unsigned int, const wchar_t *}}
 Create an atom from a length and a wide character pointer.
-   \definition{\const{PL_MBCODES} \arg{unsigned int, const wchar_t *}}
+   \definition{\const{PL_NWCODES} \arg{unsigned int, const wchar_t *}}
 Create an list of character codes from a length and a wide character pointer.
-   \definition{\const{PL_MBSTRING} \arg{unsigned int, const wchar_t *}}
+   \definition{\const{PL_NWSTRING} \arg{unsigned int, const wchar_t *}}
 Create a packed string object from a length and a wide character pointer.
    \definition{\const{PL_SHORT} \arg{short}}
 Unify the argument with an integer, as in PL_unify_integer(). As
