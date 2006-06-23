@@ -776,7 +776,7 @@ Succeeds if \arg{Term} is bound to an atom.
     \predicate{string}{1}{+Term}
 Succeeds if \arg{Term} is bound to a string. Note that string here
 refers to the built-in atomic type string as described in
-\ecref{strings},  Text in double quotes such as \verb|"hello"|
+\secref{strings},  Text in double quotes such as \verb|"hello"|
 creates a \emph{list} of \emph{character codes}.  We illustrate
 the issues in the example queries below.
 

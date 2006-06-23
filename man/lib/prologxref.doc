@@ -75,6 +75,7 @@ registered as `called'.
 \end{description}
 
 \subsubsection{Extending the library}
+\label{sec:xrefhooks}
 
 The library provides hooks for extending its rules it uses for finding
 predicates called by some programming construct.
