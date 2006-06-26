@@ -223,7 +223,6 @@ do_process_rdf(Parser, In, NSList, Close, Cleanup) :-
 	call_cleanup((   sgml_parse(Parser,
 				    [ source(In),
 				      call(begin, rdf:on_begin),
-				      call(end,   rdf:on_end),
 				      call(xmlns, rdf:on_xmlns)
 				    ]),
 			 exit_ns_collect(NSList)
@@ -241,10 +240,6 @@ cleanup_process(In, Cleanup, Parser) :-
 	nb_delete(rdf_state),
 	nb_delete(rdf_nslist),
 	rdf_end_file(Cleanup).
-
-on_end(NS:'RDF', _) :-
-	rdf_name_space(NS),
-	nb_setval(rdf_description_options, -).
 
 on_begin(NS:'RDF', Attr, _) :-
 	rdf_name_space(NS), !,
