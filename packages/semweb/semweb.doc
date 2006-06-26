@@ -122,7 +122,7 @@ is either an atom representing a resource or \term{literal}{Value} if
 the object is a literal value. If a value of the form
 \infixterm{:}{NameSpaceID}{LocalName} is provided it is expanded to a
 ground atom using expand_goal/2. This implies you can use this construct
-in compiled code without paying a preformance penalty. See also
+in compiled code without paying a performance penalty. See also
 \secref{rdfns}.  Literal values take one of the following forms:
 
 \begin{description}
@@ -172,7 +172,15 @@ in \secref{litindex}.
     \end{description}
 
 Backtracking never returns duplicate triples. Duplicates can be
-retrieved using rdf/4.
+retrieved using rdf/4. The predicate rdf/3 raises a type-error if called
+with improper arguments. If rdf/3 is called with a term
+\term{literal}{_} as \arg{Subject} or \arg{Predicate} object it fails
+silently. This allows for graph matching goals like
+\verb$rdf(S,P,O),rdf(O,P2,O2)$ to proceed without errors.%
+	\footnote{Discussion in the SPARQL community votes for allowing
+		  literal values as subject. Although we have no
+		  principal objections, we fear such an extension will
+		  promote poor modelling practice.}
 
     \predicate{rdf}{4}{?Subject, ?Predicate, ?Object, ?Source}
 As rdf/3 but in addition return the source-location of the triple.  The
