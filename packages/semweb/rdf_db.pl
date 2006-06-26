@@ -649,7 +649,7 @@ rdf_load_db(File) :-
 %	Load RDF file.  Options provides additional processing options.
 %	Currently defined options are:
 %	
-%	    result(-Action, -Triples, -MD5)
+%	    # result(-Action, -Triples, -MD5)
 %	    	Return action taken (load, reload, none) and number
 %	    	of triples loaded from the file as well as the MD5
 %	    	digest.
