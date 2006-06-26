@@ -342,6 +342,21 @@ get_atom_or_var_ex(term_t t, atom_t *a)
 
 
 static int
+get_resource_or_var_ex(term_t t, atom_t *a)
+{ if ( PL_get_atom(t, a) )
+    return TRUE;
+  if ( PL_is_variable(t) )
+  { *a = 0L;
+    return TRUE;
+  }
+  if ( PL_is_functor(t, FUNCTOR_literal1) )
+    return FALSE;			/* fail on rdf(literal(_), ...) */
+
+  return type_error(t, "atom");
+}
+
+
+static int
 get_bool_arg_ex(int a, term_t t, int *val)
 { term_t arg = PL_new_term_ref();
 
@@ -3186,8 +3201,11 @@ static int
 get_existing_predicate(rdf_db *db, term_t t, predicate **p)
 { atom_t name;
 
-  if ( !get_atom_ex(t, &name ) )
-    return -1;				/* error */
+  if ( !PL_get_atom(t, &name ) )
+  { if ( PL_is_functor(t, FUNCTOR_literal1) )
+      return 0;				/* rdf(_, literal(_), _) */
+    return type_error(t, "atom");
+  }
 
   if ( (*p = existing_predicate(db, name)) )
     return 1;
@@ -3241,7 +3259,7 @@ get_partial_triple(rdf_db *db,
 		   term_t src, triple *t)
 { int rc;
 
-  if ( subject && !get_atom_or_var_ex(subject, &t->subject) )
+  if ( subject && !get_resource_or_var_ex(subject, &t->subject) )
     return FALSE;
   if ( !PL_is_variable(predicate) &&
        (rc=get_existing_predicate(db, predicate, &t->predicate)) != 1 )
