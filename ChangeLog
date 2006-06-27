@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Replace hard-coded message about threads not dying by calling
+    print_message/2.  Paulo Mauro.
+
   * FIXED: Clear pending exception on `retry'.
 
   * MODIFIED: threads/0 no longer joins terminated threads.  A new predicate

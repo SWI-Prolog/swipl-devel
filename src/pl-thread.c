@@ -631,7 +631,9 @@ exitPrologThreads()
     }
   }
   if ( canceled )
-  { Sdprintf("%d threads wouldn't die\n", canceled);
+  { printMessage(ATOM_informational,
+		 PL_FUNCTOR_CHARS, "threads_not_died", 1,
+		   PL_INTEGER, canceled);
   } else
   { DEBUG(1, Sdprintf("done\n"));
   }
