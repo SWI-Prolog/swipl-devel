@@ -8,7 +8,7 @@
 					--------------------------------------
 
   * FIXED: possibly lacking EXIT instruction at the end of a clause, causing
-    the system to execute aribrary code.  Notably affects non-GCC
+    the system to execute arbitrary code.  Notably affects non-GCC
     platforms, but in theory it can also affect GCC compiled systems.  
     Mike Elston.
 
