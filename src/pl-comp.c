@@ -856,11 +856,9 @@ automatic update if a predicate is later defined as meta-predicate.
       
       goto exit_fail;
     }
-    if ( OpCode(&ci, PC(&ci)-1) != encode(I_EXITCATCH) )
-    { Output_0(&ci, I_EXIT);
-      if ( OpCode(&ci, bi) == encode(I_CUT) )
-      { set(&clause, COMMIT_CLAUSE);
-      }
+    Output_0(&ci, I_EXIT);
+    if ( OpCode(&ci, bi) == encode(I_CUT) )
+    { set(&clause, COMMIT_CLAUSE);
     }
   } else
   { set(&clause, UNIT_CLAUSE);		/* fact (for decompiler) */

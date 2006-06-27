@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: possibly lacking EXIT instruction at the end of a clause, causing
+    the system to execute aribrary code.  Notably affects non-GCC
+    platforms, but in theory it can also affect GCC compiled systems.  
+    Mike Elston.
+
   * FIXED: Quick load/sated state format handling of MPZ integers.  Mike
     Elston.
 
