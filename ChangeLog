@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#174: print problem reporting problems with a predicate (/)/2.
+    Holger Kanwischer.
+
   * FIXED: possibly lacking EXIT instruction at the end of a clause, causing
     the system to execute arbitrary code.  Notably affects non-GCC
     platforms, but in theory it can also affect GCC compiled systems.  
