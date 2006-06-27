@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Clear pending exception on `retry'.
+
   * MODIFIED: threads/0 no longer joins terminated threads.  A new predicate
     join_threads/0 does this.   Paulo Moura.
 

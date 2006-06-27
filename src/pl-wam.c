@@ -605,6 +605,7 @@ retry:
 	control = FRG_FIRST_CALL;
         frame->clause = NULL;
 	fli_context = ffr->parent;
+	exception_term = 0;
 	goto retry;
     }
   }
@@ -4831,6 +4832,7 @@ do_retry:
   environment_frame = FR = rframe;
   DEF = FR->predicate;
   Undo(m);
+  exception_term = 0;
 #ifdef O_LOGICAL_UPDATE
   if ( false(DEF, DYNAMIC) )
     FR->generation = GD->generation;
