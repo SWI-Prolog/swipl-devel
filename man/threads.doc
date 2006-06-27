@@ -587,9 +587,15 @@ complete.
 
 \begin{description}
     \predicate{threads}{0}{}
-Lists all current threads and their status.  In addition, all `zombie'
-threads (finished threads that are not detached, nor waited for) are
-joined to reclaim their resources.
+Lists all current threads and their status.
+
+    \predicate{join_threads}{0}{}
+Join all terminated threads. For normal applications,
+dealing with terminated threads must be part of the application logic,
+either detaching the thread before termination or making sure it will be
+joined. The predicate join_threads/0 is intended for interactive
+sessions to reclaim resources from threads that died unexpectedly
+during development.
 
     \predicate{interactor}{0}{}
 Create a new console and run the Prolog top-level in this new console.

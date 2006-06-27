@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: threads/0 no longer joins terminated threads.  A new predicate
+    join_threads/0 does this.   Paulo Moura.
+
   * FIXED: Bug#174: print problem reporting problems with a predicate (/)/2.
     Holger Kanwischer.
 

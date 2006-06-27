@@ -32,6 +32,7 @@
 :- module(thread_util,
 	  [ thread_run_interactor/0,	% interactor main loop
 	    threads/0,			% List available threads
+	    join_threads/0,		% Join all terminated threads
 	    interactor/0,		% Create a new interactor
 	    attach_console/0,		% Create an xterm-console for thread.
 
@@ -59,15 +60,25 @@ threads :-
 	format('~*t~60|~n', "-"),
 	current_thread(Id, Status),
 	format('~t~w~20|  ~p~32|~n', [Id, Status]),
-	rip_thread(Status, Id),
 	fail.
 threads :-
 	format('~*t~60|~n', "-").
 
+%	join_threads/0
+%	
+%	Join all terminated threads.
+
+join_threads :-
+	(   current_thread(Id, Status),
+	    rip_thread(Status, Id),
+	    fail ; true
+	).
+
 rip_thread(running, _) :- !.
 rip_thread(_Status, Id) :-
 	thread_self(Id), !.
-rip_thread(_Status, Id) :-
+rip_thread(Status, Id) :-
+	print_message(informational, join_thread(Id, Status)),
 	thread_join(Id, _).
 	
 %	interactor
@@ -231,3 +242,7 @@ prolog:message(thread_welcome) -->
 	[ 'SWI-Prolog console for thread ~w'-[Self],
 	  nl, nl
 	].
+prolog:message(join_thread(Id, Status)) -->
+	[ 'Joining thread ~w, ended with status ~p'-[Id, Status]
+	].
+
