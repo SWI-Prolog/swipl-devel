@@ -3451,7 +3451,8 @@ searchDirectionEditor(Editor e, Name dir)
 static status
 IsearchEditor(Editor e, EventId id)
 { Int chr = id;				/* TBD: test for character */
-  Name cmd = getKeyBindingEditor(e, characterName(id));
+  Name cnm = characterName(id);
+  Name cmd = getKeyBindingEditor(e, cnm);
 
   if ( cmd == NAME_keyboardQuit )	/* abort the search */
   { selection_editor(e, e->search_origin, e->search_origin, NAME_inactive);
@@ -3470,7 +3471,8 @@ IsearchEditor(Editor e, EventId id)
     return executeSearchEditor(e, DEFAULT);
   }
   if ( cmd == NAME_backwardDeleteChar ||
-       cmd == NAME_cutOrBackwardDeleteChar )
+       cmd == NAME_cutOrBackwardDeleteChar ||
+       cnm == NAME_backspace )		/* also if re-bound */
   { backwardDeleteCharSearchStringEditor(e);
     if ( notNil(e->search_string) )
     { selection_editor(e, e->search_base, e->search_base, DEFAULT);
