@@ -8,7 +8,7 @@
 					--------------------------------------
 
   * FIXED: Replace hard-coded message about threads not dying by calling
-    print_message/2.  Paulo Mauro.
+    print_message/2.  Paulo Moura.
 
   * FIXED: Clear pending exception on `retry'.
 
