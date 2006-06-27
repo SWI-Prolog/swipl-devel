@@ -189,14 +189,12 @@ curl(A) -->
 curl(A) -->
 	curl(http, A).
 
-curl(file, A) -->
+curl(file, A) --> !,
 	(   "//"
 	->  cpath(A)
 	;   cpath(A)
 	).
-curl(https, A) -->
-	curl(http, A).
-curl(http, A) -->
+curl(_, A) -->
 	"//",
 	cuser(A),
 	chost(A),
