@@ -1,10 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.15, distributed with SWI-Prolog 5.6.15
+==================================================
 
 * FIXED: PceEmacs: Backspace in incremental search.
 
-VERSION 6.6.12, distributed with SWI-Prolog 5.6.12
+VERSION 6.6.14, distributed with SWI-Prolog 5.6.14
 ==================================================
 
 * FIXED: compatibility problem in saved text_buffer objects between version
