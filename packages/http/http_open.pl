@@ -36,6 +36,7 @@
 :- use_module(library(url)).
 :- use_module(library(readutil)).
 :- use_module(library(socket)).
+:- use_module(library(lists)).
 
 user_agent('SWI-Prolog (http://www.swi-prolog.org)').
 
@@ -160,7 +161,7 @@ return_size(_, _).
 return_fields([], _).
 return_fields([header(Name, Value)|T], Lines) :- !,
 	atom_codes(Name, Codes),
-	(   memberchk(Line, Lines),
+	(   member(Line, Lines),
 	    phrase(atom_field(Codes, Value), Line)
 	->  true
 	;   Value = ''
