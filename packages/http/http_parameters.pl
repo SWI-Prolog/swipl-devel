@@ -106,6 +106,9 @@ fill_parameter(H, FormData, DeclGoal) :-
 	),
 	fill_param(Name, Value, Options, FormData).
 
+fill_param(Name, Values, Options, FormData) :-
+	memberchk(zero_or_more, Options), !,
+	fill_param_list(FormData, Name, Values, Options).
 fill_param(Name, Value, Options, FormData) :-
 	(   memberchk(Name=Value0, FormData),
 	    Value \== ''		% Not sure
@@ -116,6 +119,14 @@ fill_param(Name, Value, Options, FormData) :-
 	->  true
 	;   throw(error(existence_error(form_data, Name), _))
 	).
+
+
+fill_param_list([], _, [], _).
+fill_param_list([Name=Value0|Form], Name, [Value|VT], Options) :- !,
+	check_type(Options, Value0, Value),
+	fill_param_list(Form, Name, VT, Options).
+fill_param_list([_|Form], Name, VT, Options) :-
+	fill_param_list(Form, Name, VT, Options).
 
 
 check_type([], Value, Value).

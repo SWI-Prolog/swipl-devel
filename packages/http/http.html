@@ -556,14 +556,14 @@ for details.
 
 <P>
 <DT><STRONG>http_reply</STRONG>(<VAR>+Reply</VAR>)<DD>
-Equivalent to <CODE>http_reply(Reply,[])</CODE>.
+Equivalent to <CODE>http_reply(Reply,)</CODE>.
 
 <P>
 <DT><STRONG>http</STRONG>(<VAR>not_modified</VAR>)<DD>
-Equivalent to <CODE>http_reply(not_modified,[])</CODE>. This exception 
-is for backward compatibility and can be used by the server to indicate 
-the referenced resource has not been modified since it was requested 
-last time.
+Equivalent to <CODE>http_reply(not_modified,)</CODE>. This exception is 
+for backward compatibility and can be used by the server to indicate the 
+referenced resource has not been modified since it was requested last 
+time.
 </DL>
 
 <H3><A NAME="sec:3.2">3.2 Session management</A></H3>
@@ -685,6 +685,13 @@ If the named parameter is missing, <VAR>Value</VAR> is left unbound and
 no error is generated.
 
 <P>
+<DT><STRONG>zero_or_more</STRONG><DD>
+The same parameter may not appear or appear multiple times. If this 
+option is present, <CODE>default</CODE> and <CODE>optional</CODE> are 
+ignored and the value is returned as a list. Type checking options are 
+processed on each value.
+
+<P>
 <DT><STRONG>oneof</STRONG>(<VAR>List</VAR>)<DD>
 Succeeds if the value is member of the given list.
 
@@ -735,7 +742,7 @@ reply(Request) :-
 </PRE>
 </TABLE>
 
-<P>Same as <CODE>http_parameters(Request, Parameters,[])</CODE>
+<P>Same as <CODE>http_parameters(Request, Parameters,)</CODE>
 
 <P>
 <DT><A NAME="http_parameters/3"><STRONG>http_parameters</STRONG>(<VAR>+Request, 
@@ -1487,7 +1494,7 @@ using <A NAME="idx:printhtml12:47"></A><A HREF="#print_html/1">print_html/[1,2]<
 The expansion rules of this predicate may be extended by defining the 
 multifile DCG html_write:expand/1. <VAR>Spec</VAR> is either a single 
 specification or a list of single specifications. Using nested lists is 
-not allowed to avoid ambiguity caused by the atom <CODE>[]</CODE>
+not allowed to avoid ambiguity caused by the atom <CODE></CODE>
 
 <P>
 <UL>

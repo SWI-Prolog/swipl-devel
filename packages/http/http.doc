@@ -513,6 +513,12 @@ If the named parameter is missing, \arg{Value} is unified to
 If the named parameter is missing, \arg{Value} is left unbound and
 no error is generated.
 
+    \termitem{zero_or_more}{}
+The same parameter may not appear or appear multiple times. If this
+option is present, \const{default} and \const{optional} are ignored and
+the value is returned as a list. Type checking options are processed on
+each value.
+
     \termitem{oneof}{List}
 Succeeds if the value is member of the given list.
 

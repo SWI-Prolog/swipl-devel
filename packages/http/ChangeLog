@@ -1,3 +1,7 @@
+Jun 30, 2006
+
+  * ADDED: zero_or_more as parameter option to http_parameters/[2,3]
+
 Apr 11, 2006
 
   * ADDED: http_parameters library
