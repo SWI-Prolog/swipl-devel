@@ -1,5 +1,7 @@
 Jun 30, 2006
 
+  * FIXED: dangling choicepoint in http_open/3.
+
   * ADDED: zero_or_more as parameter option to http_parameters/[2,3]
 
 Apr 11, 2006

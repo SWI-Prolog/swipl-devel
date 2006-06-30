@@ -158,9 +158,9 @@ return_size(Options, Lines) :-
 return_size(_, _).
 
 return_fields([], _).
-return_fields([header(Name, Value)|T], Lines) :-
+return_fields([header(Name, Value)|T], Lines) :- !,
 	atom_codes(Name, Codes),
-	(   member(Line, Lines),
+	(   memberchk(Line, Lines),
 	    phrase(atom_field(Codes, Value), Line)
 	->  true
 	;   Value = ''
