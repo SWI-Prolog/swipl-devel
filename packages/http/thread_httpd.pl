@@ -370,5 +370,7 @@ prolog:message(httpd_stopped_worker(Self)) -->
 
 :- multifile
 	prolog:meta_goal/2.
+:- dynamic
+	prolog:meta_goal/2.
 
 prolog:meta_goal(http_server(G, _), [G+1]).

@@ -224,4 +224,5 @@ file_option(expand(_)).
 		 *******************************/
 
 :- multifile prolog:meta_goal/2.
+:- dynamic prolog:meta_goal/2.
 prolog:meta_goal(split_options(_,G,_,_), [G+1]).
