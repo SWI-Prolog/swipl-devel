@@ -1465,6 +1465,28 @@ findStartChoice(LocalFrame fr, Choice ch)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the I_EXIT of catch/3. We use this as the return address of catch/3
+when running the handler. Maybe we can remove the catch/3 in the future?
+This would also fix the problem that  we   need  to be sure not to catch
+exceptions from the handler.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Code
+findCatchExit()
+{ if ( !GD->exceptions.catch_exit_address )
+  { Definition catch3 = PROCEDURE_catch3->definition;
+    Clause cl = catch3->definition.clauses->clause;
+    Code Exit = &cl->codes[cl->code_size-1];
+    assert(*Exit == encode(I_EXIT));
+
+    GD->exceptions.catch_exit_address = Exit;
+  }
+
+  return GD->exceptions.catch_exit_address;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Find the frame running catch/3. If we found  it, we will mark this frame
 and not find it again, as a catcher   can  only catch once from the 1-st
 argument goal. Exceptions from the  recover   goal  should be passed (to
@@ -3127,8 +3149,7 @@ the moment the code marked (**) handles this not very elegant
         SECURE(checkData(catcher));
 
 	if ( catchfr )
-	{ static code exit_instruction;		/* may be gone otherwise */
-	  Word p = argFrameP(FR, 1);
+	{ Word p = argFrameP(FR, 1);
 	  Choice ch = (Choice)argFrameP(FR, 3); /* Aligned above */
 
 	  assert(ch->type == CHP_CATCH);
@@ -3149,8 +3170,7 @@ the moment the code marked (**) handles this not very elegant
 	  *valTermRef(exception_bin)     = 0;
 	  exception_term		 = 0;
 
-	  exit_instruction = encode(I_EXIT);    /* we must continue with */
-	  PC = &exit_instruction;		/* an I_EXIT. Use catch? */
+	  PC = findCatchExit();
 
 	  goto i_usercall0;
 	} else

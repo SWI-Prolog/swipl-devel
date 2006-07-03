@@ -198,6 +198,10 @@ typedef struct
   } functors;
 
   struct
+  { Code	catch_exit_address;	/* See findCatchExit() */
+  } exceptions;
+
+  struct
   { TempFile		_tmpfile_head;
     TempFile		_tmpfile_tail;
     CanonicalDir	_canonical_dirlist;

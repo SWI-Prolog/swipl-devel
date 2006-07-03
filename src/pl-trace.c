@@ -1664,11 +1664,17 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   } else if ( key == ATOM_pc )
   { if ( fr->programPointer &&
 	 fr->parent &&
-	 false(fr->parent->predicate, FOREIGN) )
-      PL_put_integer(result,
-		     fr->programPointer - fr->parent->clause->clause->codes);
-    else
-      fail;
+	 false(fr->parent->predicate, FOREIGN) &&
+	 fr->parent->predicate != PROCEDURE_dcall1->definition )
+    { long pc = fr->programPointer - fr->parent->clause->clause->codes;
+
+      if ( pc < 0 )
+	trap_gdb();
+
+      PL_put_integer(result, pc);
+    } else
+    { fail;
+    }
   } else if ( key == ATOM_hidden )
   { atom_t a;
 
