@@ -4291,9 +4291,11 @@ prepare_cdata(dtd_parser *p)
 
 static int
 process_cdata(dtd_parser *p, int last)
-{ prepare_cdata(p);
+{ int rc;
 
-  return emit_cdata(p, last);
+  WITH_PARSER(p, (prepare_cdata(p), rc=emit_cdata(p, last)));
+
+  return rc;
 }
 
 
