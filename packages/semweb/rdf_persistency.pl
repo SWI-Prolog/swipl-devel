@@ -265,7 +265,10 @@ process_journal_term(retract(S,P,O), DB) :-
 process_journal_term(retract(S,P,O,Line), DB) :-
 	rdf_retractall(S,P,O,DB:Line).
 process_journal_term(update(S,P,O,Action), DB) :-
-	rdf_update(S,P,O,DB, Action).
+	(   rdf_update(S,P,O,DB, Action)
+	->  true
+	;   print_message(warning, rdf(update_failed(S,P,O,Action)))
+	).
 process_journal_term(start(_), _).
 process_journal_term(end(_), _).
 process_journal_term(begin(_), _).
@@ -719,3 +722,5 @@ prolog:message(rdf(restore(journal(_)))) -->
 	[ at_same_line, '(journal) '-[], flush ].
 prolog:message(rdf(restore(done(_, Time, Count)))) -->
 	[ at_same_line, '~D triples in ~2f sec.'-[Count, Time] ].
+prolog:message(rdf(update_failed(S,P,O,Action))) -->
+	[ 'Failed to update <~p ~p ~p> with ~p'-[S,P,O,Action] ].
