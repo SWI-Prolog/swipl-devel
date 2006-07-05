@@ -1164,7 +1164,7 @@ observe_body(C,Body,Cs) :-
 		spawn_all_triggers(C,Cs)
 	; Body = (_ is _) ->
 		spawn_all_triggers(C,Cs)
-	; binds_b(Body,Vars) ->
+	; builtin_binds_b(Body,Vars) ->
 		(  Vars == [] ->
 			true
 		;
@@ -3794,8 +3794,12 @@ no_matching([X|Xs],Prev) :-
 check_storage_head2(Head,O,H1,B) :-
 	functor(Head,F,A),
 	C = F/A,
-	( ( (H1 \== [], B == true ) ; 
-	   \+ is_observed(F/A,O) ) ->
+	( %( 
+		(H1 \== [], B == true ) 
+	  %; 
+	  % \+ is_observed(F/A,O)  % always fails because observation analysis has not been performed yet
+	  %)
+	->
 		stored(C,O,maybe)
 	;
 		stored(C,O,yes)
@@ -5333,14 +5337,15 @@ propagation_nested_code([Head|RestHeads],PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,
    inc_id(Id,IncId),
    propagation_nested_code(RestHeads,[Head|PreHeads],RestIDs,Rule,RuleNb,FA,O,IncId,L2,T).
 
-check_fd_lookup_condition(_,_,_,_) :- fail.
-%check_fd_lookup_condition(F,A,_,_) :-
-%	get_store_type(F/A,global_singleton), !.
+%check_fd_lookup_condition(_,_,_,_) :- fail.
+check_fd_lookup_condition(F,A,_,_) :-
+	get_store_type(F/A,global_singleton), !, writeln(use_fd(F/A)).
 %check_fd_lookup_condition(F,A,CurrentHead,PreHeads) :-
+%	\+ may_trigger(F/A),
 %	get_functional_dependency(F/A,1,P,K),
 %	copy_term(P-K,CurrentHead-Key),
 %	term_variables(PreHeads,PreVars),
-%	intersect_eq(Key,PreVars,Key).		
+%	intersect_eq(Key,PreVars,Key),!,writeln(use_fd(F/A)).		
 
 propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	Rule = rule(_,H2,Guard,Body),
@@ -6537,7 +6542,7 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 	depends_on_ap/4,
 	depends_on_goal/2,
 	ai_observed_internal/2,
-	ai_observed/2,
+	% ai_observed/2,
 	ai_not_observed_internal/2,
 	ai_not_observed/2,
 	ai_is_observed/2,
@@ -6553,10 +6558,9 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 :- chr_option(mode,depends_on_as(+,+,+)).
 :- chr_option(mode,depends_on_ap(+,+,+,+)).
 :- chr_option(mode,depends_on_goal(+,+)).
-:- chr_option(mode,ai_observed(+,+)).
 :- chr_option(mode,ai_is_observed(+,+)).
 :- chr_option(mode,ai_not_observed(+,+)).
-:- chr_option(mode,ai_observed(+,+)).
+% :- chr_option(mode,ai_observed(+,+)).
 :- chr_option(mode,ai_not_observed_internal(+,+)).
 :- chr_option(mode,ai_observed_internal(+,+)).
 
@@ -6570,7 +6574,7 @@ ai_observed_internal(C,O) \ ai_observed_internal(C,O) <=> true.
 ai_not_observed(C,O) \ ai_is_observed(C,O) <=> fail.
 ai_is_observed(_,_) <=> true.
 
-ai_observation_gather_results \ ai_observed_internal(C,O) <=> ai_observed(C,O).
+ ai_observation_gather_results \ ai_observed_internal(C,O) <=> true. % ai_observed(C,O).
 ai_observation_gather_results \ ai_not_observed_internal(C,O) <=> ai_not_observed(C,O).
 ai_observation_gather_results <=> true.
 
@@ -6625,7 +6629,7 @@ call_pattern(CP) \ call_pattern(CP) <=> true.
 depends_on(CP1,CP2), final_answer_pattern(CP2,AP) ==>
 	final_answer_pattern(CP1,AP).
 
-% call_pattern(CP) ==> writeln(call_pattern(CP)).
+ %call_pattern(CP) ==> writeln(call_pattern(CP)).
 
 call_pattern(CP) ==> call_pattern_worker(CP).
 
@@ -6638,10 +6642,12 @@ call_pattern(CP) ==> call_pattern_worker(CP).
 %	final_answer_pattern(odom([],Set),odom([],Set)).
 
 call_pattern_worker(odom([],Set)) <=>
+	% writeln(' - AbstractGoal'(odom([],Set))),
 	final_answer_pattern(odom([],Set),odom([],Set)).
 
 	% AbstractGoalb
 call_pattern_worker(odom([G|Gs],Set)) <=>
+	% writeln(' - AbstractGoal'(odom([G|Gs],Set))),
 	CP1 = odom(G,Set),
 	depends_on_goal(odom([G|Gs],Set),CP1),
 	call_pattern(CP1).
@@ -6660,7 +6666,7 @@ depends_on_goal(CP1,CP2), final_answer_pattern(CP2,AP2)
 % Abstract Solve 
 %------------------------------------------------------------------------------%
 call_pattern_worker(odom(builtin,Set)) <=>
-	% writeln('  - AbstractSolve'),
+	% writeln('  - AbstractSolve'(odom(builtin,Set))),
 	ord_empty(EmptySet),
 	final_answer_pattern(odom(builtin,Set),odom([],EmptySet)).
 
@@ -6671,7 +6677,7 @@ max_occurrence(C,MO) # ID2 \ call_pattern_worker(odom(occ(C,O),Set))
 	<=>
 		O > MO 
 	|
-		% writeln('  - AbstractDrop'),
+		% writeln('  - AbstractDrop'(odom(occ(C,O),Set))),
 		final_answer_pattern(odom(occ(C,O),Set),odom([],Set))
 	pragma 
 		passive(ID2).
@@ -6683,7 +6689,7 @@ call_pattern_worker(odom(AC,Set))
 	<=>
 		AC = _ / _
 	|
-		% writeln('  - AbstractActivate'),
+		% writeln('  - AbstractActivate'(odom(AC,Set))),
 		CP = odom(occ(AC,1),Set),
 		call_pattern(CP),
 		depends_on(odom(AC,Set),CP).
@@ -6695,6 +6701,7 @@ occurrence(C,O,RuleNb,ID,_) # ID2 \ call_pattern_worker(odom(occ(C,O),Set))
 	<=>
 		is_passive(RuleNb,ID)
 	|
+		% writeln(' - AbstractPassive'(odom(occ(C,O),Set))),
 		% DEFAULT
 		NO is O + 1,
 		DCP = odom(occ(C,NO),Set),
@@ -6712,6 +6719,7 @@ occurrence(C,O,RuleNb,ID,simplification) # ID2 \ call_pattern_worker(odom(occ(C,
 	<=>
 		\+ is_passive(RuleNb,ID) 
 	|
+		% writeln(' - AbstractPassive'(odom(occ(C,O),Set))),
 		ai_observation_memo_simplification_rest_heads(C,O,AbstractRestHeads),
 		ai_observation_observe_set(Set,AbstractRestHeads,Set2),
 		ai_observation_memo_abstract_goal(RuleNb,AG),
@@ -6769,7 +6777,7 @@ occurrence(C,O,RuleNb,ID,propagation) # ID2 \ call_pattern_worker(odom(occ(C,O),
 	<=>
 		\+ is_passive(RuleNb,ID)
 	|
-		% writeln('  - AbstractPropagate'(C,O)),
+		% writeln('  - AbstractPropagate'(odom(occ(C,O),Set))),
 		% observe partners
 		ai_observation_memo_propagation_rest_heads(C,O,AHs),
 		ai_observation_observe_set(Set,AHs,Set2),
@@ -6904,6 +6912,7 @@ ai_observation_abstract_goal_(H1,H2,Guard,G,ACs,AG) :-
 	% so we remove them from the list of 'dangerous' head variables
 	list_difference_eq(HVars,GroundVars,HV),
 	ai_observation_abstract_goal(G,ACs,AG,[],HV),!.
+	% writeln(ai_observation_abstract_goal(G,ACs,AG,[],HV)).
 	% HV are 'dangerous' variables, all others are fresh and safe
 	
 ground_vars([],[]).
@@ -6930,7 +6939,7 @@ ai_observation_abstract_goal(true,_,Tail,Tail,_) :- !.
 ai_observation_abstract_goal(writeln(_),_,Tail,Tail,_) :- !.
 % non-CHR constraint is safe if it only binds fresh variables
 ai_observation_abstract_goal(G,_,Tail,Tail,HV) :- 
-	binds_b(G,Vars),
+	builtin_binds_b(G,Vars),
 	intersect_eq(Vars,HV,[]), 
 	!.	
 ai_observation_abstract_goal(G,_,[AG|Tail],Tail,_) :-
@@ -7136,3 +7145,6 @@ uses_history(_FA) <=> fail.
 
 does_use_history(FA,Occ) \ novel_production_call(FA,Occ,PossibleGoal,Goal) <=> Goal = PossibleGoal.
 novel_production_call(FA,_,_PossibleGoal,Goal) <=> Goal = true.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Counter number of calls to generated predicates, if == 1 then inline...
