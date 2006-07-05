@@ -33,6 +33,23 @@
 \predicatesummary{union}{3}{Union of two sets}
 \end{summarylist}
 
+\subsection{\pllib{ordsets}}
+
+\begin{summarylist}{ll}
+\predicatesummary{ord_empty}{1}{Test empty ordered set}
+\predicatesummary{list_to_ord_set}{2}{Create ordered set}
+\predicatesummary{ord_add_element}{3}{Add element to ordered set}
+\predicatesummary{ord_del_element}{3}{Delete element from ordered set}
+\predicatesummary{ord_intersect}{2}{Test non-empty intersection}
+\predicatesummary{ord_intersection}{3}{Compute intersection}
+\predicatesummary{ord_disjoint}{2}{Test empty intersection}
+\predicatesummary{ord_subtract}{3}{Delete set from set}
+\predicatesummary{ord_union}{3}{Union of two ordered sets}
+\predicatesummary{ord_union}{4}{Union and difference of two ordered sets}
+\predicatesummary{ord_subset}{2}{Test subset}
+\predicatesummary{ord_memberchk}{2}{Deterministically test membership}
+\end{summarylist}
+
 \subsection{\pllib{ugraphs}}
 
 \begin{summarylist}{ll}

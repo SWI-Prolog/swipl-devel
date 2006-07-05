@@ -113,11 +113,11 @@ of the file using prolog_file_type/2. The default extension is
 \fileext{pl}.  \arg{Spec} allows for the \jargon{path-alias} construct
 defined by absolute_file_name/3.  The most commonly used path-alias
 is \term{library}{LibraryFile}.  The example below loads the library
-file \file{oset.pl} (containing predicates for manipulating ordered
+file \file{ordsets.pl} (containing predicates for manipulating ordered
 sets).
 
 \begin{code}
-:- use_module(library(oset)).
+:- use_module(library(ordsets)).
 \end{code}
 
 SWI-Prolog recognises grammar rules (\idx{DCG}) as defined in

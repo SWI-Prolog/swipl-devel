@@ -25,13 +25,13 @@ incomplete finite domain reasoner.
 :- module(domain,
 	  [ domain/2			% Var, ?Domain
 	  ]).
-:- use_module(library(oset)).
+:- use_module(library(ordsets)).
 
 domain(X, Dom) :-
 	var(Dom), !,
 	get_attr(X, domain, Dom).
 domain(X, List) :-
-	sort(List, Domain),
+	list_to_ordset(List, Domain),
 	put_attr(Y, domain, Domain),
 	X = Y.
 
@@ -40,7 +40,7 @@ domain(X, List) :-
 
 attr_unify_hook(Domain, Y) :-
 	(   get_attr(Y, domain, Dom2)
-	->  oset_int(Domain, Dom2, NewDomain),
+	->  ordset_intersection(Domain, Dom2, NewDomain),
 	    (   NewDomain == []
 	    ->	fail
 	    ;	NewDomain = [Value]
@@ -49,7 +49,7 @@ attr_unify_hook(Domain, Y) :-
 	    )
 	;   var(Y)
 	->  put_attr( Y, domain, Domain )
-	;   memberchk(Y, Domain)
+	;   ordset_memberchk(Y, Domain)
 	).
 \end{code}
 

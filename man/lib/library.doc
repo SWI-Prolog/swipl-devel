@@ -27,6 +27,7 @@ documented at all.
 \end{quote}
 
 \input{lists}
+\input{ordsets}
 \input{assoc}
 \input{ugraphs}
 \input{nbset}
