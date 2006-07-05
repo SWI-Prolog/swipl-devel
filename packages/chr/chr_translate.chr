@@ -940,9 +940,10 @@ remove_anti_monotonic_guard_list([],_,[]).
 remove_anti_monotonic_guard_list([G|Gs],Vars,NGs) :-
 	( G = var(X), memberchk_eq(X,Vars) ->
 		NGs = RGs
-	; G = functor(Term,Functor,Arity),			% isotonic
-	  \+ memberchk_eq(Functor,Vars), \+ memberchk_eq(Arity,Vars) ->
-		NGs = RGs
+% TODO: this is not correct
+% 	; G = functor(Term,Functor,Arity),			% isotonic
+% 	  \+ memberchk_eq(Functor,Vars), \+ memberchk_eq(Arity,Vars) ->
+% 		NGs = RGs
 	;
 		NGs = [G|RGs]
 	),
