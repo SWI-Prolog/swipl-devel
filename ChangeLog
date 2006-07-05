@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==============================
+VERSION 5.6.16 (July 05, 2006)
+==============================
+
   * FIXED: Possibly corrupted stack (invalid program counter) returned
     through the library prolog_stack.
 
