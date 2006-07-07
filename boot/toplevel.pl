@@ -565,6 +565,7 @@ write_bindings([], Det) :-
 	print_message(query, query(yes)).
 write_bindings(Bindings, _Det) :-
 	repeat,
+	    bind_vars(Bindings),
 	    print_message(query, query(yes, Bindings)),
 	    get_respons(Action),
 	(   Action == redo
@@ -575,7 +576,20 @@ write_bindings(Bindings, _Det) :-
 	    print_message(query, query(yes))
 	).
 
-:- flag($toplevel_print_predicate, _, print).
+%	bind_vars(+Bindings)
+%	
+%	Bind variables to '$VAR'(Name), so they are printed by the names
+%	used in the query. Note that by   binding  in the reverse order,
+%	variables bound to one another come out in the natural order.
+
+bind_vars([]).
+bind_vars([Name=Var|T]) :-
+	bind_vars(T),
+	(   var(Var), \+ attvar(Var)
+	->  Var = '$VAR'(Name)
+	;   true
+	).
+
 
 get_respons(Action) :-
 	repeat,

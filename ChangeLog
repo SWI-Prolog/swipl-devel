@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: Try to reuse variable names when writing results of toplevel
+    queries.
+
   * ADDED: with_output_to(+Out, :Goal) to allow writing to atoms, strings,
     code-lists, etc.  Also allows for format(+Out, +Fmt, +Args) with the
     same specifications.  Moved sformat/[2,3] to the compatibility library.
