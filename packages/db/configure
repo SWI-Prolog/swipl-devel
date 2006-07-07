@@ -1323,7 +1323,8 @@ if test -z "$CIFLAGS" -a ! -z "$CPPFLAGS"; then CIFLAGS="$CPPFLAGS"; fi
 if test "${enable_mt+set}" = set; then
   enableval="$enable_mt"
   case "$enableval" in
-		   yes) cat >>confdefs.h <<\_ACEOF
+		   yes)
+cat >>confdefs.h <<\_ACEOF
 #define _REENTRANT 1
 _ACEOF
 
@@ -3801,7 +3802,8 @@ echo "$as_me:$LINENO: result: $ac_cv_lib_socket_socket" >&5
 echo "${ECHO_T}$ac_cv_lib_socket_socket" >&6
 if test $ac_cv_lib_socket_socket = yes; then
   NETLIBS="$NETLIBS -lsocket"; LIBS="$LIBS -lsocket"
-	     cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define HAVE_LIBSOCKET 1
 _ACEOF
 
@@ -3873,38 +3875,34 @@ echo "$as_me:$LINENO: result: $ac_cv_lib_nsl_t_bind" >&5
 echo "${ECHO_T}$ac_cv_lib_nsl_t_bind" >&6
 if test $ac_cv_lib_nsl_t_bind = yes; then
   NETLIBS="$NETLIBS -lnsl"
-	     cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define HAVE_LIBNSL 1
 _ACEOF
 
 fi
 
+
 as_ac_Lib=`echo "ac_cv_lib_$LIBDB''_db_create" | $as_tr_sh`
+
 echo "$as_me:$LINENO: checking for db_create in -l$LIBDB" >&5
 echo $ECHO_N "checking for db_create in -l$LIBDB... $ECHO_C" >&6
 if eval "test \"\${$as_ac_Lib+set}\" = set"; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-l$LIBDB  $LIBS"
+LIBS="-l$LIBDB $LIBS"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char db_create ();
+#include <db.h>
 int
 main ()
 {
-db_create ();
+db_create(0,0,0)
   ;
   return 0;
 }
@@ -3932,11 +3930,14 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
   eval "$as_ac_Lib=yes"
+		LIBS="-l$LIBDB $LIBS"
+		HAVEDB=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
 eval "$as_ac_Lib=no"
+		HAVEDB=no
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
@@ -3944,12 +3945,6 @@ LIBS=$ac_check_lib_save_LIBS
 fi
 echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_Lib'}'`" >&5
 echo "${ECHO_T}`eval echo '${'$as_ac_Lib'}'`" >&6
-if test `eval echo '${'$as_ac_Lib'}'` = yes; then
-  LIBS="-l$LIBDB $LIBS"; HAVEDB=yes
-else
-  HAVEDB=no
-fi
-
 
 # On IRIX 5.3, sys/types and inttypes.h are conflicting.
 
@@ -4240,7 +4235,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define HAVE_SET_RPC_SERVER 1
 _ACEOF
 

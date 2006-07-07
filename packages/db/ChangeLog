@@ -1,3 +1,7 @@
+Jul 7, 2006
+
+* Bug#176: deal with versioned DB libraries.  Keri Harris, Gentoo Linux.
+
 Dec 12, 2005
 
 * PORT: Various issues to get compiled on MacOS X.

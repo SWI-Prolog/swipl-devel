@@ -1,15 +1,4 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
-/* Define if you have the nsl library (-lnsl).  */
-#undef HAVE_LIBNSL
-
-/* Define if you have the socket library (-lsocket).  */
-#undef HAVE_LIBSOCKET
-
-/* Define to prepare for multi-threading */
-#undef _REENTRANT
-
-/* Define if DB_ENV defines ->set_rpc_server rather then ->set_server */
-#undef HAVE_SET_RPC_SERVER
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
@@ -32,8 +21,17 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define if you have the nsl library */
+#undef HAVE_LIBNSL
+
+/* Define if socket is in library socket */
+#undef HAVE_LIBSOCKET
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define if db_env provides set_rpc_server */
+#undef HAVE_SET_RPC_SERVER
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -85,3 +83,6 @@
 /* Define to 1 if your processor stores words with the most significant byte
    first (like Motorola and SPARC, unlike Intel and VAX). */
 #undef WORDS_BIGENDIAN
+
+/* Define to enable multi-threading */
+#undef _REENTRANT
