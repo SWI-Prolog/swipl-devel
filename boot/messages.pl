@@ -829,7 +829,7 @@ print_message_line(S, [Fmt|T0], T) :-
 message_to_string(Term, Str) :-
         translate_message(Term, Actions, []), !,
         actions_to_format(Actions, Fmt, Args),
-        sformat(Str, Fmt, Args).
+        format(string(Str), Fmt, Args).
 
 actions_to_format([], '', []) :- !.
 actions_to_format([nl], '', []) :- !.

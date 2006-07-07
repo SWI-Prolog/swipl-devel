@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: with_output_to(+Out, :Goal) to allow writing to atoms, strings,
+    code-lists, etc.  Also allows for format(+Out, +Fmt, +Args) with the
+    same specifications.  Moved sformat/[2,3] to the compatibility library.
+
   * MODIFIED: functions lsb and msb throw domain error on 0.  Updated
     documentation.  With help from Richard O'Keefe and Bart Demoen.
 

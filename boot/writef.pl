@@ -74,10 +74,10 @@ writef(Format, List) :-
 	fail.				% clean up global stack
 writef(_, _).
 
-swritef(Atom, Format, Arguments) :-
-	$write_on_string(writef(Format, Arguments), Atom).
-swritef(Atom, Format) :-
-	$write_on_string(writef(Format), Atom).
+swritef(String, Format, Arguments) :-
+	with_output_to(string(String), writef(Format, Arguments)).
+swritef(String, Format) :-
+	with_output_to(string(String), writef(Format)).
 
 			% Formatted write for a string (i.e. a list of
 			% character codes).

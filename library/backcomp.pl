@@ -37,6 +37,8 @@
 	    '$strip_module'/3,
 	    displayq/1,
 	    displayq/2,
+	    sformat/2,			% -String, +Fmt
+	    sformat/3,			% -String, +Fmt, +Args
 	    concat/3,
 	    read_variables/2,
 	    read_variables/3,
@@ -75,6 +77,12 @@ displayq(Term) :-
 	write_term(Term, [ignore_ops(true),quoted(true)]).
 displayq(Stream, Term) :-
 	write_term(Stream, Term, [ignore_ops(true),quoted(true)]).
+
+
+sformat(String, Format, Arguments) :-
+	format(string(String), Format, Arguments).
+sformat(String, Format) :-
+	format(string(String), Format).
 
 %	concat/3 is superseeded by ISO atom_concat/3
 

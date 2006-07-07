@@ -264,16 +264,12 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
 
 
 static word
-format_impl(term_t stream, term_t format, term_t Args)
+format_impl(IOSTREAM *out, term_t format, term_t Args)
 { term_t argv;
   int argc = 0;
   term_t args = PL_copy_term_ref(Args);
-  IOSTREAM *out;
   int rval;
   PL_chars_t fmt;
-
-  if ( !getOutputStream(stream, &out) )
-    fail;
 
   if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_RING) )
     return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, format);
@@ -304,21 +300,26 @@ format_impl(term_t stream, term_t format, term_t Args)
   rval = do_format(out, &fmt, argc, argv);
   PL_free_text(&fmt);
 
-  if ( rval )
-  { return streamStatus(out);
-  } else
-  { PL_release_stream(out);
-    fail;
-  }
+  return rval;
 }
 
 
 word
-pl_format3(term_t stream, term_t format, term_t args)
-{ int rc;
+pl_format3(term_t out, term_t format, term_t args)
+{ redir_context ctx;
+  int rc;
 
   startCritical;
-  rc = format_impl(stream, format, args);
+  if ( !setupOutputRedirect(out, &ctx, FALSE) )
+  { endCritical;
+    fail;
+  }
+
+  if ( (rc = format_impl(ctx.stream, format, args)) )
+    rc = closeOutputRedirect(&ctx);
+  else
+    discardOutputRedirect(&ctx);
+       
   endCritical;
 
   return rc;

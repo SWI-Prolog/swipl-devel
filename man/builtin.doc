@@ -2575,13 +2575,73 @@ and the explicit stream based I/O predicates.
 Set the current input stream to become \arg{Stream}.  Thus, open(file,
 read, Stream), set_input(Stream) is equivalent to see(file).
     \predicate{set_output}{1}{+Stream}
-Set the current output stream to become \arg{Stream}.
+Set the current output stream to become \arg{Stream}.  See also
+with_output_to/2.
     \predicate{current_input}{1}{-Stream}
 Get the current input stream.  Useful to get access to the status
 predicates associated with streams.
     \predicate{current_output}{1}{-Stream}
 Get the current output stream.
 \end{description}
+
+
+\subsection{Write onto atoms, code-lists, etc.}
+
+\begin{description}
+    \predicate{with_output_to}{2}{+Output, :Goal}
+Run \arg{Goal} as once/1, while characters written to the current output
+is sent to \arg{Output}. The predicate is SWI-Prolog specific, inspired
+by various posts to the mailinglist. It provides a flexible replacement
+for predicates such as sformat/3, swritef/3, term_to_atom/2,
+atom_number/2 converting numbers to atoms, etc.  The predicate format/3
+accepts the same terms as output argument.
+
+Applications should generally avoid creating atoms by breaking and
+concatenating other atoms as the creation of large numbers of
+intermediate atoms generally leads to poor performance, even more so in
+multi-threaded applications.  This predicate supports creating
+difference-lists from character data efficiently.  The example below
+defines the DCG rule term//1 to insert a term in the output:
+
+\begin{code}
+term(Term, In, Tail) :-
+	with_output_to(codes(In, Tail), write(Term)).
+
+?- phrase(term(hello), X).
+
+X = [104, 101, 108, 108, 111]
+\end{code}
+
+
+\begin{description}
+    \definition{A Stream handle or alias}
+Temporary switch current output to the given stream.  Redirection using
+with_output_to/2 guarantees the original output is restored, also if
+\arg{Goal} fails or raises an exception.  See also call_cleanup/2.
+
+    \termitem{atom}{-Atom}
+Create an atom from the emitted characters. Please note the remark
+above.
+
+    \termitem{string}{-String}
+Create a string-object as defined in \secref{strings}.
+
+    \termitem{codes}{-Codes}
+Create a list of character codes from the emitted characters, similar to
+atom_codes/2. 
+
+    \termitem{codes}{-Codes, -Tail}
+Create a list of character codes as a difference-list.
+
+    \termitem{chars}{-Chars}
+Create a list of one-character-atoms codes from the emitted characters,
+similar to atom_chars/2. 
+
+    \termitem{codes}{-Codes, -Tail}
+Create a list of one-character-atoms as a difference-list.
+\end{description}
+\end{description}
+
 
 \section{Status of streams}		\label{sec:streamstat}
 
@@ -2868,9 +2928,9 @@ copy(In, Out) :-
 \section{Term reading and writing}		\label{sec:termrw}
 
 This section describes the basic term reading and writing predicates.
-The predicates term_to_atom/2, atom_to_term/3 and sformat/3 provide
-means for translating atoms and strings to terms. The predicates
-format/[1,2] and writef/2 provide formatted output.
+The predicates format/[1,2] and writef/2 provide formatted output.
+Writing to Prolog datastructures such as atoms or code-lists is
+supported by with_output_to/2 and format/3.
 
 There are two ways to manipulate the output format.  The predicate
 print/[1,2] may be programmed using portray/1.  The format of floating
@@ -4683,20 +4743,23 @@ Will output
 
 Runtime: .................. 3.45  Inferences: .......... 60,345
 \end{code}
-    \predicate{format}{3}{+Stream, +Format, +Arguments}
-As format/2, but write the output on the given \arg{Stream}.
-    \predicate{sformat}{3}{-String, +Format, +Arguments}
-Equivalent to format/2, but ``writes'' the result on \arg{String}
-instead of the current output stream. Example:
+
+    \predicate{format}{3}{+Output, +Format, +Arguments}
+As format/2, but write the output on the given \arg{Output}. The
+de-facto standard only allows \arg{Output} to be a stream. The
+SWI-Prolog implementation allows all valid arguments for
+with_output_to/2.%
+	\footnote{Earlier versions defined sformat/[2,3].  These
+		  predicates have been moved to the library
+		  \pllib{backcomp}.}
+For example:
+
 \begin{code}
-?- sformat(S, '~w~t~15|~w', ['Hello', 'World']).
-
-S = "Hello          World"
+?- format(atom(A), '~D', [1000000]).
+A = '1,000,000'
 \end{code}
-
-    \predicate{sformat}{2}{-String, +Format}
-Equivalent to `\exam{sformat(String, Format, []).}'
 \end{description}
+
 
 \subsection{Programming Format}
 

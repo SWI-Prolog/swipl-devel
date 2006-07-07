@@ -140,13 +140,13 @@ goal_name(_, _, String) :-
 
 goal_name_('_', '_') :- !.			% catch anonymous variable
 goal_name_(Module:Name/Arity, String) :- !,
-	sformat(String, '~q:~q/~q', [Module, Name, Arity]).
+	format(string(String), '~q:~q/~q', [Module, Name, Arity]).
 goal_name_(Name/Arity, String) :- !,
-	sformat(String, '~q/~q', [Name, Arity]).
+	format(string(String), '~q/~q', [Name, Arity]).
 goal_name_(Module:Term, String) :- !,
-	sformat(String, '~q:~w', [Module, Term]).
+	format(string(String), '~q:~w', [Module, Term]).
 goal_name_(Goal, String) :-
-	sformat(String, '~w', [Goal]).
+	format(string(String), '~w', [Goal]).
 
 
 %	$find_predicate(+Spec, -List)

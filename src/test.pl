@@ -156,20 +156,31 @@ write_test(q-6) :-
 		 *******************************/
 
 format_test(intD-1) :-
-	sformat(X, '~D', [1000]),
-	string_to_atom(X, '1,000').
+	format(atom(X), '~D', [1000]),
+	X == '1,000'.
 format_test(intD-2) :-
-	sformat(X, '~2D', [1000]),
-	string_to_atom(X, '10.00').
+	format(atom(X), '~2D', [1000]),
+	X == '10.00'.
 format_test(intD-3) :-
-	sformat(X, '~2D', [100000]),
-	string_to_atom(X, '1,000.00').
+	format(atom(X), '~2D', [100000]),
+	X == '1,000.00'.
 format_test(intr-1) :-
-	sformat(X, '~16r', [1000]),
-	string_to_atom(X, '3e8').
+	format(atom(X), '~16r', [1000]),
+	X == '3e8'.
 format_test(intR-1) :-
-	sformat(X, '~16R', [1000]),
-	string_to_atom(X, '3E8').
+	format(atom(X), '~16R', [1000]),
+	X == '3E8'.
+format_test(oncodes-1) :-
+	format(codes(C), 'hello ~w', [world]),
+	C == "hello world".
+format_test(oncodes-2) :-
+	format(codes(C,T), 'hello ~w', [world]),
+	append("hello world", T2, C2),
+	C-T =@= C2-T2.
+format_test(onstring-1) :-
+	format(string(S), 'hello ~w', [world]),
+	string(S),
+	string_to_list(S, "hello world").
 
 
 		 /*******************************
@@ -606,20 +617,20 @@ gmp(atom_number-1) :-
 	atom_number(Atom, Y),		% read
 	X == Y.
 gmp(fmtd-1) :-
-	sformat(X, '~d', [12345678901234567890123456]),
-	string_to_atom(X, '12345678901234567890123456').
+	format(atom(X), '~d', [12345678901234567890123456]),
+	X == '12345678901234567890123456'.
 gmp(fmtd-2) :-
-	sformat(X, '~2d', [12345678901234567890123456]),
-	string_to_atom(X, '123456789012345678901234.56').
+	format(atom(X), '~2d', [12345678901234567890123456]),
+	X == '123456789012345678901234.56'.
 gmp(fmtD-1) :-
-	sformat(X, '~D', [12345678901234567890123456]),
-	string_to_atom(X, '12,345,678,901,234,567,890,123,456').
+	format(atom(X), '~D', [12345678901234567890123456]),
+	X == '12,345,678,901,234,567,890,123,456'.
 gmp(fmtD-2) :-
-	sformat(X, '~2D', [12345678901234567890123456]),
-	string_to_atom(X, '123,456,789,012,345,678,901,234.56').
+	format(atom(X), '~2D', [12345678901234567890123456]),
+	X ==  '123,456,789,012,345,678,901,234.56'.
 gmp(fmtf-1) :-
 	ratp(999, 1, X),
-	sformat(S, '~5f', [X]),
+	format(atom(S), '~5f', [X]),
 	sub_atom(S, _, _, 0, '935376.65824').
 gmp(idiv-1) :-
 	(   current_prolog_flag(bounded, false)

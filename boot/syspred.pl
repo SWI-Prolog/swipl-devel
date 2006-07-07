@@ -67,8 +67,6 @@
 	, open_shared_object/2
 	, open_shared_object/3
 	, format/1
-	, sformat/2
-	, sformat/3
 	, garbage_collect/0
 	, arithmetic_function/1
         , default_module/2
@@ -723,17 +721,12 @@ open_shared_object(File, Handle) :-
 	open_shared_object(File, [], Handle). % use pl-load.c defaults
 
 
-		/********************************
-		*              I/O              *
-		*********************************/
+		 /*******************************
+		 *	       I/O		*
+		 *******************************/
 
 format(Fmt) :-
 	format(Fmt, []).
-
-sformat(String, Format, Arguments) :-
-	$write_on_string(format(Format, Arguments), String).
-sformat(String, Format) :-
-	$write_on_string(format(Format), String).
 
 		 /*******************************
 		 *	      FILES		*

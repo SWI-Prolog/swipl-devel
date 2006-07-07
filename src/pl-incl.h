@@ -1924,6 +1924,23 @@ typedef struct
 } nv_options;
 
 
+		 /*******************************
+		 *	    STREAM I/O		*
+		 *******************************/
+
+typedef struct redir_context
+{ IOSTREAM     *stream;			/* temporary output */
+  int		is_stream;		/* redirect to stream */
+  int		redirected;		/* output is redirected */
+  term_t	term;			/* redirect target */
+  int		out_format;		/* output type */
+  int		out_arity;		/* 2 for difference-list versions */
+  int		size;			/* size of I/O buffer */
+  char	       *data;			/* data written */
+  char		buffer[1024];		/* fast temporary buffer */
+} redir_context;
+
+
 		/********************************
 		*       READ WARNINGS           *
 		*********************************/

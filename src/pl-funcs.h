@@ -343,6 +343,11 @@ COMMON(void) 		pushOutputContext(void);
 COMMON(void) 		popOutputContext(void);
 COMMON(IOENC)		atom_to_encoding(atom_t a);
 COMMON(atom_t)		encoding_to_atom(IOENC enc);
+COMMON(int)		setupOutputRedirect(term_t to, 
+					    redir_context *ctx,
+					    int redir);
+COMMON(int)		closeOutputRedirect(redir_context *ctx);
+COMMON(void)		discardOutputRedirect(redir_context *ctx);
 
 /* pl-flag.c */
 COMMON(void) 		initFlags(void);
@@ -558,7 +563,6 @@ COMMON(word) 		pl_string_to_list(term_t str, term_t list);
 COMMON(word) 		pl_sub_string(term_t str,
 			      term_t offset, term_t length, term_t after,
 			      term_t sub, control_t h);
-COMMON(word) 		pl_write_on_string(term_t goal, term_t string);
 COMMON(word) 		pl_repeat(control_t h);
 COMMON(word) 		pl_fail(void);
 COMMON(word) 		pl_true(void);

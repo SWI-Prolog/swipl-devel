@@ -10,6 +10,7 @@
 # awk you can propagate the changes by hand, but be careful!
 
 
+
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -25,12 +26,13 @@ A alnum			"alnum"
 A alpha			"alpha"
 A alternative		"alternative"
 A and			"/\\"
+A anonvar		"_"
 A append		"append"
 A apply			"$apply"
 A ar_equals		"=:="
 A ar_not_equal		"=\\="
 A argument		"argument"
-A not_less_than_one	"not_less_than_one"
+A argumentlimit		"argumentlimit"
 A ascii			"ascii"
 A asin			"asin"
 A assert		"assert"
@@ -297,6 +299,7 @@ A locked		"locked"
 A log			"log"
 A log10			"log10"
 A lower			"lower"
+A lsb			"lsb"
 A lshift		"<<"
 A main			"main"
 A mark			"mark"
@@ -338,6 +341,7 @@ A not			"not"
 A not_empty_list	"not_empty_list"
 A not_equals		"\\="
 A not_implemented	"not_implemented"
+A not_less_than_one	"not_less_than_one"
 A not_less_than_zero	"not_less_than_zero"
 A not_provable		"\\+"
 A not_strickt_equals	"\\=="
@@ -369,6 +373,7 @@ A pi			"pi"
 A pipe			"pipe"
 A plain			"plain"
 A plus			"+"
+A popcount		"popcount"
 A portray		"portray"
 A position		"position"
 A predicate_indicator	"predicate_indicator"
@@ -392,6 +397,7 @@ A query			"?-"
 A quiet			"quiet"
 A quote			"quote"
 A quoted		"quoted"
+A radix			"radix"
 A random		"random"
 A rational		"rational"
 A rationalize		"rationalize"
@@ -522,6 +528,7 @@ A tty_control		"tty_control"
 A type			"type"
 A type_error		"type_error"
 A undefined		"undefined"
+A undefined_global_variable	"undefined_global_variable"
 A undefinterc		"$undefined_procedure"
 A unicode_be		"unicode_be"
 A unicode_le		"unicode_le"
@@ -563,12 +570,6 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
-A lsb			"lsb"
-A popcount		"popcount"
-A radix			"radix"
-A argumentlimit		"argumentlimit"
-A undefined_global_variable	"undefined_global_variable"
-A anonvar		"_"
 
 F abs			1
 F access		1
@@ -583,6 +584,7 @@ F assert		1
 F asserta		1
 F atan			1
 F atan			2
+F atom			1
 F att			3
 F backslash		1
 F bar			2
@@ -599,7 +601,11 @@ F callpred		2
 F catch			3
 F ceil			1
 F ceiling		1
+F chars			1
+F chars			2
 F close_on_abort	1
+F codes			1
+F codes			2
 F colon			2
 F comma			2
 F context		2
@@ -660,6 +666,7 @@ F input			0
 F integer		1
 F io_error		2
 F is			2
+F isovar		1
 F larger		2
 F larger_equal		2
 F line_count		1
@@ -667,6 +674,7 @@ F list_position		4
 F listing		1
 F log			1
 F log10			1
+F lsb			1
 F lshift		2
 F max			2
 F message_lines		1
@@ -684,6 +692,7 @@ F permission_error	3
 F pi			0
 F pipe			1
 F plus			2
+F popcount		1
 F portray		1
 F position		1
 F print			1
@@ -720,6 +729,7 @@ F sqrt			1
 F star			2
 F stream		4
 F stream_position	4
+F string		1
 F string		2
 F string_position	2
 F syntax_error		1
@@ -743,6 +753,3 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
-F lsb			1
-F popcount		1
-F isovar		1

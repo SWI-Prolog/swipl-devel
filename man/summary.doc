@@ -472,8 +472,6 @@ suggest predicates from a keyword.
 \predicatesummary{setenv}{2}{Set shell environment variable}
 \predicatesummary{setlocale}{3}{Set/query C-library regional information}
 \predicatesummary{setof}{3}{Find all unique solutions to a goal}
-\predicatesummary{sformat}{2}{Format on a string}
-\predicatesummary{sformat}{3}{Format on a string}
 \predicatesummary{shell}{0}{Execute interactive subshell}
 \predicatesummary{shell}{1}{Execute OS command}
 \predicatesummary{shell}{2}{Execute OS command}
@@ -580,6 +578,7 @@ suggest predicates from a keyword.
 \predicatesummary{win_window_pos}{1}{Win32: change size and position of window}
 \predicatesummary{window_title}{2}{Win32: change title of window}
 \predicatesummary{with_mutex}{2}{Run goal while holding mutex}
+\predicatesummary{with_output_to}{2}{Write to strings and more}
 \predicatesummary{working_directory}{2}{Query/change CWD}
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}

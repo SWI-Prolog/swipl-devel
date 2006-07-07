@@ -834,6 +834,11 @@ protocol(const char *str, int n)
 }
 
 
+		 /*******************************
+		 *	  TEMPORARY I/O		*
+		 *******************************/
+
+
 word
 pl_push_input_context()
 { GET_LD
@@ -897,6 +902,138 @@ popOutputContext()
   } else
     Scurout = Soutput;
 }
+
+
+int
+setupOutputRedirect(term_t to, redir_context *ctx, int redir)
+{ GET_LD
+  atom_t a;
+
+  ctx->term = to;
+  ctx->redirected = redir;
+
+  if ( to == 0 )
+  { ctx->stream = getStream(Scurout);
+    ctx->is_stream = TRUE;
+  } else if ( PL_get_atom(to, &a) && a == ATOM_user )
+  { ctx->stream = getStream(Suser_output);
+    ctx->is_stream = TRUE;
+  } else if ( get_stream_handle(to, &ctx->stream, SH_SAFE) )
+  { if ( !(ctx->stream->flags &SIO_OUTPUT) )
+    { releaseStream(ctx->stream);
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		      ATOM_output, ATOM_stream, to);
+    }
+
+    ctx->is_stream = TRUE;
+  } else
+  { if ( PL_is_functor(to, FUNCTOR_codes2) )
+    { ctx->out_format = PL_CODE_LIST;
+      ctx->out_arity = 2;
+    } else if ( PL_is_functor(to, FUNCTOR_codes1) )
+    { ctx->out_format = PL_CODE_LIST;
+      ctx->out_arity = 1;
+    } else if ( PL_is_functor(to, FUNCTOR_chars2) )
+    { ctx->out_format = PL_CHAR_LIST;
+      ctx->out_arity = 2;
+    } else if ( PL_is_functor(to, FUNCTOR_chars1) )
+    { ctx->out_format = PL_CHAR_LIST;
+      ctx->out_arity = 1;
+    } else if ( PL_is_functor(to, FUNCTOR_string1) )
+    { ctx->out_format = PL_STRING;
+    } else if ( PL_is_functor(to, FUNCTOR_atom1) )
+    { ctx->out_format = PL_ATOM;
+    } else
+    { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_output);
+    }
+    
+    ctx->is_stream = FALSE;
+    ctx->data = ctx->buffer;
+    ctx->size = sizeof(ctx->buffer);
+    ctx->stream = Sopenmem(&ctx->data, &ctx->size, "w");
+    ctx->stream->encoding = ENC_WCHAR;
+  }
+
+  if ( redir )
+  { pushOutputContext();
+    Scurout = ctx->stream;
+  }
+
+  succeed;
+}
+
+
+int
+closeOutputRedirect(redir_context *ctx)
+{ int rval = TRUE;
+
+  if ( ctx->redirected )
+    popOutputContext();
+
+  if ( ctx->is_stream )
+  { rval = streamStatus(ctx->stream);
+  } else
+  { GET_LD
+    term_t out  = PL_new_term_ref();
+    term_t diff, tail;
+
+    closeStream(ctx->stream);
+    _PL_get_arg(1, ctx->term, out);
+    if ( ctx->out_arity == 2 )
+    { diff = PL_new_term_ref();
+      _PL_get_arg(2, ctx->term, diff);
+      tail = PL_new_term_ref();
+    } else
+    { diff = tail = 0;
+    }
+ 
+    rval = PL_unify_wchars_diff(out, tail, ctx->out_format,
+				ctx->size/sizeof(wchar_t),
+				(wchar_t*)ctx->data);
+    if ( tail )
+      rval = PL_unify(tail, diff);
+
+    if ( ctx->data != ctx->buffer )
+      free(ctx->data);
+  }
+
+  return rval;
+}
+
+
+void
+discardOutputRedirect(redir_context *ctx)
+{ if ( ctx->redirected )
+    popOutputContext();
+
+  if ( ctx->is_stream )
+  { releaseStream(ctx->stream);
+  } else
+  { closeStream(ctx->stream);
+    if ( ctx->data != ctx->buffer )
+      free(ctx->data);
+  }
+}
+
+
+static
+PRED_IMPL("with_output_to", 2, with_output_to, PL_FA_TRANSPARENT)
+{ redir_context outctx;
+
+  if ( setupOutputRedirect(A1, &outctx, TRUE) )
+  { term_t ex = 0;
+    int rval;
+
+    if ( (rval = callProlog(NULL, A2, PL_Q_CATCH_EXCEPTION, &ex)) )
+      return closeOutputRedirect(&outctx);
+    discardOutputRedirect(&outctx);
+    if ( ex )
+      return PL_raise_exception(ex);
+  }
+
+  fail;
+}
+
 
 
 void
@@ -4114,4 +4251,5 @@ BeginPredDefs(file)
   PRED_DEF("character_count", 2, character_count, 0)
   PRED_DEF("line_count", 2, line_count, 0)
   PRED_DEF("line_position", 2, line_position, 0)
+  PRED_DEF("with_output_to", 2, with_output_to, PL_FA_TRANSPARENT)
 EndPredDefs
