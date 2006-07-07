@@ -1,0 +1,62 @@
+\libdoc{ordsets}{Ordered Set Manipulation}
+\label{sec:lib:ordsets}
+
+Ordered sets are lists with unique elements sorted to the standard order
+of terms (see sort/2). Exploiting ordering, many of the set operations
+can be expressed in order N rather than $N^2$ when dealing with
+unordered sets that may contain duplicates. The \pllib{ordsets} is
+available in a number of Prolog implementations. Our predicates are
+designed to be compatible with common practice in the Prolog community.
+The implementation is incomplete and relies partly on \pllib{oset}, an
+older ordered set library distributed with SWI-Prolog.  New applications
+are advices to use \pllib{ordsets}.
+
+Some of these predicates match directly to corresponding list
+operations. It is adviced to use the versions from this library to make
+clear you are operating on ordered sets.
+
+\begin{description}
+    \predicate{ord_empty}{1}{?Set}
+True if \arg{Set} is an empty ordered set.  \arg{Set} unifies with the
+empty list.
+
+    \predicate{list_to_ord_set}{2}{+List, -OrdSet}
+Convert a \arg{List} to an ordered set.  Same as sort/2.
+
+    \predicate{ord_add_element}{3}{+Set, +Element, -NewSet}
+Add an element to an ordered set.  \arg{NewSet} is the same as
+\arg{Set} if \arg{Element} is already part of \arg{Set}.
+
+    \predicate{ord_del_element}{3}{+Set, +Element, -NewSet}
+Delete \arg{Element} from \arg{Set}. Succeeds without changing \arg{Set}
+if \arg{Set} does not contain \arg{Element}.
+
+    \predicate{ord_intersect}{2}{+Set1, +Set2}
+True if the intersection of \arg{Set1} and \arg{Set2} is non-empty.
+
+    \predicate{ord_intersection}{3}{+Set1, +Set2, -Intersection}
+True if \arg{Intersection} is the intersection of \arg{Set1} and
+\arg{Set2}.
+
+    \predicate{ord_disjoint}{2}{+Set1, +Set2}
+True if \arg{Set1} and \arg{Set2} have no common element.  Negation of
+ord_intersect/2.
+
+    \predicate{ord_subtract}{3}{+Set, +Delete, -Remaining}
+True if \arg{Remaining} contains the elements of \arg{Set} that
+are not in set \arg{Delete}.
+
+    \predicate{ord_union}{3}{+Set1, +Set2, -Union}
+True if \arg{Union} contains all elements from \arg{Set1} and \arg{Set2}
+
+    \predicate{ord_union}{4}{+Set1, +Set2, -Union, -New}
+Defined as if \term{ord_union}{Set1, Set2, Union},
+\term{ord_subtract}{Set2, Set1, New}.
+
+    \predicate{ord_subset}{2}{+Sub, +Super}
+True if all elements of \arg{Sub} are in \arg{Super}.
+
+    \predicate{ord_memberchk}{2}{+Element, +Set}
+True if \arg{Element} appears in \arg{Set}.  Does not backtrack.  Same
+as memberchk/2.
+\end{description}
