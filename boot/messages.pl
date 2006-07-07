@@ -501,15 +501,6 @@ prolog_message(query(eof)) -->
 
 bindings([]) -->
 	[].
-bindings([Name = _|T]) -->		% hide _ variables
-	{ sub_atom(Name, 0, _, _, '_'),
-	  current_prolog_flag(toplevel_print_anon, false)
-	}, !,
-	bindings(T).
-bindings([Name = Value|T]) -->		% variable is just equal to itself
-	{ Value == '$VAR'(Name)
-	}, !,
-	bindings(T).
 bindings([Name = Value|T]) -->
 	{ current_prolog_flag(toplevel_print_options, Options)
 	},

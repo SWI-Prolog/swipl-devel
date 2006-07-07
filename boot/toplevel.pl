@@ -563,9 +563,10 @@ write_bindings([], Det) :-
 	;   \+ current_prolog_flag(prompt_alternatives_no_bindings, true)
 	), !,
 	print_message(query, query(yes)).
-write_bindings(Bindings, _Det) :-
+write_bindings(Bindings0, _Det) :-
 	repeat,
-	    bind_vars(Bindings),
+	    bind_vars(Bindings0),
+	    filter_bindings(Bindings0, Bindings),
 	    print_message(query, query(yes, Bindings)),
 	    get_respons(Action),
 	(   Action == redo
@@ -590,6 +591,22 @@ bind_vars([Name=Var|T]) :-
 	;   true
 	).
 
+%	filter_bindings(+Bindings0, -Bindings)
+%	
+%	Remove bindings that must not be printed.
+
+filter_bindings([], []).
+filter_bindings([H|T0], T) :-
+	hidden_binding(H), !,
+	filter_bindings(T0, T).
+filter_bindings([H|T0], [H|T]) :-
+	filter_bindings(T0, T).
+
+hidden_binding(Name = _) :-
+	sub_atom(Name, 0, _, _, '_'),
+	current_prolog_flag(toplevel_print_anon, false).
+hidden_binding(Name = Value) :-
+	Value = '$VAR'(Name).
 
 get_respons(Action) :-
 	repeat,
