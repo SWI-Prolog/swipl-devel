@@ -18,7 +18,7 @@
 #define ATOM_ar_equals    MK_ATOM(17)
 #define ATOM_ar_not_equal MK_ATOM(18)
 #define ATOM_argument     MK_ATOM(19)
-#define ATOM_arity_not_less_than_one MK_ATOM(20)
+#define ATOM_not_less_than_one MK_ATOM(20)
 #define ATOM_ascii        MK_ATOM(21)
 #define ATOM_asin         MK_ATOM(22)
 #define ATOM_assert       MK_ATOM(23)

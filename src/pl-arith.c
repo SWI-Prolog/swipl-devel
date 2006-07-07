@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -1652,14 +1652,26 @@ ar_negation(Number n1, Number r)
 
 
 static int
-notLessThanZero(const char *f, int a, Number n)
+domainErrorNumber(const char *f, int a, Number n, atom_t error)
 { GET_LD
   term_t t = PL_new_term_ref();
       
   PL_unify_number(t, n);
-  return PL_error(f, a, NULL, ERR_DOMAIN,
-		  ATOM_not_less_than_zero, t);
+  return PL_error(f, a, NULL, ERR_DOMAIN, error, t);
 }
+
+
+static int
+notLessThanZero(const char *f, int a, Number n)
+{ return domainErrorNumber(f, a, n, ATOM_not_less_than_zero);
+}
+
+
+static int
+mustBePositive(const char *f, int a, Number n)
+{ return domainErrorNumber(f, a, n, ATOM_not_less_than_one);
+}
+
 
 static int
 ar_msb(Number n1, Number r)
@@ -1668,16 +1680,16 @@ ar_msb(Number n1, Number r)
 
   switch(n1->type)
   { case V_INTEGER:
-      if (  n1->value.i < 0 )
-	return notLessThanZero("msb", 1, n1);
+      if (  n1->value.i <= 0 )
+	return mustBePositive("msb", 1, n1);
 
       r->value.i = msb64(n1->value.i);
       r->type = V_INTEGER;
       succeed;
 #ifdef O_GMP
     case V_MPZ:
-      if ( mpz_sgn(n1->value.mpz) < 0 )
-	return notLessThanZero("msb", 1, n1);
+      if ( mpz_sgn(n1->value.mpz) <= 0 )
+	return mustBePositive("msb", 1, n1);
       if ( mpz_sgn(n1->value.mpz) == 0 )
       { r->value.i = 0;
       } else		/* is binary print-size the best we can do?? */
@@ -1718,16 +1730,16 @@ ar_lsb(Number n1, Number r)
 
   switch(n1->type)
   { case V_INTEGER:
-      if (  n1->value.i < 0 )
-	return notLessThanZero("lsb", 1, n1);
+      if (  n1->value.i <= 0 )
+	return mustBePositive("lsb", 1, n1);
 
       r->value.i = lsb64(n1->value.i);
       r->type = V_INTEGER;
       succeed;
 #ifdef O_GMP
     case V_MPZ:
-      if ( mpz_sgn(n1->value.mpz) < 0 )
-	return notLessThanZero("lsb", 1, n1);
+      if ( mpz_sgn(n1->value.mpz) <= 0 )
+	return mustBePositive("lsb", 1, n1);
       r->value.i = mpz_scan1(n1->value.mpz, 0);
       r->type = V_INTEGER;
       succeed;
@@ -2251,7 +2263,7 @@ PRED_IMPL("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
   fdef = valueFunctor(fd);
   if ( fdef->arity < 1 )
     return PL_error(NULL, 0, NULL,
-		    ERR_DOMAIN, ATOM_arity_not_less_than_one, head);
+		    ERR_DOMAIN, ATOM_not_less_than_one, head);
   if ( !PL_get_integer_ex(A2, &index) )
     fail;
 

@@ -478,13 +478,15 @@ gmp(ceil-2) :-
 	0 is ceil(-1 rdiv 10),
 	0 is ceil(-9 rdiv 10).
 gmp(msb-0) :-
-	0 =:= msb(0).
+	catch(0 =:= msb(0), E, true),
+	E = error(domain_error(not_less_than_one, 0), _).
 gmp(msb-1) :-
 	10 =:= msb(1<<10).
 gmp(msb-2) :-
 	100 =:= msb(1<<100).
 gmp(lsb-0) :-
-	0 =:= lsb(0).
+	catch(0 =:= lsb(0), E, true),
+	E = error(domain_error(not_less_than_one, 0), _).
 gmp(lsb-1) :-
 	10 =:= lsb(1<<10).
 gmp(lsb-2) :-

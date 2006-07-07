@@ -4220,17 +4220,20 @@ handling of ---unbounded--- integers as bit-vectors.
 
 \begin{description}
     \predicate{msb}{1}{+IntExpr}
-Position of the most significant bit in binary notation.  \arg{IntExpr}
-must evaluate to a positive integer.  The MSB of 0 and 1 are both 0
+Return the largest integer $N$ such that \verb$(IntExpr >> N) /\ 1 =:= 1$.
+This is the (zero-origin) index of the most significant 1 bit in the
+value of \arg{IntExpr}, which must evaluate to a positive integer.
+Errors for 0, negative integers, and non-integers.
 
     \predicate{lsb}{1}{+IntExpr}
-Position of the least significant bit in binary notation.
-\arg{IntExpr} must evaluate to a positive integer. The LSB of of 0 and 1
-are both 0.
+Return the smallest integer $N$ such that \verb$(IntExpr >> N) /\ 1 =:= 1$.
+This is the (zero-origin) index of the least significant 1 bit in the
+value of IntExpr, which must evaluate to a positive integer. Errors for
+0, negative integers, and non-integers.
 
     \predicate{popcount}{1}{+IntExpr}
-Return the number of 1s in the binary representation of the positive
-integer \arg{IntExpr}.
+Return the number of 1s in the binary representation of the
+non-negative integer \arg{IntExpr}.
 \end{description}
 
 

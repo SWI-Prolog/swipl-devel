@@ -7698,19 +7698,22 @@ that improve handling of ---unbounded--- integers as bit-vectors.
 
 
 mmssbb((_+_I_n_t_E_x_p_r))
-    Position  of the most significant bit  in binary notation.   _I_n_t_E_x_p_r
-    must evaluate to a positive integer.  The MSB of 0 and 1 are both 0
+    Return  the largest integer N  such that (IntExpr >> N) /\ 1 =:= 1.
+    This  is the (zero-origin)  index of the  most significant 1 bit  in
+    the  value of _I_n_t_E_x_p_r,  which must evaluate  to a positive  integer.
+    Errors for 0, negative integers, and non-integers.
 
 
 llssbb((_+_I_n_t_E_x_p_r))
-    Position  of the least significant bit in binary notation.   _I_n_t_E_x_p_r
-    must  evaluate to a  positive integer.   The LSB of  of 0 and 1  are
-    both 0.
+    Return  the smallest integer N such that (IntExpr >> N) /\ 1 =:= 1.
+    This  is the (zero-origin) index of  the least significant 1 bit  in
+    the  value of IntExpr,  which must evaluate  to a positive  integer.
+    Errors for 0, negative integers, and non-integers.
 
 
 ppooppccoouunntt((_+_I_n_t_E_x_p_r))
     Return  the  number  of  1s  in the  binary  representation  of  the
-    positive integer _I_n_t_E_x_p_r.
+    non-negative integer _I_n_t_E_x_p_r.
 
 
 44..2277 AAddddiinngg AArriitthhmmeettiicc FFuunnccttiioonnss
