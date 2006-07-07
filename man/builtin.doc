@@ -2637,7 +2637,7 @@ Create a list of character codes as a difference-list.
 Create a list of one-character-atoms codes from the emitted characters,
 similar to atom_chars/2. 
 
-    \termitem{codes}{-Codes, -Tail}
+    \termitem{chars}{-Chars, -Tail}
 Create a list of one-character-atoms as a difference-list.
 \end{description}
 \end{description}
