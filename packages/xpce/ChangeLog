@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Crash when accessing files with illegal multi-byte sequences in the
+  name (Unix version only).
+
 VERSION 6.6.15, distributed with SWI-Prolog 5.6.15
 ==================================================
 

@@ -363,7 +363,7 @@ MBToName(const char *mb)
   const char *in = mb;
 
   memset(&mbs, 0, sizeof(mbs));
-  if ( (len = mbsrtowcs(NULL, &in, 0, &mbs)) >= 0 )
+  if ( (len = mbsrtowcs(NULL, &in, 0, &mbs)) != (size_t)(-1) )
   { string s;
     wchar_t *ws;
     int mlcd;
@@ -435,12 +435,17 @@ representation is always UTF-8
 
 Name
 FNToName(const char *name)
-{
+{ Name rc;
 #ifdef O_XOS
-  return UTF8ToName(name);
+  rc = UTF8ToName(name);
 #else
-  return MBToName(name);
+  rc = MBToName(name);
 #endif
+
+  if ( !rc )				/* Illegal Multibyte; use plain */
+    rc = CtoName(name);
+  
+  return rc;
 }
 
 
