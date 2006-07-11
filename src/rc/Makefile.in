@@ -1,17 +1,13 @@
 ################################################################
-# Makefile for the SWI-Prolog based latex2html converter
-#
+# Makefile for the SWI-Prolog resource database
+# 
 # Author: Jan Wielemaker
-# E-mail: jan@swi.psy.uva.nl
+# E-mail: wielemak@science.uva.nl
 #
-# Free for personal usage and usage by academic institutions.
-# This package may be distributed freely.
-# This package may be modified if it is clearly indicated is concerns a
-# modified version, and the copyright and authorship notices are left
-# in place.
+# Copying: LGPL-2
 #
-# Copyright (c) 1996, SWI, University of Amsterdam, all rights reserved
-################################################################
+# Copyright (c) 1996-2006, University of Amsterdam
+# ###############################################################
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
