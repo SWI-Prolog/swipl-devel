@@ -3999,6 +3999,7 @@ init_cursor_from_literal(search_state *state, literal *cursor)
 	Sdprintf("\n"));
   
   p->indexed |= BY_O;
+  p->indexed &= ~BY_S;			/* we do not have index BY_SO */
   switch(p->indexed)
   { case BY_O:
       iv = literal_hash(cursor);
