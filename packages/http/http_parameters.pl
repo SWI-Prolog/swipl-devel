@@ -111,7 +111,7 @@ fill_param(Name, Values, Options, FormData) :-
 	fill_param_list(FormData, Name, Values, Options).
 fill_param(Name, Value, Options, FormData) :-
 	(   memberchk(Name=Value0, FormData),
-	    Value \== ''		% Not sure
+	    Value0 \== ''		% Not sure
 	->  check_type(Options, Value0, Value)
 	;   memberchk(default(Value), Options)
 	->  true
