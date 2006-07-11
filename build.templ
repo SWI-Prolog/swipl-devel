@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# This is the script we use to   build  SWI-Prolog and all its packages.
+# Copy the script to  `build',  edit   to  suit  the  local installation
+# requirements and run it. Once correct, upgrading   to a new release is
+# now limited to getting the new sources and run ./build.
+
+# [EDIT] Prefix location of the installation. It is _not_ advices to use
+# a    versioned    prefix.    The    system      will     install    in
+# $PREFIX/lib/pl-<version> and create symlinks from  $PREFIX/bin for the
+# main  programs.  Users  can  always  use  older  versions  by  running
+# $PREFIX/lib/pl-<version>/bin/<arch>/pl
+
+PREFIX=$HOME
+
+V=`cat VERSION`
+makeonly=false
+
+case "$1" in
+   --make)	makeonly=true
+		;;
+   *)		;;
+esac
+
+if [ "$makeonly" = false ]; then
+# [EDIT] Compiler options.
+#	COFLAGS: Flags for the optimizer such as "-O3" or "-g"
+# 	CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
+# 	CIFLAGS: Include-path such as "-I/opt/include"
+# 	LDFLAGS: Link flags such as "-L/opt/lib"
+
+# export COFLAGS=
+# export CMFLAGS=
+# export CIFLAGS=
+# export LDFLAGS=
+  export CFLAGS=$CMFLAGS $CIFLAGS
+
+# [EDIT] Packages to configure.  Leaving it blank compiles all packages.
+# export PKG=
+  ./configure --prefix=$PREFIX --with-world 2>&1 | tee configure.out
+fi
+
+make 2>&1 | tee make.out
+make install 2>&1 | tee make-install.out
+
