@@ -944,7 +944,7 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
     } else if ( PL_is_functor(to, FUNCTOR_atom1) )
     { ctx->out_format = PL_ATOM;
     } else
-    { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_output);
+    { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_output, to);
     }
     
     ctx->is_stream = FALSE;
