@@ -8513,23 +8513,26 @@ TTiimmeeSSttaammpp
     A  TimeStamp  is a  floating  point number  expression the  time  in
     seconds since the Epoch at 1970-1-1.
 
-    date(_Y_,_M_,_D_,_H_,_M_n_,_S_,_O_f_f_,_T_Z_,_D_S_T)   We  call   this  term  a   _d_a_t_e_-_t_i_m_e
-    structure.   The  first 5 fields  are integers expressing the  year,
-    month  (1..12), day (1..31),  hour (0..23), Minute  (0..59).  The  _S
-    field  holds the seconds as a floating point number between  0.0 and
-    60.0.  _O_f_f  is an integer representing the offset relative to UTC in
-    seconds where positive  values are west of Greenwhich.  If converted
-    from  local time  (see stamp_date_time/3,  _T_Z holds  the name of  the
-    local  timezone.   If the timezone  is not known _T_Z  is the atom  -.
-    _D_S_T  is true if  daylight saving time  applies to the current  time,
-    false  if daylight saving time is  relevant but not effective and  -
-    if unknown or the timezone has no daylight saving time.
+ddaattee((_Y_,_M_,_D_,_H_,_M_n_,_S_,_O_f_f_,_T_Z_,_D_S_T))
+    We  call this term a  _d_a_t_e_-_t_i_m_e structure.   The first 5 fields  are
+    integers  expressing  the year,  month  (1..12), day  (1..31),  hour
+    (0..23),  Minute  (0..59).    The _S  field holds  the  seconds as  a
+    floating  point number  between 0.0  and 60.0.   _O_f_f  is an  integer
+    representing  the offset relative to  UTC in seconds where  positive
+    values  are west of Greenwhich.   If converted from local time  (see
+    stamp_date_time/3, _T_Z holds the name of the local timezone.   If the
+    timezone  is not known _T_Z is  the atom -.   _D_S_T is true if  daylight
+    saving  time applies to the  current time, false if daylight  saving
+    time is relevant but not  effective and - if unknown or the timezone
+    has no daylight saving time.
 
-    date(_Y_,_M_._D)   Date  using  the  same  values  as   described  above.
-    Extracted using date_time_value/3.
+ddaattee((_Y_,_M_._D))
+    Date  using the  same values as  described above.   Extracted  using
+    date_time_value/3.
 
-    time(_H_,_M_n_,_S)  Time  using   the  same  values  as  described  above.
-    Extracted using date_time_value/3.
+ttiimmee((_H_,_M_n_,_S))
+    Time  using the  same values as  described above.   Extracted  using
+    date_time_value/3.
 
 
 44..3344..11..22 TTiimmee aanndd ddaattee pprreeddiiccaatteess

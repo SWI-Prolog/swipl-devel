@@ -5061,7 +5061,7 @@ We use the following time representations
 A TimeStamp is a floating point number expression the time in seconds
 since the Epoch at 1970-1-1.
 
-    \term{date}{Y,M,D,H,Mn,S,Off,TZ,DST}
+    \termitem{date}{Y,M,D,H,Mn,S,Off,TZ,DST}
 We call this term a \emph{date-time} structure. The first 5 fields are
 integers expressing the year, month (1..12), day (1..31), hour (0..23),
 Minute (0..59). The \arg{S} field holds the seconds as a floating point
@@ -5074,11 +5074,11 @@ if daylight saving time applies to the current time, \const{false}
 if daylight saving time is relevant but not effective and \const{-}
 if unknown or the timezone has no daylight saving time.
 
-    \term{date}{Y,M.D}
+    \termitem{date}{Y,M.D}
 Date using the same values as described above.  Extracted using
 date_time_value/3.
 
-    \term{time}{H,Mn,S}
+    \termitem{time}{H,Mn,S}
 Time using the same values as described above.  Extracted using
 date_time_value/3.
 \end{description}
