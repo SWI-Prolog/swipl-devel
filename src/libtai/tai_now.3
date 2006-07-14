@@ -1,0 +1,34 @@
+.TH tai_now 3
+.SH NAME
+tai_now \- get current time, with 1-second precision
+.SH SYNTAX
+.B #include <tai.h>
+
+void \fBtai_now\fP(&\fIt\fR);
+
+struct tai \fIt\fR;
+.SH DESCRIPTION
+.B tai_now
+puts the current time into
+.IR t .
+
+More precisely:
+.B tai_now
+puts into
+.I t
+its best guess as to the TAI64 label for the 1-second interval
+that contains the current time.
+.SH NOTES
+This implementation of
+.B tai_now
+assumes that the
+.B time_t
+returned from the
+.B time
+function
+represents the number of TAI seconds since
+1970-01-01 00:00:10 TAI.
+.SH "SEE ALSO"
+tai(3),
+taia_now(3),
+time(3)

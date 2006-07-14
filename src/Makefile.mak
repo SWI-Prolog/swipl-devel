@@ -16,15 +16,11 @@
 #	* make install-arch	Install machine dependent files
 #	* make install-libs	Install machine independent files
 #
-# Copyright (C) University of Amsterdam, all rights reserved
+# Copyright (C) University of Amsterdam
 # 
 # Copyright policy:
 #	
-#	* GPL-2 (see file COPYING or http://www.gnu.org/)
-#
-#	* Licenses for use with proprietary software are available.
-#	  See http://www.swi.pay.uva.nl/pub/SWI-Prolog/
-#
+#	* LGPL (see file COPYING or http://www.gnu.org/)
 ################################################################
 
 PLHOME=..
@@ -39,7 +35,7 @@ PLDLL=$(PLHOME)\bin\libpl.dll
 TERMDLL=$(PLHOME)\bin\plterm.dll
 OUTDIRS=$(PLHOME)\bin $(PLHOME)\lib $(PLHOME)\include
 
-LOCALLIB=$(UXLIB) rc/rc.lib
+LOCALLIB=$(UXLIB) rc/rc.lib libtai/tai.lib
 
 PB=$(PLHOME)\boot
 INCLUDEDIR=$(PLHOME)\include
@@ -59,7 +55,7 @@ OBJ=	pl-atom.obj pl-wam.obj pl-stream.obj pl-error.obj pl-arith.obj \
 	pl-write.obj pl-term.obj pl-buffer.obj pl-thread.obj \
 	pl-xterm.obj pl-feature.obj pl-ctype.obj pl-main.obj \
 	pl-dde.obj pl-nt.obj pl-attvar.obj pl-gvar.obj pl-btree.obj \
-	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj
+	pl-utf8.obj pl-text.obj pl-mswchar.obj pl-gmp.obj pl-tai.obj
 
 PLINIT=	$(PB)/init.pl
 
@@ -139,6 +135,7 @@ $(OUTDIRS):
 
 subdirs:	$(OUTDIRS)
 		chdir rc & $(MAKE)
+		chdir libtai & $(MAKE)
 		chdir win32\uxnt & $(MAKE)
 		chdir win32\console & $(MAKE)
 
@@ -352,6 +349,7 @@ odbc-install:
 
 clean:		clean_packages
 		chdir rc & $(MAKE) clean
+		chdir libtai & $(MAKE) clean
 		chdir win32\uxnt & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
 		chdir win32\foreign & $(MAKE) clean
@@ -359,6 +357,7 @@ clean:		clean_packages
 
 distclean:	clean distclean_packages
 		@chdir rc & $(MAKE) distclean
+		@chdir libtai & $(MAKE) distclean
 		@chdir win32\foreign & $(MAKE) distclean
 		-del ..\bin\*.exe ..\bin\*.dll ..\bin\*.pdb 2>nul
 		-del ..\library\INDEX.pl 2>nul

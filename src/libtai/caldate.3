@@ -1,0 +1,54 @@
+.TH caldate 3
+.SH NAME
+caldate \- calendar dates
+.SH SYNTAX
+.B #include <caldate.h>
+
+unsigned int \fBcaldate_fmt\fP(\fIs\fR,&\fIcd\fR);
+.br
+unsigned int \fBcaldate_scan\fP(\fIs\fR,&\fIcd\fR);
+
+struct caldate \fIcd\fR;
+.br
+char *\fIs\fR;
+.SH DESCRIPTION
+A
+.B struct caldate
+value is a calendar date.
+It has three components:
+.BR year ,
+.B month
+(1...12),
+and
+.B day
+(1...31).
+
+.B caldate_fmt
+prints
+.I cd
+in ISO style (yyyy-mm-dd)
+into the character buffer
+.IR s ,
+without a terminating NUL.
+It returns the number of characters printed.
+.I s
+may be zero;
+then
+.B caldate_fmt
+returns the number of characters that would have been printed.
+
+.B caldate_scan
+reads a calendar date in ISO style
+from the beginning of the character buffer
+.I s
+and puts it into
+.IR cd .
+It returns the number of characters read.
+If
+.I s
+does not start with an ISO-style date,
+.B caldate_scan
+returns 0.
+.SH "SEE ALSO"
+caldate_mjd(3),
+caltime(3)

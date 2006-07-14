@@ -14217,7 +14217,7 @@ echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
 echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
-OutputFiles="Makefile rc/Makefile pl.1 pl.sh"
+OutputFiles="Makefile rc/Makefile libtai/Makefile pl.1 pl.sh"
 
 
 srcdir=`cd $srcdir && pwd`

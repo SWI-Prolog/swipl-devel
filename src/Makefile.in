@@ -108,9 +108,14 @@ OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
 	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
 	pl-term.o pl-buffer.o pl-thread.o pl-xterm.o pl-feature.o pl-ctype.o \
 	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o pl-utf8.o pl-main.o \
-	pl-text.o pl-gmp.o
+	pl-text.o pl-gmp.o pl-tai.o
 XOBJ=	@ALLOCA@ @EXTRAOBJ@
 RCOBJ=	rc/access.o rc/build.o rc/html.o rc/util.o
+TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
+	libtai/leapsecs_add.o libtai/caldate_fmjd.o libtai/caldate_mjd.o \
+	libtai/leapsecs_init.o libtai/leapsecs_read.o libtai/tai_pack.o \
+	libtai/tai_unpack.o
+LIBOBJ= $(RCOBJ) $(TAIOBJ)
 
 PLOBJ=	pl-extend.o
 ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
@@ -145,7 +150,7 @@ PLWIN=	wise.pl dde.pl progman.pl registry.pl
 builddirs = ../lib ../lib/$(ARCH)
 
 all:	banner dirs \
-	headers rc-lib $(MKLIBS) system startup index plld
+	headers rc-lib tai-lib $(MKLIBS) system startup index plld
 
 .c.o:
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
@@ -177,26 +182,26 @@ dirs::
 		  if [ ! -d $$d ]; then mkdir $$d; fi; \
 		done
 
-$(RUNTIME):	$(OBJ) $(RCOBJ) $(XOBJ)
+$(RUNTIME):	$(OBJ) $(LIBOBJ) $(XOBJ)
 		rm -f $@
-		$(AR) r $@ $(OBJ) $(RCOBJ) $(XOBJ)
+		$(AR) r $@ $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(RANLIB) $@
 
 ifeq ($(SOEXT),dylib)
-$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -dynamiclib -current_version $(PLVERSION) \
 			-install_name $(LIBPL_INSTALL_NAME) \
 			$(COFLAGS) -o $@ \
-			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 else
 ifeq ($(SOEXT),dll)
-$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
-			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 else
-$(RUNTIMEDIR)/$(SHAREDV):	dirs $(RUNTIMEDIR) $(OBJ) $(RCOBJ) $(XOBJ)
+$(RUNTIMEDIR)/$(SHAREDV):	dirs $(RUNTIMEDIR) $(OBJ) $(LIBOBJ) $(XOBJ)
 		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
-			$(OBJ) $(RCOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
 
 $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
 		( cd ../lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
@@ -205,6 +210,8 @@ endif
 
 rc-lib:
 		@(cd rc && $(MAKE) COFLAGS="$(COFLAGS)")
+tai-lib:
+		@(cd libtai && $(MAKE) COFLAGS="$(COFLAGS)")
 
 ../library/INDEX.pl:	../library ../library/[a-z]*.pl $(DEVPL) $(STARTUPPATH)
 		$(DEVPL) -x $(STARTUPPATH) \
@@ -460,10 +467,12 @@ pkg: all slack-desc
 
 clean:
 		@(cd rc && $(MAKE) clean)
+		@(cd libtai && $(MAKE) clean)
 		rm -f *.o a.out core *~ #* parms.h
 
 distclean:	clean
 		@(cd rc && $(MAKE) distclean)
+		@(cd libtai && $(MAKE) distclean)
 		rm -rf $(INCLUDEDIR) ../lib
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h

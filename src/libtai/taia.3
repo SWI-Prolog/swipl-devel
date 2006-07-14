@@ -1,0 +1,140 @@
+.TH taia 3
+.SH NAME
+taia \- manipulate times with 1-attosecond precision
+.SH SYNTAX
+.B #include <taia.h>
+
+double \fBtaia_approx\fP(&\fIt\fR);
+.br
+double \fBtaia_frac\fP(&\fIt\fR);
+.br
+void \fBtaia_tai\fP(&\fIt\fR,&\fIsec\fR);
+
+int \fBtaia_less\fP(&\fIa\fR,&\fIb\fR);
+.br
+void \fBtaia_add\fP(&\fIt\fR,&\fIa\fR,&\fIb\fR);
+.br
+void \fBtaia_sub\fP(&\fIt\fR,&\fIa\fR,&\fIb\fR);
+.br
+void \fBtaia_half\fP(&\fIt\fR,&\fIa\fR);
+
+unsigned int \fBtaia_fmtfrac\fP(\fIs\fR,&\fIt\fR);
+
+struct taia \fIt\fR;
+.br
+struct taia \fIa\fR;
+.br
+struct taia \fIb\fR;
+.br
+struct tai \fIsec\fR;
+.br
+char *\fIs\fR;
+.SH DESCRIPTION
+A
+.B struct taia
+stores an integer between 0 inclusive and 2^64x10^18 exclusive.
+The format of
+.B struct taia
+is designed to speed up common operations;
+applications should not look inside
+.B struct taia\fR.
+
+A
+.B struct taia
+variable is commonly used to store
+a TAI64NA label.
+Each TAI64NA label refers to one attosecond of real time;
+see
+.B http://pobox.com/~djb/proto/tai64.txt
+for more information.
+The integer in the
+.B struct taia
+is 10^18 times the second count,
+plus 10^9 times the nanosecond count,
+plus the attosecond count.
+
+A
+.B struct taia
+variable may also be used to store
+the numerical difference between two TAI64NA labels.
+.SH ARITHMETIC
+.B taia_approx
+returns a double-precision approximation to
+.IR t /10^18.
+The result of
+.B taia_approx
+is always nonnegative.
+
+.B taia_tai
+places into
+.I sec
+the integer part of
+.IR t /10^18.
+
+.B taia_frac
+returns a double-precision approximation to
+the fraction part of
+.IR t /10^18.
+The result of
+.B taia_frac
+is always nonnegative.
+
+.B taia_less
+returns 1 if
+.I a
+is smaller than
+.IR b ,
+0 otherwise.
+
+.B taia_add
+adds
+.I a
+and
+.I b
+modulo 2^64x10^18
+and puts the result into
+.IR t .
+The inputs and outputs may overlap.
+
+.B taia_sub
+subtracts
+.I b
+from
+.I a
+modulo 2^64x10^18
+and puts the result into
+.IR t .
+The inputs and outputs may overlap.
+
+.B taia_half
+divides
+.I a
+by 2, rounding down,
+and puts the result into
+.IR t .
+The input and output may overlap.
+.SH "FORMATTING"
+.B taia_fmtfrac
+prints the remainder of
+.IR t /10^18,
+padded to exactly 18 digits,
+into the character buffer
+.IR s ,
+without a terminating NUL.
+It returns 18, the number of characters written.
+.I s
+may be zero;
+then
+.B taia_fmtfrac
+returns 18 without printing anything.
+
+The macro
+.B TAIA_FMTFRAC
+is defined as 19;
+this is enough space for the output of
+.B taia_fmtfrac
+and a terminating NUL.
+.SH "SEE ALSO"
+taia_now(3),
+taia_pack(3),
+tai(3)

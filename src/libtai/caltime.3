@@ -1,0 +1,82 @@
+.TH caltime 3
+.SH NAME
+caltime \- calendar dates and times
+.SH SYNTAX
+.B #include <caltime.h>
+
+unsigned int \fBcaltime_fmt\fP(\fIs\fR,&\fIct\fR);
+.br
+unsigned int \fBcaltime_scan\fP(\fIs\fR,&\fIct\fR);
+
+struct caltime \fIct\fR;
+.br
+char *\fIs\fR;
+.SH DESCRIPTION
+A
+.B struct caltime
+value is a calendar date and time with an offset in minutes from UTC.
+It has five components:
+.B date
+(a
+.B struct caldate\fR),
+.B hour
+(0...23),
+.B minute
+(0...59),
+.B second
+(0...60),
+and
+.B offset
+(-5999...5999).
+
+For example,
+a leap second occurred
+on 30 June 1997 at 23:59:60 UTC.
+The local time in New York was
+30 June 1997 19:59:60 -0400.
+This local time is represented inside a
+.B struct caltime
+with
+.B date
+containing 1997, 6, 30;
+.B hour
+19;
+.B minute
+59;
+.B second
+60;
+and
+.B offset
+\-240
+(4 hours).
+.SH FORMATTING
+.B caltime_fmt
+prints
+.I ct
+in ISO style (yyyy-mm-dd hh:mm:ss +oooo)
+into the character buffer
+.IR s ,
+without a terminating NUL.
+It returns the number of characters printed.
+.I s
+may be zero;
+then
+.B caltime_fmt
+returns the number of characters that would have been printed.
+
+.B caltime_scan
+reads a calendar date, time, and offset in ISO style
+from the beginning of the character buffer
+.I s
+and puts them into
+.IR ct .
+It returns the number of characters read.
+If
+.I s
+does not start with an ISO-style date and time (including offset),
+.B caltime_scan
+returns 0.
+.SH "SEE ALSO"
+caltime_tai(3),
+caldate(3),
+tai(3)

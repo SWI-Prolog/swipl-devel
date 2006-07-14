@@ -1,0 +1,106 @@
+.TH leapsecs 3
+.SH NAME
+leapsecs \- handle UTC leap seconds
+.SH SYNTAX
+.B #include <leapsecs.h>
+
+int \fBleapsecs_sub\fP(&\fIt\fR);
+.br
+void \fBleapsecs_add\fP(&\fIt\fR,\fIhit\fR);
+
+int \fBleapsecs_read\fP();
+.br
+int \fBleapsecs_init\fP();
+
+struct tai \fIt\fR;
+.br
+int \fIhit\fR;
+.SH DESCRIPTION
+.B leapsecs_sub
+changes a seconds-since-epoch count
+into a non-leap-seconds-since-epoch count.
+It interprets
+.I t
+as a TAI64 label,
+subtracts from
+.I t
+the number of leap seconds that have occurred
+before or at
+.IR t ,
+and places the result back into
+.IR t .
+
+.B leapsecs_sub
+returns 1 if
+.I t
+was a leap second,
+0 otherwise.
+
+.B leapsecs_add
+reverses the effect of
+.BR leapsecs_sub .
+.I hit
+must be 1
+for a leap second,
+0 otherwise.
+.SH "LEAP-SECOND TABLE"
+The current implementation of
+.B leapsecs_sub
+and
+.B leapsecs_add
+uses a leap-second table read from disk.
+
+.B leapsecs_read
+reads the leap-second table from
+.BR /etc/leapsecs.dat .
+It returns 0 on success, -1 on error.
+If
+.B /etc/leapsecs.dat
+does not exist,
+.B leapsecs_read
+treats it as an empty file.
+
+.B leapsecs_init
+is a one-time version of
+.BR leapsecs_read .
+Initially it is the same as
+.BR leapsecs_read ;
+however, once
+.B leapsecs_read
+returns 0,
+.B leapsecs_init
+will always return 0
+without calling
+.B leapsecs_read
+again.
+
+.B leapsecs_add
+and
+.B leapsecs_sub
+call
+.BR leapsecs_init .
+.B WARNING:
+If
+.B leapsecs_init
+returns failure,
+.B leapsecs_add
+and
+.B leapsecs_sub
+will proceed without a leap-second table.
+For reliability,
+all programs should call
+.B leapsecs_init
+at startup and check for errors.
+
+.B WARNING:
+New entries are added to the leap-second table on disk
+every 12 to 18 months.
+.B leapsecs_read
+may be called repeatedly.
+It leaves the old table alone on error.
+For reliability,
+all long-running programs should call
+.B leapsecs_read
+at least once every month.
+.SH "SEE ALSO"
+tai(3)

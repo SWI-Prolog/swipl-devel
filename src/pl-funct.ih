@@ -180,3 +180,4 @@
 #define FUNCTOR_warning3     MK_FUNCTOR(179, 3)
 #define FUNCTOR_xor2         MK_FUNCTOR(180, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(181, 1)
+#define FUNCTOR_date9        MK_FUNCTOR(182, 9)
