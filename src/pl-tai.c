@@ -369,6 +369,29 @@ iso_week_days(int yday, int wday)
 
 
 		 /*******************************
+		 *	       ERRORS		*
+		 *******************************/
+
+static int
+fmt_domain_error(const char *key, int value)
+{ term_t t = PL_new_term_ref();
+
+  PL_put_integer(t, value);
+
+  return PL_error(NULL, 0, NULL, ERR_DOMAIN, PL_new_atom(key), t);
+}
+
+static int
+fmt_not_implemented(const char *key)
+{ term_t t = PL_new_term_ref();
+
+  PL_put_atom_chars(t, key);
+
+  return PL_error(NULL, 0, NULL, ERR_EXISTENCE, PL_new_atom("format"), t);
+}
+
+
+		 /*******************************
 		 *	    FORMATTING		*
 		 *******************************/
 
@@ -399,10 +422,6 @@ iso_week_days(int yday, int wday)
 	}
 #define OUTSTR(str) \
 	{ Sfputs(str, fd); \
-	}
-#undef ERROR
-#define ERROR(e) \
-	{ return EOF; \
 	}
 
 static int
@@ -444,11 +463,13 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	    break;
 	  }
 	  case 'C':			/* (year/100) as a 2-digit int */
-	  { if ( ftm->tm.tm_year >= 0 && ftm->tm.tm_year < 10000 )
-	    { int century = (ftm->tm.tm_year+1900)/100;
+	  { int year = ftm->tm.tm_year+1900;
+
+	    if ( year >= 0 && year < 10000 )
+	    { int century = year/100;
 	      OUT2DIGITS(fd, century);
 	    } else
-	    { ERROR("%C: year out of range");
+	    { return fmt_domain_error("%C", year);
 	    }
 	    break;
 	  }
@@ -462,8 +483,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	    OUT2DIGITS_SPC(fd, ftm->tm.tm_mday);
 	    break;
 	  case 'E':			/* alternative format */
-	    ERROR("%E: not supported");
-	    break;
+	    return fmt_not_implemented("%E");
 	  case 'F':			/* ISO 8601 date format */
 	    SUBFORMAT(L"%Y-%m-%d");
 	    break;
@@ -532,8 +552,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	    OUTCHR(fd, '\n');
 	    break;
 	  case 'O':
-	    ERROR("%O: not supported");
-	    break;
+	    return fmt_not_implemented("%O");
 	  case 'r':			/* The  time in a.m./p.m. notation */
 	    SUBFORMAT(L"%I:%M:%S %p");	/* TBD: :-separator locale handling */
 	    break;
@@ -589,6 +608,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	    break;
 	  case 'z':			/* Time-zone as offset */
 	  { int min = -ftm->utcoff/60;
+
 	    if ( min > 0 )
 	    { OUTCHR(fd, '+');
 	    } else
@@ -624,7 +644,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
     }
   }
 
-  return Sferror(fd) ? EOF : 0;
+  return TRUE;
 }
 
 
@@ -649,7 +669,6 @@ PRED_IMPL("format_time", 3, format_time, 0)
   int64_t ut64;
   unsigned fmtlen;
   redir_context ctx;
-  int rc;
 
   if ( !PL_get_wchars(A2, &fmtlen, &fmt,
 		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
@@ -660,6 +679,10 @@ PRED_IMPL("format_time", 3, format_time, 0)
 
     if ( (int64_t)unixt == ut64 )
     { localtime_r(&unixt, &tb.tm);
+      tb.utcoff = tz_offset();
+      if ( tb.tm.tm_isdst )
+	tb.utcoff -= 3600;
+      tb.tzname = tz_name_as_atom(tb.tm.tm_isdst);
     } else
     { caltime_utc(&ct, &taia.sec, &weekday, &yearday);
       memset(&tb, 0, sizeof(tb));
@@ -678,8 +701,8 @@ PRED_IMPL("format_time", 3, format_time, 0)
 
   if ( !setupOutputRedirect(A1, &ctx, FALSE) )
     fail;
-  if ( (rc = format_time(ctx.stream, fmt, &tb)) == 0 )
-    return closeOutputRedirect(&ctx);
+  if ( format_time(ctx.stream, fmt, &tb) )
+    return closeOutputRedirect(&ctx);	/* takes care of I/O errors */
 
   discardOutputRedirect(&ctx);
   fail;
