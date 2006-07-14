@@ -76,7 +76,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	backcomp.pl gensym.pl listing.pl debug.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl ugraphs.pl \
-	tty.pl readln.pl readutil.pl make.pl option.pl \
+	tty.pl readln.pl readutil.pl make.pl option.pl date.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
 	www_browser.pl url.pl utf8.pl win_menu.pl assoc.pl nb_set.pl \
 	qpforeign.pl dif.pl when.pl prolog_stack.pl prolog_clause.pl \
