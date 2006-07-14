@@ -692,10 +692,10 @@ PRED_IMPL("format_time", 3, format_time, 0)
 		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
     fail;
   if ( get_taia(A3, &taia, &tb.stamp) )
-  { ut64 = taia.sec.x - TAI_UTC_OFFSET;
-    unixt = (time_t) ut64;
-    double ip;
+  { double ip;
 
+    ut64 = taia.sec.x - TAI_UTC_OFFSET;
+    unixt = (time_t) ut64;
     memset(&tb, 0, sizeof(tb));
 
     if ( (int64_t)unixt == ut64 )
