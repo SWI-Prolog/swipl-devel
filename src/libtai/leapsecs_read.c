@@ -2,13 +2,23 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-extern int errno;
 #include <stdlib.h>
+#ifdef WIN32
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 #include "tai.h"
 
 #define GLOBAL
 #include "leapsecs.h"
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+#ifndef O_NDELAY
+#define O_NDELAY 0
+#endif
 
 int leapsecs_read(const char *file)
 { int fd;
@@ -18,7 +28,7 @@ int leapsecs_read(const char *file)
   int i;
   struct tai u;
 
-  fd = open(file, O_RDONLY|O_NDELAY);
+  fd = open(file, O_RDONLY|O_NDELAY|O_BINARY);
   if (fd == -1) {
     if (errno != ENOENT) return -1;
     if (leapsecs) free(leapsecs);

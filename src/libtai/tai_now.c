@@ -3,5 +3,5 @@
 
 void tai_now(struct tai *t)
 {
-  t->x = 4611686018427387914ULL + (uint64_t) time((long *) 0);
+  t->x = ULL(4611686018427387914) + (uint64_t) time((long *) 0);
 }

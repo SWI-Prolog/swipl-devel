@@ -18,14 +18,14 @@ void caltime_utc(struct caltime *ct, struct tai *t, int *pwday, int *pyday)
   u = t2.x;
 
   u += 58486;
-  s = u % 86400ULL;
+  s = (long)(u % ULL(86400));
 
   ct->second = (s % 60) + leap; s /= 60;
   ct->minute = s % 60; s /= 60;
   ct->hour = s;
 
-  u /= 86400ULL;
-  caldate_frommjd(&ct->date, (int64_t)u - 53375995543064LL, pwday, pyday);
+  u /= ULL(86400);
+  caldate_frommjd(&ct->date, (int64_t)u - LL(53375995543064), pwday, pyday);
 
   ct->offset = 0;
 }

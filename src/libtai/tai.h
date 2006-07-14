@@ -1,7 +1,20 @@
 #ifndef TAI_H
 #define TAI_H
 
-#include <stdint.h>
+#ifdef WIN32
+typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+#else
+#include <inttypes.h>			/* more portable than stdint.h */
+#endif
+
+#ifdef WIN32
+#define LL(x)  x ## i64
+#define ULL(x) x ## ui64
+#else
+#define LL(x)  x ## LL
+#define ULL(x) x ## ULL
+#endif
 
 struct tai {
   uint64_t x;
@@ -9,7 +22,8 @@ struct tai {
 
 extern void tai_now(struct tai *t);
 
-#define tai_approx(t) ((double) ((t)->x))
+/* JW: MSVC cannot convert unsigned to double :-( */
+#define tai_approx(t) ((double) ((int64_t)(t)->x))
 
 extern void tai_add(struct tai *t, struct tai *u, struct tai *v);
 extern void tai_sub(struct tai *t, struct tai *u, struct tai *v);

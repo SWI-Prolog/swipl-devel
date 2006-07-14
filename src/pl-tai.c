@@ -22,13 +22,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <math.h>
 #include "pl-incl.h"
 #include "libtai/taia.h"
 #include "libtai/caltime.h"
-#include <math.h>
 #include <stdio.h>
 
-#define TAI_UTC_OFFSET 4611686018427387914LL
+#define TAI_UTC_OFFSET LL(4611686018427387914)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 struct ftm is a `floating' version of the system struct tm.
@@ -355,7 +355,6 @@ glibc 2.3.5. As Glibc is LGPL, there are no license issues.
 #define ISO_WEEK_START_WDAY 1 /* Monday */
 #define ISO_WEEK1_WDAY 4 /* Thursday */
 #define YDAY_MINIMUM (-366)
-static int iso_week_days (int, int) __THROW;
 #ifdef __GNUC__
 __inline__
 #endif
@@ -401,6 +400,7 @@ iso_week_days(int yday, int wday)
 #define OUTSTR(str) \
 	{ Sfputs(str, fd); \
 	}
+#undef ERROR
 #define ERROR(e) \
 	{ return EOF; \
 	}
@@ -429,7 +429,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	    size_t n;
   
 	    fmt[0] = '%';
-	    fmt[1] = c;
+	    fmt[1] = (char)c;
 	    fmt[2] = EOS;
 
 	    cal_ftm(ftm, HAS_STAMP|HAS_WYDAY);
