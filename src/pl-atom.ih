@@ -558,3 +558,5 @@
 #define ATOM_yfy          MK_ATOM(557)
 #define ATOM_zero_divisor MK_ATOM(558)
 #define ATOM_date         MK_ATOM(559)
+#define ATOM_utc          MK_ATOM(560)
+#define ATOM_timezone     MK_ATOM(561)

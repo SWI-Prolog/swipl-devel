@@ -601,8 +601,11 @@ failure and print a message at the end of the initialisation?
 
 static void
 initLocale()
-{ if ( !setlocale(LC_CTYPE, "") )	/* this is all we use */
-  { DEBUG(0, Sdprintf("Failed to set locale\n"));
+{ if ( !setlocale(LC_CTYPE, "") )
+  { DEBUG(0, Sdprintf("Failed to set LC_CTYPE locale\n"));
+  }
+  if ( !setlocale(LC_TIME, "") )
+  { DEBUG(0, Sdprintf("Failed to set LC_TIME locale\n"));
   }
 }
 

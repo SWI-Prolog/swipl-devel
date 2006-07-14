@@ -571,6 +571,8 @@ A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
 A date			"date"
+A utc			"UTC"
+A timezone		"timezone"
 
 F abs			1
 F access		1

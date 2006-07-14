@@ -169,9 +169,20 @@ get_float_arg(int i, term_t t, term_t a, double *val)
 
 static int
 get_bool_arg(int i, term_t t, term_t a, int *val)
-{ _PL_get_arg(i, t, a);
+{ atom_t name;
 
-  return PL_get_bool_ex(a, val);
+  _PL_get_arg(i, t, a);
+  if ( PL_get_atom(a, &name) )
+  { if ( name == ATOM_true )
+    { *val = TRUE;
+      return TRUE;
+    } else if ( name == ATOM_false || name == ATOM_minus )
+    { *val = FALSE;
+      return TRUE;
+    }
+  }
+
+  return PL_get_bool_ex(a, val);	/* generate an error */
 }
 
 
@@ -261,36 +272,43 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
     atom_t tzatom = ATOM_minus;
     atom_t dstatom = ATOM_minus;
 
-    if ( PL_get_atom(A3, &alocal) && alocal == ATOM_local )
-    { time_t unixt;
-      int64_t ut64;
-      struct tm tm;
-
-      utcoffset = tz_offset();
-
-      ut64 = taia.sec.x - TAI_UTC_OFFSET;
-      unixt = (time_t) ut64;
-
-      if ( (int64_t)unixt == ut64 )
-      { double ip;
-
-	localtime_r(&unixt, &tm);
-	sec = (double)tm.tm_sec + modf(argsec, &ip);
-	ct.date.year  = tm.tm_year+1900;
-	ct.date.month = tm.tm_mon+1;
-	ct.date.day   = tm.tm_mday;
-	ct.hour       = tm.tm_hour;
-	ct.minute     = tm.tm_min;
-	tzatom = tz_name_as_atom(tm.tm_isdst);
-	if ( daylight )			/* from tzset() */
-	{ if ( tm.tm_isdst )
-	  { utcoffset -= 3600;
-	    dstatom    = ATOM_true;
-	  } else
-	  { dstatom    = ATOM_false;
+    if ( PL_get_atom(A3, &alocal) )
+    { if ( alocal == ATOM_local )
+      { time_t unixt;
+	int64_t ut64;
+	struct tm tm;
+  
+	utcoffset = tz_offset();
+  
+	ut64 = taia.sec.x - TAI_UTC_OFFSET;
+	unixt = (time_t) ut64;
+  
+	if ( (int64_t)unixt == ut64 )
+	{ double ip;
+  
+	  localtime_r(&unixt, &tm);
+	  sec = (double)tm.tm_sec + modf(argsec, &ip);
+	  ct.date.year  = tm.tm_year+1900;
+	  ct.date.month = tm.tm_mon+1;
+	  ct.date.day   = tm.tm_mday;
+	  ct.hour       = tm.tm_hour;
+	  ct.minute     = tm.tm_min;
+	  tzatom = tz_name_as_atom(tm.tm_isdst);
+	  if ( daylight )			/* from tzset() */
+	  { if ( tm.tm_isdst )
+	    { utcoffset -= 3600;
+	      dstatom    = ATOM_true;
+	    } else
+	    { dstatom    = ATOM_false;
+	    }
 	  }
+	  done = TRUE;
 	}
-	done = TRUE;
+      } else if ( alocal == ATOM_utc )
+      { utcoffset = 0;
+	tzatom = alocal;
+      } else
+      { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_timezone, A3);
       }
     } else if ( !PL_get_integer_ex(A3, &utcoffset) )
     { fail;
@@ -676,16 +694,24 @@ PRED_IMPL("format_time", 3, format_time, 0)
   if ( get_taia(A3, &taia, &tb.stamp) )
   { ut64 = taia.sec.x - TAI_UTC_OFFSET;
     unixt = (time_t) ut64;
+    double ip;
+
+    memset(&tb, 0, sizeof(tb));
 
     if ( (int64_t)unixt == ut64 )
     { localtime_r(&unixt, &tb.tm);
+      tb.sec = (double)tb.tm.tm_sec + modf(tb.stamp, &ip);
       tb.utcoff = tz_offset();
-      if ( tb.tm.tm_isdst )
-	tb.utcoff -= 3600;
+      if ( daylight )
+      { if ( tb.tm.tm_isdst )
+	{ tb.utcoff -= 3600;
+	  tb.isdst = TRUE;
+	}
+      }
       tb.tzname = tz_name_as_atom(tb.tm.tm_isdst);
+      tb.flags  = HAS_STAMP|HAS_WYDAY;
     } else
     { caltime_utc(&ct, &taia.sec, &weekday, &yearday);
-      memset(&tb, 0, sizeof(tb));
       tb.tm.tm_sec  = ct.second;
       tb.tm.tm_min  = ct.minute;
       tb.tm.tm_hour = ct.hour;
@@ -694,6 +720,8 @@ PRED_IMPL("format_time", 3, format_time, 0)
       tb.tm.tm_year = ct.date.year - 1900;
       tb.tm.tm_wday = weekday;
       tb.tm.tm_yday = yearday;
+      tb.tzname     = ATOM_utc;
+      tb.utcoff     = 0;
     }
   } else if ( !get_ftm(A3, &tb) )
   { fail;
