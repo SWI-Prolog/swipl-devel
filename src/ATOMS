@@ -11,6 +11,7 @@
 
 
 
+
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
@@ -121,6 +122,7 @@ A cut_call		"cut_call"
 A cut_exit		"cut_exit"
 A cut_parent		"cut_parent"
 A cutted		"cut"
+A date			"date"
 A db_reference		"db_reference"
 A dcall			"<meta-call>"
 A dcall_cleanup		"$call_cleanup"
@@ -500,6 +502,7 @@ A time			"$time"
 A time_stamp		"time_stamp"
 A timeout		"timeout"
 A timeout_error		"timeout_error"
+A timezone		"timezone"
 A to_lower		"to_lower"
 A to_upper		"to_upper"
 A top			"top"
@@ -544,6 +547,7 @@ A user			"user"
 A user_error		"user_error"
 A user_input		"user_input"
 A user_output		"user_output"
+A utc			"UTC"
 A utf8			"utf8"
 A v			"v"
 A var			"$VAR$"
@@ -570,9 +574,6 @@ A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
-A date			"date"
-A utc			"UTC"
-A timezone		"timezone"
 
 F abs			1
 F access		1
@@ -617,6 +618,7 @@ F cputime		0
 F curl			1
 F cut_call		1
 F cut_exit		1
+F date			9
 F dcall			1
 F dcut			1
 F dde_error		2
@@ -756,4 +758,3 @@ F wakeup		3
 F warning		3
 F xor			2
 F xpceref		1
-F date			9
