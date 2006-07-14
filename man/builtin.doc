@@ -5010,32 +5010,255 @@ main :-
 
 \subsection{Dealing with time and date}		\label{sec:timedate}
 
-There is no standard for time-representation in the Prolog community.
-SWI-Prolog represents it as a floating-point number using the same
-basic representation as the POSIX standard, seconds elapsed since the
-January 1970, 0 hours.  This format is also used for predicates
-accessing time-information from files (see time_file/2).
+Representing time in a computer system is surprisingly complicated.
+There are a large number of time representations in use and the correct
+choice depends on factors such as compactness, resolution and desired
+operations. Humans tend to think about time in hours, days, months,
+years or centuries. Physicists think about time in seconds. But, a month
+does not have a defined number of seconds. Even a day does not have a
+defined number of seconds as sometimes a leap-second is introduced to
+synchronise properly with our earth's rotation. At the same time,
+resolution demands range from better then pico-seconds to millions of
+years. Finally, civilizations have a wide range of calendars. Although
+there exist libraries dealing with most if this complexity, our desire
+to keep Prolog clean and lean stops us from fully supporting these.
+
+For human-oriented tasks, time can be broken into years, months, days,
+hours, minutes, seconds and a timezone. Physicists prefer to have time
+in an arithmetic type representing seconds or fraction thereof, so basic
+arithmetic deal with comparison and durations. An additional advantage
+of the physicists approach is that it requires much less space. For
+these reasons, SWI-Prolog uses an arithmetic type as its prime time
+representation.
+
+Many C libraries deal with time using fixed-point arithmetic, dealing
+with a large but finite time interval at constant resolution. In our
+opinion using a floating point number is a more natural choice as we can
+use a natural unit and the interface does not need to be changed if
+a higher resolution is required in the future. Our unit of choice is the
+second as it is the scientific unit.%
+	\footnote{Using Julian days is a choice made by the Eclipse
+		  team.  As conversion to dates is needed for a human
+		  readable notation of time and Julian days cannot deal
+		  naturally with leap seconds, we decided for second as
+		  our unit.}
+e have placed our origin at 1970-1-1T0:0:0Z for compatibility with the
+POSIX notion of time as well as with older time support provided by
+SWI-Prolog.
+
+Where older versions of SWI-Prolog relied on the POSIX conversion
+functions, the current implementation uses
+\url[libtai]{http://cr.yp.to/libtai.html} to realise conversion between
+time-stamps and calendar dates for a period of 10 million years.
+
+\subsubsection{Time and date data-structures}
+\label{sec:dattimedata}
+
+We use the following time representations
 
 \begin{description}
-    \predicate{get_time}{1}{-Time}
-Return the number of seconds that elapsed since the epoch of the POSIX,
-time representation: January 1970, 0 hours. \arg{Time} is a floating
-point number.  The granularity is system dependent.
+    \definition{TimeStamp}
+A TimeStamp is a floating point number expression the time in seconds
+since the Epoch at 1970-1-1.
 
-    \predicate{convert_time}{8}{+Time, -Year, -Month, -Day,
-				-Hour, -Minute, -Second, -MilliSeconds}
-Convert a time stamp, provided by get_time/1, time_file/2, etc.  \arg{Year} is unified with the year, \arg{Month} with the month number
-(January is 1), \arg{Day} with the day of the month (starting with 1),
-\arg{Hour} with the hour of the day (0--23), \arg{Minute} with the
-minute (0--59). \arg{Second} with the second (0--59) and \arg{MilliSecond} with the milliseconds (0--999).  Note that the latter
-might not be accurate or might always be 0, depending on the timing
-capabilities of the system.  See also convert_time/2.
+    \term{date}{Y,M,D,H,Mn,S,Off,TZ,DST}
+We call this term a \emph{date-time} structure. The first 5 fields are
+integers expressing the year, month (1..12), day (1..31), hour (0..23),
+Minute (0..59). The \arg{S} field holds the seconds as a floating point
+number between 0.0 and 60.0. \arg{Off} is an integer representing the
+offset relative to UTC in seconds where positive values are west of
+Greenwhich.  If converted from local time (see stamp_date_time/3,
+\arg{TZ} holds the name of the local timezone.  If the timezone is
+not known \arg{TZ} is the atom \const{-}.  \arg{DST} is \const{true}
+if daylight saving time applies to the current time, \const{false}
+if daylight saving time is relevant but not effective and \const{-}
+if unknown or the timezone has no daylight saving time.
 
-    \predicate{convert_time}{2}{+Time, -String}
-Convert a time-stamp as obtained though get_time/1 into a textual
-representation using the C-library function \funcref{ctime}{}.  The
-value is returned as a SWI-Prolog string object (see \secref{strings}).
-See also convert_time/8.
+    \term{date}{Y,M.D}
+Date using the same values as described above.  Extracted using
+date_time_value/3.
+
+    \term{time}{H,Mn,S}
+Time using the same values as described above.  Extracted using
+date_time_value/3.
+\end{description}
+
+\subsubsection{Time and date predicates}
+\label{sec:datimepreds}
+
+
+\begin{description}
+    \predicate{get_time}{1}{-TimeStamp}
+Return the current time as a \arg{TimeStamp}.  The granularity is system
+dependent.  See \secref{dattimedata}.
+
+    \predicate{stamp_date_time}{3}{+TimeStamp, -DateTime, +TimeZone}
+Convert a \arg{TimeZone} to a \arg{DateTime} in the given time zone.
+See \secref{dattimedata} for details on the data-types.  \arg{TimeZone}
+describes the timezone for the conversion.  It is one of \const{local}
+to extract the local time, \const{'UTC'} to extract at UTC time or an
+integer describing the seconds west of Greenwhich.
+
+    \predicate{date_time_stamp}{2}{+DateTime, -TimeStamp}
+Compute the timestamp from a date/9 term.  Values for month, day,
+hour, minute or second need not be normalized.  This flexibility
+allows for easy computation of the time at any given number of
+these units from a given timestamp.  Normalization can be achieved
+following this call with stamp_date_time/3.  This example computes
+the date 200 days after 2006-7-14:
+
+\begin{code}
+?- date_time_stamp(date(2006,7,214,0,0,0,0,-,-), Stamp),
+   stamp_date_time(Stamp, D, 0),
+   date_time_value(date, D, Date).
+Date = date(2007, 1, 30)
+\end{code}
+
+    \predicate{date_time_value}{3}{?Key, +DateTime, ?Value}
+Extract values from a date/9 term.  Provided keys are:
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+\bf key & \bf value \\
+\hline
+\const{year}	&  Calendar year as an integer \\
+\const{month}	&  Calendar month as an integer 1..12 \\
+\const{day}	&  Calendar day as an integer 1..31 \\
+\const{hour}	&  Clock hour as an integer 0..23 \\
+\const{minute}	&  Clock minute as an integer 0..59 \\
+\const{second}	&  Clock second as a float 0.0..60.0 \\
+\const{utc_offset}	&  Offset to UTC in seconds (positive is west) \\
+\const{time_zone}	&  Name of timezone; fails if unknown \\
+\const{daylight_saving}	&  Bool \const(true) if dst is effective \\
+\const{date}	&  Term \term{date}{Y,M,D} \\
+\const{time}	&  Term \term{time}{H,M,S} \\
+\hline
+\end{tabular}
+\end{center}
+
+    \predicate{format_time}{3}{+Out, +Format, +StampOrDateTime}
+Modelled after POSIX strftime(), using GNU extensions.  \arg{Out}
+is a destination as specified with with_outout_to/2.  \arg{Format}
+is an atom or string with the following conversions.  Conversions
+start with a percent.%
+	\footnote{Descriptions taken from Linux Programmer's Manual}
+
+\begin{itemize}
+    \fmtchar{a}
+The abbreviated weekday name according to the current locale.
+    \fmtchar{A}
+The full weekday name according to the current locale.
+    \fmtchar{b}
+The abbreviated month name according to the current locale.
+    \fmtchar{B}
+The full month name according to the current locale.
+    \fmtchar{c}
+The  preferred  date  and  time  representation  for the current
+locale. 
+    \fmtchar{C}
+The century number (year/100) as a 2-digit integer.
+    \fmtchar{d}
+The day of the month as a decimal number (range 01 to 31).
+    \fmtchar{D}
+Equivalent to \%m/\%d/\%y. (Yecch — for Americans only. Americans should
+note that in other countries \%d/\%m/\%y is rather common. This means
+that in international context this format is ambigu‐ ous and should not
+be used.)
+    \fmtchar{e}
+Like \%d, the day of the month as a decimal number, but a leading
+zero is replaced by a space.
+    \fmtchar{E}
+Modifier.  Not implemented.
+    \fmtchar{F}
+Equivalent to \%Y-\%m-\%d (the ISO 8601 date format).
+    \fmtchar{g}
+Like \%G, but without century, i.e., with a 2-digit year (00-99).
+    \fmtchar{G}
+The ISO 8601 year with century as a decimal number. The 4-digit year
+corresponding to the ISO week number (see \%V). This has the same format
+and value as \%y, except that if the ISO week number belongs to the
+previous or next year, that year is used instead.
+    \fmtchar{V}
+
+    \fmtchar{h}
+Equivalent to \%b.
+    \fmtchar{H}
+The  hour as a decimal number using a 24-hour clock (range 00 to 23).
+    \fmtchar{I}
+The hour as a decimal number using a 12-hour clock (range 01  to 12).
+    \fmtchar{j}
+The day of the year as a decimal number (range 001 to 366).
+    \fmtchar{k}
+The hour (24-hour clock) as a decimal number (range 0 to 23); single
+digits are preceded by a blank. (See also \%H.)
+    \fmtchar{l}
+The hour (12-hour clock) as a decimal number (range  1  to  12);
+single digits are preceded by a blank. (See also \%I.)
+    \fmtchar{m}
+The month as a decimal number (range 01 to 12).
+    \fmtchar{M}
+The minute as a decimal number (range 00 to 59).
+    \fmtchar{n}
+A newline character.
+    \fmtchar{O}
+Modifier.  Not implemented.
+    \fmtchar{p}
+Either `AM' or `PM' according to the given time value, or the
+corresponding strings for the current locale. Noon is treated as `pm'
+and midnight as `am'.
+    \fmtchar{P}
+Like \%p but in lowercase: `am' or `pm' or a corresponding string
+for the current locale.
+    \fmtchar{r}
+The time in a.m.\ or p.m.\ notation. In the POSIX locale this is
+equivalent to `\%I:\%M:\%S \%p'.
+    \fmtchar{R}
+The time in 24-hour notation (\%H:\%M).  For a version including the
+seconds, see \%T below.
+    \fmtchar{s}
+The number of seconds since the Epoch,  i.e.,  since  1970-01-01
+00:00:00 UTC.
+    \fmtchar{S}
+The  second as a decimal number (range 00 to 60).  (The range is
+up to 60 to allow for occasional leap seconds.)
+    \fmtchar{t}
+A tab character.
+    \fmtchar{T}
+The time in 24-hour notation (\%H:\%M:\%S).
+    \fmtchar{u}
+The day of the week as a decimal, range 1 to 7, Monday being  1.
+See also \%w.
+    \fmtchar{U}
+The week number of the current year as a decimal number, range 00 to 53,
+starting with the first Sunday as the first day of week 01. See also \%V
+and \%W.
+    \fmtchar{w}
+The day of the week as a decimal, range 0 to 6, Sunday being  0.
+See also \%u.
+    \fmtchar{W}
+The week number of the current year as a decimal number, range 00 to 53,
+starting with the first Monday as the first day of week 01.
+    \fmtchar{x}
+The preferred date representation for the current locale without
+the time.
+    \fmtchar{X}
+The preferred time representation for the current locale without
+the date.
+    \fmtchar{y}
+The year as a decimal number without a century (range 00 to 99).
+    \fmtchar{Y}
+The year as a decimal number including the century.
+    \fmtchar{z}
+The time-zone  as  hour  offset  from  GMT.   Required  to  emit
+RFC822-conformant  dates  (using  "%a,  %d  %b %Y %H:%M:%S %z").
+    \fmtchar{Z}
+The time zone or name or abbreviation.
+    \fmtchar{+}
+The date and time in date(1) format.
+    \fmtchar{%}
+A literal `\%' character.
+\end{itemize}
 \end{description}
 
 

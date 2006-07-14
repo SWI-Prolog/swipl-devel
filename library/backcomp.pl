@@ -49,7 +49,9 @@
 	    write_ln/1,
 	    proper_list/1,
 	    free_variables/2,		% +Term, -Variables
-	    checklist/2			% :Goal, +List
+	    checklist/2,		% :Goal, +List
+	    convert_time/2,		% +Stamp, -String
+	    convert_time/8		% +String, -YMDmhs.ms
 	  ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -163,3 +165,35 @@ checklist(Goal, List) :-
 
 '$strip_module'(Term, Module, Plain) :-
 	strip_module(Term, Module, Plain).
+
+
+%	convert_time(+Stamp, -String)
+%
+%	Convert  a time-stamp as  obtained though get_time/1 into a  textual
+%	representation  using the C-library function ctime().  The  value is
+%	returned  as a  SWI-Prolog string object  (see section  4.23).   See
+%	also convert_time/8.
+
+
+convert_time(Stamp, String) :-
+	format_time(string(String), '%+', Stamp).
+
+%	convert_time(+Stamp, -Y, -Mon, -Day, -Hour, -Min, -Sec, -MilliSec)
+%
+%	Convert   a  time  stamp,   provided  by   get_time/1,   time_file/2,
+%	etc.   Year is  unified with the year,  Month with the month  number
+%	(January  is 1), Day  with the day of  the month (starting with  1),
+%	Hour  with  the hour  of the  day (0--23),  Minute  with the  minute
+%	(0--59).   Second with the  second (0--59) and MilliSecond with  the
+%	milliseconds  (0--999).  Note that the latter might not  be accurate
+%	or  might always be 0, depending  on the timing capabilities of  the
+%	system.  See also convert_time/2.
+
+convert_time(Stamp, Y, Mon, Day, Hour, Min, Sec, MilliSec) :-
+	stamp_date_time(Stamp,
+			date(Y, Mon, Day,
+			     Hour, Min, FSec,
+			     _, _, _),
+			local),
+	Sec is float_integer_part(FSec),
+	MilliSec is integer(float_fractional_part(FSec)*1000).

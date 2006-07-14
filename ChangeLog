@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: First version of new time support.  With input from various
+    users from the mainlinglist.
+
   * ENHANCED: Try to reuse variable names when writing results of toplevel
     queries.
 

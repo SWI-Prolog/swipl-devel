@@ -733,11 +733,6 @@ COMMON(word) 		pl_shell(term_t command, term_t status);
 COMMON(word) 		pl_getenv(term_t var, term_t value);
 COMMON(word) 		pl_setenv(term_t var, term_t value);
 COMMON(word) 		pl_unsetenv(term_t var);
-COMMON(word) 		pl_convert_time(term_t time, term_t year,
-				term_t month, term_t day,
-				term_t hour, term_t minute,
-				term_t second, term_t usec);
-COMMON(word) 		pl_convert_time2(term_t time, term_t string);
 COMMON(word) 		pl_get_time(term_t t);
 COMMON(word) 		pl_sleep(term_t time);
 COMMON(word) 		pl_get_pid(term_t pid);

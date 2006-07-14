@@ -153,6 +153,8 @@ suggest predicates from a keyword.
 \predicatesummary{current_stream}{3}{Examine open streams}
 \predicatesummary{current_thread}{2}{Examine Prolog threads}
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
+\predicatesummary{date_time_stamp}{2}{Convert sate structure to time-stamp}
+\predicatesummary{date_time_value}{3}{Extract info from a date structure}
 \predicatesummary{dde_current_connection}{2}{Win32: Examine open DDE connections}
 \predicatesummary{dde_current_service}{2}{Win32: Examine DDE services provided}
 \predicatesummary{dde_execute}{2}{Win32: Execute command on DDE server}
@@ -219,6 +221,7 @@ suggest predicates from a keyword.
 \predicatesummary{format}{1}{Formatted output}
 \predicatesummary{format}{2}{Formatted output with arguments}
 \predicatesummary{format}{3}{Formatted output on a stream}
+\predicatesummary{format_time}{3}{C strftime() like date/time formatter}
 \predicatesummary{format_predicate}{2}{Program format/[1,2]}
 \predicatesummary{term_variables}{2}{Find unbound variables in a term}
 \predicatesummary{term_variables}{3}{Find unbound variables in a term}
@@ -490,6 +493,7 @@ suggest predicates from a keyword.
 \predicatesummary{source_location}{2}{Location of last read term}
 \predicatesummary{spy}{1}{Force tracer on specified predicate}
 \predicatesummary{stack_parameter}{4}{Some systems: Query/Set runtime stack parameter}
+\predicatesummary{stamp_date_time}{3}{Convert time-stamp to date structure}
 \predicatesummary{statistics}{0}{Show execution statistics}
 \predicatesummary{statistics}{2}{Obtain collected statistics}
 \predicatesummary{stream_position_data}{3}{Access fields from stream position}

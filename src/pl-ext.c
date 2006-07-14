@@ -121,8 +121,6 @@ static const PL_extension foreigns[] = {
   FRG("wildcard_match",		2, pl_wildcard_match,		0),
   FRG("$apropos_match",		2, pl_apropos_match,		0),
   FRG("sub_atom",		5, pl_sub_atom,		     NDET),
-  FRG("convert_time",		2, pl_convert_time2,		0),
-  FRG("convert_time",		8, pl_convert_time,		0),
   FRG("sleep",			1, pl_sleep,			0),
   FRG("break",			0, pl_break,			0),
   FRG("$break",			1, pl_break1,			0),
