@@ -30,8 +30,8 @@ ok(1152794050, '%A', 'Thursday').
 ok(1152794050, '%b', 'Jul').
 ok(1152794050, '%B', 'July').
 ok(1152794050, '%c', 'Thu Jul 13 14:34:10 2006').
-ok(1152794050, '%p', 'PM').
-ok(1152794050, '%P', 'pm').
+ok(1152794050, '%p', ['P', 'PM']).
+%ok(1152794050, '%P', 'pm').		% non-standard
 ok(1152794050, '%x', '07/13/06').
 ok(1152794050, '%X', '14:34:10').
 ok(1152794050, '%C', '20').
@@ -79,7 +79,9 @@ test_format :-
 	setlocale(time, OldLocale, 'C'),
 	(   ok(Time, Fmt, Atom),
 	    (	format_time(atom(A), Fmt, Time)
-	    ->	(   A == Atom
+	    ->	(   (   A == Atom
+		    ;	memberchk(A, Atom)
+		    )
 		->  true
 		;   format('~q: got ~q, expected ~q~n', [Fmt, A, Atom])
 		)

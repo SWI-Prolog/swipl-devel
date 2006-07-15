@@ -22,11 +22,23 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Somehow, MacOS X defines timezone()  as   a  function. Using the #define
+__DARWIN_UNIX03 1 is reverts to the  standard   behaviour  to make it an
+long set by tzset().  Not really clean ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define __DARWIN_UNIX03 1
+
 #include <math.h>
 #include "pl-incl.h"
 #include "libtai/taia.h"
 #include "libtai/caltime.h"
 #include <stdio.h>
+
+extern char *tzname[2];
+extern long timezone;
+extern int daylight;
 
 #define TAI_UTC_OFFSET LL(4611686018427387914)
 
@@ -691,12 +703,13 @@ PRED_IMPL("format_time", 3, format_time, 0)
   if ( !PL_get_wchars(A2, &fmtlen, &fmt,
 		      CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
     fail;
+
+  memset(&tb, 0, sizeof(tb));
   if ( get_taia(A3, &taia, &tb.stamp) )
   { double ip;
 
     ut64 = taia.sec.x - TAI_UTC_OFFSET;
     unixt = (time_t) ut64;
-    memset(&tb, 0, sizeof(tb));
 
     if ( (int64_t)unixt == ut64 )
     { localtime_r(&unixt, &tb.tm);
