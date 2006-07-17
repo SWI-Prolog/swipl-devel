@@ -250,10 +250,10 @@ parse_expression(Expr,Result) :-
 	; Expr = L mod R ->
 		parse_expression(L,RL),
 		parse_expression(R,RR),
-		mymod(RL,RR,Result)
+		mymod(RL,RR,Result,yes)
 	; Expr = abs(E) ->
 		parse_expression(E,RE),
-		myabs(RE,Result)
+		myabs(RE,Result,yes)
 	; Expr = (L / R) ->
 		parse_expression(L,RL),
 		parse_expression(R,RR),
@@ -1076,7 +1076,7 @@ mymin(X,Y,Z,New) :-
 		)
 	).
 
-myabs(X,Y) :-
+myabs(X,Y,New) :-
 	( nonvar(X) ->
 		Y is abs(X)
 	; nonvar(Y) ->
@@ -1088,20 +1088,32 @@ myabs(X,Y) :-
 			X = Y
 		;
 			NLX is (-Y),
-			put(X,NLX,Y,[myabs(Y)|ExpX])
+			( New == yes ->
+				put(X,NLX,Y,[myabs(Y)|ExpX])
+			;
+				put(X,NLX,Y,ExpX)
+			)
 		)
 	;
 		get(X,LX,UX,ExpX),
 		get(Y,LY,UY,ExpY),
 		UY > 0,
-		put(X,LX,UX,[myabs(Y)|ExpX]),
+		( New == yes ->
+			put(X,LX,UX,[myabs(Y)|ExpX])
+		;
+			true
+		),
 		( LX =< 0, UX >= 0 ->
 			NLY is max(0,LY)
 		;
 			NLY is max(min(abs(LX),abs(UX)),max(LY,0))
 		),
 		NUY is min(UY,max(abs(LX),abs(UX))),
-		put(Y,NLY,NUY,[myabs2(X)|ExpY]),
+		( New == yes ->
+			put(Y,NLY,NUY,[myabs2(X)|ExpY])
+		;
+			put(Y,NLY,NUY,ExpY)
+		),
 		( var(X) ->
 			get(X,LX2,UX2,ExpX2),
 			( LX2 == LX, UX2 == UX ->
@@ -1128,7 +1140,7 @@ myabs(X,Y) :-
 		)
 	).
 
-mymod(X,Y,Z) :- % Z is X mod Y
+mymod(X,Y,Z,New) :- % Z is X mod Y
 	( nonvar(X) ->
 		( nonvar(Y) ->
 			Z is X mod Y
@@ -1137,36 +1149,64 @@ mymod(X,Y,Z) :- % Z is X mod Y
 			( Z > 0 ->
 				( X == Z ->
 					no_overlap(-X,X,YL,YU,NYL,NYU),
-					put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					( New == yes ->
+						put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					;
+						put(Y,NYL,NYU,YExp)
+					)
 				; % Z < X
 					no_overlap(-Z,Z,YL,YU,YL1,YU1),
 					in_between(-X,X,YL1,YU1,NYL,NYU),
-					put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					( New == yes ->
+						put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					;
+						put(Y,NYL,NYU,YExp)
+					)
 				)
 			; Z < 0 ->
 				( X == Z ->
 					no_overlap(X,-X,YL,YU,NYL,NYU),
-					put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					( New == yes ->
+						put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					;
+						put(Y,NYL,NYU,YExp)
+					)
 				; % Z < X
 					no_overlap(Z,-Z,YL,YU,YL1,YU1),
 					in_between(X,-X,YL1,YU1,NYL,NYU),
-					put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					( New == yes ->
+						put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					;
+						put(Y,NYL,NYU,YExp)
+					)
 				)
 			; % Z == 0
 				( X == 0 ->
 					no_overlap(0,0,YL,YU,NYL,NYU),% Y \== 0
-					put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					( New == yes ->
+						put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					;
+						put(Y,NYL,NYU,YExp)
+					)
 				; % X \== 0
 					PX is abs(X),
 					in_between(-PX,PX,YL,YU,NYL,NYU),% |Y| < |X|
-					put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					( New == yes ->
+						put(Y,NYL,NYU,[mymod2(X,Z)|YExp])
+					;
+						put(Y,NYL,NYU,YExp)
+					)
 				)
 			)
 		; % var(Y), var(Z)
-			get(Y,YL,YU,YExp),
-			get(Z,ZL,ZU,ZExp),
-			put(Y,YL,YU,[mymod2(X,Z)|YExp]),
-			put(Z,ZL,ZU,[mymod3(X,Y)|ZExp])
+			( New == yes ->
+				get(Y,YL,YU,YExp),
+				get(Z,ZL,ZU,ZExp),
+				put(Y,YL,YU,[mymod2(X,Z)|YExp]),
+				put(Z,ZL,ZU,[mymod3(X,Y)|ZExp])
+			;
+				true
+			)
 		)
 	; nonvar(Y) ->
 		Y \== 0,
@@ -1174,31 +1214,55 @@ mymod(X,Y,Z) :- % Z is X mod Y
 			get(X,XL,XU,XExp),
 			( Z > 0 ->
 				NXL is max(XL,1),
-				put(X,NXL,XU,[mymod1(Y,Z)|XExp])
+				( New == yes ->
+					put(X,NXL,XU,[mymod1(Y,Z)|XExp])
+				;
+					put(X,NXL,XU,XExp)
+				)
 			; Z < 0 ->
 				NXU is min(XU,-1),
-				put(X,XL,NXU,[mymod1(Y,Z)|XExp])
+				( New == yes ->
+					put(X,XL,NXU,[mymod1(Y,Z)|XExp])
+				;
+					put(X,XL,NXU,XExp)
+				)
 			;
-				put(X,XL,XU,[mymod1(Y,Z)|XExp])	
+				( New == yes ->
+					put(X,XL,XU,[mymod1(Y,Z)|XExp])
+				;
+					put(X,XL,XU,XExp)
+				)
 			)
 		;
-			get(X,XL,XU,XExp),
-			get(Z,ZL,ZU,ZExp),
-			put(X,XL,XU,[mymod1(Y,Z)|XExp]),
-			put(Z,ZL,ZU,[mymod3(X,Y)|ZExp])
+			( New == yes ->
+				get(X,XL,XU,XExp),
+				get(Z,ZL,ZU,ZExp),
+				put(X,XL,XU,[mymod1(Y,Z)|XExp]),
+				put(Z,ZL,ZU,[mymod3(X,Y)|ZExp])
+			;
+				true
+			)
 		)
 	; nonvar(Z) ->
-		get(X,XL,XU,XExp),
-		get(Y,YL,YU,YExp),
-		put(X,XL,XU,[mymod1(Y,Z)|XExp]),
-		put(Y,YL,YU,[mymod2(X,Z)|YExp])
+		( New == yes ->
+			get(X,XL,XU,XExp),
+			get(Y,YL,YU,YExp),
+			put(X,XL,XU,[mymod1(Y,Z)|XExp]),
+			put(Y,YL,YU,[mymod2(X,Z)|YExp])
+		;
+			true
+		)
 	;
-		get(X,XL,XU,XExp),
-		get(Y,YL,YU,YExp),
-		get(Z,ZL,ZU,ZExp),
-		put(X,XL,XU,[mymod1(Y,Z)|XExp]),
-		put(Y,YL,YU,[mymod2(X,Z)|YExp]),
-		put(Z,ZL,ZU,[mymod3(X,Y)|ZExp])
+		( New == yes ->
+			get(X,XL,XU,XExp),
+			get(Y,YL,YU,YExp),
+			get(Z,ZL,ZU,ZExp),
+			put(X,XL,XU,[mymod1(Y,Z)|XExp]),
+			put(Y,YL,YU,[mymod2(X,Z)|YExp]),
+			put(Z,ZL,ZU,[mymod3(X,Y)|ZExp])
+		;
+			true
+		)
 	).
 			
 no_overlap(XL,XU,YL,YU,NYL,NYU) :-
@@ -1667,9 +1731,9 @@ trigger_exp(myxor2(X,Y),Z) :-
 	myxor(X,Y,Z).
 
 trigger_exp(myabs(Y),X) :-
-	myabs(X,Y).
+	myabs(X,Y,no).
 trigger_exp(myabs2(X),Y) :-
-	myabs(X,Y).
+	myabs(X,Y,no).
 
 trigger_exp(mymod1(Y,Z),X) :-
 	mymod(X,Y,Z).
