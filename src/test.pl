@@ -116,6 +116,7 @@ syntax(char-2) :-
 	52 == 0'\x34.
 syntax(char-3) :-
 	"\\" =:= 0'\\.
+
 syntax(string-1) :-
 	'\c ' == ''.
 syntax(string-2) :-
@@ -572,7 +573,7 @@ gmp(cmp-1) :-
 	pi > 5 rdiv 2.
 gmp(clause-1) :-
 	Clause = (gmp_clause(X,Y) :-
-		     X is Y + 3353461138769748319272960000),
+		       X is Y + 3353461138769748319272960000),
 	assert(Clause, Ref),
 	clause(H,B,Ref),
 	erase(Ref),
@@ -633,11 +634,8 @@ gmp(fmtf-1) :-
 	format(atom(S), '~5f', [X]),
 	sub_atom(S, _, _, 0, '935376.65824').
 gmp(idiv-1) :-
-	(   current_prolog_flag(bounded, false)
-	->  Qi is idiv(3 rdiv 2,2 rdiv 5),
-	    Qi == 3
-	;   true
-	).
+	Qi is idiv(3 rdiv 2,2 rdiv 5),
+	Qi == 3.
 
 :- endif.
 
