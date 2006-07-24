@@ -328,10 +328,13 @@ A mode is one of:
 	\end{description}
 
 A type can be a user-defined type or one of the built-in types. A type
-comprises a (possibly infinite) set of values. The type declaration for
-a constraint argument means that for every instance of that constraint the
+comprises a (possibly infinite) set of values. The type declaration for a
+constraint argument means that for every instance of that constraint the
 corresponding argument is only ever bound to values in that set. It does not
-state that the argument necessarily has to be bound to a value.
+state that the argument necessarily has to be bound to a value. Note that
+types are (currently) \textbf{not enforced}: the programmer should verify
+that all type declarations are correct. In the future dynamic and static
+type checking features will be added. 
 
 The built-in types are:
 	\begin{description}
