@@ -106,9 +106,12 @@ get_clp([H|T],CLP) :-
 
 mark_target([]).
 mark_target([V|Vs]) :-
-	get_attr(V,itf,Att),
-	setarg(9,Att,target),
+	(   get_attr(V,itf,Att)
+	->  setarg(9,Att,target)
+	;   true
+	),
 	mark_target(Vs).
+	
 
 % mark_keep(Vars)
 %
