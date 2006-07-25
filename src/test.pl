@@ -132,6 +132,9 @@ syntax(quote-4) :-
 syntax(number-2) :-
 	catch(atom_to_term('2\'', _, _), E, true),
 	E = error(syntax_error(illegal_number), _).
+syntax(zero-1) :-
+	term_to_atom(T, 'hello(\000\"\000\x")'),
+	T == hello([0, 120]).
 
 
 		 /*******************************

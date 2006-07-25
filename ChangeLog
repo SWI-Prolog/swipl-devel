@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: fatal error on read/1 in 0-bytes outside quoted strings/atoms.
+
   * FIXED: Error tracing multi-threaded code in plcon.exe.  Mike Elston.
 
   * ADDED: Prolog flag verbose_load to get status of silent(Bool) from

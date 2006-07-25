@@ -795,8 +795,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			return rb.base;
 		      }
 		      do
-		      { if ( something_read ) /* positions */
-			  addToBuffer(c, _PL_rd);
+		      { if ( something_read ) /* positions, \0 --> ' ' */
+			  addToBuffer(c ? c : ' ', _PL_rd);
 			else
 			  ensure_space(c);
 			c = getchr();
