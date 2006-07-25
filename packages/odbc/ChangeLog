@@ -1,3 +1,7 @@
+Jul 25, 2006
+
+* Fixed odbc_current_connection(-,-).  Nicos Angelo
+
 Feb 15, 2006
 
 * Bug#140: Fix setting LIBS in configure.  Sandro Hawke.

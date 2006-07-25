@@ -1311,7 +1311,7 @@ odbc_current_connection(term_t cid, term_t dsn, control_t h)
 	     PL_unify_atom(dsn, cn->dsn) )
 	{ PL_close_foreign_frame(fid);
 	  if ( cn->next )
-	    PL_retry_address(cn);
+	    PL_retry_address(cn->next);
 	  return TRUE;
 	}
       }
