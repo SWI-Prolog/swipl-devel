@@ -37,6 +37,8 @@ typedef       unsigned char * ucharp;
 #undef LD
 #define LD LOCAL_LD
 
+static void	addUTF8Buffer(Buffer b, int c);
+
 		 /*******************************
 		 *     UNICODE CLASSIFIERS	*
 		 *******************************/
@@ -236,6 +238,7 @@ typedef struct
   term_t	varnames;		/* Report variables+names */
   term_t	singles;		/* Report singleton variables */
   term_t	subtpos;		/* Report Subterm positions */
+  term_t	comments;		/* Report comments */
 
   struct var_table vt;			/* Data about variables */
   struct read_buffer _rb;		/* keep read characters here */
@@ -556,7 +559,7 @@ getchr__(ReadData _PL_rd)
 #define getchrq() Sgetcode(rb.stream)
 
 #define ensure_space(c) { if ( something_read && \
-			       (c == '\n'|| !isBlank(rb.here[-1])) ) \
+			       (c == '\n' || !isBlank(rb.here[-1])) ) \
 			   addToBuffer(c, _PL_rd); \
 		        }
 #define set_start_line { if ( !something_read ) \
@@ -641,12 +644,37 @@ raw_read_quoted(int q, ReadData _PL_rd)
 }
 
 
+static void
+add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
+{ term_t head = PL_new_term_ref();
+
+  assert(_PL_rd->comments);
+  PL_unify_list(_PL_rd->comments, head, _PL_rd->comments);
+  if ( pos )
+    PL_unify_term(head,
+		  PL_FUNCTOR, FUNCTOR_minus2,
+		    PL_FUNCTOR, FUNCTOR_stream_position4,
+		      PL_INT64, pos->charno,
+		      PL_INT, pos->lineno,
+		      PL_INT, pos->linepos,
+		      PL_INT, 0,
+		    PL_UTF8_STRING, baseBuffer(b, char));
+  else
+    PL_unify_term(head,
+		  PL_FUNCTOR, FUNCTOR_minus2,
+		    ATOM_minus,
+		    PL_UTF8_STRING, baseBuffer(b, char));
+  PL_reset_term_refs(head);
+}
+
 
 static unsigned char *
 raw_read2(ReadData _PL_rd ARG_LD)
 { int c;
   bool something_read = FALSE;
   bool dotseen = FALSE;
+  IOPOS pbuf;					/* comment start */
+  IOPOS *pos;
   
   clearBuffer(_PL_rd);				/* clear input buffer */
   source_line_no = -1;
@@ -686,13 +714,35 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		strcpy((char *)rb.base, "end_of_file. ");
 		rb.here = rb.base + 14;
 		return rb.base;
-      case '/': c = getchr();
+      case '/': if ( _PL_rd->comments && rb.stream->position )
+		{ pbuf = *rb.stream->position;
+		  pbuf.charno--;
+		  pbuf.linepos--;
+		  pos = &pbuf;
+		} else
+		  pos = NULL;
+
+	        c = getchr();
 		if ( c == '*' )
 		{ int last;
 		  int level = 1;
+		  tmp_buffer ctmpbuf;
+		  Buffer cbuf;
+
+		  if ( _PL_rd->comments )
+		  { initBuffer(&ctmpbuf);
+		    cbuf = (Buffer)&ctmpbuf;
+		    addUTF8Buffer(cbuf, '/');
+		    addUTF8Buffer(cbuf, '*');
+		  } else
+		  { cbuf = NULL;
+		  }
 
 		  if ((last = getchr()) == EOF)
+		  { if ( cbuf )
+		      discardBuffer(cbuf);
 		    rawSyntaxError("end_of_file_in_block_comment");
+		  }
 
 		  if ( something_read )
 		  { addToBuffer(' ', _PL_rd);	/* positions */
@@ -701,8 +751,15 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  }
 
 		  for(;;)
-		  { switch(c = getchr())
+		  { c = getchr();
+
+		    if ( cbuf )
+		      addUTF8Buffer(cbuf, c);
+
+		    switch( c )
 		    { case EOF:
+			if ( cbuf )
+			  discardBuffer(cbuf);
 			rawSyntaxError("end_of_file_in_block_comment");
 		      case '*':
 			if ( last == '/' )
@@ -710,7 +767,12 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			break;
 		      case '/':
 			if ( last == '*' && --level == 0 )
-			{ c = ' ';
+			{ if ( cbuf )
+			  { addUTF8Buffer(cbuf, EOS);
+			    add_comment(cbuf, pos, _PL_rd PASS_LD);
+			    discardBuffer(cbuf);
+			  }
+			  c = ' ';
 			  goto handle_c;
 			}
 			break;
@@ -732,12 +794,49 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		  goto handle_c;
 		}
       case '%': if ( something_read )
-		  addToBuffer(' ', _PL_rd);	/* positions */
-		while((c=getchr()) != EOF && c != '\n')
-		{ if ( something_read )		/* record positions */
-		    addToBuffer(' ', _PL_rd);
+		  addToBuffer(' ', _PL_rd);
+      		if ( _PL_rd->comments )
+		{ tmp_buffer ctmpbuf;
+		  Buffer cbuf;
+
+		  if ( rb.stream->position )
+		  { pbuf = *rb.stream->position;
+		    pbuf.charno--;
+		    pbuf.linepos--;
+		    pos = &pbuf;
+		  } else
+		    pos = NULL;
+
+		  initBuffer(&ctmpbuf);
+		  cbuf = (Buffer)&ctmpbuf;
+		  addUTF8Buffer(cbuf, '%');
+
+		  for(;;)
+		  { while((c=getchr()) != EOF && c != '\n')
+		    { addUTF8Buffer(cbuf, c);
+		      if ( something_read )		/* record positions */
+			addToBuffer(' ', _PL_rd);
+		    }
+		    if ( c == '\n' )
+		    { addToBuffer(c, _PL_rd);
+		      c = getchr();
+		      if ( c == '%' )
+		      { addUTF8Buffer(cbuf, '\n');
+			addUTF8Buffer(cbuf, '%');
+			continue;
+		      }
+		    }
+		    break;
+		  }
+		  addUTF8Buffer(cbuf, EOS);
+		  add_comment(cbuf, pos, _PL_rd PASS_LD);
+		  discardBuffer(cbuf);
+		} else
+		{ while((c=getchr()) != EOF && c != '\n')
+		  { if ( something_read )		/* record positions */
+		      addToBuffer(' ', _PL_rd);
+		  }
 		}
-		c = '\n';
 		goto handle_c;
      case '\'': if ( rb.here > rb.base && isDigit(rb.here[-1]) )
 		{ addToBuffer(c, _PL_rd); 		/* <n>' */
@@ -2782,6 +2881,7 @@ static const opt_spec read_term_options[] =
   { ATOM_module,	    OPT_ATOM },
   { ATOM_syntax_errors,     OPT_ATOM },
   { ATOM_backquoted_string, OPT_BOOL },
+  { ATOM_comments,	    OPT_TERM },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -2789,6 +2889,7 @@ word
 pl_read_term3(term_t from, term_t term, term_t options)
 { GET_LD
   term_t tpos = 0;
+  term_t tcomments = 0;
   int rval;
   atom_t w;
   read_data rd;
@@ -2815,7 +2916,8 @@ retry:
 		     &dq,
 		     &mname,
 		     &rd.on_error,
-		     &rd.backquoted_string) )
+		     &rd.backquoted_string,
+		     &tcomments) )
   { PL_release_stream(s);
     fail;
   }
@@ -2839,6 +2941,8 @@ retry:
   }
   if ( rd.singles && PL_get_atom(rd.singles, &w) && w == ATOM_warning )
     rd.singles = TRUE;
+  if ( tcomments )
+    rd.comments = PL_copy_term_ref(tcomments);
 
   rval = read_term(term, &rd PASS_LD);
   if ( Sferror(s) )
@@ -2852,8 +2956,11 @@ retry:
 			   PL_FUNCTOR, FUNCTOR_stream_position4,
 			   PL_INT64, source_char_no,
 			   PL_INT, source_line_no,
-			   PL_INT, 0, 		/* should be charpos! */
-			   PL_INT, 0);		/* should be byteno */
+			   PL_INT, source_line_pos,
+			   PL_INT, 0);			/* should be byteno */
+    if ( tcomments )
+    { PL_unify_nil(rd.comments);
+    }
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
     { Undo(m);

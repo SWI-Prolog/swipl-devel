@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Allow reading comments in read_term/3.  Ongoing work.
+
   * FIXED: Graphical debugger after throw/1.  Alan Baljeu.
 
   * FIXED: fatal error on read/1 in 0-bytes outside quoted strings/atoms.
