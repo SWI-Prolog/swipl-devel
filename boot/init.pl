@@ -925,8 +925,6 @@ $spec_extension(Spec, Ext) :-
 	$spec_extension(Arg, Ext).
 
 
-:- flag($load_silent, _, false).
-
 $load_file(File, Module, Options) :-
 	\+ memberchk(stream(_), Options),
 	user:prolog_load_file(Module:File, Options), !.
@@ -945,9 +943,11 @@ $load_file(File, Module, Options) :-
 	    
 	$get_option(imports(Import), Options, all),
 	$get_option(must_be_module(IsModule), Options, false),
-	flag($load_silent, DefSilent, DefSilent),
+	current_prolog_flag(verbose_load, DefVerbose),
+	'$negate'(DefVerbose, DefSilent),
 	$get_option(silent(Silent), Options, DefSilent),
-	flag($load_silent, _, Silent),
+	'$negate'(Silent, Verbose),
+	set_prolog_flag(verbose_load, Verbose),
 	$get_option(if(If), Options, true),
 	$get_option(autoload(Autoload), Options, false),
 	$get_option(derived_from(DerivedFrom), Options, -),
@@ -1022,8 +1022,11 @@ $load_file(File, Module, Options) :-
 					  HeapUsed)))
 	),
 	flag($autoloading, _, AutoLevel),
-	flag($load_silent, _, DefSilent).
+	set_prolog_flag(verbose_load, DefVerbose).
 
+
+'$negate'(false, true).
+'$negate'(true,  false).
 
 $print_message(Level, Term) :-
 	$current_module('$messages', _), !,

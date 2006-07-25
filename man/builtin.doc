@@ -201,9 +201,10 @@ contents of the argument files are included in the \fileext{qlf} file
 instead of the loading directive.
 
     \termitem{silent}{Bool}
-If \const{true}, load the file without printing a message. The specified
-value is the default for all files loaded as a result of loading the
-specified files.
+If \const{true}, load the file without printing a message. The
+specified value is the default for all files loaded as a result of
+loading the specified files. This option writes the prolog flag
+\const{verbose_load} with the negation of \arg{Bool}.
 
     \termitem{stream}{Input}
 This SWI-Prolog extension compiles the data from the stream

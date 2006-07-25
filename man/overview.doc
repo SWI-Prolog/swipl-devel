@@ -1311,6 +1311,11 @@ If \const{true} the normal consult message will be printed if a library
 is autoloaded. By default this message is suppressed. Intended to be
 used for debugging purposes.
 
+    \prologflagitem{verbose_load}{bool}{rw}
+If \const{false} normal consult messages will be suppressed.  Default is
+\const{true}.  The value of this flag is normally controlled by the
+option \term{silent}{Bool} privided by load_files/2.
+
     \prologflagitem{verbose_file_search}{bool}{rw}
 If \const{true} (default \const{false}), print messages indicating the
 progress of absolute_file_name/[2,3] in locating files.  Intended for
