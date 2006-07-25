@@ -3114,6 +3114,7 @@ the moment the code marked (**) handles this not very elegant
 	      switch(tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD))
 	      { case ACTION_RETRY:
 		  *valTermRef(exception_printed) = 0;
+		  exception_term = 0;
 		  Undo(ch->mark);
 		  discardChoicesAfter(FR PASS_LD);
 		  DEF = FR->predicate;
