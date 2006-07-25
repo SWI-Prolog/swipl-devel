@@ -51,7 +51,9 @@ chr_info(_,Message,Params) :-
 
 
 %% SWI begin
-verbosity_on :- prolog_flag(verbose,V), V \== silent.
+verbosity_on :- 
+	current_prolog_flag(verbose,V), V \== silent, 	
+	current_prolog_flag(verbose_load,true).
 %% SWI end
 
 %% SICStus begin
