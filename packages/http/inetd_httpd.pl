@@ -57,7 +57,8 @@ server_loop(_, _) :-
 	halt.
 server_loop(Goal, Options) :-
 	http_wrapper(Goal, user_input, user_output, Connection,
-		     request(Request)), !,
+		     [ request(Request)
+		     ]), !,
 	(   memberchk(after(After), Options)
 	->  call(After, Request)
 	;   true
