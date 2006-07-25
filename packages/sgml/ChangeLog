@@ -1,3 +1,7 @@
+Jul 25, 2006
+
+  * FIXED: space(default) handling.  Juho Östman.
+
 Jun 20, 2006
 
   * FIXED: illegal read.  Can cause wrong data and/or crashes.

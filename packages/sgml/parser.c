@@ -4158,6 +4158,7 @@ emit_cdata(dtd_parser *p, int last)
 	    poke_ocharbuf(cdata, o++, c);
 	  }
 	  poke_ocharbuf(cdata, o, '\0');
+	  offset = 0;			/* wrote new output from offset=0 */
 	  size = o;
 	}
 	break;
