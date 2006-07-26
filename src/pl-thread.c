@@ -3106,7 +3106,7 @@ reclaim_procps_entry()
   low=e=procps_entries;
   lowc=low->usecoount;
 
-  for(e++, i=0; i<CACHED_PROCPS_ENTRIES; e++, i++)
+  for(e++, i=1; i<CACHED_PROCPS_ENTRIES; e++, i++)
   { if ( e->usecoount < lowc )
     { lowc = e->usecoount;
       low = e;
