@@ -36,9 +36,15 @@ long set by tzset().  Not really clean ...
 #include "libtai/caltime.h"
 #include <stdio.h>
 
+#ifdef WIN32
+#define timezone _timezone
+#define daylight _daylight
+#else
 extern char *tzname[2];
 extern long timezone;
 extern int daylight;
+#endif
+
 
 #define TAI_UTC_OFFSET LL(4611686018427387914)
 
