@@ -57,15 +57,39 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.14 Patches relative to 5.6.13
+Version 5.6.17 Patches relative to 5.6.16
 =========================================
 
 Prolog
 
-  * Fixed problem in library(url).
+  * MODIFIED: predicate_property(Pred, number_of_clauses(N)) returns 0
+    for dynamic predicates with 0 clauses.
+  * FIXED: Added Unicode support to DDE interface.
+  * FIXED: Various long/int issues calling PL_unify_term().  Affects 64-bit
+    systems only.
+  * FIXED: Memory violation getting thread-CPU time in Linux.  With help
+    of Jacco van Ossenbruggen.
+  * ADDED: Allow reading comments in read_term/3.  Ongoing work.
+  * FIXED: Graphical debugger after throw/1.  Alan Baljeu.
+  * FIXED: fatal error on read/1 in 0-bytes outside quoted strings/atoms.
+  * FIXED: Error tracing multi-threaded code in plcon.exe.  Mike Elston.
+  * ADDED: Prolog flag verbose_load to get status of silent(Bool) from
+    load_files/2.  Tom Schrijvers.
+  * ADDED: First version of new time support.  With input from various
+    users from the mainlinglist.
+  * ENHANCED: Try to reuse variable names when writing results of toplevel
+    queries.
+  * ADDED: with_output_to(+Out, :Goal) to allow writing to atoms, strings,
+    code-lists, etc.  Also allows for format(+Out, +Fmt, +Args) with the
+    same specifications.  Moved sformat/[2,3] to the compatibility library.
+  * MODIFIED: functions lsb and msb throw domain error on 0.  Updated
+    documentation.  With help from Richard O'Keefe and Bart Demoen.
+  * ADDED: Documentation for library(ordsets).
+
 							    
 Packages
   
-  * XPCE: file<-object issue with text-buffers from version 5.4.x
-  * CHR: Too verbose compilation and undefined predicate fixes.
-  * Semweb: Do not demand type triples in rdfs_member/2
+  * SGML: fix to space(default) handling
+  * ODBC: Fixed odbc_current_connection(-,-).  
+  * XPCE: Fixed: Colours of arrow-heads in PostScript generation
+  * Semweb: rdf_save/2 to use rdf:nodeID for bnodes used multiple times.

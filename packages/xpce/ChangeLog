@@ -3,6 +3,9 @@
 
 
 
+VERSION 6.6.17, distributed with SWI-Prolog 5.6.17
+==================================================
+
 * FIXED: Colours of arrow-heads in PostScript generation.  Anders Bouwer.
 
 VERSION 6.6.16, distributed with SWI-Prolog 5.6.16
