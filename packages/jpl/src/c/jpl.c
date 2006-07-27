@@ -388,8 +388,8 @@
     ? PL_unify_integer((T),xlo) \
     : PL_unify_term((T), \
 	PL_FUNCTOR, JNI_functor_jlong_2, \
-	PL_INTEGER, xhi, \
-	PL_INTEGER, xlo \
+	PL_INT, xhi, \
+	PL_INT, xlo \
       ) \
     )
 
@@ -781,7 +781,7 @@ jni_tidy_iref_type_cache(
 
     PL_unify_term( goal,
 	PL_FUNCTOR, PL_new_functor(PL_new_atom("jpl_tidy_iref_type_cache"),1),
-	PL_INTEGER, iref
+	PL_INT, iref
 	);
     return  PL_call(
 		goal,
@@ -924,8 +924,8 @@ jni_hr_table_slot(
 	return	PL_unify_list(t2,tp,t2)
 	    &&	PL_unify_term(tp,
 		    PL_FUNCTOR, PL_new_functor(PL_new_atom("-"),2),
-		    PL_INTEGER, slot->hash,
-		    PL_INTEGER, (int)(slot->obj)
+		    PL_INT, slot->hash,
+		    PL_INT, (int)(slot->obj)
 		)
 	    &&	jni_hr_table_slot(t2,slot->next)
 	    ;
@@ -1226,7 +1226,7 @@ jvm_exit(
      // PL_unify_term( e,
      //	    PL_FUNCTOR, JNI_functor_java_exception_2,
      //	      PL_CHARS, "exited",
-     //	      PL_INTEGER, code
+     //	      PL_INT, code
      //	    );
      // return PL_raise_exception(e);
     DEBUG(0, Sdprintf( "[JPL: JVM exits: code=%d]\n", code));
@@ -1244,7 +1244,7 @@ jvm_abort()
      // PL_unify_term( e,
      //	    PL_FUNCTOR, JNI_functor_java_exception_2,
      //	      PL_CHARS, "aborted",
-     //	      PL_INTEGER, 0
+     //	      PL_INT, 0
      //	    );
      // return PL_raise_exception(e);
     DEBUG(0, Sdprintf( "[JPL: JVM aborts]\n"));
