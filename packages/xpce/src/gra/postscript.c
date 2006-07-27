@@ -1472,10 +1472,18 @@ drawPostScriptLine(Line ln, Name hb)
 		ln, ln, x1, y1, x2-x1, y2-y1);
   
     if ( adjustFirstArrowLine(ln) )
+    { Colour old = ln->first_arrow->colour;
+      ln->first_arrow->colour = ln->colour;
       postscriptGraphical(ln->first_arrow, hb);
+      ln->first_arrow->colour = old;
+    }
     if ( adjustSecondArrowLine(ln) )
+    { Colour old = ln->second_arrow->colour;
+      ln->second_arrow->colour = ln->colour;
       postscriptGraphical(ln->second_arrow, hb);
-  
+      ln->second_arrow->colour = old;
+    }
+
     ps_output("grestore\n");
   }
 
