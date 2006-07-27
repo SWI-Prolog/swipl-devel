@@ -3398,7 +3398,7 @@ unify_source(term_t src, triple *t)
     return PL_unify_term(src,
 			 PL_FUNCTOR, FUNCTOR_colon2,
 			   PL_ATOM, t->source,
-			   PL_INTEGER, t->line);
+			   PL_LONG, t->line);
 }
 
 
@@ -4865,7 +4865,7 @@ unify_predicate_property(rdf_db *db, predicate *p, term_t option, functor_t f)
 			 PL_BOOL, p->transitive);
   } else if ( f == FUNCTOR_triples1 )
   { return PL_unify_term(option, PL_FUNCTOR, f,
-			 PL_INTEGER, p->triple_count);
+			 PL_LONG, p->triple_count);
   } else if ( f == FUNCTOR_rdf_subject_branch_factor1 )
   { return PL_unify_term(option, PL_FUNCTOR, f,
 		 PL_FLOAT, subject_branch_factor(db, p, DISTINCT_DIRECT));
@@ -5403,17 +5403,17 @@ unify_statistics(rdf_db *db, term_t key, functor_t f)
   } else if ( f == FUNCTOR_gc2 )
   { return PL_unify_term(key,
 			 PL_FUNCTOR, f,
-			   PL_INTEGER, db->gc_count,
+			   PL_INT, db->gc_count,
 			   PL_FLOAT, db->gc_time); 	/* time spent */
   } else if ( f == FUNCTOR_rehash2 )
   { return PL_unify_term(key,
 			 PL_FUNCTOR, f,
-			   PL_INTEGER, db->rehash_count,
+			   PL_INT, db->rehash_count,
 			   PL_FLOAT, db->rehash_time);
   } else
     assert(0);
 
-  return PL_unify_term(key, PL_FUNCTOR, f, PL_INTEGER, v);
+  return PL_unify_term(key, PL_FUNCTOR, f, PL_LONG, v);
 }
 
 static foreign_t

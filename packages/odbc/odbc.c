@@ -1982,7 +1982,7 @@ odbc_row(context *ctxt, term_t trow)
 	 ctxt->rc == SQL_SUCCESS_WITH_INFO )
       rval = PL_unify_term(trow,
 			   PL_FUNCTOR, FUNCTOR_affected1,
-			     PL_INTEGER, (long)rows);
+			     PL_LONG, (long)rows);
     else
       rval = TRUE;
     

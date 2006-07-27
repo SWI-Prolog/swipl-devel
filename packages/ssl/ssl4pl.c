@@ -266,10 +266,10 @@ tcp_unify_ip(term_t t, struct in_addr *ip)
 
   return PL_unify_term(t,
 		       PL_FUNCTOR, FUNCTOR_ip4,
-		         PL_INTEGER, (hip >> 24) & 0xff,
-		         PL_INTEGER, (hip >> 16) & 0xff,
-		         PL_INTEGER, (hip >>  8) & 0xff,
-		         PL_INTEGER, (hip >>  0) & 0xff);
+		         PL_LONG, (hip >> 24) & 0xffL,
+		         PL_LONG, (hip >> 16) & 0xffL,
+		         PL_LONG, (hip >>  8) & 0xffL,
+		         PL_LONG, (hip >>  0) & 0xffL);
 }
 
 
