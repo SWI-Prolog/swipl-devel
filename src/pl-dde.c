@@ -120,32 +120,33 @@ dde_warning(const char *cmd)
 }
 
 
-static atom_t
-hszToAtom(HSZ hsz)
-{ char buf[FASTBUFSIZE];
+static int
+unify_hsz(term_t term, HSZ hsz)
+{ wchar_t buf[FASTBUFSIZE];
   int len;
 
-  if ( !(len=DdeQueryString(ddeInst, hsz, buf, sizeof(buf)-1, CP_WINANSI)) )
+  if ( !(len=DdeQueryStringW(ddeInst, hsz, buf,
+			     sizeof(buf)/sizeof(wchar_t)-1, CP_WINUNICODE)) )
   { dde_warning("string handle");
     return NULL_ATOM;
   }
 
-  if ( len == sizeof(buf)-1 )
-  { if ( (len=DdeQueryString(ddeInst, hsz, NULL, 0, CP_WINANSI)) > 0 )
-    { char *b2 = malloc(len+1);
-      atom_t a;
+  if ( len == sizeof(buf)/sizeof(wchar_t)-1 )
+  { if ( (len=DdeQueryStringW(ddeInst, hsz, NULL, 0, CP_WINUNICODE)) > 0 )
+    { wchar_t *b2 = malloc((len+1)*sizeof(wchar_t));
+      int rc;
       
-      DdeQueryString(ddeInst, hsz, b2, len+1, CP_WINANSI);
-      a = lookupAtom(b2, len);
+      DdeQueryStringW(ddeInst, hsz, b2, len+1, CP_WINUNICODE);
+      rc = PL_unify_wchars(term, PL_ATOM, len, b2);
       free(b2);
 
-      return a;
+      return rc;
     }
 
     dde_warning("string handle");
   }
 
-  return lookupAtom(buf, len);
+  return PL_unify_wchars(term, PL_ATOM, len, buf);
 }
 
 
@@ -154,19 +155,18 @@ unify_hdata(term_t t, HDDEDATA data)
 { char buf[FASTBUFSIZE];
   int len;
 
-  if ( !(len=DdeGetData(data, buf, sizeof(buf)-1, 0)) )
+  if ( !(len=DdeGetData(data, buf, sizeof(buf), 0)) )
     return dde_warning("data handle");
 
   DEBUG(0, Sdprintf("DdeGetData() returned %d bytes\n", len));
 
-  if ( len == sizeof(buf)-1 )
+  if ( len == sizeof(buf) )
   { if ( (len=DdeGetData(data, NULL, 0, 0)) > 0 )
-    { char *b2 = malloc(len+1);
+    { char *b2 = malloc(len);
       int rval;
       
       DdeGetData(data, b2, len, 0);
-      b2[len] = 0;
-      rval = PL_unify_atom_chars(t, b2);
+      rval = PL_unify_wchars(t, PL_ATOM, len/sizeof(wchar_t)-1, (wchar_t*)b2);
       free(b2);
 
       return rval;
@@ -175,24 +175,28 @@ unify_hdata(term_t t, HDDEDATA data)
     return dde_warning("data handle");
   }
 
-  buf[len] = 0;
-  return PL_unify_atom_chars(t, buf);
+  return PL_unify_wchars(t, PL_ATOM, len/sizeof(wchar_t)-1, (wchar_t*)buf);
 }
 
 
 static int
 get_hsz(term_t data, HSZ *rval)
-{ char *s;
+{ wchar_t *s;
+  unsigned int len;
 
-  if ( PL_get_chars(data, &s, CVT_ALL) )
-  { HSZ h = DdeCreateStringHandle(ddeInst, s, CP_WINANSI);
+  if ( PL_get_wchars(data, &len, &s, CVT_ALL|CVT_EXCEPTION) )
+  { HSZ h = DdeCreateStringHandleW(ddeInst, s, CP_WINUNICODE);
+
+    if ( s[len] )
+      Sdprintf("OOPS, s[%d] != 0\n", len);
+
     if ( h )
     { *rval = h;
       succeed;
     }
   }
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, data);
+  fail;
 }
 
 
@@ -237,10 +241,13 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        predicate_t pred = PL_pred(FUNCTOR_dde_connect3, MODULE_dde);
        int rval;
 
-       PL_put_atom(   argv+0, hszToAtom(hsz2)); /* topic */
-       PL_put_atom(   argv+1, hszToAtom(hsz1)); /* service */
-       PL_put_integer(argv+2, dwData2 ? 1 : 0); /* same instance */
-       rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+       if ( unify_hsz(argv+0, hsz2) &&			/* topic */
+	    unify_hsz(argv+1, hsz1) &&			/* service */
+	    PL_unify_integer(argv+2, dwData2 ? 1 : 0) )	/* same instance */
+       { rval = PL_call_predicate(MODULE_dde, TRUE, pred, argv);
+       } else
+       { rval = FALSE;
+       }
        PL_discard_foreign_frame(cid);
 
        return (void *)rval;
@@ -256,11 +263,11 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 	 term_t argv = PL_new_term_refs(3);
 	 predicate_t pred = PL_pred(FUNCTOR_dde_connect_confirm3, MODULE_dde);
 
-	 PL_put_atom(   argv+0, hszToAtom(hsz2)); /* topic */
-	 PL_put_atom(   argv+1, hszToAtom(hsz1)); /* service */
-	 PL_put_integer(argv+2, plhandle);
+	 if ( unify_hsz(argv+0, hsz2) &&			/* topic */
+	      unify_hsz(argv+1, hsz1) &&			/* service */
+	      PL_unify_integer(argv+2, plhandle) )
+	   PL_call_predicate(MODULE_dde, TRUE, pred, argv);
 
-	 PL_call_predicate(MODULE_dde, TRUE, pred, argv);
 	 PL_discard_foreign_frame(cid);
        }
 
@@ -291,7 +298,7 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
        DEBUG(0, Sdprintf("Got XTYP_EXECUTE request\n"));
 
        PL_put_integer(argv+0, plhandle);
-       PL_put_atom(   argv+1, hszToAtom(hsz1));
+       unify_hsz(     argv+1, hsz1);
        unify_hdata(   argv+2, hData);
        if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
 	 rval = (void *) DDE_FACK;
@@ -302,23 +309,27 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
      case XTYP_REQUEST:
      { HDDEDATA data = (HDDEDATA) NULL;
 
-       if ( fmt == CF_TEXT )
+       if ( fmt == CF_UNICODETEXT )
        { fid_t cid = PL_open_foreign_frame();
 	 term_t argv = PL_new_term_refs(4);
 	 predicate_t pred = PL_pred(FUNCTOR_dde_request4, MODULE_dde);
 	 int plhandle = findServerHandle(hconv);
 
 	 PL_put_integer( argv+0, plhandle);
-	 PL_put_atom(	 argv+1, hszToAtom(hsz1)); /* topic */
-	 PL_put_atom(    argv+2, hszToAtom(hsz2)); /* item */
+	 unify_hsz(	 argv+1, hsz1);	/* topic */
+	 unify_hsz(      argv+2, hsz2);	/* item */
 	 PL_put_variable(argv+3);
 
 	 if ( PL_call_predicate(MODULE_dde, TRUE, pred, argv) )
-	 { char *s;
+	 { wchar_t *s;
+	   unsigned int len;
 
-	   if ( PL_get_chars(argv+3, &s, CVT_ALL) )
-	     data = DdeCreateDataHandle(ddeInst, s, strlen(s)+1,
-					0, hsz2, CF_TEXT, 0);
+					/* TBD: error handling */
+	   if ( PL_get_wchars(argv+3, &len, &s, CVT_ALL) )
+	     data = DdeCreateDataHandle(ddeInst,
+					(unsigned char*) s,
+					(len+1)*sizeof(wchar_t),
+					0, hsz2, CF_UNICODETEXT, 0);
 	 }
 	 PL_discard_foreign_frame(cid);
        }
@@ -336,10 +347,10 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 static int
 dde_initialise()
 { if ( ddeInst == (DWORD)NULL )
-  { if (DdeInitialize(&ddeInst, (PFNCALLBACK)DdeCallback,
-		      APPCLASS_STANDARD|CBF_FAIL_ADVISES|CBF_FAIL_POKES|
-		      CBF_SKIP_REGISTRATIONS|CBF_SKIP_UNREGISTRATIONS,
-		      0L)
+  { if (DdeInitializeW(&ddeInst, (PFNCALLBACK)DdeCallback,
+		       APPCLASS_STANDARD|CBF_FAIL_ADVISES|CBF_FAIL_POKES|
+		       CBF_SKIP_REGISTRATIONS|CBF_SKIP_UNREGISTRATIONS,
+		       0L)
 	!= DMLERR_NO_ERROR)
     { ddeInst = (DWORD) -1;
       return dde_warning("initialise");
@@ -460,6 +471,8 @@ pl_dde_request(term_t handle, term_t item,
   DWORD result, valuelen;
   HDDEDATA Hvalue;
   long tmo;
+  static UINT fmt[] = {CF_UNICODETEXT, CF_TEXT};
+  int fmti;
 
   if ( !get_conv_handle(handle, &hdl) ||
        !get_hsz(item, &Hitem) )
@@ -470,21 +483,25 @@ pl_dde_request(term_t handle, term_t item,
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;
 
-  Hvalue = DdeClientTransaction(NULL, 0, conv_handle[hdl], Hitem, CF_TEXT,
-				XTYP_REQUEST, (DWORD)tmo, &result);
+  for(fmti = 0; fmti<2; fmti++)
+  { Hvalue = DdeClientTransaction(NULL, 0, conv_handle[hdl], Hitem, fmt[fmti],
+				  XTYP_REQUEST, (DWORD)tmo, &result);
+    if ( Hvalue )
+      break;
+  }
   ddeErr = DdeGetLastError(ddeInst);
   DdeFreeStringHandle(ddeInst, Hitem);
 
   if ( Hvalue)
-  { char * valuebuf;
-    char * valuedata;
+  { char * valuedata;
     valuedata = DdeAccessData(Hvalue, &valuelen);
-    valuebuf = (char *)malloc((size_t)valuelen+1);
-    strncpy(valuebuf, valuedata, valuelen+1);
+    DEBUG(0, Sdprintf("valuelen = %ld\n", valuelen));
+    if ( fmt[fmti] == CF_TEXT )
+      rval = PL_unify_string_nchars(value, valuelen-1, valuedata);
+    else
+      rval = PL_unify_wchars(value, PL_STRING,
+			     valuelen/sizeof(wchar_t)-1, (wchar_t*)valuedata);
     DdeUnaccessData(Hvalue);
-    valuebuf[valuelen] = EOS;
-    rval = PL_unify_string_chars(value, valuebuf);
-    free(valuebuf);
     return rval;
   } else
   { const char * errmsg = dde_error_message(ddeErr);
@@ -500,21 +517,24 @@ pl_dde_request(term_t handle, term_t item,
 word
 pl_dde_execute(term_t handle, term_t command, term_t timeout)
 { int hdl;
-  char *cmdstr;
+  wchar_t *cmdstr;
+  unsigned int cmdlen;
   HDDEDATA Hvalue, data;
   DWORD result;
   long tmo;
 
   if ( !get_conv_handle(handle, &hdl) ||
-       !PL_get_chars_ex(command, &cmdstr, CVT_ALL) ||
+       !PL_get_wchars(command, &cmdlen, &cmdstr, CVT_ALL|CVT_EXCEPTION) ||
        !PL_get_long_ex(timeout, &tmo) )
     fail;
 
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;
 
-  if ( !(data = DdeCreateDataHandle(ddeInst, cmdstr, strlen(cmdstr)+1,
-				    0, 0, CF_TEXT, 0)) )
+  if ( !(data = DdeCreateDataHandle(ddeInst,
+				    (unsigned char*)cmdstr,
+				    (cmdlen+1)*sizeof(wchar_t),
+				    0, 0, CF_UNICODETEXT, 0)) )
     return dde_warning("dde_execute/3");
 
   Hvalue = DdeClientTransaction((LPBYTE) data, (DWORD) -1,
@@ -530,7 +550,8 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
 word
 pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
 { int hdl;
-  char *datastr;
+  wchar_t *datastr;
+  unsigned datalen;
   HDDEDATA Hvalue;
   HSZ Hitem;
   long tmo;
@@ -538,17 +559,31 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
   if ( !get_conv_handle(handle, &hdl) ||
        !get_hsz(item, &Hitem) )
     fail;
-  if ( !PL_get_chars(data, &datastr, CVT_ALL) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, data);
-  if ( !PL_get_long(timeout, &tmo) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, timeout);
+  if ( !PL_get_wchars(data, &datalen, &datastr, CVT_ALL|CVT_EXCEPTION) )
+    fail;
+  if ( !PL_get_long_ex(timeout, &tmo) )
+    fail;
 
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;
 
-  Hvalue = DdeClientTransaction(datastr, strlen(datastr)+1,
-				conv_handle[hdl], Hitem, CF_TEXT,
+  Hvalue = DdeClientTransaction((unsigned char*)datastr,
+				(datalen+1)*sizeof(wchar_t),
+				conv_handle[hdl], Hitem, CF_UNICODETEXT,
 				XTYP_POKE, (DWORD)tmo, NULL);
+
+#if 0
+  if ( !Hvalue )
+  { char *txt;
+    
+    if ( !PL_get_nchars(data, &datalen, &txt, CVT_ALL|CVT_EXCEPTION|REP_MB) )
+      fail;
+
+    Hvalue = DdeClientTransaction(txt, datalen+1,
+				  conv_handle[hdl], Hitem, CF_TEXT,
+				  XTYP_POKE, (DWORD)tmo, NULL);
+  }
+#endif
 
   if ( !Hvalue )
     return dde_warning("poke");
