@@ -61,11 +61,7 @@ handle_request(Item) :-
 	new(B, emacs_buffer(File)),
 	new(W, emacs_frame(B)),
 	send(W, sticky_window),
-	send(B, check_modified_file),
-	(   Line == []
-	->  true
-	;   send(W?editor, goto_line, Line)
-	).
+	send(B, check_modified_file).
 handle_request('close-server') :-
 	dde_unregister_service('PceEmacs'),
 	send(@emacs, report, status, 'Closed DDE server').
