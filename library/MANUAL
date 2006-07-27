@@ -1922,6 +1922,11 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          library is autoloaded.  By default this  message is suppressed.
          Intended to be used for debugging purposes.
 
+    vveerrbboossee__llooaadd _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         If false normal consult  messages will be suppressed.   Default
+         is true.  The value of this flag is normally  controlled by the
+         option silent(_B_o_o_l) privided by load_files/2.
+
     vveerrbboossee__ffiillee__sseeaarrcchh _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If  true  (default   false),  print  messages  indicating   the
          progress   of  absolute_file_name/[2,3]  in   locating   files.
@@ -3540,9 +3545,9 @@ consulted which is already loaded.
 llooaadd__ffiilleess((_+_F_i_l_e_s_, _+_O_p_t_i_o_n_s))
     The  predicate load_files/2 is the parent  of all the other  loading
     predicates  except for include/1.   It  currently supports a  subset
-    of  the options of Quintus load_files/2.  _F_i_l_e_s is  either specifies
-    a  single,  or a  list of  source-files.   The  specification for  a
-    source-file  is handled  absolute_file_name/2.    See this  predicate
+    of  the options of Quintus load_files/2.   _F_i_l_e_s is either a  single
+    source-file,  or a list  of source-files.   The specification for  a
+    source-file  is handed to absolute_file_name/2.  See this  predicate
     for  the supported expansions.   _O_p_t_i_o_n_s is a list of options  using
     the format
 
@@ -3599,7 +3604,8 @@ llooaadd__ffiilleess((_+_F_i_l_e_s_, _+_O_p_t_i_o_n_s)
     ssiilleenntt((_B_o_o_l))
          If  true, load  the  file  without printing  a  message.    The
          specified  value is  the  default for  all  files loaded  as  a
-         result of loading the specified files.
+         result of loading the specified files.  This  option writes the
+         prolog flag verbose_load with the negation of _B_o_o_l.
 
     ssttrreeaamm((_I_n_p_u_t))
          This SWI-Prolog  extension compiles  the data  from the  stream
@@ -6525,15 +6531,33 @@ rreeaadd__tteerrmm((_-_T_e_r_m_, _+_O_p_t_i_o_n_s))
     argument order is  according to the ISO standard.  Syntax-errors are
     always reported using exception-handling (see catch/3).  Options:
 
-    vvaarriiaabblleess((_V_a_r_s))
-         Unify  _V_a_r_s  with a  list  of  variables  in the  term.     The
-         variables appear in  the order they have  been read.  See  also
-         term_variables/2.  (ISO).
+    bbaacckkqquuootteedd__ssttrriinngg((_B_o_o_l))
+         If true,  read `...`  to a  string object  (see section  4.23).
+         The default depends on the prolog flag with the same name.
 
-    vvaarriiaabbllee__nnaammeess((_V_a_r_s))
-         Unify _V_a_r_s with a list  of `_N_a_m_e = _V_a_r', where _N_a_m_e is  an atom
-         describing the variable name and _V_a_r is a  variable that shares
-         with the corresponding variable in _T_e_r_m.  (ISO).
+    cchhaarraacctteerr__eessccaappeess((_B_o_o_l))
+         Defines  how  to  read  \  escape-sequences  in  quoted  atoms.
+         See the  prolog-flags character_escapes, current_prolog_flag/2.
+         (SWI-Prolog).
+
+    ccoommmmeennttss((_-_C_o_m_m_e_n_t_s))
+         Unify _C_o_m_m_e_n_t_s with a list of _P_o_s_i_t_i_o_n-_C_o_m_m_e_n_t,  where _P_o_s_i_t_i_o_n
+         is  a   stream-position  object   (see  stream_position_data/3)
+         indicating  the   start  of   a  comment  and   _C_o_m_m_e_n_t  is   a
+         string-object containing  the  text including  delimiters of  a
+         comment.   It returns all  comments from where  the read_term/2
+         call started upto the end of the term read.
+
+    ddoouubbllee__qquuootteess((_B_o_o_l))
+         Defines  how to  read  "..." strings.    See  the  prolog-flags
+         double_quotes, current_prolog_flag/2.  (SWI-Prolog).
+
+    mmoodduullee((_M_o_d_u_l_e))
+         Specify  _M_o_d_u_l_e  for  operators,   character_escapes   flag  and
+         double_quotes flag.  The  value of the latter two is  overruled
+         if  the corresponding  read_term/3  option  is provided.     If
+         no module  is specified, the  current `source-module' is  used.
+         (SWI-Prolog).
 
     ssiinngglleettoonnss((_V_a_r_s))
          As variable_names,  but only  reports  the variables  occurring
@@ -6548,30 +6572,6 @@ rreeaadd__tteerrmm((_-_T_e_r_m_, _+_O_p_t_i_o_n_s))
          causes syntax errors to be printed, after which read_term/[2,3]
          continues reading the next term.   Using dec10, read_term/[2,3]
          never fails.  (Quintus, SICStus).
-
-    mmoodduullee((_M_o_d_u_l_e))
-         Specify  _M_o_d_u_l_e  for  operators,   character_escapes   flag  and
-         double_quotes flag.  The  value of the latter two is  overruled
-         if  the corresponding  read_term/3  option  is provided.     If
-         no module  is specified, the  current `source-module' is  used.
-         (SWI-Prolog).
-
-    cchhaarraacctteerr__eessccaappeess((_B_o_o_l))
-         Defines  how  to  read  \  escape-sequences  in  quoted  atoms.
-         See the  prolog-flags character_escapes, current_prolog_flag/2.
-         (SWI-Prolog).
-
-    ddoouubbllee__qquuootteess((_B_o_o_l))
-         Defines  how to  read  "..." strings.    See  the  prolog-flags
-         double_quotes, current_prolog_flag/2.  (SWI-Prolog).
-
-    bbaacckkqquuootteedd__ssttrriinngg((_B_o_o_l))
-         If true,  read `...`  to a  string object  (see section  4.23).
-         The default depends on the prolog flag with the same name.
-
-    tteerrmm__ppoossiittiioonn((_P_o_s))
-         Unifies _P_o_s with the starting  position of the term read.   _P_o_s
-         if of the same format as use by stream_property/2.
 
     ssuubbtteerrmm__ppoossiittiioonnss((_T_e_r_m_P_o_s))
          Describes the  detailed layout of  the term.   The formats  for
@@ -6603,6 +6603,20 @@ rreeaadd__tteerrmm((_-_T_e_r_m_, _+_O_p_t_i_o_n_s))
              _F_F_r_o_m  and  _F_T_o  describe  the  position  of  the  functor.
              _S_u_b_P_o_s  is a  list,  each element  of  which describes  the
              term-position of the corresponding subterm.
+
+    tteerrmm__ppoossiittiioonn((_P_o_s))
+         Unifies _P_o_s with the starting  position of the term read.   _P_o_s
+         if of the same format as use by stream_property/2.
+
+    vvaarriiaabblleess((_V_a_r_s))
+         Unify  _V_a_r_s  with a  list  of  variables  in the  term.     The
+         variables appear in  the order they have  been read.  See  also
+         term_variables/2.  (ISO).
+
+    vvaarriiaabbllee__nnaammeess((_V_a_r_s))
+         Unify _V_a_r_s with a list  of `_N_a_m_e = _V_a_r', where _N_a_m_e is  an atom
+         describing the variable name and _V_a_r is a  variable that shares
+         with the corresponding variable in _T_e_r_m.  (ISO).
 
 
 rreeaadd__tteerrmm((_+_S_t_r_e_a_m_, _-_T_e_r_m_, _+_O_p_t_i_o_n_s))
@@ -8586,9 +8600,9 @@ ddaattee__ttiimmee__vvaalluuee((_?_K_e_y_, _+_D_a_t_e_
 
 ffoorrmmaatt__ttiimmee((_+_O_u_t_, _+_F_o_r_m_a_t_, _+_S_t_a_m_p_O_r_D_a_t_e_T_i_m_e))
     Modelled  after POSIX strftime(),  using GNU extensions.   _O_u_t is  a
-    destination  as specified with with_outout_to/2.  _F_o_r_m_a_t is  an atom
+    destination  as specified with with_output_to/2.  _F_o_r_m_a_t is  an atom
     or string with  the following conversions.  Conversions start with a
-    percent.
+    tilde (~) character.
 
       a  The abbreviated weekday name according to the current locale.
 
@@ -8605,30 +8619,33 @@ ffoorrmmaatt__ttiimmee((_+_O_u_t_, _+_F_o_r_m_a_t_, _+
 
       d  The day of the month as a decimal number (range 01 to 31).
 
-      D  Equivalent  to  %m/%d/%y.      (Yecch    for  Americans   only.
-         Americans  should note  that  in  other countries  %d/%m/%y  is
+      D  Equivalent  to  ~m/~d/~y.      (Yecch    for  Americans   only.
+         Americans  should note  that  in  other countries  ~d/~m/~y  is
          rather common.   This means that in international  context this
          format is ambigu ous and should not be used.)
 
-      e  Like %d,  the  day of  the month  as a  decimal number,  but  a
+      e  Like ~d,  the  day of  the month  as a  decimal number,  but  a
          leading zero is replaced by a space.
 
       E  Modifier.  Not implemented.
 
-      F  Equivalent to %Y-%m-%d (the ISO 8601 date format).
+      F  Equivalent to ~Y-~m-~d (the ISO 8601 date format).
 
-      g  Like  %G,  but without  century,  i.e.,  with  a  2-digit  year
+      g  Like  ~G,  but without  century,  i.e.,  with  a  2-digit  year
          (00-99).
 
       G  The ISO  8601  year with  century as  a decimal  number.    The
-         4-digit year  corresponding to  the ISO week  number (see  %V).
-         This has the  same format and value as  %y, except that if  the
+         4-digit year  corresponding to  the ISO week  number (see  ~V).
+         This has the  same format and value as  ~y, except that if  the
          ISO week  number belongs  to the  previous or  next year,  that
          year is used instead.
 
-      V
+      V  The ISO 8601:1988 week number of the current year  as a decimal
+         number, range  01 to 53,  where week 1 is  the first week  that
+         has at least  4 days in  the current year,  and with Monday  as
+         the first day of the week.  See also ~U and ~W.
 
-      h  Equivalent to %b.
+      h  Equivalent to ~b.
 
       H  The hour as  a decimal number using  a 24-hour clock (range  00
          to 23).
@@ -8639,10 +8656,10 @@ ffoorrmmaatt__ttiimmee((_+_O_u_t_, _+_F_o_r_m_a_t_, _+
       j  The day of the year as a decimal number (range 001 to 366).
 
       k  The hour (24-hour clock)  as a decimal number (range 0  to 23);
-         single digits are preceded by a blank.  (See also %H.)
+         single digits are preceded by a blank.  (See also ~H.)
 
       l  The hour (12-hour clock)  as a decimal number (range 1  to 12);
-         single digits are preceded by a blank.  (See also %I.)
+         single digits are preceded by a blank.  (See also ~I.)
 
       m  The month as a decimal number (range 01 to 12).
 
@@ -8656,14 +8673,14 @@ ffoorrmmaatt__ttiimmee((_+_O_u_t_, _+_F_o_r_m_a_t_, _+
          corresponding strings for the current locale.   Noon is treated
          as `pm' and midnight as `am'.
 
-      P  Like %p  but in  lowercase:  `am'  or `pm'  or a  corresponding
+      P  Like ~p  but in  lowercase:  `am'  or `pm'  or a  corresponding
          string for the current locale.
 
       r  The time in  a.m. or p.m. notation.   In the POSIX locale  this
-         is equivalent to `%I:%M:%S %p'.
+         is equivalent to `~I:~M:~S ~p'.
 
-      R  The time in 24-hour  notation (%H:%M). For a version  including
-         the seconds, see %T below.
+      R  The time in 24-hour  notation (~H:~M). For a version  including
+         the seconds, see ~T below.
 
       s  The number of seconds  since the Epoch, i.e., since  1970-01-01
          00:00:00 UTC.
@@ -8673,17 +8690,17 @@ ffoorrmmaatt__ttiimmee((_+_O_u_t_, _+_F_o_r_m_a_t_, _+
 
       t  A tab character.
 
-      T  The time in 24-hour notation (%H:%M:%S).
+      T  The time in 24-hour notation (~H:~M:~S).
 
       u  The day of the  week as a decimal,  range 1 to 7, Monday  being
-         1.  See also %w.
+         1.  See also ~w.
 
       U  The week number of the current year as a  decimal number, range
          00 to 53,  starting with the first  Sunday as the first day  of
-         week 01.  See also %V and %W.
+         week 01.  See also ~V and ~W.
 
       w  The day of the  week as a decimal,  range 0 to 6, Sunday  being
-         0.  See also %u.
+         0.  See also ~u.
 
       W  The week number of the current year as a  decimal number, range
          00 to 53,  starting with the first  Monday as the first day  of
@@ -8701,13 +8718,13 @@ ffoorrmmaatt__ttiimmee((_+_O_u_t_, _+_F_o_r_m_a_t_, _+
       Y  The year as a decimal number including the century.
 
       z  The  time-zone  as hour  offset  from  GMT.  Required  to  emit
-         RFC822-conformant dates (using "
+         RFC822-conformant dates (using "~a, ~d ~b ~Y ~H:~M:~S ~z").
 
       Z  The time zone or name or abbreviation.
 
       +  The date and time in date(1) format.
 
-      %  A literal `%' character.
+      ~  A literal `~' character.
 
 
 44..3344..22 CCoonnttrroolllliinngg tthhee PLWIN.EXE ccoonnssoollee wwiinnddooww
@@ -10920,7 +10937,9 @@ comprises a  (possibly infinite) set  of values.   The type  declaration
 for  a  constraint  argument means  that  for  every  instance  of  that
 constraint the  corresponding argument is only  ever bound to values  in
 that set.   It does  not state that the  argument necessarily has to  be
-bound to a value.
+bound to a  value.  Note that  types are (currently) nnoott eennffoorrcceedd:   the
+programmer should  verify that all  type declarations are  correct.   In
+the future dynamic and static type checking features will be added.
 
 The built-in types are:
 
@@ -18956,8 +18975,8 @@ Index
 !/0, 197                             Windows, 7
 !/1, 232                             windows, 60
 /, 88                                with_mutex/2, 769, 770, 789
-//2, 447                             with_outout_to/2, 558
-./2, 456                             with_output_to/2, 306, 310, 358, 528
+//2, 447                             with_output_to/2,   306,  310,   358,
+./2, 456                                   528, 558
 =/2, 181                             working_directory/2, 550, 577,  586,
 ==/2, 179                                  587
 #<=>/2, 1197                         write(), 946
@@ -20008,7 +20027,7 @@ statistics _l_i_b_r_a_r_y, 624
 statistics/0, 622
 statistics/2, 490, 621, 749
 stream_position_data/3,  133,   287,
-      291
+      291, 374
 stream_property/2,   78,  282,  287,
       290--293, 374
 string/1, 170, 171, 527

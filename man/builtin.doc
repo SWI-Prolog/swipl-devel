@@ -142,10 +142,11 @@ already loaded.
     \predicate{load_files}{2}{+Files, +Options}
 The predicate load_files/2 is the parent of all the other loading
 predicates except for include/1. It currently supports a subset
-of the options of Quintus load_files/2. \arg{Files} is either specifies
-a single, or a list of source-files. The specification for a source-file
-is handled absolute_file_name/2. See this predicate for the supported
-expansions. \arg{Options} is a list of options using the format
+of the options of Quintus load_files/2. \arg{Files} is either
+a single source-file, or a list of source-files. The specification for a
+source-file is handed to absolute_file_name/2. See this predicate for
+the supported expansions. \arg{Options} is a list of options using the
+format
 
 \begin{quote}
 \arg{OptionName}(\arg{OptionValue})
@@ -5151,9 +5152,9 @@ Extract values from a date/9 term.  Provided keys are:
 
     \predicate{format_time}{3}{+Out, +Format, +StampOrDateTime}
 Modelled after POSIX strftime(), using GNU extensions.  \arg{Out}
-is a destination as specified with with_outout_to/2.  \arg{Format}
+is a destination as specified with with_output_to/2.  \arg{Format}
 is an atom or string with the following conversions.  Conversions
-start with a percent.%
+start with a tilde (\chr{~}) character.%
 	\footnote{Descriptions taken from Linux Programmer's Manual}
 
 \begin{itemize}
@@ -5173,28 +5174,31 @@ The century number (year/100) as a 2-digit integer.
     \fmtchar{d}
 The day of the month as a decimal number (range 01 to 31).
     \fmtchar{D}
-Equivalent to \%m/\%d/\%y. (Yecch — for Americans only. Americans should
-note that in other countries \%d/\%m/\%y is rather common. This means
+Equivalent to \chr{~}m/\chr{~}d/\chr{~}y. (Yecch — for Americans only. Americans should
+note that in other countries \chr{~}d/\chr{~}m/\chr{~}y is rather common. This means
 that in international context this format is ambigu‐ ous and should not
 be used.)
     \fmtchar{e}
-Like \%d, the day of the month as a decimal number, but a leading
+Like \chr{~}d, the day of the month as a decimal number, but a leading
 zero is replaced by a space.
     \fmtchar{E}
 Modifier.  Not implemented.
     \fmtchar{F}
-Equivalent to \%Y-\%m-\%d (the ISO 8601 date format).
+Equivalent to \chr{~}Y-\chr{~}m-\chr{~}d (the ISO 8601 date format).
     \fmtchar{g}
-Like \%G, but without century, i.e., with a 2-digit year (00-99).
+Like \chr{~}G, but without century, i.e., with a 2-digit year (00-99).
     \fmtchar{G}
 The ISO 8601 year with century as a decimal number. The 4-digit year
-corresponding to the ISO week number (see \%V). This has the same format
-and value as \%y, except that if the ISO week number belongs to the
+corresponding to the ISO week number (see \chr{~}V). This has the same format
+and value as \chr{~}y, except that if the ISO week number belongs to the
 previous or next year, that year is used instead.
     \fmtchar{V}
-
+The ISO 8601:1988 week number of the current year as a decimal number,
+range 01 to 53, where week 1 is the first week that has at least 4 days
+in the current year, and with Monday as the first day of the week. See
+also \chr{~}U and \chr{~}W.
     \fmtchar{h}
-Equivalent to \%b.
+Equivalent to \chr{~}b.
     \fmtchar{H}
 The  hour as a decimal number using a 24-hour clock (range 00 to 23).
     \fmtchar{I}
@@ -5203,10 +5207,10 @@ The hour as a decimal number using a 12-hour clock (range 01  to 12).
 The day of the year as a decimal number (range 001 to 366).
     \fmtchar{k}
 The hour (24-hour clock) as a decimal number (range 0 to 23); single
-digits are preceded by a blank. (See also \%H.)
+digits are preceded by a blank. (See also \chr{~}H.)
     \fmtchar{l}
 The hour (12-hour clock) as a decimal number (range  1  to  12);
-single digits are preceded by a blank. (See also \%I.)
+single digits are preceded by a blank. (See also \chr{~}I.)
     \fmtchar{m}
 The month as a decimal number (range 01 to 12).
     \fmtchar{M}
@@ -5220,14 +5224,14 @@ Either `AM' or `PM' according to the given time value, or the
 corresponding strings for the current locale. Noon is treated as `pm'
 and midnight as `am'.
     \fmtchar{P}
-Like \%p but in lowercase: `am' or `pm' or a corresponding string
+Like \chr{~}p but in lowercase: `am' or `pm' or a corresponding string
 for the current locale.
     \fmtchar{r}
 The time in a.m.\ or p.m.\ notation. In the POSIX locale this is
-equivalent to `\%I:\%M:\%S \%p'.
+equivalent to `\chr{~}I:\chr{~}M:\chr{~}S \chr{~}p'.
     \fmtchar{R}
-The time in 24-hour notation (\%H:\%M).  For a version including the
-seconds, see \%T below.
+The time in 24-hour notation (\chr{~}H:\chr{~}M).  For a version including the
+seconds, see \chr{~}T below.
     \fmtchar{s}
 The number of seconds since the Epoch,  i.e.,  since  1970-01-01
 00:00:00 UTC.
@@ -5237,17 +5241,17 @@ up to 60 to allow for occasional leap seconds.)
     \fmtchar{t}
 A tab character.
     \fmtchar{T}
-The time in 24-hour notation (\%H:\%M:\%S).
+The time in 24-hour notation (\chr{~}H:\chr{~}M:\chr{~}S).
     \fmtchar{u}
 The day of the week as a decimal, range 1 to 7, Monday being  1.
-See also \%w.
+See also \chr{~}w.
     \fmtchar{U}
 The week number of the current year as a decimal number, range 00 to 53,
-starting with the first Sunday as the first day of week 01. See also \%V
-and \%W.
+starting with the first Sunday as the first day of week 01. See also \chr{~}V
+and \chr{~}W.
     \fmtchar{w}
 The day of the week as a decimal, range 0 to 6, Sunday being  0.
-See also \%u.
+See also \chr{~}u.
     \fmtchar{W}
 The week number of the current year as a decimal number, range 00 to 53,
 starting with the first Monday as the first day of week 01.
@@ -5263,13 +5267,13 @@ The year as a decimal number without a century (range 00 to 99).
 The year as a decimal number including the century.
     \fmtchar{z}
 The time-zone  as  hour  offset  from  GMT.   Required  to  emit
-RFC822-conformant  dates  (using  "%a,  %d  %b %Y %H:%M:%S %z").
+RFC822-conformant  dates  (using  "\chr{~}a,  \chr{~}d  \chr{~}b \chr{~}Y \chr{~}H:\chr{~}M:\chr{~}S \chr{~}z").
     \fmtchar{Z}
 The time zone or name or abbreviation.
     \fmtchar{+}
 The date and time in date(1) format.
-    \fmtchar{%}
-A literal `\%' character.
+    \fmtchar{~}
+A literal `\chr{~}' character.
 \end{itemize}
 \end{description}
 
