@@ -3083,6 +3083,7 @@ should use read_term/2 with the option \exam{singletons(warning)}.
 
     \predicate{read_clause}{2}{+Stream, -Term}
 Read a clause from \arg{Stream}.  See read_clause/1.
+
     \predicate{read_term}{2}{-Term, +Options}
 Read a term from the current input stream and unify the term with
 \arg{Term}. The reading is controlled by options from the list of
@@ -3092,15 +3093,33 @@ argument order is according to the ISO standard.  Syntax-errors are
 always reported using exception-handling (see catch/3). Options:
 
 \begin{description}
-    \termitem{variables}{Vars}
-Unify \arg{Vars} with a list of variables in the term. The variables
-appear in the order they have been read. See also term_variables/2.
-(ISO).
+    \termitem{backquoted_string}{Bool}
+If \const{true}, read \verb$`$\ldots\verb$`$ to a string object (see
+\secref{strings}).  The default depends on the prolog flag with the
+same name.
 
-    \termitem{variable_names}{Vars}
-Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where \arg{Name} is an atom describing the variable name and \arg{Var} is a
-variable that shares with the corresponding variable in \arg{Term}.
-(ISO).
+    \termitem{character_escapes}{Bool}
+Defines how to read \verb$\$ escape-sequences in quoted atoms.
+See the prolog-flags \const{character_escapes}, current_prolog_flag/2.
+(SWI-Prolog).
+
+    \termitem{comments}{-Comments}
+Unify \arg{Comments} with a list of \arg{Position}-\arg{Comment}, where
+\arg{Position} is a stream-position object (see stream_position_data/3)
+indicating the start of a comment and \arg{Comment} is a string-object
+containing the text including delimiters of a comment.  It returns all
+comments from where the read_term/2 call started upto the end of the
+term read.
+
+    \termitem{double_quotes}{Bool}
+Defines how to read "\ldots" strings. See the prolog-flags
+\const{double_quotes}, current_prolog_flag/2.  (SWI-Prolog).
+
+    \termitem{module}{Module}
+Specify \arg{Module} for operators, \const{character_escapes} flag
+and \const{double_quotes} flag. The value of the latter two is overruled
+if the corresponding read_term/3 option is provided.  If no module is
+specified, the current `source-module' is used.  (SWI-Prolog).
 
     \termitem{singletons}{Vars}
 As \const{variable_names}, but only reports the variables occurring only
@@ -3115,30 +3134,6 @@ causes the predicate to fail silently and \const{dec10} which causes
 syntax errors to be printed, after which read_term/[2,3] continues
 reading the next term. Using \const{dec10}, read_term/[2,3] never fails.
 (Quintus, SICStus).
-
-    \termitem{module}{Module}
-Specify \arg{Module} for operators, \const{character_escapes} flag
-and \const{double_quotes} flag. The value of the latter two is overruled
-if the corresponding read_term/3 option is provided.  If no module is
-specified, the current `source-module' is used.  (SWI-Prolog).
-
-    \termitem{character_escapes}{Bool}
-Defines how to read \verb$\$ escape-sequences in quoted atoms.
-See the prolog-flags \const{character_escapes}, current_prolog_flag/2.
-(SWI-Prolog).
-
-    \termitem{double_quotes}{Bool}
-Defines how to read "\ldots" strings. See the prolog-flags
-\const{double_quotes}, current_prolog_flag/2.  (SWI-Prolog).
-
-    \termitem{backquoted_string}{Bool}
-If \const{true}, read \verb$`$\ldots\verb$`$ to a string object (see
-\secref{strings}).  The default depends on the prolog flag with the
-same name.
-
-    \termitem{term_position}{Pos}
-Unifies \arg{Pos} with the starting position of the term read.  \arg{Pos}
-if of the same format as use by stream_property/2.
 
     \termitem{subterm_positions}{TermPos}
 Describes the detailed layout of the term. The formats for the various
@@ -3167,9 +3162,25 @@ with the term-position of the tail, otherwise with the atom \const{none}.
     is a list, each element of which describes the term-position of the
     corresponding subterm.
     \end{description}
+
+    \termitem{term_position}{Pos}
+Unifies \arg{Pos} with the starting position of the term read.  \arg{Pos}
+if of the same format as use by stream_property/2.
+
+    \termitem{variables}{Vars}
+Unify \arg{Vars} with a list of variables in the term. The variables
+appear in the order they have been read. See also term_variables/2.
+(ISO).
+
+    \termitem{variable_names}{Vars}
+Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where \arg{Name} is an atom describing the variable name and \arg{Var} is a
+variable that shares with the corresponding variable in \arg{Term}.
+(ISO).
 \end{description}
+
     \predicate{read_term}{3}{+Stream, -Term, +Options}
 Read term with options from \arg{Stream}.  See read_term/2.
+
     \predicate{read_history}{6}{+Show, +Help, +Special, +Prompt, -Term, -Bindings}
 Similar to read_term/2 using the option \const{variable_names}, but
 allows for history substitutions. read_history/6 is used by the top
