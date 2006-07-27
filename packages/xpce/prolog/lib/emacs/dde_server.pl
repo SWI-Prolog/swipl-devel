@@ -31,14 +31,8 @@
 
 :- module(emacs_dde_server,
 	  [ start_emacs_dde_server/1,	% +Force
-	    win_register_emacs/1	% +Externsion
+	    win_register_emacs/0	% +Externsion
 	  ]).
-
-start_emacs_dde_server(_) :- fail.		% so it is defined
-
-term_expansion(X, []) :-		% skip rest of file if no DDE
-	X \== end_of_file,
-	\+ current_predicate(_, open_dde_conversation(_,_,_)).
 
 %	start_emacs_dde_server
 %	

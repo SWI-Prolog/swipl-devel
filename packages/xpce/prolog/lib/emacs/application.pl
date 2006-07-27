@@ -31,7 +31,10 @@
 
 :- module(emacs_application, []).
 :- use_module(library(pce)).
-:- use_module(dde_server).
+:- (   current_predicate(_, dde_execute(_,_))
+   ->  use_module(dde_server)
+   ;   true
+   ).
 :- require([ ignore/1
 	   , pce_help_file/2
 	   ]).
@@ -278,7 +281,7 @@ server_start(Emacs, Force:[bool]) :->
 	    ;	get(@emacs_server, status, listen)
 	    )
 	->  (   current_prolog_flag(windows, true)
-	    ->	start_emacs_dde_server(false)
+	    ->	catch(start_emacs_dde_server(false), _, true)
 	    ;	true
 	    )
 	;   (	send(@emacs_server_address, exists, @off)
