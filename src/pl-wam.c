@@ -1547,6 +1547,35 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
 }
 
 
+static inline int
+slotsInFrame(LocalFrame fr, Code PC)
+{ Definition def = fr->predicate;
+
+  if ( !PC || true(def, FOREIGN) || !fr->clause )
+    return def->functor->arity;
+
+  return fr->clause->clause->prolog_vars;
+}
+
+
+static void
+updateMovedTerm(LocalFrame fr, word old, word new)
+{ Code pc = NULL;
+
+  for(; fr; fr=fr->parent)
+  { int slots = slotsInFrame(fr, pc);
+    Word p = argFrameP(fr, 0);
+    
+    for(; slots-- > 0; p++)
+    { if ( *p == old )
+	*p = new;
+    }
+  }
+}
+
+
+#endif /*O_DEBUGGER*/
+
 static int
 exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
 { if ( PROCEDURE_exception_hook4->definition->definition.clauses )
@@ -1597,36 +1626,6 @@ exception_hook(LocalFrame fr, LocalFrame catcher ARG_LD)
 
   return FALSE;
 }
-
-
-static inline int
-slotsInFrame(LocalFrame fr, Code PC)
-{ Definition def = fr->predicate;
-
-  if ( !PC || true(def, FOREIGN) || !fr->clause )
-    return def->functor->arity;
-
-  return fr->clause->clause->prolog_vars;
-}
-
-
-static void
-updateMovedTerm(LocalFrame fr, word old, word new)
-{ Code pc = NULL;
-
-  for(; fr; fr=fr->parent)
-  { int slots = slotsInFrame(fr, pc);
-    Word p = argFrameP(fr, 0);
-    
-    for(; slots-- > 0; p++)
-    { if ( *p == old )
-	*p = new;
-    }
-  }
-}
-
-
-#endif /*O_DEBUGGER*/
 
 
 #endif /*O_CATCHTHROW*/
