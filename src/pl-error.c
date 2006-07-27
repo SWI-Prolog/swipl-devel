@@ -195,7 +195,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_ATOM, ATOM_procedure,
 		      PL_FUNCTOR, FUNCTOR_divide2,
 		        PL_CHARS, name,
-		        PL_INTEGER, arity);
+		        PL_INT, arity);
       break;
     }
     case ERR_FAILED:

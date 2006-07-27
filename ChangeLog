@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Various long/int issues calling PL_unify_term().  Affects 64-bit
+    systems only.
+
   * FIXED: Memory violation getting thread-CPU time in Linux.  With help
     of Jacco van Ossenbruggen.
 

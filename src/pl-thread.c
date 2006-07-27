@@ -633,7 +633,7 @@ exitPrologThreads()
   if ( canceled )
   { printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "threads_not_died", 1,
-		   PL_INTEGER, canceled);
+		   PL_INT, canceled);
   } else
   { DEBUG(1, Sdprintf("done\n"));
   }
@@ -2040,7 +2040,7 @@ unify_queue(term_t t, message_queue *q)
   else
     return PL_unify_term(t,
 			 PL_FUNCTOR, FUNCTOR_dmessage_queue1,
-			 PL_INTEGER, valInt(q->id));
+			 PL_LONG, valInt(q->id));
 }
 
 
@@ -2441,7 +2441,7 @@ unify_mutex(term_t t, pl_mutex *m)
   else
     return PL_unify_term(t,
 			 PL_FUNCTOR, FUNCTOR_dmutex1,
-			 PL_INTEGER, valInt(m->id));
+			 PL_LONG, valInt(m->id));
 }
 
 

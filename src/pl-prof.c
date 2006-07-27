@@ -606,11 +606,11 @@ unify_relatives(term_t list, prof_ref *r ARG_LD)
     if ( !rc ||
 	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node6,
 			PL_TERM, tmp,
-			PL_INTEGER, r->cycle,
-			PL_INTEGER, r->ticks,
-			PL_INTEGER, r->sibling_ticks,
-			PL_INTEGER, r->calls,
-			PL_INTEGER, r->redos) )
+			PL_INT,  r->cycle,
+			PL_LONG, r->ticks,
+			PL_LONG, r->sibling_ticks,
+			PL_LONG, r->calls,
+			PL_LONG, r->redos) )
       fail;
   }
 

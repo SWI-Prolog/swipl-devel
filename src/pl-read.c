@@ -382,7 +382,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
     PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_string2,
 		    PL_UTF8_STRING, rdbase,
-		    PL_INTEGER, pos);
+		    PL_INT, pos);
   } else				/* any stream */
   { term_t stream = PL_new_term_ref();
 
