@@ -908,6 +908,9 @@ rdf_reset_db :-
 	rdf_save/2,
 	meta_options/2.
 
+:- thread_local
+	named_anon/2.			% +Resource, -Id
+
 rdf_save(File) :-
 	rdf_save2(File, []).
 
@@ -950,6 +953,7 @@ cleanup_save(Reason,
 	close(Out),
 	flag(rdf_db_saved_subjects, SavedSubjects, OSavedSubjects),
 	flag(rdf_db_saved_triples, SavedTriples, OSavedTriples),
+	retractall(named_anon(_, _)),
 	(   Reason == exit
 	->  print_message(informational,
 			  rdf(saved(File, SavedSubjects, SavedTriples)))
@@ -1153,6 +1157,7 @@ xml_code(0'-).
 
 
 rdf_save_footer(Out) :-
+	retractall(named_anon(_, _)),
 	format(Out, '</rdf:RDF>~n', []).
 
 %	rdf_save_non_anon_subject(+Out, +Subject, +Options)
@@ -1161,7 +1166,7 @@ rdf_save_footer(Out) :-
 %	is present in the Options list.
 
 rdf_save_non_anon_subject(_Out, Subject, Options) :-
-	anonymous_subject(Subject),
+	rdf_is_bnode(Subject),
 	(   memberchk(anon(false), Options)
 	;   db(Options, DB),
 	    rdf_db(_, _, Subject, DB)
@@ -1224,7 +1229,7 @@ xml_is_name(Atom) :-
 	xml_name(Atom).
 
 save_about(_Out, Subject) :-
-	anonymous_subject(Subject), !.
+	rdf_is_bnode(Subject), !.
 save_about(Out, Subject) :-
 	stream_property(Out, encoding(Encoding)),
 	rdf_value(Subject, QSubject, Encoding),
@@ -1343,7 +1348,7 @@ save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 	save_attribute_value(Value, Out, Indent),
 	format(Out, '</~w>', [NameText]).
 save_attribute(body, Name=Value, DefNS, Out, Indent, Options) :-
-	anonymous_subject(Value), !,
+	rdf_is_bnode(Value), !,
 	rdf_id(Name, DefNS, NameText),
 	SubIndent is Indent + 2,
 	(   rdf(Value, rdf:type, rdf:'List')
@@ -1383,7 +1388,7 @@ rdf_save_list(_, List, _, _, _) :-
 	rdf_equal(List, rdf:nil), !.
 rdf_save_list(Out, List, DefNS, Indent, Options) :-
 	rdf_has(List, rdf:first, First),
-	(   anonymous_subject(First)
+	(   rdf_is_bnode(First)
 	->  nl(Out),
 	    rdf_save_subject(Out, First, DefNS, Indent, Options)
 	;   stream_property(Out, encoding(Encoding)),
@@ -1397,16 +1402,6 @@ rdf_save_list(Out, List, DefNS, Indent, Options) :-
 	->  rdf_save_list(Out, List2, DefNS, Indent, Options)
 	;   true
 	).
-
-%	anonymous_subject(+Subject)
-%	
-%	Test if a resource is anonymous. This is highly dubious.
-%	Probably we need to store this in the database.  The current
-%	release of the RDF parser guarantees that all anonymous ids
-%	start with __.
-
-anonymous_subject(S) :-
-	sub_atom(S, 0, _, _, '__'), !.
 
 %	rdf_id(+Resource, +DefNS, -NSLocal)
 %	
