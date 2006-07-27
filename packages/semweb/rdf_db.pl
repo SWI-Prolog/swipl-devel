@@ -1228,8 +1228,12 @@ xml_is_name(_NS:Atom) :- !,
 xml_is_name(Atom) :-
 	xml_name(Atom).
 
-save_about(_Out, Subject) :-
-	rdf_is_bnode(Subject), !.
+save_about(Out, Subject) :-
+	rdf_is_bnode(Subject), !,
+	(   named_anon(Subject, NodeID)
+	->  format(Out, ' rdf:nodeID="~w"', [NodeID])
+	;   true
+	).
 save_about(Out, Subject) :-
 	stream_property(Out, encoding(Encoding)),
 	rdf_value(Subject, QSubject, Encoding),
@@ -1350,16 +1354,28 @@ save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 save_attribute(body, Name=Value, DefNS, Out, Indent, Options) :-
 	rdf_is_bnode(Value), !,
 	rdf_id(Name, DefNS, NameText),
-	SubIndent is Indent + 2,
-	(   rdf(Value, rdf:type, rdf:'List')
-	->  format(Out, '~N~*|<~w rdf:parseType="Collection">~n',
-		   [Indent, NameText]),
-	    rdf_save_list(Out, Value, DefNS, SubIndent, Options)
-	;   format(Out, '~N~*|<~w>~n',
-		   [Indent, NameText]),
-	    rdf_save_subject(Out, Value, DefNS, SubIndent, Options)
-	),
-	format(Out, '~N~*|</~w>~n', [Indent, NameText]).
+	(   named_anon(Value, NodeID)
+	->  format(Out, '~N~*|<~w rdf:nodeID="~w"/>',
+		   [Indent, NameText, NodeID])
+	;   (   rdf(S1, Name, Value),
+	        rdf(S2, P2, Value),
+		(S1 \== S2 ; Name \== P2)
+	    ->  predicate_property(named_anon(_,_), number_of_clauses(N)),
+		atom_concat('bn', N, NodeID),
+		assert(named_anon(Value, NodeID))
+	    ;	true
+	    ),
+	    SubIndent is Indent + 2,
+	    (   rdf(Value, rdf:type, rdf:'List')
+	    ->  format(Out, '~N~*|<~w', [Indent, NameText]),
+		save_about(Out, Value),
+		format(Out, ' rdf:parseType="Collection">~n', []),
+		rdf_save_list(Out, Value, DefNS, SubIndent, Options)
+	    ;   format(Out, '~N~*|<~w>~n', [Indent, NameText]),
+		rdf_save_subject(Out, Value, DefNS, SubIndent, Options)
+	    ),
+	    format(Out, '~N~*|</~w>~n', [Indent, NameText])
+	).
 save_attribute(body, Name=Value, DefNS, Out, Indent, _DB) :-
 	stream_property(Out, encoding(Encoding)),
 	rdf_value(Value, QVal, Encoding),
