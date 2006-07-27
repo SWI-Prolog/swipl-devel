@@ -340,15 +340,15 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
 
     return PL_unify_term(compound,
 			 PL_FUNCTOR, FUNCTOR_date9,
-			   PL_INTEGER, ct.date.year,
-			   PL_INTEGER, ct.date.month,
-			   PL_INTEGER, ct.date.day,
-			   PL_INTEGER, ct.hour,
-			   PL_INTEGER, ct.minute,
-			   PL_FLOAT,   sec,
-			   PL_INTEGER, utcoffset,
-			   PL_ATOM,    tzatom,
-			   PL_ATOM,    dstatom);
+			   PL_LONG,  ct.date.year,
+			   PL_INT,   ct.date.month,
+			   PL_INT,   ct.date.day,
+			   PL_INT,   ct.hour,
+			   PL_INT,   ct.minute,
+			   PL_FLOAT, sec,
+			   PL_INT,   utcoffset,
+			   PL_ATOM,  tzatom,
+			   PL_ATOM,  dstatom);
   }
 
 					/* time_stamp */
