@@ -43,7 +43,7 @@ start_emacs_dde_server(_) :-
 	dde_current_service('PceEmacs', control), !.
 start_emacs_dde_server(true) :-
 	open_dde_conversation('PceEmacs', control, Handle),
-	dde_execute(Handle, close_server),
+	dde_execute(Handle, 'close-server'),
 	close_dde_conversation(Handle),
 	send(@emacs, report, status, 'Closed server on other PceEmacs'),
 	fail.
@@ -56,15 +56,8 @@ start_emacs_dde_server(_) :-
 			     handle_request(Item)).
 
 handle_request(Item) :-
-	catch(atom_to_term(Item, Term, _), E, 
-	      (	  print_message(error, E),
-		  fail
-	      )),
-	action(Term).
-
-action(edit(File)) :-
-	action(edit(File, [])).
-action(edit(File, Line)) :-
+	atom_concat('edit ', WinFile, Item), !,
+	prolog_to_os_filename(File, WinFile),
 	new(B, emacs_buffer(File)),
 	new(W, emacs_frame(B)),
 	send(W, sticky_window),
@@ -73,12 +66,15 @@ action(edit(File, Line)) :-
 	->  true
 	;   send(W?editor, goto_line, Line)
 	).
-action(close_server) :-
+handle_request('close-server') :-
 	dde_unregister_service('PceEmacs'),
 	send(@emacs, report, status, 'Closed DDE server').
+handle_request(Item) :-
+	format(user_error, 'PceEmacs DDE server: unknown request: ~q', [Item]),
+	fail.
 
 win_register_emacs :-
 	current_prolog_flag(argv, [Me|_]),
 	shell_register_dde('prolog.type', edit,
-			   'PceEmacs', control, 'edit(''%1'')', Me).
+			   'PceEmacs', control, 'edit %1', Me).
 	
