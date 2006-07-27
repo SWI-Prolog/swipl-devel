@@ -406,14 +406,15 @@ Section "Shell Extensions" SecShell
   skipNSIAssoc:
   ; OPEN
   WriteRegStr HKCR "PrologFile\shell\open\command" "" '"$INSTDIR\bin\plwin.exe" "%1"'
+  ; Bind `edit' to call PceEmacs
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs" "" "Edit Prolog Source"
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\command" "" '"$INSTDIR\bin\plwin.exe'
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "" "edit %1"
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "Application" "PceEmacs"
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "ifexec" ""
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "Topic" "control"
 !ifdef SHELL_DDE
   ; EDIT (these are not yet correct)
-  WriteRegStr HKCR "PrologFile\shell\edit" "" "Edit Prolog Source"
-  WriteRegStr HKCR "PrologFile\shell\edit\command" "" '"$INSTDIR\bin\plwin.exe'
-  WriteRegStr HKCR "PrologFile\shell\edit\ddeexec" "" "edit('%1')"
-  WriteRegStr HKCR "PrologFile\shell\edit\ddeexec" "Application" "prolog"
-  WriteRegStr HKCR "PrologFile\shell\edit\ddeexec" "ifexec" ""
-  WriteRegStr HKCR "PrologFile\shell\edit\ddeexec" "Topic" "control"
   ; CONSULT
   WriteRegStr HKCR "PrologFile\shell\consult" "" "Load Prolog Source"
   WriteRegStr HKCR "PrologFile\shell\consult\command" "" '"$INSTDIR\bin\plwin.exe'
