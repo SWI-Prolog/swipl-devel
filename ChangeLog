@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: predicate_property(Pred, number_of_clauses(N)) returns 0
+    for dynamic predicates with 0 clauses.
+
   * FIXED: Added Unicode support to DDE interface.
 
   * FIXED: Various long/int issues calling PL_unify_term().  Affects 64-bit

@@ -505,8 +505,7 @@ $predicate_property(references(N), Pred) :-
 	$get_predicate_attribute(Pred, references, N),
 	N \== 0.			% show negative for debugging!
 $predicate_property(number_of_clauses(N), Pred) :-
-	$get_predicate_attribute(Pred, number_of_clauses, N),
-	N \== 0.
+	$get_predicate_attribute(Pred, number_of_clauses, N).
 $predicate_property(noprofile, Pred) :-
 	$get_predicate_attribute(Pred, noprofile, 1).
 

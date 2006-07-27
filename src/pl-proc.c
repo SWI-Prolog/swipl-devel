@@ -1942,6 +1942,8 @@ pl_get_predicate_attribute(term_t pred,
       fail;
 
     def = getProcDefinition(proc);
+    if ( def->number_of_clauses == 0 && false(def, DYNAMIC) )
+      fail;
     return PL_unify_integer(value, def->number_of_clauses);
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
