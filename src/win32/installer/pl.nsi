@@ -407,12 +407,11 @@ Section "Shell Extensions" SecShell
   ; OPEN
   WriteRegStr HKCR "PrologFile\shell\open\command" "" '"$INSTDIR\bin\plwin.exe" "%1"'
   ; Bind `edit' to call PceEmacs
-  WriteRegStr HKCR "PrologFile\shell\pceEmacs" "" "Edit Prolog Source"
-  WriteRegStr HKCR "PrologFile\shell\pceEmacs\command" "" '"$INSTDIR\bin\plwin.exe'
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs" "" "Open in PceEmacs"
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\command" "" '"$INSTDIR\bin\plwin.exe" -g start_emacs,send(@(pce),show_console,iconic),send(@(emacs),show_buffer_menu)'
   WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "" "edit %1"
-  WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "Application" "PceEmacs"
-  WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "ifexec" ""
-  WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec" "Topic" "control"
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec\Application" "" "PceEmacs"
+  WriteRegStr HKCR "PrologFile\shell\pceEmacs\ddeexec\Topic" "" "control"
 !ifdef SHELL_DDE
   ; EDIT (these are not yet correct)
   ; CONSULT
