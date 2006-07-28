@@ -1,3 +1,8 @@
+Jul 28, 2006
+
+  * TS: New experimental robustness feature in debug mode:
+	runtime type checking of CHR constraints.
+
 Jul 5, 2006
 
   * TS: Minor bug fixes.
@@ -33,7 +38,7 @@ Jun 1, 2006
 
 May 17, 2006
 
-  * TS: Terminatino bug fixed in guard_entailment.
+  * TS: Termination bug fixed in guard_entailment.
 
   * TS:  Runtime library predicate run_suspensions is now specialized
 	per constraint, avoiding requirement of fixed suspension layout.

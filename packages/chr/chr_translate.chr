@@ -491,6 +491,7 @@ store_management_preds(Constraints,Clauses) :-
 		generate_insert_delete_constraints(Constraints,DeleteClauses),
 		generate_attach_code(Constraints,StoreClauses),
 		generate_counter_code(CounterClauses),
+		generate_dynamic_type_check_clauses(TypeCheckClauses),
 		append([AttachAConstraintClauses
 		       ,IndexedClauses
 		       ,AttachIncrementClauses
@@ -499,6 +500,7 @@ store_management_preds(Constraints,Clauses) :-
 		       ,DeleteClauses
 		       ,StoreClauses
 		       ,CounterClauses
+		       ,TypeCheckClauses
 		       ]
 		      ,Clauses).
 
@@ -3497,6 +3499,9 @@ extract_explicit_matchings(A,D) :- !,
 :- chr_option(mode,add_type_information(+,+,?)).
 :- chr_option(type_declaration,add_type_information(list,list,any)).
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Consistency checks of type aliases
+
 type_alias(T,T2) <=>
    nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
    copy_term((T,T2),(X,Y)),oneway_unification(Y,X) |
@@ -3523,6 +3528,24 @@ oneway_unification(X,Y) :-
 	X=Y,
 	chr_runtime:unlockv(XVars).
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Consistency checks of type definitions
+
+type_definition(T1,_), type_definition(T2,_) 
+	<=>
+		functor(T1,F,A), functor(T2,F,A)
+	|
+   		chr_error(type_error,'Multiple definitions for type: ~w/~w.\n',[F,A]).
+
+type_definition(T1,_), type_alias(T2,_) 
+	<=>
+		functor(T1,F,A), functor(T2,F,A)
+	|
+   		chr_error(type_error,'Multiple definitions for type, once in a type definition and once as a type alias: ~w/~w.\n',[F,A]).
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% get_type_definition
+ 
 get_type_definition(T,Def) <=> \+ ground(T) |
    chr_error(type_error,'Non-ground type in constraint definition: "~w".\n',[T]).
 
@@ -3542,12 +3565,17 @@ get_type_definition(T2,Def) <=>
 	builtin_type(T2,_,_) | Def = [T2].
 get_type_definition(X,Y) <=> fail.
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% get_constraint_type
+
 constraint_type(C,T) \ get_constraint_type(C,Type) <=> Type = T.
 get_constraint_type(_,_) <=> fail.
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% add_type_information
+
 add_type_information([],[],T) <=> T=true.
 
-buggy @ 
 constraint_mode(F/A,Modes) 
 \ add_type_information([Head|R],[RealHead|RRH],TypeInfo) <=>
     functor(Head,F,A) |
@@ -3611,12 +3639,14 @@ item2list([X|Y],[X|Y]) :- !.
 item2list(N,L) :- L = [N].
 
 builtin_type(X,Arg,true) :- var(X),!.
-builtin_type(any,Arg,true).
-builtin_type(dense_int,Arg,(integer(Arg),Arg>=0)).
-builtin_type(int,Arg,integer(Arg)).
-builtin_type(number,Arg,number(Arg)).
-builtin_type(float,Arg,float(Arg)).
-builtin_type(natural,Arg,(integer(Arg),Arg>=0)).
+builtin_type(X,Arg,Goal) :- builtin_type_nonvar(X,Arg,Goal).
+
+builtin_type_nonvar(any,Arg,true).
+builtin_type_nonvar(dense_int,Arg,(integer(Arg),Arg>=0)).
+builtin_type_nonvar(int,Arg,integer(Arg)).
+builtin_type_nonvar(number,Arg,number(Arg)).
+builtin_type_nonvar(float,Arg,float(Arg)).
+builtin_type_nonvar(natural,Arg,(integer(Arg),Arg>=0)).
 
 real_type(Def,Arg,RealArg,C) :-
     ( nonvar(Def) ->
@@ -3653,6 +3683,79 @@ nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
 	chr_error(internal,'Undefined type ~w inside type definition.\n',[T])
     ).
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Dynamic type checking
+
+:- chr_constraint
+	dynamic_type_check/0,
+	dynamic_type_check_clauses/1,
+	get_dynamic_type_check_clauses/1.
+
+generate_dynamic_type_check_clauses(Clauses) :-
+	dynamic_type_check,
+	get_dynamic_type_check_clauses(Clauses0),
+	append(Clauses0,
+			[('$dynamic_type_check'(Type,Term) :- 
+				( Term = '$VAR'(_) ->
+					true
+				;
+					throw(error(type_error(Type,Term),context(_,'CHR Runtime Type Error')))
+				)
+			)],
+			Clauses).
+
+type_definition(T,D), dynamic_type_check
+	==>
+		copy_term_nat(T-D,Type-Definition),
+		maplist(dynamic_type_check_clause(Type),Definition,DynamicChecks),
+		dynamic_type_check_clauses(DynamicChecks).			
+type_alias(A,B), dynamic_type_check
+	==>
+		copy_term_nat(A-B,Alias-Body),
+		dynamic_type_check_alias_clause(Alias,Body,Clause),
+		dynamic_type_check_clauses([Clause]).
+
+dynamic_type_check <=> 
+	findall(('$dynamic_type_check'(Type,Term) :- !, Goal),builtin_type_nonvar(Type,Term,Goal), BuiltinChecks),
+	dynamic_type_check_clauses(BuiltinChecks).
+
+dynamic_type_check_clause(T,DC,Clause) :-
+	copy_term(T-DC,Type-DefinitionClause),
+	functor(DefinitionClause,F,A),
+	functor(Term,F,A),
+	DefinitionClause =.. [_|DCArgs],
+	Term =.. [_|TermArgs],
+	maplist(dynamic_type_check_call,DCArgs,TermArgs,RecursiveCallList),
+	list2conj(RecursiveCallList,RecursiveCalls),
+	Clause = (
+			'$dynamic_type_check'(Type,Term) :- !,
+				RecursiveCalls	
+	).
+
+dynamic_type_check_alias_clause(Alias,Body,Clause) :-
+	Clause = (
+			'$dynamic_type_check'(Alias,Term) :- !,
+				'$dynamic_type_check'(Body,Term)
+	).
+
+dynamic_type_check_call(Type,Term,Call) :-
+	( nonvar(Type), builtin_type_nonvar(Type,Term,Goal) ->
+		Call = when(nonvar(Term),Goal)
+	;
+		Call = when(nonvar(Term),'$dynamic_type_check'(Type,Term))
+	).
+
+dynamic_type_check_clauses(C1), dynamic_type_check_clauses(C2) 
+	<=>
+		append(C1,C2,C),
+		dynamic_type_check_clauses(C).
+
+get_dynamic_type_check_clauses(Q), dynamic_type_check_clauses(C) 
+	<=>
+		Q = C.
+get_dynamic_type_check_clauses(Q)
+	<=>
+		Q = [].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -3873,8 +3976,17 @@ constraint_prelude(F/A, Clause) :-
 		AttachCall =.. [AttachF,Vars2,Susp],
                 Inactive = (arg(2,Susp,Mutable), 'chr update_mutable'(inactive,Mutable)),	
 		insert_constraint_internal_constraint_goal(F/A, Stored, Vars2, Susp, Continuation, F, Vars,InsertGoal),
+
+		( get_constraint_type(F/A,ArgTypeList) ->	
+			maplist(dynamic_type_check_call,ArgTypeList,Vars,DynamicTypeCheckList),
+			list2conj(DynamicTypeCheckList,DynamicTypeChecks)
+		;
+			DynamicTypeChecks = true
+		),
+
 		Clause = 
 			( Head :-
+				DynamicTypeChecks,
 				InsertGoal, % insert_constraint_internal(Stored,Vars2,Susp,Continuation,F,Vars),
 				InsertCall,
 				AttachCall,
@@ -5340,7 +5452,7 @@ propagation_nested_code([Head|RestHeads],PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,
 
 %check_fd_lookup_condition(_,_,_,_) :- fail.
 check_fd_lookup_condition(F,A,_,_) :-
-	get_store_type(F/A,global_singleton), !, writeln(use_fd(F/A)).
+	get_store_type(F/A,global_singleton), !.
 %check_fd_lookup_condition(F,A,CurrentHead,PreHeads) :-
 %	\+ may_trigger(F/A),
 %	get_functional_dependency(F/A,1,P,K),
