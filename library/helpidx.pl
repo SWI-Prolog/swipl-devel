@@ -1131,7 +1131,7 @@ section([14, 4, 10], 'clp/clp_distinct', 872701, 872886).
 section([14, 4, 11], 'clp/simplex', 872888, 873480).
 section([14, 4, 12], clpqr, 873482, 873956).
 section([14, 4, 13], prologxref, 873958, 874458).
-section([15], 'Bibliography', 874460, 909178).
+section([15], 'Bibliography', 874460, 880102).
 
 
 %   Predicate function/3

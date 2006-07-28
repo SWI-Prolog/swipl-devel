@@ -466,7 +466,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 
   while((c = *format++))
   { switch(c)
-    { case '~':
+    { case '%':
 	switch((c = *format++))
 	{ case 'a':			/* %a: abbreviated weekday */
 	  case 'A':			/* %A: weekday */
@@ -513,7 +513,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	    OUT2DIGITS(fd, ftm->tm.tm_mday);
 	    break;
 	  case 'D':			/* %m/%d/%y */
-	    SUBFORMAT(L"~m/~d/~y");
+	    SUBFORMAT(L"%m/%d/%y");
 	    break;
 	  case 'e':			/* day of the month */
 	    OUT2DIGITS_SPC(fd, ftm->tm.tm_mday);
@@ -521,7 +521,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	  case 'E':			/* alternative format */
 	    return fmt_not_implemented("%E");
 	  case 'F':			/* ISO 8601 date format */
-	    SUBFORMAT(L"~Y-~m-~d");
+	    SUBFORMAT(L"%Y-%m-%d");
 	    break;
 	  case 'G':
 	  case 'g':
@@ -590,10 +590,10 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	  case 'O':
 	    return fmt_not_implemented("%O");
 	  case 'r':			/* The  time in a.m./p.m. notation */
-	    SUBFORMAT(L"~I:~M:~S ~p");	/* TBD: :-separator locale handling */
+	    SUBFORMAT(L"%I:%M:%S %p");	/* TBD: :-separator locale handling */
 	    break;
 	  case 'R':
-	    SUBFORMAT(L"~H:~M");
+	    SUBFORMAT(L"%H:%M");
 	    break;
 	  case 's':			/* Seconds since 1970 */
 	    cal_ftm(ftm, HAS_STAMP);
@@ -606,7 +606,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	    OUTCHR(fd, '\t');
 	    break;
 	  case 'T':
-	    SUBFORMAT(L"~H:~M:~S");
+	    SUBFORMAT(L"%H:%M:%S");
 	    break;
 	  case 'u':			/* 1..7 weekday, mon=1 */
 	  { int wday;
@@ -670,8 +670,8 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	      OUTSTR(buf);
 	    }
 	    break;
-	  case '~':
-	    OUTCHR(fd, '~');
+	  case '%':
+	    OUTCHR(fd, '%');
 	    break;
 	}
         break;
