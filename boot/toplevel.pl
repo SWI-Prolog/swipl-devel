@@ -609,7 +609,7 @@ hidden_binding(Name = _) :-
 	sub_atom(Name, 0, _, _, '_'),
 	current_prolog_flag(toplevel_print_anon, false).
 hidden_binding(Name = Value) :-
-	Value = '$VAR'(Name).
+	Value == '$VAR'(Name).
 
 get_respons(Action) :-
 	repeat,
