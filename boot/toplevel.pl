@@ -558,15 +558,18 @@ $execute_goal2(_, _) :-
 %	non-deterministically, so the user can   prompt  for alternative
 %	side-effects.
 
-write_bindings([], Det) :-
+write_bindings(Bindings0, Det) :-
+	bind_vars(Bindings0),
+	filter_bindings(Bindings0, Bindings),
+	write_bindings2(Bindings, Det).
+
+write_bindings2([], Det) :-
 	(   Det == true
 	;   \+ current_prolog_flag(prompt_alternatives_no_bindings, true)
 	), !,
 	print_message(query, query(yes)).
-write_bindings(Bindings0, _Det) :-
+write_bindings2(Bindings, _Det) :-
 	repeat,
-	    bind_vars(Bindings0),
-	    filter_bindings(Bindings0, Bindings),
 	    print_message(query, query(yes, Bindings)),
 	    get_respons(Action),
 	(   Action == redo
