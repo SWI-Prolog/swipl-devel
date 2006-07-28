@@ -1071,6 +1071,16 @@ Get access to the currently executing request.  \arg{Request} is the
 same as handed to \arg{Goal} of http_wrapper/5 \emph{after} applying
 rewrite rules as defined by http:request_expansion/2. Raises an
 existence error if there is no request in progress.
+
+    \predicate{http_relative_path}{2}{+AbsPath, -RelPath}
+Convert an absolute path (without host, fragment or search) into a path
+relative to the current page, defined as the path component from the
+current request (see http_current_request/1). This call is intended to
+create reusable components returning relative paths for easier support
+of reverse proxies.
+
+If ---for whatever reason--- the conversion is not possible it simply
+unifies \arg{RelPath} to \arg{AbsPath}.
 \end{description}
 
 

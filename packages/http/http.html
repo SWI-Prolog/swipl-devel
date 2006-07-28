@@ -1363,6 +1363,18 @@ Get access to the currently executing request. <VAR>Request</VAR> is the
 same as handed to <VAR>Goal</VAR> of <A NAME="idx:httpwrapper5:39"></A><A HREF="#http_wrapper/5">http_wrapper/5</A> <EM>after</EM> 
 applying rewrite rules as defined by http:request_expansion/2. Raises an 
 existence error if there is no request in progress.
+
+<P>
+<DT><A NAME="http_relative_path/2"><STRONG>http_relative_path</STRONG>(<VAR>+AbsPath, 
+-RelPath</VAR>)</A><DD>
+Convert an absolute path (without host, fragment or search) into a path 
+relative to the current page, defined as the path component from the 
+current request (see <A NAME="idx:httpcurrentrequest1:40"></A><A HREF="#http_current_request/1">http_current_request/1</A>). 
+This call is intended to create reusable components returning relative 
+paths for easier support of reverse proxies.
+
+<P>If ---for whatever reason--- the conversion is not possible it simply 
+unifies <VAR>RelPath</VAR> to <VAR>AbsPath</VAR>.
 </DL>
 
 <H3><A NAME="sec:3.7">3.7 Debugging Servers</A></H3>
@@ -1387,7 +1399,7 @@ which can be triggered by forcing a divide-by-zero in the calculator.
 <P>The library <CODE>library(http/http_header)</CODE> provides 
 primitives for parsing and composing HTTP headers. Its functionality is 
 normally hidden by the other parts of the HTTP server and client 
-libraries. We provide a brief overview of <A NAME="idx:httpreply3:40"></A><A HREF="#http_reply/3">http_reply/3</A> 
+libraries. We provide a brief overview of <A NAME="idx:httpreply3:41"></A><A HREF="#http_reply/3">http_reply/3</A> 
 which can be accessed from the reply body using an exception as explain 
 in <A HREF="#sec:httpspecials">section 3.1.1</A>.
 
@@ -1405,7 +1417,7 @@ is one of:
 
 <P>
 <DT><STRONG>html</STRONG>(<VAR>+HTML</VAR>)<DD>
-Produce a HTML page using <A NAME="idx:printhtml1:41"></A><A HREF="#print_html/1">print_html/1</A>, 
+Produce a HTML page using <A NAME="idx:printhtml1:42"></A><A HREF="#print_html/1">print_html/1</A>, 
 normally generated using the
 <CODE>library(http/html_write)</CODE> described in <A HREF="#sec:htmlwrite">section 
 3.9</A>.
@@ -1457,7 +1469,7 @@ has not changed since the indicated time.
 <P>
 <DT><STRONG>server_error</STRONG>(<VAR>+Error</VAR>)<DD>
 Generate a ``500 Internal server error'' page with a message generated 
-from a Prolog exception term (see <A NAME="idx:printmessage2:42"></A><B>print_message/2</B>).
+from a Prolog exception term (see <A NAME="idx:printmessage2:43"></A><B>print_message/2</B>).
 </DL>
 
 </DL>
@@ -1468,7 +1480,7 @@ library</A></H3>
 <A NAME="sec:htmlwrite"></A>
 
 <P>Producing output for the web in the form of an HTML document is a 
-requirement for many Prolog programs. Just using <A NAME="idx:format2:43"></A><B>format/2</B> 
+requirement for many Prolog programs. Just using <A NAME="idx:format2:44"></A><B>format/2</B> 
 is satisfactory as it leads to poorly readable programs generating poor 
 HTML. This library is based on using DCG rules.
 
@@ -1478,19 +1490,19 @@ framework for generating legal HTML under (Prolog) program control. It
 is especially useful for the generation of structured pages (e.g. tables) 
 from Prolog data structures.
 
-<P>The normal way to use this library is through the DCG <A NAME="idx:html1:44"></A><A HREF="#html/1">html/1</A>. 
+<P>The normal way to use this library is through the DCG <A NAME="idx:html1:45"></A><A HREF="#html/1">html/1</A>. 
 This grammar-rule provides the central translation from a structured 
 term with embedded calls to additional translation rules to a list of 
-atoms that can then be printed using <A NAME="idx:printhtml12:45"></A><A HREF="#print_html/1">print_html/[1,2]</A>.
+atoms that can then be printed using <A NAME="idx:printhtml12:46"></A><A HREF="#print_html/1">print_html/[1,2]</A>.
 
 <DL>
 
 <P>
 <DT><A NAME="html/1"><STRONG>html</STRONG>(<VAR>:Spec</VAR>)</A><CODE>--&gt;</CODE><DD>
-http://db.cwi.nl/projecten/project.php4?prjnr=129The DCG rule <A NAME="idx:html1:46"></A><A HREF="#html/1">html/1</A> 
+http://db.cwi.nl/projecten/project.php4?prjnr=129The DCG rule <A NAME="idx:html1:47"></A><A HREF="#html/1">html/1</A> 
 is the main predicate of this library. It translates the specification 
 for an HTML page into a list of atoms that can be written to a stream 
-using <A NAME="idx:printhtml12:47"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
+using <A NAME="idx:printhtml12:48"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
 The expansion rules of this predicate may be extended by defining the 
 multifile DCG html_write:expand/1. <VAR>Spec</VAR> is either a single 
 specification or a list of single specifications. Using nested lists is 
@@ -1499,13 +1511,13 @@ not allowed to avoid ambiguity caused by the atom <CODE></CODE>
 <P>
 <UL>
 <LI><I>Atomic data</I><BR>
-Atomic data is quoted using the <A NAME="idx:htmlquoted1:48"></A><A HREF="#html_quoted/1">html_quoted/1</A> 
+Atomic data is quoted using the <A NAME="idx:htmlquoted1:49"></A><A HREF="#html_quoted/1">html_quoted/1</A> 
 DCG.
 
 <P>
 <LI><I><VAR>Fmt</VAR> - <VAR>Args</VAR></I><BR>
 <VAR>Fmt</VAR> and <VAR>Args</VAR> are used as format-specification and 
-argument list to <A NAME="idx:sformat3:49"></A><B>sformat/3</B>. The 
+argument list to <A NAME="idx:sformat3:50"></A><B>sformat/3</B>. The 
 result is quoted and added to the output list.
 
 <P>
@@ -1534,7 +1546,7 @@ Emit <TT>&amp;&lt;<VAR>Entity</VAR>&gt;;</TT>.
 <LI><I><CODE>Tag(Content)</CODE></I><BR>
 Emit HTML element <VAR>Tag</VAR> using <VAR>Content</VAR> and no 
 attributes.
-<VAR>Content</VAR> is handed to <A NAME="idx:html1:50"></A><A HREF="#html/1">html/1</A>. 
+<VAR>Content</VAR> is handed to <A NAME="idx:html1:51"></A><A HREF="#html/1">html/1</A>. 
 See <A HREF="#sec:htmllayout">section 3.9.3</A> for details on the 
 automatically generated layout.
 
@@ -1549,7 +1561,7 @@ attributes. Each attributes is of the format <CODE>Name(Value)</CODE> or
 <P>
 <DT><A NAME="page/2"><STRONG>page</STRONG>(<VAR>:HeadContent, 
 :BodyContent</VAR>)</A><CODE>--&gt;</CODE><DD>
-The DCG rule <A NAME="idx:page2:51"></A><A HREF="#page/2">page/2</A> 
+The DCG rule <A NAME="idx:page2:52"></A><A HREF="#page/2">page/2</A> 
 generated a complete page, including the SGML
 <CODE>DOCTYPE</CODE> declaration. <VAR>HeadContent</VAR> are elements to 
 be placed in the <CODE>head</CODE> element and <VAR>BodyContent</VAR> 
@@ -1557,16 +1569,16 @@ are elements to be placed in the <CODE>body</CODE> element.
 
 <P>http://db.cwi.nl/projecten/project.php4?prjnr=129To achieve common 
 style (background, page header and footer), it is possible to define DCG 
-rules <A NAME="idx:head1:52"></A><B>head/1</B> and/or <A NAME="idx:body1:53"></A><B>body/1</B>. 
-The <A NAME="idx:page1:54"></A><A HREF="#page/1">page/1</A> rule checks 
+rules <A NAME="idx:head1:53"></A><B>head/1</B> and/or <A NAME="idx:body1:54"></A><B>body/1</B>. 
+The <A NAME="idx:page1:55"></A><A HREF="#page/1">page/1</A> rule checks 
 for the definition of these DCG rules in the module it is called from as 
 well as in the <CODE>user</CODE> module. If no definition is found, it 
 creates a head with only the <VAR>HeadContent</VAR> (note that the
 <CODE>title</CODE> is obligatory) and a <CODE>body</CODE> with <CODE>bgcolor</CODE> 
 set to <CODE>white</CODE> and the provided <VAR>BodyContent</VAR>.
 
-<P>Note that further customisation is easily achieved using <A NAME="idx:html1:55"></A><A HREF="#html/1">html/1</A> 
-directly as <A NAME="idx:page2:56"></A><A HREF="#page/2">page/2</A> is 
+<P>Note that further customisation is easily achieved using <A NAME="idx:html1:56"></A><A HREF="#html/1">html/1</A> 
+directly as <A NAME="idx:page2:57"></A><A HREF="#page/2">page/2</A> is 
 (besides handling the hooks) defined as:
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -1583,7 +1595,7 @@ page(Head, Body) --&gt;
 
 <P>
 <DT><A NAME="page/1"><STRONG>page</STRONG>(<VAR>:Contents</VAR>)</A><CODE>--&gt;</CODE><DD>
-This version of the <A NAME="idx:page12:57"></A><A HREF="#page/1">page/[1,2]</A> 
+This version of the <A NAME="idx:page12:58"></A><A HREF="#page/1">page/[1,2]</A> 
 only gives you the SGML <CODE>DOCTYPE</CODE> and the <CODE>HTML</CODE> 
 element. <VAR>Contents</VAR> is used to generate both the head and body 
 of the page.
@@ -1603,7 +1615,7 @@ the begin-tag. Some examples:
 </TABLE>
 
 <P>This predicate provides an alternative to using the
-<CODE>\</CODE><VAR>Command</VAR> syntax in the <A NAME="idx:html1:58"></A><A HREF="#html/1">html/1</A> 
+<CODE>\</CODE><VAR>Command</VAR> syntax in the <A NAME="idx:html1:59"></A><A HREF="#html/1">html/1</A> 
 specification. The following two fragments are the same. The preferred 
 solution depends on your preferences as well as whether the 
 specification is generated or entered by the programmer.
@@ -1629,13 +1641,13 @@ table(Rows) --&gt;
 
 <P>
 <DT><A NAME="html_end/1"><STRONG>html_end</STRONG>(<VAR>+End</VAR>)</A><CODE>--&gt;</CODE><DD>
-End an element. See <A NAME="idx:htmlbegin1:59"></A><A HREF="#html_begin/1">html_begin/1</A> 
+End an element. See <A NAME="idx:htmlbegin1:60"></A><A HREF="#html_begin/1">html_begin/1</A> 
 for details.
 </DL>
 
 <H4><A NAME="sec:3.9.1">3.9.1 Emitting HTML documents</A></H4>
 
-<P>The <A NAME="idx:html1:60"></A><A HREF="#html/1">html/1</A> grammar 
+<P>The <A NAME="idx:html1:61"></A><A HREF="#html/1">html/1</A> grammar 
 rules translates a specification into a list of atoms and layout 
 instructions. Currently the layout instructions are terms of the format <CODE>nl(N)</CODE>, 
 requesting at least <VAR>N</VAR> newlines. Multiple consecutive <CODE>nl(1)</CODE> 
@@ -1659,7 +1671,7 @@ Print the token list to the specified output stream
 <P>
 <DT><A NAME="html_print_length/2"><STRONG>html_print_length</STRONG>(<VAR>+List, 
 -Length</VAR>)</A><DD>
-When calling <A NAME="idx:htmlprint12:61"></A><B>html_print/[1,2]</B> on <VAR>List</VAR>, <VAR>Length</VAR> 
+When calling <A NAME="idx:htmlprint12:62"></A><B>html_print/[1,2]</B> on <VAR>List</VAR>, <VAR>Length</VAR> 
 characters will be produced. Knowing the length is needed to provide the <CODE>Content-length</CODE> 
 field of an HTTP reply-header.
 </DL>
@@ -1667,20 +1679,20 @@ field of an HTTP reply-header.
 <H4><A NAME="sec:3.9.2">3.9.2 Adding rules for html/1</A></H4>
 
 <P>In some cases it is practical to extend the translations imposed by
-<A NAME="idx:html1:63"></A><A HREF="#html/1">html/1</A>. When using XPCE 
+<A NAME="idx:html1:64"></A><A HREF="#html/1">html/1</A>. When using XPCE 
 for example, it is comfortable to be able defining default translation 
 to HTML for objects. We also used this technique to define translation 
 rules for the output of the SWI-Prolog
 <CODE>library(sgml)</CODE> package.
 
-<P>The <A NAME="idx:html1:64"></A><A HREF="#html/1">html/1</A> rule 
+<P>The <A NAME="idx:html1:65"></A><A HREF="#html/1">html/1</A> rule 
 first calls the multifile ruleset html_write:expand/1.
 
 <DL>
 
 <P>
 <DT><A NAME="html_write:expand/1"><STRONG>html_write:expand</STRONG>(<VAR>+Spec</VAR>)</A><CODE>--&gt;</CODE><DD>
-Hook to add additional translationrules for <A NAME="idx:html1:65"></A><A HREF="#html/1">html/1</A>.
+Hook to add additional translationrules for <A NAME="idx:html1:66"></A><A HREF="#html/1">html/1</A>.
 
 <P>
 <DT><A NAME="html_quoted/1"><STRONG>html_quoted</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE><DD>
@@ -1714,12 +1726,12 @@ characters before and <VAR>Post</VAR> after the tag. The <VAR>Close</VAR>
 specification is similar, but in addition allows for the atom <CODE>-</CODE>, 
 requesting the output generator to omit the close-tag altogether or <CODE>empty</CODE>, 
 telling the library that the element has declared empty content. In this 
-case the close-tag is not emitted either, but in addition <A NAME="idx:html1:66"></A><A HREF="#html/1">html/1</A> 
+case the close-tag is not emitted either, but in addition <A NAME="idx:html1:67"></A><A HREF="#html/1">html/1</A> 
 interprets <VAR>Arg</VAR> in <CODE>Tag(Arg)</CODE> as a list of 
 attributes rather than the content.
 
 <P>A tag that does not appear in this table is emitted without 
-additional layout. See also <A NAME="idx:printhtml12:67"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
+additional layout. See also <A NAME="idx:printhtml12:68"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
 Please consult the library source for examples.
 </DL>
 
@@ -1727,7 +1739,7 @@ Please consult the library source for examples.
 
 <P>In the following example we will generate a table of Prolog 
 predicates we find from the SWI-Prolog help system based on a keyword. 
-The primary database is defined by the predicate <A NAME="idx:predicate5:68"></A><B>predicate/5</B> 
+The primary database is defined by the predicate <A NAME="idx:predicate5:69"></A><B>predicate/5</B> 
 We will make hyperlinks for the predicates pointing to their 
 documentation.
 
@@ -1802,9 +1814,9 @@ library</A></H4>
 <P>This library is the result of various attempts to reach at a more 
 satisfactory and Prolog-minded way to produce HTML text from a program. 
 We have been using Prolog for the generation of web pages in a number of 
-projects. Just using <A NAME="idx:format2:69"></A><B>format/2</B> never 
+projects. Just using <A NAME="idx:format2:70"></A><B>format/2</B> never 
 was a real option, generating error-prone HTML from clumsy syntax. We 
-started with a layour on top of <A NAME="idx:format2:70"></A><B>format/2</B>, 
+started with a layour on top of <A NAME="idx:format2:71"></A><B>format/2</B>, 
 keeping track of the current nesting and thus always capable of properly 
 closing the environment.
 
@@ -1820,7 +1832,7 @@ browser, selecting fragments from an analysed document and presenting
 parts of the XPCE documentation using a browser. It has proven to be 
 able to deal with generating pages quickly and comfortably.
 
-<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:71"></A><B>goal_expansion/2</B> 
+<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:72"></A><B>goal_expansion/2</B> 
 to do compile-time optimisation of the library. Quotation of known text 
 and invocation of sub-rules using the <CODE>\</CODE><VAR>RuleSet</VAR> 
 and
@@ -1855,7 +1867,7 @@ If part of the query consists of filenames or directories, check them.
 This also applies to files you only read. Passing names as
 <CODE>/etc/passwd</CODE>, but also <CODE>../../../../../etc/passwd</CODE> 
 are tried by experienced hackers to learn about the system they want to 
-attack. So, expand provided names using <A NAME="idx:absolutefilename23:72"></A><B>absolute_file_name/[2,3]</B> 
+attack. So, expand provided names using <A NAME="idx:absolutefilename23:73"></A><B>absolute_file_name/[2,3]</B> 
 and verify they are inside a folder reserved for the server. Avoid 
 symbolic links from this subtree to the outside world. The example below 
 checks validity of filenames. The first call ensures proper canonisation 
@@ -1874,7 +1886,7 @@ check_file(File) :-
 
 <P>
 <LI><I>Check scripts</I><BR>
-Should input in any way activate external scripts using <A NAME="idx:shell1:73"></A><B>shell/1</B> 
+Should input in any way activate external scripts using <A NAME="idx:shell1:74"></A><B>shell/1</B> 
 or <CODE>open(pipe(Command), ...)</CODE>, verify the argument once more.
 
 <P>
@@ -1926,10 +1938,10 @@ Currently atom-garbage collection is activated after the creation of
 <P>
 <DT><STRONG>A</STRONG><DD>
 <DT>absolute_file_name/[2,3]<DD>
-<A HREF="#idx:absolutefilename23:72">4</A>
+<A HREF="#idx:absolutefilename23:73">4</A>
 <DT><STRONG>B</STRONG><DD>
 <DT>body/1<DD>
-<A HREF="#idx:body1:53">3.9</A>
+<A HREF="#idx:body1:54">3.9</A>
 <DT><STRONG>C</STRONG><DD>
 <DT>close/1<DD>
 <A HREF="#idx:close1:1">2.1</A>
@@ -1937,27 +1949,28 @@ Currently atom-garbage collection is activated after the creation of
 <DT>file_mime_type/2<DD>
 <A HREF="#idx:filemimetype2:10">2.2</A>
 <DT>format/2<DD>
-<A HREF="#idx:format2:43">3.9</A> <A HREF="#idx:format2:69">3.9.5</A> <A HREF="#idx:format2:70">3.9.5</A>
+<A HREF="#idx:format2:44">3.9</A> <A HREF="#idx:format2:70">3.9.5</A> <A HREF="#idx:format2:71">3.9.5</A>
 <DT><STRONG>G</STRONG><DD>
 <DT>goal_expansion/2<DD>
-<A HREF="#idx:goalexpansion2:71">3.9.5</A>
+<A HREF="#idx:goalexpansion2:72">3.9.5</A>
 <DT><STRONG>H</STRONG><DD>
 <DT>head/1<DD>
-<A HREF="#idx:head1:52">3.9</A>
+<A HREF="#idx:head1:53">3.9</A>
 <DT><A HREF="#html/1">html/1</A><DD>
-<A HREF="#idx:html1:44">3.9</A> <A HREF="#idx:html1:46">3.9</A> <A HREF="#idx:html1:50">3.9</A> <A HREF="#idx:html1:55">3.9</A> <A HREF="#idx:html1:58">3.9</A> <A HREF="#idx:html1:60">3.9.1</A> <B>3.9.1</B> <A HREF="#idx:html1:63">3.9.2</A> <A HREF="#idx:html1:64">3.9.2</A> <A HREF="#idx:html1:65">3.9.2</A> <A HREF="#idx:html1:66">3.9.3</A>
+<A HREF="#idx:html1:45">3.9</A> <A HREF="#idx:html1:47">3.9</A> <A HREF="#idx:html1:51">3.9</A> <A HREF="#idx:html1:56">3.9</A> <A HREF="#idx:html1:59">3.9</A> <A HREF="#idx:html1:61">3.9.1</A> <B>3.9.1</B> <A HREF="#idx:html1:64">3.9.2</A> <A HREF="#idx:html1:65">3.9.2</A> <A HREF="#idx:html1:66">3.9.2</A> <A HREF="#idx:html1:67">3.9.3</A>
 <DT><A HREF="#html_begin/1">html_begin/1</A><DD>
-<A HREF="#idx:htmlbegin1:59">3.9</A>
+<A HREF="#idx:htmlbegin1:60">3.9</A>
 <DT><A HREF="#html_end/1">html_end/1</A><DD>
 <DT>html_print/[1,2]<DD>
-<A HREF="#idx:htmlprint12:61">3.9.1</A>
+<A HREF="#idx:htmlprint12:62">3.9.1</A>
 <DT><A HREF="#html_print_length/2">html_print_length/2</A><DD>
 <DT><A HREF="#html_quoted/1">html_quoted/1</A><DD>
-<A HREF="#idx:htmlquoted1:48">3.9</A>
+<A HREF="#idx:htmlquoted1:49">3.9</A>
 <DT><A HREF="#html_quoted_attribute/1">html_quoted_attribute/1</A><DD>
 <DT><A HREF="#html_write:expand/1">html_write:expand/1</A><DD>
 <DT><A HREF="#html_write:layout/3">html_write:layout/3</A><DD>
 <DT><A HREF="#http_current_request/1">http_current_request/1</A><DD>
+<A HREF="#idx:httpcurrentrequest1:40">3.6</A>
 <DT><A HREF="#http_current_server/2">http_current_server/2</A><DD>
 <DT><A HREF="#http_current_session/2">http_current_session/2</A><DD>
 <DT><A HREF="#http_current_worker/2">http_current_worker/2</A><DD>
@@ -1976,8 +1989,9 @@ Currently atom-garbage collection is activated after the creation of
 <A HREF="#idx:httpreaddata3:3">2.2</A> <A HREF="#idx:httpreaddata3:5">2.2</A> <A HREF="#idx:httpreaddata3:26">3.4.1</A>
 <DT><A HREF="#http_read_request/2">http_read_request/2</A><DD>
 <A HREF="#idx:httpreadrequest2:4">2.2</A> <A HREF="#idx:httpreadrequest2:24">3.4</A> <A HREF="#idx:httpreadrequest2:25">3.4</A>
+<DT><A HREF="#http_relative_path/2">http_relative_path/2</A><DD>
 <DT><A HREF="#http_reply/3">http_reply/3</A><DD>
-<A HREF="#idx:httpreply3:18">3.1.1</A> <A HREF="#idx:httpreply3:19">3.1.1</A> <A HREF="#idx:httpreply3:40">3.8</A>
+<A HREF="#idx:httpreply3:18">3.1.1</A> <A HREF="#idx:httpreply3:19">3.1.1</A> <A HREF="#idx:httpreply3:41">3.8</A>
 <DT><A HREF="#http:request_expansion/2">http:request_expansion/2</A><DD>
 <DT>http_server/1<DD>
 <A HREF="#idx:httpserver1:34">3.5.4</A>
@@ -2008,22 +2022,22 @@ Currently atom-garbage collection is activated after the creation of
 <A HREF="#idx:mimepack3:11">2.2</A> <A HREF="#idx:mimepack3:12">2.2</A>
 <DT><STRONG>P</STRONG><DD>
 <DT><A HREF="#page/1">page/1</A><DD>
-<A HREF="#idx:page1:54">3.9</A>
+<A HREF="#idx:page1:55">3.9</A>
 <DT><A HREF="#page/2">page/2</A><DD>
-<A HREF="#idx:page2:51">3.9</A> <A HREF="#idx:page2:56">3.9</A>
+<A HREF="#idx:page2:52">3.9</A> <A HREF="#idx:page2:57">3.9</A>
 <DT>page/[1,2]<DD>
-<A HREF="#idx:page12:57">3.9</A>
+<A HREF="#idx:page12:58">3.9</A>
 <DT>pp/1<DD>
 <A HREF="#idx:pp1:27">3.4.1</A>
 <DT>predicate/5<DD>
-<A HREF="#idx:predicate5:68">3.9.4</A>
+<A HREF="#idx:predicate5:69">3.9.4</A>
 <DT><A HREF="#print_html/1">print_html/1</A><DD>
-<A HREF="#idx:printhtml1:41">3.8</A>
+<A HREF="#idx:printhtml1:42">3.8</A>
 <DT><A HREF="#print_html/2">print_html/2</A><DD>
 <DT>print_html/[1,2]<DD>
-<A HREF="#idx:printhtml12:45">3.9</A> <A HREF="#idx:printhtml12:47">3.9</A> <A HREF="#idx:printhtml12:67">3.9.3</A>
+<A HREF="#idx:printhtml12:46">3.9</A> <A HREF="#idx:printhtml12:48">3.9</A> <A HREF="#idx:printhtml12:68">3.9.3</A>
 <DT>print_message/2<DD>
-<A HREF="#idx:printmessage2:42">3.8</A>
+<A HREF="#idx:printmessage2:43">3.8</A>
 <DT><STRONG>R</STRONG><DD>
 <DT>reply/1<DD>
 <A HREF="#idx:reply1:29">3.5.2</A>
@@ -2031,9 +2045,9 @@ Currently atom-garbage collection is activated after the creation of
 <DT>set_stream/2<DD>
 <A HREF="#idx:setstream2:2">2.1</A>
 <DT>sformat/3<DD>
-<A HREF="#idx:sformat3:49">3.9</A>
+<A HREF="#idx:sformat3:50">3.9</A>
 <DT>shell/1<DD>
-<A HREF="#idx:shell1:73">4</A>
+<A HREF="#idx:shell1:74">4</A>
 <DT>socket<DD>
 <A HREF="#sec:3.5.2">3.5.2</A>
 <DT>ssl_init/3<DD>

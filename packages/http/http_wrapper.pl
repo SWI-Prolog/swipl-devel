@@ -31,7 +31,8 @@
 
 :- module(httpd_wrapper,
 	  [ http_wrapper/5,		% :Goal, +In, +Out, -Conn, +Options
-	    http_current_request/1	% -Request
+	    http_current_request/1,	% -Request
+	    http_relative_path/2	% +AbsPath, -RelPath
 	  ]).
 :- use_module(http_header).
 :- use_module(library(memfile)).
@@ -205,3 +206,33 @@ extend_request([_|T], R0, R) :- !,
 
 http_current_request(Request) :-
 	b_getval(http_request, Request).
+
+
+%	http_relative_path(+AbsPath, -RelPath)
+%	
+%	Convert an absolute path (without host, fragment or search) into
+%	a path relative to the current page.   This  call is intended to
+%	create reusable components returning relative   paths for easier
+%	support of reverse proxies.
+
+http_relative_path(Path, RelPath) :-
+	http_current_request(Request),
+	memberchk(path(RelTo), Request),
+	http_relative_path(Path, RelTo, RelPath), !.
+http_relative_path(Path, Path).
+
+http_relative_path(Path, RelTo, RelPath) :-
+	concat_atom(PL, /, Path),
+	concat_atom(RL, /, RelTo),
+	delete_common_prefix(PL, RL, PL1, PL2),
+	to_dot_dot(PL1, DotDot, PL2),
+	concat_atom(DotDot, /, RelPath).
+
+delete_common_prefix([H|T01], [H|T02], T1, T2) :- !,
+	delete_common_prefix(T01, T02, T1, T2).
+delete_common_prefix(T1, T2, T1, T2).
+
+to_dot_dot([], Tail, Tail).
+to_dot_dot([_], Tail, Tail) :- !.
+to_dot_dot([_|T0], ['..'|T], Tail) :-
+	to_dot_dot(T0, T, Tail).
