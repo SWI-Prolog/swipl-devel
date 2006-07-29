@@ -77,16 +77,19 @@ project_attributes(TargetVars,Cvas) :-
 	sort(TargetVars,Tvs),		% duplicates ?
 	sort(Cvas,Avs),			% duplicates ?
 	get_clp(TargetVars,CLP),
-	mark_target(Tvs),
-	project_nonlin(Tvs,Avs,NlReachable),
-	(   Tvs == []
-	->  drop_lin_atts(Avs)
-	;   redundancy_vars(Avs),		% removes redundant bounds (redund.pl)
-	    make_target_indep(Tvs,Pivots),	% pivot partners are marked to be kept during elim.	
-	    mark_target(NlReachable),		% after make_indep to express priority
-	    drop_dep(Avs),
-	    fm_elim(CLP,Avs,Tvs,Pivots),
-	    impose_ordering(Avs)
+	(   nonvar(CLP)
+	->  mark_target(Tvs),
+	    project_nonlin(Tvs,Avs,NlReachable),
+	    (   Tvs == []
+	    ->  drop_lin_atts(Avs)
+	    ;   redundancy_vars(Avs),		% removes redundant bounds (redund.pl)
+		make_target_indep(Tvs,Pivots),	% pivot partners are marked to be kept during elim.	
+		mark_target(NlReachable),	% after make_indep to express priority
+		drop_dep(Avs),
+		fm_elim(CLP,Avs,Tvs,Pivots),
+		impose_ordering(Avs)
+	    )
+	;   true
 	).
 
 fm_elim(clpq,Avs,Tvs,Pivots) :- fourmotz_q:fm_elim(Avs,Tvs,Pivots).
