@@ -112,20 +112,17 @@ AC_CHECK_LIB(nsl, t_bind,
 	     AC_DEFINE(HAVE_LIBNSL, 1,
 		       [Define if you have the nsl library]))
 
-AS_VAR_PUSHDEF([ac_Lib], [ac_cv_lib_$LIBDB''_db_create])
-AC_CACHE_CHECK([for db_create in -l$LIBDB], ac_Lib,
-	       [ac_check_lib_save_LIBS=$LIBS
+AC_CHECK_HEADERS(db.h)
+AC_MSG_CHECKING(db_create in -ldb)
 LIBS="-l$LIBDB $LIBS"
 AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <db.h>]],
 				[[db_create(0,0,0)]])],
-	       [AS_VAR_SET(ac_Lib, yes)
-		LIBS="-l$LIBDB $LIBS"
-		HAVEDB=yes],
-	       [AS_VAR_SET(ac_Lib, no)
-		HAVEDB=no])
-LIBS=$ac_check_lib_save_LIBS])
-
-AC_CHECK_HEADERS(db.h)
+	       [HAVEDB=yes
+	        AC_MSG_RESULT(yes)
+	       ],
+	       [HAVEDB=no
+	        AC_MSG_RESULT(no)
+	       ])
 
 AC_MSG_CHECKING(Whether environment is sane)
 if test "$HAVEDB" = "yes"; then
