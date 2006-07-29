@@ -758,6 +758,7 @@ colourise_declarations(Last, TB, Pos) :-
 	colourise_declaration(Last, TB, Pos).
 
 colourise_declaration($(Name)/Arity, TB, Pos) :-
+	atom(Name),
 	style_check(?(dollar)), !,	% deal with system boot-files
 	atom_concat($, Name, TheName),
 	colourise_declaration(TheName/Arity, TB, Pos).
