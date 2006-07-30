@@ -1,0 +1,31 @@
+		    PlDOc --- SWI-Prolog source documentation
+
+Author: Jan Wiemaker
+
+Status
+------
+
+Approach has been discussed with two external Prolog developers.
+
+Code is very imcomplete.  Development plan:
+
+---++ SWI-Prolog hooks
+
+Have been realised in CVS version as of Jul 30, 2006
+
+---++ Wiki processor
+
+Making solid progress.  remaining issues:
+
+	* Tables in lists
+	* Code/verbatim environments
+	* Testing
+
+---++ Mode language
+
+Now uses Prolog parser. Should we change  this to define our own syntax?
+More flexible, but a lot of work and   Prolog syntax is clear. Must deal
+with multi-line types/modes.
+
+	
+
