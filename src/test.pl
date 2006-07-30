@@ -49,6 +49,12 @@ available test sets. The public goals are:
 
 % :- getenv('LANG', _) -> setenv('LANG', 'C'); true.
 
+% The test-suite Tests/library/test_date.pl depends on  the timezone. As
+% correct results are only  provided  for   the  CET  (Central European)
+% timezine we use this. Timezone cannot be  changed at runtime, so we do
+% this early.
+
+:- setenv('TZ', 'CET').
 
 		 /*******************************
 		 *    CONDITIONAL COMPILATION	*

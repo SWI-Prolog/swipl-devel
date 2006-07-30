@@ -83,9 +83,9 @@ test_format :-
 		    ;	memberchk(A, Atom)
 		    )
 		->  true
-		;   format('%q: got %q, expected %q%n', [Fmt, A, Atom])
+		;   format('~q: got ~q, expected ~q~n', [Fmt, A, Atom])
 		)
-	    ;	format('format_time(%q, %q, %q) failed%n', [atom(A), Fmt, Time])
+	    ;	format('format_time(~q, ~q, ~q) failed~n', [atom(A), Fmt, Time])
 	    ),
 	    fail
 	;   true
@@ -121,13 +121,13 @@ test_trip(Y-M-D, H:Min:S, FormatTests) :-
 	stamp_date_time(Stamp, Date2, 0),
 	(   Date2 = Date
 	->  true
-	;   error('%q: Tripped as %q', [Date, Date2])
+	;   error('~q: Tripped as ~q', [Date, Date2])
 	),
 	(   member(Fmt = Val, FormatTests),
 	    (	format_time(atom(A), Fmt, Stamp),
 		A == Val
 	    ->	true
-	    ;	error('Format failed: %q %q %q', [Date, Fmt, Val])
+	    ;	error('Format failed: ~q ~q ~q', [Date, Fmt, Val])
 	    ),
 	    fail
 	;   true
