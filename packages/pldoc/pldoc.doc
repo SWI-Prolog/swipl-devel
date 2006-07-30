@@ -1,0 +1,151 @@
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{html}
+\sloppy
+\makeindex
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog documentation package}
+
+\begin{document}
+
+\title{SWI-Prolog Source Documention}
+\author{Jan Wielemaker \\
+	HCS, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{wielemak@science.uva.nl}}
+
+\maketitle
+
+\begin{abstract}
+This article presents PlDoc, the SWI-Prolog source-code documentation
+infrastructure which is loosely based on JavaDoc.
+\end{abstract}
+
+\pagebreak
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+\section{Introduction}
+
+When developing Prolog source that has to be maintained for a longer
+period or is developed by a ---possibly distributed--- team some basic
+quality measurements need to be adopted. A shared and well designed
+codingstyle is one of them. In addition, documentation of source-files
+and their primary interfaces as well as a testing framework must be
+established.
+
+Only a few documentation and testing frameworks exist in the Prolog
+world. In my view they all fall short realising the basic needs in a
+lightweight and easy to addopt system. We have noticed in various
+projects as well as through the codee we receive in the cause of testing
+and debugging SWI-Prolog that the discipline to come with consistent
+style, well commented code and a test-suite is not very well established
+in the Prolog community.  If we want to improve this practice, we should
+make sure that
+
+\begin{shortlist}
+    \item The documentation and testing framework requires the
+	  minimum of work and learning.
+    \item The framework is immediately rewarding to the individual
+          programmer as well as the team,
+\end{shortlist}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Wiki notation}
+
+Structured comments that provide part of the documentation are written
+in Wiki notation, using a subset from the conventions of
+\url[TWiki]{http://www.twiki.org}, with some Prolog specific additions.
+
+\subsection{Structuring conventions}
+
+\begin{description}
+    \item [Paragraphs]
+Paragraphs are seperated by a blank line.
+
+    \item [Lists]
+The wiki knows three types of lists: \emph{bullet lists} (HTML
+\const{ul}), \emph{numbered lists} (HTML \const{ol}) and
+\emph{description lists} (HTML \const{dl}). Each list environment is
+headed by an empty line and each list-item has a special symbol at the
+start, followed by a space.  Each subsequent item must be indented at
+exactly the same column.  Lists may be nested by starting a new list at
+a higher level of indentation.  The list prefixes are:
+
+\begin{center}
+\begin{tabular}{lp{0.7\linewidth}}
+ \tt *	& Bulleted list item \\
+ \tt 1.	& Numbered list item.  Any number from 1..9 is allowed, which
+	  allows for proper numbering in the source.  Actual numbers
+	  in the HTML or \LaTeX{} however are re-generated, starting
+	  at 1. \\
+ \tt \$ Title : Item & Description list item.
+\end{tabular}
+\end{center}
+
+    \item [Tables]
+The Wiki provides only for limited support for tables.   A table-row
+is started by a \chr{|} sign and the cells are separated by the same
+character.  The last cell must be ended with \chr{|}.  Multiple lines
+that parse into a table-row together for a table.  Example:
+
+\begin{verbatim}
+	| Author    | Jan Wielemaker |
+	| Copyright | GPL            |
+\end{verbatim}
+\end{description}
+
+\subsection{Text markup: fonts and links}
+
+Wiki text markup to realise fonts is mostly based on old plaintext
+conventions in newsnet and E-mail.  We added some Prolog specific
+conventions to this.  For font changing code, The opening symbol must
+be followed immediately by a word and the closing one must immediately
+follow a word.
+
+\begin{center}
+\begin{tabular}{lp{0.7\linewidth}}
+\tt *bold text*	& Typset text between `*' in bold \\
+\tt _emphasize_ & Typset text between `_' as _emphasized  \\
+\tt =code=      & Typset text between `=' in fixed font \\
+\tt name/arity  & Create a link to a predicate \\
+\tt name//arity & Create a link to a DCG rule \\
+\tt Word	& Capitalised words that appear as argument-name
+		  are written using \verb$<var>Word</var>$ \\
+\end{tabular}
+\end{center}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Motivation of choices}
+
+\subsection*{Structured comments or directives}
+
+
+
+
+
+
+\subsection*{Types and modes}
+
+\subsection*{Pure Prolog}
+
+
+
+
+
+\printindex
+
+\end{document}
+
