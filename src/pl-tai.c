@@ -665,6 +665,7 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm)
 	  case '+':
 	    { char buf[26];
 
+	      cal_ftm(ftm, HAS_WYDAY);
 	      asctime_r(&ftm->tm, buf);
 	      buf[24] = EOS;
 	      OUTSTR(buf);

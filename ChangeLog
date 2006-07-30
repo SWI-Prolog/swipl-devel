@@ -7,7 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
-  * FIXED: date/time test-suite for ~ -> %.  Keri Harris.
+  * FIXED: Bug#185: %+ initialization if yday and yday.  Keri Harris.
+
+  * FIXED: Bug#184: date/time test-suite for ~ -> %.  Keri Harris.
 
 ==============================
 VERSION 5.6.17 (July 27, 2006)
