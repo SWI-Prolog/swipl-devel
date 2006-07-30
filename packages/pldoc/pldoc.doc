@@ -62,6 +62,28 @@ make sure that
 \end{shortlist}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Overview}
+
+The PlDoc infrastructure is based on \emph{structured comments}, just
+like JavaDoc.  Using comments, no changes have to be made to Prolog to
+load the documented source.  If the \pllib{pldoc} library is loaded, 
+Prolog will not only load the source, but also parse all structured
+comments.  It processes the mode-declarations inside the comments and
+stores these as annotations in the Prolog database to support the test
+framework and other runtime and compiletime analysis tools that may be
+developed in the future.
+
+Documentation for all or some of the loaded files can be written to file
+in either HTML+CSS or \LaTeX{} format. Each source file is documented in
+a single file. In addition, the documentation generator will generate an
+index file that can be used a index for a browser or input file for
+\LaTeX{} for producing nicely typeset document.
+
+To support the developer, the documentation system can be asked to start
+a web-server that can be used to browse the documentation.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Wiki notation}
 
 Structured comments that provide part of the documentation are written
@@ -130,20 +152,91 @@ follow a word.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Motivation of choices}
 
+Literal programming is an old field.  The \TeX{} source is one of the
+oldest and welknown examples of this approach were input files are a 
+mixture of \TeX{} and PASCAL source. External tools are used to untangle
+the common source, process one branche to produce the documentation
+while the other is compiled to produce the program.
+
+A program and its documentation consists of various different parts:
+
+\begin{shortlist}
+    \item The program text itself.  This is the minimum that must be
+          handed to the compiler to create an executable (module).
+    \item Meta information about the program: author, modifications,
+          license, etc.
+    \item Documentation about the overall structure and purpose of
+	  the source.
+    \item Description of the interface: public predicates, their
+	  types, modes and whether or not they are deterministic as
+	  wel as an informative text on each public predicate.
+    \item Description of key private predicates necessary to understand
+	  how the public interface is realised.
+\end{shortlist}
+
 \subsection*{Structured comments or directives}
 
+Comments can be added through Prolog directives, a route taken by Ciao
+Prolog and Logtalk. We feel structured comments are a better alternative
+for the following reasons:
 
+\begin{itemize}
+    \item Prolog programmers are used to writing comments as Prolog
+          comments.
+    \item Using Prolog strings requires unnatural escape sequences for
+	  string quotes and long literal values tend to result in hard
+	  to find quote-mismatches.
+    \item Comments should not look like code, as that makes it more
+	  difficult to find the actual code.
+\end{itemize}
 
+We are aware that the above problems can be dealt with using
+syntax-aware editors. Only a few editors are sufficiently powerful to
+support this correctly though and we do not expect the required advanced
+modes to be widely available.  Using comments we do not need to force
+users into using a particular editor.
 
+\subsection{Wiki or HTML}
+
+JavaDoc uses HTML as markup inside the structured comments. Although
+HTML is more widely known than ---for example--- \LaTeX{} or TeXinfo,
+we think the Wiki approach using text with minimal layout conventions
+taken largely from plaintext newsnet and E-mail is more attractive.
+Wiki input is notably much easier to read in the source-file than
+HTML without syntax support from an editor.
 
 
 \subsection*{Types and modes}
 
-\subsection*{Pure Prolog}
+Types and modes are not a formal part of the Prolog language.
+Nevertheless, their role goes beyond purely documentation. The test
+system can use information about non-determinism to validate that
+deterministic calls are indeed deterministic.  Type information can
+be used to analyse coverage from the test-suite, to generate runtime
+type verification or to perform static type-analysis.  We have choosen
+to use a structured comment with formal syntax for the following
+reasons:
+
+\begin{itemize}
+    \item As a comment, they stay together with the comment block
+          of a predicate. we feel it is best to keep documentation
+	  as close as possible to the source.
+    \item As we parse them seperately, we can pick up predicate names
+	  and create a readable syntax without introducing possibly
+	  conflicting operators.
+    \item As a comment they do not introduce incompatibilities with
+          other Prolog systems.
+\end{itemize}
 
 
+\subsection*{Few requirements}
 
-
+SWI-Prolog aims at platform independency. We want to tools to rely as
+much as possible on Prolog itself. Therefore the entire infrastructure
+is written in Prolog. Output as HTML is suitable for browsing and not
+very high quality printing on virtuall every platform. Output to
+\LaTeX{} requires more infrastructure for processing, but allows for
+producing high-quality PDF documents.
 
 \printindex
 
