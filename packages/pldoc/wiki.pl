@@ -180,19 +180,46 @@ strip_ws(L, L).
 strip_leading_ws([' '|T], T) :- !.
 strip_leading_ws(T, T).
 
+
+		 /*******************************
+		 *	       TAGS		*
+		 *******************************/
+
 %%	tags(+Lines:lines, -Tags) is semidet.
 %
 %	If the first line is a @tag, read the remainder of the lines to
 %	a list of \tag(Name, Value) terms.
 
-tags([], []).
-tags([Indent-[@,NameS|L0]|Lines], [\tag(Name,Value)|Tags]) :- !,
-	 string(NameS),
-	 strip_leading_ws(L0, L),
-	 format(atom(Name), '~s', [NameS]),
-	 append(L, VT, Value),
-	 rest_tag(Lines, Indent, VT, [], RestLines),
-	 tags(RestLines, Tags).
+tags(Lines, Tags) :-
+	collect_tags(Lines, Tags0),
+	keysort(Tags0, Tags1),
+	finalize_tags(Tags1, Tags).
+
+collect_tags([], []).
+collect_tags([Indent-[@,String|L0]|Lines], [Order-tag(Tag,Value)|Tags]) :-
+	tag_name(String, Tag, Order), !,
+	strip_leading_ws(L0, L),
+	append(L, VT, Value),
+	rest_tag(Lines, Indent, VT, [], RestLines),
+	collect_tags(RestLines, Tags).
+
+
+%%	tag_name(+String, -Tag:atom, -Order:int) is semidet.
+%
+%	If String denotes a know tag-name, 
+
+tag_name(String, Tag, Order) :-
+	string(String),
+	format(atom(Name), '~s', [String]),
+	(   renamed_tag(Name, Tag),
+	    tag_order(Tag, Order)
+	->  print_message(warning, pldoc(depreciated_tag(Name, Tag)))
+	;   tag_order(Name, Order)
+	->  Tag = Name
+	;   print_message(warning, pldoc(unknown_tag(Name))),
+	    fail
+	).
+
 
 rest_tag([], _, VT, VT, []) :- !.
 rest_tag(Lines, Indent, VT, VT, Lines) :-
@@ -201,6 +228,52 @@ rest_tag(Lines, Indent, VT, VT, Lines) :-
 rest_tag([_-L|Lines0], Indent, VT0, VT, Lines) :-
 	append(['\n'|L], VT1, VT0),
 	rest_tag(Lines0, Indent, VT1, VT, Lines).
+
+
+%%	renamed_tag(+DepreciatedTag:atom, -Tag:atom) is semidet.
+%
+%	Declaration for depreciated tags.
+
+renamed_tag(exception, throws).
+
+
+%%	tag_order(+Tag:atom, -Order:int) is semidet.
+%
+%	Both declares the know tags and  their expected order. Currenrly
+%	the tags are forced into  this   order  without  warning. Future
+%	versions may issue a warning if the order is inconsistent.
+
+tag_order(param,       1).
+tag_order(throws,      2).
+tag_order(author,      3).
+tag_order(version,     4).
+tag_order(see,	       5).
+tag_order(depreciated, 6).
+tag_order(compat,      7).		% PlDoc extension
+
+
+%%	finalize_tags(+TaggedTags:list, -Tags:list) is det.
+%
+%	Creates the final tag-list.  Tags is a list of
+%	
+%		* \params(List of \param(Name, Descr))
+%		* \tag(Name, Value)
+
+finalize_tags([], []).
+finalize_tags([_-tag(param, V1)|T0], [\params([P1|PL])|Tags]) :- !,
+	param_tag(V1, P1),
+	param_tags(T0, PL, T1),
+	finalize_tags(T1, Tags).
+finalize_tags([_-tag(Tag,Value)|T0], [\tag(Tag, Value)|T]) :-
+	finalize_tags(T0, T).
+
+param_tag([PN|Descr0], \param(PN, Descr)) :-
+	strip_leading_ws(Descr0, Descr).
+
+param_tags([_-tag(param, V1)|T0], [P1|PL], T) :- !,
+	param_tag(V1, P1),
+	param_tags(T0, PL, T).
+param_tags(T, [], T).
 
 
 		 /*******************************
@@ -227,7 +300,9 @@ wiki_faces_list([H0|T0], Args, [H|T]) :-
 	wiki_faces(H0, Args, H),
 	wiki_faces_list(T0, Args, T).
 
-structure_term(\tags(Tags), tags, Tags) :- !.
+structure_term(\tags(Tags), tags, [Tags]) :- !.
+structure_term(\params(Params), params, [Params]) :- !.
+structure_term(\param(Name,Descr), param(Name), [Descr]) :- !.
 structure_term(\tag(Name,Value), tag(Name), [Value]) :- !.
 structure_term(Term, Functor, Args) :-
 	functor(Term, Functor, 1),

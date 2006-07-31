@@ -41,3 +41,9 @@ tags(Tags) -->
 
 tag(Name, Value) -->
 	html([dt(Name), dd(Value)]).
+
+params(Params) -->
+	html(dl(Params)).
+
+param(Name, Value) -->
+	html([dt(Name), dd(Value)]).
