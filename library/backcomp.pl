@@ -81,6 +81,8 @@ displayq(Stream, Term) :-
 	write_term(Stream, Term, [ignore_ops(true),quoted(true)]).
 
 
+:- module_transparent sformat/2, sformat/3.
+
 sformat(String, Format, Arguments) :-
 	format(string(String), Format, Arguments).
 sformat(String, Format) :-
