@@ -157,7 +157,7 @@ exjava-install:	exjava-compile
 		    if [ -f examples/java/$$d/$$plfile ]; then \
 			$(INSTALL_DATA) examples/java/$$d/$$plfile $(DESTDIR)$(EXJAVA)/$$d ;\
 		    fi; \
-		    $(INSTALL_DATA) examples/java/$$d/$$d.class $(DESTDIR)$(EXJAVA)/$$d ;\
+		    $(INSTALL_DATA) examples/java/$$d/$$d*.class $(DESTDIR)$(EXJAVA)/$$d ;\
 		done
 		$(INSTALL_DATA) examples/java/SemWeb/test.rdf $(DESTDIR)$(EXJAVA)/SemWeb
 

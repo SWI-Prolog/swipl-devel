@@ -1,3 +1,7 @@
+Jul 31, 2006
+
+  * CONFIG: Add support for IBM java and Linux/PPC.  Keri Harris.
+
 Jan 31, 2006
 
   * CONFIG: Windows-XP configure problem on amd64.  Keri Harris.

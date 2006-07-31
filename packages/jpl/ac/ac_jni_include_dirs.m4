@@ -54,19 +54,32 @@ do
 done
 
 case "$host_cpu" in
-	i?86)	_JNI_LIBDIRS="i386"
+	i?86)
+		_JNI_LIBDIRS="lib/i386"
 		_JNI_LIBSUBDIR="client"
 		;;
-	x86_64)	_JNI_LIBDIRS="amd64"
+	x86_64)
+		_JNI_LIBDIRS="lib/amd64"
 		_JNI_LIBSUBDIR="server"
 		;;
-	*)	_JNI_LIBDIRS=""
+	powerpc)
+		case "$host_os" in
+		linux*)
+			_JNI_LIBDIRS="bin"
+			_JNI_LIBSUBDIR="classic"
+			;;
+		*)
+			_JNI_LIBDIRS=""
+		esac
+		;;
+	*)	
+		_JNI_LIBDIRS=""
 esac
 
 for d in $_JNI_LIBDIRS; do
-	echo "Trying $_JTOPDIR/jre/lib/$d/$_JNI_LIBSUBDIR"
-	if test -d $_JTOPDIR/jre/lib/$d/$_JNI_LIBSUBDIR; then
-		JNI_CLIENT_DIRS="$JNI_CLIENT_DIRS $_JTOPDIR/jre/lib/$d/$_JNI_LIBSUBDIR $_JTOPDIR/jre/lib/$d"
+	echo "Trying $_JTOPDIR/jre/$d/$_JNI_LIBSUBDIR"
+	if test -d $_JTOPDIR/jre/$d/$_JNI_LIBSUBDIR; then
+		JNI_CLIENT_DIRS="$JNI_CLIENT_DIRS $_JTOPDIR/jre/$d/$_JNI_LIBSUBDIR $_JTOPDIR/jre/$d"
  	fi
 done
 
