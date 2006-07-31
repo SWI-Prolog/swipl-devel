@@ -19,11 +19,15 @@ Making solid progress.  remaining issues:
 
 	* Tables in lists
 	* Paragraphs in list-items
+	* Complete tag processing
 	* Testing
 
----++ Attributes (@throws, etc.)
+---++ HTML generation
 
-	* To be defined and implemented
+	* Generate structure for the file/module
+	* Generate mode declarations
+	* Generate predicate body
+	* CSS definitions
 
 ---++ Mode language
 
