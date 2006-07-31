@@ -294,14 +294,14 @@ support this correctly though and we do not expect the required advanced
 modes to be widely available.  Using comments we do not need to force
 users into using a particular editor.
 
-\subsection{Wiki or HTML}
+\subsection*{Wiki or HTML}
 
 JavaDoc uses HTML as markup inside the structured comments. Although
-HTML is more widely known than ---for example--- \LaTeX{} or TeXinfo,
-we think the Wiki approach using text with minimal layout conventions
-taken largely from plaintext newsnet and E-mail is more attractive.
-Wiki input is notably much easier to read in the source-file than
-HTML without syntax support from an editor.
+HTML is more widely known than ---for example--- \LaTeX{} or TeXinfo, we
+think the Wiki approach is sufficiently widely known today. Using text
+with minimal layout conventions taken largely from plaintext newsnet and
+E-mail, Wiki input is much easier to read in the source-file than HTML
+without syntax support from an editor.
 
 
 \subsection*{Types and modes}
