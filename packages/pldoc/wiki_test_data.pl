@@ -6,13 +6,14 @@
 
 %%	Faces with punctuation _italic_, *bold* and =code=.
 
-%%	Keep embedded underscore: current_prolog_flag.
+%%	Keep embedded underscores: current_prolog_flag.
 
 %%	Faces with multiword: _italic text_.
 
 %%	Faces with pred: *bold name/2*.
 
 %%	See also name/2 and eos//0.
+
 
 		 /*******************************
 		 *	       LISTS		*

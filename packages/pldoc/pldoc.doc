@@ -84,11 +84,96 @@ a web-server that can be used to browse the documentation.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Structured comments}
+
+Structured comments come in two flavours, the line-comment (\%) based
+one that seen most in the Prolog community and the block-comment
+(\verb$/*$\ldots\verb$*/$) based one commonly seen in the Java and
+C domain.  As we cannot determine the argument-names, type and modes
+from following (predicate) code itself, we must supply this in the
+comment.\footnote{See \secref{motivation:modes}.}.  The overall
+structure of the comment therefore is:
+
+\begin{shortlist}
+    \item Semi-formal type- and mode-description
+    \item Wiki-style documentation body
+    \item JavaDoc style keywords (\chr{@}keyword value)
+\end{shortlist}
+
+The Semi-formal type and mode declarations are ended by either a blank
+line or, using line-comments, by the first line that starts with a
+single \%.
+
+The JavaDoc style keyword list starts at the first line starting
+with @<word>.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Type and mode declarations}
+
+The type and mode declaration header consists of one or more Prolog
+terms.  Each term describes a mode of the predicate.  The syntax is
+informally described below:
+
+\begin{center}
+\begin{tabular}{lrl}
+\hline
+<modedef>	\isa <head>['//'] 'is' <determinism> \\
+		\ora <head>['//'] \\
+<determinism>	\isa 'det' \\
+		\ora 'semidet' \\
+		\ora 'nondet' \\
+<head>		\isa <functor>'('<argspec> {',' <argspec>}')' \\
+		\isa <functor> \\
+<argspec>	\isa [<instantiation>]<argname>[':'<type>] \\
+<instantiation> \isa '+' $\mid$ '-' $\mid$ '?' $\mid$ '@' $\mid$ '!' \\
+<type>		\isa <term> \\
+\hline
+\end{tabular}
+\end{center}
+
+Instantiation patters are:
+
+\begin{description}
+    \item [+] 
+Argument must be fully instantiated to a term that satisfies the
+type.
+    \item [-]
+Argument must be unbound.
+    \item [?]
+Argument must be bound to a \emph{partial term} of the indicated
+type.  Note that a variable is a partial term for any type.
+    \item [@]
+Argument is not further instantiated.
+    \item [!]
+Argument contains a mutable structure that may be modified using
+setarg/3 or nb_setarg/3.
+\end{description}
+
+In the current version types are represented by an arbitrary term
+without formal semantics. In future versions we may addopt a formal
+type system that allows for runtime verification and static type
+analysis [Ciao assertion language, O'Keefe and Mycroft, Mercury].
+
+\subsection*{Examples}
+
+\begin{verbatim}
+%%	length(+List:list, -Length:int) is det.
+%%	length(?List:list, -Length:int) is nondet.
+%%	length(?List:list, +Length:int) is det.
+%
+%	True if List is a list of length Length.
+%	
+%	@iso
+\end{verbatim}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Wiki notation}
 
 Structured comments that provide part of the documentation are written
-in Wiki notation, using a subset from the conventions of
-\url[TWiki]{http://www.twiki.org}, with some Prolog specific additions.
+in Wiki notation, based on \url[TWiki]{http://www.twiki.org}, with some
+Prolog specific additions.
 
 \subsection{Structuring conventions}
 
@@ -220,6 +305,7 @@ HTML without syntax support from an editor.
 
 
 \subsection*{Types and modes}
+\label{sec:motivation:modes}
 
 Types and modes are not a formal part of the Prolog language.
 Nevertheless, their role goes beyond purely documentation. The test
