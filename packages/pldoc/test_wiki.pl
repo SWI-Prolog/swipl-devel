@@ -35,3 +35,9 @@ test_wiki(_, _).
 write_html(Doc) :-
 	phrase(html(Doc), Tokens),
 	print_html(Tokens).
+
+tags(Tags) -->
+	html(dl(Tags)).
+
+tag(Name, Value) -->
+	html([dt(Name), dd(Value)]).

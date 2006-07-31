@@ -100,9 +100,9 @@ structure of the comment therefore is:
     \item JavaDoc style keywords (\chr{@}keyword value)
 \end{shortlist}
 
-The Semi-formal type and mode declarations are ended by either a blank
-line or, using line-comments, by the first line that starts with a
-single \%.
+Using the \verb$/**..*/$ style comment, the type and mode declarations
+are ended by a blank line. Using \chr{%} line-comments, the declaration
+is ended by the first line that starts with a single \%.
 
 The JavaDoc style keyword list starts at the first line starting
 with @<word>.
@@ -151,7 +151,7 @@ setarg/3 or nb_setarg/3.
 \end{description}
 
 In the current version types are represented by an arbitrary term
-without formal semantics. In future versions we may addopt a formal
+without formal semantics. In future versions we may adopt a formal
 type system that allows for runtime verification and static type
 analysis [Ciao assertion language, O'Keefe and Mycroft, Mercury].
 
@@ -164,7 +164,7 @@ analysis [Ciao assertion language, O'Keefe and Mycroft, Mercury].
 %
 %	True if List is a list of length Length.
 %	
-%	@iso
+%	@compat iso
 \end{verbatim}
 
 
@@ -208,8 +208,8 @@ character.  The last cell must be ended with \chr{|}.  Multiple lines
 that parse into a table-row together for a table.  Example:
 
 \begin{verbatim}
-	| Author    | Jan Wielemaker |
-	| Copyright | GPL            |
+	| Author  | Jan Wielemaker |
+	| Copying | GPL            |
 \end{verbatim}
 
     \item [Code (verbatim)]

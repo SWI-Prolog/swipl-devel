@@ -19,7 +19,6 @@ Making solid progress.  remaining issues:
 
 	* Tables in lists
 	* Paragraphs in list-items
-	* Leading % and * removal: only at the start of the line
 	* Testing
 
 ---++ Attributes (@throws, etc.)
@@ -28,14 +27,9 @@ Making solid progress.  remaining issues:
 
 ---++ Mode language
 
-Now uses Prolog parser. Should we change  this to define our own syntax?
-More flexible, but a lot of work and   Prolog syntax is clear. Must deal
-with multi-line types/modes.  To disambiguate:
+Uses Prolog parser using pldoc_modes module for the operators.
 
 	* Multiple declarations must be separated by '.'
-	* Header ends at
-		- First non-%% line
-		- First blank line
 
 	
 

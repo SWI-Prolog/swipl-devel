@@ -37,6 +37,11 @@
 :- use_module(library(lists)).
 :- use_module(library(memfile)).
 
+:- op(700, fx, +).			% allow +Arg
+:- op(700, fx, -).			% allow -Arg
+:- op(700, fx, ?).			% allow ?Arg
+:- op(700, fx, @).			% allow @Arg
+:- op(700, fx, !).			% allow !Arg
 :- op(200, xf, //).			% allow for Head// is det.
 
 		 /*******************************

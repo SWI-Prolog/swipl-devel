@@ -52,7 +52,7 @@ wiki_lines_to_dom(Lines, Args, HTML) :-
 	wiki_structure(Tokens, Pars),
 	wiki_faces(Pars, Args, HTML).
 
-%%	wiki_structure(+Lines:lines, Pars:list(par)) is det
+%%	wiki_structure(+Lines:lines, -Pars:list(par)) is det
 %
 %	Get the structure in terms of  paragraphs, lists and tables from
 %	the  lines.  This  processing  uses  a  mixture  of  layout  and
@@ -61,6 +61,8 @@ wiki_lines_to_dom(Lines, Args, HTML) :-
 wiki_structure([], []) :- !.
 wiki_structure([_-[]|T], Pars) :- !,	% empty lines
 	wiki_structure(T, Pars).
+wiki_structure(Lines, [\tags(Tags)]) :-
+	tags(Lines, Tags), !.
 wiki_structure(Lines, [P1|PL]) :-
 	take_par(Lines, P1, RestLines),
 	wiki_structure(RestLines, PL).
@@ -160,11 +162,6 @@ rest_par([_-L1|LT], ['\n'|Par], Rest) :-
 	rest_par(LT, PT, Rest).
 
 
-
-
-
-
-
 %%	strip_ws(+Tokens, -Stripped)
 %
 %	Strip leading and trailing whitespace from a token list.  Note
@@ -175,6 +172,40 @@ strip_ws([' '|T0], T) :- !,
 strip_ws(L0, L) :-
 	append(L, [' '], L0), !.
 strip_ws(L, L).
+
+
+%%	strip_leading_ws(+Tokens, -Stripped) is det.
+%
+
+strip_leading_ws([' '|T], T) :- !.
+strip_leading_ws(T, T).
+
+%%	tags(+Lines:lines, -Tags) is semidet.
+%
+%	If the first line is a @tag, read the remainder of the lines to
+%	a list of \tag(Name, Value) terms.
+
+tags([], []).
+tags([Indent-[@,NameS|L0]|Lines], [\tag(Name,Value)|Tags]) :- !,
+	 string(NameS),
+	 strip_leading_ws(L0, L),
+	 format(atom(Name), '~s', [NameS]),
+	 append(L, VT, Value),
+	 rest_tag(Lines, Indent, VT, [], RestLines),
+	 tags(RestLines, Tags).
+
+rest_tag([], _, VT, VT, []) :- !.
+rest_tag(Lines, Indent, VT, VT, Lines) :-
+	Lines = [Indent-[@,NameS|_]|_],
+	string(NameS), !.
+rest_tag([_-L|Lines0], Indent, VT0, VT, Lines) :-
+	append(['\n'|L], VT1, VT0),
+	rest_tag(Lines0, Indent, VT1, VT, Lines).
+
+
+		 /*******************************
+		 *	       FACES		*
+		 *******************************/
 
 %%	wiki_faces(+Structure, +ArgNames, -HTML)
 %
@@ -196,9 +227,11 @@ wiki_faces_list([H0|T0], Args, [H|T]) :-
 	wiki_faces(H0, Args, H),
 	wiki_faces_list(T0, Args, T).
 
+structure_term(\tags(Tags), tags, Tags) :- !.
+structure_term(\tag(Name,Value), tag(Name), [Value]) :- !.
 structure_term(Term, Functor, Args) :-
 	functor(Term, Functor, 1),
-	structure_tag(Functor),
+	structure_tag(Functor), !,
 	Term =.. [Functor|Args].
 
 structure_tag(p).
@@ -227,7 +260,7 @@ wiki_faces([H|T], ArgNames) -->
 	wiki_faces(T, ArgNames).
 
 
-wiki_face(i(Word), ArgNames) -->
+wiki_face(var(Word), ArgNames) -->
 	[Word],
 	{ string(Word),			% punctuation and blanks are atoms
 	  member(Arg, ArgNames),
@@ -357,6 +390,7 @@ split_lines(Prefixes, [Indent-L1|Ls]) -->
 	white_prefix(Indent0, Indent),
 	take_line(L1),
 	split_lines(Prefixes, Ls).
+
 
 %%	take_prefix(+Prefixes:list(codes), +Indent0:int, -Indent:int)// is det.
 %
