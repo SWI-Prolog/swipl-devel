@@ -18,6 +18,7 @@ Have been realised in CVS version as of Jul 30, 2006
 Making solid progress.  remaining issues:
 
 	* Tables in lists
+	* Paragraphs in list-items
 	* Code/verbatim environments
 	* Testing
 

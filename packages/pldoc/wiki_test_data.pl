@@ -6,6 +6,8 @@
 
 %%	Faces with punctuation _italic_, *bold* and =code=.
 
+%%	Keep embedded underscore: current_prolog_flag.
+
 %%	Faces with multiword: _italic text_.
 
 %%	Faces with pred: *bold name/2*.
@@ -47,6 +49,22 @@
 
 %%	| First Name | Jan |
 %	| Last Name | Wielemaker |
+
+
+		 /*******************************
+		 *	      VERBATIM		*
+		 *******************************/
+
+%%	Verbatim test
+%
+%	==
+%	main :-
+%		current_prolog_flag(argv, AllArgv),
+%		append(_, [--|Argv], AllArgv),
+%		main(Argv).
+%	==
+
+
 
 
 		 /*******************************

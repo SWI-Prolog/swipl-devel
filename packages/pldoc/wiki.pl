@@ -71,10 +71,11 @@ take_par(Lines, List, Rest) :-
 	List =.. [Type, LI].
 take_par([N-['|'|RL1]|LT], table([tr(R0)|RL]), Rest) :-
 	phrase(row(R0), RL1),
-	rest_table(LT, N, RL, Rest).
-take_par([_-L1|LT], p(Par), Rest) :-
+	rest_table(LT, N, RL, Rest), !.
+take_par([_-L1|LT], p(Par), Rest) :- !,
 	append(L1, PT, Par),
 	rest_par(LT, PT, Rest).
+take_par([Verb|Lines], Verb, Lines).
 
 %%	list_item(+Lines, ?Type, ?Indent, -LI0, -LIT, -RestLines) is det.
 %
@@ -158,6 +159,12 @@ rest_par([_-L1|LT], ['\n'|Par], Rest) :-
 	append(L1, PT, Par),
 	rest_par(LT, PT, Rest).
 
+
+
+
+
+
+
 %%	strip_ws(+Tokens, -Stripped)
 %
 %	Strip leading and trailing whitespace from a token list.  Note
@@ -178,6 +185,8 @@ wiki_faces(DOM0, ArgNames, DOM) :-
 	structure_term(DOM0, Functor, Content0), !,
 	wiki_faces_list(Content0, ArgNames, Content),
 	structure_term(DOM, Functor, Content).
+wiki_faces(Verb, _, Verb) :-
+	verbatim_term(Verb), !.
 wiki_faces(Content0, ArgNames, Content) :-
 	assertion(is_list(Content0)),
 	phrase(wiki_faces(Content, ArgNames), Content0).
@@ -202,6 +211,12 @@ structure_tag(dd).
 structure_tag(table).
 structure_tag(tr).
 structure_tag(td).
+
+%%	verbatim_term(?Term) is det
+%
+%	True if Term must be passes verbatim.
+
+verbatim_term(pre(_)).
 
 %%	wiki_face(-WithFaces, +ArgNames)// is det.
 
@@ -248,6 +263,9 @@ wiki_face(FT, ArgNames) -->
 %	Convert Indent-Codes into Indent-Tokens
 
 tokenize_lines([], []).
+tokenize_lines(Lines, [Pre|T]) :-
+	verbatim(Lines, Pre, RestLines), !,
+	tokenize_lines(RestLines, T).
 tokenize_lines([I-H0|T0], [I-H|T]) :-
 	phrase(tokens(H), H0),
 	tokenize_lines(T0, T).
@@ -277,10 +295,45 @@ token(T) -->
 	).
 
 word([C0|T]) -->
-	[C0],  { code_type(C0, alnum) }, !,
+	[C0],  { code_type(C0, alnum); C0 == 0'_ }, !,	%'
 	word(T).
 word([]) -->
 	[].
+
+
+%%	verbatim(+Lines, -Pre, -RestLines) is det.
+%
+%	Extract a verbatim environment.  The  returned   Pre  is  of the
+%	format  pre(String).  The  indentation  of  the  leading  ==  is
+%	substracted from the indentation of the verbatim lines.
+%
+%	Verbatim environment is delimited as
+%	
+%	==
+%		...,
+%		verbatim(Lines, Pre, Rest)
+%		...,
+%	==
+
+verbatim([Indent-"=="|Lines], pre(Pre), RestLines) :-
+	verbatim_body(Lines, Indent, [10|PreCodes], [],
+		      [Indent-"=="|RestLines]), !,
+	string_to_list(Pre, PreCodes).
+
+verbatim_body(Lines, _, PreT, PreT, Lines).
+verbatim_body([I-L|Lines], Indent, [10|Pre], PreT, RestLines) :-
+	PreI is Indent - I,
+	pre_indent(PreI, Pre, PreT0),
+	verbatim_line(L, PreT0, PreT1),
+	verbatim_body(Lines, Indent, PreT1, PreT, RestLines).
+
+pre_indent(Indent, Pre, PreT) :-
+	Tabs is Indent // 8,
+	Spaces is Indent mod 8,
+	format(codes(Pre, PreT), '~*c~*c', [Tabs, 9, Spaces, 32]).
+
+verbatim_line(Line, Pre, PreT) :-
+	append(Line, PreT, Pre).
 
 
 		 /*******************************
@@ -332,17 +385,32 @@ update_linepos(_, I0, I) :-
 %%	take_line(-Line:codes)// is det.
 %
 %	Take  a  line  from  the  input.   Line  does  not  include  the
-%	terminating \r or \n character(s).
+%	terminating \r or \n character(s), nor trailing whitespace.
 
 take_line([]) -->
 	"\r\n", !.			% DOS file
 take_line([]) -->
 	"\n", !.			% Unix file
+take_line(Line) -->
+	[H], { code_type(H, white) }, !,
+	take_white(White, WT),
+	(   peek_nl
+	->  { Line = [] }
+	;   { Line = [H|White] },
+	    take_line(WT)
+	).
 take_line([H|T]) -->
 	[H], !,
 	take_line(T).
 take_line([]) -->			% end of string
 	[].
+
+take_white([H|T0], T) -->
+	[H],  { code_type(H, white) }, !,
+	take_white(T0, T).
+take_white(T, T) -->
+	[].
+
 
 
 		 /*******************************
@@ -378,6 +446,15 @@ ws -->
 	ws.
 ws -->
 	[].
+
+%%	peek_nl//
+%
+%	True if we are at the end of a line
+
+peek_nl(L,L) :-
+	L = [H|_],
+	( H == 0'\n ; H == 0'\r ), !.
+
 
 %%	string(-Tokens:list)// is nondet.
 %

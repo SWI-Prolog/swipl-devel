@@ -126,6 +126,19 @@ that parse into a table-row together for a table.  Example:
 	| Author    | Jan Wielemaker |
 	| Copyright | GPL            |
 \end{verbatim}
+
+    \item [Code (verbatim)]
+Verbatim is embedded between lines containing only \verb$==$, as shown
+in the example below.  The indentation of the \verb$==$ must match and
+the indentation of the verbatim text is reduced by the indentation of
+the \verb$==$ marks.
+
+\begin{verbatim}
+	==
+	small(X) :-
+		X < 5.
+	==
+\end{verbatim}
 \end{description}
 
 \subsection{Text markup: fonts and links}
