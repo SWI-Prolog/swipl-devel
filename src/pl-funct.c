@@ -249,7 +249,7 @@ cleanupFunctors(void)
 
 #if TEST
 checkFunctors()
-{ register FunctorDef f;
+{ FunctorDef f;
   int n;
 
   for( n=0; n < functor_buckets; n++ )

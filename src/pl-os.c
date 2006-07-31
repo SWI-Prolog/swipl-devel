@@ -2289,7 +2289,7 @@ growEnviron(char **e, int amount)
   }
 
   if ( size < 0 )
-  { register char **env, **e1, **e2;
+  { char **env, **e1, **e2;
 
     for(e1=e, filled=0; *e1; e1++, filled++)
       ;
@@ -2305,7 +2305,7 @@ growEnviron(char **e, int amount)
 
   filled += amount;
   if ( filled + 1 > size )
-  { register char **env, **e1, **e2;
+  { char **env, **e1, **e2;
   
     size += 32;
     env = (char **)realloc(e, size * sizeof(char *));
@@ -2327,7 +2327,7 @@ initEnviron(void)
 
 
 static char *
-matchName(register char *e, register char *name)
+matchName(const char *e, const char *name)
 { while( *name && *e == *name )
     e++, name++;
 

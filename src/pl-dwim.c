@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -25,14 +25,6 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-forwards atom_t	dwimMatch(char *, char *);
-forwards bool	oneTypo(char *, char *);
-forwards bool	twoTransposed(char *, char *);
-forwards bool	oneInserted(char *, char *);
-forwards bool	differentSeparated(char *, char *);
-forwards char *	subWord(char *, char *);
-forwards bool	subwordsTransposed(char *, char *);
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Strings are supposed to be meant identical iff one of the  following  is
 the case:
@@ -45,42 +37,15 @@ the case:
   - Two `Sub-words' have been transposed	(exists_file == file_exists)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static atom_t
-dwimMatch(char *str1, char *str2)
-{ int cl=0, l1, l2;
-  register char *s1 = str1;
-  register char *s2 = str2;
-
-  while(*s1 && *s1 == *s2)			/* delete common part */
-    s1++, s2++, cl++;
-  l2 = (int) strlen(s2);
-  l1 = (int) strlen(s1);
-
-  if (abs(l1-l2) > 5)				/* speed up a bit */
-    fail;
-  
-  if ( l1 == 0 && l2 == 0 )			return ATOM_equal;
-  if ( cl + l1 < 3 || cl + l2 < 3 )
-    fail;
-  if ( l1 == l2 && oneTypo(s1, s2) )		return ATOM_mismatched_char;
-  if ( l1 == l2 && twoTransposed(s1, s2) )	return ATOM_transposed_char;
-  if ( (l2 == l1 + 1 && oneInserted(s1, s2)) ||
-       (l1 == l2 + 1 && oneInserted(s2, s1)) )	return ATOM_inserted_char;
-  if ( differentSeparated(str1, str2) )		return ATOM_separated;
-  if ( subwordsTransposed(str1, str2) )		return ATOM_transposed_word;
-
-  fail;
-}
-
 static bool
-oneTypo(char *s1, char *s2)
+oneTypo(const char *s1, const char *s2)
 { if (s1[1] == EOS || streq(&s1[1], &s2[1]) )
     succeed;
   fail;
 }
 
 static bool
-twoTransposed(register char *s1, register char *s2)
+twoTransposed(const char *s1, const char *s2)
 { if (s1[1] != EOS && s1[0] == s2[1] && s1[1] == s2[0] &&
        (s1[2] == EOS || streq(&s1[2], &s2[2])))
     succeed;
@@ -88,15 +53,15 @@ twoTransposed(register char *s1, register char *s2)
 }
 
 static bool
-oneInserted(register char *s1, register char *s2)
+oneInserted(const char *s1, const char *s2)
 { if (streq(s1, &s2[1]) )
     succeed;
   fail;
 }
 
 static bool
-differentSeparated(register char *s1, register char *s2)
-{ register char c1, c2;
+differentSeparated(const char *s1, const char *s2)
+{ int c1, c2;
 
   if ( *s1 != *s2 || *s1 == EOS )
     fail;
@@ -121,8 +86,8 @@ differentSeparated(register char *s1, register char *s2)
   fail;
 }
 
-static char *
-subWord(register char *s, register char *store)
+static const char *
+subWord(const char *s, char *store)
 { *store++ = makeLower(*s);
   s++;
 
@@ -144,7 +109,7 @@ subWord(register char *s, register char *store)
 }    
 
 static bool
-subwordsTransposed(char *s1, char *s2)
+subwordsTransposed(const char *s1, const char *s2)
 { char sw1a[1024], sw1b[1024];
   char sw2a[1024], sw2b[1024];
 
@@ -164,6 +129,35 @@ subwordsTransposed(char *s1, char *s2)
     succeed;
   fail;
 }
+
+
+static atom_t
+dwimMatch(const char *str1, const char *str2)
+{ int cl=0, l1, l2;
+  const char *s1 = str1;
+  const char *s2 = str2;
+
+  while(*s1 && *s1 == *s2)			/* delete common part */
+    s1++, s2++, cl++;
+  l2 = (int) strlen(s2);
+  l1 = (int) strlen(s1);
+
+  if (abs(l1-l2) > 5)				/* speed up a bit */
+    fail;
+  
+  if ( l1 == 0 && l2 == 0 )			return ATOM_equal;
+  if ( cl + l1 < 3 || cl + l2 < 3 )
+    fail;
+  if ( l1 == l2 && oneTypo(s1, s2) )		return ATOM_mismatched_char;
+  if ( l1 == l2 && twoTransposed(s1, s2) )	return ATOM_transposed_char;
+  if ( (l2 == l1 + 1 && oneInserted(s1, s2)) ||
+       (l1 == l2 + 1 && oneInserted(s2, s1)) )	return ATOM_inserted_char;
+  if ( differentSeparated(str1, str2) )		return ATOM_separated;
+  if ( subwordsTransposed(str1, str2) )		return ATOM_transposed_word;
+
+  fail;
+}
+
 
 		/********************************
 		*       PROLOG CONNECTION       *

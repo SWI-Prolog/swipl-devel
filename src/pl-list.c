@@ -176,7 +176,7 @@ nat_sort(list data, int remove_dups, int compare_keys)
   list stack[64];			/* enough for biggest machine */
   list *sp = stack;
   int runs = 0;				/* total number of runs processed */
-  register list p, q, r, s;
+  list p, q, r, s;
   struct List_Record header;
   int k;
 

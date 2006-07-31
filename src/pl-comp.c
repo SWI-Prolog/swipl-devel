@@ -657,9 +657,9 @@ balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
 
 static void
 orVars(VarTable valt1, VarTable valt2)
-{ register int *p1 = &valt1->entry[0];
-  register int *p2 = &valt2->entry[0];
-  register int n;
+{ int *p1 = &valt1->entry[0];
+  int *p2 = &valt2->entry[0];
+  int n;
 
   for( n = 0; n < valt1->isize; n++ )
     *p1++ |= *p2++;
@@ -2685,7 +2685,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_MPZ:
 	  		    *ARGP++ = globalIndirectFromCode(&PC);
 			    continue;
-      { register int index;      
+      { int index;      
 
 	case B_ARGVAR:
 	case B_ARGFIRSTVAR:
@@ -2920,7 +2920,7 @@ build_term(functor_t f, decompileInfo *di ARG_LD)
 
   ARGP--;
   for( ; arity-- > 0; a--, ARGP-- )
-  { register int var;
+  { int var;
 
     if ( (var = isVarRef(*ARGP)) >= 0 )
       unifyVar(a, di->variables, var PASS_LD);

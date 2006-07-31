@@ -338,10 +338,6 @@ A common basis for C keywords.
 #define inline
 #endif
 
-#if defined(__GNUC__) && !defined(register)
-#define register
-#endif
-
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
 #define _DEBUG 1
 #endif

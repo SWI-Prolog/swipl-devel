@@ -967,7 +967,7 @@ typedef struct match
 
 
 static bool
-allAlpha(register char *s)
+allAlpha(const char *s)
 { for( ; *s; s++)
   { if ( !isAlpha(*s) )
       fail;

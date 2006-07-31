@@ -100,8 +100,8 @@ static unsigned long mask_mask[] =
 
 
 int
-cardinalityPattern(register unsigned long pattern)
-{ register int result = 0;
+cardinalityPattern(unsigned long pattern)
+{ int result = 0;
 
   for(; pattern; pattern >>= 1)
     if (pattern & 0x1)

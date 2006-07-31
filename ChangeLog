@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#189: Thread id in Linux/PPC (and possibly others).
+    Keri Harris.
+
   * FIXED: Bug#188: missing module_transparent for sformat/2,3.  
     Holger Kanwischer.
 
