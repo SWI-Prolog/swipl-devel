@@ -41,7 +41,9 @@
 
 user:portray(X) :-
 	codes(X),
-	format('~s', [X]).
+	length(X, Len),
+	Len > 2,
+	format('"~s"', [X]).
 
 codes([]).
 codes([H|T]) :-

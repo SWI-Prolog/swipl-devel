@@ -1,10 +1,11 @@
 :- use_module(pldoc).
 :- use_module(wiki).
+:- use_module(modes).
 :- use_module(library('http/html_write')).
 
 process_wiki(String, DOM) :-
-	indented_lines(String, "%", Lines),
-	pldoc:process_modes(Lines, Lines1, _Modes, Args),
+	indented_lines(String, ["%"], Lines),
+	process_modes(Lines, _Modes, Args, Lines1),
 	wiki_lines_to_dom(Lines1, Args, DOM0),
 	strip_leading_par(DOM0, DOM).
 

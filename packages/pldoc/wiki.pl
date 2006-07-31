@@ -340,38 +340,49 @@ verbatim_line(Line, Pre, PreT) :-
 		 *	  CREATE LINES		*
 		 *******************************/
 
-%%	indented_lines(+Text:string, +Prefix:codes, -Lines:list) is det.
+%%	indented_lines(+Text:string, +Prefixes:list(codes), -Lines:list) is det.
 %
 %	Extract a list of lines  without   leading  blanks or characters
 %	from Prefix from Text. Each line   is a term Indent-Codes, where
 %	Indent specifies the line_position of the real text of the line.
 
-indented_lines(Comment, Prefix, Lines) :-
+indented_lines(Comment, Prefixes, Lines) :-
 	string_to_list(Comment, List),
-	phrase(split_lines(Prefix, Lines), List).
+	phrase(split_lines(Prefixes, Lines), List).
 
 split_lines(_, []) -->
 	eos, !.
-split_lines(Prefix, [Indent-L1|Ls]) -->
-	take_prefix(Prefix, 0, Indent),
+split_lines(Prefixes, [Indent-L1|Ls]) -->
+	take_prefix(Prefixes, 0, Indent0),
+	white_prefix(Indent0, Indent),
 	take_line(L1),
-	split_lines(Prefix, Ls).
+	split_lines(Prefixes, Ls).
 
-%%	take_prefix(+Prefix:codes, +Indent0:int, -Indent:int)// is det.
+%%	take_prefix(+Prefixes:list(codes), +Indent0:int, -Indent:int)// is det.
 %
 %	Get the leading characters  from  the   input  and  compute  the
 %	line-position at the end of the leading characters.
 
-take_prefix(Prefix, I0, I) -->
-	[C],
-	{   (   memberchk(C, Prefix)
-	    ;   code_type(C, white)
-	    ), !,
-	    update_linepos(C, I0, I1)
-	},
-	take_prefix(Prefix, I1, I).
+take_prefix(Prefixes, I0, I) -->
+	{ member(Prefix, Prefixes) },
+	string(Prefix), !,
+	{ string_update_linepos(Prefix, I0, I) }.
 take_prefix(_, I, I) -->
 	[].
+
+white_prefix(I0, I) -->
+	[C],
+	{  code_type(C, white), !,
+	   update_linepos(C, I0, I1)
+	},
+	white_prefix(I1, I).
+white_prefix(I, I) -->
+	[].
+
+string_update_linepos([], I, I).
+string_update_linepos([H|T], I0, I) :-
+	update_linepos(H, I0, I1),
+	string_update_linepos(T, I1, I).
 
 update_linepos(0'\t, I0, I) :- !,
 	I is (I0\/7)+1.

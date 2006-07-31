@@ -2,39 +2,45 @@
 		 *	 ELEMENTARY FACES	*
 		 *******************************/
 
-%%	Faces _italic_ *bold* =code=
+%%	faces
+%	_italic_ *bold* =code=
 
-%%	Faces with punctuation _italic_, *bold* and =code=.
+%%	faces_with_punctuation
+%	_italic_, *bold* and =code=.
 
-%%	Keep embedded underscores: current_prolog_flag.
+%%	embedded_underscores
+%	See also current_prolog_flag/2.
 
-%%	Faces with multiword: _italic text_.
+%%	faces_with_multiword
+%	_italic text_.
 
-%%	Faces with pred: *bold name/2*.
+%%	faces_with_pred
+%	*bold name/2*.
 
-%%	See also name/2 and eos//0.
+%%	dcg_rule
+%	See also name/2 and eos//0.
 
 
 		 /*******************************
 		 *	       LISTS		*
 		 *******************************/
 
-%%	A simple unordered list
+%%	list_unordered
 %
 %		* Item 1
 %		* Item 2
 
-%%	A simple ordered list
+%%	list_ordered
 %
 %		1. Item 1
 %		2. Item 2
 
-%%	A description
+%%	list_description
 %
 %		$ a : argument is an atom
 %		$ w : convert argument using write
 
-%%	A nested list
+%%	nested_list
 %
 %		* Item 1
 %			* sub item 1
@@ -48,7 +54,8 @@
 		 *	       TABLES		*
 		 *******************************/
 
-%%	| First Name | Jan |
+%%	table
+%	| First Name | Jan |
 %	| Last Name | Wielemaker |
 
 
@@ -56,7 +63,7 @@
 		 *	      VERBATIM		*
 		 *******************************/
 
-%%	Verbatim test
+%%	verbatim
 %
 %	==
 %	main :-

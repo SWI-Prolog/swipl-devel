@@ -30,9 +30,10 @@
 */
 
 :- module(pldoc,
-	  [ mode/2			% ?:Head, -Det
+	  [ 
 	  ]).
 :- use_module(wiki).
+:- use_module(modes).
 :- use_module(library(debug)).
 
 %:- prolog_set_comment_hook([]).
@@ -84,66 +85,9 @@ process_comment0(_).
 %%	process_structured_comment(+Lines:list(int-line)) is det.
 
 process_structured_comment(Lines) :-
-	process_modes(Lines, RestLines, ModeDecls, VarNames),
+	process_modes(Lines, ModeDecls, VarNames, RestLines),
 	assert_modes(ModeDecls),
 	wiki_lines_to_dom(RestLines, VarNames, _HTML).
-
-
-		 /*******************************
-		 *	       MODES		*
-		 *******************************/
-
-%	TBD: Extensive tests on style and completeness
-
-:- dynamic
-	mode/3.				% ?Mode, ?Module, ?Det
-
-%%	process_modes(+Lines:lines, -RestLines:lines, -Modes:list, -Args:list(atom)) is det
-%
-%	Process the formal header lines  (upto   the  first blank line),
-%	returning the remaining lines and  the   names  of the arguments
-%	used in the various header lines.
-
-process_modes(Lines, RestLines, ModeDecls, Vars) :-
-	modes(Lines, ModeDecls, RestLines, Vars0, []),
-	sort(Vars0, Vars).
-	
-modes([], [], [], VN, VN).
-modes([_Indent-""|Lines], [], Lines, VN, VN) :- !.		% blank line
-modes([_Indent-H|T], [ModeDecl|RestModes], Lines, VN0, VN) :-
-	catch(atom_to_term(H, ModeDecl, VarNames), _, fail), !,
-	bind_varnames(VarNames, VN0, VN1),
-	modes(T, RestModes, Lines, VN1, VN).
-modes(Lines, [], Lines, VN, VN).
-			
-bind_varnames([], VN, VN).
-bind_varnames([Name=Var|T], [Name|VN0], VN) :-
-	Name = Var,
-	bind_varnames(T, VN0, VN).
-
-assert_modes(Modes) :-
-	maplist(retract_old_mode, Modes),
-	maplist(assert_mode, Modes).
-
-retract_old_mode(Spec is _) :- !,
-	retract_old_mode(Spec).
-retract_old_mode(Spec) :-
-	functor(Spec, Name, Arity),
-	functor(Gen, Name, Arity),
-	prolog_load_context(module, M),
-	retractall(mode(Gen, M, _)).
-
-assert_mode(Spec is Det) :- !,
-	prolog_load_context(module, M),
-	assert(mode(Spec, M, Det)).
-assert_mode(Spec) :-
-	assert_mode(Spec is unknown).
-
-mode(Module:Head, Det) :- !,
-	mode(Head, Module, Det).
-mode(Spec, Det) :-
-	strip_module(Spec, Module, Head),
-	mode(Head, Module, Det).
 
 
 		 /*******************************
