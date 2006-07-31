@@ -1,6 +1,7 @@
 :- use_module(pldoc).
 :- use_module(wiki).
 :- use_module(modes).
+:- use_module(html).
 :- use_module(library('http/html_write')).
 
 process_wiki(String, DOM) :-
@@ -27,23 +28,7 @@ test_wiki(P, C) :-
 	process_wiki(C, Doc),
 	format('~`#t From line ~D ~`#t ~72|~n', [LNo]),
 	(   true
-	->  write_html(Doc)
+	->  doc_write_html(current_output, Doc)
 	;   pp(Doc)
 	), nl, nl.
 test_wiki(_, _).
-
-write_html(Doc) :-
-	phrase(html(Doc), Tokens),
-	print_html(Tokens).
-
-tags(Tags) -->
-	html(dl(Tags)).
-
-tag(Name, Value) -->
-	html([dt(Name), dd(Value)]).
-
-params(Params) -->
-	html(dl(Params)).
-
-param(Name, Value) -->
-	html([dt(Name), dd(Value)]).
