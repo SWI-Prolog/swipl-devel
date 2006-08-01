@@ -135,23 +135,21 @@ informally described below:
 
 Instantiation patters are:
 
-\begin{description}
-    \item [+] 
-Argument must be fully instantiated to a term that satisfies the
-type.
-    \item [-]
-Argument must be unbound.
-    \item [?]
-Argument must be bound to a \emph{partial term} of the indicated
-type.  Note that a variable is a partial term for any type.
-    \item [:]
-Argument is a meta-argument.  Implies \chr{+}.
-    \item [@]
-Argument is not further instantiated.
-    \item [!]
-Argument contains a mutable structure that may be modified using
-setarg/3 or nb_setarg/3.
-\end{description}
+\begin{center}
+\begin{tabular}{lp{0.7\linewidth}}
+\hline
++ &	Argument must be fully instantiated to a term that satisfies the
+	type. \\
+- &	Argument must be unbound. \\
+? &	Argument must be bound to a \emph{partial term} of the indicated
+	type.  Note that a variable is a partial term for any type. \\
+: &	Argument is a meta-argument.  Implies \chr{+}. \\
+@ &	Argument is not further instantiated. \\
+! &	Argument contains a mutable structure that may be modified using
+	setarg/3 or nb_setarg/3. \\
+\hline
+\end{tabular}
+\end{center}
 
 In the current version types are represented by an arbitrary term
 without formal semantics. In future versions we may adopt a formal
@@ -210,6 +208,12 @@ to use in new code.
     \definition{\chr{@}compat}
 When implementing libraries or externally defined interfaces this tag
 describes to which standard the interface is compatible.
+
+    \definition{\chr{@}copyright}
+Copyright notice.
+
+    \definition{\chr{@}license}
+License conditions that apply to the source.
 
     \definition{\chr{@}bug}
 Known problems with the interface or implementation.

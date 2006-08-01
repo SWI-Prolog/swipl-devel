@@ -20,20 +20,13 @@ Making solid progress.  remaining issues:
 	* Tables in lists
 	* Paragraphs in list-items
 	* Complete tag processing
-	* Testing
+		- Combining multiple tags
 
 ---++ HTML generation
 
 	* Generate structure for the file/module
-	* Generate mode declarations
-	* Generate predicate body
-	* CSS definitions
 
----++ Mode language
+---++ Summary extraction
 
-Uses Prolog parser using pldoc_modes module for the operators.
-
-	* Multiple declarations must be separated by '.'
-
-	
+	* Extract first sentence from description	
 

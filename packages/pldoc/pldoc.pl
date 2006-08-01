@@ -40,6 +40,14 @@
 :- use_module(library(option)).
 :- use_module(library(operators)).
 
+/** <module> Process source documentation
+The pldoc module processes structured comments in Prolog source files into
+well formatted HTML documents.
+
+@author  Jan Wielemaker
+@license GPL
+*/
+
 %%	read_structured_comments(+File, -Comments)
 %
 %	Read the comments from file.
@@ -119,7 +127,7 @@ is_structured_comment(Comment, Prefixes) :-
 	;   sub_string(Comment, 3, _, _, ' ')
 	;   sub_string(Comment, 3, _, _, '\n')
 	), !,
-	Prefixes = ["/*", " *"].
+	Prefixes = ["/**", " *"].
 
 %%	doc_file_name(+Source:atom, -Doc:atom, +Options:list) is det.
 %

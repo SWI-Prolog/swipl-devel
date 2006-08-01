@@ -7,14 +7,17 @@
 </head>
 <body>
 
-<dl>
-<dt class="preddef"><b class="pred">read_structured_comments</b><var class="arglist">(+File, -Comments)</var><br>
-<dd class="defbody">Read the comments from file.
+<h1 class="module">Process source documentation</h1>
+
+The pldoc module processes structured comments in Prolog source files into
+well formatted HTML documents.
 
 <dl class="tags">
-<dt class="warn">To be done:<dd>Deal with XPCE, etc. implied operators.
+<dt class="tag">author<dd>Jan Wielemaker
+<dt class="tag">license<dd>GPL
 </dl>
 
+<dl>
 <dt class="preddef"><b class="pred">read_comments</b><var class="arglist">(+In:stream, -Term, -Comments:list)</var> is <b class="det">det</b><br>
 <dd class="defbody">Read next term and its comments from <var>In</var>. If a syntax error is
 encountered, it is printed and reading continues to the next

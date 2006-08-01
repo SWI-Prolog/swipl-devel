@@ -31,6 +31,7 @@
 
 :- module(pldoc_wiki,
 	  [ wiki_lines_to_dom/3,	% +Lines, +Map, -DOM
+	    section_comment_header/3,	% +Lines, -Header, -RestLines
 	    indented_lines/3,		% +Text, +PrefixChars, -Lines
 	    strip_leading_par/2		% +DOM0, -DOM
 	  ]).
@@ -193,7 +194,7 @@ strip_leading_ws(T, T).
 tags(Lines, Tags) :-
 	collect_tags(Lines, Tags0),
 	keysort(Tags0, Tags1),
-	finalize_tags(Tags1, Tags).
+	combine_tags(Tags1, Tags).
 
 collect_tags([], []).
 collect_tags([Indent-[@,String|L0]|Lines], [Order-tag(Tag,Value)|Tags]) :-
@@ -250,25 +251,27 @@ tag_order(version,     4).
 tag_order(see,	       5).
 tag_order(depreciated, 6).
 tag_order(compat,      7).		% PlDoc extension
-tag_order(bug,	       8).
-tag_order(tbd,	       9).
+tag_order(copyright,   8).
+tag_order(license,     9).
+tag_order(bug,	      10).
+tag_order(tbd,	      11).
 tag_order(error,       2).
 
 
-%%	finalize_tags(+TaggedTags:list, -Tags:list) is det.
+%%	combine_tags(+TaggedTags:list, -Tags:list) is det.
 %
 %	Creates the final tag-list.  Tags is a list of
 %	
 %		* \params(List of param(Name, Descr))
 %		* \tag(Name, Value)
 
-finalize_tags([], []).
-finalize_tags([_-tag(param, V1)|T0], [\params([P1|PL])|Tags]) :- !,
+combine_tags([], []).
+combine_tags([_-tag(param, V1)|T0], [\params([P1|PL])|Tags]) :- !,
 	param_tag(V1, P1),
 	param_tags(T0, PL, T1),
-	finalize_tags(T1, Tags).
-finalize_tags([_-tag(Tag,Value)|T0], [\tag(Tag, Value)|T]) :-
-	finalize_tags(T0, T).
+	combine_tags(T1, Tags).
+combine_tags([_-tag(Tag,Value)|T0], [\tag(Tag, Value)|T]) :-
+	combine_tags(T0, T).
 
 param_tag([PN|Descr0], param(PN, Descr)) :-
 	strip_leading_ws(Descr0, Descr).
@@ -296,7 +299,7 @@ wiki_faces(Verb, _, Verb) :-
 	verbatim_term(Verb), !.
 wiki_faces(Content0, ArgNames, Content) :-
 	assertion(is_list(Content0)),
-	phrase(wiki_faces(Content, ArgNames), Content0).
+	phrase(wiki_faces(Content, ArgNames), Content0), !.
 
 wiki_faces_list([], _, []).
 wiki_faces_list([H0|T0], Args, [H|T]) :-
@@ -369,11 +372,43 @@ wiki_face(FT, ArgNames) -->
 	;   wiki_faces(T, ArgNames, FT)
 	}.
 
+		 /*******************************
+		 *	     SECTIONS		*
+		 *******************************/
+
+%%	section_comment_header(+Lines, -Header, -RestLines) is semidet.
+%
+%	Processes /** <section> comments
+%	
+%	@param Lines	List of Indent-Codes.
+
+section_comment_header([_-Line|Lines], Header, Lines) :-
+	phrase(section_line(Header), Line).
+
+section_line(Header) -->
+	ws, "<", word(Codes), ">", ws, tokens(Tokens),
+	{ atom_codes(HdrType, Codes),
+	  wiki_faces(Tokens, [], Content),
+	  make_hdr(HdrType, Content, Header)
+	}.
+
+%%	make_hdr(+Type, +Content, -DOM) is det.
+
+make_hdr(module,	Content, h1(class=module, Content)).
+make_hdr(section,       Content, h2(Content)).
+make_hdr(subsection,    Content, h3(Content)).
+make_hdr(subsubsection, Content, h4(Content)).
+
+
+		 /*******************************
+		 *	     TOKENIZER		*
+		 *******************************/
+
 %%	tokenize_lines(+Lines:lines, -TokenLines) is det
 %
 %	Convert Indent-Codes into Indent-Tokens
 
-tokenize_lines([], []).
+tokenize_lines([], []) :- !.
 tokenize_lines(Lines, [Pre|T]) :-
 	verbatim(Lines, Pre, RestLines), !,
 	tokenize_lines(RestLines, T).
@@ -465,12 +500,27 @@ indented_lines(Comment, Prefixes, Lines) :-
 	phrase(split_lines(Prefixes, Lines), List).
 
 split_lines(_, []) -->
-	eos, !.
+	end_of_comment, !.
 split_lines(Prefixes, [Indent-L1|Ls]) -->
 	take_prefix(Prefixes, 0, Indent0),
 	white_prefix(Indent0, Indent),
 	take_line(L1),
 	split_lines(Prefixes, Ls).
+
+
+%%	end_of_comment// is det.
+%
+%	Succeeds if we hit the end of the comment.
+%	
+%	@bug	%*/ will be seen as the end of the comment.
+
+end_of_comment -->
+	eos, !.
+end_of_comment -->
+	ws, stars, "*/", !.
+
+stars --> [].
+stars --> "*", !, stars.
 
 
 %%	take_prefix(+Prefixes:list(codes), +Indent0:int, -Indent:int)// is det.
