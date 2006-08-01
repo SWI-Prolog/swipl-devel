@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: read_term/2,3 comments(-Comments) option loosing first
+    character after /*.
+
   * FIXED: Bug#189: Thread id in Linux/PPC (and possibly others).
     Keri Harris.
 

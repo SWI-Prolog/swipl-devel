@@ -743,6 +743,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      discardBuffer(cbuf);
 		    rawSyntaxError("end_of_file_in_block_comment");
 		  }
+		  if ( cbuf )
+		    addUTF8Buffer(cbuf, last);
 
 		  if ( something_read )
 		  { addToBuffer(' ', _PL_rd);	/* positions */
