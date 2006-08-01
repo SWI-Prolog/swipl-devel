@@ -256,7 +256,7 @@ tag_order(compat,      7).		% PlDoc extension
 %
 %	Creates the final tag-list.  Tags is a list of
 %	
-%		* \params(List of \param(Name, Descr))
+%		* \params(List of param(Name, Descr))
 %		* \tag(Name, Value)
 
 finalize_tags([], []).
@@ -267,7 +267,7 @@ finalize_tags([_-tag(param, V1)|T0], [\params([P1|PL])|Tags]) :- !,
 finalize_tags([_-tag(Tag,Value)|T0], [\tag(Tag, Value)|T]) :-
 	finalize_tags(T0, T).
 
-param_tag([PN|Descr0], \param(PN, Descr)) :-
+param_tag([PN|Descr0], param(PN, Descr)) :-
 	strip_leading_ws(Descr0, Descr).
 
 param_tags([_-tag(param, V1)|T0], [P1|PL], T) :- !,
@@ -302,7 +302,7 @@ wiki_faces_list([H0|T0], Args, [H|T]) :-
 
 structure_term(\tags(Tags), tags, [Tags]) :- !.
 structure_term(\params(Params), params, [Params]) :- !.
-structure_term(\param(Name,Descr), param(Name), [Descr]) :- !.
+structure_term(param(Name,Descr), param(Name), [Descr]) :- !.
 structure_term(\tag(Name,Value), tag(Name), [Value]) :- !.
 structure_term(Term, Functor, Args) :-
 	functor(Term, Functor, 1),

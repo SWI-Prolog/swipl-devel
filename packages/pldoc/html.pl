@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2006, University of Amsterdam
+    Copyright (C): 2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,8 +30,9 @@
 */
 
 :- module(pldoc_html,
-	  [ doc_write_html/2		% +Stream, +Term
+	  [ doc_write_html/3		% +Stream, +Title, +Term
 	  ]).
+:- use_module(modes).
 :- use_module(library('http/html_write')).
 
 /**+ PlDoc HTML backend
@@ -40,9 +41,26 @@ This module translates the Herbrand term from the documentation
 extracting module wiki.pl into HTML+CSS.
 */
 
-doc_write_html(Out, Doc) :-
-	phrase(html(Doc), Tokens),
+doc_write_html(Out, Title, Doc) :-
+	page_dom(Title, Doc, DOM),
+	phrase(html(DOM), Tokens),
+	print_html_head(Out),
 	print_html(Out, Tokens).
+
+page_dom(Title, Body, DOM) :-
+	DOM = html([ head([ title(Title),
+			    link([ rel(stylesheet),
+				   type('text/css'),
+				   href('pldoc.css')
+				 ])
+			  ]),
+		     body(Body)
+		   ]).
+
+print_html_head(Out) :-
+	format(Out,
+	       '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" \
+	       "http://www.w3.org/TR/html4/strict.dtd">~n', []).
 
 %%+ Rendering rules
 %
@@ -51,14 +69,27 @@ doc_write_html(Out, Doc) :-
 tags(Tags) -->
 	html(dl(Tags)).
 
-tag(Name, Value) -->
-	html([dt(Name), dd(Value)]).
+tag(Tag, Value) -->
+	{ tag_title(Tag, Title) },
+	html([dt(Title), dd(Value)]).
+
+tag_title(compat, 'Compatibility:').
 
 params(Params) -->
-	html(dl(Params)).
+	html([ dt('Parameters:'),
+	       dd(table(class=paramlist,
+			\param_list(Params)))
+	     ]).
 
-param(Name, Value) -->
-	html([dt(Name), dd(Value)]).
+param_list([]) -->
+	[].
+param_list([H|T]) -->
+	param(H),
+	param_list(T).
+
+param(param(Name,Descr)) -->
+	html(tr([td(var(Name)), td(['- '|Descr])])).
+
 
 		 /*******************************
 		 *	 PRED MODE HEADER	*
@@ -101,7 +132,7 @@ pred_head(//(Head)) --> !,
 	pred_head(Head),
 	html(//).
 pred_head(Head) -->
-	{ Head =.. [Functor|Args] },
+	{ Head =.. [Functor|Args] },	% TBD: operators!
 	html([ b(class=pred, Functor),
 	       var(class=arglist,
 		   [ '(', \pred_args(Args), ')' ])
@@ -133,12 +164,6 @@ argname(Name) --> !,
 argtype(Term) -->
 	{ format(string(S), '~q', [Term]) },
 	html(S).
-
-mode_indicator(+).
-mode_indicator(-).
-mode_indicator(?).
-mode_indicator(@).
-mode_indicator(!).
 
 pred_det(unknown) -->
 	[].

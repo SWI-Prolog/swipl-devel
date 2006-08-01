@@ -32,7 +32,9 @@
 :- module(pldoc_modes,
 	  [ process_modes/4,		% +Lines, -Modes, -Args, -RestLines
 	    assert_modes/1,		% +Modes
-	    mode/2			% ?:Head, -Det
+	    mode/2,			% ?:Head, -Det
+	    is_mode/1,			% @Mode
+	    mode_indicator/1		% ?Atom
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(memfile)).
@@ -189,4 +191,59 @@ mode(Module:Head, Det) :- !,
 mode(Spec, Det) :-
 	strip_module(Spec, Module, Head),
 	mode(Head, Module, Det).
+
+%%	is_mode(@Head) is semidet.
+%
+%	True if Head is a valid mode-term.
+
+is_mode(Var) :-
+	var(Var), !, fail.
+is_mode(Head is Det) :-
+	is_det(Det),
+	is_head(Head).
+
+is_det(Var) :-
+	var(Var), !, fail.
+is_det(det).
+is_det(semidet).
+is_det(nondet).
+
+is_head(Var) :-
+	var(Var), !, fail.
+is_head(Head//) :- !,
+	is_head(Head).
+is_head(Head) :-
+	callable(Head),
+	functor(Head, _Name, Arity),
+	is_head_args(0, Arity, Head).
+
+is_head_args(A, A, _) :- !.
+is_head_args(I0, Arity, Head) :-
+	I is I0 + 1,
+	arg(I, Head, Arg),
+	is_head_arg(Arg),
+	is_head_args(I, Arity, Head).
+
+is_head_arg(Arg) :-
+	var(Arg), !.
+is_head_arg(Arg) :-
+	Arg =.. [Ind,Arg1],
+	mode_indicator(Ind),
+	is_head_arg(Arg1).
+is_head_arg(Arg:Type) :-
+	var(Arg),
+	is_type(Type).
+
+is_type(Type) :-
+	callable(Type).
+
+%%	mode_indicator(?Ind:atom) is nondet.
+%
+%	Our defined argument-mode indicators
+
+mode_indicator(+).			% Instantiated to type
+mode_indicator(-).			% Unbound
+mode_indicator(?).			% Partially instantiated to type
+mode_indicator(@).			% Not instantiated by pred
+mode_indicator(!).			% Mutable term
 

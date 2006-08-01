@@ -6,7 +6,6 @@
 
 process_wiki(String, DOM) :-
 	DOM = [\pred_dt(Modes), dd(class=defbody, DOM1)],
-
 	indented_lines(String, ["%"], Lines),
 	process_modes(Lines, Modes, Args, Lines1),
 	wiki_lines_to_dom(Lines1, Args, DOM0),
@@ -30,7 +29,7 @@ test_wiki(P, C) :-
 	process_wiki(C, Doc),
 	format('~`#t From line ~D ~`#t ~72|~n', [LNo]),
 	(   true
-	->  doc_write_html(current_output, Doc)
+	->  doc_write_html(current_output, 'Test', Doc)
 	;   pp(Doc)
 	), nl, nl.
 test_wiki(_, _).
