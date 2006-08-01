@@ -59,11 +59,13 @@
 %	Process the formal header lines  (upto   the  first blank line),
 %	returning the remaining lines and  the   names  of the arguments
 %	used in the various header lines.
+%	
+%	@param Modes	List if mode(Head, Bindings) terms
 
 process_modes(Lines, ModeDecls, Vars, RestLines) :-
 	mode_lines(Lines, ModeText, [], RestLines),
 	modes(ModeText, ModeDecls),
-	bind_varnames(ModeDecls, Vars0, []),
+	extract_varnames(ModeDecls, Vars0, []),
 	sort(Vars0, Vars).
 	
 %%	mode_lines(+Lines, -ModeText:codes, ?ModeTail:codes, -Lines) is det.
@@ -144,21 +146,21 @@ read_mode_term(In, mode(Term, Bindigns)) :-
 		    module(pldoc_modes)
 		  ]).
 
-%%	bind_varnames(+Bindings, -VarNames, ?VarTail) is det.
+%%	extract_varnames(+Bindings, -VarNames, ?VarTail) is det.
 %
-%	Bind variables to their names.
+%	Extract the variables names.
 %	
 %	@param Bindings		Nested list of Name=Var
 %	@param VarNames		List of variable names
 %	@param VarTail		Tail of VarNames
 
-bind_varnames([], VN, VN) :- !.
-bind_varnames([H|T], VN0, VN) :- !,
-	bind_varnames(H, VN0, VN1),
-	bind_varnames(T, VN1, VN).
-bind_varnames(mode(_, Bindings), VN0, VN) :- !,
-	bind_varnames(Bindings, VN0, VN).
-bind_varnames(Name=Name, [Name|VN], VN).
+extract_varnames([], VN, VN) :- !.
+extract_varnames([H|T], VN0, VN) :- !,
+	extract_varnames(H, VN0, VN1),
+	extract_varnames(T, VN1, VN).
+extract_varnames(mode(_, Bindings), VN0, VN) :- !,
+	extract_varnames(Bindings, VN0, VN).
+extract_varnames(Name=_, [Name|VN], VN).
 
 %%	assert_modes(+Modes) is det.
 

@@ -59,3 +59,88 @@ params(Params) -->
 
 param(Name, Value) -->
 	html([dt(Name), dd(Value)]).
+
+		 /*******************************
+		 *	 PRED MODE HEADER	*
+		 *******************************/
+
+%%	pred_dt(+Modes)// is det.
+%
+%	Emit the predicate header.
+%	
+%	@param Modes	List as returned by process_modes/4.
+
+pred_dt(Modes) -->
+	html(dt(class=preddef,
+		\pred_modes(Modes))).
+
+pred_modes([]) -->
+	[].
+pred_modes([H|T]) -->
+	pred_mode(H),
+	pred_modes(T).
+		
+pred_mode(mode(Head,Vars)) --> !,
+	{ bind_vars(Vars) },
+	pred_mode(Head).
+pred_mode(Head is Det) --> !,
+	pred_head(Head),
+	pred_det(Det),
+	html(br([])).
+pred_mode(Head) -->
+	pred_head(Head),
+	html(br([])).
+
+bind_vars([]).
+bind_vars([Name=Var|T]) :-
+	Var = '$VAR'(Name),
+	bind_vars(T).
+
+
+pred_head(//(Head)) --> !,
+	pred_head(Head),
+	html(//).
+pred_head(Head) -->
+	{ Head =.. [Functor|Args] },
+	html([ b(class=pred, Functor),
+	       var(class=arglist,
+		   [ '(', \pred_args(Args), ')' ])
+	     ]).
+
+pred_args([]) -->
+	[].
+pred_args([H|T]) -->
+	pred_arg(H),
+	(   {T==[]}
+	->  []
+	;   html(', '),
+	    pred_args(T)
+	).
+
+pred_arg(Term) -->
+	{ Term =.. [Ind,Arg],
+	  mode_indicator(Ind)
+	}, !,
+	html([Ind, \pred_arg(Arg)]).
+pred_arg(Arg:Type) --> !,
+	html([\argname(Arg), :, \argtype(Type)]).
+
+argname('$VAR'(Name)) --> !,
+	html(Name).
+argname(Name) --> !,
+	html(Name).
+
+argtype(Term) -->
+	{ format(string(S), '~q', [Term]) },
+	html(S).
+
+mode_indicator(+).
+mode_indicator(-).
+mode_indicator(?).
+mode_indicator(@).
+mode_indicator(!).
+
+pred_det(unknown) -->
+	[].
+pred_det(Det) -->
+	html([' is ', b(class=det, Det)]).

@@ -5,10 +5,12 @@
 :- use_module(library('http/html_write')).
 
 process_wiki(String, DOM) :-
+	DOM = [\pred_dt(Modes), dd(class=defbody, DOM1)],
+
 	indented_lines(String, ["%"], Lines),
-	process_modes(Lines, _Modes, Args, Lines1),
+	process_modes(Lines, Modes, Args, Lines1),
 	wiki_lines_to_dom(Lines1, Args, DOM0),
-	strip_leading_par(DOM0, DOM).
+	strip_leading_par(DOM0, DOM1).
 
 test :-
 	test('wiki_test_data.pl').
