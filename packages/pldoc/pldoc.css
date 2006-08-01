@@ -1,0 +1,23 @@
+/* CSS for PlDoc, the SWI-Prolog source documentation system
+   Author: Jan Wielemaker
+   Copying: Public domain
+
+   For a tutorial on CSS, see
+   <http://www.htmldog.com/guides/cssbeginner/selectors/>
+*/
+
+.filehdr
+{ background-color: #b9daff
+}
+
+.defbody
+{ margin-bottom: 1em
+}
+
+.arglist
+{ font-style: italic
+}
+
+.pred .det
+{ font-weight: bold
+}

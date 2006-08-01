@@ -34,19 +34,19 @@
 	  ]).
 :- use_module(library('http/html_write')).
 
-/** ---+ PlDoc HTML backend
+/**+ PlDoc HTML backend
 
 This module translates the Herbrand term from the documentation
-extractiong <module wiki.pl> into HTML+CSS.
+extracting module wiki.pl into HTML+CSS.
 */
 
 doc_write_html(Out, Doc) :-
 	phrase(html(Doc), Tokens),
 	print_html(Out, Tokens).
 
-%% ---++ Rendering rules
+%%+ Rendering rules
 %
-% These rules translate \-terms produced by the <module wiki.pl>
+% These rules translate \-terms produced by wiki.pl
 
 tags(Tags) -->
 	html(dl(Tags)).

@@ -64,7 +64,7 @@ process_comment0(Comment) :-
 	;   sub_string(Comment, 2, _, _, ' ')
 	), !,
 	debug(pldoc, 'Processing ~q', [Comment]),
-	indented_lines(Comment, "%", Lines),
+	indented_lines(Comment, ["%"], Lines),
 	process_structured_comment(Lines).
 process_comment0(Comment) :-
 	sub_string(Comment, 0, _, _, '/**'),
@@ -73,7 +73,7 @@ process_comment0(Comment) :-
 	;   sub_string(Comment, 3, _, _, '\n')
 	), !,
 	debug(pldoc, 'Processing ~q', [Comment]),
-	indented_lines(Comment, "/*", Lines),
+	indented_lines(Comment, ["/*", " *"], Lines),
 	process_structured_comment(Lines).
 process_comment0(_).
 
