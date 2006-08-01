@@ -185,7 +185,7 @@ xref_clean(Source) :-
 	canonical_source(Source, Src),
 	retractall(called(_, Src, _Origin)),
 	retractall(dynamic(_, Src, Line)),
-	retractall(multifile(_, Src)),
+	retractall(multifile(_, Src, Line)),
 	retractall(defined(_, Src, Line)),
 	retractall(foreign(_, Src, Line)),
 	retractall(constraint(_, Src, Line)),
