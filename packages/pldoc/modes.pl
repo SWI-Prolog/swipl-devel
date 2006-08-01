@@ -42,6 +42,7 @@
 :- op(700, fx, +).			% allow +Arg
 :- op(700, fx, -).			% allow -Arg
 :- op(700, fx, ?).			% allow ?Arg
+:- op(700, fx, :).			% allow ?Arg
 :- op(700, fx, @).			% allow @Arg
 :- op(700, fx, !).			% allow !Arg
 :- op(200, xf, //).			% allow for Head// is det.
@@ -244,6 +245,7 @@ is_type(Type) :-
 mode_indicator(+).			% Instantiated to type
 mode_indicator(-).			% Unbound
 mode_indicator(?).			% Partially instantiated to type
+mode_indicator(:).			% Meta-argument (implies +)
 mode_indicator(@).			% Not instantiated by pred
 mode_indicator(!).			% Mutable term
 

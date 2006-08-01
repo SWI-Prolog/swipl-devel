@@ -38,6 +38,7 @@
 :- use_module(modes).
 :- use_module(library(debug)).
 :- use_module(library(option)).
+:- use_module(library(operators)).
 
 %%	read_structured_comments(+File, -Comments)
 %
@@ -46,16 +47,22 @@
 %	@tbd	Deal with operators
 
 read_structured_comments(File, Comments) :-
+	push_operators([]),
 	open(File, read, In),
-	call_cleanup((read_term(In, Term0, [comments(Comments0)]),
+	call_cleanup((read_comments(In, Term0, Comments0),
 		      read_comments(Term0, Comments0, In, Comments)),
-		     close(In)).
+		     cleanup(In)).
+
+cleanup(In) :-
+	pop_operators,
+	close(In).
 
 read_comments(end_of_file, Comments0, _, Comments) :- !,
 	structured_comments(Comments0, Comments, []).
 read_comments(_, Comments0, In, Comments) :-
 	structured_comments(Comments0, Comments, Tail),
-	read_term(In, Term1, [comments(Comments1)]),
+	read_comments(In, Term1, Comments1),
+	update_state(Term1),
 	read_comments(Term1, Comments1, In, Tail).
 	
 structured_comments([], T, T).
@@ -65,7 +72,35 @@ structured_comments([H|Comments], [H|T0], T) :-
 structured_comments([_|Comments], T0, T) :-
 	structured_comments(Comments, T0, T).
 
-%%	is_structured_comment(+Comment:string, -Prefixes:list(codes)) is semidet.
+update_state(:- Directive) :- !,
+	update_directive(Directive).
+update_state(?- Directive) :- !,
+	update_directive(Directive).
+update_state(_).
+
+update_directive(op(P, T, N)) :- !,
+	push_op(P, T, pldoc:N).
+update_directive(_).
+
+%%	read_comments(+In:stream, -Term, -Comments:list) is det.
+%
+%	Read next term and its comments from   In.  If a syntax error is
+%	encountered, it is printed and  reading   continues  to the next
+%	term.
+
+read_comments(In, Term, Comments) :-
+	repeat,
+	catch(read_term(In, Term,
+			[ comments(Comments),
+			  module(pldoc)
+			]),
+	      E,
+	      (	  print_message(error, E),
+		  fail
+	      )), !.
+
+%%	is_structured_comment(+Comment:string,
+%%			      -Prefixes:list(codes)) is semidet.
 %
 %	True if Comment is a structured comment that should use Prefixes
 %	to extract the plain text using indented_lines/3.

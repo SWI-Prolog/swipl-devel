@@ -67,16 +67,16 @@ print_html_head(Out) :-
 % These rules translate \-terms produced by wiki.pl
 
 tags(Tags) -->
-	html(dl(Tags)).
+	html(dl(class=tags, Tags)).
 
 tag(Tag, Value) -->
 	{ tag_title(Tag, Title) },
-	html([dt(Title), dd(Value)]).
+	html([dt(class=tagtitle, Title), dd(Value)]).
 
 tag_title(compat, 'Compatibility:').
 
 params(Params) -->
-	html([ dt('Parameters:'),
+	html([ dt(class=tagtitle, 'Parameters:'),
 	       dd(table(class=paramlist,
 			\param_list(Params)))
 	     ]).
@@ -88,7 +88,7 @@ param_list([H|T]) -->
 	param_list(T).
 
 param(param(Name,Descr)) -->
-	html(tr([td(var(Name)), td(['- '|Descr])])).
+	html(tr([td(var(Name)), td(class=argdescr, ['- '|Descr])])).
 
 
 		 /*******************************

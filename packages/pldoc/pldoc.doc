@@ -126,7 +126,7 @@ informally described below:
 <head>		\isa <functor>'('<argspec> {',' <argspec>}')' \\
 		\isa <functor> \\
 <argspec>	\isa [<instantiation>]<argname>[':'<type>] \\
-<instantiation> \isa '+' $\mid$ '-' $\mid$ '?' $\mid$ '@' $\mid$ '!' \\
+<instantiation> \isa '+' $\mid$ '-' $\mid$ '?' $\mid$ ':' $\mid$ '@' $\mid$ '!' \\
 <type>		\isa <term> \\
 \hline
 \end{tabular}
@@ -143,6 +143,8 @@ Argument must be unbound.
     \item [?]
 Argument must be bound to a \emph{partial term} of the indicated
 type.  Note that a variable is a partial term for any type.
+    \item [:]
+Argument is a meta-argument.  Implies \chr{+}.
     \item [@]
 Argument is not further instantiated.
     \item [!]

@@ -23,3 +23,15 @@
 .pred .det
 { font-weight: bold
 }
+
+.tagtitle
+{ font-weight: bold
+}
+
+.tags
+{ font-size: 80%
+}
+
+.argdescr
+{ padding-left: 1em
+}
