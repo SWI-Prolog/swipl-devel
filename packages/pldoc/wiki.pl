@@ -250,6 +250,9 @@ tag_order(version,     4).
 tag_order(see,	       5).
 tag_order(depreciated, 6).
 tag_order(compat,      7).		% PlDoc extension
+tag_order(bug,	       8).
+tag_order(tbd,	       9).
+tag_order(error,       2).
 
 
 %%	finalize_tags(+TaggedTags:list, -Tags:list) is det.

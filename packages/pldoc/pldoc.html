@@ -1,266 +1,35 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 
-<HTML>
-<HEAD>
-<TITLE>SWI-Prolog Source Documention</TITLE>
-</HEAD>
-<BODY BGCOLOR="white"> 
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<CENTER>
+<html>
+<head>
+<title>/staff/jan/src/pl/packages/pldoc/pldoc.pl</title>
+<link rel="stylesheet" type="text/css" href="pldoc.css">
+</head>
+<body>
 
-<H1>SWI-Prolog Source Documention</H1>
+<dl>
+<dt class="preddef"><b class="pred">read_structured_comments</b><var class="arglist">(+File, -Comments)</var><br>
+<dd class="defbody">Read the comments from file.
 
-</CENTER>
-<HR>
-<CENTER>
-<I>Jan Wielemaker <BR>
-HCS, <BR>
-University of Amsterdam <BR>
-The Netherlands <BR>
-E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></I>
-</CENTER>
-<HR>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<CENTER><H3>Abstract</H3></Center>
-<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
-This article presents PlDoc, the SWI-Prolog source-code documentation 
-infrastructure which is loosely based on JavaDoc.
-</TABLE>
+<dl class="tags">
+<dt class="warn">To be done:<dd>Deal with XPCE, etc. implied operators.
+</dl>
 
-<H1><A NAME="document-contents">Table of Contents</A></H1>
+<dt class="preddef"><b class="pred">read_comments</b><var class="arglist">(+In:stream, -Term, -Comments:list)</var> is <b class="det">det</b><br>
+<dd class="defbody">Read next term and its comments from <var>In</var>. If a syntax error is
+encountered, it is printed and reading continues to the next
+term.
+<dt class="preddef"><b class="pred">is_structured_comment</b><var class="arglist">(+Comment:string, -Prefixes:list(codes))</var> is <b class="det">semidet</b><br>
+<dd class="defbody">True if <var>Comment</var> is a structured comment that should use <var>Prefixes</var>
+to extract the plain text using <a href="/predicate/indented_lines/3">indented_lines/3</a>.
+<dt class="preddef"><b class="pred">doc_file_name</b><var class="arglist">(+Source:atom, -Doc:atom, +Options:list)</var> is <b class="det">det</b><br>
+<dd class="defbody"><var>Doc</var> is the name of the file documenting <var>Source</var>.
 
-<UL>
-<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
-<LI><A HREF="#sec:2"><B>2 Overview</B></A>
-<LI><A HREF="#sec:3"><B>3 Wiki notation</B></A>
-<UL>
-<LI><A HREF="#sec:3.1">3.1 Structuring conventions</A>
-<LI><A HREF="#sec:3.2">3.2 Text markup: fonts and links</A>
-</UL>
-<LI><A HREF="#sec:4"><B>4 Motivation of choices</B></A>
-<UL>
-<LI><A HREF="#sec:4.1">4.1 Wiki or HTML</A>
-</UL>
-</UL>
+<dl class="tags">
+<dt class="tag">error<dd>permission_error(overwrite, <var>Source</var>)
+</dl>
 
-<P>
+</dl>
 
-<H2><A NAME="sec:1">1 Introduction</A></H2>
-
-<P>When developing Prolog source that has to be maintained for a longer 
-period or is developed by a ---possibly distributed--- team some basic 
-quality measurements need to be adopted. A shared and well designed 
-codingstyle is one of them. In addition, documentation of source-files 
-and their primary interfaces as well as a testing framework must be 
-established.
-
-<P>Only a few documentation and testing frameworks exist in the Prolog 
-world. In my view they all fall short realising the basic needs in a 
-lightweight and easy to addopt system. We have noticed in various 
-projects as well as through the codee we receive in the cause of testing 
-and debugging SWI-Prolog that the discipline to come with consistent 
-style, well commented code and a test-suite is not very well established 
-in the Prolog community. If we want to improve this practice, we should 
-make sure that
-
-<P><UL COMPACT>
-<LI>The documentation and testing framework requires the minimum of work 
-and learning.
-<LI>The framework is immediately rewarding to the individual programmer 
-as well as the team,
-</UL>
-
-<H2><A NAME="sec:2">2 Overview</A></H2>
-
-<P>The PlDoc infrastructure is based on <EM>structured comments</EM>, 
-just like JavaDoc. Using comments, no changes have to be made to Prolog 
-to load the documented source. If the <CODE>library(pldoc)</CODE> 
-library is loaded, Prolog will not only load the source, but also parse 
-all structured comments. It processes the mode-declarations inside the 
-comments and stores these as annotations in the Prolog database to 
-support the test framework and other runtime and compiletime analysis 
-tools that may be developed in the future.
-
-<P>Documentation for all or some of the loaded files can be written to 
-file in either HTML+CSS or LaTeX format. Each source file is documented 
-in a single file. In addition, the documentation generator will generate 
-an index file that can be used a index for a browser or input file for 
-LaTeX for producing nicely typeset document.
-
-<P>To support the developer, the documentation system can be asked to 
-start a web-server that can be used to browse the documentation.
-
-<H2><A NAME="sec:3">3 Wiki notation</A></H2>
-
-<P>Structured comments that provide part of the documentation are 
-written in Wiki notation, using a subset from the conventions of
-<A HREF="http://www.twiki.org">TWiki</A>, with some Prolog specific 
-additions.
-
-<H3><A NAME="sec:3.1">3.1 Structuring conventions</A></H3>
-
-<DL>
-
-<P>
-<DT><B>Paragraphs</B><DD>
-Paragraphs are seperated by a blank line.
-
-<P>
-<DT><B>Lists</B><DD>
-The wiki knows three types of lists: <EM>bullet lists</EM> (HTML
-<CODE>ul</CODE>), <EM>numbered lists</EM> (HTML <CODE>ol</CODE>) and
-<EM>description lists</EM> (HTML <CODE>dl</CODE>). Each list environment 
-is headed by an empty line and each list-item has a special symbol at 
-the start, followed by a space. Each subsequent item must be indented at 
-exactly the same column. Lists may be nested by starting a new list at a 
-higher level of indentation. The list prefixes are:
-
-<P>
-<CENTER>
-<TABLE BORDER=0 FRAME=void RULES=groups>
-<TR VALIGN=top><TD><TT>*</TT></TD><TD>Bulleted list item </TD></TR>
-<TR VALIGN=top><TD><TT>1.</TT></TD><TD>Numbered list item. Any number 
-from 1..9 is allowed, which allows for proper numbering in the source. 
-Actual numbers in the HTML or LaTeX however are re-generated, starting 
-at 1. </TD></TR>
-<TR VALIGN=top><TD><TT>$ Title : Item</TT></TD><TD>Description list 
-item.</TD></TR>
-</TABLE>
-
-</CENTER>
-
-<P>
-<DT><B>Tables</B><DD>
-The Wiki provides only for limited support for tables. A table-row is 
-started by a <CODE>|</CODE> sign and the cells are separated by the same 
-character. The last cell must be ended with <CODE>|</CODE>. Multiple 
-lines that parse into a table-row together for a table. Example:
-
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
-        | Author    | Jan Wielemaker |
-        | Copyright | GPL            |
-</PRE>
-</TABLE>
-
-<P>
-</DL>
-
-<H3><A NAME="sec:3.2">3.2 Text markup: fonts and links</A></H3>
-
-<P>Wiki text markup to realise fonts is mostly based on old plaintext 
-conventions in newsnet and E-mail. We added some Prolog specific 
-conventions to this. For font changing code, The opening symbol must be 
-followed immediately by a word and the closing one must immediately 
-follow a word.
-
-<P>
-<CENTER>
-<TABLE BORDER=0 FRAME=void RULES=groups>
-<TR VALIGN=top><TD><TT>*bold text*</TT></TD><TD>Typset text between `*' 
-in bold </TD></TR>
-<TR VALIGN=top><TD><TT>_emphasize_</TT></TD><TD>Typset text between `_' 
-as _emphasized </TD></TR>
-<TR VALIGN=top><TD><TT>=code=</TT></TD><TD>Typset text between `=' in 
-fixed font </TD></TR>
-<TR VALIGN=top><TD><TT>name/arity</TT></TD><TD>Create a link to a 
-predicate </TD></TR>
-<TR VALIGN=top><TD><TT>name//arity</TT></TD><TD>Create a link to a DCG 
-rule </TD></TR>
-<TR VALIGN=top><TD><TT>Word</TT></TD><TD>Capitalised words that appear 
-as argument-name are written using <CODE>\bnfmeta{var}Word&lt;/var&gt;</CODE> </TD></TR>
-</TABLE>
-
-</CENTER>
-
-<H2><A NAME="sec:4">4 Motivation of choices</A></H2>
-
-<P>Literal programming is an old field. The TeX source is one of the 
-oldest and welknown examples of this approach were input files are a 
-mixture of TeX and PASCAL source. External tools are used to untangle 
-the common source, process one branche to produce the documentation 
-while the other is compiled to produce the program.
-
-<P>A program and its documentation consists of various different parts:
-
-<P><UL COMPACT>
-<LI>The program text itself. This is the minimum that must be handed to 
-the compiler to create an executable (module).
-<LI>Meta information about the program: author, modifications, license, 
-etc.
-<LI>Documentation about the overall structure and purpose of the source.
-<LI>Description of the interface: public predicates, their types, modes 
-and whether or not they are deterministic as wel as an informative text 
-on each public predicate.
-<LI>Description of key private predicates necessary to understand how 
-the public interface is realised.
-</UL>
-
-<H3>Structured comments or directives</H3>
-
-<P>Comments can be added through Prolog directives, a route taken by 
-Ciao Prolog and Logtalk. We feel structured comments are a better 
-alternative for the following reasons:
-
-<P>
-<UL>
-<LI>Prolog programmers are used to writing comments as Prolog comments.
-<LI>Using Prolog strings requires unnatural escape sequences for string 
-quotes and long literal values tend to result in hard to find 
-quote-mismatches.
-<LI>Comments should not look like code, as that makes it more difficult 
-to find the actual code.
-</UL>
-
-<P>We are aware that the above problems can be dealt with using 
-syntax-aware editors. Only a few editors are sufficiently powerful to 
-support this correctly though and we do not expect the required advanced 
-modes to be widely available. Using comments we do not need to force 
-users into using a particular editor.
-
-<H3><A NAME="sec:4.1">4.1 Wiki or HTML</A></H3>
-
-<P>JavaDoc uses HTML as markup inside the structured comments. Although 
-HTML is more widely known than ---for example--- LaTeX or TeXinfo, we 
-think the Wiki approach using text with minimal layout conventions taken 
-largely from plaintext newsnet and E-mail is more attractive. Wiki input 
-is notably much easier to read in the source-file than HTML without 
-syntax support from an editor.
-
-<H3>Types and modes</H3>
-
-<P>Types and modes are not a formal part of the Prolog language. 
-Nevertheless, their role goes beyond purely documentation. The test 
-system can use information about non-determinism to validate that 
-deterministic calls are indeed deterministic. Type information can be 
-used to analyse coverage from the test-suite, to generate runtime type 
-verification or to perform static type-analysis. We have choosen to use 
-a structured comment with formal syntax for the following reasons:
-
-<P>
-<UL>
-<LI>As a comment, they stay together with the comment block of a 
-predicate. we feel it is best to keep documentation as close as possible 
-to the source.
-<LI>As we parse them seperately, we can pick up predicate names and 
-create a readable syntax without introducing possibly conflicting 
-operators.
-<LI>As a comment they do not introduce incompatibilities with other 
-Prolog systems.
-</UL>
-
-<H3>Few requirements</H3>
-
-<P>SWI-Prolog aims at platform independency. We want to tools to rely as 
-much as possible on Prolog itself. Therefore the entire infrastructure 
-is written in Prolog. Output as HTML is suitable for browsing and not 
-very high quality printing on virtuall every platform. Output to LaTeX 
-requires more infrastructure for processing, but allows for producing 
-high-quality PDF documents.</BODY></HTML>
+</body>
+</html>

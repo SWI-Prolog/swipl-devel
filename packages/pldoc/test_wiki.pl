@@ -21,9 +21,10 @@ process_wikis([DH|DT], T0, T) :-
 	process_wikis(DT, T1, T).
 
 test :-
-	test('wiki_test_data.pl').
+	test('wiki_test_data').
 
-test(File) :-
+test(Spec) :-
+	absolute_file_name(Spec, File, [file_type(prolog)]),
 	read_structured_comments(File, Comments),
 	process_wikis(Comments, DOM, []),
 	doc_file_name(File, DocFile, [format(html)]),

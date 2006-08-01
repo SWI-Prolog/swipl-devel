@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2005, University of Amsterdam
+    Copyright (C): 2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -44,7 +44,7 @@
 %
 %	Read the comments from file.
 %	
-%	@tbd	Deal with operators
+%	@tbd	Deal with XPCE, etc. implied operators.
 
 read_structured_comments(File, Comments) :-
 	push_operators([]),

@@ -95,13 +95,13 @@ comment.\footnote{See \secref{motivation:modes}.}.  The overall
 structure of the comment therefore is:
 
 \begin{shortlist}
-    \item Semi-formal type- and mode-description
-    \item Wiki-style documentation body
-    \item JavaDoc style keywords (\chr{@}keyword value)
+    \item Semi-formal type- and mode-description, see \secref{modes}
+    \item Wiki-style documentation body, see \secref{wiki}
+    \item JavaDoc style tags (\chr{@}keyword value, see \secref{tags})
 \end{shortlist}
 
 Using the \verb$/**..*/$ style comment, the type and mode declarations
-are ended by a blank line. Using \chr{%} line-comments, the declaration
+are ended by a blank line. Using \chr{\%} line-comments, the declaration
 is ended by the first line that starts with a single \%.
 
 The JavaDoc style keyword list starts at the first line starting
@@ -110,6 +110,7 @@ with @<word>.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Type and mode declarations}
+\label{sec:modes}
 
 The type and mode declaration header consists of one or more Prolog
 terms.  Each term describes a mode of the predicate.  The syntax is
@@ -169,9 +170,58 @@ analysis [Ciao assertion language, O'Keefe and Mycroft, Mercury].
 %	@compat iso
 \end{verbatim}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Tags}
+\label{sec:tags}
+
+Optionally, the description may be followed by one or more \emph{tags}.
+Our tag convention is strongly based on the conventions of javaDoc.
+It is adviced to place tags in the order they are described below.
+
+\begin{description}
+    \definition{\chr{@}param}
+Defines the parameters. Each parameter has its own param tag. The first
+word is the name of the parameter. The remainder of the tag is the
+description. Parameter declarations must appear in the argument order
+used by the predicate. 
+
+    \definition{\chr{@}throws}
+Error condition. First Prolog term is
+    the error term. Remainder is the description.
+
+    \definition{\chr{@}error}
+As \chr{@}throws, but the exception is embedded in \term{error}{Error,
+Context}.
+
+    \definition{\chr{@}author}
+Author of the module or predicate. Multiple entries are used if there
+are multiple authors.
+
+    \definition{\chr{@}version}
+Version of the module.  
+
+    \definition{\chr{@}see}
+Related maaterial.
+
+    \definition{\chr{@}depreciated}
+The predicate or module is depreciated.  The description specifies what
+to use in new code.
+
+    \definition{\chr{@}compat}
+When implementing libraries or externally defined interfaces this tag
+describes to which standard the interface is compatible.
+
+    \definition{\chr{@}bug}
+Known problems with the interface or implementation.
+
+    \definition{\chr{@}tbd}
+Not yet realised behaviour that is enticipated in future versions.
+\end{description}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Wiki notation}
+\label{sec:wiki}
 
 Structured comments that provide part of the documentation are written
 in Wiki notation, based on \url[TWiki]{http://www.twiki.org}, with some

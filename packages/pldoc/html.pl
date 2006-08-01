@@ -70,10 +70,22 @@ tags(Tags) -->
 	html(dl(class=tags, Tags)).
 
 tag(Tag, Value) -->
-	{ tag_title(Tag, Title) },
-	html([dt(class=tagtitle, Title), dd(Value)]).
+	{   tag_title(Tag, Title)
+	->  true
+	;   Title = Tag
+	},
+	{   tag_class(Tag, Class)
+	->  true
+	;   Class = tag
+	},
+	html([dt(class=Class, Title), dd(Value)]).
 
 tag_title(compat, 'Compatibility:').
+tag_title(tbd,    'To be done:').
+
+tag_class(tbd, 		warn).
+tag_class(bug, 		error).
+tag_class(depreciated,	warning).
 
 params(Params) -->
 	html([ dt(class=tagtitle, 'Parameters:'),

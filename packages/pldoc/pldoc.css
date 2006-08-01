@@ -24,8 +24,13 @@
 { font-weight: bold
 }
 
-.tagtitle
+dt.tag
 { font-weight: bold
+}
+
+dt.error, dt.warn
+{ font-weight: bold;
+  color: red;
 }
 
 .tags
