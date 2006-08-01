@@ -25,7 +25,11 @@
 
 \begin{abstract}
 This article presents PlDoc, the SWI-Prolog source-code documentation
-infrastructure which is loosely based on JavaDoc.
+infrastructure.  PlDoc is loosely based on JavaDoc, using structured
+comments to mix documentation with source-code.  SWI-Prolog's PlDoc
+is entirely written in Prolog and well integrated with the environment.
+It can create HTML+CSS and \LaTeX{} documentation files as well as act
+as a web-server for the loaded project during program development.
 \end{abstract}
 
 \pagebreak
@@ -40,13 +44,13 @@ infrastructure which is loosely based on JavaDoc.
 
 When developing Prolog source that has to be maintained for a longer
 period or is developed by a ---possibly distributed--- team some basic
-quality measurements need to be adopted. A shared and well designed
+quality mechanisms need to be adopted. A shared and well designed
 codingstyle is one of them. In addition, documentation of source-files
 and their primary interfaces as well as a testing framework must be
 established.
 
 Only a few documentation and testing frameworks exist in the Prolog
-world. In my view they all fall short realising the basic needs in a
+world. In our view they all fall short realising the basic needs in a
 lightweight and easy to addopt system. We have noticed in various
 projects as well as through the codee we receive in the cause of testing
 and debugging SWI-Prolog that the discipline to come with consistent
@@ -55,11 +59,15 @@ in the Prolog community.  If we want to improve this practice, we should
 make sure that
 
 \begin{shortlist}
-    \item The documentation and testing framework requires the
+    \item The documentation and testing framework requires a
 	  minimum of work and learning.
     \item The framework is immediately rewarding to the individual
           programmer as well as the team,
 \end{shortlist}
+
+First, we describe the documentation system we developed for SWI-Prolog.
+In \secref{motivation} we motivate our main choices.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Overview}
@@ -100,12 +108,59 @@ structure of the comment therefore is:
     \item JavaDoc style tags (\chr{@}keyword value, see \secref{tags})
 \end{shortlist}
 
-Using the \verb$/**..*/$ style comment, the type and mode declarations
-are ended by a blank line. Using \chr{\%} line-comments, the declaration
-is ended by the first line that starts with a single \%.
+Using the \verb$/*$\ldots\verb$*/$ style comment, the type and mode
+declarations are ended by a blank line. Using \chr{\%} line-comments,
+the declaration is ended by the first line that starts with a single \%.
 
 The JavaDoc style keyword list starts at the first line starting
 with @<word>.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{File and section comments}
+\label{sec:sectioncomments}
+
+An important aspect is documentation of the file or module as a whole,
+explaining its design, purpose and relation to other modules. In JavaDoc
+this is the comment that preceeds the class definition. The Prolog
+equivalent would be to but the module comment in front of the module
+declaration. The module declaration itself however is an important index
+to the content of the file and is therefore best kept first.
+
+The general comment-structure for section comments is to use a
+section-type identifier between angled brackets, followed by the title
+of the section. Defined values for \arg{Type} are given in the table
+below.
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+\multicolumn{2}{c}{{\tt\string/** <}\arg{Type}{\tt\string>}\arg{Title}} \\
+\multicolumn{2}{c}{{\tt\%\%~~}{\tt\string<}\arg{Type}{\tt\string>}\arg{Title}} \\
+\hline
+<Type> & Description \\
+\hline
+module	& Comment of a module file \\
+section & Section inside the module documentation \\
+subsection & Sub-section inside a section \\
+subsubsection & Sub-Sub-section inside a sub-section \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection*{Example}
+
+\begin{code}
+/** <module> Prolog documentation processor
+
+This module processes structured comments and generates both formal
+mode declarations from them as well as documentation in the form of
+HTML or LaTeX.
+
+@author	Jan Wielemaker
+@license GPL
+*/
+\end{code}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,7 +182,8 @@ informally described below:
 <head>		\isa <functor>'('<argspec> {',' <argspec>}')' \\
 		\isa <functor> \\
 <argspec>	\isa [<instantiation>]<argname>[':'<type>] \\
-<instantiation> \isa '+' $\mid$ '-' $\mid$ '?' $\mid$ ':' $\mid$ '@' $\mid$ '!' \\
+<instantiation> \isa '+' $\mid$ '-' $\mid$ '?' $\mid$ ':'
+		     $\mid$ '@' $\mid$ '!' \\
 <type>		\isa <term> \\
 \hline
 \end{tabular}
@@ -305,6 +361,7 @@ follow a word.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Motivation of choices}
+\label{sec:motivation}
 
 Literal programming is an old field.  The \TeX{} source is one of the
 oldest and welknown examples of this approach were input files are a 

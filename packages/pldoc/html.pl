@@ -88,7 +88,7 @@ tag_class(bug, 		error).
 tag_class(depreciated,	warning).
 
 params(Params) -->
-	html([ dt(class=tagtitle, 'Parameters:'),
+	html([ dt(class=tag, 'Parameters:'),
 	       dd(table(class=paramlist,
 			\param_list(Params)))
 	     ]).

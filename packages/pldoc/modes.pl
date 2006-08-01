@@ -39,6 +39,12 @@
 :- use_module(library(lists)).
 :- use_module(library(memfile)).
 
+/** <module> Analyse the mode declarations
+
+This module analyzes the formal part of the documentation of a predicate.
+It feeds these declarations in read_term/3.
+*/
+
 :- op(700, fx, +).			% allow +Arg
 :- op(700, fx, -).			% allow -Arg
 :- op(700, fx, ?).			% allow ?Arg
