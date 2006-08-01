@@ -117,7 +117,7 @@ rest_list_item([_-L1|L0], Type, N, ['\n'|LI], L) :-
 	rest_list_item(L0, Type, N, LIT, L).
 
 %%	rest_list(+Lines, +Type, +Indent,
-%		  -Items, -ItemTail, -RestLines) is det.
+%%		  -Items, -ItemTail, -RestLines) is det.
 
 rest_list(Lines, Type, N, Items, IT, Rest) :-
 	list_item(Lines, Type, N, Items, IT0, Rest0), !,
@@ -134,7 +134,7 @@ list_item_prefix(ol, [N, '.', ' '|T], T) :-
 	string_to_list(N, [D]),
 	between(0'0, 0'9, D).
 
-%	row(-Cells)// is det.
+%%	row(-Cells)// is det.
 
 row([C0|CL]) -->
 	cell(C0), !,
@@ -403,7 +403,10 @@ token(T) -->
 	).
 
 word([C0|T]) -->
-	[C0],  { code_type(C0, alnum); C0 == 0'_ }, !,	%'
+	[C0],  { code_type(C0, alnum) }, !,
+	word(T).
+word([0'_, C1|T]) -->
+	[0'_, C1],  { code_type(C1, alnum) }, !,
 	word(T).
 word([]) -->
 	[].

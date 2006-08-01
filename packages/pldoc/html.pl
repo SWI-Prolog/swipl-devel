@@ -132,6 +132,9 @@ pred_head(//(Head)) --> !,
 	pred_head(Head),
 	html(//).
 pred_head(Head) -->
+	{ atom(Head) }, !,
+	html(b(class=pred, Head)).
+pred_head(Head) -->
 	{ Head =.. [Functor|Args] },	% TBD: operators!
 	html([ b(class=pred, Functor),
 	       var(class=arglist,
@@ -155,6 +158,8 @@ pred_arg(Term) -->
 	html([Ind, \pred_arg(Arg)]).
 pred_arg(Arg:Type) --> !,
 	html([\argname(Arg), :, \argtype(Type)]).
+pred_arg(Arg) -->
+	argname(Arg).
 
 argname('$VAR'(Name)) --> !,
 	html(Name).

@@ -30,64 +30,76 @@
 */
 
 :- module(pldoc,
-	  [ 
+	  [ read_structured_comments/2,	% +File, -Comments
+	    is_structured_comment/2,	% +Comment, -Prefixes
+	    doc_file_name/3		% +Source, -Doc, +Options
 	  ]).
 :- use_module(wiki).
 :- use_module(modes).
 :- use_module(library(debug)).
+:- use_module(library(option)).
 
-%:- prolog_set_comment_hook([]).
-%:- debug(pldoc).
-
-%%	process_comment(+Comments:list,
-%			+Start:stream_position,
-%			+Term:any) is det.
+%%	read_structured_comments(+File, -Comments)
 %
-%	Process comments.
+%	Read the comments from file.
+%	
+%	@tbd	Deal with operators
 
-process_comment(Comments, _Start, _Term) :-
-	process_comments(Comments).
+read_structured_comments(File, Comments) :-
+	open(File, read, In),
+	call_cleanup((read_term(In, Term0, [comments(Comments0)]),
+		      read_comments(Term0, Comments0, In, Comments)),
+		     close(In)).
 
-process_comments([]).
-process_comments([H|T]) :-
-	process_comment(H),
-	process_comments(T).
+read_comments(end_of_file, Comments0, _, Comments) :- !,
+	structured_comments(Comments0, Comments, []).
+read_comments(_, Comments0, In, Comments) :-
+	structured_comments(Comments0, Comments, Tail),
+	read_term(In, Term1, [comments(Comments1)]),
+	read_comments(Term1, Comments1, In, Tail).
+	
+structured_comments([], T, T).
+structured_comments([H|Comments], [H|T0], T) :-
+	is_structured_comment(H, _), !,
+	structured_comments(Comments, T0, T).
+structured_comments([_|Comments], T0, T) :-
+	structured_comments(Comments, T0, T).
 
-process_comment(Pos-Comment) :-
-	stream_position_data(line_position, Pos, 0), !,
-	process_comment0(Comment).
-process_comment(_).
+%%	is_structured_comment(+Comment:string, -Prefixes:list(codes)) is semidet.
+%
+%	True if Comment is a structured comment that should use Prefixes
+%	to extract the plain text using indented_lines/3.
 
-process_comment0(Comment) :-
+is_structured_comment(_Pos-Comment, Prefixes) :- !,
+	is_structured_comment(Comment, Prefixes).
+is_structured_comment(Comment, Prefixes) :-
 	sub_string(Comment, 0, _, _, '%%'),
 	(   sub_string(Comment, 2, _, _, '\t')
 	;   sub_string(Comment, 2, _, _, ' ')
 	), !,
-	debug(pldoc, 'Processing ~q', [Comment]),
-	indented_lines(Comment, ["%"], Lines),
-	process_structured_comment(Lines).
-process_comment0(Comment) :-
+	Prefixes = ["%"].
+is_structured_comment(Comment, Prefixes) :-
 	sub_string(Comment, 0, _, _, '/**'),
 	(   sub_string(Comment, 3, _, _, '\t')
 	;   sub_string(Comment, 3, _, _, ' ')
 	;   sub_string(Comment, 3, _, _, '\n')
 	), !,
-	debug(pldoc, 'Processing ~q', [Comment]),
-	indented_lines(Comment, ["/*", " *"], Lines),
-	process_structured_comment(Lines).
-process_comment0(_).
+	Prefixes = ["/*", " *"].
 
+%%	doc_file_name(+Source:atom, -Doc:atom, +Options:list) is det.
+%
+%	Doc is the name of the file documenting Source.
+%	
+%	@error	permission_error(overwrite, Source)
 
-		 /*******************************
-		 *	     PROCESS		*
-		 *******************************/
-
-%%	process_structured_comment(+Lines:list(int-line)) is det.
-
-process_structured_comment(Lines) :-
-	process_modes(Lines, ModeDecls, VarNames, RestLines),
-	assert_modes(ModeDecls),
-	wiki_lines_to_dom(RestLines, VarNames, _HTML).
+doc_file_name(Source, Doc, Options) :-
+	option(format(Format), Options, html),
+	file_name_extension(Base, _Ext, Source),
+	file_name_extension(Base, Format, Doc),
+	(   Source == Doc
+	->  throw(error(permission_error(overwrite, Source), _))
+	;   true
+	).
 
 
 		 /*******************************
