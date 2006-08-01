@@ -457,6 +457,7 @@ chr_translate(Declarations,NewDeclarations) :-
 	add_rules(Rules),
 	% start analysis
 	check_rules(Rules,Constraints),
+	static_type_check,
 	add_occurrences(Rules),
 	time(fd_analysis,chr_translate:functional_dependency_analysis(Rules)),
 	time(set_semantics_rules,chr_translate:set_semantics_rules(Rules)),
@@ -3684,6 +3685,59 @@ nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
     ).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Static type checking
+
+:- chr_constraint
+	static_type_check/0.
+
+rule(_,Rule), static_type_check 
+	==>
+	    	copy_term_nat(Rule,RuleCopy),
+	    	RuleCopy = pragma(rule(Head1,Head2,G,B),ids(IDs1,IDs2),Pragmas,Name,RuleNb),
+		catch(
+			( static_type_check_heads(Head1),
+		          static_type_check_heads(Head2)
+			),
+			type_error(Head,Term,Type),
+   			chr_error(type_error,'Type error in head ~w of ~@:\n\t\tfound `~w\',\n\t\texpected type `~w\'!\n',[Head,format_rule(Rule),Term,Type])
+		).
+			
+
+static_type_check <=> true.
+
+static_type_check_heads([]).
+static_type_check_heads([Head|Heads]) :-
+	static_type_check_head(Head),
+	static_type_check_heads(Heads).
+
+static_type_check_head(Head) :-
+	functor(Head,F,A),
+	( get_constraint_type(F/A,Types) ->
+		Head =..[_|Args],
+		maplist(static_type_check_term(Head),Args,Types)
+	; % no type declared
+		true 
+	).	
+
+static_type_check_term(Head,Term,Type) :-
+	( var(Term) ->
+		true
+	; builtin_type_nonvar(Type,Term,Goal) ->
+		( call(Goal) ->
+			true
+		;
+			throw(type_error(Head,Term,Type))
+		)	
+	; get_type_definition(Type,Variants), functor(Term,F,A), member(Variant,Variants), functor(Variant,F,A) -> 
+		Term =.. [_|Args],
+		Variant =.. [_|Types],
+		maplist(static_type_check_term(Head),Args,Types)
+	;
+		throw(type_error(Head,Term,Type))	
+	).
+		
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Dynamic type checking
 
 :- chr_constraint
@@ -3696,11 +3750,7 @@ generate_dynamic_type_check_clauses(Clauses) :-
 	get_dynamic_type_check_clauses(Clauses0),
 	append(Clauses0,
 			[('$dynamic_type_check'(Type,Term) :- 
-				( Term = '$VAR'(_) ->
-					true
-				;
-					throw(error(type_error(Type,Term),context(_,'CHR Runtime Type Error')))
-				)
+				throw(error(type_error(Type,Term),context(_,'CHR Runtime Type Error')))
 			)],
 			Clauses).
 
