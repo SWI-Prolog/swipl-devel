@@ -81,7 +81,10 @@ mime_extension(pdf,  application/pdf).
 mime_extension(doc,  application/msword).
 					% Java classes
 mime_extension(class, application/'octet-stream').
-mime_extension(js,    text/javascript).
+mime_extension(jar,  application/'java-archive').
+mime_extension(js,   text/javascript).
+					% Visual Basic Script :-(
+mime_extension(vbs,  text/vbscript).
 					% Some image formats
 mime_extension(jpg,  image/jpeg).
 mime_extension(jpeg, image/jpeg).
@@ -91,3 +94,7 @@ mime_extension(tif,  image/tiff).
 mime_extension(tiff, image/tiff).
 mime_extension(xpm,  image/'x-xpixmap').
 mime_extension(ico,  image/'x-ico').
+					% Google earth
+mime_extension(kml,  application/'vnd.google-earth.kml+xml').
+mime_extension(kmz,  application/'vnd.google-earth.kmz').
+
