@@ -83,13 +83,13 @@ is_variant2([X|Xs]) :-
 	is_variant2(Xs).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% time(Phase,Goal) :-
-% 	statistics(runtime,[T1|_]),
-% 	call(Goal),
-% 	statistics(runtime,[T2|_]),
-% 	T is T2 - T1,
-% 	format('    ~w:\t\t~w ms\n',[Phase,T]).
-time(_,Goal) :- call(Goal).
+time(Phase,Goal) :-
+	statistics(runtime,[T1|_]),
+	call(Goal),
+	statistics(runtime,[T2|_]),
+	T is T2 - T1,
+	format('    ~w:\t\t~w ms\n',[Phase,T]).
+% time(_,Goal) :- call(Goal).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 replicate(N,E,L) :-

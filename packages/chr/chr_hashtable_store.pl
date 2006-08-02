@@ -44,6 +44,13 @@
 :- use_module(hprolog).
 :- use_module(library(lists)).
 
+:- multifile user:goal_expansion/2.
+:- dynamic user:goal_expansion/2.
+
+user:goal_expansion(term_hash(Term,Hash),hash_term(Term,Hash)).
+
+% term_hash(Term,Hash) :-
+% 	hash_term(Term,Hash).
 initial_capacity(1).
 
 new_ht(HT) :-
@@ -65,7 +72,7 @@ lookup_ht(HT,Key,Values) :-
 	    K == Key,	
 	    Values = Vs
 	;
-	    lookup_eq(Bucket,Key,Values)
+	    lookup(Bucket,Key,Values)
 	).
 
 lookup_pair_eq([P | KVs],Key,Pair) :-
@@ -82,42 +89,25 @@ insert_ht(HT,Key,Value) :-
 	LookupIndex is (Hash mod Capacity0) + 1,
 	arg(LookupIndex,Table0,LookupBucket),
 	( var(LookupBucket) ->
-		Inc = yes,
 		LookupBucket = Key - [Value]
 	; LookupBucket = K-Values ->
 	      	( K == Key ->	
-			( hprolog:memberchk_eq(Value,Values) ->
-				true
-			;
-				Inc = yes,
-				setarg(2,LookupBucket,[Value|Values])
-			)
+			setarg(2,LookupBucket,[Value|Values])
 		;
-			Inc = yes,
 			setarg(LookupIndex,Table0,[Key-[Value],LookupBucket])
 		)	
 	;
 	      	( lookup_pair_eq(LookupBucket,Key,Pair) ->
 			Pair = _-Values,
-			( hprolog:memberchk_eq(Value,Values) ->
-				true
-			;	
-				Inc = yes,
-				setarg(2,Pair,[Value|Values])
-			)
+			setarg(2,Pair,[Value|Values])
 		;
-			Inc = yes,
 			setarg(LookupIndex,Table0,[Key-[Value]|LookupBucket])
 		)
 	),
-	( Inc == yes ->
-		NLoad is Load + 1,
-		setarg(2,HT,NLoad),
-		( Load == Capacity0 ->
-			expand_ht(HT,_Capacity)
-		;
-			true
-		)
+	NLoad is Load + 1,
+	setarg(2,HT,NLoad),
+	( Load == Capacity0 ->
+		expand_ht(HT,_Capacity)
 	;
 		true
 	).
@@ -150,7 +140,11 @@ delete_ht(HT,Key,Value) :-
 				setarg(2,HT,NLoad),
 				( NVs == [] ->
 					pairlist_delete_eq(Bucket,Key,NBucket),
-					setarg(Index,Table,NBucket)
+					( NBucket = [Singleton] ->
+						setarg(Index,Table,Singleton)
+					;
+						setarg(Index,Table,NBucket)
+					)
 				;
 					setarg(2,Pair,NVs)
 				)
@@ -231,6 +225,4 @@ expand_insert(Table,Capacity,K,V) :-
 		setarg(Index,Table,[K-V|Bucket])
 	).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-term_hash(Term,Hash) :-
-	hash_term(Term,Hash).
 	

@@ -1,455 +1,499 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Author:	Jon Sneyers
-% Email:	jon@cs.kuleuven.be
-% Copyright:	K.U.Leuven 2004
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 :- module(guard_entailment,
-	[
-		entails_guard/2,
-		simplify_guards/5
-	]).
-
-% :- use_module(library(chr)).
+	  [ entails_guard/2,
+	    simplify_guards/5
+	  ]).
 :- include(chr_op).
 :- use_module(hprolog).
 :- use_module(builtins).
 :- use_module(chr_compiler_errors).
-
-:- chr_option(debug,off).
-:- chr_option(optimize,full).
-
-
-:- chr_constraint known/1,test/1,cleanup/0,variables/1.
-
-% knowing the same thing twice is redundant
-idempotence @ known(G) \ known(G) <=> true.
-
-
-%--------------------------------------
-% Rules to check if the argument of
-% test/1 is entailed by known stuff
-%--------------------------------------
-
-% everything follows from an inconsistent theory
-fail_implies_everything @ known(fail) \ test(X) <=> true.
-
-% if it's known, it's entailed
-trivial_entailment @ known(G) \ test(G) <=> true.
-
-distribute_nmatch @ test(X\==A) <=> nonvar(A),functor(A,Fu,Ar) | 
-		A =.. [F|AArgs],
-		length(XArgs,Ar), B =.. [Fu|XArgs],
-		add_args_nmatch(XArgs,AArgs,ArgCond),
-		C = (\+ functor(X,Fu,Ar) ; (functor(X,Fu,Ar),X=B,ArgCond)),
-		test(C).
-varfirst_nmatch @ test(X\==A) <=> nonvar(X) | test(A\==X).
-
-% eq implies leq
-eq_implies_leq1 @ known(X=:=Y) \ test(X=<Y) <=> true.
-eq_implies_leq2 @ known(X=:=Z) \ test(X=<Y) <=> number(Y), number(Z), Z=<Y |true.
-eq_implies_leq3 @ known(X=:=Z) \ test(Y=<X) <=> number(Y), number(Z), Y=<Z |true.
-
-% stronger inequality implies a weaker one
-leq_implies_leq1 @ known(X=<Z) \ test(X=<Y) <=> number(Y), number(Z), Z=<Y |true.
-leq_implies_leq2 @ known(X=<Y) \ test(Z=<Y) <=> number(X), number(Z), Z=<X | true.
-
-% X =< Z implies X =\= Y for all Y > Z
-leq_implies_neq1 @ known(X=<Z) \ test(X=\=Y) <=> number(Y), number(Z), Y>Z | true.
-leq_implies_neq2 @ known(X=<Y) \ test(Y=\=Z) <=> number(X), number(Z), Z<X | true.
-
-
-%--------------------------------------
-% Rules to translate some stuff
-%--------------------------------------
-
-% we only want =<, =:= and =\=
-known_g2l @ known(X>Y) <=> known(Y<X).
-known_geq2leq @ known(X>=Y) <=> known(Y=<X).
-known_l2leq_neq @ known(X<Y) <=> known(X=<Y), known(X=\=Y).
-known_is2eq @ known(X is Y) <=> known(X=:=Y).
-test_g2l @ test(X>Y) <=> test(Y<X).
-test_geq2leq @test(X>=Y) <=> test(Y=<X).
-test_l2leq_neq @test(X<Y) <=> test(((X=<Y),(X=\=Y))).
-test_is2eq @ test(X is Y) <=> test(X=:=Y).
-
-% propagate == and \== to =:= and =\=  (which is a weaker statement)
-match2eq1 @ known(X==Y) ==> number(X) | known(X=:=Y).
-match2eq2 @known(X==Y) ==> number(Y) | known(X=:=Y).
-nmatch2neq1 @ known(X\==Y) ==> number(X) | known(X=\=Y).
-nmatch2neq2 @ known(X\==Y) ==> number(Y) | known(X=\=Y).
- 
-
-%--------------------------------------
-% Rules to extend the known stuff
-%--------------------------------------
-
-% if we derived inconsistency, all other knowledge is redundant
-fail_is_better_than_anything_else @ known(fail) \ known(_) <=> true.
-
-% conjunctions
-conj @ known((A,B)) <=> known(A), known(B).
-
-% no need to remember trivial stuff
-forget_trivial01 @ known(X=:=X) <=> true.
-forget_trivial02 @ known(X==X) <=> true.
-forget_trivial03 @ known(X=<X) <=> true.
-forget_trivial04 @ known(X=X) <=> true.
-
-
-%--------------------------------------
-% Rules for = and \= (and functor)
-%--------------------------------------
-unify_vars1 @ known(X=Y) <=> var(X) | X=Y.
-unify_vars2 @ known(X=Y) <=> var(Y) | X=Y.
-%functor @ known(functor(X,F,A)) <=> var(X),ground(F),ground(A) | functor(X,F,A).
-% TOM: BUG?
-% inconsistency4     @ known(X\=Y) <=> var(X),var(Y),X=Y | known(fail).
-inconsistency4     @ known(X\=Y) <=> ground(X),ground(Y),X=Y | known(fail).
-
-functor @ variables(V),known(functor(X,F,A)) <=> 
-	    var(X), ground(F), ground(A) | 
-	    functor(X,F,A),
-	    X =.. [_|Args],
-	    append(Args,V,NewV),
-	    variables(NewV).
-
-functor_inconsistency1 @ known(functor(X,F1,A1)) <=> nonvar(X), \+ functor(X,F1,A1) | known(fail).
-negfunctor_trivial @ known(\+ functor(X,F1,A1)) <=> nonvar(X), functor(X,F1,A1) | known(fail).
-functor_inconsistency2 @ known(functor(X,F1,A1)), known(functor(X,F2,A2)) <=> 
-			nonvar(F1),nonvar(A1),nonvar(F2),nonvar(A2) 
-			% (F1 \= F2 ; A1 \= A2) is entailed by idempotence
-			| known(fail).
-nunify_inconsistency @ known(X\=X) <=> known(fail).
-nonvar_unification @ known(X=Y) <=> nonvar(X), nonvar(Y),functor(X,F,A) |
-		    ( functor(Y,F,A),X=Y ->
-			true
-		    ;
-			known(fail)
-		    ).
-nunify_expand    @ known(X\=Y) <=> var(X),nonvar(Y), functor(Y,F,A), A>0 |
-		    length(Args,A),
-		    Y =.. [F|YArgs],
-		    Y1 =.. [F|Args],
-		    add_args_nunif(YArgs,Args,Nunif),
-		    C = (\+ functor(X,F,A) ; (X = Y1, Nunif )),
-		    known(C).
-nunify_expand2    @ known(X\=Y) <=> nonvar(X),nonvar(Y), functor(X,F,A) |
-		    (functor(Y,F,A) ->
-			X =.. [F|XArgs],
-			Y =.. [F|YArgs],
-			add_args_nunif(XArgs,YArgs,Nunif),
-			known(Nunif)
-		    ;
-			true
-		    ).
-nunify_symmetry    @ known(X\=Y) ==> known(Y\=X).
-
-
-%--------------------------------------
-% Rules for =<
-%--------------------------------------
-
-groundleq2 @ known(X=<Y) <=> number(X), number(Y), X>Y | known(fail).
-
-% only keep the strictest inequality
-remove_redundant_leq1 @ known(X=<Y) \ known(X=<Z) <=> number(Y), number(Z), Y=<Z | true.
-remove_redundant_leq1 @ known(Z=<Y) \ known(X=<Y) <=> number(X), number(Z), X=<Z | true.
- 
-leq_antisymmetry @ known(X=<Y), known(Y=<X) <=> known(X=:=Y).
-leq_transitivity @ known(X=<Y), known(Y=<Z) ==> known(X=<Z).
-
-strict_leq_transitivity @ known(X=<Y),known(X=\=Y),known(Y=<Z),known(Y=\=Z) ==> known(X=\=Z).
-
-
-%--------------------------------------
-% Rules for =:=   (and =\=)
-%--------------------------------------
-
-groundeq2 @ known(X=:=Y) <=> number(X), number(Y), X=\=Y | known(fail).
-groundneq2 @ known(X=\=Y) <=> number(X), number(Y), X=:=Y | known(fail).
-
-neq_inconsistency  @ known(X=\=X) <=> known(fail).
-inconsistency @ known(X=:=Y), known(X=\=Y) <=> known(fail).
-
-eq_transitivity @ known(X=:=Y), known(Y=:=Z) ==> X \== Z | known(X=:=Z).
-
-eq_symmetry  @ known(X=:=Y) ==> known(Y=:=X).
-neq_symmetry @ known(X=\=Y) ==> known(Y=\=X).
-
-%--------------------------------------
-% Rules for number/1, float/1, integer/1
-%--------------------------------------
-
-notnumber @ known(number(X)) <=> nonvar(X), \+ number(X) | known(fail).
-notfloat @ known(float(X)) <=> nonvar(X), \+ float(X)| known(fail).
-notinteger @ known(integer(X)) <=> nonvar(X), \+ integer(X) | known(fail).
-int2number @ known(integer(X)) ==> known(number(X)).
-float2number @ known(float(X)) ==> known(number(X)).
-
-
-%--------------------------------------
-% Rules for \+
-%--------------------------------------
-
-inconsistency2 @ known(X), known(\+ X) <=> known(fail).
-
-
-%--------------------------------------
-% Rules for == and \==
-%--------------------------------------
-
-inconsistency3 @ known(X\==Y), known(X==Y) <=> known(fail).
-eq_transitivity2 @ known(X==Y), known(Y==Z) ==> known(X==Z).
-neq_substitution @ known(X==Y), known(Y\==Z) ==> known(X\==Z).
-eq_symmetry2   @ known(X==Y) ==> known(Y==X).
-neq_symmetry2  @ known(X\==Y) ==> known(Y\==X).
-neq_inconsistency @ known(X\==X) ==> known(fail).
-functorsmatch@ known(X\==Y) <=> nonvar(X), nonvar(Y), functor(X,F,A) |
-				(functor(Y,F,A) ->
-				    X =.. [F|XArgs],
-				    Y =.. [F|YArgs],
-				    add_args_nmatch(XArgs,YArgs,ArgCond),
-				    known(ArgCond)
-				;
-				    true
-				).
-eq_implies_unif @ known(X==Y) ==> known(X=Y).
-
-
-%--------------------------------------
-% Rules for var/1 and nonvar/1
-%--------------------------------------
-
-ground2nonvar @ known(ground(X)) ==> known(nonvar(X)).
-compound2nonvar @ known(compound(X)) ==> known(nonvar(X)).
-atomic2nonvar @ known(atomic(X)) ==> known(nonvar(X)).
-number2nonvar @ known(number(X)) ==> known(nonvar(X)).
-atom2nonvar @ known(atom(X)) ==> known(nonvar(X)).
-
-var_inconsistency @ known(var(X)), known(nonvar(X)) <=> known(fail).
-
-
-%--------------------------------------
-% Rules for disjunctions
-%--------------------------------------
-
-%ad-hoc disjunction optimization:
-simplify_disj1 @ known(A) \ known((\+ A; B)) <=> known(B).
-simplify_disj1b @ known(A) \ known((\+ A, C; B)) <=> known(B).
-simplify_disj1c @ known(\+ A) \ known((A; B)) <=> known(B).
-simplify_disj1d @ known(\+ A) \ known((A, C; B)) <=> known(B).
-
-simplify_disj2 @ known((fail; B)) <=> known(B).
-simplify_disj3 @ known((B ; fail)) <=> known(B).
-
-true_or_something_is_worthless1 @ known((true ; A)) <=> true.
-true_or_something_is_worthless2 @ known((A ; true)) <=> true.
-
-simplify_disj4 @ known(functor(X,F1,A1)) \ known((\+ functor(X,F,A); B)) <=>
-    % F1 \== F or A1 \== A
-    true.	% the disjunction does not provide any additional information
-
-simplify_disj5 @ known((\+ functor(X,F,A); B)) <=>
-    nonvar(X), functor(X,F,A) |
-    known(B).	
-simplify_disj6 @ known((\+ functor(X,F,A); B)) <=>
-    nonvar(X), \+ functor(X,F,A) |
-    true.	% the disjunction does not provide any additional information
-
-test_simplify_disj1 @test((fail;B)) <=> test(B).
-test_simplify_disj2 @test((B;fail)) <=> test(B).
-
-
-%--------------------------------------
-% Rules to test unifications
-%--------------------------------------
-
-trivial_unif @ test(X=Y) <=> X=Y | X=Y.
-testgroundunif @ test(X=A) <=> ground(X),ground(A) | X=A.
-varfirst @ test(X=A) <=> nonvar(X),var(A) | test(A=X).
-distribute_unif @ variables(V) \ test(X=A) <=>   var(X),nonvar(A),
-		functor(A,F,Arit),Arit>0,
-		A =.. [F|AArgs],\+ all_unique_vars(AArgs,V) |
-		C=(functor(X,F,Arit),X=A),
-		test(C).
-distribute_unif2 @ test(X=A) <=>   var(X),nonvar(A),
-		functor(A,F,Arit),%Arit>0,
-		A =.. [F|AArgs] % , all_unique_vars(AArgs)
-		| 
-		C=functor(X,F,Arit),
-		test(C).
-distribute_unif3 @ test(X=A) <=>   nonvar(X),nonvar(A),functor(A,F,Arit),
-		A =.. [F|AArgs] |
-		functor(X,F,Arit),
-		X =.. [F|XArgs],
-		add_args_unif(XArgs,AArgs,ArgCond),
-		test(ArgCond).
-% TOM: INCORRECT RULE?
-% testvarunif @ variables(V) \ test(X=A) <=> \+ (memberchk_eq(A,V),memberchk_eq(X,V)) | X=A.
-testvarunif @ variables(V) \ test(functor(X,F,A)) <=> 
-                var(X),ground(F),ground(A),\+ memberchk_eq(X,V) |
-		functor(X,F,A).       % X is a singleton variable
-
-% trivial truths
-true_is_true @ test(true) <=> true.
-trivial01 @ test(X==Y) <=> X==Y | true.
-trivial02 @ test(X=:=Y) <=> X==Y | true.
-trivial03 @ test(X=<Y) <=> X==Y | true.
-trivial04 @ test(X=<Y) <=> ground(X), ground(Y), X=<Y | true.
-trivial05 @ test(X=<Y) <=> ground(X), ground(Y), X>Y | fail.
-trivial06 @ test(X=:=Y) <=> ground(X), ground(Y), X=:=Y | true.
-trivial07 @ test(X=:=Y) <=> ground(X), ground(Y), X=\=Y | fail.
-trivial08 @ test(X=\=Y) <=> ground(X), ground(Y), X=\=Y | true.
-trivial09 @ test(X=\=Y) <=> ground(X), ground(Y), X=:=Y | fail.
-trivial10 @ test(functor(X,F1,A1)) <=> nonvar(X), functor(X,F1,A1) | true.
-trivial11 @ test(functor(X,F1,A1)) <=> nonvar(X) | fail.
-trivial12 @ test(ground(X)) <=> ground(X) | true.
-trivial13 @ test(number(X)) <=> number(X) | true.
-trivial14 @ test(float(X)) <=> float(X) | true.
-trivial15 @ test(integer(X)) <=> integer(X) | true.
-trivial16 @ test(number(X)) <=> nonvar(X) | fail.
-trivial17 @ test(float(X)) <=> nonvar(X) | fail.
-trivial18 @ test(integer(X)) <=> nonvar(X) | fail.
-trivial19 @ test(\+ functor(X,F1,A1)) <=> nonvar(X), functor(X,F1,A1) | fail.
-trivial20 @ test(\+ functor(X,F1,A1)) <=> nonvar(X) | true.
-trivial21 @ test(\+ ground(X)) <=> ground(X) | fail.
-trivial22 @ test(\+ number(X)) <=> number(X) | fail.
-trivial23 @ test(\+ float(X)) <=> float(X) | fail.
-trivial24 @ test(\+ integer(X)) <=> integer(X) | fail.
-trivial25 @ test(\+ number(X)) <=> nonvar(X) | true.
-trivial26 @ test(\+ float(X)) <=> nonvar(X) | true.
-trivial27 @ test(\+ integer(X)) <=> nonvar(X) | true.
-
-test_conjunction @ test((A,B)) <=> test(A),  known(A), test(B).
-test_disjunction @ test((A;B)) <=> true | negate_b(A,NotA),negate_b(B,NotB),
-		     (known(NotB),test(A) ; known(NotA),test(B)).
-
-% disjunctions in the known stuff --> both options should entail the goals
-% delay disjunction unfolding until everything is added, perhaps we can
-% find entailed things without using the disjunctions
-disjunction @ test(X), known((A;B)) <=>
-    true |
-    \+ try(A,X),!,
-    negate_b(A,NotA),
-    known(NotA),
-    \+ try(B,X).
-
-
-% not entailed or entailment not detected
-could_not_prove_entailment @ test(_) <=>  fail.
-
-
-clean_store1 @ cleanup \ known(_) <=> true.
-clean_store2 @ cleanup \ variables(_) <=> true.
-clean_store3 @ cleanup <=> true.
-
-
-%--------------------------------------
-% End of CHR part
-%--------------------------------------
-
-entails_guard(List,Guard) :- 
-    copy_term_nat((List,Guard),(CopyList,CopyGuard)),
-    term_variables(CopyList,CLVars),
-    variables(CLVars),
-    sort(CopyList,CopyList2),	% remove doubles
-    entails_guard2(CopyList2),
-    !,test(CopyGuard),!,
-    cleanup.
-
+:- chr_option(debug, off).
+:- chr_option(optimize, full).
+:- chr_constraint known/1, test/1, cleanup/0, variables/1.
+entails_guard(A, B) :-
+	copy_term_nat((A, B), (C, F)),
+	term_variables(C, D),
+	variables(D),
+	sort(C, E),
+	entails_guard2(E), !,
+	test(F), !,
+	cleanup.
 entails_guard2([]).
-entails_guard2([A|R]) :- 
-    known(A), entails_guard2(R).
-
-simplify_guards(List,Body,GuardList,SimplifiedGuards,NewBody) :- 
-%    write(starting),nl,
-    copy_term_nat((List,GuardList),(CopyList,CopyGuard)),
-    term_variables(CopyList,CLVars),
-%    write(variables(CLVars)),nl,
-    variables(CLVars),
-%    write(gonna_add(CopyList)),nl,
-    entails_guard2(CopyList),
-%    write(ok_gonna_add),nl,
-    !,
-%    write(gonna_simplify(CopyGuard)),nl,
-    simplify(CopyGuard,L),
-%    write(ok_gonna_simplify(CopyGuard,L)),nl,
-    simplified(GuardList,L,SimplifiedGuards,Body,NewBody),
-%    write(ok_done),nl,
-    !,
-    cleanup.
-
-simplified([],[],[],B,B).
-simplified([G|RG],[keep|RL],[G|RSG],B,NB) :- simplified(RG,RL,RSG,B,NB).
-simplified([G|RG],[fail|RL],fail,B,B).
-simplified([G|RG],[true|RL],[X|RSG],B,NB) :- 
-	builtins:binds_b(G,GVars), term_variables(RG,RGVars),
-	intersect_eq(GVars,RGVars,SharedWithRestOfGuard),!,
-	( SharedWithRestOfGuard = []	->
-	    term_variables(B,BVars),
-	    intersect_eq(GVars,BVars,SharedWithBody),!,
-	    ( SharedWithBody = []	->
-		X=true,		% e.g. c(X) <=> Y=X | true.
-		NB=NB2
-	    ;
-		X=true,		% e.g. c(X) <=> Y=X | writeln(Y).
-		NB=(G,NB2)
+entails_guard2([A|B]) :-
+	known(A),
+	entails_guard2(B).
+simplify_guards(A, H, B, G, I) :-
+	copy_term_nat((A, B), (C, E)),
+	term_variables(C, D),
+	variables(D),
+	entails_guard2(C), !,
+	simplify(E, F),
+	simplified(B, F, G, H, I), !,
+	cleanup.
+simplified([], [], [], A, A).
+simplified([A|B], [keep|C], [A|D], E, F) :-
+	simplified(B, C, D, E, F).
+simplified([_|_], [fail|_], fail, A, A).
+simplified([A|B], [true|L], [I|M], F, J) :-
+	builtins:binds_b(A, C),
+	term_variables(B, D),
+	intersect_eq(C, D, E), !,
+	(   E=[]
+	->  term_variables(F, G),
+	    intersect_eq(C, G, H), !,
+	    (   H=[]
+	    ->  I=true,
+		J=K
+	    ;   I=true,
+		J= (A, K)
 	    )
-	;
-	    X=G,		% e.g. c(X) <=> Y=X,p(Y) | true.
-	    NB=NB2
+	;   I=A,
+	    J=K
 	),
-	simplified(RG,RL,RSG,B,NB2).
-
-simplify([],[]).
-simplify([G|R],[SG|RS]) :-
-    ( \+ try(true,G) ->
-	SG = true
-    ;
-	builtins:negate_b(G,NotG),
-	(\+ try(true,NotG) ->
-	    SG = fail    
-	;
-	    SG = keep
-	)
-    ),
-    known(G),
-    simplify(R,RS).
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%  AUXILIARY PREDICATES
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-try(A,X) :- (known(A) ->
-		true
-	    ;
-		chr_error(internal,'Entailment Checker: try/2.\n',[])
-	    ),
-	 (test(X) -> 
-		fail
-	    ;
-		true).
-
-
-add_args_unif([],[],true).
-add_args_unif([X|RX],[Y|RY],(X=Y,RC)) :-
-    add_args_unif(RX,RY,RC).
-
-add_args_nunif([],[],fail).
-add_args_nunif([X|RX],[Y|RY],(X\=Y;RC)) :-
-    add_args_nunif(RX,RY,RC).
-
-add_args_nmatch([],[],fail).
-add_args_nmatch([X|RX],[Y|RY],(X\==Y;RC)) :-
-    add_args_nmatch(RX,RY,RC).
-
-all_unique_vars(T,V) :- all_unique_vars(T,V,[]).
-
-all_unique_vars([],V,C).
-all_unique_vars([V|R],Vars,C) :-
-    var(V),
-    \+ memberchk_eq(V,Vars),
-    \+ memberchk_eq(V,C),
-    all_unique_vars(R,[V|C]).
+	simplified(B, L, M, F, K).
+simplify([], []).
+simplify([A|D], [B|E]) :-
+	(   \+try(true, A)
+	->  B=true
+	;   builtins:negate_b(A, C),
+	    (   \+try(true, C)
+	    ->  B=fail
+	    ;   B=keep
+	    )
+	),
+	known(A),
+	simplify(D, E).
+try(A, B) :-
+	(   known(A)
+	->  true
+	;   chr_error(internal, 'Entailment Checker: try/2.\n', [])
+	),
+	(   test(B)
+	->  fail
+	;   true
+	).
+add_args_unif([], [], true).
+add_args_unif([A|C], [B|D], (A=B, E)) :-
+	add_args_unif(C, D, E).
+add_args_nunif([], [], fail).
+add_args_nunif([A|C], [B|D], (A\=B;E)) :-
+	add_args_nunif(C, D, E).
+add_args_nmatch([], [], fail).
+add_args_nmatch([A|C], [B|D], (A\==B;E)) :-
+	add_args_nmatch(C, D, E).
+all_unique_vars(A, B) :-
+	all_unique_vars(A, B, []).
+all_unique_vars([], _, _).
+all_unique_vars([A|D], B, C) :-
+	var(A),
+	\+memberchk_eq(A, B),
+	\+memberchk_eq(A, C),
+	all_unique_vars(D, [A|C]).
+:- chr_constraint'test/1_1_$default'/1, 'test/1_1_$special_,/2'/2, 'test/1_1_$special_\\+/1'/1, 'test/1_1_$special_integer/1'/1, 'test/1_1_$special_float/1'/1, 'test/1_1_$special_number/1'/1, 'test/1_1_$special_ground/1'/1, 'test/1_1_$special_=:=/2'/2, 'test/1_1_$special_==/2'/2, 'test/1_1_$special_true/0'/0, 'test/1_1_$special_functor/3'/3, 'test/1_1_$special_=/2'/2, 'test/1_1_$special_;/2'/2, 'test/1_1_$special_is/2'/2, 'test/1_1_$special_</2'/2, 'test/1_1_$special_>=/2'/2, 'test/1_1_$special_>/2'/2, 'test/1_1_$special_=\\=/2'/2, 'test/1_1_$special_=</2'/2, 'test/1_1_$special_\\==/2'/2, 'known/1_1_$default'/1, 'known/1_1_$special_;/2'/2, 'known/1_1_$special_nonvar/1'/1, 'known/1_1_$special_var/1'/1, 'known/1_1_$special_atom/1'/1, 'known/1_1_$special_atomic/1'/1, 'known/1_1_$special_compound/1'/1, 'known/1_1_$special_ground/1'/1, 'known/1_1_$special_integer/1'/1, 'known/1_1_$special_float/1'/1, 'known/1_1_$special_number/1'/1, 'known/1_1_$special_=\\=/2'/2, 'known/1_1_$special_\\+/1'/1, 'known/1_1_$special_functor/3'/3, 'known/1_1_$special_\\=/2'/2, 'known/1_1_$special_=/2'/2, 'known/1_1_$special_,/2'/2, 'known/1_1_$special_\\==/2'/2, 'known/1_1_$special_==/2'/2, 'known/1_1_$special_is/2'/2, 'known/1_1_$special_</2'/2, 'known/1_1_$special_>=/2'/2, 'known/1_1_$special_>/2'/2, 'known/1_1_$special_=</2'/2, 'known/1_1_$special_=:=/2'/2, 'known/1_1_$special_fail/0'/0.
+test((A, B))<=>'test/1_1_$special_,/2'(A, B).
+test(\+A)<=>'test/1_1_$special_\\+/1'(A).
+test(integer(A))<=>'test/1_1_$special_integer/1'(A).
+test(float(A))<=>'test/1_1_$special_float/1'(A).
+test(number(A))<=>'test/1_1_$special_number/1'(A).
+test(ground(A))<=>'test/1_1_$special_ground/1'(A).
+test(A=:=B)<=>'test/1_1_$special_=:=/2'(A, B).
+test(A==B)<=>'test/1_1_$special_==/2'(A, B).
+test(true)<=>'test/1_1_$special_true/0'.
+test(functor(A, B, C))<=>'test/1_1_$special_functor/3'(A, B, C).
+test(A=B)<=>'test/1_1_$special_=/2'(A, B).
+test((A;B))<=>'test/1_1_$special_;/2'(A, B).
+test(A is B)<=>'test/1_1_$special_is/2'(A, B).
+test(A<B)<=>'test/1_1_$special_</2'(A, B).
+test(A>=B)<=>'test/1_1_$special_>=/2'(A, B).
+test(A>B)<=>'test/1_1_$special_>/2'(A, B).
+test(A=\=B)<=>'test/1_1_$special_=\\=/2'(A, B).
+test(A=<B)<=>'test/1_1_$special_=</2'(A, B).
+test(A\==B)<=>'test/1_1_$special_\\==/2'(A, B).
+test(A)<=>'test/1_1_$default'(A).
+known((A;B))<=>'known/1_1_$special_;/2'(A, B).
+known(nonvar(A))<=>'known/1_1_$special_nonvar/1'(A).
+known(var(A))<=>'known/1_1_$special_var/1'(A).
+known(atom(A))<=>'known/1_1_$special_atom/1'(A).
+known(atomic(A))<=>'known/1_1_$special_atomic/1'(A).
+known(compound(A))<=>'known/1_1_$special_compound/1'(A).
+known(ground(A))<=>'known/1_1_$special_ground/1'(A).
+known(integer(A))<=>'known/1_1_$special_integer/1'(A).
+known(float(A))<=>'known/1_1_$special_float/1'(A).
+known(number(A))<=>'known/1_1_$special_number/1'(A).
+known(A=\=B)<=>'known/1_1_$special_=\\=/2'(A, B).
+known(\+A)<=>'known/1_1_$special_\\+/1'(A).
+known(functor(A, B, C))<=>'known/1_1_$special_functor/3'(A, B, C).
+known(A\=B)<=>'known/1_1_$special_\\=/2'(A, B).
+known(A=B)<=>'known/1_1_$special_=/2'(A, B).
+known((A, B))<=>'known/1_1_$special_,/2'(A, B).
+known(A\==B)<=>'known/1_1_$special_\\==/2'(A, B).
+known(A==B)<=>'known/1_1_$special_==/2'(A, B).
+known(A is B)<=>'known/1_1_$special_is/2'(A, B).
+known(A<B)<=>'known/1_1_$special_</2'(A, B).
+known(A>=B)<=>'known/1_1_$special_>=/2'(A, B).
+known(A>B)<=>'known/1_1_$special_>/2'(A, B).
+known(A=<B)<=>'known/1_1_$special_=</2'(A, B).
+known(A=:=B)<=>'known/1_1_$special_=:=/2'(A, B).
+known(fail)<=>'known/1_1_$special_fail/0'.
+known(A)<=>'known/1_1_$default'(A).
+'known/1_1_$special_;/2'(A, B)\'known/1_1_$special_;/2'(A, B)<=>true.
+'known/1_1_$special_nonvar/1'(A)\'known/1_1_$special_nonvar/1'(A)<=>true.
+'known/1_1_$special_var/1'(A)\'known/1_1_$special_var/1'(A)<=>true.
+'known/1_1_$special_atom/1'(A)\'known/1_1_$special_atom/1'(A)<=>true.
+'known/1_1_$special_atomic/1'(A)\'known/1_1_$special_atomic/1'(A)<=>true.
+'known/1_1_$special_compound/1'(A)\'known/1_1_$special_compound/1'(A)<=>true.
+'known/1_1_$special_ground/1'(A)\'known/1_1_$special_ground/1'(A)<=>true.
+'known/1_1_$special_integer/1'(A)\'known/1_1_$special_integer/1'(A)<=>true.
+'known/1_1_$special_float/1'(A)\'known/1_1_$special_float/1'(A)<=>true.
+'known/1_1_$special_number/1'(A)\'known/1_1_$special_number/1'(A)<=>true.
+'known/1_1_$special_=\\=/2'(A, B)\'known/1_1_$special_=\\=/2'(A, B)<=>true.
+'known/1_1_$special_\\+/1'(A)\'known/1_1_$special_\\+/1'(A)<=>true.
+'known/1_1_$special_functor/3'(A, B, C)\'known/1_1_$special_functor/3'(A, B, C)<=>true.
+'known/1_1_$special_\\=/2'(A, B)\'known/1_1_$special_\\=/2'(A, B)<=>true.
+'known/1_1_$special_=/2'(A, B)\'known/1_1_$special_=/2'(A, B)<=>true.
+'known/1_1_$special_,/2'(A, B)\'known/1_1_$special_,/2'(A, B)<=>true.
+'known/1_1_$special_\\==/2'(A, B)\'known/1_1_$special_\\==/2'(A, B)<=>true.
+'known/1_1_$special_==/2'(A, B)\'known/1_1_$special_==/2'(A, B)<=>true.
+'known/1_1_$special_is/2'(A, B)\'known/1_1_$special_is/2'(A, B)<=>true.
+'known/1_1_$special_</2'(A, B)\'known/1_1_$special_</2'(A, B)<=>true.
+'known/1_1_$special_>=/2'(A, B)\'known/1_1_$special_>=/2'(A, B)<=>true.
+'known/1_1_$special_>/2'(A, B)\'known/1_1_$special_>/2'(A, B)<=>true.
+'known/1_1_$special_=</2'(A, B)\'known/1_1_$special_=</2'(A, B)<=>true.
+'known/1_1_$special_=:=/2'(A, B)\'known/1_1_$special_=:=/2'(A, B)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_fail/0'<=>true.
+'known/1_1_$default'(A)\'known/1_1_$default'(A)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_,/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_\\+/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_integer/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_float/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_number/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_ground/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_=:=/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_==/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_true/0'<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_functor/3'(_, _, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_=/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_;/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_is/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_</2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_>=/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_>/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_=\\=/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_=</2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$special_\\==/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$default'(_)<=>true.
+'known/1_1_$special_;/2'(A, B)\'test/1_1_$special_;/2'(A, B)<=>true.
+'known/1_1_$special_nonvar/1'(A)\'test/1_1_$default'(nonvar(A))<=>true.
+'known/1_1_$special_var/1'(A)\'test/1_1_$default'(var(A))<=>true.
+'known/1_1_$special_atom/1'(A)\'test/1_1_$default'(atom(A))<=>true.
+'known/1_1_$special_atomic/1'(A)\'test/1_1_$default'(atomic(A))<=>true.
+'known/1_1_$special_compound/1'(A)\'test/1_1_$default'(compound(A))<=>true.
+'known/1_1_$special_ground/1'(A)\'test/1_1_$special_ground/1'(A)<=>true.
+'known/1_1_$special_integer/1'(A)\'test/1_1_$special_integer/1'(A)<=>true.
+'known/1_1_$special_float/1'(A)\'test/1_1_$special_float/1'(A)<=>true.
+'known/1_1_$special_number/1'(A)\'test/1_1_$special_number/1'(A)<=>true.
+'known/1_1_$special_=\\=/2'(A, B)\'test/1_1_$special_=\\=/2'(A, B)<=>true.
+'known/1_1_$special_\\+/1'(A)\'test/1_1_$special_\\+/1'(A)<=>true.
+'known/1_1_$special_functor/3'(A, B, C)\'test/1_1_$special_functor/3'(A, B, C)<=>true.
+'known/1_1_$special_\\=/2'(A, B)\'test/1_1_$default'(A\=B)<=>true.
+'known/1_1_$special_=/2'(A, B)\'test/1_1_$special_=/2'(A, B)<=>true.
+'known/1_1_$special_,/2'(A, B)\'test/1_1_$special_,/2'(A, B)<=>true.
+'known/1_1_$special_\\==/2'(A, B)\'test/1_1_$special_\\==/2'(A, B)<=>true.
+'known/1_1_$special_==/2'(A, B)\'test/1_1_$special_==/2'(A, B)<=>true.
+'known/1_1_$special_is/2'(A, B)\'test/1_1_$special_is/2'(A, B)<=>true.
+'known/1_1_$special_</2'(A, B)\'test/1_1_$special_</2'(A, B)<=>true.
+'known/1_1_$special_>=/2'(A, B)\'test/1_1_$special_>=/2'(A, B)<=>true.
+'known/1_1_$special_>/2'(A, B)\'test/1_1_$special_>/2'(A, B)<=>true.
+'known/1_1_$special_=</2'(A, B)\'test/1_1_$special_=</2'(A, B)<=>true.
+'known/1_1_$special_=:=/2'(A, B)\'test/1_1_$special_=:=/2'(A, B)<=>true.
+'known/1_1_$special_fail/0'\'test/1_1_$default'(fail)<=>true.
+'known/1_1_$default'(A)\'test/1_1_$default'(A)<=>true.
+'test/1_1_$special_\\==/2'(F, A)<=>nonvar(A), functor(A, C, B)|A=..[_|E], length(D, B), G=..[C|D], add_args_nmatch(D, E, H), I= (\+functor(F, C, B);functor(F, C, B), F=G, H), test(I).
+'test/1_1_$special_\\==/2'(A, B)<=>nonvar(A)|test(B\==A).
+'known/1_1_$special_=:=/2'(A, B)\'test/1_1_$special_=</2'(A, B)<=>true.
+'known/1_1_$special_=:=/2'(A, C)\'test/1_1_$special_=</2'(A, B)<=>number(B), number(C), C=<B|true.
+'known/1_1_$special_=:=/2'(A, C)\'test/1_1_$special_=</2'(B, A)<=>number(B), number(C), B=<C|true.
+'known/1_1_$special_=</2'(A, C)\'test/1_1_$special_=</2'(A, B)<=>number(B), number(C), C=<B|true.
+'known/1_1_$special_=</2'(B, A)\'test/1_1_$special_=</2'(C, A)<=>number(B), number(C), C=<B|true.
+'known/1_1_$special_=</2'(A, C)\'test/1_1_$special_=\\=/2'(A, B)<=>number(B), number(C), B>C|true.
+'known/1_1_$special_=</2'(B, A)\'test/1_1_$special_=\\=/2'(A, C)<=>number(B), number(C), C<B|true.
+'known/1_1_$special_>/2'(B, A)<=>known(A<B).
+'known/1_1_$special_>=/2'(B, A)<=>known(A=<B).
+'known/1_1_$special_</2'(A, B)<=>known(A=<B), known(A=\=B).
+'known/1_1_$special_is/2'(A, B)<=>known(A=:=B).
+'test/1_1_$special_>/2'(B, A)<=>test(A<B).
+'test/1_1_$special_>=/2'(B, A)<=>test(A=<B).
+'test/1_1_$special_</2'(A, B)<=>test((A=<B, A=\=B)).
+'test/1_1_$special_is/2'(A, B)<=>test(A=:=B).
+'known/1_1_$special_==/2'(A, B)==>number(A)|known(A=:=B).
+'known/1_1_$special_==/2'(B, A)==>number(A)|known(B=:=A).
+'known/1_1_$special_\\==/2'(A, B)==>number(A)|known(A=\=B).
+'known/1_1_$special_\\==/2'(B, A)==>number(A)|known(B=\=A).
+'known/1_1_$special_fail/0'\'known/1_1_$special_;/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_nonvar/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_var/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_atom/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_atomic/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_compound/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_ground/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_integer/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_float/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_number/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_=\\=/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_\\+/1'(_)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_functor/3'(_, _, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_\\=/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_=/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_,/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_\\==/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_==/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_is/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_</2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_>=/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_>/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_=</2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_=:=/2'(_, _)<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$special_fail/0'<=>true.
+'known/1_1_$special_fail/0'\'known/1_1_$default'(_)<=>true.
+'known/1_1_$special_,/2'(A, B)<=>known(A), known(B).
+'known/1_1_$special_=:=/2'(A, A)<=>true.
+'known/1_1_$special_==/2'(A, A)<=>true.
+'known/1_1_$special_=</2'(A, A)<=>true.
+'known/1_1_$special_=/2'(A, A)<=>true.
+'known/1_1_$special_=/2'(A, B)<=>var(A)|A=B.
+'known/1_1_$special_=/2'(B, A)<=>var(A)|B=A.
+'known/1_1_$special_\\=/2'(A, B)<=>ground(A), ground(B), A=B|known(fail).
+variables(E), 'known/1_1_$special_functor/3'(A, B, C)<=>var(A), ground(B), ground(C)|functor(A, B, C), A=..[_|D], append(D, E, F), variables(F).
+'known/1_1_$special_functor/3'(A, B, C)<=>nonvar(A), \+functor(A, B, C)|known(fail).
+'known/1_1_$special_\\+/1'(functor(A, B, C))<=>nonvar(A), functor(A, B, C)|known(fail).
+'known/1_1_$special_functor/3'(A, B, C), 'known/1_1_$special_functor/3'(A, D, E)<=>nonvar(B), nonvar(C), nonvar(D), nonvar(E)|known(fail).
+'known/1_1_$special_\\=/2'(A, A)<=>known(fail).
+'known/1_1_$special_=/2'(A, B)<=>nonvar(A), nonvar(B), functor(A, C, D)|functor(B, C, D), A=B->true;known(fail).
+'known/1_1_$special_\\=/2'(A, B)<=>var(A), nonvar(B), functor(B, D, C), C>0|length(E, C), B=..[D|F], G=..[D|E], add_args_nunif(F, E, H), I= (\+functor(A, D, C);A=G, H), known(I).
+'known/1_1_$special_\\=/2'(A, B)<=>nonvar(A), nonvar(B), functor(A, C, D)|functor(B, C, D)->A=..[C|E], B=..[C|F], add_args_nunif(E, F, G), known(G);true.
+'known/1_1_$special_\\=/2'(B, A)==>known(A\=B).
+'known/1_1_$special_=</2'(A, B)<=>number(A), number(B), A>B|known(fail).
+'known/1_1_$special_=</2'(A, B)\'known/1_1_$special_=</2'(A, C)<=>number(B), number(C), B=<C|true.
+'known/1_1_$special_=</2'(C, A)\'known/1_1_$special_=</2'(B, A)<=>number(B), number(C), B=<C|true.
+'known/1_1_$special_=</2'(B, A), 'known/1_1_$special_=</2'(A, B)<=>known(B=:=A).
+'known/1_1_$special_=</2'(B, A), 'known/1_1_$special_=</2'(A, C)==>known(B=<C).
+'known/1_1_$special_=</2'(A, B), 'known/1_1_$special_=\\=/2'(A, B), 'known/1_1_$special_=</2'(B, C), 'known/1_1_$special_=\\=/2'(B, C)==>known(A=\=C).
+'known/1_1_$special_=:=/2'(A, B)<=>number(A), number(B), A=\=B|known(fail).
+'known/1_1_$special_=\\=/2'(A, B)<=>number(A), number(B), A=:=B|known(fail).
+'known/1_1_$special_=\\=/2'(A, A)<=>known(fail).
+'known/1_1_$special_=:=/2'(A, B), 'known/1_1_$special_=\\=/2'(A, B)<=>known(fail).
+'known/1_1_$special_=:=/2'(B, A), 'known/1_1_$special_=:=/2'(A, C)==>B\==C|known(B=:=C).
+'known/1_1_$special_=:=/2'(B, A)==>known(A=:=B).
+'known/1_1_$special_=\\=/2'(B, A)==>known(A=\=B).
+'known/1_1_$special_number/1'(A)<=>nonvar(A), \+number(A)|known(fail).
+'known/1_1_$special_float/1'(A)<=>nonvar(A), \+float(A)|known(fail).
+'known/1_1_$special_integer/1'(A)<=>nonvar(A), \+integer(A)|known(fail).
+'known/1_1_$special_integer/1'(A)==>known(number(A)).
+'known/1_1_$special_float/1'(A)==>known(number(A)).
+'known/1_1_$special_;/2'(A, B), 'known/1_1_$special_\\+/1'((A;B))<=>known(fail).
+'known/1_1_$special_nonvar/1'(A), 'known/1_1_$special_\\+/1'(nonvar(A))<=>known(fail).
+'known/1_1_$special_var/1'(A), 'known/1_1_$special_\\+/1'(var(A))<=>known(fail).
+'known/1_1_$special_atom/1'(A), 'known/1_1_$special_\\+/1'(atom(A))<=>known(fail).
+'known/1_1_$special_atomic/1'(A), 'known/1_1_$special_\\+/1'(atomic(A))<=>known(fail).
+'known/1_1_$special_compound/1'(A), 'known/1_1_$special_\\+/1'(compound(A))<=>known(fail).
+'known/1_1_$special_ground/1'(A), 'known/1_1_$special_\\+/1'(ground(A))<=>known(fail).
+'known/1_1_$special_integer/1'(A), 'known/1_1_$special_\\+/1'(integer(A))<=>known(fail).
+'known/1_1_$special_float/1'(A), 'known/1_1_$special_\\+/1'(float(A))<=>known(fail).
+'known/1_1_$special_number/1'(A), 'known/1_1_$special_\\+/1'(number(A))<=>known(fail).
+'known/1_1_$special_=\\=/2'(A, B), 'known/1_1_$special_\\+/1'(A=\=B)<=>known(fail).
+'known/1_1_$special_\\+/1'(A), 'known/1_1_$special_\\+/1'(\+A)<=>known(fail).
+'known/1_1_$special_functor/3'(A, B, C), 'known/1_1_$special_\\+/1'(functor(A, B, C))<=>known(fail).
+'known/1_1_$special_\\=/2'(A, B), 'known/1_1_$special_\\+/1'(A\=B)<=>known(fail).
+'known/1_1_$special_=/2'(A, B), 'known/1_1_$special_\\+/1'(A=B)<=>known(fail).
+'known/1_1_$special_,/2'(A, B), 'known/1_1_$special_\\+/1'((A, B))<=>known(fail).
+'known/1_1_$special_\\==/2'(A, B), 'known/1_1_$special_\\+/1'(A\==B)<=>known(fail).
+'known/1_1_$special_==/2'(A, B), 'known/1_1_$special_\\+/1'(A==B)<=>known(fail).
+'known/1_1_$special_is/2'(A, B), 'known/1_1_$special_\\+/1'(A is B)<=>known(fail).
+'known/1_1_$special_</2'(A, B), 'known/1_1_$special_\\+/1'(A<B)<=>known(fail).
+'known/1_1_$special_>=/2'(A, B), 'known/1_1_$special_\\+/1'(A>=B)<=>known(fail).
+'known/1_1_$special_>/2'(A, B), 'known/1_1_$special_\\+/1'(A>B)<=>known(fail).
+'known/1_1_$special_=</2'(A, B), 'known/1_1_$special_\\+/1'(A=<B)<=>known(fail).
+'known/1_1_$special_=:=/2'(A, B), 'known/1_1_$special_\\+/1'(A=:=B)<=>known(fail).
+'known/1_1_$special_fail/0', 'known/1_1_$special_\\+/1'(fail)<=>known(fail).
+'known/1_1_$default'(A), 'known/1_1_$special_\\+/1'(A)<=>known(fail).
+'known/1_1_$special_\\==/2'(A, B), 'known/1_1_$special_==/2'(A, B)<=>known(fail).
+'known/1_1_$special_==/2'(B, A), 'known/1_1_$special_==/2'(A, C)==>known(B==C).
+'known/1_1_$special_==/2'(B, A), 'known/1_1_$special_\\==/2'(A, C)==>known(B\==C).
+'known/1_1_$special_==/2'(B, A)==>known(A==B).
+'known/1_1_$special_\\==/2'(B, A)==>known(A\==B).
+'known/1_1_$special_\\==/2'(A, A)==>known(fail).
+'known/1_1_$special_\\==/2'(A, B)<=>nonvar(A), nonvar(B), functor(A, C, D)|functor(B, C, D)->A=..[C|E], B=..[C|F], add_args_nmatch(E, F, G), known(G);true.
+'known/1_1_$special_==/2'(A, B)==>known(A=B).
+'known/1_1_$special_ground/1'(A)==>known(nonvar(A)).
+'known/1_1_$special_compound/1'(A)==>known(nonvar(A)).
+'known/1_1_$special_atomic/1'(A)==>known(nonvar(A)).
+'known/1_1_$special_number/1'(A)==>known(nonvar(A)).
+'known/1_1_$special_atom/1'(A)==>known(nonvar(A)).
+'known/1_1_$special_var/1'(A), 'known/1_1_$special_nonvar/1'(A)<=>known(fail).
+'known/1_1_$special_;/2'(A, B)\'known/1_1_$special_;/2'(\+ (A;B), C)<=>known(C).
+'known/1_1_$special_nonvar/1'(A)\'known/1_1_$special_;/2'(\+nonvar(A), B)<=>known(B).
+'known/1_1_$special_var/1'(A)\'known/1_1_$special_;/2'(\+var(A), B)<=>known(B).
+'known/1_1_$special_atom/1'(A)\'known/1_1_$special_;/2'(\+atom(A), B)<=>known(B).
+'known/1_1_$special_atomic/1'(A)\'known/1_1_$special_;/2'(\+atomic(A), B)<=>known(B).
+'known/1_1_$special_compound/1'(A)\'known/1_1_$special_;/2'(\+compound(A), B)<=>known(B).
+'known/1_1_$special_ground/1'(A)\'known/1_1_$special_;/2'(\+ground(A), B)<=>known(B).
+'known/1_1_$special_integer/1'(A)\'known/1_1_$special_;/2'(\+integer(A), B)<=>known(B).
+'known/1_1_$special_float/1'(A)\'known/1_1_$special_;/2'(\+float(A), B)<=>known(B).
+'known/1_1_$special_number/1'(A)\'known/1_1_$special_;/2'(\+number(A), B)<=>known(B).
+'known/1_1_$special_=\\=/2'(A, B)\'known/1_1_$special_;/2'(\+A=\=B, C)<=>known(C).
+'known/1_1_$special_\\+/1'(A)\'known/1_1_$special_;/2'(\+ \+A, B)<=>known(B).
+'known/1_1_$special_functor/3'(A, B, C)\'known/1_1_$special_;/2'(\+functor(A, B, C), D)<=>known(D).
+'known/1_1_$special_\\=/2'(A, B)\'known/1_1_$special_;/2'(\+A\=B, C)<=>known(C).
+'known/1_1_$special_=/2'(A, B)\'known/1_1_$special_;/2'(\+A=B, C)<=>known(C).
+'known/1_1_$special_,/2'(A, B)\'known/1_1_$special_;/2'(\+ (A, B), C)<=>known(C).
+'known/1_1_$special_\\==/2'(A, B)\'known/1_1_$special_;/2'(\+A\==B, C)<=>known(C).
+'known/1_1_$special_==/2'(A, B)\'known/1_1_$special_;/2'(\+A==B, C)<=>known(C).
+'known/1_1_$special_is/2'(A, B)\'known/1_1_$special_;/2'(\+A is B, C)<=>known(C).
+'known/1_1_$special_</2'(A, B)\'known/1_1_$special_;/2'(\+A<B, C)<=>known(C).
+'known/1_1_$special_>=/2'(A, B)\'known/1_1_$special_;/2'(\+A>=B, C)<=>known(C).
+'known/1_1_$special_>/2'(A, B)\'known/1_1_$special_;/2'(\+A>B, C)<=>known(C).
+'known/1_1_$special_=</2'(A, B)\'known/1_1_$special_;/2'(\+A=<B, C)<=>known(C).
+'known/1_1_$special_=:=/2'(A, B)\'known/1_1_$special_;/2'(\+A=:=B, C)<=>known(C).
+'known/1_1_$special_fail/0'\'known/1_1_$special_;/2'(\+fail, A)<=>known(A).
+'known/1_1_$default'(A)\'known/1_1_$special_;/2'(\+A, B)<=>known(B).
+'known/1_1_$special_;/2'(A, B)\'known/1_1_$special_;/2'((\+ (A;B), _), C)<=>known(C).
+'known/1_1_$special_nonvar/1'(A)\'known/1_1_$special_;/2'((\+nonvar(A), _), B)<=>known(B).
+'known/1_1_$special_var/1'(A)\'known/1_1_$special_;/2'((\+var(A), _), B)<=>known(B).
+'known/1_1_$special_atom/1'(A)\'known/1_1_$special_;/2'((\+atom(A), _), B)<=>known(B).
+'known/1_1_$special_atomic/1'(A)\'known/1_1_$special_;/2'((\+atomic(A), _), B)<=>known(B).
+'known/1_1_$special_compound/1'(A)\'known/1_1_$special_;/2'((\+compound(A), _), B)<=>known(B).
+'known/1_1_$special_ground/1'(A)\'known/1_1_$special_;/2'((\+ground(A), _), B)<=>known(B).
+'known/1_1_$special_integer/1'(A)\'known/1_1_$special_;/2'((\+integer(A), _), B)<=>known(B).
+'known/1_1_$special_float/1'(A)\'known/1_1_$special_;/2'((\+float(A), _), B)<=>known(B).
+'known/1_1_$special_number/1'(A)\'known/1_1_$special_;/2'((\+number(A), _), B)<=>known(B).
+'known/1_1_$special_=\\=/2'(A, B)\'known/1_1_$special_;/2'((\+A=\=B, _), C)<=>known(C).
+'known/1_1_$special_\\+/1'(A)\'known/1_1_$special_;/2'((\+ \+A, _), B)<=>known(B).
+'known/1_1_$special_functor/3'(A, B, C)\'known/1_1_$special_;/2'((\+functor(A, B, C), _), D)<=>known(D).
+'known/1_1_$special_\\=/2'(A, B)\'known/1_1_$special_;/2'((\+A\=B, _), C)<=>known(C).
+'known/1_1_$special_=/2'(A, B)\'known/1_1_$special_;/2'((\+A=B, _), C)<=>known(C).
+'known/1_1_$special_,/2'(A, B)\'known/1_1_$special_;/2'((\+ (A, B), _), C)<=>known(C).
+'known/1_1_$special_\\==/2'(A, B)\'known/1_1_$special_;/2'((\+A\==B, _), C)<=>known(C).
+'known/1_1_$special_==/2'(A, B)\'known/1_1_$special_;/2'((\+A==B, _), C)<=>known(C).
+'known/1_1_$special_is/2'(A, B)\'known/1_1_$special_;/2'((\+A is B, _), C)<=>known(C).
+'known/1_1_$special_</2'(A, B)\'known/1_1_$special_;/2'((\+A<B, _), C)<=>known(C).
+'known/1_1_$special_>=/2'(A, B)\'known/1_1_$special_;/2'((\+A>=B, _), C)<=>known(C).
+'known/1_1_$special_>/2'(A, B)\'known/1_1_$special_;/2'((\+A>B, _), C)<=>known(C).
+'known/1_1_$special_=</2'(A, B)\'known/1_1_$special_;/2'((\+A=<B, _), C)<=>known(C).
+'known/1_1_$special_=:=/2'(A, B)\'known/1_1_$special_;/2'((\+A=:=B, _), C)<=>known(C).
+'known/1_1_$special_fail/0'\'known/1_1_$special_;/2'((\+fail, _), A)<=>known(A).
+'known/1_1_$default'(A)\'known/1_1_$special_;/2'((\+A, _), B)<=>known(B).
+'known/1_1_$special_\\+/1'(A)\'known/1_1_$special_;/2'(A, B)<=>known(B).
+'known/1_1_$special_\\+/1'(A)\'known/1_1_$special_;/2'((A, _), B)<=>known(B).
+'known/1_1_$special_;/2'(fail, A)<=>known(A).
+'known/1_1_$special_;/2'(A, fail)<=>known(A).
+'known/1_1_$special_;/2'(true, _)<=>true.
+'known/1_1_$special_;/2'(_, true)<=>true.
+'known/1_1_$special_functor/3'(A, _, _)\'known/1_1_$special_;/2'(\+functor(A, _, _), _)<=>true.
+'known/1_1_$special_;/2'(\+functor(A, B, C), D)<=>nonvar(A), functor(A, B, C)|known(D).
+'known/1_1_$special_;/2'(\+functor(A, B, C), _)<=>nonvar(A), \+functor(A, B, C)|true.
+'test/1_1_$special_;/2'(fail, A)<=>test(A).
+'test/1_1_$special_;/2'(A, fail)<=>test(A).
+'test/1_1_$special_=/2'(A, B)<=>A=B|A=B.
+'test/1_1_$special_=/2'(A, B)<=>ground(A), ground(B)|A=B.
+'test/1_1_$special_=/2'(A, B)<=>nonvar(A), var(B)|test(B=A).
+variables(F)\'test/1_1_$special_=/2'(A, B)<=>var(A), nonvar(B), functor(B, D, C), C>0, B=..[D|E], \+all_unique_vars(E, F)|G= (functor(A, D, C), A=B), test(G).
+'test/1_1_$special_=/2'(A, B)<=>var(A), nonvar(B), functor(B, C, D), B=..[C|_]|E=functor(A, C, D), test(E).
+'test/1_1_$special_=/2'(A, B)<=>nonvar(A), nonvar(B), functor(B, C, D), B=..[C|F]|functor(A, C, D), A=..[C|E], add_args_unif(E, F, G), test(G).
+variables(D)\'test/1_1_$special_functor/3'(A, B, C)<=>var(A), ground(B), ground(C), \+memberchk_eq(A, D)|functor(A, B, C).
+'test/1_1_$special_true/0'<=>true.
+'test/1_1_$special_==/2'(A, B)<=>A==B|true.
+'test/1_1_$special_=:=/2'(A, B)<=>A==B|true.
+'test/1_1_$special_=</2'(A, B)<=>A==B|true.
+'test/1_1_$special_=</2'(A, B)<=>ground(A), ground(B), A=<B|true.
+'test/1_1_$special_=</2'(A, B)<=>ground(A), ground(B), A>B|fail.
+'test/1_1_$special_=:=/2'(A, B)<=>ground(A), ground(B), A=:=B|true.
+'test/1_1_$special_=:=/2'(A, B)<=>ground(A), ground(B), A=\=B|fail.
+'test/1_1_$special_=\\=/2'(A, B)<=>ground(A), ground(B), A=\=B|true.
+'test/1_1_$special_=\\=/2'(A, B)<=>ground(A), ground(B), A=:=B|fail.
+'test/1_1_$special_functor/3'(A, B, C)<=>nonvar(A), functor(A, B, C)|true.
+'test/1_1_$special_functor/3'(A, _, _)<=>nonvar(A)|fail.
+'test/1_1_$special_ground/1'(A)<=>ground(A)|true.
+'test/1_1_$special_number/1'(A)<=>number(A)|true.
+'test/1_1_$special_float/1'(A)<=>float(A)|true.
+'test/1_1_$special_integer/1'(A)<=>integer(A)|true.
+'test/1_1_$special_number/1'(A)<=>nonvar(A)|fail.
+'test/1_1_$special_float/1'(A)<=>nonvar(A)|fail.
+'test/1_1_$special_integer/1'(A)<=>nonvar(A)|fail.
+'test/1_1_$special_\\+/1'(functor(A, B, C))<=>nonvar(A), functor(A, B, C)|fail.
+'test/1_1_$special_\\+/1'(functor(A, _, _))<=>nonvar(A)|true.
+'test/1_1_$special_\\+/1'(ground(A))<=>ground(A)|fail.
+'test/1_1_$special_\\+/1'(number(A))<=>number(A)|fail.
+'test/1_1_$special_\\+/1'(float(A))<=>float(A)|fail.
+'test/1_1_$special_\\+/1'(integer(A))<=>integer(A)|fail.
+'test/1_1_$special_\\+/1'(number(A))<=>nonvar(A)|true.
+'test/1_1_$special_\\+/1'(float(A))<=>nonvar(A)|true.
+'test/1_1_$special_\\+/1'(integer(A))<=>nonvar(A)|true.
+'test/1_1_$special_,/2'(A, B)<=>test(A), known(A), test(B).
+'test/1_1_$special_;/2'(A, B)<=>true|negate_b(A, D), negate_b(B, C), (known(C), test(A);known(D), test(B)).
+'test/1_1_$special_,/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, (B, C)), !, negate_b(A, D), known(D), \+try(E, (B, C)).
+'test/1_1_$special_\\+/1'(B), 'known/1_1_$special_;/2'(A, D)<=>true|\+try(A, \+B), !, negate_b(A, C), known(C), \+try(D, \+B).
+'test/1_1_$special_integer/1'(B), 'known/1_1_$special_;/2'(A, D)<=>true|\+try(A, integer(B)), !, negate_b(A, C), known(C), \+try(D, integer(B)).
+'test/1_1_$special_float/1'(B), 'known/1_1_$special_;/2'(A, D)<=>true|\+try(A, float(B)), !, negate_b(A, C), known(C), \+try(D, float(B)).
+'test/1_1_$special_number/1'(B), 'known/1_1_$special_;/2'(A, D)<=>true|\+try(A, number(B)), !, negate_b(A, C), known(C), \+try(D, number(B)).
+'test/1_1_$special_ground/1'(B), 'known/1_1_$special_;/2'(A, D)<=>true|\+try(A, ground(B)), !, negate_b(A, C), known(C), \+try(D, ground(B)).
+'test/1_1_$special_=:=/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B=:=C), !, negate_b(A, D), known(D), \+try(E, B=:=C).
+'test/1_1_$special_==/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B==C), !, negate_b(A, D), known(D), \+try(E, B==C).
+'test/1_1_$special_true/0', 'known/1_1_$special_;/2'(A, C)<=>true|\+try(A, true), !, negate_b(A, B), known(B), \+try(C, true).
+'test/1_1_$special_functor/3'(B, C, D), 'known/1_1_$special_;/2'(A, F)<=>true|\+try(A, functor(B, C, D)), !, negate_b(A, E), known(E), \+try(F, functor(B, C, D)).
+'test/1_1_$special_=/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B=C), !, negate_b(A, D), known(D), \+try(E, B=C).
+'test/1_1_$special_;/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, (B;C)), !, negate_b(A, D), known(D), \+try(E, (B;C)).
+'test/1_1_$special_is/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B is C), !, negate_b(A, D), known(D), \+try(E, B is C).
+'test/1_1_$special_</2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B<C), !, negate_b(A, D), known(D), \+try(E, B<C).
+'test/1_1_$special_>=/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B>=C), !, negate_b(A, D), known(D), \+try(E, B>=C).
+'test/1_1_$special_>/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B>C), !, negate_b(A, D), known(D), \+try(E, B>C).
+'test/1_1_$special_=\\=/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B=\=C), !, negate_b(A, D), known(D), \+try(E, B=\=C).
+'test/1_1_$special_=</2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B=<C), !, negate_b(A, D), known(D), \+try(E, B=<C).
+'test/1_1_$special_\\==/2'(B, C), 'known/1_1_$special_;/2'(A, E)<=>true|\+try(A, B\==C), !, negate_b(A, D), known(D), \+try(E, B\==C).
+'test/1_1_$default'(B), 'known/1_1_$special_;/2'(A, D)<=>true|\+try(A, B), !, negate_b(A, C), known(C), \+try(D, B).
+'test/1_1_$special_,/2'(_, _)<=>fail.
+'test/1_1_$special_\\+/1'(_)<=>fail.
+'test/1_1_$special_integer/1'(_)<=>fail.
+'test/1_1_$special_float/1'(_)<=>fail.
+'test/1_1_$special_number/1'(_)<=>fail.
+'test/1_1_$special_ground/1'(_)<=>fail.
+'test/1_1_$special_=:=/2'(_, _)<=>fail.
+'test/1_1_$special_==/2'(_, _)<=>fail.
+'test/1_1_$special_true/0'<=>fail.
+'test/1_1_$special_functor/3'(_, _, _)<=>fail.
+'test/1_1_$special_=/2'(_, _)<=>fail.
+'test/1_1_$special_;/2'(_, _)<=>fail.
+'test/1_1_$special_is/2'(_, _)<=>fail.
+'test/1_1_$special_</2'(_, _)<=>fail.
+'test/1_1_$special_>=/2'(_, _)<=>fail.
+'test/1_1_$special_>/2'(_, _)<=>fail.
+'test/1_1_$special_=\\=/2'(_, _)<=>fail.
+'test/1_1_$special_=</2'(_, _)<=>fail.
+'test/1_1_$special_\\==/2'(_, _)<=>fail.
+'test/1_1_$default'(_)<=>fail.
+cleanup\'known/1_1_$special_;/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_nonvar/1'(_)<=>true.
+cleanup\'known/1_1_$special_var/1'(_)<=>true.
+cleanup\'known/1_1_$special_atom/1'(_)<=>true.
+cleanup\'known/1_1_$special_atomic/1'(_)<=>true.
+cleanup\'known/1_1_$special_compound/1'(_)<=>true.
+cleanup\'known/1_1_$special_ground/1'(_)<=>true.
+cleanup\'known/1_1_$special_integer/1'(_)<=>true.
+cleanup\'known/1_1_$special_float/1'(_)<=>true.
+cleanup\'known/1_1_$special_number/1'(_)<=>true.
+cleanup\'known/1_1_$special_=\\=/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_\\+/1'(_)<=>true.
+cleanup\'known/1_1_$special_functor/3'(_, _, _)<=>true.
+cleanup\'known/1_1_$special_\\=/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_=/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_,/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_\\==/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_==/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_is/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_</2'(_, _)<=>true.
+cleanup\'known/1_1_$special_>=/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_>/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_=</2'(_, _)<=>true.
+cleanup\'known/1_1_$special_=:=/2'(_, _)<=>true.
+cleanup\'known/1_1_$special_fail/0'<=>true.
+cleanup\'known/1_1_$default'(_)<=>true.
+cleanup\variables(_)<=>true.
+cleanup<=>true.

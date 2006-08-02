@@ -1,6 +1,8 @@
 Aug 2, 2006
 
   * TS: Fixed bug (type alias related) in static type checker. Mike Elston.
+ 
+  * TS: Added static type checking on variable matching in rule heads.
 
 Aug 1, 2006
 
