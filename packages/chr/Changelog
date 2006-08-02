@@ -1,3 +1,7 @@
+Aug 2, 2006
+
+  * TS: Fixed bug (type alias related) in static type checker. Mike Elston.
+
 Aug 1, 2006
 
   * TS: New (limited) compile time type checking of rule heads.

@@ -3719,23 +3719,48 @@ static_type_check_head(Head) :-
 		true 
 	).	
 
-static_type_check_term(Head,Term,Type) :-
-	( var(Term) ->
-		true
-	; builtin_type_nonvar(Type,Term,Goal) ->
+:- chr_constraint static_type_check_term/3.
+
+static_type_check_term(Head,Term,Type) 
+	<=> 
+		var(Term) 
+	| 
+		true.
+static_type_check_term(Head,Term,Type) 
+	<=> 
+		builtin_type_nonvar(Type,Term,Goal)
+	|
 		( call(Goal) ->
 			true
 		;
 			throw(type_error(Head,Term,Type))
-		)	
-	; get_type_definition(Type,Variants), functor(Term,F,A), member(Variant,Variants), functor(Variant,F,A) -> 
-		Term =.. [_|Args],
-		Variant =.. [_|Types],
-		maplist(static_type_check_term(Head),Args,Types)
-	;
-		throw(type_error(Head,Term,Type))	
-	).
-		
+		).	
+type_alias(AType,ADef) \ static_type_check_term(Head,Term,Type)
+	<=>
+		functor(Type,F,A),
+		functor(AType,F,A)
+	|
+		copy_term_nat(AType-ADef,Type-Def),
+		static_type_check_term(Head,Term,Def).
+
+type_definition(AType,ADef) \ static_type_check_term(Head,Term,Type)
+	<=>
+		functor(Type,F,A),
+		functor(AType,F,A)
+	|
+		copy_term_nat(AType-ADef,Type-Variants),
+		functor(Term,TF,TA),
+		( member(Variant,Variants), functor(Variant,TF,TA) -> 
+			Term =.. [_|Args],
+			Variant =.. [_|Types],
+			maplist(static_type_check_term(Head),Args,Types)
+		;
+			throw(type_error(Head,Term,Type))	
+		).
+
+static_type_check_term(Head,Term,Type)
+	<=>
+		chr_error(internal,'Undefined type ~w while type checking term ~w in head ~w.\n',[Type,Term,Head]).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Dynamic type checking
