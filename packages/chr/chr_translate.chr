@@ -3693,17 +3693,19 @@ nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
 rule(_,Rule), static_type_check 
 	==>
 	    	copy_term_nat(Rule,RuleCopy),
-	    	RuleCopy = pragma(rule(Head1,Head2,G,B),ids(IDs1,IDs2),Pragmas,Name,RuleNb),
+	    	RuleCopy = pragma(rule(Head1,Head2,G,Body),ids(IDs1,IDs2),Pragmas,Name,RuleNb),
 		(
 			catch(
 				( static_type_check_heads(Head1),
-			          static_type_check_heads(Head2)
+			          static_type_check_heads(Head2),
+				  conj2list(Body,GoalList),
+				  static_type_check_body(GoalList)
 				),
 				type_error(Error),
-				( Error = invalid_funtor(Head,Term,Type) ->
-	  				chr_error(type_error,'Type error in head ~w of ~@:\n\t\tfound `~w\',\n\t\texpected type `~w\'!\n',[Head,format_rule(Rule),Term,Type])
-				; Error = type_clash(Var,H1,H2,Type1,Type2) ->
-   					chr_error(type_error,'Type clash for variable ~w in ~@:\n\t\texpected type ~w in head ~w\n\t\texpected type ~w in head ~w\n',[Var,format_rule(Rule),Type1,H1,Type2,H2])
+				( Error = invalid_funtor(Src,Term,Type) ->
+	  				chr_error(type_error,'Type error in ~@ of ~@:\n\t\tfound `~w\',\n\t\texpected type `~w\'!\n',[chr_translate:format_src(Src),format_rule(Rule),Term,Type])
+				; Error = type_clash(Var,Src1,Src2,Type1,Type2) ->
+   					chr_error(type_error,'Type clash for variable ~w in ~@:\n\t\texpected type ~w in ~@\n\t\texpected type ~w in ~@\n',[Var,format_rule(Rule),Type1,chr_translate:format_src(Src1),Type2,chr_translate:format_src(Src2)])
 				)
 			),
 			fail % cleanup constraints
@@ -3723,37 +3725,48 @@ static_type_check_head(Head) :-
 	functor(Head,F,A),
 	( get_constraint_type(F/A,Types) ->
 		Head =..[_|Args],
-		maplist(static_type_check_term(Head),Args,Types)
+		maplist(static_type_check_term(head(Head)),Args,Types)
 	; % no type declared
 		true 
 	).	
 
+static_type_check_body([]).
+static_type_check_body([Goal|Goals]) :-
+	functor(Goal,F,A),	
+	( get_constraint_type(F/A,Types) ->
+		Goal =..[_|Args],
+		maplist(static_type_check_term(body(Goal)),Args,Types)
+	; % not a CHR constraint or no type declared
+		true 
+	),	
+	static_type_check_body(Goals).
+
 :- chr_constraint static_type_check_term/3.
 :- chr_constraint static_type_check_var/3.
 
-static_type_check_term(Head,Term,Type) 
+static_type_check_term(Src,Term,Type) 
 	<=> 
 		var(Term) 
 	| 
-		static_type_check_var(Head,Term,Type).
-static_type_check_term(Head,Term,Type) 
+		static_type_check_var(Src,Term,Type).
+static_type_check_term(Src,Term,Type) 
 	<=> 
 		builtin_type_nonvar(Type,Term,Goal)
 	|
 		( call(Goal) ->
 			true
 		;
-			throw(type_error(invalid_funtor(Head,Term,Type)))
+			throw(type_error(invalid_funtor(Src,Term,Type)))
 		).	
-type_alias(AType,ADef) \ static_type_check_term(Head,Term,Type)
+type_alias(AType,ADef) \ static_type_check_term(Src,Term,Type)
 	<=>
 		functor(Type,F,A),
 		functor(AType,F,A)
 	|
 		copy_term_nat(AType-ADef,Type-Def),
-		static_type_check_term(Head,Term,Def).
+		static_type_check_term(Src,Term,Def).
 
-type_definition(AType,ADef) \ static_type_check_term(Head,Term,Type)
+type_definition(AType,ADef) \ static_type_check_term(Src,Term,Type)
 	<=>
 		functor(Type,F,A),
 		functor(AType,F,A)
@@ -3763,36 +3776,39 @@ type_definition(AType,ADef) \ static_type_check_term(Head,Term,Type)
 		( member(Variant,Variants), functor(Variant,TF,TA) -> 
 			Term =.. [_|Args],
 			Variant =.. [_|Types],
-			maplist(static_type_check_term(Head),Args,Types)
+			maplist(static_type_check_term(Src),Args,Types)
 		;
-			throw(type_error(invalid_functor(Head,Term,Type)))	
+			throw(type_error(invalid_functor(Src,Term,Type)))	
 		).
 
-static_type_check_term(Head,Term,Type)
+static_type_check_term(Src,Term,Type)
 	<=>
-		chr_error(internal,'Undefined type ~w while type checking term ~w in head ~w.\n',[Type,Term,Head]).
+		chr_error(internal,'Undefined type ~w while type checking term ~w in ~@.\n',[Type,Term,chr_translate:format_src(Src)]).
 
 
-type_alias(AType,ADef) \ static_type_check_var(Head,Var,Type) 
+type_alias(AType,ADef) \ static_type_check_var(Src,Var,Type) 
 	<=> 
 		functor(AType,F,A),
 		functor(Type,F,A)
 	| 
 		copy_term_nat(AType-ADef,Type-Def),
-		static_type_check_var(Head,Var,Def).
+		static_type_check_var(Src,Var,Def).
 
-static_type_check_var(Head,Var,Type)
+static_type_check_var(Src,Var,Type)
 	<=>
 		builtin_type_nonvar(Type,_,_)
 	|
 		true.
 		
 
-static_type_check_var(Head1,Var,Type1), static_type_check_var(Head2,Var,Type2)
+static_type_check_var(Src1,Var,Type1), static_type_check_var(Src2,Var,Type2)
 	<=>
 		Type1 \== Type2
 	|
-		throw(type_error(type_clash(Var,Head1,Head2,Type1,Type2))).
+		throw(type_error(type_clash(Var,Src1,Src2,Type1,Type2))).
+
+format_src(head(Head)) :- format('head ~w',[Head]).
+format_src(body(Goal)) :- format('body goal ~w',[Goal]).
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Dynamic type checking
 

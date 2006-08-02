@@ -4,6 +4,8 @@ Aug 2, 2006
  
   * TS: Added static type checking on variable matching in rule heads.
 
+  * TS: Added static type checking on CHR constraints in rule bodies.
+
 Aug 1, 2006
 
   * TS: New (limited) compile time type checking of rule heads.
