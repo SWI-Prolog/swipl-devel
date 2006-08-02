@@ -39,6 +39,7 @@
 :- use_module(library(debug)).
 :- use_module(library(option)).
 :- use_module(library(operators)).
+:- use_module(library(prolog_source)).
 
 /** <module> Process source documentation
 The pldoc module processes structured comments in Prolog source files into
@@ -54,23 +55,21 @@ well formatted HTML documents.
 %	
 %	@tbd	Deal with XPCE, etc. implied operators.
 
-read_structured_comments(File, Comments) :-
-	push_operators([]),
-	open(File, read, In),
+read_structured_comments(Source, Comments) :-
+	prolog_canonical_source(Source, Id),
+	prolog_open_source(Id, In),
 	call_cleanup((read_comments(In, Term0, Comments0),
 		      read_comments(Term0, Comments0, In, Comments)),
 		     cleanup(In)).
 
 cleanup(In) :-
-	pop_operators,
-	close(In).
+	prolog_close_source(In).
 
 read_comments(end_of_file, Comments0, _, Comments) :- !,
 	structured_comments(Comments0, Comments, []).
 read_comments(_, Comments0, In, Comments) :-
 	structured_comments(Comments0, Comments, Tail),
 	read_comments(In, Term1, Comments1),
-	update_state(Term1),
 	read_comments(Term1, Comments1, In, Tail).
 	
 structured_comments([], T, T).
@@ -80,15 +79,6 @@ structured_comments([H|Comments], [H|T0], T) :-
 structured_comments([_|Comments], T0, T) :-
 	structured_comments(Comments, T0, T).
 
-update_state(:- Directive) :- !,
-	update_directive(Directive).
-update_state(?- Directive) :- !,
-	update_directive(Directive).
-update_state(_).
-
-update_directive(op(P, T, N)) :- !,
-	push_op(P, T, pldoc:N).
-update_directive(_).
 
 %%	read_comments(+In:stream, -Term, -Comments:list) is det.
 %
@@ -98,10 +88,9 @@ update_directive(_).
 
 read_comments(In, Term, Comments) :-
 	repeat,
-	catch(read_term(In, Term,
-			[ comments(Comments),
-			  module(pldoc)
-			]),
+	catch(prolog_read_source_term(In, Term, _Expanded,
+				      [ comments(Comments)
+				      ]),
 	      E,
 	      (	  print_message(error, E),
 		  fail

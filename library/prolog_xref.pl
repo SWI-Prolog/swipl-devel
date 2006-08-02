@@ -136,31 +136,28 @@ xref_source(Source) :-
 	;   get_time(Modified)		% Actually should be `generation'
 	),
 	assert(source(Src, Modified)),
-	xref_setup(State),
-	call_cleanup(collect(Src), xref_cleanup(State)).
+	xref_setup(Src, In, State),
+	call_cleanup(collect(Src, In), xref_cleanup(State)).
 
-xref_setup(state(Xref, Ref, Style, SM)) :-
+xref_setup(Src, In, state(In, Xref, Ref)) :-
+	prolog_open_source(Src, In),
 	(   current_prolog_flag(xref, Xref)
 	->  true
 	;   Xref = false
 	),
 	set_prolog_flag(xref, true),
-	'$set_source_module'(SM, SM),
-	'$style_check'(Style, Style),
-	push_operators([]),
 	(   verbose
 	->  Ref = []
 	;   asserta(user:message_hook(_,_,_), Ref)
 	).
-xref_cleanup(state(Xref, Ref, Style, SM)) :-
+
+xref_cleanup(state(In, Xref, Ref)) :-
+	prolog_close_source(In),
 	set_prolog_flag(xref, Xref),
 	(   Ref \== []
 	->  erase(Ref)
 	;   true
-	),
-	pop_operators,
-	'$style_check'(_, Style),
-	'$set_source_module'(_, SM).
+	).
 
 %	xref_push_op(Source, +Prec, +Type, :Name)
 %	
@@ -308,8 +305,7 @@ xref_defined_class(Source, Class, file(File)) :-
 	prolog_canonical_source(Source, Src),
 	defined_class(Class, _, _, Src, file(File)).
 
-collect(Src) :-
-	prolog_open_source(Src, Fd),		% also skips #! line if present
+collect(Src, Fd) :-
 	repeat,
 	    '$set_source_module'(SM, SM),
 	    catch(read_term(Fd, Term,
@@ -318,8 +314,7 @@ collect(Src) :-
 			    ]), E, syntax_error(E)),
 	    xref_expand(Term, T),
 	    (   T == end_of_file
-	    ->  !,
-	        close(Fd)
+	    ->  !
 	    ;   arg(2, TermPos, Line),
 		flag(xref_src_line, _, Line),
 	        process(T, Src),
@@ -810,7 +805,7 @@ process_pce_import(op(P,T,N), Src, _) :-
 xref_public_list(File, Path, Public, Src) :-
 	xref_source_file(File, Path, Src),
 	prolog_open_source(Path, Fd),		% skips possible #! line
-	call_cleanup(read(Fd, ModuleDecl), close(Fd)),
+	call_cleanup(read(Fd, ModuleDecl), prolog_close_source(Fd)),
 	ModuleDecl = (:- module(_, Public)).
 
 
@@ -836,7 +831,7 @@ read_src_to_terms(File, Src, Terms) :-
 	xref_source_file(File, Path, Src),
 	prolog_open_source(Path, Fd),
 	call_cleanup(read_clauses(Fd, Terms),
-		     close(Fd)).
+		     prolog_close_source(Fd)).
 	
 read_clauses(In, Terms) :-
 	read_clause(In, C0),

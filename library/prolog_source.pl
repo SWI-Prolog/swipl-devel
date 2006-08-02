@@ -30,9 +30,13 @@
 */
 
 :- module(prolog_source,
-	  [ prolog_open_source/2,	% +Source, -Stream
+	  [ prolog_read_source_term/4,	% +Stream, -Term, -Expanded, +Options
+	    prolog_open_source/2,	% +Source, -Stream
+	    prolog_close_source/1,	% +Stream
 	    prolog_canonical_source/2	% +Spec, -Id
 	  ]).
+:- use_module(operators).
+:- use_module(debug).
 
 /** <module> Examine Prolog source-files
 
@@ -55,10 +59,102 @@ users of the library are:
 	$ PlDoc :	   The documentation framework
 */
 
-%	prolog_open_source(+CanonicalId:atomic, -Stream:stream) is det.
+:- thread_local
+	open_source/2.		% Stream, State
+
+:- multifile
+	requires_library/2.
+
+		 /*******************************
+		 *	     READING		*
+		 *******************************/
+
+%%	prolog_read_source_term(+In, -Term, -Expanded, +Options) is det.
+%
+%	Read a term from a Prolog source-file.  Options is a option list
+%	as normally provided to read_term/3.
+%	
+%	@param Term	Term read
+%	@param Expanded	Result of term-expansion on the term
+
+prolog_read_source_term(In, Term, Expanded, Options) :-
+	'$set_source_module'(SM, SM),
+	read_term(In, Term,
+		  [ module(SM)
+		  | Options
+		  ]),
+	expand(Term, Expanded),
+	update_state(Expanded).
+
+expand(Var, Var) :-
+	var(Var), !.
+expand(Term, _) :-
+	requires_library(Term, Lib),
+	ensure_loaded(user:Lib),
+	fail.
+expand('$:-'(X), '$:-'(X)) :- !,	% boot module
+	style_check(+dollar).
+expand(Term, Expanded) :-
+	expand_term(Term, Expanded).
+
+%	requires_library(+Term, -Library)
+%
+%	known expansion hooks.  May be expanded as multifile predicate.
+
+requires_library((:- emacs_begin_mode(_,_,_,_,_)), library(emacs_extend)).
+requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
+
+%%	update_state(+Expanded) is det.
+%
+%	Update operators and style-check options from the expanded term.
+
+update_state([]) :- !.
+update_state([H|T]) :- !,
+	update_state(H),
+	update_state(T).
+update_state(:- Directive) :- !,
+	update_directive(Directive).
+update_state(?- Directive) :- !,
+	update_directive(Directive).
+update_state(_).
+
+update_directive(module(Module, Public)) :- !,
+	'$set_source_module'(_, Module),
+	public_operators(Public).
+update_directive(op(P,T,N)) :- !,
+	'$set_source_module'(SM, SM),
+	push_op(P,T,SM:N).
+update_directive(style_check(Style)) :-
+	style_check(Style), !.
+update_directive(_).
+
+public_operators([]).
+public_operators([H|T]) :- !,
+	(   H = op(_,_,_)
+	->  update_directive(H)
+	;   true
+	),
+	public_operators(T).
+
+
+		 /*******************************
+		 *	     SOURCES		*
+		 *******************************/
+
+%%	prolog_open_source(+CanonicalId:atomic, -Stream:stream) is det.
 %	
 %	Open source with given canonical id (see canonical_source/2) and
-%	remove the #! line if any.
+%	remove the #! line if any.   Streams opened using this predicate
+%	must be closed using prolog_close_source/1.  Typically using the
+%	skeleton below. Using this skeleton,   operator  and style-check
+%	options are automatically restored to  the values before opening
+%	the source.
+%	
+%	==
+%	process_source(Src) :-
+%		prolog_open_source(Src, In),
+%		call_cleanup(process(Src), prolog_close_source(In)).
+%	==
 
 prolog_open_source(Src, Fd) :-
 	(   prolog:xref_open_source(Src, Fd)
@@ -68,7 +164,26 @@ prolog_open_source(Src, Fd) :-
 	(   peek_char(Fd, #)		% Deal with #! script
 	->  skip(Fd, 10)
 	;   true
-	).
+	),
+	push_operators([]),
+	'$set_source_module'(SM, SM),
+	'$style_check'(Style, Style),
+	asserta(open_source(Fd, state(Style, SM))).
+
+
+%%	prolog_close_source(+In:stream) is det.
+%
+%	Close  a  stream  opened  using  prolog_open_source/2.  Restores
+%	operator and style options.
+
+prolog_close_source(In) :-
+	pop_operators,
+	(   retract(open_source(In, state(Style, SM)))
+	->  '$style_check'(_, Style),
+	    '$set_source_module'(_, SM)
+	;   assertion(fail)
+	),
+	close(In).
 
 
 %%	prolog_canonical_source(+SourceSpec:ground, -Id:atomic) is det.
