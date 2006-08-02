@@ -55,6 +55,7 @@
 :- use_module(library(operators),
 	      [pop_operators/0, push_op/3, push_operators/1]).
 :- use_module(library(shlib), [current_foreign_library/2]).
+:- use_module(library(prolog_source)).
 
 :- dynamic
 	called/3,			% Head, Src, From
@@ -122,13 +123,13 @@ verbose :-
 %	is only done for files.
 
 xref_source(Source) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	(   atom(Src)
 	->  time_file(Src, Modified),
 	    source(Src, Modified)
 	), !.
 xref_source(Source) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	xref_clean(Src),
 	(   atom(Src)
 	->  time_file(Src, Modified)
@@ -182,7 +183,7 @@ xref_push_op(Src, P, T, N0) :- !,
 %	Reset the database for the given source.
 
 xref_clean(Source) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	retractall(called(_, Src, _Origin)),
 	retractall(dynamic(_, Src, Line)),
 	retractall(multifile(_, Src, Line)),
@@ -216,7 +217,7 @@ xref_current_source(Source) :-
 %	Cross-reference executed at Time
 
 xref_done(Source, Time) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	source(Src, Time).
 
 
@@ -226,7 +227,7 @@ xref_done(Source, Time) :-
 %	directives have a By '<directive>'.
 
 xref_called(Source, Called, By) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	called(Called, Src, By).
 
 
@@ -238,7 +239,7 @@ xref_called(Source, Called, By) :-
 %	just locally defined and imported ones.
 
 xref_defined(Source, Called, How) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	xref_defined2(How, Src, Called).
 
 xref_defined2(dynamic(Line), Src, Called) :-
@@ -271,7 +272,7 @@ xref_definition_line(foreign(Line),	 Line).
 
 
 xref_exported(Source, Called) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	exported(Called, Src).
 
 %	xref_module(?Source, ?Module)
@@ -279,7 +280,7 @@ xref_exported(Source, Called) :-
 %	Module(s) defined in Source.
 
 xref_module(Source, Module) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	xmodule(Module, Src).
 
 %	xref_op(?Source, ?op(P,T,N))
@@ -289,26 +290,26 @@ xref_module(Source, Module) :-
 %	source-file.
 
 xref_op(Source, Op) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	xop(Src, Op).
 
 xref_built_in(Head) :-
 	system_predicate(Head).
 
 xref_used_class(Source, Class) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	used_class(Class, Src).
 
 xref_defined_class(Source, Class, local(Line, Super, Summary)) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	defined_class(Class, Super, Summary, Src, Line),
 	integer(Line), !.
 xref_defined_class(Source, Class, file(File)) :-
-	canonical_source(Source, Src),
+	prolog_canonical_source(Source, Src),
 	defined_class(Class, _, _, Src, file(File)).
 
 collect(Src) :-
-	open_source(Src, Fd),		% also skips #! line if present
+	prolog_open_source(Src, Fd),		% also skips #! line if present
 	repeat,
 	    '$set_source_module'(SM, SM),
 	    catch(read_term(Fd, Term,
@@ -808,7 +809,7 @@ process_pce_import(op(P,T,N), Src, _) :-
 
 xref_public_list(File, Path, Public, Src) :-
 	xref_source_file(File, Path, Src),
-	open_source(Path, Fd),		% skips possible #! line
+	prolog_open_source(Path, Fd),		% skips possible #! line
 	call_cleanup(read(Fd, ModuleDecl), close(Fd)),
 	ModuleDecl = (:- module(_, Public)).
 
@@ -833,7 +834,7 @@ process_terms([H|T], Src) :-
 
 read_src_to_terms(File, Src, Terms) :-
 	xref_source_file(File, Path, Src),
-	open_source(Path, Fd),
+	prolog_open_source(Path, Fd),
 	call_cleanup(read_clauses(Fd, Terms),
 		     close(Fd)).
 	
@@ -1213,42 +1214,4 @@ do_xref_source_file(Spec, File) :-
 			     access(read),
 			     file_errors(fail)
 			   ], File), !.
-
-
-%	open_source(+CanonicalId, -Stream)
-%	
-%	Open source with given canonical id (see canonical_source/2) and
-%	remove the #! line if any.
-
-open_source(Src, Fd) :-
-	(   prolog:xref_open_source(Src, Fd)
-	->  true
-	;   open(Src, read, Fd)
-	),
-	(   peek_char(Fd, #)		% Deal with #! script
-	->  skip(Fd, 10)
-	;   true
-	).
-
-
-%	canonical_source(+SourceSpec, -Id)
-%	
-%	Given a user-specification of a source,   generate  a unique and
-%	indexable identifier for it. For  files   we  use  the canonical
-%	absolute filename.
-
-canonical_source(Src, Id) :-		% Call hook
-	prolog:xref_source_identifier(Src, Id), !.
-canonical_source(User, user) :-
-	User == user, !.
-canonical_source(Source, Src) :-
-	absolute_file_name(Source,
-			   [ file_type(prolog),
-			     access(read),
-			     file_errors(fail)
-			   ],
-			   Src), !.
-canonical_source(Source, Src) :-
-	var(Source), !,
-	Src = Source.
 

@@ -25,8 +25,16 @@ Making solid progress.  remaining issues:
 ---++ HTML generation
 
 	* Generate structure for the file/module
+		- Use module declaration
+		- Provide access to filename
 
 ---++ Summary extraction
 
 	* Extract first sentence from description	
 
+---++ Source processing
+
+	* Synchronise source processing between
+		- XREF
+		- PceEmacs
+		- PlDoc

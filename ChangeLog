@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: library prolog_source.pl.  Start to generalise opening, closing
+    and dealing with operators to handle Prolog source documents outside the
+    compiler.
+
   * FIXED: read_term/2,3 comments(-Comments) option loosing first
     character after /*.
 
