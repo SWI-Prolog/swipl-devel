@@ -225,59 +225,6 @@ derived from the prolog flag \const{generate_debug_info}, which
 is \const{true} by default.  See \cmdlineoption{-nodebug}.
 If debugging is enabled, optimization must be disabled.
 
-% 	\termitem{mode}{}
-% This option specifies the mode for a particular constraint. The
-% value is a term with functor and arity equal to that of a constraint.
-% The arguments can be one of \texttt{-}, \texttt{+} or \texttt{?}.
-% The latter is the default. The meaning is the following:
-% 	\begin{description}
-% 	\termitem{-}{} The corresponding argument of every occurrence
-% 	of the constraint is always unbound.
-% 	\termitem{+}{} The corresponding argument of every occurrence
-% 	of the constraint is always ground.
-% 	\termitem{?}{} The corresponding argument of every occurrence
-% 	of the constraint can have any instantiation, which may change
-% 	over time. This is the default value.
-% 	\end{description}
-% The declaration is used by the compiler for various optimizations. 
-% Note that it is up to the user the ensure that the mode declaration
-% is correct with respect to the use of the constraint.
-% This option may occur once for each constraint.
-% 
-% 	\termitem{type_declaration}{}
-% This option specifies the argument types for a particular constraint. The
-% value is a term with functor and arity equal to that of a constraint.
-% The arguments can be a user-defined type or one of
-% the built-in types:
-% 	\begin{description}
-% 	\termitem{int}{} The corresponding argument of every occurrence
-% 	of the constraint is an integer number.
-% 	\termitem{float}{} \ldots a floating point number.
-% 	\termitem{number}{} \ldots a number.
-% 	\termitem{natural}{} \ldots a positive integer.
-% 	\termitem{any}{} The corresponding argument of every occurrence
-% 	of the constraint can have any type. This is the default value.
-% 	\end{description}
-% 
-% Currently, type declarations are only used to improve certain
-% optimizations (guard simplification, occurrence subsumption, \ldots).
-% 
-% 	\termitem{type_definition}{}
-% This option defines a new user-defined type which can be used in
-% type declarations. The value is a term of the form
-% \texttt{type(} \textsf{name} \texttt{,} \textsf{list} \texttt{)}, where
-% \textsf{name} is a term and \textsf{list} is a list of alternatives.
-% Variables can be used to define generic types. Recursive definitions
-% are allowed. Examples are 
-% 
-% \begin{code}
-% type(bool,[true,false]).
-% type(complex_number,[float + float * i]).
-% type(binary_tree(T),[ leaf(T) | node(binary_tree(T),binary_tree(T)) ]).
-% type(list(T),[ [] | [T | list(T)]).
-% \end{code}
-% 
- 
 \end{description}
  
 % The above mode, type_declaration and type_definition options are deprecated. 
@@ -296,9 +243,9 @@ never load different \fileext{pl} files with the same CHR module name.
 \subsection{Constraint declaration}
 
 Every constraint used in CHR rules has to be declared with a
-chr_constraint/1. declaration by the {\em constraint
+chr_constraint/1 declaration by the {\em constraint
 specifier}. For convenience multiple constraints may be declared at once with
-the same \predref{chr_constraint} declaration followed by a comma-separated
+the same \predref{chr_constraint}{1} declaration followed by a comma-separated
 list of constraint specifiers.
 
 A constraint specifier is, in its compact form, \texttt{$F$/$A$} where $F$ and $A$ are respectively
@@ -396,7 +343,7 @@ of lists of integers, you can define an alias as follows:
 
 \paragraph{Type Checking}
 
-Currently two complimentary forms of type checking are performed: 
+Currently two complementary forms of type checking are performed: 
 \begin{enumerate}
 \item Static type checking is always performed by the compiler. It is
       limited to CHR rule heads and CHR constraint calls in rule bodies.       
@@ -445,7 +392,7 @@ CHR compiler ERROR:
 
 \item Dynamic type checking checks at runtime, during program execution, 
       whether the arguments of CHR constraints respect their declared types.
-      The \predref{when} co-routining library is used to delay dynamic type
+      The \predref{when}{2} co-routining library is used to delay dynamic type
       checks until variables are instantiated.
 
       The kind of error detected by dynamic type checking is where a functor
