@@ -3,18 +3,20 @@
 This chapter is written by Tom Schrijvers, K.U. Leuven, and adjustments by
 Jan Wielemaker.
 
-The CHR system of SWI-Prolog is the K.U.Leuven CHR system.  The runtime
+The CHR system of SWI-Prolog is the {\em K.U.Leuven CHR system}. The runtime
 environment is written by Christian Holzbaur and Tom Schrijvers while the
 compiler is written by Tom Schrijvers. Both are integrated with SWI-Prolog
 and licensed under compatible conditions with permission from the authors.
 
-The main reference for SWI-Prolog's CHR system is:
+The main reference for the K.U.Leuven CHR system is:
 \begin{itemize}
 \item T. Schrijvers, and B. Demoen, {\em The K.U.Leuven CHR System: Implementation
 and Application}, First Workshop on Constraint Handling Rules: Selected
 Contributions (Fr\"uhwirth, T. and Meister, M., eds.), pp. 1--5, 2004.
 \end{itemize}
 
+On the K.U.Leuven CHR website (\url{http://www.cs.kuleuven.be/\~{}toms/CHR/})
+you can find more related papers, references and example programs. 
 
 \section{Introduction}
 %=====================
