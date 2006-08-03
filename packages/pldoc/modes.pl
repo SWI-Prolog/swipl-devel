@@ -31,10 +31,11 @@
 
 :- module(pldoc_modes,
 	  [ process_modes/4,		% +Lines, -Modes, -Args, -RestLines
-	    assert_modes/1,		% +Modes
+	    store_modes/2,		% +Modes, +SourcePos
 	    mode/2,			% ?:Head, -Det
 	    is_mode/1,			% @Mode
-	    mode_indicator/1		% ?Atom
+	    mode_indicator/1,		% ?Atom
+	    modes_to_predicate_indicators/2 % +Modes, -PIs
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(memfile)).
@@ -171,33 +172,80 @@ extract_varnames(mode(_, Bindings), VN0, VN) :- !,
 	extract_varnames(Bindings, VN0, VN).
 extract_varnames(Name=_, [Name|VN], VN).
 
-%%	assert_modes(+Modes) is det.
+%%	store_modes(+Modes, +SourcePos) is det.
+%
+%	Assert modes into the database with the given position.
+%	
+%	@param Modes	  List if mode-terms.  See process_modes/4.
+%	@param SourcePos  Term File:Line
 
-assert_modes(Modes) :-
-	maplist(retract_old_mode, Modes),
-	maplist(assert_mode, Modes).
+store_modes([], _).
+store_modes([mode(Mode, _Bindings)|T], Pos) :-
+	store_mode(Mode, Pos),
+	store_modes(T, Pos).
 
-retract_old_mode(Spec is _) :- !,
-	retract_old_mode(Spec).
-retract_old_mode(Spec) :-
-	functor(Spec, Name, Arity),
-	functor(Gen, Name, Arity),
-	prolog_load_context(module, M),
-	retractall(mode(Gen, M, _)).
+store_mode(Head0 is Det, Pos) :- !,
+	dcg_expand(Head0, Head),
+	'$record_clause'('$mode'(Head, Det), Pos, _Ref).
+store_mode(Head0, Pos) :-
+	dcg_expand(Head0, Head),
+	'$record_clause'('$mode'(Head, unknown), Pos, _Ref).
+	
+dcg_expand(//(Head0), Head) :- !,
+	Head0 =.. [Name|List0],
+	maplist(remove_argname, List0, List1),
+	append(List1, [?list, ?list], List2),
+	Head =.. [Name|List2].
+dcg_expand(Head0, Head) :-
+	remove_argnames(Head0, Head).
 
-assert_mode(Spec is Det) :- !,
-	prolog_load_context(module, M),
-	assert(mode(Spec, M, Det)).
-assert_mode(Spec) :-
-	assert_mode(Spec is unknown).
+remove_argnames(Head0, Head) :-
+	functor(Head0, Name, Arity),
+	functor(Head, Name, Arity),
+	remove_argnames(0, Arity, Head0, Head).
 
-%%	mode(:Head, ?Determinism) is nondet.
+remove_argnames(Arity, Arity, _, _) :- !.
+remove_argnames(I0, Arity, H0, H) :-
+	I is I0 + 1,
+	arg(I, H0, A0),
+	remove_argname(A0, A),
+	arg(I, H, A),
+	remove_argnames(I, Arity, H0, H).
 
-mode(Module:Head, Det) :- !,
-	mode(Head, Module, Det).
-mode(Spec, Det) :-
-	strip_module(Spec, Module, Head),
-	mode(Head, Module, Det).
+remove_argname(T, ?(any)) :-
+	var(T), !.
+remove_argname(A0, A) :-
+	mode_ind(A0, M, A1), !,
+	remove_aname(A1, A2),
+	mode_ind(A, M, A2).
+remove_argname(A0, ?A) :-
+	remove_aname(A0, A).
+
+remove_aname(Var, any) :-
+	var(Var), !.
+remove_aname(_:Type, Type) :- !.
+
+
+%%	mode(:Head, Det) is nondet.
+
+:- module_transparent
+	mode/2.
+
+mode(Head, Det) :-
+	var(Head), !,
+	current_module(M),
+	'$c_current_predicate'(_, M:'$mode'(_,_)),
+	M:'$mode'(H,Det),
+	qualify(M,H,Head).
+mode(M:Head, Det) :-
+	current_module(M),
+	'$c_current_predicate'(_, M:'$mode'(_,_)),
+	M:'$mode'(Head,Det).
+
+qualify(system, H, H) :- !.
+qualify(user,   H, H) :- !.
+qualify(M,      H, M:H).
+
 
 %%	is_mode(@Head) is semidet.
 %
@@ -255,3 +303,38 @@ mode_indicator(:).			% Meta-argument (implies +)
 mode_indicator(@).			% Not instantiated by pred
 mode_indicator(!).			% Mutable term
 
+mode_ind(+(X), +, X).
+mode_ind(-(X), -, X).
+mode_ind(?(X), ?, X).
+mode_ind(:(X), :, X).
+mode_ind(@(X), @, X).
+mode_ind(!(X), !, X).
+
+
+%%	modes_to_predicate_indicators(+Modes:list, -PI:list) is det.
+%	
+%	Create a list of predicate indicators represented by Modes. Each
+%	predicate indicator is  of  the   form  atom/integer  for normal
+%	predicates or atom//integer for DCG rules.
+%	
+%	@param Modes	Mode-list as produced by process_modes/2
+%	@param PI	List of Name/Arity or Name//Arity without duplicates
+
+modes_to_predicate_indicators(Modes, PIs) :-
+	modes_to_predicate_indicators2(Modes, PIs0),
+	list_to_set(PIs0, PIs).
+
+modes_to_predicate_indicators2([], []).
+modes_to_predicate_indicators2([H|T0], [PI|T]) :-
+	mode_to_pi(H, PI),
+	modes_to_predicate_indicators2(T0, T).
+
+mode_to_pi(Head is _Det, PI) :- !,
+	head_to_pi(Head, PI).
+mode_to_pi(Head, PI) :-
+	head_to_pi(Head, PI).
+
+head_to_pi(//(Head), Name//Arity) :- !,
+	functor(Head, Name, Arity).
+head_to_pi(Head, Name/Arity) :-
+	functor(Head, Name, Arity).

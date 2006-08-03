@@ -34,8 +34,8 @@
 	    is_structured_comment/2,	% +Comment, -Prefixes
 	    doc_file_name/3		% +Source, -Doc, +Options
 	  ]).
-:- use_module(wiki).
 :- use_module(modes).
+:- use_module(wiki).
 :- use_module(library(debug)).
 :- use_module(library(option)).
 :- use_module(library(operators)).
@@ -142,8 +142,63 @@ doc_file_name(Source, Doc, Options) :-
 
 
 		 /*******************************
+		 *	CALL-BACK COLLECT	*
+		 *******************************/
+
+%%	process_comments(+Comments:list) is det.
+%
+%	Processes comments returned by read_term/3 using the =comments=
+%	option.  It creates clauses of the form
+%	
+%		* '$mode'(Head, Det)
+%		* '$pldoc'(Id, Type, DOM)
+%	
+%	where object is one of 
+%	
+%		* =predicate=
+%		* =module=
+%		* =section=
+
+process_comments([]).
+process_comments([H|T]) :-
+	process_comment(H),
+	process_comments(T).
+
+process_comment(Pos-Comment) :-
+	is_structured_comment(Comment, Prefixes), !,
+	stream_position_data(line_count, Pos, Line),
+	source_location(File, _Line),
+	FilePos = File:Line,
+	(   process_structured_comment(FilePos, Comment, Prefixes)
+	->  true
+	;   format('Failed to process ~s~n', [Comment])
+	).
+process_comment(_).
+
+process_structured_comment(FilePos, Comment, Prefixes) :-
+	indented_lines(Comment, Prefixes, Lines),
+	(   section_comment_header(Lines, Header, Lines1)
+	->  DOM = [Header|DOM1],
+	    Args = [],
+	    Type = section,		% TBD
+	    Id = (-)
+	;   process_modes(Lines, Modes, Args, Lines1)
+	->  store_modes(Modes, FilePos),
+	    DOM = [\pred_dt(Modes), dd(class=defbody, DOM1)],
+	    Type = predicate
+	),
+	wiki_lines_to_dom(Lines1, Args, DOM0),
+	strip_leading_par(DOM0, DOM1),
+	'$record_clause'('$pldoc'(Id, Type, DOM), FilePos, _Ref).
+
+
+		 /*******************************
 		 *	      REGISTER		*
 		 *******************************/
 
-%:- prolog_set_comment_hook(process_comment).
+:- multifile
+	prolog:comment_hook/3.
+
+prolog:comment_hook(Comments, _TermPos, _Term) :-
+	process_comments(Comments).
 
