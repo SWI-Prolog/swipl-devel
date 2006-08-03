@@ -828,8 +828,8 @@ Comparison and unification of arbitrary terms. Terms are ordered in the
 so called ``standard order''. This order is defined as follows:
 
 \begin{enumerate}
-    \item $\arg{Variables} < \arg{Atoms} < \arg{Strings}
-          < \arg{Numbers} < \arg{Terms}$%
+    \item $\arg{Variables} < \arg{Numbers} < \arg{Atoms} < \arg{Strings}
+          < \arg{Comound Terms}$%
 	\footnote{Strings might be considered atoms in future versions. See
 		  also \secref{strings}}
     \item Variables are sorted by address.  Attaching attributes 
