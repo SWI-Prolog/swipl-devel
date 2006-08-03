@@ -63,7 +63,10 @@ users of the library are:
 	open_source/2.		% Stream, State
 
 :- multifile
-	requires_library/2.
+	requires_library/2,
+	prolog:xref_source_identifier/2,	% +Source, -Id
+	prolog:xref_open_source/2.		% +SourceId, -Stream
+
 
 		 /*******************************
 		 *	     READING		*

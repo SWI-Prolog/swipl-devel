@@ -1178,9 +1178,8 @@ hooking can be databases, (HTTP) URIs, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- multifile
-	prolog:xref_source_identifier/2,	% +Source, -Id
-	prolog:xref_source_directory/2,		% +Source, -Dir
-	prolog:xref_open_source/2.		% +SourceId, -Stream
+	prolog:xref_source_directory/2.		% +Source, -Dir
+
 
 %	xref_source_file(+Spec, -File, +Src)
 %	
