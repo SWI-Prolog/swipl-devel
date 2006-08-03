@@ -3686,7 +3686,14 @@ nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Static type checking
-
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Checks head constraints and CHR constraint calls in bodies. 
+%
+% TODO:
+% 	- type clashes involving built-in types
+%	- Prolog built-ins in guard and body
+%	- indicate position in terms in error messages
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 :- chr_constraint
 	static_type_check/0.
 
@@ -3702,10 +3709,12 @@ rule(_,Rule), static_type_check
 				  static_type_check_body(GoalList)
 				),
 				type_error(Error),
-				( Error = invalid_funtor(Src,Term,Type) ->
-	  				chr_error(type_error,'Type error in ~@ of ~@:\n\t\tfound `~w\',\n\t\texpected type `~w\'!\n',[chr_translate:format_src(Src),format_rule(Rule),Term,Type])
+				( Error = invalid_functor(Src,Term,Type) ->
+	  				chr_error(type_error,'Invalid functor in ~@ of ~@:\n\t\tfound `~w\',\n\t\texpected type `~w\'!\n',
+						[chr_translate:format_src(Src),format_rule(Rule),Term,Type])
 				; Error = type_clash(Var,Src1,Src2,Type1,Type2) ->
-   					chr_error(type_error,'Type clash for variable ~w in ~@:\n\t\texpected type ~w in ~@\n\t\texpected type ~w in ~@\n',[Var,format_rule(Rule),Type1,chr_translate:format_src(Src1),Type2,chr_translate:format_src(Src2)])
+   					chr_error(type_error,'Type clash for variable ~w in ~@:\n\t\texpected type ~w in ~@\n\t\texpected type ~w in ~@\n',
+						[Var,format_rule(Rule),Type1,chr_translate:format_src(Src1),Type2,chr_translate:format_src(Src2)])
 				)
 			),
 			fail % cleanup constraints
@@ -3742,7 +3751,6 @@ static_type_check_body([Goal|Goals]) :-
 	static_type_check_body(Goals).
 
 :- chr_constraint static_type_check_term/3.
-:- chr_constraint static_type_check_var/3.
 
 static_type_check_term(Src,Term,Type) 
 	<=> 
@@ -3785,6 +3793,7 @@ static_type_check_term(Src,Term,Type)
 	<=>
 		chr_error(internal,'Undefined type ~w while type checking term ~w in ~@.\n',[Type,Term,chr_translate:format_src(Src)]).
 
+:- chr_constraint static_type_check_var/3.
 
 type_alias(AType,ADef) \ static_type_check_var(Src,Var,Type) 
 	<=> 
@@ -3809,8 +3818,10 @@ static_type_check_var(Src1,Var,Type1), static_type_check_var(Src2,Var,Type2)
 
 format_src(head(Head)) :- format('head ~w',[Head]).
 format_src(body(Goal)) :- format('body goal ~w',[Goal]).
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Dynamic type checking
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :- chr_constraint
 	dynamic_type_check/0,

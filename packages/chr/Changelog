@@ -1,3 +1,9 @@
+Aug 3, 2006
+
+  * TS: Fixed typo in static type checker.
+
+  * TS: Documented static and dynamic type checking.
+
 Aug 2, 2006
 
   * TS: Fixed bug (type alias related) in static type checker. Mike Elston.
