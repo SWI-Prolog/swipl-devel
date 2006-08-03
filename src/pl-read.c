@@ -820,7 +820,8 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			addToBuffer(' ', _PL_rd);
 		    }
 		    if ( c == '\n' )
-		    { addToBuffer(c, _PL_rd);
+		    { if ( something_read )
+			addToBuffer(c, _PL_rd);
 		      c = getchr();
 		      if ( c == '%' )
 		      { addUTF8Buffer(cbuf, '\n');

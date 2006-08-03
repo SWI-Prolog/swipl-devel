@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Interaction problem between comments and subterm-positions
+    options in read_term/3.  Lukas Degener.
+
   * ADDED: library prolog_source.pl.  Start to generalise opening, closing
     and dealing with operators to handle Prolog source documents outside the
     compiler.
