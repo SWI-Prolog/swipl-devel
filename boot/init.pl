@@ -1102,7 +1102,7 @@ load_files(Files, Options) :-
 	->  skip(In, 10)
 	;   true
 	),
-	read_clause(In, First),
+	'$read_clause'(In, First),
 	'$load_file'(First, In, File, Import, IsModule, Module).
 
 '$load_file'((?- module(Module, Public)), In, File, all, _, Module) :- !,
@@ -1230,7 +1230,7 @@ load_files(Files, Options) :-
 	      
 '$consult_stream2'(In, File) :-
 	repeat,
-	    read_clause(In, Clause),
+	    '$read_clause'(In, Clause),
 	    expand_term(Clause, Expanded),
 	    '$store_clause'(Expanded, File),
 	    Clause == end_of_file, !.
@@ -1404,7 +1404,7 @@ expand_term(Term, Term).
 			   ], Path),
 	'$push_input_context',
 	open(Path, read, In),
-	read_clause(In, Term0),
+	'$read_clause'(In, Term0),
 	'$read_include_file'(Term0, In, Terms),
 	close(In),
 	'$pop_input_context',
@@ -1412,13 +1412,40 @@ expand_term(Term, Term).
 
 '$read_include_file'(end_of_file, _, []) :- !.
 '$read_include_file'(T0, In, [T0|T]) :-
-	read_clause(In, T1),
+	'$read_clause'(In, T1),
 	'$read_include_file'(T1, In, T).
 
 '$consult_clauses'([], _).
 '$consult_clauses'([H|T], File) :-
 	'$consult_clause'(H, File),
 	'$consult_clauses'(T, File).
+
+
+		 /*******************************
+		 *	       READING		*
+		 *******************************/
+
+:- multifile
+	prolog:comment_hook/3.
+
+'$read_clause'(In, Term) :-
+	'$get_predicate_attribute'(prolog:comment_hook(_,_,_),
+				   number_of_clauses, N),
+	N > 0, !,
+	read_term(In, Term,
+		  [ singletons(warning),
+		    errors(dec10),
+		    comments(Comments),
+		    term_position(Pos)
+		  ]),
+	(   catch(prolog:comment_hook(Comments, Pos, Term), E,
+		  print_message(error, E))
+	->  true
+	;   true
+	).
+'$read_clause'(In, Term) :-
+	read_clause(In, Term).
+
 
 
 		 /*******************************
