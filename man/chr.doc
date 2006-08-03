@@ -316,6 +316,8 @@ specifiers. An argument specifier is a mode, optionally followed by a type. E.g.
                    alldifferent(?list(int)).
 \end{code}
 
+\paragraph{Modes}
+
 A mode is one of:
 	\begin{description}
 	\termitem{-}{} The corresponding argument of every occurrence
@@ -327,14 +329,13 @@ A mode is one of:
 	over time. This is the default value.
 	\end{description}
 
+\paragraph{Types}
+
 A type can be a user-defined type or one of the built-in types. A type
 comprises a (possibly infinite) set of values. The type declaration for a
 constraint argument means that for every instance of that constraint the
 corresponding argument is only ever bound to values in that set. It does not
-state that the argument necessarily has to be bound to a value. Note that
-types are (currently) \textbf{not enforced}: the programmer should verify
-that all type declarations are correct. In the future dynamic and static
-type checking features will be added. 
+state that the argument necessarily has to be bound to a value. 
 
 The built-in types are:
 	\begin{description}
@@ -391,6 +392,81 @@ of lists of integers, you can define an alias as follows:
 :- chr_type lli == list(list(int)).
 \end{code}
 
+\paragraph{Type Checking}
+
+Currently two complimentary forms of type checking are performed: 
+\begin{enumerate}
+\item Static type checking is always performed by the compiler. It is
+      limited to CHR rule heads and CHR constraint calls in rule bodies.       
+
+      Two kinds of type error are detected. The first is where a variable
+      has to belong to two types. For example, in the program:
+\begin{code}
+:-chr_type foo ---> foo.
+:-chr_type bar ---> bar.
+
+:-chr_constraint abc(?foo).
+:-chr_constraint def(?bar).
+
+foobar @ abc(X) <=> def(X).
+\end{code}
+      the variable \texttt{X} has to be of both type \texttt{foo} and \texttt{bar}.
+      This is reported by the type clash error:
+      \begin{code}
+CHR compiler ERROR:
+    `--> Type clash for variable _G5398 in rule foobar:
+                expected type foo in body goal def(_G5398, _G5448)
+                expected type bar in head def(_G5448, _G5398)
+\end{code}
+
+      The second kind of error is where a functor is used that does not belong
+      to the declared type. For example in: 
+\begin{code}
+:-chr_type foo ---> foo.
+:-chr_type bar ---> bar.
+
+:-chr_constraint abc(?foo).
+
+foo @ abc(bar) <=> true.
+\end{code}
+in the head of the rule \texttt{bar} appears where something of type \texttt{foo}
+is expected. This is reported as:
+\begin{code}
+CHR compiler ERROR:
+    `--> Invalid functor in head abc(bar) of rule foo:
+                found `bar',
+                expected type `foo'!
+\end{code}
+
+
+      No runtime overhead is incurred in static type checking. 
+
+\item Dynamic type checking checks at runtime, during program execution, 
+      whether the arguments of CHR constraints respect their declared types.
+      The \predref{when} co-routining library is used to delay dynamic type
+      checks until variables are instantiated.
+
+      The kind of error detected by dynamic type checking is where a functor
+      is used that does not belong to the declared type. E.g. for the program:
+\begin{code}	
+:-chr_type foo ---> foo.
+
+:-chr_constraint abc(?foo).
+\end{code}
+      we get the following error in an erroneous query:
+\begin{code}
+?- abc(bar).
+ERROR: Type error: `foo' expected, found `bar' (CHR Runtime Type Error)
+\end{code}
+
+      Dynamic type checking is weaker than static type checking in the sense
+      that it only checks the particular program execution at hand rather than
+      all possible executions. It is stronger in the sense that it tracks types
+      throughout the whole program. 
+	
+      Note that it is enabled only in debug mode, as it incurs some (minor)
+      runtime overhead.
+\end{enumerate}
 
 \subsection{Compilation}
 %--------------------
@@ -708,3 +784,24 @@ qcompile/1 to generate a \fileext{qlf} file once from your
 CHR compiler (be it in a binary format). When you consult the \fileext{qlf}
 file, the CHR compiler is not invoked and consultation is much faster.
 \end{itemlist}
+
+\section{Compiler Errors and Warnings} 			\label{sec:errors}
+%==================
+
+In this section we summarize the most important error and warning messages
+of the CHR compiler. \textbf{Under construction.}
+
+\subsection{CHR Compiler Errors}
+
+\begin{description}
+\item[Type clash] for variable ... in rule ...
+
+	This error indicates an inconsistency between declared types;
+	a variable should belong to two types. See static type checking.
+
+\item[Invalid functor] in head ... of rule ...
+
+	This error indicates an inconsistency between a declared type
+	and the use of a functor in a rule. See static type checking.
+
+\end{description}
