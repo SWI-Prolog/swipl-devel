@@ -27,6 +27,18 @@ Making solid progress.  remaining issues:
 	* Generate structure for the file/module
 		- Use module declaration
 		- Provide access to filename
+		- Use info from loaded system?  XREF?
+
+---++ After Compilation with library(pldoc) loaded:
+
+	* pldoc_comment(predicate(?:Callable), -Modes, -Comment).
+	  pldoc_comment(module(Module), -Comment).
+	  ...
+
+	* Can be combined with XREF info and/or normal meta-info
+	
+	* Gathering can also be hooked into XREF by loading pldoc
+	  and xref.
 
 ---++ Summary extraction
 

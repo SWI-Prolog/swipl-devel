@@ -49,11 +49,13 @@ well formatted HTML documents.
 @license GPL
 */
 
-%%	read_structured_comments(+File, -Comments)
+		 /*******************************
+		 *	    READING MODE	*
+		 *******************************/
+
+%%	read_structured_comments(+File, -Comments) is det.
 %
-%	Read the comments from file.
-%	
-%	@tbd	Deal with XPCE, etc. implied operators.
+%	Read the structured comments from file.
 
 read_structured_comments(Source, Comments) :-
 	prolog_canonical_source(Source, Id),
@@ -120,7 +122,12 @@ is_structured_comment(Comment, Prefixes) :-
 
 %%	doc_file_name(+Source:atom, -Doc:atom, +Options:list) is det.
 %
-%	Doc is the name of the file documenting Source.
+%	@param Source	Prolog source to be documented
+%	@param Doc	the name of the file documenting Source.
+%	@param Options	Option list:
+%			
+%			* format(-Format)
+%			Output format.  One of =html= or =latex=
 %	
 %	@error	permission_error(overwrite, Source)
 
