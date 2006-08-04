@@ -635,10 +635,10 @@ extract_type_mode([C|R],[C2|R2]) :-
 extract_types_and_modes([],[],[]).
 extract_types_and_modes([+(T)|R],[T|R2],[(+)|R3]) :- !,extract_types_and_modes(R,R2,R3).
 extract_types_and_modes([?(T)|R],[T|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
-extract_types_and_modes([-(T)|R],[T|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
+extract_types_and_modes([-(T)|R],[T|R2],[(-)|R3]) :- !,extract_types_and_modes(R,R2,R3).
 extract_types_and_modes([(+)|R],[any|R2],[(+)|R3]) :- !,extract_types_and_modes(R,R2,R3).
 extract_types_and_modes([(?)|R],[any|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
-extract_types_and_modes([(-)|R],[any|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
+extract_types_and_modes([(-)|R],[any|R2],[(-)|R3]) :- !,extract_types_and_modes(R,R2,R3).
 extract_types_and_modes([Illegal|R],_,_) :- 
     chr_error(syntax(Illegal),'Illegal mode/type declaration.\n\tCorrect syntax is +type, -type or ?type\n\tor +, - or ?.\n',[]).
 
@@ -1436,7 +1436,7 @@ create_indexed_variables_body([],[],_,_,_,empty,0).
 create_indexed_variables_body([V|Vs],[Mode|Modes],Vars,I,FA,Body,N) :-
 	J is I + 1,
 	create_indexed_variables_body(Vs,Modes,Tail,J,FA,RBody,M),
-	( Mode \== (+),
+	( Mode == (?),
           is_indexed_argument(FA,I) ->
 		( RBody == empty ->
 			Body = term_variables(V,Vars)
@@ -1444,7 +1444,14 @@ create_indexed_variables_body([V|Vs],[Mode|Modes],Vars,I,FA,Body,N) :-
 			Body = (term_variables(V,Vars,Tail),RBody)
 		),
 		N = M
-	;
+	; Mode == (-), is_indexed_argument(FA,I) ->
+		( RBody == empty ->
+			Body = (Vars = [V])
+		;
+			Body = (Vars = [V|Tail],RBody)
+		),
+		N = M
+	; 
 		Vars = Tail,
 		Body = RBody,
 		N is M + 1
@@ -1662,12 +1669,17 @@ generate_activate_clause(Constraint,List,Tail) :-
 		;
 			get_dynamic_suspension_term_field(arguments,Constraint,Susp,Arguments,ArgumentsGoal),
 			generate_indexed_variables_body(Constraint,Arguments,IndexedVariablesBody,Vars),
+			( chr_pp_flag(guard_locks,off) ->
+				NoneLocked = true
+			;
+				NoneLocked = 'chr none_locked'( Vars)
+			),
 			StoreVarsGoal = 
 				( State == not_stored_yet ->		% compound(State) ->			% passive/1
 				    Store = yes,
 				    ArgumentsGoal,
 				    IndexedVariablesBody, 
-				    'chr none_locked'( Vars)
+			            NoneLocked	    
 %				; State == removed ->			% the price for eager removal ... % XXX redundant ?
 %				    chr_indexed_variables(Susp,Vars),
 %				    Store = yes
@@ -1821,12 +1833,17 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 			    )
 		;
 			generate_indexed_variables_body(Constraint,Args,IndexedVariablesBody,Vars),
+			( chr_pp_flag(guard_locks,off) ->
+				NoneLocked = true
+			;
+				NoneLocked = 'chr none_locked'( Vars)
+			),
 			Clause =
 			(
 				Head :-
 					% Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
 					IndexedVariablesBody, % chr_indexed_variables(Self,Vars),
-					'chr none_locked'(Vars),
+					NoneLocked,
                                         'chr create_mutable'(active,Mref), % Mref = mutable(active),
 			                'chr create_mutable'(0,Gref),   % Gref = mutable(0),
 			                % 'chr empty_history'(History),
@@ -4976,19 +4993,24 @@ passive_head_via(Head,PrevHeads,VarDict,Goal,AllSusps) :-
 	functor(Head,F,A),
 	get_constraint_index(F/A,Pos),
 	common_variables(Head,PrevHeads,CommonVars),
-	translate(CommonVars,VarDict,Vars),
-      	global_list_store_name(F/A,Name),
+	global_list_store_name(F/A,Name),
        	GlobalGoal = nb_getval(Name,AllSusps),
+	get_constraint_mode(F/A,ArgModes),
 	( Vars == [] ->
 		Goal = GlobalGoal
+	; member(CommonVar,CommonVars), nth(I,ArgModes,(-)), arg(I,Head,Arg), Arg == CommonVar ->
+		translate([CommonVar],VarDict,[Var]),
+		gen_get_mod_constraints(F/A,Var,AttrGoal,AllSusps),
+		Goal = AttrGoal
 	; 
+		translate(CommonVars,VarDict,Vars),
 		gen_get_mod_constraints(F/A,Vars,ViaGoal,AttrGoal,AllSusps),
 		Goal = 
-		( ViaGoal ->
-			AttrGoal
-		;
-			GlobalGoal
-		)
+			( ViaGoal ->
+				AttrGoal
+			;
+				GlobalGoal
+			)
 	).
  
 common_variables(T,Ts,Vs) :-
@@ -5007,6 +5029,22 @@ gen_get_mod_constraints(FA,Vars,ViaGoal,AttrGoal,AllSusps) :-
        	),
        	AttrGoal =
        	(   get_attr(V,Mod,TSusps),
+	    TSuspsEqSusps % TSusps = Susps
+       	),
+	get_max_constraint_index(N),
+	( N == 1 ->
+	    	TSuspsEqSusps = true, % TSusps = Susps
+		AllSusps = TSusps
+	;
+		TSuspsEqSusps = (TSusps = Susps),
+		get_constraint_index(FA,Pos),
+		make_attr(N,_,SuspsList,Susps),
+		nth1(Pos,SuspsList,AllSusps)
+	).
+gen_get_mod_constraints(FA,Var,AttrGoal,AllSusps) :-
+	get_target_module(Mod),
+       	AttrGoal =
+       	(   get_attr(Var,Mod,TSusps),
 	    TSuspsEqSusps % TSusps = Susps
        	),
 	get_max_constraint_index(N),
@@ -5586,12 +5624,12 @@ propagation_nested_code([Head|RestHeads],PreHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,
 %check_fd_lookup_condition(_,_,_,_) :- fail.
 check_fd_lookup_condition(F,A,_,_) :-
 	get_store_type(F/A,global_singleton), !.
-%check_fd_lookup_condition(F,A,CurrentHead,PreHeads) :-
-%	\+ may_trigger(F/A),
-%	get_functional_dependency(F/A,1,P,K),
-%	copy_term(P-K,CurrentHead-Key),
-%	term_variables(PreHeads,PreVars),
-%	intersect_eq(Key,PreVars,Key),!,writeln(use_fd(F/A)).		
+check_fd_lookup_condition(F,A,CurrentHead,PreHeads) :-
+	\+ may_trigger(F/A),
+	get_functional_dependency(F/A,1,P,K),
+	copy_term(P-K,CurrentHead-Key),
+	term_variables(PreHeads,PreVars),
+	intersect_eq(Key,PreVars,Key),!.		
 
 propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	Rule = rule(_,H2,Guard,Body),
@@ -6077,7 +6115,7 @@ existential_lookup(multi_inthash(Indexes),Head,_PreJoin,VarDict,SuspTerm,State,G
 		),
 	hash_index_filter(Pairs,Index,NPairs),
 	update_store_type(F/A,multi_inthash([Index])).
-existential_lookup(multi_hash(Indexes),Head,_PreJoin,VarDict,SuspTerm,State,Goal,Susp,Pairs,NPairs) :- !,
+existential_lookup(multi_hash(Indexes),Head,PreJoin,VarDict,SuspTerm,State,Goal,Susp,Pairs,NPairs) :- !,
 	once((
 		member(Index,Indexes),
 		multi_hash_key_args(Index,Head,KeyArgs),	
@@ -6092,7 +6130,11 @@ existential_lookup(multi_hash(Indexes),Head,_PreJoin,VarDict,SuspTerm,State,Goal
 	functor(Head,F,A),
 	multi_hash_via_lookup_name(F/A,Index,ViaName),
 	LookupGoal =.. [ViaName,KeyCopy,AllSusps],
-	sbag_member_call(Susp,AllSusps,Sbag),
+	( check_fd_lookup_condition(F,A,Head,KeyArgs) ->
+		Sbag = (AllSusps = [Susp])
+	;
+		sbag_member_call(Susp,AllSusps,Sbag)
+	),
 	create_get_mutable(active,State,GetMutable),
 	Goal =	(
 			LookupGoal,
@@ -6795,12 +6837,26 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 	depends_on_as/3,
 	ai_observation_gather_results/0.
 
+:- chr_option(type_definition,type(abstract_domain,[odom(any,any)])).
+
 :- chr_option(mode,initial_call_pattern(+)).
+:- chr_option(type_declaration,call_pattern(abstract_domain)).
+
 :- chr_option(mode,call_pattern(+)).
+:- chr_option(type_declaration,call_pattern(abstract_domain)).
+
 :- chr_option(mode,call_pattern_worker(+)).
+:- chr_option(type_declaration,call_pattern_worker(abstract_domain)).
+
 :- chr_option(mode,final_answer_pattern(+,+)).
+:- chr_option(type_declaration,final_answer_pattern(abstract_domain,abstract_domain)).
+
 :- chr_option(mode,abstract_constraints(+)).
+:- chr_option(type_declaration,abstract_constraints(list)).
+
 :- chr_option(mode,depends_on(+,+)).
+:- chr_option(type_declaration,depends_on(abstract_domain,abstract_domain)).
+
 :- chr_option(mode,depends_on_as(+,+,+)).
 :- chr_option(mode,depends_on_ap(+,+,+,+)).
 :- chr_option(mode,depends_on_goal(+,+)).
@@ -6809,6 +6865,7 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 % :- chr_option(mode,ai_observed(+,+)).
 :- chr_option(mode,ai_not_observed_internal(+,+)).
 :- chr_option(mode,ai_observed_internal(+,+)).
+
 
 abstract_constraints_fd @ 
 	abstract_constraints(_) \ abstract_constraints(_) <=> true.
@@ -6820,7 +6877,7 @@ ai_observed_internal(C,O) \ ai_observed_internal(C,O) <=> true.
 ai_not_observed(C,O) \ ai_is_observed(C,O) <=> fail.
 ai_is_observed(_,_) <=> true.
 
- ai_observation_gather_results \ ai_observed_internal(C,O) <=> true. % ai_observed(C,O).
+ai_observation_gather_results \ ai_observed_internal(C,O) <=> true. % ai_observed(C,O).
 ai_observation_gather_results \ ai_not_observed_internal(C,O) <=> ai_not_observed(C,O).
 ai_observation_gather_results <=> true.
 
