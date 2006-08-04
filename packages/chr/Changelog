@@ -2,6 +2,8 @@ Aug 4, 2006
 
   * TS: Minor optimizations for (-) arguments.
 
+  * TS: Important optimization for awakening fewer suspended constraints
+
 Aug 3, 2006
 
   * TS: Fixed typo in static type checker.

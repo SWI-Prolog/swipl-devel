@@ -467,6 +467,7 @@ chr_translate(Declarations,NewDeclarations) :-
 	time(observation_analysis,chr_translate:observation_analysis(Constraints)),
 	time(ai_observation_analysis,chr_translate:ai_observation_analysis(Constraints)),
 	time(late_allocation_analysis,chr_translate:late_allocation_analysis(Constraints)),
+	partial_wake_analysis,
 	time(assume_constraint_stores,chr_translate:assume_constraint_stores(Constraints)),
 	time(set_constraint_indices,chr_translate:set_constraint_indices(Constraints)),
 	% end analysis
@@ -2091,8 +2092,9 @@ generate_attr_unify_hook(Clauses) :-
 generate_attr_unify_hook_one(Clause) :-
 	Head = attr_unify_hook(Susps,Other),
 	get_target_module(Mod),
-	make_run_suspensions(NewSusps,WakeNewSusps),
-	make_run_suspensions(Susps,WakeSusps),
+	get_indexed_constraint(1,C),
+	make_run_suspensions(NewSusps,SortedSusps,WakeNewSusps),
+	make_run_suspensions(SortedSusps,SortedSusps,WakeSusps),
 	Body = 
 	(
 		sort(Susps, SortedSusps),
@@ -2134,8 +2136,8 @@ generate_attr_unify_hook_many(N,Clause) :-
 	make_attr(N,Mask,SortedSuspsList,SortedAttr),
 	Head = attr_unify_hook(Attr,Other),
 	get_target_module(Mod),
-	make_run_suspensions_loop(MergedSuspsList,WakeMergedSusps),
-	make_run_suspensions_loop(SortedSuspsList,WakeSortedSusps),
+	make_run_suspensions_loop(MergedSuspsList,SortedSuspsList,WakeMergedSusps),
+	make_run_suspensions_loop(SortedSuspsList,SortedSuspsList,WakeSortedSusps),
 	Body =
 	(
 		SortGoals,
@@ -2162,25 +2164,29 @@ generate_attr_unify_hook_many(N,Clause) :-
 	),	
 	Clause = (Head :- Body).
 
-make_run_suspensions(Susps,Goal) :-
-	make_run_suspensions(1,Susps,Goal).
+make_run_suspensions(AllSusps,OneSusps,Goal) :-
+	make_run_suspensions(1,AllSusps,OneSusps,Goal).
 
-make_run_suspensions(Index,Susps,Goal) :-
+make_run_suspensions(Index,AllSusps,OneSusps,Goal) :-
 	( get_indexed_constraint(Index,C), may_trigger(C) ->
 		use_auxiliary_predicate(run_suspensions,C),
-		run_suspensions_goal(C,Susps,Goal)
+		( wakes_partially(C) ->
+			run_suspensions_goal(C,OneSusps,Goal)
+		;
+			run_suspensions_goal(C,AllSusps,Goal)
+		)
 	;
 		Goal = true
 	).
 
-make_run_suspensions_loop(SuspsList,Goal) :-
-	make_run_suspensions_loop(SuspsList,1,Goal).
+make_run_suspensions_loop(AllSuspsList,OneSuspsList,Goal) :-
+	make_run_suspensions_loop(AllSuspsList,OneSuspsList,1,Goal).
 
-make_run_suspensions_loop([],_,true).
-make_run_suspensions_loop([Susps|SuspsList],I,(Goal,Goals)) :-
-	make_run_suspensions(I,Susps,Goal),
+make_run_suspensions_loop([],[],_,true).
+make_run_suspensions_loop([AllSusps|AllSuspsList],[OneSusps|OneSuspsList],I,(Goal,Goals)) :-
+	make_run_suspensions(I,AllSusps,OneSusps,Goal),
 	J is I + 1,
-	make_run_suspensions_loop(SuspsList,J,Goals).
+	make_run_suspensions_loop(AllSuspsList,OneSuspsList,J,Goals).
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % $insert_in_store_F/A
@@ -7273,6 +7279,59 @@ unconditional_occurrence_args([X|Xs]) :-
 	var(X),
 	X = x,
 	unconditional_occurrence_args(Xs).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Partial wake analysis
+%
+% In a Var = Var unification do not wake up constraints of both variables,
+% but rather only those of one variable.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:- chr_constraint
+	partial_wake_analysis/0,
+	no_partial_wake/1,
+	wakes_partially/1.
+
+partial_wake_analysis, occurrence(FA,O,RuleNb,ID,Type),  rule(RuleNb,Rule), constraint_mode(FA,ArgModes) 
+	==>
+		Rule = pragma(rule(H1,H2,Guard,Body),_,_,_,_),
+		( is_passive(RuleNb,ID) ->
+			true 
+		; Type == simplification ->
+			select(H,H1,RestH1),
+			H =.. [_|Args],
+			term_variables(Guard,Vars),
+			partial_wake_args(Args,ArgModes,Vars,FA)	
+		; % Type == propagation  ->
+			select(H,H2,RestH2),
+			H =.. [_|Args],
+			term_variables(Guard,Vars),
+			partial_wake_args(Args,ArgModes,Vars,FA)	
+		).
+
+partial_wake_args([],_,_,_).
+partial_wake_args([Arg|Args],[Mode|Modes],Vars,C) :-
+	( Mode \== (+) ->
+		( nonvar(Arg) ->
+			no_partial_wake(C)	
+		; memberchk_eq(Arg,Vars) ->
+			no_partial_wake(C)	
+		;
+			true
+		)
+	;
+		true
+	),
+	partial_wake_args(Args,Modes,Vars,C).
+
+no_partial_wake(C) \ no_partial_wake(C) <=> true.
+
+no_partial_wake(C) \ wakes_partially(C) <=> fail.
+
+wakes_partially(C) <=> true.
+  
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Generate rules that implement chr_show_store/1 functionality.
