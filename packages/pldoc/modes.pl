@@ -72,6 +72,7 @@ It feeds these declarations in read_term/3.
 %	returning the remaining lines and  the   names  of the arguments
 %	used in the various header lines.
 %	
+%	@param FilePos	Term File:Line with the position of comment
 %	@param Modes	List if mode(Head, Bindings) terms
 
 process_modes(Lines, FilePos, ModeDecls, Vars, RestLines) :-

@@ -4,15 +4,15 @@
 :- use_module(html).
 :- use_module(library('http/html_write')).
 
-process_comment(_Pos-String, DOM) :- !,
-	process_comment(String, DOM).
-process_comment(String, DOM) :-
+process_comment(File, Pos-String, DOM) :-
+	stream_position_data(line_count, Pos, Line),
+	FilePos = File:Line,
 	is_structured_comment(String, Prefixes),
 	indented_lines(String, Prefixes, Lines),
 	(   section_comment_header(Lines, Header, Lines1)
 	->  DOM = [Header|DOM1],
 	    Args = []
-	;   process_modes(Lines, Modes, Args, Lines1)
+	;   process_modes(Lines, FilePos, Modes, Args, Lines1)
 	->  DOM = [\pred_dt(Modes), dd(class=defbody, DOM1)]
 	),
 	wiki_lines_to_dom(Lines1, Args, DOM0),
@@ -22,8 +22,8 @@ process_comment(String, DOM) :-
 %
 %	@param Mode	Enclosing environment, =body= or =dl=
 
-process_comments(Comments, DOM) :-
-	maplist(process_comment, Comments, DOMList),
+process_comments(Comments, File, DOM) :-
+	maplist(process_comment(File), Comments, DOMList),
 	phrase(missing_tags(DOMList, body), DOM).
 
 missing_tags([], _) -->
@@ -59,7 +59,7 @@ test :-
 test(Spec) :-
 	absolute_file_name(Spec, File, [file_type(prolog)]),
 	read_structured_comments(File, Comments),
-	process_comments(Comments, DOM),
+	process_comments(Comments, File, DOM),
 	doc_file_name(File, DocFile, [format(html)]),
 	open(DocFile, write, Out),
 	call_cleanup(doc_write_html(Out, File, DOM),
