@@ -50,11 +50,17 @@ Making solid progress.  remaining issues:
 
 ---++ Summary extraction
 
-	* Extract first sentence from description	
+	* Extract first sentence from description. [OK]	
+
+---++ Quality assurance: comment style-check
+
+	* Verify modes with first term (same name/arity)
+	* Verify summary (length)
+	* Verify required tags (notable param)
 
 ---++ Source processing
 
-	* Synchronise source processing between
+	* Synchronise source processing between. library(prolog_source). [OK]
 		- XREF
 		- PceEmacs
 		- PlDoc
