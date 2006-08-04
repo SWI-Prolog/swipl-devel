@@ -1432,11 +1432,13 @@ expand_term(Term, Term).
 	'$get_predicate_attribute'(prolog:comment_hook(_,_,_),
 				   number_of_clauses, N),
 	N > 0, !,
+	'$set_source_module'(SM, SM),
 	read_term(In, Term,
 		  [ singletons(warning),
 		    errors(dec10),
 		    comments(Comments),
-		    term_position(Pos)
+		    term_position(Pos),
+		    module(SM)
 		  ]),
 	(   catch(prolog:comment_hook(Comments, Pos, Term), E,
 		  print_message(error, E))

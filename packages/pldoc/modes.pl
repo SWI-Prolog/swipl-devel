@@ -30,12 +30,13 @@
 */
 
 :- module(pldoc_modes,
-	  [ process_modes/4,		% +Lines, -Modes, -Args, -RestLines
+	  [ process_modes/5,		% +Lines, -Modes, -Args, -RestLines
 	    store_modes/2,		% +Modes, +SourcePos
 	    mode/2,			% ?:Head, -Det
 	    is_mode/1,			% @Mode
 	    mode_indicator/1,		% ?Atom
-	    modes_to_predicate_indicators/2 % +Modes, -PIs
+	    modes_to_predicate_indicators/2, % +Modes, -PIs
+	    compile_clause/2		% +Term, +File:Line
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(memfile)).
@@ -46,6 +47,7 @@ This module analyzes the formal part of the documentation of a predicate.
 It feeds these declarations in read_term/3.
 */
 
+:- op(750, xf, ...).			% Repeated argument: Arg...
 :- op(700, fx, +).			% allow +Arg
 :- op(700, fx, -).			% allow -Arg
 :- op(700, fx, ?).			% allow ?Arg
@@ -63,7 +65,7 @@ It feeds these declarations in read_term/3.
 :- dynamic
 	mode/3.				% ?Mode, ?Module, ?Det
 
-%%	process_modes(+Lines:lines, -Modes:list, -Args:list(atom),
+%%	process_modes(+Lines:lines, +FilePos, -Modes:list, -Args:list(atom),
 %%		      -RestLines:lines) is det.
 %
 %	Process the formal header lines  (upto   the  first blank line),
@@ -72,9 +74,9 @@ It feeds these declarations in read_term/3.
 %	
 %	@param Modes	List if mode(Head, Bindings) terms
 
-process_modes(Lines, ModeDecls, Vars, RestLines) :-
+process_modes(Lines, FilePos, ModeDecls, Vars, RestLines) :-
 	mode_lines(Lines, ModeText, [], RestLines),
-	modes(ModeText, ModeDecls),
+	modes(ModeText, FilePos, ModeDecls),
 	extract_varnames(ModeDecls, Vars0, []),
 	sort(Vars0, Vars).
 	
@@ -105,7 +107,7 @@ non_empty_lines([_-L|Lines0], ModeText, ModeTail, Lines) :-
 	non_empty_lines(Lines0, ModeTail0, ModeTail, Lines).
 
 
-%%	modes(+Text:codes, -ModeDecls) is det.
+%%	modes(+Text:codes, +FilePos, -ModeDecls) is det.
 %
 %	Read mode declaration. This consists of a number of Prolog terms
 %	which may or may not be closed by  a Prolog full-stop. 
@@ -113,8 +115,8 @@ non_empty_lines([_-L|Lines0], ModeText, ModeTail, Lines) :-
 %	@param Text		Input text as list of codes.
 %	@param ModeDecls	List of mode(Term, Bindings)
 
-modes(Text, Decls) :-
-	catch(read_mode_terms(Text, '', Decls), E, true),
+modes(Text, FilePos, Decls) :-
+	catch(read_mode_terms(Text, FilePos, '', Decls), E, true),
 	(   var(E)
 	->  !
 	;   E = error(syntax_error(end_of_file), _)
@@ -122,24 +124,32 @@ modes(Text, Decls) :-
 	;   !, print_message(warning, E),	% TBD: location!
 	    Decls = []
 	).
-modes(Text, Decls) :-
-	catch(read_mode_terms(Text, ' . ', Decls), E, true),
+modes(Text, FilePos, Decls) :-
+	catch(read_mode_terms(Text, FilePos, ' . ', Decls), E, true),
 	(   var(E)
 	->  !
 	;   print_message(warning, E),
 	    fail
 	).
-modes(_, []).
+modes(_, _, []).
 
-read_mode_terms(Text, End, Terms) :-
-	new_memory_file(File),
-	open_memory_file(File, write, Out),
+read_mode_terms(Text, File:Line, End, Terms) :-
+	new_memory_file(MemFile),
+	open_memory_file(MemFile, write, Out),
 	format(Out, '~s~w', [Text, End]),
 	close(Out),
-	open_memory_file(File, read, In),
+	open_memory_file(MemFile, read, In),
+	set_stream(In, file_name(File)),
+	stream_property(In, position(Pos0)),
+	set_line(Pos0, Line, Pos),
+	set_stream_position(In, Pos),
 	call_cleanup(read_modes(In, Terms),
 		     (	 close(In),
-			 free_memory_file(File))).
+			 free_memory_file(MemFile))).
+
+set_line('$stream_position'(CharC, _, LinePos, ByteC),
+	 Line,
+	 '$stream_position'(CharC, Line, LinePos, ByteC)).
 
 read_modes(In, Terms) :-
 	read_mode_term(In, Term0),
@@ -186,10 +196,10 @@ store_modes([mode(Mode, _Bindings)|T], Pos) :-
 
 store_mode(Head0 is Det, Pos) :- !,
 	dcg_expand(Head0, Head),
-	'$record_clause'('$mode'(Head, Det), Pos, _Ref).
+	compile_clause('$mode'(Head, Det), Pos).
 store_mode(Head0, Pos) :-
 	dcg_expand(Head0, Head),
-	'$record_clause'('$mode'(Head, unknown), Pos, _Ref).
+	compile_clause('$mode'(Head, unknown), Pos).
 	
 dcg_expand(//(Head0), Head) :- !,
 	Head0 =.. [Name|List0],
@@ -214,6 +224,8 @@ remove_argnames(I0, Arity, H0, H) :-
 
 remove_argname(T, ?(any)) :-
 	var(T), !.
+remove_argname(T0..., T...) :- !,
+	remove_argname(T0, T).
 remove_argname(A0, A) :-
 	mode_ind(A0, M, A1), !,
 	remove_aname(A1, A2),
@@ -338,3 +350,21 @@ head_to_pi(//(Head), Name//Arity) :- !,
 	functor(Head, Name, Arity).
 head_to_pi(Head, Name/Arity) :-
 	functor(Head, Name, Arity).
+
+%%	compile_clause(+Term, +FilePos) is det.
+%	
+%	Add a clause to the  compiled   program.  Unlike  assert/1, this
+%	associates the clause with the   given source-location, makes it
+%	static code and removes the  clause   of  the  file is reloaded.
+%	Finally,  as  we  create  clauses   one-by-one,  we  define  our
+%	predicates as discontiguous.
+
+compile_clause(Term, FilePos) :-
+	'$set_source_module'(SM, SM),
+	clause_head(Term, Head),
+	functor(Head, Name, Arity),
+	discontiguous(SM:(Name/Arity)),
+	'$record_clause'(Term, FilePos, _Ref).
+
+clause_head((Head :- _Body), Head) :- !.
+clause_head(Head, Head).

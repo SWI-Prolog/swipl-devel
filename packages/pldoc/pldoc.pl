@@ -171,7 +171,9 @@ process_comment(Pos-Comment) :-
 	FilePos = File:Line,
 	(   process_structured_comment(FilePos, Comment, Prefixes)
 	->  true
-	;   format('Failed to process ~s~n', [Comment])
+	;   print_message(warning,
+			  format('~w:~d: Failed to process comment:~n~s~n',
+				 [File, Line, Comment]))
 	).
 process_comment(_).
 
@@ -182,14 +184,14 @@ process_structured_comment(FilePos, Comment, Prefixes) :-
 	    Args = [],
 	    Type = section,		% TBD
 	    Id = (-)
-	;   process_modes(Lines, Modes, Args, Lines1)
+	;   process_modes(Lines, FilePos, Modes, Args, Lines1)
 	->  store_modes(Modes, FilePos),
 	    DOM = [\pred_dt(Modes), dd(class=defbody, DOM1)],
 	    Type = predicate
 	),
 	wiki_lines_to_dom(Lines1, Args, DOM0),
 	strip_leading_par(DOM0, DOM1),
-	'$record_clause'('$pldoc'(Id, Type, DOM), FilePos, _Ref).
+	compile_clause('$pldoc'(Id, Type, DOM), FilePos).
 
 
 		 /*******************************

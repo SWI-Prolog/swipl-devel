@@ -31,9 +31,11 @@ Making solid progress.  remaining issues:
 
 ---++ After Compilation with library(pldoc) loaded:
 
-	* pldoc_comment(predicate(?:Callable), -Modes, -Comment).
+	* pldoc_comment(PredInd, -Modes, -Comment).
 	  pldoc_comment(module(Module), -Comment).
 	  ...
+
+	  Comment = string
 
 	* Can be combined with XREF info and/or normal meta-info
 	
