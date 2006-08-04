@@ -305,13 +305,10 @@ xref_defined_class(Source, Class, file(File)) :-
 	prolog_canonical_source(Source, Src),
 	defined_class(Class, _, _, Src, file(File)).
 
-collect(Src, Fd) :-
+collect(Src, In) :-
 	repeat,
-	    '$set_source_module'(SM, SM),
-	    catch(read_term(Fd, Term,
-			    [ term_position(TermPos),
-			      module(SM)
-			    ]), E, syntax_error(E)),
+	    catch(read_source_term(In, Term, TermPos),
+		  E, syntax_error(E)),
 	    xref_expand(Term, T),
 	    (   T == end_of_file
 	    ->  !
@@ -320,6 +317,38 @@ collect(Src, Fd) :-
 	        process(T, Src),
 		fail
 	    ).
+
+%%	read_source_term(+In:stream, -Term, -TermPos) is det.
+%
+%	Read next term  from  In.   The  cross-referencer  supports  the
+%	comment_hook  as  also  implemented  by  the  compiler  for  the
+%	documentation processor.
+
+:- multifile
+	prolog:comment_hook/3.
+
+read_source_term(In, Term, TermPos) :-
+	'$get_predicate_attribute'(prolog:comment_hook(_,_,_),
+				   number_of_clauses, N),
+	N > 0, !,
+	'$set_source_module'(SM, SM),
+	read_term(In, Term,
+		  [ term_position(TermPos),
+		    comments(Comments),
+		    module(SM)
+		  ]),
+	(   catch(prolog:comment_hook(Comments, TermPos, Term), E,
+		  print_message(error, E))
+	->  true
+	;   true
+	).
+read_source_term(In, Term, TermPos) :-
+	'$set_source_module'(SM, SM),
+	read_term(In, Term,
+		  [ term_position(TermPos),
+		    module(SM)
+		  ]).
+
 
 syntax_error(E) :-
 	(   verbose
