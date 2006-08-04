@@ -11,7 +11,7 @@ Code is very imcomplete.  Development plan:
 
 ---++ SWI-Prolog hooks
 
-Have been realised in CVS version as of Jul 30, 2006
+	* Needs to be documented (hackers corner)
 
 ---++ Wiki processor
 
@@ -31,16 +31,22 @@ Making solid progress.  remaining issues:
 
 ---++ After Compilation with library(pldoc) loaded:
 
-	* pldoc_comment(PredInd, -Modes, -Comment).
+	* pldoc_comment(PredInd, -Comment).
 	  pldoc_comment(module(Module), -Comment).
-	  ...
 
-	  Comment = string
+	  Comment is original string
+
+	* Add \comment{Comment} to html generator?
 
 	* Can be combined with XREF info and/or normal meta-info
 	
 	* Gathering can also be hooked into XREF by loading pldoc
-	  and xref.
+	  and xref. [OK]
+
+---++ Link to help/apropos
+
+	* Would also link to PceEmacs!
+	* Requires summary processing
 
 ---++ Summary extraction
 

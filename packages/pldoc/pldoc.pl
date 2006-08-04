@@ -30,7 +30,8 @@
 */
 
 :- module(pldoc,
-	  [ read_structured_comments/2,	% +File, -Comments
+	  [ pldoc_comment/2,		% ?Object, ?Comment
+	    read_structured_comments/2,	% +File, -Comments
 	    is_structured_comment/2,	% +Comment, -Prefixes
 	    doc_file_name/3		% +Source, -Doc, +Options
 	  ]).
@@ -140,6 +141,46 @@ doc_file_name(Source, Doc, Options) :-
 	;   true
 	).
 
+%%	pldoc_comment(?Object, -Comment:string) is nondet.
+%
+%	True if Comment is the  comment   describing  object. Comment is
+%	returned as a string object  containing   the  original from the
+%	source-code.  Object is one of
+%	
+%		* Name/Arity
+%		Predicate indicator
+%		
+%		* Name//Arity
+%		DCG rule indicator.  Same as Name/Arity+2
+%		
+%		* module(Module)
+%		Comment appearing in Module.
+%		
+%	@tbd	Extract summary	
+
+pldoc_comment(Object, Comment) :-
+	var(Object), !,
+	current_module(M),
+	'$c_current_predicate'(_, M:'$pldoc'(_,_)),
+	M:'$pldoc'(Obj, Comment0),
+	linked_comment(Comment0, M, Comment),
+	qualify(M, Obj, Object).
+pldoc_comment(M:Object, Comment) :-
+	current_module(M),
+	'$c_current_predicate'(_, M:'$pldoc'(_,_)),
+	M:'$pldoc'(Object, Comment0),
+	linked_comment(Comment0, M, Comment).
+
+linked_comment(Comment, _, Comment) :-
+	string(Comment), !.
+linked_comment(From, M, Comment) :-
+	M:'$pldoc'(From, Comment0),
+	linked_comment(Comment0, M, Comment).
+
+qualify(system, H, H) :- !.
+qualify(user,   H, H) :- !.
+qualify(M,      H, M:H).
+
 
 		 /*******************************
 		 *	CALL-BACK COLLECT	*
@@ -182,19 +223,15 @@ process_comment(_, _).
 
 process_structured_comment(FilePos, Comment, Prefixes) :-
 	indented_lines(Comment, Prefixes, Lines),
-	(   section_comment_header(Lines, Header, Lines1)
-	->  DOM = [Header|DOM1],
-	    Args = [],
-	    Type = section,		% TBD
-	    Id = (-)
-	;   process_modes(Lines, FilePos, Modes, Args, Lines1)
+	(   section_comment_header(Lines, Header, _RestLines1)
+	->  compile_clause('$pldoc'(Header, Comment), FilePos)
+	;   process_modes(Lines, FilePos, Modes, _, _RestLines2)
 	->  store_modes(Modes, FilePos),
-	    DOM = [\pred_dt(Modes), dd(class=defbody, DOM1)],
-	    Type = predicate
-	),
-	wiki_lines_to_dom(Lines1, Args, DOM0),
-	strip_leading_par(DOM0, DOM1),
-	compile_clause('$pldoc'(Id, Type, DOM), FilePos).
+	    modes_to_predicate_indicators(Modes, [PI0|PIs]),
+	    compile_clause('$pldoc'(PI0, Comment), FilePos),
+	    forall(member(PI, PIs),
+		   compile_clause('$pldoc'(PI, PI0), FilePos))
+	).
 
 
 		 /*******************************

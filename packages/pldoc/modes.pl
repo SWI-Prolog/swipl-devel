@@ -338,7 +338,7 @@ modes_to_predicate_indicators(Modes, PIs) :-
 	list_to_set(PIs0, PIs).
 
 modes_to_predicate_indicators2([], []).
-modes_to_predicate_indicators2([H|T0], [PI|T]) :-
+modes_to_predicate_indicators2([mode(H,_B)|T0], [PI|T]) :-
 	mode_to_pi(H, PI),
 	modes_to_predicate_indicators2(T0, T).
 
