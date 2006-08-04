@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#191: with_output_to and format: lacking initialisation.
+    Holger Kanwischer.
+
   * FIXED: Interaction problem between comments and subterm-positions
     options in read_term/3.  Lukas Degener.
 

@@ -941,8 +941,10 @@ setupOutputRedirect(term_t to, redir_context *ctx, int redir)
       ctx->out_arity = 1;
     } else if ( PL_is_functor(to, FUNCTOR_string1) )
     { ctx->out_format = PL_STRING;
+      ctx->out_arity = 1;
     } else if ( PL_is_functor(to, FUNCTOR_atom1) )
     { ctx->out_format = PL_ATOM;
+      ctx->out_arity = 1;
     } else
     { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_output, to);
     }
