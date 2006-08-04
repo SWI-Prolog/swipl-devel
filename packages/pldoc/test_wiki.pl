@@ -18,7 +18,7 @@ process_comment(File, Pos-String, DOM) :-
 	wiki_lines_to_dom(Lines1, Args, DOM0),
 	strip_leading_par(DOM0, DOM1).
 
-%%	process_comments(+Comments, +Mode, -DOM, ?DOMTail) is det.
+%%	process_comments(+Comments, +File, -DOM) is det.
 %
 %	@param Mode	Enclosing environment, =body= or =dl=
 

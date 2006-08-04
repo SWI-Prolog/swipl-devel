@@ -32,6 +32,7 @@
 :- module(pldoc_wiki,
 	  [ wiki_lines_to_dom/3,	% +Lines, +Map, -DOM
 	    section_comment_header/3,	% +Lines, -Header, -RestLines
+	    summary/2,			% +Lines, -Summary
 	    indented_lines/3,		% +Text, +PrefixChars, -Lines
 	    strip_leading_par/2		% +DOM0, -DOM
 	  ]).
@@ -395,9 +396,9 @@ section_line(Header) -->
 %%	make_hdr(+Type, +Content, -DOM) is det.
 
 make_hdr(module,	Content, h1(class=module, Content)).
-make_hdr(section,       Content, h2(Content)).
-make_hdr(subsection,    Content, h3(Content)).
-make_hdr(subsubsection, Content, h4(Content)).
+make_hdr(section,       Content, h2(class=section, Content)).
+make_hdr(subsection,    Content, h3(class=subsection, Content)).
+make_hdr(subsubsection, Content, h4(class=subsubsection, Content)).
 
 
 		 /*******************************
@@ -486,6 +487,64 @@ verbatim_line(Line, Pre, PreT) :-
 
 
 		 /*******************************
+		 *	      SUMMARY		*
+		 *******************************/
+
+%%	summary(+Lines:lines, -Summary:string) is det.
+%
+%	Produce a summary for Lines. Similar  to JavaDoc, the summary is
+%	defined as the first sentence of the documentation. In addition,
+%	a sentence is also ended by an  empty   line  or  the end of the
+%	comment.
+
+summary(Lines, Summary) :-
+	skip_empty_lines(Lines, Lines1),
+	summary2(Lines1, Sentence0),
+	strip_codes(Sentence0, Sentence),
+	string_to_list(Summary, Sentence).
+
+summary2(_, Sentence) :-
+	Sentence == [], !.		% we finished our sentence
+summary2([], []) :- !.
+summary2([_-[]|_], []) :- !.		% empty line
+summary2([_-[0'@|_]|_], []) :- !.	% keyword line
+summary2([_-L0|Lines], Sentence) :-
+	phrase(sentence(Sentence, Tail), L0, _),
+	summary2(Lines, Tail).
+
+sentence([C,End], []) -->
+	[C,End],
+	{ \+ code_type(C, period),
+	  code_type(End, period)		% ., !, ?
+	},
+	white, !.
+sentence([0' |T0], T) -->
+	space, !,
+	ws,
+	sentence(T0, T).
+sentence([H|T0], T) -->
+	[H],
+	sentence(T0, T).
+sentence([0' |T], T) -->
+	eos.
+
+white -->
+	space.
+white -->
+	eos.
+
+skip_empty_lines([], []).
+skip_empty_lines([_-""|Lines0], Lines) :- !,
+	skip_empty_lines(Lines0, Lines).
+skip_empty_lines(Lines, Lines).
+
+strip_codes("", "").
+strip_codes(" ", ".") :- !.
+strip_codes([H|T0], [H|T]) :-
+	strip_codes(T0, T).
+
+
+		 /*******************************
 		 *	  CREATE LINES		*
 		 *******************************/
 
@@ -544,10 +603,20 @@ white_prefix(I0, I) -->
 white_prefix(I, I) -->
 	[].
 
+%%	string_update_linepos(+Codes, +Pos0, -Pos) is det.
+%
+%	Update line-position after adding Codes at Pos0.
+
 string_update_linepos([], I, I).
 string_update_linepos([H|T], I0, I) :-
 	update_linepos(H, I0, I1),
 	string_update_linepos(T, I1, I).
+
+%%	update_linepos(+Code, +Pos0, -Pos) is det.
+%
+%	Update line-position after adding Code.
+%	
+%	@tbd	Currently assumes tab-width of 8.
 
 update_linepos(0'\t, I0, I) :- !,
 	I is (I0\/7)+1.
@@ -622,6 +691,14 @@ ws -->
 	ws.
 ws -->
 	[].
+
+%	space// is det
+%	
+%	True if then next code is layout.
+
+space -->
+	[C],
+	{code_type(C, space)}.
 
 %%	peek_nl//
 %
