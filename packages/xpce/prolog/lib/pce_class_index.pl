@@ -13,11 +13,11 @@
 
 index_file('CLASSINDEX.pl').
 
-%	pce_make_library_index(+Dir)
+%%	pce_make_library_index(+Dir)
 %	
 %	Create a file CLASSINDEX.pl in Dir holding facts of the format
 %	
-%		class(Name, Super, Summary, File)
+%%		class(Name, Super, Summary, File)
 %	
 %	This file can be used for auto-loading as well as supporting
 %	cross-referencing and syntax-highlighting.

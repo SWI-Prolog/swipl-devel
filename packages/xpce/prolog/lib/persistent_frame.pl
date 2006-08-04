@@ -125,7 +125,7 @@ load_layout(F) :->
 	;   true
 	).
 
-%	get_tile_layout(+Tile, -Layout)
+%%	get_tile_layout(+Tile, -Layout)
 %
 %	Create a Prolog term representing the subwindow (tile) layout.
 %	Note that we only save the width/height of resizeable subwindows,
@@ -151,7 +151,7 @@ get_this_tile_layout(T, Size) :-
 	).
 get_this_tile_layout(_, *).
 
-%	has_specifier(+Layout)
+%%	has_specifier(+Layout)
 %
 %	See whether there is a specification somewhere, otherwise there
 %	is no use storing it.
@@ -167,7 +167,7 @@ has_specifier(Subs) :-
 	has_specifier(Sub), !.
 
 
-%	apply_tile_layout(+Tile, +Layout)
+%%	apply_tile_layout(+Tile, +Layout)
 %	
 %	Apply a previously saved layout description, sending ->width
 %	or ->height messages to resizeable tiles.

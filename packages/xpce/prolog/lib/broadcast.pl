@@ -58,7 +58,8 @@ called. Success or failure of this is ignored. The listener can not bind
 arguments.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	listen([+Listener], +Templ, :Goal)
+%%	listen(+Listener, +Templ, :Goal) is det.
+%%	listen(+Templ, :Goal) is det.
 %
 %	Open a channel for listening for events of the given `Templ'.
 
@@ -72,9 +73,12 @@ listen(Templ, Goal) :-
 	assert_listener(Templ, Module, Module, TheGoal).
 
 
-%	unlisten(+Listener, [+Templ, [:Goal]])
+%%	unlisten(+Listener) is det.
+%%	unlisten(+Listener, +Templ) is det.
+%%	unlisten(+Listener, +Templ, :Goal) is det.
 %
-%	Destroy a channel.  Arguments may be variables
+%	Destroy a channel. All arguments may  be variables, removing the
+%	all matching listening channals.
 
 unlisten(Listener0) :-
 	canonical_listener(Listener0, Listener),
@@ -91,7 +95,7 @@ unlisten(Listener0, Templ, Goal) :-
 	retract_listener(Templ, Listener, Module, TheGoal).
 
 
-%	listening(-Listener, -Templ, -Goal)
+%%	listening(-Listener, -Templ, -Goal)
 %
 %	returns currently open channels
 
@@ -100,7 +104,7 @@ listening(Listener0, Templ, Module:Goal) :-
 	listener(Templ, Listener, Module, Goal).
 
 
-%	broadcast(+Templ, +Arg)
+%%	broadcast(+Templ, +Arg)
 %
 %	Broadcast given event.  Always succeeds.
 
@@ -113,7 +117,7 @@ broadcast(Templ) :-
 	).
 
 
-%	broadcast_request(+Templ)
+%%	broadcast_request(+Templ)
 %
 %	Broadcast given event till accepted.  Succeeds then, fail if no
 %	listener accepts the call.  Bindings made by the listener goal
@@ -139,7 +143,7 @@ assert_listener(Templ, Listener, Module, TheGoal) :-
 retract_listener(Templ, Listener, Module, TheGoal) :-
 	retractall(listener(Templ, Listener, Module, TheGoal)).
 
-%	canonical_listener(+Raw, -Canonical)
+%%	canonical_listener(+Raw, -Canonical)
 %
 %	Entry for later optimization.
 

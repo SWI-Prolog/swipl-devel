@@ -212,7 +212,7 @@ clear_modified(DB) :-
 		 *	      META		*
 		 *******************************/
 
-%	config_attributes(+Key, -Attributes)
+%%	config_attributes(+Key, -Attributes)
 %
 %	Fetch the (meta) attributes of the given config key.  The special
 %	path `config' returns information on the config database itself.
@@ -491,7 +491,7 @@ current_config_type(TypeSpec, pce_config, Attributes) :-
 	strip_module(TypeSpec, _Module, Type),
 	builtin_config_type(Type, Attributes).
 
-%	pce_object_type(+Type)
+%%	pce_object_type(+Type)
 %
 %	Succeed if Type denotes an XPCE type
 

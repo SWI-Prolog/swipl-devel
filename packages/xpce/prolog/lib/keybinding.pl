@@ -207,13 +207,13 @@ binding(_, Key, Function, String) :-
 	new(String, string('%s\t%s\n', Key, Function)).
 
 
-%	find_send_method(+Object, +Selector, -Method)
+%%	find_send_method(+Object, +Selector, -Method)
 %	Try to locate the method invoking the specified behaviour.
 
 find_send_method(Obj, Name, Method) :-
 	get(Obj, send_method, Name, tuple(_, Method)).
 
-%	reserved_binding(+Name, -Summary)
+%%	reserved_binding(+Name, -Summary)
 
 reserved_binding(keyboard_quit,		'Abort current sequence').
 reserved_binding(prefix,		'Prefix for multikey command').

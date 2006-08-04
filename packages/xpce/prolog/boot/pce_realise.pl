@@ -69,7 +69,7 @@ pce_extended_class(ClassName) :-
 pce_extended_class(_).
 
 
-%	pce_begin_class_definition(+ClassName, +Meta, +Super, +Summary)
+%%	pce_begin_class_definition(+ClassName, +Meta, +Super, +Summary)
 %	
 %	Dummy to allow cross-referencing and other tools to locate
 %	class-definitions after term-expansion.
@@ -81,7 +81,7 @@ pce_begin_class_definition(_,_,_,_).
 		 *	      RELOAD		*
 		 *******************************/
 
-%	check_loaded_class(+ClassName)
+%%	check_loaded_class(+ClassName)
 %
 %	If the class is already defined, we are dealing with redefinition
 %	and have to take action immediately.
@@ -96,7 +96,7 @@ check_loaded_class(_).
 		 *	  REALISE-CLASS		*
 		 *******************************/
 
-%	pce_realise_class(+ClassName)
+%%	pce_realise_class(+ClassName)
 %	Creates `ClassName' from the compiled representation.
 
 pce_realise_class(ClassName) :-
@@ -132,9 +132,11 @@ attach_class_attributes(ClassName) :-
 	fail ; true.
 
 
-%	pce_prolog_class(?ClassName, [?SuperName])
+%%	pce_prolog_class(?ClassName:atom) is nondet.
+%%	pce_prolog_class(?ClassName:atom, ?SuperName:atom) is nondet.
 %
-%	Is true if ClassName refers to a class defined in Prolog
+%	Is true if ClassName refers to a class defined in Prolog with
+%	the given superclass.
 
 pce_prolog_class(ClassName) :-
 	pce_prolog_class(ClassName, _SuperName).
@@ -146,7 +148,7 @@ pce_prolog_class(ClassName, SuperName) :-
 	SuperName \== '-'.		% extended class
 
 
-%	create_class(+ClassName, +MetaClassName, +SuperName, -Class)
+%%	create_class(+ClassName, +MetaClassName, +SuperName, -Class)
 %
 %	Creates class `ClassName' below `SuperName'.  Succeeds
 %	(for redefinition) if the class already existed with the
@@ -184,7 +186,7 @@ create_class(ClassName, MetaClassName, SuperName, Class) :-
 	).
 
 
-%	attach_variables(+VariableList, +Class)
+%%	attach_variables(+VariableList, +Class)
 %	
 %	Attach the instance variables.  Error checking is done by the
 %	XPCE kernel.
@@ -195,7 +197,7 @@ attach_variables([V|T], Class) :-
 	      pce_error(E)),
 	attach_variables(T, Class).
 
-%	attach_class_variables(+ClassVarList, +Class)
+%%	attach_class_variables(+ClassVarList, +Class)
 %	
 %	Attach the class variables
 
@@ -256,7 +258,7 @@ delete_prolog_methods(Class) :-
 		 *    LAZY METHOD RESOLUTION	*
 		 *******************************/
 
-%	resolve_method_message(-Message)
+%%	resolve_method_message(-Message)
 %
 %	Create the @pce_resolve_method_message that is called by XPCE
 %	whenever there is a method to be resolved.

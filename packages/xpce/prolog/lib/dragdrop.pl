@@ -249,7 +249,7 @@ terminate(G, Ev:event) :->
 	    send(G, slot, source, @nil)
 	).
 
-%	forward(+G, +Target, +Src, +Pos)
+%%	forward(+G, +Target, +Src, +Pos)
 
 forward(G, Target, Src, Pos) :-
 	(   catch(send(message(@arg1, drop, @arg2, @arg3),
@@ -281,10 +281,10 @@ forward(G, Target, Src) :-
 %	associated with right-dragging instead of left-dragging. It
 %	is called from the ->drop at the receiving graphical:
 %	
-%		drop(Me, Obj:any) :->
+%%		drop(Me, Obj:any) :->
 %			(   send(@event, is_a, ms_right_up)
 %			->  get(@receiver, select_command,
-%			        chain(move, copy), Command),
+%%			        chain(move, copy), Command),
 %			    <move or copy Obj>
 %			;   <Perform default action>
 %			).

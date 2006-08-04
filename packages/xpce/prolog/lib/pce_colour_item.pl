@@ -293,7 +293,7 @@ resize_colour_item(Item, IW, IH) :-
 	send(Item, label, I).
 
 
-%	palette_dimensions(+Entries, -Width, -Height)
+%%	palette_dimensions(+Entries, -Width, -Height)
 %
 %	Attempts to find a nice 2-dimensional layout for `Entries' cells
 %	in a total size of `Width' x `Height'.

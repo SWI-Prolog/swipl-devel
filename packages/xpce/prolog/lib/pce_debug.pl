@@ -66,8 +66,8 @@ nodebugpce :-
 	send(@pce, debugging, @off).
 
 
-%   debugpce(+Subject)
-%   nodebugpce(+Subject)
+%%   debugpce(+Subject)
+%%   nodebugpce(+Subject)
 %   
 %   Start/stop printing debugging messages on `Subject'. System maintenance
 %   usage only.
@@ -142,7 +142,7 @@ trace_feedback(Action, Obj) :-
 		*       CHECK PCE DATABASE	*
 		********************************/
 
-%	pce_global_objects(-ChainOfGlobalObjects)
+%%	pce_global_objects(-ChainOfGlobalObjects)
 %	Return a chain with all globally known objects.
 
 pce_global_objects(Chain) :-
@@ -251,7 +251,7 @@ no_autoload_class(ClassName) :-
 no_autoload_class(_).
 
 
-%	show_slots(+Reference)
+%%	show_slots(+Reference)
 %
 %	Show  all   slots of the   named object.  Actually,  this is a
 %	terminal version  of   the inspector  tool  provided  with the

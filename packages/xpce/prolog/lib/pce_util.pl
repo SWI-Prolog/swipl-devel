@@ -69,7 +69,7 @@
 :- require([ pce_error/1
 	   ]).
 
-%   get_object(+@Object, +Selector, ...+Argument, ..., -Output)
+%%   get_object(+Object, +Selector, +Arg..., -Output) is semidet.
 %
 %   Succeeds once if Output is the value returned by invoking get method
 %   called Selector on Object.  Output is an object description, except for the
@@ -117,7 +117,7 @@ get_to_object(Ref, Object) :-
 	).
 
 
-%	send_list(+ListOfObjs, +ListOfSels)
+%%	send_list(+ListOfObjs, +ListOfSels)
 %
 %	Send a messages to the carthesian product of ListOfObjs and
 %	ListOfSels.
@@ -159,7 +159,7 @@ send_list_module(Object, Selector, Module) :-
         send(Object, Module:Selector).
 
 
-%       send_list(+ListOfObjs, +ListOfSels, +ListOfArgs)
+%%       send_list(+ListOfObjs, +ListOfSels, +ListOfArgs)
 %
 %       Send a messages to the carthesian product of ListOfObjs and
 %       ListOfSels.
@@ -212,7 +212,7 @@ send_list_module(Object, Selector, Argument, Module) :-
 	send(Object, Module:Selector, Argument).
 
 
-%   get_chain(+@Object, +Selector, -List)
+%%   get_chain(+Object, +Selector, -List:list) is semidet.
 %
 %   List is a Prolog list constructed from the PCE chain returned by <-Selector
 %   on Object.  get_chain/3 returns a list of object names, 
@@ -222,8 +222,8 @@ get_chain(Object, Selector, List) :-
 	chain_list(Chain, List).
 
 
-%   chain_list(@+Chain, -List)
-%   chain_list_object(@+Chain, -List)
+%%   chain_list(+Chain, -List) is det.
+%%   chain_list_object(+Chain, -List) is det.
 %
 %   List is a Prolog list of all objects in Chain.  chain_list/2 returns object
 %   names, chain_list_object/2 object descriptions.
@@ -259,10 +259,10 @@ to_object(Term, Obj) :-
 		*             DEFAULTS		*
 		********************************/
 
-%	default(+Argument, +Default, -Value)
-%	default(+Argument, class_variable(+Object, +Name), -Value)
+%%	default(+Argument, +Default, -Value) is det.
 %
-%	Get the default value for an argument.
+%	Get the default value for an argument.  Default is either a
+%	plain value or a term class_variable(+Object, +Name).
 
 default(@default, Default, Value) :- !,
 	(   var(Default)

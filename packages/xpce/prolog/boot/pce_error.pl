@@ -39,7 +39,7 @@
 :- use_module(pce_boot(pce_principal)).
 
 
-%	pce_catch_error(?Errors, :Goal)
+%%	pce_catch_error(?Errors, :Goal)
 %
 %	Run goal, fail silently on indicated errors.  If the first argument
 %	is a variable, any error will be catched.

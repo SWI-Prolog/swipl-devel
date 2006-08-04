@@ -34,7 +34,7 @@
 	  ]).
 :- use_module(library(pce)).
 
-%       pce_define_type(+Name, +Type)
+%%       pce_define_type(+Name, +Type)
 %
 %       Create a type alias name, so we can write more readable code.
 %	Typical examples make aliases for `name' (name cannot be subclassed),

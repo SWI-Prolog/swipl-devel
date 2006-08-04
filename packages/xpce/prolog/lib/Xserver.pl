@@ -36,7 +36,7 @@
 :- use_module(library(pce)).
 
 
-%	ensure_x_server(+Display, +Depth)
+%%	ensure_x_server(+Display, +Depth)
 %	
 %	Ensure the existence of a graphics environment for XPCE.  This
 %	library uses the `head-less' server Xvfb if there is no X-server

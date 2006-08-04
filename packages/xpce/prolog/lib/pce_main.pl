@@ -50,7 +50,7 @@
 	   , chain_list/2
 	   ]).
 
-%	pce_main_loop(+Goal)
+%%	pce_main_loop(+Goal)
 %	
 %	Simple XPCE runtime toplevel loop.  This goal extracts the command
 %	line arguments, calls `call(Goal, CmdLineArgs)' and waits for all
@@ -63,7 +63,7 @@ pce_main_loop(Goal) :-
 	pce_loop(Goal, ApplArgv),
 	halt.
 
-%	pce_loop(+Goal, [+ArgList])
+%%	pce_loop(+Goal, [+ArgList])
 %
 %	Runs `Goal', finds all toplevel frames created and then dispatches
 %	events untill the last frame is destroyed.

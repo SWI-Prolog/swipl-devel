@@ -140,10 +140,12 @@ setup_print_editor(_TB, E:editor, From:[editor]) :->
 	;   true
 	).
 
-%	print_pages(+Printer, +Editor, +EndIndex, +margin(X,Y),
-%		    +Background, +Page, -LastPage)
+%%	print_pages(+Printer, +Editor, +EndIndex, +Margin,
+%%		    +Background, +Page, -LastPage) is det.
 %		    
 %       Actual page printing loop.
+%       
+%       @param Margin	Term margin(+X,+Y) representing the page margins
 
 print_pages(Printer, Editor, End, Margin, BG, Page, Pages) :-
 	get(Editor, image, Image),

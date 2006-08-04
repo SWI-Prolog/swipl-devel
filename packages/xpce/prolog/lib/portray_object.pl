@@ -43,24 +43,24 @@
 %   Note: you may wish to incorporate portray_object/2 with the
 %   standard portray mechanism of your Prolog.  In that case:
 %
-%	portray(Object) :-
-%		object(Object), !,
-%		portray_object(Object).
+%%	portray(Object) :-
+%%		object(Object), !,
+%%		portray_object(Object).
 
 
 %   Sometimes the use of object references can be a new nuisance, in particular
 %   while writing and debugging PCE programs.  Suppose you have done:
 %
-%	new(@s, spatial(xref=x+w, yref=x+h/2, xref=x, yref=y+h))
+%%	new(@s, spatial(xref=x+w, yref=x+h/2, xref=x, yref=y+h))
 %
 %   then
 %
-%	object(@s, S)
+%%	object(@s, S)
 %	S = spatial(@1234, @1235, @1236, @1237, @default, @default)
 %
 %   is not of much use.  portray_object/2 makes life easier:
 %
-%	portray_object(@s, S)
+%%	portray_object(@s, S)
 %	S = spatial(xref=x+w, yref=x+h/2, xref=x, yref=y+h)
 %
 %   More or less expanding the arguments until they become readable.
@@ -73,7 +73,7 @@
 %   Term is a template which may contain object references
 %   which need to be portrayed recursively (indicated with the "p/" prefix):
 %
-%	portray_class(constraint(A, B, C), _, constraint(A, B, p/C)).
+%%	portray_class(constraint(A, B, C), _, constraint(A, B, p/C)).
 %
 %   Which should not touch the first two arguments (A and B), but
 %   portrays C recursively.
@@ -124,7 +124,7 @@ portray_class(A, A).
 
 tag_p(X, p/X).
 
-%	global_object(+Ref)
+%%	global_object(+Ref)
 %	Declare commonly known objects
 
 global_object(@nil).
@@ -156,7 +156,7 @@ global_object(@black_image).
 global_object(@on).
 global_object(@off).
 
-%   portray_object(+@Object)
+%%   portray_object(+@Object)
 %
 %   Prints the result of portray_object/2 on the display.
 
@@ -165,7 +165,7 @@ portray_object(Object) :-
 	print(Term), nl, !.
 
 
-%   portray_object(+@Object, -Term)
+%%   portray_object(+@Object, -Term)
 %
 %   Expands the object description of Object in a human readable form
 %   and returs this in Term.  portray_object/2 uses the rules found under

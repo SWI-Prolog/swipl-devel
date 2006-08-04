@@ -111,7 +111,7 @@ collect(File) :-
 		 *	     EXPANSION		*
 		 *******************************/
 
-%	req_expand(+Term, -Expanded)
+%%	req_expand(+Term, -Expanded)
 %
 %	Do the term-expansion.  We have to pass require as we need it
 %	for validation.  Otherwise we do term-expansion, handling all
@@ -130,7 +130,7 @@ req_expand(Term, T) :-
 	).
 
 
-%	requires_library(+Term, -Library)
+%%	requires_library(+Term, -Library)
 %
 %	known expansion hooks.  Should be more dynamic!
 
@@ -387,7 +387,7 @@ report_name_arity(Name, Arity) :-
 		*            UTILITIES		*
 		********************************/
 
-%	find_source_file(+Spec, -File)
+%%	find_source_file(+Spec, -File)
 %	Find named source file.
 
 find_source_file(Spec, File) :-

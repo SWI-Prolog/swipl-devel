@@ -97,7 +97,7 @@ regex_main :-
 	maplist(regex_convert_file, Files),
 	halt.
 
-%	regex_convert_file(+File)
+%%	regex_convert_file(+File)
 %	
 %	Convert a single file, creating  <File>.new   on  success. It is
 %	adviced the inspect the changes before   moving  the .new to the
@@ -224,7 +224,7 @@ modules(Module, Src) :-
 requires_library((:- emacs_begin_mode(_,_,_,_,_)), library(emacs_extend)).
 requires_library((:- draw_begin_shape(_,_,_,_)), library(pcedraw)).
 
-%	looks_like_regex(+Atom)
+%%	looks_like_regex(+Atom)
 %	
 %	Succeeds if we think Atom is a regumar expression
 
@@ -239,7 +239,7 @@ re_pattern('\\S').
 re_pattern('\\w').
 
 
-%	regex_emacs_to_advanced(+Old, -New)
+%%	regex_emacs_to_advanced(+Old, -New)
 %	
 %	Convert a single regular expression.
 

@@ -74,7 +74,7 @@ locate_preferences(prolog, File) :-
 	;   valid_location(File)
 	), !.
 	
-%	valid_location(+PrefFile)
+%%	valid_location(+PrefFile)
 %	
 %	See whether this is a valid non-local location for the
 %	preferences file. This should deal with the possibility that our
@@ -90,7 +90,7 @@ valid_location(PrefFile) :-
 	    current_prolog_flag(home, Dir)
 	).
 
-%	default_preferences(+Id, -File)
+%%	default_preferences(+Id, -File)
 %
 %	If there is a default file for the preferences, return a path to
 %	it, so the user can be presented a starting point.

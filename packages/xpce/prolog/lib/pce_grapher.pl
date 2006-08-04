@@ -208,7 +208,7 @@ make_grapher(G) :-
 	send(new(G, grapher), open),
 	send(G, wait).
 
-%	grapher(+MessageOrList)
+%%	grapher(+MessageOrList)
 %	
 %	Send a message or list of messages to the grapher.  Leaves a
 %	choicepoint which undos the modifications if we backtrack into

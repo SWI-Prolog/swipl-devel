@@ -58,7 +58,7 @@ the IDE components to the autoloading of one single predicate.
 		 *	      TOPLEVEL		*
 		 *******************************/
 
-%	prolog_ide(+Action)
+%%	prolog_ide(+Action)
 %
 %	Invoke an action on the (SWI-)Prolog IDE application.  This is a
 %	predicate to ensure optimal delaying of loading and object creation

@@ -50,7 +50,7 @@ auto_call(G) :-
 		 *      DIALOG EDITOR SUPPORT	*
 		 *******************************/
 
-%	callable_predicate(:Head)
+%%	callable_predicate(:Head)
 %
 %	Succeeds if Head can be called without raising an exception for
 %	an undefined predicate
@@ -64,7 +64,7 @@ callable_predicate(Spec) :-
 	functor(Head, Name, Arity),
 	'$in_library'(Name, Arity).
 
-%	modified_since_last_loaded(Path)
+%%	modified_since_last_loaded(Path)
 %	True is file has been modified since the last time it was loaded.
 
 modified_since_last_loaded(File) :-

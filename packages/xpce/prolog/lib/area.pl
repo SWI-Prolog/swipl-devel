@@ -33,7 +33,7 @@
 	[ side_pattern/3	% Side x Side x Pattern
 	]).
 
-%   side_pattern(+SideA, +SideB, -Pattern)
+%%   side_pattern(+SideA, +SideB, -Pattern)
 %
 %   Pattern is the bit if SideA on area A corresponds to SideB on area B.  
 

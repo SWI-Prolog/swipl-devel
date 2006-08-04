@@ -59,7 +59,7 @@ fix_mode_name_type :-
 
 :- initialization fix_mode_name_type.
 
-%	declare_emacs_mode(+ModeName, +FileSpec).
+%%	declare_emacs_mode(+ModeName, +FileSpec).
 %
 %	Specifies that PceEmacs mode `ModeName' may be defined by
 %	(auto)loading `FileSpec'.
@@ -83,7 +83,7 @@ special_mode(gdb).
 special_mode(annotate).
 
 
-%	declare_emacs_mode(+ModeName, +FileSpec, +ListOfPatterns)
+%%	declare_emacs_mode(+ModeName, +FileSpec, +ListOfPatterns)
 %	
 %	Sames as declare_emacs_mode/2.  `ListOfPatterns' is a list of
 %	regular expressions that will automatically start this mode.
@@ -130,7 +130,7 @@ emacs_expansion((:- emacs_extend_mode(Mode, Bindings)),
 	prolog_load_context(module, Module).
 emacs_expansion((:- emacs_end_mode), (:- pce_end_class)).
 
-%	emacs_mode_bindings(+Mode, +Module, +Bindings, +Syntax)
+%%	emacs_mode_bindings(+Mode, +Module, +Bindings, +Syntax)
 
 emacs_mode_bindings(Mode, Module, Bindings, Syntax) :-
 	emacs_mode_class(Mode, PceClass),
@@ -196,7 +196,7 @@ syntax(sentence_end(End), ST) :-
 		 *	       UTIL		*
 		 *******************************/
 
-%	emacs_mode_class(?ModeName, ?ClassName)
+%%	emacs_mode_class(?ModeName, ?ClassName)
 %
 %	Convert between plain PceEmacs modename and the mode class.
 

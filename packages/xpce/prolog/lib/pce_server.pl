@@ -41,7 +41,7 @@
 	   , term_to_atom/2
 	   ]).
 
-%	pce_server(+Atom|Int)
+%%	pce_server(+Atom|Int)
 %
 %	Create a PCE socket and interpret incomming lines as Prolog goals.
 %	The argument is:

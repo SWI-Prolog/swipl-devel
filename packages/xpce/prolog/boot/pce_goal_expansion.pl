@@ -101,7 +101,7 @@ selector(Sel) :-
 	pce_error(error(type_error(selector, Sel), _)),
 	fail.
 
-%	current_super_class(-Super)
+%%	current_super_class(-Super)
 %
 %	Return the name of the super-class of the currently compiling
 %	class.
@@ -113,7 +113,7 @@ current_super_class(Op, _) :-
 	pce_error(context_error(Op, nosuper, goal)),
 	fail.
 
-%	super_class(+ClassName, -SuperClassName)
+%%	super_class(+ClassName, -SuperClassName)
 %
 %	Deternine the super-class of a class.  Try to avoid realising
 %	the class to improve compilation and save-state performance.

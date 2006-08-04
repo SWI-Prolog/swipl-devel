@@ -121,7 +121,7 @@ selection(IB, Sel:'image|chain') :<-
 
 :- pce_group(event).
 
-%	busy(+Visual, +Goal)
+%%	busy(+Visual, +Goal)
 %
 %	Run goal while showing busy cursor.
 

@@ -454,7 +454,7 @@ mark_titles(TB, From, To) :-
 mark_titles(TB, From, To) :-
 	get(TB, scan, From, line, 0, end, EL),
 %	Len is EL - From,
-%	new(_, fragment(TB, From, Len, title)),
+%%	new(_, fragment(TB, From, Len, title)),
 	(   get(TB, find, EL, @pui_ff, 1, start, Idx)
 	->  mark_titles(TB, Idx, To)
 	;   true
@@ -567,7 +567,7 @@ drop(V, Id:name) :->
 		 *       MANUAL UTILITIES	*
 		 *******************************/
 
-%	manual_file(-File)
+%%	manual_file(-File)
 %	Find the database file of the manual.  If the manual cannot be
 %	found, display an error message.
 
@@ -583,11 +583,11 @@ manual_file(_File) :-
 		 *     ATOMIC SPECIFICATIONS	*
 		 *******************************/
 
-%	manual_range(+What, -From, -To)
+%%	manual_range(+What, -From, -To)
 %	Find the character range for the given help topic, which is of
 %	the form
 %			name/arity
-%			function()
+%%			function()
 %			n.m..
 
 manual_range(What, Ranges) :-

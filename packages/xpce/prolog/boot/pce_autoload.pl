@@ -52,7 +52,7 @@
 :- dynamic
 	autoload/2.
 
-%	pce_autoload(+ClassName, +FileSpec)
+%%	pce_autoload(+ClassName, +FileSpec)
 %
 %	States class `ClassName' can be created by loading the Prolog
 %	file `FileSpec'.  This will actually be done if either the class

@@ -49,8 +49,9 @@
 		*            USER PART		*
 		********************************/
 
-%	pce_global(+@Reference, +Goal)
-%	Register `Goal' to be a goal that creates `@Reference'
+%%	pce_global(+Object, :Goal) is det.
+%
+%	Register Goal to be a goal that creates @Reference
 
 pce_global(@Ref, MGoal) :-
 	strip_module(MGoal, Module, Goal),

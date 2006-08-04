@@ -80,7 +80,7 @@ emacs_server :-
 	send(@pce, trap_errors, @off),
 	send(@pce, console_label, 'PceEmacs Server').
 
-%	emacs/0
+%%	emacs is det.
 %	
 %	Create PceEmacs and open the *scratch* buffer.
 
@@ -89,11 +89,12 @@ emacs :-
 	new(Scratch, emacs_buffer(@nil, '*scratch*')),
 	send(Scratch, open).
 	
-%	emacs(+File:+Line)
-%	emacs(+File)
+%%	emacs(+Location) is det.
 %	
-%	Create PceEmacs and edit File. If :Line is provided goto the
-%	specified line.
+%	Create PceEmacs and edit Location. If   Location  is of the type
+%	File:Line, edit File at the given Line
+%	
+%	@param Location	place to edit.  Either a file or File:Line term.
 
 emacs(File:Line) :-
 	integer(Line),
@@ -104,7 +105,7 @@ emacs(File) :-
 	start_emacs,
 	send(@emacs, goto_source_location, source_location(File)).
 
-%	emacs_toplevel
+%%	emacs_toplevel
 %	
 %	Propare to run PceEmacs as a stand-alone executable.
 

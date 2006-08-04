@@ -40,7 +40,7 @@
 :- pce_begin_class(template, object, "use_class_template/1 super-class").
 :- pce_end_class.
 
-%	use_class_template(+TemplateClassName)
+%%	use_class_template(+TemplateClassName)
 %
 %	Handled by the XPCE class compiler.  This version just prints
 %	an error message.

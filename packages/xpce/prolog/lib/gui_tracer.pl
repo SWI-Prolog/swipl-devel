@@ -74,7 +74,7 @@ gtrace :-
 	guitracer,
 	trace.
 
-%	gspy(+Spec)
+%%	gspy(+Spec)
 %	
 %	Like spy/1, but uses the graphical tracer.
 
@@ -90,7 +90,7 @@ gdebug :-
 	guitracer,
 	debug.
 
-%	prolog_break_at(+File, +Line, +Pos)
+%%	prolog_break_at(+File, +Line, +Pos)
 %
 %	Set a Prolog break-point.  Used to set break-points from PceEmacs.
 

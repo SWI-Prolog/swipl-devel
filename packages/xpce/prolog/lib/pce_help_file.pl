@@ -62,7 +62,7 @@ directive)  will  make  the  necessary    pce_global   and  pce_autoload
 declarations to load the help-system itself as soon as it is referenced.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	pce_help_file(+DataBaseId, +FileName).
+%%	pce_help_file(+DataBaseId, +FileName).
 %
 %	Declare `FileName' to hold a helper-format file holding the
 %	help-database `DataBaseId'.  FileName will be converted into
@@ -78,7 +78,7 @@ pce_help_file(Id, FileName) :-
 	retractall(resource(Id, help, Path)),
 	asserta(resource(Id, help, Path)).
 
-%	pce_help(+DataBaseId, +Label)
+%%	pce_help(+DataBaseId, +Label)
 %	
 %	Start @helper/helper on the help module `DataBaseId', searching
 %	for a fragment with label `Label'.  Normally invoked through the

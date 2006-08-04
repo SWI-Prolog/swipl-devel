@@ -44,7 +44,7 @@ message_level(silent).
 		 *	STYLE PREFERENCES	*
 		 *******************************/
 
-%	binding(+ModeName, +TableName, +Modifications)
+%%	binding(+ModeName, +TableName, +Modifications)
 
 binding(cua, editor,
 	[ '\\C-v' = paste,
@@ -62,7 +62,7 @@ binding(cua, 'emacs$fundamental',
 		 *	 CHANGE BINDINGS	*
 		 *******************************/
 
-%	set_keybinding_style(+Id)
+%%	set_keybinding_style(+Id)
 %	
 %	Runtime modification of the current key-binding style.
 
@@ -120,8 +120,8 @@ class_variable(style, name,
 	       ],
 	       "Basic binding style").
 
-%	current_style(-Style)
-%	set_style(+Style)
+%%	current_style(-Style) is det.
+%%	set_style(+Style) is det.
 %	
 %	Manipulate the style.  The style is stored in the class-variable
 %	key_binding.style, so it can be set in the users preferences

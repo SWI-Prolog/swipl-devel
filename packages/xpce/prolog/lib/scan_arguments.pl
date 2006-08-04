@@ -47,8 +47,8 @@
 %   Scan Arguments
 %-----------------------------------------------
 
-%   scan_arguments(+Args, [+Name=-Value/+Default])
-%   scan_arguments(+Args, +Spec, -Rest)
+%%   scan_arguments(+Args, [+Name=-Value/+Default])
+%%   scan_arguments(+Args, +Spec, -Rest)
 %
 %   scan_arguments/2 is used to scan a list of arguments and assign
 %   values to variables.  Args is a list of instantiated arguments

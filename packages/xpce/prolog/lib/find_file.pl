@@ -135,7 +135,7 @@ get_file(F, Exists, Ext, Dir, Default, File) :-
 	send(F, slot, directory, D?directory),
 	send(D, destroy).
 
-%	mode(+Exists, -Mode)
+%%	mode(+Exists, -Mode)
 %	
 %	Map old boolean mode to new named mode.
 
@@ -145,7 +145,7 @@ mode(default, save).
 mode(save,    save).
 mode(open,    open).
 
-%	win_filter(+Spec, -Filter)
+%%	win_filter(+Spec, -Filter)
 %	
 %	Map abstract filter to a filter for `display<-win_file_name'.
 %	See find_file_dialog for details.

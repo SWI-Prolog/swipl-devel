@@ -515,7 +515,7 @@ enter(FI) :->
 %	    ->filter: chain(pl,qlf)	% *.pl or *.qlf files
 %	    ->filter: tuple(prolog, chain(pl,qlf))
 %	    ->filter: chain(tuple(prolog, chain(pl, qlf)),
-%	    		    tuple(c, chain(c,h)))
+%%	    		    tuple(c, chain(c,h)))
 
 filter(FI, Ext:'[name|tuple|chain]') :->
 	(   Ext == @default

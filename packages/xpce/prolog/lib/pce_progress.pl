@@ -266,7 +266,7 @@ abort(PD) :->
 		 *  HIGH-LEVEL PROLOG INTERFACE	*
 		 *******************************/
 
-%	progress_checklist(:Goal, +List, +Options)
+%%	progress_checklist(:Goal, +List, +Options)
 %	
 %	As checklist/2, but show a progress-bar while processing the
 %	elements of the list.

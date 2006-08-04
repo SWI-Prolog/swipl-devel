@@ -92,7 +92,7 @@ pce_to_method(send(Receiver, Selector), Method) :- !,
 		 *	     CLASSES		*
 		 *******************************/
 
-%	isa_class(?Sub, ?Super)
+%%	isa_class(?Sub, ?Super)
 %
 %	Succeeds if Sub is Super or below Super.  Can be used with any
 %	instantiation.  If class is instantiated the super-chain is
@@ -114,7 +114,7 @@ gen_super(Class, Super) :-
 	gen_super(Super0, Super).
 
 
-%	current_class(?Name, ?Class)
+%%	current_class(?Name, ?Class)
 %
 %	Convert between name and class object.  Insufficient instantation
 %	enumerates the classes.
@@ -144,7 +144,7 @@ current_class(Class, ClassObject) :-
 	get(@pce, convert, Class, class, ClassObject).
 
 
-%	to_class_name(+AtomOrClass, -ClassName)
+%%	to_class_name(+AtomOrClass, -ClassName)
 %
 %	Convert a name or class-object into a class name
 
@@ -168,7 +168,7 @@ to_class_name(ClassObj, Name) :-
 	library_index/4,
 	index_files/1.
 
-%	pce_library_class(?Name, ?Super, ?Comment, ?File)
+%%	pce_library_class(?Name, ?Super, ?Comment, ?File)
 %	
 %	Examine the library index for defined classes.
 
@@ -220,7 +220,8 @@ read_index(class(Name, Super, Comment, File), In) :-
 		 *	      METHODS		*
 		 *******************************/
 
-%	implements(?Class, SendOrGet(?Method), [Method])
+%%	implements(?Class:atom, ?Method:atom) is nondet.
+%%	implements(?Class:atom, ?Method:atom, -MethodObj:object) is nondet.
 %	
 %	True if Class implements the method.  If class is a variable,
 %	backtracking yields all classes
@@ -229,6 +230,10 @@ read_index(class(Name, Super, Comment, File), In) :-
 %	those classes that have a non-inherited implementation of the
 %	method, while root/1 returns only those classes for which there
 %	is no super-class implementing the requested method.
+%	
+%	@param Class	Name of XPCE class
+%	@param Method	One of send(Name) or get(Name)
+%	@param MethodObj XPCE Object representing the method
 
 implements(Class, What) :-
 	implements(Class, What, _).
@@ -275,7 +280,7 @@ implements(Class, get(Name), Method) :-
 		 *	       TYPES		*
 		 *******************************/
 
-%	pce_to_pl_type(+PceType, -PrologType)
+%%	pce_to_pl_type(+PceType, -PrologType)
 %	Convert an XPCE Type object to our type-checkers type-logic.
 %
 
@@ -356,7 +361,7 @@ list_to_value_or([X], value(X)) :- !.
 list_to_value_or([A|B], or(value(A), T)) :-
 	list_to_value_or(B, T).
 
-%	type_accepts_function(+Type)
+%%	type_accepts_function(+Type)
 %
 %	Succeeds if Type accepts function arguments
 

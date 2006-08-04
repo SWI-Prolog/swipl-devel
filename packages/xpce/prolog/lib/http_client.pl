@@ -342,7 +342,7 @@ complete(S) :->
 :- pce_end_class.
 
 
-%	option(Option(?Value), OptionList, Default)
+%%	option(Option(?Value), OptionList, Default)
 
 option(Opt, Options) :-
 	memberchk(Opt, Options).

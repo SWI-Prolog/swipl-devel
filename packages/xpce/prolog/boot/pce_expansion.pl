@@ -169,7 +169,7 @@ head_arg(_, A) :-
 	),
 	ground(TP).
 
-%	pce_pre_expand(+In, -Out)
+%%	pce_pre_expand(+In, -Out)
 %
 %	First step of the XPCE class compiler, calling the supported
 %	hook pce_pre_expansion_hook/2.
@@ -216,7 +216,7 @@ do_pce_pre_expand(pce_ifhostproperty(Prop, If, Else), Clause) :-
 do_pce_pre_expand(X, X).
 
 
-%	pce_post_expand(In, Out)
+%%	pce_post_expand(In, Out)
 
 pce_post_expand([], []).
 pce_post_expand([H0|T0], [H|T]) :-
@@ -229,7 +229,7 @@ pce_post_expand(T0, T) :-
 pce_post_expand(T, T).
 
 
-%	pce_expandable(+Term)
+%%	pce_expandable(+Term)
 %	Quick test whether we can expand this.
 
 pce_expandable((:- pce_begin_class(_Class, _Super, _Doc))).
@@ -251,7 +251,7 @@ pce_expandable((_Head :-> _Body)).
 pce_expandable((_Head :<- _Body)).
 
 
-%	do_expand(In, Out)
+%%	do_expand(In, Out)
 %
 %	The XPCE kernel expansion.
 
@@ -430,7 +430,7 @@ gen_method_id(SG, Class, Selector, Id) :-
 	concat_atom([Class, SG, Selector], Id).
 
 %gen_method_id(_, _, _, Id) :-
-%	flag(pce_method_id, Id, Id+1).
+%%	flag(pce_method_id, Id, Id+1).
 
 		 /*******************************
 		 *       TEMPLATE SUPPORT	*
@@ -518,7 +518,7 @@ meta(bagof(-, :, -)).
 meta(setof(-, :, -)).
 meta(^(-,:)).
 
-%	use_template_class_attributes(+Template)
+%%	use_template_class_attributes(+Template)
 %
 %	Insert variables, class-variables and directives as if they appeared
 %	in the current class definition.
@@ -588,7 +588,7 @@ type_arity(Atom, 1) :-
 type_arity(Vector, A) :-
 	functor(Vector, _, A).
 
-%	used_class_template(+Template)
+%%	used_class_template(+Template)
 %
 %	Succeeds if any of my (Prolog-defined) super classes
 %	has imported the named template.
@@ -612,7 +612,7 @@ isa_prolog_class(Class, Super) :-		% Loaded Prolog class
 		 *	      CHECKING		*
 		 *******************************/
 
-%	can_define_class(+Name, +Super)
+%%	can_define_class(+Name, +Super)
 %	
 %	Check whether we can define Name as   a  subclass of Super. This
 %	cannot be done of Name  is  a   builtin  class  or it is already
@@ -640,7 +640,7 @@ can_define_class(_, _).
 		 *   PUSH/POP CLASS STRUCTURE	*
 		 *******************************/
 
-%	push_class(+ClassName)
+%%	push_class(+ClassName)
 %	Start compiling the argument class.
 
 push_class(ClassName) :-
@@ -795,7 +795,7 @@ pce_access(X) :-
 		 *	       TYPES		*
 		 *******************************/
 
-%	pce_type(+Spec, -PceTypeName)
+%%	pce_type(+Spec, -PceTypeName)
 %	Convert type specification into legal PCE type-name
 
 pce_type(Prolog, Pce) :-
@@ -925,7 +925,7 @@ head_arg(Arg:Name=Type, Arg, Name=Type).
 		 *	  PUBLIC METHODS	*
 		 *******************************/
 
-%	pce_compiling(-ClassName)
+%%	pce_compiling(-ClassName)
 %	External function to get the current classname
 
 pce_compiling(ClassName, Path) :-
@@ -975,7 +975,7 @@ term_member(N, El, Term) :-
 	NN is N - 1,
 	term_member(NN, El, Term).
 
-%	feedback(+Term)
+%%	feedback(+Term)
 %	Only print if verbose is asserted (basically debugging).
 
 feedback(Term) :-

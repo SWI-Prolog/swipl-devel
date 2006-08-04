@@ -134,7 +134,7 @@ pce_ifhostproperty(prolog(sicstus), [
 		********************************/
 
 
-%   	free(+Ref)
+%%   	free(+Ref) is det.
 %
 %	Delete object if it exists.
 
@@ -144,7 +144,7 @@ free(Ref) :-
 free(_).
 
 
-%	send(+@Object, +Selector, ...+Arguments...)
+%%	send(+Object, +Selector, +Arg...) is semidet.
 %
 %	Succeeds if sending a message to Object with Selector and the
 %	given Arguments succeeds. Normally, goal_expansion/2 expands all
@@ -245,7 +245,7 @@ send(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10) :-
         arg(10, Message, A10),
         send(Receiver, Message).
 
-%	get(+@Object, +Selector, ...+Arguments..., Rval)
+%%	get(+Object, +Selector, +Arg..., ?Rval) is semidet.
 %
 %	See the comments with send/[3-12].
 
@@ -353,7 +353,7 @@ get(Receiver, Selector, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, Answer) :-
 	send_implementation/3,
 	get_implementation/4.
 
-%	send_implementation(+Id, +Message, +Object)
+%%	send_implementation(+Id, +Message, +Object)
 %	
 %	Method-bodies are compiled into clauses for this predicate. Id
 %	is a unique identifier for the implementation, Message is a
@@ -379,7 +379,7 @@ send_implementation(trace(Id), Args, Obj) :-
 	).
 
 
-%	get_implementation(+Id, +Message, +Object, -Return)
+%%	get_implementation(+Id, +Message, +Object, -Return)
 %	
 %	As send_implementation/3, but for get-methods.
 
