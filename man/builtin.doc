@@ -3125,7 +3125,9 @@ specified, the current `source-module' is used.  (SWI-Prolog).
     \termitem{singletons}{Vars}
 As \const{variable_names}, but only reports the variables occurring only
 once in the \arg{Term} read. Variables starting with an underscore
-(`\chr{_}') are not included in this list. (ISO).
+(`\chr{_}') are not included in this list. (ISO).  If \arg{Vars} is the
+constant \const{warning}, singleton variables are reported using
+print_message/2.
 
     \termitem{syntax_errors}{Atom}
 If \const{error} (default), throw and exception on a syntax error. Other
