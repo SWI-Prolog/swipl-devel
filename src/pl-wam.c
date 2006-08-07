@@ -1499,9 +1499,11 @@ findCatcher(LocalFrame fr, Word ex ARG_LD)
 { Definition catch3  = PROCEDURE_catch3->definition;
 
   for(; fr; fr = fr->parent)
-  { if ( fr->predicate == catch3 &&
-	 false(fr, FR_CATCHED) &&
-	 unify_ptrs(argFrameP(fr, 1), ex PASS_LD) )
+  { if ( fr->predicate != catch3 )
+      continue;
+    if ( true(fr, FR_CATCHED) )
+      continue;
+    if ( unify_ptrs(argFrameP(fr, 1), ex PASS_LD) )
     { set(fr, FR_CATCHED);
       return fr;
     }
@@ -3078,7 +3080,9 @@ the moment the code marked (**) handles this not very elegant
 	    
 	    PL_put_atom(t0+0, ATOM_error);
 	    *valTermRef(t0+1) = except;
-	    PL_call_predicate(NULL, FALSE, PROCEDURE_print_message2, t0);
+	    PL_call_predicate(NULL,
+			      PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
+			      PROCEDURE_print_message2, t0);
 	    PL_close_foreign_frame(fid);
 	    *valTermRef(exception_printed) = except;
 

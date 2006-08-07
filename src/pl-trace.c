@@ -1767,8 +1767,9 @@ callEventHook(int ev, ...)
     arg = PL_new_term_ref();
 
     if ( exception_term )
-      ex = PL_copy_term_ref(exception_term);
-    else
+    { ex = PL_copy_term_ref(exception_term);
+      exception_term = 0;
+    } else
       ex = 0;
 
     va_start(args, ev);
