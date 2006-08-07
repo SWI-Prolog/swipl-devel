@@ -78,6 +78,10 @@ APPROACH
 _syscall0(pid_t,gettid)
 #endif
 
+#ifdef HAVE_SYS_SYSCALL_H
+#include <sys/syscall.h>
+#endif
+
 #ifdef HAVE_SEMA_INIT			/* Solaris */
 #include <synch.h>
 
@@ -327,6 +331,10 @@ PRED_IMPL("mutex_statistics", 0, mutex_statistics, 0)
   succeed;
 }
 
+
+#if defined(PTHREAD_CPUCLOCKS) || defined(LINUX_CPU_CLOCKS)
+#define ThreadCPUTime(info, which)	ThreadCPUTime(info)
+#endif
 
 		 /*******************************
 		 *	  LOCAL PROTOTYPES	*
@@ -3060,6 +3068,41 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 
 #else /*WIN32*/
 
+#define timespec_to_double(ts) \
+	(double)ts.tv_sec + (double)ts.tv_nsec/1000000000ull
+
+#ifdef PTHREAD_CPUCLOCKS
+
+static double
+ThreadCPUTime(PL_thread_info_t *info, int which)
+{
+  clockid_t clock_id;
+  struct timespec ts;
+
+  pthread_getcpuclockid(info->tid, &clock_id);
+  if (clock_gettime(clock_id, &ts) == 0)
+    return timespec_to_double(ts);
+
+  return 0.0;
+}
+
+#else /*PTHREAD_CPUCLOCKS*/
+
+#ifdef LINUX_CPUCLOCKS
+
+static double
+ThreadCPUTime(PL_thread_info_t *info, int which)
+{
+  struct timespec ts;
+
+  if (syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts) == 0)
+    return timespec_to_double(ts);
+
+  return 0.0;
+}
+
+#else /*LINUX_CPUCLOCKS*/
+
 #ifdef LINUX_PROCFS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3263,6 +3306,8 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 }
 
 #endif /*LINUX_PROCFS*/
+#endif /*LINUX_CPUCLOCKS*/
+#endif /*PTHREAD_CPUCLOCKS*/
 #endif /*WIN32*/
 
 

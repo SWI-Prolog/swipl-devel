@@ -572,6 +572,59 @@ _syscall0(pid_t,gettid)
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
 
+AC_CHECK_LIB(rt, clock_gettime)
+AC_CHECK_FUNCS(clock_gettime)
+
+AC_MSG_CHECKING(for pthread support for cpu clocks)
+AC_TRY_RUN(
+[ #include <pthread.h>
+  #include <time.h>
+main()
+{
+  clockid_t clock_id;
+  struct timespec ts;
+  pthread_getcpuclockid(pthread_self(), &clock_id);
+  sleep(1);
+  clock_gettime(clock_id, &ts);
+  exit (ts.tv_sec);
+}], ac_pthread_cpuclocks="yes"
+    AC_MSG_RESULT(yes),
+    AC_MSG_RESULT(no))
+
+if test "x$ac_pthread_cpuclocks" = "xyes"; then
+   AC_DEFINE(PTHREAD_CPUCLOCKS, 1,
+             [Define if you have pthread cpu clocks (glibc 2.4 and greater)])
+else
+
+AC_CHECK_HEADERS(sys/syscall.h)
+AC_CHECK_FUNCS(syscall)
+
+AC_MSG_CHECKING(whether <sys/syscall.h> has __NR_clock_gettime)
+AC_TRY_COMPILE(
+[ #include <sys/syscall.h> ],
+[ int i = __NR_clock_gettime;
+], AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING(for syscall support for cpu clocks)
+AC_TRY_RUN(
+[#include <time.h>
+ #include <sys/syscall.h>
+main()
+{
+  struct timespec ts;
+  sleep(1);
+  syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts);
+  exit (ts.tv_sec);
+}], ac_linux_cpuclocks="yes"
+    AC_MSG_RESULT(yes),
+    AC_MSG_RESULT(no))
+
+if test "x$ac_linux_cpuclocks" = "xyes"; then
+   AC_DEFINE(LINUX_CPUCLOCKS, 1,
+             [Define if you have Linux cpu clocks (2.6.12 and greater)])
+else
+
 AC_MSG_CHECKING("linux 2.6 /proc")
 if test -f /proc/$$/task/$$/stat -a \
 	`cat /proc/$$/task/$$/stat | wc -w` = "41"; then
@@ -580,6 +633,8 @@ if test -f /proc/$$/task/$$/stat -a \
 	     [Define if you have Linux 2.6 compatible /proc])
 else
    AC_MSG_RESULT(no)
+fi
+fi
 fi
 
 AC_CHECK_SIZEOF(long, 4)

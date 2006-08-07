@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Bug#192: Better implementation of per-thread CPUtime, depending
+    on Linux library and kernel versions.  Keri Harris.
+
   * FIXED: Bug#191: with_output_to and format: lacking initialisation.
     Holger Kanwischer.
 

@@ -57,6 +57,9 @@
 /* Define to 1 if you have the `chmod' function. */
 #undef HAVE_CHMOD
 
+/* Define to 1 if you have the `clock_gettime' function. */
+#undef HAVE_CLOCK_GETTIME
+
 /* Define to 1 if you have the `confstr' function. */
 #undef HAVE_CONFSTR
 
@@ -403,6 +406,9 @@
 /* Define if the ln command supports -s */
 #undef HAVE_SYMLINKS
 
+/* Define to 1 if you have the `syscall' function. */
+#undef HAVE_SYSCALL
+
 /* Define to 1 if you have the `sysconf' function. */
 #undef HAVE_SYSCONF
 
@@ -434,6 +440,9 @@
 
 /* Define to 1 if you have the <sys/stropts.h> header file. */
 #undef HAVE_SYS_STROPTS_H
+
+/* Define to 1 if you have the <sys/syscall.h> header file. */
+#undef HAVE_SYS_SYSCALL_H
 
 /* Define to 1 if you have the <sys/termios.h> header file. */
 #undef HAVE_SYS_TERMIOS_H
@@ -495,6 +504,9 @@
 /* String used to prefix all symbols requested through dlsym() */
 #undef LD_SYMBOL_PREFIX
 
+/* Define if you have Linux cpu clocks (2.6.12 and greater) */
+#undef LINUX_CPUCLOCKS
+
 /* Define if you have Linux 2.6 compatible /proc */
 #undef LINUX_PROCFS
 
@@ -555,6 +567,9 @@
 
 /* Name of the SWI-Prolog executable (normally pl) */
 #undef PROG_PL
+
+/* Define if you have pthread cpu clocks (glibc 2.4 and greater) */
+#undef PTHREAD_CPUCLOCKS
 
 /* Define to make use of standard (UNIX98) pthread recursive mutexes */
 #undef RECURSIVE_MUTEXES
