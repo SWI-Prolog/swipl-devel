@@ -82,9 +82,10 @@ prolog_file(FileSpec, Options) -->
 	     ]).
 	  
 module_info(File, [module(Module), public(Exports)|Options], Options) :-
-	current_module(Module, File),
+	current_module(Module, File), !,
 	export_list(Module, Public),
 	maplist(head_to_pi, Public, Exports).
+module_info(_, Options, Options).
 
 head_to_pi(M:Head, M:PI) :- !,
 	head_to_pi(Head, PI).
@@ -94,11 +95,12 @@ head_to_pi(Head, Name/Arity) :-
 objects([], _) -->
 	[].
 objects([doc(Obj,Pos,Comment)|T], Options) -->
-	object(Obj,Pos,Comment, Options),
+	html(\object(Obj,Pos,Comment, Options)),
 	objects(T, Options).
 
-object(Name/Arity, _Pos, _Comment, Options) -->
-	{ option(public(Public), Options, []),
+object(Module:Name/Arity, _Pos, _Comment, Options) -->
+	{ option(module(Module), Options, []),
+	  option(public(Public), Options, []),
 	  \+ memberchk(Name/Arity, Public),
 	  option(public_only(true), Options, true)
 	}, !,				% private predicate
@@ -267,6 +269,9 @@ pred_args([H|T]) -->
 	    pred_args(T)
 	).
 
+pred_arg(...(Term)) --> !,
+	pred_arg(Term),
+	html('...').
 pred_arg(Term) -->
 	{ Term =.. [Ind,Arg],
 	  mode_indicator(Ind)

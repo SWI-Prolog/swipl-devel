@@ -2,6 +2,7 @@
 :- use_module(wiki).
 :- use_module(modes).
 :- use_module(html).
+:- use_module(http).
 :- use_module(library('http/html_write')).
 
 process_comment(File, Pos-String, DOM) :-
@@ -64,3 +65,9 @@ test(Spec) :-
 	open(DocFile, write, Out),
 	call_cleanup(doc_write_html(Out, File, DOM),
 		     close(Out)).
+
+doc :-
+	Port = 4000,
+	doc_server(Port),
+	format(atom(URL), 'http://localhost:~w/', [Port]),
+	www_open_url(URL).

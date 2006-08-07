@@ -39,6 +39,7 @@
 :- use_module(wiki).
 :- use_module(library(debug)).
 :- use_module(library(option)).
+:- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(prolog_source)).
 

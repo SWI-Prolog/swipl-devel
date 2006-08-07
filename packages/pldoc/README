@@ -55,6 +55,7 @@ Making solid progress.  remaining issues:
 	* Verify modes with first term (same name/arity)
 	* Verify summary (length)
 	* Verify required tags (notable param)
+	* Verify declared @param exists
 
 ---++ Source processing
 

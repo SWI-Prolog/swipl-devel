@@ -37,7 +37,9 @@
 :- use_module(library('http/mimetype')).
 
 doc_server(Port) :-
-	doc_server(Port, []).
+	doc_server(Port,
+		   [ workers(1)
+		   ]).
 
 doc_server(Port, Options) :-
 	http_server(doc_reply,
