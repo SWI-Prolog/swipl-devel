@@ -45,6 +45,12 @@ message_level(silent).
 		 *******************************/
 
 %%	binding(+ModeName, +TableName, +Modifications)
+%
+%	Specify bindings for alternative key-binding-styles.
+%	
+%	@param ModeName		Name of the key-binding-style
+%	@param TableName	Syntax table to modify
+%	@param Modifications	List of Key-Method
 
 binding(cua, editor,
 	[ '\\C-v' = paste,
