@@ -695,7 +695,7 @@ is first closed.
 
     \predicate{open_memory_file}{3}{+Handle, +Mode, -Stream}
 Open the memory-file.  \arg{Mode} is currently one of \const{read}
-or \const{write}.  The resulting handling is closed
+or \const{write}.  The resulting \arg{Stream} must be closed
 using close/1.
 
     \predicate{size_memory_file}{2}{+Handle, -Bytes}

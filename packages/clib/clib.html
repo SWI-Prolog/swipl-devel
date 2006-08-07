@@ -77,6 +77,7 @@ ported to native Windows.
 <LI><A HREF="#sec:4.1">4.1 Server applications</A>
 <LI><A HREF="#sec:4.2">4.2 Client applications</A>
 <LI><A HREF="#sec:4.3">4.3 The stream_pool library</A>
+<LI><A HREF="#sec:4.4">4.4 UDP protocol support</A>
 </UL>
 <LI><A HREF="#sec:5"><B>5 CGI Support library</B></A>
 <UL>
@@ -290,16 +291,22 @@ while the second sets the last-modified time to the current time.
 
 <H2><A NAME="sec:4">4 Socket library</A></H2>
 
-<P>The <CODE>library(socket)</CODE> library provides TCP inet-domain 
-sockets from SWI-Prolog, both client and server-side communication. The 
-interface of this library is very close to the Unix socket interface, 
-also supported by the MS-Windows <EM>winsock</EM> API. Since SWI-Prolog 
-4.0, XPCE is part of SWI-Prolog and offers <B>socket</B>. XPCE provides 
-an event-driven interface to sockets, handling multiple open sockets in 
-paralel.
+<P>The <CODE>library(socket)</CODE> library provides TCP and UDP 
+inet-domain sockets from SWI-Prolog, both client and server-side 
+communication. The interface of this library is very close to the Unix 
+socket interface, also supported by the MS-Windows <EM>winsock</EM> API. 
+SWI-Prolog applications that wish to communicate with multiple sources 
+have three options:
 
-<P>In the future we hope to provide a more high-level socket interface 
-defined in Prolog and based on these primitives.
+<P><OL>
+<LI>Use I/O multiplexing based on <A NAME="idx:waitforinput3:11"></A><B>wait_for_input/3</B>. 
+On Windows systems this can only be used for sockets, not for general 
+(device-) file handles.
+<LI>Use multiple threads, handling either a single blocking socket or a 
+pool using I/O multiplexing as above.
+<LI>Using XPCE's class <B>socket</B> which synchronises socket events in 
+the GUI event-loop.
+</OL>
 
 <DL>
 
@@ -313,26 +320,26 @@ library is not yet initialised, this will also initialise the library.
 <DT><A NAME="tcp_close_socket/1"><STRONG>tcp_close_socket</STRONG>(<VAR>+SocketId</VAR>)</A><DD>
 Closes the indicated socket, making <VAR>SocketId</VAR> invalid. 
 Normally, sockets are closed by closing both stream handles returned by
-<A NAME="idx:opensocket3:11"></A><B>open_socket/3</B>. There are two 
-cases where <A NAME="idx:tcpclosesocket1:12"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A> 
+<A NAME="idx:opensocket3:12"></A><B>open_socket/3</B>. There are two 
+cases where <A NAME="idx:tcpclosesocket1:13"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A> 
 is used because there are no stream-handles:
 
 <P>
 <UL>
-<LI>After <A NAME="idx:tcpaccept3:13"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>, 
-the server does a <A NAME="idx:fork1:14"></A><A HREF="#fork/1">fork/1</A> 
+<LI>After <A NAME="idx:tcpaccept3:14"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>, 
+the server does a <A NAME="idx:fork1:15"></A><A HREF="#fork/1">fork/1</A> 
 to handle the client in a sub-process. In this case the accepted socket 
-is not longer needed from the main server and must be discarded using <A NAME="idx:tcpclosesocket1:15"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A>.
-<LI>If, after discovering the connecting client with <A NAME="idx:tcpaccept3:16"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>, 
+is not longer needed from the main server and must be discarded using <A NAME="idx:tcpclosesocket1:16"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A>.
+<LI>If, after discovering the connecting client with <A NAME="idx:tcpaccept3:17"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>, 
 the server does not want to accept the connection, it should discard the 
-accepted socket immediately using <A NAME="idx:tcpclosesocket1:17"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A>.
+accepted socket immediately using <A NAME="idx:tcpclosesocket1:18"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A>.
 </UL>
 
 <P>
 <DT><A NAME="tcp_open_socket/3"><STRONG>tcp_open_socket</STRONG>(<VAR>+SocketId, 
 -InStream, -OutStream</VAR>)</A><DD>
 Open two SWI-Prolog I/O-streams, one to deal with input from the socket 
-and one with output to the socket. If <A NAME="idx:tcpbind2:18"></A><A HREF="#tcp_bind/2">tcp_bind/2</A> 
+and one with output to the socket. If <A NAME="idx:tcpbind2:19"></A><A HREF="#tcp_bind/2">tcp_bind/2</A> 
 has been called on the socket. <VAR>OutSream</VAR> is useless and will 
 not be created. After closing both <VAR>InStream</VAR> and <VAR>OutSream</VAR>, 
 the socket itself is discarded.
@@ -340,8 +347,8 @@ the socket itself is discarded.
 <P>
 <DT><A NAME="tcp_bind/2"><STRONG>tcp_bind</STRONG>(<VAR>+Socket, ?Port</VAR>)</A><DD>
 Bind the socket to <VAR>Port</VAR> on the current machine. This 
-operation, together with <A NAME="idx:tcplisten2:19"></A><A HREF="#tcp_listen/2">tcp_listen/2</A> 
-and <A NAME="idx:tcpaccept3:20"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
+operation, together with <A NAME="idx:tcplisten2:20"></A><A HREF="#tcp_listen/2">tcp_listen/2</A> 
+and <A NAME="idx:tcpaccept3:21"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
 implement the <EM>server</EM>-side of the socket interface. If <VAR>Port</VAR> 
 is unbound, the system picks an arbitrary free port and unifies <VAR>Port</VAR> 
 with the selected port number.
@@ -349,10 +356,10 @@ with the selected port number.
 <P>
 <DT><A NAME="tcp_listen/2"><STRONG>tcp_listen</STRONG>(<VAR>+Socket, 
 +Backlog</VAR>)</A><DD>
-Tells, after <A NAME="idx:tcpbind2:21"></A><A HREF="#tcp_bind/2">tcp_bind/2</A>, 
+Tells, after <A NAME="idx:tcpbind2:22"></A><A HREF="#tcp_bind/2">tcp_bind/2</A>, 
 the socket to listen for incoming requests for connections. <VAR>Backlog</VAR> 
 indicates how many pending connection requests are allowed. Pending 
-requests are requests that are not yet acknowledged using <A NAME="idx:tcpaccept3:22"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>. 
+requests are requests that are not yet acknowledged using <A NAME="idx:tcpaccept3:23"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>. 
 If the indicated number is exceeded, the requesting client will be 
 signalled that the service is currently not available. A suggested 
 default value is 5.
@@ -370,7 +377,7 @@ IP-address of the client.
 +Host:+Port</VAR>)</A><DD>
 Client-interface to connect a socket to a given <VAR>Port</VAR> on a 
 given
-<VAR>Host</VAR>. After successful completion, <A NAME="idx:tcpopensocket3:23"></A><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A> 
+<VAR>Host</VAR>. After successful completion, <A NAME="idx:tcpopensocket3:24"></A><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A> 
 can be used to create I/O-Streams to the remote socket.
 
 <P>
@@ -384,6 +391,12 @@ Set options on the socket. Defined options are:
 <DT><STRONG>reuseaddr</STRONG><DD>
 Allow servers to reuse a port without the system being completely sure 
 the port is no longer in use.
+
+<P>
+<DT><STRONG>broadcast</STRONG><DD>
+UDP sockets only: broadcast the package to all addresses matching the 
+address. The address is normally the address of the local subnet (i.e. 
+192.168.1.255). See <A NAME="idx:udpsend4:25"></A><A HREF="#udp_send/4">udp_send/4</A>.
 
 <P>
 <DT><STRONG>dispatch</STRONG>(<VAR>Bool</VAR>)<DD>
@@ -410,9 +423,9 @@ deal switch stream to non-blocking mode using:
 
 <P>As of SWI-Prolog 3.2.4, handling of non-blocking stream is supported. 
 An attempt to read from a non-blocking stream returns -1 (or
-<CODE>end_of_file</CODE> for <A NAME="idx:read1:24"></A><B>read/1</B>), 
-but <A NAME="idx:atendofstream1:25"></A><B>at_end_of_stream/1</B> fails. 
-On actual end-of-input, <A NAME="idx:atendofstream1:26"></A><B>at_end_of_stream/1</B> 
+<CODE>end_of_file</CODE> for <A NAME="idx:read1:26"></A><B>read/1</B>), 
+but <A NAME="idx:atendofstream1:27"></A><B>at_end_of_stream/1</B> fails. 
+On actual end-of-input, <A NAME="idx:atendofstream1:28"></A><B>at_end_of_stream/1</B> 
 succeeds.
 
 <P>
@@ -451,13 +464,13 @@ create_server(Port) :-
 </TABLE>
 
 <P>There are various options for &lt;<VAR>dispatch</VAR>&gt;. One is to 
-keep track of active clients and server-sockets using <A NAME="idx:waitforinput3:27"></A><B>wait_for_input/3</B>. 
-If input arrives at a server socket, use <A NAME="idx:tcpaccept3:28"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
+keep track of active clients and server-sockets using <A NAME="idx:waitforinput3:29"></A><B>wait_for_input/3</B>. 
+If input arrives at a server socket, use <A NAME="idx:tcpaccept3:30"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
 and add the new connection to the active clients. Otherwise deal with 
-the input from the client. Another is to use (Unix) <A NAME="idx:fork1:29"></A><A HREF="#fork/1">fork/1</A> 
+the input from the client. Another is to use (Unix) <A NAME="idx:fork1:31"></A><A HREF="#fork/1">fork/1</A> 
 to deal with the client in a separate process.
 
-<P>Using <A NAME="idx:fork1:30"></A><A HREF="#fork/1">fork/1</A>, &lt;<VAR>dispatch</VAR>&gt; 
+<P>Using <A NAME="idx:fork1:32"></A><A HREF="#fork/1">fork/1</A>, &lt;<VAR>dispatch</VAR>&gt; 
 may be implemented as:
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -495,14 +508,14 @@ create_client(Host, Port) :-
 </PRE>
 </TABLE>
 
-<P>To deal with timeouts and multiple connections, <A NAME="idx:waitforinput3:31"></A><B>wait_for_input/3</B> 
-and/or non-blocking streams (see <A NAME="idx:tcpfcntl3:32"></A><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A>) 
+<P>To deal with timeouts and multiple connections, <A NAME="idx:waitforinput3:33"></A><B>wait_for_input/3</B> 
+and/or non-blocking streams (see <A NAME="idx:tcpfcntl3:34"></A><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A>) 
 can be used.
 
 <H3><A NAME="sec:4.3">4.3 The stream_pool library</A></H3>
 
 <P>The <CODE>library(streampool)</CODE> library dispatches input from 
-multiple streams based on <A NAME="idx:waitforinput3:33"></A><B>wait_for_input/3</B>. 
+multiple streams based on <A NAME="idx:waitforinput3:35"></A><B>wait_for_input/3</B>. 
 It is part of the clib package as it is used most of the time together 
 with the <CODE>library(socket)</CODE> library. On non-Unix systems it 
 often can only be used with socket streams.
@@ -527,7 +540,7 @@ is called.
 <DT><A NAME="delete_stream_from_pool/1"><STRONG>delete_stream_from_pool</STRONG>(<VAR>+Stream</VAR>)</A><DD>
 Delete the given stream from the pool. Succeeds, even if <VAR>Stream</VAR> 
 is no member of the pool. If <VAR>Stream</VAR> is unbound the entire 
-pool is emtied but unlike <A NAME="idx:closestreampool0:34"></A><A HREF="#close_stream_pool/0">close_stream_pool/0</A> 
+pool is emtied but unlike <A NAME="idx:closestreampool0:36"></A><A HREF="#close_stream_pool/0">close_stream_pool/0</A> 
 the streams are not closed.
 
 <P>
@@ -538,9 +551,9 @@ Empty the pool, closing all streams that are part of it.
 <DT><A NAME="dispatch_stream_pool/1"><STRONG>dispatch_stream_pool</STRONG>(<VAR>+TimeOut</VAR>)</A><DD>
 Wait for maximum of <VAR>TimeOut</VAR> for input on any of the streams 
 in the pool. If there is input, call the <VAR>Goal</VAR> associated with
-<A NAME="idx:addstreamtopool2:35"></A><A HREF="#add_stream_to_pool/2">add_stream_to_pool/2</A>. 
+<A NAME="idx:addstreamtopool2:37"></A><A HREF="#add_stream_to_pool/2">add_stream_to_pool/2</A>. 
 If <VAR>Goal</VAR> fails or raises an exception a message is printed. <VAR>TimeOut</VAR> 
-is described with <A NAME="idx:waitforinput3:36"></A><B>wait_for_input/3</B>.
+is described with <A NAME="idx:waitforinput3:38"></A><B>wait_for_input/3</B>.
 
 <P>If <VAR>Goal</VAR> is called, there is <EM>some</EM> input on the 
 associated stream. <VAR>Goal</VAR> must be careful not to block as this 
@@ -548,7 +561,7 @@ will block the entire pool.<A NAME=back-to-note-3 HREF="index.html#note-3"> (3)<
 
 <P>
 <DT><A NAME="stream_pool_main_loop/0"><STRONG>stream_pool_main_loop</STRONG></A><DD>
-Calls <A NAME="idx:dispatchstreampool1:37"></A><A HREF="#dispatch_stream_pool/1">dispatch_stream_pool/1</A> 
+Calls <A NAME="idx:dispatchstreampool1:39"></A><A HREF="#dispatch_stream_pool/1">dispatch_stream_pool/1</A> 
 in a loop until the pool is empty.
 </DL>
 
@@ -581,6 +594,46 @@ client(In, Out, _Peer) :-
         delete_stream_from_pool(In).
 </PRE>
 </TABLE>
+
+<H3><A NAME="sec:4.4">4.4 UDP protocol support</A></H3>
+
+<P>The current library provides limited support for UDP packets. The UDP 
+protocol is a <EM>connection-less</EM> and <EM>unreliable</EM> datagram 
+based protocol. That means that messages sent may or may not arrive at 
+the client side and may arrive in a different order as they are sent. 
+UDP messages are often used for streaming media or for service discovery 
+using the broadcasting mechanism.
+
+<DL>
+
+<P>
+<DT><A NAME="udp_socket/1"><STRONG>udp_socket</STRONG>(<VAR>-Socket</VAR>)</A><DD>
+Similar to <A NAME="idx:tcpsocket1:40"></A><A HREF="#tcp_socket/1">tcp_socket/1</A>, 
+but create a socket using the <CODE>SOCK_DGRAM</CODE> protocol, ready 
+for UDP connections.
+
+<P>
+<DT><A NAME="udp_receive/4"><STRONG>udp_receive</STRONG>(<VAR>+Socket, 
+-Data, -From, +Options</VAR>)</A><DD>
+Wait for and return the next datagram. The data is returned as a Prolog 
+string object (see <A NAME="idx:stringtolist2:41"></A><B>string_to_list/2</B>). <VAR>From</VAR> 
+is a term of the format ip(<VAR>A</VAR>,<VAR>B</VAR>,<VAR>C</VAR>,<VAR>D</VAR>):<VAR>Port</VAR> 
+indicating the sender of the message. <VAR>Options</VAR> is currently 
+unused.
+<VAR>Socket</VAR> can be waited for using <A NAME="idx:waitforinput3:42"></A><B>wait_for_input/3</B>.
+
+<P>
+<DT><A NAME="udp_send/4"><STRONG>udp_send</STRONG>(<VAR>+Socket, +Data, 
++To, +Options</VAR>)</A><DD>
+Send a UDP message. Data is a string, atom or code-list providing the 
+data. <VAR>To</VAR> is an address of the form <VAR>Host</VAR>:<VAR>Port</VAR> 
+where Host is either the hostname or a term <A NAME="idx:ip4:43"></A><B>ip/4</B>. <VAR>Options</VAR> 
+is currently unused.
+
+<P>A broadcast is achieved by using <CODE>tcp_setopt(Socket, broadcast)</CODE> 
+prior to sending the datagram and using the local network broadcast 
+address as a <A NAME="idx:ip4:44"></A><B>ip/4</B> term.
+</DL>
 
 <H2><A NAME="sec:5">5 CGI Support library</A></H2>
 
@@ -636,7 +689,7 @@ print_args([A0|T]) :-
 
 <H3><A NAME="sec:5.1">5.1 Some considerations</A></H3>
 
-<P>Printing an HTML document using <A NAME="idx:format2:38"></A><B>format/2</B> 
+<P>Printing an HTML document using <A NAME="idx:format2:45"></A><B>format/2</B> 
 is not really a neat way of producing HTML. A high-level alternative is 
 provided by
 <CODE>library(http/html_write)</CODE> from the XPCE package.
@@ -738,7 +791,7 @@ Name of the file the data should be stored in.
 
 <H2><A NAME="sec:7">7 Unix password encryption library</A></H2>
 
-<P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:39"></A><A HREF="#crypt/2">crypt/2</A> 
+<P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:46"></A><A HREF="#crypt/2">crypt/2</A> 
 for encrypting and testing Unix passwords:
 
 <DL>
@@ -774,8 +827,8 @@ them. However, memory-streams cannot have multiple streams at the same
 time (i.e. cannot be opened for reading and writing at the same time).
 
 <P>These predicates are first of all intended for building higher-level 
-primitives. See also <A NAME="idx:sformat3:40"></A><B>sformat/3</B>, <A NAME="idx:atomtoterm3:41"></A><B>atom_to_term/3</B>, <A NAME="idx:termtoatom2:42"></A><B>term_to_atom/2</B> 
-and the XPCE primitive <A NAME="idx:pceopen3:43"></A><B>pce_open/3</B>.
+primitives. See also <A NAME="idx:sformat3:47"></A><B>sformat/3</B>, <A NAME="idx:atomtoterm3:48"></A><B>atom_to_term/3</B>, <A NAME="idx:termtoatom2:49"></A><B>term_to_atom/2</B> 
+and the XPCE primitive <A NAME="idx:pceopen3:50"></A><B>pce_open/3</B>.
 
 <DL>
 
@@ -792,7 +845,8 @@ first closed.
 <DT><A NAME="open_memory_file/3"><STRONG>open_memory_file</STRONG>(<VAR>+Handle, 
 +Mode, -Stream</VAR>)</A><DD>
 Open the memory-file. <VAR>Mode</VAR> is currently one of <CODE>read</CODE> 
-or <CODE>write</CODE>. The resulting handling is closed using <A NAME="idx:close1:44"></A><B>close/1</B>.
+or <CODE>write</CODE>. The resulting <VAR>Stream</VAR> must be closed 
+using <A NAME="idx:close1:51"></A><B>close/1</B>.
 
 <P>
 <DT><A NAME="size_memory_file/2"><STRONG>size_memory_file</STRONG>(<VAR>+Handle, 
@@ -849,7 +903,7 @@ terms. Defined options are:
 <DT><STRONG>remove</STRONG>(<VAR>Bool</VAR>)<DD>
 If <CODE>true</CODE> (default <CODE>false</CODE>), the timer is removed 
 automatically. Otherwise it must be delated explicitly using
-<A NAME="idx:removealarm1:45"></A><A HREF="#remove_alarm/1">remove_alarm/1</A>.
+<A NAME="idx:removealarm1:52"></A><A HREF="#remove_alarm/1">remove_alarm/1</A>.
 </DL>
 
 <P>
@@ -870,16 +924,16 @@ is the next to be fired and <VAR>scheduled</VAR> otherwise.
 <P>
 <DT><A NAME="call_with_time_limit/2"><STRONG>call_with_time_limit</STRONG>(<VAR>+Time, 
 :Goal</VAR>)</A><DD>
-Call <VAR>Goal</VAR> as <A NAME="idx:once1:46"></A><B>once/1</B>. If <VAR>Goal</VAR> 
+Call <VAR>Goal</VAR> as <A NAME="idx:once1:53"></A><B>once/1</B>. If <VAR>Goal</VAR> 
 doesn't complete within
 <VAR>Time</VAR> seconds, exit using the exception
-<CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:47"></A><B>catch/3</B>.
+<CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:54"></A><B>catch/3</B>.
 
-<P>Please note that this predicate uses <A NAME="idx:alarm4:48"></A><A HREF="#alarm/4">alarm/4</A> 
+<P>Please note that this predicate uses <A NAME="idx:alarm4:55"></A><A HREF="#alarm/4">alarm/4</A> 
 and therefore is <EM>not</EM> capable to break out of long running goals 
-such as <A NAME="idx:sleep1:49"></A><B>sleep/1</B>, blocking I/O or 
+such as <A NAME="idx:sleep1:56"></A><B>sleep/1</B>, blocking I/O or 
 other long-running (foreign) predicates. Blocking I/O can be handled 
-using the timeout option of <A NAME="idx:readterm3:50"></A><B>read_term/3</B>.
+using the timeout option of <A NAME="idx:readterm3:57"></A><B>read_term/3</B>.
 </DL>
 
 <H2><A NAME="sec:10">10 Limiting process resources</A></H2>
@@ -899,7 +953,7 @@ Query and/or set the limit for <VAR>Resource</VAR>. Time-values are in
 seconds and size-values are counted in bytes. The following values are 
 supported by this library. Please note that not all resources may be 
 available and accessible on all platforms. This predicate can throw a 
-variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:51"></A><B>catch/3</B>. 
+variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:58"></A><B>catch/3</B>. 
 The defined resources are:
 <BLOCKQUOTE>
 <TABLE BORDER=0 FRAME=void RULES=groups>
@@ -919,7 +973,7 @@ address </TD></TR>
 
 <P>When the process hits a limit POSIX systems normally send the process 
 a signal that terminates it. These signals may be catched using 
-SWI-Prolog's <A NAME="idx:onsignal3:52"></A><B>on_signal/3</B> 
+SWI-Prolog's <A NAME="idx:onsignal3:59"></A><B>on_signal/3</B> 
 primitive. The code below illustrates this behaviour. Please note that 
 asynchronous signal handling is dangerous, especially when using 
 threads. 100% fail-safe operation cannot be guaranteed, but this 
@@ -992,49 +1046,52 @@ and parts, but I believe the answer is `no'.
 <P>
 <DT><STRONG>A</STRONG><DD>
 <DT><A HREF="#add_stream_to_pool/2">add_stream_to_pool/2</A><DD>
-<A HREF="#idx:addstreamtopool2:35">4.3</A>
+<A HREF="#idx:addstreamtopool2:37">4.3</A>
 <DT><A HREF="#alarm/3">alarm/3</A><DD>
 <DT><A HREF="#alarm/4">alarm/4</A><DD>
-<A HREF="#idx:alarm4:48">9</A>
+<A HREF="#idx:alarm4:55">9</A>
 <DT>at_end_of_stream/1<DD>
-<A HREF="#idx:atendofstream1:25">4</A> <A HREF="#idx:atendofstream1:26">4</A>
+<A HREF="#idx:atendofstream1:27">4</A> <A HREF="#idx:atendofstream1:28">4</A>
 <DT><A HREF="#atom_to_memory_file/2">atom_to_memory_file/2</A><DD>
 <DT>atom_to_term/3<DD>
-<A HREF="#idx:atomtoterm3:41">8</A>
+<A HREF="#idx:atomtoterm3:48">8</A>
 <DT><STRONG>C</STRONG><DD>
 <DT><A HREF="#call_with_time_limit/2">call_with_time_limit/2</A><DD>
 <DT>catch/3<DD>
-<A HREF="#idx:catch3:47">9</A> <A HREF="#idx:catch3:51">10</A>
+<A HREF="#idx:catch3:54">9</A> <A HREF="#idx:catch3:58">10</A>
 <DT><A HREF="#cgi_get_form/1">cgi_get_form/1</A><DD>
 <DT>close/1<DD>
-<A HREF="#idx:close1:44">8</A>
+<A HREF="#idx:close1:51">8</A>
 <DT><A HREF="#close_stream_pool/0">close_stream_pool/0</A><DD>
-<A HREF="#idx:closestreampool0:34">4.3</A>
+<A HREF="#idx:closestreampool0:36">4.3</A>
 <DT><A HREF="#crypt/2">crypt/2</A><DD>
-<A HREF="#idx:crypt2:39">7</A>
+<A HREF="#idx:crypt2:46">7</A>
 <DT><A HREF="#current_alarm/4">current_alarm/4</A><DD>
 <DT><STRONG>D</STRONG><DD>
 <DT><A HREF="#delete_stream_from_pool/1">delete_stream_from_pool/1</A><DD>
 <DT><A HREF="#detach_IO/0">detach_IO/0</A><DD>
 <A HREF="#idx:detachIO0:4">2</A>
 <DT><A HREF="#dispatch_stream_pool/1">dispatch_stream_pool/1</A><DD>
-<A HREF="#idx:dispatchstreampool1:37">4.3</A>
+<A HREF="#idx:dispatchstreampool1:39">4.3</A>
 <DT><A HREF="#dup/2">dup/2</A><DD>
 <DT><STRONG>E</STRONG><DD>
 <DT><A HREF="#exec/1">exec/1</A><DD>
 <DT><STRONG>F</STRONG><DD>
 <DT><A HREF="#fork/1">fork/1</A><DD>
-<A HREF="#idx:fork1:2">2</A> <A HREF="#idx:fork1:9">2</A> <A HREF="#idx:fork1:14">4</A> <A HREF="#idx:fork1:29">4.1</A> <A HREF="#idx:fork1:30">4.1</A>
+<A HREF="#idx:fork1:2">2</A> <A HREF="#idx:fork1:9">2</A> <A HREF="#idx:fork1:15">4</A> <A HREF="#idx:fork1:31">4.1</A> <A HREF="#idx:fork1:32">4.1</A>
 <DT>fork/2<DD>
 <A HREF="#idx:fork2:1">2</A>
 <DT>format/2<DD>
-<A HREF="#idx:format2:38">5.1</A>
+<A HREF="#idx:format2:45">5.1</A>
 <DT><A HREF="#free_memory_file/1">free_memory_file/1</A><DD>
 <DT><STRONG>G</STRONG><DD>
 <DT><A HREF="#gethostname/1">gethostname/1</A><DD>
 <DT><STRONG>H</STRONG><DD>
 <DT>halt/[0,1]<DD>
 <A HREF="#idx:halt01:5">2</A>
+<DT><STRONG>I</STRONG><DD>
+<DT>ip/4<DD>
+<A HREF="#idx:ip4:43">4.4</A> <A HREF="#idx:ip4:44">4.4</A>
 <DT><STRONG>K</STRONG><DD>
 <DT><A HREF="#kill/2">kill/2</A><DD>
 <A HREF="#idx:kill2:6">2</A>
@@ -1046,61 +1103,69 @@ and parts, but I believe the answer is `no'.
 <DT><A HREF="#new_memory_file/1">new_memory_file/1</A><DD>
 <DT><STRONG>O</STRONG><DD>
 <DT>once/1<DD>
-<A HREF="#idx:once1:46">9</A>
+<A HREF="#idx:once1:53">9</A>
 <DT>on_signal/2<DD>
 <A HREF="#idx:onsignal2:7">2</A>
 <DT>on_signal/3<DD>
-<A HREF="#idx:onsignal3:52">10</A>
+<A HREF="#idx:onsignal3:59">10</A>
 <DT><A HREF="#open_memory_file/3">open_memory_file/3</A><DD>
 <DT>open_socket/3<DD>
-<A HREF="#idx:opensocket3:11">4</A>
+<A HREF="#idx:opensocket3:12">4</A>
 <DT><STRONG>P</STRONG><DD>
 <DT>pce_open/3<DD>
-<A HREF="#idx:pceopen3:43">8</A>
+<A HREF="#idx:pceopen3:50">8</A>
 <DT><A HREF="#pipe/2">pipe/2</A><DD>
 <A HREF="#idx:pipe2:8">2</A> <A HREF="#idx:pipe2:10">2</A>
 <DT><STRONG>R</STRONG><DD>
 <DT>read/1<DD>
-<A HREF="#idx:read1:24">4</A>
+<A HREF="#idx:read1:26">4</A>
 <DT>read_term/3<DD>
-<A HREF="#idx:readterm3:50">9</A>
+<A HREF="#idx:readterm3:57">9</A>
 <DT><A HREF="#remove_alarm/1">remove_alarm/1</A><DD>
-<A HREF="#idx:removealarm1:45">9</A>
+<A HREF="#idx:removealarm1:52">9</A>
 <DT><A HREF="#rlimit/3">rlimit/3</A><DD>
 <DT><STRONG>S</STRONG><DD>
 <DT><A HREF="#set_time_file/3">set_time_file/3</A><DD>
 <DT>sformat/3<DD>
-<A HREF="#idx:sformat3:40">8</A>
+<A HREF="#idx:sformat3:47">8</A>
 <DT><A HREF="#size_memory_file/2">size_memory_file/2</A><DD>
 <DT>sleep/1<DD>
-<A HREF="#idx:sleep1:49">9</A>
+<A HREF="#idx:sleep1:56">9</A>
 <DT>socket<DD>
 <A HREF="#sec:4">4</A>
 <DT><A HREF="#stream_pool_main_loop/0">stream_pool_main_loop/0</A><DD>
+<DT>string_to_list/2<DD>
+<A HREF="#idx:stringtolist2:41">4.4</A>
 <DT><STRONG>T</STRONG><DD>
 <DT><A HREF="#tcp_accept/3">tcp_accept/3</A><DD>
-<A HREF="#idx:tcpaccept3:13">4</A> <A HREF="#idx:tcpaccept3:16">4</A> <A HREF="#idx:tcpaccept3:20">4</A> <A HREF="#idx:tcpaccept3:22">4</A> <A HREF="#idx:tcpaccept3:28">4.1</A>
+<A HREF="#idx:tcpaccept3:14">4</A> <A HREF="#idx:tcpaccept3:17">4</A> <A HREF="#idx:tcpaccept3:21">4</A> <A HREF="#idx:tcpaccept3:23">4</A> <A HREF="#idx:tcpaccept3:30">4.1</A>
 <DT><A HREF="#tcp_bind/2">tcp_bind/2</A><DD>
-<A HREF="#idx:tcpbind2:18">4</A> <A HREF="#idx:tcpbind2:21">4</A>
+<A HREF="#idx:tcpbind2:19">4</A> <A HREF="#idx:tcpbind2:22">4</A>
 <DT><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A><DD>
-<A HREF="#idx:tcpclosesocket1:12">4</A> <A HREF="#idx:tcpclosesocket1:15">4</A> <A HREF="#idx:tcpclosesocket1:17">4</A>
+<A HREF="#idx:tcpclosesocket1:13">4</A> <A HREF="#idx:tcpclosesocket1:16">4</A> <A HREF="#idx:tcpclosesocket1:18">4</A>
 <DT><A HREF="#tcp_connect/2">tcp_connect/2</A><DD>
 <DT><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A><DD>
-<A HREF="#idx:tcpfcntl3:32">4.2</A>
+<A HREF="#idx:tcpfcntl3:34">4.2</A>
 <DT><A HREF="#tcp_host_to_address/2">tcp_host_to_address/2</A><DD>
 <DT><A HREF="#tcp_listen/2">tcp_listen/2</A><DD>
-<A HREF="#idx:tcplisten2:19">4</A>
+<A HREF="#idx:tcplisten2:20">4</A>
 <DT><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A><DD>
-<A HREF="#idx:tcpopensocket3:23">4</A>
+<A HREF="#idx:tcpopensocket3:24">4</A>
 <DT><A HREF="#tcp_setopt/2">tcp_setopt/2</A><DD>
 <DT><A HREF="#tcp_socket/1">tcp_socket/1</A><DD>
+<A HREF="#idx:tcpsocket1:40">4.4</A>
 <DT>term_to_atom/2<DD>
-<A HREF="#idx:termtoatom2:42">8</A>
+<A HREF="#idx:termtoatom2:49">8</A>
+<DT><STRONG>U</STRONG><DD>
+<DT><A HREF="#udp_receive/4">udp_receive/4</A><DD>
+<DT><A HREF="#udp_send/4">udp_send/4</A><DD>
+<A HREF="#idx:udpsend4:25">4</A>
+<DT><A HREF="#udp_socket/1">udp_socket/1</A><DD>
 <DT><STRONG>W</STRONG><DD>
 <DT><A HREF="#wait/2">wait/2</A><DD>
 <A HREF="#idx:wait2:3">2</A>
 <DT>wait_for_input/3<DD>
-<A HREF="#idx:waitforinput3:27">4.1</A> <A HREF="#idx:waitforinput3:31">4.2</A> <A HREF="#idx:waitforinput3:33">4.3</A> <A HREF="#idx:waitforinput3:36">4.3</A>
+<A HREF="#idx:waitforinput3:11">4</A> <A HREF="#idx:waitforinput3:29">4.1</A> <A HREF="#idx:waitforinput3:33">4.2</A> <A HREF="#idx:waitforinput3:35">4.3</A> <A HREF="#idx:waitforinput3:38">4.3</A> <A HREF="#idx:waitforinput3:42">4.4</A>
 </DL>
 
 </BODY></HTML>
