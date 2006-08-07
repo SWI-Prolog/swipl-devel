@@ -624,8 +624,9 @@ line-cache for this for speed.
 %
 %	Seek to indicated line-number.
 
-seek_to_line(_, 1) :- !.
 seek_to_line(Fd, N) :-
+	N > 1, !,
 	skip(Fd, 10),
 	NN is N - 1,
 	seek_to_line(Fd, NN).
+seek_to_line(_, _).
