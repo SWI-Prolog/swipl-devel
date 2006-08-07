@@ -46,6 +46,7 @@
 	    html_print_length/2		% +List, -Length
 	  ]).
 :- use_module(library(quintus)).	% for meta_predicate/1
+:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
 	html(:, -, +),

@@ -1,3 +1,8 @@
+Aug 7, 2006
+
+  * DEBUG: Do not generate debug info for library html_write.pl, as it makes
+    code using the library very hard to debug.
+
 Jun 30, 2006
 
   * FIXED: dangling choicepoint in http_open/3.
