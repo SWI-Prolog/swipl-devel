@@ -30,7 +30,7 @@
 */
 
 :- module(pldoc,
-	  [ pldoc_comment/3,		% ?Object, ?Summary, ?Comment
+	  [ pldoc_comment/4,		% ?Object, ?Pos, ?Summary, ?Comment
 	    read_structured_comments/2,	% +File, -Comments
 	    is_structured_comment/2,	% +Comment, -Prefixes
 	    doc_file_name/3		% +Source, -Doc, +Options
@@ -141,7 +141,8 @@ doc_file_name(Source, Doc, Options) :-
 	;   true
 	).
 
-%%	pldoc_comment(?Object, -Summary:string, -Comment:string) is nondet.
+%%	pldoc_comment(?Object, -Pos,
+%%		      -Summary:string, -Comment:string) is nondet.
 %
 %	True if Comment is the  comment   describing  object. Comment is
 %	returned as a string object  containing   the  original from the
@@ -158,25 +159,19 @@ doc_file_name(Source, Doc, Options) :-
 %		
 %	@param Summary	First sentence.  Normalised spacing.
 %	@parsm Comment	Comment string from the source-code (untranslated)
+%
+%	@tbd	Handle comments covering multiple predicates
 
-pldoc_comment(Object, Summary, Comment) :-
+pldoc_comment(Object, Pos, Summary, Comment) :-
 	var(Object), !,
 	current_module(M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_)),
-	M:'$pldoc'(Obj, Summary0, Comment0),
-	linked_comment(Comment0, Summary0, M, Summary, Comment),
+	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
+	M:'$pldoc'(Obj, Pos, Summary, Comment),
 	qualify(M, Obj, Object).
-pldoc_comment(M:Object, Summary, Comment) :-
+pldoc_comment(M:Object, Pos, Summary, Comment) :-
 	current_module(M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_)),
-	M:'$pldoc'(Object, Summary0, Comment0),
-	linked_comment(Comment0, Summary0, M, Summary, Comment).
-
-linked_comment(Comment, Summary, _, Summary, Comment) :-
-	string(Comment), !.
-linked_comment(From, _, M, Summary, Comment) :-
-	M:'$pldoc'(From, Summary0, Comment0),
-	linked_comment(Comment0, Summary0, M, Summary, Comment).
+	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
+	M:'$pldoc'(Object, Pos, Summary, Comment).
 
 qualify(system, H, H) :- !.
 qualify(user,   H, H) :- !.
@@ -212,30 +207,34 @@ process_comments([Pos-Comment|T], TermPos) :-
 process_comment(Pos, Comment) :-
 	is_structured_comment(Comment, Prefixes), !,
 	stream_position_data(line_count, Pos, Line),
-	source_location(File, _Line),
+	source_location(File, TermLine),
 	FilePos = File:Line,
-	(   process_structured_comment(FilePos, Comment, Prefixes)
-	->  true
-	;   print_message(warning,
-			  format('~w:~d: Failed to process comment:~n~s~n',
-				 [File, Line, Comment]))
-	).
+	'$push_input_context',		% Preserve input file and line
+	call_cleanup(process_structured_comment(FilePos, Comment, Prefixes),
+		     '$pop_input_context'),
+	assertion(source_location(File, TermLine)).
 process_comment(_, _).
 
 process_structured_comment(FilePos, Comment, Prefixes) :-
 	indented_lines(Comment, Prefixes, Lines),
 	(   section_comment_header(Lines, Header, RestLines)
-	->  summary(RestLines, Summary),
-	    compile_clause('$pldoc'(Header, Summary, Comment), FilePos)
+	->  Header = \section(Type, Title),
+	    Id =.. [Type,Title],
+	    compile_clause('$pldoc'(Id, FilePos, Title, Comment), FilePos)
 	;   process_modes(Lines, FilePos, Modes, _, RestLines)
 	->  store_modes(Modes, FilePos),
 	    modes_to_predicate_indicators(Modes, [PI0|PIs]),
 	    summary(RestLines, Summary),
-	    compile_clause('$pldoc'(PI0, Summary, Comment), FilePos),
+	    compile_clause('$pldoc'(PI0, FilePos, Summary, Comment), FilePos),
 	    forall(member(PI, PIs),
-		   compile_clause('$pldoc'(PI, '', PI0), FilePos))
-	).
-
+		   compile_clause('$pldoc_link'(PI, PI0), FilePos))
+	), !.
+process_structured_comment(File:Line, Comment, _) :-
+	print_message(warning,
+		      format('~w:~d: Failed to process comment:~n~s~n',
+			     [File, Line, Comment])),
+	fail.
+	
 
 		 /*******************************
 		 *	      REGISTER		*

@@ -31,6 +31,7 @@
 
 :- module(pldoc_wiki,
 	  [ wiki_lines_to_dom/3,	% +Lines, +Map, -DOM
+	    wiki_string_to_dom/3,	% +String, +Args, -DOM
 	    section_comment_header/3,	% +Lines, -Header, -RestLines
 	    summary/2,			% +Lines, -Summary
 	    indented_lines/3,		% +Text, +PrefixChars, -Lines
@@ -53,6 +54,17 @@ wiki_lines_to_dom(Lines, Args, HTML) :-
 	tokenize_lines(Lines, Tokens),
 	wiki_structure(Tokens, Pars),
 	wiki_faces(Pars, Args, HTML).
+
+
+%%	wiki_string_to_dom(+String, +Args, -DOM) is det.
+%
+%	Translate a plain text into a DOM term.
+
+wiki_string_to_dom(String, Args, DOM) :-
+	string_to_list(String, Codes),
+	indented_lines(Codes, [], Lines),
+	wiki_lines_to_dom(Lines, Args, DOM).
+
 
 %%	wiki_structure(+Lines:lines, -Pars:list(par)) is det
 %
@@ -379,26 +391,39 @@ wiki_face(FT, ArgNames) -->
 
 %%	section_comment_header(+Lines, -Header, -RestLines) is semidet.
 %
-%	Processes /** <section> comments
+%	Processes   /**   <section>   comments.   Header   is   a   term
+%	\section(Type, Title), where  Title  is   a  string  holding the
+%	section title and Type is an atom holding the text between <>.
 %	
 %	@param Lines	List of Indent-Codes.
 
 section_comment_header([_-Line|Lines], Header, Lines) :-
 	phrase(section_line(Header), Line).
 
-section_line(Header) -->
-	ws, "<", word(Codes), ">", ws, tokens(Tokens),
-	{ atom_codes(HdrType, Codes),
-	  wiki_faces(Tokens, [], Content),
-	  make_hdr(HdrType, Content, Header)
+section_line(\section(Type, Title)) -->
+	ws, "<", word(Codes), ">", normalise_ws(TitleCodes),
+	{ atom_codes(Type, Codes),
+	  string_to_list(Title, TitleCodes)
 	}.
 
-%%	make_hdr(+Type, +Content, -DOM) is det.
 
-make_hdr(module,	Content, h1(class=module, Content)).
-make_hdr(section,       Content, h2(class=section, Content)).
-make_hdr(subsection,    Content, h3(class=subsection, Content)).
-make_hdr(subsubsection, Content, h4(class=subsubsection, Content)).
+%%	normalise_ws(-Text)// is det.
+%
+%	Text is input after deleting leading   and  trailing white space
+%	and mapping all internal white space to a single space.
+
+normalise_ws(Text) -->
+	ws,
+	normalise_ws2(Text).
+
+normalise_ws2(Text) -->
+	non_ws(Text, Tail),
+	ws,
+	(   eos
+	->  { Tail = "" }
+	;   { Tail = [32|T2] },
+	    normalise_ws2(T2)
+	).
 
 
 		 /*******************************
@@ -500,7 +525,7 @@ verbatim_line(Line, Pre, PreT) :-
 summary(Lines, Summary) :-
 	skip_empty_lines(Lines, Lines1),
 	summary2(Lines1, Sentence0),
-	strip_codes(Sentence0, Sentence),
+	end_sentence(Sentence0, Sentence),
 	string_to_list(Summary, Sentence).
 
 summary2(_, Sentence) :-
@@ -538,10 +563,10 @@ skip_empty_lines([_-""|Lines0], Lines) :- !,
 	skip_empty_lines(Lines0, Lines).
 skip_empty_lines(Lines, Lines).
 
-strip_codes("", "").
-strip_codes(" ", ".") :- !.
-strip_codes([H|T0], [H|T]) :-
-	strip_codes(T0, T).
+end_sentence("", "").
+end_sentence(" ", ".") :- !.
+end_sentence([H|T0], [H|T]) :-
+	end_sentence(T0, T).
 
 
 		 /*******************************
@@ -699,6 +724,19 @@ ws -->
 space -->
 	[C],
 	{code_type(C, space)}.
+
+%%	non_ws(-Text, ?Tail) is det.
+%
+%	True if the  difference  list  Text-Tail   is  the  sequence  of
+%	non-white-space characters.
+
+non_ws([H|T0], T) -->
+	[H],
+	{ \+ code_type(H, space) }, !,
+	non_ws(T0, T).
+non_ws(T, T) -->
+	[].
+
 
 %%	peek_nl//
 %

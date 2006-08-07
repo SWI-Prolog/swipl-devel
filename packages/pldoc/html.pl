@@ -30,16 +30,105 @@
 */
 
 :- module(pldoc_html,
-	  [ doc_write_html/3		% +Stream, +Title, +Term
+	  [ doc_for_file/3,		% +FileSpec, +Out, +Options
+	    doc_write_html/3		% +Stream, +Title, +Term
 	  ]).
 :- use_module(modes).
+:- use_module(wiki).
 :- use_module(library('http/html_write')).
+:- use_module(library(option)).
 
 /** <module> PlDoc HTML backend
 
 This module translates the Herbrand term from the documentation
 extracting module wiki.pl into HTML+CSS.
 */
+
+		 /*******************************
+		 *	 FILE PROCESSING	*
+		 *******************************/
+
+%%	doc_for_file(+File, +Out, +Options) is det
+%
+%	Write documentation for File to out in HTML.
+
+doc_for_file(FileSpec, Out, Options) :-
+	absolute_file_name(FileSpec,
+			   [ file_type(prolog),
+			     access(read)
+			   ],
+			   File),
+	file_base_name(File, Base),
+	Title = Base,
+	page_dom(Title, \prolog_file(FileSpec, Options), DOM),
+	phrase(html(DOM), Tokens),
+	print_html_head(Out),
+	print_html(Out, Tokens).
+
+prolog_file(FileSpec, Options) -->
+	{ absolute_file_name(FileSpec,
+			     [ file_type(prolog),
+			       access(read)
+			     ],
+			     File),
+	  file_base_name(File, Base),
+	  Pos = File:_Line,
+	  findall(doc(Obj,Pos,Comment),
+		  pldoc_comment(Obj, Pos, _, Comment), Objs),
+	  module_info(File, ModuleOptions, Options)
+	},
+	html([ h1(class=file, Base)
+	     | \objects(Objs, ModuleOptions)
+	     ]).
+	  
+module_info(File, [module(Module), public(Exports)|Options], Options) :-
+	current_module(Module, File),
+	export_list(Module, Public),
+	maplist(head_to_pi, Public, Exports).
+
+head_to_pi(M:Head, M:PI) :- !,
+	head_to_pi(Head, PI).
+head_to_pi(Head, Name/Arity) :-
+	functor(Head, Name, Arity).
+	
+objects([], _) -->
+	[].
+objects([doc(Obj,Pos,Comment)|T], Options) -->
+	object(Obj,Pos,Comment, Options),
+	objects(T, Options).
+
+object(Name/Arity, _Pos, _Comment, Options) -->
+	{ option(public(Public), Options, []),
+	  \+ memberchk(Name/Arity, Public),
+	  option(public_only(true), Options, true)
+	}, !,				% private predicate
+	[].
+object(Obj, Pos, Comment, _Options) -->
+	{ pi(Obj), !,
+	  is_structured_comment(Comment, Prefixes),
+	  indented_lines(Comment, Prefixes, Lines),
+	  process_modes(Lines, Pos, Modes, Args, Lines1),
+	  DOM = [\pred_dt(Modes), dd(class=defbody, DOM1)],
+	  wiki_lines_to_dom(Lines1, Args, DOM0),
+	  strip_leading_par(DOM0, DOM1)
+	},
+	html(DOM).
+object(_Obj, _Pos, _Comment, _Options) -->
+	[].
+	
+pi(_:PI) :- !,
+	pi(PI).
+pi(_/_).
+pi(_//_).
+
+
+		 /*******************************
+		 *	       PRINT		*
+		 *******************************/
+
+%%	doc_write_html(+Out:stream, +Title:atomic, +DOM) is det.
+%
+%	Write HTML for the documentation page DOM using Title to Out.
 
 doc_write_html(Out, Title, Doc) :-
 	page_dom(Title, Doc, DOM),
@@ -101,6 +190,21 @@ param_list([H|T]) -->
 
 param(param(Name,Descr)) -->
 	html(tr([td(var(Name)), td(class=argdescr, ['- '|Descr])])).
+
+
+		 /*******************************
+		 *	      SECTIONS		*
+		 *******************************/
+
+section(Type, Title) -->
+	{ wiki_string_to_dom(Title, [], Content0),
+	  strip_leading_par(Content0, Content),
+	  make_section(Type, Content, HTML)
+	},
+	html(HTML).
+
+make_section(module,  Title, h1(class=module,  Title)).
+make_section(section, Title, h1(class=section, Title)).
 
 
 		 /*******************************
