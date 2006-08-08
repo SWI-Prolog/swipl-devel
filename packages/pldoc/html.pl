@@ -156,6 +156,16 @@ object(Module:Name/Arity, _Pos, _Comment, Mode, Mode, Options) -->
 	  option(public_only(true), Options, true)
 	}, !,				% private predicate
 	[].
+object(Module:Name//Arity, _Pos, _Comment, Mode, Mode, Options) -->
+	{ option(module(Module), Options, []),
+	  option(public(Public), Options, []),
+	  PredArity is Arity+2,
+	  \+ (	 memberchk(Name//Arity, Public)
+	     ;	 memberchk(Name/PredArity, Public)
+	     ),
+	  option(public_only(true), Options, true)
+	}, !,				% private predicate
+	[].
 object(Obj, Pos, Comment, Mode0, Mode, _Options) -->
 	{ pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
