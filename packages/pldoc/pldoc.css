@@ -12,20 +12,28 @@ h1.file, h1.module
 { background-color: #b9daff
 }
 
+.undef
+{ color: red;
+}
+
+a.builtin
+{ color: navy;
+}
+
 .defbody
-{ margin-bottom: 1em
+{ margin-bottom: 1em;
 }
 
 .arglist
-{ font-style: italic
+{ font-style: italic;
 }
 
 .pred .det
-{ font-weight: bold
+{ font-weight: bold;
 }
 
 dt.tag
-{ font-weight: bold
+{ font-weight: bold;
 }
 
 dt.error, dt.warn
@@ -33,10 +41,14 @@ dt.error, dt.warn
   color: red;
 }
 
+dt.preddef
+{ background-color: #c5e1ff;
+}
+
 .tags
-{ font-size: 80%
+{ font-size: 80%;
 }
 
 .argdescr
-{ padding-left: 1em
+{ padding-left: 1em;
 }

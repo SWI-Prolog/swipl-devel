@@ -362,21 +362,19 @@ wiki_face(var(Word), ArgNames) -->
 	}, !.
 wiki_face(b(Bold), ArgNames) -->
 	[*], wiki_faces(Bold, ArgNames), [*], !.
-wiki_face(i(Bold), ArgNames) -->
-	['_'], wiki_faces(Bold, ArgNames), ['_'], !.
-wiki_face(code(Bold), _) -->
-	[=], wiki_faces(Bold, []), [=], !.
-wiki_face(a([href=HREF], [Name, '/', ArityWord]), _) -->
+wiki_face(i(Italic), ArgNames) -->
+	['_'], wiki_faces(Italic, ArgNames), ['_'], !.
+wiki_face(code(Code), _) -->
+	[=], wiki_faces(Code, []), [=], !.
+wiki_face(\predref(Name/Arity), _) -->
 	[ Name, '/', ArityWord ],
 	{ catch(atom_number(ArityWord, Arity), _, fail),
-	  Arity >= 0, Arity < 100, !,
-	  format(string(HREF), '/predicate/~w/~w', [Name, Arity])
+	  Arity >= 0, Arity < 100, !
 	}.
-wiki_face(a([href=HREF], [Name, '//', ArityWord]), _) -->
+wiki_face(\predref(Name//Arity), _) -->
 	[ Name, '/', '/', ArityWord ],
 	{ catch(atom_number(ArityWord, Arity), _, fail),
-	  Arity >= 0, Arity < 100, !,
-	  format(string(HREF), '/DCG/~w/~w', [Name, Arity])
+	  Arity >= 0, Arity < 100, !
 	}.
 wiki_face(FT, ArgNames) -->
 	[T],

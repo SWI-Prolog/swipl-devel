@@ -96,8 +96,7 @@ files([H|T]) -->
 	files(T).
 
 file(File) -->
-	{ www_form_encode(File, Enc),
-	  format(string(FileRef), '/file?file=~w', [Enc]),
+	{ format(string(FileRef), '/documentation~w', [File]),
 	  file_base_name(File, Base),
 	  file_directory_name(File, Path),
 	  file_base_name(Path, Parent),
@@ -108,7 +107,7 @@ file(File) -->
 	     ]).
 
 
-%	file?file=REF
+%	/file?file=REF
 %	
 %	Reply using documentation of file
 
@@ -118,6 +117,37 @@ reply('/file', Request) :-
 			]),
 	format('Content-type: text/html~n~n'),
 	doc_for_file(File, current_output, []).
+
+%	/documentation/Path
+%	
+%	Reply documentation of file. Path is   the  absolute path of the
+%	file for which to return the  documentation. Extension is either
+%	none, the Prolog extension or the HTML extension.
+%	
+%	Note that we reply  with  pldoc.css   if  the  file  basename is
+%	pldoc.css to allow for a relative link from any directory.
+
+reply(ReqPath, _Request) :-
+	atom_concat('/documentation/', DocPath, ReqPath),
+	(   file_base_name(ReqPath, 'pldoc.css')
+	->  reply_file('pldoc.css')
+	;   atom_concat('/', DocPath, AbsFile),
+	    pl_file(AbsFile, File),
+	    format('Content-type: text/html~n~n'),
+	    doc_for_file(File, current_output, [])
+	).
+
+%%	pl_file(+File, -PlFile) is det.
+%
+%	@error existence_error(file, File)
+
+pl_file(File, PlFile) :-
+	file_name_extension(Base, html, File), !,
+	absolute_file_name(Base,
+			   [ file_type(prolog),
+			     access(read)
+			   ], PlFile).
+pl_file(File, File).
 
 
 %	/welcome.html
@@ -131,10 +161,26 @@ reply('/welcome.html', _Request) :- !,
 
 %	/pldoc.css
 %	
-%	Reply the documentation style-sheet
+%	Reply the documentation style-sheet.
 
 reply('/pldoc.css', _Request) :-
 	reply_file('pldoc.css').
+
+
+%	/man?predicate=PI
+%	
+%	Provide documentation from the manual.
+%	
+%	@tbd	Make link to reference manual.
+
+reply('/man', Request) :-
+	http_parameters(Request,
+			[ predicate(PI, [])
+			]),
+	reply_page('SWI-Prolog Reference Manual',
+		   [ 'Documentation for ', b(PI)
+		   ]).
+
 
 
 		 /*******************************

@@ -49,7 +49,7 @@ operator declarations in this module.
 
 @author	  Jan Wielemaker
 @license  GPL
-@version  $Revision$
+@version  $Revision$, $Date$
 */
 
 :- op(750, xf, ...).			% Repeated argument: Arg...
@@ -192,7 +192,7 @@ extract_varnames(Name=_, [Name|VN], VN).
 %
 %	Assert modes into the database with the given position.
 %	
-%	@param Modes	  List if mode-terms.  See process_modes/4.
+%	@param Modes	  List if mode-terms.  See process_modes/5.
 %	@param SourcePos  Term File:Line
 
 store_modes([], _).
@@ -335,7 +335,7 @@ mode_ind(!(X), !, X).
 %	predicate indicator is  of  the   form  atom/integer  for normal
 %	predicates or atom//integer for DCG rules.
 %	
-%	@param Modes	Mode-list as produced by process_modes/2
+%	@param Modes	Mode-list as produced by process_modes/5
 %	@param PI	List of Name/Arity or Name//Arity without duplicates
 
 modes_to_predicate_indicators(Modes, PIs) :-

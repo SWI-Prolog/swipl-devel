@@ -75,10 +75,11 @@ prolog_file(FileSpec, Options) -->
 	  Pos = File:_Line,
 	  findall(doc(Obj,Pos,Comment),
 		  pldoc_comment(Obj, Pos, _, Comment), Objs),
-	  module_info(File, ModuleOptions, Options)
+	  module_info(File, ModuleOptions, Options),
+	  b_setval(pldoc_file, File)	% TBD: delete?
 	},
 	html([ h1(class=file, Base)
-	     | \objects(Objs, ModuleOptions)
+	     | \objects(Objs, [body], ModuleOptions)
 	     ]).
 	  
 module_info(File, [module(Module), public(Exports)|Options], Options) :-
@@ -92,20 +93,20 @@ head_to_pi(M:Head, M:PI) :- !,
 head_to_pi(Head, Name/Arity) :-
 	functor(Head, Name, Arity).
 	
-objects([], _) -->
-	[].
-objects([doc(Obj,Pos,Comment)|T], Options) -->
-	html(\object(Obj,Pos,Comment, Options)),
-	objects(T, Options).
+objects([], Mode, _) -->
+	pop_mode(body, Mode, _).
+objects([doc(Obj,Pos,Comment)|T], Mode, Options) -->
+	html(\object(Obj,Pos,Comment, Mode, Mode1, Options)),
+	objects(T, Mode1, Options).
 
-object(Module:Name/Arity, _Pos, _Comment, Options) -->
+object(Module:Name/Arity, _Pos, _Comment, Mode, Mode, Options) -->
 	{ option(module(Module), Options, []),
 	  option(public(Public), Options, []),
 	  \+ memberchk(Name/Arity, Public),
 	  option(public_only(true), Options, true)
 	}, !,				% private predicate
 	[].
-object(Obj, Pos, Comment, _Options) -->
+object(Obj, Pos, Comment, Mode0, Mode, _Options) -->
 	{ pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
 	  indented_lines(Comment, Prefixes, Lines),
@@ -114,8 +115,9 @@ object(Obj, Pos, Comment, _Options) -->
 	  wiki_lines_to_dom(Lines1, Args, DOM0),
 	  strip_leading_par(DOM0, DOM1)
 	},
+	need_mode(dl, Mode0, Mode),
 	html(DOM).
-object(_M:module(_Title), _Pos, Comment, _Options) -->
+object(_M:module(_Title), _Pos, Comment, Mode0, Mode, _Options) -->
 	{ is_structured_comment(Comment, Prefixes),
 	  indented_lines(Comment, Prefixes, Lines),
 	  section_comment_header(Lines, Header, Lines1),
@@ -123,8 +125,9 @@ object(_M:module(_Title), _Pos, Comment, _Options) -->
 	  wiki_lines_to_dom(Lines1, [], DOM0),
 	  strip_leading_par(DOM0, DOM1)
 	},
+	need_mode(body, Mode0, Mode),
 	html(DOM).
-object(Obj, _Pos, _Comment, _Options) -->
+object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
 	
@@ -132,6 +135,30 @@ pi(_:PI) :- !,
 	pi(PI).
 pi(_/_).
 pi(_//_).
+
+%%	need_mode(+Mode:atom, +Stack:list, -NewStack:list) is det.
+%
+%	While predicates are part of a   description  list, sections are
+%	not and we therefore  need  to   insert  <dl>...</dl>  into  the
+%	output. We do so by demanding  an outer environment and push/pop
+%	the required elements.
+
+need_mode(Mode, Stack, Stack) -->
+	{ Stack = [Mode|_] }, !,
+	[].
+need_mode(Mode, Stack, Rest) -->
+	{ memberchk(Mode, Stack)
+	}, !,
+	pop_mode(Mode, Stack, Rest).	
+need_mode(Mode, Stack, [Mode|Stack]) --> !,
+	html_begin(Mode).
+
+pop_mode(Mode, Stack, Stack) -->
+	{ Stack = [Mode|_] }, !,
+	[].
+pop_mode(Mode, [H|Rest0], Rest) -->
+	html_end(H),
+	pop_mode(Mode, Rest0, Rest).
 
 
 		 /*******************************
@@ -227,7 +254,7 @@ make_section(section, Title, h1(class=section, Title)).
 %
 %	Emit the predicate header.
 %	
-%	@param Modes	List as returned by process_modes/4.
+%	@param Modes	List as returned by process_modes/5.
 
 pred_dt(Modes) -->
 	html(dt(class=preddef,
@@ -313,6 +340,94 @@ pred_det(unknown) -->
 	[].
 pred_det(Det) -->
 	html([' is ', b(class=det, Det)]).
+
+
+		 /*******************************
+		 *	       PREDREF		*
+		 *******************************/
+
+%%	predref(PI)// is det.
+%
+%	Create a reference to a predicate. The reference consists of the
+%	relative path to the  file  using   the  predicate  indicator as
+%	anchor.
+
+predref(NameS/Arity) -->
+	{ string_to_atom(NameS, Name),
+	  functor(Term, Name, Arity),
+	  predicate_property(system:Term, built_in), !,
+	  format(string(FragmentId), '~w/~d', [NameS, Arity]),
+	  www_form_encode(FragmentId, EncId),
+	  format(string(HREF), '/man?predicate=~w', [EncId])
+	},
+	html(a([class=builtin, href=HREF], [Name, /, Arity])).
+predref(Name/Arity) -->
+	{ pred_href(Name/Arity, HREF) }, !,
+	html(a(href=HREF, [Name, /, Arity])).
+predref(Name//Arity) -->
+	{ PredArity is Arity + 2,
+	  pred_href(Name/PredArity, HREF)
+	}, !,
+	html(a(href=HREF, [Name, //, Arity])).
+predref(Name/Arity) -->
+	html(span(class=undef, [Name, /, Arity])).
+predref(Name//Arity) -->
+	html(span(class=undef, [Name, //, Arity])).
+
+pred_href(NameS/Arity, HREF) :-
+	format(string(FragmentId), '~w/~d', [NameS, Arity]),
+	www_form_encode(FragmentId, EncId),
+	string_to_atom(NameS, Name),
+	functor(Head, Name, Arity),
+	relative_file(Head, File),
+	format(string(HREF), '~w#~w', [File, EncId]).
+
+relative_file(Head, '') :-
+	b_getval(pldoc_file, CurrentFile),
+	in_file(Head, CurrentFile), !.
+relative_file(Head, RelFile) :-
+	b_getval(pldoc_file, CurrentFile),
+	in_file(Head, DefFile),
+	relative_file_name(DefFile, CurrentFile, RelFile).
+	
+%%	in_file(+Head, ?File) is nondet.
+%
+%	@tbd: prefer local, then imported, then `just anywhere'
+
+in_file(Head, File) :-
+	xref_current_source(File),
+	atom(File),			% only plain files
+	xref_defined(File, Head, How),
+	How \= imported(_From).
+in_file(Head, File) :-
+	source_file(Head, File).
+in_file(Head, File) :-
+	current_module(Module),
+	source_file(Module:Head, File).
+
+
+%%	relative_file_name(+Path:atom, +RelTo:atom, -RelPath:atom) is det.
+%
+%	Create a relative path from an absolute one.
+%	
+%	@tbd	move to library?
+
+relative_file_name(Path, RelTo, RelPath) :-
+        concat_atom(PL, /, Path),
+        concat_atom(RL, /, RelTo),
+        delete_common_prefix(PL, RL, PL1, PL2),
+        to_dot_dot(PL2, DotDot, PL1),
+        concat_atom(DotDot, /, RelPath).
+
+delete_common_prefix([H|T01], [H|T02], T1, T2) :- !,
+        delete_common_prefix(T01, T02, T1, T2).
+delete_common_prefix(T1, T2, T1, T2).
+
+to_dot_dot([], Tail, Tail).
+to_dot_dot([_], Tail, Tail) :- !.
+to_dot_dot([_|T0], ['..'|T], Tail) :-
+        to_dot_dot(T0, T, Tail).
+
 
 
 		 /*******************************
