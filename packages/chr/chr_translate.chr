@@ -2037,9 +2037,14 @@ generate_attach_increment_empty((attach_increment([],_) :- true)).
 generate_attach_increment_one(Clause) :-
 	Head = attach_increment([Var|Vars],Susps),
 	get_target_module(Mod),
+	( chr_pp_flag(guard_locks,off) ->
+		NotLocked = true
+	;
+		NotLocked = 'chr not_locked'( Var)
+	),
 	Body =
 	(
-		'chr not_locked'(Var),
+		NotLocked,
 		( get_attr(Var,Mod,VarSusps) ->
 			sort(VarSusps,SortedVarSusps),
 			'chr merge_attributes'(Susps,SortedVarSusps,MergedSusps),
@@ -2060,9 +2065,14 @@ generate_attach_increment_many(N,Clause) :-
 	bagof(MS,A ^ B ^ C ^ member((A,'chr merge_attributes'(B,C,MS)),Gs), MergedSuspsList),
 	make_attr(N,MergedMask,MergedSuspsList,NewAttr),
 	get_target_module(Mod),
+	( chr_pp_flag(guard_locks,off) ->
+		NotLocked = true
+	;
+		NotLocked = 'chr not_locked'( Var)
+	),
 	Body =	
 	(
-		'chr not_locked'(Var),
+		NotLocked,
 		( get_attr(Var,Mod,TOtherAttr) ->
 			TOtherAttr = OtherAttr,
 			SortGoals,
