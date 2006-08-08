@@ -695,7 +695,7 @@ Prolog goals used in guards and bodies of CHR rules.
 \end{itemlist}
 
 
-\section{Guidelines} 			\label{sec:guidelines}
+\section{Programming Tips and Tricks} 			\label{sec:guidelines}
 %==================
 
 In this section we cover several guidelines on how to use CHR to write
@@ -738,7 +738,7 @@ file, the CHR compiler is not invoked and consultation is much faster.
 %==================
 
 In this section we summarize the most important error and warning messages
-of the CHR compiler. \textbf{Under construction.}
+of the CHR compiler.
 
 \subsection{CHR Compiler Errors}
 
@@ -752,5 +752,61 @@ of the CHR compiler. \textbf{Under construction.}
 
 	This error indicates an inconsistency between a declared type
 	and the use of a functor in a rule. See static type checking.
+
+\item[Cyclic alias] definition: ... == ...
+
+	You have defined a type alias in terms of itself, either
+	directly or indirectly.
+
+\item[Ambiguous type aliases]
+
+	You have defined two overlapping type aliases.
+
+\item[Multiple definitions] for type
+
+	You have defined the same type multiple times.
+
+\item[Non-ground type] in constraint definition: ...
+
+	You have declared a non-ground type for a constraint argument.
+
+\item[Could not find type definition] for ...
+
+	You have used an undefined type in a type declaration.
+
+\item[Illegal mode/type declaration]
+
+	You have used invalid syntax in a constraint declaration.	
+
+\item[Constraint multiply defined]
+
+	There is more than one declaration for the same constraint.
+
+\item[Undeclared constraint] ... in head of ...
+
+	You have used an undeclared constraint in the head of a rule.
+	This often indicates a misspelled constrained name or wrong
+	number of arguments.
+
+\item[Invalid pragma] ... in ... Pragma should not be a variable.
+
+	You have used a variable as a pragma in a rule. This is not
+	allowed.
+
+\item[Invalid identifier] ... in pragma passive in ...
+
+	You have used an identifier in a passive pragma that
+	does not correspond to an identifier in the head of the rule.
+	Likely the identifier name is misspelled.
+
+\item[Unknown pragma] ... in ...
+
+	You have used an unknown pragma in a rule. Likely the
+	pragma is misspelled or not supported.
+
+\item[Something unexpected] happened in the CHR compiler
+
+	You have most likely bumped into a bug in the CHR compiler.
+	Please contact Tom Schrijvers to notify him of this error.
 
 \end{description}
