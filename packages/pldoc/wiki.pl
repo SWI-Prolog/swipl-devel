@@ -104,7 +104,7 @@ list_item([Indent-Line|LT], Type, Indent, Items, ItemT, Rest) :- !,
 	(   Type == dl
 	->  append(DT0, [:|DD], L1),
 	    append(DD, LIT, LI0),
-	    strip_ws(DT0, DT),
+	    strip_ws_tokens(DT0, DT),
 	    Items = [dt(DT),dd(DD)|ItemT]
 	;   append(L1, LIT, LI0),
 	    Items = [li(LI0)|ItemT]
@@ -159,7 +159,7 @@ row([]) -->
 cell(td(C)) -->
 	string(C0),
 	['|'], !,
-	{ strip_ws(C0, C)
+	{ strip_ws_tokens(C0, C)
 	}.
 
 rest_table([N-['|'|RL1]|LT], N, [tr(R0)|RL], Rest) :- !,
@@ -176,16 +176,16 @@ rest_par([_-L1|LT], ['\n'|Par], Rest) :-
 	rest_par(LT, PT, Rest).
 
 
-%%	strip_ws(+Tokens, -Stripped)
+%%	strip_ws_tokens(+Tokens, -Stripped)
 %
 %	Strip leading and trailing whitespace from a token list.  Note
 %	the the whitespace is already normalised.
 
-strip_ws([' '|T0], T) :- !,
-	strip_ws(T0, T).
-strip_ws(L0, L) :-
+strip_ws_tokens([' '|T0], T) :- !,
+	strip_ws_tokens(T0, T).
+strip_ws_tokens(L0, L) :-
 	append(L, [' '], L0), !.
-strip_ws(L, L).
+strip_ws_tokens(L, L).
 
 
 %%	strip_leading_ws(+Tokens, -Stripped) is det.
@@ -367,21 +367,33 @@ wiki_face(i(Italic), ArgNames) -->
 wiki_face(code(Code), _) -->
 	[=], wiki_faces(Code, []), [=], !.
 wiki_face(\predref(Name/Arity), _) -->
-	[ Name, '/', ArityWord ],
-	{ catch(atom_number(ArityWord, Arity), _, fail),
-	  Arity >= 0, Arity < 100, !
+	[ NameS, '/', ArityWord ],
+	{ functor_name(NameS),
+	  catch(atom_number(ArityWord, Arity), _, fail),
+	  Arity >= 0, Arity < 100, !,
+	  string_to_atom(NameS, Name)
 	}.
 wiki_face(\predref(Name//Arity), _) -->
-	[ Name, '/', '/', ArityWord ],
-	{ catch(atom_number(ArityWord, Arity), _, fail),
-	  Arity >= 0, Arity < 100, !
+	[ NameS, '/', '/', ArityWord ],
+	{ functor_name(NameS),
+	  catch(atom_number(ArityWord, Arity), _, fail),
+	  Arity >= 0, Arity < 100, !,
+	  string_to_atom(NameS, Name)
 	}.
+wiki_face(span(class=cvs, CVS), _) -->
+	[$, Word, :], {string(Word)}, wiki_faces(CVS0, []), [$], !,
+	{ strip_ws_tokens(CVS0, CVS) }.
 wiki_face(FT, ArgNames) -->
 	[T],
 	{   atomic(T)
 	->  FT = T
 	;   wiki_faces(T, ArgNames, FT)
 	}.
+
+functor_name(String) :-
+	sub_atom(String, 0, 1, _, Char),
+	char_type(Char, alpha).
+
 
 		 /*******************************
 		 *	     SECTIONS		*

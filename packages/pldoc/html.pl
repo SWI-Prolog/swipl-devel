@@ -352,11 +352,10 @@ pred_det(Det) -->
 %	relative path to the  file  using   the  predicate  indicator as
 %	anchor.
 
-predref(NameS/Arity) -->
-	{ string_to_atom(NameS, Name),
-	  functor(Term, Name, Arity),
+predref(Name/Arity) -->
+	{ functor(Term, Name, Arity),
 	  predicate_property(system:Term, built_in), !,
-	  format(string(FragmentId), '~w/~d', [NameS, Arity]),
+	  format(string(FragmentId), '~w/~d', [Name, Arity]),
 	  www_form_encode(FragmentId, EncId),
 	  format(string(HREF), '/man?predicate=~w', [EncId])
 	},
@@ -374,10 +373,9 @@ predref(Name/Arity) -->
 predref(Name//Arity) -->
 	html(span(class=undef, [Name, //, Arity])).
 
-pred_href(NameS/Arity, HREF) :-
-	format(string(FragmentId), '~w/~d', [NameS, Arity]),
+pred_href(Name/Arity, HREF) :-
+	format(string(FragmentId), '~w/~d', [Name, Arity]),
 	www_form_encode(FragmentId, EncId),
-	string_to_atom(NameS, Name),
 	functor(Head, Name, Arity),
 	relative_file(Head, File),
 	format(string(HREF), '~w#~w', [File, EncId]).

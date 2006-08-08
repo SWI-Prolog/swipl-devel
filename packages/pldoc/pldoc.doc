@@ -355,6 +355,8 @@ follow a word.
 \tt name//arity & Create a link to a DCG rule \\
 \tt Word	& Capitalised words that appear as argument-name
 		  are written using \verb$<var>Word</var>$ \\
+\tt $Word: CVS$ & CVS expanded keyword.  Typeset as the plain
+		  keyword value. \\
 \end{tabular}
 \end{center}
 

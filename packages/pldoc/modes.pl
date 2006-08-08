@@ -48,8 +48,8 @@ predicate. The formal  part  is  processed   by  read_term/3  using  the
 operator declarations in this module.
 
 @author	  Jan Wielemaker
-@license  GPL
 @version  $Revision$, $Date$
+@license  GPL
 */
 
 :- op(750, xf, ...).			% Repeated argument: Arg...
@@ -79,6 +79,7 @@ operator declarations in this module.
 %	
 %	@param FilePos	Term File:Line with the position of comment
 %	@param Modes	List if mode(Head, Bindings) terms
+%	@param Args	List of argument-names appearing in modes
 
 process_modes(Lines, FilePos, ModeDecls, Vars, RestLines) :-
 	mode_lines(Lines, ModeText, [], RestLines),
