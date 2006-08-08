@@ -373,7 +373,12 @@ argname(Name) --> !,
 	html(Name).
 
 argtype(Term) -->
-	{ format(string(S), '~q', [Term]) },
+	{ format(string(S), '~W',
+		 [ Term,
+		   [ quoted(true),
+		     numbervars(true)
+		   ]
+		 ]) },
 	html(S).
 
 pred_det(unknown) -->
@@ -381,6 +386,15 @@ pred_det(unknown) -->
 pred_det(Det) -->
 	html([' is ', b(class=det, Det)]).
 
+
+%%	term(+Term, +Bindings)// is det.
+%
+%	Process the \term element.
+
+term(Term, Bindings) -->
+	{ bind_vars(Bindings) },
+	argtype(Term).
+	
 
 		 /*******************************
 		 *	       PREDREF		*

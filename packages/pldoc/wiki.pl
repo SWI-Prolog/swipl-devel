@@ -84,7 +84,11 @@ wiki_structure(Lines, [P1|PL]) :-
 take_par(Lines, List, Rest) :-
 	list_item(Lines, Type, Indent, LI, LIT, Rest0), !,
 	rest_list(Rest0, Type, Indent, LIT, [], Rest),
-	List =.. [Type, LI].
+	List0 =.. [Type, LI],
+	(   ul_to_dl(List0, List)
+	->  true
+	;   List = List0
+	).
 take_par([N-['|'|RL1]|LT], table([tr(R0)|RL]), Rest) :-
 	phrase(row(R0), RL1),
 	rest_table(LT, N, RL, Rest), !.
@@ -148,7 +152,49 @@ list_item_prefix(ol, [N, '.', ' '|T], T) :-
 	string_to_list(N, [D]),
 	between(0'0, 0'9, D).
 
-%%	
+%%	ul_to_dl(+UL, -DL) is semidet.
+%
+%	Translate an UL list into a DL list if all entries are of the
+%	form "* <term> nl, <description>"
+
+ul_to_dl(ul(Items), dl(class=termlist, DLItems)) :-
+	term_items(Items, DLItems, []).
+
+term_items([], T, T).
+term_items([LI|LIs], DLItems, Tail) :-
+	term_item(LI, DLItems, Tail1),
+	term_items(LIs, Tail1, Tail).
+
+%%	term_item(+LI, -DLItem, ?Tail) is semidet.
+%
+%	If LI is of the form <Term> followed  by a newline, return it as
+%	dt-dd  tuple.  The  <dt>  item    contains  a  term  \term(Term,
+%	Bindings).
+
+term_item(li(Tokens),
+	  [ dt(class=term, \term(Term, Bindings)),
+	    dd(Descr)
+	  | Tail
+	  ], Tail) :-
+	(   append(TermTokens, ['\n'|Descr], Tokens)
+	->  new_memory_file(MemFile),
+	    open_memory_file(MemFile, write, Out),
+	    forall(member(T, TermTokens),
+		   write(Out, T)),
+	    write(Out, ' .\n'),
+	    close(Out),
+	    open_memory_file(MemFile, read, In),
+	    catch(call_cleanup((read_dt_term(In, Term, Bindings),
+				read_dt_term(In, end_of_file, [])),
+			       (   close(In),
+				   free_memory_file(MemFile))), _, fail)
+	).
+
+read_dt_term(In, Term, Bindings) :-
+	read_term(In, Term,
+		  [ variable_names(Bindings),
+		    module(pldoc_modes)
+		  ]).
 
 
 %%	row(-Cells)// is det.
@@ -326,6 +372,8 @@ structure_term(\tags(Tags), tags, [Tags]) :- !.
 structure_term(\params(Params), params, [Params]) :- !.
 structure_term(param(Name,Descr), param(Name), [Descr]) :- !.
 structure_term(\tag(Name,Value), tag(Name), [Value]) :- !.
+structure_term(dl(Att, Args), dl(Att), [Args]) :- !.
+structure_term(dt(Att, Args), dt(Att), [Args]) :- !.
 structure_term(Term, Functor, Args) :-
 	functor(Term, Functor, 1),
 	structure_tag(Functor), !,
@@ -347,6 +395,7 @@ structure_tag(td).
 %	True if Term must be passes verbatim.
 
 verbatim_term(pre(_)).
+verbatim_term(\term(_,_)).
 
 %%	wiki_face(-WithFaces, +ArgNames)// is det.
 

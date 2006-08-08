@@ -167,9 +167,9 @@ read_modes(T0, In, [T0|Rest]) :-
 	read_mode_term(In, T1),
 	read_modes(T1, In, Rest).
 
-read_mode_term(In, mode(Term, Bindigns)) :-
+read_mode_term(In, mode(Term, Bindings)) :-
 	read_term(In, Term,
-		  [ variable_names(Bindigns),
+		  [ variable_names(Bindings),
 		    module(pldoc_modes)
 		  ]).
 
