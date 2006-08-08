@@ -148,6 +148,9 @@ list_item_prefix(ol, [N, '.', ' '|T], T) :-
 	string_to_list(N, [D]),
 	between(0'0, 0'9, D).
 
+%%	
+
+
 %%	row(-Cells)// is det.
 
 row([C0|CL]) -->
@@ -406,6 +409,9 @@ functor_name(String) :-
 %	section title and Type is an atom holding the text between <>.
 %	
 %	@param Lines	List of Indent-Codes.
+%	@param Header	DOM term of the format \section(Type, Title),
+%			where Type is an atom from <type> and Title is
+%			a string holding the type.
 
 section_comment_header([_-Line|Lines], Header, Lines) :-
 	phrase(section_line(Header), Line).

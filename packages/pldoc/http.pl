@@ -118,6 +118,17 @@ reply('/file', Request) :-
 	format('Content-type: text/html~n~n'),
 	doc_for_file(File, current_output, []).
 
+%	/edit?file=REF
+%	
+%	Start SWI-Prolog editor on file
+
+reply('/edit', Request) :-
+	http_parameters(Request,
+			[ file(File, [])
+			]),
+	format('Content-type: text/html~n~n'),
+	edit(File).
+
 %	/documentation/Path
 %	
 %	Reply documentation of file. Path is   the  absolute path of the
@@ -165,6 +176,9 @@ reply('/welcome.html', _Request) :- !,
 
 reply('/pldoc.css', _Request) :-
 	reply_file('pldoc.css').
+
+reply('/edit.png', _Request) :-
+	reply_file('edit.png').
 
 
 %	/man?predicate=PI

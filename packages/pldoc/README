@@ -21,11 +21,11 @@ Making solid progress.  remaining issues:
 	* Paragraphs in list-items
 	* Complete tag processing
 		- Combining multiple tags
+	* Do full structure parsing in @tag keywords?
 
 ---++ HTML generation
 
 	* Generate structure for the file/module
-	* PRE: expand tabs
 
 ---++ After Compilation with library(pldoc) loaded:
 
@@ -33,8 +33,6 @@ Making solid progress.  remaining issues:
 	  pldoc_comment(module(Module), -Comment).
 
 	  Comment is original string
-
-	* Add \comment{Comment} to html generator?
 
 	* Can be combined with XREF info and/or normal meta-info
 	
@@ -56,6 +54,7 @@ Making solid progress.  remaining issues:
 	* Verify summary (length)
 	* Verify required tags (notable param)
 	* Verify declared @param exists
+	* Verify references name/arity point to existing code
 
 ---++ Source processing
 
@@ -63,3 +62,10 @@ Making solid progress.  remaining issues:
 		- XREF
 		- PceEmacs
 		- PlDoc
+
+---++ Web server
+
+	* Search
+	* Nicer source-file browser (AJAX hierarchy?)
+	* Integration with system documentation
+	* Allow editing source

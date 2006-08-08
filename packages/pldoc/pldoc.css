@@ -45,8 +45,9 @@ dt.preddef
 { background-color: #c5e1ff;
 }
 
-.tags
+dl.tags
 { font-size: 80%;
+  margin-top: 0.5em;
 }
 
 .argdescr

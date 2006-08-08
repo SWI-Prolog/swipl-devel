@@ -33,10 +33,11 @@
 	  [ doc_for_file/3,		% +FileSpec, +Out, +Options
 	    doc_write_html/3		% +Stream, +Title, +Term
 	  ]).
+:- use_module(library(lists)).
+:- use_module(library(option)).
+:- use_module(library('http/html_write')).
 :- use_module(modes).
 :- use_module(wiki).
-:- use_module(library('http/html_write')).
-:- use_module(library(option)).
 
 /** <module> PlDoc HTML backend
 
@@ -71,17 +72,22 @@ prolog_file(FileSpec, Options) -->
 			       access(read)
 			     ],
 			     File),
-	  file_base_name(File, Base),
 	  Pos = File:_Line,
 	  findall(doc(Obj,Pos,Comment),
-		  pldoc_comment(Obj, Pos, _, Comment), Objs),
+		  pldoc_comment(Obj, Pos, _, Comment), Objs0),
 	  module_info(File, ModuleOptions, Options),
+	  file_info(Objs0, Objs, FileOptions, ModuleOptions),
 	  b_setval(pldoc_file, File)	% TBD: delete?
 	},
-	html([ h1(class=file, Base)
-	     | \objects(Objs, [body], ModuleOptions)
+	html([ \file_header(File, FileOptions)
+	     | \objects(Objs, [body], FileOptions)
 	     ]).
 	  
+%%	module_info(+File, -ModuleOptions, +OtherOptions) is det.
+%
+%	Add options module(Name),  public(Exports)   to  OtherOptions if
+%	File is a module file.
+
 module_info(File, [module(Module), public(Exports)|Options], Options) :-
 	current_module(Module, File), !,
 	export_list(Module, Public),
@@ -93,6 +99,50 @@ head_to_pi(M:Head, M:PI) :- !,
 head_to_pi(Head, Name/Arity) :-
 	functor(Head, Name, Arity).
 	
+%%	file_info(+Comments, -RestComment, -FileOptions, +OtherOptions) is det.
+%
+%	Add options file(Title, Comment) to OtherOptions if available.
+
+file_info(Comments, RestComments, [file(Title, Comment)|Opts], Opts) :-
+	select(doc(_:module(Title),_,Comment), Comments, RestComments), !.
+file_info(Comments, Comments, Opts, Opts).
+
+%%	file_header(+File)// is det.
+%
+%	Create the file header.
+
+file_header(File, Options) -->
+	{ memberchk(file(Title, Comment), Options), !,
+	  file_base_name(File, Base)
+	},
+	html(h1(class=file, [Base, ' -- ', Title])),
+	{ is_structured_comment(Comment, Prefixes),
+	  indented_lines(Comment, Prefixes, Lines),
+	  section_comment_header(Lines, _Header, Lines1),
+	  wiki_lines_to_dom(Lines1, [], DOM)
+	},
+	html(DOM).
+file_header(File, _Options) -->
+	{ file_base_name(File, Base)
+	},
+	html(h1(class=file,
+		[ Base,
+%		  span(style('margin-left: 80%'), \edit_button(File))
+		  \edit_button(File)
+		])).
+
+%%	edit_button(+File)// is det.
+%
+%	@tbd only in interactive mode!
+
+edit_button(File) -->
+	{ www_form_encode(File, Enc),
+	  format(string(HREF), '/edit?file=~w', [Enc])
+	},
+	html(a(href=HREF, img([border=0, height=32, src='/edit.png']))).
+
+%%	objects(+Objects:list, +Mode, +Options)// is det.
+
 objects([], Mode, _) -->
 	pop_mode(body, Mode, _).
 objects([doc(Obj,Pos,Comment)|T], Mode, Options) -->
@@ -116,16 +166,6 @@ object(Obj, Pos, Comment, Mode0, Mode, _Options) -->
 	  strip_leading_par(DOM0, DOM1)
 	},
 	need_mode(dl, Mode0, Mode),
-	html(DOM).
-object(_M:module(_Title), _Pos, Comment, Mode0, Mode, _Options) -->
-	{ is_structured_comment(Comment, Prefixes),
-	  indented_lines(Comment, Prefixes, Lines),
-	  section_comment_header(Lines, Header, Lines1),
-	  DOM = [Header|DOM1],
-	  wiki_lines_to_dom(Lines1, [], DOM0),
-	  strip_leading_par(DOM0, DOM1)
-	},
-	need_mode(body, Mode0, Mode),
 	html(DOM).
 object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
