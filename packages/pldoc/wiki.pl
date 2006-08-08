@@ -502,10 +502,13 @@ verbatim_body([I-L|Lines], Indent, [10|Pre], PreT, RestLines) :-
 	verbatim_line(L, PreT0, PreT1),
 	verbatim_body(Lines, Indent, PreT1, PreT, RestLines).
 
+%%	pre_indent(+Indent)// is det.
+%
+%	Insert Indent leading spaces.  Note we cannot use tabs as these
+%	are not expanded by the HTML <pre> element.
+
 pre_indent(Indent, Pre, PreT) :-
-	Tabs is Indent // 8,
-	Spaces is Indent mod 8,
-	format(codes(Pre, PreT), '~*c~*c', [Tabs, 9, Spaces, 32]).
+	format(codes(Pre, PreT), '~*c', [Indent, 32]).
 
 verbatim_line(Line, Pre, PreT) :-
 	append(Line, PreT, Pre).

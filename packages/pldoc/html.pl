@@ -231,23 +231,23 @@ make_section(section, Title, h1(class=section, Title)).
 
 pred_dt(Modes) -->
 	html(dt(class=preddef,
-		\pred_modes(Modes))).
+		\pred_modes(Modes, [], _))).
 
-pred_modes([]) -->
+pred_modes([], Done, Done) -->
 	[].
-pred_modes([H|T]) -->
-	pred_mode(H),
-	pred_modes(T).
+pred_modes([H|T], Done0, Done) -->
+	pred_mode(H, Done0, Done1),
+	pred_modes(T, Done1, Done).
 		
-pred_mode(mode(Head,Vars)) --> !,
+pred_mode(mode(Head,Vars), Done0, Done) --> !,
 	{ bind_vars(Vars) },
-	pred_mode(Head).
-pred_mode(Head is Det) --> !,
-	pred_head(Head),
+	pred_mode(Head, Done0, Done).
+pred_mode(Head is Det, Done0, Done) --> !,
+	anchored_pred_head(Head, Done0, Done),
 	pred_det(Det),
 	html(br([])).
-pred_mode(Head) -->
-	pred_head(Head),
+pred_mode(Head, Done0, Done) -->
+	anchored_pred_head(Head, Done0, Done),
 	html(br([])).
 
 bind_vars([]).
@@ -255,6 +255,14 @@ bind_vars([Name=Var|T]) :-
 	Var = '$VAR'(Name),
 	bind_vars(T).
 
+anchored_pred_head(Head, Done0, Done) -->
+	{ anchor_name(Head, Name)
+	},
+	(   { memberchk(Name, Done0) }
+	->  { Done = Done0 }
+	;   html(a(name=Name, \pred_head(Head))),
+	    { Done = [Name|Done0] }
+	).
 
 pred_head(//(Head)) --> !,
 	pred_head(Head),
@@ -305,3 +313,20 @@ pred_det(unknown) -->
 	[].
 pred_det(Det) -->
 	html([' is ', b(class=det, Det)]).
+
+
+		 /*******************************
+		 *	      ANCHORS		*
+		 *******************************/
+
+%%	anchor_name(+Head, -Anchor:string) is det.
+%
+%	Create an HTML anchor name from Head.
+
+anchor_name(//(Head), Anchor) :- !,
+	functor(Head, Name, DCGArity),
+	Arity is DCGArity+2,
+	format(string(Anchor), '~w/~d', [Name, Arity]).
+anchor_name(Head, Anchor) :-
+	functor(Head, Name, Arity),
+	format(string(Anchor), '~w/~d', [Name, Arity]).

@@ -159,7 +159,7 @@ doc_file_name(Source, Doc, Options) :-
 %		Comment appearing in Module.
 %		
 %	@param Summary	First sentence.  Normalised spacing.
-%	@parsm Comment	Comment string from the source-code (untranslated)
+%	@param Comment	Comment string from the source-code (untranslated)
 %
 %	@tbd	Handle comments covering multiple predicates
 

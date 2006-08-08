@@ -41,7 +41,7 @@
 :- use_module(library(lists)).
 :- use_module(library(memfile)).
 
-/** <module> Analyse the mode declarations
+/** <module> Analyse PlDoc mode declarations
 
 This  module  analyzes  the  formal  part  of  the  documentation  of  a
 predicate. The formal  part  is  processed   by  read_term/3  using  the
