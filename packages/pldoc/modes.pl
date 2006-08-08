@@ -43,8 +43,13 @@
 
 /** <module> Analyse the mode declarations
 
-This module analyzes the formal part of the documentation of a predicate.
-It feeds these declarations in read_term/3.
+This  module  analyzes  the  formal  part  of  the  documentation  of  a
+predicate. The formal  part  is  processed   by  read_term/3  using  the
+operator declarations in this module.
+
+@author	  Jan Wielemaker
+@license  GPL
+@version  $Revision$
 */
 
 :- op(750, xf, ...).			% Repeated argument: Arg...
@@ -359,6 +364,10 @@ head_to_pi(Head, Name/Arity) :-
 %	static code and removes the  clause   of  the  file is reloaded.
 %	Finally,  as  we  create  clauses   one-by-one,  we  define  our
 %	predicates as discontiguous.
+%	
+%	@param Term	Clause-term
+%	@param FilePos	Term of the form File:Line, where File is a
+%			canonical filename.
 
 compile_clause(Term, FilePos) :-
 	'$set_source_module'(SM, SM),

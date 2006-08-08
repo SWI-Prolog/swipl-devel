@@ -115,7 +115,17 @@ object(Obj, Pos, Comment, _Options) -->
 	  strip_leading_par(DOM0, DOM1)
 	},
 	html(DOM).
-object(_Obj, _Pos, _Comment, _Options) -->
+object(_M:module(_Title), _Pos, Comment, _Options) -->
+	{ is_structured_comment(Comment, Prefixes),
+	  indented_lines(Comment, Prefixes, Lines),
+	  section_comment_header(Lines, Header, Lines1),
+	  DOM = [Header|DOM1],
+	  wiki_lines_to_dom(Lines1, [], DOM0),
+	  strip_leading_par(DOM0, DOM1)
+	},
+	html(DOM).
+object(Obj, _Pos, _Comment, _Options) -->
+	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
 	
 pi(_:PI) :- !,
