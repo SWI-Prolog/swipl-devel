@@ -225,7 +225,7 @@ http_relative_path(Path, RelTo, RelPath) :-
 	concat_atom(PL, /, Path),
 	concat_atom(RL, /, RelTo),
 	delete_common_prefix(PL, RL, PL1, PL2),
-	to_dot_dot(PL1, DotDot, PL2),
+	to_dot_dot(PL2, DotDot, PL1),
 	concat_atom(DotDot, /, RelPath).
 
 delete_common_prefix([H|T01], [H|T02], T1, T2) :- !,
