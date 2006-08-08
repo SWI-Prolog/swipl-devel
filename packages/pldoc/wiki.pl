@@ -89,7 +89,7 @@ take_par(Lines, List, Rest) :-
 	->  true
 	;   List = List0
 	).
-take_par([N-['|'|RL1]|LT], table([tr(R0)|RL]), Rest) :-
+take_par([N-['|'|RL1]|LT], table(class=wiki, [tr(R0)|RL]), Rest) :-
 	phrase(row(R0), RL1),
 	rest_table(LT, N, RL, Rest), !.
 take_par([_-L1|LT], p(Par), Rest) :- !,
@@ -374,6 +374,7 @@ structure_term(param(Name,Descr), param(Name), [Descr]) :- !.
 structure_term(\tag(Name,Value), tag(Name), [Value]) :- !.
 structure_term(dl(Att, Args), dl(Att), [Args]) :- !.
 structure_term(dt(Att, Args), dt(Att), [Args]) :- !.
+structure_term(table(Att, Args), table(Att), [Args]) :- !.
 structure_term(Term, Functor, Args) :-
 	functor(Term, Functor, 1),
 	structure_tag(Functor), !,

@@ -293,7 +293,7 @@ Prolog specific additions.
     \item [Paragraphs]
 Paragraphs are seperated by a blank line.
 
-    \item [Lists]
+    \item [General lists]
 The wiki knows three types of lists: \emph{bullet lists} (HTML
 \const{ul}), \emph{numbered lists} (HTML \const{ol}) and
 \emph{description lists} (HTML \const{dl}). Each list environment is
@@ -312,6 +312,21 @@ a higher level of indentation.  The list prefixes are:
  \tt \$ Title : Item & Description list item.
 \end{tabular}
 \end{center}
+
+    \item [Term lists]
+Especially when describing option lists or different accepted types,
+it is common to describe the behaviour on different terms.  Such
+lists must be written as below.  <Term1>, etc. must be valid Prolog
+terms and end in the newline.  The Wiki adds \verb$' . '$ to the text
+and reads it using the operator definitions also used to read
+the mode terms.  See \secref{modes}.
+
+\begin{code}
+   * Term1
+     Description
+   * Term2
+     Description
+\end{code}
 
     \item [Tables]
 The Wiki provides only for limited support for tables.   A table-row

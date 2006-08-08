@@ -28,7 +28,7 @@ a.builtin
 { font-style: italic;
 }
 
-.pred .det
+.pred, .det, .functor
 { font-weight: bold;
 }
 
@@ -50,6 +50,16 @@ dl.tags
   margin-top: 0.5em;
 }
 
+dl.termlist
+{ margin-left: 1.5em;
+}
+
 .argdescr
 { padding-left: 1em;
+}
+
+table.wiki
+{ margin-top: 0.5em;
+  margin-left: 1.5em;
+  border: 1px;
 }

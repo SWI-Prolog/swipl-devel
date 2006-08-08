@@ -339,7 +339,7 @@ pred_head(Head) -->
 	html(b(class=pred, Head)).
 pred_head(Head) -->
 	{ Head =.. [Functor|Args] },	% TBD: operators!
-	html([ b(class=pred, Functor),
+	html([ span(class=pred, Functor),
 	       var(class=arglist,
 		   [ '(', \pred_args(Args), ')' ])
 	     ]).
@@ -391,6 +391,18 @@ pred_det(Det) -->
 %
 %	Process the \term element.
 
+term(Atom, []) -->
+	{ atomic(Atom) }, !,
+	html(span(class=functor, Atom)).
+term(Term, Bindings) -->
+	{ is_mode(Term is det),		% HACK. Bit too strict?
+	  bind_vars(Bindings),
+	  Term =.. [Functor|Args]
+	}, !,
+	html([ span(class=functor, Functor),
+	       var(class=arglist,
+		   ['(', \pred_args(Args), ')'])
+	     ]).
 term(Term, Bindings) -->
 	{ bind_vars(Bindings) },
 	argtype(Term).
