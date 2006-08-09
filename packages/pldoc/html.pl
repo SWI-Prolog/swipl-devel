@@ -170,7 +170,7 @@ edit_button(File) -->
 	       img([ border=0,
 		     height=24,
 		     style('padding-top:4px'),
-		     src='/edit.png'
+		     src='/edit.gif'
 		 ]))).
 
 
@@ -453,7 +453,7 @@ pred_edit_button(Name/Arity, Options) -->
 		   img([ border=0,
 			 height=16,
 			 style('padding-top:2px'),
-			 src='/edit.png'
+			 src='/edit.gif'
 		       ])))).
 pred_edit_button(Head, Options) -->
 	{ functor(Head, Name, Arity)

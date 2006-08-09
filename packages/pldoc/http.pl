@@ -218,7 +218,7 @@ reply(Path, _Request) :-
 
 file('/pldoc.css',   'pldoc.css').
 file('/pldoc.js',    'pldoc.js').
-file('/edit.png',    'edit.png').
+file('/edit.gif',    'edit.gif').
 file('/zoomin.gif',  'zoomin.gif').
 file('/zoomout.gif', 'zoomout.gif').
 file('/favicon.ico', 'favicon.ico').
