@@ -32,7 +32,7 @@
 :- module(pldoc_register,
 	  [ process_stored_comments/0
 	  ]).
-:- use_module(pldoc).
+:- use_module(library(pldoc)).
 :- use_module(library(debug)).
 
 

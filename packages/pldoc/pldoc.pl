@@ -42,14 +42,23 @@
 
 pldoc_loading.
 
-:- use_module(register).
-:- use_module(modes).
-:- use_module(wiki).
-:- use_module(library(debug)).
-:- use_module(library(option)).
-:- use_module(library(lists)).
-:- use_module(library(operators)).
-:- use_module(library(prolog_source)).
+:- dynamic   user:file_search_path/2.
+:- multifile user:file_search_path/2.
+
+user:file_search_path(pldoc, library(pldoc)).
+
+:- load_files([ pldoc(register),
+		pldoc(modes),
+		pldoc(wiki),
+		library(debug),
+		library(option),
+		library(lists),
+		library(operators),
+		library(prolog_source)
+	      ],
+	      [ silent(true),
+		if(not_loaded)
+	      ]).
 
 /** <module> Process source documentation
 The pldoc module processes structured comments in Prolog source files into

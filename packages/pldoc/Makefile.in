@@ -30,27 +30,27 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		wiki.pl
-EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl \
-		calc.pl
-EXAMPLEEXE=	demo_inetd		
-XPCEPL=		http_image.pl
+LIBPL=		html.pl wiki.pl modes.pl register.pl http.pl
+SUPPORT=	pldoc.css pldoc.js edit.gif zoomin.gif zoomout.gif
+DOCALL=		$(LIBPL) $(SUPPORT)
 
 all:		
 		@echo "Nothing to do for this package"
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(LIBDIR)
-		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(LIBDIR)
-		$(INSTALL_DATA) README $(DESTDIR)$(LIBDIR)
+		$(INSTALL_DATA) $(DOCALL) $(DESTDIR)$(LIBDIR)
+		$(INSTALL_DATA) pldoc.pl $(DESTDIR)$(PLBASE)/library
 		$(PL) -f none -g make -t halt
 
 ln-install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(LIBDIR)
-		for f in $(LIBPL) README; do \
+		for f in $(DOCALL) README; do \
 		    rm -f $(DESTDIR)$(LIBDIR)/$$f; \
 		    ln -s `pwd`/$$f $(DESTDIR)$(LIBDIR); \
 		done
+		rm -f $(DESTDIR)/$(PLBASE)/library/pldoc.pl
+		ln -s `pwd`/pldoc.pl $(DESTDIR)$(PLBASE)/library/pldoc.pl
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install

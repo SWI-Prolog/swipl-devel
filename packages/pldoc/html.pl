@@ -36,9 +36,9 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library('http/html_write')).
+:- use_module(library(pldoc)).
 :- use_module(modes).
 :- use_module(wiki).
-:- use_module(pldoc).
 
 /** <module> PlDoc HTML backend
 

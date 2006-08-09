@@ -37,10 +37,10 @@
 :- use_module(library('http/html_write')).
 :- use_module(library('http/mimetype')).
 :- use_module(library('debug')).
+:- use_module(library(pldoc)).
 :- use_module(html).
-:- use_module(pldoc).
 
-:- debug(pldoc).
+%:- debug(pldoc).
 
 doc_server(Port) :-
 	doc_server(Port,
@@ -54,7 +54,8 @@ doc_server(Port, Options) :-
                       timeout(60),
 		      keep_alive_timeout(1)
                     | Options
-                    ]).
+                    ]),
+	print_message(informational, pldoc(server_started(Port))).
 
 %%	prepare_editor
 %
@@ -171,7 +172,7 @@ reply('/edit', Request) :-
 reply(ReqPath, Request) :-
 	atom_concat('/documentation/', DocPath, ReqPath),
 	(   file_base_name(ReqPath, 'pldoc.css')
-	->  reply_file('pldoc.css')
+	->  reply_file(pldoc('pldoc.css'))
 	;   http_parameters(Request,
 			    [ public_only(Public)
 			    ],
@@ -213,7 +214,7 @@ reply('/welcome.html', _Request) :- !,
 
 reply(Path, _Request) :-
 	file(Path, LocalFile),
-	reply_file(LocalFile).
+	reply_file(pldoc(LocalFile)).
 
 file('/pldoc.css',   'pldoc.css').
 file('/pldoc.js',    'pldoc.js').
@@ -262,6 +263,19 @@ param(public_only,
       [ oneof([true,false]),
 	default(true)
       ]).
+
+
+		 /*******************************
+		 *	     MESSAGES		*
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(pldoc(server_started(Port))) -->
+	[ 'Started Prolog Documentatiuon server at port ~w'-[Port], nl,
+	  'You may access the server at http://localhost:~w/'-[Port]
+	].
 
 
                  /*******************************
