@@ -105,9 +105,9 @@ emacs(File) :-
 	start_emacs,
 	send(@emacs, goto_source_location, source_location(File)).
 
-%%	emacs_toplevel
+%%	emacs_toplevel is det.
 %	
-%	Propare to run PceEmacs as a stand-alone executable.
+%	Prepare to run PceEmacs as a stand-alone executable.
 
 emacs_toplevel :-
 	send(@pce, trap_errors, @off),
