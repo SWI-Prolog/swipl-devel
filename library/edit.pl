@@ -214,8 +214,8 @@ do_edit_source(Location) :-		% PceEmacs
 	current_prolog_flag(gui, true), !,
 	memberchk(file(File), Location),
 	(   memberchk(line(Line), Location)
-	->  Goal = emacs(File:Line)
-	;   Goal = emacs(File)
+	->  Goal = in_pce_thread(emacs(File:Line))
+	;   Goal = in_pce_thread(emacs(File))
 	),
 	Goal.
 do_edit_source(Location) :-		% External editor
