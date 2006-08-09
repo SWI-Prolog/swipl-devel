@@ -374,7 +374,10 @@ compile_clause(Term, FilePos) :-
 	'$set_source_module'(SM, SM),
 	clause_head(Term, Head),
 	functor(Head, Name, Arity),
-	discontiguous(SM:(Name/Arity)),
+	(   SM == user
+	->  multifile(SM:(Name/Arity))
+	;   discontiguous(SM:(Name/Arity))
+	),
 	'$record_clause'(Term, FilePos, _Ref).
 
 clause_head((Head :- _Body), Head) :- !.
