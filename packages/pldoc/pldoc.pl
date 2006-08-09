@@ -33,8 +33,16 @@
 	  [ pldoc_comment/4,		% ?Object, ?Pos, ?Summary, ?Comment
 	    read_structured_comments/2,	% +File, -Comments
 	    is_structured_comment/2,	% +Comment, -Prefixes
-	    doc_file_name/3		% +Source, -Doc, +Options
+	    process_comments/3,		% +Comments, +StartTermPos, +File
+	    doc_file_name/3,		% +Source, -Doc, +Options
+	    pldoc_loading/0		% True if we are loading
 	  ]).
+:- dynamic
+	pldoc_loading/0.
+
+pldoc_loading.
+
+:- use_module(register).
 :- use_module(modes).
 :- use_module(wiki).
 :- use_module(library(debug)).
@@ -183,7 +191,7 @@ qualify(M,      H, M:H).
 		 *	CALL-BACK COLLECT	*
 		 *******************************/
 
-%%	process_comments(+Comments:list, +TermPos) is det.
+%%	process_comments(+Comments:list, +TermPos, +File) is det.
 %
 %	Processes comments returned by read_term/3 using the =comments=
 %	option.  It creates clauses of the form
@@ -197,24 +205,20 @@ qualify(M,      H, M:H).
 %		* =module=
 %		* =section=
 
-process_comments([], _).
-process_comments([Pos-Comment|T], TermPos) :-
+process_comments([], _, _).
+process_comments([Pos-Comment|T], TermPos, File) :-
 	(   Pos @> TermPos		% comments inside term
 	->  true
-	;   process_comment(Pos, Comment),
-	    process_comments(T, TermPos)
+	;   process_comment(Pos, Comment, File),
+	    process_comments(T, TermPos, File)
 	).
 
-process_comment(Pos, Comment) :-
+process_comment(Pos, Comment, File) :-
 	is_structured_comment(Comment, Prefixes), !,
 	stream_position_data(line_count, Pos, Line),
-	source_location(File, TermLine),
 	FilePos = File:Line,
-	'$push_input_context',		% Preserve input file and line
-	call_cleanup(process_structured_comment(FilePos, Comment, Prefixes),
-		     '$pop_input_context'),
-	assertion(source_location(File, TermLine)).
-process_comment(_, _).
+	process_structured_comment(FilePos, Comment, Prefixes).
+process_comment(_, _, _).
 
 process_structured_comment(FilePos, Comment, Prefixes) :-
 	indented_lines(Comment, Prefixes, Lines),
@@ -235,35 +239,11 @@ process_structured_comment(File:Line, Comment, _) :-
 		      format('~w:~d: Failed to process comment:~n~s~n',
 			     [File, Line, Comment])),
 	fail.
-	
+
 
 		 /*******************************
-		 *	      REGISTER		*
+		 *	     FINISH UP		*
 		 *******************************/
 
-:- multifile
-	prolog:comment_hook/3.
-
-pldoc_module(pldoc_modes).		% avoid recursive behaviour
-pldoc_module(pldoc_wiki).
-pldoc_module(pldoc).
-
-%%	prolog:comment_hook(+Comments, +TermPos, +Term) is det.
-%
-%	Hook called by the compiler and cross-referencer. In addition to
-%	the comment, it passes the  term  itself   to  see  what term is
-%	commented  as  well  as  the  start-position   of  the  term  to
-%	distinguish between comments before the term and inside it.
-%	
-%	@param Comments	List of comments read before the end of Term
-%	@param TermPos	Start location of Term
-%	@param Term 	Actual term read
-
-prolog:comment_hook(Comments, TermPos, _Term) :-
-	(   prolog_load_context(module, Module),
-	    pldoc_module(Module),
-	    \+ current_prolog_flag(xref, true)
-	->  true
-	;   process_comments(Comments, TermPos)
-	).
-
+:- retract(pldoc_loading),
+   process_stored_comments.

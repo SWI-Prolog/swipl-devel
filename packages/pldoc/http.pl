@@ -34,8 +34,11 @@
 	  ]).
 :- use_module(library('http/thread_httpd')).
 :- use_module(library('http/http_parameters')).
+:- use_module(library('http/html_write')).
 :- use_module(library('http/mimetype')).
 :- use_module(library('debug')).
+:- use_module(html).
+:- use_module(pldoc).
 
 :- debug(pldoc).
 
@@ -45,12 +48,24 @@ doc_server(Port) :-
 		   ]).
 
 doc_server(Port, Options) :-
+	prepare_editor,
 	http_server(doc_reply,
                     [ port(Port),
                       timeout(60),
 		      keep_alive_timeout(1)
                     | Options
                     ]).
+
+%%	prepare_editor
+%
+%	Start XPCE as edit requests comming from the document server can
+%	only be handled if XPCE is running.
+
+prepare_editor :-
+	current_prolog_flag(editor, pce_emacs), !,
+	start_emacs.
+prepare_editor.
+
 
 doc_reply(Request) :-
 	memberchk(path(Path), Request),

@@ -1,9 +1,17 @@
+:- module(test_wiki,
+	  [ test/1
+	  ]).
 :- use_module(pldoc).
 :- use_module(wiki).
 :- use_module(modes).
 :- use_module(html).
 :- use_module(http).
 :- use_module(library('http/html_write')).
+
+/** <module> PlDoc testing module
+
+Just some random tests.
+*/
 
 process_comment(File, Pos-String, DOM) :-
 	stream_position_data(line_count, Pos, Line),
@@ -19,11 +27,11 @@ process_comment(File, Pos-String, DOM) :-
 	wiki_lines_to_dom(Lines1, Args, DOM0),
 	strip_leading_par(DOM0, DOM1).
 
-%%	process_comments(+Comments, +File, -DOM) is det.
+%%	process_comment_list(+Comments, +File, -DOM) is det.
 %
 %	@param Mode	Enclosing environment, =body= or =dl=
 
-process_comments(Comments, File, DOM) :-
+process_comment_list(Comments, File, DOM) :-
 	maplist(process_comment(File), Comments, DOMList),
 	phrase(missing_tags(DOMList, body), DOM).
 
@@ -60,7 +68,7 @@ test :-
 test(Spec) :-
 	absolute_file_name(Spec, File, [file_type(prolog)]),
 	read_structured_comments(File, Comments),
-	process_comments(Comments, File, DOM),
+	process_comment_list(Comments, File, DOM),
 	doc_file_name(File, DocFile, [format(html)]),
 	open(DocFile, write, Out),
 	call_cleanup(doc_write_html(Out, File, DOM),
