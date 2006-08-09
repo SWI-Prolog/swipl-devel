@@ -106,8 +106,8 @@ take_par([Verb|Lines], Verb, Lines).
 list_item([Indent-Line|LT], Type, Indent, Items, ItemT, Rest) :- !,
 	list_item_prefix(Type, Line, L1),
 	(   Type == dl
-	->  append(DT0, [:|DD], L1),
-	    append(DD, LIT, LI0),
+	->  append(DT0, [:|DD1], L1),
+	    append(DD1, LIT, DD),
 	    strip_ws_tokens(DT0, DT),
 	    Items = [dt(DT),dd(DD)|ItemT]
 	;   append(L1, LIT, LI0),

@@ -32,7 +32,7 @@ missing_tags([], _) -->
 missing_tags([H|T0], Outer) -->
 	{ requires(H, Tag), Tag \== Outer, !,
 	  Env =.. [Tag,C],
-	  phrase(in_tag(T0, T, Tag), C)
+	  phrase(in_tag([H|T0], T, Tag), C)
 	},
 	[Env],
 	missing_tags(T, Outer).

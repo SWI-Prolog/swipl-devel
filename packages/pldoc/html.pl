@@ -51,7 +51,14 @@ extracting module wiki.pl into HTML+CSS.
 
 %%	doc_for_file(+File, +Out, +Options) is det
 %
-%	Write documentation for File to out in HTML.
+%	Write documentation for File to out in HTML.  Options:
+%	
+%		* public_only(+Bool)
+%		If =true= (default), only emit documentation for
+%		exported predicates.
+%		
+%	@param File	Prolog file specification.
+%	@param Out	Output stream
 
 doc_for_file(FileSpec, Out, Options) :-
 	absolute_file_name(FileSpec,
@@ -160,7 +167,7 @@ edit_button(File) -->
 		 onMouseOver('window.status=\'Edit file\'; return true;')
 	       ],
 	       img([ border=0,
-		     height=32,
+		     height=24,
 		     style('padding-top:4px'),
 		     src='/edit.png'
 		 ]))).
@@ -180,7 +187,7 @@ zoom_button(Base, Options) -->
 	html(a(href=HREF,
 	       img([ %class(icon),
 		     border=0,
-		     height=32,
+		     height=24,
 		     style('padding-top:4px'),
 		     src(Zoom)
 		   ]))).
@@ -222,7 +229,7 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	  ->  Class = privdef		% private definition
 	  ;   Class = pubdef		% public definition
 	  ),
-	  DOM = [\pred_dt(Modes, Class), dd(class=defbody, DOM1)],
+	  DOM = [\pred_dt(Modes, Class, Options), dd(class=defbody, DOM1)],
 	  wiki_lines_to_dom(Lines1, Args, DOM0),
 	  strip_leading_par(DOM0, DOM1)
 	},
@@ -376,50 +383,82 @@ make_section(section, Title, h1(class=section, Title)).
 		 *******************************/
 
 %%	pred_dt(+Modes)// is det.
-%%	pred_dt(+Modes, +Class)// is det.
+%%	pred_dt(+Modes, +Class, Options)// is det.
 %
 %	Emit the predicate header.
 %	
 %	@param Modes	List as returned by process_modes/5.
 
 pred_dt(Modes) -->
-	pred_dt(Modes, preddef).
+	pred_dt(Modes, preddef, []).
 
-pred_dt(Modes, Class) -->
+pred_dt(Modes, Class, Options) -->
 	html(dt(class=Class,
-		\pred_modes(Modes, [], _))).
+		\pred_modes(Modes, [], _, Options))).
 
-pred_modes([], Done, Done) -->
+pred_modes([], Done, Done, _) -->
 	[].
-pred_modes([H|T], Done0, Done) -->
-	pred_mode(H, Done0, Done1),
-	pred_modes(T, Done1, Done).
+pred_modes([H|T], Done0, Done, Options) -->
+	pred_mode(H, Done0, Done1, Options),
+	pred_modes(T, Done1, Done, Options).
 		
-pred_mode(mode(Head,Vars), Done0, Done) --> !,
+pred_mode(mode(Head,Vars), Done0, Done, Options) --> !,
 	{ bind_vars(Vars) },
-	pred_mode(Head, Done0, Done).
-pred_mode(Head is Det, Done0, Done) --> !,
-	anchored_pred_head(Head, Done0, Done),
+	pred_mode(Head, Done0, Done, Options).
+pred_mode(Head is Det, Done0, Done, Options) --> !,
+	anchored_pred_head(Head, Done0, Done, Options),
 	pred_det(Det),
-	html(br([])).
-pred_mode(Head, Done0, Done) -->
-	anchored_pred_head(Head, Done0, Done),
-	html(br([])).
+	html(div(style('clear:both'), [])).
+pred_mode(Head, Done0, Done, Options) -->
+	anchored_pred_head(Head, Done0, Done, Options),
+	html(div(style('clear:both'), [])).
 
 bind_vars([]).
 bind_vars([Name=Var|T]) :-
 	Var = '$VAR'(Name),
 	bind_vars(T).
 
-anchored_pred_head(Head, Done0, Done) -->
+anchored_pred_head(Head, Done0, Done, Options) -->
 	{ anchor_name(Head, Name)
 	},
 	(   { memberchk(Name, Done0) }
 	->  { Done = Done0 },
 	    pred_head(Head)
-	;   html(a(name=Name, \pred_head(Head))),
+	;   pred_edit_button(Head, Options),
+	    html(a(name=Name, \pred_head(Head))),
 	    { Done = [Name|Done0] }
 	).
+
+pred_edit_button(//(Head), Options) -->
+	{ functor(Head, Name, Arity),
+	  PredArity is Arity + 2
+	},
+	pred_edit_button(Name/PredArity, Options).
+pred_edit_button(Name/Arity, Options) -->
+	{ www_form_encode(Name, QName),
+	  (   option(module(M), Options, []), M \== []
+	  ->  www_form_encode(M, QM),
+	      format(string(OnClick),
+		     'HTTPrequest("/edit?name=~w&arity=~w&module=~w")',
+		     [QName, Arity, QM])
+	  ;   format(string(OnClick),
+		     'HTTPrequest("/edit?name=~w&arity=~w")',
+		     [QName, Arity])
+	  )
+	},
+	html(div(style('float:right'),
+		 a([ onClick(OnClick)
+		   ],
+		   img([ border=0,
+			 height=16,
+			 style('padding-top:2px'),
+			 src='/edit.png'
+		       ])))).
+pred_edit_button(Head, Options) -->
+	{ functor(Head, Name, Arity)
+	},
+	pred_edit_button(Name/Arity, Options).
+
 
 pred_head(//(Head)) --> !,
 	pred_head(Head),

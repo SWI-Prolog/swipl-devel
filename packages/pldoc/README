@@ -63,6 +63,9 @@ Making solid progress.  remaining issues:
 		- PceEmacs
 		- PlDoc
 
+	* Saving info in user:
+	  Warning: Redefined static procedure $mode/2
+
 ---++ Web server
 
 	* Search

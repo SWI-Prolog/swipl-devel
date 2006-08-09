@@ -128,10 +128,21 @@ reply('/file', Request) :-
 
 reply('/edit', Request) :-
 	http_parameters(Request,
-			[ file(File, [])
+			[ file(File,     [optional(true)]),
+			  module(Module, [optional(true)]),
+			  name(Name,     [optional(true)]),
+			  arity(Arity,   [integer, optional(true)])
 			]),
 	format('Content-type: text/html~n~n'),
-	edit(File).
+	(   atom(File)
+	->  edit(file(File))
+	;   atom(Name), integer(Arity)
+	->  (   atom(Module)
+	    ->	edit(Module:Name/Arity)
+	    ;	edit(Name/Arity)
+	    )
+	).
+
 
 %	/documentation/Path
 %	
