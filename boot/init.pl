@@ -1433,13 +1433,13 @@ expand_term(Term, Term).
 				   number_of_clauses, N),
 	N > 0, !,
 	'$set_source_module'(SM, SM),
-	read_term(In, Term,
-		  [ singletons(warning),
-		    errors(dec10),
-		    comments(Comments),
-		    term_position(Pos),
-		    module(SM)
-		  ]),
+	Options0 = [ errors(dec10),
+		     comments(Comments),
+		     term_position(Pos),
+		     module(SM)
+		   ],
+	'$singleton_option'(SM, Options, Options0),
+	read_term(In, Term, Options),
 	(   catch(prolog:comment_hook(Comments, Pos, Term), E,
 		  print_message(error, E))
 	->  true
@@ -1448,6 +1448,10 @@ expand_term(Term, Term).
 '$read_clause'(In, Term) :-
 	read_clause(In, Term).
 
+'$singleton_option'(M, [singletons(warning)|T],T) :-
+	M:'$style_check'(Old, Old),
+	Old /\ 2'0000010 =\= 0, !.	% See style_check/1
+'$singleton_option'(_, T, T).
 
 
 		 /*******************************
