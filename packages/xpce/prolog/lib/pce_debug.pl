@@ -66,8 +66,8 @@ nodebugpce :-
 	send(@pce, debugging, @off).
 
 
-%%   debugpce(+Subject)
-%%   nodebugpce(+Subject)
+%%   debugpce(+Subject) is det.
+%%   nodebugpce(+Subject) is det.
 %   
 %   Start/stop printing debugging messages on `Subject'. System maintenance
 %   usage only.

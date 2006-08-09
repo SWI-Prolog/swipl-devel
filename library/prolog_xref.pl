@@ -101,7 +101,7 @@
 		 *	     BUILT-INS		*
 		 *******************************/
 
-%	built_in_predicate(+Callable)
+%%	built_in_predicate(+Callable)
 %	
 %	True if Callable is a built-in
 
@@ -116,11 +116,13 @@ system_predicate(Goal) :-
 verbose :-
 	debugging(xref).
 
-%	xref_source(+Source:file_specifier|buffer)
+%%	xref_source(+Source) is det.
 %	
 %	Generate the cross-reference data  for   Source  if  not already
 %	done and the source is not modified.  Checking for modifications
 %	is only done for files.
+%	
+%	@param Source	File specification or XPCE buffer
 
 xref_source(Source) :-
 	prolog_canonical_source(Source, Src),
@@ -159,7 +161,7 @@ xref_cleanup(state(In, Xref, Ref)) :-
 	;   true
 	).
 
-%	xref_push_op(Source, +Prec, +Type, :Name)
+%%	xref_push_op(Source, +Prec, +Type, :Name)
 %	
 %	Define operators into the default source module and register
 %	them to be undone by pop_operators/0.
@@ -175,7 +177,7 @@ xref_push_op(Src, P, T, N0) :- !,
 	debug(xref, ':- ~w.', [op(P,T,N)]).
 
 
-%	xref_clean(+Src)
+%%	xref_clean(+Src)
 %	
 %	Reset the database for the given source.
 
@@ -201,7 +203,7 @@ xref_clean(Source) :-
 		 *	    READ RESULTS	*
 		 *******************************/
 
-%	xref_current_source(?Source)
+%%	xref_current_source(?Source)
 %
 %	Check what sources have been analysed.
 
@@ -209,7 +211,7 @@ xref_current_source(Source) :-
 	source(Source, _Time).
 
 
-%	xref_done(+Source, -Time)
+%%	xref_done(+Source, -Time) is det.
 %	
 %	Cross-reference executed at Time
 
@@ -218,7 +220,7 @@ xref_done(Source, Time) :-
 	source(Src, Time).
 
 
-%	xref_called(+Source, ?Called, ?By)
+%%	xref_called(+Source, ?Called, ?By) is nondet.
 %	
 %	Enumerate the predicate-call relations. Predicate called by
 %	directives have a By '<directive>'.
@@ -228,7 +230,7 @@ xref_called(Source, Called, By) :-
 	called(Called, Src, By).
 
 
-%	xref_defined(+Source, +Goal, ?How)
+%%	xref_defined(+Source, +Goal, ?How) is semidet.
 %	
 %	Test if Goal is accessible in Source. If this is the case, How
 %	specifies the reason why the predicate is accessible. Note that
@@ -255,7 +257,7 @@ xref_defined2(imported(From), Src, Called) :-
 	imported(Called, Src, From).
 
 
-%	xref_definition_line(+How, -Line)
+%%	xref_definition_line(+How, -Line)
 %	
 %	If the 3th argument of xref_defined contains line info, return
 %	this in Line.
@@ -272,19 +274,21 @@ xref_exported(Source, Called) :-
 	prolog_canonical_source(Source, Src),
 	exported(Called, Src).
 
-%	xref_module(?Source, ?Module)
+%%	xref_module(?Source, ?Module) is nondet.
 %	
-%	Module(s) defined in Source.
+%%	Module(s) defined in Source.
 
 xref_module(Source, Module) :-
 	prolog_canonical_source(Source, Src),
 	xmodule(Module, Src).
 
-%	xref_op(?Source, ?op(P,T,N))
+%%	xref_op(?Source, Op) is nondet.
 %	
 %	Give the operators active inside the module. This is intended to
 %	setup the environment for incremental parsing of a term from the
 %	source-file.
+%	
+%	@param Op	Term of the form op(Priority, Type, Name)
 
 xref_op(Source, Op) :-
 	prolog_canonical_source(Source, Src),
@@ -362,7 +366,7 @@ syntax_error(E) :-
 		 *	     EXPANSION		*
 		 *******************************/
 
-%	xref_expand(+Term, -Expanded)
+%%	xref_expand(+Term, -Expanded)
 %
 %	Do the term-expansion. We have to pass require as we need it for
 %	validation. Otherwise we do term-expansion,  handling all of the
@@ -388,7 +392,7 @@ xref_expand(Term, T) :-
 	).
 
 
-%	requires_library(+Term, -Library)
+%%	requires_library(+Term, -Library)
 %
 %	known expansion hooks.  Should be more dynamic!
 
@@ -486,7 +490,7 @@ process_directive(Goal, Src) :-
 	flag(xref_src_line, Line, Line),
 	process_body(Goal, '<directive>'(Line), Src).
 
-%	process_meta_predicate(+Decl)
+%%	process_meta_predicate(+Decl)
 %	
 %	Create prolog:meta_goal/2 declaration from the meta-goal
 %	declaration.
@@ -587,7 +591,7 @@ xref_meta(G, Meta) :-			% Generated from :- meta_predicate
 	meta_goal(G, Meta).
 
 
-%	head_of(+Rule, -Head)
+%%	head_of(+Rule, -Head)
 %	
 %	Get the head for a retract call.
 
@@ -596,7 +600,7 @@ head_of(Var, _) :-
 head_of((Head :- _), Head).
 head_of(Head, Head).
 
-%	xref_hook(?Callable)
+%%	xref_hook(?Callable)
 %	
 %	Definition of known hooks.  Hooks  that   can  be  called in any
 %	module are unqualified.  Other  hooks   are  qualified  with the
@@ -639,7 +643,7 @@ hook(user:prolog_predicate_name(_,_)).
 hook(user:prolog_trace_interception(_,_,_,_)).
 hook(user:prolog_event_hook(_)).
 
-%	arith_callable(+Spec, -Callable)
+%%	arith_callable(+Spec, -Callable)
 %	
 %	Translate argument of arithmetic_function/1 into a callable term
 
@@ -652,7 +656,7 @@ arith_callable(Name/Arity, Goal) :-
 	functor(Goal, Name, PredArity).
 
 
-%	process_body(+Body, +Origin, +Src)
+%%	process_body(+Body, +Origin, +Src)
 %	
 %	Process a callable body (body of a clause or directive). Origin
 %	describes the origin of the call.
@@ -824,7 +828,7 @@ process_pce_import(Name/Arity, Src, Path) :-
 process_pce_import(op(P,T,N), Src, _) :-
 	xref_push_op(Src, P, T, N).
 
-%	xref_public_list(+File, -Path, -Public, +Src)
+%%	xref_public_list(+File, -Path, -Public, +Src)
 %	
 %	Find File as referenced from Src. Unify Path with the an
 %	absolute path to the referenced source and Public with a
@@ -872,7 +876,7 @@ read_clauses(Term, In, [Term|T]) :-
 	read_clauses(C, In, T).
 
 
-%	process_foreign(+Spec, +Src)
+%%	process_foreign(+Spec, +Src)
 %	
 %	Process a load_foreign_library/1 call.
 
@@ -988,7 +992,7 @@ assert_constraint(Src, Head) :-
 		*       PHASE 1 ASSERTIONS	*
 		********************************/
 
-%	assert_called(+Src, +From, +Head)
+%%	assert_called(+Src, +From, +Head)
 %
 %	Assert the fact that Head is called by From in Src. We do not
 %	assert called system predicates.
@@ -1022,7 +1026,7 @@ assert_called(Src, Origin, Goal) :-
 	generalise(Goal, Term),
 	assert(called(Term, Src, OTerm)).
 
-%	hide_called(:Callable)
+%%	hide_called(:Callable)
 %	
 %	Goals that should not turn up as being called. Hack. Eventually
 %	we should deal with that using an XPCE plugin.
@@ -1046,8 +1050,8 @@ assert_foreign(Src, Goal) :-
 	flag(xref_src_line, Line, Line),
 	assert(foreign(Term, Src, Line)).
 
-%	assert_import(+Src, +ImportList, +From)
-%	assert_import(+Src, +ImportList, +PublicList, +From)
+%%	assert_import(+Src, +ImportList, +From) is det.
+%%	assert_import(+Src, +ImportList, +PublicList, +From) is det.
 
 assert_import(Src, Import, From) :-
 	assert_import(Src, Import, _, From).
@@ -1067,7 +1071,9 @@ assert_import(Src, Name/Arity, Public, From) :-
 assert_import(Src, op(P,T,N), _, _) :-
 	xref_push_op(Src, P,T,N).
 
-%	assert_op(+Src, op(P,T,N))
+%%	assert_op(+Src, +Op) is det.
+%
+%	@param Op	Ground term op(Priority, Type, Name).
 
 assert_op(Src, op(P,T,_:N)) :-
 	(   xop(Src, op(P,T,N))
@@ -1075,7 +1081,7 @@ assert_op(Src, op(P,T,_:N)) :-
 	;   assert(xop(Src, op(P,T,N)))
 	).
 
-%	assert_module(+Src, +Module)
+%%	assert_module(+Src, +Module)
 %	
 %	Assert we are loading code into Module.  This is also used to
 %	exploit local term-expansion and other rules.
@@ -1172,7 +1178,7 @@ assert_defined_class(Src, Name, imported_from(File)) :-
 		*            UTILITIES		*
 		********************************/
 
-%	generalise(+Callable, -General)
+%%	generalise(+Callable, -General)
 %	
 %	Generalise a callable term.
 
@@ -1210,7 +1216,7 @@ hooking can be databases, (HTTP) URIs, etc.
 	prolog:xref_source_directory/2.		% +Source, -Dir
 
 
-%	xref_source_file(+Spec, -File, +Src)
+%%	xref_source_file(+Spec, -File, +Src)
 %	
 %	Find named source file from Spec, relative to Src.
 
