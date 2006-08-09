@@ -222,11 +222,10 @@ get_chain(Object, Selector, List) :-
 	chain_list(Chain, List).
 
 
-%%   chain_list(+Chain, -List) is det.
-%%   chain_list_object(+Chain, -List) is det.
+%%	chain_list(+Chain, -List) is det.
+%%	chain_list(-Chain, +List) is det.
 %
-%   List is a Prolog list of all objects in Chain.  chain_list/2 returns object
-%   names, chain_list_object/2 object descriptions.
+%	Convert between a Prolog list and an XPCE chain object.
 
 chain_list(Chain, List) :-
 	nonvar(Chain), !,

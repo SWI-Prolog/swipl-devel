@@ -95,7 +95,7 @@ unlisten(Listener0, Templ, Goal) :-
 	retract_listener(Templ, Listener, Module, TheGoal).
 
 
-%%	listening(-Listener, -Templ, -Goal)
+%%	listening(?Listener, ?Templ, ?Goal) is nondet.
 %
 %	returns currently open channels
 
@@ -104,9 +104,9 @@ listening(Listener0, Templ, Module:Goal) :-
 	listener(Templ, Listener, Module, Goal).
 
 
-%%	broadcast(+Templ, +Arg)
+%%	broadcast(+Templ, +Arg) is det.
 %
-%	Broadcast given event.  Always succeeds.
+%	Broadcast given event.
 
 broadcast(Templ) :-
 	(   listener(Templ, _Listener, Module, Goal),
@@ -117,12 +117,11 @@ broadcast(Templ) :-
 	).
 
 
-%%	broadcast_request(+Templ)
+%%	broadcast_request(+Templ) is nonet.
 %
 %	Broadcast given event till accepted.  Succeeds then, fail if no
 %	listener accepts the call.  Bindings made by the listener goal
-%	are maintained.  May be used to make broadcast requests.  Can
-%	backtrack.
+%	are maintained.  May be used to make broadcast requests.
 
 broadcast_request(Templ) :-
 	listener(Templ, _Listener, Module, Goal),
