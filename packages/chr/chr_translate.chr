@@ -487,8 +487,8 @@ chr_translate(Declarations,NewDeclarations) :-
 
 store_management_preds(Constraints,Clauses) :-
 		generate_attach_detach_a_constraint_all(Constraints,AttachAConstraintClauses),
-		generate_attach_increment(AttachIncrementClauses),
 		generate_attr_unify_hook(AttrUnifyHookClauses),
+		generate_attach_increment(AttachIncrementClauses),
 		generate_extra_clauses(Constraints,ExtraClauses),
 		generate_insert_delete_constraints(Constraints,DeleteClauses),
 		generate_attach_code(Constraints,StoreClauses),
@@ -806,7 +806,7 @@ check_declared_constraints(Constraints) :-
 check_declared_constraints([],_).
 check_declared_constraints([C|Cs],Acc) :-
 	( memberchk_eq(C,Acc) ->
-		chr_error(syntax(C),'Constraint ~w multiply defined.\n\tRemove redundant declaration!\n',[C])
+		chr_error(syntax(C),'Constraint multiply defined: ~w.\n\tRemove redundant declaration!\n',[C])
 	;
 		true
 	),
@@ -886,7 +886,7 @@ check_pragma(Pragma, PragmaRule) :-
 	no_history(N).
 
 check_pragma(Pragma,PragmaRule) :-
-	chr_error(syntax(Pragma),'Invalid pragma ~w in ~@.\n', [Pragma,format_rule(PragmaRule)]).
+	chr_error(syntax(Pragma),'Unknown pragma ~w in ~@.\n', [Pragma,format_rule(PragmaRule)]).
 
 :- chr_constraint
 	no_history/1,
@@ -1424,7 +1424,8 @@ constraint_mode(F/A,ArgModes) \ generate_indexed_variables_body(F/A,Args,Body,Va
 			Body = true,
 			Vars = []
 		; N == 0 ->
-			Body = term_variables(Args,Vars)
+			Term =.. [term|Args],
+			Body = term_variables(Term,Vars)
 		; 
 			MaybeBody = Body
 		)
@@ -1451,7 +1452,7 @@ create_indexed_variables_body([V|Vs],[Mode|Modes],Vars,I,FA,Body,N) :-
 		;
 			Body = (Vars = [V|Tail],RBody)
 		),
-		N = M
+		N is M + 1
 	; 
 		Vars = Tail,
 		Body = RBody,
@@ -1711,11 +1712,7 @@ generate_allocate_clauses([C|Cs],List,Tail) :-
 
 allocate_constraint_goal(Constraint, Closure, Self, _F, Args,Goal) :-
 	allocate_constraint_name(Constraint,Name),
-	( chr_pp_flag(debugable,off), may_trigger(Constraint) ->
-		Goal =.. [Name,Closure,Self|Args]
-	;
-		Goal =.. [Name,Self|Args]
-	).
+	Goal =.. [Name,Self|Args].
 	
 allocate_constraint_name(Constraint,Name) :-
 	make_name('$allocate_constraint_',Constraint,Name).
@@ -1728,10 +1725,18 @@ generate_allocate_clause(Constraint,List,Tail) :-
 		length(Args,A),
 		allocate_constraint_goal(Constraint,Closure,Self,F,Args,Head),
 		static_suspension_term(Constraint,Suspension),
-		get_static_suspension_term_field(id,Constraint,Suspension,Id),
+		( has_suspension_field(Constraint,id) ->
+			get_static_suspension_term_field(id,Constraint,Suspension,Id),
+			GenID =	'chr gen_id'(Id)
+		;
+			GenID = true
+		),
 		get_static_suspension_term_field(state,Constraint,Suspension,Mref),
-		( chr_pp_flag(debugable,on); may_trigger(Constraint) ->
+		( chr_pp_flag(debugable,on) ->
 			get_static_suspension_term_field(continuation,Constraint,Suspension,Closure),
+			get_static_suspension_term_field(generation,Constraint,Suspension,Gref),
+			GenerationHandling = 'chr create_mutable'(0,Gref)
+		; may_trigger(Constraint) ->
 			get_static_suspension_term_field(generation,Constraint,Suspension,Gref),
 			GenerationHandling = 'chr create_mutable'(0,Gref)
 		;
@@ -1761,7 +1766,7 @@ generate_allocate_clause(Constraint,List,Tail) :-
 				% 'chr empty_history'(History),
 				HistoryHandling,
 				'chr create_mutable'(not_stored_yet,Mref),
-				'chr gen_id'( Id)
+				GenID
 		)
 	;
 		List = Tail
@@ -1777,8 +1782,10 @@ generate_insert_constraint_internal_clauses([C|Cs],List,Tail) :-
 
 insert_constraint_internal_constraint_goal(Constraint, Stored, Vars, Self, Closure, _F, Args,Goal) :-
 	insert_constraint_internal_constraint_name(Constraint,Name),
-	( (chr_pp_flag(debugable,on) ; may_trigger(Constraint)) ->
+	( chr_pp_flag(debugable,on) -> 
 		Goal =.. [Name,Stored, Vars, Self, Closure | Args]
+	; may_trigger(Constraint) ->
+		Goal =.. [Name,Stored, Vars, Self | Args]
 	; only_ground_indexed_arguments(Constraint) ->
 		Goal =.. [Name,Self | Args]
 	;
@@ -1794,10 +1801,12 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 		length(Args,A),
 		insert_constraint_internal_constraint_goal(Constraint, yes, Vars, Self, Closure, F, Args,Head),
 		static_suspension_term(Constraint,Suspension),
-		get_static_suspension_term_field(id,Constraint,Suspension,Id),
 		get_static_suspension_term_field(state,Constraint,Suspension,Mref),
-		( (chr_pp_flag(debugable,on); may_trigger(Constraint)) ->
+		( chr_pp_flag(debugable,on) ->
 			get_static_suspension_term_field(continuation,Constraint,Suspension,Closure),
+			get_static_suspension_term_field(generation,Constraint,Suspension,Gref),
+			GenerationHandling = 'chr create_mutable'(0,Gref)
+		; may_trigger(Constraint) ->
 			get_static_suspension_term_field(generation,Constraint,Suspension,Gref),
 			GenerationHandling = 'chr create_mutable'(0,Gref)
 		;
@@ -1821,7 +1830,13 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 		Self = Suspension,
 		List = [Clause|Tail],
 		( chr_pp_flag(debugable,off), only_ground_indexed_arguments(Constraint) ->
-			Closure = true,
+			suspension_term_base_fields(Constraint,BaseFields),
+			( has_suspension_field(Constraint,id) ->
+				get_static_suspension_term_field(id,Constraint,Suspension,Id),
+				GenID = 'chr gen_id'(Id)
+			;
+				GenID = true
+			),
 			Clause =
 			    (
 				Head :-
@@ -1830,9 +1845,15 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 			                % 'chr empty_history'(History),
 					HistoryHandling,
 			                % Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
-					'chr gen_id'(Id)
+					GenID		
 			    )
 		;
+			( has_suspension_field(Constraint,id) ->
+				get_static_suspension_term_field(id,Constraint,Suspension,Id),
+				GenID =	'chr gen_id'(Id)
+			;
+				GenID = true
+			),
 			generate_indexed_variables_body(Constraint,Args,IndexedVariablesBody,Vars),
 			( chr_pp_flag(guard_locks,off) ->
 				NoneLocked = true
@@ -1850,7 +1871,7 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 			                % 'chr empty_history'(History),
 			                % 'chr create_mutable'(History,Href), % Href = mutable(History),
 					HistoryHandling,
-			                'chr gen_id'(Id)
+					GenID
 			)
 		)
 	;
@@ -1958,35 +1979,36 @@ generate_run_suspensions_clause(Constraint,List,Tail) :-
 					Clause2Recursion
 			)
 		;
-			run_suspensions_goal(Constraint,[Suspension|Suspensions],Clause2Head),
-			get_dynamic_suspension_term_field(state,Constraint,Suspension,Mref,GetMref),
-			get_dynamic_suspension_term_field(generation,Constraint,Suspension,Gref,GetGref),
-			get_dynamic_suspension_term_field(continuation,Constraint,Suspension,Continuation,GetContinuation),
-			run_suspensions_goal(Constraint,Suspensions,Clause2Recursion),
-			Clause2 =
-			(
-				Clause2Head :-
-					GetMref,
-					'chr get_mutable'( Status, Mref),
-					( Status==active ->
-					    'chr update_mutable'( triggered, Mref),
-					    GetGref,
-					    'chr get_mutable'( Gen, Gref),
-					    Generation is Gen+1,
-					    'chr update_mutable'( Generation, Gref),
-					    GetContinuation,
-					    call( Continuation),
-					    'chr get_mutable'( Post, Mref),
-					    ( Post==triggered ->
-						'chr update_mutable'( active, Mref)	% catching constraints that did not do anything
-					    ;
-						true
-					    )
-					;
-					    true
-					),
-					Clause2Recursion
-			)
+ 			run_suspensions_goal(Constraint,[Suspension|Suspensions],Clause2Head),
+			static_suspension_term(Constraint,SuspensionTerm),
+			get_static_suspension_term_field(state,Constraint,SuspensionTerm,Mref),
+			get_static_suspension_term_field(generation,Constraint,SuspensionTerm,Gref),
+			get_static_suspension_term_field(arguments,Constraint,SuspensionTerm,Arguments),
+			append(Arguments,[Suspension],VarsSusp),
+			make_suspension_continuation_goal(Constraint,VarsSusp,Continuation),
+ 			run_suspensions_goal(Constraint,Suspensions,Clause2Recursion),
+ 			Clause2 =
+ 			(
+ 				Clause2Head :-
+					Suspension = SuspensionTerm,
+ 					'chr get_mutable'( Status, Mref),
+ 					( Status==active ->
+ 					    'chr update_mutable'( triggered, Mref),
+ 					    'chr get_mutable'( Gen, Gref),
+ 					    Generation is Gen+1,
+ 					    'chr update_mutable'( Generation, Gref),
+					    Continuation,
+ 					    'chr get_mutable'( Post, Mref),
+ 					    ( Post==triggered ->
+ 						'chr update_mutable'( active, Mref)	% catching constraints that did not do anything
+ 					    ;
+ 						true
+ 					    )
+ 					;
+ 					    true
+ 					),
+ 					Clause2Recursion
+ 			)
 		)
 	;
 		List = Tail
@@ -2020,7 +2042,7 @@ generate_run_suspensions_clause(Constraint,List,Tail) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 generate_attach_increment(Clauses) :-
 	get_max_constraint_index(N),
-	( N > 0 ->
+	( is_used_auxiliary_predicate(attach_increment), N > 0 ->
 		Clauses = [Clause1,Clause2],
 		generate_attach_increment_empty(Clause1),
 		( N == 1 ->
@@ -2105,26 +2127,41 @@ generate_attr_unify_hook_one(Clause) :-
 	get_indexed_constraint(1,C),
 	make_run_suspensions(NewSusps,SortedSusps,WakeNewSusps),
 	make_run_suspensions(SortedSusps,SortedSusps,WakeSusps),
-	Body = 
-	(
-		sort(Susps, SortedSusps),
-		( var(Other) ->
-			( get_attr(Other,Mod,OtherSusps) ->
-				true
-			;
-		        	OtherSusps = []
-			),
-			sort(OtherSusps,SortedOtherSusps),
-			'chr merge_attributes'(SortedSusps,SortedOtherSusps,NewSusps),
-			put_attr(Other,Mod,NewSusps),
-			WakeNewSusps
-		;
+	( atomic_types_suspended_constraint(C) ->
+		SortGoal1   = true,
+		SortedSusps = Susps,
+		SortGoal2   = true,
+		SortedOtherSusps = OtherSusps,
+		MergeGoal = (append(Susps,OtherSusps,List), sort(List,NewSusps)),
+		NonvarBody = true	
+	;
+		SortGoal1 = sort(Susps, SortedSusps),	
+		SortGoal2 = sort(OtherSusps,SortedOtherSusps), 
+		MergeGoal = 'chr merge_attributes'(SortedSusps,SortedOtherSusps,NewSusps),
+		use_auxiliary_predicate(attach_increment),
+		NonvarBody =
 			( compound(Other) ->
 				term_variables(Other,OtherVars),
 				attach_increment(OtherVars, SortedSusps)
 			;
 				true
-			),
+			)
+	), 	
+	Body = 
+	(
+		SortGoal1,
+		( var(Other) ->
+			( get_attr(Other,Mod,OtherSusps) ->
+				SortGoal2,
+				MergeGoal,
+				put_attr(Other,Mod,NewSusps),
+				WakeNewSusps
+			;
+				put_attr(Other,Mod,SortedSusps),
+				WakeSusps
+			)
+		;
+			NonvarBody,
 			WakeSusps
 		)
 	),
@@ -2148,6 +2185,18 @@ generate_attr_unify_hook_many(N,Clause) :-
 	get_target_module(Mod),
 	make_run_suspensions_loop(MergedSuspsList,SortedSuspsList,WakeMergedSusps),
 	make_run_suspensions_loop(SortedSuspsList,SortedSuspsList,WakeSortedSusps),
+	( forall((between(1,N,Index), get_indexed_constraint(Index,Constraint)),atomic_types_suspended_constraint(Constraint)) ->
+		NonvarBody = true	
+	;
+		use_auxiliary_predicate(attach_increment),
+		NonvarBody =
+			( compound(Other) ->
+				term_variables(Other,OtherVars),
+				attach_increment(OtherVars,SortedAttr)
+			;
+				true
+			)
+	), 	
 	Body =
 	(
 		SortGoals,
@@ -2163,12 +2212,7 @@ generate_attr_unify_hook_many(N,Clause) :-
 				WakeSortedSusps
 			)
 		;
-			( compound(Other) ->
-				term_variables(Other,OtherVars),
-				attach_increment(OtherVars,SortedAttr)
-			;
-				true
-			),
+			NonvarBody,
 			WakeSortedSusps
 		)	
 	),	
@@ -3653,7 +3697,7 @@ types2condition([Type|Types],[Arg|Args],[RealArg|RAs],[Mode|Modes],TI) :-
 	TI = [DisjTC|RTI],
 	types2condition(Types,Args,RAs,Modes,RTI)
     ;
-	chr_error(internal,'Undefined type ~w.\n',[Type])
+	chr_error(internal,'Could not find type definition for ~w.\n',[Type])
 	
     ).
 
@@ -3862,13 +3906,17 @@ format_src(body(Goal)) :- format('body goal ~w',[Goal]).
 	get_dynamic_type_check_clauses/1.
 
 generate_dynamic_type_check_clauses(Clauses) :-
-	dynamic_type_check,
-	get_dynamic_type_check_clauses(Clauses0),
-	append(Clauses0,
-			[('$dynamic_type_check'(Type,Term) :- 
-				throw(error(type_error(Type,Term),context(_,'CHR Runtime Type Error')))
-			)],
-			Clauses).
+	( chr_pp_flag(debugable,on) ->
+		dynamic_type_check,
+		get_dynamic_type_check_clauses(Clauses0),
+		append(Clauses0,
+				[('$dynamic_type_check'(Type,Term) :- 
+					throw(error(type_error(Type,Term),context(_,'CHR Runtime Type Error')))
+				)],
+				Clauses)
+	;
+		Clauses = []
+	).
 
 type_definition(T,D), dynamic_type_check
 	==>
@@ -3922,6 +3970,48 @@ get_dynamic_type_check_clauses(Q), dynamic_type_check_clauses(C)
 get_dynamic_type_check_clauses(Q)
 	<=>
 		Q = [].
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Atomic Types 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Some optimizations can be applied for atomic types...
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+atomic_types_suspended_constraint(C) :- 
+	C = _/N,
+	get_constraint_type(C,ArgTypes),
+	get_constraint_mode(C,ArgModes),
+	findall(I,between(1,N,I),Indexes),
+	maplist(atomic_types_suspended_constraint(C),ArgTypes,ArgModes,Indexes).	
+
+atomic_types_suspended_constraint(C,Type,Mode,Index) :-
+	( is_indexed_argument(C,Index) ->
+		( Mode == (?) ->
+			atomic_type(Type)
+		;
+			true
+		)
+	;
+		true
+	).
+
+:- chr_constraint atomic_type/1.
+
+atomic_type(Type) <=> builtin_type_nonvar(Type,_,_) | Type \== any.
+
+type_definition(TypePat,Def) \ atomic_type(Type) 
+	<=> 
+		functor(Type,F,A), functor(TypePat,F,A) 
+	|
+		forall(member(Term,Def),atomic(Term)).
+
+type_alias(TypePat,Alias) \ atomic_type(Type)
+	<=>
+		functor(Type,F,A), functor(TypePat,F,A) 
+	|
+		atomic(Alias),
+		copy_term_nat(TypePat-Alias,Type-NType),
+		atomic_type(NType).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -7395,12 +7485,15 @@ static_suspension_term(F/A,Suspension) :-
 	Arity is Base + A,
 	functor(Suspension,suspension,Arity).
 
+has_suspension_field(FA,Field) :-
+	suspension_term_base_fields(FA,Fields),
+	memberchk(Field,Fields).
+
 suspension_term_base(FA,Base) :-
 	suspension_term_base_fields(FA,Fields),
 	length(Fields,Base).
 
 suspension_term_base_fields(FA,Fields) :-
-	Fields = [id,state|Fields1],	
 	( chr_pp_flag(debugable,on) ->
 		% 1. ID
 		% 2. State
@@ -7408,12 +7501,14 @@ suspension_term_base_fields(FA,Fields) :-
 		% 4. Generation Number
 		% 5. Continuation Goal
 		% 6. Functor
-		Fields1 = [history,generation,continuation,functor]
+		Fields = [id,state,history,generation,continuation,functor]
 	;  
 		( uses_history(FA) ->
-			Fields1 = [history|Fields2]
+			Fields = [id,state,history|Fields2]
+		; only_ground_indexed_arguments(FA), get_functional_dependency(FA,1,_,_) ->
+			Fields = [state|Fields2]
 		;
-			Fields1 = Fields2
+			Fields = [id,state|Fields2]
 		),
 		( only_ground_indexed_arguments(FA) ->
 			get_store_type(FA,StoreType),
@@ -7435,9 +7530,8 @@ suspension_term_base_fields(FA,Fields) :-
 			% 2. State
 			% 3. Propagation History
 			% 4. Generation Number
-			% 5. Continuation Goal
-			% 6. Global List Prev
-			Fields2 = [generation,continuation,global_list_prev]
+			% 5. Global List Prev
+			Fields2 = [generation,global_list_prev]
 		;
 			% 1. ID
 			% 2. State
@@ -7519,4 +7613,3 @@ does_use_history(FA,Occ) \ novel_production_call(FA,Occ,PossibleGoal,Goal) <=> G
 novel_production_call(FA,_,_PossibleGoal,Goal) <=> Goal = true.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Counter number of calls to generated predicates, if == 1 then inline...
