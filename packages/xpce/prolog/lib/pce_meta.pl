@@ -226,10 +226,11 @@ read_index(class(Name, Super, Comment, File), In) :-
 %	True if Class implements the method.  If class is a variable,
 %	backtracking yields all classes
 %
-%	`What' may be wrapped in self/1 or root/1.  Self/1 returns only
-%	those classes that have a non-inherited implementation of the
-%	method, while root/1 returns only those classes for which there
-%	is no super-class implementing the requested method.
+%	`What'  may  be  wrapped  in  self(What)  or  root(What).  Using
+%	self(What) returns only those classes  that have a non-inherited
+%	implementation of the method,  while   using  root(What) returns
+%	only  those  classes  for   which    there   is  no  super-class
+%	implementing the requested method.
 %	
 %	@param Class	Name of XPCE class
 %	@param Method	One of send(Name) or get(Name)

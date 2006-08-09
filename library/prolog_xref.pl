@@ -177,7 +177,7 @@ xref_push_op(Src, P, T, N0) :- !,
 	debug(xref, ':- ~w.', [op(P,T,N)]).
 
 
-%%	xref_clean(+Src)
+%%	xref_clean(+Source) is det.
 %	
 %	Reset the database for the given source.
 
@@ -276,7 +276,7 @@ xref_exported(Source, Called) :-
 
 %%	xref_module(?Source, ?Module) is nondet.
 %	
-%%	Module(s) defined in Source.
+%	True if Module is defined in Source.
 
 xref_module(Source, Module) :-
 	prolog_canonical_source(Source, Src),
