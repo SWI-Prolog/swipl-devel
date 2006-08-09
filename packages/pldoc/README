@@ -72,3 +72,8 @@ Making solid progress.  remaining issues:
 	* Nicer source-file browser (AJAX hierarchy?)
 	* Integration with system documentation
 	* Allow editing source
+
+---++ Notes on CSS:
+
+	* See <http://www.htmldog.com/guides/cssbeginner/selectors/>
+
