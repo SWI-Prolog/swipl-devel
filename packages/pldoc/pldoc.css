@@ -41,8 +41,12 @@ dt.error, dt.warn
   color: red;
 }
 
-dt.preddef
+dt.pubdef
 { background-color: #c5e1ff;
+}
+
+dt.privdef
+{ background-color: #fbffa6;
 }
 
 dl.tags

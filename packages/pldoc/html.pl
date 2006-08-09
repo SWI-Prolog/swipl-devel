@@ -187,6 +187,8 @@ zoom_button(Base, Options) -->
 	
 
 %%	objects(+Objects:list, +Mode, +Options)// is det.
+%
+%	Emit the documentation body.
 
 objects([], Mode, _) -->
 	pop_mode(body, Mode, _).
@@ -211,12 +213,16 @@ object(Module:Name//Arity, _Pos, _Comment, Mode, Mode, Options) -->
 	  option(public_only(true), Options, true)
 	}, !,				% private predicate
 	[].
-object(Obj, Pos, Comment, Mode0, Mode, _Options) -->
+object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	{ pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
 	  indented_lines(Comment, Prefixes, Lines),
 	  process_modes(Lines, Pos, Modes, Args, Lines1),
-	  DOM = [\pred_dt(Modes), dd(class=defbody, DOM1)],
+	  (   private(Obj, Options)
+	  ->  Class = privdef		% private definition
+	  ;   Class = pubdef		% public definition
+	  ),
+	  DOM = [\pred_dt(Modes, Class), dd(class=defbody, DOM1)],
 	  wiki_lines_to_dom(Lines1, Args, DOM0),
 	  strip_leading_par(DOM0, DOM1)
 	},
@@ -230,6 +236,29 @@ pi(_:PI) :- !,
 	pi(PI).
 pi(_/_).
 pi(_//_).
+
+
+%%	private(+Object, +Options) is semidet.
+%
+%	True if Object is private with regard to Options
+
+private(Module:Object, Options) :-
+	option(module(Module), Options, []),
+	option(public(Public), Options, []),
+	\+ in_exports(Object, Public).
+
+
+%%	in_exports(+PI, +Exports) is semidet.
+%
+%	True if predicate indicator appears in Exports.  Deals
+%	with the DCG (//) operator.
+
+in_exports(Object, Exports) :-
+	memberchk(Object, Exports).
+in_exports(Name//Arity, Exports) :-
+	PredArity is Arity + 2,
+	memberchk(Name/PredArity, Exports).
+	
 
 %%	need_mode(+Mode:atom, +Stack:list, -NewStack:list) is det.
 %
@@ -347,13 +376,17 @@ make_section(section, Title, h1(class=section, Title)).
 		 *******************************/
 
 %%	pred_dt(+Modes)// is det.
+%%	pred_dt(+Modes, +Class)// is det.
 %
 %	Emit the predicate header.
 %	
 %	@param Modes	List as returned by process_modes/5.
 
 pred_dt(Modes) -->
-	html(dt(class=preddef,
+	pred_dt(Modes, preddef).
+
+pred_dt(Modes, Class) -->
+	html(dt(class=Class,
 		\pred_modes(Modes, [], _))).
 
 pred_modes([], Done, Done) -->
