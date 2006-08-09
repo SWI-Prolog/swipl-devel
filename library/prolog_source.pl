@@ -146,12 +146,12 @@ public_operators([H|T]) :- !,
 
 %%	prolog_open_source(+CanonicalId:atomic, -Stream:stream) is det.
 %	
-%	Open source with given canonical id (see canonical_source/2) and
-%	remove the #! line if any.   Streams opened using this predicate
-%	must be closed using prolog_close_source/1.  Typically using the
-%	skeleton below. Using this skeleton,   operator  and style-check
-%	options are automatically restored to  the values before opening
-%	the source.
+%	Open     source     with     given     canonical     id     (see
+%	prolog_canonical_source/2)  and  remove  the  #!  line  if  any.
+%	Streams  opened  using  this  predicate  must  be  closed  using
+%	prolog_close_source/1. Typically using the skeleton below. Using
+%	this   skeleton,   operator   and    style-check   options   are
+%	automatically restored to the values before opening the source.
 %	
 %	==
 %	process_source(Src) :-
