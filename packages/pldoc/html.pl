@@ -115,7 +115,7 @@ file_header(File, Options) -->
 	{ memberchk(file(Title, Comment), Options), !,
 	  file_base_name(File, Base)
 	},
-	html(h1(class=file, [Base, ' -- ', Title])),
+	file_title([Base, ' -- ', Title], File, Options),
 	{ is_structured_comment(Comment, Prefixes),
 	  indented_lines(Comment, Prefixes, Lines),
 	  section_comment_header(Lines, _Header, Lines1),
@@ -125,15 +125,24 @@ file_header(File, Options) -->
 file_header(File, Options) -->
 	{ file_base_name(File, Base)
 	},
+	file_title([Base], File, Options).
+
+
+%%	file_title(+Title:list, +File, +Options)// is det
+%
+%	Emit the file-header and manipulation buttons.
+
+file_title(Title, File, Options) -->
+	{ file_base_name(File, Base)
+	},
 	html(h1(class=file,
 		[ div(style('float:right'),
 		      [ \zoom_button(Base, Options),
 			\edit_button(File)
-		      ]),
-		  Base
-%		  span(style('margin-left: 80%'), \edit_button(File))
-		  
+		      ])
+		| Title
 		])).
+
 
 %%	edit_button(+File)// is det.
 %
@@ -159,7 +168,7 @@ edit_button(File) -->
 
 %%	zoom_button(+Options)// is det.
 %
-%	Add zoom in/out button to show/hide the private documentation
+%	Add zoom in/out button to show/hide the private documentation.
 
 zoom_button(Base, Options) -->
 	{   option(public_only(true), Options, true)
@@ -373,7 +382,8 @@ anchored_pred_head(Head, Done0, Done) -->
 	{ anchor_name(Head, Name)
 	},
 	(   { memberchk(Name, Done0) }
-	->  { Done = Done0 }
+	->  { Done = Done0 },
+	    pred_head(Head)
 	;   html(a(name=Name, \pred_head(Head))),
 	    { Done = [Name|Done0] }
 	).
