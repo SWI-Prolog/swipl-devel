@@ -103,7 +103,7 @@ $(TEX):		$(DOCTOTEX)
 clean:
 		rm -f *~ *% config.log
 		rm -f $(TEX)
-		runtex --clean $(DOC)
+		../../man/runtex --clean $(DOC)
 		rm -rf html
 
 distclean:	clean

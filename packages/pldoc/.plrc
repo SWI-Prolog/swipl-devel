@@ -1,0 +1,12 @@
+:- ['~/.plrc'].
+
+:- dynamic   user:file_search_path/2.
+:- multifile user:file_search_path/2.
+
+:- asserta(user:file_search_path(library, '.')).
+:- asserta(user:file_search_path(pldoc, '.')).
+
+:- debug(pldoc).
+:- [pldoc].
+:- load_files([http], [silent(true), if(not_loaded)]).
+:- doc_server(4004).
