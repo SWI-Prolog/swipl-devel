@@ -35,6 +35,9 @@
 :- use_module(library('http/thread_httpd')).
 :- use_module(library('http/http_parameters')).
 :- use_module(library('http/mimetype')).
+:- use_module(library('debug')).
+
+:- debug(pldoc).
 
 doc_server(Port) :-
 	doc_server(Port,
@@ -51,6 +54,7 @@ doc_server(Port, Options) :-
 
 doc_reply(Request) :-
 	memberchk(path(Path), Request),
+	debug(pldoc, 'HTTP ~q', [Path]),
 	reply(Path, Request).
 
 :- discontiguous
@@ -138,14 +142,21 @@ reply('/edit', Request) :-
 %	Note that we reply  with  pldoc.css   if  the  file  basename is
 %	pldoc.css to allow for a relative link from any directory.
 
-reply(ReqPath, _Request) :-
+reply(ReqPath, Request) :-
 	atom_concat('/documentation/', DocPath, ReqPath),
 	(   file_base_name(ReqPath, 'pldoc.css')
 	->  reply_file('pldoc.css')
-	;   atom_concat('/', DocPath, AbsFile),
+	;   http_parameters(Request,
+			    [ public_only(Public)
+			    ],
+			    [ attribute_declarations(param)
+			    ]),
+	    atom_concat('/', DocPath, AbsFile),
 	    pl_file(AbsFile, File),
 	    format('Content-type: text/html~n~n'),
-	    doc_for_file(File, current_output, [])
+	    doc_for_file(File, current_output,
+			 [ public_only(Public)
+			 ])
 	).
 
 %%	pl_file(+File, -PlFile) is det.
@@ -174,11 +185,16 @@ reply('/welcome.html', _Request) :- !,
 %	
 %	Reply the documentation style-sheet.
 
-reply('/pldoc.css', _Request) :-
-	reply_file('pldoc.css').
+reply(Path, _Request) :-
+	file(Path, LocalFile),
+	reply_file(LocalFile).
 
-reply('/edit.png', _Request) :-
-	reply_file('edit.png').
+file('/pldoc.css',   'pldoc.css').
+file('/pldoc.js',    'pldoc.js').
+file('/edit.png',    'edit.png').
+file('/zoomin.gif',  'zoomin.gif').
+file('/zoomout.gif', 'zoomout.gif').
+file('/favicon.ico', 'favicon.ico').
 
 
 %	/man?predicate=PI
@@ -192,7 +208,7 @@ reply('/man', Request) :-
 			[ predicate(PI, [])
 			]),
 	reply_page('SWI-Prolog Reference Manual',
-		   [ 'Documentation for ', b(PI)
+		   [ 'TBD: Documentation for ', b(PI)
 		   ]).
 
 
@@ -210,6 +226,16 @@ reply_file(File) :-
 	absolute_file_name(File, Path, [access(read)]),
 	file_mime_type(Path, MimeType),
 	throw(http_reply(file(MimeType, Path))).
+
+
+		 /*******************************
+		 *     HTTP PARAMETER TYPES	*
+		 *******************************/
+
+param(public_only,
+      [ oneof([true,false]),
+	default(true)
+      ]).
 
 
                  /*******************************

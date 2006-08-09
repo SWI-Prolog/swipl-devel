@@ -63,3 +63,11 @@ table.wiki
   margin-left: 1.5em;
   border: 1px;
 }
+
+
+img.icon
+{ border: 0;
+  heigth: 32;
+  float: right;
+  padding-top:4px;
+}

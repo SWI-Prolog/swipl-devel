@@ -122,24 +122,60 @@ file_header(File, Options) -->
 	  wiki_lines_to_dom(Lines1, [], DOM)
 	},
 	html(DOM).
-file_header(File, _Options) -->
+file_header(File, Options) -->
 	{ file_base_name(File, Base)
 	},
 	html(h1(class=file,
-		[ Base,
+		[ div(style('float:right'),
+		      [ \zoom_button(Base, Options),
+			\edit_button(File)
+		      ]),
+		  Base
 %		  span(style('margin-left: 80%'), \edit_button(File))
-		  \edit_button(File)
+		  
 		])).
 
 %%	edit_button(+File)// is det.
 %
-%	@tbd only in interactive mode!
+%	Create an edit button  for  File.   If  the  button  is clicked,
+%	JavaScript sends a message to the   server without modifying the
+%	current page.  JavaScript code is in the file pldoc.js.
 
 edit_button(File) -->
 	{ www_form_encode(File, Enc),
-	  format(string(HREF), '/edit?file=~w', [Enc])
+	  format(string(HREF), '/edit?file=~w', [Enc]),
+	  format(string(OnClick), 'HTTPrequest("~w")', [HREF])
 	},
-	html(a(href=HREF, img([border=0, height=32, src='/edit.png']))).
+	html(a([ %href(HREF),
+		 onClick(OnClick),
+		 onMouseOver('window.status=\'Edit file\'; return true;')
+	       ],
+	       img([ border=0,
+		     height=32,
+		     style('padding-top:4px'),
+		     src='/edit.png'
+		 ]))).
+
+
+%%	zoom_button(+Options)// is det.
+%
+%	Add zoom in/out button to show/hide the private documentation
+
+zoom_button(Base, Options) -->
+	{   option(public_only(true), Options, true)
+	->  format(string(HREF), '~w?public_only=false', [Base]),
+	    Zoom = '/zoomin.gif'
+	;   format(string(HREF), '~w?public_only=true', [Base]),
+	    Zoom = '/zoomout.gif'
+	},
+	html(a(href=HREF,
+	       img([ %class(icon),
+		     border=0,
+		     height=32,
+		     style('padding-top:4px'),
+		     src(Zoom)
+		   ]))).
+	
 
 %%	objects(+Objects:list, +Mode, +Options)// is det.
 
@@ -230,7 +266,8 @@ page_dom(Title, Body, DOM) :-
 			    link([ rel(stylesheet),
 				   type('text/css'),
 				   href('pldoc.css')
-				 ])
+				 ]),
+			    script(src('/pldoc.js'), [])
 			  ]),
 		     body(Body)
 		   ]).
