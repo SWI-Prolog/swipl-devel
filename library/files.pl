@@ -30,17 +30,20 @@
 */
 
 :- module(files,
-	[ can_open_file/2,
-	  chdir/1
+	[ can_open_file/2,		% +Path, +Mode
+	  chdir/1			% +Dir
 	]).
 
 %%	can_open_file(+Path, +Mode)
+%
 %	Succeeds if the user has access to `File' in mode `Mode'.  Fails
 %	silently if this is not the  case.   `Mode'  is  one  of  {read,
 %	write, both}.  This used to be difficult.  Since we have
 %	access_file/2 it is merely a Quintus compatibility predicate
 %	and should be in quintus.pl.  We will leave it here for compatibility
 %	reasons.
+%	
+%	@depreciated Use access_file/2.
 
 can_open_file(File, read) :- !,
 	access_file(File, read).
@@ -62,9 +65,11 @@ path_dir_name(File, Dir) :-
 	;   Dir = RawDir
 	).
 
-%%	chdir(+Dir)
+%%	chdir(+Dir) is det.
 %
-%	Change Working Directory.  New code should be using working_directory/2.
+%	Change Working Directory.
+%	
+%	@depreciated	Use using working_directory/2.
 
 chdir(Dir) :-
 	working_directory(_Old, Dir).
