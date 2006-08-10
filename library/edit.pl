@@ -66,9 +66,14 @@ edit(Spec) :-
 	do_select_location(Pairs, Spec, Location),
 	do_edit_source(Location).
 
-%	edit
+%%	edit
 %	
-%	Load associated or script file
+%	Edit associated or script file.  This is the Prolog file opened
+%	by double-clicking or the file loaded using
+%	
+%	==
+%	% pl -s file.pl
+%	==
 
 edit :-
 	'$option'(script_file, OsFile, OsFile),
@@ -284,16 +289,15 @@ editor(notepad) :-
 editor(_) :-				% No luck
 	throw(error(existence_error(editor), _)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-edit_command(+Editor, -Command)
+%%	edit_command(+Editor, -Command)
+%
+%	This predicate should specify the shell-command called to invoke
+%	the user's editor. The following substitutions will be made:
+%
+%		| %e | Path name of the editor		  |
+%		| %f | Path name of the file to be edited |
+%		| %d | Line number of the target	  |
 
-This predicate should specify the  shell-command   called  to invoke the
-user's editor.  The following substitutions will be made:
-
-	%e		Path name of the editor
-	%f		Path name of the file to be edited
-	%d		Line number of the target
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 edit_command(vi,	  '%e +%d ''%f''').
 edit_command(vi,	  '%e ''%f''').

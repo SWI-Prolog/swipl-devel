@@ -39,12 +39,14 @@
 	  ]).
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This  library  provides  a  non-backtrackabe  set.    It   is  based  on
+/** <module> Non-backtrackable sets
+
+This library provides a non-backtrackabe set. It is based on
 nb_setarg/3. See the SWI-Prolog manual for details.
 
-TBD: Base this work on AVL trees rather then unbalanced trees.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+@author Jan Wielemaker
+@tbd	Base this work on AVL trees rather then unbalanced trees.
+*/
 
 		 /*******************************
 		 *    NON-BACKTRACKABLE SETS	*

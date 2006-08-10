@@ -55,11 +55,10 @@
 	pagehead(:, -, +),
 	pagebody(:, -, +).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-library(html_write)
+/** <module> Write HTML text
 
 The purpose of this library  is  to   simplify  writing  HTML  pages. Of
-course, it is possible to use format/[2,3]   to write to the HTML stream
+course, it is possible to  use  format/3   to  write  to the HTML stream
 directly, but this is generally not very satisfactory:
 
 	* It is a lot of typing
@@ -70,7 +69,12 @@ directly, but this is generally not very satisfactory:
 This module tries to remedy these problems.   The idea is to translate a
 Prolog term into  an  HTML  document.  We   use  DCG  for  most  of  the
 generation. 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
+
+%%	page(+Content:dom)// is det.
+%%	page(+Head:dom, +Body:dom)// is det.
+%
+%	Generate a page including the HTML =|<!DOCTYPE>|= header.
 
 page(Content) -->
 	[ '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 4.0//EN">\n',
@@ -124,7 +128,9 @@ hook_module(M, P) :-
 hook_module(user, P) :-
 	current_predicate(_, user:P).
 
-
+%%	html(+Content:dom)// is det
+%
+%	Generate HTML from Content.
 
 html(Spec) -->
 	{ strip_module(Spec, M, T)
@@ -246,7 +252,7 @@ attribute(Atom) -->			% Value-abbreviated attribute
 		 *	   QUOTING RULES	*
 		 *******************************/
 
-%%	html_quoted(Text)
+%%	html_quoted(Text)//
 %
 %	Quote the value for normal text.
 
@@ -273,7 +279,7 @@ quote_char(>, '&gt;') :- !.
 quote_char(&, '&amp;') :- !.
 quote_char(X, X).
 
-%%	html_quoted_attribute(+Text)
+%%	html_quoted_attribute(+Text)//
 %
 %	Quote the value according to the rules for tag-attributes
 
@@ -408,7 +414,8 @@ layout(td,	   0-0, 0-0).
 %	Print list of atoms and layout instructions.  Currently used layout
 %	instructions:
 %
-%%		nl(N)	Use at minimum N newlines here.
+%		* nl(N)
+%		Use at minimum N newlines here.
 
 print_html(List) :-
 	current_output(Out),

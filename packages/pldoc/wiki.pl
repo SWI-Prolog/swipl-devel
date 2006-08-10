@@ -399,7 +399,7 @@ structure_tag(td).
 %
 %	True if Term must be passes verbatim.
 
-verbatim_term(pre(_)).
+verbatim_term(pre(_,_)).
 verbatim_term(\term(_,_)).
 
 %%	wiki_faces(-WithFaces, +ArgNames)// is nondet.
@@ -558,7 +558,7 @@ word([]) -->
 %%	verbatim(+Lines, -Pre, -RestLines) is det.
 %
 %	Extract a verbatim environment.  The  returned   Pre  is  of the
-%	format  pre(String).  The  indentation  of  the  leading  ==  is
+%	format pre(Class, String). The indentation of  the leading == is
 %	substracted from the indentation of the verbatim lines.
 %
 %	Verbatim environment is delimited as
@@ -569,7 +569,7 @@ word([]) -->
 %		...,
 %	==
 
-verbatim([Indent-"=="|Lines], pre(Pre), RestLines) :-
+verbatim([Indent-"=="|Lines], pre(class(code),Pre), RestLines) :-
 	verbatim_body(Lines, Indent, [10|PreCodes], [],
 		      [Indent-"=="|RestLines]), !,
 	string_to_list(Pre, PreCodes).

@@ -45,9 +45,10 @@
 :- use_module(http_wrapper).
 :- use_module(library(debug)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-HTTP Cookie based session management.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/** <module> HTTP Session management
+
+This library defines session management based on HTTP cookies.  
+*/
 
 :- dynamic
 	session_setting/1,		% Name(Value)
@@ -152,6 +153,14 @@ valid_session_id(SessionID) :-
 		 *	   SESSION DATA		*
 		 *******************************/
 
+%%	http_session_asserta(+Data) is det.
+%%	http_session_assert(+Data) is det.
+%%	http_session_retract(?Data) is nondet.
+%%	http_session_retractall(?Data) is det.
+%
+%	Versions of assert/1, retract/1 and retractall/1 that associate
+%	data with the current HTTP session.
+
 http_session_asserta(Data) :-
 	http_session_id(SessionId),
 	asserta(session_data(SessionId, Data)).
@@ -168,6 +177,11 @@ http_session_retractall(Data) :-
 	http_session_id(SessionId),
 	retractall(session_data(SessionId, Data)).
 
+%	http_session_data(?Data) is nondet.
+%	
+%	True if Data is associated using http_session_assert/1 to the
+%	current HTTP session.
+
 http_session_data(Data) :-
 	http_session_id(SessionId),
 	session_data(SessionId, Data).
@@ -177,7 +191,7 @@ http_session_data(Data) :-
 		 *	     ENUMERATE		*
 		 *******************************/
 
-%%	http_current_session(?SessionID, ?Data)
+%%	http_current_session(?SessionID, ?Data) is nondet.
 %	
 %	Enumerate the current sessions and   associated data. The pseudo
 %	data element idle(Seconds) provides the idle time. Other data is
@@ -238,9 +252,7 @@ gen_cookie(Cookie) :-
 	R2 is random(65536),
 	R3 is random(65536),
 	R4 is random(65536),
-	sformat(CookieS,
+	format(atom(Cookie),
 		'~`0t~16r~4|-~`0t~16r~9|-~`0t~16r~14|-~`0t~16r~19|',
-		[R1,R2,R3,R4]),
-	string_to_list(CookieS, Codes),
-	atom_codes(Cookie, Codes).
+		[R1,R2,R3,R4]).
 
