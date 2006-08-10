@@ -60,6 +60,10 @@ dl.termlist
   margin-left: 1.5em;
 }
 
+ul, ol
+{ margin-top: 0.7em;
+}
+
 .argdescr
 { padding-left: 1em;
 }

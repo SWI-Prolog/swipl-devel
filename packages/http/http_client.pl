@@ -104,9 +104,10 @@ close_socket(In, Out) :-
 	close(Out, [force(true)]),
 	close(In,  [force(true)]).
 
-%	http_disconnect/1
+%%	http_disconnect(+Connections) is det.
 %	
-%	Close down some connections
+%	Close down some connections. Currently Connections must have the
+%	value =all=, closing all connections.
 
 http_disconnect(all) :-
 	(   thread_self(Self),
@@ -204,15 +205,15 @@ http_read_reply(In, _Data, _Options) :-
 	throw(error(failed(read_reply, In), _)).
 
 
-%	http_write_header(+Out, +Method, +Location,
-%			  +Host, +Options, -RestOptions)
+%%	http_write_header(+Out, +Method, +Location,
+%%			  +Host, +Options, -RestOptions) is det.
 %
 %	Write the request header.  It accepts the following options:
 %	
-%%		http_version(Major-Minor)
-%%		connection(Connection)
-%%		user_agent(Agent)
-%%		request_header(Name=Value)
+%		* http_version(Major-Minor)
+%		* connection(Connection)
+%		* user_agent(Agent)
+%		* request_header(Name=Value)
 %
 %	Remaining options are returned in RestOptions.
 
@@ -239,11 +240,11 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 	x_headers(Options3, Out, RestOptions).
 
 
-%%	x_headers(+Options, +Out, -RestOptions)
+%%	x_headers(+Options, +Out, -RestOptions) is det.
 %	
 %	Pass additional request options.  For example:
 %	
-%%		request_header('Accept-Language' = 'nl, en')
+%		request_header('Accept-Language' = 'nl, en')
 %		
 %	No checking is performed on the fieldname or value. Both are
 %	copied literally and in the order of appearance to the request.
@@ -254,17 +255,17 @@ x_headers(Options0, Out, Options) :-
 	x_headers(Options1, Out, Options).
 x_headers(Options, _, Options).
 
-%%	http_read_data(+In, +Fields, +Data, -Options)
+%%	http_read_data(+In, +Fields, +Data, +Options) is det.
 %
 %	If In is a handle to the HTTP server and Fields is the parsed
 %	http reply-header, read the reply into Data.  Options is one
 %	of:
 %
-%%	to(stream(+WriteStream))
+%		* to(stream(+WriteStream))
 %		Append the content of the message to Stream
-%%	to(atom)
+%		* to(atom)
 %		Return the reply as an atom
-%%	to(codes)
+%		* to(codes)
 %		Return the reply as a list of codes
 
 http_read_data(Fields, Data, Options) :-
@@ -358,12 +359,12 @@ copy_chunk_data(In, Out, Foot) :-
 %%	http_post(+URL, +In, -Out, +Options)
 %
 %	Issue an HTTP POST request, In is modelled after the reply
-%	from the HTTP server module.  It is one of:
+%	from the HTTP server module.  In is one of:
 %
-%%	string(String)
-%%	string(Type, String)
-%%	html(Tokens)
-%%	file(Type, File)
+%		* string(String)
+%		* string(MimeType, String)
+%		* html(Tokens)
+%		* file(MimeType, File)
 
 http_post(URL, In, Out, Options) :-
 	atomic(URL), !,

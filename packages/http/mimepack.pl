@@ -47,10 +47,14 @@ functionality of this package will be moved to the same library someday.
 Packing however is a lot simpler then parsing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%%	mime_pack(+Inputs, +OutputStream, Boundary)
+%%	mime_pack(+Inputs, +Out:stream, ?Boundary) is det.
 %
-%	Pack a number of inputs into a MIME package using a specified
-%	or generated boundary.
+%	Pack a number of inputs into a MIME package using a specified or
+%	generated boundary. The  generated  boundary   consists  of  the
+%	current  time  in  seconds  since  the    epoch  and  10  random
+%	hexadecimal numbers.
+%	
+%	@bug	Does not validate that the boundary is unique.
 
 mime_pack(Inputs, OutputStream, Boundary) :-
 	make_boundary(Inputs, Boundary),
@@ -123,7 +127,7 @@ write_mime_attributes([_|T], Out) :-
 	write_mime_attributes(T, Out).
 
 
-%%	make_boundary(+Inputs, ?Boundary)
+%%	make_boundary(+Inputs, ?Boundary) is det.
 %
 %	Generate a boundary.  This should check all input sources whether
 %	the boundary is enclosed.

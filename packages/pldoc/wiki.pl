@@ -157,7 +157,7 @@ list_item_prefix(ol, [N, '.', ' '|T], T) :-
 %	Translate an UL list into a DL list if all entries are of the
 %	form "* <term> nl, <description>"
 
-ul_to_dl(ul(Items), dl(class=termlist, DLItems)) :-
+ul_to_dl(ul(Items), dl(class(termlist), DLItems)) :-
 	term_items(Items, DLItems, []).
 
 term_items([], T, T).
