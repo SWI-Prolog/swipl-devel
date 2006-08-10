@@ -15,7 +15,7 @@ LIBDIR=		$(PLBASE)\library\pldoc
 EXDIR=		$(PKGDOC)\examples\pldoc
 LIBPL=		html.pl wiki.pl modes.pl register.pl http.pl
 SUPPORT=	pldoc.css pldoc.js \
-		edit.gif zoomin.gif zoomout.gif favicon.ico
+		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico
 DOCALL=		$(LIBPL) $(SUPPORT)
 
 all:		
