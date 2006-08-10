@@ -563,7 +563,7 @@ verbatim([Indent-"=="|Lines], pre(Pre), RestLines) :-
 
 verbatim_body(Lines, _, PreT, PreT, Lines).
 verbatim_body([I-L|Lines], Indent, [10|Pre], PreT, RestLines) :-
-	PreI is Indent - I,
+	PreI is I - Indent,
 	pre_indent(PreI, Pre, PreT0),
 	verbatim_line(L, PreT0, PreT1),
 	verbatim_body(Lines, Indent, PreT1, PreT, RestLines).
