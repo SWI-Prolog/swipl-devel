@@ -39,7 +39,7 @@
 
 :- style_check(+dollar).		% lock these predicates
 
-%	check/0
+%%	check
 %	
 %	Run all consistency checks defined in this library
 
@@ -54,7 +54,7 @@ check :-
 		      check(pass(3, 'Predicates that need autoloading'))),
 	list_autoload.
 
-%	list_undefined/0
+%%	list_undefined
 %	
 %	List predicates names refered to  in  a  clause  body,  but  not
 %	defined.  This forms a "Quick and Dirty" alternative for a cross
@@ -92,12 +92,14 @@ undefined_predicate(Module:Head) :-
 
 system_undefined(user:prolog_trace_interception/4).
 
-%	find_references(+Heads, -Head-Refs)
+%%	find_references(+Heads, -HeadRefs:list) is det.
 %	
 %	Find references to the given  predicates.   For  speedup we only
 %	look for references from the  same   module.  This  isn't really
 %	correct, but as Module:Head  is  at   the  moment  only  handled
 %	through meta-calls, it isn't too bad either.
+%	
+%	@param HeadRefs List of Head-Refs
 
 find_references([], []).
 find_references([H|T0], [H-Refs|T]) :-
@@ -108,7 +110,7 @@ find_references([H|T0], [H-Refs|T]) :-
 find_references([_|T0], T) :-
 	find_references(T0, T).
 
-%	referenced(+Predicate, ?Module, -ClauseRef)
+%%	referenced(+Predicate, ?Module, -ClauseRef)
 %
 %	True if Clause ClauseRef references Predicate.
 
@@ -119,7 +121,7 @@ referenced(Term, Module, Ref) :-
 	nth_clause(Module:Head, _, Ref),
 	'$xr_member'(Ref, Term).
 
-%	list_autoload/0
+%%	list_autoload
 %	
 %	Show predicates that need be linked via the autoload mechanism
 
@@ -152,7 +154,7 @@ autoload_predicate(Module, Library, Name/Arity) :-
 	).
 
 
-%	list_redefined/0
+%%	list_redefined
 %	
 %	Show redefined system predicates
 

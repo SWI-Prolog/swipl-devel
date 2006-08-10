@@ -53,7 +53,7 @@ graphical monitorring tool.
 	?- prolog_ide(debug_monitor).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	debugging(?Topic)
+%%	debugging(?Topic)
 %
 %	Check whether we are debugging Topic or enumerate the topics we
 %	are debugging.
@@ -61,8 +61,8 @@ graphical monitorring tool.
 debugging(Topic) :-
 	debugging(Topic, true).
 
-%	debug(+Topic)
-%	nodebug(+Topic)
+%%	debug(+Topic)
+%%	nodebug(+Topic)
 %
 %	Add/remove a topic from being printed.  nodebug(_) removes all
 %	topics.
@@ -86,7 +86,7 @@ nodebug(Topic) :-
 	;   true
 	).
 
-%	debug_topic(+Topic)
+%%	debug_topic(+Topic)
 %
 %	Declare a topic for debugging.  This can be used to find all
 %	topics available for debugging.
@@ -112,7 +112,7 @@ list_debug_topics :-
 	;   true
 	).
 
-%	debug(+Topic, +Format, +Args)
+%%	debug(+Topic, +Format, +Args)
 %
 %	As format/3 to user_error, but only does something if Topic
 %	is activated through debug/1.
@@ -136,7 +136,7 @@ print_debug(_, Format, Args) :-
 		 *	     ASSERTION		*
 		 *******************************/
 
-%	assertion(:Goal)
+%%	assertion(:Goal)
 %	
 %	Acts similar to C assert() macro.  It has no effect of Goal
 %	succeeds.  If Goal fails it prints a message, a stack-trace

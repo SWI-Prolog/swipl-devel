@@ -246,7 +246,7 @@ attribute(Atom) -->			% Value-abbreviated attribute
 		 *	   QUOTING RULES	*
 		 *******************************/
 
-%	html_quoted(Text)
+%%	html_quoted(Text)
 %
 %	Quote the value for normal text.
 
@@ -273,7 +273,7 @@ quote_char(>, '&gt;') :- !.
 quote_char(&, '&amp;') :- !.
 quote_char(X, X).
 
-%	html_quoted_attribute(+Text)
+%%	html_quoted_attribute(+Text)
 %
 %	Quote the value according to the rules for tag-attributes
 
@@ -336,10 +336,18 @@ post_close(Env) -->
 post_close(_) -->
 	[].
 
-%	layout(Tag, PreOpen-PostOpen, PreClose-PostClose)
+%%	layout(+Tag, -Open, -Close) is det.
 %
-%	Define required newlines before and after tags.  This table is
-%	rather incomplete.
+%	Define required newlines before and after   tags.  This table is
+%	rather incomplete. New rules can  be   added  to  this multifile
+%	predicate.
+%	
+%	@param Tag	Name of the tag
+%	@param Open	Tuple M-N, where M is the number of lines before
+%			the tag and N after.
+%	@param Close	Either as Open, or the atom - (minus) to imit the
+%			close-tag or =empty= to indicate the element has
+%			no content model.
 
 :- multifile
 	layout/3.
@@ -395,12 +403,12 @@ layout(td,	   0-0, 0-0).
 		 *	     PRINTING		*
 		 *******************************/
 
-%	print_html(+Stream, +List)
+%%	print_html(+Stream, +List)
 %
 %	Print list of atoms and layout instructions.  Currently used layout
 %	instructions:
 %
-%		nl(N)	Use at minimum N newlines here.
+%%		nl(N)	Use at minimum N newlines here.
 
 print_html(List) :-
 	current_output(Out),
@@ -428,7 +436,7 @@ write_nl(N, Out) :-
 	N1 is N - 1,
 	write_nl(N1, Out).
 
-%	html_print_length(+List, -Len)
+%%	html_print_length(+List, -Len)
 %
 %	Determine the content length of the list.
 

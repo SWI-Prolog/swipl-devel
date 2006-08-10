@@ -114,7 +114,7 @@ explain(Term, Explanation) :-
 explain(Term, Explanation) :-
 	explain_functor(Term, Explanation).
 	
-%	known_predicate(:Head)
+%%	known_predicate(:Head)
 %	
 %	Succeeds if we know anything about this predicate.  Undefined
 %	predicates are considered `known' for this purpose, so we can
@@ -197,7 +197,7 @@ combine_utterances(Pairs, Explanation) :-
 first(A-_B, A).
 second(_A-B, B).
 
-%	explain_predicate(+Module:+Head, -Explanation)
+%%	explain_predicate(:Head, -Explanation) is det.
 
 explain_predicate(Pred, Explanation) :-
 	Pred = Module:Head,

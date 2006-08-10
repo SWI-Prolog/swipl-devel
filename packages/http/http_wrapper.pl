@@ -43,7 +43,7 @@
 :- multifile
 	http:request_expansion/2.
 
-%	http_wrapper(:Goal, +In, +Out, -Close, +Options)
+%%	http_wrapper(:Goal, +In, +Out, -Close, +Options)
 %
 %	Simple wrapper to read and decode an HTTP header from `In', call
 %	:Goal while watching for exceptions and send the result to the
@@ -54,8 +54,8 @@
 %	line.  The header must be closed with a blank line.  The HTTP
 %	content-length is added by http_reply/3  Options:
 %	
-%	  request(-Request)		Return the request to the caller
-%	  peer(+Peer)			IP address of client
+%%	  request(-Request)		Return the request to the caller
+%%	  peer(+Peer)			IP address of client
 
 http_wrapper(GoalSpec, In, Out, Close, Options) :-
 	strip_module(GoalSpec, Module, Goal),
@@ -93,7 +93,7 @@ wrapper(Goal, In, Out, Close, Options) :-
 	).
 
 
-%	call_handler(:Goal, +RequestIn, -RequestOut, -Error, -MemFile)
+%%	call_handler(:Goal, +RequestIn, -RequestOut, -Error, -MemFile)
 %	
 %	Process RequestIn using Goal, producing CGI data in MemFile
 
@@ -125,7 +125,7 @@ cleanup(TmpIn, Out, MemFile) :-
 	free_memory_file(MemFile).
 
 
-%	expand_request(+Request0, -Request)
+%%	expand_request(+Request0, -Request)
 %	
 %	Allow  for  general   rewrites   of    a   request   by  calling
 %	http:request_expansion/2.
@@ -137,11 +137,11 @@ expand_request(R0, R) :-
 expand_request(R, R).
 
 
-%	map_exception(+Exception, -Reply, -HdrExtra)
+%%	map_exception(+Exception, -Reply, -HdrExtra)
 %	
 %	Map certain defined  exceptions  to   special  reply  codes. The
-%	http(not_modified)   provides   backward     compatibility    to
-%	http_reply(not_modified).
+%%	http(not_modified)   provides   backward     compatibility    to
+%%	http_reply(not_modified).
 
 map_exception(http(not_modified),
 	      not_modified,
@@ -157,7 +157,7 @@ map_exception(E,
 	      [connection(close)]).
 
 
-%	join_cgi_header(+Request, +CGIHeader, -Header)
+%%	join_cgi_header(+Request, +CGIHeader, -Header)
 
 join_cgi_header(Request, CgiHeader, [connection(Connect)|Rest]) :-
 	select(connection(CgiConn), CgiHeader, Rest), !,
@@ -174,7 +174,7 @@ join_connection(Keep1, Keep2, Connection) :-
 	).
 
 
-%	connection(+Header, -Connection)
+%%	connection(+Header, -Connection)
 %	
 %	Extract the desired connection from a header.
 
@@ -187,7 +187,7 @@ connection(Header, Close) :-
 	;   Close = close
 	).
 
-%	extend_request(+Options, +RequestIn, -Request)
+%%	extend_request(+Options, +RequestIn, -Request)
 %	
 %	Merge options in the request.
 
@@ -200,7 +200,7 @@ extend_request([_|T], R0, R) :- !,
 	extend_request(T, R0, R).
 
 
-%	http_current_request(-Request)
+%%	http_current_request(-Request)
 %	
 %	Returns the HTTP request currently being processed.
 
@@ -208,7 +208,7 @@ http_current_request(Request) :-
 	b_getval(http_request, Request).
 
 
-%	http_relative_path(+AbsPath, -RelPath)
+%%	http_relative_path(+AbsPath, -RelPath)
 %	
 %	Convert an absolute path (without host, fragment or search) into
 %	a path relative to the current page.   This  call is intended to

@@ -37,16 +37,18 @@
 	]).
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Often, one wants to define operators to  improve the readibility of some
-very specific code. Operators in Prolog  are global objects and changing
+/** <module> Manage operators
+
+Often, one wants to define operators to improve the readibility of some
+very specific code. Operators in Prolog are global objects and changing
 operators changes syntax and possible semantics of existing sources. For
-this reason it is desirable  to   reset  operator declarations after the
-code that needs them has been read.   This module defines a rather cruel
+this reason it is desirable to reset operator declarations after the
+code that needs them has been read. This module defines a rather cruel
 -but portable- method to do this. 
 
 Usage:
 
+==
 :- push_operators(
 	[ op(900, fx, hello_world)
 	, op(600, xf, *)
@@ -56,17 +58,19 @@ hello_world World :-
 	....
 
 :- pop_operators.
+==
 
 NOTE: In recent versions of SWI-Prolog operators   are local to a module
 and can be exported using the syntax   below.  This is not portable, but
 otherwise a more structured approach for operator handling.
 
+==
 :- module(mymodule,
 	  [ mypred/1,
 	    op(500, fx, myop)
 	  ]).
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+==
+*/
 
 :- thread_local
 	operator_stack/1.
@@ -75,7 +79,7 @@ otherwise a more structured approach for operator handling.
 	push_operators/1,
 	push_op/3.
 
-%	push_operators(+New)
+%%	push_operators(+New) is det.
 %	
 %	Installs the operators from New, where New is a list of op(Prec,
 %	Type, :Name). The modifications to the operator table are undone
@@ -89,7 +93,7 @@ push_operators(New) :-
 	set_operators(Ops),
 	assert_op(Undo).
 
-%	push_op(+Precedence, +Type, :Name)
+%%	push_op(+Precedence, +Type, :Name) is det.
 %	
 %	As op/3, but this call must  appear between push_operators/1 and
 %	pop_operators/0.  The  change  is   undone    by   the  call  to
@@ -105,7 +109,7 @@ push_op(P, T, A0) :-
 	assert_op(Undo),
 	op(P, T, A).
 
-%	pop_operators
+%	pop_operators is det.
 %	
 %	Revert all changes to the operator table realised since the last
 %	push_operators/1.
@@ -160,8 +164,8 @@ op_type(yfy, infix).
 op_type(xf,  postfix).
 op_type(yf,  postfix).
 
-%	assert_op(+Term)
-%	retract_op(-Term)
+%%	assert_op(+Term) is det.
+%%	retract_op(-Term) is det.
 %	
 %	Force local assert/retract.
 

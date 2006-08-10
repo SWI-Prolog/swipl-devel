@@ -75,7 +75,7 @@ shell_register_prolog(Ext) :-
 		 *     WINDOWS SHELL STUFF	*
 		 *******************************/
 
-%	shell_register_file_type(+Extension, +Type, +Name, +Open, [+Icon])
+%%	shell_register_file_type(+Extension, +Type, +Name, +Open, [+Icon])
 %
 %	Register an extension to a type.  The open command for the type
 %	is defined and files with this extension will be given Name as
@@ -131,7 +131,7 @@ as a Prolog operator. For example, classes_root/'prolog.type'/shell. The
 components should be atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	registry_set_key(+Path, [+Name], +Value)
+%%	registry_set_key(+Path, [+Name], +Value)
 %
 %	Associate a (string) value with the key described by Path.  If
 %	part of the path does not exist, the required keys will be created.
@@ -143,7 +143,7 @@ registry_set_key(Path, Name, Value) :-
 	reg_set_value(Key, Name, Value),
 	Close.
 	
-%	registry_get_key(+Path, [+Name], -Value)
+%%	registry_get_key(+Path, [+Name], -Value)
 %
 %	Get the value associated with the given key.  If the key does not
 %	exists, the predicate fails silently.
@@ -159,7 +159,7 @@ registry_get_key(Path, Name, Value) :-
 	    fail
 	).
 	
-%	registry_delete_key(+Path)
+%%	registry_delete_key(+Path)
 %
 %	Delete the gven key and all its subkeys and values.  Note that
 %	the root-keys cannot be deleted.
@@ -184,7 +184,7 @@ delete_subkey(Parent, Sub) :-
 	reg_close_key(Key),
 	reg_delete_key(Parent, Sub).
 
-%	registry_make_key(+Path, +Access, -Key)
+%%	registry_make_key(+Path, +Access, -Key)
 %
 %	Open the given key and create required keys if the path does not
 %	exist.
@@ -203,7 +203,7 @@ registry_make_key(A/B, Access, Key, Close) :- !,
 	Key = RawKey.
 registry_make_key(Key, _, Key, true).
 
-%	registry_lookup_key(+Path, +Access, -Key)
+%%	registry_lookup_key(+Path, +Access, -Key)
 %	
 %	Open the given key, fail silently if the key doesn't
 %	exist.

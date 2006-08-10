@@ -49,7 +49,7 @@ dynamic predicates using listing to  XPCE   objects  to  this. Note that
 clause_info/4 as below can be pretty slow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	clause_info(+ClauseRef, -File, -TermPos, -VarNames)
+%%	clause_info(+ClauseRef, -File, -TermPos, -VarNames)
 %
 %	Fetches source information for the given clause.
 
@@ -75,7 +75,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	make_varnames(Clause, VarOffset, VarNames, NameOffset),
 	debug(clause_info, 'got names~n', []), !.
 
-%	unify_term(+T1, +T2)
+%%	unify_term(+T1, +T2)
 %	
 %	Unify the two terms, where T2 is created by writing the term and
 %	reading it back in, but  be   aware  that  rounding problems may
@@ -138,7 +138,7 @@ read(Line, Handle, Module, Clause, TermPos, VarNames) :-
 	seek_to_line(Handle, Line),
 	read(Handle, Module, Clause, TermPos, VarNames).
 
-%	read(+Stream, +Module, -Clause, -TermPos, -VarNames)
+%%	read(+Stream, +Module, -Clause, -TermPos, -VarNames)
 %	
 %	Read clause from Stream at current position with unknown syntax.
 %	It returns the term read  at  that   position,  as  well  as the
@@ -172,7 +172,7 @@ read(Handle, Module, Clause, TermPos, VarNames) :-
 	).
 	
 
-%	text_seek(+Handle, +To)
+%%	text_seek(+Handle, +To)
 %	
 %	Re-position the stream at position `To'.  On decent systems this
 %	is easy, but on M$-Windows with their text-mode files holding an
@@ -191,14 +191,16 @@ text_seek(Handle, To) :-
 	seek(Handle, To, bof, _).
 
 
-%	make_varnames(+ReadClause, +[Offset=Var ...], +[Name=Var...], -Term)
+%%	make_varnames(+ReadClause, +Offsets, +Names, -Term) is det.
 %	
 %	Create a Term varnames(...) where each argument contains the name
 %	of the variable at that offset.  If the read Clause is a DCG rule,
 %	name the two last arguments <DCG_list> and <DCG_tail>
 %	
-%	NOTE: Called directly from  library(trace/clause)   for  the GUI
-%	tracer.
+%	@param Offsets	List of Offset=Var
+%	@param Names	List of Name=Var
+%
+%	@bug Called directly from library(trace/clause) for the GUI tracer.
 
 make_varnames((Head --> _Body), Offsets, Names, Bindings) :- !,
 	functor(Head, _, Arity),
@@ -229,7 +231,7 @@ find_varname(Var, [Name = TheVar|_], Name) :-
 find_varname(Var, [_|T], Name) :-
 	find_varname(Var, T, Name).
 
-%	unify_clause(+Read, +Decompiled, +ReadTermPos, -RecompiledTermPos).
+%%	unify_clause(+Read, +Decompiled, +ReadTermPos, -RecompiledTermPos).
 %	
 %	What you read isn't always what goes into the database. The task
 %	of this predicate is to establish the relation between the term
@@ -274,7 +276,7 @@ match_module((H1 :- B1), (H2 :- B2), Pos0, Pos) :- !,
 match_module(H1, H2, Pos, Pos) :-	% deal with facts
 	unify_clause_head(H1, H2).
 
-%	unify_body(+Read, +Decompiled, +Pos0, -Pos)
+%%	unify_body(+Read, +Decompiled, +Pos0, -Pos)
 %	
 %	Deal with translations implied by the compiler.  For example,
 %	compiling (a,b),c yields the same code as compiling a,b,c.
@@ -296,7 +298,7 @@ a --> { x, y, z }.
     which the compiler creates "a(X,Y) :- x, y, z, X=Y".
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	ubody(+Read, +Decompiled, +TermPosRead, -TermPosForDecompiled)
+%%	ubody(+Read, +Decompiled, +TermPosRead, -TermPosForDecompiled)
 
 
 ubody(B, B, P, P) :-
@@ -597,7 +599,7 @@ predicate_name(Predicate, PName) :-
 	    )
 	).
 
-%	clause_name(+Ref, -Name)
+%%	clause_name(+Ref, -Name)
 %
 %	Provide a suitable description of the indicated clause.
 
@@ -620,7 +622,7 @@ These predicates communicate about lines.  We   should  consider using a
 line-cache for this for speed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	seek_to_line(+Stream, +Line)
+%%	seek_to_line(+Stream, +Line)
 %
 %	Seek to indicated line-number.
 

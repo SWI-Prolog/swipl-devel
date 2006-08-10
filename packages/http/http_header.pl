@@ -58,7 +58,7 @@
 		 *	    READ REQUEST	*
 		 *******************************/
 
-%	http_read_request(+FdIn, -Request)
+%%	http_read_request(+FdIn, -Request)
 %
 %	Read an HTTP request-header from FdIn and return the broken-down
 %	request fields as +Name(+Value) pairs in a list.
@@ -72,7 +72,7 @@ http_read_request(In, [input(In)|Request]) :-
 	).
 
 
-%	http_read_reply_header(+FdIn, -Reply)
+%%	http_read_reply_header(+FdIn, -Reply)
 %
 %	Read the HTTP reply header. Throws   an exception if the current
 %	input does not contain a valid reply header.
@@ -224,7 +224,7 @@ html_message_lines([Fmt|T]) --> !,
 	html([S]),
 	html_message_lines(T).
 
-%	http_join_headers(+Default, +Header, -Out)
+%%	http_join_headers(+Default, +Header, -Out)
 %	
 %	Append headers from Default to Header if they are not
 %	already part of it.
@@ -239,7 +239,7 @@ http_join_headers([H|T], Hdr0, [H|Hdr]) :-
 	http_join_headers(T, Hdr0, Hdr).
 
 
-%	http_update_encoding(+HeaderIn, -Encoding, -HeaderOut)
+%%	http_update_encoding(+HeaderIn, -Encoding, -HeaderOut)
 %	
 %	Allow for rewrite of the  header,   adjusting  the  encoding. We
 %	distinguish three options. If  the   user  announces  `text', we
@@ -264,7 +264,7 @@ http_update_encoding(Header, utf8, Header) :-
 http_update_encoding(Header, octet, Header).
 
 
-%	content_length_in_encoding(+Encoding, +In, -Bytes)
+%%	content_length_in_encoding(+Encoding, +In, -Bytes)
 %	
 %	Determine hom much bytes are required to represent the data from
 %	stream In using the given encoding.  Fails if the data cannot be
@@ -602,7 +602,7 @@ header_fields([H|T]) -->
 	"\r\n",
 	header_fields(T).
 
-%	field_name(?PrologName)
+%%	field_name(?PrologName)
 %
 %	Convert between prolog_name and HttpName
 
@@ -649,53 +649,23 @@ wr_field_chars2([]) -->
 	[].
 
 %	now
-%	rfc_date(+Time)
+%%	rfc_date(+Time)
 
 now -->
 	{ get_time(Time)
 	},
 	rfc_date(Time).
 
-%	rfc_date(+Time, //)
+%%	rfc_date(+Time)// is det.
 %	
 %	Write time according to RFC1123 specification as required by the
-%	RFC2616 HTTP protocol specs. This isn't  ideal yet. We should be
-%	using gmtime() to get  GMT  rather   than  compensating  for the
-%	timezone (what about daylight savng time)?
-%	
-%	Also, this is a bit expensive, about 30uS on an AMD2600+
+%	RFC2616 HTTP protocol specs. 
 
-rfc_date(Time) -->
-	{ (   current_prolog_flag(timezone, Offset)
-	  ->  T is Time	+ Offset
-	  ;   T = Time
-	  ),
-	  convert_time(T, CDate)
-	},
-	sub(CDate, 0-3), ", ",		% ddd
-	sub0(CDate, 8-2), " ",		% DD
-	sub(CDate, 4-3), " ",		% mmm
-	sub(CDate, 20-4), " ",		% YYYY
-	sub(CDate, 11-8), " GMT".	% HH:MM:SS
-
-sub(String, From-Len) -->
-	{ sub_string(String, From, Len, _, S),
-	  string_to_list(S, Chars)
-	},
-	string(Chars).
+rfc_date(Time, String, Tail) :-
+	stamp_date_time(Time, Date, 'UTC'),
+	format_time(codes(String, Tail), '%a, %d %b %Y %H:%M:%S GMT', Date).
 	
-sub0(String, From-Len) -->
-	{ sub_string(String, From, Len, _, S),
-	  string_to_list(S, Chars)
-	},
-	str0(Chars).
-	
-str0([]) --> [].
-str0([0' |T]) --> !, "0", str0(T).
-str0([C|T])   --> [C], str0(T).
-
-
-%	http_timestamp(+Time, -Atom)
+%%	http_timestamp(+Time, -Atom)
 %	
 %	Generate a description of a Time in HTTP format (RFC1123)
 
@@ -862,7 +832,7 @@ reply(Fd, [http_version(HttpVersion), status(Status, Comment)|Header]) -->
 		 *	      READ HEADER	*
 		 *******************************/
 
-%	http_read_header(+Fd, -Header)
+%%	http_read_header(+Fd, -Header)
 %
 %	Read Name: Value lines from FD until an empty line is encountered.
 %	Field-name are converted to Prolog conventions (all lower, _ instead

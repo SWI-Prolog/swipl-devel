@@ -73,13 +73,23 @@ library(edinburgh) for more compatibility predicates.
 '$argv'(Argv) :-
 	current_prolog_flag(argv, Argv).
 
-%	or write_canonical/[1,2]
+%	displayq(@Term) is det.
+%	displayq(+Stream, @Term) is det.
+%	
+%	Write term ignoring operators and quote atoms.
+%	
+%	@depreciated Use write_term/3 or write_canonical/2.
 
 displayq(Term) :-
 	write_term(Term, [ignore_ops(true),quoted(true)]).
 displayq(Stream, Term) :-
 	write_term(Stream, Term, [ignore_ops(true),quoted(true)]).
 
+
+%%	sformat(-String, +Format, +Args) is det.
+%%	sformat(-String, +Format) is det.
+%
+%	@depreciated Use format/3 as =|format(string(String), ...)|=
 
 :- module_transparent sformat/2, sformat/3.
 
@@ -88,12 +98,16 @@ sformat(String, Format, Arguments) :-
 sformat(String, Format) :-
 	format(string(String), Format).
 
-%	concat/3 is superseeded by ISO atom_concat/3
+%%	concat(+Atom1, +Atom2, -Atom) is det.
+%
+%	@depreciated Use ISO atom_concat/3
 
 concat(A, B, C) :-
 	atom_concat(A, B, C).
 
-%	Replaced by ISO read_term/[2,3].
+%	read_variables(-Term, -Bindings) is det.
+%
+%	@depreciated Use ISO read_term/[2,3].
 
 read_variables(Term, Vars) :-
 	read_term(Term, [variable_names(Vars)]).
@@ -101,10 +115,10 @@ read_variables(Term, Vars) :-
 read_variables(Stream, Term, Vars) :-
 	read_term(Stream, Term, [variable_names(Vars)]).
 
-%	feature(?Key, ?Value)
-%	set_feature(+Key, @Term)
+%%	feature(?Key, ?Value) is nondet.
+%%	set_feature(+Key, @Term) is det.
 %
-%	Replaced by ISO current_prolog_flag/2 and set_prolog_flag/2.
+%	@depreciated Use ISO current_prolog_flag/2 and set_prolog_flag/2.
 
 feature(Key, Value) :-
 	current_prolog_flag(Key, Value).
@@ -112,42 +126,54 @@ feature(Key, Value) :-
 set_feature(Key, Value) :-
 	set_prolog_flag(Key, Value).
 
-%	substring(+String, +Offset, +Length, -Sub)
+%%	substring(+String, +Offset, +Length, -Sub)
+%
+%	Predecessor of sub_string using 1-based Offset.
+%	
+%	@depreciated Use sub_string/5.
 
 substring(String, Offset, Length, Sub) :-
 	Offset0 is Offset - 1,
 	sub_string(String, Offset0, Length, _After, Sub).
 
-%	flush/0
+%%	flush is det.
+%
+%	@depreciated use ISO flush_output/0.
 
 flush :-
 	flush_output.
 
-%	write_ln(X) was renamed to writeln(X) for better compatibility
+%%	write_ln(X) is det
+%
+%	@depreciated Use writeln(X).
 
 write_ln(X) :-
 	write(X), nl.
 
-%	proper_list(+List)
+%%	proper_list(+List)
 %
 %	Old SWI-Prolog predicate to check for a list that really ends
 %	in a [].  There is not much use for the quick is_list, as in
 %	most cases you want to process the list element-by-element anyway.
+%	
+%	@depreciated Use ISO is_list/1.
 
 proper_list(List) :-
 	is_list(List).
 
-%	free_variables(+Term, -Variables)
+%%	free_variables(+Term, -Variables)
 %	
-%	Return a list of unbound variables in Term.  Term_variables/2
-%	is a better and more commonly used word.
+%	Return  a  list  of  unbound  variables    in   Term.  The  name
+%	term_variables/2 is more widely used.
+%	
+%	@depreciated Use term_variables/2.
 
 free_variables(Term, Variables) :-
 	term_variables(Term, Variables).
 
-%	checklist(:Goal, +List)
+%%	checklist(:Goal, +List)
 %	
-%	Obsolete synonym for maplist/2
+%	@depreciated Use maplist/2
 
 :- module_transparent
 	checklist/2.
@@ -155,12 +181,14 @@ free_variables(Term, Variables) :-
 checklist(Goal, List) :-
 	maplist(Goal, List).
 
-%	strip_module(+Term, -Module, -Plain)
+%%	strip_module(+Term, -Module, -Plain)
 %	
 %	This used to be an internal predicate.  It was added to the XPCE
-%	compatibility library without $ and  since   then  used at manay
+%	compatibility library without $ and  since   then  used  at many
 %	places. From 5.4.1 onwards strip_module/3 is  built-in and the $
 %	variation is added here for compatibility.
+%	
+%	@depreciated Use strip_module/3.
 
 :- module_transparent
 	'$strip_module'/3.
@@ -168,19 +196,20 @@ checklist(Goal, List) :-
 '$strip_module'(Term, Module, Plain) :-
 	strip_module(Term, Module, Plain).
 
-
-%	convert_time(+Stamp, -String)
+%%	convert_time(+Stamp, -String)
 %
 %	Convert  a time-stamp as  obtained though get_time/1 into a  textual
 %	representation  using the C-library function ctime().  The  value is
 %	returned  as a  SWI-Prolog string object  (see section  4.23).   See
 %	also convert_time/8.
+%	
+%	@depreciated Use format_time/3.
 
 
 convert_time(Stamp, String) :-
 	format_time(string(String), '%+', Stamp).
 
-%	convert_time(+Stamp, -Y, -Mon, -Day, -Hour, -Min, -Sec, -MilliSec)
+%%	convert_time(+Stamp, -Y, -Mon, -Day, -Hour, -Min, -Sec, -MilliSec)
 %
 %	Convert   a  time  stamp,   provided  by   get_time/1,   time_file/2,
 %	etc.   Year is  unified with the year,  Month with the month  number
@@ -190,6 +219,8 @@ convert_time(Stamp, String) :-
 %	milliseconds  (0--999).  Note that the latter might not  be accurate
 %	or  might always be 0, depending  on the timing capabilities of  the
 %	system.  See also convert_time/2.
+%	
+%	@depreciated Use stamp_date_time/3.
 
 convert_time(Stamp, Y, Mon, Day, Hour, Min, Sec, MilliSec) :-
 	stamp_date_time(Stamp,

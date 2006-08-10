@@ -71,8 +71,8 @@ dde_poke(Handle, Item, Data) :-
 :- module_transparent
 	dde_register_service/2.
 
-%	dde_register_service(+Service(Topic, Item, Value), +Goal).
-%	dde_register_service(+Service(Topic, Command), +Goal).
+%%	dde_register_service(+Service(Topic, Item, Value), +Goal).
+%%	dde_register_service(+Service(Topic, Command), +Goal).
 %
 %	Register a DDE service satisfied by this SWI-Prolog instance.  The
 %	first form is for dde_request/3, the second for dde_execute/2.
@@ -110,14 +110,14 @@ dde_unregister_all_services :-
 	
 :- at_halt(dde_unregister_all_services). % required by Windows!
 
-%	dde_current_service(?Service, ?Topic)
+%%	dde_current_service(?Service, ?Topic)
 %
 %	Unifies Service and Topic with currently supported servers/topics
 
 dde_current_service(Service, Topic) :-
 	dde_service(Service, Topic, _, _, _, _).
 
-%	dde_current_connection(?Service, ?Topic)
+%%	dde_current_connection(?Service, ?Topic)
 %	
 %	Unifies Service and Topic with the currently open server connections.
 

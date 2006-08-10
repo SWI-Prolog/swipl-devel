@@ -58,11 +58,12 @@ http_current_server(Goal, Port) :-
 	get(Socket, goal, Goal),
 	get(Socket, address, Port).
 
-%	http_server(:Goal, ?Port, [+Options])
+%%	http_server(:Goal, +Options) is det.
 %
 %	Start server at given or arbitrary port.  Options:
 %	
-%	   after(:After)	call(After, Request) after completion
+%	   * after(:After)
+%	     call(After, Request) after completion
 
 http_server(Goal, Options) :-
 	select(port(Port), Options, Options1), !,

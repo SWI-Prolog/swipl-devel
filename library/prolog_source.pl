@@ -100,7 +100,7 @@ expand('$:-'(X), '$:-'(X)) :- !,	% boot module
 expand(Term, Expanded) :-
 	expand_term(Term, Expanded).
 
-%	requires_library(+Term, -Library)
+%%	requires_library(+Term, -Library)
 %
 %	known expansion hooks.  May be expanded as multifile predicate.
 
@@ -154,9 +154,9 @@ public_operators([H|T]) :- !,
 %	automatically restored to the values before opening the source.
 %	
 %	==
-%	process_source(Src) :-
-%		prolog_open_source(Src, In),
-%		call_cleanup(process(Src), prolog_close_source(In)).
+%%	process_source(Src) :-
+%%		prolog_open_source(Src, In),
+%%		call_cleanup(process(Src), prolog_close_source(In)).
 %	==
 
 prolog_open_source(Src, Fd) :-

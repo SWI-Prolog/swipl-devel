@@ -25,18 +25,23 @@
 %         - Added some missing predicates in the module-declaration.
 %         - Index/2 of proLog by BIM is transformed to index/1.
 %         - Fixed some bugs in the record-database-predicates.
+%         
+% modified by Jan Wielemaker at Aug 10, 2006
+% 
+%	  - Fixed module header
+%	  - Keep erase/1 and recorded/3 local as they break applications
 
-module(bim,
+:- module(bim,
        [ please/2,
 	 cputime/1,
 	 include/1,
 	 setdebug/0,
 	 reconsult/1,
-	 erase/1,			% BIM-compatible erase/1
+%	 erase/1,			% BIM-compatible erase/1
 	 rerecord/2,
 	 erase_all/1,
 	 record/3,
-	 recorded/3,			% BIM-compatible recorded/3
+%	 recorded/3,			% BIM-compatible recorded/3
 	 inttoatom/2,
 	 atomconcat/3,
 	 update/1,
@@ -50,6 +55,10 @@ module(bim,
        ]).
 
 :- op(700, xfx, <>).
+
+:- redefine_system_predicate(erase(_)).
+:- redefine_system_predicate(recorded(_,_,_)).
+
 
 % please/2 has no meaning in SWI-prolog (can't we map most actions to
 % other things (JW?). (Maybe, but it would not be very useful as please/2 
@@ -114,7 +123,7 @@ erase(Key1, Key2):-
 
 
 inttoatom(Int, Atom):-
-	int_to_atom(Int, Atom).
+	atom_number(Atom, Int).
 
 atomconcat(Atom1, Atom2, Atom3):-
 	atom_concat(Atom1, Atom2, Atom3).

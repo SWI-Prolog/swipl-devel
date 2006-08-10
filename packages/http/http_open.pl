@@ -46,7 +46,7 @@ to get the data from an  URL   using  the GET-method. More advanced HTTP
 client support is provided by http_client.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	http_open(+Url, -Stream, [+Options])
+%%	http_open(+Url, -Stream, +Options) is det.
 %	
 %	Open a HTTP url as a (binary) stream. Uses HTTP 1.0 protocol
 %	revision to deal with virtual hosts and to be able to interpret
@@ -54,12 +54,20 @@ client support is provided by http_client.pl
 %	
 %	Supported options:
 %	
-%		size(-Size)		Return size of the resource
-%		header(Name, -Atom)	Return headerfield as atom
-%		timeout(+Timeout)	Raise exception on timeout
-%		proxy(+Host, +Port)	Use an HTTP proxy server
-%		user_agent(+Agent)	User agent for identifying
-%		request_header(Name=Value) Extra header field
+%		* size(-Size)
+%		  Return size of the resource
+%		* header(Name, -Atom)
+%		  Return headerfield as atom
+%		* timeout(+Timeout)
+%		  Raise exception on timeout
+%		* proxy(+Host, +Port)
+%		  Use an HTTP proxy server
+%		* user_agent(+Agent)
+%		  User agent for identifying
+%		* request_header(Name=Value)
+%		  Extra header field
+%	
+%	@error	existence_error(url, Id)
 
 http_open(Url, Stream, Options) :-
 	atom(Url), !,

@@ -85,7 +85,7 @@ is_paren(0'(, 0')).			% Prolog is too good at this
 is_paren(0'[, 0']).
 is_paren(0'{, 0'}).
 
-%	to_lower( ?U,?L )
+%%	to_lower( ?U,?L )
 %	Succeeds  if  `U'  is  upper  case  character  and  `L'  is  the
 %	corresponding lower case character or `U' is an ascii character,
 %	but not an upper case letter and `L' is equal to `U'.
@@ -96,7 +96,7 @@ to_lower(U, L) :-
 to_upper(U, L) :-
 	code_type(L, to_upper(U)).
 
-%	is_digit( ?C,?Base,?Weight )
+%%	is_digit( ?C,?Base,?Weight )
 %	Succeeds if `C' is a digit using `Base'  as  base  and  `Weight'
 %	represents its value.  Only the base-10 case is handled by code_type.
 

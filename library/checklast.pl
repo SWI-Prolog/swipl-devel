@@ -56,7 +56,7 @@ user:goal_expansion(last(L,E), _) :-
 
 :- abolish(lists:last/2).
 
-%	last(?List, ?Elem)
+%%	last(?List, ?Elem)
 %
 %	Succeeds if `Last' unifies with the last element of `List'.
 

@@ -81,7 +81,7 @@ delete_white([H|T0], [H|T]) :-
 	delete_white(T0, T).
 
 
-%	default_markup_type(+MimeType, -ParseOptions)
+%%	default_markup_type(+MimeType, -ParseOptions)
 %	
 %	State that the HTTP contents should be parsed with
 %	load_structure/3 using the returned options. This predicate may
@@ -106,7 +106,7 @@ markup_options(Fields, Opt0, Options) :-
 	;   Options = Opt0
 	).
 
-%	merge_options(+Defaults, +GivenOptions, -Options)
+%%	merge_options(+Defaults, +GivenOptions, -Options)
 %	
 %	If an option is not in GivenOptions, use the one from
 %	Defaults.

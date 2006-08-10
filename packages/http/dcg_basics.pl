@@ -58,7 +58,7 @@
 	  ]).
 
 
-%	string_without(+End, -Codes)
+%%	string_without(+End, -Codes)
 %	
 %	Take as tokens from the input until the next token appears in
 %	End.  End itself is left on the input.  Typical use is to read
@@ -75,7 +75,7 @@ string_without(Not, [C|T]) -->
 string_without(_, []) -->
 	[].
 
-%	string(-Codes)
+%%	string(-Codes)
 %	
 %	Take as few as possible tokens from the input, taking one more
 %	each time on backtracking. This code is normally followed by a
@@ -142,7 +142,7 @@ white -->
 		 *	 CHARACTER STUFF	*
 		 *******************************/
 
-%	alpha_to_lower(-C)
+%%	alpha_to_lower(-C)
 %
 %	Read a letter and return it as a lowercase letter.  In output
 %	mode this simply emits the character.
@@ -161,9 +161,14 @@ alpha_to_lower(L) -->
 		 *	      NUMBERS		*
 		 *******************************/
 
-%	digits(?Chars)
-%	digit(?Char)
-%	integer(?Integer)
+%%	digits(?Chars) is det.
+%%	digit(?Char) is det.
+%%	integer(?Integer) is det.
+%
+%	Number processing. The predicate  digits//1   matches  a posibly
+%	empty set of digits, digit//1 processes a matches a single digit
+%	and integer processes a non-empty  sequence   of  digits into an
+%	integer.
 
 digits([H|T]) -->
 	digit(H), !,
@@ -194,6 +199,11 @@ int_codes([D0|D]) -->
 	digit(D0),
 	digits(D).
 
+
+%%	float(?Float)// is det.
+%
+%	Process a floating  point  number.   The  actual  conversion  is
+%	controlled by number_codes/2.
 
 float(F) -->
 	{ float(F), !,

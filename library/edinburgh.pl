@@ -48,7 +48,7 @@ Standard Prolog.
 		 *	      TERM I/O		*
 		 *******************************/
 
-%	display(+Term)
+%%	display(+Term)
 %
 %	Write a term, ignoring operators.
 
@@ -61,7 +61,7 @@ display(Stream, Term) :-
 		 *	      DEBUGGING		*
 		 *******************************/
 
-%	unknown(-Old, +New)
+%%	unknown(-Old, +New)
 %
 %	Edinburgh Prolog predicate for dealing dealing with undefined
 %	procedures

@@ -37,7 +37,7 @@
 
 :- style_check(+dollar).		% lock these predicates
 
-%	gensym(+Base, -Unique)
+%%	gensym(+Base, -Unique)
 %
 %	Generate <Base>0, <Base>1, etc atoms on each subsequent call.
 
@@ -76,7 +76,7 @@ do_reset_gensym :-
 	;   true
 	).
 
-%	reset_gensym(+Base)
+%%	reset_gensym(+Base)
 %
 %	Reset a specific gensym counter.  Please beware this still is
 %	dangerous as other code may use gensym with the same atom!

@@ -1,3 +1,8 @@
+Aug 10, 2006
+
+  * ENHANCED: Time printing in http_header.pl to use format_time/3.  Faster
+    and proper implementation of daylight saving time.
+
 Aug 8, 2006
 
   * FIXED: http_relative_path/2.

@@ -58,14 +58,14 @@ This library was implemented to run the threetap theorem prover.  It was
 extended to satisfy requirements by CHR.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	ord_empty(List)
+%%	ord_empty(List)
 %	
 %	True if List is the empty ordered set.  Not part of Quintus
 
 ord_empty([]).
 
 
-%	list_to_ord_set(+List, -OrdSet)
+%%	list_to_ord_set(+List, -OrdSet)
 %
 %	Transform a list into an ordered set.  This is the same as
 %	sorting the list.
@@ -74,7 +74,7 @@ list_to_ord_set(List, Set) :-
 	sort(List, Set).
 
 
-%	ord_intersect(+Set1, +Set2)
+%%	ord_intersect(+Set1, +Set2)
 %
 %	Succeed if both ordered sets have a non-empty intersection
 
@@ -92,7 +92,7 @@ ord_intersect__(>, H1, T1,  _H2, T2) :-
 	ord_intersect_(T2, H1, T1).
 
 
-%	ord_disjoint(+Set1, +Set2)
+%%	ord_disjoint(+Set1, +Set2)
 %	
 %	True if Set1 and Set2 have no common elements
 
@@ -100,7 +100,7 @@ ord_disjoint(Set1, Set2) :-
 	\+ ord_intersect(Set1, Set2).
 
 
-%	ord_intersect(+Set1, +Set2, -Intersection)
+%%	ord_intersect(+Set1, +Set2, -Intersection)
 %	
 %	Intersection  holds  the  common  elements  of  Set1  and  Set2.
 %	Depreciated. Please use ord_intersection/3 in new code.
@@ -109,7 +109,7 @@ ord_intersect(Set1, Set2, Intersection) :-
 	oset_int(Set1, Set2, Intersection).
 
 
-%	ord_intersection(+Set1, +Set2, -Intersection)
+%%	ord_intersection(+Set1, +Set2, -Intersection)
 %	
 %	Intersection holds the common elements of Set1 and Set2.
 
@@ -117,7 +117,7 @@ ord_intersection(Set1, Set2, Intersection) :-
 	oset_int(Set1, Set2, Intersection).
 
 
-%	ord_add_element(+Set1, +Element, ?Set2)
+%%	ord_add_element(+Set1, +Element, ?Set2)
 %
 %	Insert an element into the set
 
@@ -125,7 +125,7 @@ ord_add_element(Set1, Element, Set2) :-
 	oset_addel(Set1, Element, Set2).
 
 
-%	ord_del_element(+Set, +Element, -NewSet)
+%%	ord_del_element(+Set, +Element, -NewSet)
 %	
 %	Delete an element from an ordered set
 
@@ -133,7 +133,7 @@ ord_del_element(Set, Element, NewSet) :-
 	oset_delel(Set, Element, NewSet).
 
 
-%	ord_memberchk(+Element, +Set)
+%%	ord_memberchk(+Element, +Set)
 %	
 %	Check membership. This could stop comparing   we have passed the
 %	right value, saving scanning  (on  average)   half  the  list if
@@ -144,7 +144,7 @@ ord_memberchk(Element, Set) :-
 	memberchk(Element, Set).
 
 
-%	ord_subset(+Sub, +Super)
+%%	ord_subset(+Sub, +Super)
 %
 %	Is true if all element of Sub are in Super
 
@@ -160,7 +160,7 @@ ord_subset_(=, _, T1, T2) :-
 	ord_subset(T1, T2).
 
 
-%	ord_subtract(+InOSet, +NotInOSet, -Diff)
+%%	ord_subtract(+InOSet, +NotInOSet, -Diff)
 %
 %	Diff is the set holding all elements of InOSet that are not in
 %	NotInOSet.
@@ -169,7 +169,7 @@ ord_subtract(InOSet, NotInOSet, Diff) :-
 	oset_diff(InOSet, NotInOSet, Diff).
 
 
-%	ord_union(+Set1, +Set2, ?Union)
+%%	ord_union(+Set1, +Set2, ?Union)
 %
 %	Union is the union of Set1 and Set2
 
@@ -177,10 +177,10 @@ ord_union(Set1, Set2, Union) :-
 	oset_union(Set1, Set2, Union).
 
 
-%	ord_union(+Set1, +Set2, -Union,	-New)
+%%	ord_union(+Set1, +Set2, -Union,	-New)
 %	
 %	True if Union iff ord_union(Set1, Set2, Union) and
-%	ord_subtract(Set2, Set1, New).
+%%	ord_subtract(Set2, Set1, New).
 
 ord_union([], Set2, Set2, Set2).
 ord_union([H|T], Set2, Union, New) :-

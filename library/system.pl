@@ -38,7 +38,7 @@
 
 :- style_check(+dollar).
 
-%	system_mode(+OnOff)
+%%	system_mode(+OnOff)
 %	Switch the system into system or user mode.  When in system mode,
 %	system predicates loose most of their special properties, so it
 %	becomes possible to trace and even redefine them.  Use the latter
@@ -69,7 +69,7 @@ system_module :-
 	lock_predicate/2,
 	unlock_predicate/2.
 
-%	lock_predicate(+Name, Arity)
+%%	lock_predicate(+Name, Arity)
 %	Transform a predicate into a system predicate. 
 
 lock_predicate(Spec, Arity) :-
@@ -77,7 +77,7 @@ lock_predicate(Spec, Arity) :-
 	functor(Head, Name, Arity ),
 	$set_predicate_attribute(Module:Head, system, 1).
 
-%	unlock_predicate(+Name, Arity)
+%%	unlock_predicate(+Name, Arity)
 %	Transform a system predicate into a normal system predicate.
 
 unlock_predicate(Spec, Arity) :-

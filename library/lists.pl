@@ -181,7 +181,7 @@ reverse([X|Xs], Rs, Ys, [_|Bound]) :-
 
 %%	premutation(?Xs, ?Ys)
 %	
-%	permutation(Xs, Ys) is true when Xs is a permutation of Ys. This
+%%	permutation(Xs, Ys) is true when Xs is a permutation of Ys. This
 %	can solve for Ys given Xs or Xs given Ys, or even enumerate Xs
 %	and Ys together.
 
@@ -242,7 +242,7 @@ numlist_(L, U, [L|Ns]) :-
 		*       SET MANIPULATION        *
 		*********************************/
 
-%	is_set(@Set) is det.
+%%	is_set(@Set) is det.
 %	
 %	True if Set is a proper list without duplicates.
 
@@ -255,7 +255,7 @@ is_set([_|T]) :-
 	is_set(T).
 
 
-%	list_to_set(+List, ?Set) is det.
+%%	list_to_set(+List, ?Set) is det.
 %
 %	True when Set has the same element   as  List in the same order.
 %	The left-most copy of the duplicate is retained.
@@ -275,7 +275,7 @@ close_list([_|T]) :-
 	close_list(T).
 
 
-%	intersection(+Set1, +Set2, -Set3) is det.
+%%	intersection(+Set1, +Set2, -Set3) is det.
 %
 %	True if Set3 unifies with the intersection of Set1 and Set2
 
@@ -288,7 +288,7 @@ intersection([_|T], L, R) :-
 	intersection(T, L, R).
 
 
-%	union(+Set1, +Set2, -Set3) is det.
+%%	union(+Set1, +Set2, -Set3) is det.
 %	
 %	True if Set3 unifies with the union of Set1 and Set2
 
@@ -300,7 +300,7 @@ union([H|T], L, [H|R]) :-
 	union(T, L, R).
 
 
-%	subset(+SubSet, +Set) is det.
+%%	subset(+SubSet, +Set) is det.
 %	
 %	True if all elements of SubSet belong to Set as well.
 
@@ -310,7 +310,7 @@ subset([E|R], Set) :-
 	subset(R, Set).
 
 
-%	subtract(+Set, +Delete, -Result) is det.
+%%	subtract(+Set, +Delete, -Result) is det.
 %
 %	Delete all elements from `Set' that occur in `Delete' (a set) and
 %	unify the result with `Result'.

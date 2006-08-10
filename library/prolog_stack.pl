@@ -51,14 +51,14 @@ Prolog representation of a backtrace as  well   as  the printed form are
 subject to change.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	get_prolog_backtrace(+MaxDepth, -Backtrace)
+%%	get_prolog_backtrace(+MaxDepth, -Backtrace)
 %	
 %	Return a Prolog structure representing a backtrace from the
 %	current location.  The backtrace is a list of frames.  Each
 %	frame is represented as one of
 %	
-%		frame(Level, Clause, PC)
-%		frame(Level, foreign(Name/Arity), foreign)
+%%		frame(Level, Clause, PC)
+%%		frame(Level, foreign(Name/Arity), foreign)
 %	
 %	MaxDepth defines the maximum number of frames returned.
 
@@ -110,7 +110,7 @@ public_module(M) :-
 	sub_atom(M, 0, _, _, $).
 
 
-%	print_prolog_backtrace(+Stream, +Backtrace)
+%%	print_prolog_backtrace(+Stream, +Backtrace)
 %	
 %	Print a stacktrace in human readable form.
 
@@ -156,7 +156,7 @@ level(Level) -->
 	[ '~|~t[~D]~8+ '-[Level] ].
 
 
-%	backtrace(+MaxDepth)
+%%	backtrace(+MaxDepth)
 %	
 %	Get and print a stacktrace to the user_error stream.
 
@@ -179,7 +179,7 @@ find_subgoal([A|T], term_position(_, _, _, _, PosL), SPos) :-
 	find_subgoal(T, Pos, SPos).
 
 
-%	lineno(+File, +Char, -Line)
+%%	lineno(+File, +Char, -Line)
 %
 %	Translate a character location to a line-number.
 

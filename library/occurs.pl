@@ -45,7 +45,7 @@ This  is  a  SWI-Prolog  implementation  of  the  corresponding  Quintus
 library, based on the generalised arg/3 predicate of SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	contains_term(+Sub, +Term)
+%%	contains_term(+Sub, +Term)
 %
 %	Succeeds if Sub is contained in Term (=, deterministically)
 
@@ -56,7 +56,7 @@ contains_term(X, Term) :-
 	contains_term(X, Arg).
 
 
-%	contains_var(+Sub, +Term)
+%%	contains_var(+Sub, +Term)
 %
 %	Succeeds if Sub is contained in Term (==, deterministically)
 
@@ -67,35 +67,35 @@ contains_var(X, Term) :-
 	arg(_, Term, Arg),
 	contains_var(X, Arg).
 
-%	free_of_term(+Sub, +Term)
+%%	free_of_term(+Sub, +Term)
 %
 %	Succeeds of Sub does not unify to any subterm of Term
 
 free_of_term(Sub, Term) :-
 	\+ contains_term(Sub, Term).
 
-%	free_of_var(+Sub, +Term)
+%%	free_of_var(+Sub, +Term)
 %
 %	Succeeds of Sub is not equal (==) to any subterm of Term
 
 free_of_var(Sub, Term) :-
 	\+ contains_var(Sub, Term).
 
-%	occurrences_of_term(+SubTerm, +Term, ?Count)
+%%	occurrences_of_term(+SubTerm, +Term, ?Count)
 %
 %	Count the number of SubTerms in Term
 
 occurrences_of_term(Sub, Term, Count) :-
 	count(sub_term(Sub, Term), Count).
 
-%	occurrences_of_var(+SubTerm, +Term, ?Count)
+%%	occurrences_of_var(+SubTerm, +Term, ?Count)
 %
 %	Count the number of SubTerms in Term
 
 occurrences_of_var(Sub, Term, Count) :-
 	count(sub_var(Sub, Term), Count).
 
-%	sub_term(-Sub, +Term)
+%%	sub_term(-Sub, +Term)
 %
 %	Generates (on backtracking) all subterms of Term.
 
@@ -105,7 +105,7 @@ sub_term(X, Term) :-
 	arg(_, Term, Arg),
 	sub_term(X, Arg).
 
-%	sub_var(-Sub, +Term)
+%%	sub_var(-Sub, +Term)
 %
 %	Generates (on backtracking) all subterms (==) of Term.
 
@@ -121,7 +121,7 @@ sub_var(X, Term) :-
 		 *		UTIL		*
 		 *******************************/
 
-%	count(+Goal, -Count)
+%%	count(+Goal, -Count)
 %
 %	Count number of times Goal succeeds.
 

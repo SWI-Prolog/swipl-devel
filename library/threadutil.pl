@@ -156,7 +156,7 @@ detach_console(Id) :-
 		 *	    DEBUGGING		*
 		 *******************************/
 		
-%	tspy(:Spec)
+%%	tspy(:Spec)
 %	tspy(:Spec, +ThreadId
 %	
 %	Trap the graphical debugger on reaching Spec in the specified or
@@ -172,7 +172,7 @@ tspy(Spec, ThreadID) :-
 
 
 %	tdebug
-%	tdebug(+Thread)
+%%	tdebug(+Thread)
 %	
 %	Enable debug-mode, trapping the graphical debugger on reaching
 %	spy-points or errors.
@@ -185,7 +185,7 @@ tdebug(ThreadID) :-
 	thread_signal(ThreadID, gdebug).
 
 %	tnodebug
-%	tnodebug(+Thread)
+%%	tnodebug(+Thread)
 %	
 %	Disable debug-mode in all threads or the specified Thread.
 
@@ -201,7 +201,7 @@ tnodebug(ThreadID) :-
 		 *	 REMOTE PROFILING	*
 		 *******************************/
 
-%	tprofile(+Thread)
+%%	tprofile(+Thread)
 %	
 %	Profile the operation of Thread until the user hits a key.
 

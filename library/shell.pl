@@ -59,7 +59,7 @@
  ** Sun Sep 17 12:04:54 1989  jan@swi.psy.uva.nl */
 
 %	cd
-%	cd(Dir)
+%%	cd(Dir)
 %	Change working directory
 
 (cd) :-
@@ -131,7 +131,7 @@ dir_name(Path, Name) :-
 dir_name(Path, Path).
 
 %	ls
-%	ls(Dir|Files)
+%%	ls(Dir|Files)
 %	List a directory, flag directories with a '/'
 
 (ls) :-
@@ -162,20 +162,25 @@ tag_file(File, Dir) :-
 	atom_concat(File, /, Dir).
 tag_file(File, File).
 
-%	mv(+From, +To)	--- Move (Rename) a file
-%	rm(+File)	--- Remove (unlink) a file
+%%	mv(+From, +To) is det.
+%
+%	Move (Rename) a file
 
 mv(From, To) :-
 	name_to_atom(From, A0),
 	name_to_atom(To, A1),
 	rename_file(A0, A1).
 
+%%	rm(+File) is det.
+%
+%	Remove (unlink) a file
+
 rm(File) :-
 	name_to_atom(File, A),
 	delete_file(A).
 
 
-%	name_to_atom(Typed, Atom)
+%%	name_to_atom(Typed, Atom)
 %
 %	Convert a typed name into an atom
 
@@ -195,7 +200,7 @@ name_to_atom(Spec, File) :-
 	).
 
 
-%	list_atoms(+List, +Width)
+%%	list_atoms(+List, +Width)
 %	List a set of atoms multicolumn on a Width wide output device.
 
 list_atoms(List, W) :-
@@ -237,7 +242,7 @@ longest([H|T], Sofar, M) :-
 longest([_|T], S, M) :-
 	longest(T, S, M).
 
-%	warning(Fmt, [Args]).
+%%	warning(+Fmt, +Args:list) is det.
 
 warning(Fmt, Args) :-
 	print_message(warning, format(Fmt, Args)).

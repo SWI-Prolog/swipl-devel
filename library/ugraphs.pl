@@ -5,26 +5,27 @@
 %   Updated: 20 March 1984
 %   Purpose: Graph-processing utilities.
 
-%
-% adapted to support some of the functionality of the SICStus ugraphs library
-% by Vitor Santos Costa.
-%
- 
-% 
-% Ported from YAP 5.0.1 to SWI-Prolog by Jan Wielemaker. 
-%
-% As the original code was distributed in the public domain and YAP
-% under the Perl artistic license the code can be used with SWI-Prolog
-% applications without consequences to the overall system or proprietary
-% code linked to SWI-Prolog
-% 
+/** <module> Graph manipulation library
 
-/*  The S-representation of a graph is a list of (vertex-neighbours)
-    pairs, where the pairs are in standard order (as produced by
-    keysort) and the neighbours of each vertex are also in standard
-    order (as produced by sort).  This form is convenient for many
-    calculations.
- */
+The S-representation of a graph is a list of (vertex-neighbours) pairs,
+where the pairs are in standard order (as produced by keysort) and the
+neighbours of each vertex are also in standard order (as produced by
+sort). This form is convenient for many calculations.
+
+adapted to support some of the functionality of the SICStus ugraphs library
+by Vitor Santos Costa.
+
+Ported from YAP 5.0.1 to SWI-Prolog by Jan Wielemaker. 
+
+As the original code was distributed in the public domain and YAP
+under the Perl artistic license the code can be used with SWI-Prolog
+applications without consequences to the overall system or proprietary
+code linked to SWI-Prolog
+
+@author R.A.O'Keefe
+@author Vitor Santos Costa
+@author Jan Wielemaker
+*/
 
 :- module(ugraphs,
 	  [ add_edges/3,		% +Graph, +Edges, -NewGraph
@@ -108,7 +109,7 @@
 */
  
  
-%	vertices(+S_Graph, -Vertices)
+%%	vertices(+S_Graph, -Vertices)
 %   
 %	Strips off the  neighbours  lists   of  an  S-representation  to
 %	produce  a  list  of  the  vertices  of  the  graph.  (It  is  a
@@ -182,7 +183,7 @@ add_edges(Graph, Edges, NewGraph) :-
 	p_to_s_graph(Edges, G1),
 	ugraph_union(Graph, G1, NewGraph).
 
-%	ugraph_union(+Set1, +Set2, ?Union)
+%%	ugraph_union(+Set1, +Set2, ?Union)
 %   
 %	Is true when Union is the union of Set1 and Set2. This code is a
 %	copy of set union
@@ -205,7 +206,7 @@ del_edges(Graph, Edges, NewGraph) :-
 	p_to_s_graph(Edges, G1),
 	graph_subtract(Graph, G1, NewGraph).
 
-%	graph_subtract(+Set1, +Set2, ?Difference)
+%%	graph_subtract(+Set1, +Set2, ?Difference)
 %	
 % 	Is based on ord_subtract
 
@@ -300,7 +301,7 @@ transpose_s([Head|SoFar], Neibs, Vertex, [Head|Transpose]) :- !,
 transpose_s([], [], _, []).
  
  
-%	compose(G1, G2, Composition)
+%%	compose(G1, G2, Composition)
 %   
 %	Calculates the composition of two S-form  graphs, which need not
 %	have the same set of vertices.
@@ -408,8 +409,8 @@ decr_list(Neibs, [_|Vertices], [N|Counts1], [N|Counts2], Zi, Zo) :-
 	decr_list(Neibs, Vertices, Counts1, Counts2, Zi, Zo).
  
  
-%	neighbors(+Vertex, +Graph, -Neigbours)
-%	neighbours(+Vertex, +Graph, -Neigbours)
+%%	neighbors(+Vertex, +Graph, -Neigbours) is det.
+%%	neighbours(+Vertex, +Graph, -Neigbours) is det.
 %	
 %	Neigbours is a sorted list of the neighbours of Vertex in Graph.
  

@@ -56,7 +56,7 @@ dif(X,Y) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % types of attributes?
 % 	vardif: X is a variable
-%	node(Parent,Children,Variables,Counter)
+%%	node(Parent,Children,Variables,Counter)
 
 dif_c_c(X,Y,OrNode) :-
 	( unifiable(X,Y,Unifier) ->

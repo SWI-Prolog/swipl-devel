@@ -51,7 +51,7 @@ an editor.
 	edit_command/2,			% +Editor, -Command
 	load/0.				% provides load-hooks
 
-%	edit(+Spec)
+%%	edit(+Spec)
 %
 %	Edit indicated object.
 
@@ -86,7 +86,7 @@ edit :-
 		 *	      LOCATE		*
 		 *******************************/
 
-%	locate(+Spec, -FullSpec, -Location)
+%%	locate(+Spec, -FullSpec, -Location)
 
 locate(Path, file(Path), [file(Path)]) :-
 	atom(Path),
@@ -150,7 +150,7 @@ locate(Spec, module(Spec), Location) :-
 locate(Spec, Spec, Location) :-
 	locate(Spec, Location).
 
-%	locate(+Spec, -Location)
+%%	locate(+Spec, -Location)
 %
 %	Locate object from the specified location.
 
@@ -194,7 +194,7 @@ locate(clause(Ref, _PC), [file(File), line(Line)]) :- % TBD: use clause
 		 *	       EDIT		*
 		 *******************************/
 
-%	do_edit_source(+Location)
+%%	do_edit_source(+Location)
 %	
 %	Actually call the editor to edit Location, a list of Name(Value)
 %	that contains file(File) and may contain line(Line). First the
@@ -262,7 +262,7 @@ external_edit_command(Location, Command) :-
 pceemacs(pce_emacs).
 pceemacs(built_in).
 
-%	editor(-Editor)
+%%	editor(-Editor)
 %	
 %	Determine the external editor to run.
 
@@ -357,7 +357,7 @@ same_location([file(F1)], [file(F2)], [file(F)]) :-
 
 merge_specs(source_file(Path), _, source_file(Path)).
 
-%	select_location(+Pairs, +UserSpec, -Location)
+%%	select_location(+Pairs, +UserSpec, -Location)
 
 do_select_location(Pairs, Spec, Location) :-
 	select_location(Pairs, Spec, Location), !, 		% HOOK
@@ -367,7 +367,7 @@ do_select_location([], Spec, _) :- !,
 	fail.
 do_select_location([Location-_Spec], _, Location) :- !.
 %select_location(Pairs, _, Location) :-
-%	length(Pairs, N),
+%%	length(Pairs, N),
 %	N > 20, !,
 do_select_location(Pairs, _, Location) :-
 	print_message(help, edit(select)),

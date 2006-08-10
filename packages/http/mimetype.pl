@@ -33,7 +33,7 @@
 	  [ file_mime_type/2		% +Path, -Type
 	  ]).
 
-%	file_mime_type(+FileName, -MimeType)
+%%	file_mime_type(+FileName, -MimeType)
 %
 %	Simple library to guess the mime-type from the extension of a file.
 %	As various applications need to do this type of inferencing it seems

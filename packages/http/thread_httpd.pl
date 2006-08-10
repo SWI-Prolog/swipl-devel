@@ -38,7 +38,8 @@
 :- use_module(library(debug)).
 :- use_module(http_wrapper).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Threaded HTTP server
+
 This library provides a multi-threaded Prolog-based HTTP server based on
 the same wrapper as xpce_httpd and   inetd_httpd. This server can handle
 multiple clients in Prolog threads and doesn't need XPCE.
@@ -51,7 +52,7 @@ options required by ssl_init/3. See package ssl for details.
 BUGS: currently the library depends on library(socket) and library(ssl),
 both of which are accessed through  autoloading. Although this works, it
 is not elegant. 
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
 :- meta_predicate
 	http_server(:, +),
@@ -62,19 +63,20 @@ is not elegant.
 	queue_worker/2,			% Queue, ThreadID
 	queue_options/2.		% Queue, Options
 
-%	http_server(:Goal, ?Port, [+Options])
+%%	http_server(:Goal, ?Port) is det.
+%%	http_server(:Goal, ?Port, +Options) is det.
 %	
 %	Create a server at Port that calls Goal for each parsed request.
 %	Options provide a list of options. Defined options are
 %	
-%	  workers(N)	[2]		Define the number of worker threads
-%	  timeout(S)	[infinite]	Drop connections after inactivity
-%	  keep_alive_timeout [10]	Drop Keep-Alive connection timeout
-%	  local(KBytes)	
-%	  global(KBytes)
-%	  trail(KBytes) [<CommandLine>] Stack-sizes of worker threads
-%	  after(:Goal)  		Run Goal on request after finishing
-%					the HTTP reply.
+%	| workers(N)	     | 2 	Define the number of worker threads |
+%	| timeout(S)	     | infinite	Drop connections after inactivity   |
+%	| keep_alive_timeout | 10	Drop Keep-Alive connection timeout  |
+%	| local(KBytes)	     |						    |
+%	| global(KBytes)     |						    |
+%	| trail(KBytes)      | <CommandLine> Stack-sizes of worker threads  |
+%	| after(:Goal)       |		Run Goal on request after finishing \
+%					the HTTP reply.			    |
 
 http_server(Goal, Options) :-
 	strip_module(Goal, Module, G),
@@ -105,7 +107,7 @@ http_server(Goal, Module, Port, Options0) :-
 	create_pool(Options),
 	create_server(Socket, Module:Goal, Port, Queue, Options).
 
-%	after_option(+Options0, +Module, -Options)
+%%	after_option(+Options0, +Module, -Options)
 %	
 %	Add the module qualifier to the goal for the after(Goal) option
 
@@ -128,18 +130,21 @@ create_server(Socket, Goal, Port, Queue, Options) :-
 	assert(current_server(Port, Goal, Queue)).
 
 
-%	http_current_server(:?Goal, ?Port)
+%%	http_current_server(:Goal, ?Port) is nondet.
 %	
-%	Enumerate the created servers.
+%	True if Goal is the goal of a server at Port.
 
 http_current_server(Goal, Port) :-
 	strip_module(Goal, Module, G),
 	current_server(Port, Module:G, _).
 
 
-%	http_workers(+Port, ?Workers)
+%%	http_workers(+Port, -Workers) is det.
+%%	http_workers(+Port, +Workers:int) is det.
 %	
-%	Query or set the number of workers for the server at this port
+%	Query or set the number of workers  for the server at this port.
+%	The number of workers is dynamically   modified. Setting it to 1
+%	(one) can be used to profile the worker using tprofile/1.
 
 http_workers(Port, Workers) :-
 	current_server(Port, _, Queue),
@@ -150,7 +155,7 @@ http_workers(Port, Workers) :-
 	).
 
 
-%	http_current_worker(?Port, ?ThreadID)
+%%	http_current_worker(?Port, ?ThreadID)
 %	
 %	True if ThreadID is the identifier   of  a Prolog thread serving
 %	Port. This predicate is  motivated  to   allow  for  the  use of
@@ -162,7 +167,7 @@ http_current_worker(Port, ThreadID) :-
 	queue_worker(Queue, ThreadID).
 
 
-%	accept_server(+Socket, :Goal, +Options)
+%%	accept_server(+Socket, :Goal, +Options)
 %
 %	The goal of a small server-thread accepting new requests and
 %	posting them to the queue of workers.
@@ -194,7 +199,7 @@ accept_server(Socket, Goal, Options) :-
 		 *    WORKER QUEUE OPERATIONS	*
 		 *******************************/
 
-%	create_pool(+Options)
+%%	create_pool(+Options)
 %	
 %	Create the pool of HTTP worker-threads. Each worker has the
 %	alias http_worker_N.
@@ -236,7 +241,7 @@ resize_pool(Queue, Size) :-
 	).
 
 
-%	http_worker(+Options)
+%%	http_worker(+Options)
 %	
 %	A worker.  Workers simply wait until they are passes an accepted
 %	socket to process a client.
@@ -300,7 +305,7 @@ message_level(error(io_error(read, _), _),	silent).
 message_level(error(timeout_error(read, _), _),	informational).
 message_level(keep_alive_timeout,		silent).
 
-%	server_loop(:Goal, +In, +Out, +Socket, +Peer, +Options)
+%%	server_loop(:Goal, +In, +Out, +Socket, +Peer, +Options)
 %	
 %	Handle a client on the given stream. It will keep the connection
 %	open as long as the client wants this
@@ -334,7 +339,7 @@ after(Request, Options) :-
 	;   true
 	).
 
-%	close_connection(+In, +Out)
+%%	close_connection(+In, +Out)
 %	
 %	Closes the connection from the server to the client.  Errors are
 %	currently silently ignored.
@@ -343,7 +348,7 @@ close_connection(In, Out) :-
 	catch(close(In, [force(true)]), _, true),
 	catch(close(Out, [force(true)]), _, true).
 
-%	option(+Term, +Options, +Default)
+%%	option(+Term, +Options, +Default)
 %	
 %	Fetch option from the list.
 

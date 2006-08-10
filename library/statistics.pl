@@ -42,7 +42,7 @@
 :- module_transparent
 	time/1.
 
-%	time(:Goal)
+%%	time(:Goal)
 %
 %	Time the execution of Goal.  Possible choice-points of Goal are
 %	removed.
@@ -91,7 +91,7 @@ Later we will add a proper textual report-generator.
 :- multifile
 	prolog:show_profile_hook/2.
 
-%	profile(:Goal, +ShowStyle, +TopN)
+%%	profile(:Goal, +ShowStyle, +TopN)
 %	
 %	Run Goal under the execution profiler and show the top TopN
 %	goals using ShowStyle.
@@ -104,7 +104,7 @@ profile(Goal0, Style, N) :-
 		     prolog_statistics:show_profile(Style, N)).
 
 
-%   show_profile(N)
+%%   show_profile(N)
 %
 %   Show the top N functions' profile. Negative numbers or 0 show ALL
 %   functions that have been called during profiling.
@@ -160,9 +160,11 @@ show_plain(Node, Stat, Key) :-
 		 *	   DATA GATHERING	*
 		 *******************************/
 
-%	prof_statistics(prof(Ticks, Account, Time, Nodes))
+%%	prof_statistics(-Node) is det.
 %	
 %	Get overall statistics
+%	
+%	@param Node	term of the format prof(Ticks, Account, Time, Nodes)
 
 prof_statistics(prof(Ticks, Account, Time, Nodes)) :-
 	'$prof_statistics'(Ticks, Account, Time, Nodes).
@@ -232,7 +234,7 @@ value(Name, Data, Value) :-
 	key(Name, Arg),
 	arg(Arg, Data, Value).
 
-%	predicate_label(+Head, -Label)
+%%	predicate_label(+Head, -Label)
 %	
 %	Create a human-readable label for the given head
 
@@ -251,7 +253,7 @@ hidden_module(user, _).
 hidden_module(M, H) :-
 	predicate_property(system:H, imported_from(M)).
 
-%	predicate_name(+Head, -Name)
+%%	predicate_name(+Head, -Name)
 %	
 %	Return the (module-free) name of the predicate for sorting
 %	purposes.

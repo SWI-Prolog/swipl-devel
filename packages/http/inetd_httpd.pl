@@ -38,13 +38,13 @@
 	http_server(:, +),
 	server_loop(:, +).
 
-%	http_server(:Goal, +Options)
+%%	http_server(:Goal, +Options)
 %	
 %	Start the server from inetd. This is really easy as user_input
 %	is connected to the HTTP input and user_output is the place to
 %	write our reply to.  Options:
 %	
-%	    after(:Goal)	% Run Goal on the request after reply 
+%%	    after(:Goal)	% Run Goal on the request after reply 
 
 http_server(Goal, Options) :-
 	prompt(_, ''),

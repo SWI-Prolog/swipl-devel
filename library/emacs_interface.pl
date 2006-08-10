@@ -167,7 +167,7 @@ emacs_warning_file(Path, Path).
 		*         FIND PREDICATE	*
 		********************************/
 
-%	find_predicate1(Name, Arity)
+%%	find_predicate1(Name, Arity)
 %
 
 find_predicate1(Name, Arity) :-

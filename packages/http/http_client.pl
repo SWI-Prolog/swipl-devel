@@ -52,8 +52,8 @@
 
 user_agent('SWI-Prolog (http://www.swi-prolog.org)').
 
-%	connect(+UrlParts, -Read, -Write, +Options)
-%	disconnect(+UrlParts)
+%%	connect(+UrlParts, -Read, -Write, +Options) is det.
+%%	disconnect(+UrlParts) is det.
 %
 %	Connect/disconnect on the basis of a parsed URL.
 
@@ -131,7 +131,7 @@ port(Parts, 80) :-
 		 *	        GET		*
 		 *******************************/
 
-%	http_get(+URL, -Data, +Options)
+%%	http_get(+URL, -Data, +Options)
 %
 %	Get data from an HTTP server.
 
@@ -209,10 +209,10 @@ http_read_reply(In, _Data, _Options) :-
 %
 %	Write the request header.  It accepts the following options:
 %	
-%		http_version(Major-Minor)
-%		connection(Connection)
-%		user_agent(Agent)
-%		request_header(Name=Value)
+%%		http_version(Major-Minor)
+%%		connection(Connection)
+%%		user_agent(Agent)
+%%		request_header(Name=Value)
 %
 %	Remaining options are returned in RestOptions.
 
@@ -239,11 +239,11 @@ http_write_header(Out, Method, Location, Host, Options, RestOptions) :-
 	x_headers(Options3, Out, RestOptions).
 
 
-%	x_headers(+Options, +Out, -RestOptions)
+%%	x_headers(+Options, +Out, -RestOptions)
 %	
 %	Pass additional request options.  For example:
 %	
-%		request_header('Accept-Language' = 'nl, en')
+%%		request_header('Accept-Language' = 'nl, en')
 %		
 %	No checking is performed on the fieldname or value. Both are
 %	copied literally and in the order of appearance to the request.
@@ -254,17 +254,17 @@ x_headers(Options0, Out, Options) :-
 	x_headers(Options1, Out, Options).
 x_headers(Options, _, Options).
 
-%	http_read_data(+In, +Fields, +Data, -Options)
+%%	http_read_data(+In, +Fields, +Data, -Options)
 %
 %	If In is a handle to the HTTP server and Fields is the parsed
 %	http reply-header, read the reply into Data.  Options is one
 %	of:
 %
-%	to(stream(+WriteStream))
+%%	to(stream(+WriteStream))
 %		Append the content of the message to Stream
-%	to(atom)
+%%	to(atom)
 %		Return the reply as an atom
-%	to(codes)
+%%	to(codes)
 %		Return the reply as a list of codes
 
 http_read_data(Fields, Data, Options) :-
@@ -336,7 +336,7 @@ http_read_data(In, Fields, Data, Options) :-
 	http_read_data(In, Fields, Data, [to(atom)|Options]).
 
 
-%	copy_chunk_data(+In, +Out, -Footer)
+%%	copy_chunk_data(+In, +Out, -Footer)
 %
 %	Copy chunk-encoded data (HTTP/1.1, RFC rfc2068) to a new stream
 %	and return the foot.
@@ -355,15 +355,15 @@ copy_chunk_data(In, Out, Foot) :-
 		 *	       POST		*
 		 *******************************/
 
-%	http_post(+URL, +In, -Out, +Options)
+%%	http_post(+URL, +In, -Out, +Options)
 %
 %	Issue an HTTP POST request, In is modelled after the reply
 %	from the HTTP server module.  It is one of:
 %
-%	string(String)
-%	string(Type, String)
-%	html(Tokens)
-%	file(Type, File)
+%%	string(String)
+%%	string(Type, String)
+%%	html(Tokens)
+%%	file(Type, File)
 
 http_post(URL, In, Out, Options) :-
 	atomic(URL), !,

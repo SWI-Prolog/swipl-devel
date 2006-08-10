@@ -34,7 +34,7 @@
 	  chdir/1
 	]).
 
-%	can_open_file(+Path, +Mode)
+%%	can_open_file(+Path, +Mode)
 %	Succeeds if the user has access to `File' in mode `Mode'.  Fails
 %	silently if this is not the  case.   `Mode'  is  one  of  {read,
 %	write, both}.  This used to be difficult.  Since we have
@@ -62,7 +62,7 @@ path_dir_name(File, Dir) :-
 	;   Dir = RawDir
 	).
 
-%	chdir(+Dir)
+%%	chdir(+Dir)
 %
 %	Change Working Directory.  New code should be using working_directory/2.
 

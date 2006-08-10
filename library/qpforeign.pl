@@ -114,7 +114,7 @@ BUGS:	* Only supports C-interface
 	make_foreign_wrapper_file/2,
 	collect_foreign_predicates/2.
 
-%	make_wrapper(+Stream, +PrologHead)
+%%	make_wrapper(+Stream, +PrologHead)
 %
 %	Generates a C-wrapper function for the given foreign defined
 %	Prolog predicate.  The wrapper is called _plw_<predname><arity>.
@@ -139,7 +139,7 @@ make_wrapper(Out, Spec) :-
 	;   fail
 	).
 
-%	get_foreign_head(+Spec, -Func, -Head)
+%%	get_foreign_head(+Spec, -Func, -Head)
 %
 %	Get 3rd argument of relevant foreign/3 clause.
 
@@ -180,7 +180,7 @@ valid_type(string).
 valid_type(atom).
 
 
-%	make_C_header(+Stream, +WrapperName, +Arity)
+%%	make_C_header(+Stream, +WrapperName, +Arity)
 %
 %	Write function-header for the wrapper.  This is easy as the
 %	the return-type is always foreign_t and the arguments are
@@ -196,7 +196,7 @@ make_C_header(Out, WrapName, ArgN) :-
 	       )),
 	format(Out, ')~n{ ', []).
 
-%	make_C_decls(+Stream, +PrologHead)
+%%	make_C_decls(+Stream, +PrologHead)
 %      
 %	Writes the C variable declarations.  If the return value is
 %	used a variable named `rval' is created.  For each input parameter
@@ -223,13 +223,13 @@ make_C_decls(Out, Head) :-
 make_C_decls(Out, _) :-
 	format(Out, '~n', []).
 
-%	make_C_prototype(+Stream, +PrologHead)
+%%	make_C_prototype(+Stream, +PrologHead)
 %
 %	If the function handles floats or doubles, make	a prototype
 %	declaration for it to avoid unwanted conversions.
 
 make_C_prototype(Out, Head) :-
-%	arg(_, Head, A),
+%%	arg(_, Head, A),
 %	(   term_member(float, A)
 %	;   term_member(single, A)
 %	), !,
@@ -261,7 +261,7 @@ term_member(A, B) :-
 	arg(_, B, C),
 	term_member(A, C).
 
-%	make_C_input_conversions(+Stream, +PrologHead)
+%%	make_C_input_conversions(+Stream, +PrologHead)
 %
 %	Generate the input checking and conversion code.  Assumes
 %	boolean functions that take a Prolog term_t as first argument
@@ -285,7 +285,7 @@ make_C_input_conversions(Out, Head) :-
 	).
 
 
-%	make_C_call(+Stream, +Prolog, +CFunction)
+%%	make_C_call(+Stream, +Prolog, +CFunction)
 %
 %	Generate the actual call to the foreign function.  Input variables
 %	may be handed directly; output variables as a pointer to the o<var>.
@@ -307,7 +307,7 @@ make_C_call(Out, Head, CFunc) :-
 make_C_call(Out, _, _) :-
 	format(Out, ');~n', []).
 
-%	make_C_output_conversions(+Stream, +PrologHead)
+%%	make_C_output_conversions(+Stream, +PrologHead)
 %
 %	Generate conversions for the output arguments and unify them
 %	with the Prolog term_t arguments.
@@ -345,11 +345,11 @@ make_C_footer(Out) :-
 		 *	  INIT STATEMENT	*
 		 *******************************/
 
-%	make_C_init(+Stream, +PredList)
+%%	make_C_init(+Stream, +PredList)
 %
 %	Generate an array of PL_extension structures, that may be used to
 %	create a statically linked image as well as through the
-%	PL_load_extensions() call.
+%%	PL_load_extensions() call.
 %
 %	Of the supported PL_FA_<FLAGS>, TRANSPARENT may be declared by looking
 %	at the transparent (meta_predivate) attribute of the predicate.
@@ -386,7 +386,7 @@ insert_separator([A|T], S, [A, S|NT]) :-
 foreign_attribute(Head, 'PL_FA_TRANSPARENT') :-
 	predicate_property(Head, transparent).
 
-%	make_C_file_header(+Stream)
+%%	make_C_file_header(+Stream)
 %	
 %	Output the generic header declarations needed and some comments
 
@@ -478,7 +478,7 @@ wrapper_name(Head, Wrapper) :-
 	functor(Head, Name, Arity),
 	concat_atom(['_plw_', Name, Arity], Wrapper).
 
-%	map_C_type(+Prolog, -C)
+%%	map_C_type(+Prolog, -C)
 %
 %	Map Prolog interface type declarations into C types.
 

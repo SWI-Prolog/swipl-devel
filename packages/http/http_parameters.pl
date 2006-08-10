@@ -43,8 +43,8 @@
 :- module_transparent
 	http_parameters/3.
 
-%	http_parameters(+Request, ?Parms)
-%	http_parameters(+Request, ?Parms, +Options)
+%%	http_parameters(+Request, ?Parms) is det.
+%%	http_parameters(+Request, ?Parms, +Options) is det.
 %	
 %	Get HTTP GET  or  POST   form-data,  applying  type  validation,
 %	default values, etc.  Provided options are:
@@ -86,7 +86,7 @@ http_parms(Request, Params, DeclGoal, Data) :-
 	debug(post, 'POST Data: ~p', [Data]),
 	fill_parameters(Params, Data, DeclGoal).
 
-%	fill_parameters(+ParamDecls, +FormData, +DeclGoal)
+%%	fill_parameters(+ParamDecls, +FormData, +DeclGoal)
 %	
 %	Fill values from the parameter list
 

@@ -87,7 +87,7 @@
 		*      SYSTEM INTERACTION       *
 		*********************************/
 
-%	unix(+Action)
+%%	unix(+Action)
 %	interface to  Unix.
 
 unix(system(Command)) :-
@@ -128,7 +128,7 @@ otherwise.
 		*          ARITHMETIC           *
 		*********************************/
 
-%	abs(+Number, -Absolute)
+%%	abs(+Number, -Absolute)
 %	Unify `Absolute' with the absolute value of `Number'.
 
 abs(Number, Absolute) :-
@@ -152,7 +152,7 @@ atan(X, V) :-	  V is atan(X).
 atan2(Y, X, V) :- V is atan(Y, X).
 sign(X, V) :-	  V is sign(X).
 
-%	random(+Min, +Max, -Value)
+%%	random(+Min, +Max, -Value)
 %
 %	Value is a random integer with Min <= Value < Max.  Note that
 %	Quintus random/3 also deals with floats.  This one doesn't.
@@ -173,7 +173,7 @@ genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
 		 *	      FLAGS		*
 		 *******************************/
 
-%	prolog_flag(?Flag, ?Value)
+%%	prolog_flag(?Flag, ?Value)
 %
 %	Should map relevant Quintus flag identifiers.
 
@@ -204,7 +204,7 @@ prolog_flag(Flag, Value) :-
 		 *	     DATE/TIME		*
 		 *******************************/
 
-%	date(-Date)
+%%	date(-Date)
 %
 %	Get current date.
 
@@ -294,7 +294,7 @@ module_expansion_argument(N) :- integer(N).
 		 *	      STREAMS		*
 		 *******************************/
 
-%	current_stream(?Object, ?Mode, ?Stream)
+%%	current_stream(?Object, ?Mode, ?Stream)
 %
 %	SICStus/Quintus and backward compatible predicate.  New code should
 %	be using the ISO compatible stream_property/2.
@@ -314,14 +314,14 @@ stream_mode(write,  write).
 stream_mode(append, write).
 stream_mode(update, write).
 
-%	stream_position(+Stream, -Old, +New)
+%%	stream_position(+Stream, -Old, +New)
 
 stream_position(Stream, Old, New) :-
 	stream_property(Stream, position(Old)),
 	set_stream_position(Stream, New).
 
 
-%	skip_line(Stream)
+%%	skip_line(Stream)
 
 skip_line :-
 	skip(10).
@@ -348,7 +348,7 @@ compile(Files) :-
 atom_char(Char, Code) :-
 	char_code(Char, Code).
 
-%	midstring(?ABC, ?B, ?AC, LenA, LenB, LenC)
+%%	midstring(?ABC, ?B, ?AC, LenA, LenB, LenC)
 %
 %	Too difficult to explain.  See the Quintus docs.  As far as I
 %	understand them the code below emulates this function just fine.
@@ -382,14 +382,14 @@ midstring(ABC, B, AC, LenA, LenB, LenC) :-
 		 *	     EXCEPTIONS		*
 		 *******************************/
 
-%	raise_exception(+Term)
+%%	raise_exception(+Term)
 %
 %	Quintus compatible exception handling
 
 raise_exception(Term) :-
 	throw(Term).
 
-%	on_exception(+Template, :Goal, :Recover)
+%%	on_exception(+Template, :Goal, :Recover)
 
 :- meta_predicate
 	on_exception(+, :, :).

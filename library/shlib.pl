@@ -204,7 +204,7 @@ assert_shlib(File, Entry, Path, Module, Handle) :-
 		 *	 ADMINISTRATION		*
 		 *******************************/
 
-%	current_foreign_library(?File, ?Public)
+%%	current_foreign_library(?File, ?Public)
 %
 %	Query currently loaded shared libraries
 
@@ -258,7 +258,7 @@ unload_all_foreign_libraries :-
 	forall(current_library(File, _, _, _, _),
 	       unload_foreign(File)).
 
-%	unload_foreign(+File)
+%%	unload_foreign(+File)
 %	
 %	Unload the given foreign file and all `spontaneous' foreign
 %	predicates created afterwards. Handling these spontaneous

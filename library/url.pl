@@ -116,7 +116,7 @@ ISSUES:
 		 *	      GLOBALISE		*
 		 *******************************/
 
-%	global_url(+URL, +Base, -Global)
+%%	global_url(+URL, +Base, -Global)
 %	
 %	Translate a relative URL into an absolute one.  The first three
 %	cases deal with commonly seen and quickly to resolve cases.
@@ -140,7 +140,7 @@ global_url(URL, BaseURL, Global) :-
 	    atom_codes(Global, Chars)
 	).
 
-%	is_absolute_url(+URL)
+%%	is_absolute_url(+URL)
 %	
 %	Test whether a URL is absolute or relative.  We assume it is
 %	absolute if it starts with a protocol.
@@ -162,7 +162,7 @@ is_absolute_url(URL) :-
 		 *	  CREATE URL/URI	*
 		 *******************************/
 
-%	http_location(?Parts, ?Location)
+%%	http_location(?Parts, ?Location)
 %
 %	Translate the relevant parts of an URL into an HTTP location
 %	on a server.
@@ -242,7 +242,7 @@ catomic(A, In, Out) :-
 	atom_codes(A, Codes),
 	append(Codes, Out, In).
 
-%	csearch(+Attributes, //)
+%%	csearch(+Attributes)//
 
 csearch(A)--> 
 	(   { memberchk(search(Parameters), A) }
@@ -276,7 +276,7 @@ cform(Atom) -->
 	{ atom_codes(Atom, Codes) },
 	www_encode(Codes, "").
 
-%	cfragment(+Attributes, //)
+%%	cfragment(+Attributes)//
 
 cfragment(A) -->
 	{ memberchk(fragment(Frag), A), !,
@@ -292,18 +292,18 @@ cfragment(_) -->
 		 *	      PARSING		*
 		 *******************************/
 
-%	parse_url(+URL, [+BaseURL], -Attributes)
+%%	parse_url(+URL, -Attributes) is det.
+%%	parse_url(+URL, +BaseURL, -Attributes) is det.
 %
-%	Parse a URL to a sequence of attributes.  In the version with
-%	three arguments, URL may be an URL relative to BaseURL.
-%
+%	Parse a URL to a sequence  of   attributes.  In the version with
+%	three  arguments,  URL  may  be  an  URL  relative  to  BaseURL.
 %	Attributes:
 %
-%		protocol(Protocol)	Protocol identifier
-%		host(Host)		Name of host
-%		port(Port)		Number of port to contact
-%		path(Path)		The path
-%		search(Search)		Search specification
+%		| protocol(Protocol)	| Protocol identifier |
+%		| host(Host)		| Name of host |
+%		| port(Port)		| Number of port to contact |
+%		| path(Path)		| The path |
+%		| search(Search)	| Search specification |
 %		
 %	The parse_url/3	predicate deals with relative URLs.  BaseURL can
 %	be specified as an atom or parsed URL.
@@ -345,7 +345,7 @@ parse_url(URL, BaseURL, Attributes) :-
 	atom_codes(URL, Chars).
 
 	
-%	globalise_path(+LocalPath, +RelativeTo, -FullPath)
+%%	globalise_path(+LocalPath, +RelativeTo, -FullPath) is det.
 %	
 %	The first clause deals with the  standard URL /... global paths.
 %	The second with file://drive:path on MS-Windows.   This is a bit
@@ -403,7 +403,7 @@ digit(C, [C|T], T) :- code_type(C, digit).
 		 *	      RFC-3986		*
 		 *******************************/
 
-%	uri(-Parts, //)
+%%	uri(-Parts)//
 
 url([protocol(Schema)|Parts]) -->
 	schema(Schema),
@@ -435,12 +435,14 @@ http_location([path(Path)|P2]) -->
 	query(P2, P3),
 	fragment(P3, []).
 
-%	schema(-Atom, //)
+%%	schema(-Atom)//
 %	
-%	Schema ::= ALPHA *(ALPHA|DIGIT|"+"|"-"|".")
-%
 %	Schema  is  case-insensitive  and  the    canonical  version  is
 %	lowercase.
+%
+%	==
+%	Schema ::= ALPHA *(ALPHA|DIGIT|"+"|"-"|".")
+%	==
 
 schema(Schema) -->
 	lwalpha(C0),
@@ -467,10 +469,10 @@ schema_char(H) -->
 
 schema_extra(0'+).
 schema_extra(0'-).
-schema_extra(0'.).
+schema_extra(0'.).	% 0'
 
 
-%	hier_part(+Schema, -Parts, ?Tail, //)
+%%	hier_part(+Schema, -Parts, ?Tail)//
 %	
 %	Extract the hierarchy part.
 
@@ -575,7 +577,7 @@ path_rootless(Path) -->
 path_empty('/') -->
 	"".
 
-segments_chars([0'/|Chars], T) -->
+segments_chars([0'/|Chars], T) -->	% 0'
 	"/", !,
 	segment_chars(Chars, T0),
 	segments_chars(T0, T).
@@ -602,7 +604,7 @@ segment_nz_nc_char(_) --> ":", !, {fail}.
 segment_nz_nc_char(C) --> pchar(C).
 
 
-%	query(-Parts, ?Tail, //)
+%%	query(-Parts, ?Tail)// is det.
 %	
 %	Extract &Name=Value, ...
 
@@ -644,9 +646,9 @@ search_char(_) --> "=", !, { fail }.
 search_char(C) --> fragment_char(C).
 
 
-%	fragment(-Fragment, ?Tail, //)
+%%	fragment(-Fragment, ?Tail)//
 %	
-%	Extract the fragment (after the #)
+%	Extract the fragment (after the =#=)
 
 fragment([fragment(Fragment)|T], T) -->
 	"#", !,
@@ -662,7 +664,7 @@ fragment_chars([]) -->
 	[].
 
 
-%	fragment_char(-Char)
+%%	fragment_char(-Char)
 %	
 %	Find a fragment character.
 
@@ -675,7 +677,7 @@ fragment_char(0'?) --> "?", !.
 		 *	CHARACTER CLASSES	*
 		 *******************************/
 
-%	pchar(-Code, //)
+%%	pchar(-Code)//
 %	
 %	unreserved|pct_encoded|sub_delim|":"|"@"
 %	
@@ -692,7 +694,7 @@ pchar(C) -->
 pchar(C) -->
 	percent_coded(C).
 
-%	lwalpha(-C, //)
+%%	lwalpha(-C)//
 %	
 %	Demand alpha, return as lowercase
 
@@ -707,28 +709,7 @@ lwalpha(H) -->
 		 *	RESERVED CHARACTERS	*
 		 *******************************/
 
-%	reserved(?Code)
-%	
-%	URL reserved codes
-
-%reserved(Code) :-
-%	gen_delim(Code).
-%reserved(Code) :-
-%	sub_delim(Code).
-
-%	gen_delim(?Code)
-%	
-%	General delimeters
-
-%gen_delim(0':).
-%gen_delim(0'/).
-%gen_delim(0'?).
-%gen_delim(0'#).
-%gen_delim(0'[).
-%gen_delim(0']).
-%gen_delim(0'@).
-
-%	sub_delim(?Code)
+%%	sub_delim(?Code)
 %	
 %	Sub-delimiters
 
@@ -745,7 +726,7 @@ sub_delim(0';).
 sub_delim(0'=).
 
 
-%	unreserved(+C)
+%%	unreserved(+C)
 %	
 %	Characters that can be represented without procent escaping
 %	RFC 3986, section 2.3
@@ -756,7 +737,7 @@ unreserved(C) :-
 unreserved(0'-).
 unreserved(0'.).
 unreserved(0'_).
-unreserved(0'~).
+unreserved(0'~).			% 0'
 
 
 		 /*******************************
@@ -768,13 +749,13 @@ Encoding/decoding of form-fields  using   the  popular  www-form-encoded
 encoding used with the HTTP GET.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	www_form_encode(+Value, -X-WWW-Form-Encoded)
-%	www_form_encode(-Value, +X-WWW-Form-Encoded)
+%%	www_form_encode(+Value, -XWWWFormEncoded) is det.
+%%	www_form_encode(-Value, +XWWWFormEncoded) is det.
 %
-%	En/Decode between native value and application/x-www-form-encoded
-%	Maps space to +, keeps alnum, maps anything else to %XX and newlines
-%	to %OD%OA.  When decoding, newlines appear as a single newline (10)
-%	character.
+%	En/Decode        between        native          value        and
+%	=application/x-www-form-encoded=. Maps space to  +, keeps alnum,
+%	maps anything else to  =%XX=  and   newlines  to  =%OD%OA.= When
+%	decoding, newlines appear as a single newline (10) character.
 
 www_form_encode(Value, Encoded) :-
 	atomic(Value), !,
@@ -786,7 +767,7 @@ www_form_encode(Value, Encoded) :-
 	phrase(www_decode(Codes), EncCodes),
 	atom_codes(Value, Codes).
 
-%	www_encode(+Codes, +ExtraUnescaped, //)
+%%	www_encode(+Codes, +ExtraUnescaped)//
 
 www_encode([0'\r, 0'\n|T], Extra) --> !,
 	"%0D%0A",
@@ -847,7 +828,7 @@ percent_coded(C) -->
 	    }
 	).
 
-%	www_decode(-Codes, ...)
+%%	www_decode(-Codes)//
 
 www_decode([0' |T]) -->
 	"+", !,
@@ -874,10 +855,11 @@ utf8_cont([]) -->
 		 *	     FORM DATA		*
 		 *******************************/
 
-%	parse_url_search(?Spec, ?Fields)
+%%	parse_url_search(?Spec, ?Fields) is det.
 %
-%	Parse between a list of Name=Value and the MIME-type
-%	application/x-www-form-urlencoded as used to post HTTP requests
+%	Parse  between  a  list   of    Name=Value   and  the  MIME-type
+%	=application/x-www-form-urlencoded=  as  used  to    post   HTTP
+%	requests
 
 parse_url_search(Spec, Fields) :-
 	atomic(Spec), !,

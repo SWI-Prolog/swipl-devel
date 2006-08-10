@@ -32,12 +32,12 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This module implements the when/2 co-routine.
 %	
-%	when(+Condition, :Goal)
+%%	when(+Condition, :Goal)
 %
 %		Condition should be one of 
 %			?=(X,Y)
-%			nonvar(X)
-%			ground(X)
+%%			nonvar(X)
+%%			ground(X)
 %			(Condition,Condition)
 %			(Condition;Condition)
 %

@@ -71,7 +71,7 @@ main :-
 	;   run_main(M, [])
 	).
 	
-%	run_main(+Module, +Args)
+%%	run_main(+Module, +Args)
 %
 %	Run the main routine, guarding for exceptions and failure of the
 %	main/1 routine
@@ -87,7 +87,7 @@ run_main(Module, Av) :-
 	    halt(1)
 	).
 
-%	interrupt(+Signal)
+%%	interrupt(+Signal)
 %
 %	We received an interrupt.  This handler is installed using
 %	on_signal/3.

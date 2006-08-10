@@ -68,7 +68,7 @@ tty_flash :-
 tty_flash :-
 	put(7).
 
-%	string_action(+Name)
+%%	string_action(+Name)
 %	Send string from the termcap library with specified name.
 
 string_action(Name) :-

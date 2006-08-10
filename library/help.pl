@@ -54,7 +54,7 @@ help :-
 help :-
 	help(help/1).
 
-%	help(+Subject)
+%%	help(+Subject)
 %
 %	Display online help on specified subject.
 
@@ -63,7 +63,7 @@ help(What) :-
 help(What) :-
 	give_help(What).
 
-%	apropos(Pattern)
+%%	apropos(Pattern)
 %	Give a list of subjects that might be appropriate.
 
 apropos(What) :-
@@ -90,7 +90,7 @@ give_help(Name) :-
 give_help(What) :-
 	format('No help available for ~w~n', What).
 
-%	show_help(+ListOfRanges)
+%%	show_help(+ListOfRanges)
 %	Pipe specified ranges of the manual through the user defined pager
 
 :- dynamic asserted_help_tmp_file/1.

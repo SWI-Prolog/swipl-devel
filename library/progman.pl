@@ -51,7 +51,7 @@ MS-Windows  PROGMAN  interface  and  installation   for  SWI-Prolog  and
 XPCE/SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	progman_groups(-Groups)
+%%	progman_groups(-Groups)
 %
 %	Return list of atoms containing the titles of the currently
 %	available program groups.
@@ -64,7 +64,7 @@ progman_groups(Groups) :-
 	lines_to_atoms(Lines, Groups0),
 	Groups = Groups0.
 
-%	progman_group_info(+Group, -File, -Items)
+%%	progman_group_info(+Group, -File, -Items)
 %
 %	Extracts info on the given group: Filename used to store the
 %	group and a list of item(Title, CmdLine, Dir) terms.
@@ -78,7 +78,7 @@ progman_group_info(Group, File, Items) :-
 	line_to_args(GrounInfo, [_,File|_]),
 	maplist(map_item_info, ItemLines, Items).
 
-%	progman_make_group(+Name, [+File])
+%%	progman_make_group(+Name, [+File])
 %
 %	Create a group in the program manager.  If file is given, this
 %	is the file used by Windows to store the group info.
@@ -92,7 +92,7 @@ progman_make_group(Name, File) :-
 	dde_fmt_execute(DDE, '[CreateGroup("~w", "~w")]', [Name, File]),
 	close_dde_conversation(DDE).
 
-%	progman_make_item(+Group, +Title, +CmdLine, +Dir)
+%%	progman_make_item(+Group, +Title, +CmdLine, +Dir)
 %	
 %	Make a new program item in the named group.  If the item already
 %	exists, delete it.
@@ -119,7 +119,7 @@ progman_make_item(Group, Title, CmdLine, Dir, Icon) :-
 			[CmdLine, Title, IconFile, IconNum, Dir]),
 	close_dde_conversation(DDE).
 
-%	program_group(+Default, -Group)
+%%	program_group(+Default, -Group)
 %
 %	Given a default group name, ask for a new name if this group
 %	already exists.
@@ -139,7 +139,7 @@ program_group(Default, Default).
 		 *     ERRORS AND WARNINGS	*
 		 *******************************/
 
-%	check_error(+Return)
+%%	check_error(+Return)
 %
 %	Map return-codes into exeptions.
 
@@ -191,7 +191,7 @@ explain(Id) :-
 	format('~w~n', [X]),
 	fail ; true.
 
-%	line_to_args(+Line, -Args)
+%%	line_to_args(+Line, -Args)
 %
 %	Translate a line (Atom) as returned by PROGMAN's request for
 %	the contents of a group into a list of atomic arguments.  Arguments
@@ -237,7 +237,7 @@ string_val([C|M]) -->
 char([C], [C|T], T).
 end_of_string([], []).
 
-%	lines_to_atoms(+Lines, -Atoms)
+%%	lines_to_atoms(+Lines, -Atoms)
 %       
 %	Break a multiline answer from PROGMAN in multiple atoms, each
 %	describing a single line of the answer without the \r\n.
@@ -261,7 +261,7 @@ string_to_atoms([10|Rest], S0, [A|T]) :- !,
 string_to_atoms([C|T], M, A) :-
 	string_to_atoms(T, [C|M], A).
 
-%	read_line(-Line)
+%%	read_line(-Line)
 %
 %	Flush pending output and read input upto a newline.  Return the
 %	entered line as an atom.
@@ -279,7 +279,7 @@ read_chars([C|T]) :-
 	read_chars(T).
 read_chars([]).
 
-%	dde_fmt_execute(+DdeId, +Format, +Args)
+%%	dde_fmt_execute(+DdeId, +Format, +Args)
 %
 %	Utility predicate to create DDE commands from a formatted spec.
 

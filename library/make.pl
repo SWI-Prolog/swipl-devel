@@ -69,7 +69,7 @@ reload([H|T]) :-
 	reload_file(H),
 	reload(T).
 
-%	reload_file(File)
+%%	reload_file(File)
 %
 %	Reload file into the proper module.  Note that if the file is loaded
 %	into multiple modules this should be handled more carefully.

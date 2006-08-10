@@ -35,7 +35,7 @@
 	  ]).
 :- use_module(library(lists)).
 
-%	www_open_url(+Url)
+%%	www_open_url(+Url)
 %
 %	Open URL in running version of netscape or start a new netscape.
 %	Based on a windows-only version by Bob Wielinga.
@@ -97,7 +97,7 @@ known_browser(konquerer, -).
 known_browser(opera,     -).
 
 
-%	has_command(+Command)
+%%	has_command(+Command)
 %	
 %	Succeeds if Command is in  $PATH.   Works  for Unix systems. For
 %	Windows we have to test for executable extensions.

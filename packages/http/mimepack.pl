@@ -47,7 +47,7 @@ functionality of this package will be moved to the same library someday.
 Packing however is a lot simpler then parsing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	mime_pack(+Inputs, +OutputStream, Boundary)
+%%	mime_pack(+Inputs, +OutputStream, Boundary)
 %
 %	Pack a number of inputs into a MIME package using a specified
 %	or generated boundary.
@@ -123,7 +123,7 @@ write_mime_attributes([_|T], Out) :-
 	write_mime_attributes(T, Out).
 
 
-%	make_boundary(+Inputs, ?Boundary)
+%%	make_boundary(+Inputs, ?Boundary)
 %
 %	Generate a boundary.  This should check all input sources whether
 %	the boundary is enclosed.

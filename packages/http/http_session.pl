@@ -70,7 +70,7 @@ http_session_option(Option) :-
 	retractall(session_setting(Free)),
 	assert(session_setting(Option)).
 
-%	http_session_id(-SessionId)
+%%	http_session_id(-SessionId)
 %	
 %	Fetch the current session ID from the global request variable.
 
@@ -82,7 +82,7 @@ http_session_id(SessionID) :-
 	).
 
 
-%	http_session(+RequestIn, -RequestOut, -SessionID)
+%%	http_session(+RequestIn, -RequestOut, -SessionID)
 %	
 %	Maintain the notion of a  session   using  a client-side cookie.
 %	This must be called first when handling a request that wishes to
@@ -115,7 +115,7 @@ http:request_expansion(Request0, Request) :-
 	http_session(Request0, Request, _SessionID).
 
 
-%	open_session(+SessionID)
+%%	open_session(+SessionID)
 %	
 %	Open a new session.
 
@@ -125,7 +125,7 @@ open_session(SessionID) :-
 	assert(last_used(SessionID, Now)).
 
 
-%	valid_session_id(+SessionID)
+%%	valid_session_id(+SessionID)
 %	
 %	Check if this sessionID is known. If so, check the idle time and
 %	update the last_used for this session.
@@ -177,7 +177,7 @@ http_session_data(Data) :-
 		 *	     ENUMERATE		*
 		 *******************************/
 
-%	http_current_session(?SessionID, ?Data)
+%%	http_current_session(?SessionID, ?Data)
 %	
 %	Enumerate the current sessions and   associated data. The pseudo
 %	data element idle(Seconds) provides the idle time. Other data is
@@ -228,7 +228,7 @@ http_gc_sessions.
 		 *	       UTIL		*
 		 *******************************/
 
-%	gen_cookie(-Cookie)
+%%	gen_cookie(-Cookie)
 %	
 %	Generate a random cookie that  can  be   used  by  a  browser to
 %	identify the current session

@@ -79,7 +79,7 @@ link_foreign :-
 		 *	       LINES		*
 		 *******************************/
 
-%	pl_read_line_to_codes(+Fd, -Line)
+%%	pl_read_line_to_codes(+Fd, -Line)
 %
 %	Read a line of input from stream into a list of character codes.
 %	Trailing newline and or ret are deleted.
@@ -101,7 +101,7 @@ read_1line_to_codes(C, Fd, [C|T]) :-
 	get_code(Fd, C2),
 	read_1line_to_codes(C2, Fd, T).
 
-%	pl_read_line_to_codes(+Fd, -Line, ?Tail)
+%%	pl_read_line_to_codes(+Fd, -Line, ?Tail) is det.
 %
 %	Read a line of input as a   difference list. This should be used
 %	to read multiple lines  efficiently.   On  reaching end-of-file,
@@ -124,7 +124,8 @@ read_line_to_codes(C, Fd, [C|T], Tail) :-
 		 *     STREAM (ENTIRE INPUT)	*
 		 *******************************/
 
-%	pl_read_stream_to_codes(+Stream, -Codes, [?Tail]).
+%%	pl_read_stream_to_codes(+Stream, -Codes) is det.
+%%	pl_read_stream_to_codes(+Stream, -Codes, ?Tail) is det.
 
 pl_read_stream_to_codes(Fd, Codes) :-
 	pl_read_stream_to_codes(Fd, Codes, []).
@@ -139,7 +140,7 @@ read_stream_to_codes(C, Fd, [C|T], Tail) :-
 	read_stream_to_codes(C2, Fd, T, Tail).
 
 
-%	read_stream_to_terms(+Stream, -Terms, ?Tail, +Options).
+%%	read_stream_to_terms(+Stream, -Terms, ?Tail, +Options) is det.
 
 read_stream_to_terms(Fd, Terms, Tail, Options) :-
 	read_term(Fd, C0, Options),
@@ -156,7 +157,7 @@ read_stream_to_terms(C, Fd, [C|T], Tail, Options) :-
 		 *      FILE (ENTIRE INPUT)	*
 		 *******************************/
 
-%	read_file_to_codes(+Spec, -Codes, +Options)
+%%	read_file_to_codes(+Spec, -Codes, +Options) is det.
 
 read_file_to_codes(Spec, Codes, Options) :-
 	(   select(tail(Tail), Options, Options1)
@@ -176,7 +177,7 @@ read_file_to_codes(Spec, Codes, Options) :-
 	Codes = Codes0.
 
 
-%	read_file_to_terms(+Spec, -Terms, +Options)
+%%	read_file_to_terms(+Spec, -Terms, +Options) is det.
 
 read_file_to_terms(Spec, Terms, Options) :-
 	(   select(tail(Tail), Options, Options1)

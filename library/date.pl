@@ -33,7 +33,7 @@
 	  [ date_time_value/3		% Extract values from a date/time struct
 	  ]).
 
-%	date_time_value(+Field, +Struct, -Value)
+%%	date_time_value(+Field, +Struct, -Value)
 
 date_time_value(year,		 date(Y,_,_,_,_,_,_,_,_), Y).
 date_time_value(month,		 date(_,M,_,_,_,_,_,_,_), M).

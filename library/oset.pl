@@ -32,9 +32,19 @@
                  ]).
 
 
-% oset_is(+OSet)
+/** <module> Ordered set manipulation
+
+This library defines set operations on sets represented as ordered
+lists.
+
+@author	Jon Jagger
+@depreciated New code should use the de-facto library ordsets.pl
+*/
+
+
+%% oset_is(+OSet)
 %   check that OSet in correct format (standard order)
-% -------------------
+
 oset_is(-) :- !, fail.    % var filter
 oset_is([]).
 oset_is([H|T]) :-
@@ -48,8 +58,8 @@ oset_is([H|T], H0) :-
 
 
 
-% oset_union(+OSet1, +OSet2, -Union).
-% -----------------------------
+%% oset_union(+OSet1, +OSet2, -Union).
+
 oset_union([], Union, Union).
 oset_union([H1|T1], L2, Union) :-
     union2(L2, H1, T1, Union).
@@ -67,9 +77,9 @@ union3(>, H1, T1,  H2, T2, [H2|Union]) :-
     union2(T2, H1, T1, Union).
 
 
-% oset_int(+OSet1, +OSet2, -Int)
+%% oset_int(+OSet1, +OSet2, -Int)
 %   ordered set intersection
-% ------------------------------
+
 oset_int([], _Int, []).
 oset_int([H1|T1], L2, Int) :-
     isect2(L2, H1, T1, Int).
@@ -87,9 +97,9 @@ isect3(>, H1, T1,  _H2, T2, Int) :-
     isect2(T2, H1, T1, Int).
 
 
-% oset_diff(+InOSet, +NotInOSet, -Diff)
+%% oset_diff(+InOSet, +NotInOSet, -Diff)
 %   ordered set difference
-% --------------------------------------
+
 oset_diff([], _Not, []).
 oset_diff([H1|T1], L2, Diff) :-
     diff21(L2, H1, T1, Diff).
@@ -112,9 +122,9 @@ diff3(>,  H1, T1, _H2, T2, Diff) :-
     diff21(T2, H1, T1, Diff).
 
 
-% oset_dunion(+SetofSets, -DUnion)    
+%% oset_dunion(+SetofSets, -DUnion)    
 %   distributed union
-% --------------------------------
+
 oset_dunion([], []).
 oset_dunion([H|T], DUnion) :-
     oset_dunion(T, H, DUnion).
@@ -125,9 +135,9 @@ oset_dunion([H|T], DUnion0, DUnion) :-
     oset_dunion(T, DUnion1, DUnion).
 
 
-% oset_dint(+SetofSets, -DInt)    
+%% oset_dint(+SetofSets, -DInt)    
 %   distributed intersection
-% ---------------------------- 
+
 oset_dint([], []).
 oset_dint([H|T], DInt) :-
     dint(T, H, DInt).
@@ -138,9 +148,9 @@ dint([H|T], DInt0, DInt) :-
     dint(T, DInt1, DInt).
 
 
-% oset_power(+Set, -PSet)
+%% oset_power(+Set, -PSet)
 %   ordered set powerset
-% -----------------------
+
 oset_power(S, PSet) :-
     pset(S, [[]], PSet0),
     sort(PSet0, PSet).
@@ -156,9 +166,9 @@ happ([S|Ss], H, [[H|S],S|Rest]) :-
 
 
 
-% oset_addel(+Set, +El, -Add)  
+%% oset_addel(+Set, +El, -Add)  
 %   ordered set element addition
-% ------------------------------
+
 oset_addel([], El, [El]). 
 oset_addel([H|T], El, Add) :-
     compare(Order, H, El),
@@ -170,9 +180,9 @@ addel(=, H, T, _El, [H|T]).
 addel(>, H, T,  El, [El,H|T]).
 
 
-% oset_delel(+Set, +el, -Del)  
+%% oset_delel(+Set, +El, -Del)  
 %   ordered set element deletion
-% ------------------------------
+
 oset_delel([], _El, []).
 oset_delel([H|T], El, Del) :-
     compare(Order, H, El),

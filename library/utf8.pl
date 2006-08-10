@@ -33,7 +33,7 @@
 	  [ utf8_codes/3		% ?String
 	  ]).
 
-%	utf8_codes(?Codes, ?UTF8, ?Tail)
+%%	utf8_codes(?Codes)// is det.
 %	
 %	DCG translating between  a  Unicode   code-list  and  its  UTF-8
 %	encoded  byte-string.  The  DCG  works   two  ways.  Encoding  a

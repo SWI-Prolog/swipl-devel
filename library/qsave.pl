@@ -43,7 +43,8 @@
 
 :- dynamic verbose/1.
 
-%	qsave_program(+File, +[Options ...])
+%%	qsave_program(+File) is det.
+%%	qsave_program(+File, +Options) is det.
 %
 %	Make a saved state in file `File'.
 
@@ -289,7 +290,7 @@ save_autoload :-
 		 *	       MODULES		*
 		 *******************************/
 
-%	save_module(+Module, +SaveClass)
+%%	save_module(+Module, +SaveClass)
 %
 %	Saves a module
 
@@ -548,7 +549,6 @@ close_map.
 feedback(Fmt, Args) :-
 	verbose(Fd), !,
 	format(Fd, Fmt, Args).
-%	flush_output(Fd).		% Real debugging only
 feedback(_, _).
 
 

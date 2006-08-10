@@ -69,7 +69,7 @@ listing :-
 listing.
 
 
-%	listing(+PredIndicators)
+%%	listing(+PredIndicators)
 %	
 %	List the given predicates
 
@@ -187,7 +187,7 @@ notify_changed(Pred) :-
 	       [Name, Arity]).
 notify_changed(_).
 
-%	portray_clause(+Clause)
+%%	portray_clause(+Clause)
 %
 %	Portray `Clause' on the current  output   stream.  Layout of the
 %	clause is to our best standards.   As  the actual variable names
@@ -251,7 +251,7 @@ do_portray_clause(Out, Fact) :-
 portray_head(Out, Head) :-
 	pprint(Out, Head).
 
-%	portray_body(+Term, +Indent, +DoIndent, +Out)
+%%	portray_body(+Term, +Indent, +DoIndent, +Out)
 %	
 %	Write Term at current indentation. If   DoIndent  is 'indent' we
 %	must first call nlindent/2 before emitting anything.
@@ -344,7 +344,7 @@ portray_meta(Out, Term, N, Indent) :-
 portray_meta(Out, Term, _, _) :-
 	pprint(Out, Term).	
 
-%	portray_list(+List, +Indent, +Out)
+%%	portray_list(+List, +Indent, +Out)
 %	
 %	Portray a list list this.  Right side for improper lists
 %	
@@ -376,7 +376,7 @@ portray_list_elements([H|T], EIndent, Out) :-
 	    pprint(Out, T)
 	).
 
-%	nlindent(+Out, +Indent)
+%%	nlindent(+Out, +Indent)
 %	
 %	Write newline and indent to column Indent.
 
@@ -395,14 +395,14 @@ put_tabs(Out, N) :-
 put_tabs(_, _).
 
 
-%	inc_indent(+Indent0, +Inc, -Indent)
+%%	inc_indent(+Indent0, +Inc, -Indent)
 %	
 %	Increment the indent with logical steps.
 
 inc_indent(Indent0, Inc, Indent) :-
 	Indent is Indent0 + Inc*4.
 
-%	pprint(+Out, +Term)
+%%	pprint(+Out, +Term)
 %	
 %	Print Term such that it can be read.
 
