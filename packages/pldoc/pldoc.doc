@@ -387,8 +387,10 @@ PceEmacs can be set as default editor using
 		  Content can be long. \\
 \tt name/arity  & Create a link to a predicate \\
 \tt name//arity & Create a link to a DCG rule \\
+\tt name.pl	& If <name>.pl is the name of an existing file
+		  in the same directory, create a link. \\
 \tt Word	& Capitalised words that appear as argument-name
-		  are written using \verb$<var>Word</var>$ \\
+		  are written in \arg{Italic} \\
 \tt $Word: CVS$ & CVS expanded keyword.  Typeset as the plain
 		  keyword value. \\
 \end{tabular}

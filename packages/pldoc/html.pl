@@ -621,7 +621,7 @@ term(Term, Bindings) -->
 		 *	       PREDREF		*
 		 *******************************/
 
-%%	predref(PI)// is det.
+%%	predref(+PI)// is det.
 %
 %	Create a reference to a predicate. The reference consists of the
 %	relative path to the  file  using   the  predicate  indicator as
@@ -663,6 +663,22 @@ relative_file(Head, RelFile) :-
 	in_file(Head, DefFile),
 	relative_file_name(DefFile, CurrentFile, RelFile).
 	
+%%	file(+FileName)// is det.
+%
+%	Create a link to another filename if the file exists.
+
+file(File) -->
+	{ b_getval(pldoc_file, CurrentFile),
+	  absolute_file_name(File, _,
+			     [ relative_to(CurrentFile),
+			       access(read),
+			       file_errors(fail)
+			     ]), !
+	},
+	html(a([class(file), href(File)],File)).
+file(File) -->
+	html(code(class(file), File)).
+
 %%	in_file(+Head, ?File) is nondet.
 %
 %	@tbd: prefer local, then imported, then `just anywhere'

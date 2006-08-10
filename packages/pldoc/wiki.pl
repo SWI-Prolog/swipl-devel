@@ -449,6 +449,12 @@ wiki_face(\predref(Name//Arity), _) -->
 wiki_face(span(class=cvs, CVS), _) -->
 	[$, Word, :], {string(Word)}, wiki_faces(CVS0, []), [$], !,
 	{ strip_ws_tokens(CVS0, CVS) }.
+wiki_face(\file(Name), _) -->
+	word_token(BaseS), ['.'], word_token(ExtS),
+	{ string_to_atom(ExtS, Ext),
+	  autolink_extension(Ext), !,
+	  concat_atom([BaseS, '.', Ext], Name)
+	}.
 wiki_face(FT, ArgNames) -->
 	[T],
 	{   atomic(T)
@@ -459,6 +465,13 @@ wiki_face(FT, ArgNames) -->
 functor_name(String) :-
 	sub_atom(String, 0, 1, _, Char),
 	char_type(Char, alpha).
+
+%%	autolink_extension(?Ext) is nondet.
+%
+%	True if Ext is a filename extensions that create automatic links
+%	in the documentation.
+
+autolink_extension(pl).
 
 
 		 /*******************************

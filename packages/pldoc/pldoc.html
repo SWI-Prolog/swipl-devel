@@ -420,21 +420,42 @@ conventions to this. For font changing code, The opening symbol must be
 followed immediately by a word and the closing one must immediately 
 follow a word.
 
+<P>As code comment frequently contains symbols such as <CODE>=</CODE> we 
+---in contrast to normal Wiki conventions--- do font font-switches onlt 
+if a single word is surrounded by <CODE>=</CODE>, <CODE>*</CODE> or <CODE>_</CODE>. 
+Longer sequences must be created using additional <CODE>|</CODE>:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+PceEmacs can be set as default editor using
+=|set_prolog_flag(editor, pce_emacs)|=
+</PRE>
+</TABLE>
+
 <P>
 <CENTER>
 <TABLE BORDER=0 FRAME=void RULES=groups>
-<TR VALIGN=top><TD><TT>*bold text*</TT></TD><TD>Typset text between `*' 
-in bold </TD></TR>
-<TR VALIGN=top><TD><TT>_emphasize_</TT></TD><TD>Typset text between `_' 
-as _emphasized </TD></TR>
-<TR VALIGN=top><TD><TT>=code=</TT></TD><TD>Typset text between `=' in 
-fixed font </TD></TR>
+<TR VALIGN=top><TD><TT>*bold*</TT></TD><TD>Typset text in <B>bold</B>. 
+Content must be a single word. </TD></TR>
+<TR VALIGN=top><TD><TT>*|bold|*</TT></TD><TD>Typset text in <B>bold</B>. 
+Content can be long. </TD></TR>
+<TR VALIGN=top><TD><TT>_emphasize_</TT></TD><TD>Typset text as <EM>emphasize</EM>. 
+Content must be a single word. </TD></TR>
+<TR VALIGN=top><TD><TT>_|emphasize|_</TT></TD><TD>Typset text as <EM>emphasize</EM>. 
+Content can be long. </TD></TR>
+<TR VALIGN=top><TD><TT>=code=</TT></TD><TD>Typset text <TT>fixed</TT> 
+font. Content must be a single word. </TD></TR>
+<TR VALIGN=top><TD><TT>=|code|=</TT></TD><TD>Typset text <TT>fixed</TT> 
+font. Content can be long. </TD></TR>
 <TR VALIGN=top><TD><TT>name/arity</TT></TD><TD>Create a link to a 
 predicate </TD></TR>
 <TR VALIGN=top><TD><TT>name//arity</TT></TD><TD>Create a link to a DCG 
 rule </TD></TR>
+<TR VALIGN=top><TD><TT>name.pl</TT></TD><TD>If &lt;<VAR>name</VAR>&gt;.pl 
+is the name of an existing file in the same directory, create a link. </TD></TR>
 <TR VALIGN=top><TD><TT>Word</TT></TD><TD>Capitalised words that appear 
-as argument-name are written using <CODE>\bnfmeta{var}Word&lt;/var&gt;</CODE> </TD></TR>
+as argument-name are written in <VAR>Italic</VAR> </TD></TR>
 <TR VALIGN=top><TD><TT><VAR>Word: CVS</VAR> </TT></TD><TD>CVS expanded 
 keyword. Typeset as the plain keyword value. </TD></TR>
 </TABLE>
