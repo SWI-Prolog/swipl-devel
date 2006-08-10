@@ -49,7 +49,7 @@
 	tspy/1,
 	tspy/2.
 
-%	threads
+%%	threads
 %
 %	List currently active threads.  If a thread has exited, get
 %	rid of them.
@@ -64,7 +64,7 @@ threads :-
 threads :-
 	format('~*t~60|~n', "-").
 
-%	join_threads/0
+%%	join_threads
 %	
 %	Join all terminated threads.
 
@@ -81,7 +81,7 @@ rip_thread(Status, Id) :-
 	print_message(informational, join_thread(Id, Status)),
 	thread_join(Id, _).
 	
-%	interactor
+%%	interactor
 %
 %	Run a Prolog toplevel in another thread with a new console window.
 
@@ -101,7 +101,7 @@ run_prolog :-
 %		E = error(_, _),
 		run_prolog)).
 
-%	attach_console
+%%	attach_console
 %
 %	Create an xterm-console and make the standard Prolog streams point to
 %	it.
@@ -156,8 +156,8 @@ detach_console(Id) :-
 		 *	    DEBUGGING		*
 		 *******************************/
 		
-%%	tspy(:Spec)
-%	tspy(:Spec, +ThreadId
+%%	tspy(:Spec) is det.
+%%	tspy(:Spec, +ThreadId) is det.
 %	
 %	Trap the graphical debugger on reaching Spec in the specified or
 %	any thread.
@@ -171,8 +171,8 @@ tspy(Spec, ThreadID) :-
 	tdebug(ThreadID).
 
 
-%	tdebug
-%%	tdebug(+Thread)
+%%	tdebug is det.
+%%	tdebug(+Thread) is det.
 %	
 %	Enable debug-mode, trapping the graphical debugger on reaching
 %	spy-points or errors.
@@ -184,8 +184,8 @@ tdebug :-
 tdebug(ThreadID) :-
 	thread_signal(ThreadID, gdebug).
 
-%	tnodebug
-%%	tnodebug(+Thread)
+%%	tnodebug is det.
+%%	tnodebug(+Thread) is det.
 %	
 %	Disable debug-mode in all threads or the specified Thread.
 
@@ -201,7 +201,7 @@ tnodebug(ThreadID) :-
 		 *	 REMOTE PROFILING	*
 		 *******************************/
 
-%%	tprofile(+Thread)
+%%	tprofile(+Thread) is det.
 %	
 %	Profile the operation of Thread until the user hits a key.
 

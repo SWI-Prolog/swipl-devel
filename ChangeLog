@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * DOC: Fixed all libraries to have their comments compatible with the
+    emerging documentation package.
+
   * FIXED: stead-fastness of library predicate option/3.
 
   * PORT: Bug#192: Better implementation of per-thread CPUtime, depending
