@@ -41,7 +41,7 @@
 		*              MAKE             *
 		*********************************/
 
-%	make/0
+%%	make
 %	
 %	Reload all source files that have been changed since they were
 %	loaded.
