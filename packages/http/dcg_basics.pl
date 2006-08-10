@@ -58,13 +58,11 @@
 	  ]).
 
 
-%%	string_without(+End, -Codes)
+%%	string_without(+End, -Codes)// is det.
 %	
 %	Take as tokens from the input until the next token appears in
 %	End.  End itself is left on the input.  Typical use is to read
 %	upto a defined delimiter such as a newline or other reserved
-
-
 %	character.
 
 string_without(Not, [C|T]) -->
@@ -75,7 +73,7 @@ string_without(Not, [C|T]) -->
 string_without(_, []) -->
 	[].
 
-%%	string(-Codes)
+%%	string(-Codes)// is nondet.
 %	
 %	Take as few as possible tokens from the input, taking one more
 %	each time on backtracking. This code is normally followed by a
@@ -84,7 +82,7 @@ string_without(_, []) -->
 string(String, In, Rest) :-
 	append(String, Rest, In).
 
-%	blanks//0
+%	blanks// is det.
 %	
 %	Skip 0 or more white-space characters.
 
@@ -121,7 +119,7 @@ blanks_to_nl -->
 blanks_to_nl -->
 	eos.
 
-%	whites//0
+%	whites// is det.
 %	
 %	Skip white space _inside_ a line.
 
@@ -142,7 +140,7 @@ white -->
 		 *	 CHARACTER STUFF	*
 		 *******************************/
 
-%%	alpha_to_lower(-C)
+%%	alpha_to_lower(-C)// is semidet.
 %
 %	Read a letter and return it as a lowercase letter.  In output
 %	mode this simply emits the character.
@@ -161,9 +159,9 @@ alpha_to_lower(L) -->
 		 *	      NUMBERS		*
 		 *******************************/
 
-%%	digits(?Chars) is det.
-%%	digit(?Char) is det.
-%%	integer(?Integer) is det.
+%%	digits(?Chars)// is det.
+%%	digit(?Char)// is det.
+%%	integer(?Integer)// is det.
 %
 %	Number processing. The predicate  digits//1   matches  a posibly
 %	empty set of digits, digit//1 processes a matches a single digit
@@ -300,12 +298,19 @@ mkval([H|T], Base, W0, W) :-
 		 *	   END-OF-STRING	*
 		 *******************************/
 
+%%	eos//
+%
+%	True if at end of input list.
 
 eos([], []).
 
 		 /*******************************
 		 *	     GENERATION		*
 		 *******************************/
+
+%%	atom(+Atom)// is det.
+%	
+%	Generate codes of Atom.
 
 atom(Atom) -->
 	{ atomic(Atom),
