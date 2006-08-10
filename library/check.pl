@@ -39,6 +39,14 @@
 
 :- style_check(+dollar).		% lock these predicates
 
+/** <module> Consistency checking
+
+This library provides some quick and dirty consistency checking of the
+loaded Prolog program.
+
+@see	prolog_xref.pl
+*/
+
 %%	check
 %	
 %	Run all consistency checks defined in this library
@@ -58,7 +66,9 @@ check :-
 %	
 %	List predicates names refered to  in  a  clause  body,  but  not
 %	defined.  This forms a "Quick and Dirty" alternative for a cross
-%	referencing tool (which I need to write someday).
+%	referencing tool.
+%	
+%	@see gxref/0 provides a graphical cross-referencer.
 
 list_undefined :-
 	$style_check(Old, Old), 
