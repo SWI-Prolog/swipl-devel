@@ -34,32 +34,32 @@
 	, tty_flash/0
 	, menu/3
 	]).
+:- use_module(library(lists)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-		           TERMINAL OPERATIONS
+/** <module> Terminal operations
 
-This library package defines some common  operations on terminals.  It
-is based on the Unix termcap facility  to perform terminal independant
-I/O on video displays.  The package consists of three sections:
+This library package defines some common operations on terminals. It is
+based on the Unix termcap facility to perform terminal independant I/O
+on video displays. The package consists of three sections:
 
-  1) Predicates to perform simple operations on terminals
-  2) Extenstions to format/2 to include cursor position and clearing
+  1. Predicates to perform simple operations on terminals
+  2. Extenstions to format/2 to include cursor position and clearing
      sections of the screen.
-  3) A generic predicate to build simple menus.
+  3. A generic predicate to build simple menus.
 
-				  BUGS
+@bug	The stream information on the terminal related  streams
+	is not maintained by these predicates.
+*/
 
-The stream  information  on the   terminal related  streams    is  not
-maintained by these predicates.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-%	tty_clear/0
+%%	tty_clear
+%
 %	Clear the display.
 
 tty_clear :-
 	string_action(cl).
 
-%	tty_flash/0
+%%	tty_flash
+%	
 %	Give visual signal if possible, otherwise beep.
 
 tty_flash :-
@@ -69,6 +69,7 @@ tty_flash :-
 	put(7).
 
 %%	string_action(+Name)
+%
 %	Send string from the termcap library with specified name.
 
 string_action(Name) :-
@@ -134,55 +135,57 @@ tty_nl(N) :-
 	    nl,
 	fail ; true.
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-				     MENU
+		 /*******************************
+		 *	       MENU		*
+		 *******************************/
 
-The  package below is  a simple package  to  show (short)  menus.  The
-entry point is the predicate menu/3, which is described below.
+%%	menu(+Title, +Options, -Choice) is semidet.
+%
+%	Show a menu. The display is cleared,   the  title is centered at
+%	the top, the options are displayed  and finally the user actions
+%	are parsed and the user's choice   is returned. The screen looks
+%	like this:
+%	
+%	==
+%    		--------------------------------------------
+%		|                                          |
+%		|                  Title	           |
+%	    	|					   |
+%		|   1) Option One                          |
+%		|   2) Option Two			   |
+%		|   3) Quit				   |
+%		|					   |
+%		|   Your Choice? *			   |
+%		|					   |
+%	==
+%
+%	The user selects an item by pressing the number of the item, or
+%	the first letter of the option. If more then one option match,
+%	the common prefix of the matching options is given and the user
+%	is expected to type the next character.  On illegal input the
+%	screen is flashed (or a beep is given if the terminal can't flash
+%	the screen).
+%
+%	Text fields (the title and option texts) are either plain atoms
+%	or terms Fmt/Args.  In the latter case the argument is transformed
+%	into an atom using format/3.
+%
+%	The specification of an option is a term PrologName:UserName.
+%	PrologName is an atom, which is returned as choice if the user
+%	selects this menu item.  UserName is processed as a text field
+%	(see above) and displayed.  The entries are numbered automatically.
+%
+%	The example above could be defined as:
+%
+%	==
+%	get_action(Choice) :-
+%		menu('Title',
+%			[ option_1 : 'Option One'
+%			, option_2 : 'Option Two'
+%			, quit     : 'Quit'
+%			], Choice).
+% 	==
 
-menu(+Title, +Options, -Choice)
-	Show a menu.  The display is cleared, the title is centered at
-	the top, the options are displayed and finally the user actions
-	are parsed and the user's choice is returned.
-
-	The screen looks like this:
-
-    		--------------------------------------------
-		|                                          |
-		|                  Title	           |
-	    	|					   |
-		|   1) Option One                          |
-		|   2) Option Two			   |
-		|   3) Quit				   |
-		|					   |
-		|   Your Choice? *			   |
-		|					   |
-
-	The user selects an item by pressing the number of the item, or
-	the first letter of the option. If more then one option match,
-	the common prefix of the matching options is given and the user
-	is expected to type the next character.  On illegal input the
-	screen is flashed (or a beep is given if the terminal can't flash
-	the screen).
-
-	Text fields (the title and option texts) are either plain atoms
-	or terms Fmt/Args.  In the latter case the argument is transformed
-	into an atom using sformat/3.
-
-	The specification of an option is a term PrologName:UserName.
-	PrologName is an atom, which is returned as choice if the user
-	selects this menu item.  UserName is processed as a text field
-	(see above) and displayed.  The entries are numbered automatically.
-
-	The example above could be defined as:
-
-	get_action(Choice) :-
-		menu('Title',
-			[ option_1 : 'Option One'
-			, option_2 : 'Option Two'
-			, quit     : 'Quit'
-			], Choice).
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 menu(Title, List, Choice) :-
 	show_title(Title),
@@ -205,7 +208,7 @@ build_menu([_:H|T], N) :-
 	build_menu(T, NN).
 
 to_text(Fmt/Args, Text) :- !,
-	sformat(Text, Fmt, Args).
+	format(string(Text), Fmt, Args).
 to_text(Text, Text).
 
 get_answer(List, Choice) :-
