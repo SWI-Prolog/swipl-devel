@@ -50,9 +50,7 @@ client support is provided by http_client.pl
 %	
 %	Open a HTTP url as a (binary) stream. Uses HTTP 1.0 protocol
 %	revision to deal with virtual hosts and to be able to interpret
-%	the header.
-%	
-%	Supported options:
+%	the header.  Supported options:
 %	
 %		* size(-Size)
 %		  Return size of the resource

@@ -29,13 +29,26 @@
     the GNU General Public License.
 */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Describe Prolog Terms
+
 The   library(explain)   describes   prolog-terms.   The   most   useful
 functionality is its cross-referencing function.
 
+==
+?- explain(subset(_,_)).
+"subset(_, _)" is a compound term
+        Referenced from 2-th clause of lists:subset/2
+        Referenced from 46-th clause of prolog_xref:imported/3
+        Referenced from 68-th clause of prolog_xref:imported/3
+lists:subset/2 is a predicate defined in
+        /staff/jan/lib/pl-5.6.17/library/lists.pl:307
+        Referenced from 2-th clause of lists:subset/2
+        Possibly referenced from 2-th clause of lists:subset/2
+==
+
 Note  that  the  help-tool  for   XPCE    provides   a   nice  graphical
 cross-referencer.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
 :- module(prolog_explain,
 	  [ explain/1,
@@ -43,6 +56,10 @@ cross-referencer.
 	  ]).
 :- use_module(library(helpidx)).
 :- use_module(library(lists)).
+
+%%	explain(@Term) is det
+%
+%	Write all information known about Term to the current output.
 
 explain(Item) :-
 	explain(Item, Explanation),
@@ -53,6 +70,10 @@ explain(_).
 		/********************************
 		*           BASIC TYPES         *
 		*********************************/
+
+%%	explain(@Term, -Explanation) is nondet.
+%
+%	Explanation describes information about Term.
 
 explain(Var, Explanation) :-
 	var(Var), !,
@@ -110,7 +131,9 @@ explain(Module:Head, Explanation) :-
 	callable(Head), !,
 	explain_predicate(Module:Head, Explanation).
 explain(Term, Explanation) :-
-	utter(Explanation, '"~w" is a compound term', [Term]).
+	numbervars(Term, 0, _, [singletons(true)]),
+	utter(Explanation, '"~W" is a compound term',
+	      [Term, [quoted(true), numbervars(true)]]).
 explain(Term, Explanation) :-
 	explain_functor(Term, Explanation).
 	
@@ -291,6 +314,6 @@ xpce_method_id(Ref, Id) :-
 		*********************************/
 
 utter(Explanation, Fmt, Args) :-
-	sformat(Explanation, Fmt, Args).
+	format(string(Explanation), Fmt, Args).
 
 

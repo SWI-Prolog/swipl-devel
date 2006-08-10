@@ -33,12 +33,15 @@
 	  [ main/0
 	  ]).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This library is intended for supporting   PrologScript on Unix using the
-#! magic sequence for scripts  using   commandline  options. Main/0 will
-call main/1 passing a list of commandline   options.  Below is `echo' in
-Prolog (adjust /usr/bin/pl to where SWI-Prolog is installed)
+/** <module> Provide entry point for scripts
 
+This library is intended for supporting   PrologScript on Unix using the
+=|#!|= magic sequence for scripts using   commandline options. The entry
+point main/0 calls the user-supplied predicate  main/1 passing a list of
+commandline options. Below is `echo' in   Prolog  (adjust /usr/bin/pl to
+where SWI-Prolog is installed)
+
+==
 #!/usr/bin/pl -q -g main -s
 
 main(Argv) :-
@@ -50,15 +53,16 @@ echo([Last]) :- !,
 echo([H|T]) :-
 	write(H), write(' '),
 	echo(T).
+==
 
-NOTE: Xpce users should have a look at library(pce_main), which starts the
-GUI and processes events until all windows have gone.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+@see	XPCE users should have a look at library(pce_main), which
+	starts the GUI and processes events until all windows have gone.
+*/
 
 :- module_transparent
 	main/0.
 
-%	main
+%%	main
 %
 %	Call main/1 using the passed command-line arguments.
 

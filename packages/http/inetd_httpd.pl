@@ -44,7 +44,8 @@
 %	is connected to the HTTP input and user_output is the place to
 %	write our reply to.  Options:
 %	
-%%	    after(:Goal)	% Run Goal on the request after reply 
+%	      * after(:Goal)
+%		Run Goal on the request after reply 
 
 http_server(Goal, Options) :-
 	prompt(_, ''),

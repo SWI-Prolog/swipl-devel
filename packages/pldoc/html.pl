@@ -363,6 +363,7 @@ tag(Tag, Value) -->
 
 tag_title(compat, 'Compatibility:').
 tag_title(tbd,    'To be done:').
+tag_title(see,    'See also:').
 
 tag_class(tbd, 		warn).
 tag_class(bug, 		error).
