@@ -48,7 +48,7 @@ Standard Prolog.
 		 *	      TERM I/O		*
 		 *******************************/
 
-%%	display(+Term)
+%%	display(+Term) is det.
 %
 %	Write a term, ignoring operators.
 
@@ -61,7 +61,7 @@ display(Stream, Term) :-
 		 *	      DEBUGGING		*
 		 *******************************/
 
-%%	unknown(-Old, +New)
+%%	unknown(-Old, +New) is det.
 %
 %	Edinburgh Prolog predicate for dealing dealing with undefined
 %	procedures
@@ -80,8 +80,8 @@ map_unknown(error,   trace).
 map_unknown(warning, trace).
 map_unknown(fail,    fail).
 
-%	debug
-%	nodebug
+%%	debug is det.
+%%	nodebug is det.
 %
 %	Switch on/off debug mode
 

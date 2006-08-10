@@ -33,7 +33,20 @@
 	  [ date_time_value/3		% Extract values from a date/time struct
 	  ]).
 
-%%	date_time_value(+Field, +Struct, -Value)
+%%	date_time_value(?Field:atom, +Struct:datime, -Value) is nondet.
+%
+%	Extract values from a date-time structure.  Provided fields are
+%	
+%		| year | integer | |
+%		| month | 1..12 | |
+%		| day | 1..31 | |
+%		| hour | 0..23 | |
+%		| minute | 0..59 | |
+%		| second | 0.0..60.0 | |
+%		| utc_offset | integer | Offset to UTC in seconds (positive is west) |
+%		| daylight_saving | bool | Name of timezone; fails if unknown |
+%		| date | date(Y,M,D) | |
+%		| time | time(H,M,S) | |
 
 date_time_value(year,		 date(Y,_,_,_,_,_,_,_,_), Y).
 date_time_value(month,		 date(_,M,_,_,_,_,_,_,_), M).
