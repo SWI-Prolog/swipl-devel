@@ -196,7 +196,7 @@ copy_with_variable_replacement_l([X|Xs],[Y|Ys],L) :-
    copy_with_variable_replacement(X,Y,L),
    copy_with_variable_replacement_l(Xs,Ys,L).
    
-%% build variable replacement list
+% build variable replacement list
 
 variable_replacement(X,Y,L) :-
    variable_replacement(X,Y,[],L).
