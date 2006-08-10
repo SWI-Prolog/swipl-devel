@@ -54,8 +54,10 @@
 %	line.  The header must be closed with a blank line.  The HTTP
 %	content-length is added by http_reply/3  Options:
 %	
-%%	  request(-Request)		Return the request to the caller
-%%	  peer(+Peer)			IP address of client
+%		* request(-Request)
+%		Return the request to the caller
+%		* peer(+Peer)
+%		IP address of client
 
 http_wrapper(GoalSpec, In, Out, Close, Options) :-
 	strip_module(GoalSpec, Module, Goal),
