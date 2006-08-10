@@ -298,6 +298,11 @@ validate_store_type_assumption(C), actual_store_types(C,STs), assumed_store_type
 validate_store_type_assumption(C), actual_store_types(C,STs), store_type(C,_) 		% user assumption
 	<=> 
 		store_type(C,multi_store(STs)).
+validate_store_type_assumption(C), assumed_store_type(C,_)				% no lookups on constraint in debug mode
+	<=> 	
+		chr_pp_flag(debugable,on)
+	|
+		store_type(C,default).
 validate_store_type_assumption(C), assumed_store_type(C,_)				% no lookups on constraint
 	<=> store_type(C,global_ground).
 validate_store_type_assumption(C) 
@@ -430,7 +435,8 @@ set_constraint_indices([],M) :-
 	N is M - 1,
 	max_constraint_index(N).
 set_constraint_indices([C|Cs],N) :-
-	( ( chr_pp_flag(debugable, on) ; \+ only_ground_indexed_arguments(C), is_stored(C) ;  is_stored(C), get_store_type(C,default)) ->
+	( ( chr_pp_flag(debugable, on) ; \+ only_ground_indexed_arguments(C), is_stored(C) ;  is_stored(C), get_store_type(C,default)
+	  ; get_store_type(C,var_assoc_store(_,_))) ->
 		constraint_index(C,N),
 		M is N + 1,
 		set_constraint_indices(Cs,M)
@@ -509,6 +515,7 @@ store_management_preds(Constraints,Clauses) :-
 %% SWI begin
 extra_declaration([ :- use_module(chr(chr_runtime))
 		  , :- use_module(chr(chr_hashtable_store))
+		  , :- use_module(chr(chr_assoc_store))
 		  , :- use_module(chr(chr_integertable_store))
 		  , :- use_module(library('clp/clp_events'))
 		  ]).
@@ -634,13 +641,17 @@ extract_type_mode([C|R],[C2|R2]) :-
 	extract_type_mode(R,R2).
 
 extract_types_and_modes([],[],[]).
-extract_types_and_modes([+(T)|R],[T|R2],[(+)|R3]) :- !,extract_types_and_modes(R,R2,R3).
-extract_types_and_modes([?(T)|R],[T|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
-extract_types_and_modes([-(T)|R],[T|R2],[(-)|R3]) :- !,extract_types_and_modes(R,R2,R3).
-extract_types_and_modes([(+)|R],[any|R2],[(+)|R3]) :- !,extract_types_and_modes(R,R2,R3).
-extract_types_and_modes([(?)|R],[any|R2],[(?)|R3]) :- !,extract_types_and_modes(R,R2,R3).
-extract_types_and_modes([(-)|R],[any|R2],[(-)|R3]) :- !,extract_types_and_modes(R,R2,R3).
-extract_types_and_modes([Illegal|R],_,_) :- 
+extract_types_and_modes([X|R],[T|R2],[M|R3]) :-
+	extract_type_and_mode(X,T,M),
+	extract_types_and_modes(R,R2,R3).
+
+extract_type_and_mode(+(T),T,(+)) :- !.
+extract_type_and_mode(?(T),T,(?)) :- !.
+extract_type_and_mode(-(T),T,(-)) :- !.
+extract_type_and_mode((+),any,(+)) :- !.
+extract_type_and_mode((?),any,(?)) :- !.
+extract_type_and_mode((-),any,(-)) :- !.
+extract_type_and_mode(Illegal,_,_) :- 
     chr_error(syntax(Illegal),'Illegal mode/type declaration.\n\tCorrect syntax is +type, -type or ?type\n\tor +, - or ?.\n',[]).
 
 is_type_definition(D) :-
@@ -1208,7 +1219,7 @@ late_allocation([C|Cs]) :-
 %%	attach_$CONSTRAINT
 generate_attach_detach_a_constraint_all([],[]).
 generate_attach_detach_a_constraint_all([Constraint|Constraints],Clauses) :-
-	( ( chr_pp_flag(debugable,on) ; is_stored(Constraint), \+ only_ground_indexed_arguments(Constraint)) ->
+	( ( chr_pp_flag(debugable,on) ; is_stored(Constraint), \+ only_ground_indexed_arguments(Constraint), \+ get_store_type(Constraint,var_assoc_store(_,_)) ) ->
 		generate_attach_a_constraint(Constraint,Clauses1),
 		generate_detach_a_constraint(Constraint,Clauses2)
 	;
@@ -1219,28 +1230,28 @@ generate_attach_detach_a_constraint_all([Constraint|Constraints],Clauses) :-
 	append([Clauses1,Clauses2,Clauses3],Clauses).
 
 generate_attach_a_constraint(Constraint,[Clause1,Clause2]) :-
-	generate_attach_a_constraint_empty_list(Constraint,Clause1),
+	generate_attach_a_constraint_nil(Constraint,Clause1),
+	generate_attach_a_constraint_cons(Constraint,Clause2).
+
+attach_constraint_atom(FA,Vars,Susp,Atom) :-
+	make_name('attach_',FA,Name),
+	Atom =.. [Name,Vars,Susp].
+
+generate_attach_a_constraint_nil(FA,Clause) :-
+	Clause = (Head :- true),
+	attach_constraint_atom(FA,[],_,Head).
+
+generate_attach_a_constraint_cons(FA,Clause) :-
+	Clause = (Head :- Body),
+	attach_constraint_atom(FA,[Var|Vars],Susp,Head),
+	attach_constraint_atom(FA,Vars,Susp,RecursiveCall),
+	Body = ( AttachBody, Subscribe, RecursiveCall ),
 	get_max_constraint_index(N),
 	( N == 1 ->
-		generate_attach_a_constraint_1_1(Constraint,Clause2)
+		generate_attach_body_1(FA,Var,Susp,AttachBody)
 	;
-		generate_attach_a_constraint_t_p(Constraint,Clause2)
-	).
-
-generate_attach_a_constraint_skeleton(FA,Args,Body,Clause) :-
-	make_name('attach_',FA,Fct),
-	Head =.. [Fct | Args],
-	Clause = ( Head :- Body).
-
-generate_attach_a_constraint_empty_list(FA,Clause) :-
-	generate_attach_a_constraint_skeleton(FA,[[],_],true,Clause).
-
-generate_attach_a_constraint_1_1(FA,Clause) :-
-	Args = [[Var|Vars],Susp],
-	generate_attach_a_constraint_skeleton(FA,Args,Body,Clause),
-	generate_attach_body_1(FA,Var,Susp,AttachBody),
-	make_name('attach_',FA,Fct),
-	RecursiveCall =.. [Fct,Vars,Susp],
+		generate_attach_body_n(FA,Var,Susp,AttachBody)
+	),
 	% SWI-Prolog specific code
 	chr_pp_flag(solver_events,NMod),
 	( NMod \== none ->
@@ -1250,45 +1261,15 @@ generate_attach_a_constraint_1_1(FA,Clause) :-
 		Subscribe = clp_events:subscribe(Var,NMod,Mod,Mod:'$run_suspensions'([Susp]))
 	;
 		Subscribe = true
-	),
-	Body =
-	(
-		AttachBody,
-		Subscribe,
-		RecursiveCall
 	).
 
 generate_attach_body_1(FA,Var,Susp,Body) :-
 	get_target_module(Mod),
 	Body =
 	(   get_attr(Var, Mod, Susps) ->
-            NewSusps=[Susp|Susps],
-            put_attr(Var, Mod, NewSusps)
+            put_attr(Var, Mod, [Susp|Susps])
         ;   
             put_attr(Var, Mod, [Susp])
-	).
-
-generate_attach_a_constraint_t_p(FA,Clause) :-
-	Args = [[Var|Vars],Susp],
-	generate_attach_a_constraint_skeleton(FA,Args,Body,Clause),
-	make_name('attach_',FA,Fct),
-	RecursiveCall =.. [Fct,Vars,Susp],
-	generate_attach_body_n(FA,Var,Susp,AttachBody),
-	% SWI-Prolog specific code
-	chr_pp_flag(solver_events,NMod),
-	( NMod \== none ->
-		Args = [[Var|_],Susp],
-		get_target_module(Mod),
-		use_auxiliary_predicate(run_suspensions),
-		Subscribe = clp_events:subscribe(Var,NMod,Mod,Mod:'$run_suspensions'([Susp]))
-	;
-		Subscribe = true
-	),
-	Body =
-	(
-		AttachBody,
-		Subscribe,
-		RecursiveCall
 	).
 
 generate_attach_body_n(F/A,Var,Susp,Body) :-
@@ -1322,32 +1303,28 @@ generate_attach_body_n(F/A,Var,Susp,Body) :-
 
 %%	detach_$CONSTRAINT
 generate_detach_a_constraint(Constraint,[Clause1,Clause2]) :-
-	generate_detach_a_constraint_empty_list(Constraint,Clause1),
+	generate_detach_a_constraint_nil(Constraint,Clause1),
+	generate_detach_a_constraint_cons(Constraint,Clause2).
+
+detach_constraint_atom(FA,Vars,Susp,Atom) :-
+	make_name('detach_',FA,Name),
+	Atom =.. [Name,Vars,Susp].
+
+generate_detach_a_constraint_nil(FA,Clause) :-
+	Clause = ( Head :- true),
+	detach_constraint_atom(FA,[],_,Head).
+
+generate_detach_a_constraint_cons(FA,Clause) :-
+	Clause = (Head :- Body),
+	detach_constraint_atom(FA,[Var|Vars],Susp,Head),
+	detach_constraint_atom(FA,Vars,Susp,RecursiveCall),
+	Body = ( DetachBody, RecursiveCall ),
 	get_max_constraint_index(N),
 	( N == 1 ->
-		generate_detach_a_constraint_1_1(Constraint,Clause2)
+		generate_detach_body_1(FA,Var,Susp,DetachBody)
 	;
-		generate_detach_a_constraint_t_p(Constraint,Clause2)
+		generate_detach_body_n(FA,Var,Susp,DetachBody)
 	).
-
-generate_detach_a_constraint_empty_list(FA,Clause) :-
-	make_name('detach_',FA,Fct),
-	Args = [[],_],
-	Head =.. [Fct | Args],
-	Clause = ( Head :- true).
-
-generate_detach_a_constraint_1_1(FA,Clause) :-
-	make_name('detach_',FA,Fct),
-	Args = [[Var|Vars],Susp],
-	Head =.. [Fct | Args],
-	RecursiveCall =.. [Fct,Vars,Susp],
-	generate_detach_body_1(FA,Var,Susp,DetachBody),
-	Body =
-	(
-		DetachBody,
-		RecursiveCall
-	),
-	Clause = (Head :- Body).
 
 generate_detach_body_1(FA,Var,Susp,Body) :-
 	get_target_module(Mod),
@@ -1362,19 +1339,6 @@ generate_detach_body_1(FA,Var,Susp,Body) :-
 	;
 		true
 	).
-
-generate_detach_a_constraint_t_p(FA,Clause) :-
-	make_name('detach_',FA,Fct),
-	Args = [[Var|Vars],Susp],
-	Head =.. [Fct | Args],
-	RecursiveCall =.. [Fct,Vars,Susp],
-	generate_detach_body_n(FA,Var,Susp,DetachBody),
-	Body =
-	(
-		DetachBody,
-		RecursiveCall
-	),
-	Clause = (Head :- Body).
 
 generate_detach_body_n(F/A,Var,Susp,Body) :-
 	get_constraint_index(F/A,Position),
@@ -1570,16 +1534,13 @@ remove_constraint_name(Constraint,Name) :-
 generate_remove_clause(Constraint,List,Tail) :-
 	( is_used_auxiliary_predicate(remove_constraint_internal,Constraint) ->
 		List = [RemoveClause|Tail],
-		% use_auxiliary_predicate(chr_indexed_variables,Constraint),
 		remove_constraint_goal(Constraint,Susp,Agenda,Delete,Head),
-		% get_dynamic_suspension_term_field(state,Constraint,Susp,Mref,StateGoal),
 		static_suspension_term(Constraint,Susp),
 		get_static_suspension_term_field(state,Constraint,Susp,Mref),
 		( chr_pp_flag(debugable,off), only_ground_indexed_arguments(Constraint) ->
 			RemoveClause = 
 			(
 			    Head :-
-			    	% StateGoal,
 				'chr get_mutable'( State, Mref),
 			    	'chr update_mutable'( removed, Mref),
 				( State == not_stored_yet ->
@@ -1600,18 +1561,14 @@ generate_remove_clause(Constraint,List,Tail) :-
 			RemoveClause = 
 			(
 				Head :-
-					% StateGoal,
 					'chr get_mutable'( State, Mref),
-					'chr update_mutable'( removed, Mref),		% mark in any case
-					( State == not_stored_yet ->	% compound(State) ->			% passive/1
+					'chr update_mutable'( removed, Mref),
+					( State == not_stored_yet ->
 					    Agenda = [],
 					    Delete = no
-%					; State==removed ->
-%					    Agenda = [],
-%					    Delete = no
 					;
 					    Delete = yes,
-					    IndexedVariablesBody % chr_indexed_variables(Susp,Agenda)
+					    IndexedVariablesBody
 					)
 			)
 		)    
@@ -1643,7 +1600,6 @@ activate_constraint_name(Constraint,Name) :-
 generate_activate_clause(Constraint,List,Tail) :-
 	( is_used_auxiliary_predicate(activate_constraint,Constraint) ->
 		List = [ActivateClause|Tail],
-		% use_auxiliary_predicate(chr_indexed_variables,Constraint),
 		get_dynamic_suspension_term_field(state,Constraint,Susp,Mref,StateGoal),
 		activate_constraint_goal(Constraint,Store,Vars,Susp,Generation,Head),
 		( chr_pp_flag(debugable,off), may_trigger(Constraint) ->
@@ -1659,12 +1615,9 @@ generate_activate_clause(Constraint,List,Tail) :-
 			GenerationHandling = true
 		),
 		( chr_pp_flag(debugable,off), only_ground_indexed_arguments(Constraint) ->
-			% Vars = [],
 			StoreVarsGoal = 
-				( State == not_stored_yet ->		% compound(State) ->			% passive/1
+				( State == not_stored_yet ->
 				    Store = yes
-%				; State == removed ->			% the price for eager removal ... % XXX redundant?
-%				    Store = yes
 				;
 				    Store = no
 				)
@@ -1677,14 +1630,11 @@ generate_activate_clause(Constraint,List,Tail) :-
 				NoneLocked = 'chr none_locked'( Vars)
 			),
 			StoreVarsGoal = 
-				( State == not_stored_yet ->		% compound(State) ->			% passive/1
+				( State == not_stored_yet ->
 				    Store = yes,
 				    ArgumentsGoal,
 				    IndexedVariablesBody, 
 			            NoneLocked	    
-%				; State == removed ->			% the price for eager removal ... % XXX redundant ?
-%				    chr_indexed_variables(Susp,Vars),
-%				    Store = yes
 				;
 				    Vars = [],
 				    Store = no
@@ -1720,7 +1670,6 @@ allocate_constraint_name(Constraint,Name) :-
 generate_allocate_clause(Constraint,List,Tail) :-
 	( is_used_auxiliary_predicate(allocate_constraint,Constraint) ->
 		List = [AllocateClause|Tail],
-		% use_auxiliary_predicate(chr_indexed_variables,Constraint),
 		Constraint = F/A,
 		length(Args,A),
 		allocate_constraint_goal(Constraint,Closure,Self,F,Args,Head),
@@ -1755,15 +1704,12 @@ generate_allocate_clause(Constraint,List,Tail) :-
 		;
 			HistoryHandling = true
 		),
-		% get_static_suspension_term_field(functor,Constraint,Suspension,F),
 		get_static_suspension_term_field(arguments,Constraint,Suspension,Args),
 		Self = Suspension,
 		AllocateClause =
 		(
 			Head :-
-				% Self =.. Suspension, %[suspension,Id,Mref,Closure,Gref,Href,F|Args],
-				GenerationHandling, %'chr create_mutable'(0,Gref), % Gref = mutable(0),
-				% 'chr empty_history'(History),
+				GenerationHandling,
 				HistoryHandling,
 				'chr create_mutable'(not_stored_yet,Mref),
 				GenID
@@ -1773,7 +1719,7 @@ generate_allocate_clause(Constraint,List,Tail) :-
 	).
 
 %~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
-% insert_constraint_internal/[3,6]
+% insert_constraint_internal
 
 generate_insert_constraint_internal_clauses([],List,List).
 generate_insert_constraint_internal_clauses([C|Cs],List,Tail) :-
@@ -1825,7 +1771,6 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 		;
 			HistoryHandling = true
 		),
-		% get_static_suspension_term_field(functor,Constraint,Suspension,F),
 		get_static_suspension_term_field(arguments,Constraint,Suspension,Args),
 		Self = Suspension,
 		List = [Clause|Tail],
@@ -1841,10 +1786,8 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 			    (
 				Head :-
                                         'chr create_mutable'(active,Mref),
-			                GenerationHandling, %'chr create_mutable'(0,Gref),
-			                % 'chr empty_history'(History),
+			                GenerationHandling,
 					HistoryHandling,
-			                % Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
 					GenID		
 			    )
 		;
@@ -1863,13 +1806,10 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 			Clause =
 			(
 				Head :-
-					% Self =.. [suspension,Id,Mref,Closure,Gref,Href,F|Args],
-					IndexedVariablesBody, % chr_indexed_variables(Self,Vars),
+					IndexedVariablesBody,
 					NoneLocked,
-                                        'chr create_mutable'(active,Mref), % Mref = mutable(active),
-			                'chr create_mutable'(0,Gref),   % Gref = mutable(0),
-			                % 'chr empty_history'(History),
-			                % 'chr create_mutable'(History,Href), % Href = mutable(History),
+                                        'chr create_mutable'(active,Mref),
+			                'chr create_mutable'(0,Gref),  
 					HistoryHandling,
 					GenID
 			)
@@ -2016,29 +1956,6 @@ generate_run_suspensions_clause(Constraint,List,Tail) :-
 
 %~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
 
-%global_indexed_variables_clause(Constraints,List,Tail) :-
-%	( is_used_auxiliary_predicate(chr_indexed_variables) ->
-%		List = [Clause|Tail],
-%		( chr_pp_flag(reduced_indexing,on) ->
-%			( are_none_suspended_on_variables ->
-%				Body = true,
-%				Vars = []
-%			;
-%				Body = (Susp =.. [_,_,_,_,_,_|Term], 
-%				Term1 =.. Term,
-%				'$indexed_variables'(Term1,Vars))
-%			),	
-%			Clause = ( chr_indexed_variables(Susp,Vars) :- Body )
-%		;
-%			Clause =
-%			( chr_indexed_variables(Susp,Vars) :-
-%				'chr chr_indexed_variables'(Susp,Vars)
-%			)
-%		)
-%	;
-%		List = Tail
-%	).
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 generate_attach_increment(Clauses) :-
 	get_max_constraint_index(N),
@@ -2125,47 +2042,61 @@ generate_attr_unify_hook_one(Clause) :-
 	Head = attr_unify_hook(Susps,Other),
 	get_target_module(Mod),
 	get_indexed_constraint(1,C),
-	make_run_suspensions(NewSusps,SortedSusps,WakeNewSusps),
-	make_run_suspensions(SortedSusps,SortedSusps,WakeSusps),
-	( atomic_types_suspended_constraint(C) ->
-		SortGoal1   = true,
-		SortedSusps = Susps,
-		SortGoal2   = true,
-		SortedOtherSusps = OtherSusps,
-		MergeGoal = (append(Susps,OtherSusps,List), sort(List,NewSusps)),
-		NonvarBody = true	
-	;
-		SortGoal1 = sort(Susps, SortedSusps),	
-		SortGoal2 = sort(OtherSusps,SortedOtherSusps), 
-		MergeGoal = 'chr merge_attributes'(SortedSusps,SortedOtherSusps,NewSusps),
-		use_auxiliary_predicate(attach_increment),
-		NonvarBody =
-			( compound(Other) ->
-				term_variables(Other,OtherVars),
-				attach_increment(OtherVars, SortedSusps)
+	( get_store_type(C,default) ->
+		make_run_suspensions(NewSusps,SortedSusps,WakeNewSusps),
+		make_run_suspensions(SortedSusps,SortedSusps,WakeSusps),
+		( atomic_types_suspended_constraint(C) ->
+			SortGoal1   = true,
+			SortedSusps = Susps,
+			SortGoal2   = true,
+			SortedOtherSusps = OtherSusps,
+			MergeGoal = (append(Susps,OtherSusps,List), sort(List,NewSusps)),
+			NonvarBody = true	
+		;
+			SortGoal1 = sort(Susps, SortedSusps),	
+			SortGoal2 = sort(OtherSusps,SortedOtherSusps), 
+			MergeGoal = 'chr merge_attributes'(SortedSusps,SortedOtherSusps,NewSusps),
+			use_auxiliary_predicate(attach_increment),
+			NonvarBody =
+				( compound(Other) ->
+					term_variables(Other,OtherVars),
+					attach_increment(OtherVars, SortedSusps)
+				;
+					true
+				)
+		), 	
+		Body = 
+		(
+			SortGoal1,
+			( var(Other) ->
+				( get_attr(Other,Mod,OtherSusps) ->
+					SortGoal2,
+					MergeGoal,
+					put_attr(Other,Mod,NewSusps),
+					WakeNewSusps
+				;
+					put_attr(Other,Mod,SortedSusps),
+					WakeSusps
+				)
 			;
-				true
-			)
-	), 	
-	Body = 
-	(
-		SortGoal1,
-		( var(Other) ->
-			( get_attr(Other,Mod,OtherSusps) ->
-				SortGoal2,
-				MergeGoal,
-				put_attr(Other,Mod,NewSusps),
-				WakeNewSusps
-			;
-				put_attr(Other,Mod,SortedSusps),
+				NonvarBody,
 				WakeSusps
 			)
-		;
-			NonvarBody,
-			WakeSusps
-		)
-	),
-	Clause = (Head :- Body).
+		),
+		Clause = (Head :- Body)
+	; get_store_type(C,var_assoc_store(VarIndex,KeyIndex)) ->
+		make_run_suspensions(List,List,WakeNewSusps),
+		MergeGoal = (merge_into_assoc_store(Susps,OtherSusps,List)),
+		Body = 
+			( get_attr(Other,Mod,OtherSusps) ->
+				MergeGoal,
+				WakeNewSusps
+			;
+				put_attr(Other,Mod,Susps)
+			),
+		Clause = (Head :- Body)
+	).
+
 
 generate_attr_unify_hook_many(N,Clause) :-
 	make_attr(N,Mask,SuspsList,Attr),
@@ -2262,8 +2193,7 @@ generate_insert_delete_constraint(FA,IClause,DClause) :-
 	generate_delete_constraint(StoreType,FA,DClause).
 
 generate_insert_constraint(StoreType,C,Clause) :-
-	make_name('$insert_in_store_',C,ClauseName),
-	Head =.. [ClauseName,Susp],
+	generate_insert_constraint_call(C,Susp,Head),
 	generate_insert_constraint_body(StoreType,C,Susp,Body),
 	( chr_pp_flag(store_counter,on) ->
 		InsertCounterInc = '$insert_counter_inc'
@@ -2346,6 +2276,23 @@ generate_insert_constraint_body(global_ground,C,Susp,Body) :-
 % 		GetStoreGoal,    % nb_getval(StoreName,Store),
 % 		UpdateStoreGoal  % b_setval(StoreName,[Susp|Store])
 % 	).
+generate_insert_constraint_body(var_assoc_store(VarIndex,AssocIndex),C,Susp,Body) :-
+	% TODO: generalize to more than one !!!
+	get_target_module(Module),
+	get_dynamic_suspension_term_field(argument(VarIndex),C,Susp,Variable,VariableGoal),
+	get_dynamic_suspension_term_field(argument(AssocIndex),C,Susp,Key,KeyGoal),
+	Body = ( 
+		VariableGoal,
+		KeyGoal,
+		( get_attr(Variable,Module,AssocStore) ->
+			insert_assoc_store(AssocStore,Key,Susp)
+		;
+			new_assoc_store(AssocStore),
+			put_attr(Variable,Module,AssocStore),
+			insert_assoc_store(AssocStore,Key,Susp)
+		)
+	).
+
 generate_insert_constraint_body(global_singleton,C,Susp,Body) :-
 	global_singleton_store_name(C,StoreName),
 	make_update_store_goal(StoreName,Susp,UpdateStoreGoal),
@@ -2390,8 +2337,7 @@ generate_multi_hash_insert_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodie
 	generate_multi_hash_insert_constraint_bodies(Indexes,FA,Susp,Bodies).
 
 generate_delete_constraint(StoreType,FA,Clause) :-
-	make_name('$delete_from_store_',FA,ClauseName),
-	Head =.. [ClauseName,Susp],
+	generate_delete_constraint_call(FA,Susp,Head),
 	generate_delete_constraint_body(StoreType,FA,Susp,Body),
 	( chr_pp_flag(store_counter,on) ->
 		DeleteCounterInc = '$delete_counter_inc'
@@ -2512,6 +2458,16 @@ generate_delete_constraint_body(global_ground,C,Susp,Body) :-
 % 		'chr sbag_del_element'(Store,Susp,NStore),
 % 		UpdateStoreGoal % b_setval(StoreName,NStore)
 % 	).
+generate_delete_constraint_body(var_assoc_store(VarIndex,AssocIndex),C,Susp,Body) :-
+	get_target_module(Module),
+	get_dynamic_suspension_term_field(argument(VarIndex),C,Susp,Variable,VariableGoal),
+	get_dynamic_suspension_term_field(argument(AssocIndex),C,Susp,Key,KeyGoal),
+	Body = ( 
+		VariableGoal,
+		get_attr(Variable,Module,AssocStore),
+		KeyGoal,
+		delete_assoc_store(AssocStore,Key,Susp)
+	).
 generate_delete_constraint_body(global_singleton,C,_Susp,Body) :-
 	global_singleton_store_name(C,StoreName),
 	make_update_store_goal(StoreName,[],UpdateStoreGoal),
@@ -2599,6 +2555,7 @@ generate_attach_code(multi_hash(Indexes),C,L,T) :-
 	multi_hash_via_lookups(Indexes,C,L1,T).
 generate_attach_code(global_ground,C,L,T) :-
 	global_ground_store_initialisation(C,L,T).
+generate_attach_code(var_assoc_store(_,_),_,L,L).
 generate_attach_code(global_singleton,C,L,T) :-
 	global_singleton_store_initialisation(C,L,T).
 generate_attach_code(multi_store(StoreTypes),C,L,T) :-
@@ -2830,6 +2787,8 @@ enumerate_store_body(global_ground,C,Susp,Body) :-
 		GetStoreGoal, % nb_getval(StoreName,List),
 		Sbag
 	).
+enumerate_store_body(var_assoc_store(_,_),C,_,Body) :-
+	Body = fail.
 enumerate_store_body(global_singleton,C,Susp,Body) :-
 	global_singleton_store_name(C,StoreName),
 	make_get_store_goal(StoreName,Susp,GetStoreGoal),
@@ -2967,14 +2926,6 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), rule(RuleNb,Rule) <=>
     append(M,GuardList,Info),
     simplify_guard(G,B,Info,SimpleGuard,NB),
     G \== SimpleGuard     |
-%    ( prolog_flag(verbose,V), V == yes ->
-%	format('            * Guard simplification in ~@\n',[format_rule(Rule)]),
-%        format('     	      was: ~w\n',[G]),
-%        format('     	      now: ~w\n',[SimpleGuard]),
-%        (NB\==B -> format('     	      new body: ~w\n',[NB]) ; true)
-%    ;
-%	true	    
-%    ),
     rule(RuleNb,pragma(rule(Head1,Head2,SimpleGuard,NB),Ids,Pragmas,Name,RuleNb)),
     prev_guard_list(RuleNb,0,H,SimpleGuard,GuardList,M,[]).
 
@@ -3200,14 +3151,6 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]) \ rule(RuleNb,Rule) <=>
     NewRule = pragma(rule(NewH1,NewH2,G,(BodyMatchings,B)),Ids,Pragmas,Name,RuleNb),
     (Head1 \== NewH1 ; Head2 \== NewH2 )    
     |
-%    ( prolog_flag(verbose,V), V == yes ->
-%	format('            * Head simplification in ~@\n',[format_rule(Rule)]),
-%	format('     	      was: ~w \\ ~w \n',[Head2,Head1]),
-%	format('     	      now: ~w \\ ~w \n',[NewH2,NewH1]),
-%	format('     	      extra body: ~w \n',[BodyMatchings])
-%    ;
-%	true	    
-%    ),
     rule(RuleNb,NewRule).    
 
 
@@ -3407,12 +3350,6 @@ next_occ_in_rule(RuleNb,C,O,ID_o1,Cond,FH) <=>
 	( OccSubsum \= chr_pp_void_info, 
 	unify_stuff(InfoVars,Info3,OccSubsum3), !,
 	( guard_entailment:entails_guard(Info2,OccSubsum2) ->
-%	( prolog_flag(verbose,V), V == yes ->
-%	    format('            * Occurrence subsumption detected in ~@\n',[format_rule(Rule)]),
-%	    format('     	      passive: constraint ~w, occurrence number ~w (id ~w)\n',[C,O2,ID_o2]),
-%        ;
-%		true	    
-%        ),
 	    passive(RuleNb,ID_o2)
 	; 
 	    true
@@ -3592,12 +3529,12 @@ type_alias(T1,A1), type_alias(T2,A2) <=>
    copy_term_nat(T2,T2_),
    T1_ = T2_,
    chr_error(type_error,
-   'Ambiguous type aliases: you have defined \n             "~w"\n             "~w"\n         resulting in two definitions for "~w".\n',[T1==A1,T2==A2,T1_]).
+   'Ambiguous type aliases: you have defined \n\t`~w\'\n\t`~w\'\n\tresulting in two definitions for "~w".\n',[T1==A1,T2==A2,T1_]).
 
 type_alias(T,B) \ type_alias(X,T2) <=> 
 	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
 	copy_term_nat((X,T2,T,B),(X2,T3,T1,D1)),oneway_unification(T3,T1) |
-   	chr_info(type_information,'Inferring "~w" from "~w" and "~w".\n',[X2==D1,X==T2,T==B]),
+   	chr_info(type_information,'Inferring `~w\' from `~w\' and `~w\'.\n',[X2==D1,X==T2,T==B]),
 	type_alias(X2,D1).
 
 oneway_unification(X,Y) :-
@@ -4228,8 +4165,7 @@ constraint_prelude(F/A, Clause) :-
 	( chr_pp_flag(debugable,on) ->
 		use_auxiliary_predicate(insert_constraint_internal,F/A),
 		generate_insert_constraint_call(F/A,Susp,InsertCall),
-		make_name('attach_',F/A,AttachF),
-		AttachCall =.. [AttachF,Vars2,Susp],
+		attach_constraint_atom(F/A,Vars2,Susp,AttachCall),
                 Inactive = (arg(2,Susp,Mutable), 'chr update_mutable'(inactive,Mutable)),	
 		insert_constraint_internal_constraint_goal(F/A, Stored, Vars2, Susp, Continuation, F, Vars,InsertGoal),
 
@@ -4243,7 +4179,7 @@ constraint_prelude(F/A, Clause) :-
 		Clause = 
 			( Head :-
 				DynamicTypeChecks,
-				InsertGoal, % insert_constraint_internal(Stored,Vars2,Susp,Continuation,F,Vars),
+				InsertGoal,
 				InsertCall,
 				AttachCall,
 				Inactive,
@@ -4344,8 +4280,11 @@ is_used_auxiliary_predicate(P,C) <=> fail.
 gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	vars_susp(A,Args,Susp,AllArgs),
 	make_suspension_continuation_goal(F/A,AllArgs,Closure),
-	make_name('attach_',F/A,AttachF),
-	Attach =.. [AttachF,Vars,Susp],
+	( get_store_type(F/A,var_assoc_store(_,_)) ->
+		Attach = true
+	;
+		attach_constraint_atom(F/A,Vars,Susp,Attach)
+	),
 	FTerm =.. [F|Args],
 	generate_insert_constraint_call(F/A,Susp,InsertCall),
 	use_auxiliary_predicate(insert_constraint_internal,F/A),
@@ -4379,9 +4318,8 @@ gen_cond_attach_goal(F/A,Goal,AllArgs,Args,Susp) :-
 gen_insert_constraint_internal_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	vars_susp(A,Args,Susp,AllArgs),
 	make_suspension_continuation_goal(F/A,AllArgs,Cont),
-	( \+ only_ground_indexed_arguments(F/A) ->
-		make_name('attach_',F/A,AttachF),
-		Attach =.. [AttachF,Vars,Susp]
+	( \+ only_ground_indexed_arguments(F/A), \+ get_store_type(F/A,var_assoc_store(_,_)) ->
+		attach_constraint_atom(F/A,Vars,Susp,Attach)
 	;
 		Attach = true
 	),
@@ -4405,9 +4343,8 @@ gen_insert_constraint_internal_goal(F/A,Goal,AllArgs,Args,Susp) :-
 	).
 
 gen_uncond_attach_goal(FA,Susp,AttachGoal,Generation) :-
-	( \+ only_ground_indexed_arguments(FA) ->
-		make_name('attach_',FA,AttachF),
-		Attach =.. [AttachF,Vars,Susp]
+	( \+ only_ground_indexed_arguments(FA), \+ get_store_type(FA,var_assoc_store(_,_)) ->
+		attach_constraint_atom(FA,Vars,Susp,Attach)
 	;
 		Attach = true
 	),
@@ -5242,9 +5179,8 @@ gen_cond_susp_detachment(Id,Susp,FA,SuspDetachment) :-
 
 gen_uncond_susp_detachment(Susp,FA,SuspDetachment) :-
    ( is_stored(FA) ->
-	( \+ only_ground_indexed_arguments(FA) ->
-		make_name('detach_',FA,Fct),
-		Detach =.. [Fct,Vars,Susp]
+	( \+ only_ground_indexed_arguments(FA), \+ get_store_type(FA,var_assoc_store(_,_)) ->
+		detach_constraint_atom(FA,Vars,Susp,Detach)
 	;
 		Detach = true
 	),
@@ -5976,6 +5912,7 @@ order_score(global_ground,Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
 	term_variables(RestHeads,RestVars),
 	order_score_vars(HeadVars,KnownVars,RestVars,Score_),
 	Score is Score_ * 2.
+order_score(var_assoc_store(_,_),_,_,_,_,_,1).
 order_score(global_singleton,_Head,ID,_KnownVars,_RestHeads,_RuleNb,Score) :-
 	Score = 1.		% guaranteed O(1)
 			
@@ -6169,6 +6106,15 @@ lookup_passive_head(global_ground,Head,_PreJoin,_VarDict,Goal,AllSusps) :-
 	global_ground_store_name(F/A,StoreName),
 	make_get_store_goal(StoreName,AllSusps,Goal), % Goal = nb_getval(StoreName,AllSusps),
 	update_store_type(F/A,global_ground).
+lookup_passive_head(var_assoc_store(VarIndex,KeyIndex),Head,_PreJoin,VarDict,Goal,AllSusps) :-
+	arg(VarIndex,Head,OVar),
+	arg(KeyIndex,Head,OKey),
+	translate([OVar,OKey],VarDict,[Var,Key]),
+	get_target_module(Module),
+	Goal = (
+		get_attr(Var,Module,AssocStore),
+		lookup_assoc_store(AssocStore,Key,AllSusps)
+	).
 lookup_passive_head(global_singleton,Head,_PreJoin,_VarDict,Goal,AllSusps) :-
 	functor(Head,F,A),
 	global_singleton_store_name(F/A,StoreName),
@@ -6181,6 +6127,20 @@ lookup_passive_head(multi_store(StoreTypes),Head,PreJoin,VarDict,Goal,AllSusps) 
 		lookup_passive_head(ST,Head,PreJoin,VarDict,Goal,AllSusps)
 	)).
 
+existential_lookup(var_assoc_store(VarIndex,KeyIndex),Head,_PreJoin,VarDict,SuspTerm,State,Goal,Susp,Pairs,Pairs) :- !,
+	arg(VarIndex,Head,OVar),
+	arg(KeyIndex,Head,OKey),
+	translate([OVar,OKey],VarDict,[Var,Key]),
+	get_target_module(Module),
+	sbag_member_call(Susp,AllSusps,Sbag),
+	create_get_mutable(active,State,GetMutable),
+	Goal = (
+		get_attr(Var,Module,AssocStore),
+		lookup_assoc_store(AssocStore,Key,AllSusps),
+		Sbag,
+		Susp = SuspTerm,
+		GetMutable
+	).
 existential_lookup(global_singleton,Head,_PreJoin,_VarDict,SuspTerm,State,Goal,Susp,Pairs,Pairs) :- !,
 	functor(Head,F,A),
 	global_singleton_store_name(F/A,StoreName),
@@ -6418,15 +6378,12 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 	get_constraint_mode(OtherF/OtherA,Mode),
 	head_arg_matches(HeadPairs,Mode,VarDict,FirstMatching,VarDict1),
 	
-	% BEGIN NEW - Customizable suspension term layout
-	% OtherSuspension =.. [suspension,_,State,_,_,_,_|OtherVars],
 	delay_phase_end(validate_store_type_assumptions,
 		( static_suspension_term(OtherF/OtherA,OtherSuspension),
 		  get_static_suspension_term_field(state,OtherF/OtherA,OtherSuspension,State),
 		  get_static_suspension_term_field(arguments,OtherF/OtherA,OtherSuspension,OtherVars)
 		)
 	),
-	% END NEW
 
 	different_from_other_susps(CurrentHead,OtherSusp,PreHeads,PreSusps,DiffSuspGoals),
 	create_get_mutable_ref(active,State,GetMutable),
@@ -6465,455 +6422,6 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 	L = [Clause|T].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % Observation Analysis
-% % 
-% % CLASSIFICATION
-% %   Enabled 
-% %
-% % Analysis based on Abstract Interpretation paper.
-% % 
-% % TODO: 
-% %   replace explicit constraint representation with 
-% %   GMP integers as bit vectors
-% %	1 << N			empty set for 0 .. N-1 constraints
-% %	1 << I 			for ith constraint mask M_i
-% %	\ I			for inverted constraint mask	
-% %	Set /\ M_I =:= 0	for member test
-% %	Set \/ M_I		for addition
-% %	Set /\ (\I1 /\ ... /\ \In)	for removal of many ints
-% %
-% %   stronger analysis domain [research]
-% 
-% :- chr_constraint
-% 	initial_call_pattern/1,
-% 	call_pattern/1,
-% 	final_answer_pattern/2,
-% 	abstract_constraints/1,
-% 	depends_on/2,
-% 	depends_on_ap/4,
-% 	depends_on_goal/2,
-% 	ai_observed_internal/2,
-% 	ai_observed/2,
-% 	ai_not_observed_internal/2,
-% 	ai_not_observed/2,
-% 	ai_is_observed/2,
-% 	depends_on_as/3,
-% 	ai_observation_gather_results/0.
-% 
-% :- chr_option(mode,initial_call_pattern(+)).
-% :- chr_option(mode,call_pattern(+)).
-% :- chr_option(mode,final_answer_pattern(+,+)).
-% :- chr_option(mode,abstract_constraints(+)).
-% :- chr_option(mode,depends_on(+,+)).
-% :- chr_option(mode,depends_on_as(+,+,+)).
-% :- chr_option(mode,depends_on_ap(+,+,+,+)).
-% :- chr_option(mode,depends_on_goal(+,+)).
-% :- chr_option(mode,ai_observed(+,+)).
-% :- chr_option(mode,ai_is_observed(+,+)).
-% :- chr_option(mode,ai_not_observed(+,+)).
-% :- chr_option(mode,ai_observed(+,+)).
-% :- chr_option(mode,ai_not_observed_internal(+,+)).
-% :- chr_option(mode,ai_observed_internal(+,+)).
-% 
-% abstract_constraints_fd @ 
-% 	abstract_constraints(_) \ abstract_constraints(_) <=> true.
-% 
-% ai_observed_internal(C,O) \ ai_not_observed_internal(C,O) <=> true.
-% ai_not_observed_internal(C,O) \ ai_not_observed_internal(C,O) <=> true.
-% ai_observed_internal(C,O) \ ai_observed_internal(C,O) <=> true.
-% 
-% ai_not_observed(C,O) \ ai_is_observed(C,O) <=> fail.
-% ai_is_observed(_,_) <=> true.
-% 
-% ai_observation_gather_results, bit_position(C,CMask) \ ai_observed_internal(CMask,O) <=> ai_observed(C,O).
-% ai_observation_gather_results, bit_position(C,CMask) \ ai_not_observed_internal(CMask,O) <=> ai_not_observed(C,O).
-% ai_observation_gather_results <=> true.
-% 
-% %------------------------------------------------------------------------------%
-% % Main Analysis Entry
-% %------------------------------------------------------------------------------%
-% ai_observation_analysis(ACs) :-
-%     ( chr_pp_flag(ai_observation_analysis,on),
-% 	get_target_module(Module), '$chr_compiled_with_version'(3) -> % , Module \== guard_entailment ->
-% 	list_to_ord_set(ACs,ACSet),
-% 	ai_observation_associate_bit_positions(ACSet,ACMasks),
-% 	abstract_constraints(ACMasks),
-% 	ai_observation_schedule_initial_calls(ACMasks),
-% 	ai_observation_gather_results
-%     ;
-% 	true
-%     ).
-% 
-% %------------------------------------------------------------------------------%
-% % Bit Vector Stuff
-% %------------------------------------------------------------------------------%
-% 
-% :- chr_constraint bit_position/2.
-% :- chr_option(mode,bit_position(+,+)).
-% :- chr_constraint get_bit_position/2.
-% :- chr_option(mode,get_bit_position(+,?)).
-% 
-% bit_position(C,P) \ get_bit_position(C,Q) <=> Q = P.
-% get_bit_position(_,_) <=> fail.
-% 
-% ai_observation_associate_bit_positions(FAs,Masks) :-
-% 	ai_observation_associate_bit_positions(FAs,0,Masks).
-% 
-% ai_observation_associate_bit_positions([],_,[]).
-% ai_observation_associate_bit_positions([FA|FAs],I,[Mask|Masks]) :-
-% 	ai_observation_associate_bit_position(FA,I,Mask),
-% 	J is I + 1,
-% 	ai_observation_associate_bit_positions(FAs,J,Masks).
-% 
-% ai_observation_associate_bit_position(FA,I,Mask) :-
-% 	Mask is 1 << I,
-% 	bit_position(FA,Mask).
-% 
-% %------------------------------------------------------------------------------%
-% % Initial Calls 
-% %------------------------------------------------------------------------------%
-% ai_observation_schedule_initial_calls([]).
-% ai_observation_schedule_initial_calls([ACMask|ACMasks]) :-
-% 	ai_observation_schedule_initial_call(ACMask),
-% 	ai_observation_schedule_initial_calls(ACMasks).
-% 
-% ai_observation_schedule_initial_call(ACMask) :-
-% 	ai_observation_top(ACMask,CallPattern),	
-% 	initial_call_pattern(CallPattern).
-% 
-% ai_observation_schedule_new_calls([],AP).
-% ai_observation_schedule_new_calls([AC|ACs],AP) :-
-% 	AP = odom(_,Set),
-% 	initial_call_pattern(odom(AC,Set)),
-% 	ai_observation_schedule_new_calls(ACs,AP).
-% 
-% final_answer_pattern(CP,AP1) \ final_answer_pattern(CP,AP2)
-% 	<=>
-% 		ai_observation_leq(AP2,AP1)
-% 	|
-% 		true.
-% 
-% initial_call_pattern(CP) \ initial_call_pattern(CP) <=> true.
-% 
-% initial_call_pattern(CP) ==> call_pattern(CP).
-% 
-% initial_call_pattern(CP), final_answer_pattern(CP,AP), abstract_constraints(ACs) # ID3 
-% 	==>
-% 		ai_observation_schedule_new_calls(ACs,AP)
-%  	pragma
-% 		passive(ID3).
-% 
-% call_pattern(CP) \ call_pattern(CP) <=> true.	
-% 
-% depends_on(CP1,CP2), final_answer_pattern(CP2,AP) ==>
-% 	final_answer_pattern(CP1,AP).
-% 
-% % call_pattern(CP) ==> writeln(call_pattern(CP)).
-% 
-% %------------------------------------------------------------------------------%
-% % Abstract Goal
-% %------------------------------------------------------------------------------%
-% 
-% 	% AbstractGoala
-% %call_pattern(odom([],Set)) ==> 
-% %	final_answer_pattern(odom([],Set),odom([],Set)).
-% 
-% call_pattern(odom([],Set)) <=>
-% 	final_answer_pattern(odom([],Set),odom([],Set)).
-% 
-% 	% AbstractGoalb
-% call_pattern(odom([G|Gs],Set)) ==>
-% 	CP1 = odom(G,Set),
-% 	depends_on_goal(odom([G|Gs],Set),CP1),
-% 	call_pattern(CP1).
-% 
-% depends_on_goal(CP1,CP2), final_answer_pattern(CP2,AP2) \ depends_on(CP1,_) # ID
-% 	<=> true pragma passive(ID).
-% depends_on_goal(CP1,CP2), final_answer_pattern(CP2,AP2)
-% 	==> 
-% 		CP1 = odom([_|Gs],_),
-% 		AP2 = odom([],Set),
-% 		CCP = odom(Gs,Set),
-% 		call_pattern(CCP),
-% 		depends_on(CP1,CCP).
-% 
-% %------------------------------------------------------------------------------%
-% % Abstract Solve 
-% %------------------------------------------------------------------------------%
-% call_pattern(odom(builtin,Set)) ==>
-% 	% writeln('  - AbstractSolve'),
-% 	EmptySet = 0,
-% 	final_answer_pattern(odom(builtin,Set),odom([],EmptySet)).
-% 
-% %------------------------------------------------------------------------------%
-% % Abstract Drop
-% %------------------------------------------------------------------------------%
-% call_pattern(odom(occ(CMask,O),Set)), bit_position(C,CMask) # ID2, max_occurrence(C,MO) # ID3 
-% 	==>
-% 		O > MO 
-% 	|
-% 		% writeln('  - AbstractDrop'(occ(CMask,O),Set)),
-% 		final_answer_pattern(odom(occ(CMask,O),Set),odom([],Set))
-% 	pragma 
-% 		passive(ID2),
-% 		passive(ID3).
-% 
-% %------------------------------------------------------------------------------%
-% % Abstract Activate
-% %------------------------------------------------------------------------------%
-% call_pattern(odom(AC,Set))
-% 	==>
-% 		integer(AC) % AC = _ / _
-% 	|
-% 		% writeln('  - AbstractActivate'(AC)),
-% 		CP = odom(occ(AC,1),Set),
-% 		call_pattern(CP),
-% 		depends_on(odom(AC,Set),CP).
-% 
-% %------------------------------------------------------------------------------%
-% % Abstract Passive
-% %------------------------------------------------------------------------------%
-% call_pattern(odom(occ(CMask,O),Set)), bit_position(C,CMask) # ID2, occurrence(C,O,RuleNb,ID,_) # ID3 ==>
-% 		is_passive(RuleNb,ID)
-% 	|
-% 		% DEFAULT
-% 		NO is O + 1,
-% 		DCP = odom(occ(CMask,NO),Set),
-% 		call_pattern(DCP),
-% 		final_answer_pattern(odom(occ(CMask,O),Set),odom([],Set)),
-% 		depends_on(odom(occ(CMask,O),Set),DCP)
-% 	pragma
-% 		passive(ID2),
-% 		passive(ID3).
-% %------------------------------------------------------------------------------%
-% % Abstract Simplify
-% %------------------------------------------------------------------------------%
-% 
-% 	% AbstractSimplify
-% call_pattern(odom(occ(CMask,O),Set)), bit_position(C,CMask) # ID2, occurrence(C,O,RuleNb,ID,simplification) # ID3 
-% 	==>
-% 		\+ is_passive(RuleNb,ID) 
-% 	|
-% 		% writeln(' - AbstractSimplify'(C,O)),
-% 		ai_observation_memo_simplification_rest_heads(C,O,InvertedRestMask),
-% 		Set2 is Set /\ InvertedRestMask, % ai_observation_observe_list(Set,AbstractRestHeads,Set2),
-% 		ai_observation_memo_abstract_goal(RuleNb,AG),
-% 		call_pattern(odom(AG,Set2)),
-% 		% DEFAULT
-% 		NO is O + 1,
-% 		DCP = odom(occ(CMask,NO),Set),
-% 		call_pattern(DCP),
-% 		depends_on_as(odom(occ(CMask,O),Set),odom(AG,Set2),DCP),
-% 		% DEADLOCK AVOIDANCE
-% 		final_answer_pattern(odom(occ(CMask,O),Set),odom([],Set))
-% 	pragma
-% 		passive(ID2),
-% 		passive(ID3).
-% 
-% depends_on_as(CP,CPS,CPD),
-% 	final_answer_pattern(CPS,APS),
-% 	final_answer_pattern(CPD,APD) ==>
-% 	ai_observation_lub(APS,APD,AP),
-% 	final_answer_pattern(CP,AP).	
-% 
-% 
-% :- chr_constraint
-% 	ai_observation_memo_simplification_rest_heads/3,
-% 	ai_observation_memoed_simplification_rest_heads/3.
-% 
-% :- chr_option(mode,ai_observation_memo_simplification_rest_heads(+,+,?)).
-% :- chr_option(mode,ai_observation_memoed_simplification_rest_heads(+,+,+)).
-% 
-% ai_observation_memoed_simplification_rest_heads(C,O,RH) \ ai_observation_memo_simplification_rest_heads(C,O,QRH)
-% 	<=>
-% 		QRH = RH.
-% occurrence(C,O,RuleNb,ID,_) # ID2, rule(RuleNb,Rule) # ID3 \ ai_observation_memo_simplification_rest_heads(C,O,QRH)
-% 	<=>
-% 		Rule = pragma(rule(H1,H2,_,_),ids(IDs1,_),_,_,_),
-% 		once(select2(ID,_,IDs1,H1,_,RestH1)),
-% 		ai_observation_abstract_constraints(RestH1,ARestHeads),
-% 		ai_observation_abstract_constraints(H2,AH2),
-% 		append(ARestHeads,AH2,AbstractHeads),
-% 		hprolog:or_list(AbstractHeads,Mask),
-% 		QRH is \Mask,
-% 		ai_observation_memoed_simplification_rest_heads(C,O,QRH)
-% 	pragma
-% 		passive(ID2),
-% 		passive(ID3).
-% 
-% %------------------------------------------------------------------------------%
-% % Abstract Propagate
-% %------------------------------------------------------------------------------%
-% 
-% 
-% 	% AbstractPropagate
-% call_pattern(odom(occ(CMask,O),Set)), bit_position(C,CMask) # ID2, occurrence(C,O,RuleNb,ID,propagation) # ID3
-% 	==>
-% 		\+ is_passive(RuleNb,ID)
-% 	|
-% 		% writeln('  - AbstractPropagate'(C,O)),
-% 		% observe partners
-% 		ai_observation_memo_propagation_rest_heads(C,O,InvertedRestMask),
-% 		Set2 is Set /\ InvertedRestMask, % ai_observation_observe_list(Set,AHs,Set2),
-% 		Set3 is Set2 \/ CMask, % ord_add_element(Set2,C,Set3),
-% 		ai_observation_memo_abstract_goal(RuleNb,AG),
-% 		call_pattern(odom(AG,Set3)),
-% 		( Set2 /\ CMask > 0 -> % ord_memberchk(C,Set2) ->
-% 			Delete = no
-% 		;
-% 			Delete = yes
-% 		),
-% 		% DEFAULT
-% 		NO is O + 1,
-% 		DCP = odom(occ(CMask,NO),Set),
-% 		call_pattern(DCP),
-% 		depends_on_ap(odom(occ(CMask,O),Set),odom(AG,Set3),DCP,Delete)
-% 	pragma
-% 		passive(ID2),
-% 		passive(ID3).
-% 
-% :- chr_constraint
-% 	ai_observation_memo_propagation_rest_heads/3,
-% 	ai_observation_memoed_propagation_rest_heads/3.
-% 
-% :- chr_option(mode,ai_observation_memo_propagation_rest_heads(+,+,?)).
-% :- chr_option(mode,ai_observation_memoed_propagation_rest_heads(+,+,+)).
-% 
-% ai_observation_memoed_propagation_rest_heads(C,O,RH) \ ai_observation_memo_propagation_rest_heads(C,O,QRH)
-% 	<=>
-% 		QRH = RH.
-% occurrence(C,O,RuleNb,ID,_) # ID2, rule(RuleNb,Rule) # ID3 \ ai_observation_memo_propagation_rest_heads(C,O,QRH)
-% 	<=>
-% 		Rule = pragma(rule(H1,H2,_,_),ids(_,IDs2),_,_,_),
-% 		once(select2(ID,_,IDs2,H2,_,RestH2)),
-% 		ai_observation_abstract_constraints(RestH2,ARestHeads),
-% 		ai_observation_abstract_constraints(H1,AH1),
-% 		append(ARestHeads,AH1,AbstractHeads),
-% 		hprolog:or_list(AbstractHeads,Mask),
-% 		QRH is \Mask,
-% 		ai_observation_memoed_propagation_rest_heads(C,O,QRH)
-% 	pragma
-% 		passive(ID2),
-% 		passive(ID3).
-% 
-% depends_on_ap(CP,CPP,CPD,Delete), final_answer_pattern(CPD,APD) ==>
-% 	final_answer_pattern(CP,APD).
-% depends_on_ap(CP,CPP,CPD,Delete), final_answer_pattern(CPP,APP),
-% 	final_answer_pattern(CPD,APD) ==>
-% 	true | 
-% 	CP = odom(occ(C,O),_),
-% 	( ai_observation_is_observed(APP,C) ->
-% 		ai_observed_internal(C,O)	
-% 	;
-% 		ai_not_observed_internal(C,O)	
-% 	),
-% 	( Delete == yes ->
-% 		APP = odom([],Set0),
-% 		Set is Set0 /\ \C, % ord_del_element(Set0,C,Set),
-% 		NAPP = odom([],Set)
-% 	;
-% 		NAPP = APP
-% 	),
-% 	ai_observation_lub(NAPP,APD,AP),
-% 	final_answer_pattern(CP,AP).
-% 
-% %------------------------------------------------------------------------------%
-% % Auxiliary Predicates 
-% %------------------------------------------------------------------------------%
-% 
-% ai_observation_lub(odom(AG,S1),odom(AG,S2),odom(AG,S3)) :-
-% 	S3 is S1 /\ S2.
-% 
-% ai_observation_bot(AG,AS,odom(AG,AS)).
-% 
-% ai_observation_top(AG,odom(AG,EmptyS)) :-
-% 	EmptyS = 0.
-% 
-% ai_observation_leq(odom(AG,S1),odom(AG,S2)) :-
-% 	S2 /\ S1 =:= S2.
-% 	% ord_subset(S2,S1).
-% 
-% ai_observation_abstract_constraint(C,AC) :-
-% 	functor(C,F,A),
-% 	get_bit_position(F/A,AC).
-% 		
-% 
-% ai_observation_abstract_constraints(Cs,NACs) :-
-% 	findall(NAC,(member(C,Cs),ai_observation_abstract_constraint(C,NAC)),NACs).
-% 
-% %------------------------------------------------------------------------------%
-% % Abstraction of Rule Bodies
-% %------------------------------------------------------------------------------%
-% 
-% :- chr_constraint
-% 	ai_observation_memoed_abstract_goal/2,
-% 	ai_observation_memo_abstract_goal/2.
-% 
-% :- chr_option(mode,ai_observation_memoed_abstract_goal(+,+)).
-% :- chr_option(mode,ai_observation_memo_abstract_goal(+,?)).
-% 
-% ai_observation_memoed_abstract_goal(RuleNb,AG) # ID1 \ ai_observation_memo_abstract_goal(RuleNb,QAG)
-% 	<=>
-% 		QAG = AG
-% 	pragma
-% 		passive(ID1).
-% 
-% rule(RuleNb,Rule) # ID1 \ ai_observation_memo_abstract_goal(RuleNb,QAG)
-% 	<=>
-% 		Rule = pragma(rule(H1,H2,Guard,Body),_,_,_,_),
-% 		ai_observation_abstract_goal_(H1,H2,Guard,Body,AG),
-% 		QAG = AG,
-% 		ai_observation_memoed_abstract_goal(RuleNb,AG)
-% 	pragma	
-% 		passive(ID1).	   
-% 
-% ai_observation_abstract_goal_(H1,H2,Guard,G,AG) :-
-% 	% also guard: e.g. b, c(X) ==> Y=X | p(Y).
-% 	term_variables((H1,H2,Guard),HVars),
-% 	append(H1,H2,Heads),
-% 	% variables that are declared to be ground are safe,
-% 	ground_vars(Heads,GroundVars),	
-% 	% so we remove them from the list of 'dangerous' head variables
-% 	list_difference_eq(HVars,GroundVars,HV),
-% 	ai_observation_abstract_goal(G,AG,[],HV),!.
-% 	% HV are 'dangerous' variables, all others are fresh and safe
-% 	
-% ground_vars([],[]).
-% ground_vars([H|Hs],GroundVars) :-
-% 	functor(H,F,A),
-% 	get_constraint_mode(F/A,Mode),
-% 	head_info(H,A,_Vars,_Susp,_HeadVars,HeadPairs),
-% 	head_arg_matches(HeadPairs,Mode,[],_FirstMatching,_VarDict1,[],GroundVars1),
-% 	ground_vars(Hs,GroundVars2),
-% 	append(GroundVars1,GroundVars2,GroundVars).
-% 
-% ai_observation_abstract_goal((G1,G2),List,Tail,HV) :- !,	% conjunction
-% 	ai_observation_abstract_goal(G1,List,IntermediateList,HV),
-% 	ai_observation_abstract_goal(G2,IntermediateList,Tail,HV).
-% ai_observation_abstract_goal((G1;G2),List,Tail,HV) :- !,   	% disjunction
-% 	ai_observation_abstract_goal(G1,List,IntermediateList,HV),
-% 	ai_observation_abstract_goal(G2,IntermediateList,Tail,HV).
-% ai_observation_abstract_goal((G1->G2),List,Tail,HV) :- !,  	% if-then
-% 	ai_observation_abstract_goal(G1,List,IntermediateList,HV),
-% 	ai_observation_abstract_goal(G2,IntermediateList,Tail,HV).
-% ai_observation_abstract_goal(C,[AC|Tail],Tail,HV) :-	   	
-% 	ai_observation_abstract_constraint(C,AC), !.	% CHR constraint
-% ai_observation_abstract_goal(true,Tail,Tail,_) :- !.
-% ai_observation_abstract_goal(writeln(_),Tail,Tail,_) :- !.
-% % non-CHR constraint is safe if it only binds fresh variables
-% ai_observation_abstract_goal(G,Tail,Tail,HV) :- 
-% 	binds_b(G,Vars),
-% 	intersect_eq(Vars,HV,[]), 
-% 	!.	
-% ai_observation_abstract_goal(G,[AG|Tail],Tail,_) :-
-% 	AG = builtin. % default case if goal is not recognized/safe
-% 
-% ai_observation_is_observed(odom(_,ACSet),AC) :-
-% 	AC /\ ACSet =:= 0.
-% 
-% 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Observation Analysis
@@ -7594,8 +7102,6 @@ phase_end(Phase) <=> true.
 
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Issues: run_suspension still has hardcoded argument index > 3
-
 :- chr_constraint
 	does_use_history/2,
 	uses_history/1,

@@ -1,3 +1,12 @@
+Aug 10, 2006
+
+  * TS: Fixed bug for constraints without rules in debug mode.
+
+  * TS: Compiler clean-up
+
+  * TS: Experimental var_assoc_store.
+
+
 Aug 9, 2006
 
   * TS: Various minor code generation improvements, including smaller
@@ -519,7 +528,7 @@ Mar 25, 2004
   * TS: Added skip and ancestor debug commands
 
 Mar 24, 2004
-
+G
   * TS: Added bootstrapping process for CHR compiler using CHR.
   * TS: CHR compiler now uses CHR.
   * TS: Fixed bug in compilation of multi-headed simpagation rules.
