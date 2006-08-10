@@ -237,6 +237,10 @@ strip_ws_tokens(L0, L) :-
 strip_ws_tokens(L, L).
 
 
+ws_token --> [' '], !.
+ws_token --> ['\n'].
+
+
 %%	strip_leading_ws(+Tokens, -Stripped) is det.
 %
 
@@ -398,7 +402,7 @@ structure_tag(td).
 verbatim_term(pre(_)).
 verbatim_term(\term(_,_)).
 
-%%	wiki_face(-WithFaces, +ArgNames)// is det.
+%%	wiki_faces(-WithFaces, +ArgNames)// is nondet.
 
 wiki_faces([], _) -->
 	[].
@@ -406,6 +410,9 @@ wiki_faces([H|T], ArgNames) -->
 	wiki_face(H, ArgNames),
 	wiki_faces(T, ArgNames).
 
+word_token(Word) -->
+	[Word],
+	{ string(Word) }.
 
 wiki_face(var(Word), ArgNames) -->
 	[Word],
@@ -413,12 +420,18 @@ wiki_face(var(Word), ArgNames) -->
 	  member(Arg, ArgNames),
 	  sub_atom(Arg, 0, _, 0, Word)	% match string to atom
 	}, !.
+wiki_face(b(Bold), _) -->
+	[*], word_token(Bold), [*], !.
 wiki_face(b(Bold), ArgNames) -->
-	[*], wiki_faces(Bold, ArgNames), [*], !.
+	[*,'|'], wiki_faces(Bold, ArgNames), ['|',*], !.
+wiki_face(i(Italic), _) -->
+	['_'], word_token(Italic), ['_'], !.
 wiki_face(i(Italic), ArgNames) -->
-	['_'], wiki_faces(Italic, ArgNames), ['_'], !.
+	['_','|'], wiki_faces(Italic, ArgNames), ['|','_'], !.
 wiki_face(code(Code), _) -->
-	[=], wiki_faces(Code, []), [=], !.
+	[=], word_token(Code), [=], !.
+wiki_face(code(Code), _) -->
+	[=,'|'], wiki_faces(Code, []), ['|',=], !.
 wiki_face(\predref(Name/Arity), _) -->
 	[ NameS, '/', ArityWord ],
 	{ functor_name(NameS),

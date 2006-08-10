@@ -122,21 +122,24 @@ read_comments(In, Term, Comments) :-
 %
 %	True if Comment is a structured comment that should use Prefixes
 %	to extract the plain text using indented_lines/3.
+%	
+%	@tbd	=|%% SWI begin|= and =|%% SICStus begin|= are used by chr.
+%		We need a more general mechanism to block some comments.
 
 is_structured_comment(_Pos-Comment, Prefixes) :- !,
 	is_structured_comment(Comment, Prefixes).
 is_structured_comment(Comment, Prefixes) :-
-	sub_string(Comment, 0, _, _, '%%'),
-	(   sub_string(Comment, 2, _, _, '\t')
-	;   sub_string(Comment, 2, _, _, ' ')
-	), !,
+	sub_string(Comment, 0, _, _, '%%'), !,
+	sub_atom(Comment, 2, 1, _, Space),
+	char_type(Space, space),
+	\+ sub_string(Comment, 2, _, _, ' SWI '),	% HACK
+	\+ sub_string(Comment, 2, _, _, ' SICStus '),	% HACK
+	\+ sub_string(Comment, 2, _, _, ' Mats '), 	% HACK
 	Prefixes = ["%"].
 is_structured_comment(Comment, Prefixes) :-
-	sub_string(Comment, 0, _, _, '/**'),
-	(   sub_string(Comment, 3, _, _, '\t')
-	;   sub_string(Comment, 3, _, _, ' ')
-	;   sub_string(Comment, 3, _, _, '\n')
-	), !,
+	sub_string(Comment, 0, _, _, '/**'), !,
+	sub_atom(Comment, 3, 1, _, Space),
+	char_type(Space, space),
 	Prefixes = ["/**", " *"].
 
 %%	doc_file_name(+Source:atom, -Doc:atom, +Options:list) is det.

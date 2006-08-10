@@ -361,11 +361,30 @@ conventions to this.  For font changing code, The opening symbol must
 be followed immediately by a word and the closing one must immediately
 follow a word.
 
+As code comment frequently contains symbols such as \verb$=$ we ---in
+contrast to normal Wiki conventions--- do font font-switches onlt if a
+single word is surrounded by \verb$=$, \verb$*$ or \verb$_$.  Longer
+sequences must be created using additional \chr{|}:
+
+\begin{code}
+PceEmacs can be set as default editor using
+=|set_prolog_flag(editor, pce_emacs)|=
+\end{code}
+
 \begin{center}
 \begin{tabular}{lp{0.7\linewidth}}
-\tt *bold text*	& Typset text between `*' in bold \\
-\tt _emphasize_ & Typset text between `_' as _emphasized  \\
-\tt =code=      & Typset text between `=' in fixed font \\
+\tt *bold*	& Typset text in \textbf{bold}.
+		  Content must be a single word. \\
+\tt *|bold|*	& Typset text in \textbf{bold}.
+		  Content can be long. \\
+\tt _emphasize_ & Typset text as \emph{emphasize}.
+		  Content must be a single word. \\
+\tt _|emphasize|_ & Typset text as \emph{emphasize}.
+		  Content can be long. \\
+\tt =code=      & Typset text \texttt{fixed} font.
+		  Content must be a single word. \\
+\tt =|code|=    & Typset text \texttt{fixed} font.
+		  Content can be long. \\
 \tt name/arity  & Create a link to a predicate \\
 \tt name//arity & Create a link to a DCG rule \\
 \tt Word	& Capitalised words that appear as argument-name

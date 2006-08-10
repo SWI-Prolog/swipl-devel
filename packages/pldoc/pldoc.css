@@ -55,7 +55,9 @@ dl.tags
 }
 
 dl.termlist
-{ margin-left: 1.5em;
+{ margin-top: 0.7em;
+  margin-bottom: 1em;
+  margin-left: 1.5em;
 }
 
 .argdescr
@@ -63,11 +65,16 @@ dl.termlist
 }
 
 table.wiki
-{ margin-top: 0.5em;
+{ margin-top: 0.7em;
   margin-left: 1.5em;
-  border: 1px;
+  border: 1px outset blue;
+  border-spacing: 0;
 }
 
+table.wiki td
+{ border: 1px inset gray;
+  padding: 3px;
+}
 
 img.icon
 { border: 0;

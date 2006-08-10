@@ -30,7 +30,8 @@
 */
 
 :- module(pldoc_http,
-	  [ doc_server/1		% ?Port
+	  [ doc_server/1,		% ?Port
+	    doc_server/2		% ?Port, +Options
 	  ]).
 :- use_module(library('http/thread_httpd')).
 :- use_module(library('http/http_parameters')).
@@ -40,7 +41,19 @@
 :- use_module(library(pldoc)).
 :- use_module(html).
 
-%:- debug(pldoc).
+/** <module> Documentation server
+
+The module library(pldoc/http) provides an   embedded HTTP documentation
+server that allows for browsing the   documentation  of all files loaded
+_after_ library(pldoc) has been loaded.
+*/
+
+%%	doc_server(?Port) is det.
+%%	doc_server(?Port, +Options) is det.
+%
+%	Start a documentation server in the  current Prolog process. The
+%	server is started in a seperate   thread.  Options are handed to
+%	http_server/2.
 
 doc_server(Port) :-
 	doc_server(Port,
@@ -174,12 +187,17 @@ reply(ReqPath, Request) :-
 	(   file_base_name(ReqPath, 'pldoc.css')
 	->  reply_file(pldoc('pldoc.css'))
 	;   http_parameters(Request,
-			    [ public_only(Public)
+			    [ public_only(Public),
+			      reload(Reload)
 			    ],
 			    [ attribute_declarations(param)
 			    ]),
 	    atom_concat('/', DocPath, AbsFile),
 	    pl_file(AbsFile, File),
+	    (	Reload == true
+	    ->	load_files(File, [if(changed)])
+	    ;	true
+	    ),
 	    format('Content-type: text/html~n~n'),
 	    doc_for_file(File, current_output,
 			 [ public_only(Public)
@@ -221,6 +239,7 @@ file('/pldoc.js',    'pldoc.js').
 file('/edit.gif',    'edit.gif').
 file('/zoomin.gif',  'zoomin.gif').
 file('/zoomout.gif', 'zoomout.gif').
+file('/reload.gif',  'reload.gif').
 file('/favicon.ico', 'favicon.ico').
 
 
@@ -262,6 +281,10 @@ reply_file(File) :-
 param(public_only,
       [ oneof([true,false]),
 	default(true)
+      ]).
+param(reload,
+      [ oneof([true,false]),
+	default(false)
       ]).
 
 

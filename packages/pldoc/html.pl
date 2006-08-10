@@ -145,11 +145,31 @@ file_title(Title, File, Options) -->
 	},
 	html(h1(class=file,
 		[ div(style('float:right'),
-		      [ \zoom_button(Base, Options),
+		      [ \reload_button(Base, Options),
+			\zoom_button(Base, Options),
 			\edit_button(File)
 		      ])
 		| Title
 		])).
+
+
+%%	reload_button(+File)// is det.
+%
+%	Create a button for  reloading  the   sources  and  updating the
+%	documentation page.
+
+reload_button(Base, Options) -->
+	{ option(public_only(Public), Options, true),
+	  format(string(HREF), '~w?reload=true&public_only=~w', 
+		 [Base, Public])
+	},
+	html(a(href=HREF,
+	       img([ %class(icon),
+		     border=0,
+		     height=24,
+		     style('padding-top:4px'),
+		     src('/reload.gif')
+		   ]))).
 
 
 %%	edit_button(+File)// is det.
@@ -346,7 +366,7 @@ tag_title(tbd,    'To be done:').
 
 tag_class(tbd, 		warn).
 tag_class(bug, 		error).
-tag_class(depreciated,	warning).
+tag_class(depreciated,	warn).
 
 params(Params) -->
 	html([ dt(class=tag, 'Parameters:'),
