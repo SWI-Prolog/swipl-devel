@@ -108,10 +108,13 @@ ifeq (@SO@,dylib)
 endif
 		mkdir -p $(DESTDIR)$(PLBASE)/library
 		for f in $(LIBPL); do \
-		  $(INSTALL_DATA) -m 644 $$f $(DESTDIR)$(PLBASE)/library; \
+		  $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library; \
 		done
 		$(INSTALL_DATA) jpl.jar $(DESTDIR)$(PLBASE)/lib
 		$(PL) -f none -g make -t halt
+
+ln-install::
+		@$(MAKE) INSTALL_DATA='../ln-install' install
 
 rpm-install:	install html-install
 

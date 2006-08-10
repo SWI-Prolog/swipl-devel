@@ -50,8 +50,11 @@ table.@SO@:	$(OBJ)
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
 		$(INSTALL) -m 755 $(TARGETS) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)$(PLBASE)/library
+		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(PLBASE)/library
 		$(PL) -f none -g make -t halt
+
+ln-install::
+		@$(MAKE) INSTALL_DATA='../ln-install' install
 
 rpm-install:	install
 
