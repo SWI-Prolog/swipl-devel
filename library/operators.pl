@@ -70,6 +70,8 @@ otherwise a more structured approach for operator handling.
 	    op(500, fx, myop)
 	  ]).
 ==
+
+@compat	SWI-Prolog
 */
 
 :- thread_local
@@ -109,7 +111,7 @@ push_op(P, T, A0) :-
 	assert_op(Undo),
 	op(P, T, A).
 
-%	pop_operators is det.
+%%	pop_operators is det.
 %	
 %	Revert all changes to the operator table realised since the last
 %	push_operators/1.

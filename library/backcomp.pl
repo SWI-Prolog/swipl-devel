@@ -54,15 +54,16 @@
 	    convert_time/8		% +String, -YMDmhs.ms
 	  ]).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This library defines predicates that used to   exist in older version of
+/** <module> Backward compatibility
+
+This library defines predicates that used to exist in older version of
 SWI-Prolog, but are considered obsolete as there functionality is neatly
 covered by new features. Most often, these constructs are superceeded by
 ISO-standard compliant predicates.
 
-Please   also   note   the    existence     of    library(quintus)   and
-library(edinburgh) for more compatibility predicates.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+Please also note the existence of   quintus.pl and edinburgh.pl for more
+compatibility predicates.
+*/
 
 '$arch'(Arch, unknown) :-
 	current_prolog_flag(arch, Arch).
@@ -73,8 +74,8 @@ library(edinburgh) for more compatibility predicates.
 '$argv'(Argv) :-
 	current_prolog_flag(argv, Argv).
 
-%	displayq(@Term) is det.
-%	displayq(+Stream, @Term) is det.
+%%	displayq(@Term) is det.
+%%	displayq(+Stream, @Term) is det.
 %	
 %	Write term ignoring operators and quote atoms.
 %	
@@ -105,7 +106,8 @@ sformat(String, Format) :-
 concat(A, B, C) :-
 	atom_concat(A, B, C).
 
-%	read_variables(-Term, -Bindings) is det.
+%%	read_variables(-Term, -Bindings) is det.
+%%	read_variables(+In:stream, -Term, -Bindings) is det.
 %
 %	@depreciated Use ISO read_term/[2,3].
 

@@ -48,7 +48,8 @@
 :- use_module(library(oset)).
 :- set_prolog_flag(generate_debug_info, false).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Ordered set manipulation
+
 Very incomplete implementation  of   Quintus/SICStus  compatible  ordset
 library, partially based on the   contributed  SWI-Prolog library(oset).
 Please complete the implementation and contribute   it to the SWI-Prolog
@@ -56,7 +57,10 @@ community.
 
 This library was implemented to run the threetap theorem prover.  It was
 extended to satisfy requirements by CHR.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+@compat	De-facto standard.
+@bug	Incomplete
+*/
 
 %%	ord_empty(List)
 %	
@@ -103,7 +107,8 @@ ord_disjoint(Set1, Set2) :-
 %%	ord_intersect(+Set1, +Set2, -Intersection)
 %	
 %	Intersection  holds  the  common  elements  of  Set1  and  Set2.
-%	Depreciated. Please use ord_intersection/3 in new code.
+%	
+%	@depreciated Use ord_intersection/3
 
 ord_intersect(Set1, Set2, Intersection) :-
 	oset_int(Set1, Set2, Intersection).

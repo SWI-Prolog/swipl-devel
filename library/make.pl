@@ -44,7 +44,8 @@
 %%	make
 %	
 %	Reload all source files that have been changed since they were
-%	loaded.
+%	loaded.  After loading make/0 runs list_undefined/0 to quickly
+%	scan for undefined predicates.
 
 make :-
 	'$update_library_index',
