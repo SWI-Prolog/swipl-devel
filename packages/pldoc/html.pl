@@ -46,6 +46,10 @@ This module translates the Herbrand term from the documentation
 extracting module wiki.pl into HTML+CSS.
 */
 
+:- thread_local
+	documented/1.			% +Object
+
+
 		 /*******************************
 		 *	 FILE PROCESSING	*
 		 *******************************/
@@ -85,11 +89,14 @@ prolog_file(FileSpec, Options) -->
 		  pldoc_comment(Obj, Pos, _, Comment), Objs0),
 	  module_info(File, ModuleOptions, Options),
 	  file_info(Objs0, Objs, FileOptions, ModuleOptions),
-	  b_setval(pldoc_file, File)	% TBD: delete?
+	  b_setval(pldoc_file, File),	% TBD: delete?
+	  retractall(documented(_))	% Play safe
 	},
 	html([ \file_header(File, FileOptions)
 	     | \objects(Objs, [body], FileOptions)
-	     ]).
+	     ]),
+	undocumented(Objs, FileOptions),
+	{ retractall(documented(_)) }.
 	  
 %%	module_info(+File, -ModuleOptions, +OtherOptions) is det.
 %
@@ -312,6 +319,50 @@ pop_mode(Mode, [H|Rest0], Rest) -->
 	html_end(H),
 	pop_mode(Mode, Rest0, Rest).
 
+%%	undocumented(+Objects, +Options)// is det.
+%
+%	Describe undocumented predicates if the file is a module file.
+
+undocumented(Objs, Options) -->
+	{ memberchk(module(Module), Options),
+	  memberchk(public(Exports), Options),
+	  select_undocumented(Exports, Module, Objs, Undoc),
+	  Undoc \== []
+	}, !,
+	html([ h2(class(undoc), 'Undocumented predicates'),
+	       p(['The following predicates are exported, but not ',
+		  'or incorrectly documented.'
+		 ]),
+	       dl(class(undoc),
+		  \undocumented_predicates(Undoc, Options))
+	     ]).
+undocumented(_, _) -->
+	[].
+
+undocumented_predicates([], _) -->
+	[].
+undocumented_predicates([H|T], Options) -->
+	undocumented_pred(H, Options),
+	undocumented_predicates(T, Options).
+		
+undocumented_pred(Name/Arity, Options) -->
+	{ functor(Head, Name, Arity) },
+	html(dt(class=undoc, \pred_mode(Head, [], _, Options))).
+		
+select_undocumented([], _, _, []).
+select_undocumented([PI|T0], M, Objs, [PI|T]) :-
+	pi(PI),
+	\+ documented(PI),
+	select_undocumented(T0, M, Objs, T).
+select_undocumented([_|T0], M, Objs, T) :-
+	select_undocumented(T0, M, Objs, T).
+
+in_doc(Name/Arity, M, Objs) :-
+	memberchk(doc(M:Name/Arity,_,_), Objs), !.
+in_doc(Name/PredArity, M, Objs) :-
+	Arity is PredArity-2,
+	memberchk(doc(M:Name//Arity,_,_), Objs), !.
+
 
 		 /*******************************
 		 *	       PRINT		*
@@ -416,7 +467,10 @@ pred_dt(Modes) -->
 
 pred_dt(Modes, Class, Options) -->
 	html(dt(class=Class,
-		\pred_modes(Modes, [], _, Options))).
+		\pred_modes(Modes, [], Done, Options))),
+	{ forall(member(PI, Done),
+		 assert(documented(PI)))
+	}.
 
 pred_modes([], Done, Done, _) -->
 	[].
@@ -441,14 +495,14 @@ bind_vars([Name=Var|T]) :-
 	bind_vars(T).
 
 anchored_pred_head(Head, Done0, Done, Options) -->
-	{ anchor_name(Head, Name)
+	{ anchor_name(Head, PI, Name)
 	},
-	(   { memberchk(Name, Done0) }
+	(   { memberchk(PI, Done0) }
 	->  { Done = Done0 },
 	    pred_head(Head)
 	;   pred_edit_button(Head, Options),
 	    html(a(name=Name, \pred_head(Head))),
-	    { Done = [Name|Done0] }
+	    { Done = [PI|Done0] }
 	).
 
 pred_edit_button(//(Head), Options) -->
@@ -492,30 +546,34 @@ pred_head(Head) -->
 	{ Head =.. [Functor|Args] },	% TBD: operators!
 	html([ span(class=pred, Functor),
 	       var(class=arglist,
-		   [ '(', \pred_args(Args), ')' ])
+		   [ '(', \pred_args(Args, 1), ')' ])
 	     ]).
 
-pred_args([]) -->
+pred_args([], _) -->
 	[].
-pred_args([H|T]) -->
-	pred_arg(H),
+pred_args([H|T], I) -->
+	pred_arg(H, I),
 	(   {T==[]}
 	->  []
 	;   html(', '),
-	    pred_args(T)
+	    { I2 is I + 1 },
+	    pred_args(T, I2)
 	).
 
-pred_arg(...(Term)) --> !,
-	pred_arg(Term),
+pred_arg(Var, I) -->
+	{ var(Var) }, !,
+	html(['Arg', I]).
+pred_arg(...(Term), I) --> !,
+	pred_arg(Term, I),
 	html('...').
-pred_arg(Term) -->
+pred_arg(Term, I) -->
 	{ Term =.. [Ind,Arg],
 	  mode_indicator(Ind)
 	}, !,
-	html([Ind, \pred_arg(Arg)]).
-pred_arg(Arg:Type) --> !,
+	html([Ind, \pred_arg(Arg, I)]).
+pred_arg(Arg:Type, _) --> !,
 	html([\argname(Arg), :, \argtype(Type)]).
-pred_arg(Arg) -->
+pred_arg(Arg, _) -->
 	argname(Arg).
 
 argname('$VAR'(Name)) --> !,
@@ -552,7 +610,7 @@ term(Term, Bindings) -->
 	}, !,
 	html([ span(class=functor, Functor),
 	       var(class=arglist,
-		   ['(', \pred_args(Args), ')'])
+		   ['(', \pred_args(Args, 1), ')'])
 	     ]).
 term(Term, Bindings) -->
 	{ bind_vars(Bindings) },
@@ -649,14 +707,14 @@ to_dot_dot([_|T0], ['..'|T], Tail) :-
 		 *	      ANCHORS		*
 		 *******************************/
 
-%%	anchor_name(+Head, -Anchor:string) is det.
+%%	anchor_name(+Head, -PI:atom/integer, -Anchor:string) is det.
 %
 %	Create an HTML anchor name from Head.
 
-anchor_name(//(Head), Anchor) :- !,
+anchor_name(//(Head), Name/Arity, Anchor) :- !,
 	functor(Head, Name, DCGArity),
 	Arity is DCGArity+2,
 	format(string(Anchor), '~w/~d', [Name, Arity]).
-anchor_name(Head, Anchor) :-
+anchor_name(Head, Name/Arity, Anchor) :-
 	functor(Head, Name, Arity),
 	format(string(Anchor), '~w/~d', [Name, Arity]).

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -29,35 +29,42 @@
     the GNU General Public License.
 */
 
-:- module( ctypes,[
-	is_alnum/1,
-	is_alpha/1,
-	is_ascii/1,
-	is_cntrl/1,
-	is_csym/1,
-	is_csymf/1,
-	is_digit/1,
-	is_digit/3,
-	is_endfile/1,
-	is_endline/1,
-	is_graph/1,
-	is_lower/1,
-	is_newline/1,
-	is_newpage/1,
-	is_paren/2,
-	is_period/1,
-	is_print/1,
-	is_quote/1,
-	is_space/1,
-	is_upper/1,
-	is_white/1,
-	to_lower/2,
-	to_upper/2] ).
+:- module(ctypes,
+	  [ is_alnum/1,
+	    is_alpha/1,
+	    is_ascii/1,
+	    is_cntrl/1,
+	    is_csym/1,
+	    is_csymf/1,
+	    is_digit/1,
+	    is_digit/3,
+	    is_endfile/1,
+	    is_endline/1,
+	    is_graph/1,
+	    is_lower/1,
+	    is_newline/1,
+	    is_newpage/1,
+	    is_paren/2,
+	    is_period/1,
+	    is_print/1,
+	    is_punct/1,
+	    is_quote/1,
+	    is_space/1,
+	    is_upper/1,
+	    is_white/1,
+	    to_lower/2,
+	    to_upper/2
+	  ]).
 
-%	This file implements the functionality of the corresponding Quintus
-%	library based on SWI-Prolog's code_type/2 predicate.  Please check
-%	the decumentation of this predicate to find the definitions of the
-%	classes.
+/** <module> Character code classification
+
+This file implements the functionality of the corresponding Quintus
+library based on SWI-Prolog's code_type/2 predicate. Please check the
+decumentation of this predicate to find the definitions of the classes.
+
+@see	code_type/2
+@see	char_type/2
+*/
 
 is_alnum(C)   :- code_type(C, alnum).
 is_alpha(C)   :- code_type(C, alpha).
@@ -81,11 +88,17 @@ is_endfile(-1).
 is_newpage(12).				% Control-L
 is_newline(10).
 
+%%	is_paren(?Open, ?Close) is semidet.
+%
+%	True if Open is the open-parenthesis of Close.
+
 is_paren(0'(, 0')).			% Prolog is too good at this
 is_paren(0'[, 0']).
 is_paren(0'{, 0'}).
 
-%%	to_lower( ?U,?L )
+%%	to_lower(+U, -L) is det.
+%%	to_lower(-U, +L) is det.
+%
 %	Succeeds  if  `U'  is  upper  case  character  and  `L'  is  the
 %	corresponding lower case character or `U' is an ascii character,
 %	but not an upper case letter and `L' is equal to `U'.
@@ -96,7 +109,9 @@ to_lower(U, L) :-
 to_upper(U, L) :-
 	code_type(L, to_upper(U)).
 
-%%	is_digit( ?C,?Base,?Weight )
+%%	is_digit(+C, +Base, -Weight) is det.
+%%	is_digit(-C, +Base, +Weight) is det.
+%
 %	Succeeds if `C' is a digit using `Base'  as  base  and  `Weight'
 %	represents its value.  Only the base-10 case is handled by code_type.
 

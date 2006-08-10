@@ -46,7 +46,7 @@
 :- multifile
 	prolog:locate_clauses/2.	% +Spec, -ClauseRefList
 
-%	listing
+%%	listing
 %	
 %	Lists all predicates defined in the calling module. Imported
 %	predicates are not listed.
@@ -187,13 +187,14 @@ notify_changed(Pred) :-
 	       [Name, Arity]).
 notify_changed(_).
 
-%%	portray_clause(+Clause)
+%%	portray_clause(+Clause) is det.
+%%	portray_clause(+Out:stream, +Clause) is det.
 %
 %	Portray `Clause' on the current  output   stream.  Layout of the
 %	clause is to our best standards.   As  the actual variable names
 %	are not available we use A, B, ... Deals with ';', '|', '->' and
 %	various calls via meta-call predicates.
-%
+
 %	The prolog_list_goal/1 hook is  a  dubious   as  it  may lead to
 %	confusion if the heads relates to other   bodies.  For now it is
 %	only used for XPCE methods and works just nice.

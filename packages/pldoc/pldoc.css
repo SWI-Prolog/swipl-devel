@@ -49,6 +49,10 @@ dt.privdef
 { background-color: #fbffa6;
 }
 
+dt.undoc, h2.undoc
+{ background-color: #ffbc87;
+}
+
 dl.tags
 { font-size: 80%;
   margin-top: 0.5em;
@@ -58,6 +62,10 @@ dl.termlist
 { margin-top: 0.7em;
   margin-bottom: 1em;
   margin-left: 1.5em;
+}
+
+dl.undoc
+{ margin-top: 0.7em;
 }
 
 ul, ol
