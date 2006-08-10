@@ -69,6 +69,7 @@ install-examples::
 
 uninstall::
 		(cd $(LIBDIR) && rm -f $(LIBPL))
+		rm -f $(PLBASE)/library/pldoc.pl
 		$(PL) -f none -g make -t halt
 
 check::
@@ -109,4 +110,3 @@ clean:
 
 distclean:	clean
 		rm -f $(TARGETS) config.cache config.status Makefile
-		
