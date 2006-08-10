@@ -53,9 +53,12 @@ db4pl.$(SO):	$(DBOBJ)
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 755 $(TARGETS) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)$(PLBASE)/library
+		$(INSTALL_PROGRAM) $(TARGETS) $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(PLBASE)/library
 		$(PL) -f none -g make -t halt
+
+ln-install::
+		@$(MAKE) INSTALL_DATA='../ln-install' install
 
 uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
