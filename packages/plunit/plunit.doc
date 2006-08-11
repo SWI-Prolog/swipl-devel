@@ -36,6 +36,27 @@ This document describes the SWI-Prolog unit-test framework.
 \newpage
 
 \section{Introduction}
+\label{sec:intro}
+
+There is really no excuse not to write tests!
+
+Automatic testing of software during development is probably the most
+important Quality Assurance measure. Tests can validate the final
+system, which is nice or your users.  Most (Prolog) developers
+however forget it is not just a burden during development.
+
+\begin{itemize}
+    \item Tests document how the code is supposed to be used.
+    \item Tests can validate claims you make on the Prolog
+          implementation.  Writing a test makes the claim
+	  explicit.
+    \item Tests avoid big applications saying `No' after
+          modifications.  This saves time during development,
+	  and it saves \emph{a lot} of time if you must return
+	  to the application a few years later or you must
+	  modify and debug someone else's application.
+\end{itemize}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{A Unit Test box}
@@ -69,6 +90,11 @@ The test is currently disabled.   Tests are flagged as blocked if they
 are known not to work but this accepted as something that must be fixed
 in the future.
 
+    \termitem{condition}{:Goal}
+Test pre-conditions for running the test.  If the condition fails
+the test is skipped.  The condition can be used as an alternative
+to the \const{setup} option.
+
     \termitem{setup}{:Goal}
 \arg{Goal} is run before the test-body.  Typically used together with
 the \const{cleanup} option to create and destroy the required execution
@@ -83,7 +109,7 @@ variables with the test body.
 
 \begin{code}
 create_file(Tmp) :-
-	tmp_file(Tmp),
+	tmp_file(plunit, Tmp),
 	open(Tmp, write, Out),
 	write(Out, 'hello(World).\n'),
 	close(Out).
@@ -94,6 +120,37 @@ test(read, [ setup(create_file(Tmp)),
 	read_file_to_terms(Tmp, Terms, []),
 	Term =@= hello(_).
 \end{code}
+
+    \termitem{true}{Vars Cmp Values}
+Body must succeed deterministically. Bindings are compared to Values.
+\arg{Cmp} is typically one of =/2, ==/2, =:=/2 or =@=/2, but any test
+can be used. This is the same as inserting the test at the end of the
+conjunction, but it allows the test engine to distinguish between
+failure of copy_term/2 and producing the wrong value.
+
+\begin{code}
+test(copy, [ true(Copy =@= hello(X,X))
+	   ]) :-
+	copy_term(hello(Y,Y), Copy).
+\end{code}
+
+    \termitem{fail}{}
+Body must fail.
+
+    \termitem{throws}{Error}
+Body must throw \arg{Error}. The error is verified using =@=/2.
+If \arg{Error} is of the format \term{error}{Formal, Context},
+\arg{Formal} is verified using =@=/2, but \arg{Context} simply
+using unification (=/2).
+
+    \termitem{all}{Vars Cmp List}
+Similar to \term{true}{Vars Cmp Values}, but used for non-deterministic
+predicates.  Each element is compared using \arg{Cmp}.  Order matters.
+
+    \termitem{set}{Vars Cmp List}
+Similar to \term{true}{Vars Cmp Values}, but used for non-deterministic
+predicates.  Each element is compared using \arg{Cmp}.  Order and
+duplicates with respect to \arg{Cmp} are ignored.
 \end{description}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -112,37 +169,182 @@ Deterministic predicates are predicates that must succeed exactly once
 and, for well behaved predicates, leave no choicepoints. Typically they
 have zero or more input- and zero or more output arguments. The test
 goal supplies proper values for the input arguments and verifies the
-output arguments.
+output arguments. Verification can use test-options or be explicit in
+the body.  The tests in the example below are equivalent.
 
 \begin{code}
 test(add) :-
 	A is 1 + 2,
 	A =:= 3.
+
+test(add, [true(A =:= 3)]) :-
+	A is 1 + 2.
 \end{code}
 
+The test engine verifies that the test-body does not leave a
+choicepoint.  We illustrate that using the test below:
 
+\begin{code}
+test(member) :-
+	member(b, [a,b,c]).
+\end{code}
 
+Although this test succeeds, member/2 leaves a choicepoint which is
+reported by the test subsystem.  To make the test silent, use the
+code below.
+
+\begin{code}
+test(member) :-
+	member(b, [a,b,c]), !.
+\end{code}
 
 \subsubsection{Testing semi-deterministic predicates}
 \label{sec:testsemidet}
+
+Semi-deterministic predicates are predicates that either fail or succeed
+exactly once and, for well behaved predicates, leave no choicepoints.
+Testing such predicates the the same as testing deterministic
+predicates, except that the negative tests must be turned into positive
+tests, typically using \verb$\+/1$.
 
 
 \subsubsection{Testing non-deterministic predicates}
 \label{sec:testnondet}
 
+Non-deterministic predicates succeed zero or more times.  Their results
+are tested either using findall/3 or setof/3 followed by a value-check
+or using the \const{all} or \const{set} options.  The following are
+equivalent tests:
 
+\begin{code}
+test(member) :-
+	findall(X, member(X, [a,b,c]), Xs),
+	Xs == [a,b,c].
 
+test(member, all(X == [a,b,c]) :-
+	member(X, [a,b,c]).
+\end{code}
+
+\subsubsection{Testing error conditions}
+\label{sec:testnondet}
+
+Error-conditions are tested using the option \term{throws}{Error} or
+by wrapping the test in a catch/3.  The following tests are equivalent:
+
+\begin{code}
+test(div0) :-
+     catch(A is 1/0, error(E, _), true),
+     E =@= evaluation_error(zero_divisor).
+
+test(div0, [throws(error(evaluation_error(zero_divisor), _))]) :-
+     A is 1/0.
+\end{code}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{
+\section{Running the test-suite}
+\label{sec:running}
 
+At any time, the tests can be executed by loading the program and
+running run_tests/0 or run_tests(+Unit).  
+
+\begin{description}
+    \predicate{run_tests}{0}{}
+Run all test-units.
+
+    \predicate{run_tests}{1}{+Spec}
+Run only the specified tests.  \arg{Spec} can be a list to run multiple
+tests.  A single specification is either the name of a test unit or
+a term <Unit>:<Test>, running only the specified test.  The latter is
+particulary interesting for tracing a test:%
+	\footnote{Unfortunately the body of the test is called through
+		  meta-calling, so it cannot be traced. The called
+		  user-code can be traced normally though.}
+
+\begin{code}
+?- gtrace, run_tests(lists:member).
+\end{code}
+\end{description}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Tests and production systems}
+\label{sec:state}
+
+Most applications do not want the test-suite to end up in the
+final application.  There are several ways to achieve this.  One
+is to places all tests in seperate files and not to load the tests
+when creating the production environment.  Alternatively, use the
+directive below before loading the application.
+
+\begin{code}
+:- set_test_options([load(never)]).
+\end{code}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Controlling the test suite}
+\label{sec:options}
+
+\begin{description}
+    \predicate{set_test_options}{1}{+Options}
+Defined options are:
+
+\begin{description}
+    \termitem{load}{+Load}
+Determines whether or not tests are loaded. When \const{never},
+everything betweem begin_tests/1 and end_tests/1 is simply ignored.
+When \const{always}, tests are always loaded.  Finally, when using
+the default value \const{normal}, tests are loaded if the code is
+not compiled with optimisation turned on.
+
+    \termitem{run}{+Run}
+Specifies when tests are ran.  Using \const{manual}, tests can 
+only be run using run_tests/0 or run_tests/1.  Using \const{make},
+tests will be run for reloaded files, but not for files loaded the
+first time.
+\end{description}
+\end{description}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Portability of the test-suite}
+\label{sec:porting}
+
+One of the reasons to have tests is to simplify migrating code between
+Prolog implementations. Unfortunately creating a very portable
+test-suite implies a poor integration with the development environment.
+Luckily, the specification of the test-system proposed here can be
+ported quite easily to most Prolog systems sufficiently compatible to
+SWI-Prolog to consider porting your application.  Most important is to
+have support for term_expansion/2.
+
+In the current system, test units are compiled into sub-modules of the
+module in which they appear.  Few Prolog systems allow for sub-modules
+and therefore ports may have to fall-back to inject the code in the
+surrounding module.  This implies that support predicates used inside
+the test unit should not conflict with predicates of the module being
+tested.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Motivation of choices}
 \label{sec:motivation}
 
+\subsection*{Easy to understand and flexible}
+
+There are two approaches for testing. In one extreme the tests are
+written using declarations dealing with setup, cleanup, running and
+testing the result. In the other extreme a test it simply a Prolog goal
+that is supposed to succeed. We have choosen to allow for any mixture of
+these approaches. Written down as test/1 we opt for the simple
+succeeding goal approach. Using options to the test the user can choose
+for a more declarative specification.  The user can mix both approaches.
+
+
+
+
+\subsection*{Well integrated}
 
 \printindex
 

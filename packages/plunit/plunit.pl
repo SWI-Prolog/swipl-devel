@@ -51,8 +51,7 @@
 %		=never=, =always=, =normal= (only if not optimised)
 %		
 %		* run(+When)
-%		When the tests are run.  Values are =never=, =always=
-%		or =make=.
+%		When the tests are run.  Values are =manual= or =make=.
 %		
 %	@tbd	Verify types	
 
@@ -139,8 +138,14 @@ unit_module(Name, Module) :-
 		 *	     EXPANSION		*
 		 *******************************/
 
+%%	expand_test(+Name, +Options, +Body, -Clause) is det.
+%
+%	@tbd	Verify options.
+
 expand_test(Name, Options, Body, 'unit test'(Name, Line, Options, Body)) :-
 	source_location(_File, Line).
+
+%%	expand(+Term, -Clauses) is semidet.
 
 expand(end_of_file, _) :-
 	loading_unit(Unit, _, _), !,
