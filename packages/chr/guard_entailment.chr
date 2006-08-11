@@ -8,6 +8,7 @@
 :- use_module(chr_compiler_errors).
 :- chr_option(debug, off).
 :- chr_option(optimize, full).
+:- chr_option(verbosity,off).
 :- chr_constraint known/1, test/1, cleanup/0, variables/1.
 entails_guard(A, B) :-
 	copy_term_nat((A, B), (C, F)),
