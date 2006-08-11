@@ -1736,11 +1736,11 @@ trigger_exp(myabs2(X),Y) :-
 	myabs(X,Y,no).
 
 trigger_exp(mymod1(Y,Z),X) :-
-	mymod(X,Y,Z).
+	mymod(X,Y,Z,no).
 trigger_exp(mymod2(X,Z),Y) :-
-	mymod(X,Y,Z).
+	mymod(X,Y,Z,no).
 trigger_exp(mymod3(X,Y),Z) :-
-	mymod(X,Y,Z).
+	mymod(X,Y,Z,no).
 
 trigger_exp(mydiv(Y,Z),X) :-
 	mydiv(X,Y,Z,no).
