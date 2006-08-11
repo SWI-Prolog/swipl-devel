@@ -9,8 +9,14 @@ test(true) :-
 test(fail) :-
 	\+ fail.
 
+test(fail, [fail]) :-
+	fail.
+
 test(member) :-
-	member(a, [a]).
+	member(a, [a]), !.
+
+test(member, [true(X == a)]) :-
+	member(X, [a]), !.
 
 test(member, [all(V == [a,b,c])]) :-
 	member(V, [a,b,c]).

@@ -210,17 +210,56 @@ cleanup :-
 
 run_test(Unit, Name, Line, Options, _Body) :-
 	option(blocked(Reason), Options, Default),
-	Reason \== Default, !,		% Blocked test
+	Reason \== Default, !,				% Blocked test
 	assert(blocked(Unit, Name, Line, Reason)).
 run_test(Unit, Name, Line, Options, Body) :-
-	option(all(Answer), Options), !,
+	option(all(Answer), Options), !,		% all(Bindings)
 	nondet_test(all(Answer), Unit, Name, Line, Options, Body).
 run_test(Unit, Name, Line, Options, Body) :-
-	option(set(Answer), Options), !,
+	option(set(Answer), Options), !,		% set(Bindings)
 	nondet_test(set(Answer), Unit, Name, Line, Options, Body).
 run_test(Unit, Name, Line, Options, Body) :-
+	option(fail, Options), !,			% fail
 	unit_module(Unit, Module),
 	setup(Module, Options), !,
+	statistics(cputime, T0),
+	(   catch(Module:Body, E, true)
+	->  (   var(E)
+	    ->	statistics(cputime, T1),
+		Time is T1 - T0,
+		failure(Unit, Name, Line, Time),
+		cleanup(Module, Options)
+	    ;	failure(Unit, Name, Line, E),
+		cleanup(Module, Options)
+	    )
+	;   statistics(cputime, T1),
+	    Time is T1 - T0,
+	    success(Unit, Name, Line, true, Time),
+	    cleanup(Module, Options)
+	).
+run_test(Unit, Name, Line, Options, Body) :-
+	option(true(Cmp), Options),
+	unit_module(Unit, Module),
+	setup(Module, Options), !,			% true(Binding)
+	statistics(cputime, T0),
+	(   catch(call_test(Module:Body, Det), E, true)
+	->  (   var(E)
+	    ->	statistics(cputime, T1),
+		Time is T1 - T0,
+		(   catch(Cmp, _, fail)			% tbd: error
+		->  success(Unit, Name, Line, Det, Time)
+		;   failure(Unit, Name, Line, wrong_answer)
+		),
+		cleanup(Module, Options)
+	    ;	failure(Unit, Name, Line, E),
+		cleanup(Module, Options)
+	    )
+	;   failure(Unit, Name, Line, failed),
+	    cleanup(Module, Options)
+	).
+run_test(Unit, Name, Line, Options, Body) :-
+	unit_module(Unit, Module),
+	setup(Module, Options), !,			% true
 	statistics(cputime, T0),
 	(   catch(call_test(Module:Body, Det), E, true)
 	->  (   var(E)
@@ -337,7 +376,8 @@ success(Unit, Name, Line, Det, Time) :-
 	assert(passed(Unit, Name, Line, Det, Time)),
 	(   Det == true
 	->  put(.)
-	;   put(!)
+	;   unit_file(Unit, File),
+	    print_message(warning, plunit(nondet(File, Line, Name)))
 	),
 	flush_output.
 
@@ -421,3 +461,6 @@ prolog:message(error(context_error(plunit_close(Name, -)), _)) -->
 	[ 'PL-Unit: cannot close unit ~w: no open unit'-[Name] ].
 prolog:message(error(context_error(plunit_close(Name, Start)), _)) -->
 	[ 'PL-Unit: cannot close unit ~w: current unit is ~w'-[Name, Start] ].
+prolog:message(plunit(nondet(File, Line, Name))) -->
+	[ '~w:~d: PL-Unit: Test ~w: Test succeeded with choicepoint'-
+	  [File, Line, Name] ].
