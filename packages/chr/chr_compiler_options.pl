@@ -243,6 +243,11 @@ option_definition(term_indexing,on,Flags) :-
 option_definition(term_indexing,off,Flags) :-
 	Flags = [term_indexing - off].
 
+option_definition(verbosity,on,Flags) :-
+	Flags = [verbosity - on].
+option_definition(verbosity,off,Flags) :-
+	Flags = [verbosity - off].
+
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),
 	set_chr_pp_flag(Name,DefaultValue),
@@ -279,6 +284,7 @@ chr_pp_flag_definition(show,[off,on]).
 chr_pp_flag_definition(solver_events,[none,_]).
 chr_pp_flag_definition(toplevel_show_store,[on,off]).
 chr_pp_flag_definition(term_indexing,[off,on]).
+chr_pp_flag_definition(verbosity,[on,off]).
 
 chr_pp_flag(Name,Value) :-
 	atom_concat('$chr_pp_',Name,GlobalVar),

@@ -36,6 +36,8 @@
 			print_chr_error/1
 		]).
 
+:- use_module(chr_compiler_options).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % chr_info(+Type,+FormattedMessage,+MessageParameters)
 
@@ -95,11 +97,15 @@ chr_warning(problem_pragma(Pragma,Rule),Message,Params) :- !,
 	long_line_with_equality_signs.
 
 chr_warning(_,Message,Params) :-
-	long_line_with_equality_signs,
-	format(user_error,'CHR compiler WARNING:\n',[]),	
-	format(user_error,'    `--> ',[]),
-	format(user_error,Message,Params),
-	long_line_with_equality_signs.
+	( chr_pp_flag(verbosity,on) ->
+		long_line_with_equality_signs,
+		format(user_error,'CHR compiler WARNING:\n',[]),	
+		format(user_error,'    `--> ',[]),
+		format(user_error,Message,Params),
+		long_line_with_equality_signs
+	;
+		true
+	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % chr_error(+Type,+FormattedMessage,+MessageParameters)
