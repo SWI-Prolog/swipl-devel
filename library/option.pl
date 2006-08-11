@@ -30,12 +30,13 @@
 */
 
 :- module(swi_option,
-	  [ option/3			% +Term, +List, +Default
+	  [ option/2,			% +Term, +List
+	    option/3			% +Term, +List, +Default
 	  ]).
 
 %%	option(?Option, +OptionList, +Default)
 %
-%	Get an option from a OptionList. OptionList can use the
+%	Get  an  option  from  a  OptionList.  OptionList  can  use  the
 %	Name=Value as well as the Name(Value) convention.
 %	
 %	@param Option	Term of the form Name(?Value).
@@ -48,13 +49,32 @@ option(Opt, Options, Default) :-	% make option processing stead-fast
 	option(Gen, Options, Default),
 	Opt = Gen.
 option(Opt, Options, _) :-
-	option(Opt, Options), !.
+	get_option(Opt, Options), !.
 option(Opt, _, Default) :-
 	arg(1, Opt, Default).
 
+%%	option(?Option, +OptionList)
+%
+%	Get  an  option  from  a  OptionList.  OptionList  can  use  the
+%	Name=Value as well as the Name(Value) convention. Fails silently
+%	if the option does not appear in OptionList.
+%	
+%	@param Option	Term of the form Name(?Value).
+
+option(Opt, Options) :-	% make option processing stead-fast
+	arg(1, Opt, OptVal),
+	nonvar(OptVal), !,
+	functor(Opt, OptName, 1),
+	functor(Gen, OptName, 1),
+	option(Gen, Options),
+	Opt = Gen.
 option(Opt, Options) :-
+	get_option(Opt, Options), !.
+
+
+get_option(Opt, Options) :-
 	memberchk(Opt, Options), !.
-option(Opt, Options) :-
+get_option(Opt, Options) :-
 	functor(Opt, OptName, 1),
 	arg(1, Opt, OptVal),
 	memberchk(OptName=OptVal, Options), !.
