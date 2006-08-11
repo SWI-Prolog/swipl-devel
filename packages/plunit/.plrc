@@ -1,0 +1,6 @@
+:- ['~/.plrc'].
+:- use_module(library(pldoc)).
+:- use_module(library('pldoc/http')).
+:- use_module(plunit).
+
+:- doc_server(4003).
