@@ -1,0 +1,21 @@
+Prolog Unit Tests
+=================
+
+
+---++ What to do with loaded tests?
+
+	* Keep them around
+	* Remove them
+	* Flag module as `volatile', so it is not saved.
+
+---++ When to run tests?
+
+	* At :- end_tests
+	* On User request
+	* After make/0
+		* requires hook in make
+
+---++ Reporting
+
+	* Use print_message/2
+

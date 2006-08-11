@@ -1,0 +1,110 @@
+################################################################
+# SWI-Prolog `PlDoc' package
+# Author:    Jan Wielemaker. wielemak@science.uva.nl
+# Copyright: GPL (see COPYING or www.gnu.org
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+SHELL=@SHELL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PL=@PL@
+XPCEBASE=$(PLBASE)/xpce
+PKGDOC=$(PLBASE)/doc/packages
+PCEHOME=../xpce
+LIBDIR=$(PLBASE)/library/plunit
+EXDIR=$(PKGDOC)/examples/plunit
+DESTDIR=
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+LATEX=latex
+DOC=plunit
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+HTML=$(DOC).html
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBPL=		plunit_collect.pl
+LIBALL=		$(LIBPL) $(SUPPORT)
+
+all:		
+		@echo "Nothing to do for this package"
+
+install:	$(LIBPL)
+		mkdir -p $(DESTDIR)$(LIBDIR)
+		$(INSTALL_DATA) $(LIBALL) $(DESTDIR)$(LIBDIR)
+		#$(INSTALL_DATA) plunit.pl $(DESTDIR)$(PLBASE)/library
+		$(PL) -f none -g make -t halt
+
+ln-install:	$(LIBPL)
+		mkdir -p $(DESTDIR)$(LIBDIR)
+		for f in $(DOCALL) README; do \
+		    rm -f $(DESTDIR)$(LIBDIR)/$$f; \
+		    ln -s `pwd`/$$f $(DESTDIR)$(LIBDIR); \
+		done
+		rm -f $(DESTDIR)/$(PLBASE)/library/plunit.pl
+		ln -s `pwd`/plunit.pl $(DESTDIR)$(PLBASE)/library/plunit.pl
+		$(PL) -f none -g make -t halt
+
+rpm-install:	install
+
+pdf-install:	install-examples
+		$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)$(PKGDOC)
+
+html-install:	install-examples
+		$(INSTALL_DATA) $(DOC).html $(DESTDIR)$(PKGDOC)
+
+install-examples::
+		mkdir -p $(DESTDIR)$(EXDIR)
+		(cd examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
+		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(DESTDIR)$(EXDIR))
+
+uninstall::
+		(cd $(LIBDIR) && rm -f $(LIBPL))
+		rm -f $(PLBASE)/library/plunit.pl
+		$(PL) -f none -g make -t halt
+
+check::
+		true
+
+################################################################
+# Documentation
+################################################################
+
+doc:		$(PDF) $(HTML)
+pdf:		$(PDF)
+html:		$(HTML)
+
+$(HTML):	$(TEX)
+		latex2html $(DOC)
+		mv html/index.html $@
+		rmdir html
+
+$(PDF):		$(TEX)
+		../../man/runtex --pdf $(DOC)
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f *~ *% config.log
+		rm -f $(TEX)
+		../../man/runtex --clean $(DOC)
+		rm -rf html
+
+distclean:	clean
+		rm -f $(TARGETS) config.cache config.status Makefile
