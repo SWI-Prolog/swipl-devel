@@ -614,12 +614,6 @@ hiddenFrame(FrameObj fr)
 		*       AREA MANAGEMENENT	*
 		********************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get XY coordinate of frame if  its  center   must  be  at pos. If Pos is
-DEFAULT it is centered in the given   monitor. If the monitor is default
-too, we deduce the most recent monitor from the event.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 static Monitor
 CurrentMonitor(FrameObj fr)
 { DisplayObj d = fr->display;
@@ -630,8 +624,15 @@ CurrentMonitor(FrameObj fr)
       return mon;
   } else if ( notNil(d) && instanceOfObject(EVENT->value, ClassEvent) )
   { EventObj ev = EVENT->value;
+    Point pt;
 
-    if ( (mon=getMonitorDisplay(d, getPositionEvent(ev, d))) )
+    if ( notNil(ev->window) && offFlag(ev->window, F_FREEING|F_FREED) )
+    { pt = getPositionEvent(ev, d);
+    } else
+    { pt = getPointerLocationDisplay(d);
+    }
+
+    if ( pt && (mon=getMonitorDisplay(d, pt)) )
       return mon;
   }
 
@@ -644,6 +645,12 @@ CurrentMonitor(FrameObj fr)
   return NULL;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get XY coordinate of frame if  its  center   must  be  at pos. If Pos is
+DEFAULT it is centered in the given   monitor. If the monitor is default
+too, we deduce the most recent monitor from the event.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 get_position_from_center_frame(FrameObj fr, Monitor mon, Point pos,

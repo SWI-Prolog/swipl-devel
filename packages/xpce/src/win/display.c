@@ -362,7 +362,7 @@ getDotsPerInchDisplay(DisplayObj d)
   fail;
 }
 
-static Point
+Point
 getPointerLocationDisplay(DisplayObj d)
 { int x, y;
 

@@ -2,6 +2,9 @@
 			   ==============
 
 
+* FIXED: Crash in window placement if a new window is created from an
+  event that first destroys the window from which it originated.
+  Jochem Liem.
 
 VERSION 6.6.17, distributed with SWI-Prolog 5.6.17
 ==================================================

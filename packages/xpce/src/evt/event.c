@@ -560,7 +560,7 @@ status
 get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry)
 { int x = 0, y = 0;
 
-  if ( isNil(ev->window) )
+  if ( isNil(ev->window) || onFlag(ev->window, F_FREEING|F_FREED) )
   { *rx = ev->x;
     *ry = ev->y;
     succeed;
