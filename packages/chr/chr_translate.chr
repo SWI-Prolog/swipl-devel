@@ -515,7 +515,7 @@ store_management_preds(Constraints,Clauses) :-
 %% SWI begin
 extra_declaration([ :- use_module(chr(chr_runtime))
 		  , :- use_module(chr(chr_hashtable_store))
-		  , :- use_module(chr(chr_assoc_store))
+		  % , :- use_module(chr(chr_assoc_store))
 		  , :- use_module(chr(chr_integertable_store))
 		  , :- use_module(library('clp/clp_events'))
 		  ]).
@@ -5500,10 +5500,8 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule,F/A
 	L = [Clause | T].
 
 gen_state_cond_call(Susp,FA,Call,Generation,ConditionalCall) :-
-	% BEGIN NEW - Customizable suspension term layout
-   	% length(Args,A),
-   	% Suspension =.. [suspension,_,State,_,NewGeneration,_,_|Args],
 	( may_trigger(FA) ->
+		does_use_field(FA,generation),
 		delay_phase_end(validate_store_type_assumptions,
 			( static_suspension_term(FA,Suspension),
 			  get_static_suspension_term_field(state,FA,Suspension,State),
@@ -5521,7 +5519,6 @@ gen_state_cond_call(Susp,FA,Call,Generation,ConditionalCall) :-
 		),
 		GetGeneration = true
 	),
-	% END NEW
 	create_get_mutable_ref(active,State,GetState),
    	ConditionalCall =
       	(	Susp = Suspension,
@@ -7117,5 +7114,16 @@ uses_history(_FA) <=> fail.
 
 does_use_history(FA,Occ) \ novel_production_call(FA,Occ,PossibleGoal,Goal) <=> Goal = PossibleGoal.
 novel_production_call(FA,_,_PossibleGoal,Goal) <=> Goal = true.
+
+:- chr_constraint
+	does_use_field/2,
+	uses_field/2.
+
+:- chr_option(mode,uses_field(+,+)).
+:- chr_option(mode,does_use_field(+,+)).
+
+does_use_field(FA,Field) \ does_use_field(FA,Field) <=> true.
+does_use_field(FA,Field) \ uses_field(FA,Field) <=> true.
+uses_field(_FA,_Field) <=> fail.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
