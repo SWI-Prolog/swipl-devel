@@ -15,9 +15,6 @@ Prolog Unit Tests
 	* After make/0
 		* requires hook in make
 
----++ Reporting
-
-	* Use print_message/2
-
 ---++ Volatile modules?
+
 

@@ -190,11 +190,11 @@ run_tests(Set) :-
 	report.
 
 run_unit(Unit) :-
-	format('Unit ~w: ', [Unit]),
+	print_message(informational, plunit(begin(Unit))),
 	current_unit(Unit, Module, _),
 	forall(Module:'unit test'(Name, Line, Options, Body),
 	       run_test(Unit, Name, Line, Options, Body)),
-	format(' done~n').
+	print_message(informational, plunit(end(Unit))).
 
 cleanup :-
 	retractall(passed(_, _, _, _, _)),
@@ -391,44 +391,36 @@ failure(Unit, Name, Line, E) :-
 		 *******************************/
 
 %%	report is semidet.
-%%	report(+Out:stream) is semidet.
 %
 %	True if there are no errors.  If errors were encountered, report
 %	them to current output and fail.
 
 report :-
-	report(current_output).
+	report_blocked,
+	report_failed.
 
-report(Out) :-
-	report_blocked(Out),
-	report_failed(Out).
-
-report_blocked(Out) :-
-	blocked(_, _, _, _), !,
-	format(Out, '~nThe following tests are blocked:~n', []),
+report_blocked :-
+	predicate_property(blocked(_,_,_,_), number_of_clauses(N)),
+	N > 0,
+	print_message(informational, plunit(blocked(N))),
 	(   blocked(Unit, Name, Line, Reason),
 	    unit_file(Unit, File),
-	    format(Out, '    ~w:~d: test ~w: ~w~n',
-		   [File, Line, Name, Reason]),
+	    print_message(informational,
+			  plunit(blocked(File:Line, Name, Reason))),
 	    fail ; true
 	).
-report_blocked(_).
+report_blocked.
 
-report_failed(Out) :-
+report_failed :-
 	predicate_property(failed(_,_,_,_), number_of_clauses(N)),
 	N > 0, !,
-	format(Out, '~N~nERROR: ~D tests FAILED~n', [N]),
+	print_message(informational, plunit(failed(N))),
 	fail.
-report_failed(Out) :-
-	format(Out, '~N~nAll tests passed~n', []).
+report_failed :-
+	print_message(informational, plunit(failed(0))).
 
 report_failure(Unit, Name, Line, Error) :-
-	report_failure(current_output, Unit, Name, Line, Error).
-
-report_failure(Out, Unit, Name, Line, Error) :-
-	unit_file(Unit, File),
-	format(Out, '~NERROR: ~w:~w: test ~w: ~p~n',
-	       [File, Line, Name, Error]).
+	print_message(error, failed(Unit, Name, Line, Error)).
 
 
 		 /*******************************
@@ -464,3 +456,21 @@ prolog:message(error(context_error(plunit_close(Name, Start)), _)) -->
 prolog:message(plunit(nondet(File, Line, Name))) -->
 	[ '~w:~d: PL-Unit: Test ~w: Test succeeded with choicepoint'-
 	  [File, Line, Name] ].
+					% Unit start/end
+prolog:message(plunit(begin(Unit))) -->
+	[ 'PL-Unit: ~w ...'-[Unit], flush ].
+prolog:message(plunit(end(_Unit))) -->
+	[ at_same_line, ' done' ].
+					% Blocked tests
+prolog:message(plunit(blocked(N))) -->
+	[ '~D tests where blocked'-[N] ].
+prolog:message(plunit(blocked(Pos, Name, Reason))) -->
+	[ '  ~w: test ~w: ~w'-[Pos, Name, Reason] ].
+					% fail/success
+prolog:message(plunit(failed(0))) --> !,
+	[ 'All tests passed' ].
+prolog:message(plunit(failed(N))) -->
+	[ '~D tests failed'-[N] ].
+prolog:message(plunit(failed(Unit, Name, Line, Error))) -->
+	{ unit_file(Unit, File) },
+	[ '~w:~w: test ~w: ~p~n'-[File, Line, Name, Error] ].
