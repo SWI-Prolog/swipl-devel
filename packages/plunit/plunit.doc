@@ -68,9 +68,74 @@ options.  Defined options are:
 The test is currently disabled.   Tests are flagged as blocked if they
 are known not to work but this accepted as something that must be fixed
 in the future.
+
+    \termitem{setup}{:Goal}
+\arg{Goal} is run before the test-body.  Typically used together with
+the \const{cleanup} option to create and destroy the required execution
+environment.
+
+    \termitem{cleanup}{:Goal}
+\arg{Goal} is always called after completion of the test-body,
+regardless of whether it fails, succeeds or throws an exception.  This
+option or call_cleanup/2 must be used by tests that require side-effects
+that must be reverted after the test completes.  \arg{Goal} may share
+variables with the test body.
+
+\begin{code}
+create_file(Tmp) :-
+	tmp_file(Tmp),
+	open(Tmp, write, Out),
+	write(Out, 'hello(World).\n'),
+	close(Out).
+
+test(read, [ setup(create_file(Tmp)),
+	     cleanup(delete_file(Tmp))
+	   ]) :-
+	read_file_to_terms(Tmp, Terms, []),
+	Term =@= hello(_).
+\end{code}
 \end{description}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Writing the test body}
+\label{sec:testbody}
 
+The test-body is ordinary Prolog code that must be designed to succeed
+\emph{deterministically}. Any other result is considered a failure. In
+this section we illustrate typical test-scenarios by testing SWI-Prolog
+built-in and library predicates.
+
+\subsubsection{Testing deterministic predicates}
+\label{sec:testdet}
+
+Deterministic predicates are predicates that must succeed exactly once
+and, for well behaved predicates, leave no choicepoints. Typically they
+have zero or more input- and zero or more output arguments. The test
+goal supplies proper values for the input arguments and verifies the
+output arguments.
+
+\begin{code}
+test(add) :-
+	A is 1 + 2,
+	A =:= 3.
+\end{code}
+
+
+
+
+\subsubsection{Testing semi-deterministic predicates}
+\label{sec:testsemidet}
+
+
+\subsubsection{Testing non-deterministic predicates}
+\label{sec:testnondet}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{
 
 
 

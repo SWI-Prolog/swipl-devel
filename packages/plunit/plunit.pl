@@ -142,16 +142,16 @@ unit_module(Name, Module) :-
 expand_test(Name, Options, Body, 'unit test'(Name, Line, Options, Body)) :-
 	source_location(_File, Line).
 
-expand((test(Name) :- Body), Clauses) :- !,
-	expand_test(Name, [], Body, Clauses).
-expand((test(Name, Options) :- Body), Clauses) :- !,
-	expand_test(Name, Options, Body, Clauses).
 expand(end_of_file, _) :-
 	loading_unit(Unit, _, _), !,
 	end_tests(Unit),		% warn?
 	fail.
 expand(_Term, []) :-
-	loading_tests.
+	\+ loading_tests.
+expand((test(Name) :- Body), Clauses) :- !,
+	expand_test(Name, [], Body, Clauses).
+expand((test(Name, Options) :- Body), Clauses) :- !,
+	expand_test(Name, Options, Body, Clauses).
 
 :- multifile
 	user:term_expansion/2.
@@ -207,22 +207,53 @@ run_test(Unit, Name, Line, Options, _Body) :-
 	option(blocked(Reason), Options, Default),
 	Reason \== Default, !,		% Blocked test
 	assert(blocked(Unit, Name, Line, Reason)).
-run_test(Unit, Name, Line, _Options, Body) :-
+run_test(Unit, Name, Line, Options, Body) :-
 	unit_module(Unit, Module),
+	setup(Module, Options), !,
 	statistics(cputime, T0),
 	(   catch(call_test(Module:Body, Det), E, true)
 	->  (   var(E)
 	    ->	statistics(cputime, T1),
 		Time is T1 - T0,
-		success(Unit, Name, Line, Det, Time)
-	    ;	failure(Unit, Name, Line, E)
+		success(Unit, Name, Line, Det, Time),
+		cleanup(Module, Options)
+	    ;	failure(Unit, Name, Line, E),
+		cleanup(Module, Options)
 	    )
-	;   failure(Unit, Name, Line, failed)
+	;   failure(Unit, Name, Line, failed),
+	    cleanup(Module, Options)
 	).
+run_test(_Unit, _Name, _Line, _Options, _Body).
 	
 call_test(Goal, Det) :-
 	Goal,
 	deterministic(Det).
+
+%%	setup(+Module, +Options) is semidet.
+%
+%	Call the setup handler and  fail  if   it  cannot  run  for some
+%	reason.
+
+setup(Module, Options) :-
+	option(setup(Setup), Options, true),
+	(   catch(Module:Setup, E, true)
+	->  (   var(E)
+	    ->	true
+	    ;	print_message(error, E), 	% TBD
+		fail
+	    )
+	;   print_message(error, goal_failed(Setup))
+	).
+
+%%	cleanup(+Module, +Options) is det.
+%
+%	Call the cleanup handler and succeed,   regardless of any errors
+%	or failure without notice.
+
+cleanup(Module, Options) :-
+	option(cleanup(Cleanup), Options, true),
+	ignore(catch(Module:Cleanup, _, true)).
+
 
 success(Unit, Name, Line, Det, Time) :-
 	assert(passed(Unit, Name, Line, Det, Time)),
