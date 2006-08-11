@@ -12,6 +12,9 @@ test(fail) :-
 test(member) :-
 	member(a, [a]).
 
+test(member, [all(V == [a,b,c])]) :-
+	member(V, [a,b,c]).
+
 test(append) :-
 	append("aap", "noot", X),
 	X == "aapnoot".

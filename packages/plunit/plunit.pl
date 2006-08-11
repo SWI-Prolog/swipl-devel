@@ -213,6 +213,12 @@ run_test(Unit, Name, Line, Options, _Body) :-
 	Reason \== Default, !,		% Blocked test
 	assert(blocked(Unit, Name, Line, Reason)).
 run_test(Unit, Name, Line, Options, Body) :-
+	option(all(Answer), Options), !,
+	nondet_test(all(Answer), Unit, Name, Line, Options, Body).
+run_test(Unit, Name, Line, Options, Body) :-
+	option(set(Answer), Options), !,
+	nondet_test(set(Answer), Unit, Name, Line, Options, Body).
+run_test(Unit, Name, Line, Options, Body) :-
 	unit_module(Unit, Module),
 	setup(Module, Options), !,
 	statistics(cputime, T0),
@@ -230,6 +236,73 @@ run_test(Unit, Name, Line, Options, Body) :-
 	).
 run_test(_Unit, _Name, _Line, _Options, _Body).
 	
+%%	non_det_test(+Expected, +Unit, +Name, +Line, +Options, +Body)
+%
+%	Run tests on non-deterministic predicates.
+
+nondet_test(Expected, Unit, Name, Line, Options, Body) :-
+	unit_module(Unit, Module),
+	setup(Module, Options), !,
+	result_vars(Expected, Vars),
+	statistics(cputime, T0),
+	(   catch(findall(Vars, Module:Body, Bindings), E, true)
+	->  (   var(E)
+	    ->	statistics(cputime, T1),
+		Time is T1 - T0,
+	        (   nondet_compare(Expected, Bindings, Unit, Name, Line)
+		->  success(Unit, Name, Line, true, Time)
+		;   failure(Unit, Name, Line, wrong_answer)
+		),
+		cleanup(Module, Options)
+	    ;	failure(Unit, Name, Line, E),
+		cleanup(Module, Options)
+	    )
+	).
+
+%%	result_vars(+Expected, -Vars) is det.
+%	
+%	Create a term v(V1, ...) containing all variables at the left
+%	side of the comparison operator on Expected.
+
+result_vars(Expected, Vars) :-
+	arg(1, Expected, CmpOp),
+	arg(1, CmpOp, Vars).
+
+%%	nondet_compare(+Expected, +Bindings, +Unit, +Name, +Line) is semidet.
+%
+%	Compare list/set results for non-deterministic predicates.
+%	
+%	@tbd	Properly report errors
+%	@bug	Sort should deal with equivalence on the comparison
+%		operator.
+
+nondet_compare(all(Cmp), Bindings, _Unit, _Name, _Line) :-
+	cmp(Cmp, _Vars, Op, Values),
+	cmp_list(Values, Bindings, Op).
+nondet_compare(set(Cmp), Bindings0, _Unit, _Name, _Line) :-
+	cmp(Cmp, _Vars, Op, Values0),
+	sort(Bindings0, Bindings),
+	sort(Values0, Values),
+	cmp_list(Values, Bindings, Op).
+
+cmp_list([], [], _Op).
+cmp_list([E0|ET], [V0|VT], Op) :-
+	call(Op, E0, V0),
+	cmp_list(ET, VT, Op).
+
+%%	cmp(+CmpTerm, -Left, -Op, -Right) is det.
+
+cmp(Var  == Value, Var,  ==, Value).
+cmp(Var =:= Value, Var, =:=, Value).
+cmp(Var =@= Value, Var, =@=, Value).
+cmp(Var  =  Value, Var,  =,  Value).
+
+
+%%	call_test(:Goal, -Det) is nondet.
+%
+%	True if Goal succeeded.  Det is unified to =true= if Goal left
+%	no choicepoints and =false= otherwise.
+
 call_test(Goal, Det) :-
 	Goal,
 	deterministic(Det).
@@ -304,17 +377,17 @@ report_blocked(_).
 report_failed(Out) :-
 	predicate_property(failed(_,_,_,_), number_of_clauses(N)),
 	N > 0, !,
-	format(Out, '~nERROR: ~D tests FAILED~n', [N]),
+	format(Out, '~N~nERROR: ~D tests FAILED~n', [N]),
 	fail.
 report_failed(Out) :-
-	format(Out, '~nAll tests passed~n', []).
+	format(Out, '~N~nAll tests passed~n', []).
 
 report_failure(Unit, Name, Line, Error) :-
 	report_failure(current_output, Unit, Name, Line, Error).
 
 report_failure(Out, Unit, Name, Line, Error) :-
 	unit_file(Unit, File),
-	format(Out, '    ~w:~w: test ~w: ~p~n',
+	format(Out, '~NERROR: ~w:~w: test ~w: ~p~n',
 	       [File, Line, Name, Error]).
 
 
