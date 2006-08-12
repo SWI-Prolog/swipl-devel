@@ -2462,10 +2462,10 @@ runtest(Name) :-
 	member(Head-R, Heads),
 	(   catch(Head, Except, true)
 	->  (   var(Except)
-	    ->  put(.), flush
+	    ->  put(.), flush_output
 	    ;   Except = blocked(Reason)
 	    ->  assert(blocked(Head, Reason)),
-		put(!), flush
+		put(!), flush_output
 	    ;   test_failed(R, Except)
 	    )
 	;   test_failed(R, fail)
