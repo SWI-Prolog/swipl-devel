@@ -60,7 +60,7 @@
 
 This file implements the functionality of the corresponding Quintus
 library based on SWI-Prolog's code_type/2 predicate. Please check the
-decumentation of this predicate to find the definitions of the classes.
+documentation of this predicate to find the definitions of the classes.
 
 @see	code_type/2
 @see	char_type/2
