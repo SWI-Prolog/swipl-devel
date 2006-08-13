@@ -349,7 +349,8 @@ call_test(Goal, Det) :-
 %%	setup(+Module, +Options) is semidet.
 %
 %	Call the setup handler and  fail  if   it  cannot  run  for some
-%	reason.
+%	reason. The condition handler is  similar,   but  failing is not
+%	considered an error.
 
 setup(Module, Options) :-
 	option(setup(Setup), Options, true),
@@ -359,7 +360,18 @@ setup(Module, Options) :-
 	    ;	print_message(error, E), 	% TBD
 		fail
 	    )
-	;   print_message(error, goal_failed(Setup))
+	;   print_message(error, goal_failed(Setup)),
+	    fail
+	).
+setup(Module, Options) :-
+	option(condition(Setup), Options, true),
+	(   catch(Module:Setup, E, true)
+	->  (   var(E)
+	    ->	true
+	    ;	print_message(error, E), 	% TBD
+		fail
+	    )
+	;   fail
 	).
 
 %%	cleanup(+Module, +Options) is det.
