@@ -4443,7 +4443,7 @@ and \arg{Set2}.
 Creates a list of the instantiations \arg{Template} gets successively on
 backtracking over \arg{Goal} and unifies the result with \arg{Bag}.
 Succeeds with an empty list if \arg{Goal} has no solutions. findall/3 is
-equivalent to bagof/3 with all free variables bound with the existence
+equivalent to bagof/3 with all free variables bound with the existential
 operator (\op{^}), except that bagof/3 fails when goal has no
 solutions.
 
