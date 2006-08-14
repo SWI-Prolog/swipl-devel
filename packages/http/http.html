@@ -556,14 +556,14 @@ for details.
 
 <P>
 <DT><STRONG>http_reply</STRONG>(<VAR>+Reply</VAR>)<DD>
-Equivalent to <CODE>http_reply(Reply,)</CODE>.
+Equivalent to <CODE>http_reply(Reply,[])</CODE>.
 
 <P>
 <DT><STRONG>http</STRONG>(<VAR>not_modified</VAR>)<DD>
-Equivalent to <CODE>http_reply(not_modified,)</CODE>. This exception is 
-for backward compatibility and can be used by the server to indicate the 
-referenced resource has not been modified since it was requested last 
-time.
+Equivalent to <CODE>http_reply(not_modified,[])</CODE>. This exception 
+is for backward compatibility and can be used by the server to indicate 
+the referenced resource has not been modified since it was requested 
+last time.
 </DL>
 
 <H3><A NAME="sec:3.2">3.2 Session management</A></H3>
@@ -742,7 +742,7 @@ reply(Request) :-
 </PRE>
 </TABLE>
 
-<P>Same as <CODE>http_parameters(Request, Parameters,)</CODE>
+<P>Same as <CODE>http_parameters(Request, Parameters,[])</CODE>
 
 <P>
 <DT><A NAME="http_parameters/3"><STRONG>http_parameters</STRONG>(<VAR>+Request, 
@@ -917,8 +917,7 @@ The data posted is left on the input stream that is available through
 the term <CODE>input(Stream)</CODE> from the <VAR>Request</VAR> header. 
 This data can be read using <A NAME="idx:httpreaddata3:26"></A><A HREF="#http_read_data/3">http_read_data/3</A> 
 from the HTTP client library. Here is a demo implementation simply 
-returning the parsed pasted data as plain 
-http://db.cwi.nl/projecten/project.php4?prjnr=129text (assuming <A NAME="idx:pp1:27"></A><B>pp/1</B> 
+returning the parsed posted data as plain text (assuming <A NAME="idx:pp1:27"></A><B>pp/1</B> 
 pretty-prints the data).
 
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
@@ -1506,7 +1505,7 @@ using <A NAME="idx:printhtml12:48"></A><A HREF="#print_html/1">print_html/[1,2]<
 The expansion rules of this predicate may be extended by defining the 
 multifile DCG html_write:expand/1. <VAR>Spec</VAR> is either a single 
 specification or a list of single specifications. Using nested lists is 
-not allowed to avoid ambiguity caused by the atom <CODE></CODE>
+not allowed to avoid ambiguity caused by the atom <CODE>[]</CODE>
 
 <P>
 <UL>

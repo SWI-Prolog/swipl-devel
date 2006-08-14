@@ -694,8 +694,8 @@ The \arg{Request} parameter above contains the term \term{method}{post}.
 The data posted is left on the input stream that is available through
 the term \term{input}{Stream} from the \arg{Request} header. This data
 can be read using http_read_data/3 from the HTTP client library. Here is
-a demo implementation simply returning the parsed pasted data as plain
-http://db.cwi.nl/projecten/project.php4?prjnr=129text (assuming pp/1 pretty-prints the data).
+a demo implementation simply returning the parsed posted data as plain
+text (assuming pp/1 pretty-prints the data).
 
 \begin{code}
 reply(Request) :-
