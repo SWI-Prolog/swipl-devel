@@ -65,7 +65,7 @@ however forget it is not just a burden during development.
 Tests are written in pure Prolog and enclosed within the directives
 begin_tests/1 and end_tests/1. They can be embedded inside a normal
 source module, or be placed in a seperate test-file that loads the files
-that must be tested. Code inside a test box is normal Prolog code. The
+that to be tested. Code inside a test box is normal Prolog code. The
 entry points are defined by rules using the head \term{test}{Name} or
 \term{test}{Name, Options}, where \arg{Name} is a ground term and
 \arg{Options} is a list describing additional properties of the test.
@@ -75,8 +75,8 @@ Here is a very simple example:
 :- begin_tests(lists).
 :- use_module(library(lists)).
 
-test(member) :-
-	member(a, [a]).
+test(reverse) :-
+	reverse([a,b], [b,a]).
 
 :- end_tests(lists).
 \end{code}
@@ -93,7 +93,9 @@ in the future.
     \termitem{condition}{:Goal}
 Test pre-conditions for running the test.  If the condition fails
 the test is skipped.  The condition can be used as an alternative
-to the \const{setup} option.
+to the \const{setup} option.  The only difference is that failure
+of a condition skips the test and is considered an error when using
+the \const{setup} option.
 
     \termitem{setup}{:Goal}
 \arg{Goal} is run before the test-body.  Typically used together with
@@ -126,7 +128,9 @@ Body must succeed deterministically. Bindings are compared to Values.
 \arg{Cmp} is typically one of =/2, ==/2, =:=/2 or =@=/2, but any test
 can be used. This is the same as inserting the test at the end of the
 conjunction, but it allows the test engine to distinguish between
-failure of copy_term/2 and producing the wrong value.
+failure of copy_term/2 and producing the wrong value. Multiple variables
+must be combined in an arbitrary compound term.  E.g.\
+\verb$A1-A2 == v1-v2$
 
 \begin{code}
 test(copy, [ true(Copy =@= hello(X,X))
@@ -157,9 +161,12 @@ duplicates with respect to \arg{Cmp} are ignored.
 \subsection{Writing the test body}
 \label{sec:testbody}
 
-The test-body is ordinary Prolog code that must be designed to succeed
-\emph{deterministically}. Any other result is considered a failure. In
-this section we illustrate typical test-scenarios by testing SWI-Prolog
+The test-body is ordinary Prolog code. Without any options, the body
+must be designed to succeed \emph{deterministically}. Any other result
+is considered a failure. One of the options \const{fail}, \const{true},
+\const{throws}, \const{all} or \const{set} can be used to specify a
+different expected result. See \secref{unitbox} for details.  In this
+section we illustrate typical test-scenarios by testing SWI-Prolog
 built-in and library predicates.
 
 \subsubsection{Testing deterministic predicates}
@@ -204,8 +211,16 @@ test(member) :-
 Semi-deterministic predicates are predicates that either fail or succeed
 exactly once and, for well behaved predicates, leave no choicepoints.
 Testing such predicates the the same as testing deterministic
-predicates, except that the negative tests must be turned into positive
-tests, typically using \verb$\+/1$.
+predicates.  Negative tests must be specified using the option
+\const{fail} or by negating the boty using \verb$\+/1$.
+
+\begin{code}
+test(is_set) :-
+	\+ is_set([a,a]).
+
+test(is_set, [fail]) :-
+	is_set([a,a]).
+\end{code}
 
 
 \subsubsection{Testing non-deterministic predicates}
@@ -293,7 +308,7 @@ Defined options are:
 \begin{description}
     \termitem{load}{+Load}
 Determines whether or not tests are loaded. When \const{never},
-everything betweem begin_tests/1 and end_tests/1 is simply ignored.
+everything between begin_tests/1 and end_tests/1 is simply ignored.
 When \const{always}, tests are always loaded.  Finally, when using
 the default value \const{normal}, tests are loaded if the code is
 not compiled with optimisation turned on.
@@ -312,12 +327,12 @@ first time.
 \label{sec:porting}
 
 One of the reasons to have tests is to simplify migrating code between
-Prolog implementations. Unfortunately creating a very portable
-test-suite implies a poor integration with the development environment.
-Luckily, the specification of the test-system proposed here can be
-ported quite easily to most Prolog systems sufficiently compatible to
-SWI-Prolog to consider porting your application.  Most important is to
-have support for term_expansion/2.
+Prolog implementations. Unfortunately creating a portable test-suite
+implies a poor integration into the development environment. Luckily,
+the specification of the test-system proposed here can be ported quite
+easily to most Prolog systems sufficiently compatible to SWI-Prolog to
+consider porting your application. Most important is to have support for
+term_expansion/2.
 
 In the current system, test units are compiled into sub-modules of the
 module in which they appear.  Few Prolog systems allow for sub-modules
@@ -341,10 +356,13 @@ these approaches. Written down as test/1 we opt for the simple
 succeeding goal approach. Using options to the test the user can choose
 for a more declarative specification.  The user can mix both approaches.
 
+The body of the test appears at the position of a clause-body. This
+simplifies identification of the test body and ensures proper layout and
+colouring support from the editor without the need for explicit support
+of the unit test module. Only clauses of test/1 and test/2 may be marked
+as non-called in environments that perform cross-referencing.
 
-
-
-\subsection*{Well integrated}
+%\subsection*{Well integrated}
 
 \printindex
 
