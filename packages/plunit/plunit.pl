@@ -34,13 +34,19 @@
 	    begin_tests/1,		% +Name
 	    end_tests/1,		% +Name
 	    run_tests/0,		% Run all tests
-	    run_tests/1			% Run named test-set
+	    run_tests/1,		% Run named test-set
+	    load_test_files/1		% +Options
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
 
 :- initialization
-   set_prolog_flag(test_options, []).
+   (   current_prolog_flag(test_options, _)
+   ->  true
+   ;   set_prolog_flag(test_options,
+		       [ run(make)	% run tests on make/0
+		       ])
+   ).
 
 %%	set_test_options(+Options)
 %
@@ -51,7 +57,8 @@
 %		=never=, =always=, =normal= (only if not optimised)
 %		
 %		* run(+When)
-%		When the tests are run.  Values are =manual= or =make=.
+%		When the tests are run.  Values are =manual=, =make=
+%		or make(all).
 %		
 %	@tbd	Verify types	
 
@@ -76,8 +83,9 @@ loading_tests :-
 		 *******************************/
 
 :- dynamic
-	loading_unit/3,			% Unit, Module, OldSource
-	current_unit/4.			% Unit, Module, Context, Options
+	loading_unit/4,			% Unit, Module, File, OldSource
+	current_unit/4,			% Unit, Module, Context, Options
+	test_file_for/2.		% ?TestFile, ?PrologFile
 	
 %%	begin_tests(+UnitName:atom) is det.
 %%	begin_tests(+UnitName:atom, Options) is det.
@@ -110,7 +118,7 @@ begin_tests(Unit, Name, File:Line, Options) :-
 	'$set_source_module'(Old, Name),
 	'$declare_module'(Name, File, Line),
 	discontiguous(Name:'unit test'/4),
-	asserta(loading_unit(Unit, Name, Old)).
+	asserta(loading_unit(Unit, Name, File, Old)).
 
 set_import_modules(Module, Imports) :-
 	findall(I, import_module(Module, I), IL),
@@ -125,9 +133,9 @@ set_import_modules(Module, Imports) :-
 %	@tbd	End of file?
 
 end_tests(Unit) :-
-	loading_unit(StartUnit, _, _), !,
+	loading_unit(StartUnit, _, _, _), !,
 	(   Unit == StartUnit
-	->  once(retract(loading_unit(StartUnit, _, Old))),
+	->  once(retract(loading_unit(StartUnit, _, _, Old))),
 	    '$set_source_module'(_, Old)
 	;   throw(error(context_error(plunit_close(Unit, StartUnit)), _))
 	).
@@ -152,7 +160,7 @@ expand_test(Name, Options, Body, 'unit test'(Name, Line, Options, Body)) :-
 %%	expand(+Term, -Clauses) is semidet.
 
 expand(end_of_file, _) :-
-	loading_unit(Unit, _, _), !,
+	loading_unit(Unit, _, _, _), !,
 	end_tests(Unit),		% warn?
 	fail.
 expand(_Term, []) :-
@@ -166,8 +174,10 @@ expand((test(Name, Options) :- Body), Clauses) :- !,
 	user:term_expansion/2.
 
 user:term_expansion(Term, Expanded) :-
-	loading_unit(_, _, _),
-	expand(Term, Expanded).
+	(   loading_unit(_, _, File, _)
+	->  source_location(File, _),
+	    expand(Term, Expanded)
+	).
 
 
 		 /*******************************
@@ -198,12 +208,16 @@ run_unit([H|T]) :- !,
 	run_unit(H),
 	run_unit(T).
 run_unit(Spec) :-
-	print_message(informational, plunit(begin(Spec))),
-	unit_from_spec(Spec, Unit, Tests, Module, _UnitOptions),
-	forall((Module:'unit test'(Name, Line, Options, Body),
-	       matching_test(Name, Tests)),
-	       run_test(Unit, Name, Line, Options, Body)),
-	print_message(informational, plunit(end(Spec))).
+	unit_from_spec(Spec, Unit, Tests, Module, UnitOptions),
+	(   setup(Module, UnitOptions)
+	->  print_message(informational, plunit(begin(Spec))),
+	    forall((Module:'unit test'(Name, Line, Options, Body),
+		    matching_test(Name, Tests)),
+		   run_test(Unit, Name, Line, Options, Body)),
+	    print_message(informational, plunit(end(Spec)))
+	;   true
+	),
+	cleanup(Module, UnitOptions).
 
 unit_from_spec(Unit, Unit, _, Module, Options) :-
 	atom(Unit), !,
@@ -221,6 +235,44 @@ cleanup :-
 	retractall(passed(_, _, _, _, _)),
 	retractall(failed(_, _, _, _)),
 	retractall(blocked(_, _, _, _)).
+
+
+%%	run_tests_in_files(+Files:list)	is det.
+%
+%	Run all test-units that appear in the given Files.
+
+run_tests_in_files(Files) :-
+	findall(Unit, unit_in_files(Files, Unit), Units),
+	run_tests(Units).
+
+unit_in_files(Files, Unit) :-
+	is_list(Files), !,
+	member(F, Files),
+	absolute_file_name(F, Source,
+			   [ file_type(prolog),
+			     access(read),
+			     file_errors(fail)
+			   ]),
+	unit_file(Unit, Source).
+
+
+		 /*******************************
+		 *	   HOOKING MAKE/0	*
+		 *******************************/
+
+%%	make_run_tests(+Files)
+%
+%	Called indirectly from make/0 after Files have been reloaded.
+
+make_run_tests(Files) :-
+	current_prolog_flag(test_options, Options),
+	option(run(When), Options, manual),
+	(   When == make
+	->  run_tests_in_files(Files)
+	;   When == make(all)
+	->  run_tests
+	;   true
+	).
 
 
 		 /*******************************
@@ -473,6 +525,38 @@ current_test_set(Unit) :-
 unit_file(Unit, File) :-
 	current_unit(Unit, Module, _Context, _Options),
 	current_module(Module, File).
+unit_file(Unit, PlFile) :-
+	nonvar(PlFile),
+	test_file_for(TestFile, PlFile),
+	current_module(Module, TestFile),
+	current_unit(Unit, Module, _Context, _Options).
+
+
+		 /*******************************
+		 *	       FILES		*
+		 *******************************/
+
+%%	load_test_files(+Options) is det.
+%
+%	Load .plt test-files related to loaded source-files.
+
+load_test_files(_Options) :-
+	(   source_file(File),
+	    file_name_extension(Base, Old, File),
+	    Old \== plt,
+	    file_name_extension(Base, plt, TestFile),
+	    exists_file(TestFile),
+	    (	test_file_for(TestFile, File)
+	    ->	true
+	    ;	load_files(TestFile,
+			   [ if(changed),
+			     imports([])
+			   ]),
+		asserta(test_file_for(TestFile, File))
+	    ),
+	    fail ; true
+	).
+
 
 
 		 /*******************************
@@ -480,7 +564,8 @@ unit_file(Unit, File) :-
 		 *******************************/
 
 :- multifile
-	prolog:message/3.
+	prolog:message/3,
+	user:message_hook/3.
 
 prolog:message(error(context_error(plunit_close(Name, -)), _)) -->
 	[ 'PL-Unit: cannot close unit ~w: no open unit'-[Name] ].
@@ -507,3 +592,12 @@ prolog:message(plunit(failed(N))) -->
 prolog:message(plunit(failed(Unit, Name, Line, Error))) -->
 	{ unit_file(Unit, File) },
 	[ '~w:~w: test ~w: ~p~n'-[File, Line, Name, Error] ].
+
+
+%	user:message_hook(+Term, +Kind, +Lines)
+
+user:message_hook(make(done(Files)), _, _) :-
+	make_run_tests(Files),
+	fail.				% give other hooks a chance
+
+

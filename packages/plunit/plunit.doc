@@ -63,7 +63,7 @@ however forget it is not just a burden during development.
 \label{sec:unitbox}
 
 Tests are written in pure Prolog and enclosed within the directives
-begin_tests/1 and end_tests/1. They can be embedded inside a normal
+begin_tests/1,2 and end_tests/1. They can be embedded inside a normal
 source module, or be placed in a seperate test-file that loads the files
 that to be tested. Code inside a test box is normal Prolog code. The
 entry points are defined by rules using the head \term{test}{Name} or
@@ -156,6 +156,35 @@ Similar to \term{true}{Vars Cmp Values}, but used for non-deterministic
 predicates.  Each element is compared using \arg{Cmp}.  Order and
 duplicates with respect to \arg{Cmp} are ignored.
 \end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Test Unit options}
+\label{sec:unitoptions}
+
+\begin{description}
+    \predicate{begin_tests}{1}{+Name}
+Start named test-unit.  Same as \verb$begin_tests(Name, [])$.
+
+    \predicate{begin_tests}{2}{+Name, +Options}
+Start named test-unit with options. Options provide conditional
+processing, setup and cleanup similar to individual tests (second
+argument of test/2 rules).
+
+Defined options are:
+    \begin{description}
+        \termitem{condition}{:Goal}
+Executed before executing any of the tests.  If \arg{Goal} fails,
+the test of this unit is skipped.
+
+        \termitem{setup}{:Goal}
+Executed before executing any of the tests.  
+
+        \termitem{cleanup}{:Goal}
+Executed after completion of all tests in the unit.
+    \end{description}
+\end{description}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Writing the test body}
@@ -315,10 +344,11 @@ the default value \const{normal}, tests are loaded if the code is
 not compiled with optimisation turned on.
 
     \termitem{run}{+Run}
-Specifies when tests are ran.  Using \const{manual}, tests can 
-only be run using run_tests/0 or run_tests/1.  Using \const{make},
-tests will be run for reloaded files, but not for files loaded the
-first time.
+Specifies when tests are ran. Using \const{manual}, tests can only be
+run using run_tests/0 or run_tests/1. Using \const{make}, tests will be
+run for reloaded files, but not for files loaded the first time. Using
+\const{make(all)} make/0 will run all test-suites, not only those that
+belong to files that are reloaded.
 \end{description}
 \end{description}
 

@@ -5,8 +5,8 @@ Prolog Unit Tests
 ---++ TBD
 
 	* Add options to test units
-		- Condition, setup, cleanup
-	* Run the tests
+		- Condition, setup, cleanup [OK]
+	* Run the tests on make, etc.  [OK]
 	* Report generation options
 
 ---++ What to do with loaded tests?
@@ -15,12 +15,11 @@ Prolog Unit Tests
 	* Remove them
 	* Flag module as `volatile', so it is not saved.
 
----++ When to run tests?
+---++ Distinguish user/system/library tests
 
-	* At :- end_tests
-	* On User request
-	* After make/0
-		* requires hook in make
+---++ Deal with seperate test-files:
+
+	* load_test_files(+Options)
 
 ---++ Volatile modules?
 
