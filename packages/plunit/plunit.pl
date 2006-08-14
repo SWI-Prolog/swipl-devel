@@ -301,9 +301,9 @@ run_test(Unit, Name, Line, Options, Body) :-
 	->  (   var(E)
 	    ->	statistics(cputime, T1),
 		Time is T1 - T0,
-		failure(Unit, Name, Line, Time),
+		failure(Unit, Name, Line, Time, Options),
 		cleanup(Module, Options)
-	    ;	failure(Unit, Name, Line, E),
+	    ;	failure(Unit, Name, Line, E, Options),
 		cleanup(Module, Options)
 	    )
 	;   statistics(cputime, T1),
@@ -322,13 +322,33 @@ run_test(Unit, Name, Line, Options, Body) :-
 		Time is T1 - T0,
 		(   catch(Cmp, _, fail)			% tbd: error
 		->  success(Unit, Name, Line, Det, Time, Options)
-		;   failure(Unit, Name, Line, wrong_answer)
+		;   failure(Unit, Name, Line, wrong_answer, Options)
 		),
 		cleanup(Module, Options)
-	    ;	failure(Unit, Name, Line, E),
+	    ;	failure(Unit, Name, Line, E, Options),
 		cleanup(Module, Options)
 	    )
-	;   failure(Unit, Name, Line, failed),
+	;   failure(Unit, Name, Line, failed, Options),
+	    cleanup(Module, Options)
+	).
+run_test(Unit, Name, Line, Options, Body) :-
+	option(throws(Expect), Options),
+	unit_module(Unit, Module),
+	setup(Module, Options), !,			% true
+	statistics(cputime, T0),
+	(   catch(Module:Body, E, true)
+	->  (   var(E)
+	    ->	failure(Unit, Name, Line, no_exception, Options),
+		cleanup(Module, Options)
+	    ;	statistics(cputime, T1),
+		Time is T1 - T0,
+		(   match_error(Expect, E)
+		->  success(Unit, Name, Line, true, Time, Options)
+		;   failure(Unit, Name, Line, wrong_error(Expect, E), Options)
+		),
+		cleanup(Module, Options)
+	    )
+	;   failure(Unit, Name, Line, failed, Options),
 	    cleanup(Module, Options)
 	).
 run_test(Unit, Name, Line, Options, Body) :-
@@ -341,10 +361,10 @@ run_test(Unit, Name, Line, Options, Body) :-
 		Time is T1 - T0,
 		success(Unit, Name, Line, Det, Time, Options),
 		cleanup(Module, Options)
-	    ;	failure(Unit, Name, Line, E),
+	    ;	failure(Unit, Name, Line, E, Options),
 		cleanup(Module, Options)
 	    )
-	;   failure(Unit, Name, Line, failed),
+	;   failure(Unit, Name, Line, failed, Options),
 	    cleanup(Module, Options)
 	).
 run_test(_Unit, _Name, _Line, _Options, _Body).
@@ -364,10 +384,10 @@ nondet_test(Expected, Unit, Name, Line, Options, Body) :-
 		Time is T1 - T0,
 	        (   nondet_compare(Expected, Bindings, Unit, Name, Line)
 		->  success(Unit, Name, Line, true, Time, Options)
-		;   failure(Unit, Name, Line, wrong_answer)
+		;   failure(Unit, Name, Line, wrong_answer, Options)
 		),
 		cleanup(Module, Options)
-	    ;	failure(Unit, Name, Line, E),
+	    ;	failure(Unit, Name, Line, E, Options),
 		cleanup(Module, Options)
 	    )
 	).
@@ -420,6 +440,14 @@ call_test(Goal, Det) :-
 	Goal,
 	deterministic(Det).
 
+%%	match_error(+Expected, +Received) is semidet.
+
+match_error(Expect, Rec) :-
+	Expect =@= Rec, !.
+match_error(error(FormalEx, ContextEx), error(FormalRec, ContextRec)) :-
+	FormalEx =@= FormalRec,
+	ContextEx = ContextRec.
+
 %%	setup(+Module, +Options) is semidet.
 %
 %	Call the setup handler and  fail  if   it  cannot  run  for some
@@ -469,7 +497,7 @@ success(Unit, Name, Line, Det, Time, Options) :-
 	),
 	flush_output.
 
-failure(Unit, Name, Line, E) :-
+failure(Unit, Name, Line, E, _Options) :-
 	assert(failed(Unit, Name, Line, E)),
 	report_failure(Unit, Name, Line, E).
 
