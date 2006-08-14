@@ -15,6 +15,9 @@ test(fail, [fail]) :-
 test(member) :-
 	member(a, [a]), !.
 
+test(member) :-
+	member(_, [a]), !.
+
 test(member, [true(X == a)]) :-
 	member(X, [a]), !.
 

@@ -270,11 +270,12 @@ Run all test-units.
     \predicate{run_tests}{1}{+Spec}
 Run only the specified tests.  \arg{Spec} can be a list to run multiple
 tests.  A single specification is either the name of a test unit or
-a term <Unit>:<Test>, running only the specified test.  The latter is
-particulary interesting for tracing a test:%
-	\footnote{Unfortunately the body of the test is called through
-		  meta-calling, so it cannot be traced. The called
-		  user-code can be traced normally though.}
+a term <Unit>:<Tests>, running only the specified test.  <Tests> is
+either the name of a test or a list of names. Running particular
+tests is particulary useful for tracing a test:%
+\footnote{Unfortunately the body of the test is called through
+meta-calling, so it cannot be traced. The called user-code can be traced
+normally though.}
 
 \begin{code}
 ?- gtrace, run_tests(lists:member).

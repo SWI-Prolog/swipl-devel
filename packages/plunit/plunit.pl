@@ -77,30 +77,34 @@ loading_tests :-
 
 :- dynamic
 	loading_unit/3,			% Unit, Module, OldSource
-	current_unit/3.			% Unit, Module, Context
+	current_unit/4.			% Unit, Module, Context, Options
 	
 %%	begin_tests(+UnitName:atom) is det.
+%%	begin_tests(+UnitName:atom, Options) is det.
 %
 %	Start a test-unit. UnitName is the  name   of  the test set. the
 %	unit is ended by :- end_tests(UnitName).
 
 begin_tests(Unit) :-
+	begin_tests(Unit, []).
+
+begin_tests(Unit, Options) :-
 	unit_module(Unit, Name),
 	(   current_module(Name),
-	    \+ current_unit(_, Name, _)
+	    \+ current_unit(_, Name, _, _)
 	->  throw(error(permission_error(create, plunit, Unit),
 			'Existing module'))
 	;   source_location(File, Line),
-	    begin_tests(Unit, Name, File:Line)
+	    begin_tests(Unit, Name, File:Line, Options)
 	).
 
-begin_tests(Unit, Name, File:Line) :-
+begin_tests(Unit, Name, File:Line, Options) :-
 	'$set_source_module'(Context, Context),
 	Supers = [Context],
-	(   current_unit(Unit, Name, Supers)
+	(   current_unit(Unit, Name, Supers, Options)
 	->  true
-	;   retractall(current_unit(Unit, Name, _)),
-	    assert(current_unit(Unit, Name, Supers)),
+	;   retractall(current_unit(Unit, Name, _, _)),
+	    assert(current_unit(Unit, Name, Supers, Options)),
 	    set_import_modules(Name, Supers)
 	),
 	'$set_source_module'(Old, Name),
@@ -189,12 +193,29 @@ run_tests(Set) :-
 	run_unit(Set),
 	report.
 
-run_unit(Unit) :-
-	print_message(informational, plunit(begin(Unit))),
-	current_unit(Unit, Module, _),
-	forall(Module:'unit test'(Name, Line, Options, Body),
+run_unit([]) :- !.
+run_unit([H|T]) :- !,
+	run_unit(H),
+	run_unit(T).
+run_unit(Spec) :-
+	print_message(informational, plunit(begin(Spec))),
+	unit_from_spec(Spec, Unit, Tests, Module, _UnitOptions),
+	forall((Module:'unit test'(Name, Line, Options, Body),
+	       matching_test(Name, Tests)),
 	       run_test(Unit, Name, Line, Options, Body)),
-	print_message(informational, plunit(end(Unit))).
+	print_message(informational, plunit(end(Spec))).
+
+unit_from_spec(Unit, Unit, _, Module, Options) :-
+	atom(Unit), !,
+	current_unit(Unit, Module, _Supers, Options).
+unit_from_spec(Unit:Tests, Unit, Tests, Module, Options) :-
+	atom(Unit), !,
+	current_unit(Unit, Module, _Supers, Options).
+
+matching_test(X, X) :- !.
+matching_test(Name, Set) :-
+	is_list(Set),
+	memberchk(Name, Set).
 
 cleanup :-
 	retractall(passed(_, _, _, _, _)),
@@ -444,13 +465,13 @@ report_failure(Unit, Name, Line, Error) :-
 %	True if Unit is a currently loaded test-set.
 
 current_test_set(Unit) :-
-	current_unit(Unit, _Module, _Context).
+	current_unit(Unit, _Module, _Context, _Options).
 
 %%	unit_file(+Unit, -File) is det.
 %%	unit_file(-Unit, +File) is nondet.
 
 unit_file(Unit, File) :-
-	current_unit(Unit, Module, _Context),
+	current_unit(Unit, Module, _Context, _Options),
 	current_module(Module, File).
 
 
@@ -470,7 +491,7 @@ prolog:message(plunit(nondet(File, Line, Name))) -->
 	  [File, Line, Name] ].
 					% Unit start/end
 prolog:message(plunit(begin(Unit))) -->
-	[ 'PL-Unit: ~w ...'-[Unit], flush ].
+	[ 'PL-Unit: ~w '-[Unit], flush ].
 prolog:message(plunit(end(_Unit))) -->
 	[ at_same_line, ' done' ].
 					% Blocked tests
