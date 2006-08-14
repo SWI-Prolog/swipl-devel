@@ -605,6 +605,8 @@ getICWindow(Any obj)
   } else
     fail;
 
+  if ( !w )
+    fail;				/* possible on MacOS? */
   d = fr->display->ws_ref;
 
   if ( (wsfr = fr->ws_ref) && d->im )
