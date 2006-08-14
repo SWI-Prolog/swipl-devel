@@ -13,7 +13,7 @@ PL=@PL@
 XPCEBASE=$(PLBASE)/xpce
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
-LIBDIR=$(PLBASE)/library/plunit
+LIBDIR=$(PLBASE)/library
 EXDIR=$(PKGDOC)/examples/plunit
 DESTDIR=
 
@@ -37,19 +37,16 @@ all:
 		@echo "Nothing to do for this package"
 
 install:	$(LIBPL)
-		#mkdir -p $(DESTDIR)$(LIBDIR)
-		#$(INSTALL_DATA) $(LIBALL) $(DESTDIR)$(LIBDIR)
-		$(INSTALL_DATA) plunit.pl $(DESTDIR)$(PLBASE)/library
+		mkdir -p $(DESTDIR)$(LIBDIR)
+		$(INSTALL_DATA) $(LIBALL) $(DESTDIR)$(LIBDIR)
 		$(PL) -f none -g make -t halt
 
 ln-install:	$(LIBPL)
-		#mkdir -p $(DESTDIR)$(LIBDIR)
-		#for f in $(DOCALL) README; do \
-		#    rm -f $(DESTDIR)$(LIBDIR)/$$f; \
-		#    ln -s `pwd`/$$f $(DESTDIR)$(LIBDIR); \
-		#done
-		rm -f $(DESTDIR)/$(PLBASE)/library/plunit.pl
-		ln -s `pwd`/plunit.pl $(DESTDIR)$(PLBASE)/library/plunit.pl
+		mkdir -p $(DESTDIR)$(LIBDIR)
+		for f in $(DOCALL) README; do \
+		    rm -f $(DESTDIR)$(LIBDIR)/$$f; \
+		    ln -s `pwd`/$$f $(DESTDIR)$(LIBDIR); \
+		done
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
@@ -66,8 +63,7 @@ install-examples::
 		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(DESTDIR)$(EXDIR))
 
 uninstall::
-		(cd $(LIBDIR) && rm -f $(LIBPL))
-		rm -f $(PLBASE)/library/plunit.pl
+		rm -f $(LIBDIR)/plunit.pl
 		$(PL) -f none -g make -t halt
 
 check::

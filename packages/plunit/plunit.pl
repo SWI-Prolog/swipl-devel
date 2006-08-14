@@ -32,6 +32,7 @@
 :- module(plunit,
 	  [ set_test_options/1,		% +Options
 	    begin_tests/1,		% +Name
+	    begin_tests/2,		% +Name, +Options
 	    end_tests/1,		% +Name
 	    run_tests/0,		% Run all tests
 	    run_tests/1,		% Run named test-set
@@ -507,7 +508,7 @@ report_failed :-
 	print_message(informational, plunit(failed(0))).
 
 report_failure(Unit, Name, Line, Error) :-
-	print_message(error, failed(Unit, Name, Line, Error)).
+	print_message(error, plunit(failed(Unit, Name, Line, Error))).
 
 
 		 /*******************************
