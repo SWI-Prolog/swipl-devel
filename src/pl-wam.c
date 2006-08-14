@@ -3747,13 +3747,13 @@ the result (a word) and the number holding the result.  For example:
 	} else
 	{ int rc;
 
-	  if ( isInteger(*k) )
+	  if ( isInteger(*k) && intNumber(n) )
 	  { number left;
 
 	    get_integer(*k, &left);
 	    rc = (cmpNumbers(&left, n) == 0);
-	  } else if ( isReal(*k) )
-	  { rc = (floatNumber(n) && valReal(*k) == n->value.f);
+	  } else if ( isReal(*k) && floatNumber(n) )
+	  { rc = (valReal(*k) == n->value.f);
 	  } else
 	  { rc = FALSE;
 	  }

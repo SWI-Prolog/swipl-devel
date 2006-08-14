@@ -303,12 +303,8 @@ arithmetic(arith-9) :-
 arithmetic(arith-10) :-
 	-4000 =:= integer(10000 * float_fractional_part(-1e10 - 0.4)).
 arithmetic(arith-11) :-
-	current_prolog_flag(iso, ISO),
-	set_prolog_flag(iso, true),
 	1.0 is sin(pi/2),
-	set_prolog_flag(iso, false),
-	1   is sin(pi/2),
-	set_prolog_flag(iso, ISO).
+	\+ 1 is sin(pi/2).
 arithmetic(arith-12) :-
 	1.0 is float(sin(pi/2)).
 arithmetic(arith-13) :-
