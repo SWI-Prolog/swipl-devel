@@ -155,6 +155,10 @@ predicates.  Each element is compared using \arg{Cmp}.  Order matters.
 Similar to \term{true}{Vars Cmp Values}, but used for non-deterministic
 predicates.  Each element is compared using \arg{Cmp}.  Order and
 duplicates with respect to \arg{Cmp} are ignored.
+
+    \termitem{nondet}{}
+If this keyword appears in the option list, non-deterministic success
+of the body is not considered an error.
 \end{description}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -226,12 +230,15 @@ test(member) :-
 \end{code}
 
 Although this test succeeds, member/2 leaves a choicepoint which is
-reported by the test subsystem.  To make the test silent, use the
-code below.
+reported by the test subsystem.  To make the test silent, use one of
+the alternatives below.
 
 \begin{code}
 test(member) :-
 	member(b, [a,b,c]), !.
+
+test(member, [nondet]) :-
+	member(b, [a,b,c]).
 \end{code}
 
 \subsubsection{Testing semi-deterministic predicates}
@@ -270,7 +277,7 @@ test(member, all(X == [a,b,c]) :-
 \end{code}
 
 \subsubsection{Testing error conditions}
-\label{sec:testnondet}
+\label{sec:testerror}
 
 Error-conditions are tested using the option \term{throws}{Error} or
 by wrapping the test in a catch/3.  The following tests are equivalent:
@@ -283,6 +290,17 @@ test(div0) :-
 test(div0, [throws(error(evaluation_error(zero_divisor), _))]) :-
      A is 1/0.
 \end{code}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Using seperate test files}
+\label{sec:testfiles}
+
+Test-units can be embedded in normal Prolog source-files. Alternatively,
+tests for a source-file can be placed in another file alongside the file
+to be tested. Test files use the extension \fileext{plt}. The predicate
+load_test_files/1 can load all files that are related to source-files
+loaded into the current project.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -350,6 +368,10 @@ run for reloaded files, but not for files loaded the first time. Using
 \const{make(all)} make/0 will run all test-suites, not only those that
 belong to files that are reloaded.
 \end{description}
+
+    \predicate{load_test_files}{1}{+Options}
+Load \fileext{plt} test-files that belong to the currently loaded
+sources.     
 \end{description}
 
 

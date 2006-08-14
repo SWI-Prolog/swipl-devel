@@ -307,7 +307,7 @@ run_test(Unit, Name, Line, Options, Body) :-
 	    )
 	;   statistics(cputime, T1),
 	    Time is T1 - T0,
-	    success(Unit, Name, Line, true, Time),
+	    success(Unit, Name, Line, true, Time, Options),
 	    cleanup(Module, Options)
 	).
 run_test(Unit, Name, Line, Options, Body) :-
@@ -320,7 +320,7 @@ run_test(Unit, Name, Line, Options, Body) :-
 	    ->	statistics(cputime, T1),
 		Time is T1 - T0,
 		(   catch(Cmp, _, fail)			% tbd: error
-		->  success(Unit, Name, Line, Det, Time)
+		->  success(Unit, Name, Line, Det, Time, Options)
 		;   failure(Unit, Name, Line, wrong_answer)
 		),
 		cleanup(Module, Options)
@@ -338,7 +338,7 @@ run_test(Unit, Name, Line, Options, Body) :-
 	->  (   var(E)
 	    ->	statistics(cputime, T1),
 		Time is T1 - T0,
-		success(Unit, Name, Line, Det, Time),
+		success(Unit, Name, Line, Det, Time, Options),
 		cleanup(Module, Options)
 	    ;	failure(Unit, Name, Line, E),
 		cleanup(Module, Options)
@@ -362,7 +362,7 @@ nondet_test(Expected, Unit, Name, Line, Options, Body) :-
 	    ->	statistics(cputime, T1),
 		Time is T1 - T0,
 	        (   nondet_compare(Expected, Bindings, Unit, Name, Line)
-		->  success(Unit, Name, Line, true, Time)
+		->  success(Unit, Name, Line, true, Time, Options)
 		;   failure(Unit, Name, Line, wrong_answer)
 		),
 		cleanup(Module, Options)
@@ -457,9 +457,11 @@ cleanup(Module, Options) :-
 	ignore(catch(Module:Cleanup, _, true)).
 
 
-success(Unit, Name, Line, Det, Time) :-
+success(Unit, Name, Line, Det, Time, Options) :-
 	assert(passed(Unit, Name, Line, Det, Time)),
-	(   Det == true
+	(   (   Det == true
+	    ;	memberchk(nondet, Options)
+	    )
 	->  put(.)
 	;   unit_file(Unit, File),
 	    print_message(warning, plunit(nondet(File, Line, Name)))
