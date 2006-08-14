@@ -23,4 +23,8 @@ Prolog Unit Tests
 
 ---++ Volatile modules?
 
+---++ Conversion of system tests:
 
+	- test.pl internals [OK]
+	- scripts called from test.pl
+	- tests for packages

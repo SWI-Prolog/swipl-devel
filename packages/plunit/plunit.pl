@@ -455,7 +455,7 @@ match_error(error(FormalEx, ContextEx), error(FormalRec, ContextRec)) :-
 %	considered an error.
 
 setup(Module, Options) :-
-	option(setup(Setup), Options, true),
+	option(setup(Setup), Options), !,
 	(   catch(Module:Setup, E, true)
 	->  (   var(E)
 	    ->	true
@@ -466,7 +466,7 @@ setup(Module, Options) :-
 	    fail
 	).
 setup(Module, Options) :-
-	option(condition(Setup), Options, true),
+	option(condition(Setup), Options), !,
 	(   catch(Module:Setup, E, true)
 	->  (   var(E)
 	    ->	true
@@ -475,6 +475,7 @@ setup(Module, Options) :-
 	    )
 	;   fail
 	).
+setup(_,_).
 
 %%	cleanup(+Module, +Options) is det.
 %
