@@ -421,7 +421,7 @@ prolog_message(make(reload(Files))) -->
 	{ length(Files, N)
 	},
 	[ 'Make: reloading ~D files'-[N] ].
-prolog_message(make(done)) -->
+prolog_message(make(done(_Files))) -->
 	[ 'Make: finished' ].
 prolog_message(make(library_index(Dir))) -->
 	[ 'Updating index for library ~w'-[Dir] ].

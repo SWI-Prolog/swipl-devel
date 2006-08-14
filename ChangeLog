@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Message term of make/0 after completion has changed from
+    make(done) to make(done(Files)).  Should not affect user-code.
+
   * ADDED: Library option, option/2.
 
   * DOC: Fixed all libraries to have their comments compatible with the
