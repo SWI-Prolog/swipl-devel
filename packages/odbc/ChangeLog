@@ -1,3 +1,7 @@
+Aug 15, 2006
+
+* ADDED: Bug#193: Checking result-codes in disconnect.
+
 Jul 25, 2006
 
 * Fixed odbc_current_connection(-,-).  Nicos Angelo
