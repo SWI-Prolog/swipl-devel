@@ -1440,7 +1440,8 @@ expand_term(Term, Term).
 		   ],
 	'$singleton_option'(SM, Options, Options0),
 	read_term(In, Term, Options),
-	(   catch(prolog:comment_hook(Comments, Pos, Term), E,
+	(   Comments \== [],
+	    catch(prolog:comment_hook(Comments, Pos, Term), E,
 		  print_message(error, E))
 	->  true
 	;   true

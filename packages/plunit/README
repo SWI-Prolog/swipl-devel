@@ -5,7 +5,7 @@ Prolog Unit Tests
 ---++ TBD
 
 	* Add options to test units
-		- Condition, setup, cleanup [OK]
+		- Condition, setup, cleanup, blocked [OK]
 	* Run the tests on make, etc.  [OK]
 	* Report generation options
 
@@ -26,5 +26,11 @@ Prolog Unit Tests
 ---++ Conversion of system tests:
 
 	- test.pl internals [OK]
-	- scripts called from test.pl
+	- scripts called from test.pl [OK]
 	- tests for packages
+
+---++ Run tests concurrently?
+
+	+ Tests applications for concurrent execution
+	+ Saves time, notably on tests doing networking, timeout, etc.
+	- Might be more complicated to understand

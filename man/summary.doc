@@ -115,6 +115,7 @@ suggest predicates from a keyword.
 \predicatesummary{close}{2}{Close stream (forced)}
 \predicatesummary{close_dde_conversation}{1}{Win32: Close DDE channel}
 \predicatesummary{close_shared_object}{1}{UNIX:  Close shared library (.so file)}
+\predicatesummary{comment_hook}{3}{\hook{prolog} handle comments in sources}
 \predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
 \predicatesummary{compile_predicates}{1}{Compile dynamic code to static}
 

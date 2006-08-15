@@ -370,6 +370,16 @@ does not contain the \term{stream}{Input} option.
 
 The \pllib{http_load} provides an example, loading Prolog sources
 directly from an HTTP server.
+
+    \predicate{prolog:comment_hook}{3}{+Comments, +Pos, +Term}
+This hook allows for processing ---structured--- comments encountered
+by the compiler.  The reader collects all comments found from the
+current position to the end of the next term.  It calls this hook
+providing a list of \arg{Position}-\arg{Comment} in \arg{Comments},
+the start-position of the next term in \arg{Pos} and the next term
+itself in \arg{Term}.  All positions are stream-position terms.
+This hook is exploited by the documentation system.  See
+stream_position_data/3. See also read_term/3. 
 \end{description}
 
 
