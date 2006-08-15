@@ -1269,6 +1269,13 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
 odbc_disconnect(+Connection)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define TRY_CN(cn, action) \
+	{ RETCODE rc = action; \
+	  if ( rc == SQL_ERROR ) \
+	    return odbc_report(henv, cn->hdbc, NULL, rc); \
+	}
+
+
 static foreign_t
 pl_odbc_disconnect(term_t dsn)
 { connection *cn;
@@ -1276,8 +1283,8 @@ pl_odbc_disconnect(term_t dsn)
   if ( !get_connection(dsn, &cn) )
     return FALSE;
 
-  SQLDisconnect(cn->hdbc);  /* Disconnect from the data source */
-  SQLFreeConnect(cn->hdbc); /* Free the connection handle */
+  TRY_CN(cn, SQLDisconnect(cn->hdbc));  /* Disconnect from the data source */
+  TRY_CN(cn, SQLFreeConnect(cn->hdbc)); /* Free the connection handle */
   free_connection(cn);
 
   return TRUE;
@@ -1586,7 +1593,10 @@ close_context(context *ctxt)
 
   if ( ctxt->flags & CTX_PERSISTENT )
   { if ( ctxt->hstmt )
-      SQLFreeStmt(ctxt->hstmt, SQL_CLOSE);
+    { ctxt->rc = SQLFreeStmt(ctxt->hstmt, SQL_CLOSE);
+      if ( ctxt->rc == SQL_ERROR )
+	report_status(ctxt);
+    }
   } else
     free_context(ctxt);
 }
@@ -1628,7 +1638,10 @@ free_context(context *ctx)
   ctx->magic = CTX_FREEMAGIC;
 
   if ( ctx->hstmt )
-    SQLFreeStmt(ctx->hstmt, SQL_DROP);
+  { ctx->rc = SQLFreeStmt(ctx->hstmt, SQL_DROP);
+    if ( ctx->rc == SQL_ERROR )
+      report_status(ctx);
+  }
 
   free_parameters(ctx->NumCols,   ctx->result);
   free_parameters(ctx->NumParams, ctx->params);
