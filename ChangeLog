@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: avoid errors in open while getting a stacktrace.  Mike
+    Elston. 
+
   * FIXED: 1 is sin(pi/2) incorrectly succeeded in optimised mode.
 
   * MODIFIED: Message term of make/0 after completion has changed from

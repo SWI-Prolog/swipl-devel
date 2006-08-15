@@ -130,7 +130,7 @@ system_module(Module) :-
 	sub_atom(Module, 0, _, _, $), !.
 
 read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
-	open(File, read, In),
+	catch(open(File, read, In), _, fail),
 	call_cleanup(read(Line, In, Module, Clause, TermPos, VarNames),
 		     close(In)).
 
