@@ -210,15 +210,17 @@ run_unit([H|T]) :- !,
 	run_unit(T).
 run_unit(Spec) :-
 	unit_from_spec(Spec, Unit, Tests, Module, UnitOptions),
-	(   setup(Module, UnitOptions)
+	(   option(blocked(Reason), UnitOptions)
+	->  print_message(informational, plunit(blocked(unit(Unit, Reason))))
+	;   setup(Module, UnitOptions)
 	->  print_message(informational, plunit(begin(Spec))),
 	    forall((Module:'unit test'(Name, Line, Options, Body),
 		    matching_test(Name, Tests)),
 		   run_test(Unit, Name, Line, Options, Body)),
-	    print_message(informational, plunit(end(Spec)))
+	    print_message(informational, plunit(end(Spec))),
+	    cleanup(Module, UnitOptions)
 	;   true
-	),
-	cleanup(Module, UnitOptions).
+	).
 
 unit_from_spec(Unit, Unit, _, Module, Options) :-
 	atom(Unit), !,
@@ -283,8 +285,7 @@ make_run_tests(Files) :-
 %%	run_test(+Unit, +Name, +Line, +Options, +Body) is det.
 
 run_test(Unit, Name, Line, Options, _Body) :-
-	option(blocked(Reason), Options, Default),
-	Reason \== Default, !,				% Blocked test
+	option(blocked(Reason), Options), !,
 	assert(blocked(Unit, Name, Line, Reason)).
 run_test(Unit, Name, Line, Options, Body) :-
 	option(all(Answer), Options), !,		% all(Bindings)
@@ -611,11 +612,15 @@ prolog:message(plunit(begin(Unit))) -->
 	[ 'PL-Unit: ~w '-[Unit], flush ].
 prolog:message(plunit(end(_Unit))) -->
 	[ at_same_line, ' done' ].
+prolog:message(plunit(blocked(unit(Unit, Reason)))) -->
+	[ 'PL-Unit: ~w blocked: ~w'-[Unit, Reason] ].
+
 					% Blocked tests
 prolog:message(plunit(blocked(N))) -->
 	[ '~D tests where blocked'-[N] ].
 prolog:message(plunit(blocked(Pos, Name, Reason))) -->
 	[ '  ~w: test ~w: ~w'-[Pos, Name, Reason] ].
+
 					% fail/success
 prolog:message(plunit(failed(0))) --> !,
 	[ 'All tests passed' ].

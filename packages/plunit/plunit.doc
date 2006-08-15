@@ -176,6 +176,9 @@ argument of test/2 rules).
 
 Defined options are:
     \begin{description}
+	\termitem{blocked}{+Reaosn}
+Test-unit has been blocked for the given \arg{Reason}.
+
         \termitem{condition}{:Goal}
 Executed before executing any of the tests.  If \arg{Goal} fails,
 the test of this unit is skipped.
