@@ -38,8 +38,8 @@
 	  ]).
 :- use_module(library(lists)).
 
-%	alarm(+Time, :Callable, -Id)
-%	alarm(+Time, :Callable, -Id, +Options)
+%%	alarm(+Time, :Callable, -Id) is det.
+%%	alarm(+Time, :Callable, -Id, +Options) is det.
 %	
 %	Set up an alarm to be signaled Time seconds from now. If the
 %	alarm expires, Callable is called asynchronously. Callable can
@@ -57,11 +57,11 @@
 %		If Bool is true, remove the alarm-event (as
 %		remove_alarm/1) after it has been fired.
 
-%	remove_alarm(+Id)
+%%	remove_alarm(+Id) is det.
 %	
 %	Remove an alarm.  If it has not yet been fired, it never will.
 
-%	current_alarm(?Time, ?:Goal, ?Id, ?Status)
+%%	current_alarm(?Time, ?:Goal, ?Id, ?Status) is nondet.
 %	
 %	Enumerate the alarms in the schedule.  Time is the absolute time
 %	the event is scheduled for (see also get_time/1). Goal is the
@@ -75,10 +75,12 @@
 
 :- meta_predicate(call_with_time_limit(+, :)).
 
-%	call_with_time_limit(+Time, :Goal)
+%%	call_with_time_limit(+Time, :Goal) is det.
 %	
 %	Call :Goal, while watching out for a (real-time) limit.  If this
 %	limit is exceeded, the exception time_limit_exceeded is raised.
+%	
+%	Note: Goal is called with once/1.
 
 call_with_time_limit(Time, Goal) :-
 	alarm(Time, throw(time_limit_exceeded), Id),
