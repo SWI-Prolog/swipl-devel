@@ -8,11 +8,6 @@ Status
 Approach has been discussed with two external Prolog developers.
 
 Code is very imcomplete.  Development plan:
-
----++ SWI-Prolog hooks
-
-	* Needs to be documented (hackers corner)
-
 ---++ Wiki processor
 
 Making solid progress.  remaining issues:
@@ -25,7 +20,7 @@ Making solid progress.  remaining issues:
 
 ---++ HTML generation
 
-	* Generate structure for the file/module
+	* Generate structure for the file/module [PARTIAL]
 
 ---++ After Compilation with library(pldoc) loaded:
 
