@@ -3075,13 +3075,14 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 
 static double
 ThreadCPUTime(PL_thread_info_t *info, int which)
-{
-  clockid_t clock_id;
-  struct timespec ts;
+{ if ( info->tid )
+  { clockid_t clock_id;
+    struct timespec ts;
 
-  pthread_getcpuclockid(info->tid, &clock_id);
-  if (clock_gettime(clock_id, &ts) == 0)
-    return timespec_to_double(ts);
+    pthread_getcpuclockid(info->tid, &clock_id);
+    if (clock_gettime(clock_id, &ts) == 0)
+      return timespec_to_double(ts);
+  }
 
   return 0.0;
 }

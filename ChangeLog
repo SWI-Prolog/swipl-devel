@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: possible crash freeing a thread that could not be created
+    due to conflicting alias.
+
   * FIXED: avoid errors in open while getting a stacktrace.  Mike
     Elston. 
 
