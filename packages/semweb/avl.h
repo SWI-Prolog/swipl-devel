@@ -59,7 +59,7 @@ typedef  short  DIRECTION;
 typedef struct avl_node
 { struct avl_node  *subtree[2];		/* LEFT and RIGHT subtrees */
   short       bal;			/* balance factor */
-  char	      data[1];			/* data on my back */
+  void *      data[1];			/* data on my back */
 } AVLnode, *AVLtree;
 
 /* End Internal definitions */

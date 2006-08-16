@@ -128,7 +128,7 @@ ckalloc(int size)
 }				/* ckalloc */
 
 
-#define sizeofnode(size) ((size_t)&((AVLtree)0)->data[size])
+#define sizeofnode(size) ((size_t)&((AVLtree)0)->data[0] + size)
 
 /*
 * new_node() -- get space for a new node and its data;
