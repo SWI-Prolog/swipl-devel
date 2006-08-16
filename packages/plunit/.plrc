@@ -4,3 +4,4 @@
 :- use_module(plunit).
 
 :- doc_server(4003).
+:- set_prolog_flag(log_query_file, 'Queries.pl').
