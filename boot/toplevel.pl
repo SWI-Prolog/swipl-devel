@@ -30,17 +30,17 @@
 */
 
 :- module($toplevel,
-	[ $initialise/0			% start Prolog (does not return)
-	, $toplevel/0			% Prolog top-level (re-entrant)
-	, $abort/0 			% restart after an abort
-	, $break/0 			% live in a break
-	, $compile/0 			% `-c' toplevel
-	, $welcome/0			% banner
+	[ '$initialise'/0		% start Prolog (does not return)
+	, '$toplevel'/0			% Prolog top-level (re-entrant)
+	, '$abort'/0 			% restart after an abort
+	, '$break'/0 			% live in a break
+	, '$compile'/0 			% `-c' toplevel
+	, '$welcome'/0			% banner
 	, prolog/0 			% user toplevel predicate
-	, $set_prompt/1			% set the main prompt
+	, '$set_prompt'/1			% set the main prompt
 	, at_initialization/1		% goals to run at initialization
 	, (initialization)/1		% initialization goal (directive)
-	, $thread_init/0		% initialise thread
+	, '$thread_init'/0		% initialise thread
 	, (thread_initialization)/1	% thread initialization goal
 	]).
 
@@ -52,28 +52,28 @@
 :- dynamic
 	loaded_init_file/1.		% already loaded init files
 
-$welcome :-
+'$welcome' :-
 	print_message(banner, welcome).
 
-$load_init_file(none) :- !.
-$load_init_file(Base) :-
+'$load_init_file'(none) :- !.
+'$load_init_file'(Base) :-
 	loaded_init_file(Base), !.
-$load_init_file(InitFile) :-
+'$load_init_file'(InitFile) :-
 	is_absolute_file_name(InitFile), !,
 	ensure_loaded(user:InitFile).
-$load_init_file(Base) :-
+'$load_init_file'(Base) :-
 	absolute_file_name(user_profile(Base),
 			   [ access(read),
 			     file_errors(fail)
 			   ], InitFile),
 	asserta(loaded_init_file(Base)),
 	ensure_loaded(user:InitFile).
-$load_init_file(_).
+'$load_init_file'(_).
 
-$load_system_init_file :-
+'$load_system_init_file' :-
 	loaded_init_file(system), !.
-$load_system_init_file :-
-	$option(system_init_file, Base, Base),
+'$load_system_init_file' :-
+	'$option'(system_init_file, Base, Base),
 	(   Base == none
 	->  asserta(loaded_init_file(system))
 	;   current_prolog_flag(home, Home),
@@ -83,12 +83,12 @@ $load_system_init_file :-
 	    asserta(loaded_init_file(system)),
 	    load_files(user:File, [silent(true)]), !
 	).
-$load_system_init_file.
+'$load_system_init_file'.
 
-$load_script_file :-
+'$load_script_file' :-
 	loaded_init_file(script), !.
-$load_script_file :-
-	$option(script_file, OsFile, OsFile),
+'$load_script_file' :-
+	'$option'(script_file, OsFile, OsFile),
 	OsFile \== '',
 	prolog_to_os_filename(File, OsFile),
 	(   exists_file(File)		% avoid expanding on extensions
@@ -96,9 +96,9 @@ $load_script_file :-
 	    load_files(user:File, [expand(false)])
 	;   throw(error(existence_error(script_file, File), _))
 	).
-$load_script_file.
+'$load_script_file'.
 
-$load_gnu_emacs_interface :-
+'$load_gnu_emacs_interface' :-
 	(   getenv('EMACS', t),
 	    current_prolog_flag(argv, Args),
 	    memberchk('+C', Args)
@@ -115,16 +115,16 @@ $load_gnu_emacs_interface :-
 	at_initialization/1,
 	(initialization)/1.
 :- dynamic
-	$at_initialization/1.
+	'$at_initialization'/1.
 
 at_initialization(Spec) :-
 	strip_module(Spec, Module, Goal),
-	'$toplevel':assert($at_initialization(Module:Goal)).
+	'$toplevel':assert('$at_initialization'(Module:Goal)).
 
-$run_at_initialization :-
+'$run_at_initialization' :-
 	\+ current_prolog_flag(saved_program, true), !.
-$run_at_initialization :-
-	(   $at_initialization(Goal),
+'$run_at_initialization' :-
+	(   '$at_initialization'(Goal),
 	    (   catch(Goal, E,
 		      print_message(error, initialization_exception(Goal, E)))
 	    ->  fail
@@ -151,15 +151,15 @@ initialization(Goal) :-
 :- module_transparent
 	(thread_initialization)/1.
 :- dynamic
-	$at_thread_initialization/1.
+	'$at_thread_initialization'/1.
 
 thread_initialization(Spec) :-
 	strip_module(Spec, Module, Goal),
-	'$toplevel':assert($at_thread_initialization(Module:Goal)),
+	'$toplevel':assert('$at_thread_initialization'(Module:Goal)),
 	Spec.
 
 '$thread_init' :-
-	(   $at_thread_initialization(Goal),
+	(   '$at_thread_initialization'(Goal),
 	    Goal,
 	    fail
 	;   true
@@ -170,14 +170,14 @@ thread_initialization(Spec) :-
 		 *     FILE SEARCH PATH (-p)	*
 		 *******************************/
 
-$set_file_search_paths :-
+'$set_file_search_paths' :-
 	current_prolog_flag(argv, Argv),
-	$append(H, ['-p', Path|_], Argv),
+	'$append'(H, ['-p', Path|_], Argv),
 	\+ memberchk(--, H),
 	(   atom_chars(Path, Chars),
-	    (	phrase($search_path(Name, Aliases), Chars)
-	    ->	$reverse(Aliases, Aliases1),
-	        forall($member(Alias, Aliases1),
+	    (	phrase('$search_path'(Name, Aliases), Chars)
+	    ->	'$reverse'(Aliases, Aliases1),
+	        forall('$member'(Alias, Aliases1),
 		       asserta(user:file_search_path(Name, Alias)))
 	    ;   print_message(error, commandline_arg_type(p, Path))
 	    )
@@ -185,21 +185,21 @@ $set_file_search_paths :-
 	),
 	fail ; true.
 
-$search_path(Name, Aliases) -->
-	$string(NameChars),
+'$search_path'(Name, Aliases) -->
+	'$string'(NameChars),
 	[=], !,
 	{atom_chars(Name, NameChars)},
-	$search_aliases(Aliases).
+	'$search_aliases'(Aliases).
 
-$search_aliases([Alias|More]) -->
-	$string(AliasChars),
+'$search_aliases'([Alias|More]) -->
+	'$string'(AliasChars),
 	path_sep, !,
-	{ $make_alias(AliasChars, Alias) },
-	$search_aliases(More).
-$search_aliases([Alias]) -->
-	$string(AliasChars),
-	$eos, !,
-	{ $make_alias(AliasChars, Alias) }.
+	{ '$make_alias'(AliasChars, Alias) },
+	'$search_aliases'(More).
+'$search_aliases'([Alias]) -->
+	'$string'(AliasChars),
+	'$eos', !,
+	{ '$make_alias'(AliasChars, Alias) }.
 
 path_sep -->
 	{ current_prolog_flag(windows, true)
@@ -208,18 +208,18 @@ path_sep -->
 path_sep -->
 	[:].
 
-$string([]) --> [].
-$string([H|T]) --> [H], $string(T).
+'$string'([]) --> [].
+'$string'([H|T]) --> [H], '$string'(T).
 
-$eos([], []).
+'$eos'([], []).
 
-$make_alias(Chars, Alias) :-
+'$make_alias'(Chars, Alias) :-
 	catch(term_to_atom(Alias, Chars), _, fail),
 	(   atom(Alias)
 	;   functor(Alias, F, 1),
 	    F \== /
 	), !.
-$make_alias(Chars, Alias) :-
+'$make_alias'(Chars, Alias) :-
 	atom_chars(Alias, Chars).
 
 
@@ -237,10 +237,10 @@ $make_alias(Chars, Alias) :-
 set_associated_file :-
 	current_prolog_flag(saved_program_class, runtime), !.
 set_associated_file :-
-	$set_prolog_file_extension,
+	'$set_prolog_file_extension',
 	current_prolog_flag(associate, Ext),
 	current_prolog_flag(argv, Argv),
-	$append(Pre, [OsFile], Argv),
+	'$append'(Pre, [OsFile], Argv),
 	\+ memberchk(--, Pre),
 	prolog_to_os_filename(File, OsFile),
 	file_name_extension(_, Ext, File),
@@ -271,7 +271,7 @@ load_associated_file.
 hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
 hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 
-$set_prolog_file_extension :-
+'$set_prolog_file_extension' :-
 	'$c_current_predicate'(_, system:win_registry_get_value(_,_,_)),
 	hkey(Key),
 	catch(win_registry_get_value(Key, fileExtension, Ext0),
@@ -281,16 +281,16 @@ $set_prolog_file_extension :-
 	;   Ext = Ext0
 	),
 	set_prolog_flag(associate, Ext).
-$set_prolog_file_extension.
+'$set_prolog_file_extension'.
 
 
 		/********************************
 		*        TOPLEVEL GOALS         *
 		*********************************/
 
-:- flag($banner_goal, _, $welcome).
+:- flag('$banner_goal', _, '$welcome').
 
-$initialise :-
+'$initialise' :-
 	catch(initialise_prolog, E, initialise_error(E)).
 
 initialise_error('$aborted') :- !.
@@ -299,50 +299,50 @@ initialise_error(E) :-
 	fail.
 
 initialise_prolog :-
-	$clean_history,
+	'$clean_history',
 	set_associated_file,
-	$set_file_search_paths,
+	'$set_file_search_paths',
 	once(print_predicate(_, [print], PrintOptions)),
 	set_prolog_flag(toplevel_print_options, PrintOptions),
 	'$set_debugger_print_options'(print),
-	$run_at_initialization,
-	$load_system_init_file,
-	$load_gnu_emacs_interface,
-	$option(init_file, OsFile, OsFile),
+	'$run_at_initialization',
+	'$load_system_init_file',
+	'$load_gnu_emacs_interface',
+	'$option'(init_file, OsFile, OsFile),
 	prolog_to_os_filename(File, OsFile),
-	$load_init_file(File), 
-	$load_script_file,
+	'$load_init_file'(File), 
+	'$load_script_file',
 	load_associated_file,
-	$option(goal, GoalAtom, GoalAtom), 
+	'$option'(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 
-	(   Goal == $welcome
-	->  flag($banner_goal, TheGoal, TheGoal)
+	(   Goal == '$welcome'
+	->  flag('$banner_goal', TheGoal, TheGoal)
 	;   TheGoal = Goal
 	),
 	ignore(user:TheGoal).
 
-$abort :-
+'$abort' :-
 	see(user), 
 	tell(user), 
-	flag($break_level, _, 0), 
-	flag($compilation_level, _, 0),
-	$calleventhook(abort),
+	flag('$break_level', _, 0), 
+	flag('$compilation_level', _, 0),
+	'$calleventhook'(abort),
 	print_message(informational, '$aborted'),
-	$toplevel.
+	'$toplevel'.
 
-$break :-
-	flag($break_level, Old, Old+1), 
-	flag($break_level, New, New), 
+'$break' :-
+	flag('$break_level', Old, Old+1), 
+	flag('$break_level', New, New), 
 	print_message(informational, break(enter(New))),
-	$runtoplevel,
+	'$runtoplevel',
 	print_message(informational, break(exit(New))),
-	flag($break_level, _, Old), !.
+	flag('$break_level', _, Old), !.
 
-:- $hide($toplevel, 0).			% avoid in the GUI stacktrace
-:- $hide($abort, 0).			% same after an abort
+:- '$hide'('$toplevel', 0).			% avoid in the GUI stacktrace
+:- '$hide'('$abort', 0).			% same after an abort
 
-$toplevel :-
-	$runtoplevel,
+'$toplevel' :-
+	'$runtoplevel',
 	print_message(informational, halt).
 
 %	Actually run the toplevel.  If there is a syntax error in the
@@ -351,21 +351,21 @@ $toplevel :-
 %	how do we distinguish between a stupid user and a program
 %	crashing in a loop?
 
-$runtoplevel :-
-	$option(toplevel, TopLevelAtom, TopLevelAtom), 
+'$runtoplevel' :-
+	'$option'(toplevel, TopLevelAtom, TopLevelAtom), 
 	catch(term_to_atom(TopLevel, TopLevelAtom), E,
 	      (print_message(error, E),
 	       halt(1))),
 	user:TopLevel.
 
-%	$compile
+%	'$compile'
 %	Toplevel called when invoked with -c option.
 
-$compile :-
-	$run_at_initialization,
-	$load_system_init_file,
-	$set_file_search_paths,
-	catch($compile_wic, E, (print_message(error, E), halt(1))).
+'$compile' :-
+	'$run_at_initialization',
+	'$load_system_init_file',
+	'$set_file_search_paths',
+	catch('$compile_wic', E, (print_message(error, E), halt(1))).
 
 
 		/********************************
@@ -373,12 +373,12 @@ $compile :-
 		*********************************/
 
 prolog :-
-	flag($tracing, _, off), 
-	flag($break_level, BreakLev, BreakLev), 
+	flag('$tracing', _, off), 
+	flag('$break_level', BreakLev, BreakLev), 
 	repeat, 
-	    (   $module(TypeIn, TypeIn), 
+	    (   '$module'(TypeIn, TypeIn), 
 		(   stream_property(user_input, tty(true))
-		->  $system_prompt(TypeIn, BreakLev, Prompt),
+		->  '$system_prompt'(TypeIn, BreakLev, Prompt),
 		    prompt(Old, '|    ')
 		;   Prompt = '',
 		    prompt(Old, '')
@@ -388,7 +388,7 @@ prolog :-
 		prompt(_, Old),
 		call_expand_query(Goal, ExpandedGoal,
 				  Bindings, ExpandedBindings)
-	    ->  $execute(ExpandedGoal, ExpandedBindings)
+	    ->  '$execute'(ExpandedGoal, ExpandedBindings)
 	    ), !.
 
 
@@ -399,7 +399,7 @@ read_query(Prompt, Goal, Bindings) :-
 	remove_history_prompt(Prompt, Prompt1),
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
-	catch($raw_read(user_input, Line), E,
+	catch('$raw_read'(user_input, Line), E,
 	      (print_message(error, E),
 	       (   E = error(syntax_error(_), _)
 	       ->  fail
@@ -414,7 +414,7 @@ read_query(Prompt, Goal, Bindings) :-
 	      (   print_message(error, E),
 		  fail
 	      )), !,
-	$save_history(Line).
+	'$save_history'(Line).
 read_query(Prompt, Goal, Bindings) :-
 	seeing(Old), see(user_input),
 	(   read_history(h, '!h', 
@@ -458,41 +458,41 @@ set_default_history :-
 		********************************/
 
 :- dynamic
-	$prompt/1.
+	'$prompt'/1.
 
-$prompt("%m%d%l%! ?- ").
+'$prompt'("%m%d%l%! ?- ").
 
-$set_prompt(P) :-
+'$set_prompt'(P) :-
 	atom_codes(P, S),
-	retractall($prompt(_)),
-	assert($prompt(S)).
+	retractall('$prompt'(_)),
+	assert('$prompt'(S)).
 
 
-$system_prompt(Module, BrekLev, Prompt) :-
-	$prompt(P0),
+'$system_prompt'(Module, BrekLev, Prompt) :-
+	'$prompt'(P0),
 	(    Module \== user
-	->   $substitute("%m", [Module, ": "], P0, P1)
-	;    $substitute("%m", [], P0, P1)
+	->   '$substitute'("%m", [Module, ": "], P0, P1)
+	;    '$substitute'("%m", [], P0, P1)
 	),
 	(    BrekLev \== 0
-	->   $substitute("%l", ["[", BrekLev, "] "], P1, P2)
-	;    $substitute("%l", [], P1, P2)
+	->   '$substitute'("%l", ["[", BrekLev, "] "], P1, P2)
+	;    '$substitute'("%l", [], P1, P2)
 	),
 	(    tracing
-	->   $substitute("%d", ["[trace] "], P2, P3)
+	->   '$substitute'("%d", ["[trace] "], P2, P3)
 	;    current_prolog_flag(debug, true)
-	->   $substitute("%d", ["[debug] "], P2, P3)
-	;    $substitute("%d", [], P2, P3)
+	->   '$substitute'("%d", ["[debug] "], P2, P3)
+	;    '$substitute'("%d", [], P2, P3)
 	),
 	atom_chars(Prompt, P3).
 	
-$substitute(From, T, Old, New) :-
+'$substitute'(From, T, Old, New) :-
 	phrase(subst_chars(T), T0),
-	$append(Pre, S0, Old),
-	$append(From, Post, S0) ->
-	$append(Pre, T0, S1),
-	$append(S1, Post, New), !.
-$substitute(_, _, Old, Old).
+	'$append'(Pre, S0, Old),
+	'$append'(From, Post, S0) ->
+	'$append'(Pre, T0, S1),
+	'$append'(S1, Post, New), !.
+'$substitute'(_, _, Old, Old).
 	
 subst_chars([]) -->
 	[].
@@ -511,31 +511,32 @@ subst_chars([H|T]) -->
 		*           EXECUTION		*
 		********************************/
 
-$execute(Var, _) :-
+'$execute'(Var, _) :-
 	var(Var), !,
 	print_message(informational, var_query(Var)),
 	fail.
-$execute(end_of_file, _) :- !,
+'$execute'(end_of_file, _) :- !,
 	print_message(query, query(eof)).
-$execute(Goal, Bindings) :-
-	$module(TypeIn, TypeIn), 
+'$execute'(Goal, Bindings) :-
+	'$module'(TypeIn, TypeIn), 
 	expand_goal(Goal, Expanded),
-	TypeIn:$dwim_correct_goal(Expanded, Bindings, Corrected), !, 
-	$execute_goal(Corrected, Bindings).
-$execute(_, _) :-
+	TypeIn:'$dwim_correct_goal'(Expanded, Bindings, Corrected), !, 
+	'$execute_goal'(Corrected, Bindings).
+'$execute'(_, _) :-
 	notrace, 
 	print_message(query, query(no)),
 	fail.
 
-$execute_goal(trace, []) :-
+'$execute_goal'(trace, []) :-
 	trace, 
 	print_message(query, query(yes)), !,
 	fail.
-$execute_goal(Goal, Bindings) :-
-	$module(TypeIn, TypeIn),
-	$execute_goal2(TypeIn:Goal, Bindings).
+'$execute_goal'(Goal, Bindings) :-
+	'$module'(TypeIn, TypeIn),
+	print_message(silent, toplevel_goal(TypeIn:Goal, Bindings)),
+	'$execute_goal2'(TypeIn:Goal, Bindings).
 
-$execute_goal2(Goal, Bindings) :-
+'$execute_goal2'(Goal, Bindings) :-
 	Goal,
 	flush_output(user_output),
 	deterministic(Det),
@@ -545,7 +546,7 @@ $execute_goal2(Goal, Bindings) :-
 	     notrace,
 	     fail
 	).
-$execute_goal2(_, _) :-
+'$execute_goal2'(_, _) :-
 	notrace, 
 	print_message(query, query(no)),
 	fail.

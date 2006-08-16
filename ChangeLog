@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: print_message(silent, toplevel_goal(Goal, Bindings)) to allow
+    intercepting toplevel goals just before they are executed.  Some
+    cleanup to toplevel.pl and topvars.pl
+
   * FIXED: possible crash freeing a thread that could not be created
     due to conflicting alias.
 

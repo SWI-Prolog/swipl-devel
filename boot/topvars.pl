@@ -106,12 +106,15 @@ expand_answer(Bindings, Bindings) :-
 assert_bindings([]).
 assert_bindings([Binding|Tail]) :-
 	Binding = (Var = Value),
-	forall(recorded('$topvar', Var = _, Ref), erase(Ref)),
-	(   (   current_prolog_flag(toplevel_var_size, Count)
-	    ->  '$term_complexity'(Value, Count, _)
+	(   nonvar(Value)
+	->  forall(recorded('$topvar', Var = _, Ref), erase(Ref)),
+	    (   (   current_prolog_flag(toplevel_var_size, Count)
+		->  '$term_complexity'(Value, Count, _)
+		;   true
+		)
+	    ->  recorda('$topvar', Binding, _)
 	    ;   true
 	    )
-	->  recorda('$topvar', Binding, _)
 	;   true
 	),
 	assert_bindings(Tail).
@@ -120,14 +123,11 @@ toplevel_var(Var, Binding) :-
 	recorded('$topvar', Var=Binding).
 
 print_toplevel_variables :-
-	toplevel_var(Name, Value),
-	format('$~w =~t~12|~p~n', [Name, Value]),
-	fail.
-print_toplevel_variables :-
-	toplevel_var(_, _), !.
-print_toplevel_variables :-
-	format('No defined toplevel variables~n').
-
+	(   toplevel_var(Name, Value)
+	*-> format('$~w =~t~12|~p~n', [Name, Value]),
+	    fail
+	;   format('No defined toplevel variables~n')
+	).
 
 verbose_expansion(on) :- !,
 	retractall(verbose),
