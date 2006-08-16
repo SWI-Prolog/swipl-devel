@@ -61,7 +61,7 @@
 %	
 %	Remove an alarm.  If it has not yet been fired, it never will.
 
-%%	current_alarm(?Time, ?:Goal, ?Id, ?Status) is nondet.
+%%	current_alarm(?Time, :Goal, ?Id, ?Status) is nondet.
 %	
 %	Enumerate the alarms in the schedule.  Time is the absolute time
 %	the event is scheduled for (see also get_time/1). Goal is the

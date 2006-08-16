@@ -61,6 +61,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 					% BINDINGS
 	[ insert_if_then_else	       = key('(') + key(';') + key('>'),
 	  insert_quote		       = key('"'),
+	  insert_percent	       = key('%'),
 
 					% delete some things
 	  manual_entry		       = -button(help),
@@ -339,6 +340,27 @@ insert_quote(E, Times:[int], Char:char) :->
 	    send(E, caret, Here)
 	;   true
 	).
+
+
+insert_percent(E, Times:[int], Char:char) :->
+	"Deal with %% comments"::
+	send(E, insert_self, Times, Char),
+	get(E, caret, Here),
+	(   send(E, looking_at, '\n%%', Here, 0)
+	->  send(E, insert, '\t')
+	;   true
+	).
+
+
+indent_comment_line(E) :->
+	"Deal with %% comments"::
+	send_super(E, indent_comment_line),
+	get(E, caret, Here),
+	(   send(E, looking_at, '\n%%[^\n]*\n%\\s*\n%', Here, 0)
+	->  send(E, insert, '\t')
+	;   true
+	).
+
 
 
 		 /*******************************

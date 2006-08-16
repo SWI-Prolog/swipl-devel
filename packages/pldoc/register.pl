@@ -34,7 +34,7 @@
 	  ]).
 :- use_module(library(pldoc)).
 :- use_module(library(debug)).
-
+:- set_prolog_flag(generate_debug_info, false).
 
 pldoc_module(pldoc_modes).              % avoid recursive behaviour
 pldoc_module(pldoc_wiki).
