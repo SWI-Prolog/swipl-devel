@@ -455,7 +455,7 @@ getManIdClassVariable(ClassVariable cv)
 { wchar_t buf[LINESIZE];
   wchar_t *nm, *o;
   Name ctx = ((Class)cv->context)->name;
-  int len;
+  unsigned len;
   Name rc;
 
   len = 4 + ctx->data.size + cv->name->data.size;
@@ -520,7 +520,7 @@ getPrintNameClassVariable(ClassVariable cv)
 { wchar_t buf[LINESIZE];
   wchar_t *nm, *o;
   Name ctx = ((Class)cv->context)->name;
-  int len;
+  unsigned len;
   Name rc;
   
   len = 2 + ctx->data.size + cv->name->data.size;
@@ -698,15 +698,14 @@ matchword(const char *s, const char *m)
 
 
 static StringObj
-getword(const char *s, char **end)
+restline(const char *s)
 { string str;
   const char *e;
 
-  for(e=s; !isspace(*e); e++)
-    ;
+  e = s+strlen(s);
+  while(e > s && isspace(e[-1]) )
+    e--;
   str_set_n_ascii(&str, e-s, (char *)s);
-  if ( end )
-    *end = (char *)e;
 
   return StringToString(&str);
 }
@@ -742,7 +741,7 @@ loadDefaultClassVariables(SourceSink f)
 	{ while(isblank(*s))
 	    s++;
 	  if ( s )
-	  { StringObj fn = getword(s, NULL);
+	  { StringObj fn = restline(s);
 	    Any fincluded = newObject(ClassFile, fn, NAME_utf8, EAV);
 	    
 	    if ( send(fincluded, NAME_exists, EAV) )

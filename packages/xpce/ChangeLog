@@ -1,6 +1,7 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Allow for spaces in #include file of defaults.  Tom Conlon.
 
 * FIXED: Crash in window placement if a new window is created from an
   event that first destroys the window from which it originated.
