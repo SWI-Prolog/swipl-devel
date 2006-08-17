@@ -139,13 +139,10 @@ print_debug(_, Format, Args) :-
 		 *******************************/
 
 %%	assertion(:Goal) is det.
-%%	assume(:Goal) is det.
 %	
 %	Acts similar to C assert() macro.  It has no effect of Goal
 %	succeeds.  If Goal fails it prints a message, a stack-trace
 %	and finally traps the debugger.
-%	
-%	@depreciated	Use assertion/1 in new code.
 
 assertion(G) :-
 	\+ \+ G, !.			% avoid binding variables
@@ -157,6 +154,13 @@ assertion(G) :-
 
 assertion_failed.
 
+%%	assume(:Goal) is det.
+%	
+%	Acts similar to C assert() macro.  It has no effect of Goal
+%	succeeds.  If Goal fails it prints a message, a stack-trace
+%	and finally traps the debugger.
+%	
+%	@depreciated	Use assertion/1 in new code.
 
 		 /*******************************
 		 *	     EXPANSION		*
