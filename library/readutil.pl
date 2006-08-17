@@ -40,13 +40,14 @@
 :- use_module(library(shlib)).
 :- use_module(library(lists), [select/3]).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Read utilities
+
 This library provides some commonly used   reading  predicates. As these
 predicates have proven to be time-critical in some applications we moved
 them to C. For compatibility as well  as to reduce system dependency, we
 link  the  foreign  code  at  runtime    and   fallback  to  the  Prolog
 implementation if the shared object cannot be found.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
 :- volatile
 	read_line_to_codes/2,
@@ -79,10 +80,11 @@ link_foreign :-
 		 *	       LINES		*
 		 *******************************/
 
-%%	pl_read_line_to_codes(+Fd, -Line)
+%%	read_line_to_codes(+In:stream, -Line:codes) is det.
 %
-%	Read a line of input from stream into a list of character codes.
-%	Trailing newline and or ret are deleted.
+%	Read a line of input from  In   into  a list of character codes.
+%	Trailing newline and  or  return   are  deleted.  Upon  reaching
+%	end-of-file Line is unified to the atom =end_of_file=.
 
 pl_read_line_to_codes(Fd, Codes) :-
 	get_code(Fd, C0),
@@ -101,7 +103,7 @@ read_1line_to_codes(C, Fd, [C|T]) :-
 	get_code(Fd, C2),
 	read_1line_to_codes(C2, Fd, T).
 
-%%	pl_read_line_to_codes(+Fd, -Line, ?Tail) is det.
+%%	read_line_to_codes(+Fd, -Line, ?Tail) is det.
 %
 %	Read a line of input as a   difference list. This should be used
 %	to read multiple lines  efficiently.   On  reaching end-of-file,
@@ -124,8 +126,11 @@ read_line_to_codes(C, Fd, [C|T], Tail) :-
 		 *     STREAM (ENTIRE INPUT)	*
 		 *******************************/
 
-%%	pl_read_stream_to_codes(+Stream, -Codes) is det.
-%%	pl_read_stream_to_codes(+Stream, -Codes, ?Tail) is det.
+%%	read_stream_to_codes(+Stream, -Codes) is det.
+%%	read_stream_to_codes(+Stream, -Codes, ?Tail) is det.
+%
+%	Read input from Stream to a list of character codes. The version
+%	read_stream_to_codes/3 creates a difference-list.
 
 pl_read_stream_to_codes(Fd, Codes) :-
 	pl_read_stream_to_codes(Fd, Codes, []).
@@ -158,6 +163,9 @@ read_stream_to_terms(C, Fd, [C|T], Tail, Options) :-
 		 *******************************/
 
 %%	read_file_to_codes(+Spec, -Codes, +Options) is det.
+%
+%	Read the file Spec into a list of Codes.  Options is split into
+%	options for absolute_file_name/3 and open/4.
 
 read_file_to_codes(Spec, Codes, Options) :-
 	(   select(tail(Tail), Options, Options1)
@@ -172,12 +180,15 @@ read_file_to_codes(Spec, Codes, Options) :-
 			   ],
 			   Path),
 	open(Path, read, Fd, OpenOptions),
-	read_stream_to_codes(Fd, Codes0, Tail),
-	close(Fd),
+	call_cleanup(read_stream_to_codes(Fd, Codes0, Tail),
+		     close(Fd)),
 	Codes = Codes0.
 
 
 %%	read_file_to_terms(+Spec, -Terms, +Options) is det.
+%
+%	Read the file Spec into a list   of terms. Options is split over
+%	absolute_file_name/3, open/4 and read_term/3.
 
 read_file_to_terms(Spec, Terms, Options) :-
 	(   select(tail(Tail), Options, Options1)
@@ -193,8 +204,8 @@ read_file_to_terms(Spec, Terms, Options) :-
 			   ],
 			   Path),
 	open(Path, read, Fd, OpenOptions),
-	read_stream_to_terms(Fd, Terms0, Tail, ReadOptions),
-	close(Fd),
+	call_cleanup(read_stream_to_terms(Fd, Terms0, Tail, ReadOptions),
+		     close(Fd)),
 	Terms = Terms0.
 
 split_options([], _, [], []).
