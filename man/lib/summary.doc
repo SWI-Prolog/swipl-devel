@@ -165,8 +165,8 @@ This library is only available on Windows systems.
 \predicatesummary{entailed}{1}{Check if constraint is entailed}
 \predicatesummary{inf}{2}{Find the infimum of an expression}
 \predicatesummary{sup}{2}{Find the supremum of an expression}
-\predicatesummary{min}{1}{Minimizes an expression}
-\predicatesummary{max}{1}{Maximizes an expression}
+\predicatesummary{minimize}{1}{Minimizes an expression}
+\predicatesummary{maximize}{1}{Maximizes an expression}
 \predicatesummary{bb_inf}{3}{Infimum of expression for mixed-integer problems}
 \predicatesummary{bb_inf}{4}{Infimum of expression for mixed-integer problems}    
 \predicatesummary{bb_inf}{5}{Infimum of expression for mixed-integer problems}

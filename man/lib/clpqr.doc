@@ -59,12 +59,12 @@ Computes the supremum of \arg{Expression} within the current state of
 the constraint store and returns that supremum in \arg{Sup}. This
 predicate does not change the constraint store.
 
-	\predicate{min}{1}{+Expression}
+	\predicate{minimize}{1}{+Expression}
 Minimizes \arg{Expression} within the current constraint store. This is
 the same as computing the infimum and equation the expression to that
 infimum.
 
-	\predicate{max}{1}{+Expression}
+	\predicate{maximize}{1}{+Expression}
 Maximizes \arg{Expression} within the current constraint store. This is
 the same as computing the supremum and equating the expression to that
 supremum.
