@@ -38,7 +38,17 @@
 
 :- style_check(+dollar).
 
+/** <module> System utilities
+
+This module provides some tools to deal with system predicates. System
+predicates cannot be traced or redefined.
+
+@depreciated	Use :- set_prolog_flag(generate_debug_info, false) to
+		hide predicate internals from the tracer.
+*/
+
 %%	system_mode(+OnOff)
+%
 %	Switch the system into system or user mode.  When in system mode,
 %	system predicates loose most of their special properties, so it
 %	becomes possible to trace and even redefine them.  Use the latter
@@ -57,7 +67,8 @@ system_mode(on) :-
 system_mode(off) :-
 	style_check(-dollar).
 
-%	system_module
+%%	system_module
+%
 %	Any predicate defined after this declaraction uptill the end of
 %	the file will become a system predicate. Normally invoked by a
 %	directive immediately following the module declaration.
@@ -70,6 +81,7 @@ system_module :-
 	unlock_predicate/2.
 
 %%	lock_predicate(+Name, Arity)
+%
 %	Transform a predicate into a system predicate. 
 
 lock_predicate(Spec, Arity) :-
@@ -78,6 +90,7 @@ lock_predicate(Spec, Arity) :-
 	$set_predicate_attribute(Module:Head, system, 1).
 
 %%	unlock_predicate(+Name, Arity)
+%
 %	Transform a system predicate into a normal system predicate.
 
 unlock_predicate(Spec, Arity) :-
