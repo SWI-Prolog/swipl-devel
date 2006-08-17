@@ -398,6 +398,32 @@ PceEmacs can be set as default editor using
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Running the documentation system}
+\label{sec:running}
+
+
+\subsection{During development}
+
+To support the developer with an up-to-date version of the documentation
+of both the application under development and the system libraries the
+developer can start an HTTP documentation server using the command
+\term{doc_server}{?Port}.
+
+
+\begin{description}
+    \predicate{doc_collect}{1}{+Bool}
+Enable/disable collecting structured comments into the Prolog database. 
+
+    \predicate{doc_server}{1}{?Port}
+Start documentation server at \arg{Port}.  Same as
+\term{doc_server}{Port, []}.
+
+    \predicate{doc_server}{2}{?Port, +Options}
+Start documentation server at \arg{Port} using \arg{Options}.
+\end{description}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Motivation of choices}
 \label{sec:motivation}
 

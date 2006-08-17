@@ -7,6 +7,5 @@
 :- asserta(user:file_search_path(pldoc, '.')).
 
 :- debug(pldoc).
-:- [pldoc].
-:- load_files([http], [silent(true), if(not_loaded)]).
+:- load_files([pldoc, doc_http], [silent(true), if(not_loaded)]).
 :- doc_server(4004).

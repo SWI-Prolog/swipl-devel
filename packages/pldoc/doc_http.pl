@@ -58,16 +58,18 @@ _after_ library(pldoc) has been loaded.
 
 doc_server(Port) :-
 	doc_server(Port,
-		   [ workers(1)
+		   [ workers(1),
+		     allow(localhost)
 		   ]).
 
 doc_server(Port, Options) :-
 	prepare_editor,
+	auth_options(Options, ServerOptions),
 	http_server(doc_reply,
                     [ port(Port),
                       timeout(60),
 		      keep_alive_timeout(1)
-                    | Options
+                    | ServerOptions
                     ]),
 	print_message(informational, pldoc(server_started(Port))).
 
@@ -83,9 +85,83 @@ prepare_editor.
 
 
 doc_reply(Request) :-
-	memberchk(path(Path), Request),
-	debug(pldoc, 'HTTP ~q', [Path]),
-	reply(Path, Request).
+	memberchk(peer(Peer), Request),
+	(   allowed_peer(Peer)
+	->  memberchk(path(Path), Request),
+	    debug(pldoc, 'HTTP ~q', [Path]),
+	    reply(Path, Request)
+	;   throw(http_reply(forbidden(/)))
+	).
+
+		 /*******************************
+		 *	  ACCESS CONTROL	*
+		 *******************************/
+
+:- dynamic
+	allow_from/1,
+	deny_from/1.
+
+%%	auth_options(+AllOptions, -NoAuthOptions) is det.
+%
+%	Filter the authorization options from   AllOptions,  leaving the
+%	remaining options in NoAuthOptions.
+
+auth_options([], []).
+auth_options([H|T0], T) :-
+	auth_option(H), !,
+	auth_options(T0, T).
+auth_options([H|T0], [H|T]) :-
+	auth_options(T0, T).
+
+auth_option(allow(From)) :-
+	assert(allow_from(From)).
+auth_option(deny(From)) :-
+	assert(deny_from(From)).
+
+%%	match_ip(+Spec, +Peer) is semidet.
+%
+%	True if Peer is covered by Spec.
+
+match_ip(X, X).
+match_ip(Name, IP) :-
+	is_ip(IP),
+	tcp_host_to_address(Host0, IP),
+	downcase_atom(Host0, Host),
+	(   Name == Host
+	->  true
+	;   sub_atom(Name, _, _, 0, '.'),
+	    sub_atom(Host, 0, _, _, Name)
+	).
+
+is_ip(ip(A,B,C,D)) :-
+	integer(A),
+	integer(B),
+	integer(C),
+	integer(D).
+
+%%	deny(+Peer) is semidet.
+%%	allow(+Peer) is semidet.
+
+deny(Peer) :-
+	deny_from(From),
+	match_ip(From, Peer), !.
+
+allow(Peer) :-
+	allow_from(From),
+	match_ip(From, Peer), !.
+
+allowed_peer(Peer) :-
+	deny(Peer), !,
+	allow(Peer).
+allowed_peer(Peer) :-
+	allow(Peer).
+
+
+
+
+		 /*******************************
+		 *	    USER REPLIES	*
+		 *******************************/
 
 :- discontiguous
 	reply/2.

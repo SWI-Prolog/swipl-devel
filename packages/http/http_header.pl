@@ -94,6 +94,30 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 		 *	  FORMULATE REPLY	*
 		 *******************************/
 
+%%	http_reply(+Data, +Out:stream) is det.
+%%	http_reply(+Data, +Out:stream, +HdrExtra) is det.
+%
+%	Data is one of
+%	
+%		* html(HTML)
+%		HTML tokens as produced by html//1 from html_write.pl
+%		
+%		* file(+MimeType, +FileName)
+%		Reply content of FileName using MimeType
+%		
+%		* tmp_file(+MimeType, +FileName)
+%		Same as =file=, but do not include modification time
+%		
+%		* stream(+In, +Len)
+%		Reply content of stream.
+%		
+%		* cgi_stream(+In, +Len)
+%		Reply content of stream, which should start with an
+%		HTTP header, followed by a blank line.  This is the
+%		typical output from a CGI script.
+%		
+%	@tbd: complete docs	
+
 http_reply(What, Out) :-
 	http_reply(What, Out, [connection(close)]).
 
@@ -290,6 +314,10 @@ content_length_in_encoding(Enc, Stream, Bytes) :-
 		 /*******************************
 		 *	    POST SUPPORT	*
 		 *******************************/
+
+%%	http_post_data(+Data, +Out:stream, +HdrExtra) is det.
+%
+%	@tbd	Complete docs
 
 http_post_data(html(HTML), Out, HdrExtra) :-
 	phrase(post_header(html(HTML), HdrExtra), Header),
@@ -670,8 +698,8 @@ rfc_date(Time, String, Tail) :-
 %	Generate a description of a Time in HTTP format (RFC1123)
 
 http_timestamp(Time, Atom) :-
-	phrase(rfc_date(Time), Codes),
-	atom_codes(Atom, Codes).
+	stamp_date_time(Time, Date, 'UTC'),
+	format_time(atom(Atom), '%a, %d %b %Y %H:%M:%S GMT', Date).
 
 
 		 /*******************************
