@@ -22,7 +22,17 @@ Making solid progress.  remaining issues:
 
 	* Generate structure for the file/module [PARTIAL]
 
----++ After Compilation with library(pldoc) loaded:
+---++ Toplevel functionality:
+
+	* End-user
+	
+		?- doc_collect(+Bool).
+		?- doc_server(?Port).
+		?- doc_server(?Port, +Options).
+		?- 
+
+
+	* Programmer
 
 	* pldoc_comment(PredInd, -Comment).
 	  pldoc_comment(module(Module), -Comment).

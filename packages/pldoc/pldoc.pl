@@ -30,7 +30,7 @@
 */
 
 :- module(pldoc,
-	  [ pldoc_comment/4,		% ?Object, ?Pos, ?Summary, ?Comment
+	  [ doc_comment/4,		% ?Object, ?Pos, ?Summary, ?Comment
 	    read_structured_comments/2,	% +File, -Comments
 	    is_structured_comment/2,	% +Comment, -Prefixes
 	    process_comments/3,		% +Comments, +StartTermPos, +File
@@ -162,7 +162,7 @@ doc_file_name(Source, Doc, Options) :-
 	;   true
 	).
 
-%%	pldoc_comment(?Object, -Pos,
+%%	doc_comment(?Object, -Pos,
 %%		      -Summary:string, -Comment:string) is nondet.
 %
 %	True if Comment is the  comment   describing  object. Comment is
@@ -183,13 +183,13 @@ doc_file_name(Source, Doc, Options) :-
 %
 %	@tbd	Handle comments covering multiple predicates
 
-pldoc_comment(Object, Pos, Summary, Comment) :-
+doc_comment(Object, Pos, Summary, Comment) :-
 	var(Object), !,
 	current_module(M),
 	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
 	M:'$pldoc'(Obj, Pos, Summary, Comment),
 	qualify(M, Obj, Object).
-pldoc_comment(M:Object, Pos, Summary, Comment) :-
+doc_comment(M:Object, Pos, Summary, Comment) :-
 	current_module(M),
 	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
 	M:'$pldoc'(Object, Pos, Summary, Comment).

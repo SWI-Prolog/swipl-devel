@@ -120,7 +120,7 @@ reply('/sidebar.html', _Request) :- !,
 		   ]).
 
 documented_file(File) :-
-	pldoc_comment(_, File:_, _, _).
+	doc_comment(_, File:_, _, _).
 
 files([]) -->
 	[].

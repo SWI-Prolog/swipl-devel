@@ -86,7 +86,7 @@ prolog_file(FileSpec, Options) -->
 			     File),
 	  Pos = File:_Line,
 	  findall(doc(Obj,Pos,Comment),
-		  pldoc_comment(Obj, Pos, _, Comment), Objs0),
+		  doc_comment(Obj, Pos, _, Comment), Objs0),
 	  module_info(File, ModuleOptions, Options),
 	  file_info(Objs0, Objs, FileOptions, ModuleOptions),
 	  b_setval(pldoc_file, File),	% TBD: delete?
