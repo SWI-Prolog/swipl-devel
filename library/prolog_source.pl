@@ -154,9 +154,9 @@ public_operators([H|T]) :- !,
 %	automatically restored to the values before opening the source.
 %	
 %	==
-%%	process_source(Src) :-
-%%		prolog_open_source(Src, In),
-%%		call_cleanup(process(Src), prolog_close_source(In)).
+%	process_source(Src) :-
+%		prolog_open_source(Src, In),
+%		call_cleanup(process(Src), prolog_close_source(In)).
 %	==
 
 prolog_open_source(Src, Fd) :-
