@@ -78,7 +78,7 @@ pce_autoload(Class, Local) :-
 	retractall(autoload(Class, _)),
 	assert(autoload(Class, Abs)).
 
-%	pce_autoload_all/0
+%%	pce_autoload_all
 %
 %	Load all    classes  declared  using   the    pce_autoload/2
 %	directive.  Useful for debugging purposes.

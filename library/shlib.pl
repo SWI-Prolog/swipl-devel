@@ -123,6 +123,13 @@ entry(_, default(Function), Function).
 		 *	    (UN)LOADING		*
 		 *******************************/
 
+%%	load_foreign_library(+FileSpec) is det.
+%%	load_foreign_library(+FileSpec, +Entry:atom) is det.
+%
+%	Load a _|shared object|_  or  _DLL_.   After  loading  the Entry
+%	function is called without arguments. The default entry function
+%	is composed from =install_=, followed by the file base-name.
+
 load_foreign_library(Library) :-
 	load_foreign_library(Library, default(install)).
 
@@ -162,6 +169,14 @@ load_foreign_library(LibFile, _, _) :-
 	    throw(E)
 	;   throw(error(existence_error(foreign_library, LibFile), _))
 	).
+
+%%	unload_foreign_library(+FileSpec) is det.
+%%	unload_foreign_library(+FileSpec, +Exit:atom) is det.
+%
+%	Unload a _|shared object|_ or  _DLL_.   After  calling  the Exit
+%	function, the shared object is  removed   from  the process. The
+%	default exit function is composed from =uninstall_=, followed by
+%	the file base-name.
 
 unload_foreign_library(LibFile) :-
 	unload_foreign_library(LibFile, default(uninstall)).
@@ -206,7 +221,7 @@ assert_shlib(File, Entry, Path, Module, Handle) :-
 
 %%	current_foreign_library(?File, ?Public)
 %
-%	Query currently loaded shared libraries
+%	Query currently loaded shared libraries.
 
 current_foreign_library(File, Public) :-
 	current_library(File, _Entry, _Path, _Module, _Handle),
@@ -217,10 +232,10 @@ current_foreign_library(File, Public) :-
 		 *	      RELOAD		*
 		 *******************************/
 
-%	reload_foreign_libraries
+%%	reload_foreign_libraries
 %
 %	Reload all foreign libraries loaded (after restore of a state
-%	craeted using qsave_program/2.
+%	created using qsave_program/2.
 
 reload_foreign_libraries :-
 	findall(lib(File, Entry, Module),
