@@ -49,9 +49,9 @@ provides code to deal with the SSL library for creating an HTTPS server.
 It is activated using the option  ssl(+SSLOptions), where SSLOptions are
 options required by ssl_init/3. See package ssl for details.
 
-BUGS: currently the library depends on library(socket) and library(ssl),
-both of which are accessed through  autoloading. Although this works, it
-is not elegant. 
+@bug	Currently the library depends on library(socket) and
+	library(ssl), both of which are accessed through autoloading.
+	Although this works, it is not elegant. 
 */
 
 :- meta_predicate
