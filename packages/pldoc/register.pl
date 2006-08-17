@@ -32,7 +32,7 @@
 :- module(pldoc_register,
 	  [ process_stored_comments/0
 	  ]).
-:- use_module(library(pldoc)).
+:- use_module(process).
 :- use_module(library(debug)).
 :- set_prolog_flag(generate_debug_info, false).
 

@@ -30,10 +30,11 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		html.pl wiki.pl modes.pl register.pl http.pl
+LIBPL=		html.pl wiki.pl modes.pl register.pl process.pl
 SUPPORT=	pldoc.css pldoc.js \
 		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico
 DOCALL=		$(LIBPL) $(SUPPORT)
+PUBPL=		pldoc.pl doc_http.pl
 
 all:		
 		@echo "Nothing to do for this package"
@@ -41,7 +42,7 @@ all:
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(LIBDIR)
 		$(INSTALL_DATA) $(DOCALL) $(DESTDIR)$(LIBDIR)
-		$(INSTALL_DATA) pldoc.pl $(DESTDIR)$(PLBASE)/library
+		$(INSTALL_DATA) $(PUBPL) $(DESTDIR)$(PLBASE)/library
 		$(PL) -f none -g make -t halt
 
 ln-install:	$(LIBPL)
@@ -50,8 +51,10 @@ ln-install:	$(LIBPL)
 		    rm -f $(DESTDIR)$(LIBDIR)/$$f; \
 		    ln -s `pwd`/$$f $(DESTDIR)$(LIBDIR); \
 		done
-		rm -f $(DESTDIR)/$(PLBASE)/library/pldoc.pl
-		ln -s `pwd`/pldoc.pl $(DESTDIR)$(PLBASE)/library/pldoc.pl
+		for f in $(PUBPL); do \
+		    rm -f $(DESTDIR)/$(PLBASE)/library/$$f; \
+		    ln -s `pwd`/$$f $(DESTDIR)$(PLBASE)/library/$$f; \
+		done
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
@@ -69,7 +72,7 @@ install-examples::
 
 uninstall::
 		(cd $(LIBDIR) && rm -f $(LIBPL))
-		rm -f $(PLBASE)/library/pldoc.pl
+		(cd $(PLBASE)/library && rm -f $(PUBPL))
 		$(PL) -f none -g make -t halt
 
 check::

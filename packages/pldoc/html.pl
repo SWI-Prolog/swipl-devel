@@ -36,7 +36,7 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library('http/html_write')).
-:- use_module(library(pldoc)).
+:- use_module(process).
 :- use_module(modes).
 :- use_module(wiki).
 

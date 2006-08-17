@@ -33,13 +33,14 @@
 	  [ doc_server/1,		% ?Port
 	    doc_server/2		% ?Port, +Options
 	  ]).
+:- use_module(library(pldoc)).
 :- use_module(library('http/thread_httpd')).
 :- use_module(library('http/http_parameters')).
 :- use_module(library('http/html_write')).
 :- use_module(library('http/mimetype')).
 :- use_module(library('debug')).
-:- use_module(library(pldoc)).
-:- use_module(html).
+:- use_module(pldoc(process)).
+:- use_module(pldoc(html)).
 
 /** <module> Documentation server
 

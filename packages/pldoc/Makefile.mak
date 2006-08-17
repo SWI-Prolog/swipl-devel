@@ -13,7 +13,8 @@ PLHOME=..\..
 
 LIBDIR=		$(PLBASE)\library\pldoc
 EXDIR=		$(PKGDOC)\examples\pldoc
-LIBPL=		html.pl wiki.pl modes.pl register.pl http.pl
+LIBPL=		html.pl wiki.pl modes.pl register.pl process.pl
+PUBPL=		pldoc.pl doc_http.pl
 SUPPORT=	pldoc.css pldoc.js \
 		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico
 DOCALL=		$(LIBPL) $(SUPPORT)
@@ -28,7 +29,7 @@ install::
 		@echo Copying $(LIBPL)
 		@for %f in ($(DOCALL)) do @copy %f "$(LIBDIR)"
 		copy README "$(LIBDIR)\README.TXT"
-		copy pldoc.pl $(PLBASE)\library
+		@for %f in ($(PUBPL)) do @copy %f "$(PLBASE)\library"
 		$(MAKEINDEX)
 !ENDIF
 
@@ -48,7 +49,7 @@ xpce-install::
 
 uninstall::
 		cd $(LIBDIR) & del $(DOCALL) README.TXT
-		del $(PLBASE)\library\pldoc.pl
+		cd $(PLBASE)\library & del $(PUBPL)
 		$(MAKEINDEX)
 
 clean::

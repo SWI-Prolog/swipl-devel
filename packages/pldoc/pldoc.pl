@@ -30,11 +30,8 @@
 */
 
 :- module(pldoc,
-	  [ doc_comment/4,		% ?Object, ?Pos, ?Summary, ?Comment
-	    read_structured_comments/2,	% +File, -Comments
-	    is_structured_comment/2,	% +Comment, -Prefixes
-	    process_comments/3,		% +Comments, +StartTermPos, +File
-	    doc_file_name/3,		% +Source, -Doc, +Options
+	  [ doc_collect/1,		% +Bool
+
 	    pldoc_loading/0		% True if we are loading
 	  ]).
 :- dynamic
@@ -47,7 +44,25 @@ pldoc_loading.
 
 user:file_search_path(pldoc, library(pldoc)).
 
-:- load_files([ pldoc(register),
+/** <module> Process source documentation
+The pldoc module processes structured comments in Prolog source files into
+well formatted HTML documents.
+
+@author  Jan Wielemaker
+@license GPL
+*/
+
+%%	doc_collect(+Bool) is det.
+%
+%	Switch collecting comments on/off.
+
+doc_collect(OnOff) :-
+	set_prolog_flag(pldoc_collecting, OnOff).
+
+:- doc_collect(true).
+
+:- load_files([ pldoc(process),
+		pldoc(register),
 		pldoc(modes),
 		pldoc(wiki),
 		library(debug),
@@ -59,198 +74,6 @@ user:file_search_path(pldoc, library(pldoc)).
 	      [ silent(true),
 		if(not_loaded)
 	      ]).
-
-/** <module> Process source documentation
-The pldoc module processes structured comments in Prolog source files into
-well formatted HTML documents.
-
-@author  Jan Wielemaker
-@license GPL
-*/
-
-		 /*******************************
-		 *	    READING MODE	*
-		 *******************************/
-
-%%	read_structured_comments(+File, -Comments) is det.
-%
-%	Read the structured comments from file.
-
-read_structured_comments(Source, Comments) :-
-	prolog_canonical_source(Source, Id),
-	prolog_open_source(Id, In),
-	call_cleanup((read_comments(In, Term0, Comments0),
-		      read_comments(Term0, Comments0, In, Comments)),
-		     cleanup(In)).
-
-cleanup(In) :-
-	prolog_close_source(In).
-
-read_comments(end_of_file, Comments0, _, Comments) :- !,
-	structured_comments(Comments0, Comments, []).
-read_comments(_, Comments0, In, Comments) :-
-	structured_comments(Comments0, Comments, Tail),
-	read_comments(In, Term1, Comments1),
-	read_comments(Term1, Comments1, In, Tail).
-	
-structured_comments([], T, T).
-structured_comments([H|Comments], [H|T0], T) :-
-	is_structured_comment(H, _), !,
-	structured_comments(Comments, T0, T).
-structured_comments([_|Comments], T0, T) :-
-	structured_comments(Comments, T0, T).
-
-
-%%	read_comments(+In:stream, -Term, -Comments:list) is det.
-%
-%	Read next term and its comments from   In.  If a syntax error is
-%	encountered, it is printed and  reading   continues  to the next
-%	term.
-
-read_comments(In, Term, Comments) :-
-	repeat,
-	catch(prolog_read_source_term(In, Term, _Expanded,
-				      [ comments(Comments)
-				      ]),
-	      E,
-	      (	  print_message(error, E),
-		  fail
-	      )), !.
-
-%%	is_structured_comment(+Comment:string,
-%%			      -Prefixes:list(codes)) is semidet.
-%
-%	True if Comment is a structured comment that should use Prefixes
-%	to extract the plain text using indented_lines/3.
-%	
-%	@tbd	=|%% SWI begin|= and =|%% SICStus begin|= are used by chr.
-%		We need a more general mechanism to block some comments.
-
-is_structured_comment(_Pos-Comment, Prefixes) :- !,
-	is_structured_comment(Comment, Prefixes).
-is_structured_comment(Comment, Prefixes) :-
-	sub_string(Comment, 0, _, _, '%%'), !,
-	sub_atom(Comment, 2, 1, _, Space),
-	char_type(Space, space),
-	\+ sub_string(Comment, 2, _, _, ' SWI '),	% HACK
-	\+ sub_string(Comment, 2, _, _, ' SICStus '),	% HACK
-	\+ sub_string(Comment, 2, _, _, ' Mats '), 	% HACK
-	Prefixes = ["%"].
-is_structured_comment(Comment, Prefixes) :-
-	sub_string(Comment, 0, _, _, '/**'), !,
-	sub_atom(Comment, 3, 1, _, Space),
-	char_type(Space, space),
-	Prefixes = ["/**", " *"].
-
-%%	doc_file_name(+Source:atom, -Doc:atom, +Options:list) is det.
-%
-%	@param Source	Prolog source to be documented
-%	@param Doc	the name of the file documenting Source.
-%	@param Options	Option list:
-%			
-%			* format(-Format)
-%			Output format.  One of =html= or =latex=
-%	
-%	@error	permission_error(overwrite, Source)
-
-doc_file_name(Source, Doc, Options) :-
-	option(format(Format), Options, html),
-	file_name_extension(Base, _Ext, Source),
-	file_name_extension(Base, Format, Doc),
-	(   Source == Doc
-	->  throw(error(permission_error(overwrite, Source), _))
-	;   true
-	).
-
-%%	doc_comment(?Object, -Pos,
-%%		      -Summary:string, -Comment:string) is nondet.
-%
-%	True if Comment is the  comment   describing  object. Comment is
-%	returned as a string object  containing   the  original from the
-%	source-code.  Object is one of
-%	
-%		* Name/Arity
-%		Predicate indicator
-%		
-%		* Name//Arity
-%		DCG rule indicator.  Same as Name/Arity+2
-%		
-%		* module(Module)
-%		Comment appearing in Module.
-%		
-%	@param Summary	First sentence.  Normalised spacing.
-%	@param Comment	Comment string from the source-code (untranslated)
-%
-%	@tbd	Handle comments covering multiple predicates
-
-doc_comment(Object, Pos, Summary, Comment) :-
-	var(Object), !,
-	current_module(M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
-	M:'$pldoc'(Obj, Pos, Summary, Comment),
-	qualify(M, Obj, Object).
-doc_comment(M:Object, Pos, Summary, Comment) :-
-	current_module(M),
-	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
-	M:'$pldoc'(Object, Pos, Summary, Comment).
-
-qualify(system, H, H) :- !.
-qualify(user,   H, H) :- !.
-qualify(M,      H, M:H).
-
-
-		 /*******************************
-		 *	CALL-BACK COLLECT	*
-		 *******************************/
-
-%%	process_comments(+Comments:list, +TermPos, +File) is det.
-%
-%	Processes comments returned by read_term/3 using the =comments=
-%	option.  It creates clauses of the form
-%	
-%		* '$mode'(Head, Det)
-%		* '$pldoc'(Id, Type, DOM)
-%	
-%	where object is one of 
-%	
-%		* =predicate=
-%		* =module=
-%		* =section=
-
-process_comments([], _, _).
-process_comments([Pos-Comment|T], TermPos, File) :-
-	(   Pos @> TermPos		% comments inside term
-	->  true
-	;   process_comment(Pos, Comment, File),
-	    process_comments(T, TermPos, File)
-	).
-
-process_comment(Pos, Comment, File) :-
-	is_structured_comment(Comment, Prefixes), !,
-	stream_position_data(line_count, Pos, Line),
-	FilePos = File:Line,
-	process_structured_comment(FilePos, Comment, Prefixes).
-process_comment(_, _, _).
-
-process_structured_comment(FilePos, Comment, Prefixes) :-
-	indented_lines(Comment, Prefixes, Lines),
-	(   section_comment_header(Lines, Header, RestLines)
-	->  Header = \section(Type, Title),
-	    Id =.. [Type,Title],
-	    compile_clause('$pldoc'(Id, FilePos, Title, Comment), FilePos)
-	;   process_modes(Lines, FilePos, Modes, _, RestLines)
-	->  store_modes(Modes, FilePos),
-	    modes_to_predicate_indicators(Modes, [PI0|PIs]),
-	    summary(RestLines, Summary),
-	    compile_clause('$pldoc'(PI0, FilePos, Summary, Comment), FilePos),
-	    forall(member(PI, PIs),
-		   compile_clause('$pldoc_link'(PI, PI0), FilePos))
-	), !.
-process_structured_comment(File:Line, Comment, _) :-
-	print_message(warning,
-		      format('~w:~d: Failed to process comment:~n~s~n',
-			     [File, Line, Comment])),
-	fail.
 
 
 		 /*******************************
