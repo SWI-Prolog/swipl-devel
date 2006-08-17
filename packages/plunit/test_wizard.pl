@@ -24,7 +24,7 @@ setting(max_time(5)).
 
 %%	make_tests(+Module, +File, +Out) is det.
 %
-%	Create tests from quries stored in File  and write the tests for
+%	Create tests from queries stored in File and write the tests for
 %	Module to the stream Out.
 
 make_tests(Module, File, Out) :-

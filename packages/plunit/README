@@ -40,3 +40,7 @@ Prolog Unit Tests
 	* Write tests to .plt files
 	* Merge with existing content of .plt files
 		- Read with comments and write back?
+
+---++ Coverage analysis
+
+	* See cover.pl

@@ -49,7 +49,17 @@
 :- pce_global(@emacs, new(emacs(@emacs_buffers))).
 
 
-%	start_emacs/0
+/** <module> PceEmacs toplevel
+
+This module provides predicates to start  PceEmacs. PceEmacs is an clone
+of GNU-Emacs written in  XPCE.  Modes  are   XPCE  classes  that  can be
+extended in Prolog.
+
+@see	Set Prolog flag editor to pce_emacs to make PceEmacs the default
+	for edit/1.
+*/
+
+%%	start_emacs is det.
 %	
 %	Create PceEmacs, but no buffers nor windows.
 
@@ -70,7 +80,7 @@ register_emacs :-
 	).
 
 
-%	emacs_server/0
+%%	emacs_server is det.
 %	
 %	Create a PceEmacs, ready to run as an unattended background
 %	server.

@@ -153,7 +153,10 @@ covered(Ref, V, L, Succeeded, Failed) :-
 		 *	     REPORTING		*
 		 *******************************/
 
-%%	file_coverage(+File, +Succeeded, +Failed)
+%%	file_coverage(+Succeeded, +Failed) is det.
+%
+%	Write a report on  the  clauses   covered  organised  by file to
+%	current output.
 
 file_coverage(Succeeded, Failed) :-
 	format('~N~n~`=t~78|~n'),
@@ -195,7 +198,6 @@ summary(Atom, MaxLen, Summary) :-
 	    sub_atom(Atom, _, SLen, 0, End),
 	    atom_concat('...', End, Summary)
 	).
-
 
 
 %%	clause_source(+Clause, -File, -Line) is det.
