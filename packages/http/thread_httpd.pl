@@ -63,20 +63,18 @@ options required by ssl_init/3. See package ssl for details.
 	queue_worker/2,			% Queue, ThreadID
 	queue_options/2.		% Queue, Options
 
-%%	http_server(:Goal, ?Port) is det.
-%%	http_server(:Goal, ?Port, +Options) is det.
+%%	http_server(:Goal, +Options) is det.
 %	
 %	Create a server at Port that calls Goal for each parsed request.
 %	Options provide a list of options. Defined options are
 %	
-%	| workers(N)	     | 2 	Define the number of worker threads |
-%	| timeout(S)	     | infinite	Drop connections after inactivity   |
-%	| keep_alive_timeout | 10	Drop Keep-Alive connection timeout  |
-%	| local(KBytes)	     |						    |
-%	| global(KBytes)     |						    |
-%	| trail(KBytes)      | <CommandLine> Stack-sizes of worker threads  |
-%	| after(:Goal)       |		Run Goal on request after finishing \
-%					the HTTP reply.			    |
+%	| workers(N)	     | 2 	| Define the number of worker threads |
+%	| timeout(S)	     | infinite	| Drop connections after inactivity   |
+%	| keep_alive_timeout | 10	| Drop Keep-Alive connection timeout  |
+%	| local(KBytes)	     | <CommandLine> |				    |
+%	| global(KBytes)     | <CommandLine> |				    |
+%	| trail(KBytes)      | <CommandLine> | Stack-sizes of worker threads  |
+%	| after(:Goal)       |		|Run Goal on request after finishing the HTTP reply. |
 
 http_server(Goal, Options) :-
 	strip_module(Goal, Module, G),
