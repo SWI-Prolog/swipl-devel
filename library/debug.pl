@@ -53,7 +53,9 @@ graphical monitorring tool.
 	?- prolog_ide(debug_monitor).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%%	debugging(?Topic)
+%%	debugging(+Topic) is semidet.
+%%	debugging(-Topic) is nondet.
+%%	debugging(?Topic, ?Bool) is nondet.
 %
 %	Check whether we are debugging Topic or enumerate the topics we
 %	are debugging.
@@ -61,8 +63,8 @@ graphical monitorring tool.
 debugging(Topic) :-
 	debugging(Topic, true).
 
-%%	debug(+Topic)
-%%	nodebug(+Topic)
+%%	debug(+Topic) is det.
+%%	nodebug(+Topic) is det.
 %
 %	Add/remove a topic from being printed.  nodebug(_) removes all
 %	topics.
@@ -86,7 +88,7 @@ nodebug(Topic) :-
 	;   true
 	).
 
-%%	debug_topic(+Topic)
+%%	debug_topic(+Topic) is det.
 %
 %	Declare a topic for debugging.  This can be used to find all
 %	topics available for debugging.
@@ -98,7 +100,7 @@ debug_topic(Topic) :-
 	;   assert(debugging(Topic, false))
 	).
 
-%	list_debug_topics
+%%	list_debug_topics is det.
 %	
 %	List currently known debug topics and their setting.
 
@@ -112,7 +114,7 @@ list_debug_topics :-
 	;   true
 	).
 
-%%	debug(+Topic, +Format, +Args)
+%%	debug(+Topic, +Format, +Args) is det.
 %
 %	As format/3 to user_error, but only does something if Topic
 %	is activated through debug/1.
@@ -136,14 +138,14 @@ print_debug(_, Format, Args) :-
 		 *	     ASSERTION		*
 		 *******************************/
 
-%%	assertion(:Goal)
+%%	assertion(:Goal) is det.
+%%	assume(:Goal) is det.
 %	
 %	Acts similar to C assert() macro.  It has no effect of Goal
 %	succeeds.  If Goal fails it prints a message, a stack-trace
 %	and finally traps the debugger.
 %	
-%	assume/1 is backward compatibility.  The better name assertion
-%	was suggested by Steve Moyle.
+%	@depreciated	Use assertion/1 in new code.
 
 assertion(G) :-
 	\+ \+ G, !.			% avoid binding variables

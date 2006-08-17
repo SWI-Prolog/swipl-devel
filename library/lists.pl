@@ -115,10 +115,10 @@ delete([Head|Tail], Elem, [Head|Rest]) :-
 nth0(Index, List, Elem) :-
         integer(Index), !,
         Index >= 0,
-        nth0_det(Index, List, Elem).    %% take nth deterministically
+        nth0_det(Index, List, Elem).    % take nth deterministically
 nth0(Index, List, Elem) :-
         var(Index), !,
-        nth_gen(List, Elem, 0, Index).  %% match
+        nth_gen(List, Elem, 0, Index).  % match
 
 nth0_det(0, [Elem|_], Elem) :- !.
 nth0_det(1, [_,Elem|_], Elem) :- !.
@@ -145,10 +145,10 @@ nth_gen([_|Tail], Elem, N, Base) :-
 nth1(Index1, List, Elem) :-
         integer(Index1), !,
         Index0 is Index1 - 1,
-        nth0_det(Index0, List, Elem).   %% take nth deterministically
+        nth0_det(Index0, List, Elem).   % take nth deterministically
 nth1(Index, List, Elem) :-
         var(Index), !,
-        nth_gen(List, Elem, 1, Index).  %% match
+        nth_gen(List, Elem, 1, Index).  % match
 
 
 %%	last(?List, ?Elem)
@@ -179,9 +179,9 @@ reverse([X|Xs], Rs, Ys, [_|Bound]) :-
     reverse(Xs, [X|Rs], Ys, Bound).
 
 
-%%	premutation(?Xs, ?Ys)
+%%	permutation(?Xs, ?Ys) is nondet.
 %	
-%%	permutation(Xs, Ys) is true when Xs is a permutation of Ys. This
+%	permutation(Xs, Ys) is true when Xs is a permutation of Ys. This
 %	can solve for Ys given Xs or Xs given Ys, or even enumerate Xs
 %	and Ys together.
 

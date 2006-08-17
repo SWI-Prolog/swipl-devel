@@ -129,8 +129,8 @@ match_ip(Name, IP) :-
 	downcase_atom(Host0, Host),
 	(   Name == Host
 	->  true
-	;   sub_atom(Name, _, _, 0, '.'),
-	    sub_atom(Host, 0, _, _, Name)
+	;   sub_atom(Name, 0, _, _, '.'),
+	    sub_atom(Host, _, _, 0, Name)
 	).
 
 is_ip(ip(A,B,C,D)) :-
@@ -154,9 +154,18 @@ allowed_peer(Peer) :-
 	deny(Peer), !,
 	allow(Peer).
 allowed_peer(Peer) :-
+	allow_from(_), !,
 	allow(Peer).
+allowed_peer(_).
 
 
+%%	local(+Request) is semidet.
+%
+%	True if the request comes from localhost.
+
+local(Request) :-
+	memberchk(peer(Peer), Request),
+	match_ip(localhost, Peer).
 
 
 		 /*******************************
@@ -275,9 +284,14 @@ reply(ReqPath, Request) :-
 	    ->	load_files(File, [if(changed)])
 	    ;	true
 	    ),
+	    (	local(Request)
+	    ->	MoreOptions = [edit(true)]
+	    ;	MoreOptions = []
+	    ),
 	    format('Content-type: text/html~n~n'),
 	    doc_for_file(File, current_output,
 			 [ public_only(Public)
+			 | MoreOptions
 			 ])
 	).
 

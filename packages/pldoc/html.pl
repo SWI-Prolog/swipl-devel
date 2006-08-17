@@ -61,6 +61,10 @@ extracting module wiki.pl into HTML+CSS.
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for
 %		exported predicates.
+%	
+%		* edit(Bool)
+%		If =true=, provide edit buttons. Default, these buttons
+%		are suppressed.
 %		
 %	@param File	Prolog file specification.
 %	@param Out	Output stream
@@ -154,7 +158,7 @@ file_title(Title, File, Options) -->
 		[ div(style('float:right'),
 		      [ \reload_button(Base, Options),
 			\zoom_button(Base, Options),
-			\edit_button(File)
+			\edit_button(File, Options)
 		      ])
 		| Title
 		])).
@@ -179,14 +183,15 @@ reload_button(Base, Options) -->
 		   ]))).
 
 
-%%	edit_button(+File)// is det.
+%%	edit_button(+File, +Options)// is det.
 %
 %	Create an edit button  for  File.   If  the  button  is clicked,
 %	JavaScript sends a message to the   server without modifying the
 %	current page.  JavaScript code is in the file pldoc.js.
 
-edit_button(File) -->
-	{ www_form_encode(File, Enc),
+edit_button(File, Options) -->
+	{ option(edit(true), Options), !,
+	  www_form_encode(File, Enc),
 	  format(string(HREF), '/edit?file=~w', [Enc]),
 	  format(string(OnClick), 'HTTPrequest("~w")', [HREF])
 	},
@@ -199,6 +204,8 @@ edit_button(File) -->
 		     style('padding-top:4px'),
 		     src='/edit.gif'
 		 ]))).
+edit_button(_, _) -->
+	[].
 
 
 %%	zoom_button(+Options)// is det.

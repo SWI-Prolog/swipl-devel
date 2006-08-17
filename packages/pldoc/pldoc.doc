@@ -416,10 +416,32 @@ Enable/disable collecting structured comments into the Prolog database.
 
     \predicate{doc_server}{1}{?Port}
 Start documentation server at \arg{Port}.  Same as
-\term{doc_server}{Port, []}.
+\term{doc_server}{Port, [allow(localhost), workers(1)]}.
 
     \predicate{doc_server}{2}{?Port, +Options}
-Start documentation server at \arg{Port} using \arg{Options}.
+Start documentation server at \arg{Port} using \arg{Options}.  Provided
+options are:
+
+    \begin{description}
+	\termitem{allow}{+HostOrIP}
+Allow connections from \arg{HostOrIP}.  If \arg{Host} is an atom
+starting with a '.', suffix matching is preformed.  I.e.\ 
+\verb$allow('.uva.nl')$ grants access to all machines in the domain.
+IP addresses are specified using the library(socket) ip/4 term.  I.e.
+to allow access from the 10.0.0.X domain, specify
+\verb$allow(ip(10,0,0,_))$.
+
+	\termitem{deny}{+HostOrIP}
+Deny access from the given location.  Matching is equal to the
+\comst{allow} option.
+    \end{description}
+
+Access is denied iff
+
+\begin{shortlist}
+    \item \emph{deny} matches and \emph{allow} not.
+    \item \emph{allow} declarations exist and do not match.
+\end{shortlist}
 \end{description}
 
 

@@ -33,7 +33,6 @@
 	  [ process_stored_comments/0
 	  ]).
 :- use_module(process).
-:- use_module(library(debug)).
 :- set_prolog_flag(generate_debug_info, false).
 
 pldoc_module(pldoc_modes).              % avoid recursive behaviour
@@ -76,11 +75,10 @@ do_comment_hook(Comments, TermPos, File, _) :-
 %	@param Term 	Actual term read
 
 prolog:comment_hook(Comments, TermPos, Term) :-
-	source_location(File, TermLine),
+	source_location(File, _TermLine),
 	'$push_input_context',		% Preserve input file and line
 	call_cleanup(do_comment_hook(Comments, TermPos, File, Term),
-		     '$pop_input_context'),
-	assertion(source_location(File, TermLine)).
+		     '$pop_input_context').
 	
 process_stored_comments :-
 	forall(retract(mydoc(Comments, TermPos, File)),
