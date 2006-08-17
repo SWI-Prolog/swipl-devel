@@ -201,9 +201,11 @@ genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
 		 *	      FLAGS		*
 		 *******************************/
 
-%%	prolog_flag(?Flag, ?Value)
+%%	prolog_flag(?Flag, ?Value) is nondet.
 %
-%	Should map relevant Quintus flag identifiers.
+%	Same as ISO current_prolog_flag/2.  Maps =version=.
+%	
+%	@bug	Should map relevant Quintus flag identifiers.
 
 prolog_flag(version, Version) :- !,
 	current_prolog_flag(version, N),
