@@ -18,7 +18,7 @@ Contributions (Fr\"uhwirth, T. and Meister, M., eds.), pp. 1--5, 2004.
 On the K.U.Leuven CHR website (\url{http://www.cs.kuleuven.be/\~{}toms/CHR/})
 you can find more related papers, references and example programs. 
 
-\section{Introduction}
+\section{Introduction}			\label{sec:chrintro}
 %=====================
 
 Constraint Handling Rules (CHR) is a committed-choice rule-based language

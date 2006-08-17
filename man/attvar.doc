@@ -1,4 +1,4 @@
-\chapter{Special Variables and Coroutining}
+\chapter{Special Variables and Coroutining}	\label{sec:coroutining}
 
 This chapter deals with extensions primarily designed to support
 constraint logic programming (CLP).

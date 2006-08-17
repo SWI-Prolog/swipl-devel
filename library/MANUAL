@@ -17476,13 +17476,13 @@ ssuupp((_+_E_x_p_r_e_s_s_i_o_n_, _-_S_u_p))
     does not change the constraint store.
 
 
-mmiinn((_+_E_x_p_r_e_s_s_i_o_n))
+mmiinniimmiizzee((_+_E_x_p_r_e_s_s_i_o_n))
     Minimizes  _E_x_p_r_e_s_s_i_o_n within the current constraint store.   This is
     the  same as computing  the infimum and  equation the expression  to
     that infimum.
 
 
-mmaaxx((_+_E_x_p_r_e_s_s_i_o_n))
+mmaaxxiimmiizzee((_+_E_x_p_r_e_s_s_i_o_n))
     Maximizes  _E_x_p_r_e_s_s_i_o_n within the current constraint store.   This is
     the  same as computing the  supremum and equating the expression  to
     that supremum.
@@ -18995,8 +18995,8 @@ This library is only available on Windows systems.
  entailed/1  Check if constraint is entailed
  inf/2       Find the infimum of an expression
  sup/2       Find the supremum of an expression
- min/1       Minimizes an expression
- max/1       Maximizes an expression
+ minimize/1  Minimizes an expression
+ maximize/1  Maximizes an expression
  bb_inf/3    Infimum of expression for mixed-integer problems
  bb_inf/4    Infimum of expression for mixed-integer problems
  bb_inf/5    Infimum of expression for mixed-integer problems
@@ -19648,9 +19648,9 @@ map_assoc/3, 1103
 maplist/2, 512
 maplist/3, 513, 671, 1047
 maplist/4, 514
-max/1, 1210
 max/2, 454, 455, 1192
 max_assoc/3, 1104
+maximize/1, 1210
 maximize/3, 1231, 1232
 member/2, 51,  212, 278,  499, 577,
       1063, 1066
@@ -19666,9 +19666,9 @@ message_queue_destroy/1, 760
 message_queue_size/2, 763
 message_to_string/2, 220, 222, 223
 meta_predicate/1, 677, 689, 690
-min/1, 1209
 min/2, 455, 1193
 min_assoc/3, 1105
+minimize/1, 1209
 minimize/3, 1232
 mod/2, 448, 1194
 module/1, 688
