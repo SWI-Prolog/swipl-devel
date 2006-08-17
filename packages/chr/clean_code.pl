@@ -143,9 +143,10 @@ move_unification_into_head_([G|Gs],Head,NHead,NBody) :-
 conj2list(Conj,L) :-				%% transform conjunctions to list
   conj2list(Conj,L,[]).
 
-conj2list(Conj,L,T) :-
-  Conj = (true,G2), !,
-  conj2list(G2,L,T).
+conj2list(G,L,T) :-
+	var(G), !,
+	L = [G|T].
+conj2list(true,L,L) :- !.
 conj2list(Conj,L,T) :-
   Conj = (G1,G2), !,
   conj2list(G1,L,T1),
