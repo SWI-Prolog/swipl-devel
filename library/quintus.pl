@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -83,6 +83,22 @@
 	]).
 :- use_module(library(lists), [member/2]).
 
+/** <module> Quintus compatibility
+
+This  module  defines  several  predicates    from  the  Quintus  Prolog
+libraries. Note that our library structure is totally different. If this
+library were complete, Prolog  code  could   be  ported  by removing the
+use_module/1 declarations, relying on the SWI-Prolog autoloader.
+
+Bluffers guide to porting:
+
+	* Remove =|use_module(library(...))|=
+	* Run =|?- list_undefined.|=
+	* Fix problems
+
+Of course, this library is incomplete ...
+*/
+
 		/********************************
 		*      SYSTEM INTERACTION       *
 		*********************************/
@@ -118,7 +134,8 @@ to_prolog(S, A) :-
 		*        META PREDICATES        *
 		*********************************/
 
-%	otherwise/0
+%%	otherwise
+%
 %	For (A -> B ; otherwise -> C)
 
 otherwise.
@@ -134,7 +151,14 @@ otherwise.
 abs(Number, Absolute) :-
 	Absolute is abs(Number).
 
-%	Math library predicates
+%%	sin(+Angle, -Sine) is det.
+%%	cos(+Angle, -Cosine) is det.
+%%	tan(+Angle, -Tangent) is det.
+%%	log(+X, -NatLog) is det.
+%%	log10(+X, -Log) is det.
+%
+%	Math library predicates. SWI-Prolog (and   ISO) support these as
+%	functions under is/2, etc.
 
 sin(A, V) :-	  V is sin(A).
 cos(A, V) :-	  V is cos(A).
@@ -164,6 +188,10 @@ random(Min, Max, Value) :-
 		 *	TERM MANIPULATION	*
 		 *******************************/
 
+%%	genarg(?Index, +Term, ?Arg) is nondet.
+%	
+%	Generalised version of ISO arg/3.  SWI-Prolog's arg/3 is already
+%	genarg/3.
 
 genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
 	arg(N, T, A).
@@ -217,6 +245,13 @@ date(date(Year,Month,Day)) :-
 		*          STYLE CHECK          *
 		*********************************/
 
+%%	no_style_check(Style) is det.
+%
+%	Same as SWI-Prolog =|style_check(-Style)|=.   The Quintus option
+%	=single_var= is mapped to =singleton=.
+%	
+%	@see style_check/1.
+
 q_style_option(single_var, singleton) :- !.
 q_style_option(Option, Option).
 
@@ -239,9 +274,11 @@ public(_).
 		 *	TERM MANIPULATION	*
 		 *******************************/
 
-%	temporary hack for subsumes_chk/2 in ordinary Prolog world.
-%	This comes from the SWI-Prolog port of ALE.
-%	If all works fine we might move this to the kernel.
+%%	subsumes_chk(@X, @Y) is semidet.
+%
+%	Temporary hack for subsumes_chk/2 in ordinary Prolog world. This
+%	comes from the SWI-Prolog port of  ALE.   If  all  works fine we
+%	might move this to the kernel.
 
 subsumes_chk(X,Y) :-
   \+ \+ (copy_term(Y,Y2),
@@ -255,6 +292,10 @@ subsumes_chk(X,Y) :-
 		 /*******************************
 		 *	      TYPES		*
 		 *******************************/
+
+%%	simple(@Term) is semidet.
+%
+%	Term is atomic or a variable.
 
 simple(X) :-
 	(   atomic(X)
@@ -321,7 +362,11 @@ stream_position(Stream, Old, New) :-
 	set_stream_position(Stream, New).
 
 
-%%	skip_line(Stream)
+%%	skip_line is det.
+%%	skip_line(Stream) is det.
+%
+%	Skip  the  rest  of  the  current  line  (on  Stream).  Same  as
+%	=|skip(0'\n)|=.
 
 skip_line :-
 	skip(10).
@@ -333,6 +378,13 @@ skip_line(Stream) :-
 		 *	   COMPILATION		*
 		 *******************************/
 
+%%	compile(+Files) is det.
+%
+%	Compile   files.   SWI-Prolog   doesn't    distinguish   between
+%	compilation and consult.
+%	
+%	@see load_files/2.
+
 :- meta_predicate
 	compile(:).
 
@@ -343,12 +395,18 @@ compile(Files) :-
 		 *	   ATOM-HANDLING	*
 		 *******************************/
 
-%	atom_char/2
+%%	atom_char(+Char, -Code) is det.
+%%	atom_char(-Char, +Code) is det.
+%
+%	Same as ISO char_code/2.
 
 atom_char(Char, Code) :-
 	char_code(Char, Code).
 
-%%	midstring(?ABC, ?B, ?AC, LenA, LenB, LenC)
+%%	midstring(?ABC, ?B, ?AC) is nondet.
+%%	midstring(?ABC, ?B, ?AC, LenA) is nondet.
+%%	midstring(?ABC, ?B, ?AC, LenA, LenB) is nondet.
+%%	midstring(?ABC, ?B, ?AC, LenA, LenB, LenC) is nondet.
 %
 %	Too difficult to explain.  See the Quintus docs.  As far as I
 %	understand them the code below emulates this function just fine.
