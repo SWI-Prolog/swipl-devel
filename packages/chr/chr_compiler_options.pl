@@ -84,7 +84,8 @@ option_definition(optimize,experimental,Flags) :-
 		  ai_observation_analysis  - on,
 		  late_allocation	   - on,
 		  reduced_indexing	   - on,
-		  term_indexing		   - on
+		  term_indexing		   - on,
+                  inline_insertremove      - on
 		].
 option_definition(optimize,full,Flags) :-
 	Flags = [ functional_dependency_analysis  - on,
@@ -99,7 +100,8 @@ option_definition(optimize,full,Flags) :-
 		  observation		   - on,
 		  ai_observation_analysis  - on,
 		  late_allocation	   - on,
-		  reduced_indexing	   - on
+		  reduced_indexing	   - on,
+                  inline_insertremove      - on
 		].
 
 option_definition(optimize,off,Flags) :-
@@ -170,6 +172,10 @@ option_definition(late_allocation,on,Flags) :-
 option_definition(late_allocation,off,Flags) :-
 	Flags = [ late_allocation - off ].
 
+option_definition(inline_insertremove,on,Flags) :-
+	Flags = [ inline_insertremove - on ].
+option_definition(inline_insertremove,off,Flags) :-
+	Flags = [ inline_insertremove - off ].
 option_definition(type_definition,TypeDef,[]) :-
 	( nonvar(TypeDef) ->
 	TypeDef = type(T,D),
@@ -281,6 +287,7 @@ chr_pp_flag_definition(check_impossible_rules,[off,on]).
 chr_pp_flag_definition(occurrence_subsumption,[off,on]).
 chr_pp_flag_definition(observation,[off,on]).
 chr_pp_flag_definition(show,[off,on]).
+chr_pp_flag_definition(inline_insertremove,[on,off]).
 chr_pp_flag_definition(solver_events,[none,_]).
 chr_pp_flag_definition(toplevel_show_store,[on,off]).
 chr_pp_flag_definition(term_indexing,[off,on]).

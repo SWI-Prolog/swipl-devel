@@ -113,9 +113,7 @@ conj2list(Conj,L) :-				%% transform conjunctions to list
 conj2list(Var,L,T) :-
 	var(Var), !,
 	L = [Var|T].
-conj2list(Conj,L,T) :-
-  Conj = (true,G2), !,
-  conj2list(G2,L,T).
+conj2list(true,L,L) :- !.
 conj2list(Conj,L,T) :-
   Conj = (G1,G2), !,
   conj2list(G1,L,T1),

@@ -1,3 +1,7 @@
+Aug 17, 2006
+
+  * TS: Inlining and more specialization of auxiliary predicates.
+
 Aug 10, 2006
 
   * TS: Fixed bug for constraints without rules in debug mode.
