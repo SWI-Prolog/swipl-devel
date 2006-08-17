@@ -200,7 +200,24 @@ do_expand(Term, M) -->
 	html(Contents, M),
 	html_end(Env).
 
-	
+%%	html_begin(+Env)// is det.
+%%	html_end(+End)// is det
+%
+%	For  html_begin//1,  Env  is   a    term   Env(Attributes);  for
+%	html_end//1  it  is  the  plain    environment  name.  Used  for
+%	exceptional  cases.  Normal  applications    use   html//1.  The
+%	following two fragments are identical, where we prefer the first
+%	as it is more concise and less error-prone.
+%	
+%	==
+%		html(table(border=1, \table_content))
+%	==
+%	==
+%		html_begin(table(border=1)
+%		table_content,
+%		html_end(table)
+%	==
+
 html_begin(Env) -->
 	{ Env =.. [Name|Attributes]
 	},
@@ -252,9 +269,16 @@ attribute(Atom) -->			% Value-abbreviated attribute
 		 *	   QUOTING RULES	*
 		 *******************************/
 
-%%	html_quoted(Text)//
+%%	html_quoted(Text)// is det.
 %
-%	Quote the value for normal text.
+%	Quote  the  value  for  normal  (CDATA)  text.  Note  that  text
+%	appearing in the document  structure   is  normally quoted using
+%	these rules. I.e. the following emits  properly quoted bold text
+%	regardless of the content of Text:
+%	
+%	==
+%		html(b(Text))
+%	==
 
 html_quoted(Text) -->
 	{ sub_atom(Text, _, _, _, <)
@@ -279,16 +303,17 @@ quote_char(>, '&gt;') :- !.
 quote_char(&, '&amp;') :- !.
 quote_char(X, X).
 
-%%	html_quoted_attribute(+Text)//
+%%	html_quoted_attribute(+Text)// is det.
 %
-%	Quote the value according to the rules for tag-attributes
+%	Quote the value  according  to   the  rules  for  tag-attributes
+%	included in double-quotes.  Note   that  -like  html_quoted//1-,
+%	attributed   values   printed   through   html//1   are   quoted
+%	atomatically.
 
 html_quoted_attribute(Text) -->
 	{ sub_atom(Text, _, _, _, <)
 	; sub_atom(Text, _, _, _, >)
-%	; sub_atom(Text, _, _, _, &)
 	; sub_atom(Text, _, _, _, '"')
-%	; sub_atom(Text, _, _, _, '''')
 	}, !,
 	{ atom_chars(Text, Chars),
 	  quote_att_chars(Chars, QuotedChars),
@@ -409,7 +434,8 @@ layout(td,	   0-0, 0-0).
 		 *	     PRINTING		*
 		 *******************************/
 
-%%	print_html(+Stream, +List)
+%%	print_html(+List) is det.
+%%	print_html(+Out:stream, +List) is det.
 %
 %	Print list of atoms and layout instructions.  Currently used layout
 %	instructions:
@@ -443,9 +469,19 @@ write_nl(N, Out) :-
 	N1 is N - 1,
 	write_nl(N1, Out).
 
-%%	html_print_length(+List, -Len)
+%%	html_print_length(+List, -Len) is det.
 %
-%	Determine the content length of the list.
+%	Determine the content length of  a   token  list  produced using
+%	html//1. Here is an example on  how   this  is used to output an
+%	HTML compatible to HTTP:
+%	
+%	==
+%		phrase(html(DOM), Tokens),
+%		html_print_length(Tokens, Len),
+%		format('Content-type: text/html~n'),
+%		format('Content-length: ~d~n~n', [Len]),
+%		print_html(Tokens)
+%	==
 
 html_print_length(List, Len) :-
 	html_print_length(List, 0, Len).
