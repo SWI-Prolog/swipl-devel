@@ -1,6 +1,9 @@
 :- module(prolog_cover,
-	  [ covering_clauses/4		% +Goal, -Result, -Succeeded, -Failed
+	  [ covering/1,			% :Goal
+	    covering_clauses/4		% +Goal, -Result, -Succeeded, -Failed
 	  ]).
+:- use_module(library(ordsets)).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Clause cover analysis
@@ -35,18 +38,35 @@ are omitted from the result.
 	exited/1.			% clauses completed
 
 :- module_transparent
+	covering/1,
 	covering/4.
 
-%%	covering_clauses(:Goal, -Result, -Succeeded, -Failed) is det
+%%	covering(Goal)
+%
+%	Report on coverage by Goal
+
+covering(Goal) :-
+	covering_clauses(Goal, Result, Succeeded, Failed),
+	file_coverage(Succeeded, Failed),
+	return(Result).
+
+return(true).
+return(fail) :- !, fail.
+return(error(E)) :-
+	throw(E).
+
+%%	covering_clauses(:Goal, -Result, -Succeeded, -Failed) is det.
 %
 %	Run Goal as once/1. Unify Result with   one of =true=, =fail= or
-%	error(Error). Unify Succeeded with  the   list  of  clauses that
-%	succeeded at least once and Failed with the list of clauses that
-%	always failed.
-
+%	error(Error).
+%	
+%	@param	Succeeded Ordered set of succeeded clauses
+%	@param	Failed	  Ordered set of clauses that are entered but
+%			  never succeeded.
+		
 covering_clauses(Goal, Result, Succeeded, Failed) :-
 	asserta(user:prolog_trace_interception(Port, Frame, _, continue) :-
-			cover:assert_cover(Port, Frame), Ref),
+			prolog_cover:assert_cover(Port, Frame), Ref),
 	port_mask([unify,exit], Mask),
 	'$visible'(V, Mask),
 	'$leash'(L, Mask),
@@ -122,6 +142,77 @@ covered(Ref, V, L, Succeeded, Failed) :-
 	'$visible'(_, V),
 	'$leash'(_, L),
 	erase(Ref),
-	findall(Cl, (entered(Cl), \+exited(Cl)), Failed),
-	findall(Cl, retract(exited(Cl)), Succeeded),
-	retractall(entered(Cl)).
+	findall(Cl, (entered(Cl), \+exited(Cl)), Failed0),
+	findall(Cl, retract(exited(Cl)), Succeeded0),
+	retractall(entered(Cl)),
+	sort(Failed0, Failed),
+	sort(Succeeded0, Succeeded).
+
+
+		 /*******************************
+		 *	     REPORTING		*
+		 *******************************/
+
+%%	file_coverage(+File, +Succeeded, +Failed)
+
+file_coverage(Succeeded, Failed) :-
+	format('~N~n~`=t~78|~n'),
+	format('~tCoverage by File~t~78|~n'),
+	format('~`=t~78|~n'),
+	format('~w~t~w~64|~t~w~72|~t~w~78|~n',
+	       ['File', 'Clauses', '%Cov', '%Fail']),
+	format('~`=t~78|~n'),
+	forall(source_file(File),
+	       file_coverage(File, Succeeded, Failed)),
+	format('~`=t~78|~n').
+
+file_coverage(File, Succeeded, Failed) :-
+	findall(Cl, clause_source(Cl, File, _), Clauses),
+	sort(Clauses, All),
+	(   ord_intersect(All, Succeeded)
+	->  true
+	;   ord_intersect(All, Failed)
+	), !,
+	ord_intersection(All, Failed, FailedInFile),
+	ord_intersection(All, Succeeded, SucceededInFile),
+	ord_subtract(All, SucceededInFile, UnCov1),
+	ord_subtract(UnCov1, FailedInFile, Uncovered),
+	length(All, AC),
+	length(Uncovered, UC),
+	length(FailedInFile, FC),
+	CP is 100-100*UC/AC,
+	FCP is 100*FC/AC,
+	summary(File, 56, SFile),
+	format('~w~t ~D~64| ~t~1f~72| ~t~1f~78|~n', [SFile, AC, CP, FCP]).
+file_coverage(_,_,_).
+
+
+summary(Atom, MaxLen, Summary) :-
+	atom_length(Atom, Len),
+	(   Len < MaxLen
+	->  Summary = Atom
+	;   SLen is MaxLen - 5,
+	    sub_atom(Atom, _, SLen, 0, End),
+	    atom_concat('...', End, Summary)
+	).
+
+
+
+%%	clause_source(+Clause, -File, -Line) is det.
+%%	clause_source(-Clause, +File, -Line) is det.
+
+clause_source(Clause, File, Line) :-
+	nonvar(Clause), !,
+	clause_property(Clause, file(File)),
+	clause_property(Clause, line_count(Line)).
+clause_source(Clause, File, Line) :-
+	source_file(Pred, File),
+	\+ predicate_property(Pred, multifile),
+	nth_clause(Pred, _Index, Clause),
+	clause_property(Clause, line_count(Line)).
+clause_source(Clause, File, Line) :-
+	Pred = _:_,
+	predicate_property(Pred, multifile),
+	nth_clause(Pred, _Index, Clause),
+	clause_property(Clause, file(File)),
+	clause_property(Clause, line_count(Line)).
