@@ -171,7 +171,7 @@ user:goal_expansion(debug(Topic,_,_), true) :-
 	;   debug_topic(Topic),
 	    fail
 	).
-user:goal_expansion((debugging(Topic) -> _ ; true), true) :-
+user:goal_expansion(debugging(Topic), fail) :-
 	(   current_prolog_flag(optimise, true)
 	->  true
 	;   debug_topic(Topic),
