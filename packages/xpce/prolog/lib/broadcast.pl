@@ -51,12 +51,17 @@
 :- dynamic
 	listener/4.
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Event service
+
 Generic broadcasting service. Broadcasts are   made  using the predicate
 broadcast(+Templ). All registered  `listeners'  will   have  their  goal
 called. Success or failure of this is ignored. The listener can not bind
 arguments.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+@bug	Part of XPCE libraries.  Although primarily useful for graphics,
+	we have encountered various other applications that do not use XPCE
+	but can profit from using this library.
+*/
 
 %%	listen(+Listener, +Templ, :Goal) is det.
 %%	listen(+Templ, :Goal) is det.
@@ -104,7 +109,7 @@ listening(Listener0, Templ, Module:Goal) :-
 	listener(Templ, Listener, Module, Goal).
 
 
-%%	broadcast(+Templ, +Arg) is det.
+%%	broadcast(+Templ) is det.
 %
 %	Broadcast given event.
 
