@@ -34,3 +34,9 @@ Prolog Unit Tests
 	+ Tests applications for concurrent execution
 	+ Saves time, notably on tests doing networking, timeout, etc.
 	- Might be more complicated to understand
+
+---++ Test wizard
+
+	* Write tests to .plt files
+	* Merge with existing content of .plt files
+		- Read with comments and write back?

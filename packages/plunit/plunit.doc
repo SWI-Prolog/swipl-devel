@@ -379,6 +379,21 @@ sources.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Auto-generating tests}
+\label{sec:wizard}
+
+Prolog is an interactive environment. Where users of non-interactive
+systems tend to write tests as code, Prolog developers tend to run
+queries interactively during development. This interactive testing is
+generally faster, but the disadvantage is that the tests are lost at the
+end of the session. The test-wizard tries to combine the advantages. It
+collects toplevel queries and saves them to a specified file.  Later,
+it extracts these queries from the file and locates the predicates that
+are tested by the queries.  It runs the query and creates a test clause
+from the query.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Portability of the test-suite}
 \label{sec:porting}
 
