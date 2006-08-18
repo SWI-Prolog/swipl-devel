@@ -392,9 +392,11 @@ reply('/search', Request) :-
 		 *******************************/
 
 reply_page(Title, Content) :-
-	phrase(page(title(Title), Content), HTML),
+	doc_page_dom(Title, Content, DOM),
+	phrase(html(DOM), Tokens),
 	format('Content-type: text/html~n~n'),
-	print_html(HTML).
+	print_html_head(current_output),
+	print_html(Tokens).
 
 reply_file(File) :-
 	absolute_file_name(File, Path, [access(read)]),

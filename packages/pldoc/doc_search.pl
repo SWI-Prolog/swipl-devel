@@ -34,15 +34,26 @@
 	    search_reply/3		% +Search, //
 	  ]).
 :- use_module(library('http/html_write')).
+:- use_module(process).
+:- use_module(html).
+
+/** <module> Search form and reply
+
+@tbd	* Summary results
+	* Results per file
+*/
 
 %%	search_form//
 %
 %	Create a search button
 
 search_form -->
+	search_form('Search').
+
+search_form(Title) -->
 	html(form(action('/search'),
-		  div([ 'Search ',
-			input([ name(search),
+		  div([ Title,
+			input([ name(for),
 				size(30)
 			      ], [])
 		      ]))).
@@ -51,5 +62,34 @@ search_form -->
 %
 %	Generate a reply searching for Search
 
+search_reply(For) -->
+	{ findall(Obj, matching_object(For, Obj), Objs),
+	  Objs \== []
+	}, !,
+	html([ \new_search,
+	       h1(class(search), 'Search results')
+	     | \objects(Objs, [])
+	     ]).
 search_reply(_For) -->
-	[].
+	html([ \new_search,
+	       h1(class(search), 'No matches')
+	     ]).
+
+new_search -->
+	html(div(class(navhdr),
+		 [ div(style('float:right'),
+		       [ \search_form('New search ')
+		       ])
+		 ])).
+
+matching_object(Search, Obj) :-
+	doc_comment(Obj, _Pos, Summary, _Comment),
+	(   apropos_match(Search, Summary)
+	->  true
+	;   sub_term(S, Obj),
+	    atom(S),
+	    apropos_match(Search, S)
+	).
+	
+apropos_match(Needle, Haystack) :-
+	'$apropos_match'(Needle, Haystack).

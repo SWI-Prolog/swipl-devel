@@ -40,7 +40,8 @@
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
 	    edit_button/4,		% +File, +Options, //
 
-	    tags/3			% +Tags, //
+	    tags/3,			% +Tags, //
+	    objects/4			% +Objects, +Options, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
@@ -105,7 +106,7 @@ prolog_file(FileSpec, Options) -->
 	},
 	html([ \links(File, FileOptions),
 	       \file_header(File, FileOptions)
-	     | \objects(Objs, [body], FileOptions)
+	     | \objects(Objs, FileOptions)
 	     ]),
 	undocumented(Objs, FileOptions).
 	  
@@ -291,11 +292,21 @@ zoom_button(Base, Options) -->
 %
 %	Emit the documentation body.
 
+objects(Objects, Options) -->
+	objects(Objects, [body], Options).
+
 objects([], Mode, _) -->
 	pop_mode(body, Mode, _).
-objects([doc(Obj,Pos,Comment)|T], Mode, Options) -->
-	html(\object(Obj,Pos,Comment, Mode, Mode1, Options)),
+objects([Obj|T], Mode, Options) -->
+	object(Obj, Mode, Mode1, Options),
 	objects(T, Mode1, Options).
+
+object(doc(Obj,Pos,Comment), Mode0, Mode, Options) --> !,
+	object(Obj, Pos, Comment, Mode0, Mode, Options).
+object(Obj, Mode0, Mode, Options) -->
+	{ doc_comment(Obj, Pos, _Summary, Comment)
+	}, !,
+	object(Obj, Pos, Comment, Mode0, Mode, Options).
 
 object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	{ pi(Obj), !,
