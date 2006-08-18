@@ -339,6 +339,18 @@ that parse into a table-row together for a table.  Example:
 	| Copying | GPL            |
 \end{verbatim}
 
+    \item [Section Headers]
+Section headers are creates using one of the constructs below taken
+from TWiki.  Section headers are normally not used in the source-code,
+but can be useful inside README files.  See \secref{dirindex}.
+
+\begin{verbatim}
+---+ Section level 1
+---++ Section level 2
+---+++ Section level 3
+---++++ Section level 4
+\end{verbatim}
+
     \item [Code (verbatim)]
 Verbatim is embedded between lines containing only \verb$==$, as shown
 in the example below.  The indentation of the \verb$==$ must match and
@@ -389,6 +401,7 @@ PceEmacs can be set as default editor using
 \tt name//arity & Create a link to a DCG rule \\
 \tt name.pl	& If <name>.pl is the name of an existing file
 		  in the same directory, create a link. \\
+\tt\string<url>	& Create a hyperlink to URL. \\
 \tt Word	& Capitalised words that appear as argument-name
 		  are written in \arg{Italic} \\
 \tt $Word: CVS$ & CVS expanded keyword.  Typeset as the plain

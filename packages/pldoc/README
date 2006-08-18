@@ -1,13 +1,11 @@
-		    PlDOc --- SWI-Prolog source documentation
+---+ PlDOc --- SWI-Prolog source documentation
 
-Author: Jan Wiemaker
-
-Status
-------
+---++ Status
 
 Approach has been discussed with two external Prolog developers.
 
 Code is very imcomplete.  Development plan:
+
 ---++ Wiki processor
 
 Making solid progress.  remaining issues:
@@ -26,16 +24,14 @@ Making solid progress.  remaining issues:
 
 	* End-user
 	
-		?- doc_collect(+Bool).
-		?- doc_server(?Port).
-		?- doc_server(?Port, +Options).
-		?- 
-
+		* doc_collect(+Bool).
+		* doc_server(?Port).
+		* doc_server(?Port, +Options).
 
 	* Programmer
 
-	* pldoc_comment(PredInd, -Comment).
-	  pldoc_comment(module(Module), -Comment).
+		* pldoc_comment(PredInd, -Comment).
+	  	* pldoc_comment(module(Module), -Comment).
 
 	  Comment is original string
 
@@ -82,3 +78,4 @@ Making solid progress.  remaining issues:
 
 	* See <http://www.htmldog.com/guides/cssbeginner/selectors/>
 
+@author	Jan Wielemaker

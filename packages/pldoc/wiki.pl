@@ -39,6 +39,7 @@
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
+:- use_module(library(memfile)).
 
 
 		 /*******************************
@@ -59,9 +60,15 @@ wiki_lines_to_dom(Lines, Args, HTML) :-
 %%	wiki_string_to_dom(+String, +Args, -DOM) is det.
 %
 %	Translate a plain text into a DOM term.
+%	
+%	@param String	Plain text.  Either a string or a list of codes.
 
 wiki_string_to_dom(String, Args, DOM) :-
+	string(String), !,
 	string_to_list(String, Codes),
+	indented_lines(Codes, [], Lines),
+	wiki_lines_to_dom(Lines, Args, DOM).
+wiki_string_to_dom(Codes, Args, DOM) :-
 	indented_lines(Codes, [], Lines),
 	wiki_lines_to_dom(Lines, Args, DOM).
 
@@ -92,6 +99,8 @@ take_par(Lines, List, Rest) :-
 take_par([N-['|'|RL1]|LT], table(class=wiki, [tr(R0)|RL]), Rest) :-
 	phrase(row(R0), RL1),
 	rest_table(LT, N, RL, Rest), !.
+take_par([_-L1|LT], Section, LT) :-
+	section_line(L1, Section), !.
 take_par([_-L1|LT], p(Par), Rest) :- !,
 	append(L1, PT, Par),
 	rest_par(LT, PT, Rest).
@@ -223,6 +232,23 @@ rest_par([_-[]|Rest], [], Rest) :- !.
 rest_par([_-L1|LT], ['\n'|Par], Rest) :-
 	append(L1, PT, Par),
 	rest_par(LT, PT, Rest).
+
+
+%%	section_line(+Tokens, -Section) is det.
+%
+%	Extract a section using the Wiki conventions
+
+section_line([-,-,-|Rest], Section) :-
+	plusses(Rest, Section).
+
+plusses([+, ' '|Rest], h1(class(wiki), Content)) :-
+	strip_ws_tokens(Rest, Content).
+plusses([+, +, ' '|Rest], h2(class(wiki), Content)) :-
+	strip_ws_tokens(Rest, Content).
+plusses([+, +, +, ' '|Rest], h3(class(wiki), Content)) :-
+	strip_ws_tokens(Rest, Content).
+plusses([+, +, +, +, ' '|Rest], h4(class(wiki), Content)) :-
+	strip_ws_tokens(Rest, Content).
 
 
 %%	strip_ws_tokens(+Tokens, -Stripped)
@@ -379,6 +405,10 @@ structure_term(\tag(Name,Value), tag(Name), [Value]) :- !.
 structure_term(dl(Att, Args), dl(Att), [Args]) :- !.
 structure_term(dt(Att, Args), dt(Att), [Args]) :- !.
 structure_term(table(Att, Args), table(Att), [Args]) :- !.
+structure_term(h1(Att, Args), h1(Att), [Args]) :- !.
+structure_term(h2(Att, Args), h2(Att), [Args]) :- !.
+structure_term(h3(Att, Args), h3(Att), [Args]) :- !.
+structure_term(h4(Att, Args), h4(Att), [Args]) :- !.
 structure_term(Term, Functor, Args) :-
 	functor(Term, Functor, 1),
 	structure_tag(Functor), !,
@@ -455,6 +485,13 @@ wiki_face(\file(Name), _) -->
 	  autolink_extension(Ext), !,
 	  concat_atom([BaseS, '.', Ext], Name)
 	}.
+wiki_face(a(href=Ref, Ref), _) -->
+	word_token(ProtS), [:,/,/], { url_protocol(ProtS) },
+	string(Rest), peek_end_url, !,
+	{ concat_atom([ProtS, :,/,/ | Rest], Ref) }.
+wiki_face(a(href=Ref, Ref), _) -->
+	[<], word_token(ProtS), [:], string(Rest), [>], !,
+	{ concat_atom([ProtS, : | Rest], Ref) }.
 wiki_face(FT, ArgNames) -->
 	[T],
 	{   atomic(T)
@@ -465,6 +502,18 @@ wiki_face(FT, ArgNames) -->
 functor_name(String) :-
 	sub_atom(String, 0, 1, _, Char),
 	char_type(Char, alpha).
+
+url_protocol(String) :-	sub_atom(String, 0, _, 0, http).
+url_protocol(String) :-	sub_atom(String, 0, _, 0, ftp).
+url_protocol(String) :-	sub_atom(String, 0, _, 0, mailto).
+
+
+peek_end_url -->
+	peek_nl, !.
+peek_end_url -->
+	peek(' '), !.
+peek_end_url -->
+	eos, !.
 
 %%	autolink_extension(?Ext) is nondet.
 %
@@ -837,10 +886,16 @@ non_ws(T, T) -->
 %
 %	True if we are at the end of a line
 
-peek_nl(L,L) :-
-	L = [H|_],
-	( H == 0'\n ; H == 0'\r ), !.
+peek_nl -->
+	peek(H),
+	{ H == 0'\n ; H == 0'\r }, !.
 
+%%	peek(H)//
+%
+%	True if next token is H without eating it.
+
+peek(H, L, L) :-
+	L = [H|_].
 
 %%	string(-Tokens:list)// is nondet.
 %

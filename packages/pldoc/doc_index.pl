@@ -37,6 +37,7 @@
 :- use_module(html).
 :- use_module(wiki).
 :- use_module(library('http/html_write')).
+:- use_module(library(readutil)).
 
 /** <module> Create indexes
 */
@@ -94,8 +95,25 @@ source_file_in_dir(Dir, File) :-
 %
 %	Create header for directory
 
-dir_header(_Dir, _Options) -->
-	[].
+dir_header(Dir, _Options) -->
+	readme(Dir), !.
+dir_header(Dir, _Options) -->
+	{ file_base_name(Dir, Base)
+	},
+	html(h1(class=dir, Base)).
+
+readme(Dir) -->
+	{ readme_file(Base),
+	  concat_atom([Dir, /, Base], File),
+	  access_file(File, read), !,
+	  read_file_to_codes(File, String, []),
+	  wiki_string_to_dom(String, [], DOM)
+	},
+	html(DOM).
+
+readme_file('README').
+readme_file('README.TXT').
+
 
 %%	file_indices(+Files, +Options)// is det.
 
@@ -133,7 +151,7 @@ file_index_header(File, Options) -->
 					[ button_height(16)|Options
 					])
 			 ]),
-		     Local
+		     a(href(Local), Local)
 		   ]))).
 
 

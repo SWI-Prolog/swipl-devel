@@ -38,7 +38,9 @@
 	    predref/3,			% +PI, //
 	    module_info/3,		% +File, +Options0, -Options
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
-	    edit_button/4		% +File, +Options, //
+	    edit_button/4,		% +File, +Options, //
+
+	    tags/3			% +Tags, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
