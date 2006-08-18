@@ -106,6 +106,17 @@ pre.code
   background-color: #f8f8f8;
 }
 
+/* Navigation bar */
+
+div.navhdr
+{ border: 1px dotted;
+  padding-top: 5px;
+  padding-right: 5px;
+  padding-left: 5px;
+  padding-bottom: 3px;
+  background-color: #f0f0f0;
+}
+
 /* Summary index */
 
 table.summary th

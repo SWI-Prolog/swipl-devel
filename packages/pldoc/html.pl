@@ -49,6 +49,7 @@
 :- use_module(process).
 :- use_module(modes).
 :- use_module(wiki).
+:- use_module(doc_search).
 
 /** <module> PlDoc HTML backend
 
@@ -102,7 +103,8 @@ prolog_file(FileSpec, Options) -->
 	  doc_hide_private(Objs1, Objs, ModuleOptions),
 	  b_setval(pldoc_file, File)	% TBD: delete?
 	},
-	html([ \file_header(File, FileOptions)
+	html([ \links(File, FileOptions),
+	       \file_header(File, FileOptions)
 	     | \objects(Objs, [body], FileOptions)
 	     ]),
 	undocumented(Objs, FileOptions).
@@ -165,7 +167,24 @@ file_info(Comments, RestComments, [file(Title, Comment)|Opts], Opts) :-
 	select(doc(_:module(Title),_,Comment), Comments, RestComments), !.
 file_info(Comments, Comments, Opts, Opts).
 
-%%	file_header(+File)// is det.
+
+%%	links(+File, +Options) is det.
+%
+%	Provide overview links and search facilities.
+
+links(_File, _Options) -->
+	html(div(class(navhdr),
+		 [ div(style('float:right'),
+		       [ \search_form
+		       ]),
+		   a(href('index.html'),
+		     img([ border=0,
+			   src('/up.gif')
+			 ]))
+		 ])).
+
+
+%%	file_header(+File, +Options)// is det.
 %
 %	Create the file header.
 

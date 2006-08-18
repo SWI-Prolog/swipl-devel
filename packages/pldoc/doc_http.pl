@@ -42,6 +42,7 @@
 :- use_module(pldoc(process)).
 :- use_module(pldoc(html)).
 :- use_module(pldoc(doc_index)).
+:- use_module(pldoc(doc_search)).
 
 /** <module> Documentation server
 
@@ -352,6 +353,7 @@ reply(Path, _Request) :-
 file('/pldoc.css',   'pldoc.css').
 file('/pldoc.js',    'pldoc.js').
 file('/edit.gif',    'edit.gif').
+file('/up.gif',      'up.gif').
 file('/zoomin.gif',  'zoomin.gif').
 file('/zoomout.gif', 'zoomout.gif').
 file('/reload.gif',  'reload.gif').
@@ -372,6 +374,17 @@ reply('/man', Request) :-
 		   [ 'TBD: Documentation for ', b(PI)
 		   ]).
 
+%	/search?for=String
+%	
+%	Search for String
+
+reply('/search', Request) :-
+	http_parameters(Request,
+			[ for(For, [length > 1])
+			]),
+	reply_page('SWI-Prolog Search Results',
+		   [ \search_reply(For)
+		   ]).
 
 
 		 /*******************************
