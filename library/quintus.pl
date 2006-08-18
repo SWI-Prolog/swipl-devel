@@ -234,13 +234,14 @@ prolog_flag(Flag, Value) :-
 		 *	     DATE/TIME		*
 		 *******************************/
 
-%%	date(-Date)
+%%	date(-Date) is det.
 %
-%	Get current date.
+%	Get current date as date(Y,M,D)
 
-date(date(Year,Month,Day)) :-
+date(Date) :-
 	get_time(T),
-	convert_time(T, Year, Month, Day, _, _, _, _).
+	stamp_date_time(T, DaTime, local),
+	date_time_value(date, DaTime, Date).
 
 
 		/********************************
