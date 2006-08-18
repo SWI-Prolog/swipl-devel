@@ -86,6 +86,7 @@ table.wiki
 table.wiki td
 { border: 1px inset gray;
   padding: 3px;
+  vertical-align: top;
 }
 
 img.icon
@@ -104,3 +105,16 @@ pre.code
   padding-bottom: 5px;
   background-color: #f8f8f8;
 }
+
+/* Summary index */
+
+table.summary th
+{ text-align: left;
+  background-color: #b9daff;
+}
+
+table.summary td
+{ /*overflow:hidden; white-space:nowrap; text-overflow:ellipsis;*/
+  vertical-align: top;
+}
+

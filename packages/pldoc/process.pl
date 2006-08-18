@@ -139,6 +139,8 @@ is_structured_comment(Comment, Prefixes) :-
 
 %%	doc_file_name(+Source:atom, -Doc:atom, +Options:list) is det.
 %
+%	Doc is the name of the file for documenting Source.
+%
 %	@param Source	Prolog source to be documented
 %	@param Doc	the name of the file documenting Source.
 %	@param Options	Option list:

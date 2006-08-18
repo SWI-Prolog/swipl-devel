@@ -41,6 +41,7 @@
 :- use_module(library('debug')).
 :- use_module(pldoc(process)).
 :- use_module(pldoc(html)).
+:- use_module(pldoc(doc_index)).
 
 /** <module> Documentation server
 
@@ -269,31 +270,49 @@ reply('/edit', Request) :-
 %	pldoc.css to allow for a relative link from any directory.
 
 reply(ReqPath, Request) :-
-	atom_concat('/documentation/', DocPath, ReqPath),
-	(   file_base_name(ReqPath, 'pldoc.css')
-	->  reply_file(pldoc('pldoc.css'))
-	;   http_parameters(Request,
-			    [ public_only(Public),
-			      reload(Reload)
-			    ],
-			    [ attribute_declarations(param)
-			    ]),
-	    atom_concat('/', DocPath, AbsFile),
-	    pl_file(AbsFile, File),
-	    (	Reload == true
-	    ->	load_files(File, [if(changed)])
-	    ;	true
-	    ),
-	    (	local(Request)
-	    ->	MoreOptions = [edit(true)]
-	    ;	MoreOptions = []
-	    ),
-	    format('Content-type: text/html~n~n'),
-	    doc_for_file(File, current_output,
-			 [ public_only(Public)
-			 | MoreOptions
-			 ])
-	).
+	atom_concat('/documentation', AbsFile, ReqPath),
+	sub_atom(AbsFile, 0, _, _, /), !,
+	documentation(AbsFile, Request).
+
+documentation(Path, _Request) :-
+	file_base_name(Path, 'pldoc.css'), !,
+	reply_file(pldoc('pldoc.css')).
+documentation(Path, Request) :-
+	sub_atom(Path, _, _, 0, /), 
+	sub_atom(Path, 0, _, 1, Dir),
+	exists_directory(Dir), !,		% Directory index
+	edit_options(Request, EditOptions),
+	format('Content-type: text/html~n~n'),
+	doc_for_dir(Dir, current_output, EditOptions).
+documentation(Path, Request) :-
+	http_parameters(Request,
+			[ public_only(Public),
+			  reload(Reload)
+			],
+			[ attribute_declarations(param)
+			]),
+	pl_file(Path, File),
+	(   Reload == true
+	->  load_files(File, [if(changed)])
+	;   true
+	),
+	edit_options(Request, EditOptions),
+	format('Content-type: text/html~n~n'),
+	doc_for_file(File, current_output,
+		     [ public_only(Public)
+		     | EditOptions
+		     ]).
+
+
+%%	edit_options(+Request, -Options) is det.
+%
+%	Return edit(true) in Options  if  the   connection  is  from the
+%	localhost.
+
+edit_options(Request, [edit(true)]) :-
+	local(Request), !.
+edit_options(_, []).
+
 
 %%	pl_file(+File, -PlFile) is det.
 %

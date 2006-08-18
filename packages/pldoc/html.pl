@@ -31,7 +31,14 @@
 
 :- module(pldoc_html,
 	  [ doc_for_file/3,		% +FileSpec, +Out, +Options
-	    doc_write_html/3		% +Stream, +Title, +Term
+	    doc_write_html/3,		% +Stream, +Title, +Term
+	    				% Support doc_index
+	    doc_page_dom/3,		% +Title, +Body, -DOM
+	    print_html_head/1,		% +Stream
+	    predref/3,			% +PI, //
+	    module_info/3,		% +File, +Options0, -Options
+	    doc_hide_private/3,		% +Doc0, -Doc, +Options
+	    edit_button/4		% +File, +Options, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
@@ -74,7 +81,7 @@ doc_for_file(FileSpec, Out, Options) :-
 			   File),
 	file_base_name(File, Base),
 	Title = Base,
-	page_dom(Title, \prolog_file(FileSpec, Options), DOM),
+	doc_page_dom(Title, \prolog_file(FileSpec, Options), DOM),
 	phrase(html(DOM), Tokens),
 	print_html_head(Out),
 	print_html(Out, Tokens).
@@ -89,7 +96,8 @@ prolog_file(FileSpec, Options) -->
 	  findall(doc(Obj,Pos,Comment),
 		  doc_comment(Obj, Pos, _, Comment), Objs0),
 	  module_info(File, ModuleOptions, Options),
-	  file_info(Objs0, Objs, FileOptions, ModuleOptions),
+	  file_info(Objs0, Objs1, FileOptions, ModuleOptions),
+	  doc_hide_private(Objs1, Objs, ModuleOptions),
 	  b_setval(pldoc_file, File)	% TBD: delete?
 	},
 	html([ \file_header(File, FileOptions)
@@ -113,6 +121,40 @@ head_to_pi(M:Head, M:PI) :- !,
 head_to_pi(Head, Name/Arity) :-
 	functor(Head, Name, Arity).
 	
+
+%%	doc_hide_private(+Objs, +Public, +Options)
+%
+%	Remove the private objects from Objs according to Options.
+
+doc_hide_private(Objs, Objs, Options) :-
+	\+ option(public(_), Options), !.
+doc_hide_private(Objs, Objs, Options) :-
+	option(public_only(false), Options, true), !.
+doc_hide_private(Objs0, Objs, Options) :-
+	hide_private(Objs0, Objs, Options).
+
+hide_private([], [], _).
+hide_private([H|T0], T, Options) :-
+	arg(1, H, Obj),
+	private(Obj, Options), !,
+	hide_private(T0, T, Options).
+hide_private([H|T0], [H|T], Options) :-
+	hide_private(T0, T, Options).
+
+
+%%	private(+Obj, +Options) is semidet.
+%
+%	True if Obj is not  exported   from  Options. This means Options
+%	defined a module and Obj is  not   member  of the exports of the
+%	module.
+
+private(Module:PI, Options) :-
+	option(module(Module), Options),
+	option(public(Public), Options), !,
+	\+ ( member(PI2, Public) ,
+	     eq_pi(PI, PI2)
+	   ).
+
 %%	file_info(+Comments, -RestComment, -FileOptions, +OtherOptions) is det.
 %
 %	Add options file(Title, Comment) to OtherOptions if available.
@@ -186,6 +228,7 @@ reload_button(Base, Options) -->
 
 edit_button(File, Options) -->
 	{ option(edit(true), Options), !,
+	  option(button_height(H), Options, 24),
 	  www_form_encode(File, Enc),
 	  format(string(HREF), '/edit?file=~w', [Enc]),
 	  format(string(OnClick), 'HTTPrequest("~w")', [HREF])
@@ -195,7 +238,7 @@ edit_button(File, Options) -->
 		 onMouseOver('window.status=\'Edit file\'; return true;')
 	       ],
 	       img([ border=0,
-		     height=24,
+		     height=H,
 		     style('padding-top:4px'),
 		     src='/edit.gif'
 		 ]))).
@@ -233,23 +276,6 @@ objects([doc(Obj,Pos,Comment)|T], Mode, Options) -->
 	html(\object(Obj,Pos,Comment, Mode, Mode1, Options)),
 	objects(T, Mode1, Options).
 
-object(Module:Name/Arity, _Pos, _Comment, Mode, Mode, Options) -->
-	{ option(module(Module), Options, []),
-	  option(public(Public), Options, []),
-	  \+ memberchk(Name/Arity, Public),
-	  option(public_only(true), Options, true)
-	}, !,				% private predicate
-	[].
-object(Module:Name//Arity, _Pos, _Comment, Mode, Mode, Options) -->
-	{ option(module(Module), Options, []),
-	  option(public(Public), Options, []),
-	  PredArity is Arity+2,
-	  \+ (	 memberchk(Name//Arity, Public)
-	     ;	 memberchk(Name/PredArity, Public)
-	     ),
-	  option(public_only(true), Options, true)
-	}, !,				% private predicate
-	[].
 object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	{ pi(Obj), !,
 	  is_structured_comment(Comment, Prefixes),
@@ -271,35 +297,8 @@ object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
 	
-pi(_:PI) :- !,
-	pi(PI).
-pi(_/_).
-pi(_//_).
 
-
-%%	private(+Object, +Options) is semidet.
-%
-%	True if Object is private with regard to Options
-
-private(Module:Object, Options) :-
-	option(module(Module), Options, []),
-	option(public(Public), Options, []),
-	\+ in_exports(Object, Public).
-
-
-%%	in_exports(+PI, +Exports) is semidet.
-%
-%	True if predicate indicator appears in Exports.  Deals
-%	with the DCG (//) operator.
-
-in_exports(Object, Exports) :-
-	memberchk(Object, Exports).
-in_exports(Name//Arity, Exports) :-
-	PredArity is Arity + 2,
-	memberchk(Name/PredArity, Exports).
-	
-
-%%	need_mode(+Mode:atom, +Stack:list, -NewStack:list) is det.
+%%	need_mode(+Mode:atom, +Stack:list, -NewStack:list)// is det.
 %
 %	While predicates are part of a   description  list, sections are
 %	not and we therefore  need  to   insert  <dl>...</dl>  into  the
@@ -383,7 +382,14 @@ eq_pi(Name/A, Name//DCGA) :-
 eq_pi(Name//A, Name/DCGA) :-
 	A =:= DCGA+2.
 
+%%	pi(@Term) is semidet.
+%
+%	True if Term is a predicate indicator.
 
+pi(_:PI) :- !,
+	pi(PI).
+pi(_/_).
+pi(_//_).
 
 
 		 /*******************************
@@ -395,12 +401,12 @@ eq_pi(Name//A, Name/DCGA) :-
 %	Write HTML for the documentation page DOM using Title to Out.
 
 doc_write_html(Out, Title, Doc) :-
-	page_dom(Title, Doc, DOM),
+	doc_page_dom(Title, Doc, DOM),
 	phrase(html(DOM), Tokens),
 	print_html_head(Out),
 	print_html(Out, Tokens).
 
-page_dom(Title, Body, DOM) :-
+doc_page_dom(Title, Body, DOM) :-
 	DOM = html([ head([ title(Title),
 			    link([ rel(stylesheet),
 				   type('text/css'),
@@ -683,6 +689,9 @@ term(Term, Bindings) -->
 %	Create a reference to a predicate. The reference consists of the
 %	relative path to the  file  using   the  predicate  indicator as
 %	anchor.
+%	
+%	Current file must  be  available   through  the  global variable
+%	=pldoc_file=.
 
 predref(Name/Arity) -->
 	{ functor(Term, Name, Arity),

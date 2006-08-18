@@ -245,7 +245,13 @@ remove_aname(Var, any) :-
 remove_aname(_:Type, Type) :- !.
 
 
-%%	mode(:Head, Det) is nondet.
+%%	mode(:Head, ?Det) is nondet.
+%
+%	True if there is a mode-declaration for Head with Det.
+%	
+%	@param	Head	Callable term.  Arguments are a mode-indicator
+%			followed by a type.
+%	@param  Det	One of =unknown=, =det=, =semidet=, or =nondet=.
 
 :- module_transparent
 	mode/2.
