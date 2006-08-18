@@ -622,6 +622,8 @@ gmp(atom_number-1) :-
 	atom_number(Atom, X),		% write
 	atom_number(Atom, Y),		% read
 	X == Y.
+gmp(hex-1) :-
+	atom_number('0xFFFFFFFFFFFFFFFF', 18446744073709551615).
 gmp(fmtd-1) :-
 	format(atom(X), '~d', [12345678901234567890123456]),
 	X == '12345678901234567890123456'.

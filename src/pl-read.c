@@ -1274,9 +1274,7 @@ scan_number(cucharp *s, int b, Number n)
   q++;
 
   while((d = digitValue(b, *q)) >= 0)
-  { q++;
-
-    if ( t > maxi || t * b + d > PLMAXINT )
+  { if ( t > maxi || t * b + d > PLMAXINT )
     {
 #ifdef O_GMP
       n->value.i = (int64_t)t;
@@ -1308,7 +1306,9 @@ scan_number(cucharp *s, int b, Number n)
       succeed;
 #endif
     } else
+    { q++;
       t = t * b + d;
+    }
   }  
 
   n->value.i = t;

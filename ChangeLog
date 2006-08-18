@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#192: reading non-decimal numbers that cause a 64-bit int
+    overflow.  Marius Filip.
+
   * ENHANCED: Bug#195: library(debug) to compile debugging(x) to fail when -O
     is active.  Holger Kanwischer.
 
