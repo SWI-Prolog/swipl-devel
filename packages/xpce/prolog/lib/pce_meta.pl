@@ -52,6 +52,21 @@
 		 *	INTERACTION SUPPORT	*
 		 *******************************/
 
+%%	pce_to_method(+Spec, -Object) is semidet.
+%
+%	Object is the XPCE object described by Spec.  Spec is one of
+%	
+%		* send(Receiver, Selector)
+%		* ->(Receiver, Selector)
+%		Find a send-method on Receiver
+%		* get(Receiver, Selector)
+%		* <-(Receiver, Selector)
+%		Find a get-method on Receiver
+%		* Receiver-Selector
+%		Find an instance variable (slot) on Receiver
+%		* ClassName
+%		Find a class from its name
+
 pce_to_method(->(Receiver, Selector), Method) :- !,
 	(   atom(Receiver)
 	->  get(@pce, convert, Receiver, class, Class),
