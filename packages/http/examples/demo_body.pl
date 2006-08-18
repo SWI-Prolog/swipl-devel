@@ -33,7 +33,8 @@
 	  [ reply/1
 	  ]).
 :- use_module(library('http/http_client')).
-:- use_module(library('http/http_image')).		% make XPCE generate images
+:- use_module(library('http/http_mime_plugin')). % Decode multipart data
+:- use_module(library('http/http_image')).	 % make XPCE generate images
 
 
 :- style_check(-atom).			% allow long atoms
@@ -41,19 +42,6 @@
 reply(_) :-
 	flag(request, N, N+1),
 	fail.
-
-%	POST
-%	Simply read the request and reply with the request data.
-
-reply(Request) :-
-	member(method(post), Request), !,
-	http_read_data(Request, Data, []),
-	format('Content-type: text/plain~n~n', []),
-	flag(request, RN, RN),
-	format('Request ~d~n', [RN]),
-	pp(Request),
-	format('~nData~n'),
-	pp(Data).
 
 %	/quit
 %	
@@ -94,7 +82,35 @@ reply(Request) :-
 	copy_stream_data(Fd, current_output),
 	close(Fd),
 	format('</pre>~n', []),
-	format('</htmp>~n', []).
+	format('</html>~n', []).
+
+%	/upload
+%	/upload_reply
+%	
+%	Provide a form for uploading a file, and deal with the resulting
+%	upload.  Contributed by Nicos Angelopoulos.
+
+reply(Request) :-
+        member(path('/upload'), Request), !,
+        format('Content-type: text/html~n~n', []),
+        format('<html>~n', []),
+	format('<form action="/upload_reply" enctype="multipart/form-data" method="post">~n', []),
+	format('<input type="file" name="datafile">'),
+	format('<input type="submit" name="sent">'),
+        format('</body>~n', []),
+        format('</html>~n', []).
+
+reply(Request) :-
+        member(path('/upload_reply'), Request), !,
+        format('Content-type: text/html~n~n', []),
+        format('<html>~n', []),
+        format('<pre>~n', []),
+	write( req(Request) ), nl,
+	http_read_data(Request, Data, []),
+	write( data(Data) ), nl,
+	format('</pre>'),
+        format('</body>~n', []),
+        format('</html>~n', []).
 
 %	/xml
 %	
