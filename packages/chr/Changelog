@@ -1,3 +1,7 @@
+Aug 18, 2006
+
+  * TS: Code clean-up, more inlining, only generate used imports.
+
 Aug 17, 2006
 
   * TS: Inlining and more specialization of auxiliary predicates.
