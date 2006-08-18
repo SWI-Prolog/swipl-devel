@@ -35,6 +35,7 @@
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
+:- use_module(library(url)).
 :- use_module(library('http/html_write')).
 :- use_module(process).
 :- use_module(modes).
@@ -270,6 +271,8 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	},
 	need_mode(dl, Mode0, Mode),
 	html(DOM).
+object([Obj|_Same], Pos, Comment, Mode0, Mode, Options) --> !,
+	object(Obj, Pos, Comment, Mode0, Mode, Options).
 object(Obj, _Pos, _Comment, Mode, Mode, _Options) -->
 	{ debug(pldoc, 'Skipped ~p', [Obj]) },
 	[].
@@ -543,18 +546,58 @@ pred_edit_button(Head, Options) -->
 	pred_edit_button(Name/Arity, Options).
 
 
+%%	pred_head(+Term) is det.
+%
+%	Emit a predicate head. The functor is  typeset as a =span= using
+%	class =pred= and the arguments and =var= using class =arglist=.
+
 pred_head(//(Head)) --> !,
 	pred_head(Head),
 	html(//).
 pred_head(Head) -->
 	{ atom(Head) }, !,
 	html(b(class=pred, Head)).
-pred_head(Head) -->
-	{ Head =.. [Functor|Args] },	% TBD: operators!
+pred_head(Head) -->			% Infix operators
+	{ Head =.. [Functor,Left,Right],
+	  current_op(_,Type,Functor),
+	  op_type(Type, infix), !
+	},
+	html([ var(class=arglist, \pred_arg(Left, 1)),
+	       span(class=pred, Functor),
+	       var(class=arglist, \pred_arg(Right, 2))
+	     ]).
+pred_head(Head) -->			% Prefix operators
+	{ Head =.. [Functor,Arg],
+	  current_op(_,Type,Functor),
+	  op_type(Type, prefix), !
+	},
+	html([ span(class=pred, Functor),
+	       var(class=arglist, \pred_arg(Arg, 1))
+	     ]).
+pred_head(Head) -->			% Postfix operators
+	{ Head =.. [Functor,Arg],
+	  current_op(_,Type,Functor),
+	  op_type(Type, postfix), !
+	},
+	html([ var(class=arglist, \pred_arg(Arg, 1)),
+	       span(class=pred, Functor)
+	     ]).
+pred_head(Head) -->			% Plain terms
+	{ Head =.. [Functor|Args] },
 	html([ span(class=pred, Functor),
 	       var(class=arglist,
 		   [ '(', \pred_args(Args, 1), ')' ])
 	     ]).
+
+op_type(xf,  prefix).
+op_type(yf,  prefix).
+op_type(fx,  postfix).
+op_type(fy,  postfix).
+op_type(xfx, infix).
+op_type(xfy, infix).
+op_type(yfx, infix).
+op_type(yfy, infix).
+
 
 pred_args([], _) -->
 	[].
@@ -606,19 +649,17 @@ pred_det(Det) -->
 %%	term(+Term, +Bindings)// is det.
 %
 %	Process the \term element.
+%	
+%	@tbd	Properly merge with pred_head//1
 
 term(Atom, []) -->
 	{ atomic(Atom) }, !,
 	html(span(class=functor, Atom)).
 term(Term, Bindings) -->
 	{ is_mode(Term is det),		% HACK. Bit too strict?
-	  bind_vars(Bindings),
-	  Term =.. [Functor|Args]
+	  bind_vars(Bindings)
 	}, !,
-	html([ span(class=functor, Functor),
-	       var(class=arglist,
-		   ['(', \pred_args(Args, 1), ')'])
-	     ]).
+	pred_head(Term).
 term(Term, Bindings) -->
 	{ bind_vars(Bindings) },
 	argtype(Term).

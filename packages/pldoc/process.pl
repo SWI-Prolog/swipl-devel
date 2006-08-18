@@ -157,8 +157,8 @@ doc_file_name(Source, Doc, Options) :-
 	;   true
 	).
 
-%%	doc_comment(?Object, -Pos,
-%%		      -Summary:string, -Comment:string) is nondet.
+%%	doc_comment(?Objects, -Pos,
+%%		    -Summary:string, -Comment:string) is nondet.
 %
 %	True if Comment is the  comment   describing  object. Comment is
 %	returned as a string object  containing   the  original from the
@@ -173,24 +173,37 @@ doc_file_name(Source, Doc, Options) :-
 %		* module(Module)
 %		Comment appearing in Module.
 %		
+%	If Object is  unbound  and  multiple   objects  share  the  same
+%	description, Object is unified with a   list  of terms described
+%	above.
+%	
 %	@param Summary	First sentence.  Normalised spacing.
 %	@param Comment	Comment string from the source-code (untranslated)
-%
-%	@tbd	Handle comments covering multiple predicates
 
 doc_comment(Object, Pos, Summary, Comment) :-
 	var(Object), !,
 	current_module(M),
 	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
 	M:'$pldoc'(Obj, Pos, Summary, Comment),
-	qualify(M, Obj, Object).
+	qualify(M, Obj, Object0),
+	(   '$c_current_predicate'(_, M:'$pldoc_link'(_, _)),
+	    findall(L, M:'$pldoc_link'(L, Obj), Ls), Ls \== []
+	->  maplist(qualify(M),	Ls, QLs),
+	    Object = [Object0|QLs]
+	;   Object = Object0
+	).
 doc_comment(M:Object, Pos, Summary, Comment) :-
 	current_module(M),
 	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
-	M:'$pldoc'(Object, Pos, Summary, Comment).
+	(   M:'$pldoc'(Object, Pos, Summary, Comment)
+	;   '$c_current_predicate'(_, M:'$pldoc_link'(_, _)),
+	    M:'$pldoc_link'(Object, Obj2),
+	    M:'$pldoc'(Obj2, Pos, Summary, Comment)
+	).
 
 qualify(system, H, H) :- !.
 qualify(user,   H, H) :- !.
+qualify(M,      H, H) :- sub_atom(M, 0, _, _, $), !.
 qualify(M,      H, M:H).
 
 
@@ -204,13 +217,17 @@ qualify(M,      H, M:H).
 %	option.  It creates clauses of the form
 %	
 %		* '$mode'(Head, Det)
-%		* '$pldoc'(Id, Type, DOM)
+%		* '$pldoc'(Id, Pos, Summary, Comment)
+%		* '$pldoc_link'(Id0, Id)
 %	
-%	where object is one of 
+%	where Id is one of 
 %	
-%		* =predicate=
-%		* =module=
-%		* =section=
+%		* module(Title)
+%		Generated from /** <module> Title */
+%		* Name/Arity
+%		Generated from Name(Arg, ...)
+%		* Name//Arity
+%		Generated from Name(Arg, ...)//
 
 process_comments([], _, _).
 process_comments([Pos-Comment|T], TermPos, File) :-
