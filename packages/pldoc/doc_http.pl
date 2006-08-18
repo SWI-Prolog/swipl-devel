@@ -271,15 +271,20 @@ reply('/edit', Request) :-
 
 reply(ReqPath, Request) :-
 	atom_concat('/documentation', AbsFile, ReqPath),
-	sub_atom(AbsFile, 0, _, _, /), !,
-	documentation(AbsFile, Request).
+	(   sub_atom(ReqPath, _, _, 0, /),
+	    atom_concat(ReqPath, 'index.html', File)
+	->  throw(http_reply(moved(File)))
+	;   sub_atom(AbsFile, 0, _, _, /)
+	->  documentation(AbsFile, Request)
+	).
 
 documentation(Path, _Request) :-
 	file_base_name(Path, 'pldoc.css'), !,
 	reply_file(pldoc('pldoc.css')).
 documentation(Path, Request) :-
-	sub_atom(Path, _, _, 0, /), 
-	sub_atom(Path, 0, _, 1, Dir),
+	Index = '/index.html',
+	sub_atom(Path, _, _, 0, Index), 
+	atom_concat(Dir, Index, Path),
 	exists_directory(Dir), !,		% Directory index
 	edit_options(Request, EditOptions),
 	format('Content-type: text/html~n~n'),
