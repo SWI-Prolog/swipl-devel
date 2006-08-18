@@ -346,7 +346,8 @@ insert_percent(E, Times:[int], Char:char) :->
 	"Deal with %% comments"::
 	send(E, insert_self, Times, Char),
 	get(E, caret, Here),
-	(   send(E, looking_at, '\n%%', Here, 0)
+	(   send(E, looking_at, '\n%%', Here, 0),
+	    send(E, looking_at, '\\s*$', Here)
 	->  send(E, insert, '\t')
 	;   true
 	).

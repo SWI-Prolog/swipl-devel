@@ -255,11 +255,11 @@ x_headers(Options0, Out, Options) :-
 	x_headers(Options1, Out, Options).
 x_headers(Options, _, Options).
 
-%%	http_read_data(+In, +Fields, +Data, +Options) is det.
+%%	http_read_data(+Fields, +Data, +Options) is det.
 %
-%	If In is a handle to the HTTP server and Fields is the parsed
-%	http reply-header, read the reply into Data.  Options is one
-%	of:
+%	Read data from an HTTP connection.   Options must contain a term
+%	input(In) that provides the input stream   from the HTTP server.
+%	Fields is the parsed http  reply-header. Options is one of:
 %
 %		* to(stream(+WriteStream))
 %		Append the content of the message to Stream

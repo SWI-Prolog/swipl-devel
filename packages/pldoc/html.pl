@@ -47,10 +47,6 @@ This module translates the Herbrand term from the documentation
 extracting module wiki.pl into HTML+CSS.
 */
 
-:- thread_local
-	documented/1.			% +Object
-
-
 		 /*******************************
 		 *	 FILE PROCESSING	*
 		 *******************************/
@@ -94,14 +90,12 @@ prolog_file(FileSpec, Options) -->
 		  doc_comment(Obj, Pos, _, Comment), Objs0),
 	  module_info(File, ModuleOptions, Options),
 	  file_info(Objs0, Objs, FileOptions, ModuleOptions),
-	  b_setval(pldoc_file, File),	% TBD: delete?
-	  retractall(documented(_))	% Play safe
+	  b_setval(pldoc_file, File)	% TBD: delete?
 	},
 	html([ \file_header(File, FileOptions)
 	     | \objects(Objs, [body], FileOptions)
 	     ]),
-	undocumented(Objs, FileOptions),
-	{ retractall(documented(_)) }.
+	undocumented(Objs, FileOptions).
 	  
 %%	module_info(+File, -ModuleOptions, +OtherOptions) is det.
 %
@@ -362,16 +356,34 @@ undocumented_pred(Name/Arity, Options) -->
 select_undocumented([], _, _, []).
 select_undocumented([PI|T0], M, Objs, [PI|T]) :-
 	pi(PI),
-	\+ documented(PI),
+	\+ in_doc(M:PI, Objs),
 	select_undocumented(T0, M, Objs, T).
 select_undocumented([_|T0], M, Objs, T) :-
 	select_undocumented(T0, M, Objs, T).
 
-in_doc(Name/Arity, M, Objs) :-
-	memberchk(doc(M:Name/Arity,_,_), Objs), !.
-in_doc(Name/PredArity, M, Objs) :-
-	Arity is PredArity-2,
-	memberchk(doc(M:Name//Arity,_,_), Objs), !.
+in_doc(PI, Objs) :-
+	member(doc(O,_,_), Objs),
+	(   is_list(O)
+	->  member(O2, O),
+	    eq_pi(PI, O2)
+	;   eq_pi(PI, O)
+	).
+
+
+%%	eq_pi(PI1, PI2) is semidet.
+%
+%	True if PI1 and PI2 refer to the same predicate.
+
+eq_pi(PI, PI) :- !.
+eq_pi(M:PI1, M:PI2) :-
+	atom(M), !,
+	eq_pi(PI1, PI2).
+eq_pi(Name/A, Name//DCGA) :-
+	A =:= DCGA+2, !.
+eq_pi(Name//A, Name/DCGA) :-
+	A =:= DCGA+2.
+
+
 
 
 		 /*******************************
@@ -477,10 +489,7 @@ pred_dt(Modes) -->
 
 pred_dt(Modes, Class, Options) -->
 	html(dt(class=Class,
-		\pred_modes(Modes, [], Done, Options))),
-	{ forall(member(PI, Done),
-		 assert(documented(PI)))
-	}.
+		\pred_modes(Modes, [], _Done, Options))).
 
 pred_modes([], Done, Done, _) -->
 	[].

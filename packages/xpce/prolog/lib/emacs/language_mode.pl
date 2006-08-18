@@ -42,6 +42,7 @@
 :- emacs_begin_mode(language, fundamental,
 		    "Edit (programming) languages",
 	[ indent_line			= key('TAB'),
+	  newline_and_indent		= key('RET'),
 	  backward_delete_char_untabify	= key(backspace),
 	  align_close_bracket		= key(']') + key('}') + key(')'),
 	  insert_file_header		= key('\\C-c\\C-f'),

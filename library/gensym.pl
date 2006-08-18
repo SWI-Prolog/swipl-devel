@@ -59,7 +59,7 @@ record_gensym(Key, 0) :- !,
 	recordz($gensym, Key).
 record_gensym(_, _).
 
-%	reset_gensym/0
+%%	reset_gensym
 %
 %	Reset all gensym counters.  Please beware this is dangerous: gensym
 %	may be in use by other modules that do not expect their counter to
