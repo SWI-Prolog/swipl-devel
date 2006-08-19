@@ -144,12 +144,24 @@ doc_hide_private(Objs0, Objs, Options) :-
 
 hide_private([], [], _).
 hide_private([H|T0], T, Options) :-
-	arg(1, H, Obj),
+	obj(H, Obj),
 	private(Obj, Options), !,
 	hide_private(T0, T, Options).
 hide_private([H|T0], [H|T], Options) :-
 	hide_private(T0, T, Options).
 
+%%	obj(+Term, -Object) is det.
+%
+%	Extract the documented  object  from   its  environment.  It  is
+%	assumed to be the first term. Note  that if multiple objects are
+%	described by the same comment Term is a list.
+
+obj(Term, Obj) :-
+	arg(1, Term, Obj0),
+	(   Obj0 = [Obj|_]
+	->  true
+	;   Obj = Obj0
+	).
 
 %%	private(+Obj, +Options) is semidet.
 %
