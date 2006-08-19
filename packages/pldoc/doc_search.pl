@@ -40,8 +40,6 @@
 
 /** <module> Search form and reply
 
-@tbd	* Summary results
-	* Results per file
 */
 
 %%	search_form//

@@ -130,3 +130,6 @@ table.summary td
   vertical-align: top;
 }
 
+tr.private
+{ background-color: #fbffa6;
+}

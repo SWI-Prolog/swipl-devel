@@ -40,6 +40,7 @@
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
 	    edit_button/4,		% +File, +Options, //
 
+	    private/2,			% +Obj, +Options
 	    tags/3,			% +Tags, //
 	    file_header/4,		% +File, +Options, //
 	    objects/4			% +Objects, +Options, //
@@ -158,6 +159,12 @@ private(Module:PI, Options) :-
 	option(module(Module), Options),
 	option(public(Public), Options), !,
 	\+ ( member(PI2, Public) ,
+	     eq_pi(PI, PI2)
+	   ).
+private(Module:PI, _Options) :-
+	export_list(Module, Public),
+	\+ ( member(Head, Public),
+	     head_to_pi(Head, PI2),
 	     eq_pi(PI, PI2)
 	   ).
 
