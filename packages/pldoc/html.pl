@@ -310,7 +310,7 @@ zoom_button(Base, Options) -->
 		   ]))).
 	
 
-%%	objects(+Objects:list, +Mode, +Options)// is det.
+%%	objects(+Objects:list, +Options)// is det.
 %
 %	Emit the documentation body.
 
@@ -433,7 +433,7 @@ eq_pi(M:PI1, M:PI2) :-
 	eq_pi(PI1, PI2).
 eq_pi(Name/A, Name//DCGA) :-
 	A =:= DCGA+2, !.
-eq_pi(Name//A, Name/DCGA) :-
+eq_pi(Name//DCGA, Name/A) :-
 	A =:= DCGA+2.
 
 %%	pi(@Term) is semidet.
@@ -460,6 +460,11 @@ doc_write_html(Out, Title, Doc) :-
 	print_html_head(Out),
 	print_html(Out, Tokens).
 
+%%	doc_page_dom(+Title, +Body, -DOM) is det.
+%
+%	Create the complete HTML DOM from the   Title  and Body. It adds
+%	links to the style-sheet and javaScript files.
+
 doc_page_dom(Title, Body, DOM) :-
 	DOM = html([ head([ title(Title),
 			    link([ rel(stylesheet),
@@ -471,6 +476,10 @@ doc_page_dom(Title, Body, DOM) :-
 		     body(Body)
 		   ]).
 
+%%	print_html_head(+Out:stream) is det.
+%
+%	Print the =DOCTYPE= line.
+
 print_html_head(Out) :-
 	format(Out,
 	       '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" \
@@ -480,8 +489,18 @@ print_html_head(Out) :-
 %
 % These rules translate \-terms produced by wiki.pl
 
+%%	tags(+Tags)// is det.
+%
+%	Emit the @tag tags of a description. Tags is produced by tags/3.
+%	
+%	@see combine_tags/2.
+
 tags(Tags) -->
 	html(dl(class=tags, Tags)).
+
+%%	tag(+Tag, +Value)// is det.
+%
+%	Called from \tag(Name,Value) terms produced by wiki.pl.
 
 tag(Tag, Value) -->
 	{   tag_title(Tag, Title)
@@ -501,6 +520,11 @@ tag_title(see,    'See also:').
 tag_class(tbd, 		warn).
 tag_class(bug, 		error).
 tag_class(depreciated,	warn).
+
+%%	params(+Params:list) is det.
+%
+%	Called from \params(List) created by wiki.pl.   Params is a list
+%	of param(Name, Descr).
 
 params(Params) -->
 	html([ dt(class=tag, 'Parameters:'),
@@ -792,14 +816,19 @@ relative_file(Head, RelFile) :-
 %
 %	@tbd: prefer local, then imported, then `just anywhere'
 
+in_file(Module:Head, File) :- !,
+	in_file(Module, Head, File).
 in_file(Head, File) :-
+	in_file(_, Head, File).
+
+in_file(_, Head, File) :-
 	xref_current_source(File),
 	atom(File),			% only plain files
 	xref_defined(File, Head, How),
 	How \= imported(_From).
-in_file(Head, File) :-
+in_file(_, Head, File) :-
 	source_file(Head, File).
-in_file(Head, File) :-
+in_file(Module, Head, File) :-
 	current_module(Module),
 	source_file(Module:Head, File).
 
