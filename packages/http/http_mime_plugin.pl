@@ -34,13 +34,14 @@
 :- use_module(library(memfile)).
 :- use_module(library(mime)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> MIME client plugin
+
 This plugin for library(http_client)   automatically translates messages
-with content-type multipart/form-data into a list of Name = Value pairs,
-greatly simplifying the processing of forms with this type. It relies on
-library(mime), which in turn relies on   a foreign implementation of the
-rfc2045 (mime) specifications.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+with content-type =|multipart/form-data|= into a list   of  Name = Value
+pairs, greatly simplifying the processing of   forms  with this type. It
+relies  on  library(mime),  which  in   turn    relies   on   a  foreign
+implementation of the rfc2045 (mime) specifications.
+*/
 
 :- multifile
 	http_client:http_convert_data/4.
