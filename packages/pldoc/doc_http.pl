@@ -204,19 +204,19 @@ reply('/sidebar.html', _Request) :- !,
 	sort(Files0, Files),
 	reply_page('Sidebar',
 		   [ p(file),
-		     p(\files(Files))
+		     p(\src_files(Files))
 		   ]).
 
 documented_file(File) :-
 	doc_comment(_, File:_, _, _).
 
-files([]) -->
+src_files([]) -->
 	[].
-files([H|T]) -->
-	file(H),
-	files(T).
+src_files([H|T]) -->
+	src_file(H),
+	src_files(T).
 
-file(File) -->
+src_file(File) -->
 	{ format(string(FileRef), '/doc~w', [File]),
 	  file_base_name(File, Base),
 	  file_directory_name(File, Path),
