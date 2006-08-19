@@ -217,7 +217,7 @@ files([H|T]) -->
 	files(T).
 
 file(File) -->
-	{ format(string(FileRef), '/documentation~w', [File]),
+	{ format(string(FileRef), '/doc~w', [File]),
 	  file_base_name(File, Base),
 	  file_directory_name(File, Path),
 	  file_base_name(Path, Parent),
@@ -261,7 +261,7 @@ reply('/edit', Request) :-
 	).
 
 
-%	/documentation/Path
+%	/doc/Path
 %	
 %	Reply documentation of file. Path is   the  absolute path of the
 %	file for which to return the  documentation. Extension is either
@@ -271,7 +271,7 @@ reply('/edit', Request) :-
 %	pldoc.css to allow for a relative link from any directory.
 
 reply(ReqPath, Request) :-
-	atom_concat('/documentation', AbsFile, ReqPath),
+	atom_concat('/doc', AbsFile, ReqPath),
 	(   sub_atom(ReqPath, _, _, 0, /),
 	    atom_concat(ReqPath, 'index.html', File)
 	->  throw(http_reply(moved(File)))
@@ -380,10 +380,17 @@ reply('/man', Request) :-
 
 reply('/search', Request) :-
 	http_parameters(Request,
-			[ for(For, [length > 1])
+			[ for(For, [length > 1]),
+			  resultFormat(Format, [ oneof(long,summary),
+						 default(summary)
+					       ])
 			]),
+	edit_options(Request, EditOptions),
 	reply_page('SWI-Prolog Search Results',
-		   [ \search_reply(For)
+		   [ \search_reply(For,
+				   [ resultFormat(Format)
+				   | EditOptions
+				   ])
 		   ]).
 
 

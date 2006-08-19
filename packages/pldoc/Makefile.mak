@@ -17,7 +17,8 @@ LIBPL=		html.pl wiki.pl modes.pl register.pl process.pl \
 		doc_index.pl doc_search.pl
 PUBPL=		pldoc.pl doc_http.pl
 SUPPORT=	pldoc.css pldoc.js \
-		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico
+		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico \
+		up.gif
 DOCALL=		$(LIBPL) $(SUPPORT)
 
 all:		

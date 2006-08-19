@@ -31,11 +31,12 @@
 
 :- module(pldoc_search,
 	  [ search_form/2,		% //
-	    search_reply/3		% +Search, //
+	    search_reply/4		% +Search, +Options, //
 	  ]).
 :- use_module(library('http/html_write')).
 :- use_module(process).
 :- use_module(html).
+:- use_module(doc_index).
 
 /** <module> Search form and reply
 
@@ -58,22 +59,50 @@ search_form(Title) -->
 			      ], [])
 		      ]))).
 
-%%	search_reply(+Search) is det.
+%%	search_reply(+Search, +Options) is det.
 %
 %	Generate a reply searching for Search
 
-search_reply(For) -->
-	{ findall(Obj, matching_object(For, Obj), Objs),
-	  Objs \== []
+search_reply(For, Options) -->
+	{ search_doc(For, PerFile),
+	  PerFile \== [],
+	  option(resultFormat(Format), Options, summary)
 	}, !,
 	html([ \new_search,
 	       h1(class(search), 'Search results')
-	     | \objects(Objs, [])
+	     | \matches(Format, PerFile, Options)
 	     ]).
-search_reply(_For) -->
+search_reply(_For, _Options) -->
 	html([ \new_search,
 	       h1(class(search), 'No matches')
 	     ]).
+
+%%	matches(+Format, +PerFile, +Options)// is det
+%
+%	Display search matches according to Format.
+%
+%	@param PerFile List of File-Objects
+
+matches(long, PerFile, Options) -->
+	long_matches(PerFile, Options).
+matches(summary, PerFile, Options) -->
+	html(table(class(summary), \short_matches(PerFile, Options))).
+			 
+	
+long_matches([], _) -->
+	[].
+long_matches([File-Objs|T], Options) -->
+	file_header(File, Options),
+	objects(Objs, Options),
+	long_matches(T, Options).
+
+short_matches([], _) -->
+	[].
+short_matches([File-Objs|T], Options) -->
+	file_index_header(File, Options),
+	object_summaries(Objs, Options),
+	short_matches(T, Options).
+
 
 new_search -->
 	html(div(class(navhdr),
@@ -82,8 +111,41 @@ new_search -->
 		       ])
 		 ])).
 
-matching_object(Search, Obj) :-
-	doc_comment(Obj, _Pos, Summary, _Comment),
+%%	search_doc(+SearchString, -PerFile:list) is det.
+%
+%	Return matches of SearchString as File-ListOfObjects, sorted
+%	by File and by Object.
+
+search_doc(Search, PerFile) :-
+	findall(Tuple, matching_object(Search, Tuple), Tuples0),
+	keysort(Tuples0, Tuples),
+	group_by_key(Tuples, PerFile).
+
+
+%%	group_by_key(+KeyedList, -KeyedGroups) is det.
+%
+%	Translate a sorted Key-Value list into a list Key-Values, where
+%	Values all share the same key.  Values is sorted.
+
+group_by_key([], []).
+group_by_key([K-H|T0], [K-VL|T]) :-
+	collect_by_key(K, T0, VL0, T1),
+	sort([H|VL0], VL),
+	group_by_key(T1, T).
+
+collect_by_key(K, [K-V|T0], [V|VT], T) :- !,
+	collect_by_key(K, T0, VT, T).
+collect_by_key(_, L, [], L).
+
+
+%%	matching_object(+SearchString, -Object) is nondet.
+%
+%	Object matches SearchString.
+%	
+%	@param Object	Term of the form File-Item
+
+matching_object(Search, File-Obj) :-
+	doc_comment(Obj, File:_Line, Summary, _Comment),
 	(   apropos_match(Search, Summary)
 	->  true
 	;   sub_term(S, Obj),

@@ -31,7 +31,9 @@
 
 :- module(pldoc_index,
 	  [ doc_for_dir/3,		% +Dir, +Out, +Options
-	    dir_index/4			% +Dir, +Options, //
+	    dir_index/4,		% +Dir, +Options, //
+	    object_summaries/4,		% +Objs, +Options, //
+	    file_index_header/4		% +File, +Options, //
 	  ]).
 :- use_module(process).
 :- use_module(html).
@@ -140,9 +142,11 @@ file_index(File, Options) -->
 file_index_header(File, Options) -->
 	{ (   option(directory(Dir), Options),
 	      atom_concat(Dir, Local0, File),
-	      atom_concat(/, Local, Local0)
+	      atom_concat(/, Local, Local0),
+	      HREF=Local
 	  ->  true
-	  ;   file_base_name(File, Local)
+	  ;   file_base_name(File, Local),
+	      atom_concat('/doc', File, HREF)
 	  )
 	},
 	html(tr(th([colspan(2), class(file)],
@@ -151,7 +155,7 @@ file_index_header(File, Options) -->
 					[ button_height(16)|Options
 					])
 			 ]),
-		     a(href(Local), Local)
+		     a(href(HREF), Local)
 		   ]))).
 
 
@@ -163,16 +167,22 @@ object_summaries([H|T], Options) -->
 
 %%	object_summary(+Object, +Options)// is det
 %
-%	@tdb	wiki-faces on Summary
 
-object_summary(doc(Obj, _Pos, Summary), _Options) -->
-	{ pi(Obj, Name, Arity),
-	  wiki_string_to_dom(Summary, [], DOM0),
-	  strip_leading_par(DOM0, DOM)
-	}, !,
-	html(tr([ td(\predref(Name/Arity)),
-		  td(class(summary), DOM)
-		])).
+
+object_summary(doc(Obj, _Pos, Summary), _Options) --> !,
+	(   { pi(Obj, Name, Arity),
+	      wiki_string_to_dom(Summary, [], DOM0),
+	      strip_leading_par(DOM0, DOM)
+	    }
+	->  html(tr([ td(\predref(Name/Arity)),
+		      td(class(summary), DOM)
+		    ]))
+	;   []
+	).
+object_summary(Obj, Options) -->
+	{ doc_comment(Obj, Pos, Summary, _Comment)
+	},
+	object_summary(doc(Obj, Pos, Summary), Options).
 object_summary(_, _) -->
 	[].
 

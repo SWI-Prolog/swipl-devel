@@ -41,6 +41,7 @@
 	    edit_button/4,		% +File, +Options, //
 
 	    tags/3,			% +Tags, //
+	    file_header/4,		% +File, +Options, //
 	    objects/4			% +Objects, +Options, //
 	  ]).
 :- use_module(library(lists)).
@@ -750,14 +751,18 @@ pred_href(Name/Arity, HREF) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
 	www_form_encode(FragmentId, EncId),
 	functor(Head, Name, Arity),
-	relative_file(Head, File),
-	format(string(HREF), '~w#~w', [File, EncId]).
+	(   catch(relative_file(Head, File), _, fail)
+	->  format(string(HREF), '~w#~w', [File, EncId])
+	;   in_file(Head, File)
+	->  format(string(HREF), '/doc~w#~w', [File, EncId])
+	;   HREF='#OOPS'		% TBD
+	).
 
 relative_file(Head, '') :-
-	b_getval(pldoc_file, CurrentFile),
+	b_getval(pldoc_file, CurrentFile), CurrentFile \== [],
 	in_file(Head, CurrentFile), !.
 relative_file(Head, RelFile) :-
-	b_getval(pldoc_file, CurrentFile),
+	b_getval(pldoc_file, CurrentFile), CurrentFile \== [],
 	in_file(Head, DefFile),
 	relative_file_name(DefFile, CurrentFile, RelFile).
 	
