@@ -41,7 +41,7 @@
 resource(back,	image, image('16x16/fatleft_arrow.xpm')).
 resource(forw,	image, image('16x16/fatright_arrow.xpm')).
 
-%	make_item(+Mode, +Label, +Default, +Type, +History, -Item)
+%%	make_item(+Mode, +Label, +Default, +Type, +History, -Item)
 %
 %	Create a dialog item for editing an object of the specified
 %	type.
