@@ -33,11 +33,13 @@
 	  [ doc_for_dir/3,		% +Dir, +Out, +Options
 	    dir_index/4,		% +Dir, +Options, //
 	    object_summaries/4,		% +Objs, +Options, //
-	    file_index_header/4		% +File, +Options, //
+	    file_index_header/4,	% +File, +Options, //
+	    doc_links/4			% +Directory, +Options, //
 	  ]).
 :- use_module(process).
 :- use_module(html).
 :- use_module(wiki).
+:- use_module(doc_search).
 :- use_module(library('http/html_write')).
 :- use_module(library(readutil)).
 
@@ -73,7 +75,8 @@ dir_index(Dir, Options) -->
 	  atom_concat(Dir, '/index.html', File),
 	  b_setval(pldoc_file, File)	% for predref
 	},
-	html([ \dir_header(Dir, Options),
+	html([ \doc_links(Dir, Options),
+	       \dir_header(Dir, Options),
 	       table(class(summary),
 		     \file_indices(Files, [directory(Dir)|Options]))
 	     ]).
@@ -197,5 +200,54 @@ pi(PI, PI) :- is_pi(PI).
 is_pi(Name/Arity) :- atom(Name), integer(Arity).
 is_pi(Name//Arity) :- atom(Name), integer(Arity).
 
+
+		 /*******************************
+		 *	    NAVIGATION		*
+		 *******************************/
 	       
-	
+%%	doc_links(+Directory, +Options) is det.
+%
+%	Provide overview links and search facilities.
+
+doc_links(Directory, _Options) -->
+	{   Directory == ''
+	->  working_directory(Dir, Dir)
+	;   Dir = Directory
+	},
+	html(div(class(navhdr),
+		 [ div(style('float:right'),
+		       [ \search_form
+		       ]),
+		   'Go ',
+		   \source_dir_menu(Dir)
+		 ])).
+
+
+%%	source_dir_menu(Current)// is det
+%
+%	Create a =select= menu with entries for all loaded directories
+
+source_dir_menu(Dir) -->
+	{ findall(D, source_directory(D), List),
+	  sort(List, Dirs)
+	},
+	html(select(id(directory),
+		    \source_dirs(Dirs, Dir))).
+	     
+source_dirs([], _) -->
+	[].
+source_dirs([H|T], WD) -->
+	{ (   H == WD
+	  ->  Attrs = [selected]
+	  ;   Attrs = []
+	  ),
+	  format(string(HREF), '/doc~w/index.html', [H]),
+	  format(string(Call), 'document.location=\'~w\';', [HREF])
+	},
+	html(option([onClick(Call)|Attrs], H)),
+	source_dirs(T, WD).	
+
+source_directory(Dir) :-
+	source_file(File),
+	once(source_file(_, File)),
+	file_directory_name(File, Dir).

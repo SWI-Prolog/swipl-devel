@@ -53,6 +53,7 @@
 :- use_module(modes).
 :- use_module(wiki).
 :- use_module(doc_search).
+:- use_module(doc_index).
 
 /** <module> PlDoc HTML backend
 
@@ -104,9 +105,10 @@ prolog_file(FileSpec, Options) -->
 	  module_info(File, ModuleOptions, Options),
 	  file_info(Objs0, Objs1, FileOptions, ModuleOptions),
 	  doc_hide_private(Objs1, Objs, ModuleOptions),
-	  b_setval(pldoc_file, File)	% TBD: delete?
+	  b_setval(pldoc_file, File),	% TBD: delete?
+	  file_directory_name(File, Dir)
 	},
-	html([ \links(File, FileOptions),
+	html([ \doc_links(Dir, FileOptions),
 	       \file_header(File, FileOptions)
 	     | \objects(Objs, FileOptions)
 	     ]),

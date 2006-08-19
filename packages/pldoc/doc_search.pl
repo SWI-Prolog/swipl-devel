@@ -47,7 +47,7 @@
 %	Create a search button
 
 search_form -->
-	search_form('Search').
+	search_form('Search ').
 
 search_form(Title) -->
 	html(form(action('/search'),
@@ -66,7 +66,7 @@ search_reply(For, Options) -->
 	  PerFile \== [],
 	  option(resultFormat(Format), Options, summary)
 	}, !,
-	html([ \new_search,
+	html([ \doc_links('', Options),
 	       h1(class(search),
 		  ['Search results for ', span(class(for), For)])
 	     | \matches(Format, PerFile, Options)
@@ -102,13 +102,6 @@ short_matches([File-Objs|T], Options) -->
 	object_summaries(Objs, Options),
 	short_matches(T, Options).
 
-
-new_search -->
-	html(div(class(navhdr),
-		 [ div(style('float:right'),
-		       [ \search_form('New search ')
-		       ])
-		 ])).
 
 %%	search_doc(+SearchString, -PerFile:list) is det.
 %

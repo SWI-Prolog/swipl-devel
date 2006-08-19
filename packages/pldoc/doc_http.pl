@@ -179,21 +179,21 @@ local(Request) :-
 
 %	/
 %	
-%	Reply with frameset
+%	Reply using the index-page  of   the  Prolog  working directory.
+%	There are various options for the   start directory. For example
+%	we could also use the file or   directory of the file that would
+%	be edited using edit/0.
 
 reply(/, _) :-
-	phrase(html([ head(title('SWI-Prolog documentation server')),
-		      frameset([cols('200,*')],
-			       [ frame([ src('sidebar.html'),
-					 name(sidebar)
-				       ]),
-				 frame([ src('welcome.html'),
-					 name(main)
-				       ])
-			       ])
-		    ]), HTML),
-	format('Content-type: text/html~n~n'),
-	print_html(HTML).
+	working_directory(Dir0, Dir0),
+	ensure_slash(Dir0, Dir),
+	format(atom(Index), '/doc~windex.html', Dir),
+	throw(http_reply(moved(Index))).
+
+ensure_slash(Dir, Dir) :-
+	sub_atom(Dir, _, _, 0, /), !.
+ensure_slash(Dir0, Dir) :-
+	atom_concat(Dir0, /, Dir).
 
 %	/sidebar.html
 %	
@@ -272,9 +272,9 @@ reply('/edit', Request) :-
 
 reply(ReqPath, Request) :-
 	atom_concat('/doc', AbsFile, ReqPath),
-	(   sub_atom(ReqPath, _, _, 0, /),
-	    atom_concat(ReqPath, 'index.html', File)
-	->  throw(http_reply(moved(File)))
+	(   sub_atom(ReqPath, _, _, 0, /)
+	->  atom_concat(ReqPath, 'index.html', File),
+	    throw(http_reply(moved(File)))
 	;   sub_atom(AbsFile, 0, _, _, /)
 	->  documentation(AbsFile, Request)
 	).
