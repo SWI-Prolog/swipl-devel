@@ -52,10 +52,6 @@ well formatted HTML documents.
 @license GPL
 */
 
-%%	doc_collect(+Bool) is det.
-%
-%	Switch collecting comments on/off.
-
 doc_collect(OnOff) :-
 	set_prolog_flag(pldoc_collecting, OnOff).
 
@@ -75,6 +71,13 @@ doc_collect(OnOff) :-
 		if(not_loaded)
 	      ]).
 
+		 /*******************************
+		 *	  DOCUMENTATION		*
+		 *******************************/
+
+%%	doc_collect(+Bool) is det.
+%
+%	Switch collecting comments on/off.
 
 		 /*******************************
 		 *	     FINISH UP		*

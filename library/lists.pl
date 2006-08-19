@@ -151,12 +151,13 @@ nth1(Index, List, Elem) :-
         nth_gen(List, Elem, 1, Index).  % match
 
 
-%%	last(?List, ?Elem)
+%%	last(?List, ?Last)
 %
-%	Succeeds if `Last' unifies with the last element of `List'.  For
-%	discussion on the argument order, see:
+%	Succeeds if `Last' unifies with the last element of `List'.
 %	
-%	http://www.prolog-standard.fmg.uva.nl/twiki/bin/view/Library/PredLast2
+%	@compat	There is no de-facto standard for the argument order of
+%		last/2.  Be careful when porting code or use
+%		append(_, [Last], List) as a portable alternative.
 
 last([X|Xs], Last) :-
     last_(Xs, X, Last).

@@ -67,7 +67,8 @@ search_reply(For, Options) -->
 	  option(resultFormat(Format), Options, summary)
 	}, !,
 	html([ \new_search,
-	       h1(class(search), 'Search results')
+	       h1(class(search),
+		  ['Search results for ', span(class(for), For)])
 	     | \matches(Format, PerFile, Options)
 	     ]).
 search_reply(_For, _Options) -->
