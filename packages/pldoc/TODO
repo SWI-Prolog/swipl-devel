@@ -1,4 +1,4 @@
----+ PlDOc --- SWI-Prolog source documentation
+---+ TODO
 
 ---++ Status
 
@@ -12,34 +12,16 @@ Making solid progress.  remaining issues:
 	* Paragraphs in list-items
 	* Complete tag processing
 		- Combining multiple tags
-	* Do full structure parsing in @tag keywords?
 
 ---++ HTML generation
 
 	* Generate structure for the file/module [PARTIAL]
 
----++ Toplevel functionality:
+---++ Integrate with help/apropos
 
-	* End-user
-	
-		* doc_collect(+Bool).
-		* doc_server(?Port).
-		* doc_server(?Port, +Options).
-
-	* Programmer
-
-		* pldoc_comment(?Object, ?Pos, -Summary, -Comment).
-
-	  Comment is original string
-
-	* Can be combined with XREF info and/or normal meta-info
-	
-	* Gathering can also be hooked into XREF by loading pldoc
-	  and xref. [OK]
-
----++ Link to help/apropos
-
-	* Should also link to PceEmacs!
+	* Should also link to PceEmacs
+	* Search to manual
+	* Name/Arity must immediately link to manual.
 
 ---++ Quality assurance: comment style-check
 
@@ -48,11 +30,6 @@ Making solid progress.  remaining issues:
 	* Verify required tags (notable param)
 	* Verify declared @param exists
 	* Verify references name/arity point to existing code
-
----++ Web server
-
-	* Nicer source-file browser (AJAX hierarchy?)
-	* Integration with system documentation
 
 ---++ Notes on CSS:
 

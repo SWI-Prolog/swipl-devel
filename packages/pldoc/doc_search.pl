@@ -149,6 +149,7 @@ collect_by_key(_, L, [], L).
 
 matching_object(Search, File-Obj) :-
 	doc_comment(Obj, File:_Line, Summary, _Comment),
+	Obj \= _:module(_Title),		% HACK.  See ref_object//1
 	(   apropos_match(Search, Summary)
 	->  true
 	;   sub_term(S, Obj),

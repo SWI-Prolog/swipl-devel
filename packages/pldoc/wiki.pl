@@ -294,8 +294,9 @@ collect_tags([], []).
 collect_tags([Indent-[@,String|L0]|Lines], [Order-tag(Tag,Value)|Tags]) :-
 	tag_name(String, Tag, Order), !,
 	strip_leading_ws(L0, L),
-	append(L, VT, Value),
-	rest_tag(Lines, Indent, VT, [], RestLines),
+	rest_tag(Lines, Indent, VT, RestLines),
+	wiki_structure([0-L|VT], Value0),
+	strip_leading_par(Value0, Value),
 	collect_tags(RestLines, Tags).
 
 
@@ -316,13 +317,12 @@ tag_name(String, Tag, Order) :-
 	).
 
 
-rest_tag([], _, VT, VT, []) :- !.
-rest_tag(Lines, Indent, VT, VT, Lines) :-
+rest_tag([], _, [], []) :- !.
+rest_tag(Lines, Indent, [], Lines) :-
 	Lines = [Indent-[@,NameS|_]|_],
 	string(NameS), !.
-rest_tag([_-L|Lines0], Indent, VT0, VT, Lines) :-
-	append(['\n'|L], VT1, VT0),
-	rest_tag(Lines0, Indent, VT1, VT, Lines).
+rest_tag([L|Lines0], Indent, [L|VT], Lines) :-
+	rest_tag(Lines0, Indent, VT, Lines).
 
 
 %%	renamed_tag(+DepreciatedTag:atom, -Tag:atom) is semidet.

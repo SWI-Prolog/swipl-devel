@@ -896,7 +896,12 @@ term_to_string(Term, String) :-
 object(_M:PI) --> !,
 	pi(PI).
 object(PI) -->
-	pi(PI).
+	pi(PI), !.
+object(Module:module(_Title)) -->
+	{ current_module(Module, File),
+	  file_base_name(File, Base)
+	},
+	html(Base).
 
 pi(Name/Arity) --> !,
 	html([Name, /, Arity]).

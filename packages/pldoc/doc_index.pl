@@ -78,7 +78,8 @@ dir_index(Dir, Options) -->
 	html([ \doc_links(Dir, Options),
 	       \dir_header(Dir, Options),
 	       table(class(summary),
-		     \file_indices(Files, [directory(Dir)|Options]))
+		     \file_indices(Files, [directory(Dir)|Options])),
+	       \dir_footer(Dir, Options)
 	     ]).
 
 %%	dir_source_files(+Dir, -Files, +Options) is det
@@ -101,14 +102,28 @@ source_file_in_dir(Dir, File) :-
 %	Create header for directory
 
 dir_header(Dir, _Options) -->
-	readme(Dir), !.
+	wiki_file(Dir, readme), !.
 dir_header(Dir, _Options) -->
 	{ file_base_name(Dir, Base)
 	},
 	html(h1(class=dir, Base)).
 
-readme(Dir) -->
-	{ readme_file(Base),
+%%	dir_footer(+Dir, +Options)// is det.
+%
+%	Create footer for directory. The footer contains the =TODO= file
+%	if provided.
+
+dir_footer(Dir, _Options) -->
+	wiki_file(Dir, todo), !.
+dir_footer(_, _) -->
+	[].
+
+%%	wiki_file(+Dir, +Type) is semidet.
+%
+%	Include text from a Wiki text-file.
+
+wiki_file(Dir, Type) -->
+	{ wiki_file_type(Type, Base),
 	  concat_atom([Dir, /, Base], File),
 	  access_file(File, read), !,
 	  read_file_to_codes(File, String, []),
@@ -116,11 +131,17 @@ readme(Dir) -->
 	},
 	html(DOM).
 
-readme_file('README').
-readme_file('README.TXT').
+%%	wiki_file_type(+Category, -File) is nondet.
 
+wiki_file_type(readme, 'README').
+wiki_file_type(readme, 'README.TXT').
+wiki_file_type(todo,   'TODO').
+wiki_file_type(todo,   'TODO.TXT').
 
 %%	file_indices(+Files, +Options)// is det.
+%
+%	Provide a file-by-file index of the   contents of each member of
+%	Files.
 
 file_indices([], _) -->
 	[].
@@ -129,6 +150,8 @@ file_indices([H|T], Options) -->
 	file_indices(T, Options).
 	
 %%	file_index(+File, +Options)// is det.
+%
+%	Create an index for File.
 
 file_index(File, Options) -->
 	{ Pos = File:_Line,
@@ -188,7 +211,7 @@ object_summary(doc(Obj, _Pos, Summary), Options) --> !,
 	).
 object_summary(Obj, Options) -->
 	{ doc_comment(Obj, Pos, Summary, _Comment)
-	},
+	}, !,
 	object_summary(doc(Obj, Pos, Summary), Options).
 object_summary(_, _) -->
 	[].
