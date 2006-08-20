@@ -330,7 +330,11 @@ object(Obj, Pos, Comment, Mode0, Mode, Options) -->
 	  ->  Class = privdef		% private definition
 	  ;   Class = pubdef		% public definition
 	  ),
-	  DOM = [\pred_dt(Modes, Class, Options), dd(class=defbody, DOM1)],
+	  (   Obj = Module:_
+	  ->  POptions = [module(Module)|Options]
+	  ;   POptions = Options
+	  ),
+	  DOM = [\pred_dt(Modes, Class, POptions), dd(class=defbody, DOM1)],
 	  wiki_lines_to_dom(Lines1, Args, DOM0),
 	  strip_leading_par(DOM0, DOM1)
 	},
