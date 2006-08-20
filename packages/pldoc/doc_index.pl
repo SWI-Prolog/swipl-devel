@@ -165,6 +165,10 @@ file_index(File, Options) -->
 	     | \object_summaries(Objs, ModuleOptions)
 	     ]).
 
+%%	file_index_header(+File, +Options)// is det.
+%
+%	Create an entry in a summary-table for File.
+
 file_index_header(File, Options) -->
 	{ (   option(directory(Dir), Options),
 	      atom_concat(Dir, Local0, File),
@@ -184,6 +188,10 @@ file_index_header(File, Options) -->
 		     a(href(HREF), Local)
 		   ]))).
 
+
+%%	object_summaries(+Objects, +Options)// is det.
+%
+%	Create entries in a summary table for Objects.
 
 object_summaries([], _) -->
 	[].
@@ -221,7 +229,7 @@ object_summary(_, _) -->
 		 *	    NAVIGATION		*
 		 *******************************/
 	       
-%%	doc_links(+Directory, +Options) is det.
+%%	doc_links(+Directory, +Options)// is det.
 %
 %	Provide overview links and search facilities.
 
