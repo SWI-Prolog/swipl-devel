@@ -56,7 +56,30 @@ _after_ library(pldoc) has been loaded.
 %
 %	Start a documentation server in the  current Prolog process. The
 %	server is started in a seperate   thread.  Options are handed to
-%	http_server/2.
+%	http_server/2.  In  addition,   the    following   options   are
+%	recognised:
+%	
+%		* allow(HostOrIP)
+%		Allow connections from HostOrIP.  If HostOrIP is an atom
+%		it is matched to the hostname.  It if starts with a .,
+%		suffix match is done, matching the domain.  Finally it
+%		can be a term ip(A,B,C,D). See tcp_host_to_address/2 for
+%		details.
+%
+%		* deny(HostOrIP)
+%		See allow(HostOrIP).
+%	
+%	The predicate doc_server/1 is defined as below, which provides a
+%	good default for development.
+%	
+%	==
+%	doc_server(Port) :-
+%		doc_server(Port,
+%			   [ workers(1),
+%			     allow(localhost)
+%			   ]).
+%	==
+
 
 doc_server(Port) :-
 	doc_server(Port,

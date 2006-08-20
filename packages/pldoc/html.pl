@@ -839,7 +839,6 @@ pred_href(Name/Arity, Module, HREF) :-
 	->  format(string(HREF), '~w#~w', [File, EncId])
 	;   in_file(Module:Head, File)
 	->  format(string(HREF), '/doc~w#~w', [File, EncId])
-	;   HREF='#OOPS'		% TBD
 	).
 
 relative_file(Head, '') :-
