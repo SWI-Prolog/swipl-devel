@@ -374,6 +374,20 @@ reply('/man', Request) :-
 		   [ 'TBD: Documentation for ', b(PI)
 		   ]).
 
+%	/doc_for?object=Term
+%	
+%	Provide documentation for the given term
+
+reply('/doc_for', Request) :-
+	http_parameters(Request,
+			[ object(Atom, [])
+			]),
+	atom_to_term(Atom, Obj, _),
+	reply_page('Object documentation',
+		   [ \object_page(Obj, [])
+		   ]).
+
+
 %	/search?for=String
 %	
 %	Search for String

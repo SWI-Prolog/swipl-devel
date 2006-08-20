@@ -173,8 +173,7 @@ object_summaries([H|T], Options) -->
 
 
 object_summary(doc(Obj, _Pos, Summary), Options) --> !,
-	(   { pi(Obj, PI),
-	      wiki_string_to_dom(Summary, [], DOM0),
+	(   { wiki_string_to_dom(Summary, [], DOM0),
 	      strip_leading_par(DOM0, DOM),
 	      (	  private(Obj, Options)
 	      ->  Class = private		% private definition
@@ -182,7 +181,7 @@ object_summary(doc(Obj, _Pos, Summary), Options) --> !,
 	      )
 	    }
 	->  html(tr(class(Class),
-		    [ td(\predref(PI)),
+		    [ td(\object_ref(Obj, Options)),
 		      td(class(summary), DOM)
 		    ]))
 	;   []
@@ -193,12 +192,6 @@ object_summary(Obj, Options) -->
 	object_summary(doc(Obj, Pos, Summary), Options).
 object_summary(_, _) -->
 	[].
-
-pi(_:PI, PI) :- !, is_pi(PI).
-pi(PI, PI) :- is_pi(PI).
-
-is_pi(Name/Arity) :- atom(Name), integer(Arity).
-is_pi(Name//Arity) :- atom(Name), integer(Arity).
 
 
 		 /*******************************

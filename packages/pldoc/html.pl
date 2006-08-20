@@ -35,7 +35,8 @@
 	    				% Support doc_index
 	    doc_page_dom/3,		% +Title, +Body, -DOM
 	    print_html_head/1,		% +Stream
-	    predref/3,			% +PI, //
+	    predref/3,			% +PI //
+	    predref/4,			% +PI, Options //
 	    module_info/3,		% +File, +Options0, -Options
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
 	    edit_button/4,		% +File, +Options, //
@@ -44,7 +45,9 @@
 	    file/3,			% +File, //
 	    tags/3,			% +Tags, //
 	    file_header/4,		% +File, +Options, //
-	    objects/4			% +Objects, +Options, //
+	    objects/4,			% +Objects, +Options, //
+	    object_ref/4,		% +Object, +Options, //
+	    object_page/4		% +Object, +Options, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(option)).
@@ -58,8 +61,11 @@
 
 /** <module> PlDoc HTML backend
 
-This module translates the Herbrand term from the documentation
+This  module  translates  the  Herbrand   term  from  the  documentation
 extracting module wiki.pl into HTML+CSS.
+
+@tbd	Split put generation from computation as computation is reusable
+	in other backends.
 */
 
 		 /*******************************
@@ -190,22 +196,6 @@ private(Module:PI, _Options) :-
 file_info(Comments, RestComments, [file(Title, Comment)|Opts], Opts) :-
 	select(doc(_:module(Title),_,Comment), Comments, RestComments), !.
 file_info(Comments, Comments, Opts, Opts).
-
-
-%%	links(+File, +Options) is det.
-%
-%	Provide overview links and search facilities.
-
-links(_File, _Options) -->
-	html(div(class(navhdr),
-		 [ div(style('float:right'),
-		       [ \search_form
-		       ]),
-		   a(href('index.html'),
-		     img([ border=0,
-			   src('/up.gif')
-			 ]))
-		 ])).
 
 
 %%	file_header(+File, +Options)// is det.
@@ -445,6 +435,34 @@ pi(_:PI) :- !,
 	pi(PI).
 pi(_/_).
 pi(_//_).
+
+
+		 /*******************************
+		 *	SINGLE OBJECT PAGE	*
+		 *******************************/
+
+%%	object_page(+Obj, +Options)// is det.
+%
+%	Generate an HTML page describing Obj.  The top presents the file
+%	the object is documented in and a search-form.
+
+object_page(Obj, Options) -->
+	{ doc_comment(Obj, File:_Line, _Summary, _Comment),
+	  format(string(FileRef), '/doc~w', [File])
+	},
+	html([ div(class(navhdr),
+		   [ div(style('float:right'),
+			 [ \search_form
+			 ]),
+		     a(href(FileRef), File)
+		   ]),
+	       \objects([Obj], Options)
+	     ]).
+
+	
+
+
+
 
 
 		 /*******************************
@@ -742,7 +760,7 @@ pred_det(Det) -->
 
 %%	term(+Term, +Bindings)// is det.
 %
-%	Process the \term element.
+%	Process the \term element as produced by wiki.pl.
 %	
 %	@tbd	Properly merge with pred_head//1
 
@@ -764,6 +782,7 @@ term(Term, Bindings) -->
 		 *******************************/
 
 %%	predref(+PI)// is det.
+%%	predref(+PI, +Options)// is det.
 %
 %	Create a reference to a predicate. The reference consists of the
 %	relative path to the  file  using   the  predicate  indicator as
@@ -773,7 +792,15 @@ term(Term, Bindings) -->
 %	=pldoc_file=. If this variable not  set   it  creates  a link to
 %	/doc/<file>#anchor.  Such links only work in the online browser.
 
-predref(Name/Arity) -->
+predref(Term) -->
+	predref(Term, []).
+
+predref(M:Term, Options) --> !,
+	predref(Term, M, Options).
+predref(Term, Options) -->
+	predref(Term, _, Options).
+
+predref(Name/Arity, _, _Options) -->
 	{ functor(Term, Name, Arity),
 	  predicate_property(system:Term, built_in), !,
 	  format(string(FragmentId), '~w/~d', [Name, Arity]),
@@ -781,26 +808,36 @@ predref(Name/Arity) -->
 	  format(string(HREF), '/man?predicate=~w', [EncId])
 	},
 	html(a([class=builtin, href=HREF], [Name, /, Arity])).
-predref(Name/Arity) -->
-	{ pred_href(Name/Arity, HREF) }, !,
+predref(Obj, Module, Options) -->
+	{ doc_comment(Module:Obj, _, _, _)
+	}, !,
+	object_ref(Module:Obj, Options).
+predref(Name/Arity, Module, _Options) -->
+	{ pred_href(Name/Arity, Module, HREF) }, !,
 	html(a(href=HREF, [Name, /, Arity])).
-predref(Name//Arity) -->
+predref(Name//Arity, Module, _Options) -->
 	{ PredArity is Arity + 2,
-	  pred_href(Name/PredArity, HREF)
+	  pred_href(Name/PredArity, Module, HREF)
 	}, !,
 	html(a(href=HREF, [Name, //, Arity])).
-predref(Name/Arity) -->
+predref(Name/Arity, _, _Options) --> !,
 	html(span(class=undef, [Name, /, Arity])).
-predref(Name//Arity) -->
+predref(Name//Arity, _, _Options) --> !,
 	html(span(class=undef, [Name, //, Arity])).
+predref(Callable, Module, Options) -->
+	{ callable(Callable),
+	  functor(Callable, Name, Arity)
+	},
+	predref(Name/Arity, Module, Options).
 
-pred_href(Name/Arity, HREF) :-
+
+pred_href(Name/Arity, Module, HREF) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
 	www_form_encode(FragmentId, EncId),
 	functor(Head, Name, Arity),
-	(   catch(relative_file(Head, File), _, fail)
+	(   catch(relative_file(Module:Head, File), _, fail)
 	->  format(string(HREF), '~w#~w', [File, EncId])
-	;   in_file(Head, File)
+	;   in_file(Module:Head, File)
 	->  format(string(HREF), '/doc~w#~w', [File, EncId])
 	;   HREF='#OOPS'		% TBD
 	).
@@ -813,9 +850,63 @@ relative_file(Head, RelFile) :-
 	in_file(Head, DefFile),
 	relative_file_name(DefFile, CurrentFile, RelFile).
 	
+%%	object_ref(+Object, +Options)// is det.
+%
+%	Create a hyperlink to Object. Points to the /doc_for URL. Object
+%	is as the first argument of doc_comment/4.   Note  this can be a
+%	list of objects.
+
+object_ref([], _) --> !,
+	[].
+object_ref([H|T], Options) --> !,
+	object_ref(H, Options),
+	(   {T == []}
+	->  html(', '),
+	    object_ref(T, Options)
+	;   []
+	).
+object_ref(Obj, _Options) -->
+	{ term_to_string(Obj, String),
+	  www_form_encode(String, Enc),
+	  format(string(HREF), '/doc_for?object=~w', [Enc])
+	},
+	html(a(href(HREF), \object(Obj))).
+	
+term_to_string(Term, String) :-
+	State = state(-),
+	(   numbervars(Term, 0, _, [singletons(true)]),
+	    with_output_to(string(String),
+			   write_term(Term,
+				      [ numbervars(true),
+					quoted(true)
+				      ])),
+	    nb_setarg(1, State, String),
+	    fail
+	;   arg(1, State, String)
+	).
+
+%%	object(+Obj)// is det.
+%
+%	HTML description of documented Obj. Obj is as the first argument
+%	of doc_comment/4.
+
+object(_M:PI) --> !,
+	pi(PI).
+object(PI) -->
+	pi(PI).
+
+pi(Name/Arity) --> !,
+	html([Name, /, Arity]).
+pi(Name//Arity) -->
+	html([Name, //, Arity]).
+
 %%	in_file(+Head, ?File) is nondet.
 %
-%	@tbd: prefer local, then imported, then `just anywhere'
+%	File is the name of a file containing the Predicate Head.
+%	Head may be qualified with a module.
+%
+%	@tbd Prefer local, then imported, then `just anywhere'
+%	@tbd Look for documented and/or public predicates.
 
 in_file(Module:Head, File) :- !,
 	in_file(Module, Head, File).
