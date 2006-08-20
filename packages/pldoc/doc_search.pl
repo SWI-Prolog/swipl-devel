@@ -40,11 +40,18 @@
 
 /** <module> Search form and reply
 
+@tbd	Advanced search field
+
+		* Limit to a directory
+		* Whole-word search
+		* *and*, *or*, *not*, etc advanced syntax
+		* Specified fields: =name=, =summary=, =description=
 */
 
 %%	search_form//
 %
-%	Create a search button
+%	Create  a  search  input  field.  The   input  field  points  to
+%	=|/search?for=String|= on the current server.
 
 search_form -->
 	search_form('Search ').
@@ -57,9 +64,13 @@ search_form(Title) -->
 			      ], [])
 		      ]))).
 
-%%	search_reply(+Search, +Options) is det.
+%%	search_reply(+For, +Options)// is det.
 %
-%	Generate a reply searching for Search
+%	Generate a reply searching for For.  Options include
+%	
+%		* resultFormat(Format)
+%		If =summary= (default), produce a summary-table.  If
+%		=long=, produce full object descriptions.
 
 search_reply(For, Options) -->
 	{ search_doc(For, PerFile),

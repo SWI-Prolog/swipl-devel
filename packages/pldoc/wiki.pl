@@ -263,12 +263,9 @@ strip_ws_tokens(L0, L) :-
 strip_ws_tokens(L, L).
 
 
-ws_token --> [' '], !.
-ws_token --> ['\n'].
-
-
 %%	strip_leading_ws(+Tokens, -Stripped) is det.
 %
+%	Strip leading whitespace from a token list.
 
 strip_leading_ws([' '|T], T) :- !.
 strip_leading_ws(T, T).
@@ -287,6 +284,11 @@ tags(Lines, Tags) :-
 	collect_tags(Lines, Tags0),
 	keysort(Tags0, Tags1),
 	combine_tags(Tags1, Tags).
+
+%%	collect_tags(+IndentedLines, -Tags) is det
+%
+%	Create a list Order-tag(Tag,Tokens) for   each @tag encountered.
+%	Order is the desired position as defined by tag_order/2.
 
 collect_tags([], []).
 collect_tags([Indent-[@,String|L0]|Lines], [Order-tag(Tag,Value)|Tags]) :-
@@ -332,7 +334,7 @@ renamed_tag(exception, throws).
 
 %%	tag_order(+Tag:atom, -Order:int) is semidet.
 %
-%	Both declares the know tags and  their expected order. Currenrly
+%	Both declares the know tags and  their expected order. Currently
 %	the tags are forced into  this   order  without  warning. Future
 %	versions may issue a warning if the order is inconsistent.
 
@@ -355,7 +357,9 @@ tag_order(error,       2).
 %	Creates the final tag-list.  Tags is a list of
 %	
 %		* \params(List of param(Name, Descr))
-%		* \tag(Name, Value)
+%		* \tag(Name, Descr)
+%	
+%	Descr is a list of tokens.
 
 combine_tags([], []).
 combine_tags([_-tag(param, V1)|T0], [\params([P1|PL])|Tags]) :- !,
@@ -378,7 +382,7 @@ param_tags(T, [], T).
 		 *	       FACES		*
 		 *******************************/
 
-%%	wiki_faces(+Structure, +ArgNames, -HTML)
+%%	wiki_faces(+Structure, +ArgNames, -HTML) is det.
 %
 %	Given the wiki structure, analyse the content of the paragraphs,
 %	list items and gtable cells and apply font faces and links.

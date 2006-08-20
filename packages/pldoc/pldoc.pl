@@ -93,7 +93,10 @@ different setup.
 
 %%	doc_collect(+Bool) is det.
 %
-%	Switch collecting comments on/off.
+%	Switch collecting comments true/false.   This autoload predicate
+%	can be used to force loading  the   pldoc  library. In a typical
+%	development setup loading pldoc  is   normally  triggered  using
+%	doc_server/1.
 
 %%	pldoc_loading is semidet.
 %
