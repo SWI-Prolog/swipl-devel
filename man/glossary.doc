@@ -141,9 +141,10 @@ the \g{head}. If this argument is instantiated to an \g{atom},
 first argument may \g{unify} with the first argument of the \g{goal}.
 
     \glossitem{integer}
-Whole number. On most current machines, SWI-Prolog integers are
-represented as `32-bit signed values', ranging from -2147483648 to
-2147483647.  See also current_prolog_flag/2.
+Whole number.  On all implementations of SWI-Prolog integers are
+at least 64-bit signed values.  When linked to the GNU GMP library,
+integer arithmetic is unbounded.  See also current_prolog_flag/2,
+flags \const{bounded}, \const{max_integer} and \const{min_integer}.
 
     \glossitem{interpreted}
 As opposed to \g{compiled}, interpreted means the Prolog system attempts

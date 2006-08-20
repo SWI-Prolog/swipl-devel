@@ -41,7 +41,7 @@ L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[]]
 \end{code}
 
 In this case all edges are defined implicitly. The next example shows
-three unconnected edges: 
+three unconnected vertices: 
  
 \begin{code}
 ?- vertices_edges_to_ugraph([6,7,8],[1-3,2-4,4-5,1-5], L).
