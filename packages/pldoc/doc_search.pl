@@ -35,7 +35,7 @@
 	  ]).
 :- use_module(library('http/html_write')).
 :- use_module(process).
-:- use_module(html).
+:- use_module(doc_html).
 :- use_module(doc_index).
 
 /** <module> Search form and reply

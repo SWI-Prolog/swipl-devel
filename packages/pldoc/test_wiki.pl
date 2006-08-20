@@ -4,8 +4,8 @@
 :- use_module(pldoc).
 :- use_module(wiki).
 :- use_module(modes).
-:- use_module(html).
-:- use_module(http).
+:- use_module(doc_html).
+:- use_module(doc_http).
 :- use_module(library('http/html_write')).
 
 /** <module> PlDoc testing module

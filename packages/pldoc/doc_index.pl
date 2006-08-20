@@ -37,7 +37,7 @@
 	    doc_links/4			% +Directory, +Options, //
 	  ]).
 :- use_module(process).
-:- use_module(html).
+:- use_module(doc_html).
 :- use_module(wiki).
 :- use_module(doc_search).
 :- use_module(library('http/html_write')).
