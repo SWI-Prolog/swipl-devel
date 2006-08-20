@@ -51,7 +51,12 @@ web-server for the loaded project during program development.
 <LI><A HREF="#sec:7.1">7.1 Structuring conventions</A>
 <LI><A HREF="#sec:7.2">7.2 Text markup: fonts and links</A>
 </UL>
-<LI><A HREF="#sec:8"><B>8 Motivation of choices</B></A>
+<LI><A HREF="#sec:8"><B>8 Directory indices</B></A>
+<LI><A HREF="#sec:9"><B>9 Running the documentation system</B></A>
+<UL>
+<LI><A HREF="#sec:9.1">9.1 During development</A>
+</UL>
+<LI><A HREF="#sec:10"><B>10 Motivation of choices</B></A>
 </UL>
 
 <P>
@@ -82,7 +87,7 @@ as well as the team,
 </UL>
 
 <P>First, we describe the documentation system we developed for 
-SWI-Prolog. In <A HREF="#sec:motivation">section 8</A> we motivate our 
+SWI-Prolog. In <A HREF="#sec:motivation">section 10</A> we motivate our 
 main choices.
 
 <H2><A NAME="sec:2">2 Overview</A></H2>
@@ -393,6 +398,23 @@ lines that parse into a table-row together for a table. Example:
 </TABLE>
 
 <P>
+<DT><B>Section Headers</B><DD>
+Section headers are creates using one of the constructs below taken from 
+TWiki. Section headers are normally not used in the source-code, but can 
+be useful inside README and TODO files. See <A HREF="#sec:dirindex">section 
+8</A>.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+---+ Section level 1
+---++ Section level 2
+---+++ Section level 3
+---++++ Section level 4
+</PRE>
+</TABLE>
+
+<P>
 <DT><B>Code (verbatim)</B><DD>
 Verbatim is embedded between lines containing only <CODE>==</CODE>, as 
 shown in the example below. The indentation of the <CODE>==</CODE> must 
@@ -454,6 +476,8 @@ predicate </TD></TR>
 rule </TD></TR>
 <TR VALIGN=top><TD><TT>name.pl</TT></TD><TD>If &lt;<VAR>name</VAR>&gt;.pl 
 is the name of an existing file in the same directory, create a link. </TD></TR>
+<TR VALIGN=top><TD><TT>\bnfmetaurl </TT></TD><TD>Create a hyperlink to 
+URL. </TD></TR>
 <TR VALIGN=top><TD><TT>Word</TT></TD><TD>Capitalised words that appear 
 as argument-name are written in <VAR>Italic</VAR> </TD></TR>
 <TR VALIGN=top><TD><TT><VAR>Word: CVS</VAR> </TT></TD><TD>CVS expanded 
@@ -462,7 +486,74 @@ keyword. Typeset as the plain keyword value. </TD></TR>
 
 </CENTER>
 
-<H2><A NAME="sec:8">8 Motivation of choices</A></H2>
+<H2><A NAME="sec:8">8 Directory indices</A></H2>
+
+<A NAME="sec:dirindex"></A>
+
+<P>A directory index consists of the contents of the file <CODE>README</CODE> 
+(or <CODE>README.TXT</CODE>, followed by a table holding all currently 
+loaded source-files that appear below the given directory (i.e. traversal 
+is
+<EM>recursive</EM> and for each file a list of public predicates and 
+their descriptive summary. Finally, if a file <CODE>TODO</CODE> or <CODE>TODO.txt</CODE> 
+exists, use add its contents at the end of the directory index.
+
+<H2><A NAME="sec:9">9 Running the documentation system</A></H2>
+
+<A NAME="sec:running"></A>
+
+<H3><A NAME="sec:9.1">9.1 During development</A></H3>
+
+<P>To support the developer with an up-to-date version of the 
+documentation of both the application under development and the system 
+libraries the developer can start an HTTP documentation server using the 
+command
+<CODE>doc_server(?Port)</CODE>.
+
+<DL>
+
+<P>
+<DT><A NAME="doc_collect/1"><STRONG>doc_collect</STRONG>(<VAR>+Bool</VAR>)</A><DD>
+Enable/disable collecting structured comments into the Prolog database.
+
+<P>
+<DT><A NAME="doc_server/1"><STRONG>doc_server</STRONG>(<VAR>?Port</VAR>)</A><DD>
+Start documentation server at <VAR>Port</VAR>. Same as
+<CODE>doc_server(Port, [allow(localhost), workers(1)])</CODE>.
+
+<P>
+<DT><A NAME="doc_server/2"><STRONG>doc_server</STRONG>(<VAR>?Port, 
++Options</VAR>)</A><DD>
+Start documentation server at <VAR>Port</VAR> using <VAR>Options</VAR>. 
+Provided options are:
+
+<DL>
+
+<P>
+<DT><STRONG>allow</STRONG>(<VAR>+HostOrIP</VAR>)<DD>
+Allow connections from <VAR>HostOrIP</VAR>. If <VAR>Host</VAR> is an 
+atom starting with a '.', suffix matching is preformed. I.e. 
+<CODE>allow('.uva.nl')</CODE> grants access to all machines in this 
+domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><B>ip/4</B> 
+term. I.e. to allow access from the 10.0.0.X domain, specify
+<CODE>allow(ip(10,0,0,_))</CODE>.
+
+<P>
+<DT><STRONG>deny</STRONG>(<VAR>+HostOrIP</VAR>)<DD>
+Deny access from the given location. Matching is equal to the
+<CODE>allow</CODE> option.
+</DL>
+
+<P>Access is granted iff
+
+<P><UL COMPACT>
+<LI>Both <EM>deny</EM> and <EM>allow</EM> match
+<LI><EM>allow</EM> exists and matches
+<LI><EM>allow</EM> does not exit and <EM>deny</EM> does not match.
+</UL>
+</DL>
+
+<H2><A NAME="sec:10">10 Motivation of choices</A></H2>
 
 <A NAME="sec:motivation"></A>
 
@@ -557,7 +648,7 @@ high-quality PDF documents.
 
 <P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
-See <A HREF="#sec:motivation:modes">section 8</A>.
+See <A HREF="#sec:motivation:modes">section 10</A>.
 </DL>
 
 <H1><A NAME="document-index">Index</A></H1>
@@ -565,6 +656,13 @@ See <A HREF="#sec:motivation:modes">section 8</A>.
 <DL>
 
 <P>
+<DT><STRONG>D</STRONG><DD>
+<DT><A HREF="#doc_collect/1">doc_collect/1</A><DD>
+<DT><A HREF="#doc_server/1">doc_server/1</A><DD>
+<DT><A HREF="#doc_server/2">doc_server/2</A><DD>
+<DT><STRONG>I</STRONG><DD>
+<DT>ip/4<DD>
+<A HREF="#idx:ip4:3">9.1</A>
 <DT><STRONG>N</STRONG><DD>
 <DT>nb_setarg/3<DD>
 <A HREF="#idx:nbsetarg3:2">5</A>
