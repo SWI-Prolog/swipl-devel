@@ -40,7 +40,7 @@ that the vertices without edges will appear in \arg{Vertices} but not in
 L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[]]
 \end{code}
 
-In this case all edges are defined implicitly. The next example shows
+In this case all vertices are defined implicitly. The next example shows
 three unconnected vertices: 
  
 \begin{code}
