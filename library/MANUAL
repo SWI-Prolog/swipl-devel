@@ -6721,7 +6721,7 @@ nnuummbbeerrvvaarrss((_+_T_e_r_m_, _+_S_t_a_r_t_, _-_E
          variable and assign the next '$VAR'(N) term to  it or (default)
          error which raises the a type_error exception.
 
-    ssiinngglleettoonn((_+_B_o_o_l))
+    ssiinngglleettoonnss((_+_B_o_o_l))
          If   true  (default   false),   numbervars/4   does   singleton
          detection.   Singleton variables are unified with  '$VAR'('_'),
          causing  them  to  be  printed  as   _  by  write_term/2  using
@@ -16560,8 +16560,8 @@ vveerrttiicceess__eeddggeess__ttoo__uuggrraapphh((_+_
     ?- vertices_edges_to_ugraph([],[1-3,2-4,4-5,1-5], L).
     L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[]]
 
-    In  this case all  edges are defined implicitly.   The next  example
-    shows three unconnected edges:
+    In this case all  vertices are defined implicitly.  The next example
+    shows three unconnected vertices:
 
     ?- vertices_edges_to_ugraph([6,7,8],[1-3,2-4,4-5,1-5], L).
     L = [1-[3,5], 2-[4], 3-[], 4-[5], 5-[], 6-[], 7-[], 8-[]] ?
@@ -18520,9 +18520,10 @@ iinnddeexxiinngg
     argument of the _g_o_a_l.
 
 iinntteeggeerr
-    Whole  number.   On most current  machines, SWI-Prolog integers  are
-    represented  as `32-bit signed values', ranging from  -2147483648 to
-    2147483647.  See also current_prolog_flag/2.
+    Whole number.   On all implementations of SWI-Prolog integers are at
+    least  64-bit signed values.   When linked  to the GNU GMP  library,
+    integer  arithmetic is unbounded.    See also current_prolog_flag/2,
+    flags bounded, max_integer and min_integer.
 
 iinntteerrpprreetteedd
     As  opposed  to  _c_o_m_p_i_l_e_d,   interpreted  means  the  Prolog  system
