@@ -377,9 +377,6 @@ do_select_location([], Spec, _) :- !,
 	print_message(warning, edit(not_found(Spec))),
 	fail.
 do_select_location([Location-_Spec], _, Location) :- !.
-%select_location(Pairs, _, Location) :-
-%%	length(Pairs, N),
-%	N > 20, !,
 do_select_location(Pairs, _, Location) :-
 	print_message(help, edit(select)),
 	list_pairs(Pairs, 0, N),

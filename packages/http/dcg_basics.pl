@@ -58,6 +58,16 @@
 	  ]).
 
 
+/** <module> Various general DCG utilities
+
+This library provides various commonly  used   DCG  primitives acting on
+list  of  character  codes.  Character    classification   is  based  on
+code_type/2.
+
+@tbd	Try to achieve an accepted standard and move this into the
+	general SWI-Prolog library.  None of this is HTTP specific.
+*/
+
 %%	string_without(+End, -Codes)// is det.
 %	
 %	Take as many tokens from the input  until the next token appears
@@ -79,18 +89,25 @@ string_without(_, []) -->
 %	each time on backtracking. This code is normally followed by a
 %	test for a delimiter.
 
-string(String, In, Rest) :-
-	append(String, Rest, In).
+string([]) -->
+	[].
+string([H|T]) -->
+	[H],
+	string(T).
 
-%	blanks// is det.
+%%	blanks// is det.
 %	
-%	Skip 0 or more white-space characters.
+%	Skip zero or more white-space characters.
 
 blanks -->
 	blank, !,
 	blanks.
 blanks -->
 	[].
+
+%%	blank// is semidet.
+%
+%	Take next =space= character from input.
 
 blank -->
 	[C],
@@ -110,10 +127,19 @@ nonblanks([H|T]) -->
 nonblanks([]) -->
 	[].
 
+%%	nonblank(-Code)// is semidet.
+%
+%	Code is the next non-blank (=graph=) character.
+
 nonblank(H) -->
 	[H],
 	{ code_type(H, graph)
 	}.
+
+%%	blanks_to_nl// is semidet.
+%
+%	Take a sequence of blank//0 codes if banks are followed by a
+%	newline or end of the input.
 
 blanks_to_nl -->
 	"\n", !.
@@ -123,7 +149,7 @@ blanks_to_nl -->
 blanks_to_nl -->
 	eos.
 
-%	whites// is det.
+%%	whites// is det.
 %	
 %	Skip white space _inside_ a line.
 
@@ -132,6 +158,10 @@ whites -->
 	whites.
 whites -->
 	[].
+
+%%	white// is semidet.
+%
+%	Take next =white= character from input.
 
 white -->
 	[C],
@@ -207,43 +237,22 @@ int_codes([D0|D]) -->
 %	Process a floating  point  number.   The  actual  conversion  is
 %	controlled by number_codes/2.
 
+float(F, Head, Tail) :-
+	float(F), !,
+	with_output_to(codes(Head, Tail), write(F)).
 float(F) -->
-	{ float(F), !,
-	  number_codes(F, Chars)
-	},
-	string(Chars).
-float(F) -->
-	int_codes(I),
-	(   dot,
-	    digit(DF0),
-	    digits(DF)
-	->  {Fr = [0'., DF0|DF]}
-	;   {Fr = ""}
-	),
-	(   exp
-	->  int_codes(DI),
-	    {E=[0'e|DI]}
-	;   {E = ""}
-	),
-	{ (E \== "" ; Fr \== ""),
-	  flatten([I, Fr, E], Codes),
-	  number_codes(F, Codes)
-	}.
+	number(F),
+	{ float(F) }.
 
-sign(0'-) --> "-".
-sign(0'+) --> "+".
-	
-dot --> ".".
+%%	number(+Number)// is det.
+%%	number(-Number)// is semidet.
+%
+%	Generate extract a number. Handles   both  integers and floating
+%	point numbers.
 
-exp --> "e".
-exp --> "E".
-
-number(N) -->
-	{ nonvar(N), !,
-	  number(N),
-	  number_codes(N, Chars)
-	},
-	string(Chars).
+number(N, Head, Tail) :-
+	number(N), !,
+	format(codes(Head, Tail), '~w', N).
 number(N) -->
 	int_codes(I),
 	(   dot,
@@ -261,27 +270,47 @@ number(N) -->
 	  number_codes(N, Codes)
 	}.
 
+sign(0'-) --> "-".
+sign(0'+) --> "+".
+	
+dot --> ".".
+
+exp --> "e".
+exp --> "E".
 
 		 /*******************************
 		 *	    HEX NUMBERS		*
 		 *******************************/
 
-xinteger(Val) -->
-	{ integer(Val),
-	  sformat(S, '~16r', [Val]),
-	  string_to_list(S, Codes)
-	},
-	string(Codes).
+%%	xinteger(+Integer)// is det.
+%%	xinteger(-Integer)// is semidet.
+%
+%	Generate or extract an integer from   a  sequence of hexadecimal
+%	digits.
+
+xinteger(Val, Head, Tail) :-
+	integer(Val),
+	format(codes(Head, Tail), '~16r', [Val]).
 xinteger(Val) -->
 	xdigit(D0),
 	xdigits(D),
 	{ mkval([D0|D], 16, Val)
 	}.
 
+%%	xdigit(-Weight)// is semidet.
+%
+%	True if the next code is a  hexdecimal digit with Weight. Weight
+%	is between 0 and 15.
+
 xdigit(D) -->
 	[C],
 	{ code_type(C, xdigit(D))
 	}.
+
+%%	xdigits(-WeightList)// is det.
+%
+%	List of weights of a sequence of hexadecimal codes.  WeightList
+%	may be empty.
 
 xdigits([D0|D]) -->
 	xdigit(D0), !,
@@ -314,13 +343,11 @@ eos([], []).
 
 %%	atom(+Atom)// is det.
 %	
-%	Generate codes of Atom.
+%	Generate codes of Atom.  Current implementation uses write/1,
+%	dealing with any Prolog term.
 
-atom(Atom) -->
-	{ atomic(Atom),
-	  atom_codes(Atom, Codes)
-	},
-	string(Codes).
+atom(Atom, Head, Tail) :-
+	with_output_to(codes(Head, Tail), write(Atom)).
 
 
 
