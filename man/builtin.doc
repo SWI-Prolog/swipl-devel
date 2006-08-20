@@ -3291,7 +3291,7 @@ variable and assign the next \verb|'$VAR'|(N) term to it or (default)
 		  between David Reitter, Richard O'Keefe, Bart Demoen 
 		  and Tom Schrijvers.}
 
-	\termitem{singleton}{+Bool}
+	\termitem{singletons}{+Bool}
 If \const{true} (default \const{false}), numbervars/4 does singleton
 detection.  Singleton variables are unified with \verb|'$VAR'('_')|,
 causing them to be printed as \verb|_| by write_term/2 using the
