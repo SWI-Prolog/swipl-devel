@@ -82,8 +82,8 @@ search_reply(For, Options) -->
 		  ['Search results for ', span(class(for), ['"', For, '"'])])
 	     | \matches(Format, PerFile, Options)
 	     ]).
-search_reply(_For, _Options) -->
-	html([ \new_search,
+search_reply(_For, Options) -->
+	html([ \doc_links('', Options),
 	       h1(class(search), 'No matches')
 	     ]).
 
