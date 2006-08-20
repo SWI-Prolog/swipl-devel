@@ -1,81 +1,22 @@
 ---+ PlDOc --- SWI-Prolog source documentation
 
----++ Status
+The pldoc module processes structured comments   in Prolog source files.
+These  comments  can  be  saved   to    file.   During  development  the
+documentation system can start a web-server to view the documentation of
+loaded sources through your browser. The server   is defined in the file
+doc_http.pl and started through doc_server/1.
 
-Approach has been discussed with two external Prolog developers.
+During  development,  a  typical  scenario  is    to   first  start  the
+documentation server and start  a   browser  at <http://localhost:4000>.
+Note that by default the web-pages allow  for starting an editor only if
+the connection comes from =localhost=.  See   doc_server/2  to realise a
+different setup.
 
-Code is very imcomplete.  Development plan:
+==
+:- doc_server(4000).
+:- [application].
+==
 
----++ Wiki processor
-
-Making solid progress.  remaining issues:
-
-	* Tables in lists
-	* Paragraphs in list-items
-	* Complete tag processing
-		- Combining multiple tags
-	* Do full structure parsing in @tag keywords?
-
----++ HTML generation
-
-	* Generate structure for the file/module [PARTIAL]
-
----++ Toplevel functionality:
-
-	* End-user
-	
-		* doc_collect(+Bool).
-		* doc_server(?Port).
-		* doc_server(?Port, +Options).
-
-	* Programmer
-
-		* pldoc_comment(PredInd, -Comment).
-	  	* pldoc_comment(module(Module), -Comment).
-
-	  Comment is original string
-
-	* Can be combined with XREF info and/or normal meta-info
-	
-	* Gathering can also be hooked into XREF by loading pldoc
-	  and xref. [OK]
-
----++ Link to help/apropos
-
-	* Would also link to PceEmacs!
-	* Requires summary processing
-
----++ Summary extraction
-
-	* Extract first sentence from description. [OK]	
-
----++ Quality assurance: comment style-check
-
-	* Verify modes with first term (same name/arity)
-	* Verify summary (length)
-	* Verify required tags (notable param)
-	* Verify declared @param exists
-	* Verify references name/arity point to existing code
-
----++ Source processing
-
-	* Synchronise source processing between. library(prolog_source). [OK]
-		- XREF
-		- PceEmacs
-		- PlDoc
-
-	* Saving info in user:
-	  Warning: Redefined static procedure $mode/2
-
----++ Web server
-
-	* Search
-	* Nicer source-file browser (AJAX hierarchy?)
-	* Integration with system documentation
-	* Allow editing source
-
----++ Notes on CSS:
-
-	* See <http://www.htmldog.com/guides/cssbeginner/selectors/>
-
-@author	Jan Wielemaker
+@author  Jan Wielemaker
+@license LGPL
+@see	 doc_server/1, doc_server/2, doc_collect/1.
