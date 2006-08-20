@@ -63,6 +63,8 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  insert_quote		       = key('"'),
 	  insert_percent	       = key('%'),
 
+	  newline_and_indent	       = key('RET'),
+
 					% delete some things
 	  manual_entry		       = -button(help),
 	  find_tag		       = -button(browse),
