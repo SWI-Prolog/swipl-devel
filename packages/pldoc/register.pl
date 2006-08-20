@@ -50,6 +50,8 @@ pldoc_module(pldoc).
 :- dynamic
 	mydoc/3.			%  +Comments, +TermPos, +File
 
+do_comment_hook(_, _, _, _) :-
+	current_prolog_flag(pldoc_collecting, false), !.
 do_comment_hook(Comments, TermPos, File, _) :-
 	pldoc_loading, !,
 	assert(mydoc(Comments, TermPos, File)).

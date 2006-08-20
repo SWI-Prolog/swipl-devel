@@ -351,6 +351,13 @@ merge_locations([file(X)]-_, Loc-Spec, Loc-Spec) :-
 
 same_location(L, L, L).
 same_location([file(F1)], [file(F2)], [file(F)]) :-
+	best_same_file(F1, F2, F).
+same_location([file(F1),line(L)], [file(F2)], [file(F),line(L)]) :-
+	best_same_file(F1, F2, F).
+same_location([file(F1)], [file(F2),line(L)], [file(F),line(L)]) :-
+	best_same_file(F1, F2, F).
+
+best_same_file(F1, F2, F) :-
 	catch(same_file(F1, F2), _, fail), !,
 	atom_length(F1, L1),
 	atom_length(F2, L2),

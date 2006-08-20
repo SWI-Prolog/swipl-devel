@@ -60,9 +60,9 @@
 
 %%	string_without(+End, -Codes)// is det.
 %	
-%	Take as tokens from the input until the next token appears in
-%	End.  End itself is left on the input.  Typical use is to read
-%	upto a defined delimiter such as a newline or other reserved
+%	Take as many tokens from the input  until the next token appears
+%	in End. End itself is left on the  input. Typical use is to read
+%	upto a defined delimiter such  as   a  newline or other reserved
 %	character.
 
 string_without(Not, [C|T]) -->
@@ -97,6 +97,10 @@ blank -->
 	{ nonvar(C),
 	  code_type(C, space)
 	}.
+
+%%	nonblanks(-Codes)// is det.
+%
+%	Take all =graph= characters
 
 nonblanks([H|T]) -->
 	[H],
