@@ -56,8 +56,9 @@
 :- use_module(library(quintus)).
 
 version('0.97').			% for SWI-Prolog 5.6.18
-page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">\n\n').
 
+page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" \
+               "http://www.w3.org/TR/html4/strict.dtd">\n\n').
 :- dynamic			
 	html_output_dir/1,		% output relative to this dir
 	tex_file_base/1,		% Basename of the main file
