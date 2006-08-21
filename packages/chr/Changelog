@@ -1,3 +1,7 @@
+Aug 21, 2006
+
+  * TS: Fixed wrong arities in not inlined predicates. Mike Elston.
+
 Aug 18, 2006
 
   * TS: Code clean-up, more inlining, only generate used imports.
