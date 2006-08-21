@@ -39,7 +39,7 @@
 		 *	       MACROS		*
 		 *******************************/
 
-#(defitem(Class,Label),	[ html(Begin), Label,
+#(defitem(Class,Label),	[ html(Begin), Label, html('</DT>'),
 			  html('<DD class="defbody">')
 			]) :-
 	format(atom(Begin), '<DT class="~w">', [Class]).

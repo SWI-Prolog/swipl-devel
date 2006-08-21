@@ -2513,6 +2513,13 @@ is_begin(X, HTML) :-
 	;   sub_atom(HTML, N, _, _, '>')
 	).
 
+is_end(X, HTML) :-
+	atom(HTML),
+	sub_atom(HTML, 0, _, _, '</'),
+	sub_atom(HTML, 2, L, _, X),
+	N is L+2,
+	sub_atom(HTML, N, _, _, '>').
+
 
 implicit_par(html(Begin)) :-
 	implicit_par_tag(Tag),
@@ -2530,7 +2537,6 @@ implicit_par_tag('DD').
 implicit_par_tag('TABLE').
 implicit_par_tag('BLOCKQUOTE').
 %implicit_par_tag('CENTER').
-
 
 write_html([]) :- !.			% Unpack lists
 write_html([H|T]) :- !,
@@ -2728,6 +2734,7 @@ cmd_layout('<HR>',   1, 1).
 cmd_layout('<BR>',   0, 1). 
 cmd_layout('<LI>', 	 1, 0).
 cmd_layout('<DT>', 	 1, 0).
+cmd_layout('</DT>', 	 0, 1).
 cmd_layout('<UL>', 	 1, 1).
 cmd_layout('</UL>', 	 1, 1).
 cmd_layout('<TR>',       1, 0). 
