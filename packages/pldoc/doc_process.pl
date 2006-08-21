@@ -42,9 +42,9 @@
 
 user:file_search_path(pldoc, library(pldoc)).
 
-:- load_files([ pldoc(register),
-		pldoc(modes),
-		pldoc(wiki),
+:- load_files([ pldoc(doc_register),
+		pldoc(doc_modes),
+		pldoc(doc_wiki),
 		library(debug),
 		library(option),
 		library(lists),

@@ -39,7 +39,7 @@
 :- use_module(library('http/html_write')).
 :- use_module(library('http/mimetype')).
 :- use_module(library('debug')).
-:- use_module(pldoc(process)).
+:- use_module(pldoc(doc_process)).
 :- use_module(pldoc(doc_html)).
 :- use_module(pldoc(doc_index)).
 :- use_module(pldoc(doc_search)).

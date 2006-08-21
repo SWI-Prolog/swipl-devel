@@ -49,10 +49,10 @@ doc_collect(OnOff) :-
 
 :- doc_collect(true).
 
-:- load_files([ pldoc(process),
-		pldoc(register),
-		pldoc(modes),
-		pldoc(wiki),
+:- load_files([ pldoc(doc_process),
+		pldoc(doc_register),
+		pldoc(doc_modes),
+		pldoc(doc_wiki),
 		library(debug),
 		library(option),
 		library(lists),

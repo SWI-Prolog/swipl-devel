@@ -13,8 +13,8 @@ PLHOME=..\..
 
 LIBDIR=		$(PLBASE)\library\pldoc
 EXDIR=		$(PKGDOC)\examples\pldoc
-LIBPL=		doc_html.pl wiki.pl modes.pl register.pl process.pl \
-		doc_index.pl doc_search.pl
+LIBPL=		doc_html.pl doc_wiki.pl doc_modes.pl doc_register.pl \
+		doc_process.pl doc_index.pl doc_search.pl
 PUBPL=		pldoc.pl doc_http.pl
 SUPPORT=	pldoc.css pldoc.js \
 		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico \

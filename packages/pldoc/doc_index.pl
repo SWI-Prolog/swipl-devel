@@ -36,9 +36,9 @@
 	    file_index_header/4,	% +File, +Options, //
 	    doc_links/4			% +Directory, +Options, //
 	  ]).
-:- use_module(process).
+:- use_module(doc_process).
 :- use_module(doc_html).
-:- use_module(wiki).
+:- use_module(doc_wiki).
 :- use_module(doc_search).
 :- use_module(library('http/html_write')).
 :- use_module(library(readutil)).

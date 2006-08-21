@@ -53,9 +53,9 @@
 :- use_module(library(option)).
 :- use_module(library(url)).
 :- use_module(library('http/html_write')).
-:- use_module(process).
-:- use_module(modes).
-:- use_module(wiki).
+:- use_module(doc_process).
+:- use_module(doc_modes).
+:- use_module(doc_wiki).
 :- use_module(doc_search).
 :- use_module(doc_index).
 

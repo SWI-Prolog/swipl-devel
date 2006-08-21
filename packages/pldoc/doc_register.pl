@@ -32,7 +32,7 @@
 :- module(pldoc_register,
 	  [ process_stored_comments/0
 	  ]).
-:- use_module(process).
+:- use_module(doc_process).
 :- set_prolog_flag(generate_debug_info, false).
 
 pldoc_module(pldoc_modes).              % avoid recursive behaviour

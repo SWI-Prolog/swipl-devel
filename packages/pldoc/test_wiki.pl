@@ -2,8 +2,8 @@
 	  [ test/1
 	  ]).
 :- use_module(pldoc).
-:- use_module(wiki).
-:- use_module(modes).
+:- use_module(doc_wiki).
+:- use_module(doc_modes).
 :- use_module(doc_html).
 :- use_module(doc_http).
 :- use_module(library('http/html_write')).
