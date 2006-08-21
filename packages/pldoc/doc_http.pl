@@ -413,8 +413,9 @@ reply('/doc_for', Request) :-
 			[ object(Atom, [])
 			]),
 	atom_to_term(Atom, Obj, _),
-	reply_page('Object documentation',
-		   [ \object_page(Obj, [])
+	edit_options(Request, EditOptions),
+	reply_page(Atom,
+		   [ \object_page(Obj, EditOptions)
 		   ]).
 
 
@@ -430,7 +431,8 @@ reply('/search', Request) :-
 					       ])
 			]),
 	edit_options(Request, EditOptions),
-	reply_page('SWI-Prolog Search Results',
+	format(string(Title), 'Prolog search -- ~w', [For]),
+	reply_page(Title,
 		   [ \search_reply(For,
 				   [ resultFormat(Format)
 				   | EditOptions
