@@ -72,9 +72,9 @@ extracting module wiki.pl into HTML+CSS.
 		 *	 FILE PROCESSING	*
 		 *******************************/
 
-%%	doc_for_file(+File, +Out, +Options) is det
+%%	doc_for_file(+File, +Out:stream, +Options) is det
 %
-%	Write documentation for File to out in HTML.  Options:
+%	Write documentation for File to Out in HTML.  Options:
 %	
 %		* public_only(+Bool)
 %		If =true= (default), only emit documentation for

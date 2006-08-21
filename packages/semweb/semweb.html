@@ -2,7 +2,25 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog/XPCE Semantic Web Library</TITLE>
+<TITLE>SWI-Prolog/XPCE Semantic Web Library</TITLE><style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+} 
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+} 
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+</style>
 </HEAD>
 <BODY BGCOLOR="white"> 
 <BLOCKQUOTE>
@@ -122,8 +140,6 @@ of XPCE modules visualise and edit the database. Figure <A HREF="#fig:modules">f
 <CENTER>
 <IMG SRC="modules.gif">
 </CENTER>
-
-<P>
 <TABLE ALIGN=center WIDTH="75%"><TR><TD>
 <B>Figure 1 : </B>Modules for the Semantic Web library</TABLE>
 
@@ -160,10 +176,8 @@ make case-insensitive queries fully indexed. See <A NAME="idx:rdf3:2"></A><A HRE
 <A NAME="sec:rdfquery"></A>
 
 <DL>
-
-<P>
-<DT><A NAME="rdf/3"><STRONG>rdf</STRONG>(<VAR>?Subject, ?Predicate, 
-?Object</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf/3"><STRONG>rdf</STRONG>(<VAR>?Subject, 
+?Predicate, ?Object</VAR>)</A><DD class="defbody">
 Elementary query for triples. <VAR>Subject</VAR> and <VAR>Predicate</VAR> 
 are atoms representing the fully qualified URL of the resource. <VAR>Object</VAR> 
 is either an atom representing a resource or <CODE>literal(Value)</CODE> 
@@ -176,20 +190,14 @@ a performance penalty. See also
 following forms:
 
 <DL>
-
-<P>
-<DT><STRONG>Atom</STRONG><DD>
+<DT><STRONG>Atom</STRONG><DD class="defbody">
 If the value is a simple atom it is the textual representation of a 
 string literal without explicit type or language (<CODE>xml:lang</CODE>) 
 qualifier.
-
-<P>
-<DT><STRONG>lang</STRONG>(<VAR>LangID, Atom</VAR>)<DD>
+<DT><STRONG>lang</STRONG>(<VAR>LangID, Atom</VAR>)<DD class="defbody">
 <VAR>Atom</VAR> represents the text of a string literal qualified with 
 the given language.
-
-<P>
-<DT><STRONG>type</STRONG>(<VAR>TypeID, Value</VAR>)<DD>
+<DT><STRONG>type</STRONG>(<VAR>TypeID, Value</VAR>)<DD class="defbody">
 Used for attributes qualified using the <CODE>rdf:datatype</CODE>
 <VAR>TypeID</VAR>. The <VAR>Value</VAR> is either the textual 
 representation or a natural Prolog representation. See the option
@@ -205,29 +213,19 @@ the terms below. Details of literal matching and indexing are described
 in <A HREF="#sec:litindex">section 3.1.1</A>.
 
 <DL>
-
-<P>
-<DT><STRONG>exact</STRONG>(<VAR>+Text</VAR>)<DD>
+<DT><STRONG>exact</STRONG>(<VAR>+Text</VAR>)<DD class="defbody">
 Perform exact, but case-insensitive match. This query is fully indexed.
-
-<P>
-<DT><STRONG>substring</STRONG>(<VAR>+Text</VAR>)<DD>
+<DT><STRONG>substring</STRONG>(<VAR>+Text</VAR>)<DD class="defbody">
 Match any literal that contains <VAR>Text</VAR> as a case-insensitive 
 substring. The query is not indexed on <VAR>Object</VAR>.
-
-<P>
-<DT><STRONG>word</STRONG>(<VAR>+Text</VAR>)<DD>
+<DT><STRONG>word</STRONG>(<VAR>+Text</VAR>)<DD class="defbody">
 Match any literal that contains <VAR>Text</VAR> delimited by a non 
 alpha-numeric character, the start or end of the string. The query is 
 not indexed on <VAR>Object</VAR>.
-
-<P>
-<DT><STRONG>prefix</STRONG>(<VAR>+Text</VAR>)<DD>
+<DT><STRONG>prefix</STRONG>(<VAR>+Text</VAR>)<DD class="defbody">
 Match any literal that starts with <VAR>Text</VAR>. This call is 
 intended for <EM>completion</EM>. The query is not indexed on <VAR>Object</VAR>.
-
-<P>
-<DT><STRONG>like</STRONG>(<VAR>+Pattern</VAR>)<DD>
+<DT><STRONG>like</STRONG>(<VAR>+Pattern</VAR>)<DD class="defbody">
 Match any literal that matches <VAR>Pattern</VAR> case insensitively, 
 where the `*' character in <VAR>Pattern</VAR> matches zero or more 
 characters.
@@ -240,22 +238,16 @@ type-error if called with improper arguments. If <A NAME="idx:rdf3:6"></A><A HRE
 is called with a term
 <CODE>literal(_)</CODE> as <VAR>Subject</VAR> or <VAR>Predicate</VAR> 
 object it fails silently. This allows for graph matching goals like
-<CODE>rdf(S,P,O),rdf(O,P2,O2)</CODE> to proceed without errors.<A NAME=back-to-note-2 HREF="semweb.html#note-2"> (2)</A>
-
-<P>
-<DT><A NAME="rdf/4"><STRONG>rdf</STRONG>(<VAR>?Subject, ?Predicate, 
-?Object, ?Source</VAR>)</A><DD>
+<CODE>rdf(S,P,O),rdf(O,P2,O2)</CODE> to proceed without errors.<A NAME=back-to-note-2 HREF="semweb.html#note-2"> (2)</A><DT class="pubdef"><A NAME="rdf/4"><STRONG>rdf</STRONG>(<VAR>?Subject, 
+?Predicate, ?Object, ?Source</VAR>)</A><DD class="defbody">
 As <A NAME="idx:rdf3:7"></A><A HREF="#rdf/3">rdf/3</A> but in addition 
 return the source-location of the triple. The source is either a plain 
 atom or a term of the format
 <CODE>Atom : Integer</CODE> where <VAR>Atom</VAR> is intended to be used 
 as filename or URL and <VAR>Integer</VAR> for representing the 
 line-number. Unlike <A NAME="idx:rdf3:8"></A><A HREF="#rdf/3">rdf/3</A>, 
-this predicate does not remove duplicates from the result set.
-
-<P>
-<DT><A NAME="rdf_has/4"><STRONG>rdf_has</STRONG>(<VAR>?Subject, 
-?Predicate, ?Object, -TriplePred</VAR>)</A><DD>
+this predicate does not remove duplicates from the result set.<DT class="pubdef"><A NAME="rdf_has/4"><STRONG>rdf_has</STRONG>(<VAR>?Subject, 
+?Predicate, ?Object, -TriplePred</VAR>)</A><DD class="defbody">
 This query exploits the RDFS <CODE>subPropertyOf</CODE> relation. It 
 returns any triple whose stored predicate equals <VAR>Predicate</VAR> or 
 can reach this by following the recursive <VAR>subPropertyOf</VAR> 
@@ -264,26 +256,17 @@ The example below gets all subclasses of an RDFS (or OWL) class, even if
 the relation used is not <CODE>rdfs:subClassOf</CODE>, but a 
 user-defined sub-property thereof.<A NAME=back-to-note-3 HREF="semweb.html#note-3"> (3)</A>
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 subclasses(Class, SubClasses) :-
         findall(S, rdf_has(S, rdfs:subClassOf, Class), SubClasses).
 </PRE>
-</TABLE>
 
 <P>Note that <A NAME="idx:rdfhas4:9"></A><A HREF="#rdf_has/4">rdf_has/4</A> 
 and <A NAME="idx:rdfhas3:10"></A><A HREF="#rdf_has/3">rdf_has/3</A> can 
-return duplicate answers if they use a different <VAR>TriplePred</VAR>.
-
-<P>
-<DT><A NAME="rdf_has/3"><STRONG>rdf_has</STRONG>(<VAR>?Subject, 
-?Predicate, ?Object</VAR>)</A><DD>
-Same as <CODE>rdf_has(Subject, Predicate, Object, _)</CODE>.
-
-<P>
-<DT><A NAME="rdf_reachable/3"><STRONG>rdf_reachable</STRONG>(<VAR>?Subject, 
-+Predicate, ?Object</VAR>)</A><DD>
+return duplicate answers if they use a different <VAR>TriplePred</VAR>.<DT class="pubdef"><A NAME="rdf_has/3"><STRONG>rdf_has</STRONG>(<VAR>?Subject, 
+?Predicate, ?Object</VAR>)</A><DD class="defbody">
+Same as <CODE>rdf_has(Subject, Predicate, Object, _)</CODE>.<DT class="pubdef"><A NAME="rdf_reachable/3"><STRONG>rdf_reachable</STRONG>(<VAR>?Subject, 
++Predicate, ?Object</VAR>)</A><DD class="defbody">
 Is true if <VAR>Object</VAR> can be reached from <VAR>Subject</VAR> 
 following the transitive predicate <VAR>Predicate</VAR> or a 
 sub-property thereof. When used with either <VAR>Subject</VAR> or <VAR>Object</VAR> 
@@ -297,9 +280,7 @@ A call with both <VAR>Subject</VAR> and <VAR>Object</VAR> unbound raises
 an instantiation error. The following example generates all subclasses 
 of <CODE>rdfs:Resource</CODE>:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 ?- rdf_reachable(X, rdfs:subClassOf, rdfs:'Resource').
 
 X = 'http://www.w3.org/2000/01/rdf-schema#Resource' ;
@@ -310,10 +291,8 @@ X = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property' ;
 
 ...
 </PRE>
-</TABLE>
 
-<P>
-<DT><A NAME="rdf_subject/1"><STRONG>rdf_subject</STRONG>(<VAR>?Subject</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_subject/1"><STRONG>rdf_subject</STRONG>(<VAR>?Subject</VAR>)</A><DD class="defbody">
 Enumerate resources appearing as a subject in a triple. The main reason 
 for this predicate is to generate the known subjects <EM>without 
 duplicates</EM> as one gets using <CODE>rdf(Subject, _, _)</CODE>.
@@ -383,56 +362,37 @@ reasoning inside the kernel of the rdb_db engine. Note that
 are not yet supported by the rest of the engine.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_current_predicate/1"><STRONG>rdf_current_predicate</STRONG>(<VAR>?Predicate</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_current_predicate/1"><STRONG>rdf_current_predicate</STRONG>(<VAR>?Predicate</VAR>)</A><DD class="defbody">
 Enumerate all defined predicates. Behaves as the code below, but much 
 more efficient.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 rdf_current_predicate(Predicate) :-
         findall(P, rdf(_,P,_), Ps),
         sort(Ps, S),
         member(Predicate, S).
 </PRE>
-</TABLE>
 
-<P>
-<DT><A NAME="rdf_set_predicate/2"><STRONG>rdf_set_predicate</STRONG>(<VAR>+Predicate, 
-+Property</VAR>)</A><DD>
-Define a property of the predicate. Defined properties are listed with <A NAME="idx:rdfpredicateproperty2:12"></A><A HREF="#rdf_predicate_property/2">rdf_predicate_property/2</A>.
-
-<P>
-<DT><A NAME="rdf_predicate_property/2"><STRONG>rdf_predicate_property</STRONG>(<VAR>?Predicate, 
--Property</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_set_predicate/2"><STRONG>rdf_set_predicate</STRONG>(<VAR>+Predicate, 
++Property</VAR>)</A><DD class="defbody">
+Define a property of the predicate. Defined properties are listed with <A NAME="idx:rdfpredicateproperty2:12"></A><A HREF="#rdf_predicate_property/2">rdf_predicate_property/2</A>.<DT class="pubdef"><A NAME="rdf_predicate_property/2"><STRONG>rdf_predicate_property</STRONG>(<VAR>?Predicate, 
+-Property</VAR>)</A><DD class="defbody">
 Query properties of a defined predicate. Currently defined properties 
 are given below.
 
 <DL>
-
-<P>
-<DT><STRONG>symmetric</STRONG>(<VAR>Bool</VAR>)<DD>
+<DT><STRONG>symmetric</STRONG>(<VAR>Bool</VAR>)<DD class="defbody">
 True if the predicate is defined to be symetric. I.e. 
 {A} P {B} implies {B} P {A}.
-
-<P>
-<DT><STRONG>inverse_of</STRONG>(<VAR>Inverse</VAR>)<DD>
+<DT><STRONG>inverse_of</STRONG>(<VAR>Inverse</VAR>)<DD class="defbody">
 True if this predicate is the inverse of <VAR>Inverse</VAR>.
-
-<P>
-<DT><STRONG>transitive</STRONG>(<VAR>Bool</VAR>)<DD>
+<DT><STRONG>transitive</STRONG>(<VAR>Bool</VAR>)<DD class="defbody">
 True if this predicate is transitive.
-
-<P>
-<DT><STRONG>triples</STRONG>(<VAR>Triples</VAR>)<DD>
+<DT><STRONG>triples</STRONG>(<VAR>Triples</VAR>)<DD class="defbody">
 Unify <VAR>Triples</VAR> with the number of existing triples using this 
 predicate as second argument. Reporting the number of triples is 
 intended to support query optimization.
-
-<P>
-<DT><STRONG>rdf_subject_branch_factor</STRONG>(<VAR>-Float</VAR>)<DD>
+<DT><STRONG>rdf_subject_branch_factor</STRONG>(<VAR>-Float</VAR>)<DD class="defbody">
 Unify <VAR>Float</VAR> with the average number of triples associated 
 with each unique value for the subject-side of this relation. If there 
 are no triples the value 0.0 is returned. This value is cached with the 
@@ -440,22 +400,16 @@ predicate and recomputed only after substantial changes to the triple
 set associated to this relation. This property is indented for path 
 optimalisation when solving conjunctions of <A NAME="idx:rdf3:13"></A><A HREF="#rdf/3">rdf/3</A> 
 goals.
-
-<P>
-<DT><STRONG>rdf_object_branch_factor</STRONG>(<VAR>-Float</VAR>)<DD>
+<DT><STRONG>rdf_object_branch_factor</STRONG>(<VAR>-Float</VAR>)<DD class="defbody">
 Unify <VAR>Float</VAR> with the average number of triples associated 
 with each unique value for the object-side of this relation. In addition 
 to the comments with the subject_branch_factor property, uniqueness of 
 the object value is computed from the hash key rather than the actual 
 values.
-
-<P>
-<DT><STRONG>rdfs_subject_branch_factor</STRONG>(<VAR>-Float</VAR>)<DD>
+<DT><STRONG>rdfs_subject_branch_factor</STRONG>(<VAR>-Float</VAR>)<DD class="defbody">
 Same as rdf_subject_branch_factor/1 , but also considering triples of 
 `subPropertyOf' this relation. See also <A NAME="idx:rdfhas3:14"></A><A HREF="#rdf_has/3">rdf_has/3</A>.
-
-<P>
-<DT><STRONG>rdfs_object_branch_factor</STRONG>(<VAR>-Float</VAR>)<DD>
+<DT><STRONG>rdfs_object_branch_factor</STRONG>(<VAR>-Float</VAR>)<DD class="defbody">
 Same as rdf_object_branch_factor/1 , but also considering triples of 
 `subPropertyOf' this relation. See also <A NAME="idx:rdfhas3:15"></A><A HREF="#rdf_has/3">rdf_has/3</A>.
 </DL>
@@ -477,10 +431,8 @@ layer must <EM>never</EM> use the predicates from this section directly.
 <A NAME="sec:modpreds"></A>
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_assert/3"><STRONG>rdf_assert</STRONG>(<VAR>+Subject, 
-+Predicate, +Object</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_assert/3"><STRONG>rdf_assert</STRONG>(<VAR>+Subject, 
++Predicate, +Object</VAR>)</A><DD class="defbody">
 Assert a new triple into the database. This is equivalent to
 <A NAME="idx:rdfassert4:16"></A><A HREF="#rdf_assert/4">rdf_assert/4</A> 
 using <VAR>SourceRef</VAR> <CODE>user</CODE>. <VAR>Subject</VAR> and
@@ -488,66 +440,45 @@ using <VAR>SourceRef</VAR> <CODE>user</CODE>. <VAR>Subject</VAR> and
 resource or a term <CODE>literal(Value)</CODE>. See <A NAME="idx:rdf3:17"></A><A HREF="#rdf/3">rdf/3</A> 
 for an explanation of <VAR>Value</VAR> for typed and language qualified 
 literals. All arguments are subject to name-space expansion (see <A HREF="#sec:rdfns">section 
-3.5</A>).
-
-<P>
-<DT><A NAME="rdf_assert/4"><STRONG>rdf_assert</STRONG>(<VAR>+Subject, 
-+Predicate, +Object, +SourceRef</VAR>)</A><DD>
+3.5</A>).<DT class="pubdef"><A NAME="rdf_assert/4"><STRONG>rdf_assert</STRONG>(<VAR>+Subject, 
++Predicate, +Object, +SourceRef</VAR>)</A><DD class="defbody">
 As <A NAME="idx:rdfassert3:18"></A><A HREF="#rdf_assert/3">rdf_assert/3</A>, 
 adding <VAR>SourceRef</VAR> to specify the orgin of the triple. <VAR>SourceRef</VAR> 
 is either an atom or a term of the format
 <VAR>Atom</VAR>:<VAR>Int</VAR> where <VAR>Atom</VAR> normally refers to 
 a filename and <VAR>Int</VAR> to the line-number where the description 
-starts.
-
-<P>
-<DT><A NAME="rdf_retractall/3"><STRONG>rdf_retractall</STRONG>(<VAR>?Subject, 
-?Predicate, ?Object</VAR>)</A><DD>
+starts.<DT class="pubdef"><A NAME="rdf_retractall/3"><STRONG>rdf_retractall</STRONG>(<VAR>?Subject, 
+?Predicate, ?Object</VAR>)</A><DD class="defbody">
 Removes all matching triples from the database. Previous Prolog 
 implementations also provided a backtracking <B>rdf_retract/3</B>, but 
 this proved to be rarely used and could always be replaced with
 <A NAME="idx:rdfretractall3:19"></A><A HREF="#rdf_retractall/3">rdf_retractall/3</A>. 
 As <A NAME="idx:rdfretractall4:20"></A><A HREF="#rdf_retractall/4">rdf_retractall/4</A> 
-using an unbound <VAR>SourceRef</VAR>.
-
-<P>
-<DT><A NAME="rdf_retractall/4"><STRONG>rdf_retractall</STRONG>(<VAR>?Subject, 
-?Predicate, ?Object, ?SourceRef</VAR>)</A><DD>
+using an unbound <VAR>SourceRef</VAR>.<DT class="pubdef"><A NAME="rdf_retractall/4"><STRONG>rdf_retractall</STRONG>(<VAR>?Subject, 
+?Predicate, ?Object, ?SourceRef</VAR>)</A><DD class="defbody">
 As <A NAME="idx:rdfretractall4:21"></A><A HREF="#rdf_retractall/4">rdf_retractall/4</A>, 
 also matching on the <VAR>SourceRef</VAR>. This is particulary useful to 
-update all triples coming from a loaded file.
-
-<P>
-<DT><A NAME="rdf_update/4"><STRONG>rdf_update</STRONG>(<VAR>+Subject, 
-+Predicate, +Object, +Action</VAR>)</A><DD>
+update all triples coming from a loaded file.<DT class="pubdef"><A NAME="rdf_update/4"><STRONG>rdf_update</STRONG>(<VAR>+Subject, 
++Predicate, +Object, +Action</VAR>)</A><DD class="defbody">
 Replaces one of the three fields on the matching triples depending on <VAR>Action</VAR>:
 
 <DL>
-
-<P>
-<DT><STRONG>subject</STRONG>(<VAR>Resource</VAR>)<DD>
+<DT><STRONG>subject</STRONG>(<VAR>Resource</VAR>)<DD class="defbody">
 Changes the first field of the triple.
-
-<P>
-<DT><STRONG>predicate</STRONG>(<VAR>Resource</VAR>)<DD>
+<DT><STRONG>predicate</STRONG>(<VAR>Resource</VAR>)<DD class="defbody">
 Changes the second field of the triple.
-
-<P>
-<DT><STRONG>object</STRONG>(<VAR>Object</VAR>)<DD>
+<DT><STRONG>object</STRONG>(<VAR>Object</VAR>)<DD class="defbody">
 Changes the last field of the triple to the given resource or
 <CODE>literal(Value)</CODE>.
-
-<P>
-<DT><STRONG>source</STRONG>(<VAR>Source</VAR>)<DD>
+<DT><STRONG>source</STRONG>(<VAR>Source</VAR>)<DD class="defbody">
 Changes the source location (<EM>payload</EM>). Note that updating the 
 source has no consequences for the semantics and therefore the
 <EM>generation</EM> (see <A NAME="idx:rdfgeneration1:22"></A><A HREF="#rdf_generation/1">rdf_generation/1</A>) 
 is <EM>not</EM> updated.
 </DL>
 
-<P>
-<DT><A NAME="rdf_update/5"><STRONG>rdf_update</STRONG>(<VAR>+Subject, 
-+Predicate, +Object, +Source,+Action</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_update/5"><STRONG>rdf_update</STRONG>(<VAR>+Subject, 
++Predicate, +Object, +Source,+Action</VAR>)</A><DD class="defbody">
 As <A NAME="idx:rdfupdate4:23"></A><A HREF="#rdf_update/4">rdf_update/4</A> 
 but allows for specifying the source.
 
@@ -569,9 +500,7 @@ database and asserting new triples that can be deduced from the already
 existing ones. For example, <EM>if <VAR>length(X) &gt; 2</VAR> then 
 size(X) is large</EM>:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
         (   rdf(X, length, literal(L)),
             atom_number(L, IL),
             IL &gt; 2,
@@ -580,7 +509,6 @@ size(X) is large</EM>:
         ;   true
         ).
 </PRE>
-</TABLE>
 
 <P>Running this code without precautions causes an error because
 <A NAME="idx:rdfassert3:25"></A><A HREF="#rdf_assert/3">rdf_assert/3</A> 
@@ -606,9 +534,7 @@ call leaves a choicepoint and as the read lock originates from the
 calling thread itself the system will deadlock if it would not generate 
 an exception.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 1 ?- rdf_assert(a,b,c).
  
 Yes
@@ -620,21 +546,13 @@ ERROR: No permission to write rdf_db `default' (Operation would deadlock)
 ^  Exception: (8) rdf_db:rdf_transaction(rdf_assert(a, b, e)) ? no debug
 4 ?-
 </PRE>
-</TABLE>
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_transaction/1"><STRONG>rdf_transaction</STRONG>(<VAR>:Goal</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_transaction/1"><STRONG>rdf_transaction</STRONG>(<VAR>:Goal</VAR>)</A><DD class="defbody">
 Same as 
-
-<P>
-<DT><STRONG>rdf_transaction</STRONG>(<VAR>Goal, <CODE>user</CODE></VAR>)<DD>
-.
-
-<P>
-<DT><A NAME="rdf_transaction/2"><STRONG>rdf_transaction</STRONG>(<VAR>:Goal, 
-+Id</VAR>)</A><DD>
+<DT><STRONG>rdf_transaction</STRONG>(<VAR>Goal, <CODE>user</CODE></VAR>)<DD class="defbody">
+.<DT class="pubdef"><A NAME="rdf_transaction/2"><STRONG>rdf_transaction</STRONG>(<VAR>:Goal, 
++Id</VAR>)</A><DD class="defbody">
 After starting a transaction, all predicates from <A HREF="#sec:modpreds">section 
 3.3.1</A> append their operation to the <EM>transaction</EM> instead of 
 modifying the database. If <VAR>Goal</VAR> succeeds rdf_transaction cuts 
@@ -669,9 +587,7 @@ described in <A HREF="#sec:rdffastfile">section 3.4.2</A>. Here are the
 predicates for portable RDF load and save.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_load/1"><STRONG>rdf_load</STRONG>(<VAR>+InOrList</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_load/1"><STRONG>rdf_load</STRONG>(<VAR>+InOrList</VAR>)</A><DD class="defbody">
 Load triples from <VAR>In</VAR>, which is either a stream opened for 
 reading, an atom specifying a filename or a list of valid inputs. This 
 predicate calls <A NAME="idx:processrdf3:33"></A><B>process_rdf/3</B> to 
@@ -683,76 +599,55 @@ provides for caching the results for quick-load using
 described below. Caching is activated by creating a directory <CODE>.cache</CODE> 
 (or <CODE>_cache</CODE> on Windows) in the directory holding the <CODE>.rdf</CODE> 
 files. Cached RDF files are loaded at approx. 25 times the speed of 
-RDF-XML files.
-
-<P>
-<DT><A NAME="rdf_load/2"><STRONG>rdf_load</STRONG>(<VAR>+FileOrList, 
-+Options</VAR>)</A><DD>
+RDF-XML files.<DT class="pubdef"><A NAME="rdf_load/2"><STRONG>rdf_load</STRONG>(<VAR>+FileOrList, 
++Options</VAR>)</A><DD class="defbody">
 As <A NAME="idx:rdfload1:36"></A><A HREF="#rdf_load/1">rdf_load/1</A>, 
 providing additional options. The options are handed to the RDF parser 
 and implemented by <A NAME="idx:processrdf3:37"></A><B>process_rdf/3</B>. 
 In addition, the following options are provided:
 
 <DL>
-
-<P>
-<DT><STRONG>silent</STRONG>(<VAR>Bool</VAR>)<DD>
+<DT><STRONG>silent</STRONG>(<VAR>Bool</VAR>)<DD class="defbody">
 If <VAR>Bool</VAR> is <CODE>true</CODE>, the message reporting 
 completion is printed using level <CODE>silent</CODE>. Otherwise the 
 level is
 <CODE>informational</CODE>. See also <A NAME="idx:printmessage2:38"></A><B>print_message/2</B>.
 </DL>
 
-<P>
-<DT><A NAME="rdf_unload/1"><STRONG>rdf_unload</STRONG>(<VAR>+Spec</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_unload/1"><STRONG>rdf_unload</STRONG>(<VAR>+Spec</VAR>)</A><DD class="defbody">
 Remove all triples loaded from <VAR>Spec</VAR>. <VAR>Spec</VAR> is 
 either the name of a loaded database (see <A NAME="idx:rdfsource1:39"></A><A HREF="#rdf_source/1">rdf_source/1</A>) 
 or a file specification. If
 <VAR>Spec</VAR> does not refer to a loaded database the predicate 
-succeeds silently.
-
-<P>
-<DT><A NAME="rdf_save/1"><STRONG>rdf_save</STRONG>(<VAR>+File</VAR>)</A><DD>
+succeeds silently.<DT class="pubdef"><A NAME="rdf_save/1"><STRONG>rdf_save</STRONG>(<VAR>+File</VAR>)</A><DD class="defbody">
 Save all known triples to the given <VAR>File</VAR>. Same as
-<CODE>rdf_save(File,[])</CODE>.
-
-<P>
-<DT><A NAME="rdf_save/2"><STRONG>rdf_save</STRONG>(<VAR>+File, +Options</VAR>)</A><DD>
+<CODE>rdf_save(File,[])</CODE>.<DT class="pubdef"><A NAME="rdf_save/2"><STRONG>rdf_save</STRONG>(<VAR>+File, 
++Options</VAR>)</A><DD class="defbody">
 Save with options. Provided options are:
 
 <DL>
-
-<P>
-<DT><STRONG>db</STRONG>(<VAR>+FileRef</VAR>)<DD>
+<DT><STRONG>db</STRONG>(<VAR>+FileRef</VAR>)<DD class="defbody">
 Save all triples whose file-part of their <VAR>SourceRef</VAR> matches
 <VAR>FileRef</VAR> to the given <VAR>File</VAR>. Saving arbitrary 
 selections is possible using predicates from <A HREF="#sec:partsave">section 
 3.4.1</A>.
-
-<P>
-<DT><STRONG>anon</STRONG>(<VAR>+Bool</VAR>)<DD>
+<DT><STRONG>anon</STRONG>(<VAR>+Bool</VAR>)<DD class="defbody">
 if <CODE>anon(false)</CODE> is provided anonymous resources are only 
 saved if the resource appears in the object field of another triple that 
 is saved.
-
-<P>
-<DT><STRONG>convert_typed_literal</STRONG>(<VAR>:Converter</VAR>)<DD>
+<DT><STRONG>convert_typed_literal</STRONG>(<VAR>:Converter</VAR>)<DD class="defbody">
 If present, raw literal values are first passed to <VAR>Converter</VAR> 
 to apply the reverse of the <CODE>convert_typed_literal</CODE> option of 
 the RDF parser. The <VAR>Converter</VAR> is called with the same 
 arguments as in the RDF parser, but now with the last argument 
 instantiated and the first two unbound. A proper convertor that can be 
 used for both loading and saving must be a logical predicate.
-
-<P>
-<DT><STRONG>encoding</STRONG>(<VAR>+Encoding</VAR>)<DD>
+<DT><STRONG>encoding</STRONG>(<VAR>+Encoding</VAR>)<DD class="defbody">
 Define the XML encoding used for the file. Defined values are
 <CODE>utf8</CODE> (default), <CODE>iso_latin_1</CODE> and <CODE>ascii</CODE>. 
 Using <CODE>iso_latin_1</CODE> or <CODE>ascii</CODE>, characters not 
 covered by the encoding are emitted as XML character entities (<CODE>&amp;#...;</CODE>).
-
-<P>
-<DT><STRONG>document_language</STRONG>(<VAR>+XMLLang</VAR>)<DD>
+<DT><STRONG>document_language</STRONG>(<VAR>+XMLLang</VAR>)<DD class="defbody">
 The value <VAR>XMLLang</VAR> is used for the <CODE>xml:lang</CODE> 
 attribute in the outermost <CODE>rdf:RDF</CODE> element. This language 
 acts as a default, which implies that the <CODE>xml:lang</CODE> tag is 
@@ -761,16 +656,12 @@ Please note that this option will cause all literals without language
 tag to be interpreted using <VAR>XMLLang</VAR>.
 </DL>
 
-<P>
-<DT><A NAME="rdf_source/1"><STRONG>rdf_source</STRONG>(<VAR>?File</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_source/1"><STRONG>rdf_source</STRONG>(<VAR>?File</VAR>)</A><DD class="defbody">
 Test or enumerate the sources known in the database. This is the 
 name-part of the 4-th argument of <A NAME="idx:rdf4:40"></A><A HREF="#rdf/4">rdf/4</A>. 
 If a file is loaded using
 <A NAME="idx:rdfload1:41"></A><A HREF="#rdf_load/1">rdf_load/1</A>, this 
-is the name of the loaded file.
-
-<P>
-<DT><A NAME="rdf_make/0"><STRONG>rdf_make</STRONG></A><DD>
+is the name of the loaded file.<DT class="pubdef"><A NAME="rdf_make/0"><STRONG>rdf_make</STRONG></A><DD class="defbody">
 Re-load all RDF sourcefiles (see <A NAME="idx:rdfsource1:42"></A><A HREF="#rdf_source/1">rdf_source/1</A>) 
 that have changed since they were loaded the last time. This implies all 
 triples that originate from the file are removed and the file is 
@@ -791,10 +682,8 @@ providing support for
 <CODE>utf8</CODE>, <CODE>iso_latin_1</CODE> and <CODE>ascii</CODE>.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_save_header/2"><STRONG>rdf_save_header</STRONG>(<VAR>+Stream, 
-+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_save_header/2"><STRONG>rdf_save_header</STRONG>(<VAR>+Stream, 
++Options</VAR>)</A><DD class="defbody">
 Save an RDF header, with the XML header, <CODE>DOCTYPE</CODE>,
 <CODE>ENTITY</CODE> and opening the <CODE>rdf:RDF</CODE> element with 
 appropriate namespace declarations. It uses the primitives from <A HREF="#sec:rdfns">section 
@@ -802,13 +691,9 @@ appropriate namespace declarations. It uses the primitives from <A HREF="#sec:rd
 is one of:
 
 <DL>
-
-<P>
-<DT><STRONG>db</STRONG>(<VAR>+FileRef</VAR>)<DD>
+<DT><STRONG>db</STRONG>(<VAR>+FileRef</VAR>)<DD class="defbody">
 Only search for namespaces used in triples labeled with <VAR>FileRef</VAR>.
-
-<P>
-<DT><STRONG>namespaces</STRONG>(<VAR>+List</VAR>)<DD>
+<DT><STRONG>namespaces</STRONG>(<VAR>+List</VAR>)<DD class="defbody">
 Where <VAR>List</VAR> is a list of namespace abbreviations (see
 <A HREF="#sec:rdfns">section 3.5</A>). With this option, the expensive 
 search for all namespaces that may be used by your data is omitted. The 
@@ -818,20 +703,13 @@ provided
 in non-abreviated form.
 </DL>
 
-<P>
-<DT><A NAME="rdf_save_footer/1"><STRONG>rdf_save_footer</STRONG>(<VAR>+Stream</VAR>)</A><DD>
-Close the work opened with <A NAME="idx:rdfsaveheader2:43"></A><A HREF="#rdf_save_header/2">rdf_save_header/2</A>.
-
-<P>
-<DT><A NAME="rdf_save_subject/3"><STRONG>rdf_save_subject</STRONG>(<VAR>+Stream, 
-+Subject, +FileRef</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_save_footer/1"><STRONG>rdf_save_footer</STRONG>(<VAR>+Stream</VAR>)</A><DD class="defbody">
+Close the work opened with <A NAME="idx:rdfsaveheader2:43"></A><A HREF="#rdf_save_header/2">rdf_save_header/2</A>.<DT class="pubdef"><A NAME="rdf_save_subject/3"><STRONG>rdf_save_subject</STRONG>(<VAR>+Stream, 
++Subject, +FileRef</VAR>)</A><DD class="defbody">
 Save everything known about <VAR>Subject</VAR> that matches <VAR>FileRef</VAR>. 
 Using an variable for <VAR>FileRef</VAR> saves all triples with
-<VAR>Subject</VAR>.
-
-<P>
-<DT><A NAME="rdf_quote_uri/+URI, -Quoted"><STRONG>rdf_quote_uri</STRONG>(<VAR>+URI, 
--Quoted</VAR>)</A><DD>
+<VAR>Subject</VAR>.<DT class="pubdef"><A NAME="rdf_quote_uri/+URI, -Quoted"><STRONG>rdf_quote_uri</STRONG>(<VAR>+URI, 
+-Quoted</VAR>)</A><DD class="defbody">
 uote a UNICODE <VAR>URI</VAR>. First the Unicode is represented as UTF-8 
 and then the unsafe characters are mapped to be represented as US-ASCII.
 </DL>
@@ -849,23 +727,15 @@ loading large databases. These predicates are used for caching by
 under certain conditions.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_save_db/1"><STRONG>rdf_save_db</STRONG>(<VAR>+File</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_save_db/1"><STRONG>rdf_save_db</STRONG>(<VAR>+File</VAR>)</A><DD class="defbody">
 Save all known triples into <VAR>File</VAR>. The saved version includes 
 the
-<VAR>SourceRef</VAR> information.
-
-<P>
-<DT><A NAME="rdf_save_db/1"><STRONG>rdf_save_db</STRONG>(<VAR>+File, 
-+FileRef</VAR>)</A><DD>
+<VAR>SourceRef</VAR> information.<DT class="pubdef"><A NAME="rdf_save_db/1"><STRONG>rdf_save_db</STRONG>(<VAR>+File, 
++FileRef</VAR>)</A><DD class="defbody">
 Save all triples with <VAR>SourceRef</VAR> <VAR>FileRef</VAR>, 
 regardless of the line-number. For example, using <CODE>user</CODE> all 
 information added using <A NAME="idx:rdfassert3:45"></A><A HREF="#rdf_assert/3">rdf_assert/3</A> 
-is stored in the database.
-
-<P>
-<DT><A NAME="rdf_load_db/1"><STRONG>rdf_load_db</STRONG>(<VAR>+File</VAR>)</A><DD>
+is stored in the database.<DT class="pubdef"><A NAME="rdf_load_db/1"><STRONG>rdf_load_db</STRONG>(<VAR>+File</VAR>)</A><DD class="defbody">
 Load triples from <VAR>File</VAR>.
 </DL>
 
@@ -883,9 +753,8 @@ have changed as well as to maintain a directory with snapshots of
 versioned ontology files.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_md5/2"><STRONG>rdf_md5</STRONG>(<VAR>+Source, -MD5</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_md5/2"><STRONG>rdf_md5</STRONG>(<VAR>+Source, 
+-MD5</VAR>)</A><DD class="defbody">
 Return the MD5 digest for all triples in the database associated to
 <VAR>Source</VAR>. The <VAR>MD5</VAR> digest itself is represented as an 
 atom holding a 32-character hexadecimal string. The library maintains 
@@ -893,11 +762,8 @@ the digest incrementally on <A NAME="idx:rdfload12:46"></A><A HREF="#rdf_load/1"
 and <A NAME="idx:rdfretractall34:49"></A><A HREF="#rdf_retractall/3">rdf_retractall/[3,4]</A>. 
 Checking whether the digest has changed since the last <A NAME="idx:rdfload12:50"></A><A HREF="#rdf_load/1">rdf_load/[1,2]</A> 
 call provides a practical means for checking whether the file needs to 
-be saved.
-
-<P>
-<DT><A NAME="rdf_atom_md5/3"><STRONG>rdf_atom_md5</STRONG>(<VAR>+Text, 
-+Times, -MD5</VAR>)</A><DD>
+be saved.<DT class="pubdef"><A NAME="rdf_atom_md5/3"><STRONG>rdf_atom_md5</STRONG>(<VAR>+Text, 
++Times, -MD5</VAR>)</A><DD class="defbody">
 Computes the MD5 hash from <VAR>Text</VAR>, which is an atom, string or 
 list of character codes. <VAR>Times</VAR> is an integer <VAR>&gt;= 1</VAR>. 
 When
@@ -927,9 +793,7 @@ namespace locations very much like the XML <CODE>xmlns</CODE> construct.
 The initial mapping contains the namespaces required for the semantic 
 web languages themselves:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 ns(rdf,  'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
 ns(rdfs, 'http://www.w3.org/2000/01/rdf-schema#').
 ns(owl,  'http://www.w3.org/2002/7/owl#').
@@ -937,7 +801,6 @@ ns(xsd,  'http://www.w3.org/2000/10/XMLSchema#').
 ns(dc,   'http://purl.org/dc/elements/1.1/').
 ns(eor,  'http://dublincore.org/2000/03/13/eor#').
 </PRE>
-</TABLE>
 
 <P>All predicates for the semweb libraries use <A NAME="idx:goalexpansion2:51"></A><B>goal_expansion/2</B> 
 rules to make the SWI-Prolog compiler rewrite terms of the form
@@ -945,31 +808,22 @@ rules to make the SWI-Prolog compiler rewrite terms of the form
 following predicates are supplied:
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_equal/2"><STRONG>rdf_equal</STRONG>(<VAR>Resource1, 
-Resource2</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_equal/2"><STRONG>rdf_equal</STRONG>(<VAR>Resource1, 
+Resource2</VAR>)</A><DD class="defbody">
 Defined as <CODE>Resource1 = Resource2</CODE>. As this predicate is 
 subject to goal-expansion it can be used to obtain or test global URL 
 values to readable values. The following goal unifies <VAR>X</VAR> with
 <CODE>http://www.w3.org/2000/01/rdf-schema#Class</CODE> without more 
 runtime overhead than normal Prolog unification.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
         rdf_equal(rdfs:'Class', X)
 </PRE>
-</TABLE>
 
-<P>
-<DT><A NAME="rdf_register_ns/2"><STRONG>rdf_register_ns</STRONG>(<VAR>+Alias, 
-+URL</VAR>)</A><DD>
-Same as <CODE>rdf_register_ns(Alias, URL,[])</CODE>.
-
-<P>
-<DT><A NAME="rdf_register_ns/2"><STRONG>rdf_register_ns</STRONG>(<VAR>+Alias, 
-+URL, +Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_register_ns/2"><STRONG>rdf_register_ns</STRONG>(<VAR>+Alias, 
++URL</VAR>)</A><DD class="defbody">
+Same as <CODE>rdf_register_ns(Alias, URL,[])</CODE>.<DT class="pubdef"><A NAME="rdf_register_ns/2"><STRONG>rdf_register_ns</STRONG>(<VAR>+Alias, 
++URL, +Options</VAR>)</A><DD class="defbody">
 Register <VAR>Alias</VAR> as a shorthand for <VAR>URL</VAR>. Note that 
 the registration must be done before loading any files using them as 
 namespace aliases are handled at compiletime through <A NAME="idx:goalexpansion2:52"></A><B>goal_expansion/2</B>. 
@@ -978,34 +832,22 @@ error. If the option <CODE>force(true)</CODE> is provided, the alias is
 silently modified. Rebinding an alias must be done <EM>before</EM> any 
 code is compiled that relies on the alias. If the option
 <CODE>keep(true)</CODE> is provided the new registration is silently 
-ignored.
-
-<P>
-<DT><A NAME="rdf_global_id/2"><STRONG>rdf_global_id</STRONG>(<VAR>?Alias:Local, 
-?Global</VAR>)</A><DD>
+ignored.<DT class="pubdef"><A NAME="rdf_global_id/2"><STRONG>rdf_global_id</STRONG>(<VAR>?Alias:Local, 
+?Global</VAR>)</A><DD class="defbody">
 Runtime translation between <VAR>Alias</VAR> and <VAR>Local</VAR> and a
 <VAR>Global</VAR> URL. Expansion is normally done at compiletime. This 
-predicate is often used to turn a global URL into a more readable term.
-
-<P>
-<DT><A NAME="rdf_global_object/2"><STRONG>rdf_global_object</STRONG>(<VAR>?Object, 
-?NameExpandedObject</VAR>)</A><DD>
+predicate is often used to turn a global URL into a more readable term.<DT class="pubdef"><A NAME="rdf_global_object/2"><STRONG>rdf_global_object</STRONG>(<VAR>?Object, 
+?NameExpandedObject</VAR>)</A><DD class="defbody">
 As <A NAME="idx:rdfglobalid2:53"></A><A HREF="#rdf_global_id/2">rdf_global_id/2</A>, 
 but also expands the type field if the object is of the form <CODE>literal(<CODE>type(Type, 
 Value)</CODE>)</CODE>. This predicate is used for goal expansion of the 
 object fields in <A NAME="idx:rdf3:54"></A><A HREF="#rdf/3">rdf/3</A> 
-and similar goals.
-
-<P>
-<DT><A NAME="rdf_global_term/2"><STRONG>rdf_global_term</STRONG>(<VAR>+Term0, 
--Term</VAR>)</A><DD>
+and similar goals.<DT class="pubdef"><A NAME="rdf_global_term/2"><STRONG>rdf_global_term</STRONG>(<VAR>+Term0, 
+-Term</VAR>)</A><DD class="defbody">
 Expands all <VAR>Alias</VAR>:<VAR>Local</VAR> in <VAR>Term0</VAR> and 
 return the result in <VAR>Term</VAR>. Use infrequently for runtime 
-expansion of namespace identifiers.
-
-<P>
-<DT><A NAME="rdf_split_url/3"><STRONG>rdf_split_url</STRONG>(<VAR>?Base, 
-?Local, ?URL</VAR>)</A><DD>
+expansion of namespace identifiers.<DT class="pubdef"><A NAME="rdf_split_url/3"><STRONG>rdf_split_url</STRONG>(<VAR>?Base, 
+?Local, ?URL</VAR>)</A><DD class="defbody">
 Split a URL into a prefix and local part if used in mode -,-,+ or simply 
 behave as <A NAME="idx:atomconcat3:55"></A><B>atom_concat/3</B> in other 
 modes. The <VAR>URL</VAR> is split on the last <CODE>#</CODE> or <CODE>/</CODE> 
@@ -1019,83 +861,56 @@ semweb libraries that expands namespaces, namespace expansion is not
 automatically available to it. Consider the following code computing the 
 number of distinct objects for a certain property on a certain object.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 cardinality(S, P, C) :-
         (   setof(O, rdf_has(S, P, O), Os)
         -&gt;  length(Os, C)
         ;   C = 0
         ).
 </PRE>
-</TABLE>
 
 <P>Now assume we want to write <A NAME="idx:labels2:56"></A><B>labels/2</B> 
 that returns the number of distict labels of a resource:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 labels(S, C) :-
         cardinality(S, rdfs:label, C).
 </PRE>
-</TABLE>
 
 <P>This code will <EM>not work</EM> as <CODE>rdfs:label</CODE> is not 
 expanded at compile time. To make this work, we need to add an <A NAME="idx:rdfmeta1:57"></A><A HREF="#rdf_meta/1">rdf_meta/1</A> 
 declaration.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 :- rdf_meta
         cardinality(r,r,-).
 </PRE>
-</TABLE>
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_meta/1"><STRONG>rdf_meta</STRONG>(<VAR>Heads</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_meta/1"><STRONG>rdf_meta</STRONG>(<VAR>Heads</VAR>)</A><DD class="defbody">
 This predicate defines the argument types of the named predicates, which 
 will force compile time namespace expansion for these predicates.
 <VAR>Heads</VAR> is a coma-separated list of callable terms. Defined 
 argument properties are:
 
 <DL>
-
-<P>
-<DT><STRONG>:</STRONG><DD>
+<DT><STRONG>:</STRONG><DD class="defbody">
 Argument is a goal. The goal is processed using <A NAME="idx:expandgoal2:58"></A><B>expand_goal/2</B>, 
 recursively applying goal transformation on the argument.
-
-<P>
-<DT><STRONG>+</STRONG><DD>
+<DT><STRONG>+</STRONG><DD class="defbody">
 The argument is instantiated at entry. Nothing is changed.
-
-<P>
-<DT><STRONG>-</STRONG><DD>
+<DT><STRONG>-</STRONG><DD class="defbody">
 The argument is not instantiated at entry. Nothing is changed.
-
-<P>
-<DT><STRONG>?</STRONG><DD>
+<DT><STRONG>?</STRONG><DD class="defbody">
 The argument is unbound or instantiated at entry. Nothing is changed.
-
-<P>
-<DT><STRONG>@</STRONG><DD>
+<DT><STRONG>@</STRONG><DD class="defbody">
 The argument is not changed.
-
-<P>
-<DT><STRONG>r</STRONG><DD>
+<DT><STRONG>r</STRONG><DD class="defbody">
 The argument must be a resource. If it is a term &lt;<VAR>namespace</VAR>&gt;:&lt;<VAR>local</VAR>&gt; 
 it is translated.
-
-<P>
-<DT><STRONG>o</STRONG><DD>
+<DT><STRONG>o</STRONG><DD class="defbody">
 The argument is an object or resource.
-
-<P>
-<DT><STRONG>t</STRONG><DD>
+<DT><STRONG>t</STRONG><DD class="defbody">
 The argument is a term that must be translated. Expansion will translate 
 all occurences of &lt;<VAR>namespace</VAR>&gt;:&lt;<VAR>local</VAR>&gt; 
 appearing anywhere in the term.
@@ -1114,15 +929,12 @@ explicitely load <CODE>rdf_db.pl</CODE>.
 <P>Below are some examples from
 <CODE>rdf_db.pl</CODE>
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 :- rdf_meta
         rdf(r,r,o),
         rdf_source_location(r,-),
         rdf_transaction(:).
 </PRE>
-</TABLE>
 
 <P>
 </DL>
@@ -1141,40 +953,26 @@ allows multiple modules to provide additional services, while these
 services will be used regardless of how the database is modified.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_monitor/2"><STRONG>rdf_monitor</STRONG>(<VAR>:Goal, 
-+Mask</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_monitor/2"><STRONG>rdf_monitor</STRONG>(<VAR>:Goal, 
++Mask</VAR>)</A><DD class="defbody">
 <VAR>Goal</VAR> is called for modifications of the database. It is 
 called with a single argument that describes the modification. Defined 
 events are:
 
 <DL>
-
-<P>
-<DT><STRONG>assert</STRONG>(<VAR>+S, +P, +O, +DB</VAR>)<DD>
+<DT><STRONG>assert</STRONG>(<VAR>+S, +P, +O, +DB</VAR>)<DD class="defbody">
 A triple has been asserted.
-
-<P>
-<DT><STRONG>retract</STRONG>(<VAR>+S, +P, +O, +DB</VAR>)<DD>
+<DT><STRONG>retract</STRONG>(<VAR>+S, +P, +O, +DB</VAR>)<DD class="defbody">
 A triple has been deleted.
-
-<P>
-<DT><STRONG>update</STRONG>(<VAR>+S, +P, +O, +DB, +Action</VAR>)<DD>
+<DT><STRONG>update</STRONG>(<VAR>+S, +P, +O, +DB, +Action</VAR>)<DD class="defbody">
 A triple has been updated.
-
-<P>
-<DT><STRONG>new_literal</STRONG>(<VAR>+Literal</VAR>)<DD>
+<DT><STRONG>new_literal</STRONG>(<VAR>+Literal</VAR>)<DD class="defbody">
 A new literal has been created. <VAR>Literal</VAR> is the argument of
 <CODE>literal(Arg)</CODE> of the triple's object. This event is 
 introduced in version 2.5.0 of this library.
-
-<P>
-<DT><STRONG>old_literal</STRONG>(<VAR>+Literal</VAR>)<DD>
+<DT><STRONG>old_literal</STRONG>(<VAR>+Literal</VAR>)<DD class="defbody">
 The literal <VAR>Literal</VAR> is no longer used by any triple.
-
-<P>
-<DT><STRONG>transaction</STRONG>(<VAR>+BeginOrEnd, +Id</VAR>)<DD>
+<DT><STRONG>transaction</STRONG>(<VAR>+BeginOrEnd, +Id</VAR>)<DD class="defbody">
 Mark begin or end of the <EM>commit</EM> of a toplevel transaction 
 started by <A NAME="idx:rdftransaction2:62"></A><A HREF="#rdf_transaction/2">rdf_transaction/2</A>. <VAR>BeginOrEnd</VAR> 
 is <CODE>begin</CODE> or <CODE>end</CODE>.
@@ -1182,29 +980,20 @@ is <CODE>begin</CODE> or <CODE>end</CODE>.
 The following transaction Ids are pre-defined by the library:
 
 <DL>
-
-<P>
-<DT><STRONG>parse</STRONG>(<VAR>Id</VAR>)<DD>
+<DT><STRONG>parse</STRONG>(<VAR>Id</VAR>)<DD class="defbody">
 A file is loaded using <A NAME="idx:rdfload2:64"></A><A HREF="#rdf_load/2">rdf_load/2</A>. <VAR>Id</VAR> 
 is one of <CODE>file(Path)</CODE> or <CODE>stream(Stream)</CODE>.
-
-<P>
-<DT><STRONG>unload</STRONG>(<VAR>DB</VAR>)<DD>
+<DT><STRONG>unload</STRONG>(<VAR>DB</VAR>)<DD class="defbody">
 All triples with source <VAR>DB</VAR> are being unloaded using <A NAME="idx:rdfunload1:65"></A><A HREF="#rdf_unload/1">rdf_unload/1</A>.
-
-<P>
-<DT><STRONG>reset</STRONG><DD>
+<DT><STRONG>reset</STRONG><DD class="defbody">
 Issued by <A NAME="idx:rdfresetdb0:66"></A><A HREF="#rdf_reset_db/0">rdf_reset_db/0</A>.
 </DL>
 
-<P>
-<DT><STRONG>load</STRONG>(<VAR>+BeginOrEnd, +Spec</VAR>)<DD>
+<DT><STRONG>load</STRONG>(<VAR>+BeginOrEnd, +Spec</VAR>)<DD class="defbody">
 Mark begin or end of <A NAME="idx:rdfloaddb1:67"></A><A HREF="#rdf_load_db/1">rdf_load_db/1</A> 
 or load through <A NAME="idx:rdfload2:68"></A><A HREF="#rdf_load/2">rdf_load/2</A> 
 from a cached file. <VAR>Spec</VAR> is currently defined as <CODE>file(Path)</CODE>.
-
-<P>
-<DT><STRONG>rehash</STRONG>(<VAR>+BeginOrEnd</VAR>)<DD>
+<DT><STRONG>rehash</STRONG>(<VAR>+BeginOrEnd</VAR>)<DD class="defbody">
 Marks begin/end of a re-hash due to required re-indexing or garbage 
 collection.
 </DL>
@@ -1244,42 +1033,25 @@ other events. Same for <CODE>load</CODE> and <CODE>parse</CODE>.
 module.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_node/1"><STRONG>rdf_node</STRONG>(<VAR>-Id</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_node/1"><STRONG>rdf_node</STRONG>(<VAR>-Id</VAR>)</A><DD class="defbody">
 Generate a unique reference. The returned atom is guaranteed not to 
-occur in the current database in any field of any triple.
-
-<P>
-<DT><A NAME="rdf_bnode/1"><STRONG>rdf_bnode</STRONG>(<VAR>-Id</VAR>)</A><DD>
+occur in the current database in any field of any triple.<DT class="pubdef"><A NAME="rdf_bnode/1"><STRONG>rdf_bnode</STRONG>(<VAR>-Id</VAR>)</A><DD class="defbody">
 Generate a unique blank node reference. The returned atom is guaranteed 
 not to occur in the current database in any field of any triple and 
-starts with '__bnode'.
-
-<P>
-<DT><A NAME="rdf_is_bnode/1"><STRONG>rdf_is_bnode</STRONG>(<VAR>+Id</VAR>)</A><DD>
+starts with '__bnode'.<DT class="pubdef"><A NAME="rdf_is_bnode/1"><STRONG>rdf_is_bnode</STRONG>(<VAR>+Id</VAR>)</A><DD class="defbody">
 Succeeds if <VAR>Id</VAR> is a blank node identifier (also called
 <EM>anonymous resource</EM>). In the current implementation this implies 
-it is an atom starting with a double underscore.
-
-<P>
-<DT><A NAME="rdf_source_location/2"><STRONG>rdf_source_location</STRONG>(<VAR>+Subject, 
--SourceRef</VAR>)</A><DD>
+it is an atom starting with a double underscore.<DT class="pubdef"><A NAME="rdf_source_location/2"><STRONG>rdf_source_location</STRONG>(<VAR>+Subject, 
+-SourceRef</VAR>)</A><DD class="defbody">
 Return the source-location as <VAR>File</VAR>:<VAR>Line</VAR> of the 
-first triple that is about <VAR>Subject</VAR>.
-
-<P>
-<DT><A NAME="rdf_generation/1"><STRONG>rdf_generation</STRONG>(<VAR>-Generation</VAR>)</A><DD>
+first triple that is about <VAR>Subject</VAR>.<DT class="pubdef"><A NAME="rdf_generation/1"><STRONG>rdf_generation</STRONG>(<VAR>-Generation</VAR>)</A><DD class="defbody">
 Returns the <VAR>Generation</VAR> of the database. Each modification to 
 the database increments the generation. It can be used to check the 
 validity of cached results deduced from the database. Modifications 
 changing multiple triples increment <VAR>Generation</VAR> with the 
 number of triples modified, providing a heuristic for `how dirty' cached 
-results may be.
-
-<P>
-<DT><A NAME="rdf_estimate_complexity/?Subject, ?Predicate, ?Object, -Complexity"><STRONG>rdf_estimate_complexity</STRONG>(<VAR>?Subject, 
-?Predicate, ?Object, -Complexity</VAR>)</A><DD>
+results may be.<DT class="pubdef"><A NAME="rdf_estimate_complexity/?Subject, ?Predicate, ?Object, -Complexity"><STRONG>rdf_estimate_complexity</STRONG>(<VAR>?Subject, 
+?Predicate, ?Object, -Complexity</VAR>)</A><DD class="defbody">
 eturn the number of alternatives as indicated by the database internal 
 hashed indexing. This is a rough measure for the number of alternatives 
 we can expect for an <A NAME="idx:rdfhas3:71"></A><A HREF="#rdf_has/3">rdf_has/3</A> 
@@ -1287,106 +1059,66 @@ call using the given three arguments. When called with three variables,
 the total number of triples is returned. This estimate is used in query 
 optimisation. See also <A NAME="idx:rdfpredicateproperty2:72"></A><A HREF="#rdf_predicate_property/2">rdf_predicate_property/2</A> 
 and <A NAME="idx:rdfstatistics1:73"></A><A HREF="#rdf_statistics/1">rdf_statistics/1</A> 
-for additional information to help optimisers.
-
-<P>
-<DT><A NAME="rdf_statistics/1"><STRONG>rdf_statistics</STRONG>(<VAR>?Statistics</VAR>)</A><DD>
+for additional information to help optimisers.<DT class="pubdef"><A NAME="rdf_statistics/1"><STRONG>rdf_statistics</STRONG>(<VAR>?Statistics</VAR>)</A><DD class="defbody">
 Report statistics collected by the <CODE>rdf_db</CODE> module. Defined 
 values for <VAR>Statistics</VAR> are:
 
 <DL>
-
-<P>
-<DT><STRONG>lookup</STRONG>(<VAR>?Index, -Count</VAR>)<DD>
+<DT><STRONG>lookup</STRONG>(<VAR>?Index, -Count</VAR>)<DD class="defbody">
 Number of lookups using a pattern of instantiated fields. <VAR>Index</VAR> 
 is a term <CODE>rdf(S,P,O)</CODE>, where <VAR>S</VAR>, <VAR>P</VAR> and <VAR>O</VAR> 
 are either <CODE>+</CODE> or <CODE>-</CODE>. For example <CODE>rdf(+,+,-)</CODE> 
 returns the lookups with subject and predicate specified and object 
 unbound.
-
-<P>
-<DT><STRONG>properties</STRONG>(<VAR>-Count</VAR>)<DD>
+<DT><STRONG>properties</STRONG>(<VAR>-Count</VAR>)<DD class="defbody">
 Number of unique values for the second field of the triple set.
-
-<P>
-<DT><STRONG>sources</STRONG>(<VAR>-Count</VAR>)<DD>
+<DT><STRONG>sources</STRONG>(<VAR>-Count</VAR>)<DD class="defbody">
 Number of files loaded through <A NAME="idx:rdfload1:74"></A><A HREF="#rdf_load/1">rdf_load/1</A>.
-
-<P>
-<DT><STRONG>subjects</STRONG>(<VAR>-Count</VAR>)<DD>
+<DT><STRONG>subjects</STRONG>(<VAR>-Count</VAR>)<DD class="defbody">
 Number of unique values for the first field of the triple set.
-
-<P>
-<DT><STRONG>literals</STRONG>(<VAR>-Count</VAR>)<DD>
+<DT><STRONG>literals</STRONG>(<VAR>-Count</VAR>)<DD class="defbody">
 Total number of unique literal values in the database. See also
 <A HREF="#sec:litindex">section 3.1.1</A>.
-
-<P>
-<DT><STRONG>triples</STRONG>(<VAR>-Count</VAR>)<DD>
+<DT><STRONG>triples</STRONG>(<VAR>-Count</VAR>)<DD class="defbody">
 Total number of triples in the database.
-
-<P>
-<DT><STRONG>triples_by_file</STRONG>(<VAR>?File, -Count</VAR>)<DD>
+<DT><STRONG>triples_by_file</STRONG>(<VAR>?File, -Count</VAR>)<DD class="defbody">
 Enumerate the number of triples associated to each file.
-
-<P>
-<DT><STRONG>searched_nodes</STRONG>(<VAR>-Count</VAR>)<DD>
+<DT><STRONG>searched_nodes</STRONG>(<VAR>-Count</VAR>)<DD class="defbody">
 Number of nodes explored in <A NAME="idx:rdfreachable3:75"></A><A HREF="#rdf_reachable/3">rdf_reachable/3</A>.
-
-<P>
-<DT><STRONG>gc</STRONG>(<VAR>-Count, -Time</VAR>)<DD>
+<DT><STRONG>gc</STRONG>(<VAR>-Count, -Time</VAR>)<DD class="defbody">
 Number of garbage collections and time spent in seconds represented as a 
 float.
-
-<P>
-<DT><STRONG>rehash</STRONG>(<VAR>-Count, -Time</VAR>)<DD>
+<DT><STRONG>rehash</STRONG>(<VAR>-Count, -Time</VAR>)<DD class="defbody">
 Number of times the hash-tables were enlarged and time spent in seconds 
 represented as a float.
-
-<P>
-<DT><STRONG>core</STRONG>(<VAR>-Bytes</VAR>)<DD>
+<DT><STRONG>core</STRONG>(<VAR>-Bytes</VAR>)<DD class="defbody">
 Core used by the triple store. This includes all memory allocated on 
 behalf of the library, but <EM>not</EM> the memory allocated in Prolog 
 atoms referenced (only) by the triple store.
 </DL>
 
-<P>
-<DT><A NAME="rdf_match_label/3"><STRONG>rdf_match_label</STRONG>(<VAR>+Method, 
-+Search, +Atom</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_match_label/3"><STRONG>rdf_match_label</STRONG>(<VAR>+Method, 
++Search, +Atom</VAR>)</A><DD class="defbody">
 True if <VAR>Search</VAR> matches <VAR>Atom</VAR> as defined by <VAR>Method</VAR>. 
 All matching is performed case-insensitive. Defines methods are:
 
 <DL>
-
-<P>
-<DT><STRONG>exact</STRONG><DD>
+<DT><STRONG>exact</STRONG><DD class="defbody">
 Perform exact, but case-insensitive match.
-
-<P>
-<DT><STRONG>substring</STRONG><DD>
+<DT><STRONG>substring</STRONG><DD class="defbody">
 <VAR>Search</VAR> is a sub-string of <VAR>Text</VAR>.
-
-<P>
-<DT><STRONG>word</STRONG><DD>
+<DT><STRONG>word</STRONG><DD class="defbody">
 <VAR>Search</VAR> appears as a whole-word in <VAR>Text</VAR>.
-
-<P>
-<DT><STRONG>prefix</STRONG><DD>
+<DT><STRONG>prefix</STRONG><DD class="defbody">
 <VAR>Text</VAR> start with <VAR>Search</VAR>.
-
-<P>
-<DT><STRONG>like</STRONG><DD>
+<DT><STRONG>like</STRONG><DD class="defbody">
 <VAR>Text</VAR> matches <VAR>Search</VAR>, case insensitively, where the 
 `*' character in <VAR>Search</VAR> matches zero or more characters.
 </DL>
 
-<P>
-<DT><A NAME="rdf_reset_db/0"><STRONG>rdf_reset_db</STRONG></A><DD>
+<DT class="pubdef"><A NAME="rdf_reset_db/0"><STRONG>rdf_reset_db</STRONG></A><DD class="defbody">
 Erase all triples from the database and reset all counts and statistics 
-information.
-
-<P>
-<DT><A NAME="rdf_version/1"><STRONG>rdf_version</STRONG>(<VAR>-Version</VAR>)</A><DD>
+information.<DT class="pubdef"><A NAME="rdf_version/1"><STRONG>rdf_version</STRONG>(<VAR>-Version</VAR>)</A><DD class="defbody">
 Unify <VAR>Version</VAR> with the library version number. This number 
 is, like to the SWI-Prolog version flag, defined as <VAR>10,000 &times; 
 Major + 100 &times; Minor + Patch</VAR>.
@@ -1404,63 +1136,44 @@ allows for fuzzy matching using stemming and `sounds-like' based on the <EM>doub
 metaphone</EM> algorithm of the NLP package.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_find_literals/2"><STRONG>rdf_find_literals</STRONG>(<VAR>+Spec, 
--ListOfLiterals</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_find_literals/2"><STRONG>rdf_find_literals</STRONG>(<VAR>+Spec, 
+-ListOfLiterals</VAR>)</A><DD class="defbody">
 Find literals (without type or language specification) that satisfy
 <VAR>Spec</VAR>. The required indices are created as needed and kept 
 up-to-date using hooks registered with <A NAME="idx:rdfmonitor2:76"></A><A HREF="#rdf_monitor/2">rdf_monitor/2</A>. <VAR>Spec</VAR> 
 is defined as:
 
 <DL>
-
-<P>
-<DT><STRONG>and</STRONG>(<VAR>Spec1, Spec2</VAR>)<DD>
+<DT><STRONG>and</STRONG>(<VAR>Spec1, Spec2</VAR>)<DD class="defbody">
 Intersection of both specifications.
-
-<P>
-<DT><STRONG>or</STRONG>(<VAR>Spec1, Spec2</VAR>)<DD>
+<DT><STRONG>or</STRONG>(<VAR>Spec1, Spec2</VAR>)<DD class="defbody">
 Union of both specifications.
-
-<P>
-<DT><STRONG>not</STRONG>(<VAR>Spec</VAR>)<DD>
+<DT><STRONG>not</STRONG>(<VAR>Spec</VAR>)<DD class="defbody">
 Negation of <VAR>Spec</VAR>. After translation of the full specification 
 to
 <EM>Disjunctive Normal Form</EM> (DNF), negations are only allowed 
 inside a conjunction with at least one positive literal.
-
-<P>
-<DT><STRONG>case</STRONG>(<VAR>Word</VAR>)<DD>
+<DT><STRONG>case</STRONG>(<VAR>Word</VAR>)<DD class="defbody">
 Matches all literals containing the word <VAR>Word</VAR>, doing the 
 match case insensitive and after removing diacritics.
-
-<P>
-<DT><STRONG>stem</STRONG>(<VAR>Like</VAR>)<DD>
+<DT><STRONG>stem</STRONG>(<VAR>Like</VAR>)<DD class="defbody">
 Matches all literals containing at least one word that has the same stem 
 as <VAR>Like</VAR> using the Porter stem algorithm. See NLP package for 
 details.
-
-<P>
-<DT><STRONG>sounds</STRONG>(<VAR>Like</VAR>)<DD>
+<DT><STRONG>sounds</STRONG>(<VAR>Like</VAR>)<DD class="defbody">
 Matches all literals containing at least one word that `sounds like'
 <VAR>Like</VAR> using the double metaphone algorithm. See NLP package 
 for details.
-
-<P>
-<DT><STRONG>prefix</STRONG>(<VAR>Prefix</VAR>)<DD>
+<DT><STRONG>prefix</STRONG>(<VAR>Prefix</VAR>)<DD class="defbody">
 Matches all literals containing at least one word that starts with 
 Prefix, discarding diacritics and case.
-
-<P>
-<DT><STRONG>Token</STRONG><DD>
+<DT><STRONG>Token</STRONG><DD class="defbody">
 Matches all literals containing the given token. See <A NAME="idx:tokenizeatom2:77"></A><B>tokenize_atom/2</B> 
 of the NLP package for details.
 </DL>
 
-<P>
-<DT><A NAME="rdf_token_expansions/2"><STRONG>rdf_token_expansions</STRONG>(<VAR>+Spec, 
--Expansions</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_token_expansions/2"><STRONG>rdf_token_expansions</STRONG>(<VAR>+Spec, 
+-Expansions</VAR>)</A><DD class="defbody">
 Uses the same database as <A NAME="idx:rdffindliterals2:78"></A><A HREF="#rdf_find_literals/2">rdf_find_literals/2</A> 
 to find possible expansions of <VAR>Spec</VAR>, i.e. which words `sound 
 like', `have prefix', etc. <VAR>Spec</VAR> is a compound expression as 
@@ -1474,32 +1187,26 @@ together in a literal with the word `Rijn'. Finding this result from the
 228,710 literals contained in ULAN requires 0.54 milliseconds (AMD 
 1600+).
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 ?- rdf_token_expansions(and('Rijn', sounds(rembrandt)), L).
 
 L = [sounds(rembrandt, ['Rambrandt', 'Reimbrant', 'Rembradt',
                         'Rembrand', 'Rembrandt', 'Rembrandtsz',
                         'Rembrant', 'Rembrants', 'Rijmbrand'])]
 </PRE>
-</TABLE>
 
 <P>Here is another example, illustrating handling of diacritics:
-<BLOCKQUOTE><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
+<BLOCKQUOTE>
 
+<PRE class="code">
 ?- rdf_token_expansions(case(cafe), L).
 
 L = [case(cafe, [cafe, caf\'e])]
 </PRE>
-</TABLE>
 
 </BLOCKQUOTE>
-
-<P>
-<DT><A NAME="rdf_tokenize_literal/2"><STRONG>rdf_tokenize_literal</STRONG>(<VAR>+Literal, 
--Tokens</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_tokenize_literal/2"><STRONG>rdf_tokenize_literal</STRONG>(<VAR>+Literal, 
+-Tokens</VAR>)</A><DD class="defbody">
 Tokenize a literal, returning a list of atoms and integers in the range
 <VAR>-1073741824 ... 1073741823</VAR>. As tokenization is in general 
 domain and task-dependent this predicate first calls the hook
@@ -1511,15 +1218,12 @@ integers that are out of range and the english words <CODE>and</CODE>, <CODE>an<
 Deletion first calls the hook <CODE>rdf_litindex:exclude_from_index(token, 
 X)</CODE>. This hook is called as follows:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 no_index_token(X) :-
         exclude_from_index(token, X), !.
 no_index_token(X) :-
         ...
 </PRE>
-</TABLE>
 
 <P>
 </DL>
@@ -1548,100 +1252,62 @@ complimentary building blocks, such as a tokenizer, Porter stem and
 Double Metaphone.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_new_literal_map/1"><STRONG>rdf_new_literal_map</STRONG>(<VAR>-Map</VAR>)</A><DD>
-Create a new literal map, returning an opaque handle.
-
-<P>
-<DT><A NAME="rdf_destroy_literal_map/1"><STRONG>rdf_destroy_literal_map</STRONG>(<VAR>+Map</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_new_literal_map/1"><STRONG>rdf_new_literal_map</STRONG>(<VAR>-Map</VAR>)</A><DD class="defbody">
+Create a new literal map, returning an opaque handle.<DT class="pubdef"><A NAME="rdf_destroy_literal_map/1"><STRONG>rdf_destroy_literal_map</STRONG>(<VAR>+Map</VAR>)</A><DD class="defbody">
 Destroy a literal map. After this call, further use of the <VAR>Map</VAR> 
 handle is illegal. Additional synchronisation is needed if maps that are 
 shared between threads are destroyed to guarantee the handle is no 
 longer used. In some scenarios <A NAME="idx:rdfresetliteralmap1:82"></A><A HREF="#rdf_reset_literal_map/1">rdf_reset_literal_map/1</A> 
-provides a safe alternative.
-
-<P>
-<DT><A NAME="rdf_reset_literal_map/1"><STRONG>rdf_reset_literal_map</STRONG>(<VAR>+Map</VAR>)</A><DD>
-Delete all content from the literal map.
-
-<P>
-<DT><A NAME="rdf_insert_literal_map/3"><STRONG>rdf_insert_literal_map</STRONG>(<VAR>+Map, 
-+Key, +Value</VAR>)</A><DD>
+provides a safe alternative.<DT class="pubdef"><A NAME="rdf_reset_literal_map/1"><STRONG>rdf_reset_literal_map</STRONG>(<VAR>+Map</VAR>)</A><DD class="defbody">
+Delete all content from the literal map.<DT class="pubdef"><A NAME="rdf_insert_literal_map/3"><STRONG>rdf_insert_literal_map</STRONG>(<VAR>+Map, 
++Key, +Value</VAR>)</A><DD class="defbody">
 Add a relation between <VAR>Key</VAR> and <VAR>Value</VAR> to the map. 
-If this relation already exists no action is performed.
-
-<P>
-<DT><A NAME="rdf_delete_literal_map/2"><STRONG>rdf_delete_literal_map</STRONG>(<VAR>+Map, 
-+Key</VAR>)</A><DD>
+If this relation already exists no action is performed.<DT class="pubdef"><A NAME="rdf_delete_literal_map/2"><STRONG>rdf_delete_literal_map</STRONG>(<VAR>+Map, 
++Key</VAR>)</A><DD class="defbody">
 Delete <VAR>Key</VAR> and all associated values from the map. Succeeds 
-always.
-
-<P>
-<DT><A NAME="rdf_delete_literal_map/2"><STRONG>rdf_delete_literal_map</STRONG>(<VAR>+Map, 
-+Key, +Value</VAR>)</A><DD>
+always.<DT class="pubdef"><A NAME="rdf_delete_literal_map/2"><STRONG>rdf_delete_literal_map</STRONG>(<VAR>+Map, 
++Key, +Value</VAR>)</A><DD class="defbody">
 Delete the association between <VAR>Key</VAR> and <VAR>Value</VAR> from 
-the map. Succeeds always.
-
-<P>
-<DT><A NAME="rdf_find_literal_map/3"><STRONG>rdf_find_literal_map</STRONG>(<VAR>+Map, 
-+KeyList, -ValueList</VAR>)</A><DD>
+the map. Succeeds always.<DT class="pubdef"><A NAME="rdf_find_literal_map/3"><STRONG>rdf_find_literal_map</STRONG>(<VAR>+Map, 
++KeyList, -ValueList</VAR>)</A><DD class="defbody">
 Unify <VAR>ValueList</VAR> with an ordered set of values associated to 
 all keys from <VAR>KeyList</VAR>. I.e. perform an <EM>intersection</EM> 
 of the value-sets associated with the keys. Unifies <VAR>ValueList</VAR> 
-with the empty list if no matches are found.
-
-<P>
-<DT><A NAME="rdf_keys_in_literal_map/3"><STRONG>rdf_keys_in_literal_map</STRONG>(<VAR>+Map, 
-+Spec, -Answer</VAR>)</A><DD>
+with the empty list if no matches are found.<DT class="pubdef"><A NAME="rdf_keys_in_literal_map/3"><STRONG>rdf_keys_in_literal_map</STRONG>(<VAR>+Map, 
++Spec, -Answer</VAR>)</A><DD class="defbody">
 Realises various queries on the key-set:
 
 <DL>
-
-<P>
-<DT><STRONG>all</STRONG><DD>
+<DT><STRONG>all</STRONG><DD class="defbody">
 Unify <VAR>Answer</VAR> with an ordered list of all keys.
-
-<P>
-<DT><STRONG>key</STRONG>(<VAR>+Key</VAR>)<DD>
+<DT><STRONG>key</STRONG>(<VAR>+Key</VAR>)<DD class="defbody">
 Succeeds if <VAR>Key</VAR> is a key in the map and unify <VAR>Answer</VAR> 
 with the number of values associated with the key. This provides a fast 
 test of existence without fetching the possibly large associated value 
 set as with <A NAME="idx:rdffindliteralmap3:83"></A><A HREF="#rdf_find_literal_map/3">rdf_find_literal_map/3</A>.
-
-<P>
-<DT><STRONG>prefix</STRONG>(<VAR>+Prefix</VAR>)<DD>
+<DT><STRONG>prefix</STRONG>(<VAR>+Prefix</VAR>)<DD class="defbody">
 Unify <VAR>Answer</VAR> with an ordered set of all keys that have the 
 given prefix. See <A HREF="#sec:rdfquery">section 3.1</A> for details on 
 prefix matching.
 <VAR>Prefix</VAR> must be an atom. This call is intended for 
 auto-completion in user interfaces.
-
-<P>
-<DT><STRONG>ge</STRONG>(<VAR>+Min</VAR>)<DD>
+<DT><STRONG>ge</STRONG>(<VAR>+Min</VAR>)<DD class="defbody">
 Unify <VAR>Answer</VAR> with all keys that are larger or equal to the 
 integer <VAR>Min</VAR>.
-
-<P>
-<DT><STRONG>le</STRONG>(<VAR>+Max</VAR>)<DD>
+<DT><STRONG>le</STRONG>(<VAR>+Max</VAR>)<DD class="defbody">
 Unify <VAR>Answer</VAR> with all keys that are smaller or equal to the 
 integer <VAR>Max</VAR>.
-
-<P>
-<DT><STRONG>between</STRONG>(<VAR>+Min, +Max</VAR>)<DD>
+<DT><STRONG>between</STRONG>(<VAR>+Min, +Max</VAR>)<DD class="defbody">
 Unify <VAR>Answer</VAR> with all keys between <VAR>Min</VAR> and <VAR>Max</VAR> 
 (including).
 </DL>
 
-<P>
-<DT><A NAME="rdf_statistics_literal_map/2"><STRONG>rdf_statistics_literal_map</STRONG>(<VAR>+Map, 
-+Key(-Arg...)</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_statistics_literal_map/2"><STRONG>rdf_statistics_literal_map</STRONG>(<VAR>+Map, 
++Key(-Arg...)</VAR>)</A><DD class="defbody">
 Query some statistics of the map. Provides keys are:
 
 <DL>
-
-<P>
-<DT><STRONG>size</STRONG>(<VAR>-Keys, -Relations</VAR>)<DD>
+<DT><STRONG>size</STRONG>(<VAR>-Keys, -Relations</VAR>)<DD class="defbody">
 Unify <VAR>Keys</VAR> with the total key-count of the index and
 <VAR>Relation</VAR> with the total <VAR>Key</VAR>-<VAR>Value</VAR> 
 count.
@@ -1665,12 +1331,8 @@ data-sets.
 manner.
 
 <DL>
-
-<P>
 <DT><B><CODE>subPropertyOf</CODE> of <CODE>subPropertyOf</CODE></B><DD>
 is not supported.
-
-<P>
 <DT><B>Equivalence</B><DD>
 Similar to <CODE>subPropertyOf</CODE>, it is likely to be profitable to 
 handle resource identity efficient. The current system has no support 
@@ -1691,10 +1353,8 @@ representing the changes made since the base state. The latter is called
 the <EM>journal</EM>.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_attach_db/2"><STRONG>rdf_attach_db</STRONG>(<VAR>+Directory, 
-+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_attach_db/2"><STRONG>rdf_attach_db</STRONG>(<VAR>+Directory, 
++Options</VAR>)</A><DD class="defbody">
 Attach <VAR>Directory</VAR> as the persistent database. If <VAR>Directory</VAR> 
 does not exist it is created. Otherwise all sources defined in the 
 directory are loaded into the RDF database. Loading a source means 
@@ -1707,20 +1367,11 @@ is currently ignored.
 
 <P>The database is locked against concurrent access using a file
 <CODE>lock</CODE>. An attempt to attach a locked database raises a
-<CODE>permission_error</CODE> exception.
-
-<P>
-<DT><A NAME="rdf_detach_db/0"><STRONG>rdf_detach_db</STRONG></A><DD>
+<CODE>permission_error</CODE> exception.<DT class="pubdef"><A NAME="rdf_detach_db/0"><STRONG>rdf_detach_db</STRONG></A><DD class="defbody">
 Detaches the persistent store. No triples are removed from the RDF 
-triple store.
-
-<P>
-<DT><A NAME="rdf_current_db/1"><STRONG>rdf_current_db</STRONG>(<VAR>-Directory</VAR>)</A><DD>
+triple store.<DT class="pubdef"><A NAME="rdf_current_db/1"><STRONG>rdf_current_db</STRONG>(<VAR>-Directory</VAR>)</A><DD class="defbody">
 Unify <VAR>Directory</VAR> with the current database directory. Fails if 
-no persistent database is attached.
-
-<P>
-<DT><A NAME="rdf_flush_journals/1"><STRONG>rdf_flush_journals</STRONG>(<VAR>+Options</VAR>)</A><DD>
+no persistent database is attached.<DT class="pubdef"><A NAME="rdf_flush_journals/1"><STRONG>rdf_flush_journals</STRONG>(<VAR>+Options</VAR>)</A><DD class="defbody">
 Flush dirty journals. With the option <CODE>min_size(KB)</CODE> only 
 journals larger than <VAR>KB</VAR> Kbytes are merged with the base 
 state. Flushing a journal takes the following steps, ensuring a stable 
@@ -1746,17 +1397,12 @@ are intented to provide additional services, such as reasoning about the
 journals, loaded files, etc.
 
 <DL>
-
-<P>
-<DT><A NAME="rdf_journal_file/2"><STRONG>rdf_journal_file</STRONG>(<VAR>?DB, 
-?JournalFile</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdf_journal_file/2"><STRONG>rdf_journal_file</STRONG>(<VAR>?DB, 
+?JournalFile</VAR>)</A><DD class="defbody">
 True if <VAR>DB</VAR> is a known database that has an active journal in
 <VAR>JournalFile</VAR>. Currently the format of the journalfiles is 
-undocumented. Being Prolog terms they are mostly self-explaining.
-
-<P>
-<DT><A NAME="rdf_db_to_file/2"><STRONG>rdf_db_to_file</STRONG>(<VAR>?DB, 
-?FileBase</VAR>)</A><DD>
+undocumented. Being Prolog terms they are mostly self-explaining.<DT class="pubdef"><A NAME="rdf_db_to_file/2"><STRONG>rdf_db_to_file</STRONG>(<VAR>?DB, 
+?FileBase</VAR>)</A><DD class="defbody">
 Convert between <VAR>DB</VAR> (see <A NAME="idx:rdfsource1:87"></A><A HREF="#rdf_source/1">rdf_source/1</A>) 
 and file base-file used for storing information on this database. The 
 full file is located in the directory described by <A NAME="idx:rdfcurrentdb1:88"></A><A HREF="#rdf_current_db/1">rdf_current_db/1</A> 
@@ -1792,33 +1438,22 @@ that the most fundamental of these, <CODE>rdfs:subPropertyOf</CODE>, is
 also used by <A NAME="idx:rdfhas34:91"></A><A HREF="#rdf_has/3">rdf_has/[3,4]</A>.
 
 <DL>
-
-<P>
-<DT><A NAME="rdfs_subproperty_of/2"><STRONG>rdfs_subproperty_of</STRONG>(<VAR>?SubProperty, 
-?Property</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfs_subproperty_of/2"><STRONG>rdfs_subproperty_of</STRONG>(<VAR>?SubProperty, 
+?Property</VAR>)</A><DD class="defbody">
 True if <VAR>SubProperty</VAR> is equal to <VAR>Property</VAR> or <VAR>Property</VAR> 
 can be reached from <VAR>SubProperty</VAR> following the
 <CODE>rdfs:subPropertyOf</CODE> relation. It can be used to test as well 
 as generate sub-properties or super-properties. Note that the commonly 
-used semantics of this predicate is wired into <A NAME="idx:rdfhas34:92"></A><A HREF="#rdf_has/3">rdf_has/[3,4]</A>.<A NAME=back-to-note-8 HREF="semweb.html#note-8"> (8)</A>.<A NAME=back-to-note-9 HREF="semweb.html#note-9"> (9)</A>
-
-<P>
-<DT><A NAME="rdfs_subclass_of/2"><STRONG>rdfs_subclass_of</STRONG>(<VAR>?SubClass, 
-?Class</VAR>)</A><DD>
+used semantics of this predicate is wired into <A NAME="idx:rdfhas34:92"></A><A HREF="#rdf_has/3">rdf_has/[3,4]</A>.<A NAME=back-to-note-8 HREF="semweb.html#note-8"> (8)</A>.<A NAME=back-to-note-9 HREF="semweb.html#note-9"> (9)</A><DT class="pubdef"><A NAME="rdfs_subclass_of/2"><STRONG>rdfs_subclass_of</STRONG>(<VAR>?SubClass, 
+?Class</VAR>)</A><DD class="defbody">
 True if <VAR>SubClass</VAR> is equal to <VAR>Class</VAR> or <VAR>Class</VAR> 
 can be reached from <VAR>SubClass</VAR> following the
 <CODE>rdfs:subClassOf</CODE> relation. It can be used to test as well as 
-generate sub-classes or super-classes.<A NAME=back-to-note-10 HREF="semweb.html#note-10"> (10)</A>.
-
-<P>
-<DT><A NAME="rdfs_class_property/2"><STRONG>rdfs_class_property</STRONG>(<VAR>+Class, 
-?Property</VAR>)</A><DD>
+generate sub-classes or super-classes.<A NAME=back-to-note-10 HREF="semweb.html#note-10"> (10)</A>.<DT class="pubdef"><A NAME="rdfs_class_property/2"><STRONG>rdfs_class_property</STRONG>(<VAR>+Class, 
+?Property</VAR>)</A><DD class="defbody">
 True if the domain of <VAR>Property</VAR> includes <VAR>Class</VAR>. 
-Used to generate all properties that apply to a class.
-
-<P>
-<DT><A NAME="rdfs_individual_of/2"><STRONG>rdfs_individual_of</STRONG>(<VAR>?Resource, 
-?Class</VAR>)</A><DD>
+Used to generate all properties that apply to a class.<DT class="pubdef"><A NAME="rdfs_individual_of/2"><STRONG>rdfs_individual_of</STRONG>(<VAR>?Resource, 
+?Class</VAR>)</A><DD class="defbody">
 True if <VAR>Resource</VAR> is an indivisual of <VAR>Class</VAR>. This 
 implies
 <VAR>Resource</VAR> has an <CODE>rdf:type</CODE> property that refers to
@@ -1835,28 +1470,17 @@ constructs a list using the <CODE>rdf:first</CODE> and <CODE>rdf:next</CODE>
 relations.
 
 <DL>
-
-<P>
-<DT><A NAME="rdfs_member/2"><STRONG>rdfs_member</STRONG>(<VAR>?Resource, 
-+Set</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfs_member/2"><STRONG>rdfs_member</STRONG>(<VAR>?Resource, 
++Set</VAR>)</A><DD class="defbody">
 Test or generate the members of <VAR>Set</VAR>. <VAR>Set</VAR> is either 
-an individual of <CODE>rdf:List</CODE> or <CODE>rdf:Container</CODE>.
-
-<P>
-<DT><A NAME="rdfs_list_to_prolog_list/2"><STRONG>rdfs_list_to_prolog_list</STRONG>(<VAR>+Set, 
--List</VAR>)</A><DD>
+an individual of <CODE>rdf:List</CODE> or <CODE>rdf:Container</CODE>.<DT class="pubdef"><A NAME="rdfs_list_to_prolog_list/2"><STRONG>rdfs_list_to_prolog_list</STRONG>(<VAR>+Set, 
+-List</VAR>)</A><DD class="defbody">
 Convert <VAR>Set</VAR>, which must be an individual of <CODE>rdf:List</CODE> 
-into a Prolog list of objects.
-
-<P>
-<DT><A NAME="rdfs_assert_list/2"><STRONG>rdfs_assert_list</STRONG>(<VAR>+List, 
--Resource</VAR>)</A><DD>
+into a Prolog list of objects.<DT class="pubdef"><A NAME="rdfs_assert_list/2"><STRONG>rdfs_assert_list</STRONG>(<VAR>+List, 
+-Resource</VAR>)</A><DD class="defbody">
 Equivalent to <A NAME="idx:rdfsassertlist3:95"></A><B>rdfs_assert_list/3</B> 
-using <VAR>DB</VAR> = <CODE>user</CODE>.
-
-<P>
-<DT><A NAME="rdfs_assert_list/2"><STRONG>rdfs_assert_list</STRONG>(<VAR>+List, 
--Resource, +DB</VAR>)</A><DD>
+using <VAR>DB</VAR> = <CODE>user</CODE>.<DT class="pubdef"><A NAME="rdfs_assert_list/2"><STRONG>rdfs_assert_list</STRONG>(<VAR>+List, 
+-Resource, +DB</VAR>)</A><DD class="defbody">
 If <VAR>List</VAR> is a list of resources, create an RDF list <VAR>Resource</VAR> 
 that reflects these resources. <VAR>Resource</VAR> and the sublist 
 resources are generated with <A NAME="idx:rdfbnode1:96"></A><A HREF="#rdf_bnode/1">rdf_bnode/1</A>. 
@@ -1871,38 +1495,24 @@ example, literal objects are hashed case-insensitive to speed up the
 commonly used case-insensitive search.
 
 <DL>
-
-<P>
-<DT><A NAME="rdfs_label/3"><STRONG>rdfs_label</STRONG>(<VAR>?Resource, 
-?Language, ?Label</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfs_label/3"><STRONG>rdfs_label</STRONG>(<VAR>?Resource, 
+?Language, ?Label</VAR>)</A><DD class="defbody">
 Extract the label from <VAR>Resource</VAR> or generate all resources 
 with the given <VAR>Label</VAR>. The label is either associated using a 
 sub-property of <CODE>rdfs:label</CODE> or it is extracted from the URL 
 using <A NAME="idx:rdfspliturl3:97"></A><A HREF="#rdf_split_url/3">rdf_split_url/3</A>. <VAR>Language</VAR> 
 is unified to the value of the <CODE>xml:lang</CODE> attribute of the 
-label or a variable if the label has no language specified.
-
-<P>
-<DT><A NAME="rdfs_label/2"><STRONG>rdfs_label</STRONG>(<VAR>?Resource, 
-?Label</VAR>)</A><DD>
-Defined as <CODE>rdfs_label(Resource, _, Label)</CODE>.
-
-<P>
-<DT><A NAME="rdfs_ns_label/3"><STRONG>rdfs_ns_label</STRONG>(<VAR>?Resource, 
-?Language, ?Label</VAR>)</A><DD>
+label or a variable if the label has no language specified.<DT class="pubdef"><A NAME="rdfs_label/2"><STRONG>rdfs_label</STRONG>(<VAR>?Resource, 
+?Label</VAR>)</A><DD class="defbody">
+Defined as <CODE>rdfs_label(Resource, _, Label)</CODE>.<DT class="pubdef"><A NAME="rdfs_ns_label/3"><STRONG>rdfs_ns_label</STRONG>(<VAR>?Resource, 
+?Language, ?Label</VAR>)</A><DD class="defbody">
 Similar to <A NAME="idx:rdfslabel2:98"></A><A HREF="#rdfs_label/2">rdfs_label/2</A>, 
 but prefixes the result using the declared namespace alias (see <A HREF="#sec:rdfns">section 
 3.5</A>) to facilitate user-friendly labels in applications using 
-multiple namespaces that may lead to confusion.
-
-<P>
-<DT><A NAME="rdfs_ns_label/2"><STRONG>rdfs_ns_label</STRONG>(<VAR>?Resource, 
-?Label</VAR>)</A><DD>
-Defined as <CODE>rdfs_ns_label(Resource, _, Label)</CODE>.
-
-<P>
-<DT><A NAME="rdfs_find/5"><STRONG>rdfs_find</STRONG>(<VAR>+String, 
-+Description, ?Properties, +Method, -Subject</VAR>)</A><DD>
+multiple namespaces that may lead to confusion.<DT class="pubdef"><A NAME="rdfs_ns_label/2"><STRONG>rdfs_ns_label</STRONG>(<VAR>?Resource, 
+?Label</VAR>)</A><DD class="defbody">
+Defined as <CODE>rdfs_ns_label(Resource, _, Label)</CODE>.<DT class="pubdef"><A NAME="rdfs_find/5"><STRONG>rdfs_find</STRONG>(<VAR>+String, 
++Description, ?Properties, +Method, -Subject</VAR>)</A><DD class="defbody">
 <A NAME="idx:search:99"></A>Find (on backtracking) <VAR>Subject</VAR>s 
 that satisfy a search specification for textual attributes. <VAR>String</VAR> 
 is the string searched for. <VAR>Description</VAR> is an OWL description 
@@ -1966,9 +1576,7 @@ an alternative to saving.
 <P>Transactions group low-level modification actions together.
 
 <DL>
-
-<P>
-<DT><A NAME="rdfe_transaction/1"><STRONG>rdfe_transaction</STRONG>(<VAR>:Goal</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_transaction/1"><STRONG>rdfe_transaction</STRONG>(<VAR>:Goal</VAR>)</A><DD class="defbody">
 Run <VAR>Goal</VAR>, recording all modifications to the triple store 
 made through <A HREF="#sec:rdfeencap">section 7.3</A>. Execution is 
 performed as in <A NAME="idx:once1:107"></A><B>once/1</B>. If
@@ -1985,49 +1593,27 @@ the transaction is reverted and <A NAME="idx:rdfetransaction1:109"></A><A HREF="
 throws a permission error.
 
 <P>A successful outer transaction (`level-0') may be undone using
-<A NAME="idx:rdfeundo0:110"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A>.
-
-<P>
-<DT><A NAME="rdfe_transaction/2"><STRONG>rdfe_transaction</STRONG>(<VAR>:Goal, 
-+Name</VAR>)</A><DD>
+<A NAME="idx:rdfeundo0:110"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A>.<DT class="pubdef"><A NAME="rdfe_transaction/2"><STRONG>rdfe_transaction</STRONG>(<VAR>:Goal, 
++Name</VAR>)</A><DD class="defbody">
 As <A NAME="idx:rdfetransaction1:111"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>, 
 naming the transaction <VAR>Name</VAR>. Transaction naming is intended 
 for the GUI to give the user an idea of the next undo action. See also <A NAME="idx:rdfesettransactionname1:112"></A><A HREF="#rdfe_set_transaction_name/1">rdfe_set_transaction_name/1</A> 
 and
-<A NAME="idx:rdfetransactionname2:113"></A><A HREF="#rdfe_transaction_name/2">rdfe_transaction_name/2</A>.
-
-<P>
-<DT><A NAME="rdfe_set_transaction_name/1"><STRONG>rdfe_set_transaction_name</STRONG>(<VAR>+Name</VAR>)</A><DD>
-Set the `name' of the current transaction to <VAR>Name</VAR>.
-
-<P>
-<DT><A NAME="rdfe_transaction_name/2"><STRONG>rdfe_transaction_name</STRONG>(<VAR>?TID, 
-?Name</VAR>)</A><DD>
-Query assigned transaction names.
-
-<P>
-<DT><A NAME="rdfe_transaction_member/2"><STRONG>rdfe_transaction_member</STRONG>(<VAR>+TID, 
--Action</VAR>)</A><DD>
+<A NAME="idx:rdfetransactionname2:113"></A><A HREF="#rdfe_transaction_name/2">rdfe_transaction_name/2</A>.<DT class="pubdef"><A NAME="rdfe_set_transaction_name/1"><STRONG>rdfe_set_transaction_name</STRONG>(<VAR>+Name</VAR>)</A><DD class="defbody">
+Set the `name' of the current transaction to <VAR>Name</VAR>.<DT class="pubdef"><A NAME="rdfe_transaction_name/2"><STRONG>rdfe_transaction_name</STRONG>(<VAR>?TID, 
+?Name</VAR>)</A><DD class="defbody">
+Query assigned transaction names.<DT class="pubdef"><A NAME="rdfe_transaction_member/2"><STRONG>rdfe_transaction_member</STRONG>(<VAR>+TID, 
+-Action</VAR>)</A><DD class="defbody">
 Enumerate the actions that took place inside a transaction. This can be 
 used by a GUI to optimise the MVC (Model-View-Controller) feedback loop. <VAR>Action</VAR> 
 is one of:
 
 <DL>
-
-<P>
-<DT><STRONG>assert</STRONG>(<VAR>Subject, Predicate, Object</VAR>)<DD>
-
-<P>
-<DT><STRONG>retract</STRONG>(<VAR>Subject, Predicate, Object</VAR>)<DD>
-
-<P>
-<DT><STRONG>update</STRONG>(<VAR>Subject, Predicate, Object, Action</VAR>)<DD>
-
-<P>
-<DT><STRONG>file</STRONG>(<VAR>load(Path)</VAR>)<DD>
-
-<P>
-<DT><STRONG>file</STRONG>(<VAR>unload(Path)</VAR>)<DD>
+<DT><STRONG>assert</STRONG>(<VAR>Subject, Predicate, Object</VAR>)<DD class="defbody">
+<DT><STRONG>retract</STRONG>(<VAR>Subject, Predicate, Object</VAR>)<DD class="defbody">
+<DT><STRONG>update</STRONG>(<VAR>Subject, Predicate, Object, Action</VAR>)<DD class="defbody">
+<DT><STRONG>file</STRONG>(<VAR>load(Path)</VAR>)<DD class="defbody">
+<DT><STRONG>file</STRONG>(<VAR>unload(Path)</VAR>)<DD class="defbody">
 </DL>
 
 </DL>
@@ -2037,45 +1623,32 @@ is one of:
 <A NAME="sec:file"></A>
 
 <DL>
-
-<P>
-<DT><A NAME="rdfe_is_modified/1"><STRONG>rdfe_is_modified</STRONG>(<VAR>?File</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_is_modified/1"><STRONG>rdfe_is_modified</STRONG>(<VAR>?File</VAR>)</A><DD class="defbody">
 Enumerate/test whether <VAR>File</VAR> is modified sinds it was loaded 
 or sinds the last call to <A NAME="idx:rdfeclearmodified1:114"></A><A HREF="#rdfe_clear_modified/1">rdfe_clear_modified/1</A>. 
 Whether or not a file is modified is determined by the MD5 checksum of 
-all triples belonging to the file.
-
-<P>
-<DT><A NAME="rdfe_clear_modified/1"><STRONG>rdfe_clear_modified</STRONG>(<VAR>+File</VAR>)</A><DD>
+all triples belonging to the file.<DT class="pubdef"><A NAME="rdfe_clear_modified/1"><STRONG>rdfe_clear_modified</STRONG>(<VAR>+File</VAR>)</A><DD class="defbody">
 Set the <EM>unmodified-MD5</EM> to the current MD5 checksum. See also
-<A NAME="idx:rdfeismodified1:115"></A><A HREF="#rdfe_is_modified/1">rdfe_is_modified/1</A>.
-
-<P>
-<DT><A NAME="rdfe_set_file_property/2"><STRONG>rdfe_set_file_property</STRONG>(<VAR>+File, 
-+Property</VAR>)</A><DD>
+<A NAME="idx:rdfeismodified1:115"></A><A HREF="#rdfe_is_modified/1">rdfe_is_modified/1</A>.<DT class="pubdef"><A NAME="rdfe_set_file_property/2"><STRONG>rdfe_set_file_property</STRONG>(<VAR>+File, 
++Property</VAR>)</A><DD class="defbody">
 Control access right and default destination of new triples.
 <VAR>Property</VAR> is one of
 
 <DL>
-
-<P>
-<DT><STRONG>access</STRONG>(<VAR>+Access</VAR>)<DD>
+<DT><STRONG>access</STRONG>(<VAR>+Access</VAR>)<DD class="defbody">
 Where access is one of <CODE>ro</CODE> or <CODE>rw</CODE>. Access <CODE>ro</CODE> 
 is default when a file is loaded for which the user has no write access. 
 If a transaction (see <A NAME="idx:rdfetransaction1:116"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>) 
 modifies a file with access <CODE>ro</CODE> the transaction is reversed.
-
-<P>
-<DT><STRONG>default</STRONG>(<VAR>+Default</VAR>)<DD>
+<DT><STRONG>default</STRONG>(<VAR>+Default</VAR>)<DD class="defbody">
 Set this file to be the default destination of triples. If
 <VAR>Default</VAR> is <CODE>fallback</CODE> it is only the default for 
 triples that have no clear default destination. If it is <CODE>all</CODE> 
 all new triples are added to this file.
 </DL>
 
-<P>
-<DT><A NAME="rdfe_get_file_property/2"><STRONG>rdfe_get_file_property</STRONG>(<VAR>?File, 
-?Property</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_get_file_property/2"><STRONG>rdfe_get_file_property</STRONG>(<VAR>?File, 
+?Property</VAR>)</A><DD class="defbody">
 Query properties set with <A NAME="idx:rdfesetfileproperty2:117"></A><A HREF="#rdfe_set_file_property/2">rdfe_set_file_property/2</A>.
 </DL>
 
@@ -2088,28 +1661,18 @@ module that modify the triple store. These predicates can only be called
 when inside a <EM>transaction</EM>. See <A NAME="idx:rdfetransaction1:118"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>.
 
 <DL>
-
-<P>
-<DT><A NAME="rdfe_assert/3"><STRONG>rdfe_assert</STRONG>(<VAR>+Subject, 
-+Predicate, +Object</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_assert/3"><STRONG>rdfe_assert</STRONG>(<VAR>+Subject, 
++Predicate, +Object</VAR>)</A><DD class="defbody">
 Encapsulates <A NAME="idx:rdfassert3:119"></A><A HREF="#rdf_assert/3">rdf_assert/3</A>.
-
-<P>
-<DT><A NAME="rdfe_retractall/3"><STRONG>rdfe_retractall</STRONG>(<VAR>?Subject, 
-?Predicate, ?Object</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_retractall/3"><STRONG>rdfe_retractall</STRONG>(<VAR>?Subject, 
+?Predicate, ?Object</VAR>)</A><DD class="defbody">
 Encapsulates <A NAME="idx:rdfretractall3:120"></A><A HREF="#rdf_retractall/3">rdf_retractall/3</A>.
-
-<P>
-<DT><A NAME="rdfe_update/4"><STRONG>rdfe_update</STRONG>(<VAR>+Subject, 
-+Predicate, +Object, +Action</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_update/4"><STRONG>rdfe_update</STRONG>(<VAR>+Subject, 
++Predicate, +Object, +Action</VAR>)</A><DD class="defbody">
 Encapsulates <A NAME="idx:rdfupdate4:121"></A><A HREF="#rdf_update/4">rdf_update/4</A>.
-
-<P>
-<DT><A NAME="rdfe_load/1"><STRONG>rdfe_load</STRONG>(<VAR>+In</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_load/1"><STRONG>rdfe_load</STRONG>(<VAR>+In</VAR>)</A><DD class="defbody">
 Encapsulates <A NAME="idx:rdfload1:122"></A><A HREF="#rdf_load/1">rdf_load/1</A>.
-
-<P>
-<DT><A NAME="rdfe_unload/1"><STRONG>rdfe_unload</STRONG>(<VAR>+In</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_unload/1"><STRONG>rdfe_unload</STRONG>(<VAR>+In</VAR>)</A><DD class="defbody">
 Encapsulates <A NAME="idx:rdfunload1:123"></A><A HREF="#rdf_unload/1">rdf_unload/1</A>.
 </DL>
 
@@ -2122,9 +1685,7 @@ operations one would like to be able to perform. Eventually this set may
 include operations based on RDFS and OWL.
 
 <DL>
-
-<P>
-<DT><A NAME="rdfe_delete/1"><STRONG>rdfe_delete</STRONG>(<VAR>+Resource</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_delete/1"><STRONG>rdfe_delete</STRONG>(<VAR>+Resource</VAR>)</A><DD class="defbody">
 Delete all traces of <VAR>resource</VAR>. This implies all triples where
 <VAR>Resource</VAR> appears as <EM>subject</EM>, <EM>predicate</EM> or
 <EM>object</EM>. This predicate starts a transation.
@@ -2136,28 +1697,17 @@ Delete all traces of <VAR>resource</VAR>. This implies all triples where
 from a (graphical) editor.
 
 <DL>
-
-<P>
-<DT><A NAME="rdfe_undo/0"><STRONG>rdfe_undo</STRONG></A><DD>
+<DT class="pubdef"><A NAME="rdfe_undo/0"><STRONG>rdfe_undo</STRONG></A><DD class="defbody">
 Revert the last outermost (`level 0') transaction (see
 <A NAME="idx:rdfetransaction1:125"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>). 
 Successive calls go further back in history. Fails if there is no more 
-undo information.
-
-<P>
-<DT><A NAME="rdfe_redo/0"><STRONG>rdfe_redo</STRONG></A><DD>
+undo information.<DT class="pubdef"><A NAME="rdfe_redo/0"><STRONG>rdfe_redo</STRONG></A><DD class="defbody">
 Revert the last <A NAME="idx:rdfeundo0:126"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A>. 
 Successive calls revert more <A NAME="idx:rdfeundo0:127"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A> 
-operations. Fails if there is no more redo information.
-
-<P>
-<DT><A NAME="rdfe_can_undo/1"><STRONG>rdfe_can_undo</STRONG>(<VAR>-TID</VAR>)</A><DD>
+operations. Fails if there is no more redo information.<DT class="pubdef"><A NAME="rdfe_can_undo/1"><STRONG>rdfe_can_undo</STRONG>(<VAR>-TID</VAR>)</A><DD class="defbody">
 Test if there is another transaction that can be reverted. Used for 
 activating menus in a graphical environment. <VAR>TID</VAR> is unified 
-to the transaction id of the action that will be reverted.
-
-<P>
-<DT><A NAME="rdfe_can_redo/1"><STRONG>rdfe_can_redo</STRONG>(<VAR>-TID</VAR>)</A><DD>
+to the transaction id of the action that will be reverted.<DT class="pubdef"><A NAME="rdfe_can_redo/1"><STRONG>rdfe_can_redo</STRONG>(<VAR>-TID</VAR>)</A><DD class="defbody">
 Test if there is another undo that can be reverted. Used for activating 
 menus in a graphical environment. <VAR>TID</VAR> is unified to the 
 transaction id of the action that will be reverted.
@@ -2172,27 +1722,16 @@ with a time-stamp that may be used for inspection of behaviour, version
 management, crash-recovery or an alternative to regular save operations.
 
 <DL>
-
-<P>
-<DT><A NAME="rdfe_open_journal/2"><STRONG>rdfe_open_journal</STRONG>(<VAR>+File, 
-+Mode</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="rdfe_open_journal/2"><STRONG>rdfe_open_journal</STRONG>(<VAR>+File, 
++Mode</VAR>)</A><DD class="defbody">
 Open a existing or new journal. If <VAR>Mode</VAR> equala <CODE>append</CODE> 
 and <VAR>File</VAR> exists, the journal is first replayed. See
 <A NAME="idx:rdfereplayjournal1:129"></A><A HREF="#rdfe_replay_journal/1">rdfe_replay_journal/1</A>. 
 If <VAR>Mode</VAR> is <CODE>write</CODE> the journal is truncated if it 
-exists.
-
-<P>
-<DT><A NAME="rdfe_close_journal/0"><STRONG>rdfe_close_journal</STRONG></A><DD>
-Close the currently open journal.
-
-<P>
-<DT><A NAME="rdfe_current_journal/1"><STRONG>rdfe_current_journal</STRONG>(<VAR>-Path</VAR>)</A><DD>
+exists.<DT class="pubdef"><A NAME="rdfe_close_journal/0"><STRONG>rdfe_close_journal</STRONG></A><DD class="defbody">
+Close the currently open journal.<DT class="pubdef"><A NAME="rdfe_current_journal/1"><STRONG>rdfe_current_journal</STRONG>(<VAR>-Path</VAR>)</A><DD class="defbody">
 Test whether there is a journal and to which file the actions are 
-journalled.
-
-<P>
-<DT><A NAME="rdfe_replay_journal/1"><STRONG>rdfe_replay_journal</STRONG>(<VAR>+File</VAR>)</A><DD>
+journalled.<DT class="pubdef"><A NAME="rdfe_replay_journal/1"><STRONG>rdfe_replay_journal</STRONG>(<VAR>+File</VAR>)</A><DD class="defbody">
 Read a journal, replaying all actions in it. To do so, the system reads 
 the journal a transaction at a time. If the transaction is closed with a <EM>commit</EM> 
 it executes the actions inside the journal. If it is closed with a <EM>rollback</EM> 
@@ -2214,9 +1753,7 @@ User Guide</A>. In this section we describe the terms brodcasted by the
 library.
 
 <DL>
-
-<P>
-<DT><STRONG>rdf_transaction</STRONG>(<VAR>+Id</VAR>)<DD>
+<DT><STRONG>rdf_transaction</STRONG>(<VAR>+Id</VAR>)<DD class="defbody">
 A `level-0' transaction has been committed. The system passes the 
 identifier of the transaction in <VAR>Id</VAR>. In the current 
 implementation there is no way to find out what happened inside the 
@@ -2226,9 +1763,7 @@ transaction. This is likely to change in time.
 event is broadcasted. The initiating GUI element is supposed to handle 
 this possibility itself and other components are not affected as the 
 triple store is not changed.
-
-<P>
-<DT><STRONG>rdf_undo</STRONG>(<VAR>+Type, +Id</VAR>)<DD>
+<DT><STRONG>rdf_undo</STRONG>(<VAR>+Type, +Id</VAR>)<DD class="defbody">
 This event is broadcasted after an <A NAME="idx:rdfeundo0:133"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A> 
 or <A NAME="idx:rdferedo0:134"></A><A HREF="#rdfe_redo/0">rdfe_redo/0</A>.
 <VAR>Type</VAR> is one of <CODE>undo</CODE> or <CODE>redo</CODE> and <VAR>Id</VAR> 
@@ -2278,8 +1813,6 @@ See the source file <CODE>avl.c</CODE> for details.
 <H1><A NAME="document-notes">Footnotes</A></H1>
 
 <DL>
-
-<P>
 <DT><A NAME=note-1 HREF="semweb.html#back-to-note-1">note-1</A><DD>
 The orginal implementation was in Prolog. This version was implemented 
 in 3 hours, where the C-based implementation costed a full week. The 
@@ -2317,8 +1850,6 @@ BUG: The current implementation cannot deal with cycles
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
-
-<P>
 <DT><STRONG>A</STRONG><DD>
 <DT>atom_concat/3<DD>
 <A HREF="#idx:atomconcat3:55">3.5</A>

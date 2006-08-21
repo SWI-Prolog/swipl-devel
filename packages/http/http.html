@@ -2,7 +2,25 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog HTTP support</TITLE>
+<TITLE>SWI-Prolog HTTP support</TITLE><style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+} 
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+} 
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+</style>
 </HEAD>
 <BODY BGCOLOR="white"> 
 <BLOCKQUOTE>
@@ -152,10 +170,8 @@ simple mechanism to read data from an HTTP server using the HTTP 1.0
 protocol and HTTP GET access method. It defines one predicate:
 
 <DL>
-
-<P>
-<DT><A NAME="http_open/3"><STRONG>http_open</STRONG>(<VAR>+URL, -Stream, 
-+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_open/3"><STRONG>http_open</STRONG>(<VAR>+URL, 
+-Stream, +Options</VAR>)</A><DD class="defbody">
 Open the data at the HTTP server as a Prolog stream. After this 
 predicate succeeds the data can be read from <VAR>Stream</VAR>. After 
 completion this stream must be closed using the built-in Prolog 
@@ -163,47 +179,33 @@ predicate <A NAME="idx:close1:1"></A><B>close/1</B>. <VAR>Options</VAR>
 provides additional options:
 
 <DL>
-
-<P>
-<DT><STRONG>timeout</STRONG>(<VAR>+Timeout</VAR>)<DD>
+<DT><STRONG>timeout</STRONG>(<VAR>+Timeout</VAR>)<DD class="defbody">
 If provided, set a timeout on the stream using <A NAME="idx:setstream2:2"></A><B>set_stream/2</B>. 
 With this option if no new data arrives within <VAR>Timeout</VAR> 
 seconds the stream raises an exception. Default is to wait forever (<CODE>infinite</CODE>).
-
-<P>
-<DT><STRONG>header</STRONG>(<VAR>+Name, -AtomValue</VAR>)<DD>
+<DT><STRONG>header</STRONG>(<VAR>+Name, -AtomValue</VAR>)<DD class="defbody">
 If provided, <VAR>AtomValue</VAR> is unified with the value of the 
 indicated field in the reply header. <VAR>Name</VAR> is matched 
 case-insensitive and the underscore (<CODE>_</CODE>) matches the hyphen 
 (<CODE>-</CODE>). Multiple of these options may be provided to extract 
 multiple header fields. If the header is not available
 <VAR>AtomValue</VAR> is unified to the empty atom ('').
-
-<P>
-<DT><STRONG>size</STRONG>(<VAR>-Size</VAR>)<DD>
+<DT><STRONG>size</STRONG>(<VAR>-Size</VAR>)<DD class="defbody">
 If provided <VAR>Size</VAR> is unified with the value of the
 <CODE>Content-Length</CODE> fields of the reply-header.
-
-<P>
-<DT><STRONG>proxy</STRONG>(<VAR>+Host, +Port</VAR>)<DD>
+<DT><STRONG>proxy</STRONG>(<VAR>+Host, +Port</VAR>)<DD class="defbody">
 Use an HTTP proxy to connect to the outside world.
-
-<P>
-<DT><STRONG>user_agent</STRONG>(<VAR>+Agent</VAR>)<DD>
+<DT><STRONG>user_agent</STRONG>(<VAR>+Agent</VAR>)<DD class="defbody">
 Defines the value of the <CODE>User-Agent</CODE> field of the HTTP 
 header. Default is <CODE>SWI-Prolog (http://www.swi-prolog.org)</CODE>.
-
-<P>
-<DT><STRONG>request_header</STRONG>(<VAR>+Name = +Value</VAR>)<DD>
+<DT><STRONG>request_header</STRONG>(<VAR>+Name = +Value</VAR>)<DD class="defbody">
 Additional name-value parts are added in the order of appearance to the 
 HTTP request header. No interpretation is done.
 </DL>
 
 <P>Here is a simple example:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 ?- http_open('http://www.swi-prolog.org/news.html', In, []),
    copy_stream_data(In, user_output),
    close(In).
@@ -215,7 +217,6 @@ HTTP request header. No interpretation is done.
 &lt;/HEAD&gt;
 ...
 </PRE>
-</TABLE>
 
 <P>
 </DL>
@@ -233,65 +234,45 @@ breaking down <EM>multipart</EM> data, parsing HTML, etc. The library
 announces itself as providing <CODE>HTTP/1.1</CODE>.
 
 <DL>
-
-<P>
-<DT><A NAME="http_get/3"><STRONG>http_get</STRONG>(<VAR>+URL, -Reply, 
-+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_get/3"><STRONG>http_get</STRONG>(<VAR>+URL, 
+-Reply, +Options</VAR>)</A><DD class="defbody">
 Performs a HTTP GET request on the given URL and then reads the reply 
 using <A NAME="idx:httpreaddata3:3"></A><A HREF="#http_read_data/3">http_read_data/3</A>. 
 Defined options are:
 
 <DL>
-
-<P>
-<DT><STRONG>connection</STRONG>(<VAR>ConnectionType</VAR>)<DD>
+<DT><STRONG>connection</STRONG>(<VAR>ConnectionType</VAR>)<DD class="defbody">
 If <CODE>close</CODE> (default) a new connection is created for this 
 request and closed after the request has completed. If <CODE>'Keep-Alive'</CODE> 
 the library checks for an open connection on the requested host and port 
 and re-uses this connection. The connection is left open if the other 
 party confirms the keep-alive and closed otherwise.
-
-<P>
-<DT><STRONG>http_version</STRONG>(<VAR>Major-Minor</VAR>)<DD>
+<DT><STRONG>http_version</STRONG>(<VAR>Major-Minor</VAR>)<DD class="defbody">
 Indicate the HTTP protocol version used for the connection. Default is
 <CODE>1.1</CODE>.
-
-<P>
-<DT><STRONG>proxy</STRONG>(<VAR>+Host, +Port</VAR>)<DD>
+<DT><STRONG>proxy</STRONG>(<VAR>+Host, +Port</VAR>)<DD class="defbody">
 Use an HTTP proxy to connect to the outside world.
-
-<P>
-<DT><STRONG>user_agent</STRONG>(<VAR>+Agent</VAR>)<DD>
+<DT><STRONG>user_agent</STRONG>(<VAR>+Agent</VAR>)<DD class="defbody">
 Defines the value of the <CODE>User-Agent</CODE> field of the HTTP 
 header. Default is <CODE>SWI-Prolog (http://www.swi-prolog.org)</CODE>.
-
-<P>
-<DT><STRONG>request_header</STRONG>(<VAR>Name = Value</VAR>)<DD>
+<DT><STRONG>request_header</STRONG>(<VAR>Name = Value</VAR>)<DD class="defbody">
 Add a line "<VAR>Name</VAR>: <VAR>Value</VAR>" to the HTTP request 
 header. Both name and value are added uninspected and literally to the 
 request header. This may be used to specify accept encodings, languages, 
 etc. Please check the RFC2616 (HTTP) document for available fields and 
 their meaning.
-
-<P>
-<DT><STRONG>reply_header</STRONG>(<VAR>Header</VAR>)<DD>
+<DT><STRONG>reply_header</STRONG>(<VAR>Header</VAR>)<DD class="defbody">
 Unify <VAR>Header</VAR> with a list of <VAR>Name</VAR>=<VAR>Value</VAR> 
 pairs expressing all header fields of the reply. See <A NAME="idx:httpreadrequest2:4"></A><A HREF="#http_read_request/2">http_read_request/2</A> 
 for the result format.
 </DL>
 
-<P>Remaining options are passed to <A NAME="idx:httpreaddata3:5"></A><A HREF="#http_read_data/3">http_read_data/3</A>.
-
-<P>
-<DT><A NAME="http_post/4"><STRONG>http_post</STRONG>(<VAR>+URL, +In, 
--Reply, +Options</VAR>)</A><DD>
+<P>Remaining options are passed to <A NAME="idx:httpreaddata3:5"></A><A HREF="#http_read_data/3">http_read_data/3</A>.<DT class="pubdef"><A NAME="http_post/4"><STRONG>http_post</STRONG>(<VAR>+URL, 
++In, -Reply, +Options</VAR>)</A><DD class="defbody">
 Performs a HTTP POST request on the given URL. It is equivalent to
 <A NAME="idx:httpget3:6"></A><A HREF="#http_get/3">http_get/3</A>, 
-except for providing an <EM>input document</EM>, which is posted using <A NAME="idx:httppostdata3:7"></A><A HREF="#http_post_data/3">http_post_data/3</A>.
-
-<P>
-<DT><A NAME="http_read_data/3"><STRONG>http_read_data</STRONG>(<VAR>+Header, 
--Data, +Options</VAR>)</A><DD>
+except for providing an <EM>input document</EM>, which is posted using <A NAME="idx:httppostdata3:7"></A><A HREF="#http_post_data/3">http_post_data/3</A>.<DT class="pubdef"><A NAME="http_read_data/3"><STRONG>http_read_data</STRONG>(<VAR>+Header, 
+-Data, +Options</VAR>)</A><DD class="defbody">
 Read data from an HTTP stream. Normally called from <A NAME="idx:httpget3:8"></A><A HREF="#http_get/3">http_get/3</A> 
 or
 <A NAME="idx:httppost4:9"></A><A HREF="#http_post/4">http_post/4</A>. 
@@ -302,34 +283,25 @@ pairs to guide the translation of the data. The following options are
 supported:
 
 <DL>
-
-<P>
-<DT><STRONG>to</STRONG>(<VAR>Target</VAR>)<DD>
+<DT><STRONG>to</STRONG>(<VAR>Target</VAR>)<DD class="defbody">
 Do not try to interpret the data according to the MIME-type, but return 
 it literally according to <VAR>Target</VAR>, which is one of:
 
 <DL>
-
-<P>
-<DT><STRONG>stream</STRONG>(<VAR>Output</VAR>)<DD>
+<DT><STRONG>stream</STRONG>(<VAR>Output</VAR>)<DD class="defbody">
 Append the data to the given stream, which must be a Prolog stream open 
 for writing. This can be used to save the data in a (memory-)file, XPCE 
 object, forward it to process using a pipe, etc.
-
-<P>
-<DT><STRONG>atom</STRONG><DD>
+<DT><STRONG>atom</STRONG><DD class="defbody">
 Return the result as an atom. Though SWI-Prolog has no limit on the size 
 of atoms and provides atom-garbage collection, this options should be 
 used with care.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
-
-<P>
-<DT><STRONG>codes</STRONG><DD>
+<DT><STRONG>codes</STRONG><DD class="defbody">
 Return the page as a list of character-codes. This is especially useful 
 for parsing it using grammar rules.
 </DL>
 
-<P>
-<DT><STRONG>content_type</STRONG>(<VAR>Type</VAR>)<DD>
+<DT><STRONG>content_type</STRONG>(<VAR>Type</VAR>)<DD class="defbody">
 Overrule the <CODE>Content-Type</CODE> as provided by the HTTP reply 
 header. Intented as a work-around for badly configured servers.
 </DL>
@@ -341,57 +313,40 @@ atom. The builtin content filters are described below. The provided
 plug-ins are described in the following sections.
 
 <DL>
-
-<P>
-<DT><STRONG>application/x-www-form-urlencoded</STRONG><DD>
+<DT><STRONG>application/x-www-form-urlencoded</STRONG><DD class="defbody">
 This is the default encoding mechanism for POST requests issued by a 
 web-browser. It is broken down to a list of <VAR>Name</VAR> = <VAR>Value</VAR> 
 terms.
 </DL>
 
-<P>Finally, if all else fails the content is returned as an atom.
-
-<P>
-<DT><A NAME="http_post_data/3"><STRONG>http_post_data</STRONG>(<VAR>+Data, 
-+Stream, +ExtraHeader</VAR>)</A><DD>
+<P>Finally, if all else fails the content is returned as an atom.<DT class="pubdef"><A NAME="http_post_data/3"><STRONG>http_post_data</STRONG>(<VAR>+Data, 
++Stream, +ExtraHeader</VAR>)</A><DD class="defbody">
 Write an HTTP POST request to <VAR>Stream</VAR> using data from <VAR>Data</VAR> 
 and passing the additional extra headers from <VAR>ExtraHeader</VAR>.
 <VAR>Data</VAR> is one of:
 
 <DL>
-
-<P>
-<DT><STRONG>html</STRONG>(<VAR>+HTMLTokens</VAR>)<DD>
+<DT><STRONG>html</STRONG>(<VAR>+HTMLTokens</VAR>)<DD class="defbody">
 Send an HTML token string as produced by the library <CODE>library(html_write)</CODE> 
 described in section <A HREF="#sec:htmlwrite">section 3.9</A>.
-
-<P>
-<DT><STRONG>file</STRONG>(<VAR>+File</VAR>)<DD>
+<DT><STRONG>file</STRONG>(<VAR>+File</VAR>)<DD class="defbody">
 Send the contents of <VAR>File</VAR>. The MIME type is derived from the 
 filename extension using <A NAME="idx:filemimetype2:10"></A><B>file_mime_type/2</B>.
-
-<P>
-<DT><STRONG>file</STRONG>(<VAR>+Type, +File</VAR>)<DD>
+<DT><STRONG>file</STRONG>(<VAR>+Type, +File</VAR>)<DD class="defbody">
 Send the contents of <VAR>File</VAR> using the provided MIME type, i.e. claiming 
 the <CODE>Content-type</CODE> equals <VAR>Type</VAR>.
-
-<P>
-<DT><STRONG>cgi_stream</STRONG>(<VAR>+Stream, +Len</VAR>)<DD>
+<DT><STRONG>cgi_stream</STRONG>(<VAR>+Stream, +Len</VAR>)<DD class="defbody">
 Read the input from <VAR>Stream</VAR> which, like CGI data starts with a 
 partial HTTP header. The fields of this header are merged with the 
 provided <VAR>ExtraHeader</VAR> fields. The first <VAR>Len</VAR> 
 characters of <VAR>Stream</VAR> are used.
-
-<P>
-<DT><STRONG>form</STRONG>(<VAR>+ListOfParameter</VAR>)<DD>
+<DT><STRONG>form</STRONG>(<VAR>+ListOfParameter</VAR>)<DD class="defbody">
 Send data of the MIME type <CODE>application/x-www-form-urlencoded</CODE> 
 as produced by browsers issuing a POST request from an HTML form.
 <VAR>ListOfParameter</VAR> is a list of <VAR>Name</VAR>=<VAR>Value</VAR> 
 or
 <VAR>Name</VAR>(<VAR>Value</VAR>) .
-
-<P>
-<DT><STRONG>form_data</STRONG>(<VAR>+ListOfData</VAR>)<DD>
+<DT><STRONG>form_data</STRONG>(<VAR>+ListOfData</VAR>)<DD class="defbody">
 Send data of the MIME type <CODE>multipart/form-data</CODE> as produced 
 by browsers issuing a POST request from an HTML form using <CODE>enctype</CODE>
 <CODE>multipart/form-data</CODE>. This is a somewhat simplified MIME
@@ -402,9 +357,7 @@ alternative described below. Below is an example from the SWI-Prolog
 etc. are atoms providing the value, while the last argument provides a 
 value from a file.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
         ...,
         http_post([ protocol(http),
                     host(Host),
@@ -421,10 +374,8 @@ value from a file.
                   []),
         ...,
 </PRE>
-</TABLE>
 
-<P>
-<DT><STRONG>List</STRONG><DD>
+<DT><STRONG>List</STRONG><DD class="defbody">
 If the argument is a plain list, it is sent using the MIME type
 <CODE>multipart/mixed</CODE> and packed using <A NAME="idx:mimepack3:11"></A><B>mime_pack/3</B>. 
 See
@@ -456,23 +407,17 @@ and the http client library. After loading this hook the following
 mime-types are automatically handled by the SGML parser.
 
 <DL>
-
-<P>
-<DT><STRONG>text/html</STRONG><DD>
+<DT><STRONG>text/html</STRONG><DD class="defbody">
 Handed to <CODE>library(sgml)</CODE> using W3C HTML 4.0 DTD, suppressing 
 and ignoring all HTML syntax errors. <VAR>Options</VAR> is passed to
 <A NAME="idx:loadstructure3:13"></A><B>load_structure/3</B>.
-
-<P>
-<DT><STRONG>text/xml</STRONG><DD>
+<DT><STRONG>text/xml</STRONG><DD class="defbody">
 Handed to <CODE>library(sgml)</CODE> using dialect <CODE>xmlns</CODE> 
 (XML + namespaces).
 <VAR>Options</VAR> is passed to <A NAME="idx:loadstructure3:14"></A><B>load_structure/3</B>. 
 In particular,
 <CODE>dialect(xml)</CODE> may be used to suppress namespace handling.
-
-<P>
-<DT><STRONG>text/x-sgml</STRONG><DD>
+<DT><STRONG>text/x-sgml</STRONG><DD class="defbody">
 Handled to <CODE>library(sgml)</CODE> using dialect <CODE>sgml</CODE>. <VAR>Options</VAR> 
 is passed to <A NAME="idx:loadstructure3:15"></A><B>load_structure/3</B>.
 </DL>
@@ -492,8 +437,6 @@ and encode the answer. This design is summarised in <A HREF="#fig:httpserver">fi
 <CENTER>
 <IMG SRC="httpserver.gif">
 </CENTER>
-
-<P>
 <TABLE ALIGN=center WIDTH="75%"><TR><TD>
 <B>Figure 1 : </B>Design of the HTTP server</TABLE>
 
@@ -518,9 +461,7 @@ CGI script; it must write a header declaring holding at least the
 <CODE>Content-type</CODE> field and a body. Here is a simple body 
 writing the request as an HTML table.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 reply(Request) :-
         format('Content-type: text/html~n~n', []),
         format('&lt;html&gt;~n', []),
@@ -535,7 +476,6 @@ print_request([H|T]) :-
         format('&lt;tr&gt;&lt;td&gt;~w&lt;td&gt;~w~n', [Name, Value]),
         print_request(T).
 </PRE>
-</TABLE>
 
 <H4><A NAME="sec:3.1.1">3.1.1 Returning special status codes</A></H4>
 
@@ -547,19 +487,13 @@ to generate special pages such as <CODE>not_found</CODE>, <CODE>moved</CODE>,
 etc. The defined exceptions are:
 
 <DL>
-
-<P>
-<DT><STRONG>http_reply</STRONG>(<VAR>+Reply, +HdrExtra</VAR>)<DD>
+<DT><STRONG>http_reply</STRONG>(<VAR>+Reply, +HdrExtra</VAR>)<DD class="defbody">
 Return a result page using <A NAME="idx:httpreply3:18"></A><A HREF="#http_reply/3">http_reply/3</A>. 
 See <A NAME="idx:httpreply3:19"></A><A HREF="#http_reply/3">http_reply/3</A> 
 for details.
-
-<P>
-<DT><STRONG>http_reply</STRONG>(<VAR>+Reply</VAR>)<DD>
+<DT><STRONG>http_reply</STRONG>(<VAR>+Reply</VAR>)<DD class="defbody">
 Equivalent to <CODE>http_reply(Reply,[])</CODE>.
-
-<P>
-<DT><STRONG>http</STRONG>(<VAR>not_modified</VAR>)<DD>
+<DT><STRONG>http</STRONG>(<VAR>not_modified</VAR>)<DD class="defbody">
 Equivalent to <CODE>http_reply(not_modified,[])</CODE>. This exception 
 is for backward compatibility and can be used by the server to indicate 
 the referenced resource has not been modified since it was requested 
@@ -582,65 +516,38 @@ based server starts a server for each request.
 simple calculator with internal state.
 
 <DL>
-
-<P>
-<DT><A NAME="http_set_session_options/1"><STRONG>http_set_session_options</STRONG>(<VAR>+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_set_session_options/1"><STRONG>http_set_session_options</STRONG>(<VAR>+Options</VAR>)</A><DD class="defbody">
 Set options for the session manager. Defined options are:
 
 <DL>
-
-<P>
-<DT><STRONG>timeout</STRONG>(<VAR>+Seconds</VAR>)<DD>
+<DT><STRONG>timeout</STRONG>(<VAR>+Seconds</VAR>)<DD class="defbody">
 Max idle time of a session. Session cookies are deleted if no request is 
 received within the specified time. The value `0' disables timeout 
 handling.
-
-<P>
-<DT><STRONG>cookie</STRONG>(<VAR>+Atom</VAR>)<DD>
+<DT><STRONG>cookie</STRONG>(<VAR>+Atom</VAR>)<DD class="defbody">
 Name of the cookie to use for session management. The default is
 <CODE>swipl_session</CODE>.
-
-<P>
-<DT><STRONG>path</STRONG>(<VAR>+Atom</VAR>)<DD>
+<DT><STRONG>path</STRONG>(<VAR>+Atom</VAR>)<DD class="defbody">
 Path with which to associate the session management. Default is
 <CODE>/</CODE>, associating it with the entire server.
 </DL>
 
-<P>
-<DT><A NAME="http_session_id/1"><STRONG>http_session_id</STRONG>(<VAR>-Id</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_session_id/1"><STRONG>http_session_id</STRONG>(<VAR>-Id</VAR>)</A><DD class="defbody">
 Returns an identifier for the current session. The identifier is an 
-atom.
-
-<P>
-<DT><A NAME="http_current_session/2"><STRONG>http_current_session</STRONG>(<VAR>?Id, 
-?Data</VAR>)</A><DD>
+atom.<DT class="pubdef"><A NAME="http_current_session/2"><STRONG>http_current_session</STRONG>(<VAR>?Id, 
+?Data</VAR>)</A><DD class="defbody">
 Enumerate sessions and associated data. All sessions have the
 <VAR>Data</VAR> item <CODE>idle(Seconds)</CODE>, describing the current 
 idle-time of the session. Other data elements are added by the user 
 using
 <A NAME="idx:httpsessionassert1:20"></A><A HREF="#http_session_assert/1">http_session_assert/1</A> 
-and friends.
-
-<P>
-<DT><A NAME="http_session_asserta/1"><STRONG>http_session_asserta</STRONG>(<VAR>+Term</VAR>)</A><DD>
+and friends.<DT class="pubdef"><A NAME="http_session_asserta/1"><STRONG>http_session_asserta</STRONG>(<VAR>+Term</VAR>)</A><DD class="defbody">
 Associate <VAR>Term</VAR> with the current session, before any other 
-associated term.
-
-<P>
-<DT><A NAME="http_session_assert/1"><STRONG>http_session_assert</STRONG>(<VAR>+Term</VAR>)</A><DD>
+associated term.<DT class="pubdef"><A NAME="http_session_assert/1"><STRONG>http_session_assert</STRONG>(<VAR>+Term</VAR>)</A><DD class="defbody">
 Associate <VAR>Term</VAR> with the current session, after any other 
-associated term.
-
-<P>
-<DT><A NAME="http_session_retract/1"><STRONG>http_session_retract</STRONG>(<VAR>?Term</VAR>)</A><DD>
-Non-deterministically retract terms associated with the current session.
-
-<P>
-<DT><A NAME="http_session_retractall/1"><STRONG>http_session_retractall</STRONG>(<VAR>+Term</VAR>)</A><DD>
-Retract all matching terms from associated with the current session.
-
-<P>
-<DT><A NAME="http_session_data/1"><STRONG>http_session_data</STRONG>(<VAR>?Term</VAR>)</A><DD>
+associated term.<DT class="pubdef"><A NAME="http_session_retract/1"><STRONG>http_session_retract</STRONG>(<VAR>?Term</VAR>)</A><DD class="defbody">
+Non-deterministically retract terms associated with the current session.<DT class="pubdef"><A NAME="http_session_retractall/1"><STRONG>http_session_retractall</STRONG>(<VAR>+Term</VAR>)</A><DD class="defbody">
+Retract all matching terms from associated with the current session.<DT class="pubdef"><A NAME="http_session_data/1"><STRONG>http_session_data</STRONG>(<VAR>?Term</VAR>)</A><DD class="defbody">
 Enumerate all associated terms that unify with <VAR>Term</VAR>.
 </DL>
 
@@ -655,10 +562,8 @@ builds on top of the low-level request representation described in
 <A HREF="#sec:request">section 3.4</A>.
 
 <DL>
-
-<P>
-<DT><A NAME="http_parameters/2"><STRONG>http_parameters</STRONG>(<VAR>+Request, 
-?Parameters</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_parameters/2"><STRONG>http_parameters</STRONG>(<VAR>+Request, 
+?Parameters</VAR>)</A><DD class="defbody">
 The predicate is passes the <VAR>Request</VAR> as provided to the 
 handler goal by <A NAME="idx:httpwrapper5:21"></A><A HREF="#http_wrapper/5">http_wrapper/5</A> 
 as well as a partially instantiated lists describing the requested 
@@ -673,65 +578,41 @@ returned in
 thrown. Defined options are:
 
 <DL>
-
-<P>
-<DT><STRONG>default</STRONG>(<VAR>Default</VAR>)<DD>
+<DT><STRONG>default</STRONG>(<VAR>Default</VAR>)<DD class="defbody">
 If the named parameter is missing, <VAR>Value</VAR> is unified to
 <VAR>Default</VAR>.
-
-<P>
-<DT><STRONG>optional</STRONG>(<VAR>true</VAR>)<DD>
+<DT><STRONG>optional</STRONG>(<VAR>true</VAR>)<DD class="defbody">
 If the named parameter is missing, <VAR>Value</VAR> is left unbound and 
 no error is generated.
-
-<P>
-<DT><STRONG>zero_or_more</STRONG><DD>
+<DT><STRONG>zero_or_more</STRONG><DD class="defbody">
 The same parameter may not appear or appear multiple times. If this 
 option is present, <CODE>default</CODE> and <CODE>optional</CODE> are 
 ignored and the value is returned as a list. Type checking options are 
 processed on each value.
-
-<P>
-<DT><STRONG>oneof</STRONG>(<VAR>List</VAR>)<DD>
+<DT><STRONG>oneof</STRONG>(<VAR>List</VAR>)<DD class="defbody">
 Succeeds if the value is member of the given list.
-
-<P>
-<DT><B>length <VAR>&gt; N</VAR></B><DD>
+<DT><B>length <VAR>&gt; N</VAR></B><DD class="defbody">
 Succeeds if value is an atom of more than <VAR>N</VAR> characters.
-
-<P>
-<DT><B>length <VAR>&gt;= N</VAR></B><DD>
+<DT><B>length <VAR>&gt;= N</VAR></B><DD class="defbody">
 Succeeds if value is an atom of more or than equal to <VAR>N</VAR> 
 characters.
-
-<P>
-<DT><B>length <VAR>&lt; N</VAR></B><DD>
+<DT><B>length <VAR>&lt; N</VAR></B><DD class="defbody">
 Succeeds if value is an atom of less than <VAR>N</VAR> characters.
-
-<P>
-<DT><B>length <VAR>=&lt; N</VAR></B><DD>
+<DT><B>length <VAR>=&lt; N</VAR></B><DD class="defbody">
 Succeeds if value is an atom of length than or equal to <VAR>N</VAR> 
 characters.
-
-<P>
-<DT><STRONG>number</STRONG><DD>
+<DT><STRONG>number</STRONG><DD class="defbody">
 Convert value to a number. Throws a type-error otherwise.
-
-<P>
-<DT><STRONG>integer</STRONG><DD>
+<DT><STRONG>integer</STRONG><DD class="defbody">
 Convert value to an integer. Throws a type-error otherwise.
-
-<P>
-<DT><STRONG>float</STRONG><DD>
+<DT><STRONG>float</STRONG><DD class="defbody">
 Convert value to a float. Integers are tranformed into fload. Throws a 
 type-error otherwise.
 </DL>
 
 <P>Below is an example
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 reply(Request) :-
         http_parameters(Request,
                         [ title(Title, [optional(true)]),
@@ -740,33 +621,23 @@ reply(Request) :-
                         ]),
         ...
 </PRE>
-</TABLE>
 
-<P>Same as <CODE>http_parameters(Request, Parameters,[])</CODE>
-
-<P>
-<DT><A NAME="http_parameters/3"><STRONG>http_parameters</STRONG>(<VAR>+Request, 
-?Parameters, +Options</VAR>)</A><DD>
+<P>Same as <CODE>http_parameters(Request, Parameters,[])</CODE><DT class="pubdef"><A NAME="http_parameters/3"><STRONG>http_parameters</STRONG>(<VAR>+Request, 
+?Parameters, +Options</VAR>)</A><DD class="defbody">
 In addition to <A NAME="idx:httpparameters2:22"></A><A HREF="#http_parameters/2">http_parameters/2</A>, 
 the following options are defined.
 
 <DL>
-
-<P>
-<DT><STRONG>form_data</STRONG>(<VAR>-Data</VAR>)<DD>
+<DT><STRONG>form_data</STRONG>(<VAR>-Data</VAR>)<DD class="defbody">
 Return the entire set of provided <VAR>Name</VAR>=<VAR>Value</VAR> pairs 
 from the GET or POST request. All values are returned as atoms.
-
-<P>
-<DT><STRONG>attribute_declarations</STRONG>(<VAR>:Goal</VAR>)<DD>
+<DT><STRONG>attribute_declarations</STRONG>(<VAR>:Goal</VAR>)<DD class="defbody">
 If a parameter specification lacks the parameter options, call
 <CODE>call(Goal, +ParamName, -Options)</CODE> to find the options. 
 Intended to share declarations over many calls to <A NAME="idx:httpparameters3:23"></A><A HREF="#http_parameters/3">http_parameters/3</A>. 
 Using this construct the above can be written as below.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 reply(Request) :-
         http_parameters(Request,
                         [ title(Title),
@@ -781,7 +652,6 @@ param(title, [optional(true)]).
 param(name,  [length &gt;= 2 ]).
 param(age,   [integer]).
 </PRE>
-</TABLE>
 
 <P>
 </DL>
@@ -798,10 +668,8 @@ defined in
 <CODE>library(http/http_header)</CODE>.
 
 <DL>
-
-<P>
-<DT><A NAME="http_read_request/2"><STRONG>http_read_request</STRONG>(<VAR>+Stream, 
--Request</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_read_request/2"><STRONG>http_read_request</STRONG>(<VAR>+Stream, 
+-Request</VAR>)</A><DD class="defbody">
 Reads an HTTP request from <VAR>Stream</VAR> and unify <VAR>Request</VAR> 
 with the parsed request. <VAR>Request</VAR> is a list of <CODE><VAR>Name</VAR>(Value)</CODE> 
 elements. It provides a number of predefined elements for the result of 
@@ -809,63 +677,43 @@ parsing the first line of the request, followed by the additional
 request parameters. The predefined fields are:
 
 <DL>
-
-<P>
-<DT><STRONG>host</STRONG>(<VAR>Host</VAR>)<DD>
+<DT><STRONG>host</STRONG>(<VAR>Host</VAR>)<DD class="defbody">
 If the request contains <CODE>Host: </CODE><VAR>Host</VAR>, Host is 
 unified with the host-name. If <VAR>Host</VAR> is of the format &lt;<VAR>host</VAR>&gt;:&lt;<VAR>port</VAR>&gt;
 <VAR>Host</VAR> only describes &lt;<VAR>host</VAR>&gt; and a field <CODE>port(Port)</CODE> 
 where
 <VAR>Port</VAR> is an integer is added.
-
-<P>
-<DT><STRONG>input</STRONG>(<VAR>Stream</VAR>)<DD>
+<DT><STRONG>input</STRONG>(<VAR>Stream</VAR>)<DD class="defbody">
 The <VAR>Stream</VAR> is passed along, allowing to read more data or 
 requests from the same stream. This field is always present.
-
-<P>
-<DT><STRONG>method</STRONG>(<VAR>Method</VAR>)<DD>
+<DT><STRONG>method</STRONG>(<VAR>Method</VAR>)<DD class="defbody">
 <VAR>Method</VAR> is one of <CODE>get</CODE>, <CODE>put</CODE> or <CODE>post</CODE>. 
 This field is present if the header has been parsed successfully.
-
-<P>
-<DT><STRONG>path</STRONG>(<VAR>Path</VAR>)<DD>
+<DT><STRONG>path</STRONG>(<VAR>Path</VAR>)<DD class="defbody">
 Path associated to the request. This field is always present.
-
-<P>
-<DT><STRONG>peer</STRONG>(<VAR>Peer</VAR>)<DD>
+<DT><STRONG>peer</STRONG>(<VAR>Peer</VAR>)<DD class="defbody">
 <VAR>Peer</VAR> is a term <CODE>ip(A,B,C,D)</CODE> containing the IP 
 address of the contacting host.
-
-<P>
-<DT><STRONG>port</STRONG>(<VAR>Port</VAR>)<DD>
+<DT><STRONG>port</STRONG>(<VAR>Port</VAR>)<DD class="defbody">
 Port requested. See <CODE>host</CODE> for details.
-
-<P>
-<DT><STRONG>search</STRONG>(<VAR>ListOfNameValue</VAR>)<DD>
+<DT><STRONG>search</STRONG>(<VAR>ListOfNameValue</VAR>)<DD class="defbody">
 Search-specification of URI. This is the part after the <CODE>?</CODE>, 
 normally used to transfer data from HTML forms that use the `<CODE>GET</CODE>' 
 protocol. In the URL it consists of a www-form-encoded list of <VAR>Name</VAR>=<VAR>Value</VAR> 
 pairs. This is mapped to a list of Prolog <VAR>Name</VAR>=<VAR>Value</VAR> 
 terms with decoded names and values. This field is only present if the 
 location contains a search-specification.
-
-<P>
-<DT><STRONG>http_version</STRONG>(<VAR>Major-Minor</VAR>)<DD>
+<DT><STRONG>http_version</STRONG>(<VAR>Major-Minor</VAR>)<DD class="defbody">
 If the first line contains the <CODE>HTTP/</CODE><VAR>Major</VAR>.<VAR>Minor</VAR> 
 version indicator this element indicate the HTTP version of the peer. 
 Otherwise this field is not present.
-
-<P>
-<DT><STRONG>cookie</STRONG>(<VAR>ListOfNameValue</VAR>)<DD>
+<DT><STRONG>cookie</STRONG>(<VAR>ListOfNameValue</VAR>)<DD class="defbody">
 If the header contains a <CODE>Cookie</CODE> line, the value of the 
 cookie is broken down in <VAR>Name</VAR>=<VAR>Value</VAR> pairs, where 
 the
 <VAR>Name</VAR> is the lowercase version of the cookie name as used for 
 the HTTP fields.
-
-<P>
-<DT><STRONG>set_cookie</STRONG>(<VAR>set_cookie(Name, Value, Options)</VAR>)<DD>
+<DT><STRONG>set_cookie</STRONG>(<VAR>set_cookie(Name, Value, Options)</VAR>)<DD class="defbody">
 If the header contains a <CODE>SetCookie</CODE> line, the cookie field 
 is broken down into the <VAR>Name</VAR> of the cookie, the <VAR>Value</VAR> 
 and a list of <VAR>Name</VAR>=<VAR>Value</VAR> pairs for additional 
@@ -887,9 +735,7 @@ is canonised for use with Prolog. Canonisation implies that the
 
 <P>Here is an example:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 ?- http_read_request(user, X).
 |: GET /mydb?class=person HTTP/1.0
 |: Host: gollem
@@ -903,7 +749,6 @@ X = [ input(user),
       host(gollem)
     ].
 </PRE>
-</TABLE>
 
 <H4><A NAME="sec:3.4.1">3.4.1 Handling POST requests</A></H4>
 
@@ -920,16 +765,13 @@ from the HTTP client library. Here is a demo implementation simply
 returning the parsed posted data as plain text (assuming <A NAME="idx:pp1:27"></A><B>pp/1</B> 
 pretty-prints the data).
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 reply(Request) :-
         member(method(post), Request), !,
         http_read_data(Request, Data, []),
         format('Content-type: text/plain~n~n', []),
         pp(Data).
 </PRE>
-</TABLE>
 
 <P>If the POST is initiated from a browser, content-type is generally 
 either <CODE>application/x-www-form-urlencoded</CODE> or
@@ -989,15 +831,11 @@ to create the server. The list of options differ, but the servers share
 common options:
 
 <DL>
-
-<P>
-<DT><STRONG>port</STRONG>(<VAR>?Port</VAR>)<DD>
+<DT><STRONG>port</STRONG>(<VAR>?Port</VAR>)<DD class="defbody">
 Specify the port to listen to for stand-alone servers. <VAR>Port</VAR> 
 is either an integer or unbound. If unbound, it is unified to the 
 selected free port.
-
-<P>
-<DT><STRONG>after</STRONG>(<VAR>:Goal</VAR>)<DD>
+<DT><STRONG>after</STRONG>(<VAR>:Goal</VAR>)<DD class="defbody">
 Specify a goal to be run on the query just like the first argument of
 <A NAME="idx:httpserver2:28"></A><A HREF="#http_server/2">http_server/2</A>. 
 This goal however is started <EM>after</EM> the request has been 
@@ -1007,9 +845,7 @@ POST requests on the server. The server answers these requests with an
 empty document before starting processing. The <CODE>after</CODE>-option 
 is used for the processing:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 :- http_server(reply, [after(action), ...]).
 
 reply(Request) :-
@@ -1018,7 +854,6 @@ reply(Request) :-
 action(Request) :-
         &lt;start agent work on request&gt;
 </PRE>
-</TABLE>
 
 <P>
 </DL>
@@ -1034,10 +869,8 @@ body of your server. It also allows the combination of an (XPCE-based)
 GUI with web-technology in one application.
 
 <DL>
-
-<P>
-<DT><A NAME="http_server/2"><STRONG>http_server</STRONG>(<VAR>:Goal, 
-+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_server/2"><STRONG>http_server</STRONG>(<VAR>:Goal, 
++Options</VAR>)</A><DD class="defbody">
 Create an instance of <B>interactive_httpd</B>. <VAR>Options</VAR> must 
 provide the <CODE>port(?Port)</CODE> option to specify the port the 
 server should listen to. If <VAR>Port</VAR> is unbound an arbitrary free 
@@ -1048,16 +881,13 @@ only other option provided is the <CODE>after(:Goal)</CODE> option.
 <P>The file <CODE>demo_xpce</CODE> gives a typical example of this 
 wrapper, assuming <CODE>demo_body</CODE> defines the predicate <A NAME="idx:reply1:29"></A><B>reply/1</B>.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 :- use_module(xpce_httpd).
 :- use_module(demo_body).
 
 server(Port) :-
         http_server(reply, Port, []).
 </PRE>
-</TABLE>
 
 <P>The created server opens a server socket at the selected address and 
 waits for incoming connections. On each accepted connection it collects 
@@ -1103,10 +933,8 @@ server exploiting the <CODE>library(ssl)</CODE> library. See option
 <CODE>ssl(+SSLOptions)</CODE> below.
 
 <DL>
-
-<P>
-<DT><A NAME="http_server/3"><STRONG>http_server</STRONG>(<VAR>:Goal, 
-+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_server/3"><STRONG>http_server</STRONG>(<VAR>:Goal, 
++Options</VAR>)</A><DD class="defbody">
 Create the server. <VAR>Options</VAR> must provide the <CODE>port(?Port)</CODE> 
 option to specify the port the server should listen to. If <VAR>Port</VAR> 
 is unbound an arbitrary free port is selected and <VAR>Port</VAR> is 
@@ -1115,14 +943,10 @@ thread accepting new connection on <VAR>Port</VAR> and dispatching these
 to a pool of workers. Defined <VAR>Options</VAR> are:
 
 <DL>
-
-<P>
-<DT><STRONG>port</STRONG>(<VAR>?Port</VAR>)<DD>
+<DT><STRONG>port</STRONG>(<VAR>?Port</VAR>)<DD class="defbody">
 Port the server should listen to. If unbound <VAR>Port</VAR> is unified 
 with the selected free port.
-
-<P>
-<DT><STRONG>workers</STRONG>(<VAR>+N</VAR>)<DD>
+<DT><STRONG>workers</STRONG>(<VAR>+N</VAR>)<DD class="defbody">
 Defines the number of worker threads in the pool. Default is to use
 <VAR>two</VAR> workers. Choosing the optimal value for best performance 
 is a difficult task depending on the number of CPUs in your system and 
@@ -1131,9 +955,7 @@ numbers makes your system switch too often between threads or even swap
 if there is not enough memory to keep all threads in memory, while a too 
 low number causes clients to wait unnecessary for other clients to 
 complete. See also <A NAME="idx:httpworkers2:31"></A><A HREF="#http_workers/2">http_workers/2</A>.
-
-<P>
-<DT><STRONG>timeout</STRONG>(<VAR>+SecondsOrInfinite</VAR>)<DD>
+<DT><STRONG>timeout</STRONG>(<VAR>+SecondsOrInfinite</VAR>)<DD class="defbody">
 Determines the maximum period of inactivity handling a request. If no 
 data arrives within the specified time since the last data arrived the 
 connection raises an exception, the worker discards the client and 
@@ -1141,9 +963,7 @@ returns to the pool-queue for a new client. Default is <CODE>infinite</CODE>,
 making each worker wait forever for a request to complete. Without a 
 timeout, a worker may wait forever on an a client that doesn't complete 
 its request.
-
-<P>
-<DT><STRONG>keep_alive_timeout</STRONG>(<VAR>+SecondsOrInfinite</VAR>)<DD>
+<DT><STRONG>keep_alive_timeout</STRONG>(<VAR>+SecondsOrInfinite</VAR>)<DD class="defbody">
 Maximum time to wait for new actity on <EM>Keep-Alive</EM> connections. 
 Choosing the correct value for this parameter is hard. Disabling 
 Keep-Alive is bad for performance if the clients request multiple 
@@ -1151,29 +971,19 @@ documents for a single page. This may ---for example-- be caused by HTML
 frames, HTML pages with images, associated CSS files, etc. Keeping a 
 connection open in the threaded model however prevents the thread 
 servicing the client servicing other clients. The default is 5 seconds.
-
-<P>
-<DT><STRONG>local</STRONG>(<VAR>+KBytes</VAR>)<DD>
+<DT><STRONG>local</STRONG>(<VAR>+KBytes</VAR>)<DD class="defbody">
 Size of the local-stack for the workers. Default is taken from the 
 commandline option.
-
-<P>
-<DT><STRONG>global</STRONG>(<VAR>+KBytes</VAR>)<DD>
+<DT><STRONG>global</STRONG>(<VAR>+KBytes</VAR>)<DD class="defbody">
 Size of the global-stack for the workers. Default is taken from the 
 commandline option.
-
-<P>
-<DT><STRONG>trail</STRONG>(<VAR>+KBytes</VAR>)<DD>
+<DT><STRONG>trail</STRONG>(<VAR>+KBytes</VAR>)<DD class="defbody">
 Size of the trail-stack for the workers. Default is taken from the 
 commandline option.
-
-<P>
-<DT><STRONG>after</STRONG>(<VAR>:Goal</VAR>)<DD>
+<DT><STRONG>after</STRONG>(<VAR>:Goal</VAR>)<DD class="defbody">
 After replying a request, execute <VAR>Goal</VAR> providing the request 
 as argument.
-
-<P>
-<DT><STRONG>ssl</STRONG>(<VAR>+SSLOptions</VAR>)<DD>
+<DT><STRONG>ssl</STRONG>(<VAR>+SSLOptions</VAR>)<DD class="defbody">
 Use SSL (Secure Socket Layer) rather than plan TCP/IP. A server created 
 this way is accessed using the <CODE>https://</CODE> protocol. SSL 
 allows for encrypted communication to avoid others from tapping the wire 
@@ -1183,16 +993,12 @@ The port option of the main option list is forwarded to the SSL layer.
 See the <CODE>library(ssl)</CODE> library for details.
 </DL>
 
-<P>
-<DT><A NAME="http_current_server/2"><STRONG>http_current_server</STRONG>(<VAR>?:Goal, 
-?Port</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_current_server/2"><STRONG>http_current_server</STRONG>(<VAR>?:Goal, 
+?Port</VAR>)</A><DD class="defbody">
 Query the running servers. Note that <A NAME="idx:httpserver3:33"></A><A HREF="#http_server/3">http_server/3</A> 
 can be called multiple times to create multiple servers on different 
-ports.
-
-<P>
-<DT><A NAME="http_workers/2"><STRONG>http_workers</STRONG>(<VAR>:Port, 
-?Workers</VAR>)</A><DD>
+ports.<DT class="pubdef"><A NAME="http_workers/2"><STRONG>http_workers</STRONG>(<VAR>:Port, 
+?Workers</VAR>)</A><DD class="defbody">
 Query or manipulate the number of workers of the server identified by
 <VAR>Port</VAR>. If <VAR>Workers</VAR> is unbound it is unified with the 
 number of running servers. If it is an integer greater than the current 
@@ -1204,11 +1010,8 @@ finish their jobs (i.e. no worker is abandoned while serving a client).
 
 <P>This can be used to tune the number of workers for performance. 
 Another possible application is to reduce the pool to one worker to 
-facilitate easier debugging.
-
-<P>
-<DT><A NAME="http_current_worker/2"><STRONG>http_current_worker</STRONG>(<VAR>?Port, 
-?ThreadID</VAR>)</A><DD>
+facilitate easier debugging.<DT class="pubdef"><A NAME="http_current_worker/2"><STRONG>http_current_worker</STRONG>(<VAR>?Port, 
+?ThreadID</VAR>)</A><DD class="defbody">
 True if <VAR>ThreadID</VAR> is the identifier of a Prolog thread serving
 <VAR>Port</VAR>. This predicate is motivated to allow for the use of 
 arbitrary interaction with the worker thread for development and 
@@ -1245,10 +1048,8 @@ specifications.
 in <CODE>inetd_httpd</CODE>, defining <A NAME="idx:httpserver1:34"></A><B>http_server/1</B>:
 
 <DL>
-
-<P>
-<DT><A NAME="http_server/2"><STRONG>http_server</STRONG>(<VAR>:Goal, 
-+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_server/2"><STRONG>http_server</STRONG>(<VAR>:Goal, 
++Options</VAR>)</A><DD class="defbody">
 Initialises and runs <A NAME="idx:httpwrapper5:35"></A><A HREF="#http_wrapper/5">http_wrapper/5</A> 
 in a loop until failure or end-of-file. This server does not support the <VAR>Port</VAR> 
 option as the port is specified with the <B>inetd</B> configuration. The 
@@ -1257,9 +1058,7 @@ only supported option is <VAR>After</VAR>.
 
 <P>Here is the example from <CODE>demo_inetd</CODE>
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 #!/usr/bin/pl -t main -q -f
 :- use_module(demo_body).
 :- use_module(inetd_httpd).
@@ -1267,7 +1066,6 @@ only supported option is <VAR>After</VAR>.
 main :-
         http_server(reply).
 </PRE>
-</TABLE>
 
 <P>With the above file installed in <CODE>/home/jan/plhttp/demo_inetd</CODE>, 
 the following line in <CODE>/etc/inetd</CODE> enables the server at port 
@@ -1275,12 +1073,9 @@ the following line in <CODE>/etc/inetd</CODE> enables the server at port
 daemon the <CODE>HUP</CODE> signal to make it reload its configuration. 
 For more information, please check <STRONG>inetd.conf</STRONG>(5).
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 4001 stream tcp nowait nobody /usr/sbin/tcpd /home/jan/plhttp/demo_inetd
 </PRE>
-</TABLE>
 
 <H4><A NAME="sec:3.5.5">3.5.5 MS-Windows</A></H4>
 
@@ -1299,10 +1094,8 @@ realised by
 <A NAME="idx:httpwrapper5:36"></A><A HREF="#http_wrapper/5">http_wrapper/5</A>:
 
 <DL>
-
-<P>
-<DT><A NAME="http_wrapper/5"><STRONG>http_wrapper</STRONG>(<VAR>:Goal, 
-+In, +Out, -Connection, +Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_wrapper/5"><STRONG>http_wrapper</STRONG>(<VAR>:Goal, 
++In, +Out, -Connection, +Options</VAR>)</A><DD class="defbody">
 Handle an HTTP request where <VAR>In</VAR> is an input stream from the 
 client, <VAR>Out</VAR> is an output stream to the client and <VAR>Goal</VAR> 
 defines the goal realising the body. <VAR>Connection</VAR> is unified to
@@ -1321,21 +1114,16 @@ context information derived from the exception.
 supports the following options:
 
 <DL>
-
-<P>
-<DT><STRONG>request</STRONG>(<VAR>-Request</VAR>)<DD>
+<DT><STRONG>request</STRONG>(<VAR>-Request</VAR>)<DD class="defbody">
 Return the executed request to the caller.
-
-<P>
-<DT><STRONG>peer</STRONG>(<VAR>+Peer</VAR>)<DD>
+<DT><STRONG>peer</STRONG>(<VAR>+Peer</VAR>)<DD class="defbody">
 Add peer(Peer) to the request header handed to <VAR>Goal</VAR>. The 
 format of <VAR>Peer</VAR> is defined by <A NAME="idx:tcpaccept3:38"></A><B>tcp_accept/3</B> 
 from the clib package.
 </DL>
 
-<P>
-<DT><A NAME="http:request_expansion/2"><STRONG>http:request_expansion</STRONG>(<VAR>+RequestIn, 
--RequestOut</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http:request_expansion/2"><STRONG>http:request_expansion</STRONG>(<VAR>+RequestIn, 
+-RequestOut</VAR>)</A><DD class="defbody">
 This <EM>multifile</EM> hook predicate is called just before the goal 
 that produces the body, while the output is already redirected to 
 collect the reply. If it succeeds it must return a valid modified 
@@ -1347,25 +1135,18 @@ that are added <EM>before</EM> header fields written by the body. The
 example below is from the session management library (see <A HREF="#sec:session">section 
 3.2</A>) sets a cookie.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
         ...,
         format('Set-Cookie: ~w=~w; path=~w~n', [Cookie, SessionID, Path]),
         ...,
 </PRE>
-</TABLE>
 
-<P>
-<DT><A NAME="http_current_request/1"><STRONG>http_current_request</STRONG>(<VAR>-Request</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_current_request/1"><STRONG>http_current_request</STRONG>(<VAR>-Request</VAR>)</A><DD class="defbody">
 Get access to the currently executing request. <VAR>Request</VAR> is the 
 same as handed to <VAR>Goal</VAR> of <A NAME="idx:httpwrapper5:39"></A><A HREF="#http_wrapper/5">http_wrapper/5</A> <EM>after</EM> 
 applying rewrite rules as defined by http:request_expansion/2. Raises an 
-existence error if there is no request in progress.
-
-<P>
-<DT><A NAME="http_relative_path/2"><STRONG>http_relative_path</STRONG>(<VAR>+AbsPath, 
--RelPath</VAR>)</A><DD>
+existence error if there is no request in progress.<DT class="pubdef"><A NAME="http_relative_path/2"><STRONG>http_relative_path</STRONG>(<VAR>+AbsPath, 
+-RelPath</VAR>)</A><DD class="defbody">
 Convert an absolute path (without host, fragment or search) into a path 
 relative to the current page, defined as the path component from the 
 current request (see <A NAME="idx:httpcurrentrequest1:40"></A><A HREF="#http_current_request/1">http_current_request/1</A>). 
@@ -1403,70 +1184,46 @@ which can be accessed from the reply body using an exception as explain
 in <A HREF="#sec:httpspecials">section 3.1.1</A>.
 
 <DL>
-
-<P>
-<DT><A NAME="http_reply/3"><STRONG>http_reply</STRONG>(<VAR>+Type, 
-+Stream, +HdrExtra</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="http_reply/3"><STRONG>http_reply</STRONG>(<VAR>+Type, 
++Stream, +HdrExtra</VAR>)</A><DD class="defbody">
 Compose a complete HTTP reply from the term <VAR>Type</VAR> using 
 additional headers from <VAR>HdrExtra</VAR> to the output stream <VAR>Stream</VAR>.
 <VAR>ExtraHeader</VAR> is a list of <CODE>Field(Value)</CODE>. <VAR>Type</VAR> 
 is one of:
 
 <DL>
-
-<P>
-<DT><STRONG>html</STRONG>(<VAR>+HTML</VAR>)<DD>
+<DT><STRONG>html</STRONG>(<VAR>+HTML</VAR>)<DD class="defbody">
 Produce a HTML page using <A NAME="idx:printhtml1:42"></A><A HREF="#print_html/1">print_html/1</A>, 
 normally generated using the
 <CODE>library(http/html_write)</CODE> described in <A HREF="#sec:htmlwrite">section 
 3.9</A>.
-
-<P>
-<DT><STRONG>file</STRONG>(<VAR>+MimeType, +Path</VAR>)<DD>
+<DT><STRONG>file</STRONG>(<VAR>+MimeType, +Path</VAR>)<DD class="defbody">
 Reply the content of the given file, indicating the given MIME type.
-
-<P>
-<DT><STRONG>tmp_file</STRONG>(<VAR>+MimeType, +Path</VAR>)<DD>
+<DT><STRONG>tmp_file</STRONG>(<VAR>+MimeType, +Path</VAR>)<DD class="defbody">
 Similar to <CODE>File(+MimeType, +Path)</CODE>, but do not include a 
 modification time header.
-
-<P>
-<DT><STRONG>stream</STRONG>(<VAR>+Stream, +Len</VAR>)<DD>
+<DT><STRONG>stream</STRONG>(<VAR>+Stream, +Len</VAR>)<DD class="defbody">
 Reply using the next <VAR>Len</VAR> characters from <VAR>Stream</VAR>. 
 The user must provides the MIME type and other attributes through the
 <VAR>ExtraHeader</VAR> argument.
-
-<P>
-<DT><STRONG>cgi_stream</STRONG>(<VAR>+Stream, +Len</VAR>)<DD>
+<DT><STRONG>cgi_stream</STRONG>(<VAR>+Stream, +Len</VAR>)<DD class="defbody">
 Similar to <CODE>stream(+Stream, +Len)</CODE>, but the data on <VAR>Stream</VAR> 
 must contain an HTTP header.
-
-<P>
-<DT><STRONG>moved</STRONG>(<VAR>+URL</VAR>)<DD>
+<DT><STRONG>moved</STRONG>(<VAR>+URL</VAR>)<DD class="defbody">
 Generate a ``301 Moved Permanently'' page with the given target
 <VAR>URL</VAR>.
-
-<P>
-<DT><STRONG>not_found</STRONG>(<VAR>+URL</VAR>)<DD>
+<DT><STRONG>not_found</STRONG>(<VAR>+URL</VAR>)<DD class="defbody">
 Generate a ``404 Not Found'' page.
-
-<P>
-<DT><STRONG>forbidden</STRONG>(<VAR>+URL</VAR>)<DD>
+<DT><STRONG>forbidden</STRONG>(<VAR>+URL</VAR>)<DD class="defbody">
 Generate a ``403 Forbidden'' page, denying access without challenging 
 the client.
-
-<P>
-<DT><STRONG>authorise</STRONG>(<VAR>+Method, +Realm</VAR>)<DD>
+<DT><STRONG>authorise</STRONG>(<VAR>+Method, +Realm</VAR>)<DD class="defbody">
 Generate a ``401 Authorization Required'', requesting the client to 
 retry using proper credentials (i.e. user and password).
-
-<P>
-<DT><STRONG>not_modified</STRONG><DD>
+<DT><STRONG>not_modified</STRONG><DD class="defbody">
 Generate a ``304 Not Modified'' page, indicating the requested resource 
 has not changed since the indicated time.
-
-<P>
-<DT><STRONG>server_error</STRONG>(<VAR>+Error</VAR>)<DD>
+<DT><STRONG>server_error</STRONG>(<VAR>+Error</VAR>)<DD class="defbody">
 Generate a ``500 Internal server error'' page with a message generated 
 from a Prolog exception term (see <A NAME="idx:printmessage2:43"></A><B>print_message/2</B>).
 </DL>
@@ -1495,9 +1252,7 @@ term with embedded calls to additional translation rules to a list of
 atoms that can then be printed using <A NAME="idx:printhtml12:46"></A><A HREF="#print_html/1">print_html/[1,2]</A>.
 
 <DL>
-
-<P>
-<DT><A NAME="html/1"><STRONG>html</STRONG>(<VAR>:Spec</VAR>)</A><CODE>--&gt;</CODE><DD>
+<DT class="pubdef"><A NAME="html/1"><STRONG>html</STRONG>(<VAR>:Spec</VAR>)</A><CODE>--&gt;</CODE><DD class="defbody">
 http://db.cwi.nl/projecten/project.php4?prjnr=129The DCG rule <A NAME="idx:html1:47"></A><A HREF="#html/1">html/1</A> 
 is the main predicate of this library. It translates the specification 
 for an HTML page into a list of atoms that can be written to a stream 
@@ -1556,10 +1311,8 @@ Emit HTML element <VAR>Tag</VAR> using <VAR>Attributes</VAR> and <VAR>Content</V
 attributes. Each attributes is of the format <CODE>Name(Value)</CODE> or
 <VAR>Name</VAR>=<VAR>Value</VAR>.
 </UL>
-
-<P>
-<DT><A NAME="page/2"><STRONG>page</STRONG>(<VAR>:HeadContent, 
-:BodyContent</VAR>)</A><CODE>--&gt;</CODE><DD>
+<DT class="pubdef"><A NAME="page/2"><STRONG>page</STRONG>(<VAR>:HeadContent, 
+:BodyContent</VAR>)</A><CODE>--&gt;</CODE><DD class="defbody">
 The DCG rule <A NAME="idx:page2:52"></A><A HREF="#page/2">page/2</A> 
 generated a complete page, including the SGML
 <CODE>DOCTYPE</CODE> declaration. <VAR>HeadContent</VAR> are elements to 
@@ -1580,9 +1333,7 @@ set to <CODE>white</CODE> and the provided <VAR>BodyContent</VAR>.
 directly as <A NAME="idx:page2:57"></A><A HREF="#page/2">page/2</A> is 
 (besides handling the hooks) defined as:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 page(Head, Body) --&gt;
         html([ \['&lt;!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 4.0//EN"&gt;\n'],
                html([ head(Head),
@@ -1590,28 +1341,20 @@ page(Head, Body) --&gt;
                     ])
              ]).
 </PRE>
-</TABLE>
 
-<P>
-<DT><A NAME="page/1"><STRONG>page</STRONG>(<VAR>:Contents</VAR>)</A><CODE>--&gt;</CODE><DD>
+<DT class="pubdef"><A NAME="page/1"><STRONG>page</STRONG>(<VAR>:Contents</VAR>)</A><CODE>--&gt;</CODE><DD class="defbody">
 This version of the <A NAME="idx:page12:58"></A><A HREF="#page/1">page/[1,2]</A> 
 only gives you the SGML <CODE>DOCTYPE</CODE> and the <CODE>HTML</CODE> 
 element. <VAR>Contents</VAR> is used to generate both the head and body 
-of the page.
-
-<P>
-<DT><A NAME="html_begin/1"><STRONG>html_begin</STRONG>(<VAR>+Begin</VAR>)</A><CODE>--&gt;</CODE><DD>
+of the page.<DT class="pubdef"><A NAME="html_begin/1"><STRONG>html_begin</STRONG>(<VAR>+Begin</VAR>)</A><CODE>--&gt;</CODE><DD class="defbody">
 Just open the given element. <VAR>Begin</VAR> is either an atom or a 
 compound term, In the latter case the arguments are used as arguments to 
 the begin-tag. Some examples:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
         html_begin(table)
         html_begin(table(border(2), align(center)))
 </PRE>
-</TABLE>
 
 <P>This predicate provides an alternative to using the
 <CODE>\</CODE><VAR>Command</VAR> syntax in the <A NAME="idx:html1:59"></A><A HREF="#html/1">html/1</A> 
@@ -1619,9 +1362,7 @@ specification. The following two fragments are the same. The preferred
 solution depends on your preferences as well as whether the 
 specification is generated or entered by the programmer.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 table(Rows) --&gt;
         html(table([border(1), align(center), width('80%')],
                    [ \table_header,
@@ -1636,10 +1377,8 @@ table(Rows) --&gt;
         table_rows,
         html_end(table).
 </PRE>
-</TABLE>
 
-<P>
-<DT><A NAME="html_end/1"><STRONG>html_end</STRONG>(<VAR>+End</VAR>)</A><CODE>--&gt;</CODE><DD>
+<DT class="pubdef"><A NAME="html_end/1"><STRONG>html_end</STRONG>(<VAR>+End</VAR>)</A><CODE>--&gt;</CODE><DD class="defbody">
 End an element. See <A NAME="idx:htmlbegin1:60"></A><A HREF="#html_begin/1">html_begin/1</A> 
 for details.
 </DL>
@@ -1657,19 +1396,13 @@ number of newline characters.
 the following predicates are available from this library:
 
 <DL>
-
-<P>
-<DT><A NAME="print_html/1"><STRONG>print_html</STRONG>(<VAR>+List</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="print_html/1"><STRONG>print_html</STRONG>(<VAR>+List</VAR>)</A><DD class="defbody">
 Print the token list to the Prolog current output stream.
-
-<P>
-<DT><A NAME="print_html/2"><STRONG>print_html</STRONG>(<VAR>+Stream, 
-+List</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="print_html/2"><STRONG>print_html</STRONG>(<VAR>+Stream, 
++List</VAR>)</A><DD class="defbody">
 Print the token list to the specified output stream
-
-<P>
-<DT><A NAME="html_print_length/2"><STRONG>html_print_length</STRONG>(<VAR>+List, 
--Length</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="html_print_length/2"><STRONG>html_print_length</STRONG>(<VAR>+List, 
+-Length</VAR>)</A><DD class="defbody">
 When calling <A NAME="idx:htmlprint12:62"></A><B>html_print/[1,2]</B> on <VAR>List</VAR>, <VAR>Length</VAR> 
 characters will be produced. Knowing the length is needed to provide the <CODE>Content-length</CODE> 
 field of an HTTP reply-header.
@@ -1688,18 +1421,10 @@ rules for the output of the SWI-Prolog
 first calls the multifile ruleset html_write:expand/1.
 
 <DL>
-
-<P>
-<DT><A NAME="html_write:expand/1"><STRONG>html_write:expand</STRONG>(<VAR>+Spec</VAR>)</A><CODE>--&gt;</CODE><DD>
-Hook to add additional translationrules for <A NAME="idx:html1:66"></A><A HREF="#html/1">html/1</A>.
-
-<P>
-<DT><A NAME="html_quoted/1"><STRONG>html_quoted</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE><DD>
+<DT class="pubdef"><A NAME="html_write:expand/1"><STRONG>html_write:expand</STRONG>(<VAR>+Spec</VAR>)</A><CODE>--&gt;</CODE><DD class="defbody">
+Hook to add additional translationrules for <A NAME="idx:html1:66"></A><A HREF="#html/1">html/1</A>.<DT class="pubdef"><A NAME="html_quoted/1"><STRONG>html_quoted</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE><DD class="defbody">
 Emit the text in <VAR>Atom</VAR>, inserting entity-references for the 
-SGML special characters <CODE>&lt;&amp;&gt;</CODE>.
-
-<P>
-<DT><A NAME="html_quoted_attribute/1"><STRONG>html_quoted_attribute</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE><DD>
+SGML special characters <CODE>&lt;&amp;&gt;</CODE>.<DT class="pubdef"><A NAME="html_quoted_attribute/1"><STRONG>html_quoted_attribute</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE><DD class="defbody">
 Emit the text in <VAR>Atom</VAR> suitable for use as an SGML attribute, 
 inserting entity-references for the SGML special characters <CODE>&lt;&amp;&gt;'"</CODE>.
 </DL>
@@ -1714,10 +1439,8 @@ newlines before and after tags. It does this on the basis of the
 multifile predicate html_write:layout/3
 
 <DL>
-
-<P>
-<DT><A NAME="html_write:layout/3"><STRONG>html_write:layout</STRONG>(<VAR>+Tag, 
--Open, -Close</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="html_write:layout/3"><STRONG>html_write:layout</STRONG>(<VAR>+Tag, 
+-Open, -Close</VAR>)</A><DD class="defbody">
 Specify the layout conventions for the element <VAR>Tag</VAR>, which is 
 a lowercase atom. <VAR>Open</VAR> is a term <VAR>Pre</VAR>-<VAR>Post</VAR>. 
 It defines that the element should have at least <VAR>Pre</VAR> newline 
@@ -1742,9 +1465,7 @@ The primary database is defined by the predicate <A NAME="idx:predicate5:69"></A
 We will make hyperlinks for the predicates pointing to their 
 documentation.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 html_apropos(Kwd) :-
         findall(Pred, apropos_predicate(Kwd, Pred), Matches),
         phrase(apropos_page(Kwd, Matches), Tokens),
@@ -1805,7 +1526,6 @@ apropos_predicate(Pattern, pred(Name, Arity, Summary)) :-
         ;   '$apropos_match'(Pattern, Summary)
         ).
 </PRE>
-</TABLE>
 
 <H4><A NAME="sec:3.9.5">3.9.5 Remarks on the <CODE>library(http/html_write)</CODE> 
 library</A></H4>
@@ -1873,15 +1593,12 @@ checks validity of filenames. The first call ensures proper canonisation
 of the paths to avoid an mismatch due to symbolic links or other 
 filesystem ambiguities.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 check_file(File) :-
         absolute_file_name('/path/to/reserved/area', Reserved),
         absolute_file_name(File, Tried),
         atom_concat(Reserved, _, Tried).
 </PRE>
-</TABLE>
 
 <P>
 <LI><I>Check scripts</I><BR>
@@ -1892,16 +1609,13 @@ or <CODE>open(pipe(Command), ...)</CODE>, verify the argument once more.
 <LI><I>Check meta-calling</I><BR>
 <EM>The</EM> attractive situation for you and your attacker is below:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 reply(Query) :-
         member(search(Args), Query),
         member(action=Action, Query),
         member(arg=Arg, Query),
         call(Action, Arg).              % NEVER DO THIS
 </PRE>
-</TABLE>
 
 <P>All your attacker has to do is specify <VAR>Action</VAR> as <CODE>shell</CODE> 
 and <VAR>Arg</VAR> as <CODE>/bin/sh</CODE> and he has an uncontrolled 
@@ -1923,8 +1637,6 @@ authorisation.
 <H1><A NAME="document-notes">Footnotes</A></H1>
 
 <DL>
-
-<P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
 Currently atom-garbage collection is activated after the creation of 
 10,000 atoms.
@@ -1933,8 +1645,6 @@ Currently atom-garbage collection is activated after the creation of
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
-
-<P>
 <DT><STRONG>A</STRONG><DD>
 <DT>absolute_file_name/[2,3]<DD>
 <A HREF="#idx:absolutefilename23:73">4</A>

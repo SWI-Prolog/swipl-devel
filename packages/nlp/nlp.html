@@ -2,7 +2,25 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog Natural Language Processing Primitives</TITLE>
+<TITLE>SWI-Prolog Natural Language Processing Primitives</TITLE><style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+} 
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+} 
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+</style>
 </HEAD>
 <BODY BGCOLOR="white"> 
 <BLOCKQUOTE>
@@ -66,16 +84,12 @@ Metaphone are supposed to sound similar. The Double Metaphone algorithm
 is an improved version of the <EM>Soundex</EM> algorithm.
 
 <DL>
-
-<P>
-<DT><A NAME="double_metaphone/2"><STRONG>double_metaphone</STRONG>(<VAR>+In, 
--MetaPhone</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="double_metaphone/2"><STRONG>double_metaphone</STRONG>(<VAR>+In, 
+-MetaPhone</VAR>)</A><DD class="defbody">
 Same as <A NAME="idx:doublemetaphone3:1"></A><A HREF="#double_metaphone/3">double_metaphone/3</A>, 
 but only returning the primary metaphone.
-
-<P>
-<DT><A NAME="double_metaphone/3"><STRONG>double_metaphone</STRONG>(<VAR>+In, 
--MetaPhone, -AltMetaphone</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="double_metaphone/3"><STRONG>double_metaphone</STRONG>(<VAR>+In, 
+-MetaPhone, -AltMetaphone</VAR>)</A><DD class="defbody">
 Create metaphone and alternative metaphone from <VAR>In</VAR>. The 
 primary metaphone is based on english, while the secondary deals with 
 common alternative pronounciation in other languages. <VAR>In</VAR> is 
@@ -109,25 +123,18 @@ some additional predicates that are commonly used in the context of
 stemming.
 
 <DL>
-
-<P>
-<DT><A NAME="porter_stem/2"><STRONG>porter_stem</STRONG>(<VAR>+In, -Stem</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="porter_stem/2"><STRONG>porter_stem</STRONG>(<VAR>+In, 
+-Stem</VAR>)</A><DD class="defbody">
 Determine the stem of <VAR>In</VAR>. <VAR>In</VAR> must represent ISO 
 Latin-1 text. The <A NAME="idx:porterstem2:2"></A><A HREF="#porter_stem/2">porter_stem/2</A> 
 predicate first maps <VAR>In</VAR> to lower case, then removes all 
 accents as in <A NAME="idx:unaccentatom2:3"></A><A HREF="#unaccent_atom/2">unaccent_atom/2</A> 
-and finally applies the Porter stem algorithm.
-
-<P>
-<DT><A NAME="unaccent_atom/2"><STRONG>unaccent_atom</STRONG>(<VAR>+In, 
--ASCII</VAR>)</A><DD>
+and finally applies the Porter stem algorithm.<DT class="pubdef"><A NAME="unaccent_atom/2"><STRONG>unaccent_atom</STRONG>(<VAR>+In, 
+-ASCII</VAR>)</A><DD class="defbody">
 If <VAR>In</VAR> is general ISO Latin-1 text with accents, <VAR>ASCII</VAR> 
 is unified with a plain ASCII version of the string. Note that the 
-current version only deals with ISO Latin-1 atoms.
-
-<P>
-<DT><A NAME="tokenize_atom/2"><STRONG>tokenize_atom</STRONG>(<VAR>+In, 
--TokenList</VAR>)</A><DD>
+current version only deals with ISO Latin-1 atoms.<DT class="pubdef"><A NAME="tokenize_atom/2"><STRONG>tokenize_atom</STRONG>(<VAR>+In, 
+-TokenList</VAR>)</A><DD class="defbody">
 Break the text <VAR>In</VAR> into words, numbers and punctuation 
 characters. Tokens are created to the following rules:
 
@@ -141,11 +148,8 @@ characters. Tokens are created to the following rules:
 
 <P>It is likely that future versions of this library will provide
 <A NAME="idx:tokenizeatom3:4"></A><B>tokenize_atom/3</B> with additional 
-options to modify space handling as well as the definition of words.
-
-<P>
-<DT><A NAME="atom_to_stem_list/2"><STRONG>atom_to_stem_list</STRONG>(<VAR>+In, 
--ListOfStems</VAR>)</A><DD>
+options to modify space handling as well as the definition of words.<DT class="pubdef"><A NAME="atom_to_stem_list/2"><STRONG>atom_to_stem_list</STRONG>(<VAR>+In, 
+-ListOfStems</VAR>)</A><DD class="defbody">
 Combines the three above routines, returning a list holding an atom with 
 the stem of each word encountered and numbers for encountered numbers.
 </DL>
@@ -170,14 +174,11 @@ as <B>pl</B>, the environment variable <CODE>PL</CODE> must be set to
 the name of the SWI-Prolog executable. Installation is now accomplished 
 using:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 % ./configure
 % make
 % make install
 </PRE>
-</TABLE>
 
 <P>This installs the foreign libraries in <CODE>$PLBASE/lib/$PLARCH</CODE> 
 and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
@@ -186,8 +187,6 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
-
-<P>
 <DT><STRONG>A</STRONG><DD>
 <DT><A HREF="#atom_to_stem_list/2">atom_to_stem_list/2</A><DD>
 <DT><STRONG>D</STRONG><DD>

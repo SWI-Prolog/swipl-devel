@@ -2,7 +2,25 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog Source Documention</TITLE>
+<TITLE>SWI-Prolog Source Documention</TITLE><style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+} 
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+} 
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+</style>
 </HEAD>
 <BODY BGCOLOR="white"> 
 <BLOCKQUOTE>
@@ -172,9 +190,7 @@ sub-section </TD></TR>
 
 <H3>Example</H3>
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<P><PRE class="code">
 /** &lt;module&gt; Prolog documentation processor
 
 This module processes structured comments and generates both formal
@@ -184,8 +200,8 @@ HTML or LaTeX.
 @author Jan Wielemaker
 @license GPL
 */
+
 </PRE>
-</TABLE>
 
 <H2><A NAME="sec:5">5 Type and mode declarations</A></H2>
 
@@ -208,9 +224,9 @@ informally described below:
 ',' &lt;<VAR>argspec</VAR>&gt;')' </TD></TR>
 <TR VALIGN=top><TD></TD><TD ALIGN=right>::=</TD><TD>&lt;<VAR>functor</VAR>&gt; </TD></TR>
 <TR VALIGN=top><TD>&lt;<VAR>argspec</VAR>&gt; </TD><TD ALIGN=right>::=</TD><TD>[&lt;<VAR>instantiation</VAR>&gt;]&lt;<VAR>argname</VAR>&gt;[':'&lt;<VAR>type</VAR>&gt;] </TD></TR>
-<TR VALIGN=top><TD>&lt;<VAR>instantiation</VAR>&gt; </TD><TD ALIGN=right>::=</TD><TD>'+' <VAR></VAR> 
-'-' <VAR></VAR> '?' <VAR></VAR> ':'
-<VAR></VAR> '@' <VAR></VAR> '!' </TD></TR>
+<TR VALIGN=top><TD>&lt;<VAR>instantiation</VAR>&gt; </TD><TD ALIGN=right>::=</TD><TD>'+' <VAR>|</VAR> 
+'-' <VAR>|</VAR> '?' <VAR>|</VAR> ':'
+<VAR>|</VAR> '@' <VAR>|</VAR> '!' </TD></TR>
 <TR VALIGN=top><TD>&lt;<VAR>type</VAR>&gt; </TD><TD ALIGN=right>::=</TD><TD>&lt;<VAR>term</VAR>&gt; </TD></TR>
 </TABLE>
 
@@ -243,9 +259,7 @@ system that allows for runtime verification and static type analysis
 
 <H3>Examples</H3>
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<P><PRE class="code">
 %%      length(+List:list, -Length:int) is det.
 %%      length(?List:list, -Length:int) is nondet.
 %%      length(?List:list, +Length:int) is det.
@@ -253,8 +267,8 @@ system that allows for runtime verification and static type analysis
 %       True if List is a list of length Length.
 %       
 %       @compat iso
+
 </PRE>
-</TABLE>
 
 <H2><A NAME="sec:6">6 Tags</A></H2>
 
@@ -267,60 +281,55 @@ is adviced to place tags in the order they are described below.
 <DL>
 
 <P>
-<DT><B><CODE>@</CODE>param</B><DD>
-Defines the parameters. Each parameter has its own param tag. The first 
-word is the name of the parameter. The remainder of the tag is the 
-description. Parameter declarations must appear in the argument order 
-used by the predicate.
+<DT><B><CODE>@</CODE>param</B><DD class="defbody"> Defines the 
+parameters. Each parameter has its own param tag. The first word is the 
+name of the parameter. The remainder of the tag is the description. 
+Parameter declarations must appear in the argument order used by the 
+predicate.
 
 <P>
-<DT><B><CODE>@</CODE>throws</B><DD>
-Error condition. First Prolog term is the error term. Remainder is the 
-description.
+<DT><B><CODE>@</CODE>throws</B><DD class="defbody"> Error condition. 
+First Prolog term is the error term. Remainder is the description.
 
 <P>
-<DT><B><CODE>@</CODE>error</B><DD>
-As <CODE>@</CODE>throws, but the exception is embedded in <CODE>error(Error, 
-Context)</CODE>.
+<DT><B><CODE>@</CODE>error</B><DD class="defbody"> As <CODE>@</CODE>throws, 
+but the exception is embedded in <CODE>error(Error, Context)</CODE>.
 
 <P>
-<DT><B><CODE>@</CODE>author</B><DD>
-Author of the module or predicate. Multiple entries are used if there 
-are multiple authors.
+<DT><B><CODE>@</CODE>author</B><DD class="defbody"> Author of the module 
+or predicate. Multiple entries are used if there are multiple authors.
 
 <P>
-<DT><B><CODE>@</CODE>version</B><DD>
-Version of the module.
+<DT><B><CODE>@</CODE>version</B><DD class="defbody"> Version of the 
+module.
 
 <P>
-<DT><B><CODE>@</CODE>see</B><DD>
-Related maaterial.
+<DT><B><CODE>@</CODE>see</B><DD class="defbody"> Related maaterial.
 
 <P>
-<DT><B><CODE>@</CODE>depreciated</B><DD>
-The predicate or module is depreciated. The description specifies what 
-to use in new code.
+<DT><B><CODE>@</CODE>depreciated</B><DD class="defbody"> The predicate 
+or module is depreciated. The description specifies what to use in new 
+code.
 
 <P>
-<DT><B><CODE>@</CODE>compat</B><DD>
-When implementing libraries or externally defined interfaces this tag 
-describes to which standard the interface is compatible.
+<DT><B><CODE>@</CODE>compat</B><DD class="defbody"> When implementing 
+libraries or externally defined interfaces this tag describes to which 
+standard the interface is compatible.
 
 <P>
-<DT><B><CODE>@</CODE>copyright</B><DD>
-Copyright notice.
+<DT><B><CODE>@</CODE>copyright</B><DD class="defbody"> Copyright notice.
 
 <P>
-<DT><B><CODE>@</CODE>license</B><DD>
-License conditions that apply to the source.
+<DT><B><CODE>@</CODE>license</B><DD class="defbody"> License conditions 
+that apply to the source.
 
 <P>
-<DT><B><CODE>@</CODE>bug</B><DD>
-Known problems with the interface or implementation.
+<DT><B><CODE>@</CODE>bug</B><DD class="defbody"> Known problems with the 
+interface or implementation.
 
 <P>
-<DT><B><CODE>@</CODE>tbd</B><DD>
-Not yet realised behaviour that is enticipated in future versions.
+<DT><B><CODE>@</CODE>tbd</B><DD class="defbody"> Not yet realised 
+behaviour that is enticipated in future versions.
 </DL>
 
 <H2><A NAME="sec:7">7 Wiki notation</A></H2>
@@ -372,15 +381,13 @@ terms and end in the newline. The Wiki adds <CODE>' . '</CODE> to the
 text and reads it using the operator definitions also used to read the 
 mode terms. See <A HREF="#sec:modes">section 5</A>.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<P><PRE class="code">
    * Term1
      Description
    * Term2
      Description
+
 </PRE>
-</TABLE>
 
 <P>
 <DT><B>Tables</B><DD>
@@ -389,13 +396,11 @@ started by a <CODE>|</CODE> sign and the cells are separated by the same
 character. The last cell must be ended with <CODE>|</CODE>. Multiple 
 lines that parse into a table-row together for a table. Example:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<P><PRE class="code">
         | Author  | Jan Wielemaker |
         | Copying | GPL            |
+
 </PRE>
-</TABLE>
 
 <P>
 <DT><B>Section Headers</B><DD>
@@ -404,15 +409,13 @@ TWiki. Section headers are normally not used in the source-code, but can
 be useful inside README and TODO files. See <A HREF="#sec:dirindex">section 
 8</A>.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<P><PRE class="code">
 ---+ Section level 1
 ---++ Section level 2
 ---+++ Section level 3
 ---++++ Section level 4
+
 </PRE>
-</TABLE>
 
 <P>
 <DT><B>Code (verbatim)</B><DD>
@@ -421,15 +424,13 @@ shown in the example below. The indentation of the <CODE>==</CODE> must
 match and the indentation of the verbatim text is reduced by the 
 indentation of the <CODE>==</CODE> marks.
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<P><PRE class="code">
         ==
         small(X) :-
                 X &lt; 5.
         ==
+
 </PRE>
-</TABLE>
 
 <P>
 </DL>
@@ -447,13 +448,11 @@ follow a word.
 if a single word is surrounded by <CODE>=</CODE>, <CODE>*</CODE> or <CODE>_</CODE>. 
 Longer sequences must be created using additional <CODE>|</CODE>:
 
-<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<P><PRE class="code">
 PceEmacs can be set as default editor using
 =|set_prolog_flag(editor, pce_emacs)|=
+
 </PRE>
-</TABLE>
 
 <P>
 <CENTER>
@@ -512,25 +511,21 @@ command
 
 <DL>
 
-<P>
-<DT><A NAME="doc_collect/1"><STRONG>doc_collect</STRONG>(<VAR>+Bool</VAR>)</A><DD>
+<P><DT class="pubdef"><A NAME="doc_collect/1"><STRONG>doc_collect</STRONG>(<VAR>+Bool</VAR>)</A><DD class="defbody"> 
 Enable/disable collecting structured comments into the Prolog database.
 
-<P>
-<DT><A NAME="doc_server/1"><STRONG>doc_server</STRONG>(<VAR>?Port</VAR>)</A><DD>
+<P><DT class="pubdef"><A NAME="doc_server/1"><STRONG>doc_server</STRONG>(<VAR>?Port</VAR>)</A><DD class="defbody"> 
 Start documentation server at <VAR>Port</VAR>. Same as
 <CODE>doc_server(Port, [allow(localhost), workers(1)])</CODE>.
 
-<P>
-<DT><A NAME="doc_server/2"><STRONG>doc_server</STRONG>(<VAR>?Port, 
-+Options</VAR>)</A><DD>
-Start documentation server at <VAR>Port</VAR> using <VAR>Options</VAR>. 
-Provided options are:
+<P><DT class="pubdef"><A NAME="doc_server/2"><STRONG>doc_server</STRONG>(<VAR>?Port, 
++Options</VAR>)</A><DD class="defbody"> Start documentation server at <VAR>Port</VAR> 
+using <VAR>Options</VAR>. Provided options are:
 
 <DL>
 
 <P>
-<DT><STRONG>allow</STRONG>(<VAR>+HostOrIP</VAR>)<DD>
+<DT><STRONG>allow</STRONG>(<VAR>+HostOrIP</VAR>)<DD class="defbody"> 
 Allow connections from <VAR>HostOrIP</VAR>. If <VAR>Host</VAR> is an 
 atom starting with a '.', suffix matching is preformed. I.e. 
 <CODE>allow('.uva.nl')</CODE> grants access to all machines in this 
@@ -539,8 +534,8 @@ term. I.e. to allow access from the 10.0.0.X domain, specify
 <CODE>allow(ip(10,0,0,_))</CODE>.
 
 <P>
-<DT><STRONG>deny</STRONG>(<VAR>+HostOrIP</VAR>)<DD>
-Deny access from the given location. Matching is equal to the
+<DT><STRONG>deny</STRONG>(<VAR>+HostOrIP</VAR>)<DD class="defbody"> Deny 
+access from the given location. Matching is equal to the
 <CODE>allow</CODE> option.
 </DL>
 
