@@ -588,7 +588,7 @@ user:prolog_file_type(Ext,	executable) :-
 	exists_file(File).
 '$file_condition'(file_type(directory), File) :- !,
 	exists_directory(File).
-'$file_condition'(file_type(file), File) :- !,
+'$file_condition'(file_type(_), File) :- !,
 	exists_file(File).
 '$file_condition'(access([A1|AT]), File) :- !,
 	'$file_condition'(access(A1), File),
