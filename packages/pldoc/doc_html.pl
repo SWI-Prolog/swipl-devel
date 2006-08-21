@@ -227,11 +227,11 @@ file_title(Title, File, Options) -->
 	{ file_base_name(File, Base)
 	},
 	html(h1(class=file,
-		[ div(style('float:right'),
-		      [ \reload_button(Base, Options),
-			\zoom_button(Base, Options),
-			\edit_button(File, Options)
-		      ])
+		[ span(style('float:right'),
+		       [ \reload_button(Base, Options),
+			 \zoom_button(Base, Options),
+			 \edit_button(File, Options)
+		       ])
 		| Title
 		])).
 
@@ -275,7 +275,7 @@ edit_button(File, Options) -->
 	       ],
 	       img([ height=H,
 		     alt(edit),
-		     style('padding-top:4px; border:0'),
+		     style('border:0'),
 		     src='/edit.gif'
 		 ]))).
 edit_button(_, _) -->
@@ -588,36 +588,31 @@ make_section(section, Title, h1(class=section, Title)).
 		 *	 PRED MODE HEADER	*
 		 *******************************/
 
-%%	pred_dt(+Modes)// is det.
 %%	pred_dt(+Modes, +Class, Options)// is det.
 %
 %	Emit the predicate header.
 %	
 %	@param Modes	List as returned by process_modes/5.
 
-pred_dt(Modes) -->
-	pred_dt(Modes, preddef, []).
-
 pred_dt(Modes, Class, Options) -->
-	html(dt(class=Class,
-		\pred_modes(Modes, [], _Done, Options))).
+	pred_dt(Modes, Class, [], _Done, Options).
 
-pred_modes([], Done, Done, _) -->
+pred_dt([], _, Done, Done, _) -->
 	[].
-pred_modes([H|T], Done0, Done, Options) -->
-	pred_mode(H, Done0, Done1, Options),
-	pred_modes(T, Done1, Done, Options).
-		
+pred_dt([H|T], Class, Done0, Done, Options) -->
+	html(dt(class=Class,
+		\pred_mode(H, Done0, Done1, Options))),
+	pred_dt(T, Class, Done1, Done, Options).
+
+
 pred_mode(mode(Head,Vars), Done0, Done, Options) --> !,
 	{ bind_vars(Vars) },
 	pred_mode(Head, Done0, Done, Options).
 pred_mode(Head is Det, Done0, Done, Options) --> !,
 	anchored_pred_head(Head, Done0, Done, Options),
-	pred_det(Det),
-	html(div(style('clear:both'), [])).
+	pred_det(Det).
 pred_mode(Head, Done0, Done, Options) -->
-	anchored_pred_head(Head, Done0, Done, Options),
-	html(div(style('clear:both'), [])).
+	anchored_pred_head(Head, Done0, Done, Options).
 
 bind_vars([]).
 bind_vars([Name=Var|T]) :-
@@ -653,14 +648,13 @@ pred_edit_button(Name/Arity, Options) -->
 		     [QName, Arity])
 	  )
 	},
-	html(div(style('float:right'),
-		 a([ onClick(OnClick)
-		   ],
-		   img([ border=0,
-			 height=16,
-			 style('padding-top:2px'),
-			 src='/edit.gif'
-		       ])))).
+	html(span(style('float:right'),
+		  a([ onClick(OnClick)
+		    ],
+		    img([ height=14,
+			  style('border:0;'),
+			  src='/edit.gif'
+			])))).
 pred_edit_button(_/_, _) --> !,
 	[].
 pred_edit_button(Head, Options) -->
