@@ -680,7 +680,7 @@ pred_head(Head) -->			% Infix operators
 	  op_type(Type, infix), !
 	},
 	html([ var(class=arglist, \pred_arg(Left, 1)),
-	       span(class=pred, Functor),
+	       b(class=pred, Functor),
 	       var(class=arglist, \pred_arg(Right, 2))
 	     ]).
 pred_head(Head) -->			% Prefix operators
@@ -688,7 +688,7 @@ pred_head(Head) -->			% Prefix operators
 	  current_op(_,Type,Functor),
 	  op_type(Type, prefix), !
 	},
-	html([ span(class=pred, Functor),
+	html([ b(class=pred, Functor),
 	       var(class=arglist, \pred_arg(Arg, 1))
 	     ]).
 pred_head(Head) -->			% Postfix operators
@@ -697,11 +697,11 @@ pred_head(Head) -->			% Postfix operators
 	  op_type(Type, postfix), !
 	},
 	html([ var(class=arglist, \pred_arg(Arg, 1)),
-	       span(class=pred, Functor)
+	       b(class=pred, Functor)
 	     ]).
 pred_head(Head) -->			% Plain terms
 	{ Head =.. [Functor|Args] },
-	html([ span(class=pred, Functor),
+	html([ b(class=pred, Functor),
 	       var(class=arglist,
 		   [ '(', \pred_args(Args, 1), ')' ])
 	     ]).
