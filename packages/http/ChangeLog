@@ -1,3 +1,7 @@
+Aug 21, 2006
+
+  * FIXED: Quote & inside attribute values.
+
 Aug 10, 2006
 
   * ENHANCED: Time printing in http_header.pl to use format_time/3.  Faster
