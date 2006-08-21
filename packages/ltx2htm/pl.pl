@@ -39,7 +39,13 @@
 		 *	       MACROS		*
 		 *******************************/
 
-#(defitem(Label),	[html('<P>'), html('<DT>'), Label, html('<DD>')]).
+#(defitem(Class,Label),	[ html(Begin), Label,
+			  html('<DD class="defbody">')
+			]) :-
+	format(atom(Begin), '<DT class="~w">', [Class]).
+#(defitem(Label),	[ html('<DT>'), Label,
+			  html('<DD class="defbody">')
+			]).
 
 		 /*******************************
 		 *	    INDEX HACK		*
@@ -130,58 +136,60 @@ cmd(definition({Tag}),
 cmd('DCG'(A,B,C), X) :-
 	cmd(predicate(A,B,C), X).
 cmd(predicate({RawName}, {'0'}, {_}),
-    #defitem(#label(RefName, #strong(Name)))) :-
+    #defitem(pubdef, #label(RefName, #strong(Name)))) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/0', [Name]),
 	add_to_index(RefName, +RefName).
 cmd(predicate({RawName}, {Arity}, {Args}),
-    #defitem(#label(RefName,
-		    [ #strong(Name), #embrace(#var(+Args))
-		    ]))) :-
+    #defitem(pubdef, #label(RefName,
+			    [ #strong(Name), #embrace(#var(+Args))
+			    ]))) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
 cmd(dcg({RawName}, {'0'}, {_}),
-    #defitem([#label(RefName, #strong(Name)), #code(-->)])) :-
+    #defitem(pubdef, [#label(RefName, #strong(Name)), #code(-->)])) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/0', [Name]),
 	add_to_index(RefName, +RefName).
 cmd(dcg({RawName}, {Arity}, {Args}),
-    #defitem([#label(RefName,
-		     [ #strong(Name), #embrace(#var(+Args))
-		     ]),
+    #defitem(pubdef, [#label(RefName,
+			     [ #strong(Name), #embrace(#var(+Args))
+			     ]),
 	      #code(-->)
 	     ])) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
 cmd(directive({RawName}, {Arity}, {Args}),
-    #defitem(#label(RefName,
-		    [ #strong(Name), #embrace(#var(Args))
-		    ]))) :-
+    #defitem(pubdef, #label(RefName,
+			    [ #strong(Name), #embrace(#var(Args))
+			    ]))) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
 cmd(cfunction({RType}, {RawName}, {Args}),
-    #defitem(#label(RefName,
-		    [ #var(RType), ' ', #strong(+RawName), #embrace(#var(+Args))
-		    ]))) :-
+    #defitem(pubdef, #label(RefName,
+			    [ #var(RType), ' ', #strong(+RawName),
+			      #embrace(#var(+Args))
+			    ]))) :-
 	clean_name(RawName, Name),
 	sformat(RefName, '~w()', [Name]),
 	add_to_index(RefName, +RefName).
 cmd(cmacro({RType}, {Name}, {Args}),
-    #defitem(#label(RefName,
-		    [ #var(RType), ' ', #strong(Name), #embrace(#var(+Args))
-		    ]))) :-
+    #defitem(pubdef, #label(RefName,
+			    [ #var(RType), ' ', #strong(Name),
+			      #embrace(#var(+Args))
+			    ]))) :-
 	sformat(RefName, '~w()', [Name]),
 	add_to_index(RefName, +RefName).
 cmd(prefixop({RawName}, {Arg}),
-    #defitem(#label(RefName, [#strong(Name), ' ', #var(Arg)]))) :-
+    #defitem(pubdef, #label(RefName, [#strong(Name), ' ', #var(Arg)]))) :-
 	clean_name(RawName, Name),
 	predicate_refname(Name, 1, RefName),
 	add_to_index(RefName, +RefName).
 cmd(infixop({RawName}, {Arg1}, {Arg2}),
-    #defitem(#label(RefName,
+    #defitem(pubdef, #label(RefName,
 		    [ #var(Arg1), ' ', #strong(Name), ' ', #var(Arg2)
 		    ]))) :-
 	clean_name(RawName, Name),

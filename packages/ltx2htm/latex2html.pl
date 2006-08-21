@@ -55,7 +55,7 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.96').			% for SWI-Prolog 5.0.6
+version('0.97').			% for SWI-Prolog 5.6.18
 page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">\n\n').
 
 :- dynamic			
@@ -336,7 +336,7 @@ translate_2($(Expr), Mode, Mode, #var(HTML)) :-		% $...$
 	tex_atom_to_tokens(Expr, Tokens),
 	translate(Tokens, math, _, HTML).
 translate_2(verbatim(_Cmd, Text), Mode, Mode, 		% \begin{verbatim} ...
-	    #listing(#pre(pre(Text)))).
+	    #pre(code, pre(Text))).
 translate_2(verb(_, Text), pcecode, pcecode, pre(Text)).
 translate_2(Layout, pcecode, pcecode, []) :-
 	atomic(Layout), !.
@@ -424,8 +424,30 @@ language_map(table,	'Table').
 
 #(tell(_File),		[]) :- onefile(true).
 #(tell(File),		tell(File)).
-#(head(Head),		[html('<HEAD>'), HtmlHead, html('</HEAD>')]) :-
-	expand_macros(Head, HtmlHead).
+#(head(Head),		[html('<HEAD>'), HtmlHead, Style, html('</HEAD>')]) :-
+	expand_macros(Head, HtmlHead),
+	expand_macros(#style, Style).
+#(style,		[ html('\
+<style type="text/css">  \n\
+dd.defbody  \n\
+{ margin-bottom: 1em;  \n\
+}  \n\
+  \n\
+dt.pubdef  \n\
+{ background-color: #c5e1ff;  \n\
+}  \n\
+  \n\
+pre.code  \n\
+{ margin-left: 1.5em;    \n\
+  margin-right: 1.5em;    \n\
+  border: 1px dotted;    \n\
+  padding-top: 5px;    \n\
+  padding-left: 5px;    \n\
+  padding-bottom: 5px;    \n\
+  background-color: #f8f8f8;    \n\
+}\n\
+</style>\n')
+			]).
 #(beginbody,		html(Body)) :-
 	bodycolor(Colour), !,
 	sformat(Body, '<BODY BGCOLOR="~w">', [Colour]).
@@ -441,6 +463,8 @@ language_map(table,	'Table').
 #(var(Text),		[html('<VAR>'),    Text, html('</VAR>')]).
 #(code(Text),		[html('<CODE>'),   Text, html('</CODE>')]).
 #(pre(Text),		[html('<PRE>'),    Text, html('</PRE>')]).
+#(pre(Class, Text),	[html(Begin),      Text, html('</PRE>')]) :-
+		format(atom(Begin), '<PRE class="~w">', [Class]).
 #(xmp(Text),		[html('<XMP>'),    Text, html('</XMP>')]).
 #(strong(Text),		[html('<STRONG>'), Text, html('</STRONG>')]).
 #(em(Text),		[html('<EM>'),     Text, html('</EM>')]).
@@ -674,7 +698,7 @@ label_tag(Tag) :-
 %
 %	Translate an environment.
 
-env(pcecode(_, Tokens), #listing(#pre(HTML))) :-
+env(pcecode(_, Tokens), #pre(code, HTML)) :-
 	translate(Tokens, pcecode, HTML).
 env(summarylist(_, Summary),
     [ html('<TABLE>'),
@@ -1266,6 +1290,7 @@ cmd(geq, math, '>=').
 cmd(leq, math, '=<').
 cmd(ge, math, '>=').
 cmd(le, math, '<').
+cmd(mid, math, '|').
 cmd(pm, math, html('&#177;')).
 cmd(langle, math, '<').
 cmd(rangle, math, '>').
@@ -2477,20 +2502,33 @@ aformat(Atom, Fmt, Args) :-
 :- dynamic
 	pending_par/0.
 
-implicit_par(html('<H1>')).
-implicit_par(html('<H2>')).
-implicit_par(html('<H3>')).
-implicit_par(html('<H4>')).
-implicit_par(html('<PRE>')).
-implicit_par(html('<XMP>')).
-implicit_par(html('<DL>')).
-implicit_par(html('<TABLE>')).
-%implicit_par(html('<CENTER>')).
-implicit_par(html('<BLOCKQUOTE>')).
+is_begin(X, HTML) :-
+	atom(HTML),
+	sub_atom(HTML, 0, _, _, <),
+	sub_atom(HTML, 1, L, _, X),
+	N is L+1,
+	(   sub_atom(HTML, N, _, _, ' ')
+	->  true
+	;   sub_atom(HTML, N, _, _, '>')
+	).
 
-no_par_in('<DL>').			% delete pars here
-%no_par_in('<UL>').
-%no_par_in('<OL>').
+
+implicit_par(html(Begin)) :-
+	implicit_par_tag(Tag),
+	is_begin(Tag, Begin), !.
+
+implicit_par_tag('H1').
+implicit_par_tag('H2').
+implicit_par_tag('H3').
+implicit_par_tag('H4').
+implicit_par_tag('PRE').
+implicit_par_tag('XMP').
+implicit_par_tag('DL').
+implicit_par_tag('DT').
+implicit_par_tag('DD').
+implicit_par_tag('TABLE').
+implicit_par_tag('BLOCKQUOTE').
+%implicit_par_tag('CENTER').
 
 
 write_html([]) :- !.			% Unpack lists
@@ -2506,15 +2544,6 @@ write_html(html('<P>')) :- !,
 	->  true
 	;   assert(pending_par)
 	).
-write_html(html(Cmd)) :-
-	no_par_in(Cmd), !,
-	(   pending_par
-	->  true
-	;   assert(pending_par)		% Say we have one, do others
-					% are suppressed
-	),
-	cmd_layout(Cmd, Pre, Post), !,
-	put_html_token(html(Cmd, Pre, Post)).
 write_html(Token) :-
 	retract(pending_par), !,
 	(   implicit_par(Token)
@@ -2681,7 +2710,7 @@ translate_ref(summary, Anchor, summary) :-
 cmd_layout('<P>',    2, 0).
 cmd_layout('<DL>',   2, 1).
 cmd_layout('</DL>',  1, 2). 
-cmd_layout('<DD>',   0, 1). 
+cmd_layout(DD,   0, 1) :- is_begin('DD', DD).
 cmd_layout('<H1>',   2, 0). 
 cmd_layout('<H2>',   2, 0). 
 cmd_layout('<H3>',   2, 0). 
@@ -2707,8 +2736,8 @@ cmd_layout('<THEAD>',    1, 1).
 cmd_layout('</TABLE>',   0, 2). 
 cmd_layout('<LISTING>',	 2, 0). 
 cmd_layout('</LISTING>', 0, 2). 
-cmd_layout('<PRE>',	 1, 1). 
-cmd_layout('</PRE>', 	 1, 1). 
+cmd_layout(PRE,	 2, 0) :- is_begin('PRE', PRE).
+cmd_layout('</PRE>', 	 0, 2). 
 cmd_layout('<XMP>',	 2, 0). 
 cmd_layout('</XMP>', 	 0, 2). 
 cmd_layout('<HEAD>',	 1, 1). 

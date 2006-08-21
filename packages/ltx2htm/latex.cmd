@@ -207,6 +207,7 @@
 \geq
 \neq
 \pm
+\mid
 \sin{+}
 \cos{+}
 \tan{+}
