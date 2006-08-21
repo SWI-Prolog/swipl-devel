@@ -130,7 +130,8 @@ hook_module(user, P) :-
 
 %%	html(+Content:dom)// is det
 %
-%	Generate HTML from Content.
+%	Generate HTML from Content.  Generates a token sequence for
+%	print_html/2.
 
 html(Spec) -->
 	{ strip_module(Spec, M, T)
