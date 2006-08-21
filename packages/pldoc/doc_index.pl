@@ -48,7 +48,10 @@
 
 %%	doc_for_dir(+Dir, +Out, +Options) is det.
 %
-%	Write documentation for all files in Dir to Out.
+%	Write summary index for all files  in   Dir  to  Out. The result
+%	conists of the =README= file  (if   any),  a  table holding with
+%	links to objects and summary  sentences   and  finaly the =TODO=
+%	file (if any).
 
 doc_for_dir(DirSpec, Out, Options) :-
 	absolute_file_name(DirSpec,
@@ -66,9 +69,8 @@ doc_for_dir(DirSpec, Out, Options) :-
 
 %%	dir_index(+Dir, +Options)//
 %
-%	Create an index for all Prolog files appearing in Dir.
-%	
-%	@tbd	Include page skeleton with directory description
+%	Create an index for all Prolog files appearing in Dir or in
+%	any directory contained in Dir.
 
 dir_index(Dir, Options) -->
 	{ dir_source_files(Dir, Files, Options),
@@ -201,7 +203,8 @@ object_summaries([H|T], Options) -->
 
 %%	object_summary(+Object, +Options)// is det
 %
-
+%	Create a summary for Object.  Summary consists of a link to
+%	the Object and a summary text as a table-row.
 
 object_summary(doc(Obj, _Pos, Summary), Options) --> !,
 	(   { wiki_string_to_dom(Summary, [], DOM0),
