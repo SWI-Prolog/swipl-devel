@@ -267,21 +267,28 @@ reply('/file', Request) :-
 %	Start SWI-Prolog editor on file
 
 reply('/edit', Request) :-
+	local(Request), !,
 	http_parameters(Request,
 			[ file(File,     [optional(true)]),
 			  module(Module, [optional(true)]),
 			  name(Name,     [optional(true)]),
 			  arity(Arity,   [integer, optional(true)])
 			]),
-	format('Content-type: text/html~n~n'),
 	(   atom(File)
-	->  edit(file(File))
+	->  Edit = file(File)
 	;   atom(Name), integer(Arity)
 	->  (   atom(Module)
-	    ->	edit(Module:Name/Arity)
-	    ;	edit(Name/Arity)
+	    ->	Edit = (Module:Name/Arity)
+	    ;	Edit = (Name/Arity)
 	    )
-	).
+	),
+	format(string(Cmd), '~q', [edit(Edit)]),
+	edit(Edit),
+	reply_page('Edit',
+		   [ p(['Started ', Cmd])
+		   ]).
+reply('/edit', _Request) :-
+	throw(http_reply(forbidden('/edit'))).
 
 
 %	/doc/Path

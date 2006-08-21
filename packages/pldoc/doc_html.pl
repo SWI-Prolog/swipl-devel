@@ -242,18 +242,20 @@ file_title(Title, File, Options) -->
 %	documentation page.
 
 reload_button(Base, Options) -->
-	{ option(public_only(Public), Options, true),
+	{ option(edit(true), Options), !,
+	  option(public_only(Public), Options, true),
 	  format(string(HREF), '~w?reload=true&public_only=~w', 
 		 [Base, Public])
 	},
 	html(a(href=HREF,
 	       img([ %class(icon),
-		     border=0,
 		     height=24,
-		     style('padding-top:4px'),
+		     alt('Reload'),
+		     style('padding-top:4px; border:0;'),
 		     src('/reload.gif')
 		   ]))).
-
+reload_button(_, _) -->
+	[].
 
 %%	edit_button(+File, +Options)// is det.
 %
@@ -268,13 +270,12 @@ edit_button(File, Options) -->
 	  format(string(HREF), '/edit?file=~w', [Enc]),
 	  format(string(OnClick), 'HTTPrequest("~w")', [HREF])
 	},
-	html(a([ %href(HREF),
-		 onClick(OnClick),
+	html(a([ onClick(OnClick),
 		 onMouseOver('window.status=\'Edit file\'; return true;')
 	       ],
-	       img([ border=0,
-		     height=H,
-		     style('padding-top:4px'),
+	       img([ height=H,
+		     alt(edit),
+		     style('padding-top:4px; border:0'),
 		     src='/edit.gif'
 		 ]))).
 edit_button(_, _) -->
@@ -288,15 +289,16 @@ edit_button(_, _) -->
 zoom_button(Base, Options) -->
 	{   option(public_only(true), Options, true)
 	->  format(string(HREF), '~w?public_only=false', [Base]),
-	    Zoom = '/zoomin.gif'
+	    Zoom = '/zoomin.gif',
+	    Alt = 'Show all'
 	;   format(string(HREF), '~w?public_only=true', [Base]),
-	    Zoom = '/zoomout.gif'
+	    Zoom = '/zoomout.gif',
+	    Alt = 'Show public'
 	},
 	html(a(href=HREF,
-	       img([ %class(icon),
-		     border=0,
-		     height=24,
-		     style('padding-top:4px'),
+	       img([ height=24,
+		     alt(Alt),
+		     style('padding-top:4px; border:0;'),
 		     src(Zoom)
 		   ]))).
 	
@@ -494,7 +496,9 @@ doc_page_dom(Title, Body, DOM) :-
 				   type('text/css'),
 				   href('pldoc.css')
 				 ]),
-			    script(src('/pldoc.js'), [])
+			    script([ src('/pldoc.js'),
+				     type('text/javascript')
+				   ], [])
 			  ]),
 		     body(Body)
 		   ]).
@@ -631,13 +635,14 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 	    { Done = [PI|Done0] }
 	).
 
-pred_edit_button(//(Head), Options) -->
+pred_edit_button(//(Head), Options) --> !,
 	{ functor(Head, Name, Arity),
 	  PredArity is Arity + 2
 	},
 	pred_edit_button(Name/PredArity, Options).
 pred_edit_button(Name/Arity, Options) -->
-	{ www_form_encode(Name, QName),
+	{ option(edit(true), Options), !,
+	  www_form_encode(Name, QName),
 	  (   option(module(M), Options, []), M \== []
 	  ->  www_form_encode(M, QM),
 	      format(string(OnClick),
@@ -656,6 +661,8 @@ pred_edit_button(Name/Arity, Options) -->
 			 style('padding-top:2px'),
 			 src='/edit.gif'
 		       ])))).
+pred_edit_button(_/_, _) --> !,
+	[].
 pred_edit_button(Head, Options) -->
 	{ functor(Head, Name, Arity)
 	},
