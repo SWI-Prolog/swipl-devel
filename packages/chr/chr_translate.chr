@@ -1583,7 +1583,7 @@ activate_constraint_goal(Constraint,StoreAction,Vars,Susp,Generation,Goal) :-
 	( chr_pp_flag(inline_insertremove,off) ->
 		use_auxiliary_predicate(activate_constraint,Constraint),
 		Goal = ( ActivateGoal , (Store == yes -> StoreAction ; true) ),
-		activate_constraint_atom(Constraint,Store = yes, Store = no,Vars,Susp,Generation,ActivateGoal)
+		activate_constraint_atom(Constraint,Store,Vars,Susp,Generation,ActivateGoal)
 	;
 		delay_phase_end(validate_store_type_assumptions,
 			activate_constraint_body(Constraint,StoreAction,true,Vars,Susp,Generation,Goal)
@@ -1592,7 +1592,6 @@ activate_constraint_goal(Constraint,StoreAction,Vars,Susp,Generation,Goal) :-
 
 activate_constraint_atom(Constraint,Store,Vars,Susp,Generation,Goal) :-
 	make_name('$activate_constraint_',Constraint,Name),
-	activate_constraint_name(Constraint,Name),
 	( chr_pp_flag(debugable,off), only_ground_indexed_arguments(Constraint) ->
 		Goal =.. [Name,Store, Susp]
 	; chr_pp_flag(debugable,off), may_trigger(Constraint), get_store_type(Constraint,var_assoc_store(_,_)) ->
@@ -1775,7 +1774,7 @@ generate_insert_constraint_internal_clause(Constraint,List,Tail) :-
 		Clause = (Head :- Body),
 		Constraint = _/A,
 		length(Args,A),
-		insert_constraint_internal_constraint_atom(Constraint, yes, Vars, Suspension, Continuation,Args,Head),
+		insert_constraint_internal_constraint_atom(Constraint, Vars, Suspension, Continuation,Args,Head),
 		generate_insert_constraint_internal_body(Constraint,Suspension,Continuation,Args,Vars,Body)
 	;
 		List = Tail
