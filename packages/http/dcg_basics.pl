@@ -174,10 +174,11 @@ white -->
 		 *	 CHARACTER STUFF	*
 		 *******************************/
 
+%%	alpha_to_lower(+C)// is det.
 %%	alpha_to_lower(-C)// is semidet.
 %
-%	Read a letter and return it as a lowercase letter.  In output
-%	mode this simply emits the character.
+%	Read a letter (class  =alpha=)  and   return  it  as a lowercase
+%	letter. In output mode this simply emits the character.
 
 alpha_to_lower(L) -->
 	{ integer(L) }, !,
@@ -198,9 +199,9 @@ alpha_to_lower(L) -->
 %%	integer(?Integer)// is det.
 %
 %	Number processing. The predicate  digits//1   matches  a posibly
-%	empty set of digits, digit//1 processes a matches a single digit
-%	and integer processes a non-empty  sequence   of  digits into an
-%	integer.
+%	empty set of digits,  digit//1  processes   a  single  digit and
+%	integer processes an  optional  sign   followed  by  a non-empty
+%	sequence of digits into an integer.
 
 digits([H|T]) -->
 	digit(H), !,
@@ -213,11 +214,9 @@ digit(C) -->
 	{ code_type(C, digit)
 	}.
 
-integer(I) -->
-	{ integer(I), !,
-	  number_codes(I, Chars)
-	},
-	string(Chars).
+integer(I, Head, Tail) :-
+	integer(I), !,
+	format(codes(Head, Tail), '~w', [I]).
 integer(I) -->
 	int_codes(Codes),
 	{ number_codes(I, Codes)
@@ -348,8 +347,3 @@ eos([], []).
 
 atom(Atom, Head, Tail) :-
 	with_output_to(codes(Head, Tail), write(Atom)).
-
-
-
-
-

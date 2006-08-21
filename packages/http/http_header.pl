@@ -116,7 +116,7 @@ http_read_reply_header(In, [input(In)|Reply]) :-
 %		HTTP header, followed by a blank line.  This is the
 %		typical output from a CGI script.
 %		
-%	@tbd: complete docs	
+%	@tbd	Complete documentation	
 
 http_reply(What, Out) :-
 	http_reply(What, Out, [connection(close)]).
