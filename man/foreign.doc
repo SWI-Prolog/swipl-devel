@@ -217,11 +217,11 @@ current_prolog_flag/2.
 
 \begin{center}
 \begin{tabular}{ll}
-\file{\ldots/pl/runtime/<arch>/libpl.a}    & SWI-Library \\
-\file{\ldots/pl/include/SWI-Prolog.h}      & Include file \\
-\file{\ldots/pl/include/SWI-Stream.h}      & Stream I/O include file \\
-\file{\ldots/pl/include/SWI-Exports}       & Export declarations (AIX only) \\
-\file{\ldots/pl/include/stub.c}            & Extension stub 
+\file{.../pl/runtime/<arch>/libpl.a}    & SWI-Library \\
+\file{.../pl/include/SWI-Prolog.h}      & Include file \\
+\file{.../pl/include/SWI-Stream.h}      & Stream I/O include file \\
+\file{.../pl/include/SWI-Exports}       & Export declarations (AIX only) \\
+\file{.../pl/include/stub.c}            & Extension stub 
 \end{tabular}
 \end{center}
 
