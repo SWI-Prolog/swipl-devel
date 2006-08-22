@@ -126,6 +126,11 @@ table.summary
   margin-right: 0;
 }
 
+table.summary th.section
+{ text-align: left;
+  background-color: #bbffba;
+}
+
 table.summary th
 { text-align: left;
   background-color: #b9daff;

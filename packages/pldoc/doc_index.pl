@@ -179,7 +179,10 @@ file_index_header(File, Options) -->
 	  prolog:doc_object_summary(Section, manual, File, _Title)
 	}, !,
 	html(tr(th([colspan(2), class(section)],
-		   [ \object_ref(Section, [secref_style(title)|Options])
+		   [ \object_ref(Section,
+				 [ secref_style(number_title)
+				 | Options
+				 ])
 		   ]))).
 file_index_header(File, Options) -->
 	{ (   option(directory(Dir), Options),

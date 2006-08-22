@@ -313,11 +313,15 @@ object_spec(Atom, PI) :-
 		 *	      EMIT    		*
 		 *******************************/
 
-%%	man_page(+Obj, +Options)// is det.
+%%	man_page(+Obj, +Options)// is semidet.
 %
 %	Produce a Prolog manual page for  Obj.   The  page consists of a
 %	link to the section-file and  a   search  field, followed by the
-%	predicate description.
+%	predicate description.  Options:
+%	
+%		* no_manual(Action)
+%		If Action = =fail=, fail instead of displaying a
+%		not-found message.
 
 man_page(Obj, _Options) -->
 	{ load_man_object(Obj, File, DOM), !
@@ -326,8 +330,9 @@ man_page(Obj, _Options) -->
 	       p([]),
 	       \dom_list(DOM)
 	     ]).
-man_page(Obj, _Options) -->
-	{ term_to_atom(Obj, Atom)
+man_page(Obj, Options) -->
+	{ \+ option(no_manual(fail), Options),
+	  term_to_atom(Obj, Atom)
 	},
 	html([ \man_links([], []),	% Use index file?
 	       'No manual entry for ', Atom
@@ -399,23 +404,33 @@ man_file(File) -->
 	{ Obj = section(_,_),
 	  man_index(Obj, _Title, File, _Offset)
 	}, !,
-	object_ref(Obj, [secref_style(title)]).
+	object_ref(Obj, [secref_style(number_title)]).
+man_file(_) -->
+	[].
 
 %%	section_link(+Obj, +Options)// is det.
 %
 %	Create link to a section.  Options recognised:
 %	
 %		* secref_style(+Style)
-%		One of =number= or =title=.
+%		One of =number=, =title= or =number_title=.
 
-section_link(section(_, Number), Options) -->
-	{ option(secref_style(number), Options, number)
-	}, !,
+section_link(Section, Options) -->
+	{ option(secref_style(Style), Options, number)
+	},
+	section_link(Style, Section, Options).
+
+section_link(number, section(_, Number), _Options) --> !,
 	html(['Sec. ', Number]).
-section_link(Obj, _Options) -->
+section_link(title, Obj, _Options) --> !,
 	{ man_index(Obj, Title, _File, _Offset)
 	},
 	html(Title).
+section_link(_, Obj, _Options) --> !,
+	{ Obj = section(_, Number),
+	  man_index(Obj, Title, _File, _Offset)
+	},
+	html([Number, ' ', Title]).
 
 
 		 /*******************************
@@ -427,7 +442,7 @@ prolog:doc_object_summary(Obj, manual, File, Summary) :-
 	man_index(Obj, Summary, File, _Offset).
 	
 prolog:doc_object_page(Obj, Options) -->
-	man_page(Obj, Options).
+	man_page(Obj, [no_manual(fail)|Options]).
 
 prolog:doc_object_link(Obj, Options) -->
 	{ Obj = section(_,_) }, !,
