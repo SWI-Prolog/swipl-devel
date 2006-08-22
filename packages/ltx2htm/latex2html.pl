@@ -2504,7 +2504,7 @@ aformat(Atom, Fmt, Args) :-
 	pending_par/0.
 
 is_begin(X, HTML) :-
-	atom(HTML),
+	atom(HTML), !,
 	sub_atom(HTML, 0, _, _, <),
 	sub_atom(HTML, 1, L, _, X),
 	N is L+1,
@@ -2512,13 +2512,20 @@ is_begin(X, HTML) :-
 	->  true
 	;   sub_atom(HTML, N, _, _, '>')
 	).
+is_begin(X, HTML) :-
+	var(HTML),
+	format(atom(HTML), '<~w>', [X]).
 
 is_end(X, HTML) :-
-	atom(HTML),
+	atom(HTML), !,
 	sub_atom(HTML, 0, _, _, '</'),
 	sub_atom(HTML, 2, L, _, X),
 	N is L+2,
 	sub_atom(HTML, N, _, _, '>').
+is_end(X, HTML) :-
+	var(HTML),
+	format(atom(HTML), '</~w>', [X]).
+
 
 
 implicit_par(html(Begin)) :-
@@ -2537,6 +2544,46 @@ implicit_par_tag('DD').
 implicit_par_tag('TABLE').
 implicit_par_tag('BLOCKQUOTE').
 %implicit_par_tag('CENTER').
+
+:- dynamic
+	is_open/1.
+
+%%	create_pending_open(+Token) is det.
+%%	close_pending_open(+Token) is det.
+%%	close_by(+Open, -CloseBy) is nondet.
+
+create_pending_open(Cmd) :-
+	(   close_by(Open, _)
+	;   create_env(Open)
+	),
+	is_begin(Open, Cmd), !,
+	debug(html, 'Push open of ~w', [Open]),
+	asserta(is_open(Open)).
+create_pending_open(_).
+
+close_pending_open(Cmd) :-
+	(   is_open(Open)
+	->  (   close_by(Open, CloseOn),
+	        call(CloseOn, Cmd)
+	    ->	retract(is_open(Open)),
+		is_end(Open, Close),
+		cmd_layout(Close, Pre, Post), !,
+		put_html_token(html(Close, Pre, Post))
+	    ;	is_end(Open, Cmd)
+	    ->	retract(is_open(Open))
+	    )
+	;   true
+	).
+close_pending_open(_).
+
+create_env('DL').
+
+close_by('DD', is_begin('DT')).
+close_by('DD', is_end('DL')).
+close_by('DT', is_begin('DD')).
+close_by('DT', is_end('DL')).
+
+%%	write_html(+Tokens) is det.
 
 write_html([]) :- !.			% Unpack lists
 write_html([H|T]) :- !,
@@ -2560,8 +2607,10 @@ write_html(Token) :-
 	),
 	write_html(Token).
 write_html(html(Cmd)) :-			% HTML commands
+	close_pending_open(Cmd),
 	cmd_layout(Cmd, Pre, Post), !,
-	put_html_token(html(Cmd, Pre, Post)).
+	put_html_token(html(Cmd, Pre, Post)),
+	create_pending_open(Cmd).
 write_html(ref(Label)) :- !,			% References and labels
 	(   label(Label, _, Ref)
 	->  write_html(Ref)
@@ -2735,6 +2784,8 @@ cmd_layout('<BR>',   0, 1).
 cmd_layout('<LI>', 	 1, 0).
 cmd_layout('<DT>', 	 1, 0).
 cmd_layout('</DT>', 	 0, 1).
+cmd_layout('<DD>', 	 1, 0).
+cmd_layout('</DD>', 	 0, 1).
 cmd_layout('<UL>', 	 1, 1).
 cmd_layout('</UL>', 	 1, 1).
 cmd_layout('<TR>',       1, 0). 

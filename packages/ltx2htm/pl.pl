@@ -207,7 +207,7 @@ cmd(prologflagitem({Name}, {Type}, {Access}),
 	->  Change = []
 	;   Change = nospace(', changeable')
 	).
-cmd(fmtchar({Name}), #defitem(#code(+Name))).
+cmd(fmtchar({Name}), [html('<LI>'), #code(+Name), html('<BR>')]).
 cmd(optionval({Value}), #defitem(#strong(+Value))).
 cmd(cmdlineoptionitem(M, {Option}, {Arg}),
     #defitem([#strong(+Option), Sep, #var(+Arg)])) :-
