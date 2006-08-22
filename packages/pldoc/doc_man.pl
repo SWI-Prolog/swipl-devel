@@ -39,7 +39,9 @@
 :- use_module(library(sgml)).
 :- use_module(library(occurs)).
 :- use_module(library(lists)).
+:- use_module(library(url)).
 :- use_module(doc_wiki).
+:- use_module(doc_search).
 :- use_module(library('http/html_write')).
 
 /** <module> Process SWI-Prolog HTML manuals
@@ -261,13 +263,17 @@ object_spec(Atom, PI) :-
 %	predicate description.
 
 man_page(Obj, _Options) -->
-	{ load_man_object(Obj, _File, DOM), !
+	{ load_man_object(Obj, File, DOM), !
 	},
-	html(\dom_list(DOM)).
+	html([ \man_links(File, []),
+	       p([]),
+	       \dom_list(DOM)
+	     ]).
 man_page(Obj, _Options) -->
 	{ term_to_atom(Obj, Atom)
 	},
-	html([ 'No manual entry for ', Atom
+	html([ \man_links([], []),	% Use index file?
+	       'No manual entry for ', Atom
 	     ]).
 
 dom_list([]) -->
@@ -305,7 +311,8 @@ rewrite_ref(Ref0, Ref) :-
 	www_form_encode(Fragment, Enc),
 	format(string(Ref), '/man?predicate=~w', [Enc]).
 
-%	atom_to_pi(+Atom, -Name/Arity) is semidet.
+
+%%	atom_to_pi(+Atom, -Name/Arity) is semidet.
 %	
 %	If Atom is `Name/Arity', decompose to Name and Arity. No errors.
 
@@ -315,3 +322,19 @@ atom_to_pi(Atom, Name/Arity) :-
 	catch(atom_number(AA, Arity), _, fail),
 	integer(Arity),
 	Arity >= 0.
+
+
+%%	man_links(+File, +Options)// is det.
+%
+%	Create top link structure for manual pages.
+
+man_links(File, _Options) -->
+	html(div(class(navhdr),
+		 [ div(style('float:right'),
+		       [ \search_form
+		       ]),
+		   \man_file(File)
+		 ])).
+
+man_file(_File) -->
+	[].
