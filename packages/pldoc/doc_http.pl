@@ -43,6 +43,7 @@
 :- use_module(pldoc(doc_html)).
 :- use_module(pldoc(doc_index)).
 :- use_module(pldoc(doc_search)).
+:- use_module(pldoc(doc_man)).
 
 /** <module> Documentation server
 
@@ -401,7 +402,7 @@ reply('/man', Request) :-
 			[ predicate(PI, [])
 			]),
 	reply_page('SWI-Prolog Reference Manual',
-		   [ 'TBD: Documentation for ', b(PI)
+		   [ \man_page(PI, _Options)
 		   ]).
 
 %	/doc_for?object=Term

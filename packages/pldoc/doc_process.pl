@@ -255,7 +255,7 @@ process_structured_comment(FilePos, Comment, Prefixes) :-
 	;   process_modes(Lines, FilePos, Modes, _, RestLines)
 	->  store_modes(Modes, FilePos),
 	    modes_to_predicate_indicators(Modes, [PI0|PIs]),
-	    summary(RestLines, Summary),
+	    summary_from_lines(RestLines, Summary),
 	    compile_clause('$pldoc'(PI0, FilePos, Summary, Comment), FilePos),
 	    forall(member(PI, PIs),
 		   compile_clause('$pldoc_link'(PI, PI0), FilePos))

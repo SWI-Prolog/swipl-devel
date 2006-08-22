@@ -33,9 +33,10 @@
 	  [ wiki_lines_to_dom/3,	% +Lines, +Map, -DOM
 	    wiki_string_to_dom/3,	% +String, +Args, -DOM
 	    section_comment_header/3,	% +Lines, -Header, -RestLines
-	    summary/2,			% +Lines, -Summary
+	    summary_from_lines/2,	% +Lines, -Summary
 	    indented_lines/3,		% +Text, +PrefixChars, -Lines
-	    strip_leading_par/2		% +DOM0, -DOM
+	    strip_leading_par/2,	% +DOM0, -DOM
+	    normalise_white_space/3	% -Text, //
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
@@ -546,28 +547,28 @@ section_comment_header([_-Line|Lines], Header, Lines) :-
 	phrase(section_line(Header), Line).
 
 section_line(\section(Type, Title)) -->
-	ws, "<", word(Codes), ">", normalise_ws(TitleCodes),
+	ws, "<", word(Codes), ">", normalise_white_space(TitleCodes),
 	{ atom_codes(Type, Codes),
 	  string_to_list(Title, TitleCodes)
 	}.
 
 
-%%	normalise_ws(-Text)// is det.
+%%	normalise_white_space(-Text)// is det.
 %
 %	Text is input after deleting leading   and  trailing white space
 %	and mapping all internal white space to a single space.
 
-normalise_ws(Text) -->
+normalise_white_space(Text) -->
 	ws,
-	normalise_ws2(Text).
+	normalise_white_space2(Text).
 
-normalise_ws2(Text) -->
+normalise_white_space2(Text) -->
 	non_ws(Text, Tail),
 	ws,
 	(   eos
 	->  { Tail = "" }
 	;   { Tail = [32|T2] },
-	    normalise_ws2(T2)
+	    normalise_white_space2(T2)
 	).
 
 
@@ -663,14 +664,14 @@ verbatim_line(Line, Pre, PreT) :-
 		 *	      SUMMARY		*
 		 *******************************/
 
-%%	summary(+Lines:lines, -Summary:string) is det.
+%%	summary_from_lines(+Lines:lines, -Summary:string) is det.
 %
 %	Produce a summary for Lines. Similar  to JavaDoc, the summary is
 %	defined as the first sentence of the documentation. In addition,
 %	a sentence is also ended by an  empty   line  or  the end of the
 %	comment.
 
-summary(Lines, Summary) :-
+summary_from_lines(Lines, Summary) :-
 	skip_empty_lines(Lines, Lines1),
 	summary2(Lines1, Sentence0),
 	end_sentence(Sentence0, Sentence),

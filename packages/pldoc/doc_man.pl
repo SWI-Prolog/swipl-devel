@@ -30,13 +30,17 @@
 */
 
 :- module(pldoc_man,
-	  [ index_man_directory/1,	% +DirSpec
+	  [ clean_man_index/0,		% 
+	    index_man_directory/1,	% +DirSpec
 	    index_man_file/1,		% +FileSpec
-	    load_man_object/2		% +Obj, -DOM
+	    load_man_object/2,		% +Obj, -DOM
+	    man_page/4			% +Obj, +Options, //
 	  ]).
 :- use_module(library(sgml)).
 :- use_module(library(occurs)).
 :- use_module(library(lists)).
+:- use_module(doc_wiki).
+:- use_module(library('http/html_write')).
 
 /** <module> Process SWI-Prolog HTML manuals
 
@@ -44,6 +48,10 @@
 
 :- dynamic
 	man_index/4.			% Object, Summary, File, Offset
+
+clean_man_index :-
+	retractall(man_index(_,_,_,_)).
+
 
 		 /*******************************
 		 *	    PARSE MANUAL	*
@@ -77,6 +85,7 @@ index_man_file(File) :-
         set_sgml_parser(Parser, file(File)),
         set_sgml_parser(Parser, dialect(sgml)),
 	set_sgml_parser(Parser, shorttag(false)),
+	nb_setval(pldoc_man_index, []),
 	call_cleanup(sgml_parse(Parser,
 				[ source(In),
 				  call(begin, index_on_begin)
@@ -124,7 +133,8 @@ index_on_begin(dd, _, Parser) :-
 %	Summary is the first sentence of DOM.
 
 summary(DOM, Summary) :-
-	phrase(summary(DOM, _), SummaryCodes),
+	phrase(summary(DOM, _), SummaryCodes0),
+	phrase(normalise_white_space(SummaryCodes), SummaryCodes0),
 	string_to_list(Summary, SummaryCodes).
 
 summary([], _) --> !,
@@ -170,13 +180,14 @@ space([]).
 		 *	      RETRIEVE		*
 		 *******************************/
 
-%%	load_man_object(+Obj, -DOM)
+%%	load_man_object(+Obj, -DOM) is semidet.
 %
 %	load the desription of the  object   matching  Obj from the HTML
 %	sources and return the DT/DD pair in DOM.
 
 load_man_object(For, DOM) :-
-	man_index(For, _, Path, Position),
+	object_spec(For, Obj),
+	man_index(Obj, _, Path, Position),
 	open(Path, read, In, [type(binary)]),
 	seek(In, Position, bof, _),
 	dtd(html, DTD),
@@ -199,3 +210,42 @@ load_man_object(For, DOM) :-
 	free_sgml_parser(Parser),
 	close(In),
 	append(DT, DD, DOM).
+
+
+object_spec(Spec, Spec).
+object_spec(Atom, Name/Arity) :-
+	atom(Atom),
+	concat_atom([Name, AA], /, Atom),
+	catch(atom_number(AA, Arity), _, fail),
+	integer(Arity),
+	Arity >= 0.
+
+
+		 /*******************************
+		 *	      EMIT    		*
+		 *******************************/
+
+%%	man_page(+Obj, +Options)// is det.
+%
+%	Produce a Prolog manual page for  Obj.   The  page consists of a
+%	link to the section-file and  a   search  field, followed by the
+%	predicate description.
+
+man_page(Obj, _Options) -->
+	{ load_man_object(Obj, DOM)
+	},
+	html(\dom_list(DOM)).
+
+dom_list([]) -->
+	[].
+dom_list([H|T]) -->
+	dom(H),
+	dom_list(T).
+
+dom(element(Name, Attrs, Content)) --> !,
+	{ Begin =.. [Name|Attrs] },
+	html_begin(Begin),
+	dom_list(Content),
+	html_end(Name).
+dom(CDATA) -->
+	html(CDATA).
