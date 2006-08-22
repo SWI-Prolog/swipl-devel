@@ -432,12 +432,10 @@ language_map(table,	'Table').
 <style type="text/css">  \n\
 dd.defbody  \n\
 { margin-bottom: 1em;  \n\
-}  \n\
-  \n\
+}\n\n\
 dt.pubdef  \n\
 { background-color: #c5e1ff;  \n\
-}  \n\
-  \n\
+}\n\n\
 pre.code  \n\
 { margin-left: 1.5em;    \n\
   margin-right: 1.5em;    \n\
@@ -446,7 +444,13 @@ pre.code  \n\
   padding-left: 5px;    \n\
   padding-bottom: 5px;    \n\
   background-color: #f8f8f8;    \n\
-}\n\
+}\n\n\
+div.navigate\n\
+{ text-align: center;  \n\
+  background-color: #f0f0f0;  \n\
+  border: 1px dotted;  \n\
+  padding: 5px;\n\
+}
 </style>\n')
 			]).
 #(beginbody,		html(Body)) :-
@@ -475,6 +479,7 @@ pre.code  \n\
 #(sc(Text),		[html('<font size=-1>'), % TBD: upcase Text
 					   Text, html('</font>')]).
 #(center(Text),		[html('<CENTER>'), Text, html('</CENTER>')]).
+#(navigate(Text),	[html('<DIV class="navigate">'), Text, html('</DIV>')]).
 #(right(Text),		[html('<RIGHT>'),  Text, html('</RIGHT>')]).
 #(quote(Text),		[html('<BLOCKQUOTE>'), Text, html('</BLOCKQUOTE>')]).
 #(listing(Text),	[html('<P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>'), Text,
@@ -1840,12 +1845,12 @@ node_header([#head([#title(#thetitle),
 		    link(next)]),
 	     #beginbody,
 	     html('<HR>'),
-	     #center( [ body_link(home),
-			body_link(contents),
-			body_link(index),
-			body_link(summary),
-			body_link(previous),
-			body_link(next)
+	     #navigate( [ body_link(home),
+			  body_link(contents),
+			  body_link(index),
+			  body_link(summary),
+			  body_link(previous),
+			  body_link(next)
 		      ]),
 	     html('<HR>')
 	    ]).
@@ -1864,13 +1869,13 @@ node_header(SectionTag,
 		    link(next)]),
 	     #beginbody,
 	     html('<HR>'),
-	     #center( [ body_link(home),
-			body_link(contents),
-			body_link(index),
-			body_link(summary),
-			body_link(up(UpRef)),
-			body_link(previous),
-			body_link(next)
+	     #navigate( [ body_link(home),
+			  body_link(contents),
+			  body_link(index),
+			  body_link(summary),
+			  body_link(up(UpRef)),
+			  body_link(previous),
+			  body_link(next)
 		      ]),
 	     html('<HR>')
 	    ]) :-
