@@ -2562,19 +2562,29 @@ create_pending_open(Cmd) :-
 create_pending_open(_).
 
 close_pending_open(Cmd) :-
-	(   is_open(Open)
-	->  (   close_by(Open, CloseOn),
-	        call(CloseOn, Cmd)
-	    ->	retract(is_open(Open)),
-		is_end(Open, Close),
-		cmd_layout(Close, Pre, Post), !,
-		put_html_token(html(Close, Pre, Post))
-	    ;	is_end(Open, Cmd)
-	    ->	retract(is_open(Open))
-	    )
+	pop_implicit_close(Cmd),
+	pop_close(Cmd).
+
+pop_implicit_close(Cmd) :-
+	(   once(is_open(Open)),
+	    close_by(Open, CloseOn),
+	    call(CloseOn, Cmd)
+	->  retract(is_open(Open)),
+	    debug(html, 'Pop open ~w on ~w', [Open, Cmd]),
+	    is_end(Open, Close),
+	    cmd_layout(Close, Pre, Post), !,
+	    put_html_token(html(Close, Pre, Post))
 	;   true
 	).
-close_pending_open(_).
+
+pop_close(Cmd) :-
+	(   once(is_open(Open)),
+	    is_end(Open, Cmd)
+	->  retract(is_open(Open)),
+	    debug(html, 'Pop open ~w on ~w', [Open, Cmd])
+	;   true
+	).
+
 
 create_env('DL').
 
