@@ -5,11 +5,11 @@
 <TITLE>SWI-Prolog Natural Language Processing Primitives</TITLE><style type="text/css"> 
 dd.defbody 
 { margin-bottom: 1em; 
-} 
+}
 
 dt.pubdef 
 { background-color: #c5e1ff; 
-} 
+}
 
 pre.code 
 { margin-left: 1.5em; 
@@ -19,6 +19,13 @@ padding-top: 5px;
 padding-left: 5px; 
 padding-bottom: 5px; 
 background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
 }
 </style>
 </HEAD>
@@ -89,6 +96,7 @@ is an improved version of the <EM>Soundex</EM> algorithm.
 <DD class="defbody">
 Same as <A NAME="idx:doublemetaphone3:1"></A><A HREF="#double_metaphone/3">double_metaphone/3</A>, 
 but only returning the primary metaphone.
+</DD>
 <DT class="pubdef"><A NAME="double_metaphone/3"><STRONG>double_metaphone</STRONG>(<VAR>+In, 
 -MetaPhone, -AltMetaphone</VAR>)</A></DT>
 <DD class="defbody">
@@ -97,6 +105,7 @@ primary metaphone is based on english, while the secondary deals with
 common alternative pronounciation in other languages. <VAR>In</VAR> is 
 either and atom, string object, code- or character list. The metaphones 
 are always returned as atoms.
+</DD>
 </DL>
 
 <H3><A NAME="sec:1.1">1.1 Origin and Copyright</A></H3>
@@ -132,12 +141,14 @@ Determine the stem of <VAR>In</VAR>. <VAR>In</VAR> must represent ISO
 Latin-1 text. The <A NAME="idx:porterstem2:2"></A><A HREF="#porter_stem/2">porter_stem/2</A> 
 predicate first maps <VAR>In</VAR> to lower case, then removes all 
 accents as in <A NAME="idx:unaccentatom2:3"></A><A HREF="#unaccent_atom/2">unaccent_atom/2</A> 
-and finally applies the Porter stem algorithm.<DT class="pubdef"><A NAME="unaccent_atom/2"><STRONG>unaccent_atom</STRONG>(<VAR>+In, 
+and finally applies the Porter stem algorithm.</DD>
+<DT class="pubdef"><A NAME="unaccent_atom/2"><STRONG>unaccent_atom</STRONG>(<VAR>+In, 
 -ASCII</VAR>)</A></DT>
 <DD class="defbody">
 If <VAR>In</VAR> is general ISO Latin-1 text with accents, <VAR>ASCII</VAR> 
 is unified with a plain ASCII version of the string. Note that the 
-current version only deals with ISO Latin-1 atoms.<DT class="pubdef"><A NAME="tokenize_atom/2"><STRONG>tokenize_atom</STRONG>(<VAR>+In, 
+current version only deals with ISO Latin-1 atoms.</DD>
+<DT class="pubdef"><A NAME="tokenize_atom/2"><STRONG>tokenize_atom</STRONG>(<VAR>+In, 
 -TokenList</VAR>)</A></DT>
 <DD class="defbody">
 Break the text <VAR>In</VAR> into words, numbers and punctuation 
@@ -153,11 +164,13 @@ characters. Tokens are created to the following rules:
 
 <P>It is likely that future versions of this library will provide
 <A NAME="idx:tokenizeatom3:4"></A><B>tokenize_atom/3</B> with additional 
-options to modify space handling as well as the definition of words.<DT class="pubdef"><A NAME="atom_to_stem_list/2"><STRONG>atom_to_stem_list</STRONG>(<VAR>+In, 
+options to modify space handling as well as the definition of words.</DD>
+<DT class="pubdef"><A NAME="atom_to_stem_list/2"><STRONG>atom_to_stem_list</STRONG>(<VAR>+In, 
 -ListOfStems</VAR>)</A></DT>
 <DD class="defbody">
 Combines the three above routines, returning a list holding an atom with 
 the stem of each word encountered and numbers for encountered numbers.
+</DD>
 </DL>
 
 <H3><A NAME="sec:2.1">2.1 Origin and Copyright</A></H3>
@@ -193,22 +206,42 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
-<DT><STRONG>A</STRONG><DD>
-<DT><A HREF="#atom_to_stem_list/2">atom_to_stem_list/2</A><DD>
-<DT><STRONG>D</STRONG><DD>
-<DT><A HREF="#double_metaphone/2">double_metaphone/2</A><DD>
-<DT><A HREF="#double_metaphone/3">double_metaphone/3</A><DD>
-<A HREF="#idx:doublemetaphone3:1">1</A>
-<DT><STRONG>P</STRONG><DD>
-<DT><A HREF="#porter_stem/2">porter_stem/2</A><DD>
-<A HREF="#idx:porterstem2:2">2</A>
-<DT><STRONG>T</STRONG><DD>
-<DT><A HREF="#tokenize_atom/2">tokenize_atom/2</A><DD>
-<DT>tokenize_atom/3<DD>
-<A HREF="#idx:tokenizeatom3:4">2</A>
-<DT><STRONG>U</STRONG><DD>
-<DT><A HREF="#unaccent_atom/2">unaccent_atom/2</A><DD>
-<A HREF="#idx:unaccentatom2:3">2</A>
+<DT><STRONG>A</STRONG></DT>
+<DD>
+</DD>
+<DT><A HREF="#atom_to_stem_list/2">atom_to_stem_list/2</A></DT>
+<DD>
+</DD>
+<DT><STRONG>D</STRONG></DT>
+<DD>
+</DD>
+<DT><A HREF="#double_metaphone/2">double_metaphone/2</A></DT>
+<DD>
+</DD>
+<DT><A HREF="#double_metaphone/3">double_metaphone/3</A></DT>
+<DD>
+<A HREF="#idx:doublemetaphone3:1">1</A></DD>
+<DT><STRONG>P</STRONG></DT>
+<DD>
+</DD>
+<DT><A HREF="#porter_stem/2">porter_stem/2</A></DT>
+<DD>
+<A HREF="#idx:porterstem2:2">2</A></DD>
+<DT><STRONG>T</STRONG></DT>
+<DD>
+</DD>
+<DT><A HREF="#tokenize_atom/2">tokenize_atom/2</A></DT>
+<DD>
+</DD>
+<DT>tokenize_atom/3</DT>
+<DD>
+<A HREF="#idx:tokenizeatom3:4">2</A></DD>
+<DT><STRONG>U</STRONG></DT>
+<DD>
+</DD>
+<DT><A HREF="#unaccent_atom/2">unaccent_atom/2</A></DT>
+<DD>
+<A HREF="#idx:unaccentatom2:3">2</A></DD>
 </DL>
 
 </BODY></HTML>

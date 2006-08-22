@@ -1,8 +1,33 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog SSL Interface</TITLE>
+<TITLE>SWI-Prolog SSL Interface</TITLE><style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
 </HEAD>
 <BODY BGCOLOR="white"> 
 <BLOCKQUOTE>
@@ -99,10 +124,9 @@ predicate calls:
 arguments they accept.
 
 <DL>
-
-<P>
-<DT><A NAME="ssl_init/3"><STRONG>ssl_init</STRONG>(<VAR>-SSL, +Server, 
-+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="ssl_init/3"><STRONG>ssl_init</STRONG>(<VAR>-SSL, 
++Server, +Options</VAR>)</A></DT>
+<DD class="defbody">
 Server with legal values <CODE>server</CODE> or <CODE>client</CODE> 
 denotes whether the SSL socket will have a server or client role in the 
 established connection. With <VAR>Options</VAR> various properties of 
@@ -115,94 +139,94 @@ are only required by the client (C), some are required by the server
 (marked S), some by both server as client (marked CS).
 
 <DL>
-
-<P>
-<DT><STRONG>host</STRONG>(<VAR>+HostName</VAR>)<DD>
+<DT><STRONG>host</STRONG>(<VAR>+HostName</VAR>)</DT>
+<DD class="defbody">
 [C] The host to connect to by the client or identified by the server. 
 Both IP addresses and hostnames can be supplied here. This option is 
 required for the client and optionally for the server.
-
-<P>
-<DT><STRONG>port</STRONG>(<VAR>+Integer</VAR>)<DD>
+</DD>
+<DT><STRONG>port</STRONG>(<VAR>+Integer</VAR>)</DT>
+<DD class="defbody">
 [CS] The port to connect or listen to. This option is required since no 
 default port can sensibly be defined for an abstract layer. The 
 webserver <EM>https</EM> protocol uses port 443.
-
-<P>
-<DT><STRONG>certificate_file</STRONG>(<VAR>+FileName</VAR>)<DD>
+</DD>
+<DT><STRONG>certificate_file</STRONG>(<VAR>+FileName</VAR>)</DT>
+<DD class="defbody">
 [S] Specify where the certificate file can be found. This can be the 
 same as the key file (see next option).
-
-<P>
-<DT><STRONG>key_file</STRONG>(<VAR>+FileName</VAR>)<DD>
+</DD>
+<DT><STRONG>key_file</STRONG>(<VAR>+FileName</VAR>)</DT>
+<DD class="defbody">
 [S] Specify where the private key can be found. This can be the same as 
 the certificate file.
-
-<P>
-<DT><STRONG>password</STRONG>(<VAR>+Text</VAR>)<DD>
+</DD>
+<DT><STRONG>password</STRONG>(<VAR>+Text</VAR>)</DT>
+<DD class="defbody">
 Specify the password the private key is protected with (if any). If you 
 do not want to store the password you can also specify an application 
 defined handler to return the password (see next option).
-
-<P>
-<DT><STRONG>pem_password_hook</STRONG>(<VAR>:PredicateName</VAR>)<DD>
+</DD>
+<DT><STRONG>pem_password_hook</STRONG>(<VAR>:PredicateName</VAR>)</DT>
+<DD class="defbody">
 In case a password is required to access the private key the supplied 
 function will be called to fetch it. The function has the following 
 prototype: <CODE>function(+SSL, -Password)</CODE>
-
-<P>
-<DT><STRONG>cacert_file</STRONG>(<VAR>+FileName</VAR>)<DD>
+</DD>
+<DT><STRONG>cacert_file</STRONG>(<VAR>+FileName</VAR>)</DT>
+<DD class="defbody">
 Specify a file containing certificate keys which will thus automatically 
 be verified as trusted. You can also install an application defined 
 handler to verify certificates (see next option).
-
-<P>
-<DT><STRONG>cert_verify_hook</STRONG>(<VAR>:PredicateName</VAR>)<DD>
+</DD>
+<DT><STRONG>cert_verify_hook</STRONG>(<VAR>:PredicateName</VAR>)</DT>
+<DD class="defbody">
 In case a certificate cannot be verified or has some properties which 
 makes it invalid (invalid validity date for example) the supplied 
 function will be called to ask its opinion about the certificate. The 
 predicate is called as follows:
 <CODE>function(+SSL, +Certificate, +Error)</CODE>. Access will be 
 granted iff the predicate succeeds.
-
-<P>
-<DT><STRONG>cert</STRONG>(<VAR>+Boolean</VAR>)<DD>
+</DD>
+<DT><STRONG>cert</STRONG>(<VAR>+Boolean</VAR>)</DT>
+<DD class="defbody">
 Trigger the sending of our certificate as specified using the option <CODE>certificate_file</CODE> 
 described earlier. For a server this option is automatically turned on.
-
-<P>
-<DT><STRONG>peer_cert</STRONG>(<VAR>+Boolean</VAR>)<DD>
+</DD>
+<DT><STRONG>peer_cert</STRONG>(<VAR>+Boolean</VAR>)</DT>
+<DD class="defbody">
 Trigger the request of our peer's certificate while establishing the SSL 
 layer. This option is automatically turned on in a client SSL socket.
+</DD>
 </DL>
 
-<P>
-<DT><A NAME="ssl_accept/3"><STRONG>ssl_accept</STRONG>(<VAR>+SSL, 
--Socket, -Peer</VAR>)</A><DD>
+</DD>
+<DT class="pubdef"><A NAME="ssl_accept/3"><STRONG>ssl_accept</STRONG>(<VAR>+SSL, 
+-Socket, -Peer</VAR>)</A></DT>
+<DD class="defbody">
 This predicate is used in the server to accept new connections.
 <VAR>Socket</VAR> is unified to a socket that must be passed to <A NAME="idx:sslopen4:8"></A><A HREF="#ssl_open/4">ssl_open/4</A> 
 and <VAR>Peer</VAR> is unified with a term ip/4 denoting the IP address 
 of the peer. The format is compatible to the format used by the TCP/IP 
-library <CODE>socket.pl</CODE> provided by the clib package.
-
-<P>
-<DT><A NAME="ssl_open/4"><STRONG>ssl_open</STRONG>(<VAR>+SSL, +Socket, 
--In, -Out</VAR>)</A><DD>
+library <CODE>socket.pl</CODE> provided by the clib package.</DD>
+<DT class="pubdef"><A NAME="ssl_open/4"><STRONG>ssl_open</STRONG>(<VAR>+SSL, 
++Socket, -In, -Out</VAR>)</A></DT>
+<DD class="defbody">
 Server side. Attach a Prolog input and output stream to the socket. The
 <VAR>Socket</VAR> is automatically closed after both streams are closed. 
 Please note that the output stream is fully buffered and therefore
 <A NAME="idx:flushoutput1:9"></A><B>flush_output/1</B> is required to 
-actually send the data to the peer.
-
-<P>
-<DT><A NAME="ssl_open/3"><STRONG>ssl_open</STRONG>(<VAR>+SSL, -In, -Out</VAR>)</A><DD>
+actually send the data to the peer.</DD>
+<DT class="pubdef"><A NAME="ssl_open/3"><STRONG>ssl_open</STRONG>(<VAR>+SSL, 
+-In, -Out</VAR>)</A></DT>
+<DD class="defbody">
 Client side. Establish the connection based on the data passed to
 <A NAME="idx:sslinit3:10"></A><A HREF="#ssl_init/3">ssl_init/3</A> and 
-create the Prolog I/O streams.
-
-<P>
-<DT><A NAME="ssl_exit/1"><STRONG>ssl_exit</STRONG>(<VAR>+SSL</VAR>)</A><DD>
+create the Prolog I/O streams.</DD>
+<DT class="pubdef"><A NAME="ssl_exit/1"><STRONG>ssl_exit</STRONG>(<VAR>+SSL</VAR>)</A></DT>
+<DD class="defbody">
 Clean up all resources related to the SSL + TCP/IP socket layers.
+</DD>
 </DL>
 
 <H2><A NAME="sec:4">4 Example code</A></H2>
@@ -240,22 +264,30 @@ standard search path.
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
-
-<P>
-<DT><STRONG>F</STRONG><DD>
-<DT>flush_output/1<DD>
-<A HREF="#idx:flushoutput1:9">3</A>
-<DT><STRONG>S</STRONG><DD>
-<DT><A HREF="#ssl_accept/3">ssl_accept/3</A><DD>
-<A HREF="#idx:sslaccept3:3">3</A>
-<DT><A HREF="#ssl_exit/1">ssl_exit/1</A><DD>
-<A HREF="#idx:sslexit1:6">3</A> <A HREF="#idx:sslexit1:7">3</A>
-<DT><A HREF="#ssl_init/3">ssl_init/3</A><DD>
-<A HREF="#idx:sslinit3:1">3</A> <A HREF="#idx:sslinit3:2">3</A> <A HREF="#idx:sslinit3:10">3</A>
-<DT><A HREF="#ssl_open/3">ssl_open/3</A><DD>
-<A HREF="#idx:sslopen3:5">3</A>
-<DT><A HREF="#ssl_open/4">ssl_open/4</A><DD>
-<A HREF="#idx:sslopen4:4">3</A> <A HREF="#idx:sslopen4:8">3</A>
+<DT><STRONG>F</STRONG></DT>
+<DD>
+</DD>
+<DT>flush_output/1</DT>
+<DD>
+<A HREF="#idx:flushoutput1:9">3</A></DD>
+<DT><STRONG>S</STRONG></DT>
+<DD>
+</DD>
+<DT><A HREF="#ssl_accept/3">ssl_accept/3</A></DT>
+<DD>
+<A HREF="#idx:sslaccept3:3">3</A></DD>
+<DT><A HREF="#ssl_exit/1">ssl_exit/1</A></DT>
+<DD>
+<A HREF="#idx:sslexit1:6">3</A> <A HREF="#idx:sslexit1:7">3</A></DD>
+<DT><A HREF="#ssl_init/3">ssl_init/3</A></DT>
+<DD>
+<A HREF="#idx:sslinit3:1">3</A> <A HREF="#idx:sslinit3:2">3</A> <A HREF="#idx:sslinit3:10">3</A></DD>
+<DT><A HREF="#ssl_open/3">ssl_open/3</A></DT>
+<DD>
+<A HREF="#idx:sslopen3:5">3</A></DD>
+<DT><A HREF="#ssl_open/4">ssl_open/4</A></DT>
+<DD>
+<A HREF="#idx:sslopen4:4">3</A> <A HREF="#idx:sslopen4:8">3</A></DD>
 </DL>
 
 </BODY></HTML>
