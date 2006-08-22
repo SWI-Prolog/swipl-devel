@@ -2,16 +2,17 @@
 \label{sec:lib:ugraphs}
 \makebox[\linewidth]{\hfill Authors: \emph{Richard O'Keefe \& Vitor Santos Costa}}
 
-\begin{quote}\it
+\begin{quote}{\it
 Implementation and documentation are copied from YAP 5.0.1. The
 \pllib{ugraph} library is based on code originally written by Richard
 O'Keefe. The code was then extended to be compatible with the SICStus
 Prolog ugraphs library. Code and documentation have been cleaned and
-style has been changed to be more in line with the rest of SWI-Prolog.
+style has been changed to be more in line with the rest of SWI-Prolog.}
 
+{\it
 The ugraphs library was originally released in the public domain.
 YAP is convered by the Perl artistic license, which does not imply
-further restrictions on the SWI-Prolog LGPL license.
+further restrictions on the SWI-Prolog LGPL license.}
 \end{quote}
 
 The routines assume directed graphs, undirected graphs may be

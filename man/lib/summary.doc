@@ -185,6 +185,5 @@ This library is only available on Windows systems.
 \predicatesummary{xref_exported}{2}{Examine exported predicates}
 \predicatesummary{xref_module}{2}{Module defined by source}
 \predicatesummary{xref_source}{1}{Cross-reference analysis of source}
-
 \end{summarylist}
 

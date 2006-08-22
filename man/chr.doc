@@ -461,7 +461,7 @@ info is provided unless the \cmdlineoption{-nodebug} is used.
 
 For CHR constraints the four standard ports are defined:
 
-\begin{itemlist}
+\begin{description}
 	\termitem{call}{}
 A new constraint is called and becomes active.
 	\termitem{exit}{}
@@ -471,12 +471,13 @@ trying all rules or has been removed from the constraint store.
 An active constraint fails.
 	\termitem{redo}{}
 An active constraint starts looking for an alternative solution.
-\end{itemlist}
+\end{description}
+
 
 In addition to the above ports, CHR constraints have five additional
 ports:
 
-\begin{itemlist}
+\begin{description}
 	\termitem{wake}{}
 A suspended constraint is woken and becomes active.
 	\termitem{insert}{}
@@ -493,7 +494,7 @@ store.
 	An active constraints commits to a rule with possibly
 	some passive constraints. The apply port is entered
 	just after committing to the rule.
-\end{itemlist}
+\end{description}
 
 \subsection{Tracing}
 %=================
@@ -522,7 +523,7 @@ The following debug commands are currently supported:
 
 Their meaning is:
 
-\begin{itemlist}
+\begin{description}
 	\termitem{creep}{}
 Step to the next port.
 	\termitem{skip}{}
@@ -539,7 +540,7 @@ Exit to the top-level.  See abort/0.
 Insert failure in execution.
 	\termitem{help}{}
 Print the above available debug options.
-\end{itemlist}
+\end{description}
 
 \subsection{CHR Debugging Predicates} 		\label{sec:predicates}
 %====================================

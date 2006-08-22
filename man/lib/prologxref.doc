@@ -74,7 +74,7 @@ having the property \const{built_in}.  Built-in predicates are not
 registered as `called'.
 \end{description}
 
-\subsubsection{Extending the library}
+\subsection{Extending the library}
 \label{sec:xrefhooks}
 
 The library provides hooks for extending its rules it uses for finding
