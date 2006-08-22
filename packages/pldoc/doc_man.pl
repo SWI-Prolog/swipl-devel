@@ -86,9 +86,10 @@ index_manual :-
 	).
 
 
-%%	load_man_directory(Dir) is det
+%%	index_man_directory(Dir, +Options) is det
 %
-%	Index the HTML directory Dir
+%	Index  the  HTML  directory   Dir.    Options   are   passed  to
+%	absolute_file_name/3.
 
 index_man_directory(Spec, Options) :-
 	absolute_file_name(Spec, Dir,
