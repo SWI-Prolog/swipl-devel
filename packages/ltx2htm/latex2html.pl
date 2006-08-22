@@ -1844,15 +1844,13 @@ node_header([#head([#title(#thetitle),
 		    link(previous),
 		    link(next)]),
 	     #beginbody,
-	     html('<HR>'),
 	     #navigate( [ body_link(home),
 			  body_link(contents),
 			  body_link(index),
 			  body_link(summary),
 			  body_link(previous),
 			  body_link(next)
-		      ]),
-	     html('<HR>')
+		      ])
 	    ]).
 	
 node_header(_, []) :-
@@ -1868,7 +1866,6 @@ node_header(SectionTag,
 		    link(previous),
 		    link(next)]),
 	     #beginbody,
-	     html('<HR>'),
 	     #navigate( [ body_link(home),
 			  body_link(contents),
 			  body_link(index),
@@ -1876,8 +1873,7 @@ node_header(SectionTag,
 			  body_link(up(UpRef)),
 			  body_link(previous),
 			  body_link(next)
-		      ]),
-	     html('<HR>')
+		      ])
 	    ]) :-
 	parent_tag(SectionTag, UpTag), !,
 	sformat(UpRef, 'sec:~w', [UpTag]).
