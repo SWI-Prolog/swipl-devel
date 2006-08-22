@@ -43,6 +43,7 @@
 :- use_module(doc_wiki).
 :- use_module(doc_search).
 :- use_module(library('http/html_write')).
+:- include(hooks).
 
 /** <module> Process SWI-Prolog HTML manuals
 
@@ -339,3 +340,15 @@ man_links(File, _Options) -->
 
 man_file(_File) -->
 	[].
+
+
+		 /*******************************
+		 *	    HOOK SEARCH		*
+		 *******************************/
+
+prolog:doc_object_summary(Obj, manual, File, Summary) :-
+	index_manual,
+	man_index(Obj, Summary, File, _Offset).
+	
+prolog:doc_object_page(Obj, Options) -->
+	man_page(Obj, Options).

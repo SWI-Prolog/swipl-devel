@@ -58,6 +58,7 @@
 :- use_module(doc_wiki).
 :- use_module(doc_search).
 :- use_module(doc_index).
+:- include(hooks).
 
 /** <module> PlDoc HTML backend
 
@@ -452,6 +453,8 @@ pi(_//_).
 %	Generate an HTML page describing Obj.  The top presents the file
 %	the object is documented in and a search-form.
 
+object_page(Obj, Options) -->
+	prolog:doc_object_page(Obj, Options).
 object_page(Obj, Options) -->
 	{ doc_comment(Obj, File:_Line, _Summary, _Comment),
 	  format(string(FileRef), '/doc~w', [File])

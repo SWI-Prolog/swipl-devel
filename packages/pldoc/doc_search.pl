@@ -38,6 +38,7 @@
 :- use_module(doc_process).
 :- use_module(doc_html).
 :- use_module(doc_index).
+:- include(hooks).
 
 /** <module> Search form and reply
 
@@ -74,7 +75,7 @@ search_form(Title) -->
 %		=long=, produce full object descriptions.
 
 search_reply(For, Options) -->
-	{ search_doc(For, PerFile),
+	{ search_doc(For, PerFile, Options),
 	  PerFile \== [],
 	  option(resultFormat(Format), Options, summary)
 	}, !,
@@ -111,17 +112,17 @@ short_matches([], _) -->
 	[].
 short_matches([File-Objs|T], Options) -->
 	file_index_header(File, Options),
-	object_summaries(Objs, Options),
+	object_summaries(Objs, File, Options),
 	short_matches(T, Options).
 
 
-%%	search_doc(+SearchString, -PerFile:list) is det.
+%%	search_doc(+SearchString, -PerFile:list, +Options) is det.
 %
 %	Return matches of SearchString as File-ListOfObjects, sorted
 %	by File and by Object.
 
-search_doc(Search, PerFile) :-
-	findall(Tuple, matching_object(Search, Tuple), Tuples0),
+search_doc(Search, PerFile, Options) :-
+	findall(Tuple, matching_object(Search, Tuple, Options), Tuples0),
 	keysort(Tuples0, Tuples),
 	group_by_key(Tuples, PerFile).
 
@@ -142,15 +143,14 @@ collect_by_key(K, [K-V|T0], [V|VT], T) :- !,
 collect_by_key(_, L, [], L).
 
 
-%%	matching_object(+SearchString, -Object) is nondet.
+%%	matching_object(+SearchString, -Object, +Options) is nondet.
 %
 %	Object matches SearchString.
 %	
 %	@param Object	Term of the form File-Item
 
-matching_object(Search, File-Obj) :-
-	doc_comment(Obj, File:_Line, Summary, _Comment),
-	Obj \= _:module(_Title),		% HACK.  See ref_object//1
+matching_object(Search, Section-Obj, _Options) :-
+	prolog:doc_object_summary(Obj, _Type, Section, Summary),
 	(   apropos_match(Search, Summary)
 	->  true
 	;   sub_term(S, Obj),
@@ -158,5 +158,31 @@ matching_object(Search, File-Obj) :-
 	    apropos_match(Search, S)
 	).
 	
+%%	object_summary(?Object, ?Category, ?Section, ?Summary) is nondet.
+%
+%	True  if  Object  is  summarised   by  Summary.  This  multifile
+%	predicate can be extended  with   other  search  mechanisms. The
+%	returned objects must be  handled   by  object_summaries//2  and
+%	objects//2.
+%	
+%	@param Category	Atom describing the source.
+%	@param Section  Reference to the context of Object.
+
+prolog:doc_object_summary(Obj, pldoc, File, Summary) :-
+	doc_comment(Obj, File:_Line, Summary, _Comment),
+	Obj \= _:module(_Title).		% HACK.  See ref_object//1
+
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+%%	apropos_match(+Needle, +Haystick) is semidet.
+%
+%	True if Needle can be found   as a case-insensitive substring in
+%	Haystick.
+%	
+%	@tbd	Use public predicates for that.
+
 apropos_match(Needle, Haystack) :-
 	'$apropos_match'(Needle, Haystack).

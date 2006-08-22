@@ -32,7 +32,7 @@
 :- module(pldoc_index,
 	  [ doc_for_dir/3,		% +Dir, +Out, +Options
 	    dir_index/4,		% +Dir, +Options, //
-	    object_summaries/4,		% +Objs, +Options, //
+	    object_summaries/5,		% +Objs, +Section, +Options, //
 	    file_index_header/4,	% +File, +Options, //
 	    doc_links/4			% +Directory, +Options, //
 	  ]).
@@ -42,6 +42,7 @@
 :- use_module(doc_search).
 :- use_module(library('http/html_write')).
 :- use_module(library(readutil)).
+:- include(hooks).
 
 /** <module> Create indexes
 */
@@ -164,7 +165,7 @@ file_index(File, Options) -->
 	  sort(Objs1, Objs)
 	},
 	html([ \file_index_header(File, Options)
-	     | \object_summaries(Objs, ModuleOptions)
+	     | \object_summaries(Objs, File, ModuleOptions)
 	     ]).
 
 %%	file_index_header(+File, +Options)// is det.
@@ -191,22 +192,24 @@ file_index_header(File, Options) -->
 		   ]))).
 
 
-%%	object_summaries(+Objects, +Options)// is det.
+%%	object_summaries(+Objects, +Section, +Options)// is det.
 %
 %	Create entries in a summary table for Objects.
 
-object_summaries([], _) -->
+object_summaries([], _, _) -->
 	[].
-object_summaries([H|T], Options) -->
-	object_summary(H, Options),
-	object_summaries(T, Options).
+object_summaries([H|T], Section, Options) -->
+	object_summary(H, Section, Options),
+	object_summaries(T, Section, Options).
 
-%%	object_summary(+Object, +Options)// is det
+%%	object_summary(+Object, +Section, +Options)// is det
 %
 %	Create a summary for Object.  Summary consists of a link to
 %	the Object and a summary text as a table-row.
+%	
+%	@tbd	Hacky interface.  Do we demand Summary to be in Wiki?
 
-object_summary(doc(Obj, _Pos, Summary), Options) --> !,
+object_summary(doc(Obj, _Pos, Summary), _Section, Options) --> !,
 	(   { wiki_string_to_dom(Summary, [], DOM0),
 	      strip_leading_par(DOM0, DOM),
 	      (	  private(Obj, Options)
@@ -220,11 +223,11 @@ object_summary(doc(Obj, _Pos, Summary), Options) --> !,
 		    ]))
 	;   []
 	).
-object_summary(Obj, Options) -->
-	{ doc_comment(Obj, Pos, Summary, _Comment)
+object_summary(Obj, Section, Options) -->
+	{ prolog:doc_object_summary(Obj, _Cat, Section, Summary)
 	}, !,
-	object_summary(doc(Obj, Pos, Summary), Options).
-object_summary(_, _) -->
+	object_summary(doc(Obj, _, Summary), Section, Options).
+object_summary(_, _, _) -->
 	[].
 
 
