@@ -401,7 +401,8 @@ reply('/man', Request) :-
 	http_parameters(Request,
 			[ predicate(PI, [])
 			]),
-	reply_page('SWI-Prolog Reference Manual',
+	format(string(Title), 'Manual -- ~w', [PI]),
+	reply_page(Title,
 		   [ \man_page(PI, _Options)
 		   ]).
 

@@ -31,9 +31,9 @@
 
 :- module(pldoc_man,
 	  [ clean_man_index/0,		% 
-	    index_man_directory/1,	% +DirSpec
+	    index_man_directory/2,	% +DirSpec, +Options
 	    index_man_file/1,		% +FileSpec
-	    load_man_object/2,		% +Obj, -DOM
+	    load_man_object/3,		% +Obj, -File, -DOM
 	    man_page/4			% +Obj, +Options, //
 	  ]).
 :- use_module(library(sgml)).
@@ -49,21 +49,50 @@
 :- dynamic
 	man_index/4.			% Object, Summary, File, Offset
 
+%%	clean_man_index is det.
+%
+%	Clean already loaded manual index.
+
 clean_man_index :-
 	retractall(man_index(_,_,_,_)).
+
+
+%%	manual_directory(-Dir)// is nondet.
+%
+%	True if Dir is a directory holding manual files.
+
+
+manual_directory(swi('doc/Manual')).
+%manual_directory(swi('doc/packages')).
+
 
 
 		 /*******************************
 		 *	    PARSE MANUAL	*
 		 *******************************/
 
+%%	index_manual is det.
+%
+%	Load the manual index if not already done.
+
+index_manual :-
+	man_index(_,_,_,_), !.
+index_manual :-
+	(   manual_directory(Dir),
+	    index_man_directory(Dir, [file_errors(fail)]),
+	    fail ; true
+	).
+
+
 %%	load_man_directory(Dir) is det
 %
 %	Index the HTML directory Dir
 
-index_man_directory(Spec) :-
+index_man_directory(Spec, Options) :-
 	absolute_file_name(Spec, Dir,
-			   [ file_type(directory)
+			   [ file_type(directory),
+			     access(read)
+			   | Options
 			   ]),
 	atom_concat(Dir, '/*.html', Pattern),
 	expand_file_name(Pattern, Files),
@@ -180,12 +209,15 @@ space([]).
 		 *	      RETRIEVE		*
 		 *******************************/
 
-%%	load_man_object(+Obj, -DOM) is semidet.
+%%	load_man_object(+Obj, -Path, -DOM) is nondet.
 %
 %	load the desription of the  object   matching  Obj from the HTML
 %	sources and return the DT/DD pair in DOM.
+%	
+%	@tbd	Nondet?
 
-load_man_object(For, DOM) :-
+load_man_object(For, Path, DOM) :-
+	index_manual,
 	object_spec(For, Obj),
 	man_index(Obj, _, Path, Position),
 	open(Path, read, In, [type(binary)]),
@@ -197,6 +229,7 @@ load_man_object(For, DOM) :-
 	set_sgml_parser(Parser, file(Path)),
         set_sgml_parser(Parser, dialect(sgml)),
 	set_sgml_parser(Parser, shorttag(false)),
+	set_sgml_parser(Parser, defaults(false)),
 	sgml_parse(Parser,
 		   [ document(DT),
 		     source(In),
@@ -213,12 +246,8 @@ load_man_object(For, DOM) :-
 
 
 object_spec(Spec, Spec).
-object_spec(Atom, Name/Arity) :-
-	atom(Atom),
-	concat_atom([Name, AA], /, Atom),
-	catch(atom_number(AA, Arity), _, fail),
-	integer(Arity),
-	Arity >= 0.
+object_spec(Atom, PI) :-
+	atom_to_pi(Atom, PI).
 
 
 		 /*******************************
@@ -232,9 +261,14 @@ object_spec(Atom, Name/Arity) :-
 %	predicate description.
 
 man_page(Obj, _Options) -->
-	{ load_man_object(Obj, DOM)
+	{ load_man_object(Obj, _File, DOM), !
 	},
 	html(\dom_list(DOM)).
+man_page(Obj, _Options) -->
+	{ term_to_atom(Obj, Atom)
+	},
+	html([ 'No manual entry for ', Atom
+	     ]).
 
 dom_list([]) -->
 	[].
@@ -242,6 +276,13 @@ dom_list([H|T]) -->
 	dom(H),
 	dom_list(T).
 
+dom(element(a, _, [])) -->		% Useless back-references
+	[].
+dom(element(a, Att, Content)) -->
+	{ memberchk(href=HREF, Att),
+	  rewrite_ref(HREF, Myref)
+	}, !,
+	html(a(href(Myref), \dom_list(Content))).
 dom(element(Name, Attrs, Content)) --> !,
 	{ Begin =.. [Name|Attrs] },
 	html_begin(Begin),
@@ -249,3 +290,28 @@ dom(element(Name, Attrs, Content)) --> !,
 	html_end(Name).
 dom(CDATA) -->
 	html(CDATA).
+
+
+%%	rewrite_ref(+Ref0, -ManRef) is semidet.
+%
+%	If Ref is of the format  File#Name/Arity,   rewrite  it  to be a
+%	local reference using the manual presentation /man?predicate=PI.
+
+rewrite_ref(Ref0, Ref) :-
+	sub_atom(Ref0, _, _, A, '#'),
+	sub_atom(Ref0, _, A, 0, Fragment),
+	atom_to_pi(Fragment, PI),
+	man_index(PI, _, _, _), !,
+	www_form_encode(Fragment, Enc),
+	format(string(Ref), '/man?predicate=~w', [Enc]).
+
+%	atom_to_pi(+Atom, -Name/Arity) is semidet.
+%	
+%	If Atom is `Name/Arity', decompose to Name and Arity. No errors.
+
+atom_to_pi(Atom, Name/Arity) :-
+	atom(Atom),
+	concat_atom([Name, AA], /, Atom),
+	catch(atom_number(AA, Arity), _, fail),
+	integer(Arity),
+	Arity >= 0.

@@ -20,8 +20,14 @@ Making solid progress.  remaining issues:
 ---++ Integrate with help/apropos
 
 	* Should also link to PceEmacs
-	* Search to manual
+	* Search the manual
 	* Name/Arity must immediately link to manual.
+
+	* Re-generate package docs.
+	* Make sgml package generation compatible
+		* Add style classes
+		* Close DT/DD
+	* Install HTML manual in doc
 
 ---++ Quality assurance: comment style-check
 
