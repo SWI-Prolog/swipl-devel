@@ -809,8 +809,7 @@ predref(Term, Options) -->
 	predref(Term, _, Options).
 
 predref(Name/Arity, _, _Options) -->
-	{ functor(Term, Name, Arity),
-	  predicate_property(system:Term, built_in), !,
+	{ prolog:doc_object_summary(Name/Arity, manual, _, _), !,
 	  format(string(FragmentId), '~w/~d', [Name, Arity]),
 	  www_form_encode(FragmentId, EncId),
 	  format(string(HREF), '/man?predicate=~w', [EncId])
@@ -872,12 +871,12 @@ object_ref([H|T], Options) --> !,
 	    object_ref(T, Options)
 	;   []
 	).
-object_ref(Obj, _Options) -->
+object_ref(Obj, Options) -->
 	{ term_to_string(Obj, String),
 	  www_form_encode(String, Enc),
 	  format(string(HREF), '/doc_for?object=~w', [Enc])
 	},
-	html(a(href(HREF), \object(Obj))).
+	html(a(href(HREF), \object_link(Obj, Options))).
 	
 term_to_string(Term, String) :-
 	State = state(-),
@@ -892,19 +891,21 @@ term_to_string(Term, String) :-
 	;   arg(1, State, String)
 	).
 
-%%	object(+Obj)// is det.
+%%	object_link(+Obj, +Options)// is det.
 %
 %	HTML description of documented Obj. Obj is as the first argument
 %	of doc_comment/4.
 
-object(_M:PI) --> !,
+object_link(Obj, Options) -->
+	prolog:doc_object_link(Obj, Options), !.
+object_link(_M:PI, _) --> !,
 	pi(PI).
-object(PI) -->
+object_link(PI, _) -->
 	pi(PI), !.
-object(Module:module(_Title)) -->
+object_link(Module:module(_Title), _) -->
 	{ current_module(Module, File),
 	  file_base_name(File, Base)
-	},
+	}, !,
 	html(Base).
 
 pi(Name/Arity) --> !,

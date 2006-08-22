@@ -171,7 +171,16 @@ file_index(File, Options) -->
 %%	file_index_header(+File, +Options)// is det.
 %
 %	Create an entry in a summary-table for File.
+%	
+%	@tbd	Generalise through hooks.
 
+file_index_header(File, Options) -->
+	{ Section = section(_Level, _No),
+	  prolog:doc_object_summary(Section, manual, File, _Title)
+	}, !,
+	html(tr(th([colspan(2), class(section)],
+		   [ \object_ref(Section, [secref_style(title)|Options])
+		   ]))).
 file_index_header(File, Options) -->
 	{ (   option(directory(Dir), Options),
 	      atom_concat(Dir, Local0, File),

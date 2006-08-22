@@ -31,4 +31,5 @@
 
 :- multifile
 	prolog:doc_object_summary/4,	% Object, ?Category, ?Section, ?Summary
-	prolog:doc_object_page/4.	% +Object, +Options
+	prolog:doc_object_page/4,	% +Object, +Options, //
+	prolog:doc_object_link/4.	% +Object, +Options, //

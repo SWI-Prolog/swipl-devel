@@ -41,6 +41,7 @@
 :- use_module(library(lists)).
 :- use_module(library(url)).
 :- use_module(doc_wiki).
+:- use_module(doc_html).
 :- use_module(doc_search).
 :- use_module(library('http/html_write')).
 :- include(hooks).
@@ -159,6 +160,27 @@ index_on_begin(dd, _, Parser) :-
 		   ]),
 	summary(DD, Summary),
         assert(man_index(Name/Arity, Summary, File, Offset)).
+index_on_begin(H, _, Parser) :-
+	heading(H, Level),
+	get_sgml_parser(Parser, charpos(Offset)),
+        get_sgml_parser(Parser, file(File)),
+	sgml_parse(Parser,
+		   [ document(Doc),
+		     parse(content)
+		   ]),
+	dom_to_text(Doc, Title),
+	section_number(Title, Nr, PlainTitle),
+	assert(man_index(section(Level, Nr), PlainTitle, File, Offset)).
+	
+section_number(Title, Nr, PlainTitle) :-
+	sub_atom(Title, B, _, A, ' '),
+	sub_atom(Title, 0, B, _, Nr),
+	sub_string(Title, _, A, 0, PlainTitle).
+
+heading(h1, 1).
+heading(h2, 2).
+heading(h3, 3).
+heading(h4, 4).
 
 
 %%	summary(+DOM, -Summary:string) is det.
@@ -208,6 +230,33 @@ string([H|T]) -->
 space([C|_]) :- code_type(C, space), !.
 space([]).
 
+%%	dom_to_text(+DOM, -Text)
+%
+%	Extract the text of a parsed HTML term.  White-space in the
+%	result is normalised.  See normalise_white_space//1.
+
+dom_to_text(Dom, Text) :-
+	phrase(cdata_list(Dom), CDATA),
+	with_output_to(codes(Codes0),
+		       forall(member(T, CDATA),
+			      write(T))),
+	phrase(normalise_white_space(Codes), Codes0),
+	string_to_list(Text, Codes).
+
+cdata_list([]) -->
+	[].
+cdata_list([H|T]) -->
+	cdata(H),
+	cdata_list(T).
+
+cdata(element(_, _, Content)) --> !,
+	cdata_list(Content).
+cdata(CDATA) -->
+	{ atom(CDATA) }, !,
+	[CDATA].
+cdata(_) -->
+	[].
+
 
 		 /*******************************
 		 *	      RETRIEVE		*
@@ -220,6 +269,12 @@ space([]).
 %	
 %	@tbd	Nondet?
 
+load_man_object(For, Path, DOM) :-
+	For = section(_,_), !,		% TBD: Sub-sections!
+	index_manual,
+	object_spec(For, Obj),
+	man_index(Obj, _, Path, _),
+	load_html_file(Path, DOM).
 load_man_object(For, Path, DOM) :-
 	index_manual,
 	object_spec(For, Obj),
@@ -291,6 +346,8 @@ dom(element(a, Att, Content)) -->
 	  rewrite_ref(HREF, Myref)
 	}, !,
 	html(a(href(Myref), \dom_list(Content))).
+dom(element(div, Att, _)) -->
+	{ memberchk(class=navigate, Att) }, !.
 dom(element(Name, Attrs, Content)) --> !,
 	{ Begin =.. [Name|Attrs] },
 	html_begin(Begin),
@@ -338,8 +395,27 @@ man_links(File, _Options) -->
 		   \man_file(File)
 		 ])).
 
-man_file(_File) -->
-	[].
+man_file(File) -->
+	{ Obj = section(_,_),
+	  man_index(Obj, _Title, File, _Offset)
+	}, !,
+	object_ref(Obj, [secref_style(title)]).
+
+%%	section_link(+Obj, +Options)// is det.
+%
+%	Create link to a section.  Options recognised:
+%	
+%		* secref_style(+Style)
+%		One of =number= or =title=.
+
+section_link(section(_, Number), Options) -->
+	{ option(secref_style(number), Options, number)
+	}, !,
+	html(['Sec. ', Number]).
+section_link(Obj, _Options) -->
+	{ man_index(Obj, Title, _File, _Offset)
+	},
+	html(Title).
 
 
 		 /*******************************
@@ -352,3 +428,7 @@ prolog:doc_object_summary(Obj, manual, File, Summary) :-
 	
 prolog:doc_object_page(Obj, Options) -->
 	man_page(Obj, Options).
+
+prolog:doc_object_link(Obj, Options) -->
+	{ Obj = section(_,_) }, !,
+	section_link(Obj, Options).
