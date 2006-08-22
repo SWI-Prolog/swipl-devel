@@ -312,7 +312,7 @@ rewrite_ref(Ref0, Ref) :-
 	format(string(Ref), '/man?predicate=~w', [Enc]).
 
 
-%%	atom_to_pi(+Atom, -Name/Arity) is semidet.
+%%	atom_to_pi(+Atom, -PredicateIndicator) is semidet.
 %	
 %	If Atom is `Name/Arity', decompose to Name and Arity. No errors.
 
