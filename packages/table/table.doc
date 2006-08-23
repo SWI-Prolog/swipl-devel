@@ -470,11 +470,9 @@ The Unix passwd file is a file with records spanning a single line each.
 The fields are separated by a single `:' character.  Here is an example
 of a line:
 
-{\footnotesize
-\begin{verbatim}
+\begin{code}
 joe:hgdu3r3bce:53:100:Joe Johnson:/users/joe:/bin/bash
-\end{verbatim}
-}
+\end{code}
 
 The following call defines a table for it:
 
