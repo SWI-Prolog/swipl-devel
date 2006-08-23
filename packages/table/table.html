@@ -27,33 +27,43 @@ background-color: #f0f0f0;
 border: 1px dotted; 
 padding: 5px;
 }
+
+div.title
+{ text-align: center; 
+padding-bottom: 1em; 
+font-size: 200%; 
+font-weight: bold;
+}
+
+div.author
+{ text-align: center; 
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px; 
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center; 
+padding: 5px; 
+font-size: 120%; 
+font-weight: bold;
+}
 </style>
 </HEAD>
 <BODY BGCOLOR="white">
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<CENTER>
 
-<H1>Managing external tables for SWI-Prolog</H1>
-
-</CENTER>
-<HR>
-<CENTER>
-<I>Jan Wielemaker <BR>
+<P><DIV class="title">Managing external tables for SWI-Prolog</DIV><DIV class="author">Jan 
+Wielemaker <BR>
 Human Computer Studies (HCS), <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></I>
-</CENTER>
-<HR>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<CENTER><H3>Abstract</H3></Center>
-<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
 This document describes a foreign language extension to
 <A HREF="http://www.swi.psy.uva.nl/projects/SWI-Prolog">SWI-Prolog</A> 
 for the manipulation of `external tables'. External tables are files 
@@ -73,7 +83,7 @@ sorted tables.
 memory and is ported to Win32 (Windows 95 and NT) as well as Unix 
 systems providing the mmap() system call (Solaris, SunOs, Linux and many 
 more modern Unices).
-</TABLE>
+</DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 

@@ -450,6 +450,29 @@ div.navigate\n\
   background-color: #f0f0f0;  \n\
   border: 1px dotted;  \n\
   padding: 5px;\n\
+}\n\n\
+div.title\n\
+{ text-align: center;  \n\
+  padding-bottom: 1em;  \n\
+  font-size: 200%;  \n\
+  font-weight: bold;\n\
+}\n\n\
+div.author\n\
+{ text-align: center;  \n\
+  font-style: italic;\n\
+}\n\n\
+div.abstract\n\
+{ margin-top: 2em;  \n\
+  background-color: #f0f0f0;  \n\
+  border: 1px dotted;  \n\
+  padding: 5px;  \n\
+  margin-left: 10%; margin-right:10%;\n\
+}\n\n\
+div.abstract-title\n\
+{ text-align: center;  \n\
+  padding: 5px;  \n\
+  font-size: 120%;  \n\
+  font-weight: bold;\n\
 }
 </style>\n')
 			]).
@@ -478,15 +501,19 @@ div.navigate\n\
 #(tt(Text),		[html('<TT>'),	   Text, html('</TT>')]).
 #(sc(Text),		[html('<font size=-1>'), % TBD: upcase Text
 					   Text, html('</font>')]).
+#(div(Class, Text),	[html(Begin), Text, html('</DIV>')]) :-
+	format(atom(Begin), '<DIV class="~w">', [Class]).
 #(center(Text),		[html('<CENTER>'), Text, html('</CENTER>')]).
 #(navigate(Text),	[html('<DIV class="navigate">'), Text, html('</DIV>')]).
 #(right(Text),		[html('<RIGHT>'),  Text, html('</RIGHT>')]).
 #(quote(Text),		[html('<BLOCKQUOTE>'), Text, html('</BLOCKQUOTE>')]).
 #(listing(Text),	[html('<P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>'), Text,
 			 html('</TABLE>')]).
-#(abstract(Text),	[html('<CENTER><H3>Abstract</H3></Center>'),
-			 html('<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>'), Text,
-			 html('</TABLE>')]).
+#(abstract(Text),	[ html('<DIV class="abstract">'),
+			  html('<DIV class="abstract-title">Abstract</DIV>'),
+			  Text,
+			  html('</DIV>')
+			]).
 #(embrace([O,C],Text),	[nospace(OA),	   Text, nospace(CA)]) :-
 	char_code(OA, O),
 	char_code(CA, C).
@@ -1010,11 +1037,9 @@ cmd(htmlfiledepth({Depth}), []) :-
 	assert(html_split_level(D)).
 
 cmd(maketitle,					% \maketitle
-    #quote(#quote(#quote(#quote([ #center(#h(1, #thetitle)),
-				  html('<HR>'),
-				  #center(#i(#theauthor)),
-				  html('<HR>')
-				]))))).
+    [ #div(title, #thetitle),
+      #div(author, #theauthor)
+    ]).
 
 cmd(newblock, []).				% BiBTeX \newblock
 cmd(protect, []).				% BiBTeX produced?

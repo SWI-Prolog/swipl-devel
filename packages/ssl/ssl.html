@@ -27,41 +27,51 @@ background-color: #f0f0f0;
 border: 1px dotted; 
 padding: 5px;
 }
+
+div.title
+{ text-align: center; 
+padding-bottom: 1em; 
+font-size: 200%; 
+font-weight: bold;
+}
+
+div.author
+{ text-align: center; 
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px; 
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center; 
+padding: 5px; 
+font-size: 120%; 
+font-weight: bold;
+}
 </style>
 </HEAD>
 <BODY BGCOLOR="white"> 
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<CENTER>
 
-<H1>SWI-Prolog SSL Interface</H1>
-
-</CENTER>
-<HR>
-<CENTER>
-<I>Jan van der Steen <BR>
+<P><DIV class="title">SWI-Prolog SSL Interface</DIV><DIV class="author">Jan 
+van der Steen <BR>
 <A HREF="http://www.diff.nl">Diff Automatisering v.o.f</A> 
 
 <P>Jan Wielemaker <BR>
 SWI, University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></I>
-</CENTER>
-<HR>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<CENTER><H3>Abstract</H3></Center>
-<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+E-mail: <A HREF="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
 This document describes the SWI-Prolog SSL library, a set of predicates 
 which provides secure sockets to Prolog applications, for example to run 
 a secure HTTPS server, or access websites using the <CODE>https</CODE> 
 protocol. It can also be used to provide authentication and secure data 
 exchange between Prolog processes over the network.
-</TABLE>
+</DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 

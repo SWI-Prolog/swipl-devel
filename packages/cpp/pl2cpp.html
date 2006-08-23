@@ -27,33 +27,43 @@ background-color: #f0f0f0;
 border: 1px dotted; 
 padding: 5px;
 }
+
+div.title
+{ text-align: center; 
+padding-bottom: 1em; 
+font-size: 200%; 
+font-weight: bold;
+}
+
+div.author
+{ text-align: center; 
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px; 
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center; 
+padding: 5px; 
+font-size: 120%; 
+font-weight: bold;
+}
 </style>
 </HEAD>
 <BODY BGCOLOR="white">
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<CENTER>
 
-<H1>A C++ interface to SWI-Prolog</H1>
-
-</CENTER>
-<HR>
-<CENTER>
-<I>Jan Wielemaker <BR>
+<P><DIV class="title">A C++ interface to SWI-Prolog</DIV><DIV class="author">Jan 
+Wielemaker <BR>
 SWI, <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
-</CENTER>
-<HR>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<CENTER><H3>Abstract</H3></Center>
-<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
 This document describes a C++ interface to SWI-Prolog. SWI-Prolog could 
 be used with C++ for a very long time, but only by calling the extern 
 "C" functions of the C-interface. The interface described herein 
@@ -61,7 +71,7 @@ provides a true C++ layer around the C-interface for much more concise
 and natural programming from C++. The interface deals with automatic 
 type-conversion to and from native C data-types, transparent mapping of 
 exceptions, making queries to Prolog and registering foreign predicates.
-</TABLE>
+</DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
