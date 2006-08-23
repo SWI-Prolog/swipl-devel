@@ -1,8 +1,34 @@
-<!DOCTYPE PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 
 <html>
 <head>
-<title>SWI-Prolog SGML/XML parser</title>
+<title>SWI-Prolog SGML/XML parser</title><style type="text/css">
+dd.defbody  
+{ margin-bottom: 1em;  
+}
+
+dt.pubdef  
+{ background-color: #c5e1ff;  
+}
+
+pre.code  
+{ margin-left: 1.5em;    
+margin-right: 1.5em;    
+border: 1px dotted;    
+padding-top: 5px;    
+padding-left: 5px;    
+padding-bottom: 5px;    
+background-color: #f8f8f8;    
+}
+
+div.navigate
+{ text-align: center;  
+background-color: #f0f0f0;  
+border: 1px dotted;  
+padding: 5px;
+}
+
+</style>
 </head>
 
 <body>
@@ -125,11 +151,7 @@ of <b>sgml.pl</b> as a starting point for dealing with data from
 other sources than files, such as SWI-Prolog resources, network-sockets,
 character strings, <em>etc.</em> The first example below loads an HTML file.
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2//EN&quot;&gt;
 
 &lt;html&gt;
@@ -146,13 +168,7 @@ character strings, <em>etc.</em> The first example below loads an HTML file.
 &lt;/body&gt;
 &lt;/html&gt;
 </pre>
-</td></tr>
-</table>
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 ?- load_html_file('test.html', Term),
    pretty_print(Term).
 
@@ -186,8 +202,6 @@ character strings, <em>etc.</em> The first example below loads an HTML file.
           ])
 ].
 </pre>
-</td></tr>
-</table>
 
 <p>
 The document is represented as a list, each element being an atom to 
@@ -208,16 +222,16 @@ self-contained files in SGML, HTML, or XML into a structured term. They
 are based on <a href="#load_structure/3"><b>load_structure/3</b></a>.
 
 <dl>
-<dt>&nbsp;<br>
-<b><a name="load_sgml_file/2">load_sgml_file(<var>+File, -ListOfContent</var>)</a></b><dd>
+<dt class="pubdef"><b><a name="load_sgml_file/2">load_sgml_file(<var>+File, -ListOfContent</var>)</a></b></dt>
+<dd class="defbody">
 Same as <code>load_structure(File, ListOfContent, [dialect(sgml)])</code>.
-    
-<dt>&nbsp;<br>
-<b><a name="load_xml_file/2">load_xml_file(<var>+File, -ListOfContent</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="load_xml_file/2">load_xml_file(<var>+File, -ListOfContent</var>)</a></b></dt>
+<dd class="defbody">
 Same as <code>load_structure(File, ListOfContent, [dialect(xml)])</code>.
-    
-<dt>&nbsp;<br>
-<b><a name="load_html_file/2">load_html_file(<var>+File, -Content</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="load_html_file/2">load_html_file(<var>+File, -Content</var>)</a></b></dt>
+<dd class="defbody">
 Load <var>File</var> and parse as HTML. Implemented as below.  Note that
 <a href="#load_html_file/2"><b>load_html_file/2</b></a> re-uses a cached DTD object as defined
 by <a href="#dtd/2"><b>dtd/2</b></a>.  As DTD objects may be corrupted while loading
@@ -225,11 +239,7 @@ errornous documents sharing is undesirable if the documents are not
 known to be correct.  See <a href="#dtd/2"><b>dtd/2</b></a> for details.
 
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 load_html_file(File, Term) :-
         dtd(html, DTD),
         load_structure(File, Term,
@@ -238,8 +248,7 @@ load_html_file(File, Term) :-
 			 shorttag(false)
                        ]).
 </pre>
-</td></tr>
-</table>
+</dd>
 </dl>
 
 <p>
@@ -259,8 +268,8 @@ simplicity a number of commonly used shorthands are provided: <a href="#load_sgm
 <a href="#load_html_file/2"><b>load_html_file/2</b></a>.
 
 <dl>
-<dt>&nbsp;<br>
-<b><a name="load_structure/3">load_structure(<var>+Source, -ListOfContent, +Options</var>)</a></b><dd>
+<dt class="pubdef"><b><a name="load_structure/3">load_structure(<var>+Source, -ListOfContent, +Options</var>)</a></b></dt>
+<dd class="defbody">
 Parse <var>Source</var> and return the resulting structure in <var>ListOfContent</var>.  <var>Source</var> is either a term of the format
 <code>stream(StreamHandle)</code> or a file-name. <var>Options</var> is a
 list of options controlling the conversion process.
@@ -273,13 +282,15 @@ matches the document type. Nevertheless, a list is returned for
 consistency with the representation of element content. The <var>ListOfContent</var> consists of the following types:
 <dl>
 <dt>&nbsp;<br>
-<b><var>Atom</var></b><dd>
+<b><var>Atom</var></b></dt>
+<dd>
 Atoms are used to represent <a name="const:CDATA%2"><b><tt>CDATA</tt></b></a>. Note 
 this is possible in SWI-Prolog, as there is no length-limit on atoms and
 atom garbage collection is provided.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>element(<var>Name, ListAttributes, ListOfContent</var>)</b><dd>
+<b>element(<var>Name, ListAttributes, ListOfContent</var>)</b></dt>
+<dd>
 <var>Name</var> is the name of the element. Using SGML, which is 
 case-insensitive, all element names are returned as lowercase atoms.
 
@@ -295,21 +306,24 @@ the setting of the <code>number(+NumberMode)</code> attribute through
 default they are returned as atoms, but automatic conversion to Prolog
 integers is supported. <var>ListOfContent</var> defines the content for the
 element.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>sdata(<var>Text</var>)</b><dd>
+<b>sdata(<var>Text</var>)</b></dt>
+<dd>
 If an entity with declared content-type <a name="const:SDATA"><b><tt>SDATA</tt></b></a> is encountered, this 
 term is returned holding the data in <var>Text</var>.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>ndata(<var>Text</var>)</b><dd>
+<b>ndata(<var>Text</var>)</b></dt>
+<dd>
 If an entity with declared content-type <a name="const:NDATA"><b><tt>NDATA</tt></b></a> is encountered, this 
 term is returned holding the data in <var>Text</var>.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>pi(<var>Text</var>)</b><dd>
+<b>pi(<var>Text</var>)</b></dt>
+<dd>
 If a processing instruction is encountered (<code>&lt;?...?&gt;</code>), <var>Text</var> holds the text of the processing instruction. Please note that the
-<code>&lt;?xml ...?&gt;</code> instruction is handled internally. 
+<code>&lt;?xml ...?&gt;</code> instruction is handled internally. </dd>
 </dl>
 
 
@@ -322,34 +336,39 @@ defined options are:
 
 <dl>
 <dt>&nbsp;<br>
-<b>dtd(<var>?DTD</var>)</b><dd>
+<b>dtd(<var>?DTD</var>)</b></dt>
+<dd>
 Reference to a DTD object. If specified, the <code>&lt;!DOCTYPE ...&gt;</code>
 declaration is ignored and the document is parsed and validated against 
 the provided DTD. If provided as a variable, the created DTD is
 returned. See <a href="#sec:implicitdtd">implicitdtd</a>.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>dialect(<var>+Dialect</var>)</b><dd>
+<b>dialect(<var>+Dialect</var>)</b></dt>
+<dd>
 Specify the parsing dialect. Supported are <a name="const:sgml"><b><tt>sgml</tt></b></a> (default), <a name="const:xml"><b><tt>xml</tt></b></a> 
 and <a name="const:xmlns"><b><tt>xmlns</tt></b></a>. See <a href="#sec:xml">xml</a> for details on the differences.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>shorttag(<var>+Bool</var>)</b><dd>
+<b>shorttag(<var>+Bool</var>)</b></dt>
+<dd>
 Define whether SHORTTAG abbreviation is accepted.  The default is true
 for SGML mode and false for the XML modes.  Without SHORTTAG, a <a name="const:/"><b><tt>/</tt></b></a>
 is accepted with warning as part of an unquoted attribute-value, though
 <a name="const:/&gt;"><b><tt>/&gt;</tt></b></a> still closes the element-tag in XML mode.  It may be set to
 false for parsing HTML documents to allow for unquoted URLs containing
 <a name="const:/%2"><b><tt>/</tt></b></a>.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>space(<var>+SpaceMode</var>)</b><dd>
+<b>space(<var>+SpaceMode</var>)</b></dt>
+<dd>
 Sets the `space-handling-mode' for the initial environment. This mode is
 inherited by the other environments, which can override the inherited
 value using the XML reserved attribute <b><tt>xml:space</tt></b>. See <a href="#sec:space">space</a>.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>number(<var>+NumberMode</var>)</b><dd>
+<b>number(<var>+NumberMode</var>)</b></dt>
+<dd>
 Determines how attributes of type <a name="const:NUMBER%2"><b><tt>NUMBER</tt></b></a> and <a name="const:NUMBERS%2"><b><tt>NUMBERS</tt></b></a> are handled.
 If <a name="const:token"><b><tt>token</tt></b></a> (default) they are passed as an atom.  If <a name="const:integer"><b><tt>integer</tt></b></a> the
 parser attempts to convert the value to an integer.  If successful, the
@@ -359,31 +378,36 @@ of digits.  The <a name="const:-"><b><tt>-</tt></b></a> sign is not allowed and 
 <code>01</code>.  For this reason the default is to handle numeric attributes as
 tokens.  If conversion to integer is enabled, negative values are silently
 accepted.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>defaults(<var>+Bool</var>)</b><dd>
+<b>defaults(<var>+Bool</var>)</b></dt>
+<dd>
 Determines how default and fixed values from the DTD are used.  By
 default, defaults are included in the output if they do not appear in
 the source.  If <a name="const:false"><b><tt>false</tt></b></a>, only the attributes occurring in the source
 are emitted.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>entity(<var>+Name, +Value</var>)</b><dd>
+<b>entity(<var>+Name, +Value</var>)</b></dt>
+<dd>
 Defines (overwrites) an entity definition.  At the moment, only
 <a name="const:CDATA%4"><b><tt>CDATA</tt></b></a> entities can be specified with this construct.  Multiple
 entity options are allowed.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>file(<var>+Name</var>)</b><dd>
+<b>file(<var>+Name</var>)</b></dt>
+<dd>
 Sets the name of the file on which errors are reported. Sets the 
 linenumber to 1.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>line(<var>+Line</var>)</b><dd>
+<b>line(<var>+Line</var>)</b></dt>
+<dd>
 Sets the starting line-number for reporting errors.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>max_errors(<var>+Max</var>)</b><dd>
+<b>max_errors(<var>+Max</var>)</b></dt>
+<dd>
 Sets the maximum number of errors. If this number is reached, an 
 exception of the format below is raised. The default is 50.
 
@@ -393,7 +417,9 @@ exception of the format below is raised. The default is 50.
 <code>error(limit_exceeded(max_errors, Max), _)</code> 
 </blockquote>
 
+</dd>
 </dl>
+</dd>
 </dl>
 
 <p>
@@ -411,27 +437,31 @@ modes are:
 
 <dl>
 <dt>&nbsp;<br>
-<b>space(<var>sgml</var>)</b><dd>
+<b>space(<var>sgml</var>)</b></dt>
+<dd>
 In SGML, newlines at the start and end of an element are removed.<a href="#fn-2" name="txt:fn-2"><sup>2</sup></a> This is the default mode for 
 the SGML dialect. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>space(<var>preserve</var>)</b><dd>
+<b>space(<var>preserve</var>)</b></dt>
+<dd>
 White space is passed literally to the application. This mode leaves all
 white space handling to the application. This is the default mode for
 the XML dialect. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>space(<var>default</var>)</b><dd>
+<b>space(<var>default</var>)</b></dt>
+<dd>
 In addition to <a name="const:sgml%2"><b><tt>sgml</tt></b></a> space-mode, all consequtive white-space is 
 reduced to a single space-character. This mode canonises all white 
 space. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>space(<var>remove</var>)</b><dd>
+<b>space(<var>remove</var>)</b></dt>
+<dd>
 In addition to <a name="const:default"><b><tt>default</tt></b></a>, all leading and trailing white-space is 
 removed from <a name="const:CDATA%5"><b><tt>CDATA</tt></b></a> objects. If, as a result, the <a name="const:CDATA%6"><b><tt>CDATA</tt></b></a> 
 becomes empty, nothing is passed to the application. This mode is 
@@ -442,15 +472,10 @@ three modified words are lost.  This mode is not part of any standard;
 XML 1.0 allows only <a name="const:default%2"><b><tt>default</tt></b></a> and <a name="const:preserve"><b><tt>preserve</tt></b></a>.
 
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 Consider adjacent &lt;b&gt;bold&lt;/b&gt; &lt;ul&gt;and&lt;/ul&gt; &lt;it&gt;italic&lt;/it&gt; words.
 </pre>
-</td></tr>
-</table>
+</dd>
 </dl>
 
 <p>
@@ -464,15 +489,9 @@ defined by the <code>dialect(Dialect)</code> option. Regardless of this
 option, if the first line of the document reads as below, the parser is 
 switched automatically into XML mode.
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 &lt;?xml ... ?&gt;
 </pre>
-</td></tr>
-</table>
 
 <p>
 Currently switching to XML mode implies:
@@ -504,15 +523,9 @@ example, the DTD statement below ensures that the <b><tt>pre</tt></b> element
 preserves space, regardless of the default processing mode.
 
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 &lt;!ATTLIST pre xml:space nmtoken #fixed preserve&gt;
 </pre>
-</td></tr>
-</table>
 </ul>
 
 <p>
@@ -562,11 +575,7 @@ Any namespace containing <a name="const:rdf-syntax"><b><tt>rdf-syntax</tt></b></
 attribute and element name from the RDF namespace appears as
 <code>rdf:<var>name</var></code>.
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 :- dynamic
         xmlns/3.
 
@@ -583,8 +592,6 @@ load_rdf_xml(File, Term) :-
                          call(urlns, xmlns)
                        ]).
 </pre>
-</td></tr>
-</table>
 
 <p>
 &nbsp;
@@ -598,60 +605,57 @@ Like the parser itself, it is filled by opening it as a Prolog output
 stream and sending data to it. This section summarises the predicates 
 for handling the DTD.
 <dl>
-<dt>&nbsp;<br>
-<b><a name="new_dtd/2">new_dtd(<var>+DocType, -DTD</var>)</a></b><dd>
+<dt class="pubdef"><b><a name="new_dtd/2">new_dtd(<var>+DocType, -DTD</var>)</a></b></dt>
+<dd class="defbody">
 Creates an empty DTD for the named <var>DocType</var>. The returned 
 DTD-reference is an opaque term that can be used in the other predicates
 of this package.
 
-    
-<dt>&nbsp;<br>
-<b><a name="free_dtd/1">free_dtd(<var>+DTD</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="free_dtd/1">free_dtd(<var>+DTD</var>)</a></b></dt>
+<dd class="defbody">
 Deallocate all resources associated to the DTD. Further use of <var>DTD</var>
 is invalid.
 
-    
-<dt>&nbsp;<br>
-<b><a name="load_dtd/2">load_dtd(<var>+DTD, +File</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="load_dtd/2">load_dtd(<var>+DTD, +File</var>)</a></b></dt>
+<dd class="defbody">
 Define the DTD by loading the SGML-DTD file <var>File</var>.  Same
 as <a href="#load_dtd/3"><b>load_dtd/3</b></a> with empty option list.
 
-    
-<dt>&nbsp;<br>
-<b><a name="load_dtd/3">load_dtd(<var>+DTD, +File, +Options</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="load_dtd/3">load_dtd(<var>+DTD, +File, +Options</var>)</a></b></dt>
+<dd class="defbody">
 Define the DTD by loading <var>File</var>.  Defined options are the
 <a name="const:dialect"><b><tt>dialect</tt></b></a> option from <a href="#open_dtd/3"><b>open_dtd/3</b></a> and the <a name="const:encoding"><b><tt>encoding</tt></b></a>
 option from <a href="#open/4"><b>open/4</b></a>.  Notably the <a name="const:dialect%2"><b><tt>dialect</tt></b></a> option must
 match the dialect used for subsequent parsing using this DTD.
 
-    
-<dt>&nbsp;<br>
-<b><a name="open_dtd/3">open_dtd(<var>+DTD, +Options, -OutStream</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="open_dtd/3">open_dtd(<var>+DTD, +Options, -OutStream</var>)</a></b></dt>
+<dd class="defbody">
 Open a DTD as an output stream.  See <a href="#load_dtd/2"><b>load_dtd/2</b></a> for an example.
 Defined options are:
 
 <dl>
 <dt>&nbsp;<br>
-<b>dialect(<var>Dialect</var>)</b><dd>
+<b>dialect(<var>Dialect</var>)</b></dt>
+<dd>
 Define the DTD dialect.  Default is <a name="const:sgml%4"><b><tt>sgml</tt></b></a>.  Using <a name="const:xml%3"><b><tt>xml</tt></b></a> or <a name="const:xmlns%5"><b><tt>xmlns</tt></b></a>
-processes the DTD case-sensitive.
+processes the DTD case-sensitive.</dd>
 </dl>
 
 
 
-    
-<dt>&nbsp;<br>
-<b><a name="dtd/2">dtd(<var>+DocType, -DTD</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="dtd/2">dtd(<var>+DocType, -DTD</var>)</a></b></dt>
+<dd class="defbody">
 Find the DTD representing the indicated <b><em>doctype</em></b>. This predicate
 uses a cache of DTD objects. If a doctype has no associated dtd, it 
 searches for a file using the file search path <code>dtd</code> using the call:
 
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 ...,
 absolute_file_name(dtd(Type),
                    [ extensions([dtd]),
@@ -659,8 +663,6 @@ absolute_file_name(dtd(Type),
                    ], DtdFile),
 ...
 </pre>
-</td></tr>
-</table>
 
 
 Note that DTD objects may be modified while processing errornous
@@ -670,23 +672,26 @@ unknown elements adds these elements to the DTD object. Re-using a DTD
 object to parse multiple documents should be restricted to situations
 where the documents processed are known to be error-free.
 
-    
-<dt>&nbsp;<br>
-<b><a name="dtd_property/2">dtd_property(<var>+DTD, ?Property</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="dtd_property/2">dtd_property(<var>+DTD, ?Property</var>)</a></b></dt>
+<dd class="defbody">
 This predicate is used to examine the content of a DTD. Property is one 
 of:
 
 <dl>
 <dt>&nbsp;<br>
-<b>doctype(<var>DocType</var>)</b><dd>
+<b>doctype(<var>DocType</var>)</b></dt>
+<dd>
 An atom representing the document-type defined by this DTD. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>elements(<var>ListOfElements</var>)</b><dd>
+<b>elements(<var>ListOfElements</var>)</b></dt>
+<dd>
 A list of atoms representing the names of the elements in this DTD. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>element(<var>Name, Omit, Content</var>)</b><dd>
+<b>element(<var>Name, Omit, Content</var>)</b></dt>
+<dd>
 The DTD contains an element with the given name. <var>Omit</var> is a term 
 of the format <code>omit(OmitOpen, OmitClose)</code>, where both 
 arguments are booleans (<a name="const:true"><b><tt>true</tt></b></a> or <a name="const:false%2"><b><tt>false</tt></b></a> representing whether the 
@@ -696,77 +701,91 @@ following form:
 
 <dl>
 <dt>&nbsp;<br>
-<b><a name="const:empty"><b><tt>empty</tt></b></a></b><dd>
+<b><a name="const:empty"><b><tt>empty</tt></b></a></b></dt>
+<dd>
 The element has no content. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><a name="const:cdata"><b><tt>cdata</tt></b></a></b><dd>
+<b><a name="const:cdata"><b><tt>cdata</tt></b></a></b></dt>
+<dd>
 The element contains non-parsed character data.  All data up to the
 matching end-tag is included in the data (<b><em>declared content</em></b>).
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><a name="const:rcdata"><b><tt>rcdata</tt></b></a></b><dd>
+<b><a name="const:rcdata"><b><tt>rcdata</tt></b></a></b></dt>
+<dd>
 As <a name="const:cdata%2"><b><tt>cdata</tt></b></a>, but entity-references are expanded.
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><a name="const:any"><b><tt>any</tt></b></a></b><dd>
+<b><a name="const:any"><b><tt>any</tt></b></a></b></dt>
+<dd>
 The element may contain any number of any element from the DTD in
 any order.
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><a name="const:#pcdata"><b><tt>#pcdata</tt></b></a></b><dd>
+<b><a name="const:#pcdata"><b><tt>#pcdata</tt></b></a></b></dt>
+<dd>
 The element contains parsed character data .
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><var>element</var></b><dd>
+<b><var>element</var></b></dt>
+<dd>
 An element with this name. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>*(<var>SubModel</var>)</b><dd>
+<b>*(<var>SubModel</var>)</b></dt>
+<dd>
 0 or more appearances. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>?(<var>SubModel</var>)</b><dd>
+<b>?(<var>SubModel</var>)</b></dt>
+<dd>
 0 or one appearance. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>+(<var>SubModel</var>)</b><dd>
+<b>+(<var>SubModel</var>)</b></dt>
+<dd>
 1 or more appearances. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>,(<var>SubModel1, SubModel2</var>)</b><dd>
+<b>,(<var>SubModel1, SubModel2</var>)</b></dt>
+<dd>
 <var>SubModel1</var> followed by <var>SubModel2</var>. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>&amp;(<var>SubModel1, SubModel2</var>)</b><dd>
+<b>&amp;(<var>SubModel1, SubModel2</var>)</b></dt>
+<dd>
 <var>SubModel1</var> and <var>SubModel2</var> in any order. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>|(<var>SubModel1, SubModel2</var>)</b><dd>
-<var>SubModel1</var> or <var>SubModel2</var>. 
+<b>|(<var>SubModel1, SubModel2</var>)</b></dt>
+<dd>
+<var>SubModel1</var> or <var>SubModel2</var>. </dd>
 </dl>
 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>attributes(<var>Element, ListOfAttributes</var>)</b><dd>
+<b>attributes(<var>Element, ListOfAttributes</var>)</b></dt>
+<dd>
 <var>ListOfAttributes</var> is a list of atoms representing the attributes 
 of the element <var>Element</var>. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>attribute(<var>Element, Attribute, Type, Default</var>)</b><dd>
+<b>attribute(<var>Element, Attribute, Type, Default</var>)</b></dt>
+<dd>
 Query an element. <var>Type</var> is one of <a name="const:cdata%3"><b><tt>cdata</tt></b></a>, <a name="const:entity"><b><tt>entity</tt></b></a>, <a name="const:id"><b><tt>id</tt></b></a>,
 <a name="const:idref"><b><tt>idref</tt></b></a>, <a name="const:name"><b><tt>name</tt></b></a>, <a name="const:nmtoken"><b><tt>nmtoken</tt></b></a>, <a name="const:notation"><b><tt>notation</tt></b></a>, <a name="const:number"><b><tt>number</tt></b></a> or
 <a name="const:nutoken"><b><tt>nutoken</tt></b></a>. For DTD types that allow for a list, the notation
@@ -781,43 +800,51 @@ Query an element. <var>Type</var> is one of <a name="const:cdata%3"><b><tt>cdata
 <a name="const:current"><b><tt>current</tt></b></a>, <a name="const:conref"><b><tt>conref</tt></b></a> or <a name="const:implied"><b><tt>implied</tt></b></a>. If a real default is present, it
 is one of <code>default(Value)</code> or <code>fixed(Value)</code>. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>entities(<var>ListOfEntities</var>)</b><dd>
+<b>entities(<var>ListOfEntities</var>)</b></dt>
+<dd>
 <var>ListOfEntities</var> is a list of atoms representing the names of the 
 defined entities. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>entity(<var>Name, Value</var>)</b><dd>
+<b>entity(<var>Name, Value</var>)</b></dt>
+<dd>
 <var>Name</var> is the name of an entity with given value. Value is one of 
 
 <dl>
 <dt>&nbsp;<br>
-<b><var>Atom</var></b><dd>
+<b><var>Atom</var></b></dt>
+<dd>
 If the value is atomic, it represents the 
 literal value of the entity. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>system(<var>Url</var>)</b><dd>
+<b>system(<var>Url</var>)</b></dt>
+<dd>
 <var>Url</var> is the URL of the system external entity. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>public(<var>Id, Url</var>)</b><dd>
+<b>public(<var>Id, Url</var>)</b></dt>
+<dd>
 For external public entities, <var>Id</var> is the identifier. If an URL is 
 provided this is returned in <var>Url</var>. Otherwise this argument is 
-unbound. 
+unbound. </dd>
 </dl>
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>notations(<var>ListOfNotations</var>)</b><dd>
+<b>notations(<var>ListOfNotations</var>)</b></dt>
+<dd>
 Returns a list holding the names of all <a name="const:NOTATION"><b><tt>NOTATION</tt></b></a> declarations. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>notation(<var>Name, Decl</var>)</b><dd>
+<b>notation(<var>Name, Decl</var>)</b></dt>
+<dd>
 Unify <var>Decl</var> with a list if <code>system(+File)</code> andor
-<code>public(+PublicId)</code>.
+<code>public(+PublicId)</code>.</dd>
 </dl>
+</dd>
 </dl>
 
 <p>
@@ -850,15 +877,9 @@ elements and possibly <code>#PCDATA</code> that can be repeated. Thus,
 if we found element <b><tt>y</tt></b> and CDATA in element <b><tt>x</tt></b>, the model 
 is:
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 &lt;!ELEMENT x - - (y|#PCDATA)*&gt;
 </pre>
-</td></tr>
-</table>
 
 <p>
 Any encountered attribute is added to the attribute list with the type
@@ -868,11 +889,7 @@ Any encountered attribute is added to the attribute list with the type
 <p>
 The example below extracts the elements used in an unknown XML document.
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 elements_in_xml_document(File, Elements) :-
         load_structure(File, _,
                        [ dialect(xml),
@@ -881,8 +898,6 @@ elements_in_xml_document(File, Elements) :-
         dtd_property(DTD, elements(Elements)),
         free_dtd(DTD).
 </pre>
-</td></tr>
-</table>
 
 <p>
 &nbsp;
@@ -890,8 +905,8 @@ elements_in_xml_document(File, Elements) :-
 <h2><a name="sec:sec-3.6">Parsing Primitives</a></h2>
 
 <dl>
-<dt>&nbsp;<br>
-<b><a name="new_sgml_parser/2">new_sgml_parser(<var>-Parser, +Options</var>)</a></b><dd>
+<dt class="pubdef"><b><a name="new_sgml_parser/2">new_sgml_parser(<var>-Parser, +Options</var>)</a></b></dt>
+<dd class="defbody">
 Creates a new parser. A parser can be used one or multiple times for 
 parsing documents or parts thereof. It may be bound to a DTD or the DTD 
 may be left implicit, in which case it is created from the document 
@@ -899,67 +914,76 @@ prologue or parsing is performed without a DTD. Options:
 
 <dl>
 <dt>&nbsp;<br>
-<b>dtd(<var>?DTD</var>)</b><dd>
+<b>dtd(<var>?DTD</var>)</b></dt>
+<dd>
 If specified with an initialised DTD, this DTD is used for parsing the 
 document, regardless of the document prologue. If specified using as a 
 variable, a reference to the created DTD is returned. This DTD may be 
 created from the document prologue or build implicitely from the 
-document's content. 
+document's content. </dd>
 </dl>
 
 
-    
-<dt>&nbsp;<br>
-<b><a name="free_sgml_parser/1">free_sgml_parser(<var>+Parser</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="free_sgml_parser/1">free_sgml_parser(<var>+Parser</var>)</a></b></dt>
+<dd class="defbody">
 Destroy all resources related to the parser. This does not destroy the 
 DTD if the parser was created using the <code>dtd(DTD)</code> option.
 
-    
-<dt>&nbsp;<br>
-<b><a name="set_sgml_parser/2">set_sgml_parser(<var>+Parser, +Option</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="set_sgml_parser/2">set_sgml_parser(<var>+Parser, +Option</var>)</a></b></dt>
+<dd class="defbody">
 Sets attributes to the parser. Currently defined attributes: 
 
 
 <dl>
 <dt>&nbsp;<br>
-<b>file(<var>File</var>)</b><dd>
+<b>file(<var>File</var>)</b></dt>
+<dd>
 Sets the file for reporting errors and warnings. Sets the line to 1. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>line(<var>Line</var>)</b><dd>
+<b>line(<var>Line</var>)</b></dt>
+<dd>
 Sets the current line. Useful if the stream is not at the start of the 
 (file) object for generating proper line-numbers. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>charpos(<var>Offset</var>)</b><dd>
+<b>charpos(<var>Offset</var>)</b></dt>
+<dd>
 Sets the current character location.  See also the <code>file(File)</code>
 option.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>dialect(<var>Dialect</var>)</b><dd>
+<b>dialect(<var>Dialect</var>)</b></dt>
+<dd>
 Set the markup dialect. Known dialects: 
 
 <dl>
 <dt>&nbsp;<br>
-<b><a name="const:sgml%5"><b><tt>sgml</tt></b></a></b><dd>
+<b><a name="const:sgml%5"><b><tt>sgml</tt></b></a></b></dt>
+<dd>
 The default dialect is to process as SGML. This implies markup is 
 case-insensitive and standard SGML abbreviation is allowed (abreviated 
 attributes and omitted tags). 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><a name="const:xml%4"><b><tt>xml</tt></b></a></b><dd>
+<b><a name="const:xml%4"><b><tt>xml</tt></b></a></b></dt>
+<dd>
 This dialect is selected automatically if the processing instruction
 <code>&lt;?xml ...&gt;</code> is encountered. See <a href="#sec:xml">xml</a> for details. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><a name="const:xmlns%6"><b><tt>xmlns</tt></b></a></b><dd>
+<b><a name="const:xmlns%6"><b><tt>xmlns</tt></b></a></b></dt>
+<dd>
 Process file as XML file with namespace support. See <a href="#sec:xmlns">xmlns</a> for
-details.  See also the <code>qualify_attributes</code> option below.
+details.  See also the <code>qualify_attributes</code> option below.</dd>
 </dl>
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>qualify_attributes(<var>Boolean</var>)</b><dd>
+<b>qualify_attributes(<var>Boolean</var>)</b></dt>
+<dd>
 How to handle unqualified attribute (i.e. without an explicit namespace)
 in XML namespace (<a name="const:xmlns%7"><b><tt>xmlns</tt></b></a>) mode.  Default and standard compliant
 is not to qualify such elements.  If <a name="const:true%2"><b><tt>true</tt></b></a>, such attributes are qualified
@@ -967,136 +991,155 @@ with the namespace of the element they appear in.  This option is for
 backward compatibility as this is the behaviour of older versions.  In
 addition, the namespace document suggests unqualified attributes are
 often interpreted in the namespace of their element.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>space(<var>SpaceMode</var>)</b><dd>
+<b>space(<var>SpaceMode</var>)</b></dt>
+<dd>
 Define the initial handling of white-space in PCDATA.  This attribute is
 described in <a href="#sec:space">space</a>.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>number(<var>NumberMode</var>)</b><dd>
+<b>number(<var>NumberMode</var>)</b></dt>
+<dd>
 If <a name="const:token%2"><b><tt>token</tt></b></a> (default), attributes of type number are passed as a Prolog atom.
 If <a name="const:integer%2"><b><tt>integer</tt></b></a>, such attributes are translated into Prolog integers.  If
 the conversion fails (e.g. due to overflow) a warning is issued and the
 value is passed as an atom.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>encoding(<var>Encoding</var>)</b><dd>
+<b>encoding(<var>Encoding</var>)</b></dt>
+<dd>
 Set the initial encoding.  The default initial encoding for XML documents is
 UTF-8 and for SGML documents ISO-8859-1.  XML documents may change the
 encoding using the <code>encoding=</code> attribute in the header.  Explicit
 use of this option is only required to parse non-conforming documents.
 Currently accepted values are <a name="const:iso-8859-1"><b><tt>iso-8859-1</tt></b></a> and <a name="const:utf-8"><b><tt>utf-8</tt></b></a>.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>doctype(<var>Element</var>)</b><dd>
+<b>doctype(<var>Element</var>)</b></dt>
+<dd>
 Defines the toplevel element expected. If a <code>&lt;!DOCTYPE</code>
 declaration has been parsed, the default is the defined doctype. The
 parser can be instructed to accept the first element encountered as the
 toplevel using <code>doctype(_)</code>. This feature is especially
 useful when parsing part of a document (see the <a name="const:parse"><b><tt>parse</tt></b></a> option to
-<a href="#sgml_parse/2"><b>sgml_parse/2</b></a>.
+<a href="#sgml_parse/2"><b>sgml_parse/2</b></a>.</dd>
 </dl>
 
 
-    
-<dt>&nbsp;<br>
-<b><a name="get_sgml_parser/2">get_sgml_parser(<var>+Parser, -Option</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="get_sgml_parser/2">get_sgml_parser(<var>+Parser, -Option</var>)</a></b></dt>
+<dd class="defbody">
 Retrieve infomation on the current status of the parser. Notably useful 
 if the parser is used in the call-back mode. Currently defined options: 
 
 
 <dl>
 <dt>&nbsp;<br>
-<b>file(<var>-File</var>)</b><dd>
+<b>file(<var>-File</var>)</b></dt>
+<dd>
 Current file-name. Note that this may be different from the provided 
 file if an external entity is being loaded. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>line(<var>-Line</var>)</b><dd>
+<b>line(<var>-Line</var>)</b></dt>
+<dd>
 Line-offset from where the parser started its processing in the file-object. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>charpos(<var>-CharPos</var>)</b><dd>
+<b>charpos(<var>-CharPos</var>)</b></dt>
+<dd>
 Offset from where the parser started its processing in the file-object. 
 See <a href="#sec:indexaccess">indexaccess</a>. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>charpos(<var>-Start, -End</var>)</b><dd>
+<b>charpos(<var>-Start, -End</var>)</b></dt>
+<dd>
 Character offsets of the start and end of the source processed causing the
 current call-back.  Used in <b>PceEmacs</b> to for colouring text in
 SGML and XML modes.
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>source(<var>-Stream</var>)</b><dd>
+<b>source(<var>-Stream</var>)</b></dt>
+<dd>
 Prolog stream being processed. May be used in the <a name="const:on_begin"><b><tt>on_begin</tt></b></a>, <em>etc.</em> 
 callbacks from <a href="#sgml_parse/2"><b>sgml_parse/2</b></a>. 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>dialect(<var>-Dialect</var>)</b><dd>
+<b>dialect(<var>-Dialect</var>)</b></dt>
+<dd>
 Return the current dialect used by the parser (<a name="const:sgml%6"><b><tt>sgml</tt></b></a>, <a name="const:xml%5"><b><tt>xml</tt></b></a> or <a name="const:xmlns%8"><b><tt>xmlns</tt></b></a>).
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>event_class(<var>-Class</var>)</b><dd>
+<b>event_class(<var>-Class</var>)</b></dt>
+<dd>
 The <b><em>event class</em></b> can be requested in call-back events. It
 denotes the cause of the event, providing useful information for syntax
 highlighting.  Defined values are:
     
 <dl>
 <dt>&nbsp;<br>
-<b><a name="const:explicit"><b><tt>explicit</tt></b></a></b><dd>
+<b><a name="const:explicit"><b><tt>explicit</tt></b></a></b></dt>
+<dd>
 The code generating this event is explicitely present in the
         document.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><a name="const:omitted"><b><tt>omitted</tt></b></a></b><dd>
+<b><a name="const:omitted"><b><tt>omitted</tt></b></a></b></dt>
+<dd>
 The current event is caused by the insertion of an omitted tag.
 	This may be a normal event in SGML mode or an error in XML mode.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><a name="const:shorttag"><b><tt>shorttag</tt></b></a></b><dd>
+<b><a name="const:shorttag"><b><tt>shorttag</tt></b></a></b></dt>
+<dd>
 The current event (<a name="const:begin"><b><tt>begin</tt></b></a> or <a name="const:end"><b><tt>end</tt></b></a>) is caused by an
 	element written down using the <b><em>shorttag</em></b> notation
 	(<code>&lt;tag/value/&gt;</code>.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b><a name="const:shortref"><b><tt>shortref</tt></b></a></b><dd>
+<b><a name="const:shortref"><b><tt>shortref</tt></b></a></b></dt>
+<dd>
 The current event is caused by the expansion of a
 	<b><em>shortref</em></b>. This allows for highlighting shortref strings
 	in the source-text.
-    
+    </dd>
 </dl>
 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>doctype(<var>-Element</var>)</b><dd>
+<b>doctype(<var>-Element</var>)</b></dt>
+<dd>
 Return the defined document-type (= toplevel element).  See also
 <a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a>.
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>dtd(<var>-DTD</var>)</b><dd>
+<b>dtd(<var>-DTD</var>)</b></dt>
+<dd>
 Return the currently used DTD.  See dtd_property/2 for obtaining information
 on the DTD such as element and attribute properties.
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>context(<var>-StackOfElements</var>)</b><dd>
+<b>context(<var>-StackOfElements</var>)</b></dt>
+<dd>
 Returns the stack of currently open elements as a list. The head of this
 list is the current element. This can be used to determine the context
 of, for example, CDATA events in call-back mode. The elements
 are passed as atoms.  Currently no access to the attributes is provided.
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>allowed(<var>-Elements</var>)</b><dd>
+<b>allowed(<var>-Elements</var>)</b></dt>
+<dd>
 Determines which elements may be inserted at the current location.  This
 information is returned as a list of element-names. If character data is
 allowed in the current location, <a name="const:#pcdata%2"><b><tt>#pcdata</tt></b></a> is part of <var>Elements</var>.
@@ -1112,11 +1155,7 @@ Next it can use this option to determine the elements allowed at this
 point.  Below is a code fragment illustrating this use given a parser
 with loaded DTD, an input stream and a start-location.
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 	...,
 	seek(In, Start, bof, _),
 	set_sgml_parser(Parser, charpos(Start)),
@@ -1130,17 +1169,16 @@ with loaded DTD, an input stream and a start-location.
         get_sgml_parser(Parser, allowed(Allowed)),
 	...
 </pre>
-</td></tr>
-</table>
+</dd>
 </dl>
 
 
 
 
 <p>
-    
-<dt>&nbsp;<br>
-<b><a name="sgml_parse/2">sgml_parse(<var>+Parser, +Options</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="sgml_parse/2">sgml_parse(<var>+Parser, +Options</var>)</a></b></dt>
+<dd class="defbody">
 Parse an XML file. The parser can operate in two input and two output
 modes. Output is either a structured term as described with
 <a href="#load_structure/2"><b>load_structure/2</b></a> or call-backs on predefined events. The
@@ -1155,89 +1193,104 @@ Input is a stream. A full description of the option-list is below.
 
 <dl>
 <dt>&nbsp;<br>
-<b>document(<var>+Term</var>)</b><dd>
+<b>document(<var>+Term</var>)</b></dt>
+<dd>
 A variable that will be unified with a list describing the content of 
 the document (see <a href="#load_structure/2"><b>load_structure/2</b></a>). 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>source(<var>+Stream</var>)</b><dd>
+<b>source(<var>+Stream</var>)</b></dt>
+<dd>
 An input stream that is read.  This option <em>must</em> be given.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>content_length(<var>+Characters</var>)</b><dd>
+<b>content_length(<var>+Characters</var>)</b></dt>
+<dd>
 Stop parsing after <var>Characters</var>.  This option is useful to parse
 input embedded in <em>envelopes</em>, such as the HTTP protocol.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>parse(<var>Unit</var>)</b><dd>
+<b>parse(<var>Unit</var>)</b></dt>
+<dd>
 Defines how much of the input is parsed.  This option is used to parse
 only parts of a file.
     
 <dl>
 <dt>&nbsp;<br>
-<b><a name="const:file"><b><tt>file</tt></b></a></b><dd>
+<b><a name="const:file"><b><tt>file</tt></b></a></b></dt>
+<dd>
 Default.  Parse everything upto the end of the input.
-	
+	</dd>
 <dt>&nbsp;<br>
-<b><a name="const:element"><b><tt>element</tt></b></a></b><dd>
+<b><a name="const:element"><b><tt>element</tt></b></a></b></dt>
+<dd>
 The parser stops after reading the first element. Using <code>source(Stream)</code>, this implies reading is stopped as soon as the
 element is complete, and another call may be issued on the same stream
 to read the next element. 
-	
+	</dd>
 <dt>&nbsp;<br>
-<b><a name="const:content"><b><tt>content</tt></b></a></b><dd>
+<b><a name="const:content"><b><tt>content</tt></b></a></b></dt>
+<dd>
 The value <a name="const:content%2"><b><tt>content</tt></b></a> is like <a name="const:element%2"><b><tt>element</tt></b></a> but assumes the element has
 already been opened. It may be used in a call-back from
 <code>call(<a name="const:on_begin%2"><b><tt>on_begin</tt></b></a>, Pred)</code> to parse individual elements after
 validating their headers.
-	
+	</dd>
 <dt>&nbsp;<br>
-<b><a name="const:declaration"><b><tt>declaration</tt></b></a></b><dd>
+<b><a name="const:declaration"><b><tt>declaration</tt></b></a></b></dt>
+<dd>
 This may be used to stop the parser after reading the first
 declaration.  This is especially useful to parse only the <code>doctype</code>
 declaration.
-	
+	</dd>
 <dt>&nbsp;<br>
-<b><a name="const:input"><b><tt>input</tt></b></a></b><dd>
+<b><a name="const:input"><b><tt>input</tt></b></a></b></dt>
+<dd>
 This option is intended to be used in conjunction with the
 <code>allowed(Elements)</code> option of <a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a>.
 It disables the parser's default to complete the parse-tree by closing
 all open elements.
-    
+    </dd>
 </dl>
 
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>max_errors(<var>+MaxErrors</var>)</b><dd>
+<b>max_errors(<var>+MaxErrors</var>)</b></dt>
+<dd>
 Set the maximum number of errors. If this number is exceeded further 
 writes to the stream will yield an I/O error exception. Printing of 
 errors is suppressed after reaching this value. The default is 100. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>syntax_errors(<var>+ErrorMode</var>)</b><dd>
+<b>syntax_errors(<var>+ErrorMode</var>)</b></dt>
+<dd>
 Defines how syntax errors are handled.
     
 <dl>
 <dt>&nbsp;<br>
-<b>quiet</b><dd>
+<b>quiet</b></dt>
+<dd>
 Suppress all messages.
-	
+	</dd>
 <dt>&nbsp;<br>
-<b>print</b><dd>
+<b>print</b></dt>
+<dd>
 Default.  Pass messages to <b>print_message/2</b>.
-	
+	</dd>
 <dt>&nbsp;<br>
-<b>style</b><dd>
+<b>style</b></dt>
+<dd>
 Print dubious input such as attempts for redefinitions in the DTD
 	using <b>print_message/2</b> with severity
 	<a name="const:informational"><b><tt>informational</tt></b></a>.
-    
+    </dd>
 </dl>
 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>call(<var>+Event, :PredicateName</var>)</b><dd>
+<b>call(<var>+Event, :PredicateName</var>)</b></dt>
+<dd>
 Issue call-backs on the specified events. <var>PredicateName</var> is the 
 name of the predicate to call on this event, possibly prefixed with a 
 module identifier.  If the handler throws an exception, parsing is stopped
@@ -1245,28 +1298,33 @@ and <a href="#sgml_parse/2"><b>sgml_parse/2</b></a> re-throws the exception. The
 
 <dl>
 <dt>&nbsp;<br>
-<b>begin</b><dd>
+<b>begin</b></dt>
+<dd>
 An open-tag has been parsed. The named handler is called with three 
 arguments: <code><var>Handler</var>(+Tag, +Attributes, +Parser)</code>. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>end</b><dd>
+<b>end</b></dt>
+<dd>
 A close-tag has been parsed. The named handler is called with two 
 arguments: <code><var>Handler</var>(+Tag, +Parser)</code>. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>cdata</b><dd>
+<b>cdata</b></dt>
+<dd>
 CDATA has been parsed. The named handler is called with two arguments: <code><var>Handler</var>(+CDATA, +Parser)</code>, where CDATA is an atom representing 
 the data. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>pi</b><dd>
+<b>pi</b></dt>
+<dd>
 A processing instruction has been parsed. The named handler is called 
 with two arguments: <code><var>Handler</var>(+Text, +Parser)</code>, where
 <var>Text</var> is the text of the processing instruction. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>decl</b><dd>
+<b>decl</b></dt>
+<dd>
 A declaration (<code>&lt;!...&gt;</code>) has been read. The named handler is
 called with two arguments: <code><var>Handler</var>(+Text, +Parser)</code>,
 where <var>Text</var> is the text of the declaration with comments removed.
@@ -1277,9 +1335,10 @@ where <var>Text</var> is the text of the declaration with comments removed.
 This option is expecially useful for highlighting declarations and comments in
 editor support, where the location of the declaration is extracted using
 <a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a>.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>error</b><dd>
+<b>error</b></dt>
+<dd>
 An error has been encountered.  the named handler is called with three
 arguments: <code><var>Handler</var>(+Severity, +Message, +Parser)</code>, where
 <var>Severity</var> is one of <a name="const:warning"><b><tt>warning</tt></b></a> or <a name="const:error"><b><tt>error</tt></b></a> and <var>Message</var> is
@@ -1291,21 +1350,25 @@ can be determined using <a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a
 <p>
 If this option is present, errors and warnings are not reported using
 <b>print_message/3</b>
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>xmlns</b><dd>
+<b>xmlns</b></dt>
+<dd>
 When parsing an in <a name="const:xmlns%9"><b><tt>xmlns</tt></b></a> mode, a new namespace declaraction is 
 pushed on the environment. The named handler is called with three 
 arguments: <code><var>Handler</var>(+NameSpace, +URL, +Parser)</code>.
 See <a href="#sec:xmlns">xmlns</a> for details. 
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>urlns</b><dd>
+<b>urlns</b></dt>
+<dd>
 When parsing an in <a name="const:xmlns%10"><b><tt>xmlns</tt></b></a> mode, this predicate can be used to map a 
 url into either a canonical URL for this namespace or another internal 
-identifier. See <a href="#sec:xmlns">xmlns</a> for details. 
+identifier. See <a href="#sec:xmlns">xmlns</a> for details. </dd>
 </dl>
+</dd>
 </dl>
+</dd>
 </dl>
 
 <p>
@@ -1330,11 +1393,7 @@ we want to process all descriptions from RDF elements in a document. The
 code below calls <code>process_rdf_description(Element)</code> on each element 
 that is directly inside an RDF element.
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 :- dynamic
         in_rdf/0.
 
@@ -1364,8 +1423,6 @@ on_begin(Tag, Attr, Parser) :-
                    ]),
         process_rdf_description(element(Tag, Attr, Content)).
 </pre>
-</td></tr>
-</table>
 
 <p>
 &nbsp;
@@ -1373,10 +1430,10 @@ on_begin(Tag, Attr, Parser) :-
 <h2><a name="sec:sec-3.7">Type checking</a></h2>
 
 <dl>
-<dt>&nbsp;<br>
-<b><a name="xml_is_dom/1">xml_is_dom(<var>@Term</var>)</a></b><dd>
+<dt class="pubdef"><b><a name="xml_is_dom/1">xml_is_dom(<var>@Term</var>)</a></b></dt>
+<dd class="defbody">
 True if <var>Term</var> is an SGMLXML term as produced by one of the above
-predciates and acceptable by <a href="#xml_write/3"><b>xml_write/3</b></a> and friends.
+predciates and acceptable by <a href="#xml_write/3"><b>xml_write/3</b></a> and friends.</dd>
 </dl>
 
 <p>
@@ -1429,11 +1486,7 @@ The index can be built using the call-back interface of
 index of the <b> structure.rdf</b> file of the OpenDirectory
 project:
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 :- dynamic
         location/3.                     % Id, File, Offset
 
@@ -1455,17 +1508,11 @@ index_on_begin(_Element, Attributes, Parser) :-
         get_sgml_parser(Parser, file(File)),
         assert(location(Id, File, Offset)).
 </pre>
-</td></tr>
-</table>
 
 <p>
 The following code extracts the RDF element with required id:
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 rdf_element(Id, Term) :-
         location(Id, File, Offset),
         load_structure(File, Term,
@@ -1474,8 +1521,6 @@ rdf_element(Id, Term) :-
                          parse(element)
                        ]).
 </pre>
-</td></tr>
-</table>
 
 <p>
 &nbsp;
@@ -1499,8 +1544,8 @@ Catalog files can be specified using two primitives: the predicate
 <b>SGML_CATALOG_FILES</b> (compatible with the SP package).
 
 <dl>
-<dt>&nbsp;<br>
-<b><a name="sgml_register_catalog_file/2">sgml_register_catalog_file(<var>+File, +Location</var>)</a></b><dd>
+<dt class="pubdef"><b><a name="sgml_register_catalog_file/2">sgml_register_catalog_file(<var>+File, +Location</var>)</a></b></dt>
+<dd class="defbody">
 Register the indicated <var>File</var> as a catalog file. <var>Location</var> is
 either <a name="const:start"><b><tt>start</tt></b></a> or <a name="const:end%2"><b><tt>end</tt></b></a> and defines whether the catalog is 
 considered first or last. This predicate has no effect if <var>File</var> is
@@ -1511,7 +1556,7 @@ already part of the catalog.
 <p>
 If no files are registered using this predicate, the first query on the 
 catalog examines <b>SGML_CATALOG_FILES</b> and fills the catalog with
-all files in this path. 
+all files in this path. </dd>
 </dl>
 
 <p>
@@ -1520,7 +1565,7 @@ Two types of lines are used by this package.
 
 
 <p>
-<pre>
+<pre class="code">
 <a name="const:DOCTYPE%2"><b><tt>DOCTYPE</tt></b></a> <var>doctype</var> <var>file</var>
 <a name="const:PUBLIC"><b><tt>PUBLIC</tt></b></a> <code>&quot;</code><var>Id</var><code>&quot;</code> <var>file</var> 
 </pre>
@@ -1574,8 +1619,8 @@ the ISO Latin-1 range are represented using a named character entity if
 provided by the DTD or a numeric character entity.
 
 <dl>
-<dt>&nbsp;<br>
-<b><a name="xml_write/3">xml_write(<var>+Stream, +Term, +Options</var>)</a></b><dd>
+<dt class="pubdef"><b><a name="xml_write/3">xml_write(<var>+Stream, +Term, +Options</var>)</a></b></dt>
+<dd class="defbody">
 Write the XML header with encoding information and the content of
 the document as represented by <var>Term</var> to <var>Stream</var>.  This
 predicate deals with XML with or without namespaces.   If namespace
@@ -1585,25 +1630,29 @@ defines the following <var>Options</var>
 
 <dl>
 <dt>&nbsp;<br>
-<b>dtd(<var>DTD</var>)</b><dd>
+<b>dtd(<var>DTD</var>)</b></dt>
+<dd>
 Specify the DTD.  In SGML documents the DTD is required to distinguish
 between elements that are declared empty in the DTD and elements that
 just happen to have no content.  Further optimisation (shortref, omitted
 tags, etc.) could be considered in the future.  The DTD is also used to
 find the declared named character entities.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>doctype(<var>Doctype</var>)</b><dd>
+<b>doctype(<var>Doctype</var>)</b></dt>
+<dd>
 Document type to include in the header.  When omitted it is taken from
 the outer element.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>header(<var>Bool</var>)</b><dd>
+<b>header(<var>Bool</var>)</b></dt>
+<dd>
 If <var>Bool</var> is <a name="const:false%3"><b><tt>false</tt></b></a>, the XML header is suppressed.  Useful for
 embedding in other XML streams.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>layout(<var>Bool</var>)</b><dd>
+<b>layout(<var>Bool</var>)</b></dt>
+<dd>
 Do/do not emit layout characters to make the output readable, Default is
 to emit layout. With layout enabled, elements only containing other
 elements are written using increasing indentation. This introduces
@@ -1613,21 +1662,24 @@ layout characters are added.  As this mode does not need to analyse the
 document it is faster and guarantees correct output when read back. 
 Unfortunately the output is hardly human readable and causes problems 
 with many editors.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>indent(<var>Integer</var>)</b><dd>
+<b>indent(<var>Integer</var>)</b></dt>
+<dd>
 Set the initial element indentation.  It more than zero, the indent
 is written before the document.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>nsmap(<var>Map</var>)</b><dd>
+<b>nsmap(<var>Map</var>)</b></dt>
+<dd>
 Set the initial namespace map.  <var>Map</var> is a list of 
 <var>Name</var> = <var>URI</var>.  This option, together with <a name="const:header"><b><tt>header</tt></b></a> and
 <a name="const:ident"><b><tt>ident</tt></b></a> is added to use <a href="#xml_write/3"><b>xml_write/3</b></a> to generate XML
 that is embedded in a larger XML document.
-    
+    </dd>
 <dt>&nbsp;<br>
-<b>net(<var>Bool</var>)</b><dd>
+<b>net(<var>Bool</var>)</b></dt>
+<dd>
 Use/do not use <b><em>Null End Tags</em></b>. For XML, this applies only to
 empty elements, so you get <code>&lt;foo/&gt;</code> (default,
 <code>net(true)</code>) or <code>&lt;foo&gt;&lt;/foo&gt;</code>
@@ -1636,22 +1688,22 @@ you get <code>&lt;foo&gt;</code> (if foo is declared to be <a name="const:EMPTY"
 <code>&lt;foo&gt;&lt;/foo&gt;</code> (default, <code>net(false)</code>) or
 <code>&lt;foo//</code> (<code>net(true)</code>).  In SGML code, short character
 content not containing <a name="const:/%3"><b><tt>/</tt></b></a> can be emitted as <code>&lt;b&gt;xxx&lt;/b&gt;</code>
-(default, <code>net(false) or </code><code>&lt;b/xxx/</code> (<code>net(true)</code>)
+(default, <code>net(false) or </code><code>&lt;b/xxx/</code> (<code>net(true)</code>)</dd>
 </dl>
 
 
-    
-<dt>&nbsp;<br>
-<b><a name="sgml_write/3">sgml_write(<var>+Stream, +Term, +Options</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="sgml_write/3">sgml_write(<var>+Stream, +Term, +Options</var>)</a></b></dt>
+<dd class="defbody">
 Write the SGML <a name="const:DOCTYPE%4"><b><tt>DOCTYPE</tt></b></a> header and the content of the document as
 represented by <var>Term</var> to <var>Stream</var>.  The <var>Options</var> are
 described with <a href="#xml_write/3"><b>xml_write/3</b></a>.
-    
-<dt>&nbsp;<br>
-<b><a name="html_write/3">html_write(<var>+Stream, +Term, +Options</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="html_write/3">html_write(<var>+Stream, +Term, +Options</var>)</a></b></dt>
+<dd class="defbody">
 Same as <a href="#sgml_write/3"><b>sgml_write/3</b></a>, but passes the HTML DTD as obtained
 from <a href="#dtd/2"><b>dtd/2</b></a>. The <var>Options</var> are described with
-<a href="#xml_write/3"><b>xml_write/3</b></a>.
+<a href="#xml_write/3"><b>xml_write/3</b></a>.</dd>
 </dl>
 
 <p>
@@ -1672,39 +1724,39 @@ arguments are provided for backward compatibility, making the safe
 <a name="const:ascii%2"><b><tt>ascii</tt></b></a> encoding assumption.
 
 <dl>
-<dt>&nbsp;<br>
-<b><a name="xml_quote_attribute/3">xml_quote_attribute(<var>+In, -Quoted, +Encoding</var>)</a></b><dd>
+<dt class="pubdef"><b><a name="xml_quote_attribute/3">xml_quote_attribute(<var>+In, -Quoted, +Encoding</var>)</a></b></dt>
+<dd class="defbody">
 Map the characters that may not appear in XML attributes to entities.
 Currently these are <a name="const:&lt;&gt;&amp;'&quot;"><b><tt>&lt;&gt;&amp;'&quot;</tt></b></a>.  Characters that
 cannot represented in <var>Encoding</var> are mapped to XML character entities.
-    
-<dt>&nbsp;<br>
-<b><a name="xml_quote_attribute/2">xml_quote_attribute(<var>+In, -Quoted</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="xml_quote_attribute/2">xml_quote_attribute(<var>+In, -Quoted</var>)</a></b></dt>
+<dd class="defbody">
 Backward compatibility version for <a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a>.
 Assumes <a name="const:ascii%3"><b><tt>ascii</tt></b></a> encoding.
-    
-<dt>&nbsp;<br>
-<b><a name="xml_quote_cdata/3">xml_quote_cdata(<var>+In, -Quoted, +Encoding</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="xml_quote_cdata/3">xml_quote_cdata(<var>+In, -Quoted, +Encoding</var>)</a></b></dt>
+<dd class="defbody">
 Very similar to <a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a>, but does not quote the
 single- and double-quotes.
-    
-<dt>&nbsp;<br>
-<b><a name="xml_quote_cdata/2">xml_quote_cdata(<var>+In, -Quoted</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="xml_quote_cdata/2">xml_quote_cdata(<var>+In, -Quoted</var>)</a></b></dt>
+<dd class="defbody">
 Backward compatibility version for <a href="#xml_quote_cdata/3"><b>xml_quote_cdata/3</b></a>.
 Assumes <a name="const:ascii%4"><b><tt>ascii</tt></b></a> encoding.
-    
-<dt>&nbsp;<br>
-<b><a name="xml_name/2">xml_name(<var>+In, +Encoding</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="xml_name/2">xml_name(<var>+In, +Encoding</var>)</a></b></dt>
+<dd class="defbody">
 Succeed if <var>In</var> is an atom or string that satisfies the rules for
 a valid XML element or attribute name.  As with the other predicates in
 this group, if <var>Encoding</var> cannot represent one of the characters, this
 function fails.  It uses a hard-coded table for ASCII-range characters and
 iswalpha()iswalnum() for the first and remaining characters of the name.
-    
-<dt>&nbsp;<br>
-<b><a name="xml_name/1">xml_name(<var>+In</var>)</a></b><dd>
+    </dd>
+<dt class="pubdef"><b><a name="xml_name/1">xml_name(<var>+In</var>)</a></b></dt>
+<dd class="defbody">
 Backward compatibility version for <a href="#xml_name/2"><b>xml_name/2</b></a>.
-Assumes <a name="const:ascii%5"><b><tt>ascii</tt></b></a> encoding.
+Assumes <a name="const:ascii%5"><b><tt>ascii</tt></b></a> encoding.</dd>
 </dl>
 
 <p>
@@ -1795,17 +1847,11 @@ as <b>pl</b>, the environment variable <b>PL</b> must be set to
 the name of the SWI-Prolog executable. Installation is now accomplished 
 using:
 
-
-<p>
-<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
-<tr><td>
-<pre>
+<pre class="code">
 % ./configure
 % make
 % make install
 </pre>
-</td></tr>
-</table>
 
 <p>
 This installs the foreign libraries in <b>$PLBASE/lib/$PLARCH</b> and
@@ -1863,15 +1909,17 @@ standard.  He also made many suggestions for improving this document.
 <h1>Footnotes</h1>
 
 <dl>
-<dt><a href="#txt:fn-1" name="fn-1">1</a><dd>
+<dt><a href="#txt:fn-1" name="fn-1">1</a></dt>
+<dd>
 Up to SWI-Prolog 5.4.x, Prolog could not represent <b><em>wide</em></b> characters
 and entities that did not fit in the Prolog characters set were emitted as
 a term <code>number(+Code)</code>.  With the introduction of wide characters
-in the 5.5 branch this is no longer needed
-<dt><a href="#txt:fn-2" name="fn-2">2</a><dd>
+in the 5.5 branch this is no longer needed</dd>
+<dt><a href="#txt:fn-2" name="fn-2">2</a></dt>
+<dd>
 In
 addition, newlines at the end of lines containing only markup should be
-deleted. This is not yet implemented.
+deleted. This is not yet implemented.</dd>
 </dl>
 
 <h1>Index</h1>

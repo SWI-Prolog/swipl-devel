@@ -99,17 +99,44 @@ html(element(E,A,C)) -->
 	html(E,A,C).
 
 
+style(Style) :-
+	Style = '
+dd.defbody  \n\
+{ margin-bottom: 1em;  \n\
+}\n\n\
+dt.pubdef  \n\
+{ background-color: #c5e1ff;  \n\
+}\n\n\
+pre.code  \n\
+{ margin-left: 1.5em;    \n\
+  margin-right: 1.5em;    \n\
+  border: 1px dotted;    \n\
+  padding-top: 5px;    \n\
+  padding-left: 5px;    \n\
+  padding-bottom: 5px;    \n\
+  background-color: #f8f8f8;    \n\
+}\n\n\
+div.navigate\n\
+{ text-align: center;  \n\
+  background-color: #f0f0f0;  \n\
+  border: 1px dotted;  \n\
+  padding: 5px;\n\
+}\n
+'.
+
 html(pldoc, _, C0) -->
 	{ xml_select(C0, element(titlepage/title), element(_,_,Title)),
 	  mktoc(C0, C1, Toc),
 	  set(toc(Toc)),
 	  mkindex(C1, C2, Index),
-	  mkfn(C2, C, Footnotes)
+	  mkfn(C2, C, Footnotes),
+	  style(Style)
 	},
-	[ '<!DOCTYPE PUBLIC \"-//W3C//DTD HTML 3.2//EN\">\n\n'
+	[ '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" \
+               "http://www.w3.org/TR/html4/strict.dtd">\n\n'
 	],
 	starttag(html),
-	\head(\title(Title)),
+	\head([\title(Title), \style([type='text/css'], Style)]),
 	starttag(body),
 	content(C),
 	summary(C0),
@@ -458,18 +485,11 @@ html(xmp, A, Content) -->
 	{ member(placement=block, A)
 	}, !,
 	\p,
-	\pre(Content).
+	\pre([class=code], Content).
 html(xmp, _, Content) -->
 	\code(Content).
 html(code, _, Content) -->
-	\p,
-	\table([ width='90%',
-		 align=center,
-		 border=2,
-		 bgcolor='#f0f0f0'
-	       ],
-	       [ \tr(\td(\pre(Content)))
-	       ]).
+	\pre([class=code], Content).
 
 
 		 /*******************************
@@ -481,8 +501,8 @@ html(definitions, _, Content) -->
 html(definition, _, [Head|Rest]) -->
 	{ xml_select(Rest, element(desc), Body)
 	},
-	\dt([&nbsp, \br, \b(Head)]),
-	\dd(Body).
+	\dt([class=pubdef], [\b(Head)]),
+	\dd([class=defbody], Body).
 html(argdef, _, Content) -->
 	\dl(Content).
 html(valdef, _, Content) -->
@@ -677,8 +697,8 @@ layout(head,	   1-1,	1-1).
 layout(body,	   2-1,	1-1).
 layout(ul,	   1-1,	1-1).
 layout(dl,	   1-1,	1-1).
-layout(dt,	   1-0, -).
-layout(dd,	   0-1, -).
+layout(dt,	   1-0, 0-1).
+layout(dd,	   0-1, 0-1).
 layout(li,	   1-0,	-).
 layout(pre,	   1-1, 1-1).
 layout(table,	   1-1, 1-1).
