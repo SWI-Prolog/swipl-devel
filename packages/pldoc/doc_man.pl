@@ -136,7 +136,7 @@ index_man_file(File) :-
 %	name of the element, Attributes the  list of Name=Value pairs of
 %	the open attributes. Parser is the parser objects.
 
-index_on_begin(dt, Attributes, Parser) :-
+index_on_begin(dt, Attributes, Parser) :- !,
 	memberchk(class=pubdef, Attributes),
         get_sgml_parser(Parser, charpos(Offset)),
         get_sgml_parser(Parser, file(File)),
@@ -151,7 +151,7 @@ index_on_begin(dt, Attributes, Parser) :-
 	integer(Arity),
 	Arity > 0,
 	nb_setval(pldoc_man_index, dd(Name/Arity, File, Offset)).
-index_on_begin(dd, _, Parser) :-
+index_on_begin(dd, _, Parser) :- !,
 	nb_getval(pldoc_man_index, dd(Name/Arity, File, Offset)),
 	nb_setval(pldoc_man_index, []),
 	sgml_parse(Parser,
@@ -160,6 +160,16 @@ index_on_begin(dd, _, Parser) :-
 		   ]),
 	summary(DD, Summary),
         assert(man_index(Name/Arity, Summary, File, Offset)).
+index_on_begin(div, Attributes, Parser) :- !,
+	memberchk(class=title, Attributes),
+	get_sgml_parser(Parser, charpos(Offset)),
+        get_sgml_parser(Parser, file(File)),
+	sgml_parse(Parser,
+		   [ document(DOM),
+		     parse(content)
+		   ]),
+	dom_to_text(DOM, Title),
+	assert(man_index(section(0, '0', File), Title, File, Offset)).
 index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 	heading(H, Level),
 	get_sgml_parser(Parser, charpos(Offset)),
@@ -170,7 +180,7 @@ index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 		   ]),
 	dom_to_text(Doc, Title),
 	section_number(Title, Nr, PlainTitle),
-	assert(man_index(section(Level, Nr), PlainTitle, File, Offset)).
+	assert(man_index(section(Level, Nr, File), PlainTitle, File, Offset)).
 	
 section_number(Title, Nr, PlainTitle) :-
 	sub_atom(Title, 0, 1, _, Start),
@@ -178,7 +188,6 @@ section_number(Title, Nr, PlainTitle) :-
 	sub_atom(Title, B, _, A, ' '), !,
 	sub_atom(Title, 0, B, _, Nr),
 	sub_string(Title, _, A, 0, PlainTitle).
-section_number(Title, 0, Title).
 
 heading(h1, 1).
 heading(h2, 2).
@@ -273,10 +282,7 @@ cdata(_) -->
 %	@tbd	Nondet?
 
 load_man_object(For, Path, DOM) :-
-	For = section(_,_), !,		% TBD: Sub-sections!
-	index_manual,
-	object_spec(For, Obj),
-	man_index(Obj, _, Path, _),
+	For = section(_,_,Path), !,		% TBD: Sub-sections!
 	load_html_file(Path, DOM).
 load_man_object(For, Path, DOM) :-
 	index_manual,
@@ -404,7 +410,7 @@ man_links(File, _Options) -->
 		 ])).
 
 man_file(File) -->
-	{ Obj = section(_,_),
+	{ Obj = section(_,_,_),
 	  man_index(Obj, _Title, File, _Offset)
 	}, !,
 	object_ref(Obj, [secref_style(number_title)]).
@@ -423,17 +429,23 @@ section_link(Section, Options) -->
 	},
 	section_link(Style, Section, Options).
 
-section_link(number, section(_, Number), _Options) --> !,
-	html(['Sec. ', Number]).
+section_link(number, section(_, Number, _), _Options) --> !,
+	(   {Number == '0'}		% Title.  Package?
+	->  []
+	;   html(['Sec. ', Number])
+	).
 section_link(title, Obj, _Options) --> !,
 	{ man_index(Obj, Title, _File, _Offset)
 	},
 	html(Title).
 section_link(_, Obj, _Options) --> !,
-	{ Obj = section(_, Number),
+	{ Obj = section(_, Number, _),
 	  man_index(Obj, Title, _File, _Offset)
 	},
-	html([Number, ' ', Title]).
+	(   { Number == '0' }
+	->  html(Title)
+	;   html([Number, ' ', Title])
+	).
 
 
 		 /*******************************
@@ -448,5 +460,5 @@ prolog:doc_object_page(Obj, Options) -->
 	man_page(Obj, [no_manual(fail)|Options]).
 
 prolog:doc_object_link(Obj, Options) -->
-	{ Obj = section(_,_) }, !,
+	{ Obj = section(_,_,_) }, !,
 	section_link(Obj, Options).

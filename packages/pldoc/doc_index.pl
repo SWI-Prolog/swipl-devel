@@ -175,7 +175,7 @@ file_index(File, Options) -->
 %	@tbd	Generalise through hooks.
 
 file_index_header(File, Options) -->
-	{ Section = section(_Level, _No),
+	{ Section = section(_Level, _No, File),
 	  prolog:doc_object_summary(Section, manual, File, _Title)
 	}, !,
 	html(tr(th([colspan(2), class(section)],
