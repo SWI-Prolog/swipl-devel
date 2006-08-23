@@ -1183,7 +1183,7 @@ that can then be printed using print_html/[1,2].
 
 \begin{description}
     \dcg{html}{1}{:Spec}
-http://db.cwi.nl/projecten/project.php4?prjnr=129The DCG rule html/1 is the main predicate of this library. It translates
+The DCG rule html/1 is the main predicate of this library. It translates
 the specification for an HTML page into a list of atoms that can be
 written to a stream using print_html/[1,2]. The expansion rules of this
 predicate may be extended by defining the multifile DCG
@@ -1234,7 +1234,7 @@ The DCG rule page/2 generated a complete page, including the SGML
 in the \elem{head} element and \arg{BodyContent} are elements to be
 placed in the \elem{body} element.
 
-http://db.cwi.nl/projecten/project.php4?prjnr=129To achieve common style (background, page header and footer), it is
+To achieve common style (background, page header and footer), it is
 possible to define DCG rules head/1 and/or body/1. The page/1 rule
 checks for the definition of these DCG rules in the module it is called
 from as well as in the \const{user} module. If no definition is found, it

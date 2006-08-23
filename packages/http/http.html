@@ -1418,10 +1418,9 @@ atoms that can then be printed using <A NAME="idx:printhtml12:46"></A><A HREF="#
 <DL>
 <DT class="pubdef"><A NAME="html/1"><STRONG>html</STRONG>(<VAR>:Spec</VAR>)</A><CODE>--&gt;</CODE></DT>
 <DD class="defbody">
-http://db.cwi.nl/projecten/project.php4?prjnr=129The DCG rule <A NAME="idx:html1:47"></A><A HREF="#html/1">html/1</A> 
-is the main predicate of this library. It translates the specification 
-for an HTML page into a list of atoms that can be written to a stream 
-using <A NAME="idx:printhtml12:48"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
+The DCG rule <A NAME="idx:html1:47"></A><A HREF="#html/1">html/1</A> is 
+the main predicate of this library. It translates the specification for 
+an HTML page into a list of atoms that can be written to a stream using <A NAME="idx:printhtml12:48"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
 The expansion rules of this predicate may be extended by defining the 
 multifile DCG html_write:expand/1. <VAR>Spec</VAR> is either a single 
 specification or a list of single specifications. Using nested lists is 
@@ -1486,13 +1485,13 @@ generated a complete page, including the SGML
 be placed in the <CODE>head</CODE> element and <VAR>BodyContent</VAR> 
 are elements to be placed in the <CODE>body</CODE> element.
 
-<P>http://db.cwi.nl/projecten/project.php4?prjnr=129To achieve common 
-style (background, page header and footer), it is possible to define DCG 
-rules <A NAME="idx:head1:53"></A><B>head/1</B> and/or <A NAME="idx:body1:54"></A><B>body/1</B>. 
-The <A NAME="idx:page1:55"></A><A HREF="#page/1">page/1</A> rule checks 
-for the definition of these DCG rules in the module it is called from as 
-well as in the <CODE>user</CODE> module. If no definition is found, it 
-creates a head with only the <VAR>HeadContent</VAR> (note that the
+<P>To achieve common style (background, page header and footer), it is 
+possible to define DCG rules <A NAME="idx:head1:53"></A><B>head/1</B> 
+and/or <A NAME="idx:body1:54"></A><B>body/1</B>. The <A NAME="idx:page1:55"></A><A HREF="#page/1">page/1</A> 
+rule checks for the definition of these DCG rules in the module it is 
+called from as well as in the <CODE>user</CODE> module. If no definition 
+is found, it creates a head with only the <VAR>HeadContent</VAR> (note 
+that the
 <CODE>title</CODE> is obligatory) and a <CODE>body</CODE> with <CODE>bgcolor</CODE> 
 set to <CODE>white</CODE> and the provided <VAR>BodyContent</VAR>.
 
