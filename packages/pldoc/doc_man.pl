@@ -282,8 +282,36 @@ cdata(_) -->
 %	@tbd	Nondet?
 
 load_man_object(For, Path, DOM) :-
-	For = section(_,_,Path), !,		% TBD: Sub-sections!
-	load_html_file(Path, DOM).
+	For = section(_,SN,Path),
+	findall(Nr-Pos, section_start(Path, Nr, Pos), Pairs),
+	(   Pairs = [SN-_|_]
+	->  load_html_file(Path, DOM)		% Load whole file
+	;   append(_, [SN-Start|Rest], Pairs),
+	    (	member(N-End, Rest),
+		\+ sub_atom(N, 0, _, _, SN),
+		Len is End - Start,
+		Options = [content_length(Len)]
+	    ->	true
+	    ;	Options = []
+	    ),
+	    open(Path, read, In, [type(binary)]),
+	    seek(In, Start, bof, _),
+	    dtd(html, DTD),
+	    new_sgml_parser(Parser,
+			    [ dtd(DTD)
+			    ]),
+	    set_sgml_parser(Parser, file(Path)),
+	    set_sgml_parser(Parser, dialect(sgml)),
+	    set_sgml_parser(Parser, shorttag(false)),
+	    set_sgml_parser(Parser, defaults(false)),
+	    sgml_parse(Parser,
+		       [ document(DOM),
+			 source(In)
+		       | Options
+		       ]),
+	    free_sgml_parser(Parser),
+	    close(In)
+	).
 load_man_object(For, Path, DOM) :-
 	index_manual,
 	object_spec(For, Obj),
@@ -312,6 +340,9 @@ load_man_object(For, Path, DOM) :-
 	close(In),
 	append(DT, DD, DOM).
 
+section_start(Path, Nr, Pos) :-
+	index_manual,
+	man_index(section(_,Nr,_), _, Path, Pos).
 
 object_spec(Spec, Spec).
 object_spec(Atom, PI) :-
