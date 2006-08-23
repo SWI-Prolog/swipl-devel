@@ -1,6 +1,33 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
 <HTML>
 <HEAD>
-<TITLE>Managing external tables for SWI-Prolog</TITLE>
+<TITLE>Managing external tables for SWI-Prolog</TITLE><style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
 </HEAD>
 <BODY BGCOLOR="white">
 <BLOCKQUOTE>
@@ -15,10 +42,10 @@
 <HR>
 <CENTER>
 <I>Jan Wielemaker <BR>
-SWI, <BR>
+Human Computer Studies (HCS), <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
+E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></I>
 </CENTER>
 <HR>
 </BLOCKQUOTE>
@@ -51,7 +78,6 @@ more modern Unices).
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
 <UL>
-<UL>
 <LI><A HREF="#sec:1"><B>1 Introduction</B></A>
 <LI><A HREF="#sec:2"><B>2 Managing external tables</B></A>
 <UL>
@@ -67,7 +93,6 @@ more modern Unices).
 <LI><A HREF="#sec:3"><B>3 Flexible ordering and equivalence based on 
 character table</B></A>
 <LI><A HREF="#sec:4"><B>4 Example: accessing the Unix passwd file</B></A>
-</UL>
 </UL>
 
 <H2><A NAME="sec:1">1 Introduction</A></H2>
@@ -97,10 +122,9 @@ Unix password file.
 destroying the access to external database tables.
 
 <DL>
-
-<P>
-<DT><A NAME="new_table/4"><STRONG>new_table</STRONG>(<VAR>+File, 
-+Columns, +Options, -Handle</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="new_table/4"><STRONG>new_table</STRONG>(<VAR>+File, 
++Columns, +Options, -Handle</VAR>)</A></DT>
+<DD class="defbody">
 Create a description of a new table, stored in <VAR>File</VAR>. <VAR>Columns</VAR> 
 is a list of descriptions for each column. A column description is of 
 the form
@@ -113,17 +137,19 @@ converted and is one of:
 
 <P>
 <CENTER>
-<TABLE BORDER=2 FRAME=border RULES=group>
-<TR VALIGN=top><TD><TT>integer</TT><TD>Convert to a Prolog integer. The 
-input is treated as a decimal number. </TR>
-<TR VALIGN=top><TD><TT>float</TT><TD>Convert to a Prolog floating point 
-number. The input is handled by the C-library function
-<TT>strtod()</TT>. </TR>
-<TR VALIGN=top><TD><TT>atom</TT><TD>Convert to a Prolog atom. </TR>
-<TR VALIGN=top><TD><TT>string</TT><TD>Convert to a SWI-Prolog string 
-object. </TR>
-<TR VALIGN=top><TD><TT>code_list</TT><TD>Convert to a list of <font size=-1>ASCII</font> 
-codes. </TR>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><TT>integer</TT></TD><TD>Convert to a Prolog integer. 
+The input is treated as a decimal number. </TD></TR>
+<TR VALIGN=top><TD><TT>hexadecimal</TT></TD><TD>Convert to a Prolog 
+integer. The input is treated as a hex number. </TD></TR>
+<TR VALIGN=top><TD><TT>float</TT></TD><TD>Convert to a Prolog floating 
+point number. The input is handled by the C-library function
+<TT>strtod()</TT>. </TD></TR>
+<TR VALIGN=top><TD><TT>atom</TT></TD><TD>Convert to a Prolog atom. </TD></TR>
+<TR VALIGN=top><TD><TT>string</TT></TD><TD>Convert to a SWI-Prolog 
+string object. </TD></TR>
+<TR VALIGN=top><TD><TT>code_list</TT></TD><TD>Convert to a list of <font size=-1>ASCII</font> 
+codes. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -133,33 +159,34 @@ column. Supported values are:
 
 <P>
 <CENTER>
-<TABLE BORDER=2 FRAME=border RULES=group>
-<TR VALIGN=top><TD><TT>sorted</TT><TD>The field is strictly sorted, but 
-may have (adjacent) duplicate entries. If the field is textual, it 
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><TT>sorted</TT></TD><TD>The field is strictly sorted, 
+but may have (adjacent) duplicate entries. If the field is textual, it 
 should be sorted alphabetically, otherwise it should be sorted 
-numerically. </TR>
-<TR VALIGN=top><TD><TT>sorted(+<VAR>Table</VAR>)</TT><TD>The (textual) 
-field is sorted using the ordering declared by the named <EM>ordering 
+numerically. </TD></TR>
+<TR VALIGN=top><TD><TT>sorted(+<VAR>Table</VAR>)</TT></TD><TD>The 
+(textual) field is sorted using the ordering declared by the named <EM>ordering 
 table</EM>. This option may be used to define reverse order, 
 `dictionary' order or other irregular alphabetical ordering. See
-<A NAME="idx:newordertable2:1"></A><A HREF="#new_order_table/2">new_order_table/2</A>. </TR>
-<TR VALIGN=top><TD><TT>unique</TT><TD>This column has distinct values 
-for each row in the table. </TR>
-<TR VALIGN=top><TD><TT>downcase</TT><TD>Map all uppercase in the field 
-to lowercase before converting to a Prolog atom, string or code_list. </TR>
-<TR VALIGN=top><TD><TT>map_space_to_underscore</TT><TD>Map spaces to 
-underscores before converting to a Prolog atom, string or code_list. </TR>
-<TR VALIGN=top><TD><TT>syntax</TT><TD>For numerical fields. If the field 
-does not contain a valid number, matching the value fails. Reading the 
-value returns the value as an atom. </TR>
-<TR VALIGN=top><TD><TT>width(+<VAR>Chars</VAR>)</TT><TD>Field has fixed 
-width of the specified number of characters. The column-separator is not 
-considered for this column. </TR>
-<TR VALIGN=top><TD><TT>arg(+<VAR>Index</VAR>)</TT><TD>For <A NAME="idx:readtablerecord4:2"></A><A HREF="#read_table_record/4">read_table_record/4</A>, 
+<A NAME="idx:newordertable2:1"></A><A HREF="#new_order_table/2">new_order_table/2</A>. </TD></TR>
+<TR VALIGN=top><TD><TT>unique</TT></TD><TD>This column has distinct 
+values for each row in the table. </TD></TR>
+<TR VALIGN=top><TD><TT>downcase</TT></TD><TD>Map all uppercase in the 
+field to lowercase before converting to a Prolog atom, string or 
+code_list. </TD></TR>
+<TR VALIGN=top><TD><TT>map_space_to_underscore</TT></TD><TD>Map spaces 
+to underscores before converting to a Prolog atom, string or code_list. </TD></TR>
+<TR VALIGN=top><TD><TT>syntax</TT></TD><TD>For numerical fields. If the 
+field does not contain a valid number, matching the value fails. Reading 
+the value returns the value as an atom. </TD></TR>
+<TR VALIGN=top><TD><TT>width(+<VAR>Chars</VAR>)</TT></TD><TD>Field has 
+fixed width of the specified number of characters. The column-separator 
+is not considered for this column. </TD></TR>
+<TR VALIGN=top><TD><TT>arg(+<VAR>Index</VAR>)</TT></TD><TD>For <A NAME="idx:readtablerecord4:2"></A><A HREF="#read_table_record/4">read_table_record/4</A>, 
 unify the field with the given argument of the record term. Further 
-fields will be assigned index+1, ... . </TR>
-<TR VALIGN=top><TD><TT>skip</TT><TD>Don't convert this field to Prolog. 
-The field is simply skipped without checking for consistency. </TR>
+fields will be assigned index+1, ... . </TD></TR>
+<TR VALIGN=top><TD><TT>skip</TT></TD><TD>Don't convert this field to 
+Prolog. The field is simply skipped without checking for consistency. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -169,18 +196,18 @@ table. Defined options are:
 
 <P>
 <CENTER>
-<TABLE BORDER=2 FRAME=border RULES=group>
-<TR VALIGN=top><TD><TT>record_separator(+<VAR>Code</VAR>)</TT><TD>Character 
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><TT>record_separator(+<VAR>Code</VAR>)</TT></TD><TD>Character 
 (<font size=-1>ASCII</font>) value of the character separating two 
-records. Default is the newline (<font size=-1>ASCII</font> 10). </TR>
-<TR VALIGN=top><TD><TT>field_separator(+<VAR>Code</VAR>)</TT><TD>Character 
+records. Default is the newline (<font size=-1>ASCII</font> 10). </TD></TR>
+<TR VALIGN=top><TD><TT>field_separator(+<VAR>Code</VAR>)</TT></TD><TD>Character 
 (<font size=-1>ASCII</font>) value of the character separating two 
 fields in a record. Default is the space (<font size=-1>ASCII</font> 
 32), which also has a special meaning. Two fields separated by a space 
 may be separated by any non-empty sequence of spaces and tab (<font size=-1>ASCII</font> 
 9) characters. For all other separators, a single character separates 
-the fields. </TR>
-<TR VALIGN=top><TD><TT>escape(+<VAR>Code</VAR>, +<VAR>ListOfMap</VAR>)</TT><TD>Sometimes, 
+the fields. </TD></TR>
+<TR VALIGN=top><TD><TT>escape(+<VAR>Code</VAR>, +<VAR>ListOfMap</VAR>)</TT></TD><TD>Sometimes, 
 a table defines escape sequences to make it possible to use the 
 separator-characters in text-fields. This options provides a simple way 
 to handle some standard cases. <VAR>Code</VAR> is the <font size=-1>ASCII</font> 
@@ -191,10 +218,11 @@ code of the character that leads the escape sequence. The default is
 map table is the identity map, unless <VAR>Code</VAR> refers to the
 <CODE>\</CODE> character, in which case
 <CODE>\b</CODE>, <CODE>\e</CODE>, <CODE>\n</CODE>, <CODE>\r</CODE> and <CODE>\t</CODE> 
-have their usual meaning. </TR>
-<TR VALIGN=top><TD><TT>functor(<VAR>+Head</VAR>)</TT><TD>Functor used by <A NAME="idx:readtablerecord4:3"></A><A HREF="#read_table_record/4">read_table_record/4</A>. 
+have their usual meaning. </TD></TR>
+<TR VALIGN=top><TD><TT>functor(<VAR>+Head</VAR>)</TT></TD><TD>Functor 
+used by <A NAME="idx:readtablerecord4:3"></A><A HREF="#read_table_record/4">read_table_record/4</A>. 
 Default is <TT>record</TT> using the maximal argument index of the 
-fields as arity. </TR>
+fields as arity. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -204,28 +232,25 @@ with a term that may be used as a handle to the table for future
 operations on it. Note that <A NAME="idx:newtable4:4"></A><A HREF="#new_table/4">new_table/4</A> 
 does not access the file system, so its success only indicates the 
 description could be parsed, not the presence, access or format of the 
-file.
-
-<P>
-<DT><A NAME="open_table/1"><STRONG>open_table</STRONG>(<VAR>+Handle</VAR>)</A><DD>
+file.</DD>
+<DT class="pubdef"><A NAME="open_table/1"><STRONG>open_table</STRONG>(<VAR>+Handle</VAR>)</A></DT>
+<DD class="defbody">
 Open the table. This predicate normally does not need to be called 
 explicitely, as all operations on the table handle will automatically 
 open the table if this is required. It fails if the file cannot be 
 accessed or some other error with the required operating-system 
 resources occurs. The contents of the file is not examined by this 
-predicate.
-
-<P>
-<DT><A NAME="close_table/1"><STRONG>close_table</STRONG>(<VAR>+Handle</VAR>)</A><DD>
+predicate.</DD>
+<DT class="pubdef"><A NAME="close_table/1"><STRONG>close_table</STRONG>(<VAR>+Handle</VAR>)</A></DT>
+<DD class="defbody">
 Close the file and other system resources, but do not remove the 
-description of the table, so it can be re-opened later.
-
-<P>
-<DT><A NAME="free_table/1"><STRONG>free_table</STRONG>(<VAR>+Handle</VAR>)</A><DD>
+description of the table, so it can be re-opened later.</DD>
+<DT class="pubdef"><A NAME="free_table/1"><STRONG>free_table</STRONG>(<VAR>+Handle</VAR>)</A></DT>
+<DD class="defbody">
 Close and remove the handle. After this operation, <VAR>Handle</VAR> 
 becomes invalid and further references to it causes undefined behaviour.
 
-<P>
+<P></DD>
 </DL>
 
 <H3><A NAME="sec:2.2">2.2 Accessing a table</A></H3>
@@ -239,55 +264,56 @@ have generally non-fixed length, searching is often required. The
 predicates below allow for finding records in the file.
 
 <DL>
-
-<P>
-<DT><A NAME="get_table_attribute/3"><STRONG>get_table_attribute</STRONG>(<VAR>+Handle, 
-+Attribute, -Value</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="get_table_attribute/3"><STRONG>get_table_attribute</STRONG>(<VAR>+Handle, 
++Attribute, -Value</VAR>)</A></DT>
+<DD class="defbody">
 Fetch attributes of the table. Defined attributes:
 
 <P>
-<TABLE BORDER=0 FRAME=void RULES=group>
-<TR VALIGN=top><TD><TT>file</TT><TD>Unify value with the name of the 
-file with which the table is associated. </TR>
-<TR VALIGN=top><TD><TT>field(<VAR>N</VAR>)</TT><TD>Unify value with 
-declaration of n-th (1-based) field. </TR>
-<TR VALIGN=top><TD><TT>field_separator</TT><TD>Unify value with the 
-field separator character. </TR>
-<TR VALIGN=top><TD><TT>record_separator</TT><TD>Unify value with the 
-record separator character. </TR>
-<TR VALIGN=top><TD><TT>key_field</TT><TD>Unify value with the 1-based 
-index of the field that is sorted or fails if the table contains no 
-sorted fields. </TR>
-<TR VALIGN=top><TD><TT>field_count</TT><TD>Unify value with the total 
-number of columns in the table. </TR>
-<TR VALIGN=top><TD><TT>size</TT><TD>Unify value with the number of 
-characters in the table-file, <B>not</B> the number of records. </TR>
-<TR VALIGN=top><TD><TT>window</TT><TD>Unify value with a term <VAR>Start</VAR><TT> 
-- </TT><VAR>Size</VAR>, indicating the properties of the current window. </TR>
+<TABLE BORDER=0 FRAME=void RULES=groups>
+<TR VALIGN=top><TD><TT>file</TT></TD><TD>Unify value with the name of 
+the file with which the table is associated. </TD></TR>
+<TR VALIGN=top><TD><TT>field(<VAR>N</VAR>)</TT></TD><TD>Unify value with 
+declaration of n-th (1-based) field. </TD></TR>
+<TR VALIGN=top><TD><TT>field_separator</TT></TD><TD>Unify value with the 
+field separator character. </TD></TR>
+<TR VALIGN=top><TD><TT>record_separator</TT></TD><TD>Unify value with 
+the record separator character. </TD></TR>
+<TR VALIGN=top><TD><TT>key_field</TT></TD><TD>Unify value with the 
+1-based index of the field that is sorted or fails if the table contains 
+no sorted fields. </TD></TR>
+<TR VALIGN=top><TD><TT>field_count</TT></TD><TD>Unify value with the 
+total number of columns in the table. </TD></TR>
+<TR VALIGN=top><TD><TT>size</TT></TD><TD>Unify value with the number of 
+characters in the table-file, <B>not</B> the number of records. </TD></TR>
+<TR VALIGN=top><TD><TT>window</TT></TD><TD>Unify value with a term <VAR>Start</VAR><TT> 
+- </TT><VAR>Size</VAR>, indicating the properties of the current window. </TD></TR>
 </TABLE>
 
-<P>
-<DT><A NAME="table_window/3"><STRONG>table_window</STRONG>(<VAR>+Handle, 
-+Start, +Size</VAR>)</A><DD>
+</DD>
+<DT class="pubdef"><A NAME="table_window/3"><STRONG>table_window</STRONG>(<VAR>+Handle, 
++Start, +Size</VAR>)</A></DT>
+<DD class="defbody">
 If only part of the file represents the table, this call may be used to 
 define a window on the file. <VAR>Start</VAR> defines the start of the 
 window relative to the start of the file. <VAR>Size</VAR> is the size in 
 characters. Skipping a header is one of the possible purposes for this 
 call.
-
-<P>
-<DT><A NAME="table_start_of_record/4"><STRONG>table_start_of_record</STRONG>(<VAR>+Handle, 
-+From, +To, -Start</VAR>)</A><DD>
+</DD>
+<DT class="pubdef"><A NAME="table_start_of_record/4"><STRONG>table_start_of_record</STRONG>(<VAR>+Handle, 
++From, +To, -Start</VAR>)</A></DT>
+<DD class="defbody">
 Enumerates (on backtracking) the start of records in the table in the 
 region [From, To). Together with <A NAME="idx:readtablerecord4:5"></A><A HREF="#read_table_record/4">read_table_record/4</A>, 
 this may be used to read the table's data.
-
-<P>
-<DT><A NAME="table_previous_record/3"><STRONG>table_previous_record</STRONG>(<VAR>+Handle, 
-+Here, -Previous</VAR>)</A><DD>
+</DD>
+<DT class="pubdef"><A NAME="table_previous_record/3"><STRONG>table_previous_record</STRONG>(<VAR>+Handle, 
++Here, -Previous</VAR>)</A></DT>
+<DD class="defbody">
 If <VAR>Here</VAR> is the start of a record, find the start of the 
 record before it. If <VAR>Here</VAR> points at an arbitrary location in 
 a record, the start of this record will be returned.
+</DD>
 </DL>
 
 <H4><A NAME="sec:2.2.2">2.2.2 Reading records</A></H4>
@@ -297,10 +323,9 @@ reads an entire record, while <A NAME="idx:readtablefields4:7"></A><A HREF="#rea
 reads one or more fields from a record.
 
 <DL>
-
-<P>
-<DT><A NAME="read_table_record/4"><STRONG>read_table_record</STRONG>(<VAR>+Handle, 
-+Start, -Next, -Record</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="read_table_record/4"><STRONG>read_table_record</STRONG>(<VAR>+Handle, 
++Start, -Next, -Record</VAR>)</A></DT>
+<DD class="defbody">
 Read a record from the table. <VAR>Handle</VAR> is a handle as returned 
 by <A NAME="idx:newtable4:8"></A><A HREF="#new_table/4">new_table/4</A>. <VAR>Start</VAR> 
 is the location of a record. If <VAR>Start</VAR> does not point to the 
@@ -309,34 +334,31 @@ position. <VAR>Record</VAR> is unified with a term constructed from the <VAR>fun
 associated with the table (default name <TT>record</TT> and arity the 
 number of not-skipped columns), each of the arguments containing the 
 converted data. An error is raised if the data could not be converted. <VAR>Next</VAR> 
-is unified with the start position for the next record.
-
-<P>
-<DT><A NAME="read_table_fields/4"><STRONG>read_table_fields</STRONG>(<VAR>+Handle, 
-+Start, -Next, -Fields</VAR>)</A><DD>
+is unified with the start position for the next record.</DD>
+<DT class="pubdef"><A NAME="read_table_fields/4"><STRONG>read_table_fields</STRONG>(<VAR>+Handle, 
++Start, -Next, -Fields</VAR>)</A></DT>
+<DD class="defbody">
 As <A NAME="idx:readtablerecord4:9"></A><A HREF="#read_table_record/4">read_table_record/4</A>, 
 but <VAR>Fields</VAR> is a list of terms
 <VAR>+Name</VAR>(-<VAR>Value</VAR>), and the <VAR>Values</VAR> will be 
-unified with the values of the specified field.
-
-<P>
-<DT><A NAME="read_table_record_data/4"><STRONG>read_table_record_data</STRONG>(<VAR>+Handle, 
-+Start, -Next, -Record</VAR>)</A><DD>
+unified with the values of the specified field.</DD>
+<DT class="pubdef"><A NAME="read_table_record_data/4"><STRONG>read_table_record_data</STRONG>(<VAR>+Handle, 
++Start, -Next, -Record</VAR>)</A></DT>
+<DD class="defbody">
 Similar to <A NAME="idx:readtablerecord4:10"></A><A HREF="#read_table_record/4">read_table_record/4</A>, 
 but unifies record with a Prolog string containing the data of the 
 record unparsed. The returned record does <B>not</B> contain the 
 terminating record-separator.
 
-<P>
+<P></DD>
 </DL>
 
 <H4><A NAME="sec:2.2.3">2.2.3 Searching the table</A></H4>
 
 <DL>
-
-<P>
-<DT><A NAME="in_table/3"><STRONG>in_table</STRONG>(<VAR>+Handle, 
-?Fields, -RecordPos</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="in_table/3"><STRONG>in_table</STRONG>(<VAR>+Handle, 
+?Fields, -RecordPos</VAR>)</A></DT>
+<DD class="defbody">
 Searches the table for records matching <VAR>Fields</VAR>. If a match is 
 found, the variable (see below) fields in <VAR>Fields</VAR> are unified 
 with the corresponding field value, and <VAR>RecordPos</VAR> is unified 
@@ -358,19 +380,19 @@ Options are:
 
 <P>
 <CENTER>
-<TABLE BORDER=2 FRAME=border RULES=group>
-<TR VALIGN=top><TD><TT>prefix</TT><TD>Uses prefix search with the 
-default table. </TR>
-<TR VALIGN=top><TD><TT>prefix(<VAR>Table</VAR>)</TT><TD>Uses prefix 
-search with the specified ordering table. </TR>
-<TR VALIGN=top><TD><TT>substring</TT><TD>Searches for a substring in the 
-field. This requires linear search of the table. </TR>
-<TR VALIGN=top><TD><TT>substring(<VAR>Table</VAR>)</TT><TD>Searches for 
-a substring, using the table information for determining the equivalence 
-of characters. </TR>
-<TR VALIGN=top><TD><TT>=</TT><TD>Default equivalence. </TR>
-<TR VALIGN=top><TD><TT>=(<VAR>Table</VAR>)</TT><TD>Equivalence using the 
-given table. </TR>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><TT>prefix</TT></TD><TD>Uses prefix search with the 
+default table. </TD></TR>
+<TR VALIGN=top><TD><TT>prefix(<VAR>Table</VAR>)</TT></TD><TD>Uses prefix 
+search with the specified ordering table. </TD></TR>
+<TR VALIGN=top><TD><TT>substring</TT></TD><TD>Searches for a substring 
+in the field. This requires linear search of the table. </TD></TR>
+<TR VALIGN=top><TD><TT>substring(<VAR>Table</VAR>)</TT></TD><TD>Searches 
+for a substring, using the table information for determining the 
+equivalence of characters. </TD></TR>
+<TR VALIGN=top><TD><TT>=</TT></TD><TD>Default equivalence. </TD></TR>
+<TR VALIGN=top><TD><TT>=(<VAR>Table</VAR>)</TT></TD><TD>Equivalence 
+using the given table. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -393,56 +415,48 @@ and backtracking will yield further solutions to the query.
 may be comfortable used to bind the table transparently to a predicate. 
 For example, we have a file with lines of the format.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
 
-<P>
-<TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
     C1C2,Full Name
     </PRE>
-</TABLE>
 
 <P><VAR>C1C2</VAR> is a two-character identifier used in the other 
 tables, and <VAR>FullName</VAR> is the description of the identifier. We 
 want to have a predicate identifier_name(?Id, ?FullName) to reflect this 
 table. The code below does the trick:
 
-<P>
-<TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
     :- dynamic stored_idtable_handle/1.
 
 
     idtable(Handle) :-
             stored_idtable_handle(Handle).
     idtable(Handle) :-
-            new_table('rootdisp.dat',
+            new_table('disproot.dat',
                       [ id(atom, [downcase, sorted, unique]),
-                        name(atom),
+                        name(atom)
                       ],
                       [ field_separator(0',)
                       ], Handle),
-            asserta(stored_idtable_handle(Handle)).
+            assert(stored_idtable_handle(Handle)).
 
     identifier_name(Id, Name) :-
             idtable(Handle),
             in_table(Handle, [id(Id), name(Name)], _).
     </PRE>
-</TABLE>
 
-<P>
+<P></DD>
 </DL>
 
 <H4><A NAME="sec:2.2.4">2.2.4 Miscellaneous</A></H4>
 
 <DL>
-
-<P>
-<DT><A NAME="table_version/2"><STRONG>table_version</STRONG>(<VAR>-Version, 
--CompileDate</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="table_version/2"><STRONG>table_version</STRONG>(<VAR>-Version, 
+-CompileDate</VAR>)</A></DT>
+<DD class="defbody">
 Unify <VAR>Version</VAR> with an atom identifying the version of this 
 package, and <VAR>CompileDate</VAR> with the date this package was 
 compiled.
+</DD>
 </DL>
 
 <H2><A NAME="sec:3">3 Flexible ordering and equivalence based on 
@@ -470,15 +484,15 @@ defined:
 
 <P>
 <CENTER>
-<TABLE BORDER=2 FRAME=border RULES=group>
-<TR VALIGN=top><TD>ignore<TD>Characters of the ignore set are simple 
-discarded from the input. </TR>
-<TR VALIGN=top><TD>break<TD>Characters from the break set are treated as 
-word-breaks, and each non-empty sequence of them is considered equal. A 
-word break precedes a normal character. </TR>
-<TR VALIGN=top><TD>tag<TD>Characters of type tag indicate the start of a 
-`tag' that should not be considered in ordering, unless both strings are 
-the same upto the tag. </TR>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD>ignore</TD><TD>Characters of the ignore set are 
+simple discarded from the input. </TD></TR>
+<TR VALIGN=top><TD>break</TD><TD>Characters from the break set are 
+treated as word-breaks, and each non-empty sequence of them is 
+considered equal. A word break precedes a normal character. </TD></TR>
+<TR VALIGN=top><TD>tag</TD><TD>Characters of type tag indicate the start 
+of a `tag' that should not be considered in ordering, unless both 
+strings are the same upto the tag. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -486,71 +500,71 @@ the same upto the tag. </TR>
 <P>The following predicates are defined to manage and use these tables:
 
 <DL>
-
-<P>
-<DT><A NAME="new_order_table/2"><STRONG>new_order_table</STRONG>(<VAR>+Name, 
-+Options</VAR>)</A><DD>
+<DT class="pubdef"><A NAME="new_order_table/2"><STRONG>new_order_table</STRONG>(<VAR>+Name, 
++Options</VAR>)</A></DT>
+<DD class="defbody">
 Create a new, or replace the order-table with the given name (an atom). <VAR>Options</VAR> 
 is a list of options:
 
 <P>
 <CENTER>
-<TABLE BORDER=2 FRAME=border RULES=group>
-<TR VALIGN=top><TD><TT>case_insensitive</TT><TD>Map all upper- to 
-lowercase characters. </TR>
-<TR VALIGN=top><TD><TT>iso_latin_1</TT><TD>Start with an ISO-Latin-1 
-table </TR>
-<TR VALIGN=top><TD><TT>iso_latin_1_case_insensitive</TT><TD>Start with a 
-case-insensitive ISO-Latin-1 table </TR>
-<TR VALIGN=top><TD><TT>copy(+<VAR>Table</VAR>)</TT><TD>Copy all entries 
-from <VAR>Table</VAR>. </TR>
-<TR VALIGN=top><TD><TT>tag(+<VAR>ListOfCodes</VAR>)</TT><TD>Add these 
-characters to the set of `tag' characters. </TR>
-<TR VALIGN=top><TD><TT>ignore(+<VAR>ListOfCodes</VAR>)</TT><TD>Add these 
-characters to the set of `ignore' characters. </TR>
-<TR VALIGN=top><TD><TT>break(+<VAR>ListOfCodes</VAR>)</TT><TD>Add these 
-characters to the set of `break' characters. </TR>
-<TR VALIGN=top><TD><TT>+<VAR>Code1</VAR> = +<VAR>Code2</VAR> </TT><TD>Map <VAR>Code1</VAR> 
-onto <VAR>Code2</VAR>. </TR>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><TT>case_insensitive</TT></TD><TD>Map all upper- to 
+lowercase characters. </TD></TR>
+<TR VALIGN=top><TD><TT>iso_latin_1</TT></TD><TD>Start with an 
+ISO-Latin-1 table </TD></TR>
+<TR VALIGN=top><TD><TT>iso_latin_1_case_insensitive</TT></TD><TD>Start 
+with a case-insensitive ISO-Latin-1 table </TD></TR>
+<TR VALIGN=top><TD><TT>copy(+<VAR>Table</VAR>)</TT></TD><TD>Copy all 
+entries from <VAR>Table</VAR>. </TD></TR>
+<TR VALIGN=top><TD><TT>tag(+<VAR>ListOfCodes</VAR>)</TT></TD><TD>Add 
+these characters to the set of `tag' characters. </TD></TR>
+<TR VALIGN=top><TD><TT>ignore(+<VAR>ListOfCodes</VAR>)</TT></TD><TD>Add 
+these characters to the set of `ignore' characters. </TD></TR>
+<TR VALIGN=top><TD><TT>break(+<VAR>ListOfCodes</VAR>)</TT></TD><TD>Add 
+these characters to the set of `break' characters. </TD></TR>
+<TR VALIGN=top><TD><TT>+<VAR>Code1</VAR> = +<VAR>Code2</VAR> </TT></TD><TD>Map <VAR>Code1</VAR> 
+onto <VAR>Code2</VAR>. </TD></TR>
 </TABLE>
 
 </CENTER>
-
-<P>
-<DT><A NAME="order_table_mapping/3"><STRONG>order_table_mapping</STRONG>(<VAR>+Table, 
-?From, ?To</VAR>)</A><DD>
+</DD>
+<DT class="pubdef"><A NAME="order_table_mapping/3"><STRONG>order_table_mapping</STRONG>(<VAR>+Table, 
+?From, ?To</VAR>)</A></DT>
+<DD class="defbody">
 Read the current mapping. <VAR>To</VAR> is a character code or one of 
 the atoms <CODE>break</CODE>, <CODE>ignore</CODE> or <CODE>tag</CODE>.
-
-<P>
-<DT><A NAME="compare_strings/4"><STRONG>compare_strings</STRONG>(<VAR>+Table, 
-+S1, +S2, -Result</VAR>)</A><DD>
+</DD>
+<DT class="pubdef"><A NAME="compare_strings/4"><STRONG>compare_strings</STRONG>(<VAR>+Table, 
++S1, +S2, -Result</VAR>)</A></DT>
+<DD class="defbody">
 Compare two strings using the named <VAR>Table</VAR>. <VAR>S1</VAR> and
 <VAR>S2</VAR> may be atoms, strings or code-lists. <VAR>Result</VAR> is 
 one of the atoms <CODE>&lt;</CODE>, <CODE>=</CODE> or <CODE>&gt;</CODE>.
-
-<P>
-<DT><A NAME="prefix_string/3"><STRONG>prefix_string</STRONG>(<VAR>+Table, 
-+Prefix, +String</VAR>)</A><DD>
+</DD>
+<DT class="pubdef"><A NAME="prefix_string/3"><STRONG>prefix_string</STRONG>(<VAR>+Table, 
++Prefix, +String</VAR>)</A></DT>
+<DD class="defbody">
 Succeeds if <VAR>Prefix</VAR> is a prefix of <VAR>String</VAR> using the 
 named
 <VAR>Table</VAR>.
-
-<P>
-<DT><A NAME="prefix_string/4"><STRONG>prefix_string</STRONG>(<VAR>+Table, 
-+Prefix, -Rest, +String</VAR>)</A><DD>
+</DD>
+<DT class="pubdef"><A NAME="prefix_string/4"><STRONG>prefix_string</STRONG>(<VAR>+Table, 
++Prefix, -Rest, +String</VAR>)</A></DT>
+<DD class="defbody">
 Succeeds if <VAR>Prefix</VAR> is a prefix of <VAR>String</VAR> using the 
 named
 <VAR>Table</VAR>, and <VAR>Rest</VAR> is unified with the remainder of
 <VAR>String</VAR> that is not matched. Please note that the existence of 
 an order-table implies simple contatenation using <A NAME="idx:concat3:17"></A><B>concat/3</B> 
 cannot be used to determine the non-matched part of the string.
-
-<P>
-<DT><A NAME="sub_string/3"><STRONG>sub_string</STRONG>(<VAR>+Table, 
-+Sub, +String</VAR>)</A><DD>
+</DD>
+<DT class="pubdef"><A NAME="sub_string/3"><STRONG>sub_string</STRONG>(<VAR>+Table, 
++Sub, +String</VAR>)</A></DT>
+<DD class="defbody">
 Succeeds if <VAR>Sub</VAR> is a substring of <VAR>String</VAR> using the 
 named <VAR>Table</VAR>.
+</DD>
 </DL>
 
 <H2><A NAME="sec:4">4 Example: accessing the Unix passwd file</A></H2>
@@ -562,21 +576,16 @@ each. The fields are separated by a single `:' character. Here is an
 example of a line:
 
 <P><font size=-1>
-<TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
 
+<PRE class="code">
 joe:hgdu3r3bce:53:100:Joe Johnson:/users/joe:/bin/bash
 </PRE>
-</TABLE>
 
 <P></font>
 
 <P>The following call defines a table for it:
 
-<P>
-<TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 ?- new_table('/etc/passwd',
              [ user(atom),
                passwd(code_list),
@@ -590,24 +599,20 @@ joe:hgdu3r3bce:53:100:Joe Johnson:/users/joe:/bin/bash
              ],
              H).
 </PRE>
-</TABLE>
 
 <P>To find all people of group <VAR>100</VAR>, use:
 
-<P>
-<TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
-<PRE>
-
+<PRE class="code">
 ?- findall(User, in_table(H, [user(User), gid(100)], _), Users).
 </PRE>
-</TABLE>
 
 <H1><A NAME="document-notes">Footnotes</A></H1>
 
 <DL>
-<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
+<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A></DT>
+<DD>
 This is the <TT>disproot.dat</TT> table from the <font size=-1>AAT</font> 
-database used in <font size=-1>GRASP</font>
+database used in <font size=-1>GRASP</font></DD>
 </DL>
 
 </BODY></HTML>

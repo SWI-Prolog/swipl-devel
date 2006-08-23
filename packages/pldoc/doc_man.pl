@@ -67,7 +67,7 @@ clean_man_index :-
 
 
 manual_directory(swi('doc/Manual')).
-%manual_directory(swi('doc/packages')).
+manual_directory(swi('doc/packages')).
 
 
 
@@ -160,7 +160,7 @@ index_on_begin(dd, _, Parser) :-
 		   ]),
 	summary(DD, Summary),
         assert(man_index(Name/Arity, Summary, File, Offset)).
-index_on_begin(H, _, Parser) :-
+index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 	heading(H, Level),
 	get_sgml_parser(Parser, charpos(Offset)),
         get_sgml_parser(Parser, file(File)),
@@ -173,9 +173,12 @@ index_on_begin(H, _, Parser) :-
 	assert(man_index(section(Level, Nr), PlainTitle, File, Offset)).
 	
 section_number(Title, Nr, PlainTitle) :-
-	sub_atom(Title, B, _, A, ' '),
+	sub_atom(Title, 0, 1, _, Start),
+	char_type(Start, digit),
+	sub_atom(Title, B, _, A, ' '), !,
 	sub_atom(Title, 0, B, _, Nr),
 	sub_string(Title, _, A, 0, PlainTitle).
+section_number(Title, 0, Title).
 
 heading(h1, 1).
 heading(h2, 2).
