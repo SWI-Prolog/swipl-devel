@@ -2630,7 +2630,10 @@ write_html('\n') :-
 write_html(' ') :-
 	pending_par, !.
 write_html(html('<P>')) :- !,
-	(   pending_par
+	(   once(is_open(Open)),
+	    Open = 'DL'
+	->  true
+	;   pending_par
 	->  true
 	;   assert(pending_par)
 	).
