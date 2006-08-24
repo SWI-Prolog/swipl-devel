@@ -81,10 +81,13 @@ chr.pl:		chr_swi.pl
 
 install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(CHRDIR)
-		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)$(CHRDIR)
-		$(INSTALL) -m 644 $(CHRPL) $(DESTDIR)$(LIBDIR)/chr.pl
-		$(INSTALL) -m 644 README   $(DESTDIR)$(CHRDIR)
+		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)$(CHRDIR)
+		$(INSTALL_DATA) $(CHRPL) $(DESTDIR)$(LIBDIR)/chr.pl
+		$(INSTALL_DATA) README   $(DESTDIR)$(CHRDIR)
 		$(PL) -f none -g make -t halt
+
+ln-install::
+		@$(MAKE) INSTALL_DATA='../ln-install' install
 
 rpm-install:	install
 

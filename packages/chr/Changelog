@@ -1,3 +1,7 @@
+Aug 24, 2006
+
+  * JW: Add target ln-install
+
 Aug 21, 2006
 
   * TS: Fixed wrong arities in not inlined predicates. Mike Elston.
