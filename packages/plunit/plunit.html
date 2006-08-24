@@ -1,0 +1,721 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog Unit Tests</TITLE><style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+
+div.title
+{ text-align: center; 
+padding-bottom: 1em; 
+font-size: 200%; 
+font-weight: bold;
+}
+
+div.author
+{ text-align: center; 
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px; 
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center; 
+padding: 5px; 
+font-size: 120%; 
+font-weight: bold;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"> 
+
+<P><DIV class="title">SWI-Prolog Unit Tests</DIV><DIV class="author">Jan 
+Wielemaker <BR>
+HCS, <BR>
+University of Amsterdam <BR>
+The Netherlands <BR>
+E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
+This document describes the SWI-Prolog unit-test framework.
+</DIV>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
+<LI><A HREF="#sec:2"><B>2 A Unit Test box</B></A>
+<UL>
+<LI><A HREF="#sec:2.1">2.1 Test Unit options</A>
+<LI><A HREF="#sec:2.2">2.2 Writing the test body</A>
+<UL>
+<LI><A HREF="#sec:2.2.1">2.2.1 Testing deterministic predicates</A>
+<LI><A HREF="#sec:2.2.2">2.2.2 Testing semi-deterministic predicates</A>
+<LI><A HREF="#sec:2.2.3">2.2.3 Testing non-deterministic predicates</A>
+<LI><A HREF="#sec:2.2.4">2.2.4 Testing error conditions</A>
+</UL>
+</UL>
+<LI><A HREF="#sec:3"><B>3 Using seperate test files</B></A>
+<LI><A HREF="#sec:4"><B>4 Running the test-suite</B></A>
+<LI><A HREF="#sec:5"><B>5 Tests and production systems</B></A>
+<LI><A HREF="#sec:6"><B>6 Controlling the test suite</B></A>
+<LI><A HREF="#sec:7"><B>7 Auto-generating tests</B></A>
+<LI><A HREF="#sec:8"><B>8 Coverage analysis</B></A>
+<LI><A HREF="#sec:9"><B>9 Portability of the test-suite</B></A>
+<LI><A HREF="#sec:10"><B>10 Motivation of choices</B></A>
+</UL>
+
+<P>
+
+<H2><A NAME="sec:1">1 Introduction</A></H2>
+
+<A NAME="sec:intro"></A>
+
+<P>There is really no excuse not to write tests!
+
+<P>Automatic testing of software during development is probably the most 
+important Quality Assurance measure. Tests can validate the final 
+system, which is nice or your users. Most (Prolog) developers however 
+forget it is not just a burden during development.
+
+<P>
+<UL>
+<LI>Tests document how the code is supposed to be used.
+<LI>Tests can validate claims you make on the Prolog implementation. 
+Writing a test makes the claim explicit.
+<LI>Tests avoid big applications saying `No' after modifications. This 
+saves time during development, and it saves <EM>a lot</EM> of time if 
+you must return to the application a few years later or you must modify 
+and debug someone else's application.
+</UL>
+
+<H2><A NAME="sec:2">2 A Unit Test box</A></H2>
+
+<A NAME="sec:unitbox"></A>
+
+<P>Tests are written in pure Prolog and enclosed within the directives
+<A NAME="idx:begintests1:1"></A><A HREF="#begin_tests/1">begin_tests/1</A>,2 
+and <A NAME="idx:endtests1:2"></A><B>end_tests/1</B>. They can be 
+embedded inside a normal source module, or be placed in a seperate 
+test-file that loads the files that to be tested. Code inside a test box 
+is normal Prolog code. The entry points are defined by rules using the 
+head <CODE>test(Name)</CODE> or
+<CODE>test(Name, Options)</CODE>, where <VAR>Name</VAR> is a ground term 
+and
+<VAR>Options</VAR> is a list describing additional properties of the 
+test. Here is a very simple example:
+
+<PRE class="code">
+:- begin_tests(lists).
+:- use_module(library(lists)).
+
+test(reverse) :-
+        reverse([a,b], [b,a]).
+
+:- end_tests(lists).
+</PRE>
+
+<P>The second argument of the test-head defines additional processing 
+options. Defined options are:
+
+<DL>
+<DT><STRONG>blocked</STRONG>(<VAR>+Reason:atom</VAR>)</DT>
+<DD class="defbody">
+The test is currently disabled. Tests are flagged as blocked if they are 
+known not to work but this accepted as something that must be fixed in 
+the future.</DD>
+<DT><STRONG>condition</STRONG>(<VAR>:Goal</VAR>)</DT>
+<DD class="defbody">
+Test pre-conditions for running the test. If the condition fails the 
+test is skipped. The condition can be used as an alternative to the <CODE>setup</CODE> 
+option. The only difference is that failure of a condition skips the 
+test and is considered an error when using the <CODE>setup</CODE> 
+option.</DD>
+<DT><STRONG>setup</STRONG>(<VAR>:Goal</VAR>)</DT>
+<DD class="defbody">
+<VAR>Goal</VAR> is run before the test-body. Typically used together 
+with the <CODE>cleanup</CODE> option to create and destroy the required 
+execution environment.</DD>
+<DT><STRONG>cleanup</STRONG>(<VAR>:Goal</VAR>)</DT>
+<DD class="defbody">
+<VAR>Goal</VAR> is always called after completion of the test-body, 
+regardless of whether it fails, succeeds or throws an exception. This 
+option or <A NAME="idx:callcleanup2:3"></A><B>call_cleanup/2</B> must be 
+used by tests that require side-effects that must be reverted after the 
+test completes. <VAR>Goal</VAR> may share variables with the test body.
+
+<PRE class="code">
+create_file(Tmp) :-
+        tmp_file(plunit, Tmp),
+        open(Tmp, write, Out),
+        write(Out, 'hello(World).\n'),
+        close(Out).
+
+test(read, [ setup(create_file(Tmp)),
+             cleanup(delete_file(Tmp))
+           ]) :-
+        read_file_to_terms(Tmp, Terms, []),
+        Term =@= hello(_).
+</PRE>
+
+</DD>
+<DT><STRONG>true</STRONG>(<VAR>Vars Cmp Values</VAR>)</DT>
+<DD class="defbody">
+Body must succeed deterministically. Bindings are compared to Values.
+<VAR>Cmp</VAR> is typically one of =/2, ==/2, =:=/2 or =@=/2, but any 
+test can be used. This is the same as inserting the test at the end of 
+the conjunction, but it allows the test engine to distinguish between 
+failure of <A NAME="idx:copyterm2:4"></A><B>copy_term/2</B> and 
+producing the wrong value. Multiple variables must be combined in an 
+arbitrary compound term. E.g. <CODE>A1-A2 == v1-v2</CODE>
+
+<PRE class="code">
+test(copy, [ true(Copy =@= hello(X,X))
+           ]) :-
+        copy_term(hello(Y,Y), Copy).
+</PRE>
+
+</DD>
+<DT><STRONG>fail</STRONG></DT>
+<DD class="defbody">
+Body must fail.</DD>
+<DT><STRONG>throws</STRONG>(<VAR>Error</VAR>)</DT>
+<DD class="defbody">
+Body must throw <VAR>Error</VAR>. The error is verified using =@=/2. If <VAR>Error</VAR> 
+is of the format <CODE>error(Formal, Context)</CODE>,
+<VAR>Formal</VAR> is verified using =@=/2, but <VAR>Context</VAR> simply 
+using unification (=/2).</DD>
+<DT><STRONG>all</STRONG>(<VAR>Vars Cmp List</VAR>)</DT>
+<DD class="defbody">
+Similar to <CODE>true(Vars Cmp Values)</CODE>, but used for 
+non-deterministic predicates. Each element is compared using <VAR>Cmp</VAR>. 
+Order matters.</DD>
+<DT><STRONG>set</STRONG>(<VAR>Vars Cmp List</VAR>)</DT>
+<DD class="defbody">
+Similar to <CODE>true(Vars Cmp Values)</CODE>, but used for 
+non-deterministic predicates. Each element is compared using <VAR>Cmp</VAR>. 
+Order and duplicates with respect to <VAR>Cmp</VAR> are ignored.</DD>
+<DT><STRONG>nondet</STRONG></DT>
+<DD class="defbody">
+If this keyword appears in the option list, non-deterministic success of 
+the body is not considered an error.
+</DD>
+</DL>
+
+<H3><A NAME="sec:2.1">2.1 Test Unit options</A></H3>
+
+<A NAME="sec:unitoptions"></A>
+
+<DL>
+<DT class="pubdef"><A NAME="begin_tests/1"><STRONG>begin_tests</STRONG>(<VAR>+Name</VAR>)</A></DT>
+<DD class="defbody">
+Start named test-unit. Same as <CODE>begin_tests(Name, [])</CODE>.</DD>
+<DT class="pubdef"><A NAME="begin_tests/2"><STRONG>begin_tests</STRONG>(<VAR>+Name, 
++Options</VAR>)</A></DT>
+<DD class="defbody">
+Start named test-unit with options. Options provide conditional 
+processing, setup and cleanup similar to individual tests (second 
+argument of <A NAME="idx:test2:5"></A><B>test/2</B> rules).
+
+<P>Defined options are:
+
+<DL>
+<DT><STRONG>blocked</STRONG>(<VAR>+Reaosn</VAR>)</DT>
+<DD class="defbody">
+Test-unit has been blocked for the given <VAR>Reason</VAR>.</DD>
+<DT><STRONG>condition</STRONG>(<VAR>:Goal</VAR>)</DT>
+<DD class="defbody">
+Executed before executing any of the tests. If <VAR>Goal</VAR> fails, 
+the test of this unit is skipped.</DD>
+<DT><STRONG>setup</STRONG>(<VAR>:Goal</VAR>)</DT>
+<DD class="defbody">
+Executed before executing any of the tests.</DD>
+<DT><STRONG>cleanup</STRONG>(<VAR>:Goal</VAR>)</DT>
+<DD class="defbody">
+Executed after completion of all tests in the unit.
+</DD>
+</DL>
+
+</DD>
+</DL>
+
+<H3><A NAME="sec:2.2">2.2 Writing the test body</A></H3>
+
+<A NAME="sec:testbody"></A>
+
+<P>The test-body is ordinary Prolog code. Without any options, the body 
+must be designed to succeed <EM>deterministically</EM>. Any other result 
+is considered a failure. One of the options <CODE>fail</CODE>, <CODE>true</CODE>,
+<CODE>throws</CODE>, <CODE>all</CODE> or <CODE>set</CODE> can be used to 
+specify a different expected result. See <A HREF="#sec:unitbox">section 
+2</A> for details. In this section we illustrate typical test-scenarios 
+by testing SWI-Prolog built-in and library predicates.
+
+<H4><A NAME="sec:2.2.1">2.2.1 Testing deterministic predicates</A></H4>
+
+<A NAME="sec:testdet"></A>
+
+<P>Deterministic predicates are predicates that must succeed exactly 
+once and, for well behaved predicates, leave no choicepoints. Typically 
+they have zero or more input- and zero or more output arguments. The 
+test goal supplies proper values for the input arguments and verifies 
+the output arguments. Verification can use test-options or be explicit 
+in the body. The tests in the example below are equivalent.
+
+<PRE class="code">
+test(add) :-
+        A is 1 + 2,
+        A =:= 3.
+
+test(add, [true(A =:= 3)]) :-
+        A is 1 + 2.
+</PRE>
+
+<P>The test engine verifies that the test-body does not leave a 
+choicepoint. We illustrate that using the test below:
+
+<PRE class="code">
+test(member) :-
+        member(b, [a,b,c]).
+</PRE>
+
+<P>Although this test succeeds, <A NAME="idx:member2:6"></A><B>member/2</B> 
+leaves a choicepoint which is reported by the test subsystem. To make 
+the test silent, use one of the alternatives below.
+
+<PRE class="code">
+test(member) :-
+        member(b, [a,b,c]), !.
+
+test(member, [nondet]) :-
+        member(b, [a,b,c]).
+</PRE>
+
+<H4><A NAME="sec:2.2.2">2.2.2 Testing semi-deterministic predicates</A></H4>
+
+<A NAME="sec:testsemidet"></A>
+
+<P>Semi-deterministic predicates are predicates that either fail or 
+succeed exactly once and, for well behaved predicates, leave no 
+choicepoints. Testing such predicates the the same as testing 
+deterministic predicates. Negative tests must be specified using the 
+option
+<CODE>fail</CODE> or by negating the boty using <CODE>\+/1</CODE>.
+
+<PRE class="code">
+test(is_set) :-
+        \+ is_set([a,a]).
+
+test(is_set, [fail]) :-
+        is_set([a,a]).
+</PRE>
+
+<H4><A NAME="sec:2.2.3">2.2.3 Testing non-deterministic predicates</A></H4>
+
+<A NAME="sec:testnondet"></A>
+
+<P>Non-deterministic predicates succeed zero or more times. Their 
+results are tested either using <A NAME="idx:findall3:7"></A><B>findall/3</B> 
+or <A NAME="idx:setof3:8"></A><B>setof/3</B> followed by a value-check 
+or using the <CODE>all</CODE> or <CODE>set</CODE> options. The following 
+are equivalent tests:
+
+<PRE class="code">
+test(member) :-
+        findall(X, member(X, [a,b,c]), Xs),
+        Xs == [a,b,c].
+
+test(member, all(X == [a,b,c]) :-
+        member(X, [a,b,c]).
+</PRE>
+
+<H4><A NAME="sec:2.2.4">2.2.4 Testing error conditions</A></H4>
+
+<A NAME="sec:testerror"></A>
+
+<P>Error-conditions are tested using the option <CODE>throws(Error)</CODE> 
+or by wrapping the test in a <A NAME="idx:catch3:9"></A><B>catch/3</B>. 
+The following tests are equivalent:
+
+<PRE class="code">
+test(div0) :-
+     catch(A is 1/0, error(E, _), true),
+     E =@= evaluation_error(zero_divisor).
+
+test(div0, [throws(error(evaluation_error(zero_divisor), _))]) :-
+     A is 1/0.
+</PRE>
+
+<H2><A NAME="sec:3">3 Using seperate test files</A></H2>
+
+<A NAME="sec:testfiles"></A>
+
+<P>Test-units can be embedded in normal Prolog source-files. 
+Alternatively, tests for a source-file can be placed in another file 
+alongside the file to be tested. Test files use the extension <CODE>.plt</CODE>. 
+The predicate
+<A NAME="idx:loadtestfiles1:10"></A><A HREF="#load_test_files/1">load_test_files/1</A> 
+can load all files that are related to source-files loaded into the 
+current project.
+
+<H2><A NAME="sec:4">4 Running the test-suite</A></H2>
+
+<A NAME="sec:running"></A>
+
+<P>At any time, the tests can be executed by loading the program and 
+running <A NAME="idx:runtests0:11"></A><A HREF="#run_tests/0">run_tests/0</A> 
+or run_tests(+Unit).
+
+<DL>
+<DT class="pubdef"><A NAME="run_tests/0"><STRONG>run_tests</STRONG></A></DT>
+<DD class="defbody">
+Run all test-units.</DD>
+<DT class="pubdef"><A NAME="run_tests/1"><STRONG>run_tests</STRONG>(<VAR>+Spec</VAR>)</A></DT>
+<DD class="defbody">
+Run only the specified tests. <VAR>Spec</VAR> can be a list to run 
+multiple tests. A single specification is either the name of a test unit 
+or a term &lt;<VAR>Unit</VAR>&gt;:&lt;<VAR>Tests</VAR>&gt;, running only 
+the specified test. &lt;<VAR>Tests</VAR>&gt; is either the name of a 
+test or a list of names. Running particular tests is particulary useful 
+for tracing a test:<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
+
+<PRE class="code">
+?- gtrace, run_tests(lists:member).
+</PRE>
+
+<P></DD>
+</DL>
+
+<H2><A NAME="sec:5">5 Tests and production systems</A></H2>
+
+<A NAME="sec:state"></A>
+
+<P>Most applications do not want the test-suite to end up in the final 
+application. There are several ways to achieve this. One is to places 
+all tests in seperate files and not to load the tests when creating the 
+production environment. Alternatively, use the directive below before 
+loading the application.
+
+<PRE class="code">
+:- set_test_options([load(never)]).
+</PRE>
+
+<H2><A NAME="sec:6">6 Controlling the test suite</A></H2>
+
+<A NAME="sec:options"></A>
+
+<DL>
+<DT class="pubdef"><A NAME="set_test_options/1"><STRONG>set_test_options</STRONG>(<VAR>+Options</VAR>)</A></DT>
+<DD class="defbody">
+Defined options are:
+
+<DL>
+<DT><STRONG>load</STRONG>(<VAR>+Load</VAR>)</DT>
+<DD class="defbody">
+Determines whether or not tests are loaded. When <CODE>never</CODE>, 
+everything between <A NAME="idx:begintests1:12"></A><A HREF="#begin_tests/1">begin_tests/1</A> 
+and <A NAME="idx:endtests1:13"></A><B>end_tests/1</B> is simply ignored. 
+When <CODE>always</CODE>, tests are always loaded. Finally, when using 
+the default value <CODE>normal</CODE>, tests are loaded if the code is 
+not compiled with optimisation turned on.</DD>
+<DT><STRONG>run</STRONG>(<VAR>+Run</VAR>)</DT>
+<DD class="defbody">
+Specifies when tests are ran. Using <CODE>manual</CODE>, tests can only 
+be run using <A NAME="idx:runtests0:14"></A><A HREF="#run_tests/0">run_tests/0</A> 
+or <A NAME="idx:runtests1:15"></A><A HREF="#run_tests/1">run_tests/1</A>. 
+Using <CODE>make</CODE>, tests will be run for reloaded files, but not 
+for files loaded the first time. Using
+<CODE>make(all)</CODE> <A NAME="idx:make0:16"></A><B>make/0</B> will run 
+all test-suites, not only those that belong to files that are reloaded.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="load_test_files/1"><STRONG>load_test_files</STRONG>(<VAR>+Options</VAR>)</A></DT>
+<DD class="defbody">
+Load <CODE>.plt</CODE> test-files that belong to the currently loaded 
+sources.
+</DD>
+</DL>
+
+<H2><A NAME="sec:7">7 Auto-generating tests</A></H2>
+
+<A NAME="sec:wizard"></A>
+
+<P>Prolog is an interactive environment. Where users of non-interactive 
+systems tend to write tests as code, Prolog developers tend to run 
+queries interactively during development. This interactive testing is 
+generally faster, but the disadvantage is that the tests are lost at the 
+end of the session. The test-wizard tries to combine the advantages. It 
+collects toplevel queries and saves them to a specified file. Later, it 
+extracts these queries from the file and locates the predicates that are 
+tested by the queries. It runs the query and creates a test clause from 
+the query.
+
+<P>Auto-generating test cases is experimentally supported through the 
+library <CODE>library(test_wizard)</CODE>. We briefly introduce the 
+functionality using examples. First step is to log the queries into a 
+file. This is accomplished with the commands below. <CODE>Queries.pl</CODE> 
+is the name in which to store all queries. The user can choose any 
+filename for this purpose. Multiple Prolog instances can share the same 
+name, as data is appended to this file and write is poperly locked to 
+avoid file corruption.
+
+<PRE class="code">
+:- use_module(library(test_wizard)).
+:- set_prolog_flag(log_query_file, 'Queries.pl').
+</PRE>
+
+<P>Next, we will illustrate using the library by testing the predicates 
+from library <CODE>library(lists)</CODE>. To generate test cases we just 
+make calls on the terminal. Note that all queries are recorded and the 
+system will select the appropriate ones when generating the test unit 
+for a particular module.
+
+<PRE class="code">
+?- member(b, [a,b]).
+Yes
+?- reverse([a,b], [b|A]).
+A = [a] ;
+No
+</PRE>
+
+<P>Now we can generate the test-cases for the module list using
+<A NAME="idx:maketests3:17"></A><B>make_tests/3</B>:
+
+<PRE class="code">
+?- make_tests(lists, 'Queries.pl', current_output).
+:- begin_tests(lists).
+
+test(member, [nondet]) :-
+        member(b, [a, b]).
+test(reverse, [true(A==[a])]) :-
+        reverse([a, b], [b|A]).
+
+:- end_tests(lists).
+</PRE>
+
+<H2><A NAME="sec:8">8 Coverage analysis</A></H2>
+
+<A NAME="sec:cover"></A>
+
+<P>An important aspect of tests is to know which parts of program is 
+used (<EM>covered</EM>) by the tests. An experimental analysis is 
+provided by the library <CODE>library(test_cover)</CODE>.
+
+<DL>
+<DT class="pubdef"><A NAME="show_coverage/1"><STRONG>show_coverage</STRONG>(<VAR>:Goal</VAR>)</A></DT>
+<DD class="defbody">
+Run <VAR>Goal</VAR> and write a report on which percentage of the 
+clauses in each file are used by the program and which percentage of the 
+clauses always fail.
+</DD>
+</DL>
+
+<P>We illustrate this here using CHAT, a natural language question and 
+answer application by David H.D. Warren and Fernando C.N. Pereira.
+
+<PRE class="code">
+1 ?- show_coverage(test_chat).
+Chat Natural Language Question Anwering Test
+...
+
+==================================================================
+                         Coverage by File
+==================================================================
+File                                        Clauses    %Cov %Fail
+==================================================================
+/staff/jan/lib/prolog/chat/xgrun.pl                5   100.0   0.0
+/staff/jan/lib/prolog/chat/newg.pl               186    89.2  18.3
+/staff/jan/lib/prolog/chat/clotab.pl              28    89.3   0.0
+/staff/jan/lib/prolog/chat/newdic.pl             275    35.6   0.0
+/staff/jan/lib/prolog/chat/slots.pl              128    74.2   1.6
+/staff/jan/lib/prolog/chat/scopes.pl             132    70.5   3.0
+/staff/jan/lib/prolog/chat/templa.pl              67    55.2   1.5
+/staff/jan/lib/prolog/chat/qplan.pl              106    75.5   0.9
+/staff/jan/lib/prolog/chat/talkr.pl               60    20.0   1.7
+/staff/jan/lib/prolog/chat/ndtabl.pl              42    59.5   0.0
+/staff/jan/lib/prolog/chat/aggreg.pl              47    48.9   2.1
+/staff/jan/lib/prolog/chat/world0.pl             131    71.8   1.5
+/staff/jan/lib/prolog/chat/rivers.pl              41   100.0   0.0
+/staff/jan/lib/prolog/chat/cities.pl              76    43.4   0.0
+/staff/jan/lib/prolog/chat/countr.pl             156   100.0   0.0
+/staff/jan/lib/prolog/chat/contai.pl             334   100.0   0.0
+/staff/jan/lib/prolog/chat/border.pl             857    98.6   0.0
+/staff/jan/lib/prolog/chat/chattop.pl            139    43.9   0.7
+==================================================================
+</PRE>
+
+<P>Using <CODE>?- show_coverage(run_tests).</CODE>, this library 
+currently only shows some rough quality measure for test-suite. Later 
+versions should provide a report to the developer identifying which 
+clauses are covered, not covered and always failed.
+
+<H2><A NAME="sec:9">9 Portability of the test-suite</A></H2>
+
+<A NAME="sec:porting"></A>
+
+<P>One of the reasons to have tests is to simplify migrating code 
+between Prolog implementations. Unfortunately creating a portable 
+test-suite implies a poor integration into the development environment. 
+Luckily, the specification of the test-system proposed here can be 
+ported quite easily to most Prolog systems sufficiently compatible to 
+SWI-Prolog to consider porting your application. Most important is to 
+have support for
+<A NAME="idx:termexpansion2:18"></A><B>term_expansion/2</B>.
+
+<P>In the current system, test units are compiled into sub-modules of 
+the module in which they appear. Few Prolog systems allow for 
+sub-modules and therefore ports may have to fall-back to inject the code 
+in the surrounding module. This implies that support predicates used 
+inside the test unit should not conflict with predicates of the module 
+being tested.
+
+<H2><A NAME="sec:10">10 Motivation of choices</A></H2>
+
+<A NAME="sec:motivation"></A>
+
+<H3>Easy to understand and flexible</H3>
+
+<P>There are two approaches for testing. In one extreme the tests are 
+written using declarations dealing with setup, cleanup, running and 
+testing the result. In the other extreme a test it simply a Prolog goal 
+that is supposed to succeed. We have choosen to allow for any mixture of 
+these approaches. Written down as <A NAME="idx:test1:19"></A><B>test/1</B> 
+we opt for the simple succeeding goal approach. Using options to the 
+test the user can choose for a more declarative specification. The user 
+can mix both approaches.
+
+<P>The body of the test appears at the position of a clause-body. This 
+simplifies identification of the test body and ensures proper layout and 
+colouring support from the editor without the need for explicit support 
+of the unit test module. Only clauses of <A NAME="idx:test1:20"></A><B>test/1</B> 
+and <A NAME="idx:test2:21"></A><B>test/2</B> may be marked as non-called 
+in environments that perform cross-referencing.
+
+<H1><A NAME="document-notes">Footnotes</A></H1>
+
+<DL>
+<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A></DT>
+<DD>
+Unfortunately the body of the test is called through meta-calling, so it 
+cannot be traced. The called user-code can be traced normally though.</DD>
+</DL>
+
+<H1><A NAME="document-index">Index</A></H1>
+
+<DL>
+<DT><STRONG>B</STRONG></DT>
+<DD>
+</DD>
+<DT><A HREF="#begin_tests/1">begin_tests/1</A></DT>
+<DD>
+<A HREF="#idx:begintests1:1">2</A> <A HREF="#idx:begintests1:12">6</A></DD>
+<DT><A HREF="#begin_tests/2">begin_tests/2</A></DT>
+<DD>
+</DD>
+<DT><STRONG>C</STRONG></DT>
+<DD>
+</DD>
+<DT>call_cleanup/2</DT>
+<DD>
+<A HREF="#idx:callcleanup2:3">2</A></DD>
+<DT>catch/3</DT>
+<DD>
+<A HREF="#idx:catch3:9">2.2.4</A></DD>
+<DT>copy_term/2</DT>
+<DD>
+<A HREF="#idx:copyterm2:4">2</A></DD>
+<DT><STRONG>E</STRONG></DT>
+<DD>
+</DD>
+<DT>end_tests/1</DT>
+<DD>
+<A HREF="#idx:endtests1:2">2</A> <A HREF="#idx:endtests1:13">6</A></DD>
+<DT><STRONG>F</STRONG></DT>
+<DD>
+</DD>
+<DT>findall/3</DT>
+<DD>
+<A HREF="#idx:findall3:7">2.2.3</A></DD>
+<DT><STRONG>L</STRONG></DT>
+<DD>
+</DD>
+<DT><A HREF="#load_test_files/1">load_test_files/1</A></DT>
+<DD>
+<A HREF="#idx:loadtestfiles1:10">3</A></DD>
+<DT><STRONG>M</STRONG></DT>
+<DD>
+</DD>
+<DT>make/0</DT>
+<DD>
+<A HREF="#idx:make0:16">6</A></DD>
+<DT>make_tests/3</DT>
+<DD>
+<A HREF="#idx:maketests3:17">7</A></DD>
+<DT>member/2</DT>
+<DD>
+<A HREF="#idx:member2:6">2.2.1</A></DD>
+<DT><STRONG>R</STRONG></DT>
+<DD>
+</DD>
+<DT><A HREF="#run_tests/0">run_tests/0</A></DT>
+<DD>
+<A HREF="#idx:runtests0:11">4</A> <A HREF="#idx:runtests0:14">6</A></DD>
+<DT><A HREF="#run_tests/1">run_tests/1</A></DT>
+<DD>
+<A HREF="#idx:runtests1:15">6</A></DD>
+<DT><STRONG>S</STRONG></DT>
+<DD>
+</DD>
+<DT>setof/3</DT>
+<DD>
+<A HREF="#idx:setof3:8">2.2.3</A></DD>
+<DT><A HREF="#set_test_options/1">set_test_options/1</A></DT>
+<DD>
+</DD>
+<DT><A HREF="#show_coverage/1">show_coverage/1</A></DT>
+<DD>
+</DD>
+<DT><STRONG>T</STRONG></DT>
+<DD>
+</DD>
+<DT>term_expansion/2</DT>
+<DD>
+<A HREF="#idx:termexpansion2:18">9</A></DD>
+<DT>test/1</DT>
+<DD>
+<A HREF="#idx:test1:19">10</A> <A HREF="#idx:test1:20">10</A></DD>
+<DT>test/2</DT>
+<DD>
+<A HREF="#idx:test2:5">2.1</A> <A HREF="#idx:test2:21">10</A></DD>
+</DL>
+
+</BODY></HTML>
