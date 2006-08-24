@@ -285,8 +285,9 @@ cdata(_) -->
 %	
 %	@tbd	Nondet?
 
-load_man_object(For, Path, DOM) :-
+load_man_object(For, ParentSection, DOM) :-
 	For = section(_,SN,Path),
+	parent_section(For, ParentSection),
 	findall(Nr-Pos, section_start(Path, Nr, Pos), Pairs),
 	(   Pairs = [SN-_|_]
 	->  load_html_file(Path, DOM)		% Load whole file
@@ -348,6 +349,22 @@ section_start(Path, Nr, Pos) :-
 	index_manual,
 	man_index(section(_,Nr,_), _, Path, Pos).
 
+%%	parent_section(+Section, +Parent) is det.
+%
+%	@tbd	How to avoid getting supper-section of another document?
+%	
+%			* Sort by same-file
+%			* Sort by same/closest dir
+
+parent_section(section(Level, Nr, _File), Parent) :-
+	Parent = section(PL, PNr, _PFile),
+	PL is Level - 1,
+	findall(B, sub_atom(Nr, B, _, _, '.'), BL),
+	last(BL, Before),
+	sub_atom(Nr, 0, Before, _, PNr),
+	man_index(Parent, _, _, _), !.
+parent_section(section(_, _, File), File).
+
 object_spec(Spec, Spec).
 object_spec(Atom, PI) :-
 	atom_to_pi(Atom, PI).
@@ -368,9 +385,9 @@ object_spec(Atom, PI) :-
 %		not-found message.
 
 man_page(Obj, _Options) -->
-	{ load_man_object(Obj, File, DOM), !
+	{ load_man_object(Obj, Parent, DOM), !
 	},
-	html([ \man_links(File, []),
+	html([ \man_links(Parent, []),
 	       p([]),
 	       \dom_list(DOM)
 	     ]).
@@ -432,22 +449,27 @@ atom_to_pi(Atom, Name/Arity) :-
 	Arity >= 0.
 
 
-%%	man_links(+File, +Options)// is det.
+%%	man_links(+Parent, +Options)// is det.
 %
 %	Create top link structure for manual pages.
 
-man_links(File, _Options) -->
+man_links(Parent, _Options) -->
 	html(div(class(navhdr),
-		 [ span(style('float:left'), \man_file(File)),
+		 [ span(style('float:left'), \man_parent(Parent)),
 		   span(style('float:right'), \search_form)
 		 ])).
 
-man_file(File) -->
-	{ Obj = section(_,_,_),
+man_parent(Section) -->
+	{ Section = section(_,_,_)
+	}, !,
+	object_ref(Section, [secref_style(number_title)]).
+man_parent(File) -->
+	{ atom(File),
+	  Obj = section(_,_,_),
 	  man_index(Obj, _Title, File, _Offset)
 	}, !,
 	object_ref(Obj, [secref_style(number_title)]).
-man_file(_) -->
+man_parent(_) -->
 	[].
 
 %%	section_link(+Obj, +Options)// is det.
