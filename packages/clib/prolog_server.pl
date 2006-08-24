@@ -92,13 +92,14 @@ service_client(InStream, OutStream, Peer, Options) :-
 	allow(Peer, Options), !,
 	thread_self(Id),
 	set_prolog_IO(InStream, OutStream, OutStream),
+	set_stream(InStream, tty(true)),
 	format(user_error,
 	       'Welcome to the SWI-Prolog server on thread ~w~n~n',
 	       [Id]),
-	run_prolog,
-	close(InStream),
-	close(OutStream),
-	thread_detach(Id).
+	call_cleanup(run_prolog,
+		     (	 close(InStream),
+			 close(OutStream),
+			 thread_detach(Id))).
 service_client(InStream, OutStream, _, _):-
 	thread_self(Id),
 	format(OutStream, 'Go away!!~n', []),
