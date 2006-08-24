@@ -304,7 +304,7 @@ ln-install::
 install:	@INSTALLTARGET@
 install-version: install-arch install-libs install-vbins
 
-dv-install:	install-arch install-libs install-bins
+dv-install:	install-arch install-libs install-bins html-install
 
 install-bins:	install-arch
 		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
@@ -408,7 +408,7 @@ iinclude::
 
 iman::
 		-if [ ! -d $(DESTDIR)$(mandir) ]; then $(MKDIR) $(DESTDIR)$(mandir); fi
-		-if [ ! -d $(DESTDIR)$(smandir)  ];    then $(MKDIR) $(DESTDIR)$(smandir);     fi
+		-if [ ! -d $(DESTDIR)$(smandir)  ];    then $(MKDIR) $(DESTDIR)$(smandir); fi
 		-$(INSTALL_DATA) pl.1 $(DESTDIR)$(smandir)/$(PL).$(mansec)
 		-$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(smandir)/plrc.$(mansec)
 		-$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(smandir)/plld.$(mansec)
@@ -418,6 +418,13 @@ install-lman::
 		$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(plmandir)/plrc.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(plmandir)/plld.$(mansec)
 		$(INSTALL_DATA) $(srcdir)/readline.3 $(DESTDIR)$(plmandir)/readline.$(lmansec)
+
+html-install::
+		if [ ! -d $(DESTDIR)$(PLBASE)/doc ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc; fi
+		if [ ! -d $(DESTDIR)$(PLBASE)/doc/Manual ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc/Manual; fi
+		for f in ../man/Manual/*.html ../man/Manual/*.gif; do \
+		    $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/doc/Manual; \
+		done
 
 #
 # runtime-only environment installation

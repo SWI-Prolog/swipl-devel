@@ -88,6 +88,7 @@ PLLIBS=$(PLLIBS) threadutil.pl
 !ENDIF
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl
 UNICODE=blocks.pl unicode_data.pl
+MANDIR= "$(PLBASE)\doc\Manual"
 
 all:	lite packages
 
@@ -185,7 +186,7 @@ check:
 ################################################################
 
 !IF "$(CFG)" == "rt"
-install:	$(BINDIR) iprog install_packages
+install:	$(BINDIR) iprog install_packages html-install
 !ELSE
 install:	install-arch install-libs install-readme install_packages \
 		xpce_packages install-dotfiles install-demo
@@ -227,7 +228,7 @@ install-libs:	idirs iinclude iboot ilib
 IDIRS=		"$(BINDIR)" "$(LIBDIR)" "$(PLBASE)\include" \
 		"$(PLBASE)\boot" "$(PLBASE)\library" "$(PKGDOC)" \
 		"$(PLCUSTOM)" "$(PLBASE)\demo" "$(PLBASE)\library\clp" \
-		"$(PLBASE)\library\unicode"
+		"$(PLBASE)\library\unicode" $(MANDIR)
 
 $(IDIRS):
 		if not exist $@/$(NULL) $(MKDIR) $@
@@ -278,6 +279,11 @@ install-demo::
 		    $(INSTALL_DATA) ..\demo\likes.pl "$(PLBASE)\demo\likes.pl"
 		if exist ..\demo \
 		$(INSTALL_DATA) ..\demo\README "$(PLBASE)\demo\README.TXT"
+
+html-install::
+		for %f in ..\man\Manual\*.html do copy %f "$(MANDIR)"
+		for %f in ..\man\Manual\*.gif do copy %f "$(MANDIR)"
+
 
 ################################################################
 # INSTALLER
