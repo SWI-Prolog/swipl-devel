@@ -36,11 +36,10 @@ install::
 !ENDIF
 
 html-install:	install-examples
-		copy http.html "$(PKGDOC)"
-		copy httpserver.gif "$(PKGDOC)"
+		copy pldoc.html "$(PKGDOC)"
 
 pdf-install:	install-examples
-		copy http.pdf "$(PKGDOC)"
+		copy pldoc.pdf "$(PKGDOC)"
 
 install-examples::
 		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"

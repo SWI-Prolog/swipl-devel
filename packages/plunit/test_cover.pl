@@ -1,6 +1,37 @@
+/*  $Id$
+
+    Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1985-2006, University of Amsterdam
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+*/
+
 :- module(prolog_cover,
-	  [ covering/1,			% :Goal
-	    covering_clauses/4		% +Goal, -Result, -Succeeded, -Failed
+	  [ show_coverage/1,		% :Goal
+	    covered_clauses/4		% +Goal, -Result, -Succeeded, -Failed
 	  ]).
 :- use_module(library(ordsets)).
 
@@ -41,12 +72,12 @@ are omitted from the result.
 	covering/1,
 	covering/4.
 
-%%	covering(Goal)
+%%	show_coverage(Goal)
 %
 %	Report on coverage by Goal
 
-covering(Goal) :-
-	covering_clauses(Goal, Result, Succeeded, Failed),
+show_coverage(Goal) :-
+	covered_clauses(Goal, Result, Succeeded, Failed),
 	file_coverage(Succeeded, Failed),
 	return(Result).
 
@@ -55,7 +86,7 @@ return(fail) :- !, fail.
 return(error(E)) :-
 	throw(E).
 
-%%	covering_clauses(:Goal, -Result, -Succeeded, -Failed) is det.
+%%	covered_clauses(:Goal, -Result, -Succeeded, -Failed) is det.
 %
 %	Run Goal as once/1. Unify Result with   one of =true=, =fail= or
 %	error(Error).
@@ -64,7 +95,7 @@ return(error(E)) :-
 %	@param	Failed	  Ordered set of clauses that are entered but
 %			  never succeeded.
 		
-covering_clauses(Goal, Result, Succeeded, Failed) :-
+covered_clauses(Goal, Result, Succeeded, Failed) :-
 	asserta(user:prolog_trace_interception(Port, Frame, _, continue) :-
 			prolog_cover:assert_cover(Port, Frame), Ref),
 	port_mask([unify,exit], Mask),

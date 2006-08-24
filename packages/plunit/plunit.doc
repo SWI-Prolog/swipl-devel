@@ -392,6 +392,103 @@ it extracts these queries from the file and locates the predicates that
 are tested by the queries.  It runs the query and creates a test clause
 from the query.
 
+Auto-generating test cases is experimentally supported through the
+library \pllib{test_wizard}. We briefly introduce the functionality
+using examples. First step is to log the queries into a file. This is
+accomplished with the commands below. \file{Queries.pl} is the name in
+which to store all queries. The user can choose any filename for this
+purpose.   Multiple Prolog instances can share the same name, as data
+is appended to this file and write is poperly locked to avoid file
+corruption.
+
+\begin{code}
+:- use_module(library(test_wizard)).
+:- set_prolog_flag(log_query_file, 'Queries.pl').
+\end{code}
+
+Next, we will illustrate using the library by testing the predicates
+from library \pllib{lists}.  To generate test cases we just make calls
+on the terminal.  Note that all queries are recorded and the system will
+select the appropriate ones when generating the test unit for a
+particular module.
+
+\begin{code}
+?- member(b, [a,b]).
+Yes
+?- reverse([a,b], [b|A]).
+A = [a] ;
+No
+\end{code}
+
+Now we can generate the test-cases for the module list using
+make_tests/3:
+
+\begin{code}
+?- make_tests(lists, 'Queries.pl', current_output).
+:- begin_tests(lists).
+
+test(member, [nondet]) :-
+        member(b, [a, b]).
+test(reverse, [true(A==[a])]) :-
+        reverse([a, b], [b|A]).
+
+:- end_tests(lists).
+\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Coverage analysis}
+\label{sec:cover}
+
+An important aspect of tests is to know which parts of program
+is used (\emph{covered}) by the tests.  An experimental analysis
+is provided by the library \pllib{test_cover}.  
+
+\begin{description}
+    \predicate{show_coverage}{1}{:Goal}
+Run \arg{Goal} and write a report on which percentage of the clauses in
+each file are used by the program and which percentage of the clauses
+always fail.
+\end{description}
+
+We illustrate this here using CHAT, a natural language question and
+answer application by David H.D. Warren and Fernando C.N. Pereira.
+
+\begin{code}
+1 ?- show_coverage(test_chat).
+Chat Natural Language Question Anwering Test
+...
+
+==================================================================
+                         Coverage by File
+==================================================================
+File                                        Clauses    %Cov %Fail
+==================================================================
+/staff/jan/lib/prolog/chat/xgrun.pl                5   100.0   0.0
+/staff/jan/lib/prolog/chat/newg.pl               186    89.2  18.3
+/staff/jan/lib/prolog/chat/clotab.pl              28    89.3   0.0
+/staff/jan/lib/prolog/chat/newdic.pl             275    35.6   0.0
+/staff/jan/lib/prolog/chat/slots.pl              128    74.2   1.6
+/staff/jan/lib/prolog/chat/scopes.pl             132    70.5   3.0
+/staff/jan/lib/prolog/chat/templa.pl              67    55.2   1.5
+/staff/jan/lib/prolog/chat/qplan.pl              106    75.5   0.9
+/staff/jan/lib/prolog/chat/talkr.pl               60    20.0   1.7
+/staff/jan/lib/prolog/chat/ndtabl.pl              42    59.5   0.0
+/staff/jan/lib/prolog/chat/aggreg.pl              47    48.9   2.1
+/staff/jan/lib/prolog/chat/world0.pl             131    71.8   1.5
+/staff/jan/lib/prolog/chat/rivers.pl              41   100.0   0.0
+/staff/jan/lib/prolog/chat/cities.pl              76    43.4   0.0
+/staff/jan/lib/prolog/chat/countr.pl             156   100.0   0.0
+/staff/jan/lib/prolog/chat/contai.pl             334   100.0   0.0
+/staff/jan/lib/prolog/chat/border.pl             857    98.6   0.0
+/staff/jan/lib/prolog/chat/chattop.pl            139    43.9   0.7
+==================================================================
+\end{code}
+
+Using \verb$?- show_coverage(run_tests).$, this library currently only
+shows some rough quality measure for test-suite.  Later versions should
+provide a report to the developer identifying which clauses are covered,
+not covered and always failed.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Portability of the test-suite}

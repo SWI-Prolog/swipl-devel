@@ -30,8 +30,9 @@ INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
-LIBPL=		plunit.pl
+LIBPL=		plunit.pl test_wizard.pl test_cover.pl
 LIBALL=		$(LIBPL) $(SUPPORT)
+EXAMPLES=	read.pl simple.pl
 
 all:		
 		@echo "Nothing to do for this package"
@@ -43,7 +44,7 @@ install:	$(LIBPL)
 
 ln-install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(LIBDIR)
-		for f in $(DOCALL) README; do \
+		for f in $(LIBALL) README; do \
 		    rm -f $(DESTDIR)$(LIBDIR)/$$f; \
 		    ln -s `pwd`/$$f $(DESTDIR)$(LIBDIR); \
 		done
@@ -60,7 +61,6 @@ html-install:	install-examples
 install-examples::
 		mkdir -p $(DESTDIR)$(EXDIR)
 		(cd examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
-		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(DESTDIR)$(EXDIR))
 
 uninstall::
 		rm -f $(LIBDIR)/plunit.pl
