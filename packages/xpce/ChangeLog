@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.18, distributed with SWI-Prolog 5.6.18
+==================================================
+
 * ADDED: Allow for spaces in #include file of defaults.  Tom Conlon.
 
 * FIXED: Crash in window placement if a new window is created from an

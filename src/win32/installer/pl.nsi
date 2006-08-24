@@ -361,6 +361,29 @@ Section "NLP package"
   File pl\doc\packages\nlp.html
 SectionEnd
 
+Section "Unit test package"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File pl\library\plunit.pl
+  File pl\library\test_wizard.pl
+  File pl\library\test_cover.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\plunit.html
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r pl\doc\packages\examples\plunit
+SectionEnd
+
+Section "Documentation package"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\library
+  File /r pl\library\pldoc
+  SetOutPath $INSTDIR\library
+  File pl\library\pldoc.pl
+  File pl\library\doc_http.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\pldoc.html
+SectionEnd
+
 Section "C Debugging Symbols (.pdb files)"
   SectionIn 3
   SetOutPath $INSTDIR\bin

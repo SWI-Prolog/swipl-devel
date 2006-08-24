@@ -106,6 +106,11 @@ html-install::
         done
 	$(INSTALL_DATA) index.html $(DESTDIR)$(PKGDOC)
 
+ln-install::
+	for p in $(PKG); do \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+        done
+
 configure::
 	@echo "**********************"
 	@echo "* Configuring packages $(PKG)"

@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+================================
+VERSION 5.6.18 (August 24, 2006)
+================================
+
   * FIXED: Bug#192: reading non-decimal numbers that cause a 64-bit int
     overflow.  Marius Filip.
 
