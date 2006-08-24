@@ -1,0 +1,175 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.6</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="typetest.html">
+<LINK REL=next HREF="control.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="typetest.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="control.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.6">4.6 Comparison and Unification or Terms</A></H2>
+
+<A NAME="sec:compare"></A>
+
+<H3><A NAME="sec:4.6.1">4.6.1 Standard Order of Terms</A></H3>
+
+<A NAME="sec:standardorder"></A>
+
+<P>Comparison and unification of arbitrary terms. Terms are ordered in 
+the so called ``standard order''. This order is defined as follows:
+
+<P><OL>
+<LI><VAR><VAR>Variables</VAR> &lt; <VAR>Numbers</VAR> &lt; <VAR>Atoms</VAR> 
+&lt; <VAR>Strings</VAR> &lt; <VAR>Comound Terms</VAR></VAR><A NAME=back-to-note-25 HREF="Notes.html#note-25"> (25)</A>
+<LI>Variables are sorted by address. Attaching attributes (see <A HREF="attvar.html">section 
+6.1</A>) does not affect the ordering.
+<LI><VAR>Atoms</VAR> are compared alphabetically.
+<LI><VAR>Strings</VAR> are compared alphabetically.
+<LI><VAR>Numbers</VAR> are compared by value. Integers and floats are 
+treated identically. If the prolog_flag (see <A NAME="idx:currentprologflag2:440"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>)
+<CODE>iso</CODE> is defined, all floating point numbers precede all 
+integers.
+<LI><VAR>Compound</VAR> terms are first checked on their arity, then on 
+their functor-name (alphabetically) and finally recursively on their 
+arguments, leftmost argument first.
+</OL>
+
+<DL>
+<DT class="pubdef"><A NAME="==/2"><VAR>+Term1</VAR> <STRONG>==</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Term1</VAR> is equivalent to <VAR>Term2</VAR>. A 
+variable is only identical to a sharing variable.
+</DD>
+<DT class="pubdef"><A NAME="\==/2"><VAR>+Term1</VAR> <STRONG>\==</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Equivalent to <CODE><CODE>\+</CODE>Term1 == Term2</CODE>.
+</DD>
+<DT class="pubdef"><A NAME="=/2"><VAR>+Term1</VAR> <STRONG>=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Unify <VAR>Term1</VAR> with <VAR>Term2</VAR>. Succeeds if the 
+unification succeeds.
+</DD>
+<DT class="pubdef"><A NAME="unify_with_occurs_check/2"><STRONG>unify_with_occurs_check</STRONG>(<VAR>+Term1, 
++Term2</VAR>)</A></DT>
+<DD class="defbody">
+As <A HREF="compare.html#=/2">=/2</A>, but using <EM>sound-unification</EM>. 
+That is, a variable only unifies to a term if this term does not contain 
+the variable itself. To illustrate this, consider the two goals below:
+
+<PRE class="code">
+1 ?- A = f(A).
+
+A = f(f(f(f(f(f(f(f(f(f(...))))))))))
+2 ?- unify_with_occurs_check(A, f(A)).
+
+No
+</PRE>
+
+<P>I.e. the first creates a <EM>cyclic-term</EM>, which is printed as an 
+infinitely nested f/1 term (see the <CODE>max_depth</CODE> option of <A NAME="idx:writeterm2:441"></A><A HREF="termrw.html#write_term/2">write_term/2</A>). 
+The second executes logically sound unification and thus fails.</DD>
+<DT class="pubdef"><A NAME="\=/2"><VAR>+Term1</VAR> <STRONG>\=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Equivalent to <CODE><CODE>\+</CODE>Term1 = Term2</CODE>.</DD>
+<DT class="pubdef"><A NAME="=@=/2"><VAR>+Term1</VAR> <STRONG>=@=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Term1</VAR> is `structurally equal' to <VAR>Term2</VAR>. 
+Structural equivalence is weaker than equivalence (<A HREF="compare.html#==/2">==/2</A>), 
+but stronger than unification (<A HREF="compare.html#=/2">=/2</A>). Two 
+terms are structurally equal if their tree representation is identical 
+and they have the same `pattern' of variables. Examples:
+<BLOCKQUOTE>
+<TABLE BORDER=0 FRAME=void RULES=groups>
+<TR VALIGN=top><TD ALIGN=right><TT>a</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>A</TT></TD><TD ALIGN=center>false </TD></TR>
+<TR VALIGN=top><TD ALIGN=right><TT>A</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>B</TT></TD><TD ALIGN=center>true </TD></TR>
+<TR VALIGN=top><TD ALIGN=right><TT>x(A,A)</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>x(B,C)</TT></TD><TD ALIGN=center>false </TD></TR>
+<TR VALIGN=top><TD ALIGN=right><TT>x(A,A)</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>x(B,B)</TT></TD><TD ALIGN=center>true </TD></TR>
+<TR VALIGN=top><TD ALIGN=right><TT>x(A,B)</TT></TD><TD ALIGN=center><TT>=@=</TT></TD><TD><TT>x(C,D)</TT></TD><TD ALIGN=center>true </TD></TR>
+</TABLE>
+
+</BLOCKQUOTE>
+
+<P>The predicates <A HREF="compare.html#=@=/2">=@=/2</A> and <A HREF="compare.html#\=@=/2">\=@=/2</A> 
+are cycle-safe. Attributed variables are considered structurally equal 
+iff their attributes are structurally equal.</DD>
+<DT class="pubdef"><A NAME="\=@=/2"><VAR>+Term1</VAR> <STRONG>\=@=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Equivalent to <CODE>`<CODE>\+</CODE>Term1 =@= Term2'</CODE>.</DD>
+<DT class="pubdef"><A NAME="@</2"><VAR>+Term1</VAR> <STRONG>@&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Term1</VAR> is before <VAR>Term2</VAR> in the standard 
+order of terms.</DD>
+<DT class="pubdef"><A NAME="@=</2"><VAR>+Term1</VAR> <STRONG>@=&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Succeeds if both terms are equal (<A HREF="compare.html#==/2">==/2</A>) 
+or <VAR>Term1</VAR> is before <VAR>Term2</VAR> in the standard order of 
+terms.</DD>
+<DT class="pubdef"><A NAME="@>/2"><VAR>+Term1</VAR> <STRONG>@&gt;</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Term1</VAR> is after <VAR>Term2</VAR> in the standard 
+order of terms.</DD>
+<DT class="pubdef"><A NAME="@>=/2"><VAR>+Term1</VAR> <STRONG>@&gt;=</STRONG> <VAR>+Term2</VAR></A></DT>
+<DD class="defbody">
+Succeeds if both terms are equal (<A HREF="compare.html#==/2">==/2</A>) 
+or <VAR>Term1</VAR> is after <VAR>Term2</VAR> in the standard order of 
+terms.</DD>
+<DT class="pubdef"><A NAME="compare/3"><STRONG>compare</STRONG>(<VAR>?Order, 
++Term1, +Term2</VAR>)</A></DT>
+<DD class="defbody">
+Determine or test the <VAR>Order</VAR> between two terms in the standard 
+order of terms. <VAR>Order</VAR> is one of <CODE><CODE>&lt;</CODE></CODE>, <CODE><CODE>&gt;</CODE></CODE> 
+or <CODE><CODE>=</CODE></CODE>, with the obvious meaning.</DD>
+<DT class="pubdef"><A NAME="?=/2"><STRONG>?=</STRONG>(<VAR>@Term1, @Term2</VAR>)</A></DT>
+<DD class="defbody">
+Decide whether the equality of <VAR>Term1</VAR> and <VAR>Term2</VAR> can 
+be compared safely, i.e. whether the result of <CODE>Term1 == Term2</CODE> 
+can change due to further instantiation of either term. It is defined as 
+by <CODE>?=(A,B) :- (A==B ; A \= B), !.</CODE> See also
+<A NAME="idx:dif2:442"></A><A HREF="coroutining.html#dif/2">dif/2</A>.</DD>
+<DT class="pubdef"><A NAME="unifiable/3"><STRONG>unifiable</STRONG>(<VAR>@X, @Y, 
+-Unifier</VAR>)</A></DT>
+<DD class="defbody">
+If <VAR>X</VAR> and <VAR>Y</VAR> can unify, unify <VAR>Unifier</VAR> 
+with a list of
+<VAR>Var</VAR> = <VAR>Value</VAR>, representing the bindings required to 
+make <VAR>X</VAR> and <VAR>Y</VAR> equivalent.<A NAME=back-to-note-26 HREF="Notes.html#note-26"> (26)</A> 
+This predicate can handle cyclic terms. Attributed variables are handles 
+as normal variables. Associated hooks are <EM>not</EM> executed.
+</DD>
+</DL>
+
+<P></BODY></HTML>

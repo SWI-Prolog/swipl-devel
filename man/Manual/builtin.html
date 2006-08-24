@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="idesummary.html">
+<LINK REL=next HREF="preddesc.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="idesummary.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="preddesc.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H1><A NAME="sec:4">4 Built-in predicates</A></H1>
+
+<A NAME="sec:builtin"></A>
+
+<P>
+<HR>
+<CENTER>
+
+<H2>Section Index</H2>
+
+</CENTER>
+<HR>
+<UL>
+<LI><A HREF="preddesc.html"><B>4.1 Notation of Predicate Descriptions</B></A>
+<LI><A HREF="chars.html"><B>4.2 Character representation</B></A>
+<LI><A HREF="consulting.html"><B>4.3 Loading Prolog source files</B></A>
+<UL>
+<LI><A HREF="consulting.html#sec:4.3.1">4.3.1 Loading files, active code 
+and threads</A>
+<UL>
+<LI><A HREF="consulting.html#sec:4.3.1.1">4.3.1.1 Threads and reloading 
+running code</A>
+</UL>
+<LI><A HREF="consulting.html#sec:4.3.2">4.3.2 Quick load files</A>
+</UL>
+<LI><A HREF="listing.html"><B>4.4 Listing and Editor Interface</B></A>
+<LI><A HREF="typetest.html"><B>4.5 Verify Type of a Term</B></A>
+<LI><A HREF="compare.html"><B>4.6 Comparison and Unification or Terms</B></A>
+<UL>
+<LI><A HREF="compare.html#sec:4.6.1">4.6.1 Standard Order of Terms</A>
+</UL>
+<LI><A HREF="control.html"><B>4.7 Control Predicates</B></A>
+<LI><A HREF="metacall.html"><B>4.8 Meta-Call Predicates</B></A>
+<LI><A HREF="exception.html"><B>4.9 ISO compliant Exception handling</B></A>
+<UL>
+<LI><A HREF="exception.html#sec:4.9.1">4.9.1 Debugging and exceptions</A>
+<LI><A HREF="exception.html#sec:4.9.2">4.9.2 The exception term</A>
+<LI><A HREF="exception.html#sec:4.9.3">4.9.3 Printing messages</A>
+</UL>
+<LI><A HREF="signal.html"><B>4.10 Handling signals</B></A>
+<UL>
+<LI><A HREF="signal.html#sec:4.10.1">4.10.1 Notes on signal handling</A>
+</UL>
+<LI><A HREF="block3.html"><B>4.11 The `block' control-structure</B></A>
+<LI><A HREF="DCG.html"><B>4.12 DCG Grammar rules</B></A>
+<LI><A HREF="db.html"><B>4.13 Database</B></A>
+<UL>
+<LI><A HREF="db.html#sec:4.13.1">4.13.1 Update view</A>
+<LI><A HREF="db.html#sec:4.13.2">4.13.2 Indexing databases</A>
+</UL>
+<LI><A HREF="dynamic.html"><B>4.14 Declaring predicates properties</B></A>
+<LI><A HREF="examineprog.html"><B>4.15 Examining the program</B></A>
+<LI><A HREF="IO.html"><B>4.16 Input and output</B></A>
+<UL>
+<LI><A HREF="IO.html#sec:4.16.1">4.16.1 ISO Input and Output Streams</A>
+<LI><A HREF="IO.html#sec:4.16.2">4.16.2 Edinburgh-style I/O</A>
+<LI><A HREF="IO.html#sec:4.16.3">4.16.3 Switching Between Edinburgh and 
+ISO I/O</A>
+<LI><A HREF="IO.html#sec:4.16.4">4.16.4 Write onto atoms, code-lists, 
+etc.</A>
+</UL>
+<LI><A HREF="streamstat.html"><B>4.17 Status of streams</B></A>
+<LI><A HREF="chario.html"><B>4.18 Primitive character I/O</B></A>
+<LI><A HREF="termrw.html"><B>4.19 Term reading and writing</B></A>
+<LI><A HREF="manipterm.html"><B>4.20 Analysing and Constructing Terms</B></A>
+<UL>
+<LI><A HREF="manipterm.html#sec:4.20.1">4.20.1 Non-logical operations on 
+terms</A>
+</UL>
+<LI><A HREF="manipatom.html"><B>4.21 Analysing and Constructing Atoms</B></A>
+<LI><A HREF="chartype.html"><B>4.22 Classifying characters</B></A>
+<UL>
+<LI><A HREF="chartype.html#sec:4.22.1">4.22.1 Case conversion</A>
+</UL>
+<LI><A HREF="strings.html"><B>4.23 Representing text in strings</B></A>
+<LI><A HREF="operators.html"><B>4.24 Operators</B></A>
+<LI><A HREF="charconv.html"><B>4.25 Character Conversion</B></A>
+<LI><A HREF="arith.html"><B>4.26 Arithmetic</B></A>
+<UL>
+<LI><A HREF="arith.html#sec:4.26.1">4.26.1 Special purpose integer 
+arithmetic</A>
+<LI><A HREF="arith.html#sec:4.26.2">4.26.2 General purpose arithmetic</A>
+<UL>
+<LI><A HREF="arith.html#sec:4.26.2.1">4.26.2.1 Arithmetic types</A>
+<LI><A HREF="arith.html#sec:4.26.2.2">4.26.2.2 Rational number examples</A>
+<LI><A HREF="arith.html#sec:4.26.2.3">4.26.2.3 Arithmetic Functions</A>
+</UL>
+</UL>
+<LI><A HREF="extendarith.html"><B>4.27 Adding Arithmetic Functions</B></A>
+<LI><A HREF="builtinlist.html"><B>4.28 Built-in list operations</B></A>
+<LI><A HREF="allsolutions.html"><B>4.29 Finding all Solutions to a Goal</B></A>
+<LI><A HREF="applylist.html"><B>4.30 Invoking Predicates on all Members 
+of a List</B></A>
+<LI><A HREF="forall2.html"><B>4.31 Forall</B></A>
+<LI><A HREF="format.html"><B>4.32 Formatted Write</B></A>
+<UL>
+<LI><A HREF="format.html#sec:4.32.1">4.32.1 Writef</A>
+<LI><A HREF="format.html#sec:4.32.2">4.32.2 Format</A>
+<LI><A HREF="format.html#sec:4.32.3">4.32.3 Programming Format</A>
+</UL>
+<LI><A HREF="tty.html"><B>4.33 Terminal Control</B></A>
+<LI><A HREF="system.html"><B>4.34 Operating System Interaction</B></A>
+<UL>
+<LI><A HREF="system.html#sec:4.34.1">4.34.1 Dealing with time and date</A>
+<UL>
+<LI><A HREF="system.html#sec:4.34.1.1">4.34.1.1 Time and date 
+data-structures</A>
+<LI><A HREF="system.html#sec:4.34.1.2">4.34.1.2 Time and date predicates</A>
+</UL>
+<LI><A HREF="system.html#sec:4.34.2">4.34.2 Controlling the <B>PLWIN.EXE</B> 
+console window</A>
+</UL>
+<LI><A HREF="files.html"><B>4.35 File System Interaction</B></A>
+<LI><A HREF="toplevel.html"><B>4.36 User Top-level Manipulation</B></A>
+<LI><A HREF="protocol.html"><B>4.37 Creating a Protocol of the User 
+Interaction</B></A>
+<LI><A HREF="debugger.html"><B>4.38 Debugging and Tracing Programs</B></A>
+<LI><A HREF="statistics.html"><B>4.39 Obtaining Runtime Statistics</B></A>
+<LI><A HREF="profile.html"><B>4.40 Execution profiling</B></A>
+<UL>
+<LI><A HREF="profile.html#sec:4.40.1">4.40.1 Profiling predicates</A>
+<LI><A HREF="profile.html#sec:4.40.2">4.40.2 Visualizing profiling data</A>
+<LI><A HREF="profile.html#sec:4.40.3">4.40.3 Information gathering</A>
+<UL>
+<LI><A HREF="profile.html#sec:4.40.3.1">4.40.3.1 Profiling in the 
+Windows Implementation</A>
+</UL>
+</UL>
+<LI><A HREF="memory.html"><B>4.41 Memory Management</B></A>
+<LI><A HREF="DDE.html"><B>4.42 Windows DDE interface</B></A>
+<UL>
+<LI><A HREF="DDE.html#sec:4.42.1">4.42.1 DDE client interface</A>
+<LI><A HREF="DDE.html#sec:4.42.2">4.42.2 DDE server mode</A>
+</UL>
+<LI><A HREF="miscpreds.html"><B>4.43 Miscellaneous</B></A>
+</UL>
+</BODY></HTML>

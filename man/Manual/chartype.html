@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.22</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="manipatom.html">
+<LINK REL=next HREF="strings.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="manipatom.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="strings.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.22">4.22 Classifying characters</A></H2>
+
+<A NAME="sec:chartype"></A>
+
+<P>SWI-Prolog offers two comprehensive predicates for classifying 
+characters and character-codes. These predicates are defined as built-in 
+predicates to exploit the C-character classification's handling of
+<EM>locale</EM> (handling of local character-sets). These predicates are 
+fast, logical and deterministic if applicable.
+
+<P>In addition, there is the library <CODE>library(ctype)</CODE> 
+providing compatibility to some other Prolog systems. The predicates of 
+this library are defined in terms of <A NAME="idx:codetype2:841"></A><A HREF="chartype.html#code_type/2">code_type/2</A>.
+
+<DL>
+<DT class="pubdef"><A NAME="char_type/2"><STRONG>char_type</STRONG>(<VAR>?Char, 
+?Type</VAR>)</A></DT>
+<DD class="defbody">
+Tests or generates alternative <VAR>Type</VAR>s or <VAR>Char</VAR>s. The 
+character-types are inspired by the standard C <CODE>&lt;ctype.h&gt;</CODE> 
+primitives.
+
+<DL>
+<DT><STRONG>alnum</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a letter (upper- or lowercase) or digit.
+</DD>
+<DT><STRONG>alpha</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a letter (upper- or lowercase).
+</DD>
+<DT><STRONG>csym</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a letter (upper- or lowercase), digit or the 
+underscore (<CODE>_</CODE>). These are valid C- and Prolog symbol 
+characters.
+</DD>
+<DT><STRONG>csymf</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a letter (upper- or lowercase) or the underscore (<CODE>_</CODE>). 
+These are valid first characters for C- and Prolog symbols
+</DD>
+<DT><STRONG>ascii</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a 7-bits ASCII character (0..127).
+</DD>
+<DT><STRONG>white</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a space or tab. E.i. white space inside a line.
+</DD>
+<DT><STRONG>cntrl</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is an ASCII control-character (0..31).
+</DD>
+<DT><STRONG>digit</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a digit.
+</DD>
+<DT><STRONG>digit</STRONG>(<VAR>Weigth</VAR>)</DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a digit with value <VAR>Weigth</VAR>. I.e. <CODE>char_type(X, 
+digit(6)</CODE> yields <VAR>X</VAR> = <CODE>'6'</CODE>. Useful for 
+parsing numbers.
+</DD>
+<DT><STRONG>xdigit</STRONG>(<VAR>Weigth</VAR>)</DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a hexa-decimal digit with value <VAR>Weigth</VAR>. 
+I.e. <CODE>char_type(a, xdigit(X)</CODE> yields <VAR>X</VAR> = <CODE>'10'</CODE>. 
+Useful for parsing numbers.
+</DD>
+<DT><STRONG>graph</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> produces a visible mark on a page when printed. Note 
+that the space is not included!
+</DD>
+<DT><STRONG>lower</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a lower-case letter.
+</DD>
+<DT><STRONG>lower</STRONG>(<VAR>Upper</VAR>)</DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a lower-case version of <VAR>Upper</VAR>. Only true 
+if
+<VAR>Char</VAR> is lowercase and <VAR>Upper</VAR> uppercase.
+</DD>
+<DT><STRONG>to_lower</STRONG>(<VAR>Upper</VAR>)</DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a lower-case version of <VAR>Upper</VAR>. For 
+non-letters, or letter without case, <VAR>Char</VAR> and <VAR>Lower</VAR> 
+are the same. See also <A NAME="idx:upcaseatom2:842"></A><A HREF="chartype.html#upcase_atom/2">upcase_atom/2</A> 
+and <A NAME="idx:downcaseatom2:843"></A><A HREF="chartype.html#downcase_atom/2">downcase_atom/2</A>.
+</DD>
+<DT><STRONG>upper</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is an upper-case letter.
+</DD>
+<DT><STRONG>upper</STRONG>(<VAR>Lower</VAR>)</DT>
+<DD class="defbody">
+<VAR>Char</VAR> is an upper-case version of <VAR>Lower</VAR>. Only true 
+if
+<VAR>Char</VAR> is uppercase and <VAR>Lower</VAR> lowercase.
+</DD>
+<DT><STRONG>to_upper</STRONG>(<VAR>Lower</VAR>)</DT>
+<DD class="defbody">
+<VAR>Char</VAR> is an upper-case version of <VAR>Lower</VAR>. For 
+non-letters, or letter without case, <VAR>Char</VAR> and <VAR>Lower</VAR> 
+are the same. See also <A NAME="idx:upcaseatom2:844"></A><A HREF="chartype.html#upcase_atom/2">upcase_atom/2</A> 
+and <A NAME="idx:downcaseatom2:845"></A><A HREF="chartype.html#downcase_atom/2">downcase_atom/2</A>.
+</DD>
+<DT><STRONG>punct</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a punctuation character. This is a <CODE>graph</CODE> 
+character that is not a letter or digit.
+</DD>
+<DT><STRONG>space</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is some form of layout character (tab, vertical-tab, 
+newline, etc.).
+</DD>
+<DT><STRONG>end_of_file</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is -1.
+</DD>
+<DT><STRONG>end_of_line</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> ends a line (ASCII: 10..13).
+</DD>
+<DT><STRONG>newline</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a the newline character (10).
+</DD>
+<DT><STRONG>period</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> counts as the end of a sentence (.,!,?).
+</DD>
+<DT><STRONG>quote</STRONG></DT>
+<DD class="defbody">
+<VAR>Char</VAR> is a quote-character (<CODE>"</CODE>, <CODE>'</CODE>, <CODE>`</CODE>).
+</DD>
+<DT><STRONG>paren</STRONG>(<VAR>Close</VAR>)</DT>
+<DD class="defbody">
+<VAR>Char</VAR> is an open-parenthesis and <VAR>Close</VAR> is the 
+corresponding close-parenthesis.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="code_type/2"><STRONG>code_type</STRONG>(<VAR>?Code, 
+?Type</VAR>)</A></DT>
+<DD class="defbody">
+As <A NAME="idx:chartype2:846"></A><A HREF="chartype.html#char_type/2">char_type/2</A>, 
+but uses character-codes rather than one-character atoms. Please note 
+that both predicates are as flexible as possible. They handle either 
+representation if the argument is instantiated and only will instantiate 
+with an integer code or one-character atom depending of the version 
+used. See also the prolog-flag
+<CODE>double_quotes</CODE>, <A NAME="idx:atomchars2:847"></A><A HREF="manipatom.html#atom_chars/2">atom_chars/2</A> 
+and <A NAME="idx:atomcodes2:848"></A><A HREF="manipatom.html#atom_codes/2">atom_codes/2</A>.
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.22.1">4.22.1 Case conversion</A></H3>
+
+<P>There is nothing in the Prolog standard for converting case in 
+textual data. The SWI-Prolog predicates <A NAME="idx:codetype2:849"></A><A HREF="chartype.html#code_type/2">code_type/2</A> 
+and <A NAME="idx:chartype2:850"></A><A HREF="chartype.html#char_type/2">char_type/2</A> 
+can be used to test and convert individual characters. We have started 
+some additional support:
+
+<DL>
+<DT class="pubdef"><A NAME="downcase_atom/2"><STRONG>downcase_atom</STRONG>(<VAR>+AnyCase, 
+-LowerCase</VAR>)</A></DT>
+<DD class="defbody">
+Converts the characters of <VAR>AnyCase</VAR> into lowercase as <A NAME="idx:chartype2:851"></A><A HREF="chartype.html#char_type/2">char_type/2</A> 
+does (i.e. based on the defined <EM>locale</EM> if Prolog provides 
+locale support on the hosting platform) and unifies the lowercase atom 
+with <VAR>LowerCase</VAR>.</DD>
+<DT class="pubdef"><A NAME="upcase_atom/2"><STRONG>upcase_atom</STRONG>(<VAR>+AnyCase, 
+-UpperCase</VAR>)</A></DT>
+<DD class="defbody">
+Converts, similar to <A NAME="idx:downcaseatom2:852"></A><A HREF="chartype.html#downcase_atom/2">downcase_atom/2</A>, 
+an atom to upper-case.
+</DD>
+</DL>
+
+<P></BODY></HTML>

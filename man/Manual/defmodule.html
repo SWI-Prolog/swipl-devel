@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 5.3</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="whichmodules.html">
+<LINK REL=next HREF="import.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="whichmodules.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="import.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:5.3">5.3 Defining a Module</A></H2>
+
+<A NAME="dec:defmodule"></A>
+
+<P>Modules normally are created by loading a <EM>module file</EM>. A 
+module file is a file holding a <A NAME="idx:module2:1047"></A><A HREF="manipmodule.html#module/2">module/2</A> 
+directive as its first term. The
+<A NAME="idx:module2:1048"></A><A HREF="manipmodule.html#module/2">module/2</A> 
+directive declares the name and the public (i.e., externally visible) 
+predicates of the module. The rest of the file is loaded into the 
+module. Below is an example of a module file, defining <A NAME="idx:reverse2:1049"></A><A HREF="lists.html#reverse/2">reverse/2</A>.
+
+<PRE class="code">
+:- module(reverse, [reverse/2]).
+
+reverse(List1, List2) :-
+        rev(List1, [], List2).
+
+rev([], List, List).
+rev([Head|List1], List2, List3) :-
+        rev(List1, [Head|List2], List3).
+</PRE>
+
+<P></BODY></HTML>

@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="runenv.html">
+<LINK REL=next HREF="lists.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="runenv.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="lists.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H1><A NAME="sec:A">A The SWI-Prolog library</A></H1>
+
+<A NAME="sec:libpl"></A>
+
+<P>This chapter documents the SWI-Prolog library. As SWI-Prolog provides 
+auto-loading, there is little difference between library predicates and 
+built-in predicates. Part of the library is therefore documented in the 
+rest of the manual. Library predicates differ from built-in predicates 
+in the following ways.
+
+<P>
+<UL>
+<LI>User-definition of a built-in leads to a permission-error, while 
+using the name of a library predicate is allowed.
+
+<P>
+<LI>If autoloading is disabled explicitely or because trapping unknown 
+predicates is disabled (see <A NAME="idx:unknown2:1336"></A><A HREF="debugger.html#unknown/2">unknown/2</A> 
+and
+<A NAME="idx:currentprologflag2:1337"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>), 
+library predicates must be loaded explicitely.
+
+<P>
+<LI>Using libraries reduce the footprint of applications that don't need 
+them.
+</UL>
+<BLOCKQUOTE><EM>The documentation of the library is just started. 
+Material from the standard packages should be moved here, some material 
+from other parts of the manual should be moved too and various libraries 
+are not documented at all.
+</EM></BLOCKQUOTE>
+
+<P>
+<HR>
+<CENTER>
+
+<H2>Section Index</H2>
+
+</CENTER>
+<HR>
+<UL>
+<LI><A HREF="lists.html"><B>A.1 library( lists ): List Manipulation</B></A>
+<UL>
+<LI><A HREF="lists.html#sec:A.1.1">A.1.1 Set Manipulation</A>
+</UL>
+<LI><A HREF="ordsets.html"><B>A.2 library( ordsets ): Ordered Set 
+Manipulation</B></A>
+<LI><A HREF="assoc.html"><B>A.3 library( assoc ): Association lists</B></A>
+<LI><A HREF="ugraphs.html"><B>A.4 library( ugraphs ): Unweighted Graphs</B></A>
+<LI><A HREF="nbset.html"><B>A.5 library( nbset ): Non-backtrackable set</B></A>
+<LI><A HREF="gensym.html"><B>A.6 library( gensym ): Generate unique 
+identifiers</B></A>
+<LI><A HREF="check.html"><B>A.7 library( check ): Elementary 
+completeness checks</B></A>
+<LI><A HREF="debug.html"><B>A.8 library( debug ): Some reusable code to 
+help debugging applications</B></A>
+<LI><A HREF="readutil.html"><B>A.9 library( readutil ): Reading lines, 
+streams and files</B></A>
+<LI><A HREF="netscape.html"><B>A.10 library( netscape ): Activating your 
+Web-browser</B></A>
+<LI><A HREF="registry.html"><B>A.11 library( registry ): Manipulating 
+the Windows registry</B></A>
+<LI><A HREF="url.html"><B>A.12 library( url ): Analysing and 
+constructing URL</B></A>
+<LI><A HREF="clpbounds.html"><B>A.13 library( clp/bounds ): Integer 
+Bounds Constraint Solver</B></A>
+<UL>
+<LI><A HREF="clpbounds.html#sec:A.13.1">A.13.1 Constraints</A>
+<LI><A HREF="clpbounds.html#sec:A.13.2">A.13.2 Constraint Implication 
+and Reified Constraints</A>
+<LI><A HREF="clpbounds.html#sec:A.13.3">A.13.3 Example 1: 
+Send+More=Money</A>
+<LI><A HREF="clpbounds.html#sec:A.13.4">A.13.4 Example 2: Using 
+tuples_in for a train schedule</A>
+<LI><A HREF="clpbounds.html#sec:A.13.5">A.13.5 SICStus clp(FD) 
+compatibility</A>
+</UL>
+<LI><A HREF="clpqr.html"><B>A.14 library( clpqr ): Constraint Logic 
+Programming over Rationals and Reals</B></A>
+<UL>
+<LI><A HREF="clpqr.html#sec:A.14.1">A.14.1 Solver predicates</A>
+<LI><A HREF="clpqr.html#sec:A.14.2">A.14.2 Syntax of the predicate 
+arguments</A>
+<LI><A HREF="clpqr.html#sec:A.14.3">A.14.3 Use of unification</A>
+<LI><A HREF="clpqr.html#sec:A.14.4">A.14.4 Non-linear constraints</A>
+</UL>
+<LI><A HREF="clpclp_distinct.html"><B>A.15 library( clp/clp_distinct ): 
+Weak arc consistent `all_distinct' constraint</B></A>
+<UL>
+<LI><A HREF="clpclp_distinct.html#sec:A.15.1">A.15.1 Example 1</A>
+<LI><A HREF="clpclp_distinct.html#sec:A.15.2">A.15.2 Example 2</A>
+<LI><A HREF="clpclp_distinct.html#sec:A.15.3">A.15.3 Example 3</A>
+</UL>
+<LI><A HREF="simplex.html"><B>A.16 library( simplex ): Solve linear 
+programming problems</B></A>
+<UL>
+<LI><A HREF="simplex.html#sec:A.16.1">A.16.1 Example 1</A>
+<LI><A HREF="simplex.html#sec:A.16.2">A.16.2 Example 2</A>
+<LI><A HREF="simplex.html#sec:A.16.3">A.16.3 Example 3</A>
+</UL>
+<LI><A HREF="prologxref.html"><B>A.17 library( prologxref ): 
+Cross-reference data collection library</B></A>
+<UL>
+<LI><A HREF="prologxref.html#sec:A.17.1">A.17.1 Extending the library</A>
+</UL>
+</UL>
+</BODY></HTML>

@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 9.2</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="foreignoverview.html">
+<LINK REL=next HREF="dynstatic.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="foreignoverview.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="dynstatic.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:9.2">9.2 Linking Foreign Modules</A></H2>
+
+<A NAME="sec:foreignlink"></A>
+
+<P>Foreign modules may be linked to Prolog in two ways. Using
+<EM>static linking</EM>, the extensions, a (short) file defining main() 
+which attaches the extensions calls Prolog and the SWI-Prolog kernel 
+distributed as a C-library are linked together to form a new executable. 
+Using <EM>dynamic linking</EM>, the extensions are linked to a shared 
+library (<CODE>.so</CODE> file on most Unix systems) or dynamic-link 
+library (<CODE>.DLL</CODE> file on Microsoft platforms) and loaded into 
+the the running Prolog process.<A NAME=back-to-note-80 HREF="Notes.html#note-80"> (80)</A>.
+
+<H3><A NAME="sec:9.2.1">9.2.1 What linking is provided?</A></H3>
+
+<P>The <EM>static linking</EM> schema can be used on all versions of 
+SWI-Prolog. Whether or not dynamic linking is supported can be deduced 
+from the prolog-flag <CODE>open_shared_object</CODE> (see
+<A NAME="idx:currentprologflag2:1235"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). 
+If this prolog-flag yields true,
+<A NAME="idx:opensharedobject2:1236"></A><A HREF="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
+and related predicates are defined. See
+<A HREF="DLL.html">section 9.4</A> for a suitable high-level interface 
+to these predicates.
+
+<H3><A NAME="sec:9.2.2">9.2.2 What kind of loading should I be using?</A></H3>
+
+<P>All described approaches have their advantages and disadvantages. 
+Static linking is portable and allows for debugging on all platforms. It 
+is relatively cumbersome and the libraries you need to pass to the 
+linker may vary from system to system, though the utility program
+<B>plld</B> described in <A HREF="plld.html">section 9.7</A> often hides 
+these problems from the user.
+
+<P>Loading shared objects (DLL files on Windows) provides sharing and 
+protection and is generally the best choice. If a saved-state is created 
+using <A NAME="idx:qsaveprogram12:1237"></A><A HREF="runtime.html#qsave_program/1">qsave_program/[1,2]</A>, 
+an <A NAME="idx:initialization1:1238"></A><A HREF="consulting.html#initialization/1">initialization/1</A> 
+directive may be used to load the appropriate library at startup.
+
+<P>Note that the definition of the foreign predicates is the same, 
+regardless of the linking type used.
+
+<P></BODY></HTML>

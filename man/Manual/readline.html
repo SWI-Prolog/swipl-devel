@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section B.7</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="loadfilehook.html">
+<LINK REL=next HREF="glossary.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="loadfilehook.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="glossary.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:B.7">B.7 Readline Interaction</A></H2>
+
+<A NAME="sec:readline"></A>
+
+<P>The following predicates are available if
+<CODE>current_prolog_flag(readline, true)</CODE> succeeds. They allow 
+for direct interaction with the GNU readline library. See also
+<STRONG>readline</STRONG>(3)
+
+<DL>
+<DT class="pubdef"><A NAME="rl_read_init_file/1"><STRONG>rl_read_init_file</STRONG>(<VAR>+File</VAR>)</A></DT>
+<DD class="defbody">
+Read a readline initialisation file. Readline by default reads
+<CODE> /.inputrc</CODE>. This predicate may be used to read alternative 
+readline initialisation files.
+</DD>
+<DT class="pubdef"><A NAME="rl_add_history/1"><STRONG>rl_add_history</STRONG>(<VAR>+Line</VAR>)</A></DT>
+<DD class="defbody">
+Add a line to the Control-P/Control-N history system of the readline 
+library.
+</DD>
+</DL>
+
+</BODY></HTML>

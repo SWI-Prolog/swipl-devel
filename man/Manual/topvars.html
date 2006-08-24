@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 2.8</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="history.html">
+<LINK REL=next HREF="debugoverview.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="history.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="debugoverview.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:2.8">2.8 Reuse of top-level bindings</A></H2>
+
+<A NAME="sec:topvars"></A>
+
+<P>Bindings resulting from the successful execution of a top-level goal 
+are asserted in a database. These values may be reused in further 
+top-level queries as $Var. Only the latest binding is available. 
+Example:
+
+<PRE class="code">
+1 ?- maplist(plus(1), "hello", X).
+
+X = [105,102,109,109,112] 
+
+Yes
+2 ?- format('~s~n', [$X]).
+ifmmp
+
+Yes
+3 ?-
+</PRE>
+
+<TABLE ALIGN=center WIDTH="75%"><TR><TD>
+<B>Figure 1 : </B>Reusing top-level bindings</TABLE>
+
+<A NAME="fig:topevelvars"></A>
+
+<P>Note that variables may be set by executing <A HREF="compare.html#=/2">=/2</A>:
+
+<PRE class="code">
+6 ?- X = statistics.
+
+X = statistics
+
+Yes
+7 ?- $X.
+28.00 seconds cpu time for 183,128 inferences
+4,016 atoms, 1,904 functors, 2,042 predicates, 52 modules
+55,915 byte codes; 11,239 external references
+
+                      Limit    Allocated       In use
+Heap         :                                624,820 Bytes
+Local  stack :    2,048,000        8,192          404 Bytes
+Global stack :    4,096,000       16,384          968 Bytes
+Trail  stack :    4,096,000        8,192          432 Bytes
+
+Yes
+8 ?-
+</PRE>
+
+<P></BODY></HTML>

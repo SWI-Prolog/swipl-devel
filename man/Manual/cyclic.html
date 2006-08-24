@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 2.16</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="syntax.html">
+<LINK REL=next HREF="widechars.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="syntax.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="widechars.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:2.16">2.16 Infinite trees (cyclic terms)</A></H2>
+
+<A NAME="sec:cyclic"></A>
+
+<P><A NAME="idx:infinitetrees:208"></A><A NAME="idx:cyclicterms:209"></A><A NAME="idx:termscyclic:210"></A>SWI-Prolog 
+has limited support for infinite trees, also known as cyclic terms. Full 
+support requires special code in all built-in predicates that require 
+recursive exploration of a term. The current version supports cycles 
+terms in the pure Prolog kernel including the garbage collector and in 
+the following predicates:
+<A HREF="manipterm.html#=../2">=../2</A>,
+<A HREF="compare.html#==/2">==/2</A>,
+<A HREF="compare.html#=@=/2">=@=/2</A>,
+<A HREF="compare.html#=/2">=/2</A>,
+<A HREF="compare.html#@</2">@&lt;/2</A>,
+<A HREF="compare.html#@=</2">@=&lt;/2</A>,
+<A HREF="compare.html#@>=/2">@&gt;=/2</A>,
+<A HREF="compare.html#@>/2">@&gt;/2</A>,
+<A HREF="compare.html#\==/2">\==/2</A>,
+<A HREF="compare.html#\=@=/2">\=@=/2</A>,
+<A HREF="compare.html#\=/2">\=/2</A>,
+<A NAME="idx:acyclicterm1:211"></A><A HREF="typetest.html#acyclic_term/1">acyclic_term/1</A>,
+<A NAME="idx:bagof3:212"></A><A HREF="allsolutions.html#bagof/3">bagof/3</A>,
+<A NAME="idx:compare3:213"></A><A HREF="compare.html#compare/3">compare/3</A>,
+<A NAME="idx:copyterm2:214"></A><A HREF="manipterm.html#copy_term/2">copy_term/2</A>,
+<A NAME="idx:cyclicterm1:215"></A><A HREF="typetest.html#cyclic_term/1">cyclic_term/1</A>,
+<A NAME="idx:dif2:216"></A><A HREF="coroutining.html#dif/2">dif/2</A>,
+<A NAME="idx:duplicateterm2:217"></A><A HREF="manipterm.html#duplicate_term/2">duplicate_term/2</A>,
+<A NAME="idx:findall3:218"></A><A HREF="allsolutions.html#findall/3">findall/3</A>,
+<A NAME="idx:ground1:219"></A><A HREF="typetest.html#ground/1">ground/1</A>,
+<A NAME="idx:hashterm2:220"></A><A HREF="db.html#hash_term/2">hash_term/2</A>,
+<A NAME="idx:numbervars34:221"></A><A HREF="manipterm.html#numbervars/3">numbervars/[3,4]</A>,
+<A NAME="idx:recorda3:222"></A><A HREF="db.html#recorda/3">recorda/3</A>,
+<A NAME="idx:recordz3:223"></A><A HREF="db.html#recordz/3">recordz/3</A>,
+<A NAME="idx:setof3:224"></A><A HREF="allsolutions.html#setof/3">setof/3</A>,
+<A NAME="idx:termvariables2:225"></A><A HREF="manipterm.html#term_variables/2">term_variables/2</A>,
+<A NAME="idx:throw1:226"></A><A HREF="exception.html#throw/1">throw/1</A>,
+<A NAME="idx:when2:227"></A><A HREF="coroutining.html#when/2">when/2</A>,
+<A NAME="idx:write1:228"></A><A HREF="termrw.html#write/1">write/1</A> 
+(incomplete) .
+
+<P></BODY></HTML>

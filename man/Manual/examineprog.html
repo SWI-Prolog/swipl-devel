@@ -1,0 +1,272 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.15</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="dynamic.html">
+<LINK REL=next HREF="IO.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="dynamic.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="IO.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.15">4.15 Examining the program</A></H2>
+
+<A NAME="sec:examineprog"></A>
+
+<DL>
+<DT class="pubdef"><A NAME="current_atom/1"><STRONG>current_atom</STRONG>(<VAR>-Atom</VAR>)</A></DT>
+<DD class="defbody">
+Successively unifies <VAR>Atom</VAR> with all atoms known to the system. 
+Note that <A NAME="idx:currentatom1:584"></A><A HREF="examineprog.html#current_atom/1">current_atom/1</A> 
+always succeeds if <VAR>Atom</VAR> is instantiated to an atom.</DD>
+<DT class="pubdef"><A NAME="current_blob/2"><STRONG>current_blob</STRONG>(<VAR>?Blob, 
+?Type</VAR>)</A></DT>
+<DD class="defbody">
+Examine the type or enumerate blobs of the given <VAR>Type</VAR>. Typed 
+blobs are supported through the foreign language interface for storing 
+arbitrary BLOBS (Binary Large Object) or handles to external entities. 
+See <A HREF="foreigninclude.html">section 9.6.6</A> for details.</DD>
+<DT class="pubdef"><A NAME="current_functor/2"><STRONG>current_functor</STRONG>(<VAR>?Name, 
+?Arity</VAR>)</A></DT>
+<DD class="defbody">
+Successively unifies <VAR>Name</VAR> with the name and <VAR>Arity</VAR> 
+with the arity of functors known to the system.</DD>
+<DT class="pubdef"><A NAME="current_flag/1"><STRONG>current_flag</STRONG>(<VAR>-FlagKey</VAR>)</A></DT>
+<DD class="defbody">
+Successively unifies <VAR>FlagKey</VAR> with all keys used for flags 
+(see
+<A NAME="idx:flag3:585"></A><A HREF="db.html#flag/3">flag/3</A>).</DD>
+<DT class="pubdef"><A NAME="current_key/1"><STRONG>current_key</STRONG>(<VAR>-Key</VAR>)</A></DT>
+<DD class="defbody">
+Successively unifies <VAR>Key</VAR> with all keys used for records (see
+<A NAME="idx:recorda3:586"></A><A HREF="db.html#recorda/3">recorda/3</A>, 
+etc.).</DD>
+<DT class="pubdef"><A NAME="current_predicate/2"><STRONG>current_predicate</STRONG>(<VAR>?Name, 
+?Head</VAR>)</A></DT>
+<DD class="defbody">
+Successively unifies <VAR>Name</VAR> with the name of predicates 
+currently defined and <VAR>Head</VAR> with the most general term built 
+from <VAR>Name</VAR> and the arity of the predicate. This predicate 
+succeeds for all predicates defined in the specified module, imported to 
+it, or in one of the modules from which the predicate will be imported 
+if it is called.</DD>
+<DT class="pubdef"><A NAME="current_predicate/1"><STRONG>current_predicate</STRONG>(<VAR>:Name/Arity</VAR>)</A></DT>
+<DD class="defbody">
+ISO compliant implementation of <A NAME="idx:currentpredicate2:587"></A><A HREF="examineprog.html#current_predicate/2">current_predicate/2</A>. 
+Unlike
+<A NAME="idx:currentpredicate2:588"></A><A HREF="examineprog.html#current_predicate/2">current_predicate/2</A>, 
+the current implementation of <A NAME="idx:currentpredicate1:589"></A><A HREF="examineprog.html#current_predicate/1">current_predicate/1</A> 
+does not consider predicates that can be autoloaded `current'.</DD>
+<DT class="pubdef"><A NAME="predicate_property/2"><STRONG>predicate_property</STRONG>(<VAR>:Head, 
+?Property</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Head</VAR> refers to a predicate that has property
+<VAR>Property</VAR>. Can be used to test whether a predicate has a 
+certain property, obtain all properties known for <VAR>Head</VAR>, find 
+all predicates having <VAR>property</VAR> or even obtaining all 
+information available about the current program. <VAR>Property</VAR> is 
+one of:
+
+<DL>
+<DT><STRONG>built_in</STRONG></DT>
+<DD class="defbody">
+Is true if the predicate is locked as a built-in predicate. This implies 
+it cannot be redefined in its definition module and it can normally not 
+be seen in the tracer.</DD>
+<DT><STRONG>dynamic</STRONG></DT>
+<DD class="defbody">
+Is true if <A NAME="idx:assert1:590"></A><A HREF="db.html#assert/1">assert/1</A> 
+and <A NAME="idx:retract1:591"></A><A HREF="db.html#retract/1">retract/1</A> 
+may be used to modify the predicate. This property is set using <A NAME="idx:dynamic1:592"></A><A HREF="dynamic.html#dynamic/1">dynamic/1</A>.</DD>
+<DT><STRONG>exported</STRONG></DT>
+<DD class="defbody">
+Is true if the predicate is in the public list of the context module.
+</DD>
+<DT><STRONG>imported_from</STRONG>(<VAR>Module</VAR>)</DT>
+<DD class="defbody">
+Is true if the predicate is imported into the context module from module <VAR>Module</VAR>.</DD>
+<DT><STRONG>file</STRONG>(<VAR>FileName</VAR>)</DT>
+<DD class="defbody">
+Unify <VAR>FileName</VAR> with the name of the source file in which the 
+predicate is defined. See also <A NAME="idx:sourcefile2:593"></A><A HREF="consulting.html#source_file/2">source_file/2</A>.</DD>
+<DT><STRONG>foreign</STRONG></DT>
+<DD class="defbody">
+Is true if the predicate is defined in the C language.</DD>
+<DT><STRONG>indexed</STRONG>(<VAR>Head</VAR>)</DT>
+<DD class="defbody">
+Predicate is indexed (see <A NAME="idx:index1:594"></A><A HREF="dynamic.html#index/1">index/1</A>) 
+according to <VAR>Head</VAR>. <VAR>Head</VAR> is a term whose name and 
+arity are identical to the predicate. The arguments are unified with `1' 
+for indexed arguments, `0' otherwise.</DD>
+<DT><STRONG>interpreted</STRONG></DT>
+<DD class="defbody">
+Is true if the predicate is defined in Prolog. We return true on this 
+because, although the code is actually compiled, it is completely 
+transparent, just like interpreted code.</DD>
+<DT><STRONG>line_count</STRONG>(<VAR>LineNumber</VAR>)</DT>
+<DD class="defbody">
+Unify <VAR>LineNumber</VAR> with the line number of the first clause of 
+the predicate. Fails if the predicate is not associated with a file. See 
+also <A NAME="idx:sourcefile2:595"></A><A HREF="consulting.html#source_file/2">source_file/2</A>.</DD>
+<DT><STRONG>multifile</STRONG></DT>
+<DD class="defbody">
+Is true there may be multiple (or no) file providing clauses for the 
+predicate. This property is set using <A NAME="idx:multifile1:596"></A><A HREF="dynamic.html#multifile/1">multifile/1</A>.</DD>
+<DT><STRONG>nodebug</STRONG></DT>
+<DD class="defbody">
+Details of the predicate are not shown by the debugger. This is the 
+default for built-in predicates. User predicates can be compiled this 
+way using the Prolog flag <CODE>generate_debug_info</CODE>.</DD>
+<DT><STRONG>notrace</STRONG></DT>
+<DD class="defbody">
+Do not show ports of this predicate in the debugger.</DD>
+<DT><STRONG>number_of_clauses</STRONG>(<VAR>ClauseCount</VAR>)</DT>
+<DD class="defbody">
+Unify <VAR>ClauseCount</VAR> to the number of clauses associated with 
+the predicate. Fails for foreign predicates.</DD>
+<DT><STRONG>thread_local</STRONG></DT>
+<DD class="defbody">
+If true (only possible on the multi-threaded version) each thread has 
+its own clauses for the predicate. This property is set using
+<A NAME="idx:threadlocal1:597"></A><A HREF="threadcom.html#thread_local/1">thread_local/1</A>.</DD>
+<DT><STRONG>transparent</STRONG></DT>
+<DD class="defbody">
+Is true if the predicate is declared transparent using the
+<A NAME="idx:moduletransparent1:598"></A><A HREF="manipmodule.html#module_transparent/1">module_transparent/1</A> 
+declaration.</DD>
+<DT><STRONG>undefined</STRONG></DT>
+<DD class="defbody">
+Is true if a procedure definition block for the predicate exists, but 
+there are no clauses for it and it is not declared dynamic or multifile. 
+This is true if the predicate occurs in the body of a loaded predicate, 
+an attempt to call it has been made via one of the meta-call predicates 
+or the predicate had a definition in the past. See the library package
+<CODE>library(check)</CODE> for example usage.</DD>
+<DT><STRONG>volatile</STRONG></DT>
+<DD class="defbody">
+If true, the clauses are not saved into a saved-state by <A NAME="idx:qsaveprogram12:599"></A><A HREF="runtime.html#qsave_program/1">qsave_program/[1,2]</A>. 
+This property is set using <A NAME="idx:volatile1:600"></A><A HREF="runtime.html#volatile/1">volatile/1</A>.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="dwim_predicate/2"><STRONG>dwim_predicate</STRONG>(<VAR>+Term, 
+-Dwim</VAR>)</A></DT>
+<DD class="defbody">
+`Do What I Mean' (`dwim') support predicate. <VAR>Term</VAR> is a term, 
+which name and arity are used as a predicate specification. <VAR>Dwim</VAR> 
+is instantiated with the most general term built from <VAR>Name</VAR> 
+and the arity of a defined predicate that matches the predicate 
+specified by
+<VAR>Term</VAR> in the `Do What I Mean' sense. See <A NAME="idx:dwimmatch2:601"></A><A HREF="miscpreds.html#dwim_match/2">dwim_match/2</A> 
+for `Do What I Mean' string matching. Internal system predicates are not 
+generated, unless <CODE>style_check(+dollar)</CODE> is active. 
+Backtracking provides all alternative matches.
+</DD>
+<DT class="pubdef"><A NAME="clause/2"><STRONG>clause</STRONG>(<VAR>?Head, 
+?Body</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds when <VAR>Head</VAR> can be unified with a clause head and <VAR>Body</VAR> 
+with the corresponding clause body. Gives alternative clauses on 
+backtracking. For facts <VAR>Body</VAR> is unified with the atom <VAR>true</VAR>. 
+Normally <A NAME="idx:clause2:602"></A><A HREF="examineprog.html#clause/2">clause/2</A> 
+is used to find clause definitions for a predicate, but it can also be 
+used to find clause heads for some body template.
+</DD>
+<DT class="pubdef"><A NAME="clause/3"><STRONG>clause</STRONG>(<VAR>?Head, 
+?Body, ?Reference</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to <A NAME="idx:clause2:603"></A><A HREF="examineprog.html#clause/2">clause/2</A>, 
+but unifies <VAR>Reference</VAR> with a unique reference to the clause 
+(see also <A NAME="idx:assert2:604"></A><A HREF="db.html#assert/2">assert/2</A>, <A NAME="idx:erase1:605"></A><A HREF="db.html#erase/1">erase/1</A>). 
+If <VAR>Reference</VAR> is instantiated to a reference the clause's head 
+and body will be unified with <VAR> Head</VAR> and <VAR>Body</VAR>.
+</DD>
+<DT class="pubdef"><A NAME="nth_clause/3"><STRONG>nth_clause</STRONG>(<VAR>?Pred, 
+?Index, ?Reference</VAR>)</A></DT>
+<DD class="defbody">
+Provides access to the clauses of a predicate using their index number. 
+Counting starts at 1. If <VAR>Reference</VAR> is specified it unifies <VAR>Pred</VAR> 
+with the most general term with the same name/arity as the predicate and
+<VAR>Index</VAR> with the index-number of the clause. Otherwise the name 
+and arity of <VAR>Pred</VAR> are used to determine the predicate. If <VAR>Index</VAR> 
+is provided <VAR>Reference</VAR> will be unified with the clause 
+reference. If <VAR>Index</VAR> is unbound, backtracking will yield both 
+the indices and the references of all clauses of the predicate. The 
+following example finds the 2nd clause of <A NAME="idx:member2:606"></A><A HREF="lists.html#member/2">member/2</A>:
+
+<PRE class="code">
+?- nth_clause(member(_,_), 2, Ref), clause(Head, Body, Ref).
+
+Ref = 160088
+Head = system : member(G575, [G578|G579]) 
+Body = member(G575, G579)
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="clause_property/2"><STRONG>clause_property</STRONG>(<VAR>+ClauseRef, 
+-Property</VAR>)</A></DT>
+<DD class="defbody">
+Queries properties of a clause. <VAR>ClauseRef</VAR> is a reference to a 
+clause as produced by <A NAME="idx:clause3:607"></A><A HREF="examineprog.html#clause/3">clause/3</A>, <A NAME="idx:nthclause3:608"></A><A HREF="examineprog.html#nth_clause/3">nth_clause/3</A> 
+or <A NAME="idx:prologframeattribute3:609"></A><A HREF="manipstack.html#prolog_frame_attribute/3">prolog_frame_attribute/3</A>.
+<VAR>Property</VAR> is one of the following:
+
+<DL>
+<DT><STRONG>file</STRONG>(<VAR>FileName</VAR>)</DT>
+<DD class="defbody">
+Unify <VAR>FileName</VAR> with the name of the source file in which the 
+clause is defined. Fails if the clause is not associated to a file.
+</DD>
+<DT><STRONG>line_count</STRONG>(<VAR>LineNumber</VAR>)</DT>
+<DD class="defbody">
+Unify <VAR>LineNumber</VAR> with the line number of the clause. Fails if 
+the clause is not associated to a file.
+</DD>
+<DT><STRONG>fact</STRONG></DT>
+<DD class="defbody">
+True if the clause has no body.
+</DD>
+<DT><STRONG>erased</STRONG></DT>
+<DD class="defbody">
+True if the clause has been erased, but not yet reclaimed because it is 
+referenced.
+</DD>
+</DL>
+
+</DD>
+</DL>
+
+<P></BODY></HTML>

@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 8.7</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="foreignthread.html">
+<LINK REL=next HREF="foreign.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="foreignthread.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="foreign.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:8.7">8.7 Multithreading and the XPCE graphics system</A></H2>
+
+<A NAME="sec:mt-xpce"></A>
+<A NAME="sec:xpcethread"></A>
+
+<P>GUI applications written in XPCE can benefit from the multi-threaded 
+version of XPCE/SWI-Prolog if they need to do expensive computations 
+that block to UI in the single-threaded version.
+
+<P>Due to various technical problems on both Windows and Unix/X11 
+threading is best exploited by handing long computations to their own 
+thread.
+
+<P>The XPCE message passing system is guarded with a single <EM>mutex</EM>, 
+which synchronises both access from Prolog and activation through the 
+GUI. In MS-Windows, GUI events are processed by the thread that created 
+the window in which the event occurred, whereas in Unix/X11 they are 
+processed by the thread that dispatches messages.
+
+<P>Some tentative work is underway to improve the integration between 
+XPCE and multi-threaded SWI-Prolog. There are two sets of support 
+predicates. The first model assumes that XPCE is running in the main 
+thread and background threads are used for computation. In the second 
+model, XPCE event dispatching runs in the background, while the 
+foreground thread is used for Prolog.
+
+<P><B>XPCE in the foreground</B> Using XPCE in the foreground simplifies 
+debugging of the UI and generally provides the most comfortable 
+development environment. The GUI creates new threads using <A NAME="idx:threadcreate3:1228"></A><A HREF="threadcreate.html#thread_create/3">thread_create/3</A> 
+and, after work in the thread is completed, the sub-thread signals the 
+main thread of the the completion using <A NAME="idx:inpcethread1:1229"></A><A HREF="mt-xpce.html#in_pce_thread/1">in_pce_thread/1</A>.
+
+<DL>
+<DT class="pubdef"><A NAME="in_pce_thread/1"><STRONG>in_pce_thread</STRONG>(<VAR>:Goal</VAR>)</A></DT>
+<DD class="defbody">
+Assuming XPCE is running in the foreground thread, this call gives 
+background threads the opportunity to make calls to the XPCE thread. A 
+call to <A NAME="idx:inpcethread1:1230"></A><A HREF="mt-xpce.html#in_pce_thread/1">in_pce_thread/1</A> 
+succeeds immediately, copying <VAR>Goal</VAR> to the XPCE thread. <VAR>Goal</VAR> 
+is added to the XPCE event-queue and executed synchronous to normal user 
+events like typing and clicking.
+</DD>
+</DL>
+
+<P><B>XPCE in the background</B> In this model a thread for running XPCE 
+is created using <A NAME="idx:pcedispatch1:1231"></A><A HREF="mt-xpce.html#pce_dispatch/1">pce_dispatch/1</A> 
+and actions are sent to this thread using <A NAME="idx:pcecall1:1232"></A><A HREF="mt-xpce.html#pce_call/1">pce_call/1</A>.
+
+<DL>
+<DT class="pubdef"><A NAME="pce_dispatch/1"><STRONG>pce_dispatch</STRONG>(<VAR>+Options</VAR>)</A></DT>
+<DD class="defbody">
+Create a Prolog thread with the alias-name <CODE>pce</CODE> for XPCE 
+event-handling. In the X11 version this call creates a thread that 
+executes the X11 event-dispatch loop. In MS-Windows it creates a thread 
+that executes a windows event-dispatch loop. The XPCE event-handling 
+thread has the alias <CODE>pce</CODE>. <VAR>Options</VAR> specifies the 
+thread-attributes as <A NAME="idx:threadcreate3:1233"></A><A HREF="threadcreate.html#thread_create/3">thread_create/3</A>.</DD>
+<DT class="pubdef"><A NAME="pce_call/1"><STRONG>pce_call</STRONG>(<VAR>:Goal</VAR>)</A></DT>
+<DD class="defbody">
+Post <VAR>Goal</VAR> to the <CODE>pce</CODE> thread, executing it 
+synchronous with the thread's event-loop. The <A NAME="idx:pcecall1:1234"></A><A HREF="mt-xpce.html#pce_call/1">pce_call/1</A> 
+predicate returns immediately without waiting. Note that <VAR>Goal</VAR> 
+is <EM>copied</EM> to the <CODE>pce</CODE> thread.
+</DD>
+</DL>
+
+<P>For further information about XPCE in threaded applications, please 
+visit
+<A HREF="http://gollem.science.uva.nl/twiki/pl/bin/view/Development/MultiThreadsXPCE">http://gollem.science.uva.nl/twiki/pl/bin/view/Development/MultiThreadsXPCE</A>
+
+<P></BODY></HTML>

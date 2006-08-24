@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="prologxref.html">
+<LINK REL=next HREF="manipstack.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="prologxref.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="manipstack.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H1><A NAME="sec:B">B Hackers corner</A></H1>
+
+<A NAME="sec:hack"></A>
+
+<P>This appendix describes a number of predicates which enable the 
+Prolog user to inspect the Prolog environment and manipulate (or even 
+redefine) the debugger. They can be used as entry points for experiments 
+with debugging tools for Prolog. The predicates described here should be 
+handled with some care as it is easy to corrupt the consistency of the 
+Prolog system by misusing them.
+
+<P>
+<HR>
+<CENTER>
+
+<H2>Section Index</H2>
+
+</CENTER>
+<HR>
+<UL>
+<LI><A HREF="manipstack.html"><B>B.1 Examining the Environment Stack</B></A>
+<LI><A HREF="tracehook.html"><B>B.2 Intercepting the Tracer</B></A>
+<LI><A HREF="excepthook.html"><B>B.3 Adding context to errors: 
+prolog_exception_hook</B></A>
+<LI><A HREF="exception3.html"><B>B.4 Hooks using the exception predicate</B></A>
+<LI><A HREF="intlibs.html"><B>B.5 Hooks for integrating libraries</B></A>
+<LI><A HREF="loadfilehook.html"><B>B.6 Hooks for loading files</B></A>
+<LI><A HREF="readline.html"><B>B.7 Readline Interaction</B></A>
+</UL>
+</BODY></HTML>

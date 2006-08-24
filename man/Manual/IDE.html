@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="limits.html">
+<LINK REL=next HREF="projectfiles.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="limits.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="projectfiles.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H1><A NAME="sec:3">3 Initialising and Managing a Prolog Project</A></H1>
+
+<A NAME="sec:IDE"></A>
+
+<P><A NAME="idx:IDE:252"></A><A NAME="idx:Developmentenvironment:253"></A>Prolog 
+text-books give you an overview of the Prolog language. The manual tells 
+you what predicates are provided in the system and what they do. This 
+chapter wants to explain how to run a project. There is no ultimate 
+`right' way to do this. Over the years we developed some practice in 
+this area and SWI-Prolog's commands are there to support this practice. 
+This chapter describes the conventions and supporting commands.
+
+<P>The first two sections (<A HREF="projectfiles.html">section 3.1</A> 
+and <A HREF="usingmodules.html">section 3.2</A> only require plain 
+Prolog. The remainder discusses the use of the built-in graphical tools 
+that require the XPCE graphical library installed on your system.
+
+<P>
+<HR>
+<CENTER>
+
+<H2>Section Index</H2>
+
+</CENTER>
+<HR>
+<UL>
+<LI><A HREF="projectfiles.html"><B>3.1 The project source-files</B></A>
+<UL>
+<LI><A HREF="projectfiles.html#sec:3.1.1">3.1.1 File Names and Locations</A>
+<UL>
+<LI><A HREF="projectfiles.html#sec:3.1.1.1">3.1.1.1 File Name Extensions</A>
+<LI><A HREF="projectfiles.html#sec:3.1.1.2">3.1.1.2 Project Directories</A>
+<LI><A HREF="projectfiles.html#sec:3.1.1.3">3.1.1.3 Sub-projects using 
+search-paths</A>
+</UL>
+<LI><A HREF="projectfiles.html#sec:3.1.2">3.1.2 Project Special Files</A>
+<LI><A HREF="projectfiles.html#sec:3.1.3">3.1.3 International source 
+files</A>
+</UL>
+<LI><A HREF="usingmodules.html"><B>3.2 Using modules</B></A>
+<LI><A HREF="editreload.html"><B>3.3 The test-edit-reload cycle</B></A>
+<UL>
+<LI><A HREF="editreload.html#sec:3.3.1">3.3.1 Locating things to edit</A>
+<LI><A HREF="editreload.html#sec:3.3.2">3.3.2 Editing and incremental 
+compilation</A>
+</UL>
+<LI><A HREF="pceemacs.html"><B>3.4 Using the PceEmacs built-in editor</B></A>
+<UL>
+<LI><A HREF="pceemacs.html#sec:3.4.1">3.4.1 Activating PceEmacs</A>
+<LI><A HREF="pceemacs.html#sec:3.4.2">3.4.2 Bluffing through PceEmacs</A>
+<UL>
+<LI><A HREF="pceemacs.html#sec:3.4.2.1">3.4.2.1 Edit modes</A>
+<LI><A HREF="pceemacs.html#sec:3.4.2.2">3.4.2.2 Frequently used editor 
+commands</A>
+</UL>
+<LI><A HREF="pceemacs.html#sec:3.4.3">3.4.3 Prolog Mode</A>
+<UL>
+<LI><A HREF="pceemacs.html#sec:3.4.3.1">3.4.3.1 Finding your way around</A>
+</UL>
+</UL>
+<LI><A HREF="guitracer.html"><B>3.5 The Graphical Debugger</B></A>
+<UL>
+<LI><A HREF="guitracer.html#sec:3.5.1">3.5.1 Invoking the window-based 
+debugger</A>
+</UL>
+<LI><A HREF="navigator.html"><B>3.6 The Prolog Navigator</B></A>
+<LI><A HREF="xref.html"><B>3.7 Cross referencer</B></A>
+<LI><A HREF="idepreds.html"><B>3.8 Accessing the IDE from your program</B></A>
+<LI><A HREF="idesummary.html"><B>3.9 Summary of the iDE</B></A>
+</UL>
+</BODY></HTML>

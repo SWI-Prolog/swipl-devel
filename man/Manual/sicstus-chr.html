@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 7.6</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="examples.html">
+<LINK REL=next HREF="guidelines.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="examples.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="guidelines.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:7.6">7.6 Backwards Compatibility</A></H2>
+
+<A NAME="sec:sicstus-chr"></A> There are small differences between the 
+current K.U.Leuven CHR system in SWI-Prolog, older versions of the same 
+system and SICStus' CHR system.
+
+<P>The current system maps old syntactic elements onto new ones and 
+ignores a number of no longer required elements. However, for each a <EM>deprecated</EM> 
+warning is issued. You are strongly urged to replace or remove 
+deprecated features.
+
+<P>Besides differences in available options and pragmas, the following 
+differences should be noted:
+
+<P>
+<UL>
+<LI><I>The <A NAME="idx:constraints1:1142"></A><B>constraints/1</B> 
+declaration</I><BR>
+This declaration is deprecated. It has been replaced with the
+<A NAME="idx:chrconstraint1:1143"></A><B>chr_constraint/1</B> 
+declaration.
+
+<P>
+<LI><I>The <A NAME="idx:option2:1144"></A><B>option/2</B> declaration</I><BR>
+This declaration is deprecated. It has been replaced with the
+<A NAME="idx:chroption2:1145"></A><B>chr_option/2</B> declaration.
+
+<P>
+<LI><I>The <A NAME="idx:handler1:1146"></A><B>handler/1</B> declaration</I><BR>
+In SICStus every CHR module requires a <A NAME="idx:handler1:1147"></A><B>handler/1</B> 
+declaration declaring a unique handler name. This declaration is valid 
+syntax in SWI-Prolog, but will have no effect. A warning will be given 
+during compilation.
+
+<P>
+<LI><I>The <A NAME="idx:rules1:1148"></A><B>rules/1</B> declaration</I><BR>
+In SICStus, for every CHR module it is possible to only enable a subset 
+of the available rules through the <A NAME="idx:rules1:1149"></A><B>rules/1</B> 
+declaration. The declaration is valid syntax in SWI-Prolog, but has no 
+effect. A warning is given during compilation.
+
+<P>
+<LI><I>Guard bindings</I><BR>
+The <TT>check_guard_bindings</TT> option only turns invalid calls to 
+unification into failure. In SICStus this option does more: it 
+intercepts instantiation errors from Prolog built-ins such as <A NAME="idx:is2:1150"></A><A HREF="arith.html#is/2">is/2</A> 
+and turns them into failure. In SWI-Prolog, we do not go this far, as we 
+like to separate concerns more. The CHR compiler is aware of the CHR 
+code, the Prolog system and programmer should be aware of the 
+appropriate meaning of the Prolog goals used in guards and bodies of CHR 
+rules.
+</UL>
+
+<P></BODY></HTML>

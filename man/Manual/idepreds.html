@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 3.8</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="xref.html">
+<LINK REL=next HREF="idesummary.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="xref.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="idesummary.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:3.8">3.8 Accessing the IDE from your program</A></H2>
+
+<A NAME="sec:idepreds"></A>
+
+<P>Over the years a collection of IDE components have been developed, 
+each with their own interface. In addition, some of these components 
+require each other and loading IDE components must be on demand to avoid 
+the IDE being part of a saved-state (see <A NAME="idx:qsaveprogram2:288"></A><A HREF="runtime.html#qsave_program/2">qsave_program/2</A>). 
+For this reason, access to the IDE will be concentrated on a single 
+interface called <A NAME="idx:prologide1:289"></A><A HREF="idepreds.html#prolog_ide/1">prolog_ide/1</A>:
+
+<DL>
+<DT class="pubdef"><A NAME="prolog_ide/1"><STRONG>prolog_ide</STRONG>(<VAR>+Action</VAR>)</A></DT>
+<DD class="defbody">
+This predicate ensures the IDE enabling XPCE component is loaded, 
+creates the XPCE class <B>prolog_ide</B> and sends <VAR>Action</VAR> to 
+its one and only instance <CODE>\index{@prolog_ide}\objectname{prolog_ide}</CODE>. <VAR>Action</VAR> 
+is one of the following:
+
+<DL>
+<DT><STRONG>open_navigator</STRONG>(<VAR>+Directory</VAR>)</DT>
+<DD class="defbody">
+Open the Prolog Navigator (see <A HREF="navigator.html">section 3.6</A>) 
+in the given
+<VAR>Directory</VAR>.</DD>
+<DT><STRONG>open_debug_status</STRONG></DT>
+<DD class="defbody">
+Open a window to edit spy- and trace-points.</DD>
+<DT><STRONG>open_query_window</STRONG></DT>
+<DD class="defbody">
+Opens a little window to run Prolog queries from a GUI component.</DD>
+<DT><STRONG>thread_monitor</STRONG></DT>
+<DD class="defbody">
+Open a graphical window indicating existing threads and their status.</DD>
+<DT><STRONG>debug_monitor</STRONG></DT>
+<DD class="defbody">
+Open a graphical front-end for the <CODE>library(debug)</CODE> library 
+that provides an overview of the topics and catches messages.</DD>
+<DT><STRONG>xref</STRONG></DT>
+<DD class="defbody">
+Open a graphical front-end for the cross-referencer that provides an 
+overview of predicates and their callers.
+</DD>
+</DL>
+
+</DD>
+</DL>
+
+<P></BODY></HTML>

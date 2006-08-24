@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 3.2</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="projectfiles.html">
+<LINK REL=next HREF="editreload.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="projectfiles.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="editreload.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:3.2">3.2 Using modules</A></H2>
+
+<A NAME="sec:usingmodules"></A>
+
+<P>Modules have been debated fiercely in the Prolog world. Despite all 
+counter-arguments we feel they are extremely useful because
+
+<P>
+<UL>
+<LI><I>They hide local predicates</I><BR>
+This is the reason they have been invented in the first place. Hiding 
+provides two features. They allow for short predicate names without 
+worrying about conflicts. Given the flat name-space introduced by 
+modules, they still require meaningful module names as well as 
+meaningful names for exported predicates.
+
+<P>
+<LI><I>They document the interface</I><BR>
+Possibly more important then avoiding name-conflicts is their role in 
+documenting which part of the file is for public usage and which is 
+private. When editing a module you may assume you can reorganise 
+anything but the name and semantics of the exported predicates without 
+worrying.
+
+<P>
+<LI><I>They help the editor</I><BR>
+The PceEmacs built-in editor does on-the-fly cross-referencing of the 
+current module, colouring predicates based on their origin and usage. 
+Using modules, the editor can quickly find out what is provided by the 
+imported modules by reading just the first term. This allows it to 
+indicate real-time which predicates are not used or not defined.
+</UL>
+
+<P>Using modules is generally easy. Only if you write meta-predicates 
+(predicates reasoning about other predicates) that are exported from a 
+module good understanding of resolution of terms to predicates inside a 
+module is required. Here is a typical example from <CODE>library(readutil)</CODE>.
+
+<PRE class="code">
+:- module(read_util,
+          [ read_line_to_codes/2,       % +Fd, -Codes
+            read_line_to_codes/3,       % +Fd, -Codes, ?Tail
+            read_stream_to_codes/2,     % +Fd, -Codes
+            read_stream_to_codes/3,     % +Fd, -Codes, ?Tail
+            read_file_to_codes/3,       % +File, -Codes, +Options
+            read_file_to_terms/3        % +File, -Terms, +Options
+          ]).
+</PRE>
+
+<P></BODY></HTML>

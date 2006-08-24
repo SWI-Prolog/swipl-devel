@@ -1,0 +1,276 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.35</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="system.html">
+<LINK REL=next HREF="toplevel.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="system.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="toplevel.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.35">4.35 File System Interaction</A></H2>
+
+<A NAME="sec:files"></A>
+
+<DL>
+<DT class="pubdef"><A NAME="access_file/2"><STRONG>access_file</STRONG>(<VAR>+File, 
++Mode</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if <VAR>File</VAR> exists and can be accessed by this prolog 
+process under mode <VAR>Mode</VAR>. <VAR>Mode</VAR> is one of the atoms
+<CODE>read</CODE>, <CODE>write</CODE>, <CODE>append</CODE>, <CODE>exist</CODE>, <CODE>none</CODE> 
+or
+<CODE>execute</CODE>. <VAR>File</VAR> may also be the name of a 
+directory. Fails silently otherwise. <CODE>access_file(File, none)</CODE> 
+simply succeeds without testing anything.
+
+<P>If `Mode' is <CODE>write</CODE> or <CODE>append</CODE>, this 
+predicate also succeeds if the file does not exist and the user has 
+write-access to the directory of the specified location.</DD>
+<DT class="pubdef"><A NAME="exists_file/1"><STRONG>exists_file</STRONG>(<VAR>+File</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds when <VAR>File</VAR> exists and is a regular file. This does 
+not imply the user has read and/or write permission for the file.</DD>
+<DT class="pubdef"><A NAME="file_directory_name/2"><STRONG>file_directory_name</STRONG>(<VAR>+File, 
+-Directory</VAR>)</A></DT>
+<DD class="defbody">
+Extracts the directory-part of <VAR>File</VAR>. The returned <VAR>Directory</VAR> 
+name does not end in <CODE><CODE>/</CODE></CODE>. There are two special 
+cases. The directory-name of <CODE><CODE>/</CODE></CODE> is <CODE><CODE>/</CODE></CODE> 
+itself and the directory-name if <VAR>File</VAR> does not contain any <CODE><CODE>/</CODE></CODE> 
+characters is <CODE><CODE>.</CODE></CODE>.</DD>
+<DT class="pubdef"><A NAME="file_base_name/2"><STRONG>file_base_name</STRONG>(<VAR>+File, 
+-BaseName</VAR>)</A></DT>
+<DD class="defbody">
+Extracts the filename part from a path specification. If <VAR>File</VAR> 
+does not contain any directory separators, <VAR>File</VAR> is returned.</DD>
+<DT class="pubdef"><A NAME="same_file/2"><STRONG>same_file</STRONG>(<VAR>+File1, 
++File2</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if both filenames refer to the same physical file. That is, if <VAR>File1</VAR> 
+and <VAR>File2</VAR> are the same string or both names exist and point 
+to the same file (due to hard or symbolic links and/or relative vs. 
+absolute paths).</DD>
+<DT class="pubdef"><A NAME="exists_directory/1"><STRONG>exists_directory</STRONG>(<VAR>+Directory</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Directory</VAR> exists and is a directory. This does 
+not imply the user has read, search and or write permission for the 
+directory.</DD>
+<DT class="pubdef"><A NAME="delete_file/1"><STRONG>delete_file</STRONG>(<VAR>+File</VAR>)</A></DT>
+<DD class="defbody">
+Remove <VAR>File</VAR> from the file system.</DD>
+<DT class="pubdef"><A NAME="rename_file/2"><STRONG>rename_file</STRONG>(<VAR>+File1, 
++File2</VAR>)</A></DT>
+<DD class="defbody">
+Rename <VAR>File1</VAR> into <VAR>File2</VAR>. Currently files cannot be 
+moved across devices.</DD>
+<DT class="pubdef"><A NAME="size_file/2"><STRONG>size_file</STRONG>(<VAR>+File, 
+-Size</VAR>)</A></DT>
+<DD class="defbody">
+Unify <VAR>Size</VAR> with the size of <VAR>File</VAR> in characters.</DD>
+<DT class="pubdef"><A NAME="time_file/2"><STRONG>time_file</STRONG>(<VAR>+File, 
+-Time</VAR>)</A></DT>
+<DD class="defbody">
+Unify the last modification time of <VAR>File</VAR> with <VAR>Time</VAR>.
+<VAR>Time</VAR> is a floating point number expressing the seconds 
+elapsed since Jan&nbsp;1, 1970. See also <A NAME="idx:converttime28:971"></A><B>convert_time/[2,8]</B> 
+and <A NAME="idx:gettime1:972"></A><A HREF="system.html#get_time/1">get_time/1</A>.</DD>
+<DT class="pubdef"><A NAME="absolute_file_name/2"><STRONG>absolute_file_name</STRONG>(<VAR>+File, 
+-Absolute</VAR>)</A></DT>
+<DD class="defbody">
+Expand a local file-name into an absolute path. The absolute path is 
+canonised: references to <CODE>.</CODE> and <CODE>..</CODE> are deleted. 
+This predicate ensures that expanding a file-name it returns the same 
+absolute path regardless of how the file is addressed. SWI-Prolog uses 
+absolute file names to register source files independent of the current 
+working directory. See also <A NAME="idx:absolutefilename3:973"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A>. 
+See also
+<A NAME="idx:absolutefilename3:974"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+and <A NAME="idx:expandfilename2:975"></A><A HREF="files.html#expand_file_name/2">expand_file_name/2</A>.</DD>
+<DT class="pubdef"><A NAME="absolute_file_name/3"><STRONG>absolute_file_name</STRONG>(<VAR>+Spec, 
++Options, -Absolute</VAR>)</A></DT>
+<DD class="defbody">
+Converts the given file specification into an absolute path.
+<VAR>Option</VAR> is a list of options to guide the conversion:
+
+<DL>
+<DT><STRONG>extensions</STRONG>(<VAR>ListOfExtensions</VAR>)</DT>
+<DD class="defbody">
+List of file-extensions to try. Default is <CODE>''</CODE>. For each 
+extension, <A NAME="idx:absolutefilename3:976"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+will first add the extension and then verify the conditions imposed by 
+the other options. If the condition fails, the next extension of the 
+list is tried. Extensions may be specified both as <CODE>..ext</CODE> or 
+plain <CODE>ext</CODE>.</DD>
+<DT><STRONG>relative_to</STRONG>(<VAR>+FileOrDir</VAR>)</DT>
+<DD class="defbody">
+Resolve the path relative to the given directory or directory the 
+holding the given file. Without this option, paths are resolved relative 
+to the working directory (see <A NAME="idx:workingdirectory2:977"></A><A HREF="files.html#working_directory/2">working_directory/2</A>) 
+or, if <VAR>Spec</VAR> is atomic and <A NAME="idx:absolutefilename23:978"></A><A HREF="files.html#absolute_file_name/2">absolute_file_name/[2,3]</A> 
+is executed in a directive, it uses the current source-file as 
+reference.</DD>
+<DT><STRONG>access</STRONG>(<VAR>Mode</VAR>)</DT>
+<DD class="defbody">
+Imposes the condition access_file(<VAR>File</VAR>, <VAR>Mode</VAR>). <VAR>Mode</VAR> 
+is on of <CODE>read</CODE>, <CODE>write</CODE>, <CODE>append</CODE>, <CODE>exist</CODE> 
+or <CODE>none</CODE>. See also <A NAME="idx:accessfile2:979"></A><A HREF="files.html#access_file/2">access_file/2</A>.</DD>
+<DT><STRONG>file_type</STRONG>(<VAR>Type</VAR>)</DT>
+<DD class="defbody">
+Defines extensions. Current mapping: <CODE>txt</CODE> implies <CODE>['']</CODE>,
+<CODE>prolog</CODE> implies <CODE>['.pl', '']</CODE>, <CODE>executable</CODE> 
+implies
+<CODE>['.so', '']</CODE>, <CODE>qlf</CODE> implies <CODE>['.qlf', '']</CODE> 
+and
+<CODE>directory</CODE> implies <CODE>['']</CODE>. The file-type <CODE>source</CODE> 
+is an alias for <CODE>prolog</CODE> for compatibility to SICStus Prolog. 
+See also <A NAME="idx:prologfiletype2:980"></A><A HREF="consulting.html#prolog_file_type/2">prolog_file_type/2</A>.</DD>
+<DT><STRONG>file_errors</STRONG>(<VAR>fail/error</VAR>)</DT>
+<DD class="defbody">
+If <CODE>error</CODE> (default), throw and <CODE>existence_error</CODE> 
+exception if the file cannot be found. If <CODE>fail</CODE>, stay 
+silent.<A NAME=back-to-note-64 HREF="Notes.html#note-64"> (64)</A></DD>
+<DT><STRONG>solutions</STRONG>(<VAR>first/all</VAR>)</DT>
+<DD class="defbody">
+If <CODE>first</CODE> (default), the predicates leaves no choice-point. 
+Otherwise a choice-point will be left and backtracking may yield more 
+solutions.</DD>
+<DT><STRONG>expand</STRONG>(<VAR>true/false</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE> (default is <CODE>false</CODE>) and <VAR>Spec</VAR> 
+is atomic, call <A NAME="idx:expandfilename2:981"></A><A HREF="files.html#expand_file_name/2">expand_file_name/2</A> 
+followed by <A NAME="idx:member2:982"></A><A HREF="lists.html#member/2">member/2</A> 
+on <VAR>Spec</VAR> before proceeding. This is a SWI-Prolog extension.
+</DD>
+</DL>
+
+<P>The prolog-flag <CODE>verbose_file_search</CODE> can be set to <CODE>true</CODE> 
+to help debugging Prolog's search for files.
+
+<P>Compatibility considerations to common argument-order in ISO as well 
+as SICStus <A NAME="idx:absolutefilename3:983"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+forced us to be flexible here. If the last argument is a list and the 
+2nd not, the arguments are swapped, making the call <CODE>absolute_file_name(+Spec, 
+-Path, +Options)</CODE> valid as well.</DD>
+<DT class="pubdef"><A NAME="is_absolute_file_name/1"><STRONG>is_absolute_file_name</STRONG>(<VAR>+File</VAR>)</A></DT>
+<DD class="defbody">
+True if <VAR>File</VAR> specifies and absolute path-name. On Unix 
+systems, this implies the path starts with a `/'. For Microsoft based 
+systems this implies the path starts with <CODE>&lt;<VAR>letter</VAR>&gt;:</CODE>. 
+This predicate is intended to provide platform-independent checking for 
+absolute paths. See also <A NAME="idx:absolutefilename2:984"></A><A HREF="files.html#absolute_file_name/2">absolute_file_name/2</A> 
+and <A NAME="idx:prologtoosfilename2:985"></A><A HREF="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A>.</DD>
+<DT class="pubdef"><A NAME="file_name_extension/3"><STRONG>file_name_extension</STRONG>(<VAR>?Base, 
+?Extension, ?Name</VAR>)</A></DT>
+<DD class="defbody">
+This predicate is used to add, remove or test filename extensions. The 
+main reason for its introduction is to deal with different filename 
+properties in a portable manner. If the file system is case-insensitive, 
+testing for an extension will be done case-insensitive too. <VAR>Extension</VAR> 
+may be specified with or without a leading dot (<CODE><CODE>.</CODE></CODE>). 
+If an <VAR>Extension</VAR> is generated, it will not have a leading dot.</DD>
+<DT class="pubdef"><A NAME="expand_file_name/2"><STRONG>expand_file_name</STRONG>(<VAR>+WildCard, 
+-List</VAR>)</A></DT>
+<DD class="defbody">
+Unify <VAR>List</VAR> with a sorted list of files or directories 
+matching
+<VAR>WildCard</VAR>. The normal Unix wildcard constructs `<CODE><CODE>?</CODE></CODE>', 
+`<CODE><CODE>*</CODE></CODE>', `<CODE>[ ... ]</CODE>' and `<CODE>{...}</CODE>' 
+are recognised. The interpretation of `<CODE>{...}</CODE>' is 
+interpreted slightly different from the C shell (csh(1)). The comma 
+separated argument can be arbitrary patterns, including `<CODE>{...}</CODE>' 
+patterns. The empty pattern is legal as well: `<CODE>{.pl,}</CODE>' 
+matches either `<CODE>.pl</CODE>' or the empty string.
+
+<P>If the pattern does contains wildcard characters, only existing files 
+and directories are returned. Expanding a `pattern' without wildcard 
+characters returns the argument, regardless on whether or not it exists.
+
+<P>Before expanding wildcards, the construct <CODE>$<VAR>var</VAR></CODE> 
+is expanded to the value of the environment variable <VAR>var</VAR> and 
+a possible leading <CODE>~</CODE> character is expanded to the user's 
+home directory.<A NAME=back-to-note-65 HREF="Notes.html#note-65"> (65)</A>.</DD>
+<DT class="pubdef"><A NAME="prolog_to_os_filename/2"><STRONG>prolog_to_os_filename</STRONG>(<VAR>?PrologPath, 
+?OsPath</VAR>)</A></DT>
+<DD class="defbody">
+Converts between the internal Prolog pathname conventions and the 
+operating-system pathname conventions. The internal conventions are Unix 
+and this predicates is equivalent to =/2 (unify) on Unix systems. On DOS 
+systems it will change the directory-separator, limit the filename 
+length map dots, except for the last one, onto underscores.</DD>
+<DT class="pubdef"><A NAME="read_link/3"><STRONG>read_link</STRONG>(<VAR>+File, 
+-Link, -Target</VAR>)</A></DT>
+<DD class="defbody">
+If <VAR>File</VAR> points to a symbolic link, unify <VAR>Link</VAR> with 
+the value of the link and <VAR>Target</VAR> to the file the link is 
+pointing to.
+<VAR>Target</VAR> points to a file, directory or non-existing entry in 
+the file system, but never to a link. Fails if <VAR>File</VAR> is not a 
+link. Fails always on systems that do not support symbolic links.</DD>
+<DT class="pubdef"><A NAME="tmp_file/2"><STRONG>tmp_file</STRONG>(<VAR>+Base, 
+-TmpName</VAR>)</A></DT>
+<DD class="defbody">
+Create a name for a temporary file. <VAR>Base</VAR> is an identifier for 
+the category of file. The <VAR>TmpName</VAR> is guaranteed to be unique. 
+If the system halts, it will automatically remove all created temporary 
+files.</DD>
+<DT class="pubdef"><A NAME="make_directory/1"><STRONG>make_directory</STRONG>(<VAR>+Directory</VAR>)</A></DT>
+<DD class="defbody">
+Create a new directory (folder) on the filesystem. Raises an exception 
+on failure. On Unix systems, the directory is created with default 
+permissions (defined by the process <EM>umask</EM> setting).</DD>
+<DT class="pubdef"><A NAME="delete_directory/1"><STRONG>delete_directory</STRONG>(<VAR>+Directory</VAR>)</A></DT>
+<DD class="defbody">
+Delete directory (folder) from the filesystem. Raises an exception on 
+failure. Please note that in general it will not be possible to delete a 
+non-empty directory.</DD>
+<DT class="pubdef"><A NAME="working_directory/2"><STRONG>working_directory</STRONG>(<VAR>-Old, 
++New</VAR>)</A></DT>
+<DD class="defbody">
+Unify <VAR>Old</VAR> with an absolute path to the current working 
+directory and change working directory to <VAR>New</VAR>. Use the 
+pattern
+<CODE>working_directory(CWD, CWD)</CODE> to get the current directory. 
+See also <A NAME="idx:absolutefilename2:986"></A><A HREF="files.html#absolute_file_name/2">absolute_file_name/2</A> 
+and <A NAME="idx:chdir1:987"></A><A HREF="files.html#chdir/1">chdir/1</A>.<A NAME=back-to-note-66 HREF="Notes.html#note-66"> (66)</A> 
+Note that the working directory is shared between all threads.</DD>
+<DT class="pubdef"><A NAME="chdir/1"><STRONG>chdir</STRONG>(<VAR>+Path</VAR>)</A></DT>
+<DD class="defbody">
+Compatibility predicate. New code should use <A NAME="idx:workingdirectory2:988"></A><A HREF="files.html#working_directory/2">working_directory/2</A>.
+</DD>
+</DL>
+
+<P></BODY></HTML>

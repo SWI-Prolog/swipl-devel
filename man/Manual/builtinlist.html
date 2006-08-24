@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.28</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="extendarith.html">
+<LINK REL=next HREF="allsolutions.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="extendarith.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="allsolutions.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.28">4.28 Built-in list operations</A></H2>
+
+<A NAME="sec:builtinlist"></A>
+
+<P>Most list operations are defined in the library <CODE>library(lists)</CODE> 
+described in <A HREF="lists.html">section A.1</A>. Some that are 
+implemented with more low-level primitives are built-in and described 
+here.
+
+<DL>
+<DT class="pubdef"><A NAME="is_list/1"><STRONG>is_list</STRONG>(<VAR>+Term</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Term</VAR> is bound to the empty list (<CODE>[]</CODE>) 
+or a term with functor `<CODE><CODE>.</CODE></CODE>' and arity&nbsp;2 
+and the second argument is a list.<A NAME=back-to-note-56 HREF="Notes.html#note-56"> (56)</A> 
+This predicate acts as if defined by the following definition:
+
+<PRE class="code">
+is_list(X) :-
+        var(X), !,
+        fail.
+is_list([]).
+is_list([_|T]) :-
+        is_list(T).
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="memberchk/2"><STRONG>memberchk</STRONG>(<VAR>?Elem, 
++List</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to <A NAME="idx:member2:898"></A><A HREF="lists.html#member/2">member/2</A>, 
+but leaves no choice point.</DD>
+<DT class="pubdef"><A NAME="length/2"><STRONG>length</STRONG>(<VAR>?List, 
+?Int</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Int</VAR> represents the number of elements of list <VAR>List</VAR>. 
+Can be used to create a list holding only variables.</DD>
+<DT class="pubdef"><A NAME="sort/2"><STRONG>sort</STRONG>(<VAR>+List, 
+-Sorted</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Sorted</VAR> can be unified with a list holding the 
+elements of <VAR>List</VAR>, sorted to the standard order of terms (see
+<A HREF="compare.html">section 4.6</A>). Duplicates are removed. The 
+implementation is in C, using <EM>natural merge sort</EM><A NAME=back-to-note-57 HREF="Notes.html#note-57"> (57)</A></DD>
+<DT class="pubdef"><A NAME="msort/2"><STRONG>msort</STRONG>(<VAR>+List, 
+-Sorted</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to <A NAME="idx:sort2:899"></A><A HREF="builtinlist.html#sort/2">sort/2</A>, 
+but does not remove duplicates.</DD>
+<DT class="pubdef"><A NAME="keysort/2"><STRONG>keysort</STRONG>(<VAR>+List, 
+-Sorted</VAR>)</A></DT>
+<DD class="defbody">
+List is a proper list whose elements are <CODE><VAR>Key</VAR>-<VAR>Value</VAR></CODE>, 
+that is, terms whose principal functor is (-)/2, whose first argument is 
+the sorting key, and whose second argument is the satellite data to be 
+carried along with the key. <A NAME="idx:keysort2:900"></A><A HREF="builtinlist.html#keysort/2">keysort/2</A> 
+sorts <VAR>List</VAR> like <A NAME="idx:msort2:901"></A><A HREF="builtinlist.html#msort/2">msort/2</A>, 
+but only compares the keys. It is used to sort terms not on standard 
+order, but on any criterion that can be expressed on a multi-dimensional 
+scale. Sorting on more than one criterion can be done using terms as 
+keys, putting the first criterion as argument 1, the second as argument 
+2, etc. The order of multiple elements that have the same <VAR>Key</VAR> 
+is not changed. The implementation is in C, using <EM>natural merge sort</EM>.</DD>
+<DT class="pubdef"><A NAME="predsort/3"><STRONG>predsort</STRONG>(<VAR>+Pred, 
++List, -Sorted</VAR>)</A></DT>
+<DD class="defbody">
+Sorts similar to <A NAME="idx:sort2:902"></A><A HREF="builtinlist.html#sort/2">sort/2</A>, 
+but determines the order of two terms by calling <VAR>Pred</VAR>(-<VAR>Delta</VAR>, 
++<VAR>E1</VAR>, +<VAR>E2</VAR>) . This call must unify <VAR>Delta</VAR> 
+with one of <CODE><CODE>&lt;</CODE></CODE>, <CODE><CODE>&gt;</CODE></CODE> 
+or
+<CODE><CODE>=</CODE></CODE>. If built-in predicate <A NAME="idx:compare3:903"></A><A HREF="compare.html#compare/3">compare/3</A> 
+is used, the result is the same as <A NAME="idx:sort2:904"></A><A HREF="builtinlist.html#sort/2">sort/2</A>. 
+See also <A NAME="idx:keysort2:905"></A><A HREF="builtinlist.html#keysort/2">keysort/2</A>.<A NAME=back-to-note-58 HREF="Notes.html#note-58"> (58)</A></DD>
+<DT class="pubdef"><A NAME="merge/3"><STRONG>merge</STRONG>(<VAR>+List1, 
++List2, -List3</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>List1</VAR> and <VAR>List2</VAR> are lists, sorted to the standard 
+order of terms (see <A HREF="compare.html">section 4.6</A>). <VAR>List3</VAR> 
+will be unified with an ordered list holding both the elements of <VAR>List1</VAR> 
+and <VAR>List2</VAR>. Duplicates are <B>not</B> removed.</DD>
+<DT class="pubdef"><A NAME="merge_set/3"><STRONG>merge_set</STRONG>(<VAR>+Set1, 
++Set2, -Set3</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Set1</VAR> and <VAR>Set2</VAR> are lists without duplicates, sorted 
+to the standard order of terms. <VAR>Set3</VAR> is unified with an 
+ordered list without duplicates holding the union of the elements of <VAR>Set1</VAR> 
+and <VAR>Set2</VAR>.
+</DD>
+</DL>
+
+<P></BODY></HTML>

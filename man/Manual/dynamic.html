@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.14</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="db.html">
+<LINK REL=next HREF="examineprog.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="db.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="examineprog.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.14">4.14 Declaring predicates properties</A></H2>
+
+<A NAME="ch:dynamic"></A>
+<A NAME="sec:declare"></A>
+
+<P>This section describes directives which manipulate attributes of 
+predicate definitions. The functors <A NAME="idx:dynamic1:564"></A><A HREF="dynamic.html#dynamic/1">dynamic/1</A>, <A NAME="idx:multifile1:565"></A><A HREF="dynamic.html#multifile/1">multifile/1</A> 
+and
+<A NAME="idx:discontiguous1:566"></A><A HREF="dynamic.html#discontiguous/1">discontiguous/1</A> 
+are operators of priority 1150 (see <A NAME="idx:op3:567"></A><A HREF="operators.html#op/3">op/3</A>), 
+which implies the list of predicates they involve can just be a comma 
+separated list:
+
+<PRE class="code">
+:- dynamic
+        foo/0, 
+        baz/2.
+</PRE>
+
+<P>On SWI-Prolog all these directives are just predicates. This implies 
+they can also be called by a program. Do not rely on this feature if you 
+want to maintain portability to other Prolog implementations.
+
+<DL>
+<DT class="pubdef"><A NAME="dynamic/1"><STRONG>dynamic</STRONG> <VAR>+Name/+Arity, \ldots</VAR></A></DT>
+<DD class="defbody">
+Informs the interpreter that the definition of the predicate(s) may 
+change during execution (using <A NAME="idx:assert1:568"></A><A HREF="db.html#assert/1">assert/1</A> 
+and/or <A NAME="idx:retract1:569"></A><A HREF="db.html#retract/1">retract/1</A>). 
+In the multi-threaded version, the clauses of dynamic predicates are 
+shared between the threads. The directive <A NAME="idx:threadlocal1:570"></A><A HREF="threadcom.html#thread_local/1">thread_local/1</A> 
+provides an alternative where each threads has its own clause-list for 
+the predicate. Dynamic predicates can be turned into static ones using
+<A NAME="idx:compilepredicates1:571"></A><A HREF="dynamic.html#compile_predicates/1">compile_predicates/1</A>.</DD>
+<DT class="pubdef"><A NAME="compile_predicates/1"><STRONG>compile_predicates</STRONG>(<VAR>:ListOfNameArity</VAR>)</A></DT>
+<DD class="defbody">
+Compile a list of specified dynamic predicates (see <A NAME="idx:dynamic1:572"></A><A HREF="dynamic.html#dynamic/1">dynamic/1</A> 
+and
+<A NAME="idx:assert1:573"></A><A HREF="db.html#assert/1">assert/1</A>) 
+into normal static predicates. This call tells the Prolog environment 
+the definition will not change anymore and further calls to <A NAME="idx:assert1:574"></A><A HREF="db.html#assert/1">assert/1</A> 
+or <A NAME="idx:retract1:575"></A><A HREF="db.html#retract/1">retract/1</A> 
+on the named predicates raise a permission error. This predicate is 
+designed to deal with parts of the program that is generated at runtime 
+but does not change during the remainder of the program execution.<A NAME=back-to-note-35 HREF="Notes.html#note-35"> (35)</A></DD>
+<DT class="pubdef"><A NAME="multifile/1"><STRONG>multifile</STRONG> <VAR>+Name/+Arity, \ldots</VAR></A></DT>
+<DD class="defbody">
+Informs the system that the specified predicate(s) may be defined over 
+more than one file. This stops <A NAME="idx:consult1:576"></A><A HREF="consulting.html#consult/1">consult/1</A> 
+from redefining a predicate when a new definition is found.</DD>
+<DT class="pubdef"><A NAME="discontiguous/1"><STRONG>discontiguous</STRONG> <VAR>+Name/+Arity, \ldots</VAR></A></DT>
+<DD class="defbody">
+Informs the system that the clauses of the specified predicate(s) might 
+not be together in the source file. See also <A NAME="idx:stylecheck1:577"></A><A HREF="debugger.html#style_check/1">style_check/1</A>.</DD>
+<DT class="pubdef"><A NAME="index/1"><STRONG>index</STRONG>(<VAR>+Head</VAR>)</A></DT>
+<DD class="defbody">
+Index the clauses of the predicate with the same name and arity as
+<VAR>Head</VAR> on the specified arguments. <VAR>Head</VAR> is a term of 
+which all arguments are either `1' (denoting `index this argument') or 
+`0' (denoting `do not index this argument'). Indexing has no 
+implications for the semantics of a predicate, only on its performance. 
+If indexing is enabled on a predicate a special purpose algorithm is 
+used to select candidate clauses based on the actual arguments of the 
+goal. This algorithm checks whether indexed arguments might unify in the 
+clause head. Only atoms, integers and compound terms are considered. 
+Compound terms are indexed on the combination of their name and arity. 
+Indexing is very useful for predicates with many clauses representing 
+facts.
+
+<P>Due to the representation technique used at most 4 arguments can be 
+indexed. All indexed arguments should be in the first 32 arguments of 
+the predicate. If more than 4 arguments are specified for indexing only 
+the first 4 will be accepted. Arguments above 32 are ignored for 
+indexing.
+
+<P>Indexing as specified by this predicate uses a quick but linear scan. 
+Without explicit specification the system uses an algorithm depending on 
+the structure of the first argument and number of clauses, In 
+particular, for predicates that can be indexed on the first argument and 
+have many clauses, the system will use an automatically resizing 
+hash-table to provide access time independent from the number of 
+clauses.<A NAME=back-to-note-36 HREF="Notes.html#note-36"> (36)</A> 
+If---for example---one wants to represents sub-types using a fact list 
+`sub_type(Sub, Super)' that should be used both to determine sub- and 
+super types one should declare sub_type/2 as follows:
+
+<PRE class="code">
+:- index(sub_type(1, 1)).
+
+sub_type(horse, animal).
+...
+...
+</PRE>
+
+<P>Note that this type of indexing makes selecting clauses much faster 
+but remains <EM>linear</EM> with respect to the number of clauses, while 
+hashing as described with <A NAME="idx:hash1:578"></A><A HREF="dynamic.html#hash/1">hash/1</A> 
+provides constant access time. See also <A NAME="idx:hash1:579"></A><A HREF="dynamic.html#hash/1">hash/1</A> 
+and <A NAME="idx:hashterm2:580"></A><A HREF="db.html#hash_term/2">hash_term/2</A>.</DD>
+<DT class="pubdef"><A NAME="hash/1"><STRONG>hash</STRONG>(<VAR>+Head</VAR>)</A></DT>
+<DD class="defbody">
+Index the given predicate by hashing on the first argument. This is done 
+by default on any predicate with more than 5 clauses having a first 
+argument that can be indexed and at most two that can not be indexed. On 
+dynamic predicates the hash-table is resized as the number of clauses 
+grows, providing roughly constant-time access regardless of the number 
+of clauses predicates that can be indexed on the first argument. See 
+also <A NAME="idx:index1:581"></A><A HREF="dynamic.html#index/1">index/1</A>, <A NAME="idx:hashterm2:582"></A><A HREF="db.html#hash_term/2">hash_term/2</A> 
+and <A NAME="idx:predicateproperty2:583"></A><A HREF="examineprog.html#predicate_property/2">predicate_property/2</A>.
+
+<P></DD>
+</DL>
+
+<P></BODY></HTML>

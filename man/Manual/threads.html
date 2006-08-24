@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="errors.html">
+<LINK REL=next HREF="threadcreate.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="errors.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="threadcreate.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H1><A NAME="sec:8">8 Multi-threaded applications</A></H1>
+
+<A NAME="sec:threads"></A>
+
+<P>SWI-Prolog multithreading is based on standard C-language 
+multithreading support. It is not like <EM>ParLog</EM> or other parallel 
+implementations of the Prolog language. Prolog threads have their own 
+stacks and only share the Prolog <EM>heap</EM>: predicates, records, 
+flags and other global non-backtrackable data. SWI-Prolog thread support 
+is designed with the following goals in mind.
+
+<P>
+<UL>
+<LI><I>Multi-threaded server applications</I><BR>
+Todays computing services often focus on (internet) server applications. 
+Such applications often have need for communication between services 
+and/or fast non-blocking service to multiple concurrent clients. The 
+shared heap provides fast communication and thread creation is 
+relatively cheap.<A NAME=back-to-note-76 HREF="Notes.html#note-76"> (76)</A>
+
+<P>
+<LI><I>Interactive applications</I><BR>
+Interactive applications often need to perform extensive computation. If 
+such computations are executed in a new thread, the main thread can 
+process events and allow the user to cancel the ongoing computation. 
+User interfaces can also use multiple threads, each thread dealing with 
+input from a distinct group of windows. See also <A HREF="mt-xpce.html">section 
+8.7</A>.
+
+<P>
+<LI><I>Natural integration with foreign code</I><BR>
+Each Prolog thread runs in a native thread of the operating system, 
+automatically making them cooperate with <EM>MT-safe</EM> foreign-code. 
+In addition, any foreign thread can create its own Prolog engine for 
+dealing with calling Prolog from C-code.
+</UL>
+
+<P>SWI-Prolog multi-threading is based on the POSIX thread standard
+<CITE><A HREF="Bibliography.html#Butenhof:1997:PPT">Butenhof, 1997</A></CITE> 
+used on most popular systems except for MS-Windows. On Windows it uses 
+the
+<A HREF="http://sources.redhat.com/pthreads-win32/">pthread-win32</A> 
+emulation of POSIX threads mixed with the Windows native API for 
+smoother and faster operation.
+
+<P>
+<HR>
+<CENTER>
+
+<H2>Section Index</H2>
+
+</CENTER>
+<HR>
+<UL>
+<LI><A HREF="threadcreate.html"><B>8.1 Creating and destroying Prolog 
+threads</B></A>
+<LI><A HREF="thmonitor.html"><B>8.2 Monitoring threads</B></A>
+<UL>
+<LI><A HREF="thmonitor.html#sec:8.2.1">8.2.1 Linux: linuxthreads vs. NPTL</A>
+</UL>
+<LI><A HREF="threadcom.html"><B>8.3 Thread communication</B></A>
+<UL>
+<LI><A HREF="threadcom.html#sec:8.3.1">8.3.1 Message queues</A>
+<LI><A HREF="threadcom.html#sec:8.3.2">8.3.2 Signalling threads</A>
+<LI><A HREF="threadcom.html#sec:8.3.3">8.3.3 Threads and dynamic 
+predicates</A>
+</UL>
+<LI><A HREF="threadsync.html"><B>8.4 Thread synchronisation</B></A>
+<LI><A HREF="thutil.html"><B>8.5 Thread-support library(threadutil)</B></A>
+<UL>
+<LI><A HREF="thutil.html#sec:8.5.1">8.5.1 Debugging threads</A>
+<LI><A HREF="thutil.html#sec:8.5.2">8.5.2 Profiling threads</A>
+</UL>
+<LI><A HREF="foreignthread.html"><B>8.6 Multi-threaded mixed C and 
+Prolog applications</B></A>
+<UL>
+<LI><A HREF="foreignthread.html#sec:8.6.1">8.6.1 A Prolog thread for 
+each native thread (one-to-one)</A>
+<LI><A HREF="foreignthread.html#sec:8.6.2">8.6.2 Pooling Prolog engines 
+(many-to-many)</A>
+<UL>
+<LI><A HREF="foreignthread.html#sec:8.6.2.1">8.6.2.1 Engines in 
+single-threaded SWI-Prolog</A>
+</UL>
+</UL>
+<LI><A HREF="mt-xpce.html"><B>8.7 Multithreading and the XPCE graphics 
+system</B></A>
+</UL>
+</BODY></HTML>

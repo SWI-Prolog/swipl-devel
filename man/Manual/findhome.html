@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 9.8</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="plld.html">
+<LINK REL=next HREF="foreignxmp.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="plld.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="foreignxmp.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:9.8">9.8 The Prolog `home' directory</A></H2>
+
+<A NAME="sec:findhome"></A>
+
+<P>Executables embedding SWI-Prolog should be able to find the `home' 
+directory of the development environment unless a self-contained 
+saved-state has been added to the executable (see <A NAME="idx:qsaveprogram12:1300"></A><A HREF="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
+and <A HREF="plld.html">section 9.7</A>).
+
+<P>If Prolog starts up, it will try to locate the development 
+environment. To do so, it will try the following steps until one 
+succeeds.
+
+<P><OL>
+<LI>If the environment variable <CODE>SWI_HOME_DIR</CODE> is defined and 
+points to an existing directory, use this.
+<LI>If the environment variable <CODE>SWIPL</CODE> is defined and points 
+to an existing directory, use this.
+<LI>Locate the primary executable or (Windows only) a component (<EM>module</EM>) 
+thereof and check whether the parent directory of the directory holding 
+this file contains the file <CODE>swipl</CODE>. If so, this file 
+contains the (relative) path to the home directory. If this directory 
+exists, use this. This is the normal mechanism used by the binary 
+distribution.
+<LI>If the precompiled path exists, use it. This is only useful for a 
+source installation.
+</OL>
+
+<P>If all fails and there is no state attached to the executable or 
+provided Windows module (see PL_initialise()), SWI-Prolog gives up. If a 
+state is attached, the current working directory is used.
+
+<P>The <A NAME="idx:filesearchpath2:1301"></A><A HREF="consulting.html#file_search_path/2">file_search_path/2</A> 
+alias <CODE>swi</CODE> is set to point to the home directory located.
+
+<P></BODY></HTML>

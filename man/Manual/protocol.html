@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.37</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="toplevel.html">
+<LINK REL=next HREF="debugger.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="toplevel.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="debugger.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.37">4.37 Creating a Protocol of the User Interaction</A></H2>
+
+<A NAME="sec:protocol"></A>
+
+<P>SWI-Prolog offers the possibility to log the interaction with the 
+user on a file.<A NAME=back-to-note-68 HREF="Notes.html#note-68"> (68)</A> 
+All Prolog interaction, including warnings and tracer output, are 
+written on the protocol file.
+
+<DL>
+<DT class="pubdef"><A NAME="protocol/1"><STRONG>protocol</STRONG>(<VAR>+File</VAR>)</A></DT>
+<DD class="defbody">
+Start protocolling on file <VAR>File</VAR>. If there is already a 
+protocol file open then close it first. If <VAR>File</VAR> exists it is 
+truncated.
+</DD>
+<DT class="pubdef"><A NAME="protocola/1"><STRONG>protocola</STRONG>(<VAR>+File</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to <A NAME="idx:protocol1:1001"></A><A HREF="protocol.html#protocol/1">protocol/1</A>, 
+but does not truncate the <VAR>File</VAR> if it exists.
+</DD>
+<DT class="pubdef"><A NAME="noprotocol/0"><STRONG>noprotocol</STRONG></A></DT>
+<DD class="defbody">
+Stop making a protocol of the user interaction. Pending output is 
+flushed on the file.
+</DD>
+<DT class="pubdef"><A NAME="protocolling/1"><STRONG>protocolling</STRONG>(<VAR>-File</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if a protocol was started with <A NAME="idx:protocol1:1002"></A><A HREF="protocol.html#protocol/1">protocol/1</A> 
+or <A NAME="idx:protocola1:1003"></A><A HREF="protocol.html#protocola/1">protocola/1</A> 
+and unifies <VAR>File</VAR> with the current protocol output file.
+</DD>
+</DL>
+
+<P></BODY></HTML>

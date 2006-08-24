@@ -1,0 +1,140 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section D.3</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="contrib.html">
+<LINK REL=next HREF="library.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="contrib.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="library.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:D.3">D.3 Software support to keep track of license 
+conditions</A></H2>
+
+<A NAME="sec:softlicense"></A>
+
+<P>Given the above, it is possible that SWI-Prolog packages and 
+extensions will rely on the GPL.<A NAME=back-to-note-93 HREF="Notes.html#note-93"> (93)</A> 
+The predicates below allow for registering license requirements for 
+Prolog files and foreign modules. The predicate <A NAME="idx:evallicense0:1463"></A><A HREF="softlicense.html#eval_license/0">eval_license/0</A> 
+reports which components from the currenly configured system are 
+distributed under copy-left and open source enforcing licenses (the GPL) 
+and therefore must be replaced before distributing linked applications 
+under non-free license conditions.
+
+<DL>
+<DT class="pubdef"><A NAME="eval_license/0"><STRONG>eval_license</STRONG></A></DT>
+<DD class="defbody">
+Evaluate the license conditions of all loaded components. If the system 
+contains one or more components that are licenced under GPL-like 
+restrictions the system indicates this program may only be distributed 
+under the <CODE>GPL</CODE> license as well as which components prohibit 
+the use of other license conditions.</DD>
+<DT class="pubdef"><A NAME="license/2"><STRONG>license</STRONG>(<VAR>+LicenseId, 
++Component</VAR>)</A></DT>
+<DD class="defbody">
+Register the fact that <VAR>Component</VAR> is distributed under a 
+license identified by <VAR>LicenseId</VAR>. The most important <VAR>LicenseId</VAR>'s 
+are:
+
+<DL>
+<DT><STRONG>swipl</STRONG></DT>
+<DD class="defbody">
+Indicates this module is distributed under the GNU General Public 
+License (GPL) with the SWI-Prolog exception:<A NAME=back-to-note-94 HREF="Notes.html#note-94"> (94)</A>
+<BLOCKQUOTE><I>As a special exception, if you link this library with 
+other files, compiled with SWI-Prolog, to produce an executable, this 
+library does not by itself cause the resulting executable to be covered 
+by the GNU General Public License. This exception does not however 
+invalidate any other reasons why the executable file might be covered by 
+the GNU General Public License.
+</I></BLOCKQUOTE>
+
+<P>This should be the default for software contributed to the SWI-Prolog 
+project as it allows the community to prosper both in the free and 
+non-free world. Still, people using SWI-Prolog to create non-free 
+applications must contribute sources to improvements they make to the 
+community.</DD>
+<DT><STRONG>lgpl</STRONG></DT>
+<DD class="defbody">
+This is the default license for foreign-libraries linked with 
+SWI-Prolog. Use PL_license() to register the condition from foreign 
+code.</DD>
+<DT><STRONG>gpl</STRONG></DT>
+<DD class="defbody">
+Indicates this module is strictly Free Software, which implies it cannot 
+be used together with any module that is incompatible to the GPL. Please 
+only use these conditions when forced by other code used in the 
+component.
+</DD>
+</DL>
+
+<P>Other licenses known to the system are <CODE>guile</CODE>, <CODE>gnu_ada</CODE>,
+<CODE>x11</CODE>, <CODE>expat</CODE>, <CODE>sml</CODE>, <CODE>public_domain</CODE>,
+<CODE>cryptix</CODE>, <CODE>bsd</CODE>, <CODE>zlib</CODE>, constlgpl_compatible 
+and <CODE>gpl_compatible</CODE>. New licenses can be defined by adding 
+clauses for the multifile predicate license:license/3. Below is an 
+example. The second argument is either <CODE>gpl</CODE> or <CODE>lgpl</CODE> 
+to indicate compatibility to these licenses. Other values cause the 
+license to interpreted as <EM>proprietary</EM>. Proprietary licenses are 
+reported by <A NAME="idx:evallicense0:1464"></A><A HREF="softlicense.html#eval_license/0">eval_license/0</A>. 
+See the file <CODE>boot/license.pl</CODE> for details.
+
+<PRE class="code">
+:- multifile license:license/3.
+
+license:license(mylicense, lgpl,
+                [ comment('My personal license'),
+                  url('http://www.mine.org/license.html')
+                ]).
+
+:- license(mylicense).
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="license/1"><STRONG>license</STRONG>(<VAR>+LicenseId</VAR>)</A></DT>
+<DD class="defbody">
+Intented as a directive in Prolog source files. It takes the current 
+filename and calls <A NAME="idx:license2:1465"></A><A HREF="softlicense.html#license/2">license/2</A>.</DD>
+<DT class="pubdef"><A NAME="PL_license()"><VAR>void</VAR> <STRONG>PL_license</STRONG>(<VAR>const 
+char *LicenseId, const char *Component</VAR>)</A></DT>
+<DD class="defbody">
+Intended for the install() procedure of foreign libraries. This call can 
+be made <EM>before</EM> PL_initialise().
+</DD>
+</DL>
+
+</BODY></HTML>

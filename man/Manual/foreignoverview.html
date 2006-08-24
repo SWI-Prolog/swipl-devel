@@ -1,0 +1,68 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 9.1</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="foreign.html">
+<LINK REL=next HREF="foreignlink.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="foreign.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="foreignlink.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:9.1">9.1 Overview of the Interface</A></H2>
+
+<A NAME="sec:foreignoverview"></A>
+
+<P>A special include file called <CODE>SWI-Prolog.h</CODE> should be 
+included with each C-source file that is to be loaded via the foreign 
+interface. The installation process installs this file in the directory
+<CODE>include</CODE> in the SWI-Prolog home directory (<CODE>?- 
+current_prolog_flag(home, Home).</CODE>). This C-header file defines 
+various data types, macros and functions that can be used to communicate 
+with SWI-Prolog. Functions and macros can be divided into the following 
+categories:
+
+<P><UL COMPACT>
+<LI>Analysing Prolog terms
+<LI>Constructing new terms
+<LI>Unifying terms
+<LI>Returning control information to Prolog
+<LI>Registering foreign predicates with Prolog
+<LI>Calling Prolog from C
+<LI>Recorded database interactions
+<LI>Global actions on Prolog (halt, break, abort, etc.)
+</UL>
+
+<P></BODY></HTML>

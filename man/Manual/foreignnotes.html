@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 9.10</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="foreignxmp.html">
+<LINK REL=next HREF="runtime.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="foreignxmp.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="runtime.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:9.10">9.10 Notes on Using Foreign Code</A></H2>
+
+<A NAME="sec:foreignnotes"></A>
+
+<H3><A NAME="sec:9.10.1">9.10.1 Memory Allocation</A></H3>
+
+<P>SWI-Prolog's heap memory allocation is based on the <STRONG>malloc</STRONG>(3) 
+library routines. The stacks are allocated using mmap() on most Unix 
+machines and using VirtualAlloc() on windows. SWI-Prolog provides the 
+functions below as a wrapper around malloc(). Allocation errors in these 
+functions trap SWI-Prolog's fatal-error handler, in which case 
+PL_malloc() or PL_realloc() do not return.
+
+<P>Portable applications must use PL_free() to release strings returned 
+by PL_get_chars() using the <CODE>BUF_MALLOC</CODE> argument. Portable 
+applications may use both PL_malloc() and friends or malloc() and 
+friends but should not mix these two sets of functions on the same 
+memory.<A NAME=back-to-note-88 HREF="Notes.html#note-88"> (88)</A>
+
+<DL>
+<DT class="pubdef"><A NAME="PL_malloc()"><VAR>void *</VAR> <STRONG>PL_malloc</STRONG>(<VAR>size_t 
+bytes</VAR>)</A></DT>
+<DD class="defbody">
+Allocate <VAR>bytes</VAR> of memory. On failure SWI-Prolog's fatal error 
+handler is called and PL_malloc() does not return. Memory allocated 
+using these functions must use PL_realloc() and PL_free() rather than 
+realloc() and free().</DD>
+<DT class="pubdef"><A NAME="PL_realloc()"><VAR>void *</VAR> <STRONG>PL_realloc</STRONG>(<VAR>void 
+*mem, size_t size</VAR>)</A></DT>
+<DD class="defbody">
+Change the size of the allocated chunk, possibly moving it. The
+<VAR>mem</VAR> argument must be obtained from a previous PL_malloc() or 
+PL_realloc() call.</DD>
+<DT class="pubdef"><A NAME="PL_free()"><VAR>void</VAR> <STRONG>PL_free</STRONG>(<VAR>void 
+*mem</VAR>)</A></DT>
+<DD class="defbody">
+Release memory. The <VAR>mem</VAR> argument must be obtained from a 
+previous PL_malloc() or PL_realloc() call.
+</DD>
+</DL>
+
+<H3><A NAME="sec:9.10.2">9.10.2 Compatibility between Prolog versions</A></H3>
+
+<P>Great care is taken to ensure binary compatibility of foreign 
+extensions between different Prolog versions. Only much less frequently 
+used stream interface has been responsible for binary incompatibilities.
+
+<P><A NAME="idx:PLVERSION:1302"></A>Source-code that relies on new 
+features of the foreign interface can use the macro <CODE>PLVERSION</CODE> 
+to find the version of
+<CODE>SWI-Prolog.h</CODE> and PL_query() using the option
+<CODE>PL_QUERY_VERSION</CODE> to find the version of the attached Prolog 
+system. Both follow the same numbering schema explained with PL_query().
+
+<H3><A NAME="sec:9.10.3">9.10.3 Debugging Foreign Code</A></H3>
+
+<P>Statically linked foreign code or embedded systems can be debugged 
+normally. Most modern environments provide debugging tools for 
+dynamically loaded shared objects or dynamic load libraries. The 
+following example traces the code of lowercase using <STRONG>gdb</STRONG>(1) 
+in a Unix environment.
+
+<PRE class="code">
+% gcc -I/usr/local/lib/pl-2.2.0/include -fpic -c -g lowercase.c
+% gcc -shared -o lowercase.so lowercase.o
+% gdb pl
+(gdb) r
+Welcome to SWI-Prolog (Version \plversion)
+Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.
+
+For help, use ?- help(Topic). or ?- apropos(Word).
+
+?- load_foreign_library(lowercase).
+&lt;type Control-C&gt;
+(gdb) shared                    % loads symbols for shared objects
+(gdb) break pl_lowercase
+(gdb) continue
+?- lowercase('HELLO', X).
+</PRE>
+
+<H3><A NAME="sec:9.10.4">9.10.4 Name Conflicts in C modules</A></H3>
+
+<P>In the current version of the system all public C functions of 
+SWI-Prolog are in the symbol table. This can lead to name clashes with 
+foreign code. Someday I should write a program to strip all these 
+symbols from the symbol table (why does Unix not have that?). For now I 
+can only suggest to give your function another name. You can do this 
+using the C preprocessor. If---for example---your foreign package uses a 
+function warning(), which happens to exist in SWI-Prolog as well, the 
+following macro should fix the problem.
+
+<PRE class="code">
+#define warning warning_
+</PRE>
+
+<P>Note that shared libraries do not have this problem as the shared 
+library loader will only look for symbols in the main executable for 
+symbols that are not defined in the library itself.
+
+<H3><A NAME="sec:9.10.5">9.10.5 Compatibility of the Foreign Interface</A></H3>
+
+<P>The term-reference mechanism was first used by Quintus Prolog version 
+3. SICStus Prolog version 3 is strongly based on the Quintus interface. 
+The described SWI-Prolog interface is similar to using the Quintus or 
+SICStus interfaces, defining all foreign-predicate arguments of type
+<CODE>+term</CODE>. SWI-Prolog explicitly uses type <CODE>functor_t</CODE>, 
+while Quintus and SICStus uses &lt;<VAR>name</VAR>&gt; and &lt;<VAR>arity</VAR>&gt;. 
+As the names of the functions differ from Prolog to Prolog, a simple 
+macro layer dealing with the names can also deal with this detail. For 
+example:
+
+<PRE class="code">
+#define QP_put_functor(t, n, a) PL_put_functor(t, PL_new_functor(n, a))
+</PRE>
+
+<P>The <TT>PL_unify_*()</TT> functions are lacking from the Quintus and 
+SICStus interface. They can easily be emulated or the put/unify approach 
+should be used to write compatible code.
+
+<P>The PL_open_foreign_frame()/PL_close_foreign_frame() combination is 
+lacking from both other Prologs. SICStus has PL_new_term_refs(0), 
+followed by PL_reset_term_refs() that allows for discarding term 
+references.
+
+<P>The Prolog interface for the graphical user interface package XPCE 
+shares about 90% of the code using a simple macro layer to deal with 
+different naming and calling conventions of the interfaces.
+</BODY></HTML>

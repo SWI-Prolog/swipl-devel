@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.12</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="block3.html">
+<LINK REL=next HREF="db.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="block3.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="db.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.12">4.12 DCG Grammar rules</A></H2>
+
+<A NAME="sec:DCG"></A>
+
+<P><A NAME="idx:DCG:523"></A>Grammar rules form a comfortable interface 
+to <EM>difference-lists</EM>. They are designed both to support writing 
+parsers that build a parse-tree from a list as for generating a flat 
+list from a term. Unfortunately, Definite Clause Grammar (DCG) handling 
+is not part of the Prolog standard. Most Prolog engines implement DCG, 
+but the details differ slightly.
+
+<P>Grammar rules look like ordinary clauses using --&gt;/2 for 
+separating the head and body rather then :-/2 . Expanding grammar rules 
+is done by <A NAME="idx:expandterm2:524"></A><A HREF="consulting.html#expand_term/2">expand_term/2</A>, 
+which adds two additional argument to each term for representing the 
+difference list. We will illustrate the behaviour by defining a rule-set 
+for parsing an integer.
+
+<PRE class="code">
+integer(I) --&gt;
+        digit(D0),
+        digits(D),
+        { number_chars(I, [D0|D])
+        }.
+
+digits([D|T]) --&gt;
+        digit(D), !,
+        digits(T).
+digits([]) --&gt;
+        [].
+
+digit(D) --&gt;
+        [D],
+        { code_type(D, digit)
+        }.
+</PRE>
+
+<P>The body of a grammar rule can contain three types of terms. A 
+compound term interpreted as a reference to a grammar-rule. Code between
+<CODE>{</CODE>...<CODE>}</CODE> is interpreted as a reference to 
+ordinary Prolog code and finally, a list is interpreted as a sequence of 
+literals. The Prolog control-constructs ( \+/1 , -&gt;/2 , ;// 2, ,/2 
+and !/0 ) can be used in grammar rules.
+
+<P>Grammar rule-sets are called using the built-in predicates <A NAME="idx:phrase2:525"></A><A HREF="DCG.html#phrase/2">phrase/2</A> 
+and <A NAME="idx:phrase3:526"></A><A HREF="DCG.html#phrase/3">phrase/3</A>:
+
+<DL>
+<DT class="pubdef"><A NAME="phrase/2"><STRONG>phrase</STRONG>(<VAR>+RuleSet, 
++InputList</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to <CODE>phrase(<VAR>RuleSet</VAR>, <VAR>InputList</VAR>, [])</CODE>.
+</DD>
+<DT class="pubdef"><A NAME="phrase/3"><STRONG>phrase</STRONG>(<VAR>+RuleSet, 
++InputList, -Rest</VAR>)</A></DT>
+<DD class="defbody">
+Activate the rule-set with given name. `InputList' is the list of tokens 
+to parse, `Rest' is unified with the remaining tokens if the sentence is 
+parsed correctly. The example below calls the rule-set `integer' defined 
+above.
+
+<PRE class="code">
+?- phrase(integer(X), "42 times", Rest).
+
+X = 42
+Rest = [32, 116, 105, 109, 101, 115]
+</PRE>
+
+<P></DD>
+</DL>
+
+<P></BODY></HTML>

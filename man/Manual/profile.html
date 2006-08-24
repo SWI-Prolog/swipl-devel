@@ -1,0 +1,244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.40</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="statistics.html">
+<LINK REL=next HREF="memory.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="statistics.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="memory.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.40">4.40 Execution profiling</A></H2>
+
+<A NAME="sec:profile"></A>
+
+<P>This section describes the hierarchical execution profiler introduced 
+in SWI-Prolog 5.1.10. This profiler is based on ideas from <B>gprof</B> 
+described in <CITE><A HREF="Bibliography.html#graham82gprof">Graham <EM>et 
+al.</EM>, 1982</A></CITE>. The profiler consists of two parts: the 
+information-gathering is built into the kernel,<A NAME=back-to-note-70 HREF="Notes.html#note-70"> (70)</A> 
+and a presentation component which is defined in the <CODE>library(statistics)</CODE> 
+library. The latter can be hooked, which is used by the XPCE module
+<CODE>library(swi/pce_profile)</CODE> to provide an interactive 
+graphical representation of results.
+
+<H3><A NAME="sec:4.40.1">4.40.1 Profiling predicates</A></H3>
+
+<P>Currently, the interface is kept compatible with the old profiler. As 
+experience grows, it is likely that the old interface is replaced with 
+one that better reflects the new capabilities. Feel free to examine the 
+internal interfaces and report useful application thereof.
+
+<DL>
+<DT class="pubdef"><A NAME="profile/1"><STRONG>profile</STRONG>(<VAR>:Goal</VAR>)</A></DT>
+<DD class="defbody">
+Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1027"></A><A HREF="statistics.html#time/1">time/1</A>, 
+collecting profiling statistics and call <CODE>show_profile(plain, 25)</CODE>. 
+With XPCE installed this opens a graphical interface to the collected 
+profiling data.</DD>
+<DT class="pubdef"><A NAME="profile/3"><STRONG>profile</STRONG>(<VAR>:Goal, 
++Style, +Number</VAR>)</A></DT>
+<DD class="defbody">
+Execute <VAR>Goal</VAR> just like <A NAME="idx:time1:1028"></A><A HREF="statistics.html#time/1">time/1</A>. 
+Collect profiling statistics and show the top <VAR>Number</VAR> 
+procedures on the current output stream (see <A NAME="idx:showprofile1:1029"></A><A HREF="profile.html#show_profile/1">show_profile/1</A>) 
+using <VAR>Style</VAR>. The results are kept in the database until <A NAME="idx:resetprofiler0:1030"></A><A HREF="profile.html#reset_profiler/0">reset_profiler/0</A> 
+or <A NAME="idx:profile3:1031"></A><A HREF="profile.html#profile/3">profile/3</A> 
+is called and can be displayed again with <A NAME="idx:showprofile1:1032"></A><A HREF="profile.html#show_profile/1">show_profile/1</A>. 
+The <A NAME="idx:profile1:1033"></A><A HREF="profile.html#profile/1">profile/1</A> 
+predicate is a backward compatibility interface to <A NAME="idx:profile1:1034"></A><A HREF="profile.html#profile/1">profile/1</A>. 
+The other predicates in this section are low-level predicates for 
+special cases.</DD>
+<DT class="pubdef"><A NAME="show_profile/2"><STRONG>show_profile</STRONG>(<VAR>+Style, 
++Number</VAR>)</A></DT>
+<DD class="defbody">
+Show the collected results of the profiler. It shows the top <VAR>Number</VAR> 
+predicates according the percentage <font size=-1>CPU</font>-time used. 
+If <VAR>Style</VAR> is <CODE>plain</CODE> the time spent in the 
+predicates itself is displayed. If <VAR>Style</VAR> is <CODE>cumulative</CODE> 
+the time spent in its siblings (callees) is added to the predicate.
+
+<P>This predicate first calls prolog:show_profile_hook/2. If XPCE is 
+loaded this hook is used to activate a GUI interface to visualise the 
+profile results.</DD>
+<DT class="pubdef"><A NAME="show_profile/1"><STRONG>show_profile</STRONG>(<VAR>+Number</VAR>)</A></DT>
+<DD class="defbody">
+Compatibility. Same as <CODE>show_profile(plain, Number)</CODE>.</DD>
+<DT class="pubdef"><A NAME="profiler/2"><STRONG>profiler</STRONG>(<VAR>-Old, 
++New</VAR>)</A></DT>
+<DD class="defbody">
+Query or change the status of the profiler. The status is a boolean (<CODE>true</CODE> 
+or <CODE>false</CODE>) stating whether or not the profiler is collecting 
+data. It can be used to enable or disable profiling certain parts of the 
+program.</DD>
+<DT class="pubdef"><A NAME="reset_profiler/0"><STRONG>reset_profiler</STRONG></A></DT>
+<DD class="defbody">
+Switches the profiler to <CODE>false</CODE> and clears all collected 
+statistics.</DD>
+<DT class="pubdef"><A NAME="noprofile/1"><STRONG>noprofile</STRONG>(<VAR>+Name/+Arity, 
+...</VAR>)</A></DT>
+<DD class="defbody">
+Declares the predicate <VAR>Name</VAR>/<VAR>Arity</VAR> to be invisible 
+to the profiler. The time spend in the named predicate is added to the 
+caller and the callees are linked directly to the caller. This is 
+particularly useful for simple meta-predicates such as <A NAME="idx:call1:1035"></A><A HREF="metacall.html#call/1">call/1</A>, <A NAME="idx:ignore1:1036"></A><A HREF="metacall.html#ignore/1">ignore/1</A>, <A NAME="idx:catch3:1037"></A><A HREF="exception.html#catch/3">catch/3</A>, 
+etc.
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.40.2">4.40.2 Visualizing profiling data</A></H3>
+
+<A NAME="sec:pceprofile"></A>
+
+<P>Browsing the annotated call-tree as described in <A HREF="profile.html">section 
+4.40.3</A> itself is not very attractive. Therefore, the results are 
+combined per predicate, collecting all <EM>callers</EM> and and <EM>callees</EM> 
+as well as the propagation of time and activations in both directions.
+<A HREF="profile.html#fig:profnode">Figure 5</A> illustrates this. The 
+central yellowish line is the `current' predicate with counts for time 
+spent in the predicate (`Self'), time spent in its children 
+(`Siblings'), activations through the call and redo ports. Above that 
+are the <EM>callers</EM>. Here, the two time fields indicate how much 
+time is spent serving each of the callers. The columns sum to the time 
+in the yellowish line. The caller
+<EM><VAR>&lt;</VAR>recursive<VAR>&gt;</VAR></EM> are the number of 
+recursive calls. Below the yellowish lines are the callees, with the 
+time spent in the callee itself for serving the current predicate and 
+the time spent in the callees of the callee ('Siblings'), so the whole 
+time-block adds up to the `Siblings' field of the current predicate. The 
+`Access' fields show how many times the current predicate accesses each 
+of the callees.
+
+<P>The predicates have a menu that allows changing the view of the 
+detail window to the given caller or callee, showing the documentation 
+(if it is a built-in) and/or jumping to the source.
+
+<P><A NAME="fig:profnode"></A>
+<CENTER>
+<IMG SRC="profnode.gif">
+</CENTER>
+<TABLE ALIGN=center WIDTH="75%"><TR><TD>
+<B>Figure 5 : </B> Execution profiler showing the activity of the 
+predicate chat:inv_map_list/5.</TABLE>
+
+<P>The statistics shown in the report-field of <A HREF="profile.html#fig:profnode">figure 
+5</A> show the following information:
+
+<P>
+<UL>
+<LI><I>samples</I><BR>
+Number of times the call-tree was sampled for collecting time 
+statistics. On most hardware the resolution of <CODE>SIGPROF</CODE> is 
+1/100 second. This number must be sufficiently large to get reliable 
+timing figures. The <B>Time</B> menu allows viewing time as samples, 
+relative time or absolute time.
+
+<P>
+<LI><I>sec</I><BR>
+Total user CPU time with the profiler active.
+
+<P>
+<LI><I>predicates</I><BR>
+Total count of predicates that have been called at least one time during 
+the profile.
+
+<P>
+<LI><I>nodes</I><BR>
+Number of nodes in the call-tree.
+
+<P>
+<LI><I>distortion</I><BR>
+How much of the time is spend building the call-tree as a percentage of 
+the total execution time. Timing samples while the profiler is building 
+the call-tree are not added to the call-tree.
+</UL>
+
+<H3><A NAME="sec:4.40.3">4.40.3 Information gathering</A></H3>
+
+<A NAME="sec:profilegather"></A>
+
+<P>While the program executes under the profiler, the system builds a
+<EM>dynamic</EM> call-tree. It does this using three hooks from the 
+kernel: one that starts a new goal (<EM>profCall</EM>), one the tells 
+the system which goal is resumed after an <EM>exit</EM> (<EM>profExit</EM>) 
+and one that tells the system which goal is resumed after a <EM>fail</EM> 
+(i.e. which goal is used to <EM>retry</EM> (<EM>profRedo</EM>)). The 
+profCall() function finds or creates the subnode for the argument 
+predicate below the current node, increments the call-count of this link 
+and returns the sub-node which is recorded in the Prolog stack-frame. 
+Choice-points are marked with the current profiling node. profExit() and 
+profRedo() pass the profiling node where execution resumes.
+
+<P>Just using the above algorithm would create a much too big tree due 
+to recursion. For this reason the system performs detection of 
+recursion. In the simplest case, recursive procedures increment the 
+`recursive' count on the current node. Mutual recursion however is not 
+easily detected. For example, <A NAME="idx:call1:1038"></A><A HREF="metacall.html#call/1">call/1</A> 
+can call a predicate that uses <A NAME="idx:call1:1039"></A><A HREF="metacall.html#call/1">call/1</A> 
+itself. This can be viewed as a recursive invocation, but this is 
+generally not desirable. Recursion is currently assumed if the same 
+predicate <EM>with the same parent</EM> appears higher in the 
+call-graph. Early experience with a some arbitrary non-trivial programs 
+are promising.
+
+<P>The last part of the profiler collects statistics on the CPU-time 
+used in each node. On systems providing setitimer() with
+<CODE>SIGPROF</CODE>, it `ticks' the current node of the call-tree each 
+time the timer fires. On Windows a MM-timer in a separate thread checks 
+100 times per second how much time is spent in the profiled thread and 
+adds this to the current node. See <A HREF="profile.html">section 
+4.40.3.1</A> for details.
+
+<H4><A NAME="sec:4.40.3.1">4.40.3.1 Profiling in the Windows 
+Implementation</A></H4>
+
+<A NAME="sec:winprofile"></A>
+
+<P>Profiling in the Windows version is similar but as profiling is a 
+statistical process it is good to be aware of the implementation<A NAME=back-to-note-71 HREF="Notes.html#note-71"> (71)</A> 
+for proper interpretation of the results.
+
+<P>Windows does not provide timers that fire asynchronously, frequent 
+and proportional to the CPU time used by the process. Windows does 
+provide multi-media timers that can run at high frequency. Such timers 
+however run in a separate thread of execution and they are fired on the 
+wall-clock rather than the amount of CPU time used. The profiler 
+installs such a timer running, for saving CPU time, rather inaccurately 
+at about 100 Hz. Each time it is fired, it determines the milliseconds 
+CPU time used by Prolog since the last time it was fired. If this value 
+is non-zero, active predicates are incremented with this value.
+
+<P></BODY></HTML>

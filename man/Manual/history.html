@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 2.7</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="help.html">
+<LINK REL=next HREF="topvars.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="help.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="topvars.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:2.7">2.7 Command-line history</A></H2>
+
+<A NAME="sec:history"></A>
+
+<P>SWI-Prolog offers a query substitution mechanism called `history'. 
+The availability of this feature is controlled by <A NAME="idx:setprologflag2:81"></A><A HREF="flags.html#set_prolog_flag/2">set_prolog_flag/2</A>, 
+using the <CODE>history</CODE> prolog-flag. By default, history is 
+available if the prolog-flag <CODE>readline</CODE> is <CODE>false</CODE>. 
+To enable this feature, remembering the last 50 commands, put the 
+following into your startup file (see <A HREF="initfile.html">section 
+2.2</A>):
+
+<PRE class="code">
+:- set_prolog_flag(history, 50).
+</PRE>
+
+<P>The history system allows the user to compose new queries from those 
+typed before and remembered by the system. The available history 
+commands are shown in <A HREF="history.html#tab:history">table 1</A>. 
+History expansion is not done if these sequences appear in quoted atoms 
+or strings.
+
+<P>
+<CENTER>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><CODE>!!.</CODE> </TD><TD>Repeat last query </TD></TR>
+<TR VALIGN=top><TD><CODE>!nr.</CODE> </TD><TD>Repeat query numbered &lt;<VAR>nr</VAR>&gt; </TD></TR>
+<TR VALIGN=top><TD><CODE>!str.</CODE> </TD><TD>Repeat last query 
+starting with &lt;<VAR>str</VAR>&gt; </TD></TR>
+<TR VALIGN=top><TD><CODE>h.</CODE> </TD><TD>Show history of commands </TD></TR>
+<TR VALIGN=top><TD><CODE>!h.</CODE> </TD><TD>Show this list </TD></TR>
+</TABLE>
+
+</CENTER>
+<TABLE ALIGN=center WIDTH="75%"><TR><TD>
+<B>Table 1 : </B>History commands</TABLE>
+
+<A NAME="tab:history"></A>
+
+<P></BODY></HTML>

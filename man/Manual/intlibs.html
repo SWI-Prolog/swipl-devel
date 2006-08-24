@@ -1,0 +1,133 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section B.5</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="exception3.html">
+<LINK REL=next HREF="loadfilehook.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="exception3.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="loadfilehook.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:B.5">B.5 Hooks for integrating libraries</A></H2>
+
+<A NAME="sec:intlibs"></A>
+
+<P>Some libraries realise an entirely new programming paradigm on top of 
+Prolog. An example is XPCE which adds an object-system to Prolog as well 
+as an extensive set of graphical primitives. SWI-Prolog provides several 
+hooks to improve the integration of such libraries. See also
+<A HREF="listing.html">section 4.4</A> for editing hooks and <A HREF="exception.html">section 
+4.9.3</A> for hooking into the message system.
+
+<DL>
+<DT class="pubdef"><A NAME="prolog_list_goal/1"><STRONG>prolog_list_goal</STRONG>(<VAR>:Goal</VAR>)</A></DT>
+<DD class="defbody">
+Hook, normally not defined. This hook is called by the 'L' command of 
+the tracer in the module <CODE>user</CODE> to list the currently called 
+predicate. This hook may be defined to list only relevant clauses of the 
+indicated <VAR>Goal</VAR> and/or show the actual source-code in an 
+editor. See also <A NAME="idx:portray1:1434"></A><A HREF="termrw.html#portray/1">portray/1</A> 
+and <A NAME="idx:multifile1:1435"></A><A HREF="dynamic.html#multifile/1">multifile/1</A>.</DD>
+<DT class="pubdef"><A NAME="prolog:debug_control_hook/1"><STRONG>prolog:debug_control_hook</STRONG>(<VAR>:Action</VAR>)</A></DT>
+<DD class="defbody">
+Hook for the debugger-control predicates that allows the creator of more 
+high-level programming languages to use the common front-end predicates 
+to control de debugger. For example, XPCE uses these hooks to allow for 
+spying methods rather then predicates. <VAR>Action</VAR> is one of:
+
+<DL>
+<DT><STRONG>spy</STRONG>(<VAR>Spec</VAR>)</DT>
+<DD class="defbody">
+Hook in <A NAME="idx:spy1:1436"></A><A HREF="debugger.html#spy/1">spy/1</A>. 
+If the hook succeeds <A NAME="idx:spy1:1437"></A><A HREF="debugger.html#spy/1">spy/1</A> 
+takes no further action.
+</DD>
+<DT><STRONG>nospy</STRONG>(<VAR>Spec</VAR>)</DT>
+<DD class="defbody">
+Hook in <A NAME="idx:nospy1:1438"></A><A HREF="debugger.html#nospy/1">nospy/1</A>. 
+If the hook succeeds <A NAME="idx:spy1:1439"></A><A HREF="debugger.html#spy/1">spy/1</A> 
+takes no further action. If <A NAME="idx:spy1:1440"></A><A HREF="debugger.html#spy/1">spy/1</A> 
+is hooked, it is advised to place a complementary hook for
+<A NAME="idx:nospy1:1441"></A><A HREF="debugger.html#nospy/1">nospy/1</A>.
+</DD>
+<DT><STRONG>nospyall</STRONG></DT>
+<DD class="defbody">
+Hook in <A NAME="idx:nospyall0:1442"></A><A HREF="debugger.html#nospyall/0">nospyall/0</A>. 
+Should remove all spy-points. This hook is called in a failure-driven 
+loop.
+</DD>
+<DT><STRONG>debugging</STRONG></DT>
+<DD class="defbody">
+Hook in <A NAME="idx:debugging0:1443"></A><A HREF="debugger.html#debugging/0">debugging/0</A>. 
+It can be used in two ways. It can report the status of the additional 
+debug-points controlled by the above hooks and fail to let the system 
+report the others or it succeed, overruling the entire behaviour of <A NAME="idx:debugging0:1444"></A><A HREF="debugger.html#debugging/0">debugging/0</A>.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="prolog:help_hook/1"><STRONG>prolog:help_hook</STRONG>(<VAR>+Action</VAR>)</A></DT>
+<DD class="defbody">
+Hook into <A NAME="idx:help0:1445"></A><A HREF="help.html#help/0">help/0</A> 
+and <A NAME="idx:help1:1446"></A><A HREF="help.html#help/1">help/1</A>. 
+If the hook succeeds, the built-in actions are not executed. For 
+example, <CODE>?- help(picture).</CODE> is caught by the XPCE help-hook 
+to give help on the class <EM>picture</EM>. Defined actions are:
+
+<DL>
+<DT><STRONG>help</STRONG></DT>
+<DD class="defbody">
+User entered plain <A NAME="idx:help0:1447"></A><A HREF="help.html#help/0">help/0</A> 
+to give default help. The default performs
+<CODE>help(<A NAME="idx:help1:1448"></A><A HREF="help.html#help/1">help/1</A>)</CODE>, 
+giving help on help.
+</DD>
+<DT><STRONG>help</STRONG>(<VAR>What</VAR>)</DT>
+<DD class="defbody">
+Hook in <A NAME="idx:help1:1449"></A><A HREF="help.html#help/1">help/1</A> 
+on the topic <VAR>What</VAR>.
+</DD>
+<DT><STRONG>apropos</STRONG>(<VAR>What</VAR>)</DT>
+<DD class="defbody">
+Hook in <A NAME="idx:apropos1:1450"></A><A HREF="help.html#apropos/1">apropos/1</A> 
+on the topic <VAR>What</VAR>.
+</DD>
+</DL>
+
+</DD>
+</DL>
+
+<P></BODY></HTML>

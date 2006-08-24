@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.7</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="gensym.html">
+<LINK REL=next HREF="debug.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="gensym.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="debug.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.7">A.7 library( check ): Elementary completeness 
+checks</A></H2>
+
+<A NAME="check"></A>
+
+<P>This library defines the predicate <A NAME="idx:check0:1353"></A><A HREF="check.html#check/0">check/0</A> 
+and a few friends that allow for a quick-and-dirty cross-referencing.
+
+<DL>
+<DT class="pubdef"><A NAME="check/0"><STRONG>check</STRONG></A></DT>
+<DD class="defbody">
+Performs the three checking passes implemented by <A NAME="idx:listundefined0:1354"></A><A HREF="check.html#list_undefined/0">list_undefined/0</A>,
+<A NAME="idx:listautoload0:1355"></A><A HREF="check.html#list_autoload/0">list_autoload/0</A> 
+and <A NAME="idx:listredefined0:1356"></A><A HREF="check.html#list_redefined/0">list_redefined/0</A>. 
+Please check the definition of these predicates for details.
+
+<P>The typical usage of this predicate is right after loading your 
+program to get a quick overview on the completeness and possible 
+conflicts in your program.</DD>
+<DT class="pubdef"><A NAME="list_undefined/0"><STRONG>list_undefined</STRONG></A></DT>
+<DD class="defbody">
+Scans the database for predicates that have no definition. A predicate 
+is considered defined if it has clauses, is declared using <A NAME="idx:dynamic1:1357"></A><A HREF="dynamic.html#dynamic/1">dynamic/1</A> 
+or
+<A NAME="idx:multifile1:1358"></A><A HREF="dynamic.html#multifile/1">multifile/1</A>. 
+As a program is compiled calls are translated to predicates. If the 
+called predicate is not yet defined it is created as a predicate without 
+definition. The same happens with runtime generated calls. This 
+predicate lists all such undefined predicates that are referenced and 
+not defined in the library. See also
+<A NAME="idx:listautoload0:1359"></A><A HREF="check.html#list_autoload/0">list_autoload/0</A>. 
+Below is an example from a real program and an illustration how to edit 
+the referencing predicate using <A NAME="idx:edit1:1360"></A><A HREF="listing.html#edit/1">edit/1</A>.
+
+<PRE class="code">
+?- list_undefined.
+Warning: The predicates below are not defined. If these are defined
+Warning: at runtime using assert/1, use :- dynamic Name/Arity.
+Warning: 
+Warning: rdf_edit:rdfe_retract/4, which is referenced by
+Warning:         1-st clause of rdf_edit:undo/4
+Warning: rdf_edit:rdfe_retract/3, which is referenced by
+Warning:         1-st clause of rdf_edit:delete_object/1
+Warning:         1-st clause of rdf_edit:delete_subject/1
+Warning:         1-st clause of rdf_edit:delete_predicate/1
+
+?- edit(rdf_edit:undo/4).
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="list_autoload/0"><STRONG>list_autoload</STRONG></A></DT>
+<DD class="defbody">
+Lists all undefined (see <A NAME="idx:listundefined0:1361"></A><A HREF="check.html#list_undefined/0">list_undefined/0</A>) 
+predicates that have a definition in the library along with the file 
+from which they will be autoloaded when accessed. See also <A NAME="idx:autoload0:1362"></A><A HREF="runtime.html#autoload/0">autoload/0</A>.</DD>
+<DT class="pubdef"><A NAME="list_redefined/0"><STRONG>list_redefined</STRONG></A></DT>
+<DD class="defbody">
+Lists predicates that are defined in the global module <CODE>user</CODE> 
+as well as in a normal module. I.e. predicates for which the local 
+definition overrules the global default definition.
+</DD>
+</DL>
+
+</BODY></HTML>

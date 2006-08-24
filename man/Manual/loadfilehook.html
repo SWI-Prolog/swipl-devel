@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section B.6</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="intlibs.html">
+<LINK REL=next HREF="readline.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="intlibs.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="readline.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:B.6">B.6 Hooks for loading files</A></H2>
+
+<A NAME="sec:loadfilehook"></A>
+
+<P>All loading of source-files is achieved by <A NAME="idx:loadfiles2:1451"></A><A HREF="consulting.html#load_files/2">load_files/2</A>. 
+The hook
+<A NAME="idx:prologloadfile2:1452"></A><B>prolog_load_file/2</B> can be 
+used to load Prolog code from non-files or even load entirely different 
+information, such as foreign files.
+
+<DL>
+<DT class="pubdef"><A NAME="user:prolog_load_file/2"><STRONG>user:prolog_load_file</STRONG>(<VAR>+Spec, 
++Options</VAR>)</A></DT>
+<DD class="defbody">
+Load a single object. If this call succeeds, <A NAME="idx:loadfiles2:1453"></A><A HREF="consulting.html#load_files/2">load_files/2</A> 
+assumes the action has been taken care of. This hook is only called if <VAR>Options</VAR> 
+does not contain the <CODE>stream(Input)</CODE> option.
+
+<P>The <CODE>library(http_load)</CODE> provides an example, loading 
+Prolog sources directly from an HTTP server.</DD>
+<DT class="pubdef"><A NAME="prolog:comment_hook/3"><STRONG>prolog:comment_hook</STRONG>(<VAR>+Comments, 
++Pos, +Term</VAR>)</A></DT>
+<DD class="defbody">
+This hook allows for processing ---structured--- comments encountered by 
+the compiler. The reader collects all comments found from the current 
+position to the end of the next term. It calls this hook providing a 
+list of <VAR>Position</VAR>-<VAR>Comment</VAR> in <VAR>Comments</VAR>, 
+the start-position of the next term in <VAR>Pos</VAR> and the next term 
+itself in <VAR>Term</VAR>. All positions are stream-position terms. This 
+hook is exploited by the documentation system. See
+<A NAME="idx:streampositiondata3:1454"></A><A HREF="IO.html#stream_position_data/3">stream_position_data/3</A>. 
+See also <A NAME="idx:readterm3:1455"></A><A HREF="termrw.html#read_term/3">read_term/3</A>.
+</DD>
+</DL>
+
+<P></BODY></HTML>

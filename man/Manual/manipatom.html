@@ -1,0 +1,230 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.21</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="manipterm.html">
+<LINK REL=next HREF="chartype.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="manipterm.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="chartype.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.21">4.21 Analysing and Constructing Atoms</A></H2>
+
+<A NAME="sec:manipatom"></A>
+
+<P>These predicates convert between Prolog constants and lists of 
+character codes. The predicates <A NAME="idx:atomcodes2:818"></A><A HREF="manipatom.html#atom_codes/2">atom_codes/2</A>, <A NAME="idx:numbercodes2:819"></A><A HREF="manipatom.html#number_codes/2">number_codes/2</A> 
+and <A NAME="idx:name2:820"></A><A HREF="manipatom.html#name/2">name/2</A> 
+behave the same when converting from a constant to a list of character 
+codes. When converting the other way around, <A NAME="idx:atomcodes2:821"></A><A HREF="manipatom.html#atom_codes/2">atom_codes/2</A> 
+will generate an atom, <A NAME="idx:numbercodes2:822"></A><A HREF="manipatom.html#number_codes/2">number_codes/2</A> 
+will generate a number or exception and <A NAME="idx:name2:823"></A><A HREF="manipatom.html#name/2">name/2</A> 
+will return a number if possible and an atom otherwise.
+
+<P>The ISO standard defines <A NAME="idx:atomchars2:824"></A><A HREF="manipatom.html#atom_chars/2">atom_chars/2</A> 
+to describe the `broken-up' atom as a list of one-character atoms 
+instead of a list of codes. Up-to version 3.2.x, SWI-Prolog's <A NAME="idx:atomchars2:825"></A><A HREF="manipatom.html#atom_chars/2">atom_chars/2</A> 
+behaved, compatible to Quintus and SICStus Prolog, like atom_codes. As 
+of 3.3.x SWI-Prolog
+<A NAME="idx:atomcodes2:826"></A><A HREF="manipatom.html#atom_codes/2">atom_codes/2</A> 
+and <A NAME="idx:atomchars2:827"></A><A HREF="manipatom.html#atom_chars/2">atom_chars/2</A> 
+are compliant to the ISO standard.
+
+<P>To ease the pain of all variations in the Prolog community, all 
+SWI-Prolog predicates behave as flexible as possible. This implies the 
+`list-side' accepts either a code-list or a char-list and the 
+`atom-side' accept all atomic types (atom, number and string).
+
+<DL>
+<DT class="pubdef"><A NAME="atom_codes/2"><STRONG>atom_codes</STRONG>(<VAR>?Atom, 
+?String</VAR>)</A></DT>
+<DD class="defbody">
+Convert between an atom and a list of character codes. If
+<VAR>Atom</VAR> is instantiated, if will be translated into a list of 
+character codes and the result is unified with <VAR>String</VAR>. If <VAR>Atom</VAR> 
+is unbound and <VAR>String</VAR> is a list of character codes, it will
+<VAR>Atom</VAR> will be unified with an atom constructed from this list.</DD>
+<DT class="pubdef"><A NAME="atom_chars/2"><STRONG>atom_chars</STRONG>(<VAR>?Atom, 
+?CharList</VAR>)</A></DT>
+<DD class="defbody">
+As <A NAME="idx:atomcodes2:828"></A><A HREF="manipatom.html#atom_codes/2">atom_codes/2</A>, 
+but <VAR>CharList</VAR> is a list of one-character atoms rather than a 
+list of character codes<A NAME=back-to-note-50 HREF="Notes.html#note-50"> (50)</A>.
+
+<PRE class="code">
+?- atom_chars(hello, X).
+
+X = [h, e, l, l, o]
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="char_code/2"><STRONG>char_code</STRONG>(<VAR>?Atom, 
+?Code</VAR>)</A></DT>
+<DD class="defbody">
+Convert between character and character code for a single character.<A NAME=back-to-note-51 HREF="Notes.html#note-51"> (51)</A></DD>
+<DT class="pubdef"><A NAME="number_chars/2"><STRONG>number_chars</STRONG>(<VAR>?Number, 
+?CharList</VAR>)</A></DT>
+<DD class="defbody">
+Similar to <A NAME="idx:atomchars2:829"></A><A HREF="manipatom.html#atom_chars/2">atom_chars/2</A>, 
+but converts between a number and its representation as a list of 
+one-character atoms. Fails with a
+<CODE>representation_error</CODE> if <VAR>Number</VAR> is unbound and
+<VAR>CharList</VAR> does not describe a number.</DD>
+<DT class="pubdef"><A NAME="number_codes/2"><STRONG>number_codes</STRONG>(<VAR>?Number, 
+?CodeList</VAR>)</A></DT>
+<DD class="defbody">
+As <A NAME="idx:numberchars2:830"></A><A HREF="manipatom.html#number_chars/2">number_chars/2</A>, 
+but converts to a list of character codes rather than one-character 
+atoms. In the mode -, +, both predicates behave identically to improve 
+handling of non-ISO source.</DD>
+<DT class="pubdef"><A NAME="atom_number/2"><STRONG>atom_number</STRONG>(<VAR>?Atom, 
+?Number</VAR>)</A></DT>
+<DD class="defbody">
+Realises the popular combination of <A NAME="idx:atomcodes2:831"></A><A HREF="manipatom.html#atom_codes/2">atom_codes/2</A> 
+and <A NAME="idx:numbercodes2:832"></A><A HREF="manipatom.html#number_codes/2">number_codes/2</A> 
+to convert between atom and number (integer or float) in one predicate, 
+avoiding the intermediate list.</DD>
+<DT class="pubdef"><A NAME="name/2"><STRONG>name</STRONG>(<VAR>?AtomOrInt, 
+?String</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>String</VAR> is a list of character codes representing the same 
+text as <VAR>Atom</VAR>. Each of the arguments may be a variable, but 
+not both. When <VAR>String</VAR> is bound to an character code list 
+describing an integer and <VAR>Atom</VAR> is a variable <VAR>Atom</VAR> 
+will be unified with the integer value described by <VAR>String</VAR> 
+(e.g. `<CODE>name(N, "300"), 400 is N + 100</CODE>' succeeds).</DD>
+<DT class="pubdef"><A NAME="term_to_atom/2"><STRONG>term_to_atom</STRONG>(<VAR>?Term, 
+?Atom</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Atom</VAR> describes a term that unifies with <VAR>Term</VAR>. 
+When
+<VAR>Atom</VAR> is instantiated <VAR>Atom</VAR> is converted and then 
+unified with
+<VAR>Term</VAR>. If <VAR>Atom</VAR> has no valid syntax, a <CODE>syntax_error</CODE> 
+exception is raised. Otherwise <VAR>Term</VAR> is ``written'' on <VAR>Atom</VAR> 
+using <A NAME="idx:write1:833"></A><A HREF="termrw.html#write/1">write/1</A>.</DD>
+<DT class="pubdef"><A NAME="atom_to_term/3"><STRONG>atom_to_term</STRONG>(<VAR>+Atom, 
+-Term, -Bindings</VAR>)</A></DT>
+<DD class="defbody">
+Use <VAR>Atom</VAR> as input to <A NAME="idx:readterm2:834"></A><A HREF="termrw.html#read_term/2">read_term/2</A> 
+using the option
+<CODE>variable_names</CODE> and return the read term in <VAR>Term</VAR> 
+and the variable bindings in <VAR>Bindings</VAR>. <VAR>Bindings</VAR> is 
+a list of
+<VAR><VAR>Name</VAR> = <VAR>Var</VAR></VAR> couples, thus providing 
+access to the actual variable names. See also <A NAME="idx:readterm2:835"></A><A HREF="termrw.html#read_term/2">read_term/2</A>. 
+If <VAR>Atom</VAR> has no valid syntax, a <CODE>syntax_error</CODE> 
+exception is raised.</DD>
+<DT class="pubdef"><A NAME="atom_concat/3"><STRONG>atom_concat</STRONG>(<VAR>?Atom1, 
+?Atom2, ?Atom3</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Atom3</VAR> forms the concatenation of <VAR>Atom1</VAR> and <VAR>Atom2</VAR>. 
+At least two of the arguments must be instantiated to atoms, integers or 
+floating point numbers. For ISO compliance, the instantiation-pattern -, 
+-, + is allowed too, non-deterministically splitting the 3-th argument 
+into two parts (as <A NAME="idx:append3:836"></A><A HREF="lists.html#append/3">append/3</A> 
+does for lists). See also
+<A NAME="idx:stringconcat3:837"></A><A HREF="strings.html#string_concat/3">string_concat/3</A>.</DD>
+<DT class="pubdef"><A NAME="concat_atom/2"><STRONG>concat_atom</STRONG>(<VAR>+List, 
+-Atom</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>List</VAR> is a list of atoms, integers or floating point numbers. 
+Succeeds if <VAR>Atom</VAR> can be unified with the concatenated 
+elements of <VAR>List</VAR>. If
+<VAR>List</VAR> has exactly 2 elements it is equivalent to <A NAME="idx:atomconcat3:838"></A><A HREF="manipatom.html#atom_concat/3">atom_concat/3</A>, 
+allowing for variables in the list.</DD>
+<DT class="pubdef"><A NAME="concat_atom/3"><STRONG>concat_atom</STRONG>(<VAR>?List, 
++Separator, ?Atom</VAR>)</A></DT>
+<DD class="defbody">
+Creates an atom just like <A NAME="idx:concatatom2:839"></A><A HREF="manipatom.html#concat_atom/2">concat_atom/2</A>, 
+but inserts <VAR>Separator</VAR> between each pair of atoms. For 
+example:
+
+<PRE class="code">
+?- concat_atom([gnu, gnat], ', ', A).
+
+A = 'gnu, gnat'
+</PRE>
+
+<P>This predicate can also be used to split atoms by instantiating
+<VAR>Separator</VAR> and <VAR>Atom</VAR>:
+
+<PRE class="code">
+?- concat_atom(L, -, 'gnu-gnat').
+
+L = [gnu, gnat]
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="atom_length/2"><STRONG>atom_length</STRONG>(<VAR>+Atom, 
+-Length</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Atom</VAR> is an atom of <VAR>Length</VAR> characters 
+long. This predicate also works for strings (see <A HREF="strings.html">section 
+4.23</A>). If the prolog flag <CODE>iso</CODE> is <EM>not</EM> set, it 
+also accepts integers and floats, expressing the number of characters 
+output when given to <A NAME="idx:write1:840"></A><A HREF="termrw.html#write/1">write/1</A> 
+as well as code-lists and character-lists, expressing the length of the 
+list.<A NAME=back-to-note-52 HREF="Notes.html#note-52"> (52)</A></DD>
+<DT class="pubdef"><A NAME="atom_prefix/2"><STRONG>atom_prefix</STRONG>(<VAR>+Atom, 
++Prefix</VAR>)</A></DT>
+<DD class="defbody">
+Succeeds if <VAR>Atom</VAR> starts with the characters from <VAR>Prefix</VAR>. 
+Its behaviour is equivalent to
+<CODE>?- sub_atom(<VAR>Atom</VAR>, 0, _, _, <VAR>Prefix</VAR>)</CODE>. 
+Depreciated.</DD>
+<DT class="pubdef"><A NAME="sub_atom/5"><STRONG>sub_atom</STRONG>(<VAR>+Atom, 
+?Before, ?Len, ?After, ?Sub</VAR>)</A></DT>
+<DD class="defbody">
+ISO predicate for breaking atoms. It maintains the following relation:
+<VAR>Sub</VAR> is a sub-atom of <VAR>Atom</VAR> that starts at <VAR>Before</VAR>, 
+has
+<VAR>Len</VAR> characters and <VAR>Atom</VAR> contains <VAR>After</VAR> 
+characters after the match.
+
+<PRE class="code">
+?- sub_atom(abc, 1, 1, A, S).
+
+A = 1, S = b
+</PRE>
+
+<P>The implementation minimises non-determinism and creation of atoms. 
+This is a very flexible predicate that can do search, prefix- and 
+suffix-matching, etc.
+</DD>
+</DL>
+
+<P></BODY></HTML>

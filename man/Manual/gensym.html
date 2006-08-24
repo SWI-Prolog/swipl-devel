@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.6</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="nbset.html">
+<LINK REL=next HREF="check.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="nbset.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="check.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.6">A.6 library( gensym ): Generate unique identifiers</A></H2>
+
+<A NAME="gensym"></A>
+
+<P>Gensym (<B>Gen</B>erate <B>Sym</B>bols) is an old library for 
+generating unique symbols (atoms). Such symbols are generated from a 
+base atom which gets a sequence number appended. Of course there is no 
+guarantee that `catch22' is not an already defined atom and therefore 
+one must be aware these atoms are only unique in an isolated context.
+
+<P>The SWI-Prolog gensym library is thread-safe. The sequence numbers 
+are global over all threads and therefore generated atoms are unique 
+over all threads.
+
+<DL>
+<DT class="pubdef"><A NAME="gensym/2"><STRONG>gensym</STRONG>(<VAR>+Base, 
+-Unique</VAR>)</A></DT>
+<DD class="defbody">
+Generate a unique atom from base <VAR>Base</VAR> and unify it with <VAR>Unique</VAR>.
+<VAR>Base</VAR> should be an atom. The first call will return &lt;<VAR>base</VAR>&gt;1 
+, the next &lt;<VAR>base</VAR>&gt;2 , etc. Note that this is no warrant 
+that the atom is unique in the system.</DD>
+<DT class="pubdef"><A NAME="reset_gensym/1"><STRONG>reset_gensym</STRONG>(<VAR>+Base</VAR>)</A></DT>
+<DD class="defbody">
+Restart generation of identifiers from <VAR>Base</VAR> at &lt;<VAR>Base</VAR>&gt;1. 
+Used to make sure a program produces the same results on subsequent 
+runs. Use with care.</DD>
+<DT class="pubdef"><A NAME="reset_gensym/0"><STRONG>reset_gensym</STRONG></A></DT>
+<DD class="defbody">
+Reset gensym for all registered keys. This predicate is available for 
+compatibility only. New code is strongly advice to avoid the use of 
+reset_gensym or at least to reset only the keys used by your program to 
+avoid unexpected site-effects on other components.
+</DD>
+</DL>
+
+</BODY></HTML>

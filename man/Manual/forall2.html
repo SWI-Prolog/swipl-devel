@@ -1,0 +1,64 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.31</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="applylist.html">
+<LINK REL=next HREF="format.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="applylist.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="format.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.31">4.31 Forall</A></H2>
+
+<A NAME="sec:forall2"></A>
+
+<DL>
+<DT class="pubdef"><A NAME="forall/2"><STRONG>forall</STRONG>(<VAR>+Cond, 
++Action</VAR>)</A></DT>
+<DD class="defbody">
+For all alternative bindings of <VAR>Cond</VAR> <VAR>Action</VAR> can be 
+proven. The example verifies that all arithmetic statements in the list <VAR>L</VAR> 
+are correct. It does not say which is wrong if one proves wrong.
+
+<PRE class="code">
+?- forall(member(Result = Formula, [2 = 1 + 1, 4 = 2 * 2]),
+                 Result =:= Formula).
+</PRE>
+
+<P></DD>
+</DL>
+
+<P></BODY></HTML>

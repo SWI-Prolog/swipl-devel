@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.7</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="compare.html">
+<LINK REL=next HREF="metacall.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="compare.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="metacall.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.7">4.7 Control Predicates</A></H2>
+
+<A NAME="sec:control"></A>
+
+<P>The predicates of this section implement control structures. Normally 
+the constructs in this section, except for <A NAME="idx:repeat0:443"></A><A HREF="control.html#repeat/0">repeat/0</A>, 
+are translated by the compiler. Please note that complex goals passed as 
+arguments to meta-predicates such as <A NAME="idx:findall3:444"></A><A HREF="allsolutions.html#findall/3">findall/3</A> 
+below cause the goal to be compiled to a temporary location before 
+execution. It is faster to define a sub-predicate (i.e. <A NAME="idx:onecharacteratom1:445"></A><B>one_character_atom/1</B> 
+in the example below) and make a call to this simple predicate.
+
+<PRE class="code">
+one_character_atoms(As) :-
+        findall(A, (current_atom(A), atom_length(A, 1)), As).
+</PRE>
+
+<DL>
+<DT class="pubdef"><A NAME="fail/0"><STRONG>fail</STRONG></A></DT>
+<DD class="defbody">
+Always fail. The predicate <A NAME="idx:fail0:446"></A><A HREF="control.html#fail/0">fail/0</A> 
+is translated into a single virtual machine instruction.
+</DD>
+<DT class="pubdef"><A NAME="true/0"><STRONG>true</STRONG></A></DT>
+<DD class="defbody">
+Always succeed. The predicate <A NAME="idx:true0:447"></A><A HREF="control.html#true/0">true/0</A> 
+is translated into a single virtual machine instruction.
+</DD>
+<DT class="pubdef"><A NAME="repeat/0"><STRONG>repeat</STRONG></A></DT>
+<DD class="defbody">
+Always succeed, provide an infinite number of choice points.
+</DD>
+<DT class="pubdef"><A NAME="!/0"><STRONG>!</STRONG></A></DT>
+<DD class="defbody">
+Cut. Discard choice points of parent frame and frames created after the 
+parent frame. As of SWI-Prolog 3.3, the semantics of the cut are 
+compliant with the ISO standard. This implies that the cut is 
+transparent to <A HREF="control.html#;/2">;/2</A>, <A HREF="control.html#send_arrow/2">-&gt;/2</A> 
+and <A HREF="control.html#*->/2">*-&gt;/2</A>. Cuts appearing in the <EM>condition</EM> 
+part of <A HREF="control.html#send_arrow/2">-&gt;/2</A> and
+<A HREF="control.html#*->/2">*-&gt;/2</A> as well as in <A HREF="control.html#\+/1">\+/1</A> 
+are local to the condition.<A NAME=back-to-note-27 HREF="Notes.html#note-27"> (27)</A>
+
+<P>
+<CENTER>
+<TABLE BORDER=0 FRAME=void RULES=groups>
+<TR VALIGN=top><TD><CODE>t1 :- (a, !, fail ; b).</CODE> </TD><TD>% cuts a/0 
+and t1/0 </TD></TR>
+<TR VALIGN=top><TD><CODE>t2 :- (a -&gt; b, ! ; c).</CODE> </TD><TD>% 
+cuts b/0 and t2/0 </TD></TR>
+<TR VALIGN=top><TD><CODE>t3 :- call((a, !, fail ; b)).</CODE> </TD><TD>% 
+cuts a/0 </TD></TR>
+<TR VALIGN=top><TD><CODE>t4 :- <CODE>\+</CODE>(a, !, fail ; b).</CODE> </TD><TD>% 
+cuts a/0 </TD></TR>
+</TABLE>
+
+</CENTER>
+</DD>
+<DT class="pubdef"><A NAME=",/2"><VAR>+Goal1</VAR> <STRONG>,</STRONG> <VAR>+Goal2</VAR></A></DT>
+<DD class="defbody">
+Conjunction. Succeeds if both `Goal1' and `Goal2' can be proved. It is 
+defined as (this definition does not lead to a loop as the second comma 
+is handled by the compiler):
+
+<PRE class="code">
+Goal1, Goal2 :- Goal1, Goal2.
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME=";/2"><VAR>+Goal1</VAR> <STRONG>;</STRONG> <VAR>+Goal2</VAR></A></DT>
+<DD class="defbody">
+The `or' predicate is defined as:
+
+<PRE class="code">
+Goal1 ; _Goal2 :- Goal1.
+_Goal1 ; Goal2 :- Goal2.
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="|/2"><VAR>+Goal1</VAR> <STRONG>|</STRONG> <VAR>+Goal2</VAR></A></DT>
+<DD class="defbody">
+Equivalent to <A HREF="control.html#;/2">;/2</A>. Retained for 
+compatibility only. New code should use <A HREF="control.html#;/2">;/2</A>.</DD>
+<DT class="pubdef"><A NAME="send_arrow/2"><VAR>+Condition</VAR> <STRONG>-&gt;</STRONG> <VAR>+Action</VAR></A></DT>
+<DD class="defbody">
+If-then and If-Then-Else. The <A HREF="control.html#send_arrow/2">-&gt;/2</A> 
+construct commits to the choices made at its left-hand side, destroying 
+choice-points created inside the clause (by <A HREF="control.html#;/2">;/2</A>), 
+or by goals called by this clause. Unlike <A HREF="control.html#!/0">!/0</A>, 
+the choice-point of the predicate as a whole (due to multiple clauses) 
+is <STRONG>not</STRONG> destroyed. The combination <A HREF="control.html#;/2">;/2</A> 
+and <A HREF="control.html#send_arrow/2">-&gt;/2</A> acts as if defines 
+by:
+
+<PRE class="code">
+If -&gt; Then; _Else :- If, !, Then.
+If -&gt; _Then; Else :- !, Else.
+If -&gt; Then :- If, !, Then.
+</PRE>
+
+<P>Please note that (If <CODE>-&gt;</CODE> Then) acts as (If <CODE>-&gt;</CODE> 
+Then ;
+<B>fail</B>), making the construct <EM>fail</EM> if the condition fails. 
+This unusual semantics is part of the ISO and all de-facto Prolog 
+standards.</DD>
+<DT class="pubdef"><A NAME="*->/2"><VAR>+Condition</VAR> <STRONG>*-&gt;</STRONG> <VAR>+Action 
+; +Else</VAR></A></DT>
+<DD class="defbody">
+This construct implements the so-called `soft-cut'. The control is 
+defined as follows: If <VAR>Condition</VAR> succeeds at least once, the 
+semantics is the same as (<VAR>Condition</VAR>, <VAR>Action</VAR>). If
+<VAR>Condition</VAR> does not succeed, the semantics is that of (<CODE>\+</CODE> <VAR>Condition</VAR>, <VAR>Else</VAR>). 
+In other words, If
+<VAR>Condition</VAR> succeeds at least once, simply behave as the 
+conjunction of <VAR>Condition</VAR> and <VAR>Action</VAR>, otherwise 
+execute <VAR>Else</VAR>.
+
+<P>The construct <VAR>A</VAR> <CODE>*-&gt;</CODE> <VAR>B</VAR>, i.e. without 
+an
+<VAR>Else</VAR> branch, is translated as the normal conjunction <VAR>A</VAR>,
+<VAR>B</VAR>.<A NAME=back-to-note-28 HREF="Notes.html#note-28"> (28)</A></DD>
+<DT class="pubdef"><A NAME="\+/1"><STRONG>\+</STRONG> <VAR>+Goal</VAR></A></DT>
+<DD class="defbody">
+Succeeds if `Goal' cannot be proven (mnemonic: <CODE><CODE>+</CODE></CODE> 
+refers to <EM>provable</EM> and the backslash (<CODE><CODE>\</CODE></CODE>) 
+is normally used to indicate negation in Prolog).
+</DD>
+</DL>
+
+<P></BODY></HTML>

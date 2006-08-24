@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 5.9</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="manipmodule.html">
+<LINK REL=next HREF="coroutining.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="manipmodule.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="coroutining.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:5.9">5.9 Compatibility of the Module System</A></H2>
+
+<A NAME="sec:modulecompat"></A>
+
+<P>The principles behind the module system of SWI-Prolog differ in a 
+number of aspects from the Quintus Prolog module system.
+
+<P>
+<UL>
+<LI>The SWI-Prolog module system allows the user to redefine system 
+predicates.
+<LI>All predicates that are available in the <CODE>system</CODE> and <CODE>user</CODE> 
+modules are visible in all other modules as well.
+<LI>Quintus has the `meta_predicate/1' declaration were SWI-Prolog has 
+the
+<A NAME="idx:moduletransparent1:1076"></A><A HREF="manipmodule.html#module_transparent/1">module_transparent/1</A> 
+declaration.
+<LI>Operator declarations are local to a module and may be exported.
+</UL>
+
+<P>The <A NAME="idx:metapredicate1:1077"></A><A HREF="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
+declaration causes the compiler to tag arguments that pass module 
+sensitive information with the module using the :/2 operator. This 
+approach has some disadvantages:
+
+<P>
+<UL>
+<LI>Changing a meta_predicate declaration implies all predicates
+<STRONG>calling</STRONG> the predicate need to be reloaded. This can 
+cause serious consistency problems.
+<LI>It does not help for dynamically defined predicates calling module 
+sensitive predicates.
+<LI>It slows down the compiler (at least in the SWI-Prolog 
+architecture).
+<LI>At least within the SWI-Prolog architecture the run-time overhead is 
+larger than the overhead introduced by the transparent mechanism.
+</UL>
+
+<P>Unfortunately the transparent predicate approach also has some 
+disadvantages. If a predicate <VAR>A</VAR> passes module sensitive 
+information to a predicate <VAR>B</VAR>, passing the same information to 
+a module sensitive system predicate both <VAR>A</VAR> and <VAR>B</VAR> 
+should be declared transparent. Using the Quintus approach only <VAR>A</VAR> 
+needs to be treated special (i.e., declared with <A NAME="idx:metapredicate1:1078"></A><A HREF="manipmodule.html#meta_predicate/1">meta_predicate/1</A>)<A NAME=back-to-note-74 HREF="Notes.html#note-74"> (74)</A>. 
+A second problem arises if the body of a transparent predicate uses 
+module sensitive predicates for which it wants to refer to its own 
+module. Suppose we want to define <A NAME="idx:findall3:1079"></A><A HREF="allsolutions.html#findall/3">findall/3</A> 
+using <A NAME="idx:assert1:1080"></A><A HREF="db.html#assert/1">assert/1</A> 
+and
+<A NAME="idx:retract1:1081"></A><A HREF="db.html#retract/1">retract/1</A><A NAME=back-to-note-75 HREF="Notes.html#note-75"> (75)</A>. 
+The example in <A HREF="modulecompat.html#fig:findall">figure 6</A> 
+gives the solution.
+
+<PRE class="code">
+:- module(findall, [findall/3]).
+
+:- dynamic
+        solution/1.
+
+:- module_transparent
+        findall/3, 
+        store/2.
+
+findall(Var, Goal, Bag) :-
+        assert(findall:solution('$mark')), 
+        store(Var, Goal), 
+        collect(Bag).
+
+store(Var, Goal) :-
+        Goal,                   % refers to context module of
+                                % caller of findall/3
+        assert(findall:solution(Var)), 
+        fail.
+store(_, _).
+
+collect(Bag) :-
+        ..., 
+</PRE>
+
+<TABLE ALIGN=center WIDTH="75%"><TR><TD>
+<B>Figure 6 : </B>findall/3 using modules</TABLE>
+
+<A NAME="fig:findall"></A>
+
+<H3><A NAME="sec:5.9.1">5.9.1 Emulating meta_predicate</A></H3>
+
+<A NAME="sec:metapredicate"></A>
+
+<P>The Quintus <A NAME="idx:metapredicate1:1082"></A><A HREF="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
+directive can in many cases be replaced by the transparent declaration. 
+Below is the definition of <A NAME="idx:metapredicate1:1083"></A><A HREF="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
+as available from <CODE>library(quintus)</CODE>.
+
+<PRE class="code">
+:- op(1150, fx, (meta_predicate)).
+
+meta_predicate((Head, More)) :- !, 
+        meta_predicate1(Head), 
+        meta_predicate(More).
+meta_predicate(Head) :-
+        meta_predicate1(Head).
+
+meta_predicate1(Head) :-
+        Head =.. [Name|Arguments], 
+        member(Arg, Arguments), 
+        module_expansion_argument(Arg), !, 
+        functor(Head, Name, Arity), 
+        module_transparent(Name/Arity).
+meta_predicate1(_).             % just a mode declaration
+
+module_expansion_argument(:).
+module_expansion_argument(N) :- integer(N).
+</PRE>
+
+<P>The discussion above about the problems with the transparent 
+mechanism show the two cases in which this simple transformation does 
+not work.
+</BODY></HTML>

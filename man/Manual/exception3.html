@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section B.4</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="excepthook.html">
+<LINK REL=next HREF="intlibs.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="excepthook.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="intlibs.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:B.4">B.4 Hooks using the exception predicate</A></H2>
+
+<A NAME="sec:exception3"></A>
+
+<P>This section describes the predicate <A NAME="idx:exception3:1426"></A><A HREF="exception3.html#exception/3">exception/3</A>, 
+which can be defined by the user in the module <CODE>user</CODE> as a 
+multifile predicate. Unlike the name suggests, this is actually a <EM>hook</EM> 
+predicate that has no relation to Prolog exceptions as defined by the 
+ISO predicates
+<A NAME="idx:catch3:1427"></A><A HREF="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:1428"></A><A HREF="exception.html#throw/1">throw/1</A>.
+
+<P>The predicate <A NAME="idx:exception3:1429"></A><A HREF="exception3.html#exception/3">exception/3</A> 
+is called by the kernel on a couple of events, allowing the user to 
+`fix' errors just in time events. The mechanism allows for <EM>lazy</EM> 
+creation of objects such as predicates.
+
+<DL>
+<DT class="pubdef"><A NAME="exception/3"><STRONG>exception</STRONG>(<VAR>+Exception, 
++Context, -Action</VAR>)</A></DT>
+<DD class="defbody">
+Dynamic predicate, normally not defined. Called by the Prolog system on 
+run-time exceptions that can be repaired `just in time'. The values for <VAR>Exception</VAR> 
+are described below. See also <A NAME="idx:catch3:1430"></A><A HREF="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:1431"></A><A HREF="exception.html#throw/1">throw/1</A>.
+
+<P>If this hook predicate succeeds it must instantiate the <VAR>Action</VAR> 
+argument to the atom <CODE>fail</CODE> to make the operation fail 
+silently,
+<CODE>retry</CODE> to tell Prolog to retry the operation or <CODE>error</CODE> 
+to make the system generate an exception. The action <CODE>retry</CODE> 
+only makes sense if this hook modified the environment such that the 
+operation can now succeed without error.
+
+<DL>
+<DT><STRONG>undefined_predicate</STRONG></DT>
+<DD class="defbody">
+<VAR>Context</VAR> is instantiated to a term <VAR>Name</VAR>/<VAR>Arity</VAR>.
+<VAR>Name</VAR> refers to the name and <VAR>Arity</VAR> to the arity of 
+the undefined predicate. If the definition module of the predicate is 
+not
+<VAR>user</VAR>, <VAR>Context</VAR> will be of the form <TT>&lt;<VAR>Module</VAR>&gt;:&lt;<VAR>Name</VAR>&gt;/&lt;<VAR>Arity</VAR>&gt;</TT>. 
+If the predicate fails Prolog will generate an
+<CODE>existence_error</CODE> exception.</DD>
+<DT><STRONG>undefined_global_variable</STRONG></DT>
+<DD class="defbody">
+<VAR>Context</VAR> is instantiated to the name of the missing global 
+variable. The hook must call <A NAME="idx:nbsetval2:1432"></A><A HREF="gvar.html#nb_setval/2">nb_setval/2</A> 
+or <A NAME="idx:bsetval2:1433"></A><A HREF="gvar.html#b_setval/2">b_setval/2</A> 
+before returning with the action <CODE>retry</CODE>.
+</DD>
+</DL>
+
+</DD>
+</DL>
+
+<P></BODY></HTML>

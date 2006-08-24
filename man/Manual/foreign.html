@@ -1,0 +1,194 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="mt-xpce.html">
+<LINK REL=next HREF="foreignoverview.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="mt-xpce.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="foreignoverview.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H1><A NAME="sec:9">9 Foreign Language Interface</A></H1>
+
+<A NAME="sec:foreign"></A>
+
+<P>SWI-Prolog offers a powerful interface to C <CITE><A HREF="Bibliography.html#Kernighan:78">Kernighan &amp; 
+Ritchie, 1978</A></CITE>. The main design objectives of the foreign 
+language interface are flexibility and performance. A foreign predicate 
+is a C-function that has the same number of arguments as the predicate 
+represented. C-functions are provided to analyse the passed terms, 
+convert them to basic C-types as well as to instantiate arguments using 
+unification. Non-deterministic foreign predicates are supported, 
+providing the foreign function with a handle to control backtracking.
+
+<P>C can call Prolog predicates, providing both an query interface and 
+an interface to extract multiple solutions from an non-deterministic 
+Prolog predicate. There is no limit to the nesting of Prolog calling C, 
+calling Prolog, etc. It is also possible to write the `main' in C and 
+use Prolog as an embedded logical engine.
+
+<P>
+<HR>
+<CENTER>
+
+<H2>Section Index</H2>
+
+</CENTER>
+<HR>
+<UL>
+<LI><A HREF="foreignoverview.html"><B>9.1 Overview of the Interface</B></A>
+<LI><A HREF="foreignlink.html"><B>9.2 Linking Foreign Modules</B></A>
+<UL>
+<LI><A HREF="foreignlink.html#sec:9.2.1">9.2.1 What linking is provided?</A>
+<LI><A HREF="foreignlink.html#sec:9.2.2">9.2.2 What kind of loading 
+should I be using?</A>
+</UL>
+<LI><A HREF="dynstatic.html"><B>9.3 Dynamic Linking of shared libraries</B></A>
+<LI><A HREF="DLL.html"><B>9.4 Using the library shlib for <CODE>.DLL</CODE> 
+and <CODE>.so</CODE> files</B></A>
+<UL>
+<LI><A HREF="DLL.html#sec:9.4.1">9.4.1 Static Linking</A>
+</UL>
+<LI><A HREF="foreigntypes.html"><B>9.5 Interface Data types</B></A>
+<UL>
+<LI><A HREF="foreigntypes.html#sec:9.5.1">9.5.1 Type <CODE>term_t</CODE>: 
+a reference to a Prolog term</A>
+<UL>
+<LI><A HREF="foreigntypes.html#sec:9.5.1.1">9.5.1.1 Interaction with the 
+garbage collector and stack-shifter</A>
+</UL>
+<LI><A HREF="foreigntypes.html#sec:9.5.2">9.5.2 Other foreign interface 
+types</A>
+</UL>
+<LI><A HREF="foreigninclude.html"><B>9.6 The Foreign Include File</B></A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.1">9.6.1 Argument Passing and 
+Control</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.1.1">9.6.1.1 Non-deterministic 
+Foreign Predicates</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.2">9.6.2 Atoms and functors</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.2.1">9.6.2.1 Atoms and 
+atom-garbage collection</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.3">9.6.3 Analysing Terms via 
+the Foreign Interface</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.1">9.6.3.1 Testing the type 
+of a term</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.2">9.6.3.2 Reading data from 
+a term</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.3">9.6.3.3 Exchanging text 
+using length and string</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.4">9.6.3.4 Wide character 
+versions</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.5">9.6.3.5 Reading a list</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.6">9.6.3.6 An example: 
+defining write/1 in C</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.4">9.6.4 Constructing Terms</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.5">9.6.5 Unifying data</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.6">9.6.6 BLOBS: Using atoms to 
+store arbitrary binary data</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.6.1">9.6.6.1 Defining a BLOB 
+type</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.6.2">9.6.6.2 Accessing blobs</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.7">9.6.7 Exchanging GMP numbers</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.8">9.6.8 Calling Prolog from C</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.8.1">9.6.8.1 Predicate 
+references</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.8.2">9.6.8.2 Initiating a query 
+from C</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.9">9.6.9 Discarding Data</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.10">9.6.10 Foreign Code and 
+Modules</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.11">9.6.11 Prolog exceptions in 
+foreign code</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.12">9.6.12 Catching Signals 
+(Software Interrupts)</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.13">9.6.13 Miscellaneous</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.13.1">9.6.13.1 Term Comparison</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.13.2">9.6.13.2 Recorded 
+database</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.13.3">9.6.13.3 Getting file 
+names</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.14">9.6.14 Errors and warnings</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.15">9.6.15 Environment Control 
+from Foreign Code</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.16">9.6.16 Querying Prolog</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.17">9.6.17 Registering Foreign 
+Predicates</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.18">9.6.18 Foreign Code Hooks</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.19">9.6.19 Storing foreign data</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.19.1">9.6.19.1 Examples for 
+storing foreign data</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.20">9.6.20 Embedding SWI-Prolog 
+in other applications</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.20.1">9.6.20.1 Threading, 
+Signals and embedded Prolog</A>
+</UL>
+</UL>
+<LI><A HREF="plld.html"><B>9.7 Linking embedded applications using plld</B></A>
+<UL>
+<LI><A HREF="plld.html#sec:9.7.1">9.7.1 A simple example</A>
+</UL>
+<LI><A HREF="findhome.html"><B>9.8 The Prolog `home' directory</B></A>
+<LI><A HREF="foreignxmp.html"><B>9.9 Example of Using the Foreign 
+Interface</B></A>
+<LI><A HREF="foreignnotes.html"><B>9.10 Notes on Using Foreign Code</B></A>
+<UL>
+<LI><A HREF="foreignnotes.html#sec:9.10.1">9.10.1 Memory Allocation</A>
+<LI><A HREF="foreignnotes.html#sec:9.10.2">9.10.2 Compatibility between 
+Prolog versions</A>
+<LI><A HREF="foreignnotes.html#sec:9.10.3">9.10.3 Debugging Foreign Code</A>
+<LI><A HREF="foreignnotes.html#sec:9.10.4">9.10.4 Name Conflicts in C 
+modules</A>
+<LI><A HREF="foreignnotes.html#sec:9.10.5">9.10.5 Compatibility of the 
+Foreign Interface</A>
+</UL>
+</UL>
+</BODY></HTML>

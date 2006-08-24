@@ -1,0 +1,693 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="index.html">
+<LINK REL=next HREF="intro.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="index.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="intro.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<LI><A HREF="intro.html"><STRONG>1 Introduction</STRONG></A>
+<UL>
+<LI><A HREF="swiprolog.html"><B>1.1 SWI-Prolog</B></A>
+<UL>
+<LI><A HREF="swiprolog.html#sec:1.1.1">1.1.1 Books about Prolog</A>
+</UL>
+<LI><A HREF="status.html"><B>1.2 Status</B></A>
+<LI><A HREF="iso.html"><B>1.3 Compliance to the ISO standard</B></A>
+<LI><A HREF="swiorother.html"><B>1.4 Should you be using SWI-Prolog?</B></A>
+<LI><A HREF="xpce.html"><B>1.5 The XPCE GUI system for Prolog</B></A>
+<LI><A HREF="relnotes.html"><B>1.6 Release Notes</B></A>
+<UL>
+<LI><A HREF="relnotes.html#sec:1.6.1">1.6.1 Version 1.8 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.2">1.6.2 Version 1.9 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.3">1.6.3 Version 2.0 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.4">1.6.4 Version 2.5 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.5">1.6.5 Version 2.6 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.6">1.6.6 Version 2.7 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.7">1.6.7 Version 2.8 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.8">1.6.8 Version 2.9 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.9">1.6.9 Version 3.0 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.10">1.6.10 Version 3.1 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.11">1.6.11 Version 3.3 Release Notes</A>
+<UL>
+<LI><A HREF="relnotes.html#sec:1.6.11.1">1.6.11.1 Incompatible changes</A>
+</UL>
+<LI><A HREF="relnotes.html#sec:1.6.12">1.6.12 Version 3.4 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.13">1.6.13 Version 4.0 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.14">1.6.14 Version 5.0 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.15">1.6.15 Version 5.1 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.16">1.6.16 Version 5.2 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.17">1.6.17 Version 5.3 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.18">1.6.18 Version 5.4 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.19">1.6.19 Version 5.5 Release Notes</A>
+<LI><A HREF="relnotes.html#sec:1.6.20">1.6.20 Version 5.6 Release Notes</A>
+</UL>
+<LI><A HREF="sponsor.html"><B>1.7 Donate to the SWI-Prolog project</B></A>
+<LI><A HREF="acknowledge.html"><B>1.8 Acknowledgements</B></A>
+</UL>
+<LI><A HREF="overview.html"><STRONG>2 Overview</STRONG></A>
+<UL>
+<LI><A HREF="quickstart.html"><B>2.1 Getting started quickly</B></A>
+<UL>
+<LI><A HREF="quickstart.html#sec:2.1.1">2.1.1 Starting SWI-Prolog</A>
+<UL>
+<LI><A HREF="quickstart.html#sec:2.1.1.1">2.1.1.1 Starting SWI-Prolog on 
+Unix</A>
+<LI><A HREF="quickstart.html#sec:2.1.1.2">2.1.1.2 Starting SWI-Prolog on 
+Windows</A>
+</UL>
+<LI><A HREF="quickstart.html#sec:2.1.2">2.1.2 Executing a query</A>
+</UL>
+<LI><A HREF="initfile.html"><B>2.2 The user's initialisation file</B></A>
+<LI><A HREF="initgoal.html"><B>2.3 Initialisation files and goals</B></A>
+<LI><A HREF="cmdline.html"><B>2.4 Command-line options</B></A>
+<LI><A HREF="gemacs.html"><B>2.5 GNU Emacs Interface</B></A>
+<LI><A HREF="help.html"><B>2.6 Online Help</B></A>
+<LI><A HREF="history.html"><B>2.7 Command-line history</B></A>
+<LI><A HREF="topvars.html"><B>2.8 Reuse of top-level bindings</B></A>
+<LI><A HREF="debugoverview.html"><B>2.9 Overview of the Debugger</B></A>
+<LI><A HREF="compilation.html"><B>2.10 Compilation</B></A>
+<UL>
+<LI><A HREF="compilation.html#sec:2.10.1">2.10.1 During program 
+development</A>
+<LI><A HREF="compilation.html#sec:2.10.2">2.10.2 For running the result</A>
+<UL>
+<LI><A HREF="compilation.html#sec:2.10.2.1">2.10.2.1 Using PrologScript</A>
+<LI><A HREF="compilation.html#sec:2.10.2.2">2.10.2.2 Creating a 
+shell-script</A>
+<LI><A HREF="compilation.html#sec:2.10.2.3">2.10.2.3 Creating a 
+saved-state</A>
+<LI><A HREF="compilation.html#sec:2.10.2.4">2.10.2.4 Compilation using 
+the -c command-line option</A>
+</UL>
+</UL>
+<LI><A HREF="flags.html"><B>2.11 Environment Control (Prolog flags)</B></A>
+<LI><A HREF="hooks.html"><B>2.12 An overview of hook predicates</B></A>
+<LI><A HREF="autoload.html"><B>2.13 Automatic loading of libraries</B></A>
+<LI><A HREF="gc.html"><B>2.14 Garbage Collection</B></A>
+<LI><A HREF="syntax.html"><B>2.15 Syntax Notes</B></A>
+<UL>
+<LI><A HREF="syntax.html#sec:2.15.1">2.15.1 ISO Syntax Support</A>
+<UL>
+<LI><A HREF="syntax.html#sec:2.15.1.1">2.15.1.1 Processor Character Set</A>
+<LI><A HREF="syntax.html#sec:2.15.1.2">2.15.1.2 Character Escape Syntax</A>
+<LI><A HREF="syntax.html#sec:2.15.1.3">2.15.1.3 Syntax for non-decimal 
+numbers</A>
+<LI><A HREF="syntax.html#sec:2.15.1.4">2.15.1.4 Unicode Prolog source</A>
+<LI><A HREF="syntax.html#sec:2.15.1.5">2.15.1.5 Singleton variable 
+checking</A>
+</UL>
+</UL>
+<LI><A HREF="cyclic.html"><B>2.16 Infinite trees (cyclic terms)</B></A>
+<LI><A HREF="widechars.html"><B>2.17 Wide character support</B></A>
+<UL>
+<LI><A HREF="widechars.html#sec:2.17.1">2.17.1 Wide character encodings 
+on streams</A>
+<UL>
+<LI><A HREF="widechars.html#sec:2.17.1.1">2.17.1.1 BOM: Byte Order Mark</A>
+</UL>
+</UL>
+<LI><A HREF="limits.html"><B>2.18 System limits</B></A>
+<UL>
+<LI><A HREF="limits.html#sec:2.18.1">2.18.1 Limits on memory areas</A>
+<UL>
+<LI><A HREF="limits.html#sec:2.18.1.1">2.18.1.1 The heap</A>
+</UL>
+<LI><A HREF="limits.html#sec:2.18.2">2.18.2 Other Limits</A>
+<LI><A HREF="limits.html#sec:2.18.3">2.18.3 Reserved Names</A>
+</UL>
+</UL>
+<LI><A HREF="IDE.html"><STRONG>3 Initialising and Managing a Prolog 
+Project</STRONG></A>
+<UL>
+<LI><A HREF="projectfiles.html"><B>3.1 The project source-files</B></A>
+<UL>
+<LI><A HREF="projectfiles.html#sec:3.1.1">3.1.1 File Names and Locations</A>
+<UL>
+<LI><A HREF="projectfiles.html#sec:3.1.1.1">3.1.1.1 File Name Extensions</A>
+<LI><A HREF="projectfiles.html#sec:3.1.1.2">3.1.1.2 Project Directories</A>
+<LI><A HREF="projectfiles.html#sec:3.1.1.3">3.1.1.3 Sub-projects using 
+search-paths</A>
+</UL>
+<LI><A HREF="projectfiles.html#sec:3.1.2">3.1.2 Project Special Files</A>
+<LI><A HREF="projectfiles.html#sec:3.1.3">3.1.3 International source 
+files</A>
+</UL>
+<LI><A HREF="usingmodules.html"><B>3.2 Using modules</B></A>
+<LI><A HREF="editreload.html"><B>3.3 The test-edit-reload cycle</B></A>
+<UL>
+<LI><A HREF="editreload.html#sec:3.3.1">3.3.1 Locating things to edit</A>
+<LI><A HREF="editreload.html#sec:3.3.2">3.3.2 Editing and incremental 
+compilation</A>
+</UL>
+<LI><A HREF="pceemacs.html"><B>3.4 Using the PceEmacs built-in editor</B></A>
+<UL>
+<LI><A HREF="pceemacs.html#sec:3.4.1">3.4.1 Activating PceEmacs</A>
+<LI><A HREF="pceemacs.html#sec:3.4.2">3.4.2 Bluffing through PceEmacs</A>
+<UL>
+<LI><A HREF="pceemacs.html#sec:3.4.2.1">3.4.2.1 Edit modes</A>
+<LI><A HREF="pceemacs.html#sec:3.4.2.2">3.4.2.2 Frequently used editor 
+commands</A>
+</UL>
+<LI><A HREF="pceemacs.html#sec:3.4.3">3.4.3 Prolog Mode</A>
+<UL>
+<LI><A HREF="pceemacs.html#sec:3.4.3.1">3.4.3.1 Finding your way around</A>
+</UL>
+</UL>
+<LI><A HREF="guitracer.html"><B>3.5 The Graphical Debugger</B></A>
+<UL>
+<LI><A HREF="guitracer.html#sec:3.5.1">3.5.1 Invoking the window-based 
+debugger</A>
+</UL>
+<LI><A HREF="navigator.html"><B>3.6 The Prolog Navigator</B></A>
+<LI><A HREF="xref.html"><B>3.7 Cross referencer</B></A>
+<LI><A HREF="idepreds.html"><B>3.8 Accessing the IDE from your program</B></A>
+<LI><A HREF="idesummary.html"><B>3.9 Summary of the iDE</B></A>
+</UL>
+<LI><A HREF="builtin.html"><STRONG>4 Built-in predicates</STRONG></A>
+<UL>
+<LI><A HREF="preddesc.html"><B>4.1 Notation of Predicate Descriptions</B></A>
+<LI><A HREF="chars.html"><B>4.2 Character representation</B></A>
+<LI><A HREF="consulting.html"><B>4.3 Loading Prolog source files</B></A>
+<UL>
+<LI><A HREF="consulting.html#sec:4.3.1">4.3.1 Loading files, active code 
+and threads</A>
+<UL>
+<LI><A HREF="consulting.html#sec:4.3.1.1">4.3.1.1 Threads and reloading 
+running code</A>
+</UL>
+<LI><A HREF="consulting.html#sec:4.3.2">4.3.2 Quick load files</A>
+</UL>
+<LI><A HREF="listing.html"><B>4.4 Listing and Editor Interface</B></A>
+<LI><A HREF="typetest.html"><B>4.5 Verify Type of a Term</B></A>
+<LI><A HREF="compare.html"><B>4.6 Comparison and Unification or Terms</B></A>
+<UL>
+<LI><A HREF="compare.html#sec:4.6.1">4.6.1 Standard Order of Terms</A>
+</UL>
+<LI><A HREF="control.html"><B>4.7 Control Predicates</B></A>
+<LI><A HREF="metacall.html"><B>4.8 Meta-Call Predicates</B></A>
+<LI><A HREF="exception.html"><B>4.9 ISO compliant Exception handling</B></A>
+<UL>
+<LI><A HREF="exception.html#sec:4.9.1">4.9.1 Debugging and exceptions</A>
+<LI><A HREF="exception.html#sec:4.9.2">4.9.2 The exception term</A>
+<LI><A HREF="exception.html#sec:4.9.3">4.9.3 Printing messages</A>
+</UL>
+<LI><A HREF="signal.html"><B>4.10 Handling signals</B></A>
+<UL>
+<LI><A HREF="signal.html#sec:4.10.1">4.10.1 Notes on signal handling</A>
+</UL>
+<LI><A HREF="block3.html"><B>4.11 The `block' control-structure</B></A>
+<LI><A HREF="DCG.html"><B>4.12 DCG Grammar rules</B></A>
+<LI><A HREF="db.html"><B>4.13 Database</B></A>
+<UL>
+<LI><A HREF="db.html#sec:4.13.1">4.13.1 Update view</A>
+<LI><A HREF="db.html#sec:4.13.2">4.13.2 Indexing databases</A>
+</UL>
+<LI><A HREF="dynamic.html"><B>4.14 Declaring predicates properties</B></A>
+<LI><A HREF="examineprog.html"><B>4.15 Examining the program</B></A>
+<LI><A HREF="IO.html"><B>4.16 Input and output</B></A>
+<UL>
+<LI><A HREF="IO.html#sec:4.16.1">4.16.1 ISO Input and Output Streams</A>
+<LI><A HREF="IO.html#sec:4.16.2">4.16.2 Edinburgh-style I/O</A>
+<LI><A HREF="IO.html#sec:4.16.3">4.16.3 Switching Between Edinburgh and 
+ISO I/O</A>
+<LI><A HREF="IO.html#sec:4.16.4">4.16.4 Write onto atoms, code-lists, 
+etc.</A>
+</UL>
+<LI><A HREF="streamstat.html"><B>4.17 Status of streams</B></A>
+<LI><A HREF="chario.html"><B>4.18 Primitive character I/O</B></A>
+<LI><A HREF="termrw.html"><B>4.19 Term reading and writing</B></A>
+<LI><A HREF="manipterm.html"><B>4.20 Analysing and Constructing Terms</B></A>
+<UL>
+<LI><A HREF="manipterm.html#sec:4.20.1">4.20.1 Non-logical operations on 
+terms</A>
+</UL>
+<LI><A HREF="manipatom.html"><B>4.21 Analysing and Constructing Atoms</B></A>
+<LI><A HREF="chartype.html"><B>4.22 Classifying characters</B></A>
+<UL>
+<LI><A HREF="chartype.html#sec:4.22.1">4.22.1 Case conversion</A>
+</UL>
+<LI><A HREF="strings.html"><B>4.23 Representing text in strings</B></A>
+<LI><A HREF="operators.html"><B>4.24 Operators</B></A>
+<LI><A HREF="charconv.html"><B>4.25 Character Conversion</B></A>
+<LI><A HREF="arith.html"><B>4.26 Arithmetic</B></A>
+<UL>
+<LI><A HREF="arith.html#sec:4.26.1">4.26.1 Special purpose integer 
+arithmetic</A>
+<LI><A HREF="arith.html#sec:4.26.2">4.26.2 General purpose arithmetic</A>
+<UL>
+<LI><A HREF="arith.html#sec:4.26.2.1">4.26.2.1 Arithmetic types</A>
+<LI><A HREF="arith.html#sec:4.26.2.2">4.26.2.2 Rational number examples</A>
+<LI><A HREF="arith.html#sec:4.26.2.3">4.26.2.3 Arithmetic Functions</A>
+</UL>
+</UL>
+<LI><A HREF="extendarith.html"><B>4.27 Adding Arithmetic Functions</B></A>
+<LI><A HREF="builtinlist.html"><B>4.28 Built-in list operations</B></A>
+<LI><A HREF="allsolutions.html"><B>4.29 Finding all Solutions to a Goal</B></A>
+<LI><A HREF="applylist.html"><B>4.30 Invoking Predicates on all Members 
+of a List</B></A>
+<LI><A HREF="forall2.html"><B>4.31 Forall</B></A>
+<LI><A HREF="format.html"><B>4.32 Formatted Write</B></A>
+<UL>
+<LI><A HREF="format.html#sec:4.32.1">4.32.1 Writef</A>
+<LI><A HREF="format.html#sec:4.32.2">4.32.2 Format</A>
+<LI><A HREF="format.html#sec:4.32.3">4.32.3 Programming Format</A>
+</UL>
+<LI><A HREF="tty.html"><B>4.33 Terminal Control</B></A>
+<LI><A HREF="system.html"><B>4.34 Operating System Interaction</B></A>
+<UL>
+<LI><A HREF="system.html#sec:4.34.1">4.34.1 Dealing with time and date</A>
+<UL>
+<LI><A HREF="system.html#sec:4.34.1.1">4.34.1.1 Time and date 
+data-structures</A>
+<LI><A HREF="system.html#sec:4.34.1.2">4.34.1.2 Time and date predicates</A>
+</UL>
+<LI><A HREF="system.html#sec:4.34.2">4.34.2 Controlling the <B>PLWIN.EXE</B> 
+console window</A>
+</UL>
+<LI><A HREF="files.html"><B>4.35 File System Interaction</B></A>
+<LI><A HREF="toplevel.html"><B>4.36 User Top-level Manipulation</B></A>
+<LI><A HREF="protocol.html"><B>4.37 Creating a Protocol of the User 
+Interaction</B></A>
+<LI><A HREF="debugger.html"><B>4.38 Debugging and Tracing Programs</B></A>
+<LI><A HREF="statistics.html"><B>4.39 Obtaining Runtime Statistics</B></A>
+<LI><A HREF="profile.html"><B>4.40 Execution profiling</B></A>
+<UL>
+<LI><A HREF="profile.html#sec:4.40.1">4.40.1 Profiling predicates</A>
+<LI><A HREF="profile.html#sec:4.40.2">4.40.2 Visualizing profiling data</A>
+<LI><A HREF="profile.html#sec:4.40.3">4.40.3 Information gathering</A>
+<UL>
+<LI><A HREF="profile.html#sec:4.40.3.1">4.40.3.1 Profiling in the 
+Windows Implementation</A>
+</UL>
+</UL>
+<LI><A HREF="memory.html"><B>4.41 Memory Management</B></A>
+<LI><A HREF="DDE.html"><B>4.42 Windows DDE interface</B></A>
+<UL>
+<LI><A HREF="DDE.html#sec:4.42.1">4.42.1 DDE client interface</A>
+<LI><A HREF="DDE.html#sec:4.42.2">4.42.2 DDE server mode</A>
+</UL>
+<LI><A HREF="miscpreds.html"><B>4.43 Miscellaneous</B></A>
+</UL>
+<LI><A HREF="modules.html"><STRONG>5 Using Modules</STRONG></A>
+<UL>
+<LI><A HREF="whymodules.html"><B>5.1 Why Using Modules?</B></A>
+<LI><A HREF="whichmodules.html"><B>5.2 Name-based versus Predicate-based 
+Modules</B></A>
+<LI><A HREF="defmodule.html"><B>5.3 Defining a Module</B></A>
+<LI><A HREF="import.html"><B>5.4 Importing Predicates into a Module</B></A>
+<UL>
+<LI><A HREF="import.html#sec:5.4.1">5.4.1 Reserved Modules</A>
+</UL>
+<LI><A HREF="usemodules.html"><B>5.5 Using the Module System</B></A>
+<UL>
+<LI><A HREF="usemodules.html#sec:5.5.1">5.5.1 Object Oriented 
+Programming</A>
+</UL>
+<LI><A HREF="metainmodule.html"><B>5.6 Meta-Predicates in Modules</B></A>
+<UL>
+<LI><A HREF="metainmodule.html#sec:5.6.1">5.6.1 Definition and Context 
+Module</A>
+<LI><A HREF="metainmodule.html#sec:5.6.2">5.6.2 Overruling Module 
+Boundaries</A>
+</UL>
+<LI><A HREF="dynamic-modules.html"><B>5.7 Dynamic Modules</B></A>
+<LI><A HREF="manipmodule.html"><B>5.8 Module Handling Predicates</B></A>
+<LI><A HREF="modulecompat.html"><B>5.9 Compatibility of the Module 
+System</B></A>
+<UL>
+<LI><A HREF="modulecompat.html#sec:5.9.1">5.9.1 Emulating meta_predicate</A>
+</UL>
+</UL>
+<LI><A HREF="coroutining.html"><STRONG>6 Special Variables and 
+Coroutining</STRONG></A>
+<UL>
+<LI><A HREF="attvar.html"><B>6.1 Attributed variables</B></A>
+<UL>
+<LI><A HREF="attvar.html#sec:6.1.1">6.1.1 Special purpose predicates for 
+attributes</A>
+</UL>
+<LI><A HREF="coroutining.html"><B>6.2 Coroutining</B></A>
+<LI><A HREF="gvar.html"><B>6.3 Global variables</B></A>
+<UL>
+<LI><A HREF="gvar.html#sec:6.3.1">6.3.1 Compatibility of SWI-Prolog 
+Global Variables</A>
+</UL>
+</UL>
+<LI><A HREF="chr.html"><STRONG>7 CHR: Constraint Handling Rules</STRONG></A>
+<UL>
+<LI><A HREF="chrintro.html"><B>7.1 Introduction</B></A>
+<LI><A HREF="SyntaxAndSemantics.html"><B>7.2 Syntax and Semantics</B></A>
+<UL>
+<LI><A HREF="SyntaxAndSemantics.html#sec:7.2.1">7.2.1 Syntax</A>
+<LI><A HREF="SyntaxAndSemantics.html#sec:7.2.2">7.2.2 Semantics</A>
+</UL>
+<LI><A HREF="practical.html"><B>7.3 CHR in SWI-Prolog Programs</B></A>
+<UL>
+<LI><A HREF="practical.html#sec:7.3.1">7.3.1 Embedding in Prolog 
+Programs</A>
+<LI><A HREF="practical.html#sec:7.3.2">7.3.2 Constraint declaration</A>
+<LI><A HREF="practical.html#sec:7.3.3">7.3.3 Compilation</A>
+</UL>
+<LI><A HREF="debugging.html"><B>7.4 Debugging</B></A>
+<UL>
+<LI><A HREF="debugging.html#sec:7.4.1">7.4.1 Ports</A>
+<LI><A HREF="debugging.html#sec:7.4.2">7.4.2 Tracing</A>
+<LI><A HREF="debugging.html#sec:7.4.3">7.4.3 CHR Debugging Predicates</A>
+</UL>
+<LI><A HREF="examples.html"><B>7.5 Examples</B></A>
+<LI><A HREF="sicstus-chr.html"><B>7.6 Backwards Compatibility</B></A>
+<LI><A HREF="guidelines.html"><B>7.7 Programming Tips and Tricks</B></A>
+<LI><A HREF="errors.html"><B>7.8 Compiler Errors and Warnings</B></A>
+<UL>
+<LI><A HREF="errors.html#sec:7.8.1">7.8.1 CHR Compiler Errors</A>
+</UL>
+</UL>
+<LI><A HREF="threads.html"><STRONG>8 Multi-threaded applications</STRONG></A>
+<UL>
+<LI><A HREF="threadcreate.html"><B>8.1 Creating and destroying Prolog 
+threads</B></A>
+<LI><A HREF="thmonitor.html"><B>8.2 Monitoring threads</B></A>
+<UL>
+<LI><A HREF="thmonitor.html#sec:8.2.1">8.2.1 Linux: linuxthreads vs. NPTL</A>
+</UL>
+<LI><A HREF="threadcom.html"><B>8.3 Thread communication</B></A>
+<UL>
+<LI><A HREF="threadcom.html#sec:8.3.1">8.3.1 Message queues</A>
+<LI><A HREF="threadcom.html#sec:8.3.2">8.3.2 Signalling threads</A>
+<LI><A HREF="threadcom.html#sec:8.3.3">8.3.3 Threads and dynamic 
+predicates</A>
+</UL>
+<LI><A HREF="threadsync.html"><B>8.4 Thread synchronisation</B></A>
+<LI><A HREF="thutil.html"><B>8.5 Thread-support library(threadutil)</B></A>
+<UL>
+<LI><A HREF="thutil.html#sec:8.5.1">8.5.1 Debugging threads</A>
+<LI><A HREF="thutil.html#sec:8.5.2">8.5.2 Profiling threads</A>
+</UL>
+<LI><A HREF="foreignthread.html"><B>8.6 Multi-threaded mixed C and 
+Prolog applications</B></A>
+<UL>
+<LI><A HREF="foreignthread.html#sec:8.6.1">8.6.1 A Prolog thread for 
+each native thread (one-to-one)</A>
+<LI><A HREF="foreignthread.html#sec:8.6.2">8.6.2 Pooling Prolog engines 
+(many-to-many)</A>
+<UL>
+<LI><A HREF="foreignthread.html#sec:8.6.2.1">8.6.2.1 Engines in 
+single-threaded SWI-Prolog</A>
+</UL>
+</UL>
+<LI><A HREF="mt-xpce.html"><B>8.7 Multithreading and the XPCE graphics 
+system</B></A>
+</UL>
+<LI><A HREF="foreign.html"><STRONG>9 Foreign Language Interface</STRONG></A>
+<UL>
+<LI><A HREF="foreignoverview.html"><B>9.1 Overview of the Interface</B></A>
+<LI><A HREF="foreignlink.html"><B>9.2 Linking Foreign Modules</B></A>
+<UL>
+<LI><A HREF="foreignlink.html#sec:9.2.1">9.2.1 What linking is provided?</A>
+<LI><A HREF="foreignlink.html#sec:9.2.2">9.2.2 What kind of loading 
+should I be using?</A>
+</UL>
+<LI><A HREF="dynstatic.html"><B>9.3 Dynamic Linking of shared libraries</B></A>
+<LI><A HREF="DLL.html"><B>9.4 Using the library shlib for <CODE>.DLL</CODE> 
+and <CODE>.so</CODE> files</B></A>
+<UL>
+<LI><A HREF="DLL.html#sec:9.4.1">9.4.1 Static Linking</A>
+</UL>
+<LI><A HREF="foreigntypes.html"><B>9.5 Interface Data types</B></A>
+<UL>
+<LI><A HREF="foreigntypes.html#sec:9.5.1">9.5.1 Type <CODE>term_t</CODE>: 
+a reference to a Prolog term</A>
+<UL>
+<LI><A HREF="foreigntypes.html#sec:9.5.1.1">9.5.1.1 Interaction with the 
+garbage collector and stack-shifter</A>
+</UL>
+<LI><A HREF="foreigntypes.html#sec:9.5.2">9.5.2 Other foreign interface 
+types</A>
+</UL>
+<LI><A HREF="foreigninclude.html"><B>9.6 The Foreign Include File</B></A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.1">9.6.1 Argument Passing and 
+Control</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.1.1">9.6.1.1 Non-deterministic 
+Foreign Predicates</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.2">9.6.2 Atoms and functors</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.2.1">9.6.2.1 Atoms and 
+atom-garbage collection</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.3">9.6.3 Analysing Terms via 
+the Foreign Interface</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.1">9.6.3.1 Testing the type 
+of a term</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.2">9.6.3.2 Reading data from 
+a term</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.3">9.6.3.3 Exchanging text 
+using length and string</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.4">9.6.3.4 Wide character 
+versions</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.5">9.6.3.5 Reading a list</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.3.6">9.6.3.6 An example: 
+defining write/1 in C</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.4">9.6.4 Constructing Terms</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.5">9.6.5 Unifying data</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.6">9.6.6 BLOBS: Using atoms to 
+store arbitrary binary data</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.6.1">9.6.6.1 Defining a BLOB 
+type</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.6.2">9.6.6.2 Accessing blobs</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.7">9.6.7 Exchanging GMP numbers</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.8">9.6.8 Calling Prolog from C</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.8.1">9.6.8.1 Predicate 
+references</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.8.2">9.6.8.2 Initiating a query 
+from C</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.9">9.6.9 Discarding Data</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.10">9.6.10 Foreign Code and 
+Modules</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.11">9.6.11 Prolog exceptions in 
+foreign code</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.12">9.6.12 Catching Signals 
+(Software Interrupts)</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.13">9.6.13 Miscellaneous</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.13.1">9.6.13.1 Term Comparison</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.13.2">9.6.13.2 Recorded 
+database</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.13.3">9.6.13.3 Getting file 
+names</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.14">9.6.14 Errors and warnings</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.15">9.6.15 Environment Control 
+from Foreign Code</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.16">9.6.16 Querying Prolog</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.17">9.6.17 Registering Foreign 
+Predicates</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.18">9.6.18 Foreign Code Hooks</A>
+<LI><A HREF="foreigninclude.html#sec:9.6.19">9.6.19 Storing foreign data</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.19.1">9.6.19.1 Examples for 
+storing foreign data</A>
+</UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.20">9.6.20 Embedding SWI-Prolog 
+in other applications</A>
+<UL>
+<LI><A HREF="foreigninclude.html#sec:9.6.20.1">9.6.20.1 Threading, 
+Signals and embedded Prolog</A>
+</UL>
+</UL>
+<LI><A HREF="plld.html"><B>9.7 Linking embedded applications using plld</B></A>
+<UL>
+<LI><A HREF="plld.html#sec:9.7.1">9.7.1 A simple example</A>
+</UL>
+<LI><A HREF="findhome.html"><B>9.8 The Prolog `home' directory</B></A>
+<LI><A HREF="foreignxmp.html"><B>9.9 Example of Using the Foreign 
+Interface</B></A>
+<LI><A HREF="foreignnotes.html"><B>9.10 Notes on Using Foreign Code</B></A>
+<UL>
+<LI><A HREF="foreignnotes.html#sec:9.10.1">9.10.1 Memory Allocation</A>
+<LI><A HREF="foreignnotes.html#sec:9.10.2">9.10.2 Compatibility between 
+Prolog versions</A>
+<LI><A HREF="foreignnotes.html#sec:9.10.3">9.10.3 Debugging Foreign Code</A>
+<LI><A HREF="foreignnotes.html#sec:9.10.4">9.10.4 Name Conflicts in C 
+modules</A>
+<LI><A HREF="foreignnotes.html#sec:9.10.5">9.10.5 Compatibility of the 
+Foreign Interface</A>
+</UL>
+</UL>
+<LI><A HREF="runtime.html"><STRONG>10 Generating Runtime Applications</STRONG></A>
+<UL>
+<LI><A HREF="qsavelimits.html"><B>10.1 Limitations of qsave_program</B></A>
+<LI><A HREF="qsaveforeign.html"><B>10.2 Runtimes and Foreign Code</B></A>
+<LI><A HREF="useresource.html"><B>10.3 Using program resources</B></A>
+<UL>
+<LI><A HREF="useresource.html#sec:10.3.1">10.3.1 Predicates Definitions</A>
+<LI><A HREF="useresource.html#sec:10.3.2">10.3.2 The <B>plrc</B> program</A>
+</UL>
+<LI><A HREF="findappfile.html"><B>10.4 Finding Application files</B></A>
+<UL>
+<LI><A HREF="findappfile.html#sec:10.4.1">10.4.1 Passing a path to the 
+application</A>
+</UL>
+<LI><A HREF="runenv.html"><B>10.5 The Runtime Environment</B></A>
+<UL>
+<LI><A HREF="runenv.html#sec:10.5.1">10.5.1 The Runtime Emulator</A>
+</UL>
+</UL>
+<LI><A HREF="libpl.html"><STRONG>A The SWI-Prolog library</STRONG></A>
+<UL>
+<LI><A HREF="lists.html"><B>A.1 library( lists ): List Manipulation</B></A>
+<UL>
+<LI><A HREF="lists.html#sec:A.1.1">A.1.1 Set Manipulation</A>
+</UL>
+<LI><A HREF="ordsets.html"><B>A.2 library( ordsets ): Ordered Set 
+Manipulation</B></A>
+<LI><A HREF="assoc.html"><B>A.3 library( assoc ): Association lists</B></A>
+<LI><A HREF="ugraphs.html"><B>A.4 library( ugraphs ): Unweighted Graphs</B></A>
+<LI><A HREF="nbset.html"><B>A.5 library( nbset ): Non-backtrackable set</B></A>
+<LI><A HREF="gensym.html"><B>A.6 library( gensym ): Generate unique 
+identifiers</B></A>
+<LI><A HREF="check.html"><B>A.7 library( check ): Elementary 
+completeness checks</B></A>
+<LI><A HREF="debug.html"><B>A.8 library( debug ): Some reusable code to 
+help debugging applications</B></A>
+<LI><A HREF="readutil.html"><B>A.9 library( readutil ): Reading lines, 
+streams and files</B></A>
+<LI><A HREF="netscape.html"><B>A.10 library( netscape ): Activating your 
+Web-browser</B></A>
+<LI><A HREF="registry.html"><B>A.11 library( registry ): Manipulating 
+the Windows registry</B></A>
+<LI><A HREF="url.html"><B>A.12 library( url ): Analysing and 
+constructing URL</B></A>
+<LI><A HREF="clpbounds.html"><B>A.13 library( clp/bounds ): Integer 
+Bounds Constraint Solver</B></A>
+<UL>
+<LI><A HREF="clpbounds.html#sec:A.13.1">A.13.1 Constraints</A>
+<LI><A HREF="clpbounds.html#sec:A.13.2">A.13.2 Constraint Implication 
+and Reified Constraints</A>
+<LI><A HREF="clpbounds.html#sec:A.13.3">A.13.3 Example 1: 
+Send+More=Money</A>
+<LI><A HREF="clpbounds.html#sec:A.13.4">A.13.4 Example 2: Using 
+tuples_in for a train schedule</A>
+<LI><A HREF="clpbounds.html#sec:A.13.5">A.13.5 SICStus clp(FD) 
+compatibility</A>
+</UL>
+<LI><A HREF="clpqr.html"><B>A.14 library( clpqr ): Constraint Logic 
+Programming over Rationals and Reals</B></A>
+<UL>
+<LI><A HREF="clpqr.html#sec:A.14.1">A.14.1 Solver predicates</A>
+<LI><A HREF="clpqr.html#sec:A.14.2">A.14.2 Syntax of the predicate 
+arguments</A>
+<LI><A HREF="clpqr.html#sec:A.14.3">A.14.3 Use of unification</A>
+<LI><A HREF="clpqr.html#sec:A.14.4">A.14.4 Non-linear constraints</A>
+</UL>
+<LI><A HREF="clpclp_distinct.html"><B>A.15 library( clp/clp_distinct ): 
+Weak arc consistent `all_distinct' constraint</B></A>
+<UL>
+<LI><A HREF="clpclp_distinct.html#sec:A.15.1">A.15.1 Example 1</A>
+<LI><A HREF="clpclp_distinct.html#sec:A.15.2">A.15.2 Example 2</A>
+<LI><A HREF="clpclp_distinct.html#sec:A.15.3">A.15.3 Example 3</A>
+</UL>
+<LI><A HREF="simplex.html"><B>A.16 library( simplex ): Solve linear 
+programming problems</B></A>
+<UL>
+<LI><A HREF="simplex.html#sec:A.16.1">A.16.1 Example 1</A>
+<LI><A HREF="simplex.html#sec:A.16.2">A.16.2 Example 2</A>
+<LI><A HREF="simplex.html#sec:A.16.3">A.16.3 Example 3</A>
+</UL>
+<LI><A HREF="prologxref.html"><B>A.17 library( prologxref ): 
+Cross-reference data collection library</B></A>
+<UL>
+<LI><A HREF="prologxref.html#sec:A.17.1">A.17.1 Extending the library</A>
+</UL>
+</UL>
+<LI><A HREF="hack.html"><STRONG>B Hackers corner</STRONG></A>
+<UL>
+<LI><A HREF="manipstack.html"><B>B.1 Examining the Environment Stack</B></A>
+<LI><A HREF="tracehook.html"><B>B.2 Intercepting the Tracer</B></A>
+<LI><A HREF="excepthook.html"><B>B.3 Adding context to errors: 
+prolog_exception_hook</B></A>
+<LI><A HREF="exception3.html"><B>B.4 Hooks using the exception predicate</B></A>
+<LI><A HREF="intlibs.html"><B>B.5 Hooks for integrating libraries</B></A>
+<LI><A HREF="loadfilehook.html"><B>B.6 Hooks for loading files</B></A>
+<LI><A HREF="readline.html"><B>B.7 Readline Interaction</B></A>
+</UL>
+<LI><A HREF="glossary.html"><STRONG>C Glossary of Terms</STRONG></A>
+<LI><A HREF="license.html"><STRONG>D SWI-Prolog License Conditions and 
+Tools</STRONG></A>
+<UL>
+<LI><A HREF="clicense.html"><B>D.1 The SWI-Prolog kernel and foreign 
+libraries</B></A>
+<UL>
+<LI><A HREF="clicense.html#sec:D.1.1">D.1.1 The SWI-Prolog Prolog 
+libraries</A>
+</UL>
+<LI><A HREF="contrib.html"><B>D.2 Contributing to the SWI-Prolog project</B></A>
+<LI><A HREF="softlicense.html"><B>D.3 Software support to keep track of 
+license conditions</B></A>
+<LI><A HREF="library.html"><B>D.4 Library predicates</B></A>
+<UL>
+<LI><A HREF="library.html#sec:D.4.1">D.4.1 <CODE>library(check)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.2">D.4.2 <CODE>library(lists)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.3">D.4.3 <CODE>library(ordsets)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.4">D.4.4 <CODE>library(ugraphs)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.5">D.4.5 <CODE>library(www_browser)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.6">D.4.6 <CODE>library(readutil)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.7">D.4.7 <CODE>library(registry)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.8">D.4.8 <CODE>library(url)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.9">D.4.9 <CODE>library(clp/bounds)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.10">D.4.10 <CODE>library(clp/clp_distinct)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.11">D.4.11 <CODE>library(clp/simplex)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.12">D.4.12 <CODE>library(clpqr)</CODE></A>
+<LI><A HREF="library.html#sec:D.4.13">D.4.13 <CODE>library(prologxref)</CODE></A>
+</UL>
+</UL>
+<LI><A HREF="Bibliography.html"><STRONG>E Bibliography</STRONG></A>
+</UL>
+</BODY></HTML>

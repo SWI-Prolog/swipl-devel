@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.17</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="simplex.html">
+<LINK REL=next HREF="hack.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="simplex.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="hack.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.17">A.17 library( prologxref ): Cross-reference data 
+collection library</A></H2>
+
+<A NAME="prologxref"></A>
+<A NAME="sec:lib:prologxref"></A>
+
+<P>This library collects information on defined and used objects in 
+Prolog sourcefiles. Typically these are predicates, but we expect the 
+library to deal with other types of objects in the future. The library 
+is a building block for tools doing dependency tracking in applications. 
+Dependency tracking is useful to reveal the structure of an unknown 
+program or detect missing components at compile-time, but also for 
+program transformation or minimising a program saved-state by only 
+saving the reachable objects.
+
+<P>This section gives a partial description of the library API, 
+providing some insight in how you can use it for analysing your program. 
+The library should be further modularized, moving its knowledge about 
+-for example- XPCE into a different file and allowing for adding 
+knowledge about other libraries such as Logtalk. <B>Please do not 
+consider this interface rock-solid.</B>
+
+<P>The library is exploited by two graphical tools in the SWI-Prolog 
+environment. The XPCE frontend started by <A NAME="idx:gxref0:1405"></A><A HREF="xref.html#gxref/0">gxref/0</A> 
+and described in
+<A HREF="xref.html">section 3.7</A> and PceEmacs (<A HREF="pceemacs.html">section 
+3.4</A>) which exploits this library for its syntax colouring.
+
+<P>For all predicates described below, <VAR>Source</VAR> is the source 
+that is processed. This is normally a filename in any notation 
+acceptable to the file loading predicates (see <A NAME="idx:loadfiles2:1406"></A><A HREF="consulting.html#load_files/2">load_files/2</A>). 
+Using the hooks defined in <A HREF="prologxref.html">section A.17.1</A> 
+it can be anything else that can be translated into a Prolog stream 
+holding Prolog source text. <VAR>Callable</VAR> is a callable term (see <A NAME="idx:callable1:1407"></A><A HREF="typetest.html#callable/1">callable/1</A>). 
+Callables do not carry a module qualifier unless the referred predicate 
+is not in the module defined
+<VAR>Source</VAR>.
+
+<DL>
+<DT class="pubdef"><A NAME="xref_source/1"><STRONG>xref_source</STRONG>(<VAR>+Source</VAR>)</A></DT>
+<DD class="defbody">
+Gather information on <VAR>Source</VAR>. If <VAR>Source</VAR> has 
+already been processed and is still up-to-date according to the file 
+timestamp, no action is taken. This predicate must be called on a file 
+before information can be gathered.</DD>
+<DT class="pubdef"><A NAME="xref_current_source/1"><STRONG>xref_current_source</STRONG>(<VAR>?Source</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Source</VAR> has been processed.</DD>
+<DT class="pubdef"><A NAME="xref_clean/1"><STRONG>xref_clean</STRONG>(<VAR>+Source</VAR>)</A></DT>
+<DD class="defbody">
+Remove the information gathered for <VAR>Source</VAR></DD>
+<DT class="pubdef"><A NAME="xref_defined/3"><STRONG>xref_defined</STRONG>(<VAR>?Source, 
+?Callable, -How</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Callable</VAR> is defined in <VAR>Source</VAR>. <VAR>How</VAR> is 
+one of
+<CENTER>
+<TABLE BORDER=0 FRAME=void RULES=groups>
+<TR VALIGN=top><TD><CODE>dynamic(Line)</CODE> </TD><TD>Declared dynamic 
+at <VAR>Line</VAR> </TD></TR>
+<TR VALIGN=top><TD><CODE>thread_local(Line)</CODE> </TD><TD>Declared 
+thread local at <VAR>Line</VAR> </TD></TR>
+<TR VALIGN=top><TD><CODE>multifile(Line)</CODE> </TD><TD>Declared 
+multifile at <VAR>Line</VAR> </TD></TR>
+<TR VALIGN=top><TD><CODE>local(Line)</CODE> </TD><TD>First clause at <VAR>Line</VAR> </TD></TR>
+<TR VALIGN=top><TD><CODE>foreign(Line)</CODE> </TD><TD>Foreign library 
+loaded at <VAR>Line</VAR> </TD></TR>
+<TR VALIGN=top><TD><CODE>constraint(Line)</CODE> </TD><TD>CHR Constraint 
+at <VAR>Line</VAR> </TD></TR>
+<TR VALIGN=top><TD><CODE>imported(File)</CODE> </TD><TD>Imported from <VAR>File</VAR> </TD></TR>
+</TABLE>
+
+</CENTER>
+</DD>
+<DT class="pubdef"><A NAME="xref_called/3"><STRONG>xref_called</STRONG>(<VAR>?Source, 
+?Callable, ?By</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Callable</VAR> is called in <VAR>Source</VAR> by <VAR>By</VAR>.</DD>
+<DT class="pubdef"><A NAME="xref_exported/2"><STRONG>xref_exported</STRONG>(<VAR>?Source, 
+?Callable</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Callable</VAR> is public (exported from the module).</DD>
+<DT class="pubdef"><A NAME="xref_module/2"><STRONG>xref_module</STRONG>(<VAR>?Source, 
+?Module</VAR>)</A></DT>
+<DD class="defbody">
+<VAR>Source</VAR> is a module-file defining the given module.</DD>
+<DT class="pubdef"><A NAME="xref_built_in/1"><STRONG>xref_built_in</STRONG>(<VAR>?Callable</VAR>)</A></DT>
+<DD class="defbody">
+True if <VAR>Callable</VAR> is a built-in predicate. Currently this is 
+assumed for all predicates defined in the <CODE>system</CODE> module and 
+having the property <CODE>built_in</CODE>. Built-in predicates are not 
+registered as `called'.
+</DD>
+</DL>
+
+<H3><A NAME="sec:A.17.1">A.17.1 Extending the library</A></H3>
+
+<A NAME="sec:xrefhooks"></A>
+
+<P>The library provides hooks for extending its rules it uses for 
+finding predicates called by some programming construct.
+
+<DL>
+<DT class="pubdef"><A NAME="prolog:called_by/2"><STRONG>prolog:called_by</STRONG>(<VAR>+Goal, 
+-Called</VAR>)</A></DT>
+<DD class="defbody">
+Where <VAR>Goal</VAR> is a non-var subgoal appearing in called object 
+(typically a clause-body). If it succeeds it must return a list of goals 
+called by <VAR>Goal</VAR>. As a special construct, if a term <VAR>Callable+N</VAR> 
+is returned, <VAR>N</VAR> variable arguments are added to <VAR>Callable</VAR> 
+before further processing. For simple meta-calls a single fact suffices. 
+Complex rules as used in the <CODE>library(html_write)</CODE> library 
+provided by the HTTP package examine the arguments and create a list of 
+called objects.
+
+<P>The current system cannot deal with the same name/arity in different 
+modules that behave differently with respect to called arguments.
+</DD>
+</DL>
+
+</BODY></HTML>

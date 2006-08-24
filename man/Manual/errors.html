@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 7.8</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="guidelines.html">
+<LINK REL=next HREF="threads.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="guidelines.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="threads.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:7.8">7.8 Compiler Errors and Warnings</A></H2>
+
+<A NAME="sec:errors"></A> In this section we summarize the most 
+important error and warning messages of the CHR compiler.
+
+<H3><A NAME="sec:7.8.1">7.8.1 CHR Compiler Errors</A></H3>
+
+<DL>
+<DT><B>Type clash</B></DT>
+<DD>
+for variable ... in rule ...
+
+<P>This error indicates an inconsistency between declared types; a 
+variable should belong to two types. See static type checking.</DD>
+<DT><B>Invalid functor</B></DT>
+<DD>
+in head ... of rule ...
+
+<P>This error indicates an inconsistency between a declared type and the 
+use of a functor in a rule. See static type checking.</DD>
+<DT><B>Cyclic alias</B></DT>
+<DD>
+definition: ... == ...
+
+<P>You have defined a type alias in terms of itself, either directly or 
+indirectly.</DD>
+<DT><B>Ambiguous type aliases</B></DT>
+<DD>
+
+<P>You have defined two overlapping type aliases.</DD>
+<DT><B>Multiple definitions</B></DT>
+<DD>
+for type
+
+<P>You have defined the same type multiple times.</DD>
+<DT><B>Non-ground type</B></DT>
+<DD>
+in constraint definition: ...
+
+<P>You have declared a non-ground type for a constraint argument.</DD>
+<DT><B>Could not find type definition</B></DT>
+<DD>
+for ...
+
+<P>You have used an undefined type in a type declaration.</DD>
+<DT><B>Illegal mode/type declaration</B></DT>
+<DD>
+
+<P>You have used invalid syntax in a constraint declaration.</DD>
+<DT><B>Constraint multiply defined</B></DT>
+<DD>
+
+<P>There is more than one declaration for the same constraint.</DD>
+<DT><B>Undeclared constraint</B></DT>
+<DD>
+... in head of ...
+
+<P>You have used an undeclared constraint in the head of a rule. This 
+often indicates a misspelled constrained name or wrong number of 
+arguments.</DD>
+<DT><B>Invalid pragma</B></DT>
+<DD>
+... in ... Pragma should not be a variable.
+
+<P>You have used a variable as a pragma in a rule. This is not allowed.</DD>
+<DT><B>Invalid identifier</B></DT>
+<DD>
+... in pragma passive in ...
+
+<P>You have used an identifier in a passive pragma that does not 
+correspond to an identifier in the head of the rule. Likely the 
+identifier name is misspelled.</DD>
+<DT><B>Unknown pragma</B></DT>
+<DD>
+... in ...
+
+<P>You have used an unknown pragma in a rule. Likely the pragma is 
+misspelled or not supported.</DD>
+<DT><B>Something unexpected</B></DT>
+<DD>
+happened in the CHR compiler
+
+<P>You have most likely bumped into a bug in the CHR compiler. Please 
+contact Tom Schrijvers to notify him of this error.
+
+<P></DD>
+</DL>
+
+</BODY></HTML>

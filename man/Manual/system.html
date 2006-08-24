@@ -1,0 +1,590 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.34</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="tty.html">
+<LINK REL=next HREF="files.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="tty.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="files.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.34">4.34 Operating System Interaction</A></H2>
+
+<A NAME="sec:system"></A>
+
+<DL>
+<DT class="pubdef"><A NAME="shell/2"><STRONG>shell</STRONG>(<VAR>+Command, 
+-Status</VAR>)</A></DT>
+<DD class="defbody">
+Execute <VAR>Command</VAR> on the operating system. <VAR>Command</VAR> 
+is given to the Bourne shell (/bin/sh). <VAR>Status</VAR> is unified 
+with the exit status of the command.
+
+<P>On <VAR>Win32</VAR> systems, <A NAME="idx:shell12:942"></A><A HREF="system.html#shell/1">shell/[1,2]</A> 
+executes the command using the CreateProcess() API and waits for the 
+command to terminate. If the command ends with a <CODE>&amp;</CODE> 
+sign, the command is handed to the WinExec() API, which does not wait 
+for the new task to terminate. See also <A NAME="idx:winexec2:943"></A><A HREF="system.html#win_exec/2">win_exec/2</A> 
+and <A NAME="idx:winshell2:944"></A><A HREF="system.html#win_shell/2">win_shell/2</A>. 
+Please note that the CreateProcess() API does <B>not</B> imply the 
+Windows command interpreter (<B>command.exe</B> on Windows 95/98 and <B>cmd.exe</B> 
+on Windows-NT) and therefore commands built-in to the 
+command-interpreter can only be activated using the command interpreter. 
+For example:
+<CODE>'command.exe /C copy file1.txt file2.txt'</CODE></DD>
+<DT class="pubdef"><A NAME="shell/1"><STRONG>shell</STRONG>(<VAR>+Command</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to `<CODE>shell(Command, 0)</CODE>'.</DD>
+<DT class="pubdef"><A NAME="shell/0"><STRONG>shell</STRONG></A></DT>
+<DD class="defbody">
+Start an interactive Unix shell. Default is <CODE>/bin/sh</CODE>, the 
+environment variable <CODE>SHELL</CODE> overrides this default. Not 
+available for Win32 platforms.</DD>
+<DT class="pubdef"><A NAME="win_exec/2"><STRONG>win_exec</STRONG>(<VAR>+Command, 
++Show</VAR>)</A></DT>
+<DD class="defbody">
+Win32 systems only. Spawns a Windows task without waiting for its 
+completion. <VAR>Show</VAR> is one of the Win32 <CODE>SW_*</CODE> 
+constants written in lowercase without the <CODE>SW_*</CODE>:
+<CODE>hide</CODE>
+<CODE>maximize</CODE>
+<CODE>minimize</CODE>
+<CODE>restore</CODE>
+<CODE>show</CODE>
+<CODE>showdefault</CODE>
+<CODE>showmaximized</CODE>
+<CODE>showminimized</CODE>
+<CODE>showminnoactive</CODE>
+<CODE>showna</CODE>
+<CODE>shownoactive</CODE>
+<CODE>shownormal</CODE>. In addition, <CODE>iconic</CODE> is a synonym 
+for <CODE>minimize</CODE> and
+<CODE>normal</CODE> for <CODE>shownormal</CODE></DD>
+<DT class="pubdef"><A NAME="win_shell/2"><STRONG>win_shell</STRONG>(<VAR>+Operation, 
++File, +Show</VAR>)</A></DT>
+<DD class="defbody">
+Win32 systems only. Opens the document <VAR>File</VAR> using the windows 
+shell-rules for doing so. <VAR>Operation</VAR> is one of <CODE>open</CODE>,
+<CODE>print</CODE> or <CODE>explore</CODE> or another operation 
+registered with the shell for the given document-type. On modern systems 
+it is also possible to pass a <A NAME="idx:URL:945"></A>URL as <VAR>File</VAR>, 
+opening the URL in Windows default browser. This call interfaces to the 
+Win32 API ShellExecute(). The <VAR>Show</VAR> argument determines the 
+initial state of the opened window (if any). See <A NAME="idx:winexec2:946"></A><A HREF="system.html#win_exec/2">win_exec/2</A> 
+for defined values.</DD>
+<DT class="pubdef"><A NAME="win_shell/2"><STRONG>win_shell</STRONG>(<VAR>+Operation, 
++File</VAR>)</A></DT>
+<DD class="defbody">
+Same as <CODE>win_shell(Operation, File, normal)</CODE></DD>
+<DT class="pubdef"><A NAME="win_registry_get_value/3"><STRONG>win_registry_get_value</STRONG>(<VAR>+Key, 
++Name, -Value</VAR>)</A></DT>
+<DD class="defbody">
+Win32 systems only. Fetches the value of a Win32 registry key.
+<VAR>Key</VAR> is an atom formed as a path-name describing the desired 
+registry key. <VAR>Name</VAR> is the desired attribute name of the key.
+<VAR>Value</VAR> is unified with the value. If the value is of type
+<CODE>DWORD</CODE>, the value is returned as an integer. If the value is 
+a string it is returned as a Prolog atom. Other types are currently not 
+supported. The default `root' is <CODE>HKEY_CURRENT_USER</CODE>. Other 
+roots can be specified explicitly as <CODE>HKEY_CLASSES_ROOT</CODE>,
+<CODE>HKEY_CURRENT_USER</CODE>, <CODE>HKEY_LOCAL_MACHINE</CODE> or
+<CODE>HKEY_USERS</CODE>. The example below fetches the extension to use 
+for Prolog files (see <CODE>README.TXT</CODE> on the Windows version):
+
+<PRE class="code">
+?- win_registry_get_value('HKEY_LOCAL_MACHINE/Software/SWI/Prolog',
+                          fileExtension,
+                          Ext).
+
+Ext = pl
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="getenv/2"><STRONG>getenv</STRONG>(<VAR>+Name, 
+-Value</VAR>)</A></DT>
+<DD class="defbody">
+Get environment variable. Fails silently if the variable does not exist. 
+Please note that environment variable names are case-sensitive on Unix 
+systems and case-insensitive on Windows.</DD>
+<DT class="pubdef"><A NAME="setenv/2"><STRONG>setenv</STRONG>(<VAR>+Name, 
++Value</VAR>)</A></DT>
+<DD class="defbody">
+Set an environment variable. <VAR>Name</VAR> and <VAR>Value</VAR> must 
+be instantiated to atoms or integers. The environment variable will be 
+passed to <A NAME="idx:shell02:947"></A><A HREF="system.html#shell/0">shell/[0-2]</A> 
+and can be requested using <A NAME="idx:getenv2:948"></A><A HREF="system.html#getenv/2">getenv/2</A>. 
+They also influence <A NAME="idx:expandfilename2:949"></A><A HREF="files.html#expand_file_name/2">expand_file_name/2</A>. 
+Environment variables are shared between threads. Depending on the 
+underlying C library, <A NAME="idx:setenv2:950"></A><A HREF="system.html#setenv/2">setenv/2</A> 
+and <A NAME="idx:unsetenv1:951"></A><A HREF="system.html#unsetenv/1">unsetenv/1</A> 
+may not be thread-safe and may cause memory leaks. Only changing the 
+environment once and before starting threads is safe in all versions of 
+SWI-Prolog.</DD>
+<DT class="pubdef"><A NAME="unsetenv/1"><STRONG>unsetenv</STRONG>(<VAR>+Name</VAR>)</A></DT>
+<DD class="defbody">
+Remove an environment variable from the environment. Some systems lack 
+the underlying unsetenv() library function. On these systems <A NAME="idx:unsetenv1:952"></A><A HREF="system.html#unsetenv/1">unsetenv/1</A> 
+sets the variable to the empty string.</DD>
+<DT class="pubdef"><A NAME="setlocale/3"><STRONG>setlocale</STRONG>(<VAR>+Category, 
+-Old, +New</VAR>)</A></DT>
+<DD class="defbody">
+Set/Query the <EM>locale</EM> setting which tells the C-library how to 
+interpret text-files, write numbers, dates, etc. Category is one of
+<CODE>all</CODE>, <CODE>collate</CODE>, <CODE>ctype</CODE>, <CODE>messages</CODE>,
+<CODE>monetary</CODE>, <CODE>numeric</CODE> or <CODE>time</CODE>. For 
+details, please consult the C-library locale documentation. See also <A HREF="widechars.html">section 
+2.17.1</A>. Please note that the locale is shared between all threads 
+and thread-safe usage of <A NAME="idx:setlocale3:953"></A><A HREF="system.html#setlocale/3">setlocale/3</A> 
+is in general not possible. Do locale operations before starting threads 
+or thoroughly study threading aspects of locale support in your 
+environment before use in multi-threaded environments.</DD>
+<DT class="pubdef"><A NAME="unix/1"><STRONG>unix</STRONG>(<VAR>+Command</VAR>)</A></DT>
+<DD class="defbody">
+This predicate comes from the Quintus compatibility library and provides 
+a partial implementation thereof. It provides access to some operating 
+system features and unlike the name suggests, is not operating system 
+specific. Defined <VAR>Command</VAR>'s are below.
+
+<DL>
+<DT><STRONG>system</STRONG>(<VAR>+Command</VAR>)</DT>
+<DD class="defbody">
+Equivalent to calling <A NAME="idx:shell1:954"></A><A HREF="system.html#shell/1">shell/1</A>. 
+Use for compatibility only.</DD>
+<DT><STRONG>shell</STRONG>(<VAR>+Command</VAR>)</DT>
+<DD class="defbody">
+Equivalent to calling <A NAME="idx:shell1:955"></A><A HREF="system.html#shell/1">shell/1</A>. 
+Use for compatibility only.</DD>
+<DT><STRONG>shell</STRONG></DT>
+<DD class="defbody">
+Equivalent to calling <A NAME="idx:shell0:956"></A><A HREF="system.html#shell/0">shell/0</A>. 
+Use for compatibility only.</DD>
+<DT><STRONG>cd</STRONG></DT>
+<DD class="defbody">
+Equivalent to calling <A NAME="idx:workingdirectory2:957"></A><A HREF="files.html#working_directory/2">working_directory/2</A> 
+to the expansion (see
+<A NAME="idx:expandfilename2:958"></A><A HREF="files.html#expand_file_name/2">expand_file_name/2</A>) 
+of <CODE><CODE>~</CODE></CODE>. For compatibility only.</DD>
+<DT><STRONG>cd</STRONG>(<VAR>+Directory</VAR>)</DT>
+<DD class="defbody">
+Equivalent to calling <A NAME="idx:workingdirectory2:959"></A><A HREF="files.html#working_directory/2">working_directory/2</A>. 
+Use for compatibility only.</DD>
+<DT><STRONG>argv</STRONG>(<VAR>-Argv</VAR>)</DT>
+<DD class="defbody">
+Unify <VAR>Argv</VAR> with the list of command-line arguments provides 
+to this Prolog run. Please note that Prolog system-arguments and 
+application arguments are separated by <CODE>--</CODE>. Integer 
+arguments are passed as Prolog integers, float arguments and Prolog 
+floating point numbers and all other arguments as Prolog atoms. New 
+applications should use the prolog-flag <CODE>argv</CODE>. See also 
+prolog prolog-flag
+<CODE>argv</CODE>.
+
+<P>A stand-alone program could use the following skeleton to handle 
+command-line arguments. See also <A HREF="compilation.html">section 
+2.10.2.4</A>.
+
+<PRE class="code">
+main :-
+        current_prolog_flag(argv, Argv),
+        append(_PrologArgs, [--|AppArgs], Argv), !,
+        main(AppArgs).
+</PRE>
+
+<P></DD>
+</DL>
+
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.34.1">4.34.1 Dealing with time and date</A></H3>
+
+<A NAME="sec:timedate"></A>
+
+<P>Representing time in a computer system is surprisingly complicated. 
+There are a large number of time representations in use and the correct 
+choice depends on factors such as compactness, resolution and desired 
+operations. Humans tend to think about time in hours, days, months, 
+years or centuries. Physicists think about time in seconds. But, a month 
+does not have a defined number of seconds. Even a day does not have a 
+defined number of seconds as sometimes a leap-second is introduced to 
+synchronise properly with our earth's rotation. At the same time, 
+resolution demands range from better then pico-seconds to millions of 
+years. Finally, civilizations have a wide range of calendars. Although 
+there exist libraries dealing with most if this complexity, our desire 
+to keep Prolog clean and lean stops us from fully supporting these.
+
+<P>For human-oriented tasks, time can be broken into years, months, 
+days, hours, minutes, seconds and a timezone. Physicists prefer to have 
+time in an arithmetic type representing seconds or fraction thereof, so 
+basic arithmetic deal with comparison and durations. An additional 
+advantage of the physicists approach is that it requires much less 
+space. For these reasons, SWI-Prolog uses an arithmetic type as its 
+prime time representation.
+
+<P>Many C libraries deal with time using fixed-point arithmetic, dealing 
+with a large but finite time interval at constant resolution. In our 
+opinion using a floating point number is a more natural choice as we can 
+use a natural unit and the interface does not need to be changed if a 
+higher resolution is required in the future. Our unit of choice is the 
+second as it is the scientific unit.<A NAME=back-to-note-61 HREF="Notes.html#note-61"> (61)</A> 
+e have placed our origin at 1970-1-1T0:0:0Z for compatibility with the 
+POSIX notion of time as well as with older time support provided by 
+SWI-Prolog.
+
+<P>Where older versions of SWI-Prolog relied on the POSIX conversion 
+functions, the current implementation uses
+<A HREF="http://cr.yp.to/libtai.html">libtai</A> to realise conversion 
+between time-stamps and calendar dates for a period of 10 million years.
+
+<H4><A NAME="sec:4.34.1.1">4.34.1.1 Time and date data-structures</A></H4>
+
+<A NAME="sec:dattimedata"></A>
+
+<P>We use the following time representations
+
+<DL>
+<DT><B>TimeStamp</B></DT>
+<DD class="defbody">
+A TimeStamp is a floating point number expression the time in seconds 
+since the Epoch at 1970-1-1.</DD>
+<DT><STRONG>date</STRONG>(<VAR>Y,M,D,H,Mn,S,Off,TZ,DST</VAR>)</DT>
+<DD class="defbody">
+We call this term a <EM>date-time</EM> structure. The first 5 fields are 
+integers expressing the year, month (1..12), day (1..31), hour (0..23), 
+Minute (0..59). The <VAR>S</VAR> field holds the seconds as a floating 
+point number between 0.0 and 60.0. <VAR>Off</VAR> is an integer 
+representing the offset relative to UTC in seconds where positive values 
+are west of Greenwhich. If converted from local time (see <A NAME="idx:stampdatetime3:960"></A><A HREF="system.html#stamp_date_time/3">stamp_date_time/3</A>,
+<VAR>TZ</VAR> holds the name of the local timezone. If the timezone is 
+not known <VAR>TZ</VAR> is the atom <CODE><CODE>-</CODE></CODE>. <VAR>DST</VAR> 
+is <CODE>true</CODE> if daylight saving time applies to the current 
+time, <CODE>false</CODE> if daylight saving time is relevant but not 
+effective and <CODE><CODE>-</CODE></CODE> if unknown or the timezone has 
+no daylight saving time.</DD>
+<DT><STRONG>date</STRONG>(<VAR>Y,M.D</VAR>)</DT>
+<DD class="defbody">
+Date using the same values as described above. Extracted using
+<A NAME="idx:datetimevalue3:961"></A><A HREF="system.html#date_time_value/3">date_time_value/3</A>.</DD>
+<DT><STRONG>time</STRONG>(<VAR>H,Mn,S</VAR>)</DT>
+<DD class="defbody">
+Time using the same values as described above. Extracted using
+<A NAME="idx:datetimevalue3:962"></A><A HREF="system.html#date_time_value/3">date_time_value/3</A>.
+</DD>
+</DL>
+
+<H4><A NAME="sec:4.34.1.2">4.34.1.2 Time and date predicates</A></H4>
+
+<A NAME="sec:datimepreds"></A>
+
+<DL>
+<DT class="pubdef"><A NAME="get_time/1"><STRONG>get_time</STRONG>(<VAR>-TimeStamp</VAR>)</A></DT>
+<DD class="defbody">
+Return the current time as a <VAR>TimeStamp</VAR>. The granularity is 
+system dependent. See <A HREF="system.html">section 4.34.1.1</A>.</DD>
+<DT class="pubdef"><A NAME="stamp_date_time/3"><STRONG>stamp_date_time</STRONG>(<VAR>+TimeStamp, 
+-DateTime, +TimeZone</VAR>)</A></DT>
+<DD class="defbody">
+Convert a <VAR>TimeZone</VAR> to a <VAR>DateTime</VAR> in the given time 
+zone. See <A HREF="system.html">section 4.34.1.1</A> for details on the 
+data-types. <VAR>TimeZone</VAR> describes the timezone for the 
+conversion. It is one of <CODE>local</CODE> to extract the local time, <CODE>'UTC'</CODE> 
+to extract at UTC time or an integer describing the seconds west of 
+Greenwhich.</DD>
+<DT class="pubdef"><A NAME="date_time_stamp/2"><STRONG>date_time_stamp</STRONG>(<VAR>+DateTime, 
+-TimeStamp</VAR>)</A></DT>
+<DD class="defbody">
+Compute the timestamp from a <A NAME="idx:date9:963"></A><B>date/9</B> 
+term. Values for month, day, hour, minute or second need not be 
+normalized. This flexibility allows for easy computation of the time at 
+any given number of these units from a given timestamp. Normalization 
+can be achieved following this call with <A NAME="idx:stampdatetime3:964"></A><A HREF="system.html#stamp_date_time/3">stamp_date_time/3</A>. 
+This example computes the date 200 days after 2006-7-14:
+
+<PRE class="code">
+?- date_time_stamp(date(2006,7,214,0,0,0,0,-,-), Stamp),
+   stamp_date_time(Stamp, D, 0),
+   date_time_value(date, D, Date).
+Date = date(2007, 1, 30)
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="date_time_value/3"><STRONG>date_time_value</STRONG>(<VAR>?Key, 
++DateTime, ?Value</VAR>)</A></DT>
+<DD class="defbody">
+Extract values from a <A NAME="idx:date9:965"></A><B>date/9</B> term. 
+Provided keys are:
+
+<P>
+<CENTER>
+<TABLE BORDER=2 FRAME=hsides RULES=groups>
+<TR VALIGN=top><TD><B>key</B></TD><TD><B>value </B></TD></TR>
+<TBODY>
+<TR VALIGN=top><TD><CODE>year</CODE> </TD><TD>Calendar year as an 
+integer </TD></TR>
+<TR VALIGN=top><TD><CODE>month</CODE> </TD><TD>Calendar month as an 
+integer 1..12 </TD></TR>
+<TR VALIGN=top><TD><CODE>day</CODE> </TD><TD>Calendar day as an integer 
+1..31 </TD></TR>
+<TR VALIGN=top><TD><CODE>hour</CODE> </TD><TD>Clock hour as an integer 
+0..23 </TD></TR>
+<TR VALIGN=top><TD><CODE>minute</CODE> </TD><TD>Clock minute as an 
+integer 0..59 </TD></TR>
+<TR VALIGN=top><TD><CODE>second</CODE> </TD><TD>Clock second as a float 
+0.0..60.0 </TD></TR>
+<TR VALIGN=top><TD><CODE>utc_offset</CODE> </TD><TD>Offset to UTC in 
+seconds (positive is west) </TD></TR>
+<TR VALIGN=top><TD><CODE>time_zone</CODE> </TD><TD>Name of timezone; 
+fails if unknown </TD></TR>
+<TR VALIGN=top><TD><CODE>daylight_saving</CODE> </TD><TD>Bool <CODE>daylight_saving</CODE>true) 
+if dst is effective </TD></TR>
+<TR VALIGN=top><TD><CODE>date</CODE> </TD><TD>Term <CODE>date(Y,M,D)</CODE> </TD></TR>
+<TR VALIGN=top><TD><CODE>time</CODE> </TD><TD>Term <CODE>time(H,M,S)</CODE> </TD></TR>
+</TABLE>
+
+</CENTER>
+</DD>
+<DT class="pubdef"><A NAME="format_time/3"><STRONG>format_time</STRONG>(<VAR>+Out, 
++Format, +StampOrDateTime</VAR>)</A></DT>
+<DD class="defbody">
+Modelled after POSIX strftime(), using GNU extensions. <VAR>Out</VAR> is 
+a destination as specified with <A NAME="idx:withoutputto2:966"></A><A HREF="IO.html#with_output_to/2">with_output_to/2</A>. <VAR>Format</VAR> 
+is an atom or string with the following conversions. Conversions start 
+with a tilde (%) character.<A NAME=back-to-note-62 HREF="Notes.html#note-62"> (62)</A>
+
+<P>
+<UL>
+<LI><CODE>a</CODE><BR>
+The abbreviated weekday name according to the current locale.
+<LI><CODE>A</CODE><BR>
+The full weekday name according to the current locale.
+<LI><CODE>b</CODE><BR>
+The abbreviated month name according to the current locale.
+<LI><CODE>B</CODE><BR>
+The full month name according to the current locale.
+<LI><CODE>c</CODE><BR>
+The preferred date and time representation for the current locale.
+<LI><CODE>C</CODE><BR>
+The century number (<A NAME="idx:year100:967"></A><B>year/100</B>) as a 
+2-digit integer.
+<LI><CODE>d</CODE><BR>
+The day of the month as a decimal number (range 01 to 31).
+<LI><CODE>D</CODE><BR>
+Equivalent to %m/%d/%y. (Yecch — for Americans only. Americans should 
+note that in other countries %d/%m/%y is rather common. This means that 
+in international context this format is ambigu‐ ous and should not be 
+used.)
+<LI><CODE>e</CODE><BR>
+Like %d, the day of the month as a decimal number, but a leading zero is 
+replaced by a space.
+<LI><CODE>E</CODE><BR>
+Modifier. Not implemented.
+<LI><CODE>F</CODE><BR>
+Equivalent to %Y-%m-%d (the ISO 8601 date format).
+<LI><CODE>g</CODE><BR>
+Like %G, but without century, i.e., with a 2-digit year (00-99).
+<LI><CODE>G</CODE><BR>
+The ISO 8601 year with century as a decimal number. The 4-digit year 
+corresponding to the ISO week number (see %V). This has the same format 
+and value as %y, except that if the ISO week number belongs to the 
+previous or next year, that year is used instead.
+<LI><CODE>V</CODE><BR>
+The ISO 8601:1988 week number of the current year as a decimal number, 
+range 01 to 53, where week 1 is the first week that has at least 4 days 
+in the current year, and with Monday as the first day of the week. See 
+also %U and %W.
+<LI><CODE>h</CODE><BR>
+Equivalent to %b.
+<LI><CODE>H</CODE><BR>
+The hour as a decimal number using a 24-hour clock (range 00 to 23).
+<LI><CODE>I</CODE><BR>
+The hour as a decimal number using a 12-hour clock (range 01 to 12).
+<LI><CODE>j</CODE><BR>
+The day of the year as a decimal number (range 001 to 366).
+<LI><CODE>k</CODE><BR>
+The hour (24-hour clock) as a decimal number (range 0 to 23); single 
+digits are preceded by a blank. (See also %H.)
+<LI><CODE>l</CODE><BR>
+The hour (12-hour clock) as a decimal number (range 1 to 12); single 
+digits are preceded by a blank. (See also %I.)
+<LI><CODE>m</CODE><BR>
+The month as a decimal number (range 01 to 12).
+<LI><CODE>M</CODE><BR>
+The minute as a decimal number (range 00 to 59).
+<LI><CODE>n</CODE><BR>
+A newline character.
+<LI><CODE>O</CODE><BR>
+Modifier. Not implemented.
+<LI><CODE>p</CODE><BR>
+Either `AM' or `PM' according to the given time value, or the 
+corresponding strings for the current locale. Noon is treated as `pm' 
+and midnight as `am'.
+<LI><CODE>P</CODE><BR>
+Like %p but in lowercase: `am' or `pm' or a corresponding string for the 
+current locale.
+<LI><CODE>r</CODE><BR>
+The time in a.m. or p.m. notation. In the POSIX locale this is 
+equivalent to `%I:%M:%S %p'.
+<LI><CODE>R</CODE><BR>
+The time in 24-hour notation (%H:%M). For a version including the 
+seconds, see %T below.
+<LI><CODE>s</CODE><BR>
+The number of seconds since the Epoch, i.e., since 1970-01-01 00:00:00 
+UTC.
+<LI><CODE>S</CODE><BR>
+The second as a decimal number (range 00 to 60). (The range is up to 60 
+to allow for occasional leap seconds.)
+<LI><CODE>t</CODE><BR>
+A tab character.
+<LI><CODE>T</CODE><BR>
+The time in 24-hour notation (%H:%M:%S).
+<LI><CODE>u</CODE><BR>
+The day of the week as a decimal, range 1 to 7, Monday being 1. See also %w.
+<LI><CODE>U</CODE><BR>
+The week number of the current year as a decimal number, range 00 to 53, 
+starting with the first Sunday as the first day of week 01. See also %V 
+and %W.
+<LI><CODE>w</CODE><BR>
+The day of the week as a decimal, range 0 to 6, Sunday being 0. See also %u.
+<LI><CODE>W</CODE><BR>
+The week number of the current year as a decimal number, range 00 to 53, 
+starting with the first Monday as the first day of week 01.
+<LI><CODE>x</CODE><BR>
+The preferred date representation for the current locale without the 
+time.
+<LI><CODE>X</CODE><BR>
+The preferred time representation for the current locale without the 
+date.
+<LI><CODE>y</CODE><BR>
+The year as a decimal number without a century (range 00 to 99).
+<LI><CODE>Y</CODE><BR>
+The year as a decimal number including the century.
+<LI><CODE>z</CODE><BR>
+The time-zone as hour offset from GMT. Required to emit 
+RFC822-conformant dates (using "%a, %d %b %Y %H:%M:%S %z").
+<LI><CODE>Z</CODE><BR>
+The time zone or name or abbreviation.
+<LI><CODE><CODE>+</CODE></CODE><BR>
+The date and time in date(1) format.
+<LI><CODE>%</CODE><BR>
+A literal `%' character.
+</UL>
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.34.2">4.34.2 Controlling the <B>PLWIN.EXE</B> console 
+window</A></H3>
+
+<A NAME="sec:plwin"></A>
+
+<P>The Windows executable <B>PLWIN.EXE</B> console has a number of 
+predicates to control the appearance of the console. Being totally 
+non-portable, we do not advice using it for your own application, but 
+use XPCE or another portable GUI platform instead. We give the 
+predicates for reference here.
+
+<DL>
+<DT class="pubdef"><A NAME="window_title/2"><STRONG>window_title</STRONG>(<VAR>-Old, 
++New</VAR>)</A></DT>
+<DD class="defbody">
+Unify <VAR>Old</VAR> with the title displayed in the console and change 
+the title to <VAR>New</VAR>.<A NAME=back-to-note-63 HREF="Notes.html#note-63"> (63)</A></DD>
+<DT class="pubdef"><A NAME="win_window_pos/1"><STRONG>win_window_pos</STRONG>(<VAR>+ListOfOptions</VAR>)</A></DT>
+<DD class="defbody">
+Interface to the MS-Windows SetWindowPos() function, controlling size, 
+position and stacking order of the window. <VAR>ListOfOptions</VAR> is a 
+list that may hold any number of the terms below.
+
+<DL>
+<DT><STRONG>size</STRONG>(<VAR>W, H</VAR>)</DT>
+<DD class="defbody">
+Change the size of the window. <VAR>W</VAR> and <VAR>H</VAR> are 
+expressed in character-units.
+</DD>
+<DT><STRONG>position</STRONG>(<VAR>X, Y</VAR>)</DT>
+<DD class="defbody">
+Change the top-left corner of the window. The values are expressed in 
+pixel units.
+</DD>
+<DT><STRONG>zorder</STRONG>(<VAR>ZOrder</VAR>)</DT>
+<DD class="defbody">
+Change the location in the window stacking order. Values are
+<CODE>bottom</CODE>, <CODE>top</CODE>, <CODE>topmost</CODE> and <CODE>notopmost</CODE>.
+<EM>Topmost</EM> windows are displayed above all other windows.
+</DD>
+<DT><STRONG>show</STRONG>(<VAR>Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE>, show the window, if <CODE>false</CODE> hide the 
+window.
+</DD>
+<DT><STRONG>activate</STRONG></DT>
+<DD class="defbody">
+If present, activate the window.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="win_has_menu/0"><STRONG>win_has_menu</STRONG></A></DT>
+<DD class="defbody">
+Succeeds if <A NAME="idx:wininsertmenu2:968"></A><A HREF="system.html#win_insert_menu/2">win_insert_menu/2</A> 
+and <A NAME="idx:wininsertmenuitem4:969"></A><A HREF="system.html#win_insert_menu_item/4">win_insert_menu_item/4</A> 
+are present.</DD>
+<DT class="pubdef"><A NAME="win_insert_menu/2"><STRONG>win_insert_menu</STRONG>(<VAR>+Label, 
++Before</VAR>)</A></DT>
+<DD class="defbody">
+Insert a new entry (pulldown) in the menu. If the menu already contains 
+this entry, nothing is done. The <VAR>Label</VAR> is the label and using 
+the Windows conventions, a letter prefixed with <CODE>&amp;</CODE> is 
+underlined and defines the associated accelerator key. <VAR>Before</VAR> 
+is the label before which this one must be inserted. Using <CODE><CODE>-</CODE></CODE> 
+adds the new entry at the end (right). For example, the call below adds 
+a <B>Application</B> entry just before the <B>Help</B> menu.
+
+<PRE class="code">
+win_insert_menu('&amp;Application', '&amp;Help')
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="win_insert_menu_item/4"><STRONG>win_insert_menu_item</STRONG>(<VAR>+Pulldown, 
++Label, +Before, :Goal</VAR>)</A></DT>
+<DD class="defbody">
+Add an item to the named <VAR>Pulldown</VAR> menu. <VAR>Label</VAR> and
+<VAR>Before</VAR> are handled as in <A NAME="idx:wininsertmenu2:970"></A><A HREF="system.html#win_insert_menu/2">win_insert_menu/2</A>, 
+but the label <CODE><CODE>-</CODE></CODE> inserts a <EM>separator</EM>. <VAR>Goal</VAR> 
+is called if the user selects the item.
+</DD>
+</DL>
+
+<P></BODY></HTML>

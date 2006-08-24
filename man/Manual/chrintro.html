@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 7.1</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="chr.html">
+<LINK REL=next HREF="SyntaxAndSemantics.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="chr.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="SyntaxAndSemantics.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:7.1">7.1 Introduction</A></H2>
+
+<A NAME="sec:chrintro"></A> Constraint Handling Rules (CHR) is a 
+committed-choice rule-based language embedded in Prolog. It is designed 
+for writing constraint solvers and is particularly useful for providing 
+application-specific constraints. It has been used in many kinds of 
+applications, like scheduling, model checking, abduction, type checking 
+among many others.
+
+<P>CHR has previously been implemented in other Prolog systems (SICStus, 
+Eclipse, Yap), Haskell and Java. This CHR system is based on the 
+compilation scheme and runtime environment of CHR in SICStus.
+
+<P>In this documentation we restrict ourselves to giving a short 
+overview of CHR in general and mainly focus on elements specific to this 
+implementation. For a more thorough review of CHR we refer the reader to
+<CITE><A HREF="Bibliography.html#Freuhwirth:98">Fr&uuml;hwirth, 1998</A></CITE>. 
+More background on CHR can be found at
+<CITE><A HREF="Bibliography.html#chrSite">Fr&uuml;hwirth,</A></CITE>.
+
+<P>In <A HREF="SyntaxAndSemantics.html">section 7.2</A> we present the 
+syntax of CHR in Prolog and explain informally its operational 
+semantics. Next, <A HREF="practical.html">section 7.3</A> deals with 
+practical issues of writing and compiling Prolog programs containing 
+CHR. <A HREF="debugging.html">Section 7.4</A> explains the currently 
+primitive CHR debugging facilities. <A HREF="debugging.html">Section 
+7.4.3</A> provides a few useful predicates to inspect the constraint 
+store and <A HREF="examples.html">section 7.5</A> illustrates CHR with 
+two example programs. In <A HREF="sicstus-chr.html">section 7.6</A> some 
+compatibility issues with older versions of this system and SICStus' CHR 
+system. Finally, <A HREF="guidelines.html">section 7.7</A> concludes 
+with a few practical guidelines for using CHR.
+
+<P></BODY></HTML>

@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.11</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="signal.html">
+<LINK REL=next HREF="DCG.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="signal.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="DCG.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.11">4.11 The `block' control-structure</A></H2>
+
+<A NAME="sec:block3"></A>
+
+<P>The <A NAME="idx:block3:514"></A><A HREF="block3.html#block/3">block/3</A> 
+predicate and friends have been introduced before ISO compatible <A NAME="idx:catch3:515"></A><A HREF="exception.html#catch/3">catch/3</A> 
+exception handling for compatibility with some Prolog implementation. 
+The only feature not covered by <A NAME="idx:catch3:516"></A><A HREF="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:517"></A><A HREF="exception.html#throw/1">throw/1</A> 
+is the possibility to execute global cuts. New code should use <A NAME="idx:catch3:518"></A><A HREF="exception.html#catch/3">catch/3</A> 
+and <A NAME="idx:throw1:519"></A><A HREF="exception.html#throw/1">throw/1</A> 
+to deal with exceptions.
+
+<DL>
+<DT class="pubdef"><A NAME="block/3"><STRONG>block</STRONG>(<VAR>+Label, 
++Goal, -ExitValue</VAR>)</A></DT>
+<DD class="defbody">
+Execute <VAR>Goal</VAR> in a <EM>block</EM>. <VAR>Label</VAR> is the 
+name of the block. <VAR>Label</VAR> is normally an atom, but the system 
+imposes no type constraints and may even be a variable. <VAR>ExitValue</VAR> 
+is normally unified to the second argument of an <A NAME="idx:exit2:520"></A><A HREF="block3.html#exit/2">exit/2</A> 
+call invoked by <VAR>Goal</VAR>.
+</DD>
+<DT class="pubdef"><A NAME="exit/2"><STRONG>exit</STRONG>(<VAR>+Label, 
++Value</VAR>)</A></DT>
+<DD class="defbody">
+Calling <A NAME="idx:exit2:521"></A><A HREF="block3.html#exit/2">exit/2</A> 
+makes the innermost <VAR>block</VAR> which <VAR>Label</VAR> unifies 
+exit. The block's <VAR>ExitValue</VAR> is unified with <VAR>Value</VAR>. 
+If this unification fails the block fails.
+</DD>
+<DT class="pubdef"><A NAME="fail/1"><STRONG>fail</STRONG>(<VAR>+Label</VAR>)</A></DT>
+<DD class="defbody">
+Calling <A NAME="idx:fail1:522"></A><A HREF="block3.html#fail/1">fail/1</A> 
+makes the innermost <VAR>block</VAR> which <VAR>Label</VAR> unifies fail 
+immediately. Implemented as
+
+<PRE class="code">
+fail(Label) :- !(Label), fail.
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="!/1"><STRONG>!</STRONG>(<VAR>+Label</VAR>)</A></DT>
+<DD class="defbody">
+Cut all choice-points created since the entry of the innermost
+<VAR>block</VAR> which <VAR>Label</VAR> unifies.
+</DD>
+</DL>
+
+<P></BODY></HTML>

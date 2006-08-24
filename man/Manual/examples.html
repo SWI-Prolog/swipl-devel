@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 7.5</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="debugging.html">
+<LINK REL=next HREF="sicstus-chr.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="debugging.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="sicstus-chr.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:7.5">7.5 Examples</A></H2>
+
+<A NAME="sec:examples"></A> Here are two example constraint solvers 
+written in CHR.
+
+<P>
+<UL>
+<LI>The program below defines a solver with one constraint,
+<A NAME="idx:leq2:1139"></A><B>leq/2</B>, which is a less-than-or-equal 
+constraint, also known as a partial order constraint.
+
+<PRE class="code">
+:- module(leq,[leq/2]).
+:- use_module(library(chr)).
+
+:- chr_constraint leq/2.
+reflexivity  @ leq(X,X) &lt;=&gt; true.
+antisymmetry @ leq(X,Y), leq(Y,X) &lt;=&gt; X = Y.
+idempotence  @ leq(X,Y) \ leq(X,Y) &lt;=&gt; true.
+transitivity @ leq(X,Y), leq(Y,Z) ==&gt; leq(X,Z).
+</PRE>
+
+<P>When the above program is saved in a file and loaded in SWI-Prolog, 
+you can call the <A NAME="idx:leq2:1140"></A><B>leq/2</B> constraints in 
+a query, e.g.:
+
+<PRE class="code">
+?- leq(X,Y), leq(Y,Z).
+leq(_G23837, _G23841)
+leq(_G23838, _G23841)
+leq(_G23837, _G23838)
+
+X = _G23837{leq = ...}
+Y = _G23838{leq = ...}
+Z = _G23841{leq = ...}
+
+Yes
+</PRE>
+
+<P>When the query succeeds, the SWI-Prolog top-level prints the content 
+of the CHR constraint store and displays the bindings generate during 
+the query. Some of the query variables may have been bound to attributed 
+variables, as you see in the above example.
+
+<P>
+<LI>The program below implements a simple finite domain constraint 
+solver.
+
+<PRE class="code">
+:- module(dom,[dom/2]).
+:- use_module(library(chr)).
+
+:- chr_constraint dom(?int,+list(int)). 
+:- chr_type list(T) ---&gt; [] ; [T|list(T)].
+
+dom(X,[]) &lt;=&gt; fail.
+dom(X,[Y]) &lt;=&gt; X = Y.
+dom(X,L) &lt;=&gt; nonvar(X) | memberchk(X,L).
+dom(X,L1), dom(X,L2) &lt;=&gt; intersection(L1,L2,L3), dom(X,L3).
+</PRE>
+
+<P>When the above program is saved in a file and loaded in SWI-Prolog, 
+you can call the <A NAME="idx:dom2:1141"></A><B>dom/2</B> constraints in 
+a query, e.g.:
+
+<PRE class="code">	
+?- dom(A,[1,2,3]), dom(A,[3,4,5]).
+
+A = 3
+
+Yes
+</PRE>
+
+<P>
+</UL>
+
+<P></BODY></HTML>

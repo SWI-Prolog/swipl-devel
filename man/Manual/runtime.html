@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="foreignnotes.html">
+<LINK REL=next HREF="qsavelimits.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="foreignnotes.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="qsavelimits.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H1><A NAME="sec:10">10 Generating Runtime Applications</A></H1>
+
+<A NAME="sec:runtime"></A>
+
+<P>This chapter describes the features of SWI-Prolog for delivering 
+applications that can run without the development version of the system 
+installed.
+
+<P>A SWI-Prolog runtime executable is a file consisting of two parts. 
+The first part is the <EM>emulator</EM>, which is machine dependent. The 
+second part is the <EM>resource archive</EM>, which contains the 
+compiled program in a machine-independent format, startup options and 
+possibly user-defined <EM>resources</EM>, see <A NAME="idx:resource3:1303"></A><A HREF="useresource.html#resource/3">resource/3</A> 
+and
+<A NAME="idx:openresource3:1304"></A><A HREF="useresource.html#open_resource/3">open_resource/3</A>.
+
+<P>These two parts can be connected in various different ways. The most 
+common way for distributed runtime applications is to <EM>concatenate</EM> 
+the two parts. This can be achieved using external commands (Unix:
+<B>cat</B>, Windows: <B>copy</B>), or using the
+<CODE>stand_alone</CODE> option to <A NAME="idx:qsaveprogram2:1305"></A><A HREF="runtime.html#qsave_program/2">qsave_program/2</A>. 
+The second option is to attach a startup script in front of the resource 
+that starts the emulator with the proper options. This is the default 
+under Unix. Finally, an emulator can be told to use a specified resource 
+file using the <STRONG>-x</STRONG> command-line switch.
+
+<DL>
+<DT class="pubdef"><A NAME="qsave_program/2"><STRONG>qsave_program</STRONG>(<VAR>+File, 
++ListOfOptions</VAR>)</A></DT>
+<DD class="defbody">
+Saves the current state of the program to the file <VAR>File</VAR>. The 
+result is a resource archive containing a saved-state that expresses all 
+Prolog data from the running program and all user-defined resources. 
+Depending on the <CODE>stand_alone</CODE> option, the resource is headed 
+by the emulator, a Unix shell-script or nothing.
+
+<P><VAR>ListOfOptions</VAR> is a list of <VAR>&lt;<VAR>Key</VAR>&gt; = &lt;<VAR>Value</VAR>&gt;</VAR> 
+or <VAR>&lt;<VAR>Key</VAR>&gt;(&lt;<VAR>Value</VAR>&gt;)</VAR> pairs. 
+The available keys are described in <A HREF="runtime.html#tab:qsave-options">table 
+8</A>.
+
+<P>
+<CENTER>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><B>Key</B></TD><TD ALIGN=center><B>Option</B></TD><TD ALIGN=center><B>Type</B></TD><TD><B>Description </B></TD></TR>
+<TBODY>
+<TR VALIGN=top><TD>local</TD><TD ALIGN=center><B>-L</B></TD><TD ALIGN=center>K-bytes</TD><TD>Size 
+(Limit) of local stack </TD></TR>
+<TR VALIGN=top><TD>global</TD><TD ALIGN=center><B>-G</B></TD><TD ALIGN=center>K-bytes</TD><TD>Size 
+(Limit) of global stack </TD></TR>
+<TR VALIGN=top><TD>trail</TD><TD ALIGN=center><B>-T</B></TD><TD ALIGN=center>K-bytes</TD><TD>Size 
+(Limit) of trail stack </TD></TR>
+<TR VALIGN=top><TD>argument</TD><TD ALIGN=center><B>-A</B></TD><TD ALIGN=center>K-bytes</TD><TD>Size 
+(Limit) of argument stack </TD></TR>
+<TR VALIGN=top><TD>goal</TD><TD ALIGN=center><B>-g</B></TD><TD ALIGN=center>atom</TD><TD>Initialisation 
+goal </TD></TR>
+<TR VALIGN=top><TD>toplevel</TD><TD ALIGN=center><B>-t</B></TD><TD ALIGN=center>atom</TD><TD>Prolog 
+top-level goal </TD></TR>
+<TR VALIGN=top><TD>init_file</TD><TD ALIGN=center><B>-f</B></TD><TD ALIGN=center>atom</TD><TD>Personal 
+initialisation file </TD></TR>
+<TBODY>
+<TR VALIGN=top><TD>class</TD><TD ALIGN=center></TD><TD ALIGN=center>atom</TD><TD>If <CODE>runtime</CODE>, 
+only read resources from the state (default). If <CODE>kernel</CODE>, 
+lock all predicates as system predicates If <CODE>development</CODE>, 
+save the predicates in their current state and keep reading resources 
+from their source (if present). See also <A NAME="idx:resource3:1306"></A><A HREF="useresource.html#resource/3">resource/3</A>. </TD></TR>
+<TR VALIGN=top><TD>autoload</TD><TD ALIGN=center></TD><TD ALIGN=center>bool</TD><TD>If 
+true, run <A NAME="idx:autoload0:1307"></A><A HREF="runtime.html#autoload/0">autoload/0</A> 
+first </TD></TR>
+<TR VALIGN=top><TD>map</TD><TD ALIGN=center></TD><TD ALIGN=center>file</TD><TD>File 
+to write info on dump </TD></TR>
+<TR VALIGN=top><TD>op</TD><TD ALIGN=center></TD><TD ALIGN=center><TT>save/standard</TT></TD><TD>Save 
+operator declarations? </TD></TR>
+<TR VALIGN=top><TD>stand_alone</TD><TD ALIGN=center></TD><TD ALIGN=center>bool</TD><TD>Include 
+the emulator in the state </TD></TR>
+<TR VALIGN=top><TD>emulator</TD><TD ALIGN=center></TD><TD ALIGN=center>file</TD><TD>Emulator 
+attached to the (stand-alone) executable. Default is the running 
+emulator. </TD></TR>
+</TABLE>
+
+</CENTER>
+<TABLE ALIGN=center WIDTH="75%"><TR><TD>
+<B>Table 8 : </B>&lt;<VAR>Key</VAR>&gt; = &lt;<VAR>Value</VAR>&gt; pairs 
+for <A NAME="idx:qsaveprogram2:1308"></A><A HREF="runtime.html#qsave_program/2">qsave_program/2</A></TABLE>
+
+<A NAME="tab:qsave-options"></A>
+
+<P>Before writing the data to file, <A NAME="idx:qsaveprogram2:1309"></A><A HREF="runtime.html#qsave_program/2">qsave_program/2</A> 
+will run <A NAME="idx:autoload0:1310"></A><A HREF="runtime.html#autoload/0">autoload/0</A> 
+to all required autoloading the system can discover. See <A NAME="idx:autoload0:1311"></A><A HREF="runtime.html#autoload/0">autoload/0</A>.
+
+<P>Provided the application does not require any of the Prolog libraries 
+to be loaded at runtime, the only file from the SWI-Prolog development 
+environment required is the emulator itself. The emulator may be built 
+in two flavours. The default is the <EM>development emulator</EM>. The
+<EM>runtime emulator</EM> is similar, but lacks the tracer.
+
+<P>If the option <CODE>stand_alone(true)</CODE> is present, the emulator 
+is the first part of the state. If the emulator is started it will test 
+whether a boot-file (state) is attached to the emulator itself and load 
+this state. Provided the application has all libraries loaded, the 
+resulting executable is completely independent of the runtime 
+environment or location where it was build.
+
+<P>See also <A HREF="compilation.html">section 2.10.2.4</A>.</DD>
+<DT class="pubdef"><A NAME="qsave_program/1"><STRONG>qsave_program</STRONG>(<VAR>+File</VAR>)</A></DT>
+<DD class="defbody">
+Equivalent to <CODE>qsave_program(File, [])</CODE>.</DD>
+<DT class="pubdef"><A NAME="autoload/0"><STRONG>autoload</STRONG></A></DT>
+<DD class="defbody">
+Check the current Prolog program for predicates that are referred to, 
+are undefined and have a definition in the Prolog library. Load the 
+appropriate libraries.
+
+<P>This predicate is used by <A NAME="idx:qsaveprogram12:1312"></A><A HREF="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
+to ensure the saved state will not depend on one of the libraries. The 
+predicate <A NAME="idx:autoload0:1313"></A><A HREF="runtime.html#autoload/0">autoload/0</A> 
+will find all <STRONG>direct</STRONG> references to predicates. It does 
+not find predicates referenced via meta-predicates. The predicate log/2 
+is defined in the library(quintus) to provide a quintus compatible means 
+to compute the natural logarithm of a number. The following program will 
+behave correctly if its state is executed in an environment where the 
+library(quintus) is not available:
+
+<PRE class="code">
+logtable(From, To) :-
+        From &gt; To, !.
+logtable(From, To) :-
+        log(From, Value),
+        format('~d~t~8|~2f~n', [From, Value]),
+        F is From + 1,
+        logtable(F, To).
+</PRE>
+
+<P>However, the following implementation refers to log/2 through the 
+meta-predicate <A NAME="idx:maplist3:1314"></A><A HREF="applylist.html#maplist/3">maplist/3</A>. 
+Autoload will not be able to find the reference. This problem may be 
+fixed either by loading the module library(quintus) explicitly or use <A NAME="idx:require1:1315"></A><A HREF="consulting.html#require/1">require/1</A> 
+to tell the system that the predicate log/2 is required by this module.
+
+<PRE class="code">
+logtable(From, To) :-
+        findall(X, between(From, To, X), Xlist),
+        maplist(log, Xlist, SineList),
+        write_table(Xlist, SineList).
+
+write_table([], []).
+write_table([I|IT], [V|VT]) :-
+        format('~d~t~8|~2f~n', [I, V]),
+        write_table(IT, VT).
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="volatile/1"><STRONG>volatile</STRONG> <VAR>+Name/Arity, \ldots</VAR></A></DT>
+<DD class="defbody">
+Declare that the clauses of specified predicates should <STRONG>not</STRONG> 
+be saved to the program. The volatile declaration is normally used to 
+avoid that the clauses of dynamic predicates that represent data for the 
+current session is saved in the state file.
+</DD>
+</DL>
+
+<P>
+<HR>
+<CENTER>
+
+<H2>Section Index</H2>
+
+</CENTER>
+<HR>
+<UL>
+<LI><A HREF="qsavelimits.html"><B>10.1 Limitations of qsave_program</B></A>
+<LI><A HREF="qsaveforeign.html"><B>10.2 Runtimes and Foreign Code</B></A>
+<LI><A HREF="useresource.html"><B>10.3 Using program resources</B></A>
+<UL>
+<LI><A HREF="useresource.html#sec:10.3.1">10.3.1 Predicates Definitions</A>
+<LI><A HREF="useresource.html#sec:10.3.2">10.3.2 The <B>plrc</B> program</A>
+</UL>
+<LI><A HREF="findappfile.html"><B>10.4 Finding Application files</B></A>
+<UL>
+<LI><A HREF="findappfile.html#sec:10.4.1">10.4.1 Passing a path to the 
+application</A>
+</UL>
+<LI><A HREF="runenv.html"><B>10.5 The Runtime Environment</B></A>
+<UL>
+<LI><A HREF="runenv.html#sec:10.5.1">10.5.1 The Runtime Emulator</A>
+</UL>
+</UL>
+</BODY></HTML>

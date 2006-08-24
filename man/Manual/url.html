@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.12</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="registry.html">
+<LINK REL=next HREF="clpbounds.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="registry.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="clpbounds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.12">A.12 library( url ): Analysing and constructing 
+URL</A></H2>
+
+<A NAME="url"></A>
+
+<P>This library deals with the analysis and construction of a URL,
+<B>U</B>niversal <B>R</B>esource <B>L</B>ocator. URL is the basis for 
+communicating locations of resources (data) on the web. A URL consists 
+of a protocol identifier (e.g. <A NAME="idx:HTTP:1391">HTTP</A>, <A NAME="idx:FTP:1392">FTP</A>), 
+and a protocol-specific syntax further defining the location. URLs are 
+standardized in <A NAME="idx:RFC1738:1393">RFC-1738</A>.
+
+<P>The implementation in this library covers only a small portion of the 
+defined protocols. Though the initial implementation followed RFC-1738 
+strictly, the current is more relaxed to deal with frequent violations 
+of the standard encountered in practical use.
+
+<P>This library contains code by Jan Wielemaker who wrote the initial 
+version and Lukas Faulstich who added various extensions.
+
+<DL>
+<DT class="pubdef"><A NAME="parse_url/2"><STRONG>parse_url</STRONG>(<VAR>?URL, 
+?Parts</VAR>)</A></DT>
+<DD class="defbody">
+Construct or analyse a <VAR>URL</VAR>. <VAR>URL</VAR> is an atom holding 
+a URL or a variable. <VAR>Parts</VAR> is a list of components. Each 
+component is of the format <CODE><VAR>Name</VAR>(Value)</CODE>. Defined 
+components are:
+
+<DL>
+<DT><STRONG>protocol</STRONG>(<VAR>Protocol</VAR>)</DT>
+<DD class="defbody">
+The used protocol. This is, after the optional <CODE>url:</CODE>, an 
+identifier separated from the remainder of the URL using <CODE><CODE>:</CODE></CODE>.
+<A NAME="idx:parseurl2:1394"></A><A HREF="url.html#parse_url/2">parse_url/2</A> 
+assumes the <CODE>http</CODE> protocol if no protocol is specified and 
+the URL can be parsed as a valid HTTP url. In addition to the RFC-1738 
+specified protocols, the <CODE>file:</CODE> protocol is supported as 
+well.</DD>
+<DT><STRONG>host</STRONG>(<VAR>Host</VAR>)</DT>
+<DD class="defbody">
+Host-name or IP-address on which the resource is located. Supported by 
+all network-based protocols.</DD>
+<DT><STRONG>port</STRONG>(<VAR>Port</VAR>)</DT>
+<DD class="defbody">
+Integer port-number to access on the <VAR>Host</VAR>. This only appears 
+if the port is explicitly specified in the URL. Implicit default ports 
+(e.g. 80 for HTTP) do <EM>not</EM> appear in the part-list.</DD>
+<DT><STRONG>path</STRONG>(<VAR>Path</VAR>)</DT>
+<DD class="defbody">
+(File-) path addressed by the URL. This is supported for the
+<CODE>ftp</CODE>, <CODE>http</CODE> and <CODE>file</CODE> protocols. If 
+no path appears, the library generates the path <CODE>/</CODE>.</DD>
+<DT><STRONG>search</STRONG>(<VAR>ListOfNameValue</VAR>)</DT>
+<DD class="defbody">
+Search-specification of HTTP URL. This is the part after the <CODE><CODE>?</CODE></CODE>, 
+normally used to transfer data from HTML forms that use the `<CODE>GET</CODE>' 
+protocol. In the URL it consists of a www-form-encoded list of <VAR>Name</VAR>=<VAR>Value</VAR> 
+pairs. This is mapped to a list of Prolog <VAR>Name</VAR>=<VAR>Value</VAR> 
+terms with decoded names and values.</DD>
+<DT><STRONG>fragment</STRONG>(<VAR>Fragment</VAR>)</DT>
+<DD class="defbody">
+Fragment specification of HTTP URL. This is the part after the <CODE>#</CODE> 
+character.
+</DD>
+</DL>
+
+<P>The example below illustrates the all this for an HTTP UTL.
+
+<PRE class="code">
+?- parse_url('http://swi.psy.uva.nl/message.cgi?msg=Hello+World%21#x',
+             P).
+P = [ protocol(http),
+      host('swi.psy.uva.nl'),
+      fragment(x),
+      search([ msg = 'Hello World!'
+             ]),
+      path('/message.cgi')
+    ].
+</PRE>
+
+<P>By instantiating the parts-list this predicate can be used to create 
+a URL.</DD>
+<DT class="pubdef"><A NAME="parse_url/3"><STRONG>parse_url</STRONG>(<VAR>?URL, 
++BaseURL, ?Parts</VAR>)</A></DT>
+<DD class="defbody">
+Same as <A NAME="idx:parseurl2:1395"></A><A HREF="url.html#parse_url/2">parse_url/2</A>, 
+but dealing a url that is relative to the given
+<VAR>BaseURL</VAR>. This is used to analyse or construct a URI found in 
+the document behind <VAR>BaseURL</VAR>.</DD>
+<DT class="pubdef"><A NAME="global_url/3"><STRONG>global_url</STRONG>(<VAR>+URL, 
++BaseURL, -AbsoluteUrl</VAR>)</A></DT>
+<DD class="defbody">
+Transform a (possibly) relative URL into a global one.</DD>
+<DT class="pubdef"><A NAME="http_location/2"><STRONG>http_location</STRONG>(<VAR>?Parts, 
+?Location</VAR>)</A></DT>
+<DD class="defbody">
+Similar to <A NAME="idx:parseurl2:1396"></A><A HREF="url.html#parse_url/2">parse_url/2</A>, 
+but only deals with the location part of an HTTP URL. That is, the path, 
+search and fragment specifiers. In the HTTP protocol, the first line of 
+a message is
+<BLOCKQUOTE>
+<VAR>Action</VAR> <VAR>Location</VAR> [<CODE>HTTP/</CODE><VAR>HttpVersion</VAR>]
+</BLOCKQUOTE>
+
+<P><VAR>Location</VAR> is either an atom or a code-list.</DD>
+<DT class="pubdef"><A NAME="www_form_encode/2"><STRONG>www_form_encode</STRONG>(<VAR>?Value, 
+?WwwFormEncoded</VAR>)</A></DT>
+<DD class="defbody">
+Translate between a string-literal and the x-www-form-encoded 
+representation used in path and search specifications of the HTTP 
+protocol.
+
+<P>Encoding implies mapping space to +, preserving alpha-numercial 
+characters, map newlines to %0D%0A and anything else to %XX. When 
+decoding, newlines appear as a single newline (10) character.
+</DD>
+</DL>
+
+<P></BODY></HTML>

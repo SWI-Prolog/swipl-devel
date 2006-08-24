@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.11</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="netscape.html">
+<LINK REL=next HREF="url.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="netscape.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="url.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:A.11">A.11 library( registry ): Manipulating the 
+Windows registry</A></H2>
+
+<A NAME="registry"></A>
+
+<P>The <CODE>library(registry)</CODE> is only available on the 
+MS-Windows version of SWI-Prolog. It loads the foreign extension <CODE>plregtry.dll</CODE>, 
+providing the predicates described below. This library only makes the 
+most common operations on the registry available through the Prolog 
+user. The underlying DLL provides a more complete coverage of the 
+Windows registry API. Please consult the sources in
+<CODE>pl/src/win32/foreign/plregtry.c</CODE> for further details.
+
+<P>In all these predicates, <VAR>Path</VAR> refers to a `/' separated 
+path into the registry. This is <EM>not</EM> an atom containing 
+`/'-characters as used for filenames, but a term using the functor //2 . 
+Windows defines the following roots for the registry:
+<CODE>classes_root</CODE>,
+<CODE>current_user</CODE>,
+<CODE>local_machine</CODE> and
+<CODE>users</CODE>
+
+<DL>
+<DT class="pubdef"><A NAME="registry_get_key/2"><STRONG>registry_get_key</STRONG>(<VAR>+Path, 
+-Value</VAR>)</A></DT>
+<DD class="defbody">
+Get the principal (default) value associated to this key. Fails silently 
+of the key does not exist.</DD>
+<DT class="pubdef"><A NAME="registry_get_key/3"><STRONG>registry_get_key</STRONG>(<VAR>+Path, 
++Name, -Value</VAR>)</A></DT>
+<DD class="defbody">
+Get a named value associated to this key.</DD>
+<DT class="pubdef"><A NAME="registry_set_key/2"><STRONG>registry_set_key</STRONG>(<VAR>+Path, 
++Value</VAR>)</A></DT>
+<DD class="defbody">
+Set the principal (default) value of this key. Creates (a path to) the 
+key if this does not already exist.</DD>
+<DT class="pubdef"><A NAME="registry_set_key/3"><STRONG>registry_set_key</STRONG>(<VAR>+Path, 
++Name, +Value</VAR>)</A></DT>
+<DD class="defbody">
+Associated a named value to this key. Creates (a path to) the key if 
+this does not already exist.</DD>
+<DT class="pubdef"><A NAME="registry_delete_key/1"><STRONG>registry_delete_key</STRONG>(<VAR>+Path</VAR>)</A></DT>
+<DD class="defbody">
+Delete the indicated key.</DD>
+<DT class="pubdef"><A NAME="shell_register_file_type/4"><STRONG>shell_register_file_type</STRONG>(<VAR>+Ext, 
++Type, +Name, +OpenAction</VAR>)</A></DT>
+<DD class="defbody">
+Register a file-type. <VAR>Ext</VAR> is the extension to associate.
+<VAR>Type</VAR> is the type name, often something link <CODE>prolog.type</CODE>.
+<VAR>Name</VAR> is the name visible in the Windows file-type browser. 
+Finally, <VAR>OpenAction</VAR> defines the action to execute when a file 
+with this extension is opened in the Windows explorer.</DD>
+<DT class="pubdef"><A NAME="shell_register_dde/6"><STRONG>shell_register_dde</STRONG>(<VAR>+Type, 
++Action, +Service, +Topic, +Command, +IfNotRunning</VAR>)</A></DT>
+<DD class="defbody">
+Associate DDE actions to a type. <VAR>Type</VAR> is the same type as 
+used for the 2nd argument of <A NAME="idx:shellregisterfiletype4:1390"></A><A HREF="registry.html#shell_register_file_type/4">shell_register_file_type/4</A>, <VAR>Action</VAR> 
+is the a action to perform, <VAR>Service</VAR> and <VAR>Topic</VAR> 
+specify the DDE topic to address and <VAR>Command</VAR> is the command 
+to execute on this topic. Finally, <VAR>IfNotRunning</VAR> defines the 
+command to execute if the required DDE server is not present.</DD>
+<DT class="pubdef"><A NAME="shell_register_prolog/1"><STRONG>shell_register_prolog</STRONG>(<VAR>+Ext</VAR>)</A></DT>
+<DD class="defbody">
+Default registration of SWI-Prolog, which is invoked as part of the 
+initialisation process on Windows systems. As the source also explains 
+the above predicates, it is given as an example:
+
+<PRE class="code">
+shell_register_prolog(Ext) :-
+        current_prolog_flag(argv, [Me|_]),
+        concat_atom(['"', Me, '" "%1"'], OpenCommand),
+        shell_register_file_type(Ext, 'prolog.type', 'Prolog Source',
+                                 OpenCommand),
+        shell_register_dde('prolog.type', consult,
+                           prolog, control, 'consult(''%1'')', Me), 
+        shell_register_dde('prolog.type', edit,
+                           prolog, control, 'edit(''%1'')', Me).
+</PRE>
+
+<P></DD>
+</DL>
+
+</BODY></HTML>

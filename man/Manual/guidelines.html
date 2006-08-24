@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 7.7</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="sicstus-chr.html">
+<LINK REL=next HREF="errors.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="sicstus-chr.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="errors.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:7.7">7.7 Programming Tips and Tricks</A></H2>
+
+<A NAME="sec:guidelines"></A> In this section we cover several 
+guidelines on how to use CHR to write constraint solvers and how to do 
+so efficiently.
+
+<P>
+<UL>
+<LI><I>Check guard bindings yourself</I><BR>
+It is considered bad practice to write guards that bind variables of the 
+head and to rely on the system to detect this at runtime. It is 
+inefficient and obscures the working of the program.
+
+<P>
+<LI><I>Set semantics</I><BR>
+The CHR system allows the presence of identical constraints, i.e. 
+multiple constraints with the same functor, arity and arguments. For 
+most constraint solvers, this is not desirable: it affects efficiency 
+and possibly termination. Hence appropriate simpagation rules should be 
+added of the form: [ constraint <CODE>\</CODE>constraint &lt;=&gt; true ]
+
+<P>
+<LI><I>Multi-headed rules</I><BR>
+Multi-headed rules are executed more efficiently when the constraints 
+share one or more variables.
+
+<P>
+<LI><I>Mode and type declarations</I><BR>
+Provide mode and type declarations to get more efficient program 
+execution. Make sure to disable debug (-nodebug) and enable optimization 
+(-O).
+
+<P>
+<LI><I>Compile once, run many times</I><BR>
+Does consulting your CHR program take a long time in SWI-Prolog? 
+Probably it takes the CHR compiler a long time to compile the CHR rules 
+into Prolog code. When you disable optimizations the CHR compiler will 
+be a lot quicker, but you may loose performance. Alternatively, you can 
+just use SWI-Prolog's
+<A NAME="idx:qcompile1:1151"></A><A HREF="consulting.html#qcompile/1">qcompile/1</A> 
+to generate a <CODE>.qlf</CODE> file once from your
+<CODE>.pl</CODE> file. This <CODE>.qlf</CODE> contains the generated 
+code of the CHR compiler (be it in a binary format). When you consult 
+the <CODE>.qlf</CODE> file, the CHR compiler is not invoked and 
+consultation is much faster.
+</UL>
+
+<P></BODY></HTML>

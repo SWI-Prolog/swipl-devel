@@ -1,0 +1,149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 8.4</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="threadcom.html">
+<LINK REL=next HREF="thutil.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="threadcom.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="thutil.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:8.4">8.4 Thread synchronisation</A></H2>
+
+<A NAME="sec:threadsync"></A>
+
+<P>All internal Prolog operations are thread-safe. This implies two 
+Prolog threads can operate on the same dynamic predicate without 
+corrupting the consistency of the predicate. This section deals with 
+user-level
+<EM>mutexes</EM> (called <EM>monitors</EM> in ADA or
+<EM>critical-sections</EM> by Microsoft). A mutex is a
+<B>MUT</B>ual <B>EX</B>clusive device, which implies at most one thread 
+can <EM>hold</EM> a mutex.
+
+<P>Mutexes are used to realise related updates to the Prolog database. 
+With `related', we refer to the situation where a `transaction' implies 
+two or more changes to the Prolog database. For example, we have a 
+predicate <A NAME="idx:address2:1200"></A><B>address/2</B>, representing 
+the address of a person and we want to change the address by retracting 
+the old and asserting the new address. Between these two operations the 
+database is invalid: this person has either no address or two addresses, 
+depending on the assert/retract order.
+
+<P>Here is how to realise a correct update:
+
+<PRE class="code">
+:- initialization
+        mutex_create(addressbook).
+
+change_address(Id, Address) :-
+        mutex_lock(addressbook),
+        retractall(address(Id, _)),
+        asserta(address(Id, Address)),
+        mutex_unlock(addressbook).
+</PRE>
+
+<DL>
+<DT class="pubdef"><A NAME="mutex_create/1"><STRONG>mutex_create</STRONG>(<VAR>?MutexId</VAR>)</A></DT>
+<DD class="defbody">
+Create a mutex. if <VAR>MutexId</VAR> is an atom, a <EM>named</EM> mutex 
+is created. If it is a variable, an anonymous mutex reference is 
+returned. There is no limit to the number of mutexes that can be 
+created.</DD>
+<DT class="pubdef"><A NAME="mutex_destroy/1"><STRONG>mutex_destroy</STRONG>(<VAR>+MutexId</VAR>)</A></DT>
+<DD class="defbody">
+Destroy a mutex. After this call, <VAR>MutexId</VAR> becomes invalid and 
+further references yield an <CODE>existence_error</CODE> exception.</DD>
+<DT class="pubdef"><A NAME="with_mutex/2"><STRONG>with_mutex</STRONG>(<VAR>+MutexId, 
+:Goal</VAR>)</A></DT>
+<DD class="defbody">
+Execute <VAR>Goal</VAR> while holding <VAR>MutexId</VAR>. If <VAR>Goal</VAR> 
+leaves choice-points, these are destroyed (as in <A NAME="idx:once1:1201"></A><A HREF="metacall.html#once/1">once/1</A>). 
+The mutex is unlocked regardless of whether <VAR>Goal</VAR> succeeds, 
+fails or raises an exception. An exception thrown by <VAR>Goal</VAR> is 
+re-thrown after the mutex has been successfully unlocked. See also <A NAME="idx:mutexcreate1:1202"></A><A HREF="threadsync.html#mutex_create/1">mutex_create/1</A> 
+and <A NAME="idx:callcleanup3:1203"></A><A HREF="metacall.html#call_cleanup/3">call_cleanup/3</A>.
+
+<P>Although described in the thread-section, this predicate is also 
+available in the single-threaded version, where it behaves simply as
+<A NAME="idx:once1:1204"></A><A HREF="metacall.html#once/1">once/1</A>.</DD>
+<DT class="pubdef"><A NAME="mutex_lock/1"><STRONG>mutex_lock</STRONG>(<VAR>+MutexId</VAR>)</A></DT>
+<DD class="defbody">
+Lock the mutex. Prolog mutexes are <EM>recursive</EM> mutexes: they can 
+be locked multiple times by the same thread. Only after unlocking it as 
+many times as it is locked, the mutex becomes available for locking by 
+other threads. If another thread has locked the mutex the calling thread 
+is suspended until to mutex is unlocked.
+
+<P>If <VAR>MutexId</VAR> is an atom, and there is no current mutex with 
+that name, the mutex is created automatically using <A NAME="idx:mutexcreate1:1205"></A><A HREF="threadsync.html#mutex_create/1">mutex_create/1</A>. 
+This implies named mutexes need not be declared explicitly.
+
+<P>Please note that locking and unlocking mutexes should be paired 
+carefully. Especially make sure to unlock mutexes even if the protected 
+code fails or raises an exception. For most common cases use
+<A NAME="idx:withmutex2:1206"></A><A HREF="threadsync.html#with_mutex/2">with_mutex/2</A>, 
+which provides a safer way for handling Prolog-level mutexes. The 
+predicate <A NAME="idx:callcleanup23:1207"></A><A HREF="metacall.html#call_cleanup/2">call_cleanup/[2-3]</A> 
+is another way to guarantee that the mutex is unlocked while retaining 
+non-determinism.</DD>
+<DT class="pubdef"><A NAME="mutex_trylock/1"><STRONG>mutex_trylock</STRONG>(<VAR>+MutexId</VAR>)</A></DT>
+<DD class="defbody">
+As <A NAME="idx:mutexlock1:1208"></A><A HREF="threadsync.html#mutex_lock/1">mutex_lock/1</A>, 
+but if the mutex is held by another thread, this predicates fails 
+immediately.</DD>
+<DT class="pubdef"><A NAME="mutex_unlock/1"><STRONG>mutex_unlock</STRONG>(<VAR>+MutexId</VAR>)</A></DT>
+<DD class="defbody">
+Unlock the mutex. This can only be called if the mutex is held by the 
+calling thread. If this is not the case, a <CODE>permission_error</CODE> 
+exception is raised.</DD>
+<DT class="pubdef"><A NAME="mutex_unlock_all/0"><STRONG>mutex_unlock_all</STRONG></A></DT>
+<DD class="defbody">
+Unlock all mutexes held by the current thread. This call is especially 
+useful to handle thread-termination using <A NAME="idx:abort0:1209"></A><A HREF="toplevel.html#abort/0">abort/0</A> 
+or exceptions. See also <A NAME="idx:threadsignal2:1210"></A><A HREF="threadcom.html#thread_signal/2">thread_signal/2</A>.</DD>
+<DT class="pubdef"><A NAME="current_mutex/3"><STRONG>current_mutex</STRONG>(<VAR>?MutexId, 
+?ThreadId, ?Count</VAR>)</A></DT>
+<DD class="defbody">
+Enumerates all existing mutexes. If the mutex is held by some thread,
+<VAR>ThreadId</VAR> is unified with the identifier of the holding thread 
+and
+<VAR>Count</VAR> with the recursive count of the mutex. Otherwise,
+<VAR>ThreadId</VAR> is <CODE>[]</CODE> and <VAR>Count</VAR> is 0.
+</DD>
+</DL>
+
+<P></BODY></HTML>

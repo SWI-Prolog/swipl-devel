@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 1.4</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="iso.html">
+<LINK REL=next HREF="xpce.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="iso.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="xpce.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:1.4">1.4 Should you be using SWI-Prolog?</A></H2>
+
+<A NAME="sec:swiorother"></A>
+
+<P>There are a number of reasons why you better choose a commercial 
+Prolog system, or another academic product:
+
+<P>
+<UL>
+<LI><I>SWI-Prolog is not supported</I><BR>
+Although I usually fix bugs shortly after a bug report arrives, I cannot 
+promise anything. Now that the sources are provided, you can always dig 
+into them yourself.
+<LI><I>Memory requirements and performance are your first concerns</I><BR>
+A number of commercial compilers are more keen on memory and performance 
+than SWI-Prolog. I do not wish to sacrifice some of the nice features of 
+the system, nor its portability to compete on raw performance.
+<LI><I>You need features not offered by SWI-Prolog</I><BR>
+In this case you may wish to give me suggestions for extensions. If you 
+have great plans, please contact me (you might have to implement them 
+yourself however).
+</UL>
+
+<P>On the other hand, SWI-Prolog offers some nice facilities:
+
+<P>
+<UL>
+<LI><I>Nice environment</I><BR>
+This includes `Do What I Mean', automatic completion of atom names, 
+history mechanism and a tracer that operates on single key-strokes. 
+Interfaces to some standard editors are provided (and can be extended), 
+as well as a facility to maintain programs (see <A NAME="idx:make0:2"></A><A HREF="consulting.html#make/0">make/0</A>).
+<LI><I>Very fast compiler</I><BR>
+Even very large applications can be loaded in seconds on most machines. 
+If this is not enough, there is a Quick Load Format that is slightly 
+more compact and loading is almost always I/O bound.
+<LI><I>Transparent compiled code</I><BR>
+SWI-Prolog compiled code can be treated just as interpreted code: you 
+can list it, trace it, etc. This implies you do not have to decide 
+beforehand whether a module should be loaded for debugging or not. Also, 
+performance is much better than the performance of most interpreters.
+<LI><I>Profiling</I><BR>
+SWI-Prolog offers tools for performance analysis, which can be very 
+useful to optimise programs. Unless you are very familiar with Prolog 
+and Prolog performance considerations this might be more helpful than a 
+better compiler without these facilities.
+<LI><I>Flexibility</I><BR>
+SWI-Prolog can easily be integrated with C, supporting non-determinism 
+in Prolog calling C as well as C calling Prolog (see <A HREF="foreign.html">section 
+9</A>). It can also be <EM>embedded</EM> embedded in external programs 
+(see
+<A HREF="plld.html">section 9.7</A>). System predicates can be redefined 
+locally to provide compatibility with other Prolog systems.
+<LI><I>Integration with XPCE</I><BR>
+<A NAME="idx:Unix:3"></A><A NAME="idx:XWindows:4"></A><A NAME="idx:Windows:5"></A><A NAME="idx:MacOSX:6"></A>SWI-Prolog 
+offers a tight integration to the Object Oriented Package for User 
+Interface Development, called XPCE <CITE><A HREF="Bibliography.html#P1098:C1.6">Anjewierden &amp; 
+Wielemaker, 1989</A></CITE>. XPCE allows you to implement graphical user 
+interfaces that are source-code compatible over Unix/X11, Win32 (Windows 
+95/98/ME and NT/2000/XP) and MacOS X (darwin).
+</UL>
+
+<P></BODY></HTML>

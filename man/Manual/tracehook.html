@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section B.2</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="manipstack.html">
+<LINK REL=next HREF="excepthook.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="manipstack.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="excepthook.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:B.2">B.2 Intercepting the Tracer</A></H2>
+
+<A NAME="sec:tracehook"></A>
+
+<DL>
+<DT class="pubdef"><A NAME="prolog_trace_interception/4"><STRONG>prolog_trace_interception</STRONG>(<VAR>+Port, 
++Frame, +Choice, -Action</VAR>)</A></DT>
+<DD class="defbody">
+Dynamic predicate, normally not defined. This predicate is called from 
+the SWI-Prolog debugger just before it would show a port. If this 
+predicate succeeds the debugger assumes the trace action has been taken 
+care of and continues execution as described by <VAR>Action</VAR>. 
+Otherwise the normal Prolog debugger actions are performed.
+
+<P><VAR>Port</VAR> denotes the reason to activate the tracer (`port' in 
+the 4/5-port, but with some additions:
+
+<DL>
+<DT><STRONG>call</STRONG></DT>
+<DD class="defbody">
+Normal entry through the call-port of the 4-port debugger.</DD>
+<DT><STRONG>redo</STRONG></DT>
+<DD class="defbody">
+Normal entry through the call-port of the 4-port debugger. The
+<CODE>redo</CODE> port signals resuming a predicate to generate 
+alternative solutions.</DD>
+<DT><STRONG>unify</STRONG></DT>
+<DD class="defbody">
+The unify-port represents the <EM>neck</EM> instruction, signalling the 
+end of the head-matching process. This port is normally invisible. See
+<A NAME="idx:leash1:1415"></A><A HREF="debugger.html#leash/1">leash/1</A> 
+and <A NAME="idx:visible1:1416"></A><A HREF="debugger.html#visible/1">visible/1</A>.</DD>
+<DT><STRONG>exit</STRONG></DT>
+<DD class="defbody">
+The exit-port signals the goal is proved. It is possible for the goal to 
+have alternative. See <A NAME="idx:prologframeattribute3:1417"></A><A HREF="manipstack.html#prolog_frame_attribute/3">prolog_frame_attribute/3</A> 
+to examine the goal-stack.</DD>
+<DT><STRONG>fail</STRONG></DT>
+<DD class="defbody">
+The fail-port signals final failure of the goal.</DD>
+<DT><STRONG>exception</STRONG>(<VAR>Except</VAR>)</DT>
+<DD class="defbody">
+An exception is raised and still pending. This port is activated on each 
+parent frame of the frame generating the exception until the exception 
+is caught or the user restarts normal computation using
+<CODE>retry</CODE>. <VAR>Except</VAR> is the pending exception-term.</DD>
+<DT><STRONG>break</STRONG>(<VAR>PC</VAR>)</DT>
+<DD class="defbody">
+A <CODE>break</CODE> instruction is executed. <VAR>PC</VAR> is program 
+counter. This port is used by the graphical debugger.</DD>
+<DT><STRONG>cut_call</STRONG>(<VAR>PC</VAR>)</DT>
+<DD class="defbody">
+A cut is encountered at <VAR>PC</VAR>. This port is used by the 
+graphical debugger. to visualise the effect of the cut.</DD>
+<DT><STRONG>cut_exit</STRONG>(<VAR>PC</VAR>)</DT>
+<DD class="defbody">
+A cut has been executed. See <CODE>cut_call(PC)</CODE> for more 
+information.
+</DD>
+</DL>
+
+<P><VAR>Frame</VAR> is a reference to the current local stack frame, 
+which can be examined using <A NAME="idx:prologframeattribute3:1418"></A><A HREF="manipstack.html#prolog_frame_attribute/3">prolog_frame_attribute/3</A>. <VAR>Choice</VAR> 
+is a reference to the last choice-point and can be examined using
+<A NAME="idx:prologchoiceattribute3:1419"></A><A HREF="manipstack.html#prolog_choice_attribute/3">prolog_choice_attribute/3</A>. <VAR>Action</VAR> 
+should be unified with one of the atoms <CODE>continue</CODE> (just 
+continue execution), <CODE>retry</CODE> (retry the current goal) or <CODE>fail</CODE> 
+(force the current goal to fail). Leaving it a variable is identical to <CODE>continue</CODE>.
+
+<P>Together with the predicates described in <A HREF="debugger.html">section 
+4.38</A> and the other predicates of this chapter this predicate enables 
+the Prolog user to define a complete new debugger in Prolog. Besides 
+this it enables the Prolog programmer monitor the execution of a 
+program. The example below records all goals trapped by the tracer in 
+the database.
+
+<PRE class="code">
+prolog_trace_interception(Port, Frame, _PC, continue) :-
+        prolog_frame_attribute(Frame, goal, Goal), 
+        prolog_frame_attribute(Frame, level, Level), 
+        recordz(trace, trace(Port, Level, Goal)).
+</PRE>
+
+<P>To trace the execution of `go' this way the following query should be 
+given:
+
+<PRE class="code">
+?- trace, go, notrace.
+</PRE>
+
+</DD>
+<DT class="pubdef"><A NAME="prolog_skip_level/2"><STRONG>prolog_skip_level</STRONG>(<VAR>-Old, 
++New</VAR>)</A></DT>
+<DD class="defbody">
+Unify <VAR>Old</VAR> with the old value of `skip level' and than set 
+this level according to <VAR>New</VAR>. New is an integer, or the 
+special atom
+<CODE>very_deep</CODE> (meaning don't skip). The `skip level' is a 
+global variable of the Prolog system that disables the debugger on all 
+recursion levels deeper than the level of the variable. Used to 
+implement the trace options `skip' (sets skip level to the level of the 
+frame) and `up' (sets skip level to the level of the parent frame (i.e., 
+the level of this frame minus 1).
+</DD>
+</DL>
+
+<P></BODY></HTML>

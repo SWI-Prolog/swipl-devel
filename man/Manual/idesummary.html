@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 3.9</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="idepreds.html">
+<LINK REL=next HREF="builtin.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="idepreds.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="builtin.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:3.9">3.9 Summary of the iDE</A></H2>
+
+<A NAME="sec:idesummary"></A>
+
+<P>The SWI-Prolog development environment consists of a number of 
+interrelated but not (yet) integrated tools. Here is a list of the most 
+important features and tips.
+
+<P>
+<UL>
+<LI><I>Atom completion</I><BR>
+The console<A NAME=back-to-note-19 HREF="Notes.html#note-19"> (19)</A> 
+completes a partial atom on the <CODE>TAB</CODE> key and shows 
+alternatives on the command <CODE>Alt-?</CODE>.
+
+<P>
+<LI><I>Use <A NAME="idx:edit1:290"></A><A HREF="listing.html#edit/1">edit/1</A> 
+to finding locations</I><BR>
+The command <A NAME="idx:edit1:291"></A><A HREF="listing.html#edit/1">edit/1</A> 
+takes the name of a file, module, predicate or other entity registered 
+through extensions and starts the users preferred editor at the right 
+location.
+
+<P>
+<LI><I>Select editor</I><BR>
+External editors are selected using the <CODE>EDITOR</CODE> environment 
+variable, by setting the prolog flag <CODE>editor</CODE> or by defining 
+the hook prolog_edit:edit_source/1.
+
+<P>
+<LI><I>Update Prolog after editing</I><BR>
+Using <A NAME="idx:make0:292"></A><A HREF="consulting.html#make/0">make/0</A>, 
+all files you have edited are re-loaded.
+
+<P>
+<LI><I>PceEmacs</I><BR>
+Offers syntax-highlighting and checking based on real-time parsing of 
+the editor's buffer, layout-support and navigation support.
+
+<P>
+<LI><I>Using the graphical debugger</I><BR>
+The predicates <A NAME="idx:guitracer0:293"></A><A HREF="guitracer.html#guitracer/0">guitracer/0</A> 
+and <A NAME="idx:noguitracer0:294"></A><A HREF="guitracer.html#noguitracer/0">noguitracer/0</A> 
+switch between traditional text-based and window-based debugging. The 
+tracer is activated using the <A NAME="idx:trace0:295"></A><A HREF="debugger.html#trace/0">trace/0</A>, <A NAME="idx:spy1:296"></A><A HREF="debugger.html#spy/1">spy/1</A> 
+or menu-items from PceEmacs or the PrologNavigator.
+
+<P>
+<LI><I>The Prolog Navigator</I><BR>
+Shows the file-structure and structure inside the file. It allows for 
+loading files, editing, setting spy-points, etc.
+</UL>
+
+<P></BODY></HTML>

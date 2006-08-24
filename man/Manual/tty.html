@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.33</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="format.html">
+<LINK REL=next HREF="system.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="format.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="system.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:4.33">4.33 Terminal Control</A></H2>
+
+<A NAME="sec:tty"></A>
+
+<P>The following predicates form a simple access mechanism to the Unix 
+termcap library to provide terminal independent I/O for screen 
+terminals. These predicates are only available on Unix machines. The 
+SWI-Prolog Windows consoles accepts the ANSI escape sequences.
+
+<DL>
+<DT class="pubdef"><A NAME="tty_get_capability/3"><STRONG>tty_get_capability</STRONG>(<VAR>+Name, 
++Type, -Result</VAR>)</A></DT>
+<DD class="defbody">
+Get the capability named <VAR>Name</VAR> from the termcap library. See 
+termcap(5) for the capability names. <VAR>Type</VAR> specifies the type 
+of the expected result, and is one of <CODE>string</CODE>, <CODE>number</CODE> 
+or
+<CODE>bool</CODE>. String results are returned as an atom, number result 
+as an integer and bool results as the atom <CODE>on</CODE> or <CODE>off</CODE>. 
+If an option cannot be found this predicate fails silently. The results 
+are only computed once. Successive queries on the same capability are 
+fast.
+</DD>
+<DT class="pubdef"><A NAME="tty_goto/2"><STRONG>tty_goto</STRONG>(<VAR>+X, 
++Y</VAR>)</A></DT>
+<DD class="defbody">
+Goto position (<VAR>X</VAR>, <VAR>Y</VAR>) on the screen. Note that the 
+predicates
+<A NAME="idx:linecount2:935"></A><A HREF="streamstat.html#line_count/2">line_count/2</A> 
+and <A NAME="idx:lineposition2:936"></A><A HREF="streamstat.html#line_position/2">line_position/2</A> 
+will not have a well defined behaviour while using this predicate.
+</DD>
+<DT class="pubdef"><A NAME="tty_put/2"><STRONG>tty_put</STRONG>(<VAR>+Atom, 
++Lines</VAR>)</A></DT>
+<DD class="defbody">
+Put an atom via the termcap library function tputs(). This function 
+decodes padding information in the strings returned by <A NAME="idx:ttygetcapability3:937"></A><A HREF="tty.html#tty_get_capability/3">tty_get_capability/3</A> 
+and should be used to output these strings. <VAR>Lines</VAR> is the 
+number of lines affected by the operation, or 1 if not applicable (as in 
+almost all cases).
+</DD>
+<DT class="pubdef"><A NAME="set_tty/2"><STRONG>set_tty</STRONG>(<VAR>-OldStream, 
++NewStream</VAR>)</A></DT>
+<DD class="defbody">
+Set the output stream, used by <A NAME="idx:ttyput2:938"></A><A HREF="tty.html#tty_put/2">tty_put/2</A> 
+and <A NAME="idx:ttygoto2:939"></A><A HREF="tty.html#tty_goto/2">tty_goto/2</A> 
+to a specific stream. Default is user_output.
+</DD>
+<DT class="pubdef"><A NAME="tty_size/2"><STRONG>tty_size</STRONG>(<VAR>-Rows, 
+-Columns</VAR>)</A></DT>
+<DD class="defbody">
+Determine the size of the terminal. Platforms:
+
+<DL>
+<DT><B>Unix</B></DT>
+<DD>
+If the system provides <EM>ioctl</EM> calls for this, these are used and <A NAME="idx:ttysize2:940"></A><A HREF="tty.html#tty_size/2">tty_size/2</A> 
+properly reflects the actual size after a user resize of the window. As 
+a fallback, the system uses
+<A NAME="idx:ttygetcapability2:941"></A><B>tty_get_capability/2</B> 
+using <CODE>li</CODE> and <CODE>co</CODE> capabilities. In this case the 
+reported size reflects the size at the first call and is not updated 
+after a user-initiated resize of the terminal.</DD>
+<DT><B>Windows</B></DT>
+<DD>
+Getting the size of the terminal is provided for <B>plwin.exe</B>. The 
+requested value reflects the current size. For the multi-threaded 
+version the console that is associated with the
+<CODE>user_input</CODE> stream is used.
+</DD>
+</DL>
+
+</DD>
+</DL>
+
+<P></BODY></HTML>

@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 2.1</TITLE><LINK REL=home HREF="index.html">
+<LINK REL=contents HREF="Contents.html">
+<LINK REL=index HREF="DocIndex.html">
+<LINK REL=previous HREF="overview.html">
+<LINK REL=next HREF="initfile.html">
+<style type="text/css"> 
+dd.defbody 
+{ margin-bottom: 1em; 
+}
+
+dt.pubdef 
+{ background-color: #c5e1ff; 
+}
+
+pre.code 
+{ margin-left: 1.5em; 
+margin-right: 1.5em; 
+border: 1px dotted; 
+padding-top: 5px; 
+padding-left: 5px; 
+padding-bottom: 5px; 
+background-color: #f8f8f8; 
+}
+
+div.navigate
+{ text-align: center; 
+background-color: #f0f0f0; 
+border: 1px dotted; 
+padding: 5px;
+}
+</style>
+</HEAD>
+<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A HREF="overview.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A HREF="initfile.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+</DIV>
+
+<H2><A NAME="sec:2.1">2.1 Getting started quickly</A></H2>
+
+<A NAME="sec:quickstart"></A>
+
+<H3><A NAME="sec:2.1.1">2.1.1 Starting SWI-Prolog</A></H3>
+
+<A NAME="sec:startpl"></A>
+
+<H4><A NAME="sec:2.1.1.1">2.1.1.1 Starting SWI-Prolog on Unix</A></H4>
+
+<A NAME="sec:startunix"></A>
+
+<P>By default, SWI-Prolog is installed as `pl', though some 
+administrators call it `swipl' or `swi-prolog'. The command-line 
+arguments of SWI-Prolog itself and its utility programs are documented 
+using standard Unix <B>man</B> pages. SWI-Prolog is normally operated as 
+an interactive application simply by starting the program:
+
+<PRE class="code">
+machine% pl
+Welcome to SWI-Prolog (Version 5.6.0)
+Copyright (c) 1990-2005 University of Amsterdam.
+SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
+and you are welcome to redistribute it under certain conditions.
+Please visit http://www.swi-prolog.org for details.
+
+For help, use ?- help(Topic). or ?- apropos(Word).
+
+1 ?- 
+</PRE>
+
+<P>After starting Prolog, one normally loads a program into it using
+<A NAME="idx:consult1:55"></A><A HREF="consulting.html#consult/1">consult/1</A>, 
+which --- for historical reasons --- may be abbreviated by putting the 
+name of the program file between square brackets. The following goal 
+loads the file <CODE>likes.pl</CODE> containing clauses for the 
+predicates likes/2 :
+
+<PRE class="code">
+?- [likes].
+% likes compiled, 0.00 sec, 596 bytes.
+
+Yes
+?- 
+</PRE>
+
+<P>After this point, Unix and Windows users unite, so if you are using 
+Unix please continue at <A HREF="quickstart.html">section 2.1.2</A>.
+
+<H4><A NAME="sec:2.1.1.2">2.1.1.2 Starting SWI-Prolog on Windows</A></H4>
+
+<P>After SWI-Prolog has been installed on a Windows system, the 
+following important new things are available to the user:
+
+<P>
+<UL>
+<LI>A folder (called <EM>directory</EM> in the remainder of this 
+document) called <CODE>pl</CODE> containing the executables, libraries, 
+etc. of the system. No files are installed outside this directory.
+<LI>A program <B>plwin.exe</B>, providing a window for interaction with 
+Prolog. The program <B>plcon.exe</B> is a version of SWI-Prolog that 
+runs in a DOS-box.
+<LI>The file-extension <CODE>.pl</CODE> is associated with the program
+<B>plwin.exe</B>. Opening a <CODE>.pl</CODE> file will cause
+<B>plwin.exe</B> to start, change directory to the directory in which 
+the file-to-open resides and load this file.
+</UL>
+
+<P>The normal way to start with the <CODE>likes.pl</CODE> file mentioned 
+in
+<A HREF="quickstart.html">section 2.1.1.1</A> is by simply 
+double-clicking this file in the Windows explorer.
+
+<H3><A NAME="sec:2.1.2">2.1.2 Executing a query</A></H3>
+
+<A NAME="sec:execquery"></A>
+
+<P>After loading a program, one can ask Prolog queries about the 
+program. The query below asks Prolog what food `sam' likes. The system 
+responds with <TT>X = &lt;<VAR>value</VAR>&gt;</TT> if it can prove the 
+goal for a certain
+<VAR>X</VAR>. The user can type the semi-colon (;)<A NAME=back-to-note-3 HREF="Notes.html#note-3"> (3)</A> 
+if (s)he wants another solution, or <font size=-1>RETURN</font> if (s)he 
+is satisfied, after which Prolog will say <B>Yes</B>. If Prolog answers <B>No</B>, 
+it indicates it cannot find any (more) answers to the query. Finally, 
+Prolog can answer using an error message to indicate the query or 
+program contains an error.
+
+<PRE class="code">
+?- likes(sam, X).
+
+X = dahl ;
+
+X = tandoori ;
+
+...
+
+X = chips ;
+
+No
+?-
+</PRE>
+
+<P></BODY></HTML>
