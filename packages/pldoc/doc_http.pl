@@ -210,13 +210,14 @@ local(Request) :-
 
 reply(/, _) :-
 	working_directory(Dir0, Dir0),
-	ensure_slash(Dir0, Dir),
-	format(atom(Index), '/doc~windex.html', Dir),
+	ensure_slash_end(Dir0, Dir1),
+	doc_file_href(Dir1, Ref0),
+	atom_concat(Ref0, 'index.html', Index),
 	throw(http_reply(moved(Index))).
 
-ensure_slash(Dir, Dir) :-
+ensure_slash_end(Dir, Dir) :-
 	sub_atom(Dir, _, _, 0, /), !.
-ensure_slash(Dir0, Dir) :-
+ensure_slash_end(Dir0, Dir) :-
 	atom_concat(Dir0, /, Dir).
 
 %	/sidebar.html
@@ -302,11 +303,12 @@ reply('/edit', _Request) :-
 %	pldoc.css to allow for a relative link from any directory.
 
 reply(ReqPath, Request) :-
-	atom_concat('/doc', AbsFile, ReqPath),
+	atom_concat('/doc', AbsFile0, ReqPath),
 	(   sub_atom(ReqPath, _, _, 0, /)
 	->  atom_concat(ReqPath, 'index.html', File),
 	    throw(http_reply(moved(File)))
-	;   sub_atom(AbsFile, 0, _, _, /)
+	;   clean_path(AbsFile0, AbsFile),
+	    is_absolute_file_name(AbsFile)
 	->  documentation(AbsFile, Request)
 	).
 
@@ -362,6 +364,17 @@ pl_file(File, PlFile) :-
 			     access(read)
 			   ], PlFile).
 pl_file(File, File).
+
+
+%%	clean_path(+AfterDoc, -AbsPath)
+%
+%	Restore the path, Notably deals Windows issues
+
+clean_path(Path0, Path) :-
+	current_prolog_flag(windows, true),
+	sub_atom(Path0, 2, _, _, :), !,
+	sub_atom(Path0, 1, _, 0, Path).
+clean_path(Path, Path).
 
 
 %	/welcome.html

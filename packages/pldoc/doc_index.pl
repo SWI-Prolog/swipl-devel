@@ -34,7 +34,8 @@
 	    dir_index/4,		% +Dir, +Options, //
 	    object_summaries/5,		% +Objs, +Section, +Options, //
 	    file_index_header/4,	% +File, +Options, //
-	    doc_links/4			% +Directory, +Options, //
+	    doc_links/4,		% +Directory, +Options, //
+	    doc_file_href/2		% +File, -/doc/...
 	  ]).
 :- use_module(doc_process).
 :- use_module(doc_html).
@@ -42,6 +43,7 @@
 :- use_module(doc_search).
 :- use_module(library('http/html_write')).
 :- use_module(library(readutil)).
+:- use_module(library(url)).
 :- include(hooks).
 
 /** <module> Create indexes
@@ -191,17 +193,41 @@ file_index_header(File, Options) -->
 	      HREF=Local
 	  ->  true
 	  ;   file_base_name(File, Local),
-	      atom_concat('/doc', File, HREF)
+	      doc_file_href(File, HREF)
 	  )
 	},
 	html(tr(th([colspan(2), class(file)],
-		   [ div(style('float:right'),
-			 [ \edit_button(File,
-					[ button_height(16)|Options
-					])
-			 ]),
-		     a(href(HREF), Local)
+		   [ span(style('float:left'), a(href(HREF), Local)),
+		     span(style('float:right'),
+			  [ \edit_button(File,
+					 [ button_height(16)|Options
+					 ])
+			  ])
 		   ]))).
+
+
+%%	doc_file_href(+Path, -HREF) is det.
+%
+%	Create a /doc HREF from Path.  There   are  some nasty things we
+%	should take care of.
+%	
+%		* Windows paths may start with Drive:
+%		* Paths may contain spaces and other weird stuff
+
+doc_file_href(File, HREF) :-
+	ensure_slash_start(File, SlashFile),
+	http_location([path(SlashFile)], Escaped),
+	atom_concat('/doc', Escaped, HREF).
+
+%%	ensure_slash_start(+File0, -File) is det.
+%
+%	Ensure Fil starts with a /. This maps C:/foobar into /C:/foobar,
+%	so our paths start with /doc/ again ...
+
+ensure_slash_start(File, File) :-
+	sub_atom(File, 0, _, _, /), !.
+ensure_slash_start(File0, File) :-
+	atom_concat(/, File0, File).
 
 
 %%	object_summaries(+Objects, +Section, +Options)// is det.
@@ -257,11 +283,8 @@ doc_links(Directory, _Options) -->
 	;   Dir = Directory
 	},
 	html(div(class(navhdr),
-		 [ div(style('float:right'),
-		       [ \search_form
-		       ]),
-		   'Go ',
-		   \source_dir_menu(Dir)
+		 [ span(style('float:left'), ['Go ', \source_dir_menu(Dir)]),
+		   span(style('float:right'), \search_form)
 		 ])).
 
 

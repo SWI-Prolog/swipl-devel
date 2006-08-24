@@ -438,10 +438,8 @@ atom_to_pi(Atom, Name/Arity) :-
 
 man_links(File, _Options) -->
 	html(div(class(navhdr),
-		 [ div(style('float:right'),
-		       [ \search_form
-		       ]),
-		   \man_file(File)
+		 [ span(style('float:left'), \man_file(File)),
+		   span(style('float:right'), \search_form)
 		 ])).
 
 man_file(File) -->

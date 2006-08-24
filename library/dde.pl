@@ -71,11 +71,16 @@ dde_poke(Handle, Item, Data) :-
 :- module_transparent
 	dde_register_service/2.
 
-%%	dde_register_service(+Service(Topic, Item, Value), +Goal).
-%%	dde_register_service(+Service(Topic, Command), +Goal).
+%%	dde_register_service(Template, +Goal) is det.
 %
-%	Register a DDE service satisfied by this SWI-Prolog instance.  The
-%	first form is for dde_request/3, the second for dde_execute/2.
+%	Register a DDE service  in   this  SWI-Prolog instance. Template
+%	takes one of the formats
+%	
+%		$ Service(Topic, Item, Value) :
+%		Register a service for dde_request/3
+%		
+%		$ Service(Topic, Command) :
+%		Register a service for dde_execute/2
 %
 %	Topic is either an atom or a variable.  In the latter case, any
 %	topic is confirmed on the Service.  Item, Value and Command are

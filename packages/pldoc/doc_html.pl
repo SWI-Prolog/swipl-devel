@@ -460,10 +460,8 @@ object_page(Obj, Options) -->
 	  format(string(FileRef), '/doc~w', [File])
 	},
 	html([ div(class(navhdr),
-		   [ div(style('float:right'),
-			 [ \search_form
-			 ]),
-		     a(href(FileRef), File)
+		   [ span(style('float:left'), a(href(FileRef), File)),
+		     span(style('float:right'), \search_form)
 		   ]),
 	       \objects([Obj], Options)
 	     ]).
