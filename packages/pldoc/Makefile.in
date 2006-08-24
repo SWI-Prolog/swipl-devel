@@ -31,7 +31,8 @@ INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		doc_html.pl doc_wiki.pl doc_modes.pl doc_register.pl \
-		doc_process.pl doc_index.pl doc_search.pl doc_man.pl
+		doc_process.pl doc_index.pl doc_search.pl doc_man.pl \
+		hooks.pl
 SUPPORT=	pldoc.css pldoc.js \
 		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico \
 		up.gif
