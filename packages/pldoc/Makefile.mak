@@ -42,9 +42,6 @@ pdf-install:	install-examples
 		copy pldoc.pdf "$(PKGDOC)"
 
 install-examples::
-		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"
-		cd examples & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
-		cd examples & copy $(EXAMPLEEXE) "$(EXDIR)"
 
 xpce-install::
 

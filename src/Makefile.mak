@@ -281,8 +281,8 @@ install-demo::
 		$(INSTALL_DATA) ..\demo\README "$(PLBASE)\demo\README.TXT"
 
 html-install::
-		for %f in ..\man\Manual\*.html do copy %f "$(MANDIR)"
-		for %f in ..\man\Manual\*.gif do copy %f "$(MANDIR)"
+		copy ..\man\Manual\*.html $(MANDIR) > nul
+		copy ..\man\Manual\*.gif $(MANDIR) > nul
 
 
 ################################################################

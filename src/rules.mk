@@ -70,7 +70,7 @@ BINDIR=$(PLBASE)\runtime
 # Makefile also checks whether the package directory exists.
 
 PKGS=	chr clpqr table cpp odbc clib sgml sgml\RDF semweb http \
-	xpce jpl ssl nlp
+	xpce jpl ssl nlp plunit pldoc
 PKGDIR=$(PLHOME)\packages
 PKGDOC=$(PLBASE)\doc\packages
 
