@@ -13,6 +13,8 @@ all::
 install::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
+ln-install::
+
 rpm-install::
 	@cd $(BUILDARCH) && $(MAKE) $@
 
