@@ -184,7 +184,11 @@ index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 	
 section_number(Title, Nr, PlainTitle) :-
 	sub_atom(Title, 0, 1, _, Start),
-	char_type(Start, digit),
+	(   char_type(Start, digit)
+	->  true
+	;   char_type(Start, upper),
+	    sub_atom(Title, 1, 1, _, '.') 	% A., etc: Appendices
+	),
 	sub_atom(Title, B, _, A, ' '), !,
 	sub_atom(Title, 0, B, _, Nr),
 	sub_string(Title, _, A, 0, PlainTitle).
