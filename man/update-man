@@ -1,0 +1,17 @@
+#!/bin/sh 
+
+tmp=$1
+cvs=$2
+
+if [ -z "$tmp" -o -z "$cvs" ]; then
+  echo Usage: $0 NewManDir CvsManDir
+  exit 1
+fi
+
+( cd $tmp
+  for f in *.html; do
+    if ! cmp -s $f ../$cvs/$f; then cp $f ../$cvs/$f; fi
+  done
+)
+
+# rm -r $tmp
