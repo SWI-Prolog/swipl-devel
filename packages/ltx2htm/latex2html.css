@@ -84,3 +84,16 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+  position: absolute; top: auto; left: auto; width: 250px;
+  color: #000; background: white;
+  border: 2px solid;
+  padding: 5px; margin: 10px; z-index: 100;
+  font-size: smaller;
+}

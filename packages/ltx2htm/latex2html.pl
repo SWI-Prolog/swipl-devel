@@ -42,7 +42,6 @@
 	    translate_command/4,	% +In, +ModeIn, -ModeOut, -HTML
 	    translate_environment/4,	% +In, +ModeIn, -ModeOut, -HTML
 	    translate_reference/4,	% +Kind, +RefPrefix, +Label, -HTML
-	    translate_footnote/2,	% +Text, -HTML
 	    translate_table/3,		% +Format, +BodyTokens, -HTML
 	    translate_section/4,	% +Level, -/*, +Title, -HTML
 	    translate_section/5,	% +Level, -/*, +Title, -HTML, +FileBase
@@ -187,7 +186,6 @@ author('Anonymous').
 
 
 run_latex2html(TeXFile) :-
-	reset_footnotes,
 	reset_counters,
 	reset_sections,
 	reset_index,
@@ -203,11 +201,9 @@ run_latex2html(TeXFile) :-
 	),
 	once(html_file_base(Base)),
 	expand_macros([tell(Base), #header], Header),
-	footnote_html(FootNotes),
 	make_index(Index),
 	flatten([ Header,
 		  HTML,
-		  FootNotes,
 		  Index
 		],
 		HtmlDocument),
@@ -476,15 +472,21 @@ language_map(table,	'Table').
 			  Text,
 			  html('</DIV>')
 			]).
-#(embrace([O,C],Text),	[nospace(OA),	   Text, nospace(CA)]) :-
+#(footnote(Text),	#footnote(Mark, Text)) :-
+	step_counter(footnote, Mark).
+#(footnote(Mark, Text),	[ html('<SUP class="fn">'), Mark,
+			  #span('fn-text', Text),
+			  html('</SUP>')
+			]).
+#(embrace([O,C],Text),	[nospace(OA), Text, nospace(CA)]) :-
 	char_code(OA, O),
 	char_code(CA, C).
 #(embrace(Text),	#embrace("()", Text)).
 #(h(Level, Title),	[html(OpenH), Title, html(CloseH)]) :-
 	h(Level, OpenH, CloseH).
-#(predref(RN, Arity),   #lref(Text, Text)) :-
+#(predref(RN, Arity),   #lref(pred, Text, Text)) :-
 	clean_tt(RN, Name),
-	sformat(Text, '~w/~w', [Name, Arity]).
+	format(string(Text), '~w/~w', [Name, Arity]).
 #(row(Columns),		[html('<TR>'), HtmlCols, html('</TR>')]) :-
 	add_td(Columns, HtmlCols).
 #(label(Lbl, Text, Tag),label(ALabel, Expanded, Tag)) :-
@@ -493,9 +495,11 @@ language_map(table,	'Table').
 #(label(Lbl, Text),	label(ALabel, Expanded, -)) :-
 	string_to_atom(Lbl, ALabel),
 	expand_macros(Text, Expanded).
-#(lref(_Label, Text),	Text) :-
+#(lref(Label, Text), Expanded) :- !,
+	#(lref('', Label, Text), Expanded).
+#(lref(_, _Label, Text),	Text) :-
 	in_anchor, !.
-#(lref(Label, Text),	lref(ALabel, Expanded)) :-
+#(lref(Class, Label, Text),	lref(Class, ALabel, Expanded)) :-
 	canonise_label(Label, ALabel),
 	asserta(in_anchor),
 	expand_macros(Text, Expanded),
@@ -503,16 +507,10 @@ language_map(table,	'Table').
 #(iflref(Label, Text),	iflref(ALabel, Expanded)) :-
 	canonise_label(Label, ALabel),
 	expand_macros(Text, Expanded).
-#(lback(Label, Text),	lback(ALabel, Expanded)) :-
-	string_to_atom(Label, ALabel),
-	expand_macros(Text, Expanded).
-#(lforw(Label, Text),	lforw(ALabel, Expanded)) :-
-	string_to_atom(Label, ALabel),
-	expand_macros(Text, Expanded).
 #(url(_URL, Text),	Text) :-
 	in_anchor, !.
 #(url(URL, Text),	[html(Anchor), Expanded, html('</A>')]) :-
-	sformat(Anchor, '<A HREF="~w">', URL),
+	format(string(Anchor), '<A class="url" href="~w">', URL),
 	asserta(in_anchor),
 	expand_macros(Text, Expanded),
 	retractall(in_anchor).
@@ -559,9 +557,9 @@ cite_references(KeyIn, Functor, Refs) :-
 	make_cite_references(Keys, Functor, Refs).
 
 make_cite_references([], _, []).
-make_cite_references([Key],    F, [#lref(Key, Term)]) :- !,
+make_cite_references([Key],    F, [#lref(cite, Key, Term)]) :- !,
 	Term =.. [F, Key].
-make_cite_references([Key|T0], F, [#lref(Key, Term), nospace(','), ' '|T]) :-
+make_cite_references([Key|T0], F, [#lref(cite, Key, Term), nospace(','), ' '|T]) :-
 	Term =.. [F, Key],
 	make_cite_references(T0, F, T).
 
@@ -668,13 +666,6 @@ collect_labels([tell(File)|T], PreviousFile) :- !,
 	collect_labels(T, File).
 collect_labels([label(Label, _, Tag)|T], File) :- !,
 	assert(label(Label, File, Tag)),
-	collect_labels(T, File).
-collect_labels([lback(Label, _)|T], File) :- !,
-	assert(label(Label, File, -)),
-	collect_labels(T, File).
-collect_labels([lforw(Label, _)|T], File) :- !,
-	concat('back-to-', Label, BackLabel),
-	assert(label(BackLabel, File, -)),
 	collect_labels(T, File).
 collect_labels([_|T], File) :-
 	collect_labels(T, File).
@@ -936,8 +927,8 @@ cmd(subparagraph({Title}), [#b(+Title), ' ']).
 
 cmd(label({Label}), #label(Label, [], Tag)) :-	% \label and \xyzref
 	label_tag(Tag).
-cmd(ref({RefName}), #lref(RefName, ref(RefName))).
-cmd(pageref({RefName}), #lref(RefName, ref(RefName))).
+cmd(ref({RefName}), #lref(ref, RefName, ref(RefName))).
+cmd(pageref({RefName}), #lref(ref, RefName, ref(RefName))).
 	
 cmd(secref({Label}), HTML) :-
 	translate_reference(section, sec, Label, HTML).
@@ -1054,8 +1045,7 @@ cmd(index({Term}), #label(RefName, [])) :-	% \index
 cmd(idx({Term}), #label(RefName, Term)) :-	% \idx
 	translate_index(Term, RefName).
 
-cmd(footnote({TeX}), HTML) :-			% \footnote
-	translate_footnote(TeX, HTML).
+cmd(footnote({TeX}), #(footnote(+TeX))).	% \footnote
 cmd(footnotetext([Num], {Tokens}), [html('<P>'), #embrace(Num), Text]) :-
 	translate(Tokens, normal, Text).
 
@@ -1352,12 +1342,12 @@ html_font('Huge',       html('<font size=+3>'), html('</font>')).
 %	Used for the translation of \secref, \figref, etc.
 
 translate_reference(Name, sec, Label,
-	  #lref(fileof(RefName), [Name, ' ', ref(RefName)])) :- !,
-	sformat(RefStr, 'sec:~w', [Label]),
+	  #lref(sec, fileof(RefName), [Name, ' ', ref(RefName)])) :- !,
+	format(string(RefStr), 'sec:~w', [Label]),
 	string_to_atom(RefStr, RefName).
 translate_reference(Name, Tag, Label,
-	  #lref(RefName, [Name, ' ', ref(RefName)])) :-
-	sformat(RefStr, '~w:~w', [Tag, Label]),
+	  #lref(Tag, RefName, [Name, ' ', ref(RefName)])) :-
+	format(string(RefStr), '~w:~w', [Tag, Label]),
 	string_to_atom(RefStr, RefName).
 
 
@@ -1446,44 +1436,6 @@ capitalise([H|T0], [H|T], down) :-
 	capitalise(T0, T, down).
 capitalise([H|T0], [H|T], down) :-
 	capitalise(T0, T, up).
-	
-
-		 /*******************************
-		 *	    FOOTNOTES		*
-		 *******************************/
-
-:- dynamic
-	footnote/2.			% Id, Tokens
-
-reset_footnotes :-
-	retractall(footnote(_, _)).
-
-
-translate_footnote(Tokens,
-		   #lforw(Tag, [' ', #embrace(Value)])) :-
-	step_counter(footnote_counter, Value),
-	sformat(Tag, 'note-~d', [Value]),
-	assert(footnote(Tag, Tokens)).
-
-footnote_html([]) :-
-	\+ footnote(_, _), !.
-footnote_html(HTML) :-
-	HTML0 = [ #tell('Notes'),
-		  #header(notes),
-		  #h(1, #label('document-notes', 'Footnotes')),
-		  html('<DL>'),
-		  FootNodes,
-		  html('</DL>')
-		],
-	findall(FN, footnote_html1(FN), FootNodes),
-	expand_macros(HTML0, HTML).
-
-footnote_html1([ html('<DT>'),
-		 #lback(Tag, Tag),
-		 html('<DD>'),
-	         +TeX
-	       ]) :-
-	footnote(Tag, TeX).
 	
 
 		 /*******************************
@@ -1645,7 +1597,7 @@ tableofcontents(TagPrefix, #div(toc, Sections)) :-
 	findall(S, section_html(TagPrefix, S), Sections).
 
 section_html(TagPrefix,
-	     [ #div(Class, #lref(Ref,
+	     [ #div(Class, #lref(sec, Ref,
 				 [ #span('sec-nr', Tag),
 				   #span('sec-title', Title)
 				 ]))
@@ -1701,7 +1653,7 @@ add_to_index(Term) :-
 	section_tag(Tag),
 	add_to_index(Term, Tag).
 
-%	add_to_index(+Term, +Tag)
+%%	add_to_index(+Term, +Tag)
 %	
 %	Add Term to the index using the href Tag. If Tag is of the
 %	format +Tag, it is the primary index for the term, normally
@@ -1766,16 +1718,16 @@ index_terms([Term0|T0], [ html('<DT>'),
 	tex_atom_to_tokens(Term0, Tokens),
 	translate(Tokens, index, _, Term),
 	(   member(+PrimeTag, Tags)
-	->  HtmlTerm = #lref(PrimeTag, Term)
+	->  HtmlTerm = #lref(idx, PrimeTag, Term)
 	;   HtmlTerm = Term
 	),
 	maplist(index_href, Tags, Where),
 	index_terms(T0, TH).
 
 index_href(+(_), []) :- !.
-index_href(Tag:Label, [' ', #lref(Label, Tag)]) :- !.
-index_href(Tag, [' ', #lref(RefName, Tag)]) :-
-	sformat(RefName, 'sec:~w', Tag).
+index_href(Tag:Label, [' ', #lref(idx, Label, Tag)]) :- !.
+index_href(Tag, [' ', #lref(sec, RefName, Tag)]) :-
+	format(string(RefName), 'sec:~w', Tag).
 	
 add_separator(Term, CL, CL, []) :-
 	atom_codes(Term, [CL|_]), !.
@@ -1854,7 +1806,7 @@ subsection_index(Tag,
 	Tag \== '',
 	atom_concat(Tag, '.', Filter),
 	tableofcontents(Filter, SubIndex),
-	sub_term(#lref(_,_), SubIndex), !. % it is not empty
+	sub_term(#lref(_,_,_), SubIndex), !. % it is not empty
 subsection_index(_, []).
 
 
@@ -2594,7 +2546,7 @@ write_html(label(Label, Text, _)) :- !,
 	).
 write_html(body_link(Link)) :- !,
 	(   translate_ref(Link, Ref, Type)
-	->  sformat(Anchor, '<A HREF="~w">', [Ref]),
+	->  format(string(Anchor), '<A class="nav" href="~w">', [Ref]),
 	    capitalise_atom(Type, Text),
 	    (	link_image(Type, Image)
 	    ->	sformat(Img, '<IMG SRC="~w" BORDER=0 ALT="~w">', [Image, Text]),
@@ -2622,48 +2574,38 @@ write_html(iflref(Label, Text)) :- !,
 	->  write_html(lref(Label, Text))
 	;   true
 	).
-write_html(lref(fileof(Label), Text)) :-
+write_html(lref(Label, Text)) :- !,
+	write_html(lref('', Label, Text)).
+write_html(lref(Class, fileof(Label), Text)) :-
 	(   label(Label, File, _)
-	->  sformat(Anchor, '<A HREF="~w.html">', [File]),
+	->  format(string(Anchor),
+		   '<A class="~w" href="~w.html">', [Class, File]),
 	    write_html([html(Anchor), Text, html('</A>')])
 	;   write_html(lref(Label, Text))
 	).
-write_html(lref(Label, Text)) :-
+write_html(lref(Class, Label, Text)) :-
 	label(Label, File, _), !,
 	(   in_anchor
 	->  macro_expand(Text, Expanded),
 	    write_html(Expanded)
 	;   asserta(in_anchor),
 	    (   onefile(false)
-	    ->  sformat(Anchor, '<A HREF="~w.html#~w">', [File, Label])
-	    ;   sformat(Anchor, '<A HREF="#~w">', [Label])
+	    ->  format(string(Anchor),
+		       '<A class="~w" href="~w.html#~w">',
+		       [Class, File, Label])
+	    ;   format(string(Anchor),
+		       '<A class="~w" href="#~w">', [Label])
 	    ),
 	    write_html([html(Anchor), Text, html('</A>')]),
 	    retractall(in_anchor)
 	).
-write_html(lref(Label, Text)) :-
+write_html(lref(Class, Label, Text)) :-
 	fix_predicate_reference(Label, FixedLabel), !,
-	write_html(lref(FixedLabel, Text)).
-write_html(lref(Label, Text)) :- !,
+	write_html(lref(Class, FixedLabel, Text)).
+write_html(lref(_Class, Label, Text)) :- !,
 	format(user_error, 'No label for reference "~w"~n', [Label]),
 	macro_expand(#b(Text), Expanded),
 	write_html(Expanded).
-write_html(lforw(Label, Text)) :- !,
-	concat('back-to-', Label, BackName),
-	(   label(Label, File, _)
-	->  sformat(Anchor, '<A NAME=~w HREF="~w.html#~w">',
-		    [BackName, File, Label]), 
-	    write_html([html(Anchor), Text, html('</A>')])
-	;   format(user_error, 'No target for forward link "~w"~n', [Label])
-	).
-write_html(lback(Label, Text)) :- !,
-	concat('back-to-', Label, BackName),
-	(   label(BackName, File, _)
-	->  sformat(Anchor, '<A NAME=~w HREF="~w.html#~w">',
-		    [Label, File, BackName]), 
-	    write_html([html(Anchor), Text, html('</A>')])
-	;   format(user_error, 'No target for backward link "~w"~n', [Label])
-	).
 write_html(cite(Key)) :- !,
 	(   cite(Key, Cite)
 	->  write_html(Cite)
@@ -2700,6 +2642,7 @@ write_html(_).
 	
 nl_html :-
 	write_html(verb('\n')).
+
 
 %	translate_ref(+Label, -Anchor, -TextLabel)
 

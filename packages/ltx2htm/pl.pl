@@ -63,8 +63,7 @@ cmd(spaces({X}), html(Spaces)) :-
 	n_list(N, '&nbsp;', L),
 	concat_atom(L, Spaces).
 cmd(hrule, html('<HR>')).
-cmd(bug({TeX}), HTML) :-
-	translate_footnote(['BUG:', ' '|TeX], HTML).
+cmd(bug({TeX}), #footnote(bug, +TeX)).
 cmd(fileext({Ext}), #code(Text)) :-
 	sformat(Text, '.~w', [Ext]).
 
@@ -109,7 +108,7 @@ cmd(argoption({RawName}, {ArgName}),
     [ #strong(Name), ' ', #var(ArgName)
     ]) :-
 	clean_tt(RawName, Name).
-cmd(predref({RawName}, {Arity}), #lref(RefName, Text)) :-
+cmd(predref({RawName}, {Arity}), #lref(pred, RefName, Text)) :-
 	clean_name(RawName, Name),
 	predicate_refname(Name, Arity, RefName),
 	sformat(Text, '~w/~w', [Name, Arity]).
@@ -294,10 +293,10 @@ cmd(menuref({A1}),            #lref(RefName, Name)) :-
 
 cmd(glossitem({Term}), #defitem(#label(RefName, #strong(Term)))) :-
 	canonise_glossitem(Term, Ref),
-	sformat(RefName, 'gloss:~w', [Ref]).
-cmd(g({Term}),	#lref(RefName, Term)) :-
+	format(string(RefName), 'gloss:~w', [Ref]).
+cmd(g({Term}),	#lref(gloss, RefName, Term)) :-
 	canonise_glossitem(Term, Ref),
-	sformat(RefName, 'gloss:~w', [Ref]).
+	format(string(RefName), 'gloss:~w', [Ref]).
 
 % library stuff
 cmd(libdoc({Name}, {Summary}),
