@@ -2,152 +2,171 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog C-library</TITLE><style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<TITLE>SWI-Prolog C-library</TITLE><STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
 
 div.title
-{ text-align: center; 
-padding-bottom: 1em; 
-font-size: 200%; 
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
 font-weight: bold;
 }
 
 div.author
-{ text-align: center; 
+{ text-align: center;
 font-style: italic;
 }
 
 div.abstract
-{ margin-top: 2em; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
-padding: 5px; 
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
 margin-left: 10%; margin-right:10%;
 }
 
 div.abstract-title
-{ text-align: center; 
-padding: 5px; 
-font-size: 120%; 
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
 font-weight: bold;
 }
-</style>
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
 <BODY BGCOLOR="white"> 
 
-<P><DIV class="title">SWI-Prolog C-library</DIV><DIV class="author">Jan 
-Wielemaker <BR>
+<P>
+<DIV class="title">SWI-Prolog C-library</DIV>
+<DIV class="author">Jan Wielemaker <BR>
 HCS, <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
-This document describes commonly used foreign language extensions to
-<A HREF="http://www.swi-prolog.org">SWI-Prolog</A> distributed as a 
-package known under the name <EM>clib</EM>. The package defines a number 
-of Prolog libraries with accompagnying foreign libraries.
-
-<DL>
-<DT><B><CODE>library(unix)</CODE></B></DT>
-<DD>
-This library provides Unix process control using fork(), exec(), pipe(), 
-etc.
-</DD>
-<DT><B><CODE>library(files)</CODE></B></DT>
-<DD>
-This library provides low-level access to file objects.
-</DD>
-<DT><B><CODE>library(cgi)</CODE></B></DT>
-<DD>
-This library provides access to CGI form-data if Prolog is used for 
-CGI-scripting.
-</DD>
-<DT><B><CODE>library(crypt)</CODE></B></DT>
-<DD>
-This library provides access to Unix password encryption.
-</DD>
-<DT><B><CODE>library(mime)</CODE></B></DT>
-<DD>
-This library decodes MIME messages.
-</DD>
-<DT><B><CODE>library(socket)</CODE></B></DT>
-<DD>
-This library provides access to TCP/IP communication.
-</DD>
-<DT><B><CODE>library(streampool)</CODE></B></DT>
-<DD>
-Dispatch input from a pool of (socket) streams.
-</DD>
-<DT><B><CODE>library(time)</CODE></B></DT>
-<DD>
-This library provides timing (alarm) functions.
-</DD>
-<DT><B><CODE>library(rlimit)</CODE></B></DT>
-<DD>
-Provides access to POSIX resource limits (CPU, memory, files).
-</DD>
-</DL>
+E-mail: <A class="url" href="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> This document describes 
+commonly used foreign language extensions to
+<A class="url" href="http://www.swi-prolog.org">SWI-Prolog</A> 
+distributed as a package known under the name <EM>clib</EM>. The package 
+defines a number of Prolog libraries with accompagnying foreign 
+libraries.
 
 <P>On Windows systems, the <CODE>library(unix)</CODE> and <CODE>library(crypt)</CODE> 
 libraries can only be used if the whole SWI-Prolog suite is compiled 
 using
-<A HREF="http://www.cygwin.com">Cywin</A>. The other libraries have been 
-ported to native Windows.
+<A class="url" href="http://www.cygwin.com">Cywin</A>. The other 
+libraries have been ported to native Windows.
 </DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
-<UL>
-<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
-<LI><A HREF="#sec:2"><B>2 Unix Process manipulation library</B></A>
-<LI><A HREF="#sec:3"><B>3 File manipulation library</B></A>
-<LI><A HREF="#sec:4"><B>4 Socket library</B></A>
-<UL>
-<LI><A HREF="#sec:4.1">4.1 Server applications</A>
-<LI><A HREF="#sec:4.2">4.2 Client applications</A>
-<LI><A HREF="#sec:4.3">4.3 The stream_pool library</A>
-<LI><A HREF="#sec:4.4">4.4 UDP protocol support</A>
-</UL>
-<LI><A HREF="#sec:5"><B>5 CGI Support library</B></A>
-<UL>
-<LI><A HREF="#sec:5.1">5.1 Some considerations</A>
-</UL>
-<LI><A HREF="#sec:6"><B>6 MIME decoding library</B></A>
-<LI><A HREF="#sec:7"><B>7 Unix password encryption library</B></A>
-<LI><A HREF="#sec:8"><B>8 Memory files</B></A>
-<LI><A HREF="#sec:9"><B>9 Time and alarm library</B></A>
-<LI><A HREF="#sec:10"><B>10 Limiting process resources</B></A>
-<LI><A HREF="#sec:11"><B>11 Installation</B></A>
-<UL>
-<LI><A HREF="#sec:11.1">11.1 Unix systems</A>
-</UL>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Unix 
+Process manipulation library</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">File 
+manipulation library</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Socket 
+library</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.1"><SPAN class="sec-nr">4.1</SPAN><SPAN class="sec-title">Server 
+applications</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.2"><SPAN class="sec-nr">4.2</SPAN><SPAN class="sec-title">Client 
+applications</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.3"><SPAN class="sec-nr">4.3</SPAN><SPAN class="sec-title">The 
+stream_pool library</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.4"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">UDP 
+protocol support</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">CGI 
+Support library</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:5.1"><SPAN class="sec-nr">5.1</SPAN><SPAN class="sec-title">Some 
+considerations</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">MIME 
+decoding library</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Unix 
+password encryption library</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Memory 
+files</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Time 
+and alarm library</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Limiting 
+process resources</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Installation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:11.1"><SPAN class="sec-nr">11.1</SPAN><SPAN class="sec-title">Unix 
+systems</SPAN></A></DIV>
+</DIV>
 
 <P>
 
-<H2><A NAME="sec:1">1 Introduction</A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>Many useful facilities offered by one or more of the operating 
 systems supported by SWI-Prolog are not supported by the SWI-Prolog 
@@ -162,7 +181,8 @@ to deal with getting CGI form-data if SWI-Prolog is used as a CGI
 scripting language and <CODE>library(crypt)</CODE> to provide access to 
 Unix password encryption.
 
-<H2><A NAME="sec:2">2 Unix Process manipulation library</A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Unix 
+Process manipulation library</SPAN></A></H2>
 
 <P>The <CODE>library(unix)</CODE> library provides the commonly used 
 Unix primitives to deal with process management. These primitives are 
@@ -196,7 +216,7 @@ given commandline arguments. Each command-line argument must be atomic
 and is converted to a string before passed to the Unix call <B>execvp()</B>.
 
 <P>Unix <B>exec()</B> is the only way to start an executable file 
-executing. It is commonly used together with <A NAME="idx:fork1:2"></A><A HREF="#fork/1">fork/1</A>. 
+executing. It is commonly used together with <A NAME="idx:fork1:2"></A><A class="pred" href="#fork/1">fork/1</A>. 
 For example to start <B>netscape</B> on an URL in the background, do:
 
 <PRE class="code">
@@ -209,9 +229,9 @@ run_netscape(URL) :-
 
 <P>Using this code, netscape remains part of the process-group of the 
 invoking Prolog process and Prolog does not wait for netscape to 
-terminate. The predicate <A NAME="idx:wait2:3"></A><A HREF="#wait/2">wait/2</A> 
+terminate. The predicate <A NAME="idx:wait2:3"></A><A class="pred" href="#wait/2">wait/2</A> 
 allows waiting for a child, while
-<A NAME="idx:detachIO0:4"></A><A HREF="#detach_IO/0">detach_IO/0</A> 
+<A NAME="idx:detachIO0:4"></A><A class="pred" href="#detach_IO/0">detach_IO/0</A> 
 disconnects the child as a deamon process.</DD>
 <DT class="pubdef"><A NAME="wait/2"><STRONG>wait</STRONG>(<VAR>-Pid, 
 -Status</VAR>)</A></DT>
@@ -221,7 +241,7 @@ status as well as the reason. <VAR>Status</VAR> is unified with
 <CODE>exited(ExitCode)</CODE> if the child with pid <VAR>Pid</VAR> was 
 terminated by calling <B>exit()</B> (Prolog <A NAME="idx:halt01:5"></A><B>halt/[0,1]</B>). <VAR>ExitCode</VAR> 
 is the return=status. <VAR>Status</VAR> is unified with <CODE>signaled(Signal)</CODE> 
-if the child died due to a software interrupt (see <A NAME="idx:kill2:6"></A><A HREF="#kill/2">kill/2</A>). <VAR>Signal</VAR> 
+if the child died due to a software interrupt (see <A NAME="idx:kill2:6"></A><A class="pred" href="#kill/2">kill/2</A>). <VAR>Signal</VAR> 
 contains the signal number. Finally, if the process suspended execution 
 due to a signal, <VAR>Status</VAR> is unified with <CODE>stopped(Signal)</CODE>.</DD>
 <DT class="pubdef"><A NAME="kill/2"><STRONG>kill</STRONG>(<VAR>+Pid, 
@@ -229,12 +249,13 @@ due to a signal, <VAR>Status</VAR> is unified with <CODE>stopped(Signal)</CODE>.
 <DD class="defbody">
 Deliver a software interrupt to the process with identifier <VAR>Pid</VAR> 
 using software-interrupt number <VAR>Signal</VAR>. See also <A NAME="idx:onsignal2:7"></A><B>on_signal/2</B>. 
-The meaning of the signal numbers can be found in the Unix manual.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>.</DD>
+The meaning of the signal numbers can be found in the Unix manual.<SUP class="fn">1<SPAN class="fn-text">kill/2 
+should support interrupt-names as well</SPAN></SUP>.</DD>
 <DT class="pubdef"><A NAME="pipe/2"><STRONG>pipe</STRONG>(<VAR>-InSream, 
 -OutStream</VAR>)</A></DT>
 <DD class="defbody">
 Create a communication-pipe. This is normally used to make a child 
-communicate to its parent. After <A NAME="idx:pipe2:8"></A><A HREF="#pipe/2">pipe/2</A>, 
+communicate to its parent. After <A NAME="idx:pipe2:8"></A><A class="pred" href="#pipe/2">pipe/2</A>, 
 the process is cloned and, depending on the desired direction, both 
 processes close the end of the pipe they do not use. Then they use the 
 remaining stream to communicate. Here is a simple example:
@@ -263,9 +284,10 @@ fork_demo(Result) :-
 <DD class="defbody">
 Interface to Unix dup2(), copying the underlying filedescriptor and thus 
 making both streams point to the same underlying object. This is 
-normally used together with <A NAME="idx:fork1:9"></A><A HREF="#fork/1">fork/1</A> 
-and <A NAME="idx:pipe2:10"></A><A HREF="#pipe/2">pipe/2</A> to talk to 
-an external program that is designed to communicate using standard I/O.
+normally used together with <A NAME="idx:fork1:9"></A><A class="pred" href="#fork/1">fork/1</A> 
+and <A NAME="idx:pipe2:10"></A><A class="pred" href="#pipe/2">pipe/2</A> 
+to talk to an external program that is designed to communicate using 
+standard I/O.
 
 <P>Both <VAR>FromStream</VAR> and <VAR>ToStream</VAR> either refer to a 
 Prolog stream or an integer descriptor number to refer directly to OS 
@@ -280,13 +302,17 @@ rebound to a Prolog stream that returns end-of-file on any attempt to
 read and starts writing to a file named <CODE>/tmp/pl-out.pid</CODE> 
 (where &lt;<VAR>pid</VAR>&gt; is the process-id of the calling Prolog) 
 on any attempt to write. This file is opened only if there is data 
-available. This is intended for debugging purposes.<A NAME=back-to-note-2 HREF="index.html#note-2"> (2)</A> 
+available. This is intended for debugging purposes.<SUP class="fn">2<SPAN class="fn-text">More 
+subtle handling of I/O, especially for debugging is required: 
+communicate with the syslog deamon and optionally start a debugging 
+dialog on a newly created (X-)terminal should be considered.</SPAN></SUP> 
 Finally, the process is detached from the current process-group and its 
 controlling terminal.
 </DD>
 </DL>
 
-<H2><A NAME="sec:3">3 File manipulation library</A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">File 
+manipulation library</SPAN></A></H2>
 
 <P>The <CODE>library(files)</CODE> library provides additional 
 operations on files from SWI-Prolog. It is currently very incomplete.
@@ -328,7 +354,8 @@ while the second sets the last-modified time to the current time.
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:4">4 Socket library</A></H2>
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Socket 
+library</SPAN></A></H2>
 
 <P>The <CODE>library(socket)</CODE> library provides TCP and UDP 
 inet-domain sockets from SWI-Prolog, both client and server-side 
@@ -358,25 +385,25 @@ library is not yet initialised, this will also initialise the library.</DD>
 Closes the indicated socket, making <VAR>SocketId</VAR> invalid. 
 Normally, sockets are closed by closing both stream handles returned by
 <A NAME="idx:opensocket3:12"></A><B>open_socket/3</B>. There are two 
-cases where <A NAME="idx:tcpclosesocket1:13"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A> 
+cases where <A NAME="idx:tcpclosesocket1:13"></A><A class="pred" href="#tcp_close_socket/1">tcp_close_socket/1</A> 
 is used because there are no stream-handles:
 
 <P>
 <UL>
-<LI>After <A NAME="idx:tcpaccept3:14"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>, 
-the server does a <A NAME="idx:fork1:15"></A><A HREF="#fork/1">fork/1</A> 
+<LI>After <A NAME="idx:tcpaccept3:14"></A><A class="pred" href="#tcp_accept/3">tcp_accept/3</A>, 
+the server does a <A NAME="idx:fork1:15"></A><A class="pred" href="#fork/1">fork/1</A> 
 to handle the client in a sub-process. In this case the accepted socket 
-is not longer needed from the main server and must be discarded using <A NAME="idx:tcpclosesocket1:16"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A>.
-<LI>If, after discovering the connecting client with <A NAME="idx:tcpaccept3:17"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>, 
+is not longer needed from the main server and must be discarded using <A NAME="idx:tcpclosesocket1:16"></A><A class="pred" href="#tcp_close_socket/1">tcp_close_socket/1</A>.
+<LI>If, after discovering the connecting client with <A NAME="idx:tcpaccept3:17"></A><A class="pred" href="#tcp_accept/3">tcp_accept/3</A>, 
 the server does not want to accept the connection, it should discard the 
-accepted socket immediately using <A NAME="idx:tcpclosesocket1:18"></A><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A>.
+accepted socket immediately using <A NAME="idx:tcpclosesocket1:18"></A><A class="pred" href="#tcp_close_socket/1">tcp_close_socket/1</A>.
 </UL>
 </DD>
 <DT class="pubdef"><A NAME="tcp_open_socket/3"><STRONG>tcp_open_socket</STRONG>(<VAR>+SocketId, 
 -InStream, -OutStream</VAR>)</A></DT>
 <DD class="defbody">
 Open two SWI-Prolog I/O-streams, one to deal with input from the socket 
-and one with output to the socket. If <A NAME="idx:tcpbind2:19"></A><A HREF="#tcp_bind/2">tcp_bind/2</A> 
+and one with output to the socket. If <A NAME="idx:tcpbind2:19"></A><A class="pred" href="#tcp_bind/2">tcp_bind/2</A> 
 has been called on the socket. <VAR>OutSream</VAR> is useless and will 
 not be created. After closing both <VAR>InStream</VAR> and <VAR>OutSream</VAR>, 
 the socket itself is discarded.</DD>
@@ -384,18 +411,18 @@ the socket itself is discarded.</DD>
 ?Port</VAR>)</A></DT>
 <DD class="defbody">
 Bind the socket to <VAR>Port</VAR> on the current machine. This 
-operation, together with <A NAME="idx:tcplisten2:20"></A><A HREF="#tcp_listen/2">tcp_listen/2</A> 
-and <A NAME="idx:tcpaccept3:21"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
+operation, together with <A NAME="idx:tcplisten2:20"></A><A class="pred" href="#tcp_listen/2">tcp_listen/2</A> 
+and <A NAME="idx:tcpaccept3:21"></A><A class="pred" href="#tcp_accept/3">tcp_accept/3</A> 
 implement the <EM>server</EM>-side of the socket interface. If <VAR>Port</VAR> 
 is unbound, the system picks an arbitrary free port and unifies <VAR>Port</VAR> 
 with the selected port number.</DD>
 <DT class="pubdef"><A NAME="tcp_listen/2"><STRONG>tcp_listen</STRONG>(<VAR>+Socket, 
 +Backlog</VAR>)</A></DT>
 <DD class="defbody">
-Tells, after <A NAME="idx:tcpbind2:22"></A><A HREF="#tcp_bind/2">tcp_bind/2</A>, 
+Tells, after <A NAME="idx:tcpbind2:22"></A><A class="pred" href="#tcp_bind/2">tcp_bind/2</A>, 
 the socket to listen for incoming requests for connections. <VAR>Backlog</VAR> 
 indicates how many pending connection requests are allowed. Pending 
-requests are requests that are not yet acknowledged using <A NAME="idx:tcpaccept3:23"></A><A HREF="#tcp_accept/3">tcp_accept/3</A>. 
+requests are requests that are not yet acknowledged using <A NAME="idx:tcpaccept3:23"></A><A class="pred" href="#tcp_accept/3">tcp_accept/3</A>. 
 If the indicated number is exceeded, the requesting client will be 
 signalled that the service is currently not available. A suggested 
 default value is 5.</DD>
@@ -411,7 +438,7 @@ IP-address of the client.</DD>
 <DD class="defbody">
 Client-interface to connect a socket to a given <VAR>Port</VAR> on a 
 given
-<VAR>Host</VAR>. After successful completion, <A NAME="idx:tcpopensocket3:24"></A><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A> 
+<VAR>Host</VAR>. After successful completion, <A NAME="idx:tcpopensocket3:24"></A><A class="pred" href="#tcp_open_socket/3">tcp_open_socket/3</A> 
 can be used to create I/O-Streams to the remote socket.</DD>
 <DT class="pubdef"><A NAME="tcp_setopt/2"><STRONG>tcp_setopt</STRONG>(<VAR>+Socket, 
 +Option</VAR>)</A></DT>
@@ -427,7 +454,7 @@ the port is no longer in use.</DD>
 <DD class="defbody">
 UDP sockets only: broadcast the package to all addresses matching the 
 address. The address is normally the address of the local subnet (i.e. 
-192.168.1.255). See <A NAME="idx:udpsend4:25"></A><A HREF="#udp_send/4">udp_send/4</A>.</DD>
+192.168.1.255). See <A NAME="idx:udpsend4:25"></A><A class="pred" href="#udp_send/4">udp_send/4</A>.</DD>
 <DT><STRONG>dispatch</STRONG>(<VAR>Bool</VAR>)</DT>
 <DD class="defbody">
 In GUI environments (using XPCE or the Windows plwin.exe executable) 
@@ -474,7 +501,8 @@ returned by the latter function.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.1">4.1 Server applications</A></H3>
+<H3><A NAME="sec:4.1"><SPAN class="sec-nr">4.1</SPAN><SPAN class="sec-title">Server 
+applications</SPAN></A></H3>
 
 <P>The typical sequence for generating a server application is defined 
 below:
@@ -490,12 +518,12 @@ create_server(Port) :-
 
 <P>There are various options for &lt;<VAR>dispatch</VAR>&gt;. One is to 
 keep track of active clients and server-sockets using <A NAME="idx:waitforinput3:29"></A><B>wait_for_input/3</B>. 
-If input arrives at a server socket, use <A NAME="idx:tcpaccept3:30"></A><A HREF="#tcp_accept/3">tcp_accept/3</A> 
+If input arrives at a server socket, use <A NAME="idx:tcpaccept3:30"></A><A class="pred" href="#tcp_accept/3">tcp_accept/3</A> 
 and add the new connection to the active clients. Otherwise deal with 
-the input from the client. Another is to use (Unix) <A NAME="idx:fork1:31"></A><A HREF="#fork/1">fork/1</A> 
+the input from the client. Another is to use (Unix) <A NAME="idx:fork1:31"></A><A class="pred" href="#fork/1">fork/1</A> 
 to deal with the client in a separate process.
 
-<P>Using <A NAME="idx:fork1:32"></A><A HREF="#fork/1">fork/1</A>, &lt;<VAR>dispatch</VAR>&gt; 
+<P>Using <A NAME="idx:fork1:32"></A><A class="pred" href="#fork/1">fork/1</A>, &lt;<VAR>dispatch</VAR>&gt; 
 may be implemented as:
 
 <PRE class="code">
@@ -513,7 +541,8 @@ dispatch(AcceptFd) :-
         dispatch(AcceptFd).
 </PRE>
 
-<H3><A NAME="sec:4.2">4.2 Client applications</A></H3>
+<H3><A NAME="sec:4.2"><SPAN class="sec-nr">4.2</SPAN><SPAN class="sec-title">Client 
+applications</SPAN></A></H3>
 
 <P>The skeleton for client-communication is given below.
 
@@ -528,10 +557,11 @@ create_client(Host, Port) :-
 </PRE>
 
 <P>To deal with timeouts and multiple connections, <A NAME="idx:waitforinput3:33"></A><B>wait_for_input/3</B> 
-and/or non-blocking streams (see <A NAME="idx:tcpfcntl3:34"></A><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A>) 
+and/or non-blocking streams (see <A NAME="idx:tcpfcntl3:34"></A><A class="pred" href="#tcp_fcntl/3">tcp_fcntl/3</A>) 
 can be used.
 
-<H3><A NAME="sec:4.3">4.3 The stream_pool library</A></H3>
+<H3><A NAME="sec:4.3"><SPAN class="sec-nr">4.3</SPAN><SPAN class="sec-title">The 
+stream_pool library</SPAN></A></H3>
 
 <P>The <CODE>library(streampool)</CODE> library dispatches input from 
 multiple streams based on <A NAME="idx:waitforinput3:35"></A><B>wait_for_input/3</B>. 
@@ -557,7 +587,7 @@ is called.</DD>
 <DD class="defbody">
 Delete the given stream from the pool. Succeeds, even if <VAR>Stream</VAR> 
 is no member of the pool. If <VAR>Stream</VAR> is unbound the entire 
-pool is emtied but unlike <A NAME="idx:closestreampool0:36"></A><A HREF="#close_stream_pool/0">close_stream_pool/0</A> 
+pool is emtied but unlike <A NAME="idx:closestreampool0:36"></A><A class="pred" href="#close_stream_pool/0">close_stream_pool/0</A> 
 the streams are not closed.</DD>
 <DT class="pubdef"><A NAME="close_stream_pool/0"><STRONG>close_stream_pool</STRONG></A></DT>
 <DD class="defbody">
@@ -566,16 +596,18 @@ Empty the pool, closing all streams that are part of it.</DD>
 <DD class="defbody">
 Wait for maximum of <VAR>TimeOut</VAR> for input on any of the streams 
 in the pool. If there is input, call the <VAR>Goal</VAR> associated with
-<A NAME="idx:addstreamtopool2:37"></A><A HREF="#add_stream_to_pool/2">add_stream_to_pool/2</A>. 
+<A NAME="idx:addstreamtopool2:37"></A><A class="pred" href="#add_stream_to_pool/2">add_stream_to_pool/2</A>. 
 If <VAR>Goal</VAR> fails or raises an exception a message is printed. <VAR>TimeOut</VAR> 
 is described with <A NAME="idx:waitforinput3:38"></A><B>wait_for_input/3</B>.
 
 <P>If <VAR>Goal</VAR> is called, there is <EM>some</EM> input on the 
 associated stream. <VAR>Goal</VAR> must be careful not to block as this 
-will block the entire pool.<A NAME=back-to-note-3 HREF="index.html#note-3"> (3)</A></DD>
+will block the entire pool.<SUP class="fn">3<SPAN class="fn-text">This 
+is hard to achieve at the moment as none of the Prolog read-commands 
+provide for a timeout.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="stream_pool_main_loop/0"><STRONG>stream_pool_main_loop</STRONG></A></DT>
 <DD class="defbody">
-Calls <A NAME="idx:dispatchstreampool1:39"></A><A HREF="#dispatch_stream_pool/1">dispatch_stream_pool/1</A> 
+Calls <A NAME="idx:dispatchstreampool1:39"></A><A class="pred" href="#dispatch_stream_pool/1">dispatch_stream_pool/1</A> 
 in a loop until the pool is empty.
 </DD>
 </DL>
@@ -607,7 +639,8 @@ client(In, Out, _Peer) :-
         delete_stream_from_pool(In).
 </PRE>
 
-<H3><A NAME="sec:4.4">4.4 UDP protocol support</A></H3>
+<H3><A NAME="sec:4.4"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">UDP 
+protocol support</SPAN></A></H3>
 
 <P>The current library provides limited support for UDP packets. The UDP 
 protocol is a <EM>connection-less</EM> and <EM>unreliable</EM> datagram 
@@ -619,7 +652,7 @@ using the broadcasting mechanism.
 <DL>
 <DT class="pubdef"><A NAME="udp_socket/1"><STRONG>udp_socket</STRONG>(<VAR>-Socket</VAR>)</A></DT>
 <DD class="defbody">
-Similar to <A NAME="idx:tcpsocket1:40"></A><A HREF="#tcp_socket/1">tcp_socket/1</A>, 
+Similar to <A NAME="idx:tcpsocket1:40"></A><A class="pred" href="#tcp_socket/1">tcp_socket/1</A>, 
 but create a socket using the <CODE>SOCK_DGRAM</CODE> protocol, ready 
 for UDP connections.</DD>
 <DT class="pubdef"><A NAME="udp_receive/4"><STRONG>udp_receive</STRONG>(<VAR>+Socket, 
@@ -645,7 +678,8 @@ address as a <A NAME="idx:ip4:44"></A><B>ip/4</B> term.
 </DD>
 </DL>
 
-<H2><A NAME="sec:5">5 CGI Support library</A></H2>
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">CGI 
+Support library</SPAN></A></H2>
 
 <P>This is currently a very simple library, providing support for 
 obtaining the form-data for a CGI script:
@@ -691,14 +725,16 @@ print_args([A0|T]) :-
         print_args(T).
 </PRE>
 
-<H3><A NAME="sec:5.1">5.1 Some considerations</A></H3>
+<H3><A NAME="sec:5.1"><SPAN class="sec-nr">5.1</SPAN><SPAN class="sec-title">Some 
+considerations</SPAN></A></H3>
 
 <P>Printing an HTML document using <A NAME="idx:format2:45"></A><B>format/2</B> 
 is not really a neat way of producing HTML. A high-level alternative is 
 provided by
 <CODE>library(http/html_write)</CODE> from the XPCE package.
 
-<H2><A NAME="sec:6">6 MIME decoding library</A></H2>
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">MIME 
+decoding library</SPAN></A></H2>
 
 <P>MIME (Multipurpose Internet Mail Extensions) is a format for 
 serializing multiple typed data objects. It was designed for E-mail, but 
@@ -740,7 +776,9 @@ of data.
 
 <P><VAR>Parsed</VAR> is a tree structure of <CODE>mime(Attributes, Data, 
 PartList)</CODE> terms. Currently either <VAR>Data</VAR> is the empty 
-atom or <VAR>PartList</VAR> is an empty list.<A NAME=back-to-note-4 HREF="index.html#note-4"> (4)</A>
+atom or <VAR>PartList</VAR> is an empty list.<SUP class="fn">4<SPAN class="fn-text">It 
+is unclear to me whether a MIME note can contain a mixture of content 
+and parts, but I believe the answer is `no'.</SPAN></SUP>
 <VAR>Data</VAR> is an atom holding the message data. The library 
 automatically decodes <EM>base64</EM> and <EM>quoted-printable</EM> 
 messages. See also the <CODE>transfer_encoding</CODE> attribute below.
@@ -794,9 +832,10 @@ Name of the file the data should be stored in.
 </DD>
 </DL>
 
-<H2><A NAME="sec:7">7 Unix password encryption library</A></H2>
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Unix 
+password encryption library</SPAN></A></H2>
 
-<P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:46"></A><A HREF="#crypt/2">crypt/2</A> 
+<P>The <CODE>library(crypt)</CODE> library defines <A NAME="idx:crypt2:46"></A><A class="pred" href="#crypt/2">crypt/2</A> 
 for encrypting and testing Unix passwords:
 
 <DL>
@@ -819,7 +858,8 @@ defined atom.
 </DD>
 </DL>
 
-<H2><A NAME="sec:8">8 Memory files</A></H2>
+<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Memory 
+files</SPAN></A></H2>
 
 <P>The <CODE>library(memfile)</CODE> provides an alternative to 
 temporary files, intended for temporary buffering of data. Memory files 
@@ -872,7 +912,8 @@ Return the content of the memory-file as a list of character-codes in <VAR>Codes
 </DD>
 </DL>
 
-<H2><A NAME="sec:9">9 Time and alarm library</A></H2>
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Time 
+and alarm library</SPAN></A></H2>
 
 <P>The <CODE>library(time)</CODE> provides timing and alarm functions.
 
@@ -901,7 +942,7 @@ terms. Defined options are:
 <DD class="defbody">
 If <CODE>true</CODE> (default <CODE>false</CODE>), the timer is removed 
 automatically. Otherwise it must be delated explicitly using
-<A NAME="idx:removealarm1:52"></A><A HREF="#remove_alarm/1">remove_alarm/1</A>.
+<A NAME="idx:removealarm1:52"></A><A class="pred" href="#remove_alarm/1">remove_alarm/1</A>.
 </DD>
 </DL>
 
@@ -927,7 +968,7 @@ doesn't complete within
 <VAR>Time</VAR> seconds, exit using the exception
 <CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:54"></A><B>catch/3</B>.
 
-<P>Please note that this predicate uses <A NAME="idx:alarm4:55"></A><A HREF="#alarm/4">alarm/4</A> 
+<P>Please note that this predicate uses <A NAME="idx:alarm4:55"></A><A class="pred" href="#alarm/4">alarm/4</A> 
 and therefore is <EM>not</EM> capable to break out of long running goals 
 such as <A NAME="idx:sleep1:56"></A><B>sleep/1</B>, blocking I/O or 
 other long-running (foreign) predicates. Blocking I/O can be handled 
@@ -935,7 +976,8 @@ using the timeout option of <A NAME="idx:readterm3:57"></A><B>read_term/3</B>.
 </DD>
 </DL>
 
-<H2><A NAME="sec:10">10 Limiting process resources</A></H2>
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Limiting 
+process resources</SPAN></A></H2>
 
 <P>The <CODE>library(rlimit)</CODE> library provides an interface to the 
 POSIX getrlimit()/setrlimit() API that control the maximum 
@@ -991,9 +1033,10 @@ cpu_exceeded(_Sig) :-
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:11">11 Installation</A></H2>
+<H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Installation</SPAN></A></H2>
 
-<H3><A NAME="sec:11.1">11.1 Unix systems</A></H3>
+<H3><A NAME="sec:11.1"><SPAN class="sec-nr">11.1</SPAN><SPAN class="sec-title">Unix 
+systems</SPAN></A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -1012,115 +1055,94 @@ using:
 and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
 
-<H1><A NAME="document-notes">Footnotes</A></H1>
-
-<DL>
-<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A></DT>
-<DD>
-kill/2 should support interrupt-names as well</DD>
-<DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A></DT>
-<DD>
-More subtle handling of I/O, especially for debugging is required: 
-communicate with the syslog deamon and optionally start a debugging 
-dialog on a newly created (X-)terminal should be considered.</DD>
-<DT><A NAME=note-3 HREF="index.html#back-to-note-3">note-3</A></DT>
-<DD>
-This is hard to achieve at the moment as none of the Prolog 
-read-commands provide for a timeout.</DD>
-<DT><A NAME=note-4 HREF="index.html#back-to-note-4">note-4</A></DT>
-<DD>
-It is unclear to me whether a MIME note can contain a mixture of content 
-and parts, but I believe the answer is `no'.</DD>
-</DL>
-
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
 <DT><STRONG>A</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#add_stream_to_pool/2">add_stream_to_pool/2</A></DT>
+<DT><A class="idx" href="#add_stream_to_pool/2">add_stream_to_pool/2</A></DT>
 <DD>
-<A HREF="#idx:addstreamtopool2:37">4.3</A></DD>
-<DT><A HREF="#alarm/3">alarm/3</A></DT>
+<A class="idx" href="#idx:addstreamtopool2:37">4.3</A></DD>
+<DT><A class="idx" href="#alarm/3">alarm/3</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#alarm/4">alarm/4</A></DT>
+<DT><A class="idx" href="#alarm/4">alarm/4</A></DT>
 <DD>
-<A HREF="#idx:alarm4:55">9</A></DD>
+<A class="idx" href="#idx:alarm4:55">9</A></DD>
 <DT>at_end_of_stream/1</DT>
 <DD>
-<A HREF="#idx:atendofstream1:27">4</A> <A HREF="#idx:atendofstream1:28">4</A></DD>
-<DT><A HREF="#atom_to_memory_file/2">atom_to_memory_file/2</A></DT>
+<A class="idx" href="#idx:atendofstream1:27">4</A> <A class="idx" href="#idx:atendofstream1:28">4</A></DD>
+<DT><A class="idx" href="#atom_to_memory_file/2">atom_to_memory_file/2</A></DT>
 <DD>
 </DD>
 <DT>atom_to_term/3</DT>
 <DD>
-<A HREF="#idx:atomtoterm3:48">8</A></DD>
+<A class="idx" href="#idx:atomtoterm3:48">8</A></DD>
 <DT><STRONG>C</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#call_with_time_limit/2">call_with_time_limit/2</A></DT>
+<DT><A class="idx" href="#call_with_time_limit/2">call_with_time_limit/2</A></DT>
 <DD>
 </DD>
 <DT>catch/3</DT>
 <DD>
-<A HREF="#idx:catch3:54">9</A> <A HREF="#idx:catch3:58">10</A></DD>
-<DT><A HREF="#cgi_get_form/1">cgi_get_form/1</A></DT>
+<A class="idx" href="#idx:catch3:54">9</A> <A class="idx" href="#idx:catch3:58">10</A></DD>
+<DT><A class="idx" href="#cgi_get_form/1">cgi_get_form/1</A></DT>
 <DD>
 </DD>
 <DT>close/1</DT>
 <DD>
-<A HREF="#idx:close1:51">8</A></DD>
-<DT><A HREF="#close_stream_pool/0">close_stream_pool/0</A></DT>
+<A class="idx" href="#idx:close1:51">8</A></DD>
+<DT><A class="idx" href="#close_stream_pool/0">close_stream_pool/0</A></DT>
 <DD>
-<A HREF="#idx:closestreampool0:36">4.3</A></DD>
-<DT><A HREF="#crypt/2">crypt/2</A></DT>
+<A class="idx" href="#idx:closestreampool0:36">4.3</A></DD>
+<DT><A class="idx" href="#crypt/2">crypt/2</A></DT>
 <DD>
-<A HREF="#idx:crypt2:46">7</A></DD>
-<DT><A HREF="#current_alarm/4">current_alarm/4</A></DT>
+<A class="idx" href="#idx:crypt2:46">7</A></DD>
+<DT><A class="idx" href="#current_alarm/4">current_alarm/4</A></DT>
 <DD>
 </DD>
 <DT><STRONG>D</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#delete_stream_from_pool/1">delete_stream_from_pool/1</A></DT>
+<DT><A class="idx" href="#delete_stream_from_pool/1">delete_stream_from_pool/1</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#detach_IO/0">detach_IO/0</A></DT>
+<DT><A class="idx" href="#detach_IO/0">detach_IO/0</A></DT>
 <DD>
-<A HREF="#idx:detachIO0:4">2</A></DD>
-<DT><A HREF="#dispatch_stream_pool/1">dispatch_stream_pool/1</A></DT>
+<A class="idx" href="#idx:detachIO0:4">2</A></DD>
+<DT><A class="idx" href="#dispatch_stream_pool/1">dispatch_stream_pool/1</A></DT>
 <DD>
-<A HREF="#idx:dispatchstreampool1:39">4.3</A></DD>
-<DT><A HREF="#dup/2">dup/2</A></DT>
+<A class="idx" href="#idx:dispatchstreampool1:39">4.3</A></DD>
+<DT><A class="idx" href="#dup/2">dup/2</A></DT>
 <DD>
 </DD>
 <DT><STRONG>E</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#exec/1">exec/1</A></DT>
+<DT><A class="idx" href="#exec/1">exec/1</A></DT>
 <DD>
 </DD>
 <DT><STRONG>F</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#fork/1">fork/1</A></DT>
+<DT><A class="idx" href="#fork/1">fork/1</A></DT>
 <DD>
-<A HREF="#idx:fork1:2">2</A> <A HREF="#idx:fork1:9">2</A> <A HREF="#idx:fork1:15">4</A> <A HREF="#idx:fork1:31">4.1</A> <A HREF="#idx:fork1:32">4.1</A></DD>
+<A class="idx" href="#idx:fork1:2">2</A> <A class="idx" href="#idx:fork1:9">2</A> <A class="idx" href="#idx:fork1:15">4</A> <A class="idx" href="#idx:fork1:31">4.1</A> <A class="idx" href="#idx:fork1:32">4.1</A></DD>
 <DT>fork/2</DT>
 <DD>
-<A HREF="#idx:fork2:1">2</A></DD>
+<A class="idx" href="#idx:fork2:1">2</A></DD>
 <DT>format/2</DT>
 <DD>
-<A HREF="#idx:format2:45">5.1</A></DD>
-<DT><A HREF="#free_memory_file/1">free_memory_file/1</A></DT>
+<A class="idx" href="#idx:format2:45">5.1</A></DD>
+<DT><A class="idx" href="#free_memory_file/1">free_memory_file/1</A></DT>
 <DD>
 </DD>
 <DT><STRONG>G</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#gethostname/1">gethostname/1</A></DT>
+<DT><A class="idx" href="#gethostname/1">gethostname/1</A></DT>
 <DD>
 </DD>
 <DT><STRONG>H</STRONG></DT>
@@ -1128,35 +1150,35 @@ and parts, but I believe the answer is `no'.</DD>
 </DD>
 <DT>halt/[0,1]</DT>
 <DD>
-<A HREF="#idx:halt01:5">2</A></DD>
+<A class="idx" href="#idx:halt01:5">2</A></DD>
 <DT><STRONG>I</STRONG></DT>
 <DD>
 </DD>
 <DT>ip/4</DT>
 <DD>
-<A HREF="#idx:ip4:43">4.4</A> <A HREF="#idx:ip4:44">4.4</A></DD>
+<A class="idx" href="#idx:ip4:43">4.4</A> <A class="idx" href="#idx:ip4:44">4.4</A></DD>
 <DT><STRONG>K</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#kill/2">kill/2</A></DT>
+<DT><A class="idx" href="#kill/2">kill/2</A></DT>
 <DD>
-<A HREF="#idx:kill2:6">2</A></DD>
+<A class="idx" href="#idx:kill2:6">2</A></DD>
 <DT><STRONG>M</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#memory_file_to_atom/2">memory_file_to_atom/2</A></DT>
+<DT><A class="idx" href="#memory_file_to_atom/2">memory_file_to_atom/2</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#memory_file_to_codes/2">memory_file_to_codes/2</A></DT>
+<DT><A class="idx" href="#memory_file_to_codes/2">memory_file_to_codes/2</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#mime_parse/2">mime_parse/2</A></DT>
+<DT><A class="idx" href="#mime_parse/2">mime_parse/2</A></DT>
 <DD>
 </DD>
 <DT><STRONG>N</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#new_memory_file/1">new_memory_file/1</A></DT>
+<DT><A class="idx" href="#new_memory_file/1">new_memory_file/1</A></DT>
 <DD>
 </DD>
 <DT><STRONG>O</STRONG></DT>
@@ -1164,124 +1186,124 @@ and parts, but I believe the answer is `no'.</DD>
 </DD>
 <DT>once/1</DT>
 <DD>
-<A HREF="#idx:once1:53">9</A></DD>
+<A class="idx" href="#idx:once1:53">9</A></DD>
 <DT>on_signal/2</DT>
 <DD>
-<A HREF="#idx:onsignal2:7">2</A></DD>
+<A class="idx" href="#idx:onsignal2:7">2</A></DD>
 <DT>on_signal/3</DT>
 <DD>
-<A HREF="#idx:onsignal3:59">10</A></DD>
-<DT><A HREF="#open_memory_file/3">open_memory_file/3</A></DT>
+<A class="idx" href="#idx:onsignal3:59">10</A></DD>
+<DT><A class="idx" href="#open_memory_file/3">open_memory_file/3</A></DT>
 <DD>
 </DD>
 <DT>open_socket/3</DT>
 <DD>
-<A HREF="#idx:opensocket3:12">4</A></DD>
+<A class="idx" href="#idx:opensocket3:12">4</A></DD>
 <DT><STRONG>P</STRONG></DT>
 <DD>
 </DD>
 <DT>pce_open/3</DT>
 <DD>
-<A HREF="#idx:pceopen3:50">8</A></DD>
-<DT><A HREF="#pipe/2">pipe/2</A></DT>
+<A class="idx" href="#idx:pceopen3:50">8</A></DD>
+<DT><A class="idx" href="#pipe/2">pipe/2</A></DT>
 <DD>
-<A HREF="#idx:pipe2:8">2</A> <A HREF="#idx:pipe2:10">2</A></DD>
+<A class="idx" href="#idx:pipe2:8">2</A> <A class="idx" href="#idx:pipe2:10">2</A></DD>
 <DT><STRONG>R</STRONG></DT>
 <DD>
 </DD>
 <DT>read/1</DT>
 <DD>
-<A HREF="#idx:read1:26">4</A></DD>
+<A class="idx" href="#idx:read1:26">4</A></DD>
 <DT>read_term/3</DT>
 <DD>
-<A HREF="#idx:readterm3:57">9</A></DD>
-<DT><A HREF="#remove_alarm/1">remove_alarm/1</A></DT>
+<A class="idx" href="#idx:readterm3:57">9</A></DD>
+<DT><A class="idx" href="#remove_alarm/1">remove_alarm/1</A></DT>
 <DD>
-<A HREF="#idx:removealarm1:52">9</A></DD>
-<DT><A HREF="#rlimit/3">rlimit/3</A></DT>
+<A class="idx" href="#idx:removealarm1:52">9</A></DD>
+<DT><A class="idx" href="#rlimit/3">rlimit/3</A></DT>
 <DD>
 </DD>
 <DT><STRONG>S</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#set_time_file/3">set_time_file/3</A></DT>
+<DT><A class="idx" href="#set_time_file/3">set_time_file/3</A></DT>
 <DD>
 </DD>
 <DT>sformat/3</DT>
 <DD>
-<A HREF="#idx:sformat3:47">8</A></DD>
-<DT><A HREF="#size_memory_file/2">size_memory_file/2</A></DT>
+<A class="idx" href="#idx:sformat3:47">8</A></DD>
+<DT><A class="idx" href="#size_memory_file/2">size_memory_file/2</A></DT>
 <DD>
 </DD>
 <DT>sleep/1</DT>
 <DD>
-<A HREF="#idx:sleep1:56">9</A></DD>
+<A class="idx" href="#idx:sleep1:56">9</A></DD>
 <DT>socket</DT>
 <DD>
-<A HREF="#sec:4">4</A></DD>
-<DT><A HREF="#stream_pool_main_loop/0">stream_pool_main_loop/0</A></DT>
+<A class="sec" href="#sec:4">4</A></DD>
+<DT><A class="idx" href="#stream_pool_main_loop/0">stream_pool_main_loop/0</A></DT>
 <DD>
 </DD>
 <DT>string_to_list/2</DT>
 <DD>
-<A HREF="#idx:stringtolist2:41">4.4</A></DD>
+<A class="idx" href="#idx:stringtolist2:41">4.4</A></DD>
 <DT><STRONG>T</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#tcp_accept/3">tcp_accept/3</A></DT>
+<DT><A class="idx" href="#tcp_accept/3">tcp_accept/3</A></DT>
 <DD>
-<A HREF="#idx:tcpaccept3:14">4</A> <A HREF="#idx:tcpaccept3:17">4</A> <A HREF="#idx:tcpaccept3:21">4</A> <A HREF="#idx:tcpaccept3:23">4</A> <A HREF="#idx:tcpaccept3:30">4.1</A></DD>
-<DT><A HREF="#tcp_bind/2">tcp_bind/2</A></DT>
+<A class="idx" href="#idx:tcpaccept3:14">4</A> <A class="idx" href="#idx:tcpaccept3:17">4</A> <A class="idx" href="#idx:tcpaccept3:21">4</A> <A class="idx" href="#idx:tcpaccept3:23">4</A> <A class="idx" href="#idx:tcpaccept3:30">4.1</A></DD>
+<DT><A class="idx" href="#tcp_bind/2">tcp_bind/2</A></DT>
 <DD>
-<A HREF="#idx:tcpbind2:19">4</A> <A HREF="#idx:tcpbind2:22">4</A></DD>
-<DT><A HREF="#tcp_close_socket/1">tcp_close_socket/1</A></DT>
+<A class="idx" href="#idx:tcpbind2:19">4</A> <A class="idx" href="#idx:tcpbind2:22">4</A></DD>
+<DT><A class="idx" href="#tcp_close_socket/1">tcp_close_socket/1</A></DT>
 <DD>
-<A HREF="#idx:tcpclosesocket1:13">4</A> <A HREF="#idx:tcpclosesocket1:16">4</A> <A HREF="#idx:tcpclosesocket1:18">4</A></DD>
-<DT><A HREF="#tcp_connect/2">tcp_connect/2</A></DT>
-<DD>
-</DD>
-<DT><A HREF="#tcp_fcntl/3">tcp_fcntl/3</A></DT>
-<DD>
-<A HREF="#idx:tcpfcntl3:34">4.2</A></DD>
-<DT><A HREF="#tcp_host_to_address/2">tcp_host_to_address/2</A></DT>
+<A class="idx" href="#idx:tcpclosesocket1:13">4</A> <A class="idx" href="#idx:tcpclosesocket1:16">4</A> <A class="idx" href="#idx:tcpclosesocket1:18">4</A></DD>
+<DT><A class="idx" href="#tcp_connect/2">tcp_connect/2</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#tcp_listen/2">tcp_listen/2</A></DT>
+<DT><A class="idx" href="#tcp_fcntl/3">tcp_fcntl/3</A></DT>
 <DD>
-<A HREF="#idx:tcplisten2:20">4</A></DD>
-<DT><A HREF="#tcp_open_socket/3">tcp_open_socket/3</A></DT>
-<DD>
-<A HREF="#idx:tcpopensocket3:24">4</A></DD>
-<DT><A HREF="#tcp_setopt/2">tcp_setopt/2</A></DT>
+<A class="idx" href="#idx:tcpfcntl3:34">4.2</A></DD>
+<DT><A class="idx" href="#tcp_host_to_address/2">tcp_host_to_address/2</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#tcp_socket/1">tcp_socket/1</A></DT>
+<DT><A class="idx" href="#tcp_listen/2">tcp_listen/2</A></DT>
 <DD>
-<A HREF="#idx:tcpsocket1:40">4.4</A></DD>
+<A class="idx" href="#idx:tcplisten2:20">4</A></DD>
+<DT><A class="idx" href="#tcp_open_socket/3">tcp_open_socket/3</A></DT>
+<DD>
+<A class="idx" href="#idx:tcpopensocket3:24">4</A></DD>
+<DT><A class="idx" href="#tcp_setopt/2">tcp_setopt/2</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#tcp_socket/1">tcp_socket/1</A></DT>
+<DD>
+<A class="idx" href="#idx:tcpsocket1:40">4.4</A></DD>
 <DT>term_to_atom/2</DT>
 <DD>
-<A HREF="#idx:termtoatom2:49">8</A></DD>
+<A class="idx" href="#idx:termtoatom2:49">8</A></DD>
 <DT><STRONG>U</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#udp_receive/4">udp_receive/4</A></DT>
+<DT><A class="idx" href="#udp_receive/4">udp_receive/4</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#udp_send/4">udp_send/4</A></DT>
+<DT><A class="idx" href="#udp_send/4">udp_send/4</A></DT>
 <DD>
-<A HREF="#idx:udpsend4:25">4</A></DD>
-<DT><A HREF="#udp_socket/1">udp_socket/1</A></DT>
+<A class="idx" href="#idx:udpsend4:25">4</A></DD>
+<DT><A class="idx" href="#udp_socket/1">udp_socket/1</A></DT>
 <DD>
 </DD>
 <DT><STRONG>W</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#wait/2">wait/2</A></DT>
+<DT><A class="idx" href="#wait/2">wait/2</A></DT>
 <DD>
-<A HREF="#idx:wait2:3">2</A></DD>
+<A class="idx" href="#idx:wait2:3">2</A></DD>
 <DT>wait_for_input/3</DT>
 <DD>
-<A HREF="#idx:waitforinput3:11">4</A> <A HREF="#idx:waitforinput3:29">4.1</A> <A HREF="#idx:waitforinput3:33">4.2</A> <A HREF="#idx:waitforinput3:35">4.3</A> <A HREF="#idx:waitforinput3:38">4.3</A> <A HREF="#idx:waitforinput3:42">4.4</A></DD>
+<A class="idx" href="#idx:waitforinput3:11">4</A> <A class="idx" href="#idx:waitforinput3:29">4.1</A> <A class="idx" href="#idx:waitforinput3:33">4.2</A> <A class="idx" href="#idx:waitforinput3:35">4.3</A> <A class="idx" href="#idx:waitforinput3:38">4.3</A> <A class="idx" href="#idx:waitforinput3:42">4.4</A></DD>
 </DL>
 
 </BODY></HTML>

@@ -30,29 +30,6 @@ distributed as a package known under the name {\em clib}. The package
 defines a number of Prolog libraries with accompagnying foreign
 libraries.
 
-\begin{description}
-    \item[\pllib{unix}]
-This library provides Unix process control using fork(),
-exec(), pipe(), etc.
-    \item[\pllib{files}]
-This library provides low-level access to file objects.
-    \item[\pllib{cgi}]
-This library provides access to CGI form-data if Prolog is used for
-CGI-scripting.
-    \item[\pllib{crypt}]
-This library provides access to Unix password encryption.
-    \item[\pllib{mime}]
-This library decodes MIME messages.
-    \item[\pllib{socket}]
-This library provides access to TCP/IP communication.
-    \item[\pllib{streampool}]
-Dispatch input from a pool of (socket) streams.
-    \item[\pllib{time}]
-This library provides timing (alarm) functions.
-    \item[\pllib{rlimit}]
-Provides access to POSIX resource limits (CPU, memory, files).
-\end{description}
-
 On Windows systems, the \pllib{unix} and \pllib{crypt} libraries can
 only be used if the whole SWI-Prolog suite is compiled using
 \url[Cywin]{http://www.cygwin.com}.  The other libraries have been
