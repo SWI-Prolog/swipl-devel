@@ -2,70 +2,120 @@
 
 <HTML>
 <HEAD>
-<TITLE>Managing external tables for SWI-Prolog</TITLE><style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<TITLE>Managing external tables for SWI-Prolog</TITLE><STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
 
 div.title
-{ text-align: center; 
-padding-bottom: 1em; 
-font-size: 200%; 
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
 font-weight: bold;
 }
 
 div.author
-{ text-align: center; 
+{ text-align: center;
 font-style: italic;
 }
 
 div.abstract
-{ margin-top: 2em; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
-padding: 5px; 
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
 margin-left: 10%; margin-right:10%;
 }
 
 div.abstract-title
-{ text-align: center; 
-padding: 5px; 
-font-size: 120%; 
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
 font-weight: bold;
 }
-</style>
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
 <BODY BGCOLOR="white">
 
-<P><DIV class="title">Managing external tables for SWI-Prolog</DIV><DIV class="author">Jan 
-Wielemaker <BR>
+<P>
+<DIV class="title">Managing external tables for SWI-Prolog</DIV>
+<DIV class="author">Jan Wielemaker <BR>
 Human Computer Studies (HCS), <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
-This document describes a foreign language extension to
-<A HREF="http://www.swi.psy.uva.nl/projects/SWI-Prolog">SWI-Prolog</A> 
+E-mail: <A class="url" href="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> This document describes a 
+foreign language extension to
+<A class="url" href="http://www.swi.psy.uva.nl/projects/SWI-Prolog">SWI-Prolog</A> 
 for the manipulation of `external tables'. External tables are files 
 using a textual representation of records separated into fields. The 
 package allows for a flexible definition of the format of the file in 
@@ -87,25 +137,28 @@ more modern Unices).
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
-<UL>
-<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
-<LI><A HREF="#sec:2"><B>2 Managing external tables</B></A>
-<UL>
-<LI><A HREF="#sec:2.1">2.1 Creating and destroying tables</A>
-<LI><A HREF="#sec:2.2">2.2 Accessing a table</A>
-<UL>
-<LI><A HREF="#sec:2.2.1">2.2.1 Finding record locations in a table</A>
-<LI><A HREF="#sec:2.2.2">2.2.2 Reading records</A>
-<LI><A HREF="#sec:2.2.3">2.2.3 Searching the table</A>
-<LI><A HREF="#sec:2.2.4">2.2.4 Miscellaneous</A>
-</UL>
-</UL>
-<LI><A HREF="#sec:3"><B>3 Flexible ordering and equivalence based on 
-character table</B></A>
-<LI><A HREF="#sec:4"><B>4 Example: accessing the Unix passwd file</B></A>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Managing 
+external tables</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">Creating 
+and destroying tables</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:2.2"><SPAN class="sec-nr">2.2</SPAN><SPAN class="sec-title">Accessing 
+a table</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN><SPAN class="sec-title">Finding 
+record locations in a table</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN><SPAN class="sec-title">Reading 
+records</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN><SPAN class="sec-title">Searching 
+the table</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.4"><SPAN class="sec-nr">2.2.4</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Flexible 
+ordering and equivalence based on character table</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Example: 
+accessing the Unix passwd file</SPAN></A></DIV>
+</DIV>
 
-<H2><A NAME="sec:1">1 Introduction</A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>Prolog programs sometimes need access to large sets of background 
 data. For example in the <font size=-1>GRASP</font> project we need 
@@ -121,12 +174,14 @@ file-to-memory maps supported by many modern operating systems.
 
 <P>The following sections define the interface predicates for the 
 package.
-<A HREF="#sec:example">Section 4</A> provides an example to access the 
-Unix password file.
+<A class="sec" href="#sec:example">Section 4</A> provides an example to 
+access the Unix password file.
 
-<H2><A NAME="sec:2">2 Managing external tables</A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Managing 
+external tables</SPAN></A></H2>
 
-<H3><A NAME="sec:2.1">2.1 Creating and destroying tables</A></H3>
+<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">Creating 
+and destroying tables</SPAN></A></H3>
 
 <P>This section describes the predicates required for creating and 
 destroying the access to external database tables.
@@ -178,7 +233,7 @@ numerically. </TD></TR>
 (textual) field is sorted using the ordering declared by the named <EM>ordering 
 table</EM>. This option may be used to define reverse order, 
 `dictionary' order or other irregular alphabetical ordering. See
-<A NAME="idx:newordertable2:1"></A><A HREF="#new_order_table/2">new_order_table/2</A>. </TD></TR>
+<A NAME="idx:newordertable2:1"></A><A class="pred" href="#new_order_table/2">new_order_table/2</A>. </TD></TR>
 <TR VALIGN=top><TD><TT>unique</TT></TD><TD>This column has distinct 
 values for each row in the table. </TD></TR>
 <TR VALIGN=top><TD><TT>downcase</TT></TD><TD>Map all uppercase in the 
@@ -192,7 +247,7 @@ the value returns the value as an atom. </TD></TR>
 <TR VALIGN=top><TD><TT>width(+<VAR>Chars</VAR>)</TT></TD><TD>Field has 
 fixed width of the specified number of characters. The column-separator 
 is not considered for this column. </TD></TR>
-<TR VALIGN=top><TD><TT>arg(+<VAR>Index</VAR>)</TT></TD><TD>For <A NAME="idx:readtablerecord4:2"></A><A HREF="#read_table_record/4">read_table_record/4</A>, 
+<TR VALIGN=top><TD><TT>arg(+<VAR>Index</VAR>)</TT></TD><TD>For <A NAME="idx:readtablerecord4:2"></A><A class="pred" href="#read_table_record/4">read_table_record/4</A>, 
 unify the field with the given argument of the record term. Further 
 fields will be assigned index+1, ... . </TD></TR>
 <TR VALIGN=top><TD><TT>skip</TT></TD><TD>Don't convert this field to 
@@ -230,7 +285,7 @@ map table is the identity map, unless <VAR>Code</VAR> refers to the
 <CODE>\b</CODE>, <CODE>\e</CODE>, <CODE>\n</CODE>, <CODE>\r</CODE> and <CODE>\t</CODE> 
 have their usual meaning. </TD></TR>
 <TR VALIGN=top><TD><TT>functor(<VAR>+Head</VAR>)</TT></TD><TD>Functor 
-used by <A NAME="idx:readtablerecord4:3"></A><A HREF="#read_table_record/4">read_table_record/4</A>. 
+used by <A NAME="idx:readtablerecord4:3"></A><A class="pred" href="#read_table_record/4">read_table_record/4</A>. 
 Default is <TT>record</TT> using the maximal argument index of the 
 fields as arity. </TD></TR>
 </TABLE>
@@ -239,7 +294,7 @@ fields as arity. </TD></TR>
 
 <P>If the options are parsed successfully, <VAR>Handle</VAR> is unified 
 with a term that may be used as a handle to the table for future 
-operations on it. Note that <A NAME="idx:newtable4:4"></A><A HREF="#new_table/4">new_table/4</A> 
+operations on it. Note that <A NAME="idx:newtable4:4"></A><A class="pred" href="#new_table/4">new_table/4</A> 
 does not access the file system, so its success only indicates the 
 description could be parsed, not the presence, access or format of the 
 file.</DD>
@@ -263,11 +318,13 @@ becomes invalid and further references to it causes undefined behaviour.
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:2.2">2.2 Accessing a table</A></H3>
+<H3><A NAME="sec:2.2"><SPAN class="sec-nr">2.2</SPAN><SPAN class="sec-title">Accessing 
+a table</SPAN></A></H3>
 
 <P>This section describes the predicates to read data from a table.
 
-<H4><A NAME="sec:2.2.1">2.2.1 Finding record locations in a table</A></H4>
+<H4><A NAME="sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN><SPAN class="sec-title">Finding 
+record locations in a table</SPAN></A></H4>
 
 <P>Records are addressed by their offset in the table (file). As records 
 have generally non-fixed length, searching is often required. The 
@@ -314,7 +371,7 @@ call.
 +From, +To, -Start</VAR>)</A></DT>
 <DD class="defbody">
 Enumerates (on backtracking) the start of records in the table in the 
-region [From, To). Together with <A NAME="idx:readtablerecord4:5"></A><A HREF="#read_table_record/4">read_table_record/4</A>, 
+region [From, To). Together with <A NAME="idx:readtablerecord4:5"></A><A class="pred" href="#read_table_record/4">read_table_record/4</A>, 
 this may be used to read the table's data.
 </DD>
 <DT class="pubdef"><A NAME="table_previous_record/3"><STRONG>table_previous_record</STRONG>(<VAR>+Handle, 
@@ -326,10 +383,11 @@ a record, the start of this record will be returned.
 </DD>
 </DL>
 
-<H4><A NAME="sec:2.2.2">2.2.2 Reading records</A></H4>
+<H4><A NAME="sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN><SPAN class="sec-title">Reading 
+records</SPAN></A></H4>
 
-<P>There are two predicates for reading records. The <A NAME="idx:readtablerecord4:6"></A><A HREF="#read_table_record/4">read_table_record/4</A> 
-reads an entire record, while <A NAME="idx:readtablefields4:7"></A><A HREF="#read_table_fields/4">read_table_fields/4</A> 
+<P>There are two predicates for reading records. The <A NAME="idx:readtablerecord4:6"></A><A class="pred" href="#read_table_record/4">read_table_record/4</A> 
+reads an entire record, while <A NAME="idx:readtablefields4:7"></A><A class="pred" href="#read_table_fields/4">read_table_fields/4</A> 
 reads one or more fields from a record.
 
 <DL>
@@ -337,7 +395,7 @@ reads one or more fields from a record.
 +Start, -Next, -Record</VAR>)</A></DT>
 <DD class="defbody">
 Read a record from the table. <VAR>Handle</VAR> is a handle as returned 
-by <A NAME="idx:newtable4:8"></A><A HREF="#new_table/4">new_table/4</A>. <VAR>Start</VAR> 
+by <A NAME="idx:newtable4:8"></A><A class="pred" href="#new_table/4">new_table/4</A>. <VAR>Start</VAR> 
 is the location of a record. If <VAR>Start</VAR> does not point to the 
 start of a record, this predicate searches backwards for the starting 
 position. <VAR>Record</VAR> is unified with a term constructed from the <VAR>functor</VAR> 
@@ -348,14 +406,14 @@ is unified with the start position for the next record.</DD>
 <DT class="pubdef"><A NAME="read_table_fields/4"><STRONG>read_table_fields</STRONG>(<VAR>+Handle, 
 +Start, -Next, -Fields</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:readtablerecord4:9"></A><A HREF="#read_table_record/4">read_table_record/4</A>, 
+As <A NAME="idx:readtablerecord4:9"></A><A class="pred" href="#read_table_record/4">read_table_record/4</A>, 
 but <VAR>Fields</VAR> is a list of terms
 <VAR>+Name</VAR>(-<VAR>Value</VAR>), and the <VAR>Values</VAR> will be 
 unified with the values of the specified field.</DD>
 <DT class="pubdef"><A NAME="read_table_record_data/4"><STRONG>read_table_record_data</STRONG>(<VAR>+Handle, 
 +Start, -Next, -Record</VAR>)</A></DT>
 <DD class="defbody">
-Similar to <A NAME="idx:readtablerecord4:10"></A><A HREF="#read_table_record/4">read_table_record/4</A>, 
+Similar to <A NAME="idx:readtablerecord4:10"></A><A class="pred" href="#read_table_record/4">read_table_record/4</A>, 
 but unifies record with a Prolog string containing the data of the 
 record unparsed. The returned record does <B>not</B> contain the 
 terminating record-separator.
@@ -363,7 +421,8 @@ terminating record-separator.
 <P></DD>
 </DL>
 
-<H4><A NAME="sec:2.2.3">2.2.3 Searching the table</A></H4>
+<H4><A NAME="sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN><SPAN class="sec-title">Searching 
+the table</SPAN></A></H4>
 
 <DL>
 <DT class="pubdef"><A NAME="in_table/3"><STRONG>in_table</STRONG>(<VAR>+Handle, 
@@ -373,9 +432,9 @@ Searches the table for records matching <VAR>Fields</VAR>. If a match is
 found, the variable (see below) fields in <VAR>Fields</VAR> are unified 
 with the corresponding field value, and <VAR>RecordPos</VAR> is unified 
 with the position of the record. The latter handle may be used in a 
-subsequent call to <A NAME="idx:readtablerecord4:11"></A><A HREF="#read_table_record/4">read_table_record/4</A> 
+subsequent call to <A NAME="idx:readtablerecord4:11"></A><A class="pred" href="#read_table_record/4">read_table_record/4</A> 
 or
-<A NAME="idx:readtablefields4:12"></A><A HREF="#read_table_fields/4">read_table_fields/4</A>.
+<A NAME="idx:readtablefields4:12"></A><A class="pred" href="#read_table_fields/4">read_table_fields/4</A>.
 
 <P><VAR>Fields</VAR> is a list of field specifiers. Each specifier is of 
 the format:
@@ -385,7 +444,7 @@ the format:
 
 <P><VAR>Options</VAR> is a list of options to specify the search. By 
 default, the package will search for an exact match, possibly using the 
-ordering table associated with the field (see <TT>order</TT> option in <A NAME="idx:newtable4:13"></A><A HREF="#new_table/4">new_table/4</A>). 
+ordering table associated with the field (see <TT>order</TT> option in <A NAME="idx:newtable4:13"></A><A class="pred" href="#new_table/4">new_table/4</A>). 
 Options are:
 
 <P>
@@ -417,13 +476,15 @@ specified. In this case, binary search is employed to find the matching
 record(s). Otherwise, linear search is used.
 
 <P>If the match contains a specified field that has the property
-<TT>unique</TT> set (see <A NAME="idx:newtable4:14"></A><A HREF="#new_table/4">new_table/4</A>), <A NAME="idx:intable3:15"></A><A HREF="#in_table/3">in_table/3</A> 
+<TT>unique</TT> set (see <A NAME="idx:newtable4:14"></A><A class="pred" href="#new_table/4">new_table/4</A>), <A NAME="idx:intable3:15"></A><A class="pred" href="#in_table/3">in_table/3</A> 
 succeeds deterministically. Otherwise it will create a backtrack-point 
 and backtracking will yield further solutions to the query.
 
-<P><A NAME="idx:intable3:16"></A><A HREF="#in_table/3">in_table/3</A> 
+<P><A NAME="idx:intable3:16"></A><A class="pred" href="#in_table/3">in_table/3</A> 
 may be comfortable used to bind the table transparently to a predicate. 
-For example, we have a file with lines of the format.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
+For example, we have a file with lines of the format.<SUP class="fn">1<SPAN class="fn-text">This 
+is the <TT>disproot.dat</TT> table from the <font size=-1>AAT</font> 
+database used in <font size=-1>GRASP</font></SPAN></SUP>
 
 <PRE class="code">
     C1C2,Full Name
@@ -457,7 +518,7 @@ table. The code below does the trick:
 <P></DD>
 </DL>
 
-<H4><A NAME="sec:2.2.4">2.2.4 Miscellaneous</A></H4>
+<H4><A NAME="sec:2.2.4"><SPAN class="sec-nr">2.2.4</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></H4>
 
 <DL>
 <DT class="pubdef"><A NAME="table_version/2"><STRONG>table_version</STRONG>(<VAR>-Version, 
@@ -469,8 +530,8 @@ compiled.
 </DD>
 </DL>
 
-<H2><A NAME="sec:3">3 Flexible ordering and equivalence based on 
-character table</A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Flexible 
+ordering and equivalence based on character table</SPAN></A></H2>
 
 <P>This package was developed as part of the <font size=-1>GRASP</font> 
 project, where it is used for browsing lexical and ontology information, 
@@ -577,7 +638,8 @@ named <VAR>Table</VAR>.
 </DD>
 </DL>
 
-<H2><A NAME="sec:4">4 Example: accessing the Unix passwd file</A></H2>
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Example: 
+accessing the Unix passwd file</SPAN></A></H2>
 
 <A NAME="sec:example"></A>
 
@@ -611,14 +673,5 @@ joe:hgdu3r3bce:53:100:Joe Johnson:/users/joe:/bin/bash
 <PRE class="code">
 ?- findall(User, in_table(H, [user(User), gid(100)], _), Users).
 </PRE>
-
-<H1><A NAME="document-notes">Footnotes</A></H1>
-
-<DL>
-<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A></DT>
-<DD>
-This is the <TT>disproot.dat</TT> table from the <font size=-1>AAT</font> 
-database used in <font size=-1>GRASP</font></DD>
-</DL>
 
 </BODY></HTML>

@@ -2,99 +2,160 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog Unit Tests</TITLE><style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<TITLE>SWI-Prolog Unit Tests</TITLE><STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
 
 div.title
-{ text-align: center; 
-padding-bottom: 1em; 
-font-size: 200%; 
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
 font-weight: bold;
 }
 
 div.author
-{ text-align: center; 
+{ text-align: center;
 font-style: italic;
 }
 
 div.abstract
-{ margin-top: 2em; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
-padding: 5px; 
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
 margin-left: 10%; margin-right:10%;
 }
 
 div.abstract-title
-{ text-align: center; 
-padding: 5px; 
-font-size: 120%; 
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
 font-weight: bold;
 }
-</style>
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
 <BODY BGCOLOR="white"> 
 
-<P><DIV class="title">SWI-Prolog Unit Tests</DIV><DIV class="author">Jan 
-Wielemaker <BR>
+<P>
+<DIV class="title">SWI-Prolog Unit Tests</DIV>
+<DIV class="author">Jan Wielemaker <BR>
 HCS, <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
-This document describes the SWI-Prolog unit-test framework.
+E-mail: <A class="url" href="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> This document describes the 
+SWI-Prolog unit-test framework.
 </DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
-<UL>
-<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
-<LI><A HREF="#sec:2"><B>2 A Unit Test box</B></A>
-<UL>
-<LI><A HREF="#sec:2.1">2.1 Test Unit options</A>
-<LI><A HREF="#sec:2.2">2.2 Writing the test body</A>
-<UL>
-<LI><A HREF="#sec:2.2.1">2.2.1 Testing deterministic predicates</A>
-<LI><A HREF="#sec:2.2.2">2.2.2 Testing semi-deterministic predicates</A>
-<LI><A HREF="#sec:2.2.3">2.2.3 Testing non-deterministic predicates</A>
-<LI><A HREF="#sec:2.2.4">2.2.4 Testing error conditions</A>
-</UL>
-</UL>
-<LI><A HREF="#sec:3"><B>3 Using seperate test files</B></A>
-<LI><A HREF="#sec:4"><B>4 Running the test-suite</B></A>
-<LI><A HREF="#sec:5"><B>5 Tests and production systems</B></A>
-<LI><A HREF="#sec:6"><B>6 Controlling the test suite</B></A>
-<LI><A HREF="#sec:7"><B>7 Auto-generating tests</B></A>
-<LI><A HREF="#sec:8"><B>8 Coverage analysis</B></A>
-<LI><A HREF="#sec:9"><B>9 Portability of the test-suite</B></A>
-<LI><A HREF="#sec:10"><B>10 Motivation of choices</B></A>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">A 
+Unit Test box</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">Test 
+Unit options</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:2.2"><SPAN class="sec-nr">2.2</SPAN><SPAN class="sec-title">Writing 
+the test body</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN><SPAN class="sec-title">Testing 
+deterministic predicates</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN><SPAN class="sec-title">Testing 
+semi-deterministic predicates</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN><SPAN class="sec-title">Testing 
+non-deterministic predicates</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:2.2.4"><SPAN class="sec-nr">2.2.4</SPAN><SPAN class="sec-title">Testing 
+error conditions</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Using 
+seperate test files</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Running 
+the test-suite</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Tests 
+and production systems</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Controlling 
+the test suite</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Auto-generating 
+tests</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Coverage 
+analysis</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Portability 
+of the test-suite</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
+of choices</SPAN></A></DIV>
+</DIV>
 
 <P>
 
-<H2><A NAME="sec:1">1 Introduction</A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <A NAME="sec:intro"></A>
 
@@ -116,12 +177,13 @@ you must return to the application a few years later or you must modify
 and debug someone else's application.
 </UL>
 
-<H2><A NAME="sec:2">2 A Unit Test box</A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">A 
+Unit Test box</SPAN></A></H2>
 
 <A NAME="sec:unitbox"></A>
 
 <P>Tests are written in pure Prolog and enclosed within the directives
-<A NAME="idx:begintests1:1"></A><A HREF="#begin_tests/1">begin_tests/1</A>,2 
+<A NAME="idx:begintests1:1"></A><A class="pred" href="#begin_tests/1">begin_tests/1</A>,2 
 and <A NAME="idx:endtests1:2"></A><B>end_tests/1</B>. They can be 
 embedded inside a normal source module, or be placed in a seperate 
 test-file that loads the files that to be tested. Code inside a test box 
@@ -229,7 +291,8 @@ the body is not considered an error.
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.1">2.1 Test Unit options</A></H3>
+<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">Test 
+Unit options</SPAN></A></H3>
 
 <A NAME="sec:unitoptions"></A>
 
@@ -266,7 +329,8 @@ Executed after completion of all tests in the unit.
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.2">2.2 Writing the test body</A></H3>
+<H3><A NAME="sec:2.2"><SPAN class="sec-nr">2.2</SPAN><SPAN class="sec-title">Writing 
+the test body</SPAN></A></H3>
 
 <A NAME="sec:testbody"></A>
 
@@ -274,11 +338,12 @@ Executed after completion of all tests in the unit.
 must be designed to succeed <EM>deterministically</EM>. Any other result 
 is considered a failure. One of the options <CODE>fail</CODE>, <CODE>true</CODE>,
 <CODE>throws</CODE>, <CODE>all</CODE> or <CODE>set</CODE> can be used to 
-specify a different expected result. See <A HREF="#sec:unitbox">section 
+specify a different expected result. See <A class="sec" href="#sec:unitbox">section 
 2</A> for details. In this section we illustrate typical test-scenarios 
 by testing SWI-Prolog built-in and library predicates.
 
-<H4><A NAME="sec:2.2.1">2.2.1 Testing deterministic predicates</A></H4>
+<H4><A NAME="sec:2.2.1"><SPAN class="sec-nr">2.2.1</SPAN><SPAN class="sec-title">Testing 
+deterministic predicates</SPAN></A></H4>
 
 <A NAME="sec:testdet"></A>
 
@@ -318,7 +383,8 @@ test(member, [nondet]) :-
         member(b, [a,b,c]).
 </PRE>
 
-<H4><A NAME="sec:2.2.2">2.2.2 Testing semi-deterministic predicates</A></H4>
+<H4><A NAME="sec:2.2.2"><SPAN class="sec-nr">2.2.2</SPAN><SPAN class="sec-title">Testing 
+semi-deterministic predicates</SPAN></A></H4>
 
 <A NAME="sec:testsemidet"></A>
 
@@ -337,7 +403,8 @@ test(is_set, [fail]) :-
         is_set([a,a]).
 </PRE>
 
-<H4><A NAME="sec:2.2.3">2.2.3 Testing non-deterministic predicates</A></H4>
+<H4><A NAME="sec:2.2.3"><SPAN class="sec-nr">2.2.3</SPAN><SPAN class="sec-title">Testing 
+non-deterministic predicates</SPAN></A></H4>
 
 <A NAME="sec:testnondet"></A>
 
@@ -356,7 +423,8 @@ test(member, all(X == [a,b,c]) :-
         member(X, [a,b,c]).
 </PRE>
 
-<H4><A NAME="sec:2.2.4">2.2.4 Testing error conditions</A></H4>
+<H4><A NAME="sec:2.2.4"><SPAN class="sec-nr">2.2.4</SPAN><SPAN class="sec-title">Testing 
+error conditions</SPAN></A></H4>
 
 <A NAME="sec:testerror"></A>
 
@@ -373,7 +441,8 @@ test(div0, [throws(error(evaluation_error(zero_divisor), _))]) :-
      A is 1/0.
 </PRE>
 
-<H2><A NAME="sec:3">3 Using seperate test files</A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Using 
+seperate test files</SPAN></A></H2>
 
 <A NAME="sec:testfiles"></A>
 
@@ -381,16 +450,17 @@ test(div0, [throws(error(evaluation_error(zero_divisor), _))]) :-
 Alternatively, tests for a source-file can be placed in another file 
 alongside the file to be tested. Test files use the extension <CODE>.plt</CODE>. 
 The predicate
-<A NAME="idx:loadtestfiles1:10"></A><A HREF="#load_test_files/1">load_test_files/1</A> 
+<A NAME="idx:loadtestfiles1:10"></A><A class="pred" href="#load_test_files/1">load_test_files/1</A> 
 can load all files that are related to source-files loaded into the 
 current project.
 
-<H2><A NAME="sec:4">4 Running the test-suite</A></H2>
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Running 
+the test-suite</SPAN></A></H2>
 
 <A NAME="sec:running"></A>
 
 <P>At any time, the tests can be executed by loading the program and 
-running <A NAME="idx:runtests0:11"></A><A HREF="#run_tests/0">run_tests/0</A> 
+running <A NAME="idx:runtests0:11"></A><A class="pred" href="#run_tests/0">run_tests/0</A> 
 or run_tests(+Unit).
 
 <DL>
@@ -404,7 +474,9 @@ multiple tests. A single specification is either the name of a test unit
 or a term &lt;<VAR>Unit</VAR>&gt;:&lt;<VAR>Tests</VAR>&gt;, running only 
 the specified test. &lt;<VAR>Tests</VAR>&gt; is either the name of a 
 test or a list of names. Running particular tests is particulary useful 
-for tracing a test:<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
+for tracing a test:<SUP class="fn">1<SPAN class="fn-text">Unfortunately 
+the body of the test is called through meta-calling, so it cannot be 
+traced. The called user-code can be traced normally though.</SPAN></SUP>
 
 <PRE class="code">
 ?- gtrace, run_tests(lists:member).
@@ -413,7 +485,8 @@ for tracing a test:<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:5">5 Tests and production systems</A></H2>
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Tests 
+and production systems</SPAN></A></H2>
 
 <A NAME="sec:state"></A>
 
@@ -427,7 +500,8 @@ loading the application.
 :- set_test_options([load(never)]).
 </PRE>
 
-<H2><A NAME="sec:6">6 Controlling the test suite</A></H2>
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Controlling 
+the test suite</SPAN></A></H2>
 
 <A NAME="sec:options"></A>
 
@@ -440,7 +514,7 @@ Defined options are:
 <DT><STRONG>load</STRONG>(<VAR>+Load</VAR>)</DT>
 <DD class="defbody">
 Determines whether or not tests are loaded. When <CODE>never</CODE>, 
-everything between <A NAME="idx:begintests1:12"></A><A HREF="#begin_tests/1">begin_tests/1</A> 
+everything between <A NAME="idx:begintests1:12"></A><A class="pred" href="#begin_tests/1">begin_tests/1</A> 
 and <A NAME="idx:endtests1:13"></A><B>end_tests/1</B> is simply ignored. 
 When <CODE>always</CODE>, tests are always loaded. Finally, when using 
 the default value <CODE>normal</CODE>, tests are loaded if the code is 
@@ -448,8 +522,8 @@ not compiled with optimisation turned on.</DD>
 <DT><STRONG>run</STRONG>(<VAR>+Run</VAR>)</DT>
 <DD class="defbody">
 Specifies when tests are ran. Using <CODE>manual</CODE>, tests can only 
-be run using <A NAME="idx:runtests0:14"></A><A HREF="#run_tests/0">run_tests/0</A> 
-or <A NAME="idx:runtests1:15"></A><A HREF="#run_tests/1">run_tests/1</A>. 
+be run using <A NAME="idx:runtests0:14"></A><A class="pred" href="#run_tests/0">run_tests/0</A> 
+or <A NAME="idx:runtests1:15"></A><A class="pred" href="#run_tests/1">run_tests/1</A>. 
 Using <CODE>make</CODE>, tests will be run for reloaded files, but not 
 for files loaded the first time. Using
 <CODE>make(all)</CODE> <A NAME="idx:make0:16"></A><B>make/0</B> will run 
@@ -465,7 +539,8 @@ sources.
 </DD>
 </DL>
 
-<H2><A NAME="sec:7">7 Auto-generating tests</A></H2>
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Auto-generating 
+tests</SPAN></A></H2>
 
 <A NAME="sec:wizard"></A>
 
@@ -522,7 +597,8 @@ test(reverse, [true(A==[a])]) :-
 :- end_tests(lists).
 </PRE>
 
-<H2><A NAME="sec:8">8 Coverage analysis</A></H2>
+<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Coverage 
+analysis</SPAN></A></H2>
 
 <A NAME="sec:cover"></A>
 
@@ -578,7 +654,8 @@ currently only shows some rough quality measure for test-suite. Later
 versions should provide a report to the developer identifying which 
 clauses are covered, not covered and always failed.
 
-<H2><A NAME="sec:9">9 Portability of the test-suite</A></H2>
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Portability 
+of the test-suite</SPAN></A></H2>
 
 <A NAME="sec:porting"></A>
 
@@ -598,7 +675,8 @@ in the surrounding module. This implies that support predicates used
 inside the test unit should not conflict with predicates of the module 
 being tested.
 
-<H2><A NAME="sec:10">10 Motivation of choices</A></H2>
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
+of choices</SPAN></A></H2>
 
 <A NAME="sec:motivation"></A>
 
@@ -620,25 +698,16 @@ of the unit test module. Only clauses of <A NAME="idx:test1:20"></A><B>test/1</B
 and <A NAME="idx:test2:21"></A><B>test/2</B> may be marked as non-called 
 in environments that perform cross-referencing.
 
-<H1><A NAME="document-notes">Footnotes</A></H1>
-
-<DL>
-<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A></DT>
-<DD>
-Unfortunately the body of the test is called through meta-calling, so it 
-cannot be traced. The called user-code can be traced normally though.</DD>
-</DL>
-
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
 <DT><STRONG>B</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#begin_tests/1">begin_tests/1</A></DT>
+<DT><A class="idx" href="#begin_tests/1">begin_tests/1</A></DT>
 <DD>
-<A HREF="#idx:begintests1:1">2</A> <A HREF="#idx:begintests1:12">6</A></DD>
-<DT><A HREF="#begin_tests/2">begin_tests/2</A></DT>
+<A class="idx" href="#idx:begintests1:1">2</A> <A class="idx" href="#idx:begintests1:12">6</A></DD>
+<DT><A class="idx" href="#begin_tests/2">begin_tests/2</A></DT>
 <DD>
 </DD>
 <DT><STRONG>C</STRONG></DT>
@@ -646,62 +715,62 @@ cannot be traced. The called user-code can be traced normally though.</DD>
 </DD>
 <DT>call_cleanup/2</DT>
 <DD>
-<A HREF="#idx:callcleanup2:3">2</A></DD>
+<A class="idx" href="#idx:callcleanup2:3">2</A></DD>
 <DT>catch/3</DT>
 <DD>
-<A HREF="#idx:catch3:9">2.2.4</A></DD>
+<A class="idx" href="#idx:catch3:9">2.2.4</A></DD>
 <DT>copy_term/2</DT>
 <DD>
-<A HREF="#idx:copyterm2:4">2</A></DD>
+<A class="idx" href="#idx:copyterm2:4">2</A></DD>
 <DT><STRONG>E</STRONG></DT>
 <DD>
 </DD>
 <DT>end_tests/1</DT>
 <DD>
-<A HREF="#idx:endtests1:2">2</A> <A HREF="#idx:endtests1:13">6</A></DD>
+<A class="idx" href="#idx:endtests1:2">2</A> <A class="idx" href="#idx:endtests1:13">6</A></DD>
 <DT><STRONG>F</STRONG></DT>
 <DD>
 </DD>
 <DT>findall/3</DT>
 <DD>
-<A HREF="#idx:findall3:7">2.2.3</A></DD>
+<A class="idx" href="#idx:findall3:7">2.2.3</A></DD>
 <DT><STRONG>L</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#load_test_files/1">load_test_files/1</A></DT>
+<DT><A class="idx" href="#load_test_files/1">load_test_files/1</A></DT>
 <DD>
-<A HREF="#idx:loadtestfiles1:10">3</A></DD>
+<A class="idx" href="#idx:loadtestfiles1:10">3</A></DD>
 <DT><STRONG>M</STRONG></DT>
 <DD>
 </DD>
 <DT>make/0</DT>
 <DD>
-<A HREF="#idx:make0:16">6</A></DD>
+<A class="idx" href="#idx:make0:16">6</A></DD>
 <DT>make_tests/3</DT>
 <DD>
-<A HREF="#idx:maketests3:17">7</A></DD>
+<A class="idx" href="#idx:maketests3:17">7</A></DD>
 <DT>member/2</DT>
 <DD>
-<A HREF="#idx:member2:6">2.2.1</A></DD>
+<A class="idx" href="#idx:member2:6">2.2.1</A></DD>
 <DT><STRONG>R</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#run_tests/0">run_tests/0</A></DT>
+<DT><A class="idx" href="#run_tests/0">run_tests/0</A></DT>
 <DD>
-<A HREF="#idx:runtests0:11">4</A> <A HREF="#idx:runtests0:14">6</A></DD>
-<DT><A HREF="#run_tests/1">run_tests/1</A></DT>
+<A class="idx" href="#idx:runtests0:11">4</A> <A class="idx" href="#idx:runtests0:14">6</A></DD>
+<DT><A class="idx" href="#run_tests/1">run_tests/1</A></DT>
 <DD>
-<A HREF="#idx:runtests1:15">6</A></DD>
+<A class="idx" href="#idx:runtests1:15">6</A></DD>
 <DT><STRONG>S</STRONG></DT>
 <DD>
 </DD>
 <DT>setof/3</DT>
 <DD>
-<A HREF="#idx:setof3:8">2.2.3</A></DD>
-<DT><A HREF="#set_test_options/1">set_test_options/1</A></DT>
+<A class="idx" href="#idx:setof3:8">2.2.3</A></DD>
+<DT><A class="idx" href="#set_test_options/1">set_test_options/1</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#show_coverage/1">show_coverage/1</A></DT>
+<DT><A class="idx" href="#show_coverage/1">show_coverage/1</A></DT>
 <DD>
 </DD>
 <DT><STRONG>T</STRONG></DT>
@@ -709,13 +778,13 @@ cannot be traced. The called user-code can be traced normally though.</DD>
 </DD>
 <DT>term_expansion/2</DT>
 <DD>
-<A HREF="#idx:termexpansion2:18">9</A></DD>
+<A class="idx" href="#idx:termexpansion2:18">9</A></DD>
 <DT>test/1</DT>
 <DD>
-<A HREF="#idx:test1:19">10</A> <A HREF="#idx:test1:20">10</A></DD>
+<A class="idx" href="#idx:test1:19">10</A> <A class="idx" href="#idx:test1:20">10</A></DD>
 <DT>test/2</DT>
 <DD>
-<A HREF="#idx:test2:5">2.1</A> <A HREF="#idx:test2:21">10</A></DD>
+<A class="idx" href="#idx:test2:5">2.1</A> <A class="idx" href="#idx:test2:21">10</A></DD>
 </DL>
 
 </BODY></HTML>

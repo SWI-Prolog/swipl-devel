@@ -2,101 +2,157 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog Source Documention</TITLE><style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<TITLE>SWI-Prolog Source Documention</TITLE><STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
 
 div.title
-{ text-align: center; 
-padding-bottom: 1em; 
-font-size: 200%; 
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
 font-weight: bold;
 }
 
 div.author
-{ text-align: center; 
+{ text-align: center;
 font-style: italic;
 }
 
 div.abstract
-{ margin-top: 2em; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
-padding: 5px; 
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
 margin-left: 10%; margin-right:10%;
 }
 
 div.abstract-title
-{ text-align: center; 
-padding: 5px; 
-font-size: 120%; 
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
 font-weight: bold;
 }
-</style>
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
 <BODY BGCOLOR="white"> 
 
-<P><DIV class="title">SWI-Prolog Source Documention</DIV><DIV class="author">Jan 
-Wielemaker <BR>
+<P>
+<DIV class="title">SWI-Prolog Source Documention</DIV>
+<DIV class="author">Jan Wielemaker <BR>
 HCS, <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
-This article presents PlDoc, the SWI-Prolog source-code documentation 
-infrastructure. PlDoc is loosely based on JavaDoc, using structured 
-comments to mix documentation with source-code. SWI-Prolog's PlDoc is 
-entirely written in Prolog and well integrated with the environment. It 
-can create HTML+CSS and LaTeX documentation files as well as act as a 
-web-server for the loaded project during program development.
+E-mail: <A class="url" href="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> This article presents PlDoc, 
+the SWI-Prolog source-code documentation infrastructure. PlDoc is 
+loosely based on JavaDoc, using structured comments to mix documentation 
+with source-code. SWI-Prolog's PlDoc is entirely written in Prolog and 
+well integrated with the environment. It can create HTML+CSS and LaTeX 
+documentation files as well as act as a web-server for the loaded 
+project during program development.
 </DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
-<UL>
-<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
-<LI><A HREF="#sec:2"><B>2 Overview</B></A>
-<LI><A HREF="#sec:3"><B>3 Structured comments</B></A>
-<LI><A HREF="#sec:4"><B>4 File and section comments</B></A>
-<LI><A HREF="#sec:5"><B>5 Type and mode declarations</B></A>
-<LI><A HREF="#sec:6"><B>6 Tags</B></A>
-<LI><A HREF="#sec:7"><B>7 Wiki notation</B></A>
-<UL>
-<LI><A HREF="#sec:7.1">7.1 Structuring conventions</A>
-<LI><A HREF="#sec:7.2">7.2 Text markup: fonts and links</A>
-</UL>
-<LI><A HREF="#sec:8"><B>8 Directory indices</B></A>
-<LI><A HREF="#sec:9"><B>9 Running the documentation system</B></A>
-<UL>
-<LI><A HREF="#sec:9.1">9.1 During development</A>
-</UL>
-<LI><A HREF="#sec:10"><B>10 Motivation of choices</B></A>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Structured 
+comments</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">File 
+and section comments</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Type 
+and mode declarations</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Tags</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Wiki 
+notation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:7.1"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Structuring 
+conventions</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:7.2"><SPAN class="sec-nr">7.2</SPAN><SPAN class="sec-title">Text 
+markup: fonts and links</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Directory 
+indices</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Running 
+the documentation system</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">During 
+development</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
+of choices</SPAN></A></DIV>
+</DIV>
 
 <P>
 
-<H2><A NAME="sec:1">1 Introduction</A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>When developing Prolog source that has to be maintained for a longer 
 period or is developed by a ---possibly distributed--- team some basic 
@@ -122,10 +178,10 @@ as well as the team,
 </UL>
 
 <P>First, we describe the documentation system we developed for 
-SWI-Prolog. In <A HREF="#sec:motivation">section 10</A> we motivate our 
-main choices.
+SWI-Prolog. In <A class="sec" href="#sec:motivation">section 10</A> we 
+motivate our main choices.
 
-<H2><A NAME="sec:2">2 Overview</A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></H2>
 
 <P>The PlDoc infrastructure is based on <EM>structured comments</EM>, 
 just like JavaDoc. Using comments, no changes have to be made to Prolog 
@@ -145,20 +201,22 @@ LaTeX for producing nicely typeset document.
 <P>To support the developer, the documentation system can be asked to 
 start a web-server that can be used to browse the documentation.
 
-<H2><A NAME="sec:3">3 Structured comments</A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Structured 
+comments</SPAN></A></H2>
 
 <P>Structured comments come in two flavours, the line-comment (%) based 
 one that seen most in the Prolog community and the block-comment (<CODE>/*</CODE>...<CODE>*/</CODE>) 
 based one commonly seen in the Java and C domain. As we cannot determine 
 the argument-names, type and modes from following (predicate) code 
-itself, we must supply this in the comment.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>. 
-The overall structure of the comment therefore is:
+itself, we must supply this in the comment.<SUP class="fn">1<SPAN class="fn-text">See <A class="sec" href="#sec:motivation:modes">section 
+10</A>.</SPAN></SUP>. The overall structure of the comment therefore is:
 
 <P><UL COMPACT>
-<LI>Semi-formal type- and mode-description, see <A HREF="#sec:modes">section 
+<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:modes">section 
 5</A>
-<LI>Wiki-style documentation body, see <A HREF="#sec:wiki">section 7</A>
-<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A HREF="#sec:tags">section 
+<LI>Wiki-style documentation body, see <A class="sec" href="#sec:wiki">section 
+7</A>
+<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:tags">section 
 6</A>)
 </UL>
 
@@ -170,7 +228,8 @@ with a single %.
 <P>The JavaDoc style keyword list starts at the first line starting with 
 @&lt;<VAR>word</VAR>&gt;.
 
-<H2><A NAME="sec:4">4 File and section comments</A></H2>
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">File 
+and section comments</SPAN></A></H2>
 
 <A NAME="sec:sectioncomments"></A>
 
@@ -219,7 +278,8 @@ HTML or LaTeX.
 */
 </PRE>
 
-<H2><A NAME="sec:5">5 Type and mode declarations</A></H2>
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Type 
+and mode declarations</SPAN></A></H2>
 
 <A NAME="sec:modes"></A>
 
@@ -285,7 +345,7 @@ system that allows for runtime verification and static type analysis
 %       @compat iso
 </PRE>
 
-<H2><A NAME="sec:6">6 Tags</A></H2>
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Tags</SPAN></A></H2>
 
 <A NAME="sec:tags"></A>
 
@@ -341,15 +401,17 @@ Not yet realised behaviour that is enticipated in future versions.
 </DD>
 </DL>
 
-<H2><A NAME="sec:7">7 Wiki notation</A></H2>
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Wiki 
+notation</SPAN></A></H2>
 
 <A NAME="sec:wiki"></A>
 
 <P>Structured comments that provide part of the documentation are 
-written in Wiki notation, based on <A HREF="http://www.twiki.org">TWiki</A>, 
+written in Wiki notation, based on <A class="url" href="http://www.twiki.org">TWiki</A>, 
 with some Prolog specific additions.
 
-<H3><A NAME="sec:7.1">7.1 Structuring conventions</A></H3>
+<H3><A NAME="sec:7.1"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Structuring 
+conventions</SPAN></A></H3>
 
 <DL>
 <DT><B>Paragraphs</B></DT>
@@ -386,7 +448,7 @@ is common to describe the behaviour on different terms. Such lists must
 be written as below. &lt;<VAR>Term1</VAR>&gt;, etc. must be valid Prolog 
 terms and end in the newline. The Wiki adds <CODE>' . '</CODE> to the 
 text and reads it using the operator definitions also used to read the 
-mode terms. See <A HREF="#sec:modes">section 5</A>.
+mode terms. See <A class="sec" href="#sec:modes">section 5</A>.
 
 <PRE class="code">
    * Term1
@@ -413,7 +475,7 @@ lines that parse into a table-row together for a table. Example:
 <DD>
 Section headers are creates using one of the constructs below taken from 
 TWiki. Section headers are normally not used in the source-code, but can 
-be useful inside README and TODO files. See <A HREF="#sec:dirindex">section 
+be useful inside README and TODO files. See <A class="sec" href="#sec:dirindex">section 
 8</A>.
 
 <PRE class="code">
@@ -441,7 +503,8 @@ indentation of the <CODE>==</CODE> marks.
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:7.2">7.2 Text markup: fonts and links</A></H3>
+<H3><A NAME="sec:7.2"><SPAN class="sec-nr">7.2</SPAN><SPAN class="sec-title">Text 
+markup: fonts and links</SPAN></A></H3>
 
 <P>Wiki text markup to realise fonts is mostly based on old plaintext 
 conventions in newsnet and E-mail. We added some Prolog specific 
@@ -490,7 +553,8 @@ keyword. Typeset as the plain keyword value. </TD></TR>
 
 </CENTER>
 
-<H2><A NAME="sec:8">8 Directory indices</A></H2>
+<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Directory 
+indices</SPAN></A></H2>
 
 <A NAME="sec:dirindex"></A>
 
@@ -502,11 +566,13 @@ is
 their descriptive summary. Finally, if a file <CODE>TODO</CODE> or <CODE>TODO.txt</CODE> 
 exists, use add its contents at the end of the directory index.
 
-<H2><A NAME="sec:9">9 Running the documentation system</A></H2>
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Running 
+the documentation system</SPAN></A></H2>
 
 <A NAME="sec:running"></A>
 
-<H3><A NAME="sec:9.1">9.1 During development</A></H3>
+<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">During 
+development</SPAN></A></H3>
 
 <P>To support the developer with an up-to-date version of the 
 documentation of both the application under development and the system 
@@ -554,7 +620,8 @@ Deny access from the given location. Matching is equal to the
 </DD>
 </DL>
 
-<H2><A NAME="sec:10">10 Motivation of choices</A></H2>
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
+of choices</SPAN></A></H2>
 
 <A NAME="sec:motivation"></A>
 
@@ -643,27 +710,19 @@ very high quality printing on virtuall every platform. Output to LaTeX
 requires more infrastructure for processing, but allows for producing 
 high-quality PDF documents.
 
-<H1><A NAME="document-notes">Footnotes</A></H1>
-
-<DL>
-<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A></DT>
-<DD>
-See <A HREF="#sec:motivation:modes">section 10</A>.</DD>
-</DL>
-
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
 <DT><STRONG>D</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#doc_collect/1">doc_collect/1</A></DT>
+<DT><A class="idx" href="#doc_collect/1">doc_collect/1</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#doc_server/1">doc_server/1</A></DT>
+<DT><A class="idx" href="#doc_server/1">doc_server/1</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#doc_server/2">doc_server/2</A></DT>
+<DT><A class="idx" href="#doc_server/2">doc_server/2</A></DT>
 <DD>
 </DD>
 <DT><STRONG>I</STRONG></DT>
@@ -671,19 +730,19 @@ See <A HREF="#sec:motivation:modes">section 10</A>.</DD>
 </DD>
 <DT>ip/4</DT>
 <DD>
-<A HREF="#idx:ip4:3">9.1</A></DD>
+<A class="idx" href="#idx:ip4:3">9.1</A></DD>
 <DT><STRONG>N</STRONG></DT>
 <DD>
 </DD>
 <DT>nb_setarg/3</DT>
 <DD>
-<A HREF="#idx:nbsetarg3:2">5</A></DD>
+<A class="idx" href="#idx:nbsetarg3:2">5</A></DD>
 <DT><STRONG>S</STRONG></DT>
 <DD>
 </DD>
 <DT>setarg/3</DT>
 <DD>
-<A HREF="#idx:setarg3:1">5</A></DD>
+<A class="idx" href="#idx:setarg3:1">5</A></DD>
 </DL>
 
 </BODY></HTML>

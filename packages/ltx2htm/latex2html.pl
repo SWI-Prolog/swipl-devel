@@ -2594,7 +2594,7 @@ write_html(lref(Class, Label, Text)) :-
 		       '<A class="~w" href="~w.html#~w">',
 		       [Class, File, Label])
 	    ;   format(string(Anchor),
-		       '<A class="~w" href="#~w">', [Label])
+		       '<A class="~w" href="#~w">', [Class, Label])
 	    ),
 	    write_html([html(Anchor), Text, html('</A>')]),
 	    retractall(in_anchor)

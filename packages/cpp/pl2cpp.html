@@ -2,131 +2,193 @@
 
 <HTML>
 <HEAD>
-<TITLE>A C++ interface to SWI-Prolog</TITLE><style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<TITLE>A C++ interface to SWI-Prolog</TITLE><STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
 
 div.title
-{ text-align: center; 
-padding-bottom: 1em; 
-font-size: 200%; 
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
 font-weight: bold;
 }
 
 div.author
-{ text-align: center; 
+{ text-align: center;
 font-style: italic;
 }
 
 div.abstract
-{ margin-top: 2em; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
-padding: 5px; 
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
 margin-left: 10%; margin-right:10%;
 }
 
 div.abstract-title
-{ text-align: center; 
-padding: 5px; 
-font-size: 120%; 
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
 font-weight: bold;
 }
-</style>
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
 <BODY BGCOLOR="white">
 
-<P><DIV class="title">A C++ interface to SWI-Prolog</DIV><DIV class="author">Jan 
-Wielemaker <BR>
+<P>
+<DIV class="title">A C++ interface to SWI-Prolog</DIV>
+<DIV class="author">Jan Wielemaker <BR>
 SWI, <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
-This document describes a C++ interface to SWI-Prolog. SWI-Prolog could 
-be used with C++ for a very long time, but only by calling the extern 
-"C" functions of the C-interface. The interface described herein 
-provides a true C++ layer around the C-interface for much more concise 
-and natural programming from C++. The interface deals with automatic 
-type-conversion to and from native C data-types, transparent mapping of 
-exceptions, making queries to Prolog and registering foreign predicates.
+E-mail: <A class="url" href="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> This document describes a C++ 
+interface to SWI-Prolog. SWI-Prolog could be used with C++ for a very 
+long time, but only by calling the extern "C" functions of the 
+C-interface. The interface described herein provides a true C++ layer 
+around the C-interface for much more concise and natural programming 
+from C++. The interface deals with automatic type-conversion to and from 
+native C data-types, transparent mapping of exceptions, making queries 
+to Prolog and registering foreign predicates.
 </DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
-<UL>
-<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
-<LI><A HREF="#sec:2"><B>2 Overview</B></A>
-<LI><A HREF="#sec:3"><B>3 Examples</B></A>
-<UL>
-<LI><A HREF="#sec:3.1">3.1 Hello(World)</A>
-<LI><A HREF="#sec:3.2">3.2 Adding numbers</A>
-<LI><A HREF="#sec:3.3">3.3 Average of solutions</A>
-</UL>
-<LI><A HREF="#sec:4"><B>4 The class PlTerm</B></A>
-<UL>
-<LI><A HREF="#sec:4.1">4.1 Constructors</A>
-<LI><A HREF="#sec:4.2">4.2 Casting PlTerm to native C-types</A>
-<LI><A HREF="#sec:4.3">4.3 Unification</A>
-<LI><A HREF="#sec:4.4">4.4 Comparison</A>
-<LI><A HREF="#sec:4.5">4.5 Analysing compound terms</A>
-<LI><A HREF="#sec:4.6">4.6 Miscellaneous</A>
-<LI><A HREF="#sec:4.7">4.7 The class PlString</A>
-<LI><A HREF="#sec:4.8">4.8 The class PlCodeList</A>
-<LI><A HREF="#sec:4.9">4.9 The class PlCharList</A>
-<LI><A HREF="#sec:4.10">4.10 The class PlCompound</A>
-<LI><A HREF="#sec:4.11">4.11 The class PlTail</A>
-</UL>
-<LI><A HREF="#sec:5"><B>5 The class PlTermv</B></A>
-<LI><A HREF="#sec:6"><B>6 Supporting Prolog constants</B></A>
-<LI><A HREF="#sec:7"><B>7 The class PlRegister</B></A>
-<LI><A HREF="#sec:8"><B>8 The class PlQuery</B></A>
-<UL>
-<LI><A HREF="#sec:8.1">8.1 The class PlFrame</A>
-</UL>
-<LI><A HREF="#sec:9"><B>9 The PREDICATE macro</B></A>
-<UL>
-<LI><A HREF="#sec:9.1">9.1 Controlling the Prolog destination module</A>
-</UL>
-<LI><A HREF="#sec:10"><B>10 Exceptions</B></A>
-<UL>
-<LI><A HREF="#sec:10.1">10.1 The class PlException</A>
-<LI><A HREF="#sec:10.2">10.2 The class PlTypeError</A>
-<LI><A HREF="#sec:10.3">10.3 The class PlDomainError</A>
-</UL>
-<LI><A HREF="#sec:11"><B>11 Embedded applications</B></A>
-<LI><A HREF="#sec:12"><B>12 Considerations</B></A>
-<UL>
-<LI><A HREF="#sec:12.1">12.1 The C++ versus the C interface</A>
-<LI><A HREF="#sec:12.2">12.2 Static linking and embedding</A>
-<LI><A HREF="#sec:12.3">12.3 Status and compiler versions</A>
-<LI><A HREF="#sec:12.4">12.4 Limitations</A>
-</UL>
-<LI><A HREF="#sec:13"><B>13 Conclusions</B></A>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Examples</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Hello(World)</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.2"><SPAN class="sec-nr">3.2</SPAN><SPAN class="sec-title">Adding 
+numbers</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.3"><SPAN class="sec-nr">3.3</SPAN><SPAN class="sec-title">Average 
+of solutions</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">The 
+class PlTerm</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.1"><SPAN class="sec-nr">4.1</SPAN><SPAN class="sec-title">Constructors</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.2"><SPAN class="sec-nr">4.2</SPAN><SPAN class="sec-title">Casting 
+PlTerm to native C-types</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.3"><SPAN class="sec-nr">4.3</SPAN><SPAN class="sec-title">Unification</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.4"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">Comparison</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.5"><SPAN class="sec-nr">4.5</SPAN><SPAN class="sec-title">Analysing 
+compound terms</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.6"><SPAN class="sec-nr">4.6</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.7"><SPAN class="sec-nr">4.7</SPAN><SPAN class="sec-title">The 
+class PlString</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.8"><SPAN class="sec-nr">4.8</SPAN><SPAN class="sec-title">The 
+class PlCodeList</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.9"><SPAN class="sec-nr">4.9</SPAN><SPAN class="sec-title">The 
+class PlCharList</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.10"><SPAN class="sec-nr">4.10</SPAN><SPAN class="sec-title">The 
+class PlCompound</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.11"><SPAN class="sec-nr">4.11</SPAN><SPAN class="sec-title">The 
+class PlTail</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">The 
+class PlTermv</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Supporting 
+Prolog constants</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">The 
+class PlRegister</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">The 
+class PlQuery</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:8.1"><SPAN class="sec-nr">8.1</SPAN><SPAN class="sec-title">The 
+class PlFrame</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">The 
+PREDICATE macro</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">Controlling 
+the Prolog destination module</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Exceptions</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:10.1"><SPAN class="sec-nr">10.1</SPAN><SPAN class="sec-title">The 
+class PlException</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:10.2"><SPAN class="sec-nr">10.2</SPAN><SPAN class="sec-title">The 
+class PlTypeError</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:10.3"><SPAN class="sec-nr">10.3</SPAN><SPAN class="sec-title">The 
+class PlDomainError</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Embedded 
+applications</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:12"><SPAN class="sec-nr">12</SPAN><SPAN class="sec-title">Considerations</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:12.1"><SPAN class="sec-nr">12.1</SPAN><SPAN class="sec-title">The 
+C++ versus the C interface</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:12.2"><SPAN class="sec-nr">12.2</SPAN><SPAN class="sec-title">Static 
+linking and embedding</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:12.3"><SPAN class="sec-nr">12.3</SPAN><SPAN class="sec-title">Status 
+and compiler versions</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:12.4"><SPAN class="sec-nr">12.4</SPAN><SPAN class="sec-title">Limitations</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:13"><SPAN class="sec-nr">13</SPAN><SPAN class="sec-title">Conclusions</SPAN></A></DIV>
+</DIV>
 
-<H2><A NAME="sec:1">1 Introduction</A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>C++ provides a number of features that make it possible to define a 
 much more natural and concise interface to dynamically typed languages 
@@ -142,19 +204,19 @@ Prolog.
 
 <P>Volker Wysk has defined an alternative C++ mapping based on templates 
 and compatible to the STL framework. See
-<A HREF="http://www.volker-wysk.de/swiprolog-c++/index.html">http://www.volker-wysk.de/swiprolog-c++/index.html</A>.
+<A class="url" href="http://www.volker-wysk.de/swiprolog-c++/index.html">http://www.volker-wysk.de/swiprolog-c++/index.html</A>.
 
 <H3>Acknowledgements</H3>
 
 <P>I would like to thank Anjo Anjewierden for comments on the 
 definition, implementation and documentation of this package.
 
-<H2><A NAME="sec:2">2 Overview</A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></H2>
 
 <P>The most useful area for exploiting C++ features is type-conversion. 
 Prolog variables are dynamically typed and all information is passed 
 around using the C-interface type <B><CODE>term_t</CODE></B>. In C++, <B><CODE>term_t</CODE></B> 
-is embedded in the <EM>lightweight</EM> class <A HREF="#class:PlTerm">PlTerm</A>. 
+is embedded in the <EM>lightweight</EM> class <A class="" href="#class:PlTerm">PlTerm</A>. 
 Constructors and operator definitions provide flexible operations and 
 integration with important C-types (<B><CODE>char *</CODE></B>, <B><CODE>long</CODE></B> 
 and
@@ -170,51 +232,51 @@ to native C-data and type-checking.
 </DD>
 <DT><A NAME="class:PlString"><STRONG>PlString</STRONG></A></DT>
 <DD class="defbody">
-Subclass of <A HREF="#class:PlTerm">PlTerm</A> with constructors for 
-building Prolog string objects.
+Subclass of <A class="" href="#class:PlTerm">PlTerm</A> with 
+constructors for building Prolog string objects.
 </DD>
 <DT><A NAME="class:PlCodeList"><STRONG>PlCodeList</STRONG></A></DT>
 <DD class="defbody">
-Subclass of <A HREF="#class:PlTerm">PlTerm</A> with constructors for 
-building Prolog lists of ASCII values.
+Subclass of <A class="" href="#class:PlTerm">PlTerm</A> with 
+constructors for building Prolog lists of ASCII values.
 </DD>
 <DT><A NAME="class:PlCharList"><STRONG>PlCharList</STRONG></A></DT>
 <DD class="defbody">
-Subclass of <A HREF="#class:PlTerm">PlTerm</A> with constructors for 
-building Prolog lists of one-character atoms (as <A NAME="idx:atomchars2:1"></A><B>atom_chars/2</B>).
+Subclass of <A class="" href="#class:PlTerm">PlTerm</A> with 
+constructors for building Prolog lists of one-character atoms (as <A NAME="idx:atomchars2:1"></A><B>atom_chars/2</B>).
 </DD>
 <DT><A NAME="class:PlCompound"><STRONG>PlCompound</STRONG></A></DT>
 <DD class="defbody">
-Subclass of <A HREF="#class:PlTerm">PlTerm</A> with constructors for 
-building compound terms.
+Subclass of <A class="" href="#class:PlTerm">PlTerm</A> with 
+constructors for building compound terms.
 </DD>
 <DT><A NAME="class:PlTail"><STRONG>PlTail</STRONG></A></DT>
 <DD class="defbody">
-SubClass of <A HREF="#class:PlTerm">PlTerm</A> for building and 
+SubClass of <A class="" href="#class:PlTerm">PlTerm</A> for building and 
 analysing Prolog lists.
 </DD>
 <DT><A NAME="class:PlTermv"><STRONG>PlTermv</STRONG></A></DT>
 <DD class="defbody">
 Vector of Prolog terms. See PL_new_term_refs(). the <CODE>[]</CODE> 
-operator is overloaded to access elements in this vector. <A HREF="#class:PlTermv">PlTermv</A> 
+operator is overloaded to access elements in this vector. <A class="" href="#class:PlTermv">PlTermv</A> 
 is used to build complex terms and provide argument-lists to Prolog 
 goals.
 </DD>
 <DT><A NAME="class:PlException"><STRONG>PlException</STRONG></A></DT>
 <DD class="defbody">
-Subclass of <A HREF="#class:PlTerm">PlTerm</A> representing a Prolog 
-exception. Provides methods for the Prolog communication and mapping to 
-human-readable text representation.
+Subclass of <A class="" href="#class:PlTerm">PlTerm</A> representing a 
+Prolog exception. Provides methods for the Prolog communication and 
+mapping to human-readable text representation.
 </DD>
 <DT><A NAME="class:PlTypeError"><STRONG>PlTypeError</STRONG></A></DT>
 <DD class="defbody">
-Subclass of <A HREF="#class:PlException">PlException</A> for 
+Subclass of <A class="" href="#class:PlException">PlException</A> for 
 representing a Prolog
 <CODE>type_error</CODE> exception.
 </DD>
 <DT><A NAME="class:PlDomainError"><STRONG>PlDomainError</STRONG></A></DT>
 <DD class="defbody">
-Subclass of <A HREF="#class:PlException">PlException</A> for 
+Subclass of <A class="" href="#class:PlException">PlException</A> for 
 representing a Prolog
 <CODE>domain_error</CODE> exception.
 </DD>
@@ -248,12 +310,12 @@ C++ global constructors for registering foreign predicates.
 <P>The required C(++) function header and registration of a predicate is 
 arranged through a macro called <B>PREDICATE()</B>.
 
-<H2><A NAME="sec:3">3 Examples</A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Examples</SPAN></A></H2>
 
 <P>Before going into a detailed description of the C++ classes we 
 present a few examples illustrating the `feel' of the interface.
 
-<H3><A NAME="sec:3.1">3.1 Hello(World)</A></H3>
+<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Hello(World)</SPAN></A></H3>
 
 <P>This very simple example shows the basic definition of the predicate
 <A NAME="idx:hello1:2"></A><B>hello/1</B> and how a Prolog argument is 
@@ -269,8 +331,8 @@ PREDICATE(hello, 1)
 
 <P>The arguments to PREDICATE() are the name and arity of the predicate. 
 The macros A&lt;<VAR>n</VAR>&gt; provide access to the predicate 
-arguments by position and are of the type <A HREF="#class:PlTerm">PlTerm</A>. 
-Casting a <A HREF="#class:PlTerm">PlTerm</A> to a
+arguments by position and are of the type <A class="" href="#class:PlTerm">PlTerm</A>. 
+Casting a <A class="" href="#class:PlTerm">PlTerm</A> to a
 <B><CODE>char *</CODE></B> provides the natural type-conversion for most 
 Prolog data-types, using the output of <A NAME="idx:write1:3"></A><B>write/1</B> 
 otherwise:
@@ -286,7 +348,8 @@ Hello _G170
 X = _G170
 </PRE>
 
-<H3><A NAME="sec:3.2">3.2 Adding numbers</A></H3>
+<H3><A NAME="sec:3.2"><SPAN class="sec-nr">3.2</SPAN><SPAN class="sec-title">Adding 
+numbers</SPAN></A></H3>
 
 <P>This example shows arithmetic using the C++ interface, including 
 unification, type-checking and conversion. The predicate <A NAME="idx:add3:4"></A><B>add/3</B> 
@@ -298,12 +361,12 @@ PREDICATE(add, 3)
 }
 </PRE>
 
-<P>Casting a <A HREF="#class:PlTerm">PlTerm</A> to a <B><CODE>long</CODE></B> 
+<P>Casting a <A class="" href="#class:PlTerm">PlTerm</A> to a <B><CODE>long</CODE></B> 
 performs a PL_get_long() and throws a C++ exception if the Prolog 
 argument is not a Prolog integer or float that can be converted without 
 loss to a <B><CODE>long</CODE></B>. The
-<CODE>=</CODE> operator of <A HREF="#class:PlTerm">PlTerm</A> is defined 
-to perform unification and returns <CODE>TRUE</CODE> or <CODE>FALSE</CODE> 
+<CODE>=</CODE> operator of <A class="" href="#class:PlTerm">PlTerm</A> 
+is defined to perform unification and returns <CODE>TRUE</CODE> or <CODE>FALSE</CODE> 
 depending on the result.
 
 <PRE class="code">
@@ -315,17 +378,18 @@ X = 3.
    Exception: (  7) add(a, 2, _G197) ?
 </PRE>
 
-<H3><A NAME="sec:3.3">3.3 Average of solutions</A></H3>
+<H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN><SPAN class="sec-title">Average 
+of solutions</SPAN></A></H3>
 
 <P>This example is a bit harder. The predicate <A NAME="idx:average3:5"></A><B>average/3</B> 
 is defined to take the template average(+Var, :Goal, -Average) , where <VAR>Goal</VAR> 
 binds <VAR>Var</VAR> and will unify <VAR>Average</VAR> with average of 
 the (integer) results.
 
-<P><A HREF="#class:PlQuery">PlQuery</A> takes the name of a predicate 
-and the goal-argument vector as arguments. From this information it 
-deduces the arity and locates the predicate. the member-function 
-next_solution() yields
+<P><A class="" href="#class:PlQuery">PlQuery</A> takes the name of a 
+predicate and the goal-argument vector as arguments. From this 
+information it deduces the arity and locates the predicate. the 
+member-function next_solution() yields
 <CODE>TRUE</CODE> if there was a solution and <CODE>FALSE</CODE> 
 otherwise. If the goal yielded a Prolog exception it is mapped into a 
 C++ exception.
@@ -344,13 +408,14 @@ PREDICATE(average, 3)
 }
 </PRE>
 
-<H2><A NAME="sec:4">4 The class PlTerm</A></H2>
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">The 
+class PlTerm</SPAN></A></H2>
 
-<P>As we have seen from the examples, the <A HREF="#class:PlTerm">PlTerm</A> 
+<P>As we have seen from the examples, the <A class="" href="#class:PlTerm">PlTerm</A> 
 class plays a central role in conversion and operating on Prolog data. 
 This section provides complete documentation of this class.
 
-<H3><A NAME="sec:4.1">4.1 Constructors</A></H3>
+<H3><A NAME="sec:4.1"><SPAN class="sec-nr">4.1</SPAN><SPAN class="sec-title">Constructors</SPAN></A></H3>
 
 <DL>
 <DT><STRONG>PlTerm :: PlTerm</STRONG>(<VAR></VAR>)</DT>
@@ -360,7 +425,7 @@ Creates a new initialised term (holding a Prolog variable).
 <DT><STRONG>PlTerm :: PlTerm</STRONG>(<VAR>term_t t</VAR>)</DT>
 <DD class="defbody">
 Converts between the C-interface and the C++ interface by turning the 
-term-reference into an instance of <A HREF="#class:PlTerm">PlTerm</A>. 
+term-reference into an instance of <A class="" href="#class:PlTerm">PlTerm</A>. 
 Note that, being a lightweight class, this is a no-op at the 
 machine-level!
 </DD>
@@ -407,10 +472,11 @@ PREDICATE(free_my_object, 1)
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:4.2">4.2 Casting PlTerm to native C-types</A></H3>
+<H3><A NAME="sec:4.2"><SPAN class="sec-nr">4.2</SPAN><SPAN class="sec-title">Casting 
+PlTerm to native C-types</SPAN></A></H3>
 
-<P><A HREF="#class:PlTerm">PlTerm</A> can be casted to the following 
-types:
+<P><A class="" href="#class:PlTerm">PlTerm</A> can be casted to the 
+following types:
 
 <DL>
 <DT><STRONG>PlTerm ::operator term_t</STRONG>(<VAR>void</VAR>)</DT>
@@ -419,7 +485,7 @@ This cast is used for integration with the C-interface primitives.
 </DD>
 <DT><STRONG>PlTerm ::operator long</STRONG>(<VAR>void</VAR>)</DT>
 <DD class="defbody">
-Yields a <B><CODE>long</CODE></B> if the <A HREF="#class:PlTerm">PlTerm</A> 
+Yields a <B><CODE>long</CODE></B> if the <A class="" href="#class:PlTerm">PlTerm</A> 
 is a Prolog integer or float that can be converted without loss to a 
 long. throws a
 <CODE>type_error</CODE> exception otherwise.
@@ -430,7 +496,7 @@ Same as for <B><CODE>long</CODE></B>, but might represent fewer bits.
 </DD>
 <DT><STRONG>PlTerm ::operator double</STRONG>(<VAR>void</VAR>)</DT>
 <DD class="defbody">
-Yields the value as a C double if <A HREF="#class:PlTerm">PlTerm</A> 
+Yields the value as a C double if <A class="" href="#class:PlTerm">PlTerm</A> 
 represents a Prolog integer or float.
 </DD>
 <DT><STRONG>PlTerm ::operator char *</STRONG>(<VAR>void</VAR>)</DT>
@@ -450,16 +516,16 @@ PlTerm::PlTerm(void*).
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.3">4.3 Unification</A></H3>
+<H3><A NAME="sec:4.3"><SPAN class="sec-nr">4.3</SPAN><SPAN class="sec-title">Unification</SPAN></A></H3>
 
 <DL>
 <DT class="pubdef"><A NAME="PlTerm::operator=()"><VAR>int</VAR> <STRONG>PlTerm::operator 
 =</STRONG>(<VAR>Type</VAR>)</A></DT>
 <DD class="defbody">
-The operator <CODE>=</CODE> is defined for the <VAR>Types</VAR> <A HREF="#class:PlTerm">PlTerm</A>,
+The operator <CODE>=</CODE> is defined for the <VAR>Types</VAR> <A class="" href="#class:PlTerm">PlTerm</A>,
 <B><CODE>long</CODE></B>, <B><CODE>double</CODE></B>, <B><CODE>char *</CODE></B> 
-and <A HREF="#class:PlAtom">PlAtom</A>. It performs Prolog unification 
-and returns <CODE>TRUE</CODE> if successful and
+and <A class="" href="#class:PlAtom">PlAtom</A>. It performs Prolog 
+unification and returns <CODE>TRUE</CODE> if successful and
 <CODE>FALSE</CODE> otherwise.
 
 <P>The boolean return-value leads to somewhat unconventional-looking 
@@ -481,7 +547,7 @@ PREDICATE(hostname, 1)
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:4.4">4.4 Comparison</A></H3>
+<H3><A NAME="sec:4.4"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">Comparison</SPAN></A></H3>
 
 <DL>
 <DT class="pubdef"><A NAME="PlTerm::operator==()"><VAR>int</VAR> <STRONG>PlTerm::operator 
@@ -533,20 +599,20 @@ num</VAR>)</A></DT>
 <DT class="pubdef"><A NAME="PlTerm::operator >=()"><VAR>int</VAR> <STRONG>PlTerm::operator <VAR>&gt;=</VAR></STRONG>(<VAR>long 
 num</VAR>)</A></DT>
 <DD class="defbody">
-Convert <A HREF="#class:PlTerm">PlTerm</A> to a <B><CODE>long</CODE></B> 
-and perform standard C-comparison between the two long integers. If <A HREF="#class:PlTerm">PlTerm</A> 
+Convert <A class="" href="#class:PlTerm">PlTerm</A> to a <B><CODE>long</CODE></B> 
+and perform standard C-comparison between the two long integers. If <A class="" href="#class:PlTerm">PlTerm</A> 
 cannot be converted a <CODE>type_error</CODE> is raised.</DD>
 <DT class="pubdef"><A NAME="PlTerm::operator==()"><VAR>int</VAR> <STRONG>PlTerm::operator 
 ==</STRONG>(<VAR>const char *</VAR>)</A></DT>
 <DD class="defbody">
-Yields <CODE>TRUE</CODE> if the <A HREF="#class:PlTerm">PlTerm</A> is an 
-atom or string representing the same text as the argument, <CODE>FALSE</CODE> 
+Yields <CODE>TRUE</CODE> if the <A class="" href="#class:PlTerm">PlTerm</A> 
+is an atom or string representing the same text as the argument, <CODE>FALSE</CODE> 
 if the conversion was successful, but the strings are not equal and an
 <CODE>type_error</CODE> exception if the conversion failed.
 </DD>
 </DL>
 
-<P>Below are some typical examples. See <A HREF="#sec:dirplatom">section 
+<P>Below are some typical examples. See <A class="sec" href="#sec:dirplatom">section 
 6</A> for direct manipulation of atoms in their internal representation.
 
 <P>
@@ -567,7 +633,8 @@ an atom or string holding the text ``now''. </TD></TR>
 
 </CENTER>
 
-<H3><A NAME="sec:4.5">4.5 Analysing compound terms</A></H3>
+<H3><A NAME="sec:4.5"><SPAN class="sec-nr">4.5</SPAN><SPAN class="sec-title">Analysing 
+compound terms</SPAN></A></H3>
 
 <P>Compound terms can be viewed as an array of terms with a name and 
 arity (length). This view is expressed by overloading the <CODE>[]</CODE> 
@@ -583,17 +650,17 @@ and a
 <DT class="pubdef"><A NAME="PlTerm::operator\[]()"><VAR>PlTerm</VAR> <STRONG>PlTerm::operator[]</STRONG>(<VAR>int 
 arg</VAR>)</A></DT>
 <DD class="defbody">
-If the <A HREF="#class:PlTerm">PlTerm</A> is a compound term and <VAR>arg</VAR> 
-is between 1 and the arity of the term, return a new <A HREF="#class:PlTerm">PlTerm</A> 
-representing the arg-th argument of the term. If <A HREF="#class:PlTerm">PlTerm</A> 
+If the <A class="" href="#class:PlTerm">PlTerm</A> is a compound term 
+and <VAR>arg</VAR> is between 1 and the arity of the term, return a new <A class="" href="#class:PlTerm">PlTerm</A> 
+representing the arg-th argument of the term. If <A class="" href="#class:PlTerm">PlTerm</A> 
 is not compound, a
 <CODE>type_error</CODE> is raised. Id <VAR>arg</VAR> is out of range, a
 <CODE>domain_error</CODE> is raised. Please note the counting from 1 
 which is consistent to Prolog's <A NAME="idx:arg3:7"></A><B>arg/3</B> 
 predicate, but inconsistent to C's normal view on an array. See also 
-class <A HREF="#class:PlCompound">PlCompound</A>. The following example 
-tests <VAR>x</VAR> to represent a term with first-argument an atom or 
-string equal to <CODE>gnat</CODE>.
+class <A class="" href="#class:PlCompound">PlCompound</A>. The following 
+example tests <VAR>x</VAR> to represent a term with first-argument an 
+atom or string equal to <CODE>gnat</CODE>.
 
 <PRE class="code">
    ...,
@@ -615,7 +682,7 @@ if the argument is not compound.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.6">4.6 Miscellaneous</A></H3>
+<H3><A NAME="sec:4.6"><SPAN class="sec-nr">4.6</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></H3>
 
 <DL>
 <DT class="pubdef"><A NAME="PlTerm::type()"><VAR>int</VAR> <STRONG>PlTerm::type</STRONG>(<VAR></VAR>)</A></DT>
@@ -627,11 +694,12 @@ Yields the actual type of the term as PL_term_type(). Return values are
 </DL>
 
 <P>To avoid very confusing combinations of constructors and therefore 
-possible undesirable effects a number of subclasses of <A HREF="#class:PlTerm">PlTerm</A> 
+possible undesirable effects a number of subclasses of <A class="" href="#class:PlTerm">PlTerm</A> 
 have been defined that provide constructors for creating special Prolog 
 terms. These subclasses are defined below.
 
-<H3><A NAME="sec:4.7">4.7 The class PlString</A></H3>
+<H3><A NAME="sec:4.7"><SPAN class="sec-nr">4.7</SPAN><SPAN class="sec-title">The 
+class PlString</SPAN></A></H3>
 
 <P>A SWI-Prolog string represents a byte-string on the global stack. 
 It's lifetime is the same as for compound terms and other data living on 
@@ -652,7 +720,8 @@ The <VAR>text</VAR> may contain 0-characters and is copied.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.8">4.8 The class PlCodeList</A></H3>
+<H3><A NAME="sec:4.8"><SPAN class="sec-nr">4.8</SPAN><SPAN class="sec-title">The 
+class PlCodeList</SPAN></A></H3>
 
 <DL>
 <DT><STRONG>PlCodeList :: PlCodeList</STRONG>(<VAR>const char *text</VAR>)</DT>
@@ -661,7 +730,8 @@ Create a Prolog list of ASCII codes from a 0-terminated C-string.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.9">4.9 The class PlCharList</A></H3>
+<H3><A NAME="sec:4.9"><SPAN class="sec-nr">4.9</SPAN><SPAN class="sec-title">The 
+class PlCharList</SPAN></A></H3>
 
 <P>Character lists are compliant to Prolog's <A NAME="idx:atomchars2:8"></A><B>atom_chars/2</B> 
 predicate.
@@ -674,7 +744,8 @@ C-string.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.10">4.10 The class PlCompound</A></H3>
+<H3><A NAME="sec:4.10"><SPAN class="sec-nr">4.10</SPAN><SPAN class="sec-title">The 
+class PlCompound</SPAN></A></H3>
 
 <DL>
 <DT><STRONG>PlCompound :: PlCompound</STRONG>(<VAR>const char *text</VAR>)</DT>
@@ -688,8 +759,8 @@ term-reference holding the parsed text is created.
 PlTermv args</VAR>)</DT>
 <DD class="defbody">
 Create a compound term with the given name from the given vector of 
-arguments. See <A HREF="#class:PlTermv">PlTermv</A> for details. The 
-example below creates the Prolog term <CODE>hello(world)</CODE>.
+arguments. See <A class="" href="#class:PlTermv">PlTermv</A> for 
+details. The example below creates the Prolog term <CODE>hello(world)</CODE>.
 
 <PRE class="code">
 PlCompound("hello", PlTermv("world"))
@@ -698,30 +769,31 @@ PlCompound("hello", PlTermv("world"))
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:4.11">4.11 The class PlTail</A></H3>
+<H3><A NAME="sec:4.11"><SPAN class="sec-nr">4.11</SPAN><SPAN class="sec-title">The 
+class PlTail</SPAN></A></H3>
 
 <A NAME="sec:pltail"></A>
 
-<P>The class <A HREF="#class:PlTail">PlTail</A> is both for analysing 
-and constructing lists. It is called <A HREF="#class:PlTail">PlTail</A> 
+<P>The class <A class="" href="#class:PlTail">PlTail</A> is both for 
+analysing and constructing lists. It is called <A class="" href="#class:PlTail">PlTail</A> 
 as enumeration-steps make the term-reference follow the `tail' of the 
 list.
 
 <DL>
 <DT><STRONG>PlTail :: PlTail</STRONG>(<VAR>PlTerm list</VAR>)</DT>
 <DD class="defbody">
-A <A HREF="#class:PlTail">PlTail</A> is created by making a new 
-term-reference pointing to the same object. As <A HREF="#class:PlTail">PlTail</A> 
+A <A class="" href="#class:PlTail">PlTail</A> is created by making a new 
+term-reference pointing to the same object. As <A class="" href="#class:PlTail">PlTail</A> 
 is used to enumerate or build a Prolog list, the initial <VAR>list</VAR> 
 term-reference keeps pointing to the head of the list.
 </DD>
 <DT class="pubdef"><A NAME="PlTail::append()"><VAR>int</VAR> <STRONG>PlTail::append</STRONG>(<VAR>const 
 PlTerm &amp;element</VAR>)</A></DT>
 <DD class="defbody">
-Appends <VAR>element</VAR> to the list and make the <A HREF="#class:PlTail">PlTail</A> 
+Appends <VAR>element</VAR> to the list and make the <A class="" href="#class:PlTail">PlTail</A> 
 reference point to the new variable tail. If <VAR>A</VAR> is a variable, 
 and this function is called on it using the argument <CODE>"gnat"</CODE>, 
-a list of the form <CODE>[gnat|B]</CODE> is created and the <A HREF="#class:PlTail">PlTail</A> 
+a list of the form <CODE>[gnat|B]</CODE> is created and the <A class="" href="#class:PlTail">PlTail</A> 
 object now points to the new variable <VAR>B</VAR>.
 
 <P>This function returns <CODE>TRUE</CODE> if the unification succeeded 
@@ -756,13 +828,14 @@ unification.
 </DD>
 <DT class="pubdef"><A NAME="PlTail::next()"><VAR>int</VAR> <STRONG>PlTail::next</STRONG>(<VAR>PlTerm &amp;t</VAR>)</A></DT>
 <DD class="defbody">
-Bind <VAR>t</VAR> to the next element of the list <A HREF="#class:PlTail">PlTail</A> 
+Bind <VAR>t</VAR> to the next element of the list <A class="" href="#class:PlTail">PlTail</A> 
 and advance
-<A HREF="#class:PlTail">PlTail</A>. Returns <CODE>TRUE</CODE> on success 
-and <CODE>FALSE</CODE> if
-<A HREF="#class:PlTail">PlTail</A> represents the empty list. If <A HREF="#class:PlTail">PlTail</A> 
-is neither a list nor the empty list, a <CODE>type_error</CODE> is 
-thrown. The example below prints the elements of a list.
+<A class="" href="#class:PlTail">PlTail</A>. Returns <CODE>TRUE</CODE> 
+on success and <CODE>FALSE</CODE> if
+<A class="" href="#class:PlTail">PlTail</A> represents the empty list. 
+If <A class="" href="#class:PlTail">PlTail</A> is neither a list nor the 
+empty list, a <CODE>type_error</CODE> is thrown. The example below 
+prints the elements of a list.
 
 <PRE class="code">
 PREDICATE(write_list, 1)
@@ -779,12 +852,13 @@ PREDICATE(write_list, 1)
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:5">5 The class PlTermv</A></H2>
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">The 
+class PlTermv</SPAN></A></H2>
 
-<P>The class <A HREF="#class:PlTermv">PlTermv</A> represents an array of 
-term-references. This type is used to pass the arguments to a foreignly 
-defined predicate, construct compound terms (see <B>PlTerm::PlTerm(const 
-char *name, PlTermv arguments)</B>) and to create queries (see <A HREF="#class:PlQuery">PlQuery</A>).
+<P>The class <A class="" href="#class:PlTermv">PlTermv</A> represents an 
+array of term-references. This type is used to pass the arguments to a 
+foreignly defined predicate, construct compound terms (see <B>PlTerm::PlTerm(const 
+char *name, PlTermv arguments)</B>) and to create queries (see <A class="" href="#class:PlQuery">PlQuery</A>).
 
 <P>The only useful member function is the overloading of <CODE>[]</CODE>, 
 providing (0-based) access to the elements. Range checking is performed 
@@ -824,7 +898,8 @@ construction should be used:
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:6">6 Supporting Prolog constants</A></H2>
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Supporting 
+Prolog constants</SPAN></A></H2>
 
 <P>Both for quick comparison as for quick building of lists of atoms, it 
 is desirable to provide access to Prolog's atom-table, mapping handles 
@@ -866,8 +941,8 @@ PREDICATE(test, 1)
 
 <P>This case raises a <CODE>type_error</CODE> if <VAR>A1</VAR> is not an 
 atom. Otherwise it extacts the atom-handle and compares it to the 
-atom-handle of the global <A HREF="#class:PlAtom">PlAtom</A> object. 
-This approach is faster and provides more strict type-checking.
+atom-handle of the global <A class="" href="#class:PlAtom">PlAtom</A> 
+object. This approach is faster and provides more strict type-checking.
 
 <H3>Extraction of the atom and comparison to PlAtom</H3>
 
@@ -883,7 +958,7 @@ PREDICATE(test, 1)
     ...;
 </PRE>
 
-<P>This approach is basically the same as <A HREF="#sec:dirplatom">section 
+<P>This approach is basically the same as <A class="sec" href="#sec:dirplatom">section 
 6</A>, but in nested if-then-else the extraction of the atom from the 
 term is done only once.
 
@@ -933,7 +1008,8 @@ Compares the two atom-handles, returning <CODE>TRUE</CODE> or
 </DD>
 </DL>
 
-<H2><A NAME="sec:7">7 The class PlRegister</A></H2>
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">The 
+class PlRegister</SPAN></A></H2>
 
 <P>This class encapsulates PL_register_foreign(). It is defined as a 
 class rather then a function to exploit the C++ <EM>global constructor</EM> 
@@ -974,7 +1050,8 @@ PlRegister x_hello_1("hello", 1, pl_hello);
 </DD>
 </DL>
 
-<H2><A NAME="sec:8">8 The class PlQuery</A></H2>
+<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">The 
+class PlQuery</SPAN></A></H2>
 
 <P>This class encapsulates the call-backs onto Prolog.
 
@@ -1021,9 +1098,9 @@ PREDICATE(list_modules, 0)
 <DT class="pubdef"><A NAME="PlCall()"><VAR>int</VAR> <STRONG>PlCall</STRONG>(<VAR>const 
 char *predicate, const PlTermv &amp;av</VAR>)</A></DT>
 <DD class="defbody">
-Creates a <A HREF="#class:PlQuery">PlQuery</A> from the arguments 
-generates the first next_solution() and destroys the query. Returns the 
-result of next_solution() or an exception.
+Creates a <A class="" href="#class:PlQuery">PlQuery</A> from the 
+arguments generates the first next_solution() and destroys the query. 
+Returns the result of next_solution() or an exception.
 </DD>
 <DT class="pubdef"><A NAME="PlCall()"><VAR>int</VAR> <STRONG>PlCall</STRONG>(<VAR>const 
 char *module, const char *predicate, const PlTermv &amp;av</VAR>)</A></DT>
@@ -1039,16 +1116,17 @@ Prolog load a file.
 </DD>
 </DL>
 
-<H3><A NAME="sec:8.1">8.1 The class PlFrame</A></H3>
+<H3><A NAME="sec:8.1"><SPAN class="sec-nr">8.1</SPAN><SPAN class="sec-title">The 
+class PlFrame</SPAN></A></H3>
 
-<P>The class <A HREF="#class:PlFrame">PlFrame</A> provides an interface 
-to discard unused term-references as well as rewinding unifications (<EM>data-backtracking</EM>). 
-Reclaiming unused term-references is automatically performed after a 
-call to a C++-defined predicate has finished and returns control to 
-Prolog. In this scenario <A HREF="#class:PlFrame">PlFrame</A> is rarely 
-of any use. This class comes into play if the toplevel program is 
-defined in C++ and calls Prolog multiple times. Setting up arguments to 
-a query requires term-references and using <A HREF="#class:PlFrame">PlFrame</A> 
+<P>The class <A class="" href="#class:PlFrame">PlFrame</A> provides an 
+interface to discard unused term-references as well as rewinding 
+unifications (<EM>data-backtracking</EM>). Reclaiming unused 
+term-references is automatically performed after a call to a C++-defined 
+predicate has finished and returns control to Prolog. In this scenario <A class="" href="#class:PlFrame">PlFrame</A> 
+is rarely of any use. This class comes into play if the toplevel program 
+is defined in C++ and calls Prolog multiple times. Setting up arguments 
+to a query requires term-references and using <A class="" href="#class:PlFrame">PlFrame</A> 
 is the only way to reclaim them.
 
 <DL>
@@ -1068,7 +1146,7 @@ well as undoing all unifications after the instance was created.
 </DD>
 </DL>
 
-<P><A NAME="idx:assert:11"></A>A typical use for <A HREF="#class:PlFrame">PlFrame</A> 
+<P><A NAME="idx:assert:11"></A>A typical use for <A class="" href="#class:PlFrame">PlFrame</A> 
 is the definition of C++ functions that call Prolog and may be called 
 repeatedly from C++. Consider the definition of assertWord(), adding a 
 fact to <A NAME="idx:word1:12"></A><B>word/1</B>:
@@ -1085,7 +1163,7 @@ assertWord(const char *word)
 }
 </PRE>
 
-<P>This example shows the most sensible use of <A HREF="#class:PlFrame">PlFrame</A> 
+<P>This example shows the most sensible use of <A class="" href="#class:PlFrame">PlFrame</A> 
 if it is used in the context of a foreign predicate. The predicate's 
 thruth-value is the same as for the Prolog unification (=/2), but has no 
 side effects. In Prolog one would use double negation to achieve this.
@@ -1100,7 +1178,8 @@ PREDICATE(can_unify, 2)
 }
 </PRE>
 
-<H2><A NAME="sec:9">9 The PREDICATE macro</A></H2>
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">The 
+PREDICATE macro</SPAN></A></H2>
 
 <P>The PREDICATE macro is there to make your code look nice, taking care 
 of the interface to the C-defined SWI-Prolog kernel as well as mapping 
@@ -1131,12 +1210,13 @@ pl_hello__1(PlTermv _av)
 </PRE>
 
 <P>The first function converts the parameters passed from the Prolog 
-kernel to a <A HREF="#class:PlTermv">PlTermv</A> instance and maps 
-exceptions raised in the body to Prolog exceptions. The <A HREF="#class:PlRegister">PlRegister</A> 
+kernel to a <A class="" href="#class:PlTermv">PlTermv</A> instance and 
+maps exceptions raised in the body to Prolog exceptions. The <A class="" href="#class:PlRegister">PlRegister</A> 
 global constructor registers the predicate. Finally, the function header 
 for the implementation is created.
 
-<H3><A NAME="sec:9.1">9.1 Controlling the Prolog destination module</A></H3>
+<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">Controlling 
+the Prolog destination module</SPAN></A></H3>
 
 <P>With no special precautions, the predicates are defined into the 
 module from which <A NAME="idx:loadforeignlibrary1:13"></A><B>load_foreign_library/1</B> 
@@ -1166,20 +1246,20 @@ PREDICATE(pi, 1)
 X = 3.14159
 </PRE>
 
-<H2><A NAME="sec:10">10 Exceptions</A></H2>
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Exceptions</SPAN></A></H2>
 
 <P>Prolog exceptions are mapped to C++ exceptions using the subclass
-<A HREF="#class:PlException">PlException</A> of <A HREF="#class:PlTerm">PlTerm</A> 
+<A class="" href="#class:PlException">PlException</A> of <A class="" href="#class:PlTerm">PlTerm</A> 
 to represent the Prolog exception term. All type-conversion functions of 
 the interface raise Prolog-compliant exceptions, providing decent 
 error-handling support at no extra work for the programmer.
 
-<P>For some commonly used exceptions, subclasses of <A HREF="#class:PlException">PlException</A> 
+<P>For some commonly used exceptions, subclasses of <A class="" href="#class:PlException">PlException</A> 
 have been created to exploit both their constructors for easy creation 
 of these exceptions as well as selective trapping in C++. Currently, 
-these are <B>PlTypeEror</B> and <A HREF="#class:PlDomainError">PlDomainError</A>.
+these are <B>PlTypeEror</B> and <A class="" href="#class:PlDomainError">PlDomainError</A>.
 
-<P>To throw an exception, create an instance of <A HREF="#class:PlException">PlException</A> 
+<P>To throw an exception, create an instance of <A class="" href="#class:PlException">PlException</A> 
 and use throw() or PlException::cppThrow(). The latter refines the C++ 
 exception class according to the represented Prolog exception before 
 calling throw().
@@ -1190,10 +1270,11 @@ calling throw().
   throw PlException(PlCompound("no_database", PlTerm(data)));
 </PRE>
 
-<H3><A NAME="sec:10.1">10.1 The class PlException</A></H3>
+<H3><A NAME="sec:10.1"><SPAN class="sec-nr">10.1</SPAN><SPAN class="sec-title">The 
+class PlException</SPAN></A></H3>
 
-<P>This subclass of <A HREF="#class:PlTerm">PlTerm</A> is used to 
-represent exceptions. Currently defined methods are:
+<P>This subclass of <A class="" href="#class:PlTerm">PlTerm</A> is used 
+to represent exceptions. Currently defined methods are:
 
 <DL>
 <DT><STRONG>PlException :: PlException</STRONG>(<VAR>const PlTerm &amp;t</VAR>)</DT>
@@ -1224,10 +1305,11 @@ PL_raise_exeption().
 </DD>
 <DT class="pubdef"><A NAME="cppThrow()"><VAR>int</VAR> <STRONG>cppThrow</STRONG>(<VAR></VAR>)</A></DT>
 <DD class="defbody">
-Used by PlQuery::next_solution() to refine a generic <A HREF="#class:PlException">PlException</A> 
+Used by PlQuery::next_solution() to refine a generic <A class="" href="#class:PlException">PlException</A> 
 representing a specific class of Prolog exceptions to the corresponding 
 C++ exception class and finally then executes throw(). Thus, if a
-<A HREF="#class:PlException">PlException</A> represents the term
+<A class="" href="#class:PlException">PlException</A> represents the 
+term
 <BLOCKQUOTE>
 <CODE>error(<CODE>type_error(Expected, Actual)</CODE>, Context)</CODE>
 </BLOCKQUOTE>
@@ -1253,7 +1335,8 @@ PREDICATE(call_atom, 1)
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:10.2">10.2 The class PlTypeError</A></H3>
+<H3><A NAME="sec:10.2"><SPAN class="sec-nr">10.2</SPAN><SPAN class="sec-title">The 
+class PlTypeError</SPAN></A></H3>
 
 <P>A <EM>type error</EM> expresses that a term does not satisfy the 
 expected basic Prolog type.
@@ -1268,7 +1351,8 @@ satisfy this type.
 </DD>
 </DL>
 
-<H3><A NAME="sec:10.3">10.3 The class PlDomainError</A></H3>
+<H3><A NAME="sec:10.3"><SPAN class="sec-nr">10.3</SPAN><SPAN class="sec-title">The 
+class PlDomainError</SPAN></A></H3>
 
 <P>A <EM>domain error</EM> expresses that a term satisfies the basic 
 Prolog type expected, but is unacceptable to the restricted domain 
@@ -1286,19 +1370,24 @@ Creates an ISO standard Prolog error term expressing a the
 </DD>
 </DL>
 
-<H2><A NAME="sec:11">11 Embedded applications</A></H2>
+<H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Embedded 
+applications</SPAN></A></H2>
 
 <P>Most of the above assumes Prolog is `in charge' of the application 
 and C++ is used to add functionality to Prolog, either for accessing 
 external resources or for performance reasons. In some applications, 
 there is a <EM>main-program</EM> and we want to use Prolog as a
 <EM>logic server</EM>. For these applications, the class
-<A HREF="#class:PlEngine">PlEngine</A> has been defined.
+<A class="" href="#class:PlEngine">PlEngine</A> has been defined.
 
 <P>Only a single instance of this class can exist in a process. When 
 used in a multi-threading application, only one thread at a time may 
 have a running query on this engine. Applications should ensure this 
-using proper locking techniques.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
+using proper locking techniques.<SUP class="fn">1<SPAN class="fn-text">For 
+Unix, there is a multi-threaded version of SWI-Prolog. In this version 
+each thread can create and destroy a thread-engine. There is currently 
+no C++ interface defined to access this functionality, though ---of 
+course--- you can use the C-functions.</SPAN></SUP>
 
 <DL>
 <DT><STRONG>PlEngine :: PlEngine</STRONG>(<VAR>int argc, char **argv</VAR>)</DT>
@@ -1318,37 +1407,40 @@ Calls PL_cleanup() to destroy all data created by the Prolog engine.
 </DD>
 </DL>
 
-<P><A HREF="#sec:pltail">Section 4.11</A> has a simple example using 
-this class.
+<P><A class="sec" href="#sec:pltail">Section 4.11</A> has a simple 
+example using this class.
 
-<H2><A NAME="sec:12">12 Considerations</A></H2>
+<H2><A NAME="sec:12"><SPAN class="sec-nr">12</SPAN><SPAN class="sec-title">Considerations</SPAN></A></H2>
 
-<H3><A NAME="sec:12.1">12.1 The C++ versus the C interface</A></H3>
+<H3><A NAME="sec:12.1"><SPAN class="sec-nr">12.1</SPAN><SPAN class="sec-title">The 
+C++ versus the C interface</SPAN></A></H3>
 
 <P>Not all functionality of the C-interface is provided, but as
-<A HREF="#class:PlTerm">PlTerm</A> and <B><CODE>term_t</CODE></B> are 
-essentially the same thing with automatic type-conversion between the 
-two, this interface can be freely mixed with the functions defined for 
-plain C.
+<A class="" href="#class:PlTerm">PlTerm</A> and <B><CODE>term_t</CODE></B> 
+are essentially the same thing with automatic type-conversion between 
+the two, this interface can be freely mixed with the functions defined 
+for plain C.
 
 <P>Using this interface rather than the plain C-interface requires a 
 little more resources. More term-references are wasted (but reclaimed on 
-return to Prolog or using <A HREF="#class:PlFrame">PlFrame</A>). Use of 
-some intermediate types (<B><CODE>functor_t</CODE></B> etc.) is not 
-supported in the current interface, causing more hash-table lookups. 
+return to Prolog or using <A class="" href="#class:PlFrame">PlFrame</A>). 
+Use of some intermediate types (<B><CODE>functor_t</CODE></B> etc.) is 
+not supported in the current interface, causing more hash-table lookups. 
 This could be fixed, at the price of slighly complicating the interface.
 
-<H3><A NAME="sec:12.2">12.2 Static linking and embedding</A></H3>
+<H3><A NAME="sec:12.2"><SPAN class="sec-nr">12.2</SPAN><SPAN class="sec-title">Static 
+linking and embedding</SPAN></A></H3>
 
 <P>The mechanisms outlined in this document can be used for static 
 linking with the SWI-Prolog kernel using <STRONG>plld</STRONG>(1). In 
 general the C++ linker should be used to deal with the C++ runtime 
 libraries and global constructors. As of SWI-Prolog 3.2.9, 
 PL_register_foreign() can be called <EM>before</EM> PL_initialise(), 
-which is required to handle the calls from the global <A HREF="#class:PlRegister">PlRegister</A> 
+which is required to handle the calls from the global <A class="" href="#class:PlRegister">PlRegister</A> 
 calls.
 
-<H3><A NAME="sec:12.3">12.3 Status and compiler versions</A></H3>
+<H3><A NAME="sec:12.3"><SPAN class="sec-nr">12.3</SPAN><SPAN class="sec-title">Status 
+and compiler versions</SPAN></A></H3>
 
 <P>The current interface is entirely defined in the <CODE>.h</CODE> file 
 using inlined code. This approach has a few advantages: as no C++ code 
@@ -1361,7 +1453,7 @@ different versions of the header file with few compatibility
 consequences. If the interface stabilises we will consider options to 
 share more code.
 
-<H3><A NAME="sec:12.4">12.4 Limitations</A></H3>
+<H3><A NAME="sec:12.4"><SPAN class="sec-nr">12.4</SPAN><SPAN class="sec-title">Limitations</SPAN></A></H3>
 
 <P>Currently, the following limitations are recognised:
 
@@ -1377,7 +1469,7 @@ The current interface does not provide for foreign-defined
 non-deterministic predicates. It would not be hard to add this.
 </UL>
 
-<H2><A NAME="sec:13">13 Conclusions</A></H2>
+<H2><A NAME="sec:13"><SPAN class="sec-nr">13</SPAN><SPAN class="sec-title">Conclusions</SPAN></A></H2>
 
 <A NAME="sec:conclusions"></A>
 
@@ -1392,17 +1484,6 @@ only little extra resources in terms of time and memory.
 reduce the coding effort for type checking and reporting in foreign 
 predicates.
 
-<H1><A NAME="document-notes">Footnotes</A></H1>
-
-<DL>
-<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A></DT>
-<DD>
-For Unix, there is a multi-threaded version of SWI-Prolog. In this 
-version each thread can create and destroy a thread-engine. There is 
-currently no C++ interface defined to access this functionality, though 
----of course--- you can use the C-functions.</DD>
-</DL>
-
 <H1><A NAME="document-index">Index</A></H1>
 
 <DL>
@@ -1411,23 +1492,23 @@ currently no C++ interface defined to access this functionality, though
 </DD>
 <DT>add/3</DT>
 <DD>
-<A HREF="#idx:add3:4">3.2</A></DD>
+<A class="idx" href="#idx:add3:4">3.2</A></DD>
 <DT>arg/3</DT>
 <DD>
-<A HREF="#idx:arg3:7">4.5</A></DD>
+<A class="idx" href="#idx:arg3:7">4.5</A></DD>
 <DT>assert</DT>
 <DD>
-<A HREF="#idx:assert:11">8.1</A></DD>
+<A class="idx" href="#idx:assert:11">8.1</A></DD>
 <DT>atom_chars/2</DT>
 <DD>
-<A HREF="#idx:atomchars2:1">2</A> <A HREF="#idx:atomchars2:8">4.9</A></DD>
+<A class="idx" href="#idx:atomchars2:1">2</A> <A class="idx" href="#idx:atomchars2:8">4.9</A></DD>
 <DT>average/3</DT>
 <DD>
-<A HREF="#idx:average3:5">3.3</A></DD>
+<A class="idx" href="#idx:average3:5">3.3</A></DD>
 <DT><STRONG>C</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#cppThrow()">cppThrow()</A></DT>
+<DT><A class="idx" href="#cppThrow()">cppThrow()</A></DT>
 <DD>
 </DD>
 <DT><STRONG>E</STRONG></DT>
@@ -1435,139 +1516,139 @@ currently no C++ interface defined to access this functionality, though
 </DD>
 <DT>entry/1</DT>
 <DD>
-<A HREF="#idx:entry1:10">4.11</A></DD>
+<A class="idx" href="#idx:entry1:10">4.11</A></DD>
 <DT><STRONG>H</STRONG></DT>
 <DD>
 </DD>
 <DT>hello/1</DT>
 <DD>
-<A HREF="#idx:hello1:2">3.1</A></DD>
+<A class="idx" href="#idx:hello1:2">3.1</A></DD>
 <DT><STRONG>L</STRONG></DT>
 <DD>
 </DD>
 <DT>load_foreign_library/1</DT>
 <DD>
-<A HREF="#idx:loadforeignlibrary1:13">9.1</A></DD>
+<A class="idx" href="#idx:loadforeignlibrary1:13">9.1</A></DD>
 <DT><STRONG>O</STRONG></DT>
 <DD>
 </DD>
 <DT>open/3</DT>
 <DD>
-<A HREF="#idx:open3:15">10.3</A></DD>
+<A class="idx" href="#idx:open3:15">10.3</A></DD>
 <DT><STRONG>P</STRONG></DT>
 <DD>
 </DD>
 <DT>PlAtom</DT>
 <DD>
-<A HREF="#sec:4.3">4.3</A> <A HREF="#sec:6">6</A></DD>
-<DT><A HREF="#PlAtom::operator==()">PlAtom::operator==()</A></DT>
+<A class="sec" href="#sec:4.3">4.3</A> <A class="sec" href="#sec:6">6</A></DD>
+<DT><A class="idx" href="#PlAtom::operator==()">PlAtom::operator==()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlCall()">PlCall()</A></DT>
+<DT><A class="idx" href="#PlCall()">PlCall()</A></DT>
 <DD>
 </DD>
 <DT>PlCompound</DT>
 <DD>
-<A HREF="#sec:4.5">4.5</A></DD>
+<A class="sec" href="#sec:4.5">4.5</A></DD>
 <DT>PlDomainError</DT>
 <DD>
-<A HREF="#sec:10">10</A></DD>
+<A class="sec" href="#sec:10">10</A></DD>
 <DT>PlEngine</DT>
 <DD>
-<A HREF="#sec:11">11</A></DD>
+<A class="sec" href="#sec:11">11</A></DD>
 <DT>PlException</DT>
 <DD>
-<A HREF="#sec:2">2</A> <A HREF="#sec:2">2</A> <A HREF="#sec:10">10</A> <A HREF="#sec:10">10</A> <A HREF="#sec:10">10</A> <A HREF="#sec:10.1">10.1</A> <A HREF="#sec:10.1">10.1</A></DD>
+<A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:10">10</A> <A class="sec" href="#sec:10">10</A> <A class="sec" href="#sec:10">10</A> <A class="sec" href="#sec:10.1">10.1</A> <A class="sec" href="#sec:10.1">10.1</A></DD>
 <DT>PlFrame</DT>
 <DD>
-<A HREF="#sec:8.1">8.1</A> <A HREF="#sec:8.1">8.1</A> <A HREF="#sec:8.1">8.1</A> <A HREF="#sec:8.1">8.1</A> <A HREF="#sec:8.1">8.1</A> <A HREF="#sec:12.1">12.1</A></DD>
-<DT><A HREF="#PlFrame::rewind()">PlFrame::rewind()</A></DT>
+<A class="sec" href="#sec:8.1">8.1</A> <A class="sec" href="#sec:8.1">8.1</A> <A class="sec" href="#sec:8.1">8.1</A> <A class="sec" href="#sec:8.1">8.1</A> <A class="sec" href="#sec:8.1">8.1</A> <A class="sec" href="#sec:12.1">12.1</A></DD>
+<DT><A class="idx" href="#PlFrame::rewind()">PlFrame::rewind()</A></DT>
 <DD>
 </DD>
 <DT>PlQuery</DT>
 <DD>
-<A HREF="#sec:3.3">3.3</A> <A HREF="#sec:5">5</A> <A HREF="#sec:8">8</A></DD>
-<DT><A HREF="#PlQuery::next_solution()">PlQuery::next_solution()</A></DT>
+<A class="sec" href="#sec:3.3">3.3</A> <A class="sec" href="#sec:5">5</A> <A class="sec" href="#sec:8">8</A></DD>
+<DT><A class="idx" href="#PlQuery::next_solution()">PlQuery::next_solution()</A></DT>
 <DD>
 </DD>
 <DT>PlRegister</DT>
 <DD>
-<A HREF="#sec:9">9</A> <A HREF="#sec:12.2">12.2</A></DD>
+<A class="sec" href="#sec:9">9</A> <A class="sec" href="#sec:12.2">12.2</A></DD>
 <DT>PlTail</DT>
 <DD>
-<A HREF="#sec:4.11">4.11</A> <A HREF="#sec:4.11">4.11</A> <A HREF="#sec:4.11">4.11</A> <A HREF="#sec:4.11">4.11</A> <A HREF="#sec:4.11">4.11</A> <A HREF="#sec:4.11">4.11</A> <A HREF="#sec:4.11">4.11</A> <A HREF="#sec:4.11">4.11</A> <A HREF="#sec:4.11">4.11</A> <A HREF="#sec:4.11">4.11</A></DD>
-<DT><A HREF="#PlTail::append()">PlTail::append()</A></DT>
+<A class="sec" href="#sec:4.11">4.11</A> <A class="sec" href="#sec:4.11">4.11</A> <A class="sec" href="#sec:4.11">4.11</A> <A class="sec" href="#sec:4.11">4.11</A> <A class="sec" href="#sec:4.11">4.11</A> <A class="sec" href="#sec:4.11">4.11</A> <A class="sec" href="#sec:4.11">4.11</A> <A class="sec" href="#sec:4.11">4.11</A> <A class="sec" href="#sec:4.11">4.11</A> <A class="sec" href="#sec:4.11">4.11</A></DD>
+<DT><A class="idx" href="#PlTail::append()">PlTail::append()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTail::close()">PlTail::close()</A></DT>
+<DT><A class="idx" href="#PlTail::close()">PlTail::close()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTail::next()">PlTail::next()</A></DT>
+<DT><A class="idx" href="#PlTail::next()">PlTail::next()</A></DT>
 <DD>
 </DD>
 <DT>PlTerm</DT>
 <DD>
-<A HREF="#sec:2">2</A> <A HREF="#sec:2">2</A> <A HREF="#sec:2">2</A> <A HREF="#sec:2">2</A> <A HREF="#sec:2">2</A> <A HREF="#sec:2">2</A> <A HREF="#sec:2">2</A> <A HREF="#sec:3.1">3.1</A> <A HREF="#sec:3.1">3.1</A> <A HREF="#sec:3.2">3.2</A> <A HREF="#sec:3.2">3.2</A> <A HREF="#sec:4">4</A> <A HREF="#sec:4.1">4.1</A> <A HREF="#sec:4.2">4.2</A> <A HREF="#sec:4.2">4.2</A> <A HREF="#sec:4.2">4.2</A> <A HREF="#sec:4.3">4.3</A> <A HREF="#sec:4.4">4.4</A> <A HREF="#sec:4.4">4.4</A> <A HREF="#sec:4.4">4.4</A> <A HREF="#sec:4.5">4.5</A> <A HREF="#sec:4.5">4.5</A> <A HREF="#sec:4.5">4.5</A> <A HREF="#sec:4.6">4.6</A> <A HREF="#sec:10">10</A> <A HREF="#sec:10.1">10.1</A> <A HREF="#sec:12.1">12.1</A></DD>
-<DT><A HREF="#PlTerm::arity()">PlTerm::arity()</A></DT>
+<A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:3.1">3.1</A> <A class="sec" href="#sec:3.1">3.1</A> <A class="sec" href="#sec:3.2">3.2</A> <A class="sec" href="#sec:3.2">3.2</A> <A class="sec" href="#sec:4">4</A> <A class="sec" href="#sec:4.1">4.1</A> <A class="sec" href="#sec:4.2">4.2</A> <A class="sec" href="#sec:4.2">4.2</A> <A class="sec" href="#sec:4.2">4.2</A> <A class="sec" href="#sec:4.3">4.3</A> <A class="sec" href="#sec:4.4">4.4</A> <A class="sec" href="#sec:4.4">4.4</A> <A class="sec" href="#sec:4.4">4.4</A> <A class="sec" href="#sec:4.5">4.5</A> <A class="sec" href="#sec:4.5">4.5</A> <A class="sec" href="#sec:4.5">4.5</A> <A class="sec" href="#sec:4.6">4.6</A> <A class="sec" href="#sec:10">10</A> <A class="sec" href="#sec:10.1">10.1</A> <A class="sec" href="#sec:12.1">12.1</A></DD>
+<DT><A class="idx" href="#PlTerm::arity()">PlTerm::arity()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::name()">PlTerm::name()</A></DT>
+<DT><A class="idx" href="#PlTerm::name()">PlTerm::name()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::operator <()">PlTerm::operator &lt;()</A></DT>
+<DT><A class="idx" href="#PlTerm::operator <()">PlTerm::operator &lt;()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::operator <=()">PlTerm::operator &lt;=()</A></DT>
+<DT><A class="idx" href="#PlTerm::operator <=()">PlTerm::operator &lt;=()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::operator >()">PlTerm::operator &gt;()</A></DT>
+<DT><A class="idx" href="#PlTerm::operator >()">PlTerm::operator &gt;()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::operator >=()">PlTerm::operator &gt;=()</A></DT>
+<DT><A class="idx" href="#PlTerm::operator >=()">PlTerm::operator &gt;=()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::operator!=()">PlTerm::operator!=()</A></DT>
+<DT><A class="idx" href="#PlTerm::operator!=()">PlTerm::operator!=()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::operator=()">PlTerm::operator=()</A></DT>
+<DT><A class="idx" href="#PlTerm::operator=()">PlTerm::operator=()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::operator==()">PlTerm::operator==()</A></DT>
+<DT><A class="idx" href="#PlTerm::operator==()">PlTerm::operator==()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::operator\[]()">PlTerm::operator[]()</A></DT>
+<DT><A class="idx" href="#PlTerm::operator\[]()">PlTerm::operator[]()</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#PlTerm::type()">PlTerm::type()</A></DT>
+<DT><A class="idx" href="#PlTerm::type()">PlTerm::type()</A></DT>
 <DD>
 </DD>
 <DT>PlTermv</DT>
 <DD>
-<A HREF="#sec:2">2</A> <A HREF="#sec:4.10">4.10</A> <A HREF="#sec:5">5</A> <A HREF="#sec:9">9</A></DD>
-<DT><A HREF="#plThrow()">plThrow()</A></DT>
+<A class="sec" href="#sec:2">2</A> <A class="sec" href="#sec:4.10">4.10</A> <A class="sec" href="#sec:5">5</A> <A class="sec" href="#sec:9">9</A></DD>
+<DT><A class="idx" href="#plThrow()">plThrow()</A></DT>
 <DD>
 </DD>
 <DT>PlTypeEror</DT>
 <DD>
-<A HREF="#sec:10">10</A> <A HREF="#sec:10.1">10.1</A></DD>
+<A class="sec" href="#sec:10">10</A> <A class="sec" href="#sec:10.1">10.1</A></DD>
 <DT>print_message/2</DT>
 <DD>
-<A HREF="#idx:printmessage2:14">10.1</A></DD>
+<A class="idx" href="#idx:printmessage2:14">10.1</A></DD>
 <DT><STRONG>R</STRONG></DT>
 <DD>
 </DD>
 <DT>read/1</DT>
 <DD>
-<A HREF="#idx:read1:9">4.10</A></DD>
+<A class="idx" href="#idx:read1:9">4.10</A></DD>
 <DT><STRONG>W</STRONG></DT>
 <DD>
 </DD>
 <DT>word/1</DT>
 <DD>
-<A HREF="#idx:word1:12">8.1</A></DD>
+<A class="idx" href="#idx:word1:12">8.1</A></DD>
 <DT>write/1</DT>
 <DD>
-<A HREF="#idx:write1:3">3.1</A> <A HREF="#idx:write1:6">4.2</A></DD>
+<A class="idx" href="#idx:write1:3">3.1</A> <A class="idx" href="#idx:write1:6">4.2</A></DD>
 </DL>
 
 </BODY></HTML>

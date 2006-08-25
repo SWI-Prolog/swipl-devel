@@ -2,89 +2,142 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog SSL Interface</TITLE><style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<TITLE>SWI-Prolog SSL Interface</TITLE><STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
 
 div.title
-{ text-align: center; 
-padding-bottom: 1em; 
-font-size: 200%; 
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
 font-weight: bold;
 }
 
 div.author
-{ text-align: center; 
+{ text-align: center;
 font-style: italic;
 }
 
 div.abstract
-{ margin-top: 2em; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
-padding: 5px; 
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
 margin-left: 10%; margin-right:10%;
 }
 
 div.abstract-title
-{ text-align: center; 
-padding: 5px; 
-font-size: 120%; 
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
 font-weight: bold;
 }
-</style>
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
 <BODY BGCOLOR="white"> 
 
-<P><DIV class="title">SWI-Prolog SSL Interface</DIV><DIV class="author">Jan 
-van der Steen <BR>
-<A HREF="http://www.diff.nl">Diff Automatisering v.o.f</A> 
+<P>
+<DIV class="title">SWI-Prolog SSL Interface</DIV>
+<DIV class="author">Jan van der Steen <BR>
+<A class="url" href="http://www.diff.nl">Diff Automatisering v.o.f</A> 
 
 <P>Jan Wielemaker <BR>
 SWI, University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
-This document describes the SWI-Prolog SSL library, a set of predicates 
-which provides secure sockets to Prolog applications, for example to run 
-a secure HTTPS server, or access websites using the <CODE>https</CODE> 
-protocol. It can also be used to provide authentication and secure data 
-exchange between Prolog processes over the network.
+E-mail: <A class="url" href="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> This document describes the 
+SWI-Prolog SSL library, a set of predicates which provides secure 
+sockets to Prolog applications, for example to run a secure HTTPS 
+server, or access websites using the <CODE>https</CODE> protocol. It can 
+also be used to provide authentication and secure data exchange between 
+Prolog processes over the network.
 </DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
-<UL>
-<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
-<LI><A HREF="#sec:2"><B>2 About SSL</B></A>
-<LI><A HREF="#sec:3"><B>3 Overview of the Prolog API</B></A>
-<LI><A HREF="#sec:4"><B>4 Example code</B></A>
-<LI><A HREF="#sec:5"><B>5 Installation</B></A>
-<LI><A HREF="#sec:6"><B>6 Acknowledgments</B></A>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">About 
+SSL</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Overview 
+of the Prolog API</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Example 
+code</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Installation</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Acknowledgments</SPAN></A></DIV>
+</DIV>
 
-<H2><A NAME="sec:1">1 Introduction</A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>Raw TCP/IP networking is dangerous for two reasons. It is hard to 
 tell whether the body you think you are talking to is indeed the right 
@@ -100,18 +153,21 @@ similar to
 <CODE>library(socket)</CODE> for raw TCP/IP connections that provides 
 SSL server and client sockets.
 
-<H2><A NAME="sec:2">2 About SSL</A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">About 
+SSL</SPAN></A></H2>
 
 <P>The SWI-Prolog SSL interface is built on top of the
-<A HREF="http://www.openssl.org/">OpenSSL</A> library. This library is 
-commonly provided as a standard package in many Linux distributions. The 
-MS-Windows version is built using a binary distribution available from
-<A HREF="http://www.slproweb.com/products/Win32OpenSSL.html">http://www.slproweb.com/products/Win32OpenSSL.html</A>.
+<A class="url" href="http://www.openssl.org/">OpenSSL</A> library. This 
+library is commonly provided as a standard package in many Linux 
+distributions. The MS-Windows version is built using a binary 
+distribution available from
+<A class="url" href="http://www.slproweb.com/products/Win32OpenSSL.html">http://www.slproweb.com/products/Win32OpenSSL.html</A>.
 
 <P>A good introduction on key- and certificate handling for OpenSSL can 
-be found at <A HREF="http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/">http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/</A>
+be found at <A class="url" href="http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/">http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/</A>
 
-<H2><A NAME="sec:3">3 Overview of the Prolog API</A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Overview 
+of the Prolog API</SPAN></A></H2>
 
 <P>An SSL server and client can be built with the following (abstracted) 
 predicate calls:
@@ -121,11 +177,11 @@ predicate calls:
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD>SSL server</TD><TD>SSL client </TD></TR>
 <TBODY>
-<TR VALIGN=top><TD><A NAME="idx:sslinit3:1"></A><A HREF="#ssl_init/3">ssl_init/3</A> </TD><TD><A NAME="idx:sslinit3:2"></A><A HREF="#ssl_init/3">ssl_init/3</A> </TD></TR>
-<TR VALIGN=top><TD><A NAME="idx:sslaccept3:3"></A><A HREF="#ssl_accept/3">ssl_accept/3</A> </TD></TR>
-<TR VALIGN=top><TD><A NAME="idx:sslopen4:4"></A><A HREF="#ssl_open/4">ssl_open/4</A> </TD><TD><A NAME="idx:sslopen3:5"></A><A HREF="#ssl_open/3">ssl_open/3</A> </TD></TR>
+<TR VALIGN=top><TD><A NAME="idx:sslinit3:1"></A><A class="pred" href="#ssl_init/3">ssl_init/3</A> </TD><TD><A NAME="idx:sslinit3:2"></A><A class="pred" href="#ssl_init/3">ssl_init/3</A> </TD></TR>
+<TR VALIGN=top><TD><A NAME="idx:sslaccept3:3"></A><A class="pred" href="#ssl_accept/3">ssl_accept/3</A> </TD></TR>
+<TR VALIGN=top><TD><A NAME="idx:sslopen4:4"></A><A class="pred" href="#ssl_open/4">ssl_open/4</A> </TD><TD><A NAME="idx:sslopen3:5"></A><A class="pred" href="#ssl_open/3">ssl_open/3</A> </TD></TR>
 <TR VALIGN=top><TD>...</TD><TD>...</TD></TR>
-<TR VALIGN=top><TD><A NAME="idx:sslexit1:6"></A><A HREF="#ssl_exit/1">ssl_exit/1</A> </TD><TD><A NAME="idx:sslexit1:7"></A><A HREF="#ssl_exit/1">ssl_exit/1</A> </TD></TR>
+<TR VALIGN=top><TD><A NAME="idx:sslexit1:6"></A><A class="pred" href="#ssl_exit/1">ssl_exit/1</A> </TD><TD><A NAME="idx:sslexit1:7"></A><A class="pred" href="#ssl_exit/1">ssl_exit/1</A> </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -215,7 +271,7 @@ layer. This option is automatically turned on in a client SSL socket.
 -Socket, -Peer</VAR>)</A></DT>
 <DD class="defbody">
 This predicate is used in the server to accept new connections.
-<VAR>Socket</VAR> is unified to a socket that must be passed to <A NAME="idx:sslopen4:8"></A><A HREF="#ssl_open/4">ssl_open/4</A> 
+<VAR>Socket</VAR> is unified to a socket that must be passed to <A NAME="idx:sslopen4:8"></A><A class="pred" href="#ssl_open/4">ssl_open/4</A> 
 and <VAR>Peer</VAR> is unified with a term ip/4 denoting the IP address 
 of the peer. The format is compatible to the format used by the TCP/IP 
 library <CODE>socket.pl</CODE> provided by the clib package.</DD>
@@ -231,15 +287,16 @@ actually send the data to the peer.</DD>
 -In, -Out</VAR>)</A></DT>
 <DD class="defbody">
 Client side. Establish the connection based on the data passed to
-<A NAME="idx:sslinit3:10"></A><A HREF="#ssl_init/3">ssl_init/3</A> and 
-create the Prolog I/O streams.</DD>
+<A NAME="idx:sslinit3:10"></A><A class="pred" href="#ssl_init/3">ssl_init/3</A> 
+and create the Prolog I/O streams.</DD>
 <DT class="pubdef"><A NAME="ssl_exit/1"><STRONG>ssl_exit</STRONG>(<VAR>+SSL</VAR>)</A></DT>
 <DD class="defbody">
 Clean up all resources related to the SSL + TCP/IP socket layers.
 </DD>
 </DL>
 
-<H2><A NAME="sec:4">4 Example code</A></H2>
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Example 
+code</SPAN></A></H2>
 
 <P>Examples of a simple server and client as well as a simple HTTPS 
 server can be found in the example directory which is located in
@@ -248,7 +305,7 @@ installation directory. The <CODE>etc</CODE> directory contains example
 certificate files as well as a <CODE>README</CODE> on the creation of 
 certificates using OpenSSL tools.
 
-<H2><A NAME="sec:5">5 Installation</A></H2>
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Installation</SPAN></A></H2>
 
 <P>The OpenSSL libraries are <EM>not</EM> part of the SWI-Prolog 
 distribution and on systems using packagers with dependency checking, 
@@ -256,7 +313,7 @@ dependency on OpenSSL is deliberatly avoided. This implies that OpenSSL
 must be installed seperatly before using SSL with a binary distribution 
 of SWI-Prolog. Most modern Linux distributions have an SSL package. An 
 installer for MS-Windows is available from
-<A HREF="http://www.slproweb.com/products/Win32OpenSSL.html">http://www.slproweb.com/products/Win32OpenSSL.html</A> 
+<A class="url" href="http://www.slproweb.com/products/Win32OpenSSL.html">http://www.slproweb.com/products/Win32OpenSSL.html</A> 
 The SWI-Prolog SSL interface is currently built using OpenSSL 0.97b.
 
 <P>When installing from the source, the package configuration 
@@ -266,10 +323,11 @@ prior to building SWI-Prolog and <CODE>rules.mk</CODE> must be edited to
 reflect the position of the header and libraries if they are not in the 
 standard search path.
 
-<H2><A NAME="sec:6">6 Acknowledgments</A></H2>
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Acknowledgments</SPAN></A></H2>
 
 <P>The development of the SWI-Prolog SSL interface has been sponsored by
-<A HREF="http://www.sss.co.nz">Scientific Software and Systems Limited</A>.
+<A class="url" href="http://www.sss.co.nz">Scientific Software and 
+Systems Limited</A>.
 
 <H1><A NAME="document-index">Index</A></H1>
 
@@ -279,25 +337,25 @@ standard search path.
 </DD>
 <DT>flush_output/1</DT>
 <DD>
-<A HREF="#idx:flushoutput1:9">3</A></DD>
+<A class="idx" href="#idx:flushoutput1:9">3</A></DD>
 <DT><STRONG>S</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#ssl_accept/3">ssl_accept/3</A></DT>
+<DT><A class="idx" href="#ssl_accept/3">ssl_accept/3</A></DT>
 <DD>
-<A HREF="#idx:sslaccept3:3">3</A></DD>
-<DT><A HREF="#ssl_exit/1">ssl_exit/1</A></DT>
+<A class="idx" href="#idx:sslaccept3:3">3</A></DD>
+<DT><A class="idx" href="#ssl_exit/1">ssl_exit/1</A></DT>
 <DD>
-<A HREF="#idx:sslexit1:6">3</A> <A HREF="#idx:sslexit1:7">3</A></DD>
-<DT><A HREF="#ssl_init/3">ssl_init/3</A></DT>
+<A class="idx" href="#idx:sslexit1:6">3</A> <A class="idx" href="#idx:sslexit1:7">3</A></DD>
+<DT><A class="idx" href="#ssl_init/3">ssl_init/3</A></DT>
 <DD>
-<A HREF="#idx:sslinit3:1">3</A> <A HREF="#idx:sslinit3:2">3</A> <A HREF="#idx:sslinit3:10">3</A></DD>
-<DT><A HREF="#ssl_open/3">ssl_open/3</A></DT>
+<A class="idx" href="#idx:sslinit3:1">3</A> <A class="idx" href="#idx:sslinit3:2">3</A> <A class="idx" href="#idx:sslinit3:10">3</A></DD>
+<DT><A class="idx" href="#ssl_open/3">ssl_open/3</A></DT>
 <DD>
-<A HREF="#idx:sslopen3:5">3</A></DD>
-<DT><A HREF="#ssl_open/4">ssl_open/4</A></DT>
+<A class="idx" href="#idx:sslopen3:5">3</A></DD>
+<DT><A class="idx" href="#ssl_open/4">ssl_open/4</A></DT>
 <DD>
-<A HREF="#idx:sslopen4:4">3</A> <A HREF="#idx:sslopen4:8">3</A></DD>
+<A class="idx" href="#idx:sslopen4:4">3</A> <A class="idx" href="#idx:sslopen4:8">3</A></DD>
 </DL>
 
 </BODY></HTML>

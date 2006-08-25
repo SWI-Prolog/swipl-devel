@@ -83,11 +83,10 @@ check::
 
 doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
-html:		$(HTML)
 
-$(HTML):	$(TEX)
+html::		$(TEX)
 		latex2html $(DOC)
-		mv html/index.html $@
+		mv html/index.html $(DOC).html
 		rmdir html
 
 $(PDF):		$(TEX)

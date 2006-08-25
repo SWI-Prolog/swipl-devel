@@ -2,95 +2,144 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog Natural Language Processing Primitives</TITLE><style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<TITLE>SWI-Prolog Natural Language Processing Primitives</TITLE><STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
 
 div.title
-{ text-align: center; 
-padding-bottom: 1em; 
-font-size: 200%; 
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
 font-weight: bold;
 }
 
 div.author
-{ text-align: center; 
+{ text-align: center;
 font-style: italic;
 }
 
 div.abstract
-{ margin-top: 2em; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
-padding: 5px; 
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
 margin-left: 10%; margin-right:10%;
 }
 
 div.abstract-title
-{ text-align: center; 
-padding: 5px; 
-font-size: 120%; 
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
 font-weight: bold;
 }
-</style>
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
 <BODY BGCOLOR="white"> 
 
-<P><DIV class="title">SWI-Prolog Natural Language Processing Primitives</DIV><DIV class="author">Jan 
-Wielemaker <BR>
+<P>
+<DIV class="title">SWI-Prolog Natural Language Processing Primitives</DIV>
+<DIV class="author">Jan Wielemaker <BR>
 HCS, <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
-E-mail: <A HREF="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV><DIV class="abstract"><DIV class="abstract-title">Abstract</DIV> 
-This package contains some well known basic routines for natural 
-language processing and information retrieval. The current version of 
-this package is very limited, which makes the name somewhat misleading. 
-Suggestions and contributions are welcome.
+E-mail: <A class="url" href="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> This package contains some 
+well known basic routines for natural language processing and 
+information retrieval. The current version of this package is very 
+limited, which makes the name somewhat misleading. Suggestions and 
+contributions are welcome.
 </DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
 
-<UL>
-<LI><A HREF="#sec:1"><B>1 Double Metaphone -- Phonetic string matching</B></A>
-<UL>
-<LI><A HREF="#sec:1.1">1.1 Origin and Copyright</A>
-</UL>
-<LI><A HREF="#sec:2"><B>2 Porter Stem -- Determine stem and related 
-routines</B></A>
-<UL>
-<LI><A HREF="#sec:2.1">2.1 Origin and Copyright</A>
-</UL>
-<LI><A HREF="#sec:3"><B>3 Installation</B></A>
-<UL>
-<LI><A HREF="#sec:3.1">3.1 Unix systems</A>
-</UL>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Double 
+Metaphone -- Phonetic string matching</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:1.1"><SPAN class="sec-nr">1.1</SPAN><SPAN class="sec-title">Origin 
+and Copyright</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Porter 
+Stem -- Determine stem and related routines</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">Origin 
+and Copyright</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Installation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Unix 
+systems</SPAN></A></DIV>
+</DIV>
 
 <P>
 
-<H2><A NAME="sec:1">1 Double Metaphone -- Phonetic string matching</A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Double 
+Metaphone -- Phonetic string matching</SPAN></A></H2>
 
 <P>The library <CODE>library(double_metaphone)</CODE> implements the <EM>Double 
 Metaphone</EM> algorithm developed by Lawrence Philips and described in 
@@ -104,7 +153,7 @@ is an improved version of the <EM>Soundex</EM> algorithm.
 <DT class="pubdef"><A NAME="double_metaphone/2"><STRONG>double_metaphone</STRONG>(<VAR>+In, 
 -MetaPhone</VAR>)</A></DT>
 <DD class="defbody">
-Same as <A NAME="idx:doublemetaphone3:1"></A><A HREF="#double_metaphone/3">double_metaphone/3</A>, 
+Same as <A NAME="idx:doublemetaphone3:1"></A><A class="pred" href="#double_metaphone/3">double_metaphone/3</A>, 
 but only returning the primary metaphone.
 </DD>
 <DT class="pubdef"><A NAME="double_metaphone/3"><STRONG>double_metaphone</STRONG>(<VAR>+In, 
@@ -118,7 +167,8 @@ are always returned as atoms.
 </DD>
 </DL>
 
-<H3><A NAME="sec:1.1">1.1 Origin and Copyright</A></H3>
+<H3><A NAME="sec:1.1"><SPAN class="sec-nr">1.1</SPAN><SPAN class="sec-title">Origin 
+and Copyright</SPAN></A></H3>
 
 <P>The Double Metaphone algorithm is copied from the Perl library that 
 holds the following copyright notice. To the best of our knowledge the 
@@ -135,7 +185,8 @@ Philips and incorporates several bug fixes courtesy of Kevin Atkinson
 it under the same terms as Perl itself.
 </BLOCKQUOTE>
 
-<H2><A NAME="sec:2">2 Porter Stem -- Determine stem and related routines</A></H2>
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Porter 
+Stem -- Determine stem and related routines</SPAN></A></H2>
 
 <P>The <CODE>library(porter_stem)</CODE> library implements the stemming 
 algorithm described by Porter in Porter, 1980, ``An algorithm for suffix 
@@ -148,9 +199,9 @@ stemming.
 -Stem</VAR>)</A></DT>
 <DD class="defbody">
 Determine the stem of <VAR>In</VAR>. <VAR>In</VAR> must represent ISO 
-Latin-1 text. The <A NAME="idx:porterstem2:2"></A><A HREF="#porter_stem/2">porter_stem/2</A> 
+Latin-1 text. The <A NAME="idx:porterstem2:2"></A><A class="pred" href="#porter_stem/2">porter_stem/2</A> 
 predicate first maps <VAR>In</VAR> to lower case, then removes all 
-accents as in <A NAME="idx:unaccentatom2:3"></A><A HREF="#unaccent_atom/2">unaccent_atom/2</A> 
+accents as in <A NAME="idx:unaccentatom2:3"></A><A class="pred" href="#unaccent_atom/2">unaccent_atom/2</A> 
 and finally applies the Porter stem algorithm.</DD>
 <DT class="pubdef"><A NAME="unaccent_atom/2"><STRONG>unaccent_atom</STRONG>(<VAR>+In, 
 -ASCII</VAR>)</A></DT>
@@ -183,18 +234,20 @@ the stem of each word encountered and numbers for encountered numbers.
 </DD>
 </DL>
 
-<H3><A NAME="sec:2.1">2.1 Origin and Copyright</A></H3>
+<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">Origin 
+and Copyright</SPAN></A></H3>
 
 <P>The code is based on the original Public Domain implementation by 
 Martin Porter as can be found at
-<A HREF="http://www.tartarus.org/martin/PorterStemmer/">http://www.tartarus.org/martin/PorterStemmer/</A>. 
+<A class="url" href="http://www.tartarus.org/martin/PorterStemmer/">http://www.tartarus.org/martin/PorterStemmer/</A>. 
 The code has been modified by Jan Wielemaker. He removed all global 
 variables to make the code thread-safe, added the unaccent and tokenize 
 code and created the SWI-Prolog binding.
 
-<H2><A NAME="sec:3">3 Installation</A></H2>
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Installation</SPAN></A></H2>
 
-<H3><A NAME="sec:3.1">3.1 Unix systems</A></H3>
+<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Unix 
+systems</SPAN></A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -219,39 +272,39 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 <DT><STRONG>A</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#atom_to_stem_list/2">atom_to_stem_list/2</A></DT>
+<DT><A class="idx" href="#atom_to_stem_list/2">atom_to_stem_list/2</A></DT>
 <DD>
 </DD>
 <DT><STRONG>D</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#double_metaphone/2">double_metaphone/2</A></DT>
+<DT><A class="idx" href="#double_metaphone/2">double_metaphone/2</A></DT>
 <DD>
 </DD>
-<DT><A HREF="#double_metaphone/3">double_metaphone/3</A></DT>
+<DT><A class="idx" href="#double_metaphone/3">double_metaphone/3</A></DT>
 <DD>
-<A HREF="#idx:doublemetaphone3:1">1</A></DD>
+<A class="idx" href="#idx:doublemetaphone3:1">1</A></DD>
 <DT><STRONG>P</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#porter_stem/2">porter_stem/2</A></DT>
+<DT><A class="idx" href="#porter_stem/2">porter_stem/2</A></DT>
 <DD>
-<A HREF="#idx:porterstem2:2">2</A></DD>
+<A class="idx" href="#idx:porterstem2:2">2</A></DD>
 <DT><STRONG>T</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#tokenize_atom/2">tokenize_atom/2</A></DT>
+<DT><A class="idx" href="#tokenize_atom/2">tokenize_atom/2</A></DT>
 <DD>
 </DD>
 <DT>tokenize_atom/3</DT>
 <DD>
-<A HREF="#idx:tokenizeatom3:4">2</A></DD>
+<A class="idx" href="#idx:tokenizeatom3:4">2</A></DD>
 <DT><STRONG>U</STRONG></DT>
 <DD>
 </DD>
-<DT><A HREF="#unaccent_atom/2">unaccent_atom/2</A></DT>
+<DT><A class="idx" href="#unaccent_atom/2">unaccent_atom/2</A></DT>
 <DD>
-<A HREF="#idx:unaccentatom2:3">2</A></DD>
+<A class="idx" href="#idx:unaccentatom2:3">2</A></DD>
 </DL>
 
 </BODY></HTML>

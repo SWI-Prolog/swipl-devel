@@ -144,12 +144,9 @@ index_on_begin(dt, Attributes, Parser) :- !,
 		     parse(content)
 		   ]),
 	sub_term(element(a, AA, _), DT),
-        memberchk(name=Id, AA), !,
-	concat_atom([Name, ArityAtom], /, Id),
-	catch(atom_number(ArityAtom, Arity), _, fail),
-	integer(Arity),
-	Arity > 0,
-	nb_setval(pldoc_man_index, dd(Name/Arity, File, Offset)).
+        memberchk(name=Id, AA),
+	atom_to_pi(Id, PI),
+	nb_setval(pldoc_man_index, dd(PI, File, Offset)).
 index_on_begin(dd, _, Parser) :- !,
 	nb_getval(pldoc_man_index, dd(Name/Arity, File, Offset)),
 	nb_setval(pldoc_man_index, []),
@@ -177,10 +174,31 @@ index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 		   [ document(Doc),
 		     parse(content)
 		   ]),
-	dom_to_text(Doc, Title),
-	section_number(Title, Nr, PlainTitle),
-	assert(man_index(section(Level, Nr, File), PlainTitle, File, Offset)).
+	dom_section(Doc, Nr, Title),
+	assert(man_index(section(Level, Nr, File), Title, File, Offset)).
 	
+%%	dom_section(+HeaderDOM, -NR, -Title) is semidet.
+%
+%	NR is the section number (e.g. 1.1, 1.23) and Title is the title
+%	from a section header. The  first   clauses  processes the style
+%	information from latex2html, emitting sections as:
+%	
+%	==
+%	<HN> <A name="sec:nr"><span class='sec-nr'>NR</span>
+%			      <span class='sec-title'>Title</span>
+%	==
+
+dom_section(DOM, Nr, Title) :-
+	sub_term([ element(span, A1, [Nr]),
+		   element(span, A2, TitleDOM)
+		 ], DOM),
+	memberchk(class='sec-nr', A1),
+	memberchk(class='sec-title', A2), !,
+	dom_to_text(TitleDOM, Title).
+dom_section(DOM, Nr, Title) :-
+	dom_to_text(DOM, Title),
+	section_number(Title, Nr, Title).
+
 section_number(Title, Nr, PlainTitle) :-
 	sub_atom(Title, 0, 1, _, Start),
 	(   char_type(Start, digit)
@@ -408,7 +426,11 @@ dom(element(a, _, []), _) -->		% Useless back-references
 	[].
 dom(element(a, Att, Content), Path) -->
 	{ memberchk(href=HREF, Att),
-	  rewrite_ref(HREF, Path, Myref)
+	  (   memberchk(class=Class, Att)
+	  ->  true
+	  ;   Class = unknown
+	  ),
+	  rewrite_ref(Class, HREF, Path, Myref)
 	}, !,
 	html(a(href(Myref), \dom_list(Content, Path))).
 dom(element(div, Att, _), _) -->
@@ -422,7 +444,7 @@ dom(CDATA, _) -->
 	html(CDATA).
 
 
-%%	rewrite_ref(+Ref0, +Path, -ManRef) is semidet.
+%%	rewrite_ref(+Class, +Ref0, +Path, -ManRef) is semidet.
 %
 %	Rewrite HREFS from the internal manual format to the server
 %	format.  Reformatted:
@@ -433,19 +455,31 @@ dom(CDATA, _) -->
 %		
 %		$ File#sec:NR :
 %		Rewrite to section(Level, NT, FilePath)
+%		
+%	@param Class	Class of the <A>.  Supported classes are
+%	
+%		$ sec  : Link to a section
+%		$ pred : Link to a predicate
 
-rewrite_ref(Ref0, Path, Ref) :-
+rewrite_ref(pred, Ref0, _, Ref) :-				% Predicate reference
+	sub_atom(Ref0, _, _, A, '#'), !,
+	sub_atom(Ref0, _, A, 0, Fragment),
+	atom_to_pi(Fragment, PI),
+	man_index(PI, _, _, _),
+	www_form_encode(Fragment, Enc),
+	format(string(Ref), '/man?predicate=~w', [Enc]).
+rewrite_ref(sec, Ref0, Path, Ref) :-				% Section inside a file
 	sub_atom(Ref0, B, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),
-	(   atom_to_pi(Fragment, PI),
-	    man_index(PI, _, _, _)
-	->  www_form_encode(Fragment, Enc),
-	    format(string(Ref), '/man?predicate=~w', [Enc])
-	;   sub_atom(Ref0, 0, B, _, File),
-	    referenced_section(Fragment, File, Path, Section),
-	    object_href(Section, Ref)
-	).
-
+	sub_atom(Ref0, 0, B, _, File),
+	referenced_section(Fragment, File, Path, Section),
+	object_href(Section, Ref).
+rewrite_ref(sec, File, Path, Ref) :-				% Section is a file
+	file_directory_name(Path, Dir),
+	concat_atom([Dir, /, File], SecPath),
+	Obj = section(_, _, SecPath),
+	man_index(Obj, _, _, _), !,
+	object_href(Obj, Ref).
 
 %%	atom_to_pi(+Atom, -PredicateIndicator) is semidet.
 %	
