@@ -36,7 +36,8 @@ INSTALL_DATA=@INSTALL_DATA@
 LIBDIR=$(prefix)/lib/latex2html
 
 OBJ=	tex.o psfile.o
-LIB=	latex2html.pl latex.cmd pl.pl pl.cmd xpce.pl xpce.cmd
+LIB=	latex2html.pl latex.cmd pl.pl pl.cmd xpce.pl xpce.cmd \
+	latex2html.css
 
 all:
 	@echo "==============================================================="

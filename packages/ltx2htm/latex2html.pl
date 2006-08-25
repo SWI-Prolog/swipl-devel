@@ -55,7 +55,7 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.97').			% for SWI-Prolog 5.6.18
+version('0.98').			% for SWI-Prolog 5.6.18
 
 page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" \
                "http://www.w3.org/TR/html4/strict.dtd">\n\n').
@@ -428,54 +428,14 @@ language_map(table,	'Table').
 #(head(Head),		[html('<HEAD>'), HtmlHead, Style, html('</HEAD>')]) :-
 	expand_macros(Head, HtmlHead),
 	expand_macros(#style, Style).
-#(style,		[ html('\
-<style type="text/css">  \n\
-dd.defbody  \n\
-{ margin-bottom: 1em;  \n\
-}\n\n\
-dt.pubdef  \n\
-{ background-color: #c5e1ff;  \n\
-}\n\n\
-pre.code  \n\
-{ margin-left: 1.5em;    \n\
-  margin-right: 1.5em;    \n\
-  border: 1px dotted;    \n\
-  padding-top: 5px;    \n\
-  padding-left: 5px;    \n\
-  padding-bottom: 5px;    \n\
-  background-color: #f8f8f8;    \n\
-}\n\n\
-div.navigate\n\
-{ text-align: center;  \n\
-  background-color: #f0f0f0;  \n\
-  border: 1px dotted;  \n\
-  padding: 5px;\n\
-}\n\n\
-div.title\n\
-{ text-align: center;  \n\
-  padding-bottom: 1em;  \n\
-  font-size: 200%;  \n\
-  font-weight: bold;\n\
-}\n\n\
-div.author\n\
-{ text-align: center;  \n\
-  font-style: italic;\n\
-}\n\n\
-div.abstract\n\
-{ margin-top: 2em;  \n\
-  background-color: #f0f0f0;  \n\
-  border: 1px dotted;  \n\
-  padding: 5px;  \n\
-  margin-left: 10%; margin-right:10%;\n\
-}\n\n\
-div.abstract-title\n\
-{ text-align: center;  \n\
-  padding: 5px;  \n\
-  font-size: 120%;  \n\
-  font-weight: bold;\n\
-}
-</style>\n')
-			]).
+#(style,		[ html('<STYLE type="text/css">'),
+			  html(Style),
+			  html('</STYLE>')
+			]) :-
+	absolute_file_name(library('latex2html.css'), StyleFile,
+			   [ access(read) ]),
+	read_file_to_codes(StyleFile, Codes, []),
+	atom_codes(Style, Codes).
 #(beginbody,		html(Body)) :-
 	bodycolor(Colour), !,
 	sformat(Body, '<BODY BGCOLOR="~w">', [Colour]).
@@ -503,6 +463,8 @@ div.abstract-title\n\
 					   Text, html('</font>')]).
 #(div(Class, Text),	[html(Begin), Text, html('</DIV>')]) :-
 	format(atom(Begin), '<DIV class="~w">', [Class]).
+#(span(Class, Text),	[html(Begin), Text, html('</SPAN>')]) :-
+	format(atom(Begin), '<SPAN class="~w">', [Class]).
 #(center(Text),		[html('<CENTER>'), Text, html('</CENTER>')]).
 #(navigate(Text),	[html('<DIV class="navigate">'), Text, html('</DIV>')]).
 #(right(Text),		[html('<RIGHT>'),  Text, html('</RIGHT>')]).
@@ -1579,7 +1541,10 @@ translate_section(Level, -, TeXTitle,
 	[ Footer,
 	  Tell,
 	  Header,
-	  #h(Level, #label(RefName, [Tag, ' ', Title]))
+	  #h(Level, #label(RefName,
+			   [ #span('sec-nr', Tag),
+			     #span('sec-title', Title)
+			   ]))
 	], NodeFile) :- !,
 	translate(TeXTitle, normal, Title),
 	section_tag(OldTag),
@@ -1600,7 +1565,7 @@ translate_section(Level, -, TeXTitle,
 	    Footer = [],
 	    Header = []
 	),
-	sformat(RefName, 'sec:~w', [Tag]),
+	format(string(RefName), 'sec:~w', [Tag]),
 	assert(section(Level, Tag, Title)).
 translate_section(Level, *, Title, #h(Level, +Title), _).
 
@@ -1676,19 +1641,14 @@ tableofcontents([]) :-
 tableofcontents(Sections) :-
 	tableofcontents('', Sections).
 
-tableofcontents(TagPrefix, [Sections, CloseUL]) :-
-	retractall(section_level(_)),
-	(   section(Level, Tag, _Title),
-	    sub_atom(Tag, 0, _, _, TagPrefix)
-	->  L0 is Level - 1
-	;   L0 = 0
-	),
-	asserta(section_level(L0)),
-	findall(S, section_html(TagPrefix, S), Sections),
-	fix_level(L0, CloseUL).
+tableofcontents(TagPrefix, #div(toc, Sections)) :-
+	findall(S, section_html(TagPrefix, S), Sections).
 
 section_html(TagPrefix,
-	     [ #div(Class, #lref(Ref, [Tag, ' ', Title]))
+	     [ #div(Class, #lref(Ref,
+				 [ #span('sec-nr', Tag),
+				   #span('sec-title', Title)
+				 ]))
 	     ]) :-
 	section(Level, Tag, Title),
 	html_split_level(Split),
@@ -1699,25 +1659,6 @@ section_html(TagPrefix,
 	atom_concat(TagPrefix, _, Tag),
 	format(string(RefName), 'sec:~w', [Tag]),
 	atom_concat('toc-h', Level, Class).
-
-fix_level(To, []) :-
-	section_level(To), !.
-fix_level(To, HTML) :-
-	(   retract(section_level(From))
-	->  fix_indent(To, From, HTML),
-	    asserta(section_level(To))
-	).
-
-fix_indent(L, L, []) :- !.
-fix_indent(To, From, [html('<UL>')|T]) :-
-	To > From, !,
-	NFrom is From + 1,
-	fix_indent(To, NFrom, T).
-fix_indent(To, From, [html('</UL>')|T]) :-
-	To < From, !,
-	NFrom is From - 1,
-	fix_indent(To, NFrom, T).
-
 
 
 		 /*******************************
@@ -1911,17 +1852,10 @@ subsection_index(Tag,
 	    ]) :-
 	onefile(false),
 	Tag \== '',
-	concat(Tag, '.', Filter),
+	atom_concat(Tag, '.', Filter),
 	tableofcontents(Filter, SubIndex),
-	submember(#lref(_,_), SubIndex), !. % it is not empty
+	sub_term(#lref(_,_), SubIndex), !. % it is not empty
 subsection_index(_, []).
-
-submember(X, [X|_]).
-submember(X, [L|_]) :-
-	is_list(L),
-	submember(X, L).
-submember(X, [_|T]) :-
-	submember(X, T).
 
 
 		 /*******************************
@@ -2635,8 +2569,8 @@ write_html(Token) :-
 	retract(pending_par), !,
 	(   implicit_par(Token)
 	->  true
-	;   cmd_layout('<P>', Pre, Post),
-	    put_html_token(html('<P>', Pre, Post))
+	;   cmd_layout('<P>', Pre, Post)
+	->  put_html_token(html('<P>', Pre, Post))
 	),
 	write_html(Token).
 write_html(html(Cmd)) :-			% HTML commands
@@ -2814,6 +2748,8 @@ cmd_layout('</H5>',  0, 2).
 cmd_layout('</H6>',  0, 2). 
 cmd_layout('<HR>',   1, 1). 
 cmd_layout('<BR>',   0, 1). 
+cmd_layout(DIV,      1, 0) :- is_begin('DIV', DIV).
+cmd_layout('</DIV>', 0, 1).
 cmd_layout('<LI>', 	 1, 0).
 cmd_layout('<DT>', 	 1, 0).
 cmd_layout('</DT>', 	 0, 1).
