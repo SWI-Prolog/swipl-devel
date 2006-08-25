@@ -1688,9 +1688,7 @@ tableofcontents(TagPrefix, [Sections, CloseUL]) :-
 	fix_level(L0, CloseUL).
 
 section_html(TagPrefix,
-	     [ FixLevel,
-	       html('<LI>'),
-	       #lref(Ref, [Open, Tag, ' ', Title, Close])
+	     [ #div(Class, #lref(Ref, [Tag, ' ', Title]))
 	     ]) :-
 	section(Level, Tag, Title),
 	html_split_level(Split),
@@ -1698,10 +1696,9 @@ section_html(TagPrefix,
 	->  Ref = fileof(RefName)
 	;   Ref = RefName
 	),
-	concat(TagPrefix, _, Tag),
-	fix_level(Level, FixLevel),
-	sformat(RefName, 'sec:~w', [Tag]),
-	contents_line_style(Level, Open, Close).
+	atom_concat(TagPrefix, _, Tag),
+	format(string(RefName), 'sec:~w', [Tag]),
+	atom_concat('toc-h', Level, Class).
 
 fix_level(To, []) :-
 	section_level(To), !.
@@ -1721,10 +1718,7 @@ fix_indent(To, From, [html('</UL>')|T]) :-
 	NFrom is From - 1,
 	fix_indent(To, NFrom, T).
 
-	
-contents_line_style(1, html('<STRONG>'), html('</STRONG>')) :- !.
-contents_line_style(2, html('<B>'),      html('</B>')) :- !.
-contents_line_style(_, [],      	 []).
+
 
 		 /*******************************
 		 *	       INDEX		*

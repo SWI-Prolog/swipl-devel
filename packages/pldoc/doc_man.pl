@@ -33,7 +33,6 @@
 	  [ clean_man_index/0,		% 
 	    index_man_directory/2,	% +DirSpec, +Options
 	    index_man_file/1,		% +FileSpec
-	    load_man_object/3,		% +Obj, -File, -DOM
 	    man_page/4			% +Obj, +Options, //
 	  ]).
 :- use_module(library(sgml)).
@@ -278,14 +277,14 @@ cdata(_) -->
 		 *	      RETRIEVE		*
 		 *******************************/
 
-%%	load_man_object(+Obj, -Path, -DOM) is nondet.
+%%	load_man_object(+Obj, -Parent, -Path, -DOM) is nondet.
 %
 %	load the desription of the  object   matching  Obj from the HTML
 %	sources and return the DT/DD pair in DOM.
 %	
 %	@tbd	Nondet?
 
-load_man_object(For, ParentSection, DOM) :-
+load_man_object(For, ParentSection, Path, DOM) :-
 	For = section(_,SN,Path),
 	parent_section(For, ParentSection),
 	findall(Nr-Pos, section_start(Path, Nr, Pos), Pairs),
@@ -317,7 +316,7 @@ load_man_object(For, ParentSection, DOM) :-
 	    free_sgml_parser(Parser),
 	    close(In)
 	).
-load_man_object(For, Path, DOM) :-
+load_man_object(For, Path, Path, DOM) :-
 	index_manual,
 	object_spec(For, Obj),
 	man_index(Obj, _, Path, Position),
@@ -385,11 +384,11 @@ object_spec(Atom, PI) :-
 %		not-found message.
 
 man_page(Obj, _Options) -->
-	{ load_man_object(Obj, Parent, DOM), !
+	{ load_man_object(Obj, Parent, Path, DOM), !
 	},
 	html([ \man_links(Parent, []),
 	       p([]),
-	       \dom_list(DOM)
+	       \dom_list(DOM, Path)
 	     ]).
 man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
@@ -399,42 +398,53 @@ man_page(Obj, Options) -->
 	       'No manual entry for ', Atom
 	     ]).
 
-dom_list([]) -->
+dom_list([], _) -->
 	[].
-dom_list([H|T]) -->
-	dom(H),
-	dom_list(T).
+dom_list([H|T], Path) -->
+	dom(H, Path),
+	dom_list(T, Path).
 
-dom(element(a, _, [])) -->		% Useless back-references
+dom(element(a, _, []), _) -->		% Useless back-references
 	[].
-dom(element(a, Att, Content)) -->
+dom(element(a, Att, Content), Path) -->
 	{ memberchk(href=HREF, Att),
-	  rewrite_ref(HREF, Myref)
+	  rewrite_ref(HREF, Path, Myref)
 	}, !,
-	html(a(href(Myref), \dom_list(Content))).
-dom(element(div, Att, _)) -->
+	html(a(href(Myref), \dom_list(Content, Path))).
+dom(element(div, Att, _), _) -->
 	{ memberchk(class=navigate, Att) }, !.
-dom(element(Name, Attrs, Content)) --> !,
+dom(element(Name, Attrs, Content), Path) --> !,
 	{ Begin =.. [Name|Attrs] },
 	html_begin(Begin),
-	dom_list(Content),
+	dom_list(Content, Path),
 	html_end(Name).
-dom(CDATA) -->
+dom(CDATA, _) -->
 	html(CDATA).
 
 
-%%	rewrite_ref(+Ref0, -ManRef) is semidet.
+%%	rewrite_ref(+Ref0, +Path, -ManRef) is semidet.
 %
-%	If Ref is of the format  File#Name/Arity,   rewrite  it  to be a
-%	local reference using the manual presentation /man?predicate=PI.
+%	Rewrite HREFS from the internal manual format to the server
+%	format.  Reformatted:
+%	
+%		$ File#Name/Arity :
+%		Local reference using the manual presentation
+%		/man?predicate=PI.
+%		
+%		$ File#sec:NR :
+%		Rewrite to section(Level, NT, FilePath)
 
-rewrite_ref(Ref0, Ref) :-
-	sub_atom(Ref0, _, _, A, '#'),
+rewrite_ref(Ref0, Path, Ref) :-
+	sub_atom(Ref0, B, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),
-	atom_to_pi(Fragment, PI),
-	man_index(PI, _, _, _), !,
-	www_form_encode(Fragment, Enc),
-	format(string(Ref), '/man?predicate=~w', [Enc]).
+	(   atom_to_pi(Fragment, PI),
+	    man_index(PI, _, _, _)
+	->  www_form_encode(Fragment, Enc),
+	    format(string(Ref), '/man?predicate=~w', [Enc])
+	;   sub_atom(Ref0, 0, B, _, File),
+	    referenced_section(Fragment, File, Path, Section),
+	    object_href(Section, Ref)
+	).
 
 
 %%	atom_to_pi(+Atom, -PredicateIndicator) is semidet.
@@ -447,6 +457,17 @@ atom_to_pi(Atom, Name/Arity) :-
 	catch(atom_number(AA, Arity), _, fail),
 	integer(Arity),
 	Arity >= 0.
+
+%%	referenced_section(+Fragment, +File, +Path, -Section)
+
+referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
+	atom_concat('sec:', Nr, Fragment),
+	findall(x, sub_atom(Nr, _, _, _, '.'), L),
+	length(L, Nx),
+	Level is Nx + 1,
+	file_directory_name(Path, Dir),
+	concat_atom([Dir, /, File], SecPath),
+	man_index(section(Level, Nr, SecPath), _, _, _).
 
 
 %%	man_links(+Parent, +Options)// is det.

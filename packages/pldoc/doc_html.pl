@@ -47,6 +47,7 @@
 	    file_header/4,		% +File, +Options, //
 	    objects/4,			% +Objects, +Options, //
 	    object_ref/4,		% +Object, +Options, //
+	    object_href/2,		% +Object, -URL
 	    object_page/4		% +Object, +Options, //
 	  ]).
 :- use_module(library(lists)).
@@ -870,12 +871,19 @@ object_ref([H|T], Options) --> !,
 	;   []
 	).
 object_ref(Obj, Options) -->
-	{ term_to_string(Obj, String),
-	  www_form_encode(String, Enc),
-	  format(string(HREF), '/doc_for?object=~w', [Enc])
+	{ object_href(Obj, HREF)
 	},
 	html(a(href(HREF), \object_link(Obj, Options))).
 	
+%%	object_href(+Object, -HREF)
+%
+%	HREF is the URL to access Object.
+
+object_href(Obj, HREF) :-
+	term_to_string(Obj, String),
+	www_form_encode(String, Enc),
+	format(string(HREF), '/doc_for?object=~w', [Enc]).
+
 term_to_string(Term, String) :-
 	State = state(-),
 	(   numbervars(Term, 0, _, [singletons(true)]),
