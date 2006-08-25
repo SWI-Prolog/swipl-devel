@@ -83,7 +83,7 @@ doc.ps:		doc.dvi
 		dvips $< -o $@
 
 html:		$(TEXFILES) $(STYFILES) doc.bbl
-		rm -rf Manual
+		rm -f Manual/*.html *.gif
 		env TEXINPUTS=lib:$$TEXINPUTS latex2html doc
 
 pdf:		$(PDF)
