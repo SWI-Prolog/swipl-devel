@@ -11,6 +11,9 @@
 VERSION 5.6.18 (August 24, 2006)
 ================================
 
+  * FIXED: pl-tai.c portability problem for Solaris (asctime_r). 
+    Hazita Harun.
+
   * FIXED: Bug#192: reading non-decimal numbers that cause a 64-bit int
     overflow.  Marius Filip.
 

@@ -26,9 +26,15 @@
 Somehow, MacOS X defines timezone()  as   a  function. Using the #define
 __DARWIN_UNIX03 1 is reverts to the  standard   behaviour  to make it an
 long set by tzset().  Not really clean ...
+
+Solaris has asctime_r() with 3 arguments. Using _POSIX_PTHREAD_SEMANTICS
+is supposed to give the POSIX standard one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define __DARWIN_UNIX03 1
+#ifdef __sun__
+#define _POSIX_PTHREAD_SEMANTICS 1
+#endif
 
 #include <math.h>
 #include "pl-incl.h"
