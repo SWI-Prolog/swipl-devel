@@ -2173,13 +2173,7 @@ ar_random(Number n1, Number r)
     return PL_error("random", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
   if ( n1->value.i < 1 )
-  { GET_LD
-    term_t i = PL_new_term_ref();
-
-    PL_put_int64(i, n1->value.i);
-
-    return PL_error("random", 1, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, i);
-  }
+    return mustBePositive("random", 1, n1);
 
   r->value.i = (uint64_t)_PL_Random() % (uint64_t)n1->value.i;
   r->type = V_INTEGER;
