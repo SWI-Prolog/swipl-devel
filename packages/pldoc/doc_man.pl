@@ -32,7 +32,7 @@
 :- module(pldoc_man,
 	  [ clean_man_index/0,		% 
 	    index_man_directory/2,	% +DirSpec, +Options
-	    index_man_file/1,		% +FileSpec
+	    index_man_file/2,		% +Class, +FileSpec
 	    man_page/4			% +Obj, +Options, //
 	  ]).
 :- use_module(library(sgml)).
@@ -50,23 +50,24 @@
 */
 
 :- dynamic
-	man_index/4.			% Object, Summary, File, Offset
+	man_index/5.		% Object, Summary, File, Class, Offset
 
 %%	clean_man_index is det.
 %
 %	Clean already loaded manual index.
 
 clean_man_index :-
-	retractall(man_index(_,_,_,_)).
+	retractall(man_index(_,_,_,_,_)).
 
 
-%%	manual_directory(-Dir)// is nondet.
+%%	manual_directory(-Class, -Dir)// is nondet.
 %
-%	True if Dir is a directory holding manual files.
+%	True if Dir is a directory holding manual files. Class is an
+%	identifier used by doc_object_summary/4.
 
 
-manual_directory(swi('doc/Manual')).
-manual_directory(swi('doc/packages')).
+manual_directory(manual,   swi('doc/Manual')).
+manual_directory(packages, swi('doc/packages')).
 
 
 
@@ -79,36 +80,48 @@ manual_directory(swi('doc/packages')).
 %	Load the manual index if not already done.
 
 index_manual :-
-	man_index(_,_,_,_), !.
+	man_index(_,_,_,_,_), !.
 index_manual :-
-	(   manual_directory(Dir),
-	    index_man_directory(Dir, [file_errors(fail)]),
+	(   manual_directory(Class, Dir),
+	    index_man_directory(Dir,
+				[ class(Class),
+				  file_errors(fail)
+				]),
 	    fail ; true
 	).
 
 
 %%	index_man_directory(Dir, +Options) is det
 %
-%	Index  the  HTML  directory   Dir.    Options   are   passed  to
-%	absolute_file_name/3.
+%	Index  the  HTML  directory   Dir.    Options are:
+%	
+%		* class(Class)
+%		Define category of the found objects.
+%		
+%	Remaining Options are passed to absolute_file_name/3.
 
 index_man_directory(Spec, Options) :-
+	(   select(class(Class), Options, Options1)
+	->  true
+	;   Options1 = Options,
+	    Class = misc
+	),
 	absolute_file_name(Spec, Dir,
 			   [ file_type(directory),
 			     access(read)
-			   | Options
+			   | Options1
 			   ]),
 	atom_concat(Dir, '/*.html', Pattern),
 	expand_file_name(Pattern, Files),
-	maplist(index_man_file, Files).
+	maplist(index_man_file(Class), Files).
 
 
-%%	index_man_file(+File)
+%%	index_man_file(+Class, +File)
 %
 %	Collect the documented objects from the SWI-Prolog manual file
 %	File.
 
-index_man_file(File) :-
+index_man_file(Class, File) :-
 	absolute_file_name(File, Path,
 			   [ access(read)
 			   ]),
@@ -119,6 +132,7 @@ index_man_file(File) :-
         set_sgml_parser(Parser, dialect(sgml)),
 	set_sgml_parser(Parser, shorttag(false)),
 	nb_setval(pldoc_man_index, []),
+	nb_setval(pldoc_index_class, Class),
 	call_cleanup(sgml_parse(Parser,
 				[ source(In),
 				  call(begin, index_on_begin)
@@ -155,7 +169,8 @@ index_on_begin(dd, _, Parser) :- !,
 		     parse(content)
 		   ]),
 	summary(DD, Summary),
-        assert(man_index(Name/Arity, Summary, File, Offset)).
+	nb_getval(pldoc_index_class, Class),
+        assert(man_index(Name/Arity, Summary, File, Class, Offset)).
 index_on_begin(div, Attributes, Parser) :- !,
 	memberchk(class=title, Attributes),
 	get_sgml_parser(Parser, charpos(Offset)),
@@ -165,7 +180,8 @@ index_on_begin(div, Attributes, Parser) :- !,
 		     parse(content)
 		   ]),
 	dom_to_text(DOM, Title),
-	assert(man_index(section(0, '0', File), Title, File, Offset)).
+	nb_getval(pldoc_index_class, Class),
+	assert(man_index(section(0, '0', File), Title, File, Class, Offset)).
 index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 	heading(H, Level),
 	get_sgml_parser(Parser, charpos(Offset)),
@@ -175,7 +191,8 @@ index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 		     parse(content)
 		   ]),
 	dom_section(Doc, Nr, Title),
-	assert(man_index(section(Level, Nr, File), Title, File, Offset)).
+	nb_getval(pldoc_index_class, Class),
+	assert(man_index(section(Level, Nr, File), Title, File, Class, Offset)).
 	
 %%	dom_section(+HeaderDOM, -NR, -Title) is semidet.
 %
@@ -337,7 +354,7 @@ load_man_object(For, ParentSection, Path, DOM) :-
 load_man_object(For, Path, Path, DOM) :-
 	index_manual,
 	object_spec(For, Obj),
-	man_index(Obj, _, Path, Position),
+	man_index(Obj, _, Path, _, Position),
 	open(Path, read, In, [type(binary)]),
 	seek(In, Position, bof, _),
 	dtd(html, DTD),
@@ -364,7 +381,7 @@ load_man_object(For, Path, Path, DOM) :-
 
 section_start(Path, Nr, Pos) :-
 	index_manual,
-	man_index(section(_,Nr,_), _, Path, Pos).
+	man_index(section(_,Nr,_), _, Path, _, Pos).
 
 %%	parent_section(+Section, +Parent) is det.
 %
@@ -379,7 +396,7 @@ parent_section(section(Level, Nr, _File), Parent) :-
 	findall(B, sub_atom(Nr, B, _, _, '.'), BL),
 	last(BL, Before),
 	sub_atom(Nr, 0, Before, _, PNr),
-	man_index(Parent, _, _, _), !.
+	man_index(Parent, _, _, _, _), !.
 parent_section(section(_, _, File), File).
 
 object_spec(Spec, Spec).
@@ -465,7 +482,7 @@ rewrite_ref(pred, Ref0, _, Ref) :-				% Predicate reference
 	sub_atom(Ref0, _, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),
 	atom_to_pi(Fragment, PI),
-	man_index(PI, _, _, _),
+	man_index(PI, _, _, _, _),
 	www_form_encode(Fragment, Enc),
 	format(string(Ref), '/man?predicate=~w', [Enc]).
 rewrite_ref(sec, Ref0, Path, Ref) :-				% Section inside a file
@@ -478,7 +495,7 @@ rewrite_ref(sec, File, Path, Ref) :-				% Section is a file
 	file_directory_name(Path, Dir),
 	concat_atom([Dir, /, File], SecPath),
 	Obj = section(_, _, SecPath),
-	man_index(Obj, _, _, _), !,
+	man_index(Obj, _, _, _, _), !,
 	object_href(Obj, Ref).
 
 %%	atom_to_pi(+Atom, -PredicateIndicator) is semidet.
@@ -501,7 +518,7 @@ referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 	Level is Nx + 1,
 	file_directory_name(Path, Dir),
 	concat_atom([Dir, /, File], SecPath),
-	man_index(section(Level, Nr, SecPath), _, _, _).
+	man_index(section(Level, Nr, SecPath), _, _, _, _).
 
 
 %%	man_links(+Parent, +Options)// is det.
@@ -521,7 +538,7 @@ man_parent(Section) -->
 man_parent(File) -->
 	{ atom(File),
 	  Obj = section(_,_,_),
-	  man_index(Obj, _Title, File, _Offset)
+	  man_index(Obj, _Title, File, _Class, _Offset)
 	}, !,
 	object_ref(Obj, [secref_style(number_title)]).
 man_parent(_) -->
@@ -545,12 +562,12 @@ section_link(number, section(_, Number, _), _Options) --> !,
 	;   html(['Sec. ', Number])
 	).
 section_link(title, Obj, _Options) --> !,
-	{ man_index(Obj, Title, _File, _Offset)
+	{ man_index(Obj, Title, _File, _Class, _Offset)
 	},
 	html(Title).
 section_link(_, Obj, _Options) --> !,
 	{ Obj = section(_, Number, _),
-	  man_index(Obj, Title, _File, _Offset)
+	  man_index(Obj, Title, _File, _Class, _Offset)
 	},
 	(   { Number == '0' }
 	->  html(Title)
@@ -562,9 +579,9 @@ section_link(_, Obj, _Options) --> !,
 		 *	    HOOK SEARCH		*
 		 *******************************/
 
-prolog:doc_object_summary(Obj, manual, File, Summary) :-
+prolog:doc_object_summary(Obj, Class, File, Summary) :-
 	index_manual,
-	man_index(Obj, Summary, File, _Offset).
+	man_index(Obj, Summary, File, Class, _Offset).
 	
 prolog:doc_object_page(Obj, Options) -->
 	man_page(Obj, [no_manual(fail)|Options]).
