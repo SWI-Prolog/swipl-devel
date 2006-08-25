@@ -20,14 +20,17 @@ Making solid progress.  remaining issues:
 ---++ Integrate with help/apropos
 
 	* Should also link to PceEmacs
-	* Search the manual
-	* Name/Arity must immediately link to manual.
+	* Enhance latex2html:
+		* Add class to non-existing name/arity to make
+		  package docs refer to manual.
 
-	* Re-generate package docs.
-	* Make sgml package generation compatible
-		* Add style classes
-		* Close DT/DD
-	* Install HTML manual in doc
+---++ UI
+
+	* Fix directory menu for IE
+	* Advanced search
+		* Select type from =application=, =manual= and =packages=
+	* Sorting search by application, core system, packages
+
 
 ---++ Quality assurance: comment style-check
 
