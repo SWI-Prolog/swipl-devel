@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 5.9</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 5.9</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="manipmodule.html">
 <LINK REL=next HREF="coroutining.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="manipmodule.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="coroutining.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="manipmodule.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="coroutining.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:5.9">5.9 Compatibility of the Module System</A></H2>
+<H2><A NAME="sec:5.9"><SPAN class="sec-nr">5.9</SPAN><SPAN class="sec-title">Compatibility 
+of the Module System</SPAN></A></H2>
 
 <A NAME="sec:modulecompat"></A>
 
@@ -56,12 +132,12 @@ predicates.
 modules are visible in all other modules as well.
 <LI>Quintus has the `meta_predicate/1' declaration were SWI-Prolog has 
 the
-<A NAME="idx:moduletransparent1:1076"></A><A HREF="manipmodule.html#module_transparent/1">module_transparent/1</A> 
+<A NAME="idx:moduletransparent1:1109"></A><A class="pred" href="manipmodule.html#module_transparent/1">module_transparent/1</A> 
 declaration.
 <LI>Operator declarations are local to a module and may be exported.
 </UL>
 
-<P>The <A NAME="idx:metapredicate1:1077"></A><A HREF="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
+<P>The <A NAME="idx:metapredicate1:1110"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
 declaration causes the compiler to tag arguments that pass module 
 sensitive information with the module using the :/2 operator. This 
 approach has some disadvantages:
@@ -84,15 +160,18 @@ disadvantages. If a predicate <VAR>A</VAR> passes module sensitive
 information to a predicate <VAR>B</VAR>, passing the same information to 
 a module sensitive system predicate both <VAR>A</VAR> and <VAR>B</VAR> 
 should be declared transparent. Using the Quintus approach only <VAR>A</VAR> 
-needs to be treated special (i.e., declared with <A NAME="idx:metapredicate1:1078"></A><A HREF="manipmodule.html#meta_predicate/1">meta_predicate/1</A>)<A NAME=back-to-note-74 HREF="Notes.html#note-74"> (74)</A>. 
+needs to be treated special (i.e., declared with <A NAME="idx:metapredicate1:1111"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A>)<SUP class="fn">65<SPAN class="fn-text">Although 
+this would make it impossible to call <VAR>B</VAR> directly.</SPAN></SUP>. 
 A second problem arises if the body of a transparent predicate uses 
 module sensitive predicates for which it wants to refer to its own 
-module. Suppose we want to define <A NAME="idx:findall3:1079"></A><A HREF="allsolutions.html#findall/3">findall/3</A> 
-using <A NAME="idx:assert1:1080"></A><A HREF="db.html#assert/1">assert/1</A> 
+module. Suppose we want to define <A NAME="idx:findall3:1112"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
+using <A NAME="idx:assert1:1113"></A><A class="pred" href="db.html#assert/1">assert/1</A> 
 and
-<A NAME="idx:retract1:1081"></A><A HREF="db.html#retract/1">retract/1</A><A NAME=back-to-note-75 HREF="Notes.html#note-75"> (75)</A>. 
-The example in <A HREF="modulecompat.html#fig:findall">figure 6</A> 
-gives the solution.
+<A NAME="idx:retract1:1114"></A><A class="pred" href="db.html#retract/1">retract/1</A><SUP class="fn">66<SPAN class="fn-text">The 
+system version uses <A NAME="idx:recordz2:1115"></A><A class="pred" href="db.html#recordz/2">recordz/2</A> 
+and <A NAME="idx:recorded3:1116"></A><A class="pred" href="db.html#recorded/3">recorded/3</A>.</SPAN></SUP>. 
+The example in <A class="fig" href="modulecompat.html#fig:findall">figure 
+6</A> gives the solution.
 
 <PRE class="code">
 :- module(findall, [findall/3]).
@@ -125,13 +204,14 @@ collect(Bag) :-
 
 <A NAME="fig:findall"></A>
 
-<H3><A NAME="sec:5.9.1">5.9.1 Emulating meta_predicate</A></H3>
+<H3><A NAME="sec:5.9.1"><SPAN class="sec-nr">5.9.1</SPAN><SPAN class="sec-title">Emulating 
+meta_predicate</SPAN></A></H3>
 
 <A NAME="sec:metapredicate"></A>
 
-<P>The Quintus <A NAME="idx:metapredicate1:1082"></A><A HREF="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
+<P>The Quintus <A NAME="idx:metapredicate1:1117"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
 directive can in many cases be replaced by the transparent declaration. 
-Below is the definition of <A NAME="idx:metapredicate1:1083"></A><A HREF="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
+Below is the definition of <A NAME="idx:metapredicate1:1118"></A><A class="pred" href="manipmodule.html#meta_predicate/1">meta_predicate/1</A> 
 as available from <CODE>library(quintus)</CODE>.
 
 <PRE class="code">

@@ -2,50 +2,127 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 9.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 9.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="foreigntypes.html">
 <LINK REL=next HREF="plld.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="foreigntypes.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="plld.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="foreigntypes.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="plld.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:9.6">9.6 The Foreign Include File</A></H2>
+<H2><A NAME="sec:9.6"><SPAN class="sec-nr">9.6</SPAN><SPAN class="sec-title">The 
+Foreign Include File</SPAN></A></H2>
 
 <A NAME="sec:foreigninclude"></A>
 
-<H3><A NAME="sec:9.6.1">9.6.1 Argument Passing and Control</A></H3>
+<H3><A NAME="sec:9.6.1"><SPAN class="sec-nr">9.6.1</SPAN><SPAN class="sec-title">Argument 
+Passing and Control</SPAN></A></H3>
 
 <P>If Prolog encounters a foreign predicate at run time it will call a 
 function specified in the predicate definition of the foreign predicate. 
@@ -67,7 +144,8 @@ Fail and start Prolog backtracking. PL_fail is defined as <CODE>return <CODE>FAL
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.1.1">9.6.1.1 Non-deterministic Foreign Predicates</A></H4>
+<H4><A NAME="sec:9.6.1.1"><SPAN class="sec-nr">9.6.1.1</SPAN><SPAN class="sec-title">Non-deterministic 
+Foreign Predicates</SPAN></A></H4>
 
 <A NAME="sec:foreignnondet"></A>
 
@@ -158,8 +236,9 @@ PL_succeed or PL_fail, Prolog assumes the foreign function has cleaned
 its environment. <B>No</B> call with control argument <CODE>PL_CUTTED</CODE> 
 will follow.
 
-<P>The code of <A HREF="foreigninclude.html#fig:nondetermf">figure 8</A> 
-shows a skeleton for a non-deterministic foreign predicate definition.
+<P>The code of <A class="fig" href="foreigninclude.html#fig:nondetermf">figure 
+8</A> shows a skeleton for a non-deterministic foreign predicate 
+definition.
 
 <PRE class="code">
 typedef struct                  /* define a context structure */
@@ -193,7 +272,8 @@ my_function(term_t a0, term_t a1, control_t handle)
 
 <A NAME="fig:nondetermf"></A>
 
-<H3><A NAME="sec:9.6.2">9.6.2 Atoms and functors</A></H3>
+<H3><A NAME="sec:9.6.2"><SPAN class="sec-nr">9.6.2</SPAN><SPAN class="sec-title">Atoms 
+and functors</SPAN></A></H3>
 
 <P>The following functions provide for communication using atoms and 
 functors.
@@ -204,7 +284,7 @@ char *</VAR>)</A></DT>
 <DD class="defbody">
 Return an atom handle for the given C-string. This function always 
 succeeds. The returned handle is valid as long as the atom is referenced 
-(see <A HREF="foreigninclude.html">section 9.6.2.1</A>).</DD>
+(see <A class="sec" href="foreigninclude.html">section 9.6.2.1</A>).</DD>
 <DT class="pubdef"><A NAME="PL_atom_chars()"><VAR>const char*</VAR> <STRONG>PL_atom_chars</STRONG>(<VAR>atom_t 
 atom</VAR>)</A></DT>
 <DD class="defbody">
@@ -212,9 +292,10 @@ Return a C-string for the text represented by the given atom. The
 returned text will not be changed by Prolog. It is not allowed to modify 
 the contents, not even `temporary' as the string may reside in read-only 
 memory. The returned string becomes invalid if the atom is 
-garbage-collected (see <A HREF="foreigninclude.html">section 9.6.2.1</A>). 
-Foreign functions that require the text from an atom passed in a <CODE>term_t</CODE> 
-normally use PL_get_atom_chars() or PL_get_atom_nchars().</DD>
+garbage-collected (see <A class="sec" href="foreigninclude.html">section 
+9.6.2.1</A>). Foreign functions that require the text from an atom 
+passed in a <CODE>term_t</CODE> normally use PL_get_atom_chars() or 
+PL_get_atom_nchars().</DD>
 <DT class="pubdef"><A NAME="PL_new_functor()"><VAR>functor_t</VAR> <STRONG>PL_new_functor</STRONG>(<VAR>atom_t 
 name, int arity</VAR>)</A></DT>
 <DD class="defbody">
@@ -233,7 +314,8 @@ Return the arity of the given functor.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.2.1">9.6.2.1 Atoms and atom-garbage collection</A></H4>
+<H4><A NAME="sec:9.6.2.1"><SPAN class="sec-nr">9.6.2.1</SPAN><SPAN class="sec-title">Atoms 
+and atom-garbage collection</SPAN></A></H4>
 
 <A NAME="sec:atomgc"></A>
 
@@ -241,7 +323,7 @@ Return the arity of the given functor.
 atoms no longer live as long as the process. Instead, their lifetime is 
 guaranteed only as long as they are referenced. In the single-threaded 
 version, atom garbage collections are only invoked at the
-<EM>call-port</EM>. In the multi-threaded version (see <A HREF="threads.html">section 
+<EM>call-port</EM>. In the multi-threaded version (see <A class="sec" href="threads.html">section 
 8</A>, they appear asynchronously, except for the invoking thread.
 
 <P>For dealing with atom garbage collection, two additional functions 
@@ -253,7 +335,8 @@ atom</VAR>)</A></DT>
 <DD class="defbody">
 Increment the reference count of the atom by one. PL_new_atom() performs 
 this automatically, returning an atom with a reference count of at least 
-one.<A NAME=back-to-note-81 HREF="Notes.html#note-81"> (81)</A></DD>
+one.<SUP class="fn">71<SPAN class="fn-text">Otherwise asynchronous atom 
+garbage collection might destroy the atom before it is used.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="PL_unregister_atom()"><VAR>void</VAR> <STRONG>PL_unregister_atom</STRONG>(<VAR>atom_t 
 atom</VAR>)</A></DT>
 <DD class="defbody">
@@ -275,19 +358,21 @@ which effectively ensures the atom will never be collected. It is
 advised to use the *_chars() or *_nchars() functions whenever 
 applicable.
 
-<H3><A NAME="sec:9.6.3">9.6.3 Analysing Terms via the Foreign Interface</A></H3>
+<H3><A NAME="sec:9.6.3"><SPAN class="sec-nr">9.6.3</SPAN><SPAN class="sec-title">Analysing 
+Terms via the Foreign Interface</SPAN></A></H3>
 
 <P>Each argument of a foreign function (except for the control argument) 
 is of type <CODE>term_t</CODE>, an opaque handle to a Prolog term. Three 
 groups of functions are available for the analysis of terms. The first 
-just validates the type, like the Prolog predicates <A NAME="idx:var1:1247"></A><A HREF="typetest.html#var/1">var/1</A>, <A NAME="idx:atom1:1248"></A><A HREF="typetest.html#atom/1">atom/1</A>, 
+just validates the type, like the Prolog predicates <A NAME="idx:var1:1283"></A><A class="pred" href="typetest.html#var/1">var/1</A>, <A NAME="idx:atom1:1284"></A><A class="pred" href="typetest.html#atom/1">atom/1</A>, 
 etc and are called <TT>PL_is_*()</TT>. The second group attempts to 
 translate the argument into a C primitive type. These predicates take a <CODE>term_t</CODE> 
 and a pointer to the appropriate C-type and return <CODE>TRUE</CODE> or
 <CODE>FALSE</CODE> depending on successful or unsuccessful translation. 
 If the translation fails, the pointed-to data is never modified.
 
-<H4><A NAME="sec:9.6.3.1">9.6.3.1 Testing the type of a term</A></H4>
+<H4><A NAME="sec:9.6.3.1"><SPAN class="sec-nr">9.6.3.1</SPAN><SPAN class="sec-title">Testing 
+the type of a term</SPAN></A></H4>
 
 <DL>
 <DT class="pubdef"><A NAME="PL_term_type()"><VAR>int</VAR> <STRONG>PL_term_type</STRONG>(<VAR>term_t</VAR>)</A></DT>
@@ -347,7 +432,7 @@ Returns non-zero if <VAR>term</VAR> is a variable.
 </DD>
 <DT class="pubdef"><A NAME="PL_is_ground()"><VAR>int</VAR> <STRONG>PL_is_ground</STRONG>(<VAR>term_t</VAR>)</A></DT>
 <DD class="defbody">
-Returns non-zero if <VAR>term</VAR> is a ground term. See also <A NAME="idx:ground1:1249"></A><A HREF="typetest.html#ground/1">ground/1</A>. 
+Returns non-zero if <VAR>term</VAR> is a ground term. See also <A NAME="idx:ground1:1285"></A><A class="pred" href="typetest.html#ground/1">ground/1</A>. 
 This function is cycle-safe.
 </DD>
 <DT class="pubdef"><A NAME="PL_is_atom()"><VAR>int</VAR> <STRONG>PL_is_atom</STRONG>(<VAR>term_t</VAR>)</A></DT>
@@ -393,7 +478,8 @@ Returns non-zero if <VAR>term</VAR> is an integer or float.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.2">9.6.3.2 Reading data from a term</A></H4>
+<H4><A NAME="sec:9.6.3.2"><SPAN class="sec-nr">9.6.3.2</SPAN><SPAN class="sec-title">Reading 
+data from a term</SPAN></A></H4>
 
 <P>The functions <TT>PL_get_*()</TT> read information from a Prolog 
 term. Most of them take two arguments. The first is the input term and 
@@ -440,7 +526,7 @@ of converting multiple arguments passed to a foreign predicate to
 C-strings. If BUF_MALLOC is used, the data must be freed using PL_free() 
 when not needed any longer.
 
-<P>With the introduction of wide-characters (see <A HREF="widechars.html">section 
+<P>With the introduction of wide-characters (see <A class="sec" href="widechars.html">section 
 2.17.1</A>), not all atoms can be converted into a <CODE>char*</CODE>. 
 This function fails if <VAR>t</VAR> is of the wrong type, but also if 
 the text cannot be represented. See the <CODE>REP_*</CODE> flags below 
@@ -465,7 +551,7 @@ atomic </TD></TR>
 <TR VALIGN=top><TD><CODE>CVT_VARIABLE</CODE></TD><TD>Convert variable to 
 print-name </TD></TR>
 <TR VALIGN=top><TD><CODE>CVT_WRITE</CODE> </TD><TD>Convert any term that 
-is not converted by any of the other flags using <A NAME="idx:write1:1250"></A><A HREF="termrw.html#write/1">write/1</A>. 
+is not converted by any of the other flags using <A NAME="idx:write1:1286"></A><A class="pred" href="termrw.html#write/1">write/1</A>. 
 If no <CODE>BUF_*</CODE> is provided, <CODE>BUF_RING</CODE> is implied. </TD></TR>
 <TR VALIGN=top><TD><CODE>CVT_ALL</CODE> </TD><TD>Convert if term is any 
 of the above, except for
@@ -579,8 +665,8 @@ argument-index.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.3">9.6.3.3 Exchanging text using length and 
-string</A></H4>
+<H4><A NAME="sec:9.6.3.3"><SPAN class="sec-nr">9.6.3.3</SPAN><SPAN class="sec-title">Exchanging 
+text using length and string</SPAN></A></H4>
 
 <P>All internal text-representation of SWI-Prolog is represented using
 <CODE>char *</CODE> plus length and allow for <EM>0-bytes</EM> in them. 
@@ -663,7 +749,8 @@ Extract text and length of an atom.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.4">9.6.3.4 Wide character versions</A></H4>
+<H4><A NAME="sec:9.6.3.4"><SPAN class="sec-nr">9.6.3.4</SPAN><SPAN class="sec-title">Wide 
+character versions</SPAN></A></H4>
 
 <P>Support for exchange of wide character strings is still under 
 considerations. The functions dealing with 8-bit character strings 
@@ -718,7 +805,8 @@ from the source distribution.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.5">9.6.3.5 Reading a list</A></H4>
+<H4><A NAME="sec:9.6.3.5"><SPAN class="sec-nr">9.6.3.5</SPAN><SPAN class="sec-title">Reading 
+a list</SPAN></A></H4>
 
 <P>The functions from this section are intended to read a Prolog list 
 from C. Suppose we expect a list of atoms, the following code will print 
@@ -769,12 +857,13 @@ Succeeds if <EM></EM> represents the atom <CODE>[]</CODE>.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.6">9.6.3.6 An example: defining write/1 in C</A></H4>
+<H4><A NAME="sec:9.6.3.6"><SPAN class="sec-nr">9.6.3.6</SPAN><SPAN class="sec-title">An 
+example: defining write/1 in C</SPAN></A></H4>
 
-<P><A HREF="foreigninclude.html#fig:pl-display">Figure 9</A> shows a 
-simplified definition of <A NAME="idx:write1:1252"></A><A HREF="termrw.html#write/1">write/1</A> 
+<P><A class="fig" href="foreigninclude.html#fig:pl-display">Figure 9</A> 
+shows a simplified definition of <A NAME="idx:write1:1288"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
 to illustrate the described functions. This simplified version does not 
-deal with operators. It is called <A NAME="idx:display1:1253"></A><B>display/1</B>, 
+deal with operators. It is called <A NAME="idx:display1:1289"></A><B>display/1</B>, 
 because it mimics closely the behaviour of this Edinburgh predicate.
 
 <PRE class="code">
@@ -818,11 +907,12 @@ pl_display(term_t t)
 </PRE>
 
 <TABLE ALIGN=center WIDTH="75%"><TR><TD>
-<B>Figure 9 : </B>A Foreign definition of <A NAME="idx:display1:1254"></A><B>display/1</B></TABLE>
+<B>Figure 9 : </B>A Foreign definition of <A NAME="idx:display1:1290"></A><B>display/1</B></TABLE>
 
 <A NAME="fig:pl-display"></A>
 
-<H3><A NAME="sec:9.6.4">9.6.4 Constructing Terms</A></H3>
+<H3><A NAME="sec:9.6.4"><SPAN class="sec-nr">9.6.4</SPAN><SPAN class="sec-title">Constructing 
+Terms</SPAN></A></H3>
 
 <P>Terms can be constructed using functions from the <TT>PL_put_*()</TT> 
 and
@@ -868,7 +958,7 @@ copied. See also PL_put_string_nchars().
 
 <P>Put a string, represented by a length/start pointer pair in the 
 term-reference. The data will be copied. This interface can deal with 
-0-bytes in the string. See also <A HREF="foreigninclude.html">section 
+0-bytes in the string. See also <A class="sec" href="foreigninclude.html">section 
 9.6.19</A>.
 </DD>
 <DT class="pubdef"><A NAME="PL_put_list_chars()"><VAR>void</VAR> <STRONG>PL_put_list_chars</STRONG>(<VAR>term_t 
@@ -982,7 +1072,8 @@ before its new value is set.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.5">9.6.5 Unifying data</A></H3>
+<H3><A NAME="sec:9.6.5"><SPAN class="sec-nr">9.6.5</SPAN><SPAN class="sec-title">Unifying 
+data</SPAN></A></H3>
 
 <P>The functions of this sections <EM>unify</EM> terms with other terms 
 or translated C-data structures. Except for PL_unify(), the functions of 
@@ -1075,7 +1166,7 @@ also PL_unify_string_nchars().
 Unify <VAR>t</VAR> with a Prolog string object created from the string 
 created from the <VAR>len</VAR>/<VAR>chars</VAR> pair. The data will be 
 copied. This interface can deal with 0-bytes in the string. See also
-<A HREF="foreigninclude.html">section 9.6.19</A>.
+<A class="sec" href="foreigninclude.html">section 9.6.19</A>.
 </DD>
 <DT class="pubdef"><A NAME="PL_unify_integer()"><VAR>int</VAR> <STRONG>PL_unify_integer</STRONG>(<VAR>term_t 
 ?t, long n</VAR>)</A></DT>
@@ -1333,7 +1424,7 @@ Parse the string <VAR>chars</VAR> and put the resulting Prolog term into
 full-stop (i.e., a dot followed by a blank). Returns <CODE>FALSE</CODE> 
 if a syntax error was encountered and <CODE>TRUE</CODE> after successful 
 completion. In addition to returning <CODE>FALSE</CODE>, the 
-exception-term is returned in <VAR>t</VAR> on a syntax error. See also <A NAME="idx:termtoatom2:1255"></A><A HREF="manipatom.html#term_to_atom/2">term_to_atom/2</A>.
+exception-term is returned in <VAR>t</VAR> on a syntax error. See also <A NAME="idx:termtoatom2:1291"></A><A class="pred" href="manipatom.html#term_to_atom/2">term_to_atom/2</A>.
 
 <P>The following example build a goal-term from a string and calls it.
 
@@ -1371,16 +1462,16 @@ argument of PL_get_chars();
 <P>In the current implementation, the string is surrounded by
 <VAR>chr</VAR> and any occurrence of <VAR>chr</VAR> is doubled. In the 
 future the behaviour will depend on the <CODE>character_escape</CODE> 
-prolog-flag. See <A NAME="idx:currentprologflag2:1256"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>.
+prolog-flag. See <A NAME="idx:currentprologflag2:1292"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.6">9.6.6 BLOBS: Using atoms to store arbitrary 
-binary data</A></H3>
+<H3><A NAME="sec:9.6.6"><SPAN class="sec-nr">9.6.6</SPAN><SPAN class="sec-title">BLOBS: 
+Using atoms to store arbitrary binary data</SPAN></A></H3>
 
 <A NAME="sec:blob"></A>
 
-<P><A NAME="idx:Java:1257"></A><A NAME="idx:COM:1258"></A>SWI-Prolog 
+<P><A NAME="idx:Java:1293"></A><A NAME="idx:COM:1294"></A>SWI-Prolog 
 atoms as well as strings can represent arbitrary binary data of 
 arbitrary length. This facility is attractive for storing foreign data 
 such as images in an atom. An atom is a unique handle to this data and 
@@ -1397,10 +1488,11 @@ function pointers that tell Prolog how to handle releasing the atom,
 writing it, sorting it, etc. Two atoms created with different types can 
 represent the same sequence of bytes. Atoms are first ordered on the 
 rank number of the type and then on the result of the
-<A HREF="foreigninclude.html#compare()">compare()</A> function. Rank 
-numbers are assigned when the type is registered.
+<A class="" href="foreigninclude.html#compare()">compare()</A> function. 
+Rank numbers are assigned when the type is registered.
 
-<H4><A NAME="sec:9.6.6.1">9.6.6.1 Defining a BLOB type</A></H4>
+<H4><A NAME="sec:9.6.6.1"><SPAN class="sec-nr">9.6.6.1</SPAN><SPAN class="sec-title">Defining 
+a BLOB type</SPAN></A></H4>
 
 <A NAME="sec:blobtype"></A>
 
@@ -1445,7 +1537,7 @@ rather than the data pointed at.
 </DL>
 
 <P>The <VAR>name</VAR> field represents the type name as available to 
-Prolog. See also <A NAME="idx:currentblob2:1259"></A><A HREF="examineprog.html#current_blob/2">current_blob/2</A>. 
+Prolog. See also <A NAME="idx:currentblob2:1295"></A><A class="pred" href="examineprog.html#current_blob/2">current_blob/2</A>. 
 The other field are function pointers that must be initialised to proper 
 functions or <CODE>NULL</CODE> to get the default behaviour of built-in 
 atoms. Below are the defined member functions:
@@ -1481,7 +1573,7 @@ or of zero or more of the <CODE>PL_WRT_*</CODE> flags defined in
 undocumented <CODE>SWI-Stream.h</CODE> is included <EM>before</EM>
 <CODE>SWI-Prolog.h</CODE>.
 
-<P>If this function is not provided, <A NAME="idx:write1:1260"></A><A HREF="termrw.html#write/1">write/1</A> 
+<P>If this function is not provided, <A NAME="idx:write1:1296"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
 emits the content of the blob for blobs of type <CODE>PL_BLOB_TEXT</CODE> 
 or a string of the format <CODE>&lt;#</CODE><I>hex data</I><CODE>&gt;</CODE> 
 for binary blobs.
@@ -1506,7 +1598,8 @@ references to the module.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.6.2">9.6.6.2 Accessing blobs</A></H4>
+<H4><A NAME="sec:9.6.6.2"><SPAN class="sec-nr">9.6.6.2</SPAN><SPAN class="sec-title">Accessing 
+blobs</SPAN></A></H4>
 
 <A NAME="sec:blobaccess"></A>
 
@@ -1547,12 +1640,13 @@ information is ignored.</DD>
 a, unsigned int *len, PL_blob_t **type</VAR>)</A></DT>
 <DD class="defbody">
 Get the data and type associated to a blob. This function is mainly used 
-from the callback functions described in <A HREF="foreigninclude.html">section 
+from the callback functions described in <A class="sec" href="foreigninclude.html">section 
 9.6.6.1</A>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.7">9.6.7 Exchanging GMP numbers</A></H3>
+<H3><A NAME="sec:9.6.7"><SPAN class="sec-nr">9.6.7</SPAN><SPAN class="sec-title">Exchanging 
+GMP numbers</SPAN></A></H3>
 
 <A NAME="sec:gmpforeign"></A>
 
@@ -1625,11 +1719,12 @@ changed.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.8">9.6.8 Calling Prolog from C</A></H3>
+<H3><A NAME="sec:9.6.8"><SPAN class="sec-nr">9.6.8</SPAN><SPAN class="sec-title">Calling 
+Prolog from C</SPAN></A></H3>
 
 <P>The Prolog engine can be called from C. There are two interfaces for 
 this. For the first, a term is created that could be used as an argument 
-to <A NAME="idx:call1:1261"></A><A HREF="metacall.html#call/1">call/1</A> 
+to <A NAME="idx:call1:1297"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
 and next PL_call() is used to call Prolog. This system is simple, but 
 does not allow to inspect the different answers to a non-deterministic 
 goal and is relatively slow as the runtime system needs to find the 
@@ -1637,7 +1732,8 @@ predicate. The other interface is based on PL_open_query(),
 PL_next_solution() and PL_cut_query() or PL_close_query(). This 
 mechanism is more powerful, but also more complicated to use.
 
-<H4><A NAME="sec:9.6.8.1">9.6.8.1 Predicate references</A></H4>
+<H4><A NAME="sec:9.6.8.1"><SPAN class="sec-nr">9.6.8.1</SPAN><SPAN class="sec-title">Predicate 
+references</SPAN></A></H4>
 
 <P>This section discusses the functions used to communicate about 
 predicates. Though a Prolog predicate may defined or not, redefined, 
@@ -1669,7 +1765,8 @@ where the predicate is defined.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.8.2">9.6.8.2 Initiating a query from C</A></H4>
+<H4><A NAME="sec:9.6.8.2"><SPAN class="sec-nr">9.6.8.2</SPAN><SPAN class="sec-title">Initiating 
+a query from C</SPAN></A></H4>
 
 <P>This section discusses the functions for creating and manipulating 
 queries from C. Note that a foreign context can have at most one active 
@@ -1691,8 +1788,8 @@ is the <EM>context module</EM> of the goal. When <CODE>NULL</CODE>, the
 context module of the calling context will be used, or <CODE>user</CODE> 
 if there is no calling context (as may happen in embedded systems). Note 
 that the context module only matters for <EM>module_transparent</EM> 
-predicates. See <A NAME="idx:contextmodule1:1262"></A><A HREF="manipmodule.html#context_module/1">context_module/1</A> 
-and <A NAME="idx:moduletransparent1:1263"></A><A HREF="manipmodule.html#module_transparent/1">module_transparent/1</A>. 
+predicates. See <A NAME="idx:contextmodule1:1298"></A><A class="pred" href="manipmodule.html#context_module/1">context_module/1</A> 
+and <A NAME="idx:moduletransparent1:1299"></A><A class="pred" href="manipmodule.html#module_transparent/1">module_transparent/1</A>. 
 The <VAR>p</VAR> argument specifies the predicate, and should be the 
 result of a call to PL_pred() or PL_predicate(). Note that it is allowed 
 to store this handle as global data and reuse it for future queries. The 
@@ -1708,13 +1805,15 @@ following values:
 <DD class="defbody">
 Normal operation. The debugger inherits its settings from the 
 environment. If an exception occurs that is not handled in Prolog, a 
-message is printed and the tracer is started to debug the error.<A NAME=back-to-note-82 HREF="Notes.html#note-82"> (82)</A>
+message is printed and the tracer is started to debug the error.<SUP class="fn">72<SPAN class="fn-text">Do 
+not pass the integer 0 for normal operation, as this is interpreted as <CODE>PL_Q_NODEBUG</CODE> 
+for backward compatibility reasons.</SPAN></SUP>
 </DD>
 <DT><B><CODE>PL_Q_NODEBUG</CODE></B></DT>
 <DD class="defbody">
 Switch off the debugger while executing the goal. This option is used by 
-many calls to hook-predicates to avoid tracing the hooks. An example is <A NAME="idx:print1:1264"></A><A HREF="termrw.html#print/1">print/1</A> 
-calling <A NAME="idx:portray1:1265"></A><A HREF="termrw.html#portray/1">portray/1</A> 
+many calls to hook-predicates to avoid tracing the hooks. An example is <A NAME="idx:print1:1300"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
+calling <A NAME="idx:portray1:1301"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
 from foreign code.
 </DD>
 <DT><B><CODE>PL_Q_CATCH_EXCEPTION</CODE></B></DT>
@@ -1778,23 +1877,24 @@ PL_open_query(), the return value is the same as PL_next_solution().
 <DT class="pubdef"><A NAME="PL_call()"><VAR>int</VAR> <STRONG>PL_call</STRONG>(<VAR>term_t, 
 module_t</VAR>)</A></DT>
 <DD class="defbody">
-Call term just like the Prolog predicate <A NAME="idx:once1:1266"></A><A HREF="metacall.html#once/1">once/1</A>. <VAR>Term</VAR> 
+Call term just like the Prolog predicate <A NAME="idx:once1:1302"></A><A class="pred" href="metacall.html#once/1">once/1</A>. <VAR>Term</VAR> 
 is called in the specified module, or in the context module if module_t 
 = NULL. Returns <CODE>TRUE</CODE> if the call succeeds, <CODE>FALSE</CODE> 
 otherwise.
-<A HREF="foreigninclude.html#fig:calling">Figure 10</A> shows an example 
-to obtain the number of defined atoms. All checks are omitted to improve 
-readability.
+<A class="fig" href="foreigninclude.html#fig:calling">Figure 10</A> 
+shows an example to obtain the number of defined atoms. All checks are 
+omitted to improve readability.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.9">9.6.9 Discarding Data</A></H3>
+<H3><A NAME="sec:9.6.9"><SPAN class="sec-nr">9.6.9</SPAN><SPAN class="sec-title">Discarding 
+Data</SPAN></A></H3>
 
 <P>The Prolog data created and term-references needed to setup the call 
 and/or analyse the result can in most cases be discarded right after the 
 call. PL_close_query() allows for destructing the data, while leaving 
 the term-references. The calls below may be used to destroy 
-term-references and data. See <A HREF="foreigninclude.html#fig:calling">figure 
+term-references and data. See <A class="fig" href="foreigninclude.html#fig:calling">figure 
 10</A> for an example.
 
 <DL>
@@ -1856,7 +1956,8 @@ count_atoms()
 
 <A NAME="fig:calling"></A>
 
-<H3><A NAME="sec:9.6.10">9.6.10 Foreign Code and Modules</A></H3>
+<H3><A NAME="sec:9.6.10"><SPAN class="sec-nr">9.6.10</SPAN><SPAN class="sec-title">Foreign 
+Code and Modules</SPAN></A></H3>
 
 <P>Modules are identified via a unique handle. The following functions 
 are available to query and manipulate modules.
@@ -1903,7 +2004,8 @@ Find an existing or create a new module with name specified by the atom
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.11">9.6.11 Prolog exceptions in foreign code</A></H3>
+<H3><A NAME="sec:9.6.11"><SPAN class="sec-nr">9.6.11</SPAN><SPAN class="sec-title">Prolog 
+exceptions in foreign code</SPAN></A></H3>
 
 <P>This section discusses PL_exception(), PL_throw() and 
 PL_raise_exception(), the interface functions to detect and generate 
@@ -1928,7 +2030,7 @@ with the exception. Some caution is required though. It is
 <STRONG>not</STRONG> allowed to call PL_close_query() or 
 PL_discard_foreign_frame() afterwards, as this will invalidate the 
 exception term. Below is the code that calls a Prolog defined arithmetic 
-function (see <A NAME="idx:arithmeticfunction1:1267"></A><A HREF="extendarith.html#arithmetic_function/1">arithmetic_function/1</A>).
+function (see <A NAME="idx:arithmeticfunction1:1303"></A><A class="pred" href="extendarith.html#arithmetic_function/1">arithmetic_function/1</A>).
 
 <P>If PL_next_solution() succeeds, the result is analysed and translated 
 to a number, after which the query is closed and all Prolog data created 
@@ -1978,7 +2080,7 @@ prologFunction(ArithFunction f, term_t av, Number r)
 <DT class="pubdef"><A NAME="PL_raise_exception()"><VAR>int</VAR> <STRONG>PL_raise_exception</STRONG>(<VAR>term_t 
 exception</VAR>)</A></DT>
 <DD class="defbody">
-Generate an exception (as <A NAME="idx:throw1:1268"></A><A HREF="exception.html#throw/1">throw/1</A>) 
+Generate an exception (as <A NAME="idx:throw1:1304"></A><A class="pred" href="exception.html#throw/1">throw/1</A>) 
 and return <CODE>FALSE</CODE>. Below is an example returning an 
 exception from foreign predicate:
 
@@ -2014,20 +2116,26 @@ function to the innermost PL_next_solution().</DD>
 qid</VAR>)</A></DT>
 <DD class="defbody">
 If PL_next_solution() fails, this can be due to normal failure of the 
-Prolog call, or because an exception was raised using <A NAME="idx:throw1:1269"></A><A HREF="exception.html#throw/1">throw/1</A>. 
+Prolog call, or because an exception was raised using <A NAME="idx:throw1:1305"></A><A class="pred" href="exception.html#throw/1">throw/1</A>. 
 This function returns a handle to the exception term if an exception was 
-raised, or 0 if the Prolog goal simply failed.<A NAME=back-to-note-83 HREF="Notes.html#note-83"> (83)</A>.
+raised, or 0 if the Prolog goal simply failed.<SUP class="fn">73<SPAN class="fn-text">This 
+interface differs in two ways from Quintus. The calling predicates 
+simp,y signal failure if an exception was raised, and a term referenced 
+is returned, rather passed and filled with the error term. Exceptions 
+can only be handled using the PL_next_solution() interface, as a handle 
+to the query is required</SPAN></SUP>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.12">9.6.12 Catching Signals (Software Interrupts)</A></H3>
+<H3><A NAME="sec:9.6.12"><SPAN class="sec-nr">9.6.12</SPAN><SPAN class="sec-title">Catching 
+Signals (Software Interrupts)</SPAN></A></H3>
 
 <A NAME="sec:csignal"></A>
 
 <P>SWI-Prolog offers both a C and Prolog interface to deal with software 
 interrupts (signals). The Prolog mapping is defined in
-<A HREF="signal.html">section 4.10</A>. This subsection deals with 
-handling signals from C.
+<A class="sec" href="signal.html">section 4.10</A>. This subsection 
+deals with handling signals from C.
 
 <P>If a signal is not used by Prolog and the handler does not call 
 Prolog in any way, the native signal interface routines may be used.
@@ -2065,7 +2173,9 @@ interface allows for <EM>synchronous</EM> handling of signals. In this
 case the native OS handler just schedules the signal using PL_raise(), 
 which is checked by PL_handle_signals() at the call- and redo-port. This 
 behaviour is realised by or-ing <VAR>sig</VAR> with the constant
-<CODE>PL_SIGSYNC</CODE>.<A NAME=back-to-note-84 HREF="Notes.html#note-84"> (84)</A>
+<CODE>PL_SIGSYNC</CODE>.<SUP class="fn">74<SPAN class="fn-text">A better 
+default would be to use synchronous handling, but this interface 
+preserves backward compatibility.</SPAN></SUP>
 
 <P>Signal handling routines may raise exceptions using 
 PL_raise_exception(). The use of PL_throw() is not safe. If a 
@@ -2076,7 +2186,7 @@ sig</VAR>)</A></DT>
 <DD class="defbody">
 Register <VAR>sig</VAR> for <EM>synchronous</EM> handling by Prolog. 
 Synchronous signals are handled at the call-port or if foreign code 
-calls PL_handle_signals(). See also <A NAME="idx:threadsignal2:1270"></A><A HREF="threadcom.html#thread_signal/2">thread_signal/2</A>.</DD>
+calls PL_handle_signals(). See also <A NAME="idx:threadsignal2:1306"></A><A class="pred" href="threadcom.html#thread_signal/2">thread_signal/2</A>.</DD>
 <DT class="pubdef"><A NAME="PL_handle_signals()"><VAR>int</VAR> <STRONG>PL_handle_signals</STRONG>(<VAR>void</VAR>)</A></DT>
 <DD class="defbody">
 Handle any signals pending from PL_raise(). PL_handle_signals() is 
@@ -2092,16 +2202,17 @@ as possible.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.13">9.6.13 Miscellaneous</A></H3>
+<H3><A NAME="sec:9.6.13"><SPAN class="sec-nr">9.6.13</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></H3>
 
-<H4><A NAME="sec:9.6.13.1">9.6.13.1 Term Comparison</A></H4>
+<H4><A NAME="sec:9.6.13.1"><SPAN class="sec-nr">9.6.13.1</SPAN><SPAN class="sec-title">Term 
+Comparison</SPAN></A></H4>
 
 <DL>
 <DT class="pubdef"><A NAME="PL_compare()"><VAR>int</VAR> <STRONG>PL_compare</STRONG>(<VAR>term_t 
 t1, term_t t2</VAR>)</A></DT>
 <DD class="defbody">
 Compares two terms using the standard order of terms and returns -1, 0 
-or 1. See also <A NAME="idx:compare3:1271"></A><A HREF="compare.html#compare/3">compare/3</A>.
+or 1. See also <A NAME="idx:compare3:1307"></A><A class="pred" href="compare.html#compare/3">compare/3</A>.
 </DD>
 <DT class="pubdef"><A NAME="PL_same_compound()"><VAR>int</VAR> <STRONG>PL_same_compound</STRONG>(<VAR>term_t 
 t1, term_t t2</VAR>)</A></DT>
@@ -2111,7 +2222,8 @@ physically the same compound term and <CODE>FALSE</CODE> otherwise.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.13.2">9.6.13.2 Recorded database</A></H4>
+<H4><A NAME="sec:9.6.13.2"><SPAN class="sec-nr">9.6.13.2</SPAN><SPAN class="sec-title">Recorded 
+database</SPAN></A></H4>
 
 <P>In some applications it is useful to store and retrieve Prolog terms 
 from C-code. For example, the XPCE graphical environment does this for 
@@ -2124,7 +2236,7 @@ the stored term.
 
 <P>Two groups of functions are provided. The first group (PL_record() 
 and friends) store Prolog terms on the Prolog heap for retrieval during 
-the same session. These functions are also used by <A NAME="idx:recorda3:1272"></A><A HREF="db.html#recorda/3">recorda/3</A> 
+the same session. These functions are also used by <A NAME="idx:recorda3:1308"></A><A class="pred" href="db.html#recorda/3">recorda/3</A> 
 and friends. The recorded database may be used to communicate Prolog 
 terms between threads.
 
@@ -2132,7 +2244,7 @@ terms between threads.
 <DT class="pubdef"><A NAME="PL_record()"><VAR>record_t</VAR> <STRONG>PL_record</STRONG>(<VAR>term_t 
 +t</VAR>)</A></DT>
 <DD class="defbody">
-Record the term <VAR>t</VAR> into the Prolog database as <A NAME="idx:recorda3:1273"></A><A HREF="db.html#recorda/3">recorda/3</A> 
+Record the term <VAR>t</VAR> into the Prolog database as <A NAME="idx:recorda3:1309"></A><A class="pred" href="db.html#recorda/3">recorda/3</A> 
 and return an opaque handle to the term. The returned handle remains 
 valid until PL_erase() is called on it. PL_recorded() is used to copy 
 recorded terms back to the Prolog stack.
@@ -2186,7 +2298,7 @@ compatibility with older records.
 <DT class="pubdef"><A NAME="PL_record_external()"><VAR>char *</VAR> <STRONG>PL_record_external</STRONG>(<VAR>term_t 
 +t, unsigned int *len</VAR>)</A></DT>
 <DD class="defbody">
-Record the term <VAR>t</VAR> into the Prolog database as <A NAME="idx:recorda3:1274"></A><A HREF="db.html#recorda/3">recorda/3</A> 
+Record the term <VAR>t</VAR> into the Prolog database as <A NAME="idx:recorda3:1310"></A><A class="pred" href="db.html#recorda/3">recorda/3</A> 
 and return an opaque handle to the term. The returned handle remains 
 valid until PL_erase_external() is called on it.
 
@@ -2212,12 +2324,13 @@ associated memory resources.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.13.3">9.6.13.3 Getting file names</A></H4>
+<H4><A NAME="sec:9.6.13.3"><SPAN class="sec-nr">9.6.13.3</SPAN><SPAN class="sec-title">Getting 
+file names</SPAN></A></H4>
 
 <A NAME="sec:cfilenames"></A>
 
 <P>The function PL_get_file_name() provides access to Prolog filenames 
-and its file-search mechanism described with <A NAME="idx:absolutefilename3:1275"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A>. 
+and its file-search mechanism described with <A NAME="idx:absolutefilename3:1311"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>. 
 Its existence is motivated to realise a uniform interface to deal with 
 file-properties, search, naming conventions etc. from foreign code.
 
@@ -2245,8 +2358,8 @@ the canonical
 </DD>
 <DT><B><CODE>PL_FILE_SEARCH</CODE></B></DT>
 <DD class="defbody">
-Invoke <A NAME="idx:absolutefilename3:1276"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A>. 
-This implies rules from <A NAME="idx:filesearchpath2:1277"></A><A HREF="consulting.html#file_search_path/2">file_search_path/2</A> 
+Invoke <A NAME="idx:absolutefilename3:1312"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>. 
+This implies rules from <A NAME="idx:filesearchpath2:1313"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 are used.
 </DD>
 <DT><B><CODE>PL_FILE_EXIST</CODE></B></DT>
@@ -2274,12 +2387,13 @@ Do not raise any exceptions.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.14">9.6.14 Errors and warnings</A></H3>
+<H3><A NAME="sec:9.6.14"><SPAN class="sec-nr">9.6.14</SPAN><SPAN class="sec-title">Errors 
+and warnings</SPAN></A></H3>
 
 <P>PL_warning() prints a standard Prolog warning message to the standard 
 error (<CODE>user_error</CODE>) stream. Please note that new code should 
 consider using PL_raise_exception() to raise a Prolog exception. See 
-also <A HREF="exception.html">section 4.9</A>.
+also <A class="sec" href="exception.html">section 4.9</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="PL_warning()"><VAR>int</VAR> <STRONG>PL_warning</STRONG>(<VAR>format, 
@@ -2292,7 +2406,8 @@ the same as for <STRONG>printf</STRONG>(2). Always returns <CODE>FALSE</CODE>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.15">9.6.15 Environment Control from Foreign Code</A></H3>
+<H3><A NAME="sec:9.6.15"><SPAN class="sec-nr">9.6.15</SPAN><SPAN class="sec-title">Environment 
+Control from Foreign Code</SPAN></A></H3>
 
 <DL>
 <DT class="pubdef"><A NAME="PL_action()"><VAR>int</VAR> <STRONG>PL_action</STRONG>(<VAR>int, 
@@ -2300,14 +2415,15 @@ the same as for <STRONG>printf</STRONG>(2). Always returns <CODE>FALSE</CODE>.
 <DD class="defbody">
 Perform some action on the Prolog system. <VAR>int</VAR> describes the 
 action, Remaining arguments depend on the requested action. The actions 
-are listed in <A HREF="foreigninclude.html#tab:action">table 6</A>.
+are listed in <A class="tab" href="foreigninclude.html#tab:action">table 
+6</A>.
 <BLOCKQUOTE>
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD><CODE>PL_ACTION_TRACE</CODE> </TD><TD>Start Prolog 
-tracer (<A NAME="idx:trace0:1278"></A><A HREF="debugger.html#trace/0">trace/0</A>). 
+tracer (<A NAME="idx:trace0:1314"></A><A class="pred" href="debugger.html#trace/0">trace/0</A>). 
 Requires no arguments. </TD></TR>
 <TR VALIGN=top><TD><CODE>PL_ACTION_DEBUG</CODE> </TD><TD>Switch on 
-Prolog debug mode (<A NAME="idx:debug0:1279"></A><A HREF="debugger.html#debug/0">debug/0</A>). 
+Prolog debug mode (<A NAME="idx:debug0:1315"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>). 
 Requires no arguments. </TD></TR>
 <TR VALIGN=top><TD><CODE>PL_ACTION_BACKTRACE</CODE> </TD><TD>Print 
 backtrace on current output stream. The argument (an int) is the number 
@@ -2315,12 +2431,12 @@ of frames printed. </TD></TR>
 <TR VALIGN=top><TD><CODE>PL_ACTION_HALT</CODE> </TD><TD>Halt Prolog 
 execution. This action should be called rather than Unix exit() to give 
 Prolog the opportunity to clean up. This call does not return. The 
-argument (an int) is the exit code. See <A NAME="idx:halt1:1280"></A><A HREF="toplevel.html#halt/1">halt/1</A>. </TD></TR>
+argument (an int) is the exit code. See <A NAME="idx:halt1:1316"></A><A class="pred" href="toplevel.html#halt/1">halt/1</A>. </TD></TR>
 <TR VALIGN=top><TD><CODE>PL_ACTION_ABORT</CODE> </TD><TD>Generate a 
-Prolog abort (<A NAME="idx:abort0:1281"></A><A HREF="toplevel.html#abort/0">abort/0</A>). 
+Prolog abort (<A NAME="idx:abort0:1317"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>). 
 This call does not return. Requires no arguments. </TD></TR>
 <TR VALIGN=top><TD><CODE>PL_ACTION_BREAK</CODE> </TD><TD>Create a 
-standard Prolog break environment (<A NAME="idx:break0:1282"></A><A HREF="toplevel.html#break/0">break/0</A>). 
+standard Prolog break environment (<A NAME="idx:break0:1318"></A><A class="pred" href="toplevel.html#break/0">break/0</A>). 
 Returns after the user types the end-of-file character. Requires no 
 arguments. </TD></TR>
 <TR VALIGN=top><TD><CODE>PL_ACTION_GUIAPP</CODE> </TD><TD>Win32: Used to 
@@ -2333,7 +2449,7 @@ argument, a <CODE>char *</CODE> to the current output stream. </TD></TR>
 <TR VALIGN=top><TD><CODE>PL_ACTION_FLUSH</CODE> </TD><TD>Flush the 
 current output stream. Requires no arguments. </TD></TR>
 <TR VALIGN=top><TD><CODE>PL_ACTION_ATTACH_CONSOLE</CODE> </TD><TD>Attach 
-a console to a thread if it does not have one. See <A NAME="idx:attachconsole0:1283"></A><A HREF="thutil.html#attach_console/0">attach_console/0</A>. </TD></TR>
+a console to a thread if it does not have one. See <A NAME="idx:attachconsole0:1319"></A><A class="pred" href="thutil.html#attach_console/0">attach_console/0</A>. </TD></TR>
 </TABLE>
 
 </BLOCKQUOTE>
@@ -2344,15 +2460,18 @@ a console to a thread if it does not have one. See <A NAME="idx:attachconsole0:1
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.16">9.6.16 Querying Prolog</A></H3>
+<H3><A NAME="sec:9.6.16"><SPAN class="sec-nr">9.6.16</SPAN><SPAN class="sec-title">Querying 
+Prolog</SPAN></A></H3>
 
 <DL>
 <DT class="pubdef"><A NAME="PL_query()"><VAR>long</VAR> <STRONG>PL_query</STRONG>(<VAR>int</VAR>)</A></DT>
 <DD class="defbody">
 Obtain status information on the Prolog system. The actual argument type 
 depends on the information required. <VAR>int</VAR> describes what 
-information is wanted.<A NAME=back-to-note-85 HREF="Notes.html#note-85"> (85)</A> 
-The options are given in <A HREF="foreigninclude.html#tab:query">table 7</A>.
+information is wanted.<SUP class="fn">75<SPAN class="fn-text">Returning 
+pointers and integers as a long is bad style. The signature of this 
+function should be changed.</SPAN></SUP> The options are given in <A class="tab" href="foreigninclude.html#tab:query">table 
+7</A>.
 <BLOCKQUOTE>
 <TABLE BORDER=2 FRAME=box RULES=groups>
 <TR VALIGN=top><TD><CODE>PL_QUERY_ARGC</CODE> </TD><TD>Return an integer 
@@ -2388,7 +2507,8 @@ user CPU time of the process in milliseconds. </TD></TR>
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.17">9.6.17 Registering Foreign Predicates</A></H3>
+<H3><A NAME="sec:9.6.17"><SPAN class="sec-nr">9.6.17</SPAN><SPAN class="sec-title">Registering 
+Foreign Predicates</SPAN></A></H3>
 
 <DL>
 <DT class="pubdef"><A NAME="PL_register_foreign_in_module()"><VAR>int</VAR> <STRONG>PL_register_foreign_in_module</STRONG>(<VAR>const 
@@ -2427,7 +2547,7 @@ saved state.
 is passed the same number of term_t arguments as the arity of the 
 predicate and, if the predicate is non-deterministic, an extra argument 
 of type
-<CODE>control_t</CODE> (see <A HREF="foreigninclude.html">section 
+<CODE>control_t</CODE> (see <A class="sec" href="foreigninclude.html">section 
 9.6.1.1</A>). If <CODE>PL_FA_VARARGS</CODE> is provided, <VAR>function</VAR> 
 is called with three arguments. The first argument is a <CODE>term_t</CODE> 
 handle to the first argument. Further arguments can be reached by adding 
@@ -2515,7 +2635,8 @@ the <VAR>module</VAR> argument.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.18">9.6.18 Foreign Code Hooks</A></H3>
+<H3><A NAME="sec:9.6.18"><SPAN class="sec-nr">9.6.18</SPAN><SPAN class="sec-title">Foreign 
+Code Hooks</SPAN></A></H3>
 
 <P>For various specific applications some hooks re provided.
 
@@ -2537,8 +2658,8 @@ typedef int  (*PL_dispatch_hook_t)(void);
 </DD>
 <DT class="pubdef"><A NAME="PL_abort_hook()"><VAR>void</VAR> <STRONG>PL_abort_hook</STRONG>(<VAR>PL_abort_hook_t</VAR>)</A></DT>
 <DD class="defbody">
-Install a hook when <A NAME="idx:abort0:1284"></A><A HREF="toplevel.html#abort/0">abort/0</A> 
-is executed. SWI-Prolog <A NAME="idx:abort0:1285"></A><A HREF="toplevel.html#abort/0">abort/0</A> 
+Install a hook when <A NAME="idx:abort0:1320"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A> 
+is executed. SWI-Prolog <A NAME="idx:abort0:1321"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A> 
 is implemented using C setjmp()/longjmp() construct. The hooks are 
 executed in the reverse order of their registration after the longjmp() 
 took place and before the Prolog top-level is reinvoked. The type
@@ -2561,13 +2682,13 @@ Register the function <VAR>f</VAR> to be called if SWI-Prolog is halted.
 The function is called with two arguments: the exit code of the process 
 (0 if this cannot be determined on your operating system) and the
 <VAR>closure</VAR> argument passed to the PL_on_halt() call. See also
-<A NAME="idx:athalt1:1286"></A><A HREF="consulting.html#at_halt/1">at_halt/1</A>.
+<A NAME="idx:athalt1:1322"></A><A class="pred" href="consulting.html#at_halt/1">at_halt/1</A>.
 </DD>
 <DT class="pubdef"><A NAME="PL_agc_hook()"><VAR>PL_agc_hook_t</VAR> <STRONG>PL_agc_hook</STRONG>(<VAR>PL_agc_hook_t 
 new</VAR>)</A></DT>
 <DD class="defbody">
 Register a hook with the atom-garbage collector (see
-<A NAME="idx:garbagecollectatoms0:1287"></A><A HREF="memory.html#garbage_collect_atoms/0">garbage_collect_atoms/0</A> 
+<A NAME="idx:garbagecollectatoms0:1323"></A><A class="pred" href="memory.html#garbage_collect_atoms/0">garbage_collect_atoms/0</A> 
 that is called on any atom that is reclaimed. The old hook is returned. 
 If no hook is currently defined, <CODE>NULL</CODE> is returned. The 
 argument of the called hook is the atom that is to be garbage collected. 
@@ -2605,7 +2726,8 @@ uninstall()
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:9.6.19">9.6.19 Storing foreign data</A></H3>
+<H3><A NAME="sec:9.6.19"><SPAN class="sec-nr">9.6.19</SPAN><SPAN class="sec-title">Storing 
+foreign data</SPAN></A></H3>
 
 <A NAME="sec:foreigndata"></A>
 
@@ -2623,7 +2745,7 @@ interface required.
 Data can also be represented in a foreign structure and stored on the 
 Prolog stacks using PL_put_string_nchars() and retrieved using 
 PL_get_string_chars(). It is generally good practice to wrap the string 
-in a compound term with arity 1, so Prolog can identify the type. <A NAME="idx:portray1:1288"></A><A HREF="termrw.html#portray/1">portray/1</A> 
+in a compound term with arity 1, so Prolog can identify the type. <A NAME="idx:portray1:1324"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
 rules may be used to streamline printing such terms during development.
 <LI><I>Natural foreign data, passing a pointer</I><BR>
 An alternative is to pass a pointer to the foreign data. Again, this 
@@ -2664,12 +2786,13 @@ representation and passing a pointer to it is a sensible choice.
 <LI>The data lives as during the lifetime of a foreign predicate. If the 
 predicate is deterministic, foreign automatic variables are suitable. if 
 the predicate is non-deterministic, the data may be allocated using 
-malloc() and a pointer may be passed. See <A HREF="foreigninclude.html">section 
+malloc() and a pointer may be passed. See <A class="sec" href="foreigninclude.html">section 
 9.6.1.1</A>.
 </OL>
 </UL>
 
-<H4><A NAME="sec:9.6.19.1">9.6.19.1 Examples for storing foreign data</A></H4>
+<H4><A NAME="sec:9.6.19.1"><SPAN class="sec-nr">9.6.19.1</SPAN><SPAN class="sec-title">Examples 
+for storing foreign data</SPAN></A></H4>
 
 <P>In this section, we will outline some examples, covering typical 
 cases. In the first example, we will deal with extending Prolog's data 
@@ -2682,7 +2805,7 @@ be represented using bit-vectors. Common set operations, such as union,
 intersection, etc. are reduced to simple and'ing and or'ing the 
 bit-vectors. This can be done in Prolog, using a compound term holding 
 integer arguments. Especially if the integers are kept below the maximum 
-tagged integer value (see <A NAME="idx:currentprologflag2:1289"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>), 
+tagged integer value (see <A NAME="idx:currentprologflag2:1325"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>), 
 this representation is fairly space-efficient (wasting 1 word for the 
 functor and and 7 bits per integer for the tags). Arithmetic can all be 
 performed in Prolog too.
@@ -2775,19 +2898,19 @@ C-application normally see them as an 4-byte wide unsigned integer.
 SWI-Prolog cannot do that, as integers are always signed.
 
 <P>We could use the string approach outlined above, but this makes it 
-hard to handle these terms in Prolog. A better choice is a compound term <A NAME="idx:netmask4:1290"></A><B>netmask/4</B>, 
+hard to handle these terms in Prolog. A better choice is a compound term <A NAME="idx:netmask4:1326"></A><B>netmask/4</B>, 
 holding the 4 submasks as integer arguments.
 
 <P>As the implementation is trivial, we will omit this here.
 
-<P><B>The DDE interface</B> (see <A HREF="DDE.html">section 4.42</A>) 
-represents another common usage of the foreign interface: providing 
-communication to new operating system features. The DDE interface 
-requires knowledge about active DDE server and client channels. These 
-channels contains various foreign data-types. Such an interface is 
-normally achieved using an open/close protocol that creates and destroys 
-a <EM>handle</EM>. The handle is a reference to a foreign data-structure 
-containing the relevant information.
+<P><B>The DDE interface</B> (see <A class="sec" href="DDE.html">section 
+4.42</A>) represents another common usage of the foreign interface: 
+providing communication to new operating system features. The DDE 
+interface requires knowledge about active DDE server and client 
+channels. These channels contains various foreign data-types. Such an 
+interface is normally achieved using an open/close protocol that creates 
+and destroys a <EM>handle</EM>. The handle is a reference to a foreign 
+data-structure containing the relevant information.
 
 <P>There are a couple of possibilities for representing the handle. The 
 choice depends on responsibilities and debugging facilities. The 
@@ -2805,8 +2928,8 @@ index in this array. This provides better protection. Especially for
 debugging purposes, wrapping the handle in a compound is a good 
 suggestion.
 
-<H3><A NAME="sec:9.6.20">9.6.20 Embedding SWI-Prolog in other 
-applications</A></H3>
+<H3><A NAME="sec:9.6.20"><SPAN class="sec-nr">9.6.20</SPAN><SPAN class="sec-title">Embedding 
+SWI-Prolog in other applications</SPAN></A></H3>
 
 <A NAME="sec:embedded"></A>
 
@@ -2846,7 +2969,7 @@ main(int argc, char **argv)
 argc, char **argv</VAR>)</A></DT>
 <DD class="defbody">
 Initialises the SWI-Prolog heap and stacks, restores the Prolog state, 
-loads the system and personal initialisation files, runs the <A NAME="idx:atinitialization1:1291"></A><A HREF="consulting.html#at_initialization/1">at_initialization/1</A> 
+loads the system and personal initialisation files, runs the <A NAME="idx:atinitialization1:1327"></A><A class="pred" href="consulting.html#at_initialization/1">at_initialization/1</A> 
 hooks and finally runs the
 <STRONG>-g</STRONG> <VAR>goal</VAR> hook.
 
@@ -2862,14 +2985,16 @@ kernel. In all these cases, the resulting file is used for two purposes
 <UL>
 <LI>See whether a Prolog saved-state is appended to the file. If this is 
 the case, this state will be loaded instead of the default <CODE>boot.prc</CODE> 
-file from the SWI-Prolog home directory. See also <A NAME="idx:qsaveprogram12:1292"></A><A HREF="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
-and <A HREF="plld.html">section 9.7</A>.
+file from the SWI-Prolog home directory. See also <A NAME="idx:qsaveprogram12:1328"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
+and <A class="sec" href="plld.html">section 9.7</A>.
 <LI>Find the Prolog home directory. This process is described in detail 
-in <A HREF="findhome.html">section 9.8</A>.
+in <A class="sec" href="findhome.html">section 9.8</A>.
 </UL>
 
 <P>PL_initialise() returns 1 if all initialisation succeeded and 0 
-otherwise.<A NAME=back-to-note-86 HREF="Notes.html#note-86"> (86)</A>
+otherwise.<SUP class="fn">bug<SPAN class="fn-text">Various fatal errors 
+may cause PL_initialise to call PL_halt(1), preventing it from returning 
+at all.</SPAN></SUP>
 
 <P>In most cases, <VAR>argc</VAR> and <VAR>argv</VAR> will be passed 
 from the main program. It is allowed to create your own argument vector, 
@@ -2921,13 +3046,13 @@ GNU readline.</DD>
 <DT class="pubdef"><A NAME="PL_toplevel()"><VAR>int</VAR> <STRONG>PL_toplevel</STRONG>(<VAR></VAR>)</A></DT>
 <DD class="defbody">
 Runs the goal of the <STRONG>-t</STRONG> <VAR>toplevel</VAR> switch 
-(default <A NAME="idx:prolog0:1293"></A><A HREF="toplevel.html#prolog/0">prolog/0</A>) 
+(default <A NAME="idx:prolog0:1329"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A>) 
 and returns 1 if successful, 0 otherwise.</DD>
 <DT class="pubdef"><A NAME="PL_cleanup()"><VAR>void</VAR> <STRONG>PL_cleanup</STRONG>(<VAR>int 
 status</VAR>)</A></DT>
 <DD class="defbody">
 This function performs the reverse of PL_initialise(). It runs the 
-PL_on_halt() and <A NAME="idx:athalt1:1294"></A><A HREF="consulting.html#at_halt/1">at_halt/1</A> 
+PL_on_halt() and <A NAME="idx:athalt1:1330"></A><A class="pred" href="consulting.html#at_halt/1">at_halt/1</A> 
 handlers, closes all streams (except for the `standard I/O' streams 
 which are flushed only), deallocates all memory and restores all signal 
 handlers. The <VAR>status</VAR> argument is passed to the various 
@@ -2936,19 +3061,20 @@ termination hooks and indicates the <EM>exit-status</EM>.
 <P>This function allows deleting and restarting the Prolog system in the 
 same process. Use it with care, as PL_initialise() is a costly function. 
 Unix users should consider using exec() (available as part of the clib 
-package<A NAME="idx:clibpackage:1295"></A>,<A NAME="idx:packageclib:1296"></A>).</DD>
+package<A NAME="idx:clibpackage:1331"></A>,<A NAME="idx:packageclib:1332"></A>).</DD>
 <DT class="pubdef"><A NAME="PL_halt()"><VAR>int</VAR> <STRONG>PL_halt</STRONG>(<VAR>int 
 status</VAR>)</A></DT>
 <DD class="defbody">
 Cleanup the Prolog environment using PL_cleanup() and calls exit() with 
 the status argument. As PL_cleanup() can only be called from the main 
 thread, this function returns <CODE>FALSE</CODE> when called from 
-another thread as the main one.<A NAME=back-to-note-87 HREF="Notes.html#note-87"> (87)</A>
+another thread as the main one.<SUP class="fn">bug<SPAN class="fn-text">Eventually 
+it may become possible to call PL_halt() from any thread.</SPAN></SUP>
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.20.1">9.6.20.1 Threading, Signals and embedded 
-Prolog</A></H4>
+<H4><A NAME="sec:9.6.20.1"><SPAN class="sec-nr">9.6.20.1</SPAN><SPAN class="sec-title">Threading, 
+Signals and embedded Prolog</SPAN></A></H4>
 
 <A NAME="sec:sigembedded"></A>
 
@@ -2967,7 +3093,7 @@ generally the only way to get these environments together in one process
 image. Java applications however are by nature multi-threaded and appear 
 to do signal-handling (software interrupts).
 
-<P><A NAME="idx:disablesegvhandling:1297"></A>To make Prolog operate 
+<P><A NAME="idx:disablesegvhandling:1333"></A>To make Prolog operate 
 smoothly in such environments it must be told not to alter the process 
 environment. This is partly done at build-time and partly execution 
 time. At build-time we must specify the use of software stack-overflow 

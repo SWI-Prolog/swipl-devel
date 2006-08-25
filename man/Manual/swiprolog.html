@@ -2,46 +2,121 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 1.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 1.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="intro.html">
 <LINK REL=next HREF="status.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="intro.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="status.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="intro.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="status.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:1.1">1.1 SWI-Prolog</A></H2>
+<H2><A NAME="sec:1.1"><SPAN class="sec-nr">1.1</SPAN><SPAN class="sec-title">SWI-Prolog</SPAN></A></H2>
 
 <A NAME="sec:swiprolog"></A>
 
@@ -56,7 +131,7 @@ scalability, (I/O) performance, standard compliance, teaching and the
 program development environment.
 
 <P>SWI-Prolog is based on a very restricted form of the WAM (Warren 
-Abstract Machine) described in <CITE><A HREF="Bibliography.html#Bowen:83">Bowen &amp; 
+Abstract Machine) described in <CITE><A class="cite" href="Bibliography.html#Bowen:83">Bowen &amp; 
 Byrd, 1983</A></CITE> which defines only 7 instructions. Prolog can 
 easily be compiled into this language and the abstract machine code is 
 easily decompiled back into Prolog. As it is also possible to wire a 
@@ -71,38 +146,42 @@ interpreter improves performance by about 20%) and somewhat additional
 memory usage to help the decompiler and debugger.
 
 <P>SWI-Prolog extends the minimal set of instructions described in
-<CITE><A HREF="Bibliography.html#Bowen:83">Bowen &amp; Byrd, 1983</A></CITE> 
-to improve performance. While extending this set care has been taken to 
-maintain the advantages of decompilation and tracing of compiled code. 
-The extensions include specialised instructions for unification, 
-predicate invocation, some frequently used built-in predicates, 
-arithmetic, and control (<A HREF="control.html#;/2">;/2</A>, <A HREF="control.html#|/2">|/2</A>), 
-if-then (<A HREF="control.html#send_arrow/2">-&gt;/2</A>) and 
-negation-by-failure (<A HREF="control.html#\+/1">\+/1</A>).
+<CITE><A class="cite" href="Bibliography.html#Bowen:83">Bowen &amp; 
+Byrd, 1983</A></CITE> to improve performance. While extending this set 
+care has been taken to maintain the advantages of decompilation and 
+tracing of compiled code. The extensions include specialised 
+instructions for unification, predicate invocation, some frequently used 
+built-in predicates, arithmetic, and control (<A class="pred" href="control.html#;/2">;/2</A>, <A class="pred" href="control.html#|/2">|/2</A>), 
+if-then (<A class="pred" href="control.html#send_arrow/2">-&gt;/2</A>) 
+and negation-by-failure (<A class="pred" href="control.html#\+/1">\+/1</A>).
 
-<H3><A NAME="sec:1.1.1">1.1.1 Books about Prolog</A></H3>
+<H3><A NAME="sec:1.1.1"><SPAN class="sec-nr">1.1.1</SPAN><SPAN class="sec-title">Books 
+about Prolog</SPAN></A></H3>
 
 <A NAME="sec:books"></A>
 
 <P>This manual does not describe the full syntax and semantics of 
 Prolog, nor how one should write a program in Prolog. These subjects 
-have been described extensively in the literature. See <CITE><A HREF="Bibliography.html#Bratko:86">Bratko, 
+have been described extensively in the literature. See <CITE><A class="cite" href="Bibliography.html#Bratko:86">Bratko, 
 1986</A></CITE>,
-<CITE><A HREF="Bibliography.html#Sterling:86">Sterling &amp; Shapiro, 
-1986</A></CITE>, and <CITE><A HREF="Bibliography.html#Clocksin:87">Clocksin &amp; 
-Melish, 1987</A></CITE>. For more advanced Prolog material see <CITE><A HREF="Bibliography.html#Keefe:90">O'Keefe, 
+<CITE><A class="cite" href="Bibliography.html#Sterling:86">Sterling &amp; 
+Shapiro, 1986</A></CITE>, and <CITE><A class="cite" href="Bibliography.html#Clocksin:87">Clocksin &amp; 
+Melish, 1987</A></CITE>. For more advanced Prolog material see <CITE><A class="cite" href="Bibliography.html#Keefe:90">O'Keefe, 
 1990</A></CITE>. Syntax and standard operator declarations confirm to 
 the `Edinburgh standard'. Most built in predicates are compatible with 
-those described in <CITE><A HREF="Bibliography.html#Clocksin:87">Clocksin &amp; 
+those described in <CITE><A class="cite" href="Bibliography.html#Clocksin:87">Clocksin &amp; 
 Melish, 1987</A></CITE>. SWI-Prolog also offers a number of primitive 
-predicates compatible with Quintus Prolog<A NAME=back-to-note-1 HREF="Notes.html#note-1"> (1)</A>
-<CITE><A HREF="Bibliography.html#QUINTUS:manual">Qui, 1997</A></CITE> 
-and BIM_Prolog<A NAME=back-to-note-2 HREF="Notes.html#note-2"> (2)</A>
-<CITE><A HREF="Bibliography.html#BIMPROLOG:manual">BIM, 1989</A></CITE>.
+predicates compatible with Quintus Prolog<SUP class="fn">1<SPAN class="fn-text">Quintus 
+is a trademark of Quintus Computer Systems Inc., USA</SPAN></SUP>
+<CITE><A class="cite" href="Bibliography.html#QUINTUS:manual">Qui, 1997</A></CITE> 
+and BIM_Prolog<SUP class="fn">2<SPAN class="fn-text">BIM is a trademark 
+of BIM sa/nv., Belgium</SPAN></SUP>
+<CITE><A class="cite" href="Bibliography.html#BIMPROLOG:manual">BIM, 
+1989</A></CITE>.
 
 <P>ISO compliant predicates are based on ``Prolog: The Standard'',
-<CITE><A HREF="Bibliography.html#Deransart:96">Deransart <EM>et al.</EM>, 
-1996</A></CITE>, validated using <CITE><A HREF="Bibliography.html#stdprolog:98">Hodgson, 
+<CITE><A class="cite" href="Bibliography.html#Deransart:96">Deransart <EM>et 
+al.</EM>, 1996</A></CITE>, validated using <CITE><A class="cite" href="Bibliography.html#stdprolog:98">Hodgson, 
 1998</A></CITE>.
 
 <P></BODY></HTML>

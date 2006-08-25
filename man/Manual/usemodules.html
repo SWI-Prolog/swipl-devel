@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 5.5</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 5.5</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="import.html">
 <LINK REL=next HREF="metainmodule.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="import.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="metainmodule.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="import.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="metainmodule.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:5.5">5.5 Using the Module System</A></H2>
+<H2><A NAME="sec:5.5"><SPAN class="sec-nr">5.5</SPAN><SPAN class="sec-title">Using 
+the Module System</SPAN></A></H2>
 
 <A NAME="sec:usemodules"></A>
 
@@ -77,7 +153,7 @@ the generic modules into the <CODE>user</CODE> module. The
 `ensure_loaded' directive loads the modules that constitute the actual 
 application. It is assumed these modules import predicates from each 
 other using
-<A NAME="idx:usemodule12:1056"></A><A HREF="import.html#use_module/1">use_module/[1,2]</A> 
+<A NAME="idx:usemodule12:1089"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
 as far as necessary.
 
 <P>In combination with the object-oriented schema described below it is 
@@ -86,14 +162,15 @@ general utilities and the message passing predicates (invoke/3 in the
 example below). The application modules define classes that communicate 
 using the message passing predicates.
 
-<H3><A NAME="sec:5.5.1">5.5.1 Object Oriented Programming</A></H3>
+<H3><A NAME="sec:5.5.1"><SPAN class="sec-nr">5.5.1</SPAN><SPAN class="sec-title">Object 
+Oriented Programming</SPAN></A></H3>
 
 <P>Another typical way to use the module system is for defining classes 
 within an object oriented paradigm. The class structure and the methods 
 of a class can be defined in a module and the explicit module-boundary 
-overruling describes in <A HREF="metainmodule.html">section 5.6.2</A> 
-can by used by the message passing code to invoke the behaviour. An 
-outline of this mechanism is given below.
+overruling describes in <A class="sec" href="metainmodule.html">section 
+5.6.2</A> can by used by the message passing code to invoke the 
+behaviour. An outline of this mechanism is given below.
 
 <PRE class="code">
 %       Define class point
@@ -137,6 +214,6 @@ invoke(I, S, Args) :-
 <P>The construct &lt;<VAR>Module</VAR>&gt;:&lt;<VAR>Goal</VAR>&gt; 
 explicitly calls <VAR>Goal</VAR> in module <VAR>Module</VAR>. It is 
 discussed in more detail in
-<A HREF="metainmodule.html">section 5.6</A>.
+<A class="sec" href="metainmodule.html">section 5.6</A>.
 
 <P></BODY></HTML>

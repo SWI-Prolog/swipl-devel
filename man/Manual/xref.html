@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 3.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 3.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="navigator.html">
 <LINK REL=next HREF="idepreds.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="navigator.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="idepreds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="navigator.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="idepreds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:3.7">3.7 Cross referencer</A></H2>
+<H2><A NAME="sec:3.7"><SPAN class="sec-nr">3.7</SPAN><SPAN class="sec-title">Cross 
+referencer</SPAN></A></H2>
 
 <A NAME="sec:xref"></A>
 
@@ -51,7 +127,7 @@ relations between source files, find calls to non-existing predicates
 and predicates for which no callers can be found. Cross-referencing is 
 useful during program development, reorganisation, cleanup, porting and 
 other program maintenance tasks. The dynamic nature of Prolog makes the 
-task non-trivial. Goals can be created dynamically <A NAME="idx:call1:285"></A><A HREF="metacall.html#call/1">call/1</A> 
+task non-trivial. Goals can be created dynamically <A NAME="idx:call1:285"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
 after construction of a goal term. Abtract interpretation can find some 
 of such calls, but the ultimately they can come from external 
 communication, making it completely impossible to predict the callee. In 
@@ -61,7 +137,7 @@ valuable information to the developer.
 
 <P>SWI-Prolog's cross-referencer is split into two parts. The standard 
 Prolog library <CODE>library(prolog_xref)</CODE> is an extensible 
-library for information gathering described in <A HREF="prologxref.html">section 
+library for information gathering described in <A class="sec" href="prologxref.html">section 
 A.17</A> and the XPCE
 
 <P>library <CODE>library(pce_xref)</CODE> provides a graphical frontend 
@@ -86,13 +162,13 @@ application.
 <TABLE ALIGN=center WIDTH="75%"><TR><TD>
 <B>Figure 3 : </B>File info for <TT>chattop.pl</TT>, part of CHAT80</TABLE>
 
-<P>The <B>left window</B> (see <A HREF="xref.html#fig:xrefchatfile">figure 
+<P>The <B>left window</B> (see <A class="fig" href="xref.html#fig:xrefchatfile">figure 
 3</A> provides browsers for loaded files and predicates. To avoid long 
 file paths the file hierarchy has three main branches. The first is the 
 current directory holding the sources. The second is marked <CODE>alias</CODE> 
-and below it are the file-search-path aliases (see <A NAME="idx:filesearchpath2:286"></A><A HREF="consulting.html#file_search_path/2">file_search_path/2</A> 
+and below it are the file-search-path aliases (see <A NAME="idx:filesearchpath2:286"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 and
-<A NAME="idx:absolutefilename3:287"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A>). 
+<A NAME="idx:absolutefilename3:287"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>). 
 Here you find files loaded from the system as well as modules of the 
 program loaded from other locations using file search path. All loaded 
 files that fall outside these categories are below the last branch 
@@ -108,7 +184,7 @@ by clicking on them. The number of callers in a file for a certain
 predicate is indicated with a blue underlined number. A left-click will 
 open a list and allows to edit the calling predicate.
 
-<P>The <B>Dependencies</B> (see <A HREF="xref.html#fig:xrefchatdep">figure 
+<P>The <B>Dependencies</B> (see <A class="fig" href="xref.html#fig:xrefchatdep">figure 
 4</A>) window displays a graphical overview of dependencies between 
 files. Using the background menu a complete graph of the project can be 
 created. It is also possible to drag files onto the graph window and use 

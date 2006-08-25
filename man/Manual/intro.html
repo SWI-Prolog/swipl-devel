@@ -2,46 +2,121 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="Contents.html">
 <LINK REL=next HREF="swiprolog.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="Contents.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="swiprolog.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="Contents.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="swiprolog.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H1><A NAME="sec:1">1 Introduction</A></H1>
+<H1><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H1>
 
 <A NAME="sec:intro"></A>
 
@@ -53,42 +128,63 @@ padding: 5px;
 
 </CENTER>
 <HR>
-<UL>
-<LI><A HREF="swiprolog.html"><B>1.1 SWI-Prolog</B></A>
-<UL>
-<LI><A HREF="swiprolog.html#sec:1.1.1">1.1.1 Books about Prolog</A>
-</UL>
-<LI><A HREF="status.html"><B>1.2 Status</B></A>
-<LI><A HREF="iso.html"><B>1.3 Compliance to the ISO standard</B></A>
-<LI><A HREF="swiorother.html"><B>1.4 Should you be using SWI-Prolog?</B></A>
-<LI><A HREF="xpce.html"><B>1.5 The XPCE GUI system for Prolog</B></A>
-<LI><A HREF="relnotes.html"><B>1.6 Release Notes</B></A>
-<UL>
-<LI><A HREF="relnotes.html#sec:1.6.1">1.6.1 Version 1.8 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.2">1.6.2 Version 1.9 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.3">1.6.3 Version 2.0 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.4">1.6.4 Version 2.5 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.5">1.6.5 Version 2.6 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.6">1.6.6 Version 2.7 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.7">1.6.7 Version 2.8 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.8">1.6.8 Version 2.9 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.9">1.6.9 Version 3.0 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.10">1.6.10 Version 3.1 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.11">1.6.11 Version 3.3 Release Notes</A>
-<UL>
-<LI><A HREF="relnotes.html#sec:1.6.11.1">1.6.11.1 Incompatible changes</A>
-</UL>
-<LI><A HREF="relnotes.html#sec:1.6.12">1.6.12 Version 3.4 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.13">1.6.13 Version 4.0 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.14">1.6.14 Version 5.0 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.15">1.6.15 Version 5.1 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.16">1.6.16 Version 5.2 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.17">1.6.17 Version 5.3 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.18">1.6.18 Version 5.4 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.19">1.6.19 Version 5.5 Release Notes</A>
-<LI><A HREF="relnotes.html#sec:1.6.20">1.6.20 Version 5.6 Release Notes</A>
-</UL>
-<LI><A HREF="sponsor.html"><B>1.7 Donate to the SWI-Prolog project</B></A>
-<LI><A HREF="acknowledge.html"><B>1.8 Acknowledgements</B></A>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="swiprolog.html"><SPAN class="sec-nr">1.1</SPAN><SPAN class="sec-title">SWI-Prolog</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="swiprolog.html#sec:1.1.1"><SPAN class="sec-nr">1.1.1</SPAN><SPAN class="sec-title">Books 
+about Prolog</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="status.html"><SPAN class="sec-nr">1.2</SPAN><SPAN class="sec-title">Status</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="iso.html"><SPAN class="sec-nr">1.3</SPAN><SPAN class="sec-title">Compliance 
+to the ISO standard</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="swiorother.html"><SPAN class="sec-nr">1.4</SPAN><SPAN class="sec-title">Should 
+you be using SWI-Prolog?</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="xpce.html"><SPAN class="sec-nr">1.5</SPAN><SPAN class="sec-title">The 
+XPCE GUI system for Prolog</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="relnotes.html"><SPAN class="sec-nr">1.6</SPAN><SPAN class="sec-title">Release 
+Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.1"><SPAN class="sec-nr">1.6.1</SPAN><SPAN class="sec-title">Version 
+1.8 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.2"><SPAN class="sec-nr">1.6.2</SPAN><SPAN class="sec-title">Version 
+1.9 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.3"><SPAN class="sec-nr">1.6.3</SPAN><SPAN class="sec-title">Version 
+2.0 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.4"><SPAN class="sec-nr">1.6.4</SPAN><SPAN class="sec-title">Version 
+2.5 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.5"><SPAN class="sec-nr">1.6.5</SPAN><SPAN class="sec-title">Version 
+2.6 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.6"><SPAN class="sec-nr">1.6.6</SPAN><SPAN class="sec-title">Version 
+2.7 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.7"><SPAN class="sec-nr">1.6.7</SPAN><SPAN class="sec-title">Version 
+2.8 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.8"><SPAN class="sec-nr">1.6.8</SPAN><SPAN class="sec-title">Version 
+2.9 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.9"><SPAN class="sec-nr">1.6.9</SPAN><SPAN class="sec-title">Version 
+3.0 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.10"><SPAN class="sec-nr">1.6.10</SPAN><SPAN class="sec-title">Version 
+3.1 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.11"><SPAN class="sec-nr">1.6.11</SPAN><SPAN class="sec-title">Version 
+3.3 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="relnotes.html#sec:1.6.11.1"><SPAN class="sec-nr">1.6.11.1</SPAN><SPAN class="sec-title">Incompatible 
+changes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.12"><SPAN class="sec-nr">1.6.12</SPAN><SPAN class="sec-title">Version 
+3.4 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.13"><SPAN class="sec-nr">1.6.13</SPAN><SPAN class="sec-title">Version 
+4.0 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.14"><SPAN class="sec-nr">1.6.14</SPAN><SPAN class="sec-title">Version 
+5.0 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.15"><SPAN class="sec-nr">1.6.15</SPAN><SPAN class="sec-title">Version 
+5.1 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.16"><SPAN class="sec-nr">1.6.16</SPAN><SPAN class="sec-title">Version 
+5.2 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.17"><SPAN class="sec-nr">1.6.17</SPAN><SPAN class="sec-title">Version 
+5.3 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.18"><SPAN class="sec-nr">1.6.18</SPAN><SPAN class="sec-title">Version 
+5.4 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.19"><SPAN class="sec-nr">1.6.19</SPAN><SPAN class="sec-title">Version 
+5.5 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="relnotes.html#sec:1.6.20"><SPAN class="sec-nr">1.6.20</SPAN><SPAN class="sec-title">Version 
+5.6 Release Notes</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="sponsor.html"><SPAN class="sec-nr">1.7</SPAN><SPAN class="sec-title">Donate 
+to the SWI-Prolog project</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="acknowledge.html"><SPAN class="sec-nr">1.8</SPAN><SPAN class="sec-title">Acknowledgements</SPAN></A></DIV>
+</DIV>
 </BODY></HTML>

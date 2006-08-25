@@ -2,53 +2,129 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="libpl.html">
 <LINK REL=next HREF="ordsets.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="libpl.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="ordsets.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="libpl.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="ordsets.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.1">A.1 library( lists ): List Manipulation</A></H2>
+<H2><A NAME="sec:A.1"><SPAN class="sec-nr">A.1</SPAN><SPAN class="sec-title">library( 
+lists ): List Manipulation</SPAN></A></H2>
 
 <A NAME="lists"></A>
 <A NAME="sec:lib:lists"></A>
 
 <P>This library provides commonly accepted basic predicates for list 
 manipulation in the Prolog community. Some additional list manipulations 
-are built-in. Their description is in <A HREF="builtinlist.html">section 
+are built-in. Their description is in <A class="sec" href="builtinlist.html">section 
 4.28</A>.
 
 <DL>
@@ -77,9 +153,11 @@ Delete all members of <VAR>List1</VAR> that simultaneously unify with
 <DD class="defbody">
 Select <VAR>Elem</VAR> from <VAR>List</VAR> leaving <VAR>Rest</VAR>. It 
 behaves as
-<A NAME="idx:member2:1338"></A><A HREF="lists.html#member/2">member/2</A>, 
+<A NAME="idx:member2:1374"></A><A class="pred" href="lists.html#member/2">member/2</A>, 
 returning the remaining elements in <VAR>Rest</VAR>. Note that besides 
-selecting elements from a list, it can also be used to insert elements.<A NAME=back-to-note-89 HREF="Notes.html#note-89"> (89)</A></DD>
+selecting elements from a list, it can also be used to insert elements.<SUP class="fn">bug<SPAN class="fn-text">Upto 
+SWI-Prolog 3.3.10, the definition of this predicate was not according to 
+the de-facto standard. The first two arguments were in the wrong order.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="nth0/3"><STRONG>nth0</STRONG>(<VAR>?Index, 
 ?List, ?Elem</VAR>)</A></DT>
 <DD class="defbody">
@@ -97,9 +175,11 @@ with
 <DD class="defbody">
 Succeeds if <VAR>Elem</VAR> unifies with the last element of <VAR>List</VAR>. 
 If
-<VAR>List</VAR> is a proper list <A NAME="idx:last2:1339"></A><A HREF="lists.html#last/2">last/2</A> 
+<VAR>List</VAR> is a proper list <A NAME="idx:last2:1375"></A><A class="pred" href="lists.html#last/2">last/2</A> 
 is deterministic. If <VAR>List</VAR> has an unbound tail, backtracking 
-will cause <VAR>List</VAR> to grow.<A NAME=back-to-note-90 HREF="Notes.html#note-90"> (90)</A></DD>
+will cause <VAR>List</VAR> to grow.<SUP class="fn">77<SPAN class="fn-text">The 
+argument order of this predicate was changed in 5.1.12 for compatibility 
+reasons.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="reverse/2"><STRONG>reverse</STRONG>(<VAR>+List1, 
 -List2</VAR>)</A></DT>
 <DD class="defbody">
@@ -132,10 +212,10 @@ X = [a, b, c, d, e]
 -Sum</VAR>)</A></DT>
 <DD class="defbody">
 Unify <VAR>Sum</VAR> to the result of adding all elements in <VAR>List</VAR>.
-<VAR>List</VAR> must be a proper list holding numbers. See <A NAME="idx:number1:1340"></A><A HREF="typetest.html#number/1">number/1</A> 
+<VAR>List</VAR> must be a proper list holding numbers. See <A NAME="idx:number1:1376"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
 and
-<A NAME="idx:is2:1341"></A><A HREF="arith.html#is/2">is/2</A>. for 
-details on arithmetic.</DD>
+<A NAME="idx:is2:1377"></A><A class="pred" href="arith.html#is/2">is/2</A>. 
+for details on arithmetic.</DD>
 <DT class="pubdef"><A NAME="numlist/3"><STRONG>numlist</STRONG>(<VAR>+Low, 
 +High, -List</VAR>)</A></DT>
 <DD class="defbody">
@@ -143,11 +223,12 @@ If <VAR>Low</VAR> and <VAR>High</VAR> are integers with <VAR>Low =&lt;
 High</VAR>, unify
 <VAR>List</VAR> to a list [<VAR>Low</VAR>, <VAR>Low+1</VAR>, ...<VAR>High</VAR>]. 
 See also
-<A NAME="idx:between3:1342"></A><A HREF="arith.html#between/3">between/3</A>.
+<A NAME="idx:between3:1378"></A><A class="pred" href="arith.html#between/3">between/3</A>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:A.1.1">A.1.1 Set Manipulation</A></H3>
+<H3><A NAME="sec:A.1.1"><SPAN class="sec-nr">A.1.1</SPAN><SPAN class="sec-title">Set 
+Manipulation</SPAN></A></H3>
 
 <A NAME="sec:manipset"></A>
 
@@ -155,19 +236,19 @@ See also
 lists. Note that this makes many of the operations order <VAR>N^2</VAR>. 
 For larger sets consider the use of ordered sets as implemented by 
 library <CODE>ordsets.pl</CODE>, running most these operations in order <VAR>N</VAR>. 
-See <A HREF="ordsets.html">section A.2</A>.
+See <A class="sec" href="ordsets.html">section A.2</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="is_set/1"><STRONG>is_set</STRONG>(<VAR>+Set</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Set</VAR> is a list (see <A NAME="idx:islist1:1343"></A><A HREF="builtinlist.html#is_list/1">is_list/1</A>) 
+Succeeds if <VAR>Set</VAR> is a list (see <A NAME="idx:islist1:1379"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A>) 
 without duplicates.</DD>
 <DT class="pubdef"><A NAME="list_to_set/2"><STRONG>list_to_set</STRONG>(<VAR>+List, 
 -Set</VAR>)</A></DT>
 <DD class="defbody">
 Unifies <VAR>Set</VAR> with a list holding the same elements as <VAR>List</VAR> 
 in the same order. If <VAR>list</VAR> contains duplicates, only the 
-first is retained. See also <A NAME="idx:sort2:1344"></A><A HREF="builtinlist.html#sort/2">sort/2</A>. 
+first is retained. See also <A NAME="idx:sort2:1380"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>. 
 Example:
 
 <PRE class="code">

@@ -2,61 +2,137 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="consulting.html">
 <LINK REL=next HREF="typetest.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="consulting.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="typetest.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="consulting.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="typetest.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.4">4.4 Listing and Editor Interface</A></H2>
+<H2><A NAME="sec:4.4"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">Listing 
+and Editor Interface</SPAN></A></H2>
 
 <A NAME="sec:listing"></A>
 
 <P>SWI-Prolog offers an extensible interface which allows the user to 
 edit objects of the program: predicates, modules, files, etc. The editor 
-interface is implemented by <A NAME="idx:edit1:420"></A><A HREF="listing.html#edit/1">edit/1</A> 
+interface is implemented by <A NAME="idx:edit1:422"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 and consists of three parts:
 <EM>locating</EM>, <EM>selecting</EM> and <EM>starting the editor</EM>.
 
 <P>Any of these parts may be extended or redefined by adding clauses to 
-various multi-file (see <A NAME="idx:multifile1:421"></A><A HREF="dynamic.html#multifile/1">multifile/1</A>) 
+various multi-file (see <A NAME="idx:multifile1:423"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A>) 
 predicates defined in the module
 <CODE>prolog_edit</CODE>.
 
-<P>The built-in edit specifications for <A NAME="idx:edit1:422"></A><A HREF="listing.html#edit/1">edit/1</A> 
+<P>The built-in edit specifications for <A NAME="idx:edit1:424"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 (see prolog_edit:locate/3) are described below.
 
 <P>
@@ -91,19 +167,19 @@ First exploits prolog_edit:locate/3 to translate <VAR>Specification</VAR>
 into a list of <EM>Locations</EM>. If there is more than one `hit', the 
 user is asked to select from the locations found. Finally, 
 prolog_edit:edit_source/1 is used to invoke the user's preferred editor. 
-Typically, <A NAME="idx:edit1:423"></A><A HREF="listing.html#edit/1">edit/1</A> 
+Typically, <A NAME="idx:edit1:425"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 can be handed the name of a predicate, module, basename of a file, XPCE 
 class, XPCE method, etc.</DD>
 <DT class="pubdef"><A NAME="edit/0"><STRONG>edit</STRONG></A></DT>
 <DD class="defbody">
-Edit the `default' file using <A NAME="idx:edit1:424"></A><A HREF="listing.html#edit/1">edit/1</A>. 
+Edit the `default' file using <A NAME="idx:edit1:426"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
 The default file is the file loaded with the command-line option <STRONG>-s</STRONG> 
 or, in windows, the file loaded by double-clicking from the Windows 
 shell.</DD>
 <DT class="pubdef"><A NAME="prolog_edit:locate/3"><STRONG>prolog_edit:locate</STRONG>(<VAR>+Spec, 
 -FullSpec, -Location</VAR>)</A></DT>
 <DD class="defbody">
-Where <VAR>Spec</VAR> is the specification provided through <A NAME="idx:edit1:425"></A><A HREF="listing.html#edit/1">edit/1</A>. 
+Where <VAR>Spec</VAR> is the specification provided through <A NAME="idx:edit1:427"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
 This multifile predicate is used to enumerate locations at with an 
 object satisfying the given <VAR>Spec</VAR> can be found. <VAR>FullSpec</VAR> 
 is unified with the complete specification for the object. This 
@@ -124,10 +200,10 @@ objects.</DD>
 <DD class="defbody">
 Start editor on <VAR>Location</VAR>. See prolog_edit:locate/3 for the 
 format of a location term. This multi-file predicate is normally not 
-defined. If it succeeds, <A NAME="idx:edit1:426"></A><A HREF="listing.html#edit/1">edit/1</A> 
+defined. If it succeeds, <A NAME="idx:edit1:428"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 assumes the editor is started.
 
-<P>If it fails, <A NAME="idx:edit1:427"></A><A HREF="listing.html#edit/1">edit/1</A> 
+<P>If it fails, <A NAME="idx:edit1:429"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 uses its internal defaults, which are defined by the prolog-flag <CODE>editor</CODE> 
 and/or the environment variable
 <CODE>EDITOR</CODE>. The following rules apply. If the prolog-flag <CODE>editor</CODE> 
@@ -145,8 +221,8 @@ for examples.</DD>
 <DT class="pubdef"><A NAME="prolog_edit:edit_command/2"><STRONG>prolog_edit:edit_command</STRONG>(<VAR>+Editor, 
 -Command</VAR>)</A></DT>
 <DD class="defbody">
-Determines how <VAR>Editor</VAR> is to be invoked using <A NAME="idx:shell1:428"></A><A HREF="system.html#shell/1">shell/1</A>.
-<VAR>Editor</VAR> is the determined editor (see <A NAME="idx:editsource1:429"></A><B>edit_source/1</B>), 
+Determines how <VAR>Editor</VAR> is to be invoked using <A NAME="idx:shell1:430"></A><A class="pred" href="system.html#shell/1">shell/1</A>.
+<VAR>Editor</VAR> is the determined editor (see <A NAME="idx:editsource1:431"></A><B>edit_source/1</B>), 
 without the full path specification, and without possible (exe) 
 extension.
 <VAR>Command</VAR> is an atom describing the command. The pattern
@@ -159,7 +235,7 @@ the <CODE>%f</CODE> pattern, and one holding both patterns.
 <B>emacsclient</B>, <B>vim</B> and <B>notepad</B> (latter without 
 line-number version).
 
-<P>Please contribute your specifications to <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A>.</DD>
+<P>Please contribute your specifications to <A class="url" href="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A>.</DD>
 <DT class="pubdef"><A NAME="prolog_edit:load/0"><STRONG>prolog_edit:load</STRONG></A></DT>
 <DD class="defbody">
 Normally not-defined multifile predicate. This predicate may be defined 
@@ -181,22 +257,22 @@ prolog_edit:load :-
 List specified predicates (when an atom is given all predicates with 
 this name will be listed). The listing is produced on the basis of the 
 internal representation, thus losing user's layout and variable name 
-information. See also <A NAME="idx:portrayclause1:430"></A><A HREF="listing.html#portray_clause/1">portray_clause/1</A>.
+information. See also <A NAME="idx:portrayclause1:432"></A><A class="pred" href="listing.html#portray_clause/1">portray_clause/1</A>.
 </DD>
 <DT class="pubdef"><A NAME="listing/0"><STRONG>listing</STRONG></A></DT>
 <DD class="defbody">
-List all predicates of the database using <A NAME="idx:listing1:431"></A><A HREF="listing.html#listing/1">listing/1</A>.</DD>
+List all predicates of the database using <A NAME="idx:listing1:433"></A><A class="pred" href="listing.html#listing/1">listing/1</A>.</DD>
 <DT class="pubdef"><A NAME="portray_clause/1"><STRONG>portray_clause</STRONG>(<VAR>+Clause</VAR>)</A></DT>
 <DD class="defbody">
 Pretty print a clause. A clause should be specified as a term `<CODE>&lt;<VAR>Head</VAR>&gt; 
 :- &lt;<VAR>Body</VAR>&gt;</CODE>'. Facts are represented as `<CODE>&lt;<VAR>Head</VAR>&gt; 
 :- true</CODE>' or simply <CODE>&lt;<VAR>Head</VAR>&gt;</CODE>. 
 Variables in the clause are written as <VAR>A</VAR>, <VAR>B</VAR>, ... . 
-Singleton variables are written as <CODE>_</CODE>. See also <A NAME="idx:portrayclause2:432"></A><A HREF="listing.html#portray_clause/2">portray_clause/2</A>.</DD>
+Singleton variables are written as <CODE>_</CODE>. See also <A NAME="idx:portrayclause2:434"></A><A class="pred" href="listing.html#portray_clause/2">portray_clause/2</A>.</DD>
 <DT class="pubdef"><A NAME="portray_clause/2"><STRONG>portray_clause</STRONG>(<VAR>+Stream, 
 +Clause</VAR>)</A></DT>
 <DD class="defbody">
-Pretty print a clause to <VAR>Stream</VAR>. See <A NAME="idx:portrayclause1:433"></A><A HREF="listing.html#portray_clause/1">portray_clause/1</A> 
+Pretty print a clause to <VAR>Stream</VAR>. See <A NAME="idx:portrayclause1:435"></A><A class="pred" href="listing.html#portray_clause/1">portray_clause/1</A> 
 for details.
 </DD>
 </DL>

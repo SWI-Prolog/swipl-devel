@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section B.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section B.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="hack.html">
 <LINK REL=next HREF="tracehook.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="hack.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="tracehook.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="hack.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="tracehook.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:B.1">B.1 Examining the Environment Stack</A></H2>
+<H2><A NAME="sec:B.1"><SPAN class="sec-nr">B.1</SPAN><SPAN class="sec-title">Examining 
+the Environment Stack</SPAN></A></H2>
 
 <A NAME="sec:manipstack"></A>
 
@@ -56,8 +132,8 @@ therefore its frame is destroyed immediately after succeeding.</DD>
 +Key, -Value</VAR>)</A></DT>
 <DD class="defbody">
 Obtain information about the local stack frame <VAR>Frame</VAR>. <VAR>Frame</VAR> 
-is a frame reference as obtained through <A NAME="idx:prologcurrentframe1:1408"></A><A HREF="manipstack.html#prolog_current_frame/1">prolog_current_frame/1</A>,
-<A NAME="idx:prologtraceinterception4:1409"></A><A HREF="tracehook.html#prolog_trace_interception/4">prolog_trace_interception/4</A> 
+is a frame reference as obtained through <A NAME="idx:prologcurrentframe1:1444"></A><A class="pred" href="manipstack.html#prolog_current_frame/1">prolog_current_frame/1</A>,
+<A NAME="idx:prologtraceinterception4:1445"></A><A class="pred" href="tracehook.html#prolog_trace_interception/4">prolog_trace_interception/4</A> 
 or this predicate. The key values are described below.
 
 <DL>
@@ -77,7 +153,10 @@ If the definition module of the active predicate is not <CODE>user</CODE>
 the goal is represented as <TT>&lt;<VAR>module</VAR>&gt;:&lt;<VAR>goal</VAR>&gt;</TT>. 
 Do not instantiate variables in this goal unless you <B>know</B> what 
 you are doing! Note that the returned term may contain references to the 
-frame and should be discarded before the frame terminates.<A NAME=back-to-note-92 HREF="Notes.html#note-92"> (92)</A></DD>
+frame and should be discarded before the frame terminates.<SUP class="fn">79<SPAN class="fn-text">The 
+returned term is actually an illegal Prolog term that may hold 
+references from the global- to the local stack to preserve the variable 
+names.</SPAN></SUP></DD>
 <DT><STRONG>parent_goal</STRONG></DT>
 <DD class="defbody">
 If <VAR>Value</VAR> is instantiated to a callable term, find a frame 
@@ -91,8 +170,8 @@ nested calls.</DD>
 <DD class="defbody">
 <VAR>Value</VAR> is unified with a reference to the currently running 
 clause. Fails if the current goal is associated with a foreign (C) 
-defined predicate. See also <A NAME="idx:nthclause3:1410"></A><A HREF="examineprog.html#nth_clause/3">nth_clause/3</A> 
-and <A NAME="idx:clauseproperty2:1411"></A><A HREF="examineprog.html#clause_property/2">clause_property/2</A>.</DD>
+defined predicate. See also <A NAME="idx:nthclause3:1446"></A><A class="pred" href="examineprog.html#nth_clause/3">nth_clause/3</A> 
+and <A NAME="idx:clauseproperty2:1447"></A><A class="pred" href="examineprog.html#clause_property/2">clause_property/2</A>.</DD>
 <DT><STRONG>level</STRONG></DT>
 <DD class="defbody">
 <VAR>Value</VAR> is unified with the recursion level of <VAR>Frame</VAR>. 
@@ -135,7 +214,7 @@ range.
 +Key, -Value</VAR>)</A></DT>
 <DD class="defbody">
 Extract attributes of a choice-point. <VAR>ChoicePoint</VAR> is a 
-reference to a choice-point as passed to <A NAME="idx:prologtraceinterception4:1412"></A><A HREF="tracehook.html#prolog_trace_interception/4">prolog_trace_interception/4</A> 
+reference to a choice-point as passed to <A NAME="idx:prologtraceinterception4:1448"></A><A class="pred" href="tracehook.html#prolog_trace_interception/4">prolog_trace_interception/4</A> 
 on the 3-th argument. <VAR>Key</VAR> specifies the requested 
 information:
 
@@ -153,7 +232,7 @@ Requests a reference to the frame to which the choice-point refers.
 Requests the type. Defined values are <CODE>clause</CODE> (the goal has 
 alternative clauses), <CODE>foreign</CODE> (non-deterministic foreign 
 predicate), <CODE>jump</CODE> (clause internal choice-point), <CODE>top</CODE> 
-(first dummy choice-point), <CODE>catch</CODE> (<A NAME="idx:catch3:1413"></A><A HREF="exception.html#catch/3">catch/3</A> 
+(first dummy choice-point), <CODE>catch</CODE> (<A NAME="idx:catch3:1449"></A><A class="pred" href="exception.html#catch/3">catch/3</A> 
 to allow for undo),
 <CODE>debug</CODE> (help the debugger), or <CODE>none</CODE> (has been 
 deleted).
@@ -167,7 +246,7 @@ choice-point stack.</DD>
 Unifies its argument with <CODE>true</CODE> if the clause in which is 
 appears has not created any choice-points since it was started. There 
 are few realistic situations for using this predicate. It is used by the
-<A NAME="idx:prolog0:1414"></A><A HREF="toplevel.html#prolog/0">prolog/0</A> 
+<A NAME="idx:prolog0:1450"></A><A class="pred" href="toplevel.html#prolog/0">prolog/0</A> 
 toplevel to check whether Prolog should prompt the user for 
 alternatives.
 </DD>

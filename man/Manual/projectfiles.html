@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 3.1</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 3.1</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="IDE.html">
 <LINK REL=next HREF="usingmodules.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="IDE.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="usingmodules.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="IDE.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="usingmodules.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:3.1">3.1 The project source-files</A></H2>
+<H2><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">The 
+project source-files</SPAN></A></H2>
 
 <A NAME="sec:projectfiles"></A>
 
@@ -52,9 +128,11 @@ work with one directory holding a couple of files and some files to link
 it all together. Even bigger projects will be organised in sub-projects 
 each using their own directory.
 
-<H3><A NAME="sec:3.1.1">3.1.1 File Names and Locations</A></H3>
+<H3><A NAME="sec:3.1.1"><SPAN class="sec-nr">3.1.1</SPAN><SPAN class="sec-title">File 
+Names and Locations</SPAN></A></H3>
 
-<H4><A NAME="sec:3.1.1.1">3.1.1.1 File Name Extensions</A></H4>
+<H4><A NAME="sec:3.1.1.1"><SPAN class="sec-nr">3.1.1.1</SPAN><SPAN class="sec-title">File 
+Name Extensions</SPAN></A></H4>
 
 <A NAME="sec:fileext"></A>
 
@@ -63,7 +141,9 @@ consideration is what extension to use for the source-files. Tradition
 calls for <CODE>.pl</CODE>, but conflicts with Perl force the use of 
 another extension on systems where extensions have global meaning, such 
 as MS-Windows. On such systems <CODE>.pro</CODE> is the common 
-alternative.<A NAME=back-to-note-12 HREF="Notes.html#note-12"> (12)</A>
+alternative.<SUP class="fn">11<SPAN class="fn-text">On MS-Windows, the 
+alternative extension is stored in the registry-key <CODE>HKEY_CURRENT_USER/Software/SWI/Prolog/fileExtension</CODE> 
+or <CODE>HKEY_LOCAL_MACHINE/Software/SWI/Prolog/fileExtension</CODE></SPAN></SUP>
 
 <P>All versions of SWI-Prolog load files with the extension <CODE>.pl</CODE> 
 as well as with the registered alternative extension without explicitly 
@@ -83,7 +163,8 @@ to load through your file-manager. Use
 </DD>
 </DL>
 
-<H4><A NAME="sec:3.1.1.2">3.1.1.2 Project Directories</A></H4>
+<H4><A NAME="sec:3.1.1.2"><SPAN class="sec-nr">3.1.1.2</SPAN><SPAN class="sec-title">Project 
+Directories</SPAN></A></H4>
 
 <P><A NAME="idx:Sdiv:256"></A><A NAME="idx:chrSneg:257"></A>Large 
 projects are generally composed of sub-projects, each using their own 
@@ -94,7 +175,7 @@ this is rarely the case with a large project.
 <P>To improve portability, SWI-Prolog uses the POSIX notation for 
 filenames, which uses the forward slash (<CODE><CODE>/</CODE></CODE>) to 
 separate directories. Just before hitting the file-system it uses
-<A NAME="idx:prologtoosfilename2:258"></A><A HREF="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A> 
+<A NAME="idx:prologtoosfilename2:258"></A><A class="pred" href="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A> 
 to convert the filename to the conventions used by the hosting operating 
 system. It is <EM>strongly</EM> advised to write paths using the <CODE><CODE>/</CODE></CODE>, 
 especially on systems using the
@@ -102,15 +183,16 @@ especially on systems using the
 violates the portability rules and requires you to <EM>double</EM> the <CODE><CODE>\</CODE></CODE> 
 due to the Prolog quoted-atom escape rules.
 
-<P>Portable code should use <A NAME="idx:prologtoosfilename2:259"></A><A HREF="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A> 
+<P>Portable code should use <A NAME="idx:prologtoosfilename2:259"></A><A class="pred" href="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A> 
 to convert computed paths into system-paths when constructing commands 
-for <A NAME="idx:shell1:260"></A><A HREF="system.html#shell/1">shell/1</A> 
+for <A NAME="idx:shell1:260"></A><A class="pred" href="system.html#shell/1">shell/1</A> 
 and friends.
 
-<H4><A NAME="sec:3.1.1.3">3.1.1.3 Sub-projects using search-paths</A></H4>
+<H4><A NAME="sec:3.1.1.3"><SPAN class="sec-nr">3.1.1.3</SPAN><SPAN class="sec-title">Sub-projects 
+using search-paths</SPAN></A></H4>
 
 <P>Thanks to Quintus, Prolog adapted an extensible mechanism for 
-searching files using <A NAME="idx:filesearchpath2:261"></A><A HREF="consulting.html#file_search_path/2">file_search_path/2</A>. 
+searching files using <A NAME="idx:filesearchpath2:261"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A>. 
 This mechanism allows for comfortable and readable specifications.
 
 <P>Suppose you have extensive library packages on graph-algorithms, 
@@ -121,7 +203,7 @@ directory with sub-directories for each of these sub-projects.
 <P>Next, there are three options. One is to add the sub-projects to the 
 directory-hierarchy of the current project. Another is to use a 
 completely dislocated directory and finally the sub-project can be added 
-to the SWI-Prolog hierarchy. Using local installation, a typical <A NAME="idx:filesearchpath2:262"></A><A HREF="consulting.html#file_search_path/2">file_search_path/2</A> 
+to the SWI-Prolog hierarchy. Using local installation, a typical <A NAME="idx:filesearchpath2:262"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 is:
 
 <PRE class="code">
@@ -137,17 +219,18 @@ path-alias <CODE>swi</CODE> as basis. For a system-wide installation use
 an absolute-path.
 
 <P>Extensive sub-projects with a small well-defined API should define a 
-load-file using <A NAME="idx:usemodule1:263"></A><A HREF="import.html#use_module/1">use_module/1</A> 
+load-file using <A NAME="idx:usemodule1:263"></A><A class="pred" href="import.html#use_module/1">use_module/1</A> 
 calls to import the various library-components and export the API.
 
-<H3><A NAME="sec:3.1.2">3.1.2 Project Special Files</A></H3>
+<H3><A NAME="sec:3.1.2"><SPAN class="sec-nr">3.1.2</SPAN><SPAN class="sec-title">Project 
+Special Files</SPAN></A></H3>
 
 <P>There are a number of tasks you typically carry out on your project, 
 such as loading it, creating a saved-state, debugging it, etc. Good 
 practice on large projects is to define small files that hold the 
 commands to execute such a task, name this file after the task and give 
 it a file-extension that makes starting easy (see
-<A HREF="projectfiles.html">section 3.1.1.1</A>). The task <EM>load</EM> 
+<A class="sec" href="projectfiles.html">section 3.1.1.1</A>). The task <EM>load</EM> 
 is generally central to these tasks. Here is a tentative list.
 
 <P>
@@ -167,29 +250,30 @@ in silent-mode, and calls one of the starting predicates from
 <P>
 <LI><I><CODE>save.pl</CODE></I><BR>
 Use this file to create a saved-state of the application by loading
-<CODE>load.pl</CODE> and call <A NAME="idx:qsaveprogram2:264"></A><A HREF="runtime.html#qsave_program/2">qsave_program/2</A> 
+<CODE>load.pl</CODE> and call <A NAME="idx:qsaveprogram2:264"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A> 
 to generate a saved-state with the proper options.
 
 <P>
 <LI><I><CODE>debug.pl</CODE></I><BR>
 Loads the program for debugging. In addition to loading <CODE>load.pl</CODE> 
-this file defines rules for <A NAME="idx:portray1:265"></A><A HREF="termrw.html#portray/1">portray/1</A> 
+this file defines rules for <A NAME="idx:portray1:265"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
 to modify printing rules for complex terms and customisation rules for 
 the debugger and editing environment. It may start some of these tools.
 </UL>
 
-<H3><A NAME="sec:3.1.3">3.1.3 International source files</A></H3>
+<H3><A NAME="sec:3.1.3"><SPAN class="sec-nr">3.1.3</SPAN><SPAN class="sec-title">International 
+source files</SPAN></A></H3>
 
 <A NAME="sec:intsrcfile"></A>
 
-<P>As discussed in <A HREF="widechars.html">section 2.17</A>, SWI-Prolog 
-supports international character handling. Its internal encoding is 
-UNICODE. I/O streams convert to/from this internal format. This sections 
-discusses the options for source-files not in US-ASCII.
+<P>As discussed in <A class="sec" href="widechars.html">section 2.17</A>, 
+SWI-Prolog supports international character handling. Its internal 
+encoding is UNICODE. I/O streams convert to/from this internal format. 
+This sections discusses the options for source-files not in US-ASCII.
 
 <P>SWI-Prolog can read files in any of the encodings described in
-<A HREF="widechars.html">section 2.17</A>. Two encodings are of 
-particular interest. The
+<A class="sec" href="widechars.html">section 2.17</A>. Two encodings are 
+of particular interest. The
 <CODE>text</CODE> encoding deals with the current <EM>locale</EM>, the 
 default used by this computer for representing text files. The encodings
 <CODE>utf8</CODE>, <CODE>unicode_le</CODE> and <CODE>unicode_be</CODE> 
@@ -206,9 +290,11 @@ source-file there are several options:
 <LI><I>Use escape sequences</I><BR>
 This approach describes NON-ASCII as sequences of the form
 <CODE>\</CODE><I>octal</I><CODE>\</CODE>. The numerical argument is 
-interpreted as a UNICODE character.<A NAME=back-to-note-13 HREF="Notes.html#note-13"> (13)</A> 
-The resulting Prolog file is strict 7-bit US-ASCII, but if there are 
-many NON-ASCII characters it becomes very unreadable.
+interpreted as a UNICODE character.<SUP class="fn">12<SPAN class="fn-text">To 
+my knowledge, the ISO escape sequences is limited to 3 octal digits, 
+which means most characters cannot be represented.</SPAN></SUP> The 
+resulting Prolog file is strict 7-bit US-ASCII, but if there are many 
+NON-ASCII characters it becomes very unreadable.
 
 <P>
 <LI><I>Use local conventions</I><BR>
@@ -224,7 +310,7 @@ conventions.
 <LI><I>Using UTF-8 files</I><BR>
 The best way to specify source files with many NON-ASCII characters is 
 definitely the use of UTF-8 encoding. Prolog can be notified two ways of 
-this encoding, using a UTF-8 <EM>BOM</EM> (see <A HREF="widechars.html">section 
+this encoding, using a UTF-8 <EM>BOM</EM> (see <A class="sec" href="widechars.html">section 
 2.17.1.1</A>) or using the directive <CODE>:- encoding(utf8).</CODE>. 
 Many todays text editors, including PceEmacs, are capable of editing 
 UTF-8 files. Projects that started using local conventions can be be 

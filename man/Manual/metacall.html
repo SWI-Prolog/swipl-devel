@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.8</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.8</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="control.html">
 <LINK REL=next HREF="exception.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="control.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="exception.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="control.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="exception.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.8">4.8 Meta-Call Predicates</A></H2>
+<H2><A NAME="sec:4.8"><SPAN class="sec-nr">4.8</SPAN><SPAN class="sec-title">Meta-Call 
+Predicates</SPAN></A></H2>
 
 <A NAME="sec:metacall"></A>
 
@@ -56,17 +132,17 @@ normal calls this search is done at compile time.
 <DT class="pubdef"><A NAME="call/1"><STRONG>call</STRONG>(<VAR>+Goal</VAR>)</A></DT>
 <DD class="defbody">
 Invoke <VAR>Goal</VAR> as a goal. Note that clauses may have variables 
-as subclauses, which is identical to <A NAME="idx:call1:448"></A><A HREF="metacall.html#call/1">call/1</A>.</DD>
+as subclauses, which is identical to <A NAME="idx:call1:458"></A><A class="pred" href="metacall.html#call/1">call/1</A>.</DD>
 <DT class="pubdef"><A NAME="call/2"><STRONG>call</STRONG>(<VAR>+Goal, 
 +ExtraArg1, ...</VAR>)</A></DT>
 <DD class="defbody">
 Append <VAR>ExtraArg1, ExtraArg2, ...</VAR> to the argument list of
 <VAR>Goal</VAR> and call the result. For example, <CODE>call(plus(1), 2, 
-X)</CODE> will call <A NAME="idx:plus3:449"></A><A HREF="arith.html#plus/3">plus/3</A>, 
+X)</CODE> will call <A NAME="idx:plus3:459"></A><A class="pred" href="arith.html#plus/3">plus/3</A>, 
 binding <VAR>X</VAR> to 3.
 
 <P>The call/[2..] construct is handled by the compiler, which implies 
-that redefinition as a predicate has no effect. The predicates <A NAME="idx:call26:450"></A><A HREF="metacall.html#call/2">call/[2-6]</A> 
+that redefinition as a predicate has no effect. The predicates <A NAME="idx:call26:460"></A><A class="pred" href="metacall.html#call/2">call/[2-6]</A> 
 are defined as true predicates, so they can be handled by interpreted 
 code.</DD>
 <DT class="pubdef"><A NAME="apply/2"><STRONG>apply</STRONG>(<VAR>+Term, 
@@ -74,16 +150,16 @@ code.</DD>
 <DD class="defbody">
 Append the members of <VAR>List</VAR> to the arguments of <VAR>Term</VAR> 
 and call the resulting term. For example: <CODE>apply(plus(1), [2, X])</CODE> 
-will call <CODE>plus(1, 2, X)</CODE>. <A NAME="idx:apply2:451"></A><A HREF="metacall.html#apply/2">apply/2</A> 
+will call <CODE>plus(1, 2, X)</CODE>. <A NAME="idx:apply2:461"></A><A class="pred" href="metacall.html#apply/2">apply/2</A> 
 is incorporated in the virtual machine of SWI-Prolog. This implies that 
-the overhead can be compared to the overhead of <A NAME="idx:call1:452"></A><A HREF="metacall.html#call/1">call/1</A>. 
+the overhead can be compared to the overhead of <A NAME="idx:call1:462"></A><A class="pred" href="metacall.html#call/1">call/1</A>. 
 New code should use call/[2..] if the length of
 <VAR>List</VAR> is fixed, which is more widely supported and faster 
 because there is no need to build and examine the argument list.</DD>
 <DT class="pubdef"><A NAME="not/1"><STRONG>not</STRONG>(<VAR>+Goal</VAR>)</A></DT>
 <DD class="defbody">
 Succeeds when <VAR>Goal</VAR> cannot be proven. Retained for 
-compatibility only. New code should use <A HREF="control.html#\+/1">\+/1</A>.</DD>
+compatibility only. New code should use <A class="pred" href="control.html#\+/1">\+/1</A>.</DD>
 <DT class="pubdef"><A NAME="once/1"><STRONG>once</STRONG>(<VAR>+Goal</VAR>)</A></DT>
 <DD class="defbody">
 Defined as:
@@ -93,8 +169,8 @@ once(Goal) :-
         Goal, !.
 </PRE>
 
-<P><A NAME="idx:once1:453"></A><A HREF="metacall.html#once/1">once/1</A> 
-can in many cases be replaced with <A HREF="control.html#send_arrow/2">-&gt;/2</A>. 
+<P><A NAME="idx:once1:463"></A><A class="pred" href="metacall.html#once/1">once/1</A> 
+can in many cases be replaced with <A class="pred" href="control.html#send_arrow/2">-&gt;/2</A>. 
 The only difference is how the cut behaves (see !/0). The following two 
 clauses are identical:
 
@@ -106,7 +182,7 @@ clauses are identical:
 </DD>
 <DT class="pubdef"><A NAME="ignore/1"><STRONG>ignore</STRONG>(<VAR>+Goal</VAR>)</A></DT>
 <DD class="defbody">
-Calls <VAR>Goal</VAR> as <A NAME="idx:once1:454"></A><A HREF="metacall.html#once/1">once/1</A>, 
+Calls <VAR>Goal</VAR> as <A NAME="idx:once1:464"></A><A class="pred" href="metacall.html#once/1">once/1</A>, 
 but succeeds, regardless of whether
 <VAR>Goal</VAR> succeeded or not. Defined as:
 
@@ -121,7 +197,7 @@ ignore(_).
 +Limit, -Result</VAR>)</A></DT>
 <DD class="defbody">
 If <VAR>Goal</VAR> can be proven without recursion deeper than <VAR>Limit</VAR> 
-levels, <A NAME="idx:callwithdepthlimit3:455"></A><A HREF="metacall.html#call_with_depth_limit/3">call_with_depth_limit/3</A> 
+levels, <A NAME="idx:callwithdepthlimit3:465"></A><A class="pred" href="metacall.html#call_with_depth_limit/3">call_with_depth_limit/3</A> 
 succeeds, binding <VAR>Result</VAR> to the deepest recursion level used 
 during the proof. Otherwise, <VAR>Result</VAR> is unified with <CODE>depth_limit_exceeded</CODE> 
 if the limit was exceeded during the proof, or the entire predicate 
@@ -129,9 +205,9 @@ fails if <VAR>Goal</VAR> fails without exceeding <VAR>Limit</VAR>.
 
 <P>The depth-limit is guarded by the internal machinery. This may differ 
 from the depth computed based on a theoretical model. For example,
-<A NAME="idx:true0:456"></A><A HREF="control.html#true/0">true/0</A> is 
-translated into an inlined virtual machine instruction. Also,
-<A NAME="idx:repeat0:457"></A><A HREF="control.html#repeat/0">repeat/0</A> 
+<A NAME="idx:true0:466"></A><A class="pred" href="control.html#true/0">true/0</A> 
+is translated into an inlined virtual machine instruction. Also,
+<A NAME="idx:repeat0:467"></A><A class="pred" href="control.html#repeat/0">repeat/0</A> 
 is not implemented as below, but as a non-deterministic foreign 
 predicate.
 
@@ -141,14 +217,14 @@ repeat :-
         repeat.
 </PRE>
 
-<P>As a result, <A NAME="idx:callwithdepthlimit3:458"></A><A HREF="metacall.html#call_with_depth_limit/3">call_with_depth_limit/3</A> 
+<P>As a result, <A NAME="idx:callwithdepthlimit3:468"></A><A class="pred" href="metacall.html#call_with_depth_limit/3">call_with_depth_limit/3</A> 
 may still loop infinitely on programs that should theoretically finish 
 in finite time. This problem can be cured by using Prolog equivalents to 
 such built-in predicates.
 
 <P>This predicate may be used for theorem-provers to realise techniques 
 like <EM>iterative deepening</EM>. It was implemented after discussion 
-with Steve Moyle <A HREF="mailto:smoyle@ermine.ox.ac.uk">smoyle@ermine.ox.ac.uk</A>.</DD>
+with Steve Moyle <A class="url" href="mailto:smoyle@ermine.ox.ac.uk">smoyle@ermine.ox.ac.uk</A>.</DD>
 <DT class="pubdef"><A NAME="call_cleanup/3"><STRONG>call_cleanup</STRONG>(<VAR>:Goal, 
 +Catcher, :Cleanup</VAR>)</A></DT>
 <DD class="defbody">
@@ -157,8 +233,10 @@ by deterministic success, failure, its choice-point being cut or raising
 an exception and <VAR>Catcher</VAR> unifies to the termination code (see 
 below), <VAR>Cleanup</VAR> is called. Success or failure of
 <VAR>Cleanup</VAR> is ignored and possible choice-points it created are 
-destroyed (as <A NAME="idx:once1:459"></A><A HREF="metacall.html#once/1">once/1</A>). 
-If cleanup throws an exception this is executed as normal.<A NAME=back-to-note-29 HREF="Notes.html#note-29"> (29)</A>
+destroyed (as <A NAME="idx:once1:469"></A><A class="pred" href="metacall.html#once/1">once/1</A>). 
+If cleanup throws an exception this is executed as normal.<SUP class="fn">bug<SPAN class="fn-text">During 
+the execution of <VAR>Cleanup</VAR>, garbage collection and stack-shifts 
+are disabled.</SPAN></SUP>
 
 <P><VAR>Catcher</VAR> is unified with a term describing how the call has 
 finished. If this unification fails, <VAR>Cleanup</VAR> is <EM>not</EM> 
@@ -202,12 +280,12 @@ term_in_stream(Term, In) :-
 </PRE>
 
 <P>Note that this predicate is impossible to implement in Prolog other 
-then reading all terms into a list, close the file and call <A NAME="idx:member2:460"></A><A HREF="lists.html#member/2">member/2</A> 
-because without <A NAME="idx:callcleanup3:461"></A><A HREF="metacall.html#call_cleanup/3">call_cleanup/3</A> 
+then reading all terms into a list, close the file and call <A NAME="idx:member2:470"></A><A class="pred" href="lists.html#member/2">member/2</A> 
+because without <A NAME="idx:callcleanup3:471"></A><A class="pred" href="metacall.html#call_cleanup/3">call_cleanup/3</A> 
 there is no way to gain control if the choice-point left by repeat is 
 killed by a cut.
 
-<P>This predicate is a SWI-Prolog extension. See also <A NAME="idx:callcleanup2:462"></A><A HREF="metacall.html#call_cleanup/2">call_cleanup/2</A> 
+<P>This predicate is a SWI-Prolog extension. See also <A NAME="idx:callcleanup2:472"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/2</A> 
 for compatibility to other Prolog implementations.</DD>
 <DT class="pubdef"><A NAME="call_cleanup/2"><STRONG>call_cleanup</STRONG>(<VAR>:Goal, 
 :Cleanup</VAR>)</A></DT>

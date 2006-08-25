@@ -2,47 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.13</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.13</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="url.html">
 <LINK REL=next HREF="clpqr.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="url.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="clpqr.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="url.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="clpqr.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.13">A.13 library( clp/bounds ): Integer Bounds 
-Constraint Solver</A></H2>
+<H2><A NAME="sec:A.13"><SPAN class="sec-nr">A.13</SPAN><SPAN class="sec-title">library( 
+clp/bounds ): Integer Bounds Constraint Solver</SPAN></A></H2>
 
 <A NAME="clp/bounds"></A>
 
@@ -59,7 +134,7 @@ explicitely before using it using:
 :- use_module(library('clp/bounds')).
 </PRE>
 
-<H3><A NAME="sec:A.13.1">A.13.1 Constraints</A></H3>
+<H3><A NAME="sec:A.13.1"><SPAN class="sec-nr">A.13.1</SPAN><SPAN class="sec-title">Constraints</SPAN></A></H3>
 
 The following constraints are supported:
 
@@ -83,7 +158,8 @@ integers, each of length&nbsp;<VAR>N</VAR>, and <VAR>Extension</VAR> is
 a list of tuples of integers, each of length&nbsp;<VAR>N</VAR>. Each 
 tuple of
 <VAR>Tuples</VAR> is constrained to be in the relation defined by <VAR>Extension</VAR>. 
-See <A HREF="clpbounds.html">section A.13.4</A> for an example.
+See <A class="sec" href="clpbounds.html">section A.13.4</A> for an 
+example.
 </DD>
 <DT class="pubdef"><A NAME="#>/2"><VAR>?Expr</VAR> <STRONG>#&gt;</STRONG> <VAR>?Expr</VAR></A></DT>
 <DD class="defbody">
@@ -187,8 +263,8 @@ The absolute value of an expression.
 </DD>
 </DL>
 
-<H3><A NAME="sec:A.13.2">A.13.2 Constraint Implication and Reified 
-Constraints</A></H3>
+<H3><A NAME="sec:A.13.2"><SPAN class="sec-nr">A.13.2</SPAN><SPAN class="sec-title">Constraint 
+Implication and Reified Constraints</SPAN></A></H3>
 
 The following constraint implication predicates are available:
 
@@ -215,9 +291,9 @@ or
 <VAR>Q</VAR> can be a boolean variable that is the truth value of the 
 corresponding constraint.
 
-<P>The following constraints are reifyable: <A HREF="clpbounds.html##=/2">#=/2</A>,
-<A HREF="clpbounds.html##\=/2">#\=/2</A>, <A HREF="clpbounds.html##</2">#&lt;/2</A>, <A HREF="clpbounds.html##>/2">#&gt;/2</A>, <A HREF="clpbounds.html##=</2">#=&lt;/2</A>,
-<A HREF="clpbounds.html##>/2">#&gt;/2</A>.
+<P>The following constraints are reifyable: <A class="pred" href="clpbounds.html##=/2">#=/2</A>,
+<A class="pred" href="clpbounds.html##\=/2">#\=/2</A>, <A class="pred" href="clpbounds.html##</2">#&lt;/2</A>, <A class="pred" href="clpbounds.html##>/2">#&gt;/2</A>, <A class="pred" href="clpbounds.html##=</2">#=&lt;/2</A>,
+<A class="pred" href="clpbounds.html##>/2">#&gt;/2</A>.
 
 <P>For example, to count the number of occurrences of a particular value 
 in a list of constraint variables:
@@ -252,7 +328,8 @@ occurrences([X|Xs],Value,Acc,Count) :-
 <P>
 </UL>
 
-<H3><A NAME="sec:A.13.3">A.13.3 Example 1: Send+More=Money</A></H3>
+<H3><A NAME="sec:A.13.3"><SPAN class="sec-nr">A.13.3</SPAN><SPAN class="sec-title">Example 
+1: Send+More=Money</SPAN></A></H3>
 
 The following is an implementation of the classic alphametics puzzle 
 SEND + MORE = MONEY:
@@ -278,12 +355,12 @@ send([[S,E,N,D], [M,O,R,E], [M,O,N,E,Y]])  :-
               label(Digits).
 </PRE>
 
-<H3><A NAME="sec:A.13.4">A.13.4 Example 2: Using tuples_in for a train 
-schedule</A></H3>
+<H3><A NAME="sec:A.13.4"><SPAN class="sec-nr">A.13.4</SPAN><SPAN class="sec-title">Example 
+2: Using tuples_in for a train schedule</SPAN></A></H3>
 
 <A NAME="sec:ex:tuplesin"></A>
 
-<P>This example demonstrates <A NAME="idx:tuplesin2:1397"></A><A HREF="clpbounds.html#tuples_in/2">tuples_in/2</A>. 
+<P>This example demonstrates <A NAME="idx:tuplesin2:1433"></A><A class="pred" href="clpbounds.html#tuples_in/2">tuples_in/2</A>. 
 A train schedule is represented as a list&nbsp;<VAR>Ts</VAR> of 
 quadruples, denoting departure and arrival places and times for each 
 train. The <EM>path/3</EM> predicate given below constrains&nbsp;<VAR>Ps</VAR> 
@@ -312,7 +389,8 @@ path(A, D, Ps) :-
 Ps = [[1, 2, 0, 1], [2, 3, 4, 5], [3, 4, 8, 9]]
 </PRE>
 
-<H3><A NAME="sec:A.13.5">A.13.5 SICStus clp(FD) compatibility</A></H3>
+<H3><A NAME="sec:A.13.5"><SPAN class="sec-nr">A.13.5</SPAN><SPAN class="sec-title">SICStus 
+clp(FD) compatibility</SPAN></A></H3>
 
 Apart from the limited syntax, the bounds solver differs in the 
 following ways from the SICStus clp(FD) solver:

@@ -2,56 +2,131 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.12</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.12</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="registry.html">
 <LINK REL=next HREF="clpbounds.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="registry.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="clpbounds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="registry.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="clpbounds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.12">A.12 library( url ): Analysing and constructing 
-URL</A></H2>
+<H2><A NAME="sec:A.12"><SPAN class="sec-nr">A.12</SPAN><SPAN class="sec-title">library( 
+url ): Analysing and constructing URL</SPAN></A></H2>
 
 <A NAME="url"></A>
 
 <P>This library deals with the analysis and construction of a URL,
 <B>U</B>niversal <B>R</B>esource <B>L</B>ocator. URL is the basis for 
 communicating locations of resources (data) on the web. A URL consists 
-of a protocol identifier (e.g. <A NAME="idx:HTTP:1391">HTTP</A>, <A NAME="idx:FTP:1392">FTP</A>), 
+of a protocol identifier (e.g. <A NAME="idx:HTTP:1427">HTTP</A>, <A NAME="idx:FTP:1428">FTP</A>), 
 and a protocol-specific syntax further defining the location. URLs are 
-standardized in <A NAME="idx:RFC1738:1393">RFC-1738</A>.
+standardized in <A NAME="idx:RFC1738:1429">RFC-1738</A>.
 
 <P>The implementation in this library covers only a small portion of the 
 defined protocols. Though the initial implementation followed RFC-1738 
@@ -75,7 +150,7 @@ components are:
 <DD class="defbody">
 The used protocol. This is, after the optional <CODE>url:</CODE>, an 
 identifier separated from the remainder of the URL using <CODE><CODE>:</CODE></CODE>.
-<A NAME="idx:parseurl2:1394"></A><A HREF="url.html#parse_url/2">parse_url/2</A> 
+<A NAME="idx:parseurl2:1430"></A><A class="pred" href="url.html#parse_url/2">parse_url/2</A> 
 assumes the <CODE>http</CODE> protocol if no protocol is specified and 
 the URL can be parsed as a valid HTTP url. In addition to the RFC-1738 
 specified protocols, the <CODE>file:</CODE> protocol is supported as 
@@ -127,7 +202,7 @@ a URL.</DD>
 <DT class="pubdef"><A NAME="parse_url/3"><STRONG>parse_url</STRONG>(<VAR>?URL, 
 +BaseURL, ?Parts</VAR>)</A></DT>
 <DD class="defbody">
-Same as <A NAME="idx:parseurl2:1395"></A><A HREF="url.html#parse_url/2">parse_url/2</A>, 
+Same as <A NAME="idx:parseurl2:1431"></A><A class="pred" href="url.html#parse_url/2">parse_url/2</A>, 
 but dealing a url that is relative to the given
 <VAR>BaseURL</VAR>. This is used to analyse or construct a URI found in 
 the document behind <VAR>BaseURL</VAR>.</DD>
@@ -138,7 +213,7 @@ Transform a (possibly) relative URL into a global one.</DD>
 <DT class="pubdef"><A NAME="http_location/2"><STRONG>http_location</STRONG>(<VAR>?Parts, 
 ?Location</VAR>)</A></DT>
 <DD class="defbody">
-Similar to <A NAME="idx:parseurl2:1396"></A><A HREF="url.html#parse_url/2">parse_url/2</A>, 
+Similar to <A NAME="idx:parseurl2:1432"></A><A class="pred" href="url.html#parse_url/2">parse_url/2</A>, 
 but only deals with the location part of an HTTP URL. That is, the path, 
 search and fragment specifiers. In the HTTP protocol, the first line of 
 a message is

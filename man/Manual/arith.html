@@ -2,46 +2,121 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.26</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.26</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="charconv.html">
 <LINK REL=next HREF="extendarith.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="charconv.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="extendarith.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="charconv.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="extendarith.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.26">4.26 Arithmetic</A></H2>
+<H2><A NAME="sec:4.26"><SPAN class="sec-nr">4.26</SPAN><SPAN class="sec-title">Arithmetic</SPAN></A></H2>
 
 <A NAME="sec:arith"></A>
 
@@ -50,10 +125,11 @@ predicates and a series of general predicates for integer, floating
 point and rational arithmetic as appropriate. The general arithmetic 
 predicates all handle <VAR>expressions</VAR>. An expression is either a 
 simple number or a <VAR>function</VAR>. The arguments of a function are 
-expressions. The functions are described in <A HREF="arith.html">section 
+expressions. The functions are described in <A class="sec" href="arith.html">section 
 4.26.2.3</A>.
 
-<H3><A NAME="sec:4.26.1">4.26.1 Special purpose integer arithmetic</A></H3>
+<H3><A NAME="sec:4.26.1"><SPAN class="sec-nr">4.26.1</SPAN><SPAN class="sec-title">Special 
+purpose integer arithmetic</SPAN></A></H3>
 
 <P>The predicates in this section provide more logical operations 
 between integers. They are not covered by the ISO standard, although 
@@ -70,8 +146,10 @@ If
 =&lt;<VAR>High</VAR></VAR>. When <VAR>Value</VAR> is a variable it is 
 successively bound to all integers between <VAR>Low</VAR> and <VAR>High</VAR>. 
 If <VAR>High</VAR> is <CODE>inf</CODE> or
-<CODE>infinite</CODE><A NAME=back-to-note-53 HREF="Notes.html#note-53"> (53)</A>
-<A NAME="idx:between3:864"></A><A HREF="arith.html#between/3">between/3</A> 
+<CODE>infinite</CODE><SUP class="fn">47<SPAN class="fn-text">We prefer <CODE>infinite</CODE>, 
+but some other Prolog systems already use <CODE>inf</CODE> for infinity 
+we accept both for the time being.</SPAN></SUP>
+<A NAME="idx:between3:884"></A><A class="pred" href="arith.html#between/3">between/3</A> 
 is true iff <VAR><VAR>Value</VAR> &gt;=<VAR>Low</VAR></VAR>, a feature 
 that is particularly interesting for generating integers from a certain 
 value.</DD>
@@ -82,7 +160,11 @@ Succeeds if <VAR><VAR>Int2</VAR> = <VAR>Int1</VAR> + 1</VAR> and <VAR><VAR>Int1<
 &gt;= 0</VAR>. At least one of the arguments must be instantiated to a 
 natural number. This predicate raises the domain-error <CODE>not_less_than_zero</CODE> 
 if called with a negative integer. E.g. <CODE>succ(X, 0)</CODE> fails 
-silently and <CODE>succ(X, -1)</CODE> raises a domain-error.<A NAME=back-to-note-54 HREF="Notes.html#note-54"> (54)</A></DD>
+silently and <CODE>succ(X, -1)</CODE> raises a domain-error.<SUP class="fn">48<SPAN class="fn-text">The 
+behaviour to deal with natural numbers only was defined by Richard 
+O'Keefe to support the common count-down-to-zero in a natural way. Up-to 
+5.1.8 <A NAME="idx:succ2:885"></A><A class="pred" href="arith.html#succ/2">succ/2</A> 
+also accepted negative integers.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="plus/3"><STRONG>plus</STRONG>(<VAR>?Int1, 
 ?Int2, ?Int3</VAR>)</A></DT>
 <DD class="defbody">
@@ -91,12 +173,13 @@ At least two of the three arguments must be instantiated to integers.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.26.2">4.26.2 General purpose arithmetic</A></H3>
+<H3><A NAME="sec:4.26.2"><SPAN class="sec-nr">4.26.2</SPAN><SPAN class="sec-title">General 
+purpose arithmetic</SPAN></A></H3>
 
 <A NAME="sec:arithpreds"></A>
 
 <P>The general arithmetic predicates are optionally compiled (see
-<A NAME="idx:setprologflag2:865"></A><A HREF="flags.html#set_prolog_flag/2">set_prolog_flag/2</A> 
+<A NAME="idx:setprologflag2:886"></A><A class="pred" href="flags.html#set_prolog_flag/2">set_prolog_flag/2</A> 
 and the <STRONG>-O</STRONG> command line option). Compiled arithmetic 
 reduces global stack requirements and improves performance. 
 Unfortunately compiled arithmetic cannot be traced, which is why it is 
@@ -137,7 +220,7 @@ that can be represented using an integer (i.e, the value is integer and
 within the range that can be described by Prolog's integer 
 representation), <VAR> Expr</VAR> is unified with the integer value.
 
-<P>Note that normally, <A NAME="idx:is2:866"></A><A HREF="arith.html#is/2">is/2</A> 
+<P>Note that normally, <A NAME="idx:is2:887"></A><A class="pred" href="arith.html#is/2">is/2</A> 
 will be used with unbound left operand. If equality is to be tested, 
 =:=/2 should be used. For example:
 
@@ -145,10 +228,10 @@ will be used with unbound left operand. If equality is to be tested,
 <CENTER>
 <TABLE BORDER=0 FRAME=void RULES=groups>
 <TR VALIGN=top><TD><CODE>?- 1.0 is sin(pi/2).</CODE> </TD><TD>Fails!. 
-sin(pi/2) evaluates to 1.0, but <A NAME="idx:is2:867"></A><A HREF="arith.html#is/2">is/2</A> 
+sin(pi/2) evaluates to 1.0, but <A NAME="idx:is2:888"></A><A class="pred" href="arith.html#is/2">is/2</A> 
 will represent this as the integer 1, after which unify will fail. </TD></TR>
 <TR VALIGN=top><TD><CODE>?- 1.0 is float(sin(pi/2)).</CODE> </TD><TD>Succeeds, 
-as the <A NAME="idx:float1:868"></A><A HREF="typetest.html#float/1">float/1</A> 
+as the <A NAME="idx:float1:889"></A><A class="pred" href="typetest.html#float/1">float/1</A> 
 function forces the result to be float. </TD></TR>
 <TR VALIGN=top><TD><CODE>?- 1.0 =:= sin(pi/2).</CODE> </TD><TD>Succeeds 
 as expected.</TD></TR>
@@ -158,18 +241,19 @@ as expected.</TD></TR>
 </DD>
 </DL>
 
-<H4><A NAME="sec:4.26.2.1">4.26.2.1 Arithmetic types</A></H4>
+<H4><A NAME="sec:4.26.2.1"><SPAN class="sec-nr">4.26.2.1</SPAN><SPAN class="sec-title">Arithmetic 
+types</SPAN></A></H4>
 
 <A NAME="sec:artypes"></A>
 
-<P><A NAME="idx:integerunbounded:869"></A><A NAME="idx:rationalnumber:870"></A><A NAME="idx:numberrational:871"></A>SWI-Prolog 
+<P><A NAME="idx:integerunbounded:890"></A><A NAME="idx:rationalnumber:891"></A><A NAME="idx:numberrational:892"></A>SWI-Prolog 
 defines the following numeric types:
 
 <P>
 <UL>
 <LI><I>integer</I><BR>
 If SWI-Prolog is built using the <EM>GNU multiple precision arithmetic 
-library</EM> <A NAME="idx:GMP:872"></A>(GMP), integer arithmetic is <EM>unbounded</EM>, 
+library</EM> <A NAME="idx:GMP:893"></A>(GMP), integer arithmetic is <EM>unbounded</EM>, 
 which means that the size of integers is limited by available memory 
 only. Without GMP, SWI-Prolog integers are 64-bits, regardless of the 
 native integer size of the platform. The type of integer support can be 
@@ -190,22 +274,22 @@ Rational numbers (<VAR>Q</VAR>) are quotients of two integers. Rational
 arithmetic is only provided if GMP is used (see above). Rational numbers 
 are currently not supported by a Prolog type. They are represented by 
 the compound term <CODE>rdiv(N,M)</CODE>. Rational numbers that are 
-returned from <A NAME="idx:is2:873"></A><A HREF="arith.html#is/2">is/2</A> 
+returned from <A NAME="idx:is2:894"></A><A class="pred" href="arith.html#is/2">is/2</A> 
 are <EM>canonical</EM>, which means <VAR>M</VAR> is positive and <VAR>N</VAR> 
 and
 <VAR>M</VAR> have no common divisors. Rational numbers are introduced in 
-the computation using the <A NAME="idx:rational1:874"></A><A HREF="typetest.html#rational/1">rational/1</A>, <A NAME="idx:rationalize1:875"></A><A HREF="arith.html#rationalize/1">rationalize/1</A> 
-or the <A NAME="idx:rdiv2:876"></A><A HREF="arith.html#rdiv/2">rdiv/2</A> 
+the computation using the <A NAME="idx:rational1:895"></A><A class="pred" href="typetest.html#rational/1">rational/1</A>, <A NAME="idx:rationalize1:896"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A> 
+or the <A NAME="idx:rdiv2:897"></A><A class="pred" href="arith.html#rdiv/2">rdiv/2</A> 
 (rational division) function. Using the same functor for rational 
 division and representing rational numbers allow for passing rational 
-numbers between computations as well as to <A NAME="idx:format3:877"></A><A HREF="format.html#format/3">format/3</A> 
+numbers between computations as well as to <A NAME="idx:format3:898"></A><A class="pred" href="format.html#format/3">format/3</A> 
 for printing.
 
 <P>On the long term it is likely that rational numbers will become
 <EM>atomic</EM> as well as subtype of <EM>number</EM>. User code that 
 creates or inspects the <CODE>rdiv(M,N)</CODE> terms will not be 
 portable to future versions. Rationals are created using one of the 
-functions mentioned above and inspected using <A NAME="idx:rational3:878"></A><A HREF="typetest.html#rational/3">rational/3</A>.
+functions mentioned above and inspected using <A NAME="idx:rational3:899"></A><A class="pred" href="typetest.html#rational/3">rational/3</A>.
 
 <P>
 <LI><I>float</I><BR>
@@ -224,17 +308,18 @@ same type using the order below.
 floating point number
 </BLOCKQUOTE>
 
-<H4><A NAME="sec:4.26.2.2">4.26.2.2 Rational number examples</A></H4>
+<H4><A NAME="sec:4.26.2.2"><SPAN class="sec-nr">4.26.2.2</SPAN><SPAN class="sec-title">Rational 
+number examples</SPAN></A></H4>
 
 <A NAME="sec:rational"></A>
 
 <P>The use of rational numbers with unbounded integers allows for exact 
 integer or <EM>fixed point</EM> arithmetic under the addition, 
-subtraction, multiplication and division. To exploit rational arithmetic <A NAME="idx:rdiv2:879"></A><A HREF="arith.html#rdiv/2">rdiv/2</A> 
+subtraction, multiplication and division. To exploit rational arithmetic <A NAME="idx:rdiv2:900"></A><A class="pred" href="arith.html#rdiv/2">rdiv/2</A> 
 should be used instead of `/' and floating point numbers must be 
-converted to rational using <A NAME="idx:rational1:880"></A><A HREF="typetest.html#rational/1">rational/1</A>. 
+converted to rational using <A NAME="idx:rational1:901"></A><A class="pred" href="typetest.html#rational/1">rational/1</A>. 
 Omitting the
-<A NAME="idx:rational1:881"></A><A HREF="typetest.html#rational/1">rational/1</A> 
+<A NAME="idx:rational1:902"></A><A class="pred" href="typetest.html#rational/1">rational/1</A> 
 on floats will convert a rational operand to float and continue the 
 arithmetic using floating point numbers. Here are some examples.
 
@@ -250,14 +335,14 @@ arithmetic using floating point numbers. Here are some examples.
 </CENTER>
 
 <P>Note that floats cannot represent all decimal numbers exactly. The 
-function <A NAME="idx:rational1:882"></A><A HREF="typetest.html#rational/1">rational/1</A> 
-creates an <EM>exact</EM> equivalent of the float, while <A NAME="idx:rationalize1:883"></A><A HREF="arith.html#rationalize/1">rationalize/1</A> 
+function <A NAME="idx:rational1:903"></A><A class="pred" href="typetest.html#rational/1">rational/1</A> 
+creates an <EM>exact</EM> equivalent of the float, while <A NAME="idx:rationalize1:904"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A> 
 creates a rational number that is within the float rounding error from 
 the original float. Please check the documentation of these functions 
 for details and examples.
 
 <P>Rational numbers can be printed as decimal numbers with arbitrary 
-precision using the <A NAME="idx:format3:884"></A><A HREF="format.html#format/3">format/3</A> 
+precision using the <A NAME="idx:format3:905"></A><A class="pred" href="format.html#format/3">format/3</A> 
 floating point conversion:
 
 <PRE class="code">
@@ -268,12 +353,13 @@ floating point conversion:
 A = 17 rdiv 6
 </PRE>
 
-<H4><A NAME="sec:4.26.2.3">4.26.2.3 Arithmetic Functions</A></H4>
+<H4><A NAME="sec:4.26.2.3"><SPAN class="sec-nr">4.26.2.3</SPAN><SPAN class="sec-title">Arithmetic 
+Functions</SPAN></A></H4>
 
 <A NAME="sec:functions"></A>
 
 <P>Arithmetic functions are terms which are evaluated by the arithmetic 
-predicates described in <A HREF="arith.html">section 4.26.2</A>. 
+predicates described in <A class="sec" href="arith.html">section 4.26.2</A>. 
 SWI-Prolog tries to hide the difference between integer arithmetic and 
 floating point arithmetic from the Prolog user. Arithmetic is done as 
 integer arithmetic as long as possible and converted to floating point 
@@ -298,9 +384,9 @@ that must evaluate into a floating point.</TD></TR>
 </CENTER>
 
 <P>For systems using bounded integer arithmetic (default is unbounded, 
-see <A HREF="arith.html">section 4.26.2.1</A> for details), integer 
-operations that would cause overflow automatically convert to floating 
-point arithmetic.
+see <A class="sec" href="arith.html">section 4.26.2.1</A> for details), 
+integer operations that would cause overflow automatically convert to 
+floating point arithmetic.
 
 <DL>
 <DT class="pubdef"><A NAME="-/1"><STRONG>-</STRONG> <VAR>+Expr</VAR></A></DT>
@@ -323,13 +409,13 @@ to float and the return value is a float. Otherwise (default), if both
 arguments are integers the operation returns an integer if the division 
 is exact. If at least one of the arguments is rational and the other 
 argument is integer, the operation returns a rational number. In all 
-other cases the return value is a float. See also <A HREF="arith.html#///2">///2</A> 
-and <A NAME="idx:rdiv2:885"></A><A HREF="arith.html#rdiv/2">rdiv/2</A>.</DD>
+other cases the return value is a float. See also <A class="pred" href="arith.html#///2">///2</A> 
+and <A NAME="idx:rdiv2:906"></A><A class="pred" href="arith.html#rdiv/2">rdiv/2</A>.</DD>
 <DT class="pubdef"><A NAME="mod/2"><VAR>+IntExpr1</VAR> <STRONG>mod</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
 Modulo:
 <VAR>Result</VAR> = <VAR>IntExpr1</VAR> - (<VAR>IntExpr1</VAR> // <VAR>IntExpr2</VAR>) <VAR> &times; </VAR> <VAR>IntExpr2</VAR> 
-The function <A NAME="idx:mod2:886"></A><A HREF="arith.html#mod/2">mod/2</A> 
+The function <A NAME="idx:mod2:907"></A><A class="pred" href="arith.html#mod/2">mod/2</A> 
 is implemented using the C <CODE>%</CODE> operator. It's behaviour with 
 negative values is illustrated in the table below.
 
@@ -356,7 +442,7 @@ Integer division:
 <DD class="defbody">
 Rational number division. This function is only available if SWI-Prolog 
 has been compiled with rational number support. See
-<A HREF="arith.html">section 4.26.2.2</A> for details.</DD>
+<A class="sec" href="arith.html">section 4.26.2.2</A> for details.</DD>
 <DT class="pubdef"><A NAME="abs/1"><STRONG>abs</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Evaluate <VAR>Expr</VAR> and return the absolute value of it.</DD>
@@ -377,8 +463,8 @@ the two values after converting to float, but returns the integer 3.</DD>
 <DD class="defbody">
 Evaluates to the smallest of both <VAR>Expr1</VAR> and <VAR>Expr2</VAR>. 
 See
-<A NAME="idx:max2:887"></A><A HREF="arith.html#max/2">max/2</A> for a 
-description of type-handling.</DD>
+<A NAME="idx:max2:908"></A><A class="pred" href="arith.html#max/2">max/2</A> 
+for a description of type-handling.</DD>
 <DT class="pubdef"><A NAME="./2"><STRONG>.</STRONG>(<VAR>+Int,[]</VAR>)</A></DT>
 <DD class="defbody">
 A list of one element evaluates to the element. This implies <CODE>"a"</CODE> 
@@ -397,15 +483,15 @@ SWI-Prolog was started.</DD>
 Evaluates <VAR>Expr</VAR> and rounds the result to the nearest integer.</DD>
 <DT class="pubdef"><A NAME="integer/1"><STRONG>integer</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
-Same as <A NAME="idx:round1:888"></A><A HREF="arith.html#round/1">round/1</A> 
+Same as <A NAME="idx:round1:909"></A><A class="pred" href="arith.html#round/1">round/1</A> 
 (backward compatibility).</DD>
 <DT class="pubdef"><A NAME="float/1"><STRONG>float</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Translate the result to a floating point number. Normally, Prolog will 
 use integers whenever possible. When used around the 2nd argument of
-<A NAME="idx:is2:889"></A><A HREF="arith.html#is/2">is/2</A>, the result 
-will be returned as a floating point number. In other contexts, the 
-operation has no effect.</DD>
+<A NAME="idx:is2:910"></A><A class="pred" href="arith.html#is/2">is/2</A>, 
+the result will be returned as a floating point number. In other 
+contexts, the operation has no effect.</DD>
 <DT class="pubdef"><A NAME="rational/1"><STRONG>rational</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Convert the <VAR>Expr</VAR> to a rational number or integer. The 
@@ -414,9 +500,9 @@ floating point numbers, the returned rational number <EM>exactly</EM>
 represents the float. As floats cannot exactly represent all decimal 
 numbers the results may be surprising. In the examples below, doubles 
 can represent 0.25 and the result is as expected, in contrast to the 
-result of <CODE>rational(0.1)</CODE>. The function <A NAME="idx:rationalize1:890"></A><A HREF="arith.html#rationalize/1">rationalize/1</A> 
-remedies this. See <A HREF="arith.html">section 4.26.2.2</A> for more 
-information on rational number support.
+result of <CODE>rational(0.1)</CODE>. The function <A NAME="idx:rationalize1:911"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A> 
+remedies this. See <A class="sec" href="arith.html">section 4.26.2.2</A> 
+for more information on rational number support.
 
 <PRE class="code">
 ?- A is rational(0.25).
@@ -430,9 +516,12 @@ A = 3602879701896397 rdiv 36028797018963968
 <DT class="pubdef"><A NAME="rationalize/1"><STRONG>rationalize</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Convert the <VAR>Expr</VAR> to a rational number or integer. The 
-function is similar to <A NAME="idx:rational1:891"></A><A HREF="typetest.html#rational/1">rational/1</A>, 
+function is similar to <A NAME="idx:rational1:912"></A><A class="pred" href="typetest.html#rational/1">rational/1</A>, 
 but the result is only accurate within the rounding error of floating 
-point numbers, generally producing a much smaller denominator.<A NAME=back-to-note-55 HREF="Notes.html#note-55"> (55)</A>
+point numbers, generally producing a much smaller denominator.<SUP class="fn">49<SPAN class="fn-text">The 
+names <A NAME="idx:rational1:913"></A><A class="pred" href="typetest.html#rational/1">rational/1</A> 
+and <A NAME="idx:rationalize1:914"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A> 
+as well as their semantics are inspired by Common Lisp.</SPAN></SUP>
 
 <PRE class="code">
 ?- A is rationalize(0.25).
@@ -470,7 +559,7 @@ Evaluates <VAR>Expr</VAR> and returns the smallest integer larger or
 equal to the result of the evaluation.</DD>
 <DT class="pubdef"><A NAME="ceil/1"><STRONG>ceil</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
-Same as <A NAME="idx:ceiling1:892"></A><A HREF="arith.html#ceiling/1">ceiling/1</A> 
+Same as <A NAME="idx:ceiling1:915"></A><A class="pred" href="arith.html#ceiling/1">ceiling/1</A> 
 (backward compatibility).</DD>
 <DT class="pubdef"><A NAME=">>/2"><VAR>+IntExpr</VAR> <STRONG>&gt;&gt;</STRONG> <VAR>+IntExpr</VAR></A></DT>
 <DD class="defbody">
@@ -570,14 +659,14 @@ Evaluates to the mathematical constant <VAR>e</VAR> (2.718282).
 <DT class="pubdef"><A NAME="cputime/0"><STRONG>cputime</STRONG></A></DT>
 <DD class="defbody">
 Evaluates to a floating point number expressing the <font size=-1>CPU</font> 
-time (in seconds) used by Prolog up till now. See also <A NAME="idx:statistics2:893"></A><A HREF="statistics.html#statistics/2">statistics/2</A> 
-and <A NAME="idx:time1:894"></A><A HREF="statistics.html#time/1">time/1</A>.
+time (in seconds) used by Prolog up till now. See also <A NAME="idx:statistics2:916"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A> 
+and <A NAME="idx:time1:917"></A><A class="pred" href="statistics.html#time/1">time/1</A>.
 </DD>
 </DL>
 
 <P><B>Bitvector functions</B> 
 
-<P>The functions below are not covered by the standard. The <A NAME="idx:msb1:895"></A><A HREF="arith.html#msb/1">msb/1</A> 
+<P>The functions below are not covered by the standard. The <A NAME="idx:msb1:918"></A><A class="pred" href="arith.html#msb/1">msb/1</A> 
 function is compatible to hProlog. The others are private extensions 
 that improve handling of ---unbounded--- integers as bit-vectors.
 

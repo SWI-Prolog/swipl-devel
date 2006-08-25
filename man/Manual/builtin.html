@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="idesummary.html">
 <LINK REL=next HREF="preddesc.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="idesummary.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="preddesc.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="idesummary.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="preddesc.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H1><A NAME="sec:4">4 Built-in predicates</A></H1>
+<H1><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Built-in 
+predicates</SPAN></A></H1>
 
 <A NAME="sec:builtin"></A>
 
@@ -53,128 +129,153 @@ padding: 5px;
 
 </CENTER>
 <HR>
-<UL>
-<LI><A HREF="preddesc.html"><B>4.1 Notation of Predicate Descriptions</B></A>
-<LI><A HREF="chars.html"><B>4.2 Character representation</B></A>
-<LI><A HREF="consulting.html"><B>4.3 Loading Prolog source files</B></A>
-<UL>
-<LI><A HREF="consulting.html#sec:4.3.1">4.3.1 Loading files, active code 
-and threads</A>
-<UL>
-<LI><A HREF="consulting.html#sec:4.3.1.1">4.3.1.1 Threads and reloading 
-running code</A>
-</UL>
-<LI><A HREF="consulting.html#sec:4.3.2">4.3.2 Quick load files</A>
-</UL>
-<LI><A HREF="listing.html"><B>4.4 Listing and Editor Interface</B></A>
-<LI><A HREF="typetest.html"><B>4.5 Verify Type of a Term</B></A>
-<LI><A HREF="compare.html"><B>4.6 Comparison and Unification or Terms</B></A>
-<UL>
-<LI><A HREF="compare.html#sec:4.6.1">4.6.1 Standard Order of Terms</A>
-</UL>
-<LI><A HREF="control.html"><B>4.7 Control Predicates</B></A>
-<LI><A HREF="metacall.html"><B>4.8 Meta-Call Predicates</B></A>
-<LI><A HREF="exception.html"><B>4.9 ISO compliant Exception handling</B></A>
-<UL>
-<LI><A HREF="exception.html#sec:4.9.1">4.9.1 Debugging and exceptions</A>
-<LI><A HREF="exception.html#sec:4.9.2">4.9.2 The exception term</A>
-<LI><A HREF="exception.html#sec:4.9.3">4.9.3 Printing messages</A>
-</UL>
-<LI><A HREF="signal.html"><B>4.10 Handling signals</B></A>
-<UL>
-<LI><A HREF="signal.html#sec:4.10.1">4.10.1 Notes on signal handling</A>
-</UL>
-<LI><A HREF="block3.html"><B>4.11 The `block' control-structure</B></A>
-<LI><A HREF="DCG.html"><B>4.12 DCG Grammar rules</B></A>
-<LI><A HREF="db.html"><B>4.13 Database</B></A>
-<UL>
-<LI><A HREF="db.html#sec:4.13.1">4.13.1 Update view</A>
-<LI><A HREF="db.html#sec:4.13.2">4.13.2 Indexing databases</A>
-</UL>
-<LI><A HREF="dynamic.html"><B>4.14 Declaring predicates properties</B></A>
-<LI><A HREF="examineprog.html"><B>4.15 Examining the program</B></A>
-<LI><A HREF="IO.html"><B>4.16 Input and output</B></A>
-<UL>
-<LI><A HREF="IO.html#sec:4.16.1">4.16.1 ISO Input and Output Streams</A>
-<LI><A HREF="IO.html#sec:4.16.2">4.16.2 Edinburgh-style I/O</A>
-<LI><A HREF="IO.html#sec:4.16.3">4.16.3 Switching Between Edinburgh and 
-ISO I/O</A>
-<LI><A HREF="IO.html#sec:4.16.4">4.16.4 Write onto atoms, code-lists, 
-etc.</A>
-</UL>
-<LI><A HREF="streamstat.html"><B>4.17 Status of streams</B></A>
-<LI><A HREF="chario.html"><B>4.18 Primitive character I/O</B></A>
-<LI><A HREF="termrw.html"><B>4.19 Term reading and writing</B></A>
-<LI><A HREF="manipterm.html"><B>4.20 Analysing and Constructing Terms</B></A>
-<UL>
-<LI><A HREF="manipterm.html#sec:4.20.1">4.20.1 Non-logical operations on 
-terms</A>
-</UL>
-<LI><A HREF="manipatom.html"><B>4.21 Analysing and Constructing Atoms</B></A>
-<LI><A HREF="chartype.html"><B>4.22 Classifying characters</B></A>
-<UL>
-<LI><A HREF="chartype.html#sec:4.22.1">4.22.1 Case conversion</A>
-</UL>
-<LI><A HREF="strings.html"><B>4.23 Representing text in strings</B></A>
-<LI><A HREF="operators.html"><B>4.24 Operators</B></A>
-<LI><A HREF="charconv.html"><B>4.25 Character Conversion</B></A>
-<LI><A HREF="arith.html"><B>4.26 Arithmetic</B></A>
-<UL>
-<LI><A HREF="arith.html#sec:4.26.1">4.26.1 Special purpose integer 
-arithmetic</A>
-<LI><A HREF="arith.html#sec:4.26.2">4.26.2 General purpose arithmetic</A>
-<UL>
-<LI><A HREF="arith.html#sec:4.26.2.1">4.26.2.1 Arithmetic types</A>
-<LI><A HREF="arith.html#sec:4.26.2.2">4.26.2.2 Rational number examples</A>
-<LI><A HREF="arith.html#sec:4.26.2.3">4.26.2.3 Arithmetic Functions</A>
-</UL>
-</UL>
-<LI><A HREF="extendarith.html"><B>4.27 Adding Arithmetic Functions</B></A>
-<LI><A HREF="builtinlist.html"><B>4.28 Built-in list operations</B></A>
-<LI><A HREF="allsolutions.html"><B>4.29 Finding all Solutions to a Goal</B></A>
-<LI><A HREF="applylist.html"><B>4.30 Invoking Predicates on all Members 
-of a List</B></A>
-<LI><A HREF="forall2.html"><B>4.31 Forall</B></A>
-<LI><A HREF="format.html"><B>4.32 Formatted Write</B></A>
-<UL>
-<LI><A HREF="format.html#sec:4.32.1">4.32.1 Writef</A>
-<LI><A HREF="format.html#sec:4.32.2">4.32.2 Format</A>
-<LI><A HREF="format.html#sec:4.32.3">4.32.3 Programming Format</A>
-</UL>
-<LI><A HREF="tty.html"><B>4.33 Terminal Control</B></A>
-<LI><A HREF="system.html"><B>4.34 Operating System Interaction</B></A>
-<UL>
-<LI><A HREF="system.html#sec:4.34.1">4.34.1 Dealing with time and date</A>
-<UL>
-<LI><A HREF="system.html#sec:4.34.1.1">4.34.1.1 Time and date 
-data-structures</A>
-<LI><A HREF="system.html#sec:4.34.1.2">4.34.1.2 Time and date predicates</A>
-</UL>
-<LI><A HREF="system.html#sec:4.34.2">4.34.2 Controlling the <B>PLWIN.EXE</B> 
-console window</A>
-</UL>
-<LI><A HREF="files.html"><B>4.35 File System Interaction</B></A>
-<LI><A HREF="toplevel.html"><B>4.36 User Top-level Manipulation</B></A>
-<LI><A HREF="protocol.html"><B>4.37 Creating a Protocol of the User 
-Interaction</B></A>
-<LI><A HREF="debugger.html"><B>4.38 Debugging and Tracing Programs</B></A>
-<LI><A HREF="statistics.html"><B>4.39 Obtaining Runtime Statistics</B></A>
-<LI><A HREF="profile.html"><B>4.40 Execution profiling</B></A>
-<UL>
-<LI><A HREF="profile.html#sec:4.40.1">4.40.1 Profiling predicates</A>
-<LI><A HREF="profile.html#sec:4.40.2">4.40.2 Visualizing profiling data</A>
-<LI><A HREF="profile.html#sec:4.40.3">4.40.3 Information gathering</A>
-<UL>
-<LI><A HREF="profile.html#sec:4.40.3.1">4.40.3.1 Profiling in the 
-Windows Implementation</A>
-</UL>
-</UL>
-<LI><A HREF="memory.html"><B>4.41 Memory Management</B></A>
-<LI><A HREF="DDE.html"><B>4.42 Windows DDE interface</B></A>
-<UL>
-<LI><A HREF="DDE.html#sec:4.42.1">4.42.1 DDE client interface</A>
-<LI><A HREF="DDE.html#sec:4.42.2">4.42.2 DDE server mode</A>
-</UL>
-<LI><A HREF="miscpreds.html"><B>4.43 Miscellaneous</B></A>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="preddesc.html"><SPAN class="sec-nr">4.1</SPAN><SPAN class="sec-title">Notation 
+of Predicate Descriptions</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="chars.html"><SPAN class="sec-nr">4.2</SPAN><SPAN class="sec-title">Character 
+representation</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="consulting.html"><SPAN class="sec-nr">4.3</SPAN><SPAN class="sec-title">Loading 
+Prolog source files</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="consulting.html#sec:4.3.1"><SPAN class="sec-nr">4.3.1</SPAN><SPAN class="sec-title">Loading 
+files, active code and threads</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="consulting.html#sec:4.3.1.1"><SPAN class="sec-nr">4.3.1.1</SPAN><SPAN class="sec-title">Threads 
+and reloading running code</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="consulting.html#sec:4.3.2"><SPAN class="sec-nr">4.3.2</SPAN><SPAN class="sec-title">Quick 
+load files</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="listing.html"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">Listing 
+and Editor Interface</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="typetest.html"><SPAN class="sec-nr">4.5</SPAN><SPAN class="sec-title">Verify 
+Type of a Term</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="compare.html"><SPAN class="sec-nr">4.6</SPAN><SPAN class="sec-title">Comparison 
+and Unification or Terms</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="compare.html#sec:4.6.1"><SPAN class="sec-nr">4.6.1</SPAN><SPAN class="sec-title">Standard 
+Order of Terms</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="control.html"><SPAN class="sec-nr">4.7</SPAN><SPAN class="sec-title">Control 
+Predicates</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="metacall.html"><SPAN class="sec-nr">4.8</SPAN><SPAN class="sec-title">Meta-Call 
+Predicates</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="exception.html"><SPAN class="sec-nr">4.9</SPAN><SPAN class="sec-title">ISO 
+compliant Exception handling</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="exception.html#sec:4.9.1"><SPAN class="sec-nr">4.9.1</SPAN><SPAN class="sec-title">Debugging 
+and exceptions</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="exception.html#sec:4.9.2"><SPAN class="sec-nr">4.9.2</SPAN><SPAN class="sec-title">The 
+exception term</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="exception.html#sec:4.9.3"><SPAN class="sec-nr">4.9.3</SPAN><SPAN class="sec-title">Printing 
+messages</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="signal.html"><SPAN class="sec-nr">4.10</SPAN><SPAN class="sec-title">Handling 
+signals</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="signal.html#sec:4.10.1"><SPAN class="sec-nr">4.10.1</SPAN><SPAN class="sec-title">Notes 
+on signal handling</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="block3.html"><SPAN class="sec-nr">4.11</SPAN><SPAN class="sec-title">The 
+`block' control-structure</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="DCG.html"><SPAN class="sec-nr">4.12</SPAN><SPAN class="sec-title">DCG 
+Grammar rules</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="db.html"><SPAN class="sec-nr">4.13</SPAN><SPAN class="sec-title">Database</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="db.html#sec:4.13.1"><SPAN class="sec-nr">4.13.1</SPAN><SPAN class="sec-title">Update 
+view</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="db.html#sec:4.13.2"><SPAN class="sec-nr">4.13.2</SPAN><SPAN class="sec-title">Indexing 
+databases</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="dynamic.html"><SPAN class="sec-nr">4.14</SPAN><SPAN class="sec-title">Declaring 
+predicates properties</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="examineprog.html"><SPAN class="sec-nr">4.15</SPAN><SPAN class="sec-title">Examining 
+the program</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="IO.html"><SPAN class="sec-nr">4.16</SPAN><SPAN class="sec-title">Input 
+and output</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="IO.html#sec:4.16.1"><SPAN class="sec-nr">4.16.1</SPAN><SPAN class="sec-title">ISO 
+Input and Output Streams</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="IO.html#sec:4.16.2"><SPAN class="sec-nr">4.16.2</SPAN><SPAN class="sec-title">Edinburgh-style 
+I/O</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="IO.html#sec:4.16.3"><SPAN class="sec-nr">4.16.3</SPAN><SPAN class="sec-title">Switching 
+Between Edinburgh and ISO I/O</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="IO.html#sec:4.16.4"><SPAN class="sec-nr">4.16.4</SPAN><SPAN class="sec-title">Write 
+onto atoms, code-lists, etc.</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="streamstat.html"><SPAN class="sec-nr">4.17</SPAN><SPAN class="sec-title">Status 
+of streams</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="chario.html"><SPAN class="sec-nr">4.18</SPAN><SPAN class="sec-title">Primitive 
+character I/O</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="termrw.html"><SPAN class="sec-nr">4.19</SPAN><SPAN class="sec-title">Term 
+reading and writing</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="manipterm.html"><SPAN class="sec-nr">4.20</SPAN><SPAN class="sec-title">Analysing 
+and Constructing Terms</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="manipterm.html#sec:4.20.1"><SPAN class="sec-nr">4.20.1</SPAN><SPAN class="sec-title">Non-logical 
+operations on terms</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="manipatom.html"><SPAN class="sec-nr">4.21</SPAN><SPAN class="sec-title">Analysing 
+and Constructing Atoms</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="chartype.html"><SPAN class="sec-nr">4.22</SPAN><SPAN class="sec-title">Classifying 
+characters</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="chartype.html#sec:4.22.1"><SPAN class="sec-nr">4.22.1</SPAN><SPAN class="sec-title">Case 
+conversion</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="strings.html"><SPAN class="sec-nr">4.23</SPAN><SPAN class="sec-title">Representing 
+text in strings</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="operators.html"><SPAN class="sec-nr">4.24</SPAN><SPAN class="sec-title">Operators</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="charconv.html"><SPAN class="sec-nr">4.25</SPAN><SPAN class="sec-title">Character 
+Conversion</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="arith.html"><SPAN class="sec-nr">4.26</SPAN><SPAN class="sec-title">Arithmetic</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="arith.html#sec:4.26.1"><SPAN class="sec-nr">4.26.1</SPAN><SPAN class="sec-title">Special 
+purpose integer arithmetic</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="arith.html#sec:4.26.2"><SPAN class="sec-nr">4.26.2</SPAN><SPAN class="sec-title">General 
+purpose arithmetic</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="arith.html#sec:4.26.2.1"><SPAN class="sec-nr">4.26.2.1</SPAN><SPAN class="sec-title">Arithmetic 
+types</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="arith.html#sec:4.26.2.2"><SPAN class="sec-nr">4.26.2.2</SPAN><SPAN class="sec-title">Rational 
+number examples</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="arith.html#sec:4.26.2.3"><SPAN class="sec-nr">4.26.2.3</SPAN><SPAN class="sec-title">Arithmetic 
+Functions</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="extendarith.html"><SPAN class="sec-nr">4.27</SPAN><SPAN class="sec-title">Adding 
+Arithmetic Functions</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="builtinlist.html"><SPAN class="sec-nr">4.28</SPAN><SPAN class="sec-title">Built-in 
+list operations</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="allsolutions.html"><SPAN class="sec-nr">4.29</SPAN><SPAN class="sec-title">Finding 
+all Solutions to a Goal</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="applylist.html"><SPAN class="sec-nr">4.30</SPAN><SPAN class="sec-title">Invoking 
+Predicates on all Members of a List</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="forall2.html"><SPAN class="sec-nr">4.31</SPAN><SPAN class="sec-title">Forall</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="format.html"><SPAN class="sec-nr">4.32</SPAN><SPAN class="sec-title">Formatted 
+Write</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="format.html#sec:4.32.1"><SPAN class="sec-nr">4.32.1</SPAN><SPAN class="sec-title">Writef</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="format.html#sec:4.32.2"><SPAN class="sec-nr">4.32.2</SPAN><SPAN class="sec-title">Format</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="format.html#sec:4.32.3"><SPAN class="sec-nr">4.32.3</SPAN><SPAN class="sec-title">Programming 
+Format</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="tty.html"><SPAN class="sec-nr">4.33</SPAN><SPAN class="sec-title">Terminal 
+Control</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="system.html"><SPAN class="sec-nr">4.34</SPAN><SPAN class="sec-title">Operating 
+System Interaction</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="system.html#sec:4.34.1"><SPAN class="sec-nr">4.34.1</SPAN><SPAN class="sec-title">Dealing 
+with time and date</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="system.html#sec:4.34.1.1"><SPAN class="sec-nr">4.34.1.1</SPAN><SPAN class="sec-title">Time 
+and date data-structures</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="system.html#sec:4.34.1.2"><SPAN class="sec-nr">4.34.1.2</SPAN><SPAN class="sec-title">Time 
+and date predicates</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="system.html#sec:4.34.2"><SPAN class="sec-nr">4.34.2</SPAN><SPAN class="sec-title">Controlling 
+the <B>PLWIN.EXE</B> console window</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="files.html"><SPAN class="sec-nr">4.35</SPAN><SPAN class="sec-title">File 
+System Interaction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="toplevel.html"><SPAN class="sec-nr">4.36</SPAN><SPAN class="sec-title">User 
+Top-level Manipulation</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="protocol.html"><SPAN class="sec-nr">4.37</SPAN><SPAN class="sec-title">Creating 
+a Protocol of the User Interaction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="debugger.html"><SPAN class="sec-nr">4.38</SPAN><SPAN class="sec-title">Debugging 
+and Tracing Programs</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="statistics.html"><SPAN class="sec-nr">4.39</SPAN><SPAN class="sec-title">Obtaining 
+Runtime Statistics</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="profile.html"><SPAN class="sec-nr">4.40</SPAN><SPAN class="sec-title">Execution 
+profiling</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="profile.html#sec:4.40.1"><SPAN class="sec-nr">4.40.1</SPAN><SPAN class="sec-title">Profiling 
+predicates</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="profile.html#sec:4.40.2"><SPAN class="sec-nr">4.40.2</SPAN><SPAN class="sec-title">Visualizing 
+profiling data</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="profile.html#sec:4.40.3"><SPAN class="sec-nr">4.40.3</SPAN><SPAN class="sec-title">Information 
+gathering</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="profile.html#sec:4.40.3.1"><SPAN class="sec-nr">4.40.3.1</SPAN><SPAN class="sec-title">Profiling 
+in the Windows Implementation</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="memory.html"><SPAN class="sec-nr">4.41</SPAN><SPAN class="sec-title">Memory 
+Management</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="DDE.html"><SPAN class="sec-nr">4.42</SPAN><SPAN class="sec-title">Windows 
+DDE interface</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="DDE.html#sec:4.42.1"><SPAN class="sec-nr">4.42.1</SPAN><SPAN class="sec-title">DDE 
+client interface</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="DDE.html#sec:4.42.2"><SPAN class="sec-nr">4.42.2</SPAN><SPAN class="sec-title">DDE 
+server mode</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="miscpreds.html"><SPAN class="sec-nr">4.43</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></DIV>
+</DIV>
 </BODY></HTML>

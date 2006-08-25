@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.39</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.39</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="debugger.html">
 <LINK REL=next HREF="profile.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="debugger.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="profile.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="debugger.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="profile.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.39">4.39 Obtaining Runtime Statistics</A></H2>
+<H2><A NAME="sec:4.39"><SPAN class="sec-nr">4.39</SPAN><SPAN class="sec-title">Obtaining 
+Runtime Statistics</SPAN></A></H2>
 
 <A NAME="sec:statistics"></A>
 
@@ -50,7 +126,7 @@ padding: 5px;
 -Value</VAR>)</A></DT>
 <DD class="defbody">
 Unify system statistics determined by <VAR>Key</VAR> with <VAR>Value</VAR>. 
-The possible keys are given in the <A HREF="statistics.html#tab:statistics">table 
+The possible keys are given in the <A class="tab" href="statistics.html#tab:statistics">table 
 5</A>. The last part of the table contains keys for compatibility to 
 other Prolog implementations (Quintus) for improved portability. Note 
 that the ISO standard does not define methods to collect system 
@@ -68,10 +144,10 @@ garbage-collections </TD></TR>
 since Prolog was started in seconds </TD></TR>
 <TR VALIGN=top><TD>inferences</TD><TD>Total number of passes via the 
 call and redo ports since Prolog was started. </TD></TR>
-<TR VALIGN=top><TD>heap</TD><TD>Estimated total size of the heap (see <A HREF="limits.html">section 
+<TR VALIGN=top><TD>heap</TD><TD>Estimated total size of the heap (see <A class="sec" href="limits.html">section 
 2.18.1.1</A>) </TD></TR>
 <TR VALIGN=top><TD>heapused</TD><TD>Bytes heap in use by Prolog. </TD></TR>
-<TR VALIGN=top><TD>heaplimit</TD><TD>Maximum size of the heap (see <A HREF="limits.html">section 
+<TR VALIGN=top><TD>heaplimit</TD><TD>Maximum size of the heap (see <A class="sec" href="limits.html">section 
 2.18.1.1</A>) </TD></TR>
 <TR VALIGN=top><TD>local</TD><TD>Allocated size of the local stack in 
 bytes. </TD></TR>
@@ -133,7 +209,7 @@ bytes gained, time spent ] </TD></TR>
 
 </CENTER>
 <TABLE ALIGN=center WIDTH="75%"><TR><TD>
-<B>Table 5 : </B>Keys for <A NAME="idx:statistics2:1025"></A><A HREF="statistics.html#statistics/2">statistics/2</A></TABLE>
+<B>Table 5 : </B>Keys for <A NAME="idx:statistics2:1058"></A><A class="pred" href="statistics.html#statistics/2">statistics/2</A></TABLE>
 
 <A NAME="tab:statistics"></A>
 </DD>
@@ -143,7 +219,7 @@ Display a table of system statistics on the current output stream.
 </DD>
 <DT class="pubdef"><A NAME="time/1"><STRONG>time</STRONG>(<VAR>+Goal</VAR>)</A></DT>
 <DD class="defbody">
-Execute <VAR>Goal</VAR> just like <A NAME="idx:once1:1026"></A><A HREF="metacall.html#once/1">once/1</A> 
+Execute <VAR>Goal</VAR> just like <A NAME="idx:once1:1059"></A><A class="pred" href="metacall.html#once/1">once/1</A> 
 (i.e., leaving no choice points), but print used time, number of logical 
 inferences and the average number of <VAR>lips</VAR> (logical inferences 
 per second). Note that SWI-Prolog counts the actual executed number of 

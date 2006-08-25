@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="runenv.html">
 <LINK REL=next HREF="lists.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="runenv.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="lists.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="runenv.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="lists.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H1><A NAME="sec:A">A The SWI-Prolog library</A></H1>
+<H1><A NAME="sec:A"><SPAN class="sec-nr">A</SPAN><SPAN class="sec-title">The 
+SWI-Prolog library</SPAN></A></H1>
 
 <A NAME="sec:libpl"></A>
 
@@ -58,9 +134,9 @@ using the name of a library predicate is allowed.
 
 <P>
 <LI>If autoloading is disabled explicitely or because trapping unknown 
-predicates is disabled (see <A NAME="idx:unknown2:1336"></A><A HREF="debugger.html#unknown/2">unknown/2</A> 
+predicates is disabled (see <A NAME="idx:unknown2:1372"></A><A class="pred" href="debugger.html#unknown/2">unknown/2</A> 
 and
-<A NAME="idx:currentprologflag2:1337"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>), 
+<A NAME="idx:currentprologflag2:1373"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>), 
 library predicates must be loaded explicitely.
 
 <P>
@@ -81,70 +157,73 @@ are not documented at all.
 
 </CENTER>
 <HR>
-<UL>
-<LI><A HREF="lists.html"><B>A.1 library( lists ): List Manipulation</B></A>
-<UL>
-<LI><A HREF="lists.html#sec:A.1.1">A.1.1 Set Manipulation</A>
-</UL>
-<LI><A HREF="ordsets.html"><B>A.2 library( ordsets ): Ordered Set 
-Manipulation</B></A>
-<LI><A HREF="assoc.html"><B>A.3 library( assoc ): Association lists</B></A>
-<LI><A HREF="ugraphs.html"><B>A.4 library( ugraphs ): Unweighted Graphs</B></A>
-<LI><A HREF="nbset.html"><B>A.5 library( nbset ): Non-backtrackable set</B></A>
-<LI><A HREF="gensym.html"><B>A.6 library( gensym ): Generate unique 
-identifiers</B></A>
-<LI><A HREF="check.html"><B>A.7 library( check ): Elementary 
-completeness checks</B></A>
-<LI><A HREF="debug.html"><B>A.8 library( debug ): Some reusable code to 
-help debugging applications</B></A>
-<LI><A HREF="readutil.html"><B>A.9 library( readutil ): Reading lines, 
-streams and files</B></A>
-<LI><A HREF="netscape.html"><B>A.10 library( netscape ): Activating your 
-Web-browser</B></A>
-<LI><A HREF="registry.html"><B>A.11 library( registry ): Manipulating 
-the Windows registry</B></A>
-<LI><A HREF="url.html"><B>A.12 library( url ): Analysing and 
-constructing URL</B></A>
-<LI><A HREF="clpbounds.html"><B>A.13 library( clp/bounds ): Integer 
-Bounds Constraint Solver</B></A>
-<UL>
-<LI><A HREF="clpbounds.html#sec:A.13.1">A.13.1 Constraints</A>
-<LI><A HREF="clpbounds.html#sec:A.13.2">A.13.2 Constraint Implication 
-and Reified Constraints</A>
-<LI><A HREF="clpbounds.html#sec:A.13.3">A.13.3 Example 1: 
-Send+More=Money</A>
-<LI><A HREF="clpbounds.html#sec:A.13.4">A.13.4 Example 2: Using 
-tuples_in for a train schedule</A>
-<LI><A HREF="clpbounds.html#sec:A.13.5">A.13.5 SICStus clp(FD) 
-compatibility</A>
-</UL>
-<LI><A HREF="clpqr.html"><B>A.14 library( clpqr ): Constraint Logic 
-Programming over Rationals and Reals</B></A>
-<UL>
-<LI><A HREF="clpqr.html#sec:A.14.1">A.14.1 Solver predicates</A>
-<LI><A HREF="clpqr.html#sec:A.14.2">A.14.2 Syntax of the predicate 
-arguments</A>
-<LI><A HREF="clpqr.html#sec:A.14.3">A.14.3 Use of unification</A>
-<LI><A HREF="clpqr.html#sec:A.14.4">A.14.4 Non-linear constraints</A>
-</UL>
-<LI><A HREF="clpclp_distinct.html"><B>A.15 library( clp/clp_distinct ): 
-Weak arc consistent `all_distinct' constraint</B></A>
-<UL>
-<LI><A HREF="clpclp_distinct.html#sec:A.15.1">A.15.1 Example 1</A>
-<LI><A HREF="clpclp_distinct.html#sec:A.15.2">A.15.2 Example 2</A>
-<LI><A HREF="clpclp_distinct.html#sec:A.15.3">A.15.3 Example 3</A>
-</UL>
-<LI><A HREF="simplex.html"><B>A.16 library( simplex ): Solve linear 
-programming problems</B></A>
-<UL>
-<LI><A HREF="simplex.html#sec:A.16.1">A.16.1 Example 1</A>
-<LI><A HREF="simplex.html#sec:A.16.2">A.16.2 Example 2</A>
-<LI><A HREF="simplex.html#sec:A.16.3">A.16.3 Example 3</A>
-</UL>
-<LI><A HREF="prologxref.html"><B>A.17 library( prologxref ): 
-Cross-reference data collection library</B></A>
-<UL>
-<LI><A HREF="prologxref.html#sec:A.17.1">A.17.1 Extending the library</A>
-</UL>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="lists.html"><SPAN class="sec-nr">A.1</SPAN><SPAN class="sec-title">library( 
+lists ): List Manipulation</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="lists.html#sec:A.1.1"><SPAN class="sec-nr">A.1.1</SPAN><SPAN class="sec-title">Set 
+Manipulation</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="ordsets.html"><SPAN class="sec-nr">A.2</SPAN><SPAN class="sec-title">library( 
+ordsets ): Ordered Set Manipulation</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="assoc.html"><SPAN class="sec-nr">A.3</SPAN><SPAN class="sec-title">library( 
+assoc ): Association lists</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="ugraphs.html"><SPAN class="sec-nr">A.4</SPAN><SPAN class="sec-title">library( 
+ugraphs ): Unweighted Graphs</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="nbset.html"><SPAN class="sec-nr">A.5</SPAN><SPAN class="sec-title">library( 
+nbset ): Non-backtrackable set</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="gensym.html"><SPAN class="sec-nr">A.6</SPAN><SPAN class="sec-title">library( 
+gensym ): Generate unique identifiers</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="check.html"><SPAN class="sec-nr">A.7</SPAN><SPAN class="sec-title">library( 
+check ): Elementary completeness checks</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="debug.html"><SPAN class="sec-nr">A.8</SPAN><SPAN class="sec-title">library( 
+debug ): Some reusable code to help debugging applications</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="readutil.html"><SPAN class="sec-nr">A.9</SPAN><SPAN class="sec-title">library( 
+readutil ): Reading lines, streams and files</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="netscape.html"><SPAN class="sec-nr">A.10</SPAN><SPAN class="sec-title">library( 
+netscape ): Activating your Web-browser</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="registry.html"><SPAN class="sec-nr">A.11</SPAN><SPAN class="sec-title">library( 
+registry ): Manipulating the Windows registry</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="url.html"><SPAN class="sec-nr">A.12</SPAN><SPAN class="sec-title">library( 
+url ): Analysing and constructing URL</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="clpbounds.html"><SPAN class="sec-nr">A.13</SPAN><SPAN class="sec-title">library( 
+clp/bounds ): Integer Bounds Constraint Solver</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpbounds.html#sec:A.13.1"><SPAN class="sec-nr">A.13.1</SPAN><SPAN class="sec-title">Constraints</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpbounds.html#sec:A.13.2"><SPAN class="sec-nr">A.13.2</SPAN><SPAN class="sec-title">Constraint 
+Implication and Reified Constraints</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpbounds.html#sec:A.13.3"><SPAN class="sec-nr">A.13.3</SPAN><SPAN class="sec-title">Example 
+1: Send+More=Money</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpbounds.html#sec:A.13.4"><SPAN class="sec-nr">A.13.4</SPAN><SPAN class="sec-title">Example 
+2: Using tuples_in for a train schedule</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpbounds.html#sec:A.13.5"><SPAN class="sec-nr">A.13.5</SPAN><SPAN class="sec-title">SICStus 
+clp(FD) compatibility</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="clpqr.html"><SPAN class="sec-nr">A.14</SPAN><SPAN class="sec-title">library( 
+clpqr ): Constraint Logic Programming over Rationals and Reals</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpqr.html#sec:A.14.1"><SPAN class="sec-nr">A.14.1</SPAN><SPAN class="sec-title">Solver 
+predicates</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpqr.html#sec:A.14.2"><SPAN class="sec-nr">A.14.2</SPAN><SPAN class="sec-title">Syntax 
+of the predicate arguments</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpqr.html#sec:A.14.3"><SPAN class="sec-nr">A.14.3</SPAN><SPAN class="sec-title">Use 
+of unification</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpqr.html#sec:A.14.4"><SPAN class="sec-nr">A.14.4</SPAN><SPAN class="sec-title">Non-linear 
+constraints</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="clpclp_distinct.html"><SPAN class="sec-nr">A.15</SPAN><SPAN class="sec-title">library( 
+clp/clp_distinct ): Weak arc consistent `all_distinct' constraint</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpclp_distinct.html#sec:A.15.1"><SPAN class="sec-nr">A.15.1</SPAN><SPAN class="sec-title">Example 
+1</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpclp_distinct.html#sec:A.15.2"><SPAN class="sec-nr">A.15.2</SPAN><SPAN class="sec-title">Example 
+2</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="clpclp_distinct.html#sec:A.15.3"><SPAN class="sec-nr">A.15.3</SPAN><SPAN class="sec-title">Example 
+3</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="simplex.html"><SPAN class="sec-nr">A.16</SPAN><SPAN class="sec-title">library( 
+simplex ): Solve linear programming problems</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="simplex.html#sec:A.16.1"><SPAN class="sec-nr">A.16.1</SPAN><SPAN class="sec-title">Example 
+1</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="simplex.html#sec:A.16.2"><SPAN class="sec-nr">A.16.2</SPAN><SPAN class="sec-title">Example 
+2</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="simplex.html#sec:A.16.3"><SPAN class="sec-nr">A.16.3</SPAN><SPAN class="sec-title">Example 
+3</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="prologxref.html"><SPAN class="sec-nr">A.17</SPAN><SPAN class="sec-title">library( 
+prologxref ): Cross-reference data collection library</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="prologxref.html#sec:A.17.1"><SPAN class="sec-nr">A.17.1</SPAN><SPAN class="sec-title">Extending 
+the library</SPAN></A></DIV>
+</DIV>
 </BODY></HTML>

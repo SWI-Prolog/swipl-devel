@@ -2,47 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.16</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.16</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
 <LINK REL=next HREF="prologxref.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="clpclp_distinct.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="prologxref.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="clpclp_distinct.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="prologxref.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.16">A.16 library( simplex ): Solve linear programming 
-problems</A></H2>
+<H2><A NAME="sec:A.16"><SPAN class="sec-nr">A.16</SPAN><SPAN class="sec-title">library( 
+simplex ): Solve linear programming problems</SPAN></A></H2>
 
 <A NAME="simplex"></A>
 <A NAME="sec:lib:simplex"></A>
@@ -92,7 +167,7 @@ integral(Variable) and constrains Variable to an integral value.</DD>
 <DT class="pubdef"><A NAME="constraint/4"><STRONG>constraint</STRONG>(<VAR>+Name, 
 +Constraint, +S0, -S</VAR>)</A></DT>
 <DD class="defbody">
-Like <A NAME="idx:constraint3:1402"></A><A HREF="simplex.html#constraint/3">constraint/3</A>, 
+Like <A NAME="idx:constraint3:1438"></A><A class="pred" href="simplex.html#constraint/3">constraint/3</A>, 
 and attaches the name <VAR>Name</VAR> (an atom or compound term) to the 
 new constraint.</DD>
 <DT class="pubdef"><A NAME="constraint_add/4"><STRONG>constraint_add</STRONG>(<VAR>+Name, 
@@ -114,7 +189,7 @@ is unified with an internal representation of the solved instance.</DD>
 <DT class="pubdef"><A NAME="minimize/3"><STRONG>minimize</STRONG>(<VAR>+Objective, 
 +S0, -S</VAR>)</A></DT>
 <DD class="defbody">
-Analogous to <A NAME="idx:maximize3:1403"></A><A HREF="simplex.html#maximize/3">maximize/3</A>.</DD>
+Analogous to <A NAME="idx:maximize3:1439"></A><A class="pred" href="simplex.html#maximize/3">maximize/3</A>.</DD>
 <DT class="pubdef"><A NAME="objective/2"><STRONG>objective</STRONG>(<VAR>+State, 
 -Objective</VAR>)</A></DT>
 <DD class="defbody">
@@ -148,13 +223,14 @@ instance.
 <P></DD>
 </DL>
 
-All numeric quantities are converted to rationals via <A NAME="idx:rationalize1:1404"></A><A HREF="arith.html#rationalize/1">rationalize/1</A>, 
+All numeric quantities are converted to rationals via <A NAME="idx:rationalize1:1440"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A>, 
 and rational arithmetic is used throughout solving linear programs. In 
 the current implementation, all variables are implicitly constrained to 
 be non-negative. This may change in future versions, and non-negativity 
 constraints should therefore be stated explicitly.
 
-<H3><A NAME="sec:A.16.1">A.16.1 Example 1</A></H3>
+<H3><A NAME="sec:A.16.1"><SPAN class="sec-nr">A.16.1</SPAN><SPAN class="sec-title">Example 
+1</SPAN></A></H3>
 
 This is the "radiation therapy" example, taken from "Introduction to 
 Operations Research" by Hillier and Lieberman. DCG notation is used to 
@@ -185,7 +261,8 @@ Val1 = 15 rdiv 2
 Val2 = 9 rdiv 2 ;
 </PRE>
 
-<H3><A NAME="sec:A.16.2">A.16.2 Example 2</A></H3>
+<H3><A NAME="sec:A.16.2"><SPAN class="sec-nr">A.16.2</SPAN><SPAN class="sec-title">Example 
+2</SPAN></A></H3>
 
 Here is an instance of the knapsack problem described above, where C = 
 8, and we have two types of items: One item with value 7 and size 6, and 
@@ -243,7 +320,8 @@ performance (ratio of value to size) that still fits in the knapsack
 does not necessarily yield an optimal solution in the presence of 
 integrality constraints.
 
-<H3><A NAME="sec:A.16.3">A.16.3 Example 3</A></H3>
+<H3><A NAME="sec:A.16.3"><SPAN class="sec-nr">A.16.3</SPAN><SPAN class="sec-title">Example 
+3</SPAN></A></H3>
 
 We are given 3 coins each worth 1, 20 coins each worth 5, and 10 coins 
 each worth 20 units of money. The task is to find a minimal number of 

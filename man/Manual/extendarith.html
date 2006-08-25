@@ -2,52 +2,128 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.27</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.27</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="arith.html">
 <LINK REL=next HREF="builtinlist.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="arith.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="builtinlist.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="arith.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="builtinlist.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.27">4.27 Adding Arithmetic Functions</A></H2>
+<H2><A NAME="sec:4.27"><SPAN class="sec-nr">4.27</SPAN><SPAN class="sec-title">Adding 
+Arithmetic Functions</SPAN></A></H2>
 
 <A NAME="sec:extendarith"></A>
 
 <P>Prolog predicates can be given the role of arithmetic function. The 
 last argument is used to return the result, the arguments before the 
-last are the inputs. Arithmetic functions are added using the predicate <A NAME="idx:arithmeticfunction1:896"></A><A HREF="extendarith.html#arithmetic_function/1">arithmetic_function/1</A>, 
+last are the inputs. Arithmetic functions are added using the predicate <A NAME="idx:arithmeticfunction1:919"></A><A class="pred" href="extendarith.html#arithmetic_function/1">arithmetic_function/1</A>, 
 which takes the head as its argument. Arithmetic functions are module 
 sensitive, that is they are only visible from the module in which the 
 function is defined and declared. Global arithmetic functions should be 
@@ -58,11 +134,11 @@ above can be redefined as well.
 <DL>
 <DT class="pubdef"><A NAME="arithmetic_function/1"><STRONG>arithmetic_function</STRONG>(<VAR>+Head</VAR>)</A></DT>
 <DD class="defbody">
-Register a Prolog predicate as an arithmetic function (see <A NAME="idx:is2:897"></A><A HREF="arith.html#is/2">is/2</A>,
-<A HREF="arith.html#>/2">&gt;/2</A>, etc.). The Prolog predicate should 
-have one more argument than specified by <VAR>Head</VAR>, which it 
-either a term <VAR>Name/Arity</VAR>, an atom or a complex term. This 
-last argument is an unbound variable at call time and should be 
+Register a Prolog predicate as an arithmetic function (see <A NAME="idx:is2:920"></A><A class="pred" href="arith.html#is/2">is/2</A>,
+<A class="pred" href="arith.html#>/2">&gt;/2</A>, etc.). The Prolog 
+predicate should have one more argument than specified by <VAR>Head</VAR>, 
+which it either a term <VAR>Name/Arity</VAR>, an atom or a complex term. 
+This last argument is an unbound variable at call time and should be 
 instantiated to an integer or floating point number. The other arguments 
 are the parameters. This predicate is module sensitive and will declare 
 the arithmetic function only for the context module, unless declared 

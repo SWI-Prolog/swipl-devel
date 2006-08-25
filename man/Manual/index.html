@@ -2,70 +2,130 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=contents HREF="Contents.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual</TITLE><LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=next HREF="Contents.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="Contents.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="Contents.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<BLOCKQUOTE>
-<CENTER>
 
-<H1>SWI-Prolog 5.6.17 Reference Manual</H1>
-
-</CENTER>
-<HR>
-<CENTER>
-<I><A HREF="mailto:wielemaker@science.uva.nl">Jan Wielemaker</A> Human-Computer 
-Studies (HCS, formerly SWI) Kruislaan 419, 1098 VA&nbsp;&nbsp;Amsterdam The 
-Netherlands Tel. (+31) 20 8884671</I>
-</CENTER>
-<HR>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<CENTER><H3>Abstract</H3></Center>
-<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
-SWI-Prolog started life in 1986 as a Prolog in the Edinburgh tradition. 
-Its development has been guided from the very beginning by the desire to 
-build large scale applications in Prolog. For this reason it stresses 
-connectivity to the C-language, few system limits, comprehensive memory 
-management, modules, multi-threading, coroutining, constraints and a 
-fast and interactive development environment. Portable libraries for 
-graphics, databases, networking, web-services, XML, RDF and many more 
-complete the system.
+<P>
+<DIV class="title">SWI-Prolog 5.6.18 Reference Manual</DIV>
+<DIV class="author"><A class="url" href="mailto:wielemaker@science.uva.nl">Jan 
+Wielemaker</A> Human-Computer Studies (HCS, formerly SWI) Kruislaan 419, 
+1098 VA&nbsp;&nbsp;Amsterdam The Netherlands Tel. (+31) 20 8884671</DIV>
+<DIV class="abstract">
+<DIV class="abstract-title">Abstract</DIV> SWI-Prolog started life in 
+1986 as a Prolog in the Edinburgh tradition. Its development has been 
+guided from the very beginning by the desire to build large scale 
+applications in Prolog. For this reason it stresses connectivity to the 
+C-language, few system limits, comprehensive memory management, modules, 
+multi-threading, coroutining, constraints and a fast and interactive 
+development environment. Portable libraries for graphics, databases, 
+networking, web-services, XML, RDF and many more complete the system.
 
 <P>SWI-Prolog is compliant to part one of ISO standard Prolog. In 
 addition it provides functionality compatible to Quintus, SICStus, LPA, 
@@ -78,7 +138,7 @@ commercial users.
 
 <P>This document gives an overview of the features, system limits and 
 built-in predicates.
-</TABLE>
+</DIV>
 
 <H3>About this document</H3>
 
@@ -88,11 +148,11 @@ converted into HTML using a converter distributed with the SWI-Prolog
 sources. From the same source we generate the plain-text version and 
 index used by the online help system (located in the file <CODE>MANUAL</CODE> 
 in the library directory) as well as the PDF version. Sources, binaries 
-and documentation can be downloaded from the <A HREF="http://www.swi-prolog.org/download.html">SWI-Prolog 
+and documentation can be downloaded from the <A class="url" href="http://www.swi-prolog.org/download.html">SWI-Prolog 
 download page</A>.
 
 <P>The SWI-Prolog project <B>home page</B> is located
-<A HREF="http://www.swi-prolog.org">here</A>
+<A class="url" href="http://www.swi-prolog.org">here</A>
 
 <P>Copyright &copy; 1990-- 2006 , University of Amsterdam
 

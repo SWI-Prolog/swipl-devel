@@ -2,52 +2,128 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.5</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.5</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="ugraphs.html">
 <LINK REL=next HREF="gensym.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="ugraphs.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="gensym.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="ugraphs.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="gensym.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.5">A.5 library( nbset ): Non-backtrackable set</A></H2>
+<H2><A NAME="sec:A.5"><SPAN class="sec-nr">A.5</SPAN><SPAN class="sec-title">library( 
+nbset ): Non-backtrackable set</SPAN></A></H2>
 
 <A NAME="nbset"></A>
 
 <P>The library <CODE>library(nb_set)</CODE> defines <EM>non-backtrackable 
 sets</EM>, implemented as binary trees. The sets are represented as 
-compound terms and manipulated using <A NAME="idx:nbsetarg3:1350"></A><A HREF="manipterm.html#nb_setarg/3">nb_setarg/3</A>. 
+compound terms and manipulated using <A NAME="idx:nbsetarg3:1386"></A><A class="pred" href="manipterm.html#nb_setarg/3">nb_setarg/3</A>. 
 Non-backtrackable manipulation of datastructures is not supported by a 
 large number of Prolog implementation, but it it has several advantages 
 over using the database. It produces less garbage, is thread-safe, 
@@ -78,7 +154,7 @@ True if <VAR>Set</VAR> is a non-backtrackable emoty set.</DD>
 <DD class="defbody">
 Add <VAR>Key</VAR> to <VAR>Set</VAR>. If <VAR>Key</VAR> is already a 
 member of
-<VAR>Set</VAR>, <A NAME="idx:addnbset3:1351"></A><A HREF="nbset.html#add_nb_set/3">add_nb_set/3</A> 
+<VAR>Set</VAR>, <A NAME="idx:addnbset3:1387"></A><A class="pred" href="nbset.html#add_nb_set/3">add_nb_set/3</A> 
 succeeds without modifying <VAR>Set</VAR>.</DD>
 <DT class="pubdef"><A NAME="add_nb_set/3"><STRONG>add_nb_set</STRONG>(<VAR>+Key, 
 !Set, ?New</VAR>)</A></DT>
@@ -106,7 +182,7 @@ bindin <VAR>Var</VAR> </TD></TR>
 -Key</VAR>)</A></DT>
 <DD class="defbody">
 Generate all members of <VAR>Set</VAR> on backtracking in the standard 
-order of terms. To test membership, use <A NAME="idx:addnbset3:1352"></A><A HREF="nbset.html#add_nb_set/3">add_nb_set/3</A>.</DD>
+order of terms. To test membership, use <A NAME="idx:addnbset3:1388"></A><A class="pred" href="nbset.html#add_nb_set/3">add_nb_set/3</A>.</DD>
 <DT class="pubdef"><A NAME="size_nb_set/2"><STRONG>size_nb_set</STRONG>(<VAR>+Set, 
 -Size</VAR>)</A></DT>
 <DD class="defbody">

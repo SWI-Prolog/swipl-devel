@@ -2,52 +2,129 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 3.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 3.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="editreload.html">
 <LINK REL=next HREF="guitracer.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="editreload.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="guitracer.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="editreload.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="guitracer.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:3.4">3.4 Using the PceEmacs built-in editor</A></H2>
+<H2><A NAME="sec:3.4"><SPAN class="sec-nr">3.4</SPAN><SPAN class="sec-title">Using 
+the PceEmacs built-in editor</SPAN></A></H2>
 
 <A NAME="sec:pceemacs"></A>
 
-<H3><A NAME="sec:3.4.1">3.4.1 Activating PceEmacs</A></H3>
+<H3><A NAME="sec:3.4.1"><SPAN class="sec-nr">3.4.1</SPAN><SPAN class="sec-title">Activating 
+PceEmacs</SPAN></A></H3>
 
-<P>Initially <A NAME="idx:edit1:271"></A><A HREF="listing.html#edit/1">edit/1</A> 
+<P>Initially <A NAME="idx:edit1:271"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 uses the editor specified in the <CODE>EDITOR</CODE> environment 
 variable. There are two ways to force it to use the built-in editor. One 
 is to set the prolog-flag <CODE>editor</CODE> to
@@ -55,13 +132,17 @@ is to set the prolog-flag <CODE>editor</CODE> to
 explicitly using the <A NAME="idx:emacs01:272"></A><B>emacs/[0,1]</B> 
 predicates.
 
-<H3><A NAME="sec:3.4.2">3.4.2 Bluffing through PceEmacs</A></H3>
+<H3><A NAME="sec:3.4.2"><SPAN class="sec-nr">3.4.2</SPAN><SPAN class="sec-title">Bluffing 
+through PceEmacs</SPAN></A></H3>
 
 <A NAME="sec:emacsbluff"></A>
 
 <P>PceEmacs closely mimics Richard Stallman's GNU-Emacs commands, adding 
 features from modern window-based editors to make it more acceptable for 
-beginners.<A NAME=back-to-note-15 HREF="Notes.html#note-15"> (15)</A>
+beginners.<SUP class="fn">14<SPAN class="fn-text">Decent merging with 
+MS-Windows control-key conventions is difficult as many conflict with 
+GNU-Emacs. Especially the cut/copy/paste commands conflict with 
+important GNU-Emacs commands.</SPAN></SUP>
 
 <P>At the basis, PceEmacs maps keyboard sequences to methods defined on 
 the extended <B>editor</B> object. Some frequently used commands are, 
@@ -70,7 +151,8 @@ window. A complete overview of the bindings for the current <EM>mode</EM>
 is provided through <STRONG>Help/Show key bindings</STRONG> (<CODE>Control-h 
 Control-b</CODE>).
 
-<H4><A NAME="sec:3.4.2.1">3.4.2.1 Edit modes</A></H4>
+<H4><A NAME="sec:3.4.2.1"><SPAN class="sec-nr">3.4.2.1</SPAN><SPAN class="sec-title">Edit 
+modes</SPAN></A></H4>
 
 <P>Modes are the heart of (Pce)Emacs. Modes define dedicated editing 
 support for a particular kind of (source-)text. For our purpose we want
@@ -100,7 +182,8 @@ Finally, using <STRONG>File/Mode/Prolog</STRONG> (<CODE>File/Mode/Prolog</CODE>)
 can switch to Prolog mode explicitly.
 </UL>
 
-<H4><A NAME="sec:3.4.2.2">3.4.2.2 Frequently used editor commands</A></H4>
+<H4><A NAME="sec:3.4.2.2"><SPAN class="sec-nr">3.4.2.2</SPAN><SPAN class="sec-title">Frequently 
+used editor commands</SPAN></A></H4>
 
 <P>Below we list a few important commands and how to activate them.
 
@@ -140,10 +223,11 @@ every character you type. It illustrates the current match using a green
 background.
 
 <P>If the target cannot be found, PceEmacs warns you and no longer 
-extends the search-string.<A NAME=back-to-note-16 HREF="Notes.html#note-16"> (16)</A> 
-During search some characters have special meaning. Typing anything but 
-these characters commits the search, re-starting normal edit mode. 
-Special commands are:
+extends the search-string.<SUP class="fn">15<SPAN class="fn-text">GNU-Emacs 
+keeps extending the string, but why? Adding more text will not make it 
+match.</SPAN></SUP> During search some characters have special meaning. 
+Typing anything but these characters commits the search, re-starting 
+normal edit mode. Special commands are:
 
 <DL>
 <DT><B><CODE>Control-S</CODE></B></DT>
@@ -200,16 +284,17 @@ file.
 </UL>
 
 <P>These were the most commonly used commands. In section
-<A HREF="pceemacs.html">section 3.4.3</A> we discuss specific support 
-for dealing with Prolog source code.
+<A class="sec" href="pceemacs.html">section 3.4.3</A> we discuss 
+specific support for dealing with Prolog source code.
 
-<H3><A NAME="sec:3.4.3">3.4.3 Prolog Mode</A></H3>
+<H3><A NAME="sec:3.4.3"><SPAN class="sec-nr">3.4.3</SPAN><SPAN class="sec-title">Prolog 
+Mode</SPAN></A></H3>
 
 <A NAME="sec:emacsprologmode"></A>
 
-<P>In the previous section (<A HREF="pceemacs.html">section 3.4.2</A>) 
-we explained the basics of PceEmacs. Here we continue with Prolog 
-specific functionality. Possibly the most interesting is <EM>Syntax 
+<P>In the previous section (<A class="sec" href="pceemacs.html">section 
+3.4.2</A>) we explained the basics of PceEmacs. Here we continue with 
+Prolog specific functionality. Possibly the most interesting is <EM>Syntax 
 highlighting</EM>. Unlike most editors where this is based on simple 
 patterns, PceEmacs syntax highlighting is achieved by Prolog itself 
 actually reading and interpreting the source as you type it. There are 
@@ -230,7 +315,9 @@ and the clause is not coloured.
 <LI><I>After the command <CODE>Control-c Control-s</CODE></I><BR>
 Acronym for <B>C</B>check <B>S</B>yntax it performs the same checks as 
 above for the clause surrounding the caret. On a syntax error however, 
-the caret is moved to the expected location of the error.<A NAME=back-to-note-17 HREF="Notes.html#note-17"> (17)</A>
+the caret is moved to the expected location of the error.<SUP class="fn">16<SPAN class="fn-text">In 
+most cases the location where the parser cannot proceed is further down 
+the file than the actual error-location.</SPAN></SUP>
 
 <P>
 <LI><I>After pausing for two seconds</I><BR>
@@ -253,7 +340,7 @@ for details. In general, underlined objects have a popup (right-mouse
 button) associated for common commands such as viewing the documentation 
 or source. <B>Bold</B> text is used to indicate the definition of 
 objects (typically predicates when using plain Prolog). Other colours 
-follow intuitive conventions. See <A HREF="pceemacs.html#tab:plcolour">table 
+follow intuitive conventions. See <A class="tab" href="pceemacs.html#tab:plcolour">table 
 3</A>.
 
 <P>
@@ -289,8 +376,10 @@ called </TD></TR>
 <P>Layout is not `just nice', it is <EM>essential</EM> for writing 
 readable code. There is much debate on the proper layout of Prolog. 
 PceEmacs, being a rather small project supports only one particular 
-style for layout.<A NAME=back-to-note-18 HREF="Notes.html#note-18"> (18)</A> 
-Below are examples of typical constructs.
+style for layout.<SUP class="fn">17<SPAN class="fn-text">Defined in 
+Prolog in the file <CODE>library(emacs/prolog_mode)</CODE>, you may wish 
+to extend this. Please contribute your extensions!</SPAN></SUP> Below 
+are examples of typical constructs.
 
 <PRE class="code">
 head(arg1, arg2).
@@ -332,16 +421,17 @@ indents all lines of the current clause. It provides support for head,
 calls (indented 1 tab), if-then-else, disjunction and argument-lists 
 broken across multiple lines as illustrated above.
 
-<H4><A NAME="sec:3.4.3.1">3.4.3.1 Finding your way around</A></H4>
+<H4><A NAME="sec:3.4.3.1"><SPAN class="sec-nr">3.4.3.1</SPAN><SPAN class="sec-title">Finding 
+your way around</SPAN></A></H4>
 
 <P>The command <CODE>Alt-.</CODE> extracts name and arity from the caret 
 location and jumps (after conformation or edit) to the definition of the 
 predicate. It does so based on the source-location database of loaded 
-predicates also used by <A NAME="idx:edit1:273"></A><A HREF="listing.html#edit/1">edit/1</A>. 
+predicates also used by <A NAME="idx:edit1:273"></A><A class="pred" href="listing.html#edit/1">edit/1</A>. 
 This makes locating predicates reliable if all sources are loaded and 
-up-to-date (see <A NAME="idx:make0:274"></A><A HREF="consulting.html#make/0">make/0</A>).
+up-to-date (see <A NAME="idx:make0:274"></A><A class="pred" href="consulting.html#make/0">make/0</A>).
 
-<P>In addition, references to files in <A NAME="idx:usemodule12:275"></A><A HREF="import.html#use_module/1">use_module/[1,2]</A>, <A NAME="idx:consult1:276"></A><A HREF="consulting.html#consult/1">consult/1</A>, 
+<P>In addition, references to files in <A NAME="idx:usemodule12:275"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>, <A NAME="idx:consult1:276"></A><A class="pred" href="consulting.html#consult/1">consult/1</A>, 
 etc. are red if the file cannot be found and underlined blue if the file 
 can be loaded. A popup allows for opening the referenced file.
 

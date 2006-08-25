@@ -2,47 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.14</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.14</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpbounds.html">
 <LINK REL=next HREF="clpclp_distinct.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="clpbounds.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="clpclp_distinct.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="clpbounds.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="clpclp_distinct.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.14">A.14 library( clpqr ): Constraint Logic 
-Programming over Rationals and Reals</A></H2>
+<H2><A NAME="sec:A.14"><SPAN class="sec-nr">A.14</SPAN><SPAN class="sec-title">library( 
+clpqr ): Constraint Logic Programming over Rationals and Reals</SPAN></A></H2>
 
 <A NAME="clpqr"></A>
 <A NAME="sec:lib:clpqr"></A>
@@ -52,7 +127,7 @@ Programming over Rationals and Reals</A></H2>
 <P>This CLP(Q,R) system is a port of the CLP(Q,R) system of Sicstus 
 Prolog by Christian Holzbaur: Holzbaur C.: OFAI clp(q,r) Manual, Edition 
 1.3.3, Austrian Research Institute for Artificial Intelligence, Vienna, 
-TR-95-09, 1995.<A NAME=back-to-note-91 HREF="Notes.html#note-91"> (91)</A> 
+TR-95-09, 1995.<SUP class="fn">78<SPAN class="fn-text">http://www.ai.univie.ac.at/cgi-bin/tr-online?number+95-09</SPAN></SUP> 
 This manual is roughly based on the manual of the above mentioned 
 CLP(Q,R) implementation.
 
@@ -61,7 +136,7 @@ for handling constraints over the rational numbers and the CLP(R)
 library for handling constraints over the real numbers (using floating 
 point numbers as representation). Both libraries offer the same 
 predicates (with exception of
-<A HREF="clpqr.html#bb_inf/4">bb_inf/4</A> in CLP(Q) and <A HREF="clpqr.html#bb_inf/5">bb_inf/5</A> 
+<A class="pred" href="clpqr.html#bb_inf/4">bb_inf/4</A> in CLP(Q) and <A class="pred" href="clpqr.html#bb_inf/5">bb_inf/5</A> 
 in CLP(R)). It is allowed to use both libraries in one program, but 
 using both CLP(Q) and CLP(R) constraints on the same variable will 
 result in an exception.
@@ -81,7 +156,8 @@ explicitely before using it:
 :- use_module(library(clpr)).
 </PRE>
 
-<H3><A NAME="sec:A.14.1">A.14.1 Solver predicates</A></H3>
+<H3><A NAME="sec:A.14.1"><SPAN class="sec-nr">A.14.1</SPAN><SPAN class="sec-title">Solver 
+predicates</SPAN></A></H3>
 
 The following predicates are provided to work with constraints:
 
@@ -132,12 +208,12 @@ an integer to be considered an integer. E.g. when
 +Expression, -Inf, -Vertex</VAR>)</A></DT>
 <DD class="defbody">
 This predicate is offered in CLP(Q) only. It behaves the same as
-<A HREF="clpqr.html#bb_inf/5">bb_inf/5</A> but does not use an error 
-margin.</DD>
+<A class="pred" href="clpqr.html#bb_inf/5">bb_inf/5</A> but does not use 
+an error margin.</DD>
 <DT class="pubdef"><A NAME="bb_inf/3"><STRONG>bb_inf</STRONG>(<VAR>+ints, 
 +Expression, -Inf</VAR>)</A></DT>
 <DD class="defbody">
-The same as <A HREF="clpqr.html#bb_inf/5">bb_inf/5</A> or <A HREF="clpqr.html#bb_inf/4">bb_inf/4</A> 
+The same as <A class="pred" href="clpqr.html#bb_inf/5">bb_inf/5</A> or <A class="pred" href="clpqr.html#bb_inf/4">bb_inf/4</A> 
 but without returning the values of the integers. In CLP(R), an error 
 margin of 0.001 is used.</DD>
 <DT class="pubdef"><A NAME="dump/3"><STRONG>dump</STRONG>(<VAR>+Target, 
@@ -157,11 +233,12 @@ have been replaced by atoms x, y and z.
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:A.14.2">A.14.2 Syntax of the predicate arguments</A></H3>
+<H3><A NAME="sec:A.14.2"><SPAN class="sec-nr">A.14.2</SPAN><SPAN class="sec-title">Syntax 
+of the predicate arguments</SPAN></A></H3>
 
 The arguments of the predicates defined in the subsection above are 
-defined in <A HREF="clpqr.html#tab:clpqrbnf">table 9</A>. Failing to 
-meet the syntax rules will result in an exception.
+defined in <A class="tab" href="clpqr.html#tab:clpqrbnf">table 9</A>. 
+Failing to meet the syntax rules will result in an exception.
 
 <P>
 <CENTER>
@@ -226,10 +303,11 @@ value </TD></TR>
 <A NAME="tab:clpqrbnf"></A>
 </CENTER>
 
-<H3><A NAME="sec:A.14.3">A.14.3 Use of unification</A></H3>
+<H3><A NAME="sec:A.14.3"><SPAN class="sec-nr">A.14.3</SPAN><SPAN class="sec-title">Use 
+of unification</SPAN></A></H3>
 
-<P>Instead of using the <A HREF="clpqr.html#{}/1">{}/1</A> predicate, 
-you can also use the standard unification mechanism to store 
+<P>Instead of using the <A class="pred" href="clpqr.html#{}/1">{}/1</A> 
+predicate, you can also use the standard unification mechanism to store 
 constraints. The following code samples are equivalent:
 
 <P>
@@ -254,12 +332,13 @@ X = 5.0
 <P>
 </UL>
 
-<H3><A NAME="sec:A.14.4">A.14.4 Non-linear constraints</A></H3>
+<H3><A NAME="sec:A.14.4"><SPAN class="sec-nr">A.14.4</SPAN><SPAN class="sec-title">Non-linear 
+constraints</SPAN></A></H3>
 
 The CLP(Q,R) system deals only passively with non-linear constraints. 
 They remain in a passive state until certain conditions are satisfied. 
 These conditions, which are called the isolation axioms, are given in
-<A HREF="clpqr.html#tab:clpqraxioms">table 10</A>.
+<A class="tab" href="clpqr.html#tab:clpqraxioms">table 10</A>.
 
 <P>
 <CENTER>

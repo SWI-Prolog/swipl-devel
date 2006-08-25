@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="gvar.html">
 <LINK REL=next HREF="chrintro.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="gvar.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="chrintro.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="gvar.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="chrintro.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H1><A NAME="sec:7">7 CHR: Constraint Handling Rules</A></H1>
+<H1><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">CHR: 
+Constraint Handling Rules</SPAN></A></H1>
 
 <A NAME="sec:chr"></A>
 
@@ -62,7 +138,7 @@ Handling Rules: Selected Contributions (Fr&uuml;hwirth, T. and Meister,
 M., eds.), pp. 1--5, 2004.
 </UL>
 
-<P>On the K.U.Leuven CHR website (<A HREF="http://www.cs.kuleuven.be/\~{}toms/CHR/">http://www.cs.kuleuven.be/\~{}toms/CHR/</A>) 
+<P>On the K.U.Leuven CHR website (<A class="url" href="http://www.cs.kuleuven.be/\~{}toms/CHR/">http://www.cs.kuleuven.be/\~{}toms/CHR/</A>) 
 you can find more related papers, references and example programs.
 
 <P>
@@ -73,32 +149,32 @@ you can find more related papers, references and example programs.
 
 </CENTER>
 <HR>
-<UL>
-<LI><A HREF="chrintro.html"><B>7.1 Introduction</B></A>
-<LI><A HREF="SyntaxAndSemantics.html"><B>7.2 Syntax and Semantics</B></A>
-<UL>
-<LI><A HREF="SyntaxAndSemantics.html#sec:7.2.1">7.2.1 Syntax</A>
-<LI><A HREF="SyntaxAndSemantics.html#sec:7.2.2">7.2.2 Semantics</A>
-</UL>
-<LI><A HREF="practical.html"><B>7.3 CHR in SWI-Prolog Programs</B></A>
-<UL>
-<LI><A HREF="practical.html#sec:7.3.1">7.3.1 Embedding in Prolog 
-Programs</A>
-<LI><A HREF="practical.html#sec:7.3.2">7.3.2 Constraint declaration</A>
-<LI><A HREF="practical.html#sec:7.3.3">7.3.3 Compilation</A>
-</UL>
-<LI><A HREF="debugging.html"><B>7.4 Debugging</B></A>
-<UL>
-<LI><A HREF="debugging.html#sec:7.4.1">7.4.1 Ports</A>
-<LI><A HREF="debugging.html#sec:7.4.2">7.4.2 Tracing</A>
-<LI><A HREF="debugging.html#sec:7.4.3">7.4.3 CHR Debugging Predicates</A>
-</UL>
-<LI><A HREF="examples.html"><B>7.5 Examples</B></A>
-<LI><A HREF="sicstus-chr.html"><B>7.6 Backwards Compatibility</B></A>
-<LI><A HREF="guidelines.html"><B>7.7 Programming Tips and Tricks</B></A>
-<LI><A HREF="errors.html"><B>7.8 Compiler Errors and Warnings</B></A>
-<UL>
-<LI><A HREF="errors.html#sec:7.8.1">7.8.1 CHR Compiler Errors</A>
-</UL>
-</UL>
+<DIV class="toc">
+<DIV class="toc-h2"><A class="sec" href="chrintro.html"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="SyntaxAndSemantics.html"><SPAN class="sec-nr">7.2</SPAN><SPAN class="sec-title">Syntax 
+and Semantics</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="SyntaxAndSemantics.html#sec:7.2.1"><SPAN class="sec-nr">7.2.1</SPAN><SPAN class="sec-title">Syntax</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="SyntaxAndSemantics.html#sec:7.2.2"><SPAN class="sec-nr">7.2.2</SPAN><SPAN class="sec-title">Semantics</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="practical.html"><SPAN class="sec-nr">7.3</SPAN><SPAN class="sec-title">CHR 
+in SWI-Prolog Programs</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="practical.html#sec:7.3.1"><SPAN class="sec-nr">7.3.1</SPAN><SPAN class="sec-title">Embedding 
+in Prolog Programs</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="practical.html#sec:7.3.2"><SPAN class="sec-nr">7.3.2</SPAN><SPAN class="sec-title">Constraint 
+declaration</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="practical.html#sec:7.3.3"><SPAN class="sec-nr">7.3.3</SPAN><SPAN class="sec-title">Compilation</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="debugging.html"><SPAN class="sec-nr">7.4</SPAN><SPAN class="sec-title">Debugging</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="debugging.html#sec:7.4.1"><SPAN class="sec-nr">7.4.1</SPAN><SPAN class="sec-title">Ports</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="debugging.html#sec:7.4.2"><SPAN class="sec-nr">7.4.2</SPAN><SPAN class="sec-title">Tracing</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="debugging.html#sec:7.4.3"><SPAN class="sec-nr">7.4.3</SPAN><SPAN class="sec-title">CHR 
+Debugging Predicates</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="examples.html"><SPAN class="sec-nr">7.5</SPAN><SPAN class="sec-title">Examples</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="sicstus-chr.html"><SPAN class="sec-nr">7.6</SPAN><SPAN class="sec-title">Backwards 
+Compatibility</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="guidelines.html"><SPAN class="sec-nr">7.7</SPAN><SPAN class="sec-title">Programming 
+Tips and Tricks</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="errors.html"><SPAN class="sec-nr">7.8</SPAN><SPAN class="sec-title">Compiler 
+Errors and Warnings</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="errors.html#sec:7.8.1"><SPAN class="sec-nr">7.8.1</SPAN><SPAN class="sec-title">CHR 
+Compiler Errors</SPAN></A></DIV>
+</DIV>
 </BODY></HTML>

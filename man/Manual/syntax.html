@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 2.15</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 2.15</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="gc.html">
 <LINK REL=next HREF="cyclic.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="gc.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="cyclic.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="gc.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="cyclic.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:2.15">2.15 Syntax Notes</A></H2>
+<H2><A NAME="sec:2.15"><SPAN class="sec-nr">2.15</SPAN><SPAN class="sec-title">Syntax 
+Notes</SPAN></A></H2>
 
 <A NAME="sec:syntax"></A>
 
@@ -70,13 +146,15 @@ useful if some code with <CODE>/* ... */</CODE> comment statements in it
 should be commented out.
 </UL>
 
-<H3><A NAME="sec:2.15.1">2.15.1 ISO Syntax Support</A></H3>
+<H3><A NAME="sec:2.15.1"><SPAN class="sec-nr">2.15.1</SPAN><SPAN class="sec-title">ISO 
+Syntax Support</SPAN></A></H3>
 
 <A NAME="sec:isosyntax"></A>
 
 <P>SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
 
-<H4><A NAME="sec:2.15.1.1">2.15.1.1 Processor Character Set</A></H4>
+<H4><A NAME="sec:2.15.1.1"><SPAN class="sec-nr">2.15.1.1</SPAN><SPAN class="sec-title">Processor 
+Character Set</SPAN></A></H4>
 
 <A NAME="sec:processorcharset"></A>
 
@@ -84,9 +162,10 @@ should be commented out.
 processor character set specifies the class of each character used for 
 parsing Prolog source text. Character classification is fixed to use 
 UCS/Unicode as provided by the C-library <CODE>wchar_t</CODE> based 
-primitives. See also <A HREF="widechars.html">section 2.17</A>.
+primitives. See also <A class="sec" href="widechars.html">section 2.17</A>.
 
-<H4><A NAME="sec:2.15.1.2">2.15.1.2 Character Escape Syntax</A></H4>
+<H4><A NAME="sec:2.15.1.2"><SPAN class="sec-nr">2.15.1.2</SPAN><SPAN class="sec-title">Character 
+Escape Syntax</SPAN></A></H4>
 
 <A NAME="sec:charescapes"></A>
 
@@ -185,17 +264,18 @@ and <CODE>''''</CODE> both describe the atom with a single&nbsp;<CODE>'</CODE>.
 
 <P>Character escaping is only available if the
 <CODE>current_prolog_flag(character_escapes, true)</CODE> is active 
-(default). See <A NAME="idx:currentprologflag2:201"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>. 
-Character escapes conflict with <A NAME="idx:writef2:202"></A><A HREF="format.html#writef/2">writef/2</A> 
-in two ways: <CODE>\40</CODE> is interpreted as decimal 40 by <A NAME="idx:writef2:203"></A><A HREF="format.html#writef/2">writef/2</A>, 
+(default). See <A NAME="idx:currentprologflag2:201"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>. 
+Character escapes conflict with <A NAME="idx:writef2:202"></A><A class="pred" href="format.html#writef/2">writef/2</A> 
+in two ways: <CODE>\40</CODE> is interpreted as decimal 40 by <A NAME="idx:writef2:203"></A><A class="pred" href="format.html#writef/2">writef/2</A>, 
 but character escapes handling by read has already interpreted as 32 (40 
 octal). Also, <CODE>\l</CODE> is translated to a single `l'. It is 
-advised to use the more widely supported <A NAME="idx:format23:204"></A><A HREF="format.html#format/2">format/[2,3]</A> 
-predicate instead. If you insist upon using <A NAME="idx:writef2:205"></A><A HREF="format.html#writef/2">writef/2</A>, 
+advised to use the more widely supported <A NAME="idx:format23:204"></A><A class="pred" href="format.html#format/2">format/[2,3]</A> 
+predicate instead. If you insist upon using <A NAME="idx:writef2:205"></A><A class="pred" href="format.html#writef/2">writef/2</A>, 
 either switch <CODE>character_escapes</CODE> to
 <CODE>false</CODE>, or use double <CODE>\\</CODE>, as in <CODE>writef('\\l')</CODE>.
 
-<H4><A NAME="sec:2.15.1.3">2.15.1.3 Syntax for non-decimal numbers</A></H4>
+<H4><A NAME="sec:2.15.1.3"><SPAN class="sec-nr">2.15.1.3</SPAN><SPAN class="sec-title">Syntax 
+for non-decimal numbers</SPAN></A></H4>
 
 <A NAME="sec:nondecsyntax"></A>
 
@@ -207,18 +287,19 @@ binary, octal and hexadecimal numbers using
 <CODE>0<EM>[bxo]</EM>&lt;<VAR>number</VAR>&gt;</CODE>. For example: <CODE>A is 0b100 \/ 0xf00</CODE> 
 is a valid expression. Such numbers are always unsigned.
 
-<H4><A NAME="sec:2.15.1.4">2.15.1.4 Unicode Prolog source</A></H4>
+<H4><A NAME="sec:2.15.1.4"><SPAN class="sec-nr">2.15.1.4</SPAN><SPAN class="sec-title">Unicode 
+Prolog source</SPAN></A></H4>
 
 <A NAME="sec:unicodesyntax"></A>
 
 <P>The ISO standard specifies the Prolog syntax in ASCII characters. As 
 SWI-Prolog supports Unicode in source files we must extend the syntax. 
 This section describes the implication for the source files, while 
-writing international source files is described in <A HREF="projectfiles.html">section 
+writing international source files is described in <A class="sec" href="projectfiles.html">section 
 3.1.3</A>.
 
 <P>The SWI-Prolog Unicode character classification is based on version 
-4.1.0 of the Unicode standard. Please that <A NAME="idx:chartype2:206"></A><A HREF="chartype.html#char_type/2">char_type/2</A> 
+4.1.0 of the Unicode standard. Please that <A NAME="idx:chartype2:206"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
 and friends, intended to be used with all text except Prolog source code 
 is based on the C-library locale-based classification routines.
 
@@ -227,13 +308,13 @@ is based on the C-library locale-based classification routines.
 <LI><I>Quoted atoms and strings</I><BR>
 Any character of any script can be used in quoted atoms and strings. The 
 escape sequences <CODE>\uXXXX</CODE> and <CODE>\UXXXXXXXX</CODE> (see
-<A HREF="syntax.html">section 2.15.1.2</A>) were introduced to specify 
-Unicode code points in ASCII files.
+<A class="sec" href="syntax.html">section 2.15.1.2</A>) were introduced 
+to specify Unicode code points in ASCII files.
 
 <P>
 <LI><I>Atoms and Variables</I><BR>
 We handle them in one item as they are closely related. The Unicode 
-standard defines a syntax for identifiers in computer languages.<A NAME=back-to-note-8 HREF="Notes.html#note-8"> (8)</A> 
+standard defines a syntax for identifiers in computer languages.<SUP class="fn">7<SPAN class="fn-text"><A class="url" href="http://www.unicode.org/reports/tr31/">http://www.unicode.org/reports/tr31/</A></SPAN></SUP> 
 In this syntax identifiers start with <CODE>ID_Start</CODE> followed by 
 a sequence of <CODE>ID_Continue</CODE> codes. Such sequences are handled 
 as a single token in SWI-Prolog. The token is a <EM>variable</EM> iff it 
@@ -257,7 +338,8 @@ more appropriate distinction between what is known to Prolog as `solo'
 characters and `singleton' characters.
 </UL>
 
-<H4><A NAME="sec:2.15.1.5">2.15.1.5 Singleton variable checking</A></H4>
+<H4><A NAME="sec:2.15.1.5"><SPAN class="sec-nr">2.15.1.5</SPAN><SPAN class="sec-title">Singleton 
+variable checking</SPAN></A></H4>
 
 <A NAME="sec:singleton"></A>
 
@@ -265,7 +347,7 @@ characters and `singleton' characters.
 clause. It can always be replaced by <CODE>_</CODE>, the <EM>anonymous</EM> 
 variable. In some cases however people prefer to give the variable a 
 name. As mistyping a variable is a common mistake, Prolog systems 
-generally give a warning (controlled by <A NAME="idx:stylecheck1:207"></A><A HREF="debugger.html#style_check/1">style_check/1</A>) 
+generally give a warning (controlled by <A NAME="idx:stylecheck1:207"></A><A class="pred" href="debugger.html#style_check/1">style_check/1</A>) 
 if a variable is used only once. The system can be informed a variable 
 is known to appear once by <EM>starting</EM> it with an underscore. E.g. <CODE>_Name</CODE>. 
 Please note that any variable, except plain <CODE>_</CODE> shares with 
@@ -273,8 +355,9 @@ variables of the same name. The term <CODE>t(_X, _X)</CODE> is
 equivalent to <CODE>t(X, X)</CODE>, which is <EM>different</EM> from <CODE>t(_, _)</CODE>.
 
 <P>As Unicode requires variables to start with an underscore in many 
-languages this schema needs to be extended.<A NAME=back-to-note-9 HREF="Notes.html#note-9"> (9)</A> 
-First we define the two classes of named variables.
+languages this schema needs to be extended.<SUP class="fn">8<SPAN class="fn-text">After 
+a proposal by Richard O'Keefe.</SPAN></SUP> First we define the two 
+classes of named variables.
 
 <P>
 <UL>
@@ -287,7 +370,8 @@ or
 <P>
 <LI><I>Normal variables</I><BR>
 All other variables are `normal' variables. Note this makes <CODE>_var</CODE> 
-a normal variable.<A NAME=back-to-note-10 HREF="Notes.html#note-10"> (10)</A>
+a normal variable.<SUP class="fn">9<SPAN class="fn-text">Some Prolog 
+dialects write variables this way.</SPAN></SUP>
 </UL>
 
 <P>Any normal variable appearing exactly ones in the clause <EM>and</EM> 

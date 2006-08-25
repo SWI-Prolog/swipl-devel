@@ -2,54 +2,134 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section D.3</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section D.3</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="contrib.html">
 <LINK REL=next HREF="library.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="contrib.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="library.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="contrib.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="library.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:D.3">D.3 Software support to keep track of license 
-conditions</A></H2>
+<H2><A NAME="sec:D.3"><SPAN class="sec-nr">D.3</SPAN><SPAN class="sec-title">Software 
+support to keep track of license conditions</SPAN></A></H2>
 
 <A NAME="sec:softlicense"></A>
 
 <P>Given the above, it is possible that SWI-Prolog packages and 
-extensions will rely on the GPL.<A NAME=back-to-note-93 HREF="Notes.html#note-93"> (93)</A> 
-The predicates below allow for registering license requirements for 
-Prolog files and foreign modules. The predicate <A NAME="idx:evallicense0:1463"></A><A HREF="softlicense.html#eval_license/0">eval_license/0</A> 
+extensions will rely on the GPL.<SUP class="fn">80<SPAN class="fn-text">On 
+the Unix version, the default toplevel uses the GNU readline library for 
+command-line editing. This library is distributed under the GPL. In 
+practice this problem is small as most final applications have Prolog 
+embedded, without direct access to the commandline and therefore without 
+need for <CODE>libreadline</CODE>.</SPAN></SUP> The predicates below 
+allow for registering license requirements for Prolog files and foreign 
+modules. The predicate <A NAME="idx:evallicense0:1499"></A><A class="pred" href="softlicense.html#eval_license/0">eval_license/0</A> 
 reports which components from the currenly configured system are 
 distributed under copy-left and open source enforcing licenses (the GPL) 
 and therefore must be replaced before distributing linked applications 
@@ -74,7 +154,9 @@ are:
 <DT><STRONG>swipl</STRONG></DT>
 <DD class="defbody">
 Indicates this module is distributed under the GNU General Public 
-License (GPL) with the SWI-Prolog exception:<A NAME=back-to-note-94 HREF="Notes.html#note-94"> (94)</A>
+License (GPL) with the SWI-Prolog exception:<SUP class="fn">81<SPAN class="fn-text">This 
+exception is a straight re-phrasing of the license used for <CODE>libgcc</CODE>, 
+the GNU-C runtime library facing similar technical issues.</SPAN></SUP>
 <BLOCKQUOTE><I>As a special exception, if you link this library with 
 other files, compiled with SWI-Prolog, to produce an executable, this 
 library does not by itself cause the resulting executable to be covered 
@@ -110,7 +192,7 @@ clauses for the multifile predicate license:license/3. Below is an
 example. The second argument is either <CODE>gpl</CODE> or <CODE>lgpl</CODE> 
 to indicate compatibility to these licenses. Other values cause the 
 license to interpreted as <EM>proprietary</EM>. Proprietary licenses are 
-reported by <A NAME="idx:evallicense0:1464"></A><A HREF="softlicense.html#eval_license/0">eval_license/0</A>. 
+reported by <A NAME="idx:evallicense0:1500"></A><A class="pred" href="softlicense.html#eval_license/0">eval_license/0</A>. 
 See the file <CODE>boot/license.pl</CODE> for details.
 
 <PRE class="code">
@@ -128,7 +210,7 @@ license:license(mylicense, lgpl,
 <DT class="pubdef"><A NAME="license/1"><STRONG>license</STRONG>(<VAR>+LicenseId</VAR>)</A></DT>
 <DD class="defbody">
 Intented as a directive in Prolog source files. It takes the current 
-filename and calls <A NAME="idx:license2:1465"></A><A HREF="softlicense.html#license/2">license/2</A>.</DD>
+filename and calls <A NAME="idx:license2:1501"></A><A class="pred" href="softlicense.html#license/2">license/2</A>.</DD>
 <DT class="pubdef"><A NAME="PL_license()"><VAR>void</VAR> <STRONG>PL_license</STRONG>(<VAR>const 
 char *LicenseId, const char *Component</VAR>)</A></DT>
 <DD class="defbody">

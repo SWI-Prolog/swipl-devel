@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.35</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.35</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="system.html">
 <LINK REL=next HREF="toplevel.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="system.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="toplevel.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="system.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="toplevel.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.35">4.35 File System Interaction</A></H2>
+<H2><A NAME="sec:4.35"><SPAN class="sec-nr">4.35</SPAN><SPAN class="sec-title">File 
+System Interaction</SPAN></A></H2>
 
 <A NAME="sec:files"></A>
 
@@ -106,8 +182,8 @@ Unify <VAR>Size</VAR> with the size of <VAR>File</VAR> in characters.</DD>
 <DD class="defbody">
 Unify the last modification time of <VAR>File</VAR> with <VAR>Time</VAR>.
 <VAR>Time</VAR> is a floating point number expressing the seconds 
-elapsed since Jan&nbsp;1, 1970. See also <A NAME="idx:converttime28:971"></A><B>convert_time/[2,8]</B> 
-and <A NAME="idx:gettime1:972"></A><A HREF="system.html#get_time/1">get_time/1</A>.</DD>
+elapsed since Jan&nbsp;1, 1970. See also <A NAME="idx:converttime28:999"></A><B>convert_time/[2,8]</B> 
+and <A NAME="idx:gettime1:1000"></A><A class="pred" href="system.html#get_time/1">get_time/1</A>.</DD>
 <DT class="pubdef"><A NAME="absolute_file_name/2"><STRONG>absolute_file_name</STRONG>(<VAR>+File, 
 -Absolute</VAR>)</A></DT>
 <DD class="defbody">
@@ -116,10 +192,10 @@ canonised: references to <CODE>.</CODE> and <CODE>..</CODE> are deleted.
 This predicate ensures that expanding a file-name it returns the same 
 absolute path regardless of how the file is addressed. SWI-Prolog uses 
 absolute file names to register source files independent of the current 
-working directory. See also <A NAME="idx:absolutefilename3:973"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A>. 
+working directory. See also <A NAME="idx:absolutefilename3:1001"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A>. 
 See also
-<A NAME="idx:absolutefilename3:974"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A> 
-and <A NAME="idx:expandfilename2:975"></A><A HREF="files.html#expand_file_name/2">expand_file_name/2</A>.</DD>
+<A NAME="idx:absolutefilename3:1002"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+and <A NAME="idx:expandfilename2:1003"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A>.</DD>
 <DT class="pubdef"><A NAME="absolute_file_name/3"><STRONG>absolute_file_name</STRONG>(<VAR>+Spec, 
 +Options, -Absolute</VAR>)</A></DT>
 <DD class="defbody">
@@ -130,7 +206,7 @@ Converts the given file specification into an absolute path.
 <DT><STRONG>extensions</STRONG>(<VAR>ListOfExtensions</VAR>)</DT>
 <DD class="defbody">
 List of file-extensions to try. Default is <CODE>''</CODE>. For each 
-extension, <A NAME="idx:absolutefilename3:976"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+extension, <A NAME="idx:absolutefilename3:1004"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
 will first add the extension and then verify the conditions imposed by 
 the other options. If the condition fails, the next extension of the 
 list is tried. Extensions may be specified both as <CODE>..ext</CODE> or 
@@ -139,15 +215,15 @@ plain <CODE>ext</CODE>.</DD>
 <DD class="defbody">
 Resolve the path relative to the given directory or directory the 
 holding the given file. Without this option, paths are resolved relative 
-to the working directory (see <A NAME="idx:workingdirectory2:977"></A><A HREF="files.html#working_directory/2">working_directory/2</A>) 
-or, if <VAR>Spec</VAR> is atomic and <A NAME="idx:absolutefilename23:978"></A><A HREF="files.html#absolute_file_name/2">absolute_file_name/[2,3]</A> 
+to the working directory (see <A NAME="idx:workingdirectory2:1005"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A>) 
+or, if <VAR>Spec</VAR> is atomic and <A NAME="idx:absolutefilename23:1006"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/[2,3]</A> 
 is executed in a directive, it uses the current source-file as 
 reference.</DD>
 <DT><STRONG>access</STRONG>(<VAR>Mode</VAR>)</DT>
 <DD class="defbody">
 Imposes the condition access_file(<VAR>File</VAR>, <VAR>Mode</VAR>). <VAR>Mode</VAR> 
 is on of <CODE>read</CODE>, <CODE>write</CODE>, <CODE>append</CODE>, <CODE>exist</CODE> 
-or <CODE>none</CODE>. See also <A NAME="idx:accessfile2:979"></A><A HREF="files.html#access_file/2">access_file/2</A>.</DD>
+or <CODE>none</CODE>. See also <A NAME="idx:accessfile2:1007"></A><A class="pred" href="files.html#access_file/2">access_file/2</A>.</DD>
 <DT><STRONG>file_type</STRONG>(<VAR>Type</VAR>)</DT>
 <DD class="defbody">
 Defines extensions. Current mapping: <CODE>txt</CODE> implies <CODE>['']</CODE>,
@@ -157,12 +233,13 @@ implies
 and
 <CODE>directory</CODE> implies <CODE>['']</CODE>. The file-type <CODE>source</CODE> 
 is an alias for <CODE>prolog</CODE> for compatibility to SICStus Prolog. 
-See also <A NAME="idx:prologfiletype2:980"></A><A HREF="consulting.html#prolog_file_type/2">prolog_file_type/2</A>.</DD>
+See also <A NAME="idx:prologfiletype2:1008"></A><A class="pred" href="consulting.html#prolog_file_type/2">prolog_file_type/2</A>.</DD>
 <DT><STRONG>file_errors</STRONG>(<VAR>fail/error</VAR>)</DT>
 <DD class="defbody">
 If <CODE>error</CODE> (default), throw and <CODE>existence_error</CODE> 
 exception if the file cannot be found. If <CODE>fail</CODE>, stay 
-silent.<A NAME=back-to-note-64 HREF="Notes.html#note-64"> (64)</A></DD>
+silent.<SUP class="fn">57<SPAN class="fn-text">Silent operation was the 
+default up to version 3.2.6.</SPAN></SUP></DD>
 <DT><STRONG>solutions</STRONG>(<VAR>first/all</VAR>)</DT>
 <DD class="defbody">
 If <CODE>first</CODE> (default), the predicates leaves no choice-point. 
@@ -171,8 +248,8 @@ solutions.</DD>
 <DT><STRONG>expand</STRONG>(<VAR>true/false</VAR>)</DT>
 <DD class="defbody">
 If <CODE>true</CODE> (default is <CODE>false</CODE>) and <VAR>Spec</VAR> 
-is atomic, call <A NAME="idx:expandfilename2:981"></A><A HREF="files.html#expand_file_name/2">expand_file_name/2</A> 
-followed by <A NAME="idx:member2:982"></A><A HREF="lists.html#member/2">member/2</A> 
+is atomic, call <A NAME="idx:expandfilename2:1009"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A> 
+followed by <A NAME="idx:member2:1010"></A><A class="pred" href="lists.html#member/2">member/2</A> 
 on <VAR>Spec</VAR> before proceeding. This is a SWI-Prolog extension.
 </DD>
 </DL>
@@ -181,7 +258,7 @@ on <VAR>Spec</VAR> before proceeding. This is a SWI-Prolog extension.
 to help debugging Prolog's search for files.
 
 <P>Compatibility considerations to common argument-order in ISO as well 
-as SICStus <A NAME="idx:absolutefilename3:983"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+as SICStus <A NAME="idx:absolutefilename3:1011"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
 forced us to be flexible here. If the last argument is a list and the 
 2nd not, the arguments are swapped, making the call <CODE>absolute_file_name(+Spec, 
 -Path, +Options)</CODE> valid as well.</DD>
@@ -191,8 +268,8 @@ True if <VAR>File</VAR> specifies and absolute path-name. On Unix
 systems, this implies the path starts with a `/'. For Microsoft based 
 systems this implies the path starts with <CODE>&lt;<VAR>letter</VAR>&gt;:</CODE>. 
 This predicate is intended to provide platform-independent checking for 
-absolute paths. See also <A NAME="idx:absolutefilename2:984"></A><A HREF="files.html#absolute_file_name/2">absolute_file_name/2</A> 
-and <A NAME="idx:prologtoosfilename2:985"></A><A HREF="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A>.</DD>
+absolute paths. See also <A NAME="idx:absolutefilename2:1012"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/2</A> 
+and <A NAME="idx:prologtoosfilename2:1013"></A><A class="pred" href="files.html#prolog_to_os_filename/2">prolog_to_os_filename/2</A>.</DD>
 <DT class="pubdef"><A NAME="file_name_extension/3"><STRONG>file_name_extension</STRONG>(<VAR>?Base, 
 ?Extension, ?Name</VAR>)</A></DT>
 <DD class="defbody">
@@ -222,7 +299,13 @@ characters returns the argument, regardless on whether or not it exists.
 <P>Before expanding wildcards, the construct <CODE>$<VAR>var</VAR></CODE> 
 is expanded to the value of the environment variable <VAR>var</VAR> and 
 a possible leading <CODE>~</CODE> character is expanded to the user's 
-home directory.<A NAME=back-to-note-65 HREF="Notes.html#note-65"> (65)</A>.</DD>
+home directory.<SUP class="fn">58<SPAN class="fn-text">On Windows, the 
+home directory is determined as follows: if the environment variable <CODE>HOME</CODE> 
+exists, this is used. If the variables <CODE>HOMEDRIVE</CODE> and <CODE>HOMEPATH</CODE> 
+exist (Windows-NT), these are used. At initialisation, the system will 
+set the environment variable <CODE>HOME</CODE> to point to the 
+SWI-Prolog home directory if neither <CODE>HOME</CODE> nor <CODE>HOMEPATH</CODE> 
+and <CODE>HOMEDRIVE</CODE> are defined</SPAN></SUP>.</DD>
 <DT class="pubdef"><A NAME="prolog_to_os_filename/2"><STRONG>prolog_to_os_filename</STRONG>(<VAR>?PrologPath, 
 ?OsPath</VAR>)</A></DT>
 <DD class="defbody">
@@ -264,12 +347,15 @@ Unify <VAR>Old</VAR> with an absolute path to the current working
 directory and change working directory to <VAR>New</VAR>. Use the 
 pattern
 <CODE>working_directory(CWD, CWD)</CODE> to get the current directory. 
-See also <A NAME="idx:absolutefilename2:986"></A><A HREF="files.html#absolute_file_name/2">absolute_file_name/2</A> 
-and <A NAME="idx:chdir1:987"></A><A HREF="files.html#chdir/1">chdir/1</A>.<A NAME=back-to-note-66 HREF="Notes.html#note-66"> (66)</A> 
+See also <A NAME="idx:absolutefilename2:1014"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/2</A> 
+and <A NAME="idx:chdir1:1015"></A><A class="pred" href="files.html#chdir/1">chdir/1</A>.<SUP class="fn">bug<SPAN class="fn-text">Some 
+of the file-I/O predicates use local filenames. Changing directory while 
+file-bound streams are open causes wrong results on <A NAME="idx:telling1:1016"></A><A class="pred" href="IO.html#telling/1">telling/1</A>, <A NAME="idx:seeing1:1017"></A><A class="pred" href="IO.html#seeing/1">seeing/1</A> 
+and <A NAME="idx:currentstream3:1018"></A><A class="pred" href="IO.html#current_stream/3">current_stream/3</A></SPAN></SUP> 
 Note that the working directory is shared between all threads.</DD>
 <DT class="pubdef"><A NAME="chdir/1"><STRONG>chdir</STRONG>(<VAR>+Path</VAR>)</A></DT>
 <DD class="defbody">
-Compatibility predicate. New code should use <A NAME="idx:workingdirectory2:988"></A><A HREF="files.html#working_directory/2">working_directory/2</A>.
+Compatibility predicate. New code should use <A NAME="idx:workingdirectory2:1019"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A>.
 </DD>
 </DL>
 

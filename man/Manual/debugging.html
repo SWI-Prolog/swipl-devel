@@ -2,46 +2,121 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 7.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 7.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="practical.html">
 <LINK REL=next HREF="examples.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="practical.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="examples.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="practical.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="examples.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:7.4">7.4 Debugging</A></H2>
+<H2><A NAME="sec:7.4"><SPAN class="sec-nr">7.4</SPAN><SPAN class="sec-title">Debugging</SPAN></A></H2>
 
 <A NAME="sec:debugging"></A> The CHR debugging facilities are currently 
 rather limited. Only tracing is currently available. To use the CHR 
@@ -51,7 +126,7 @@ whose default is derived from the SWI-Prolog flag <CODE>generate_debug_info</COD
 Therefore debug info is provided unless the <STRONG>-nodebug</STRONG> is 
 used.
 
-<H3><A NAME="sec:7.4.1">7.4.1 Ports</A></H3>
+<H3><A NAME="sec:7.4.1"><SPAN class="sec-nr">7.4.1</SPAN><SPAN class="sec-title">Ports</SPAN></A></H3>
 
 <A NAME="sec:chrports"></A> For CHR constraints the four standard ports 
 are defined:
@@ -106,10 +181,10 @@ rule.
 </DD>
 </DL>
 
-<H3><A NAME="sec:7.4.2">7.4.2 Tracing</A></H3>
+<H3><A NAME="sec:7.4.2"><SPAN class="sec-nr">7.4.2</SPAN><SPAN class="sec-title">Tracing</SPAN></A></H3>
 
-Tracing is enabled with the <A NAME="idx:chrtrace0:1130"></A><A HREF="debugging.html#chr_trace/0">chr_trace/0</A> 
-predicate and disabled with the <A NAME="idx:chrnotrace0:1131"></A><A HREF="debugging.html#chr_notrace/0">chr_notrace/0</A> 
+Tracing is enabled with the <A NAME="idx:chrtrace0:1165"></A><A class="pred" href="debugging.html#chr_trace/0">chr_trace/0</A> 
+predicate and disabled with the <A NAME="idx:chrnotrace0:1166"></A><A class="pred" href="debugging.html#chr_notrace/0">chr_notrace/0</A> 
 predicate.
 
 <P>When enabled the tracer will step through the <CODE>call</CODE>,
@@ -152,11 +227,11 @@ Disable the tracer.
 </DD>
 <DT><STRONG>break</STRONG></DT>
 <DD class="defbody">
-Enter a recursive Prolog top-level. See <A NAME="idx:break0:1132"></A><A HREF="toplevel.html#break/0">break/0</A>.
+Enter a recursive Prolog top-level. See <A NAME="idx:break0:1167"></A><A class="pred" href="toplevel.html#break/0">break/0</A>.
 </DD>
 <DT><STRONG>abort</STRONG></DT>
 <DD class="defbody">
-Exit to the top-level. See <A NAME="idx:abort0:1133"></A><A HREF="toplevel.html#abort/0">abort/0</A>.
+Exit to the top-level. See <A NAME="idx:abort0:1168"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>.
 </DD>
 <DT><STRONG>fail</STRONG></DT>
 <DD class="defbody">
@@ -168,7 +243,8 @@ Print the above available debug options.
 </DD>
 </DL>
 
-<H3><A NAME="sec:7.4.3">7.4.3 CHR Debugging Predicates</A></H3>
+<H3><A NAME="sec:7.4.3"><SPAN class="sec-nr">7.4.3</SPAN><SPAN class="sec-title">CHR 
+Debugging Predicates</SPAN></A></H3>
 
 <A NAME="sec:predicates"></A> The <CODE>library(chr)</CODE> module 
 contains several predicates that allow inspecting and printing the 
@@ -178,25 +254,25 @@ content of the constraint store.
 <DT class="pubdef"><A NAME="chr_trace/0"><STRONG>chr_trace</STRONG></A></DT>
 <DD class="defbody">
 Activate the CHR tracer. By default the CHR tracer is activated and 
-deactivated automatically by the Prolog predicates <A NAME="idx:trace0:1134"></A><A HREF="debugger.html#trace/0">trace/0</A> 
+deactivated automatically by the Prolog predicates <A NAME="idx:trace0:1169"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 and
-<A NAME="idx:notrace0:1135"></A><A HREF="debugger.html#notrace/0">notrace/0</A>.</DD>
+<A NAME="idx:notrace0:1170"></A><A class="pred" href="debugger.html#notrace/0">notrace/0</A>.</DD>
 <DT class="pubdef"><A NAME="chr_notrace/0"><STRONG>chr_notrace</STRONG></A></DT>
 <DD class="defbody">
 De-activate the CHR tracer. By default the CHR tracer is activated and 
-deactivated automatically by the Prolog predicates <A NAME="idx:trace0:1136"></A><A HREF="debugger.html#trace/0">trace/0</A> 
+deactivated automatically by the Prolog predicates <A NAME="idx:trace0:1171"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 and
-<A NAME="idx:notrace0:1137"></A><A HREF="debugger.html#notrace/0">notrace/0</A>.</DD>
+<A NAME="idx:notrace0:1172"></A><A class="pred" href="debugger.html#notrace/0">notrace/0</A>.</DD>
 <DT class="pubdef"><A NAME="chr_leash/1"><STRONG>chr_leash</STRONG>(<VAR>+Spec</VAR>)</A></DT>
 <DD class="defbody">
 Define the set of CHR ports on which the CHR tracer asks for user 
 intervention (i.e. stops). <VAR>Spec</VAR> is either a list of ports as 
-defined in <A HREF="debugging.html">section 7.4.1</A> or a predefined 
-`alias'. Defined aliases are: <CODE>full</CODE> to stop at all ports, <CODE>none</CODE> 
-or <CODE>off</CODE> to never stop, and <CODE>default</CODE> to stop at 
-the <CODE>call</CODE>,
+defined in <A class="sec" href="debugging.html">section 7.4.1</A> or a 
+predefined `alias'. Defined aliases are: <CODE>full</CODE> to stop at 
+all ports, <CODE>none</CODE> or <CODE>off</CODE> to never stop, and <CODE>default</CODE> 
+to stop at the <CODE>call</CODE>,
 <CODE>exit</CODE>, <CODE>fail</CODE>, <CODE>wake</CODE> and <CODE>apply</CODE> 
-ports. See also <A NAME="idx:leash1:1138"></A><A HREF="debugger.html#leash/1">leash/1</A>.</DD>
+ports. See also <A NAME="idx:leash1:1173"></A><A class="pred" href="debugger.html#leash/1">leash/1</A>.</DD>
 <DT class="pubdef"><A NAME="chr_show_store/1"><STRONG>chr_show_store</STRONG>(<VAR>+Mod</VAR>)</A></DT>
 <DD class="defbody">
 Prints all suspended constraints of module <VAR>Mod</VAR> to the 

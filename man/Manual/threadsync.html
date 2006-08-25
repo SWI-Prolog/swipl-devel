@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 8.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 8.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="threadcom.html">
 <LINK REL=next HREF="thutil.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="threadcom.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="thutil.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="threadcom.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="thutil.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:8.4">8.4 Thread synchronisation</A></H2>
+<H2><A NAME="sec:8.4"><SPAN class="sec-nr">8.4</SPAN><SPAN class="sec-title">Thread 
+synchronisation</SPAN></A></H2>
 
 <A NAME="sec:threadsync"></A>
 
@@ -57,7 +133,7 @@ can <EM>hold</EM> a mutex.
 <P>Mutexes are used to realise related updates to the Prolog database. 
 With `related', we refer to the situation where a `transaction' implies 
 two or more changes to the Prolog database. For example, we have a 
-predicate <A NAME="idx:address2:1200"></A><B>address/2</B>, representing 
+predicate <A NAME="idx:address2:1235"></A><B>address/2</B>, representing 
 the address of a person and we want to change the address by retracting 
 the old and asserting the new address. Between these two operations the 
 database is invalid: this person has either no address or two addresses, 
@@ -91,15 +167,15 @@ further references yield an <CODE>existence_error</CODE> exception.</DD>
 :Goal</VAR>)</A></DT>
 <DD class="defbody">
 Execute <VAR>Goal</VAR> while holding <VAR>MutexId</VAR>. If <VAR>Goal</VAR> 
-leaves choice-points, these are destroyed (as in <A NAME="idx:once1:1201"></A><A HREF="metacall.html#once/1">once/1</A>). 
+leaves choice-points, these are destroyed (as in <A NAME="idx:once1:1236"></A><A class="pred" href="metacall.html#once/1">once/1</A>). 
 The mutex is unlocked regardless of whether <VAR>Goal</VAR> succeeds, 
 fails or raises an exception. An exception thrown by <VAR>Goal</VAR> is 
-re-thrown after the mutex has been successfully unlocked. See also <A NAME="idx:mutexcreate1:1202"></A><A HREF="threadsync.html#mutex_create/1">mutex_create/1</A> 
-and <A NAME="idx:callcleanup3:1203"></A><A HREF="metacall.html#call_cleanup/3">call_cleanup/3</A>.
+re-thrown after the mutex has been successfully unlocked. See also <A NAME="idx:mutexcreate1:1237"></A><A class="pred" href="threadsync.html#mutex_create/1">mutex_create/1</A> 
+and <A NAME="idx:callcleanup3:1238"></A><A class="pred" href="metacall.html#call_cleanup/3">call_cleanup/3</A>.
 
 <P>Although described in the thread-section, this predicate is also 
 available in the single-threaded version, where it behaves simply as
-<A NAME="idx:once1:1204"></A><A HREF="metacall.html#once/1">once/1</A>.</DD>
+<A NAME="idx:once1:1239"></A><A class="pred" href="metacall.html#once/1">once/1</A>.</DD>
 <DT class="pubdef"><A NAME="mutex_lock/1"><STRONG>mutex_lock</STRONG>(<VAR>+MutexId</VAR>)</A></DT>
 <DD class="defbody">
 Lock the mutex. Prolog mutexes are <EM>recursive</EM> mutexes: they can 
@@ -109,20 +185,20 @@ other threads. If another thread has locked the mutex the calling thread
 is suspended until to mutex is unlocked.
 
 <P>If <VAR>MutexId</VAR> is an atom, and there is no current mutex with 
-that name, the mutex is created automatically using <A NAME="idx:mutexcreate1:1205"></A><A HREF="threadsync.html#mutex_create/1">mutex_create/1</A>. 
+that name, the mutex is created automatically using <A NAME="idx:mutexcreate1:1240"></A><A class="pred" href="threadsync.html#mutex_create/1">mutex_create/1</A>. 
 This implies named mutexes need not be declared explicitly.
 
 <P>Please note that locking and unlocking mutexes should be paired 
 carefully. Especially make sure to unlock mutexes even if the protected 
 code fails or raises an exception. For most common cases use
-<A NAME="idx:withmutex2:1206"></A><A HREF="threadsync.html#with_mutex/2">with_mutex/2</A>, 
+<A NAME="idx:withmutex2:1241"></A><A class="pred" href="threadsync.html#with_mutex/2">with_mutex/2</A>, 
 which provides a safer way for handling Prolog-level mutexes. The 
-predicate <A NAME="idx:callcleanup23:1207"></A><A HREF="metacall.html#call_cleanup/2">call_cleanup/[2-3]</A> 
+predicate <A NAME="idx:callcleanup23:1242"></A><A class="pred" href="metacall.html#call_cleanup/2">call_cleanup/[2-3]</A> 
 is another way to guarantee that the mutex is unlocked while retaining 
 non-determinism.</DD>
 <DT class="pubdef"><A NAME="mutex_trylock/1"><STRONG>mutex_trylock</STRONG>(<VAR>+MutexId</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:mutexlock1:1208"></A><A HREF="threadsync.html#mutex_lock/1">mutex_lock/1</A>, 
+As <A NAME="idx:mutexlock1:1243"></A><A class="pred" href="threadsync.html#mutex_lock/1">mutex_lock/1</A>, 
 but if the mutex is held by another thread, this predicates fails 
 immediately.</DD>
 <DT class="pubdef"><A NAME="mutex_unlock/1"><STRONG>mutex_unlock</STRONG>(<VAR>+MutexId</VAR>)</A></DT>
@@ -133,8 +209,8 @@ exception is raised.</DD>
 <DT class="pubdef"><A NAME="mutex_unlock_all/0"><STRONG>mutex_unlock_all</STRONG></A></DT>
 <DD class="defbody">
 Unlock all mutexes held by the current thread. This call is especially 
-useful to handle thread-termination using <A NAME="idx:abort0:1209"></A><A HREF="toplevel.html#abort/0">abort/0</A> 
-or exceptions. See also <A NAME="idx:threadsignal2:1210"></A><A HREF="threadcom.html#thread_signal/2">thread_signal/2</A>.</DD>
+useful to handle thread-termination using <A NAME="idx:abort0:1244"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A> 
+or exceptions. See also <A NAME="idx:threadsignal2:1245"></A><A class="pred" href="threadcom.html#thread_signal/2">thread_signal/2</A>.</DD>
 <DT class="pubdef"><A NAME="current_mutex/3"><STRONG>current_mutex</STRONG>(<VAR>?MutexId, 
 ?ThreadId, ?Count</VAR>)</A></DT>
 <DD class="defbody">

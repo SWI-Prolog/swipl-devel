@@ -2,68 +2,144 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 2.9</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 2.9</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="topvars.html">
 <LINK REL=next HREF="compilation.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="topvars.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="compilation.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="topvars.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="compilation.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:2.9">2.9 Overview of the Debugger</A></H2>
+<H2><A NAME="sec:2.9"><SPAN class="sec-nr">2.9</SPAN><SPAN class="sec-title">Overview 
+of the Debugger</SPAN></A></H2>
 
 <A NAME="sec:debugoverview"></A>
 
 <P>SWI-Prolog has a 6-port tracer, extending the standard 4-port tracer
-<CITE><A HREF="Bibliography.html#Clocksin:87">Clocksin &amp; Melish, 
-1987</A></CITE> with two additional ports. The optional <VAR>unify</VAR> 
+<CITE><A class="cite" href="Bibliography.html#Clocksin:87">Clocksin &amp; 
+Melish, 1987</A></CITE> with two additional ports. The optional <VAR>unify</VAR> 
 port allows the user to inspect the result after unification of the 
-head. The <VAR>exception</VAR> port shows exceptions raised by <A NAME="idx:throw1:82"></A><A HREF="exception.html#throw/1">throw/1</A> 
-or one of the built-in predicates. See <A HREF="exception.html">section 
+head. The <VAR>exception</VAR> port shows exceptions raised by <A NAME="idx:throw1:82"></A><A class="pred" href="exception.html#throw/1">throw/1</A> 
+or one of the built-in predicates. See <A class="sec" href="exception.html">section 
 4.9</A>.
 
 <P>The standard ports are called <CODE>call</CODE>, <CODE>exit</CODE>, <CODE>redo</CODE>,
-<CODE>fail</CODE> and <CODE>unify</CODE>. The tracer is started by the <A NAME="idx:trace0:83"></A><A HREF="debugger.html#trace/0">trace/0</A> 
+<CODE>fail</CODE> and <CODE>unify</CODE>. The tracer is started by the <A NAME="idx:trace0:83"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 command, when a spy point is reached and the system is in debugging mode 
-(see <A NAME="idx:spy1:84"></A><A HREF="debugger.html#spy/1">spy/1</A> 
-and <A NAME="idx:debug0:85"></A><A HREF="debugger.html#debug/0">debug/0</A>) 
+(see <A NAME="idx:spy1:84"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
+and <A NAME="idx:debug0:85"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>) 
 or when an exception is raised.
 
-<P>The interactive top-level goal <A NAME="idx:trace0:86"></A><A HREF="debugger.html#trace/0">trace/0</A> 
+<P>The interactive top-level goal <A NAME="idx:trace0:86"></A><A class="pred" href="debugger.html#trace/0">trace/0</A> 
 means ``trace the next query''. The tracer shows the port, displaying 
 the port name, the current depth of the recursion and the goal. The goal 
-is printed using the Prolog predicate <A NAME="idx:writeterm2:87"></A><A HREF="termrw.html#write_term/2">write_term/2</A>. 
+is printed using the Prolog predicate <A NAME="idx:writeterm2:87"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>. 
 The style is defined by the prolog-flag
 <CODE>debugger_print_options</CODE> and can be modified using this flag 
 or using the <CODE>w</CODE>, <CODE>p</CODE> and <CODE>d</CODE> commands 
@@ -96,7 +172,7 @@ Yes
 
 <A NAME="fig:tracer"></A>
 
-<P>On <EM>leashed ports</EM> (set with the predicate <A NAME="idx:leash1:88"></A><A HREF="debugger.html#leash/1">leash/1</A>, 
+<P>On <EM>leashed ports</EM> (set with the predicate <A NAME="idx:leash1:88"></A><A class="pred" href="debugger.html#leash/1">leash/1</A>, 
 default are
 <CODE>call</CODE>, <CODE>exit</CODE>, <CODE>redo</CODE> and <CODE>fail</CODE>) 
 the user is prompted for an action. All actions are single character 
@@ -106,12 +182,12 @@ the command-line option <STRONG>-tty</STRONG> is active. Tracer options:
 <DL>
 <DT><STRONG>Spy</STRONG> (<CODE>+</CODE>)</DT>
 <DD class="defbody">
-Set a spy point (see <A NAME="idx:spy1:89"></A><A HREF="debugger.html#spy/1">spy/1</A>) 
+Set a spy point (see <A NAME="idx:spy1:89"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>) 
 on the current predicate.
 </DD>
 <DT><STRONG>No spy</STRONG> (<CODE>-</CODE>)</DT>
 <DD class="defbody">
-Remove the spy point (see <A NAME="idx:nospy1:90"></A><A HREF="debugger.html#nospy/1">nospy/1</A>) 
+Remove the spy point (see <A NAME="idx:nospy1:90"></A><A class="pred" href="debugger.html#nospy/1">nospy/1</A>) 
 from the current predicate.
 </DD>
 <DT><STRONG>Find</STRONG> (<CODE>/</CODE>)</DT>
@@ -131,8 +207,8 @@ port of any goal with name <CODE>solve</CODE> </TD></TR>
 <TR VALIGN=top><TD><TT>/c solve(a, _)</TT></TD><TD>Search for a call to solve/2 
 whose first argument is a variable or the atom <CODE>a</CODE> </TD></TR>
 <TR VALIGN=top><TD><TT>/a member(_, _)</TT></TD><TD>Search for any port 
-on <A NAME="idx:member2:91"></A><A HREF="lists.html#member/2">member/2</A>. 
-This is equivalent to setting a spy point on <A NAME="idx:member2:92"></A><A HREF="lists.html#member/2">member/2</A>. </TD></TR>
+on <A NAME="idx:member2:91"></A><A class="pred" href="lists.html#member/2">member/2</A>. 
+This is equivalent to setting a spy point on <A NAME="idx:member2:92"></A><A class="pred" href="lists.html#member/2">member/2</A>. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -148,20 +224,20 @@ Show all goals that have alternatives.
 <DT><STRONG>Context</STRONG> (<CODE>C</CODE>)</DT>
 <DD class="defbody">
 Toggle `Show Context'. If <CODE>on</CODE> the context module of the goal 
-is displayed between square brackets (see <A HREF="modules.html">section 
+is displayed between square brackets (see <A class="sec" href="modules.html">section 
 5</A>). Default is <CODE>off</CODE>.
 </DD>
 <DT><STRONG>Listing</STRONG> (<CODE>L</CODE>)</DT>
 <DD class="defbody">
-List the current predicate with <A NAME="idx:listing1:93"></A><A HREF="listing.html#listing/1">listing/1</A>.
+List the current predicate with <A NAME="idx:listing1:93"></A><A class="pred" href="listing.html#listing/1">listing/1</A>.
 </DD>
 <DT><STRONG>Abort</STRONG> (<CODE>a</CODE>)</DT>
 <DD class="defbody">
-Abort Prolog execution (see <A NAME="idx:abort0:94"></A><A HREF="toplevel.html#abort/0">abort/0</A>).
+Abort Prolog execution (see <A NAME="idx:abort0:94"></A><A class="pred" href="toplevel.html#abort/0">abort/0</A>).
 </DD>
 <DT><STRONG>Break</STRONG> (<CODE>b</CODE>)</DT>
 <DD class="defbody">
-Enter a Prolog break environment (see <A NAME="idx:break0:95"></A><A HREF="toplevel.html#break/0">break/0</A>).
+Enter a Prolog break environment (see <A NAME="idx:break0:95"></A><A class="pred" href="toplevel.html#break/0">break/0</A>).
 </DD>
 <DT><STRONG>Creep</STRONG> (<CODE>c</CODE>)</DT>
 <DD class="defbody">
@@ -175,7 +251,7 @@ and <CODE>p</CODE> options.
 </DD>
 <DT><STRONG>Exit</STRONG> (<CODE>e</CODE>)</DT>
 <DD class="defbody">
-Terminate Prolog (see <A NAME="idx:halt0:96"></A><A HREF="toplevel.html#halt/0">halt/0</A>).
+Terminate Prolog (see <A NAME="idx:halt0:96"></A><A class="pred" href="toplevel.html#halt/0">halt/0</A>).
 </DD>
 <DT><STRONG>Fail</STRONG> (<CODE>f</CODE>)</DT>
 <DD class="defbody">
@@ -227,22 +303,24 @@ option is useful to stop tracing a failure driven loop.
 <DT><STRONG>Write</STRONG> (<CODE>w</CODE>)</DT>
 <DD class="defbody">
 Set the prolog-flag <CODE>debugger_print_options</CODE> to <CODE>[quoted(true)]</CODE>, 
-bypassing <A NAME="idx:portray1:97"></A><A HREF="termrw.html#portray/1">portray/1</A>, 
+bypassing <A NAME="idx:portray1:97"></A><A class="pred" href="termrw.html#portray/1">portray/1</A>, 
 etc.
 </DD>
 </DL>
 
 <P>The ideal 4 port model as described in many Prolog books
-<CITE><A HREF="Bibliography.html#Clocksin:87">Clocksin &amp; Melish, 
-1987</A></CITE> is not visible in many Prolog implementations because 
-code optimisation removes part of the choice- and exit-points. Backtrack 
-points are not shown if either the goal succeeded deterministically or 
-its alternatives were removed using the cut. When running in debug mode 
-(<A NAME="idx:debug0:98"></A><A HREF="debugger.html#debug/0">debug/0</A>) 
+<CITE><A class="cite" href="Bibliography.html#Clocksin:87">Clocksin &amp; 
+Melish, 1987</A></CITE> is not visible in many Prolog implementations 
+because code optimisation removes part of the choice- and exit-points. 
+Backtrack points are not shown if either the goal succeeded 
+deterministically or its alternatives were removed using the cut. When 
+running in debug mode (<A NAME="idx:debug0:98"></A><A class="pred" href="debugger.html#debug/0">debug/0</A>) 
 choice points are only destroyed when removed by the cut. In debug mode, 
-tail recursion optimisation is switched off.<A NAME=back-to-note-4 HREF="Notes.html#note-4"> (4)</A>
+tail recursion optimisation is switched off.<SUP class="fn">4<SPAN class="fn-text">This 
+implies the system can run out of local stack in debug mode, while no 
+problems arise when running in non-debug mode.</SPAN></SUP>
 
 <P>Reference information to all predicates available for manipulating 
-the debugger is in <A HREF="debugger.html">section 4.38</A>.
+the debugger is in <A class="sec" href="debugger.html">section 4.38</A>.
 
 <P></BODY></HTML>

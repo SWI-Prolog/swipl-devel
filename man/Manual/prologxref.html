@@ -2,47 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section A.17</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.17</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="simplex.html">
 <LINK REL=next HREF="hack.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="simplex.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="hack.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="simplex.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="hack.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:A.17">A.17 library( prologxref ): Cross-reference data 
-collection library</A></H2>
+<H2><A NAME="sec:A.17"><SPAN class="sec-nr">A.17</SPAN><SPAN class="sec-title">library( 
+prologxref ): Cross-reference data collection library</SPAN></A></H2>
 
 <A NAME="prologxref"></A>
 <A NAME="sec:lib:prologxref"></A>
@@ -64,17 +139,18 @@ knowledge about other libraries such as Logtalk. <B>Please do not
 consider this interface rock-solid.</B>
 
 <P>The library is exploited by two graphical tools in the SWI-Prolog 
-environment. The XPCE frontend started by <A NAME="idx:gxref0:1405"></A><A HREF="xref.html#gxref/0">gxref/0</A> 
+environment. The XPCE frontend started by <A NAME="idx:gxref0:1441"></A><A class="pred" href="xref.html#gxref/0">gxref/0</A> 
 and described in
-<A HREF="xref.html">section 3.7</A> and PceEmacs (<A HREF="pceemacs.html">section 
+<A class="sec" href="xref.html">section 3.7</A> and PceEmacs (<A class="sec" href="pceemacs.html">section 
 3.4</A>) which exploits this library for its syntax colouring.
 
 <P>For all predicates described below, <VAR>Source</VAR> is the source 
 that is processed. This is normally a filename in any notation 
-acceptable to the file loading predicates (see <A NAME="idx:loadfiles2:1406"></A><A HREF="consulting.html#load_files/2">load_files/2</A>). 
-Using the hooks defined in <A HREF="prologxref.html">section A.17.1</A> 
-it can be anything else that can be translated into a Prolog stream 
-holding Prolog source text. <VAR>Callable</VAR> is a callable term (see <A NAME="idx:callable1:1407"></A><A HREF="typetest.html#callable/1">callable/1</A>). 
+acceptable to the file loading predicates (see <A NAME="idx:loadfiles2:1442"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>). 
+Using the hooks defined in <A class="sec" href="prologxref.html">section 
+A.17.1</A> it can be anything else that can be translated into a Prolog 
+stream holding Prolog source text. <VAR>Callable</VAR> is a callable 
+term (see <A NAME="idx:callable1:1443"></A><A class="pred" href="typetest.html#callable/1">callable/1</A>). 
 Callables do not carry a module qualifier unless the referred predicate 
 is not in the module defined
 <VAR>Source</VAR>.
@@ -136,7 +212,8 @@ registered as `called'.
 </DD>
 </DL>
 
-<H3><A NAME="sec:A.17.1">A.17.1 Extending the library</A></H3>
+<H3><A NAME="sec:A.17.1"><SPAN class="sec-nr">A.17.1</SPAN><SPAN class="sec-title">Extending 
+the library</SPAN></A></H3>
 
 <A NAME="sec:xrefhooks"></A>
 

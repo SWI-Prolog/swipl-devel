@@ -2,50 +2,127 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 9.10</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 9.10</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="foreignxmp.html">
 <LINK REL=next HREF="runtime.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="foreignxmp.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="runtime.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="foreignxmp.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="runtime.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:9.10">9.10 Notes on Using Foreign Code</A></H2>
+<H2><A NAME="sec:9.10"><SPAN class="sec-nr">9.10</SPAN><SPAN class="sec-title">Notes 
+on Using Foreign Code</SPAN></A></H2>
 
 <A NAME="sec:foreignnotes"></A>
 
-<H3><A NAME="sec:9.10.1">9.10.1 Memory Allocation</A></H3>
+<H3><A NAME="sec:9.10.1"><SPAN class="sec-nr">9.10.1</SPAN><SPAN class="sec-title">Memory 
+Allocation</SPAN></A></H3>
 
 <P>SWI-Prolog's heap memory allocation is based on the <STRONG>malloc</STRONG>(3) 
 library routines. The stacks are allocated using mmap() on most Unix 
@@ -58,7 +135,10 @@ PL_malloc() or PL_realloc() do not return.
 by PL_get_chars() using the <CODE>BUF_MALLOC</CODE> argument. Portable 
 applications may use both PL_malloc() and friends or malloc() and 
 friends but should not mix these two sets of functions on the same 
-memory.<A NAME=back-to-note-88 HREF="Notes.html#note-88"> (88)</A>
+memory.<SUP class="fn">76<SPAN class="fn-text">These functions were 
+introduced in SWI-Prolog 5.0.9 to realise guaranteed portability. 
+Foreign code that must be compatible with older versions can check the <CODE>PLVERSION</CODE> 
+macro.</SPAN></SUP>
 
 <DL>
 <DT class="pubdef"><A NAME="PL_malloc()"><VAR>void *</VAR> <STRONG>PL_malloc</STRONG>(<VAR>size_t 
@@ -82,20 +162,22 @@ previous PL_malloc() or PL_realloc() call.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.10.2">9.10.2 Compatibility between Prolog versions</A></H3>
+<H3><A NAME="sec:9.10.2"><SPAN class="sec-nr">9.10.2</SPAN><SPAN class="sec-title">Compatibility 
+between Prolog versions</SPAN></A></H3>
 
 <P>Great care is taken to ensure binary compatibility of foreign 
 extensions between different Prolog versions. Only much less frequently 
 used stream interface has been responsible for binary incompatibilities.
 
-<P><A NAME="idx:PLVERSION:1302"></A>Source-code that relies on new 
+<P><A NAME="idx:PLVERSION:1338"></A>Source-code that relies on new 
 features of the foreign interface can use the macro <CODE>PLVERSION</CODE> 
 to find the version of
 <CODE>SWI-Prolog.h</CODE> and PL_query() using the option
 <CODE>PL_QUERY_VERSION</CODE> to find the version of the attached Prolog 
 system. Both follow the same numbering schema explained with PL_query().
 
-<H3><A NAME="sec:9.10.3">9.10.3 Debugging Foreign Code</A></H3>
+<H3><A NAME="sec:9.10.3"><SPAN class="sec-nr">9.10.3</SPAN><SPAN class="sec-title">Debugging 
+Foreign Code</SPAN></A></H3>
 
 <P>Statically linked foreign code or embedded systems can be debugged 
 normally. Most modern environments provide debugging tools for 
@@ -121,7 +203,8 @@ For help, use ?- help(Topic). or ?- apropos(Word).
 ?- lowercase('HELLO', X).
 </PRE>
 
-<H3><A NAME="sec:9.10.4">9.10.4 Name Conflicts in C modules</A></H3>
+<H3><A NAME="sec:9.10.4"><SPAN class="sec-nr">9.10.4</SPAN><SPAN class="sec-title">Name 
+Conflicts in C modules</SPAN></A></H3>
 
 <P>In the current version of the system all public C functions of 
 SWI-Prolog are in the symbol table. This can lead to name clashes with 
@@ -140,7 +223,8 @@ following macro should fix the problem.
 library loader will only look for symbols in the main executable for 
 symbols that are not defined in the library itself.
 
-<H3><A NAME="sec:9.10.5">9.10.5 Compatibility of the Foreign Interface</A></H3>
+<H3><A NAME="sec:9.10.5"><SPAN class="sec-nr">9.10.5</SPAN><SPAN class="sec-title">Compatibility 
+of the Foreign Interface</SPAN></A></H3>
 
 <P>The term-reference mechanism was first used by Quintus Prolog version 
 3. SICStus Prolog version 3 is strongly based on the Quintus interface. 

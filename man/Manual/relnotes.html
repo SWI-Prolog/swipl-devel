@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 1.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 1.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="xpce.html">
 <LINK REL=next HREF="sponsor.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="xpce.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="sponsor.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="xpce.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="sponsor.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:1.6">1.6 Release Notes</A></H2>
+<H2><A NAME="sec:1.6"><SPAN class="sec-nr">1.6</SPAN><SPAN class="sec-title">Release 
+Notes</SPAN></A></H2>
 
 <A NAME="sec:relnotes"></A>
 
@@ -49,7 +125,8 @@ padding: 5px;
 Smaller changes to especially older releases have been removed. For a 
 complete log, see the file <CODE>ChangeLog</CODE> from the distribution.
 
-<H3><A NAME="sec:1.6.1">1.6.1 Version 1.8 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.1"><SPAN class="sec-nr">1.6.1</SPAN><SPAN class="sec-title">Version 
+1.8 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-1.8"></A>
 
@@ -57,7 +134,8 @@ complete log, see the file <CODE>ChangeLog</CODE> from the distribution.
 stacks on machines that do not offer operating-system support for 
 implementing dynamic stacks.
 
-<H3><A NAME="sec:1.6.2">1.6.2 Version 1.9 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.2"><SPAN class="sec-nr">1.6.2</SPAN><SPAN class="sec-title">Version 
+1.9 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-1.9"></A>
 
@@ -69,18 +147,19 @@ version. Changes to the Prolog system include:
 <LI><I>Redefinition of system predicates</I><BR>
 Redefinition of system predicates was allowed silently in older 
 versions. Version 1.9 only allows it if the new definition is headed by 
-a :- <A NAME="idx:redefinesystempredicate1:12"></A><A HREF="db.html#redefine_system_predicate/1">redefine_system_predicate/1</A> 
+a :- <A NAME="idx:redefinesystempredicate1:12"></A><A class="pred" href="db.html#redefine_system_predicate/1">redefine_system_predicate/1</A> 
 directive.top-level
 <LI><I>`Answer' reuse</I><BR>
 The top-level maintains a table of bindings returned by top-level goals 
 and allows for reuse of these bindings by prefixing the variables with 
-the $ sign. See <A HREF="topvars.html">section 2.8</A>.
+the $ sign. See <A class="sec" href="topvars.html">section 2.8</A>.
 <LI><I>Better source code administration</I><BR>
 Allows for proper updating of multifile predicates and finding the 
 sources of individual clauses.
 </UL>
 
-<H3><A NAME="sec:1.6.3">1.6.3 Version 2.0 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.3"><SPAN class="sec-nr">1.6.3</SPAN><SPAN class="sec-title">Version 
+2.0 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-2.0"></A>
 
@@ -93,7 +172,7 @@ Removes various limits and improves performance.
 <LI><I>Inline foreign functions</I><BR>
 `Simple' foreign predicates no longer build a Prolog stack-frame, but 
 are directly called from the VM. Notably provides a speedup for the test 
-predicates such as <A NAME="idx:var1:13"></A><A HREF="typetest.html#var/1">var/1</A>, 
+predicates such as <A NAME="idx:var1:13"></A><A class="pred" href="typetest.html#var/1">var/1</A>, 
 etc.
 <LI><I>Various compatibility improvements</I><BR>
 <LI><I>Stream based I/O library</I><BR>
@@ -103,7 +182,8 @@ streams may be redefined through the foreign language interface,
 facilitating much simpler integration in window environments.
 </UL>
 
-<H3><A NAME="sec:1.6.4">1.6.4 Version 2.5 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.4"><SPAN class="sec-nr">1.6.4</SPAN><SPAN class="sec-title">Version 
+2.5 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-2.5"></A>
 
@@ -125,7 +205,7 @@ the main changes since 2.1.0:
 <P>
 <UL>
 <LI><I>ISO compatibility</I><BR>
-Many ISO compatibility features have been added: <A NAME="idx:open4:14"></A><A HREF="IO.html#open/4">open/4</A>, 
+Many ISO compatibility features have been added: <A NAME="idx:open4:14"></A><A class="pred" href="IO.html#open/4">open/4</A>, 
 arithmetic functions, syntax, etc.
 <LI><I>Win32</I><BR>
 Many fixes for the Win32 (NT, '95 and win32s) platforms. Notably many 
@@ -134,12 +214,13 @@ problems related to pathnames and a problem in the garbage collector.
 Many changes to the clause indexing system: added hash-tables, lazy 
 computation of the index information, etc.
 <LI><I>Portable saved-states</I><BR>
-The predicate <A NAME="idx:qsaveprogram12:15"></A><A HREF="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
+The predicate <A NAME="idx:qsaveprogram12:15"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A> 
 allows for the creating of machine independent saved-states that load 
 very quickly.
 </UL>
 
-<H3><A NAME="sec:1.6.5">1.6.5 Version 2.6 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.5"><SPAN class="sec-nr">1.6.5</SPAN><SPAN class="sec-title">Version 
+2.6 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-2.6"></A>
 
@@ -161,10 +242,11 @@ front ends are provided, one for window-based operation and one to run
 as a Win32 console application.
 <LI><I>Creating stand-alone executables</I><BR>
 Version 2.6.0 can create stand-alone executables by attaching the 
-saved-state to the emulator. See <A NAME="idx:qsaveprogram2:16"></A><A HREF="runtime.html#qsave_program/2">qsave_program/2</A>.
+saved-state to the emulator. See <A NAME="idx:qsaveprogram2:16"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A>.
 </UL>
 
-<H3><A NAME="sec:1.6.6">1.6.6 Version 2.7 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.6"><SPAN class="sec-nr">1.6.6</SPAN><SPAN class="sec-title">Version 
+2.7 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-2.7"></A>
 
@@ -179,7 +261,8 @@ Win32 platforms. Porting to 64-bit architectures is feasible now.
 of variables in a clause considerably and allow for further expansion at 
 minimal cost.
 
-<H3><A NAME="sec:1.6.7">1.6.7 Version 2.8 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.7"><SPAN class="sec-nr">1.6.7</SPAN><SPAN class="sec-title">Version 
+2.8 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-2.8"></A>
 
@@ -192,13 +275,14 @@ compiled format. SWI-Prolog no longer limits the use of
 <B>malloc()</B> or uses assumptions on the addresses returned by this 
 function.
 
-<H3><A NAME="sec:1.6.8">1.6.8 Version 2.9 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.8"><SPAN class="sec-nr">1.6.8</SPAN><SPAN class="sec-title">Version 
+2.9 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-2.9"></A>
 
 <P>Version 2.9 is the next step towards version 3.0, improving ISO 
 compliance and introducing ISO compliant exception handling. New are
-<A NAME="idx:catch3:19"></A><A HREF="exception.html#catch/3">catch/3</A>, <A NAME="idx:throw1:20"></A><A HREF="exception.html#throw/1">throw/1</A>, <A NAME="idx:abolish1:21"></A><A HREF="db.html#abolish/1">abolish/1</A>, <A NAME="idx:writeterm23:22"></A><A HREF="termrw.html#write_term/2">write_term/[2,3]</A>, <A NAME="idx:writecanonical12:23"></A><A HREF="termrw.html#write_canonical/1">write_canonical/[1,2]</A> 
+<A NAME="idx:catch3:19"></A><A class="pred" href="exception.html#catch/3">catch/3</A>, <A NAME="idx:throw1:20"></A><A class="pred" href="exception.html#throw/1">throw/1</A>, <A NAME="idx:abolish1:21"></A><A class="pred" href="db.html#abolish/1">abolish/1</A>, <A NAME="idx:writeterm23:22"></A><A class="pred" href="termrw.html#write_term/2">write_term/[2,3]</A>, <A NAME="idx:writecanonical12:23"></A><A class="pred" href="termrw.html#write_canonical/1">write_canonical/[1,2]</A> 
 and the C-functions PL_exception() and PL_throw(). The predicates
 <A NAME="idx:display12:24"></A><B>display/[1,2]</B> and <A NAME="idx:displayq12:25"></A><B>displayq/[1,2]</B> 
 have been moved to <CODE>library(backcomp)</CODE>, so old code referring 
@@ -212,34 +296,37 @@ making old code using these constants compatible. Non-zero values other
 than
 <CODE>TRUE</CODE> (1) will be interpreted different.
 
-<H3><A NAME="sec:1.6.9">1.6.9 Version 3.0 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.9"><SPAN class="sec-nr">1.6.9</SPAN><SPAN class="sec-title">Version 
+3.0 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-3.0"></A>
 
 <P>Complete redesign of the saved-state mechanism, providing the 
-possibility of `program resources'. See <A NAME="idx:resource3:26"></A><A HREF="useresource.html#resource/3">resource/3</A>, <A NAME="idx:openresource3:27"></A><A HREF="useresource.html#open_resource/3">open_resource/3</A>, 
+possibility of `program resources'. See <A NAME="idx:resource3:26"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>, <A NAME="idx:openresource3:27"></A><A class="pred" href="useresource.html#open_resource/3">open_resource/3</A>, 
 and
-<A NAME="idx:qsaveprogram12:28"></A><A HREF="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.
+<A NAME="idx:qsaveprogram12:28"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.
 
-<H3><A NAME="sec:1.6.10">1.6.10 Version 3.1 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.10"><SPAN class="sec-nr">1.6.10</SPAN><SPAN class="sec-title">Version 
+3.1 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-3.1"></A>
 
 <P>Improvements on exception-handling. Allows relating software 
 interrupts (signals) to exceptions, handling signals in Prolog and C 
 (see
-<A NAME="idx:onsignal3:29"></A><A HREF="signal.html#on_signal/3">on_signal/3</A> 
+<A NAME="idx:onsignal3:29"></A><A class="pred" href="signal.html#on_signal/3">on_signal/3</A> 
 and PL_signal()). Prolog stack overflows now raise the <CODE>resource_error</CODE> 
-exception and thus can be handled in Prolog using <A NAME="idx:catch3:30"></A><A HREF="exception.html#catch/3">catch/3</A>.
+exception and thus can be handled in Prolog using <A NAME="idx:catch3:30"></A><A class="pred" href="exception.html#catch/3">catch/3</A>.
 
-<H3><A NAME="sec:1.6.11">1.6.11 Version 3.3 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.11"><SPAN class="sec-nr">1.6.11</SPAN><SPAN class="sec-title">Version 
+3.3 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-3.3"></A>
 
 <P>Version 3.3 is a major release, changing many things internally and 
 externally. The highlights are a complete redesign of the high-level I/O 
 system, which is now based on explicit streams rather then current 
-input/output. The old Edinburgh predicates (<A NAME="idx:see1:31"></A><A HREF="IO.html#see/1">see/1</A>, <A NAME="idx:tell1:32"></A><A HREF="IO.html#tell/1">tell/1</A>, 
+input/output. The old Edinburgh predicates (<A NAME="idx:see1:31"></A><A class="pred" href="IO.html#see/1">see/1</A>, <A NAME="idx:tell1:32"></A><A class="pred" href="IO.html#tell/1">tell/1</A>, 
 etc.) are now defined on top of this layer instead of the other way 
 around. This fixes various internal problems and removes Prolog limits 
 on the number of streams.
@@ -248,43 +335,45 @@ on the number of streams.
 strings as lists of one-character atoms is now supported (next to 
 character codes as integers). Many more exceptions have been added and 
 printing of exceptions and messages is rationalised using Quintus and 
-SICStus Prolog compatible <A NAME="idx:printmessage2:33"></A><A HREF="exception.html#print_message/2">print_message/2</A>, <A NAME="idx:messagehook3:34"></A><A HREF="exception.html#message_hook/3">message_hook/3</A> 
-and <A NAME="idx:printmessagelines3:35"></A><A HREF="exception.html#print_message_lines/3">print_message_lines/3</A>. 
-All predicates described in <CITE><A HREF="Bibliography.html#Deransart:96">Deransart <EM>et 
+SICStus Prolog compatible <A NAME="idx:printmessage2:33"></A><A class="pred" href="exception.html#print_message/2">print_message/2</A>, <A NAME="idx:messagehook3:34"></A><A class="pred" href="exception.html#message_hook/3">message_hook/3</A> 
+and <A NAME="idx:printmessagelines3:35"></A><A class="pred" href="exception.html#print_message_lines/3">print_message_lines/3</A>. 
+All predicates described in <CITE><A class="cite" href="Bibliography.html#Deransart:96">Deransart <EM>et 
 al.</EM>, 1996</A></CITE> are now implemented.
 
 <P>As of version 3.3, SWI-Prolog adheres the ISO <EM>logical update view</EM> 
-for dynamic predicates. See <A HREF="db.html">section 4.13.1</A> for 
-details.
+for dynamic predicates. See <A class="sec" href="db.html">section 4.13.1</A> 
+for details.
 
 <P>SWI-Prolog 3.3 includes garbage collection on atoms, removing the 
 last serious memory leak especially in text-manipulation applications. 
 See
-<A HREF="foreigninclude.html">section 9.6.2.1</A>. In addition, both the 
-user-level and foreign interface supports atoms holding <EM>0-bytes</EM>.
+<A class="sec" href="foreigninclude.html">section 9.6.2.1</A>. In 
+addition, both the user-level and foreign interface supports atoms 
+holding <EM>0-bytes</EM>.
 
 <P>Finally, an alpha version of a multi-threaded SWI-Prolog for Linux is 
 added. This version is still much slower than the single-threaded 
 version due to frequent access to `thread-local-data' as well as some 
 too detailed mutex locks. The basic thread API is ready for serious use 
-and testing however. See <A HREF="threads.html">section 8</A>.
+and testing however. See <A class="sec" href="threads.html">section 8</A>.
 
-<H4><A NAME="sec:1.6.11.1">1.6.11.1 Incompatible changes</A></H4>
+<H4><A NAME="sec:1.6.11.1"><SPAN class="sec-nr">1.6.11.1</SPAN><SPAN class="sec-title">Incompatible 
+changes</SPAN></A></H4>
 
 <P>A number of incompatible changes result from this upgrade. They are 
 all easily fixed however.
 
 <P>
 <UL>
-<LI><I><A HREF="control.html#!/0">!/0</A>, <A NAME="idx:call1:36"></A><A HREF="metacall.html#call/1">call/1</A></I><BR>
+<LI><I><A class="pred" href="control.html#!/0">!/0</A>, <A NAME="idx:call1:36"></A><A class="pred" href="metacall.html#call/1">call/1</A></I><BR>
 The cut now behaves according to the ISO standard. This implies it works 
-in compound goals passed to <A NAME="idx:call1:37"></A><A HREF="metacall.html#call/1">call/1</A> 
+in compound goals passed to <A NAME="idx:call1:37"></A><A class="pred" href="metacall.html#call/1">call/1</A> 
 and is local to the <EM>condition</EM> part of if-then-else as well as 
-the argument of <A HREF="control.html#\+/1">\+/1</A>.
+the argument of <A class="pred" href="control.html#\+/1">\+/1</A>.
 <LI><I>atom_chars/2</I><BR>
 This predicate is now ISO compliant and thus generates a list of 
 one-character atoms. The behaviour of the old predicate is available in 
-the ---also ISO compliant--- <A NAME="idx:atomcodes2:38"></A><A HREF="manipatom.html#atom_codes/2">atom_codes/2</A> 
+the ---also ISO compliant--- <A NAME="idx:atomcodes2:38"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A> 
 predicate. Safest repair is a replacement of all <CODE>atom_chars</CODE> 
 into <CODE>atom_codes</CODE>. If you do not want to change any 
 source-code, you might want to use
@@ -295,17 +384,17 @@ user:goal_expansion(atom_chars(A,B), atom_codes(A,B)).
 
 <P>
 <LI><I>number_chars/2</I><BR>
-Same applies for <A NAME="idx:numberchars2:39"></A><A HREF="manipatom.html#number_chars/2">number_chars/2</A> 
-and <A NAME="idx:numbercodes2:40"></A><A HREF="manipatom.html#number_codes/2">number_codes/2</A>.
+Same applies for <A NAME="idx:numberchars2:39"></A><A class="pred" href="manipatom.html#number_chars/2">number_chars/2</A> 
+and <A NAME="idx:numbercodes2:40"></A><A class="pred" href="manipatom.html#number_codes/2">number_codes/2</A>.
 <LI><I>feature/2 , set_feature/2</I><BR>
-These are replaced by the ISO compliant <A NAME="idx:currentprologflag2:41"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
+These are replaced by the ISO compliant <A NAME="idx:currentprologflag2:41"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 and
-<A NAME="idx:setprologflag2:42"></A><A HREF="flags.html#set_prolog_flag/2">set_prolog_flag/2</A>. 
+<A NAME="idx:setprologflag2:42"></A><A class="pred" href="flags.html#set_prolog_flag/2">set_prolog_flag/2</A>. 
 The library <CODE>library(backcomp)</CODE> provides definitions for 
 these predicates, so no source <B>must</B> be updated.
 <LI><I>Accessing command-line arguments</I><BR>
 This used to be provided by the undocumented '$argv'/1 and Quintus 
-compatible library <A NAME="idx:unix1:43"></A><A HREF="system.html#unix/1">unix/1</A>. 
+compatible library <A NAME="idx:unix1:43"></A><A class="pred" href="system.html#unix/1">unix/1</A>. 
 Now there is also documented
 <CODE>current_prolog_flag(argv, Argv)</CODE>.
 <LI><I>dup_stream/2</I><BR>
@@ -328,7 +417,8 @@ code.
 These predicates have been moved to <CODE>library(quintus)</CODE>.
 </UL>
 
-<H3><A NAME="sec:1.6.12">1.6.12 Version 3.4 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.12"><SPAN class="sec-nr">1.6.12</SPAN><SPAN class="sec-title">Version 
+3.4 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-3.4"></A>
 
@@ -339,48 +429,51 @@ change:
 
 <P>
 <UL>
-<LI><I>Argument order in <A NAME="idx:select3:46"></A><A HREF="lists.html#select/3">select/3</A></I><BR>
-The list-processing predicate <A NAME="idx:select3:47"></A><A HREF="lists.html#select/3">select/3</A> 
+<LI><I>Argument order in <A NAME="idx:select3:46"></A><A class="pred" href="lists.html#select/3">select/3</A></I><BR>
+The list-processing predicate <A NAME="idx:select3:47"></A><A class="pred" href="lists.html#select/3">select/3</A> 
 somehow got into a very early version of SWI-Prolog with the wrong 
 argument order. This has been fixed in 3.4.0. The correct order is 
 select(?Elem, ?List, ?Rest).
 
-<P>As <A NAME="idx:select3:48"></A><A HREF="lists.html#select/3">select/3</A> 
+<P>As <A NAME="idx:select3:48"></A><A class="pred" href="lists.html#select/3">select/3</A> 
 has no error conditions, runtime checking cannot be done. To simplify 
 debugging, the library module <CODE>library(checkselect)</CODE> will 
-print references to <A NAME="idx:select3:49"></A><A HREF="lists.html#select/3">select/3</A> 
+print references to <A NAME="idx:select3:49"></A><A class="pred" href="lists.html#select/3">select/3</A> 
 in your source code and install a version of select that enters the 
 debugger if select is called and the second argument is not a list.
 
 <P>This library can be loaded explicitly or by calling <A NAME="idx:checkoldselect0:50"></A><B>check_old_select/0</B>.
 </UL>
 
-<H3><A NAME="sec:1.6.13">1.6.13 Version 4.0 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.13"><SPAN class="sec-nr">1.6.13</SPAN><SPAN class="sec-title">Version 
+4.0 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-4.0"></A>
 
 <P>As of version 4.0 the standard distribution of SWI-Prolog is bundled 
 with a number of its popular extension packages, among which the now 
-open source XPCE GUI toolkit (see <A HREF="xpce.html">section 1.5</A>). 
-No significant changes have been made to the basic SWI-Prolog engine.
+open source XPCE GUI toolkit (see <A class="sec" href="xpce.html">section 
+1.5</A>). No significant changes have been made to the basic SWI-Prolog 
+engine.
 
 <P>Some useful tricks in the integrated environment:
 
 <P>
 <UL>
 <LI><I>Register the GUI tracer</I><BR>
-Using a call to <A NAME="idx:guitracer0:51"></A><A HREF="guitracer.html#guitracer/0">guitracer/0</A>, 
+Using a call to <A NAME="idx:guitracer0:51"></A><A class="pred" href="guitracer.html#guitracer/0">guitracer/0</A>, 
 hooks are installed that replace the normal command-line driven tracer 
 with a graphical front-end.
 
 <P>
 <LI><I>Register PceEmacs for editing files</I><BR>
 From your initialisation file. you can load <CODE>library(emacs/swi_prolog)</CODE> 
-that cause <A NAME="idx:edit1:52"></A><A HREF="listing.html#edit/1">edit/1</A> 
+that cause <A NAME="idx:edit1:52"></A><A class="pred" href="listing.html#edit/1">edit/1</A> 
 to use the built-in PceEmacs editor.
 </UL>
 
-<H3><A NAME="sec:1.6.14">1.6.14 Version 5.0 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.14"><SPAN class="sec-nr">1.6.14</SPAN><SPAN class="sec-title">Version 
+5.0 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-5.0"></A>
 
@@ -397,26 +490,29 @@ navigation tools progress steadily towards a mature set of tools.
 X (Darwin).
 
 <P>For details, please visit the new website at
-<A HREF="http://www.swi-prolog.org">http://www.swi-prolog.org</A>
+<A class="url" href="http://www.swi-prolog.org">http://www.swi-prolog.org</A>
 
-<H3><A NAME="sec:1.6.15">1.6.15 Version 5.1 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.15"><SPAN class="sec-nr">1.6.15</SPAN><SPAN class="sec-title">Version 
+5.1 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-5.1"></A>
 
 <P>Version 5.1 is a beta-serie introducing portable multi-threading. See
-<A HREF="threads.html">chapter 8</A>. In addition it introduces many new 
-facilities to support server applications, such as the new <CODE>library(rlimit)</CODE> 
-library to limit system resources and the possibility to set timeouts on 
-input streams.
+<A class="sec" href="threads.html">chapter 8</A>. In addition it 
+introduces many new facilities to support server applications, such as 
+the new <CODE>library(rlimit)</CODE> library to limit system resources 
+and the possibility to set timeouts on input streams.
 
-<H3><A NAME="sec:1.6.16">1.6.16 Version 5.2 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.16"><SPAN class="sec-nr">1.6.16</SPAN><SPAN class="sec-title">Version 
+5.2 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-5.2"></A>
 
 <P>Version 5.2 consolidates the 5.1.x beta series that introduced 
 threading and many related modifications to the kernel.
 
-<H3><A NAME="sec:1.6.17">1.6.17 Version 5.3 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.17"><SPAN class="sec-nr">1.6.17</SPAN><SPAN class="sec-title">Version 
+5.3 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-5.3"></A>
 
@@ -426,28 +522,32 @@ goodies to the kernel. The package JPL, providing a bidirectional
 Java/Prolog interface is added to the common source-tree and common 
 binary packages.
 
-<H3><A NAME="sec:1.6.18">1.6.18 Version 5.4 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.18"><SPAN class="sec-nr">1.6.18</SPAN><SPAN class="sec-title">Version 
+5.4 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-5.4"></A>
 
 <P>Version 5.4 consolidates the 5.3.x beta series.
 
-<H3><A NAME="sec:1.6.19">1.6.19 Version 5.5 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.19"><SPAN class="sec-nr">1.6.19</SPAN><SPAN class="sec-title">Version 
+5.5 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-5.5"></A>
 
 <P>Version 5.5.x provides support for <EM>wide characters</EM> with 
-UTF-8 and UNICODE I/O (<A HREF="widechars.html">section 2.17.1</A>). On 
-both 32 and 64-bit hardware Prolog integers are now at minimum 64-bit 
-integers. If available, SWI-Prolog arithmetic uses the GNU GMP library 
-to provided
+UTF-8 and UNICODE I/O (<A class="sec" href="widechars.html">section 
+2.17.1</A>). On both 32 and 64-bit hardware Prolog integers are now at 
+minimum 64-bit integers. If available, SWI-Prolog arithmetic uses the 
+GNU GMP library to provided
 <EM>unbounded</EM> integer arithmetic as well as rational arithmetic. 
 Adding GMP support is sponsored by Scientific Software and Systems 
-Limited, <A HREF="www.sss.co.nz">www.sss.co.nz</A>. This version also 
-incorporates clp(r) by Christian Holzbaur, brought to SWI-Prolog by Tom 
-Schrijvers and Leslie De Koninck (<A HREF="clpqr.html">section A.14</A>).
+Limited, <A class="url" href="www.sss.co.nz">www.sss.co.nz</A>. This 
+version also incorporates clp(r) by Christian Holzbaur, brought to 
+SWI-Prolog by Tom Schrijvers and Leslie De Koninck (<A class="sec" href="clpqr.html">section 
+A.14</A>).
 
-<H3><A NAME="sec:1.6.20">1.6.20 Version 5.6 Release Notes</A></H3>
+<H3><A NAME="sec:1.6.20"><SPAN class="sec-nr">1.6.20</SPAN><SPAN class="sec-title">Version 
+5.6 Release Notes</SPAN></A></H3>
 
 <A NAME="sec:rel-5.6"></A>
 

@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 5.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 5.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="defmodule.html">
 <LINK REL=next HREF="usemodules.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="defmodule.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="usemodules.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="defmodule.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="usemodules.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:5.4">5.4 Importing Predicates into a Module</A></H2>
+<H2><A NAME="sec:5.4"><SPAN class="sec-nr">5.4</SPAN><SPAN class="sec-title">Importing 
+Predicates into a Module</SPAN></A></H2>
 
 <A NAME="sec:import"></A>
 
@@ -52,18 +128,18 @@ module by loading a module file as demonstrated in the previous section,
 using assert or by <EM>importing</EM> them from another module.
 
 <P>Two mechanisms for importing predicates explicitly from another 
-module exist. The <A NAME="idx:usemodule12:1050"></A><A HREF="import.html#use_module/1">use_module/[1,2]</A> 
+module exist. The <A NAME="idx:usemodule12:1083"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
 predicates load a module file and import (part of the) public predicates 
-of the file. The <A NAME="idx:import1:1051"></A><A HREF="import.html#import/1">import/1</A> 
+of the file. The <A NAME="idx:import1:1084"></A><A class="pred" href="import.html#import/1">import/1</A> 
 predicate imports any predicate from any module.
 
 <DL>
 <DT class="pubdef"><A NAME="use_module/1"><STRONG>use_module</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">
-Load the file(s) specified with <VAR>File</VAR> just like <A NAME="idx:ensureloaded1:1052"></A><A HREF="consulting.html#ensure_loaded/1">ensure_loaded/1</A>. 
+Load the file(s) specified with <VAR>File</VAR> just like <A NAME="idx:ensureloaded1:1085"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>. 
 The files should all be module files. All exported predicates from the 
 loaded files are imported into the context module. This predicate is 
-equivalent to <A NAME="idx:ensureloaded1:1053"></A><A HREF="consulting.html#ensure_loaded/1">ensure_loaded/1</A>, 
+equivalent to <A NAME="idx:ensureloaded1:1086"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>, 
 except that it raises an error if
 <VAR>File</VAR> is not a module file.</DD>
 <DT class="pubdef"><A NAME="use_module/2"><STRONG>use_module</STRONG>(<VAR>+File, 
@@ -81,7 +157,7 @@ nevertheless be imported to simplify debugging.</DD>
 Import predicate <VAR>Head</VAR> into the current context module. <VAR>Head</VAR> 
 should specify the source module using the &lt;<VAR>module</VAR>&gt;:&lt;<VAR>term</VAR>&gt; 
 construct. Note that predicates are normally imported using one of the 
-directives <A NAME="idx:usemodule12:1054"></A><A HREF="import.html#use_module/1">use_module/[1,2]</A>. <A NAME="idx:import1:1055"></A><A HREF="import.html#import/1">import/1</A> 
+directives <A NAME="idx:usemodule12:1087"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>. <A NAME="idx:import1:1088"></A><A class="pred" href="import.html#import/1">import/1</A> 
 is meant for handling imports into dynamically created modules.
 </DD>
 </DL>
@@ -97,7 +173,8 @@ the exception handler first tries to import the predicate from one of
 the module's <EM>import modules</EM>. On success, normal execution is 
 resumed.
 
-<H3><A NAME="sec:5.4.1">5.4.1 Reserved Modules</A></H3>
+<H3><A NAME="sec:5.4.1"><SPAN class="sec-nr">5.4.1</SPAN><SPAN class="sec-title">Reserved 
+Modules</SPAN></A></H3>
 
 <P>SWI-Prolog contains two special modules. The first one is the module
 <CODE>system</CODE>. This module contains all built-in predicates 

@@ -2,47 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 9.4</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 9.4</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="dynstatic.html">
 <LINK REL=next HREF="foreigntypes.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="dynstatic.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="foreigntypes.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="dynstatic.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="foreigntypes.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:9.4">9.4 Using the library shlib for <CODE>.DLL</CODE> 
-and <CODE>.so</CODE> files</A></H2>
+<H2><A NAME="sec:9.4"><SPAN class="sec-nr">9.4</SPAN><SPAN class="sec-title">Using 
+the library shlib for <CODE>.DLL</CODE> and <CODE>.so</CODE> files</SPAN></A></H2>
 
 <A NAME="sec:DLL"></A>
 <A NAME="sec:shlib"></A>
@@ -58,11 +133,11 @@ is enabled.
 <DD class="defbody">
 Search for the given foreign library and link it to the current 
 SWI-Prolog instance. The library may be specified with or without the 
-extension. First, <A NAME="idx:absolutefilename3:1241"></A><A HREF="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+extension. First, <A NAME="idx:absolutefilename3:1277"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
 is used to locate the file. If this succeeds, the full path is passed to 
 the low-level function to open the library. Otherwise, the plain library 
 name is passed, exploiting the operating-system defined search mechanism 
-for the shared library. The <A NAME="idx:filesearchpath2:1242"></A><A HREF="consulting.html#file_search_path/2">file_search_path/2</A> 
+for the shared library. The <A NAME="idx:filesearchpath2:1278"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 alias mechanism defines the alias <CODE>foreign</CODE>, which refers to 
 the directories <CODE>&lt;<VAR>plhome</VAR>&gt;/lib/&lt;<VAR>arch</VAR>&gt;</CODE> 
 and
@@ -78,7 +153,7 @@ predicates.
 </DD>
 <DT class="pubdef"><A NAME="load_foreign_library/1"><STRONG>load_foreign_library</STRONG>(<VAR>+Lib</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:loadforeignlibrary2:1243"></A><A HREF="DLL.html#load_foreign_library/2">load_foreign_library/2</A>. 
+Equivalent to <A NAME="idx:loadforeignlibrary2:1279"></A><A class="pred" href="DLL.html#load_foreign_library/2">load_foreign_library/2</A>. 
 For the entry-point, this function first identifies the `base-name' of 
 the library, which is defined to be the file-name with path nor 
 extension. It will then try the entry-point
@@ -89,7 +164,7 @@ function install(). Otherwise no install function will be called.
 <DD class="defbody">
 If the foreign library defines the function uninstall_&lt;<VAR>base</VAR>&gt;() 
 or uninstall(), this function will be called without arguments and its 
-return value is ignored. Next, <A NAME="idx:abolish2:1244"></A><A HREF="db.html#abolish/2">abolish/2</A> 
+return value is ignored. Next, <A NAME="idx:abolish2:1280"></A><A class="pred" href="db.html#abolish/2">abolish/2</A> 
 is used to remove all known foreign predicates defined in the library. 
 Finally the library itself is detached from the process.
 </DD>
@@ -103,9 +178,9 @@ the library was called.
 </DD>
 </DL>
 
-<P><A HREF="DLL.html#fig:msgbox">Figure 7</A> connects a Windows 
-message-box using a foreign function. This example was tested using 
-Windows&nbsp;NT and Microsoft Visual C++ 2.0.
+<P><A class="fig" href="DLL.html#fig:msgbox">Figure 7</A> connects a 
+Windows message-box using a foreign function. This example was tested 
+using Windows&nbsp;NT and Microsoft Visual C++ 2.0.
 
 <PRE class="code">
 #include &lt;windows.h&gt;
@@ -135,15 +210,16 @@ install()
 
 <A NAME="fig:msgbox"></A>
 
-<H3><A NAME="sec:9.4.1">9.4.1 Static Linking</A></H3>
+<H3><A NAME="sec:9.4.1"><SPAN class="sec-nr">9.4.1</SPAN><SPAN class="sec-title">Static 
+Linking</SPAN></A></H3>
 
 <A NAME="sec:staticl"></A>
 
 <P>Below is an outline of the files structure required for statically 
 linking SWI-Prolog with foreign extensions. <CODE>\ldots/pl</CODE> 
-refers to the SWI-Prolog home directory (see <A NAME="idx:currentprologflag2:1245"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). <CODE>&lt;<VAR>arch</VAR>&gt;</CODE> 
+refers to the SWI-Prolog home directory (see <A NAME="idx:currentprologflag2:1281"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). <CODE>&lt;<VAR>arch</VAR>&gt;</CODE> 
 refers to the architecture identifier that may be obtained using
-<A NAME="idx:currentprologflag2:1246"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>.
+<A NAME="idx:currentprologflag2:1282"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>.
 
 <P>
 <CENTER>
@@ -201,7 +277,7 @@ linking it to <CODE>libpl.a</CODE> from the runtime directory and the
 libraries required by both the extensions and the SWI-Prolog kernel. 
 This may be done by hand, or using the <B>plld</B> utility described in 
 secrefplld. If the linking is performed `by hand', the command-line 
-option <CODE>-dump-runtime-variables</CODE> (see <A HREF="cmdline.html">section 
+option <CODE>-dump-runtime-variables</CODE> (see <A class="sec" href="cmdline.html">section 
 2.4</A>) can be used to obtain the required paths, libraries and linking 
 options to link the new executable.
 

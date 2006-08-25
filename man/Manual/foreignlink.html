@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 9.2</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 9.2</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="foreignoverview.html">
 <LINK REL=next HREF="dynstatic.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="foreignoverview.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="dynstatic.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="foreignoverview.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="dynstatic.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:9.2">9.2 Linking Foreign Modules</A></H2>
+<H2><A NAME="sec:9.2"><SPAN class="sec-nr">9.2</SPAN><SPAN class="sec-title">Linking 
+Foreign Modules</SPAN></A></H2>
 
 <A NAME="sec:foreignlink"></A>
 
@@ -52,33 +128,42 @@ distributed as a C-library are linked together to form a new executable.
 Using <EM>dynamic linking</EM>, the extensions are linked to a shared 
 library (<CODE>.so</CODE> file on most Unix systems) or dynamic-link 
 library (<CODE>.DLL</CODE> file on Microsoft platforms) and loaded into 
-the the running Prolog process.<A NAME=back-to-note-80 HREF="Notes.html#note-80"> (80)</A>.
+the the running Prolog process.<SUP class="fn">70<SPAN class="fn-text">The 
+system also contains code to load <CODE>.o</CODE> files directly for 
+some operating systems, notably Unix systems using the BSD <CODE>a.out</CODE> 
+executable format. As the number of Unix platforms supporting this gets 
+quickly smaller and this interface is difficult to port and slow, it is 
+no longer described in this manual. The best alternatively would be to 
+use the <A NAME="idx:dld:1270">dld</A> package on machines do not have 
+shared libraries</SPAN></SUP>.
 
-<H3><A NAME="sec:9.2.1">9.2.1 What linking is provided?</A></H3>
+<H3><A NAME="sec:9.2.1"><SPAN class="sec-nr">9.2.1</SPAN><SPAN class="sec-title">What 
+linking is provided?</SPAN></A></H3>
 
 <P>The <EM>static linking</EM> schema can be used on all versions of 
 SWI-Prolog. Whether or not dynamic linking is supported can be deduced 
 from the prolog-flag <CODE>open_shared_object</CODE> (see
-<A NAME="idx:currentprologflag2:1235"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). 
+<A NAME="idx:currentprologflag2:1271"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). 
 If this prolog-flag yields true,
-<A NAME="idx:opensharedobject2:1236"></A><A HREF="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
+<A NAME="idx:opensharedobject2:1272"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
 and related predicates are defined. See
-<A HREF="DLL.html">section 9.4</A> for a suitable high-level interface 
-to these predicates.
+<A class="sec" href="DLL.html">section 9.4</A> for a suitable high-level 
+interface to these predicates.
 
-<H3><A NAME="sec:9.2.2">9.2.2 What kind of loading should I be using?</A></H3>
+<H3><A NAME="sec:9.2.2"><SPAN class="sec-nr">9.2.2</SPAN><SPAN class="sec-title">What 
+kind of loading should I be using?</SPAN></A></H3>
 
 <P>All described approaches have their advantages and disadvantages. 
 Static linking is portable and allows for debugging on all platforms. It 
 is relatively cumbersome and the libraries you need to pass to the 
 linker may vary from system to system, though the utility program
-<B>plld</B> described in <A HREF="plld.html">section 9.7</A> often hides 
-these problems from the user.
+<B>plld</B> described in <A class="sec" href="plld.html">section 9.7</A> 
+often hides these problems from the user.
 
 <P>Loading shared objects (DLL files on Windows) provides sharing and 
 protection and is generally the best choice. If a saved-state is created 
-using <A NAME="idx:qsaveprogram12:1237"></A><A HREF="runtime.html#qsave_program/1">qsave_program/[1,2]</A>, 
-an <A NAME="idx:initialization1:1238"></A><A HREF="consulting.html#initialization/1">initialization/1</A> 
+using <A NAME="idx:qsaveprogram12:1273"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>, 
+an <A NAME="idx:initialization1:1274"></A><A class="pred" href="consulting.html#initialization/1">initialization/1</A> 
 directive may be used to load the appropriate library at startup.
 
 <P>Note that the definition of the foreign predicates is the same, 

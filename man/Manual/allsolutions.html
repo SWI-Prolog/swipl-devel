@@ -2,46 +2,122 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.29</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.29</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="builtinlist.html">
 <LINK REL=next HREF="applylist.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="builtinlist.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="applylist.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="builtinlist.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="applylist.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.29">4.29 Finding all Solutions to a Goal</A></H2>
+<H2><A NAME="sec:4.29"><SPAN class="sec-nr">4.29</SPAN><SPAN class="sec-title">Finding 
+all Solutions to a Goal</SPAN></A></H2>
 
 <A NAME="sec:allsolutions"></A>
 
@@ -52,10 +128,10 @@ padding: 5px;
 Creates a list of the instantiations <VAR>Template</VAR> gets 
 successively on backtracking over <VAR>Goal</VAR> and unifies the result 
 with <VAR>Bag</VAR>. Succeeds with an empty list if <VAR>Goal</VAR> has 
-no solutions. <A NAME="idx:findall3:906"></A><A HREF="allsolutions.html#findall/3">findall/3</A> 
-is equivalent to <A NAME="idx:bagof3:907"></A><A HREF="allsolutions.html#bagof/3">bagof/3</A> 
+no solutions. <A NAME="idx:findall3:932"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
+is equivalent to <A NAME="idx:bagof3:933"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
 with all free variables bound with the existential operator (<STRONG><CODE>^</CODE></STRONG>), 
-except that <A NAME="idx:bagof3:908"></A><A HREF="allsolutions.html#bagof/3">bagof/3</A> 
+except that <A NAME="idx:bagof3:934"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
 fails when goal has no solutions.</DD>
 <DT class="pubdef"><A NAME="bagof/3"><STRONG>bagof</STRONG>(<VAR>+Template, 
 +Goal, -Bag</VAR>)</A></DT>
@@ -67,10 +143,10 @@ unifying <VAR>Bag</VAR> with the corresponding alternatives of <VAR>Template</VA
 The construct
 <CODE>+<VAR>Var</VAR><CODE>^</CODE><VAR>Goal</VAR></CODE> tells bagof 
 not to bind <VAR>Var</VAR> in
-<VAR>Goal</VAR>. <A NAME="idx:bagof3:909"></A><A HREF="allsolutions.html#bagof/3">bagof/3</A> 
+<VAR>Goal</VAR>. <A NAME="idx:bagof3:935"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
 fails if <VAR>Goal</VAR> has no solutions.
 
-<P>The example below illustrates <A NAME="idx:bagof3:910"></A><A HREF="allsolutions.html#bagof/3">bagof/3</A> 
+<P>The example below illustrates <A NAME="idx:bagof3:936"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A> 
 and the <STRONG><CODE>^</CODE></STRONG> operator. The variable bindings 
 are printed together on one line to save paper.
 
@@ -104,8 +180,8 @@ No
 <DT class="pubdef"><A NAME="setof/3"><STRONG>setof</STRONG>(<VAR>+Template, 
 +Goal, -Set</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:bagof3:911"></A><A HREF="allsolutions.html#bagof/3">bagof/3</A>, 
-but sorts the result using <A NAME="idx:sort2:912"></A><A HREF="builtinlist.html#sort/2">sort/2</A> 
+Equivalent to <A NAME="idx:bagof3:937"></A><A class="pred" href="allsolutions.html#bagof/3">bagof/3</A>, 
+but sorts the result using <A NAME="idx:sort2:938"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A> 
 to get a sorted list of alternatives without duplicates.
 </DD>
 </DL>

@@ -2,58 +2,136 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.42</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.42</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="memory.html">
 <LINK REL=next HREF="miscpreds.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="memory.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="miscpreds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="memory.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="miscpreds.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.42">4.42 Windows DDE interface</A></H2>
+<H2><A NAME="sec:4.42"><SPAN class="sec-nr">4.42</SPAN><SPAN class="sec-title">Windows 
+DDE interface</SPAN></A></H2>
 
 <A NAME="sec:DDE"></A>
 
 <P>The predicates in this section deal with MS-Windows `Dynamic Data 
-Exchange' or DDE protocol.<A NAME=back-to-note-72 HREF="Notes.html#note-72"> (72)</A> 
-A Windows DDE conversation is a form of interprocess communication based 
-on sending reserved window-events between the communicating processes.
+Exchange' or DDE protocol.<SUP class="fn">63<SPAN class="fn-text">This 
+interface is contributed by Don Dwiggins.</SPAN></SUP> A Windows DDE 
+conversation is a form of interprocess communication based on sending 
+reserved window-events between the communicating processes.
 
-<P>See also <A HREF="DLL.html">section 9.4</A> for loading Windows DLL's 
-into SWI-Prolog.
+<P>See also <A class="sec" href="DLL.html">section 9.4</A> for loading 
+Windows DLL's into SWI-Prolog.
 
-<H3><A NAME="sec:4.42.1">4.42.1 DDE client interface</A></H3>
+<H3><A NAME="sec:4.42.1"><SPAN class="sec-nr">4.42.1</SPAN><SPAN class="sec-title">DDE 
+client interface</SPAN></A></H3>
 
 <P>The DDE client interface allows Prolog to talk to DDE server 
 programs. We will demonstrate the use of the DDE interface using the 
@@ -106,7 +184,7 @@ successful. If unsuccessful, <VAR>Value</VAR> will be unified with a
 term of form
 <TT>error(&lt;<VAR>Reason</VAR>&gt;)</TT>, identifying the problem. This 
 call uses SWI-Prolog string objects to return the value rather then 
-atoms to reduce the load on the atom-space. See <A HREF="strings.html">section 
+atoms to reduce the load on the atom-space. See <A class="sec" href="strings.html">section 
 4.23</A> for a discussion on this data type.
 </DD>
 <DT class="pubdef"><A NAME="dde_execute/2"><STRONG>dde_execute</STRONG>(<VAR>+Handle, 
@@ -123,7 +201,8 @@ Command is passed as data of type <CODE>CF_TEXT</CODE>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:4.42.2">4.42.2 DDE server mode</A></H3>
+<H3><A NAME="sec:4.42.2"><SPAN class="sec-nr">4.42.2</SPAN><SPAN class="sec-title">DDE 
+server mode</SPAN></A></H3>
 
 <P>The (autoload) <CODE>library(dde)</CODE> defines primitives to 
 realise simple DDE server applications in SWI-Prolog. These features are 
@@ -145,9 +224,11 @@ is of the form:
 an atom, indicating <VAR>Goal</VAR> only handles requests on this topic 
 or a variable that also appears in <VAR>Goal</VAR>. <VAR>Item</VAR> and <VAR>Value</VAR> 
 are variables that also appear in <VAR>Goal</VAR>. <VAR>Item</VAR> 
-represents the request data as a Prolog atom.<A NAME=back-to-note-73 HREF="Notes.html#note-73"> (73)</A>
+represents the request data as a Prolog atom.<SUP class="fn">64<SPAN class="fn-text">Up-to 
+version 3.4.5 this was a list of character codes. As recent versions 
+have atom garbage collection there is no need for this anymore.</SPAN></SUP>
 
-<P>The example below registers the Prolog <A NAME="idx:currentprologflag2:1044"></A><A HREF="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
+<P>The example below registers the Prolog <A NAME="idx:currentprologflag2:1077"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A> 
 predicate to be accessible from other applications. The request may be 
 given from the same Prolog as well as from another application.
 

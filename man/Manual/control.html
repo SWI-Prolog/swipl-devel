@@ -2,55 +2,131 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.17 Reference Manual: Section 4.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="compare.html">
 <LINK REL=next HREF="metacall.html">
-<style type="text/css"> 
-dd.defbody 
-{ margin-bottom: 1em; 
+<STYLE type="text/css">
+/* Style sheet for SWI-Prolog latex2html
+*/
+
+dd.defbody
+{ margin-bottom: 1em;
 }
 
-dt.pubdef 
-{ background-color: #c5e1ff; 
+dt.pubdef
+{ background-color: #c5e1ff;
 }
 
-pre.code 
-{ margin-left: 1.5em; 
-margin-right: 1.5em; 
-border: 1px dotted; 
-padding-top: 5px; 
-padding-left: 5px; 
-padding-bottom: 5px; 
-background-color: #f8f8f8; 
+pre.code
+{ margin-left: 1.5em;
+margin-right: 1.5em;
+border: 1px dotted;
+padding-top: 5px;
+padding-left: 5px;
+padding-bottom: 5px;
+background-color: #f8f8f8;
 }
 
 div.navigate
-{ text-align: center; 
-background-color: #f0f0f0; 
-border: 1px dotted; 
+{ text-align: center;
+background-color: #f0f0f0;
+border: 1px dotted;
 padding: 5px;
 }
-</style>
+
+div.title
+{ text-align: center;
+padding-bottom: 1em;
+font-size: 200%;
+font-weight: bold;
+}
+
+div.author
+{ text-align: center;
+font-style: italic;
+}
+
+div.abstract
+{ margin-top: 2em;
+background-color: #f0f0f0;
+border: 1px dotted;
+padding: 5px;
+margin-left: 10%; margin-right:10%;
+}
+
+div.abstract-title
+{ text-align: center;
+padding: 5px;
+font-size: 120%;
+font-weight: bold;
+}
+
+div.toc-h1
+{ font-size: 200%;
+font-weight: bold;
+}
+
+div.toc-h2
+{ font-size: 120%;
+font-weight: bold;
+margin-left: 2em;
+}
+
+div.toc-h3
+{ font-size: 100%;
+font-weight: bold;
+margin-left: 4em;
+}
+
+div.toc-h4
+{ font-size: 100%;
+margin-left: 6em;
+}
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}
+
+/* Footnotes */
+
+sup.fn { color: blue; text-decoration: underline; }
+span.fn-text: { display: none; }
+sup.fn span {display: none;}
+sup:hover span 
+{ display: block !important;
+position: absolute; top: auto; left: auto; width: 250px;
+color: #000; background: white;
+border: 2px solid;
+padding: 5px; margin: 10px; z-index: 100;
+font-size: smaller;
+}
+</STYLE>
 </HEAD>
-<BODY BGCOLOR="white"><DIV class="navigate"><A HREF="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
-<A HREF="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
-<A HREF="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
-<A HREF="compare.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
-<A HREF="metacall.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
+<BODY BGCOLOR="white">
+<DIV class="navigate"><A class="nav" href="index.html"><IMG SRC="home.gif" BORDER=0 ALT="Home"></A>
+<A class="nav" href="Contents.html"><IMG SRC="index.gif" BORDER=0 ALT="Contents"></A>
+<A class="nav" href="DocIndex.html"><IMG SRC="yellow_pages.gif" BORDER=0 ALT="Index"></A>
+<A class="nav" href="compare.html"><IMG SRC="prev.gif" BORDER=0 ALT="Previous"></A>
+<A class="nav" href="metacall.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.7">4.7 Control Predicates</A></H2>
+<H2><A NAME="sec:4.7"><SPAN class="sec-nr">4.7</SPAN><SPAN class="sec-title">Control 
+Predicates</SPAN></A></H2>
 
 <A NAME="sec:control"></A>
 
 <P>The predicates of this section implement control structures. Normally 
-the constructs in this section, except for <A NAME="idx:repeat0:443"></A><A HREF="control.html#repeat/0">repeat/0</A>, 
+the constructs in this section, except for <A NAME="idx:repeat0:452"></A><A class="pred" href="control.html#repeat/0">repeat/0</A>, 
 are translated by the compiler. Please note that complex goals passed as 
-arguments to meta-predicates such as <A NAME="idx:findall3:444"></A><A HREF="allsolutions.html#findall/3">findall/3</A> 
+arguments to meta-predicates such as <A NAME="idx:findall3:453"></A><A class="pred" href="allsolutions.html#findall/3">findall/3</A> 
 below cause the goal to be compiled to a temporary location before 
-execution. It is faster to define a sub-predicate (i.e. <A NAME="idx:onecharacteratom1:445"></A><B>one_character_atom/1</B> 
+execution. It is faster to define a sub-predicate (i.e. <A NAME="idx:onecharacteratom1:454"></A><B>one_character_atom/1</B> 
 in the example below) and make a call to this simple predicate.
 
 <PRE class="code">
@@ -61,12 +137,12 @@ one_character_atoms(As) :-
 <DL>
 <DT class="pubdef"><A NAME="fail/0"><STRONG>fail</STRONG></A></DT>
 <DD class="defbody">
-Always fail. The predicate <A NAME="idx:fail0:446"></A><A HREF="control.html#fail/0">fail/0</A> 
+Always fail. The predicate <A NAME="idx:fail0:455"></A><A class="pred" href="control.html#fail/0">fail/0</A> 
 is translated into a single virtual machine instruction.
 </DD>
 <DT class="pubdef"><A NAME="true/0"><STRONG>true</STRONG></A></DT>
 <DD class="defbody">
-Always succeed. The predicate <A NAME="idx:true0:447"></A><A HREF="control.html#true/0">true/0</A> 
+Always succeed. The predicate <A NAME="idx:true0:456"></A><A class="pred" href="control.html#true/0">true/0</A> 
 is translated into a single virtual machine instruction.
 </DD>
 <DT class="pubdef"><A NAME="repeat/0"><STRONG>repeat</STRONG></A></DT>
@@ -78,11 +154,14 @@ Always succeed, provide an infinite number of choice points.
 Cut. Discard choice points of parent frame and frames created after the 
 parent frame. As of SWI-Prolog 3.3, the semantics of the cut are 
 compliant with the ISO standard. This implies that the cut is 
-transparent to <A HREF="control.html#;/2">;/2</A>, <A HREF="control.html#send_arrow/2">-&gt;/2</A> 
-and <A HREF="control.html#*->/2">*-&gt;/2</A>. Cuts appearing in the <EM>condition</EM> 
-part of <A HREF="control.html#send_arrow/2">-&gt;/2</A> and
-<A HREF="control.html#*->/2">*-&gt;/2</A> as well as in <A HREF="control.html#\+/1">\+/1</A> 
-are local to the condition.<A NAME=back-to-note-27 HREF="Notes.html#note-27"> (27)</A>
+transparent to <A class="pred" href="control.html#;/2">;/2</A>, <A class="pred" href="control.html#send_arrow/2">-&gt;/2</A> 
+and <A class="pred" href="control.html#*->/2">*-&gt;/2</A>. Cuts 
+appearing in the <EM>condition</EM> part of <A class="pred" href="control.html#send_arrow/2">-&gt;/2</A> 
+and
+<A class="pred" href="control.html#*->/2">*-&gt;/2</A> as well as in <A class="pred" href="control.html#\+/1">\+/1</A> 
+are local to the condition.<SUP class="fn">26<SPAN class="fn-text">Up to 
+version 4.0.6, the sequence X=!, X acted as a true cut. This feature has 
+been deleted for ISO compliance.</SPAN></SUP>
 
 <P>
 <CENTER>
@@ -122,18 +201,18 @@ _Goal1 ; Goal2 :- Goal2.
 </DD>
 <DT class="pubdef"><A NAME="|/2"><VAR>+Goal1</VAR> <STRONG>|</STRONG> <VAR>+Goal2</VAR></A></DT>
 <DD class="defbody">
-Equivalent to <A HREF="control.html#;/2">;/2</A>. Retained for 
-compatibility only. New code should use <A HREF="control.html#;/2">;/2</A>.</DD>
+Equivalent to <A class="pred" href="control.html#;/2">;/2</A>. Retained 
+for compatibility only. New code should use <A class="pred" href="control.html#;/2">;/2</A>.</DD>
 <DT class="pubdef"><A NAME="send_arrow/2"><VAR>+Condition</VAR> <STRONG>-&gt;</STRONG> <VAR>+Action</VAR></A></DT>
 <DD class="defbody">
-If-then and If-Then-Else. The <A HREF="control.html#send_arrow/2">-&gt;/2</A> 
+If-then and If-Then-Else. The <A class="pred" href="control.html#send_arrow/2">-&gt;/2</A> 
 construct commits to the choices made at its left-hand side, destroying 
-choice-points created inside the clause (by <A HREF="control.html#;/2">;/2</A>), 
-or by goals called by this clause. Unlike <A HREF="control.html#!/0">!/0</A>, 
+choice-points created inside the clause (by <A class="pred" href="control.html#;/2">;/2</A>), 
+or by goals called by this clause. Unlike <A class="pred" href="control.html#!/0">!/0</A>, 
 the choice-point of the predicate as a whole (due to multiple clauses) 
-is <STRONG>not</STRONG> destroyed. The combination <A HREF="control.html#;/2">;/2</A> 
-and <A HREF="control.html#send_arrow/2">-&gt;/2</A> acts as if defines 
-by:
+is <STRONG>not</STRONG> destroyed. The combination <A class="pred" href="control.html#;/2">;/2</A> 
+and <A class="pred" href="control.html#send_arrow/2">-&gt;/2</A> acts as 
+if defines by:
 
 <PRE class="code">
 If -&gt; Then; _Else :- If, !, Then.
@@ -161,7 +240,9 @@ execute <VAR>Else</VAR>.
 <P>The construct <VAR>A</VAR> <CODE>*-&gt;</CODE> <VAR>B</VAR>, i.e. without 
 an
 <VAR>Else</VAR> branch, is translated as the normal conjunction <VAR>A</VAR>,
-<VAR>B</VAR>.<A NAME=back-to-note-28 HREF="Notes.html#note-28"> (28)</A></DD>
+<VAR>B</VAR>.<SUP class="fn">bug<SPAN class="fn-text">The decompiler 
+implemented by <A NAME="idx:clause2:457"></A><A class="pred" href="examineprog.html#clause/2">clause/2</A> 
+returns this construct as a normal conjunction too.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="\+/1"><STRONG>\+</STRONG> <VAR>+Goal</VAR></A></DT>
 <DD class="defbody">
 Succeeds if `Goal' cannot be proven (mnemonic: <CODE><CODE>+</CODE></CODE> 
