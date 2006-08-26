@@ -255,41 +255,57 @@ PRED_IMPL("succ", 2, succ, 0)
 
 
 static int
-var_or_long(term_t t, int64_t *l, int which, int *mask ARG_LD)
-{ if ( PL_get_int64(t, l) )
-  { *mask |= which;
+var_or_integer(term_t t, number *n, int which, int *mask ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isInteger(*p) )
+  { get_integer(*p, n);
+    *mask |= which;
     succeed;
   } 
-  if ( PL_is_variable(t) )
+  if ( isVar(*p) )
     succeed;
     
-  return PL_error("plus", 3, NULL, ERR_TYPE, ATOM_integer, t);
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
 
 
-word
-pl_plus(term_t a, term_t b, term_t c)
+static
+PRED_IMPL("plus", 3, plus, 0)
 { GET_LD
-  int64_t m, n, o;
+  number m, n, o;
   int mask = 0;
+  int rc;
 
-  if ( !var_or_long(a, &m, 0x1, &mask PASS_LD) ||
-       !var_or_long(b, &n, 0x2, &mask PASS_LD) ||
-       !var_or_long(c, &o, 0x4, &mask PASS_LD) )
+  if ( !var_or_integer(A1, &m, 0x1, &mask PASS_LD) ||
+       !var_or_integer(A2, &n, 0x2, &mask PASS_LD) ||
+       !var_or_integer(A3, &o, 0x4, &mask PASS_LD) )
     fail;
 
   switch(mask)
-  { case 0x7:
-      return m+n == o ? TRUE : FALSE;
+  { case 0x7:				/* +, +, + */
     case 0x3:				/* +, +, - */
-      return PL_unify_int64(c, m+n);
+      ar_add(&m, &n, &o);
+      rc = PL_unify_number(A3, &o);
+      break;
     case 0x5:				/* +, -, + */
-      return PL_unify_int64(b, o-m);
+      ar_minus(&o, &m, &n);
+      rc = PL_unify_number(A2, &n);
+      break;
     case 0x6:				/* -, +, + */
-      return PL_unify_int64(a, o-n);
+      ar_minus(&o, &n, &m);
+      rc = PL_unify_number(A1, &m);
+      break;
     default:
       return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
   }
+
+  clearInteger(&m);
+  clearInteger(&n);
+  clearInteger(&o);
+
+  return rc;
 }
 
 
@@ -2684,4 +2700,5 @@ BeginPredDefs(arith)
 	   PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
   PRED_DEF("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
   PRED_DEF("succ", 2, succ, 0)
+  PRED_DEF("plus", 3, plus, 0)
 EndPredDefs
