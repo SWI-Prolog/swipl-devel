@@ -126,11 +126,23 @@ struct arithFunction
 static ArithFunction	isCurrentArithFunction(functor_t, Module);
 static int		registerFunction(ArithFunction f, int index);
 static int		getCharExpression(term_t t, Number r ARG_LD);
+static int		ar_sign_i(Number n1);
+static int		ar_add(Number n1, Number n2, Number r);
+static int		ar_minus(Number n1, Number n2, Number r);
 
 
 		/********************************
 		*   LOGICAL INTEGER FUNCTIONS   *
 		*********************************/
+
+static inline void
+clearInteger(Number n)
+{
+#ifdef O_GMP
+  if ( n->type == V_MPZ && n->value.mpz->_mp_alloc )
+    mpz_clear(n->value.mpz);
+#endif
+}
 
 word
 pl_between(term_t low, term_t high, term_t n, control_t ctx)
@@ -191,32 +203,54 @@ pl_between(term_t low, term_t high, term_t n, control_t ctx)
   }
 }
 
-word
-pl_succ(term_t n1, term_t n2)
-{ int64_t i1, i2;
+static
+PRED_IMPL("succ", 2, succ, 0)
+{ GET_LD
+  Word p1, p2;
+  number i1, i2, one;
+  int rc;
 
-  if ( PL_get_int64(n1, &i1) )
-  { if ( i1 < 0L )
-      return PL_error("succ", 2, NULL, ERR_DOMAIN,
-		      ATOM_not_less_than_zero, n1);
-    if ( PL_get_int64(n2, &i2) )
-      return i1+1 == i2 ? TRUE : FALSE;
-    else if ( PL_unify_int64(n2, i1+1) )
-      succeed;
+  p1 = valTermRef(A1); deRef(p1);
 
-    return PL_error("succ", 2, NULL, ERR_TYPE, ATOM_integer, n2);
-  }
-  if ( PL_get_int64(n2, &i2) )
-  { if ( i2 < 0L )
-      return PL_error("succ", 2, NULL, ERR_DOMAIN,
-		      ATOM_not_less_than_zero, n2);
-    if ( i2 == 0L )
-      fail;
-    if ( PL_unify_int64(n1, i2-1) )
-      succeed;
-  }
+  one.type = V_INTEGER;
+  one.value.i = 1;
 
-  return PL_error("succ", 2, NULL, ERR_TYPE, ATOM_integer, n1);
+  if ( isInteger(*p1) )
+  { get_integer(*p1, &i1);
+    if ( ar_sign_i(&i1) < 0 )
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		      ATOM_not_less_than_zero, A1);
+    ar_add(&i1, &one, &i2);
+    rc = PL_unify_number(A2, &i2);
+  } else if ( !canBind(*p1) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, A1);
+
+  p2 = valTermRef(A2); deRef(p2);
+
+  if ( isInteger(*p2) )
+  { get_integer(*p2, &i2);
+    switch( ar_sign_i(&i2) )
+    { case 1:
+	ar_minus(&i2, &one, &i1);
+        rc = PL_unify_number(A1, &i1);
+	break;
+      case 0:
+	fail;
+      case -1:
+      default:
+	return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			ATOM_not_less_than_zero, A2);
+    }
+  } else if ( !canBind(*p2) )
+  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, A2);
+  } else
+    return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+
+  clearInteger(&i1);
+  clearInteger(&i2);
+  clearInteger(&one);
+
+  return rc;
 }
 
 
@@ -254,7 +288,7 @@ pl_plus(term_t a, term_t b, term_t c)
     case 0x6:				/* -, +, + */
       return PL_unify_int64(a, o-n);
     default:
-      return PL_error("succ", 2, NULL, ERR_INSTANTIATION);
+      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
   }
 }
 
@@ -1237,24 +1271,27 @@ ar_div(Number n1, Number n2, Number r)
 
 
 static int
-ar_sign(Number n1, Number r)
+ar_sign_i(Number n1)
 { switch(n1->type)
   { case V_INTEGER:
-      r->value.i = (n1->value.i <   0 ? -1 : n1->value.i >   0 ? 1 : 0);
-      break;
+      return (n1->value.i < 0 ? -1 : n1->value.i > 0 ? 1 : 0);
 #ifdef O_GMP
     case V_MPZ:
-      r->value.i = mpz_sgn(n1->value.mpz);
-      break;
+      return mpz_sgn(n1->value.mpz);
     case V_MPQ:
-      r->value.i = mpq_sgn(n1->value.mpq);
-      break;
+      return mpq_sgn(n1->value.mpq);
 #endif
     case V_REAL:
-      r->value.i = (n1->value.f < 0.0 ? -1 : n1->value.f > 0.0 ? 1 : 0);
-      break;
+      return (n1->value.f < 0.0 ? -1 : n1->value.f > 0.0 ? 1 : 0);
+    default:
+      assert(0);
+      fail;
   }
+}
 
+static int
+ar_sign(Number n1, Number r)
+{ r->value.i = ar_sign_i(n1);
   r->type = V_INTEGER;
   succeed;
 }
@@ -2646,4 +2683,5 @@ BeginPredDefs(arith)
   PRED_DEF("$prolog_arithmetic_function", 2, prolog_arithmetic_function,
 	   PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
   PRED_DEF("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
+  PRED_DEF("succ", 2, succ, 0)
 EndPredDefs

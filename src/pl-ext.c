@@ -246,7 +246,6 @@ static const PL_extension foreigns[] = {
   FRG("abort",			0, pl_abort,			0),
 
   FRG("between",		3, pl_between,		     NDET),
-  FRG("succ",			2, pl_succ,			0),
   FRG("plus",			3, pl_plus,			0),
 
   FRG("trace",			0, pl_trace,		  NOTRACE),

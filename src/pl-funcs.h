@@ -119,7 +119,6 @@ COMMON(void) 		_PL_debug_unregister_atom(atom_t a,
 
 COMMON(word) 		pl_between(term_t l, term_t h, term_t n,
 				   control_t ctx);
-COMMON(word) 		pl_succ(term_t n1, term_t n2);
 COMMON(word) 		pl_plus(term_t a, term_t b, term_t c);
 COMMON(int) 		ar_compare(Number n1, Number n2, int what);
 COMMON(word) 		pl_current_arithmetic_function(term_t f, control_t h);
