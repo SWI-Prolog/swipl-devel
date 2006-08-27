@@ -9,6 +9,7 @@
 PL=@PL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
+PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=/staff/jan/src/xpce
 DESTDIR=
 
@@ -60,9 +61,23 @@ install:	$(LIBPL)
 ln-install::
 		@$(MAKE) INSTALL_DATA='../ln-install' install
 
+html-install::
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)$(PKGDOC)
+
+pdf-install::
+		mkdir -p $(DESTDIR)$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)$(PKGDOC)
+
 uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
 		$(PL) -f none -g make -t halt
+
+################################################################
+# Check
+################################################################
+
+check::
 
 ################################################################
 # Documentation
