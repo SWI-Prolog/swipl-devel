@@ -144,12 +144,15 @@ clearInteger(Number n)
 #endif
 }
 
-word
-pl_between(term_t low, term_t high, term_t n, control_t ctx)
+static
+PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 { GET_LD
   int64_t *state;
+  term_t low = A1;
+  term_t high = A2;
+  term_t n = A3;
 
-  switch( ForeignControl(ctx) )
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       { int64_t l, h, i;
 
@@ -183,7 +186,7 @@ pl_between(term_t low, term_t high, term_t n, control_t ctx)
     case FRG_REDO:
       { int64_t h;
 
-	state = ForeignContextPtr(ctx);
+	state = CTX_PTR;
 	(*state)++;
 
 	PL_unify_int64(n, *state);
@@ -195,7 +198,7 @@ pl_between(term_t low, term_t high, term_t n, control_t ctx)
 	ForeignRedoPtr(state);
       }
     case FRG_CUTTED:
-      { state = ForeignContextPtr(ctx);
+      { state = CTX_PTR;
 	freeHeap(state, sizeof(*state));
       }
     default:;
@@ -2701,4 +2704,5 @@ BeginPredDefs(arith)
   PRED_DEF("$arithmetic_function", 2, arithmetic_function, PL_FA_TRANSPARENT)
   PRED_DEF("succ", 2, succ, 0)
   PRED_DEF("plus", 3, plus, 0)
+  PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
 EndPredDefs

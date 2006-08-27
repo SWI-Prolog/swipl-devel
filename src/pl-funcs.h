@@ -117,8 +117,6 @@ COMMON(void) 		_PL_debug_unregister_atom(atom_t a,
 
 /* pl-arith.c */
 
-COMMON(word) 		pl_between(term_t l, term_t h, term_t n,
-				   control_t ctx);
 COMMON(int) 		ar_compare(Number n1, Number n2, int what);
 COMMON(word) 		pl_current_arithmetic_function(term_t f, control_t h);
 COMMON(void) 		initArith(void);
