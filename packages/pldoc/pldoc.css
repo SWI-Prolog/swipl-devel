@@ -156,8 +156,26 @@ tr.private
   background-color: #fbffa6;
 }
 
-/* Footnotes from latex2html */
+/* Search */
 
+span.for
+{ font-style: italic;
+}
+
+div.search-results
+{ font-size: larger;
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+div.search-counts
+{ font-style: italic;
+  font-size: smaller;
+  margin-bottom: 1em;
+}
+
+/* Footnotes from latex2html */
 sup.fn { color: blue; text-decoration: underline; }
 span.fn-text: { display: none; }
 sup.fn span {display: none;}

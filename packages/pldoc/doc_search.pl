@@ -77,11 +77,16 @@ search_form(Title) -->
 search_reply(For, Options) -->
 	{ search_doc(For, PerCategory, Options),
 	  PerCategory \== [],
-	  option(resultFormat(Format), Options, summary)
+	  option(resultFormat(Format), Options, summary),
+	  count_matches(PerCategory, Matches)
 	}, !,
 	html([ \doc_links('', Options),
-	       h1(class(search),
-		  ['Search results for ', span(class(for), ['"', For, '"'])])
+	       div(class('search-results'),
+		   ['Search results for ', span(class(for), ['"', For, '"'])]),
+	       div(class('search-counts'),
+		   [ Matches, ' matches; ',
+		     \count_by_category(PerCategory)
+		   ])
 	     | \matches(Format, PerCategory, Options)
 	     ]).
 search_reply(_For, Options) -->
@@ -89,6 +94,34 @@ search_reply(_For, Options) -->
 	       h1(class(search), 'No matches')
 	     ]).
 
+count_by_category([]) -->
+	[].
+count_by_category([Cat-PerFile|T]) -->
+	{ count_category(PerFile, Count),
+	  atom_concat(#, Cat, HREF)
+	},
+	html([ a(href(HREF), \category_title(Cat)),
+	       ': ',
+	       Count
+	     ]),
+	(   {T == []}
+	->  []
+	;   html(', '),
+	    count_by_category(T)
+	).
+
+count_matches([], 0).
+count_matches([_-Cat|T], Count) :-
+	count_matches(T, Count0),
+	count_category(Cat, N),
+	Count is Count0 + N.
+
+count_category([], 0).
+count_category([_-Objs|T], Count) :-
+	count_category(T, Count0),
+	length(Objs, N),
+	Count is Count0 + N.
+		 
 %%	matches(+Format, +PerCategory, +Options)// is det
 %
 %	Display search matches according to Format.
@@ -137,14 +170,14 @@ short_matches([File-Objs|T], Options) -->
 
 category_index_header(Category, _Options) -->
 	html(tr(th([class(category), colspan(2)],
-		   \category_title(Category)))).
+		   a(name(Category), \category_title(Category))))).
 
 category_title(Category) -->
 	{   prolog:doc_category(Category, _Order, Title)
 	->  true
 	;   Title = Category
 	},
-	html(a(name(Category), Title)).
+	html(Title).
 
 %%	search_doc(+SearchString, -PerType:list, +Options) is det.
 %
@@ -154,11 +187,33 @@ category_title(Category) -->
 search_doc(Search, PerType, Options) :-
 	findall(Tuples, matching_object(Search, Tuples, Options), Tuples0),
 	keysort(Tuples0, Tuples),
-	group_by_key(Tuples, PerType0),
-	group_by_file(PerType0, PerType).
+	group_by_key(Tuples, PerCat0),
+	key_sort_order(PerCat0, PerCat1),
+	keysort(PerCat1, PerCat2),
+	unkey(PerCat2, PerCat),
+	group_by_file(PerCat, PerType).
+
+key_sort_order([], []).
+key_sort_order([Cat-ByCat|T0], [Order-(Cat-ByCat)|T]) :-
+	(   prolog:doc_category(Cat, Order, _Title)
+	->  true
+	;   Order = 99
+	),
+	key_sort_order(T0, T).
+
+
+%%	unkey(+Keyed, -Values) is det.
+%
+%	Remove keys added for keysort.
+
+unkey([], []).
+unkey([_-V|T0], [V|T]) :-
+	unkey(T0, T).
+
 
 group_by_file([], []).
-group_by_file([Type-Tuples|T0], [Type-ByFile|T]) :-
+group_by_file([Type-Tuples0|T0], [Type-ByFile|T]) :-
+	keysort(Tuples0, Tuples),
 	group_by_key(Tuples, ByFile),
 	group_by_file(T0, T).
 
