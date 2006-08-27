@@ -75,38 +75,57 @@ search_form(Title) -->
 %		=long=, produce full object descriptions.
 
 search_reply(For, Options) -->
-	{ search_doc(For, PerFile, Options),
-	  PerFile \== [],
+	{ search_doc(For, PerCategory, Options),
+	  PerCategory \== [],
 	  option(resultFormat(Format), Options, summary)
 	}, !,
 	html([ \doc_links('', Options),
 	       h1(class(search),
 		  ['Search results for ', span(class(for), ['"', For, '"'])])
-	     | \matches(Format, PerFile, Options)
+	     | \matches(Format, PerCategory, Options)
 	     ]).
 search_reply(_For, Options) -->
 	html([ \doc_links('', Options),
 	       h1(class(search), 'No matches')
 	     ]).
 
-%%	matches(+Format, +PerFile, +Options)// is det
+%%	matches(+Format, +PerCategory, +Options)// is det
 %
 %	Display search matches according to Format.
 %
-%	@param PerFile List of File-Objects
+%	@param PerCategory List of File-Objects
 
-matches(long, PerFile, Options) -->
-	long_matches(PerFile, Options).
-matches(summary, PerFile, Options) -->
-	html(table(class(summary), \short_matches(PerFile, Options))).
+matches(long, PerCategory, Options) -->
+	long_matches_by_type(PerCategory, Options).
+matches(summary, PerCategory, Options) -->
+	html(table(class(summary),
+		   \short_matches_by_type(PerCategory, Options))).
 			 
 	
+long_matches_by_type([], _) -->
+	[].
+long_matches_by_type([Category-PerFile|T], Options) -->
+	category_header(Category, Options),
+	long_matches(PerFile, Options),
+	long_matches_by_type(T, Options).
+
+
 long_matches([], _) -->
 	[].
 long_matches([File-Objs|T], Options) -->
 	file_header(File, Options),
 	objects(Objs, Options),
 	long_matches(T, Options).
+
+category_header(Category, _Options) -->
+	html(h1(class(category), \category_title(Category))).
+
+short_matches_by_type([], _) -->
+	[].
+short_matches_by_type([Category-PerFile|T], Options) -->
+	category_index_header(Category, Options),
+	short_matches(PerFile, Options),
+	short_matches_by_type(T, Options).
 
 short_matches([], _) -->
 	[].
@@ -116,15 +135,32 @@ short_matches([File-Objs|T], Options) -->
 	short_matches(T, Options).
 
 
-%%	search_doc(+SearchString, -PerFile:list, +Options) is det.
-%
-%	Return matches of SearchString as File-ListOfObjects, sorted
-%	by File and by Object.
+category_index_header(Category, _Options) -->
+	html(tr(th([class(category), colspan(2)],
+		   \category_title(Category)))).
 
-search_doc(Search, PerFile, Options) :-
-	findall(Tuple, matching_object(Search, Tuple, Options), Tuples0),
+category_title(Category) -->
+	{   prolog:doc_category(Category, _Order, Title)
+	->  true
+	;   Title = Category
+	},
+	html(a(name(Category), Title)).
+
+%%	search_doc(+SearchString, -PerType:list, +Options) is det.
+%
+%	Return matches of SearchString  as   Type-PerFile  tuples, where
+%	PerFile is a list Fule-ListOfObjects.
+
+search_doc(Search, PerType, Options) :-
+	findall(Tuples, matching_object(Search, Tuples, Options), Tuples0),
 	keysort(Tuples0, Tuples),
-	group_by_key(Tuples, PerFile).
+	group_by_key(Tuples, PerType0),
+	group_by_file(PerType0, PerType).
+
+group_by_file([], []).
+group_by_file([Type-Tuples|T0], [Type-ByFile|T]) :-
+	group_by_key(Tuples, ByFile),
+	group_by_file(T0, T).
 
 
 %%	group_by_key(+KeyedList, -KeyedGroups) is det.
@@ -149,8 +185,8 @@ collect_by_key(_, L, [], L).
 %	
 %	@param Object	Term of the form File-Item
 
-matching_object(Search, Section-Obj, _Options) :-
-	prolog:doc_object_summary(Obj, _Type, Section, Summary),
+matching_object(Search, Type-(Section-Obj), _Options) :-
+	prolog:doc_object_summary(Obj, Type, Section, Summary),
 	(   apropos_match(Search, Summary)
 	->  true
 	;   sub_term(S, Obj),
@@ -168,9 +204,26 @@ matching_object(Search, Section-Obj, _Options) :-
 %	@param Category	Atom describing the source.
 %	@param Section  Reference to the context of Object.
 
-prolog:doc_object_summary(Obj, pldoc, File, Summary) :-
+prolog:doc_object_summary(Obj, Category, File, Summary) :-
+	current_prolog_flag(home, SWI),
 	doc_comment(Obj, File:_Line, Summary, _Comment),
-	Obj \= _:module(_Title).		% HACK.  See ref_object//1
+	Obj \= _:module(_Title),		% HACK.  See ref_object//1
+	(   sub_atom(File, 0, _, _, SWI)
+	->  Category = system
+	;   Category = application
+	).
+	
+
+%%	doc_category(Name, SortOrder, Description) is nondet.
+%
+%	Describe the various  categories  of   search  results.  Used to
+%	create the category headers  as  well   as  the  advanced search
+%	dialog.
+%	
+%	@param SortOrder	Ranges 0..100.  Lower values come first 
+
+prolog:doc_category(application, 20, 'Application').
+prolog:doc_category(system,      80, 'System Libraries').
 
 
 		 /*******************************

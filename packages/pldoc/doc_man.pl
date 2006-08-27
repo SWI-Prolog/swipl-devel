@@ -589,3 +589,6 @@ prolog:doc_object_page(Obj, Options) -->
 prolog:doc_object_link(Obj, Options) -->
 	{ Obj = section(_,_,_) }, !,
 	section_link(Obj, Options).
+
+prolog:doc_category(manual,   30, 'SWI-Prolog Reference Manual').
+prolog:doc_category(packages, 40, 'Package documentation').

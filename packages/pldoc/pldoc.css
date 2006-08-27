@@ -126,6 +126,16 @@ table.summary
   margin-right: 0;
 }
 
+table.summary th.category
+{ text-align: center;
+  font-size: 150%;
+  font-weight: bold;
+  border: 1px dotted;
+  padding-top: 0.5em;
+  padding-bottom: 0.4em;
+  background-color:  #f0f0f0;
+}
+
 table.summary th.section
 { text-align: left;
   background-color: #bbffba;
