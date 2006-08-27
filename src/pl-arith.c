@@ -128,6 +128,7 @@ static int		registerFunction(ArithFunction f, int index);
 static int		getCharExpression(term_t t, Number r ARG_LD);
 static int		ar_sign_i(Number n1);
 static int		ar_add(Number n1, Number n2, Number r);
+static int		ar_add_ui(Number n, long val);
 static int		ar_minus(Number n1, Number n2, Number r);
 
 
@@ -147,59 +148,81 @@ clearInteger(Number n)
 static
 PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 { GET_LD
-  int64_t *state;
+  number *state;
   term_t low = A1;
   term_t high = A2;
   term_t n = A3;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-      { int64_t l, h, i;
+      { number l, h, i;
+	int hinf = FALSE;
 
-	if ( !PL_get_int64(low, &l) )
-	  return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, low);
-	if ( !PL_get_int64(high, &h) )
+	if ( !PL_get_number(low, &l) || !intNumber(&l) )
+	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, low);
+	if ( !PL_get_number(high, &h) || !intNumber(&h) )
 	{ if ( PL_is_inf(high) )
-	    h = PLMAXINT;
+	    hinf = TRUE;
 	  else
-	    return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, high);
+	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, high);
 	}
 
-	if ( PL_get_int64(n, &i) )
-	{ if ( i >= l && i <= h )
-	    succeed;
-	  fail;
+					/* between(+,+,+) */
+	if ( PL_get_number(n, &i) && intNumber(&i) )
+	{ int rc;
+
+	  if ( hinf )
+	  { rc = cmpNumbers(&i, &l) >= 0;
+	  } else
+	  { rc = cmpNumbers(&i, &l) >= 0 && cmpNumbers(&i, &h) <= 0;
+	  }
+
+	  clearInteger(&l);
+	  clearInteger(&i);
+	  if ( !hinf )
+	    clearInteger(&h);
+	  
+	  return rc;
 	}
+
+					/* between(+,+,-) */
 	if ( !PL_is_variable(n) )
-	  return PL_error("between", 3, NULL, ERR_TYPE, ATOM_integer, n);
-	if ( h < l )
+	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, n);
+	if ( hinf == FALSE && cmpNumbers(&h, &l) < 0 )
+	{ clearInteger(&l);
+	  clearInteger(&h);
 	  fail;
+	}
 
-	PL_unify_int64(n, l);
-	if ( l == h )
+	PL_unify(n, low);
+	if ( cmpNumbers(&l, &h) == 0 )
+	{ clearInteger(&l);
+	  clearInteger(&h);
 	  succeed;
-	
-	state = allocHeap(sizeof(*state));
-	*state = l;
+	}
+
+	state = allocHeap(sizeof(number)*2);
+	cpNumber(&state[0], &l);
+	cpNumber(&state[1], &h);
+	clearInteger(&l);
+	clearInteger(&h);
 	ForeignRedoPtr(state);
       }
     case FRG_REDO:
-      { int64_t h;
+      { state = CTX_PTR;
 
-	state = CTX_PTR;
-	(*state)++;
-
-	PL_unify_int64(n, *state);
-	PL_get_int64(high, &h);
-	if ( *state == h )
-	{ freeHeap(state, sizeof(*state));
-	  succeed;
-	}
+	ar_add_ui(&state[0], 1L);
+	PL_unify_number(n, &state[0]);
+	if ( cmpNumbers(&state[0], &state[1]) == 0 )
+	  goto cleanup;
 	ForeignRedoPtr(state);
       }
     case FRG_CUTTED:
       { state = CTX_PTR;
-	freeHeap(state, sizeof(*state));
+      cleanup:
+	clearInteger(&state[0]);
+	clearInteger(&state[1]);
+	freeHeap(state,  sizeof(number)*2);
       }
     default:;
       succeed;
@@ -838,6 +861,39 @@ promoteIntNumber(Number n)
 		/********************************
 		*     ARITHMETIC FUNCTIONS      *
 		*********************************/
+
+static int
+ar_add_ui(Number n, long add)
+{ switch(n->type)
+  { case V_INTEGER:
+    { int64_t r = n->value.i + add;
+
+      if ( (r < 0 && add > 0 && n->value.i > 0) ||
+	   (r > 0 && add < 0 && n->value.i < 0) )
+      { if ( !promoteIntNumber(n) )
+	  fail;
+      }
+
+      n->value.i = r;
+      succeed;
+    }
+#ifdef O_GMP
+    case V_MPZ:
+    { if ( add > 0 )
+	mpz_add_ui(n->value.mpz, n->value.mpz, add);
+      else
+	mpz_sub_ui(n->value.mpz, n->value.mpz, -add);
+
+      succeed;
+    }
+#endif
+    default:
+      ;
+  }
+
+  assert(0);
+  fail;
+}
 
 static int
 ar_add(Number n1, Number n2, Number r)

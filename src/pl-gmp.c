@@ -611,7 +611,8 @@ same_type_numbers(Number n1, Number n2)
 		 *	    OPERATIONS		*
 		 *******************************/
 
-#define LESS    -1			/* TBD: share with pl-prims.c!! */
+					/* TBD: share with pl-prims.c!! */
+#define LESS    -1			/* n1 < n2 */
 #define EQUAL    0
 #define GREATER  1
 
