@@ -695,6 +695,18 @@ init_lock(rwlock *lock)
 
 
 int
+lockout_readers(rwlock *lock)
+{ return TRUE;
+}
+
+
+void
+reallow_readers(rwlock *lock)
+{
+}
+
+
+int
 destroy_lock(rwlock *lock)
 { return TRUE;  
 }
