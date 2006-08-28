@@ -23,12 +23,11 @@ Making solid progress.  remaining issues:
 	* Enhance latex2html:
 		* Add class to non-existing name/arity to make
 		  package docs refer to manual.
-		* Move documentation of sgml2pl into normal framework
 
 ---++ UI
 
 	* Fix directory menu for IE [PARTIAL]
-	* Fix section `up' links.
+	* Fix section `up' links in packages
 
 ---++ Quality assurance: comment style-check
 
