@@ -34,4 +34,5 @@
 	prolog:doc_object_page/4,	% +Object, +Options, //
 	prolog:doc_object_link/4,	% +Object, +Options, //
 	prolog:doc_category/3,		% Name, Order, Description
-	prolog:doc_file_index_header/4.	% +File, +Options, //
+	prolog:doc_file_index_header/4,	% +File, +Options, //
+	prolog:doc_object_title/2.	% +Object, -Title

@@ -190,3 +190,11 @@ sup:hover span
   padding: 5px; margin: 10px; z-index: 100;
   font-size: smaller;
 }
+
+span.sec-nr
+{ 
+}
+
+span.sec-title
+{ margin-left: 0.5em;
+}

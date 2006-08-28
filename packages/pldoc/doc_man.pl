@@ -385,19 +385,28 @@ section_start(Path, Nr, Pos) :-
 
 %%	parent_section(+Section, +Parent) is det.
 %
-%	@tbd	How to avoid getting supper-section of another document?
-%	
-%			* Sort by same-file
-%			* Sort by same/closest dir
+%	Parent is the parent-section  of   Section.  First  computes the
+%	section number and than finds the   required  number in the same
+%	file or same directory.
 
-parent_section(section(Level, Nr, _File), Parent) :-
+parent_section(section(Level, Nr, File), Parent) :-
 	Parent = section(PL, PNr, _PFile),
 	PL is Level - 1,
 	findall(B, sub_atom(Nr, B, _, _, '.'), BL),
 	last(BL, Before),
 	sub_atom(Nr, 0, Before, _, PNr),
-	man_index(Parent, _, _, _, _), !.
+	(   man_index(Parent, _, File, _, _)
+	->  true
+	;   man_index(Parent, _, ParentFile, _, _),
+	    same_dir(File, ParentFile)
+	->  true
+	;   man_index(Parent, _, _, _, _)
+	).
 parent_section(section(_, _, File), File).
+
+same_dir(File1, File2) :-
+	file_directory_name(File1, Dir),
+	file_directory_name(File2, Dir).
 
 object_spec(Spec, Spec).
 object_spec(Atom, PI) :-
@@ -604,3 +613,7 @@ prolog:doc_file_index_header(File, Options) -->
 				 | Options
 				 ])
 		   ]))).
+
+prolog:doc_object_title(Obj, Title) :-
+	Obj = section(_,_,_),
+	man_index(Obj, Title, _, _, _), !.

@@ -447,8 +447,12 @@ reply('/doc_for', Request) :-
 			[ object(Atom, [])
 			]),
 	atom_to_term(Atom, Obj, _),
+	(   prolog:doc_object_title(Obj, Title)
+	->  true
+	;   Title = Atom
+	),
 	edit_options(Request, EditOptions),
-	reply_page(Atom,
+	reply_page(Title,
 		   [ \object_page(Obj, EditOptions)
 		   ]).
 
