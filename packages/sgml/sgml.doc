@@ -290,8 +290,7 @@ exception of the format below is raised. The default is 50.
 \end{description}
 \end{description}
 
-\subsection{Handling white-space}
-\label{sec:space}
+\subsection{Handling white-space}		\label{sec:space}
 
 SGML2PL has four modes for handling white-space. The initial mode can be
 switched using the \term{space}{SpaceMode} option to
@@ -332,8 +331,7 @@ Consider adjacent <b>bold</b> <ul>and</ul> <it>italic</it> words.
 \end{code}
 \end{description}
 
-\subsection{XML documents}
-\label{sec:xml}
+\subsection{XML documents}		\label{sec:xml}
 
 The parser can operate in two modes: \const{sgml} mode and \const{xml} mode, as 
 defined by the \term{dialect}{Dialect} option. Regardless of this 
@@ -378,8 +376,7 @@ preserves space, regardless of the default processing mode.
 \end{itemlist}
 
 
-\subsubsection{XML Namespaces}
-\label{sec:xmlns}
+\subsubsection{XML Namespaces}		\label{sec:xmlns}
 
 Using the \jargon{dialect} \const{xmlns}, the parser will interpret XML 
 namespaces. In this case, the names of elements are returned as a term 
@@ -603,8 +600,7 @@ holding all elements and CDATA found. If the document has a DOCTYPE
 declaraction, the parser will open the element defined in the DOCTYPE as
 soon as the first real data is encountered.
 
-\subsection{Extracting a DTD}
-\label{sec:implicitdtd}
+\subsection{Extracting a DTD}		\label{sec:implicitdtd}
 
 Some documents have no DTD. One of the neat facilities of this library
 is that it builds a DTD while parsing a document with an <jargon/
@@ -990,8 +986,7 @@ True if \arg{Term} is an SGML/XML term as produced by one of the above
 predciates and acceptable by xml_write/3 and friends.
 \end{description}
 
-\section{Stream encoding issues}
-\label{sec:encoding}
+\section{Stream encoding issues}		\label{sec:encoding}
 
 The parser can deal with ISO Latin-1 and UTF-8 encoded files, doing
 decoding based on the encoding argument provided to
@@ -1004,8 +999,7 @@ be used and positions reported by the parser are octet offsets in the
 stream.  In other cases, the Prolog stream decoder is used and offsets
 are character code counts.
 
-\section{Processing Indexed Files}
-\label{sec:indexaccess}
+\section{Processing Indexed Files}		\label{sec:indexaccess}
 
 In some cases applications wish to process small portions of large 
 SGML, XML or RDF files. For example, the \emph{OpenDirectory} project 

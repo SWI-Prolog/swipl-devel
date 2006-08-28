@@ -2,6 +2,7 @@
 \newcommand{\runningtitle}{SWI-Prolog's latex2html}
 \usepackage{pl}
 \usepackage{html}
+\onefile
 \makeindex
 
 \title{Converting LaTeX into HTML}
