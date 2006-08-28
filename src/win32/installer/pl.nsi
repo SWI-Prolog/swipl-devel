@@ -304,7 +304,7 @@ Section "SGML/XML/HTML parser"
   File pl\library\xsdp_types.pl
   File pl\library\iso_639.pl
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\sgml2pl.html
+  File pl\doc\packages\sgml.html
 SectionEnd
 
 Section "RDF and Semantic Web Library"
