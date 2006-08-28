@@ -4,16 +4,28 @@
 # Copyright: LGPL (see COPYING or www.gnu.org
 ################################################################
 
+.SUFFIXES: .tex .dvi .doc .pl
+
 PL=@PL@
 LD=@LD@
 PLLD=@PLLD@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PKGDOC=$(PLBASE)/doc/packages
+PCEHOME=../xpce
 PLLIB=$(PLBASE)/library
 PLFOREIGN=$(PLBASE)/lib/$(PLARCH)
 DESTDIR=
 SO=@SO@
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+LATEX=latex
+DOC=sgml
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+HTML=$(DOC).html
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -74,11 +86,11 @@ install-dtd::
 
 pdf-install::
 		mkdir -p $(DESTDIR)$(PKGDOC)
-		$(INSTALL_DATA) doc/sgml2pl.pdf $(DESTDIR)$(PKGDOC)
+		$(INSTALL_DATA) sgml.pdf $(DESTDIR)$(PKGDOC)
 
 html-install::
 		mkdir -p $(DESTDIR)$(PKGDOC)
-		$(INSTALL_DATA) doc/sgml2pl.html $(DESTDIR)$(PKGDOC)
+		$(INSTALL_DATA) sgml.html $(DESTDIR)$(PKGDOC)
 
 check::
 		$(PL) -f Test/test.pl -g test,halt
@@ -100,8 +112,28 @@ tags:		TAGS
 TAGS:		$(ALLCSRC)
 		etags $(ALLCSRC)
 
-html::
-		$(MAKE) -C doc $@
+################################################################
+# Documentation
+################################################################
+
+doc:		$(PDF) $(HTML)
+pdf:		$(PDF)
+html:		$(HTML)
+
+$(HTML):	$(TEX)
+		latex2html $(DOC)
+		mv html/index.html $@
+		rmdir html
+
+$(PDF):		$(TEX)
+		../../man/runtex --pdf $(DOC)
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
 
 ################################################################
 # Clean
@@ -109,6 +141,9 @@ html::
 
 clean::
 		rm -f $(PLOBJ) *~ *.o *% a.out core config.log
+		rm -f $(TEX)
+		../../man/runtex --clean $(DOC)
+		rm -rf html
 
 distclean:	clean
 		rm -f $(TARGETS) $(PROGRAMS)
