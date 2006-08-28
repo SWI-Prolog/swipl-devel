@@ -5169,7 +5169,7 @@ The full month name according to the current locale.
 The  preferred  date  and  time  representation  for the current
 locale. 
     \fmtchar{C}
-The century number (year/100) as a 2-digit integer.
+The century number ({year}/100) as a 2-digit integer.
     \fmtchar{d}
 The day of the month as a decimal number (range 01 to 31).
     \fmtchar{D}
