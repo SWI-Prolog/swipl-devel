@@ -5112,7 +5112,7 @@ to extract the local time, \const{'UTC'} to extract at UTC time or an
 integer describing the seconds west of Greenwhich.
 
     \predicate{date_time_stamp}{2}{+DateTime, -TimeStamp}
-Compute the timestamp from a date/9 term.  Values for month, day,
+Compute the timestamp from a {date}/9 term.  Values for month, day,
 hour, minute or second need not be normalized.  This flexibility
 allows for easy computation of the time at any given number of
 these units from a given timestamp.  Normalization can be achieved
@@ -5127,7 +5127,7 @@ Date = date(2007, 1, 30)
 \end{code}
 
     \predicate{date_time_value}{3}{?Key, +DateTime, ?Value}
-Extract values from a date/9 term.  Provided keys are:
+Extract values from a {date}/9 term.  Provided keys are:
 
 \begin{center}
 \begin{tabular}{ll}
