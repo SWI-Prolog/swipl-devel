@@ -1507,7 +1507,7 @@ predicates for the XPCE package.
 
     \predicate{reload_library_index}{0}{}
 Force reloading the index after modifying the set of library directories
-by changing the rules for library_directory/2, file_search_path/2,
+by changing the rules for library_directory/1, file_search_path/2,
 adding or deleting \file{INDEX.pl} files. This predicate does \emph{not}
 update the \file{INDEX.pl} files.  Check make_library_index/[1,2] and
 make/0 for updating the index files.
