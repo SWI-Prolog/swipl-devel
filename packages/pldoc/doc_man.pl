@@ -145,7 +145,7 @@ index_man_file(Class, File) :-
 
 %%	index_on_begin(+Element, +Attributes, +Parser) is semidet.
 %
-%	Called from sgml_parse/2 in  index_man_file/1.   Element  is the
+%	Called from sgml_parse/2 in  index_man_file/2.   Element  is the
 %	name of the element, Attributes the  list of Name=Value pairs of
 %	the open attributes. Parser is the parser objects.
 
@@ -525,10 +525,11 @@ referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 %
 %	Create top link structure for manual pages.
 
-man_links(Parent, _Options) -->
+man_links(Parent, Options) -->
 	html(div(class(navhdr),
 		 [ span(style('float:left'), \man_parent(Parent)),
-		   span(style('float:right'), \search_form)
+		   span(style('float:right'), \search_form(Options)),
+		   br(clear(both))
 		 ])).
 
 man_parent(Section) -->
@@ -592,3 +593,14 @@ prolog:doc_object_link(Obj, Options) -->
 
 prolog:doc_category(manual,   30, 'SWI-Prolog Reference Manual').
 prolog:doc_category(packages, 40, 'Package documentation').
+
+prolog:doc_file_index_header(File, Options) -->
+	{ Section = section(_Level, _No, File),
+	  man_index(Section, _Summary, File, _Cat, _Offset)
+	}, !,
+	html(tr(th([colspan(2), class(section)],
+		   [ \object_ref(Section,
+				 [ secref_style(number_title)
+				 | Options
+				 ])
+		   ]))).

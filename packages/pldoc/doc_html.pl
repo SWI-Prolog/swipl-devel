@@ -462,7 +462,8 @@ object_page(Obj, Options) -->
 	},
 	html([ div(class(navhdr),
 		   [ span(style('float:left'), a(href(FileRef), File)),
-		     span(style('float:right'), \search_form)
+		     span(style('float:right'), \search_form(Options)),
+		     br(clear(both))
 		   ]),
 	       \objects([Obj], Options)
 	     ]).
@@ -837,6 +838,17 @@ predref(Callable, Module, Options) -->
 	predref(Name/Arity, Module, Options).
 
 
+%%	pred_href(+NameArity, +Module, -HREF) is semidet.
+%
+%	Create reference.  Prefer:
+%	
+%		1. Local definition
+%		2. If from package and documented: package documentation
+%		3. From any file
+%	
+%	@bug	Should analyse import list to find where the predicate
+%		comes from.
+
 pred_href(Name/Arity, Module, HREF) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
 	www_form_encode(FragmentId, EncId),
@@ -844,7 +856,14 @@ pred_href(Name/Arity, Module, HREF) :-
 	(   catch(relative_file(Module:Head, File), _, fail)
 	->  format(string(HREF), '~w#~w', [File, EncId])
 	;   in_file(Module:Head, File)
-	->  format(string(HREF), '/doc~w#~w', [File, EncId])
+	->  (	current_prolog_flag(home, SWI),
+		sub_atom(File, 0, _, _, SWI),
+		prolog:doc_object_summary(Name/Arity, packages, _, _)
+	    ->	format(string(FragmentId), '~w/~d', [Name, Arity]),
+		www_form_encode(FragmentId, EncId),
+		format(string(HREF), '/man?predicate=~w', [EncId])
+	    ;	format(string(HREF), '/doc~w#~w', [File, EncId])
+	    )
 	).
 
 relative_file(Head, '') :-
@@ -937,6 +956,9 @@ in_file(_, Head, File) :-
 	atom(File),			% only plain files
 	xref_defined(File, Head, How),
 	How \= imported(_From).
+in_file(Module, Head, File) :-
+	predicate_property(Module:Head, exported),
+	current_module(Module, File).
 in_file(_, Head, File) :-
 	source_file(Head, File).
 in_file(Module, Head, File) :-

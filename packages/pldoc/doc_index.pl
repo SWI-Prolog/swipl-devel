@@ -35,7 +35,8 @@
 	    object_summaries/5,		% +Objs, +Section, +Options, //
 	    file_index_header/4,	% +File, +Options, //
 	    doc_links/4,		% +Directory, +Options, //
-	    doc_file_href/2		% +File, -/doc/...
+	    doc_file_href/2,		% +File, -/doc/...
+	    source_directory/1		% ?Directory
 	  ]).
 :- use_module(doc_process).
 :- use_module(doc_html).
@@ -44,6 +45,7 @@
 :- use_module(library('http/html_write')).
 :- use_module(library(readutil)).
 :- use_module(library(url)).
+:- use_module(library(option)).
 :- include(hooks).
 
 /** <module> Create indexes
@@ -173,19 +175,9 @@ file_index(File, Options) -->
 %%	file_index_header(+File, +Options)// is det.
 %
 %	Create an entry in a summary-table for File.
-%	
-%	@tbd	Generalise through hooks.
 
 file_index_header(File, Options) -->
-	{ Section = section(_Level, _No, File),
-	  prolog:doc_object_summary(Section, manual, File, _Title)
-	}, !,
-	html(tr(th([colspan(2), class(section)],
-		   [ \object_ref(Section,
-				 [ secref_style(number_title)
-				 | Options
-				 ])
-		   ]))).
+	prolog:doc_file_index_header(File, Options), !.
 file_index_header(File, Options) -->
 	{ (   option(directory(Dir), Options),
 	      atom_concat(Dir, Local0, File),
@@ -292,14 +284,15 @@ object_summary(_, _, _) -->
 %
 %	Provide overview links and search facilities.
 
-doc_links(Directory, _Options) -->
+doc_links(Directory, Options) -->
 	{   Directory == ''
 	->  working_directory(Dir, Dir)
 	;   Dir = Directory
 	},
 	html(div(class(navhdr),
-		 [ span(style('float:left'), ['Go ', \source_dir_menu(Dir)]),
-		   span(style('float:right'), \search_form)
+		 [ span(style('float:left'),  \source_dir_menu(Dir)),
+		   span(style('float:right'), \search_form(Options)),
+		   br(clear(both))
 		 ])).
 
 
@@ -311,8 +304,12 @@ source_dir_menu(Dir) -->
 	{ findall(D, source_directory(D), List),
 	  sort(List, Dirs)
 	},
-	html(select(id(directory),
-		    \source_dirs(Dirs, Dir))).
+	html(form([ action('/directory')
+		  ],
+		  [ input([type(submit), value('Go')]),
+		    select(name(dir),
+			   \source_dirs(Dirs, Dir))
+		  ])).
 	     
 source_dirs([], _) -->
 	[].

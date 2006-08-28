@@ -30,11 +30,12 @@
 */
 
 :- module(pldoc_search,
-	  [ search_form/2,		% //
+	  [ search_form/3,		% +Options, //
 	    search_reply/4		% +Search, +Options, //
 	  ]).
 :- use_module(library('http/html_write')).
 :- use_module(library(occurs)).
+:- use_module(library(option)).
 :- use_module(doc_process).
 :- use_module(doc_html).
 :- use_module(doc_index).
@@ -50,21 +51,48 @@
 		* Specified fields: =name=, =summary=, =description=
 */
 
-%%	search_form//
+%%	search_form(+Options)//
 %
 %	Create  a  search  input  field.  The   input  field  points  to
-%	=|/search?for=String|= on the current server.
+%	=|/search?for=String|= on the current server.  Options:
+%	
+%		* title(Title)
 
-search_form -->
-	search_form('Search ').
-
-search_form(Title) -->
+search_form(Options) -->
+	{ (   option(for(Value), Options)
+	  ->  Extra = [value(Value)]
+	  ;   Extra = []
+	  ),
+	  option(search_in(In), Options, all)
+	},
 	html(form(action('/search'),
-		  div([ Title,
-			input([ name(for),
-				size(30)
-			      ], [])
-		      ]))).
+		  [ div([ input([ name(for),
+				  size(30)
+				| Extra
+				], []),
+			  input([ type(submit),
+				  value('Search')
+				])
+			]),
+		    div(class('search-options'),
+			[ \radio(in, all, 'All', In),
+			  \radio(in, app, 'Application', In),
+			  \radio(in, man, 'Manual', In)
+			])
+		  ])).
+
+radio(Radio, Field, Label, In) -->
+	{   Field == In
+	->  Extra = [checked]
+	;   Extra = []
+	},
+	html(input([ type(radio),
+		     name(Radio),
+		     value(Field)
+		   | Extra
+		   ],
+		   [ Label
+		   ])).
 
 %%	search_reply(+For, +Options)// is det.
 %
@@ -73,6 +101,10 @@ search_form(Title) -->
 %		* resultFormat(Format)
 %		If =summary= (default), produce a summary-table.  If
 %		=long=, produce full object descriptions.
+%		
+%		* search_in(In)
+%		Determine which databases to search.  One of
+%		=all=, =app=, =man=
 
 search_reply(For, Options) -->
 	{ search_doc(For, PerCategory, Options),
@@ -80,7 +112,7 @@ search_reply(For, Options) -->
 	  option(resultFormat(Format), Options, summary),
 	  count_matches(PerCategory, Matches)
 	}, !,
-	html([ \doc_links('', Options),
+	html([ \doc_links('', [for(For)|Options]),
 	       div(class('search-results'),
 		   ['Search results for ', span(class(for), ['"', For, '"'])]),
 	       div(class('search-counts'),
@@ -89,8 +121,8 @@ search_reply(For, Options) -->
 		   ])
 	     | \matches(Format, PerCategory, Options)
 	     ]).
-search_reply(_For, Options) -->
-	html([ \doc_links('', Options),
+search_reply(For, Options) -->
+	html([ \doc_links('', [for(For)|Options]),
 	       h1(class(search), 'No matches')
 	     ]).
 
@@ -236,12 +268,18 @@ collect_by_key(_, L, [], L).
 
 %%	matching_object(+SearchString, -Object, +Options) is nondet.
 %
-%	Object matches SearchString.
+%	Object matches SearchString.  Options include
+%	
+%		* search_in(In)
+%		One of =all=, =app=, =man=.
 %	
 %	@param Object	Term of the form File-Item
+%	@tbd Deal with search syntax
 
-matching_object(Search, Type-(Section-Obj), _Options) :-
+matching_object(Search, Type-(Section-Obj), Options) :-
+	option(search_in(In), Options, all),
 	prolog:doc_object_summary(Obj, Type, Section, Summary),
+	matching_category(In, Type),
 	(   apropos_match(Search, Summary)
 	->  true
 	;   sub_term(S, Obj),
@@ -249,6 +287,10 @@ matching_object(Search, Type-(Section-Obj), _Options) :-
 	    apropos_match(Search, S)
 	).
 	
+matching_category(all, _).
+matching_category(app, application).
+matching_category(man, manual).
+
 %%	object_summary(?Object, ?Category, ?Section, ?Summary) is nondet.
 %
 %	True  if  Object  is  summarised   by  Summary.  This  multifile
@@ -264,7 +306,7 @@ prolog:doc_object_summary(Obj, Category, File, Summary) :-
 	doc_comment(Obj, File:_Line, Summary, _Comment),
 	Obj \= _:module(_Title),		% HACK.  See ref_object//1
 	(   sub_atom(File, 0, _, _, SWI)
-	->  Category = system
+	->  Category = library
 	;   Category = application
 	).
 	
@@ -278,7 +320,7 @@ prolog:doc_object_summary(Obj, Category, File, Summary) :-
 %	@param SortOrder	Ranges 0..100.  Lower values come first 
 
 prolog:doc_category(application, 20, 'Application').
-prolog:doc_category(system,      80, 'System Libraries').
+prolog:doc_category(library,     80, 'System Libraries').
 
 
 		 /*******************************

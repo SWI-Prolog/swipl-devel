@@ -114,7 +114,6 @@ div.navhdr
   padding-right: 5px;
   padding-left: 5px;
   padding-bottom: 3px;
-  height: 30px;
   background-color: #f0f0f0;
 }
 
@@ -173,6 +172,10 @@ div.search-counts
 { font-style: italic;
   font-size: smaller;
   margin-bottom: 1em;
+}
+
+div.search-options
+{ font-size: smaller;
 }
 
 /* Footnotes from latex2html */

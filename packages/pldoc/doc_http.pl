@@ -293,6 +293,22 @@ reply('/edit', _Request) :-
 	throw(http_reply(forbidden('/edit'))).
 
 
+%	/directory?dir=Dir
+%	
+%	Give index of directory
+
+reply('/directory', Request) :-
+	http_parameters(Request,
+			[ dir(Dir, [])
+			]),
+	(   source_directory(Dir)
+	->  edit_options(Request, EditOptions),
+	    format('Content-type: text/html~n~n'),
+	    doc_for_dir(Dir, current_output, EditOptions)
+	;   throw(http_reply(forbidden(Dir)))
+	).
+
+
 %	/doc/Path
 %	
 %	Reply documentation of file. Path is   the  absolute path of the
@@ -320,9 +336,12 @@ documentation(Path, Request) :-
 	sub_atom(Path, _, _, 0, Index), 
 	atom_concat(Dir, Index, Path),
 	exists_directory(Dir), !,		% Directory index
-	edit_options(Request, EditOptions),
-	format('Content-type: text/html~n~n'),
-	doc_for_dir(Dir, current_output, EditOptions).
+	(   source_directory(Dir)
+	->  edit_options(Request, EditOptions),
+	    format('Content-type: text/html~n~n'),
+	    doc_for_dir(Dir, current_output, EditOptions)
+	;   throw(http_reply(forbidden(Dir)))
+	).
 documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),
@@ -441,6 +460,7 @@ reply('/doc_for', Request) :-
 reply('/search', Request) :-
 	http_parameters(Request,
 			[ for(For, [length > 1]),
+			  in(In, [oneof([all,app,man]), default(all)]),
 			  resultFormat(Format, [ oneof(long,summary),
 						 default(summary)
 					       ])
@@ -449,7 +469,8 @@ reply('/search', Request) :-
 	format(string(Title), 'Prolog search -- ~w', [For]),
 	reply_page(Title,
 		   [ \search_reply(For,
-				   [ resultFormat(Format)
+				   [ resultFormat(Format),
+				     search_in(In)
 				   | EditOptions
 				   ])
 		   ]).
