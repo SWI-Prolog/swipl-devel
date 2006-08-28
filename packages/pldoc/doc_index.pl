@@ -234,11 +234,26 @@ ensure_slash_start(File0, File) :-
 %
 %	Create entries in a summary table for Objects.
 
-object_summaries([], _, _) -->
+object_summaries(Objects, Section, Options) -->
+	{ tag_pub_priv(Objects, Tagged, Options),
+	  keysort(Tagged, Ordered)
+	},
+	obj_summaries(Ordered, Section, Options).
+	
+obj_summaries([], _, _) -->
 	[].
-object_summaries([H|T], Section, Options) -->
+obj_summaries([_Tag-H|T], Section, Options) -->
 	object_summary(H, Section, Options),
-	object_summaries(T, Section, Options).
+	obj_summaries(T, Section, Options).
+
+tag_pub_priv([], [], _).
+tag_pub_priv([H|T0], [Tag-H|T], Options) :-
+	(   private(H, Options)
+	->  Tag = z_private
+	;   Tag = a_public
+	),
+	tag_pub_priv(T0, T, Options).
+
 
 %%	object_summary(+Object, +Section, +Options)// is det
 %
