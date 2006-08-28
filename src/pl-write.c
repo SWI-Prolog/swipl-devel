@@ -138,11 +138,6 @@ atomType(atom_t a, IOSTREAM *fd)
   if ( len == 1 && *s != '%' )
   { if ( isSolo(*s) )
       return AT_SOLO;
-    switch( *s )
-    { /*case ',':*/
-      case '|':
-	return AT_SOLO;
-    }
   }
 
   if ( a == ATOM_nil || a == ATOM_curl )
