@@ -3932,17 +3932,14 @@ represented using an integer (i.e, the value is integer and within the
 range that can be described by Prolog's integer representation), \arg{
 Expr} is unified with the integer value. 
 
-Note that normally, is/2 will be used with unbound left operand.  If
+Note that normally, is/2 should be used with unbound left operand.  If
 equality is to be tested, =:=/2 should be used.  For example:
 
 \begin{center}\begin{tabular}{lp{2.5in}}
-\exam{?- 1.0 is sin({pi}/2).}        & Fails!.  sin({pi}/2) evaluates to 1.0,
-                                     but is/2 will represent this as the
-                                     integer 1, after which unify will
-                                     fail. \\
-\exam{?- 1.0 is float(sin({pi}/2)).} & Succeeds, as the float/1 function
-                                     forces the result to be float. \\
-\exam{?- 1.0 =:= sin({pi}/2).}       & Succeeds as expected.
+\exam{?- 1 is sin({pi}/2).}        & Fails!.  sin({pi}/2) evaluates to the
+				     float 1.0, which does not unify with
+				     the integer 1. \\
+\exam{?- 1 =:= sin({pi}/2).}       & Succeeds as expected.
 \end{tabular}\end{center}
 \end{description}
 
