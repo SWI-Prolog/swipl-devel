@@ -123,13 +123,13 @@ program resources</SPAN></A></H2>
 
 <P>A <EM>resource</EM> is very similar to a file. Resources however can 
 be represented in two different formats: on files, as well as part of 
-the resource <EM>archive</EM> of a saved-state (see <A NAME="idx:qsaveprogram2:1360"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A>).
+the resource <EM>archive</EM> of a saved-state (see <A NAME="idx:qsaveprogram2:1357"></A><A class="pred" href="runtime.html#qsave_program/2">qsave_program/2</A>).
 
 <P>A resource has a <EM>name</EM> and a <EM>class</EM>. The <EM>source</EM> 
 data of the resource is a file. Resources are declared by declaring the 
-predicate <A NAME="idx:resource3:1361"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>. 
+predicate <A NAME="idx:resource3:1358"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>. 
 They are accessed using the predicate
-<A NAME="idx:openresource3:1362"></A><A class="pred" href="useresource.html#open_resource/3">open_resource/3</A>.
+<A NAME="idx:openresource3:1359"></A><A class="pred" href="useresource.html#open_resource/3">open_resource/3</A>.
 
 <P>Before going into details, let us start with an example. Short texts 
 can easily be expressed in Prolog source code, but long texts are 
@@ -158,7 +158,7 @@ copy_stream(C, In, Out) :-
         copy_stream(C2, In, Out).
 </PRE>
 
-<P>The predicate <A NAME="idx:help0:1363"></A><A class="pred" href="help.html#help/0">help/0</A> 
+<P>The predicate <A NAME="idx:help0:1360"></A><A class="pred" href="help.html#help/0">help/0</A> 
 opens the resource as a Prolog stream. If we are executing this from the 
 development environment, this will actually return a stream to the file <CODE>help.txt</CODE> 
 itself. When executed from the saved-state, the stream will actually be 
@@ -179,9 +179,9 @@ including the user module. <VAR>Name</VAR> is the name of the resource
 :, which are reserved for internal usage by the resource library. <VAR>Class</VAR> 
 describes the what kind of object is stored in the resource. In the 
 current implementation, it is just an atom. <VAR>FileSpec</VAR> is a 
-file specification that may exploit <A NAME="idx:filesearchpath2:1364"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
+file specification that may exploit <A NAME="idx:filesearchpath2:1361"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 (see
-<A NAME="idx:absolutefilename2:1365"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/2</A>).
+<A NAME="idx:absolutefilename2:1362"></A><A class="pred" href="files.html#absolute_file_name/2">absolute_file_name/2</A>).
 
 <P>Normally, resources are defined as unit clauses (facts), but the 
 definition of this predicate also allows for rules. For proper 
@@ -191,7 +191,7 @@ unbound.
 
 <P>Dynamic rules are useful to turn all files in a certain directory 
 into resources, without specifying a resources for each file. For 
-example, assume the <A NAME="idx:filesearchpath2:1366"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> <CODE>icons</CODE> 
+example, assume the <A NAME="idx:filesearchpath2:1363"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> <CODE>icons</CODE> 
 refers to the resource directory containing icon-files. The following 
 definition makes all these images available as resources:
 
@@ -217,15 +217,15 @@ resource found that has the specified <VAR>Name</VAR>. If successful,
 <VAR>Stream</VAR> becomes a handle to a binary input stream, providing 
 access to the content of the resource.
 
-<P>The predicate <A NAME="idx:openresource3:1367"></A><A class="pred" href="useresource.html#open_resource/3">open_resource/3</A> 
-first checks <A NAME="idx:resource3:1368"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>. 
+<P>The predicate <A NAME="idx:openresource3:1364"></A><A class="pred" href="useresource.html#open_resource/3">open_resource/3</A> 
+first checks <A NAME="idx:resource3:1365"></A><A class="pred" href="useresource.html#resource/3">resource/3</A>. 
 When successful it will open the returned resource source-file. 
 Otherwise it will look in the programs resource database. When creating 
 a saved-state, the system normally saves the resource contents into the 
 resource archive, but does not save the resource clauses.
 
 <P>This way, the development environment uses the files (and 
-modifications to the <A NAME="idx:resource3:1369"></A><A class="pred" href="useresource.html#resource/3">resource/3</A> 
+modifications to the <A NAME="idx:resource3:1366"></A><A class="pred" href="useresource.html#resource/3">resource/3</A> 
 declarations and/or files containing resource info thus immediately 
 affect the running environment, while the runtime system quickly 
 accesses the system resources.
