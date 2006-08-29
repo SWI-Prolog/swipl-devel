@@ -353,10 +353,14 @@ load_man_object(For, ParentSection, Path, DOM) :-
 	    free_sgml_parser(Parser),
 	    close(In)
 	).
-load_man_object(For, Path, Path, DOM) :-
+load_man_object(For, Parent, Path, DOM) :-
 	index_manual,
 	object_spec(For, Obj),
 	man_index(Obj, _, Path, _, Position),
+	(   object_section(Path, Position, Parent)
+	->  true
+	;   Parent = Path
+	),
 	open(Path, read, In, [type(binary)]),
 	seek(In, Position, bof, _),
 	dtd(html, DTD),
@@ -405,6 +409,18 @@ parent_section(section(Level, Nr, File), Parent) :-
 	;   man_index(Parent, _, _, _, _)
 	), !.
 parent_section(section(_, _, File), File).
+
+%%	object_section(+Path, +Position, -Section) is semidet.
+%
+%	Section is the section in which object appears.  This is the
+%	last section object before position.
+
+object_section(Path, Pos, Section) :-
+	Section	= section(_,_,_),
+	findall(Section,
+	       (man_index(Section, _, Path, _, SecPos), SecPos =< Pos),
+		List),
+	last(List, Section).
 
 same_dir(File1, File2) :-
 	file_directory_name(File1, Dir),
