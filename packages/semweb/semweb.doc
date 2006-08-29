@@ -1454,7 +1454,7 @@ a Prolog list of objects.
     \predicate{rdfs_assert_list}{2}{+List, -Resource}
 Equivalent to rdfs_assert_list/3 using \arg{DB} = \const{user}.
 
-    \predicate{rdfs_assert_list}{2}{+List, -Resource, +DB}
+    \predicate{rdfs_assert_list}{3}{+List, -Resource, +DB}
 If \arg{List} is a list of resources, create an RDF list \arg{Resource}
 that reflects these resources.  \arg{Resource} and the sublist resources
 are generated with rdf_bnode/1.  The new triples are associated with the
