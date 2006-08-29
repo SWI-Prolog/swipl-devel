@@ -88,6 +88,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -390,11 +394,11 @@ Currently defined options are:
 Reference to a DTD object. If specified, the <CODE>&lt;!DOCTYPE ...&gt;</CODE> 
 declaration is ignored and the document is parsed and validated against 
 the provided DTD. If provided as a variable, the created DTD is 
-returned. See <A class="sec" href="#sec:implicitdtd">section 3.5</A>.</DD>
+returned. See <A class="sec" href="#sec:3.5">section 3.5</A>.</DD>
 <DT><STRONG>dialect</STRONG>(<VAR>+Dialect</VAR>)</DT>
 <DD class="defbody">
 Specify the parsing dialect. Supported are <CODE>sgml</CODE> (default), <CODE>xml</CODE> 
-and <CODE>xmlns</CODE>. See <A class="sec" href="#sec:xml">section 3.3</A> 
+and <CODE>xmlns</CODE>. See <A class="sec" href="#sec:3.3">section 3.3</A> 
 for details on the differences.</DD>
 <DT><STRONG>shorttag</STRONG>(<VAR>+Bool</VAR>)</DT>
 <DD class="defbody">
@@ -409,7 +413,7 @@ unquoted URLs containing
 <DD class="defbody">
 Sets the `space-handling-mode' for the initial environment. This mode is 
 inherited by the other environments, which can override the inherited 
-value using the XML reserved attribute &lt;elem/xml:space/. See <A class="sec" href="#sec:space">section 
+value using the XML reserved attribute &lt;elem/xml:space/. See <A class="sec" href="#sec:3.2">section 
 3.2</A>.</DD>
 <DT><STRONG>number</STRONG>(<VAR>+NumberMode</VAR>)</DT>
 <DD class="defbody">
@@ -643,7 +647,7 @@ with empty option list.</DD>
 <DD class="defbody">
 Define the DTD by loading <VAR>File</VAR>. Defined options are the
 <CODE>dialect</CODE> option from <A NAME="idx:opendtd3:15"></A><A class="pred" href="#open_dtd/3">open_dtd/3</A> 
-and the <CODE>encoding</CODE> option from <A NAME="idx:open4:16"></A><B>open/4</B>. 
+and the <CODE>encoding</CODE> option from <A NAME="idx:open4:16"></A><SPAN class="pred-ext">open/4</SPAN>. 
 Notably the <CODE>dialect</CODE> option must match the dialect used for 
 subsequent parsing using this DTD.</DD>
 <DT class="pubdef"><A NAME="open_dtd/3"><STRONG>open_dtd</STRONG>(<VAR>+DTD, 
@@ -912,11 +916,11 @@ attributes and omitted tags).</DD>
 <DT><STRONG>xml</STRONG></DT>
 <DD class="defbody">
 This dialect is selected automatically if the processing instruction
-<CODE>&lt;?xml ...&gt;</CODE> is encountered. See <A class="sec" href="#sec:xml">section 
+<CODE>&lt;?xml ...&gt;</CODE> is encountered. See <A class="sec" href="#sec:3.3">section 
 3.3</A> for details.</DD>
 <DT><STRONG>xmlns</STRONG></DT>
 <DD class="defbody">
-Process file as XML file with namespace support. See <A class="sec" href="#sec:xmlns">section 
+Process file as XML file with namespace support. See <A class="sec" href="#sec:3.3.1">section 
 3.3.1</A> for details. See also the <CODE>qualify_attributes</CODE> 
 option below.
 </DD>
@@ -936,7 +940,7 @@ element.</DD>
 <DT><STRONG>space</STRONG>(<VAR>SpaceMode</VAR>)</DT>
 <DD class="defbody">
 Define the initial handling of white-space in PCDATA. This attribute is 
-described in <A class="sec" href="#sec:space">section 3.2</A>.</DD>
+described in <A class="sec" href="#sec:3.2">section 3.2</A>.</DD>
 <DT><STRONG>number</STRONG>(<VAR>NumberMode</VAR>)</DT>
 <DD class="defbody">
 If <CODE>token</CODE> (default), attributes of type number are passed as 
@@ -982,7 +986,7 @@ file-object.</DD>
 <DT><STRONG>charpos</STRONG>(<VAR>-CharPos</VAR>)</DT>
 <DD class="defbody">
 Offset from where the parser started its processing in the file-object. 
-See <A class="sec" href="#sec:indexaccess">section 5</A>.</DD>
+See <A class="sec" href="#sec:5">section 5</A>.</DD>
 <DT><STRONG>charpos</STRONG>(<VAR>-Start, -End</VAR>)</DT>
 <DD class="defbody">
 Character offsets of the start and end of the source processed causing 
@@ -1077,8 +1081,8 @@ with loaded DTD, an input stream and a start-location.
 <DD class="defbody">
 Parse an XML file. The parser can operate in two input and two output 
 modes. Output is either a structured term as described with
-<A NAME="idx:loadstructure2:22"></A><B>load_structure/2</B> or 
-call-backs on predefined events. The first is especially suitable for 
+<A NAME="idx:loadstructure2:22"></A><SPAN class="pred-ext">load_structure/2</SPAN> 
+or call-backs on predefined events. The first is especially suitable for 
 manipulating not-too-large documents, while the latter provides a 
 primitive means for handling very large documents.
 
@@ -1088,7 +1092,7 @@ primitive means for handling very large documents.
 <DT><STRONG>document</STRONG>(<VAR>+Term</VAR>)</DT>
 <DD class="defbody">
 A variable that will be unified with a list describing the content of 
-the document (see <A NAME="idx:loadstructure2:23"></A><B>load_structure/2</B>).
+the document (see <A NAME="idx:loadstructure2:23"></A><SPAN class="pred-ext">load_structure/2</SPAN>).
 </DD>
 <DT><STRONG>source</STRONG>(<VAR>+Stream</VAR>)</DT>
 <DD class="defbody">
@@ -1215,18 +1219,18 @@ and
 location of the error can be determined using <A NAME="idx:getsgmlparser2:27"></A><A class="pred" href="#get_sgml_parser/2">get_sgml_parser/2</A>
 
 <P>If this option is present, errors and warnings are not reported using
-<A NAME="idx:printmessage3:28"></A><B>print_message/3</B></DD>
+<A NAME="idx:printmessage3:28"></A><SPAN class="pred-ext">print_message/3</SPAN></DD>
 <DT><STRONG>xmlns</STRONG></DT>
 <DD class="defbody">
 When parsing an in <CODE>xmlns</CODE> mode, a new namespace declaraction 
 is pushed on the environment. The named handler is called with three 
 arguments: <CODE><VAR>Handler</VAR>(+NameSpace, +URL, +Parser)</CODE>. 
-See <A class="sec" href="#sec:xmlns">section 3.3.1</A> for details.</DD>
+See <A class="sec" href="#sec:3.3.1">section 3.3.1</A> for details.</DD>
 <DT><STRONG>urlns</STRONG></DT>
 <DD class="defbody">
 When parsing an in <CODE>xmlns</CODE> mode, this predicate can be used 
 to map a url into either a canonical URL for this namespace or another 
-internal identifier. See <A class="sec" href="#sec:xmlns">section 3.3.1</A> 
+internal identifier. See <A class="sec" href="#sec:3.3.1">section 3.3.1</A> 
 for details.
 </DD>
 </DL>
@@ -1241,9 +1245,9 @@ for details.
 Parsing</SPAN></A></H4>
 
 <P>In some cases, part of a document needs to be parsed. One option is 
-to use <A NAME="idx:loadstructure2:29"></A><B>load_structure/2</B> or 
-one of its variations and extract the desired elements from the returned 
-structure. This is a clean solution, especially on small and 
+to use <A NAME="idx:loadstructure2:29"></A><SPAN class="pred-ext">load_structure/2</SPAN> 
+or one of its variations and extract the desired elements from the 
+returned structure. This is a clean solution, especially on small and 
 medium-sized documents. It however is unsuitable for parsing really big 
 documents. Such documents can only be handled with the call-back output 
 interface realised by the

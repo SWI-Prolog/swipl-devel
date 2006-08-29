@@ -33,3 +33,5 @@ check::
 distclean::
 	@cd $(BUILDARCH) && $(MAKE) $@
 	rm -f Makefile
+
+html::

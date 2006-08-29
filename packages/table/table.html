@@ -88,6 +88,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -174,8 +178,8 @@ file-to-memory maps supported by many modern operating systems.
 
 <P>The following sections define the interface predicates for the 
 package.
-<A class="sec" href="#sec:example">Section 4</A> provides an example to 
-access the Unix password file.
+<A class="sec" href="#sec:4">Section 4</A> provides an example to access 
+the Unix password file.
 
 <H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Managing 
 external tables</SPAN></A></H2>
@@ -627,7 +631,7 @@ Succeeds if <VAR>Prefix</VAR> is a prefix of <VAR>String</VAR> using the
 named
 <VAR>Table</VAR>, and <VAR>Rest</VAR> is unified with the remainder of
 <VAR>String</VAR> that is not matched. Please note that the existence of 
-an order-table implies simple contatenation using <A NAME="idx:concat3:17"></A><B>concat/3</B> 
+an order-table implies simple contatenation using <A NAME="idx:concat3:17"></A><SPAN class="pred-ext">concat/3</SPAN> 
 cannot be used to determine the non-matched part of the string.
 </DD>
 <DT class="pubdef"><A NAME="sub_string/3"><STRONG>sub_string</STRONG>(<VAR>+Table, 

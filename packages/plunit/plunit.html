@@ -88,6 +88,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -184,11 +188,11 @@ Unit Test box</SPAN></A></H2>
 
 <P>Tests are written in pure Prolog and enclosed within the directives
 <A NAME="idx:begintests1:1"></A><A class="pred" href="#begin_tests/1">begin_tests/1</A>,2 
-and <A NAME="idx:endtests1:2"></A><B>end_tests/1</B>. They can be 
-embedded inside a normal source module, or be placed in a seperate 
-test-file that loads the files that to be tested. Code inside a test box 
-is normal Prolog code. The entry points are defined by rules using the 
-head <CODE>test(Name)</CODE> or
+and <A NAME="idx:endtests1:2"></A><SPAN class="pred-ext">end_tests/1</SPAN>. 
+They can be embedded inside a normal source module, or be placed in a 
+seperate test-file that loads the files that to be tested. Code inside a 
+test box is normal Prolog code. The entry points are defined by rules 
+using the head <CODE>test(Name)</CODE> or
 <CODE>test(Name, Options)</CODE>, where <VAR>Name</VAR> is a ground term 
 and
 <VAR>Options</VAR> is a list describing additional properties of the 
@@ -229,9 +233,10 @@ execution environment.</DD>
 <DD class="defbody">
 <VAR>Goal</VAR> is always called after completion of the test-body, 
 regardless of whether it fails, succeeds or throws an exception. This 
-option or <A NAME="idx:callcleanup2:3"></A><B>call_cleanup/2</B> must be 
-used by tests that require side-effects that must be reverted after the 
-test completes. <VAR>Goal</VAR> may share variables with the test body.
+option or <A NAME="idx:callcleanup2:3"></A><SPAN class="pred-ext">call_cleanup/2</SPAN> 
+must be used by tests that require side-effects that must be reverted 
+after the test completes. <VAR>Goal</VAR> may share variables with the 
+test body.
 
 <PRE class="code">
 create_file(Tmp) :-
@@ -254,8 +259,8 @@ Body must succeed deterministically. Bindings are compared to Values.
 <VAR>Cmp</VAR> is typically one of =/2, ==/2, =:=/2 or =@=/2, but any 
 test can be used. This is the same as inserting the test at the end of 
 the conjunction, but it allows the test engine to distinguish between 
-failure of <A NAME="idx:copyterm2:4"></A><B>copy_term/2</B> and 
-producing the wrong value. Multiple variables must be combined in an 
+failure of <A NAME="idx:copyterm2:4"></A><SPAN class="pred-ext">copy_term/2</SPAN> 
+and producing the wrong value. Multiple variables must be combined in an 
 arbitrary compound term. E.g. <CODE>A1-A2 == v1-v2</CODE>
 
 <PRE class="code">
@@ -305,7 +310,8 @@ Start named test-unit. Same as <CODE>begin_tests(Name, [])</CODE>.</DD>
 <DD class="defbody">
 Start named test-unit with options. Options provide conditional 
 processing, setup and cleanup similar to individual tests (second 
-argument of <A NAME="idx:test2:5"></A><B>test/2</B> rules).
+argument of <A NAME="idx:test2:5"></A><SPAN class="pred-ext">test/2</SPAN> 
+rules).
 
 <P>Defined options are:
 
@@ -338,7 +344,7 @@ the test body</SPAN></A></H3>
 must be designed to succeed <EM>deterministically</EM>. Any other result 
 is considered a failure. One of the options <CODE>fail</CODE>, <CODE>true</CODE>,
 <CODE>throws</CODE>, <CODE>all</CODE> or <CODE>set</CODE> can be used to 
-specify a different expected result. See <A class="sec" href="#sec:unitbox">section 
+specify a different expected result. See <A class="sec" href="#sec:2">section 
 2</A> for details. In this section we illustrate typical test-scenarios 
 by testing SWI-Prolog built-in and library predicates.
 
@@ -371,7 +377,7 @@ test(member) :-
         member(b, [a,b,c]).
 </PRE>
 
-<P>Although this test succeeds, <A NAME="idx:member2:6"></A><B>member/2</B> 
+<P>Although this test succeeds, <A NAME="idx:member2:6"></A><SPAN class="pred-ext">member/2</SPAN> 
 leaves a choicepoint which is reported by the test subsystem. To make 
 the test silent, use one of the alternatives below.
 
@@ -409,10 +415,10 @@ non-deterministic predicates</SPAN></A></H4>
 <A NAME="sec:testnondet"></A>
 
 <P>Non-deterministic predicates succeed zero or more times. Their 
-results are tested either using <A NAME="idx:findall3:7"></A><B>findall/3</B> 
-or <A NAME="idx:setof3:8"></A><B>setof/3</B> followed by a value-check 
-or using the <CODE>all</CODE> or <CODE>set</CODE> options. The following 
-are equivalent tests:
+results are tested either using <A NAME="idx:findall3:7"></A><SPAN class="pred-ext">findall/3</SPAN> 
+or <A NAME="idx:setof3:8"></A><SPAN class="pred-ext">setof/3</SPAN> 
+followed by a value-check or using the <CODE>all</CODE> or <CODE>set</CODE> 
+options. The following are equivalent tests:
 
 <PRE class="code">
 test(member) :-
@@ -429,7 +435,7 @@ error conditions</SPAN></A></H4>
 <A NAME="sec:testerror"></A>
 
 <P>Error-conditions are tested using the option <CODE>throws(Error)</CODE> 
-or by wrapping the test in a <A NAME="idx:catch3:9"></A><B>catch/3</B>. 
+or by wrapping the test in a <A NAME="idx:catch3:9"></A><SPAN class="pred-ext">catch/3</SPAN>. 
 The following tests are equivalent:
 
 <PRE class="code">
@@ -515,10 +521,10 @@ Defined options are:
 <DD class="defbody">
 Determines whether or not tests are loaded. When <CODE>never</CODE>, 
 everything between <A NAME="idx:begintests1:12"></A><A class="pred" href="#begin_tests/1">begin_tests/1</A> 
-and <A NAME="idx:endtests1:13"></A><B>end_tests/1</B> is simply ignored. 
-When <CODE>always</CODE>, tests are always loaded. Finally, when using 
-the default value <CODE>normal</CODE>, tests are loaded if the code is 
-not compiled with optimisation turned on.</DD>
+and <A NAME="idx:endtests1:13"></A><SPAN class="pred-ext">end_tests/1</SPAN> 
+is simply ignored. When <CODE>always</CODE>, tests are always loaded. 
+Finally, when using the default value <CODE>normal</CODE>, tests are 
+loaded if the code is not compiled with optimisation turned on.</DD>
 <DT><STRONG>run</STRONG>(<VAR>+Run</VAR>)</DT>
 <DD class="defbody">
 Specifies when tests are ran. Using <CODE>manual</CODE>, tests can only 
@@ -526,8 +532,9 @@ be run using <A NAME="idx:runtests0:14"></A><A class="pred" href="#run_tests/0">
 or <A NAME="idx:runtests1:15"></A><A class="pred" href="#run_tests/1">run_tests/1</A>. 
 Using <CODE>make</CODE>, tests will be run for reloaded files, but not 
 for files loaded the first time. Using
-<CODE>make(all)</CODE> <A NAME="idx:make0:16"></A><B>make/0</B> will run 
-all test-suites, not only those that belong to files that are reloaded.
+<CODE>make(all)</CODE> <A NAME="idx:make0:16"></A><SPAN class="pred-ext">make/0</SPAN> 
+will run all test-suites, not only those that belong to files that are 
+reloaded.
 </DD>
 </DL>
 
@@ -583,7 +590,7 @@ No
 </PRE>
 
 <P>Now we can generate the test-cases for the module list using
-<A NAME="idx:maketests3:17"></A><B>make_tests/3</B>:
+<A NAME="idx:maketests3:17"></A><SPAN class="pred-ext">make_tests/3</SPAN>:
 
 <PRE class="code">
 ?- make_tests(lists, 'Queries.pl', current_output).
@@ -666,7 +673,7 @@ Luckily, the specification of the test-system proposed here can be
 ported quite easily to most Prolog systems sufficiently compatible to 
 SWI-Prolog to consider porting your application. Most important is to 
 have support for
-<A NAME="idx:termexpansion2:18"></A><B>term_expansion/2</B>.
+<A NAME="idx:termexpansion2:18"></A><SPAN class="pred-ext">term_expansion/2</SPAN>.
 
 <P>In the current system, test units are compiled into sub-modules of 
 the module in which they appear. Few Prolog systems allow for 
@@ -686,7 +693,7 @@ of choices</SPAN></A></H2>
 written using declarations dealing with setup, cleanup, running and 
 testing the result. In the other extreme a test it simply a Prolog goal 
 that is supposed to succeed. We have choosen to allow for any mixture of 
-these approaches. Written down as <A NAME="idx:test1:19"></A><B>test/1</B> 
+these approaches. Written down as <A NAME="idx:test1:19"></A><SPAN class="pred-ext">test/1</SPAN> 
 we opt for the simple succeeding goal approach. Using options to the 
 test the user can choose for a more declarative specification. The user 
 can mix both approaches.
@@ -694,9 +701,9 @@ can mix both approaches.
 <P>The body of the test appears at the position of a clause-body. This 
 simplifies identification of the test body and ensures proper layout and 
 colouring support from the editor without the need for explicit support 
-of the unit test module. Only clauses of <A NAME="idx:test1:20"></A><B>test/1</B> 
-and <A NAME="idx:test2:21"></A><B>test/2</B> may be marked as non-called 
-in environments that perform cross-referencing.
+of the unit test module. Only clauses of <A NAME="idx:test1:20"></A><SPAN class="pred-ext">test/1</SPAN> 
+and <A NAME="idx:test2:21"></A><SPAN class="pred-ext">test/2</SPAN> may 
+be marked as non-called in environments that perform cross-referencing.
 
 <H1><A NAME="document-index">Index</A></H1>
 

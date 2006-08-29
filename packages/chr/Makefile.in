@@ -111,9 +111,12 @@ check:		chr.pl
 # Documentation
 ################################################################
 
+# NOTE: Manual is integrated in system manual
+
 doc:		$(PDF) $(HTML)
 pdf:		$(PDF)
-html:		$(HTML)
+#html:		$(HTML)
+html::
 
 $(HTML):	$(TEX)
 		latex2html $(DOC)

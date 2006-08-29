@@ -88,6 +88,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -394,7 +398,7 @@ spaces</SPAN></A></H3>
 
 <P>XML name spaces are identified using a URI. Unfortunately various 
 URI's are in common use to refer to RDF. The <CODE>rdf_parser.pl</CODE> 
-module therefore defines the namespace as a <A NAME="idx:multifile1:1"></A><B>multifile/1</B> 
+module therefore defines the namespace as a <A NAME="idx:multifile1:1"></A><SPAN class="pred-ext">multifile/1</SPAN> 
 predicate, that can be extended by the user. For example, to parse the <A class="url" href="http://www.mozilla.org/rdf/doc/inference.html">Netscape 
 OpenDirectory</A>
 <CODE>structure.rdf</CODE> file, the following declarations are used:
@@ -433,7 +437,7 @@ be used to process these one-by-one.
 <DT class="pubdef"><A NAME="xml_to_rdf/3"><STRONG>xml_to_rdf</STRONG>(<VAR>+XML, 
 +BaseURI, -Triples</VAR>)</A></DT>
 <DD class="defbody">
-Process an XML term produced by <A NAME="idx:loadstructure3:3"></A><B>load_structure/3</B> 
+Process an XML term produced by <A NAME="idx:loadstructure3:3"></A><SPAN class="pred-ext">load_structure/3</SPAN> 
 using the
 <CODE>dialect(xmlns)</CODE> output option. <VAR>XML</VAR> is either a 
 complete <TT>&lt;rdf:RDF&gt;</TT> element, a list of RDF-objects 
@@ -480,12 +484,12 @@ RDF graphs</SPAN></A></H2>
 using the predicate <A NAME="idx:rdfwritexml2:6"></A><A class="pred" href="#rdf_write_xml/2">rdf_write_xml/2</A>. 
 In most cases the RDF parser is used in combination with the Semweb 
 package providing <CODE>library(semweb/rdf_db)</CODE>. This library 
-defines <A NAME="idx:rdfsave2:7"></A><B>rdf_save/2</B> to save a named 
-RDF graph from the database to a file. This library writes a list of rdf 
-terms to a stream. It has been developed for the SeRQL server which 
-computes an RDF graph that needs to be transmitted in an HTTP request. 
-As we see this as a typical use-case scenario the library only provides 
-writing to a stream.
+defines <A NAME="idx:rdfsave2:7"></A><SPAN class="pred-ext">rdf_save/2</SPAN> 
+to save a named RDF graph from the database to a file. This library 
+writes a list of rdf terms to a stream. It has been developed for the 
+SeRQL server which computes an RDF graph that needs to be transmitted in 
+an HTTP request. As we see this as a typical use-case scenario the 
+library only provides writing to a stream.
 
 <DL>
 <DT class="pubdef"><A NAME="rdf_write_xml/2"><STRONG>rdf_write_xml</STRONG>(<VAR>+Stream, 

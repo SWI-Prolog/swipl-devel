@@ -88,6 +88,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -281,8 +285,8 @@ library <CODE>socket.pl</CODE> provided by the clib package.</DD>
 Server side. Attach a Prolog input and output stream to the socket. The
 <VAR>Socket</VAR> is automatically closed after both streams are closed. 
 Please note that the output stream is fully buffered and therefore
-<A NAME="idx:flushoutput1:9"></A><B>flush_output/1</B> is required to 
-actually send the data to the peer.</DD>
+<A NAME="idx:flushoutput1:9"></A><SPAN class="pred-ext">flush_output/1</SPAN> 
+is required to actually send the data to the peer.</DD>
 <DT class="pubdef"><A NAME="ssl_open/3"><STRONG>ssl_open</STRONG>(<VAR>+SSL, 
 -In, -Out</VAR>)</A></DT>
 <DD class="defbody">

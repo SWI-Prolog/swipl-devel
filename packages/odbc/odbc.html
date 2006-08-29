@@ -88,6 +88,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -267,7 +271,7 @@ Enumerate the existing ODBC connections.</DD>
 +Option</VAR>)</A></DT>
 <DD class="defbody">
 Set options on an existing connection. All options defined here may also 
-be specified with <A NAME="idx:odbcconnect2:2"></A><B>odbc_connect/2</B> 
+be specified with <A NAME="idx:odbcconnect2:2"></A><SPAN class="pred-ext">odbc_connect/2</SPAN> 
 in the option-list. Defined options are:
 
 <DL>
@@ -280,7 +284,7 @@ execute update commands.</DD>
 <DD class="defbody">
 If <CODE>true</CODE> (default), each update statement is committed 
 immediately. If <CODE>false</CODE>, an update statement starts a 
-transaction that can be committed or rolled-back. See <A class="sec" href="#sec:sqltrans">section 
+transaction that can be committed or rolled-back. See <A class="sec" href="#sec:2.3">section 
 2.3</A> for details on transaction management.</DD>
 <DT><STRONG>cursor_type</STRONG>(<VAR>CursorType</VAR>)</DT>
 <DD class="defbody">
@@ -292,7 +296,7 @@ and <CODE>keyset_driven</CODE>.</DD>
 <DD class="defbody">
 If <CODE>true</CODE> (default <CODE>false</CODE>), statements returning
 <CODE>SQL_SUCCESS_WITH_INFO</CODE> succeed without printing the info. 
-See also <A class="sec" href="#sec:successwithinfo">section 2.7.1</A>.</DD>
+See also <A class="sec" href="#sec:2.7.1">section 2.7.1</A>.</DD>
 <DT><STRONG>null</STRONG>(<VAR>NullSpecifier</VAR>)</DT>
 <DD class="defbody">
 Defines how the SQL constant NULL is represented. Without specification, 
@@ -403,7 +407,7 @@ using <CODE>[]</CODE> for <VAR>Options</VAR>.</DD>
 Fire an SQL query on the database represented by <VAR>Connection</VAR>.
 <VAR>SQL</VAR> is any valid SQL statement. SQL statements can be 
 specified as a plain atom, string or a term of the format
-<VAR>Format</VAR>-<VAR>Arguments</VAR>, which is converted using <A NAME="idx:format2:7"></A><B>format/2</B>.
+<VAR>Format</VAR>-<VAR>Arguments</VAR>, which is converted using <A NAME="idx:format2:7"></A><SPAN class="pred-ext">format/2</SPAN>.
 
 <P>If the statement is a <CODE>SELECT</CODE> statement the result-set is 
 returned in <VAR>RowOrAffected</VAR>. By default rows are returned 
@@ -447,7 +451,7 @@ insert_child(Child, Mother, Father, Affected) :-
 <DT><STRONG>types</STRONG>(<VAR>ListOfTypes</VAR>)</DT>
 <DD class="defbody">
 Determine the Prolog type used to report the column-values. When 
-omitted, default conversion as described in <A class="sec" href="#sec:sqltypes">section 
+omitted, default conversion as described in <A class="sec" href="#sec:2.6">section 
 2.6</A> is implied. A column may specify <CODE>default</CODE> to use 
 default conversion for that column. The length of the type-list must 
 match the number of columns in the result-set.
@@ -469,8 +473,8 @@ X = row(2, thing) ;
 ...
 </PRE>
 
-<P>See also <A class="sec" href="#sec:sqltypes">section 2.6</A> for 
-notes on type-conversion.</DD>
+<P>See also <A class="sec" href="#sec:2.6">section 2.6</A> for notes on 
+type-conversion.</DD>
 <DT><STRONG>null</STRONG>(<VAR>NullSpecifier</VAR>)</DT>
 <DD class="defbody">
 Specify SQL NULL representation. See <A NAME="idx:odbcsetconnection2:10"></A><A class="pred" href="#odbc_set_connection/2">odbc_set_connection/2</A> 
@@ -493,9 +497,9 @@ each result-row.</SPAN></SUP>
 <DD class="defbody">
 Instead of returning rows on backtracking this option makes <A NAME="idx:odbcquery3:11"></A><A class="pred" href="#odbc_query/3">odbc_query/3</A> 
 return all rows in a list and close the statement. The option is named 
-after the Prolog <A NAME="idx:findall3:12"></A><B>findall/3</B> 
+after the Prolog <A NAME="idx:findall3:12"></A><SPAN class="pred-ext">findall/3</SPAN> 
 predicate, as the it makes <A NAME="idx:odbcquery3:13"></A><A class="pred" href="#odbc_query/3">odbc_query/3</A> 
-behave as the commonly used <A NAME="idx:findall3:14"></A><B>findall/3</B> 
+behave as the commonly used <A NAME="idx:findall3:14"></A><SPAN class="pred-ext">findall/3</SPAN> 
 construct below.
 
 <PRE class="code">
@@ -576,7 +580,7 @@ description is one of the following:
 <DT><STRONG>default</STRONG></DT>
 <DD class="defbody">
 Uses the ODBC function SQLDescribeParam() to obtain information about 
-the parameter and apply default rules. See <A class="sec" href="#sec:sqltypes">section 
+the parameter and apply default rules. See <A class="sec" href="#sec:2.6">section 
 2.6</A> for details. If the interface fails to return a type or the type 
 is unknown to the ODBC interface a message is printed and the interface 
 handles the type as text, which implies the user must supply an atom. 
@@ -590,8 +594,8 @@ Declare the parameter to be of type <VAR>SqlType</VAR> with the given
 specifiers. Specifiers are required for <CODE>char</CODE>, <CODE>varchar</CODE>, 
 etc. to specify the field-width. When calling <A NAME="idx:odbcexecute23:20"></A><A class="pred" href="#odbc_execute/2">odbc_execute/[2-3]</A>, 
 the user must supply the parameter values in the default Prolog type for 
-this SQL type. See <A class="sec" href="#sec:sqltypes">section 2.6</A> 
-for details.</DD>
+this SQL type. See <A class="sec" href="#sec:2.6">section 2.6</A> for 
+details.</DD>
 <DT><B><VAR>PrologType</VAR> <VAR>&gt;</VAR> <VAR>SqlType</VAR></B></DT>
 <DD class="defbody">
 As above, but supply values of the given <VAR>PrologType</VAR>, using 
@@ -639,10 +643,10 @@ result-set.<SUP class="fn">4<SPAN class="fn-text">Is this right?</SPAN></SUP>
 This would imply there can only be one active <A NAME="idx:odbcexecute3:25"></A><A class="pred" href="#odbc_execute/3">odbc_execute/3</A> 
 (i.e. with a choice-point) on a prepared statement. Suppose we have a 
 table <CODE>age (name char(25), age integer)</CODE> bound to the 
-predicate <B>age/2</B> we cannot write the code below without special 
-precautions. The ODBC interface therefore creates a clone of a statement 
-if it discovers the statement is being executed, which is discarded 
-after the statement is finished.<SUP class="fn">5<SPAN class="fn-text">The 
+predicate <SPAN class="pred-ext">age/2</SPAN> we cannot write the code 
+below without special precautions. The ODBC interface therefore creates 
+a clone of a statement if it discovers the statement is being executed, 
+which is discarded after the statement is finished.<SUP class="fn">5<SPAN class="fn-text">The 
 code is prepared to maintain a cache of statements. Practice should tell 
 us whether it is worthwhile activating this.</SPAN></SUP>
 
@@ -677,9 +681,10 @@ rows explicitely</SPAN></A></H4>
 <P>Normally SQL queries return a result-set that is enumerated on 
 backtracking. Using this approach a result-set is similar to a predicate 
 holding facts. There are some cases where fetching the rows one-by-one, 
-much like <A NAME="idx:read1:29"></A><B>read/1</B> reads terms from a 
-file is more appropriate and there are cases where only part of the 
-result-set is to be fetched. These cases can be dealt with using <A NAME="idx:odbcfetch3:30"></A><A class="pred" href="#odbc_fetch/3">odbc_fetch/3</A>, 
+much like <A NAME="idx:read1:29"></A><SPAN class="pred-ext">read/1</SPAN> 
+reads terms from a file is more appropriate and there are cases where 
+only part of the result-set is to be fetched. These cases can be dealt 
+with using <A NAME="idx:odbcfetch3:30"></A><A class="pred" href="#odbc_fetch/3">odbc_fetch/3</A>, 
 which provides an interface to SQLFetchScroll().
 
 <P>As a general rule of thumb, stay away from these functions if you do 
@@ -696,7 +701,7 @@ must be created with <A NAME="idx:odbcprepare5:31"></A><A class="pred" href="#od
 using the option <CODE>fetch(fetch)</CODE> and be executed using <A NAME="idx:odbcexecute2:32"></A><A class="pred" href="#odbc_execute/2">odbc_execute/2</A>. <VAR>Row</VAR> 
 is unified to the fetched row or the atom <CODE>end_of_file</CODE><SUP class="fn">6<SPAN class="fn-text">This 
 atom was selected to emphasise the similarity to read.</SPAN></SUP> 
-after the end of the data is reached. Calling <A NAME="idx:odbcfetch2:33"></A><B>odbc_fetch/2</B> 
+after the end of the data is reached. Calling <A NAME="idx:odbcfetch2:33"></A><SPAN class="pred-ext">odbc_fetch/2</SPAN> 
 after all data is retrieved causes a permission-error exception. <VAR>Option</VAR> 
 is one of:
 
@@ -879,7 +884,7 @@ These facets are defined by SQLColumns()
 <DT><STRONG>type</STRONG>(<VAR>Type</VAR>)</DT>
 <DD class="defbody">
 More prolog-friendly representation of the type properties. See
-<A class="sec" href="#sec:sqltypes">section 2.6</A>.
+<A class="sec" href="#sec:2.6">section 2.6</A>.
 </DD>
 </DL>
 
@@ -1074,7 +1079,7 @@ messages: `Success with info'</SPAN></A></H4>
 <A NAME="sec:successwithinfo"></A>
 
 <P>If an ODBC operation returns `with info', the info is extracted from 
-the interface and handled to the Prolog message dispatcher <A NAME="idx:printmessage2:44"></A><B>print_message/2</B>. 
+the interface and handled to the Prolog message dispatcher <A NAME="idx:printmessage2:44"></A><SPAN class="pred-ext">print_message/2</SPAN>. 
 The level of the message is <CODE>informational</CODE> and the term is 
 of the form:
 
@@ -1095,7 +1100,7 @@ errors</SPAN></A></H4>
 
 <P>If an ODBC operation signals an error, it throws the exception
 <CODE>error(<CODE>odbc(State, Native, Message)</CODE>, _)</CODE>. The 
-arguments of the odbc/3 term are explained in <A class="sec" href="#sec:successwithinfo">section 
+arguments of the odbc/3 term are explained in <A class="sec" href="#sec:2.7.1">section 
 2.7.1</A>.
 
 <P>In addition, the Prolog layer performs the normal tests for proper 
@@ -1138,8 +1143,9 @@ and suggestions.
 <DT><B>Transaction management</B></DT>
 <DD>
 This certainly requires a high-level interface. Possibly in combination 
-with <A NAME="idx:callcleanup3:45"></A><B>call_cleanup/3</B>, providing 
-automatic rollback on failure or exception and commit on success.</DD>
+with <A NAME="idx:callcleanup3:45"></A><SPAN class="pred-ext">call_cleanup/3</SPAN>, 
+providing automatic rollback on failure or exception and commit on 
+success.</DD>
 <DT><B>High-level interface</B></DT>
 <DD>
 Attaching tables to predicates, partial <EM>DataLog</EM> implementation, 

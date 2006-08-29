@@ -88,6 +88,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -243,7 +247,7 @@ constructors for building Prolog lists of ASCII values.
 <DT><A NAME="class:PlCharList"><STRONG>PlCharList</STRONG></A></DT>
 <DD class="defbody">
 Subclass of <A class="" href="#class:PlTerm">PlTerm</A> with 
-constructors for building Prolog lists of one-character atoms (as <A NAME="idx:atomchars2:1"></A><B>atom_chars/2</B>).
+constructors for building Prolog lists of one-character atoms (as <A NAME="idx:atomchars2:1"></A><SPAN class="pred-ext">atom_chars/2</SPAN>).
 </DD>
 <DT><A NAME="class:PlCompound"><STRONG>PlCompound</STRONG></A></DT>
 <DD class="defbody">
@@ -318,8 +322,8 @@ present a few examples illustrating the `feel' of the interface.
 <H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Hello(World)</SPAN></A></H3>
 
 <P>This very simple example shows the basic definition of the predicate
-<A NAME="idx:hello1:2"></A><B>hello/1</B> and how a Prolog argument is 
-converted to C-data:
+<A NAME="idx:hello1:2"></A><SPAN class="pred-ext">hello/1</SPAN> and how 
+a Prolog argument is converted to C-data:
 
 <PRE class="code">
 PREDICATE(hello, 1)
@@ -334,7 +338,7 @@ The macros A&lt;<VAR>n</VAR>&gt; provide access to the predicate
 arguments by position and are of the type <A class="" href="#class:PlTerm">PlTerm</A>. 
 Casting a <A class="" href="#class:PlTerm">PlTerm</A> to a
 <B><CODE>char *</CODE></B> provides the natural type-conversion for most 
-Prolog data-types, using the output of <A NAME="idx:write1:3"></A><B>write/1</B> 
+Prolog data-types, using the output of <A NAME="idx:write1:3"></A><SPAN class="pred-ext">write/1</SPAN> 
 otherwise:
 
 <PRE class="code">
@@ -352,7 +356,7 @@ X = _G170
 numbers</SPAN></A></H3>
 
 <P>This example shows arithmetic using the C++ interface, including 
-unification, type-checking and conversion. The predicate <A NAME="idx:add3:4"></A><B>add/3</B> 
+unification, type-checking and conversion. The predicate <A NAME="idx:add3:4"></A><SPAN class="pred-ext">add/3</SPAN> 
 adds the two first arguments and unifies the last with the result.
 
 <PRE class="code">
@@ -381,7 +385,7 @@ X = 3.
 <H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN><SPAN class="sec-title">Average 
 of solutions</SPAN></A></H3>
 
-<P>This example is a bit harder. The predicate <A NAME="idx:average3:5"></A><B>average/3</B> 
+<P>This example is a bit harder. The predicate <A NAME="idx:average3:5"></A><SPAN class="pred-ext">average/3</SPAN> 
 is defined to take the template average(+Var, :Goal, -Average) , where <VAR>Goal</VAR> 
 binds <VAR>Var</VAR> and will unify <VAR>Average</VAR> with average of 
 the (integer) results.
@@ -504,10 +508,10 @@ represents a Prolog integer or float.
 Converts the Prolog argument using PL_get_chars() using the flags
 <CODE>CVT_ALL|CVT_WRITE|BUF_RING</CODE>, which implies Prolog atoms and 
 strings are converted to the represented text. All other data is handed 
-to <A NAME="idx:write1:6"></A><B>write/1</B>. If the text is static in 
-Prolog, a direct pointer to the string is returned. Otherwise the text 
-is saved in a ring of 16 buffers and must be copied to avoid 
-overwriting.
+to <A NAME="idx:write1:6"></A><SPAN class="pred-ext">write/1</SPAN>. If 
+the text is static in Prolog, a direct pointer to the string is 
+returned. Otherwise the text is saved in a ring of 16 buffers and must 
+be copied to avoid overwriting.
 </DD>
 <DT><STRONG>PlTerm ::operator void *</STRONG>(<VAR>void</VAR>)</DT>
 <DD class="defbody">
@@ -612,7 +616,7 @@ if the conversion was successful, but the strings are not equal and an
 </DD>
 </DL>
 
-<P>Below are some typical examples. See <A class="sec" href="#sec:dirplatom">section 
+<P>Below are some typical examples. See <A class="sec" href="#sec:6">section 
 6</A> for direct manipulation of atoms in their internal representation.
 
 <P>
@@ -656,7 +660,7 @@ representing the arg-th argument of the term. If <A class="" href="#class:PlTerm
 is not compound, a
 <CODE>type_error</CODE> is raised. Id <VAR>arg</VAR> is out of range, a
 <CODE>domain_error</CODE> is raised. Please note the counting from 1 
-which is consistent to Prolog's <A NAME="idx:arg3:7"></A><B>arg/3</B> 
+which is consistent to Prolog's <A NAME="idx:arg3:7"></A><SPAN class="pred-ext">arg/3</SPAN> 
 predicate, but inconsistent to C's normal view on an array. See also 
 class <A class="" href="#class:PlCompound">PlCompound</A>. The following 
 example tests <VAR>x</VAR> to represent a term with first-argument an 
@@ -733,7 +737,7 @@ Create a Prolog list of ASCII codes from a 0-terminated C-string.
 <H3><A NAME="sec:4.9"><SPAN class="sec-nr">4.9</SPAN><SPAN class="sec-title">The 
 class PlCharList</SPAN></A></H3>
 
-<P>Character lists are compliant to Prolog's <A NAME="idx:atomchars2:8"></A><B>atom_chars/2</B> 
+<P>Character lists are compliant to Prolog's <A NAME="idx:atomchars2:8"></A><SPAN class="pred-ext">atom_chars/2</SPAN> 
 predicate.
 
 <DL>
@@ -750,7 +754,7 @@ class PlCompound</SPAN></A></H3>
 <DL>
 <DT><STRONG>PlCompound :: PlCompound</STRONG>(<VAR>const char *text</VAR>)</DT>
 <DD class="defbody">
-Create a term by parsing (as <A NAME="idx:read1:9"></A><B>read/1</B>) 
+Create a term by parsing (as <A NAME="idx:read1:9"></A><SPAN class="pred-ext">read/1</SPAN>) 
 the <VAR>text</VAR>. If the <VAR>text</VAR> is not valid Prolog syntax, 
 a <CODE>syntax_error</CODE> exception is raised. Otherwise a new 
 term-reference holding the parsed text is created.
@@ -801,7 +805,7 @@ and
 <CODE>FALSE</CODE> otherwise. No exceptions are generated.
 
 <P>The example below translates the main() argument vector to Prolog and 
-calls the prolog predicate <A NAME="idx:entry1:10"></A><B>entry/1</B> 
+calls the prolog predicate <A NAME="idx:entry1:10"></A><SPAN class="pred-ext">entry/1</SPAN> 
 with it.
 
 <PRE class="code">
@@ -958,7 +962,7 @@ PREDICATE(test, 1)
     ...;
 </PRE>
 
-<P>This approach is basically the same as <A class="sec" href="#sec:dirplatom">section 
+<P>This approach is basically the same as <A class="sec" href="#sec:6">section 
 6</A>, but in nested if-then-else the extraction of the atom from the 
 term is done only once.
 
@@ -1149,7 +1153,7 @@ well as undoing all unifications after the instance was created.
 <P><A NAME="idx:assert:11"></A>A typical use for <A class="" href="#class:PlFrame">PlFrame</A> 
 is the definition of C++ functions that call Prolog and may be called 
 repeatedly from C++. Consider the definition of assertWord(), adding a 
-fact to <A NAME="idx:word1:12"></A><B>word/1</B>:
+fact to <A NAME="idx:word1:12"></A><SPAN class="pred-ext">word/1</SPAN>:
 
 <PRE class="code">
 void
@@ -1219,7 +1223,7 @@ for the implementation is created.
 the Prolog destination module</SPAN></A></H3>
 
 <P>With no special precautions, the predicates are defined into the 
-module from which <A NAME="idx:loadforeignlibrary1:13"></A><B>load_foreign_library/1</B> 
+module from which <A NAME="idx:loadforeignlibrary1:13"></A><SPAN class="pred-ext">load_foreign_library/1</SPAN> 
 was called, or in the module
 <CODE>user</CODE> if there is no Prolog context from which to deduce the 
 module such as while linking the extension statically with the Prolog 
@@ -1285,8 +1289,8 @@ interface for throwing any Prolog terms as an exception.
 <DT><STRONG>PlException ::operator char *</STRONG>(<VAR>void</VAR>)</DT>
 <DD class="defbody">
 The exception is translated into a message as produced by
-<A NAME="idx:printmessage2:14"></A><B>print_message/2</B>. The character 
-data is stored in a ring. Example:
+<A NAME="idx:printmessage2:14"></A><SPAN class="pred-ext">print_message/2</SPAN>. 
+The character data is stored in a ring. Example:
 
 <PRE class="code">
   ...;
@@ -1356,7 +1360,7 @@ class PlDomainError</SPAN></A></H3>
 
 <P>A <EM>domain error</EM> expresses that a term satisfies the basic 
 Prolog type expected, but is unacceptable to the restricted domain 
-expected by some operation. For example, the standard Prolog <A NAME="idx:open3:15"></A><B>open/3</B> 
+expected by some operation. For example, the standard Prolog <A NAME="idx:open3:15"></A><SPAN class="pred-ext">open/3</SPAN> 
 call expect an <CODE>io_mode</CODE> (read, write, append, ...). If an 
 integer is provided, this is a <EM>type error</EM>, if an atom other 
 than one of the defined io-modes is provided it is a <EM>domain error</EM>.
@@ -1407,8 +1411,8 @@ Calls PL_cleanup() to destroy all data created by the Prolog engine.
 </DD>
 </DL>
 
-<P><A class="sec" href="#sec:pltail">Section 4.11</A> has a simple 
-example using this class.
+<P><A class="sec" href="#sec:4.11">Section 4.11</A> has a simple example 
+using this class.
 
 <H2><A NAME="sec:12"><SPAN class="sec-nr">12</SPAN><SPAN class="sec-title">Considerations</SPAN></A></H2>
 
