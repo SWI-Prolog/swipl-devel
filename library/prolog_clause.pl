@@ -300,7 +300,10 @@ a --> { x, y, z }.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %%	ubody(+Read, +Decompiled, +TermPosRead, -TermPosForDecompiled)
-
+%
+%	@param Read		Clause read after term-expansion
+%	@param Decompiled	Decompiled clause
+%	@param TermPosRead	Sub-term positions of source
 
 ubody(B, B, P, P) :-
 	\+ sub_term(brace_term_position(_,_,_), P), !.
@@ -318,31 +321,10 @@ ubody(B0, B,
       brace_term_position(F,T,A0),
       term_position(F,T,F,T,[A])) :- !,
 	ubody(B0, B, A0, A).
-ubody(((A0,B0),C0), (A,B,C),
-      term_position(F1,T1,FF1,TT1,
-		    [ PA0,
-		      term_position(F2,T2,FF2,FT2, [PB0,PC0])
-		    ]),
-      term_position(F1,T1,FF1,TT1,
-		    [ term_position(F2,T2,FF2,FT2, [PA,PB]),
-		      PC
-		    ])) :-		% Is this clause needed?  Shouldn't the
-	ubody(A0,A,PA0,PA),		% next cover all cases?
-	ubody(B0,B,PB0,PB),
-	ubody(C0,C,PC0,PC), !.
 ubody(C0, C, P0, P) :-
 	C0 = (_,_), C = (_,_), !,
       conj(C0, P0, GL, PL),
-      mkconj(C,  P,  GL, PL).
-ubody(((A,B),C), (A,B,C),		% {},X expansion
-      term_position(F1,T1,FF1,TT1,
-		    [ brace_term_position(F1,T2,PA),
-		      PC
-		    ]),
-      term_position(F1,T1,FF1,TT1,
-		    [ PA,
-		      term_position(F1,T2,0,0,[0-0,PC])
-		    ])) :- !.
+      mkconj(C, P, GL, PL).
 ubody(X0, X,
       term_position(F,T,FF,TT,PA0),
       term_position(F,T,FF,TT,PA)) :-
