@@ -651,11 +651,13 @@ do_float(Term, Goal) :-
 
 :- dynamic
 	label/3,			% Label, File, Index
-	next_file/2.			% File, NextFile
+	next_file/2,			% File, NextFile
+	section_label/2.		% Label, SecNr
 
 reset_labels :-
 	retractall(label(_, _, _)),
-	retractall(next_file(_, _)).
+	retractall(next_file(_, _)),
+	retractall(section_label(_, _)).
 
 collect_labels([], _) :- !.
 collect_labels([tell(File)|T], PreviousFile) :- !,
@@ -670,10 +672,15 @@ collect_labels([label(Label, _, Tag)|T], File) :- !,
 collect_labels([_|T], File) :-
 	collect_labels(T, File).
 
-label_tag(Tag) :-
+label_tag(_Label, Tag) :-
 	current_float(_, Tag), !.
-label_tag(Tag) :-
-	section_tag(Tag).
+label_tag(Label, Tag) :-
+	section_tag(Tag),
+	(   sub_atom(Label, 0, _, _, 'sec:')
+	->  atom_concat('sec:', Tag, SecTag),
+	    assert(section_label(Label, SecTag))
+	;   true
+	).
 
 
 		 /*******************************
@@ -926,7 +933,7 @@ cmd(paragraph({Title}), [#b(+Title), ' ']).
 cmd(subparagraph({Title}), [#b(+Title), ' ']).
 
 cmd(label({Label}), #label(Label, [], Tag)) :-	% \label and \xyzref
-	label_tag(Tag).
+	label_tag(Label, Tag).
 cmd(ref({RefName}), #lref(ref, RefName, ref(RefName))).
 cmd(pageref({RefName}), #lref(ref, RefName, ref(RefName))).
 	
@@ -1337,18 +1344,16 @@ html_font('Huge',       html('<font size=+3>'), html('</font>')).
 		 *	    \REF, ETC.		*
 		 *******************************/
 
-%	translate_reference(+Name, +Tag, +Label, -HTML)
+%%	translate_reference(+Name, +Tag, +Label, -HTML)
 %
 %	Used for the translation of \secref, \figref, etc.
 
 translate_reference(Name, sec, Label,
 	  #lref(sec, fileof(RefName), [Name, ' ', ref(RefName)])) :- !,
-	format(string(RefStr), 'sec:~w', [Label]),
-	string_to_atom(RefStr, RefName).
+	format(atom(RefName), 'sec:~w', [Label]).
 translate_reference(Name, Tag, Label,
 	  #lref(Tag, RefName, [Name, ' ', ref(RefName)])) :-
-	format(string(RefStr), '~w:~w', [Tag, Label]),
-	string_to_atom(RefStr, RefName).
+	format(atom(RefName), '~w:~w', [Tag, Label]).
 
 
 		 /*******************************
@@ -2585,6 +2590,10 @@ write_html(lref(Class, fileof(Label), Text)) :-
 	).
 write_html(lref(Class, Label, Text)) :-
 	label(Label, File, _), !,
+	(   section_label(Label, TheLabel)
+	->  true
+	;   TheLabel = Label
+	),
 	(   in_anchor
 	->  macro_expand(Text, Expanded),
 	    write_html(Expanded)
@@ -2592,9 +2601,9 @@ write_html(lref(Class, Label, Text)) :-
 	    (   onefile(false)
 	    ->  format(string(Anchor),
 		       '<A class="~w" href="~w.html#~w">',
-		       [Class, File, Label])
+		       [Class, File, TheLabel])
 	    ;   format(string(Anchor),
-		       '<A class="~w" href="#~w">', [Class, Label])
+		       '<A class="~w" href="#~w">', [Class, TheLabel])
 	    ),
 	    write_html([html(Anchor), Text, html('</A>')]),
 	    retractall(in_anchor)
