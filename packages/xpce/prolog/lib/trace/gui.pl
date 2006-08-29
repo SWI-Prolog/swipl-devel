@@ -490,8 +490,8 @@ button(+query,	       "b",   'break.xpm',	     'Enter a query').
 button(abort,	       "a",   'abort.xpm',	     'Abort to the Prolog toplevel').
 button(fail,	       "F",   'fail.xpm',	     'Force query to fail').
 button(gap,	       -,     -,		     -).
-button(+up,	       "u",   'up.xpm',		     'Select child frame').
-button(+down,	       "d",   'down.xpm',	     'Select parent frame').
+button(+up,	       "u",   'up.xpm',		     'Select parent frame').
+button(+down,	       "d",   'down.xpm',	     'Select child frame').
 button(gap,	       -,     -,		     -).
 button(+browse,	       "",    '16x16/butterfly.xpm', 'Browse program structure').
 button(gap,	       -,     -,		     -).
