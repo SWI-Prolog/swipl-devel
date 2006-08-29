@@ -70,18 +70,26 @@ www_open_url(Spec) :-			% something we know
 	expand_url_path(Spec, URL),
 	www_open_url(Browser, URL).
 
+%%	www_open_url(+Browser, +URL) is det.
+%
+%	Open a page using  a  browser.   Preferably  we  use an existing
+%	browser to to the job. Currently   only supports browsers with a
+%	netscape compatible remote interface.
+%	
+%	@see http://www.mozilla.org/unix/remote.html
+
 www_open_url(Browser, URL) :-
-	compatible(Browser, netscape), !,
-	sformat(Cmd0, '"~w" -remote "xfeDoCommand(openBrowser)"', [Browser]),
-	(   shell(Cmd0, 0)
-	->  sformat(Cmd, '"~w" -remote "openURL(~w)" &', [Browser, URL]),
-	    shell(Cmd)
-	;   sformat(Cmd, '"~w" "~w" &', [Browser, URL]),
-	    shell(Cmd)
-	).
+	compatible(Browser, netscape),
+	netscape_remote(Browser, 'ping()', []), !,
+	netscape_remote(Browser, 'openURL(~w,new-window)', [URL]).
 www_open_url(Browser, URL) :-
-	sformat(Cmd, '"~w" "~w" &', [Browser, URL]),
+	format(string(Cmd), '"~w" "~w" &', [Browser, URL]),
 	shell(Cmd).
+
+netscape_remote(Browser, Fmt, Args) :-
+	format(string(RCmd), Fmt, Args),
+	format(string(Cmd), '"~w" -remote "~w"', [Browser, RCmd]),
+	shell(Cmd, 0).
 
 compatible(Browser, With) :-
 	file_base_name(Browser, Base),
@@ -89,6 +97,11 @@ compatible(Browser, With) :-
 
 :- multifile
 	known_browser/2.
+
+%%	known_browser(+FileBaseName, -Compatible)
+%
+%	True if browser FileBaseName has a remote protocol compatible to
+%	Compatible.
 
 known_browser(firefox,   netscape).
 known_browser(mozilla,   netscape).
@@ -150,8 +163,13 @@ user:url_path(pl_donate,   pl('donate.html')).
 user:url_path(xpce,	   pl('packages/xpce')).
 user:url_path(xpce_man,	   swi('projects/xpce/UserGuide')).
 
+%%	expand_url_path(+Spec, -URL)
+%
+%	Expand URL specifications similar   to absolute_file_name/3. The
+%	predicate url_path/2 plays the role of file_name_expansion/2.
+
 expand_url_path(URL, URL) :-
-	atom(URL), !.
+	atomic(URL), !.			% Allow atom and string
 expand_url_path(Spec, URL) :-
 	Spec =.. [Path, Local],
 	(   user:url_path(Path, Spec2)

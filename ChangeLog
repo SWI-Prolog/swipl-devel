@@ -11,6 +11,9 @@
 VERSION 5.6.18 (August 24, 2006)
 ================================
 
+  * FIXED: Updated www_open_url for netscape compatible browsers on Unix.
+    Cleanup of comments, etc.
+
   * FIXED: Source-level debugger for a --> { x }, !, y.
 
   * FIXED: write_canonical(a|b).  Lukas Degener.
