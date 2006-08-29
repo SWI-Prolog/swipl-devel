@@ -1142,10 +1142,7 @@ If present and \const{true}, SWI-Prolog has been compiled with
 \jargon{large file support} (LFS) and is capable to access files larger
 than 2GB on 32-bit hardware. Large file-support is default on
 installations built using \program{configure} that support it and may be
-switched off using the configure option \const{--disable-largefile}.%
-    \bug{As SWI-Prolog integers are 32-bits, SWI-Prolog cannot represent
-	 offsets in large files.  Therefore, calls involving file sizes
-	 or offsets do not work properly.}
+switched off using the configure option \const{--disable-largefile}.
 
     \prologflagitem{max_arity}{unbounded}{r}
 ISO prolog-flag describing there is no maximum arity to compound terms.
