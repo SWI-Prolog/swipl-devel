@@ -212,7 +212,7 @@ short_matches([File-Objs|T], Options) -->
 
 
 category_index_header(Category, _Options) -->
-	html(tr(th([class(category), colspan(2)],
+	html(tr(th([class(category), colspan(3)],
 		   a(name(Category), \category_title(Category))))).
 
 category_title(Category) -->

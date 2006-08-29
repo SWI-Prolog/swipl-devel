@@ -40,6 +40,8 @@
 	    module_info/3,		% +File, +Options0, -Options
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
 	    edit_button/4,		% +File, +Options, //
+	    pred_edit_button/4,		% +PredInd, +Options, //
+	    object_edit_button/4,	% +Obj, +Options, //
 
 	    private/2,			% +Obj, +Options
 	    file/3,			% +File, //
@@ -633,15 +635,34 @@ anchored_pred_head(Head, Done0, Done, Options) -->
 	    { Done = [PI|Done0] }
 	).
 
+%%	pred_edit_button(+PredIndicator, +Options)// is det.
+%
+%	Create a button for editing the given predicate.
+
+pred_edit_button(_, Options) -->
+	{ \+ option(edit(true), Options) }, !.
+pred_edit_button(M:PI, Options) --> 
+	{ atom(M) }, !,
+	pred_edit_button(PI, [module(M)|Options]).
 pred_edit_button(//(Head), Options) --> !,
 	{ functor(Head, Name, Arity),
 	  PredArity is Arity + 2
 	},
 	pred_edit_button(Name/PredArity, Options).
+pred_edit_button(Name//Arity, Options) --> !,
+	{ PredArity is Arity + 2
+	},
+	pred_edit_button(Name/PredArity, Options).	  
 pred_edit_button(Name/Arity, Options) -->
-	{ option(edit(true), Options), !,
-	  www_form_encode(Name, QName),
-	  (   option(module(M), Options, []), M \== []
+	{ functor(Head, Name, Arity),
+	  option(module(M), Options, _),
+	  \+ ( current_module(M),
+	       source_file(M:Head, _File)
+	     )
+	}, !.
+pred_edit_button(Name/Arity, Options) -->
+	{ www_form_encode(Name, QName),
+	  (   option(module(M), Options)
 	  ->  www_form_encode(M, QM),
 	      format(string(OnClick),
 		     'HTTPrequest("/edit?name=~w&arity=~w&module=~w")',
@@ -664,6 +685,19 @@ pred_edit_button(Head, Options) -->
 	{ functor(Head, Name, Arity)
 	},
 	pred_edit_button(Name/Arity, Options).
+
+
+%%	object_edit_button(+Object, +Options)// is det.
+%
+%	Create a button	for editing Object.
+
+object_edit_button(_, Options) -->
+	{ \+ option(edit(true), Options) }, !.
+object_edit_button(PI, Options) -->
+	{ pi(PI) }, !,
+	pred_edit_button(PI, Options).
+object_edit_button(_, _) -->
+	[].
 
 
 %%	pred_head(+Term) is det.

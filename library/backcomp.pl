@@ -120,6 +120,8 @@ read_variables(Stream, Term, Vars) :-
 %%	feature(?Key, ?Value) is nondet.
 %%	set_feature(+Key, @Term) is det.
 %
+%	Control Prolog flags.
+%
 %	@depreciated Use ISO current_prolog_flag/2 and set_prolog_flag/2.
 
 feature(Key, Value) :-

@@ -125,7 +125,7 @@ dir_footer(Dir, _Options) -->
 dir_footer(_, _) -->
 	[].
 
-%%	wiki_file(+Dir, +Type) is semidet.
+%%	wiki_file(+Dir, +Type)// is semidet.
 %
 %	Include text from a Wiki text-file.
 
@@ -188,7 +188,7 @@ file_index_header(File, Options) -->
 	      doc_file_href(File, HREF)
 	  )
 	},
-	html(tr(th([colspan(2), class(file)],
+	html(tr(th([colspan(3), class(file)],
 		   [ span(style('float:left'), a(href(HREF), Local)),
 		     span(style('float:right'),
 			  [ \edit_button(File,
@@ -264,7 +264,9 @@ object_summary(doc(Obj, _Pos, Summary), _Section, Options) --> !,
 	    }
 	->  html(tr(class(Class),
 		    [ td(\object_ref(Obj, Options)),
-		      td(class(summary), DOM)
+		      td(class(summary), DOM),
+		      td(align(right),
+			 \object_edit_button(Obj, Options))
 		    ]))
 	;   []
 	).
@@ -323,6 +325,11 @@ source_dirs([H|T], WD) -->
 	},
 	html(option([onClick(Call)|Attrs], H)),
 	source_dirs(T, WD).	
+
+%%	source_directory(?Dir) is nondet.
+%
+%	True if Dir is a directory  from   which  we  have loaded Prolog
+%	sources.
 
 source_directory(Dir) :-
 	source_file(File),

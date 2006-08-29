@@ -643,7 +643,7 @@ prolog:doc_file_index_header(File, Options) -->
 	{ Section = section(_Level, _No, File),
 	  man_index(Section, _Summary, File, _Cat, _Offset)
 	}, !,
-	html(tr(th([colspan(2), class(section)],
+	html(tr(th([colspan(3), class(section)],
 		   [ \object_ref(Section,
 				 [ secref_style(number_title)
 				 | Options
