@@ -37,6 +37,7 @@
 	  ]).
 :- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [append/3]).
+:- use_module(library(occurs), [sub_term/2]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module started life as part of the   GUI tracer. As it is generally
@@ -284,7 +285,7 @@ match_module(H1, H2, Pos, Pos) :-	% deal with facts
 %	Pos0 and Pos still include the term-position of the head.
 
 unify_body(B, B, Pos, Pos) :-
-	\+ subterm(brace_term_position(_,_,_), Pos), !.
+	\+ sub_term(brace_term_position(_,_,_), Pos), !.
 unify_body(R, D,
 	   term_position(F,T,FF,FT,[HP,BP0]),
 	   term_position(F,T,FF,FT,[HP,BP])) :-
@@ -302,7 +303,7 @@ a --> { x, y, z }.
 
 
 ubody(B, B, P, P) :-
-	\+ subterm(brace_term_position(_,_,_), P), !.
+	\+ sub_term(brace_term_position(_,_,_), P), !.
 ubody(B0, B,
       brace_term_position(F,T,A0),
       Pos) :-
@@ -378,13 +379,6 @@ mkconj((A,B), term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :- !,
 	mkconj(B, PB, TGA, TG, TPA, TP).
 mkconj(A0, P0, [A|TG], TG, [P|TP], TP) :-
 	ubody(A, A0, P, P0).
-
-
-subterm(X,X).
-subterm(X, T) :-
-	compound(T),
-	arg(_, T, A),
-	subterm(X, A).
 
 
 		 /*******************************
