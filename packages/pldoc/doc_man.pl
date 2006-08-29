@@ -439,7 +439,7 @@ man_page(Obj, Options) -->
 	  term_to_atom(Obj, Atom)
 	},
 	html([ \man_links([], []),	% Use index file?
-	       'No manual entry for ', Atom
+	       p(['No manual entry for ', Atom])
 	     ]).
 
 dom_list([], _) -->

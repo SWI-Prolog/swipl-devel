@@ -31,7 +31,9 @@
 
 :- module(pldoc_http,
 	  [ doc_server/1,		% ?Port
-	    doc_server/2		% ?Port, +Options
+	    doc_server/2,		% ?Port, +Options
+	    doc_browser/0,
+	    doc_browser/1		% +What
 	  ]).
 :- use_module(library(pldoc)).
 :- use_module(library('http/thread_httpd')).
@@ -88,6 +90,8 @@ doc_server(Port) :-
 		     allow(localhost)
 		   ]).
 
+doc_server(Port, _) :-
+	doc_current_server(Port), !.
 doc_server(Port, Options) :-
 	prepare_editor,
 	auth_options(Options, ServerOptions),
@@ -98,6 +102,28 @@ doc_server(Port, Options) :-
                     | ServerOptions
                     ]),
 	print_message(informational, pldoc(server_started(Port))).
+
+doc_current_server(Port) :-
+	http_current_server(doc_reply, Port), !.
+
+%%	doc_browser is det.
+%%	doc_browser(+What) is semidet.
+%
+%	Open user's default browser on the documentation server.
+
+doc_browser :-
+	doc_browser([]).
+doc_browser(Spec) :-
+	doc_current_server(Port),
+	browser_url(Spec, Request),
+	format(string(URL), 'http://localhost:~w~w', [Port, Request]),
+	www_open_url(URL).
+
+browser_url([], '') :- !.
+browser_url(Name/Arity, URL) :- !,
+	format(string(S), '~q/~w', [Name, Arity]),
+	www_form_encode(S, Enc),
+	format(string(URL), '/man?predicate=~w', [Enc]).
 
 %%	prepare_editor
 %
@@ -435,7 +461,7 @@ reply('/man', Request) :-
 			]),
 	format(string(Title), 'Manual -- ~w', [PI]),
 	reply_page(Title,
-		   [ \man_page(PI, _Options)
+		   [ \man_page(PI, [])
 		   ]).
 
 %	/doc_for?object=Term

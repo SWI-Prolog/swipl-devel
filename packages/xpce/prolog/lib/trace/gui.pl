@@ -196,7 +196,8 @@ initialise(F) :->
 	send(V, below, D),
 	send(new(Src, prolog_source_view), below, V),
 	send(F, source, Src),
-	send(new(report_dialog), below, Src),
+	send(new(RD, report_dialog), below, Src),
+	send(RD, warning_delay, 0),
 	send(S, label, 'Call Stack'),
 	send(S, name, stack).
  
