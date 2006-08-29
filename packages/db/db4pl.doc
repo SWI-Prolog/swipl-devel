@@ -13,10 +13,10 @@
 
 \title{SWI-Prolog External Database}
 \author{Jan Wielemaker \\
-	SWI, \\
+	HCS, \\
 	University of Amsterdam \\
 	The Netherlands \\
-	E-mail: \email{jan@swi.psy.uva.nl}}
+	E-mail: \email{wielemak@science.uva.nl}}
 
 \maketitle
 
@@ -96,7 +96,7 @@ Accessing a database consists of four steps:
           open databases are closed on program halt (see at_halt/1).
 \end{enumerate}
 
-\subsection{Opening a database}
+\subsection{Opening and closing a database}
 
 \begin{description}
 \predicate{db_open}{4}{+File, +Mode, -DB, +Options}
@@ -138,6 +138,9 @@ Accessing a database consists of four steps:
         \termitem{value}{Type}
     Specify the type of the value.  See \const{key} for details.
     \end{description}
+
+    \predicate{db_close}{1}{+DB}
+Close BerkeleyDB database indicated by \arg{DB}.
 \end{description}
 
 
