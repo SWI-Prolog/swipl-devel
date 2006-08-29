@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -129,12 +133,12 @@ Execute <VAR>Command</VAR> on the operating system. <VAR>Command</VAR>
 is given to the Bourne shell (/bin/sh). <VAR>Status</VAR> is unified 
 with the exit status of the command.
 
-<P>On <VAR>Win32</VAR> systems, <A NAME="idx:shell12:968"></A><A class="pred" href="system.html#shell/1">shell/[1,2]</A> 
+<P>On <VAR>Win32</VAR> systems, <A NAME="idx:shell12:966"></A><A class="pred" href="system.html#shell/1">shell/[1,2]</A> 
 executes the command using the CreateProcess() API and waits for the 
 command to terminate. If the command ends with a <CODE>&amp;</CODE> 
 sign, the command is handed to the WinExec() API, which does not wait 
-for the new task to terminate. See also <A NAME="idx:winexec2:969"></A><A class="pred" href="system.html#win_exec/2">win_exec/2</A> 
-and <A NAME="idx:winshell2:970"></A><A class="pred" href="system.html#win_shell/2">win_shell/2</A>. 
+for the new task to terminate. See also <A NAME="idx:winexec2:967"></A><A class="pred" href="system.html#win_exec/2">win_exec/2</A> 
+and <A NAME="idx:winshell2:968"></A><A class="pred" href="system.html#win_shell/2">win_shell/2</A>. 
 Please note that the CreateProcess() API does <B>not</B> imply the 
 Windows command interpreter (<B>command.exe</B> on Windows 95/98 and <B>cmd.exe</B> 
 on Windows-NT) and therefore commands built-in to the 
@@ -176,10 +180,10 @@ Win32 systems only. Opens the document <VAR>File</VAR> using the windows
 shell-rules for doing so. <VAR>Operation</VAR> is one of <CODE>open</CODE>,
 <CODE>print</CODE> or <CODE>explore</CODE> or another operation 
 registered with the shell for the given document-type. On modern systems 
-it is also possible to pass a <A NAME="idx:URL:971"></A>URL as <VAR>File</VAR>, 
+it is also possible to pass a <A NAME="idx:URL:969"></A>URL as <VAR>File</VAR>, 
 opening the URL in Windows default browser. This call interfaces to the 
 Win32 API ShellExecute(). The <VAR>Show</VAR> argument determines the 
-initial state of the opened window (if any). See <A NAME="idx:winexec2:972"></A><A class="pred" href="system.html#win_exec/2">win_exec/2</A> 
+initial state of the opened window (if any). See <A NAME="idx:winexec2:970"></A><A class="pred" href="system.html#win_exec/2">win_exec/2</A> 
 for defined values.</DD>
 <DT class="pubdef"><A NAME="win_shell/2"><STRONG>win_shell</STRONG>(<VAR>+Operation, 
 +File</VAR>)</A></DT>
@@ -220,19 +224,19 @@ systems and case-insensitive on Windows.</DD>
 <DD class="defbody">
 Set an environment variable. <VAR>Name</VAR> and <VAR>Value</VAR> must 
 be instantiated to atoms or integers. The environment variable will be 
-passed to <A NAME="idx:shell02:973"></A><A class="pred" href="system.html#shell/0">shell/[0-2]</A> 
-and can be requested using <A NAME="idx:getenv2:974"></A><A class="pred" href="system.html#getenv/2">getenv/2</A>. 
-They also influence <A NAME="idx:expandfilename2:975"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A>. 
+passed to <A NAME="idx:shell02:971"></A><A class="pred" href="system.html#shell/0">shell/[0-2]</A> 
+and can be requested using <A NAME="idx:getenv2:972"></A><A class="pred" href="system.html#getenv/2">getenv/2</A>. 
+They also influence <A NAME="idx:expandfilename2:973"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A>. 
 Environment variables are shared between threads. Depending on the 
-underlying C library, <A NAME="idx:setenv2:976"></A><A class="pred" href="system.html#setenv/2">setenv/2</A> 
-and <A NAME="idx:unsetenv1:977"></A><A class="pred" href="system.html#unsetenv/1">unsetenv/1</A> 
+underlying C library, <A NAME="idx:setenv2:974"></A><A class="pred" href="system.html#setenv/2">setenv/2</A> 
+and <A NAME="idx:unsetenv1:975"></A><A class="pred" href="system.html#unsetenv/1">unsetenv/1</A> 
 may not be thread-safe and may cause memory leaks. Only changing the 
 environment once and before starting threads is safe in all versions of 
 SWI-Prolog.</DD>
 <DT class="pubdef"><A NAME="unsetenv/1"><STRONG>unsetenv</STRONG>(<VAR>+Name</VAR>)</A></DT>
 <DD class="defbody">
 Remove an environment variable from the environment. Some systems lack 
-the underlying unsetenv() library function. On these systems <A NAME="idx:unsetenv1:978"></A><A class="pred" href="system.html#unsetenv/1">unsetenv/1</A> 
+the underlying unsetenv() library function. On these systems <A NAME="idx:unsetenv1:976"></A><A class="pred" href="system.html#unsetenv/1">unsetenv/1</A> 
 sets the variable to the empty string.</DD>
 <DT class="pubdef"><A NAME="setlocale/3"><STRONG>setlocale</STRONG>(<VAR>+Category, 
 -Old, +New</VAR>)</A></DT>
@@ -243,7 +247,7 @@ interpret text-files, write numbers, dates, etc. Category is one of
 <CODE>monetary</CODE>, <CODE>numeric</CODE> or <CODE>time</CODE>. For 
 details, please consult the C-library locale documentation. See also <A class="sec" href="widechars.html">section 
 2.17.1</A>. Please note that the locale is shared between all threads 
-and thread-safe usage of <A NAME="idx:setlocale3:979"></A><A class="pred" href="system.html#setlocale/3">setlocale/3</A> 
+and thread-safe usage of <A NAME="idx:setlocale3:977"></A><A class="pred" href="system.html#setlocale/3">setlocale/3</A> 
 is in general not possible. Do locale operations before starting threads 
 or thoroughly study threading aspects of locale support in your 
 environment before use in multi-threaded environments.</DD>
@@ -257,25 +261,25 @@ specific. Defined <VAR>Command</VAR>'s are below.
 <DL>
 <DT><STRONG>system</STRONG>(<VAR>+Command</VAR>)</DT>
 <DD class="defbody">
-Equivalent to calling <A NAME="idx:shell1:980"></A><A class="pred" href="system.html#shell/1">shell/1</A>. 
+Equivalent to calling <A NAME="idx:shell1:978"></A><A class="pred" href="system.html#shell/1">shell/1</A>. 
 Use for compatibility only.</DD>
 <DT><STRONG>shell</STRONG>(<VAR>+Command</VAR>)</DT>
 <DD class="defbody">
-Equivalent to calling <A NAME="idx:shell1:981"></A><A class="pred" href="system.html#shell/1">shell/1</A>. 
+Equivalent to calling <A NAME="idx:shell1:979"></A><A class="pred" href="system.html#shell/1">shell/1</A>. 
 Use for compatibility only.</DD>
 <DT><STRONG>shell</STRONG></DT>
 <DD class="defbody">
-Equivalent to calling <A NAME="idx:shell0:982"></A><A class="pred" href="system.html#shell/0">shell/0</A>. 
+Equivalent to calling <A NAME="idx:shell0:980"></A><A class="pred" href="system.html#shell/0">shell/0</A>. 
 Use for compatibility only.</DD>
 <DT><STRONG>cd</STRONG></DT>
 <DD class="defbody">
-Equivalent to calling <A NAME="idx:workingdirectory2:983"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A> 
+Equivalent to calling <A NAME="idx:workingdirectory2:981"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A> 
 to the expansion (see
-<A NAME="idx:expandfilename2:984"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A>) 
+<A NAME="idx:expandfilename2:982"></A><A class="pred" href="files.html#expand_file_name/2">expand_file_name/2</A>) 
 of <CODE><CODE>~</CODE></CODE>. For compatibility only.</DD>
 <DT><STRONG>cd</STRONG>(<VAR>+Directory</VAR>)</DT>
 <DD class="defbody">
-Equivalent to calling <A NAME="idx:workingdirectory2:985"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A>. 
+Equivalent to calling <A NAME="idx:workingdirectory2:983"></A><A class="pred" href="files.html#working_directory/2">working_directory/2</A>. 
 Use for compatibility only.</DD>
 <DT><STRONG>argv</STRONG>(<VAR>-Argv</VAR>)</DT>
 <DD class="defbody">
@@ -369,7 +373,7 @@ integers expressing the year, month (1..12), day (1..31), hour (0..23),
 Minute (0..59). The <VAR>S</VAR> field holds the seconds as a floating 
 point number between 0.0 and 60.0. <VAR>Off</VAR> is an integer 
 representing the offset relative to UTC in seconds where positive values 
-are west of Greenwhich. If converted from local time (see <A NAME="idx:stampdatetime3:986"></A><A class="pred" href="system.html#stamp_date_time/3">stamp_date_time/3</A>,
+are west of Greenwhich. If converted from local time (see <A NAME="idx:stampdatetime3:984"></A><A class="pred" href="system.html#stamp_date_time/3">stamp_date_time/3</A>,
 <VAR>TZ</VAR> holds the name of the local timezone. If the timezone is 
 not known <VAR>TZ</VAR> is the atom <CODE><CODE>-</CODE></CODE>. <VAR>DST</VAR> 
 is <CODE>true</CODE> if daylight saving time applies to the current 
@@ -379,11 +383,11 @@ no daylight saving time.</DD>
 <DT><STRONG>date</STRONG>(<VAR>Y,M.D</VAR>)</DT>
 <DD class="defbody">
 Date using the same values as described above. Extracted using
-<A NAME="idx:datetimevalue3:987"></A><A class="pred" href="system.html#date_time_value/3">date_time_value/3</A>.</DD>
+<A NAME="idx:datetimevalue3:985"></A><A class="pred" href="system.html#date_time_value/3">date_time_value/3</A>.</DD>
 <DT><STRONG>time</STRONG>(<VAR>H,Mn,S</VAR>)</DT>
 <DD class="defbody">
 Time using the same values as described above. Extracted using
-<A NAME="idx:datetimevalue3:988"></A><A class="pred" href="system.html#date_time_value/3">date_time_value/3</A>.
+<A NAME="idx:datetimevalue3:986"></A><A class="pred" href="system.html#date_time_value/3">date_time_value/3</A>.
 </DD>
 </DL>
 
@@ -409,11 +413,10 @@ the seconds west of Greenwhich.</DD>
 <DT class="pubdef"><A NAME="date_time_stamp/2"><STRONG>date_time_stamp</STRONG>(<VAR>+DateTime, 
 -TimeStamp</VAR>)</A></DT>
 <DD class="defbody">
-Compute the timestamp from a <A NAME="idx:date9:989"></A><B>date/9</B> 
-term. Values for month, day, hour, minute or second need not be 
-normalized. This flexibility allows for easy computation of the time at 
-any given number of these units from a given timestamp. Normalization 
-can be achieved following this call with <A NAME="idx:stampdatetime3:990"></A><A class="pred" href="system.html#stamp_date_time/3">stamp_date_time/3</A>. 
+Compute the timestamp from a date/9 term. Values for month, day, hour, 
+minute or second need not be normalized. This flexibility allows for 
+easy computation of the time at any given number of these units from a 
+given timestamp. Normalization can be achieved following this call with <A NAME="idx:stampdatetime3:987"></A><A class="pred" href="system.html#stamp_date_time/3">stamp_date_time/3</A>. 
 This example computes the date 200 days after 2006-7-14:
 
 <PRE class="code">
@@ -427,8 +430,7 @@ Date = date(2007, 1, 30)
 <DT class="pubdef"><A NAME="date_time_value/3"><STRONG>date_time_value</STRONG>(<VAR>?Key, 
 +DateTime, ?Value</VAR>)</A></DT>
 <DD class="defbody">
-Extract values from a <A NAME="idx:date9:991"></A><B>date/9</B> term. 
-Provided keys are:
+Extract values from a date/9 term. Provided keys are:
 
 <P>
 <CENTER>
@@ -463,7 +465,7 @@ if dst is effective </TD></TR>
 +Format, +StampOrDateTime</VAR>)</A></DT>
 <DD class="defbody">
 Modelled after POSIX strftime(), using GNU extensions. <VAR>Out</VAR> is 
-a destination as specified with <A NAME="idx:withoutputto2:992"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A>. <VAR>Format</VAR> 
+a destination as specified with <A NAME="idx:withoutputto2:988"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A>. <VAR>Format</VAR> 
 is an atom or string with the following conversions. Conversions start 
 with a tilde (%) character.<SUP class="fn">56<SPAN class="fn-text">Descriptions 
 taken from Linux Programmer's Manual</SPAN></SUP>
@@ -643,8 +645,8 @@ If present, activate the window.
 </DD>
 <DT class="pubdef"><A NAME="win_has_menu/0"><STRONG>win_has_menu</STRONG></A></DT>
 <DD class="defbody">
-Succeeds if <A NAME="idx:wininsertmenu2:993"></A><A class="pred" href="system.html#win_insert_menu/2">win_insert_menu/2</A> 
-and <A NAME="idx:wininsertmenuitem4:994"></A><A class="pred" href="system.html#win_insert_menu_item/4">win_insert_menu_item/4</A> 
+Succeeds if <A NAME="idx:wininsertmenu2:989"></A><A class="pred" href="system.html#win_insert_menu/2">win_insert_menu/2</A> 
+and <A NAME="idx:wininsertmenuitem4:990"></A><A class="pred" href="system.html#win_insert_menu_item/4">win_insert_menu_item/4</A> 
 are present.</DD>
 <DT class="pubdef"><A NAME="win_insert_menu/2"><STRONG>win_insert_menu</STRONG>(<VAR>+Label, 
 +Before</VAR>)</A></DT>
@@ -666,7 +668,7 @@ win_insert_menu('&amp;Application', '&amp;Help')
 +Label, +Before, :Goal</VAR>)</A></DT>
 <DD class="defbody">
 Add an item to the named <VAR>Pulldown</VAR> menu. <VAR>Label</VAR> and
-<VAR>Before</VAR> are handled as in <A NAME="idx:wininsertmenu2:995"></A><A class="pred" href="system.html#win_insert_menu/2">win_insert_menu/2</A>, 
+<VAR>Before</VAR> are handled as in <A NAME="idx:wininsertmenu2:991"></A><A class="pred" href="system.html#win_insert_menu/2">win_insert_menu/2</A>, 
 but the label <CODE><CODE>-</CODE></CODE> inserts a <EM>separator</EM>. <VAR>Goal</VAR> 
 is called if the user selects the item.
 </DD>

@@ -62,7 +62,7 @@ Before explaining the code we give some example queries:
 \tt ?- domain(X, [a,b,c]), domain(X, [a,c]). & X = _G492{att(domain, [a, c], [])} \\
 \end{tabular}
 
-The predicate \predref{domain}{2} fetches (first clause) or assigns
+The predicate \nopredref{domain}{2} fetches (first clause) or assigns
 (second clause) the variable a \emph{domain}, a set of values it can
 be unified with.  In the second clause first associates the domain
 with a fresh variable and then unifies X to this variable to deal

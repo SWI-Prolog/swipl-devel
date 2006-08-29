@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -547,7 +551,7 @@ omitted, it is sometimes necessary to enable it during debugging.</DD>
 <DD class="defbody">
 Offset in seconds west of GMT of the current time-zone. Set at 
 initialization time from the <CODE>timezone</CODE> variable associated 
-with the POSIX tzset() function. See also <A NAME="idx:converttime2:148"></A><B>convert_time/2</B>.</DD>
+with the POSIX tzset() function. See also <A NAME="idx:converttime2:148"></A><SPAN class="pred-ext">convert_time/2</SPAN>.</DD>
 <DT><STRONG>toplevel_print_anon</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 If <CODE>true</CODE>, top-level variables starting with an underscore (<CODE>_</CODE>) 

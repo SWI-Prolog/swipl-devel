@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -122,7 +126,7 @@ of qsave_program</SPAN></A></H2>
 <A NAME="sec:qsavelimits"></A>
 
 <P>There are three areas that require special attention when using
-<A NAME="idx:qsaveprogram12:1349"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.
+<A NAME="idx:qsaveprogram12:1335"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.
 
 <P>
 <UL>
@@ -135,10 +139,10 @@ foreign context. See <A class="sec" href="qsaveforeign.html">section
 <LI>If the program uses directives (<CODE>:- goal.</CODE> lines) that 
 perform other actions then setting predicate attributes (dynamic, 
 volatile, etc.) or loading files (consult, etc.), the directive may need 
-to be prefixed with <A NAME="idx:initialization1:1350"></A><A class="pred" href="consulting.html#initialization/1">initialization/1</A>.
+to be prefixed with <A NAME="idx:initialization1:1336"></A><A class="pred" href="consulting.html#initialization/1">initialization/1</A>.
 
 <P>
-<LI>Database references as returned by <A NAME="idx:clause3:1351"></A><A class="pred" href="examineprog.html#clause/3">clause/3</A>, <A NAME="idx:recorded3:1352"></A><A class="pred" href="db.html#recorded/3">recorded/3</A>, 
+<LI>Database references as returned by <A NAME="idx:clause3:1337"></A><A class="pred" href="examineprog.html#clause/3">clause/3</A>, <A NAME="idx:recorded3:1338"></A><A class="pred" href="db.html#recorded/3">recorded/3</A>, 
 etc. are not preserved and may thus not be part of the database when 
 saved.
 </UL>

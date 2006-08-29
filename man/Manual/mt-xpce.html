@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -145,16 +149,16 @@ foreground thread is used for Prolog.
 
 <P><B>XPCE in the foreground</B> Using XPCE in the foreground simplifies 
 debugging of the UI and generally provides the most comfortable 
-development environment. The GUI creates new threads using <A NAME="idx:threadcreate3:1260"></A><A class="pred" href="threadcreate.html#thread_create/3">thread_create/3</A> 
+development environment. The GUI creates new threads using <A NAME="idx:threadcreate3:1247"></A><A class="pred" href="threadcreate.html#thread_create/3">thread_create/3</A> 
 and, after work in the thread is completed, the sub-thread signals the 
-main thread of the the completion using <A NAME="idx:inpcethread1:1261"></A><A class="pred" href="mt-xpce.html#in_pce_thread/1">in_pce_thread/1</A>.
+main thread of the the completion using <A NAME="idx:inpcethread1:1248"></A><A class="pred" href="mt-xpce.html#in_pce_thread/1">in_pce_thread/1</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="in_pce_thread/1"><STRONG>in_pce_thread</STRONG>(<VAR>:Goal</VAR>)</A></DT>
 <DD class="defbody">
 Assuming XPCE is running in the foreground thread, this call gives 
 background threads the opportunity to make calls to the XPCE thread. A 
-call to <A NAME="idx:inpcethread1:1262"></A><A class="pred" href="mt-xpce.html#in_pce_thread/1">in_pce_thread/1</A> 
+call to <A NAME="idx:inpcethread1:1249"></A><A class="pred" href="mt-xpce.html#in_pce_thread/1">in_pce_thread/1</A> 
 succeeds immediately, copying <VAR>Goal</VAR> to the XPCE thread. <VAR>Goal</VAR> 
 is added to the XPCE event-queue and executed synchronous to normal user 
 events like typing and clicking.
@@ -162,8 +166,8 @@ events like typing and clicking.
 </DL>
 
 <P><B>XPCE in the background</B> In this model a thread for running XPCE 
-is created using <A NAME="idx:pcedispatch1:1263"></A><A class="pred" href="mt-xpce.html#pce_dispatch/1">pce_dispatch/1</A> 
-and actions are sent to this thread using <A NAME="idx:pcecall1:1264"></A><A class="pred" href="mt-xpce.html#pce_call/1">pce_call/1</A>.
+is created using <A NAME="idx:pcedispatch1:1250"></A><A class="pred" href="mt-xpce.html#pce_dispatch/1">pce_dispatch/1</A> 
+and actions are sent to this thread using <A NAME="idx:pcecall1:1251"></A><A class="pred" href="mt-xpce.html#pce_call/1">pce_call/1</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="pce_dispatch/1"><STRONG>pce_dispatch</STRONG>(<VAR>+Options</VAR>)</A></DT>
@@ -173,11 +177,11 @@ event-handling. In the X11 version this call creates a thread that
 executes the X11 event-dispatch loop. In MS-Windows it creates a thread 
 that executes a windows event-dispatch loop. The XPCE event-handling 
 thread has the alias <CODE>pce</CODE>. <VAR>Options</VAR> specifies the 
-thread-attributes as <A NAME="idx:threadcreate3:1265"></A><A class="pred" href="threadcreate.html#thread_create/3">thread_create/3</A>.</DD>
+thread-attributes as <A NAME="idx:threadcreate3:1252"></A><A class="pred" href="threadcreate.html#thread_create/3">thread_create/3</A>.</DD>
 <DT class="pubdef"><A NAME="pce_call/1"><STRONG>pce_call</STRONG>(<VAR>:Goal</VAR>)</A></DT>
 <DD class="defbody">
 Post <VAR>Goal</VAR> to the <CODE>pce</CODE> thread, executing it 
-synchronous with the thread's event-loop. The <A NAME="idx:pcecall1:1266"></A><A class="pred" href="mt-xpce.html#pce_call/1">pce_call/1</A> 
+synchronous with the thread's event-loop. The <A NAME="idx:pcecall1:1253"></A><A class="pred" href="mt-xpce.html#pce_call/1">pce_call/1</A> 
 predicate returns immediately without waiting. Note that <VAR>Goal</VAR> 
 is <EM>copied</EM> to the <CODE>pce</CODE> thread.
 </DD>

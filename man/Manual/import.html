@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -128,18 +132,18 @@ module by loading a module file as demonstrated in the previous section,
 using assert or by <EM>importing</EM> them from another module.
 
 <P>Two mechanisms for importing predicates explicitly from another 
-module exist. The <A NAME="idx:usemodule12:1080"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
+module exist. The <A NAME="idx:usemodule12:1076"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A> 
 predicates load a module file and import (part of the) public predicates 
-of the file. The <A NAME="idx:import1:1081"></A><A class="pred" href="import.html#import/1">import/1</A> 
+of the file. The <A NAME="idx:import1:1077"></A><A class="pred" href="import.html#import/1">import/1</A> 
 predicate imports any predicate from any module.
 
 <DL>
 <DT class="pubdef"><A NAME="use_module/1"><STRONG>use_module</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">
-Load the file(s) specified with <VAR>File</VAR> just like <A NAME="idx:ensureloaded1:1082"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>. 
+Load the file(s) specified with <VAR>File</VAR> just like <A NAME="idx:ensureloaded1:1078"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>. 
 The files should all be module files. All exported predicates from the 
 loaded files are imported into the context module. This predicate is 
-equivalent to <A NAME="idx:ensureloaded1:1083"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>, 
+equivalent to <A NAME="idx:ensureloaded1:1079"></A><A class="pred" href="consulting.html#ensure_loaded/1">ensure_loaded/1</A>, 
 except that it raises an error if
 <VAR>File</VAR> is not a module file.</DD>
 <DT class="pubdef"><A NAME="use_module/2"><STRONG>use_module</STRONG>(<VAR>+File, 
@@ -157,7 +161,7 @@ nevertheless be imported to simplify debugging.</DD>
 Import predicate <VAR>Head</VAR> into the current context module. <VAR>Head</VAR> 
 should specify the source module using the &lt;<VAR>module</VAR>&gt;:&lt;<VAR>term</VAR>&gt; 
 construct. Note that predicates are normally imported using one of the 
-directives <A NAME="idx:usemodule12:1084"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>. <A NAME="idx:import1:1085"></A><A class="pred" href="import.html#import/1">import/1</A> 
+directives <A NAME="idx:usemodule12:1080"></A><A class="pred" href="import.html#use_module/1">use_module/[1,2]</A>. <A NAME="idx:import1:1081"></A><A class="pred" href="import.html#import/1">import/1</A> 
 is meant for handling imports into dynamically created modules.
 </DD>
 </DL>

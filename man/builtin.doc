@@ -134,9 +134,9 @@ predicate.  They are executed when encountered.  If the directive fails,
 a warning is printed.  Directives are specified by :-/1 or ?-/1.  There
 is no difference between the two.
 
-SWI-Prolog does not have a separate reconsult/1 predicate. Reconsulting
-is implied automatically by the fact that a file is consulted which is
-already loaded.
+SWI-Prolog does not have a separate \nopredref{reconsult}{1} predicate.
+Reconsulting is implied automatically by the fact that a file is
+consulted which is already loaded.
 
 \begin{description}
     \predicate{load_files}{2}{+Files, +Options}
@@ -947,8 +947,8 @@ the constructs in this section, except for repeat/0, are translated by
 the compiler. Please note that complex goals passed as arguments to
 meta-predicates such as findall/3 below cause the goal to be compiled to
 a temporary location before execution. It is faster to define a
-sub-predicate (i.e.\ one_character_atom/1 in the example below) and make
-a call to this simple predicate.
+sub-predicate (i.e.\ \nopredref{one_character_atom}{1} in the example
+below) and make a call to this simple predicate.
 
 \begin{code}
 one_character_atoms(As) :-
@@ -1467,7 +1467,7 @@ install()
 Next, we can define the Prolog below.  This will run \arg{Goal} just
 as once/1, throwing the exception \term{error}{signal(alrm, _), _} if
 a timeout occurs.%
-	\footnote{Note that call_with_depth_limit/2 is defined in
+	\footnote{Note that call_with_time_limit/2 is defined in
 		  \pllib{time}, part of the `clib' package.  The
 		  version provided in the library runs on POSIX
 		  systems as well as MS-Windows and can schedule
@@ -4849,7 +4849,7 @@ Determine the size of the terminal.  Platforms:
 If the system provides \jargon{ioctl} calls for this, these are
 used and tty_size/2 properly reflects the actual size after a user
 resize of the window. As a fallback, the system uses
-tty_get_capability/2 using \const{li} and \const{co} capabilities. In
+tty_get_capability/3 using \const{li} and \const{co} capabilities. In
 this case the reported size reflects the size at the first call and is
 not updated after a user-initiated resize of the terminal.
 

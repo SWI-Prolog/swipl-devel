@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -129,7 +133,7 @@ fast, logical and deterministic if applicable.
 
 <P>In addition, there is the library <CODE>library(ctype)</CODE> 
 providing compatibility to some other Prolog systems. The predicates of 
-this library are defined in terms of <A NAME="idx:codetype2:861"></A><A class="pred" href="chartype.html#code_type/2">code_type/2</A>.
+this library are defined in terms of <A NAME="idx:codetype2:859"></A><A class="pred" href="chartype.html#code_type/2">code_type/2</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="char_type/2"><STRONG>char_type</STRONG>(<VAR>?Char, 
@@ -206,8 +210,8 @@ if
 <DD class="defbody">
 <VAR>Char</VAR> is a lower-case version of <VAR>Upper</VAR>. For 
 non-letters, or letter without case, <VAR>Char</VAR> and <VAR>Lower</VAR> 
-are the same. See also <A NAME="idx:upcaseatom2:862"></A><A class="pred" href="chartype.html#upcase_atom/2">upcase_atom/2</A> 
-and <A NAME="idx:downcaseatom2:863"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>.
+are the same. See also <A NAME="idx:upcaseatom2:860"></A><A class="pred" href="chartype.html#upcase_atom/2">upcase_atom/2</A> 
+and <A NAME="idx:downcaseatom2:861"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>.
 </DD>
 <DT><STRONG>upper</STRONG></DT>
 <DD class="defbody">
@@ -223,8 +227,8 @@ if
 <DD class="defbody">
 <VAR>Char</VAR> is an upper-case version of <VAR>Lower</VAR>. For 
 non-letters, or letter without case, <VAR>Char</VAR> and <VAR>Lower</VAR> 
-are the same. See also <A NAME="idx:upcaseatom2:864"></A><A class="pred" href="chartype.html#upcase_atom/2">upcase_atom/2</A> 
-and <A NAME="idx:downcaseatom2:865"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>.
+are the same. See also <A NAME="idx:upcaseatom2:862"></A><A class="pred" href="chartype.html#upcase_atom/2">upcase_atom/2</A> 
+and <A NAME="idx:downcaseatom2:863"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>.
 </DD>
 <DT><STRONG>punct</STRONG></DT>
 <DD class="defbody">
@@ -267,14 +271,14 @@ corresponding close-parenthesis.
 <DT class="pubdef"><A NAME="code_type/2"><STRONG>code_type</STRONG>(<VAR>?Code, 
 ?Type</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:chartype2:866"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A>, 
+As <A NAME="idx:chartype2:864"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A>, 
 but uses character-codes rather than one-character atoms. Please note 
 that both predicates are as flexible as possible. They handle either 
 representation if the argument is instantiated and only will instantiate 
 with an integer code or one-character atom depending of the version 
 used. See also the prolog-flag
-<CODE>double_quotes</CODE>, <A NAME="idx:atomchars2:867"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
-and <A NAME="idx:atomcodes2:868"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>.
+<CODE>double_quotes</CODE>, <A NAME="idx:atomchars2:865"></A><A class="pred" href="manipatom.html#atom_chars/2">atom_chars/2</A> 
+and <A NAME="idx:atomcodes2:866"></A><A class="pred" href="manipatom.html#atom_codes/2">atom_codes/2</A>.
 </DD>
 </DL>
 
@@ -282,8 +286,8 @@ and <A NAME="idx:atomcodes2:868"></A><A class="pred" href="manipatom.html#atom_c
 conversion</SPAN></A></H3>
 
 <P>There is nothing in the Prolog standard for converting case in 
-textual data. The SWI-Prolog predicates <A NAME="idx:codetype2:869"></A><A class="pred" href="chartype.html#code_type/2">code_type/2</A> 
-and <A NAME="idx:chartype2:870"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
+textual data. The SWI-Prolog predicates <A NAME="idx:codetype2:867"></A><A class="pred" href="chartype.html#code_type/2">code_type/2</A> 
+and <A NAME="idx:chartype2:868"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
 can be used to test and convert individual characters. We have started 
 some additional support:
 
@@ -291,14 +295,14 @@ some additional support:
 <DT class="pubdef"><A NAME="downcase_atom/2"><STRONG>downcase_atom</STRONG>(<VAR>+AnyCase, 
 -LowerCase</VAR>)</A></DT>
 <DD class="defbody">
-Converts the characters of <VAR>AnyCase</VAR> into lowercase as <A NAME="idx:chartype2:871"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
+Converts the characters of <VAR>AnyCase</VAR> into lowercase as <A NAME="idx:chartype2:869"></A><A class="pred" href="chartype.html#char_type/2">char_type/2</A> 
 does (i.e. based on the defined <EM>locale</EM> if Prolog provides 
 locale support on the hosting platform) and unifies the lowercase atom 
 with <VAR>LowerCase</VAR>.</DD>
 <DT class="pubdef"><A NAME="upcase_atom/2"><STRONG>upcase_atom</STRONG>(<VAR>+AnyCase, 
 -UpperCase</VAR>)</A></DT>
 <DD class="defbody">
-Converts, similar to <A NAME="idx:downcaseatom2:872"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>, 
+Converts, similar to <A NAME="idx:downcaseatom2:870"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>, 
 an atom to upper-case.
 </DD>
 </DL>

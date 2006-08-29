@@ -189,13 +189,13 @@ build SWI-Prolog itself.
 
 To make a runtime executable that can run on multiple platforms one
 must make runtime checks to find the correct way of linking.  Suppose
-we have a source-file {\tt myextension} defining the installation
-function \funcref{install}{}.
+we have a source-file \file{myextension.c} defining the installation
+function install().
 
 If this file is compiled into a shared library, load_foreign_library/1
 will load this library and call the installation function to initialise
 the foreign code. If it is loaded as a static extension, define
-\funcref{install}{} as the predicate install/0:
+install() as the predicate \nopredref{install}{0}:
 
 \begin{code}
 static foreign_t

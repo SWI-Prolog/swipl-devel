@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -132,12 +136,12 @@ described here.
 Succeeds if <VAR>Term</VAR> is bound to the empty list (<CODE>[]</CODE>) 
 or a term with functor `<CODE><CODE>.</CODE></CODE>' and arity&nbsp;2 
 and the second argument is a list.<SUP class="fn">50<SPAN class="fn-text">In 
-versions before 5.0.1, <A NAME="idx:islist1:919"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A> 
+versions before 5.0.1, <A NAME="idx:islist1:917"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A> 
 just checked for <CODE>[]</CODE> or <CODE>[_|_]</CODE> and proper_list/1 
-had the role of the current <A NAME="idx:islist1:920"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A>. 
+had the role of the current <A NAME="idx:islist1:918"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A>. 
 The current definition is conform the de-facto standard. Assuming proper 
 coding standards, there should only be very few cases where a 
-quick-and-dirty <A NAME="idx:islist1:921"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A> 
+quick-and-dirty <A NAME="idx:islist1:919"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A> 
 is a good choice. Richard O'Keefe pointed at this issue.</SPAN></SUP> 
 This predicate acts as if defined by the following definition:
 
@@ -154,7 +158,7 @@ is_list([_|T]) :-
 <DT class="pubdef"><A NAME="memberchk/2"><STRONG>memberchk</STRONG>(<VAR>?Elem, 
 +List</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:member2:922"></A><A class="pred" href="lists.html#member/2">member/2</A>, 
+Equivalent to <A NAME="idx:member2:920"></A><A class="pred" href="lists.html#member/2">member/2</A>, 
 but leaves no choice point.</DD>
 <DT class="pubdef"><A NAME="length/2"><STRONG>length</STRONG>(<VAR>?List, 
 ?Int</VAR>)</A></DT>
@@ -172,7 +176,7 @@ by Richard O'Keefe.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="msort/2"><STRONG>msort</STRONG>(<VAR>+List, 
 -Sorted</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:sort2:923"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>, 
+Equivalent to <A NAME="idx:sort2:921"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>, 
 but does not remove duplicates.</DD>
 <DT class="pubdef"><A NAME="keysort/2"><STRONG>keysort</STRONG>(<VAR>+List, 
 -Sorted</VAR>)</A></DT>
@@ -180,8 +184,8 @@ but does not remove duplicates.</DD>
 List is a proper list whose elements are <CODE><VAR>Key</VAR>-<VAR>Value</VAR></CODE>, 
 that is, terms whose principal functor is (-)/2, whose first argument is 
 the sorting key, and whose second argument is the satellite data to be 
-carried along with the key. <A NAME="idx:keysort2:924"></A><A class="pred" href="builtinlist.html#keysort/2">keysort/2</A> 
-sorts <VAR>List</VAR> like <A NAME="idx:msort2:925"></A><A class="pred" href="builtinlist.html#msort/2">msort/2</A>, 
+carried along with the key. <A NAME="idx:keysort2:922"></A><A class="pred" href="builtinlist.html#keysort/2">keysort/2</A> 
+sorts <VAR>List</VAR> like <A NAME="idx:msort2:923"></A><A class="pred" href="builtinlist.html#msort/2">msort/2</A>, 
 but only compares the keys. It is used to sort terms not on standard 
 order, but on any criterion that can be expressed on a multi-dimensional 
 scale. Sorting on more than one criterion can be done using terms as 
@@ -191,14 +195,14 @@ is not changed. The implementation is in C, using <EM>natural merge sort</EM>.</
 <DT class="pubdef"><A NAME="predsort/3"><STRONG>predsort</STRONG>(<VAR>+Pred, 
 +List, -Sorted</VAR>)</A></DT>
 <DD class="defbody">
-Sorts similar to <A NAME="idx:sort2:926"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>, 
+Sorts similar to <A NAME="idx:sort2:924"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>, 
 but determines the order of two terms by calling <VAR>Pred</VAR>(-<VAR>Delta</VAR>, 
 +<VAR>E1</VAR>, +<VAR>E2</VAR>) . This call must unify <VAR>Delta</VAR> 
 with one of <CODE><CODE>&lt;</CODE></CODE>, <CODE><CODE>&gt;</CODE></CODE> 
 or
-<CODE><CODE>=</CODE></CODE>. If built-in predicate <A NAME="idx:compare3:927"></A><A class="pred" href="compare.html#compare/3">compare/3</A> 
-is used, the result is the same as <A NAME="idx:sort2:928"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>. 
-See also <A NAME="idx:keysort2:929"></A><A class="pred" href="builtinlist.html#keysort/2">keysort/2</A>.<SUP class="fn">52<SPAN class="fn-text">Please 
+<CODE><CODE>=</CODE></CODE>. If built-in predicate <A NAME="idx:compare3:925"></A><A class="pred" href="compare.html#compare/3">compare/3</A> 
+is used, the result is the same as <A NAME="idx:sort2:926"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>. 
+See also <A NAME="idx:keysort2:927"></A><A class="pred" href="builtinlist.html#keysort/2">keysort/2</A>.<SUP class="fn">52<SPAN class="fn-text">Please 
 note that the semantics have changed between 3.1.1 and 3.1.2</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="merge/3"><STRONG>merge</STRONG>(<VAR>+List1, 
 +List2, -List3</VAR>)</A></DT>

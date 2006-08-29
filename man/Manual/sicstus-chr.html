@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -133,36 +137,35 @@ differences should be noted:
 
 <P>
 <UL>
-<LI><I>The <A NAME="idx:constraints1:1174"></A><B>constraints/1</B> 
-declaration</I><BR>
+<LI><I>The constraints/1 declaration</I><BR>
 This declaration is deprecated. It has been replaced with the
-<A NAME="idx:chrconstraint1:1175"></A><B>chr_constraint/1</B> 
+<A NAME="idx:chrconstraint1:1168"></A><A class="pred" href="practical.html#chr_constraint/1">chr_constraint/1</A> 
 declaration.
 
 <P>
-<LI><I>The <A NAME="idx:option2:1176"></A><B>option/2</B> declaration</I><BR>
+<LI><I>The option/2 declaration</I><BR>
 This declaration is deprecated. It has been replaced with the
-<A NAME="idx:chroption2:1177"></A><B>chr_option/2</B> declaration.
+<A NAME="idx:chroption2:1169"></A><A class="pred" href="SyntaxAndSemantics.html#chr_option/2">chr_option/2</A> 
+declaration.
 
 <P>
-<LI><I>The <A NAME="idx:handler1:1178"></A><B>handler/1</B> declaration</I><BR>
-In SICStus every CHR module requires a <A NAME="idx:handler1:1179"></A><B>handler/1</B> 
-declaration declaring a unique handler name. This declaration is valid 
-syntax in SWI-Prolog, but will have no effect. A warning will be given 
-during compilation.
+<LI><I>The handler/1 declaration</I><BR>
+In SICStus every CHR module requires a handler/1 declaration declaring a 
+unique handler name. This declaration is valid syntax in SWI-Prolog, but 
+will have no effect. A warning will be given during compilation.
 
 <P>
-<LI><I>The <A NAME="idx:rules1:1180"></A><B>rules/1</B> declaration</I><BR>
+<LI><I>The rules/1 declaration</I><BR>
 In SICStus, for every CHR module it is possible to only enable a subset 
-of the available rules through the <A NAME="idx:rules1:1181"></A><B>rules/1</B> 
-declaration. The declaration is valid syntax in SWI-Prolog, but has no 
-effect. A warning is given during compilation.
+of the available rules through the rules/1 declaration. The declaration 
+is valid syntax in SWI-Prolog, but has no effect. A warning is given 
+during compilation.
 
 <P>
 <LI><I>Guard bindings</I><BR>
 The <TT>check_guard_bindings</TT> option only turns invalid calls to 
 unification into failure. In SICStus this option does more: it 
-intercepts instantiation errors from Prolog built-ins such as <A NAME="idx:is2:1182"></A><A class="pred" href="arith.html#is/2">is/2</A> 
+intercepts instantiation errors from Prolog built-ins such as <A NAME="idx:is2:1170"></A><A class="pred" href="arith.html#is/2">is/2</A> 
 and turns them into failure. In SWI-Prolog, we do not go this far, as we 
 like to separate concerns more. The CHR compiler is aware of the CHR 
 code, the Prolog system and programmer should be aware of the 

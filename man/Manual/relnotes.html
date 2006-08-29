@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -271,9 +275,8 @@ version 2.8, we declare the data-representation changes of 2.7.x stable.
 Version 2.8 exploits the changes of 2.7 to support 64-bit processors 
 like the DEC Alpha. As of version 2.8.5, the representation of recorded 
 terms has changed, and terms on the heap are now represented in a 
-compiled format. SWI-Prolog no longer limits the use of
-<B>malloc()</B> or uses assumptions on the addresses returned by this 
-function.
+compiled format. SWI-Prolog no longer limits the use of malloc() or uses 
+assumptions on the addresses returned by this function.
 
 <H3><A NAME="sec:1.6.8"><SPAN class="sec-nr">1.6.8</SPAN><SPAN class="sec-title">Version 
 2.9 Release Notes</SPAN></A></H3>
@@ -284,7 +287,8 @@ function.
 compliance and introducing ISO compliant exception handling. New are
 <A NAME="idx:catch3:19"></A><A class="pred" href="exception.html#catch/3">catch/3</A>, <A NAME="idx:throw1:20"></A><A class="pred" href="exception.html#throw/1">throw/1</A>, <A NAME="idx:abolish1:21"></A><A class="pred" href="db.html#abolish/1">abolish/1</A>, <A NAME="idx:writeterm23:22"></A><A class="pred" href="termrw.html#write_term/2">write_term/[2,3]</A>, <A NAME="idx:writecanonical12:23"></A><A class="pred" href="termrw.html#write_canonical/1">write_canonical/[1,2]</A> 
 and the C-functions PL_exception() and PL_throw(). The predicates
-<A NAME="idx:display12:24"></A><B>display/[1,2]</B> and <A NAME="idx:displayq12:25"></A><B>displayq/[1,2]</B> 
+<A NAME="idx:display12:24"></A><SPAN class="pred-ext">display/[1,2]</SPAN> 
+and <A NAME="idx:displayq12:25"></A><SPAN class="pred-ext">displayq/[1,2]</SPAN> 
 have been moved to <CODE>library(backcomp)</CODE>, so old code referring 
 to them will autoload them.
 
@@ -399,9 +403,9 @@ Now there is also documented
 <CODE>current_prolog_flag(argv, Argv)</CODE>.
 <LI><I>dup_stream/2</I><BR>
 Has been deleted. New stream-aliases can deal with most of the problems 
-for which <A NAME="idx:dupstream2:44"></A><B>dup_stream/2</B> was 
-designed and <A NAME="idx:dup2:45"></A><B>dup/2</B> from the <EM>clib</EM> 
-package can with most others.
+for which <A NAME="idx:dupstream2:44"></A><SPAN class="pred-ext">dup_stream/2</SPAN> 
+was designed and <A NAME="idx:dup2:45"></A><SPAN class="pred-ext">dup/2</SPAN> 
+from the <EM>clib</EM> package can with most others.
 <LI><I>op/3</I><BR>
 Operators are now <B>local to modules</B>. This implies any modification 
 of the operator-table does not influence other modules. This is 
@@ -442,7 +446,7 @@ print references to <A NAME="idx:select3:49"></A><A class="pred" href="lists.htm
 in your source code and install a version of select that enters the 
 debugger if select is called and the second argument is not a list.
 
-<P>This library can be loaded explicitly or by calling <A NAME="idx:checkoldselect0:50"></A><B>check_old_select/0</B>.
+<P>This library can be loaded explicitly or by calling <A NAME="idx:checkoldselect0:50"></A><SPAN class="pred-ext">check_old_select/0</SPAN>.
 </UL>
 
 <H3><A NAME="sec:1.6.13"><SPAN class="sec-nr">1.6.13</SPAN><SPAN class="sec-title">Version 

@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -261,12 +265,15 @@ for this pragma. Instead of:
 
 <P>Additional pragmas may be released in the future.
 
-<P><B>Options</B> It is possible to specify options that apply to all 
-the CHR rules in the module. Options are specified with the <TT>chr_option/2</TT> 
+<DL>
+<DT class="pubdef"><A NAME="chr_option/2"><STRONG>chr_option</STRONG>(<VAR>+Option, +Value</VAR>)</A></DT>
+<DD class="defbody">
+It is possible to specify options that apply to all the CHR rules in the 
+module. Options are specified with the <TT>chr_option/2</TT> 
 declaration:
 
 <PRE class="code">
-                :- chr_option(Option,Value).
+:- chr_option(Option,Value).
 </PRE>
 
 <P>and may appear in the file anywhere after the first constraints 
@@ -300,8 +307,10 @@ Possible values are <TT>on</TT> (default) and <TT>off</TT>. See
 debugging. The default is derived from the prolog flag <CODE>generate_debug_info</CODE>, 
 which is <CODE>true</CODE> by default. See <STRONG>-nodebug</STRONG>. If 
 debugging is enabled, optimization must be disabled.
+</DD>
+</DL>
 
-<P></DD>
+</DD>
 </DL>
 
 <P></BODY></HTML>

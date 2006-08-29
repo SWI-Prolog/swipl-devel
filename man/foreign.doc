@@ -107,7 +107,7 @@ library in MS-Windows). This file is attached to the current process and
 load_foreign_library/[1,2].
 
 On errors, an exception \term{shared_object}{Action, Message} is
-raised. \arg{Message} is the return value from \funcref{dlerror}{}.
+raised. \arg{Message} is the return value from dlerror().
 
     \predicate{open_shared_object}{3}{+File, -Handle, +Options}
 As open_shared_object/2, but allows for additional flags to be passed.
@@ -2616,11 +2616,10 @@ malloc() and a pointer may be passed.  See \secref{foreignnondet}.
 
 In this section, we will outline some examples, covering typical cases.
 In the first example, we will deal with extending Prolog's data
-representation with integer-sets, represented as bit-vectors.  In the
-second example, we look at handling a `netmask'.  Finally, we discuss
-the outline of the DDE interface.
+representation with integer-sets, represented as bit-vectors. Finally,
+we discuss the outline of the DDE interface.
 
-\paragraph{Integer sets} with not-to-far-apart upper- and lower-bounds
+\paragraph{Integer sets} with not-too-far-apart upper- and lower-bounds
 can be represented using bit-vectors. Common set operations, such as
 union, intersection, etc. are reduced to simple and'ing and or'ing the
 bit-vectors. This can be done in Prolog, using a compound term holding
@@ -2708,20 +2707,6 @@ install()
   FUNCTOR_bitvector1 = PL_new_functor(PL_new_atom("bitvector"), 1);
 }
 \end{code}
-
-\paragraph{Netmask's} are used with TCP/IP configuration. Suppose we
-have an application dealing with reasoning about a network
-configuration. Such an application requires communicating netmask
-structures from the operating system, reasoning about them and possibly
-communicate them to the user.  A netmask consists of 4 bitmasks between
-0 and 255.  C-application normally see them as an 4-byte wide unsigned
-integer.  SWI-Prolog cannot do that, as integers are always signed.
-
-We could use the string approach outlined above, but this makes it
-hard to handle these terms in Prolog.  A better choice is a compound
-term netmask/4, holding the 4 submasks as integer arguments.
-
-As the implementation is trivial, we will omit this here.
 
 \paragraph{The DDE interface} (see \secref{DDE}) represents another
 common usage of the foreign interface: providing communication to new
@@ -2945,7 +2930,7 @@ In the normal usage, a copy is made of the default embedding template
 \file{\ldots/pl/include/stub.c}. The main() routine is modified to suit
 your application. PL_initialise() \strong{must} be passed the
 program-name (\arg{argv[0]}) (Win32: the executing program can be
-obtained using \funcref{GetModuleFileName}{}). The other elements of the
+obtained using GetModuleFileName()). The other elements of the
 command-line may be modified. Next, \program{plld} is typically invoked
 as:
 

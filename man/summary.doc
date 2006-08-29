@@ -104,10 +104,13 @@ suggest predicates from a keyword.
 \predicatesummary{char_type}{2}{Classify characters}
 \predicatesummary{character_count}{2}{Get character index on a stream}
 \predicatesummary{chdir}{1}{Compatibility: change working directory}
+\predicatesummary{chr_constraint}{1}{CHR Constraint declaration}
 \predicatesummary{chr_show_store}{1}{List suspended CHR constraints}
 \predicatesummary{chr_trace}{0}{Start CHR tracer}
+\predicatesummary{chr_type}{1}{CHR Type declaration}
 \predicatesummary{chr_notrace}{0}{Stop CHR tracer}
 \predicatesummary{chr_leash}{1}{Define CHR leashed ports}
+\predicatesummary{chr_option}{2}{Specify CHR compilation options}
 \predicatesummary{clause}{2}{Get clauses of a predicate}
 \predicatesummary{clause}{3}{Get clauses of a predicate}
 \predicatesummary{clause_property}{2}{Get properties of a clause}

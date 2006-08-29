@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -139,18 +143,18 @@ knowledge about other libraries such as Logtalk. <B>Please do not
 consider this interface rock-solid.</B>
 
 <P>The library is exploited by two graphical tools in the SWI-Prolog 
-environment. The XPCE frontend started by <A NAME="idx:gxref0:1438"></A><A class="pred" href="xref.html#gxref/0">gxref/0</A> 
+environment. The XPCE frontend started by <A NAME="idx:gxref0:1423"></A><A class="pred" href="xref.html#gxref/0">gxref/0</A> 
 and described in
 <A class="sec" href="xref.html">section 3.7</A> and PceEmacs (<A class="sec" href="pceemacs.html">section 
 3.4</A>) which exploits this library for its syntax colouring.
 
 <P>For all predicates described below, <VAR>Source</VAR> is the source 
 that is processed. This is normally a filename in any notation 
-acceptable to the file loading predicates (see <A NAME="idx:loadfiles2:1439"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>). 
+acceptable to the file loading predicates (see <A NAME="idx:loadfiles2:1424"></A><A class="pred" href="consulting.html#load_files/2">load_files/2</A>). 
 Using the hooks defined in <A class="sec" href="prologxref.html">section 
 A.17.1</A> it can be anything else that can be translated into a Prolog 
 stream holding Prolog source text. <VAR>Callable</VAR> is a callable 
-term (see <A NAME="idx:callable1:1440"></A><A class="pred" href="typetest.html#callable/1">callable/1</A>). 
+term (see <A NAME="idx:callable1:1425"></A><A class="pred" href="typetest.html#callable/1">callable/1</A>). 
 Callables do not carry a module qualifier unless the referred predicate 
 is not in the module defined
 <VAR>Source</VAR>.

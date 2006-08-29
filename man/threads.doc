@@ -498,10 +498,10 @@ can \jargon{hold} a mutex.
 Mutexes are used to realise related updates to the Prolog database.
 With `related', we refer to the situation where a `transaction' implies
 two or more changes to the Prolog database.  For example, we have a
-predicate address/2, representing the address of a person and we want
-to change the address by retracting the old and asserting the new
-address.  Between these two operations the database is invalid: this
-person has either no address or two addresses, depending on the
+predicate \nopredref{address}{2}, representing the address of a person
+and we want to change the address by retracting the old and asserting
+the new address. Between these two operations the database is invalid:
+this person has either no address or two addresses, depending on the
 assert/retract order.
 
 Here is how to realise a correct update:

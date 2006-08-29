@@ -1991,17 +1991,17 @@ Option & Default & Area name & Description \\
 
 \index{stack,memory management}%
 \index{memory,layout}%
-With the heap, we refer to the memory area used by \funcref{malloc}{}
+With the heap, we refer to the memory area used by malloc()
 and friends. SWI-Prolog uses the area to store atoms, functors,
 predicates and their clauses, records and other dynamic data.  As of
 SWI-Prolog 2.8.5, no limits are imposed on the addresses returned by
-\funcref{malloc}{} and friends.
+malloc() and friends.
 
 On some machines, the runtime stacks described above are allocated using
 `sparse allocation'. Virtual space up to the limit is claimed at startup
 and committed and released while the area grows and shrinks.  On Win32
-platform this is realised using \funcref{VirtualAlloc}{} and friends.
-On Unix systems this is realised using \funcref{mmap}{}.
+platform this is realised using VirtualAlloc() and friends.
+On Unix systems this is realised using mmap().
 
 \subsection{Other Limits}			\label{sec:morelimits}
 
