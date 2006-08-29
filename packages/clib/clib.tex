@@ -743,9 +743,9 @@ Enumerate the not-yet-removed alarms.  \arg{Status} is one of
 is the next to be fired and \arg{scheduled} otherwise.
 
     \predicate{call_with_time_limit}{2}{+Time, :Goal}
-Call \arg{Goal} as \index{once/1}\predref{once}{1}.  If \arg{Goal} doesn't complete within
-\arg{Time} seconds, exit using the exception
-\const{time_limit_exceeded}.  See \index{catch/3}\predref{catch}{3}.
+True if Goal completes within Time. \arg{Goal} is executed as in \index{once/1}\predref{once}{1}.
+If \arg{Goal} doesn't complete within \arg{Time} seconds, exit using the
+exception \const{time_limit_exceeded}. See \index{catch/3}\predref{catch}{3}.
 
 Please note that this predicate uses \index{alarm/4}\predref{alarm}{4} and therefore is \emph{not}
 capable to break out of long running goals such as \index{sleep/1}\predref{sleep}{1}, blocking I/O
