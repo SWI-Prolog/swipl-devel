@@ -306,7 +306,7 @@ cmd(libdoc({Name}, {Summary}),
 			  ['library(', Name, '): ', Summary],
 			  HTML,
 			  File),
-	tex:label_tag(Tag).
+	tex:label_tag(Name, Tag).
 
 filebase(Name, File) :-
 	atom_codes(Name, Codes),

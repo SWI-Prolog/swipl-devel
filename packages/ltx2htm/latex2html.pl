@@ -2187,10 +2187,10 @@ psfigoption(Term) -->
 	}.
 
 
-		 /*******************************
-		 *	 FIX module/[1,2]	*
-		 *******************************/
-
+%%	fix_predicate_reference(+Ref0, -Ref)
+%
+%	Deal with references such as name/[1,2], send/2-12, etc and find
+%	the first matching predicate from the referenced set.
 
 fix_predicate_reference(Ref0, Ref) :-
 	 atom_codes(Ref0, Chars),
@@ -2608,11 +2608,15 @@ write_html(lref(Class, Label, Text)) :-
 	    write_html([html(Anchor), Text, html('</A>')]),
 	    retractall(in_anchor)
 	).
-write_html(lref(Class, Label, Text)) :-
+write_html(lref(pred, Label, Text)) :-
 	fix_predicate_reference(Label, FixedLabel), !,
-	write_html(lref(Class, FixedLabel, Text)).
-write_html(lref(_Class, Label, Text)) :- !,
-	format(user_error, 'No label for reference "~w"~n', [Label]),
+	write_html(lref(pred, FixedLabel, Text)).
+write_html(lref(pred, Label, Text)) :- !,
+	format(user_error, 'No description for predicate "~w"~n', [Label]),
+	macro_expand(#span('pred-ext', Text), Expanded),
+	write_html(Expanded).
+write_html(lref(Class, Label, Text)) :- !,
+	format(user_error, 'No label for ~w reference "~w"~n', [Class, Label]),
 	macro_expand(#b(Text), Expanded),
 	write_html(Expanded).
 write_html(cite(Key)) :- !,
