@@ -347,7 +347,8 @@ load_man_object(For, ParentSection, Path, DOM) :-
 	    set_sgml_parser(Parser, defaults(false)),
 	    sgml_parse(Parser,
 		       [ document(DOM),
-			 source(In)
+			 source(In),
+			 syntax_errors(quiet)
 		       | Options
 		       ]),
 	    free_sgml_parser(Parser),
@@ -522,20 +523,20 @@ dom(CDATA, _) -->
 %		$ sec  : Link to a section
 %		$ pred : Link to a predicate
 
-rewrite_ref(pred, Ref0, _, Ref) :-			% Predicate reference
+rewrite_ref(pred, Ref0, _, Ref) :-		% Predicate reference
 	sub_atom(Ref0, _, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),
 	atom_to_pi(Fragment, PI),
 	man_index(PI, _, _, _, _),
 	www_form_encode(Fragment, Enc),
 	format(string(Ref), '/man?predicate=~w', [Enc]).
-rewrite_ref(sec, Ref0, Path, Ref) :-			% Section inside a file
+rewrite_ref(sec, Ref0, Path, Ref) :-		% Section inside a file
 	sub_atom(Ref0, B, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),
 	sub_atom(Ref0, 0, B, _, File),
 	referenced_section(Fragment, File, Path, Section),
 	object_href(Section, Ref).
-rewrite_ref(sec, File, Path, Ref) :-			% Section is a file
+rewrite_ref(sec, File, Path, Ref) :-		% Section is a file
 	file_directory_name(Path, Dir),
 	concat_atom([Dir, /, File], SecPath),
 	Obj = section(_, _, SecPath),
@@ -557,11 +558,11 @@ atom_to_pi(Atom, Name/Arity) :-
 
 referenced_section(Fragment, File, Path, section(Level, Nr, SecPath)) :-
 	atom_concat('sec:', Nr, Fragment),
-	findall(x, sub_atom(Nr, _, _, _, '.'), L),
-	length(L, Nx),
-	Level is Nx + 1,
-	file_directory_name(Path, Dir),
-	concat_atom([Dir, /, File], SecPath),
+	(   File == ''
+	->  SecPath = Path
+	;   file_directory_name(Path, Dir),
+	    concat_atom([Dir, /, File], SecPath)
+	),
 	man_index(section(Level, Nr, SecPath), _, _, _, _).
 
 

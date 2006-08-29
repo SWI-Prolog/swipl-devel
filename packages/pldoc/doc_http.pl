@@ -82,6 +82,8 @@ _after_ library(pldoc) has been loaded.
 %			     allow(localhost)
 %			   ]).
 %	==
+%	
+%	@see	doc_browser/1
 
 
 doc_server(Port) :-
