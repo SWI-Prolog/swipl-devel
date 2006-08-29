@@ -808,14 +808,14 @@ predref(M:Term, Options) --> !,
 predref(Term, Options) -->
 	predref(Term, _, Options).
 
-predref(Name/Arity, _, _Options) -->
+predref(Name/Arity, _, _Options) -->		% Builtin; cannot be overruled
 	{ prolog:doc_object_summary(Name/Arity, manual, _, _), !,
 	  format(string(FragmentId), '~w/~d', [Name, Arity]),
 	  www_form_encode(FragmentId, EncId),
 	  format(string(HREF), '/man?predicate=~w', [EncId])
 	},
 	html(a([class=builtin, href=HREF], [Name, /, Arity])).
-predref(Obj, Module, Options) -->
+predref(Obj, Module, Options) -->		% Local
 	{ doc_comment(Module:Obj, _, _, _)
 	}, !,
 	object_ref(Module:Obj, Options).
@@ -827,6 +827,13 @@ predref(Name//Arity, Module, _Options) -->
 	  pred_href(Name/PredArity, Module, HREF)
 	}, !,
 	html(a(href=HREF, [Name, //, Arity])).
+predref(Name/Arity, _, _Options) -->		% From packages
+	{ prolog:doc_object_summary(Name/Arity, Category, _, _), !,
+	  format(string(FragmentId), '~w/~d', [Name, Arity]),
+	  www_form_encode(FragmentId, EncId),
+	  format(string(HREF), '/man?predicate=~w', [EncId])
+	},
+	html(a([class=Category, href=HREF], [Name, /, Arity])).
 predref(Name/Arity, _, _Options) --> !,
 	html(span(class=undef, [Name, /, Arity])).
 predref(Name//Arity, _, _Options) --> !,

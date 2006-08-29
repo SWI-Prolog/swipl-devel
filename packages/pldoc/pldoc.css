@@ -178,6 +178,11 @@ div.search-options
 { font-size: smaller;
 }
 
+span.search-in, span.search-match
+{ border: 1px inset;
+  padding: 3px 5px 1px 1px;
+}
+
 /* Footnotes from latex2html */
 sup.fn { color: blue; text-decoration: underline; }
 span.fn-text: { display: none; }

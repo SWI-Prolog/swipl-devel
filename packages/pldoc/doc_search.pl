@@ -63,11 +63,12 @@ search_form(Options) -->
 	  ->  Extra = [value(Value)]
 	  ;   Extra = []
 	  ),
-	  option(search_in(In), Options, all)
+	  option(search_in(In), Options, all),
+	  option(search_match(Match), Options, summary)
 	},
 	html(form(action('/search'),
 		  [ div([ input([ name(for),
-				  size(30)
+				  size(36)
 				| Extra
 				], []),
 			  input([ type(submit),
@@ -75,9 +76,15 @@ search_form(Options) -->
 				])
 			]),
 		    div(class('search-options'),
-			[ \radio(in, all, 'All', In),
-			  \radio(in, app, 'Application', In),
-			  \radio(in, man, 'Manual', In)
+			[ span(class('search-in'),
+			       [ \radio(in, all, 'All', In),
+				 \radio(in, app, 'Application', In),
+				 \radio(in, man, 'Manual', In)
+			       ]),
+			  span(class('search-match'),
+			       [ \radio(match, name, 'Name', Match),
+				 \radio(match, summary, 'Summary', Match)
+			       ])
 			])
 		  ])).
 
@@ -105,6 +112,10 @@ radio(Radio, Field, Label, In) -->
 %		* search_in(In)
 %		Determine which databases to search.  One of
 %		=all=, =app=, =man=
+%		
+%		* search_match(Match)
+%		What part of the object to match. One of =name=,
+%		=summary=
 
 search_reply(For, Options) -->
 	{ search_doc(For, PerCategory, Options),
@@ -272,6 +283,9 @@ collect_by_key(_, L, [], L).
 %	
 %		* search_in(In)
 %		One of =all=, =app=, =man=.
+%		
+%		* search_match(Match)
+%		One of =name=, =summary=
 %	
 %	@param Object	Term of the form File-Item
 %	@tbd Deal with search syntax
@@ -283,9 +297,11 @@ matching_object(Search, Type-(Section-Obj), Options) :-
 	matching_category(In, Type).
 matching_object(Search, Type-(Section-Obj), Options) :-
 	option(search_in(In), Options, all),
+	option(search_match(Match), Options, summary),
 	prolog:doc_object_summary(Obj, Type, Section, Summary),
 	matching_category(In, Type),
-	(   apropos_match(Search, Summary)
+	(   Match == summary,
+	    apropos_match(Search, Summary)
 	->  true
 	;   sub_term(S, Obj),
 	    atom(S),

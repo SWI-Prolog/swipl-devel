@@ -492,7 +492,14 @@ reply('/doc_for', Request) :-
 reply('/search', Request) :-
 	http_parameters(Request,
 			[ for(For, [length > 1]),
-			  in(In, [oneof([all,app,man]), default(all)]),
+			  in(In,
+			     [ oneof([all,app,man]),
+			       default(all)
+			     ]),
+			  match(Match,
+				[ oneof([name,summary]),
+				  default(summary)
+				]),
 			  resultFormat(Format, [ oneof(long,summary),
 						 default(summary)
 					       ])
@@ -502,7 +509,8 @@ reply('/search', Request) :-
 	reply_page(Title,
 		   [ \search_reply(For,
 				   [ resultFormat(Format),
-				     search_in(In)
+				     search_in(In),
+				     search_match(Match)
 				   | EditOptions
 				   ])
 		   ]).
