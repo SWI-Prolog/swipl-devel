@@ -2,7 +2,7 @@
 
 ---++ Status
 
-Bit rough, but getting usable.
+Getting usable.
 
 ---++ Wiki processor
 
@@ -20,14 +20,11 @@ Making solid progress.  remaining issues:
 ---++ Integrate with help/apropos
 
 	* Should also link to PceEmacs
-	* Enhance latex2html:
-		* Add class to non-existing name/arity to make
-		  package docs refer to manual.
+	* Serve the entire manual
 
 ---++ UI
 
 	* Fix directory menu for IE [PARTIAL]
-	* Fix section `up' links in packages
 
 ---++ Quality assurance: comment style-check
 
