@@ -468,6 +468,16 @@ Access is granted iff
     \item \emph{allow} exists and matches
     \item \emph{allow} does not exit and \emph{deny} does not match.
 \end{shortlist}
+
+    \predicate{doc_browser}{0}{}
+Open the user's default browser on the running documentation server.
+Fails if no server is running.
+
+    \predicate{doc_browser}{1}{+Spec}
+Open the user's default browser on the specified page.  \arg{Spec} is
+handled similar to edit/1, resolving anything that relates somehow to
+the given specification and ask the user to select.%
+	\bug{This flexibility is not yet implemented}.
 \end{description}
 
 

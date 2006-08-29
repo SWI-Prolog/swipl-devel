@@ -409,6 +409,8 @@ same_dir(File1, File2) :-
 	file_directory_name(File2, Dir).
 
 object_spec(Spec, Spec).
+object_spec(Atom, Spec) :-
+	atom_to_term(Atom, Spec, _).
 object_spec(Atom, PI) :-
 	atom_to_pi(Atom, PI).
 
@@ -427,12 +429,15 @@ object_spec(Atom, PI) :-
 %		If Action = =fail=, fail instead of displaying a
 %		not-found message.
 
-man_page(Obj, _Options) -->
-	{ load_man_object(Obj, Parent, Path, DOM), !
+man_page(Obj, Options) -->
+	{ findall((Parent+Path)-DOM,
+		  load_man_object(Obj, Parent, Path, DOM),
+		  Matches),
+	  Matches = [Parent+Path-_|_]
 	},
-	html([ \man_links(Parent, []),
+	html([ \man_links(Parent, Options),
 	       p([]),
-	       \dom_list(DOM, Path)
+	       \man_matches(Matches)
 	     ]).
 man_page(Obj, Options) -->
 	{ \+ option(no_manual(fail), Options),
@@ -441,6 +446,12 @@ man_page(Obj, Options) -->
 	html([ \man_links([], []),	% Use index file?
 	       p(['No manual entry for ', Atom])
 	     ]).
+
+man_matches([]) -->
+	[].
+man_matches([(_Parent+Path)-H|T]) -->
+	dom_list(H, Path),
+	man_matches(T).
 
 dom_list([], _) -->
 	[].
