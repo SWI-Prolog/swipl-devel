@@ -128,24 +128,24 @@ Type of a Term</SPAN></A></H2>
 <DL>
 <DT class="pubdef"><A NAME="var/1"><STRONG>var</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> currently is a free variable.
+True if <VAR>Term</VAR> currently is a free variable.
 </DD>
 <DT class="pubdef"><A NAME="nonvar/1"><STRONG>nonvar</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> currently is not a free variable.
+True if <VAR>Term</VAR> currently is not a free variable.
 </DD>
 <DT class="pubdef"><A NAME="integer/1"><STRONG>integer</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to an integer.
+True if <VAR>Term</VAR> is bound to an integer.
 </DD>
 <DT class="pubdef"><A NAME="float/1"><STRONG>float</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to a floating point number.
+True if <VAR>Term</VAR> is bound to a floating point number.
 </DD>
 <DT class="pubdef"><A NAME="rational/1"><STRONG>rational</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to a rational number. Rational 
-numbers include integers.
+True if <VAR>Term</VAR> is bound to a rational number. Rational numbers 
+include integers.
 </DD>
 <DT class="pubdef"><A NAME="rational/3"><STRONG>rational</STRONG>(<VAR>+Term, 
 -Numerator, -Denominator</VAR>)</A></DT>
@@ -159,19 +159,18 @@ and <VAR>Denominator</VAR>.
 </DD>
 <DT class="pubdef"><A NAME="number/1"><STRONG>number</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to an integer or floating point 
-number.<SUP class="fn">22<SPAN class="fn-text">As rational numbers are 
-not atomic in the current implementation and we do not want to break the 
-rule that <A NAME="idx:number1:435"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
+True if <VAR>Term</VAR> is bound to an integer or floating point number.<SUP class="fn">22<SPAN class="fn-text">As 
+rational numbers are not atomic in the current implementation and we do 
+not want to break the rule that <A NAME="idx:number1:435"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
 implies <A NAME="idx:atomic1:436"></A><A class="pred" href="typetest.html#atomic/1">atomic/1</A>, <A NAME="idx:number1:437"></A><A class="pred" href="typetest.html#number/1">number/1</A> 
 fails on rational numbers. This will change if rational numbers become 
 atomic.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="atom/1"><STRONG>atom</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to an atom.</DD>
+True if <VAR>Term</VAR> is bound to an atom.</DD>
 <DT class="pubdef"><A NAME="string/1"><STRONG>string</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to a string. Note that string here 
+True if <VAR>Term</VAR> is bound to a string. Note that string here 
 refers to the built-in atomic type string as described in
 <A class="sec" href="strings.html">section 4.23</A>, Text in double 
 quotes such as <CODE>"hello"</CODE> creates a <EM>list</EM> of <EM>character 
@@ -189,26 +188,26 @@ Yes
 </DD>
 <DT class="pubdef"><A NAME="atomic/1"><STRONG>atomic</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to an atom, string, integer or 
-floating point number. Note that string refers to the built-in type. See
+True if <VAR>Term</VAR> is bound to an atom, string, integer or floating 
+point number. Note that string refers to the built-in type. See
 <A NAME="idx:string1:438"></A><A class="pred" href="typetest.html#string/1">string/1</A>. 
 Strings in the classical Prolog sense are lists and therefore compound.</DD>
 <DT class="pubdef"><A NAME="compound/1"><STRONG>compound</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to a compound term. See also <A NAME="idx:functor3:439"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
+True if <VAR>Term</VAR> is bound to a compound term. See also <A NAME="idx:functor3:439"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
 and =../2.</DD>
 <DT class="pubdef"><A NAME="callable/1"><STRONG>callable</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to an atom or a compound term, so 
-it can be handed without type-error to <A NAME="idx:call1:440"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:functor3:441"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
+True if <VAR>Term</VAR> is bound to an atom or a compound term, so it 
+can be handed without type-error to <A NAME="idx:call1:440"></A><A class="pred" href="metacall.html#call/1">call/1</A>, <A NAME="idx:functor3:441"></A><A class="pred" href="manipterm.html#functor/3">functor/3</A> 
 and =../2.</DD>
 <DT class="pubdef"><A NAME="ground/1"><STRONG>ground</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> holds no free variables.</DD>
+True if <VAR>Term</VAR> holds no free variables.</DD>
 <DT class="pubdef"><A NAME="cyclic_term/1"><STRONG>cyclic_term</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> contains cycles, i.e. is an infinite term. 
-See also <A NAME="idx:acyclicterm1:442"></A><A class="pred" href="typetest.html#acyclic_term/1">acyclic_term/1</A> 
+True if <VAR>Term</VAR> contains cycles, i.e. is an infinite term. See 
+also <A NAME="idx:acyclicterm1:442"></A><A class="pred" href="typetest.html#acyclic_term/1">acyclic_term/1</A> 
 and <A class="sec" href="cyclic.html">section 2.16</A>.<SUP class="fn">23<SPAN class="fn-text">The 
 predicates <A NAME="idx:cyclicterm1:443"></A><A class="pred" href="typetest.html#cyclic_term/1">cyclic_term/1</A> 
 and <A NAME="idx:acyclicterm1:444"></A><A class="pred" href="typetest.html#acyclic_term/1">acyclic_term/1</A> 
@@ -216,8 +215,8 @@ are compatible to SICStus Prolog. Some Prolog systems supporting cyclic
 terms use is_cyclic/1 .</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="acyclic_term/1"><STRONG>acyclic_term</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> does not contain cycles, i.e. can be 
-processed recursively in finite time. See also <A NAME="idx:cyclicterm1:445"></A><A class="pred" href="typetest.html#cyclic_term/1">cyclic_term/1</A> 
+True if <VAR>Term</VAR> does not contain cycles, i.e. can be processed 
+recursively in finite time. See also <A NAME="idx:cyclicterm1:445"></A><A class="pred" href="typetest.html#cyclic_term/1">cyclic_term/1</A> 
 and <A class="sec" href="cyclic.html">section 2.16</A>.
 </DD>
 </DL>

@@ -133,9 +133,9 @@ described here.
 <DL>
 <DT class="pubdef"><A NAME="is_list/1"><STRONG>is_list</STRONG>(<VAR>+Term</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term</VAR> is bound to the empty list (<CODE>[]</CODE>) 
-or a term with functor `<CODE><CODE>.</CODE></CODE>' and arity&nbsp;2 
-and the second argument is a list.<SUP class="fn">50<SPAN class="fn-text">In 
+True if <VAR>Term</VAR> is bound to the empty list (<CODE>[]</CODE>) or 
+a term with functor `<CODE><CODE>.</CODE></CODE>' and arity&nbsp;2 and 
+the second argument is a list.<SUP class="fn">50<SPAN class="fn-text">In 
 versions before 5.0.1, <A NAME="idx:islist1:917"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A> 
 just checked for <CODE>[]</CODE> or <CODE>[_|_]</CODE> and proper_list/1 
 had the role of the current <A NAME="idx:islist1:918"></A><A class="pred" href="builtinlist.html#is_list/1">is_list/1</A>. 
@@ -163,12 +163,12 @@ but leaves no choice point.</DD>
 <DT class="pubdef"><A NAME="length/2"><STRONG>length</STRONG>(<VAR>?List, 
 ?Int</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Int</VAR> represents the number of elements of list <VAR>List</VAR>. 
+True if <VAR>Int</VAR> represents the number of elements of list <VAR>List</VAR>. 
 Can be used to create a list holding only variables.</DD>
 <DT class="pubdef"><A NAME="sort/2"><STRONG>sort</STRONG>(<VAR>+List, 
 -Sorted</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Sorted</VAR> can be unified with a list holding the 
+True if <VAR>Sorted</VAR> can be unified with a list holding the 
 elements of <VAR>List</VAR>, sorted to the standard order of terms (see
 <A class="sec" href="compare.html">section 4.6</A>). Duplicates are 
 removed. The implementation is in C, using <EM>natural merge sort</EM><SUP class="fn">51<SPAN class="fn-text">Contributed 

@@ -425,10 +425,7 @@ If present and <CODE>true</CODE>, SWI-Prolog has been compiled with
 <EM>large file support</EM> (LFS) and is capable to access files larger 
 than 2GB on 32-bit hardware. Large file-support is default on 
 installations built using <B>configure</B> that support it and may be 
-switched off using the configure option <CODE>--disable-largefile</CODE>.<SUP class="fn">bug<SPAN class="fn-text">As 
-SWI-Prolog integers are 32-bits, SWI-Prolog cannot represent offsets in 
-large files. Therefore, calls involving file sizes or offsets do not 
-work properly.</SPAN></SUP></DD>
+switched off using the configure option <CODE>--disable-largefile</CODE>.</DD>
 <DT><STRONG>max_arity</STRONG>(<VAR>unbounded</VAR>)</DT>
 <DD class="defbody">
 ISO prolog-flag describing there is no maximum arity to compound terms.</DD>
@@ -630,9 +627,8 @@ is much easier for implementing version-conditional statements.</DD>
 <DT><STRONG>windows</STRONG>(<VAR>bool</VAR>)</DT>
 <DD class="defbody">
 <A NAME="idx:windows:157"></A>If present and <CODE>true</CODE>, the 
-operating system is an implementation of Microsoft Windows (3.1, 
-95/98/ME, NT/2000/XP, etc.). This flag is only available on MS-Windows 
-based versions.</DD>
+operating system is an implementation of Microsoft Windows (NT/2000/XP, 
+etc.). This flag is only available on MS-Windows based versions.</DD>
 <DT><STRONG>write_attributes</STRONG>(<VAR>atom</VAR>, changeable)</DT>
 <DD class="defbody">
 Defines how <A NAME="idx:write1:158"></A><A class="pred" href="termrw.html#write/1">write/1</A> 

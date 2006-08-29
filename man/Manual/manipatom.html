@@ -215,7 +215,7 @@ will be unified with the integer value described by <VAR>String</VAR>
 <DT class="pubdef"><A NAME="term_to_atom/2"><STRONG>term_to_atom</STRONG>(<VAR>?Term, 
 ?Atom</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Atom</VAR> describes a term that unifies with <VAR>Term</VAR>. 
+True if <VAR>Atom</VAR> describes a term that unifies with <VAR>Term</VAR>. 
 When
 <VAR>Atom</VAR> is instantiated <VAR>Atom</VAR> is converted and then 
 unified with
@@ -278,8 +278,8 @@ L = [gnu, gnat]
 <DT class="pubdef"><A NAME="atom_length/2"><STRONG>atom_length</STRONG>(<VAR>+Atom, 
 -Length</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Atom</VAR> is an atom of <VAR>Length</VAR> characters 
-long. This predicate also works for strings (see <A class="sec" href="strings.html">section 
+True if <VAR>Atom</VAR> is an atom of <VAR>Length</VAR> characters long. 
+This predicate also works for strings (see <A class="sec" href="strings.html">section 
 4.23</A>). If the prolog flag <CODE>iso</CODE> is <EM>not</EM> set, it 
 also accepts integers and floats, expressing the number of characters 
 output when given to <A NAME="idx:write1:857"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
@@ -290,7 +290,7 @@ returns 2 for this atom.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="atom_prefix/2"><STRONG>atom_prefix</STRONG>(<VAR>+Atom, 
 +Prefix</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Atom</VAR> starts with the characters from <VAR>Prefix</VAR>. 
+True if <VAR>Atom</VAR> starts with the characters from <VAR>Prefix</VAR>. 
 Its behaviour is equivalent to
 <CODE>?- sub_atom(<VAR>Atom</VAR>, 0, _, _, <VAR>Prefix</VAR>)</CODE>. 
 Depreciated.</DD>

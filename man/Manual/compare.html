@@ -154,8 +154,8 @@ arguments, leftmost argument first.
 <DL>
 <DT class="pubdef"><A NAME="==/2"><VAR>+Term1</VAR> <STRONG>==</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term1</VAR> is equivalent to <VAR>Term2</VAR>. A 
-variable is only identical to a sharing variable.
+True if <VAR>Term1</VAR> is equivalent to <VAR>Term2</VAR>. A variable 
+is only identical to a sharing variable.
 </DD>
 <DT class="pubdef"><A NAME="\==/2"><VAR>+Term1</VAR> <STRONG>\==</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
@@ -163,8 +163,8 @@ Equivalent to <CODE><CODE>\+</CODE>Term1 == Term2</CODE>.
 </DD>
 <DT class="pubdef"><A NAME="=/2"><VAR>+Term1</VAR> <STRONG>=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
-Unify <VAR>Term1</VAR> with <VAR>Term2</VAR>. Succeeds if the 
-unification succeeds.
+Unify <VAR>Term1</VAR> with <VAR>Term2</VAR>. True if the unification 
+succeeds.
 </DD>
 <DT class="pubdef"><A NAME="unify_with_occurs_check/2"><STRONG>unify_with_occurs_check</STRONG>(<VAR>+Term1, 
 +Term2</VAR>)</A></DT>
@@ -190,7 +190,7 @@ The second executes logically sound unification and thus fails.</DD>
 Equivalent to <CODE><CODE>\+</CODE>Term1 = Term2</CODE>.</DD>
 <DT class="pubdef"><A NAME="=@=/2"><VAR>+Term1</VAR> <STRONG>=@=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term1</VAR> is `structurally equal' to <VAR>Term2</VAR>. 
+True if <VAR>Term1</VAR> is `structurally equal' to <VAR>Term2</VAR>. 
 Structural equivalence is weaker than equivalence (<A class="pred" href="compare.html#==/2">==/2</A>), 
 but stronger than unification (<A class="pred" href="compare.html#=/2">=/2</A>). 
 Two terms are structurally equal if their tree representation is 
@@ -215,20 +215,20 @@ their attributes are structurally equal.</DD>
 Equivalent to <CODE>`<CODE>\+</CODE>Term1 =@= Term2'</CODE>.</DD>
 <DT class="pubdef"><A NAME="@</2"><VAR>+Term1</VAR> <STRONG>@&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term1</VAR> is before <VAR>Term2</VAR> in the standard 
+True if <VAR>Term1</VAR> is before <VAR>Term2</VAR> in the standard 
 order of terms.</DD>
 <DT class="pubdef"><A NAME="@=</2"><VAR>+Term1</VAR> <STRONG>@=&lt;</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
-Succeeds if both terms are equal (<A class="pred" href="compare.html#==/2">==/2</A>) 
+True if both terms are equal (<A class="pred" href="compare.html#==/2">==/2</A>) 
 or <VAR>Term1</VAR> is before <VAR>Term2</VAR> in the standard order of 
 terms.</DD>
 <DT class="pubdef"><A NAME="@>/2"><VAR>+Term1</VAR> <STRONG>@&gt;</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Term1</VAR> is after <VAR>Term2</VAR> in the standard 
-order of terms.</DD>
+True if <VAR>Term1</VAR> is after <VAR>Term2</VAR> in the standard order 
+of terms.</DD>
 <DT class="pubdef"><A NAME="@>=/2"><VAR>+Term1</VAR> <STRONG>@&gt;=</STRONG> <VAR>+Term2</VAR></A></DT>
 <DD class="defbody">
-Succeeds if both terms are equal (<A class="pred" href="compare.html#==/2">==/2</A>) 
+True if both terms are equal (<A class="pred" href="compare.html#==/2">==/2</A>) 
 or <VAR>Term1</VAR> is after <VAR>Term2</VAR> in the standard order of 
 terms.</DD>
 <DT class="pubdef"><A NAME="compare/3"><STRONG>compare</STRONG>(<VAR>?Order, 

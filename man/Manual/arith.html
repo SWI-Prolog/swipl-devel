@@ -160,7 +160,7 @@ value.</DD>
 <DT class="pubdef"><A NAME="succ/2"><STRONG>succ</STRONG>(<VAR>?Int1, 
 ?Int2</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR><VAR>Int2</VAR> = <VAR>Int1</VAR> + 1</VAR> and <VAR><VAR>Int1</VAR> 
+True if <VAR><VAR>Int2</VAR> = <VAR>Int1</VAR> + 1</VAR> and <VAR><VAR>Int1</VAR> 
 &gt;= 0</VAR>. At least one of the arguments must be instantiated to a 
 natural number. This predicate raises the domain-error <CODE>not_less_than_zero</CODE> 
 if called with a negative integer. E.g. <CODE>succ(X, 0)</CODE> fails 
@@ -172,7 +172,7 @@ also accepted negative integers.</SPAN></SUP></DD>
 <DT class="pubdef"><A NAME="plus/3"><STRONG>plus</STRONG>(<VAR>?Int1, 
 ?Int2, ?Int3</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR><VAR>Int3</VAR> = <VAR>Int1</VAR> + <VAR>Int2</VAR></VAR>. 
+True if <VAR><VAR>Int3</VAR> = <VAR>Int1</VAR> + <VAR>Int2</VAR></VAR>. 
 At least two of the three arguments must be instantiated to integers.
 </DD>
 </DL>
@@ -192,33 +192,29 @@ optional.
 <DL>
 <DT class="pubdef"><A NAME=">/2"><VAR>+Expr1</VAR> <STRONG>&gt;</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
-Succeeds when expression <VAR>Expr1</VAR> evaluates to a larger number 
-than <VAR>Expr2</VAR>.</DD>
+True if expression <VAR>Expr1</VAR> evaluates to a larger number than <VAR>Expr2</VAR>.</DD>
 <DT class="pubdef"><A NAME="</2"><VAR>+Expr1</VAR> <STRONG>&lt;</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
-Succeeds when expression <VAR>Expr1</VAR> evaluates to a smaller number 
-than <VAR>Expr2</VAR>.</DD>
+True if expression <VAR>Expr1</VAR> evaluates to a smaller number than <VAR>Expr2</VAR>.</DD>
 <DT class="pubdef"><A NAME="=</2"><VAR>+Expr1</VAR> <STRONG>=&lt;</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
-Succeeds when expression <VAR>Expr1</VAR> evaluates to a smaller or 
-equal number to <VAR>Expr2</VAR>.</DD>
+True if expression <VAR>Expr1</VAR> evaluates to a smaller or equal 
+number to <VAR>Expr2</VAR>.</DD>
 <DT class="pubdef"><A NAME=">=/2"><VAR>+Expr1</VAR> <STRONG>&gt;=</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
-Succeeds when expression <VAR>Expr1</VAR> evaluates to a larger or equal 
+True if expression <VAR>Expr1</VAR> evaluates to a larger or equal 
 number to <VAR>Expr2</VAR>.</DD>
 <DT class="pubdef"><A NAME="=\=/2"><VAR>+Expr1</VAR> <STRONG>=\=</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
-Succeeds when expression <VAR>Expr1</VAR> evaluates to a number 
-non-equal to
+True if expression <VAR>Expr1</VAR> evaluates to a number non-equal to
 <VAR>Expr2</VAR>.</DD>
 <DT class="pubdef"><A NAME="=:=/2"><VAR>+Expr1</VAR> <STRONG>=:=</STRONG> <VAR>+Expr2</VAR></A></DT>
 <DD class="defbody">
-Succeeds when expression <VAR>Expr1</VAR> evaluates to a number equal to <VAR> 
+True if expression <VAR>Expr1</VAR> evaluates to a number equal to <VAR> 
 Expr2</VAR>.</DD>
 <DT class="pubdef"><A NAME="is/2"><VAR>-Number</VAR> <STRONG>is</STRONG> <VAR>+Expr</VAR></A></DT>
 <DD class="defbody">
-Succeeds when <VAR>Number</VAR> has successfully been unified with the 
-number
+True if <VAR>Number</VAR> has successfully been unified with the number
 <VAR>Expr</VAR> evaluates to. If <VAR>Expr</VAR> evaluates to a float 
 that can be represented using an integer (i.e, the value is integer and 
 within the range that can be described by Prolog's integer 

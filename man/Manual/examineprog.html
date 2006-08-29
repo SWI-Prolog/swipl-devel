@@ -173,7 +173,7 @@ does not consider predicates that can be autoloaded `current'.</DD>
 <DT class="pubdef"><A NAME="predicate_property/2"><STRONG>predicate_property</STRONG>(<VAR>:Head, 
 ?Property</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Head</VAR> refers to a predicate that has property
+True if <VAR>Head</VAR> refers to a predicate that has property
 <VAR>Property</VAR>. Can be used to test whether a predicate has a 
 certain property, obtain all properties known for <VAR>Head</VAR>, find 
 all predicates having <VAR>property</VAR> or even obtaining all 
@@ -279,7 +279,7 @@ Backtracking provides all alternative matches.
 <DT class="pubdef"><A NAME="clause/2"><STRONG>clause</STRONG>(<VAR>?Head, 
 ?Body</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds when <VAR>Head</VAR> can be unified with a clause head and <VAR>Body</VAR> 
+True if <VAR>Head</VAR> can be unified with a clause head and <VAR>Body</VAR> 
 with the corresponding clause body. Gives alternative clauses on 
 backtracking. For facts <VAR>Body</VAR> is unified with the atom <VAR>true</VAR>. 
 Normally <A NAME="idx:clause2:614"></A><A class="pred" href="examineprog.html#clause/2">clause/2</A> 

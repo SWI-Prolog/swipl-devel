@@ -455,7 +455,7 @@ compatible with some specific implementation. The preferred alternative
 extension is <CODE>.pro</CODE>.</DD>
 <DT class="pubdef"><A NAME="source_file/1"><STRONG>source_file</STRONG>(<VAR>?File</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>File</VAR> is a loaded Prolog source file. <VAR>File</VAR> 
+True if <VAR>File</VAR> is a loaded Prolog source file. <VAR>File</VAR> 
 is the absolute and canonical path to the source-file.</DD>
 <DT class="pubdef"><A NAME="source_file/2"><STRONG>source_file</STRONG>(<VAR>?Pred, 
 ?File</VAR>)</A></DT>
@@ -590,7 +590,7 @@ to ensure the initialisation is executed when a saved system starts. See
 also <A NAME="idx:qsaveprogram12:408"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>.</DD>
 <DT class="pubdef"><A NAME="compiling/0"><STRONG>compiling</STRONG></A></DT>
 <DD class="defbody">
-Succeeds if the system is compiling source files with the <STRONG>-c</STRONG> 
+True if the system is compiling source files with the <STRONG>-c</STRONG> 
 option or <A NAME="idx:qcompile1:409"></A><A class="pred" href="consulting.html#qcompile/1">qcompile/1</A> 
 into an intermediate code file. Can be used to perform conditional code 
 optimisations in <A NAME="idx:termexpansion2:410"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 

@@ -129,7 +129,7 @@ System Interaction</SPAN></A></H2>
 <DT class="pubdef"><A NAME="access_file/2"><STRONG>access_file</STRONG>(<VAR>+File, 
 +Mode</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>File</VAR> exists and can be accessed by this prolog 
+True if <VAR>File</VAR> exists and can be accessed by this prolog 
 process under mode <VAR>Mode</VAR>. <VAR>Mode</VAR> is one of the atoms
 <CODE>read</CODE>, <CODE>write</CODE>, <CODE>append</CODE>, <CODE>exist</CODE>, <CODE>none</CODE> 
 or
@@ -142,8 +142,8 @@ predicate also succeeds if the file does not exist and the user has
 write-access to the directory of the specified location.</DD>
 <DT class="pubdef"><A NAME="exists_file/1"><STRONG>exists_file</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds when <VAR>File</VAR> exists and is a regular file. This does 
-not imply the user has read and/or write permission for the file.</DD>
+True if <VAR>File</VAR> exists and is a regular file. This does not 
+imply the user has read and/or write permission for the file.</DD>
 <DT class="pubdef"><A NAME="file_directory_name/2"><STRONG>file_directory_name</STRONG>(<VAR>+File, 
 -Directory</VAR>)</A></DT>
 <DD class="defbody">
@@ -160,14 +160,14 @@ does not contain any directory separators, <VAR>File</VAR> is returned.</DD>
 <DT class="pubdef"><A NAME="same_file/2"><STRONG>same_file</STRONG>(<VAR>+File1, 
 +File2</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if both filenames refer to the same physical file. That is, if <VAR>File1</VAR> 
+True if both filenames refer to the same physical file. That is, if <VAR>File1</VAR> 
 and <VAR>File2</VAR> are the same string or both names exist and point 
 to the same file (due to hard or symbolic links and/or relative vs. 
 absolute paths).</DD>
 <DT class="pubdef"><A NAME="exists_directory/1"><STRONG>exists_directory</STRONG>(<VAR>+Directory</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Directory</VAR> exists and is a directory. This does 
-not imply the user has read, search and or write permission for the 
+True if <VAR>Directory</VAR> exists and is a directory. This does not 
+imply the user has read, search and or write permission for the 
 directory.</DD>
 <DT class="pubdef"><A NAME="delete_file/1"><STRONG>delete_file</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">

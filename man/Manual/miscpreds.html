@@ -128,9 +128,9 @@ font-size: smaller;
 <DT class="pubdef"><A NAME="dwim_match/2"><STRONG>dwim_match</STRONG>(<VAR>+Atom1, 
 +Atom2</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>Atom1</VAR> matches <VAR>Atom2</VAR> in `Do What I 
-Mean' sense. Both <VAR>Atom1</VAR> and <VAR>Atom2</VAR> may also be 
-integers or floats. The two atoms match if:
+True if <VAR>Atom1</VAR> matches <VAR>Atom2</VAR> in `Do What I Mean' 
+sense. Both <VAR>Atom1</VAR> and <VAR>Atom2</VAR> may also be integers 
+or floats. The two atoms match if:
 <UL COMPACT>
 <LI>They are identical
 <LI>They differ by one character (spy <VAR>==</VAR> spu)
@@ -155,7 +155,7 @@ values are (in the same order as above): <CODE>equal</CODE>,
 <DT class="pubdef"><A NAME="wildcard_match/2"><STRONG>wildcard_match</STRONG>(<VAR>+Pattern, 
 +String</VAR>)</A></DT>
 <DD class="defbody">
-Succeeds if <VAR>String</VAR> matches the wildcard pattern <VAR>Pattern</VAR>.
+True if <VAR>String</VAR> matches the wildcard pattern <VAR>Pattern</VAR>.
 <VAR>Pattern</VAR> is very similar the the Unix csh pattern matcher. The 
 patterns are given below:
 
