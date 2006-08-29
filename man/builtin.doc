@@ -367,7 +367,7 @@ be compatible with some specific implementation. The preferred
 alternative extension is \fileext{pro}.
 
     \predicate{source_file}{1}{?File}
-Succeeds if \arg{File} is a loaded Prolog source file.  \arg{File} is
+True if \arg{File} is a loaded Prolog source file.  \arg{File} is
 the absolute and canonical path to the source-file.
 
     \predicate{source_file}{2}{?Pred, ?File}
@@ -481,7 +481,7 @@ ensure the initialisation is executed when a saved system starts.
 See also qsave_program/[1,2].
 
     \predicate{compiling}{0}{}
-Succeeds if the system is compiling source files with the \cmdlineoption{-c}
+True if the system is compiling source files with the \cmdlineoption{-c}
 option or qcompile/1 into an intermediate code file. Can be used to
 perform conditional code optimisations in term_expansion/2 (see also the
 \cmdlineoption{-O} option) or to omit execution of directives during
@@ -749,15 +749,15 @@ Pretty print a clause to \arg{Stream}. See portray_clause/1 for details.
 
 \begin{description}
     \predicate{var}{1}{+Term}
-Succeeds if \arg{Term} currently is a free variable.
+True if \arg{Term} currently is a free variable.
     \predicate{nonvar}{1}{+Term}
-Succeeds if \arg{Term} currently is not a free variable.
+True if \arg{Term} currently is not a free variable.
     \predicate{integer}{1}{+Term}
-Succeeds if \arg{Term} is bound to an integer.
+True if \arg{Term} is bound to an integer.
     \predicate{float}{1}{+Term}
-Succeeds if \arg{Term} is bound to a floating point number.
+True if \arg{Term} is bound to a floating point number.
     \predicate{rational}{1}{+Term}
-Succeeds if \arg{Term} is bound to a rational number.  Rational numbers
+True if \arg{Term} is bound to a rational number.  Rational numbers
 include integers.
     \predicate{rational}{3}{+Term, -Numerator, -Denominator}
 True if \arg{Term} is a rational number with given \arg{Numerator} and
@@ -765,7 +765,7 @@ True if \arg{Term} is a rational number with given \arg{Numerator} and
 canonical form, which means \arg{Denominator} is a positive integer and
 there are no common divisors between \arg{Numerator} and \arg{Denominator}.
     \predicate{number}{1}{+Term}
-Succeeds if \arg{Term} is bound to an integer or floating point number.%
+True if \arg{Term} is bound to an integer or floating point number.%
 	\footnote{As rational numbers are not atomic in the current
 		  implementation and we do not want to break the rule
 		  that number/1 implies atomic/1, number/1 fails on
@@ -773,10 +773,10 @@ Succeeds if \arg{Term} is bound to an integer or floating point number.%
 		  become atomic.}
 
     \predicate{atom}{1}{+Term}
-Succeeds if \arg{Term} is bound to an atom.
+True if \arg{Term} is bound to an atom.
 
     \predicate{string}{1}{+Term}
-Succeeds if \arg{Term} is bound to a string. Note that string here
+True if \arg{Term} is bound to a string. Note that string here
 refers to the built-in atomic type string as described in
 \secref{strings},  Text in double quotes such as \verb|"hello"|
 creates a \emph{list} of \emph{character codes}.  We illustrate
@@ -792,31 +792,31 @@ Yes
 \end{code}
 
     \predicate{atomic}{1}{+Term}
-Succeeds if \arg{Term} is bound to an atom, string, integer or floating
+True if \arg{Term} is bound to an atom, string, integer or floating
 point number. Note that string refers to the built-in type. See
 string/1.  Strings in the classical Prolog sense are lists and therefore
 compound.
 
     \predicate{compound}{1}{+Term}
-Succeeds if \arg{Term} is bound to a compound term.  See also functor/3
+True if \arg{Term} is bound to a compound term.  See also functor/3
 and =../2.
 
     \predicate{callable}{1}{+Term}
-Succeeds if \arg{Term} is bound to an atom or a compound term, so it can
+True if \arg{Term} is bound to an atom or a compound term, so it can
 be handed without type-error to call/1, functor/3 and =../2.
 
     \predicate{ground}{1}{+Term}
-Succeeds if \arg{Term} holds no free variables.
+True if \arg{Term} holds no free variables.
 
     \predicate{cyclic_term}{1}{+Term}
-Succeeds if \arg{Term} contains cycles, i.e.\ is an infinite term.
+True if \arg{Term} contains cycles, i.e.\ is an infinite term.
 See also acyclic_term/1 and \secref{cyclic}.%
 	\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
 		  compatible to SICStus Prolog.  Some Prolog systems
 		  supporting cyclic terms use \nopredref{is_cyclic}{1}.}
 
     \predicate{acyclic_term}{1}{+Term}
-Succeeds if \arg{Term} does not contain cycles,  i.e.\ can be processed
+True if \arg{Term} does not contain cycles,  i.e.\ can be processed
 recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
 \end{description}
 
@@ -848,12 +848,12 @@ so called ``standard order''. This order is defined as follows:
 
 \begin{description}
     \infixop{==}{+Term1}{+Term2}
-Succeeds if \arg{Term1} is equivalent to \arg{Term2}. A variable is only
+True if \arg{Term1} is equivalent to \arg{Term2}. A variable is only
 identical to a sharing variable.
     \infixop{\==}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 == Term2}.
     \infixop{=}{+Term1}{+Term2}
-Unify \arg{Term1} with \arg{Term2}. Succeeds if the unification succeeds.
+Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
     \predicate{unify_with_occurs_check}{2}{+Term1, +Term2}
 As \predref{=}{2}, but using \jargon{sound-unification}. That is, a
 variable only unifies to a term if this term does not contain the
@@ -877,7 +877,7 @@ and thus fails.
 Equivalent to \exam{\Snot Term1 = Term2}.
 
     \infixop{=@=}{+Term1}{+Term2}
-Succeeds if \arg{Term1} is `structurally equal' to \arg{Term2}.
+True if \arg{Term1} is `structurally equal' to \arg{Term2}.
 Structural equivalence is weaker than equivalence (\predref{==}{2}), but
 stronger than unification (\predref{=}{2}). Two terms are structurally
 equal if their tree representation is identical and they have the same
@@ -901,17 +901,17 @@ attributes are structurally equal.
 Equivalent to \exam{`\Snot Term1 =@= Term2'}.
 
     \infixop{@<}{+Term1}{+Term2}
-Succeeds if \arg{Term1} is before \arg{Term2} in the standard order of terms.
+True if \arg{Term1} is before \arg{Term2} in the standard order of terms.
 
     \infixop{@=<}{+Term1}{+Term2}
-Succeeds if both terms are equal (\predref{==}{2}) or \arg{Term1} is
+True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
 before \arg{Term2} in the standard order of terms.
 
     \infixop{@>}{+Term1}{+Term2}
-Succeeds if \arg{Term1} is after \arg{Term2} in the standard order of terms.
+True if \arg{Term1} is after \arg{Term2} in the standard order of terms.
 
     \infixop{@>=}{+Term1}{+Term2}
-Succeeds if both terms are equal (\predref{==}{2}) or \arg{Term1} is
+True if both terms are equal (\predref{==}{2}) or \arg{Term1} is
 after \arg{Term2} in the standard order of terms.
 
     \predicate{compare}{3}{?Order, +Term1, +Term2}
@@ -983,7 +983,7 @@ condition.%
 \end{tabular}\end{center}
 
 \infixop{,}{+Goal1}{+Goal2}
-Conjunction.  Succeeds if both `Goal1' and `Goal2' can be proved.  It is
+Conjunction.  True if both `Goal1' and `Goal2' can be proved.  It is
 defined as (this definition does not lead to a loop as the second comma
 is handled by the compiler):
 \begin{code}
@@ -1036,7 +1036,7 @@ The construct \arg{A} \verb$*->$ \arg{B}, i.e.\ without an
 	     construct as a normal conjunction too.}
 
 \prefixop{\+}{+Goal}
-Succeeds if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
+True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
 provable} and the backslash (\chr{\}) is normally used to
 indicate negation in Prolog).
 \end{description}
@@ -1075,7 +1075,7 @@ the overhead of call/1. New code should use call/[2..] if the length of
 there is no need to build and examine the argument list.
 
     \predicate{not}{1}{+Goal}
-Succeeds when \arg{Goal} cannot be proven.  Retained for compatibility
+True if \arg{Goal} cannot be proven.  Retained for compatibility
 only. New code should use \predref{\+}{1}.
 
     \predicate{once}{1}{+Goal}
@@ -1967,7 +1967,7 @@ current_predicate/2, the current implementation of current_predicate/1
 does not consider predicates that can be autoloaded `current'.
 
     \predicate{predicate_property}{2}{:Head, ?Property}
-Succeeds if \arg{Head} refers to a predicate that has property
+True if \arg{Head} refers to a predicate that has property
 \arg{Property}. Can be used to test whether a predicate has a certain
 property, obtain all properties known for \arg{Head}, find all
 predicates having \arg{property} or even obtaining all information
@@ -2059,7 +2059,7 @@ What I Mean' string matching.  Internal system predicates are
 not generated, unless \exam{style_check(+dollar)} is active.  Backtracking
 provides all alternative matches.
     \predicate{clause}{2}{?Head, ?Body}
-Succeeds when \arg{Head} can be unified with a clause head and \arg{Body} with the corresponding clause body.  Gives alternative clauses on
+True if \arg{Head} can be unified with a clause head and \arg{Body} with the corresponding clause body.  Gives alternative clauses on
 backtracking.  For facts \arg{Body} is unified with the atom \arg{true}.
 Normally clause/2 is used to find clause definitions for a predicate, but it
 can also be used to find clause heads for some body template.
@@ -3219,7 +3219,7 @@ be read using the prompt defined by prompt/2.
 
 \begin{description}
     \predicate{functor}{3}{?Term, ?Functor, ?Arity}
-Succeeds if \arg{Term} is a term with functor \arg{Functor} and arity
+True if \arg{Term} is a term with functor \arg{Functor} and arity
 \arg{Arity}.  If \arg{Term} is a variable it is unified with a new term
 holding only variables.  functor/3 silently fails on instantiation
 faults%
@@ -3470,7 +3470,7 @@ integer value described by \arg{String} (e.g. `\exam{name(N, "300"), 400
 is N + 100}' succeeds).
 
     \predicate{term_to_atom}{2}{?Term, ?Atom}
-Succeeds if \arg{Atom} describes a term that unifies with \arg{Term}. When
+True if \arg{Atom} describes a term that unifies with \arg{Term}. When
 \arg{Atom} is instantiated \arg{Atom} is converted and then unified with
 \arg{Term}.  If \arg{Atom} has no valid syntax, a \except{syntax_error}
 exception is raised. Otherwise \arg{Term} is ``written'' on \arg{Atom}
@@ -3515,7 +3515,7 @@ L = [gnu, gnat]
 \end{code}
 
     \predicate{atom_length}{2}{+Atom, -Length}
-Succeeds if \arg{Atom} is an atom of \arg{Length} characters long. This
+True if \arg{Atom} is an atom of \arg{Length} characters long. This
 predicate also works for strings (see \secref{strings}). If the prolog
 flag \const{iso} is \emph{not} set, it also accepts integers and floats,
 expressing the number of characters output when given to write/1 as well
@@ -3524,7 +3524,7 @@ as code-lists and character-lists, expressing the length of the list.%
 	 list.  The predicate atom_length/2 returns 2 for this atom.}
 
     \predicate{atom_prefix}{2}{+Atom, +Prefix}
-Succeeds if \arg{Atom} starts with the characters from \arg{Prefix}.
+True if \arg{Atom} starts with the characters from \arg{Prefix}.
 Its behaviour is equivalent to
 \exam{?- sub_atom(\arg{Atom}, 0, _, _, \arg{Prefix})}.  Depreciated.
 
@@ -3824,7 +3824,7 @@ all operators can be redefined by the user.
 \end{table}
 
     \predicate{current_op}{3}{?Precedence, ?Type, ?:Name}
-Succeeds when \arg{Name} is currently defined as an operator of type \arg{Type}
+True if \arg{Name} is currently defined as an operator of type \arg{Type}
 with precedence \arg{Precedence}. See also op/3.
 \end{description}
 
@@ -3878,7 +3878,7 @@ is particularly interesting for generating integers from a certain
 value.
 
     \predicate{succ}{2}{?Int1, ?Int2}
-Succeeds if $\arg{Int2} = \arg{Int1} + 1$ and $\arg{Int1} \geq 0$.
+True if $\arg{Int2} = \arg{Int1} + 1$ and $\arg{Int1} \geq 0$.
 At least one of the arguments must be instantiated to a natural number.
 This predicate raises the domain-error \const{not_less_than_zero} if
 called with a negative integer.  E.g.\ \term{succ}{X, 0} fails silently
@@ -3889,7 +3889,7 @@ and \term{succ}{X, -1} raises a domain-error.%
 		  5.1.8 succ/2 also accepted negative integers.}
 
     \predicate{plus}{3}{?Int1, ?Int2, ?Int3}
-Succeeds if $\arg{Int3} = \arg{Int1} + \arg{Int2}$. At least two of the
+True if $\arg{Int3} = \arg{Int1} + \arg{Int2}$. At least two of the
 three arguments must be instantiated to integers.
 \end{description}
 
@@ -3904,29 +3904,29 @@ is why it is optional.
 
 \begin{description}
     \infixop{>}{+Expr1}{+Expr2}
-Succeeds when expression \arg{Expr1} evaluates to a larger number than \arg{Expr2}.
+True if expression \arg{Expr1} evaluates to a larger number than \arg{Expr2}.
 
 \infixop{<}{+Expr1}{+Expr2}
-Succeeds when expression \arg{Expr1} evaluates to a smaller number than \arg{Expr2}.
+True if expression \arg{Expr1} evaluates to a smaller number than \arg{Expr2}.
 
 \infixop{=<}{+Expr1}{+Expr2}
-Succeeds when expression \arg{Expr1} evaluates to a smaller or equal number
+True if expression \arg{Expr1} evaluates to a smaller or equal number
 to \arg{Expr2}.
 
 \infixop{>=}{+Expr1}{+Expr2}
-Succeeds when expression \arg{Expr1} evaluates to a larger or equal number
+True if expression \arg{Expr1} evaluates to a larger or equal number
 to \arg{Expr2}.
 
 \infixop{=\=}{+Expr1}{+Expr2}
-Succeeds when expression \arg{Expr1} evaluates to a number non-equal to
+True if expression \arg{Expr1} evaluates to a number non-equal to
 \arg{Expr2}.
 
 \infixop{=:=}{+Expr1}{+Expr2}
-Succeeds when expression \arg{Expr1} evaluates to a number equal to \arg{
+True if expression \arg{Expr1} evaluates to a number equal to \arg{
 Expr2}.
 
 \infixop{is}{-Number}{+Expr}
-Succeeds when \arg{Number} has successfully been unified with the number
+True if \arg{Number} has successfully been unified with the number
 \arg{Expr} evaluates to.  If \arg{Expr} evaluates to a float that can be
 represented using an integer (i.e, the value is integer and within the
 range that can be described by Prolog's integer representation), \arg{
@@ -4361,7 +4361,7 @@ primitives are built-in and described here.
 
 \begin{description}
     \predicate{is_list}{1}{+Term}
-Succeeds if \arg{Term} is bound to the empty list (\exam{[]}) or a term with
+True if \arg{Term} is bound to the empty list (\exam{[]}) or a term with
 functor `\const{.}' and arity~2 and the second argument is a list.%
 	\footnote{In versions before 5.0.1, is_list/1 just checked for
 		  \const{[]} or \exam{[_|_]} and
@@ -4386,10 +4386,10 @@ is_list([_|T]) :-
 Equivalent to member/2, but leaves no choice point.
 
     \predicate{length}{2}{?List, ?Int}
-Succeeds if \arg{Int} represents the number of elements of list \arg{List}. Can be used to create a list holding only variables.
+True if \arg{Int} represents the number of elements of list \arg{List}. Can be used to create a list holding only variables.
 
     \predicate{sort}{2}{+List, -Sorted}
-Succeeds if \arg{Sorted} can be unified with a list holding the
+True if \arg{Sorted} can be unified with a list holding the
 elements of \arg{List}, sorted to the standard order of terms (see
 \secref{compare}).  Duplicates are removed.  The implementation is
 in C, using \jargon{natural merge sort}%
@@ -5316,7 +5316,7 @@ If present, activate the window.
 \end{description}
 
     \predicate{win_has_menu}{0}{}
-Succeeds if win_insert_menu/2 and win_insert_menu_item/4 are present.
+True if win_insert_menu/2 and win_insert_menu_item/4 are present.
 
     \predicate{win_insert_menu}{2}{+Label, +Before}
 Insert a new entry (pulldown) in the menu.  If the menu already contains
@@ -5343,7 +5343,7 @@ the item.
 
 \begin{description}
     \predicate{access_file}{2}{+File, +Mode}
-Succeeds if \arg{File} exists and can be accessed by this prolog
+True if \arg{File} exists and can be accessed by this prolog
 process under mode \arg{Mode}.  \arg{Mode} is one of the atoms
 \const{read}, \const{write}, \const{append}, \const{exist}, \const{none} or
 \const{execute}. \arg{File} may also be the name of a directory. Fails
@@ -5355,7 +5355,7 @@ if the file does not exist and the user has write-access to the
 directory of the specified location.
 
     \predicate{exists_file}{1}{+File}
-Succeeds when \arg{File} exists and is a regular file. This does not
+True if \arg{File} exists and is a regular file. This does not
 imply the user has read and/or write permission for the file.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
@@ -5369,13 +5369,13 @@ Extracts the filename part from a path specification. If \arg{File} does
 not contain any directory separators, \arg{File} is returned.
 
     \predicate{same_file}{2}{+File1, +File2}
-Succeeds if both filenames refer to the same physical file.  That is,
+True if both filenames refer to the same physical file.  That is,
 if \arg{File1} and \arg{File2} are the same string or both names exist
 and point to the same file (due to hard or symbolic links and/or
 relative vs. absolute paths).
 
     \predicate{exists_directory}{1}{+Directory}
-Succeeds if \arg{Directory} exists and is a directory. This does not
+True if \arg{Directory} exists and is a directory. This does not
 imply the user has read, search and or write permission for the
 directory.
 
@@ -5636,7 +5636,7 @@ exists.
 Stop making a protocol of the user interaction.  Pending output is
 flushed on the file.
     \predicate{protocolling}{1}{-File}
-Succeeds if a protocol was started with protocol/1 or protocola/1 and
+True if a protocol was started with protocol/1 or protocola/1 and
 unifies \arg{File} with the current protocol output file.
 \end{description}
 
@@ -5653,7 +5653,7 @@ tracer.  This front-end is installed using the predicate guitracer/0.
 Start the tracer. trace/0 itself cannot be seen in the tracer.  Note that
 the Prolog top-level treats trace/0 special; it means `trace the next goal'.
     \predicate{tracing}{0}{}
-Succeeds when the tracer is currently switched on.  tracing/0 itself can
+True if the tracer is currently switched on.  tracing/0 itself can
 not be seen in the tracer.
     \predicate{notrace}{0}{}
 Stop the tracer. notrace/0 itself cannot be seen in the tracer.
@@ -6078,7 +6078,7 @@ Find currently open conversations.
 
 \begin{description}
     \predicate{dwim_match}{2}{+Atom1, +Atom2}
-Succeeds if \arg{Atom1} matches \arg{Atom2} in `Do What I Mean' sense.
+True if \arg{Atom1} matches \arg{Atom2} in `Do What I Mean' sense.
 Both \arg{Atom1} and \arg{Atom2} may also be integers or floats.
 The two atoms match if:
 \begin{shortlist}
@@ -6096,7 +6096,7 @@ return values are (in the same order as above): \const{equal},
 \const{mismatched_char}, \const{inserted_char}, \const{transposed_char},
 \const{separated} and \const{transposed_word}.
     \predicate{wildcard_match}{2}{+Pattern, +String}
-Succeeds if \arg{String} matches the wildcard pattern \arg{Pattern}.
+True if \arg{String} matches the wildcard pattern \arg{Pattern}.
 \arg{Pattern} is very similar the the Unix csh pattern matcher. The
 patterns are given below:
 

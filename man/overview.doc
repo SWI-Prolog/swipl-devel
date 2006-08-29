@@ -1328,8 +1328,8 @@ easier for implementing version-conditional statements.
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
 If present and \const{true}, the operating system is an implementation
-of Microsoft Windows (3.1, 95/98/ME, NT/2000/XP, etc.). This flag is
-only available on MS-Windows based versions.
+of Microsoft Windows (NT/2000/XP, etc.). This flag is only available on
+MS-Windows based versions.
 
     \prologflagitem{write_attributes}{atom}{rw}
 Defines how write/1 an friends write attributed variables.  The option
