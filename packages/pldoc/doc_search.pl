@@ -85,6 +85,10 @@ search_form(Options) -->
 			  span(class('search-match'),
 			       [ \radio(match, name, 'Name', Match),
 				 \radio(match, summary, 'Summary', Match)
+			       ]),
+			  span(class('search-help'),
+			       [ a(href('/package/pldoc.html#sec:browser'),
+				   'Help')
 			       ])
 			])
 		  ])).

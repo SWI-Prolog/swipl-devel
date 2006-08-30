@@ -225,7 +225,7 @@ analysis [Ciao assertion language, O'Keefe and Mycroft, Mercury].
 \end{verbatim}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Tags}
+\section{Tags: \chr{@}param, etc.}
 \label{sec:tags}
 
 Optionally, the description may be followed by one or more \emph{tags}.
@@ -418,7 +418,7 @@ A directory index consists of the contents of the file \file{README}
 (or \file{README.TXT}, followed by a table holding all currently loaded
 source-files that appear below the given directory (i.e.\ traversal is
 \emph{recursive} and for each file a list of public predicates and their
-descriptive summary.  Finally, if a file \file{TODO} or \file{TODO.txt}
+descriptive summary.  Finally, if a file \file{TODO} or \file{TODO.TXT}
 exists, use add its contents at the end of the directory index.
 
 
@@ -502,6 +502,82 @@ the hosting machine from all locations in a domain is given below.
 \end{code}
  \end{description}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Using the browser interface}
+\label{sec:browser}
+
+The documentation system is normally accessed from a web-browser after
+starting the server using doc_server/1.  This section briefly explains
+the user-interface provided from the browser.
+
+\subsubsection{Searching}
+
+The top-right of the screen provides a search-form. The search string
+typed is searched as a substring and case-insensitive. Multiple strings
+seperated by spaces search for the intersection. Searching for objects
+that do not contain a string is written as \chr{-}<string>.  A search
+for adjacent strings is specified as \chr{"}<string>\chr{"}.  Here
+are some examples:
+
+\begin{center}
+\begin{tabular}{|l|p{0.6\linewidth}|}
+\hline
+\tt load file	& Searches for all objects with the strings
+		  \texttt{load} and \texttt{file}. \\
+\tt load -file  & Searches for objects with \texttt{load}, but
+		  \emph{without} \texttt{file}. \\
+\tt "load file" & Searches for the string \texttt{load file}.\\
+\hline
+\end{tabular}
+\end{center}
+
+The two radio-buttons below the search box can be used to limit the
+search. \textsf{All} searches both the application and manuals.
+Searching for \textsf{Summary} also implies \textsf{Name}.
+
+\subsubsection{Views}
+
+The web-browser supports several views, which we briefly summarise
+here:
+
+\begin{itemlist}
+    \item [ Directory ]
+In directory-view mode, the contents of a directory holding Prolog
+source-files is shown file-by-file in a summary-table.   In addition,
+the contents of the \file{README} and \file{TODO} files is given.
+
+    \item [ Source File ]
+When showing a Prolog source-file it displays the module documentation
+from the \verb$/** <module ... */$ comment and the public predicates
+with their full documentation.  Using the zoom button the user can
+select to view both public and documentated private predicates.
+
+    \item [ Predicate ]
+When selecting a predicate link the system presents a page with the
+documentation of the predicate.  The navigation bar allows switching
+to the Source File if the documentation comes from source or the
+containing section if the documentation comes from a manual.
+
+    \item [ Section ]
+Section from the manual. The navigation bars allows viewing the
+enclosing section (\emph{Up}).
+\end{itemlist}
+
+
+\subsubsection{Editing}
+
+If the browser is accessed from \const{localhost}, each object that
+is related to a known source-location has an edit icon at the right
+side.  Clicking this calls edit/1 on the object, calling the user's
+default editor in the file.  To use the built-in PceEmacs editor,
+either set the Prolog flag \const{editor} to \const{pce_emacs} or
+run \exam{?- emacs.} before clicking an edit button.
+
+Prolog source-files have a \emph{reload} button attached. Clicking this
+reloads the sourcefile if it was modified and refreshes the page. This
+supports a comfortable edit-view loop to maintain the source-code
+documentation.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

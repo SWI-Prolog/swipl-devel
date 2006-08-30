@@ -101,7 +101,10 @@ doc_server(Port, Options) :-
 	append(ServerOptions,		% Put provides options first,
 	       [ port(Port),		% so they override our defaults
 		 timeout(60),
-		 keep_alive_timeout(1)
+		 keep_alive_timeout(1),
+		 local(4000),		% keep stack sizes independent
+		 global(4000),		% from main application
+		 trail(4000)
 	       ], HTTPOptions),
 	http_server(doc_reply, HTTPOptions),
 	print_message(informational, pldoc(server_started(Port))).
@@ -144,7 +147,10 @@ doc_reply(Request) :-
 	(   allowed_peer(Peer)
 	->  memberchk(path(Path), Request),
 	    debug(pldoc, 'HTTP ~q', [Path]),
-	    reply(Path, Request)
+	    (	reply(Path, Request)
+	    ->	true
+	    ;	throw(http_reply(not_found(Path)))
+	    )		      
 	;   throw(http_reply(forbidden(/)))
 	).
 
@@ -249,39 +255,6 @@ ensure_slash_end(Dir, Dir) :-
 ensure_slash_end(Dir0, Dir) :-
 	atom_concat(Dir0, /, Dir).
 
-%	/sidebar.html
-%	
-%	Reply with main menu.
-
-reply('/sidebar.html', _Request) :- !,
-	findall(File, documented_file(File), Files0),
-	sort(Files0, Files),
-	reply_page('Sidebar',
-		   [ p(file),
-		     p(\src_files(Files))
-		   ]).
-
-documented_file(File) :-
-	doc_comment(_, File:_, _, _).
-
-src_files([]) -->
-	[].
-src_files([H|T]) -->
-	src_file(H),
-	src_files(T).
-
-src_file(File) -->
-	{ format(string(FileRef), '/doc~w', [File]),
-	  file_base_name(File, Base),
-	  file_directory_name(File, Path),
-	  file_base_name(Path, Parent),
-	  format(string(Title), '.../~w/~w', [Parent, Base])
-	},
-	html([ a([target=main, href=FileRef], Title),
-	       br([])
-	     ]).
-
-
 %	/file?file=REF
 %	
 %	Reply using documentation of file
@@ -290,6 +263,10 @@ reply('/file', Request) :-
 	http_parameters(Request,
 			[ file(File, [])
 			]),
+	(   source_file(File)
+	->  true
+	;   throw(http_reply(forbidden(File)))
+	),
 	format('Content-type: text/html~n~n'),
 	doc_for_file(File, current_output, []).
 
@@ -425,15 +402,6 @@ clean_path(Path0, Path) :-
 clean_path(Path, Path).
 
 
-%	/welcome.html
-%	
-%	Initial empty page
-
-
-reply('/welcome.html', _Request) :- !,
-	reply_page('Welcome', []).
-
-
 %	/pldoc.css
 %	
 %	Reply the documentation style-sheet.
@@ -515,6 +483,21 @@ reply('/search', Request) :-
 				   | EditOptions
 				   ])
 		   ]).
+
+%	/package/Name
+%	
+%	Show documentation file of a package.  Exploits the file
+%	search path =package_documentation=.
+
+reply(Path, _Request) :-
+	atom_concat('/package/', Package, Path), !,
+	absolute_file_name(package_documentation(Package),
+			   DocFile,
+			   [ access(read),
+			     file_errors(fail)
+			   ]),
+	reply_file(DocFile).
+
 
 
 		 /*******************************

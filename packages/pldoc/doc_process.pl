@@ -194,7 +194,7 @@ doc_comment(Object, Pos, Summary, Comment) :-
 	    Object = [Object0|QLs]
 	;   Object = Object0
 	).
-doc_comment(M:Object, Pos, Summary, Comment) :-
+doc_comment(M:Object, Pos, Summary, Comment) :- !,
 	current_module(M),
 	'$c_current_predicate'(_, M:'$pldoc'(_,_,_,_)),
 	(   M:'$pldoc'(Object, Pos, Summary, Comment)
@@ -202,11 +202,17 @@ doc_comment(M:Object, Pos, Summary, Comment) :-
 	    M:'$pldoc_link'(Object, Obj2),
 	    M:'$pldoc'(Obj2, Pos, Summary, Comment)
 	).
+doc_comment(Name/Arity, Pos, Summary, Comment) :-
+	system_module(M),
+	doc_comment(M:Name/Arity, Pos, Summary, Comment).
 
-qualify(system, H, H) :- !.
-qualify(user,   H, H) :- !.
-qualify(M,      H, H) :- sub_atom(M, 0, _, _, $), !.
-qualify(M,      H, M:H).
+
+qualify(M, H, H) :- system_module(M), !.
+qualify(M, H, H) :- sub_atom(M, 0, _, _, $), !.
+qualify(M, H, M:H).
+
+system_module(user).
+system_module(system).
 
 
 		 /*******************************

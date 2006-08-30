@@ -88,10 +88,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -137,7 +133,8 @@ comments</SPAN></A></DIV>
 and section comments</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Type 
 and mode declarations</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Tags</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Tags: <CODE>@</CODE>param, 
+etc.</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Wiki 
 notation</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:7.1"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Structuring 
@@ -150,6 +147,13 @@ indices</SPAN></A></DIV>
 the documentation system</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">During 
 development</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:9.2"><SPAN class="sec-nr">9.2</SPAN><SPAN class="sec-title">As 
+a manual server</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:9.3"><SPAN class="sec-nr">9.3</SPAN><SPAN class="sec-title">Using 
+the browser interface</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:9.3.1"><SPAN class="sec-nr">9.3.1</SPAN><SPAN class="sec-title">Searching</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:9.3.2"><SPAN class="sec-nr">9.3.2</SPAN><SPAN class="sec-title">Views</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:9.3.3"><SPAN class="sec-nr">9.3.3</SPAN><SPAN class="sec-title">Editing</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
 of choices</SPAN></A></DIV>
 </DIV>
@@ -182,8 +186,8 @@ as well as the team,
 </UL>
 
 <P>First, we describe the documentation system we developed for 
-SWI-Prolog. In <A class="sec" href="#sec:10">section 10</A> we motivate 
-our main choices.
+SWI-Prolog. In <A class="sec" href="#sec:motivation">section 10</A> we 
+motivate our main choices.
 
 <H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></H2>
 
@@ -212,15 +216,15 @@ comments</SPAN></A></H2>
 one that seen most in the Prolog community and the block-comment (<CODE>/*</CODE>...<CODE>*/</CODE>) 
 based one commonly seen in the Java and C domain. As we cannot determine 
 the argument-names, type and modes from following (predicate) code 
-itself, we must supply this in the comment.<SUP class="fn">1<SPAN class="fn-text">See <A class="sec" href="#sec:10">section 
+itself, we must supply this in the comment.<SUP class="fn">1<SPAN class="fn-text">See <A class="sec" href="#sec:motivation:modes">section 
 10</A>.</SPAN></SUP>. The overall structure of the comment therefore is:
 
 <P><UL COMPACT>
-<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:5">section 
+<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:modes">section 
 5</A>
-<LI>Wiki-style documentation body, see <A class="sec" href="#sec:7">section 
+<LI>Wiki-style documentation body, see <A class="sec" href="#sec:wiki">section 
 7</A>
-<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:6">section 
+<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:tags">section 
 6</A>)
 </UL>
 
@@ -327,7 +331,7 @@ for any type. </TD></TR>
 <TR VALIGN=top><TD>@</TD><TD>Argument is not further instantiated. </TD></TR>
 <TR VALIGN=top><TD>!</TD><TD>Argument contains a mutable structure that 
 may be modified using
-<A NAME="idx:setarg3:1"></A><SPAN class="pred-ext">setarg/3</SPAN> or <A NAME="idx:nbsetarg3:2"></A><SPAN class="pred-ext">nb_setarg/3</SPAN>. </TD></TR>
+<A NAME="idx:setarg3:1"></A><B>setarg/3</B> or <A NAME="idx:nbsetarg3:2"></A><B>nb_setarg/3</B>. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -349,7 +353,8 @@ system that allows for runtime verification and static type analysis
 %       @compat iso
 </PRE>
 
-<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Tags</SPAN></A></H2>
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Tags: <CODE>@</CODE>param, 
+etc.</SPAN></A></H2>
 
 <A NAME="sec:tags"></A>
 
@@ -452,7 +457,7 @@ is common to describe the behaviour on different terms. Such lists must
 be written as below. &lt;<VAR>Term1</VAR>&gt;, etc. must be valid Prolog 
 terms and end in the newline. The Wiki adds <CODE>' . '</CODE> to the 
 text and reads it using the operator definitions also used to read the 
-mode terms. See <A class="sec" href="#sec:5">section 5</A>.
+mode terms. See <A class="sec" href="#sec:modes">section 5</A>.
 
 <PRE class="code">
    * Term1
@@ -479,7 +484,7 @@ lines that parse into a table-row together for a table. Example:
 <DD>
 Section headers are creates using one of the constructs below taken from 
 TWiki. Section headers are normally not used in the source-code, but can 
-be useful inside README and TODO files. See <A class="sec" href="#sec:8">section 
+be useful inside README and TODO files. See <A class="sec" href="#sec:dirindex">section 
 8</A>.
 
 <PRE class="code">
@@ -567,7 +572,7 @@ indices</SPAN></A></H2>
 loaded source-files that appear below the given directory (i.e. traversal 
 is
 <EM>recursive</EM> and for each file a list of public predicates and 
-their descriptive summary. Finally, if a file <CODE>TODO</CODE> or <CODE>TODO.txt</CODE> 
+their descriptive summary. Finally, if a file <CODE>TODO</CODE> or <CODE>TODO.TXT</CODE> 
 exists, use add its contents at the end of the directory index.
 
 <H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Running 
@@ -604,7 +609,7 @@ Provided options are:
 Allow connections from <VAR>HostOrIP</VAR>. If <VAR>Host</VAR> is an 
 atom starting with a '.', suffix matching is preformed. I.e. 
 <CODE>allow('.uva.nl')</CODE> grants access to all machines in this 
-domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><SPAN class="pred-ext">ip/4</SPAN> 
+domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><B>ip/4</B> 
 term. I.e. to allow access from the 10.0.0.X domain, specify
 <CODE>allow(ip(10,0,0,_))</CODE>.</DD>
 <DT><STRONG>deny</STRONG>(<VAR>+HostOrIP</VAR>)</DT>
@@ -622,7 +627,131 @@ Deny access from the given location. Matching is equal to the
 <LI><EM>allow</EM> does not exit and <EM>deny</EM> does not match.
 </UL>
 </DD>
+<DT class="pubdef"><A NAME="doc_browser/0"><STRONG>doc_browser</STRONG></A></DT>
+<DD class="defbody">
+Open the user's default browser on the running documentation server. 
+Fails if no server is running.</DD>
+<DT class="pubdef"><A NAME="doc_browser/1"><STRONG>doc_browser</STRONG>(<VAR>+Spec</VAR>)</A></DT>
+<DD class="defbody">
+Open the user's default browser on the specified page. <VAR>Spec</VAR> 
+is handled similar to <A NAME="idx:edit1:4"></A><B>edit/1</B>, resolving 
+anything that relates somehow to the given specification and ask the 
+user to select.<SUP class="fn">bug<SPAN class="fn-text">This flexibility 
+is not yet implemented</SPAN></SUP>.
+</DD>
 </DL>
+
+<H3><A NAME="sec:9.2"><SPAN class="sec-nr">9.2</SPAN><SPAN class="sec-title">As 
+a manual server</SPAN></A></H3>
+
+<A NAME="sec:manserver"></A>
+
+<P>The library <CODE>library(doc/doc_library)</CODE> defines <A NAME="idx:docloadlibrary0:5"></A><A class="pred" href="#doc_load_library/0">doc_load_library/0</A> 
+to load the entire library.
+
+<DL>
+<DT class="pubdef"><A NAME="doc_load_library/0"><STRONG>doc_load_library</STRONG></A></DT>
+<DD class="defbody">
+Load all library files. This is intended to setup a local documentation 
+server. A typical scenario, making the server available at port 4000 of 
+the hosting machine from all locations in a domain is given below.
+
+<PRE class="code">
+:- doc_server(4000,
+              [ allow('.my.org')
+              ]).
+:- use_module(library('doc/doc_library')).
+:- doc_load_library.
+</PRE>
+
+<P></DD>
+</DL>
+
+<H3><A NAME="sec:9.3"><SPAN class="sec-nr">9.3</SPAN><SPAN class="sec-title">Using 
+the browser interface</SPAN></A></H3>
+
+<A NAME="sec:browser"></A>
+
+<P>The documentation system is normally accessed from a web-browser 
+after starting the server using <A NAME="idx:docserver1:6"></A><A class="pred" href="#doc_server/1">doc_server/1</A>. 
+This section briefly explains the user-interface provided from the 
+browser.
+
+<H4><A NAME="sec:9.3.1"><SPAN class="sec-nr">9.3.1</SPAN><SPAN class="sec-title">Searching</SPAN></A></H4>
+
+<P>The top-right of the screen provides a search-form. The search string 
+typed is searched as a substring and case-insensitive. Multiple strings 
+seperated by spaces search for the intersection. Searching for objects 
+that do not contain a string is written as <CODE>-</CODE>&lt;<VAR>string</VAR>&gt;. 
+A search for adjacent strings is specified as <CODE>"</CODE>&lt;<VAR>string</VAR>&gt;<CODE>"</CODE>. 
+Here are some examples:
+
+<P>
+<CENTER>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><TT>load file</TT></TD><TD>Searches for all objects 
+with the strings
+<TT>load</TT> and <TT>file</TT>. </TD></TR>
+<TR VALIGN=top><TD><TT>load -file</TT></TD><TD>Searches for objects with <TT>load</TT>, 
+but
+<EM>without</EM> <TT>file</TT>. </TD></TR>
+<TR VALIGN=top><TD><TT>"load file"</TT></TD><TD>Searches for the string <TT>load 
+file</TT>.</TD></TR>
+</TABLE>
+
+</CENTER>
+
+<P>The two radio-buttons below the search box can be used to limit the 
+search. <B>All</B> searches both the application and manuals. Searching 
+for <B>Summary</B> also implies <B>Name</B>.
+
+<H4><A NAME="sec:9.3.2"><SPAN class="sec-nr">9.3.2</SPAN><SPAN class="sec-title">Views</SPAN></A></H4>
+
+<P>The web-browser supports several views, which we briefly summarise 
+here:
+
+<P>
+<UL>
+<LI><I> Directory</I><BR>
+In directory-view mode, the contents of a directory holding Prolog 
+source-files is shown file-by-file in a summary-table. In addition, the 
+contents of the <CODE>README</CODE> and <CODE>TODO</CODE> files is 
+given.
+
+<P>
+<LI><I> Source File</I><BR>
+When showing a Prolog source-file it displays the module documentation 
+from the <CODE>/** &lt;module ... */</CODE> comment and the public 
+predicates with their full documentation. Using the zoom button the user 
+can select to view both public and documentated private predicates.
+
+<P>
+<LI><I> Predicate</I><BR>
+When selecting a predicate link the system presents a page with the 
+documentation of the predicate. The navigation bar allows switching to 
+the Source File if the documentation comes from source or the containing 
+section if the documentation comes from a manual.
+
+<P>
+<LI><I> Section</I><BR>
+Section from the manual. The navigation bars allows viewing the 
+enclosing section (<EM>Up</EM>).
+</UL>
+
+<H4><A NAME="sec:9.3.3"><SPAN class="sec-nr">9.3.3</SPAN><SPAN class="sec-title">Editing</SPAN></A></H4>
+
+<P>If the browser is accessed from <CODE>localhost</CODE>, each object 
+that is related to a known source-location has an edit icon at the right 
+side. Clicking this calls <A NAME="idx:edit1:7"></A><B>edit/1</B> on the 
+object, calling the user's default editor in the file. To use the 
+built-in PceEmacs editor, either set the Prolog flag <CODE>editor</CODE> 
+to <CODE>pce_emacs</CODE> or run <CODE>?- emacs.</CODE> before clicking 
+an edit button.
+
+<P>Prolog source-files have a <EM>reload</EM> button attached. Clicking 
+this reloads the sourcefile if it was modified and refreshes the page. 
+This supports a comfortable edit-view loop to maintain the source-code 
+documentation.
 
 <H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
 of choices</SPAN></A></H2>
@@ -720,15 +849,30 @@ high-quality PDF documents.
 <DT><STRONG>D</STRONG></DT>
 <DD>
 </DD>
+<DT><A class="idx" href="#doc_browser/0">doc_browser/0</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#doc_browser/1">doc_browser/1</A></DT>
+<DD>
+</DD>
 <DT><A class="idx" href="#doc_collect/1">doc_collect/1</A></DT>
 <DD>
 </DD>
+<DT><A class="idx" href="#doc_load_library/0">doc_load_library/0</A></DT>
+<DD>
+<A class="idx" href="#idx:docloadlibrary0:5">9.2</A></DD>
 <DT><A class="idx" href="#doc_server/1">doc_server/1</A></DT>
 <DD>
-</DD>
+<A class="idx" href="#idx:docserver1:6">9.3</A></DD>
 <DT><A class="idx" href="#doc_server/2">doc_server/2</A></DT>
 <DD>
 </DD>
+<DT><STRONG>E</STRONG></DT>
+<DD>
+</DD>
+<DT>edit/1</DT>
+<DD>
+<A class="idx" href="#idx:edit1:4">9.1</A> <A class="idx" href="#idx:edit1:7">9.3.3</A></DD>
 <DT><STRONG>I</STRONG></DT>
 <DD>
 </DD>
