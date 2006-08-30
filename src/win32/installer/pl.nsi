@@ -384,6 +384,8 @@ Section "Documentation package"
   File pl\doc\packages\pldoc.html
   SetOutPath $INSTDIR\doc
   File /r pl\doc\Manual
+  SetOutPath $INSTDIR\doc\packages\examples
+  File /r pl\doc\packages\examples\pldoc
 SectionEnd
 
 Section "C Debugging Symbols (.pdb files)"

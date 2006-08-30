@@ -36,6 +36,7 @@
 	    http_current_worker/2	% ?Port, ?ThreadID
 	  ]).
 :- use_module(library(debug)).
+:- use_module(library(lists)).
 :- use_module(http_wrapper).
 
 /** <module> Threaded HTTP server
