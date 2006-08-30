@@ -37,6 +37,7 @@
 :- use_module(library(occurs)).
 :- use_module(library(option)).
 :- use_module(doc_process).
+:- use_module(library('http/dcg_basics')).
 :- use_module(doc_html).
 :- use_module(doc_index).
 :- include(hooks).
@@ -295,22 +296,78 @@ matching_object(Search, Type-(Section-Obj), Options) :-
 	option(search_in(In), Options, all),
 	prolog:doc_object_summary(Obj, Type, Section, _),
 	matching_category(In, Type).
-matching_object(Search, Type-(Section-Obj), Options) :-
+matching_object(Search, Match, Options) :-
+	atom_codes(Search, Codes),
+	phrase(search_spec(For), Codes),
+	exec_search(For, Match, Options).
+
+%%	exec_search(+Spec, -Match, +Options) is nondet.
+%
+%	Spec is one of
+%	
+%		* and(Spec, Spec)
+%		Intersection of the specification
+%		
+%		* not(Spec)
+%		Negation of the specification
+
+exec_search(and(A, B), Match, Options) :- !,
+	exec_search(A, Match, Options),
+	exec_search(B, Match, Options).
+exec_search(Search, Type-(Section-Obj), Options) :-
 	option(search_in(In), Options, all),
 	option(search_match(Match), Options, summary),
 	prolog:doc_object_summary(Obj, Type, Section, Summary),
 	matching_category(In, Type),
-	(   Match == summary,
-	    apropos_match(Search, Summary)
-	->  true
-	;   sub_term(S, Obj),
-	    atom(S),
-	    apropos_match(Search, S)
+	(   Search = not(For)
+	->  \+ (   Match == summary,
+	           apropos_match(For, Summary)
+	       ->  true
+	       ;   sub_term(S, Obj),
+		   atom(S),
+		   apropos_match(For, S)
+	       )
+	;   (   Match == summary,
+	        apropos_match(Search, Summary)
+	    ->  true
+	    ;   sub_term(S, Obj),
+		atom(S),
+		apropos_match(Search, S)
+	    )
 	).
 	
+
 matching_category(all, _).
 matching_category(app, application).
 matching_category(man, manual).
+
+%%	search_spec(-Search)// is det.
+%
+%	Break a search string from the user into a logical expression.
+
+search_spec(Spec) -->
+	blanks,
+	prim_search_spec(A),
+	blanks,
+	(   eos
+	->  { Spec = A }
+	;   search_spec(B)
+	->  { Spec = and(A,B) }
+	).
+
+prim_search_spec(Quoted) -->
+	"\"", string(Codes), "\"", !,
+	{ atom_codes(Quoted, Codes)
+	}.
+prim_search_spec(Spec) -->
+	nonblanks(Codes),
+	{   Codes = [0'-|Rest]
+	->  atom_codes(Word, Rest),
+	    Spec = not(Word)
+	;   Codes \== "",
+	    atom_codes(Spec, Codes)
+	}.
+	  
 
 %%	object_summary(?Object, ?Category, ?Section, ?Summary) is nondet.
 %

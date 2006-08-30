@@ -480,6 +480,29 @@ the given specification and ask the user to select.%
 	\bug{This flexibility is not yet implemented}.
 \end{description}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{As a manual server}
+\label{sec:manserver}
+
+The library \pllib{doc/doc_library} defines doc_load_library/0 to
+load the entire library.
+
+\begin{description}
+    \predicate{doc_load_library}{0}{}
+Load all library files.  This is intended to setup a local documentation
+server.  A typical scenario, making the server available at port 4000 of
+the hosting machine from all locations in a domain is given below.
+
+\begin{code}
+:- doc_server(4000,
+	      [ allow('.my.org')
+	      ]).
+:- use_module(library('doc/doc_library')).
+:- doc_load_library.
+\end{code}
+ \end{description}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Motivation of choices}

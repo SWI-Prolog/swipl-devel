@@ -41,6 +41,7 @@
 :- use_module(library('http/html_write')).
 :- use_module(library('http/mimetype')).
 :- use_module(library('debug')).
+:- use_module(library('lists')).
 :- use_module(pldoc(doc_process)).
 :- use_module(pldoc(doc_html)).
 :- use_module(pldoc(doc_index)).
@@ -97,12 +98,12 @@ doc_server(Port, _) :-
 doc_server(Port, Options) :-
 	prepare_editor,
 	auth_options(Options, ServerOptions),
-	http_server(doc_reply,
-                    [ port(Port),
-                      timeout(60),
-		      keep_alive_timeout(1)
-                    | ServerOptions
-                    ]),
+	append(ServerOptions,		% Put provides options first,
+	       [ port(Port),		% so they override our defaults
+		 timeout(60),
+		 keep_alive_timeout(1)
+	       ], HTTPOptions),
+	http_server(doc_reply, HTTPOptions),
 	print_message(informational, pldoc(server_started(Port))).
 
 doc_current_server(Port) :-
