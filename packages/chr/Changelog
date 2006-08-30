@@ -1,3 +1,8 @@
+Aug 30, 2006
+
+  * JW: Fixed make clean
+  * JW: Enlarged stacks to make build succeed
+
 Aug 24, 2006
 
   * JW: Add target ln-install
