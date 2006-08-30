@@ -29,6 +29,13 @@
     the GNU General Public License.
 */
 
+:- module(prolog_explain,
+	  [ explain/1,
+	    explain/2
+	  ]).
+:- use_module(library(helpidx)).
+:- use_module(library(lists)).
+
 /** <module> Describe Prolog Terms
 
 The   library(explain)   describes   prolog-terms.   The   most   useful
@@ -49,13 +56,6 @@ lists:subset/2 is a predicate defined in
 Note  that  the  help-tool  for   XPCE    provides   a   nice  graphical
 cross-referencer.
 */
-
-:- module(prolog_explain,
-	  [ explain/1,
-	    explain/2
-	  ]).
-:- use_module(library(helpidx)).
-:- use_module(library(lists)).
 
 %%	explain(@Term) is det
 %
