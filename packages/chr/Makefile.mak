@@ -53,10 +53,10 @@ chr_translate.pl: chr_translate.chr chr_translate_bootstrap2.pl guard_entailment
 		$(PL) -q -f chr_swi_bootstrap.pl \
 		      -g "chr_compile_step3('chr_translate.chr','chr_translate.pl'),halt" \
 		      -t 'halt(1)'
-		$(PL) -p chr=. -q -f chr_swi_bootstrap.pl \
+		$(PL) -L50M -G50M -T20M -p chr=. -q -f chr_swi_bootstrap.pl \
 		      -g "chr_compile_step4('guard_entailment.chr','guard_entailment.pl'),halt" \
 		      -t 'halt(1)'
-		$(PL) -L10M -p chr=. -q -f chr_swi_bootstrap.pl \
+		$(PL) -L50M -G50M -T20M -p chr=. -q -f chr_swi_bootstrap.pl \
 		      -g "chr_compile_step4('chr_translate.chr','chr_translate.pl'),halt" \
 		      -t 'halt(1)'
 
