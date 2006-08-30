@@ -14,6 +14,7 @@ XPCEBASE=$(PLBASE)/xpce
 PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 LIBDIR=$(PLBASE)/library/pldoc
+EXDIR=$(PKGDOC)/examples/pldoc
 DESTDIR=
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
@@ -37,6 +38,8 @@ SUPPORT=	pldoc.css pldoc.js \
 		up.gif
 DOCALL=		$(LIBPL) $(SUPPORT)
 PUBPL=		pldoc.pl doc_http.pl
+EXAMPLES=	doc_log.pl README
+EXAMPLEEXE=	man_server.pl
 
 all:		
 		@echo "Nothing to do for this package"
@@ -68,6 +71,9 @@ html-install:	install-examples
 		$(INSTALL_DATA) $(DOC).html $(DESTDIR)$(PKGDOC)
 
 install-examples::
+		mkdir -p $(DESTDIR)$(EXDIR)
+		(cd server && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(EXDIR))
+		(cd server && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(DESTDIR)$(EXDIR))
 
 uninstall::
 		(cd $(LIBDIR) && rm -f $(LIBPL))

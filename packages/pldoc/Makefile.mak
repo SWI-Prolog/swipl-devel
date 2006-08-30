@@ -21,6 +21,8 @@ SUPPORT=	pldoc.css pldoc.js \
 		edit.gif zoomin.gif zoomout.gif reload.gif favicon.ico \
 		up.gif
 DOCALL=		$(LIBPL) $(SUPPORT)
+EXAMPLES=	doc_log.pl README
+EXAMPLEEXE=	man_server.pl
 
 all:		
 
@@ -43,6 +45,9 @@ pdf-install:	install-examples
 		copy pldoc.pdf "$(PKGDOC)"
 
 install-examples::
+		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"
+		cd server & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
+		cd server & copy $(EXAMPLEEXE) "$(EXDIR)"
 
 xpce-install::
 

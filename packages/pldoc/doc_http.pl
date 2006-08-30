@@ -55,6 +55,9 @@ server that allows for browsing the   documentation  of all files loaded
 _after_ library(pldoc) has been loaded.
 */
 
+:- multifile
+	log_hook/3.			% +Port, +ReqNr, +Result
+
 %%	doc_server(?Port) is det.
 %%	doc_server(?Port, +Options) is det.
 %
@@ -107,6 +110,7 @@ doc_server(Port, Options) :-
 		 trail(4000)
 	       ], HTTPOptions),
 	http_server(doc_reply, HTTPOptions),
+	call_log_hook(started, 0, port(Port)),
 	print_message(informational, pldoc(server_started(Port))).
 
 doc_current_server(Port) :-
@@ -143,6 +147,12 @@ prepare_editor.
 
 
 doc_reply(Request) :-
+	flag('$pldoc_current_request', N, N+1),
+	call_log_hook(enter, N, Request),
+	call_cleanup(do_reply(Request), Why,
+		     call_log_hook(exit, N, Why)).
+
+do_reply(Request) :-
 	memberchk(peer(Peer), Request),
 	(   allowed_peer(Peer)
 	->  memberchk(path(Path), Request),
@@ -153,6 +163,16 @@ doc_reply(Request) :-
 	    )		      
 	;   throw(http_reply(forbidden(/)))
 	).
+
+
+%%	call_log_hook(+Port, +ReqNR, +Data)
+%
+%	Call log_hook/3, but always succeed.
+
+call_log_hook(Port, ReqNR, Data) :-
+	log_hook(Port, ReqNR, Data), !.
+call_log_hook(_, _, _).
+
 
 		 /*******************************
 		 *	  ACCESS CONTROL	*
