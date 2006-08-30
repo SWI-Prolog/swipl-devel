@@ -34,6 +34,7 @@
 	    expand_url_path/2		% +Spec, -URL
 	  ]).
 :- use_module(library(lists)).
+:- use_module(library(readutil)).
 
 %%	www_open_url(+Url)
 %
@@ -86,10 +87,25 @@ www_open_url(Browser, URL) :-
 	format(string(Cmd), '"~w" "~w" &', [Browser, URL]),
 	shell(Cmd).
 
+%%	netscape_remote(+Browser, +Format, +Args) is semidet.
+%
+%	Execute netscape remote command using =|-remote|=. Create the
+%	remote command using format/3 from Format and Args.
+%	
+%	@bug	At least firefox gives always 0 exit code on -remote,
+%		so we must check the error message.  Grrrr.
+
 netscape_remote(Browser, Fmt, Args) :-
 	format(string(RCmd), Fmt, Args),
-	format(string(Cmd), '"~w" -remote "~w"', [Browser, RCmd]),
-	shell(Cmd, 0).
+	format(string(Cmd), '"~w" -remote "~w" 2>&1', [Browser, RCmd]),
+	open(pipe(Cmd), read, In),
+	call_cleanup(read_stream_to_codes(In, Codes),
+		     close(In)),
+	(   append("Error:", _, Codes)
+	->  !, fail
+	;   true
+	).
+	
 
 compatible(Browser, With) :-
 	file_base_name(Browser, Base),
