@@ -50,7 +50,8 @@ load_all([H|T]) :-
 	load_all(T).
 load_all(Dir0) :-
 	atom(Dir0),
-	expand_file_name(Dir0, [Dir]),
+	expand_file_name(Dir0, [Dir1]),
+	downcase_atom(Dir1, Dir),	% Deal with Windows
 	\+ ( blocked(Blocked),
 	     sub_atom(Dir, _, _, 0, Blocked)
 	   ),
@@ -61,8 +62,9 @@ load_all(Dir0) :-
 load_all(File) :-
 	atom(File),
 	file_name_extension(_, pl, File),
+	downcase_atom(File, LwrCase),
 	\+ ( blocked(Blocked),
-	     sub_atom(File, _, _, 0, Blocked)
+	     sub_atom(LwrCase, _, _, 0, Blocked)
 	   ), !,
 	use_module(File, []).
 load_all(Spec) :-
@@ -79,6 +81,8 @@ load_all(_).
 %	True if file or directory should not   be loaded. Note that file
 %	from the directory chr are  already   loaded  by chr.pl. Similar
 %	arguments apply for a few others.
+%	
+%	@bug	We force lowercase to make it also work on Windows
 
 blocked('/chr').
 blocked('/clpq').
@@ -88,4 +92,4 @@ blocked('/checkselect.pl').
 blocked('/checklast.pl').
 %blocked('/jpl.pl').			% should be added
 blocked('/pldoc.pl').
-blocked('/INDEX.pl').
+blocked('/index.pl').
