@@ -75,14 +75,17 @@ shell_register_prolog(Ext) :-
 		 *     WINDOWS SHELL STUFF	*
 		 *******************************/
 
-%%	shell_register_file_type(+Extension, +Type, +Name, +Open, [+Icon])
+%%	shell_register_file_type(+Ext, +Type, +Name, +Open) is det.
+%%	shell_register_file_type(+Ext, +Type, +Name, +Open, +Icon) is det.
 %
 %	Register an extension to a type.  The open command for the type
 %	is defined and files with this extension will be given Name as
 %	their description in the explorer.  For example:
 % 
+% 	==
 %	?- shell_register_file_type(pl, 'prolog.type', 'Prolog Source',
 %				    '"c:\\pl\\bin\\plwin.exe" "%1"').
+%	==
 %				    
 %	The icon command is of the form File.exe,N or File.ico,0
 
@@ -102,13 +105,18 @@ ensure_dot(Ext, Ext) :-
 ensure_dot(Ext, DExt) :-
 	atom_concat('.', Ext, DExt).
 
+%%	shell_register_dde(+Type, +Action, +Service,
+%%			   +Topic, +DDECommand, +IfNotRunning) is det.
+%
 %	Register a DDE command for the type.  The example below will
 %	send DDE_EXECUTE command `consult('<File>') to the service
 %	prolog, given the topic control.
 %
+%	==
 %	shell_register_dde('prolog.type', consult,
 %			   prolog, control, 'consult(''%1'')',
 %			   'c:\\pl\\bin\\plwin.exe -g "edit(''%1'')"').
+%	==
 
 shell_register_dde(Type, Action, Service, Topic, DDECommand, IfNotRunning) :-
 	registry_make_key(classes_root/Type/shell/Action/ddeexec,
@@ -131,7 +139,8 @@ as a Prolog operator. For example, classes_root/'prolog.type'/shell. The
 components should be atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%%	registry_set_key(+Path, [+Name], +Value)
+%%	registry_set_key(+Path, +Value) is det.
+%%	registry_set_key(+Path, +Name, +Value) is det.
 %
 %	Associate a (string) value with the key described by Path.  If
 %	part of the path does not exist, the required keys will be created.
@@ -143,7 +152,8 @@ registry_set_key(Path, Name, Value) :-
 	reg_set_value(Key, Name, Value),
 	Close.
 	
-%%	registry_get_key(+Path, [+Name], -Value)
+%%	registry_get_key(+Path, -Value) is semidet.
+%%	registry_get_key(+Path, +Name, -Value) is semidet.
 %
 %	Get the value associated with the given key.  If the key does not
 %	exists, the predicate fails silently.

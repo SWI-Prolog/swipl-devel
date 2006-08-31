@@ -78,7 +78,8 @@ progman_group_info(Group, File, Items) :-
 	line_to_args(GrounInfo, [_,File|_]),
 	maplist(map_item_info, ItemLines, Items).
 
-%%	progman_make_group(+Name, [+File])
+%%	progman_make_group(+Name) is det.
+%%	progman_make_group(+Name, +File) is det.
 %
 %	Create a group in the program manager.  If file is given, this
 %	is the file used by Windows to store the group info.
@@ -284,5 +285,5 @@ read_chars([]).
 %	Utility predicate to create DDE commands from a formatted spec.
 
 dde_fmt_execute(DDE, Fmt, Args) :-
-	sformat(Cmd, Fmt, Args),
+	format(string(Cmd), Fmt, Args),
 	dde_execute(DDE, Cmd).
