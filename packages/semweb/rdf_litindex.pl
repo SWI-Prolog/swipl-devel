@@ -78,7 +78,7 @@ set_option(Term) :-
 		 *	      QUERY		*
 		 *******************************/
 
-%	rdf_find_literals(+Spec, -Literals)
+%%	rdf_find_literals(+Spec, -Literals)
 %	
 %	Spec ::= and(Spec,Spec)
 %	Spec ::= or(Spec,Spec)
@@ -88,7 +88,7 @@ set_option(Term) :-
 %	Spec ::= prefix(Prefix)
 %	Spec ::= Token
 %	
-%	sounds(Like) and stem(Like) both map to  a disjunction. First we
+%%	sounds(Like) and stem(Like) both map to  a disjunction. First we
 %	compile the spec to normal form:   a disjunction of conjunctions
 %	on elementary tokens. Then we execute   all the conjunctions and
 %	generate the union using ordered-set union.
@@ -102,7 +102,7 @@ rdf_find_literals(Spec, Literals) :-
 	flatten(SuperSet, Set0),
 	sort(Set0, Literals).
 
-%	rdf_token_expansions(+Spec, -Extensions)
+%%	rdf_token_expansions(+Spec, -Extensions)
 %	
 %	Determine which extensions of  a   token  contribute  to finding
 %	literals.
@@ -173,7 +173,7 @@ conj_to_cond(_) -->
 	[].
 
 
-%	compile_spec(+Spec, -Compiled)
+%%	compile_spec(+Spec, -Compiled)
 %	
 %	Compile a specification as above into disjunctive normal form
 
@@ -240,7 +240,7 @@ untag(stem(X,Y),   stem(X), Y).
 untag(prefix(X,Y), prefix(X), Y).
 untag(case(X,Y),   case(X), Y).
 
-%	nnf(+Formula, -NNF)
+%%	nnf(+Formula, -NNF)
 %	
 %	Rewrite to Negative Normal Form, meaning negations only appear
 %	around literals.
@@ -256,7 +256,7 @@ nnf(not(or(A0,B0)), and(A,B)) :- !,
 nnf(A, A).
 
 
-%	dnf(+NNF, -DNF)
+%%	dnf(+NNF, -DNF)
 %	
 %	Convert a formula in NNF to Disjunctive Normal Form (DNF)
 
@@ -282,7 +282,7 @@ dnf1(DNF, DNF).
 		 *	    TOKEN INDEX		*
 		 *******************************/
 
-%	token_index(-Map)
+%%	token_index(-Map)
 %	
 %	Get the index of tokens. If  not   present,  create one from the
 %	current database. Once created, the map is kept up-to-date using
@@ -325,7 +325,7 @@ monitor_literal(transaction(end, reset)) :-
 	rdf_monitor(monitor_literal, [+old_literal]).
 
 
-%	register_literal(+Literal)
+%%	register_literal(+Literal)
 %	
 %	Associate the tokens of a literal with the literal itself.
 
@@ -348,7 +348,7 @@ add_tokens([H|T], Literal, Map) :-
 	add_tokens(T, Literal, Map).
 
 
-%	unregister_literal(+Literal)
+%%	unregister_literal(+Literal)
 %	
 %	Literal is removed from the database.   As we abstract from lang
 %	and type qualifiers we first have to  check this is the last one
@@ -369,7 +369,7 @@ del_tokens([H|T], Literal, Map) :-
 	del_tokens(T, Literal, Map).
 
 
-%	rdf_tokenize_literal(+Literal, -Tokens)
+%%	rdf_tokenize_literal(+Literal, -Tokens)
 %	
 %	Tokenize a literal. We make  this   hookable  as tokenization is
 %	generally domain dependent.
@@ -415,7 +415,7 @@ no_index_token(this).
 no_index_token(the).
 
 
-%	text_of(+LiteralArg, -Text)
+%%	text_of(+LiteralArg, -Text)
 %	
 %	Get the textual  or  (integer)   numerical  information  from  a
 %	literal value.

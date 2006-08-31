@@ -69,8 +69,8 @@
 		 *	PROPERTY HIERARCHY	*
 		 *******************************/
 
-%	rdfs_subproperty_of(+SubProperty, ?Property)
-%	rdfs_subproperty_of(?SubProperty, +Property)
+%%	rdfs_subproperty_of(+SubProperty, ?Property) is nondet.
+%%	rdfs_subproperty_of(?SubProperty, +Property) is nondet.
 %	
 %	Query the property hierarchy.
 
@@ -82,8 +82,8 @@ rdfs_subproperty_of(SubProperty, Property) :-
 		 *	  CLASS HIERARCHY	*
 		 *******************************/
 
-%	rdfs_subclass_of(+Class, ?Super)
-%	rdfs_subclass_of(?Class, +Super)
+%%	rdfs_subclass_of(+Class, ?Super) is nondet.
+%%	rdfs_subclass_of(?Class, +Super) is nondet.
 %	
 %	Generate  sub/super  classes.  rdf_reachable/3    considers  the
 %	rdfs:subPropertyOf relation as well  as   cycles.  Note  that by
@@ -124,14 +124,14 @@ rdfs_subclass_of(Class, Super) :-	% production 2.4
 		 *	    INDIVIDUALS		*
 		 *******************************/
 
-%	rdfs_individual_of(+Resource, -Class)
-%	rdfs_individual_of(-Resource, +Class)
+%%	rdfs_individual_of(+Resource, -Class) is nondet.
+%%	rdfs_individual_of(-Resource, +Class) is nondet.
 %	
 %	Generate resources belonging to a class   or  classes a resource
 %	belongs to. We assume everything at the `object' end of a triple
 %	is a class. A validator should confirm this property.
 %	
-%	rdfs_individual_of(+, -) does  not  exploit   domain  and  range
+%%	rdfs_individual_of(+, -) does  not  exploit   domain  and  range
 %	properties, deriving that if rdf(R,  P,   _)  is  present R must
 %	satisfy the domain of P (and similar for range).
 %	
@@ -158,7 +158,8 @@ rdfs_individual_of(Resource, Class) :-
 rdfs_individual_of(_Resource, _Class) :-
 	throw(error(instantiation_error, _)).
 
-%	rdfs_label(?Resource, ?Label)
+%%	rdfs_label(+Resource, -Label).
+%%	rdfs_label(-Resource, +Label).
 %
 %	Convert between class and label.  If the label is generated from
 %	the resource the it uses both rdf:label and its sub-properties,
@@ -167,7 +168,7 @@ rdfs_individual_of(_Resource, _Class) :-
 rdfs_label(Resource, Label) :-
 	rdfs_label(Resource, _, Label).
 
-%	rdfs_label(?Resource, ?Lang, ?Label)
+%%	rdfs_label(?Resource, ?Lang, ?Label)
 %	
 %	Convert between class and label, in a specific language.
 
@@ -177,7 +178,7 @@ rdfs_label(Resource, Lang, Label) :-
 rdfs_label(Resource, Lang, Label) :-
 	rdf_has(Resource, rdfs:label, literal(lang(Lang, Label))).
 
-%	rdfs_ns_label(+Resource, -Label)
+%%	rdfs_ns_label(+Resource, -Label)
 %	
 %	Present label with  namespace  indication.   This  predicate  is
 %	indented  to  provide  meaningful  short   names  applicable  to
@@ -205,7 +206,7 @@ rdfs_ns_label(Resource, Lang, Label) :-
 	).
 
 
-%	take_label(+Resource, ?Lang, -Label)
+%%	take_label(+Resource, ?Lang, -Label)
 %
 %	Get the label to use for a resource in the give Language
 
@@ -222,7 +223,7 @@ label_of(Resource, Lang, Label) :-
 	rdf_has(Resource, LabelP, literal(lang(Lang, Label)), P),
 	P \== LabelP.
 
-%	rdfs_class_property(+Class, ?Property)
+%%	rdfs_class_property(+Class, ?Property)
 %
 %	Enumerate the properties in the domain of Class.
 
@@ -236,7 +237,7 @@ rdfs_class_property(Class, Property) :-
 		 *	     COLLECTIONS	*
 		 *******************************/
 
-%	rdfs_member(?Element, +Set)
+%%	rdfs_member(?Element, +Set)
 %	
 %	As Prolog member on sets.  Operates both on attributes parsed as
 %	parseType="Collection" as well as on Bag, Set and Alt. 
@@ -264,7 +265,7 @@ rdfs_collection_member(Element, Set) :-
 	rdfs_collection_member(Element, Tail).
 
 
-%	rdfs_list_to_prolog_list(+RDFSList, -PrologList)
+%%	rdfs_list_to_prolog_list(+RDFSList, -PrologList)
 %	
 %	Convert ann RDFS list (result from parseType=Collection) into a
 %	Prolog list of elements.
@@ -277,8 +278,8 @@ rdfs_list_to_prolog_list(Set, [H|T]) :-
 	rdfs_list_to_prolog_list(Tail, T).
 
 
-%	rdfs_assert_list(+Resources, -List)
-%	rdfs_assert_list(+Resources, -List, +DB)
+%%	rdfs_assert_list(+Resources, -List) is det.
+%%	rdfs_assert_list(+Resources, -List, +DB) is det.
 %	
 %	Create an RDF list from the given Resources.
 
@@ -299,15 +300,15 @@ rdfs_assert_list([H|T], List, DB) :-
 		 *     SEARCH IN HIERARCHY	*
 		 *******************************/
 
-%	rdfs_find(+String, +Domain, ?Properties, +Method, -Subject)
+%%	rdfs_find(+String, +Domain, ?Properties, +Method, -Subject)
 %	
 %	Search all classes below Domain for a literal property with
 %	that matches String.  Method is one of
 %	
-%		substring
-%		word
-%		prefix
-%		exact
+%		* substring
+%		* word
+%		* prefix
+%		* exact
 %		
 %	domain is defined by owl_satisfy from owl.pl
 %		
@@ -386,7 +387,7 @@ rdfs_find(String, Domain, Fields, Method, Subject) :-
 	),
 	rdf_match_label(Method, String, Arg).
 	
-%	generate_domain(+Domain, -Resource)
+%%	generate_domain(+Domain, -Resource)
 %	
 %	Generate all resources that satisfy some a domain specification.
 

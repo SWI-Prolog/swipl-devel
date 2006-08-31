@@ -76,7 +76,7 @@ move the .new to the plain snapshot name as a means of recovery.
 	source_journal_fd/2,		% DB, JournalFD
 	db_file_base/2.			% DB, FileBase
 
-%	rdf_attach_db(+Directory, +Options)
+%%	rdf_attach_db(+Directory, +Options)
 %	
 %	Start persistent operations using Directory   as  place to store
 %	files.   There are several cases.
@@ -120,7 +120,7 @@ rdf_detach_db :-
 	).
 
 
-%	rdf_current_db(?Dir)
+%%	rdf_current_db(?Dir)
 %	
 %	True if Dir is the current RDF persistent database.
 
@@ -129,7 +129,7 @@ rdf_current_db(Directory) :-
 	Dir = Directory.
 
 
-%	rdf_flush_journals(+Options)
+%%	rdf_flush_journals(+Options)
 %	
 %	Flush dirty journals.  Options:
 %	
@@ -157,7 +157,7 @@ rdf_flush_journal(DB, Options) :-
 		 *	       LOAD		*
 		 *******************************/
 
-%	load_db(-DBs)
+%%	load_db(-DBs)
 
 load_db :-
 	rdf_directory(Dir),
@@ -204,7 +204,7 @@ unkey([_-H|T0], [H|T]) :-
 	unkey(T0, T).
 
 
-%	load_source(+SnapshotFile)
+%%	load_source(+SnapshotFile)
 %	
 %	Load triples and reload  journal   from  the  indicated snapshot
 %	file.
@@ -426,7 +426,7 @@ sync_state([DB-MD5|TA], Pre) :-
 		 *	   JOURNAL FILES	*
 		 *******************************/
 
-%	journal_db(+DB, -Stream)
+%%	journal_db(+DB, -Stream)
 %	
 %	Open existing journal or create new journal for database DB
 
@@ -449,7 +449,7 @@ journal_fd_(DB, Fd) :-
 	format(Fd, '~q.~n', [start([time(Now)])]),
 	assert(source_journal_fd(DB, Fd)).
 
-%	sync_journal(+DB, +Fd)
+%%	sync_journal(+DB, +Fd)
 %	
 %	Sync journal represented by database and   stream.  If the DB is
 %	involved in a transaction there is   no point flushing until the
@@ -460,7 +460,7 @@ sync_journal(DB, _) :-
 sync_journal(_, Fd) :-
 	flush_output(Fd).
 
-%	close_journal(+DB)
+%%	close_journal(+DB)
 %	
 %	Close the journal associated with DB if it is open
 
@@ -485,7 +485,7 @@ close_journals :-
 	       catch(close_journal(DB), E,
 		     print_message(error, E))).
 
-%	create_db(+DB)
+%%	create_db(+DB)
 %	
 %	Create a saved version of DB in corresponding file, close and
 %	delete journals.
@@ -505,7 +505,7 @@ create_db(DB) :-
 	).
 
 
-%	delete_db(+DB)
+%%	delete_db(+DB)
 %	
 %	Remove snapshot and journal file for DB.
 
@@ -525,7 +525,7 @@ delete_db(DB) :-
 		 *	       LOCKING		*
 		 *******************************/
 
-%	lock_db(+Dir)
+%%	lock_db(+Dir)
 %	
 %	Lock the database  directory.  This  isn't   safe  as  the  file
 %	operations are not  atomic.  Needs   re-thinking,  but  with the
@@ -578,9 +578,9 @@ exists_db(Base) :-
 	db_file(Base, File),
 	exists_file(File).
 
-%	db_files(+DB, -Snapshot, -Journal)
-%	db_files(-DB, +Snapshot, -Journal)
-%	db_files(-DB, -Snapshot, +Journal)
+%%	db_files(+DB, -Snapshot, -Journal)
+%%	db_files(-DB, +Snapshot, -Journal)
+%%	db_files(-DB, -Snapshot, +Journal)
 
 db_files(DB, Snapshot, Journal) :-
 	nonvar(DB), !,
@@ -603,7 +603,7 @@ db_abs_files(DB, Snapshot, Journal) :-
 	db_file(Snapshot0, Snapshot),
 	db_file(Journal0, Journal).
 
-%	rdf_journal_file(?DB, -File)
+%%	rdf_journal_file(?DB, -File)
 %	
 %	Return the journal files of  the   current  server. Intended for
 %	external modules for merging journals.
@@ -614,8 +614,8 @@ rdf_journal_file(DB, Journal) :-
 	exists_file(Journal).
 
 
-%	rdf_db_to_file(+DB, -File)
-%	rdf_db_to_file(-DB, +File)
+%%	rdf_db_to_file(+DB, -File)
+%%	rdf_db_to_file(-DB, +File)
 %	
 %	Translate between database encoding (often an   file or URL) and
 %	the name we store in the  directory.   We  keep  a cache for two
@@ -629,8 +629,8 @@ rdf_db_to_file(DB, File) :-
 	url_to_filename(DB, File),
 	assert(db_file_base(DB, File)).
 
-%	url_to_filename(+URL, -FileName)
-%	url_to_filename(-URL, +FileName)
+%%	url_to_filename(+URL, -FileName)
+%%	url_to_filename(-URL, +FileName)
 %	
 %	Turn  a  valid  URL  into  a  filename.  Earlier  versions  used
 %	www_form_encode/2, but this can produce  characters that are not
@@ -688,7 +688,7 @@ no_enc_extra(0'_) --> "_".
 		 *		UTIL		*
 		 *******************************/
 
-%	mkdir(+Directory)
+%%	mkdir(+Directory)
 %	
 %	Create a directory if it does not already exist.
 
@@ -697,7 +697,7 @@ mkdir(Directory) :-
 mkdir(Directory) :-
 	make_directory(Directory).
 
-%	time_stamp(-Integer)
+%%	time_stamp(-Integer)
 %	
 %	Return time-stamp rounded to integer.
 

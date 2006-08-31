@@ -45,7 +45,8 @@
 :- use_module(rdf_parser).		% Basic parser
 :- use_module(rdf_triple).		% Generate triples
 
-%	load_rdf(+File, -Triples[, +Options])
+%%	load_rdf(+File, -Triples) is det.
+%%	load_rdf(+File, -Triples, +Options) is det.
 %
 %	Parse an XML file holding an RDF term into a list of RDF triples.
 %	see rdf_triple.pl for a definition of the output format. Options:
@@ -92,7 +93,7 @@ entity_options([H|T0], Entities, Rest) :-
 	).
 
 
-%	xml_to_rdf(+XML, -Triples, +Options)
+%%	xml_to_rdf(+XML, -Triples, +Options)
 
 xml_to_rdf(XML, Triples, Options) :-
 	is_list(Options), !,
@@ -143,34 +144,34 @@ member_attribute(A) :-
 		 *	     BIG FILES		*
 		 *******************************/
 
-%	process_rdf(+Input, :OnObject, +Options)
+%%	process_rdf(+Input, :OnObject, +Options)
 %	
 %	Process RDF from Input. Input is either an atom or a term of the
 %	format stream(Handle). For each   encountered  description, call
 %	OnObject(+Triples) to handle the  triples   resulting  from  the
 %	description. Defined Options are:
 %	
-%		# base_uri(+URI)
+%		* base_uri(+URI)
 %		Determines the reference URI.
 %		
-%		# db(DB)
+%		* db(DB)
 %		When loading from a stream, the source is taken from
 %		this option or -if non-existent- from base_uri.
 %		
-%		# lang(LanguageID)
+%		* lang(LanguageID)
 %		Set initial language (as xml:lang)
 %		
-%		# convert_typed_literal(:Convertor)
+%		* convert_typed_literal(:Convertor)
 %		Call Convertor(+Type, +Content, -RDFObject) to create
 %		a triple rdf(S, P, RDFObject) instead of rdf(S, P,
 %		literal(type(Type, Content)).
 %		
-%		# namespaces([NS=URL, ...])
+%		* namespaces([NS=URL, ...])
 %		Return list of namespaces declared using xmlns:NS=URL in
 %		the document.  This can be used to update the namespace
 %		list with rdf_register_ns/2.
 %		
-%		# entity(Name, Value)
+%		* entity(Name, Value)
 %		Overrule entity values found in the file
 
 
@@ -201,8 +202,6 @@ process_rdf(File, OnObject, Options0) :-
 	set_sgml_parser(Parser, space(sgml)),
 	do_process_rdf(Parser, In, NSList, Close, Cleanup).
 process_rdf(File, BaseURI, OnObject) :-
-%	print_message(warning,
-%		      format('process_rdf(): new argument order', [])),
 	process_rdf(File, OnObject, [base_uri(BaseURI)]).
 
 def_entities([], _).
@@ -260,7 +259,7 @@ on_begin(Tag, Attr, Parser) :-
 	rdf_triples(Objects, Triples),
 	call(OnTriples, Triples, File:Start).
 
-%	on_xmlns(+NS, +URL, +Parser)
+%%	on_xmlns(+NS, +URL, +Parser)
 %	
 %	Build up the list of   encountered xmlns:NS=URL declarations. We
 %	use  destructive  assignment  here   as    an   alternative   to
@@ -299,7 +298,7 @@ modify_state1(xml:lang = Lang, Options0, Options) :- !,
 	set_option(lang(Lang), Options0, Options).
 modify_state1(_, Options, Options).
 
-%	remove_fragment(+URI, -WithoutFragment)
+%%	remove_fragment(+URI, -WithoutFragment)
 %	
 %	When handling xml:base, we must delete the possible fragment.
 
@@ -315,7 +314,7 @@ set_option(Opt, Options0, [Opt|Options]) :-
 	delete(Options0, VO, Options).
 
 
-%	meta_options(+OptionsIn, -OptionsOut)
+%%	meta_options(+OptionsIn, -OptionsOut)
 %	
 %	Do module qualification for options that are module sensitive.
 

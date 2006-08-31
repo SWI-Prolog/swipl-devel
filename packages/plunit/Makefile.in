@@ -44,7 +44,7 @@ install:	$(LIBPL)
 
 ln-install:	$(LIBPL)
 		mkdir -p $(DESTDIR)$(LIBDIR)
-		for f in $(LIBALL) README; do \
+		for f in $(LIBALL); do \
 		    rm -f $(DESTDIR)$(LIBDIR)/$$f; \
 		    ln -s `pwd`/$$f $(DESTDIR)$(LIBDIR); \
 		done

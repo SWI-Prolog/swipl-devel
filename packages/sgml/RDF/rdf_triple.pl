@@ -21,7 +21,8 @@
 :- use_module(library(gensym)).
 :- use_module(rdf_parser).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Create triples from intermediate representation
+
 Convert the output of xml_to_rdf/3  from   library(rdf)  into  a list of
 triples of the format described   below. The intermediate representation
 should be regarded a proprietary representation.
@@ -30,30 +31,31 @@ should be regarded a proprietary representation.
 
 Where `Subject' is
 
-	# Atom
+	* Atom
 	The subject is a resource
 	
-	# each(URI)
+	* each(URI)
 	URI is the URI of an RDF Bag
 	
-	# prefix(Pattern)
+	* prefix(Pattern)
 	Pattern is the prefix of a fully qualified Subject URI
 
 And `Predicate' is
 
-	# Atom
+	* Atom
 	The predicate is always a resource
 
 And `Object' is
 
-	# Atom
+	* Atom
 	URI of Object resource
 
-	# literal(Value)
+	* literal(Value)
 	Literal value (Either a single atom or parsed XML data)
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
-%	rdf_triples(+Term, -Tripples[, +Tail])
+%%	rdf_triples(+Term, -Triples) is det.
+%%	rdf_triples(+Term, -Tridpples, +Tail) is det.
 %
 %	Convert an object as parsed by rdf.pl into a list of rdf/3
 %	triples.  The identifier of the main object created is returned
@@ -76,7 +78,7 @@ rdf_triples([H|T]) --> !,
 rdf_triples(Term) -->
 	triples(Term, _).
 
-%	triples(-Triples, -Id, +In, -Tail)
+%%	triples(-Triples, -Id, +In, -Tail)
 %
 %	DGC set processing the output of xml_to_rdf/3.  In Id, the identifier
 %	of the main description or container is returned.
@@ -213,12 +215,17 @@ properties([H0|T0], N, Bag0, Bag, Subject) -->
 	property(H0, N, NN, Bag0, Bag1, Subject),
 	properties(T0, NN, Bag1, Bag, Subject).
 
-%	property(Pred = Object, N, NN, Subject)
-%	property(id(Id, Pred = Object), N, NN, Subject)
+%%	property(Property, N, NN, Subject)// is det.
 %	
-%	Generate triples for {Subject, Pred, Object}. In the second
-%	form, reinify the statement.  Also generates triples for Object
-%	if necessary.
+%	Generate triples for {Subject,  Pred,   Object}.  Also generates
+%	triples for Object if necessary.
+%	
+%	@param Property	One of
+%	
+%		* Pred = Object
+%		Used for normal statements
+%		* id(Id, Pred = Object)
+%		Used for reified statements
 
 property(Pred0 = Object, N, NN, BagH, BagT, Subject) --> % inlined object
 	triples(Object, Id), !,
@@ -249,7 +256,7 @@ property(id(Id, Pred0 = Object), N, NN, BagH, BagT, Subject) -->
 	},
 	statement(Subject, Pred, Object, Id, BagH, BagT).
 
-%	statement(+Subject, +Pred, +Object, +Id, +BagH, -BagT)
+%%	statement(+Subject, +Pred, +Object, +Id, +BagH, -BagT)
 %	
 %	Add a statement to the model. If nonvar(Id), we reinify the
 %	statement using the given Id.
@@ -275,7 +282,7 @@ statement_id(Id) :-
 statement_id(Id) :-
 	make_id('__Statement', Id).
 
-%	li_pred(+Pred, -Pred, +Nth, -NextNth)
+%%	li_pred(+Pred, -Pred, +Nth, -NextNth)
 %	
 %	Transform rdf:li predicates into _1, _2, etc.
 
@@ -284,7 +291,7 @@ li_pred(rdf:li, rdf:Pred, N, NN) :- !,
 	atom_concat('_', N, Pred).
 li_pred(Pred, Pred, N, N).
 	
-%	collection(+Elems, -Id)
+%%	collection(+Elems, -Id)
 %	
 %	Handle the elements of a collection and return the identifier
 %	for the whole collection in Id.
@@ -358,12 +365,20 @@ assert_shared_description(Term, Subject) :-
 		 *	      START/END		*
 		 *******************************/
 
+%%	rdf_start_file(+Options, -Cleanup) is det.
+%
+%	Initialise for the translation of a file.
+
 rdf_start_file(Options, Cleanup) :-
 	rdf_reset_node_ids,		% play safe
 	reset_shared_descriptions,
 	set_bnode_sharing(Options, C1),
 	set_anon_prefix(Options, C2),
 	add_cleanup(C1, C2, Cleanup).
+
+%%	rdf_end_file(:Cleanup) is det.
+%	
+%	Cleanup reaching the end of an RDF file.
 
 rdf_end_file(Cleanup) :-
 	rdf_reset_node_ids,
@@ -400,6 +415,10 @@ add_cleanup(X, Y, (X, Y)).
 		 *	       UTIL		*
 		 *******************************/
 
+%%	anon_prefix(-Prefix) is semidet.
+%
+%	If defined, it is the prefix used to generate a blank node.
+
 :- thread_local
 	anon_prefix/1.
 
@@ -418,7 +437,7 @@ anon_base('__Statement').
 anon_base('__List').
 anon_base('__Node').
 
-%	rdf_reset_ids
+%%	rdf_reset_ids is det.
 %
 %	Utility predicate to reset the gensym counters for the various
 %	generated identifiers.  This simplifies debugging and matching

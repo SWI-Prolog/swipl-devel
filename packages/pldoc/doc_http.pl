@@ -327,12 +327,22 @@ reply('/directory', Request) :-
 	http_parameters(Request,
 			[ dir(Dir, [])
 			]),
-	(   source_directory(Dir)
+	(   allowed_directory(Dir)
 	->  edit_options(Request, EditOptions),
 	    format('Content-type: text/html~n~n'),
 	    doc_for_dir(Dir, current_output, EditOptions)
 	;   throw(http_reply(forbidden(Dir)))
 	).
+
+
+%%	allowed_directory(+Dir) is semidet.
+%
+%	True if we are allowed to produce and index for Dir.
+
+allowed_directory(Dir) :-
+	source_directory(Dir), !.
+allowed_directory(Dir) :-
+	working_directory(Dir, Dir).
 
 
 %	/doc/Path
@@ -362,7 +372,7 @@ documentation(Path, Request) :-
 	sub_atom(Path, _, _, 0, Index), 
 	atom_concat(Dir, Index, Path),
 	exists_directory(Dir), !,		% Directory index
-	(   source_directory(Dir)
+	(   allowed_directory(Dir)
 	->  edit_options(Request, EditOptions),
 	    format('Content-type: text/html~n~n'),
 	    doc_for_dir(Dir, current_output, EditOptions)

@@ -133,14 +133,14 @@ rdfe_retractall(Subject, Predicate, Object, PayLoad) :-
 	),
 	rdf_retractall(Subject, Predicate, Object, PayLoad).
 	
-%	rdfe_update(+Subject, +Predicate, +Object, +Action)
+%%	rdfe_update(+Subject, +Predicate, +Object, +Action)
 %	
 %	Update an existing triple.  Possible actions are:
 %	
-%		subject(+Subject)
-%		predicate(+Predicate)
-%		object(+Object)
-%		source(+Source)
+%%		subject(+Subject)
+%%		predicate(+Predicate)
+%%		object(+Object)
+%%		source(+Source)
 
 rdfe_update(Subject, Predicate, Object, Action) :-
 	rdfe_current_transaction(TID),
@@ -168,7 +168,7 @@ rdfe_update(Subject, Predicate, Object, PayLoad, Action) :-
 	),
 	journal(update(TID, Subject, Predicate, Object, PayLoad, Action)).
 
-%	rdfe_delete(+Subject)
+%%	rdfe_delete(+Subject)
 %	
 %	Delete a subject and all we know about it. This is a bit tricky.
 %	If we are involved in transitive relations, should we re-joint
@@ -187,7 +187,7 @@ delete(Subject) :-
 		 *	   FILE HANDLING	*
 		 *******************************/
 
-%	rdfe_load(+File)
+%%	rdfe_load(+File)
 %	
 %	Load an RDF file and record this action including version information
 %	to facilitate reliable reload.
@@ -235,7 +235,7 @@ rdfe_unload(Path) :-
 	journal(rdf_unload(TID, Path)).
 
 
-%	ensure_snapshot(+Path)
+%%	ensure_snapshot(+Path)
 %	
 %	Ensure we have a snapshot of Path if we are making a journal, so
 %	we can always reload the snapshot to ensure exactly the same
@@ -261,7 +261,7 @@ ensure_snapshot(Path) :-
 ensure_snapshot(_).
 
 
-%	load_snapshot(+Source, +Path)
+%%	load_snapshot(+Source, +Path)
 %	
 %	Load triples from the given snapshot   file. One of the troubles
 %	is the time-stamp to avoid rdf_make/0   from reloading the file.
@@ -282,7 +282,7 @@ load_snapshot(Source, Path) :-
 	assert(snapshot_file(Path)).
 
 
-%	snapshot_file(+Path, +MD5, +Access, -File)
+%%	snapshot_file(+Path, +MD5, +Access, -File)
 %	
 %	Find existing snapsnot file or location to save a new one.
 
@@ -296,7 +296,7 @@ snapshot_file(Path, MD5, Options, SnapShot) :-
 			   SnapShot).
 
 
-%	rdfe_snapshot_file(-File)
+%%	rdfe_snapshot_file(-File)
 %	
 %	Enumerate the MD5 snapshot files required to restore the current
 %	journal file. Using this  call  we   can  write  a  routine that
@@ -316,7 +316,7 @@ rdfe_snapshot_file(File) :-
 :- volatile
 	system_ns/2.
 
-%	rdfe_register_ns(Id, URI)
+%%	rdfe_register_ns(Id, URI)
 %	
 %	Encapsulation of rdf_register_ns(Id, URI)
 
@@ -360,7 +360,7 @@ save_system_ns :-
 		 *	   TRANSACTIONS		*
 		 *******************************/
 
-%	rdfe_transaction(:Goal)
+%%	rdfe_transaction(:Goal)
 %	
 %	Run Goal, recording all modifications   as a single transaction.
 %	If  Goal  raises  an  exception  or    fails,  all  changes  are
@@ -423,7 +423,7 @@ rdfe_rollback :-
 	journal(rollback(TID)),
 	rollback(TID).
 
-%	rollback(+TID)
+%%	rollback(+TID)
 %	
 %	This is the same as undo/1, but it must not record the undone
 %	actions as rollbacks cannot be `redone'.  Somehow there should
@@ -455,7 +455,7 @@ rollback(Action, Subject, Predicate, Object) :-
 assert_action(TID, Action, Subject, Predicate, Object) :-
 	asserta(undo_log(TID, Action, Subject, Predicate, Object)).
 
-%	undo(+TID)
+%%	undo(+TID)
 %	
 %	Undo a transaction as well as possible transactions nested into
 %	it.
@@ -555,8 +555,8 @@ rdfe_redo :-
 	broadcast(rdf_undo(redo, UnDone)).
 
 
-%	rdfe_can_redo(-TID)
-%	rdfe_can_undo(-TID)
+%%	rdfe_can_redo(-TID)
+%%	rdfe_can_undo(-TID)
 %	
 %	Check if we can undo and if so return the id of the transaction
 %	that will be un/re-done.  A subsequent call to rdfe_transaction_name
@@ -577,7 +577,7 @@ rdfe_can_undo(Undo) :-			% start undo
 	last_transaction(TID),
 	find_previous_undo(TID, Undo).
 
-%	rdfe_transaction_name(+TID, -Name)
+%%	rdfe_transaction_name(+TID, -Name)
 %	
 %	Return name if the transaction is named.
 
@@ -585,7 +585,7 @@ rdfe_transaction_name(TID, Name) :-
 	transaction_name(TID, Name),
 	Name \== [].
 
-%	rdfe_set_transaction_name(+Name)
+%%	rdfe_set_transaction_name(+Name)
 %	
 %	Set name of the current transaction
 
@@ -593,7 +593,7 @@ rdfe_set_transaction_name(Name) :-
 	current_transaction(TID), !,
 	assert(transaction_name(TID, Name)).
 
-%	rdfe_transaction_member(+TID, -Action)
+%%	rdfe_transaction_member(+TID, -Action)
 %	
 %	Query actions inside a transaction to allow for quick update
 %	of visualisers.
@@ -626,12 +626,12 @@ user_transaction_member(Update, Subject, Predicate, Object,
 	rdf_source_permission/2,	% file, ro/rw
 	rdf_current_default_file/2.	% file, all/fallback
 
-%	rdfe_set_file_property(+File, +Options)
+%%	rdfe_set_file_property(+File, +Options)
 %	
 %	Set properties on the file.  Options is one of
 %	
-%		access(ro/rw)
-%		default(all/fallback)
+%%		access(ro/rw)
+%%		default(all/fallback)
 
 rdfe_set_file_property(File0, access(Access)) :- !,
 	absolute_file_name(File0, File),
@@ -646,7 +646,7 @@ rdfe_set_file_property(File0, default(Type)) :-
 	broadcast(rdf_file_property(File, default(Type))).
 
 
-%	rdfe_get_file_property(?File, ?Option)
+%%	rdfe_get_file_property(?File, ?Option)
 %	
 %	Fetch file properties set with rdf_set_file_property/2.
 
@@ -668,7 +668,7 @@ rdfe_get_file_property(File, default(Default)) :-
 	).
 
 
-%	check_file_protection(-Error)
+%%	check_file_protection(-Error)
 %	
 %	Check modification of all protected files
 
@@ -684,7 +684,7 @@ check_file_protection(Error) :-
 		 *	     MODIFIED		*
 		 *******************************/
 
-%	rdfe_is_modified(?File)
+%%	rdfe_is_modified(?File)
 %	
 %	True if facts have been added, deleted or updated that have File
 %	as `payload'.
@@ -718,7 +718,7 @@ rdfe_clear_modified(File) :-
 		 *	     WATERMARKS		*
 		 *******************************/
 
-%	rdfe_set_watermark(Name)
+%%	rdfe_set_watermark(Name)
 %	
 %	Create a watermark for undo and replay journal upto this point.
 %	The rest of the logic needs to be written later.
@@ -846,7 +846,7 @@ rdfe_close_journal :-
 	;   close(Stream)
 	).
 
-%	rdfe_current_journal(-Path)
+%%	rdfe_current_journal(-Path)
 %	
 %	Query the currently open journal
 
@@ -876,7 +876,7 @@ write_journal(Term, Stream) :-
 	format(Stream, '~q.~n', [Term]).
 
 
-%	rdfe_replay_journal(+File)
+%%	rdfe_replay_journal(+File)
 %	
 %	Replay a journal file. For now  this   is  our cheap way to deal
 %	with save/load. Future versions may be  more clever when dealing
@@ -948,7 +948,7 @@ replay_actions([H|T]) :-
 	).
 
 
-%	replay_action(+Action)
+%%	replay_action(+Action)
 %	
 %	Replay actions from the journal. Tricky is rdf_load/3. It should
 %	reload the file in the state it  was   in  at  the moment it was
@@ -1003,7 +1003,7 @@ find_file(File, Options, Path) :-
 	make_path(File, PWD, Path),
 	exists_file(Path), !.
 
-%	make_path(+File, +PWD, -Path)
+%%	make_path(+File, +PWD, -Path)
 %	
 %	Return location of File relative to PWD, Parent of PWD, etc. (TBD)
 

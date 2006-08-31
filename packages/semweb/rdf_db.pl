@@ -149,8 +149,8 @@ ns(dc,   'http://purl.org/dc/elements/1.1/').
 ns(eor,  'http://dublincore.org/2000/03/13/eor#').
 ns(serql,'http://www.openrdf.org/schema/serql#').
 
-%	rdf_register_ns(+Alias, +URI)
-%	rdf_register_ns(+Alias, +URI, +Options)
+%%	rdf_register_ns(+Alias, +URI) is det.
+%%	rdf_register_ns(+Alias, +URI, +Options) is det.
 %
 %	Register a namespace. If force(true) is   provided as an option,
 %	the  existing  namespace  alias  is   replaced.  Otherwise  this
@@ -180,7 +180,7 @@ rdf_register_ns(Alias, URI, _) :-
 	assert(ns(Alias, URI)).
 
 
-%	rdf_global_id(?Id, ?GlobalId)
+%%	rdf_global_id(?Id, ?GlobalId)
 %
 %	Convert between NS:Local and global atomic identifier.
 %	To be completed.
@@ -190,7 +190,7 @@ rdf_global_id(NS:Local, Global) :-
 rdf_global_id(Global, Global).
 
 
-%	rdf_global_object(?Object, ?GlobalObject)
+%%	rdf_global_object(?Object, ?GlobalObject)
 %	
 %	Same as rdf_global_id/2,  but  intended   for  dealing  with the
 %	object part of a  triple,  in   particular  the  type  for typed
@@ -216,7 +216,7 @@ global(NS, Local, Global) :-
 
 
 
-%	rdf_global_term(+TermIn, -GlobalTerm)
+%%	rdf_global_term(+TermIn, -GlobalTerm)
 %	
 %	Does rdf_global_id/2 on all terms NS:Local by recursively analysing
 %	the term.
@@ -281,7 +281,7 @@ valid_arg(t).				% term with RDF resources
 valid_arg(A) :-
 	throw(error(type_error(rdf_meta_argument, A), _)).
 
-%	rdf_meta(+Heads)
+%%	rdf_meta(+Heads)
 %	
 %	This   directive   is   expanded   using   term-expansion.   The
 %	implementation just throws an error in   case  it is called with
@@ -319,7 +319,7 @@ rdf_expand_arg(:, A, E) :- !,
 	expand_goal(A, E).
 rdf_expand_arg(_, A, A).
 
-%	mk_global(+Src, -Resource)
+%%	mk_global(+Src, -Resource)
 %	
 %	Realised rdf_global_id(+, -), but adds compiletime checking,
 %	notably to see whether a namespace is not yet defined.
@@ -360,14 +360,14 @@ must_be_atom(X) :-
 	rdf_estimate_complexity(r,r,r,-),
 	rdf_transaction(:).
 
-%	rdf_equal(?Resource1, ?Resource2)
+%%	rdf_equal(?Resource1, ?Resource2)
 %	
 %	Simple equality test to exploit goal-expansion
 
 rdf_equal(Resource, Resource).
 
 
-%	rdf_has(?Subject, +Predicate, ?Object)
+%%	rdf_has(?Subject, +Predicate, ?Object)
 %	
 %	Succeeds if the triple rdf(Subject, Predicate, Object) is true
 %	exploiting the rdfs:subPropertyOf predicate.
@@ -380,7 +380,7 @@ rdf_has(Subject, Predicate, Object) :-
 		 *	    COLLECTIONS		*
 		 *******************************/
 
-%	rdf_member_property(?Prop, ?Index)
+%%	rdf_member_property(?Prop, ?Index)
 %	
 %	Deal with the rdf:_1, ... properties.
 
@@ -404,7 +404,7 @@ rdf_member_property(P, N) :-
 		 *	ANONYMOUS SUBJECTS	*
 		 *******************************/
 
-%	rdf_node(-Id)
+%%	rdf_node(-Id)
 %
 %	Generate a unique identifier for a subject.  Obsolete.  New
 %	code should use rdf_bnode/1.
@@ -417,7 +417,7 @@ rdf_node(Value) :-
 	\+ rdf(_, Value, _), !.
 
 
-%	rdf_bnode(-Id)
+%%	rdf_bnode(-Id)
 %
 %	Generate a unique anonymous identifier for a subject.
 
@@ -429,7 +429,7 @@ rdf_bnode(Value) :-
 	\+ rdf(_, Value, _), !.
 
 
-%	rdf_is_bnode(+Id)
+%%	rdf_is_bnode(+Id)
 %	
 %	Tests if a resource is a blank node (i.e. is an anonymous
 %	resource).
@@ -443,7 +443,7 @@ rdf_is_bnode(Id) :-
 		 *	      SOURCE		*
 		 *******************************/
 
-%	rdf_source_location(+Subject, -File:Line)
+%%	rdf_source_location(+Subject, -File:Line)
 %	
 %	Return the source-locations for triples for this subject.
 
@@ -457,9 +457,11 @@ rdf_source_location(Subject, Source) :-
 		 *	     STATISTICS		*
 		 *******************************/
 
-%	rdf_statistics(+Key(-Value))
+%%	rdf_statistics(?KeyValue) is nondet.
 %	
-%	Obtain some statistics
+%	Obtain statistics on the RDF database.
+%	
+%	@param KeyValue	Term of the form Key(Value).
 
 rdf_statistics(sources(Count)) :-
 	predicate_property(rdf_source(_,_,_,_), number_of_clauses(Count)).
@@ -509,7 +511,7 @@ index(rdf(+,+,+), 7).
 		 *	     PREDICATES		*
 		 *******************************/
 
-%	rdf_current_predicate(?Predicate)
+%%	rdf_current_predicate(?Predicate)
 %	
 %	True if Predicate is a currently defined predicate.
 
@@ -528,7 +530,7 @@ rdf_current_predicate(P, DB) :-
 	member(P, All),
 	once(rdf(_,P,_,DB:_)).
 
-%	rdf_predicate_property(?Predicate, ?Property)
+%%	rdf_predicate_property(?Predicate, ?Property)
 %	
 %	Enumerate predicates and their properties
 
@@ -546,14 +548,14 @@ rdf_predicate_property(P, Prop) :-
 		 *	    TRANSACTION		*
 		 *******************************/
 
-%	rdf_transaction(:Goal)
+%%	rdf_transaction(:Goal)
 %	
 %	Backward compatibility
 
 rdf_transaction(Goal) :-
 	rdf_transaction(Goal, user).
 
-%	rdf_monitor(:Goal, +Options)
+%%	rdf_monitor(:Goal, +Options)
 %
 
 rdf_monitor(Goal, Options) :-
@@ -575,7 +577,7 @@ update_mask(X, Mask0, Mask) :-
 	monitor_mask(X, M),
 	Mask is Mask0 \/ M.
 
-%	monitor_mask(Name, Mask)
+%%	monitor_mask(Name, Mask)
 %	
 %	Mask bit for the monitor events.  Note that this must be kept
 %	consistent with the enum broadcast_id defined in rdf_db.c
@@ -598,15 +600,16 @@ monitor_mask(unload,	   0x1000).
 monitor_mask(all,	   0xffff).
 
 %rdf_broadcast(Term, MaskName) :-
-%	monitor_mask(MaskName, Mask),
-%	rdf_broadcast_(Term, Mask).
+%%	monitor_mask(MaskName, Mask),
+%%	rdf_broadcast_(Term, Mask).
 
 
 		 /*******************************
 		 *    QUICK BINARY LOAD/SAVE	*
 		 *******************************/
 
-%	rdf_save_db(+File, [+DB])
+%%	rdf_save_db(+File) is det.
+%%	rdf_save_db(+File, +DB) is det.
 %	
 %	Save triples into File in a   quick-to-load binary format. If DB
 %	is supplied only triples flagged to originate from that database
@@ -644,7 +647,7 @@ rdf_load_db(File) :-
 		 *	    LOADING RDF		*
 		 *******************************/
 
-%	rdf_load(+FileOrList, +Options)
+%%	rdf_load(+FileOrList, +Options)
 %
 %	Load RDF file.  Options provides additional processing options.
 %	Currently defined options are:
@@ -752,7 +755,7 @@ source_descr(Stream, stream(Stream)) :-
 source_descr(Descr, Descr).
 
 
-%	add_base_url(+Options0, +File, -Options)
+%%	add_base_url(+Options0, +File, -Options)
 %	
 %	Add base_uri(file://File) to the options if  this is not already
 %	there. A base URI is needed  to   avoid  the  case where loading
@@ -766,7 +769,7 @@ add_base_url(Options, File, [base_uri(Base)|Options]) :-
 	atom_concat('file://', File, Base).
 
 
-%	rdf_unload(+Spec)
+%%	rdf_unload(+Spec)
 %	
 %	Remove the triples loaded from the specified source and remove
 %	the source from the database.
@@ -798,7 +801,7 @@ do_unload(Spec) :-
 			unload(Spec)).
 
 
-%	rdf_source(?Source)
+%%	rdf_source(?Source)
 %	
 %	Query the loaded sources.  
 
@@ -822,7 +825,7 @@ rdf_make :-
 	       catch(rdf_load(File), _, true)).
 
 
-%	cache_file(+Base, -CacheFile)
+%%	cache_file(+Base, -CacheFile)
 %	
 %	Deduce the name of the file used to cache the triples.
 
@@ -840,14 +843,14 @@ cache_file(Base, Cache) :-
 	exists_directory(CacheDir),
 	concat_atom([CacheDir, /, File, '.trp'], Cache).
 
-%	save_cache(+File, +Cache)
+%%	save_cache(+File, +Cache)
 
 save_cache(File, Cache) :-
 	catch(open(Cache, write, CacheStream, [type(binary)]), _, fail), !,
 	rdf_save_db_(CacheStream, File),
 	close(CacheStream).
 
-%	assert_triples(+Triples, +Source)
+%%	assert_triples(+Triples, +Source)
 %
 %	Assert a list of triples into the database. Foir security
 %	reasons we check we aren't inserting anything but nice RDF
@@ -865,7 +868,7 @@ assert_triples([H|_], _) :-
 		 *	       RESET		*
 		 *******************************/
 
-%	rdf_reset_db
+%%	rdf_reset_db
 %	
 %	Remove all triples from the RDF database and reset all its
 %	statistics.
@@ -879,7 +882,8 @@ rdf_reset_db :-
 		 *	     SAVE RDF		*
 		 *******************************/
 
-%	rdf_save(File, [+Options])
+%%	rdf_save(File) is det.
+%%	rdf_save(File, +Options) is det.
 %
 %	Save RDF data to file.  Options is a list of one or more of the
 %	following options:
@@ -985,7 +989,7 @@ db(Options, DB) :-
 	).
 
 
-%	meta_options(+OptionsIn, -OptionsOut)
+%%	meta_options(+OptionsIn, -OptionsOut)
 %	
 %	Do module qualification for options that are module sensitive.
 
@@ -1003,7 +1007,7 @@ meta_options([H0|T0], [H|T]) :-
 	meta_options(T0, T).
 
 
-%	rdf_save_header(+Fd, +Options)
+%%	rdf_save_header(+Fd, +Options)
 %
 %	Save XML document header, doctype and open the RDF environment.
 %	This predicate also sets up the namespace notation.
@@ -1048,7 +1052,7 @@ xml_encoding_name(iso_latin_1, 'ISO-8859-1').
 xml_encoding_name(utf8,        'UTF-8').
 
 
-%	header_namespaces(Options, -List)
+%%	header_namespaces(Options, -List)
 %	
 %	Get namespaces we will define as entities
 
@@ -1059,7 +1063,7 @@ header_namespaces(Options, List) :-
 	db(Options, DB),
 	used_namespace_entities(List, DB).
 	
-%	used_namespace_entities(-List, ?DB)
+%%	used_namespace_entities(-List, ?DB)
 %
 %	Return the list of namespaces used in an RDF database.
 
@@ -1160,7 +1164,7 @@ rdf_save_footer(Out) :-
 	retractall(named_anon(_, _)),
 	format(Out, '</rdf:RDF>~n', []).
 
-%	rdf_save_non_anon_subject(+Out, +Subject, +Options)
+%%	rdf_save_non_anon_subject(+Out, +Subject, +Options)
 %	
 %	Save an object.  Anonymous objects not saved if anon(false)
 %	is present in the Options list.
@@ -1239,7 +1243,7 @@ save_about(Out, Subject) :-
 	rdf_value(Subject, QSubject, Encoding),
 	format(Out, ' rdf:about="~w"', [QSubject]).
 
-%	save_attributes(+List, +DefNS, +Stream, Element)
+%%	save_attributes(+List, +DefNS, +Stream, Element)
 %
 %	Save the attributes.  Short literal attributes are saved in the
 %	tag.  Others as the content of the description element.  The
@@ -1256,7 +1260,7 @@ save_attributes(Atts, DefNS, Out, Element, Indent, Options) :-
 	    format(Out, '~N~*|</~w>~n', [Indent, Element])
 	).
 
-%	split_attributes(+Attributes, -HeadAttrs, -BodyAttr)
+%%	split_attributes(+Attributes, -HeadAttrs, -BodyAttr)
 %	
 %	Split attribute (Name=Value) list into attributes for the head
 %	and body. Attributes can only be in the head if they are literal
@@ -1267,7 +1271,7 @@ split_attributes(Atts, HeadAttr, BodyAttr) :-
 	simple_literal_attributes(Singles, HeadAttr, Rest),
 	append(Dupls, Rest, BodyAttr).
 
-%	duplicate_attributes(+Attrs, -Duplicates, -Singles)
+%%	duplicate_attributes(+Attrs, -Duplicates, -Singles)
 %	
 %	Extract attributes that appear more than onces as we cannot
 %	dublicate an attribute in the head according to the XML rules.
@@ -1291,7 +1295,7 @@ named_attributes(Name, [H|T], D, R) :-
 	    named_attributes(Name, T, D, RT)
 	).
 
-%	simple_literal_attributes(+Attributes, -Inline, -Body)
+%%	simple_literal_attributes(+Attributes, -Inline, -Body)
 %
 %	Split attributes for (literal) attributes to be used in the
 %	begin-tag and ones that have to go into the body of the description.
@@ -1308,7 +1312,7 @@ in_tag_attribute(_=literal(Text)) :-
 	atom_length(Text, Len),
 	Len < 60.
 
-%	save_attributes(+List, +DefNS, +TagOrBody, +Stream)
+%%	save_attributes(+List, +DefNS, +TagOrBody, +Stream)
 %
 %	Save a list of attributes.
 
@@ -1419,7 +1423,7 @@ rdf_save_list(Out, List, DefNS, Indent, Options) :-
 	;   true
 	).
 
-%	rdf_id(+Resource, +DefNS, -NSLocal)
+%%	rdf_id(+Resource, +DefNS, -NSLocal)
 %	
 %	Generate a NS:Local name for Resource given the indicated
 %	default namespace.  This call is used for elements.
@@ -1442,7 +1446,7 @@ rdf_att_id(Id, _, NS:Local) :-
 rdf_att_id(Id, _, Id).
 
 
-%	rdf_value(+Resource, -Text, +Encoding)
+%%	rdf_value(+Resource, -Text, +Encoding)
 %	
 %	According  to  "6.4  RDF  URI  References"  of  the  RDF  Syntax
 %	specification, a URI reference is  UNICODE string not containing

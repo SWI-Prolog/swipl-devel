@@ -48,10 +48,17 @@ goal_expansion(F, T) :- rew_goal_expansion(F, T).
 :- multifile rdf_name_space/1.
 :- dynamic   rdf_name_space/1.
 
+%%	rdf_name_space(?URL) is nondet.
+%
+%	True if URL must be handled  as rdf: Determines special handling
+%	of rdf:about, rdf:resource, etc.
+
+
 rdf_name_space('http://www.w3.org/1999/02/22-rdf-syntax-ns#').
 rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
 
-%	xml_to_rdf(+RDFElementOrObject, -RDFTerm, +Options)
+
+%%	xml_to_plrdf(+RDFElementOrObject, -RDFTerm, +Options)
 %
 %	Translate an XML (using namespaces) term into an Prolog term
 %	representing the RDF data.  This term can then be fed into
@@ -65,6 +72,10 @@ xml_to_plrdf(Element, RDF, Options) :-
 	rewrite(\xml_content_objects(RDF, Options), Element).
 xml_to_plrdf(Element, RDF, Options) :-
 	rewrite(\xml_objects(RDF, Options), Element).
+
+%%	element_to_plrdf(+DOM, -RDFTerm, +Options)
+%
+%	Rewrite a single XML element.
 
 element_to_plrdf(Element, RDF, Options) :-
 	rewrite(\nodeElementList(RDF, Options), [Element]).
@@ -259,7 +270,7 @@ aboutResourceEmptyElt(about(URI), Options) ::=
 aboutResourceEmptyElt(node(URI), _Options) ::=
 	\nodeIDAttr(URI).
 
-%	literal_value(+In, -Value, +Options)
+%%	literal_value(+In, -Value, +Options)
 %	
 %	Translate a literal into its  value.   Notably  if  the value is
 %	plain  CDATA,  remove  the   list.    This   predicate   handles
@@ -271,10 +282,10 @@ literal_value([Value], Literal, Options) :-
 literal_value(Value, literal(Value), _).
 
 
-%	mkliteral(+Atom, -Object, +Options)
+%%	mkliteral(+Atom, -Object, +Options)
 %	
 %	Translate attribute value Atom into an RDF object using the
-%	lang(Lang) option from Options.
+%%	lang(Lang) option from Options.
 
 mkliteral(Text, literal(Val), Options) :-
 	atom(Text),
@@ -284,7 +295,7 @@ mkliteral(Text, literal(Val), Options) :-
 	;   Val = Text
 	).
 
-%	typed_literal(+Type, +Content, -Literal, +Options)
+%%	typed_literal(+Type, +Content, -Literal, +Options)
 %	
 %	Handle a literal attribute with rdf:datatype=Type qualifier. NB:
 %	possibly  it  is  faster  to  use  a  global  variable  for  the
@@ -320,7 +331,7 @@ idRefAttr(Id, Options) ::=
 idRefAttr(about(URI), Options) ::=
 	\resourceAttr(URI, Options).
 
-%	an_rdf_object(-Object, +OptionsURI)
+%%	an_rdf_object(-Object, +OptionsURI)
 %
 %	Deals with an object, but there may be spaces around.  I'm still
 %	not sure where to deal with these.  Best is to ask the XML parser
@@ -429,7 +440,7 @@ make_globalid(In, Options, Id) :-
 	).
 
 
-%	canonical_uri(+In, +Base, -Absolute)
+%%	canonical_uri(+In, +Base, -Absolute)
 %	
 %	Make the URI absolute and decode special sequences. For the last
 %	clause, which is the correct order?
@@ -442,7 +453,7 @@ canonical_uri(URI, Base, Global) :-	% use our generic library
 	decode_uri(Global0, Global).
 
 
-%	decode_uri(+Encoded, -Decoded)
+%%	decode_uri(+Encoded, -Decoded)
 %	
 %	RDF URIs are encoded  Unicode  strings.   First  the  unicode is
 %	translated using UTF-8 and then  the   result  is represented as
@@ -623,7 +634,7 @@ noMoreAttrs ::=
 	| \noMoreAttrs
 	].
 
-%	modify_state(+Element0, +Options0, -Element, -Options)
+%%	modify_state(+Element0, +Options0, -Element, -Options)
 %	
 %	If Element0 contains xml:base = Base, strip it from the
 %	attributes list and update base_uri(_) in the Options
@@ -685,7 +696,7 @@ xml_attr(xmlns:_).
 xml_attr(xml:_).
 
 
-%	remove_fragment(+URI, -WithoutFragment)
+%%	remove_fragment(+URI, -WithoutFragment)
 %	
 %	When handling xml:base, we must delete the possible fragment.
 
