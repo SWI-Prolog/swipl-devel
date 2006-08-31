@@ -725,9 +725,9 @@ PRED_IMPL("format_time", 3, format_time, 0)
     unixt = (time_t) ut64;
 
     if ( (int64_t)unixt == ut64 )
-    { localtime_r(&unixt, &tb.tm);
+    { tb.utcoff = tz_offset();
+      localtime_r(&unixt, &tb.tm);
       tb.sec = (double)tb.tm.tm_sec + modf(tb.stamp, &ip);
-      tb.utcoff = tz_offset();
       if ( daylight )
       { if ( tb.tm.tm_isdst )
 	{ tb.utcoff -= 3600;

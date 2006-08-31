@@ -11,6 +11,9 @@
 VERSION 5.6.18 (August 24, 2006)
 ================================
 
+  * FIXED: format_time/3 can produce inconsistent results on first call.
+    Keri Harris.
+
   * FIXED: Updated www_open_url for netscape compatible browsers on Unix.
     Cleanup of comments, etc.  Work-around lacking exit code of firefox
     -remote commands.
