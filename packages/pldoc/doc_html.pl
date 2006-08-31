@@ -743,10 +743,10 @@ pred_head(Head) -->			% Plain terms
 		   [ '(', \pred_args(Args, 1), ')' ])
 	     ]).
 
-op_type(xf,  prefix).
-op_type(yf,  prefix).
-op_type(fx,  postfix).
-op_type(fy,  postfix).
+op_type(fx,  prefix).
+op_type(fy,  prefix).
+op_type(xf,  postfix).
+op_type(yf,  postfix).
 op_type(xfx, infix).
 op_type(xfy, infix).
 op_type(yfx, infix).
