@@ -1,4 +1,4 @@
-#!/staff/jan/bin/pl -f none -q -g main -s
+#!/usr/bin/pl -f none -g main -s
 
 :- doc_collect(true).
 :- use_module(library('pldoc/doc_library')).
@@ -17,8 +17,8 @@ main :-
 
 start_server :-
 	doc_log_requests('Requests.log'),
-	doc_server(4000,
-		   [
+	doc_server(8008,
+		   [ workers(4)
 		   ]).
 
 wait :-
