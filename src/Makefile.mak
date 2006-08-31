@@ -186,10 +186,10 @@ check:
 ################################################################
 
 !IF "$(CFG)" == "rt"
-install:	$(BINDIR) iprog install_packages html-install
+install:	$(BINDIR) iprog install_packages
 !ELSE
 install:	install-arch install-libs install-readme install_packages \
-		xpce_packages install-dotfiles install-demo
+		xpce_packages install-dotfiles install-demo html-install
 !ENDIF
 
 install-arch:	idirs iprog

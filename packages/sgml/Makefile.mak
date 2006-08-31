@@ -63,7 +63,7 @@ uninstall::
 		$(MAKEINDEX)
 
 html-install::
-		copy doc\sgml2pl.html "$(PKGDOC)"
+		copy sgml.html "$(PKGDOC)"
 
 xpce-install::
 
