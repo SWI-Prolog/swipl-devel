@@ -4217,9 +4217,9 @@ java_home(Home) :-
 java_home(Home) :-
 	current_prolog_flag(windows, true), !,
 	Key0 = 'HKEY_LOCAL_MACHINE/Software/JavaSoft/Java Development Kit',
-	win_registry_get_value(Key0, 'CurrentVersion', Version),
+	call(win_registry_get_value(Key0, 'CurrentVersion', Version)),
 	concat_atom([Key0, Version], /, Key),
-	win_registry_get_value(Key, 'JavaHome', Home),
+	call(win_registry_get_value(Key, 'JavaHome', Home)),
 	exists_directory(Home), !.
 java_home(Home) :-
 	current_prolog_flag(unix, true),

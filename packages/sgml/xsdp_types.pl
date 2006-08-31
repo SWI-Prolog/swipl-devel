@@ -37,15 +37,16 @@
 	  ]).
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> XML-Schema primitie types
+
 This  modules  provides  support  for  the  primitive  XML-Schema  (XSD)
-datatypes. It defines the type hierarch  which allows for reasoning over
-types as well as xsd_convert/3  to  convert   XML  content  to a natural
+datatypes. It defines the type hierarchy which allows for reasoning over
+types as well as xsdp_convert/3 to  convert   XML  content  to a natural
 Prolog representation of the XSD type.
 
 Based on the W3C definitions at
 
-	http://www.w3.org/TR/xmlschema-2/#built-in-datatypes
+	* http://www.w3.org/TR/xmlschema-2/#built-in-datatypes
 
 The current implementation is incomplete and only  there to test the API
 and its integration with rdf:dataType=Type handling in the RDF parser.
@@ -53,7 +54,7 @@ and its integration with rdf:dataType=Type handling in the RDF parser.
 The extra 'p' in the module  prefix  (xsdp_*)   is  used  to allow for a
 module xsd_*, providing full  user-defined  XSD   types  on  top of this
 module.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
 ns('http://www.w3.org/2001/XMLSchema#').
 
@@ -62,14 +63,14 @@ ns('http://www.w3.org/2001/XMLSchema#').
 		 *    PRIMITIVE TYPE HIERARCHY	*
 		 *******************************/
 
-%	xsdp_type(?Type)
+%%	xsdp_type(?Type)
 %	
 %	Test/generate the names for the XML schema primitive types
 
 xsdp_type(Type) :-
 	subtype_of(Type, _).
 
-%	xsdp_subtype_of(?Type, ?Super)
+%%	xsdp_subtype_of(?Type, ?Super)
 %	
 %	True if Type is a (transitive) subtype of Super.
 
@@ -133,6 +134,12 @@ subtype_of(anyURI,	       anySimpleType).
 subtype_of('QName',	       anySimpleType).
 subtype_of('NOTATION',	       anySimpleType).
 
+%%	xsdp_numeric_uri(?URI, -PromoteURI) is nondet.
+%
+%	Table mapping all XML-Schema numeric  URIs   into  the type they
+%	promote to. Types are promoted   to =integer=, =float=, =double=
+%	and =decimal=.
+
 term_expansion(integer_types, Clauses) :-
 	findall(integer_type(Type), xsdp_subtype_of(Type, integer), Clauses).
 term_expansion(xsd_local_ids, Clauses) :-
@@ -156,9 +163,10 @@ term_expansion(numeric_uirs, Clauses) :-
 
 integer_types.
 xsd_local_ids.
+
 numeric_uirs.
 
-%	xsdp_convert(+Type, +Content, -Value)
+%%	xsdp_convert(+Type, +Content, -Value)
 %	
 %	Convert the content model Content to an  object of the given XSD
 %	type and return the Prolog value in Value.

@@ -36,9 +36,15 @@
 	]).		% Goal and matching Expr.
 
 
+/** <module> Simple regex library
+
+@bug	Old stuff.  Currently the only serious implementation of
+	regular expression in SWI-Prolog is provided by XPCE.
+*/
+
 am_bagof(Var, Expression, Goal, Bag) :-
 	am_compile(Expression), !, 
-	am_bagof(Var, am_bagof_goal(Var, Goal), Bag), !.
+	bagof(Var, am_bagof_goal(Var, Goal), Bag), !.
 
 am_bagof_goal(Var, Goal) :-
 	Goal, 
@@ -51,7 +57,10 @@ am_match(Atom) :-
 
 am_compile(Reg) :-
 	am_compile(Reg, Goal, String), 
-	(recorded(am_compiled, goal(_, _), Ref), erase(Ref) | true), 
+	(   recorded(am_compiled, goal(_, _), Ref)
+	->  erase(Ref)
+	;   true
+	), 
 	recorda(am_compiled, goal(Goal, String), _), !.
 
 am_compile(Reg, Goal, String) :-
