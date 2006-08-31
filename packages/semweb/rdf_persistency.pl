@@ -578,9 +578,9 @@ exists_db(Base) :-
 	db_file(Base, File),
 	exists_file(File).
 
-%%	db_files(+DB, -Snapshot, -Journal)
-%%	db_files(-DB, +Snapshot, -Journal)
-%%	db_files(-DB, -Snapshot, +Journal)
+%%	db_files(+DB, -Snapshot, -Journal).
+%%	db_files(-DB, +Snapshot, -Journal).
+%%	db_files(-DB, -Snapshot, +Journal).
 
 db_files(DB, Snapshot, Journal) :-
 	nonvar(DB), !,
@@ -614,8 +614,8 @@ rdf_journal_file(DB, Journal) :-
 	exists_file(Journal).
 
 
-%%	rdf_db_to_file(+DB, -File)
-%%	rdf_db_to_file(-DB, +File)
+%%	rdf_db_to_file(+DB, -File) is det.
+%%	rdf_db_to_file(-DB, +File) is det.
 %	
 %	Translate between database encoding (often an   file or URL) and
 %	the name we store in the  directory.   We  keep  a cache for two
@@ -629,8 +629,8 @@ rdf_db_to_file(DB, File) :-
 	url_to_filename(DB, File),
 	assert(db_file_base(DB, File)).
 
-%%	url_to_filename(+URL, -FileName)
-%%	url_to_filename(-URL, +FileName)
+%%	url_to_filename(+URL, -FileName) is det.
+%%	url_to_filename(-URL, +FileName) is det.
 %	
 %	Turn  a  valid  URL  into  a  filename.  Earlier  versions  used
 %	www_form_encode/2, but this can produce  characters that are not

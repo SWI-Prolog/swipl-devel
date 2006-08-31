@@ -4,7 +4,7 @@
 :- use_module(library('pldoc/doc_library')).
 :- use_module(doc_log).
 
-%:- doc_load_library.
+:- doc_load_library.
 
 %%	main
 %

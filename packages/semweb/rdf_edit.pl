@@ -555,8 +555,8 @@ rdfe_redo :-
 	broadcast(rdf_undo(redo, UnDone)).
 
 
-%%	rdfe_can_redo(-TID)
-%%	rdfe_can_undo(-TID)
+%%	rdfe_can_redo(-TID) is semidet.
+%%	rdfe_can_undo(-TID) is semidet.
 %	
 %	Check if we can undo and if so return the id of the transaction
 %	that will be un/re-done.  A subsequent call to rdfe_transaction_name
