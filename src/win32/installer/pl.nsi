@@ -195,6 +195,7 @@ SectionEnd
 
 Section "CLP on real and rational numbers: CLP(Q,R)"
   SectionIn 1 3
+  Delete $INSTDIR\library\clp\clpqr\ugraphs.pl
   SetOutPath $INSTDIR\library\clp
   File /r pl\library\clp\clpr
   File /r pl\library\clp\clpq
