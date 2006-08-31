@@ -654,7 +654,7 @@ reasons:
     \item As a comment, they stay together with the comment block
           of a predicate. we feel it is best to keep documentation
 	  as close as possible to the source.
-    \item As we parse them seperately, we can pick up predicate names
+    \item As we parse them seperately, we can pick up argument names
 	  and create a readable syntax without introducing possibly
 	  conflicting operators.
     \item As a comment they do not introduce incompatibilities with
