@@ -88,6 +88,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -95,7 +99,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -186,8 +190,8 @@ as well as the team,
 </UL>
 
 <P>First, we describe the documentation system we developed for 
-SWI-Prolog. In <A class="sec" href="#sec:motivation">section 10</A> we 
-motivate our main choices.
+SWI-Prolog. In <A class="sec" href="#sec:10">section 10</A> we motivate 
+our main choices.
 
 <H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></H2>
 
@@ -216,15 +220,15 @@ comments</SPAN></A></H2>
 one that seen most in the Prolog community and the block-comment (<CODE>/*</CODE>...<CODE>*/</CODE>) 
 based one commonly seen in the Java and C domain. As we cannot determine 
 the argument-names, type and modes from following (predicate) code 
-itself, we must supply this in the comment.<SUP class="fn">1<SPAN class="fn-text">See <A class="sec" href="#sec:motivation:modes">section 
+itself, we must supply this in the comment.<SUP class="fn">1<SPAN class="fn-text">See <A class="sec" href="#sec:10">section 
 10</A>.</SPAN></SUP>. The overall structure of the comment therefore is:
 
 <P><UL COMPACT>
-<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:modes">section 
+<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:5">section 
 5</A>
-<LI>Wiki-style documentation body, see <A class="sec" href="#sec:wiki">section 
+<LI>Wiki-style documentation body, see <A class="sec" href="#sec:7">section 
 7</A>
-<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:tags">section 
+<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:6">section 
 6</A>)
 </UL>
 
@@ -331,7 +335,7 @@ for any type. </TD></TR>
 <TR VALIGN=top><TD>@</TD><TD>Argument is not further instantiated. </TD></TR>
 <TR VALIGN=top><TD>!</TD><TD>Argument contains a mutable structure that 
 may be modified using
-<A NAME="idx:setarg3:1"></A><B>setarg/3</B> or <A NAME="idx:nbsetarg3:2"></A><B>nb_setarg/3</B>. </TD></TR>
+<A NAME="idx:setarg3:1"></A><SPAN class="pred-ext">setarg/3</SPAN> or <A NAME="idx:nbsetarg3:2"></A><SPAN class="pred-ext">nb_setarg/3</SPAN>. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -387,10 +391,10 @@ Version of the module.</DD>
 <DT><B><CODE>@</CODE>see</B></DT>
 <DD class="defbody">
 Related maaterial.</DD>
-<DT><B><CODE>@</CODE>depreciated</B></DT>
+<DT><B><CODE>@</CODE>deprecated</B></DT>
 <DD class="defbody">
-The predicate or module is depreciated. The description specifies what 
-to use in new code.</DD>
+The predicate or module is deprecated. The description specifies what to 
+use in new code.</DD>
 <DT><B><CODE>@</CODE>compat</B></DT>
 <DD class="defbody">
 When implementing libraries or externally defined interfaces this tag 
@@ -457,7 +461,7 @@ is common to describe the behaviour on different terms. Such lists must
 be written as below. &lt;<VAR>Term1</VAR>&gt;, etc. must be valid Prolog 
 terms and end in the newline. The Wiki adds <CODE>' . '</CODE> to the 
 text and reads it using the operator definitions also used to read the 
-mode terms. See <A class="sec" href="#sec:modes">section 5</A>.
+mode terms. See <A class="sec" href="#sec:5">section 5</A>.
 
 <PRE class="code">
    * Term1
@@ -484,7 +488,7 @@ lines that parse into a table-row together for a table. Example:
 <DD>
 Section headers are creates using one of the constructs below taken from 
 TWiki. Section headers are normally not used in the source-code, but can 
-be useful inside README and TODO files. See <A class="sec" href="#sec:dirindex">section 
+be useful inside README and TODO files. See <A class="sec" href="#sec:8">section 
 8</A>.
 
 <PRE class="code">
@@ -609,7 +613,7 @@ Provided options are:
 Allow connections from <VAR>HostOrIP</VAR>. If <VAR>Host</VAR> is an 
 atom starting with a '.', suffix matching is preformed. I.e. 
 <CODE>allow('.uva.nl')</CODE> grants access to all machines in this 
-domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><B>ip/4</B> 
+domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><SPAN class="pred-ext">ip/4</SPAN> 
 term. I.e. to allow access from the 10.0.0.X domain, specify
 <CODE>allow(ip(10,0,0,_))</CODE>.</DD>
 <DT><STRONG>deny</STRONG>(<VAR>+HostOrIP</VAR>)</DT>
@@ -634,10 +638,10 @@ Fails if no server is running.</DD>
 <DT class="pubdef"><A NAME="doc_browser/1"><STRONG>doc_browser</STRONG>(<VAR>+Spec</VAR>)</A></DT>
 <DD class="defbody">
 Open the user's default browser on the specified page. <VAR>Spec</VAR> 
-is handled similar to <A NAME="idx:edit1:4"></A><B>edit/1</B>, resolving 
-anything that relates somehow to the given specification and ask the 
-user to select.<SUP class="fn">bug<SPAN class="fn-text">This flexibility 
-is not yet implemented</SPAN></SUP>.
+is handled similar to <A NAME="idx:edit1:4"></A><SPAN class="pred-ext">edit/1</SPAN>, 
+resolving anything that relates somehow to the given specification and 
+ask the user to select.<SUP class="fn">bug<SPAN class="fn-text">This 
+flexibility is not yet implemented</SPAN></SUP>.
 </DD>
 </DL>
 
@@ -742,8 +746,8 @@ enclosing section (<EM>Up</EM>).
 
 <P>If the browser is accessed from <CODE>localhost</CODE>, each object 
 that is related to a known source-location has an edit icon at the right 
-side. Clicking this calls <A NAME="idx:edit1:7"></A><B>edit/1</B> on the 
-object, calling the user's default editor in the file. To use the 
+side. Clicking this calls <A NAME="idx:edit1:7"></A><SPAN class="pred-ext">edit/1</SPAN> 
+on the object, calling the user's default editor in the file. To use the 
 built-in PceEmacs editor, either set the Prolog flag <CODE>editor</CODE> 
 to <CODE>pce_emacs</CODE> or run <CODE>?- emacs.</CODE> before clicking 
 an edit button.
@@ -827,7 +831,7 @@ a structured comment with formal syntax for the following reasons:
 <LI>As a comment, they stay together with the comment block of a 
 predicate. we feel it is best to keep documentation as close as possible 
 to the source.
-<LI>As we parse them seperately, we can pick up predicate names and 
+<LI>As we parse them seperately, we can pick up argument names and 
 create a readable syntax without introducing possibly conflicting 
 operators.
 <LI>As a comment they do not introduce incompatibilities with other 

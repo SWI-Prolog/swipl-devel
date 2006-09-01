@@ -257,8 +257,8 @@ Version of the module.
     \definition{\chr{@}see}
 Related maaterial.
 
-    \definition{\chr{@}depreciated}
-The predicate or module is depreciated.  The description specifies what
+    \definition{\chr{@}deprecated}
+The predicate or module is deprecated.  The description specifies what
 to use in new code.
 
     \definition{\chr{@}compat}

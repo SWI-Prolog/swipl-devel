@@ -1,3 +1,11 @@
+Sep 1, 2006
+
+* Renamed Depreciated --> Deprecated.  Mike Elston.
+
+Aug 31, 2006
+
+* First release with SWI-Prolog 5.6.18
+
 Aug 10, 2006
 
 * Starts getting usable :-)
