@@ -43,7 +43,7 @@
 %	and should be in quintus.pl.  We will leave it here for compatibility
 %	reasons.
 %	
-%	@depreciated Use access_file/2.
+%	@deprecated Use access_file/2.
 
 can_open_file(File, read) :- !,
 	access_file(File, read).
@@ -69,7 +69,7 @@ path_dir_name(File, Dir) :-
 %
 %	Change Working Directory.
 %	
-%	@depreciated	Use using working_directory/2.
+%	@deprecated	Use using working_directory/2.
 
 chdir(Dir) :-
 	working_directory(_Old, Dir).

@@ -43,7 +43,7 @@
 This module provides some tools to deal with system predicates. System
 predicates cannot be traced or redefined.
 
-@depreciated	Use :- set_prolog_flag(generate_debug_info, false) to
+@deprecated	Use :- set_prolog_flag(generate_debug_info, false) to
 		hide predicate internals from the tracer.
 */
 

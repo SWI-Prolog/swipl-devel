@@ -38,7 +38,7 @@ This library defines set operations on sets represented as ordered
 lists.
 
 @author	Jon Jagger
-@depreciated Use the de-facto library ordsets.pl
+@deprecated Use the de-facto library ordsets.pl
 */
 
 

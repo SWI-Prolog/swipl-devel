@@ -79,7 +79,7 @@ compatibility predicates.
 %	
 %	Write term ignoring operators and quote atoms.
 %	
-%	@depreciated Use write_term/3 or write_canonical/2.
+%	@deprecated Use write_term/3 or write_canonical/2.
 
 displayq(Term) :-
 	write_term(Term, [ignore_ops(true),quoted(true)]).
@@ -90,7 +90,7 @@ displayq(Stream, Term) :-
 %%	sformat(-String, +Format, +Args) is det.
 %%	sformat(-String, +Format) is det.
 %
-%	@depreciated Use format/3 as =|format(string(String), ...)|=
+%	@deprecated Use format/3 as =|format(string(String), ...)|=
 
 :- module_transparent sformat/2, sformat/3.
 
@@ -101,7 +101,7 @@ sformat(String, Format) :-
 
 %%	concat(+Atom1, +Atom2, -Atom) is det.
 %
-%	@depreciated Use ISO atom_concat/3
+%	@deprecated Use ISO atom_concat/3
 
 concat(A, B, C) :-
 	atom_concat(A, B, C).
@@ -109,7 +109,7 @@ concat(A, B, C) :-
 %%	read_variables(-Term, -Bindings) is det.
 %%	read_variables(+In:stream, -Term, -Bindings) is det.
 %
-%	@depreciated Use ISO read_term/[2,3].
+%	@deprecated Use ISO read_term/[2,3].
 
 read_variables(Term, Vars) :-
 	read_term(Term, [variable_names(Vars)]).
@@ -122,7 +122,7 @@ read_variables(Stream, Term, Vars) :-
 %
 %	Control Prolog flags.
 %
-%	@depreciated Use ISO current_prolog_flag/2 and set_prolog_flag/2.
+%	@deprecated Use ISO current_prolog_flag/2 and set_prolog_flag/2.
 
 feature(Key, Value) :-
 	current_prolog_flag(Key, Value).
@@ -134,7 +134,7 @@ set_feature(Key, Value) :-
 %
 %	Predecessor of sub_string using 1-based Offset.
 %	
-%	@depreciated Use sub_string/5.
+%	@deprecated Use sub_string/5.
 
 substring(String, Offset, Length, Sub) :-
 	Offset0 is Offset - 1,
@@ -142,14 +142,14 @@ substring(String, Offset, Length, Sub) :-
 
 %%	flush is det.
 %
-%	@depreciated use ISO flush_output/0.
+%	@deprecated use ISO flush_output/0.
 
 flush :-
 	flush_output.
 
 %%	write_ln(X) is det
 %
-%	@depreciated Use writeln(X).
+%	@deprecated Use writeln(X).
 
 write_ln(X) :-
 	write(X), nl.
@@ -160,7 +160,7 @@ write_ln(X) :-
 %	in a [].  There is not much use for the quick is_list, as in
 %	most cases you want to process the list element-by-element anyway.
 %	
-%	@depreciated Use ISO is_list/1.
+%	@deprecated Use ISO is_list/1.
 
 proper_list(List) :-
 	is_list(List).
@@ -170,14 +170,14 @@ proper_list(List) :-
 %	Return  a  list  of  unbound  variables    in   Term.  The  name
 %	term_variables/2 is more widely used.
 %	
-%	@depreciated Use term_variables/2.
+%	@deprecated Use term_variables/2.
 
 free_variables(Term, Variables) :-
 	term_variables(Term, Variables).
 
 %%	checklist(:Goal, +List)
 %	
-%	@depreciated Use maplist/2
+%	@deprecated Use maplist/2
 
 :- module_transparent
 	checklist/2.
@@ -192,7 +192,7 @@ checklist(Goal, List) :-
 %	places. From 5.4.1 onwards strip_module/3 is  built-in and the $
 %	variation is added here for compatibility.
 %	
-%	@depreciated Use strip_module/3.
+%	@deprecated Use strip_module/3.
 
 :- module_transparent
 	'$strip_module'/3.
@@ -207,7 +207,7 @@ checklist(Goal, List) :-
 %	returned  as a  SWI-Prolog string object  (see section  4.23).   See
 %	also convert_time/8.
 %	
-%	@depreciated Use format_time/3.
+%	@deprecated Use format_time/3.
 
 
 convert_time(Stamp, String) :-
@@ -224,7 +224,7 @@ convert_time(Stamp, String) :-
 %	or  might always be 0, depending  on the timing capabilities of  the
 %	system.  See also convert_time/2.
 %	
-%	@depreciated Use stamp_date_time/3.
+%	@deprecated Use stamp_date_time/3.
 
 convert_time(Stamp, Y, Mon, Day, Hour, Min, Sec, MilliSec) :-
 	stamp_date_time(Stamp,

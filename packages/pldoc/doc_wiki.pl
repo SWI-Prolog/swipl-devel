@@ -310,7 +310,7 @@ tag_name(String, Tag, Order) :-
 	format(atom(Name), '~s', [String]),
 	(   renamed_tag(Name, Tag),
 	    tag_order(Tag, Order)
-	->  print_message(warning, pldoc(depreciated_tag(Name, Tag)))
+	->  print_message(warning, pldoc(deprecated_tag(Name, Tag)))
 	;   tag_order(Name, Order)
 	->  Tag = Name
 	;   print_message(warning, pldoc(unknown_tag(Name))),
@@ -326,9 +326,9 @@ rest_tag([L|Lines0], Indent, [L|VT], Lines) :-
 	rest_tag(Lines0, Indent, VT, Lines).
 
 
-%%	renamed_tag(+DepreciatedTag:atom, -Tag:atom) is semidet.
+%%	renamed_tag(+DeprecatedTag:atom, -Tag:atom) is semidet.
 %
-%	Declaration for depreciated tags.
+%	Declaration for deprecated tags.
 
 renamed_tag(exception, throws).
 
@@ -344,7 +344,7 @@ tag_order(throws,      2).
 tag_order(author,      3).
 tag_order(version,     4).
 tag_order(see,	       5).
-tag_order(depreciated, 6).
+tag_order(deprecated,  6).
 tag_order(compat,      7).		% PlDoc extension
 tag_order(copyright,   8).
 tag_order(license,     9).

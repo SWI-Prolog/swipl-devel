@@ -108,7 +108,7 @@ ord_disjoint(Set1, Set2) :-
 %	
 %	Intersection  holds  the  common  elements  of  Set1  and  Set2.
 %	
-%	@depreciated Use ord_intersection/3
+%	@deprecated Use ord_intersection/3
 
 ord_intersect(Set1, Set2, Intersection) :-
 	oset_int(Set1, Set2, Intersection).

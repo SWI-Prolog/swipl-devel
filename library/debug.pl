@@ -160,7 +160,7 @@ assertion_failed.
 %	succeeds.  If Goal fails it prints a message, a stack-trace
 %	and finally traps the debugger.
 %	
-%	@depreciated	Use assertion/1 in new code.
+%	@deprecated	Use assertion/1 in new code.
 
 		 /*******************************
 		 *	     EXPANSION		*

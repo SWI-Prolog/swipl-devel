@@ -551,7 +551,7 @@ tag_title(see,    'See also:').
 
 tag_class(tbd, 		warn).
 tag_class(bug, 		error).
-tag_class(depreciated,	warn).
+tag_class(deprecated,	warn).
 
 %%	params(+Params:list) is det.
 %
