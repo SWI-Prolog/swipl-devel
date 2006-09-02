@@ -32,6 +32,7 @@
 :- module(pce_http_client, []).
 :- use_module(library(pce)).
 :- use_module(library(url)).
+:- use_module(library(option)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines the clas http_client, a subclass of class socket for
@@ -341,15 +342,5 @@ complete(S) :->
 
 :- pce_end_class.
 
-
-%%	option(Option(?Value), OptionList, Default)
-
-option(Opt, Options) :-
-	memberchk(Opt, Options).
-
-option(Opt, Options, _) :-
-	option(Opt, Options), !.
-option(Opt, _, Default) :-
-	arg(1, Opt, Default).
 
 
