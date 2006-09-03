@@ -94,10 +94,10 @@ displayq(Stream, Term) :-
 
 :- module_transparent sformat/2, sformat/3.
 
+sformat(String, Format) :-
+	format(string(String), Format, []).
 sformat(String, Format, Arguments) :-
 	format(string(String), Format, Arguments).
-sformat(String, Format) :-
-	format(string(String), Format).
 
 %%	concat(+Atom1, +Atom2, -Atom) is det.
 %
