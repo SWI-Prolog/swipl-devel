@@ -320,7 +320,8 @@ source_dirs([H|T], WD) -->
 	  ->  Attrs = [selected]
 	  ;   Attrs = []
 	  ),
-	  format(string(HREF), '/doc~w/index.html', [H]),
+	  format(string(IndexFile), '~w/index.html', [H]),
+	  doc_file_href(IndexFile, HREF),
 	  format(string(Call), 'document.location=\'~w\';', [HREF])
 	},
 	html(option([onClick(Call)|Attrs], H)),

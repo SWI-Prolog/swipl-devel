@@ -1,3 +1,8 @@
+Sep 3, 2006
+
+* FIXED: `Go': deal properly with Windows filenames and fix handling of the
+  references from /directory?dir=Dir by mapping these to /doc/Dir/index.html.
+
 Sep 1, 2006
 
 * Renamed Depreciated --> Deprecated.  Mike Elston.

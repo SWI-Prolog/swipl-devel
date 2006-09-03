@@ -321,16 +321,16 @@ reply('/edit', _Request) :-
 
 %	/directory?dir=Dir
 %	
-%	Give index of directory
+%	Give index of directory.  Mapped to /doc/Dir/index.html.
 
 reply('/directory', Request) :-
 	http_parameters(Request,
 			[ dir(Dir, [])
 			]),
 	(   allowed_directory(Dir)
-	->  edit_options(Request, EditOptions),
-	    format('Content-type: text/html~n~n'),
-	    doc_for_dir(Dir, current_output, EditOptions)
+	->  format(string(IndexFile), '~w/index.html', [Dir]),
+	    doc_file_href(IndexFile, HREF),
+	    throw(http_reply(moved(HREF)))
 	;   throw(http_reply(forbidden(Dir)))
 	).
 
