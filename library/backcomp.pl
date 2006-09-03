@@ -232,5 +232,5 @@ convert_time(Stamp, Y, Mon, Day, Hour, Min, Sec, MilliSec) :-
 			     Hour, Min, FSec,
 			     _, _, _),
 			local),
-	Sec is float_integer_part(FSec),
+	Sec is integer(float_integer_part(FSec)),
 	MilliSec is integer(float_fractional_part(FSec)*1000).
