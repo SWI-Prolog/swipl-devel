@@ -569,7 +569,7 @@ param(reload,
 	prolog:message/3.
 
 prolog:message(pldoc(server_started(Port))) -->
-	[ 'Started Prolog Documentatiuon server at port ~w'-[Port], nl,
+	[ 'Started Prolog Documentation server at port ~w'-[Port], nl,
 	  'You may access the server at http://localhost:~w/'-[Port]
 	].
 
