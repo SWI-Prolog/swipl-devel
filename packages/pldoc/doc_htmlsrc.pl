@@ -35,6 +35,8 @@
 	  ]).
 :- use_module(library(option)).
 :- use_module(doc_colour).
+:- use_module(doc_wiki).
+:- use_module(library('http/html_write')).
 
 /** <module> HTML source pretty-printer
 
@@ -112,7 +114,28 @@ html_fragments([H|T], In, Out, State0, State) :-
 	html_fragment(H, In, Out, State0, State1),
 	html_fragments(T, In, Out, State1, State).
 
-html_fragment(fragment(Start, End, Class, Sub), In, Out, State0, State) :-
+%%	html_fragment(+Fragment, +In, +Out, +StateIn, -StateOut) is det.
+%
+%	Print from current position upto the end of Fragment.  First
+%	clause deals with structured comments.
+%	
+%	@tbd	Handle mode decl of structured comment
+%	@tbd	copy_to should ensure <pre> state if emoty.
+%	@tbd	wiki_string_to_dom/3 to accept code-list
+
+html_fragment(fragment(Start, End, structured_comment, []),
+	      In, Out, State0, []) :-
+	fail, !,			% TBD
+	copy_to(In, Start, Out, State0),
+	pop_state(State0, Out),
+	Len is End - Start,
+	read_comment(Len, In, Comment),
+	wiki_string_to_dom(Comment, [], DOM0),
+	strip_leading_par(DOM0, DOM),
+	phrase(html(DOM), Tokens),
+	print_html(Out, Tokens).
+html_fragment(fragment(Start, End, Class, Sub),
+	      In, Out, State0, State) :-
 	copy_to(In, Start, Out, State0),
 	start_fragment(Class, Out, State0, State1),
 	html_fragments(Sub, In, Out, State1, State2),
