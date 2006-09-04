@@ -1,0 +1,495 @@
+################################################################
+# Makefile for SWI-Prolog 5.x
+# $Id$
+#
+# Author:	Jan Wielemaker
+#		wielemak@science.uva.nl
+#		HCS (formerly SWI)
+#		University of Amsterdam
+#    		Kruislaan 419
+#		1098 VA  Amsterdam
+#		The Netherlands
+#
+# This  Makefile  requires  GNU-Make,  often  installed  as  `gmake'  on
+# Non-Linux systems.
+#
+# Public targets:
+# 
+#	* make			Simply makes all programs in the current tree
+#	* make install		Installs the libraries and public executables
+#	* make install-version  Installs pl as pl-x.y.z in public directory
+#	* make install-bins	Link executables from $(bindir)
+#	* make install-arch	Install machine dependent files
+#	* make install-libs	Install machine independent files
+#	* make install-lman	Install man files in Prolog lib hierarchy
+#	* make check		Run some tests
+#
+# Copyright (C) University of Amsterdam, all rights reserved
+# 
+# Copyright policy:
+#	
+#	* LGPL (see file COPYING or http://www.swi-prolog.org/)
+################################################################
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+srcdir=@srcdir@
+@VPATH@ @srcdir@
+bindir=@bindir@
+mandir=@mandir@
+mansec=1
+lmansec=3
+smandir=$(mandir)/man$(mansec)
+lmandir=$(mandir)/man$(lmansec)
+plmandir=$(PLBASE)/man
+
+PLVERSION=@PLVERSION@
+PL=@PL@@RT@
+PLV=@PL@@RT@-@PLVERSION@
+PLBASE=$(prefix)/lib/@PL@@RT@-@PLVERSION@
+BOOTFILE=@BOOTFILE@
+
+CC=@CC@
+LDEXE=@LDEXE@
+LIBS=@LIBS@
+AWK=@AWK@
+SED=sed
+ETAGS=@ETAGS@
+AR=@AR@
+RANLIB=@RANLIB@
+ARCH=@ARCH@
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_SCRIPT=@INSTALL_SCRIPT@
+INSTALL_DATA=@INSTALL_DATA@
+MKDIR=@MKDIR@
+REL_LN=$(srcdir)/rel-ln
+
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CIFLAGS=@CIFLAGS@
+CMFLAGS=@CMFLAGS@
+CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
+LDFLAGS=@LDFLAGS@
+
+PLFOREIGN=@PLFOREIGN@
+
+DEFSTARTUP=.plrc
+
+PB=../boot
+INCLUDEDIR=../include
+EXPORTS=$(INCLUDEDIR)/SWI-Exports
+DEF=$(PL).def
+CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
+STREAMH=$(INCLUDEDIR)/SWI-Stream.h
+STUBC=$(INCLUDEDIR)/stub.c
+STARTUPPATH=$(PL).prc
+RUNTIMEDIR=../lib/$(ARCH)
+PLLIB=@PLLIB@
+LNLIBS=@LNLIBS@
+USEPLLIB=@USEPLLIB@
+RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
+SOEXT=@SO_EXT@
+SHARED=@PLSO@
+SHAREDV=$(SHARED).$(PLVERSION)
+SONAMEOPT=@SONAMEOPT@
+LIBRARYDIR=${PLBASE}/library
+MKLIBS=@MKLIBS@
+DEVPL=./pl.sh
+
+# MacOS
+LIBPL_INSTALL_NAME=$(PLBASE)/lib/$(ARCH)/$(SHARED)
+
+OBJ=	pl-atom.o pl-wam.o pl-stream.o pl-error.o pl-arith.o pl-bag.o \
+	pl-comp.o pl-rc.o pl-dwim.o pl-ext.o pl-file.o pl-flag.o \
+	pl-fmt.o pl-funct.o pl-gc.o pl-glob.o pl-itf.o pl-list.o \
+	pl-load.o pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o \
+	pl-proc.o pl-prof.o pl-read.o pl-rec.o pl-rl.o pl-setup.o \
+	pl-sys.o pl-table.o pl-trace.o pl-util.o pl-wic.o pl-write.o \
+	pl-term.o pl-buffer.o pl-thread.o pl-xterm.o pl-feature.o pl-ctype.o \
+	pl-beos.o pl-attvar.o pl-gvar.o pl-btree.o pl-utf8.o pl-main.o \
+	pl-text.o pl-gmp.o pl-tai.o
+XOBJ=	@ALLOCA@ @EXTRAOBJ@
+RCOBJ=	rc/access.o rc/build.o rc/html.o rc/util.o
+TAIOBJ= libtai/caltime_utc.o libtai/caltime_tai.o libtai/leapsecs_sub.o \
+	libtai/leapsecs_add.o libtai/caldate_fmjd.o libtai/caldate_mjd.o \
+	libtai/leapsecs_init.o libtai/leapsecs_read.o libtai/tai_pack.o \
+	libtai/tai_unpack.o
+LIBOBJ= $(RCOBJ) $(TAIOBJ)
+
+PLOBJ=	pl-extend.o
+ALLOBJ= $(OBJ) $(PLOBJ) $(XOBJ)
+
+PLINIT=	$(PB)/init.pl
+
+INCSRC=	pl-index.c pl-alloc.c pl-fli.c
+SRC=	$(OBJ:.o=.c) $(PLOBJ:.o=.c) $(INCSRC)
+HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
+	pl-os.h pl-data.h
+
+PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
+	../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \
+	../boot/writef.pl ../boot/history.pl ../boot/attvar.pl \
+	../boot/dwim.pl ../boot/rc.pl \
+	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
+	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
+PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
+	qsave.pl shlib.pl statistics.pl system.pl \
+	backcomp.pl gensym.pl listing.pl debug.pl \
+	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
+	edit.pl emacs_interface.pl shell.pl check.pl heaps.pl \
+	tty.pl readln.pl readutil.pl make.pl option.pl \
+	am_match.pl oset.pl ordsets.pl occurs.pl lists.pl \
+	www_browser.pl url.pl utf8.pl main.pl assoc.pl nb_set.pl \
+	threadutil.pl qpforeign.pl dif.pl when.pl ugraphs.pl \
+	checklast.pl checkselect.pl operators.pl date.pl \
+	prolog_stack.pl prolog_clause.pl prolog_xref.pl prolog_source.pl
+CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl
+UNICODE=blocks.pl unicode_data.pl
+PLWIN=	wise.pl dde.pl progman.pl registry.pl
+builddirs = ../lib ../lib/$(ARCH)
+
+all:	banner dirs \
+	headers rc-lib tai-lib $(MKLIBS) system startup index plld
+
+.c.o:
+	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
+
+system:		$(PL)
+startup:	$(STARTUPPATH)
+headers:	parms.h $(CINCLUDE) $(STREAMH) $(STUBC) @EXTRAHDR@
+staticlib:	$(RUNTIME)
+sharedlib:	$(RUNTIMEDIR)/$(SHARED)
+index:		../library/INDEX.pl
+
+banner::
+		@echo "****************"
+		@echo "Making SWI-Prolog $(PLVERSION) for $(ARCH)"
+		@echo "To be installed in $(bindir)/$(PL)"
+		@echo "Home (libraries) in $(PLBASE)"
+		@echo "****************"
+
+
+$(PL):		$(MKLIBS) $(PLOBJ)
+		$(LDEXE) $(LDFLAGS) -o $(PL) $(PLOBJ) -L../lib/$(ARCH) -lpl $(LNLIBS)
+
+$(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
+		$(DEVPL) -O -o $(STARTUPPATH) -b $(PLINIT)
+
+
+dirs::
+		@for d in $(builddirs); do \
+		  if [ ! -d $$d ]; then mkdir $$d; fi; \
+		done
+
+$(RUNTIME):	$(OBJ) $(LIBOBJ) $(XOBJ)
+		rm -f $@
+		$(AR) r $@ $(OBJ) $(LIBOBJ) $(XOBJ)
+		$(RANLIB) $@
+
+ifeq ($(SOEXT),dylib)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(LIBOBJ) $(XOBJ)
+		$(CC) -dynamiclib -current_version $(PLVERSION) \
+			-install_name $(LIBPL_INSTALL_NAME) \
+			$(COFLAGS) -o $@ \
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+else
+ifeq ($(SOEXT),dll)
+$(RUNTIMEDIR)/$(SHARED):	dirs $(RUNTIMEDIR) $(OBJ) $(LIBOBJ) $(XOBJ)
+		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+else
+$(RUNTIMEDIR)/$(SHAREDV):	dirs $(RUNTIMEDIR) $(OBJ) $(LIBOBJ) $(XOBJ)
+		$(CC) -shared $(COFLAGS) -o $@ $(SONAMEOPT) \
+			$(OBJ) $(LIBOBJ) $(XOBJ) $(LDFLAGS) $(LIBS)
+
+$(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
+		( cd ../lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) )
+endif
+endif
+
+rc-lib:
+		@(cd rc && $(MAKE) COFLAGS="$(COFLAGS)")
+tai-lib:
+		@(cd libtai && $(MAKE) COFLAGS="$(COFLAGS)")
+
+../library/INDEX.pl:	../library ../library/[a-z]*.pl $(DEVPL) $(STARTUPPATH)
+		$(DEVPL) -x $(STARTUPPATH) \
+			-f none -F none \
+			-g make_library_index\(\'../library\'\) \
+			-t halt
+
+$(INCLUDEDIR):
+		if [ ! -d $@ ]; then $(MKDIR) $@; fi
+
+# Create SWI-Exports, used for importing and exporting symbols on behalf of
+# the AIX version.
+
+exports:	$(EXPORTS)
+def:		$(DEF)
+
+$(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
+		echo \#\!$(bindir)/$(PL) > $@
+		grep '^PL_EXPORT' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
+		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
+			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
+		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
+		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
+		    sort -u >> $@
+
+# Create pl.def, required for exporting symbols from pl.exe for the Cygwin
+# platform
+
+$(DEF):		$(srcdir)/pl-itf.h
+		echo EXPORTS > $@
+		grep '^PL_EXPORT' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
+		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
+			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
+		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
+		    grep -v PL_w32thread_raise | grep -v PL_win_message_proc | \
+		    sort -u >> $@
+
+$(CINCLUDE):	$(srcdir)/pl-itf.h $(INCLUDEDIR)
+		cp $(srcdir)/pl-itf.h $(CINCLUDE)
+
+$(STREAMH):	$(srcdir)/pl-stream.h $(INCLUDEDIR)
+		cp $(srcdir)/pl-stream.h $@
+
+$(STUBC):	$(srcdir)/pl-extend.c $(INCLUDEDIR)
+		$(SED) 's/"pl-itf.h"/<SWI-Prolog.h>/' $(srcdir)/pl-extend.c > $@
+
+parms.h:	Makefile
+		@echo "#define PLHOME       \"$(PLBASE)\""      > $@%
+		@echo "#define DEFSTARTUP   \"$(DEFSTARTUP)\"" >> $@%
+		@echo $(PLVERSION) | \
+		$(AWK) -F. '{ printf("#define PLVERSION %d\n", $$1 * 10000 + $$2 * 100 + $$3); }' >> $@%
+		@echo "#define ARCH	    \"$(ARCH)\""       >> $@%
+		@echo "#define C_LIBS	    \"$(LNLIBS)\""     >> $@%
+		@echo "#define C_PLLIB	    \"$(USEPLLIB)\""   >> $@%
+		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
+		@echo "#define C_CFLAGS	    \"$(CMFLAGS) $(CIFLAGS)\"" >> $@%
+		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> $@%
+		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
+
+$(OBJ):		parms.h $(srcdir)/pl-funct.ih
+pl-wam.o:	pl-alloc.c pl-index.c pl-fli.c
+pl-read.o:	pl-umap.c
+
+$(srcdir)/pl-funct.ih:	$(srcdir)/ATOMS
+		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
+
+$(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
+		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
+
+# Hack to deal with __register_frame problems in different glibc 2 versions
+# (Linux, compiled on SuSE 6.0, glibc 2.0.7, egcs 1.1.1)
+
+frame.o:
+		ar x `$(CC) -print-libgcc-file-name` $@
+
+plld:		$(srcdir)/plld.c parms.h
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/plld.c
+
+tags:		$(srcdir)/TAGS
+
+$(srcdir)/TAGS:	$(SRC)
+		(cd $(srcdir) && $(ETAGS) $(SRC) $(HDR))
+
+check:
+		$(DEVPL) -f $(srcdir)/test.pl -F none -g test,halt -t 'halt(1)'
+
+ln-install::
+		@$(MAKE) INSTALL_DATA=`pwd`/../packages/ln-install install
+
+install:	@INSTALLTARGET@
+install-version: install-arch install-libs install-vbins
+
+dv-install:	install-arch install-libs install-bins html-install
+
+install-bins:	install-arch
+		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
+		for f in $(PL) plld plrc; do \
+		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)$(bindir); \
+		done
+
+install-vbins:	install-arch
+		-if [ ! -d $(DESTDIR)$(bindir)  ]; then $(MKDIR) $(DESTDIR)$(bindir); fi
+		$(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$(PL) $(DESTDIR)$(bindir)/$(PLV)
+		for f in plld plrc; do \
+		    $(REL_LN) $(DESTDIR)$(PLBASE)/bin/$(ARCH)/$$f $(DESTDIR)$(bindir); \
+		done
+
+install-arch:	idirs iruntime
+		for f in $(PL) plld rc/plrc; do \
+		    $(INSTALL_PROGRAM) $$f $(DESTDIR)$(PLBASE)/bin/$(ARCH); \
+		done
+
+install-libs:	idirs iboot ilib iruntime iinclude iman idot
+		$(INSTALL_DATA) $(STARTUPPATH) $(DESTDIR)$(PLBASE)/$(BOOTFILE)
+		echo . > $(DESTDIR)$(PLBASE)/swipl
+		echo .. > $(DESTDIR)$(PLBASE)/bin/swipl
+		$(DEVPL) -f none -F none \
+			-g make_library_index\(\'$(DESTDIR)$(PLBASE)/library\'\) \
+			-t halt
+
+installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
+		library/clp library/unicode include dotfiles
+
+iruntime::
+		$(INSTALL_DATA) $(RUNTIME) $(DESTDIR)$(PLBASE)/lib/$(ARCH)
+		$(RANLIB) $(DESTDIR)$(PLBASE)/lib/$(ARCH)/$(PLLIB)
+ifeq ($(SOEXT),dylib)
+		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
+		fi
+else
+ifeq ($(SOEXT),dll)
+		if [ -f $(RUNTIMEDIR)/$(SHARED) ]; then \
+		  $(INSTALL_PROGRAM) $(RUNTIMEDIR)/$(SHARED) $(DESTDIR)$(PLBASE)/bin/$(ARCH) ; \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/libpl.dll.a $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
+		fi
+else
+		if [ -f $(RUNTIMEDIR)/$(SHAREDV) ]; then \
+		  $(INSTALL_DATA) $(RUNTIMEDIR)/$(SHAREDV) $(DESTDIR)$(PLBASE)/lib/$(ARCH) ; \
+		( cd $(DESTDIR)$(PLBASE)/lib/$(ARCH) && rm -f $(SHARED) && ln -s $(SHAREDV) $(SHARED) ) ; \
+		fi
+endif
+endif
+
+install-implib::
+		$(INSTALL_DATA) libplimp.a $(DESTDIR)$(PLBASE)/lib/$(ARCH)
+
+idirs::
+		if [ ! -d $(DESTDIR)$(prefix)/lib  ]; then $(MKDIR) $(DESTDIR)$(prefix)/lib; fi
+		if [ ! -d $(DESTDIR)$(PLBASE) ]; then $(MKDIR) $(DESTDIR)$(PLBASE); fi
+		for d in $(installdirs); do \
+			if [ ! -d $(DESTDIR)$(PLBASE)/$$d ]; then \
+				$(MKDIR) $(DESTDIR)$(PLBASE)/$$d; \
+			fi; \
+		done
+
+
+iboot::		
+		cd ../boot; \
+		for f in *.pl; do $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/boot; done
+
+ilib:		iclp iunicode
+		cd ../library; \
+		for f in $(PLLIBS); do \
+			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library; \
+		done
+
+iclp::
+		cd ../library/clp; \
+		for f in $(CLP); do \
+			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library/clp; \
+		done
+
+
+iunicode::
+		cd ../library/unicode; \
+		for f in $(UNICODE); do \
+			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/library/unicode; \
+		done
+
+idot::
+		$(INSTALL_DATA) ../dotfiles/dotplrc $(DESTDIR)$(PLBASE)/dotfiles
+		$(INSTALL_DATA) ../dotfiles/dotxpcerc $(DESTDIR)$(PLBASE)/dotfiles
+		$(INSTALL_DATA) ../dotfiles/README $(DESTDIR)$(PLBASE)/dotfiles
+		$(INSTALL_SCRIPT) ../dotfiles/edit $(DESTDIR)$(PLBASE)/dotfiles
+
+iinclude::
+		cd ../include; \
+		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h stub.c; do \
+		    if [ -f $$f ]; then \
+			$(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/include; \
+		    fi; \
+		done
+
+iman::
+		-if [ ! -d $(DESTDIR)$(mandir) ]; then $(MKDIR) $(DESTDIR)$(mandir); fi
+		-if [ ! -d $(DESTDIR)$(smandir)  ];    then $(MKDIR) $(DESTDIR)$(smandir); fi
+		-$(INSTALL_DATA) pl.1 $(DESTDIR)$(smandir)/$(PL).$(mansec)
+		-$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(smandir)/plrc.$(mansec)
+		-$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(smandir)/plld.$(mansec)
+
+install-lman::
+		$(INSTALL_DATA) pl.1 $(DESTDIR)$(plmandir)/$(PL).$(mansec)
+		$(INSTALL_DATA) $(srcdir)/plrc.1 $(DESTDIR)$(plmandir)/plrc.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/plld.1 $(DESTDIR)$(plmandir)/plld.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/readline.3 $(DESTDIR)$(plmandir)/readline.$(lmansec)
+
+html-install::
+		if [ ! -d $(DESTDIR)$(PLBASE)/doc ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc; fi
+		if [ ! -d $(DESTDIR)$(PLBASE)/doc/Manual ]; then $(MKDIR) $(DESTDIR)$(PLBASE)/doc/Manual; fi
+		for f in ../man/Manual/*.html ../man/Manual/*.gif; do \
+		    $(INSTALL_DATA) $$f $(DESTDIR)$(PLBASE)/doc/Manual; \
+		done
+
+#
+# runtime-only environment installation
+#
+
+RTHOME=		$(DESTDIR)$(prefix)/lib/$(PLV)
+RTDIRS=		$(RTHOME) $(RTHOME)/bin $(RTHOME)/lib $(RTHOME)/lib/$(ARCH) \
+		$(RTHOME)/man $(RTHOME)/bin/$(ARCH) $(RTHOME)/include
+
+rt-install:
+		@echo "****************"
+		@echo "Creating runtime environment in $(RTHOME)"
+		@echo "****************"
+		@for d in $(RTDIRS); do \
+		    if [ ! -d $$d ]; then \
+			echo $(MKDIR) $$d; \
+			$(MKDIR) $$d; \
+		    fi; \
+		done
+		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/$(PL)
+		$(INSTALL_DATA) pl.1 $(RTHOME)/man/$(PL).1
+		echo . > $(RTHOME)/swipl
+		echo .. > $(RTHOME)/bin/swipl
+		$(INSTALL_DATA) ../README.RT $(RTHOME)
+		$(INSTALL_DATA) ../include/SWI-Prolog.h $(RTHOME)/include
+		$(INSTALL_DATA) ../include/SWI-Stream.h $(RTHOME)/include
+
+PACKAGE_TMPDIR := pkg.tmp
+
+#
+# Target to create Slackware packages
+#
+pkg: all slack-desc
+		@echo "****************"
+		@echo "Creating Slackware package"
+		@echo "****************"
+		rm -rf $(PACKAGE_TMPDIR)/*
+		mkdir -p $(PACKAGE_TMPDIR)/install
+		cp slack-desc $(PACKAGE_TMPDIR)/install/slack-desc
+		$(MAKE) DESTDIR="$(srcdir)/$(PACKAGE_TMPDIR)" install
+		strip --strip-unneeded pl plld rc/plrc
+		@(cd $(PACKAGE_TMPDIR) && makepkg --chown y --linkadd y ../pl-$(PLVERSION)-i486-1.tgz)
+
+#
+# Cleanup
+#
+
+clean:
+		@(cd rc && $(MAKE) clean)
+		@(cd libtai && $(MAKE) clean)
+		rm -f *.o a.out core *~ #* parms.h
+
+distclean:	clean
+		@(cd rc && $(MAKE) distclean)
+		@(cd libtai && $(MAKE) distclean)
+		rm -rf $(INCLUDEDIR) ../lib
+		rm -f ../library/INDEX.pl
+		rm -f Makefile config.h config.status parms.h
+		rm -f swipl swiplbin $(STARTUPPATH)
+		rm -f $(PL) plld pl.1 $(PL).exe plld.exe libplimp.a $(DEF)
+		rm -f config.log config.cache
+		rm -rf $(PACKAGE_TMPDIR)
+
+realclean:	clean
+		rm -f $(STARTUPPATH)
+		rm -f config.log config.cache
+		rm -rf $(PL) ../startup ../include ../lib
+

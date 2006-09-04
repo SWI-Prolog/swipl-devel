@@ -1,0 +1,36 @@
+.TH tai_pack 3
+.SH NAME
+tai_pack \- convert TAI64 labels to external format
+.SH SYNTAX
+.B #include <tai.h>
+
+void \fBtai_pack\fP(\fIbuf\fR,&\fIt\fR);
+.br
+void \fBtai_unpack\fP(\fIbuf\fR,&\fIt\fR);
+
+char \fIbuf\fR[\fBTAI_PACK\fP];
+.br
+struct tai \fIt\fR;
+.SH DESCRIPTION
+.B tai_pack
+converts a TAI64 label
+from internal format in
+.I t
+to TAI64 format in
+.IR buf .
+
+.B tai_unpack
+converts a TAI64 label
+from TAI64 format in
+.I buf
+to internal format in
+.IR t .
+
+.B TAI_PACK
+is 8.
+
+See
+.B http://pobox.com/~djb/proto/tai64.txt
+for more information about TAI64 format.
+.SH "SEE ALSO"
+tai(3)

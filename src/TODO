@@ -1,0 +1,43 @@
+BUGS:
+-----
+
+	* plcon.exe to delay Control-C in garbage collections.
+
+
+SCRIPT
+======
+
+On Solaris #!/usr/bin/pl -q -t main -f calls Prolog as
+/usr/bin/pl "-q" <file>
+
+ISO:
+----
+
+	* Complete replacement of warnings by exceptions.
+	* Meta info on predicates to identify compatibility and standard
+	  issues.
+
+FEATURES:
+---------
+
+	* Provide options when trying to load existing module from another
+	  file.
+
+
+UNICODE support
+---------------
+
+	* Incomplete support in packages
+		- ODBC
+			- No support at all
+		- JPL
+			- No support at all
+		- XPCE
+			- Limited XIM support for X11 version
+			- No input method support in Windows version
+
+64-bit integers
+---------------
+
+	- Realise full compatibility of 32- and 64-bit saved states.
+	- Option to disable it on platforms that cannot support it.

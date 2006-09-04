@@ -1,0 +1,1481 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(pl-wam.c)
+
+AC_CONFIG_HEADER(config.h)
+AC_SUBST(COFLAGS)
+AC_SUBST(CWFLAGS)
+AC_SUBST(CMFLAGS)
+AC_SUBST(CIFLAGS)
+AC_SUBST(AR)
+AC_SUBST(MKDIR)
+AC_SUBST(ETAGS)
+AC_SUBST(LDFLAGS)
+AC_SUBST(ARCH)
+AC_SUBST(PLSHARED)
+AC_SUBST(PL)
+AC_SUBST(RT)
+AC_SUBST(PLVERSION)
+AC_SUBST(VPATH)
+AC_SUBST(COUTOPT)
+AC_SUBST(INSTALLTARGET)
+AC_SUBST(EXTRAOBJ)
+AC_SUBST(BOOTFILE)
+AC_SUBST(PLLIB)			dnl libpl.a
+AC_SUBST(PLSO)			dnl libpl.so
+AC_SUBST(SONAMEOPT)		dnl ld options for linking shared objects
+AC_SUBST(USEPLLIB)		dnl -lpl
+AC_SUBST(LNLIBS)		dnl libs to link with Prolog
+AC_SUBST(LDEXE)
+AC_SUBST(EXTRAHDR)
+AC_SUBST(SO_EXT)
+AC_SUBST(MKLIBS)		dnl system libraries to make
+AC_SUBST(BUILDDIR)
+AC_SUBST(CNFG)
+AC_SUBST(DLLIBVAR)
+
+if test ! -z "$CIFLAGS"; then
+    CFLAGS="$CIFLAGS $CFLAGS"
+    CPPFLAGS="$CIFLAGS $CPPFLAGS"
+else
+  if test ! -z "$CFLAGS"; then
+    CIFLAGS="$CFLAGS"
+  fi
+fi
+
+EXTRAOBJ=""
+EXTRAHDR=""
+INSTALLTARGET=dv-install
+if test -z "$PL"; then PL=pl; fi
+PLLIB=libpl.a
+MKLIBS=staticlib
+RT=""
+PLVERSION=`cat ../VERSION`
+CNFG=""				dnl Package configuration options
+
+dnl ****************************************************************
+dnl Some systems don't appear to have true.  Hope all like this ...
+dnl ****************************************************************
+
+true()
+{ test a = a
+}
+
+dnl ****************************************************************
+dnl Find the build directory, needed for building the packages
+dnl ****************************************************************
+
+AC_MSG_CHECKING(builddir)
+wd=`pwd`
+BUILDDIR=`basename $wd`
+touch conftest.unique
+if test -r ../$BUILDDIR/conftest.unique; then
+    AC_MSG_RESULT($BUILDDIR)
+else
+    AC_MSG_RESULT(no)
+    BUILDDIR=src
+fi
+rm -f conftest.unique
+
+AC_PROG_CC
+LDEXE="$CC"
+AC_PROG_RANLIB
+AC_CANONICAL_HOST
+changequote(,)dnl
+ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+changequote([,])dnl
+
+AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
+	      [case "$enableval" in
+		   yes) AC_DEFINE(O_RUNTIME, 1,
+				  [Define to make runtime version])
+		        runtime=yes
+			RT=rt
+			INSTALLTARGET=rt-install ;;
+		   *)  ;;
+	       esac])
+
+AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
+	      [case "$enableval" in
+		   yes) MT=yes
+		        AC_DEFINE(NO_SEGV_HANDLING, 1,
+				  [Define to 1 not to use SIGSEGV for guarding stack-overflows])
+			;;
+		   *)  ;;
+	       esac])
+
+AC_ARG_ENABLE(shared, [  --enable-shared	  Prolog kernel as shared obj],
+	      [case "$enableval" in
+		   yes) MKSHARED=yes
+			;;
+		   *)  ;;
+	       esac])
+
+readline_ok=no
+AC_ARG_ENABLE(readline, [  --disable-readline	  Do NOT include GNU readline],
+	      configreadline="$enableval",
+	      configreadline=yes)
+
+AC_ARG_ENABLE(mapped-stacks, [  --disable-mapped-stacks Do not use mmap for stacks],
+	      configmmappedstacks="$enableval",
+	      configmmappedstacks=yes)
+
+segvhandling=no
+AC_ARG_ENABLE(segv-handling, [  --enable-segv-handling  Use SIGSEGV to guard stacks],
+	      if test "$enableval" = "yes"; then
+	          segvhandling=yes
+	      fi)
+
+if test "$segvhandling" = "no"; then
+  AC_DEFINE(NO_SEGV_HANDLING)
+fi
+
+AC_ARG_ENABLE(gmp, [  --disable-gmp		  Disable Multi-precision arithmetic],
+	      configgmp="$enableval",
+	      configgmp=yes)
+
+
+dnl ****************************************************************
+dnl Setup PLBASE.  Need to expand prefix first as this isn't yet set. Yek
+dnl ****************************************************************
+
+test "x$prefix" = xNONE && prefix=$ac_default_prefix
+PLBASE=$prefix/lib/$PL-$PLVERSION
+
+dnl ****************************************************************
+dnl Checking for GNU make vpath construct
+dnl ****************************************************************
+
+AC_CHECK_PROGS(MAKE, gmake make, "make")
+AC_MSG_CHECKING("whether make is GNU-make")
+if ($MAKE -v 2>&1) | grep GNU > /dev/null; then
+    AC_MSG_RESULT(yes)
+    VPATH="vpath %.c"
+else
+    VPATH="VPATH = "
+    AC_MSG_RESULT(no)
+fi
+
+dnl ****************************************************************
+dnl Checking mkdir -p
+dnl ****************************************************************
+
+AC_MSG_CHECKING("whether mkdir accepts -p")
+if (mkdir -p config.tmpdir/p && mkdir -p config.tmpdir/p 2>&1) > /dev/null; then
+    AC_MSG_RESULT(yes)
+    MKDIR="mkdir -p"
+else
+    AC_MSG_RESULT(no)
+    MKDIR=mkdir
+fi
+rm -rf config.tmpdir
+
+dnl ****************************************************************
+dnl Finding various programs
+dnl ****************************************************************
+
+AC_CHECK_PROG(AR, ar, ar, ar)
+AC_CHECK_PROGS(ETAGS, emacs-etags etags ctags, ":")
+AC_PROG_AWK
+AC_PATH_PROG(SED, sed, /bin/sed)
+AC_PROG_INSTALL
+dnl Make all paths absolute as we are running some of these scripts
+dnl from different locations.
+case "$INSTALL" in
+    ./*) INSTALL="`pwd`/$INSTALL" ;;
+esac
+case "$INSTALL_PROGRAM" in
+    ./*) INSTALL_PROGRAM="`pwd`/$INSTALL_PROGRAM" ;;
+esac
+case "$INSTALL_SCRIPT" in
+    ./*) INSTALL_SCRIPT="`pwd`/$INSTALL_SCRIPT" ;;
+esac
+case "$INSTALL_DATA" in
+    ./*) INSTALL_DATA="`pwd`/$INSTALL_DATA" ;;
+esac
+AC_PROG_CPP
+AC_DEFINE_UNQUOTED(PROG_CPP, "$CPP",
+		   [Program to run the C preprocessor])
+AC_ISC_POSIX
+AC_HEADER_STDC
+AC_SYS_LARGEFILE
+
+AC_ARG_ENABLE(custom-flags, [  --disable-custom-flags  Do not add custom build optimization flags],
+	custom_flags=$enableval,
+	custom_flags=yes)
+if test "x$custom_flags" = "xyes" ; then
+	if test "$GCC" = "yes"; then
+		COFLAGS="-O3 -fno-strict-aliasing"
+		LDFLAGS="$LDFLAGS -O3"
+		if test "$ac_cv_header_stdc" = "yes" ; then
+			CWFLAGS=-Wall
+		else
+			CWFLAGS=
+		fi
+		CMFLAGS=
+	else
+		COFLAGS=-O
+		CWFLAGS=
+		CMFLAGS=
+
+		case "$ARCH" in
+			*mips-irix*)
+				COFLAGS="-O -OPT:Olimit_opt=on"
+			;;
+		esac
+	fi
+else
+	COFLAGS=$CFLAGS
+fi
+
+dnl ****************************************************************
+dnl Other special flags
+dnl
+dnl On SCO Unix, there are ELF and COFF binaries.  We want elf to
+dnl provide for dlopen() and friends.  With help from Tamas Laufer!
+dnl
+dnl On Alpha machines we need to enable IEEE float arithmetic to avoid
+dnl FPE signals on float underflow/overflow
+dnl ****************************************************************
+
+case "$ARCH" in
+    *sco*|*SCO*)
+	AC_MSG_CHECKING("SCO-Unix.  See if we need -belf")
+	old_cflags="$CFLAGS"
+	CFLAGS="$CFLAGS -belf"
+	AC_TRY_COMPILE(
+	[
+	],
+	[
+	],
+	CMFLAGS="$CMFLAGS -belf"
+	AC_MSG_RESULT(yes),
+	AC_MSG_RESULT(no)
+	CFLAGS="$old_cflags")
+	;;
+    *alpha*)
+	if test "$GCC" = "yes"; then
+	  CMFLAGS="$CMFLAGS -mieee"
+	else
+	  CMFLAGS="$CMFLAGS -ieee"
+	fi
+	;;
+esac
+
+AC_C_INLINE
+AC_FUNC_ALLOCA
+AC_C_BIGENDIAN
+
+dnl This fragment is from the glibc configure script
+
+if test "$GCC" = "yes"; then
+  AC_CACHE_CHECK(whether __attribute__((visibility())) is supported,
+		 libc_cv_visibility_attribute,
+                 [cat > conftest.c <<EOF
+                  int foo __attribute__ ((visibility ("hidden"))) = 1;
+                  int bar __attribute__ ((visibility ("protected"))) = 1;
+EOF
+                  libc_cv_visibility_attribute=no
+                  if ${CC-cc} -Werror -S conftest.c -o conftest.s >/dev/null 2>&1; then
+                    if grep '\.hidden.*foo' conftest.s >/dev/null; then
+                      if grep '\.protected.*bar' conftest.s >/dev/null; then
+                        libc_cv_visibility_attribute=yes
+                      fi
+                    fi
+                  fi
+                  rm -f conftest.[cs]
+                 ])
+  if test $libc_cv_visibility_attribute = yes; then
+    AC_DEFINE(HAVE_VISIBILITY_ATTRIBUTE, 1,
+	      [Define if __attribute__ visibility is supported])
+  fi
+fi
+
+case "$ARCH" in
+    *cygwin*)
+	EXTRAHDR=def
+        ;;
+    *aix*)
+	EXTRAHDR=exports
+	;;
+esac
+
+dnl ****************************************************************
+dnl How script args are handled
+dnl ****************************************************************
+
+AC_MSG_CHECKING(Script arguments)
+cat > testconf.args << EOS
+#!$SED -e s/foo/bar/ -f
+
+s/x/y/
+EOS
+chmod +x testconf.args
+
+if ( echo foo | ./testconf.args ) >/dev/null 2>&1; then
+    AC_DEFINE(SCRIPT_BREAKDOWN_ARGS, 1,
+	      [breaks arguments ])
+    AC_MSG_RESULT(breaks down arguments)
+else
+    AC_MSG_RESULT(does not breakdown arguments)
+fi
+rm -f testconf.args
+
+dnl ****************************************************************
+dnl Finding libraries
+dnl ****************************************************************
+
+changequote(,)dnl
+USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
+changequote([,])dnl
+
+if test "$MT" = "yes"; then
+pthread_ok=false
+
+case "$ARCH" in
+    *freebsd*)
+	AC_DEFINE(_THREAD_SAFE, 1,
+		  [Required in FreeBSD for compiling thread-safe code])
+	;;
+esac
+
+  if test "$GCC" = "yes"; then
+AC_MSG_CHECKING("whether gcc supports -pthread")
+ocflags="$CFLAGS"
+CFLAGS="$CFLAGS -pthread"
+AC_TRY_LINK([
+#include <pthread.h>
+	    ],
+	    [ static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+	      pthread_mutex_lock(&m);
+	      pthread_mutex_unlock(&m);
+#if !(defined(_REENTRANT) || defined(_THREAD_SAFE))
+  this should not be compiled
+#endif
+	    ],
+	    pthread_ok=true
+	    CMFLAGS="$CMFLAGS -pthread"
+	    LDFLAGS="$LDFLAGS -pthread"
+	    AC_MSG_RESULT(yes),
+	    CFLAGS="$ocflags"
+	    AC_MSG_RESULT(no))
+  fi
+
+  if test "$pthread_ok" = "false"; then
+  AC_CHECK_LIB(pthread, main)
+    if test "$ac_cv_lib_pthread_main" = "yes"; then
+      pthread_ok=true
+    fi
+  fi
+
+  if test "$pthread_ok" = "true"; then
+    AC_DEFINE(O_PLMT, 1,
+	      [Define to include support for multi-threading])
+    CNFG="--enable-mt"
+  fi
+
+  AC_CHECK_LIB(rt, sem_init)
+  AC_CHECK_FUNCS(sem_init)
+  if test ! "$ac_cv_lib_rt_sem_init" = "yes"; then
+	AC_CHECK_LIB(thread,sema_init)
+	AC_CHECK_FUNCS(sema_init)
+  fi
+  AC_CHECK_FUNCS(pthread_mutexattr_setkind_np pthread_mutexattr_settype)
+  AC_CHECK_FUNCS(pthread_kill)
+  AC_MSG_CHECKING("whether mutex support recursive locking")
+  echo '#include "confdefs.h"' > conftest.c
+  cat $srcdir/test/recmutex.c >> conftest.c
+  (eval $ac_link) 2>&5
+  if test -s conftest && ./conftest; then
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(RECURSIVE_MUTEXES, 1,
+	      [Define to make use of standard (UNIX98) pthread recursive mutexes])
+  else
+    AC_MSG_RESULT(no)
+  fi
+  AC_CHECK_FUNCS(pthread_sigmask pthread_setconcurrency)
+
+dnl ATOMIC inc/dec for reference counts
+
+  AC_CHECK_HEADERS(asm/atomic.h)
+  AC_MSG_CHECKING("atomic increment/decrement")
+  AC_TRY_RUN(
+  [
+#ifdef HAVE_ASM_ATOMIC_H
+# include <asm/atomic.h>
+#endif
+    main()
+    { int i = 0;
+      if ( sizeof(atomic_t) != sizeof(int) )
+        exit(1);
+      atomic_inc((atomic_t *)&i);
+      if ( i != 1 ) exit(1);
+      atomic_dec((atomic_t *)&i);
+      if ( i != 0 ) exit(1);
+      return 0;
+    }
+  ],
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(HAVE_ATOMIC_INC, 1,
+	    [Define if you have atomic_inc() and atomic_dec() with atomic_t == int]),
+  AC_MSG_RESULT(no),
+  AC_MSG_RESULT(assuming no))
+fi	dnl End of MT configuration
+
+
+AC_CHECK_LIB(m, main)
+AC_CHECK_LIB(ncursesw, main)
+if test ! "$ac_cv_lib_ncursesw_main" = "yes"; then
+  AC_CHECK_LIB(ncurses, main)
+  if test ! "$ac_cv_lib_ncurses_main" = "yes"; then
+    AC_CHECK_LIB(curses, main)
+    if test ! "$ac_cv_lib_curses_main" = "yes"; then
+      AC_CHECK_LIB(termcap, main)
+      if test "$ac_cv_lib_termcap_main" = "yes"; then
+	AC_MSG_CHECKING("whether -ltermcap needs -lucb")
+	AC_TRY_LINK([],
+		    [ tgetent();
+		    ],
+		    AC_MSG_RESULT(no)
+		    true,
+		    AC_MSG_RESULT(maybe ...)
+		    checkucb=yes)
+      fi
+    fi
+  fi
+fi
+
+if test "$checkucb" = "yes"; then
+    AC_CHECK_LIB(ucb, rindex)
+fi
+
+if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
+  oldlibs="$LIBS"
+  AC_CHECK_LIB(readline, main)
+
+  AC_CHECK_HEADERS(readline/readline.h)
+  if test "$ac_cv_header_readline_readline_h" = no; then
+      unset ac_cv_header_readline_readline_h
+      CFLAGS="$CFLAGS -I/usr/local/include"
+      AC_CHECK_HEADERS(readline/readline.h)
+      if test "$ac_cv_header_readline_readline_h" = yes; then
+          CIFLAGS="$CIFLAGS -I/usr/local/include"
+      else
+	  LIBS="$oldlibs"
+      fi
+  fi
+
+  if test "$ac_cv_lib_readline_main" = "yes"; then
+    dnl rl_readline_state and rl_done are a variables!
+    AC_CHECK_HEADERS(readline/history.h)
+    if test "$ac_cv_header_readline_history_h" = yes; then
+      readline_ok=yes
+      AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
+      AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input rl_done)
+      AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
+      AC_CHECK_FUNCS(rl_filename_completion_function)
+    fi
+  fi
+else
+  readline_ok=yes			# specified absent
+fi
+
+AC_ARG_ENABLE(load-foreign, [  --disable-load-foreign  No shared-lib interface],
+	      configshared="$enableval",
+	      configshared=yes)
+
+PLSHARED=no
+if test "$configshared" = "yes"; then
+  AC_CHECK_HEADERS(dlfcn.h)
+  AC_CHECK_LIB(dl, dlopen)
+  if test "$ac_cv_lib_dl_dlopen" = "yes"; then
+    AC_CHECK_FUNCS(dlopen)
+  else
+    AC_CHECK_LIB(dld, shl_load)
+    AC_CHECK_FUNCS(shl_load)
+  fi
+fi
+
+dnl On SCO, dlopen is in libc.so and requires dlfcn.h to compile.  Thanks
+dnl to Tamas Laufer.
+
+if test ! "$ac_cv_func_dlopen" = "yes"; then
+AC_MSG_CHECKING("dlopen in libc")
+AC_TRY_COMPILE(
+[
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+#ifndef RTLD_NOW
+#define RTLD_NOW 0
+#endif
+],
+[ dlopen("foobar", RTLD_NOW);
+], ac_cv_func_dlopen=yes
+   AC_DEFINE(HAVE_DLOPEN, 1,
+	     [Define if you have a working dlopen()])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
+if test "$ac_cv_func_dlopen" = yes -o "$ac_cv_func_shl_load" = yes; then
+  PLSHARED=yes
+fi
+
+AC_MSG_CHECKING(for cc -c -o)
+  cat > conftest.c << _EOP_
+main()
+{ exit(0);
+}
+_EOP_
+  if ${CC-cc} $CFLAGS -c conftest.c -o conftest.o 1>&5 2>&5 && test -r conftest.o; then
+    COUTOPT='-o $@'
+    AC_MSG_RESULT(yes)
+  else
+    COUTOPT=
+    AC_MSG_RESULT(no)
+  fi
+  rm -rf conftest.*
+
+AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
+AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
+AC_CHECK_HEADERS(malloc.h sys/stropts.h)
+AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
+AC_CHECK_HEADERS(mach-o/rld.h locale.h)
+AC_CHECK_HEADERS(float.h floatingpoint.h ieeefp.h SupportDefs.h)
+
+AC_CHECK_FUNCS(access fchmod chmod dossleep fstat readlink getwd getcwd)
+AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir sysconf)
+AC_CHECK_FUNCS(popen putenv random remove rename select fcntl getrusage)
+AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
+AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
+AC_CHECK_FUNCS(rint aint floor ceil isnan isinf tcsetattr cfmakeraw getpid)
+AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep waitpid)
+AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r)
+AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll fpclassify fpclass)
+AC_CHECK_FUNCS(setenv posix_openpt)
+AC_HEADER_TIME
+AC_HEADER_DIRENT
+AC_HEADER_SYS_WAIT
+AC_FUNC_VFORK
+
+AC_MSG_CHECKING("linux gettid")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <linux/unistd.h>
+_syscall0(pid_t,gettid)
+],
+[ pid_t t = gettid();
+], AC_DEFINE(HAVE_GETTID, 1,
+	     [Define if you have Linux gettid()])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+AC_CHECK_LIB(rt, clock_gettime)
+AC_CHECK_FUNCS(clock_gettime)
+
+AC_MSG_CHECKING(for pthread support for cpu clocks)
+AC_TRY_RUN(
+[ #include <pthread.h>
+  #include <time.h>
+main()
+{
+  clockid_t clock_id;
+  struct timespec ts;
+  pthread_getcpuclockid(pthread_self(), &clock_id);
+  sleep(1);
+  clock_gettime(clock_id, &ts);
+  exit (ts.tv_sec);
+}], ac_pthread_cpuclocks="yes"
+    AC_MSG_RESULT(yes),
+    AC_MSG_RESULT(no))
+
+if test "x$ac_pthread_cpuclocks" = "xyes"; then
+   AC_DEFINE(PTHREAD_CPUCLOCKS, 1,
+             [Define if you have pthread cpu clocks (glibc 2.4 and greater)])
+else
+
+AC_CHECK_HEADERS(sys/syscall.h)
+AC_CHECK_FUNCS(syscall)
+
+AC_MSG_CHECKING(whether <sys/syscall.h> has __NR_clock_gettime)
+AC_TRY_COMPILE(
+[ #include <sys/syscall.h> ],
+[ int i = __NR_clock_gettime;
+], AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING(for syscall support for cpu clocks)
+AC_TRY_RUN(
+[#include <time.h>
+ #include <sys/syscall.h>
+main()
+{
+  struct timespec ts;
+  sleep(1);
+  syscall(__NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &ts);
+  exit (ts.tv_sec);
+}], ac_linux_cpuclocks="yes"
+    AC_MSG_RESULT(yes),
+    AC_MSG_RESULT(no))
+
+if test "x$ac_linux_cpuclocks" = "xyes"; then
+   AC_DEFINE(LINUX_CPUCLOCKS, 1,
+             [Define if you have Linux cpu clocks (2.6.12 and greater)])
+else
+
+AC_MSG_CHECKING("linux 2.6 /proc")
+if test -f /proc/$$/task/$$/stat -a \
+	`cat /proc/$$/task/$$/stat | wc -w` = "41"; then
+   AC_MSG_RESULT(yes)
+   AC_DEFINE(LINUX_PROCFS, 26,
+	     [Define if you have Linux 2.6 compatible /proc])
+else
+   AC_MSG_RESULT(no)
+fi
+fi
+fi
+
+AC_CHECK_SIZEOF(long, 4)
+AC_CHECK_SIZEOF(int,  4)
+AC_CHECK_SIZEOF(long long, 8)
+
+if test "$ac_cv_sizeof_long" = 8; then
+  AC_DEFINE(INT64_FORMAT, ["%ld"],
+	    [printf format for int64_t datatype])
+else
+  AC_DEFINE(INT64_FORMAT, ["%lld"],
+	    [printf format for int64_t datatype])
+fi
+
+if test "$configgmp" = "yes"; then
+  AC_CHECK_LIB(gmp, main,
+	       check_gmp_h=yes,
+	       WARN_NO_GMP=yes)
+  if test "$check_gmp_h" = "yes"; then
+    AC_CHECK_HEADER(gmp.h,
+		    AC_DEFINE(HAVE_GMP_H, 1,
+			      [ Define to 1 if you have the <gmp.h> header file. ])
+		    LIBS="-lgmp $LIBS",
+		    WARN_NO_GMP=yes)
+  fi
+fi
+
+AC_MSG_CHECKING("Boot filename");
+BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc
+AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE",
+		   [Name of the file to boot from])
+AC_MSG_RESULT($BOOTFILE)
+
+dnl if test "$GCC" = "yes"; then
+dnl See whether we need to force __register_frame_info to be included.
+dnl This is a glibc/egcs portability problem for binaries accross
+dnl installations.
+dnl 
+dnl This was once needed to deal with glibc compatibility issues 
+dnl when Linux was born.  Hopefully it doesn't matter anymore.
+dnl 
+dnl AC_MSG_CHECKING("Static include of __register_frame_info")
+dnl if ar x `${CC-cc} -print-libgcc-file-name` frame.o &&
+dnl    nm frame.o | grep  __register_frame_info 2>&1 > /dev/null; then
+dnl    AC_MSG_RESULT(yes)
+dnl    EXTRAOBJ="$EXTRAOBJ frame.o"
+dnl else
+dnl    AC_MSG_RESULT(no)
+dnl fi
+dnl rm -f frame.o
+dnl fi
+
+if test "$ac_cv_func_fcntl" = yes; then
+  AC_MSG_CHECKING("fcntl based locking");
+  AC_TRY_COMPILE(
+[
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+],
+[ struct flock buf;
+  fcntl(0, F_SETLKW, &buf);
+], AC_DEFINE(FCNTL_LOCKS, 1,
+	     [we have fcntl() and it supports F_SETLKW])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
+
+AC_MSG_CHECKING("alignment restrictions on doubles")
+AC_TRY_RUN(
+[ main()
+  { long l[10];
+    double *p;
+    unsigned long x = (unsigned long) l;
+
+#if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
+    exit(1);
+#endif
+
+    if ( x % sizeof(double) == 0 )
+      x += sizeof(long);
+    p = (double  *) x;
+    *p = 1.0;
+
+    exit(0);
+  }
+],
+AC_MSG_RESULT(as long),
+AC_MSG_RESULT(sizeof(double))
+AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double),
+	  [Define if doubles cannot be aligned as longs]),
+AC_MSG_RESULT(assuming sizeof(double))
+AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
+
+dnl See whether we can access long values over non-aligned pointers.  This
+dnl should also check whether it is actually faster to do so.  Note that on
+dnl the ARM processor it works, but the pointer is truncated, overwriting
+dnl what is in front of it.  The current check validates this.
+dnl
+dnl Seems we can better play safe and set this to yes on for the Intel
+dnl processors and no otherwise.  On some systems it works, but is sloooow,
+dnl on others it works kind-of, but not relyable, etc.  I've left the
+dnl old test for reference.
+
+AC_MSG_CHECKING("unaligned access")
+AC_TRY_RUN(
+[ main()
+  { char l[sizeof(long)*2];
+    long *p;
+
+#if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
+    exit(1);
+#endif
+
+    l[0] = 10;
+    p = (long *)(l+1);
+    *p = 0x20406080;
+
+    if ( l[0] == 10 && *p == 0x20406080 )
+    {
+#if defined(__i386__)
+      exit(0);
+#endif
+    }
+
+    exit(1);
+  }
+],
+AC_MSG_RESULT(allowed)
+AC_DEFINE(NON_ALIGNED_ACCESS, 1,
+	  [Define if it is allowed to access long integers with non-aligned pointers]),
+AC_MSG_RESULT(not allowed),
+AC_MSG_RESULT(assuming not allowed))
+
+if test "$ac_cv_func_getrlimit" = "yes"; then
+AC_MSG_CHECKING("type rlim_t")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+],
+[ rlim_t datasize;
+], AC_DEFINE(HAVE_RLIM_T, 1,
+	     [Define if the type rlim_t is defined by <sys/resource.h>])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
+if test "$ac_cv_func_getrusage" = "yes"; then
+AC_MSG_CHECKING("ru_idrss in struct rusage")
+AC_TRY_COMPILE(
+[
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <unistd.h>
+],
+[ static struct rusage usage;
+  unsigned long rss;
+
+  rss = usage.ru_idrss;
+], AC_DEFINE(HAVE_RU_IDRSS, 1,
+	     [Define if struct rusage contains the field ru_idrss])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
+AC_MSG_CHECKING("whether assert.h needs stdio.h")
+AC_TRY_COMPILE(
+[
+#include <assert.h>
+],
+[ assert(1);
+], AC_MSG_RESULT(no),
+   AC_MSG_RESULT(yes);
+   AC_DEFINE(ASSERT_H_REQUIRES_STDIO_H, 1,
+	     [Define if <assert.h> requires <stdio.h>]))
+
+AC_CHECKING("for including sys/ioctl.h after sys/termios.h")
+if test "$GCC" = "yes"; then
+    ac_oldcflags="$CFLAGS"
+    CFLAGS="$CFLAGS -Werror"
+fi
+AC_TRY_COMPILE(
+[
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/termios.h>
+#include <sys/ioctl.h> 
+],
+[;
+], true, AC_DEFINE(NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H, 1,
+		   [Define if <sys/ioctl> should *not* be included after <sys/termios.h>]))
+if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
+
+if test -z "$ac_cv_header_sys_termio_h" -a -z "$ac_cv_header_sys_termios_h"; then
+AC_MSG_CHECKING("struct sgttyb")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <sys/ioctl.h>
+],
+[ struct sgttyb buf;
+  ;
+], AC_DEFINE(HAVE_SGTTYB, 1,
+	     [Define if you don't have termio(s), but struct sgttyb])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+fi
+
+
+AC_MSG_CHECKING("for type uchar")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+typedef unsigned char uchar;
+],
+[;], AC_DEFINE(NEED_UCHAR, 1, Define if uchar is not defined in <sys/types.h>)
+     AC_MSG_RESULT("need typedef uchar"),
+     AC_MSG_RESULT("uchar predefined"))
+
+AC_MSG_CHECKING("whether we need extern int errno")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <stdio.h>
+#include <errno.h>
+],
+[ return errno;
+], AC_MSG_RESULT(no),
+   AC_DEFINE(NEED_DECL_ERRNO, 1,
+	     [Define if, in addition to <errno.h>, extern int errno; is needed])
+   AC_MSG_RESULT(yes))
+
+AC_MSG_CHECKING("for symbolic links")
+if touch conftest.x && ln -s conftest.x conftest.lns && cmp conftest.x conftest.lns; then
+    AC_DEFINE(HAVE_SYMLINKS, 1,
+	      [Define if the ln command supports -s])
+    AC_MSG_RESULT(yes)
+else
+    AC_MSG_RESULT(no)
+fi
+
+AC_TYPE_SIGNAL
+AC_MSG_CHECKING("for BSD signal handlers")
+AC_TRY_RUN(
+[
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <signal.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+static int signalled;
+static RETSIGTYPE catch (s) int s; { signalled = 1; }
+main()
+{ signal(SIGINT, catch);
+  kill(getpid(), SIGINT);
+  while(!signalled)
+    sleep(1);
+  if ( signal(SIGINT, catch) == catch )
+    exit(0);
+  exit(1);
+}], AC_DEFINE(BSD_SIGNALS, 1,
+	      [Define if BSD compatible signals (i.e. no reset when fired)])
+    AC_MSG_RESULT("BSD signals"),
+    AC_MSG_RESULT("Posix signals"),
+    AC_MSG_RESULT("assuming Posix signals"))
+
+AC_MSG_CHECKING("for SIGPROF profiler support")
+AC_TRY_RUN([
+#ifdef TIME_WITH_SYS_TIME
+#include <sys/time.h>
+#include <time.h>
+#else
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#else
+#include <time.h>
+#endif
+#endif
+#include <signal.h>
+int n; /*global to avoid optimizing too much */
+int done;
+typedef RETSIGTYPE (*handler_t)(int);
+
+static RETSIGTYPE
+prof(int s)
+{ done++;
+
+#if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
+  signal(SIGPROF, prof);
+#endif
+}
+
+handler_t
+set_sighandler(int sig, handler_t func)
+{
+#ifdef HAVE_SIGACTION
+  struct sigaction old;
+  struct sigaction new;
+
+  memset(&new, 0, sizeof(new));	/* deal with other fields */
+  new.sa_handler = func;
+
+  if ( sigaction(sig, &new, &old) == 0 )
+    return old.sa_handler;
+  else
+    return SIG_DFL;
+#else
+  return signal(sig, func);
+#endif
+} 
+
+main()
+{ struct itimerval value, ovalue;
+  time_t t0 = time(NULL);
+  int i;
+  value.it_interval.tv_sec  = 0;
+  value.it_interval.tv_usec = 1;
+  value.it_value.tv_sec  = 0;
+  value.it_value.tv_usec = 1;
+  
+  set_sighandler(SIGPROF, prof);
+
+  if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
+    exit(1);
+
+  for(;;)
+  { for(n=0; n<50000000; n++)
+      ;
+    if ( time(NULL) > t0+1 )
+      break;
+  }
+  if ( done )
+  { printf("(%d interrupts) ", done);
+    exit(0);
+  } else
+    exit(1);
+}], AC_DEFINE(O_PROFILE, 1, Define if SIGPROF and setitimer() are available)
+    AC_MSG_RESULT(yes),
+    AC_MSG_RESULT(no),
+    true)
+
+AC_MSG_CHECKING("for union wait")
+AC_TRY_COMPILE(
+[
+#include <sys/wait.h>
+],
+[ union wait status;
+  waitpid(1, &status, WNOHANG);
+], AC_MSG_RESULT(yes)
+   AC_DEFINE(UNION_WAIT, 1,
+	     [Define if wait() uses union wait]),
+   AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING("for tagged lvalues")
+AC_TRY_COMPILE(
+[
+],
+[ int x;
+  *(char *)&x = 'a';
+  exit(0);
+], AC_DEFINE(TAGGED_LVALUE, 1, [Define if (type)var = value is allowed])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING("for label addresses")
+AC_TRY_COMPILE(
+[ 
+],
+[ int x=0;
+  void *addr;
+
+  addr = &&label2;
+  goto *addr;
+
+  label1:
+	x = 1;
+	goto label3;
+  label2:
+	x = 2;
+  
+  label3:
+	if ( x == 2 )
+  	  exit(0);
+
+        exit(1);
+], AC_DEFINE(O_LABEL_ADDRESSES, 1,
+	     [Define to 1 if &&label and goto *var is supported (GCC-2)])
+   AC_MSG_RESULT(yes),
+   AC_DEFINE(O_LABEL_ADDRESSES, 0)
+   AC_MSG_RESULT(no))
+
+
+dnl ****************************************************************
+dnl Very specific SWI-Prolog tests.  First of all, we'll try to determine
+dnl the direction of the C-stack as well as the area where malloc()'ed data
+dnl lifes.  We run test/memmodel.c for this.
+dnl ****************************************************************
+
+AC_MSG_CHECKING("memory model");
+echo '#include "confdefs.h"' > conftest.c
+cat $srcdir/test/memmodel.c >> conftest.c
+(eval $ac_link) 2>&5
+if test -s conftest && eval `./conftest`; then
+    AC_DEFINE_UNQUOTED(STACK_DIRECTION, $STACK_DIRECTION)
+    AC_MSG_RESULT(yes)
+else
+    AC_MSG_WARN("Failed to compile test/memmodel.c")
+fi
+rm -fr conftest*
+
+dnl ****************************************************************
+dnl Test whether we can use asm("nop") to separate instructions.
+dnl Needed for gcc version 2 (see pl-wam.c)
+dnl ****************************************************************
+
+AC_MSG_CHECKING("for nop");
+echo '#include "confdefs.h"' > conftest.c
+cat $srcdir/test/nop.c >> conftest.c
+(eval $ac_link) 2>&5
+if test -s conftest && eval `./conftest`; then
+    AC_MSG_RESULT(yes)
+else
+    AC_DEFINE(NO_ASM_NOP, 1,
+	      "Define if you can't use asm("nop") to separate two labels")
+    AC_MSG_RESULT(no)
+fi
+rm -fr conftest*
+
+
+if test "$ac_cv_func_mmap" = "yes"; then
+  AC_MSG_CHECKING("whether mmap maps regular files")
+  echo "dummy file" >> conftest.dummy
+  AC_TRY_RUN(
+  [
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#ifdef HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void *)-1)
+#endif
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+
+    main()
+    { int fd = open("conftest.dummy", O_RDONLY);
+      void *ptr;
+
+      ptr = mmap(NULL, 100,
+		 PROT_READ,
+		 MAP_SHARED|MAP_NORESERVE,
+		 fd,
+		 0);
+
+      if ( ptr == MAP_FAILED )
+        exit(1);
+      exit(0);
+    }
+  ],
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(CAN_MMAP_FILES, 1,
+	    Define if regular files can be mapped),
+  AC_MSG_RESULT(no),
+  AC_DEFINE(CAN_MMAP_FILES)
+  AC_MSG_RESULT(assuming yes))
+rm -f conftest.dummy
+fi
+
+
+
+if test "$ac_cv_func_mmap" = "yes" -a "$configmmappedstacks" = "yes"; then
+dnl ****************************************************************
+dnl First lets see whether our signal handler is POSIX.1b
+dnl ****************************************************************
+
+AC_CHECK_HEADERS(siginfo.h)
+
+AC_MSG_CHECKING("for SA_SIGINFO");
+AC_TRY_COMPILE(
+[ #include <signal.h> 
+  #ifdef HAVE_SIGINFO_H
+  #include <siginfo.h>
+  #endif
+  extern void handler(int sig, siginfo_t *info, void *);
+],
+[ struct sigaction act;
+
+  act.sa_sigaction = handler;
+  act.sa_flags = SA_SIGINFO;
+  
+  sigaction(SIGSEGV, (void *)0, &act);
+], AC_DEFINE(HAVE_SIGINFO, 1,
+	     [Define if signal handler is compliant to POSIX.1b])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+dnl ****************************************************************
+dnl More tricky stuff.  Try to find out whether or not we can use mmap()
+dnl to implement dynamic stacks.
+dnl
+dnl First test is test/sgimmap.c, which uses MAP_AUTOGROW|MAP_AUTORESRV.
+dnl Second test is test/mmap.c, with SEGV handling
+dnl Third test is test/mmap.c, without SEGV handling
+dnl ****************************************************************
+
+mmap_tried=sgi;
+mmap_test=sgimmap.c
+AC_MSG_CHECKING("if we can use mmap for stack allocation")
+while test ! "$MMAP_STACK" = "1" -a ! $mmap_tried = "stop"; do
+echo '#include "confdefs.h"' > conftest.c
+cat $srcdir/test/$mmap_test >> conftest.c
+(eval $ac_link) 2>&5
+if test -s conftest; then
+    res=`./conftest`
+    if test "$?" = 0 && eval $res; then
+	if test "$MMAP_STACK" = "1"; then
+	    if test "$HAVE_MAP_ANON" = "1"; then
+		AC_DEFINE(HAVE_MAP_ANON, 1,
+			  [Define if MAP_ANON is defined and works ok])
+	    fi
+	    AC_DEFINE(MMAP_STACK, 1,
+		      [Define if mmap() can be used to allocate stacks])
+	    if test "$mmap_tried" = "sgi"; then
+	      AC_DEFINE(SGIMMAP, 1,
+			[Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV])
+	      AC_DEFINE(NO_SEGV_HANDLING)
+	    fi
+	    AC_MSG_RESULT(yes)
+	    AC_MSG_CHECKING("if SA_SIGINFO is usable")
+	    if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
+	      AC_MSG_RESULT(yes)
+	      AC_DEFINE(USE_SIGINFO, 1,
+			[Define if signal handler works compliant to POSIX.1b])
+	    else
+	      AC_MSG_RESULT(no)
+	    fi
+	else
+	    AC_MSG_RESULT("mmap is not good enough")
+	fi
+    else
+        AC_MSG_RESULT("could not run mmap test");
+    fi
+fi
+rm -fr conftest*
+if test ! "$MMAP_STACK" = "1"; then
+  if test "$mmap_tried" = "sgi"; then
+    mmap_tried=segv
+    mmap_test=mmap.c
+  elif test "$mmap_tried" = "segv"; then
+    mmap_tried=nosegv
+    AC_DEFINE(NO_SEGV_HANDLING)
+  else
+    mmap_tried=stop
+    AC_MSG_RESULT("no");
+  fi
+else
+    mmap_tried=stop
+fi
+done
+fi # mmap
+
+case "$ARCH" in
+    *cygwin*)
+	if test ! "$MMAP_STACK" = "1"; then
+		AC_MSG_CHECKING("Cygwin ...")
+		configmmappedstacks=no
+		AC_DEFINE(HAVE_VIRTUALALLOC, 1,
+			  [On Cygwin we should use VirtualAlloc()])
+		AC_DEFINE(NO_SEGV_HANDLING)
+		AC_MSG_RESULT("Use VirtualAlloc")
+	fi
+        ;;
+esac
+if test "$ac_cv_func_dlopen" = "yes" || \
+   test "$ac_cv_func_shl_load" = "yes"; then
+
+dnl Some versions of (g)cc need to export the symbols from the main program
+dnl using -export-dynamic or (older versions) -rdynamic.  See whether
+dnl this gcc understands this flag.
+
+case "$ARCH" in
+  *darwin*)
+	exportdynamic=done
+	;;
+esac
+
+if test "$exportdynamic" != "done"; then
+AC_MSG_CHECKING("whether LDFLAGS need -export-dynamic")
+  old_ldflags="$LDFLAGS"
+  LDFLAGS="-export-dynamic $LDFLAGS"
+  AC_TRY_RUN(
+main()
+{ exit(0);
+},
+     if grep 'unrecognized option `-export-dynamic'"'" config.log >/dev/null; then
+       AC_MSG_RESULT(no)
+       LDFLAGS="$old_ldflags"
+     else
+       AC_MSG_RESULT(yes)
+       exportdynamic=done
+     fi,
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags",
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags")
+fi	dnl test for -exportdynamic
+
+if test "$exportdynamic" != "done"; then
+AC_MSG_CHECKING("whether LDFLAGS need -rdynamic")
+  old_ldflags="$LDFLAGS"
+  LDFLAGS="-rdynamic $LDFLAGS"
+  AC_TRY_RUN(
+main()
+{ exit(0);
+},
+     if grep 'unrecognized option `-rdynamic'"'" config.log >/dev/null; then
+       AC_MSG_RESULT(no)
+       LDFLAGS="$old_ldflags"
+     else
+       AC_MSG_RESULT(yes)
+     fi,
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags",
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags")
+fi	dnl test for -rdynamic
+
+dnl Some specific OS stuff
+
+SO_LDFLAGS="-shared"
+SO_pic="-fpic"
+SO_PIC="-fPIC"
+SO_LD="$CC"
+SO_EXT="so"
+SO_PATH="-Wl,-rpath=$PLBASE/lib/$ARCH"
+DLLIBVAR=LD_LIBRARY_PATH
+
+case "$ARCH" in
+  *solaris* | *sunos5*)
+	AC_DEFINE(SO_LD, "/usr/ccs/bin/ld",
+		  [Program to use for linking shared objects])
+	SO_LDFLAGS="-G"
+	if test "$GCC" != "yes"; then
+	    SO_pic="-Kpic"
+	    SO_PIC="-KPIC"
+	fi
+	;;
+  *sunos*)
+	AC_DEFINE(SO_LD, "ld")
+	SO_LDFLAGS="-assert nodefinitions"
+	if test "$GCC" != "yes"; then
+	    SO_pic="-Kpic"
+	    SO_PIC="-KPIC"
+	fi
+	;;
+  *hppa*|*hpux*)
+	SO_EXT="sl"
+	LDFLAGS="$LDFLAGS -Wl,-E"
+	if test "$GCC" != "yes"; then
+	    SO_LDFLAGS="-Wl,-b"
+	fi
+	;;
+  *osf*)
+	SO_LD=ld
+	SO_LDFLAGS="-shared -expect_unresolved \*"
+	SO_pic="-std"
+	if test "$MT" = yes; then
+	  AC_CHECK_LIB(exc, main)
+	fi
+	;;
+  *aix*)
+	SO_EXT="o"
+	DLLIBVAR=LIBPATH
+	if test "$GCC" = "yes"; then
+	    LDFLAGS="$LDFLAGS -Wl,-bE:../include/SWI-Exports"
+	    SO_LDFLAGS="-Wl,-bI:$PLBASE/include/SWI-Exports"
+	else
+	    LDFLAGS="$LDFLAGS -bE:../include/SWI-Exports"
+	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
+	fi
+	;;
+  *darwin*)
+	if test "x$MKSHARED" = "x"; then
+	    MKSHARED=yes
+	fi
+	PL=swipl
+	SO_EXT=dylib
+	SO_pic="-fno-common"
+	SO_PIC="-fno-common"
+	SO_LDFLAGS="-bundle -dynamic -flat_namespace -undefined suppress"
+	SO_PATH=""
+	DLLIBVAR=DYLD_LIBRARY_PATH
+	AC_DEFINE(USE_SEM_OPEN, 1,
+		  [Define if we must use sem_open() instead of the preferred sem_init()])
+	AC_DEFINE(LD_SYMBOL_PREFIX, "_",
+		  [String used to prefix all symbols requested through dlsym()])
+dnl	AC_DEFINE(SO_FORMAT_LDFLAGS,
+dnl		  ["-bundle -dynamic -o \"%s\"", soout],
+dnl		  [Arguments to pass to sprintf() to create SO_LDFLAGS])
+	CMFLAGS="-no-cpp-precomp"
+	;;
+  *cygwin*)
+	SO_EXT="dll"
+	SO_pic=""
+	SO_PIC=""
+	DLLIBVAR=PATH
+	;;
+# Seems we can simple add the executable add the end.  This is arranged
+# in plld.c based on the the __BEOS__ symbol.
+# *beos*)
+#	AC_DEFINE(SO_FORMAT_LDFLAGS,
+#		  ["-nostart -Xlinker -soname=\"%s\"", soout])
+#	;;
+  *)
+	;;
+esac
+
+AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
+		   [Define to the extension of shared objects (.so normally)])
+AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD")
+AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS",
+		   [Flags to use for linking shared objects])
+AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic",
+		   [Flags for compiling position-independent small object])
+AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC",
+		   [Flags for compiling position-independent BIG object])
+AC_DEFINE_UNQUOTED(PROG_PL,    "$PL",
+		   [Name of the SWI-Prolog executable (normally pl)])
+case "$ARCH" in
+  *cygwin*)
+	PLSO=cygpl.$SO_EXT
+	SONAMEOPT='-Wl,--out-implib,$(RUNTIMEDIR)/libpl.dll.a $(DEF)'
+	;;
+  *)
+	PLSO=libpl.$SO_EXT
+	SONAMEOPT=-Wl,-soname=$PLSO.$PLVERSION
+	;;
+esac
+
+fi	dnl dlopen or shl_load
+
+dnl ================================================================
+
+if test "$MKSHARED" = yes; then
+  MKLIBS="$MKLIBS sharedlib"
+  CMFLAGS="$CMFLAGS $SO_PIC"
+  LDFLAGS="$LDFLAGS $SO_PATH"
+  case "$ARCH" in
+    *cygwin*)
+	LNLIBS="$LIBS"
+	;;
+    *)
+	LNLIBS="$USEPLLIB"
+	;;
+  esac
+  AC_DEFINE(O_SHARED_KERNEL, 1,
+  	    "Define if Prolog kernel is in shared object")
+else
+  LNLIBS="$LIBS"
+fi dnl MKSHARED
+
+dnl ================================================================
+
+echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
+echo "	LDFLAGS=$LDFLAGS"
+echo "	LIBS=$LIBS"
+
+OutputFiles="Makefile rc/Makefile libtai/Makefile pl.1 pl.sh"
+
+dnl autoconf 2.5.3 doesn't handle relative srcdir properly.  We'll hack
+dnl around making this variable global.
+
+srcdir=`cd $srcdir && pwd`
+
+# Prepare the package configuration if present
+
+if test -r ../packages/Makefile.in; then
+  OutputFiles="$OutputFiles ../packages/Makefile ../packages/plld.sh ../packages/pl.sh"
+fi
+
+if test -r ../packages/configure.in; then
+  OutputFiles="$OutputFiles ../packages/configure"
+fi
+
+AC_CONFIG_COMMANDS([exe],
+		   [ if test -r ../packages/configure; then
+		       chmod +x ../packages/configure
+		       chmod +x ../packages/plld.sh
+		       chmod +x ../packages/pl.sh
+		     fi
+		     chmod +x pl.sh
+		   ])
+AC_OUTPUT($OutputFiles)
+
+if test "$readline_ok" = no; then
+cat << _EOM_
+****************************************************************
+* Could not find a working readline library.  Without this library
+* command-line editing is not supported.  You can continue building
+* SWI-Prolog or first install readline.  After installing
+* readline do "make distclean" and re-configure SWI-Prolog.
+*
+* On SuSE Linux, readline is in the RPM package readline-devel
+****************************************************************
+
+_EOM_
+fi
+
+if test "$WARN_NO_GMP" = yes; then
+cat << _EOM_
+****************************************************************
+* Could not find libgmp or gmp.h.  GMP enables SWI-Prolog 
+* support for unbounded integer arithmetic and rational numbers.
+* 
+* See README.gmp for details.
+****************************************************************
+
+_EOM_
+fi
+
+cat << _EOM_
+****************************************************************
+* Now type the following to make and install the basic environment
+*
+*	% make
+*	% make install
+*
+* To complete the environment, goto the packages directory and check
+* the README file for further instructions.
+****************************************************************
+
+_EOM_
+

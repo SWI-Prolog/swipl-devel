@@ -1,0 +1,61 @@
+.TH caltime 3
+.SH NAME
+caltime_tai \- convert calendar dates and times
+.SH SYNTAX
+.B #include <caltime.h>
+.br
+.B #include <tai.h>
+
+void \fBcaltime_tai\fP(&\fIct\fR,&\fIt\fR);
+.br
+void \fBcaltime_utc\fP(&\fIct\fR,&\fIt\fR,&\fIweekday\fR,&\fIyearday\fR);
+
+struct caltime \fIct\fR;
+.br
+struct tai \fIt\fR;
+.br
+int *\fIweekday\fR;
+.br
+int *\fIyearday\fR;
+.SH DESCRIPTION
+.B caltime_tai
+reads a date, time, and UTC offset from
+.IR ct .
+It puts the corresponding TAI64 label into
+.IR t .
+
+.B caltime_utc
+reads a TAI64 label from
+.IR t .
+It puts the corresponding date and time into
+.IR ct ,
+with UTC offset 0.
+
+.B caltime_utc
+fills in
+.I weekday
+and
+.I yearday
+the same way as
+.BR caldate_frommjd .
+.SH LIMITATIONS
+The sequence of TAI64 labels has been determined
+for the next few hundred billion years.
+The same is not true, however, for
+calendar dates and times.
+New leap seconds are added every year or two,
+as discussed in
+.BR leapsecs (3);
+and the Gregorian calendar will change in a few thousand years,
+as discussed in
+.BR caldate_mjd (3).
+This means that
+.B caltime_tai
+and
+.B caltime_utc
+are not useful for dates far in the future.
+.SH "SEE ALSO"
+caldate_mjd(3),
+caltime(3),
+tai(3),
+leapsecs(3)

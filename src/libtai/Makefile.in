@@ -1,0 +1,81 @@
+################################################################
+# Makefile for the libtai
+#
+# Libtai by: D. J. Bernstein, djb@pobox.com
+# This Makefile.in by: Jan Wielemaker, wielemak@science.uva.nl
+#
+# This makefile fits in the SWI-Prolog (www.swi-prolog.org)
+# autconf setup.
+################################################################
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+srcdir=@srcdir@
+@VPATH@ @srcdir@
+bindir=$(exec_prefix)/bin
+PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
+man_prefix=$(prefix)/man
+mansec=1
+lmansec=3
+mandir=$(man_prefix)/man$(mansec)
+lmandir=$(man_prefix)/man$(lmansec)
+plmandir=$(PLBASE)/man
+
+CC=@CC@
+AR=@AR@
+RANLIB=@RANLIB@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CIFLAGS=@CIFLAGS@
+CMFLAGS=@CMFLAGS@
+LDFLAGS=@LDFLAGS@
+CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBOBJ=	tai_add.o tai_now.o tai_pack.o \
+        tai_sub.o tai_unpack.o taia_add.o taia_approx.o \
+        taia_fmtfrac.o taia_frac.o taia_half.o taia_less.o \
+        taia_now.o taia_pack.o taia_sub.o taia_tai.o taia_unpack.o \
+        caldate_fmt.o caldate_scan.o caldate_fmjd.o caldate_mjd.o \
+        caldate_norm.o caldate_ster.o leapsecs_read.o \
+        leapsecs_init.o leapsecs_add.o leapsecs_sub.o caltime_fmt.o \
+        caltime_scan.o caltime_tai.o caltime_utc.o
+PROG=	easter check yearcal leapsecs nowutc
+
+all:	libtai.a
+progs:	$(PROG)
+
+libtai.a:	$(LIBOBJ)
+	rm -f $@
+	$(AR) cq $@ $(LIBOBJ)
+	$(RANLIB) $@
+
+easter:	easter.o libtai.a
+	$(CC) $(LDFLAGS) -o $@ easter.o -L. -ltai
+check:	check.o libtai.a
+	$(CC) $(LDFLAGS) -o $@ check.o -L. -ltai
+yearcal: yearcal.o libtai.a
+	$(CC) $(LDFLAGS) -o $@ yearcal.o -L. -ltai
+leapsecs: leapsecs.o libtai.a
+	$(CC) $(LDFLAGS) -o $@ leapsecs.o -L. -ltai
+nowutc:	nowutc.o libtai.a
+	$(CC) $(LDFLAGS) -o $@ nowutc.o -L. -ltai
+
+
+.c.o:
+	$(CC) -c -I.. $(CFLAGS) $< @COUTOPT@
+
+################################################################
+# Cleanup
+################################################################
+
+clean:
+	rm -f *% *~ *.o
+
+distclean:	clean
+	rm -f Makefile
+	rm -f $(PROG) libtai.a
+

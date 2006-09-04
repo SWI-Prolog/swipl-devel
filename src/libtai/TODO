@@ -1,0 +1,6 @@
+test caldate_mjd handling of weird days
+test caldate_mjd handling of weird months
+manually verify check.out
+make 32-bit version?
+test, test, test!
+support time zones

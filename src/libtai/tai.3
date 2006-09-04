@@ -1,0 +1,83 @@
+.TH tai 3
+.SH NAME
+tai \- manipulate times with 1-second precision
+.SH SYNTAX
+.B #include <tai.h>
+
+double \fBtai_approx\fP(&\fIt\fR);
+
+int \fBtai_less\fP(&\fIa\fR,&\fIb\fR);
+.br
+void \fBtai_add\fP(&\fIt\fR,&\fIa\fR,&\fIb\fR);
+.br
+void \fBtai_sub\fP(&\fIt\fR,&\fIa\fR,&\fIb\fR);
+
+struct tai \fIt\fR;
+.br
+struct tai \fIa\fR;
+.br
+struct tai \fIb\fR;
+.SH DESCRIPTION
+A
+.B struct tai
+stores an integer between 0 inclusive and 2^64 exclusive.
+The format of
+.B struct tai
+is designed to speed up common operations;
+applications should not look inside
+.B struct tai\fR.
+
+A
+.B struct tai
+variable is commonly used to store
+a TAI64 label.
+Each TAI64 label refers to one second of real time.
+TAI64 labels span a period of
+hundreds of billions of years.
+See
+.B http://pobox.com/~djb/proto/tai64.txt
+for more information.
+
+A
+.B struct tai
+variable may also be used to store
+the numerical difference between two TAI64 labels.
+.SH ARITHMETIC
+.B tai_approx
+returns a double-precision approximation to
+.IR t .
+The result of
+.B tai_approx
+is always nonnegative.
+
+.B tai_less
+returns 1 if
+.I a
+is smaller than
+.IR b ,
+0 otherwise.
+
+.B tai_add
+adds
+.I a
+and
+.I b
+modulo 2^64
+and puts the result into
+.IR t .
+The inputs and outputs may overlap.
+
+.B tai_sub
+subtracts
+.I b
+from
+.I a
+modulo 2^64
+and puts the result into
+.IR t .
+The inputs and outputs may overlap.
+.SH "SEE ALSO"
+tai_now(3),
+tai_pack(3),
+taia(3),
+utc(3)

@@ -1,0 +1,11 @@
+pl: pl (SWI-prolog)
+pl:
+pl: SWI Prolog provides a small, robust, open-source
+pl: Prolog implementation. A large set of predicates provides
+pl: compatibility with Edinborough Prolog and part 1
+pl: of the ISO standard. Advanced features include
+pl: module and multi-threading support.
+pl:
+pl:
+pl:
+pl:

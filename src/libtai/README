@@ -1,0 +1,10 @@
+libtai 0.60, alpha.
+19981013
+Copyright 1998
+D. J. Bernstein, djb@pobox.com
+http://pobox.com/~djb/libtai.html
+
+libtai is a library for storing and manipulating dates and times. See
+BLURB for a more detailed advertisement.
+
+INSTALL says how to set up and test libtai.

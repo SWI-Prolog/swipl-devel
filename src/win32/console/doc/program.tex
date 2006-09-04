@@ -1,0 +1,111 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\usepackage{html}
+
+\makeindex
+\title{Windows Console Library}
+\author{Jan Wielemaker \\
+	SWI \\
+	University of Amsterdam \\
+	Roetersstraat 15 \\
+	1018 WB~~Amsterdam \\
+	E-mail: jan@swi.psy.uva.nl}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document describes the programmers interface of the console library
+used by SWI-Prolog.
+\end{abstract}
+
+\section{Entry-Point}
+
+Windows GUI programs start at WinMain(). When using the console library,
+write a main() function with the conventional argc/argv calling
+conventions, and call rlc_main() from WinMain like this (example
+from SWI-Prolog \file{pl-ntmain.c}):
+
+\begin{code}
+int PASCAL
+WinMain(HANDLE hInstance, HANDLE hPrevInstance,
+	LPSTR lpszCmdLine, int nCmdShow)
+{ return rlc_main(hInstance, hPrevInstance, lpszCmdLine, nCmdShow,
+		  win32main, LoadIcon(hInstance, "SWI_Icon"));
+}
+\end{code}
+
+The descriptin of rlc_main() is:
+
+\begin{description}
+\cfunction{int}{rlc_main}{\cdecl{HANDLE}{hInstance},
+			  \cdecl{HANDLE}{hPrevInstance},
+			  \cdecl{LPSTR}{lpszCmdLine},
+			  \cdecl{int}{nCmdShow},
+			  \cdecl{RlcMain}{mainfunc},
+			  \cdecl{HICON icon}}
+Initialises the library, creates the console, breaks the commandline
+and calls \arg{mainfunc}.  A seperate thread is created for updating
+the console.  \arg{mainfunc} is called in the same thread that is
+calling rlc_main().  If \arg{mainfunc} is \const{NULL}, rlc_main()
+returns after initialising the console.
+\end{description}
+
+\section{I/O}
+
+The library defines the following functions for reading and writing the
+console:
+
+\begin{description}
+\cfunction{int}{rlc_write}{\cdecl{char *}{buf},
+			   \cdecl{unsigned int}{count}}
+Output the contents of the buffer and return the number of characters
+written.  The return value is -1 if some error occurred.  The data is
+sent to the console thread synchronously, after which a flush request
+is sent to the input queue of the console thread.
+
+This library does not provide formatted or character oriented write
+operations.  SWI-Prolog's \file{pl-stream.c}/\file{pl-stream.h}
+provide this layer.
+\cfunction{int}{rlc_read}{\cdecl{char *}{buf},
+			  \cdecl{int}{count}}
+Read at most \arg{count} characters or a line.  The last written
+incomplete line is regarded as the `prompt'.  The user can edit the
+line using Emacs commands and browse through the command history using
+line up/down commands.
+\cfunction{int}{getch}{}
+Return a single character as soon as it becomes available. When
+switching to reading character-by-character mode, characters in
+the rlc_read() input buffer are returned immediately.
+\end{description}
+
+\section{Interrupts}
+
+Probably the most difficult issue is handling interrupts.  Basically,
+a callback function should be registered using rlc_interrupt_hook():
+
+\begin{description}
+\cfunction{RlcInterruptHook}{rlc_interrupt_hook}{\cdecl{RlcInterruptHook}{new}}
+Register an interrupt hook.  This function is called if the user hits
+Control-C.  Note that this function is called in the thread of the
+console.  The application is responsible transferring the interrupt
+request to the main thread.  There are several possibilities for
+doing this, but none is really asynchronous as Unix users are used
+to.
+
+SWI-Prolog uses the following schema.  The main thread (i.e.\ the
+initialisation) creates a (hidden) window, implementing WM_SIGNALLED
+(a private message id), which calls the SWI-Prolog signal dispatcher.
+
+If the hook is executed in the main thread (which should not be the
+case), it will call the Prolog handler immediately.  Otherwise, it
+will call PL_raise(), which schedules the interrupt.  At each pass
+through the call-port, the Prolog kernel checks for scheduled signals
+and executes their handlers. For the case where Prolog is waiting for
+a (Windows) message, WM_SIGNALLED is posted to the hidden window.
+See SWI-Prolog's \file{pl-ntmain.c} for details.
+\end{description}
+
+\end{document}
+ 

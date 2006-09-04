@@ -1,0 +1,33 @@
+.TH taia_now 3
+.SH NAME
+taia_now \- get current time, with 1-attosecond precision
+.SH SYNTAX
+.B #include <taia.h>
+
+void \fBtaia_now\fP(&\fIt\fR);
+
+struct taia \fIt\fR;
+.SH DESCRIPTION
+.B taia_now
+puts the current time into
+.IR t .
+
+More precisely:
+.B taia_now
+puts into
+.I t
+its best guess as to the TAI64NA label for the 1-attosecond interval
+that contains the current time.
+.SH NOTES
+This implementation of
+.B tai_now
+assumes that the
+.B struct timeval
+returned from
+.B gettimeofday
+represents the number of TAI seconds since
+1970-01-01 00:00:10 TAI.
+.SH "SEE ALSO"
+gettimeofday(2),
+tai_now(3),
+taia(3)

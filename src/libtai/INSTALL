@@ -1,0 +1,65 @@
+Like any other piece of software (and information generally), libtai
+comes with NO WARRANTY.
+
+
+These are UNIX installation instructions; libtai has not yet been ported
+to non-UNIX systems.
+
+
+To compile the programs and format the man pages:
+
+   % make
+
+Then, as root, enable leap second support:
+
+   # cp leapsecs.dat /etc/leapsecs.dat
+   # chmod 644 /etc/leapsecs.dat
+
+To use another compiler, edit conf-cc and conf-ld.
+
+
+There are five test programs here. The first is leapsecs, which creates
+leapsecs.dat from leapsecs.txt. Try
+
+   % ./leapsecs < leapsecs.txt | cmp - leapsecs.dat
+
+to make sure that there are no differences.
+
+The second is check, which prints a variety of information about an
+ISO-style input date. Try
+
+   % ./check < check.in | cmp - check.out
+
+to make sure that your test results match mine. Note that the results
+for future dates will change when more leap seconds are announced.
+
+The third is easter, which prints the date of Easter in any given year.
+Try
+
+   % ./easter 1997 1998 1999 2000 2001
+
+and check the results against tables from some other source.
+
+The fourth is yearcal, which prints a year-long calendar. Try
+
+   % ./yearcal 1997 | ul
+
+and check the results against another calendar. (The days in January,
+March, May, July, September, and November should show up in boldface.)
+
+The fifth is nowutc, which prints the current time in UTC. Your system's
+clock must be the number of seconds since 1970-01-01 00:00:10 TAI. This
+is compatible with the interpretation of time_t in the Olson time
+library with leap seconds enabled. Try
+
+   % env TZ=right/Etc/GMT date; ./nowutc
+
+if your system has the Olson library.
+
+
+The libtai code is in the public domain, so you can use it in your own
+programs. But keep in mind that this is a very early release. Some of
+the code hasn't been tested at all! caldate_mjd() and caldate_frommjd()
+are based on previous code of mine; they need outside review. It would
+be particularly helpful to systematically check my results against
+independent results from someone else's code.

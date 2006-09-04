@@ -1,0 +1,36 @@
+.TH taia_pack 3
+.SH NAME
+taia_pack \- convert TAI64NA labels to external format
+.SH SYNTAX
+.B #include <taia.h>
+
+void \fBtaia_pack\fP(\fIbuf\fR,&\fIt\fR);
+.br
+void \fBtaia_unpack\fP(\fIbuf\fR,&\fIt\fR);
+
+char \fIbuf\fR[\fBTAIA_PACK\fP];
+.br
+struct taia \fIt\fR;
+.SH DESCRIPTION
+.B taia_pack
+converts a TAI64NA label
+from internal format in
+.I t
+to TAI64NA format in
+.IR buf .
+
+.B taia_unpack
+converts a TAI64NA label
+from TAI64NA format in
+.I buf
+to internal format in
+.IR t .
+
+.B TAIA_PACK
+is 16.
+
+See
+.B http://pobox.com/~djb/proto/tai64.txt
+for more information about TAI64NA format.
+.SH "SEE ALSO"
+taia(3)

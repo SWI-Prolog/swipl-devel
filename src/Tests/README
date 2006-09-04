@@ -1,0 +1,12 @@
+These directories contain tests called from   the main test-script. Each
+subdirectory holds test-files. Each test file   must  obey the following
+rules:
+
+	* The filename must be unique in the whole test-pool
+
+	* It must be a module-file and the module name must be the
+	  filename
+
+	* It must export a single predicate whose name is the name of
+	  the file and the predicate should succeed without output if
+	  the test succeeds.

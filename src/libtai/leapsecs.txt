@@ -1,0 +1,38 @@
+# http://pobox.com/~djb/libtai/leapsecs.txt, version 1998-10-13
+#
+# Official sources:
+# http://maia.usno.navy.mil/leapsec.html
+# http://hpiers.obspm.fr/webiers/general/earthor/utc/UTC.html
+#
+# Dates must be listed in sorted order.
+# + means a positive leap second, inserting 23:59:60 UTC.
+# - means a negative leap second, skipping 23:59:59 UTC.
+#
+# Note for parsers: Negative leap seconds will probably never happen, but
+# the year 10000 will happen. Please don't contribute to the Y10K problem.
+#
+# 1972-01-01 00:00:00 UTC was 1972-01-01 00:00:10 TAI.
+# 
++1972-06-30
++1972-12-31
++1973-12-31
++1974-12-31
++1975-12-31
++1976-12-31
++1977-12-31
++1978-12-31
++1979-12-31
++1981-06-30
++1982-06-30
++1983-06-30
++1985-06-30
++1987-12-31
++1989-12-31
++1990-12-31
++1992-06-30
++1993-06-30
++1994-06-30
++1995-12-31
++1997-06-30
++1998-12-31
++2005-12-31

@@ -1,0 +1,111 @@
+.TH caldate_mjd 3
+.SH NAME
+caldate_mjd \- manipulate calendar dates
+.SH SYNTAX
+.B #include <caldate.h>
+
+void \fBcaldate_frommjd\fP(&\fIcd\fR,\fIday\fR,\fIweekday\fR,\fIyearday\fR);
+.br
+long \fBcaldate_mjd\fP(&\fIcd\fR);
+.br
+void \fBcaldate_normalize\fP(&\fIcd\fR);
+
+void \fBcaldate_easter\fP(&\fIcd\fR);
+
+struct caldate \fIcd\fR;
+.br
+long \fIday\fR;
+.br
+int *\fIweekday\fR;
+.br
+int *\fIyearday\fR;
+.SH "BASIC CONVERSIONS"
+Every calendar date has a
+.I modified Julian day number\fR.
+The day number increases by 1 every day.
+Day number 0 is 17 November 1858.
+Day number 51604 is 1 March 2000.
+
+.B caldate_frommjd
+puts into
+.I cd
+the date corresponding to the modified Julian day number
+.IR day .
+
+.B caldate_frommjd
+also computes the day of the week (0 through 6)
+and the day of the year (0 through 365).
+It stores the day of the week in
+.B *\fIweekday
+if
+.I weekday
+is nonzero.
+It stores the day of the year in
+.B *\fIyearday
+if
+.I yearday
+is nonzero.
+
+.B caldate_mjd
+returns the modified Julian day number corresponding to the date in
+.IR cd .
+
+.B caldate_mjd
+accepts days outside the range 1 to 31,
+referring to days before the beginning or after the end of the month.
+It also accepts months outside the range 1 to 12,
+referring to months before the beginning or after the end of the year.
+
+.B caldate_normalize
+calls
+.B caldate_frommjd
+with the result of
+.BR caldate_mjd .
+This means that it accepts out-of-range months and out-of-range days in
+.IR cd ,
+and puts a valid calendar date back into
+.IR cd .
+.SH "OTHER FUNCTIONS"
+.B caldate_easter
+reads the year from
+.I cd
+and then changes
+.I cd
+to the date of Easter in the same year.
+.SH LIMITATIONS
+The
+.B caldate
+routines currently support the Gregorian calendar,
+which was defined in 1582 and adopted at different times
+in different countries.
+For earlier dates the
+.B caldate
+routines work with
+``virtual Gregorian,''
+defined mathematically by the 400-year Gregorian cycle
+for years before 1582.
+The Julian calendar is not supported.
+
+The Gregorian calendar will be replaced by a new calendar
+within a few thousand years.
+The
+.B caldate_frommjd
+and
+.B caldate_mjd
+routines will be upgraded accordingly.
+The current
+.B caldate_frommjd
+and
+.B caldate_mjd
+routines are not useful for dates far in the future.
+
+Day numbers will overflow a 32-bit
+.B long
+sometime after the year 5000000;
+all systems should upgrade to 64-bit
+.BR long s
+before then.
+.B caldate_mjd
+does not check for overflow.
+.SH "SEE ALSO"
+caldate(3)

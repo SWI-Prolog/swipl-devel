@@ -1,0 +1,11 @@
+The files here generate ../pl-umap.c. Before running one must obtain the
+following Unicode data files:
+
+	* UnicodeData.txt
+	* DerivedCoreProperties.txt
+
+Then run 
+
+	% pl -s prolog_syntax_map.pl -g main,halt
+	
+We used the Unicode 4.1.0 files

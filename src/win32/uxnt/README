@@ -1,0 +1,8 @@
+The UXNT.LIB library is used SWI-Prolog and XPCE   to make the NT and 95
+filesystem a bit more like the Unix one. It deals with mapping directory
+separators, ensuring there are only single   separators (mapping // to \
+for example) that root-directories of devices   (c:/,  etc.) are handled
+properly, no matter how the name is formed. It also implemends readdir()
+and friends for Unix-compatible access to the directory.
+
+	Regards --- Jan
