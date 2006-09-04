@@ -129,7 +129,7 @@ html_fragment(fragment(Start, End, structured_comment, []),
 	copy_to(In, Start, Out, State0),
 	pop_state(State0, Out),
 	Len is End - Start,
-	read_comment(Len, In, Comment),
+	read_n_codes(In, Len, Comment),
 	wiki_string_to_dom(Comment, [], DOM0),
 	strip_leading_par(DOM0, DOM),
 	phrase(html(DOM), Tokens),
@@ -183,6 +183,22 @@ content_escape(C, Out) :-
 
 copy_rest(In, Out, State, State) :-
 	copy_n(1000000000, In, Out, State).
+
+%%	read_n_codes(+In, +N, -Codes)
+%
+%	Read the next N codes from In as a list of codes.
+
+read_n_codes(_, 0, []) :- !.
+read_n_codes(In, N, Codes) :-
+	get_code(In, C0),
+	read_n_codes(N, C0, In, Codes).
+
+read_n_codes(1, C, _, [C]) :- !.
+read_n_codes(N, C, In, [C|T]) :-
+	get_code(In, C2),
+	N2 is N - 1,
+	read_n_codes(N2, C2, In, T).
+
 
 %%	element(+Class, -HTMLElement, -CSSClass) is nondet.
 %
