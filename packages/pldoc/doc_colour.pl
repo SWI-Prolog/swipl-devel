@@ -37,6 +37,7 @@
 :- use_module(library(lists)).
 :- use_module(library(operators)).
 :- use_module(library(debug)).
+:- use_module(doc_process).
 
 /** <module> Source colouring support
 
@@ -150,7 +151,8 @@ process_input(In, Context) :-
 %%	colourise_comments(+Comments, +Context) is det.
 %
 %	Colourise  the  comments  we  have  found.  We  use  the  5.6.17
-%	comment-hook of read to collect the comments realiably
+%	comment-hook of read to collect the comments realiably. Comments
+%	are classified as one of =structured_comment= or =comment=.
 
 colourise_comments([], _).
 colourise_comments([H|T], Ctx) :-
@@ -161,7 +163,10 @@ colourise_comment(TermPos-Comment, Ctx) :-
 	stream_position_data(char_count, TermPos, Start),
 	atom_length(Comment, Len),
 	End is Start + Len,
-	colour_item(comment, Ctx, Start-End).
+	(   is_structured_comment(Comment, _)
+	->  colour_item(structured_comment, Ctx, Start-End)
+	;   colour_item(comment, Ctx, Start-End)
+	).
 
 %%	colourise_term(+Term, +Context, +TermPos) is det.
 
@@ -843,6 +848,7 @@ def_style(head(constraint(_)),	style(bold := @on, colour := darkcyan)).
 def_style(head(_),	  	style(bold := @on)).
 
 def_style(comment,		style(colour := dark_green)).
+def_style(structured_comment,	style(colour := dark_green)).
 
 def_style(directive,	  	style(background := grey90)).
 def_style(method(_),	  	style(bold := @on)).
