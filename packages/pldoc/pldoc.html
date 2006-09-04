@@ -88,10 +88,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -99,7 +95,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -173,14 +169,10 @@ codingstyle is one of them. In addition, documentation of source-files
 and their primary interfaces as well as a testing framework must be 
 established.
 
-<P>Only a few documentation and testing frameworks exist in the Prolog 
-world. In our view they all fall short realising the basic needs in a 
-lightweight and easy to addopt system. We have noticed in various 
-projects as well as through the codee we receive in the cause of testing 
-and debugging SWI-Prolog that the discipline to come with consistent 
-style, well commented code and a test-suite is not very well established 
-in the Prolog community. If we want to improve this practice, we should 
-make sure that
+<P>In our view, hitherto existing documentation and testing frameworks 
+fell short realising the basic needs in a lightweight and easy to adopt 
+system. To encourage consistent style, well commented code and 
+test-assisted development, we make sure that
 
 <P><UL COMPACT>
 <LI>The documentation and testing framework requires a minimum of work 
@@ -190,16 +182,16 @@ as well as the team,
 </UL>
 
 <P>First, we describe the documentation system we developed for 
-SWI-Prolog. In <A class="sec" href="#sec:10">section 10</A> we motivate 
-our main choices.
+SWI-Prolog. In <A class="sec" href="#sec:motivation">section 10</A> we 
+motivate our main choices.
 
 <H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></H2>
 
-<P>The PlDoc infrastructure is based on <EM>structured comments</EM>, 
-just like JavaDoc. Using comments, no changes have to be made to Prolog 
-to load the documented source. If the <CODE>library(pldoc)</CODE> 
-library is loaded, Prolog will not only load the source, but also parse 
-all structured comments. It processes the mode-declarations inside the 
+<P>Like JavaDoc, the PlDoc infrastructure is based on <EM>structured 
+comments</EM>. Using comments, no changes have to be made to Prolog to 
+load the documented source. If the <CODE>library(pldoc)</CODE> library 
+is loaded, Prolog will not only load the source, but also parse all 
+structured comments. It processes the mode-declarations inside the 
 comments and stores these as annotations in the Prolog database to 
 support the test framework and other runtime and compiletime analysis 
 tools that may be developed in the future.
@@ -217,18 +209,18 @@ start a web-server that can be used to browse the documentation.
 comments</SPAN></A></H2>
 
 <P>Structured comments come in two flavours, the line-comment (%) based 
-one that seen most in the Prolog community and the block-comment (<CODE>/*</CODE>...<CODE>*/</CODE>) 
-based one commonly seen in the Java and C domain. As we cannot determine 
-the argument-names, type and modes from following (predicate) code 
-itself, we must supply this in the comment.<SUP class="fn">1<SPAN class="fn-text">See <A class="sec" href="#sec:10">section 
+one, seen mostly in the Prolog community and the block-comment (<CODE>/*</CODE>...<CODE>*/</CODE>) 
+based one, commonly seen in the Java and C domain. As we cannot 
+determine the argument-names, type and modes from following (predicate) 
+code itself, we must supply this in the comment.<SUP class="fn">1<SPAN class="fn-text">See <A class="sec" href="#sec:motivation:modes">section 
 10</A>.</SPAN></SUP>. The overall structure of the comment therefore is:
 
 <P><UL COMPACT>
-<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:5">section 
+<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:modes">section 
 5</A>
-<LI>Wiki-style documentation body, see <A class="sec" href="#sec:7">section 
+<LI>Wiki-style documentation body, see <A class="sec" href="#sec:wiki">section 
 7</A>
-<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:6">section 
+<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:tags">section 
 6</A>)
 </UL>
 
@@ -248,7 +240,7 @@ and section comments</SPAN></A></H2>
 <P>An important aspect is documentation of the file or module as a 
 whole, explaining its design, purpose and relation to other modules. In 
 JavaDoc this is the comment that preceeds the class definition. The 
-Prolog equivalent would be to but the module comment in front of the 
+Prolog equivalent would be to put the module comment in front of the 
 module declaration. The module declaration itself however is an 
 important index to the content of the file and is therefore best kept 
 first.
@@ -320,7 +312,7 @@ informally described below:
 
 </CENTER>
 
-<P>Instantiation patters are:
+<P>Instantiation patterns are:
 
 <P>
 <CENTER>
@@ -335,7 +327,7 @@ for any type. </TD></TR>
 <TR VALIGN=top><TD>@</TD><TD>Argument is not further instantiated. </TD></TR>
 <TR VALIGN=top><TD>!</TD><TD>Argument contains a mutable structure that 
 may be modified using
-<A NAME="idx:setarg3:1"></A><SPAN class="pred-ext">setarg/3</SPAN> or <A NAME="idx:nbsetarg3:2"></A><SPAN class="pred-ext">nb_setarg/3</SPAN>. </TD></TR>
+<A NAME="idx:setarg3:1"></A><B>setarg/3</B> or <A NAME="idx:nbsetarg3:2"></A><B>nb_setarg/3</B>. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -390,7 +382,7 @@ are multiple authors.</DD>
 Version of the module.</DD>
 <DT><B><CODE>@</CODE>see</B></DT>
 <DD class="defbody">
-Related maaterial.</DD>
+Related material.</DD>
 <DT><B><CODE>@</CODE>deprecated</B></DT>
 <DD class="defbody">
 The predicate or module is deprecated. The description specifies what to 
@@ -461,7 +453,7 @@ is common to describe the behaviour on different terms. Such lists must
 be written as below. &lt;<VAR>Term1</VAR>&gt;, etc. must be valid Prolog 
 terms and end in the newline. The Wiki adds <CODE>' . '</CODE> to the 
 text and reads it using the operator definitions also used to read the 
-mode terms. See <A class="sec" href="#sec:5">section 5</A>.
+mode terms. See <A class="sec" href="#sec:modes">section 5</A>.
 
 <PRE class="code">
    * Term1
@@ -488,7 +480,7 @@ lines that parse into a table-row together for a table. Example:
 <DD>
 Section headers are creates using one of the constructs below taken from 
 TWiki. Section headers are normally not used in the source-code, but can 
-be useful inside README and TODO files. See <A class="sec" href="#sec:8">section 
+be useful inside README and TODO files. See <A class="sec" href="#sec:dirindex">section 
 8</A>.
 
 <PRE class="code">
@@ -520,14 +512,14 @@ indentation of the <CODE>==</CODE> marks.
 markup: fonts and links</SPAN></A></H3>
 
 <P>Wiki text markup to realise fonts is mostly based on old plaintext 
-conventions in newsnet and E-mail. We added some Prolog specific 
-conventions to this. For font changing code, The opening symbol must be 
-followed immediately by a word and the closing one must immediately 
-follow a word.
+conventions in Usenet and E-mail. We added Prolog specific conventions 
+to this. For font changing code, the opening symbol must be followed 
+immediately by a word and the closing one must immediately follow a 
+word.
 
-<P>As code comment frequently contains symbols such as <CODE>=</CODE> we 
----in contrast to normal Wiki conventions--- do font font-switches onlt 
-if a single word is surrounded by <CODE>=</CODE>, <CODE>*</CODE> or <CODE>_</CODE>. 
+<P>As code comments frequently contain symbols such as <CODE>=</CODE>, 
+we ---in contrast to normal Wiki conventions--- do font font-switches 
+only if a single word is surrounded by <CODE>=</CODE>, <CODE>*</CODE> or <CODE>_</CODE>. 
 Longer sequences must be created using additional <CODE>|</CODE>:
 
 <PRE class="code">
@@ -572,12 +564,12 @@ indices</SPAN></A></H2>
 <A NAME="sec:dirindex"></A>
 
 <P>A directory index consists of the contents of the file <CODE>README</CODE> 
-(or <CODE>README.TXT</CODE>, followed by a table holding all currently 
+(or <CODE>README.TXT</CODE>), followed by a table holding all currently 
 loaded source-files that appear below the given directory (i.e. traversal 
 is
-<EM>recursive</EM> and for each file a list of public predicates and 
+<EM>recursive</EM>) and for each file a list of public predicates and 
 their descriptive summary. Finally, if a file <CODE>TODO</CODE> or <CODE>TODO.TXT</CODE> 
-exists, use add its contents at the end of the directory index.
+exists, its content is added at the end of the directory index.
 
 <H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Running 
 the documentation system</SPAN></A></H2>
@@ -613,7 +605,7 @@ Provided options are:
 Allow connections from <VAR>HostOrIP</VAR>. If <VAR>Host</VAR> is an 
 atom starting with a '.', suffix matching is preformed. I.e. 
 <CODE>allow('.uva.nl')</CODE> grants access to all machines in this 
-domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><SPAN class="pred-ext">ip/4</SPAN> 
+domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><B>ip/4</B> 
 term. I.e. to allow access from the 10.0.0.X domain, specify
 <CODE>allow(ip(10,0,0,_))</CODE>.</DD>
 <DT><STRONG>deny</STRONG>(<VAR>+HostOrIP</VAR>)</DT>
@@ -638,10 +630,10 @@ Fails if no server is running.</DD>
 <DT class="pubdef"><A NAME="doc_browser/1"><STRONG>doc_browser</STRONG>(<VAR>+Spec</VAR>)</A></DT>
 <DD class="defbody">
 Open the user's default browser on the specified page. <VAR>Spec</VAR> 
-is handled similar to <A NAME="idx:edit1:4"></A><SPAN class="pred-ext">edit/1</SPAN>, 
-resolving anything that relates somehow to the given specification and 
-ask the user to select.<SUP class="fn">bug<SPAN class="fn-text">This 
-flexibility is not yet implemented</SPAN></SUP>.
+is handled similar to <A NAME="idx:edit1:4"></A><B>edit/1</B>, resolving 
+anything that relates somehow to the given specification and ask the 
+user to select.<SUP class="fn">bug<SPAN class="fn-text">This flexibility 
+is not yet implemented</SPAN></SUP>.
 </DD>
 </DL>
 
@@ -656,7 +648,7 @@ to load the entire library.
 <DL>
 <DT class="pubdef"><A NAME="doc_load_library/0"><STRONG>doc_load_library</STRONG></A></DT>
 <DD class="defbody">
-Load all library files. This is intended to setup a local documentation 
+Load all library files. This is intended to set up a local documentation 
 server. A typical scenario, making the server available at port 4000 of 
 the hosting machine from all locations in a domain is given below.
 
@@ -746,14 +738,14 @@ enclosing section (<EM>Up</EM>).
 
 <P>If the browser is accessed from <CODE>localhost</CODE>, each object 
 that is related to a known source-location has an edit icon at the right 
-side. Clicking this calls <A NAME="idx:edit1:7"></A><SPAN class="pred-ext">edit/1</SPAN> 
-on the object, calling the user's default editor in the file. To use the 
+side. Clicking this calls <A NAME="idx:edit1:7"></A><B>edit/1</B> on the 
+object, calling the user's default editor in the file. To use the 
 built-in PceEmacs editor, either set the Prolog flag <CODE>editor</CODE> 
 to <CODE>pce_emacs</CODE> or run <CODE>?- emacs.</CODE> before clicking 
 an edit button.
 
 <P>Prolog source-files have a <EM>reload</EM> button attached. Clicking 
-this reloads the sourcefile if it was modified and refreshes the page. 
+this reloads the source file if it was modified and refreshes the page. 
 This supports a comfortable edit-view loop to maintain the source-code 
 documentation.
 
@@ -762,11 +754,11 @@ of choices</SPAN></A></H2>
 
 <A NAME="sec:motivation"></A>
 
-<P>Literal programming is an old field. The TeX source is one of the 
-oldest and welknown examples of this approach were input files are a 
-mixture of TeX and PASCAL source. External tools are used to untangle 
-the common source, process one branche to produce the documentation 
-while the other is compiled to produce the program.
+<P>Literal programming is an established field. The TeX source is one of 
+the first and best known examples of this approach, where input files 
+are a mixture of TeX and PASCAL source. External tools are used to 
+untangle the common source and process one branch to produce the 
+documentation, while the other is compiled to produce the program.
 
 <P>A program and its documentation consists of various different parts:
 
@@ -819,19 +811,19 @@ without syntax support from an editor.
 <A NAME="sec:motivation:modes"></A>
 
 <P>Types and modes are not a formal part of the Prolog language. 
-Nevertheless, their role goes beyond purely documentation. The test 
-system can use information about non-determinism to validate that 
-deterministic calls are indeed deterministic. Type information can be 
-used to analyse coverage from the test-suite, to generate runtime type 
-verification or to perform static type-analysis. We have choosen to use 
-a structured comment with formal syntax for the following reasons:
+Nevertheless, their role goes beyond pure documentation. The test-system 
+can use information about non-determinism to validate that deterministic 
+calls are indeed deterministic. Type information can be used to analyse 
+coverage from the test-suite, to generate runtime type verification or 
+to perform static type-analysis. We have chosen to use a structured 
+comment with formal syntax for the following reasons:
 
 <P>
 <UL>
 <LI>As a comment, they stay together with the comment block of a 
-predicate. we feel it is best to keep documentation as close as possible 
+predicate. We feel it is best to keep documentation as close as possible 
 to the source.
-<LI>As we parse them seperately, we can pick up argument names and 
+<LI>As we parse them separately, we can pick up argument names and 
 create a readable syntax without introducing possibly conflicting 
 operators.
 <LI>As a comment they do not introduce incompatibilities with other 
@@ -840,11 +832,11 @@ Prolog systems.
 
 <H3>Few requirements</H3>
 
-<P>SWI-Prolog aims at platform independency. We want to tools to rely as 
-much as possible on Prolog itself. Therefore the entire infrastructure 
+<P>SWI-Prolog aims at platform independence. We want tools to rely as 
+much as possible on Prolog itself. Therefore, the entire infrastructure 
 is written in Prolog. Output as HTML is suitable for browsing and not 
-very high quality printing on virtuall every platform. Output to LaTeX 
-requires more infrastructure for processing, but allows for producing 
+very high quality printing on virtually all platforms. Output to LaTeX 
+requires more infrastructure for processing and allows for producing 
 high-quality PDF documents.
 
 <H1><A NAME="document-index">Index</A></H1>

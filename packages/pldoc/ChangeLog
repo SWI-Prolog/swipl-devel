@@ -1,3 +1,8 @@
+Sep 4, 2006
+
+* DOCS: Applied various style and typo patches to the documentation.  By
+  Markus Triska.
+
 Sep 3, 2006
 
 * FIXED: `Go': deal properly with Windows filenames and fix handling of the

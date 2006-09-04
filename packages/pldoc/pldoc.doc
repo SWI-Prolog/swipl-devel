@@ -49,14 +49,10 @@ codingstyle is one of them. In addition, documentation of source-files
 and their primary interfaces as well as a testing framework must be
 established.
 
-Only a few documentation and testing frameworks exist in the Prolog
-world. In our view they all fall short realising the basic needs in a
-lightweight and easy to addopt system. We have noticed in various
-projects as well as through the codee we receive in the cause of testing
-and debugging SWI-Prolog that the discipline to come with consistent
-style, well commented code and a test-suite is not very well established
-in the Prolog community.  If we want to improve this practice, we should
-make sure that
+In our view, hitherto existing documentation and testing frameworks
+fell short realising the basic needs in a lightweight and easy to
+adopt system. To encourage consistent style, well commented code and
+test-assisted development, we make sure that
 
 \begin{shortlist}
     \item The documentation and testing framework requires a
@@ -72,9 +68,9 @@ In \secref{motivation} we motivate our main choices.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Overview}
 
-The PlDoc infrastructure is based on \emph{structured comments}, just
-like JavaDoc.  Using comments, no changes have to be made to Prolog to
-load the documented source.  If the \pllib{pldoc} library is loaded, 
+Like JavaDoc, the PlDoc infrastructure is based on \emph{structured
+comments}.  Using comments, no changes have to be made to Prolog to
+load the documented source.  If the \pllib{pldoc} library is loaded,
 Prolog will not only load the source, but also parse all structured
 comments.  It processes the mode-declarations inside the comments and
 stores these as annotations in the Prolog database to support the test
@@ -95,9 +91,9 @@ a web-server that can be used to browse the documentation.
 \section{Structured comments}
 
 Structured comments come in two flavours, the line-comment (\%) based
-one that seen most in the Prolog community and the block-comment
-(\verb$/*$\ldots\verb$*/$) based one commonly seen in the Java and
-C domain.  As we cannot determine the argument-names, type and modes
+one, seen mostly in the Prolog community and the block-comment
+(\verb$/*$\ldots\verb$*/$) based one, commonly seen in the Java and C
+domain.  As we cannot determine the argument-names, type and modes
 from following (predicate) code itself, we must supply this in the
 comment.\footnote{See \secref{motivation:modes}.}.  The overall
 structure of the comment therefore is:
@@ -123,7 +119,7 @@ with @<word>.
 An important aspect is documentation of the file or module as a whole,
 explaining its design, purpose and relation to other modules. In JavaDoc
 this is the comment that preceeds the class definition. The Prolog
-equivalent would be to but the module comment in front of the module
+equivalent would be to put the module comment in front of the module
 declaration. The module declaration itself however is an important index
 to the content of the file and is therefore best kept first.
 
@@ -189,7 +185,7 @@ informally described below:
 \end{tabular}
 \end{center}
 
-Instantiation patters are:
+Instantiation patterns are:
 
 \begin{center}
 \begin{tabular}{lp{0.7\linewidth}}
@@ -255,7 +251,7 @@ are multiple authors.
 Version of the module.  
 
     \definition{\chr{@}see}
-Related maaterial.
+Related material.
 
     \definition{\chr{@}deprecated}
 The predicate or module is deprecated.  The description specifies what
@@ -368,13 +364,13 @@ the \verb$==$ marks.
 \subsection{Text markup: fonts and links}
 
 Wiki text markup to realise fonts is mostly based on old plaintext
-conventions in newsnet and E-mail.  We added some Prolog specific
-conventions to this.  For font changing code, The opening symbol must
+conventions in Usenet and E-mail.  We added Prolog specific
+conventions to this.  For font changing code, the opening symbol must
 be followed immediately by a word and the closing one must immediately
 follow a word.
 
-As code comment frequently contains symbols such as \verb$=$ we ---in
-contrast to normal Wiki conventions--- do font font-switches onlt if a
+As code comments frequently contain symbols such as \verb$=$, we ---in
+contrast to normal Wiki conventions--- do font font-switches only if a
 single word is surrounded by \verb$=$, \verb$*$ or \verb$_$.  Longer
 sequences must be created using additional \chr{|}:
 
@@ -415,11 +411,11 @@ PceEmacs can be set as default editor using
 \label{sec:dirindex}
 
 A directory index consists of the contents of the file \file{README}
-(or \file{README.TXT}, followed by a table holding all currently loaded
+(or \file{README.TXT}), followed by a table holding all currently loaded
 source-files that appear below the given directory (i.e.\ traversal is
-\emph{recursive} and for each file a list of public predicates and their
+\emph{recursive}) and for each file a list of public predicates and their
 descriptive summary.  Finally, if a file \file{TODO} or \file{TODO.TXT}
-exists, use add its contents at the end of the directory index.
+exists, its content is added at the end of the directory index.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -489,7 +485,7 @@ load the entire library.
 
 \begin{description}
     \predicate{doc_load_library}{0}{}
-Load all library files.  This is intended to setup a local documentation
+Load all library files.  This is intended to set up a local documentation
 server.  A typical scenario, making the server available at port 4000 of
 the hosting machine from all locations in a domain is given below.
 
@@ -575,7 +571,7 @@ either set the Prolog flag \const{editor} to \const{pce_emacs} or
 run \exam{?- emacs.} before clicking an edit button.
 
 Prolog source-files have a \emph{reload} button attached. Clicking this
-reloads the sourcefile if it was modified and refreshes the page. This
+reloads the source file if it was modified and refreshes the page. This
 supports a comfortable edit-view loop to maintain the source-code
 documentation.
 
@@ -584,11 +580,11 @@ documentation.
 \section{Motivation of choices}
 \label{sec:motivation}
 
-Literal programming is an old field.  The \TeX{} source is one of the
-oldest and welknown examples of this approach were input files are a 
-mixture of \TeX{} and PASCAL source. External tools are used to untangle
-the common source, process one branche to produce the documentation
-while the other is compiled to produce the program.
+Literal programming is an established field.  The \TeX{} source is one
+of the first and best known examples of this approach, where input
+files are a mixture of \TeX{} and PASCAL source. External tools are
+used to untangle the common source and process one branch to produce
+the documentation, while the other is compiled to produce the program.
 
 A program and its documentation consists of various different parts:
 
@@ -642,19 +638,18 @@ without syntax support from an editor.
 \label{sec:motivation:modes}
 
 Types and modes are not a formal part of the Prolog language.
-Nevertheless, their role goes beyond purely documentation. The test
-system can use information about non-determinism to validate that
-deterministic calls are indeed deterministic.  Type information can
-be used to analyse coverage from the test-suite, to generate runtime
-type verification or to perform static type-analysis.  We have choosen
-to use a structured comment with formal syntax for the following
-reasons:
+Nevertheless, their role goes beyond pure documentation. The
+test-system can use information about non-determinism to validate that
+deterministic calls are indeed deterministic.  Type information can be
+used to analyse coverage from the test-suite, to generate runtime type
+verification or to perform static type-analysis.  We have chosen to
+use a structured comment with formal syntax for the following reasons:
 
 \begin{itemize}
     \item As a comment, they stay together with the comment block
-          of a predicate. we feel it is best to keep documentation
+          of a predicate. We feel it is best to keep documentation
 	  as close as possible to the source.
-    \item As we parse them seperately, we can pick up argument names
+    \item As we parse them separately, we can pick up argument names
 	  and create a readable syntax without introducing possibly
 	  conflicting operators.
     \item As a comment they do not introduce incompatibilities with
@@ -664,11 +659,11 @@ reasons:
 
 \subsection*{Few requirements}
 
-SWI-Prolog aims at platform independency. We want to tools to rely as
-much as possible on Prolog itself. Therefore the entire infrastructure
+SWI-Prolog aims at platform independence. We want tools to rely as
+much as possible on Prolog itself. Therefore, the entire infrastructure
 is written in Prolog. Output as HTML is suitable for browsing and not
-very high quality printing on virtuall every platform. Output to
-\LaTeX{} requires more infrastructure for processing, but allows for
+very high quality printing on virtually all platforms. Output to
+\LaTeX{} requires more infrastructure for processing and allows for
 producing high-quality PDF documents.
 
 \printindex
