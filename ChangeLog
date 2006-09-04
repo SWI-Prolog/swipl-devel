@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==========================
+BRANCH 5.7.0 (Sep 4, 2007)
+==========================
+
   * ADDED: Library heaps.pl.  Adapted by Markus Triska.
 
   * FIXED: Renamed depreciated --> deprecated.  Mike Elston.
