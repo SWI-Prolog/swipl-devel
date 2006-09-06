@@ -227,7 +227,7 @@ path_sep -->
 		 *   LOADING ASSIOCIATED FILES	*
 		 *******************************/
 
-%	set_associated_file/0
+%%	set_associated_file
 %	
 %	If SWI-Prolog is started as <exe> <file>.<ext>, where <ext> is
 %	the extension registered for associated files, set the Prolog
@@ -242,6 +242,7 @@ set_associated_file :-
 	current_prolog_flag(argv, Argv),
 	'$append'(Pre, [OsFile], Argv),
 	\+ memberchk(--, Pre),
+	\+ '$append'(_, ['-f'], Pre),	% Avoid loading twice
 	prolog_to_os_filename(File, OsFile),
 	file_name_extension(_, Ext, File),
 	access_file(File, read), !,
