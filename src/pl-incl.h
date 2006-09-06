@@ -916,7 +916,11 @@ typedef struct
 	} value;
 } number, *Number;
 
+#ifdef O_GMP
+#define intNumber(n)	((n)->type <=  V_MPZ)
+#else
 #define intNumber(n)	((n)->type <  V_REAL)
+#endif
 #define floatNumber(n)	((n)->type >= V_REAL)
 
 		 /*******************************
