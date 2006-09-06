@@ -34,8 +34,12 @@
 	    write_source_css/1		% +Stream
 	  ]).
 :- use_module(library(option)).
+:- use_module(library(lists)).
 :- use_module(doc_colour).
+:- use_module(doc_html).
 :- use_module(doc_wiki).
+:- use_module(doc_modes).
+:- use_module(doc_process).
 :- use_module(library('http/html_write')).
 
 /** <module> HTML source pretty-printer
@@ -62,7 +66,7 @@ source_to_html(Src, stream(Out), Options) :- !,
 	file_base_name(Src, Base),
 	print_html_head(Out, [title(Base), Options]),
 	format(Out, '<pre class="listing">~n', [Out]),
-	html_fragments(Fragments, In, Out, [pre(class(listing))], State),
+	html_fragments(Fragments, In, Out, [pre(class(listing))], State, Options),
 	copy_rest(In, Out, State, State1),
 	pop_state(State1, Out),
 	print_html_footer(Out, Options).
@@ -78,22 +82,28 @@ source_to_html(Src, FileSpec, Options) :-
 %	
 %		* header(Bool)
 %		Only print the header if Bool is not =false=
+%		
 %		* title(Title)
 %		Title of the HTML document
-%		* stylesheet(HREF)
-%		Reference to the CSS style-sheet.
+%		
+%		* stylesheets(List)
+%		Reference to the CSS style-sheets.
+%		
+%		* format_comments(Bool)
+%		If =true= (default), format structured comments.
 
 print_html_head(Out, Options) :-
 	option(header(true), Options, true), !,
 	option(title(Title), Options, 'Prolog source'),
-	option(stylesheet(Sheet), Options, 'pllisting.css'),
+	option(stylesheets(Sheets), Options, ['pllisting.css', 'pldoc.css']),
 	format(Out,
 	       '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" \
 	       "http://www.w3.org/TR/html4/strict.dtd">~n~n', []),
 	format(Out, '<html>~n', []),
 	format(Out, '  <head>~n', []),
 	format(Out, '    <title>~w</title>~n', [Title]),
-	format(Out, '    <link rel="stylesheet" type="text/css" href="~w">~n', [Sheet]),
+	forall(member(Sheet, Sheets),
+	       format(Out, '    <link rel="stylesheet" type="text/css" href="~w">~n', [Sheet])),
 	format(Out, '  </head>~n', []),
 	format(Out, '<body>~n', []).
 print_html_head(_, _).
@@ -105,42 +115,52 @@ print_html_footer(Out, Options) :-
 print_html_footer(_, _).
 
 
-%%	html_fragments(+Fragments, +In, +Out, +State) is det.
+%%	html_fragments(+Fragments, +In, +Out, +State, +Options) is det.
 %
 %	Copy In to Out, inserting HTML elements using Fragments.
 
-html_fragments([], _, _, State, State).
-html_fragments([H|T], In, Out, State0, State) :-
-	html_fragment(H, In, Out, State0, State1),
-	html_fragments(T, In, Out, State1, State).
+html_fragments([], _, _, State, State, _).
+html_fragments([H|T], In, Out, State0, State, Options) :-
+	html_fragment(H, In, Out, State0, State1, Options),
+	html_fragments(T, In, Out, State1, State, Options).
 
-%%	html_fragment(+Fragment, +In, +Out, +StateIn, -StateOut) is det.
+% %	html_fragment(+Fragment, +In, +Out, +StateIn, -StateOut, +Options) is det.
 %
 %	Print from current position upto the end of Fragment.  First
 %	clause deals with structured comments.
-%	
-%	@tbd	Handle mode decl of structured comment
-%	@tbd	copy_to should ensure <pre> state if emoty.
-%	@tbd	wiki_string_to_dom/3 to accept code-list
 
 html_fragment(fragment(Start, End, structured_comment, []),
-	      In, Out, State0, []) :-
-	fail, !,			% TBD
-	copy_to(In, Start, Out, State0),
-	pop_state(State0, Out),
+	      In, Out, State0, [], Options) :-
+	option(format_comments(true), Options, true), !,
+	copy_to(In, Start, Out, State0, State1),
+	pop_state(State1, Out),
 	Len is End - Start,
-	read_n_codes(In, Len, Comment),
-	wiki_string_to_dom(Comment, [], DOM0),
-	strip_leading_par(DOM0, DOM),
-	phrase(html(DOM), Tokens),
-	print_html(Out, Tokens).
+	read_n_codes(In, Len, CommentCodes),
+	string_to_list(Comment, CommentCodes),
+	is_structured_comment(Comment, Prefix),
+	indented_lines(Comment, Prefix, Lines0),
+	(   section_comment_header(Lines0, Header, Lines1)
+	->  wiki_lines_to_dom(Lines1, [], DOM),
+	    phrase(pldoc_html:html(div(class(comment), [Header|DOM])), Tokens),
+	    print_html(Out, Tokens)
+	;   stream_property(In, file_name(File)),
+	    line_count(In, Line),
+	    process_modes(Lines0, File:Line, Modes, Args, Lines1),
+	    DOM = [\pred_dt(Modes, pubdef, []), dd(class=defbody, DOM1)],
+	    wiki_lines_to_dom(Lines1, Args, DOM0),
+	    strip_leading_par(DOM0, DOM1),
+	    phrase(pldoc_html:html(DOM), Tokens),		% HACK
+	    format(Out, '<dl class="comment">~n', [Out]),
+	    print_html(Out, Tokens),
+	    format(Out, '</dl>~n', [Out])
+	).
 html_fragment(fragment(Start, End, Class, Sub),
-	      In, Out, State0, State) :-
-	copy_to(In, Start, Out, State0),
-	start_fragment(Class, Out, State0, State1),
-	html_fragments(Sub, In, Out, State1, State2),
-	copy_to(In, End, Out, State2),	% TBD: pop-to?
-	end_fragment(Out, State2, State).
+	      In, Out, State0, State, Options) :-
+	copy_to(In, Start, Out, State0, State1),
+	start_fragment(Class, Out, State1, State2),
+	html_fragments(Sub, In, Out, State2, State3, Options),
+	copy_to(In, End, Out, State3, State4),	% TBD: pop-to?
+	end_fragment(Out, State4, State).
 
 start_fragment(Class, Out, State, [Push|State]) :-
 	element(Class, Tag, CSSClass), !,
@@ -160,19 +180,26 @@ pop_state(State, Out) :-
 	pop_state(State1, Out).
 
 
-copy_to(In, End, Out, State) :-
+copy_to(In, End, Out, State, State) :-
+	member(pre(_), State), !,
+	copy_to(In, End, Out).
+copy_to(In, End, Out, State, [pre(class(listing))|State]) :-
+	format(Out, '<pre class="listing">~n', [Out]),
+	copy_to(In, End, Out).
+
+copy_to(In, End, Out) :-
 	character_count(In, Here),
 	Len is End - Here,
-	copy_n(Len, In, Out, State).
+	copy_n(Len, In, Out).
 
-copy_n(N, In, Out, State) :-
+copy_n(N, In, Out) :-
 	N > 0,
 	get_code(In, Code),
 	Code \== -1, !,
 	content_escape(Code, Out),
 	N2 is N - 1,
-	copy_n(N2, In, Out, State).
-copy_n(_, _, _, _).
+	copy_n(N2, In, Out).
+copy_n(_, _, _).
 
 
 content_escape(0'<, Out) :- !, format(Out, '&lt;', []).
@@ -181,8 +208,8 @@ content_escape(0'&, Out) :- !, format(Out, '&amp;', []).	% 0'
 content_escape(C, Out) :-
 	put_code(Out, C).
 
-copy_rest(In, Out, State, State) :-
-	copy_n(1000000000, In, Out, State).
+copy_rest(In, Out, State0, State) :-
+	copy_to(In, 1000000000, Out, State0, State).
 
 %%	read_n_codes(+In, +N, -Codes)
 %

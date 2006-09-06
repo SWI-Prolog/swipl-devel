@@ -207,3 +207,23 @@ span.sec-nr
 span.sec-title
 { margin-left: 0.5em;
 }
+
+/* Listing support */
+
+dl.comment, div.comment
+{ color: #006400;
+  border: 2px inset;
+  padding: 5px;
+  background-color: #e5e5e5;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+pre.listing
+{ margin-top: 0;
+  margin-bottom: 0;
+}
+
+div.comment h1.module
+{ margin-top: 0;
+}
