@@ -1606,9 +1606,12 @@ resulting code is simply the same), I've removed that.
             '$extend'(LP, S, SR, H)
         ).
 '$translate_rule'((LP-->RP), (H:-B)):-
-	'$t_head'(LP, S, SR, H),
-	'$t_body'(RP, S, SR, B).
-
+	'$t_head'(LP, S0, SR, H),
+	'$t_body'(RP, S0, SR, B0),
+	(   B0 = (S0=X, B)		% map a(H,T) :- H = [a,b|T], b(T)
+	->  S0 = X			% into a([a,b|T]) :- b(T).
+	;   B0 = B
+	).
 
 '$t_head'((LP, List), S, SR, H) :-
 	'$append'(List, SR, List2), !,
@@ -1677,10 +1680,8 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 	var(Var), !.
 '$t_body'([], S, SR, S=SR) :- !.		% inline lists
 '$t_body'(List, S, SR, C) :-
-	List = [X|T], !,
-	(   T == []
-	->  C = 'C'(S, X, SR)
-	;   is_list(T)
+	List = [_|_], !,
+	(   is_list(List)
 	->  '$append'(List, SR, OL),
 	    C = (S = OL)
 	;   C = '$append'(List, SR, S)	% Deals with [H|T] in body
@@ -1751,9 +1752,6 @@ then the call p([a], [a]) will succeed, which is quite definitely wrong.
 	I2 is I + 1,
 	'$copy_args'(I2, Arity, Old, New).
 '$copy_args'(_, _, _, _).
-
-
-'C'([X|S], X, S).
 
 :- module_transparent
 	phrase/2,
