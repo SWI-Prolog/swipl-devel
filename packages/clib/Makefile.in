@@ -83,9 +83,9 @@ readutil.@SO@:	$(READUTILOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(READUTILOBJ)
 
 maildrop/rfc822/librfc822.a:
-		(cd maildrop/rfc822 && make)
+		(cd maildrop/rfc822 && $(MAKE))
 maildrop/rfc2045/librfc2045.a:
-		(cd maildrop/rfc2045 && make)
+		(cd maildrop/rfc2045 && $(MAKE))
 
 
 install:	$(TARGETS) $(LIBPL)
