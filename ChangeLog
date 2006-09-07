@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#205: support GNU-make when not named make.  Marc Espie.
+
   * FIXED: Bug 204: ** for rationals.  Mike Elston.
 
   * ADDED: Library heaps.pl.  Adapted by Markus Triska.

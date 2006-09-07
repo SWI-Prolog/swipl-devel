@@ -26,19 +26,19 @@ rpm-install::
 check::
 	@cd $(BUILDARCH) && $(MAKE) $@
 	@if [ -f packages/Makefile ]; then \
-	   cd packages && make $@; \
+	   cd packages && $(MAKE) $@; \
 	fi
 
 clean::
 	@cd $(BUILDARCH) && $(MAKE) $@
 	@if [ -f packages/Makefile ]; then \
-	   cd packages && make clean; \
+	   cd packages && $(MAKE) clean; \
 	fi
 
 distclean::
 	rm -f .pkg-config
 	@if [ -f packages/Makefile ]; then \
-	   cd packages && make distclean; \
+	   cd packages && $(MAKE) distclean; \
 	fi
 	@cd $(BUILDARCH) && $(MAKE) $@
 	rm -f Makefile
@@ -54,10 +54,10 @@ world:	lite .pkg-config packages
 	touch $@
 
 packages::
-	cd packages && make
+	cd packages && $(MAKE)
 
 install-world::
-	cd $(BUILDARCH) && make install
-	cd packages && make install
-	cd packages && make html-install
+	cd $(BUILDARCH) && $(MAKE) install
+	cd packages && $(MAKE) install
+	cd packages && $(MAKE) html-install
 
