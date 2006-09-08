@@ -78,10 +78,12 @@ framework and other runtime and compiletime analysis tools that may be
 developed in the future.
 
 Documentation for all or some of the loaded files can be written to file
-in either HTML+CSS or \LaTeX{} format. Each source file is documented in
-a single file. In addition, the documentation generator will generate an
-index file that can be used a index for a browser or input file for
-\LaTeX{} for producing nicely typeset document.
+in either HTML+CSS or \LaTeX{}%
+	\footnote{\LaTeX is not yet supported.}
+format. Each source file is documented in a single file. In addition,
+the documentation generator will generate an index file that can be used
+a index for a browser or input file for \LaTeX{} for producing nicely
+typeset document.
 
 To support the developer, the documentation system can be asked to start
 a web-server that can be used to browse the documentation.
@@ -126,7 +128,8 @@ to the content of the file and is therefore best kept first.
 The general comment-structure for section comments is to use a
 section-type identifier between angled brackets, followed by the title
 of the section. Defined values for \arg{Type} are given in the table
-below.
+below.%
+	\footnote{Currently only \emph{module} is supported}.
 
 \begin{center}
 \begin{tabular}{ll}
@@ -416,6 +419,31 @@ source-files that appear below the given directory (i.e.\ traversal is
 \emph{recursive}) and for each file a list of public predicates and their
 descriptive summary.  Finally, if a file \file{TODO} or \file{TODO.TXT}
 exists, its content is added at the end of the directory index.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Documentation files}
+\label{sec:wikifiles}
+
+Sometimes it is desirable to document aspects of a package outside the
+source-files.  For this reason the system creates a link to files using
+the extension \fileext{txt}.  The referred file is processed as Wiki
+source.  The two fragments below illustrate the relation between an
+\fileext{pl} file and a \fileext{txt} file.
+
+\begin{code}
+%%	read_setup(+File, -Setup) is det.
+%
+%	Read application setup information from File.  The details
+%	on setup are described in setup.txt.
+\end{code}
+
+\begin{code}
+---+ Application setup data
+
+If a file =|.myapprc|= exists in the user's home directory the
+application will process this data using setup.pl. ...
+\end{code}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -30,8 +30,8 @@
 */
 
 :- module(pldoc_wiki,
-	  [ wiki_lines_to_dom/3,	% +Lines, +Map, -DOM
-	    wiki_string_to_dom/3,	% +String, +Args, -DOM
+	  [ wiki_string_to_dom/3,	% +String, +Args, -DOM
+	    wiki_lines_to_dom/3,	% +Lines, +Map, -DOM
 	    section_comment_header/3,	% +Lines, -Header, -RestLines
 	    summary_from_lines/2,	% +Lines, -Summary
 	    indented_lines/3,		% +Text, +PrefixChars, -Lines
@@ -526,6 +526,7 @@ peek_end_url -->
 %	in the documentation.
 
 autolink_extension(pl).
+autolink_extension(txt).
 
 
 		 /*******************************

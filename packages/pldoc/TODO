@@ -11,20 +11,25 @@ Making solid progress.  remaining issues:
 	* Tables in lists
 	* Paragraphs in list-items
 	* Complete tag processing
-		- Combining multiple tags
+		* Combining multiple tags
 
 ---++ HTML generation
 
 	* Generate structure for the file/module [PARTIAL]
+		* Deal with <** <section> ... */
 
 ---++ Integrate with help/apropos
 
 	* Should also link to PceEmacs
-	* Serve the entire manual
 
 ---++ UI
 
 	* Fix directory menu for IE [PARTIAL]
+
+---++ Extra documentation files
+
+	* Index .txt files, so they become searchable.
+	* How to deal with these for printing?
 
 ---++ Quality assurance: comment style-check
 

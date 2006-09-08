@@ -345,6 +345,17 @@ allowed_directory(Dir) :-
 	working_directory(Dir, Dir).
 
 
+%%	allowed_file(+File) is semidet.
+%
+%	True if we are allowed to serve File.  Currently means the
+%	directory must be allowed.
+
+allowed_file(File) :-
+	absolute_file_name(File, Canonical),
+	file_directory_name(Canonical, Dir),
+	allowed_directory(Dir).
+
+
 %	/doc/Path
 %	
 %	Reply documentation of file. Path is   the  absolute path of the
@@ -378,6 +389,14 @@ documentation(Path, Request) :-
 	    doc_for_dir(Dir, current_output, EditOptions)
 	;   throw(http_reply(forbidden(Dir)))
 	).
+documentation(File, _Request) :-
+	file_name_extension(_, txt, File), !,
+	(   allowed_file(File)
+	->  true
+	;   throw(http_reply(forbidden(File)))
+	),
+	format('Content-type: text/html~n~n'),
+	doc_for_wiki_file(File, current_output, []).
 documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),
@@ -386,6 +405,10 @@ documentation(Path, Request) :-
 			[ attribute_declarations(param)
 			]),
 	pl_file(Path, File),
+	(   allowed_file(File)
+	->  true
+	;   throw(http_reply(forbidden(File)))
+	),
 	(   Reload == true
 	->  load_files(File, [if(changed)])
 	;   true

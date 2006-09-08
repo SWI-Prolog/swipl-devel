@@ -32,6 +32,7 @@
 :- module(pldoc_html,
 	  [ doc_for_file/3,		% +FileSpec, +Out, +Options
 	    doc_write_html/3,		% +Stream, +Title, +Term
+	    doc_for_wiki_file/3,	% +FileSpec, +Out, +Options
 	    				% Support doc_index
 	    doc_page_dom/3,		% +Title, +Body, -DOM
 	    print_html_head/1,		% +Stream
@@ -1047,6 +1048,29 @@ file(File) -->
 	html(a([class(file), href(File)],File)).
 file(File) -->
 	html(code(class(file), File)).
+
+
+		 /*******************************
+		 *	     WIKI FILES		*
+		 *******************************/
+
+
+%%	wiki_file(+File, +Out:stream, +Options) is det.
+%
+%	Write HTML for the File containing wiki data.
+
+doc_for_wiki_file(FileSpec, Out, _Options) :-
+	absolute_file_name(FileSpec, File,
+			   [ access(read)
+			   ]),
+	read_file_to_codes(File, String, []),
+	b_setval(pldoc_file, File),
+	call_cleanup((wiki_string_to_dom(String, [], DOM),
+		      phrase(html(DOM), Tokens),
+		      print_html_head(Out),
+		      print_html(Out, Tokens)
+		     ),
+		     nb_delete(pldoc_file)).
 
 
 		 /*******************************

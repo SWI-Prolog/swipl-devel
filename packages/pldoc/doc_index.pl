@@ -54,7 +54,7 @@
 %%	doc_for_dir(+Dir, +Out, +Options) is det.
 %
 %	Write summary index for all files  in   Dir  to  Out. The result
-%	conists of the =README= file  (if   any),  a  table holding with
+%	consists of the =README= file  (if   any),  a  table holding with
 %	links to objects and summary  sentences   and  finaly the =TODO=
 %	file (if any).
 
