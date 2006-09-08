@@ -273,6 +273,12 @@ In the end, it turned out the fontconfig/freetype library used by XPCE
 to render Unicode fonts builds a database on first invocation. This
 process can take several minutes. Ones created, XPCE applications start
 quickly.
+
+    \item [Font display issues]
+If fonts do not display correctly (e.g. manpce pages not showing 
+bold styles or editor text in `screen' font looking mis-spaced and
+misaligned) you may try to rebuild the X11 font cache by using the 
+command \program{sudo /usr/x11r6/bin/ fc-cache}.
 \end{itemlist}
 
 
