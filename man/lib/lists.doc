@@ -17,7 +17,7 @@ Succeeds when \arg{Elem} can be unified with one of the members of \arg{List}. T
 pattern.
 
     \predicate{nextto}{3}{?X, ?Y, ?List}
-Succeeds when \arg{Y} follows \arg{X} in \arg{List}.
+Succeeds when \arg{Y} immediatly follows \arg{X} in \arg{List}.
 
     \predicate{delete}{3}{+List1, ?Elem, ?List2}
 Delete all members of \arg{List1} that simultaneously unify with
