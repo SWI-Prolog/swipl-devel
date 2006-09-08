@@ -143,18 +143,20 @@ conventions</SPAN></A></DIV>
 markup: fonts and links</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Directory 
 indices</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Running 
+<DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Documentation 
+files</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Running 
 the documentation system</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">During 
+<DIV class="toc-h3"><A class="sec" href="#sec:10.1"><SPAN class="sec-nr">10.1</SPAN><SPAN class="sec-title">During 
 development</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:9.2"><SPAN class="sec-nr">9.2</SPAN><SPAN class="sec-title">As 
+<DIV class="toc-h3"><A class="sec" href="#sec:10.2"><SPAN class="sec-nr">10.2</SPAN><SPAN class="sec-title">As 
 a manual server</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:9.3"><SPAN class="sec-nr">9.3</SPAN><SPAN class="sec-title">Using 
+<DIV class="toc-h3"><A class="sec" href="#sec:10.3"><SPAN class="sec-nr">10.3</SPAN><SPAN class="sec-title">Using 
 the browser interface</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:9.3.1"><SPAN class="sec-nr">9.3.1</SPAN><SPAN class="sec-title">Searching</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:9.3.2"><SPAN class="sec-nr">9.3.2</SPAN><SPAN class="sec-title">Views</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:9.3.3"><SPAN class="sec-nr">9.3.3</SPAN><SPAN class="sec-title">Editing</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
+<DIV class="toc-h4"><A class="sec" href="#sec:10.3.1"><SPAN class="sec-nr">10.3.1</SPAN><SPAN class="sec-title">Searching</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:10.3.2"><SPAN class="sec-nr">10.3.2</SPAN><SPAN class="sec-title">Views</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:10.3.3"><SPAN class="sec-nr">10.3.3</SPAN><SPAN class="sec-title">Editing</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Motivation 
 of choices</SPAN></A></DIV>
 </DIV>
 
@@ -182,7 +184,7 @@ as well as the team,
 </UL>
 
 <P>First, we describe the documentation system we developed for 
-SWI-Prolog. In <A class="sec" href="#sec:motivation">section 10</A> we 
+SWI-Prolog. In <A class="sec" href="#sec:motivation">section 11</A> we 
 motivate our main choices.
 
 <H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></H2>
@@ -197,10 +199,11 @@ support the test framework and other runtime and compiletime analysis
 tools that may be developed in the future.
 
 <P>Documentation for all or some of the loaded files can be written to 
-file in either HTML+CSS or LaTeX format. Each source file is documented 
-in a single file. In addition, the documentation generator will generate 
-an index file that can be used a index for a browser or input file for 
-LaTeX for producing nicely typeset document.
+file in either HTML+CSS or LaTeX<SUP class="fn">1<SPAN class="fn-text">LaTeX 
+is not yet supported.</SPAN></SUP> format. Each source file is 
+documented in a single file. In addition, the documentation generator 
+will generate an index file that can be used a index for a browser or 
+input file for LaTeX for producing nicely typeset document.
 
 <P>To support the developer, the documentation system can be asked to 
 start a web-server that can be used to browse the documentation.
@@ -212,8 +215,8 @@ comments</SPAN></A></H2>
 one, seen mostly in the Prolog community and the block-comment (<CODE>/*</CODE>...<CODE>*/</CODE>) 
 based one, commonly seen in the Java and C domain. As we cannot 
 determine the argument-names, type and modes from following (predicate) 
-code itself, we must supply this in the comment.<SUP class="fn">1<SPAN class="fn-text">See <A class="sec" href="#sec:motivation:modes">section 
-10</A>.</SPAN></SUP>. The overall structure of the comment therefore is:
+code itself, we must supply this in the comment.<SUP class="fn">2<SPAN class="fn-text">See <A class="sec" href="#sec:motivation:modes">section 
+11</A>.</SPAN></SUP>. The overall structure of the comment therefore is:
 
 <P><UL COMPACT>
 <LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:modes">section 
@@ -248,7 +251,8 @@ first.
 <P>The general comment-structure for section comments is to use a 
 section-type identifier between angled brackets, followed by the title 
 of the section. Defined values for <VAR>Type</VAR> are given in the 
-table below.
+table below.<SUP class="fn">3<SPAN class="fn-text">Currently only <EM>module</EM> 
+is supported</SPAN></SUP>.
 
 <P>
 <CENTER>
@@ -571,12 +575,37 @@ is
 their descriptive summary. Finally, if a file <CODE>TODO</CODE> or <CODE>TODO.TXT</CODE> 
 exists, its content is added at the end of the directory index.
 
-<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Running 
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Documentation 
+files</SPAN></A></H2>
+
+<A NAME="sec:wikifiles"></A>
+
+<P>Sometimes it is desirable to document aspects of a package outside 
+the source-files. For this reason the system creates a link to files 
+using the extension <CODE>.txt</CODE>. The referred file is processed as 
+Wiki source. The two fragments below illustrate the relation between an
+<CODE>.pl</CODE> file and a <CODE>.txt</CODE> file.
+
+<PRE class="code">
+%%      read_setup(+File, -Setup) is det.
+%
+%       Read application setup information from File.  The details
+%       on setup are described in setup.txt.
+</PRE>
+
+<PRE class="code">
+---+ Application setup data
+
+If a file =|.myapprc|= exists in the user's home directory the
+application will process this data using setup.pl. ...
+</PRE>
+
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Running 
 the documentation system</SPAN></A></H2>
 
 <A NAME="sec:running"></A>
 
-<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">During 
+<H3><A NAME="sec:10.1"><SPAN class="sec-nr">10.1</SPAN><SPAN class="sec-title">During 
 development</SPAN></A></H3>
 
 <P>To support the developer with an up-to-date version of the 
@@ -637,7 +666,7 @@ is not yet implemented</SPAN></SUP>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.2"><SPAN class="sec-nr">9.2</SPAN><SPAN class="sec-title">As 
+<H3><A NAME="sec:10.2"><SPAN class="sec-nr">10.2</SPAN><SPAN class="sec-title">As 
 a manual server</SPAN></A></H3>
 
 <A NAME="sec:manserver"></A>
@@ -663,7 +692,7 @@ the hosting machine from all locations in a domain is given below.
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:9.3"><SPAN class="sec-nr">9.3</SPAN><SPAN class="sec-title">Using 
+<H3><A NAME="sec:10.3"><SPAN class="sec-nr">10.3</SPAN><SPAN class="sec-title">Using 
 the browser interface</SPAN></A></H3>
 
 <A NAME="sec:browser"></A>
@@ -673,7 +702,7 @@ after starting the server using <A NAME="idx:docserver1:6"></A><A class="pred" h
 This section briefly explains the user-interface provided from the 
 browser.
 
-<H4><A NAME="sec:9.3.1"><SPAN class="sec-nr">9.3.1</SPAN><SPAN class="sec-title">Searching</SPAN></A></H4>
+<H4><A NAME="sec:10.3.1"><SPAN class="sec-nr">10.3.1</SPAN><SPAN class="sec-title">Searching</SPAN></A></H4>
 
 <P>The top-right of the screen provides a search-form. The search string 
 typed is searched as a substring and case-insensitive. Multiple strings 
@@ -701,7 +730,7 @@ file</TT>.</TD></TR>
 search. <B>All</B> searches both the application and manuals. Searching 
 for <B>Summary</B> also implies <B>Name</B>.
 
-<H4><A NAME="sec:9.3.2"><SPAN class="sec-nr">9.3.2</SPAN><SPAN class="sec-title">Views</SPAN></A></H4>
+<H4><A NAME="sec:10.3.2"><SPAN class="sec-nr">10.3.2</SPAN><SPAN class="sec-title">Views</SPAN></A></H4>
 
 <P>The web-browser supports several views, which we briefly summarise 
 here:
@@ -734,7 +763,7 @@ Section from the manual. The navigation bars allows viewing the
 enclosing section (<EM>Up</EM>).
 </UL>
 
-<H4><A NAME="sec:9.3.3"><SPAN class="sec-nr">9.3.3</SPAN><SPAN class="sec-title">Editing</SPAN></A></H4>
+<H4><A NAME="sec:10.3.3"><SPAN class="sec-nr">10.3.3</SPAN><SPAN class="sec-title">Editing</SPAN></A></H4>
 
 <P>If the browser is accessed from <CODE>localhost</CODE>, each object 
 that is related to a known source-location has an edit icon at the right 
@@ -749,7 +778,7 @@ this reloads the source file if it was modified and refreshes the page.
 This supports a comfortable edit-view loop to maintain the source-code 
 documentation.
 
-<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
+<H2><A NAME="sec:11"><SPAN class="sec-nr">11</SPAN><SPAN class="sec-title">Motivation 
 of choices</SPAN></A></H2>
 
 <A NAME="sec:motivation"></A>
@@ -856,10 +885,10 @@ high-quality PDF documents.
 </DD>
 <DT><A class="idx" href="#doc_load_library/0">doc_load_library/0</A></DT>
 <DD>
-<A class="idx" href="#idx:docloadlibrary0:5">9.2</A></DD>
+<A class="idx" href="#idx:docloadlibrary0:5">10.2</A></DD>
 <DT><A class="idx" href="#doc_server/1">doc_server/1</A></DT>
 <DD>
-<A class="idx" href="#idx:docserver1:6">9.3</A></DD>
+<A class="idx" href="#idx:docserver1:6">10.3</A></DD>
 <DT><A class="idx" href="#doc_server/2">doc_server/2</A></DT>
 <DD>
 </DD>
@@ -868,13 +897,13 @@ high-quality PDF documents.
 </DD>
 <DT>edit/1</DT>
 <DD>
-<A class="idx" href="#idx:edit1:4">9.1</A> <A class="idx" href="#idx:edit1:7">9.3.3</A></DD>
+<A class="idx" href="#idx:edit1:4">10.1</A> <A class="idx" href="#idx:edit1:7">10.3.3</A></DD>
 <DT><STRONG>I</STRONG></DT>
 <DD>
 </DD>
 <DT>ip/4</DT>
 <DD>
-<A class="idx" href="#idx:ip4:3">9.1</A></DD>
+<A class="idx" href="#idx:ip4:3">10.1</A></DD>
 <DT><STRONG>N</STRONG></DT>
 <DD>
 </DD>
