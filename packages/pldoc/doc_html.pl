@@ -41,6 +41,7 @@
 	    module_info/3,		% +File, +Options0, -Options
 	    doc_hide_private/3,		% +Doc0, -Doc, +Options
 	    edit_button/4,		% +File, +Options, //
+	    source_button/4,		% +File, +Options, //
 	    pred_edit_button/4,		% +PredInd, +Options, //
 	    object_edit_button/4,	% +Obj, +Options, //
 
@@ -235,6 +236,7 @@ file_title(Title, File, Options) -->
 		[ span(style('float:right'),
 		       [ \reload_button(Base, Options),
 			 \zoom_button(Base, Options),
+			 \source_button(Base, Options),
 			 \edit_button(File, Options)
 		       ])
 		| Title
@@ -278,7 +280,7 @@ edit_button(File, Options) -->
 	html(a([ onClick(OnClick),
 		 onMouseOver('window.status=\'Edit file\'; return true;')
 	       ],
-	       img([ height=H,
+	       img([ height(H),
 		     alt(edit),
 		     style('border:0'),
 		     src='/edit.gif'
@@ -287,7 +289,7 @@ edit_button(_, _) -->
 	[].
 
 
-%%	zoom_button(+Options)// is det.
+%%	zoom_button(BaseName, +Options)// is det.
 %
 %	Add zoom in/out button to show/hide the private documentation.
 
@@ -305,6 +307,26 @@ zoom_button(Base, Options) -->
 		     alt(Alt),
 		     style('padding-top:4px; border:0;'),
 		     src(Zoom)
+		   ]))).
+	
+
+%%	source_button(+File, +Options)// is det.
+%
+%	Add show-source button.
+
+source_button(File, Options) -->
+	{ (   is_absolute_file_name(File)
+	  ->  doc_file_href(File, HREF0),
+	      atom_concat(HREF0, '?source=true', HREF)
+	  ;   format(string(HREF), '~w?source=true', [File])
+	  ),
+	  option(button_height(H), Options, 24)
+	},
+	html(a(href=HREF,
+	       img([ height(H),
+		     alt('Show source'),
+		     style('padding-top:4px; border:0;'),
+		     src('/source.gif')
 		   ]))).
 	
 

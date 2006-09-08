@@ -186,14 +186,14 @@ file_index_header(File, Options) -->
 	  ->  true
 	  ;   file_base_name(File, Local),
 	      doc_file_href(File, HREF)
-	  )
+	  ),
+	  ButtonOptions = [button_height(16)|Options]
 	},
 	html(tr(th([colspan(3), class(file)],
 		   [ span(style('float:left'), a(href(HREF), Local)),
 		     span(style('float:right'),
-			  [ \edit_button(File,
-					 [ button_height(16)|Options
-					 ])
+			  [ \source_button(File, ButtonOptions),
+			    \edit_button(File, ButtonOptions)
 			  ])
 		   ]))).
 

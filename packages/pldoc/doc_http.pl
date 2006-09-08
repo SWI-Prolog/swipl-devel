@@ -43,6 +43,7 @@
 :- use_module(library('debug')).
 :- use_module(library('lists')).
 :- use_module(pldoc(doc_process)).
+:- use_module(pldoc(doc_htmlsrc)).
 :- use_module(pldoc(doc_html)).
 :- use_module(pldoc(doc_index)).
 :- use_module(pldoc(doc_search)).
@@ -376,8 +377,9 @@ reply(ReqPath, Request) :-
 	).
 
 documentation(Path, _Request) :-
-	file_base_name(Path, 'pldoc.css'), !,
-	reply_file(pldoc('pldoc.css')).
+	file_base_name(Path, Base),
+	file(_, Base), !,			% serve pldoc.css, etc.
+	reply_file(pldoc(Base)).
 documentation(Path, Request) :-
 	Index = '/index.html',
 	sub_atom(Path, _, _, 0, Index), 
@@ -400,7 +402,8 @@ documentation(File, _Request) :-
 documentation(Path, Request) :-
 	http_parameters(Request,
 			[ public_only(Public),
-			  reload(Reload)
+			  reload(Reload),
+			  source(Source)
 			],
 			[ attribute_declarations(param)
 			]),
@@ -415,10 +418,13 @@ documentation(Path, Request) :-
 	),
 	edit_options(Request, EditOptions),
 	format('Content-type: text/html~n~n'),
-	doc_for_file(File, current_output,
-		     [ public_only(Public)
-		     | EditOptions
-		     ]).
+	(   Source == true
+	->  source_to_html(File, stream(current_output), [])
+	;   doc_for_file(File, current_output,
+			 [ public_only(Public)
+			 | EditOptions
+			 ])
+	).
 
 
 %%	edit_options(+Request, -Options) is det.
@@ -463,14 +469,16 @@ reply(Path, _Request) :-
 	file(Path, LocalFile),
 	reply_file(pldoc(LocalFile)).
 
-file('/pldoc.css',   'pldoc.css').
-file('/pldoc.js',    'pldoc.js').
-file('/edit.gif',    'edit.gif').
-file('/up.gif',      'up.gif').
-file('/zoomin.gif',  'zoomin.gif').
-file('/zoomout.gif', 'zoomout.gif').
-file('/reload.gif',  'reload.gif').
-file('/favicon.ico', 'favicon.ico').
+file('/pldoc.css',     'pldoc.css').
+file('/pllisting.css', 'pllisting.css').
+file('/pldoc.js',      'pldoc.js').
+file('/edit.gif',      'edit.gif').
+file('/up.gif',	       'up.gif').
+file('/source.gif',    'source.gif').
+file('/zoomin.gif',    'zoomin.gif').
+file('/zoomout.gif',   'zoomout.gif').
+file('/reload.gif',    'reload.gif').
+file('/favicon.ico',   'favicon.ico').
 
 
 %	/man?predicate=PI
@@ -579,6 +587,10 @@ param(public_only,
 	default(true)
       ]).
 param(reload,
+      [ oneof([true,false]),
+	default(false)
+      ]).
+param(source,
       [ oneof([true,false]),
 	default(false)
       ]).

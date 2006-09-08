@@ -574,8 +574,14 @@ the contents of the \file{README} and \file{TODO} files is given.
     \item [ Source File ]
 When showing a Prolog source-file it displays the module documentation
 from the \verb$/** <module ... */$ comment and the public predicates
-with their full documentation.  Using the zoom button the user can
-select to view both public and documentated private predicates.
+with their full documentation. Using the \textsf{zoom} button the user
+can select to view both public and documentated private predicates.
+Using the \textsf{source} button, the system shows the source
+with syntax highlighting as in PceEmacs and formatted structured
+comments.%
+	\footnote{This mode is still incomplete.  It would be nice to
+		  add line-numbers and links to documentation and
+		  definitions in the sources.}
 
     \item [ Predicate ]
 When selecting a predicate link the system presents a page with the
