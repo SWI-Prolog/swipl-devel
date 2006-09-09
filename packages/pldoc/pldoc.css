@@ -216,7 +216,7 @@ dl.comment, div.comment
   padding: 5px;
   background-color: #e5e5e5;
   margin-top: 0;
-  margin-bottom: 0;
+  margin-bottom: 1em;
 }
 
 pre.listing

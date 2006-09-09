@@ -185,22 +185,35 @@ copy_to(In, End, Out, State, State) :-
 	copy_to(In, End, Out).
 copy_to(In, End, Out, State, [pre(class(listing))|State]) :-
 	format(Out, '<pre class="listing">~n', [Out]),
-	copy_to(In, End, Out).
+	read_to(In, End, Codes0),
+	delete_leading_white_lines(Codes0, Codes),
+	write_codes(Codes, Out).
+
+delete_leading_white_lines(Codes0, Codes) :-
+	append(Line, [10|Rest], Codes0),
+	all_whites(Line), !,
+	delete_leading_white_lines(Rest, Codes).
+delete_leading_white_lines(Codes, Codes).
+
+all_whites([]).
+all_whites([H|T]) :-
+	code_type(H, white),
+	all_whites(T).
+
 
 copy_to(In, End, Out) :-
+	read_to(In, End, Codes),
+	write_codes(Codes, Out).
+
+read_to(In, End, Codes) :-
 	character_count(In, Here),
 	Len is End - Here,
-	copy_n(Len, In, Out).
+	read_n_codes(In, Len, Codes).
 
-copy_n(N, In, Out) :-
-	N > 0,
-	get_code(In, Code),
-	Code \== -1, !,
-	content_escape(Code, Out),
-	N2 is N - 1,
-	copy_n(N2, In, Out).
-copy_n(_, _, _).
-
+write_codes([], _).
+write_codes([H|T], Out) :-
+	content_escape(H, Out),
+	write_codes(T, Out).
 
 content_escape(0'<, Out) :- !, format(Out, '&lt;', []).
 content_escape(0'>, Out) :- !, format(Out, '&gt;', []).
@@ -221,6 +234,7 @@ read_n_codes(In, N, Codes) :-
 	read_n_codes(N, C0, In, Codes).
 
 read_n_codes(1, C, _, [C]) :- !.
+read_n_codes(_, -1, _, []) :- !.
 read_n_codes(N, C, In, [C|T]) :-
 	get_code(In, C2),
 	N2 is N - 1,
