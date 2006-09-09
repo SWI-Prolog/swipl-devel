@@ -106,6 +106,8 @@ span.structured_comment
 
 span.directive
 { background-color: #e5e5e5;
+  padding-top: 0;
+  display: block;
 }
 
 span.method

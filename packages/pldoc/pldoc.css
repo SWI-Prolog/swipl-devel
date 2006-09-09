@@ -110,10 +110,7 @@ pre.code
 
 div.navhdr
 { border: 1px dotted;
-  padding-top: 5px;
-  padding-right: 5px;
-  padding-left: 5px;
-  padding-bottom: 3px;
+  padding: 5px 5px 3px 5px;		/* top,right,bottom,left */
   background-color: #f0f0f0;
 }
 
@@ -213,15 +210,25 @@ span.sec-title
 dl.comment, div.comment
 { color: #006400;
   border: 2px inset;
-  padding: 5px;
+  padding: 5px 5px 0px 5px;
+
   background-color: #e5e5e5;
-  margin-top: 0;
+  margin-top: 2em;
   margin-bottom: 1em;
 }
 
 pre.listing
 { margin-top: 0;
   margin-bottom: 0;
+}
+
+span.line-no
+{ font-weight: normal;
+  font-size: 0.8em;
+  color: #505050;
+  background-colour: white;
+  border: 1px inset;
+  margin-right: 1em;
 }
 
 div.comment h1.module

@@ -1,5 +1,6 @@
 Sep 9, 2006
 
+* ADDED: Line-number support for HTML source-listing.
 * FIXED: reloading files involved in pldoc, such as library(lists).
 
 Sep 8, 2006

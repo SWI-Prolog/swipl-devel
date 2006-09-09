@@ -31,6 +31,7 @@
 
 :- module(pldoc_htmlsrc,
 	  [ source_to_html/3,		% +Source, +OutStream, +Options
+	    write_source_css/0,		% Create pllisting.css
 	    write_source_css/1		% +Stream
 	  ]).
 :- use_module(library(option)).
@@ -47,10 +48,13 @@
 This module colourises Prolog  source  using   HTML+CSS  using  the same
 cross-reference based technology as used by PceEmacs.
 
-	* HTML generation must move to another module
-		* Process structured comments here?
+@tbd	Create hyper-links to documentation and definitions.
+@author Jan Wielemaker
 */
 
+:- thread_local
+	lineno/0,			% print line-no on next output
+	nonl/0.				% previous tag implies nl (block level)
 
 %%	source_to_html(+In:filename, +Out, +Options) is det.
 %
@@ -61,14 +65,15 @@ cross-reference based technology as used by PceEmacs.
 %	@param Out	Term stream(Stream) or file-name specification
 
 source_to_html(Src, stream(Out), Options) :- !,
+	retractall(lineno),		% play safe
+	retractall(nonl),		% play safe
 	colour_fragments(Src, Fragments),
 	open(Src, read, In),
 	file_base_name(Src, Base),
 	print_html_head(Out, [title(Base), Options]),
-	format(Out, '<pre class="listing">~n', [Out]),
-	html_fragments(Fragments, In, Out, [pre(class(listing))], State, Options),
+	html_fragments(Fragments, In, Out, [], State, Options),
 	copy_rest(In, Out, State, State1),
-	pop_state(State1, Out),
+	pop_state(State1, Out, In),
 	print_html_footer(Out, Options).
 source_to_html(Src, FileSpec, Options) :-
 	absolute_file_name(FileSpec, OutFile, [access(write)]),
@@ -124,7 +129,8 @@ html_fragments([H|T], In, Out, State0, State, Options) :-
 	html_fragment(H, In, Out, State0, State1, Options),
 	html_fragments(T, In, Out, State1, State, Options).
 
-% %	html_fragment(+Fragment, +In, +Out, +StateIn, -StateOut, +Options) is det.
+%%	html_fragment(+Fragment, +In, +Out,
+%%		      +StateIn, -StateOut, +Options) is det.
 %
 %	Print from current position upto the end of Fragment.  First
 %	clause deals with structured comments.
@@ -132,8 +138,8 @@ html_fragments([H|T], In, Out, State0, State, Options) :-
 html_fragment(fragment(Start, End, structured_comment, []),
 	      In, Out, State0, [], Options) :-
 	option(format_comments(true), Options, true), !,
-	copy_to(In, Start, Out, State0, State1),
-	pop_state(State1, Out),
+	copy_without_trailing_white_lines(In, Start, Out, State0, State1),
+	pop_state(State1, Out, In),
 	Len is End - Start,
 	read_n_codes(In, Len, CommentCodes),
 	string_to_list(Comment, CommentCodes),
@@ -141,7 +147,8 @@ html_fragment(fragment(Start, End, structured_comment, []),
 	indented_lines(Comment, Prefix, Lines0),
 	(   section_comment_header(Lines0, Header, Lines1)
 	->  wiki_lines_to_dom(Lines1, [], DOM),
-	    phrase(pldoc_html:html(div(class(comment), [Header|DOM])), Tokens),
+	    phrase(pldoc_html:html(div(class(comment),
+				       [Header|DOM])), Tokens),
 	    print_html(Out, Tokens)
 	;   stream_property(In, file_name(File)),
 	    line_count(In, Line),
@@ -160,7 +167,7 @@ html_fragment(fragment(Start, End, Class, Sub),
 	start_fragment(Class, Out, State1, State2),
 	html_fragments(Sub, In, Out, State2, State3, Options),
 	copy_to(In, End, Out, State3, State4),	% TBD: pop-to?
-	end_fragment(Out, State4, State).
+	end_fragment(Out, In, State4, State).
 
 start_fragment(Class, Out, State, [Push|State]) :-
 	element(Class, Tag, CSSClass), !,
@@ -170,63 +177,152 @@ start_fragment(Class, Out, State, [span(class(SpanClass))|State]) :-
 	functor(Class, SpanClass, _),
 	format(Out, '<span class="~w">', [SpanClass]).
 
-end_fragment(Out, [Open|State], State) :-
+end_fragment(Out, In, [span(class(directive))|State], State) :- !,
+	format(Out, '</span>', []),
+	(   peek_code(In, 10),
+	    \+ nonl
+	->  assert(nonl)
+	;   true
+	).
+end_fragment(Out, _, [Open|State], State) :-
+	retractall(nonl),
 	functor(Open, Element, _),
 	format(Out, '</~w>', [Element]).
 
-pop_state([], _Out) :- !.
-pop_state(State, Out) :-
-	end_fragment(Out, State, State1),
-	pop_state(State1, Out).
+pop_state([], _, _) :- !.
+pop_state(State, Out, In) :-
+	end_fragment(Out, In, State, State1),
+	pop_state(State1, Out, In).
 
+
+%%	copy_to(+In:stream, +End:int, +Out:stream, +State) is det.
+%
+%	Copy data from In to Out   upto  character-position End. Inserts
+%	HTML entities for HTML the reserved characters =|<&>|=. If State
+%	does not include a =pre= environment,   create  one and skip all
+%	leading blank lines.
 
 copy_to(In, End, Out, State, State) :-
 	member(pre(_), State), !,
 	copy_to(In, End, Out).
 copy_to(In, End, Out, State, [pre(class(listing))|State]) :-
 	format(Out, '<pre class="listing">~n', [Out]),
+	line_count(In, Line0),
 	read_to(In, End, Codes0),
-	delete_leading_white_lines(Codes0, Codes),
-	write_codes(Codes, Out).
+	delete_leading_white_lines(Codes0, Codes, Line0, Line),
+	assert(lineno),
+	write_codes(Codes, Line, Out).
 
-delete_leading_white_lines(Codes0, Codes) :-
-	append(Line, [10|Rest], Codes0),
-	all_whites(Line), !,
-	delete_leading_white_lines(Rest, Codes).
-delete_leading_white_lines(Codes, Codes).
+%%	delete_leading_white_lines(+CodesIn, -CodesOut, +LineIn, -Line) is det.
+%
+%	Delete leading white lines. Used  after structured comments. The
+%	last two arguments update the  start-line   number  of the <pre>
+%	block that is normally created.
 
-all_whites([]).
-all_whites([H|T]) :-
-	code_type(H, white),
-	all_whites(T).
+delete_leading_white_lines(Codes0, Codes, Line0, Line) :-
+	append(LineCodes, [10|Rest], Codes0),
+	all_spaces(LineCodes), !,
+	Line1 is Line0 + 1,
+	delete_leading_white_lines(Rest, Codes, Line1, Line).
+delete_leading_white_lines(Codes, Codes, Line, Line).
 
+%%	copy_without_trailing_white_lines(+In, +End, +StateIn, -StateOut) is det.
+%
+%	Copy input, but skip trailing white-lines. Used to copy the text
+%	leading to a structured comment.
+
+copy_without_trailing_white_lines(In, End, Out, State, State) :-
+	member(pre(_), State), !,
+	line_count(In, Line),
+	read_to(In, End, Codes0),
+	delete_trailing_white_lines(Codes0, Codes),
+	write_codes(Codes, Line, Out).
+copy_without_trailing_white_lines(In, End, Out, State0, State) :-
+	copy_to(In, End, Out, State0, State).
+	
+delete_trailing_white_lines(Codes0, []) :-
+	all_spaces(Codes0), !.
+delete_trailing_white_lines(Codes0, Codes) :-
+	append(Codes, Tail, [10|Rest], Codes0), !,
+	delete_trailing_white_lines(Rest, Tail).
+delete_trailing_white_lines(Codes, Codes).
+
+%%	append(-First, -FirstTail, ?Rest, +List) is nondet.
+%
+%	Split List.  First part is the difference-list First-FirstTail.
+
+append(T, T, L, L).
+append([H|T0], Tail, L, [H|T]) :-
+	append(T0, Tail, L, T).
+
+all_spaces([]).
+all_spaces([H|T]) :-
+	code_type(H, space),
+	all_spaces(T).
 
 copy_to(In, End, Out) :-
+	line_count(In, Line),
 	read_to(In, End, Codes),
-	write_codes(Codes, Out).
+	write_codes(Codes, Line, Out).
 
 read_to(In, End, Codes) :-
 	character_count(In, Here),
 	Len is End - Here,
 	read_n_codes(In, Len, Codes).
 
-write_codes([], _).
-write_codes([H|T], Out) :-
-	content_escape(H, Out),
-	write_codes(T, Out).
+%%	write_codes(+Codes, +Line, +Out) is det.
+%
+%	Write codes that have been read starting at Line.
 
-content_escape(0'<, Out) :- !, format(Out, '&lt;', []).
-content_escape(0'>, Out) :- !, format(Out, '&gt;', []).
-content_escape(0'&, Out) :- !, format(Out, '&amp;', []).	% 0'
-content_escape(C, Out) :-
+write_codes([], _, _).
+write_codes([H|T], L0, Out) :-
+	content_escape(H, Out, L0, L1),
+	write_codes(T, L1, Out).
+
+%%	content_escape(+Code, +Out, +Line0, -Line) is det
+%
+%	Write Code to Out, while taking care of.
+%	
+%		* Use HTML entities for =|<&>|=
+%		* If a line-no-tag is requested, write it
+%		* On \n, post a line-no request.  If nonl/0 is set,
+%		  do _not_ emit a newline as it is implied by the
+%		  closed environment.
+
+content_escape(_, Out, L, _) :-
+	retract(lineno),
+	write_line_no(L, Out),
+	fail.
+content_escape(0'\n, Out, L0, L) :- !,
+	L is L0 + 1,
+	(   retract(nonl)
+	->  true
+	;   nl(Out)
+	),
+	assert(lineno).
+content_escape(0'<, Out, L, L) :- !,
+	format(Out, '&lt;', []).
+content_escape(0'>, Out, L, L) :- !,
+	format(Out, '&gt;', []).
+content_escape(0'&, Out, L, L) :- !, 
+	format(Out, '&amp;', []).
+content_escape(C, Out, L, L) :-
 	put_code(Out, C).
 
+write_line_no(LineNo, Out) :-
+	format(Out, '<span class="line-no">~|~t~d~4+</span>', [LineNo]).
+
+%%	copy_rest(+In, +Out, +StateIn, -StateOut) is det.
+%
+%	Copy upto the end of the input In.
+
 copy_rest(In, Out, State0, State) :-
-	copy_to(In, 1000000000, Out, State0, State).
+	copy_to(In, -1, Out, State0, State).
 
 %%	read_n_codes(+In, +N, -Codes)
 %
-%	Read the next N codes from In as a list of codes.
+%	Read the next N codes from In as a list of codes. If N < 0, read
+%	upto the end of stream In.
 
 read_n_codes(_, 0, []) :- !.
 read_n_codes(In, N, Codes) :-
@@ -278,7 +374,7 @@ element/3.
 %
 %	Create   a   style-sheet   from    the   style-declarations   in
 %	doc_colour.pl    and    the    element     declaration    above.
-%	write_style_sheet/0 writes the style-sheet to =|pllisting.css|=.
+%	write_source_css/0 writes the style-sheet to =|pllisting.css|=.
 
 write_source_css :-
 	open('pllisting.css', write, Out),
@@ -314,6 +410,7 @@ pce_to_css_attr(background, 'background-color').
 pce_to_css_attr(underline, 'text-decoration').
 pce_to_css_attr(bold, 'font-weight').
 pce_to_css_attr('font-style', 'font-style').
+pce_to_css_attr(display, display).
 
 pce_to_css_value(color, Name, RGB) :-
 	x11_colour_name_to_rgb(Name, RGB).
@@ -342,7 +439,10 @@ x11_colour_name_to_rgb(Name, RGB) :-
 %	Redefine styles from prolog_src_style/2 for better ones on
 %	HTML output.
 
-html_style(var, style(colour := red4,
-		      'font-style' := italic)).
-
+html_style(var, 
+	   style(colour := red4,
+		 'font-style' := italic)).
+html_style(directive,
+	   style(background := grey90,
+		 'display' := block)).
 	
