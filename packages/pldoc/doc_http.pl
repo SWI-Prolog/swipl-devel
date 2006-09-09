@@ -48,6 +48,7 @@
 :- use_module(pldoc(doc_index)).
 :- use_module(pldoc(doc_search)).
 :- use_module(pldoc(doc_man)).
+:- use_module(pldoc(doc_wiki)).
 
 /** <module> Documentation server
 
@@ -392,7 +393,10 @@ documentation(Path, Request) :-
 	;   throw(http_reply(forbidden(Dir)))
 	).
 documentation(File, _Request) :-
-	file_name_extension(_, txt, File), !,
+	(   file_name_extension(_, txt, File)
+	;   file_base_name(File, Base),
+	    autolink_file(Base, wiki)
+	),
 	(   allowed_file(File)
 	->  true
 	;   throw(http_reply(forbidden(File)))
@@ -413,7 +417,7 @@ documentation(Path, Request) :-
 	;   throw(http_reply(forbidden(File)))
 	),
 	(   Reload == true
-	->  load_files(File, [if(changed)])
+	->  load_files(File, [if(changed), imports([])])
 	;   true
 	),
 	edit_options(Request, EditOptions),

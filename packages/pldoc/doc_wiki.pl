@@ -36,7 +36,8 @@
 	    summary_from_lines/2,	% +Lines, -Summary
 	    indented_lines/3,		% +Text, +PrefixChars, -Lines
 	    strip_leading_par/2,	% +DOM0, -DOM
-	    normalise_white_space/3	% -Text, //
+	    normalise_white_space/3,	% -Text, //
+	    autolink_file/2		% +FileName, -Type
 	  ]).
 :- use_module(library(lists)).
 :- use_module(library(debug)).
@@ -486,10 +487,17 @@ wiki_face(span(class=cvs, CVS), _) -->
 	{ strip_ws_tokens(CVS0, CVS) }.
 wiki_face(\file(Name), _) -->
 	word_token(BaseS), ['.'], word_token(ExtS),
-	{ string_to_atom(ExtS, Ext),
-	  autolink_extension(Ext), !,
-	  concat_atom([BaseS, '.', Ext], Name)
+	{ concat_atom([BaseS, '.', ExtS], Name),
+	  (   autolink_file(Name, _)
+	  ;   file_name_extension(_, Ext, Name),
+	      autolink_extension(Ext)
+	  ), !
 	}.
+wiki_face(\file(Name), _) -->
+	word_token(NameS),
+	{ autolink_file(Name, _),
+	  sub_atom(NameS, 0, _, 0, Name)
+	}, !.
 wiki_face(a(href=Ref, Ref), _) -->
 	word_token(ProtS), [:,/,/], { url_protocol(ProtS) },
 	string(Rest), peek_end_url, !,
@@ -528,6 +536,14 @@ peek_end_url -->
 autolink_extension(pl).
 autolink_extension(txt).
 
+%%	autolink_file(?File, -Type) is nondet.
+%
+%	Files to which we automatically create links, regardless of the
+%	extension.
+
+autolink_file('README', wiki).
+autolink_file('TODO', wiki).
+autolink_file('ChangeLog', wiki).
 
 		 /*******************************
 		 *	     SECTIONS		*
