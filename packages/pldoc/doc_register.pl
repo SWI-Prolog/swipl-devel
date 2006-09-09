@@ -65,7 +65,7 @@ do_comment_hook(Comments, TermPos, File, _Term) :-
 do_comment_hook(Comments, TermPos, File, _) :-
 	process_comments(Comments, TermPos, File).
 
-user:message_hook(load_file(done(0, _, _, _, _)), _, _) :-
+user:message_hook(load_file(done(0, _F, _A, _M, _T, _H)), _, _) :-
 	(   mydoc(_, _, _)
 	->  debug(pldoc, 'Processing delayed comments', []),
 	    process_stored_comments
