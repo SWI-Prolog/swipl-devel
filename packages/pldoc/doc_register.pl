@@ -47,7 +47,8 @@ pldoc_module(lists).
 		 *******************************/
 
 :- multifile
-	prolog:comment_hook/3.
+	prolog:comment_hook/3,
+	user:message_hook/3.
 
 :- dynamic
 	mydoc/3.			%  +Comments, +TermPos, +File
@@ -57,16 +58,19 @@ do_comment_hook(_, _, _, _) :-
 do_comment_hook(Comments, TermPos, File, _) :-
 	pldoc_loading, !,
 	assert(mydoc(Comments, TermPos, File)).
-do_comment_hook(Comments, TermPos, File, Term) :-
+do_comment_hook(Comments, TermPos, File, _Term) :-
 	prolog_load_context(module, Module),
 	pldoc_module(Module), !,
-	assert(mydoc(Comments, TermPos, File)),
-	(   Term == end_of_file
-	->  process_stored_comments
-	;   true
-	).
+	assert(mydoc(Comments, TermPos, File)).
 do_comment_hook(Comments, TermPos, File, _) :-
 	process_comments(Comments, TermPos, File).
+
+user:message_hook(load_file(done(0, _, _, _, _)), _, _) :-
+	(   mydoc(_, _, _)
+	->  debug(pldoc, 'Processing delayed comments', []),
+	    process_stored_comments
+	),
+	fail.
 
 %%	prolog:comment_hook(+Comments, +TermPos, +Term) is det.
 %

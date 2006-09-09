@@ -1,9 +1,13 @@
+Sep 9, 2006
+
+* FIXED: reloading files involved in pldoc, such as library(lists).
+
 Sep 8, 2006
 
 * ADDED: View the coloured source in the browser.
 
-* ADDED: Referencing to and reading .txt files containing Wiki-style information
-  outside the source-files.
+* ADDED: Referencing to and reading .txt files containing Wiki-style
+  information outside the source-files.
 
 Sep 4, 2006
 
