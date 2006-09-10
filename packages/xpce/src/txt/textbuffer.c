@@ -1491,7 +1491,7 @@ textbuffer.  Characters after to are always left untouched.
 
 static void
 distribute_spaces(TextBuffer tb, int spaces, int nbreaks, long int *breaks)
-{ int s = spaces / (nbreaks-1);
+{ int s = (nbreaks > 1 ? (spaces / (nbreaks-1)) : 1);
   int n, m;
   int *extra = (int *)alloca(nbreaks * sizeof(int));
   String space = str_spc(&tb->buffer);

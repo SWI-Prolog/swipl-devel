@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Class editor: possible division-by-zero filling a line.
+
 VERSION 6.6.18, distributed with SWI-Prolog 5.6.18
 ==================================================
 
