@@ -53,6 +53,19 @@
 :- use_module(rdf_db).
 
 
+/** <module> RDFS handling
+
+This module provides various primitives for  more high-level handling of
+RDF models from an RDFS viewpoint. Note  that there exist two approaches
+for languages on top of RDF:
+
+	* Provide new predicates according to the concept of the high
+	  level language (used in this module)
+	  
+	* Extend rdf/3 relation with triples _implied_ by the high-level
+	  semantics.  This approach is taken by the SeRQL system.
+*/
+
 		 /*******************************
 		 *	    EXPANSION		*
 		 *******************************/
@@ -131,7 +144,7 @@ rdfs_subclass_of(Class, Super) :-	% production 2.4
 %	belongs to. We assume everything at the `object' end of a triple
 %	is a class. A validator should confirm this property.
 %	
-%%	rdfs_individual_of(+, -) does  not  exploit   domain  and  range
+%	rdfs_individual_of(+, -) does  not  exploit   domain  and  range
 %	properties, deriving that if rdf(R,  P,   _)  is  present R must
 %	satisfy the domain of P (and similar for range).
 %	
@@ -168,9 +181,12 @@ rdfs_individual_of(_Resource, _Class) :-
 rdfs_label(Resource, Label) :-
 	rdfs_label(Resource, _, Label).
 
-%%	rdfs_label(?Resource, ?Lang, ?Label)
+%%	rdfs_label(+Resource, ?Lang, -Label) is multi.
+%%	rdfs_label(+Resource, ?Lang, +Label) is semidet.
+%%	rdfs_label(-Resource, ?Lang, ?Label) is nondet.
 %	
-%	Convert between class and label, in a specific language.
+%	Resource  has  Label  in  Lang.  If  Resource  is  nonvar  calls
+%	take_label/3 which is guaranteed to succeed label.
 
 rdfs_label(Resource, Lang, Label) :-
 	nonvar(Resource), !,
@@ -178,7 +194,8 @@ rdfs_label(Resource, Lang, Label) :-
 rdfs_label(Resource, Lang, Label) :-
 	rdf_has(Resource, rdfs:label, literal(lang(Lang, Label))).
 
-%%	rdfs_ns_label(+Resource, -Label)
+%%	rdfs_ns_label(+Resource, -Label) is multi.
+%%	rdfs_ns_label(+Resource, ?Lang, -Label) is multi.
 %	
 %	Present label with  namespace  indication.   This  predicate  is
 %	indented  to  provide  meaningful  short   names  applicable  to
@@ -206,15 +223,23 @@ rdfs_ns_label(Resource, Lang, Label) :-
 	).
 
 
-%%	take_label(+Resource, ?Lang, -Label)
+%%	take_label(+Resource, ?Lang, -Label) is multi.
 %
-%	Get the label to use for a resource in the give Language
+%	Get the label to use for a  resource in the give Language. First
+%	tries label_of/3 and if all  fails,   unifies  Label to the last
+%	part of Resource using rdf_split_url/3.
 
 take_label(Resource, Lang, Label) :-
 	(   label_of(Resource, Lang, Label)
 	*-> true
 	;   rdf_split_url(_, Label, Resource)
 	).
+
+%%	label_of(+Resource, ?Lang, ?Label) is nondet.
+%
+%	True if rdf_has(Resource, rdfs:label,   literal(Lang, Label)) is
+%	true,  but  guaranteed  to  generate    rdfs:label   before  any
+%	subproperty thereof.
 
 label_of(Resource, Lang, Label) :-
 	rdf(Resource, rdfs:label, literal(lang(Lang, Label))).

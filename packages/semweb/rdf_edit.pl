@@ -99,6 +99,9 @@ This library provides a number of functions on top of the rdf_db module:
 @tbd	This library must be rewritten using rdf_monitor/3.  This allows
 	using edit layer without having to choose between rdf_ and rdfe_
 	predicates.
+
+@see	rdf_persistency.pl provides reliable persistency, but without
+	changes boardcasting and undo/redo.
 */
 
 :- rdf_meta

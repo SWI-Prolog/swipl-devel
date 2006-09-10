@@ -42,7 +42,8 @@
 :- use_module(library(url)).
 :- use_module(library(debug)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> RDF persistency plugin
+
 This  module  provides  persistency   for    rdf_db.pl   based   on  the
 rdf_monitor/2 predicate to  track  changes   to  the  repository.  Where
 previous  versions  used  autosafe  of  the  whole  database  using  the
@@ -61,9 +62,11 @@ is restored by loading  the  snapshot   and  replaying  the journal. The
 predicate rdf_flush_journals/1 can be used to create fresh snapshots and
 delete the journals.
 
-TBD: if there is a complete `.new'   snapshot  and no journal, we should
+@tbd if there is a complete `.new'   snapshot  and no journal, we should
 move the .new to the plain snapshot name as a means of recovery.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+@see	rdf_edit.pl
+*/
 
 :- volatile
 	rdf_directory/1,
@@ -105,6 +108,11 @@ rdf_attach_db(DirSpec, Options) :-
 	    at_halt(rdf_detach_db),
 	    start_monitor
 	).
+
+%%	rdf_detach_db
+%
+%	Detach from the current database. Normally  called at the end of
+%	the program through at_halt/1.
 
 rdf_detach_db :-
 	debug(halt, 'Detaching database', []),

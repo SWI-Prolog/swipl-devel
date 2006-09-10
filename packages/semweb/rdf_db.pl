@@ -137,6 +137,11 @@
 :- discontiguous
 	term_expansion/2.
 
+/** <module> Core RDF database
+
+@see Documentation for semweb package
+*/
+
 		 /*******************************
 		 *	     NAMESPACES		*
 		 *******************************/
@@ -557,6 +562,7 @@ rdf_transaction(Goal) :-
 
 %%	rdf_monitor(:Goal, +Options)
 %
+%	Call Goal if spefified actions occur on the database.
 
 rdf_monitor(Goal, Options) :-
 	monitor_mask(Options, 0xffff, Mask),
@@ -613,7 +619,8 @@ monitor_mask(all,	   0xffff).
 %	
 %	Save triples into File in a   quick-to-load binary format. If DB
 %	is supplied only triples flagged to originate from that database
-%	are added.
+%	are  added.  Files  created  this  way    can  be  loaded  using
+%	rdf_load_db/1.
 
 rdf_save_db(File) :-
 	open(File, write, Out, [type(binary)]),
@@ -629,6 +636,10 @@ rdf_load_db_no_admin(File, Id) :-
 	open(File, read, Out, [type(binary)]),
 	call_cleanup(rdf_load_db_(Out, Id), close(Out)).
 
+%%	rdf_load_db(+File) is det.
+%
+%	Load triples from a file created using rdf_save_db/2 and update
+%	the file administration.
 
 rdf_load_db(File) :-
 	rdf_load_db_no_admin(File, file(File)),
@@ -647,12 +658,13 @@ rdf_load_db(File) :-
 		 *	    LOADING RDF		*
 		 *******************************/
 
-%%	rdf_load(+FileOrList, +Options)
+%%	rdf_load(+FileOrList) is det.
+%%	rdf_load(+FileOrList, +Options) is det.
 %
 %	Load RDF file.  Options provides additional processing options.
 %	Currently defined options are:
 %	
-%	    # result(-Action, -Triples, -MD5)
+%	    * result(-Action, -Triples, -MD5)
 %	    	Return action taken (load, reload, none) and number
 %	    	of triples loaded from the file as well as the MD5
 %	    	digest.
@@ -814,7 +826,7 @@ rdf_source(File) :-
 	rdf_statistics_(triples(File, Triples)),
 	Triples > 0.
 
-%	rdf_make
+%%	rdf_make
 %	
 %	Reload all loaded files that have been modified since the last
 %	time they were loaded.
@@ -888,22 +900,22 @@ rdf_reset_db :-
 %	Save RDF data to file.  Options is a list of one or more of the
 %	following options:
 %	
-%		# db(+DB)
+%		* db(+DB)
 %		Save only triples associated to the given DB
 %		
-%		# anon(Bool)
+%		* anon(Bool)
 %		If false (default true) do not save blank nodes that do
 %		not appear (indirectly) as object of a named resource.
 %
-%		# convert_typed_literal(:Convertor)
+%		* convert_typed_literal(:Convertor)
 %		Call Convertor(-Type, -Content, +RDFObject), providing
 %		the opposite for the convert_typed_literal option of
 %		the RDF parser.
 %		
-%		# encoding(Encoding)
+%		* encoding(Encoding)
 %		Encoding for the output.  Either utf8 or iso_latin_1
 %		
-%		# document_language(+Lang)
+%		* document_language(+Lang)
 %		Initial xml:lang saved with rdf:RDF element
 
 :- module_transparent
@@ -1160,6 +1172,10 @@ xml_code(X) :-
 xml_code(0'-).
 
 
+%%	rdf_save_footer(Out:stream) is det.
+%
+%	Finish XML generation and write the document footer.
+
 rdf_save_footer(Out) :-
 	retractall(named_anon(_, _)),
 	format(Out, '</rdf:RDF>~n', []).
@@ -1179,6 +1195,10 @@ rdf_save_non_anon_subject(Out, Subject, Options) :-
 	rdf_save_subject(Out, Subject, Options),
 	flag(rdf_db_saved_subjects, X, X+1).
 
+
+%%	rdf_save_subject(+Out, +Subject:resource, +Options) is det.
+%
+%	Save the triples associated to Subject to Out.
 
 rdf_save_subject(Out, Subject, Options) :-
 	is_list(Options), !,
