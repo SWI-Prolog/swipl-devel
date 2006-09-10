@@ -42,10 +42,10 @@
 :- use_module(library(porter_stem)).
 :- use_module(library(double_metaphone)).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> Search literals
 This module finds literals of the RDF database based on stemming and
 being flexible to ordering of tokens.  
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+*/
 
 :- dynamic
 	literal_map/2,			% Type, -Map
@@ -59,6 +59,14 @@ being flexible to ordering of tokens.
 
 
 setting(verbose(true)).
+
+%%	rdf_set_literal_index_option(+Options:list)
+%
+%	Set options for the literal package.  Currently defined options
+%	
+%		* verbose(Bool)
+%		If =true=, print progress messages while building the
+%		index tables.
 
 rdf_set_literal_index_option([]).
 rdf_set_literal_index_option([H|T]) :-
@@ -79,7 +87,11 @@ set_option(Term) :-
 		 *******************************/
 
 %%	rdf_find_literals(+Spec, -Literals)
+%
+%	Find literals in the RDF database matching Spec.  Spec is defined
+%	as:
 %	
+%	==
 %	Spec ::= and(Spec,Spec)
 %	Spec ::= or(Spec,Spec)
 %	Spec ::= not(Spec)
@@ -87,13 +99,14 @@ set_option(Term) :-
 %	Spec ::= stem(Like)
 %	Spec ::= prefix(Prefix)
 %	Spec ::= Token
+%	==
 %	
-%%	sounds(Like) and stem(Like) both map to  a disjunction. First we
+%	sounds(Like) and stem(Like) both map to  a disjunction. First we
 %	compile the spec to normal form:   a disjunction of conjunctions
 %	on elementary tokens. Then we execute   all the conjunctions and
-%	generate the union using ordered-set union.
+%	generate the union using ordered-set algorithms.
 %	
-%	TBD: numbers
+%	@tbd Exploit ordering of numbers and allow for > N, < N, etc.
 
 rdf_find_literals(Spec, Literals) :-
 	compile_spec(Spec, DNF),
