@@ -8,7 +8,7 @@
 
 % Configure latex2html
 
-\htmloutput{Manual.tmp} % Output directory
+\htmloutput{Manual} % Output directory
 \htmlmainfile{index} % Main document file
 \bodycolor{white} % Page colour
 \linkimage{home}{home.gif} % Images for links
@@ -38,8 +38,8 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{6}
-\newcommand{\vpatch}{18}
-\newcommand{\vmonth}{August}
+\newcommand{\vpatch}{19}
+\newcommand{\vmonth}{September}
 \newcommand{\vyear}{2006}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
