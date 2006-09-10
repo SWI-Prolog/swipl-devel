@@ -28,6 +28,10 @@ a.builtin
 { font-style: italic;
 }
 
+table.paramlist td
+{ vertical-align: top;
+}
+
 .pred, .det, .functor
 { font-weight: bold;
 }
