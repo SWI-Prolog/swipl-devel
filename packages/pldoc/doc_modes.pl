@@ -287,6 +287,7 @@ is_det(Var) :-
 is_det(det).
 is_det(semidet).
 is_det(nondet).
+is_det(multi).
 
 is_head(Var) :-
 	var(Var), !, fail.

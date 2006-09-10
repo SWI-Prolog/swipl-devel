@@ -178,6 +178,7 @@ informally described below:
 <determinism>	\isa 'det' \\
 		\ora 'semidet' \\
 		\ora 'nondet' \\
+		\ora 'multi' \\
 <head>		\isa <functor>'('<argspec> {',' <argspec>}')' \\
 		\isa <functor> \\
 <argspec>	\isa [<instantiation>]<argname>[':'<type>] \\
