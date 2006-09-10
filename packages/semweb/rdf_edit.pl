@@ -90,12 +90,16 @@
 	unmodified_md5/2,		% Path, MD5
 	snapshot_file/1.		% File
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/** <module> RDF edit layer
 This library provides a number of functions on top of the rdf_db module:
 
     * Broadcast modifications
     * Provide undo/redo
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+@tbd	This library must be rewritten using rdf_monitor/3.  This allows
+	using edit layer without having to choose between rdf_ and rdfe_
+	predicates.
+*/
 
 :- rdf_meta
 	rdfe_assert(r,r,o),
@@ -385,7 +389,7 @@ rdfe_transaction(Goal, Name) :-
 	    fail
 	).
 	    
-%	rdfe_begin_transaction/0
+%%	rdfe_begin_transaction
 %	
 %	Start a transaction.  This is followed by either rdfe_end_transaction
 %	or rdfe_rollback.  Transactions may be nested.
@@ -497,7 +501,7 @@ action(subject(_)).
 action(predicate(_)).
 action(object(_)).
 
-%	rdfe_undo
+%%	rdfe_undo
 %	
 %	Undo a (toplevel) transaction. More calls do further undo. The
 %	`Undone' actions are re-added to the undo log, so the user can
@@ -538,7 +542,7 @@ undo_previous(TID, Undone) :-
 last_transaction(TID) :-
 	undo_log([TID|_], _, _, _, _), !.
 
-%	rdfe_redo
+%%	rdfe_redo
 %	
 %	Start a redo-session
 
@@ -630,8 +634,8 @@ user_transaction_member(Update, Subject, Predicate, Object,
 %	
 %	Set properties on the file.  Options is one of
 %	
-%%		access(ro/rw)
-%%		default(all/fallback)
+%		* access(ro/rw)
+%		* default(all/fallback)
 
 rdfe_set_file_property(File0, access(Access)) :- !,
 	absolute_file_name(File0, File),
@@ -648,7 +652,7 @@ rdfe_set_file_property(File0, default(Type)) :-
 
 %%	rdfe_get_file_property(?File, ?Option)
 %	
-%	Fetch file properties set with rdf_set_file_property/2.
+%	Fetch file properties set with rdfe_set_file_property/2.
 
 rdfe_get_file_property(File, access(Access)) :-
 	rdf_source(File),
@@ -703,6 +707,10 @@ rdfe_clear_modified :-
 	forall(rdf_source(File),
 	       rdfe_clear_modified(File)).
 
+%%	rdfe_clear_modified(+DB) is det.
+%
+%	Consider the current state of DB as _unmodified_.
+
 rdfe_clear_modified(File) :-
 	atom(File),
 	retractall(unmodified_md5(File, _)),
@@ -733,7 +741,7 @@ rdfe_set_watermark(Name) :-
 		 *	       RESET		*
 		 *******************************/
 
-%	rdfe_reset/0
+%%	rdfe_reset
 %	
 %	Clear database, undo, namespaces and journalling info.
 
@@ -743,6 +751,10 @@ rdfe_reset :-
 	rdfe_reset_undo,
 	rdf_reset_db,
 	broadcast(rdf_reset).
+
+%%	rdfe_reset_journal
+%
+%	If a journal is open, close it using rdfe_close_journal/0
 
 rdfe_reset_journal :-
 	(   rdfe_current_journal(_)
@@ -769,6 +781,20 @@ rdfe_reset_undo :-
 		 *******************************/
 
 journal_version(1).
+
+%%	rdfe_open_journal(+File, +Mode) is det.
+%
+%	Open a journal writing to File in Mode.  Mode is one of 
+%	
+%		* read
+%		Open and replay the journal
+%		
+%		* write
+%		Delete current journal and create a fresh one
+%		
+%		* append
+%		Read and replay the existing journal and append new
+%		modifications to the File.
 
 rdfe_open_journal(_, _) :-		% already open
 	journal(_, _, _), !.
@@ -834,6 +860,11 @@ journal_comment(resume, Time) :-
 	       '\n\
 	       /* Resumed: ~w\n\
 	       */~n~n', [String]).
+
+%%	rdfe_close_journal
+%
+%	Close  the  journal.  Automatically  called    from  at  program
+%	termination from at_halt/1.
 
 rdfe_close_journal :-
 	get_time(T),
