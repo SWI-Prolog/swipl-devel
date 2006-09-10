@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+===================================
+VERSION 5.6.19 (September 20, 2006)
+===================================
+
   * MODIFIED: More efficient DCG translation.
 
   * FIXED: Bug#205: support GNU-make when not named make.  Marc Espie.

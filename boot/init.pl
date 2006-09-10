@@ -1014,12 +1014,12 @@ load_files(Files, Options) :-
 	    TimeUsed is Time - OldTime,
 
 	    '$print_message'(MessageLevel,
-			   load_file(done(Level,
-					  file(File, Absolute),
-					  Action,
-					  LM,
-					  TimeUsed,
-					  HeapUsed)))
+			     load_file(done(Level,
+					    file(File, Absolute),
+					    Action,
+					    LM,
+					    TimeUsed,
+					    HeapUsed)))
 	),
 	flag('$autoloading', _, AutoLevel),
 	set_prolog_flag(verbose_load, DefVerbose).
