@@ -951,7 +951,7 @@ sd([l(X*K,_)|Xs],Class0,ClassN,Preference0,PreferenceN,NV0,NVt) :-
 	    )
   	;   % new: has no class
 	    Class1 = Class0,
-	    'C'(NV0,X,NV1), % X has no class yet, add to list of new variables
+	    NV0 = [X|NV1], % X has no class yet, add to list of new variables
 	    (   arg(2,Att,type(t_none))
 	    ->  preference(Preference0,1-X-K,Preference1)
 		    % no class, no bounds => category 1

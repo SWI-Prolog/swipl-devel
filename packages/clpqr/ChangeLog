@@ -1,3 +1,7 @@
+Sep 10, 2006
+
+  * JW: Removed dependency on C/3.
+
 Mar 31, 2006
 
   * JW: Removed SICStus ugraphs.pl and replaced by new SWI-Prolog library
