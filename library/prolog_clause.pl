@@ -258,6 +258,20 @@ unify_clause((Head :- Read),
 				 [ PH,
 				   term_position(0,0,0,0,[0-0,PB])
 				 ]).
+unify_clause(Read, Compiled1, TermPos0, TermPos) :-
+	Read = (_ --> List, _),
+	is_list(List),
+	expand_term(Read, Compiled2),
+	Compiled2 = (DH :- _),
+	functor(DH, _, Arity),
+	DArg is Arity - 1,
+	arg(DArg, DH, List),
+	nonvar(List),
+	TermPos0 = term_position(F,T,FF,FT,[ HP,
+					     term_position(_,_,_,_,[_,BP])
+					   ]), !,
+	TermPos1 = term_position(F,T,FF,FT,[ HP, BP ]),
+	match_module(Compiled2, Compiled1, TermPos1, TermPos).
 					% general term-expansion
 unify_clause(Read, Compiled1, TermPos0, TermPos) :-
 	expand_term(Read, Compiled2),
@@ -301,7 +315,7 @@ a --> { x, y, z }.
 
 %%	ubody(+Read, +Decompiled, +TermPosRead, -TermPosForDecompiled)
 %
-%	@param Read		Clause read after term-expansion
+%	@param Read		Clause read _after_ expand_term/2
 %	@param Decompiled	Decompiled clause
 %	@param TermPosRead	Sub-term positions of source
 
