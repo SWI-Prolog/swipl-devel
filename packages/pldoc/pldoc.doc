@@ -30,6 +30,8 @@ comments to mix documentation with source-code.  SWI-Prolog's PlDoc
 is entirely written in Prolog and well integrated with the environment.
 It can create HTML+CSS and \LaTeX{} documentation files as well as act
 as a web-server for the loaded project during program development.
+
+A demo server is hosted at \url{http://gollem.science.uva.nl:8008/}
 \end{abstract}
 
 \pagebreak
@@ -525,7 +527,9 @@ the hosting machine from all locations in a domain is given below.
 :- use_module(library('doc/doc_library')).
 :- doc_load_library.
 \end{code}
- \end{description}
+
+Example code can be found in \file{$PLBASE/doc/packages/examples/pldoc}.
+\end{description}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -694,7 +698,7 @@ use a structured comment with formal syntax for the following reasons:
 
 \subsection*{Few requirements}
 
-SWI-Prolog aims at platform independence. We want tools to rely as
+SWI-Prolog aims at platform independency. We want tools to rely as
 much as possible on Prolog itself. Therefore, the entire infrastructure
 is written in Prolog. Output as HTML is suitable for browsing and not
 very high quality printing on virtually all platforms. Output to
