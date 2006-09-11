@@ -141,7 +141,7 @@ rdf_current_db(Directory) :-
 %	
 %	Flush dirty journals.  Options:
 %	
-%		# min_size(+KB)
+%		* min_size(+KB)
 %		Only flush if journal is over KB in size.
 %		TBD: sensible default size
 
@@ -434,7 +434,7 @@ sync_state([DB-MD5|TA], Pre) :-
 		 *	   JOURNAL FILES	*
 		 *******************************/
 
-%%	journal_db(+DB, -Stream)
+%%	journal_fd(+DB, -Stream)
 %	
 %	Open existing journal or create new journal for database DB
 
