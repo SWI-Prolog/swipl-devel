@@ -145,10 +145,18 @@ clearInteger(Number n)
 #endif
 }
 
+
+typedef struct
+{ number low;
+  number high;
+  int hinf;
+} between_state;
+
+
 static
 PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 { GET_LD
-  number *state;
+  between_state *state;
   term_t low = A1;
   term_t high = A2;
   term_t n = A3;
@@ -162,9 +170,11 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, low);
 	if ( !PL_get_number(high, &h) || !intNumber(&h) )
 	{ if ( PL_is_inf(high) )
+	  { h.type = V_INTEGER;		/* make clearInteger() safe */
 	    hinf = TRUE;
-	  else
-	    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, high);
+	  } else
+	  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, high);
+	  }
 	}
 
 					/* between(+,+,+) */
@@ -201,9 +211,10 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	  succeed;
 	}
 
-	state = allocHeap(sizeof(number)*2);
-	cpNumber(&state[0], &l);
-	cpNumber(&state[1], &h);
+	state = allocHeap(sizeof(*state));
+	cpNumber(&state->low, &l);
+	cpNumber(&state->high, &h);
+	state->hinf = hinf;
 	clearInteger(&l);
 	clearInteger(&h);
 	ForeignRedoPtr(state);
@@ -211,18 +222,19 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
     case FRG_REDO:
       { state = CTX_PTR;
 
-	ar_add_ui(&state[0], 1L);
-	PL_unify_number(n, &state[0]);
-	if ( cmpNumbers(&state[0], &state[1]) == 0 )
+	ar_add_ui(&state->low, 1L);
+	PL_unify_number(n, &state->low);
+	if ( !state->hinf &&
+	     cmpNumbers(&state->low, &state->high) == 0 )
 	  goto cleanup;
 	ForeignRedoPtr(state);
       }
     case FRG_CUTTED:
       { state = CTX_PTR;
       cleanup:
-	clearInteger(&state[0]);
-	clearInteger(&state[1]);
-	freeHeap(state,  sizeof(number)*2);
+	clearInteger(&state->low);
+	clearInteger(&state->high);
+	freeHeap(state, sizeof(*state));
       }
     default:;
       succeed;
@@ -872,10 +884,10 @@ ar_add_ui(Number n, long add)
 	   (r > 0 && add < 0 && n->value.i < 0) )
       { if ( !promoteIntNumber(n) )
 	  fail;
+      } else
+      { n->value.i = r;
+	succeed;
       }
-
-      n->value.i = r;
-      succeed;
     }
 #ifdef O_GMP
     case V_MPZ:
