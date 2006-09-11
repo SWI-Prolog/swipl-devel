@@ -11,7 +11,8 @@
 VERSION 5.6.19 (September 20, 2006)
 ===================================
 
-  * MODIFIED: More efficient DCG translation.
+  * MODIFIED: More efficient DCG translation.  No longer produces 'C'/3
+    calls.  'C'/3 has been moved to backcomp.pl
 
   * FIXED: Bug#205: support GNU-make when not named make.  Marc Espie.
 

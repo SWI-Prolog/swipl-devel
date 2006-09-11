@@ -136,9 +136,8 @@ $getcode(Char, In, Out) :-
 	name(Char, Digits),
 	Char < 128.
 
-$getdigits(Limit, [Digit|Digits], In, Out) :-
+$getdigits(Limit, [Digit|Digits], [Digit|Out0], Out) :-
 	Limit > 0,
-	'C'(In, Digit, Out0),
 	between(0'0, 0'9, Digit),
 	Fewer is Limit - 1, !,
 	$getdigits(Fewer, Digits, Out0, Out).
@@ -158,9 +157,8 @@ $writelots(_, _).
 */
 
 $getpad(Size, Just, In, Out) :-
-	$getdigits(3, Digits, In, Out0),
+	$getdigits(3, Digits, In, [Out1|Out]),
 	name(Size, Digits),
-	'C'(Out0, Out1, Out),
 	$getpad(Out1, Just).
 
 $getpad(0'r, r).		%  right justified
