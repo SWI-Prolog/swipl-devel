@@ -1169,7 +1169,7 @@ xml_codes([H|T]) :-
 
 xml_code(X) :-
 	code_type(X, csym), !.
-xml_code(0'-).
+xml_code(0'-).				% Match 0'-
 
 
 %%	rdf_save_footer(Out:stream) is det.
