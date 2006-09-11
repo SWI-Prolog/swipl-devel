@@ -571,6 +571,27 @@ if \term{anon}{false} is provided anonymous resources are only saved
 if the resource appears in the object field of another triple that is
 saved.
 
+	\termitem{base_uri}{+BaseURI}
+If provided, emit \const{xml:base}="\arg{BaseURI}" in the header and
+emit all URIs that are relative to the base-uri.  The \const{xml:base}
+declaration can be suppressed using the option
+\term{write_xml_base}{false}
+
+	\termitem{write_xml_base}{+Bool}
+If \const{false} (default \const{true}), do \emph{not} emit the
+\const{xml:base} declaration from the given \const{base_uri} option.
+The idea behind this option is to be able to create documents with
+URIs relative to the document itself:
+
+\begin{code}
+	...,
+	rdf_save(File,
+ 		 [ base_uri(BaseURI),
+		   write_xml_base(false)
+		 ]),
+	...
+\end{code}
+
 	\termitem{convert_typed_literal}{:Converter}
 If present, raw literal values are first passed to \arg{Converter} to
 apply the reverse of the \const{convert_typed_literal} option of the

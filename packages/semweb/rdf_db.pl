@@ -50,7 +50,6 @@
 	    rdf_set_predicate/2,	% +Predicate, +Property
 	    rdf_predicate_property/2,	% +Predicate, ?Property
 	    rdf_current_predicate/1,	% -Predicate
-
 	    rdf_transaction/1,		% :Goal
 	    rdf_transaction/2,		% :Goal, +Id
 
@@ -906,6 +905,16 @@ rdf_reset_db :-
 %		* anon(Bool)
 %		If false (default true) do not save blank nodes that do
 %		not appear (indirectly) as object of a named resource.
+%		
+%		* base_uri(URI)
+%		BaseURI used. If present, all URIs that can be
+%		represented relative to this base are written using
+%		their shorthand.  See also =write_xml_base= option
+%		
+%		* write_xml_base(Bool)
+%		If =false=, do _not_ include the =|xml:base|=
+%		declaration that is written normally when using the
+%		=base_uri= option.
 %
 %		* convert_typed_literal(:Convertor)
 %		Call Convertor(-Type, -Content, +RDFObject), providing
@@ -1026,13 +1035,16 @@ meta_options([H0|T0], [H|T]) :-
 
 rdf_save_header(Out, Options) :-
 	is_list(Options), !,
-	xml_encoding(Out, Encoding),
+	stream_property(Out, encoding(Enc)),
+	xml_encoding(Enc, Encoding),
 	format(Out, '<?xml version=\'1.0\' encoding=\'~w\'?>~n', [Encoding]),
 	format(Out, '<!DOCTYPE rdf:RDF [', []),
 	header_namespaces(Options, NSList),
 	(   member(Id, NSList),
 	    ns(Id, NS),
-	    format(Out, '~N    <!ENTITY ~w \'~w\'>', [Id, NS]),
+	    rdf_quote_uri(NS, QNS),
+	    xml_quote_attribute(QNS, NSText, Enc),
+	    format(Out, '~N    <!ENTITY ~w \'~w\'>', [Id, NSText]),
 	    fail
 	;   true
 	),
@@ -1041,6 +1053,13 @@ rdf_save_header(Out, Options) :-
 	(   member(Id, NSList),
 	    format(Out, '~N    xmlns:~w="&~w;"~n', [Id, Id]),
 	    fail
+	;   true
+	),
+	(   option(base_uri(Base), Options),
+	    option(write_xml_base(true), Options, true)
+	->  rdf_quote_uri(Base, QBase),
+	    xml_quote_attribute(QBase, BaseText, Enc),
+	    format(Out, '~N    xml:base="~w"~n', [BaseText])
 	;   true
 	),
 	(   memberchk(document_language(Lang), Options)
@@ -1052,8 +1071,7 @@ rdf_save_header(Out, FileRef) :-	% compatibility
 	atom(FileRef),
 	rdf_save_header(Out, [db(FileRef)]).
 	
-xml_encoding(Out, Encoding) :-
-	stream_property(Out, encoding(Enc)),
+xml_encoding(Enc, Encoding) :-
 	(   xml_encoding_name(Enc, Encoding)
 	->  true
 	;   throw(error(domain_error(rdf_encoding, Enc), _))
@@ -1202,7 +1220,8 @@ rdf_save_non_anon_subject(Out, Subject, Options) :-
 
 rdf_save_subject(Out, Subject, Options) :-
 	is_list(Options), !,
-	(   rdf_save_subject(Out, Subject, -, 0, Options)
+	option(base_uri(BaseURI), Options, '-'),
+	(   rdf_save_subject(Out, Subject, BaseURI, 0, Options)
 	->  format(Out, '~n', [])
 	;   throw(error(rdf_save_failed(Subject), 'Internal error'))
 	).
@@ -1213,7 +1232,14 @@ rdf_save_subject(Out, Subject, DB) :-
 	).
 		  
 
-rdf_save_subject(Out, Subject, DefNS, Indent, Options) :-
+%%	rdf_save_subject(+Out:stream, +Subject:resource, +BaseURI,
+%%			 +Indent:int, +Options) is det.
+%
+%	Save properties of Subject.
+%	
+%	@param Indent	Current indentation
+
+rdf_save_subject(Out, Subject, BaseURI, Indent, Options) :-
 	db(Options, DB),
 	findall(Pred=Object, rdf_db(Subject, Pred, Object, DB), Atts0),
 	sort(Atts0, Atts),		% remove duplicates
@@ -1225,7 +1251,7 @@ rdf_save_subject(Out, Subject, DefNS, Indent, Options) :-
 			  rdf(save_removed_duplicates(Del, Subject)))
 	;   true
 	),
-	rdf_save_subject(Out, Subject, DefNS, Atts, Indent, Options),
+	rdf_save_subject(Out, Subject, BaseURI, Atts, Indent, Options),
 	flag(rdf_db_saved_triples, X, X+L).
 
 rdf_db(Subject, Pred, Object, DB) :-
@@ -1234,49 +1260,59 @@ rdf_db(Subject, Pred, Object, DB) :-
 rdf_db(Subject, Pred, Object, DB) :-
 	rdf(Subject, Pred, Object, DB:_).
 
-rdf_save_subject(Out, Subject, DefNS, Atts, Indent, Options) :-
+%%	rdf_save_subject(+Out:stream, +Subject:resource, +BaseURI,
+%%			 +Atts:list(Pred=Obj), +Indent:int, +Options) is det.
+%
+%	Save triples defined by Atts on Subject.
+
+rdf_save_subject(Out, Subject, BaseURI, Atts, Indent, Options) :-
 	rdf_equal(rdf:type, RdfType),
 	select(RdfType=Type, Atts, Atts1),
-	rdf_id(Type, DefNS, TypeId),
+	rdf_id(Type, BaseURI, TypeId),
 	xml_is_name(TypeId), !,
 	format(Out, '~*|<~w', [Indent, TypeId]),
-	save_about(Out, Subject),
-	save_attributes(Atts1, DefNS, Out, TypeId, Indent, Options).
-rdf_save_subject(Out, Subject, _DefNS, Atts, Indent, Options) :-
+	save_about(Out, BaseURI, Subject),
+	save_attributes(Atts1, BaseURI, Out, TypeId, Indent, Options).
+rdf_save_subject(Out, Subject, BaseURI, Atts, Indent, Options) :-
 	format(Out, '~*|<rdf:Description', [Indent]),
-	save_about(Out, Subject),
-	save_attributes(Atts, rdf, Out, rdf:'Description', Indent, Options).
+	save_about(Out, BaseURI, Subject),
+	save_attributes(Atts, BaseURI, Out, rdf:'Description', Indent, Options).
 
 xml_is_name(_NS:Atom) :- !,
 	xml_name(Atom).
 xml_is_name(Atom) :-
 	xml_name(Atom).
 
-save_about(Out, Subject) :-
+%%	save_about(+Out, +BaseURI, +Subject) is det.
+%
+%	Save the rdf:about. If Subject is a  blank node, save the nodeID
+%	if any.
+
+save_about(Out, _, Subject) :-
 	rdf_is_bnode(Subject), !,
 	(   named_anon(Subject, NodeID)
 	->  format(Out, ' rdf:nodeID="~w"', [NodeID])
 	;   true
 	).
-save_about(Out, Subject) :-
+save_about(Out, BaseURI, Subject) :-
 	stream_property(Out, encoding(Encoding)),
-	rdf_value(Subject, QSubject, Encoding),
+	rdf_value(Subject, BaseURI, QSubject, Encoding),
 	format(Out, ' rdf:about="~w"', [QSubject]).
 
-%%	save_attributes(+List, +DefNS, +Stream, Element)
+%%	save_attributes(+List, +BaseURI, +Stream, Element)
 %
 %	Save the attributes.  Short literal attributes are saved in the
 %	tag.  Others as the content of the description element.  The
 %	begin tag has already been filled.
 
-save_attributes(Atts, DefNS, Out, Element, Indent, Options) :-
+save_attributes(Atts, BaseURI, Out, Element, Indent, Options) :-
 	split_attributes(Atts, InTag, InBody),
 	SubIndent is Indent + 2,
-	save_attributes2(InTag, DefNS, tag, Out, SubIndent, Options),
+	save_attributes2(InTag, BaseURI, tag, Out, SubIndent, Options),
 	(   InBody == []
 	->  format(Out, '/>~n', [])
 	;   format(Out, '>~n', []),
-	    save_attributes2(InBody, _, body, Out, SubIndent, Options),
+	    save_attributes2(InBody, BaseURI, body, Out, SubIndent, Options),
 	    format(Out, '~N~*|</~w>~n', [Indent, Element])
 	).
 
@@ -1332,23 +1368,23 @@ in_tag_attribute(_=literal(Text)) :-
 	atom_length(Text, Len),
 	Len < 60.
 
-%%	save_attributes(+List, +DefNS, +TagOrBody, +Stream)
+%%	save_attributes(+List, +BaseURI, +TagOrBody, +Stream)
 %
 %	Save a list of attributes.
 
 save_attributes2([], _, _, _, _, _).
-save_attributes2([H|T], DefNS, Where, Out, Indent, Options) :-
-	save_attribute(Where, H, DefNS, Out, Indent, Options),
-	save_attributes2(T, DefNS, Where, Out, Indent, Options).
+save_attributes2([H|T], BaseURI, Where, Out, Indent, Options) :-
+	save_attribute(Where, H, BaseURI, Out, Indent, Options),
+	save_attributes2(T, BaseURI, Where, Out, Indent, Options).
 
-save_attribute(tag, Name=literal(Value), DefNS, Out, Indent, _DB) :-
+save_attribute(tag, Name=literal(Value), BaseURI, Out, Indent, _DB) :-
 	AttIndent is Indent + 2,
-	rdf_att_id(Name, DefNS, NameText),
+	rdf_id(Name, BaseURI, NameText),
 	stream_property(Out, encoding(Encoding)),
 	xml_quote_attribute(Value, QVal, Encoding),
 	format(Out, '~N~*|~w="~w"', [AttIndent, NameText, QVal]).
-save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
-	rdf_id(Name, DefNS, NameText),
+save_attribute(body, Name=literal(Literal0), BaseURI, Out, Indent, Options) :- !,
+	rdf_id(Name, BaseURI, NameText),
 	(   memberchk(convert_typed_literal(Converter), Options),
 	    call(Converter, Type, Content, Literal0)
 	->  Literal = type(Type, Content)
@@ -1357,13 +1393,13 @@ save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 	(   Literal = lang(Lang, Value)
 	->  (   memberchk(document_language(Lang), Options)
 	    ->  format(Out, '~N~*|<~w>', [Indent, NameText])
-	    ;   rdf_id(Lang, DefNS, LangText),
+	    ;   rdf_id(Lang, BaseURI, LangText),
 		format(Out, '~N~*|<~w xml:lang="~w">',
 		       [Indent, NameText, LangText])
 	    )
 	;   Literal = type(Type, Value)
 	->  stream_property(Out, encoding(Encoding)),
-	    rdf_value(Type, QVal, Encoding),
+	    rdf_value(Type, BaseURI, QVal, Encoding),
 	    format(Out, '~N~*|<~w rdf:datatype="~w">',
 		   [Indent, NameText, QVal])
 	;   atomic(Literal)
@@ -1375,9 +1411,9 @@ save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 	),
 	save_attribute_value(Value, Out, Indent),
 	format(Out, '</~w>', [NameText]).
-save_attribute(body, Name=Value, DefNS, Out, Indent, Options) :-
+save_attribute(body, Name=Value, BaseURI, Out, Indent, Options) :-
 	rdf_is_bnode(Value), !,
-	rdf_id(Name, DefNS, NameText),
+	rdf_id(Name, BaseURI, NameText),
 	(   named_anon(Value, NodeID)
 	->  format(Out, '~N~*|<~w rdf:nodeID="~w"/>',
 		   [Indent, NameText, NodeID])
@@ -1392,18 +1428,18 @@ save_attribute(body, Name=Value, DefNS, Out, Indent, Options) :-
 	    SubIndent is Indent + 2,
 	    (   rdf(Value, rdf:type, rdf:'List')
 	    ->  format(Out, '~N~*|<~w', [Indent, NameText]),
-		save_about(Out, Value),
+		save_about(Out, BaseURI, Value),
 		format(Out, ' rdf:parseType="Collection">~n', []),
-		rdf_save_list(Out, Value, DefNS, SubIndent, Options)
+		rdf_save_list(Out, Value, BaseURI, SubIndent, Options)
 	    ;   format(Out, '~N~*|<~w>~n', [Indent, NameText]),
-		rdf_save_subject(Out, Value, DefNS, SubIndent, Options)
+		rdf_save_subject(Out, Value, BaseURI, SubIndent, Options)
 	    ),
 	    format(Out, '~N~*|</~w>~n', [Indent, NameText])
 	).
-save_attribute(body, Name=Value, DefNS, Out, Indent, _DB) :-
+save_attribute(body, Name=Value, BaseURI, Out, Indent, _DB) :-
 	stream_property(Out, encoding(Encoding)),
-	rdf_value(Value, QVal, Encoding),
-	rdf_id(Name, DefNS, NameText),
+	rdf_value(Value, BaseURI, QVal, Encoding),
+	rdf_id(Name, BaseURI, NameText),
 	format(Out, '~N~*|<~w rdf:resource="~w"/>', [Indent, NameText, QVal]).
 
 save_attribute_value(Value, Out, _) :-	% strings
@@ -1426,32 +1462,36 @@ save_attribute_value(Value, _Out, _) :-
 
 rdf_save_list(_, List, _, _, _) :-
 	rdf_equal(List, rdf:nil), !.
-rdf_save_list(Out, List, DefNS, Indent, Options) :-
+rdf_save_list(Out, List, BaseURI, Indent, Options) :-
 	rdf_has(List, rdf:first, First),
 	(   rdf_is_bnode(First)
 	->  nl(Out),
-	    rdf_save_subject(Out, First, DefNS, Indent, Options)
+	    rdf_save_subject(Out, First, BaseURI, Indent, Options)
 	;   stream_property(Out, encoding(Encoding)),
-	    rdf_value(First, QVal, Encoding),
+	    rdf_value(First, BaseURI, QVal, Encoding),
 	    format(Out, '~N~*|<rdf:Description rdf:about="~w"/>',
 		   [Indent, QVal])
 	),
 	flag(rdf_db_saved_triples, X, X+3),
 	(   rdf_has(List, rdf:rest, List2),
 	    \+ rdf_equal(List2, rdf:nil)
-	->  rdf_save_list(Out, List2, DefNS, Indent, Options)
+	->  rdf_save_list(Out, List2, BaseURI, Indent, Options)
 	;   true
 	).
 
-%%	rdf_id(+Resource, +DefNS, -NSLocal)
-%	
-%	Generate a NS:Local name for Resource given the indicated
-%	default namespace.  This call is used for elements.
 
-rdf_id(Id, NS, NS:Local) :-
-	ns(NS, Full),
-	Full \== '',
-	atom_concat(Full, Local, Id), !.
+%%	rdf_id(+Resource, +BaseURI, -NSLocal)
+%	
+%	Generate a NS:Local  name  for   Resource  given  the  indicated
+%	default namespace. This call is used for elements.
+
+rdf_id(Id, BaseURI, Local) :-
+	assertion(atom(BaseURI)),
+	atom_concat(BaseURI, Local, Id),
+	sub_atom(Local, 0, 1, _, #), !.
+rdf_id(Id, _, NS:Local) :-
+	rdf_split_url(Full, Local, Id),
+	ns(NS, Full), !.
 rdf_id(Id, _, NS:Local) :-
 	ns(NS, Full),
 	Full \== '',
@@ -1459,27 +1499,26 @@ rdf_id(Id, _, NS:Local) :-
 rdf_id(Id, _, Id).
 
 
-rdf_att_id(Id, _, NS:Local) :-
-	ns(NS, Full),
-	Full \== '',
-	atom_concat(Full, Local, Id), !.
-rdf_att_id(Id, _, Id).
-
-
-%%	rdf_value(+Resource, -Text, +Encoding)
+%%	rdf_value(+Resource, +BaseURI, -Text, +Encoding)
 %	
 %	According  to  "6.4  RDF  URI  References"  of  the  RDF  Syntax
 %	specification, a URI reference is  UNICODE string not containing
 %	control sequences, represented as  UTF-8   and  then  as escaped
 %	US-ASCII.
 
-rdf_value(V, Text, Encoding) :-
+rdf_value(Base, Base, '', _) :- !.
+rdf_value(V, Base, Text, Encoding) :-
+	atom_concat(Base, Local, V),
+	sub_atom(Local, 0, _, _, #), !,
+	rdf_quote_uri(Local, Q0),
+	xml_quote_attribute(Q0, Text, Encoding).
+rdf_value(V, _, Text, Encoding) :-
 	ns(NS, Full),
 	atom_concat(Full, Local, V), !,
 	rdf_quote_uri(Local, QLocal0),
 	xml_quote_attribute(QLocal0, QLocal, Encoding),
 	concat_atom(['&', NS, (';'), QLocal], Text).
-rdf_value(V, Q, Encoding) :-
+rdf_value(V, _, Q, Encoding) :-
 	rdf_quote_uri(V, Q0),
 	xml_quote_attribute(Q0, Q, Encoding).
 

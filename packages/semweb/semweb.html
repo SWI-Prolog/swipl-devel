@@ -99,7 +99,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -817,6 +817,30 @@ selections is possible using predicates from <A class="sec" href="#sec:3.4.1">se
 if <CODE>anon(false)</CODE> is provided anonymous resources are only 
 saved if the resource appears in the object field of another triple that 
 is saved.</DD>
+<DT><STRONG>base_uri</STRONG>(<VAR>+BaseURI</VAR>)</DT>
+<DD class="defbody">
+If provided, emit <CODE>xml:base</CODE>="<VAR>BaseURI</VAR>" in the 
+header and emit all URIs that are relative to the base-uri. The <CODE>xml:base</CODE> 
+declaration can be suppressed using the option
+<CODE>write_xml_base(false)</CODE></DD>
+<DT><STRONG>write_xml_base</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>false</CODE> (default <CODE>true</CODE>), do <EM>not</EM> emit 
+the
+<CODE>xml:base</CODE> declaration from the given <CODE>base_uri</CODE> 
+option. The idea behind this option is to be able to create documents 
+with URIs relative to the document itself:
+
+<PRE class="code">
+        ...,
+        rdf_save(File,
+                 [ base_uri(BaseURI),
+                   write_xml_base(false)
+                 ]),
+        ...
+</PRE>
+
+</DD>
 <DT><STRONG>convert_typed_literal</STRONG>(<VAR>:Converter</VAR>)</DT>
 <DD class="defbody">
 If present, raw literal values are first passed to <VAR>Converter</VAR> 

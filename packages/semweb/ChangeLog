@@ -1,3 +1,8 @@
+Sep 11, 2006
+
+  * ADDED: options base_uri and write_xml_base to rdf_save/2.  Jochem
+    Liem.
+
 Aug 27, 2006
 
   * FIXED: Bug#199: failed to compile in single-thread mode. Keri Harris. 
