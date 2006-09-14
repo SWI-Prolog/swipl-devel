@@ -1,3 +1,7 @@
+Sep 14, 2006
+
+* FIXED: allow/deny code handling.  Steve Moyle.
+
 Sep 10, 2006
 
 * ADDED: determinism identifier 'multi'.
