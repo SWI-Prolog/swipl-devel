@@ -1241,9 +1241,12 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
    dsource = PL_atom_chars(dsn);
 
    if ( !henv )
-     SQLAllocEnv(&henv);		/* Allocate an environment handle */
+   { if ( (rc=SQLAllocEnv(&henv)) != SQL_SUCCESS )
+       return PL_warning("Could not initialise SQL environment");
+   }
 
-   SQLAllocConnect(henv, &hdbc);	/* Allocate a connection handle */
+   if ( (rc=SQLAllocConnect(henv, &hdbc)) != SQL_SUCCESS )
+     return odbc_report(henv, NULL, NULL, rc);
    /* Connect to a data source. */
    rc = SQLConnect(hdbc, (SQLCHAR *)dsource, SQL_NTS,
                          (SQLCHAR *)uid,     SQL_NTS,
@@ -1582,6 +1585,7 @@ odbc_end_transaction(term_t conn, term_t action)
 static context *
 new_context(connection *cn)
 { context *ctxt = odbc_malloc(sizeof(context));
+  int rc;
 
   if ( !ctxt )
     return NULL;
@@ -1592,7 +1596,10 @@ new_context(connection *cn)
   ctxt->null = cn->null;
   ctxt->flags = cn->flags;
   ctxt->max_nogetdata = cn->max_nogetdata;
-  SQLAllocStmt(cn->hdbc, &ctxt->hstmt);
+  if ( (rc=SQLAllocStmt(cn->hdbc, &ctxt->hstmt)) != SQL_SUCCESS )
+  { odbc_report(henv, cn->hdbc, NULL, rc);
+    return NULL;
+  }
   statistics.statements_created++;
 
   return ctxt;
@@ -2190,7 +2197,8 @@ pl_odbc_query(term_t dsn, term_t tquery, term_t trow, term_t options,
       if ( !get_connection(dsn, &cn) )
 	return FALSE;
          
-      ctxt = new_context(cn);
+      if ( !(ctxt = new_context(cn)) )
+	return FALSE;
       if ( !get_sql_text(ctxt, tquery) )
       { free_context(ctxt);
 	return FALSE;
@@ -2232,7 +2240,8 @@ odbc_tables(term_t dsn, term_t row, control_t handle)
       if ( !get_connection(dsn, &cn) )
 	return FALSE;
 
-      ctxt = new_context(cn);
+      if ( !(ctxt = new_context(cn)) )
+	return FALSE;
       ctxt->null = NULL;		/* use default $null$ */
       set(ctxt, CTX_TABLES);
       TRY(ctxt,
@@ -2269,7 +2278,8 @@ pl_odbc_column(term_t dsn, term_t db, term_t row, control_t handle)
 
       if ( !get_connection(dsn, &cn) )
 	return FALSE;
-      ctxt = new_context(cn);
+      if ( !(ctxt = new_context(cn)) )
+	return FALSE;
       ctxt->null = NULL;		/* use default $null$ */
       set(ctxt, CTX_COLUMNS);
       TRY(ctxt,
@@ -2316,7 +2326,8 @@ odbc_types(term_t dsn, term_t sqltype, term_t row, control_t handle)
 
       if ( !get_connection(dsn, &cn) )
 	return FALSE;
-      ctxt = new_context(cn);
+      if ( !(ctxt = new_context(cn)) )
+	return FALSE;
       ctxt->null = NULL;		/* use default $null$ */
       TRY(ctxt,
 	  SQLGetTypeInfo(ctxt->hstmt, type),
@@ -2652,7 +2663,8 @@ odbc_prepare(term_t dsn, term_t sql, term_t parms, term_t qid, term_t options)
   if ( !get_connection(dsn, &cn) )
     return FALSE;
 
-  ctxt = new_context(cn);
+  if ( !(ctxt = new_context(cn)) )
+    return FALSE;
   if ( !get_sql_text(ctxt, sql) )
   { free_context(ctxt);
     return FALSE;
