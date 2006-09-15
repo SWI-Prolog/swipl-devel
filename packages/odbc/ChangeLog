@@ -1,3 +1,9 @@
+Sep 15, 2006
+
+* FIXED: Properly get user and password from config file (pass NULL instead
+  of "").
+* FIXED: Enhance error reporting.
+
 Aug 15, 2006
 
 * ADDED: Bug#193: Checking result-codes in disconnect.

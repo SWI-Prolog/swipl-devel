@@ -315,16 +315,28 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
   SQLINTEGER native;			/* was DWORD */
   SQLCHAR message[SQL_MAX_MESSAGE_LENGTH];
   SWORD   msglen;
+  RETCODE rce;
   term_t  msg = PL_new_term_ref();
 
-  if ( SQLError(henv, hdbc, hstmt, state, &native, message,
-		sizeof(message), &msglen) == SQL_SUCCESS )
-  { PL_unify_term(msg, PL_FUNCTOR, FUNCTOR_odbc3,
-			 PL_CHARS,   state,
-		         PL_INTEGER, (long)native,
-		         PL_NCHARS,  msglen, message);
-  } else if ( rc != SQL_ERROR )
-    return TRUE;
+  switch ( (rce=SQLError(henv, hdbc, hstmt, state, &native, message,
+			 sizeof(message), &msglen)) == SQL_SUCCESS )
+  { case SQL_NO_DATA_FOUND:
+    case SQL_SUCCESS_WITH_INFO:
+      if ( rc != SQL_ERROR )
+	return TRUE;
+      /*FALLTHROUGH*/
+    case SQL_SUCCESS:
+      PL_unify_term(msg, PL_FUNCTOR, FUNCTOR_odbc3,
+			   PL_CHARS,   state,
+		           PL_INTEGER, (long)native,
+		           PL_NCHARS,  msglen, message);
+      break;
+    case SQL_INVALID_HANDLE:
+      return PL_warning("ODBC INTERNAL ERROR: Invalid handle in error\n");
+    default:
+      if ( rc != SQL_ERROR )
+	return TRUE;
+  }
 
   switch(rc)
   { case SQL_SUCCESS_WITH_INFO:
@@ -1159,8 +1171,8 @@ static foreign_t
 pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
 {  atom_t dsn;
    const char *dsource;			/* odbc data source */
-   char *uid = "";			/* user id */
-   char *pwd = "";			/* password */
+   char *uid = NULL;			/* user id */
+   char *pwd = NULL;			/* password */
    atom_t alias = 0;			/* alias-name */
    atom_t open = 0;			/* open next connection */
    RETCODE rc;				/* result code for ODBC functions */
