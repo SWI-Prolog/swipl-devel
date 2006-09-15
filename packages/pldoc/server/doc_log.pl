@@ -32,7 +32,7 @@
 :- module(pldoc_log,
 	  [ doc_log_requests/1		% +File
 	  ]).
-
+:- use_module(library(socket)).
 
 :- dynamic
 	logging/1.			% +Stream
@@ -51,6 +51,16 @@ doc_log_requests(File) :-
 	pldoc_http:log_hook/3.
 
 
+%%	log_hook(+Port, +Nr, +Data) is semidet.
+%
+%	Multifile hook called from doc_server/2.
+%	
+%	@param Port	One of =started=, =enter= or =exit=.
+%	@param Nr	Sequence number of request
+%	@param Data	For =enter=, the HTTP request data.  For =exit=,
+%			the 2nd argument of call_cleanup and =started=
+%			a term port(Port).
+
 pldoc_http:log_hook(Port, Nr, Data) :-
 	logging(Out), !,
 	log(Port, Nr, Data, Out).
@@ -59,20 +69,44 @@ log(Port, Nr, Data, Out) :-
 	filter_data(Port, Data, Log),
 	get_time(Now),
 	format_time(string(Time), '%+', Now),
-	format(Out, '~w ~w ~w ~q~n', [Time, Port, Nr, Log]),
+	format(Out, '~w ~q ~w ~q~n', [Time, Port, Nr, Log]),
 	flush_output(Out).
 
 filter_data(enter, Request0, Request) :- !,
 	filter_request(Request0, Request).
+filter_data(exit, exception(http_reply(Reply)), Reply).
 filter_data(_, Data, Data).
 
+%%	filter_request(+RequestIn, -RequestOut) is det.
+%
+%	Filter  the  HTTP  request  header.   Maps  field  values  using
+%	log_value/2 and selects fields using log_field/1.
+
 filter_request([], []).
+filter_request([H0|T0], [H1|T]) :-
+	log_value(H0, H1), !,
+	filter_request(T0, T).
 filter_request([H|T0], [H|T]) :-
 	functor(H, Name, _),
 	log_field(Name), !,
 	filter_request(T0, T).
 filter_request([_|T0], T) :-
 	filter_request(T0, T).
+
+
+%%	log_value(+FieldIn, -FieldOut) is semidet.
+%
+%	Allow changing fields into somewhat more readable format.
+%	
+%	@bug	tcp_host_to_address can take long.  It might be better
+%		to have this done in a seperate thread.
+
+log_value(peer(ip(A,B,C,D)), peer(Name)) :- !,
+	(   catch(tcp_host_to_address(Name, ip(A,B,C,D)), _, fail)
+	->  true
+	;   concat_atom([A,B,C,D], '.', Name)
+	).
+
 
 %%	log_field(+Field) is semidet.
 %
@@ -83,5 +117,7 @@ log_field(peer).
 log_field(method).
 log_field(path).
 log_field(search).
+log_field(referer).
+log_field(user_agent).
 
 
