@@ -319,7 +319,7 @@ odbc_report(HENV henv, HDBC hdbc, HSTMT hstmt, RETCODE rc)
   term_t  msg = PL_new_term_ref();
 
   switch ( (rce=SQLError(henv, hdbc, hstmt, state, &native, message,
-			 sizeof(message), &msglen)) == SQL_SUCCESS )
+			 sizeof(message), &msglen)) )
   { case SQL_NO_DATA_FOUND:
     case SQL_SUCCESS_WITH_INFO:
       if ( rc != SQL_ERROR )
@@ -1585,7 +1585,7 @@ odbc_end_transaction(term_t conn, term_t action)
 static context *
 new_context(connection *cn)
 { context *ctxt = odbc_malloc(sizeof(context));
-  int rc;
+  RETCODE rc;
 
   if ( !ctxt )
     return NULL;
