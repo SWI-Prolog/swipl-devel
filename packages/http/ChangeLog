@@ -1,3 +1,8 @@
+Sep 18, 2006
+
+  * FIXED: inetd_httpd: set stream encoding to octet to be able to handle
+    binary data.  Nicos Angelopoulos.
+
 Aug 21, 2006
 
   * FIXED: Quote & inside attribute values.

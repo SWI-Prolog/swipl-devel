@@ -50,7 +50,9 @@
 http_server(Goal, Options) :-
 	prompt(_, ''),
 	set_stream(user_output, buffer(full)),
+	set_stream(user_output, encoding(octet)),
 	set_stream(user_input, buffer(full)),
+	set_stream(user_input, encoding(octet)),
 	server_loop(Goal, Options).
 
 server_loop(_, _) :-
