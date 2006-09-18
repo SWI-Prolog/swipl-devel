@@ -6369,7 +6369,8 @@ hash_index_filter([P|Ps],Index,N,NPairs) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 assume_constraint_stores([]).
 assume_constraint_stores([C|Cs]) :-
-	( only_ground_indexed_arguments(C),
+	( chr_pp_flag(debugable,off),
+	  only_ground_indexed_arguments(C),
 	  is_stored(C),
 	  get_store_type(C,default) ->
 		get_indexed_arguments(C,IndexedArgs),
