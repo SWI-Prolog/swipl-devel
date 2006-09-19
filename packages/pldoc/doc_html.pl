@@ -57,6 +57,7 @@
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(url)).
+:- use_module(library(readutil)).
 :- use_module(library('http/html_write')).
 :- use_module(doc_process).
 :- use_module(doc_modes).
@@ -1077,7 +1078,7 @@ file(File) -->
 		 *******************************/
 
 
-%%	wiki_file(+File, +Out:stream, +Options) is det.
+%%	doc_for_wiki_file(+File, +Out:stream, +Options) is det.
 %
 %	Write HTML for the File containing wiki data.
 

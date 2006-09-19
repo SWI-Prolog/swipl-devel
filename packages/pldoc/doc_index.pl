@@ -136,7 +136,7 @@ wiki_file(Dir, Type) -->
 	  read_file_to_codes(File, String, []),
 	  wiki_string_to_dom(String, [], DOM)
 	},
-	html(DOM).
+	pldoc_html:html(DOM).
 
 %%	wiki_file_type(+Category, -File) is nondet.
 

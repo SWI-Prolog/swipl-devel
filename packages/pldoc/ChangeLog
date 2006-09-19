@@ -1,10 +1,13 @@
 Sep 19, 2006
 
-* Bug in allow/deny.  Alexey Ilyukhin.
+* Undefined procedure: pldoc_index:term/4 when using term-lists in README
+  or TODO.  Alexey Ilyukhin.
+
+* FIXED: Bug in allow/deny.  Alexey Ilyukhin.
 
 Sep 15, 2006
 
-* Enhanced logging
+* ENHANCED: logging
 
 Sep 14, 2006
 
