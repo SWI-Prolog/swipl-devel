@@ -586,6 +586,9 @@ attr_list_colours([H0|T0], [H|T]) :-
 	attr_list_colours(T0, T).
 
 
+:- op(990, xfx, :=).			% allow compiling without XPCE
+:- op(200, fy, @).
+
 emacs_prolog_colours:style(html(_), style(bold := @on,
 					  colour := magenta4)).
 emacs_prolog_colours:style(entity(_), style(colour := magenta4)).
