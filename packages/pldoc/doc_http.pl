@@ -201,7 +201,7 @@ auth_option(allow(From)) :-
 auth_option(deny(From)) :-
 	assert(deny_from(From)).
 
-%%	match_peer(+RuleSet, +PlusMin, +Peer) is semidet.
+%%	match_peer(:RuleSet, +PlusMin, +Peer) is semidet.
 %
 %	True if Peer is covered by the   ruleset RuleSet. Peer is a term
 %	ip(A,B,C,D). RuleSet is a predicate with   one  argument that is
@@ -216,13 +216,15 @@ auth_option(deny(From)) :-
 match_peer(Spec, _, Peer) :-
 	call(Spec, Peer), !.
 match_peer(Spec, PM, Peer) :-
-	(   call(Spec, Domain), atom(Domain)
+	(   call(Spec, HOrDom), atom(HOrDom)
 	->  (   catch(tcp_host_to_address(Host, Peer), E, true),
 	        var(E)
-	    ->	call(Spec, Deny),
-		atom(Deny),
-		sub_atom(Deny, 0, _, _, '.'),
-		sub_atom(Host, _, _, 0, Deny)
+	    ->	call(Spec, HostOrDomain),
+		atom(HostOrDomain),
+		(   sub_atom(HostOrDomain, 0, _, _, '.')
+		->  sub_atom(Host, _, _, 0, HostOrDomain)
+		;   HostOrDomain == Host
+		)
 	    ;   PM == (+)
 	    ->	!, fail
 	    ;	true

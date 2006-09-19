@@ -13,5 +13,5 @@
 %	on the internet. ?-  doc_server(4004)   only  allows access from
 %	localhost.
 
-:- doc_server(4004, []).
-% :- doc_server(4004).
+% :- doc_server(4004, []).
+:- doc_server(4004).

@@ -1,3 +1,7 @@
+Sep 19, 2006
+
+* Bug in allow/deny.  Alexey Ilyukhin.
+
 Sep 15, 2006
 
 * Enhanced logging
