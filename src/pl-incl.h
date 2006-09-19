@@ -1603,6 +1603,8 @@ be a good idea to remove the latter.
 
 Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
 value need not be trailed.
+
+Note that the local stack is always _above_ the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define Trail(p) \
