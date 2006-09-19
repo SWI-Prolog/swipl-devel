@@ -535,9 +535,11 @@ user:prolog_file_type(Ext,	executable) :-
 
 '$relative_to'(Conditions, Default, Dir) :-
 	(   '$member'(relative_to(FileOrDir), Conditions)
-	*-> (   exists_file(FileOrDir)
-	    ->  file_directory_name(FileOrDir, Dir)
-	    ;   Dir = FileOrDir
+	*-> (   exists_directory(FileOrDir)
+	    ->	Dir = FileOrDir
+	    ;	atom_concat(Dir, /, FileOrDir)
+	    ->	true
+	    ;	file_directory_name(FileOrDir, Dir)
 	    )
 	;   Default == cwd
 	->  working_directory(Dir, Dir)
