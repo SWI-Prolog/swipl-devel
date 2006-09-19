@@ -1286,7 +1286,7 @@ odbc_disconnect(+Connection)
 
 #define TRY_CN(cn, action) \
 	{ RETCODE rc = action; \
-	  if ( rc == SQL_ERROR ) \
+	  if ( rc != SQL_SUCCESS ) \
 	    return odbc_report(henv, cn->hdbc, NULL, rc); \
 	}
 
