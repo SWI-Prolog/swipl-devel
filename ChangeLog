@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#201: graphical tracer running out of local stack.  
+    Robert Oschler.
+
   * FIXED: Avoid undefined pce_expansion:push_compile_operators/1 in
     Prolog stack utility.  Mike Elston.
 

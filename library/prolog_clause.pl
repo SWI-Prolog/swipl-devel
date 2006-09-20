@@ -337,16 +337,17 @@ ubody(B0, B,
       term_position(F,T,F,T,[A])) :- !,
 	ubody(B0, B, A0, A).
 ubody(C0, C, P0, P) :-
+	nonvar(C0), nonvar(C),
 	C0 = (_,_), C = (_,_), !,
-      conj(C0, P0, GL, PL),
-      mkconj(C, P, GL, PL).
+	conj(C0, P0, GL, PL),
+	mkconj(C, P, GL, PL).
 ubody(X0, X,
       term_position(F,T,FF,TT,PA0),
       term_position(F,T,FF,TT,PA)) :-
-      meta(X0), !,
-      X0 =.. [_|A0],
-      X  =.. [_|A],
-      ubody_list(A0, A, PA0, PA).
+	meta(X0), !,
+	X0 =.. [_|A0],
+	X  =.. [_|A],
+	ubody_list(A0, A, PA0, PA).
 	
 ubody_list([], [], [], []).
 ubody_list([G0|T0], [G|T], [PA0|PAT0], [PA|PAT]) :-
@@ -371,7 +372,9 @@ conj(A, P, [A|TG], TG, [P|TP], TP).
 mkconj(Goal, Pos, GoalList, PosList) :-
 	mkconj(Goal, Pos, GoalList, [], PosList, []).
 
-mkconj((A,B), term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :- !,
+mkconj(Conj, term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :-
+	nonvar(Conj),
+	Conj = (A,B), !,
 	mkconj(A, PA, GL, TGA, PL, TPA),
 	mkconj(B, PB, TGA, TG, TPA, TP).
 mkconj(A0, P0, [A|TG], TG, [P|TP], TP) :-
