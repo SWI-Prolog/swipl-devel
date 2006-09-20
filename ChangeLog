@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Avoid undefined pce_expansion:push_compile_operators/1 in
+    Prolog stack utility.  Mike Elston.
+
   * MODIFIED: relative_to option of absolute_file_name/3 is considered a
     directory if the directory exists or ends in /.  Otherwise it is assumed
     to be a file.
