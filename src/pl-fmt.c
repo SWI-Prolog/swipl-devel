@@ -674,9 +674,13 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 		  if ( str != buf )
 		    free(str);
 
-		  if ( !rval && ex )
+		  if ( !rval )
 		  { Sunlock(fd);
-		    return PL_raise_exception(ex);
+
+		    if ( ex )
+		      return PL_raise_exception(ex);
+		    else
+		      fail;
 		  }
 
 		  SHIFT;
