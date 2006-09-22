@@ -443,6 +443,8 @@ last_arg:
 #endif
          printk("Reference to higher address");
     }
+    if ( p2 == p )
+      printk("Reference to same address");
     if ( !onLocal(p2) && !onGlobal(p2) )
       printk("Illegal reference pointer at 0x%x --> 0x%x", p, p2);
 
