@@ -647,10 +647,17 @@ valid_ports([H|T], Valid) :-
 	),
 	valid_ports(T, Valid).
 
+user:exception(undefined_global_variable, Name, retry) :-
+	chr_runtime_debug_global_variable(Name),
+	chr_debug_init.
 
-:- initialization
+chr_runtime_debug_global_variable(chr_leash).
+
+chr_debug_init :-
    leashed_ports(default, Ports),
    nb_setval(chr_leash, mutable(Ports)).
+
+:- initialization chr_debug_init.
 
 %	debug_event(+State, +Event)
 
