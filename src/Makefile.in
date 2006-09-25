@@ -208,9 +208,9 @@ $(RUNTIMEDIR)/$(SHARED):	$(RUNTIMEDIR)/$(SHAREDV)
 endif
 endif
 
-rc-lib:
+rc-lib:		$(RCOBJ)
 		@(cd rc && $(MAKE) COFLAGS="$(COFLAGS)")
-tai-lib:
+tai-lib:	$(TAIOBJ)
 		@(cd libtai && $(MAKE) COFLAGS="$(COFLAGS)")
 
 ../library/INDEX.pl:	../library ../library/[a-z]*.pl $(DEVPL) $(STARTUPPATH)

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: Bug#212: paralel make.  Keri Harris.
+
 VERSION 6.6.19, distributed with SWI-Prolog 5.6.19
 ==================================================
 

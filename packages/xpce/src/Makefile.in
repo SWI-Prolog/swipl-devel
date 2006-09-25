@@ -199,14 +199,14 @@ xpce:		prepare libXPCE xpce-client
 
 xpce-pl:	xpce pl-itf
 
-pl-itf:		pl
+pl-itf:		pl libXPCE
 		cd ../pl/src; \
 		CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
 		$(MAKE) PLLD=$(PLLD) PL=$(PLBUILD) $(PLTARGET)
 		rm -f ../lib/$(PLARCH)
 		(cd ../lib && ln -s ../$(builddir) $(PLARCH))
 
-pl-shared:	pl
+pl-shared:	pl libXPCE
 		cd ../pl/src; \
 		CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
 		$(MAKE) soall
