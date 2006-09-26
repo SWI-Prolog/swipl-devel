@@ -41,7 +41,7 @@ is supposed to give the POSIX standard one.
 #define timezone _timezone
 #else
 extern char *tzname[2];
-#ifndef HAVE_VAR_TIMEZONE
+#ifdef HAVE_VAR_TIMEZONE
 extern long timezone;
 #endif
 #endif
