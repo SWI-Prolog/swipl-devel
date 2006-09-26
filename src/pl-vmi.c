@@ -1003,7 +1003,8 @@ be able to access these!
        true(DEF->module, UNKNOWN_ERROR) )
   { FR->clause = NULL;
     if ( exception_term )		/* left by trapUndefined() */
-    { enterDefinition(DEF);	/* will be left in exception code */
+    { lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+      enterDefinition(DEF);		/* will be left in exception code */
       goto b_throw;
     }
   }
