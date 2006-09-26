@@ -833,6 +833,8 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	case I_FEXITDET:
 	case I_FEXITNDET:
 	case I_FREDO:
+	case S_TRUSTME:
+	case S_LIST:
 	  return;
 	case C_JMP:
 	  PC += (int)PC[1]+2;

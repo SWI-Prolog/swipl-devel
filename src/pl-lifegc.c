@@ -201,6 +201,11 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 
       case I_EXITQUERY:
       case I_EXITFACT:
+      case I_FEXITDET:
+      case I_FEXITNDET:
+      case I_FREDO:
+      case S_TRUSTME:			/* Consider supervisor handling! */
+      case S_LIST:
 	return PC-1;
 
       case C_JMP:			/* unconditional jump */
