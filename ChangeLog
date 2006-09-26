@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: call/7-11 as predicates.  Paulo Moura.
+
   * PORT: Bug#206: timezone trouble on FreeBSD.  With help from Matthew Condell
     and Darren Bane.
 

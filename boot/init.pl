@@ -164,6 +164,16 @@ call(G, A, B, C, D) :-
 	call(G, A, B, C, D).
 call(G, A, B, C, D, E) :-
 	call(G, A, B, C, D, E).
+call(G, A, B, C, D, E, F) :-
+	call(G, A, B, C, D, E, F).
+call(G, A, B, C, D, E, F, G) :-
+	call(G, A, B, C, D, E, F, G).
+call(G, A, B, C, D, E, F, G, H) :-
+	call(G, A, B, C, D, E, F, G, H).
+call(G, A, B, C, D, E, F, G, H, I) :-
+	call(G, A, B, C, D, E, F, G, H, I).
+call(G, A, B, C, D, E, F, G, H, I, J) :-
+	call(G, A, B, C, D, E, F, G, H, I, J).
 
 not(Goal) :-
 	\+ Goal.
