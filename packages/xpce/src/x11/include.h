@@ -73,6 +73,8 @@ error XPCE cannot be build for X version 10.  Sorry.
 #endif
 
 #ifdef USE_XFT
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include <X11/Xft/Xft.h>
 #endif
 
