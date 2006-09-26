@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Bug#206: timezone trouble on FreeBSD.  With help from Matthew Condell
+    and Darren Bane.
+
   * PORT: Bug#212: Paralel make.  Keri Harris.
 
   * FIXED: Bug#201: graphical tracer running out of local stack.  

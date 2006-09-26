@@ -400,6 +400,9 @@
 /* Define to 1 if you have the `strlwr' function. */
 #undef HAVE_STRLWR
 
+/* Define is struct tm has tm_gmtoff */
+#undef HAVE_STRUCT_TIME_TM_GMTOFF
+
 /* Define to 1 if you have the <SupportDefs.h> header file. */
 #undef HAVE_SUPPORTDEFS_H
 
@@ -476,6 +479,9 @@
 
 /* Define to 1 if you have the `usleep' function. */
 #undef HAVE_USLEEP
+
+/* Define if tzset sets timezone variable */
+#undef HAVE_VAR_TIMEZONE
 
 /* Define to 1 if you have the `vfork' function. */
 #undef HAVE_VFORK

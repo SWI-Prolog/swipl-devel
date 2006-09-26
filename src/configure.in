@@ -662,6 +662,37 @@ if test "$configgmp" = "yes"; then
   fi
 fi
 
+dnl tszet and timezone trouble
+
+AC_MSG_CHECKING("variable timezone in tzset")
+AC_TRY_RUN(
+[ #include <time.h>
+  #include <stdlib.h>
+  extern long timezone;
+
+  main()
+  { tzset();
+
+    if ( timezone > -15*3600 &&
+	 timezone < 15*3600 &&
+	 timezone % 60 == 0 )
+      return 0;
+
+    exit(1);
+  }
+],
+AC_MSG_RESULT(yes)
+AC_DEFINE(HAVE_VAR_TIMEZONE, 1,
+	  [Define if tzset sets timezone variable]),
+AC_MSG_RESULT(no),
+AC_MSG_RESULT(assuming no))
+
+AC_CHECK_MEMBER(struct tm.tm_gmtoff,
+		AC_DEFINE(HAVE_STRUCT_TIME_TM_GMTOFF, [],
+			  [Define is struct tm has tm_gmtoff]),
+		[],
+		[#include <time.h>])
+		
 AC_MSG_CHECKING("Boot filename");
 BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc
 AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE",

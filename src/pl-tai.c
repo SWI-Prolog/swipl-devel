@@ -23,15 +23,10 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Somehow, MacOS X defines timezone()  as   a  function. Using the #define
-__DARWIN_UNIX03 1 is reverts to the  standard   behaviour  to make it an
-long set by tzset().  Not really clean ...
-
 Solaris has asctime_r() with 3 arguments. Using _POSIX_PTHREAD_SEMANTICS
 is supposed to give the POSIX standard one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define __DARWIN_UNIX03 1
 #ifdef __sun__
 #define _POSIX_PTHREAD_SEMANTICS 1
 #endif
@@ -44,11 +39,11 @@ is supposed to give the POSIX standard one.
 
 #ifdef WIN32
 #define timezone _timezone
-#define daylight _daylight
 #else
 extern char *tzname[2];
+#ifndef HAVE_VAR_TIMEZONE
 extern long timezone;
-extern int daylight;
+#endif
 #endif
 
 
@@ -86,10 +81,40 @@ do_tzset()
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+POSIX provides the avriable  timezone,  providing   the  offset  of  the
+current timezone WEST of GMT in seconds.   Some systems (FreeBSD) do not
+provide that. Instead thet provide  tm_gmtoff   in  struct  tm, but this
+value is EAST and includes the DST offset.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 tz_offset()
-{ do_tzset();
+{
+#ifdef HAVE_VAR_TIMEZONE
+  do_tzset();
   return timezone;
+#else
+#ifdef HAVE_STRUCT_TIME_TM_GMTOFF
+  static int offset = -1;
+  if ( offset == -1 )
+  { time_t t = time(NULL);
+    struct tm tm;
+
+    localtime_r(&t, &tm);
+
+    offset = -tm.tm_gmtoff;
+    if ( tm.tm_isdst > 0 )
+      offset += 3600;
+  /*Use to verify on systems where we know both.  In Western Europe the
+    offset must be -3600, both in winter and summer.*/
+  /*Sdprintf("timezone offset = %d (must be %d)\n", offset, timezone);*/
+  }
+  return offset;
+#else
+#error "Do not know how to get timezone info"
+#endif
+#endif
 }
 
 
@@ -318,13 +343,11 @@ PRED_IMPL("stamp_date_time", 3, stamp_date_time, 0)
 	  ct.hour       = tm.tm_hour;
 	  ct.minute     = tm.tm_min;
 	  tzatom = tz_name_as_atom(tm.tm_isdst);
-	  if ( daylight )			/* from tzset() */
-	  { if ( tm.tm_isdst )
-	    { utcoffset -= 3600;
-	      dstatom    = ATOM_true;
-	    } else
-	    { dstatom    = ATOM_false;
-	    }
+	  if ( tm.tm_isdst > 0 )
+	  { utcoffset -= 3600;
+	    dstatom    = ATOM_true;
+	  } else
+	  { dstatom    = ATOM_false;
 	  }
 	  done = TRUE;
 	}
@@ -728,11 +751,9 @@ PRED_IMPL("format_time", 3, format_time, 0)
     { tb.utcoff = tz_offset();
       localtime_r(&unixt, &tb.tm);
       tb.sec = (double)tb.tm.tm_sec + modf(tb.stamp, &ip);
-      if ( daylight )
-      { if ( tb.tm.tm_isdst )
-	{ tb.utcoff -= 3600;
-	  tb.isdst = TRUE;
-	}
+      if ( tb.tm.tm_isdst > 0 )
+      { tb.utcoff -= 3600;
+	tb.isdst = TRUE;
       }
       tb.tzname = tz_name_as_atom(tb.tm.tm_isdst);
       tb.flags  = HAS_STAMP|HAS_WYDAY;
