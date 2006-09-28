@@ -39,6 +39,7 @@ is supposed to give the POSIX standard one.
 
 #ifdef WIN32
 #define timezone _timezone
+#define HAVE_VAR_TIMEZONE
 #else
 extern char *tzname[2];
 #ifdef HAVE_VAR_TIMEZONE
