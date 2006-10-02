@@ -125,11 +125,9 @@ get_integer(word w, Number n)
     int wsize = wsizeofInd(*p);
 
     p++;
-    if ( wsize == sizeof(int64_t)/sizeof(word) )
-    { int64_t *ip = (int64_t *)p;
-
-      n->type = V_INTEGER;
-      n->value.i = *ip;
+    if ( wsize == WORDS_PER_INT64 )
+    { n->type = V_INTEGER;
+      memcpy(&n->value.i, p, sizeof(int64_t));
     } else
     { n->type = V_MPZ;
 
