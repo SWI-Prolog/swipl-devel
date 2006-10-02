@@ -57,88 +57,19 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.18 Patches relative to 5.6.17
+Version 5.6.21 Patches relative to 5.6.20
 =========================================
 
 Prolog
 
-  * FIXED: Updated www_open_url for netscape compatible browsers on Unix.
-    Cleanup of comments, etc.  Work-around lacking exit code of firefox
-    -remote commands.
-
-  * FIXED: Source-level debugger for a --> { x }, !, y.
-
-  * FIXED: write_canonical(a|b).  Lukas Degener.
-
-  * ADDED: Support for large integers in succ/2, plus/3 and between/3.
-    Bart Demoen.
-
-  * FIXED: Domain error on random/1.   Lukas Degener.
-
-  * FIXED: pl-tai.c portability problem for Solaris (asctime_r). 
-    Hazita Harun.
-
-  * FIXED: Bug#192: reading non-decimal numbers that cause a 64-bit int
-    overflow.  Marius Filip.
-
-  * ENHANCED: Bug#195: library(debug) to compile debugging(x) to fail when -O
-    is active.  Holger Kanwischer.
-
-  * ADDED: print_message(silent, toplevel_goal(Goal, Bindings)) to allow
-    intercepting toplevel goals just before they are executed.  Some
-    cleanup to toplevel.pl and topvars.pl
-
-  * FIXED: possible crash freeing a thread that could not be created
-    due to conflicting alias.
-
-  * FIXED: avoid errors in open while getting a stacktrace.  Mike
-    Elston. 
-
-  * FIXED: 1 is sin(pi/2) incorrectly succeeded in optimised mode.
-
-  * MODIFIED: Message term of make/0 after completion has changed from
-    make(done) to make(done(Files)).  Should not affect user-code.
-
-  * ADDED: Library option, option/2.
-
-  * DOC: Fixed all libraries to have their comments compatible with the
-    emerging documentation package.
-
-  * FIXED: stead-fastness of library predicate option/3.
-
-  * PORT: Bug#192: Better implementation of per-thread CPUtime, depending
-    on Linux library and kernel versions.  Keri Harris.
-
-  * FIXED: Bug#191: with_output_to and format: lacking initialisation.
-    Holger Kanwischer.
-
-  * FIXED: Interaction problem between comments and subterm-positions
-    options in read_term/3.  Lukas Degener.
-
-  * ADDED: library prolog_source.pl.  Start to generalise opening, closing
-    and dealing with operators to handle Prolog source documents outside the
-    compiler.
-
-  * FIXED: read_term/2,3 comments(-Comments) option loosing first
-    character after /*.
-
-  * FIXED: Bug#189: Thread id in Linux/PPC (and possibly others).
-    Keri Harris.
-
-  * FIXED: Bug#188: missing module_transparent for sformat/2,3.  
-    Holger Kanwischer.
-
-  * FIXED: Bug#185: %+ initialization if yday and yday.  Keri Harris.
-
-  * FIXED: Bug#184: date/time test-suite for ~ -> %.  Keri Harris.
+  * Various portability and installation issues.
+  * Error in ceil/1 and floor/1 for float(1**63).
 							    
 Packages
-  
-  * New: pldoc:  Source-code documentation and viewing system
-  * New: plunit: Unit test framework
-  * Semweb: portability problems (RISC processors, single-theaded)
-  * XPCE: Allow for spaces in init files, fixed possible crash in
-    window placement.
-  * HTTP: Cleanup; exploit new time primitives, fixed quoting issue
-    in html_write.
-  * JPL: Add support for IBM Java to configure
+
+  * XPCE: Portability issues
+  * HTTP: Encoding issues using inetd frontend
+  * PlDoc: Wiki issue in README and TODO files
+  * Semweb: Added rdf_persistency/2 and indexing of numerical values in
+    rdf_find_literals/2.  Fixed leaking a file-handle (Unix) or
+    permission error (Windows) when reloading a persistent database.

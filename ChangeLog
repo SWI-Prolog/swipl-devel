@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+================================
+VERSION 5.6.21 (October 2, 2006)
+================================
+
   * PORT: Bug#219: Bus error with gmp on linux/sparc.  Keri Harris.
 
   * FIXED: Bug#217: floor/1 and ceil/1 return wrong value for 1<<63.
