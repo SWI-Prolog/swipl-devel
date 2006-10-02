@@ -77,25 +77,16 @@ next_instruction:
 	goto r1;
 
 With gcc-2.1 or later, we can get this result without using assembler.
-All this required where a few pacthes in interpret(), the compiler and
+All this required where a few patches in interpret(), the compiler and
 the wic (intermediate code)  generation  code.  The initialisation  is
 very critical:
 
-The function interpret() (the VM interpreter)  declares a static array
-holding  the label  addresses      of the  various  virtual    machine
-instructions.  When it is  called,  it will  store the address of this
-table in  the  global  variable  interpreter_jmp_table.   the function
-initWamTable() than makes the two  translation tables wam_table[] (wam
-code --> label address and dewam_table[] (label address --> wam code).
-Note that initWamTable() calles prolog() and thus interpret to get the
-table with  the label addresses  out of interpret().   It does so with
-the  C-defined  predicate fail/0 (because   it  cannot  yet run prolog
-predicates).
-
-BUGS:	Currently there are three  places were all the VM instructions
-	are  defined: pl-incl.h;  above and   pl-wam.c.  One day  this
-	should  be merged.  For  now, be very carefull  if you add  or
-	delete a VM instruction.
+The function PL_next_solution() (the VM   interpreter) declares a static
+array holding the  label  addresses  of   the  various  virtual  machine
+instructions. When it is called, it will store the address of this table
+in   the   global   variable     interpreter_jmp_table.   the   function
+initWamTable() than makes the two   translation  tables wam_table[] (wam
+code --> label address and dewam_table[]   (label address --> wam code).
 
 NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 	more information.
