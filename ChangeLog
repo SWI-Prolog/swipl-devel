@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#217: floor/1 and ceil/1 return wrong value for 1<<63.
+    Marius Filip.
+
   * ADDED: call/7-11 as predicates.  Paulo Moura.
 
   * PORT: Bug#206: timezone trouble on FreeBSD.  With help from Matthew Condell

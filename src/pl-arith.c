@@ -2098,14 +2098,12 @@ ar_floor(Number n1, Number r)
     case V_REAL:
     {
 #ifdef HAVE_FLOOR
-      double f = floor(n1->value.f);
-      if ( f >= (double)PLMININT && f <= (double)PLMAXINT )
-      { r->type = V_INTEGER;
-	r->value.i = (int64_t)f;
-      } else
+      r->type = V_REAL;
+      r->value.f = floor(n1->value.f);
+      if ( !toIntegerNumber(r) )
       {
 #ifdef O_GMP
-	mpz_init_set_d(r->value.mpz, f);
+	mpz_init_set_d(r->value.mpz, n1->value.f);
 	r->type = V_MPZ;
 #else
 	return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -2159,14 +2157,12 @@ ar_ceil(Number n1, Number r)
     case V_REAL:
     {
 #ifdef HAVE_CEIL
-       double f = ceil(n1->value.f);
-       if ( f >= (double)PLMININT && f <= (double)PLMAXINT )
-       { r->type = V_INTEGER;
-	 r->value.i = (int64_t)f;
-       } else
+       r->type = V_REAL;
+       r->value.f = ceil(n1->value.f);
+       if ( !toIntegerNumber(r) )
        {
 #ifdef O_GMP
-         mpz_init_set_d(r->value.mpz, f);
+         mpz_init_set_d(r->value.mpz, n1->value.f);
 	 r->type = V_MPZ;
 #else
          return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
