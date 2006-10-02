@@ -1,5 +1,8 @@
 Oct 2, 2006
 
+  * FIXED: rdf_load/2 in combination with rdf_persistency.pl.  Faster and
+    avoid leaking file-handles.  Jacco van Ossenbruggen.
+
   * ADDED: rdf_persistency/2 to control whether or not a database is maintained
     in the persistent database.  E-culture project.
 

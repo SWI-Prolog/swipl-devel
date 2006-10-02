@@ -711,7 +711,7 @@ rdf_load(Spec, Options0) :-
 	    time_file(File, Modified),
 	    (	rdf_source(File, WhenLoaded, _, _)
 	    ->	(   Modified > WhenLoaded
-		->  rdf_retractall(_,_,_,File:_),
+		->  do_unload(File),
 		    Action = reload
 		;   Action = none
 		)
