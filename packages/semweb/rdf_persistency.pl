@@ -315,8 +315,8 @@ rdf_persistency(DB, true) :-
 	).
 
 
-%%	start_monitor
-%%	stop_monitor
+%%	start_monitor is det.
+%%	stop_monitor is det.
 %
 %	Start/stop monitoring the RDF database   for  changes and update
 %	the journal.
