@@ -33,6 +33,7 @@
 	  [ rdf_attach_db/2,		% +Directory, +Options
 	    rdf_detach_db/0,		% +Detach current DB
 	    rdf_current_db/1,		% -Directory
+	    rdf_persistency/2,		% +DB, +Bool
 	    rdf_flush_journals/1,	% +Options
 	    rdf_journal_file/2,		% ?DB, ?JournalFile
 	    rdf_db_to_file/2		% ?DB, ?FileBase
@@ -288,9 +289,37 @@ process_journal_term(end, _).
 		 *******************************/
 
 :- dynamic
-	blocked_db/1,			% DB
+	blocked_db/2,			% DB, Reason
 	transaction_message/2,		% Id, Message
 	transaction_db/2.		% Id, DB
+
+%%	rdf_persistency(+DB, Bool)
+%
+%	Specify whether a database is persistent.  Switching to =false=
+%       kills the persistent state.  Switching to =true= creates it.
+
+rdf_persistency(DB, Bool) :-
+	must_be(atom, DB),
+	must_be(bool, Bool),
+	fail.
+rdf_persistency(DB, false) :- !,
+	(   blocked_db(DB, persistency)
+	->  true
+	;   assert(blocked_db(DB, persistency)),
+	    delete_db(DB)
+	).
+rdf_persistency(DB, true) :-
+	(   retract(blocked_db(DB, persistency))
+	->  create_db(DB)
+	;   true
+	).
+
+
+%%	start_monitor
+%%	stop_monitor
+%
+%	Start/stop monitoring the RDF database   for  changes and update
+%	the journal.
 
 start_monitor :-
 	rdf_monitor(monitor,
@@ -305,31 +334,31 @@ monitor(Msg) :-
 	debug(monitor, 'Monitor: ~p~n', [Msg]),
 	fail.
 monitor(assert(S,P,O,DB:Line)) :- !,
-	\+ blocked_db(DB),
+	\+ blocked_db(DB, _),
 	journal_fd(DB, Fd),
 	open_transaction(DB, Fd),
 	format(Fd, '~q.~n', [assert(S,P,O,Line)]),
 	sync_journal(DB, Fd).
 monitor(assert(S,P,O,DB)) :-
-	\+ blocked_db(DB),
+	\+ blocked_db(DB, _),
 	journal_fd(DB, Fd),
 	open_transaction(DB, Fd),
 	format(Fd, '~q.~n', [assert(S,P,O)]),
 	sync_journal(DB, Fd).
 monitor(retract(S,P,O,DB:Line)) :- !,
-	\+ blocked_db(DB),
+	\+ blocked_db(DB, _),
 	journal_fd(DB, Fd),
 	open_transaction(DB, Fd),
 	format(Fd, '~q.~n', [retract(S,P,O,Line)]),
 	sync_journal(DB, Fd).
 monitor(retract(S,P,O,DB)) :-
-	\+ blocked_db(DB),
+	\+ blocked_db(DB, _),
 	journal_fd(DB, Fd),
 	open_transaction(DB, Fd),
 	format(Fd, '~q.~n', [retract(S,P,O)]),
 	sync_journal(DB, Fd).
 monitor(update(S,P,O,DB:Line,Action)) :- !,
-	\+ blocked_db(DB),
+	\+ blocked_db(DB, _),
 	(   Action = source(NewDB)
 	->  monitor(assert(S,P,O,NewDB)),
 	    monitor(retract(S,P,O,DB:Line))
@@ -338,7 +367,7 @@ monitor(update(S,P,O,DB:Line,Action)) :- !,
 	    sync_journal(DB, Fd)
 	).
 monitor(update(S,P,O,DB,Action)) :-
-	\+ blocked_db(DB),
+	\+ blocked_db(DB, _),
 	(   Action = source(NewDB)
 	->  monitor(assert(S,P,O,NewDB)),
 	    monitor(retract(S,P,O,DB))
@@ -356,20 +385,30 @@ monitor(transaction(BE, Id)) :-
 	monitor_transaction(Id, BE).
 
 monitor_transaction(load_journal(DB), begin) :- !,
-	assert(blocked_db(DB)).
+	assert(blocked_db(DB, journal)).
 monitor_transaction(load_journal(DB), end) :- !,
-	retractall(blocked_db(DB)).
+	retractall(blocked_db(DB, journal)).
 
 monitor_transaction(parse(file(DB)), begin) :- !,
-	assert(blocked_db(DB)).
+	(   blocked_db(DB, persistency)
+	->  true
+	;   assert(blocked_db(DB, parse))
+	).
 monitor_transaction(parse(file(DB)), end) :- !,
-	retractall(blocked_db(DB)),
-	create_db(DB).
+	(   retract(blocked_db(DB, parse))
+	->  create_db(DB)
+	;   true
+	).
 monitor_transaction(unload(DB), begin) :- !,
-	assert(blocked_db(DB)).
+	(   blocked_db(DB, persistency)
+	->  true
+	;   assert(blocked_db(DB, unload))
+	).
 monitor_transaction(unload(DB), end) :- !,
-	retractall(blocked_db(DB)),
-	delete_db(DB).
+	(   retract(blocked_db(DB, unload))
+	->  delete_db(DB)
+	;   true
+	).
 monitor_transaction(log(Msg), begin) :- !,
 	(   predicate_property(transaction_message(_,_),
 			       number_of_clauses(N))
@@ -712,6 +751,20 @@ mkdir(Directory) :-
 time_stamp(Int) :-
 	get_time(Now),
 	Int is round(Now).
+
+
+		 /*******************************
+		 *	       TYPES		*
+		 *******************************/
+
+must_be(Type, Value) :-
+	is_type(Type, Value), !.
+must_be(Type, Value) :-
+	throw(error(type_error(Type, Value), _)).
+
+is_type(atom, Value) :- !, atom(Value).
+is_type(bool, Value) :- !, (	 Value == true -> true ; Value == false ).
+
 
 
 		 /*******************************

@@ -1,5 +1,8 @@
 Oct 2, 2006
 
+  * ADDED: rdf_persistency/2 to control whether or not a database is maintained
+    in the persistent database.  E-culture project.
+
   * ADDED: numerical keys between/2, le/1 and ge/1 to rdf_find_literals/2.
     E-culture project.
 

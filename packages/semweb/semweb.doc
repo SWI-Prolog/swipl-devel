@@ -1363,6 +1363,15 @@ triple store.
 Unify \arg{Directory} with the current database directory.  Fails if no
 persistent database is attached.
 
+    \predicate{rdf_persistency}{2}{+DB, +Bool}
+Change presistency of named database (4th argument of rdf/4). By default
+all databases are presistent. Using \const{false}, the journal and
+snapshot for the database are deleted and further changes to triples
+associated with \arg{DB} are not recorded. If \arg{Bool} is \const{true}
+a snapshot is created for the current state and further modifications
+are monitored.  Switching persistency does not affect the triples in the
+in-memory RDF database.
+
     \predicate{rdf_flush_journals}{1}{+Options}
 Flush dirty journals.  With the option \term{min_size}{KB} only journals
 larger than \arg{KB} Kbytes are merged with the base state.  Flushing a
