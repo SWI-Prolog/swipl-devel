@@ -328,7 +328,7 @@ get_datum(term_t t, datum* d)
   { if ( l < MAP_MIN_INT || l > MAP_MAX_INT )
       return representation_error("integer_range");
 
-    *d = long_to_datum(l);			/* TBD: verify range */
+    *d = long_to_datum(l);
     return TRUE;
   }
 

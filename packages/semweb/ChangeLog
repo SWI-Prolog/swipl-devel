@@ -1,3 +1,8 @@
+Oct 2, 2006
+
+  * ADDED: numerical keys between/2, le/1 and ge/1 to rdf_find_literals/2.
+    E-culture project.
+
 Sep 11, 2006
 
   * ADDED: options base_uri and write_xml_base to rdf_save/2.  Jochem

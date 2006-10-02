@@ -1103,8 +1103,9 @@ algorithm of the NLP package.
     \predicate{rdf_find_literals}{2}{+Spec, -ListOfLiterals}
 Find literals (without type or language specification) that satisfy
 \arg{Spec}. The required indices are created as needed and kept
-up-to-date using hooks registered with rdf_monitor/2.  \arg{Spec}
-is defined as:
+up-to-date using hooks registered with rdf_monitor/2.  Numerical
+indexing is currently limited to integers in the range $\pm 2^30$
+($\pm 2^62 on 64-bit platforms$).  \arg{Spec} is defined as:
 
     \begin{description}
 	\termitem{and}{Spec1, Spec2}
@@ -1135,6 +1136,18 @@ details.
 	\termitem{prefix}{Prefix}
 Matches all literals containing at least one word that starts with
 Prefix, discarding diacritics and case.
+
+	\termitem{between}{Low, High}
+Matches all literals containing an integer token in the range
+\arg{Low}..\arg{High}, including the boundaries.
+
+	\termitem{ge}{Low}
+Matches all literals containing an integer token with value
+\arg{Low} or higher.
+
+	\termitem{le}{High}
+Matches all literals containing an integer token with value
+\arg{High} or lower.
 
 	\termitem{Token}{}
 Matches all literals containing the given token.  See tokenize_atom/2

@@ -98,6 +98,9 @@ set_option(Term) :-
 %	Spec ::= sounds(Like)
 %	Spec ::= stem(Like)
 %	Spec ::= prefix(Prefix)
+%	Spec ::= between(Low, High)	% Numerical between
+%	Spec ::= ge(High)		% Numerical greater-equal
+%	Spec ::= le(Low)		% Numerical less-equal
 %	Spec ::= Token
 %	==
 %	
@@ -225,6 +228,18 @@ expand_fuzzy(and(A0, B0), and(A,B)) :- !,
 	expand_fuzzy(B0, B).
 expand_fuzzy(not(A0), not(A)) :- !,
 	expand_fuzzy(A0, A).
+expand_fuzzy(between(Low, High), Or) :- !,
+	token_index(Map),
+	rdf_keys_in_literal_map(Map, between(Low, High), Tokens),
+	list_to_or(Tokens, between(Low, High), Or).
+expand_fuzzy(le(High), Or) :- !,
+	token_index(Map),
+	rdf_keys_in_literal_map(Map, le(High), Tokens),
+	list_to_or(Tokens, le(High), Or).
+expand_fuzzy(ge(Low), Or) :- !,
+	token_index(Map),
+	rdf_keys_in_literal_map(Map, ge(Low), Tokens),
+	list_to_or(Tokens, ge(Low), Or).
 expand_fuzzy(Token, Token) :-
 	atomic(Token), !.
 expand_fuzzy(Token, _) :-
@@ -238,20 +253,30 @@ list_to_or([H0|T0], How, or(H, T)) :-
 	tag(How, H0, H),
 	list_to_or(T0, How, T).
 
-tag(sounds(X), Y, sounds(X,Y)).
-tag(stem(X),   Y, stem(X,Y)).
-tag(prefix(X), Y, prefix(X,Y)).
-tag(case(X),   Y, case(X,Y)).
+tag(sounds(X),	  Y, sounds(X,Y)).
+tag(stem(X),	  Y, stem(X,Y)).
+tag(prefix(X),	  Y, prefix(X,Y)).
+tag(case(X),	  Y, case(X,Y)).
+tag(between(L,H), Y, between(L,H,Y)).
+tag(ge(L),	  Y, ge(L,Y)).
+tag(le(H),	  Y, le(H,Y)).
 
-untag(sounds(_,Y), Y).
-untag(stem(_,Y),   Y).
-untag(prefix(_,Y), Y).
-untag(case(_,Y),   Y).
+untag(sounds(_,Y),    Y).
+untag(stem(_,Y),      Y).
+untag(prefix(_,Y),    Y).
+untag(case(_,Y),      Y).
+untag(between(_,_,Y), Y).
+untag(le(_,Y),	      Y).
+untag(ge(_,Y),	      Y).
 
-untag(sounds(X,Y), sounds(X), Y).
-untag(stem(X,Y),   stem(X), Y).
-untag(prefix(X,Y), prefix(X), Y).
-untag(case(X,Y),   case(X), Y).
+untag(sounds(X,Y),    sounds(X),    Y).
+untag(stem(X,Y),      stem(X),	    Y).
+untag(prefix(X,Y),    prefix(X),    Y).
+untag(case(X,Y),      case(X),	    Y).
+untag(between(L,H,Y), between(L,H), Y).
+untag(ge(L,Y),	      ge(L),	    Y).
+untag(le(H,Y),	      le(H),	    Y).
+
 
 %%	nnf(+Formula, -NNF)
 %	
@@ -411,13 +436,13 @@ select_tokens([H|T0], [H|T]) :-
 
 no_index_token(X) :-
 	exclude_from_index(token, X), !.
+no_index_token(X) :-			% TBD: only small integers can
+	integer(X),			% be indexed
+	\+ between(-1073741824, 1073741823, X), !.
 no_index_token(X) :-
 	atom_length(X, 1), !.
 no_index_token(X) :-
 	float(X), !.
-no_index_token(X) :-			% TBD: only small integers can
-	integer(X),			% be indexed
-	\+ between(-1073741824, 1073741823, X), !.
 no_index_token(and).
 no_index_token(an).
 no_index_token(or).

@@ -683,6 +683,9 @@ void *
 avlfindfirst(AVL_TREE tree, void *data, avl_enum *e)
 { AVLtree node = tree->root;
 
+  if ( !node )
+    return NULL;
+
   e->tree    = tree;
   e->current = 0;
   
