@@ -49,7 +49,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 %% OPEN BUGS
-%%	* matching between ground and non-ground variable not properly guarded
 %%
 %% URGENTLY TODO
 %%
@@ -5134,7 +5133,7 @@ add_arg_ground_variables([Arg|Args],[Mode|Modes],GroundVars,NGroundVars) :-
 		term_variables(Arg,Vars),
 		add_var_ground_variables(Vars,GroundVars,GroundVars1)
 	;
-		GroundVars1 = GroundVars1
+		GroundVars = GroundVars1
 	),
 	add_arg_ground_variables(Args,Modes,GroundVars1,NGroundVars).
 
