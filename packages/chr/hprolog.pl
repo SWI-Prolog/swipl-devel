@@ -7,6 +7,7 @@
 	    list_difference_eq/3,	% +List, -Subtract, -Rest
 	    take/3,			% +N, +List, -FirstElements
 	    drop/3,			% +N, +List, -LastElements
+	    split_at/4,			% +N, +List, -FirstElements, -LastElements
 	    max_go_list/2,		% +List, -Max
 	    or_list/2,			% +ListOfInts, -BitwiseOr
 	    sublist/2,			% ?Sublist, +List
@@ -144,6 +145,11 @@ drop(N,[_|Tail],LastElements) :-
 	N > 0,
 	N1 is N  - 1,
 	drop(N1,Tail,LastElements).
+
+split_at(0,L,[],L) :- !.
+split_at(N,[H|T],[H|L1],L2) :-
+	M is N -1,
+	split_at(M,T,L1,L2).
 
 %	max_go_list(+List, -Max)
 %	

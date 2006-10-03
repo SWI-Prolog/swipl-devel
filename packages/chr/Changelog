@@ -1,3 +1,20 @@
+Oct 3, 2006
+
+  * TS: Fixed bug concerning matchings between ground and possibly
+ 	non-ground arguments.	
+
+Oct 2, 2006
+
+  * TS: Fixed a bug in code generation, overeager removal of a clause.
+
+Sep 28, 2006
+
+  * TS: Refactored some code.
+
+Sep 22, 2006
+
+  * TS: Add exception handler to initialize chr_leash in new threads.
+  
 Sep 18. 2006
 
   * TS: Bug fix for programs in debugging mode.
