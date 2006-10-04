@@ -1,3 +1,7 @@
+Oct 4, 2006
+
+* Fixed _foo and -foo.  Alexey Ilyukhin.
+
 Sep 19, 2006
 
 * Undefined procedure: pldoc_index:term/4 when using term-lists in README

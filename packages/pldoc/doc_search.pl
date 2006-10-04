@@ -297,13 +297,30 @@ collect_by_key(_, L, [], L).
 
 matching_object(Search, Type-(Section-Obj), Options) :-
 	catch(atom_to_term(Search, Obj, _), _, fail),
+	nonvar(Obj),
 	option(search_in(In), Options, all),
 	prolog:doc_object_summary(Obj, Type, Section, _),
 	matching_category(In, Type).
 matching_object(Search, Match, Options) :-
 	atom_codes(Search, Codes),
-	phrase(search_spec(For), Codes),
-	exec_search(For, Match, Options).
+	phrase(search_spec(For0), Codes),
+	(   For0 = not(_)
+	->  throw(error(bad_search(only_not), _))
+	;   optimise_search(For0, For),
+	    exec_search(For, Match, Options)
+	).
+
+%%	optimise_search(+Spec, -Optimised)
+%
+%	Optimise a search specification. Currently   only deals with the
+%	simple case of  first  searching  for   a  negation  and  then a
+%	positive term.
+
+optimise_search(and(not(A0), B0), and(B, not(A))) :- !,
+	optimise_search(A0, A),
+	optimise_search(B0, B).
+optimise_search(A, A).
+
 
 %%	exec_search(+Spec, -Match, +Options) is nondet.
 %
