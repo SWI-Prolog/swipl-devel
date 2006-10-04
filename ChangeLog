@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#221: Create dynamic predicates with long UNICODE names.
+    Holger Kanwischer.
+
 ================================
 VERSION 5.6.21 (October 2, 2006)
 ================================

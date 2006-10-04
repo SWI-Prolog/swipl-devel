@@ -119,6 +119,7 @@ atom_summary(atom_t name, unsigned int maxlen)
     if ( i == maxlen - 6 )
     { addMultipleBuffer(b, "...", 3, char);
       i = txt.length - 4;
+      maxlen = 0;			/* make sure not to trap again */
     }
   }
   addBuffer(b, 0, char);
