@@ -837,20 +837,22 @@ _xos_getenv(const char *name, char *buf, int buflen)
   DWORD size;
 
   if ( !utf8towcs(nm, name, PATH_MAX) )
-    return NULL;
+    return -1;
   size = GetEnvironmentVariable(nm, valp, PATH_MAX);
 
   if ( size > 0 )
-  { if ( size >= PATH_MAX )
+  { int rc;
+
+    if ( size >= PATH_MAX )
     { if ( (valp = malloc(size+1)) == NULL )
 	return -1;
       size = GetEnvironmentVariable(nm, valp, size+1);
     }
 
     if ( wcstoutf8(buf, valp, buflen) )
-      rc = strlen(val);
+      rc = strlen(buf);
     else
-      rc = wcutf8len(val);
+      rc = wcutf8len(valp);
     
     if ( valp != val )
       free(valp);
