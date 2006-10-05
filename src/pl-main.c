@@ -90,15 +90,15 @@ findHome(char *symbols)
   const char *val;
   
   if ( (val  = exec_var("homevar")) &&
-       (home = getenv3(val, envbuf, sizeof(envbuf))) &&
+       (home = Getenv(val, envbuf, sizeof(envbuf))) &&
        (home = PrologPath(home, plp, sizeof(plp))) )
     return store_string(home);
   if ( (val = exec_var("home")) &&
        (home = PrologPath(val, plp, sizeof(plp))) )
     return store_string(home);
 
-  if ( !(home = getenv3("SWI_HOME_DIR", envbuf, sizeof(envbuf))) )
-    home = getenv3("SWIPL", envbuf, sizeof(envbuf));
+  if ( !(home = Getenv("SWI_HOME_DIR", envbuf, sizeof(envbuf))) )
+    home = Getenv("SWIPL", envbuf, sizeof(envbuf));
   if ( home &&
        (home = PrologPath(home, plp, sizeof(plp))) &&
        ExistsDirectory(home) )
@@ -220,8 +220,8 @@ setupGNUEmacsInferiorMode()
   char *s;
   int val;
 
-  if ( ((s = getenv3("EMACS", envbuf, sizeof(envbuf))) && streq(s, "t")) ||
-       ((s = getenv3("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
+  if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && streq(s, "t")) ||
+       ((s = Getenv("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
   { clearFeatureMask(TTY_CONTROL_FEATURE);
     val = TRUE;
   } else

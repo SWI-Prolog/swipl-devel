@@ -104,6 +104,27 @@ wcstoutf8(char *dest, const wchar_t *src, size_t len)
 }
 
 
+/* length of src in UTF-8, excluding terminating EOS */
+
+static int
+wcutf8len(const wchar_t *src)
+{ int len = 0;
+
+  for(; *src; src++)
+  { if ( *src < 0x80 )
+    { len++;
+    } else
+    { char o[6];
+      char *e;
+      e = utf8_put_char(o, *src);
+      len += e-o;
+    }
+  }
+
+  return len;
+}
+
+
 static wchar_t *
 utf8towcs(wchar_t *dest, const char *src, size_t len)
 { wchar_t *o = dest;
@@ -123,6 +144,8 @@ utf8towcs(wchar_t *dest, const char *src, size_t len)
 
   return dest;
 }
+
+
 
 
 		 /*******************************
@@ -806,19 +829,36 @@ _xos_getcwd(char *buf, int len)
 		 *	    ENVIRONMENT		*
 		 *******************************/
 
-char *
+int
 _xos_getenv(const char *name, char *buf, int buflen)
 { TCHAR nm[PATH_MAX];
   TCHAR val[PATH_MAX];
+  TCHAR *valp = val;
   DWORD size;
 
   if ( !utf8towcs(nm, name, PATH_MAX) )
     return NULL;
-  size = GetEnvironmentVariable(nm, val, PATH_MAX);
-  if ( size > 0 && size < PATH_MAX )
-    return wcstoutf8(buf, val, buflen);
+  size = GetEnvironmentVariable(nm, valp, PATH_MAX);
 
-  return NULL;
+  if ( size > 0 )
+  { if ( size >= PATH_MAX )
+    { if ( (valp = malloc(size+1)) == NULL )
+	return -1;
+      size = GetEnvironmentVariable(nm, valp, size+1);
+    }
+
+    if ( wcstoutf8(buf, valp, buflen) )
+      rc = strlen(val);
+    else
+      rc = wcutf8len(val);
+    
+    if ( valp != val )
+      free(valp);
+
+    return rc;
+  }
+
+  return -1;
 }
 
 

@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Support Unicode in Windows environment strings, setenv/2
+    and getenv/2.
+
   * FIXED: Bug#221: Create dynamic predicates with long UNICODE names.
     Holger Kanwischer.
 

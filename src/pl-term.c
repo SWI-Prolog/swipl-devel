@@ -96,7 +96,7 @@ initTerm(void)
   { char term[100];
 
     term_initialised = STAT_ERROR;
-    if ( !getenv3("TERM", term, sizeof(term)) )
+    if ( !Getenv("TERM", term, sizeof(term)) )
     { term_t env = PL_new_term_ref();
 
       PL_put_atom_chars(env, "TERM");

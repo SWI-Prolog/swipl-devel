@@ -131,7 +131,7 @@ _export int	_xos_rmdir(const char *path);
 _export char *	_xos_getcwd(char *buf, int len);
 _export int	_xos_errno(void);
 _export int	_xos_exists(const char *path, int flags);
-_export char *  _xos_getenv(const char *name, char *buf, int buflen);
+_export int     _xos_getenv(const char *name, char *buf, int buflen);
 _export int	_xos_setenv(const char *name, char *value, int overwrite);
 
 #define _XOS_ISFILE	0x01

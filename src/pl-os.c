@@ -486,8 +486,8 @@ TemporaryFile(const char *id)
   char envbuf[MAXPATHLEN];
   char *tmpdir;
 
-  if ( !((tmpdir = getenv3("TEMP", envbuf, sizeof(envbuf))) ||
-	 (tmpdir = getenv3("TMP",  envbuf, sizeof(envbuf)))) )
+  if ( !((tmpdir = Getenv("TEMP", envbuf, sizeof(envbuf))) ||
+	 (tmpdir = Getenv("TMP",  envbuf, sizeof(envbuf)))) )
     tmpdir = DEFTMPDIR;
 
 #ifdef __unix__
@@ -1049,7 +1049,7 @@ initExpand(void)
 #ifdef O_CANONISE_DIRS
 { char envbuf[MAXPATHLEN];
 
-  if ( (cpaths = getenv3("CANONICAL_PATHS", envbuf, sizeof(envbuf))) )
+  if ( (cpaths = Getenv("CANONICAL_PATHS", envbuf, sizeof(envbuf))) )
   { char buf[MAXPATHLEN];
 
     while(*cpaths)
@@ -1069,9 +1069,9 @@ initExpand(void)
     }
   }
 
-  if ( (dir = getenv3("HOME", envbuf, sizeof(envbuf))) ) canoniseDir(dir);
-  if ( (dir = getenv3("PWD",  envbuf, sizeof(envbuf))) ) canoniseDir(dir);
-  if ( (dir = getenv3("CWD",  envbuf, sizeof(envbuf))) ) canoniseDir(dir);
+  if ( (dir = Getenv("HOME", envbuf, sizeof(envbuf))) ) canoniseDir(dir);
+  if ( (dir = Getenv("PWD",  envbuf, sizeof(envbuf))) ) canoniseDir(dir);
+  if ( (dir = Getenv("CWD",  envbuf, sizeof(envbuf))) ) canoniseDir(dir);
 }
 #endif
 }
@@ -1412,7 +1412,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
       if ( !(value = GD->os.myhome) )
       { char envbuf[MAXPATHLEN];
 
-	if ( (value = getenv3("HOME", envbuf, sizeof(envbuf))) &&
+	if ( (value = Getenv("HOME", envbuf, sizeof(envbuf))) &&
 	     (value = PrologPath(value, wordbuf, sizeof(wordbuf))) )
 	{ GD->os.myhome = store_string(value);
 	} else
@@ -1481,7 +1481,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
 	  if ( var[0] == EOS )
 	    goto def;
 	  LOCK();
-	  value = getenv3(var, envbuf, sizeof(envbuf));
+	  value = Getenv(var, envbuf, sizeof(envbuf));
 	  if ( value == (char *) NULL )
 	  { if ( fileerrors )
 	    { term_t name = PL_new_term_ref();
@@ -2194,22 +2194,37 @@ requested via getenv/2 from Prolog.  Functions
     value, or NULL if the variable did not exist.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-char *
+int
 getenv3(const char *name, char *buf, unsigned int len)
 {
 #if O_XOS
   return _xos_getenv(name, buf, len);
 #else
   char *s = getenv(name);
+  int l;
 
-  if ( s && strlen(s) < len )
-  { strcpy(buf, s);
+  if ( s )
+  { if ( (l=strlen(s)) < len )
+      memcpy(buf, s, l+1);
+    else if ( len > 0 )
+      buf[0] = EOS;                     /* empty string if not fit */
 
-    return buf;
+    return l;
   }
 
-  return NULL;
+  return -1;
 #endif
+}
+
+
+char *
+Getenv(const char *name, char *buf, unsigned int len)
+{ int l = getenv3(name, buf, len);
+
+  if ( l >= 0 && l < len )
+    return buf;
+
+  return NULL;
 }
 
 
