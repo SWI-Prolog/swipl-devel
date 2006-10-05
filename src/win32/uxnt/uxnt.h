@@ -75,6 +75,7 @@
 #define mkdir _xos_mkdir
 #define rmdir _xos_rmdir
 #define getcwd _xos_getcwd
+#define setenv _xos_setenv
 #define fopen(p, m) _xos_fopen(p, m)
 
 #endif /*_UXNT_KERNEL*/
@@ -130,6 +131,8 @@ _export int	_xos_rmdir(const char *path);
 _export char *	_xos_getcwd(char *buf, int len);
 _export int	_xos_errno(void);
 _export int	_xos_exists(const char *path, int flags);
+_export char *  _xos_getenv(const char *name, char *buf, int buflen);
+_export int	_xos_setenv(const char *name, char *value, int overwrite);
 
 #define _XOS_ISFILE	0x01
 #define _XOS_ISDIR	0x02

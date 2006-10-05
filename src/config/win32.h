@@ -412,3 +412,6 @@ typedef int mode_t;
 
 /* Define to 1 if you have <float.h> header */
 #define HAVE_FLOAT_H 1
+
+/* setenv comes from uxnt.c */
+#define HAVE_SETENV 1

@@ -42,23 +42,19 @@ pl_shell(term_t command, term_t status)
 }
 
 
+#define MAXVARLEN 2048
+
 word
 pl_getenv(term_t var, term_t value)
 { char *n;
 
   if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN) )
-  { int len = getenvl(n);
+  { char buf[MAXVARLEN];
+    char *s;
 
-    if ( len >= 0 )
-    { char *buf	= alloca(len+1);
-      
-      if ( buf )
-      { char *s;
-
-	if ( (s=getenv3(n, buf, len+1)) )
-	  return PL_unify_chars(value, PL_ATOM|REP_FN, -1, s);
-      } else
-	return PL_error("getenv", 2, NULL, ERR_NOMEM);
+    if ( (s=getenv3(n, buf, sizeof(buf))) )
+    { Sdprintf("Got %d chars\n", strlen(buf));
+      return PL_unify_chars(value, PL_ATOM|REP_FN, -1, s);
     }
 
     fail;

@@ -496,22 +496,6 @@ PRED_IMPL("win_shell", 3, win_shell3, 0)
 }
 
 
-char *
-getenv3(const char *name, char *buf, unsigned int len)
-{ if ( GetEnvironmentVariable(name, buf, (DWORD)len) )
-    return buf;
-  
-  return NULL;
-}
-
-/* What does this return if the variable is not defined?
-*/
-
-int
-getenvl(const char *name)
-{ return GetEnvironmentVariable(name, NULL, 0);
-}
-
 #if _DEBUG
 void
 initHeapDebug(void)

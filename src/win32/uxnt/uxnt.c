@@ -802,3 +802,40 @@ _xos_getcwd(char *buf, int len)
   return NULL;
 }
 
+		 /*******************************
+		 *	    ENVIRONMENT		*
+		 *******************************/
+
+char *
+_xos_getenv(const char *name, char *buf, int buflen)
+{ TCHAR nm[PATH_MAX];
+  TCHAR val[PATH_MAX];
+  DWORD size;
+
+  if ( !utf8towcs(nm, name, PATH_MAX) )
+    return NULL;
+  size = GetEnvironmentVariable(nm, val, PATH_MAX);
+  if ( size > 0 && size < PATH_MAX )
+    return wcstoutf8(buf, val, buflen);
+
+  return NULL;
+}
+
+
+int
+_xos_setenv(const char *name, char *value, int overwrite)
+{ TCHAR nm[PATH_MAX];
+  TCHAR val[PATH_MAX];
+
+  if ( !utf8towcs(nm, name, PATH_MAX) )
+    return -1;
+  if ( !overwrite && GetEnvironmentVariable(nm, NULL, 0) > 0 )
+    return 0;
+  if ( !utf8towcs(val, value, PATH_MAX) )
+    return -1;
+
+  if ( SetEnvironmentVariable(nm, val) )
+    return 0;
+
+  return -1;				/* TBD: convert error */
+}

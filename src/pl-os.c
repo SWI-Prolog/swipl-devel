@@ -2194,10 +2194,13 @@ requested via getenv/2 from Prolog.  Functions
     value, or NULL if the variable did not exist.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef __WIN32__
 char *
 getenv3(const char *name, char *buf, unsigned int len)
-{ char *s = getenv(name);
+{
+#if O_XOS
+  return _xos_getenv(name, buf, len);
+#else
+  char *s = getenv(name);
 
   if ( s && strlen(s) < len )
   { strcpy(buf, s);
@@ -2206,18 +2209,9 @@ getenv3(const char *name, char *buf, unsigned int len)
   }
 
   return NULL;
-}
-
-int
-getenvl(const char *name)
-{ char *s;
-
-  if ( (s = getenv(name)) )
-    return strlen(s);
-
-  return -1;
-}
 #endif
+}
+
 
 #if defined(HAVE_PUTENV) || defined(HAVE_SETENV)
 
