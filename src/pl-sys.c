@@ -53,8 +53,7 @@ pl_getenv(term_t var, term_t value)
     char *s;
 
     if ( (s=getenv3(n, buf, sizeof(buf))) )
-    { Sdprintf("Got %d chars\n", strlen(buf));
-      return PL_unify_chars(value, PL_ATOM|REP_FN, -1, s);
+    { return PL_unify_chars(value, PL_ATOM|REP_FN, -1, s);
     }
 
     fail;
