@@ -1,6 +1,12 @@
+Oct 6, 2006
+
+* FIXED: Bug#222: Allow connection from localhost using doc_server/1
+  on Windows (some installations).  Holger Kanwischer and Mark van
+  Assem.
+
 Oct 4, 2006
 
-* Fixed _foo and -foo.  Alexey Ilyukhin.
+* FIXED _foo and -foo.  Alexey Ilyukhin.
 
 Sep 19, 2006
 

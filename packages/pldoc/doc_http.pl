@@ -95,7 +95,8 @@ _after_ library(pldoc) has been loaded.
 doc_server(Port) :-
 	doc_server(Port,
 		   [ workers(1),
-		     allow(localhost)
+		     allow(localhost),
+		     allow(ip(127,0,0,1)) % Windows ip-->host often fails
 		   ]).
 
 doc_server(Port, _) :-
