@@ -128,6 +128,7 @@ word
 pl_open_shared_object(term_t file, term_t plhandle,
 		      term_t flags)
 { void *dlhandle;
+  char *fn;
   atom_t afile;
   DlEntry e;
   int dlflags;
@@ -140,9 +141,10 @@ pl_open_shared_object(term_t file, term_t plhandle,
   } else
     dlflags = RTLD_LAZY;
 
-  if ( !PL_get_atom_ex(file, &afile) )
+  if ( !PL_get_atom_ex(file, &afile) ||
+       !PL_get_file_name(file, &fn, 0) )
     fail;
-  if ( !(dlhandle = dlopen(stringAtom(afile), dlflags)) )
+  if ( !(dlhandle = dlopen(fn, dlflags)) )
     return PL_error(NULL, 0, NULL, ERR_SHARED_OBJECT_OP,
 		    ATOM_open, dlerror());
 
