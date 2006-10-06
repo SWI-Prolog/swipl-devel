@@ -1576,7 +1576,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
       rval = scan_number(&in, base, value);
       *end = (ucharp)in;
       if ( negative )
-	 value->value.i = -value->value.i;
+	neg_number(value);
       return rval;
     }
   }
