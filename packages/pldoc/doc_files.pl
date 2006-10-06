@@ -48,7 +48,7 @@ useful for printing or distribution.
 @tbd	Handle CSS files
 @tbd	Suppress search header
 @tbd	Fix filenames (.pl --> .html)
-@tdb	Fix predicate references
+@tbd	Fix predicate references
 */
 
 %%	doc_save(+FileOrDir, +Options)
@@ -73,38 +73,94 @@ useful for printing or distribution.
 %		
 %		* recursive(+Bool)
 %		If =true=, recurse into subdirectories.
+%		
+%		* css(+Mode)
+%		If =copy=, copy the CSS file to created directories.
+%		Using =inline=, include the CSS file into the created
+%		files.
+%		
+%	@tbd	Copy CSS files, inline CSS files	
 
-doc_save(FileOrDir, Options) :-
+doc_save(Spec, Options) :-
+	doc_target(Spec, Target, Options),
+	phrase(file_map(Target), FileMap), % Assoc?
+	generate(Target, [files(FileMap)|Options]).
+	
+
+%%	generate(+Spec, +Options) is det.
+%
+%	Generate  documentation  for  the    specification   created  by
+%	doc_target/2.
+
+generate([], _).
+generate([H|T], Options) :-
+	generate(H, Options),
+	generate(T, Options).
+generate(file(PlFile, DocFile), Options) :-
+	open(DocFile, write, Out, [encoding(utf8)]),
+	call_cleanup(doc_for_file(PlFile, Out, Options),
+		     close(Out)).
+generate(directory(Dir, IndexFile, Members), Options) :-
+	open(IndexFile, write, Out, [encoding(utf8)]),
+	call_cleanup(doc_for_dir(Dir, Out, Options),
+		     close(Out)),
+	generate(Members, Options).
+
+	
+%%	doc_target(+Spec, -Target) is semidet.
+%
+%	Generate a structure describing what to document in what files.
+%	This structure is a term:
+%	
+%		* file(PlFile, DocFile)
+%		Document PlFile in DocFile
+%		
+%		* directory(Dir, IndexFile, Members)
+%		Document Dir in IndexFile.  Memmbers is a list of
+%		documentation structures.
+
+doc_target(FileOrDir, file(File, DocFile), Options) :-
 	absolute_file_name(FileOrDir, File,
 			   [ file_type(prolog),
 			     file_errors(fail),
 			     access(read)
 			   ]), !,
-	(   document_file(File, DocFile, Options)
-	->  open(DocFile, write, Out, [encoding(utf8)]),
-	    doc_for_file(File, Out, Options)
-	;   true
-	).
-doc_save(FileOrDir, Options) :-
+	document_file(File, DocFile, Options).
+doc_target(FileOrDir, directory(Dir, Index, Members), Options) :-
 	absolute_file_name(FileOrDir, Dir,
 			   [ file_type(directory),
 			     file_errors(fail),
 			     access(read)
 			   ]), !,
-	(   document_file(Dir, DocFile, Options)
-	->  open(DocFile, write, Out, [encoding(utf8)]),
-	    doc_for_dir(Dir, Out, Options),
-	    forall(prolog_file_in_dir(Dir, File, Options),
-		   doc_save(File, Options))
-	;   true
-	).
-
+	document_file(Dir, Index, Options),
+	findall(Member,
+		(   prolog_file_in_dir(Dir, File, Options),
+		    doc_target(File, Member, Options)
+		),
+		Members).
 	
 			   
+%	file_map(+DocStruct, -List)
+%	
+%	Create a list of file(PlFile, DocFile) for files that need to
+%	be documented.
+
+file_map([]) -->
+	[].
+file_map([H|T]) -->
+	file_map(H),
+	file_map(T).
+file_map(file(Src, Doc)) -->
+	[ file(Src, Doc) ].
+file_map(directory(_Dir, _Doc, Members)) -->
+	file_map(Members).
+
+
+
 %%	document_file(+File, -DocFile, +Options) is semidet.
 %
 %	DocFile is the file into which to write the documentation for
-%	File.
+%	File.  File must be a canonical Prolog source-file.
 
 document_file(File, DocFile, Options) :-
 	(   option(if(loaded), Options, loaded)
