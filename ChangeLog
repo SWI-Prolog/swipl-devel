@@ -7,8 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Support Unicode in windows open_shared_object/2, underlying
+    load_foreign_library/1.  Maria Sergeeva.
+
   * FIXED: Support Unicode in Windows environment strings, setenv/2
-    and getenv/2.
+    and getenv/2.  Maria Sergeeva.
 
   * FIXED: Bug#221: Create dynamic predicates with long UNICODE names.
     Holger Kanwischer.
