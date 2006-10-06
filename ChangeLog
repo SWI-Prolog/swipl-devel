@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: absoulte_file_name/3 to honour tests for file_type(directory)
+    and demand files of other types *not* to be a directory.
+
   * FIXED: Support Unicode in windows open_shared_object/2, underlying
     load_foreign_library/1.  Maria Sergeeva.
 

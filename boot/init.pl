@@ -441,8 +441,9 @@ absolute_file_name(Spec, Args, Path) :-
 	),
 	(   '$select'(extensions(Exts), Args, Conditions)
 	->  true
-	;   '$select'(file_type(Type), Args, Conditions)
-	->  '$file_type_extensions'(Type, Exts)
+	;   memberchk(file_type(Type), Args)
+	->  '$file_type_extensions'(Type, Exts),
+	    Conditions = Args
 	;   Conditions = Args,
 	    Exts = ['']
 	),
@@ -601,7 +602,7 @@ user:prolog_file_type(Ext,	executable) :-
 '$file_condition'(file_type(directory), File) :- !,
 	exists_directory(File).
 '$file_condition'(file_type(_), File) :- !,
-	exists_file(File).
+	\+ exists_directory(File).
 '$file_condition'(access([A1|AT]), File) :- !,
 	'$file_condition'(access(A1), File),
 	'$file_condition'(access(AT), File).
