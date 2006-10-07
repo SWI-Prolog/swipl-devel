@@ -80,7 +80,7 @@
 % manipulate <NewVars> and <Constraints> without changing the constraints on
 % <Target>.
 
-dump([],[],[]).
+%dump([],[],[]).
 dump(Target,NewVars,Constraints) :-
 	(   (	proper_varlist(Target)
 	    ->  true
