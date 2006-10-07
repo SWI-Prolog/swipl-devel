@@ -492,14 +492,20 @@ pl_pce_dispatch(term_t options)
 { DLOCK();
 
   if ( context.owner )
+  { DUNLOCK();
     return permission_error("dispatch_loop", "create", "pce");
+  }
   context.flags = 0;
   if ( !set_options(&context, options) )
+  { DUNLOCK();
     return FALSE;
+  }
 
 #ifndef WIN32
   if ( pipe(context.pipe) == -1 )
+  { DUNLOCK();
     return resource_error("open_files");
+  }
 #endif
 
   context.owner = PL_thread_self();
