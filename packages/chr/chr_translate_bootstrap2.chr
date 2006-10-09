@@ -486,6 +486,10 @@ partition_clauses([C|Cs],Ds,Rs,OCs) :-
       Ds = RDs,
       Rs = RRs,
       OCs = ROCs
+  ;   C = (:- chr_type _) ->
+      Ds = RDs,
+      Rs = RRs,
+      OCs = ROCs
   ;   Ds = RDs,
       Rs = RRs,
       OCs = [C|ROCs]

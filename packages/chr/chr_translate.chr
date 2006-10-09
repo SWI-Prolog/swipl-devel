@@ -165,81 +165,145 @@
 
 :- chr_option(debug,off).
 :- chr_option(optimize,full).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- chr_constraint 
-	target_module/1,			% target_module(Module)
-	get_target_module/1,
-
-	indexed_argument/2,			% argument instantiation may enable applicability of rule
-	is_indexed_argument/2,
-
-	constraint_mode/2,
-	get_constraint_mode/2,
-
-	may_trigger/1,
-	only_ground_indexed_arguments/1,
-	none_suspended_on_variables/0,
-	are_none_suspended_on_variables/0,
-	
-	store_type/2,
-	get_store_type/2,
-	update_store_type/2,
-	actual_store_types/2,
-	assumed_store_type/2,
-	validate_store_type_assumption/1,
-
-	rule_count/1,
-	inc_rule_count/1,
-
-	passive/2,
-	is_passive/2,
-	any_passive_head/1,
-
-	new_occurrence/4,
-	occurrence/5,
-	get_occurrence/4,
-	get_occurrence_from_id/4,
-
-	max_occurrence/2,
-	get_max_occurrence/2,
-
-	allocation_occurrence/2,
-	get_allocation_occurrence/2,
-	rule/2,
-	get_rule/2,
-	least_occurrence/2,
-	is_least_occurrence/1
-	. 
-
 :- chr_option(check_guard_bindings,off).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- chr_type list(T) 	---> [] ; [T|list].
+:- chr_type list    	==   list(any).
+
+:- chr_type maybe(T)	---> yes(T) ; no.
+
+:- chr_type constraint ---> any / any.
+
+:- chr_type module_name == any.
+
+:- chr_type store == any.
+
+:- chr_type pragma_rule ---> pragma(rule,idspair,list(pragma_type),maybe(rule_name),rule_nb).
+:- chr_type rule 	---> rule(list(any),list(any),goal,goal).
+:- chr_type idspair	---> ids(list(id),list(id)).
+
+:- chr_type pragma_type	==   passive(id) ; already_in_heads ; already_in_heads(id) ; no_history.
+:- chr_type rule_name	==   any.
+:- chr_type rule_nb	==   natural.
+:- chr_type id		==   natural.
+
+:- chr_type goal	==   any.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- chr_constraint target_module/1.			% target_module(Module)
 :- chr_option(mode,target_module(+)).
+:- chr_option(type_declaration,target_module(module_name)).
+
+:- chr_constraint get_target_module/1.
+:- chr_option(mode,get_target_module(-)).
+:- chr_option(type_declaration,get_target_module(module_name)).
+
+:- chr_constraint indexed_argument/2.			% argument instantiation may enable applicability of rule
 :- chr_option(mode,indexed_argument(+,+)).
+:- chr_option(type_declaration,indexed_argument(constraint,int)).
+
+:- chr_constraint is_indexed_argument/2.
 :- chr_option(mode,is_indexed_argument(+,+)).
+:- chr_option(type_declaration,is_indexed_argument(constraint,int)).
+
+:- chr_constraint constraint_mode/2.
 :- chr_option(mode,constraint_mode(+,+)).
-:- chr_option(mode,get_constraint_mode(+,?)).
-:- chr_option(mode,only_ground_indexed_arguments(+)).
+:- chr_option(type_declaration,constraint_mode(constraint,list)).
+
+:- chr_constraint get_constraint_mode/2.
+:- chr_option(mode,get_constraint_mode(+,-)).
+:- chr_option(type_declaration,get_constraint_mode(constraint,list)).
+
+:- chr_constraint may_trigger/1.
 :- chr_option(mode,may_trigger(+)).
+:- chr_option(type_declaration,may_trigger(constraint)).
+
+:- chr_constraint only_ground_indexed_arguments/1.
+:- chr_option(mode,only_ground_indexed_arguments(+)).
+:- chr_option(type_declaration,only_ground_indexed_arguments(constraint)).
+
+:- chr_constraint none_suspended_on_variables/0.
+
+:- chr_constraint are_none_suspended_on_variables/0.
+
+:- chr_constraint store_type/2.
 :- chr_option(mode,store_type(+,+)).
+:- chr_option(type_declaration,store_type(constraint,store)).
+
+:- chr_constraint get_store_type/2.
 :- chr_option(mode,get_store_type(+,?)).
+:- chr_option(type_declaration,get_store_type(constraint,store)).
+
+:- chr_constraint update_store_type/2.
 :- chr_option(mode,update_store_type(+,+)).
+
+:- chr_constraint actual_store_types/2.
 :- chr_option(mode,actual_store_types(+,+)).
+
+:- chr_constraint assumed_store_type/2.
 :- chr_option(mode,assumed_store_type(+,+)).
+
+:- chr_constraint validate_store_type_assumption/1.
 :- chr_option(mode,validate_store_type_assumption(+)).
+
+:- chr_constraint rule_count/1.
 :- chr_option(mode,rule_count(+)).
+:- chr_option(type_declaration,rule_count(natural)).
+
+:- chr_constraint inc_rule_count/1.
+:- chr_option(mode,inc_rule_count(-)).
+:- chr_option(type_declaration,inc_rule_count(natural)).
+
+:- chr_constraint passive/2.
 :- chr_option(mode,passive(+,+)).
+
+:- chr_constraint is_passive/2.
+:- chr_option(mode,is_passive(+,+)).
+
+:- chr_constraint any_passive_head/1.
+:- chr_option(mode,any_passive_head(+)).
+
+:- chr_constraint new_occurrence/4.
+:- chr_option(mode,new_occurrence(+,+,+,+)).
+
+:- chr_constraint occurrence/5.
 :- chr_option(mode,occurrence(+,+,+,+,+)).
+
+:- chr_constraint get_occurrence/4.
+:- chr_option(mode,get_occurrence(+,+,-,-)).
+
+:- chr_constraint get_occurrence_from_id/4.
+:- chr_option(mode,get_occurrence_from_id(+,-,+,+)).
+
+:- chr_constraint max_occurrence/2.
 :- chr_option(mode,max_occurrence(+,+)).
+
+:- chr_constraint get_max_occurrence/2.
+:- chr_option(mode,get_max_occurrence(+,-)).
+
+:- chr_constraint allocation_occurrence/2.
 :- chr_option(mode,allocation_occurrence(+,+)).
+
+:- chr_constraint get_allocation_occurrence/2.
+:- chr_option(mode,get_allocation_occurrence(+,-)).
+
+:- chr_constraint rule/2.
 :- chr_option(mode,rule(+,+)).
+:- chr_option(type_declaration,rule(int,pragma_rule)).
+
+:- chr_constraint get_rule/2.
+:- chr_option(mode,get_rule(+,-)).
+:- chr_option(type_declaration,get_rule(int,pragma_rule)).
+
+:- chr_constraint least_occurrence/2.
 :- chr_option(mode,least_occurrence(+,+)).
+
+:- chr_constraint is_least_occurrence/1.
 :- chr_option(mode,is_least_occurrence(+)).
 
-:- chr_option(type_definition,type(list,[ [], [any|list] ])).
-:- chr_option(type_definition,type(constraint,[ any / any ])).
 
-:- chr_option(type_declaration,constraint_mode(constraint,list)).
 
 target_module(_) \ target_module(_) <=> true.
 target_module(Mod) \ get_target_module(Query)
@@ -904,9 +968,12 @@ check_pragma(Pragma,PragmaRule) :-
 %%	no_history(+RuleNb) is det.
 :- chr_constraint no_history/1.
 :- chr_option(mode,no_history(+)).
+:- chr_option(type_declaration,no_history(int)).
 
 %%	has_no_history(+RuleNb) is semidet.
 :- chr_constraint has_no_history/1.
+:- chr_option(mode,has_no_history(+)).
+:- chr_option(type_declaration,has_no_history(int)).
 
 no_history(RuleNb) \ has_no_history(RuleNb) <=> true.
 has_no_history(_) <=> fail.
@@ -935,11 +1002,12 @@ check_rule_indexing(PragmaRule) :-
 		true
 	).
 
-:- chr_constraint
-	indexing_spec/2,
-	get_indexing_spec/2.
-
+:- chr_constraint indexing_spec/2.
 :- chr_option(mode,indexing_spec(+,+)).
+
+:- chr_constraint get_indexing_spec/2.
+:- chr_option(mode,get_indexing_spec(+,-)).
+
 
 indexing_spec(FA,Spec) \ get_indexing_spec(FA,R) <=> R = Spec.
 get_indexing_spec(_,Spec) <=> Spec = [].
@@ -1078,6 +1146,7 @@ is_observed(C,O) :-
 :- chr_option(mode,observes(+,+)).
 :- chr_option(mode,spawns_observer(+,+)).
 :- chr_option(mode,observes_indirectly(+,+)).
+:- chr_option(mode,is_self_observer(+)).
 
 spawns_observer(C1,C2) \ spawns_observer(C1,C2) <=> true.
 observes(C1,C2) \ observes(C1,C2) <=> true.
@@ -1387,7 +1456,8 @@ constraint_mode(F/A,ArgModes) \ generate_indexed_variables_body(F/A,Args,Body,Va
 	( chr_pp_flag(term_indexing,on) ->
 		spectermvars(Specs,Args,F,A,Body,Vars)
 	;
-		create_indexed_variables_body(Args,ArgModes,Vars,1,F/A,MaybeBody,N),
+		get_constraint_type_det(F/A,ArgTypes),
+		create_indexed_variables_body(Args,ArgModes,ArgTypes,Vars,1,F/A,MaybeBody,N),
 		( MaybeBody == empty ->
 			Body = true,
 			Vars = []
@@ -1406,16 +1476,33 @@ generate_indexed_variables_body(FA,_,_,_) <=>
 	chr_error(internal,'generate_indexed_variables_body: missing mode info for ~w.\n',[FA]).
 %===============================================================================
 
-create_indexed_variables_body([],[],_,_,_,empty,0).
-create_indexed_variables_body([V|Vs],[Mode|Modes],Vars,I,FA,Body,N) :-
+create_indexed_variables_body([],[],[],_,_,_,empty,0).
+create_indexed_variables_body([V|Vs],[Mode|Modes],[Type|Types],Vars,I,FA,Body,N) :-
 	J is I + 1,
-	create_indexed_variables_body(Vs,Modes,Tail,J,FA,RBody,M),
+	create_indexed_variables_body(Vs,Modes,Types,Tail,J,FA,RBody,M),
 	( Mode == (?),
           is_indexed_argument(FA,I) ->
-		( RBody == empty ->
-			Body = term_variables(V,Vars)
+		( atomic_type(Type) ->
+			Body = 
+			(
+				( var(V) -> 
+					Vars = [V|Tail]	
+				;
+					Vars = Tail
+				),
+				Continuation
+			),
+			( RBody == empty ->
+				Continuation = true, Tail = []
+			;
+				Continuation = RBody
+			)
 		;
-			Body = (term_variables(V,Vars,Tail),RBody)
+			( RBody == empty ->
+				Body = term_variables(V,Vars)
+			;
+				Body = (term_variables(V,Vars,Tail),RBody)
+			)
 		),
 		N = M
 	; Mode == (-), is_indexed_argument(FA,I) ->
@@ -1659,10 +1746,11 @@ activate_constraint_body(Constraint,StoreYes,StoreNo,Vars,Susp,Generation,Body) 
 					            NoneLocked,    
 			    			    StoreYes
 						;
-						    Vars = [],
+						    % Vars = [],
 						    StoreNo
 						),
-				(Vars = [],StoreNo),StoreVarsGoal)
+				% (Vars = [],StoreNo),StoreVarsGoal)
+				StoreNo,StoreVarsGoal)
 	),
 	Body =	
 	(
@@ -2814,12 +2902,11 @@ global_singleton_store_name(F/A,Name) :-
 	get_target_module(Mod),		
 	atom_concat_list(['$chr_store_global_singleton_',Mod,(:),F,(/),A],Name).
 
-:- chr_constraint
-	prolog_global_variable/1,
-	prolog_global_variables/1.
-
+:- chr_constraint prolog_global_variable/1.
 :- chr_option(mode,prolog_global_variable(+)).
-:- chr_option(mode,prolog_global_variable(2)).
+
+:- chr_constraint prolog_global_variables/1.
+:- chr_option(mode,prolog_global_variables(-)).
 
 prolog_global_variable(Name) \ prolog_global_variable(Name) <=> true.
 
@@ -3712,8 +3799,10 @@ extract_explicit_matchings(A,D) :- !,
 
 
 :- chr_option(mode,type_definition(?,?)).
+:- chr_option(mode,get_type_definition(?,?)).
 :- chr_option(mode,type_alias(?,?)).
 :- chr_option(mode,constraint_type(+,+)).
+:- chr_option(mode,get_constraint_type(+,-)).
 :- chr_option(mode,type_information_as_guard(+,+,?)).
 :- chr_option(type_declaration,type_information_as_guard(list,list,any)).
 
@@ -3770,7 +3859,7 @@ get_type_definition(T,Def) <=> \+ ground(T) |
 type_alias(T,D) \ get_type_definition(T2,Def) <=> 
 	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
 	copy_term_nat((T,D),(T1,D1)),T1=T2 | 
-	(get_type_definition(D1,Def) ->
+	( get_type_definition(D1,Def) ->
 		true
 	;
 		chr_error(type_error,'Could not find type definition for "~w" (accessed via alias "~w").\n',[D1,T1]), fail
@@ -3783,11 +3872,63 @@ get_type_definition(T2,Def) <=>
 	builtin_type(T2,_,_) | Def = [T2].
 get_type_definition(X,Y) <=> fail.
 
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% get_constraint_type
-
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%% 	get_constraint_type(+ConstraintSymbol,-Types) is semidet.
+%
+%	Return argument types of =ConstraintSymbol=, but fails if none where
+%	declared.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 constraint_type(C,T) \ get_constraint_type(C,Type) <=> Type = T.
 get_constraint_type(_,_) <=> fail.
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	get_constraint_type_det(+ConstraintSymbol,-Types) is det.
+%
+%	Like =get_constraint_type/2=, but returns list of =any= types when
+%	no types are declared.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+get_constraint_type_det(ConstraintSymbol,Types) :-
+	( get_constraint_type(ConstraintSymbol,Types) ->
+		true
+	;
+		ConstraintSymbol = _ / N,
+		replicate(N,any,Types)
+	).
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	unalias_type(+Alias,-Type) is det.
+%
+%	Follows alias chain until base type is reached.	
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+:- chr_constraint unalias_type/2.
+
+unalias_alias @
+type_alias(AliasProtoType,ProtoType) \ unalias_type(Alias,BaseType) 
+	<=> 
+		nonvar(AliasProtoType),
+		nonvar(Alias),
+		functor(AliasProtoType,F,A),
+		functor(Alias,F,A),
+		copy_term_nat((AliasProtoType,ProtoType),(AliasInstance,Type)),
+		Alias = AliasInstance
+	| 
+		unalias_type(Type,BaseType).
+
+unalias_type_definition @
+type_definition(ProtoType,Definition) \ unalias_type(Alias,BaseType) 
+	<=> 
+		nonvar(ProtoType),
+		nonvar(Alias),
+		functor(ProtoType,F,A),
+		functor(Alias,F,A)
+	| 
+		BaseType = Alias.
+
+unalias_builtin @ 
+unalias_type(Alias,BaseType) 
+	<=> 
+		builtin_type(Alias,_,_) 
+	| 
+		BaseType = Alias.
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % type_information_as_guard
@@ -3802,15 +3943,11 @@ constraint_mode(F/A,Modes) \ type_information_as_guard([Head|R],[RealHead|RRH],T
     		RealHead =.. [_|RealArgs],
     		add_mode_info(Modes,Args,ModeInfo),
     		TypeInfo = (ModeInfo, TI),
-    		( get_constraint_type(F/A,Types) ->
-			types2condition(Types,Args,RealArgs,Modes,TI2),
-			list2conj(TI2,ConjTI),
-			TI = (ConjTI,RTI),
-			type_information_as_guard(R,RRH,RTI)
-    		;
-			type_information_as_guard(R,RRH,TI)
-    		).
-
+    		get_constraint_type_det(F/A,Types),
+		types2condition(Types,Args,RealArgs,Modes,TI2),
+		list2conj(TI2,ConjTI),
+		TI = (ConjTI,RTI),
+		type_information_as_guard(R,RRH,RTI).
 
 type_information_as_guard([Head|R],_,TypeInfo) 
 	<=>
@@ -3951,22 +4088,16 @@ static_type_check_heads([Head|Heads]) :-
 
 static_type_check_head(Head) :-
 	functor(Head,F,A),
-	( get_constraint_type(F/A,Types) ->
-		Head =..[_|Args],
-		maplist(static_type_check_term(head(Head)),Args,Types)
-	; % no type declared
-		true 
-	).	
+	get_constraint_type_det(F/A,Types),
+	Head =..[_|Args],
+	maplist(static_type_check_term(head(Head)),Args,Types).
 
 static_type_check_body([]).
 static_type_check_body([Goal|Goals]) :-
 	functor(Goal,F,A),	
-	( get_constraint_type(F/A,Types) ->
-		Goal =..[_|Args],
-		maplist(static_type_check_term(body(Goal)),Args,Types)
-	; % not a CHR constraint or no type declared
-		true 
-	),	
+	get_constraint_type_det(F/A,Types),
+	Goal =..[_|Args],
+	maplist(static_type_check_term(body(Goal)),Args,Types),
 	static_type_check_body(Goals).
 
 :- chr_constraint static_type_check_term/3.
@@ -4137,6 +4268,11 @@ atomic_types_suspended_constraint(C,Type,Mode,Index) :-
 		true
 	).
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	atomic_type(+Type) is semidet.
+%
+%	Succeeds when all values of =Type= are atomic.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 :- chr_constraint atomic_type/1.
 
 atomic_type(Type) <=> builtin_type_nonvar(Type,_,_) | Type \== any.
@@ -4424,6 +4560,8 @@ make_suspension_continuation_goal(F/A,VarsSusp,Goal) :-
 
 %===============================================================================
 :- chr_constraint has_active_occurrence/1, has_active_occurrence/2.
+:- chr_option(mode,has_active_occurrence(+)).
+:- chr_option(mode,has_active_occurrence(+,+)).
 %-------------------------------------------------------------------------------
 has_active_occurrence(C) <=> has_active_occurrence(C,1).
 
@@ -4456,14 +4594,18 @@ gen_cond_attach_clause(F/A,Id,L,T) :-
 		L = T
 	).	
 
-:- chr_constraint 
-	use_auxiliary_predicate/1,
-	use_auxiliary_predicate/2,
-	is_used_auxiliary_predicate/1,
-	is_used_auxiliary_predicate/2.
-
+:- chr_constraint use_auxiliary_predicate/1.
 :- chr_option(mode,use_auxiliary_predicate(+)).
+
+:- chr_constraint use_auxiliary_predicate/2.
 :- chr_option(mode,use_auxiliary_predicate(+,+)).
+
+:- chr_constraint is_used_auxiliary_predicate/1.
+:- chr_option(mode,is_used_auxiliary_predicate(+)).
+
+:- chr_constraint is_used_auxiliary_predicate/2.
+:- chr_option(mode,is_used_auxiliary_predicate(+,+)).
+
 
 use_auxiliary_predicate(P) \ use_auxiliary_predicate(P) <=> true.
 
@@ -4484,11 +4626,12 @@ is_used_auxiliary_predicate(P,C) <=> fail.
 % Only generate import statements for actually used modules.
 %------------------------------------------------------------------------------%
 
-:- chr_constraint
-	use_auxiliary_module/1,
-	is_used_auxiliary_module/1.
-
+:- chr_constraint use_auxiliary_module/1.
 :- chr_option(mode,use_auxiliary_module(+)).
+
+:- chr_constraint is_used_auxiliary_module/1.
+:- chr_option(mode,is_used_auxiliary_module(+)).
+
 
 use_auxiliary_module(P) \ use_auxiliary_module(P) <=> true.
 
@@ -4849,6 +4992,7 @@ update_unit_dictionary2([V|Vs],This,Dict,NDict,GIDs,NGIDs) :-
 	get_functional_dependency/4.
 
 :- chr_option(mode,functional_dependency(+,+,?,?)).
+:- chr_option(mode,get_functional_dependency(+,+,?,?)).
 
 allocation_occurrence(C,AO), occurrence(C,O,RuleNb,_,_) \ functional_dependency(C,RuleNb,Pattern,Key)
 	<=>
@@ -5108,7 +5252,53 @@ head_arg_matches_([Arg-Var| Rest],[Mode|Modes],VarDict,GroundVars,GoalList,NVarD
 	head_arg_matches_(Pairs,RestModes,VarDict1,GroundVars1,RestGoalList,NVarDict,NGroundVars).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-%%	add_heads_ground_variables(+ListOfHeads,+GroundVars,-GroundVars) is det.
+% add_heads_types(+ListOfHeads,+VarTypes,-NVarTypes) is det.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+add_heads_types([],VarTypes,VarTypes).
+add_heads_types([Head|Heads],VarTypes,NVarTypes) :-
+	add_head_types(Head,VarTypes,VarTypes1),
+	add_heads_types(Heads,VarTypes1,NVarTypes).
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+% add_head_types(+Head,+VarTypes,-NVarTypes) is det.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+add_head_types(Head,VarTypes,NVarTypes) :-
+	functor(Head,F,A),
+	get_constraint_type_det(F/A,ArgTypes),
+	Head =.. [_|Args],
+	add_args_types(Args,ArgTypes,VarTypes,NVarTypes).
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+% add_args_types(+Terms,+Types,+VarTypes,-NVarTypes) is det.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+add_args_types([],[],VarTypes,VarTypes).
+add_args_types([Arg|Args],[Type|Types],VarTypes,NVarTypes) :-
+	add_arg_types(Arg,Type,VarTypes,VarTypes1),
+	add_args_types(Args,Types,VarTypes1,NVarTypes).
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+% add_arg_types(+Term,+Type,+VarTypes,-NVarTypes) is det.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+add_arg_types(Term,Type,VarTypes,NVarTypes) :-
+	( var(Term) ->
+		( lookup_eq(VarTypes,Term,_) ->
+			NVarTypes = VarTypes
+		;
+			NVarTypes = [Term-Type|VarTypes]
+		) 
+	; ground(Term) ->
+		NVarTypes = VarTypes
+	; % TODO 	improve approximation!
+		term_variables(Term,Vars),
+		length(Vars,VarNb),
+		replicate(VarNb,any,Types),	
+		add_args_types(Vars,Types,VarTypes,NVarTypes)
+	).	
+			
+
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	add_heads_ground_variables(+ListOfHeads,+GroundVars,-NGroundVars) is det.
 %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 add_heads_ground_variables([],GroundVars,GroundVars).
@@ -5298,7 +5488,9 @@ passive_head_via(Head,PrevHeads,VarDict,Goal,AllSusps) :-
 		Goal = AttrGoal
 	; 
 		translate(CommonVars,VarDict,Vars),
-		gen_get_mod_constraints(F/A,Vars,ViaGoal,AttrGoal,AllSusps),
+		add_heads_types(PrevHeads,[],TypeDict),	
+		my_term_copy(TypeDict,VarDict,TypeDictCopy),
+		gen_get_mod_constraints(F/A,Vars,TypeDictCopy,ViaGoal,AttrGoal,AllSusps),
 		Goal = 
 			( ViaGoal ->
 				AttrGoal
@@ -5312,10 +5504,16 @@ common_variables(T,Ts,Vs) :-
 	term_variables(Ts,V2),
 	intersect_eq(V1,V2,Vs).
 
-gen_get_mod_constraints(FA,Vars,ViaGoal,AttrGoal,AllSusps) :-
+gen_get_mod_constraints(FA,Vars,TypeDict,ViaGoal,AttrGoal,AllSusps) :-
 	get_target_module(Mod),
         ( Vars = [A] ->
-        	ViaGoal =  'chr newvia_1'(A,V)
+		lookup_eq(TypeDict,A,Type),
+		( atomic_type(Type) ->
+			ViaGoal = var(A),
+			A = V
+		;
+	        	ViaGoal =  'chr newvia_1'(A,V)
+		)
        	; Vars = [A,B] ->
                	ViaGoal = 'chr newvia_2'(A,B,V)
         ;   
@@ -6513,20 +6711,17 @@ assume_constraint_stores([C|Cs]) :-
 		( get_functional_dependency(C,1,Pattern,Key), 
 		  all_distinct_var_args(Pattern), Key == [] ->
 			assumed_store_type(C,global_singleton)
-		;
-		    ( get_constraint_type(C,Type),
-		    findall(Index,(member(Index,Indexes), Index = [I],
-		    nth(I,Type,dense_int)),IndexesA),
-		    IndexesA \== [] ->
+		; get_constraint_type(C,ArgTypes),
+		  findall(Index,(member(Index,Indexes), Index = [I], nth(I,ArgTypes,Type), unalias_type(Type,UnAliasedType), UnAliasedType == dense_int ),IndexesA),
+	    	  IndexesA \== [] ->
 			list_difference_eq(Indexes,IndexesA,IndexesB),
 			( IndexesB \== [] ->
-			    assumed_store_type(C,multi_store([multi_inthash(IndexesA),multi_hash(IndexesB),global_ground]))	
+		    	  	assumed_store_type(C,multi_store([multi_inthash(IndexesA),multi_hash(IndexesB),global_ground]))	
 			;
-			    assumed_store_type(C,multi_store([multi_inthash(IndexesA),global_ground]))	
+		    		assumed_store_type(C,multi_store([multi_inthash(IndexesA),global_ground]))	
 			)
-		    ;
+	    	;
 			assumed_store_type(C,multi_store([multi_hash(Indexes),global_ground]))	
-		    )
 		)
 	;
 		true
@@ -7155,10 +7350,11 @@ unconditional_occurrence_args([X|Xs]) :-
 % but rather only those of one variable.
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:- chr_constraint
-	partial_wake_analysis/0,
-	no_partial_wake/1,
-	wakes_partially/1.
+:- chr_constraint partial_wake_analysis/0.
+:- chr_constraint no_partial_wake/1.
+:- chr_option(mode,no_partial_wake(+)).
+:- chr_constraint wakes_partially/1.
+:- chr_option(mode,wakes_partially(+)).
 
 partial_wake_analysis, occurrence(FA,O,RuleNb,ID,Type),  rule(RuleNb,Rule), constraint_mode(FA,ArgModes) 
 	==>

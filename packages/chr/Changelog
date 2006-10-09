@@ -1,3 +1,8 @@
+Oct 9, 2006
+
+  * TS: The dense_int type can now appear on the rhs of type alias
+	definitions.
+
 Oct 3, 2006
 
   * TS: Fixed bug concerning matchings between ground and possibly
