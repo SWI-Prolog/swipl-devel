@@ -1,3 +1,7 @@
+Oct 11, 2006
+
+  * FIXED: Deal with new absolute_file_name sematics for file_type(directory).
+
 Oct 2, 2006
 
   * FIXED: rdf_load/2 in combination with rdf_persistency.pl.  Faster and

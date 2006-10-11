@@ -95,8 +95,9 @@ rdf_attach_db(DirSpec, Options) :-
 	absolute_file_name(DirSpec,
 			   Directory,
 			   [ access(write),
-			     file_type(directory)
-			   ]),
+			     file_type(directory),
+			     file_errors(fail)
+			   ]), !,
 	(   rdf_directory(Directory)
 	->  true			% update settings?
 	;   rdf_detach_db,
@@ -109,6 +110,17 @@ rdf_attach_db(DirSpec, Options) :-
 	    at_halt(rdf_detach_db),
 	    start_monitor
 	).
+rdf_attach_db(DirSpec, Options) :-
+	absolute_file_name(DirSpec,
+			   Directory,
+			   [ solutions(all)
+			   ]),
+	(   exists_directory(Directory)
+	->  access_file(Directory, write)
+	;   catch(make_directory(Directory), _, fail)
+	), !,
+	rdf_attach_db(Directory, Options).
+
 
 %%	rdf_detach_db
 %
