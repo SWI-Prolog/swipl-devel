@@ -75,7 +75,9 @@
 %%		a \ b <=> true.
 %%		a <=> true.
 %%	* Eliminate last clause of never stored constraint, if its body
-%%	  is fail.
+%%	  is fail, e.g.
+%%		a ...
+%%		a <=> fail.
 %%	* Specialize lookup operations and indexes for functional dependencies.
 %%
 %% MORE TODO
@@ -87,26 +89,23 @@
 %%	  any variables
 %%	* ground matching seems to be not optimized for compound terms
 %%	  in case of simpagation_head2 and propagation occurrences
-%%	* Do not unnecessarily generate store operations.
 %%	* analysis for storage delaying (see primes for case)
 %%	* internal constraints declaration + analyses?
 %%	* Do not store in global variable store if not necessary
 %%		NOTE: affects show_store/1
-%%	* multi-level store: variable - ground
+%%	* var_assoc multi-level store: variable - ground
 %%	* Do not maintain/check unnecessary propagation history
 %%		for reasons of anti-monotony 
 %%	* Strengthen storage analysis for propagation rules
 %%		reason about bodies of rules only containing constraints
 %%		-> fixpoint with observation analysis
 %%	* instantiation declarations
-%%		VARIABLE (never bound) (-)
-%%			specialize via_1 and others to a compile time unification
 %%		COMPOUND (bound to nonvar)
 %%			avoid nonvar tests
 %%			
 %%	* make difference between cheap guards		for reordering
 %%	                      and non-binding guards	for lock removal
-%%	* unqiue -> once/[] transformation for propagation
+%%	* fd -> once/[] transformation for propagation
 %%	* cheap guards interleaved with head retrieval + faster
 %%	  via-retrieval + non-empty checking for propagation rules
 %%	  redo for simpagation_head2 prelude
@@ -129,8 +128,6 @@
 %%                                      false -> smart backtracking
 %%          only works for rules with at least 3 constraints in the head
 %%	* (set semantics + functional dependency) declaration + resolution
-%%
-%%
 %%	* identify cases where prefixes of partner lookups for subsequent occurrences can be
 %%	  merged
 %%
@@ -169,7 +166,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- chr_type list(T) 	---> [] ; [T|list].
+:- chr_type list(T) 	---> [] ; [T|list(T)].
 :- chr_type list    	==   list(any).
 
 :- chr_type maybe(T)	---> yes(T) ; no.
@@ -178,27 +175,45 @@
 
 :- chr_type module_name == any.
 
-:- chr_type store == any.
-
 :- chr_type pragma_rule ---> pragma(rule,idspair,list(pragma_type),maybe(rule_name),rule_nb).
 :- chr_type rule 	---> rule(list(any),list(any),goal,goal).
 :- chr_type idspair	---> ids(list(id),list(id)).
 
-:- chr_type pragma_type	==   passive(id) ; already_in_heads ; already_in_heads(id) ; no_history.
+:- chr_type pragma_type	---> passive(id) ; already_in_heads ; already_in_heads(id) ; no_history.
 :- chr_type rule_name	==   any.
 :- chr_type rule_nb	==   natural.
 :- chr_type id		==   natural.
 
 :- chr_type goal	==   any.
 
+:- chr_type store_type	---> 	default 
+			; 	multi_store(list(store_type)) 
+			; 	multi_hash(list(list(int))) 
+			; 	multi_inthash(list(list(int))) 
+			;	global_singleton
+			; 	global_ground
+			%	EXPERIMENTAL STORES
+			;	var_assoc_store(int,list(int))
+			;	identifier_store(int).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- chr_constraint target_module/1.			% target_module(Module)
+
+%------------------------------------------------------------------------------%
+:- chr_constraint target_module/1.
 :- chr_option(mode,target_module(+)).
 :- chr_option(type_declaration,target_module(module_name)).
+%------------------------------------------------------------------------------%
+target_module(_) \ target_module(_) <=> true.
 
+%------------------------------------------------------------------------------%
 :- chr_constraint get_target_module/1.
 :- chr_option(mode,get_target_module(-)).
 :- chr_option(type_declaration,get_target_module(module_name)).
+%------------------------------------------------------------------------------%
+target_module(Mod) \ get_target_module(Query)
+	<=> Query = Mod .
+get_target_module(Query)
+	<=> Query = user.
 
 :- chr_constraint indexed_argument/2.			% argument instantiation may enable applicability of rule
 :- chr_option(mode,indexed_argument(+,+)).
@@ -230,23 +245,27 @@
 
 :- chr_constraint store_type/2.
 :- chr_option(mode,store_type(+,+)).
-:- chr_option(type_declaration,store_type(constraint,store)).
+:- chr_option(type_declaration,store_type(constraint,store_type)).
 
 :- chr_constraint get_store_type/2.
 :- chr_option(mode,get_store_type(+,?)).
-:- chr_option(type_declaration,get_store_type(constraint,store)).
+:- chr_option(type_declaration,get_store_type(constraint,store_type)).
 
 :- chr_constraint update_store_type/2.
 :- chr_option(mode,update_store_type(+,+)).
+:- chr_option(type_declaration,update_store_type(constraint,store_type)).
 
 :- chr_constraint actual_store_types/2.
 :- chr_option(mode,actual_store_types(+,+)).
+:- chr_option(type_declaration,actual_store_types(constraint,list(store_type))).
 
 :- chr_constraint assumed_store_type/2.
 :- chr_option(mode,assumed_store_type(+,+)).
+:- chr_option(type_declaration,assumed_store_type(constraint,store_type)).
 
 :- chr_constraint validate_store_type_assumption/1.
 :- chr_option(mode,validate_store_type_assumption(+)).
+:- chr_option(type_declaration,validate_store_type_assumption(constraint)).
 
 :- chr_constraint rule_count/1.
 :- chr_option(mode,rule_count(+)).
@@ -255,6 +274,13 @@
 :- chr_constraint inc_rule_count/1.
 :- chr_option(mode,inc_rule_count(-)).
 :- chr_option(type_declaration,inc_rule_count(natural)).
+
+rule_count(_) \ rule_count(_) 
+	<=> true.
+rule_count(C), inc_rule_count(NC)
+	<=> NC is C + 1, rule_count(NC).
+inc_rule_count(NC)
+	<=> NC = 1, rule_count(NC).
 
 :- chr_constraint passive/2.
 :- chr_option(mode,passive(+,+)).
@@ -304,13 +330,6 @@
 :- chr_option(mode,is_least_occurrence(+)).
 
 
-
-target_module(_) \ target_module(_) <=> true.
-target_module(Mod) \ get_target_module(Query)
-	<=> Query = Mod .
-get_target_module(Query)
-	<=> Query = user.
-
 indexed_argument(FA,I) \ indexed_argument(FA,I) <=> true.
 indexed_argument(FA,I) \ is_indexed_argument(FA,I) <=> true.
 is_indexed_argument(_,_) <=> fail.
@@ -347,9 +366,9 @@ none_suspended_on_variables \ are_none_suspended_on_variables <=> true.
 are_none_suspended_on_variables <=> fail.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-store_type(FA,atom_hash(Index)) <=> store_type(FA,multi_hash([Index])).
 store_type(FA,Store) \ get_store_type(FA,Query)
 	<=> Query = Store.
+
 assumed_store_type(FA,Store) \ get_store_type(FA,Query)
 	<=> Query = Store.
 get_store_type(_,Query) 
@@ -380,11 +399,6 @@ validate_store_type_assumption(C), assumed_store_type(C,_)				% no lookups on co
 	<=> store_type(C,global_ground).
 validate_store_type_assumption(C) 
 	<=> true.
-
-rule_count(C), inc_rule_count(NC)
-	<=> NC is C + 1, rule_count(NC).
-inc_rule_count(NC)
-	<=> NC = 1, rule_count(NC).
 
 %%% P A S S I V E %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 passive(R,ID) \ passive(R,ID) <=> true.
@@ -477,15 +491,28 @@ get_rule(_,_)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% C O N S T R A I N T   I N D E X %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- chr_constraint
-	constraint_index/2,			% constraint_index(F/A,DefaultStoreAndAttachedIndex)
-	get_constraint_index/2,			
-	get_indexed_constraint/2,
-	max_constraint_index/1,			% max_constraint_index(MaxDefaultStoreAndAttachedIndex)
-	get_max_constraint_index/1.
+%
+% Default store constraint index assignment.
 
+:- chr_constraint constraint_index/2.			% constraint_index(F/A,DefaultStoreAndAttachedIndex)
 :- chr_option(mode,constraint_index(+,+)).
+:- chr_option(type_declaration,constraint_index(constraint,int)).
+
+:- chr_constraint get_constraint_index/2.			
+:- chr_option(mode,get_constraint_index(+,-)).
+:- chr_option(type_declaration,get_constraint_index(constraint,int)).
+
+:- chr_constraint get_indexed_constraint/2.
+:- chr_option(mode,get_indexed_constraint(+,-)).
+:- chr_option(type_declaration,get_indexed_constraint(int,constraint)).
+
+:- chr_constraint max_constraint_index/1.			% max_constraint_index(MaxDefaultStoreAndAttachedIndex)
 :- chr_option(mode,max_constraint_index(+)).
+:- chr_option(type_declaration,max_constraint_index(int)).
+
+:- chr_constraint get_max_constraint_index/1.
+:- chr_option(mode,get_max_constraint_index(-)).
+:- chr_option(type_declaration,get_max_constraint_index(int)).
 
 constraint_index(C,Index) \ get_constraint_index(C,Query)
 	<=> Query = Index.
@@ -516,6 +543,57 @@ set_constraint_indices([C|Cs],N) :-
 	;
 		set_constraint_indices(Cs,N)
 	).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Identifier Indexes
+
+:- chr_constraint identifier_size/1.
+:- chr_option(mode,identifier_size(+)).
+:- chr_option(type_declaration,identifier_size(natural)).
+
+identifier_size(_) \ identifier_size(_)
+	<=>
+		true.
+
+:- chr_constraint get_identifier_size/1.
+:- chr_option(mode,get_identifier_size(-)).
+:- chr_option(type_declaration,get_identifier_size(natural)).
+
+identifier_size(Size) \ get_identifier_size(Q)
+	<=>
+		Q = Size.
+
+get_identifier_size(Q)
+	<=>	
+		Q = 1.
+
+:- chr_constraint identifier_index/3.
+:- chr_option(mode,identifier_index(+,+,+)).
+:- chr_option(type_declaration,identifier_index(constraint,natural,natural)).
+
+identifier_index(C,I,_) \ identifier_index(C,I,_)
+	<=>
+		true.
+
+:- chr_constraint get_identifier_index/3.
+:- chr_option(mode,get_identifier_index(+,+,-)).
+:- chr_option(type_declaration,get_identifier_index(constraint,natural,natural)).
+
+identifier_index(C,I,II) \ get_identifier_index(C,I,Q)
+	<=>
+		Q = II.
+identifier_size(Size), get_identifier_index(C,I,Q)
+	<=>
+		NSize is Size + 1,
+		identifier_index(C,I,NSize),
+		identifier_size(NSize),
+		Q = NSize.
+get_identifier_index(C,I,Q) 
+	<=>
+		identifier_index(C,I,2),
+		identifier_size(2),
+		Q = 2.
+
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -536,25 +614,25 @@ chr_translate(Declarations,NewDeclarations) :-
 	add_rules(Rules),
 	% start analysis
 	check_rules(Rules,Constraints),
-	static_type_check,
+	time('type checking',chr_translate:static_type_check),
 	add_occurrences(Rules),
-	time(fd_analysis,chr_translate:functional_dependency_analysis(Rules)),
-	time(set_semantics_rules,chr_translate:set_semantics_rules(Rules)),
-	time(symmetry_analysis,chr_translate:symmetry_analysis(Rules)),
-	time(guard_simplification,chr_translate:guard_simplification),
-	time(storage_analysis,chr_translate:storage_analysis(Constraints)),
-	time(observation_analysis,chr_translate:observation_analysis(Constraints)),
-	time(ai_observation_analysis,chr_translate:ai_observation_analysis(Constraints)),
-	time(late_allocation_analysis,chr_translate:late_allocation_analysis(Constraints)),
+	time('functional dependency',chr_translate:functional_dependency_analysis(Rules)),
+	time('set semantics',chr_translate:set_semantics_rules(Rules)),
+	time('symmetry analysis',chr_translate:symmetry_analysis(Rules)),
+	time('guard simplification',chr_translate:guard_simplification),
+	time('late storage',chr_translate:storage_analysis(Constraints)),
+	time('observation',chr_translate:observation_analysis(Constraints)),
+	time('ai observation',chr_translate:ai_observation_analysis(Constraints)),
+	time('late allocation',chr_translate:late_allocation_analysis(Constraints)),
 	partial_wake_analysis,
-	time(assume_constraint_stores,chr_translate:assume_constraint_stores(Constraints)),
-	time(set_constraint_indices,chr_translate:set_constraint_indices(Constraints)),
+	time('assume constraint stores',chr_translate:assume_constraint_stores(Constraints)),
+	time('default constraint indices',chr_translate:set_constraint_indices(Constraints)),
 	% end analysis
-	time(constraints_code,chr_translate:constraints_code(Constraints,ConstraintClauses)),
-	time(validate_store_type_assumptions,chr_translate:validate_store_type_assumptions(Constraints)),
+	time('constraint code generation',chr_translate:constraints_code(Constraints,ConstraintClauses)),
+	time('validate store assumptions',chr_translate:validate_store_type_assumptions(Constraints)),
 	phase_end(validate_store_type_assumptions),
 	used_states_known,	
-	time(store_management_preds,chr_translate:store_management_preds(Constraints,StoreClauses)),	% depends on actual code used
+	time('store code generation',chr_translate:store_management_preds(Constraints,StoreClauses)),	% depends on actual code used
 	insert_declarations(OtherClauses, Clauses0),
 	chr_module_declaration(CHRModuleDeclaration),
 	append([StoreClauses,ConstraintClauses,CHRModuleDeclaration,[end_of_file]],StuffyGeneratedClauses),
@@ -571,7 +649,6 @@ store_management_preds(Constraints,Clauses) :-
 		generate_counter_code(CounterClauses),
 		generate_dynamic_type_check_clauses(TypeCheckClauses),
 		append([AttachAConstraintClauses
-		       ,IndexedClauses
 		       ,AttachIncrementClauses
 		       ,AttrUnifyHookClauses
 		       ,ExtraClauses
@@ -728,8 +805,9 @@ is_type_definition(Declaration) :-
 		type_definition(Name,DefList)
 	; TypeDef = (Alias == Name) ->
 		type_alias(Alias,Name)
-	;
-	      chr_warning(syntax,'Illegal type definition "~w".\n\tIgnoring this malformed type definition.\n',[TypeDef])
+	; 
+	      	type_definition(TypeDef,[]),
+	      	chr_warning(syntax,'Empty type definition "~w".\n',[TypeDef])
 	).
 
 %%	tdisj2list(+Goal,-ListOfGoals) is det.
@@ -1370,7 +1448,7 @@ generate_attach_body_n(F/A,Var,Susp,Body) :-
 		)
 	;
 		put_attr(Var,Mod,NewAttr3)
-	).
+	), !.
 
 %%	detach_$CONSTRAINT
 generate_detach_a_constraint(Constraint,[Clause1,Clause2]) :-
@@ -1443,7 +1521,7 @@ generate_detach_body_n(F/A,Var,Susp,Body) :-
 		)
 	;
 		true
-	).
+	), !.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------------------------
@@ -1615,7 +1693,7 @@ generate_remove_clauses([C|Cs],List,Tail) :-
 	generate_remove_clause(C,List,List1),
 	generate_remove_clauses(Cs,List1,Tail).
 
-remove_constraint_goal(Constraint,Susp,Agenda,DeleteNo,DeleteYes,Goal) :-
+remove_constraint_goal(Constraint,Susp,Agenda,DeleteNo,DeleteYes,Role,Goal) :-
 	uses_state(Constraint,removed),
 	( chr_pp_flag(inline_insertremove,off) ->
 		use_auxiliary_predicate(remove_constraint_internal,Constraint),
@@ -1623,7 +1701,7 @@ remove_constraint_goal(Constraint,Susp,Agenda,DeleteNo,DeleteYes,Goal) :-
 		remove_constraint_atom(Constraint,Susp,Agenda,Delete,DeleteGoal)
 	;
 		delay_phase_end(validate_store_type_assumptions,
-			generate_remove_body(Constraint,Susp,Agenda,DeleteNo,DeleteYes,Goal)
+			generate_remove_body(Constraint,Susp,Agenda,DeleteNo,DeleteYes,Role,Goal)
 		)
 	).
 
@@ -1640,16 +1718,22 @@ generate_remove_clause(Constraint,List,Tail) :-
 		List = [RemoveClause|Tail],
         	RemoveClause = (Head :- RemoveBody),
 		remove_constraint_atom(Constraint,Susp,Agenda,Delete,Head),
-        	generate_remove_body(Constraint,Susp,Agenda,Delete = no,Delete = yes,RemoveBody)
+        	generate_remove_body(Constraint,Susp,Agenda,Delete = no,Delete = yes,active,RemoveBody)
 	;
 		List = Tail
 	).
 	
-generate_remove_body(Constraint,Susp,Agenda,DeleteNo,DeleteYes,RemoveBody) :-
+generate_remove_body(Constraint,Susp,Agenda,DeleteNo,DeleteYes,Role,RemoveBody) :-
 	( chr_pp_flag(debugable,off), ( only_ground_indexed_arguments(Constraint) ; get_store_type(Constraint,var_assoc_store(_,_))) ->
-		get_update_suspension_field(Constraint,Susp,state,State,removed,GetState,GetStateValue0,UpdateState),
-		if_used_state(Constraint,not_stored_yet,GetStateValue0,true,GetStateValue),
-		if_used_state(Constraint,not_stored_yet,(State == not_stored_yet -> DeleteNo ; DeleteYes),DeleteYes,MaybeDelete),
+		( Role == active ->
+			get_update_suspension_field(Constraint,Susp,state,State,removed,GetState,GetStateValue0,UpdateState),
+			if_used_state(Constraint,not_stored_yet,GetStateValue0,true,GetStateValue),
+			if_used_state(Constraint,not_stored_yet,(State == not_stored_yet -> DeleteNo ; DeleteYes),DeleteYes,MaybeDelete)
+		; Role == partner ->
+			get_update_suspension_field(Constraint,Susp,state,State,removed,GetState,_,UpdateState),
+			GetStateValue = true,
+			MaybeDelete = DeleteYes
+		),
 		RemoveBody = 
 		(
 			GetState,
@@ -1667,9 +1751,15 @@ generate_remove_body(Constraint,Susp,Agenda,DeleteNo,DeleteYes,RemoveBody) :-
 		;
 			true
 		),
-		get_update_static_suspension_field(Constraint,Susp,Susp2,state,State,removed,GetStateValue0,UpdateState),
-		if_used_state(Constraint,not_stored_yet,GetStateValue0,true,GetStateValue),
-		if_used_state(Constraint,not_stored_yet,(State == not_stored_yet -> Agenda = [], DeleteNo ; IndexedVariablesBody, DeleteYes),(IndexedVariablesBody,DeleteYes),MaybeDelete),
+		( Role == active ->
+			get_update_static_suspension_field(Constraint,Susp,Susp2,state,State,removed,GetStateValue0,UpdateState),
+			if_used_state(Constraint,not_stored_yet,GetStateValue0,true,GetStateValue),
+			if_used_state(Constraint,not_stored_yet,(State == not_stored_yet -> Agenda = [], DeleteNo ; IndexedVariablesBody, DeleteYes),(IndexedVariablesBody,DeleteYes),MaybeDelete)
+		; Role == partner ->
+			get_update_static_suspension_field(Constraint,Susp,Susp2,state,State,removed,_,UpdateState),
+			GetStateValue = true,
+			MaybeDelete = (IndexedVariablesBody, DeleteYes)
+		),
 		RemoveBody = 
 		(
                         Susp = Susp2,
@@ -2335,9 +2425,7 @@ generate_insert_delete_constraints([FA|Rest],Clauses) :-
 			
 generate_insert_delete_constraint(FA,Clauses,RestClauses) :-
 	insert_constraint_clause(FA,Clauses,RestClauses1),
-	RestClauses1 = [DClause|RestClauses],
-	get_store_type(FA,StoreType),
-	generate_delete_constraint(StoreType,FA,DClause).
+	delete_constraint_clause(FA,RestClauses1,RestClauses).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 % insert_in_store
@@ -2494,7 +2582,13 @@ insert_constraint_body(multi_store(StoreTypes),C,Susp,UsedVars,Body) :-
 	once(pairup(Bodies,NestedUsedVars,BodiesUsedVars)),
 	list2conj(Bodies,Body),
 	sort_out_used_vars(NestedUsedVars,UsedVars).
-
+insert_constraint_body(identifier_store(Index),C,Susp,UsedVars,Body) :-
+	UsedVars = [Index-Var],
+	get_identifier_size(ISize),
+	functor(Struct,struct,ISize),
+	get_identifier_index(C,Index,IIndex),
+	arg(IIndex,Struct,Susps),
+	Body = (Var = Struct, setarg(IIndex,Var,[Susp|Susps])).
 
 sort_out_used_vars(NestedUsedVars,UsedVars) :-
 	flatten(NestedUsedVars,FlatUsedVars),
@@ -2539,17 +2633,40 @@ generate_multi_hash_insert_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodie
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 % Delete
 
-generate_delete_constraint(StoreType,FA,Clause) :-
-	generate_delete_constraint_call(FA,Susp,Head),
-	generate_delete_constraint_body(StoreType,FA,Susp,Body),
-	( chr_pp_flag(store_counter,on) ->
-		DeleteCounterInc = '$delete_counter_inc'
+delete_constraint_clause(C,Clauses,RestClauses) :-
+	( is_used_auxiliary_predicate(delete_from_store,C) ->
+		Clauses = [Clause|RestClauses],
+		Clause = (Head :- Body),	
+		delete_constraint_atom(C,Susp,Head),
+		delete_constraint_body(C,Susp,Body)
 	;
-		DeleteCounterInc = true	
-	),
-	Clause = (Head :- DeleteCounterInc, Body).
+		Clauses = RestClauses
+	).
 
-generate_delete_constraint_body(default,C,Susp,Body) :-
+delete_constraint_goal(C,Susp,Goal) :-
+	( chr_pp_flag(inline_insertremove,off) ->
+		use_auxiliary_predicate(delete_from_store,C),
+		delete_constraint_atom(C,Susp,Goal)
+	;
+		delay_phase_end(validate_store_type_assumptions, delete_constraint_body(C,Susp,Goal))
+	).
+
+delete_constraint_atom(C,Susp,Atom) :-
+	make_name('$delete_from_store_',C,Functor),
+	Atom =.. [Functor,Susp]. 
+
+
+delete_constraint_body(C,Susp,Body) :-
+	Body = (CounterBody,DeleteBody),
+	( chr_pp_flag(store_counter,on) ->
+		CounterBody = '$delete_counter_inc'
+	;
+		CounterBody = true	
+	),
+	get_store_type(C,StoreType),
+	delete_constraint_body(StoreType,C,Susp,DeleteBody).
+
+delete_constraint_body(default,C,Susp,Body) :-
 	( chr_pp_flag(debugable,on) ->
 	 	global_list_store_name(C,StoreName),
 	 	make_get_store_goal(StoreName,Store,GetStoreGoal),
@@ -2607,11 +2724,11 @@ generate_delete_constraint_body(default,C,Susp,Body) :-
 % 			DetachBody
 % 		)
 % 	).
-generate_delete_constraint_body(multi_inthash(Indexes),C,Susp,Body) :-
+delete_constraint_body(multi_inthash(Indexes),C,Susp,Body) :-
 	generate_multi_inthash_delete_constraint_bodies(Indexes,C,Susp,Body).
-generate_delete_constraint_body(multi_hash(Indexes),C,Susp,Body) :-
+delete_constraint_body(multi_hash(Indexes),C,Susp,Body) :-
 	generate_multi_hash_delete_constraint_bodies(Indexes,C,Susp,Body).
-generate_delete_constraint_body(global_ground,C,Susp,Body) :-
+delete_constraint_body(global_ground,C,Susp,Body) :-
 	( chr_pp_flag(debugable,on) ->
 		global_ground_store_name(C,StoreName),
 	 	make_get_store_goal(StoreName,Store,GetStoreGoal),
@@ -2661,7 +2778,7 @@ generate_delete_constraint_body(global_ground,C,Susp,Body) :-
 % 		'chr sbag_del_element'(Store,Susp,NStore),
 % 		UpdateStoreGoal % b_setval(StoreName,NStore)
 % 	).
-generate_delete_constraint_body(var_assoc_store(VarIndex,AssocIndex),C,Susp,Body) :-
+delete_constraint_body(var_assoc_store(VarIndex,AssocIndex),C,Susp,Body) :-
 	get_target_module(Module),
 	get_dynamic_suspension_term_field(argument(VarIndex),C,Susp,Variable,VariableGoal),
 	get_dynamic_suspension_term_field(argument(AssocIndex),C,Susp,Key,KeyGoal),
@@ -2671,24 +2788,31 @@ generate_delete_constraint_body(var_assoc_store(VarIndex,AssocIndex),C,Susp,Body
 		KeyGoal,
 		delete_assoc_store(AssocStore,Key,Susp)
 	).
-generate_delete_constraint_body(global_singleton,C,_Susp,Body) :-
+delete_constraint_body(global_singleton,C,_Susp,Body) :-
 	global_singleton_store_name(C,StoreName),
 	make_update_store_goal(StoreName,[],UpdateStoreGoal),
 	Body =
 	(
 		UpdateStoreGoal  % b_setval(StoreName,[])
 	).
-generate_delete_constraint_body(multi_store(StoreTypes),C,Susp,Body) :-
+delete_constraint_body(multi_store(StoreTypes),C,Susp,Body) :-
 	find_with_var_identity(
 		B,
 		[Susp],
 		(
 			member(ST,StoreTypes),
-			chr_translate:generate_delete_constraint_body(ST,C,Susp,B)
+			chr_translate:delete_constraint_body(ST,C,Susp,B)
 		),
 		Bodies
 	),
 	list2conj(Bodies,Body).
+delete_constraint_body(identifier_store(Index),C,Susp,Body) :-
+	get_dynamic_suspension_term_field(argument(Index),C,Susp,Variable,VariableGoal),
+	get_identifier_size(ISize),
+	functor(Struct,struct,ISize),
+	get_identifier_index(C,Index,IIndex),
+	arg(IIndex,Struct,Susps),
+	Body = ( VariableGoal, Variable = Struct, 'chr sbag_del_element'(Susps,Susp,NSusps), setarg(IIndex,Variable,NSusps) ). 
 
 generate_multi_inthash_delete_constraint_bodies([],_,_,true).
 generate_multi_inthash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
@@ -2713,10 +2837,6 @@ generate_multi_hash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodie
 		delete_ht(Store,Key,Susp)
 	),
 	generate_multi_hash_delete_constraint_bodies(Indexes,FA,Susp,Bodies).
-
-generate_delete_constraint_call(FA,Susp,Call) :-
-	make_name('$delete_from_store_',FA,Functor),
-	Call =.. [Functor,Susp]. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2760,6 +2880,26 @@ generate_attach_code(global_singleton,C,L,T) :-
 	global_singleton_store_initialisation(C,L,T).
 generate_attach_code(multi_store(StoreTypes),C,L,T) :-
 	multi_store_generate_attach_code(StoreTypes,C,L,T).
+generate_attach_code(identifier_store(Index),C,L,T) :-
+	get_identifier_index(C,Index,IIndex),
+	( IIndex == 2 ->
+		get_identifier_size(ISize),
+		functor(Struct,struct,ISize),
+		Struct =.. [_,Label|Stores],
+		set_elems(Stores,[]),
+		Clause1 = new_identifier(Label,Struct),
+		functor(Struct2,struct,ISize),
+		arg(1,Struct2,Label2),
+		Clause2 = 
+		( user:portray(Struct2) :-
+			write('<id:'),
+			print(Label2),
+			write('>')
+		),
+		L = [Clause1,Clause2|T]
+	;
+		L = T
+	).
 
 multi_store_generate_attach_code([],_,L,L).
 multi_store_generate_attach_code([ST|STs],C,L,T) :-
@@ -2936,7 +3076,7 @@ prolog_global_variables_code(Code) :-
 	).
 %% SWI end
 %% SICStus begin
-prolog_global_variables_code([]).
+% prolog_global_variables_code([]).
 %% SICStus end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %sbag_member_call(S,L,sysh:mem(S,L)).
@@ -3074,6 +3214,8 @@ enumerate_store_body(multi_store(STs),C,Susp,Body) :-
 		member(ST,STs),
 		enumerate_store_body(ST,C,Susp,Body)
 	)).
+enumerate_store_body(identifier_store(Index),C,Susp,Body) :-
+	Body = fail.
 
 multi_inthash_enumerate_store_body(I,C,Susp,B) :-
 	multi_hash_store_name(C,I,StoreName),
@@ -3184,17 +3326,17 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,GH)
 	<=>
     		GH \== [] 
 	|
-    		head_type_information_as_guard(GH,H,TypeInfo),
+    		head_types_modes_condition(GH,H,TypeInfo),
     		conj2list(TypeInfo,TI),
     		term_variables(H,HeadVars),    
     		append([chr_pp_headvariables(HeadVars)|TI],GuardList,Info),
     		normalize_conj_list(Info,InfoL),
     		prev_guard_list(RuleNb,0,H,G,InfoL,M,[]).
 
-head_type_information_as_guard([],H,true).
-head_type_information_as_guard([GH|GHs],H,(TI1, TI2)) :-
-    	type_information_as_guard(H,GH,TI1),
-    	head_type_information_as_guard(GHs,H,TI2).
+head_types_modes_condition([],H,true).
+head_types_modes_condition([GH|GHs],H,(TI1, TI2)) :-
+    	types_modes_condition(H,GH,TI1),
+    	head_types_modes_condition(GHs,H,TI2).
 
 %%
 %
@@ -3794,8 +3936,7 @@ extract_explicit_matchings(A,D) :- !,
 	type_alias/2,
 	constraint_type/2,
 	get_type_definition/2,
-	get_constraint_type/2,
-	type_information_as_guard/3.
+	get_constraint_type/2.
 
 
 :- chr_option(mode,type_definition(?,?)).
@@ -3803,8 +3944,6 @@ extract_explicit_matchings(A,D) :- !,
 :- chr_option(mode,type_alias(?,?)).
 :- chr_option(mode,constraint_type(+,+)).
 :- chr_option(mode,get_constraint_type(+,-)).
-:- chr_option(mode,type_information_as_guard(+,+,?)).
-:- chr_option(type_declaration,type_information_as_guard(list,list,any)).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Consistency checks of type aliases
@@ -3851,26 +3990,50 @@ type_definition(T1,_), type_alias(T2,_)
    		chr_error(type_error,'Multiple definitions for type, once in a type definition and once as a type alias: ~w/~w.\n',[F,A]).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% get_type_definition
+%%	get_type_definition(+Type,-Definition) is semidet.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  
-get_type_definition(T,Def) <=> \+ ground(T) |
-   chr_error(type_error,'Non-ground type in constraint definition: "~w".\n',[T]).
+get_type_definition(T,Def) 
+	<=> 
+		\+ ground(T) 
+	|
+   		chr_error(type_error,'Non-ground type in constraint definition: "~w".\n',[T]).
 
-type_alias(T,D) \ get_type_definition(T2,Def) <=> 
-	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
-	copy_term_nat((T,D),(T1,D1)),T1=T2 | 
-	( get_type_definition(D1,Def) ->
+type_alias(T,D) \ get_type_definition(T2,Def) 
+	<=> 
+		nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
+		copy_term_nat((T,D),(T1,D1)),T1=T2 
+	| 
+		( get_type_definition(D1,Def) ->
+			true
+		;
+			chr_error(type_error,'Could not find type definition for "~w" (accessed via alias "~w").\n',[D1,T1]), fail
+		).
+
+type_definition(T,D) \ get_type_definition(T2,Def) 
+	<=> 
+		nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
+		copy_term_nat((T,D),(T1,D1)),T1=T2 
+	| 
+		Def = D1.
+
+get_type_definition(T2,Def) 
+	<=> 
+		builtin_type(T2,_,_) 
+	| 
+		Def = [T2].
+
+get_type_definition(X,Y) <=> fail.
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%%	get_type_definition_det(+Type,-Definition) is det.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+get_type_definition_det(Type,Definition) :-
+	( get_type_definition(Type,Definition) ->
 		true
 	;
-		chr_error(type_error,'Could not find type definition for "~w" (accessed via alias "~w").\n',[D1,T1]), fail
+		chr_error(type,'Could not find type definition for type `~w\'.\n',[Type])
 	).
-
-type_definition(T,D) \ get_type_definition(T2,Def) <=> 
-	nonvar(T),nonvar(T2),functor(T,F,A),functor(T2,F,A),
-	copy_term_nat((T,D),(T1,D1)),T1=T2 | Def = D1.
-get_type_definition(T2,Def) <=> 
-	builtin_type(T2,_,_) | Def = [T2].
-get_type_definition(X,Y) <=> fail.
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %% 	get_constraint_type(+ConstraintSymbol,-Types) is semidet.
@@ -3930,115 +4093,116 @@ unalias_type(Alias,BaseType)
 	| 
 		BaseType = Alias.
 
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% type_information_as_guard
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%% 	types_modes_condition(+Heads,+UnrollHeads,-Condition) is det.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+:- chr_constraint types_modes_condition/3.
+:- chr_option(mode,types_modes_condition(+,+,?)).
+:- chr_option(type_declaration,types_modes_condition(list,list,goal)).
 
-type_information_as_guard([],[],T) <=> T=true.
+types_modes_condition([],[],T) <=> T=true.
 
-constraint_mode(F/A,Modes) \ type_information_as_guard([Head|R],[RealHead|RRH],TypeInfo) 
+constraint_mode(F/A,Modes) \ types_modes_condition([Head|Heads],[UnrollHead|UnrollHeads],Condition) 
 	<=>
     		functor(Head,F,A) 
 	|
     		Head =.. [_|Args],
-    		RealHead =.. [_|RealArgs],
-    		add_mode_info(Modes,Args,ModeInfo),
-    		TypeInfo = (ModeInfo, TI),
+    		Condition = (ModesCondition, TypesCondition, RestCondition),
+    		modes_condition(Modes,Args,ModesCondition),
     		get_constraint_type_det(F/A,Types),
-		types2condition(Types,Args,RealArgs,Modes,TI2),
-		list2conj(TI2,ConjTI),
-		TI = (ConjTI,RTI),
-		type_information_as_guard(R,RRH,RTI).
+    		UnrollHead =.. [_|RealArgs],
+		types_condition(Types,Args,RealArgs,Modes,TypesCondition),
+		types_modes_condition(Heads,UnrollHeads,RestCondition).
 
-type_information_as_guard([Head|R],_,TypeInfo) 
+types_modes_condition([Head|_],_,_) 
 	<=>
     		functor(Head,F,A),
     		chr_error(internal,'Mode information missing for ~w.\n',[F/A]).
 
 
-add_mode_info([],[],true).
-add_mode_info([(+)|Modes],[A|Args],MI) :- !,
-    MI = (ground(A), ModeInfo),
-    add_mode_info(Modes,Args,ModeInfo).
-add_mode_info([M|Modes],[A|Args],MI) :-
-    add_mode_info(Modes,Args,MI).
-
-
-types2condition([],[],[],[],[]).
-types2condition([Type|Types],[Arg|Args],[RealArg|RAs],[Mode|Modes],TI) :-
-    ( get_type_definition(Type,Def) ->
-	type2condition(Def,Arg,RealArg,TC),
-	( Mode \== (+) ->
-	    TC_ = [(\+ ground(Arg))|TC]
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	modes_condition(+Modes,+Args,-Condition) is det.
+%
+%	Return =Condition= on =Args= that checks =Modes=.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+modes_condition([],[],true).
+modes_condition([Mode|Modes],[Arg|Args],Condition) :- 
+	( Mode == (+) ->
+		Condition = ( ground(Arg) , RCondition )
+	; Mode == (-) ->
+		Condition = ( var(Arg) , RCondition )
 	;
-	    TC_ = TC
+		Condition = RCondition
 	),
-	list2disj(TC_,DisjTC),
-	TI = [DisjTC|RTI],
-	types2condition(Types,Args,RAs,Modes,RTI)
-    ;
-	chr_error(internal,'Could not find type definition for ~w.\n',[Type])
-	
-    ).
+    	modes_condition(Modes,Args,RCondition).
 
-type2condition([],Arg,_,[]).
-type2condition([Def|Defs],Arg,RealArg,TC) :-
-    ( builtin_type(Def,Arg,C) ->
-	true
-    ;
-        real_type(Def,Arg,RealArg,C)
-    ),
-    item2list(C,LC),
-    type2condition(Defs,Arg,RealArg,RTC),
-    append(LC,RTC,TC).
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	types_condition(+Types,+Args,+UnrollArgs,+Modes,-Condition) is det.
+%
+%	Return =Condition= on =Args= that checks =Types= given =Modes=.
+%	=UnrollArgs= controls the depth of type definition unrolling. 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+types_condition([],[],[],[],true).
+types_condition([Type|Types],[Arg|Args],[UnrollArg|UnrollArgs],[Mode|Modes],(DisjTypeConditionList,RCondition)) :-
+	( Mode == (-) ->
+		TypeConditionList = [true]	% TypeConditionList = [var(Arg)] already encoded in modes_condition
+	; 
+		get_type_definition_det(Type,Def),
+		type_condition(Def,Arg,UnrollArg,Mode,TypeConditionList1),
+		( Mode == (+) ->
+			TypeConditionList = TypeConditionList1
+		;
+			TypeConditionList = [(\+ ground(Arg))|TypeConditionList1]
+		)
+	),
+	list2disj(TypeConditionList,DisjTypeConditionList),
+	types_condition(Types,Args,UnrollArgs,Modes,RCondition).
 
-item2list([],[]) :- !.
-item2list([X|Y],[X|Y]) :- !.
-item2list(N,L) :- L = [N].
+type_condition([],_,_,_,[]).
+type_condition([DefCase|DefCases],Arg,UnrollArg,Mode,[Condition|Conditions]) :-
+	( var(DefCase) ->
+		chr_error(type,'Unexpected variable type in type definition!\n',[]) % Condition = true
+	; builtin_type_nonvar(DefCase,Arg,Condition) ->
+		true
+	;
+		type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition)
+	),
+	type_condition(DefCases,Arg,UnrollArg,Mode,Conditions).
 
 builtin_type(X,Arg,true) :- var(X),!.
 builtin_type(X,Arg,Goal) :- builtin_type_nonvar(X,Arg,Goal).
 
-builtin_type_nonvar(any,Arg,true).
+builtin_type_nonvar(any,_Arg,true).
 builtin_type_nonvar(dense_int,Arg,(integer(Arg),Arg>=0)).
 builtin_type_nonvar(int,Arg,integer(Arg)).
 builtin_type_nonvar(number,Arg,number(Arg)).
 builtin_type_nonvar(float,Arg,float(Arg)).
 builtin_type_nonvar(natural,Arg,(integer(Arg),Arg>=0)).
 
-real_type(Def,Arg,RealArg,C) :-
-    ( nonvar(Def) ->
-	functor(Def,F,A),
-	( A == 0 ->
-	    C = (Arg = F)
-	;
-	    Def =.. [_|TArgs],
-	    length(AA,A),
-	    Def2 =.. [F|AA],
-	    ( var(RealArg) ->
-		C = functor(Arg,F,A)
-	    ;
-		( functor(RealArg,F,A) ->
-		    RealArg =.. [_|RAArgs],
-		    nested_types(TArgs,AA,RAArgs,ACond),
-		    C = (functor(Arg,F,A),Arg=Def2,ACond)
+builtin_type_nonvar(chr_identifier,_Arg,true).
+
+type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
+	( nonvar(DefCase) ->
+		functor(DefCase,F,A),
+		( A == 0 ->
+			Condition = (Arg = DefCase)
+		; var(UnrollArg) ->
+			Condition = functor(Arg,F,A)
+		; functor(UnrollArg,F,A) ->
+			Condition = (functor(Arg,F,A),Arg=Template,ArgsCondition),
+			DefCase =.. [_|ArgTypes],
+			UnrollArg =.. [_|UnrollArgs],
+			functor(Template,F,A),
+			Template =.. [_|TemplateArgs],
+			replicate(A,Mode,ArgModes),
+			types_condition(ArgTypes,TemplateArgs,UnrollArgs,ArgModes,ArgsCondition)
 		;
-		    C = functor(Arg,F,A)
+		    	Condition = functor(Arg,F,A)
 		)
-	    )
-	)
-    ;
-	chr_error(internal,'Illegal type definition (must be nonvar).\n',[])
-    ).	
-nested_types([],[],[],true).
-nested_types([T|RT],[A|RA],[RealA|RRA],C) :-
-    ( get_type_definition(T,Def) ->
-	type2condition(Def,A,RealA,TC),
-	list2disj(TC,DisjTC),
-	C = (DisjTC, RC),
-	nested_types(RT,RA,RRA,RC)
-    ;
-	chr_error(internal,'Undefined type ~w inside type definition.\n',[T])
-    ).
+	;
+	    	chr_error(internal,'Illegal type definition (must be nonvar).\n',[])
+	).	
+
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Static type checking
@@ -4114,7 +4278,7 @@ static_type_check_term(Src,Term,Type)
 		( call(Goal) ->
 			true
 		;
-			throw(type_error(invalid_funtor(Src,Term,Type)))
+			throw(type_error(invalid_functor(Src,Term,Type)))	
 		).	
 type_alias(AType,ADef) \ static_type_check_term(Src,Term,Type)
 	<=>
@@ -5151,8 +5315,8 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 	
-	gen_uncond_susps_detachments(Susps,RestHeads,SuspsDetachments),
-	gen_cond_susp_detachment(Id,Susp,F/A,SuspDetachment),
+	partner_constraint_detachments(Susps,RestHeads,SuspsDetachments),
+	active_constraint_detachment(Id,Susp,F/A,SuspDetachment),
 
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
@@ -5177,6 +5341,9 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %%	head_arg_matches(+Pairs,+Modes,+VarDict,-Goal,-NVarDict) is det.
+%
+%	Return goal matching newly introduced variables with variables in 
+% 	previously looked-up heads.
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 head_arg_matches(Pairs,Modes,VarDict,Goal,NVarDict) :-
 	head_arg_matches(Pairs,Modes,VarDict,Goal,NVarDict,[],_).
@@ -5602,22 +5769,23 @@ simple_guard(G,VarDict) :-
 	     lookup_eq(VarDict,V,_)
 	   )).
 
-gen_cond_susp_detachment(Id,Susp,FA,SuspDetachment) :-
-	( is_stored(FA) ->
+active_constraint_detachment(Id,Susp,C,SuspDetachment) :-
+	( is_stored(C) ->
 		( (Id == [0]; 
-		  (get_allocation_occurrence(FA,AO),
-		   get_max_occurrence(FA,MO), 
+		  (get_allocation_occurrence(C,AO),
+		   get_max_occurrence(C,MO), 
 		   MO < AO )), 
-		  only_ground_indexed_arguments(FA), chr_pp_flag(late_allocation,on) ->
+		  only_ground_indexed_arguments(C), chr_pp_flag(late_allocation,on) ->
 			SuspDetachment = true
 		;
-			gen_uncond_susp_detachment(Susp,FA,UnCondSuspDetachment),
+			gen_uncond_susp_detachment(C,Susp,active,UnCondSuspDetachment),
 			( chr_pp_flag(late_allocation,on) ->
 				SuspDetachment = 
-				(   var(Susp) ->
-				    true
-				;   UnCondSuspDetachment
-				)
+					( var(Susp) ->
+						true
+					;   
+						UnCondSuspDetachment
+					)
 			;
 				SuspDetachment = UnCondSuspDetachment
 			)
@@ -5626,30 +5794,30 @@ gen_cond_susp_detachment(Id,Susp,FA,SuspDetachment) :-
 	        SuspDetachment = true
 	).
 
-gen_uncond_susp_detachment(Susp,FA,SuspDetachment) :-
-   ( is_stored(FA) ->
-	( \+ only_ground_indexed_arguments(FA), \+ get_store_type(FA,var_assoc_store(_,_)) ->
-		detach_constraint_atom(FA,Vars,Susp,Detach)
-	;
-		Detach = true
-	),
+partner_constraint_detachments([],[],true).
+partner_constraint_detachments([Susp|Susps],[Term|Terms],(SuspDetachment,SuspsDetachments)) :-
+   functor(Term,F,A),
+   gen_uncond_susp_detachment(F/A,Susp,partner,SuspDetachment),
+   partner_constraint_detachments(Susps,Terms,SuspsDetachments).
+
+gen_uncond_susp_detachment(C,Susp,Role,SuspDetachment) :-
+   ( is_stored(C) ->
+	SuspDetachment = ( DebugEvent, RemoveInternalGoal),
 	( chr_pp_flag(debugable,on) ->
 		DebugEvent = 'chr debug_event'(remove(Susp))
 	;
 		DebugEvent = true
 	),
-	generate_delete_constraint_call(FA,Susp,DeleteCall),
-	remove_constraint_goal(FA,Susp,Vars,true,(DeleteCall,Detach),RemoveInternalGoal),
-	SuspDetachment = ( DebugEvent, RemoveInternalGoal)
+	remove_constraint_goal(C,Susp,Vars,true,(DeleteCall,Detach),Role,RemoveInternalGoal),
+	delete_constraint_goal(C,Susp,DeleteCall),
+	( \+ only_ground_indexed_arguments(C), \+ get_store_type(C,var_assoc_store(_,_)) ->
+		detach_constraint_atom(C,Vars,Susp,Detach)
+	;
+		Detach = true
+	)
    ;
 	SuspDetachment = true
    ).
-
-gen_uncond_susps_detachments([],[],true).
-gen_uncond_susps_detachments([Susp|Susps],[Term|Terms],(SuspDetachment,SuspsDetachments)) :-
-   functor(Term,F,A),
-   gen_uncond_susp_detachment(Susp,F/A,SuspDetachment),
-   gen_uncond_susps_detachments(Susps,Terms,SuspsDetachments).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5684,8 +5852,8 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
 	sort_by_key(Susps1,Susps1IDs,SortedSusps1),
-	gen_uncond_susps_detachments(SortedSusps1,RestHeads,SuspsDetachments),
-	gen_cond_susp_detachment(Id,Susp,F/A,SuspDetachment),
+	partner_constraint_detachments(SortedSusps1,RestHeads,SuspsDetachments),
+	active_constraint_detachment(Id,Susp,F/A,SuspDetachment),
    
 	( chr_pp_flag(debugable,on) ->
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
@@ -5857,7 +6025,7 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule,F/A
 	split_by_ids(NextIDs,Susps,IDs1,Susps1,Susps2),
 	split_by_ids(NextIDs,NextHeads,IDs1,RestHeads1,_),
 	
-	gen_uncond_susps_detachments([OtherSusp | Susps1],[CurrentHead|RestHeads1],Susps1Detachments),
+	partner_constraint_detachments([OtherSusp | Susps1],[CurrentHead|RestHeads1],Susps1Detachments),
 	
 	RecursiveVars = [OtherSusps|PreVarsAndSusps],
 	build_head(F,A,Id,RecursiveVars,RecursiveCall),
@@ -5979,16 +6147,9 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
 	get_constraint_mode(F/A,Mode),
 	head_arg_matches(HeadPairs,Mode,[],HeadMatching,VarDict,[],GroundVars),
 	guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
-	gen_occ_allocation(F/A,O,Vars,Susp,Allocation),
 	
 	% - recursive call -
 	RecursiveCall = NextHead,
-	( Body \== true, is_observed(F/A,O) ->
-	    gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
-	    gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
-	;   Attachment = true,
-	    ConditionalRecursiveCall = RecursiveCall
-	),
 
 	( unconditional_occurrence(F/A,O), chr_pp_flag(late_allocation,on) ->
 		ActualCut = true
@@ -6010,10 +6171,39 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
 		use_auxiliary_predicate(extend_history),
 		does_use_history(F/A,O),
 		NovelProduction = '$novel_production'(Susp,RuleNb),	% optimisation of t(RuleNb,Susp)
-		ExtendHistory   = '$extend_history'(Susp,RuleNb)
+		ExtendHistory   = '$extend_history'(Susp,RuleNb),
+
+		gen_occ_allocation(F/A,O,Vars,Susp,Allocation),
+
+		( Body \== true, is_observed(F/A,O) ->
+		    	gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
+		    	gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
+		;   
+			Attachment = true,
+		    	ConditionalRecursiveCall = RecursiveCall
+		)
    	;
 		NovelProduction = true,
-		ExtendHistory   = true
+		ExtendHistory   = true,
+		( Body \== true, is_observed(F/A,O) ->
+			Allocation = true,
+			get_allocation_occurrence(F/A,AllocO),
+			( O == AllocO ->
+				gen_insert_constraint_internal_goal(F/A,Attachment,VarsSusp,Vars,Susp),
+				Generation = 0
+			;	% more room for improvement? 
+				Attachment = (Attachment1, Attachment2),
+				gen_occ_allocation(F/A,O,Vars,Susp,Attachment1),
+			    	gen_uncond_attach_goal(F/A,Susp,Vars,Attachment2,Generation)
+			),
+			% gen_occ_allocation(F/A,O,Vars,Susp,Allocation),
+		    	% gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
+		    	gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall)
+		;   
+			Allocation = true,
+			gen_occ_allocation(F/A,O,Vars,Susp,Attachment),
+		    	ConditionalRecursiveCall = RecursiveCall
+		)
 	),
 
 	Clause = (
@@ -6341,7 +6531,8 @@ order_score(multi_store(StoreTypes),Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
 		Scores
 	),
 	min_list(Scores,Score).
-		
+order_score(identifier_store(Index),Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
+	Score = 10.
 
 order_score_indexes([],_,_,Score,NScore) :-
 	Score > 0, NScore = 100.
@@ -6542,6 +6733,22 @@ lookup_passive_head(multi_store(StoreTypes),Head,PreJoin,VarDict,GroundVars,Goal
 		member(ST,StoreTypes),
 		lookup_passive_head(ST,Head,PreJoin,VarDict,GroundVars,Goal,AllSusps)
 	)).
+lookup_passive_head(identifier_store(Index),Head,PreJoin,VarDict,GroundVars,Goal,AllSusps) :-
+	functor(Head,F,A),
+	arg(Index,Head,Var),
+	translate([Var],VarDict,[KeyVar]),
+	delay_phase_end(validate_store_type_assumptions,
+		identifier_lookup(F/A,Index,AllSusps,KeyVar,Goal)
+	),
+	update_store_type(F/A,identifier_store(Index)),
+	get_identifier_index(F/A,Index,_).
+
+identifier_lookup(C,Index,AllSusps,KeyVar,Goal) :-
+	get_identifier_size(ISize),
+	functor(Struct,struct,ISize),
+	get_identifier_index(C,Index,IIndex),
+	arg(IIndex,Struct,AllSusps),
+	Goal = (KeyVar = Struct).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %%	hash_lookup_passive_head(+StoreType,+Indexes,+Head,+RenamingVarDict,
@@ -6615,9 +6822,9 @@ existential_lookup(multi_store(StoreTypes),Head,PreJoin,VarDict,GroundVars,SuspT
 		member(ST,StoreTypes),
 		existential_lookup(ST,Head,PreJoin,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs)
 	)).
-existential_lookup(multi_inthash(Indexes),Head,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs) :- !,
+existential_lookup(multi_inthash(Indexes),Head,_,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs) :- !,
 	existential_hash_lookup(inthash,Indexes,Head,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs).
-existential_lookup(multi_hash(Indexes),Head,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs) :- !,
+existential_lookup(multi_hash(Indexes),Head,_,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs) :- !,
 	existential_hash_lookup(hash,Indexes,Head,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs).
 existential_lookup(StoreType,Head,PreJoin,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,Pairs) :-
 	lookup_passive_head(StoreType,Head,PreJoin,VarDict,GroundVars,UGoal,Susps),	
@@ -6645,8 +6852,9 @@ existential_lookup(StoreType,Head,PreJoin,VarDict,GroundVars,SuspTerm,Goal,Susp,
 existential_hash_lookup(HashType,Indexes,Head,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs) :-
 	hash_lookup_passive_head(HashType,Indexes,Head,VarDict,GroundVars,LookupGoal,AllSusps,Index),
 
+	hash_index_filter(Pairs,Index,NPairs),
+
 	functor(Head,F,A),
-	multi_hash_via_lookup_goal(F/A,Index,KeyCopy,AllSusps,LookupGoal),
 	( check_fd_lookup_condition(F,A,Head,KeyArgs) ->
 		Sbag = (AllSusps = [Susp])
 	;
@@ -6666,6 +6874,8 @@ existential_hash_lookup(HashType,Indexes,Head,VarDict,GroundVars,SuspTerm,Goal,S
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %%	hash_index_filter(+Pairs,+Index,-NPairs) is det.
+%
+%	Filter out pairs already covered by given hash index.
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 hash_index_filter(Pairs,Index,NPairs) :-
 	( integer(Index) ->
@@ -6683,14 +6893,19 @@ hash_index_filter([P|Ps],Index,N,NPairs) :-
 			NPairs = [P|NPs],
 			hash_index_filter(Ps,[I|Is],NN,NPs)
 		; I == N ->
-			NPairs = NPs,
-			hash_index_filter(Ps,Is,NN,NPs)
+			hash_index_filter(Ps,Is,NN,NPairs)
 		)	
 	;
 		NPairs = [P|Ps]
 	).	
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%------------------------------------------------------------------------------%
+%%	assume_constraint_stores(+ConstraintSymbols) is det.
+%
+%	Compute all constraint store types that are possible for the given
+%	=ConstraintSymbols=.
+%------------------------------------------------------------------------------%
 assume_constraint_stores([]).
 assume_constraint_stores([C|Cs]) :-
 	( chr_pp_flag(debugable,off),
@@ -6698,35 +6913,72 @@ assume_constraint_stores([C|Cs]) :-
 	  is_stored(C),
 	  get_store_type(C,default) ->
 		get_indexed_arguments(C,IndexedArgs),
-		% TODO: O(2^n) is not robust for too many indexed arguments, 
-		%	reject some possible indexes... 
-		% 	or replace brute force index generation with other approach
 		length(IndexedArgs,NbIndexedArgs),
+		% Construct Index Combinations
 		( NbIndexedArgs > 10 ->
 			findall([Index],member(Index,IndexedArgs),Indexes)
 		;
 			findall(Index,(sublist(Index,IndexedArgs), Index \== []),UnsortedIndexes),
 			predsort(longer_list,UnsortedIndexes,Indexes)
 		),
+		% Choose Index Type
 		( get_functional_dependency(C,1,Pattern,Key), 
 		  all_distinct_var_args(Pattern), Key == [] ->
 			assumed_store_type(C,global_singleton)
-		; get_constraint_type(C,ArgTypes),
-		  findall(Index,(member(Index,Indexes), Index = [I], nth(I,ArgTypes,Type), unalias_type(Type,UnAliasedType), UnAliasedType == dense_int ),IndexesA),
-	    	  IndexesA \== [] ->
-			list_difference_eq(Indexes,IndexesA,IndexesB),
-			( IndexesB \== [] ->
-		    	  	assumed_store_type(C,multi_store([multi_inthash(IndexesA),multi_hash(IndexesB),global_ground]))	
+		; 
+			get_constraint_type_det(C,ArgTypes),
+			partition_indexes(Indexes,ArgTypes,HashIndexes,IntHashIndexes,IdentifierIndexes),
+			
+			( IntHashIndexes = [] ->
+				Stores = Stores1
 			;
-		    		assumed_store_type(C,multi_store([multi_inthash(IndexesA),global_ground]))	
-			)
-	    	;
-			assumed_store_type(C,multi_store([multi_hash(Indexes),global_ground]))	
+				Stores = [multi_inthash(IntHashIndexes)|Stores1]
+			),	
+			( HashIndexes = [] ->
+				Stores1 = Stores2
+			;	
+				Stores1 = [multi_hash(HashIndexes)|Stores2]
+			),
+			( IdentifierIndexes = [] ->
+				Stores2 = Stores3
+			;
+				maplist(wrap_in_functor(identifier_store),IdentifierIndexes,WrappedIdentifierIndexes),
+				append(WrappedIdentifierIndexes,Stores3,Stores2)
+			),
+			Stores3 = [global_ground],
+			assumed_store_type(C,multi_store(Stores))
 		)
 	;
 		true
 	),
 	assume_constraint_stores(Cs).
+
+%------------------------------------------------------------------------------%
+%%	partition_indexes(+Indexes,+Types,
+%%		-HashIndexes,-IntHashIndexes,-IdentifierIndexes) is det.
+%------------------------------------------------------------------------------%
+partition_indexes([],_,[],[],[]).
+partition_indexes([Index|Indexes],Types,HashIndexes,IntHashIndexes,IdentifierIndexes) :-
+	( Index = [I],
+	  nth(I,Types,Type),
+	  unalias_type(Type,UnAliasedType),
+	  UnAliasedType == chr_identifier ->
+		IdentifierIndexes = [I|RIdentifierIndexes],
+		IntHashIndexes = RIntHashIndexes,
+		HashIndexes = RHashIndexes
+	; Index = [I],
+	  nth(I,Types,Type),
+	  unalias_type(Type,UnAliasedType),
+	  UnAliasedType == dense_int ->
+		IntHashIndexes = [Index|RIntHashIndexes],
+		HashIndexes = RHashIndexes,
+		IdentifierIndexes = RIdentifierIndexes
+	;
+		IntHashIndexes = RIntHashIndexes,
+		HashIndexes = [Index|RHashIndexes],
+		IdentifierIndexes = RIdentifierIndexes
+	),
+	partition_indexes(Indexes,Types,RHashIndexes,RIntHashIndexes,RIdentifierIndexes).
 
 longer_list(R,L1,L2) :-
 	length(L1,N1),
@@ -6904,7 +7156,8 @@ universal_search_iterator([NextHead|RestHeads],[CurrentHead|PreHeads],Rule,F/A,I
 	depends_on_as/3,
 	ai_observation_gather_results/0.
 
-:- chr_option(type_definition,type(abstract_domain,[odom(any,any)])).
+:- chr_type abstract_domain 	---> 	odom(program_point,list(constraint)).
+:- chr_type program_point	==	any. 
 
 :- chr_option(mode,initial_call_pattern(+)).
 :- chr_option(type_declaration,call_pattern(abstract_domain)).

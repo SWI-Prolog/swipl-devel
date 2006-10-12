@@ -1,3 +1,18 @@
+Oct 12, 2006
+
+  * TS: More inlining.
+
+  * TS: Experimental chr_identifier type.
+
+Oct 10, 2006
+
+  * TS: Allow for empty type definitions aka phantom types. These are 
+	useful for some type-level tricks. A warning is issued so the 
+	user can check whether a phantom type is intended. No other
+	phantom type-specific checks are in place yet.
+
+  * TS: Fixed static type checking of built-in types.
+
 Oct 9, 2006
 
   * TS: The dense_int type can now appear on the rhs of type alias
