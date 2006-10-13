@@ -1,5 +1,5 @@
 :- module(ex_simple, []).
-:- use_module(plunit).
+:- use_module(library(plunit)).
 
 :- begin_tests(lists).
 

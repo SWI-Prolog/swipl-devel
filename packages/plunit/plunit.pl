@@ -302,7 +302,7 @@ run_test(Unit, Name, Line, Options, Body) :-
 	->  (   var(E)
 	    ->	statistics(cputime, T1),
 		Time is T1 - T0,
-		failure(Unit, Name, Line, Time, Options),
+		failure(Unit, Name, Line, succeeded(Time), Options),
 		cleanup(Module, Options)
 	    ;	failure(Unit, Name, Line, E, Options),
 		cleanup(Module, Options)
@@ -626,6 +626,10 @@ prolog:message(plunit(failed(0))) --> !,
 	[ 'All tests passed' ].
 prolog:message(plunit(failed(N))) -->
 	[ '~D tests failed'-[N] ].
+prolog:message(plunit(failed(Unit, Name, Line, succeeded(Time)))) -->
+	{ unit_file(Unit, File) },
+	[ '~w:~w: test ~w: must fail but succeeded in ~2f seconds~n'-
+	  [File, Line, Name, Time] ].
 prolog:message(plunit(failed(Unit, Name, Line, Error))) -->
 	{ unit_file(Unit, File) },
 	[ '~w:~w: test ~w: ~p~n'-[File, Line, Name, Error] ].
