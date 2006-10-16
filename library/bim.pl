@@ -46,7 +46,7 @@
 	 atomconcat/3,
 	 update/1,
 	 printf/2,
-	 random/1,
+%	 random/1,			% conflicts with library(random)
 	 index/2,
 	 predicate_type/2,
 	 vread/2,
