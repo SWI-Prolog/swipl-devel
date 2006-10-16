@@ -57,10 +57,13 @@ MIMEOBJ=	error.o mime.o
 TIMEOBJ=	error.o time.o
 FILESOBJ=	error.o files.o
 RLIMITOBJ=	error.o rlimit.o
+RANDOMOBJ=	random.o
 READUTILOBJ=	readutil.o
 
 all:		$(TARGETS)
 
+random.@SO@:	$(RANDOMOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(RANDOMOBJ)
 unix.@SO@:	$(UNXOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(UNXOBJ)
 socket.@SO@:	$(SOCKOBJ)

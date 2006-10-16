@@ -1456,7 +1456,7 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="unix.$SO socket.$SO cgi.$SO memfile.$SO files.$SO mime.$SO"
+TARGETS="random.$SO unix.$SO socket.$SO cgi.$SO memfile.$SO files.$SO mime.$SO"
 
 for ac_prog in gmake make
 do

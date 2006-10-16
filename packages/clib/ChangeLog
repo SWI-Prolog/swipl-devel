@@ -1,3 +1,7 @@
+Oct 16, 2006
+
+  * ADDED: YAP/SICStus compatible library(random).
+
 Sep 7, 2006
 
   * FIXED: Bug#205 make --> $(MAKE).  Marc Espie

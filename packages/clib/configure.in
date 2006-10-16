@@ -65,7 +65,7 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="unix.$SO socket.$SO cgi.$SO memfile.$SO files.$SO mime.$SO"
+TARGETS="random.$SO unix.$SO socket.$SO cgi.$SO memfile.$SO files.$SO mime.$SO"
 
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
