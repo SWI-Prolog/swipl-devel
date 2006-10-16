@@ -1853,7 +1853,12 @@ mul64(int64_t x, int64_t y, int64_t *r)
     result for the multiplication of _unsigned_ integers.  Hence, we do
     unsigned multiplication, change back to signed and check using
     division.
+
+    As division is pretty expensive, we make a quick test to see whether
+    we are in the danger zone.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define MU64_SAFE_MAX (LL(1)<<30)
 
 static int
 mul64(int64_t x, int64_t y, int64_t *r)
@@ -1888,7 +1893,7 @@ mul64(int64_t x, int64_t y, int64_t *r)
     prod = (int64_t)(ax*ay);
     if ( sign < 0 )
       prod = -prod;
-    if ( prod/y == x )
+    if ( (ax < MU64_SAFE_MAX && ay < MU64_SAFE_MAX) || prod/y == x )
     { *r = prod;
     
       return TRUE;
