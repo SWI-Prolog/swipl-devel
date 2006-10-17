@@ -57,19 +57,19 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.21 Patches relative to 5.6.20
+Version 5.6.22 Patches relative to 5.6.21
 =========================================
 
 Prolog
 
-  * Various portability and installation issues.
-  * Error in ceil/1 and floor/1 for float(1**63).
+  * Bug reading large negative non-decimal integers.
+  * Several Unicode issues: handling shared objects (all platforms),
+    environment (Windows).  Long names of dynamic predicates.
+  * Minor stuff.
 							    
 Packages
 
-  * XPCE: Portability issues
-  * HTTP: Encoding issues using inetd frontend
-  * PlDoc: Wiki issue in README and TODO files
-  * Semweb: Added rdf_persistency/2 and indexing of numerical values in
-    rdf_find_literals/2.  Fixed leaking a file-handle (Unix) or
-    permission error (Windows) when reloading a persistent database.
+  * CLIB: Added library(random).  Yap and SICStus compatible random number
+    library.
+  * PlUnit: Added SICStus portability.  Enhanced message for tests that
+    succeed but are defined to fail.

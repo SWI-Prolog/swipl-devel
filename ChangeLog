@@ -7,13 +7,17 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+=================================
+VERSION 5.6.22 (October 17, 2006)
+=================================
+
   * FIXED: Bug#227: meta-declaration of with_output_to/2.  Holger
     Kanwischer.
 
   * FIXED: Bug#223: Read of large non-decimal negative numbers.  
     Marius Filip.
 
-  * FIXED: absoulte_file_name/3 to honour tests for file_type(directory)
+  * FIXED: absolute_file_name/3 to honour tests for file_type(directory)
     and demand files of other types *not* to be a directory.
 
   * FIXED: Support Unicode in windows open_shared_object/2, underlying
