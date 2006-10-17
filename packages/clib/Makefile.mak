@@ -19,9 +19,11 @@ MIMEOBJ=	error.obj mime.obj
 MIMELIBS=	rfc2045.lib rfc822.lib
 TIMEOBJ=	error.obj time.obj
 READOBJ=	readutil.obj
+RANDOMOBJ=	random.obj
 TIMELIBS=	winmm.lib
 
-all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll
+all:		socket.dll cgi.dll memfile.dll mime.dll time.dll readutil.dll \
+		random.dll
 
 readutil.dll:	$(READOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(READOBJ) $(PLLIB)
@@ -35,6 +37,8 @@ mime.dll:	$(MIMEOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(MIMEOBJ) $(PLLIB) $(LIBS) $(MIMELIBS)
 time.dll:	$(TIMEOBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(TIMEOBJ) $(PLLIB) $(LIBS) $(TIMELIBS)
+random.dll:	$(RANDOMOBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(RANDOMOBJ) $(PLLIB) $(LIBS)
 
 !IF "$(CFG)" == "rt"
 install:	idll
@@ -66,6 +70,7 @@ idll::
 		copy memfile.dll "$(BINDIR)"
 		copy mime.dll "$(BINDIR)"
 		copy time.dll "$(BINDIR)"
+		copy random.dll "$(BINDIR)"
 		copy readutil.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy socket.pdb "$(BINDIR)"
@@ -83,6 +88,7 @@ ilib::
 		copy cgi.pl "$(PLBASE)\library"
 		copy memfile.pl "$(PLBASE)\library"
 		copy mime.pl "$(PLBASE)\library"
+		copy random.pl "$(PLBASE)\library"
 		copy time.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
@@ -92,12 +98,14 @@ uninstall::
 		del "$(BINDIR)\cgi.dll"
 		del "$(BINDIR)\memfile.dll"
 		del "$(BINDIR)\mime.dll"
+		del "$(BINDIR)\random.dll"
 		del "$(BINDIR)\time.dll"
 		del "$(BINDIR)\readutil.dll"
 		del "$(PLBASE)\library\socket.pl"
 		del "$(PLBASE)\library\cgi.pl"
 		del "$(PLBASE)\library\memfile.pl"
 		del "$(PLBASE)\library\mime.pl"
+		del "$(PLBASE)\library\random.pl"
 		del "$(PLBASE)\library\time.pl"
 		$(MAKEINDEX)
 

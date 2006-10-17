@@ -108,9 +108,9 @@ p_random(term_t rnd)
   t2 = (b1 * 172) % 30307;
   t3 = (c1 * 170) % 30323;
   fli = (t1/30269.0) + (t2/30307.0) + (t3/30323.0);
-  a1 = t1;
-  b1 = t2;
-  c1 = t3;
+  a1 = (short)t1;
+  b1 = (short)t2;
+  c1 = (short)t3;
 
   return PL_unify_float(rnd, fli-(int)(fli));
 }

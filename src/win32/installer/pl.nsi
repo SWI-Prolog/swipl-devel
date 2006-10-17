@@ -260,6 +260,7 @@ Section "Package CLIB"
   File pl\bin\memfile.dll
   File pl\bin\mime.dll
   File pl\bin\socket.dll
+  File pl\bin\random.dll
   File pl\bin\time.dll
   File pl\bin\readutil.dll
   SetOutPath $INSTDIR\library
@@ -268,6 +269,7 @@ Section "Package CLIB"
   File pl\library\mime.pl
   File pl\library\socket.pl
   File pl\library\prolog_server.pl
+  File pl\library\random.pl
   File pl\library\time.pl
   SetOutPath $INSTDIR\doc\packages
   File pl\doc\packages\clib.html
