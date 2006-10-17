@@ -68,8 +68,8 @@ translation of a C-version for YAP based on the orginal source.
 %	
 %	@see setrand/3, getrand/3.
 
-%%	setrand(+State:state(A,B,C)) is det
-%%	getrand(+State:state(A,B,C)) is det
+%%	setrand(+State:state(A,B,C)) is det.
+%%	getrand(+State:state(A,B,C)) is det.
 %
 %	Query/set the state of the  random  library.   A,  B  and  C are
 %	integers in the range 1..30,000.
