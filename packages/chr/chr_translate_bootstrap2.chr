@@ -813,7 +813,7 @@ option_definition(optimize,experimental,Flags) :-
 		  guard_via_reschedule     - on
 		].
 option_definition(optimize,full,Flags) :-
-	Flags = [ unique_analyse_optimise  - on,
+	Flags = [ unique_analyse_optimise  - off,
                   check_unnecessary_active - full,
 		  reorder_heads		   - on,
 		  set_semantics_rule	   - on,

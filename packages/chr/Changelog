@@ -1,3 +1,11 @@
+Oct 16, 2006
+
+  * TS: More inlining.
+
+  * TS: Stronger static type checking.
+
+  * TS: Omitted buggy FD analysis from bootstrapping process.
+
 Oct 12, 2006
 
   * TS: More inlining.

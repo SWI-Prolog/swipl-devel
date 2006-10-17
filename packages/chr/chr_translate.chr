@@ -317,7 +317,7 @@ inc_rule_count(NC)
 
 :- chr_constraint rule/2.
 :- chr_option(mode,rule(+,+)).
-:- chr_option(type_declaration,rule(int,pragma_rule)).
+:- chr_option(type_declaration,rule(rule_nb,pragma_rule)).
 
 :- chr_constraint get_rule/2.
 :- chr_option(mode,get_rule(+,-)).
@@ -2638,17 +2638,21 @@ delete_constraint_clause(C,Clauses,RestClauses) :-
 		Clauses = [Clause|RestClauses],
 		Clause = (Head :- Body),	
 		delete_constraint_atom(C,Susp,Head),
-		delete_constraint_body(C,Susp,Body)
+		C = F/A,
+		functor(Head,F,A),
+		delete_constraint_body(C,Head,Susp,[],Body)
 	;
 		Clauses = RestClauses
 	).
 
-delete_constraint_goal(C,Susp,Goal) :-
+delete_constraint_goal(Head,Susp,VarDict,Goal) :-
+	functor(Head,F,A),
+	C = F/A,
 	( chr_pp_flag(inline_insertremove,off) ->
 		use_auxiliary_predicate(delete_from_store,C),
 		delete_constraint_atom(C,Susp,Goal)
 	;
-		delay_phase_end(validate_store_type_assumptions, delete_constraint_body(C,Susp,Goal))
+		delay_phase_end(validate_store_type_assumptions, delete_constraint_body(C,Head,Susp,VarDict,Goal))
 	).
 
 delete_constraint_atom(C,Susp,Atom) :-
@@ -2656,7 +2660,7 @@ delete_constraint_atom(C,Susp,Atom) :-
 	Atom =.. [Functor,Susp]. 
 
 
-delete_constraint_body(C,Susp,Body) :-
+delete_constraint_body(C,Head,Susp,VarDict,Body) :-
 	Body = (CounterBody,DeleteBody),
 	( chr_pp_flag(store_counter,on) ->
 		CounterBody = '$delete_counter_inc'
@@ -2664,9 +2668,9 @@ delete_constraint_body(C,Susp,Body) :-
 		CounterBody = true	
 	),
 	get_store_type(C,StoreType),
-	delete_constraint_body(StoreType,C,Susp,DeleteBody).
+	delete_constraint_body(StoreType,C,Head,Susp,VarDict,DeleteBody).
 
-delete_constraint_body(default,C,Susp,Body) :-
+delete_constraint_body(default,C,_,Susp,_,Body) :-
 	( chr_pp_flag(debugable,on) ->
 	 	global_list_store_name(C,StoreName),
 	 	make_get_store_goal(StoreName,Store,GetStoreGoal),
@@ -2724,11 +2728,11 @@ delete_constraint_body(default,C,Susp,Body) :-
 % 			DetachBody
 % 		)
 % 	).
-delete_constraint_body(multi_inthash(Indexes),C,Susp,Body) :-
+delete_constraint_body(multi_inthash(Indexes),C,_,Susp,_,Body) :-
 	generate_multi_inthash_delete_constraint_bodies(Indexes,C,Susp,Body).
-delete_constraint_body(multi_hash(Indexes),C,Susp,Body) :-
-	generate_multi_hash_delete_constraint_bodies(Indexes,C,Susp,Body).
-delete_constraint_body(global_ground,C,Susp,Body) :-
+delete_constraint_body(multi_hash(Indexes),C,Head,Susp,VarDict,Body) :-
+	generate_multi_hash_delete_constraint_bodies(Indexes,C,Head,Susp,VarDict,Body).
+delete_constraint_body(global_ground,C,_,Susp,_,Body) :-
 	( chr_pp_flag(debugable,on) ->
 		global_ground_store_name(C,StoreName),
 	 	make_get_store_goal(StoreName,Store,GetStoreGoal),
@@ -2778,7 +2782,7 @@ delete_constraint_body(global_ground,C,Susp,Body) :-
 % 		'chr sbag_del_element'(Store,Susp,NStore),
 % 		UpdateStoreGoal % b_setval(StoreName,NStore)
 % 	).
-delete_constraint_body(var_assoc_store(VarIndex,AssocIndex),C,Susp,Body) :-
+delete_constraint_body(var_assoc_store(VarIndex,AssocIndex),C,_,Susp,_,Body) :-
 	get_target_module(Module),
 	get_dynamic_suspension_term_field(argument(VarIndex),C,Susp,Variable,VariableGoal),
 	get_dynamic_suspension_term_field(argument(AssocIndex),C,Susp,Key,KeyGoal),
@@ -2788,31 +2792,36 @@ delete_constraint_body(var_assoc_store(VarIndex,AssocIndex),C,Susp,Body) :-
 		KeyGoal,
 		delete_assoc_store(AssocStore,Key,Susp)
 	).
-delete_constraint_body(global_singleton,C,_Susp,Body) :-
+delete_constraint_body(global_singleton,C,_,_Susp,_,Body) :-
 	global_singleton_store_name(C,StoreName),
 	make_update_store_goal(StoreName,[],UpdateStoreGoal),
 	Body =
 	(
 		UpdateStoreGoal  % b_setval(StoreName,[])
 	).
-delete_constraint_body(multi_store(StoreTypes),C,Susp,Body) :-
+delete_constraint_body(multi_store(StoreTypes),C,Head,Susp,VarDict,Body) :-
 	find_with_var_identity(
 		B,
-		[Susp],
+		[Susp/VarDict/Head],
 		(
 			member(ST,StoreTypes),
-			chr_translate:delete_constraint_body(ST,C,Susp,B)
+			chr_translate:delete_constraint_body(ST,C,Head,Susp,VarDict,B)
 		),
 		Bodies
 	),
 	list2conj(Bodies,Body).
-delete_constraint_body(identifier_store(Index),C,Susp,Body) :-
-	get_dynamic_suspension_term_field(argument(Index),C,Susp,Variable,VariableGoal),
+delete_constraint_body(identifier_store(Index),C,Head,Susp,VarDict,Body) :-
+	get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Variable,VariableGoal),
 	get_identifier_size(ISize),
 	functor(Struct,struct,ISize),
 	get_identifier_index(C,Index,IIndex),
 	arg(IIndex,Struct,Susps),
-	Body = ( VariableGoal, Variable = Struct, 'chr sbag_del_element'(Susps,Susp,NSusps), setarg(IIndex,Variable,NSusps) ). 
+	Body = ( 
+		VariableGoal, 
+		Variable = Struct, 
+		'chr sbag_del_element'(Susps,Susp,NSusps), 
+		setarg(IIndex,Variable,NSusps) 
+	). 
 
 generate_multi_inthash_delete_constraint_bodies([],_,_,true).
 generate_multi_inthash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
@@ -2825,10 +2834,10 @@ generate_multi_inthash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bo
 		delete_iht(Store,Key,Susp)
 	),
 	generate_multi_inthash_delete_constraint_bodies(Indexes,FA,Susp,Bodies).
-generate_multi_hash_delete_constraint_bodies([],_,_,true).
-generate_multi_hash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
-	multi_hash_store_name(FA,Index,StoreName),
-	multi_hash_key(FA,Index,Susp,KeyBody,Key),
+generate_multi_hash_delete_constraint_bodies([],_,_,_,_,true).
+generate_multi_hash_delete_constraint_bodies([Index|Indexes],C,Head,Susp,VarDict,(Body,Bodies)) :-
+	multi_hash_store_name(C,Index,StoreName),
+	multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key),
 	make_get_store_goal(StoreName,Store,GetStoreGoal),
 	Body =
 	(
@@ -2836,7 +2845,7 @@ generate_multi_hash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodie
 		GetStoreGoal, % nb_getval(StoreName,Store),
 		delete_ht(Store,Key,Susp)
 	),
-	generate_multi_hash_delete_constraint_bodies(Indexes,FA,Susp,Bodies).
+	generate_multi_hash_delete_constraint_bodies(Indexes,FA,Head,Susp,VarDict,Bodies).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2896,7 +2905,10 @@ generate_attach_code(identifier_store(Index),C,L,T) :-
 			print(Label2),
 			write('>')
 		),
-		L = [Clause1,Clause2|T]
+		functor(Struct3,struct,ISize),
+		arg(1,Struct3,Label3),
+		Clause3 = identifier_label(Struct3,Label3),
+		L = [Clause1,Clause2,Clause3|T]
 	;
 		L = T
 	).
@@ -2925,10 +2937,14 @@ multi_hash_store_initialisations([Index|Indexes],FA,L,T) :-
 	multi_hash_store_initialisations(Indexes,FA,L1,T).
 
 global_list_store_initialisation(C,L,T) :-
-	global_list_store_name(C,StoreName),
-	prolog_global_variable(StoreName),
-	make_init_store_goal(StoreName,[],InitStoreGoal),
-	module_initializer(InitStoreGoal),
+	( is_stored(C) ->
+		global_list_store_name(C,StoreName),
+		prolog_global_variable(StoreName),
+		make_init_store_goal(StoreName,[],InitStoreGoal),
+		module_initializer(InitStoreGoal)
+	;
+		true
+	),
 	L = T.
 global_ground_store_initialisation(C,L,T) :-
 	global_ground_store_name(C,StoreName),
@@ -3008,6 +3024,39 @@ multi_hash_key(FA,Index,Susp,KeyBody,Key) :-
 		Key =.. [k|Keys],
 		list2conj(Bodies,KeyBody)
 	).
+
+multi_hash_key(C,Head,Index,Susp,VarDict,KeyBody,Key) :-
+	( ( integer(Index) ->
+		I = Index
+	  ; 
+		Index = [I]
+	  ) ->
+		get_suspension_argument_possibly_in_scope(Head,I,VarDict,Susp,Key,KeyBody)
+	; is_list(Index) ->
+		sort(Index,Indexes),
+		find_with_var_identity(
+			Goal-KeyI,
+			[Susp/Head/VarDict],
+			(
+				member(I,Indexes),
+				get_suspension_argument_possibly_in_scope(Head,I,VarDict,Susp,KeyI,Goal)
+			),
+			ArgKeyPairs
+		), 
+		once(pairup(Bodies,Keys,ArgKeyPairs)),
+		Key =.. [k|Keys],
+		list2conj(Bodies,KeyBody)
+	).
+
+get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Arg,Goal) :-
+		arg(Index,Head,OriginalArg),
+		( lookup_eq(VarDict,OriginalArg,Arg) ->
+			Goal = true
+		;	
+			functor(Head,F,A),
+			C = F/A,
+			get_dynamic_suspension_term_field(argument(Index),C,Susp,Arg,Goal)
+		).
 
 multi_hash_key_direct(FA,Index,Susp,Key,UsedVars) :-
 	( ( integer(Index) ->
@@ -4172,6 +4221,14 @@ type_condition([DefCase|DefCases],Arg,UnrollArg,Mode,[Condition|Conditions]) :-
 builtin_type(X,Arg,true) :- var(X),!.
 builtin_type(X,Arg,Goal) :- builtin_type_nonvar(X,Arg,Goal).
 
+:- chr_type builtin_type 	--->	any
+				;	number
+				;	float
+				;	int
+				;	natural
+			 	;	dense_int
+				;	chr_identifier.
+
 builtin_type_nonvar(any,_Arg,true).
 builtin_type_nonvar(dense_int,Arg,(integer(Arg),Arg>=0)).
 builtin_type_nonvar(int,Arg,integer(Arg)).
@@ -4217,6 +4274,8 @@ type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 :- chr_constraint
 	static_type_check/0.
 
+:- chr_type type_error_src ---> head(any) ; body(any).
+ 
 rule(_,Rule), static_type_check 
 	==>
 	    	copy_term_nat(Rule,RuleCopy),
@@ -4265,6 +4324,8 @@ static_type_check_body([Goal|Goals]) :-
 	static_type_check_body(Goals).
 
 :- chr_constraint static_type_check_term/3.
+:- chr_option(mode,static_type_check_term(?,?,?)).
+:- chr_option(type_declaration,static_type_check_term(type_error_src,any,any)).
 
 static_type_check_term(Src,Term,Type) 
 	<=> 
@@ -4308,6 +4369,8 @@ static_type_check_term(Src,Term,Type)
 		chr_error(internal,'Undefined type ~w while type checking term ~w in ~@.\n',[Type,Term,chr_translate:format_src(Src)]).
 
 :- chr_constraint static_type_check_var/3.
+:- chr_option(mode,static_type_check_var(?,-,?)).
+:- chr_option(type_declaration,static_type_check_term(type_error_src,any,any)).
 
 type_alias(AType,ADef) \ static_type_check_var(Src,Var,Type) 
 	<=> 
@@ -4321,7 +4384,7 @@ static_type_check_var(Src,Var,Type)
 	<=>
 		builtin_type_nonvar(Type,_,_)
 	|
-		true.
+		static_builtin_type_check_var(Src,Var,Type).
 		
 
 static_type_check_var(Src1,Var,Type1), static_type_check_var(Src2,Var,Type2)
@@ -4330,6 +4393,45 @@ static_type_check_var(Src1,Var,Type1), static_type_check_var(Src2,Var,Type2)
 	|
 		throw(type_error(type_clash(Var,Src1,Src2,Type1,Type2))).
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	static_builtin_type_check_var(+type_error_src,-Var,+builtin_type)
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+:- chr_constraint static_builtin_type_check_var/3.
+:- chr_option(mode,static_type_check_var(?,-,+)).
+:- chr_option(type_declaration,static_type_check_term(type_error_src,any,builtin_type)).
+
+static_builtin_type_check_var(_,_,any) <=> true.
+static_builtin_type_check_var(_,Var,BuiltinType) \ static_builtin_type_check_var(_,Var,BuiltinType)
+	<=> 
+		true.
+static_builtin_type_check_var(_,Var,float) \ static_builtin_type_check_var(_,Var,number)
+	<=>
+		true.
+static_builtin_type_check_var(_,Var,int) \ static_builtin_type_check_var(_,Var,number)
+	<=>
+		true.
+static_builtin_type_check_var(_,Var,natural) \ static_builtin_type_check_var(_,Var,number)
+	<=>
+		true.
+static_builtin_type_check_var(_,Var,dense_int) \ static_builtin_type_check_var(_,Var,number)
+	<=>
+		true.
+static_builtin_type_check_var(_,Var,natural) \ static_builtin_type_check_var(_,Var,int)
+	<=>
+		true.
+static_builtin_type_check_var(_,Var,dense_int) \ static_builtin_type_check_var(_,Var,int)
+	<=>
+		true.
+static_builtin_type_check_var(_,Var,dense_int) \ static_builtin_type_check_var(_,Var,natural)
+	<=>
+		true.
+static_builtin_type_check_var(Src1,Var,Type1), static_builtin_type_check_var(Src2,Var,Type2)	
+	<=>
+		throw(type_error(type_clash(Var,Src1,Src2,Type1,Type2))).
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	format_src(+type_error_src) is det.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 format_src(head(Head)) :- format('head ~w',[Head]).
 format_src(body(Goal)) :- format('body goal ~w',[Goal]).
 
@@ -5314,9 +5416,9 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	rest_heads_retrieval_and_matching(RestHeads,RestIDs,Head,GetRestHeads,Susps,VarDict1,VarDict,[],[],[],GroundVars,_),
 	
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
-	
-	partner_constraint_detachments(Susps,RestHeads,SuspsDetachments),
-	active_constraint_detachment(Id,Susp,F/A,SuspDetachment),
+
+	partner_constraint_detachments(Susps,RestHeads,VarDict,SuspsDetachments),
+	active_constraint_detachment(Id,Susp,Head,VarDict,SuspDetachment),
 
 	( chr_pp_flag(debugable,on) ->
 		Rule = rule(_,_,Guard,Body),
@@ -5769,7 +5871,9 @@ simple_guard(G,VarDict) :-
 	     lookup_eq(VarDict,V,_)
 	   )).
 
-active_constraint_detachment(Id,Susp,C,SuspDetachment) :-
+active_constraint_detachment(Id,Susp,Head,VarDict,SuspDetachment) :-
+	functor(Head,F,A),
+	C = F/A,
 	( is_stored(C) ->
 		( (Id == [0]; 
 		  (get_allocation_occurrence(C,AO),
@@ -5778,7 +5882,7 @@ active_constraint_detachment(Id,Susp,C,SuspDetachment) :-
 		  only_ground_indexed_arguments(C), chr_pp_flag(late_allocation,on) ->
 			SuspDetachment = true
 		;
-			gen_uncond_susp_detachment(C,Susp,active,UnCondSuspDetachment),
+			gen_uncond_susp_detachment(Head,Susp,active,VarDict,UnCondSuspDetachment),
 			( chr_pp_flag(late_allocation,on) ->
 				SuspDetachment = 
 					( var(Susp) ->
@@ -5794,30 +5898,31 @@ active_constraint_detachment(Id,Susp,C,SuspDetachment) :-
 	        SuspDetachment = true
 	).
 
-partner_constraint_detachments([],[],true).
-partner_constraint_detachments([Susp|Susps],[Term|Terms],(SuspDetachment,SuspsDetachments)) :-
-   functor(Term,F,A),
-   gen_uncond_susp_detachment(F/A,Susp,partner,SuspDetachment),
-   partner_constraint_detachments(Susps,Terms,SuspsDetachments).
+partner_constraint_detachments([],[],_,true).
+partner_constraint_detachments([Susp|Susps],[Head|Heads],VarDict,(SuspDetachment,SuspsDetachments)) :-
+   gen_uncond_susp_detachment(Head,Susp,partner,VarDict,SuspDetachment),
+   partner_constraint_detachments(Susps,Heads,VarDict,SuspsDetachments).
 
-gen_uncond_susp_detachment(C,Susp,Role,SuspDetachment) :-
-   ( is_stored(C) ->
-	SuspDetachment = ( DebugEvent, RemoveInternalGoal),
-	( chr_pp_flag(debugable,on) ->
-		DebugEvent = 'chr debug_event'(remove(Susp))
+gen_uncond_susp_detachment(Head,Susp,Role,VarDict,SuspDetachment) :-
+	functor(Head,F,A),
+	C = F/A,
+	( is_stored(C) ->
+	     SuspDetachment = ( DebugEvent, RemoveInternalGoal),
+	     ( chr_pp_flag(debugable,on) ->
+	     	DebugEvent = 'chr debug_event'(remove(Susp))
+	     ;
+	     	DebugEvent = true
+	     ),
+	     remove_constraint_goal(C,Susp,Vars,true,(DeleteCall,Detach),Role,RemoveInternalGoal),
+	     delete_constraint_goal(Head,Susp,VarDict,DeleteCall),
+	     ( \+ only_ground_indexed_arguments(C), \+ get_store_type(C,var_assoc_store(_,_)) ->
+	     	detach_constraint_atom(C,Vars,Susp,Detach)
+	     ;
+	     	Detach = true
+	     )
 	;
-		DebugEvent = true
-	),
-	remove_constraint_goal(C,Susp,Vars,true,(DeleteCall,Detach),Role,RemoveInternalGoal),
-	delete_constraint_goal(C,Susp,DeleteCall),
-	( \+ only_ground_indexed_arguments(C), \+ get_store_type(C,var_assoc_store(_,_)) ->
-		detach_constraint_atom(C,Vars,Susp,Detach)
-	;
-		Detach = true
-	)
-   ;
-	SuspDetachment = true
-   ).
+	     SuspDetachment = true
+	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5852,8 +5957,8 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
 	sort_by_key(Susps1,Susps1IDs,SortedSusps1),
-	partner_constraint_detachments(SortedSusps1,RestHeads,SuspsDetachments),
-	active_constraint_detachment(Id,Susp,F/A,SuspDetachment),
+	partner_constraint_detachments(SortedSusps1,RestHeads,VarDict,SuspsDetachments),
+	active_constraint_detachment(Id,Susp,Head,VarDict,SuspDetachment),
    
 	( chr_pp_flag(debugable,on) ->
 		my_term_copy(Guard - Body, VarDict, DebugGuard - DebugBody),		
@@ -6025,7 +6130,7 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule,F/A
 	split_by_ids(NextIDs,Susps,IDs1,Susps1,Susps2),
 	split_by_ids(NextIDs,NextHeads,IDs1,RestHeads1,_),
 	
-	partner_constraint_detachments([OtherSusp | Susps1],[CurrentHead|RestHeads1],Susps1Detachments),
+	partner_constraint_detachments([OtherSusp | Susps1],[CurrentHead|RestHeads1],VarDict2,Susps1Detachments),
 	
 	RecursiveVars = [OtherSusps|PreVarsAndSusps],
 	build_head(F,A,Id,RecursiveVars,RecursiveCall),
@@ -6826,6 +6931,27 @@ existential_lookup(multi_inthash(Indexes),Head,_,VarDict,GroundVars,SuspTerm,Goa
 	existential_hash_lookup(inthash,Indexes,Head,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs).
 existential_lookup(multi_hash(Indexes),Head,_,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs) :- !,
 	existential_hash_lookup(hash,Indexes,Head,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs).
+existential_lookup(identifier_store(Index),Head,PreJoin,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs) :- !,
+	lookup_passive_head(identifier_store(Index),Head,PreJoin,VarDict,GroundVars,LookupGoal,AllSusps),
+	hash_index_filter(Pairs,Index,NPairs),
+
+	functor(Head,F,A),
+	( check_fd_lookup_condition(F,A,Head,KeyArgs) ->
+		Sbag = (AllSusps = [Susp])
+	;
+		sbag_member_call(Susp,AllSusps,Sbag)
+	),
+	delay_phase_end(validate_store_type_assumptions,
+		( static_suspension_term(F/A,SuspTerm),
+		  get_static_suspension_field(F/A,SuspTerm,state,active,GetState)
+		)
+	),
+	Goal =	(
+			LookupGoal,
+			Sbag,
+			Susp = SuspTerm,		% not inlined
+			GetState
+	).
 existential_lookup(StoreType,Head,PreJoin,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,Pairs) :-
 	lookup_passive_head(StoreType,Head,PreJoin,VarDict,GroundVars,UGoal,Susps),	
 	sbag_member_call(Susp,Susps,Sbag),
