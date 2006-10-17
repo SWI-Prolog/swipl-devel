@@ -670,6 +670,8 @@ Yes
 \section{Backwards Compatibility} 		\label{sec:sicstus-chr}
 %==================
 
+\subsection{The Old SICStus CHR implemenation}
+
 There are small differences between the current K.U.Leuven CHR system
 in SWI-Prolog, older versions of the same system and SICStus' CHR system.
 
@@ -712,6 +714,31 @@ system and programmer should be aware of the appropriate meaning of the
 Prolog goals used in guards and bodies of CHR rules.
 \end{itemlist}
 
+\subsection{The Old ECLiPSe CHR implemenation}
+
+The old ECLiPSe CHR implementations features a \nopredref{label_with}{1} construct
+for labeling variables in CHR constraints. This feature has long since been abandoned.
+However, a simple transformation is all that is required to port the functionality.
+\begin{code}
+label_with Constraint1 if Condition1.
+...
+label_with ConstraintN if ConditionN.
+Constraint1 :- Body1.
+...
+ConstraintN :- BodyN.
+\end{code}
+is transformed into
+\begin{code}
+:- chr_constraint my_labeling/0.
+
+my_labeling \ Constraint1 <=> Condition1 | Body1.
+...
+my_labeling \ ConstraintN <=> ConditionN | BodyN.
+my_labeling <=> true.
+\end{code}
+Be sure to put this code after all other rules in your program! With \nopredref{my_labeling}{0} 
+(or another predicate name of your choosing) the labeling is initiated, rather than ECLiPSe's
+\nopredref{chr_labeling}{0}.
 
 \section{Programming Tips and Tricks} 			\label{sec:guidelines}
 %==================
