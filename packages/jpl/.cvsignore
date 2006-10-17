@@ -1,9 +1,0 @@
-autom4te.cache
-*.class
-classes
-jpl.dll
-jpl.so
-jpl.jar
-config.h
-config.log
-Makefile

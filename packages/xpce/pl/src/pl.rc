@@ -1,4 +1,0 @@
-#include "windows.h"
-
-SWI_Icon  ICON pl.ico
-XPCE_Icon ICON xpce.ico

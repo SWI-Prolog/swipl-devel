@@ -1,9 +1,0 @@
-* Add default_ns(Name) to rdf_save/2.
-
-* Add indexing on source, to speedup saving a particular source as well as
-  rdf_retractall(_,_,_,Src).
-
-================
-Literal Indexing
-================
-
