@@ -10,11 +10,11 @@
 \htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog Unit Tests}
+\renewcommand{\runningtitle}{Prolog Unit Tests}
 
 \begin{document}
 
-\title{SWI-Prolog Unit Tests}
+\title{Prolog Unit Tests}
 \author{Jan Wielemaker \\
 	HCS, \\
 	University of Amsterdam \\
@@ -24,7 +24,11 @@
 \maketitle
 
 \begin{abstract}
-This document describes the SWI-Prolog unit-test framework.
+This document describes a Prolog unit-test framework. This framework was
+initially developed for \url[SWI-Prolog]{http://www.swi-prolog.org}. The
+current version also runs on \url[SICStus
+Prolog]{http://www.sics.se/sicstus/}, providing a portable testing
+framework. See \secref{sicstus}.
 \end{abstract}
 
 \pagebreak
@@ -120,16 +124,18 @@ test(read, [ setup(create_file(Tmp)),
 	     cleanup(delete_file(Tmp))
 	   ]) :-
 	read_file_to_terms(Tmp, Terms, []),
-	Term =@= hello(_).
+	Term = hello(_).
 \end{code}
 
     \termitem{true}{Vars Cmp Values}
 Body must succeed deterministically. Bindings are compared to Values.
-\arg{Cmp} is typically one of =/2, ==/2, =:=/2 or =@=/2, but any test
-can be used. This is the same as inserting the test at the end of the
-conjunction, but it allows the test engine to distinguish between
-failure of copy_term/2 and producing the wrong value. Multiple variables
-must be combined in an arbitrary compound term.  E.g.\
+\arg{Cmp} is typically one of =/2, ==/2, =:=/2 or =@=/2,%
+    \footnote{The =@= predicate (denoted \emph{structureal equivalence})
+	      is the same as variant/2 in SICStus.}
+but any test can be used. This is the same as inserting the test at the
+end of the conjunction, but it allows the test engine to distinguish
+between failure of copy_term/2 and producing the wrong value. Multiple
+variables must be combined in an arbitrary compound term. E.g.\
 \verb$A1-A2 == v1-v2$
 
 \begin{code}
@@ -508,6 +514,33 @@ and therefore ports may have to fall-back to inject the code in the
 surrounding module.  This implies that support predicates used inside
 the test unit should not conflict with predicates of the module being
 tested.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{PlUnit on SICStus}
+\label{sec:sicstus}
+
+The core library, \file{plunit.pl} can be loaded on SICStus.  It depends
+on a small compatibility file called \file{swi.pl}.  To deploy PlUnit
+with SICSTus, copy \file{plunit.pl} and \file{swi.pl} to a directory
+that is searched by the \const{library} search-path.
+Issues with the SICSTus port.
+
+\begin{itemize}
+    \item Only \file{plunit.pl}.  Both coverage analysis and the test
+    	  generation wizard currently require SWI-Prolog.
+
+    \item The \const{load} option \const{normal} is the same as \const{always}.
+	  Use \exam{set_test_options(load, never)} to avoid loading the
+	  test suites.
+
+    \item The \const{run} option is not supported.
+
+    \item Tests are loaded into the enclosing module instead of a seperate
+          test module. This means that predicates in the test module may
+	  not conflict with the enclosing module, nor with other test
+	  modules loaded into the same module.
+\end{itemize}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

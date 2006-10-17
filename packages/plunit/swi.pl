@@ -26,6 +26,7 @@
 	call(:,+,+).
 
 :- use_module(library(lists)).
+:- use_module(library(terms)).
 :- op(700, xfx, =@=).
 
 /** <module> SWI-Predicates for SICStus
@@ -44,10 +45,7 @@ PlUnit environment in SICStus. Tested and  developed with SICStus Prolog
 %	B, or B is like a copy of A.
 
 A =@= B :-
-	\+ \+ ( numbervars(A, 0, N),
-		numbervars(B, 0, N),
-		A == B
-	      ).
+	variant(A, B).
 
 %%	forall(:Cond, :Action) is semidet.
 %

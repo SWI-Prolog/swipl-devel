@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog Unit Tests</TITLE><STYLE type="text/css">
+<TITLE>Prolog Unit Tests</TITLE><STYLE type="text/css">
 /* Style sheet for SWI-Prolog latex2html
 */
 
@@ -99,7 +99,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -110,15 +110,18 @@ font-size: smaller;
 <BODY BGCOLOR="white"> 
 
 <P>
-<DIV class="title">SWI-Prolog Unit Tests</DIV>
+<DIV class="title">Prolog Unit Tests</DIV>
 <DIV class="author">Jan Wielemaker <BR>
 HCS, <BR>
 University of Amsterdam <BR>
 The Netherlands <BR>
 E-mail: <A class="url" href="mailto:wielemak@science.uva.nl">wielemak@science.uva.nl</A></DIV>
 <DIV class="abstract">
-<DIV class="abstract-title">Abstract</DIV> This document describes the 
-SWI-Prolog unit-test framework.
+<DIV class="abstract-title">Abstract</DIV> This document describes a 
+Prolog unit-test framework. This framework was initially developed for <A class="url" href="http://www.swi-prolog.org">SWI-Prolog</A>. 
+The current version also runs on <A class="url" href="http://www.sics.se/sicstus/">SICStus 
+Prolog</A>, providing a portable testing framework. See <A class="sec" href="#sec:9.1">section 
+9.1</A>.
 </DIV>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -153,6 +156,8 @@ tests</SPAN></A></DIV>
 analysis</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Portability 
 of the test-suite</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">PlUnit 
+on SICStus</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
 of choices</SPAN></A></DIV>
 </DIV>
@@ -249,17 +254,18 @@ test(read, [ setup(create_file(Tmp)),
              cleanup(delete_file(Tmp))
            ]) :-
         read_file_to_terms(Tmp, Terms, []),
-        Term =@= hello(_).
+        Term = hello(_).
 </PRE>
 
 </DD>
 <DT><STRONG>true</STRONG>(<VAR>Vars Cmp Values</VAR>)</DT>
 <DD class="defbody">
 Body must succeed deterministically. Bindings are compared to Values.
-<VAR>Cmp</VAR> is typically one of =/2, ==/2, =:=/2 or =@=/2, but any 
-test can be used. This is the same as inserting the test at the end of 
-the conjunction, but it allows the test engine to distinguish between 
-failure of <A NAME="idx:copyterm2:4"></A><SPAN class="pred-ext">copy_term/2</SPAN> 
+<VAR>Cmp</VAR> is typically one of =/2, ==/2, =:=/2 or =@=/2,<SUP class="fn">1<SPAN class="fn-text">The 
+=@= predicate (denoted <EM>structureal equivalence</EM>) is the same as <A NAME="idx:variant2:4"></A><SPAN class="pred-ext">variant/2</SPAN> 
+in SICStus.</SPAN></SUP> but any test can be used. This is the same as 
+inserting the test at the end of the conjunction, but it allows the test 
+engine to distinguish between failure of <A NAME="idx:copyterm2:5"></A><SPAN class="pred-ext">copy_term/2</SPAN> 
 and producing the wrong value. Multiple variables must be combined in an 
 arbitrary compound term. E.g. <CODE>A1-A2 == v1-v2</CODE>
 
@@ -310,7 +316,7 @@ Start named test-unit. Same as <CODE>begin_tests(Name, [])</CODE>.</DD>
 <DD class="defbody">
 Start named test-unit with options. Options provide conditional 
 processing, setup and cleanup similar to individual tests (second 
-argument of <A NAME="idx:test2:5"></A><SPAN class="pred-ext">test/2</SPAN> 
+argument of <A NAME="idx:test2:6"></A><SPAN class="pred-ext">test/2</SPAN> 
 rules).
 
 <P>Defined options are:
@@ -377,7 +383,7 @@ test(member) :-
         member(b, [a,b,c]).
 </PRE>
 
-<P>Although this test succeeds, <A NAME="idx:member2:6"></A><SPAN class="pred-ext">member/2</SPAN> 
+<P>Although this test succeeds, <A NAME="idx:member2:7"></A><SPAN class="pred-ext">member/2</SPAN> 
 leaves a choicepoint which is reported by the test subsystem. To make 
 the test silent, use one of the alternatives below.
 
@@ -415,8 +421,8 @@ non-deterministic predicates</SPAN></A></H4>
 <A NAME="sec:testnondet"></A>
 
 <P>Non-deterministic predicates succeed zero or more times. Their 
-results are tested either using <A NAME="idx:findall3:7"></A><SPAN class="pred-ext">findall/3</SPAN> 
-or <A NAME="idx:setof3:8"></A><SPAN class="pred-ext">setof/3</SPAN> 
+results are tested either using <A NAME="idx:findall3:8"></A><SPAN class="pred-ext">findall/3</SPAN> 
+or <A NAME="idx:setof3:9"></A><SPAN class="pred-ext">setof/3</SPAN> 
 followed by a value-check or using the <CODE>all</CODE> or <CODE>set</CODE> 
 options. The following are equivalent tests:
 
@@ -435,7 +441,7 @@ error conditions</SPAN></A></H4>
 <A NAME="sec:testerror"></A>
 
 <P>Error-conditions are tested using the option <CODE>throws(Error)</CODE> 
-or by wrapping the test in a <A NAME="idx:catch3:9"></A><SPAN class="pred-ext">catch/3</SPAN>. 
+or by wrapping the test in a <A NAME="idx:catch3:10"></A><SPAN class="pred-ext">catch/3</SPAN>. 
 The following tests are equivalent:
 
 <PRE class="code">
@@ -456,7 +462,7 @@ seperate test files</SPAN></A></H2>
 Alternatively, tests for a source-file can be placed in another file 
 alongside the file to be tested. Test files use the extension <CODE>.plt</CODE>. 
 The predicate
-<A NAME="idx:loadtestfiles1:10"></A><A class="pred" href="#load_test_files/1">load_test_files/1</A> 
+<A NAME="idx:loadtestfiles1:11"></A><A class="pred" href="#load_test_files/1">load_test_files/1</A> 
 can load all files that are related to source-files loaded into the 
 current project.
 
@@ -466,7 +472,7 @@ the test-suite</SPAN></A></H2>
 <A NAME="sec:running"></A>
 
 <P>At any time, the tests can be executed by loading the program and 
-running <A NAME="idx:runtests0:11"></A><A class="pred" href="#run_tests/0">run_tests/0</A> 
+running <A NAME="idx:runtests0:12"></A><A class="pred" href="#run_tests/0">run_tests/0</A> 
 or run_tests(+Unit).
 
 <DL>
@@ -480,7 +486,7 @@ multiple tests. A single specification is either the name of a test unit
 or a term &lt;<VAR>Unit</VAR>&gt;:&lt;<VAR>Tests</VAR>&gt;, running only 
 the specified test. &lt;<VAR>Tests</VAR>&gt; is either the name of a 
 test or a list of names. Running particular tests is particulary useful 
-for tracing a test:<SUP class="fn">1<SPAN class="fn-text">Unfortunately 
+for tracing a test:<SUP class="fn">2<SPAN class="fn-text">Unfortunately 
 the body of the test is called through meta-calling, so it cannot be 
 traced. The called user-code can be traced normally though.</SPAN></SUP>
 
@@ -520,19 +526,19 @@ Defined options are:
 <DT><STRONG>load</STRONG>(<VAR>+Load</VAR>)</DT>
 <DD class="defbody">
 Determines whether or not tests are loaded. When <CODE>never</CODE>, 
-everything between <A NAME="idx:begintests1:12"></A><A class="pred" href="#begin_tests/1">begin_tests/1</A> 
-and <A NAME="idx:endtests1:13"></A><SPAN class="pred-ext">end_tests/1</SPAN> 
+everything between <A NAME="idx:begintests1:13"></A><A class="pred" href="#begin_tests/1">begin_tests/1</A> 
+and <A NAME="idx:endtests1:14"></A><SPAN class="pred-ext">end_tests/1</SPAN> 
 is simply ignored. When <CODE>always</CODE>, tests are always loaded. 
 Finally, when using the default value <CODE>normal</CODE>, tests are 
 loaded if the code is not compiled with optimisation turned on.</DD>
 <DT><STRONG>run</STRONG>(<VAR>+Run</VAR>)</DT>
 <DD class="defbody">
 Specifies when tests are ran. Using <CODE>manual</CODE>, tests can only 
-be run using <A NAME="idx:runtests0:14"></A><A class="pred" href="#run_tests/0">run_tests/0</A> 
-or <A NAME="idx:runtests1:15"></A><A class="pred" href="#run_tests/1">run_tests/1</A>. 
+be run using <A NAME="idx:runtests0:15"></A><A class="pred" href="#run_tests/0">run_tests/0</A> 
+or <A NAME="idx:runtests1:16"></A><A class="pred" href="#run_tests/1">run_tests/1</A>. 
 Using <CODE>make</CODE>, tests will be run for reloaded files, but not 
 for files loaded the first time. Using
-<CODE>make(all)</CODE> <A NAME="idx:make0:16"></A><SPAN class="pred-ext">make/0</SPAN> 
+<CODE>make(all)</CODE> <A NAME="idx:make0:17"></A><SPAN class="pred-ext">make/0</SPAN> 
 will run all test-suites, not only those that belong to files that are 
 reloaded.
 </DD>
@@ -590,7 +596,7 @@ No
 </PRE>
 
 <P>Now we can generate the test-cases for the module list using
-<A NAME="idx:maketests3:17"></A><SPAN class="pred-ext">make_tests/3</SPAN>:
+<A NAME="idx:maketests3:18"></A><SPAN class="pred-ext">make_tests/3</SPAN>:
 
 <PRE class="code">
 ?- make_tests(lists, 'Queries.pl', current_output).
@@ -673,7 +679,7 @@ Luckily, the specification of the test-system proposed here can be
 ported quite easily to most Prolog systems sufficiently compatible to 
 SWI-Prolog to consider porting your application. Most important is to 
 have support for
-<A NAME="idx:termexpansion2:18"></A><SPAN class="pred-ext">term_expansion/2</SPAN>.
+<A NAME="idx:termexpansion2:19"></A><SPAN class="pred-ext">term_expansion/2</SPAN>.
 
 <P>In the current system, test units are compiled into sub-modules of 
 the module in which they appear. Few Prolog systems allow for 
@@ -681,6 +687,37 @@ sub-modules and therefore ports may have to fall-back to inject the code
 in the surrounding module. This implies that support predicates used 
 inside the test unit should not conflict with predicates of the module 
 being tested.
+
+<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">PlUnit 
+on SICStus</SPAN></A></H3>
+
+<A NAME="sec:sicstus"></A>
+
+<P>The core library, <CODE>plunit.pl</CODE> can be loaded on SICStus. It 
+depends on a small compatibility file called <CODE>swi.pl</CODE>. To 
+deploy PlUnit with SICSTus, copy <CODE>plunit.pl</CODE> and <CODE>swi.pl</CODE> 
+to a directory that is searched by the <CODE>library</CODE> search-path. 
+Issues with the SICSTus port.
+
+<P>
+<UL>
+<LI>Only <CODE>plunit.pl</CODE>. Both coverage analysis and the test 
+generation wizard currently require SWI-Prolog.
+
+<P>
+<LI>The <CODE>load</CODE> option <CODE>normal</CODE> is the same as <CODE>always</CODE>. 
+Use <CODE>set_test_options(load, never)</CODE> to avoid loading the test 
+suites.
+
+<P>
+<LI>The <CODE>run</CODE> option is not supported.
+
+<P>
+<LI>Tests are loaded into the enclosing module instead of a seperate 
+test module. This means that predicates in the test module may not 
+conflict with the enclosing module, nor with other test modules loaded 
+into the same module.
+</UL>
 
 <H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Motivation 
 of choices</SPAN></A></H2>
@@ -693,7 +730,7 @@ of choices</SPAN></A></H2>
 written using declarations dealing with setup, cleanup, running and 
 testing the result. In the other extreme a test it simply a Prolog goal 
 that is supposed to succeed. We have choosen to allow for any mixture of 
-these approaches. Written down as <A NAME="idx:test1:19"></A><SPAN class="pred-ext">test/1</SPAN> 
+these approaches. Written down as <A NAME="idx:test1:20"></A><SPAN class="pred-ext">test/1</SPAN> 
 we opt for the simple succeeding goal approach. Using options to the 
 test the user can choose for a more declarative specification. The user 
 can mix both approaches.
@@ -701,8 +738,8 @@ can mix both approaches.
 <P>The body of the test appears at the position of a clause-body. This 
 simplifies identification of the test body and ensures proper layout and 
 colouring support from the editor without the need for explicit support 
-of the unit test module. Only clauses of <A NAME="idx:test1:20"></A><SPAN class="pred-ext">test/1</SPAN> 
-and <A NAME="idx:test2:21"></A><SPAN class="pred-ext">test/2</SPAN> may 
+of the unit test module. Only clauses of <A NAME="idx:test1:21"></A><SPAN class="pred-ext">test/1</SPAN> 
+and <A NAME="idx:test2:22"></A><SPAN class="pred-ext">test/2</SPAN> may 
 be marked as non-called in environments that perform cross-referencing.
 
 <H1><A NAME="document-index">Index</A></H1>
@@ -713,7 +750,7 @@ be marked as non-called in environments that perform cross-referencing.
 </DD>
 <DT><A class="idx" href="#begin_tests/1">begin_tests/1</A></DT>
 <DD>
-<A class="idx" href="#idx:begintests1:1">2</A> <A class="idx" href="#idx:begintests1:12">6</A></DD>
+<A class="idx" href="#idx:begintests1:1">2</A> <A class="idx" href="#idx:begintests1:13">6</A></DD>
 <DT><A class="idx" href="#begin_tests/2">begin_tests/2</A></DT>
 <DD>
 </DD>
@@ -725,55 +762,55 @@ be marked as non-called in environments that perform cross-referencing.
 <A class="idx" href="#idx:callcleanup2:3">2</A></DD>
 <DT>catch/3</DT>
 <DD>
-<A class="idx" href="#idx:catch3:9">2.2.4</A></DD>
+<A class="idx" href="#idx:catch3:10">2.2.4</A></DD>
 <DT>copy_term/2</DT>
 <DD>
-<A class="idx" href="#idx:copyterm2:4">2</A></DD>
+<A class="idx" href="#idx:copyterm2:5">2</A></DD>
 <DT><STRONG>E</STRONG></DT>
 <DD>
 </DD>
 <DT>end_tests/1</DT>
 <DD>
-<A class="idx" href="#idx:endtests1:2">2</A> <A class="idx" href="#idx:endtests1:13">6</A></DD>
+<A class="idx" href="#idx:endtests1:2">2</A> <A class="idx" href="#idx:endtests1:14">6</A></DD>
 <DT><STRONG>F</STRONG></DT>
 <DD>
 </DD>
 <DT>findall/3</DT>
 <DD>
-<A class="idx" href="#idx:findall3:7">2.2.3</A></DD>
+<A class="idx" href="#idx:findall3:8">2.2.3</A></DD>
 <DT><STRONG>L</STRONG></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#load_test_files/1">load_test_files/1</A></DT>
 <DD>
-<A class="idx" href="#idx:loadtestfiles1:10">3</A></DD>
+<A class="idx" href="#idx:loadtestfiles1:11">3</A></DD>
 <DT><STRONG>M</STRONG></DT>
 <DD>
 </DD>
 <DT>make/0</DT>
 <DD>
-<A class="idx" href="#idx:make0:16">6</A></DD>
+<A class="idx" href="#idx:make0:17">6</A></DD>
 <DT>make_tests/3</DT>
 <DD>
-<A class="idx" href="#idx:maketests3:17">7</A></DD>
+<A class="idx" href="#idx:maketests3:18">7</A></DD>
 <DT>member/2</DT>
 <DD>
-<A class="idx" href="#idx:member2:6">2.2.1</A></DD>
+<A class="idx" href="#idx:member2:7">2.2.1</A></DD>
 <DT><STRONG>R</STRONG></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#run_tests/0">run_tests/0</A></DT>
 <DD>
-<A class="idx" href="#idx:runtests0:11">4</A> <A class="idx" href="#idx:runtests0:14">6</A></DD>
+<A class="idx" href="#idx:runtests0:12">4</A> <A class="idx" href="#idx:runtests0:15">6</A></DD>
 <DT><A class="idx" href="#run_tests/1">run_tests/1</A></DT>
 <DD>
-<A class="idx" href="#idx:runtests1:15">6</A></DD>
+<A class="idx" href="#idx:runtests1:16">6</A></DD>
 <DT><STRONG>S</STRONG></DT>
 <DD>
 </DD>
 <DT>setof/3</DT>
 <DD>
-<A class="idx" href="#idx:setof3:8">2.2.3</A></DD>
+<A class="idx" href="#idx:setof3:9">2.2.3</A></DD>
 <DT><A class="idx" href="#set_test_options/1">set_test_options/1</A></DT>
 <DD>
 </DD>
@@ -785,13 +822,19 @@ be marked as non-called in environments that perform cross-referencing.
 </DD>
 <DT>term_expansion/2</DT>
 <DD>
-<A class="idx" href="#idx:termexpansion2:18">9</A></DD>
+<A class="idx" href="#idx:termexpansion2:19">9</A></DD>
 <DT>test/1</DT>
 <DD>
-<A class="idx" href="#idx:test1:19">10</A> <A class="idx" href="#idx:test1:20">10</A></DD>
+<A class="idx" href="#idx:test1:20">10</A> <A class="idx" href="#idx:test1:21">10</A></DD>
 <DT>test/2</DT>
 <DD>
-<A class="idx" href="#idx:test2:5">2.1</A> <A class="idx" href="#idx:test2:21">10</A></DD>
+<A class="idx" href="#idx:test2:6">2.1</A> <A class="idx" href="#idx:test2:22">10</A></DD>
+<DT><STRONG>V</STRONG></DT>
+<DD>
+</DD>
+<DT>variant/2</DT>
+<DD>
+<A class="idx" href="#idx:variant2:4">2</A></DD>
 </DL>
 
 </BODY></HTML>
