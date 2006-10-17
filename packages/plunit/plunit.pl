@@ -7,26 +7,8 @@
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2006, University of Amsterdam
 
-    This program is free software; you can redistribute it and/or
-    modify it under the terms of the GNU General Public License
-    as published by the Free Software Foundation; either version 2
-    of the License, or (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-    As a special exception, if you link this library with other files,
-    compiled with a Free Software compiler, to produce an executable, this
-    library does not by itself cause the resulting executable to be covered
-    by the GNU General Public License. This exception does not however
-    invalidate any other reasons why the executable file might be covered by
-    the GNU General Public License.
+    This file is covered by the `The Artistic License', also in use by
+    Perl.  See http://www.perl.com/pub/a/language/misc/Artistic.html
 */
 
 :- module(plunit,
@@ -38,15 +20,111 @@
 	    run_tests/1,		% Run named test-set
 	    load_test_files/1		% +Options
 	  ]).
-:- use_module(library(lists)).
+
+/** <module> Unit Testing
+
+Unit testing environment for SWI-Prolog and   SICStus Prolog. For usage,
+please visit http://www.swi-prolog.org/packages/plunit.html.
+
+@author		Jan Wielemaker
+@license	artistic
+*/
+
+		 /*******************************
+		 *    CONDITIONAL COMPILATION	*
+		 *******************************/
+
+:- discontiguous
+	user:term_expansion/2.
+
+:- dynamic
+	include_code/1.
+
+if_expansion((:- if(G)), []) :-
+	(   catch(G, E, (print_message(error, E), fail))
+	->  asserta(include_code(true))
+	;   asserta(include_code(false))
+	).
+if_expansion((:- else), []) :-
+	(   retract(include_code(X))
+	->  (   X == true
+	    ->  X2 = false 
+	    ;   X2 = true
+	    ),
+	    asserta(include_code(X2))
+	;   throw(error(context_error(no_if), _))
+	).
+if_expansion((:- endif), []) :-
+	retract(include_code(_)), !.
+
+if_expansion(_, []) :-
+	include_code(X), !,
+	X == false.
+	    
+user:term_expansion(In, Out) :-
+	prolog_load_context(module, plunit),
+	if_expansion(In, Out).
+
+swi     :- catch(current_prolog_flag(compiled_at, _), _, fail).
+sicstus :- catch(current_prolog_flag(system_type, _), _, fail).
+
+
+:- if(swi).
 :- use_module(library(option)).
 
+current_test_flag(Name, Value) :-
+	current_prolog_flag(Name, Value).
+
+set_test_flag(Name, Value) :-
+	set_prolog_flag(Name, Value).
+:- endif.
+
+:- if(sicstus).
+:- use_module(swi).			% SWI-Compatibility
+:- op(700, xfx, =@=).
+
+'$set_source_module'(_, _).
+
+%%	current_test_flag(?Name, ?Value) is nondet.
+%
+%	Query  flags  that  control  the    testing   process.  Emulates
+%	SWI-Prologs flags.
+
+:- dynamic test_flag/2.	% Name, Val
+
+current_test_flag(optimise, Val) :-
+	current_prolog_flag(compiling, Compiling),
+	(   Compiling == debugcode ; true % TBD: Proper test
+	->  Val = false
+	;   Val = true
+	).
+current_test_flag(Name, Val) :-
+	test_flag(Name, Val).
+
+
+%%	set_test_flag(+Name, +Value) is det.
+
+set_test_flag(Name, Val) :-
+	var(Name), !,
+	throw(error(instantiation_error, set_test_flag(Name,Val))).
+set_test_flag( Name, Val ) :-
+	retractall(test_flag(Name,_)),
+	asserta(test_flag(Name, Val)).
+
+:- endif.
+
+		 /*******************************
+		 *	      IMPORTS		*
+		 *******************************/
+
+:- use_module(library(lists)).
+
 :- initialization
-   (   current_prolog_flag(test_options, _)
+   (   current_test_flag(test_options, _)
    ->  true
-   ;   set_prolog_flag(test_options,
-		       [ run(make)	% run tests on make/0
-		       ])
+   ;   set_test_flag(test_options,
+		     [ run(make)	% run tests on make/0
+		     ])
    ).
 
 %%	set_test_options(+Options)
@@ -64,19 +142,19 @@
 %	@tbd	Verify types	
 
 set_test_options(Options) :-
-	set_prolog_flag(test_options, Options).
+	set_test_flag(test_options, Options).
 
 %%	loading_tests
 %
 %	True if tests must be loaded.
 
 loading_tests :-
-	current_prolog_flag(test_options, Options),
+	current_test_flag(test_options, Options),
 	option(load(Load), Options, normal),
 	(   Load == always
 	->  true
 	;   Load == normal,
-	    \+ current_prolog_flag(optimise, true)
+	    \+ current_test_flag(optimise, true)
 	).
 
 		 /*******************************
@@ -98,15 +176,11 @@ begin_tests(Unit) :-
 	begin_tests(Unit, []).
 
 begin_tests(Unit, Options) :-
-	unit_module(Unit, Name),
-	(   current_module(Name),
-	    \+ current_unit(_, Name, _, _)
-	->  throw(error(permission_error(create, plunit, Unit),
-			'Existing module'))
-	;   source_location(File, Line),
-	    begin_tests(Unit, Name, File:Line, Options)
-	).
+	make_unit_module(Unit, Name),
+	source_location(File, Line),
+	begin_tests(Unit, Name, File:Line, Options).
 
+:- if(swi).
 begin_tests(Unit, Name, File:Line, Options) :-
 	'$set_source_module'(Context, Context),
 	Supers = [Context],
@@ -126,6 +200,18 @@ set_import_modules(Module, Imports) :-
 	forall(member(I, IL), delete_import_module(Module, I)),
 	forall(member(I, Imports), add_import_module(Module, I, end)).
 
+:- else.
+
+begin_tests(Unit, Name, File:_Line, Options) :-
+	(   current_unit(Unit, Name, Supers, Options)
+	->  true
+	;   retractall(current_unit(Unit, Name, _, _)),
+	    assert(current_unit(Unit, Name, Supers, Options))
+	),
+	asserta(loading_unit(Unit, Name, File, -)).
+
+:- endif.
+
 %%	end_tests(+Name) is det.
 %
 %	Close a unit-test module.
@@ -143,9 +229,36 @@ end_tests(Unit) :-
 end_tests(Unit) :-
 	throw(error(context_error(plunit_close(Unit, -)), _)).
 
-unit_module(Name, Module) :-
-	atom_concat('plunit_', Name, Module).
+%%	make_unit_module(+Name, -ModuleName) is det.
+%%	unit_module(+Name, -ModuleName) is det.
 
+:- if(swi).
+
+unit_module(Unit, Module) :-
+	atom_concat('plunit_', Unit, Module).
+
+make_unit_module(Unit, Module) :-
+	unit_module(Unit, Module),
+	(   current_module(Module),
+	    \+ current_unit(_, Module, _, _)
+	->  throw(error(permission_error(create, plunit, Unit),
+			'Existing module'))
+	;  true
+	).
+
+:- else.
+
+:- dynamic
+	unit_module_store/2.
+
+unit_module(Unit, Module) :-
+	unit_module_store(Unit, Module), !.
+
+make_unit_module(Unit, Module) :-
+	prolog_load_context(module, Module),
+	assert(unit_module_store(Unit, Module)).
+
+:- endif.
 
 		 /*******************************
 		 *	     EXPANSION		*
@@ -171,8 +284,10 @@ expand((test(Name) :- Body), Clauses) :- !,
 expand((test(Name, Options) :- Body), Clauses) :- !,
 	expand_test(Name, Options, Body, Clauses).
 
+:- if(swi).
 :- multifile
 	user:term_expansion/2.
+:- endif.
 
 user:term_expansion(Term, Expanded) :-
 	(   loading_unit(_, _, File, _)
@@ -268,7 +383,7 @@ unit_in_files(Files, Unit) :-
 %	Called indirectly from make/0 after Files have been reloaded.
 
 make_run_tests(Files) :-
-	current_prolog_flag(test_options, Options),
+	current_test_flag(test_options, Options),
 	option(run(When), Options, manual),
 	(   When == make
 	->  run_tests_in_files(Files)
@@ -297,18 +412,18 @@ run_test(Unit, Name, Line, Options, Body) :-
 	option(fail, Options), !,			% fail
 	unit_module(Unit, Module),
 	setup(Module, Options), !,
-	statistics(cputime, T0),
+	statistics(runtime, [T0,_]),
 	(   catch(Module:Body, E, true)
 	->  (   var(E)
-	    ->	statistics(cputime, T1),
-		Time is T1 - T0,
+	    ->	statistics(runtime, [T1,_]),
+		Time is (T1 - T0)/1000.0,
 		failure(Unit, Name, Line, succeeded(Time), Options),
 		cleanup(Module, Options)
 	    ;	failure(Unit, Name, Line, E, Options),
 		cleanup(Module, Options)
 	    )
-	;   statistics(cputime, T1),
-	    Time is T1 - T0,
+	;   statistics(runtime, [T1,_]),
+	    Time is (T1 - T0)/1000.0,
 	    success(Unit, Name, Line, true, Time, Options),
 	    cleanup(Module, Options)
 	).
@@ -316,11 +431,11 @@ run_test(Unit, Name, Line, Options, Body) :-
 	option(true(Cmp), Options),
 	unit_module(Unit, Module),
 	setup(Module, Options), !,			% true(Binding)
-	statistics(cputime, T0),
+	statistics(runtime, [T0,_]),
 	(   catch(call_test(Module:Body, Det), E, true)
 	->  (   var(E)
-	    ->	statistics(cputime, T1),
-		Time is T1 - T0,
+	    ->	statistics(runtime, [T1,_]),
+		Time is (T1 - T0)/1000.0,
 		(   catch(Cmp, _, fail)			% tbd: error
 		->  success(Unit, Name, Line, Det, Time, Options)
 		;   failure(Unit, Name, Line, wrong_answer, Options)
@@ -336,13 +451,13 @@ run_test(Unit, Name, Line, Options, Body) :-
 	option(throws(Expect), Options),
 	unit_module(Unit, Module),
 	setup(Module, Options), !,			% true
-	statistics(cputime, T0),
+	statistics(runtime, [T0,_]),
 	(   catch(Module:Body, E, true)
 	->  (   var(E)
 	    ->	failure(Unit, Name, Line, no_exception, Options),
 		cleanup(Module, Options)
-	    ;	statistics(cputime, T1),
-		Time is T1 - T0,
+	    ;	statistics(runtime, [T1,_]),
+		Time is (T1 - T0)/1000.0,
 		(   match_error(Expect, E)
 		->  success(Unit, Name, Line, true, Time, Options)
 		;   failure(Unit, Name, Line, wrong_error(Expect, E), Options)
@@ -355,11 +470,11 @@ run_test(Unit, Name, Line, Options, Body) :-
 run_test(Unit, Name, Line, Options, Body) :-
 	unit_module(Unit, Module),
 	setup(Module, Options), !,			% true
-	statistics(cputime, T0),
+	statistics(runtime, [T0,_]),
 	(   catch(call_test(Module:Body, Det), E, true)
 	->  (   var(E)
-	    ->	statistics(cputime, T1),
-		Time is T1 - T0,
+	    ->	statistics(runtime, [T1,_]),
+		Time is (T1 - T0)/1000.0,
 		success(Unit, Name, Line, Det, Time, Options),
 		cleanup(Module, Options)
 	    ;	failure(Unit, Name, Line, E, Options),
@@ -378,11 +493,11 @@ nondet_test(Expected, Unit, Name, Line, Options, Body) :-
 	unit_module(Unit, Module),
 	setup(Module, Options), !,
 	result_vars(Expected, Vars),
-	statistics(cputime, T0),
+	statistics(runtime, [T0,_]),
 	(   catch(findall(Vars, Module:Body, Bindings), E, true)
 	->  (   var(E)
-	    ->	statistics(cputime, T1),
-		Time is T1 - T0,
+	    ->	statistics(runtime, [T1,_]),
+		Time is (T1 - T0)/1000.0,
 	        (   nondet_compare(Expected, Bindings, Unit, Name, Line)
 		->  success(Unit, Name, Line, true, Time, Options)
 		;   failure(Unit, Name, Line, wrong_answer, Options)
@@ -437,9 +552,25 @@ cmp(Var  =  Value, Var,  =,  Value).
 %	True if Goal succeeded.  Det is unified to =true= if Goal left
 %	no choicepoints and =false= otherwise.
 
+:- if(swi).
 call_test(Goal, Det) :-
 	Goal,
 	deterministic(Det).
+:- else.
+:- if(sicstus).
+call_test(Goal, Det) :-
+	statistics(choice, [Used0|_]),
+	Goal,
+	statistics(choice, [Used1|_]),
+	(   Used1 =:= Used0
+	->  Det = true
+	;   Det = false
+	).
+:- else.
+call_test(Goal, true) :-
+	call(Goal).
+:- endif.
+:- endif.
 
 %%	match_error(+Expected, +Received) is semidet.
 
@@ -493,11 +624,11 @@ success(Unit, Name, Line, Det, Time, Options) :-
 	(   (   Det == true
 	    ;	memberchk(nondet, Options)
 	    )
-	->  put(.)
+	->  put_char(user_error, .)
 	;   unit_file(Unit, File),
 	    print_message(warning, plunit(nondet(File, Line, Name)))
 	),
-	flush_output.
+	flush_output(user_error).
 
 failure(Unit, Name, Line, E, _Options) :-
 	assert(failed(Unit, Name, Line, E)),
@@ -596,44 +727,55 @@ load_test_files(_Options) :-
 		 *	     MESSAGES		*
 		 *******************************/
 
+message(error(context_error(plunit_close(Name, -)), _)) -->
+	[ 'PL-Unit: cannot close unit ~w: no open unit'-[Name] ].
+message(error(context_error(plunit_close(Name, Start)), _)) -->
+	[ 'PL-Unit: cannot close unit ~w: current unit is ~w'-[Name, Start] ].
+message(plunit(nondet(File, Line, Name))) -->
+	[ '~w:~d: PL-Unit: Test ~w: Test succeeded with choicepoint'-
+	  [File, Line, Name] ].
+					% Unit start/end
+:- if(swi).
+message(plunit(begin(Unit))) -->
+	[ 'PL-Unit: ~w '-[Unit], flush ].
+message(plunit(end(_Unit))) -->
+	[ at_same_line, ' done' ].
+:- else.
+message(plunit(begin(Unit))) -->
+	[ 'PL-Unit: ~w '-[Unit]/*, flush-[]*/ ].
+message(plunit(end(_Unit))) -->
+	[ ' done'-[] ].
+:- endif.
+message(plunit(blocked(unit(Unit, Reason)))) -->
+	[ 'PL-Unit: ~w blocked: ~w'-[Unit, Reason] ].
+
+					% Blocked tests
+message(plunit(blocked(N))) -->
+	[ '~D tests where blocked'-[N] ].
+message(plunit(blocked(Pos, Name, Reason))) -->
+	[ '  ~w: test ~w: ~w'-[Pos, Name, Reason] ].
+
+					% fail/success
+message(plunit(failed(0))) --> !,
+	[ 'All tests passed'-[] ].
+message(plunit(failed(N))) -->
+	[ '~D tests failed'-[N] ].
+message(plunit(failed(Unit, Name, Line, succeeded(Time)))) -->
+       { unit_file(Unit, File) },
+       [ '~w:~w: test ~w: must fail but succeeded in ~2f seconds~n'-
+	 [File, Line, Name, Time] ].
+message(plunit(failed(Unit, Name, Line, Error))) -->
+	{ unit_file(Unit, File) },
+	[ '~w:~w: test ~w: ~p~n'-[File, Line, Name, Error] ].
+
+:- if(swi).
+
 :- multifile
 	prolog:message/3,
 	user:message_hook/3.
 
-prolog:message(error(context_error(plunit_close(Name, -)), _)) -->
-	[ 'PL-Unit: cannot close unit ~w: no open unit'-[Name] ].
-prolog:message(error(context_error(plunit_close(Name, Start)), _)) -->
-	[ 'PL-Unit: cannot close unit ~w: current unit is ~w'-[Name, Start] ].
-prolog:message(plunit(nondet(File, Line, Name))) -->
-	[ '~w:~d: PL-Unit: Test ~w: Test succeeded with choicepoint'-
-	  [File, Line, Name] ].
-					% Unit start/end
-prolog:message(plunit(begin(Unit))) -->
-	[ 'PL-Unit: ~w '-[Unit], flush ].
-prolog:message(plunit(end(_Unit))) -->
-	[ at_same_line, ' done' ].
-prolog:message(plunit(blocked(unit(Unit, Reason)))) -->
-	[ 'PL-Unit: ~w blocked: ~w'-[Unit, Reason] ].
-
-					% Blocked tests
-prolog:message(plunit(blocked(N))) -->
-	[ '~D tests where blocked'-[N] ].
-prolog:message(plunit(blocked(Pos, Name, Reason))) -->
-	[ '  ~w: test ~w: ~w'-[Pos, Name, Reason] ].
-
-					% fail/success
-prolog:message(plunit(failed(0))) --> !,
-	[ 'All tests passed' ].
-prolog:message(plunit(failed(N))) -->
-	[ '~D tests failed'-[N] ].
-prolog:message(plunit(failed(Unit, Name, Line, succeeded(Time)))) -->
-	{ unit_file(Unit, File) },
-	[ '~w:~w: test ~w: must fail but succeeded in ~2f seconds~n'-
-	  [File, Line, Name, Time] ].
-prolog:message(plunit(failed(Unit, Name, Line, Error))) -->
-	{ unit_file(Unit, File) },
-	[ '~w:~w: test ~w: ~p~n'-[File, Line, Name, Error] ].
-
+prolog:message(Term) -->
+	message(Term).
 
 %	user:message_hook(+Term, +Kind, +Lines)
 
@@ -641,4 +783,25 @@ user:message_hook(make(done(Files)), _, _) :-
 	make_run_tests(Files),
 	fail.				% give other hooks a chance
 
+:- endif.
 
+:- if(sicstus).
+
+user:generate_message_hook(Message) -->
+	message(Message),
+	[nl].				% SICStus requires nl at the end
+
+%%	user:message_hook(+Sevirity, +Message, +Lines) is semidet.
+%
+%	Redefine printing some messages. It appears   SICStus has no way
+%	to get multiple messages at the same   line, so we roll our own.
+%	As there is a lot pre-wired and   checked in the SICStus message
+%	handling we cannot reuse the lines. Unless I miss something ...
+
+user:message_hook(informational, plunit(begin(Unit)), _Lines) :-
+	format(user_error, '% PL-Unit: ~w ', [Unit]),
+	flush_output(user_error).
+user:message_hook(informational, plunit(end(_Unit)), _Lines) :-
+	format(user, ' done~n', []).
+
+:- endif.

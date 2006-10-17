@@ -1,3 +1,7 @@
+Oct 17, 2006
+
+* Portability with SICStus 3.12.
+
 Oct 13, 2006
 
- * Better message for tests that succeeded but shougl have failed
+* Better message for tests that succeeded but should have failed
