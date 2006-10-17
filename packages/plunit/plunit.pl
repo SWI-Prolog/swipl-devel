@@ -791,7 +791,7 @@ user:generate_message_hook(Message) -->
 	message(Message),
 	[nl].				% SICStus requires nl at the end
 
-%%	user:message_hook(+Sevirity, +Message, +Lines) is semidet.
+%	user:message_hook(+Sevirity, +Message, +Lines) is semidet.
 %
 %	Redefine printing some messages. It appears   SICStus has no way
 %	to get multiple messages at the same   line, so we roll our own.
