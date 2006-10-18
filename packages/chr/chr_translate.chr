@@ -175,16 +175,20 @@
 
 :- chr_type module_name == any.
 
-:- chr_type pragma_rule ---> pragma(rule,idspair,list(pragma_type),maybe(rule_name),rule_nb).
-:- chr_type rule 	---> rule(list(any),list(any),goal,goal).
-:- chr_type idspair	---> ids(list(id),list(id)).
+:- chr_type pragma_rule ---> 	pragma(rule,idspair,list(pragma_type),maybe(rule_name),rule_nb).
+:- chr_type rule 	---> 	rule(list(any),list(any),goal,goal).
+:- chr_type idspair	---> 	ids(list(id),list(id)).
 
-:- chr_type pragma_type	---> passive(id) ; already_in_heads ; already_in_heads(id) ; no_history.
-:- chr_type rule_name	==   any.
-:- chr_type rule_nb	==   natural.
-:- chr_type id		==   natural.
+:- chr_type pragma_type	---> 	passive(id) 
+			; 	already_in_heads 
+			; 	already_in_heads(id) 
+			; 	no_history.
 
-:- chr_type goal	==   any.
+:- chr_type rule_name	==   	any.
+:- chr_type rule_nb	==   	natural.
+:- chr_type id		==   	natural.
+
+:- chr_type goal	==   	any.
 
 :- chr_type store_type	---> 	default 
 			; 	multi_store(list(store_type)) 
@@ -194,7 +198,8 @@
 			; 	global_ground
 			%	EXPERIMENTAL STORES
 			;	var_assoc_store(int,list(int))
-			;	identifier_store(int).
+			;	identifier_store(int)
+			;	type_indexed_identifier_store(int,any).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -594,7 +599,64 @@ get_identifier_index(C,I,Q)
 		identifier_size(2),
 		Q = 2.
 
-	
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Type Indexed Identifier Indexes
+
+:- chr_constraint type_indexed_identifier_size/2.
+:- chr_option(mode,type_indexed_identifier_size(+,+)).
+:- chr_option(type_declaration,type_indexed_identifier_size(any,natural)).
+
+type_indexed_identifier_size(IndexType,_) \ type_indexed_identifier_size(IndexType,_)
+	<=>
+		true.
+
+:- chr_constraint get_type_indexed_identifier_size/2.
+:- chr_option(mode,get_type_indexed_identifier_size(+,-)).
+:- chr_option(type_declaration,get_type_indexed_identifier_size(any,natural)).
+
+type_indexed_identifier_size(IndexType,Size) \ get_type_indexed_identifier_size(IndexType,Q)
+	<=>
+		Q = Size.
+
+get_type_indexed_identifier_size(IndexType,Q)
+	<=>	
+		Q = 1.
+
+:- chr_constraint type_indexed_identifier_index/4.
+:- chr_option(mode,type_indexed_identifier_index(+,+,+,+)).
+:- chr_option(type_declaration,type_indexed_identifier_index(any,constraint,natural,natural)).
+
+type_indexed_identifier_index(_,C,I,_) \ type_indexed_identifier_index(_,C,I,_)
+	<=>
+		true.
+
+:- chr_constraint get_type_indexed_identifier_index/4.
+:- chr_option(mode,get_type_indexed_identifier_index(+,+,+,-)).
+:- chr_option(type_declaration,get_type_indexed_identifier_index(any,constraint,natural,natural)).
+
+type_indexed_identifier_index(IndexType,C,I,II) \ get_type_indexed_identifier_index(IndexType,C,I,Q)
+	<=>
+		Q = II.
+type_indexed_identifier_size(IndexType,Size), get_type_indexed_identifier_index(IndexType,C,I,Q)
+	<=>
+		NSize is Size + 1,
+		type_indexed_identifier_index(IndexType,C,I,NSize),
+		type_indexed_identifier_size(IndexType,NSize),
+		Q = NSize.
+get_type_indexed_identifier_index(IndexType,C,I,Q) 
+	<=>
+		type_indexed_identifier_index(IndexType,C,I,2),
+		type_indexed_identifier_size(IndexType,2),
+		Q = 2.
+
+type_indexed_identifier_structure(IndexType,Structure) :-
+	type_indexed_identifier_name(IndexType,type_indexed_identifier_struct,Functor),
+	get_type_indexed_identifier_size(IndexType,Arity),
+	functor(Structure,Functor,Arity).	
+type_indexed_identifier_name(IndexType,Prefix,Name) :-
+	term_to_atom(IndexType,IndexTypeName),
+	atom_concat_list([Prefix,'_',IndexTypeName],Name).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -640,24 +702,24 @@ chr_translate(Declarations,NewDeclarations) :-
 	append([Clauses0,GeneratedClauses], NewDeclarations).
 
 store_management_preds(Constraints,Clauses) :-
-		generate_attach_detach_a_constraint_all(Constraints,AttachAConstraintClauses),
-		generate_attr_unify_hook(AttrUnifyHookClauses),
-		generate_attach_increment(AttachIncrementClauses),
-		generate_extra_clauses(Constraints,ExtraClauses),
-		generate_insert_delete_constraints(Constraints,DeleteClauses),
-		generate_attach_code(Constraints,StoreClauses),
-		generate_counter_code(CounterClauses),
-		generate_dynamic_type_check_clauses(TypeCheckClauses),
-		append([AttachAConstraintClauses
-		       ,AttachIncrementClauses
-		       ,AttrUnifyHookClauses
-		       ,ExtraClauses
-		       ,DeleteClauses
-		       ,StoreClauses
-		       ,CounterClauses
-		       ,TypeCheckClauses
-		       ]
-		      ,Clauses).
+	generate_attach_detach_a_constraint_all(Constraints,AttachAConstraintClauses),
+	generate_attr_unify_hook(AttrUnifyHookClauses),
+	generate_attach_increment(AttachIncrementClauses),
+	generate_extra_clauses(Constraints,ExtraClauses),
+	generate_insert_delete_constraints(Constraints,DeleteClauses),
+	generate_attach_code(Constraints,StoreClauses),
+	generate_counter_code(CounterClauses),
+	generate_dynamic_type_check_clauses(TypeCheckClauses),
+	append([AttachAConstraintClauses
+	       ,AttachIncrementClauses
+	       ,AttrUnifyHookClauses
+	       ,ExtraClauses
+	       ,DeleteClauses
+	       ,StoreClauses
+	       ,CounterClauses
+	       ,TypeCheckClauses
+	       ]
+	      ,Clauses).
 
 
 insert_declarations(Clauses0, Clauses) :-
@@ -702,55 +764,58 @@ chr_module_declaration(CHRModuleDeclaration) :-
 %% Partitioning of clauses into constraint declarations, chr rules and other 
 %% clauses
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	partition_clauses(+Clauses,-ConstraintDeclarations,-Rules,-OtherClauses) is det.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 partition_clauses([],[],[],[]).
-partition_clauses([C|Cs],Ds,Rs,OCs) :-
-  (   parse_rule(C,R) ->
-      Ds = RDs,
-      Rs = [R | RRs], 
-      OCs = ROCs
-  ;   is_declaration(C,D) ->
-      append(D,RDs,Ds),
-      Rs = RRs,
-      OCs = ROCs
-  ;   is_module_declaration(C,Mod) ->
-      target_module(Mod),
-      Ds = RDs,
-      Rs = RRs,
-      OCs = [C|ROCs]
-  ;   is_type_definition(C) ->
-      Ds = RDs,
-      Rs = RRs,
-      OCs = ROCs
-  ;   C = (handler _) ->
-      chr_warning(deprecated(C),'Backward compatibility: ignoring handler/1 declaration.\n',[]),
-      Ds = RDs,
-      Rs = RRs,
-      OCs = ROCs
-  ;   C = (rules _) ->
-      chr_warning(deprecated(C),'Backward compatibility: ignoring rules/1 declaration.\n',[]),
-      Ds = RDs,
-      Rs = RRs,
-      OCs = ROCs
-  ;   C = option(OptionName,OptionValue) ->
-      chr_warning(deprecated(C),'Instead use :- chr_option(~w,~w).\n',[OptionName,OptionValue]),
-      handle_option(OptionName,OptionValue),
-      Ds = RDs,
-      Rs = RRs,
-      OCs = ROCs
-  ;   C = (:- chr_option(OptionName,OptionValue)) ->
-      handle_option(OptionName,OptionValue),
-      Ds = RDs,
-      Rs = RRs,
-      OCs = ROCs
-  ;   C = ('$chr_compiled_with_version'(_)) ->
-      Ds = RDs,
-      Rs = RRs,
-      OCs = ['$chr_compiled_with_version'(3)|ROCs]
-  ;   Ds = RDs,
-      Rs = RRs,
-      OCs = [C|ROCs]
-  ),
-  partition_clauses(Cs,RDs,RRs,ROCs).
+partition_clauses([Clause|Clauses],ConstraintDeclarations,Rules,OtherClauses) :-
+	( parse_rule(Clause,Rule) ->
+		ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = [Rule|RestRules],
+		OtherClauses = RestOtherClauses
+	; is_declaration(Clause,ConstraintDeclaration) ->
+		append(ConstraintDeclaration,RestConstraintDeclarations,ConstraintDeclarations),
+		Rules = RestRules,
+		OtherClauses = RestOtherClauses
+	; is_module_declaration(Clause,Mod) ->
+		target_module(Mod),
+		ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = RestRules,
+		OtherClauses = [Clause|RestOtherClauses]
+	; is_type_definition(Clause) ->
+		ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = RestRules,
+		OtherClauses = RestOtherClauses
+	; Clause = (handler _) ->
+		chr_warning(deprecated(Clause),'Backward compatibility: ignoring handler/1 declaration.\n',[]),
+		ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = RestRules,
+		OtherClauses = RestOtherClauses
+	; Clause = (rules _) ->
+		chr_warning(deprecated(Clause),'Backward compatibility: ignoring rules/1 declaration.\n',[]),
+		ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = RestRules,
+		OtherClauses = RestOtherClauses
+	; Clause = option(OptionName,OptionValue) ->
+		chr_warning(deprecated(Clause),'Instead use `:-chr_option(~w,~w).\'\n',[OptionName,OptionValue]),
+		handle_option(OptionName,OptionValue),
+		ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = RestRules,
+		OtherClauses = RestOtherClauses
+	; Clause = (:-chr_option(OptionName,OptionValue)) ->
+		handle_option(OptionName,OptionValue),
+		ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = RestRules,
+		OtherClauses = RestOtherClauses
+	; Clause = ('$chr_compiled_with_version'(_)) ->
+		ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = RestRules,
+		OtherClauses = ['$chr_compiled_with_version'(3)|RestOtherClauses]
+	; ConstraintDeclarations = RestConstraintDeclarations,
+		Rules = RestRules,
+		OtherClauses = [Clause|RestOtherClauses]
+	),
+	partition_clauses(Clauses,RestConstraintDeclarations,RestRules,RestOtherClauses).
 
 '$chr_compiled_with_version'(2).
 
@@ -807,7 +872,7 @@ is_type_definition(Declaration) :-
 		type_alias(Alias,Name)
 	; 
 	      	type_definition(TypeDef,[]),
-	      	chr_warning(syntax,'Empty type definition "~w".\n',[TypeDef])
+	      	chr_warning(syntax,'Empty type definition `~w\'.\nAre you sure you want to declare a phantom type?\n',[Declaration])
 	).
 
 %%	tdisj2list(+Goal,-ListOfGoals) is det.
@@ -823,35 +888,18 @@ tdisj2list(Conj,L,T) :-
 tdisj2list(G,[G | T],T).
 
 
-%% Data Declaration
-%%
-%% pragma_rule 
-%%	-> pragma(
-%%		rule,
-%%		ids,
-%%		list(pragma),
-%%		yesno(string),		:: maybe rule nane
-%%		int			:: rule number
-%%		)
-%%
-%% ids	-> ids(
-%%		list(int),
-%%		list(int)
-%%		)
-%%		
-%% rule -> rule(
-%%		list(constraint),	:: constraints to be removed
-%%		list(constraint),	:: surviving constraints
-%%		goal,			:: guard
-%%		goal			:: body
-%%	 	)
-
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	parse_rule(+term,-pragma_rule) is semidet.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 parse_rule(RI,R) :-				%% name @ rule
 	RI = (Name @ RI2), !,
 	rule(RI2,yes(Name),R).
 parse_rule(RI,R) :-
 	rule(RI,no,R).
 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+%%	parse_rule(+term,-pragma_rule) is semidet.
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 rule(RI,Name,R) :-
 	RI = (RI2 pragma P), !,			%% pragmas
 	( var(P) ->
@@ -904,7 +952,7 @@ get_ids(Cs,IDs,NCs,RC) :-
 get_ids([],[],[],N,N,_).
 get_ids([C|Cs],[N|IDs],[NC|NCs],N,NN,RC) :-
 	( C = (NC # N1) ->
-		(var(N1) ->
+		( var(N1) ->
 			N1 = N
 		;
 			check_direct_pragma(N1,N,RC)
@@ -915,16 +963,18 @@ get_ids([C|Cs],[N|IDs],[NC|NCs],N,NN,RC) :-
 	M is N + 1,
 	get_ids(Cs,IDs,NCs, M,NN,RC).
 
-direct_pragma(passive).
-check_direct_pragma(passive,N,R) :- 
-	R = pragma(_,ids(IDs1,IDs2),_,_,RuleNb), passive(RuleNb,N).
-check_direct_pragma(Abbrev,N,RC) :- 
-	(direct_pragma(X),
-	 atom_concat(Abbrev,Remainder,X) ->
-	    chr_warning(problem_pragma(Abbrev,RC),'completed "~w" to "~w"\n',[Abbrev,X])
+check_direct_pragma(passive,Id,PragmaRule) :- !,
+	PragmaRule = pragma(_,ids(IDs1,IDs2),_,_,RuleNb), 
+	passive(RuleNb,Id).
+check_direct_pragma(Abbrev,Id,PragmaRule) :- 
+	( direct_pragma(FullPragma),
+	  atom_concat(Abbrev,Remainder,FullPragma) ->
+		chr_warning(problem_pragma(Abbrev,PragmaRule),'completed `~w\' to `~w\'\n',[Abbrev,FullPragma])
 	;
-	    chr_warning(unsupported_pragma(Abbrev,RC),'',[])
+	    	chr_warning(unsupported_pragma(Abbrev,PragmaRule),'',[])
 	).
+
+direct_pragma(passive).
 
 is_module_declaration((:- module(Mod)),Mod).
 is_module_declaration((:- module(Mod,_)),Mod).
@@ -2589,6 +2639,12 @@ insert_constraint_body(identifier_store(Index),C,Susp,UsedVars,Body) :-
 	get_identifier_index(C,Index,IIndex),
 	arg(IIndex,Struct,Susps),
 	Body = (Var = Struct, setarg(IIndex,Var,[Susp|Susps])).
+insert_constraint_body(type_indexed_identifier_store(Index,IndexType),C,Susp,UsedVars,Body) :-
+	UsedVars = [Index-Var],
+	type_indexed_identifier_structure(IndexType,Struct),
+	get_type_indexed_identifier_index(IndexType,C,Index,IIndex),
+	arg(IIndex,Struct,Susps),
+	Body = (Var = Struct, setarg(IIndex,Var,[Susp|Susps])).
 
 sort_out_used_vars(NestedUsedVars,UsedVars) :-
 	flatten(NestedUsedVars,FlatUsedVars),
@@ -2822,6 +2878,17 @@ delete_constraint_body(identifier_store(Index),C,Head,Susp,VarDict,Body) :-
 		'chr sbag_del_element'(Susps,Susp,NSusps), 
 		setarg(IIndex,Variable,NSusps) 
 	). 
+delete_constraint_body(type_indexed_identifier_store(Index,IndexType),C,Head,Susp,VarDict,Body) :-
+	get_suspension_argument_possibly_in_scope(Head,Index,VarDict,Susp,Variable,VariableGoal),
+	type_indexed_identifier_structure(IndexType,Struct),
+	get_type_indexed_identifier_index(IndexType,C,Index,IIndex),
+	arg(IIndex,Struct,Susps),
+	Body = ( 
+		VariableGoal, 
+		Variable = Struct, 
+		'chr sbag_del_element'(Susps,Susp,NSusps), 
+		setarg(IIndex,Variable,NSusps) 
+	). 
 
 generate_multi_inthash_delete_constraint_bodies([],_,_,true).
 generate_multi_inthash_delete_constraint_bodies([Index|Indexes],FA,Susp,(Body,Bodies)) :-
@@ -2908,6 +2975,35 @@ generate_attach_code(identifier_store(Index),C,L,T) :-
 		functor(Struct3,struct,ISize),
 		arg(1,Struct3,Label3),
 		Clause3 = identifier_label(Struct3,Label3),
+		L = [Clause1,Clause2,Clause3|T]
+	;
+		L = T
+	).
+generate_attach_code(type_indexed_identifier_store(Index,IndexType),C,L,T) :-
+	get_type_indexed_identifier_index(IndexType,C,Index,IIndex),
+	( IIndex == 2 ->
+		get_type_indexed_identifier_size(IndexType,ISize),
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		type_indexed_identifier_structure(IndexType,Struct),
+		Struct =.. [_,Label|Stores],
+		set_elems(Stores,[]),
+		type_indexed_identifier_name(IndexType,new_identifier,Name1),
+		Clause1 =.. [Name1,Label,Struct],
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		type_indexed_identifier_structure(IndexType,Struct2),
+		arg(1,Struct2,Label2),
+		Clause2 = 
+		( user:portray(Struct2) :-
+			write('<id:'),
+			print(Label2),
+			write('>')
+		),
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		type_indexed_identifier_structure(IndexType,Struct3),
+		arg(1,Struct3,Label3),
+		type_indexed_identifier_name(IndexType,identifier_label,Name3),
+		Clause3 =.. [Name3,Struct3,Label3],
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 		L = [Clause1,Clause2,Clause3|T]
 	;
 		L = T
@@ -3264,6 +3360,8 @@ enumerate_store_body(multi_store(STs),C,Susp,Body) :-
 		enumerate_store_body(ST,C,Susp,Body)
 	)).
 enumerate_store_body(identifier_store(Index),C,Susp,Body) :-
+	Body = fail.
+enumerate_store_body(type_indexed_identifier_store(Index,IndexType),C,Susp,Body) :-
 	Body = fail.
 
 multi_inthash_enumerate_store_body(I,C,Susp,B) :-
@@ -4066,11 +4164,17 @@ type_definition(T,D) \ get_type_definition(T2,Def)
 	| 
 		Def = D1.
 
-get_type_definition(T2,Def) 
+get_type_definition(Type,Def) 
 	<=> 
-		builtin_type(T2,_,_) 
+		atomic_builtin_type(Type,_,_) 
 	| 
-		Def = [T2].
+		Def = [Type].
+
+get_type_definition(Type,Def) 
+	<=> 
+		compound_builtin_type(Type,_,_) 
+	| 
+		Def = [Type].
 
 get_type_definition(X,Y) <=> fail.
 
@@ -4113,6 +4217,13 @@ get_constraint_type_det(ConstraintSymbol,Types) :-
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 :- chr_constraint unalias_type/2.
 
+unalias_var @
+unalias_type(Alias,BaseType)
+	<=>
+		var(Alias)
+	|
+		BaseType = Alias.
+
 unalias_alias @
 type_alias(AliasProtoType,ProtoType) \ unalias_type(Alias,BaseType) 
 	<=> 
@@ -4135,10 +4246,17 @@ type_definition(ProtoType,Definition) \ unalias_type(Alias,BaseType)
 	| 
 		BaseType = Alias.
 
-unalias_builtin @ 
+unalias_atomic_builtin @ 
 unalias_type(Alias,BaseType) 
 	<=> 
-		builtin_type(Alias,_,_) 
+		atomic_builtin_type(Alias,_,_) 
+	| 
+		BaseType = Alias.
+
+unalias_compound_builtin @ 
+unalias_type(Alias,BaseType) 
+	<=> 
+		compound_builtin_type(Alias,_,_) 
 	| 
 		BaseType = Alias.
 
@@ -4211,32 +4329,35 @@ type_condition([],_,_,_,[]).
 type_condition([DefCase|DefCases],Arg,UnrollArg,Mode,[Condition|Conditions]) :-
 	( var(DefCase) ->
 		chr_error(type,'Unexpected variable type in type definition!\n',[]) % Condition = true
-	; builtin_type_nonvar(DefCase,Arg,Condition) ->
+	; atomic_builtin_type(DefCase,Arg,Condition) ->
+		true
+	; compound_builtin_type(DefCase,Arg,Condition) ->
 		true
 	;
 		type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition)
 	),
 	type_condition(DefCases,Arg,UnrollArg,Mode,Conditions).
 
-builtin_type(X,Arg,true) :- var(X),!.
-builtin_type(X,Arg,Goal) :- builtin_type_nonvar(X,Arg,Goal).
-
-:- chr_type builtin_type 	--->	any
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+:- chr_type atomic_builtin_type	--->	any
 				;	number
 				;	float
 				;	int
 				;	natural
 			 	;	dense_int
-				;	chr_identifier.
+				;	chr_identifier
+				;	chr_identifier(any).
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 
-builtin_type_nonvar(any,_Arg,true).
-builtin_type_nonvar(dense_int,Arg,(integer(Arg),Arg>=0)).
-builtin_type_nonvar(int,Arg,integer(Arg)).
-builtin_type_nonvar(number,Arg,number(Arg)).
-builtin_type_nonvar(float,Arg,float(Arg)).
-builtin_type_nonvar(natural,Arg,(integer(Arg),Arg>=0)).
+atomic_builtin_type(any,_Arg,true).
+atomic_builtin_type(dense_int,Arg,(integer(Arg),Arg>=0)).
+atomic_builtin_type(int,Arg,integer(Arg)).
+atomic_builtin_type(number,Arg,number(Arg)).
+atomic_builtin_type(float,Arg,float(Arg)).
+atomic_builtin_type(natural,Arg,(integer(Arg),Arg>=0)).
+atomic_builtin_type(chr_identifier,_Arg,true).
 
-builtin_type_nonvar(chr_identifier,_Arg,true).
+compound_builtin_type(chr_identifier(_),_Arg,true).
 
 type_def_case_condition(DefCase,Arg,UnrollArg,Mode,Condition) :-
 	( nonvar(DefCase) ->
@@ -4334,7 +4455,16 @@ static_type_check_term(Src,Term,Type)
 		static_type_check_var(Src,Term,Type).
 static_type_check_term(Src,Term,Type) 
 	<=> 
-		builtin_type_nonvar(Type,Term,Goal)
+		atomic_builtin_type(Type,Term,Goal)
+	|
+		( call(Goal) ->
+			true
+		;
+			throw(type_error(invalid_functor(Src,Term,Type)))	
+		).	
+static_type_check_term(Src,Term,Type) 
+	<=> 
+		compound_builtin_type(Type,Term,Goal)
 	|
 		( call(Goal) ->
 			true
@@ -4382,9 +4512,15 @@ type_alias(AType,ADef) \ static_type_check_var(Src,Var,Type)
 
 static_type_check_var(Src,Var,Type)
 	<=>
-		builtin_type_nonvar(Type,_,_)
+		atomic_builtin_type(Type,_,_)
 	|
-		static_builtin_type_check_var(Src,Var,Type).
+		static_atomic_builtin_type_check_var(Src,Var,Type).
+
+static_type_check_var(Src,Var,Type)
+	<=>
+		compound_builtin_type(Type,_,_)
+	|
+		true.
 		
 
 static_type_check_var(Src1,Var,Type1), static_type_check_var(Src2,Var,Type2)
@@ -4394,38 +4530,38 @@ static_type_check_var(Src1,Var,Type1), static_type_check_var(Src2,Var,Type2)
 		throw(type_error(type_clash(Var,Src1,Src2,Type1,Type2))).
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-%%	static_builtin_type_check_var(+type_error_src,-Var,+builtin_type)
+%%	static_atomic_builtin_type_check_var(+type_error_src,-Var,+atomic_builtin_type)
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-:- chr_constraint static_builtin_type_check_var/3.
+:- chr_constraint static_atomic_builtin_type_check_var/3.
 :- chr_option(mode,static_type_check_var(?,-,+)).
-:- chr_option(type_declaration,static_type_check_term(type_error_src,any,builtin_type)).
+:- chr_option(type_declaration,static_type_check_term(type_error_src,any,atomic_builtin_type)).
 
-static_builtin_type_check_var(_,_,any) <=> true.
-static_builtin_type_check_var(_,Var,BuiltinType) \ static_builtin_type_check_var(_,Var,BuiltinType)
+static_atomic_builtin_type_check_var(_,_,any) <=> true.
+static_atomic_builtin_type_check_var(_,Var,BuiltinType) \ static_atomic_builtin_type_check_var(_,Var,BuiltinType)
 	<=> 
 		true.
-static_builtin_type_check_var(_,Var,float) \ static_builtin_type_check_var(_,Var,number)
+static_atomic_builtin_type_check_var(_,Var,float) \ static_atomic_builtin_type_check_var(_,Var,number)
 	<=>
 		true.
-static_builtin_type_check_var(_,Var,int) \ static_builtin_type_check_var(_,Var,number)
+static_atomic_builtin_type_check_var(_,Var,int) \ static_atomic_builtin_type_check_var(_,Var,number)
 	<=>
 		true.
-static_builtin_type_check_var(_,Var,natural) \ static_builtin_type_check_var(_,Var,number)
+static_atomic_builtin_type_check_var(_,Var,natural) \ static_atomic_builtin_type_check_var(_,Var,number)
 	<=>
 		true.
-static_builtin_type_check_var(_,Var,dense_int) \ static_builtin_type_check_var(_,Var,number)
+static_atomic_builtin_type_check_var(_,Var,dense_int) \ static_atomic_builtin_type_check_var(_,Var,number)
 	<=>
 		true.
-static_builtin_type_check_var(_,Var,natural) \ static_builtin_type_check_var(_,Var,int)
+static_atomic_builtin_type_check_var(_,Var,natural) \ static_atomic_builtin_type_check_var(_,Var,int)
 	<=>
 		true.
-static_builtin_type_check_var(_,Var,dense_int) \ static_builtin_type_check_var(_,Var,int)
+static_atomic_builtin_type_check_var(_,Var,dense_int) \ static_atomic_builtin_type_check_var(_,Var,int)
 	<=>
 		true.
-static_builtin_type_check_var(_,Var,dense_int) \ static_builtin_type_check_var(_,Var,natural)
+static_atomic_builtin_type_check_var(_,Var,dense_int) \ static_atomic_builtin_type_check_var(_,Var,natural)
 	<=>
 		true.
-static_builtin_type_check_var(Src1,Var,Type1), static_builtin_type_check_var(Src2,Var,Type2)	
+static_atomic_builtin_type_check_var(Src1,Var,Type1), static_atomic_builtin_type_check_var(Src2,Var,Type2)	
 	<=>
 		throw(type_error(type_clash(Var,Src1,Src2,Type1,Type2))).
 
@@ -4469,7 +4605,11 @@ type_alias(A,B), dynamic_type_check
 		dynamic_type_check_clauses([Clause]).
 
 dynamic_type_check <=> 
-	findall(('$dynamic_type_check'(Type,Term) :- !, Goal),builtin_type_nonvar(Type,Term,Goal), BuiltinChecks),
+	findall(
+			('$dynamic_type_check'(Type,Term) :- !, Goal),
+			( atomic_builtin_type(Type,Term,Goal) ; compound_builtin_type(Type,Term,Goal) ), 
+			BuiltinChecks
+	),
 	dynamic_type_check_clauses(BuiltinChecks).
 
 dynamic_type_check_clause(T,DC,Clause) :-
@@ -4492,7 +4632,9 @@ dynamic_type_check_alias_clause(Alias,Body,Clause) :-
 	).
 
 dynamic_type_check_call(Type,Term,Call) :-
-	( nonvar(Type), builtin_type_nonvar(Type,Term,Goal) ->
+	( nonvar(Type), atomic_builtin_type(Type,Term,Goal) ->
+		Call = when(nonvar(Term),Goal)
+	; nonvar(Type), compound_builtin_type(Type,Term,Goal) ->
 		Call = when(nonvar(Term),Goal)
 	;
 		Call = when(nonvar(Term),'$dynamic_type_check'(Type,Term))
@@ -4541,7 +4683,7 @@ atomic_types_suspended_constraint(C,Type,Mode,Index) :-
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 :- chr_constraint atomic_type/1.
 
-atomic_type(Type) <=> builtin_type_nonvar(Type,_,_) | Type \== any.
+atomic_type(Type) <=> atomic_builtin_type(Type,_,_) | Type \== any.
 
 type_definition(TypePat,Def) \ atomic_type(Type) 
 	<=> 
@@ -6638,6 +6780,8 @@ order_score(multi_store(StoreTypes),Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
 	min_list(Scores,Score).
 order_score(identifier_store(Index),Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
 	Score = 10.
+order_score(type_indexed_identifier_store(_,_),Head,ID,KnownVars,RestHeads,RuleNb,Score) :-
+	Score = 10.
 
 order_score_indexes([],_,_,Score,NScore) :-
 	Score > 0, NScore = 100.
@@ -6847,11 +6991,26 @@ lookup_passive_head(identifier_store(Index),Head,PreJoin,VarDict,GroundVars,Goal
 	),
 	update_store_type(F/A,identifier_store(Index)),
 	get_identifier_index(F/A,Index,_).
+lookup_passive_head(type_indexed_identifier_store(Index,IndexType),Head,PreJoin,VarDict,GroundVars,Goal,AllSusps) :-
+	functor(Head,F,A),
+	arg(Index,Head,Var),
+	translate([Var],VarDict,[KeyVar]),
+	delay_phase_end(validate_store_type_assumptions,
+		type_indexed_identifier_lookup(F/A,Index,IndexType,AllSusps,KeyVar,Goal)
+	),
+	update_store_type(F/A,type_indexed_identifier_store(Index,IndexType)),
+	get_type_indexed_identifier_index(IndexType,F/A,Index,_).
 
 identifier_lookup(C,Index,AllSusps,KeyVar,Goal) :-
 	get_identifier_size(ISize),
 	functor(Struct,struct,ISize),
 	get_identifier_index(C,Index,IIndex),
+	arg(IIndex,Struct,AllSusps),
+	Goal = (KeyVar = Struct).
+
+type_indexed_identifier_lookup(C,Index,IndexType,AllSusps,KeyVar,Goal) :-
+	type_indexed_identifier_structure(IndexType,Struct),
+	get_type_indexed_identifier_index(IndexType,C,Index,IIndex),
 	arg(IIndex,Struct,AllSusps),
 	Goal = (KeyVar = Struct).
 
@@ -6933,6 +7092,27 @@ existential_lookup(multi_hash(Indexes),Head,_,VarDict,GroundVars,SuspTerm,Goal,S
 	existential_hash_lookup(hash,Indexes,Head,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs).
 existential_lookup(identifier_store(Index),Head,PreJoin,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs) :- !,
 	lookup_passive_head(identifier_store(Index),Head,PreJoin,VarDict,GroundVars,LookupGoal,AllSusps),
+	hash_index_filter(Pairs,Index,NPairs),
+
+	functor(Head,F,A),
+	( check_fd_lookup_condition(F,A,Head,KeyArgs) ->
+		Sbag = (AllSusps = [Susp])
+	;
+		sbag_member_call(Susp,AllSusps,Sbag)
+	),
+	delay_phase_end(validate_store_type_assumptions,
+		( static_suspension_term(F/A,SuspTerm),
+		  get_static_suspension_field(F/A,SuspTerm,state,active,GetState)
+		)
+	),
+	Goal =	(
+			LookupGoal,
+			Sbag,
+			Susp = SuspTerm,		% not inlined
+			GetState
+	).
+existential_lookup(type_indexed_identifier_store(Index,IndexType),Head,PreJoin,VarDict,GroundVars,SuspTerm,Goal,Susp,Pairs,NPairs) :- !,
+	lookup_passive_head(type_indexed_identifier_store(Index,IndexType),Head,PreJoin,VarDict,GroundVars,LookupGoal,AllSusps),
 	hash_index_filter(Pairs,Index,NPairs),
 
 	functor(Head,F,A),
@@ -7053,7 +7233,7 @@ assume_constraint_stores([C|Cs]) :-
 			assumed_store_type(C,global_singleton)
 		; 
 			get_constraint_type_det(C,ArgTypes),
-			partition_indexes(Indexes,ArgTypes,HashIndexes,IntHashIndexes,IdentifierIndexes),
+			partition_indexes(Indexes,ArgTypes,HashIndexes,IntHashIndexes,IdentifierIndexes,CompoundIdentifierIndexes),
 			
 			( IntHashIndexes = [] ->
 				Stores = Stores1
@@ -7071,7 +7251,8 @@ assume_constraint_stores([C|Cs]) :-
 				maplist(wrap_in_functor(identifier_store),IdentifierIndexes,WrappedIdentifierIndexes),
 				append(WrappedIdentifierIndexes,Stores3,Stores2)
 			),
-			Stores3 = [global_ground],
+			append(CompoundIdentifierIndexes,Stores4,Stores3),
+			Stores4 = [global_ground],
 			assumed_store_type(C,multi_store(Stores))
 		)
 	;
@@ -7083,13 +7264,23 @@ assume_constraint_stores([C|Cs]) :-
 %%	partition_indexes(+Indexes,+Types,
 %%		-HashIndexes,-IntHashIndexes,-IdentifierIndexes) is det.
 %------------------------------------------------------------------------------%
-partition_indexes([],_,[],[],[]).
-partition_indexes([Index|Indexes],Types,HashIndexes,IntHashIndexes,IdentifierIndexes) :-
+partition_indexes([],_,[],[],[],[]).
+partition_indexes([Index|Indexes],Types,HashIndexes,IntHashIndexes,IdentifierIndexes,CompoundIdentifierIndexes) :-
 	( Index = [I],
 	  nth(I,Types,Type),
 	  unalias_type(Type,UnAliasedType),
 	  UnAliasedType == chr_identifier ->
 		IdentifierIndexes = [I|RIdentifierIndexes],
+		IntHashIndexes = RIntHashIndexes,
+		HashIndexes = RHashIndexes,
+		CompoundIdentifierIndexes = RCompoundIdentifierIndexes
+	; Index = [I],
+	  nth(I,Types,Type),
+	  unalias_type(Type,UnAliasedType),
+	  nonvar(UnAliasedType),
+	  UnAliasedType = chr_identifier(IndexType) ->
+		CompoundIdentifierIndexes = [type_indexed_identifier_store(I,IndexType)|RCompoundIdentifierIndexes],
+		IdentifierIndexes = RIdentifierIndexes,
 		IntHashIndexes = RIntHashIndexes,
 		HashIndexes = RHashIndexes
 	; Index = [I],
@@ -7098,13 +7289,15 @@ partition_indexes([Index|Indexes],Types,HashIndexes,IntHashIndexes,IdentifierInd
 	  UnAliasedType == dense_int ->
 		IntHashIndexes = [Index|RIntHashIndexes],
 		HashIndexes = RHashIndexes,
-		IdentifierIndexes = RIdentifierIndexes
+		IdentifierIndexes = RIdentifierIndexes,
+		CompoundIdentifierIndexes = RCompoundIdentifierIndexes
 	;
 		IntHashIndexes = RIntHashIndexes,
 		HashIndexes = [Index|RHashIndexes],
-		IdentifierIndexes = RIdentifierIndexes
+		IdentifierIndexes = RIdentifierIndexes,
+		CompoundIdentifierIndexes = RCompoundIdentifierIndexes
 	),
-	partition_indexes(Indexes,Types,RHashIndexes,RIntHashIndexes,RIdentifierIndexes).
+	partition_indexes(Indexes,Types,RHashIndexes,RIntHashIndexes,RIdentifierIndexes,RCompoundIdentifierIndexes).
 
 longer_list(R,L1,L2) :-
 	length(L1,N1),

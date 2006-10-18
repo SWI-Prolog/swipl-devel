@@ -35,6 +35,7 @@
 	    op(1180, xfx, <=>),
 	    op(1150, fx, constraints),
 	    op(1150, fx, chr_constraint),
+	    op(1150, fx, chr_preprocessor),
 	    op(1150, fx, handler),
 	    op(1150, fx, rules),
 	    op(1100, xfx, \),
@@ -109,8 +110,9 @@ user:file_search_path(chr, library(chr)).
 
 :- multifile chr:'$chr_module'/1.
 
-:- dynamic
-	chr_term/2.			% File, Term
+:- dynamic chr_term/2.			% File, Term
+
+:- dynamic chr_pp/2.		% File, Term
 
 %	chr_expandable(+Term)
 %	
@@ -161,6 +163,10 @@ chr_expand(Term, []) :-
 	chr_expandable(Term), !,
 	prolog_load_context(file,File),
 	assert(chr_term(File, Term)).
+chr_expand(Term, []) :-
+	Term = (:- chr_preprocessor Preprocessor), !,
+	prolog_load_context(file,File),
+	assert(chr_pp(File, Preprocessor)).
 chr_expand(end_of_file, FinalProgram) :-
 	extra_declarations(FinalProgram,Program),
 	prolog_load_context(file,File),
@@ -168,7 +174,23 @@ chr_expand(end_of_file, FinalProgram) :-
 	CHR0 \== [],
 	prolog_load_context(module, Module),
 	add_debug_decl(CHR0, CHR1),
-	add_optimise_decl(CHR1, CHR),
+	add_optimise_decl(CHR1, CHR2),
+	CHR3 = [ (:- module(Module, [])) | CHR2 ],
+	findall(P, retract(chr_pp(File, P)), Preprocessors),
+	( Preprocessors = [] ->
+		CHR3 = CHR
+	; Preprocessors = [Preprocessor] ->
+		chr_compiler_errors:chr_info(preprocessor,'\tPreprocessing with ~w.\n',[Preprocessor]),
+		( call(Preprocessor,CHR3,CHR) ->
+			true
+		;
+			chr_compiler_errors:print_chr_error(error(preprocessor,'Preprocessor `~w\' failed!\n',[Preprocessor])),
+			fail
+		)
+	;
+		chr_compiler_errors:print_chr_error(error(syntax(Preprocessors),'Too many preprocessors! Only one is allowed!\n',[])),
+		fail
+	),
 	catch(call_chr_translate(File,
 			   [ (:- module(Module, []))
 			   | CHR
