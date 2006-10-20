@@ -1032,13 +1032,14 @@ with one operation, it turns out to be faster as well.
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_BITS			6	/* mask-bits */
+#define FR_BITS			7	/* mask-bits */
 #define FR_NODEBUG		(0x01L)	/* Invisible frame */
 #define FR_SKIPPED		(0x02L)	/* We have skipped on this frame */
 #define FR_MARKED		(0x04L)	/* GC */
-#define FR_WATCHED		(0x08L)	/* GUI debugger */
-#define FR_CATCHED		(0x10L)	/* Frame catched an exception */
-#define FR_INBOX		(0x20L) /* Inside box (for REDO in built-in) */
+#define FR_MARKED_PRED		(0x08L)	/* GC predicates/clauses */
+#define FR_WATCHED		(0x10L)	/* GUI debugger */
+#define FR_CATCHED		(0x20L)	/* Frame caught an exception */
+#define FR_INBOX		(0x40L) /* Inside box (for REDO in built-in) */
 
 /* FR_LEVEL now handles levels upto 32M.  This is a bit low, but as it is
    only used for the debugger (skip, etc) it is most likely acceptable.

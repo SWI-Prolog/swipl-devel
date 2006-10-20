@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Possible crash in recompilation if another thread is doing
+    GC.  Mike Elston.
+
 =================================
 VERSION 5.6.22 (October 17, 2006)
 =================================

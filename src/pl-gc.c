@@ -343,18 +343,19 @@ makePtr(Word ptr, int tag ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Clear the FR_MARKED flags left after traversing all reachable frames.
+Clear the mask (FR_MARKED or FR_MARKED_PRED) flags left after traversing
+all reachable frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
-unmark_environments(PL_local_data_t *ld, LocalFrame fr)
+unmark_environments(PL_local_data_t *ld, LocalFrame fr, unsigned long mask)
 { if ( fr == NULL )
     return NULL;
 
   for(;;)
-  { if ( false(fr, FR_MARKED) )
+  { if ( false(fr, mask) )
       return NULL;
-    clear(fr, FR_MARKED);
+    clear(fr, mask);
     ld->gc._local_frames--;
     
     if ( fr->parent )
@@ -366,22 +367,23 @@ unmark_environments(PL_local_data_t *ld, LocalFrame fr)
 
 
 static void
-unmark_choicepoints(PL_local_data_t *ld, Choice ch)
+unmark_choicepoints(PL_local_data_t *ld, Choice ch, unsigned long mask)
 { for( ; ch; ch = ch->parent )
   { ld->gc._choice_count--;
-    unmark_environments(ld, ch->frame);
+    unmark_environments(ld, ch->frame, mask);
   }
 }
 
 
 static void
-unmark_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch)
+unmark_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch,
+	      unsigned long mask)
 { QueryFrame qf;
 
   for( ; fr; fr = qf->saved_environment, ch = qf->saved_bfr )
-  { qf = unmark_environments(ld, fr);
+  { qf = unmark_environments(ld, fr, mask);
     assert(qf->magic == QID_MAGIC);
-    unmark_choicepoints(ld, ch);
+    unmark_choicepoints(ld, ch, mask);
   }
 }
 
@@ -2004,7 +2006,7 @@ checkStacks(LocalFrame frame, Choice choice)
 
   SECURE(trailtops_marked = choice_count);
 
-  unmark_stacks(LD, frame, choice);
+  unmark_stacks(LD, frame, choice, FR_MARKED);
 
   assert(local_frames == 0);
   assert(choice_count == 0);
@@ -2478,7 +2480,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
 
     frame  = addPointer(frame, ls);
     choice = addPointer(choice, ls);
-    unmark_stacks(LD, frame, choice);
+    unmark_stacks(LD, frame, choice, FR_MARKED);
 
     assert(local_frames == 0);
     assert(choice_count == 0);
@@ -2810,7 +2812,7 @@ markAtomsInEnvironments(PL_local_data_t *ld)
     }
   }
 
-  unmark_stacks(ld, ld->environment, ld->choicepoints);
+  unmark_stacks(ld, ld->environment, ld->choicepoints, FR_MARKED);
 
   assert(ld->gc._local_frames == 0);
 }
@@ -2902,11 +2904,12 @@ mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
   for(;;)
   { Definition def;
 
-    if ( true(fr, FR_MARKED) )
+    if ( true(fr, FR_MARKED_PRED) )
       return NULL;			/* from choicepoints only */
-    set(fr, FR_MARKED);
+    set(fr, FR_MARKED_PRED);
     ld->gc._local_frames++;
 
+					/* P_FOREIGN_CREF: clause, etc. choicepoints */
     if ( true(fr->predicate, P_FOREIGN_CREF) && fr->clause )
     { ClauseRef cref = (ClauseRef)fr->clause;
 
@@ -2970,7 +2973,7 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
     }
   }
 
-  unmark_stacks(ld, ld->environment, ld->choicepoints);
+  unmark_stacks(ld, ld->environment, ld->choicepoints, FR_MARKED_PRED);
 
   assert(ld->gc._local_frames == 0);
 }
