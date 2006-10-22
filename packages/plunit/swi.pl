@@ -18,7 +18,8 @@
 	    call/3,			% :Goal, +A1, +A2
 	    source_location/2,		% -File, -Line
 	    option/2,			% +Term, +List
-	    option/3			% +Term, +List, +Default
+	    option/3,			% +Term, +List, +Default
+	    concat_atom/2		% +List, -Atom
 	  ]).
 :- meta_predicate
 	forall(:,:),
@@ -132,3 +133,20 @@ get_option(Opt, Options) :-
 	functor(Opt, OptName, 1),
 	arg(1, Opt, OptVal),
 	memberchk(OptName=OptVal, Options), !.
+
+%%	concat_atom(+Atoms:list(atomic), -Atom:atom) is det.
+%
+%	Concatenate a list of atomic items to an atom.
+
+concat_atom(List, Atom) :-
+	to_codes(List, Codes, []),
+	atom_codes(Atom, Codes).
+
+to_codes([], Tail, Tail).
+to_codes([H|T], List, Tail) :-
+	(   number(H)
+	->  number_codes(H, CL)
+	;   atom_codes(H, CL)
+	),
+	append(CL, Tail0, List),
+	to_codes(T, Tail0, Tail).

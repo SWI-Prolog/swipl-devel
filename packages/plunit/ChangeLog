@@ -1,3 +1,7 @@
+Oct 22, 2006
+
+* Allow tracing body of tests.  Suggested by Lukas Degener.
+
 Oct 17, 2006
 
 * Portability with SICStus 3.12.

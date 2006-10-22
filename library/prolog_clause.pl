@@ -250,6 +250,15 @@ unify_clause(:->(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
 					% XPCE get-methods
 unify_clause(:<-(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
+					% Unit test clauses
+unify_clause((TH :- Body),
+	     (_:'unit body'(_, _) :- !, Body),
+	     TP0, TP) :-
+	(   TH = test(_,_)
+	;   TH = test(_)
+	), !,
+	TP0 = term_position(F,T,FF,FT,[HP,BP]),
+	TP  = term_position(F,T,FF,FT,[HP,term_position(0,0,0,0,[FF-FT,BP])]).
 					% module:head :- body
 unify_clause((Head :- Read),
 	     (Head :- _M:Compiled), TermPos0, TermPos) :-

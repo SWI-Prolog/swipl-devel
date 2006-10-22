@@ -70,6 +70,7 @@ sicstus :- catch(current_prolog_flag(system_type, _), _, fail).
 
 
 :- if(swi).
+:- set_prolog_flag(generate_debug_info, false).
 :- use_module(library(option)).
 
 current_test_flag(Name, Value) :-
@@ -81,6 +82,7 @@ set_test_flag(Name, Value) :-
 
 :- if(sicstus).
 :- use_module(swi).			% SWI-Compatibility
+:- use_module(library(terms)).
 :- op(700, xfx, =@=).
 
 '$set_source_module'(_, _).
@@ -193,6 +195,8 @@ begin_tests(Unit, Name, File:Line, Options) :-
 	'$set_source_module'(Old, Name),
 	'$declare_module'(Name, File, Line),
 	discontiguous(Name:'unit test'/4),
+	'$set_predicate_attribute'(Name:'unit test'/4, trace, 0),
+	discontiguous(Name:'unit body'/2),
 	asserta(loading_unit(Unit, Name, File, Old)).
 
 set_import_modules(Module, Imports) :-
@@ -201,6 +205,14 @@ set_import_modules(Module, Imports) :-
 	forall(member(I, Imports), add_import_module(Module, I, end)).
 
 :- else.
+
+% we cannot use discontiguous as a goal in SICStus Prolog.
+
+user:term_expansion((:- begin_tests(Set)),
+		    [ (:- begin_tests(Set)),
+		      (:- discontiguous('unit body'/2)),
+		      (:- discontiguous('unit test'/4))
+		    ]).
 
 begin_tests(Unit, Name, File:_Line, Options) :-
 	(   current_unit(Unit, Name, Supers, Options)
@@ -268,8 +280,15 @@ make_unit_module(Unit, Module) :-
 %
 %	@tbd	Verify options.
 
-expand_test(Name, Options, Body, 'unit test'(Name, Line, Options, Body)) :-
-	source_location(_File, Line).
+expand_test(Name, Options, Body,
+	    [ 'unit test'(Name, Line, Options, Module:'unit body'(Id, Vars)),
+	      ('unit body'(Id, Vars) :- !, Body)
+	    ]) :-
+	source_location(_File, Line),
+	prolog_load_context(module, Module),
+	concat_atom([Name, '@line ', Line], Id),
+	term_variables(Body, VarList),
+	Vars =.. [vars|VarList].
 
 %%	expand(+Term, -Clauses) is semidet.
 
