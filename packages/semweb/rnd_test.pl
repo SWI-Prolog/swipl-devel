@@ -121,6 +121,9 @@ next(N, Max) :-
 
 do_random(N) :-
 	nb_setval(line, 1),
+	random_actions(N).
+
+random_actions(N) :-
 	MM is N mod 100,
 	(   MM = 0
 	->  rdf_statistics(triples(Triples)),
@@ -135,7 +138,7 @@ do_random(N) :-
 	do(Op, Subject, Predicate, Object, Graph),
 	N1 is N - 1,
 	(   N > 1
-	->  do_random(N1)
+	->  random_actions(N1)
 	;   true
 	).
 
@@ -232,7 +235,8 @@ rl(1, nl).
 rang(X:Line) :-
 	next(I, 3),
 	rg(I, X),
-	line(Line).
+	Line = 1.
+%	line(Line).
 
 rg(0, g1).
 rg(1, g2).

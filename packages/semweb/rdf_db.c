@@ -236,7 +236,7 @@ static predicate_t PRED_call1;
 #define MATCH_SRC		0x04	/* Match source location */
 #define MATCH_INVERSE		0x08	/* use symmetric match too */
 #define MATCH_QUAL		0x10	/* Match qualifiers too */
-#define MATCH_ALL		(MATCH_EXACT|MATCH_QUAL)
+#define MATCH_DUPLICATE		(MATCH_EXACT|MATCH_QUAL)
 
 static int update_duplicates_add(rdf_db *db, triple *t);
 static void update_duplicates_del(rdf_db *db, triple *t);
@@ -3577,7 +3577,7 @@ update_duplicates_add(rdf_db *db, triple *t)
     update_hash(db);
   d = db->table[indexed][triple_hash(db, t, indexed)];
   for( ; d && d != t; d = d->next[indexed] )
-  { if ( match_triples(d, t, MATCH_ALL) )
+  { if ( match_triples(d, t, MATCH_DUPLICATE) )
     { t->is_duplicate = TRUE;
       assert( !d->is_duplicate );
 
@@ -3614,7 +3614,7 @@ update_duplicates_del(rdf_db *db, triple *t)
     db->duplicates--;
     d = db->table[indexed][triple_hash(db, t, indexed)];
     for( ; d; d = d->next[indexed] )
-    { if ( d != t && match_triples(d, t, MATCH_ALL) )
+    { if ( d != t && match_triples(d, t, MATCH_DUPLICATE) )
       { assert(d->is_duplicate);
 	d->is_duplicate = FALSE;
 	d->duplicates = t->duplicates-1;
@@ -3637,7 +3637,7 @@ update_duplicates_del(rdf_db *db, triple *t)
     db->duplicates--;
     d = db->table[indexed][triple_hash(db, t, indexed)];
     for( ; d; d = d->next[indexed] )
-    { if ( d != t && match_triples(d, t, MATCH_EXACT) )
+    { if ( d != t && match_triples(d, t, MATCH_DUPLICATE) )
       { if ( d->duplicates )
 	{ d->duplicates--;
 	  DEBUG(1,
