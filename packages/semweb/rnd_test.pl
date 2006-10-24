@@ -99,13 +99,13 @@ replay(N) :-
 
 %%	next(-N, +Max)
 %
-%	Produce a random number 0 =< N < Max. During record/1, write to
+%	Produce a random number 0 =< N <= Max. During record/1, write to
 %	file.  Using replay/1, read from file.
 
 next(N, Max) :-
 	nb_getval(rnd_file, X),
 	(   X == none
-	->  N is random(Max)
+	->  N is random(Max+1)
 	;   X = in(Fd)
 	->  read(Fd, N)
 	;   X = out(Fd),
@@ -120,17 +120,18 @@ next(N, Max) :-
 %	Take a random action on the database.
 
 do_random(N) :-
+	nb_setval(line, 1),
 	MM is N mod 100,
 	(   MM = 0
 	->  rdf_statistics(triples(Triples)),
 	    debug(count, 'Count ~w, Triples ~w', [N, Triples])
 	;   true
 	),
-	next(Op, 6),
+	next(Op, 5),
 	rans(Subject),
 	ranp(Predicate),
 	rano(Object),
-	rans(Graph),
+	rang(Graph),
 	do(Op, Subject, Predicate, Object, Graph),
 	N1 is N - 1,
 	(   N > 1
@@ -163,24 +164,37 @@ do(5, _, P, _, G) :-
 	P2 \== P, !,
 	rdf_retractall(P, rdfs:subPropertyOf, P2, G).
 
+%%	rans(-Subject) is det.
+%
+%	Generate a random subject.
+
 rans(X) :-
-	next(I, 4),
+	next(I, 3),
 	rs(I, X).
+
 rs(0, a).
 rs(1, b).
 rs(2, c).
 rs(3, d).
 
+%%	ranp(-Predicate) is det.
+%
+%	Generate a random predicate.
+
 ranp(X) :-
-	next(I, 4),
+	next(I, 3),
 	rp(I, X).
 rp(0, a).
 rp(1, p1).
 rp(2, p2).
 rp(3, p3).
 
+%%	rano(-Object) is det.
+%
+%	Generate a random object.
+
 rano(X) :-
-	next(I, 11),
+	next(I, 12),
 	ro(I, X).
 ro(0, a).
 ro(1, b).
@@ -195,17 +209,38 @@ ro(9, d).
 ro(10, R) :-
 	next(I, 1000),
 	atom_concat(r, I, R).
-ro(10, literal(L)) :-
+ro(11, literal(L)) :-
 	next(I, 1000),
 	atom_concat(l, I, L).
-ro(10, literal(lang(Lang, L))) :-
+ro(12, literal(lang(Lang, L))) :-
 	next(I, 1000),
 	atom_concat(l, I, L),
 	ranl(Lang).
 
 ranl(Lang) :-
-	next(I, 2),
+	next(I, 1),
 	rl(I, Lang).
 
 rl(0, en).
 rl(1, nl).
+
+
+%%	rang(-Graph) is det.
+%
+%	Generate a random graph.
+
+rang(X:Line) :-
+	next(I, 3),
+	rg(I, X),
+	line(Line).
+
+rg(0, g1).
+rg(1, g2).
+rg(2, g3).
+rg(3, g4).
+
+line(Line) :-
+	nb_getval(line, Line),
+	NL is Line+1,
+	nb_setval(line, NL).
+

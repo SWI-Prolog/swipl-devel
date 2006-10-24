@@ -3609,7 +3609,7 @@ update_duplicates_del(rdf_db *db, triple *t)
       
     DEBUG(1,
 	  print_triple(t, PRT_SRC);
-	  Sdprintf(": Deleting %p, %d duplicates: ", t, t->duplicates));
+	  Sdprintf(": DEL principal %p, %d duplicates: ", t, t->duplicates));
 
     db->duplicates--;
     d = db->table[indexed][triple_hash(db, t, indexed)];
@@ -3618,7 +3618,10 @@ update_duplicates_del(rdf_db *db, triple *t)
       { assert(d->is_duplicate);
 	d->is_duplicate = FALSE;
 	d->duplicates = t->duplicates-1;
-	DEBUG(1, Sdprintf("New principal: %p\n", d));
+	DEBUG(1,
+	      Sdprintf("New principal: %p at", d);
+	      print_src(d);
+	      Sdprintf("\n"));
 
 	return;
       }
@@ -3629,7 +3632,7 @@ update_duplicates_del(rdf_db *db, triple *t)
       
     DEBUG(1,
 	  print_triple(t, PRT_SRC);
-	  Sdprintf(": Deleting, is a duplicate: "));
+	  Sdprintf(": DEL: is a duplicate: "));
 
     db->duplicates--;
     d = db->table[indexed][triple_hash(db, t, indexed)];
@@ -3637,8 +3640,10 @@ update_duplicates_del(rdf_db *db, triple *t)
     { if ( d != t && match_triples(d, t, MATCH_EXACT) )
       { if ( d->duplicates )
 	{ d->duplicates--;
-	  DEBUG(1, Sdprintf("Principal %p has %d duplicates\n",
-			    d, d->duplicates));
+	  DEBUG(1,
+		Sdprintf("Principal %p at ", d);
+		print_src(d);
+		Sdprintf(" has %d duplicates\n", d->duplicates));
 	  return;
 	}
       }
