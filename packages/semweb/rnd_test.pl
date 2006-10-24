@@ -1,4 +1,42 @@
-:- asserta(file_search_path(foreign, '.')).
+/*  $Id$
+
+    Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1985-2006, University of Amsterdam
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+*/
+
+:- module(rdf_random_test,
+	  [ concur/2,			% +Threads, +Actions
+	    go/0,
+	    go/1,			% +Actions
+	    record/1,			% +Actions
+	    replay/1			% +Actions
+	  ]).
+:- asserta(user:file_search_path(foreign, '.')).
 :- use_module(rdf_db).
 
 replay_file('rnd.reply').
@@ -26,30 +64,20 @@ wait([H|T]) :-
 	),
 	wait(T).
 
-go :-
-	go(20000).
-
-g :- p, d, replay.
-
-p :-
-	protocol(x).
-
-d :-
-	rdf_debug(1),
-	debug(bug(a, a, c)).
-%	debug(bug(d, p3, a)).
-
+%%	go is det.
 %%	go(+N) is det.
 %
 %	Perform N random operations on the database.
 
+go :-
+	go(20000).
 go(N) :-
 	nb_setval(rnd_file, none),
 	do_random(N).
 
 %%	record(+N)
 %
-%	As go/1, but record generated random numbers in the file
+%	As go/1, but  record  generated  random   numbers  in  the  file
 %	specified with replay_file/1.
 
 record(N) :-
@@ -58,11 +86,21 @@ record(N) :-
 	nb_setval(rnd_file, out(Out)),
 	do_random(N).
 
-replay :-
+%%	replay(+N)
+%
+%	Replay first N actions recorded using   record/1.  N is normally
+%	the same as used for record/1.
+
+replay(N) :-
 	replay_file(File),
 	open(File, read, In),
 	nb_setval(rnd_file, in(In)),
-	do_random(20000).
+	do_random(N).
+
+%%	next(-N, +Max)
+%
+%	Produce a random number 0 =< N < Max. During record/1, write to
+%	file.  Using replay/1, read from file.
 
 next(N, Max) :-
 	nb_getval(rnd_file, X),
@@ -75,6 +113,11 @@ next(N, Max) :-
 	    format(Fd, '~q.~n', [N]),
 	    flush_output(Fd)
 	).
+
+
+%%	do_random(N) is det.
+%
+%	Take a random action on the database.
 
 do_random(N) :-
 	MM is N mod 100,
@@ -94,6 +137,12 @@ do_random(N) :-
 	->  do_random(N1)
 	;   true
 	).
+
+%%	do(+Operation, +Subject, +Predicate, +Object, +Graph) is det.
+%
+%	Execute an operation on Graph.
+%	
+%	@tbd	Test update
 
 do(0, S, P, O, G) :-
 	debug(bug(S,P,O), 'ASSERT(~q,~q,~q,~q)', [S,P,O,G]),
@@ -131,7 +180,7 @@ rp(2, p2).
 rp(3, p3).
 
 rano(X) :-
-	next(I, 8),
+	next(I, 11),
 	ro(I, X).
 ro(0, a).
 ro(1, b).
@@ -140,4 +189,23 @@ ro(3, p1).
 ro(4, literal(1)).
 ro(5, literal(hello_world)).
 ro(6, literal(bye)).
-ro(7, d).
+ro(7, literal(lang(en, bye))).
+ro(8, literal(lang(nl, bye))).
+ro(9, d).
+ro(10, R) :-
+	next(I, 1000),
+	atom_concat(r, I, R).
+ro(10, literal(L)) :-
+	next(I, 1000),
+	atom_concat(l, I, L).
+ro(10, literal(lang(Lang, L))) :-
+	next(I, 1000),
+	atom_concat(l, I, L),
+	ranl(Lang).
+
+ranl(Lang) :-
+	next(I, 2),
+	rl(I, Lang).
+
+rl(0, en).
+rl(1, nl).
