@@ -586,6 +586,17 @@ reachable(4) :-
 
 
 		 /*******************************
+		 *	    DUPLICATES		*
+		 *******************************/
+
+
+duplicates(1) :-
+	rdf_assert(a, b, literal(lang(en, l))),
+	rdf_assert(a, b, literal(l)),
+	rdf_retractall(a, b, literal(lang(en, l))).
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -673,6 +684,7 @@ testset(rdf_retractall).
 testset(monitor).
 testset(subproperty).
 testset(reachable).
+testset(duplicates).
 
 %	testdir(Dir)
 %	

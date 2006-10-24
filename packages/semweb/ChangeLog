@@ -1,3 +1,11 @@
+Oct 24, 2006
+
+  * FIXED: Changed subject was broadcasted as object after rdf_update/4.
+
+  * FIXED: Bug in duplicate administration when using language or type
+    qualified literals.  Can cause assertion failure.  With help from
+    Jacco van Ossenbruggen.
+
 Oct 11, 2006
 
   * FIXED: Deal with new absolute_file_name sematics for file_type(directory).

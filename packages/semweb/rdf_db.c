@@ -231,10 +231,12 @@ static atom_t	ATOM_subPropertyOf;
 
 static predicate_t PRED_call1;
 
-#define MATCH_EXACT 		0x1	/* exact triple match */
-#define MATCH_SUBPROPERTY	0x2	/* Use subPropertyOf relations */
-#define MATCH_SRC		0x4	/* Match source location */
-#define MATCH_INVERSE		0x8	/* use symmetric match too */
+#define MATCH_EXACT 		0x01	/* exact triple match */
+#define MATCH_SUBPROPERTY	0x02	/* Use subPropertyOf relations */
+#define MATCH_SRC		0x04	/* Match source location */
+#define MATCH_INVERSE		0x08	/* use symmetric match too */
+#define MATCH_QUAL		0x10	/* Match qualifiers too */
+#define MATCH_ALL		(MATCH_EXACT|MATCH_QUAL)
 
 static int update_duplicates_add(rdf_db *db, triple *t);
 static void update_duplicates_del(rdf_db *db, triple *t);
@@ -385,13 +387,13 @@ print_literal(literal *lit)
       switch(lit->qualifier)
       { case Q_TYPE:
 	  Sdprintf("%s^^\"%s\"",
-		   PL_atom_chars(lit->type_or_lang),
-		   PL_atom_chars(lit->value.string));
+		   PL_atom_chars(lit->value.string),
+		   PL_atom_chars(lit->type_or_lang));
 	  break;
 	case Q_LANG:
 	  Sdprintf("%s@\"%s\"",
-		   PL_atom_chars(lit->type_or_lang),
-		   PL_atom_chars(lit->value.string));
+		   PL_atom_chars(lit->value.string),
+		   PL_atom_chars(lit->type_or_lang));
 	  break;
 	default:
 	{ unsigned int len;
@@ -452,17 +454,22 @@ print_object(triple *t)
 
 
 static void
+print_src(triple *t)
+{ if ( t->line == NO_LINE )
+    Sdprintf(" [%s]", PL_atom_chars(t->source));
+  else
+    Sdprintf(" [%s:%ld]", PL_atom_chars(t->source), t->line);
+}
+
+
+static void
 print_triple(triple *t, int flags)
 { Sdprintf("<%s %s ",
 	   PL_atom_chars(t->subject),
 	   PL_atom_chars(t->predicate->name));
   print_object(t);
   if ( (flags & PRT_SRC) )
-  { if ( t->line == NO_LINE )
-      Sdprintf(" @%s", PL_atom_chars(t->source));
-    else
-      Sdprintf(" @%s:%ld", PL_atom_chars(t->source), t->line);
-  }
+    print_src(t);
   Sdprintf(">");
 }
 
@@ -2100,7 +2107,7 @@ erase_triple(rdf_db *db, triple *t)
 
 
 static int
-match_object(triple *t, triple *p)
+match_object(triple *t, triple *p, unsigned flags)
 { if ( p->object_is_literal )
   { if ( t->object_is_literal )
     { literal *plit = p->object.literal;
@@ -2114,9 +2121,14 @@ match_object(triple *t, triple *p)
     
       switch( plit->objtype )
       { case OBJ_STRING:
-	  if ( plit->qualifier && tlit->qualifier &&
-	       tlit->qualifier != plit->qualifier )
-	    return FALSE;
+	  if ( (flags & MATCH_QUAL) )
+	  { if ( tlit->qualifier != plit->qualifier )
+	      return FALSE;
+	  } else
+	  { if ( plit->qualifier && tlit->qualifier &&
+		 tlit->qualifier != plit->qualifier )
+	      return FALSE;
+	  }
 	  if ( plit->type_or_lang && 
 	       tlit->type_or_lang != plit->type_or_lang )
 	    return FALSE;
@@ -2172,7 +2184,7 @@ match_triples(triple *t, triple *p, unsigned flags)
     return FALSE;
   if ( p->subject && t->subject != p->subject )
     return FALSE;
-  if ( !match_object(t, p) )
+  if ( !match_object(t, p, flags) )
     return FALSE;
   if ( flags & MATCH_SRC )
   { if ( p->source && t->source != p->source )
@@ -3565,7 +3577,7 @@ update_duplicates_add(rdf_db *db, triple *t)
     update_hash(db);
   d = db->table[indexed][triple_hash(db, t, indexed)];
   for( ; d && d != t; d = d->next[indexed] )
-  { if ( match_triples(d, t, MATCH_EXACT) )
+  { if ( match_triples(d, t, MATCH_ALL) )
     { t->is_duplicate = TRUE;
       assert( !d->is_duplicate );
 
@@ -3574,7 +3586,9 @@ update_duplicates_add(rdf_db *db, triple *t)
       DEBUG(1,
 	    print_triple(t, PRT_SRC);
 	    Sdprintf(" %p: %d-th duplicate: ", t, d->duplicates);
-	    Sdprintf("Location of first (%p)\n", d));
+	    Sdprintf("Principal: %p at", d);
+	    print_src(d);
+	    Sdprintf("\n"));
       
       assert(d->duplicates);		/* check overflow */
       db->duplicates++;
@@ -3600,7 +3614,7 @@ update_duplicates_del(rdf_db *db, triple *t)
     db->duplicates--;
     d = db->table[indexed][triple_hash(db, t, indexed)];
     for( ; d; d = d->next[indexed] )
-    { if ( d != t && match_triples(d, t, MATCH_EXACT) )
+    { if ( d != t && match_triples(d, t, MATCH_ALL) )
       { assert(d->is_duplicate);
 	d->is_duplicate = FALSE;
 	d->duplicates = t->duplicates-1;
@@ -4377,9 +4391,7 @@ update_triple(rdf_db *db, term_t action, triple *t)
     { free_triple(db, &t2);
       return FALSE;
     }
-    if ( match_object(&t2, &tmp) &&
-	 ( !t2.object_is_literal ||
-	   t2.object.literal->qualifier == tmp.object.literal->qualifier ) )
+    if ( match_object(&t2, &tmp, MATCH_QUAL) )
     { free_triple(db, &t2);
       return TRUE;
     }
@@ -4637,12 +4649,12 @@ broadcast(broadcast_id id, void *a1, void *a2)
 	unify_source(tmp+3, t);
 
 	if ( t->subject != new->subject )
-	{ action = FUNCTOR_object1;
+	{ action = FUNCTOR_subject1;
 	  PL_put_atom(a, new->subject);
 	} else if ( t->predicate != new->predicate )
 	{ action = FUNCTOR_predicate1;
 	  PL_put_atom(a, new->predicate->name);
-	} else if ( !match_object(t, new) )
+	} else if ( !match_object(t, new, MATCH_QUAL) )
 	{ action = FUNCTOR_object1;
 	  unify_object(a, new);
 	} else if ( !same_source(t, new) )
