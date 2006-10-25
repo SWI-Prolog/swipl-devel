@@ -1,3 +1,8 @@
+Oct 25, 2006
+
+  * FIXED: Memory leak in rdf_complexity and rdf_reachable using literal
+    object.
+
 Oct 24, 2006
 
   * FIXED: Changed subject was broadcasted as object after rdf_update/4.

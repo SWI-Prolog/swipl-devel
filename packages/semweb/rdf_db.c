@@ -134,7 +134,7 @@ rdf_realloc(rdf_db *db, void *ptr, size_t old, size_t new)
   assert(p[-1] == old);
   p = PL_realloc(&p[-1], bytes);
   *p++ = new;
-  db->core += new-old;
+  db->core< += new-old;
 
   return p;
 }
@@ -4321,15 +4321,17 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
   memset(&t, 0, sizeof(t));
   if ( (rc=get_partial_triple(db, subject, predicate, object, 0, &t)) != TRUE )
   { if ( rc == -1 )
-      return FALSE;
-    else
-      return PL_unify_integer(complexity, 0); 	/* cannot succeed */
+    { return FALSE;			/* error */
+    } else
+    { return PL_unify_integer(complexity, 0); 	/* no predicate */
+    }
   }
   
   if ( !RDLOCK(db) )
     return FALSE;
   if ( !update_hash(db) )			/* or ignore this problem? */
   { RDUNLOCK(db);
+    free_triple(db, &t);
     return FALSE;
   }
 
@@ -4341,6 +4343,7 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
 
   rc = PL_unify_integer(complexity, c);
   RDUNLOCK(db);
+  free_triple(db, &t);
 
   return rc;
 }
@@ -4542,6 +4545,7 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   }
 
   WRUNLOCK(db);
+  free_triple(db, &t);
 
   return TRUE;
 }

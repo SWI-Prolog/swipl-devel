@@ -130,7 +130,7 @@ random_actions(N) :-
 	    debug(count, 'Count ~w, Triples ~w', [N, Triples])
 	;   true
 	),
-	next(Op, 5),
+	next(Op, 7),
 	rans(Subject),
 	ranp(Predicate),
 	rano(Object),
@@ -155,13 +155,15 @@ do(1, S, P, O, G) :-
 	debug(bug(S,P,O), 'RETRACTALL(~q,~q,~q,~q)', [S,P,O,G]),
 	rdf_retractall(S,P,O,G).
 do(2, S, _P, _O, _G) :- findall(x, rdf_has(S, _, _, _), _).
-do(3, S, P, _O, G)   :- findall(x, rdf_has(S, P, _, G), _).
-do(4, _, P, _, G) :-
+do(3, S, P, _O, _G)  :- findall(x, rdf_has(S, P, _, _), _).
+do(4, S, P, _O, _G)  :- findall(x, rdf_reachable(S, P, _), _).
+do(5, _S, P, O, _G)  :- findall(x, (atom(O),rdf_reachable(_, P, O)), _).
+do(6, _, P, _, G) :-
 	repeat,
 	    ranp(P2),
 	P2 \== P, !,
 	rdf_assert(P, rdfs:subPropertyOf, P2, G).
-do(5, _, P, _, G) :-
+do(7, _, P, _, G) :-
 	repeat,
 	    ranp(P2),
 	P2 \== P, !,
