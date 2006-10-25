@@ -73,7 +73,10 @@ go :-
 	go(20000).
 go(N) :-
 	nb_setval(rnd_file, none),
-	do_random(N).
+	do_random(N),
+	rdf_statistics(triples(T)),
+	rdf_predicate_property(rdfs:subPropertyOf, triples(SP)),
+	format('~D triples; property hierarchy complexity: ~D~n', [T, SP]).
 
 %%	record(+N)
 %
@@ -130,7 +133,7 @@ random_actions(N) :-
 	    debug(count, 'Count ~w, Triples ~w', [N, Triples])
 	;   true
 	),
-	next(Op, 7),
+	next(Op, 9),
 	rans(Subject),
 	ranp(Predicate),
 	rano(Object),
@@ -154,20 +157,45 @@ do(0, S, P, O, G) :-
 do(1, S, P, O, G) :-
 	debug(bug(S,P,O), 'RETRACTALL(~q,~q,~q,~q)', [S,P,O,G]),
 	rdf_retractall(S,P,O,G).
-do(2, S, _P, _O, _G) :- findall(x, rdf_has(S, _, _, _), _).
-do(3, S, P, _O, _G)  :- findall(x, rdf_has(S, P, _, _), _).
-do(4, S, P, _O, _G)  :- findall(x, rdf_reachable(S, P, _), _).
-do(5, _S, P, O, _G)  :- findall(x, (atom(O),rdf_reachable(_, P, O)), _).
-do(6, _, P, _, G) :-
+do(2, S, _P, _O, _G) :- rdf_s(S).	% allow profiling
+do(3, S, P, _O, _G)  :- rdf_sp(S, P).
+do(4, S, _P, _O, _G) :- has_s(S).
+do(5, S, P, _O, _G)  :- has_sp(S, P).
+do(6, S, P, _O, _G)  :- reach_sp(S, P).
+do(7, _S, P, O, _G)  :- reach_po(P, O).
+do(8, _, P, _, G) :-			% add a random subproperty below me
 	repeat,
 	    ranp(P2),
 	P2 \== P, !,
-	rdf_assert(P, rdfs:subPropertyOf, P2, G).
-do(7, _, P, _, G) :-
-	repeat,
-	    ranp(P2),
-	P2 \== P, !,
-	rdf_retractall(P, rdfs:subPropertyOf, P2, G).
+	rdf_assert(P2, rdfs:subPropertyOf, P, G),
+	debug(subPropertyOf, 'Added ~p rdfs:subPropertyOf ~p~n', [P2, P]).
+do(9, _, P, _, G) :-			% randomly delete a subproperty
+	(   rdf(_, rdfs:subPropertyOf, P)
+	->  repeat,
+	       ranp(P2),
+	    P2 \== P,
+	    rdf(P2, rdfs:subPropertyOf, P), !,
+	    debug(subPropertyOf, 'Delete ~p rdfs:subPropertyOf ~p~n', [P2, P]),
+	    rdf_retractall(P2, rdfs:subPropertyOf, P, G)
+	;   true
+	).
+
+rdf_s(S) :-
+	forall(rdf(S, _, _), true).
+rdf_sp(S, P) :-
+	forall(rdf(S, P, _), true).
+has_s(S) :-
+	forall(rdf_has(S, _, _), true).
+has_sp(S, P) :-
+	forall(rdf_has(S, P, _), true).
+reach_sp(S, P) :-
+	forall(rdf_reachable(S, P, _), true).
+reach_po(P, O) :-
+	(   atom(O)
+	->  forall(rdf_reachable(_, P, O), true)
+	;   true
+	).
+
 
 %%	rans(-Subject) is det.
 %
