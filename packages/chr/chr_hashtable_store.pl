@@ -58,9 +58,9 @@ new_ht(HT) :-
 	new_ht(Capacity,HT).
 
 new_ht(Capacity,HT) :-
-        functor(T1,t,Capacity),
-        HT = ht(Capacity,0,Table),
-        Table = T1.
+	functor(T1,t,Capacity),
+	HT = ht(Capacity,0,Table),
+	Table = T1.
 
 lookup_ht(HT,Key,Values) :-
 	term_hash(Key,Hash),
@@ -91,7 +91,7 @@ insert_ht(HT,Key,Value) :-
 	( var(LookupBucket) ->
 		LookupBucket = Key - [Value]
 	; LookupBucket = K-Values ->
-	      	( K == Key ->	
+		( K == Key ->	
 			setarg(2,LookupBucket,[Value|Values])
 		;
 			setarg(LookupIndex,Table0,[Key-[Value],LookupBucket])

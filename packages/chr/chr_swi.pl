@@ -60,8 +60,7 @@
 
 user:file_search_path(chr, library(chr)).
 
-:- load_files([ library(gensym),
-		chr(chr_translate),
+:- load_files([ chr(chr_translate),
 		chr(chr_runtime),
 		chr(chr_messages),
 		chr(chr_hashtable_store),
@@ -181,12 +180,7 @@ chr_expand(end_of_file, FinalProgram) :-
 		CHR3 = CHR
 	; Preprocessors = [Preprocessor] ->
 		chr_compiler_errors:chr_info(preprocessor,'\tPreprocessing with ~w.\n',[Preprocessor]),
-		( call(Preprocessor,CHR3,CHR) ->
-			true
-		;
-			chr_compiler_errors:print_chr_error(error(preprocessor,'Preprocessor `~w\' failed!\n',[Preprocessor])),
-			fail
-		)
+		call_chr_preprocessor(Preprocessor,CHR3,CHR)
 	;
 		chr_compiler_errors:print_chr_error(error(syntax(Preprocessors),'Too many preprocessors! Only one is allowed!\n',[])),
 		fail
@@ -246,6 +240,17 @@ call_chr_translate(_, _In, Out) :-
 
 call_chr_translate(File, _, []) :-
 	print_message(error, chr(compilation_failed(File))).
+
+call_chr_preprocessor(Preprocessor,CHR,_NCHR) :-
+	( call(Preprocessor,CHR,CHR0) ->
+		nb_setval(chr_preprocessed_program,CHR0),
+		fail
+ 	).
+call_chr_preprocessor(_,_,NCHR)	:-
+	nb_current(chr_preprocessed_program,NCHR), !,
+	nb_delete(chr_preprocessed_program).
+call_chr_preprocessor(Preprocessor,_,_) :-
+	chr_compiler_errors:print_chr_error(error(preprocessor,'Preprocessor `~w\' failed!\n',[Preprocessor])).
 
 %% SWI begin
 

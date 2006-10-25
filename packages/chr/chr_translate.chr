@@ -3919,11 +3919,12 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), occurrence(C,O2,RuleNb,ID_o2,_), r
 			append([chr_pp_active_constraint(FH)|M2],BigCond3,Info),
 			list2conj(CheckCond,OccSubsum),
 			copy_term((NewCond,BigCond2,Info,OccSubsum,FH),(NewCond2,BigCond2_,Info2,OccSubsum2,FH2)),
-			term_variables(NewCond2-FH2,InfoVars),
-			flatten_stuff(Info2,Info3),
-			flatten_stuff(OccSubsum2,OccSubsum3),
-			( OccSubsum \= chr_pp_void_info, 
-			  unify_stuff(InfoVars,Info3,OccSubsum3) ->
+%			term_variables(NewCond2-FH2,InfoVars),
+%			flatten_stuff(Info2,Info3),
+%			flatten_stuff(OccSubsum2,OccSubsum3),
+			( OccSubsum \= chr_pp_void_info 
+%			  unify_stuff(InfoVars,Info3,OccSubsum3) 
+->
 				( guard_entailment:entails_guard(Info2,OccSubsum2) ->
 			    		passive(RuleNb,ID_o2)
 				; 
@@ -5418,7 +5419,7 @@ get_functional_dependency(_,_,_,_)
 		fail.
 
 functional_dependency_analysis(Rules) :-
-		( chr_pp_flag(functional_dependency_analysis,on) ->
+		( fail, chr_pp_flag(functional_dependency_analysis,on) ->
 			functional_dependency_analysis_main(Rules)
 		;
 			true
@@ -5466,7 +5467,7 @@ select_pragma_unique_variables([V|Vs],List,L) :-
 	% depends on functional dependency analysis
 	% and shape of rule: C1 \ C2 <=> true.
 set_semantics_rules(Rules) :-
-	( chr_pp_flag(set_semantics_rule,on) ->
+	( fail, chr_pp_flag(set_semantics_rule,on) ->
 		set_semantics_rules_main(Rules)
 	;
 		true
