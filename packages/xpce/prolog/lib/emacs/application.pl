@@ -31,7 +31,7 @@
 
 :- module(emacs_application, []).
 :- use_module(library(pce)).
-:- (   current_predicate(_, dde_execute(_,_))
+:- (   current_prolog_flag(windows, true)
    ->  use_module(dde_server)
    ;   true
    ).
