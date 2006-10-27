@@ -92,7 +92,7 @@ translation of a C-version for YAP based on the orginal source.
 random(L, U, R) :-
 	integer(L), integer(U), !,
 	random(X),
-	R is L+integer((U-L)*X).
+	R is L+floor((U-L)*X).
 random(L, U, R) :-
 	number(L), number(U), !,
 	random(X),
