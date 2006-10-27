@@ -15,8 +15,13 @@ findexe()
   return 1
 }
 
-# We should also checj javac is part if the SUN SDK of the desired
-# version.
+# We should also check various other things:
+#
+#	* javac is from SUN SDK or IBM java
+#	* javac has same wordsize as Prolog (both 32 or 64 bits)
+#	* linking libpl.a in a shared object is possible.
+#	
+# How to do this in a portable way?  Can we use plld?
 
 if findexe javac; then
   exit 0
