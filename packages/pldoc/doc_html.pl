@@ -59,6 +59,7 @@
 :- use_module(library(url)).
 :- use_module(library(readutil)).
 :- use_module(library('http/html_write')).
+:- use_module(library(doc_http)).
 :- use_module(doc_process).
 :- use_module(doc_modes).
 :- use_module(doc_wiki).
@@ -253,14 +254,15 @@ reload_button(Base, Options) -->
 	{ option(edit(true), Options), !,
 	  option(public_only(Public), Options, true),
 	  format(string(HREF), '~w?reload=true&public_only=~w', 
-		 [Base, Public])
+		 [Base, Public]),
+	  doc_server_root(Root)
 	},
 	html(a(href=HREF,
 	       img([ %class(icon),
 		     height=24,
 		     alt('Reload'),
 		     style('padding-top:4px; border:0;'),
-		     src('/reload.gif')
+		     src(Root+'reload.gif')
 		   ]))).
 reload_button(_, _) -->
 	[].
@@ -275,7 +277,8 @@ edit_button(File, Options) -->
 	{ option(edit(true), Options), !,
 	  option(button_height(H), Options, 24),
 	  www_form_encode(File, Enc),
-	  format(string(HREF), '/edit?file=~w', [Enc]),
+	  doc_server_root(Root),
+	  format(string(HREF), '~wedit?file=~w', [Root, Enc]),
 	  format(string(OnClick), 'HTTPrequest("~w")', [HREF])
 	},
 	html(a([ onClick(OnClick),
@@ -284,7 +287,7 @@ edit_button(File, Options) -->
 	       img([ height(H),
 		     alt(edit),
 		     style('border:0'),
-		     src='/edit.gif'
+		     src(Root+'edit.gif')
 		 ]))).
 edit_button(_, _) -->
 	[].
@@ -295,19 +298,21 @@ edit_button(_, _) -->
 %	Add zoom in/out button to show/hide the private documentation.
 
 zoom_button(Base, Options) -->
-	{   option(public_only(true), Options, true)
-	->  format(string(HREF), '~w?public_only=false', [Base]),
-	    Zoom = '/zoomin.gif',
-	    Alt = 'Show all'
-	;   format(string(HREF), '~w?public_only=true', [Base]),
-	    Zoom = '/zoomout.gif',
-	    Alt = 'Show public'
+	{   (   option(public_only(true), Options, true)
+	    ->  format(string(HREF), '~w?public_only=false', [Base]),
+		Zoom = 'zoomin.gif',
+		Alt = 'Show all'
+	    ;   format(string(HREF), '~w?public_only=true', [Base]),
+		Zoom = 'zoomout.gif',
+		Alt = 'Show public'
+	    ),
+	    doc_server_root(Root)
 	},
 	html(a(href=HREF,
 	       img([ height=24,
 		     alt(Alt),
 		     style('padding-top:4px; border:0;'),
-		     src(Zoom)
+		     src(Root+Zoom)
 		   ]))).
 	
 
@@ -321,13 +326,14 @@ source_button(File, Options) -->
 	      atom_concat(HREF0, '?source=true', HREF)
 	  ;   format(string(HREF), '~w?source=true', [File])
 	  ),
-	  option(button_height(H), Options, 24)
+	  option(button_height(H), Options, 24),
+	  doc_server_root(Root)
 	},
 	html(a(href=HREF,
 	       img([ height(H),
 		     alt('Show source'),
 		     style('padding-top:4px; border:0;'),
-		     src('/source.gif')
+		     src(Root+'source.gif')
 		   ]))).
 	
 
@@ -484,7 +490,8 @@ object_page(Obj, Options) -->
 	prolog:doc_object_page(Obj, Options).
 object_page(Obj, Options) -->
 	{ doc_comment(Obj, File:_Line, _Summary, _Comment),
-	  format(string(FileRef), '/doc~w', [File])
+	  doc_server_root(Root),
+	  format(string(FileRef), '~wdoc~w', [Root, File])
 	},
 	html([ div(class(navhdr),
 		   [ span(style('float:left'), a(href(FileRef), File)),
@@ -520,12 +527,13 @@ doc_write_html(Out, Title, Doc) :-
 %	links to the style-sheet and javaScript files.
 
 doc_page_dom(Title, Body, DOM) :-
+	doc_server_root(Root),
 	DOM = html([ head([ title(Title),
 			    link([ rel(stylesheet),
 				   type('text/css'),
 				   href('pldoc.css')
 				 ]),
-			    script([ src('/pldoc.js'),
+			    script([ src(Root+'pldoc.js'),
 				     type('text/javascript')
 				   ], [])
 			  ]),
@@ -685,15 +693,16 @@ pred_edit_button(Name/Arity, Options) -->
 	     )
 	}, !.
 pred_edit_button(Name/Arity, Options) -->
-	{ www_form_encode(Name, QName),
+	{ doc_server_root(Root),
+	  www_form_encode(Name, QName),
 	  (   option(module(M), Options)
 	  ->  www_form_encode(M, QM),
 	      format(string(OnClick),
-		     'HTTPrequest("/edit?name=~w&arity=~w&module=~w")',
-		     [QName, Arity, QM])
+		     'HTTPrequest("~wedit?name=~w&arity=~w&module=~w")',
+		     [Root, QName, Arity, QM])
 	  ;   format(string(OnClick),
-		     'HTTPrequest("/edit?name=~w&arity=~w")',
-		     [QName, Arity])
+		     'HTTPrequest("~wedit?name=~w&arity=~w")',
+		     [Root, QName, Arity])
 	  )
 	},
 	html(span(style('float:right'),
@@ -701,7 +710,7 @@ pred_edit_button(Name/Arity, Options) -->
 		    ],
 		    img([ height=14,
 			  style('border:0;'),
-			  src='/edit.gif'
+			  src(Root+'edit.gif')
 			])))).
 pred_edit_button(_/_, _) --> !,
 	[].
@@ -868,9 +877,7 @@ predref(Term, Options) -->
 
 predref(Name/Arity, _, _Options) -->		% Builtin; cannot be overruled
 	{ prolog:doc_object_summary(Name/Arity, manual, _, _), !,
-	  format(string(FragmentId), '~w/~d', [Name, Arity]),
-	  www_form_encode(FragmentId, EncId),
-	  format(string(HREF), '/man?predicate=~w', [EncId])
+	  manref(Name/Arity, HREF)
 	},
 	html(a([class=builtin, href=HREF], [Name, /, Arity])).
 predref(Obj, Module, Options) -->		% Local
@@ -887,9 +894,7 @@ predref(Name//Arity, Module, _Options) -->
 	html(a(href=HREF, [Name, //, Arity])).
 predref(Name/Arity, _, _Options) -->		% From packages
 	{ prolog:doc_object_summary(Name/Arity, Category, _, _), !,
-	  format(string(FragmentId), '~w/~d', [Name, Arity]),
-	  www_form_encode(FragmentId, EncId),
-	  format(string(HREF), '/man?predicate=~w', [EncId])
+	  manref(Name/Arity, HREF)
 	},
 	html(a([class=Category, href=HREF], [Name, /, Arity])).
 predref(Name/Arity, _, _Options) --> !,
@@ -902,6 +907,17 @@ predref(Callable, Module, Options) -->
 	},
 	predref(Name/Arity, Module, Options).
 
+
+%%	manref(+NameArity, -HREF) is det.
+%
+%	Create reference to a manual page.
+
+manref(Name/Arity, HREF) :-
+	format(string(FragmentId), '~w/~d', [Name, Arity]),
+	www_form_encode(FragmentId, EncId),
+	doc_server_root(Root),
+	format(string(HREF), '~wman?predicate=~w', [Root, EncId]).
+	
 
 %%	pred_href(+NameArity, +Module, -HREF) is semidet.
 %
@@ -918,6 +934,7 @@ pred_href(Name/Arity, Module, HREF) :-
 	format(string(FragmentId), '~w/~d', [Name, Arity]),
 	www_form_encode(FragmentId, EncId),
 	functor(Head, Name, Arity),
+	doc_server_root(Root),
 	(   catch(relative_file(Module:Head, File), _, fail)
 	->  format(string(HREF), '~w#~w', [File, EncId])
 	;   in_file(Module:Head, File)
@@ -926,8 +943,8 @@ pred_href(Name/Arity, Module, HREF) :-
 		prolog:doc_object_summary(Name/Arity, packages, _, _)
 	    ->	format(string(FragmentId), '~w/~d', [Name, Arity]),
 		www_form_encode(FragmentId, EncId),
-		format(string(HREF), '/man?predicate=~w', [EncId])
-	    ;	format(string(HREF), '/doc~w#~w', [File, EncId])
+		format(string(HREF), '~wman?predicate=~w', [Root, EncId])
+	    ;	format(string(HREF), '~wdoc~w#~w', [Root, File, EncId])
 	    )
 	).
 
@@ -966,7 +983,8 @@ object_ref(Obj, Options) -->
 object_href(Obj, HREF) :-
 	term_to_string(Obj, String),
 	www_form_encode(String, Enc),
-	format(string(HREF), '/doc_for?object=~w', [Enc]).
+	doc_server_root(Root),
+	format(string(HREF), '~wdoc_for?object=~w', [Root, Enc]).
 
 term_to_string(Term, String) :-
 	State = state(-),

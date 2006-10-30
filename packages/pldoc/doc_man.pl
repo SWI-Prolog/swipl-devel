@@ -43,6 +43,7 @@
 :- use_module(doc_html).
 :- use_module(doc_search).
 :- use_module(library('http/html_write')).
+:- use_module(library(doc_http)).
 :- include(hooks).
 
 /** <module> Process SWI-Prolog HTML manuals
@@ -529,7 +530,8 @@ rewrite_ref(pred, Ref0, _, Ref) :-		% Predicate reference
 	atom_to_pi(Fragment, PI),
 	man_index(PI, _, _, _, _),
 	www_form_encode(Fragment, Enc),
-	format(string(Ref), '/man?predicate=~w', [Enc]).
+	doc_server_root(Root),
+	format(string(Ref), '~wman?predicate=~w', [Root, Enc]).
 rewrite_ref(sec, Ref0, Path, Ref) :-		% Section inside a file
 	sub_atom(Ref0, B, _, A, '#'), !,
 	sub_atom(Ref0, _, A, 0, Fragment),

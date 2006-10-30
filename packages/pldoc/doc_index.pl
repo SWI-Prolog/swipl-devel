@@ -46,6 +46,7 @@
 :- use_module(library(readutil)).
 :- use_module(library(url)).
 :- use_module(library(option)).
+:- use_module(library(doc_http)).
 :- include(hooks).
 
 /** <module> Create indexes
@@ -209,7 +210,8 @@ file_index_header(File, Options) -->
 doc_file_href(File, HREF) :-
 	ensure_slash_start(File, SlashFile),
 	http_location([path(SlashFile)], Escaped),
-	atom_concat('/doc', Escaped, HREF).
+	doc_server_root(Root),
+	format(string(HREF), '~wdoc~w', [Root, Escaped]).
 
 %%	ensure_slash_start(+File0, -File) is det.
 %
@@ -304,9 +306,10 @@ doc_links(Directory, Options) -->
 
 source_dir_menu(Dir) -->
 	{ findall(D, source_directory(D), List),
-	  sort(List, Dirs)
+	  sort(List, Dirs),
+	  doc_server_root(Root)
 	},
-	html(form([ action('/directory')
+	html(form([ action(Root+'directory')
 		  ],
 		  [ input([type(submit), value('Go')]),
 		    select(name(dir),

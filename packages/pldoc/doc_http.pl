@@ -33,7 +33,8 @@
 	  [ doc_server/1,		% ?Port
 	    doc_server/2,		% ?Port, +Options
 	    doc_browser/0,
-	    doc_browser/1		% +What
+	    doc_browser/1,		% +What
+	    doc_server_root/1		% -Root
 	  ]).
 :- use_module(library(pldoc)).
 :- use_module(library('http/thread_httpd')).
@@ -77,6 +78,9 @@ _after_ library(pldoc) has been loaded.
 %
 %		* deny(HostOrIP)
 %		See allow(HostOrIP).
+%		
+%		* root(Path)
+%		Path of the root.  Default is /
 %	
 %	The predicate doc_server/1 is defined as below, which provides a
 %	good default for development.
@@ -103,7 +107,8 @@ doc_server(Port, _) :-
 	doc_current_server(Port), !.
 doc_server(Port, Options) :-
 	prepare_editor,
-	auth_options(Options, ServerOptions),
+	auth_options(Options, Options1),
+	root_option(Options1, ServerOptions),
 	append(ServerOptions,		% Put provides options first,
 	       [ port(Port),		% so they override our defaults
 		 timeout(60),
@@ -134,9 +139,10 @@ doc_browser(Spec) :-
 
 browser_url([], '') :- !.
 browser_url(Name/Arity, URL) :- !,
+	doc_server_root(Root),
 	format(string(S), '~q/~w', [Name, Arity]),
 	www_form_encode(S, Enc),
-	format(string(URL), '/man?predicate=~w', [Enc]).
+	format(string(URL), '~wman?predicate=~w', [Root, Enc]).
 
 %%	prepare_editor
 %
@@ -157,14 +163,15 @@ doc_reply(Request) :-
 
 do_reply(Request) :-
 	memberchk(peer(Peer), Request),
+	select(path(Path0), Request, Request1),
 	(   allowed_peer(Peer)
-	->  memberchk(path(Path), Request),
-	    debug(pldoc, 'HTTP ~q', [Path]),
-	    (	reply(Path, Request)
+	->  debug(pldoc, 'HTTP ~q', [Path0]),
+	    (	normalise_path(Path0, Path),
+		reply(Path, [path(Path)|Request1])
 	    ->	true
-	    ;	throw(http_reply(not_found(Path)))
+	    ;	throw(http_reply(not_found(Path0)))
 	    )		      
-	;   throw(http_reply(forbidden(/)))
+	;   throw(http_reply(forbidden(Path0)))
 	).
 
 
@@ -256,6 +263,45 @@ local(Request) :-
 localhost(ip(127,0,0,1)).
 localhost(localhost).
 
+
+		 /*******************************
+		 *	       ROOT		*
+		 *******************************/
+
+:- dynamic
+	root/1.
+
+root_option(Options0, Options) :-
+	(   select(root(Root), Options0, Options)
+	;   select(root=Root,  Options0, Options)
+	), !,
+	assert(root(Root)).
+root_option(Options, Options).
+	
+%%	doc_server_root(?Root) is semidet.
+%
+%	True if Root is the root of our documentation server. Default is
+%	=|/|=. Can be set with the =root= option of doc_server/1.
+
+doc_server_root(Root) :-
+	(   root(Root0)
+	->  Root = Root0
+	;   Root = /
+	).
+
+
+%%	normalise_path(+Path0, -NormalPath) is det.
+%
+%	Make paths relative to / if it was moved.
+
+normalise_path(Path0, Path) :-
+	doc_server_root(Root),
+	(   doc_server_root(/)
+	->  Path = Path0
+	;   atom_concat(Root, Rest, Path0)
+	->  atom_concat(/, Rest, Path)
+	).
+	
 
 		 /*******************************
 		 *	    USER REPLIES	*

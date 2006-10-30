@@ -40,6 +40,7 @@
 :- use_module(library('http/dcg_basics')).
 :- use_module(doc_html).
 :- use_module(doc_index).
+:- use_module(library(doc_http)).
 :- include(hooks).
 
 /** <module> Search form and reply
@@ -65,9 +66,10 @@ search_form(Options) -->
 	  ;   Extra = []
 	  ),
 	  option(search_in(In), Options, all),
-	  option(search_match(Match), Options, summary)
+	  option(search_match(Match), Options, summary),
+	  doc_server_root(Root)
 	},
-	html(form(action('/search'),
+	html(form(action(Root+'search'),
 		  [ div([ input([ name(for),
 				  size(36)
 				| Extra
@@ -87,7 +89,7 @@ search_form(Options) -->
 				 \radio(match, summary, 'Summary', Match)
 			       ]),
 			  span(class('search-help'),
-			       [ a(href('/package/pldoc.html#sec:browser'),
+			       [ a(href(Root+'package/pldoc.html#sec:browser'),
 				   'Help')
 			       ])
 			])
