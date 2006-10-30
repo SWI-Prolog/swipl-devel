@@ -88,10 +88,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -254,13 +250,13 @@ protocol and HTTP GET access method. It defines one predicate:
 Open the data at the HTTP server as a Prolog stream. After this 
 predicate succeeds the data can be read from <VAR>Stream</VAR>. After 
 completion this stream must be closed using the built-in Prolog 
-predicate <A NAME="idx:close1:1"></A><SPAN class="pred-ext">close/1</SPAN>. <VAR>Options</VAR> 
+predicate <A NAME="idx:close1:1"></A><B>close/1</B>. <VAR>Options</VAR> 
 provides additional options:
 
 <DL>
 <DT><STRONG>timeout</STRONG>(<VAR>+Timeout</VAR>)</DT>
 <DD class="defbody">
-If provided, set a timeout on the stream using <A NAME="idx:setstream2:2"></A><SPAN class="pred-ext">set_stream/2</SPAN>. 
+If provided, set a timeout on the stream using <A NAME="idx:setstream2:2"></A><B>set_stream/2</B>. 
 With this option if no new data arrives within <VAR>Timeout</VAR> 
 seconds the stream raises an exception. Default is to wait forever (<CODE>infinite</CODE>).</DD>
 <DT><STRONG>header</STRONG>(<VAR>+Name, -AtomValue</VAR>)</DT>
@@ -440,11 +436,11 @@ and passing the additional extra headers from <VAR>ExtraHeader</VAR>.
 <DT><STRONG>html</STRONG>(<VAR>+HTMLTokens</VAR>)</DT>
 <DD class="defbody">
 Send an HTML token string as produced by the library <CODE>library(html_write)</CODE> 
-described in section <A class="sec" href="#sec:3.9">section 3.9</A>.</DD>
+described in section <A class="sec" href="#sec:htmlwrite">section 3.9</A>.</DD>
 <DT><STRONG>file</STRONG>(<VAR>+File</VAR>)</DT>
 <DD class="defbody">
 Send the contents of <VAR>File</VAR>. The MIME type is derived from the 
-filename extension using <A NAME="idx:filemimetype2:10"></A><SPAN class="pred-ext">file_mime_type/2</SPAN>.</DD>
+filename extension using <A NAME="idx:filemimetype2:10"></A><B>file_mime_type/2</B>.</DD>
 <DT><STRONG>file</STRONG>(<VAR>+Type, +File</VAR>)</DT>
 <DD class="defbody">
 Send the contents of <VAR>File</VAR> using the provided MIME type, i.e. claiming 
@@ -496,10 +492,10 @@ value from a file.
 <DT><STRONG>List</STRONG></DT>
 <DD class="defbody">
 If the argument is a plain list, it is sent using the MIME type
-<CODE>multipart/mixed</CODE> and packed using <A NAME="idx:mimepack3:11"></A><SPAN class="pred-ext">mime_pack/3</SPAN>. 
+<CODE>multipart/mixed</CODE> and packed using <A NAME="idx:mimepack3:11"></A><B>mime_pack/3</B>. 
 See
-<A NAME="idx:mimepack3:12"></A><SPAN class="pred-ext">mime_pack/3</SPAN> 
-for details on the argument format.
+<A NAME="idx:mimepack3:12"></A><B>mime_pack/3</B> for details on the 
+argument format.
 </DD>
 </DL>
 
@@ -534,18 +530,18 @@ mime-types are automatically handled by the SGML parser.
 <DD class="defbody">
 Handed to <CODE>library(sgml)</CODE> using W3C HTML 4.0 DTD, suppressing 
 and ignoring all HTML syntax errors. <VAR>Options</VAR> is passed to
-<A NAME="idx:loadstructure3:13"></A><SPAN class="pred-ext">load_structure/3</SPAN>.</DD>
+<A NAME="idx:loadstructure3:13"></A><B>load_structure/3</B>.</DD>
 <DT><STRONG>text/xml</STRONG></DT>
 <DD class="defbody">
 Handed to <CODE>library(sgml)</CODE> using dialect <CODE>xmlns</CODE> 
 (XML + namespaces).
-<VAR>Options</VAR> is passed to <A NAME="idx:loadstructure3:14"></A><SPAN class="pred-ext">load_structure/3</SPAN>. 
+<VAR>Options</VAR> is passed to <A NAME="idx:loadstructure3:14"></A><B>load_structure/3</B>. 
 In particular,
 <CODE>dialect(xml)</CODE> may be used to suppress namespace handling.</DD>
 <DT><STRONG>text/x-sgml</STRONG></DT>
 <DD class="defbody">
 Handled to <CODE>library(sgml)</CODE> using dialect <CODE>sgml</CODE>. <VAR>Options</VAR> 
-is passed to <A NAME="idx:loadstructure3:15"></A><SPAN class="pred-ext">load_structure/3</SPAN>.
+is passed to <A NAME="idx:loadstructure3:15"></A><B>load_structure/3</B>.
 </DD>
 </DL>
 
@@ -584,7 +580,7 @@ of the server.
 reply. To facilitate all mentioned setups, the body is driven by
 <A NAME="idx:httpwrapper5:16"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A>. 
 The goal is called with the parsed request (see
-<A class="sec" href="#sec:3.4">section 3.4</A>) as argument and <CODE>current_output</CODE> 
+<A class="sec" href="#sec:request">section 3.4</A>) as argument and <CODE>current_output</CODE> 
 set to a temporary buffer. Its task is closely related to the task of a 
 CGI script; it must write a header declaring holding at least the
 <CODE>Content-type</CODE> field and a body. Here is a simple body 
@@ -612,7 +608,7 @@ special status codes</SPAN></A></H4>
 <A NAME="sec:httpspecials"></A>
 
 <P>Besides returning a page by writing it to the current output stream, 
-the server goal can raise an exception using <A NAME="idx:throw1:17"></A><SPAN class="pred-ext">throw/1</SPAN> 
+the server goal can raise an exception using <A NAME="idx:throw1:17"></A><B>throw/1</B> 
 to generate special pages such as <CODE>not_found</CODE>, <CODE>moved</CODE>, 
 etc. The defined exceptions are:
 
@@ -717,7 +713,7 @@ parameters from HTML forms</SPAN></A></H3>
 predicates to fetch HTTP request parameters as a type-checked list 
 easily. The library transparently handles both GET and POST requests. It 
 builds on top of the low-level request representation described in
-<A class="sec" href="#sec:3.4">section 3.4</A>.
+<A class="sec" href="#sec:request">section 3.4</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="http_parameters/2"><STRONG>http_parameters</STRONG>(<VAR>+Request, 
@@ -844,8 +840,8 @@ format</SPAN></A></H3>
 
 <A NAME="sec:request"></A>
 
-<P>The body-code (see <A class="sec" href="#sec:3.1">section 3.1</A>) is 
-driven by a <VAR>Request</VAR>. This request is generated from <A NAME="idx:httpreadrequest2:24"></A><A class="pred" href="#http_read_request/2">http_read_request/2</A> 
+<P>The body-code (see <A class="sec" href="#sec:body">section 3.1</A>) 
+is driven by a <VAR>Request</VAR>. This request is generated from <A NAME="idx:httpreadrequest2:24"></A><A class="pred" href="#http_read_request/2">http_read_request/2</A> 
 defined in
 <CODE>library(http/http_header)</CODE>.
 
@@ -958,7 +954,7 @@ The data posted is left on the input stream that is available through
 the term <CODE>input(Stream)</CODE> from the <VAR>Request</VAR> header. 
 This data can be read using <A NAME="idx:httpreaddata3:26"></A><A class="pred" href="#http_read_data/3">http_read_data/3</A> 
 from the HTTP client library. Here is a demo implementation simply 
-returning the parsed posted data as plain text (assuming <A NAME="idx:pp1:27"></A><SPAN class="pred-ext">pp/1</SPAN> 
+returning the parsed posted data as plain text (assuming <A NAME="idx:pp1:27"></A><B>pp/1</B> 
 pretty-prints the data).
 
 <PRE class="code">
@@ -1081,7 +1077,7 @@ only other option provided is the <CODE>after(:Goal)</CODE> option.
 </DL>
 
 <P>The file <CODE>demo_xpce</CODE> gives a typical example of this 
-wrapper, assuming <CODE>demo_body</CODE> defines the predicate <A NAME="idx:reply1:29"></A><SPAN class="pred-ext">reply/1</SPAN>.
+wrapper, assuming <CODE>demo_body</CODE> defines the predicate <A NAME="idx:reply1:29"></A><B>reply/1</B>.
 
 <PRE class="code">
 :- use_module(xpce_httpd).
@@ -1201,7 +1197,7 @@ Use SSL (Secure Socket Layer) rather than plan TCP/IP. A server created
 this way is accessed using the <CODE>https://</CODE> protocol. SSL 
 allows for encrypted communication to avoid others from tapping the wire 
 as well as improved authentication of client and server. The <VAR>SSLOptions</VAR> 
-option list is passed to <A NAME="idx:sslinit3:32"></A><SPAN class="pred-ext">ssl_init/3</SPAN>. 
+option list is passed to <A NAME="idx:sslinit3:32"></A><B>ssl_init/3</B>. 
 The port option of the main option list is forwarded to the SSL layer. 
 See the <CODE>library(ssl)</CODE> library for details.
 </DD>
@@ -1267,7 +1263,7 @@ specifications.
 </UL>
 
 <P>The very small generic script for handling inetd based connections is 
-in <CODE>inetd_httpd</CODE>, defining <A NAME="idx:httpserver1:34"></A><SPAN class="pred-ext">http_server/1</SPAN>:
+in <CODE>inetd_httpd</CODE>, defining <A NAME="idx:httpserver1:34"></A><B>http_server/1</B>:
 
 <DL>
 <DT class="pubdef"><A NAME="http_server/2"><STRONG>http_server</STRONG>(<VAR>:Goal, 
@@ -1315,7 +1311,7 @@ wrapper library</SPAN></A></H3>
 
 <P>The body is called by the module <CODE>library(http/http_wrapper.pl)</CODE>. 
 This module realises the communication between the I/O streams and the 
-body described in <A class="sec" href="#sec:3.1">section 3.1</A>. The 
+body described in <A class="sec" href="#sec:body">section 3.1</A>. The 
 interface is realised by
 <A NAME="idx:httpwrapper5:36"></A><A class="pred" href="#http_wrapper/5">http_wrapper/5</A>:
 
@@ -1347,7 +1343,7 @@ Return the executed request to the caller.</DD>
 <DT><STRONG>peer</STRONG>(<VAR>+Peer</VAR>)</DT>
 <DD class="defbody">
 Add peer(Peer) to the request header handed to <VAR>Goal</VAR>. The 
-format of <VAR>Peer</VAR> is defined by <A NAME="idx:tcpaccept3:38"></A><SPAN class="pred-ext">tcp_accept/3</SPAN> 
+format of <VAR>Peer</VAR> is defined by <A NAME="idx:tcpaccept3:38"></A><B>tcp_accept/3</B> 
 from the clib package.
 </DD>
 </DL>
@@ -1360,11 +1356,11 @@ This <EM>multifile</EM> hook predicate is called just before the goal
 that produces the body, while the output is already redirected to 
 collect the reply. If it succeeds it must return a valid modified 
 request. It is allowed to throw exceptions as defined in
-<A class="sec" href="#sec:3.1.1">section 3.1.1</A>. It is intended for 
-operations such as mapping paths, deny access for certain requests or 
-manage cookies. If it writes output, these must be HTTP header fields 
-that are added <EM>before</EM> header fields written by the body. The 
-example below is from the session management library (see <A class="sec" href="#sec:3.2">section 
+<A class="sec" href="#sec:httpspecials">section 3.1.1</A>. It is 
+intended for operations such as mapping paths, deny access for certain 
+requests or manage cookies. If it writes output, these must be HTTP 
+header fields that are added <EM>before</EM> header fields written by 
+the body. The example below is from the session management library (see <A class="sec" href="#sec:session">section 
 3.2</A>) sets a cookie.
 
 <PRE class="code">
@@ -1420,7 +1416,7 @@ primitives for parsing and composing HTTP headers. Its functionality is
 normally hidden by the other parts of the HTTP server and client 
 libraries. We provide a brief overview of <A NAME="idx:httpreply3:41"></A><A class="pred" href="#http_reply/3">http_reply/3</A> 
 which can be accessed from the reply body using an exception as explain 
-in <A class="sec" href="#sec:3.1.1">section 3.1.1</A>.
+in <A class="sec" href="#sec:httpspecials">section 3.1.1</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="http_reply/3"><STRONG>http_reply</STRONG>(<VAR>+Type, 
@@ -1436,7 +1432,7 @@ is one of:
 <DD class="defbody">
 Produce a HTML page using <A NAME="idx:printhtml1:42"></A><A class="pred" href="#print_html/1">print_html/1</A>, 
 normally generated using the
-<CODE>library(http/html_write)</CODE> described in <A class="sec" href="#sec:3.9">section 
+<CODE>library(http/html_write)</CODE> described in <A class="sec" href="#sec:htmlwrite">section 
 3.9</A>.</DD>
 <DT><STRONG>file</STRONG>(<VAR>+MimeType, +Path</VAR>)</DT>
 <DD class="defbody">
@@ -1476,7 +1472,7 @@ has not changed since the indicated time.</DD>
 <DT><STRONG>server_error</STRONG>(<VAR>+Error</VAR>)</DT>
 <DD class="defbody">
 Generate a ``500 Internal server error'' page with a message generated 
-from a Prolog exception term (see <A NAME="idx:printmessage2:43"></A><SPAN class="pred-ext">print_message/2</SPAN>).
+from a Prolog exception term (see <A NAME="idx:printmessage2:43"></A><B>print_message/2</B>).
 </DD>
 </DL>
 
@@ -1489,7 +1485,7 @@ library</SPAN></A></H3>
 <A NAME="sec:htmlwrite"></A>
 
 <P>Producing output for the web in the form of an HTML document is a 
-requirement for many Prolog programs. Just using <A NAME="idx:format2:44"></A><SPAN class="pred-ext">format/2</SPAN> 
+requirement for many Prolog programs. Just using <A NAME="idx:format2:44"></A><B>format/2</B> 
 is satisfactory as it leads to poorly readable programs generating poor 
 HTML. This library is based on using DCG rules.
 
@@ -1525,8 +1521,8 @@ DCG.
 <P>
 <LI><I><VAR>Fmt</VAR> - <VAR>Args</VAR></I><BR>
 <VAR>Fmt</VAR> and <VAR>Args</VAR> are used as format-specification and 
-argument list to <A NAME="idx:sformat3:50"></A><SPAN class="pred-ext">sformat/3</SPAN>. 
-The result is quoted and added to the output list.
+argument list to <A NAME="idx:sformat3:50"></A><B>sformat/3</B>. The 
+result is quoted and added to the output list.
 
 <P>
 <LI><I><CODE>\</CODE><VAR>List</VAR></I><BR>
@@ -1548,22 +1544,27 @@ external packages.
 
 <P>
 <LI><I>&amp;(Entity)</I><BR>
-Emit <TT>&amp;&lt;<VAR>Entity</VAR>&gt;;</TT>.
+Emit <TT>&amp;&lt;<VAR>Entity</VAR>&gt;;</TT>. As Prolog understands 
+Unicode and automatically inserts appropriate entity declarations, this 
+is normally not needed.
 
 <P>
 <LI><I><CODE>Tag(Content)</CODE></I><BR>
 Emit HTML element <VAR>Tag</VAR> using <VAR>Content</VAR> and no 
 attributes.
 <VAR>Content</VAR> is handed to <A NAME="idx:html1:51"></A><A class="pred" href="#html/1">html/1</A>. 
-See <A class="sec" href="#sec:3.9.3">section 3.9.3</A> for details on 
-the automatically generated layout.
+See <A class="sec" href="#sec:htmllayout">section 3.9.3</A> for details 
+on the automatically generated layout.
 
 <P>
 <LI><I><CODE>Tag(Attributes, Content)</CODE></I><BR>
 Emit HTML element <VAR>Tag</VAR> using <VAR>Attributes</VAR> and <VAR>Content</VAR>.
 <VAR>Attributes</VAR> is either a single attribute of a list of 
 attributes. Each attributes is of the format <CODE>Name(Value)</CODE> or
-<VAR>Name</VAR>=<VAR>Value</VAR>.
+<VAR>Name</VAR>=<VAR>Value</VAR>. <VAR>Value</VAR> is either atomic or a 
+term
+<VAR>Left</VAR>+<VAR>Right</VAR>. The <CODE>+</CODE> operator implements 
+concatenation.
 </UL>
 </DD>
 <DT class="pubdef"><A NAME="page/2"><STRONG>page</STRONG>(<VAR>:HeadContent, 
@@ -1576,9 +1577,8 @@ be placed in the <CODE>head</CODE> element and <VAR>BodyContent</VAR>
 are elements to be placed in the <CODE>body</CODE> element.
 
 <P>To achieve common style (background, page header and footer), it is 
-possible to define DCG rules <A NAME="idx:head1:53"></A><SPAN class="pred-ext">head/1</SPAN> 
-and/or <A NAME="idx:body1:54"></A><SPAN class="pred-ext">body/1</SPAN>. 
-The <A NAME="idx:page1:55"></A><A class="pred" href="#page/1">page/1</A> 
+possible to define DCG rules <A NAME="idx:head1:53"></A><B>head/1</B> 
+and/or <A NAME="idx:body1:54"></A><B>body/1</B>. The <A NAME="idx:page1:55"></A><A class="pred" href="#page/1">page/1</A> 
 rule checks for the definition of these DCG rules in the module it is 
 called from as well as in the <CODE>user</CODE> module. If no definition 
 is found, it creates a head with only the <VAR>HeadContent</VAR> (note 
@@ -1673,9 +1673,8 @@ Print the token list to the specified output stream
 <DT class="pubdef"><A NAME="html_print_length/2"><STRONG>html_print_length</STRONG>(<VAR>+List, 
 -Length</VAR>)</A></DT>
 <DD class="defbody">
-When calling <A NAME="idx:htmlprint12:62"></A><SPAN class="pred-ext">html_print/[1,2]</SPAN> 
-on <VAR>List</VAR>, <VAR>Length</VAR> characters will be produced. 
-Knowing the length is needed to provide the <CODE>Content-length</CODE> 
+When calling <A NAME="idx:htmlprint12:62"></A><B>html_print/[1,2]</B> on <VAR>List</VAR>, <VAR>Length</VAR> 
+characters will be produced. Knowing the length is needed to provide the <CODE>Content-length</CODE> 
 field of an HTTP reply-header.
 </DD>
 </DL>
@@ -1743,7 +1742,7 @@ Please consult the library source for examples.
 
 <P>In the following example we will generate a table of Prolog 
 predicates we find from the SWI-Prolog help system based on a keyword. 
-The primary database is defined by the predicate <A NAME="idx:predicate5:69"></A><SPAN class="pred-ext">predicate/5</SPAN> 
+The primary database is defined by the predicate <A NAME="idx:predicate5:69"></A><B>predicate/5</B> 
 We will make hyperlinks for the predicates pointing to their 
 documentation.
 
@@ -1815,9 +1814,9 @@ on the <CODE>library(http/html_write)</CODE> library</SPAN></A></H4>
 <P>This library is the result of various attempts to reach at a more 
 satisfactory and Prolog-minded way to produce HTML text from a program. 
 We have been using Prolog for the generation of web pages in a number of 
-projects. Just using <A NAME="idx:format2:70"></A><SPAN class="pred-ext">format/2</SPAN> 
-never was a real option, generating error-prone HTML from clumsy syntax. 
-We started with a layour on top of <A NAME="idx:format2:71"></A><SPAN class="pred-ext">format/2</SPAN>, 
+projects. Just using <A NAME="idx:format2:70"></A><B>format/2</B> never 
+was a real option, generating error-prone HTML from clumsy syntax. We 
+started with a layour on top of <A NAME="idx:format2:71"></A><B>format/2</B>, 
 keeping track of the current nesting and thus always capable of properly 
 closing the environment.
 
@@ -1833,7 +1832,7 @@ browser, selecting fragments from an analysed document and presenting
 parts of the XPCE documentation using a browser. It has proven to be 
 able to deal with generating pages quickly and comfortably.
 
-<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:72"></A><SPAN class="pred-ext">goal_expansion/2</SPAN> 
+<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:72"></A><B>goal_expansion/2</B> 
 to do compile-time optimisation of the library. Quotation of known text 
 and invocation of sub-rules using the <CODE>\</CODE><VAR>RuleSet</VAR> 
 and
@@ -1868,7 +1867,7 @@ If part of the query consists of filenames or directories, check them.
 This also applies to files you only read. Passing names as
 <CODE>/etc/passwd</CODE>, but also <CODE>../../../../../etc/passwd</CODE> 
 are tried by experienced hackers to learn about the system they want to 
-attack. So, expand provided names using <A NAME="idx:absolutefilename23:73"></A><SPAN class="pred-ext">absolute_file_name/[2,3]</SPAN> 
+attack. So, expand provided names using <A NAME="idx:absolutefilename23:73"></A><B>absolute_file_name/[2,3]</B> 
 and verify they are inside a folder reserved for the server. Avoid 
 symbolic links from this subtree to the outside world. The example below 
 checks validity of filenames. The first call ensures proper canonisation 
@@ -1884,7 +1883,7 @@ check_file(File) :-
 
 <P>
 <LI><I>Check scripts</I><BR>
-Should input in any way activate external scripts using <A NAME="idx:shell1:74"></A><SPAN class="pred-ext">shell/1</SPAN> 
+Should input in any way activate external scripts using <A NAME="idx:shell1:74"></A><B>shell/1</B> 
 or <CODE>open(pipe(Command), ...)</CODE>, verify the argument once more.
 
 <P>

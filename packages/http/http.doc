@@ -1214,7 +1214,8 @@ Invoke the grammar rule <Module>:<Term>. This is similar to
 packages.
 
     \item [\&(Entity)]
-Emit {\tt\&<Entity>;}.
+Emit {\tt\&<Entity>;}.  As Prolog understands Unicode and automatically
+inserts appropriate entity declarations, this is normally not needed.
 
     \item [\term{Tag}{Content}]
 Emit HTML element \arg{Tag} using \arg{Content} and no attributes.
@@ -1225,7 +1226,8 @@ on the automatically generated layout.
 Emit HTML element \arg{Tag} using \arg{Attributes} and \arg{Content}.
 \arg{Attributes} is either a single attribute of a list of attributes.
 Each attributes is of the format \term{Name}{Value} or
-\mbox{\arg{Name}=\arg{Value}}.
+\mbox{\arg{Name}=\arg{Value}}. \arg{Value} is either atomic or a term
+\arg{Left}+\arg{Right}. The \const{+} operator implements concatenation.
 \end{itemlist}
 
     \dcg{page}{2}{:HeadContent, :BodyContent}

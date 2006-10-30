@@ -1,3 +1,7 @@
+Oct 30, 2006
+
+  * ADDED: Allow for A+B in attribute values.
+
 Sep 18, 2006
 
   * FIXED: inetd_httpd: set stream encoding to octet to be able to handle

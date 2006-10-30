@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -254,7 +254,7 @@ attributes(One) -->
 
 attribute(Name=Value) --> !,
 	[' ', Name, '="' ],
-	html_quoted_attribute(Value),
+	attribute_value(Value),
 	['"'].
 attribute(Term) -->
 	{ Term =.. [Name, Value]
@@ -264,6 +264,22 @@ attribute(Atom) -->			% Value-abbreviated attribute
 	{ atom(Atom)
 	},
 	[ ' ', Atom ].
+
+
+%%	attribute_value(+Value)
+%
+%	Print an attribute value.  Value  is   either  atomic  or a term
+%	=|A+B|=, concatenating A and B.
+
+attribute_value(Var) -->
+	{ var(Var), !,
+	  throw(error(instantiation_error, _))
+	}.
+attribute_value(A+B) --> !,
+	attribute_value(A),
+	attribute_value(B).
+attribute_value(Value) -->
+	html_quoted_attribute(Value).
 
 
 		 /*******************************
