@@ -196,6 +196,7 @@ expand_history(Raw, Expanded, Changed) :-
 	expand_history2(RawString, ExpandedString, Changed), 
 	atom_chars(Expanded, ExpandedString), !.
 
+expand_history2([!], [!], false) :- !.
 expand_history2([!, C|Rest], [!|Expanded], Changed) :-
 	not_event_char(C), !, 
 	expand_history2([C|Rest], Expanded, Changed).
