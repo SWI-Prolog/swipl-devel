@@ -830,7 +830,7 @@ take_line([]) -->
 take_line(Line) -->
 	[H], { code_type(H, white) }, !,
 	take_white(White, WT),
-	(   peek_nl
+	(   nl
 	->  { Line = [] }
 	;   { Line = [H|White] },
 	    take_line(WT)
@@ -911,6 +911,15 @@ non_ws(T, T) -->
 peek_nl -->
 	peek(H),
 	{ H == 0'\n ; H == 0'\r }, !.
+
+%%	nl//
+%
+%	Get end-of-line
+
+nl -->
+	"\r\n", !.
+nl -->
+	"\n".
 
 %%	peek(H)//
 %

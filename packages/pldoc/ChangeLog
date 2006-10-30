@@ -1,3 +1,7 @@
+Oct 30, 2006
+
+* FIXED: Bug handling trailing whitespace in structured comments.
+
 Oct 6, 2006
 
 * FIXED: Bug#222: Allow connection from localhost using doc_server/1
