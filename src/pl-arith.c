@@ -1060,19 +1060,18 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 
   switch(n2->type)
   { case V_INTEGER:
-      if ( n2->value.i < LONG_MIN )
-	shift = LONG_MIN;
-      else if ( n2->value.i > LONG_MAX )
-	shift = LONG_MAX;
-      else
+      if ( n2->value.i < LONG_MIN  ||
+	   n2->value.i > LONG_MAX )
+      { overflow:
+	return PL_error(plop, 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+      } else
 	shift = (long)n2->value.i;
       break;
 #ifdef O_GMP
     case V_MPZ:
-      if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 )
-	shift = LONG_MIN;
-      else if ( mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	shift = LONG_MAX;
+      if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
+	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
+	goto overflow;
       else
 	shift = mpz_get_si(n2->value.mpz);
       break;
@@ -1080,6 +1079,11 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     default:
       assert(0);
       fail;
+  }
+
+  if ( shift < 0 )
+  { shift = -shift;
+    dir = -dir;
   }
 
   switch(n1->type) 
