@@ -717,7 +717,16 @@ The functionality of the server should be defined in one Prolog file (of
 course this file is allowed to load other files). Depending on the
 wanted server setup this `body' is wrapped into a small Prolog file
 combining the body with the appropriate server interface. There are
-three supported server-setups:
+three supported server-setups. For most applications we advice the
+multi-threaded server. Examples of this server archirecture are the
+\url[PlDoc]{http://www.swi-prolog.org/packages/pldoc.html} documentation
+system and the \url[SeRQL]{http://www.swi-prolog.org/packages/SeRQL/}
+Semantic Web server infrastructure.
+
+All the server setups may be wrapped in a \jargon{reverse proxy} to
+make them available from the public web-server as described in
+\secref{proxy}.
+
 
 \begin{itemlist}
     \item [Using \pllib{xpce_httpd} for an event-driven server]
@@ -739,7 +748,7 @@ generally faster and capable to handle multiple requests concurrently.
 
 This server is harder to debug due to the involved threading.  It
 can provide fast communication to multiple clients and can be used for
-more demanding embedded servers, such as agent platforms.
+more demanding servers.
 
     \item [Using \pllib{inetd_httpd} for server-per-client]
 In this setup the Unix \program{inetd} user-daemon is used to initialise
@@ -1014,6 +1023,67 @@ There are rumours that \emph{inetd} has been ported to Windows.
 
 To be done.
 
+
+\subsubsection{Using a reverse proxy}
+\label{sec:proxy}
+
+There are three options for public deployment of a service. One is to
+run it on a dedicated machine on port 80, the standard HTTP port. The
+machine may be a virtual machine running ---for example--- under
+\url[VMWARE]{http://www.vmware.com} or
+\url[XEN]{http://www.cl.cam.ac.uk/research/srg/netos/xen/}. The
+(virtual) machine approach isolates security threads and allows for
+using a standard port. The server can also be hosted on a non-standard
+port such as 8000, or 8080. Using non-standard ports however may cause
+problems with intermediate proxy- and/or firewall policies.  Isolation
+can be achieved using a Unix \jargon{chroot} environment.  Another
+option, also recommented for \jargon{Tomcat} servers, is the use of
+Apache \jargon{reverse proxies}.  This causes the main web-server to
+relay requests below a given URL location to our Prolog based server.
+This approach has several advantages:
+
+\begin{itemize}
+    \item We can access the server on port 80, just as for a dedicated
+          machine.  We do not need a machine though and we only need
+	  access to the apache configuration.
+    \item As Apache is doing the front-line service, the Prolog server
+    	  is normally protected from malformed HTTP requests that could
+	  result in denial of service or otherwise comprimise the
+	  server.  In addition, Apache can provide encodings such as
+	  compression to the outside world.
+\end{itemize}
+
+Note that the proxy technology can be combined with isolation methods
+such as dedicated machines, virtual machines and chroot jails.  The
+proxy can also provide load balancing.
+
+\paragraph{Setting up a reverse proxy}
+
+The Apache reverse proxy setup is really simple. Ensure the modules
+\const{proxy} and \const{proxy_http} are loaded. The add two simple
+rules to the server configuration. Below is an example that makes a
+PlDoc server on port 4000 available from the main Apache server at port
+80.
+
+\begin{code}
+ProxyPass	 /pldoc/ http://localhost:4000/pldoc/
+ProxyPassReverse /pldoc/ http://localhost:4000/pldoc/
+\end{code}
+
+Apache rewrites the HTTP headers passing by, but using the above rules
+it does not examine the content. This implies that URLs embedded in the
+(HTML) content must use relative addressing.  If the locations on the
+public and Prolog server are the same (as in the example above) it is
+allowed to use absolute locations.  I.e.\ \const{/pldoc/search} is ok,
+but \const{http://myhost.com:4000/pldoc/search} is \emph{not}.  If
+the locations on the server differ, locations must be relative (i.e.\
+not start with \chr{/}.
+
+This problem can also be solved using the contributed Apache module
+\const{proxy_html} that can be instructed to rewrite URLs embedded in
+HTML documents. In our experience, this is not troublefree as URLs can
+appear in many places in generated documents.  JavaScript can create
+URLs on the fly, which makes rewriting virtually impossible.
 
 \subsection{The wrapper library}
 
@@ -1521,7 +1591,7 @@ reply(Query) :-
 	member(search(Args), Query),
 	member(action=Action, Query),
 	member(arg=Arg, Query),
-	call(Action, Arg).		% NEVER DO THIS
+	call(Action, Arg).		% NEVER EVER DO THIS!
 \end{code}
 
 All your attacker has to do is specify \arg{Action} as \const{shell}
@@ -1529,17 +1599,42 @@ and \arg{Arg} as \const{/bin/sh} and he has an uncontrolled shell!
 \end{itemlist}
 
 
+\section{Tips and tricks}
+
+\begin{itemlist}
+    \item [URL Locations]
+With an application in mind, it is tempting to make all URL
+locations short and directly connected to the root (\const{/}). This is
+\emph{not} a good idea. It is adviced to have all locations in a server
+below a directory with an informative name. Consider to make the root
+location something that can be changed using a global setting.
+
+    \begin{itemize}
+	\item Page generating code can easily be reused.  Using locations
+	      directly below the root however increases the likelyhood
+	      of conflicts.
+	\item Multiple servers can be placed behind the same public
+	      server as explained in \secref{proxy}.  Using a common
+	      and fairly unique root, redirection is much easier and
+	      less likely to lead to conflicts.
+    \end{itemize}
+
+    \item [Debugging]
+Please check the section \url[``Thread-support
+library(threadutil)'']{http://gollem.science.uva.nl/SWI-Prolog/Manual/thutil.html}
+of the SWI-Prolog reference manual.
+\end{itemlist}
+
+
 \section{Status}
 
-The current library has been developed and tested in a number of
-internal and funded projects at the SWI department of the University of
-Amsterdam.  With this release we hope to streamline deployment within
-these projects as well as let other profit from the possibilities to
-use Prolog directly as a web-server.
+The SWI-Prolog HTTP library is in active use in a large number of
+projects. It is considered one of the SWI-Prolog core libraries that is
+actively maintained and regulary extended with new features. This is
+particulary true for the multi-threaded server. The XPCE and inetd based
+servers are not widely used.
 
 This library is by no means complete and you are free to extend it.
-Partially or completely lacking are notably session management and
-authorisation.
 
 \printindex
 
