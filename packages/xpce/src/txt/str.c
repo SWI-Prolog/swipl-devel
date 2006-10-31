@@ -86,7 +86,7 @@ str_ring_alloc(String s)
   } else
   { str_ring[str_ring_ptr] = pceRealloc(str_ring[str_ring_ptr], size);
   }
-  s->s_textA = str_ring[str_ring_ptr];
+  s->s_textA = (charA*)str_ring[str_ring_ptr];
   s->readonly = TRUE;
 
   if ( ++str_ring_ptr == STR_RING_SIZE )
