@@ -88,10 +88,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -99,7 +95,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -190,8 +186,8 @@ as well as the team,
 </UL>
 
 <P>First, we describe the documentation system we developed for 
-SWI-Prolog. In <A class="sec" href="#sec:11">section 11</A> we motivate 
-our main choices.
+SWI-Prolog. In <A class="sec" href="#sec:motivation">section 11</A> we 
+motivate our main choices.
 
 <H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Overview</SPAN></A></H2>
 
@@ -221,15 +217,15 @@ comments</SPAN></A></H2>
 one, seen mostly in the Prolog community and the block-comment (<CODE>/*</CODE>...<CODE>*/</CODE>) 
 based one, commonly seen in the Java and C domain. As we cannot 
 determine the argument-names, type and modes from following (predicate) 
-code itself, we must supply this in the comment.<SUP class="fn">2<SPAN class="fn-text">See <A class="sec" href="#sec:11">section 
+code itself, we must supply this in the comment.<SUP class="fn">2<SPAN class="fn-text">See <A class="sec" href="#sec:motivation:modes">section 
 11</A>.</SPAN></SUP>. The overall structure of the comment therefore is:
 
 <P><UL COMPACT>
-<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:5">section 
+<LI>Semi-formal type- and mode-description, see <A class="sec" href="#sec:modes">section 
 5</A>
-<LI>Wiki-style documentation body, see <A class="sec" href="#sec:7">section 
+<LI>Wiki-style documentation body, see <A class="sec" href="#sec:wiki">section 
 7</A>
-<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:6">section 
+<LI>JavaDoc style tags (<CODE>@</CODE>keyword value, see <A class="sec" href="#sec:tags">section 
 6</A>)
 </UL>
 
@@ -338,7 +334,7 @@ for any type. </TD></TR>
 <TR VALIGN=top><TD>@</TD><TD>Argument is not further instantiated. </TD></TR>
 <TR VALIGN=top><TD>!</TD><TD>Argument contains a mutable structure that 
 may be modified using
-<A NAME="idx:setarg3:1"></A><SPAN class="pred-ext">setarg/3</SPAN> or <A NAME="idx:nbsetarg3:2"></A><SPAN class="pred-ext">nb_setarg/3</SPAN>. </TD></TR>
+<A NAME="idx:setarg3:1"></A><B>setarg/3</B> or <A NAME="idx:nbsetarg3:2"></A><B>nb_setarg/3</B>. </TD></TR>
 </TABLE>
 
 </CENTER>
@@ -464,7 +460,7 @@ is common to describe the behaviour on different terms. Such lists must
 be written as below. &lt;<VAR>Term1</VAR>&gt;, etc. must be valid Prolog 
 terms and end in the newline. The Wiki adds <CODE>' . '</CODE> to the 
 text and reads it using the operator definitions also used to read the 
-mode terms. See <A class="sec" href="#sec:5">section 5</A>.
+mode terms. See <A class="sec" href="#sec:modes">section 5</A>.
 
 <PRE class="code">
    * Term1
@@ -491,7 +487,7 @@ lines that parse into a table-row together for a table. Example:
 <DD>
 Section headers are creates using one of the constructs below taken from 
 TWiki. Section headers are normally not used in the source-code, but can 
-be useful inside README and TODO files. See <A class="sec" href="#sec:8">section 
+be useful inside README and TODO files. See <A class="sec" href="#sec:dirindex">section 
 8</A>.
 
 <PRE class="code">
@@ -636,12 +632,26 @@ Start documentation server at <VAR>Port</VAR> using <VAR>Options</VAR>.
 Provided options are:
 
 <DL>
+<DT><STRONG>root</STRONG>(<VAR>+Path</VAR>)</DT>
+<DD class="defbody">
+Defines the root of all locations served by the HTTP server. Default is <CODE>/</CODE>. <VAR>Path</VAR> 
+must be an absolute URL location, starting with <CODE>/</CODE> and 
+ending in <CODE>/</CODE>. Intented for public services behind a reverse 
+proxy. See documentation of the HTTP package for details on using 
+reverse proxies.</DD>
+<DT><STRONG>edit</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>false</CODE>, do not allow editing, even if the connection 
+comes from localhost. Intended together with the <CODE>root</CODE> 
+option to make pldoc available from behind a reverse proxy. See the HTTP 
+package for configuring a Prolog server behind an <A class="url" href="http://httpd.apache.org/docs/1.3/mod/mod_proxy.html">Apache 
+reverse proxy</A>.</DD>
 <DT><STRONG>allow</STRONG>(<VAR>+HostOrIP</VAR>)</DT>
 <DD class="defbody">
 Allow connections from <VAR>HostOrIP</VAR>. If <VAR>Host</VAR> is an 
 atom starting with a '.', suffix matching is preformed. I.e. 
 <CODE>allow('.uva.nl')</CODE> grants access to all machines in this 
-domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><SPAN class="pred-ext">ip/4</SPAN> 
+domain. IP addresses are specified using the library(socket) <A NAME="idx:ip4:3"></A><B>ip/4</B> 
 term. I.e. to allow access from the 10.0.0.X domain, specify
 <CODE>allow(ip(10,0,0,_))</CODE>.</DD>
 <DT><STRONG>deny</STRONG>(<VAR>+HostOrIP</VAR>)</DT>
@@ -656,7 +666,7 @@ Deny access from the given location. Matching is equal to the
 <P><UL COMPACT>
 <LI>Both <EM>deny</EM> and <EM>allow</EM> match
 <LI><EM>allow</EM> exists and matches
-<LI><EM>allow</EM> does not exit and <EM>deny</EM> does not match.
+<LI><EM>allow</EM> does not exist and <EM>deny</EM> does not match.
 </UL>
 </DD>
 <DT class="pubdef"><A NAME="doc_browser/0"><STRONG>doc_browser</STRONG></A></DT>
@@ -666,10 +676,10 @@ Fails if no server is running.</DD>
 <DT class="pubdef"><A NAME="doc_browser/1"><STRONG>doc_browser</STRONG>(<VAR>+Spec</VAR>)</A></DT>
 <DD class="defbody">
 Open the user's default browser on the specified page. <VAR>Spec</VAR> 
-is handled similar to <A NAME="idx:edit1:4"></A><SPAN class="pred-ext">edit/1</SPAN>, 
-resolving anything that relates somehow to the given specification and 
-ask the user to select.<SUP class="fn">bug<SPAN class="fn-text">This 
-flexibility is not yet implemented</SPAN></SUP>.
+is handled similar to <A NAME="idx:edit1:4"></A><B>edit/1</B>, resolving 
+anything that relates somehow to the given specification and ask the 
+user to select.<SUP class="fn">bug<SPAN class="fn-text">This flexibility 
+is not yet implemented</SPAN></SUP>.
 </DD>
 </DL>
 
@@ -780,8 +790,8 @@ enclosing section (<EM>Up</EM>).
 
 <P>If the browser is accessed from <CODE>localhost</CODE>, each object 
 that is related to a known source-location has an edit icon at the right 
-side. Clicking this calls <A NAME="idx:edit1:7"></A><SPAN class="pred-ext">edit/1</SPAN> 
-on the object, calling the user's default editor in the file. To use the 
+side. Clicking this calls <A NAME="idx:edit1:7"></A><B>edit/1</B> on the 
+object, calling the user's default editor in the file. To use the 
 built-in PceEmacs editor, either set the Prolog flag <CODE>editor</CODE> 
 to <CODE>pce_emacs</CODE> or run <CODE>?- emacs.</CODE> before clicking 
 an edit button.

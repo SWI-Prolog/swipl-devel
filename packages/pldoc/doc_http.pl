@@ -41,8 +41,11 @@
 :- use_module(library('http/http_parameters')).
 :- use_module(library('http/html_write')).
 :- use_module(library('http/mimetype')).
-:- use_module(library('debug')).
-:- use_module(library('lists')).
+:- use_module(library(debug)).
+:- use_module(library(lists)).
+:- use_module(library(url)).
+:- use_module(library(socket)).
+:- use_module(library(option)).
 :- use_module(pldoc(doc_process)).
 :- use_module(pldoc(doc_htmlsrc)).
 :- use_module(pldoc(doc_html)).
@@ -79,6 +82,10 @@ _after_ library(pldoc) has been loaded.
 %		* deny(HostOrIP)
 %		See allow(HostOrIP).
 %		
+%		* edit(Bool)
+%		Allow editing from localhost connections? Default:
+%		=true=.
+%		
 %		* root(Path)
 %		Path of the root.  Default is /
 %	
@@ -108,7 +115,8 @@ doc_server(Port, _) :-
 doc_server(Port, Options) :-
 	prepare_editor,
 	auth_options(Options, Options1),
-	root_option(Options1, ServerOptions),
+	root_option(Options1, Options2),
+	edit_option(Options2, ServerOptions),
 	append(ServerOptions,		% Put provides options first,
 	       [ port(Port),		% so they override our defaults
 		 timeout(60),
@@ -252,16 +260,27 @@ allowed_peer(Peer) :-
 allowed_peer(_).
 
 
-%%	local(+Request) is semidet.
-%
-%	True if the request comes from localhost.
+:- dynamic
+	can_edit/1.
 
-local(Request) :-
+%%	allow_edit(+Request) is semidet.
+%
+%	True if, given Request, we allow editing sources.
+
+allow_edit(_) :-
+	can_edit(false), !, 
+	fail.
+allow_edit(Request) :-
 	memberchk(peer(Peer), Request),
 	match_peer(localhost, +, Peer).
 
 localhost(ip(127,0,0,1)).
 localhost(localhost).
+
+edit_option(Options0, Options) :-
+	select_option(edit(Bool), Options0, Options), !,
+	assert(can_edit(Bool)).
+edit_option(Options, Options).
 
 
 		 /*******************************
@@ -272,9 +291,7 @@ localhost(localhost).
 	root/1.
 
 root_option(Options0, Options) :-
-	(   select(root(Root), Options0, Options)
-	;   select(root=Root,  Options0, Options)
-	), !,
+	select_option(root(Root), Options0, Options), !,
 	assert(root(Root)).
 root_option(Options, Options).
 	
@@ -349,7 +366,7 @@ reply('/file', Request) :-
 %	Start SWI-Prolog editor on file
 
 reply('/edit', Request) :-
-	local(Request), !,
+	allow_edit(Request), !,
 	http_parameters(Request,
 			[ file(File,     [optional(true)]),
 			  module(Module, [optional(true)]),
@@ -489,7 +506,7 @@ documentation(Path, Request) :-
 %	localhost.
 
 edit_options(Request, [edit(true)]) :-
-	local(Request), !.
+	allow_edit(Request), !.
 edit_options(_, []).
 
 

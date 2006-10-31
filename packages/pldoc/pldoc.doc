@@ -475,6 +475,20 @@ Start documentation server at \arg{Port} using \arg{Options}.  Provided
 options are:
 
     \begin{description}
+	\termitem{root}{+Path}
+Defines the root of all locations served by the HTTP server.  Default
+is \const{/}.  \arg{Path} must be an absolute URL location, starting
+with \chr{/} and ending in \chr{/}.  Intented for public services behind
+a reverse proxy.  See documentation of the HTTP package for details on
+using reverse proxies.
+
+	\termitem{edit}{+Bool}
+If \const{false}, do not allow editing, even if the connection comes
+from localhost.  Intended together with the \const{root} option to make
+pldoc available from behind a reverse proxy.  See the HTTP package for
+configuring a Prolog server behind an \url[Apache reverse
+proxy]{http://httpd.apache.org/docs/1.3/mod/mod_proxy.html}.
+
 	\termitem{allow}{+HostOrIP}
 Allow connections from \arg{HostOrIP}.  If \arg{Host} is an atom
 starting with a '.', suffix matching is preformed.  I.e.\ 
@@ -493,7 +507,7 @@ Access is granted iff
 \begin{shortlist}
     \item Both \emph{deny} and \emph{allow} match
     \item \emph{allow} exists and matches
-    \item \emph{allow} does not exit and \emph{deny} does not match.
+    \item \emph{allow} does not exist and \emph{deny} does not match.
 \end{shortlist}
 
     \predicate{doc_browser}{0}{}
