@@ -31,7 +31,8 @@
 
 :- module(swi_option,
 	  [ option/2,			% +Term, +List
-	    option/3			% +Term, +List, +Default
+	    option/3,			% +Term, +List, +Default
+	    select_option/3		% +Term, +Options, -RestOptions
 	  ]).
 
 %%	option(?Option, +OptionList, +Default)
@@ -61,7 +62,7 @@ option(Opt, _, Default) :-
 %	
 %	@param Option	Term of the form Name(?Value).
 
-option(Opt, Options) :-	% make option processing stead-fast
+option(Opt, Options) :-			% make option processing stead-fast
 	arg(1, Opt, OptVal),
 	nonvar(OptVal), !,
 	functor(Opt, OptName, 1),
@@ -79,3 +80,26 @@ get_option(Opt, Options) :-
 	arg(1, Opt, OptVal),
 	memberchk(OptName=OptVal, Options), !.
 
+
+%%	select_option(?Option, +Options, -RestOptions) is semidet.
+%
+%	As option/2, removing  the  matching   option  from  Options and
+%	unifying the remaining options with RestOptions.
+
+select_option(Opt, Options0, Options) :-	% stead-fast
+	arg(1, Opt, OptVal),
+	nonvar(OptVal), !,
+	functor(Opt, OptName, 1),
+	functor(Gen, OptName, 1),
+	select_option(Gen, Options0, Options),
+	Opt = Gen.
+select_option(Opt, Options0, Options) :-
+	get_option(Opt, Options0, Options), !.
+
+
+get_option(Opt, Options0, Options) :-
+	select(Opt, Options0, Options), !.
+get_option(Opt, Options0, Options) :-
+	functor(Opt, OptName, 1),
+	arg(1, Opt, OptVal),
+	select(OptName=OptVal, Options0, Options), !.
