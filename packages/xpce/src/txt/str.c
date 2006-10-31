@@ -828,19 +828,36 @@ str_strip(String s)
     charA *t = s->s_textA;
     charA *e = &s->s_textA[size];
     
-    while( f < e && isblank(*f) )
+    while( f < e && iswspace(*f) )	/* ISO-Latin-1 */
       f++;
 
     do
-    { while( f < e && !isblank(*f) )
+    { while( f < e && !iswspace(*f) )
 	*t++ = *f++;
-      while( f < e && isblank(*f) )
+      while( f < e && iswspace(*f) )
 	f++;
       if ( f < e )
 	*t++ = ' ';
     } while( f < e );
+    s->size = t - s->s_textA;
   } else
-    errorPce(CtoName("str_strip()"), NAME_notSupportedForChar16);
+  { charW *f = s->s_textW;
+    charW *t = s->s_textW;
+    charW *e = &s->s_textW[size];
+    
+    while( f < e && iswspace(*f) )
+      f++;
+
+    do
+    { while( f < e && !iswspace(*f) )
+	*t++ = *f++;
+      while( f < e && iswspace(*f) )
+	f++;
+      if ( f < e )
+	*t++ = ' ';
+    } while( f < e );
+    s->size = t - s->s_textW;
+  }
 }
 
 

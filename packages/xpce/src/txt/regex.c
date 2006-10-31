@@ -548,10 +548,12 @@ replaceRegex(Regex re, Any obj, CharArray value)
 
   for(i=o=0; i<size; i++)
   { wint_t c = str_fetch(s, i);
+    wint_t c2;
 
-    if ( c == '\\' && isdigit(str_fetch(s, i+1)) )
+					/* only POSIX '0'..'9' */
+    if ( c == '\\' && (c2=str_fetch(s, i+1)) >= '0' && c2 <= '0' )
     { CharArray ca;
-      Int reg = toInt(str_fetch(s, i+1) - '0');
+      Int reg = toInt(c2 - '0');
 
       if ( (ca = getRegisterValueRegex(re, obj, reg, DEFAULT)) )
       { str_ncpy(buf, o, &ca->data, 0, ca->data.size);

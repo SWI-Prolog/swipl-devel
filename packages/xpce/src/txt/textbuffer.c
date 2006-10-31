@@ -984,9 +984,9 @@ scan_syntax_textbuffer(TextBuffer tb,
 
 					/* Prolog 0'char syntax */
       if ( c == '\'' && syntax->name == NAME_prolog && here > 0 )
-      { int c0 = fetch(here-1);
+      { wint_t c0 = fetch(here-1);
 
-	if ( isdigit(c0) )		/* or <digit><number> */
+	if ( iswdigit(c0) )		/* or <digit><number> */
 	{ if ( c0 == '0' )
 	  { here++;			/* ignore this char */
 	    if ( here >= to )
@@ -1108,9 +1108,9 @@ inStringTextBuffer(TextBuffer tb, Int pos, Int from)
 
 					/* Prolog 0'char syntax */
       if ( c == '\'' && syntax->name == NAME_prolog && here > 0 )
-      { int c0 = fetch(here-1);
+      { wint_t c0 = fetch(here-1);
 
-	if ( isdigit(c0) )
+	if ( iswdigit(c0) )
 	{ if ( c0 == '0' && idx == here+1 )
 	    succeed;
 	  continue;
