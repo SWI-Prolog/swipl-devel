@@ -1816,6 +1816,15 @@ callEventHook(int ev, ...)
 		           PL_TERM, ref);
 	break;
       }
+      case PL_EV_THREADFINISHED:
+      { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);
+	term_t id = PL_new_term_ref();
+
+	unify_thread_id(id, info);
+	PL_unify_term(arg, PL_FUNCTOR_CHARS, "thread_finished", 1,
+		             PL_TERM, id);
+	break;
+      }
       default:
 	warning("callEventHook(): unknown event: %d", ev);
         goto out;

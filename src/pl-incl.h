@@ -1795,6 +1795,7 @@ typedef struct
 #define PLEV_BREAK	   4		/* a break-point was set */
 #define PLEV_NOBREAK	   5		/* a break-point was cleared */
 #define PLEV_FRAMEFINISHED 6		/* A watched frame was discarded */
+#define PL_EV_THREADFINISHED 7		/* A thread has finished */
 
 
 		/********************************

@@ -350,7 +350,6 @@ static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 static int	get_message_queue(term_t t, message_queue **queue);
 static void	cleanupLocalDefinitions(PL_local_data_t *ld);
-static int	unify_thread(term_t id, PL_thread_info_t *info);
 static pl_mutex *mutexCreate(atom_t name);
 static double   ThreadCPUTime(PL_thread_info_t *info, int which);
 
@@ -465,6 +464,9 @@ free_prolog_thread(void *data)
   UNLOCK();
   DEBUG(1, Sdprintf("Freeing prolog thread %d\n", info-threads));
 
+#if O_DEBUGGER
+  callEventHook(PL_EV_THREADFINISHED, info);
+#endif
   run_thread_exit_hooks();
   cleanupLocalDefinitions(ld);
   
@@ -1031,7 +1033,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		    ERR_SYSCALL, "pthread_create");
   }
 
-  return unify_thread(id, info);
+  return unify_thread_id(id, info);
 }
 
 
@@ -1066,8 +1068,8 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 }
 
 
-static int
-unify_thread(term_t id, PL_thread_info_t *info)
+int
+unify_thread_id(term_t id, PL_thread_info_t *info)
 { if ( info->name )
     return PL_unify_atom(id, info->name);
 
@@ -1122,7 +1124,7 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
 
 word
 pl_thread_self(term_t self)
-{ return unify_thread(self, LD->thread.info);
+{ return unify_thread_id(self, LD->thread.info);
 }
 
 
@@ -1281,7 +1283,7 @@ pl_current_thread(term_t id, term_t status, control_t h)
 	   continue;
 
 	Mark(m);
-	if ( unify_thread(id, &threads[current]) &&
+	if ( unify_thread_id(id, &threads[current]) &&
 	     unify_thread_status(status, &threads[current]) )
 	  ForeignRedoInt(current+1);
 	Undo(m);
@@ -2456,7 +2458,7 @@ unify_mutex(term_t t, pl_mutex *m)
 static int
 unify_mutex_owner(term_t t, int owner)
 { if ( owner )
-    return unify_thread(t, &threads[owner]);
+    return unify_thread_id(t, &threads[owner]);
   else
     return PL_unify_nil(t);
 }

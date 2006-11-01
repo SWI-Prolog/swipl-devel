@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: debugger event for finished threads.
+
   * FIXED: Avoid history expansion on ..., !.  Kimberly Voll.
 
   * FIXED: negative shift.  Roberto Bagnara.

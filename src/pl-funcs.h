@@ -919,6 +919,7 @@ COMMON(bool) 		systemMode(bool accept);
 /* pl-thread.c */
 COMMON(foreign_t) 	pl_with_mutex(term_t mutex, term_t goal);
 COMMON(foreign_t) 	pl_thread_self(term_t self);
+COMMON(int)		unify_thread_id(term_t id, PL_thread_info_t *info);
 COMMON(int) 		enableThreads(int enable);
 
 
