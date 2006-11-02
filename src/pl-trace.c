@@ -83,7 +83,8 @@ PL_get_frame(term_t r, LocalFrame *fr)
   if ( PL_get_long(r, &i) )
   { LocalFrame f = ((LocalFrame)((Word)lBase + i));
 
-    assert(f >= lBase && f < lTop);
+    if ( !(f >= lBase && f < lTop) )
+      fail;
     *fr = f;
 
     succeed;
@@ -1064,7 +1065,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 	{ debugstatus.retryFrame = fr;
 	  rval = ACTION_RETRY;
 	} else
-	  warning("prolog_trace_interception/3: bad argument to retry/1");
+	  PL_warning("prolog_trace_interception/3: bad argument to retry/1");
       }
     }
     PL_close_query(qid);
