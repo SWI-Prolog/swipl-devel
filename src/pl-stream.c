@@ -2567,7 +2567,13 @@ Sfdopen(int fd, const char *type)
   long lfd;
 
   if ( fd < 0 )
+  { errno = EINVAL;
     return NULL;
+  }
+#if defined(HAVE_FCNTL) && defined(F_GETFL)
+  if ( fcntl(fd, F_GETFL) == -1 )
+    return NULL;
+#endif
 
   if ( *type == 'r' )
     flags = SIO_FILE|SIO_INPUT|SIO_RECORDPOS;
