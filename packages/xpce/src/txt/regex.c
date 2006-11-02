@@ -551,7 +551,7 @@ replaceRegex(Regex re, Any obj, CharArray value)
     wint_t c2;
 
 					/* only POSIX '0'..'9' */
-    if ( c == '\\' && (c2=str_fetch(s, i+1)) >= '0' && c2 <= '0' )
+    if ( c == '\\' && (c2=str_fetch(s, i+1)) >= '0' && c2 <= '9' )
     { CharArray ca;
       Int reg = toInt(c2 - '0');
 
