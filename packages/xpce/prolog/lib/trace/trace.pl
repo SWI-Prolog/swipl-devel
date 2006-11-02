@@ -500,8 +500,7 @@ action(Action) :-
 	debug('Got action ~w~n', [Action0]),
 	action(Action0, Action).
 action(Action) :-
-	tracer_gui([], GUI),
-	in_pce_thread(send(GUI, prepare_action)),
+	send_tracer(prepare_action),
 	repeat,
 	thread_get_message('$trace'(Result)),
 	(   Result = call(Goal, Caller)
@@ -541,13 +540,11 @@ show_stack(Frame, Attributes) :-
 	attribute(Attributes, stack), !,
 	tracer_gui(Attributes, GUI),
 	debug('stack ...', []),
-	get_tracer(GUI, member(stack), StackBrowser),
-	send(StackBrowser, clear),
 	in_debug_thread(GUI,
 			stack_info(Frame,
 				   CallFrames, ChoiceFrames,
 				   Attributes)),
-	display_stack(StackBrowser, CallFrames, ChoiceFrames).
+	send_tracer(GUI, show_stack(CallFrames, ChoiceFrames)).
 show_stack(_, _).
 
 %%	stack_info(+Frame, -CallFrames, -ChoiceFrames, +Attributes) is det.

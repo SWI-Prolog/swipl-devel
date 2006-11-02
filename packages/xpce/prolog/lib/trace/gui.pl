@@ -392,6 +392,11 @@ label(F, Label:char_array) :->
 	;   send_super(F, label, string('[Thread %s] %s', Thread, Label))
 	).
 
+clear_stack_window(F) :->
+	"Clear the stack window"::
+	get(F, member, stack, StackView),
+	send(StackView, clear).
+
 clear(F, Content:[bool]) :->
 	"Deactivate all views"::
 	ignore(send(F, send_hyper, fragment, free)),
@@ -463,6 +468,12 @@ show_frame(GUI, Frame:int, PC:'int|name') :->
 	"Show the variables of this frame"::
 	prolog_show_frame(Frame, [gui(GUI), pc(PC), source, bindings]).
 
+show_stack(GUI, CallFrames:prolog, ChoiceFrames:prolog) :->
+	"Show the stack and choicepoints"::
+	get(GUI, member, stack, StackWindow),
+	send(StackWindow, clear),
+	display_stack(StackWindow, CallFrames, ChoiceFrames).
+
 
 		 /*******************************
 		 *	      EVENT		*
@@ -491,7 +502,6 @@ prepare_action(Frame) :->
 	get(Frame, display, Display),
 	send(Display, busy_cursor, @nil),
 	send(Display, synchronise),
-	send(Frame, report, status, 'Action?'),
 	send(Frame, mode, wait_user).
 
 action(Frame, Action:name) :<-
