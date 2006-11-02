@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.16</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section A.16</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="clpclp_distinct.html">
@@ -93,10 +93,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -104,7 +100,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -171,7 +167,7 @@ integral(Variable) and constrains Variable to an integral value.</DD>
 <DT class="pubdef"><A NAME="constraint/4"><STRONG>constraint</STRONG>(<VAR>+Name, 
 +Constraint, +S0, -S</VAR>)</A></DT>
 <DD class="defbody">
-Like <A NAME="idx:constraint3:1420"></A><A class="pred" href="simplex.html#constraint/3">constraint/3</A>, 
+Like <A NAME="idx:constraint3:1421"></A><A class="pred" href="simplex.html#constraint/3">constraint/3</A>, 
 and attaches the name <VAR>Name</VAR> (an atom or compound term) to the 
 new constraint.</DD>
 <DT class="pubdef"><A NAME="constraint_add/4"><STRONG>constraint_add</STRONG>(<VAR>+Name, 
@@ -193,7 +189,7 @@ is unified with an internal representation of the solved instance.</DD>
 <DT class="pubdef"><A NAME="minimize/3"><STRONG>minimize</STRONG>(<VAR>+Objective, 
 +S0, -S</VAR>)</A></DT>
 <DD class="defbody">
-Analogous to <A NAME="idx:maximize3:1421"></A><A class="pred" href="simplex.html#maximize/3">maximize/3</A>.</DD>
+Analogous to <A NAME="idx:maximize3:1422"></A><A class="pred" href="simplex.html#maximize/3">maximize/3</A>.</DD>
 <DT class="pubdef"><A NAME="objective/2"><STRONG>objective</STRONG>(<VAR>+State, 
 -Objective</VAR>)</A></DT>
 <DD class="defbody">
@@ -227,7 +223,7 @@ instance.
 <P></DD>
 </DL>
 
-All numeric quantities are converted to rationals via <A NAME="idx:rationalize1:1422"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A>, 
+All numeric quantities are converted to rationals via <A NAME="idx:rationalize1:1423"></A><A class="pred" href="arith.html#rationalize/1">rationalize/1</A>, 
 and rational arithmetic is used throughout solving linear programs. In 
 the current implementation, all variables are implicitly constrained to 
 be non-negative. This may change in future versions, and non-negativity 

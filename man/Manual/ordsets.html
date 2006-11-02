@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.2</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section A.2</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="lists.html">
@@ -93,10 +93,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -104,7 +100,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -127,7 +123,7 @@ ordsets ): Ordered Set Manipulation</SPAN></A></H2>
 <A NAME="sec:lib:ordsets"></A>
 
 <P>Ordered sets are lists with unique elements sorted to the standard 
-order of terms (see <A NAME="idx:sort2:1363"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>). 
+order of terms (see <A NAME="idx:sort2:1364"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>). 
 Exploiting ordering, many of the set operations can be expressed in 
 order N rather than <VAR>N^2</VAR> when dealing with unordered sets that 
 may contain duplicates. The <CODE>library(ordsets)</CODE> is available 
@@ -149,7 +145,7 @@ with the empty list.</DD>
 <DT class="pubdef"><A NAME="list_to_ord_set/2"><STRONG>list_to_ord_set</STRONG>(<VAR>+List, 
 -OrdSet</VAR>)</A></DT>
 <DD class="defbody">
-Convert a <VAR>List</VAR> to an ordered set. Same as <A NAME="idx:sort2:1364"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>.</DD>
+Convert a <VAR>List</VAR> to an ordered set. Same as <A NAME="idx:sort2:1365"></A><A class="pred" href="builtinlist.html#sort/2">sort/2</A>.</DD>
 <DT class="pubdef"><A NAME="ord_add_element/3"><STRONG>ord_add_element</STRONG>(<VAR>+Set, 
 +Element, -NewSet</VAR>)</A></DT>
 <DD class="defbody">
@@ -176,7 +172,7 @@ and
 <DD class="defbody">
 True if <VAR>Set1</VAR> and <VAR>Set2</VAR> have no common element. 
 Negation of
-<A NAME="idx:ordintersect2:1365"></A><A class="pred" href="ordsets.html#ord_intersect/2">ord_intersect/2</A>.</DD>
+<A NAME="idx:ordintersect2:1366"></A><A class="pred" href="ordsets.html#ord_intersect/2">ord_intersect/2</A>.</DD>
 <DT class="pubdef"><A NAME="ord_subtract/3"><STRONG>ord_subtract</STRONG>(<VAR>+Set, 
 +Delete, -Remaining</VAR>)</A></DT>
 <DD class="defbody">
@@ -199,7 +195,7 @@ True if all elements of <VAR>Sub</VAR> are in <VAR>Super</VAR>.</DD>
 +Set</VAR>)</A></DT>
 <DD class="defbody">
 True if <VAR>Element</VAR> appears in <VAR>Set</VAR>. Does not 
-backtrack. Same as <A NAME="idx:memberchk2:1366"></A><A class="pred" href="builtinlist.html#memberchk/2">memberchk/2</A>.
+backtrack. Same as <A NAME="idx:memberchk2:1367"></A><A class="pred" href="builtinlist.html#memberchk/2">memberchk/2</A>.
 </DD>
 </DL>
 

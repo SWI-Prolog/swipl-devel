@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 9.2</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section 9.2</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="foreignoverview.html">
@@ -93,10 +93,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -104,7 +100,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -138,7 +134,7 @@ some operating systems, notably Unix systems using the BSD <CODE>a.out</CODE>
 executable format. As the number of Unix platforms supporting this gets 
 quickly smaller and this interface is difficult to port and slow, it is 
 no longer described in this manual. The best alternatively would be to 
-use the <A NAME="idx:dld:1254">dld</A> package on machines do not have 
+use the <A NAME="idx:dld:1255">dld</A> package on machines do not have 
 shared libraries</SPAN></SUP>.
 
 <H3><A NAME="sec:9.2.1"><SPAN class="sec-nr">9.2.1</SPAN><SPAN class="sec-title">What 
@@ -147,9 +143,9 @@ linking is provided?</SPAN></A></H3>
 <P>The <EM>static linking</EM> schema can be used on all versions of 
 SWI-Prolog. Whether or not dynamic linking is supported can be deduced 
 from the prolog-flag <CODE>open_shared_object</CODE> (see
-<A NAME="idx:currentprologflag2:1255"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). 
+<A NAME="idx:currentprologflag2:1256"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). 
 If this prolog-flag yields true,
-<A NAME="idx:opensharedobject2:1256"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
+<A NAME="idx:opensharedobject2:1257"></A><A class="pred" href="dynstatic.html#open_shared_object/2">open_shared_object/2</A> 
 and related predicates are defined. See
 <A class="sec" href="DLL.html">section 9.4</A> for a suitable high-level 
 interface to these predicates.
@@ -166,8 +162,8 @@ often hides these problems from the user.
 
 <P>Loading shared objects (DLL files on Windows) provides sharing and 
 protection and is generally the best choice. If a saved-state is created 
-using <A NAME="idx:qsaveprogram12:1257"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>, 
-an <A NAME="idx:initialization1:1258"></A><A class="pred" href="consulting.html#initialization/1">initialization/1</A> 
+using <A NAME="idx:qsaveprogram12:1258"></A><A class="pred" href="runtime.html#qsave_program/1">qsave_program/[1,2]</A>, 
+an <A NAME="idx:initialization1:1259"></A><A class="pred" href="consulting.html#initialization/1">initialization/1</A> 
 directive may be used to load the appropriate library at startup.
 
 <P>Note that the definition of the foreign predicates is the same, 

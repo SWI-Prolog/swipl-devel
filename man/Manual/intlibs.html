@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section B.5</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section B.5</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="exception3.html">
@@ -93,10 +93,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -104,7 +100,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -139,8 +135,8 @@ Hook, normally not defined. This hook is called by the 'L' command of
 the tracer in the module <CODE>user</CODE> to list the currently called 
 predicate. This hook may be defined to list only relevant clauses of the 
 indicated <VAR>Goal</VAR> and/or show the actual source-code in an 
-editor. See also <A NAME="idx:portray1:1452"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
-and <A NAME="idx:multifile1:1453"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A>.</DD>
+editor. See also <A NAME="idx:portray1:1453"></A><A class="pred" href="termrw.html#portray/1">portray/1</A> 
+and <A NAME="idx:multifile1:1454"></A><A class="pred" href="dynamic.html#multifile/1">multifile/1</A>.</DD>
 <DT class="pubdef"><A NAME="prolog:debug_control_hook/1"><STRONG>prolog:debug_control_hook</STRONG>(<VAR>:Action</VAR>)</A></DT>
 <DD class="defbody">
 Hook for the debugger-control predicates that allows the creator of more 
@@ -151,38 +147,38 @@ spying methods rather then predicates. <VAR>Action</VAR> is one of:
 <DL>
 <DT><STRONG>spy</STRONG>(<VAR>Spec</VAR>)</DT>
 <DD class="defbody">
-Hook in <A NAME="idx:spy1:1454"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>. 
-If the hook succeeds <A NAME="idx:spy1:1455"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
+Hook in <A NAME="idx:spy1:1455"></A><A class="pred" href="debugger.html#spy/1">spy/1</A>. 
+If the hook succeeds <A NAME="idx:spy1:1456"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
 takes no further action.
 </DD>
 <DT><STRONG>nospy</STRONG>(<VAR>Spec</VAR>)</DT>
 <DD class="defbody">
-Hook in <A NAME="idx:nospy1:1456"></A><A class="pred" href="debugger.html#nospy/1">nospy/1</A>. 
-If the hook succeeds <A NAME="idx:spy1:1457"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
-takes no further action. If <A NAME="idx:spy1:1458"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
+Hook in <A NAME="idx:nospy1:1457"></A><A class="pred" href="debugger.html#nospy/1">nospy/1</A>. 
+If the hook succeeds <A NAME="idx:spy1:1458"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
+takes no further action. If <A NAME="idx:spy1:1459"></A><A class="pred" href="debugger.html#spy/1">spy/1</A> 
 is hooked, it is advised to place a complementary hook for
-<A NAME="idx:nospy1:1459"></A><A class="pred" href="debugger.html#nospy/1">nospy/1</A>.
+<A NAME="idx:nospy1:1460"></A><A class="pred" href="debugger.html#nospy/1">nospy/1</A>.
 </DD>
 <DT><STRONG>nospyall</STRONG></DT>
 <DD class="defbody">
-Hook in <A NAME="idx:nospyall0:1460"></A><A class="pred" href="debugger.html#nospyall/0">nospyall/0</A>. 
+Hook in <A NAME="idx:nospyall0:1461"></A><A class="pred" href="debugger.html#nospyall/0">nospyall/0</A>. 
 Should remove all spy-points. This hook is called in a failure-driven 
 loop.
 </DD>
 <DT><STRONG>debugging</STRONG></DT>
 <DD class="defbody">
-Hook in <A NAME="idx:debugging0:1461"></A><A class="pred" href="debugger.html#debugging/0">debugging/0</A>. 
+Hook in <A NAME="idx:debugging0:1462"></A><A class="pred" href="debugger.html#debugging/0">debugging/0</A>. 
 It can be used in two ways. It can report the status of the additional 
 debug-points controlled by the above hooks and fail to let the system 
-report the others or it succeed, overruling the entire behaviour of <A NAME="idx:debugging0:1462"></A><A class="pred" href="debugger.html#debugging/0">debugging/0</A>.
+report the others or it succeed, overruling the entire behaviour of <A NAME="idx:debugging0:1463"></A><A class="pred" href="debugger.html#debugging/0">debugging/0</A>.
 </DD>
 </DL>
 
 </DD>
 <DT class="pubdef"><A NAME="prolog:help_hook/1"><STRONG>prolog:help_hook</STRONG>(<VAR>+Action</VAR>)</A></DT>
 <DD class="defbody">
-Hook into <A NAME="idx:help0:1463"></A><A class="pred" href="help.html#help/0">help/0</A> 
-and <A NAME="idx:help1:1464"></A><A class="pred" href="help.html#help/1">help/1</A>. 
+Hook into <A NAME="idx:help0:1464"></A><A class="pred" href="help.html#help/0">help/0</A> 
+and <A NAME="idx:help1:1465"></A><A class="pred" href="help.html#help/1">help/1</A>. 
 If the hook succeeds, the built-in actions are not executed. For 
 example, <CODE>?- help(picture).</CODE> is caught by the XPCE help-hook 
 to give help on the class <EM>picture</EM>. Defined actions are:
@@ -190,19 +186,19 @@ to give help on the class <EM>picture</EM>. Defined actions are:
 <DL>
 <DT><STRONG>help</STRONG></DT>
 <DD class="defbody">
-User entered plain <A NAME="idx:help0:1465"></A><A class="pred" href="help.html#help/0">help/0</A> 
+User entered plain <A NAME="idx:help0:1466"></A><A class="pred" href="help.html#help/0">help/0</A> 
 to give default help. The default performs
-<CODE>help(<A NAME="idx:help1:1466"></A><A class="pred" href="help.html#help/1">help/1</A>)</CODE>, 
+<CODE>help(<A NAME="idx:help1:1467"></A><A class="pred" href="help.html#help/1">help/1</A>)</CODE>, 
 giving help on help.
 </DD>
 <DT><STRONG>help</STRONG>(<VAR>What</VAR>)</DT>
 <DD class="defbody">
-Hook in <A NAME="idx:help1:1467"></A><A class="pred" href="help.html#help/1">help/1</A> 
+Hook in <A NAME="idx:help1:1468"></A><A class="pred" href="help.html#help/1">help/1</A> 
 on the topic <VAR>What</VAR>.
 </DD>
 <DT><STRONG>apropos</STRONG>(<VAR>What</VAR>)</DT>
 <DD class="defbody">
-Hook in <A NAME="idx:apropos1:1468"></A><A class="pred" href="help.html#apropos/1">apropos/1</A> 
+Hook in <A NAME="idx:apropos1:1469"></A><A class="pred" href="help.html#apropos/1">apropos/1</A> 
 on the topic <VAR>What</VAR>.
 </DD>
 </DL>

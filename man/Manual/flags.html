@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section 2.11</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="compilation.html">
@@ -93,10 +93,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -104,7 +100,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -548,7 +544,7 @@ omitted, it is sometimes necessary to enable it during debugging.</DD>
 <DD class="defbody">
 Offset in seconds west of GMT of the current time-zone. Set at 
 initialization time from the <CODE>timezone</CODE> variable associated 
-with the POSIX tzset() function. See also <A NAME="idx:converttime2:148"></A><SPAN class="pred-ext">convert_time/2</SPAN>.</DD>
+with the POSIX tzset() function. See also <A NAME="idx:converttime2:148"></A><B>convert_time/2</B>.</DD>
 <DT><STRONG>toplevel_print_anon</STRONG>(<VAR>bool</VAR>, changeable)</DT>
 <DD class="defbody">
 If <CODE>true</CODE>, top-level variables starting with an underscore (<CODE>_</CODE>) 

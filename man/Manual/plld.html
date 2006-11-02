@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 9.7</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section 9.7</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="foreigninclude.html">
@@ -93,10 +93,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -104,7 +100,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -171,7 +167,7 @@ Linker used to link the raw executable. Default is to use the C-compiler
 <DT><STRONG>-cc</STRONG> <VAR>C-compiler</VAR></DT>
 <DD class="defbody">
 Compiler for <CODE>.c</CODE> files found on the command-line. Default is 
-the compiler used to build SWI-Prolog (see <A NAME="idx:currentprologflag2:1317"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>) 
+the compiler used to build SWI-Prolog (see <A NAME="idx:currentprologflag2:1318"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>) 
 (Win32: cl.exe).
 </DD>
 <DT><STRONG>-c++</STRONG> <VAR>C++-compiler</VAR></DT>
@@ -194,7 +190,7 @@ appended to the kernel using <CODE>cat &lt;<VAR>kernel</VAR>&gt; &lt;<VAR>state<
 <DT><STRONG>-shared</STRONG> <VAR></VAR></DT>
 <DD class="defbody">
 Link C, C++ or object files into a shared object (DLL) that can be 
-loaded by the <A NAME="idx:loadforeignlibrary1:1318"></A><A class="pred" href="DLL.html#load_foreign_library/1">load_foreign_library/1</A> 
+loaded by the <A NAME="idx:loadforeignlibrary1:1319"></A><A class="pred" href="DLL.html#load_foreign_library/1">load_foreign_library/1</A> 
 predicate. If used with
 <STRONG>-c</STRONG> it sets the proper options to compile a C or C++ 
 file ready for linking into a shared object</DD>

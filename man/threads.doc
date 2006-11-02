@@ -612,7 +612,9 @@ mode are flags that are local to each thread. Individual threads can be
 debugged either using the graphical debugger described in
 \secref{guitracer} (see tspy/1 and friends) or by attaching a console to
 the thread and running the traditional command-line debugger (see
-attach_console/0).
+attach_console/0).  When using the graphical debugger, the debugger
+must be \emph{loaded} from the main thread (for example using guitracer)
+before gtrace/0 can be called from a thread.
 
 
 \begin{description}

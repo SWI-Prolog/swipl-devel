@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.32</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section 4.32</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="forall2.html">
@@ -93,10 +93,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -104,7 +100,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -200,7 +196,7 @@ the next item </TD></TR>
 <TR VALIGN=top><TD><CODE>%d</CODE> </TD><TD>Write the term, ignoring 
 operators. See also
 <A NAME="idx:writeterm2:944"></A><A class="pred" href="termrw.html#write_term/2">write_term/2</A>. 
-Mnemonic: old Edinburgh <A NAME="idx:display1:945"></A><SPAN class="pred-ext">display/1</SPAN>. </TD></TR>
+Mnemonic: old Edinburgh <A NAME="idx:display1:945"></A><B>display/1</B>. </TD></TR>
 <TR VALIGN=top><TD><CODE>%p</CODE> </TD><TD><A NAME="idx:print1:946"></A><A class="pred" href="termrw.html#print/1">print/1</A> 
 the next item (identical to <CODE>%t</CODE>) </TD></TR>
 <TR VALIGN=top><TD><CODE>%n</CODE> </TD><TD>Put the next item as a 
@@ -414,7 +410,7 @@ but write the output on the given <VAR>Output</VAR>. The de-facto
 standard only allows <VAR>Output</VAR> to be a stream. The SWI-Prolog 
 implementation allows all valid arguments for
 <A NAME="idx:withoutputto2:957"></A><A class="pred" href="IO.html#with_output_to/2">with_output_to/2</A>.<SUP class="fn">54<SPAN class="fn-text">Earlier 
-versions defined <A NAME="idx:sformat23:958"></A><SPAN class="pred-ext">sformat/[2,3]</SPAN>. 
+versions defined <A NAME="idx:sformat23:958"></A><B>sformat/[2,3]</B>. 
 These predicates have been moved to the library <CODE>library(backcomp)</CODE>.</SPAN></SUP> 
 For example:
 

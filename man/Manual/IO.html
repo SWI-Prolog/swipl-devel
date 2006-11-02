@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section 4.16</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section 4.16</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="examineprog.html">
@@ -93,10 +93,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -104,7 +100,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -700,7 +696,7 @@ onto atoms, code-lists, etc.</SPAN></A></H3>
 Run <VAR>Goal</VAR> as <A NAME="idx:once1:688"></A><A class="pred" href="metacall.html#once/1">once/1</A>, 
 while characters written to the current output is sent to <VAR>Output</VAR>. 
 The predicate is SWI-Prolog specific, inspired by various posts to the 
-mailinglist. It provides a flexible replacement for predicates such as <A NAME="idx:sformat3:689"></A><SPAN class="pred-ext">sformat/3</SPAN>, <A NAME="idx:swritef3:690"></A><A class="pred" href="format.html#swritef/3">swritef/3</A>, <A NAME="idx:termtoatom2:691"></A><A class="pred" href="manipatom.html#term_to_atom/2">term_to_atom/2</A>,
+mailinglist. It provides a flexible replacement for predicates such as <A NAME="idx:sformat3:689"></A><B>sformat/3</B>, <A NAME="idx:swritef3:690"></A><A class="pred" href="format.html#swritef/3">swritef/3</A>, <A NAME="idx:termtoatom2:691"></A><A class="pred" href="manipatom.html#term_to_atom/2">term_to_atom/2</A>,
 <A NAME="idx:atomnumber2:692"></A><A class="pred" href="manipatom.html#atom_number/2">atom_number/2</A> 
 converting numbers to atoms, etc. The predicate <A NAME="idx:format3:693"></A><A class="pred" href="format.html#format/3">format/3</A> 
 accepts the same terms as output argument.

@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.18 Reference Manual: Section A.10</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section A.10</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="readutil.html">
@@ -93,10 +93,6 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
-span.pred-ext
-{ font-weight: bold;
-}
-
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -104,7 +100,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 80%;
+position: absolute; top: auto; left: auto; width: 250px;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -139,17 +135,17 @@ and browser specific task. It distinguishes between the following cases:
 <P>
 <UL>
 <LI><I>MS-Windows</I><BR>
-If it detects MS-Windows it uses <A NAME="idx:winshell2:1405"></A><A class="pred" href="system.html#win_shell/2">win_shell/2</A> 
+If it detects MS-Windows it uses <A NAME="idx:winshell2:1406"></A><A class="pred" href="system.html#win_shell/2">win_shell/2</A> 
 to open the <VAR>URL</VAR>. The behaviour and browser started depends on 
 the Window and Windows-shell configuration, but in general it should be 
 the behaviour expected by the user.
 
 <P>
 <LI><I>Other platforms</I><BR>
-On other platforms it tests the environment variable (see <A NAME="idx:getenv2:1406"></A><A class="pred" href="system.html#getenv/2">getenv/2</A>) 
+On other platforms it tests the environment variable (see <A NAME="idx:getenv2:1407"></A><A class="pred" href="system.html#getenv/2">getenv/2</A>) 
 named <CODE>BROWSER</CODE> or uses <B>netscape</B> if this variable is 
 not set. If the browser is either <CODE>mozilla</CODE> or <CODE>netscape</CODE>,
-<A NAME="idx:wwwopenurl1:1407"></A><A class="pred" href="netscape.html#www_open_url/1">www_open_url/1</A> 
+<A NAME="idx:wwwopenurl1:1408"></A><A class="pred" href="netscape.html#www_open_url/1">www_open_url/1</A> 
 first tries to open a new window on a running using the <CODE>-remote</CODE> 
 option of netscape. If this fails or the browser is not <CODE>mozilla</CODE> 
 or <CODE>netscape</CODE> the system simply passes the URL as first 
