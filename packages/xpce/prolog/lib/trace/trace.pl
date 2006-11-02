@@ -32,11 +32,15 @@
 :- module(pce_prolog_tracer,
 	  [ prolog_show_frame/2		% +Frame, +Options
 	  ]).
+:- use_module(library(prolog_clause)).
+:- use_module(library(lists)).
+:- use_module(library(debug)).
 :- consult([ clause,
 	     util,
 	     source,
 	     break,
-	     gui
+	     gui,
+	     stack
 	   ]).
 
 :- initialization
@@ -56,6 +60,13 @@ user:prolog_trace_interception(Port, Frame, CHP, Action) :-
 	notrace(intercept(Port, Frame, CHP, GuiAction)),
 	map_action(GuiAction, Frame, Action).
 
+
+%%	map_action(+GuiAction, +Frame, -Action) is det.
+%
+%	Map the abstract action of the gui-tracer into actions for the
+%	low-level tracer.  Runs in the debugged thread.
+%	
+%	@tbd	The argument frame is not used.  Delete?
 
 map_action(creep, _, continue) :-
 	traceall.
@@ -88,9 +99,17 @@ map_action(finish, _, continue) :-
 	trace,
 	prolog_skip_level(_, Level).
 
+%%	traceall is det.
+%
+%	Go into non-skipping trace mode.
+
 traceall :-
 	prolog_skip_level(_, very_deep),
 	trace.
+
+%%	intercept(+Port, +Frame, +Choice, -Action) is semidet.
+%
+%	Toplevel of the tracer interception.  Runs in debugged thread.
 
 intercept(_, _, _, _) :-
 	setting(active, false), !,
@@ -108,6 +127,11 @@ intercept(Port, Frame, CHP, Action) :-
 fix_action(fail, skip,   creep) :- !.
 fix_action(exit, skip,   creep) :- !.
 fix_action(_,    Action, Action).
+
+%%	do_intercept(+Port, +Frame, +Choice, -Action) is det.
+%
+%	Actual core of the tracer intercepting code. Runs in the
+%	debugged thread.
 
 do_intercept(call, Frame, CHP, Action) :-
 	(   (   last_action(retry)
@@ -229,6 +253,14 @@ do_intercept(cut_exit(PC), Frame, CHP, Action) :-
 	action(Action).
 
 
+%%	show(+StartFrame, +Choice, +Up, +Port) is det.
+%
+%	Show current location from StartFrame.  Must be called in the
+%	context of the debugged thread.
+%	
+%	@param Up	Skip bottom Up frames.  Use to show call port
+%			in the parent frame.
+
 show(StartFrame, CHP, Up, exception(Except)) :- !,
 	show(StartFrame, CHP, Up, exception, exception),
 	message_to_string(Except, Message),
@@ -256,62 +288,13 @@ show(StartFrame, CHP, Up, Port, Style) :-
 			  ]).
 
 
-		 /*******************************
-		 *         SHOW LOCATION	*
-		 *******************************/
-
-attribute(Attributes, Att) :-
-	memberchk(Att, Attributes), !.
-
-attribute(Attributes, Att, _) :-
-	memberchk(Att, Attributes), !.
-attribute(_, Att, Def) :-
-	arg(1, Att, Def).
-
-
-prolog_show_frame(Frame, Attributes) :-
-	show_stack(Frame, Attributes),
-	show_bindings(Frame, Attributes),
-	show_source(Frame, Attributes),
-	(   setting(auto_raise, true)
-	->  send_tracer(expose)
-	;   true
-	).
-
-
-show_source(Frame, Attributes) :-
-	attribute(Attributes, source), !,
-	debug('source for #~w: ', [Frame]),
-	(   attribute(Attributes, pc(PC)),
-	    attribute(Attributes, port(Port), call),
-	    attribute(Attributes, style(Style), Port),
-	    debug('Show source, PC = ~w, Port = ~w~n', [PC, Port]),
-	    (   (PC == call ; PC == fail ; PC == exception )
-	    ->  prolog_frame_attribute(Frame, goal, Goal),
-		find_source(Goal, File, Line),
-		debug('At ~w:~d~n', [File, Line]),
-		send_tracer(show_line(File, Line, Style))
-	    ;   (   prolog_frame_attribute(Frame, clause, ClauseRef),
-		    debug('ClauseRef = ~w, PC = ~w~n', [ClauseRef, PC]),
-		    ClauseRef \== 0
-		->  subgoal_position(ClauseRef, PC, File, CharA, CharZ),
-		    debug('~p.~n', [show_range(File, CharA, CharZ, Style)]),
-		    send_tracer(show_range(File, CharA, CharZ, Style)),
-		    (	clause_property(ClauseRef, erased)
-		    ->	send_tracer(report(warning,
-					   'Running erased clause; source location may be incorrect'))
-		    ;	true
-		    )
-		;   prolog_frame_attribute(Frame, goal, Goal),
-		    find_source(Goal, File, Line),
-		    send_tracer(show_line(File, Line, Style))
-		)
-	    )
-	->  true
-	;   send_tracer(file(@nil))
-	).
-show_source(_, _).
-
+%%	find_frame(+Up, +StartFrame, +Port, -PC, -Frame)
+%
+%	Find the parent frame Up levels above StartFrame. Must be called
+%	in the context of the debugged thread.
+%	
+%	@param PC	PC in parent frame
+%	@param Frame	Parent frame
 
 find_frame(N, Start, _, PC, Frame) :-
 	N > 0, 
@@ -329,6 +312,117 @@ find_frame2(N, F0, _, F, PC) :-
 	prolog_frame_attribute(F0, pc, PC1),
 	NN is N - 1,
 	find_frame2(NN, F1, PC1, F, PC).
+
+
+		 /*******************************
+		 *         SHOW LOCATION	*
+		 *******************************/
+
+%%	attribute(+Attributes, ?Att) is semidet.
+%%	attribute(+Attributes, ?Att, +Default) is semidet.
+%
+%	Attribute parsing
+%	
+%	@bug	Merge with option library.
+
+attribute(Attributes, Att) :-
+	memberchk(Att, Attributes), !.
+
+attribute(Attributes, Att, _) :-
+	memberchk(Att, Attributes), !.
+attribute(_, Att, Def) :-
+	arg(1, Att, Def).
+
+%%	tracer_gui(+Attributes, -GUI) is det.
+%
+%	Find the tracer GUI object.
+
+tracer_gui(Attributes, GUI) :-
+	attribute(Attributes, gui(GUI)), !,
+	debug('GUI = ~p (given)~n', [GUI]).
+tracer_gui(_, GUI) :-
+	thread_self(Thread),
+	prolog_tracer(Thread, GUI),
+	debug('GUI = ~p (from thread ~p)~n', [GUI, Thread]).
+
+%%	prolog_show_frame(+Frame, +Attributes) is det.
+%
+%	Show given Prolog Frame in GUI-tracer, updating information as
+%	provided by Attributes.  Defined attributes:
+%	
+%		* pc(PC)
+%		* choice(CHP)
+%		* port(Port)
+%		* style(Style)
+%		Style to use for editor fragment indicating location
+%		* source
+%		Update source window
+%		* bindings
+%		Update variable bindings window
+%		* stack
+%		Update stack window
+%		* gui(Object)
+%		Gui to address
+
+prolog_show_frame(Frame, Attributes) :-
+	debug('prolog_show_frame(~p, ~p)~n', [Frame, Attributes]),
+	show_stack(Frame, Attributes),
+	show_bindings(Frame, Attributes),
+	show_source(Frame, Attributes),
+	(   setting(auto_raise, true)
+	->  tracer_gui(Attributes, GUI),
+	    send_tracer(GUI, expose)
+	;   true
+	).
+
+
+%%	show_source(+Frame, +Attributes) is det.
+%
+%	Update the current location in the source window. If called from
+%	the GUI, the attribute gui(GUI) must be   given to relate to the
+%	proper thread.
+
+show_source(Frame, Attributes) :-
+	attribute(Attributes, source), !,
+	tracer_gui(Attributes, GUI),
+	debug('source for #~w: ', [Frame]),
+	(   attribute(Attributes, pc(PC)),
+	    attribute(Attributes, port(Port), call),
+	    attribute(Attributes, style(Style), Port),
+	    debug('Show source, PC = ~w, Port = ~w~n', [PC, Port]),
+	    (   (PC == call ; PC == fail ; PC == exception )
+	    ->  prolog_frame_attribute(GUI, Frame, goal, Goal),
+		find_source(Goal, File, Line),
+		debug('At ~w:~d~n', [File, Line]),
+		send_tracer(GUI, show_line(File, Line, Style))
+	    ;   (   prolog_frame_attribute(GUI, Frame, clause, ClauseRef),
+		    debug('ClauseRef = ~w, PC = ~w~n', [ClauseRef, PC]),
+		    ClauseRef \== 0
+		->  subgoal_position(ClauseRef, PC, File, CharA, CharZ),
+		    debug('~p.~n', [show_range(File, CharA, CharZ, Style)]),
+		    send_tracer(GUI, show_range(File, CharA, CharZ, Style)),
+		    (	clause_property(ClauseRef, erased)
+		    ->	send_tracer(GUI,
+				    report(warning,
+					   'Running erased clause; \
+					   source location may be incorrect'))
+		    ;	true
+		    )
+		;   prolog_frame_attribute(GUI, Frame, goal, Goal),
+		    find_source(Goal, File, Line),
+		    send_tracer(GUI, show_line(File, Line, Style))
+		)
+	    )
+	->  true
+	;   send_tracer(GUI, file(@nil))
+	).
+show_source(_, _).
+
+
+%%	subgoal_position(+Clause, +PortOrPC, -File, -CharA, -CharZ) is det.
+% 
+%	Character  range  CharA..CharZ  in  File   is  the  location  to
+%	highlight for the given clause at the given location. 
 
 subgoal_position(ClauseRef, unify, File, CharA, CharZ) :- !,
 	pce_clause_info(ClauseRef, File, TPos, _),
@@ -388,10 +482,45 @@ find_subgoal([1|T], brace_term_position(_,_,Pos), SPos) :-
 		 *             ACTION		*
 		 *******************************/
 
+%%	action(-Action) is det.
+%
+%	Wait for the user to perform some   action. We are called in the
+%	context of the debugged thread. If we are in the main thread, we
+%	use classical XPCE <-confirm. Otherwise  we   hang  waiting on a
+%	message queue. While waiting, we must  be prepared to call goals
+%	on behalf of in_debug_thread/2 started by   the  debugger gui to
+%	get additional information  on  the   state  of  our (debugging)
+%	thread.
+%	
+%	@tbd	Synchronise with send_pce/1 and in_debug_thread/2.
+
 action(Action) :-
+	thread_self(main), !,
 	get_tracer(action, Action0),
 	debug('Got action ~w~n', [Action0]),
 	action(Action0, Action).
+action(Action) :-
+	tracer_gui([], GUI),
+	in_pce_thread(send(GUI, prepare_action)),
+	repeat,
+	thread_get_message('$trace'(Result)),
+	(   Result = call(Goal, Caller)
+	->  run_in_debug_thread(Goal, Caller),
+	    fail
+	;   Result = action(Action)
+	->  !
+	;   assertion(fail)
+	).
+
+run_in_debug_thread(Goal, Caller) :-
+	(   catch(Goal, Error, true)
+	->  (   var(Error)
+	    ->	Result = true(Goal)
+	    ;	Result = error(Error)
+	    )
+	;   Result = false
+	),
+	thread_send_message(Caller, '$trace'(Result)).
 
 action(break, Action) :- !,
 	break,
@@ -404,24 +533,42 @@ action(Action, Action).
 		 *	      STACK		*
 		 *******************************/
 
+%%	show_stack(+Frame, +Attributes) is det.
+%
+%	Show call- and choicepoint stack. Run in the context of the GUI.
+
 show_stack(Frame, Attributes) :-
 	attribute(Attributes, stack), !,
+	tracer_gui(Attributes, GUI),
 	debug('stack ...', []),
+	get_tracer(GUI, member(stack), StackBrowser),
+	send(StackBrowser, clear),
+	in_debug_thread(GUI,
+			stack_info(Frame,
+				   CallFrames, ChoiceFrames,
+				   Attributes)),
+	display_stack(StackBrowser, CallFrames, ChoiceFrames).
+show_stack(_, _).
+
+%%	stack_info(+Frame, -CallFrames, -ChoiceFrames, +Attributes) is det.
+% 
+%	Find the callstack and choicepoints that must be made visible in
+%	the stack window. Must  run  in   the  context  of  the debugged
+%	thread.
+
+stack_info(Frame, CallFrames, ChoiceFrames, Attributes) :-
 	attribute(Attributes, port(Port), call),
 	attribute(Attributes, pc(PC), Port),
 	attribute(Attributes, choice(CHP), Frame),
 	setting(stack_depth, Depth),
 	setting(choice_depth, MaxChoice),
-	get_tracer(member(stack), StackBrowser),
-	send(StackBrowser, clear),
 	stack_frames(Depth, Frame, PC, CallFrames),
 	debug('Stack frames: ~w~n', [CallFrames]),
 	level_range(CallFrames, Range),
 	debug('Levels ~w, CHP = ~w~n', [Range, CHP]),
 	choice_frames(MaxChoice, CHP, Range, [], ChoiceFrames),
-	debug('Choicepoints: ~p~n', [ChoiceFrames]),
-	display_stack(StackBrowser, CallFrames, ChoiceFrames).
-show_stack(_, _).
+	debug('Choicepoints: ~p~n', [ChoiceFrames]).
+
 
 stack_frames(0, _, _, []) :- !.
 stack_frames(Depth, F, PC, Frames) :-
@@ -499,8 +646,12 @@ in_range(Level, Low-_High) :-
 	Level >= Low.
 %	between(Low, High, Level).
 
-show_stack_location(Frame, PC) :-
-	get_tracer(member(stack), StackBrowser),
+%%	show_stack_location(+GUI, +Frame, +PC)
+%
+%	Highlight Frame in the stack-view.
+
+show_stack_location(GUI, Frame, PC) :-
+	get_tracer(GUI, member(stack), StackBrowser),
 	send(StackBrowser, selection, Frame, PC).
 
 
@@ -508,45 +659,54 @@ show_stack_location(Frame, PC) :-
 		 *	       BINDINGS		*
 		 *******************************/
 
-show_args_pc(call).
-show_args_pc(fail).
-show_args_pc(exception).
-show_args_pc(foreign).
+%%	show_bindings(+Frame, +Attributes) is det.
+%
+%	Show argument bindings.
 
 show_bindings(Frame, Attributes) :-
 	attribute(Attributes, bindings), !,
+	tracer_gui(Attributes, GUI),
 	debug('bindings ... ', []),
-	get_tracer(member(bindings), Browser),
+	get_tracer(GUI, member(bindings), Browser),
 	(   attribute(Attributes, pc(PC))
 	->  true
 	;   PC = @default
 	),
-	show_stack_location(Frame, PC),
+	show_stack_location(GUI, Frame, PC),
 	send(Browser, clear),
 	send(Browser, prolog_frame, Frame),
 	(   show_args_pc(PC)
-	->  show_arguments(Frame, Attributes)
+	->  send(Browser, label, 'Arguments'),
+	    show_arguments(GUI, Frame, Attributes)
 	;   send(Browser, label, 'Bindings'),
-	    prolog_frame_attribute(Frame, clause, ClauseRef),
+	    prolog_frame_attribute(GUI, Frame, clause, ClauseRef),
 	    debug('(clause ~w) ', [ClauseRef]),
 	    catch(pce_clause_info(ClauseRef, _, _, VarNames), E,
 		  (print_message(error, E), fail)),
-	    frame_bindings(Frame, VarNames, Bindings),
+	    in_debug_thread(GUI, frame_bindings(Frame, VarNames, Bindings)),
 	    send(Browser, bindings, Bindings),
 	    debug('(ok) ', [])
 	).
 show_bindings(_, _).
 
-show_arguments(Frame, _Attributes) :-
-	get_tracer(member(bindings), Browser),
-	send(Browser, label, 'Arguments'),
-	frame_arguments(Frame, Args),
+%%	show_args_pc(+Port) is semidet.
+%
+%	If we are at Port, we must simple show the arguments.
+
+show_args_pc(call).
+show_args_pc(fail).
+show_args_pc(exception).
+show_args_pc(foreign).
+
+show_arguments(GUI, Frame, _Attributes) :-
+	get_tracer(GUI, member(bindings), Browser),
+	in_debug_thread(GUI, frame_arguments(Frame, Args)),
 	send(Browser, bindings, Args).
 
-%	frame_arguments(+Frame, -Args)
+%%	frame_arguments(+Frame, -Args)
 %
 %	Return arguments of the frame as [I:I=Value, ...], compatible with
-%	the normal binding list.
+%	the normal binding list. Must run in context of debugged thread.
 
 frame_arguments(Frame, Args) :-
 	prolog_frame_attribute(Frame, goal, Goal),
@@ -563,6 +723,11 @@ frame_arguments(I, Arity, Frame, [I:I=Value|T]) :-
 	frame_arguments(NI, Arity, Frame, T).
 frame_arguments(_, _, _, []).
 
+
+%%	frame_bindings(+Frame, +VarNames, -Bindings) is det.
+%
+%	Get the variable bindings for Frame. Must run the the context of
+%	the debugged thread.
 
 frame_bindings(Frame, VarNames, Bindings) :-
 	functor(VarNames, _, Arity),

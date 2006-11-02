@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,9 +30,13 @@
 */
 
 :- module(prolog_ide_stack,
-	  [ display_stack/3		% Window, Call, Choice
+	  [ display_stack/3		% +Window, +Call, +Choice
 	  ]).
+:- use_module(library(lists)).
+:- use_module(library(debug)).
+:- use_module(library(pce_util)).
 :- use_module(util).
+:- use_module(gui).
 :- use_module(clause).
 
 :- system_module.
@@ -111,23 +115,23 @@ cmpframes(_, Result, F1, F2) :-
 
 display_frames([], _, _, _).
 display_frames([F|T], Window, X, Y) :-
-	v_stack_frame(F, V),
+	v_stack_frame(Window, F, V),
 	send(V, set, X, Y),
 	send(Window, append, V),
 	X2 is X + 150,
 	display_frames(T, Window, X2, Y).
 
 
-v_stack_frame(frame(Frame, choice), V) :- !,
-	frame_label(Frame, Label),
-	new(V, prolog_stack_frame(Frame, Label, choice, choicepoint)).
-v_stack_frame(frame(Frame, PC), V) :-
-	frame_label(Frame, Label),
+v_stack_frame(Window, frame(Frame, choice), V) :- !,
+	frame_label(Window, Frame, Label),
+	new(V, prolog_stack_frame(Window, Frame, Label, choice, choicepoint)).
+v_stack_frame(Window, frame(Frame, PC), V) :-
+	frame_label(Window, Frame, Label),
 	frame_style(Frame, PC, Style),
-	new(V, prolog_stack_frame(Frame, Label, PC, Style)).
+	new(V, prolog_stack_frame(Window, Frame, Label, PC, Style)).
 
-frame_label(Frame, Label) :-
-	prolog_frame_attribute(Frame, goal,  Goal),
+frame_label(Window, Frame, Label) :-
+	prolog_frame_attribute(Window, Frame, goal,  Goal),
 	predicate_name(user:Goal, Label).
 
 frame_style(Frame, PC, Style) :-
@@ -192,9 +196,10 @@ clean_level(Text) :-
 variable(members,       hash_table,  get, "Frame --> Visualiser table").
 
 initialise(B) :->
+	assertion(thread_self(main)),
 	get(@pce, convert, normal, font, Font),
 	get(Font, ex, Ex),
-	send(B, send_super, initialise, size := size(20 * Ex, 100)),
+	send_super(B, initialise, size := size(20 * Ex, 100)),
 	send(B, label, 'Stack'),
 	send(B, hor_stretch, 100),
 	send(B, hor_shrink, 100),
@@ -205,11 +210,6 @@ clean(B) :->
 
 clear(B) :->
 	send(B?graphicals, for_all, message(@arg1, destroy)).
-
-
-aborted(B) :->
-	"User has aborted the query"::
-	send(B, clear).			% we could also de-activate the view
 
 
 member(B, F:int, PC:[name|int], V:prolog_stack_frame) :<-
@@ -245,7 +245,7 @@ step(0, _, _, V, V) :- !.
 step(N, B, child, V, V2) :-
 	get(V, hypered, child, Ch), !,
 	(   get(Ch, frame_reference, Frame),
-	    prolog_frame_attribute(Frame, goal, Goal),
+	    prolog_frame_attribute(B, Frame, goal, Goal),
 	    predicate_property(user:Goal, foreign),
 	    get(Ch, hypered, child, Ch2)
 	->  NN is N - 1,
@@ -255,11 +255,11 @@ step(N, B, child, V, V2) :-
 	).
 step(N, B, parent, V, V2) :-
 	get(V, frame_reference, Frame),
-	prolog_parent(Frame, Parent, PC),
+	in_debug_thread(B, prolog_parent(Frame, Parent, PC)),
 	(   debug('Looking for parent ~d, PC=~d~n', [Parent, PC]),
 	    get(B, member, Parent, PC, V1)
 	->  true
-	;   v_stack_frame(frame(Parent, PC), V1),
+	;   v_stack_frame(B, frame(Parent, PC), V1),
 	    send(V1, compute),
 	    send(V1, do_set, V?x, V?y - V1?height),
 	    new(_, hyper(V, V1, parent, child)),
@@ -272,11 +272,12 @@ step(_, B, parent, V, V) :- !,
 step(_, B, child, V, V) :- !,
 	send(B, report, warning, 'Deepest frame').
 
-%	prolog_parent(+Frame, -Parent, -PC)
+%%	prolog_parent(+Frame, -Parent, -PC)
 %
-%	Find parent executing Prolog. If our direct parent is a foreign
-%	frame, keep walking up.  Same if the parent appears to be a hidden
-%	frame, we keep walking up for a user-frame
+%	Find parent executing Prolog. If our  direct parent is a foreign
+%	frame, keep walking up. Same  if  the   parent  appears  to be a
+%	hidden frame, we keep walking up for   a user-frame. Must run in
+%	debugged thread.
 
 prolog_parent(Frame, Parent, PC) :-
 	prolog_frame_attribute(Frame, pc, PC0), !,
@@ -300,15 +301,15 @@ selection(B, What:'int|prolog_stack_frame', PC:[int|name]) :->
 	"Select the given frame"::
 	(   integer(What)
 	->  (   get(B, member, What, PC, V)
-	    ->  send(B, send_super, selection, V)
-	    ;   send(B, send_super, selection, @nil)
+	    ->  send_super(B, selection, V)
+	    ;   send_super(B, selection, @nil)
 	    )
-	;   send(B, send_super, selection, What)
+	;   send_super(B, selection, What)
 	).
 
 selection(B, Fr:int) :<-
 	"Return selected frame visualiser"::
-	get(B, get_super, selection, Chain),
+	get_super(B, selection, Chain),
 	get(Chain, size, 1),
 	get(Chain, head, Gr),
 	get(Gr, frame_reference, Fr).
@@ -355,8 +356,9 @@ variable(frame_level,	   int,		get, "Nesting of the frame").
 	      new(click_gesture(left, '', single,
 				message(@receiver, select)))).
 
-initialise(D, Frame:int, Label:char_array, PC:'int|name', Style:name) :->
-	send(D, send_super, initialise),
+initialise(D, Window:window, Frame:int, Label:char_array,
+	   PC:'int|name', Style:name) :->
+	send_super(D, initialise),
 	send(D, border, 3),
 	send(D, shadow, 1),
 	send(D, pen, 1),
@@ -366,7 +368,7 @@ initialise(D, Frame:int, Label:char_array, PC:'int|name', Style:name) :->
 	send(D, display, text(Label, left, normal), point(B?right_side, 0)),
 	send(D, slot, frame_reference, Frame),
 	send(D, slot, pc, PC),
-	prolog_frame_attribute(Frame, level, Level),
+	prolog_frame_attribute(Window, Frame, level, Level),
 	send(D, slot, frame_level, Level).
 
 unlink(D) :->
@@ -377,11 +379,11 @@ unlink(D) :->
 	->  true
 	;   true
 	),
-	send(D, send_super, unlink).
+	send_super(D, unlink).
 
 
 event(D, Ev:event) :->
-	(   send(D, send_super, event, Ev)
+	(   send_super(D, event, Ev)
 	;   send(@prolog_stack_frame_recogniser, event, Ev)
 	).
 
@@ -390,7 +392,10 @@ select(D, Show:[bool]) :->
 	"Make this frame the selected one"::
 	send(D?device, selection, D),
 	(   Show \== @off
-	->  send(D?frame, show_frame, D?frame_reference, D?pc)
+	->  get(D, frame_reference, Frame),
+	    get(D, pc, PC),
+	    debug('~p: select ~p at PC=~w~n', [D, Frame, PC]),
+	    send(D?frame, show_frame, Frame, PC)
 	;   true
 	).
 

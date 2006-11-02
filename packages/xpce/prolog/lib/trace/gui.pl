@@ -3,9 +3,9 @@
     Part of XPCE --- The SWI-Prolog GUI toolkit
 
     Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog/projects/xpce/
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,17 +30,23 @@
 */
 
 :- module(prolog_gui,
-	  [ prolog_tracer/1,
-	    send_tracer/1,
-	    send_if_tracer/1,
-	    get_tracer/2,
-	    display_stack/3
+	  [ prolog_tracer/2,		% +Thread, -GUI
+	    send_tracer/2,		% +Thread, :Goal
+	    send_if_tracer/2,		% +Thread, :Goal
+	    get_tracer/3,		% +Thread, :Goal, -Result
+	    send_tracer/1,		% :Goal
+	    send_if_tracer/1,		% :Goal
+	    get_tracer/2,		% :Goal, -Result
+	    in_debug_thread/2,		% +ObjOrThread, :Goal
+	    prolog_frame_attribute/4	% +GUI, +Frame, +Attr, -Value
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(lists)).
 :- use_module(library(toolbar)).
 :- use_module(library(pce_report)).
+:- use_module(library(pce_util)).
 :- use_module(library(persistent_frame)).
+:- use_module(library(debug)).
 :- use_module(trace).
 :- use_module(clause).
 :- use_module(util).
@@ -72,7 +78,7 @@ register_directories :-
 	    
 :- initialization register_directories.
 
-version('1.1.1').
+version('2.0').
 
 		 /*******************************
 		 *	      RESOURCES		*
@@ -85,65 +91,216 @@ resource(debug,	image,	image('debug.xpm')).
 		 *******************************/
 
 :- dynamic
-	gui/2.				% +Level, -Gui
+	gui/3.				% +Thread, +BreakLevel, -Gui
 
-prolog_tracer(Ref) :-
-	flag('$break_level', Level, Level),
-	(   gui(Level, Ref)
+%%	prolog_tracer(+Thread, -Ref) is det.
+%%	prolog_tracer(+Thread, -Ref, Create) is semidet.
+%
+%	Get the Prolog debugger window for Thread.
+
+prolog_tracer(Thread, Ref) :-
+	prolog_tracer(Thread, Ref, true).
+
+prolog_tracer(Thread, Ref, Create) :-
+	break_level(Level),
+	(   gui(Thread, Level, Ref)
 	->  true
-	;   send(new(Ref, prolog_debugger), open),
-	    asserta(gui(Level, Ref))
+	;   Create == true
+	->  debug('New GUI for thread ~p, break level ~p~n', [Thread, Level]),
+	    send_pce(send(new(Ref, prolog_debugger(Level, Thread)), open))
 	).
 
+%%	break_level(-Level)
+%
+%	Current break-level.
+%	
+%	@bug	Breaks only work in the main thread. We need to change I/O
+%		handling and where the break-level is stored to fix
+%		this.
+
+break_level(Level) :-
+	thread_self(main), !,
+	flag('$break_level', Level, Level).
+break_level(1).
+
+
+%%	send_tracer(+ThreadOrGUI, +Term) is semidet.
+%%	send_if_tracer(+Thread, +Term) is semidet.
+%%	get_tracer(+Thread, +Term, -Reply) is semidet.
+%
+%	Send messages to the XPCE tracer window.
+%	
+%	@param Thread: calling thread.
+
 send_tracer(Term) :-
-	prolog_tracer(Ref),
+	thread_self(Thread),
+	send_tracer(Thread, Term).
+send_tracer(GUI, Term) :-
+	object(GUI), !,
+	send(GUI, Term).
+send_tracer(Thread, Term) :-
+	prolog_tracer(Thread, Ref),
 	send(Ref, Term).
 
 send_if_tracer(Term) :-
-	flag('$break_level', Level, Level),
-	(   gui(Level, Ref)
+	thread_self(Thread),
+	send_if_tracer(Thread, Term).
+send_if_tracer(Thread, Term) :-
+	(   prolog_tracer(Thread, Ref, false)
 	->  send(Ref, Term)
 	;   true
 	).
 
 get_tracer(Term, Result) :-
-	prolog_tracer(Ref),
+	thread_self(Thread),
+	get_tracer(Thread, Term, Result).
+get_tracer(GUI, Term, Result) :-
+	object(GUI), !,
+	get(GUI, Term, Result).
+get_tracer(Thread, Term, Result) :-
+	prolog_tracer(Thread, Ref),
 	get(Ref, Term, Result).
+
+
+		 /*******************************
+		 *    THREAD SYNCHRONISATION	*
+		 *******************************/
+
+:- meta_predicate
+	in_debug_thread(+, :),
+	send_pce(:).
+
+%%	send_pce(:Goal)
+%
+%	Run Goal in XPCE (main)  thread.   Wait  for  completion. In the
+%	meanwhile, allow the XPCE thread to call in_debug_thread/1.
+%	
+%	@bug	XPCE thread does not _need_ to be =main=.
+
+send_pce(Goal) :-
+	thread_self(main), !,
+	Goal.
+send_pce(Goal) :-
+	thread_self(Self),
+	strip_module(Goal, M, G),
+	in_pce_thread(run_pce(M:G, Self)),
+	repeat,
+	thread_get_message('$trace'(Result)),
+	(   Result = error(E)
+	->  throw(E)
+	;   Result = call(M:G, Caller)
+	->  run_pce(Goal, Caller),
+	    fail
+	;   Result = true(Instantiated)
+	->  !, M:G = Instantiated
+	;   assertion(Result == false), !,
+	    fail
+	).
+
+run_pce(Goal, Caller) :-
+	assertion(thread_self(main)),
+	debug('Running ~p for thread ~p~n', [Goal, Caller]),
+	(   catch(Goal, Error, true)
+	->  (   var(Error)
+	    ->	Result = true(Goal)
+	    ;	Result = error(Error)
+	    )
+	;   Result = false
+	),
+	debug('Ok, returning ~p~n', [Result]),
+	thread_send_message(Caller, '$trace'(Result)).
+
+%%	in_debug_thread(+Thread, :Goal) is semidet.
+%%	in_debug_thread(+Object, :Goal) is semidet.
+%
+%	Run Goal in the thread  being   debugged.  The first argument is
+%	either an XPCE object that is part  of the debugger window, or a
+%	thread identifier.
+
+in_debug_thread(Object, Goal) :-
+	object(Object), !,
+	get(Object, frame, Frame),
+	get(Frame, thread, Thread),
+	in_debug_thread(Thread, Goal).
+in_debug_thread(Thread, Goal) :-
+	thread_self(Thread), !,
+	Goal, !.
+in_debug_thread(Thread, Goal) :-
+	strip_module(Goal, M, G),
+	thread_self(Self),
+	debug('Call [Thread ~p] ~p~n', [Thread, M:G]),
+	thread_send_message(Thread, '$trace'(call(M:G, Self))),
+	thread_get_message('$trace'(Result)),
+	debug(' ---> Result = ~p~n', [Result]),
+	(   Result = error(E)
+	->  throw(E)
+	;   Result = true(M:G)
+	).
+
+
+%%	prolog_frame_attribute(+GUI, +Frame, +Attribute, -Value) is det.
+%%	prolog_frame_attribute(+Thread, +Frame, +Attribute, -Value) is det.
+%
+%	As prolog_frame_attribute/3, but calling in the thread debugged
+%	by GUI.
+
+prolog_frame_attribute(Thread, Frame, Attribute, Value) :-
+	in_debug_thread(Thread,
+			prolog_frame_attribute(Frame, Attribute, Value)).
+
+
+		 /*******************************
+		 *	       EVENTS		*
+		 *******************************/
 
 %user:prolog_event_hook(Term) :-
 %	debug('prolog_event_hook(~w).~n', [Term]),
 %	fail.
 user:prolog_event_hook(frame_finished(Frame)) :-
-	gui(_, Gui),
+	thread_self(Thread),
+	gui(Thread, _, Gui),
 	send(Gui, frame_finished, Frame),
 	fail.
 user:prolog_event_hook(exit_break(Level)) :-
-	gui(Level, Gui),
+	thread_self(Thread),
+	gui(Thread, Level, Gui),
 	send(Gui, destroy),
 	fail.
 user:prolog_event_hook(finished_query(_Qid, YesNo)) :-
-	flag('$break_level', Level, Level),
-	gui(Level, Ref),
-	send(Ref, clear),		% active, @off?
-	(   YesNo == true
-	->  send(Ref, report, status, 'Query succeeded')
-	;   send(Ref, report, status, 'Query failed')
-	),
+	thread_self(Thread),		% only main?
+	break_level(Level),
+	gui(Thread, Level, Ref),
+	send(Ref, query_finished, YesNo),
+	fail.
+user:prolog_event_hook(thread_finished(Thread)) :-
+	gui(Thread, _, Gui),
+	current_thread(Thread, Status),
+	in_pce_thread(send(Gui, thread_finished, Status)),
 	fail.
 
 user:message_hook('$aborted', _, _Lines) :-
 	aborted,
 	fail.
+user:message_hook(query(YesNo), _, _Lines) :-
+	query_finished(YesNo),
+	fail.
+user:message_hook(query(YesNo, _Bindings), _, _Lines) :-
+	query_finished(YesNo),
+	fail.
 
 aborted :-
-	gui(Level, Gui),
+	thread_self(Thread),
+	gui(Thread, Level, Gui),
 	(   Level \== 0
 	->  send(Gui, destroy)
-	;   send(Gui, aborted),
-	    send(Gui, report, status, 'Execution aborted')
+	;   send(Gui, aborted)
 	).
-aborted :-
-	free(@confirm_prolog_gui_quitted).
+
+query_finished(YesNo) :-
+	thread_self(Thread),
+	break_level(Level),
+	gui(Thread, Level, Gui),
+	send(Gui, query_finished, YesNo).
 
 
 		 /*******************************
@@ -156,8 +313,8 @@ aborted :-
 		   "Toplevel driver for the Prolog GUI").
 
 initialise(App) :->
-	send(App, send_super, initialise, 'Prolog GUI'),
-	send(App, kind, service).
+	send_super(App, initialise, 'Prolog Debugger GUI'),
+	send(App, kind, service).	% Do not debug in this
 
 :- pce_end_class.
 
@@ -169,16 +326,22 @@ initialise(App) :->
 :- pce_begin_class(prolog_debugger, persistent_frame,
 		   "Toplevel driver for the debugger").
 
-variable(source,	any,	both, "Source view").
-variable(current_frame, int*,   both, "The most recent frame").
-variable(current_break,	tuple*,	both, "tuple(ClauseRef, PC)").
+variable(source,	any,		both, "Source view").
+variable(break_level,	int,		get,  "Break-level I'm associated to").
+variable(thread,	'int|name*',	get,  "Associated thread").
+variable(current_frame, int*,   	both, "The most recent frame").
+variable(current_break,	tuple*,		both, "tuple(ClauseRef, PC)").
+variable(quitted,	bool := @off,   both, "Asked to quit").
+variable(mode,		name := created,both, "Current mode").
 
-initialise(F) :->
-	version(Version),
-	send(F, send_super, initialise,
-	     string('SWI-Prolog tracer version %s', Version),
-	     application := @prolog_gui),
+initialise(F, Level:int, Thread0:'int|name') :->
+	assertion(thread_self(main)),
+	default(Thread0, main, Thread),
+	send(F, slot, break_level, Level),
+	send(F, slot, thread, Thread),
+	send_super(F, initialise, 'SWI-Prolog debugger', application := @prolog_gui),
 	send(F, icon, resource(debug)),
+	send(F, done_message, message(F, quit)),
 	send(F, append, new(MBD, dialog)),
 	send(MBD, gap, size(0, 2)),
 	send(MBD, pen, 0),
@@ -199,32 +362,43 @@ initialise(F) :->
 	send(new(RD, report_dialog), below, Src),
 	send(RD, warning_delay, 0),
 	send(S, label, 'Call Stack'),
-	send(S, name, stack).
+	send(S, name, stack),
+	asserta(gui(Thread, Level, F)).
  
-
 unlink(F) :->
-	get(F, object_reference, R),
-	retractall(gui(_, @(R))),
+	retractall(gui(_, _, F)),
 	clear_clause_info_cache,	% safety first
-	send(F, send_super, unlink).
+	send_super(F, unlink).
 
+quit(F) :->
+	"User initiated quit"::
+	(   (   get(F, mode, thread_finished)
+	    ;   get(F, mode, query_finished)
+	    ;   get(F, mode, aborted)
+	    )
+	->  send(F, destroy)
+	;   get(F, tracer_quitted, Action),
+	    (   Action == cancel
+	    ->  true
+	    ;   send(F, return, Action)
+	    )
+	).
 
-clear(F) :->
+label(F, Label:char_array) :->
+	"Set label, indicating associated thread"::
+	get(F, thread, Thread),
+	(   Thread == main
+	->  send_super(F, label, Label)
+	;   send_super(F, label, string('[Thread %s] %s', Thread, Label))
+	).
+
+clear(F, Content:[bool]) :->
 	"Deactivate all views"::
 	ignore(send(F, send_hyper, fragment, free)),
 	get(F, member, stack, StackView),
 	send(StackView, clear),
 	get(F, member, bindings, BindingView),
-	send(BindingView, clear).
-
-
-aborted(F) :->
-	"User has aborted the query"::
-	ignore(send(F, send_hyper, fragment, free)),
-	get(F, member, stack, StackView),
-	send(StackView, aborted),
-	get(F, member, bindings, BindingView),
-	send(BindingView, aborted).
+	send(BindingView, clear, Content).
 
 
 fill_menu_bar(F) :->
@@ -242,7 +416,7 @@ fill_menu_bar(F) :->
 			      message(@prolog, clear_clause_info_cache),
 			      end_group := @on),
 		    menu_item(quit,
-			      message(F, destroy))
+			      message(F, quit))
 		  ]),
 	send_list(Edit, append,
 		  [ menu_item(breakpoints,
@@ -285,9 +459,9 @@ help(_) :->
         "Show window with help-text"::
         send(@helper, give_help, pltracer, main).
 
-show_frame(_Tool, Frame:int, PC:'int|name') :->
+show_frame(GUI, Frame:int, PC:'int|name') :->
 	"Show the variables of this frame"::
-	prolog_show_frame(Frame, [pc(PC), source, bindings]).
+	prolog_show_frame(Frame, [gui(GUI), pc(PC), source, bindings]).
 
 
 		 /*******************************
@@ -311,23 +485,51 @@ window_pos_for_button(F, ButtonName:name, Pos:point) :<-
 	get(Button, display_position, ButtonPos),
 	get(ButtonPos, plus, point(0, 25), Pos).
 
-action(Frame, Action:name) :<-
-	"Wait for the user to return an action"::
-	action(Frame, Action).
-
-action(Frame, Action) :-
+prepare_action(Frame) :->
+	"Prepare for reading an action"::
 	send(Frame, open),		% make sure
 	get(Frame, display, Display),
 	send(Display, busy_cursor, @nil),
 	send(Display, synchronise),
-	(   get(Frame, confirm, Action)
-	->  true
-	;   tracer_quitted(Action)
+	send(Frame, report, status, 'Action?'),
+	send(Frame, mode, wait_user).
+
+action(Frame, Action:name) :<-
+	"Wait for the user to return an action"::
+	send(Frame, prepare_action),
+	get(Frame, confirm, Action),
+	(   get(Frame, quitted, @on)
+	->  send(Frame, destroy)
+	;   true
 	).
 
+return(Frame, Result:any) :->
+	"Return user action"::
+	get(Frame, mode, wait_user),
+	get(Frame, thread, Thread),
+	send(Frame, mode, replied),
+	(   Thread == main
+	->  send_super(Frame, return, Result)
+	;   (	get(Frame, quitted, @on)
+	    ->	send(Frame, destroy)
+	    ;	true
+	    ),
+	    thread_send_message(Thread, '$trace'(action(Result)))
+	).
 
-tracer_quitted(Action) :-
-	new(D, dialog('Tracer quitted')),
+%%	tracer_quitted(+Thread,	-Action) is semidet.
+%
+%	Ask the user what to  do  after   a  user-initiated  quit of the
+%	debugger.
+
+tracer_quitted(Frame, Action) :<-
+	"Confirm user requested quit"::
+	get(Frame, thread, Thread),
+	(   Thread == main
+	->  Label = 'Tracer quitted'
+	;   Label = string('[Thread %s] Tracer quitted', Thread)
+	),
+	new(D, dialog(Label)),
 	send(D, application, @prolog_gui),
 	send(D, append,
 	     button(continue_without_debugging,
@@ -335,18 +537,27 @@ tracer_quitted(Action) :-
 	send(D, append,
 	     button(abort,
 		    message(D, return, abort))),
+	(   Thread == main
+	->  send(D, append,
+		 button(exit_prolog,
+			message(D, return, halt)))
+	;   true
+	),
 	send(D, append,
-	     button(exit_prolog,
-		    message(D, return, halt))),
-	get(D, confirm_centered, Action),
-	(   Action == abort
-	->  send(D, hide),
-	    send(D, name_reference, confirm_prolog_gui_quitted)
-	;   send(D, destroy)
+	     button(cancel,
+		    message(D, return, cancel))),
+	send(D, transient_for, Frame),
+	send(D, modal, transient),
+	get(D, confirm_centered, Frame?area?center, Action),
+	send(D, destroy),
+	(   Action == cancel
+	->  true
+	;   send(Frame, quitted, @on)
 	).
 
 
 selected_frame(F, Frame:int) :<-
+	"Prolog frame selected by user in stack window"::
 	get(F, member, stack, Browser),
 	get(Browser, selection, Frame).
 
@@ -392,7 +603,7 @@ nostop_or_spy(F) :->
 	    ;   get(F, selected_frame, Frame)
 	    ),
 	    Frame \== @nil,
-	    prolog_frame_attribute(Frame, goal, Goal0),
+	    prolog_frame_attribute(F, Frame, goal, Goal0),
 	    (   Goal0 = _:_
 	    ->  Goal = Goal0
 	    ;   Goal = user:Goal0
@@ -465,6 +676,28 @@ frame_finished(F, Frame:int) :->
 	;   true
 	).
 
+aborted(F) :->
+	"User has aborted the query"::
+	send(F, clear, @off),
+	send(F, mode, aborted),
+	send(F, report, status, 'Execution aborted').
+
+thread_finished(F, Status:prolog) :->
+	"Thread I'm associated with finished"::
+	send(F, clear),
+	send(F, mode, thread_finished),
+	format(string(String), '~q', Status),
+	send(F, report, status, 'Thread finished: %s', String).
+
+query_finished(F, YesNo) :->
+	"Toplevel query finished"::
+	send(F, clear),
+	send(F, mode, query_finished),
+	(   YesNo == yes
+	->  send(F, report, status, 'Query succeeded')
+	;   send(F, report, status, 'Query failed')
+	).
+
 :- pce_end_class(prolog_debugger).
 
 		 /*******************************
@@ -516,7 +749,7 @@ key_name(C, A) :-
 	char_code(A, C).
 
 initialise(D) :->
-	send(D, send_super, initialise),	
+	send_super(D, initialise),	
 	send(D, pen, 0),
 	send(D, gap, size(0,0)),
 	get(D, frame, Frame),
@@ -564,6 +797,7 @@ button(D, Name:name, Button:button) :<-
 
 :- pce_end_class(prolog_button_dialog).
 
+
 		 /*******************************
 		 *	     VARIABLES		*
 		 *******************************/
@@ -604,22 +838,18 @@ initialise(B) :->
 	get(Font, ex, Ex),
 	Tab is 15 * Ex,
 	send(B, wrap, none),
-%	send(B, selected_fragment_style,
-%	     style(background := black, colour := white)),
 	send(B?image, tab_stops, vector(Tab)),
 	send(B?image, recogniser, @prolog_binding_recogniser),
 	send(B, editable, @off),
 	send(B?text_cursor, displayed, @off),
 	send(B, ver_stretch, 0).
 
-clear(B) :->
-	send_super(B, clear),
-	send(B, prolog_frame, @nil).
-
-aborted(B) :->
-	"User has aborted the query"::
+clear(B, Content:[bool]) :->
 	send(B, prolog_frame, @nil),
-	send(B, background, grey80).
+	(   Content == @off
+	->  send(B, background, grey80)
+	;   send_super(B, clear)
+	).
 
 details(B, Fragment:[prolog_frame_var_fragment]) :->
 	"View details of the binding"::
@@ -640,14 +870,14 @@ details(B, Fragment:[prolog_frame_var_fragment]) :->
 	),
 	get(Frag, var_name, VarName),
 	get(Frag, value, Value),
-	prolog_frame_attribute(Frame, level, Level),
-	prolog_frame_attribute(Frame, goal, Goal),
+	prolog_frame_attribute(B, Frame, level, Level),
+	prolog_frame_attribute(B, Frame, goal, Goal),
 	predicate_name(Goal, PredName),
 	(   integer(VarName)
 	->  VarType = 'Argument'
 	;   VarType = 'Variable'
 	),
-	sformat(Label, '~w ~w of frame at level ~d running ~w',
+	format(string(Label), '~w ~w of frame at level ~d running ~w',
 		[ VarType, VarName, Level, PredName ]),
 	view_term(Value,
 		  [ comment(Label),
@@ -713,6 +943,8 @@ initialise(F, TB:text_buffer, From:int, To:int, Name:name, ArgN:int) :->
 	send(F, slot, var_name, Name),
 	send(F, slot, argn, ArgN).
 
+%	Issue: this copies really big values
+
 value(F, Value:prolog) :<-
 	"Get current value of the variable"::
 	get(F, text_buffer, TB),
@@ -720,6 +952,6 @@ value(F, Value:prolog) :<-
 	get(Editor, window, View),
 	get(View, prolog_frame, Frame), Frame \== @nil,
 	get(F, argn, ArgN),
-	prolog_frame_attribute(Frame, argument(ArgN), Value).
+	prolog_frame_attribute(F, Frame, argument(ArgN), Value).
 	
 :- pce_end_class(prolog_frame_var_fragment).
