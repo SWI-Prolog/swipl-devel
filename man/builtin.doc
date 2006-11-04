@@ -4651,8 +4651,9 @@ precision for printing rational numbers in decimal form.
 Output the tilde itself.
 
     \fmtchar{a}
-Output the next argument, which should be an atom. This option is
-equivalent to {\bf w}. Compatibility reasons only.
+Output the next argument, which must be an atom. This option is
+equivalent to {\bf w}, except for that it requires the argument to be an
+atom.
 
     \fmtchar{c}
 Interpret the next argument as an character code and add it to the
