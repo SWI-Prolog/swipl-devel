@@ -41,13 +41,16 @@
 
 :- system_module.
 
-%	display_stack(+StackWindow, +CallList, +ChoiceList)
+%%	display_stack(+StackWindow, +CallList, +ChoiceList) is det.
+%
+%	Display parent environments and choicepoints.
 
 display_stack(Window, Call, Choice) :-
+	assertion(thread_self(main)),
 	get(@pce, convert, normal, font, Font),
 	get(Font, height, FH),
 	merge_choices(Choice, Call, AllFrames),
-	level_tag_frames(AllFrames, Tagged),
+	in_debug_thread(Window, level_tag_frames(AllFrames, Tagged)),
 	keysort(Tagged, SortedByLevel),
 	assign_y(SortedByLevel, 0, FH+4, Rows),
 	display_levels(Rows, Choice, Window),
@@ -63,9 +66,6 @@ display_stack(Window, Call, Choice) :-
 
 same_frame(frame(F, _), frame(F, _)).
 
-frame_level(frame(F, _), L) :-
-	prolog_frame_attribute(F, level, L).
-
 merge_choices([], Call, Call).
 merge_choices([C0|CT], Call, T) :-
 	member(C, Call),
@@ -74,10 +74,24 @@ merge_choices([C0|CT], Call, T) :-
 merge_choices([C0|CT], Call, [C0|T]) :-
 	merge_choices(CT, Call, T).
 	
+%%	level_tag_frames(+Frames, -TaggedFrames) is det.
+%
+%	Tag each frame with its recursion level.  Must run in the context
+%	of the debugged thread.
+
 level_tag_frames([], []).
 level_tag_frames([H|T], [Level-H|LT]) :-
 	frame_level(H, Level),
 	level_tag_frames(T, LT).
+
+frame_level(frame(F, _), L) :-
+	prolog_frame_attribute(F, level, L).
+
+%%	assign_y(+TaggedFrames, +Y0, +FrameHeight, -Rows) is det.
+%
+%	Combine all frames (tagged with level) of the same level.
+%	
+%	@param Rows	List of Y-ListOfFrames
 
 assign_y([], _, _, []).
 assign_y([L0-F0|Frames], Y, FH, [Y-[F0|T0]|T]) :-
@@ -94,7 +108,7 @@ display_levels([Y-Frames|T], Choice, Window) :-
 	predsort(cmpframes(Choice), Frames, SortedFrames),
 	debug('Sorted frames: ~p~n', [SortedFrames]),
 	SortedFrames = [frame(Frame, PC)|_],
-	prolog_frame_attribute(Frame, level, Level),
+	prolog_frame_attribute(Window, Frame, level, Level),
 	send(Window, display, text(Level, left, normal), point(5, Y)),
 	(   PC == choice
 	->  X0 is 30 + 150
@@ -127,21 +141,29 @@ v_stack_frame(Window, frame(Frame, choice), V) :- !,
 	new(V, prolog_stack_frame(Window, Frame, Label, choice, choicepoint)).
 v_stack_frame(Window, frame(Frame, PC), V) :-
 	frame_label(Window, Frame, Label),
-	frame_style(Frame, PC, Style),
+	frame_style(Window, Frame, PC, Style),
 	new(V, prolog_stack_frame(Window, Frame, Label, PC, Style)).
 
 frame_label(Window, Frame, Label) :-
 	prolog_frame_attribute(Window, Frame, goal,  Goal),
 	predicate_name(user:Goal, Label).
 
-frame_style(Frame, PC, Style) :-
-	integer(PC),
-	prolog_frame_attribute(Frame, has_alternatives, A),
+frame_style(Window, Frame, PC, Style) :-
+	integer(PC), !,
+	prolog_frame_attribute(Window, Frame, has_alternatives, A),
 	det_style(A, Style).
-frame_style(Frame, _, Style) :-
+frame_style(Window, Frame, _, Style) :-
+	in_debug_thread(Window, frame_predicate_class(Frame, Style)).
+
+%%	frame_predicate_class(+Frame, -Style) is det.
+%
+%	Use Style for displaying  Frame.  Computed   as  a  whole in the
+%	debugged thread to avoid exchanging the goal between threads.
+
+frame_predicate_class(Frame, Style) :-
 	prolog_frame_attribute(Frame, goal, Goal),
 	predicate_classification(Goal, Style).
-	
+
 det_style(false, deterministic).
 det_style(true,  choicepoint).
 

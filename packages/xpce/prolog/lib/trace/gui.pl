@@ -137,17 +137,17 @@ send_tracer(Term) :-
 	send_tracer(Thread, Term).
 send_tracer(GUI, Term) :-
 	object(GUI), !,
-	send(GUI, Term).
+	send_pce(send(GUI, Term)).
 send_tracer(Thread, Term) :-
 	prolog_tracer(Thread, Ref),
-	send(Ref, Term).
+	send_pce(send(Ref, Term)).
 
 send_if_tracer(Term) :-
 	thread_self(Thread),
 	send_if_tracer(Thread, Term).
 send_if_tracer(Thread, Term) :-
 	(   prolog_tracer(Thread, Ref, false)
-	->  send(Ref, Term)
+	->  send_pce(send(Ref, Term))
 	;   true
 	).
 
@@ -183,26 +183,26 @@ send_pce(Goal) :-
 send_pce(Goal) :-
 	thread_self(Self),
 	strip_module(Goal, M, G),
-	in_pce_thread(run_pce(M:G, Self)),
+	term_variables(G, GVars),
+	in_pce_thread(run_pce(M:G, GVars, Self)),
 	repeat,
 	thread_get_message('$trace'(Result)),
 	(   Result = error(E)
 	->  throw(E)
-	;   Result = call(M:G, Caller)
-	->  run_pce(Goal, Caller),
+	;   Result = call(CallBack, CBVars, Caller)
+	->  run_pce(CallBack, CBVars, Caller),
 	    fail
-	;   Result = true(Instantiated)
-	->  !, M:G = Instantiated
+	;   Result = true(BGVars)
+	->  !, BGVars = GVars
 	;   assertion(Result == false), !,
 	    fail
 	).
 
-run_pce(Goal, Caller) :-
-	assertion(thread_self(main)),
+run_pce(Goal, Vars, Caller) :-
 	debug('Running ~p for thread ~p~n', [Goal, Caller]),
 	(   catch(Goal, Error, true)
 	->  (   var(Error)
-	    ->	Result = true(Goal)
+	    ->	Result = true(Vars)
 	    ;	Result = error(Error)
 	    )
 	;   Result = false
@@ -229,12 +229,14 @@ in_debug_thread(Thread, Goal) :-
 	strip_module(Goal, M, G),
 	thread_self(Self),
 	debug('Call [Thread ~p] ~p~n', [Thread, M:G]),
-	thread_send_message(Thread, '$trace'(call(M:G, Self))),
+	term_variables(G, GVars),
+	thread_send_message(Thread, '$trace'(call(M:G, GVars, Self))),
 	thread_get_message('$trace'(Result)),
 	debug(' ---> Result = ~p~n', [Result]),
 	(   Result = error(E)
 	->  throw(E)
-	;   Result = true(M:G)
+	;   Result = true(BGVars)
+	->  GVars = BGVars
 	).
 
 
@@ -597,7 +599,7 @@ make(_) :->
 goal(F, Goal:prolog) :<-
 	"Return qualitied term for selected frame"::
 	get(F, selected_frame, Frame),
-	prolog_frame_attribute(Frame, goal, Goal0),
+	prolog_frame_attribute(F, Frame, goal, Goal0),
 	(   Goal0 = _:_
 	->  Goal = Goal0
 	;   Goal = user:Goal0

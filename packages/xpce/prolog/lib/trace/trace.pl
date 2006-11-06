@@ -503,18 +503,18 @@ action(Action) :-
 	send_tracer(prepare_action),
 	repeat,
 	thread_get_message('$trace'(Result)),
-	(   Result = call(Goal, Caller)
-	->  run_in_debug_thread(Goal, Caller),
+	(   Result = call(Goal, GVars, Caller)
+	->  run_in_debug_thread(Goal, GVars, Caller),
 	    fail
 	;   Result = action(Action)
 	->  !
 	;   assertion(fail)
 	).
 
-run_in_debug_thread(Goal, Caller) :-
+run_in_debug_thread(Goal, GVars, Caller) :-
 	(   catch(Goal, Error, true)
 	->  (   var(Error)
-	    ->	Result = true(Goal)
+	    ->	Result = true(GVars)
 	    ;	Result = error(Error)
 	    )
 	;   Result = false
