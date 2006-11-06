@@ -517,16 +517,18 @@ action(Frame, Action:name) :<-
 
 return(Frame, Result:any) :->
 	"Return user action"::
-	get(Frame, mode, wait_user),
-	get(Frame, thread, Thread),
-	send(Frame, mode, replied),
-	(   Thread == main
-	->  send_super(Frame, return, Result)
-	;   (	get(Frame, quitted, @on)
-	    ->	send(Frame, destroy)
-	    ;	true
-	    ),
-	    thread_send_message(Thread, '$trace'(action(Result)))
+	(   get(Frame, mode, wait_user)
+	->  get(Frame, thread, Thread),
+	    send(Frame, mode, replied),
+	    (   Thread == main
+	    ->  send_super(Frame, return, Result)
+	    ;   (   get(Frame, quitted, @on)
+		->  send(Frame, destroy)
+		;   true
+		),
+		thread_send_message(Thread, '$trace'(action(Result)))
+	    )
+	;   send(Frame, report, warning, 'Not waiting')
 	).
 
 %%	tracer_quitted(+Thread,	-Action) is semidet.
