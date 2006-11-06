@@ -266,10 +266,10 @@ show(StartFrame, CHP, Up, exception(Except)) :- !,
 	message_to_string(Except, Message),
 	send_tracer(report(warning, 'Exception: %s', Message)).
 show(StartFrame, CHP, Up, Port) :-
+	show(StartFrame, CHP, Up, Port, Port),
 	prolog_frame_attribute(StartFrame, goal, Goal),
 	predicate_name(user:Goal, Pred),
-	send_tracer(report(status, '%s: %s', Port?label_name, Pred)),
-	show(StartFrame, CHP, Up, Port, Port).
+	send_tracer(report(status, '%s: %s', Port?label_name, Pred)).
 
 show(StartFrame, CHP, Up, Port, Style) :-
 	send_tracer(current_frame(StartFrame)),
