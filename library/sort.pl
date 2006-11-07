@@ -128,8 +128,8 @@ locale_sort(List, Sorted) :-
 	unkey(KeySorted, Sorted).
 
 collation_keys([], []).
-collation_keys([H0|T0], [H|T]) :-
-	collation_key(H0, H),
+collation_keys([H|T0], [K-H|T]) :-
+	collation_key(H, K),
 	collation_keys(T0, T).
 
 
