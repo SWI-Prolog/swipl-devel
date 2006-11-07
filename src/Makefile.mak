@@ -65,13 +65,13 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-data.h
 
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
-	../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \
+	../boot/bags.pl ../boot/apply.pl \
 	../boot/writef.pl ../boot/history.pl \
 	../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl ../boot/menu.pl
 PLWINLIBS=	wise.pl dde.pl progman.pl registry.pl
-PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
+PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	qsave.pl shlib.pl statistics.pl system.pl \
 	backcomp.pl gensym.pl listing.pl debug.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \

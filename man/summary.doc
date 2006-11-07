@@ -118,6 +118,7 @@ suggest predicates from a keyword.
 \predicatesummary{close}{2}{Close stream (forced)}
 \predicatesummary{close_dde_conversation}{1}{Win32: Close DDE channel}
 \predicatesummary{close_shared_object}{1}{UNIX:  Close shared library (.so file)}
+\predicatesummary{collation_key}{2}{Sort key for locale dependent ordering}
 \predicatesummary{comment_hook}{3}{\hook{prolog} handle comments in sources}
 \predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
 \predicatesummary{compile_predicates}{1}{Compile dynamic code to static}
@@ -301,6 +302,7 @@ suggest predicates from a keyword.
 \predicatesummary{load_files}{2}{Load source files with options}
 \predicatesummary{load_foreign_library}{1}{\pllib{shlib} Load shared library (.so file)}
 \predicatesummary{load_foreign_library}{2}{\pllib{shlib} Load shared library (.so file)}
+\predicatesummary{locale_sort}{2}{Language dependent sort of atoms}
 \predicatesummary{make}{0}{Reconsult all changed source files}
 \predicatesummary{make_directory}{1}{Create a folder on the file system}
 \predicatesummary{make_library_index}{1}{Create autoload file INDEX.pl}

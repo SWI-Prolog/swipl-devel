@@ -34,7 +34,6 @@
 	     messages,
 	     toplevel,
 	     attvar,
-	     sort,
 	     bags,
 	     apply,
 	     writef,

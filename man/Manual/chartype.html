@@ -116,8 +116,8 @@ font-size: smaller;
 <A class="nav" href="strings.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:4.22"><SPAN class="sec-nr">4.22</SPAN><SPAN class="sec-title">Classifying 
-characters</SPAN></A></H2>
+<H2><A NAME="sec:4.22"><SPAN class="sec-nr">4.22</SPAN><SPAN class="sec-title">Character 
+properties</SPAN></A></H2>
 
 <A NAME="sec:chartype"></A>
 
@@ -300,6 +300,44 @@ with <VAR>LowerCase</VAR>.</DD>
 <DD class="defbody">
 Converts, similar to <A NAME="idx:downcaseatom2:870"></A><A class="pred" href="chartype.html#downcase_atom/2">downcase_atom/2</A>, 
 an atom to upper-case.
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.22.2"><SPAN class="sec-nr">4.22.2</SPAN><SPAN class="sec-title">Language 
+specific comparison</SPAN></A></H3>
+
+<A NAME="sec:collate"></A>
+
+<P><A NAME="idx:locale:871"></A><A NAME="idx:collate:872"></A><A NAME="idx:comparelanguagespecific:873"></A>This 
+section deals with predicates for language specific string comparison 
+operations.
+
+<DL>
+<DT class="pubdef"><A NAME="collation_key/2"><STRONG>collation_key</STRONG>(<VAR>+Atom, 
+-Key</VAR>)</A></DT>
+<DD class="defbody">
+Create a <VAR>Key</VAR> from <VAR>Atom</VAR> for locale specific 
+comparison. The key is defined such that if the key of atom <VAR>A</VAR> 
+preceeds the key of atom <VAR>B</VAR> in the standard order of terms, <VAR>A</VAR> 
+is alphabetically smaller than <VAR>B</VAR> using the sort order of the 
+current locale.
+
+<P>The predicate <A NAME="idx:collationkey2:874"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
+is used by <A NAME="idx:localesort2:875"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
+from library(sort). Please examine the implementation of <A NAME="idx:localesort2:876"></A><A class="pred" href="chartype.html#locale_sort/2">locale_sort/2</A> 
+as an example of using this call.
+
+<P>The <VAR>Key</VAR> is an implementation defined and generally 
+unreadable string.</DD>
+<DT class="pubdef"><A NAME="locale_sort/2"><STRONG>locale_sort</STRONG>(<VAR>+List, 
+-Sorted</VAR>)</A></DT>
+<DD class="defbody">
+Sort a list of atoms using the current locale. <VAR>List</VAR> is a list 
+of atoms or string objects (see <B>section ??</B>). <VAR>Sorted</VAR> is 
+unified with a list containing all atoms of <VAR>List</VAR>, sorted to 
+the rules of the current locale. See also <A NAME="idx:collationkey2:877"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
+and
+<A NAME="idx:setlocale3:878"></A><A class="pred" href="system.html#setlocale/3">setlocale/3</A>.
 </DD>
 </DL>
 

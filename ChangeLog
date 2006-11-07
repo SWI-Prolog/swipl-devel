@@ -7,6 +7,15 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: collation_key/2 and locale_sort/2 for locale-dependent ordering.
+    With help from Pierre Nugues and Richard O'Keefe.
+
+  * MODIFIED: Initialisation initialises the LC_COLLATE locale.
+
+  * MODIFIED: Moved predsort/3, merge/3 and merge_set/3 to new library(sort).
+    Applications not relying on autoloading must update use_module declarations
+    if one of these predicates is used. 
+
   * ENHANCED: Check file-descriptor in Sfdopen(). Julien Olivain.
 
   * ADDED: debugger event for finished threads.

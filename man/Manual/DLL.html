@@ -133,11 +133,11 @@ is enabled.
 <DD class="defbody">
 Search for the given foreign library and link it to the current 
 SWI-Prolog instance. The library may be specified with or without the 
-extension. First, <A NAME="idx:absolutefilename3:1262"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
+extension. First, <A NAME="idx:absolutefilename3:1273"></A><A class="pred" href="files.html#absolute_file_name/3">absolute_file_name/3</A> 
 is used to locate the file. If this succeeds, the full path is passed to 
 the low-level function to open the library. Otherwise, the plain library 
 name is passed, exploiting the operating-system defined search mechanism 
-for the shared library. The <A NAME="idx:filesearchpath2:1263"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
+for the shared library. The <A NAME="idx:filesearchpath2:1274"></A><A class="pred" href="consulting.html#file_search_path/2">file_search_path/2</A> 
 alias mechanism defines the alias <CODE>foreign</CODE>, which refers to 
 the directories <CODE>&lt;<VAR>plhome</VAR>&gt;/lib/&lt;<VAR>arch</VAR>&gt;</CODE> 
 and
@@ -153,7 +153,7 @@ predicates.
 </DD>
 <DT class="pubdef"><A NAME="load_foreign_library/1"><STRONG>load_foreign_library</STRONG>(<VAR>+Lib</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:loadforeignlibrary2:1264"></A><A class="pred" href="DLL.html#load_foreign_library/2">load_foreign_library/2</A>. 
+Equivalent to <A NAME="idx:loadforeignlibrary2:1275"></A><A class="pred" href="DLL.html#load_foreign_library/2">load_foreign_library/2</A>. 
 For the entry-point, this function first identifies the `base-name' of 
 the library, which is defined to be the file-name with path nor 
 extension. It will then try the entry-point
@@ -164,7 +164,7 @@ function install(). Otherwise no install function will be called.
 <DD class="defbody">
 If the foreign library defines the function uninstall_&lt;<VAR>base</VAR>&gt;() 
 or uninstall(), this function will be called without arguments and its 
-return value is ignored. Next, <A NAME="idx:abolish2:1265"></A><A class="pred" href="db.html#abolish/2">abolish/2</A> 
+return value is ignored. Next, <A NAME="idx:abolish2:1276"></A><A class="pred" href="db.html#abolish/2">abolish/2</A> 
 is used to remove all known foreign predicates defined in the library. 
 Finally the library itself is detached from the process.
 </DD>
@@ -217,9 +217,9 @@ Linking</SPAN></A></H3>
 
 <P>Below is an outline of the files structure required for statically 
 linking SWI-Prolog with foreign extensions. <CODE>\ldots/pl</CODE> 
-refers to the SWI-Prolog home directory (see <A NAME="idx:currentprologflag2:1266"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). <CODE>&lt;<VAR>arch</VAR>&gt;</CODE> 
+refers to the SWI-Prolog home directory (see <A NAME="idx:currentprologflag2:1277"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>). <CODE>&lt;<VAR>arch</VAR>&gt;</CODE> 
 refers to the architecture identifier that may be obtained using
-<A NAME="idx:currentprologflag2:1267"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>.
+<A NAME="idx:currentprologflag2:1278"></A><A class="pred" href="flags.html#current_prolog_flag/2">current_prolog_flag/2</A>.
 
 <P>
 <CENTER>

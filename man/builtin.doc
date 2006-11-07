@@ -3546,13 +3546,13 @@ suffix-matching, etc.
 \end{description}
 
 
-\section{Classifying characters}		\label{sec:chartype}
+\section{Character properties}		\label{sec:chartype}
 
 SWI-Prolog offers two comprehensive predicates for classifying
 characters and character-codes. These predicates are defined as built-in
 predicates to exploit the C-character classification's handling of
-\jargon{locale} (handling of local character-sets).  These predicates
-are fast, logical and deterministic if applicable.
+\jargon{locale} (handling of local character-sets). These predicates are
+fast, logical and deterministic if applicable.
 
 In addition, there is the library \pllib{ctype} providing compatibility
 to some other Prolog systems. The predicates of this library are defined
@@ -3658,6 +3658,36 @@ with \arg{LowerCase}.
 
     \predicate{upcase_atom}{2}{+AnyCase, -UpperCase}
 Converts, similar to downcase_atom/2, an atom to upper-case.
+\end{description}
+
+
+\subsection{Language specific comparison}
+\label{sec:collate}
+
+\index{locale}\index{collate}\index{compare,language-specific}%
+This section deals with predicates for language specific string
+comparison operations.
+
+\begin{description}
+    \predicate{collation_key}{2}{+Atom, -Key}
+Create a \arg{Key} from \arg{Atom} for locale specific comparison.
+The key is defined such that if the key of atom $A$ preceeds the key
+of atom $B$ in the standard order of terms, $A$ is alphabetically
+smaller than $B$ using the sort order of the current locale.
+
+The predicate collation_key/2 is used by locale_sort/2 from
+library(sort).  Please examine the implementation of locale_sort/2
+as an example of using this call.
+
+The \arg{Key} is an implementation defined and generally unreadable
+string.
+
+    \predicate{locale_sort}{2}{+List, -Sorted}
+Sort a list of atoms using the current locale.  \arg{List} is a list
+of atoms or string objects (see \secref{string}).  \arg{Sorted} is
+unified with a list containing all atoms of \arg{List}, sorted to
+the rules of the current locale.  See also collation_key/2 and
+setlocale/3.
 \end{description}
 
 
@@ -4973,7 +5003,8 @@ Please note that the locale is shared between all threads and
 thread-safe usage of setlocale/3 is in general not possible. Do locale
 operations before starting threads or thoroughly study threading aspects
 of locale support in your environment before use in multi-threaded
-environments.
+environments. Locale settings are used by format_time/3, collation_key/2
+and locale_sort/2.
 
     \predicate{unix}{1}{+Command}
 This predicate comes from the Quintus compatibility library and provides

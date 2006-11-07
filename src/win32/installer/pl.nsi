@@ -88,6 +88,7 @@ Section "Base system (required)"
   File pl\library\ctypes.pl
   File pl\library\gensym.pl
   File pl\library\lists.pl
+  File pl\library\sort.pl
   File pl\library\ugraphs.pl
   File pl\library\occurs.pl
   File pl\library\ordsets.pl

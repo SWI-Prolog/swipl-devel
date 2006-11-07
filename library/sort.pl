@@ -29,16 +29,21 @@
     the GNU General Public License.
 */
 
-:- module($sort,
-	[ predsort/3
-	, merge/3
-	, merge_set/3
+:- module(sort,
+	[ predsort/3,			% :Compare, +List, -Sorted
+	  merge/3,			% +List1, +List2, -Union
+	  merge_set/3,			% +Set1, +Set2, -Union
+	  locale_sort/2			% +ListOfAtoms, -Sorted
 	]).
 
-%   merge_set(+Set1, +Set2, -Set3)
+:- set_prolog_flag(generate_debug_info, false).
+
+%%	merge_set(+Set1, +Set2, -Set3)
 %
-%   Merge the ordered sets Set1 and Set2 into a new ordered set without
-%   duplicates.
+%	Merge the ordered sets Set1 and  Set2   into  a  new ordered set
+%	without duplicates.
+%	
+%	@depricated	Use ord_union/3 from library(ordsets)
 
 merge_set([], L, L) :- !.
 merge_set(L, [], L) :- !.
@@ -46,7 +51,8 @@ merge_set([H1|T1], [H2|T2], [H1|R]) :- H1 @< H2, !, merge_set(T1, [H2|T2], R).
 merge_set([H1|T1], [H2|T2], [H2|R]) :- H1 @> H2, !, merge_set([H1|T1], T2, R).
 merge_set([H1|T1], [H2|T2], [H1|R]) :- H1 == H2,    merge_set(T1, T2, R).
 
-%	merge(+List1, +List2, -List3)
+
+%%	merge(+List1, +List2, -List3)
 %
 %	Merge the ordered sets List1 and List2 into a new ordered  list.
 %	Duplicates are not removed and their order is maintained.
@@ -63,44 +69,70 @@ merge([H1|T1], [H2|T2], [H|R]) :-
 
 :- module_transparent
 	predsort/3, 
-	$predsort/5, 
-	$predmerge/4, 
-	$predmerge/7.
+	predsort/5, 
+	predmerge/4, 
+	predmerge/7.
 
-/*  Predicate based sort.
 
- ** Sun Jun  5 16:13:38 1988  jan@swivax.UUCP (Jan Wielemaker)  */
+%%	predsort(:Compare, +List, -Sorted) is det.
+%
+%	 Sorts similar to sort/2, but determines  the order of two terms
+%	 by calling Compare(-Delta, +E1,  +E2).   This  call  must unify
+%	 Delta with one of <, > or =. If built-in predicate compare/3 is
+%	 used, the result is the same as sort/2. See also keysort/2.
 
 predsort(P, L, R) :-
 	length(L, N), 
-	$predsort(P, N, L, _, R1), !, 
+	predsort(P, N, L, _, R1), !, 
 	R = R1.
 
-$predsort(P, 2, [X1, X2|L], L, R) :- !, 
+predsort(P, 2, [X1, X2|L], L, R) :- !, 
 	call(P, Delta, X1, X2),
-	$sort2(Delta, X1, X2, R).
-$predsort(_, 1, [X|L], L, [X]) :- !.
-$predsort(_, 0, L, L, []) :- !.
-$predsort(P, N, L1, L3, R) :-
+	sort2(Delta, X1, X2, R).
+predsort(_, 1, [X|L], L, [X]) :- !.
+predsort(_, 0, L, L, []) :- !.
+predsort(P, N, L1, L3, R) :-
 	N1 is N // 2, 
 	plus(N1, N2, N), 
-	$predsort(P, N1, L1, L2, R1), 
-	$predsort(P, N2, L2, L3, R2), 
-	$predmerge(P, R1, R2, R).
+	predsort(P, N1, L1, L2, R1), 
+	predsort(P, N2, L2, L3, R2), 
+	predmerge(P, R1, R2, R).
 
-$sort2(<, X1, X2, [X1, X2]).
-$sort2(=, X1, _,  [X1]).
-$sort2(>, X1, X2, [X2, X1]).
+sort2(<, X1, X2, [X1, X2]).
+sort2(=, X1, _,  [X1]).
+sort2(>, X1, X2, [X2, X1]).
 
-$predmerge(_, [], R, R) :- !.
-$predmerge(_, R, [], R) :- !.
-$predmerge(P, [H1|T1], [H2|T2], Result) :-
+predmerge(_, [], R, R) :- !.
+predmerge(_, R, [], R) :- !.
+predmerge(P, [H1|T1], [H2|T2], Result) :-
 	call(P, Delta, H1, H2),
-	$predmerge(Delta, P, H1, H2, T1, T2, Result).
+	predmerge(Delta, P, H1, H2, T1, T2, Result).
 
-$predmerge(>, P, H1, H2, T1, T2, [H2|R]) :-
-	$predmerge(P, [H1|T1], T2, R).
-$predmerge(=, P, H1, _, T1, T2, [H1|R]) :-
-	$predmerge(P, T1, T2, R).
-$predmerge(<, P, H1, H2, T1, T2, [H1|R]) :-
-	$predmerge(P, T1, [H2|T2], R).
+predmerge(>, P, H1, H2, T1, T2, [H2|R]) :-
+	predmerge(P, [H1|T1], T2, R).
+predmerge(=, P, H1, _, T1, T2, [H1|R]) :-
+	predmerge(P, T1, T2, R).
+predmerge(<, P, H1, H2, T1, T2, [H1|R]) :-
+	predmerge(P, T1, [H2|T2], R).
+
+%%	locale_sort(+List, -Sorted) is det.
+%
+%	Sort a list of atoms using the current locale.
+%	
+%	@param List	List of atoms
+%	@param Sorted	Sorted atoms.
+
+locale_sort(List, Sorted) :-
+	collation_keys(List, Keyed),
+	keysort(Keyed, KeySorted),
+	unkey(KeySorted, Sorted).
+
+collation_keys([], []).
+collation_keys([H0|T0], [H|T]) :-
+	collation_key(H0, H),
+	collation_keys(T0, T).
+
+
+unkey([], []).
+unkey([_-H|T0], [H|T]) :-
+	unkey(T0, T).

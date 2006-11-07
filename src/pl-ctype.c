@@ -607,6 +607,9 @@ initLocale()
   if ( !setlocale(LC_TIME, "") )
   { DEBUG(0, Sdprintf("Failed to set LC_TIME locale\n"));
   }
+  if ( !setlocale(LC_COLLATE, "") )
+  { DEBUG(0, Sdprintf("Failed to set LC_COLLATE locale\n"));
+  }
 }
 
 typedef struct

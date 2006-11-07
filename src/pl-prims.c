@@ -2135,6 +2135,34 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 }
 
 
+static
+PRED_IMPL("collation_key", 2, collation_key, 0)
+{ wchar_t *s;
+  unsigned int len;
+  wchar_t buf[256];
+  size_t buflen = sizeof(buf)/sizeof(wchar_t);
+  wchar_t *o = buf;
+  size_t n;
+
+  if ( !PL_get_wchars(A1, &len, &s, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
+    fail;
+  for(;;)
+  { if ( (n=wcsxfrm(o, s, buflen)) < buflen )
+    { int rc = PL_unify_wchars(A2, PL_STRING, n, o);
+
+      if ( o != buf )
+	PL_free(o);
+
+      return rc;
+    } else
+    { assert(o == buf);
+      buflen = n+1;
+      o = PL_malloc(buflen*sizeof(wchar_t));
+    }
+  }
+}
+
+
 static word
 concat(const char *pred,
        term_t a1, term_t a2, term_t a3, 
@@ -3535,6 +3563,7 @@ BeginPredDefs(prims)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
 #endif
   PRED_DEF("atom_number", 2, atom_number, 0)
+  PRED_DEF("collation_key", 2, collation_key, 0)
   PRED_DEF("statistics", 2, statistics, 0)
   PRED_DEF("$option", 3, option, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$style_check", 2, style_check, 0)
