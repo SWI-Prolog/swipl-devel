@@ -116,7 +116,7 @@ PL_SSL_INSTANCE *ssl_ssl         (PL_SSL *config, int sock);
 void             ssl_exit        (PL_SSL *config);
 int              ssl_close       (PL_SSL_INSTANCE *instance);
 
-int             ssl_accept       (PL_SSL *config, void *addr, size_t *addrlen);
+int             ssl_accept       (PL_SSL *config, void *addr, socklen_t *addrlen);
 int             ssl_connect      (PL_SSL *config);
 int             ssl_read         ( PL_SSL_INSTANCE *instance
                                  , char *buf, int size

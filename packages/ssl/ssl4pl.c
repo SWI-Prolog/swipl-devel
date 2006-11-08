@@ -25,7 +25,6 @@
 
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
-#include "ssllib.h"
 #include <assert.h>
 #include <string.h>
 #ifdef WIN32
@@ -37,6 +36,7 @@
 #  include <netinet/in.h>
 #  include <unistd.h>
 #endif
+#include "ssllib.h"
 
 #ifdef _REENTRANT
 #include <pthread.h>
@@ -503,7 +503,7 @@ pl_ssl_accept(term_t config, term_t sock_inst, term_t peer)
 { PL_SSL *conf;
   int si;
   struct sockaddr_in sa_client;
-  size_t             client_len = sizeof(sa_client);
+  socklen_t          client_len = sizeof(sa_client);
 
   if ( !get_conf(config, &conf) )
     return FALSE;

@@ -1162,13 +1162,13 @@ ssl_socket(PL_SSL *config)
 }
 
 int
-ssl_accept(PL_SSL *config, void *addr, size_t *addrlen)
+ssl_accept(PL_SSL *config, void *addr, socklen_t *addrlen)
 /*
  * We set the TCP layer to accept mode,
  */
 {
     struct sockaddr_in sa_client;
-    size_t             client_len;
+    socklen_t          client_len;
 
     if ( !addr ) {
 	addr = (struct  sockaddr *)&sa_client;
