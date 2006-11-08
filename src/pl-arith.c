@@ -1062,16 +1062,15 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   { case V_INTEGER:
       if ( n2->value.i < LONG_MIN  ||
 	   n2->value.i > LONG_MAX )
-      { overflow:
 	return PL_error(plop, 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
-      } else
+      else
 	shift = (long)n2->value.i;
       break;
 #ifdef O_GMP
     case V_MPZ:
       if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
 	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	goto overflow;
+	return PL_error(plop, 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
       else
 	shift = mpz_get_si(n2->value.mpz);
       break;

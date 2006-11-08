@@ -327,12 +327,14 @@ arithmetic(truncate-1) :-
 	1 is truncate(1.9),
 	-1 is truncate(-1.1),
 	-1 is truncate(-1.9).
+:- if(current_prolog_flag(bounded, false)). 
 arithmetic(floor-2) :-
 	A is floor(9223372036854775808.000000),
 	A == 9223372036854775808.
 arithmetic(ceil-2) :-
 	A is ceil(9223372036854775808.000000),
 	A == 9223372036854775808.
+:- endif.
 arithmetic(round-2) :-
 	A is round(9223372036854775808.000000),
 	A == 9223372036854775808.

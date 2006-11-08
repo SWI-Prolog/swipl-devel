@@ -156,7 +156,10 @@ PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
       }
     }
   } else
-  { type_error:
+  {
+#ifdef O_GMP
+    type_error:
+#endif
     rval = PL_error("flag", 3, NULL, ERR_TYPE, ATOM_flag_value, new);
   }
 
