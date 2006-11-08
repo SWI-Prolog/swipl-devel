@@ -260,7 +260,7 @@
       && PL_get_atom(a1,&a) \
       && ( a==JNI_atom_null \
 	 ? ( (J)=0, TRUE) \
-	 : jni_tag_to_iref(a,(int*)&(J)) \
+	 : jni_tag_to_iref(a,(long*)&(J)) \
 	 ) \
     )
 
@@ -280,7 +280,7 @@
 	 ) \
       && PL_get_atom(a1,&a) \
 	 && a!=JNI_atom_null \
-	 && jni_tag_to_iref(a,(int*)&(J)) \
+	 && jni_tag_to_iref(a,(long*)&(J)) \
     )
 
 
@@ -464,19 +464,8 @@
 // outcomes:
 //	fail to find jpl.*, jpl.fli.* classes or to convert init args to String[]: exception, FALSE
 //	JPL is (newly or already) out of RAW state: TRUE
-#define	    jpl_ensure_jpl_init(e)  (	jpl_status != JPL_INIT_RAW \
-				    ||	jpl_do_jpl_init(e) \
-				    )
-// outcomes:
-//	JPL or PVM init has already failed: FALSE
-//	JPL or PVM init fails while being necessarily attempted: exception
-//	JPL is (newly or already) fully initialised: TRUE
-#define	    jpl_ensure_pvm_init(e)  (	jpl_status == JPL_INIT_OK \
-				    ||	( jpl_ensure_jpl_init(e) , FALSE ) \
-				    ||	jpl_test_pvm_init(e) \
-				    ||	jpl_do_pvm_init(e) \
-				    )
-
+#define	    jpl_ensure_jpl_init(e)  if ( jpl_status == JPL_INIT_RAW ) \
+				      jpl_do_jpl_init(e)
 
 //=== types (structs and typedefs) =================================================================
 
@@ -639,8 +628,26 @@ static int		engines_allocated = 0; /* size of engines array */
 static pthread_mutex_t	engines_mutex = PTHREAD_MUTEX_INITIALIZER;  // for controlling pool access
 static pthread_cond_t	engines_cond =	PTHREAD_COND_INITIALIZER;  // for controlling pool access
 
+static bool jpl_do_jpl_init(JNIEnv *e);
+static bool jpl_do_pvm_init(JNIEnv *e);
+static bool jpl_test_pvm_init(JNIEnv *e);
 
 //=== common functions =============================================================================
+
+// outcomes:
+//	JPL or PVM init has already failed: FALSE
+//	JPL or PVM init fails while being necessarily attempted: exception
+//	JPL is (newly or already) fully initialised: TRUE
+static int
+jpl_ensure_pvm_init(JNIEnv *e)
+{ if ( jpl_status != JPL_INIT_OK )
+  { jpl_ensure_jpl_init(e);
+    if ( !jpl_test_pvm_init(e) )
+      return jpl_do_pvm_init(e);
+  }
+
+  return TRUE;
+}
 
 static char *
 jpl_c_lib_version()
@@ -698,8 +705,8 @@ jpl_c_lib_version_4_plc(
 
 //=== JNI function prototypes (to resolve unavoidable forward references) ==========================
 
-static int	    jni_hr_add(jobject,int*);
-static int	    jni_hr_del(int);
+static int	    jni_hr_add(jobject, long*);
+static int	    jni_hr_del(long);
 
 
 //=== JNI functions (NB first 6 are cited in macros used subsequently) =============================
@@ -708,37 +715,42 @@ static int	    jni_hr_del(int);
 static bool
 jni_tag_to_iref(
     atom_t	a,
-    int		*iref
+    long	*iref
     )
     {
     const char  *s = PL_atom_chars(a);
+    long r;
 
-    return strlen(s) == 12
-        && s[0] == 'J'
-        && s[1] == '#'
-        && isdigit(s[2])
-        && isdigit(s[3])
-        && isdigit(s[4])
-        && isdigit(s[5])
-        && isdigit(s[6])
-        && isdigit(s[7])
-        && isdigit(s[8])
-        && isdigit(s[9])
-        && isdigit(s[10])
-        && isdigit(s[11])            // s is like 'J#0123456789'
-        && (*iref=atoi(&s[2])) != 0;
+    if ( strlen(s) == 12
+	 && s[0] == 'J'
+	 && s[1] == '#'
+	 && isdigit(s[2])
+	 && isdigit(s[3])
+	 && isdigit(s[4])
+	 && isdigit(s[5])
+	 && isdigit(s[6])
+	 && isdigit(s[7])
+	 && isdigit(s[8])
+	 && isdigit(s[9])
+	 && isdigit(s[10])
+	 && isdigit(s[11])            // s is like 'J#0123456789'
+	 && (r=atol(&s[2])) != 0 )
+    { *iref = r;
+      return 1;
+    }
+    return 0;
     }
 
 
 static bool
 jni_iref_to_tag(
-    int		iref,
+    long	iref,
     atom_t	*a
     )
     {
     char	abuf[13];
 
-    sprintf( abuf, "J#%010u", iref);	// oughta encapsulate this mapping...
+    sprintf( abuf, "J#%010lu", iref);	// oughta encapsulate this mapping...
     *a = PL_new_atom(abuf);
     PL_unregister_atom(*a);		// empirically decrement reference count...
     return TRUE;			// can't fail (?!)
@@ -748,7 +760,7 @@ jni_iref_to_tag(
 static bool
 jni_object_to_iref(
     jobject	obj,	    // a newly returned JNI local ref
-    int		*iref	    // gets an integerised, canonical, global equivalent
+    long	*iref	    // gets an integerised, canonical, global equivalent
     )
     {
     int		r;	    // temp for result code
@@ -793,7 +805,7 @@ jni_tidy_iref_type_cache(
 // could merge this into jni_hr_del() ?
 static bool
 jni_free_iref(		    // called indirectly from agc hook when a possible iref is unreachable
-    int		iref
+    long	iref
     )
     {
 
@@ -843,7 +855,7 @@ jni_tag_to_iref_plc(
     )
     {
     atom_t	a;
-    int		iref;
+    long	iref;
 
     return  PL_get_atom(tt,&a)
 	&&  jni_tag_to_iref(a,&iref)
@@ -861,12 +873,12 @@ jni_atom_freed(
     )
     {
     const char	*cp = PL_atom_chars(a);
-    int		iref;
+    long	iref;
     char	cs[11];
 
     if ( jni_tag_to_iref( a, &iref) )	// check format and convert digits to int if ok
         {
-        sprintf( cs, "%010u", iref);	// reconstruct digits part of tag in cs
+        sprintf( cs, "%010lu", iref);	// reconstruct digits part of tag in cs
         if ( strcmp(&cp[2],cs) != 0 )	// original digits != reconstructed digits?
             {
 	      DEBUG(0, Sdprintf( "[JPL: garbage-collected tag '%s'=%u is bogus (not canonical)]\n", cp, iref));
@@ -925,7 +937,7 @@ jni_hr_table_slot(
 	    &&	PL_unify_term(tp,
 		    PL_FUNCTOR, PL_new_functor(PL_new_atom("-"),2),
 		    PL_INT, slot->hash,
-		    PL_INT, (int)(slot->obj)
+		    PL_LONG, slot->obj
 		)
 	    &&	jni_hr_table_slot(t2,slot->next)
 	    ;
@@ -1103,7 +1115,7 @@ jni_hr_hash(
     {
     jobject	e;	// for possible (but unlikely?) exception
 
-    *hash = (*env)->CallStaticIntMethod(env,sys_class,sys_ihc,obj,(int)obj);
+    *hash = (*env)->CallStaticIntMethod(env,sys_class,sys_ihc,obj,obj);
     return (e=(*env)->ExceptionOccurred(env))==NULL;
     }
 
@@ -1117,7 +1129,7 @@ jni_hr_hash(
 static int
 jni_hr_add(
     jobject	lref,	// new JNI local ref from a regular JNI call 
-    int		*iref	// for integerised canonical global ref
+    long	*iref	// for integerised canonical global ref
     )
     {
     int		hash;	// System.identityHashCode of lref
@@ -1141,7 +1153,7 @@ jni_hr_add(
 	    if ( (*env)->IsSameObject(env,ep->obj,lref) )
 		{ // newly referenced object is already interned
 		(*env)->DeleteLocalRef(env,lref);   // free redundant new ref
-		*iref = (int)(ep->obj); // old, equivalent (global) ref
+		*iref = (long)ep->obj; // old, equivalent (global) ref
 		return JNI_HR_ADD_OLD;
 		}
 	    }
@@ -1163,7 +1175,7 @@ jni_hr_add(
     ep->next = hr_table->slots[index];	// insert at front of chain
     hr_table->slots[index] = ep;
     hr_table->count++;
-    *iref = (int)gref;	// pass back the (new) global ref
+    *iref = (long)gref;	// pass back the (new) global ref
     return JNI_HR_ADD_NEW;  // obj was newly interned, under iref as supplied
     }
 
@@ -1173,7 +1185,7 @@ jni_hr_add(
 //
 static bool
 jni_hr_del(
-    int		iref	// a possibly spurious canonical global iref
+    long	iref	// a possibly spurious canonical global iref
     )
     {
     int		index;	// index to a HashedRef table slot
@@ -1185,7 +1197,7 @@ jni_hr_del(
 	{
 	for ( epp=&(hr_table->slots[index]), ep=*epp ; ep!=NULL ; epp=&(ep->next), ep=*epp )
 	    {
-	    if ( (int)(ep->obj) == iref )			// found the sought entry?
+	    if ( (long)(ep->obj) == iref )			// found the sought entry?
 		{
 		(*env)->DeleteGlobalRef( env, ep->obj);		// free the global object reference
 		*epp = ep->next;				// bypass the entry
@@ -1365,7 +1377,7 @@ jni_check_exception()
     jobject	s;	// its class name as a JVM String, for the report
     const char	*cp;	// its class name as a C string
     term_t	ep;	// a newly created Prolog exception
-    int		i;	// temp for an iref denoting a Java exception
+    long	i;	// temp for an iref denoting a Java exception
     atom_t	a;	// temp for a tag denoting a Java exception
 
     if ( (ej=(*env)->ExceptionOccurred(env)) == NULL )
@@ -2535,7 +2547,7 @@ jni_func_0_plc(
  // term_t	a2;	//  "
     atom_t	a;	//  "
  // char	*cp;	//  "
-    int		i;	//  "
+    long	i;	//  "
  // int		xhi;	//  "
  // int		xlo;	//  "
     jobject	j;	//  "
@@ -2582,7 +2594,7 @@ jni_func_1_plc(
  // term_t	a2;	//  "
     atom_t	a;	//  "
     char	*cp;	//  "
-    int		i;	//  "
+    long	i;	//  "
  // int		xhi;	//  "
  // int		xlo;	//  "
     jobject	j;	//  "
@@ -2705,7 +2717,7 @@ jni_func_2_plc(
  // term_t	a2;	//  "
     atom_t	a;	//  "
     char	*cp;	//  "
-    int		i;	//  "
+    long	i;	//  "
     int		xhi;	//  "
     int		xlo;	//  "
     jobject	j;	//  "
@@ -2928,7 +2940,7 @@ jni_func_3_plc(
  // term_t	a2;	//  "
     atom_t	a;	//  "
     char	*cp;	//  "
-    int		i;	//  "
+    long	i;	//  "
     int		xhi;	//  "
     int		xlo;	//  "
     jobject	j;	//  "
@@ -3137,7 +3149,7 @@ jni_func_4_plc(
     term_t	a2;	//  "
     atom_t	a;	//  "
     char	*cp;	//  "
-    int		i;	//  "
+    long	i;	//  "
     int		xhi;	//  "
     int		xlo;	//  "
     jobject	j;	//  "
@@ -4233,13 +4245,14 @@ Java_jpl_fli_Prolog_reset_1term_1refs(
     )
     {
     term_t	term;
+    long	lval;
 
     if	(   jpl_ensure_pvm_init(env)
      // &&  jafter != NULL		    // redundant: getLongValue checks this
-	&&  getLongValue(env,jafter,&term)  // SWI RM -> oughta be non-null
+	&&  getLongValue(env,jafter,&lval)  // SWI RM -> oughta be non-null
 	)
-	{
-	PL_reset_term_refs( term);	    // void; SWI RM -> "always succeeds"
+	{ term = lval;
+	  PL_reset_term_refs( term);	    // void; SWI RM -> "always succeeds"
 	}
     }
 
@@ -4677,7 +4690,7 @@ Java_jpl_fli_Prolog_get_1string_1chars(
     {
     term_t	term;
     char	*s;
-    int		n;
+    unsigned int n;
     jstring	string;
     
     return  jpl_ensure_pvm_init(env)
@@ -4930,7 +4943,7 @@ Java_jpl_fli_Prolog_get_1jpl_1term(
             ? (obj=(*env)->AllocObject(env,jJBoolean_c)) != NULL
               && ((*env)->SetBooleanField(env,obj,jJBooleanValue_f,FALSE), TRUE)
               &&  setObjectValue(env,jobject_holder,obj)
-            : jni_tag_to_iref(a,(int*)&ref)	// convert digits to int
+            : jni_tag_to_iref(a, (long*)&ref)	   // convert digits to int
             ? (obj=(*env)->AllocObject(env,jJRef_c)) != NULL
               && ((*env)->SetObjectField(env,obj,jJRefRef_f,ref), TRUE)
               &&  setObjectValue(env,jobject_holder,obj)
@@ -5463,7 +5476,7 @@ Java_jpl_fli_Prolog_put_1jref(
     term_t	term;
     jobject	j;	// temp for JNI_jobject_to_term(+,-)
     atom_t	a;	//  "
-    int		i;	//  "
+    long	i;	//  "
 
     DEBUG(1, Sdprintf( ">put_ref(env=%lu,jProlog=%lu,jterm=%lu,jref=%lu)...\n", env, jProlog, jterm, jref));
 
@@ -5516,10 +5529,10 @@ Java_jpl_fli_Prolog_put_1jvoid(
 
     DEBUG(1, Sdprintf( ">put_jvoid(env=%lu,jProlog=%lu,jterm=%lu)...\n", env, jProlog, jterm));
 
-    (	jpl_ensure_pvm_init(env)			// combine these two please
-    &&	jni_ensure_jvm()				//  "
-    &&	getLongValue(env,jterm,(long*)&term)		    // checks that jterm isn't null
-    &&	JNI_unify_void(term)				// assumes term is var
+    (void)( jpl_ensure_pvm_init(env)			// combine these two please
+	    &&	jni_ensure_jvm()			//  "
+	    &&	getLongValue(env,jterm,(long*)&term)	// checks that jterm isn't null
+	    &&	JNI_unify_void(term)			// assumes term is var
     );
     }
 
