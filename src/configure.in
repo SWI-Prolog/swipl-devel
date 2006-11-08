@@ -1358,6 +1358,11 @@ case "$ARCH" in
 	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
 	fi
 	;;
+  *x86_64*linux)
+	if test "x$MKSHARED" = "x"; then
+	    MKSHARED=yes
+	fi
+	;;
   *darwin*)
 	if test "x$MKSHARED" = "x"; then
 	    MKSHARED=yes

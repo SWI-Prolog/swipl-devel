@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: By default build shared object on x86_64-linux platforms.  Needed
+    for embedding in Java and unlike IA32, creating a shared object does not
+    affect performance.
+
   * ADDED: collation_key/2 and locale_sort/2 for locale-dependent ordering.
     With help from Pierre Nugues and Richard O'Keefe.
 
