@@ -284,7 +284,7 @@ static struct
 #define CTX_GOT_QLEN	0x0400		/* got SQL_MAX_QUALIFIER_NAME_LEN */
 #define CTX_NOAUTO	0x0800		/* fetch by hand */
 
-#define FND_SIZE(n)	((int)&((findall*)NULL)->codes[n])
+#define FND_SIZE(n)	((size_t)&((findall*)NULL)->codes[n])
 
 #define true(s, f)	((s)->flags & (f))
 #define false(s, f)	!true(s, f)
@@ -2603,7 +2603,7 @@ declare_parameters(context *ctxt, term_t parms)
 	  }
 	  params->length_ind = cbColDef;
 	} else				/* unknown, use SQLPutData() */
-	{ params->ptr_value = (PTR)pn;
+	{ params->ptr_value = (PTR)(long)pn;
 	  params->len_value = SQL_LEN_DATA_AT_EXEC(0);
 	  DEBUG(2, Sdprintf("Using SQLPutData() for column %d\n", pn));
 	}
@@ -2965,7 +2965,7 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
       { PTR token;
 
 	if ( (ctxt->rc = SQLParamData(ctxt->hstmt, &token)) == SQL_NEED_DATA )
-	{ parameter *p = &ctxt->params[(int)token - 1];
+	{ parameter *p = &ctxt->params[(long)token - 1];
 	  unsigned int len;
 	  char *s;
 
