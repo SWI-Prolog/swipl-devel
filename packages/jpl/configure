@@ -3079,8 +3079,9 @@ fi
 
 CFLAGS="$CMFLAGS"
 
+
 if test ! -z "$GCC"; then
-    COFLAGS="-O2 -fno-strict-aliasing"
+    COFLAGS="-O2 -cc-options,-fno-strict-aliasing"
     CWFLAGS="-Wall"
 else
     COFLAGS=-O
@@ -3287,7 +3288,7 @@ else
 JAVA_TEST=Test.java
 CLASS_TEST=Test.class
 cat << \EOF > $JAVA_TEST
-/* #line 3290 "configure" */
+/* #line 3291 "configure" */
 public class Test {
 }
 EOF

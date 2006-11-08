@@ -72,8 +72,10 @@ AC_ISC_POSIX
 AC_HEADER_STDC
 CFLAGS="$CMFLAGS"
 
+dnl Note that we are using plld frontend.  Hence the -cc-options
+
 if test ! -z "$GCC"; then
-    COFLAGS="-O2 -fno-strict-aliasing"
+    COFLAGS="-O2 -cc-options,-fno-strict-aliasing"
     CWFLAGS="-Wall"
 else
     COFLAGS=-O
