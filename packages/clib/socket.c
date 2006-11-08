@@ -297,7 +297,7 @@ unify_address(term_t t, struct sockaddr_in *addr)
 static foreign_t
 udp_receive(term_t Socket, term_t Data, term_t From, term_t Options)
 { struct sockaddr_in sockaddr;
-  int alen = sizeof(sockaddr);
+  socklen_t alen = sizeof(sockaddr);
   int socket;
   int flags = 0;
   char buf[UDP_MAXDATA];

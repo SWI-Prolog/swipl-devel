@@ -800,7 +800,7 @@ wait_socket(plsocket *s, int fd)
       tv.tv_sec = 0;
       tv.tv_usec = 250000;
       
-      select(fd+1, &rfds, NULL, NULL, &tv) != 0;
+      select(fd+1, &rfds, NULL, NULL, &tv);
       return TRUE;
     } else
     { return PL_dispatch(fd, PL_DISPATCH_WAIT);
