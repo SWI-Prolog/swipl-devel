@@ -1,8 +1,32 @@
 /*  $Id$
 
-    E-mail: jan@swi.psy.uva.nl
+    Part of SWI-Prolog
 
-    Copyright (C) 1996 University of Amsterdam. All rights reserved.
+    Author:        Jan Wielemaker
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1985-2006, University of Amsterdam
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
 */
 
 :- asserta(file_search_path(foreign, '../sgml')).
@@ -560,6 +584,13 @@ subproperty(1) :-
 		 *      PROPERTY HIERACHY	*
 		 *******************************/
 
+%%	ptree/1
+%
+%	Property hierarchy handling for  rdf_has/3.   The  routines must
+%	associate a unique root to all   networks of properties, dealing
+%	with   cycles   and   networks   with    multiple   roots.   See
+%	organise_predicates().
+
 ptree(1) :-
 	rdf_assert(a, rdfs:subPropertyOf, b),
 	rdf_assert(x, a, y),
@@ -569,13 +600,17 @@ ptree(2) :-				% simple cycle
 	rdf_assert(b, rdfs:subPropertyOf, a),
 	rdf_assert(x, a, y),
 	rdf_has(x, b, y).
-ptree(3) :-				% two roots
+ptree(3) :-				% self-cycle
+	rdf_assert(a, rdfs:subPropertyOf, a),
+	rdf_assert(x, a, y),
+	rdf_has(x, a, y).
+ptree(4) :-				% two roots
 	rdf_assert(c, rdfs:subPropertyOf, b),
 	rdf_assert(c, rdfs:subPropertyOf, d),
 	rdf_assert(x, c, y),
 	rdf_has(x, b, y),
 	rdf_has(x, d, y).
-ptree(4) :-				% two roots, 2nd leg
+ptree(5) :-				% two roots, 2nd leg
 	rdf_assert(c, rdfs:subPropertyOf, b),
 	rdf_assert(c, rdfs:subPropertyOf, d),
 	rdf_assert(a, rdfs:subPropertyOf, b),
@@ -585,7 +620,7 @@ ptree(4) :-				% two roots, 2nd leg
 	rdf_has(x, d, y),
 	rdf_has(x, b, z),
 	\+ rdf_has(x, d, z).
-ptree(5) :-				% two root cycles
+ptree(6) :-				% two root cycles
 	rdf_assert(c,  rdfs:subPropertyOf, b),
 	rdf_assert(c,  rdfs:subPropertyOf, d),
 	rdf_assert(b,  rdfs:subPropertyOf, bc),
