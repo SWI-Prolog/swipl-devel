@@ -551,10 +551,53 @@ monitor(transaction-1) :-
 		 *******************************/
 
 
-
 subproperty(1) :-
 	rdf_assert(a, p, b),
 	\+ rdf_has(_, p2, b, _).
+
+
+		 /*******************************
+		 *      PROPERTY HIERACHY	*
+		 *******************************/
+
+ptree(1) :-
+	rdf_assert(a, rdfs:subPropertyOf, b),
+	rdf_assert(x, a, y),
+	rdf_has(x, b, y).
+ptree(2) :-				% simple cycle
+	rdf_assert(a, rdfs:subPropertyOf, b),
+	rdf_assert(b, rdfs:subPropertyOf, a),
+	rdf_assert(x, a, y),
+	rdf_has(x, b, y).
+ptree(3) :-				% two roots
+	rdf_assert(c, rdfs:subPropertyOf, b),
+	rdf_assert(c, rdfs:subPropertyOf, d),
+	rdf_assert(x, c, y),
+	rdf_has(x, b, y),
+	rdf_has(x, d, y).
+ptree(4) :-				% two roots, 2nd leg
+	rdf_assert(c, rdfs:subPropertyOf, b),
+	rdf_assert(c, rdfs:subPropertyOf, d),
+	rdf_assert(a, rdfs:subPropertyOf, b),
+	rdf_assert(x, c, y),
+	rdf_assert(x, a, z),
+	rdf_has(x, b, y),
+	rdf_has(x, d, y),
+	rdf_has(x, b, z),
+	\+ rdf_has(x, d, z).
+ptree(5) :-				% two root cycles
+	rdf_assert(c,  rdfs:subPropertyOf, b),
+	rdf_assert(c,  rdfs:subPropertyOf, d),
+	rdf_assert(b,  rdfs:subPropertyOf, bc),
+	rdf_assert(bc, rdfs:subPropertyOf, b),
+	rdf_assert(d,  rdfs:subPropertyOf, dc),
+	rdf_assert(dc, rdfs:subPropertyOf, d),
+	rdf_assert(x, c, y),
+	rdf_has(x, b, y),
+	rdf_has(x, d, y),
+	rdf_has(x, dc, y),
+	rdf_has(x, bc, y).
+
 
 
 		 /*******************************
@@ -683,6 +726,7 @@ testset(prefix).
 testset(rdf_retractall).
 testset(monitor).
 testset(subproperty).
+testset(ptree).
 testset(reachable).
 testset(duplicates).
 

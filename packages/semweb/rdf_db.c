@@ -747,36 +747,6 @@ is_virgin_dummy_root(predicate *p)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Change the root if we put a new root   on  top of a hierarchy. We should
-*not* assign to predicates that already have a root!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static void				/* make root the root of p */
-set_dummy_root_r(rdf_db *db, predicate *p, predicate *root)
-{ if ( p->root && p->root != root )
-  { cell *c;
-
-    if ( p->root && p->root != (predicate*)1 && is_dummy_root(p->root) )
-      del_list(db, &p->root->siblings, p);
-    p->root = root;
-    add_list(db, &root->siblings, p);
-
-    for(c=p->siblings.head; c; c=c->next)
-    { set_dummy_root_r(db, c->value, root);
-    }
-  }
-}
-
-
-static void				/* make root the root of p */
-set_dummy_root(rdf_db *db, predicate *p, predicate *root)
-{ p->root = (predicate*)1;		/* not-null */
-  set_dummy_root_r(db, p, root);
-}
-
-
-
 static const char *
 pname(predicate *p)
 { if ( p->name )
@@ -800,89 +770,98 @@ pname(predicate *p)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-predicate *root_predicate(predicate *p)
-
-Find the root of a  predicate.  This   function  finds  the one and only
-origin of the sub-property graph, dealing   with possible cycles. If the
-graph has multiple roots it constructs an artificial parent of all roots
-and returns this parent.
+Cycles at the top. We walk up using  cycle detection. If we find a root,
+this is our initial one. If we fine   another root, create a dummy root,
+bind the multiple roots below it and return the dummy root.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static predicate*
-root_predicate(rdf_db *db, predicate *p0, int vindex)
-{ predicate *p = p0;
+predicate *
+cycle_root(rdf_db *db, predicate *p, predicate *cr)
+{ if ( !p->visited )
+  { p->visited = TRUE;
 
-  DEBUG(3, Sdprintf("root_predicate(%s) ...", pname(p)));
-
-  for(;;)
-  { cell *c;
-
-    if ( p->root )
-    { DEBUG(3, Sdprintf("%s (old)\n", pname(p->root)));
-      return p->root;
-    }
-    if ( p->visited == vindex )
-    { DEBUG(3, Sdprintf("%s (cycle)\n", pname(p)));
-      return p;				/* cycle */
-    }
-
-    p->visited = vindex;
-    if ( !p->subPropertyOf.head )
-    { DEBUG(3, Sdprintf("%s (root)\n", pname(p)));
-      return p;				/* no super */
-    }
-    if ( !p->subPropertyOf.head->next )
-      p = p->subPropertyOf.head->value;	/* exactly one super */
-    else				/* multiple supers */
-    { predicate *root = root_predicate(db, 
-				       p->subPropertyOf.head->value,
-				       vindex);
+    if ( p->subPropertyOf.head )	/* we might be able to go up */
+    { cell *c;
+      int open = 0;
       
-      DEBUG(2, Sdprintf("%s has multiple roots\n", pname(p)));
+      for(c=p->subPropertyOf.head; c; c=c->next)
+      { predicate *p2 = c->value;
 
-      for(c=p->subPropertyOf.head->next; c; c=c->next)
-      { predicate *r2 = root_predicate(db, c->value, vindex);
-
-	if ( r2 != root )		/* multiple roots */
-	{ if ( is_dummy_root(root) )
-	  { if ( is_dummy_root(r2) )
-	    { cell *c;
-
-	      for(c=r2->siblings.head; c; c=c->next)
-		set_dummy_root(db, c->value, root);
-#if 0
-	      if ( !r2->siblings.head )
-		free_predicate(r2);
-#endif
-	    } else
-	    { set_dummy_root(db, r2, root);
-	    }
-	  } else if ( is_dummy_root(r2) )
-	  { set_dummy_root(db, root, r2);
-	    root = r2;
-	  } else
-	  { predicate *nr;
-
-	    if ( is_virgin_dummy_root(root->oldroot) )
-	      nr = root->oldroot;
-	    else if ( is_virgin_dummy_root(r2->oldroot) )
-	      nr = r2->oldroot;
-	    else
-	      nr = alloc_dummy_root_predicate(db);
-
-	    set_dummy_root(db, root, nr);
-	    set_dummy_root(db, r2, nr);
-
-	    DEBUG(1, Sdprintf("New virtual root %s for %s and %s\n",
-			      pname(nr),
-			      pname(root),
-			      pname(r2)));
-	    root = nr;
-	  }
-	}
+	if ( !p2->visited )
+	  open++;
       }
 
-      return root;
+      if ( open )			/* we can go up! */
+      { for(c=p->subPropertyOf.head; c; c=c->next)
+	{ predicate *p2 = c->value;
+	  
+	  if ( !p2->visited )
+	    cr = cycle_root(db, p2, cr);
+	} 
+
+	return cr;
+      }
+    }
+
+    if ( cr )				/* second real root */
+    { if ( is_dummy_root(cr) )
+      { add_list(db, &cr->siblings, p);
+	return cr;
+      } else if ( is_virgin_dummy_root(cr->oldroot) )
+      { add_list(db, &cr->oldroot->siblings, cr);
+	add_list(db, &cr->oldroot->siblings, p);
+
+	return cr->oldroot;
+      } else
+      { predicate *nr = alloc_dummy_root_predicate(db);
+
+	add_list(db, &nr->siblings, cr);
+	add_list(db, &nr->siblings, p);
+
+	return nr;
+      }
+    } else				/* first real root */
+    { return p;
+    }
+  }
+
+  return cr;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set_root_subtree(db, p, root) sets the subtree below p to use root. We
+know nothing.  
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+set_root_subtree(rdf_db *db, predicate *p, predicate *root, predicate *replace)
+{ if ( p->root == root )		/* cycle */
+  { return;			
+  } else if ( !p->root || p->root == replace )	/* fresh node */
+  { cell *c;
+    p->root = root;
+    for(c=p->siblings.head; c; c=c->next)
+      set_root_subtree(db, c->value, root, replace);
+  } else if ( p->root )			/* join with another tree */
+  { if ( is_dummy_root(p->root) )
+    { add_list(db, &p->root->siblings, root);
+      set_root_subtree(db, root, p->root, root);
+    } else
+    { predicate *newroot;
+
+      if ( is_virgin_dummy_root(root->oldroot) )
+	newroot = root->oldroot;
+      else if ( is_virgin_dummy_root(p->root->oldroot) )
+	newroot = p->root->oldroot;
+      else
+	newroot = alloc_dummy_root_predicate(db);
+      
+      add_list(db, &newroot->siblings, p->root);
+      add_list(db, &newroot->siblings, root);
+      newroot->root = newroot;
+      set_root_subtree(db, p->root, newroot, p->root);
+      set_root_subtree(db, root,    newroot, root);
     }
   }
 }
@@ -902,34 +881,53 @@ organise_predicates(rdf_db *db)
   int changed = 0;
   int seen = 0;
 
+					/* disconnect all */
   for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
   { predicate *p;
 
     for( p = *ht; p; p = p->next )
-    { p->oldroot = p->root;
-      if ( is_dummy_root(p->oldroot) )
+    { seen++;
+      p->visited = FALSE;
+      p->oldroot = p->root;
+      if ( is_dummy_root(p->root) )
 	free_list(db, &p->oldroot->siblings);
       p->root = NULL;
-      p->visited = -1;
     }
   }
+  assert(seen == db->pred_count);
 
+					/* Work from roots */
   for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
   { predicate *p;
 
     for( p = *ht; p; p = p->next )
-    { predicate *root = root_predicate(db, p, seen);
-
-      p->root = root;
-      seen++;
+    { if ( !p->subPropertyOf.head )	/* I'm a top */
+      { set_root_subtree(db, p, p, NULL);
+      }
     }
   }
 
+					/* Deal with cycles */
   for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
   { predicate *p;
 
     for( p = *ht; p; p = p->next )
-    { if ( p->oldroot != p->root )
+    { if ( !p->root )			/* part of a cluster cycle(s) on top */
+      { predicate *r = cycle_root(db, p, NULL);
+
+	assert(r);
+	set_root_subtree(db, r, r, NULL);
+      }
+    }
+  }
+
+					/* verify and see if anything changed */
+  for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
+  { predicate *p;
+
+    for( p = *ht; p; p = p->next )
+    { assert(p->root);
+      if ( p->oldroot != p->root )
 	changed++;
 #if 0					/* may be referenced multiple */
       if ( is_virgin_dummy_root(p->oldroot) )
@@ -942,8 +940,6 @@ organise_predicates(rdf_db *db)
 	    })
     }
   }
-
-  assert(seen == db->pred_count);
 
   return changed;
 }
@@ -982,12 +978,13 @@ is_sub_property_of(predicate *sub, predicate *p, atomset *seen)
 { for(;;)
   { cell *c;
 
+    DEBUG(3, Sdprintf("\ttry %s\n", pname(sub)));
+
     if ( sub == p )
       return TRUE;
-    if ( !add_atomset(seen, p->name) )
+    if ( !add_atomset(seen, sub->name) )
       return FALSE;
 
-    c = sub->subPropertyOf.head;
     for(c=sub->subPropertyOf.head; c && c->next; c=c->next)
     { if ( is_sub_property_of(c->value, p, seen) )
 	return TRUE;
@@ -1004,14 +1001,12 @@ isSubPropertyOf(predicate *sub, predicate *p)
 { atomset seen;
   int rc;
 
-  DEBUG(2, Sdprintf("isSubPropertyOf(%s, %s)\n",
-		    PL_atom_chars(sub->name),
-		    PL_atom_chars(p->name)));
+  DEBUG(2, Sdprintf("isSubPropertyOf(%s, %s)\n", pname(sub), pname(p)));
 
   if ( sub->root == p )
     return TRUE;
 
-  init_atomset(&seen);
+  init_atomset(&seen);			/* TBD: can we use a flag? */
   rc = is_sub_property_of(sub, p, &seen);
   destroy_atomset(&seen);
 

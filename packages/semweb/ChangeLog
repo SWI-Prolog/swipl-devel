@@ -1,3 +1,7 @@
+Nov 9, 2006
+
+  * FIXED: subPropertyOf issues.  Not fully checked yet.
+
 Oct 25, 2006
 
   * FIXED: Memory leak in rdf_complexity and rdf_reachable using literal
