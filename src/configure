@@ -2459,7 +2459,9 @@ host_vendor=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\2/'`
 host_os=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 
 
-ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+if test "x$ARCH" = "x"; then
+  ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+fi
 
 # Check whether --enable-runtime or --disable-runtime was given.
 if test "${enable_runtime+set}" = set; then
@@ -2498,7 +2500,9 @@ if test "${enable_shared+set}" = set; then
   case "$enableval" in
 		   yes) MKSHARED=yes
 			;;
-		   *)  ;;
+		   no)  MKSHARED=no
+			;;
+		   *)   ;;
 	       esac
 fi;
 
