@@ -5,6 +5,7 @@
 ################################################################
 
 BUILDARCH=@BUILDARCH@
+CONFIG_OPTIONS=@CONFIG_OPTIONS@
 
 all:		@TARGET@
 
@@ -50,7 +51,7 @@ distclean::
 world:	lite .pkg-config packages
 
 .pkg-config:
-	cd packages && ./configure
+	cd packages && ./configure $(CONFIG_OPTIONS)
 	touch $@
 
 packages::

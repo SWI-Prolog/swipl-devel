@@ -49,11 +49,11 @@ if [ "$makeonly" = false ]; then
   export LDFLAGS=-m32
   export CFLAGS=$CMFLAGS $CIFLAGS
   export ARCH=i386-linux
-  export CONFIG="--x-libraries=/usr/X11/lib"
+  export CONFIGOPTS="--x-libraries=/usr/X11/lib"
 
 # [EDIT] Packages to configure.  Leaving it blank compiles all packages.
 # export PKG=
-  ./configure --prefix=$PREFIX --with-world $CONFIG 2>&1 | tee configure.out
+  ./configure --prefix=$PREFIX --with-world $CONFIGOPTS 2>&1 | tee configure.out
 fi
 
 make 2>&1 | tee make.out
