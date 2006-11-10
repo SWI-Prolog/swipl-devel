@@ -81,3 +81,5 @@ Packages
   * PlDoc: failed on trailing whitespace in comments.  Allow changing
     URL locations.
   * PlUnit: Allow tracing body of tests.
+  * XPCE: (Windows version) Possible crash in pce-emacs on unicode files.
+  * GUI Tracer: properly support multiple threads, now also on Windows.
