@@ -39,7 +39,7 @@ case "$1" in
 		make=false
 		shift
 		;;
-   --prefix=)   PREFIX=`echo "$1" | sed 's/--prefix=//'`
+   --prefix=*)   PREFIX=`echo "$1" | sed 's/--prefix=//'`
    		shift
 		;;
    *)		done=true
