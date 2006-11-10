@@ -294,7 +294,7 @@ pl_pem_passwd_hook(PL_SSL *config, char *buf, int size)
   unify_conf(av+0, config);
   if ( PL_call_predicate(NULL, PL_Q_NORMAL, pred, av) )
   { if ( PL_get_nchars(av+1, &len, &passwd, CVT_ALL) )
-    { if ( len >= size )
+    { if ( len >= (unsigned int)size )
 	PL_warning("pem_passwd too long");
       else
 	memcpy(buf, passwd, len);

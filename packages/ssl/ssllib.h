@@ -25,6 +25,10 @@
 #ifndef SSLLIBH__
 #define SSLLIBH__
 
+#ifdef WIN32
+typedef size_t socklen_t;
+#endif
+
 #define SSL_CONFIG_MAGIC 0x539dbe3a
 
 typedef int BOOL;
