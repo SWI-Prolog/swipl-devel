@@ -377,7 +377,7 @@ getManIdVariable(Variable v)
 { wchar_t buf[LINESIZE];
   wchar_t *nm, *o;
   Name ctx = getContextNameVariable(v);
-  int len;
+  size_t len;
   Name rc;
 
   len = 4 + ctx->data.size + v->name->data.size;
@@ -449,7 +449,7 @@ getPrintNameVariable(Variable var)
 { wchar_t buf[LINESIZE];
   wchar_t *nm, *o;
   Name ctx = getContextNameVariable(var);
-  int len;
+  size_t len;
   Name rc;
 
   len = 5 + ctx->data.size + var->name->data.size;

@@ -455,7 +455,7 @@ getManIdClassVariable(ClassVariable cv)
 { wchar_t buf[LINESIZE];
   wchar_t *nm, *o;
   Name ctx = ((Class)cv->context)->name;
-  unsigned len;
+  size_t len;
   Name rc;
 
   len = 4 + ctx->data.size + cv->name->data.size;
@@ -520,7 +520,7 @@ getPrintNameClassVariable(ClassVariable cv)
 { wchar_t buf[LINESIZE];
   wchar_t *nm, *o;
   Name ctx = ((Class)cv->context)->name;
-  unsigned len;
+  size_t len;
   Name rc;
   
   len = 2 + ctx->data.size + cv->name->data.size;

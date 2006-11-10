@@ -315,7 +315,7 @@ getManIdMethod(Method m)
 { wchar_t buf[LINESIZE];
   wchar_t *nm, *o;
   Name ctx = getContextNameMethod(m);
-  int len;
+  size_t len;
   Name rc;
 
   len = 6 + ctx->data.size + m->name->data.size;
