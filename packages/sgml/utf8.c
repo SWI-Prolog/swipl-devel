@@ -22,8 +22,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include "utf8.h"
 #include <stdio.h>
+#include "utf8.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 UTF-8 Decoding, based on http://www.cl.cam.ac.uk/~mgk25/unicode.html
@@ -61,7 +61,57 @@ sgml__utf8_get_char(const char *in, int *chr)
   }
 
   *chr = *in;
-/*fprintf(stderr, "UTF-8 decoder: bad sequence\n");*/
   
   return (char *)in+1;
+}
+
+
+char *
+sgml_utf8_put_char(char *out, int chr)
+{ if ( chr < 0x80 )
+  { *out++ = chr;
+  } else if ( chr < 0x800 )
+  { *out++ = 0xc0|((chr>>6)&0x1f);
+    *out++ = 0x80|(chr&0x3f);
+  } else if ( chr < 0x10000 )
+  { *out++ = 0xe0|((chr>>12)&0x0f);
+    *out++ = 0x80|((chr>>6)&0x3f);
+    *out++ = 0x80|(chr&0x3f);
+  } else if ( chr < 0x200000 )
+  { *out++ = 0xf0|((chr>>18)&0x07);
+    *out++ = 0x80|((chr>>12)&0x3f);
+    *out++ = 0x80|((chr>>6)&0x3f);
+    *out++ = 0x80|(chr&0x3f);
+  } else if ( chr < 0x4000000 )
+  { *out++ = 0xf8|((chr>>24)&0x03);
+    *out++ = 0x80|((chr>>18)&0x3f);
+    *out++ = 0x80|((chr>>12)&0x3f);
+    *out++ = 0x80|((chr>>6)&0x3f);
+    *out++ = 0x80|(chr&0x3f);
+  } else if ( chr < 0x80000000 )
+  { *out++ = 0xfc|((chr>>30)&0x01);
+    *out++ = 0x80|((chr>>24)&0x3f);
+    *out++ = 0x80|((chr>>18)&0x3f);
+    *out++ = 0x80|((chr>>12)&0x3f);
+    *out++ = 0x80|((chr>>6)&0x3f);
+    *out++ = 0x80|(chr&0x3f);
+  }
+
+  return out;
+}
+
+
+size_t
+sgml_utf8_strlen(const char *s, size_t len)
+{ const char *e = &s[len];
+  unsigned int l = 0;
+
+  while(s<e)
+  { int chr;
+
+    s = utf8_get_char(s, &chr);
+    l++;
+  }
+
+  return l;
 }

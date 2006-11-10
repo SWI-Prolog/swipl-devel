@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,8 +22,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define _ISOC99_SOURCE 1		/* fwprintf(), etc prototypes */
+
 #define DTD_IMPLEMENTATION 1
 #include <stdio.h>
+#include <wchar.h>
 #include "dtd.h"
 #include "model.h"
 #include "util.h"
@@ -37,12 +40,14 @@
 #include "utf8.h"
 #include <errno.h>
 #include <wctype.h>
+#include "xml_unicode.h"
 
 #define DEBUG(g) ((void)0)
 #define ZERO_TERM_LEN (-1)		/* terminated by nul */
 
 #ifdef WIN32
 #define inline __inline
+#define swprintf _snwprintf
 #endif
 
 
@@ -85,7 +90,6 @@ static void		for_elements_in_model(dtd_model *m,
 							void *closure),
 					      void *closure);
 void			putchar_dtd_parser(dtd_parser *p, int chr);
-int			load_dtd_from_file(dtd_parser *p, const char *file);
 void			free_dtd_parser(dtd_parser *p);
 static const ichar *	isee_character_entity(dtd *dtd, const ichar *in,
 					      int *chr);
@@ -138,7 +142,7 @@ pop_location(dtd_parser *p, locbuf *saved)
 static inline void
 _sgml_cplocation(dtd_srcloc *d, dtd_srcloc *loc)
 { d->type    = loc->type;
-  d->name    = loc->name;
+  d->name.file = loc->name.file;
   d->line    = loc->line;
   d->linepos = loc->linepos;
   d->charpos = loc->charpos;
@@ -185,15 +189,21 @@ HasClass(dtd *dtd, wint_t chr, int mask)
   else
   { switch(mask)
     { case CH_NAME:
-	return iswalnum(chr) || iswdigit(chr);
+	return ( xml_basechar(chr) ||
+		 xml_digit(chr) ||
+		 xml_ideographic(chr) ||
+		 xml_combining_char(chr) ||
+		 xml_extender(chr)
+	       );
       case CH_NMSTART:
-	return iswalnum(chr);
+	return ( xml_basechar(chr) ||
+		 xml_ideographic(chr) );
       case CH_WHITE:
 	return FALSE;			/* only ' ' and '\t' */
       case CH_BLANK:
 	return iswspace(chr);
       case CH_DIGIT:
-	return iswdigit(chr);
+	return xml_digit(chr);
       case CH_RS:
       case CH_RE:
 	return FALSE;
@@ -237,7 +247,7 @@ free_symbol_table(dtd_symbol_table *t)
     for(s=t->entries[i]; s; s=next)
     { next = s->next;
 
-      sgml_free((char *)s->name);
+      sgml_free((ichar*)s->name);
       sgml_free(s);
     }
   }
@@ -353,25 +363,28 @@ find_pentity(dtd *dtd, dtd_symbol *id)
 }
 
 
-static const char *
+/* returned path must be freed when done */
+
+static ichar *
 entity_file(dtd *dtd, dtd_entity *e)
 { switch(e->type)
   { case ET_SYSTEM:
     case ET_PUBLIC:
-    { const char *f;
+    { const ichar *f;
 
-      if ( (f = find_in_catalogue(e->catalog_location,
-				  (char*)e->name->name,
-				  (char*)e->extid,
-				  (char*)e->exturl,
-				  dtd->dialect != DL_SGML)) )
-      { char *file;
+      f = find_in_catalogue(e->catalog_location,
+			    e->name->name,
+			    e->extid,
+			    e->exturl,
+			    dtd->dialect != DL_SGML);
 
-	if ( is_absolute_path(f) ||
-	     !e->baseurl )
-	  file = (char *)f;
+      if ( f )				/* owned by catalog */
+      { ichar *file;
+
+	if ( is_absolute_path(f) || !e->baseurl )
+	  file = istrdup(f);
 	else
-	  file = localpath((char*)e->baseurl, f);
+	  file = localpath(e->baseurl, f);
 
 	return file;
       }
@@ -384,34 +397,19 @@ entity_file(dtd *dtd, dtd_entity *e)
 
 static const ichar *
 entity_value(dtd_parser *p, dtd_entity *e, int *len)
-{ const char *file;
+{ ichar *file;
 
   if ( !e->value && (file=entity_file(p->dtd, e)) )
   { int normalise = (e->content == EC_SGML || e->content == EC_CDATA);
 
     e->value = load_sgml_file_to_charp(file, normalise, &e->length);
+    sgml_free(file);
   }
 
   if ( len )
     *len = e->length;
 
   return e->value;
-}
-
-/* Can we represent this character in a normal CDATA string?
-*/
-
-static int
-representable_char(dtd_parser *p, int chr)
-{ if ( chr < 0 )
-    return FALSE;			/* should not happen */
-  if ( chr < 128 )			/* basic ASCII set */
-    return TRUE;
-  if ( p->utf8_decode )
-    return FALSE;
-  if ( chr < OUTPUT_CHARSET_SIZE )
-    return TRUE;
-  return FALSE;
 }
 
 
@@ -424,7 +422,7 @@ expand_pentities(dtd_parser *p, const ichar *in, int ilen, ichar *out, int len)
   const ichar *end;
 
   if ( ilen == ZERO_TERM_LEN )
-  { end = in + strlen((char*)in);
+  { end = in + wcslen(in);
   } else
   { end = &in[ilen];
   }
@@ -443,14 +441,14 @@ expand_pentities(dtd_parser *p, const ichar *in, int ilen, ichar *out, int len)
 	  in = s;
 
 	if ( !e )
-	  return gripe(ERC_EXISTENCE, "parameter entity", id->name);
+	  return gripe(ERC_EXISTENCE, L"parameter entity", id->name);
 
 	if ( !(eval = entity_value(p, e, NULL)) )
 	  return FALSE;
 
 	if ( !expand_pentities(p, eval, ZERO_TERM_LEN, out, len) )
 	  return FALSE;
-	l = strlen((char*)out);		/* could be better */
+	l = istrlen(out);		/* could be better */
 	out += l;
 	len -= l;
 
@@ -459,17 +457,16 @@ expand_pentities(dtd_parser *p, const ichar *in, int ilen, ichar *out, int len)
     }
 
     if ( --len <= 0 )
-    { gripe(ERC_REPRESENTATION, "Declaration too long");
+    { gripe(ERC_REPRESENTATION, L"Declaration too long");
       return FALSE;
     }
 
     if ( *in == ero && in[1] == '#' )	/* &# */
     { int chr;
 
-      if ( (s=isee_character_entity(dtd, in, &chr)) &&
-	   representable_char(p, chr) )
+      if ( (s=isee_character_entity(dtd, in, &chr)) )
       { if ( chr == 0 )
-	{ gripe(ERC_SYNTAX_ERROR, "Illegal character entity", in);
+	{ gripe(ERC_SYNTAX_ERROR, L"Illegal character entity", in);
 	} else
 	{ *out++ = chr;
 	  in = s;
@@ -491,24 +488,24 @@ static int
 char_entity_value(const ichar *decl)
 { if ( *decl == '#' )
   { const ichar *s = decl+1;
-    char *end;
+    ichar *end;
     long v;
 
 					/* do octal too? */
     if ( s[0] == 'x' || s[0] == 'X' )
-      v = strtoul((char *)s+1, &end, 16);
+      v = wcstoul(s+1, &end, 16);
     else
-      v = strtoul((char *)s, &end, 10);
+      v = wcstoul(s, &end, 10);
 
     if ( *end == '\0' )
     { return (int)v;
-    } else if ( istreq(s, "RS") )
+    } else if ( istreq(s, L"RS") )
     { return '\n';
-    } else if ( istreq(s, "RE") )
+    } else if ( istreq(s, L"RE") )
     { return '\r';
-    } else if ( istreq(s, "TAB") )
+    } else if ( istreq(s, L"TAB") )
     { return '\t';
-    } else if ( istreq(s, "SPACE") )
+    } else if ( istreq(s, L"SPACE") )
     { return ' ';
     }
   }
@@ -527,7 +524,7 @@ isee_character_entity(dtd *dtd, const ichar *in, int *chr)
     int v;
 
     *o++ = *s++;
-    while(o < e+sizeof(e)-1 && HasClass(dtd, *s, CH_NAME))
+    while(o < e+sizeof(e)/sizeof(ichar)-1 && HasClass(dtd, *s, CH_NAME))
       *o++ = *s++;
     if ( isee_func(dtd, s, CF_ERC))	/* skip ; */
       s++;
@@ -553,7 +550,6 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
   const ichar *end = &in[len];
   dtd *dtd = p->dtd;
   int ero = dtd->charfunc->func[CF_ERO]; /* & */
-  const ochar *map = dtd->charmap->map;
 
   while(in < end)
   { if ( *in == ero )
@@ -562,7 +558,7 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
 
       if ( (s=isee_character_entity(dtd, in, &chr)) )
       { if ( chr == 0 )
-	  gripe(ERC_SYNTAX_ERROR, "Illegal character entity", in);
+	  gripe(ERC_SYNTAX_ERROR, L"Illegal character entity", in);
 
 	add_ocharbuf(out, chr);
 	in = s;
@@ -582,7 +578,7 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
 	  in++;
   
 	if ( !(e = id->entity) && !(e=dtd->default_entity) )
-	{ gripe(ERC_EXISTENCE, "entity", id->name);
+	{ gripe(ERC_EXISTENCE, L"entity", id->name);
 	  in = estart;
 	  goto recover;
 	}
@@ -593,7 +589,7 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
 	  goto recover;
 	}
 
-	if ( !expand_entities(p, eval, strlen((char*)eval), out) )
+	if ( !expand_entities(p, eval, istrlen(eval), out) )
 	  return FALSE;
 
 	continue;
@@ -609,15 +605,7 @@ expand_entities(dtd_parser *p, const ichar *in, int len, ocharbuf *out)
     { add_ocharbuf(out, ' ');
       in++;
     } else
-#ifdef UTF8
-    if ( p->utf8_decode && ISUTF8_MB(*in) )
-    { int chr;
-
-      in = utf8_get_uchar(in, &chr);
-      add_ocharbuf(out, chr);
-    } else
-#endif
-    { add_ocharbuf(out, map[*in++]);
+    { add_ocharbuf(out, *in++);
     }
   }
 
@@ -817,27 +805,13 @@ isee_identifier(dtd *dtd, const ichar *in, char *id)
 { in = iskip_layout(dtd, in);
 
 					/* match */
-  while (*id && *id == tolower(*in) )
+  while (*id && *id == towlower(*in) )
     id++, in++;
   if ( *id == 0 && !HasClass(dtd, *in, CH_NAME) )
     return iskip_layout(dtd, in);
 
   return NULL;
 }
-
-
-#if 0
-static const ichar *
-isee_text(dtd *dtd, const ichar *in, char *id)
-{ while (*id && *id == tolower(*in) )
-    id++, in++;
-
-  if ( *id == 0 )
-    return in;
-
-  return NULL;
-}
-#endif
 
 
 static const ichar *
@@ -855,11 +829,11 @@ itake_name(dtd *dtd, const ichar *in, dtd_symbol **id)
       *o++ = *in++;
   } else
   { while( HasClass(dtd, *in, CH_NAME) && o < e )
-      *o++ = tolower(*in++);
+      *o++ = towlower(*in++);
   }
 
   if ( o == e )
-  { gripe(ERC_REPRESENTATION, "NAME too long");
+  { gripe(ERC_REPRESENTATION, L"NAME too long");
     return NULL;
   }
 
@@ -886,10 +860,10 @@ itake_entity_name(dtd *dtd, const ichar *in, dtd_symbol **id)
       *o++ = *in++;
   } else
   { while( HasClass(dtd, *in, CH_NAME) && o < e )
-      *o++ = tolower(*in++);
+      *o++ = towlower(*in++);
   }
   if ( o == e )
-  { gripe(ERC_REPRESENTATION, "Entity NAME too long");
+  { gripe(ERC_REPRESENTATION, L"Entity NAME too long");
     return NULL;
   }
 
@@ -915,10 +889,10 @@ itake_nmtoken(dtd *dtd, const ichar *in, dtd_symbol **id)
       *o++ = *in++;
   } else
   { while( HasClass(dtd, *in, CH_NAME) && o < e )
-      *o++ = tolower(*in++);
+      *o++ = towlower(*in++);
   }
   if ( o == e )
-  { gripe(ERC_REPRESENTATION, "NMTOKEN too long");
+  { gripe(ERC_REPRESENTATION, L"NMTOKEN too long");
     return NULL;
   }
 
@@ -945,17 +919,17 @@ itake_nutoken(dtd *dtd, const ichar *in, dtd_symbol **id)
       *o++ = *in++;
   } else
   { while( HasClass(dtd, *in, CH_NAME) && o < e )
-      *o++ = tolower(*in++);
+      *o++ = towlower(*in++);
   }
 
   if ( o == e )
-  { gripe(ERC_REPRESENTATION, "NUTOKEN too long");
+  { gripe(ERC_REPRESENTATION, L"NUTOKEN too long");
     return NULL;
   }
 
   *o = '\0';
   if ( o - buf > 8 )
-    gripe(ERC_LIMIT, "nutoken length");
+    gripe(ERC_LIMIT, L"nutoken length");
 
   *id = dtd_add_symbol(dtd, buf);
 
@@ -982,11 +956,11 @@ itake_number(dtd *dtd, const ichar *in, dtd_attr *at)
       return iskip_layout(dtd, (const ichar *)in);
     }
     case NU_INTEGER:
-    { char *end;
+    { ichar *end;
 
-      at->att_def.number = strtol((const char *)in, &end, 10);
-      if ( end > (char *)in && errno != ERANGE )
-	return iskip_layout(dtd, (const ichar *)end);
+      at->att_def.number = wcstol(in, &end, 10);
+      if ( end > in && errno != ERANGE )
+	return iskip_layout(dtd, end);
     }
   }
 
@@ -1055,8 +1029,8 @@ itake_nmtoken_chars(dtd *dtd, const ichar *in, ichar *out, int len)
     return NULL;
   while( HasClass(dtd, *in, CH_NAME) )
   { if ( --len <= 0 )
-      gripe(ERC_REPRESENTATION, "Name token too long");
-    *out++ = (dtd->case_sensitive ? *in++ : tolower(*in++));
+      gripe(ERC_REPRESENTATION, L"Name token too long");
+    *out++ = (dtd->case_sensitive ? *in++ : towlower(*in++));
   }
   *out++ = '\0';
 
@@ -1120,7 +1094,7 @@ itake_unquoted(dtd *dtd, ichar const *in, ichar *out, int len)
     if ( --len > 0 )
       *out++ = c;
     else if ( len == 0 )
-      gripe(ERC_REPRESENTATION, "Attribute too long");
+      gripe(ERC_REPRESENTATION, L"Attribute too long");
     c = *++in;
   }
   *out = '\0';
@@ -1149,7 +1123,6 @@ new_dtd(const ichar *doctype)
   dtd->symbols	 = new_symbol_table();
   dtd->charclass = new_charclass();
   dtd->charfunc	 = new_charfunc();
-  dtd->charmap	 = new_charmap();
   dtd->space_mode = SP_SGML;
   dtd->ent_case_sensitive = TRUE;	/* case-sensitive entities */
   dtd->shorttag    = TRUE;		/* allow for <tag/value/ */
@@ -1173,7 +1146,6 @@ free_dtd(dtd *dtd)
     free_symbol_table(dtd->symbols);
     sgml_free(dtd->charfunc);
     sgml_free(dtd->charclass);
-    sgml_free(dtd->charmap);
     dtd->magic = 0;
   
     sgml_free(dtd);
@@ -1181,12 +1153,12 @@ free_dtd(dtd *dtd)
 }
 
 
-static const char *xml_entities[] =
-{ "lt CDATA \"&#60;\"",			/* < */
-  "gt CDATA \"&#62;\"",			/* > */
-  "amp CDATA \"&#38;\"",		/* & */
-  "apos CDATA \"&#39;\"",		/* ' */
-  "quot CDATA \"&#34;\"",		/* " */
+static const wchar_t *xml_entities[] =
+{ L"lt CDATA \"&#60;\"",		/* < */
+  L"gt CDATA \"&#62;\"",		/* > */
+  L"amp CDATA \"&#38;\"",		/* & */
+  L"apos CDATA \"&#39;\"",		/* ' */
+  L"quot CDATA \"&#34;\"",		/* " */
   NULL
 };
 
@@ -1205,7 +1177,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       }
       case DL_XML:
       case DL_XMLNS:
-      { const char **el;
+      { const ichar **el;
 	dtd_parser p;
   
 	dtd->case_sensitive = TRUE;
@@ -1216,7 +1188,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
 	memset(&p, 0, sizeof(p));
 	p.dtd = dtd;
 	for(el = xml_entities; *el; el++)
-	  process_entity_declaration(&p, (const ichar*)*el);
+	  process_entity_declaration(&p, *el);
   
 	break;
       }
@@ -1239,10 +1211,10 @@ set_option_dtd(dtd *dtd, dtd_option option, int set)
 }
 
 
-static ichar *
+static const ichar *
 baseurl(dtd_parser *p)
-{ if ( p->location.type == IN_FILE && p->location.name )
-  { return istrdup((ichar*)p->location.name);
+{ if ( p->location.type == IN_FILE && p->location.name.file )
+  { return p->location.name.file;
   }
 
   return NULL;
@@ -1257,7 +1229,7 @@ process_entity_value_declaration(dtd_parser *p,
 
   if ( e->type == ET_SYSTEM )
   { if ( (s=itake_url(dtd, decl, &e->exturl)) )
-    { e->baseurl = baseurl(p);
+    { e->baseurl = istrdup(baseurl(p));
       return s;
     }
 
@@ -1270,7 +1242,7 @@ process_entity_value_declaration(dtd_parser *p,
       goto string_expected;
     decl = s;
 
-    expand_pentities(p, start, len, val, sizeof(val));
+    expand_pentities(p, start, len, val, sizeof(val)/sizeof(ichar));
 
     switch ( e->type )
     { case ET_PUBLIC:
@@ -1278,7 +1250,7 @@ process_entity_value_declaration(dtd_parser *p,
 	if ( isee_func(dtd, decl, CF_LIT) ||
 	     isee_func(dtd, decl, CF_LITA) )
 	{ if ( (s=itake_url(dtd, decl, &e->exturl)) )
-	  { e->baseurl = baseurl(p);
+	  { e->baseurl = istrdup(baseurl(p));
 	    decl = s;
 	  }
 	}
@@ -1286,7 +1258,7 @@ process_entity_value_declaration(dtd_parser *p,
       }
       case ET_LITERAL:
       { e->value = istrdup(val);
-	e->length = strlen((char*)e->value);
+	e->length = wcslen(e->value);
 	return decl;
       }
       default:
@@ -1296,7 +1268,7 @@ process_entity_value_declaration(dtd_parser *p,
   }
 
 string_expected:
-  gripe(ERC_SYNTAX_ERROR, "String expected", decl);
+  gripe(ERC_SYNTAX_ERROR, L"String expected", decl);
   return NULL;
 }
 
@@ -1323,17 +1295,17 @@ process_entity_declaration(dtd_parser *p, const ichar *decl)
 
   if ( !(s = itake_entity_name(dtd, decl, &id)) )
   { if ( !(s = isee_identifier(dtd, decl, "#default")) )
-      return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
+      return gripe(ERC_SYNTAX_ERROR, L"Name expected", decl);
     id = dtd_add_symbol(dtd, (ichar*)"#DEFAULT");
     isdef = TRUE;
   }
 
   if ( isparam && find_pentity(dtd, id) )
-  { gripe(ERC_REDEFINED, "parameter entity", id);
+  { gripe(ERC_REDEFINED, L"parameter entity", id);
     return TRUE;			/* already defined parameter entity */
   }
   if ( id->entity )
-  { gripe(ERC_REDEFINED, "entity", id);
+  { gripe(ERC_REDEFINED, L"entity", id);
     return TRUE;			/* already defined normal entity */
   }
 
@@ -1424,17 +1396,17 @@ process_entity_declaration(dtd_parser *p, const ichar *decl)
 	{ decl = s;
 	  e->content = EC_NDATA;
 	} else
-	  return gripe(ERC_SYNTAX_ERROR, "Bad datatype declaration", decl);
+	  return gripe(ERC_SYNTAX_ERROR, L"Bad datatype declaration", decl);
   
 	if ( (s=itake_name(dtd, decl, &nname)) ) /* what is this? */
 	{ decl = s;
 	} else
-	  return gripe(ERC_SYNTAX_ERROR, "Bad notation declaration", decl);
+	  return gripe(ERC_SYNTAX_ERROR, L"Bad notation declaration", decl);
       }
     }
 
     if ( *decl )
-      return gripe(ERC_SYNTAX_ERROR, "Unexpected end of declaraction", decl);
+      return gripe(ERC_SYNTAX_ERROR, L"Unexpected end of declaraction", decl);
   }
 
   if ( isparam )
@@ -1492,11 +1464,11 @@ process_notation_declaration(dtd_parser *p, const ichar *decl)
   dtd_notation *not;
 
   if ( !(s=itake_name(dtd, decl, &nname)) )
-    return gripe(ERC_SYNTAX_ERROR, "Notation name expected", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"Notation name expected", decl);
   decl = s;
 
   if ( find_notation(dtd, nname) )
-  { gripe(ERC_REDEFINED, "notation", nname);
+  { gripe(ERC_REDEFINED, L"notation", nname);
     return TRUE;
   }
 
@@ -1505,16 +1477,16 @@ process_notation_declaration(dtd_parser *p, const ichar *decl)
   } else if ( (s=isee_identifier(dtd, decl, "public")) )
   { decl = s;
     if ( !(s=itake_dubbed_string(dtd, decl, &public)) )
-      return gripe(ERC_SYNTAX_ERROR, "Public identifier expected", decl);
+      return gripe(ERC_SYNTAX_ERROR, L"Public identifier expected", decl);
   } else
-    return gripe(ERC_SYNTAX_ERROR, "SYSTEM or PUBLIC expected", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"SYSTEM or PUBLIC expected", decl);
 
   decl = s;
   if ( (s=itake_dubbed_string(dtd, decl, &system)) )
     decl = s;
 
   if ( *decl )
-    return gripe(ERC_SYNTAX_ERROR, "Unexpected end of declaraction", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"Unexpected end of declaraction", decl);
 
   not = sgml_calloc(1, sizeof(*not));
   not->name = nname;
@@ -1582,12 +1554,12 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
   dtd_map *m;
 
   if ( !(s=itake_string(dtd, decl, &start, &len)) )
-  { gripe(ERC_SYNTAX_ERROR, "map-string expected", decl);
+  { gripe(ERC_SYNTAX_ERROR, L"map-string expected", decl);
     return NULL;
   }
   decl = s;
   if ( !(s=itake_entity_name(dtd, decl, &to)) )
-  { gripe(ERC_SYNTAX_ERROR, "map-to name expected", decl);
+  { gripe(ERC_SYNTAX_ERROR, L"map-to name expected", decl);
     return NULL;
   }
   end = s;
@@ -1661,7 +1633,7 @@ compile_map(dtd *dtd, dtd_shortref *sr)
       case CHR_DBLANK:
       { wint_t i;
 
-	for( i=0; i< ICHARSET_SIZE; i++)
+	for( i=0; i< SHORTMAP_SIZE; i++)
 	{ if ( HasClass(dtd, i, CH_BLANK) )
 	    sr->ends[i] = TRUE;
 	}
@@ -1682,17 +1654,17 @@ process_shortref_declaration(dtd_parser *p, const ichar *decl)
   dtd_symbol *name;
   const ichar *s;
 
-  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)/sizeof(ichar)) )
     return FALSE;
   decl = buf;
 
   if ( !(s=itake_name(dtd, decl, &name)) )
-    return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"Name expected", decl);
   decl = s;
 
   sr = def_shortref(p, name);
   if ( sr->defined )
-  { gripe(ERC_REDEFINED, "shortref", name);
+  { gripe(ERC_REDEFINED, L"shortref", name);
 
     return TRUE;
   }
@@ -1705,7 +1677,7 @@ process_shortref_declaration(dtd_parser *p, const ichar *decl)
   compile_map(dtd, sr);
 
   if ( *decl )
-    return gripe(ERC_SYNTAX_ERROR, "Map expected", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"Map expected", decl);
   
   return TRUE;
 }
@@ -1761,7 +1733,7 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
   dtd_element *e;
   dtd_shortref *map;
 
-  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)/sizeof(ichar)) )
     return FALSE;
   decl = buf;
 
@@ -1769,7 +1741,7 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
   { if ( (s=isee_identifier(dtd, decl, "#empty")) )
       name = NULL;
     else
-      return gripe(ERC_SYNTAX_ERROR, "map-name expected", decl);
+      return gripe(ERC_SYNTAX_ERROR, L"map-name expected", decl);
   }
 
   decl = s;
@@ -1791,15 +1763,15 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
     decl = s;
   } else if ( p->environments )
   { if ( !map->defined )
-      gripe(ERC_EXISTENCE, "map", name->name);
+      gripe(ERC_EXISTENCE, L"map", name->name);
 
     p->environments->map = map;
     p->map = p->environments->map;
   } else
-    return gripe(ERC_SYNTAX_ERROR, "element-name expected", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"element-name expected", decl);
 
   if ( *decl )
-    return gripe(ERC_SYNTAX_ERROR, "Unparsed", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"Unparsed", decl);
 
   return TRUE;
 }
@@ -1807,71 +1779,37 @@ process_usemap_declaration(dtd_parser *p, const ichar *decl)
 
 static int
 match_map(dtd *dtd, dtd_map *map, ocharbuf *buf)
-{ if ( buf->encoding == SGML_ENC_ISO )
-  { ichar *data = (ichar*)buf->data.t;
-    ichar *e = data+buf->size-1;
-    ichar *m = map->from+map->len-1;
-  
-    while( m >= map->from )
-    { if ( e < data )
-	return 0;
-  
-      if ( *m == *e )
-      { m--;
-	e--;
-	continue;
-      }
-      if ( *m == CHR_DBLANK )
-      { if ( e>data && HasClass(dtd, *e, CH_WHITE) )
-	  e--;
-	else
-	  return FALSE;
-	goto blank;
-      }
-      if ( *m == CHR_BLANK )
-      { blank:
-	while( e>data && HasClass(dtd, *e, CH_WHITE) )
-	  e--;
-	m--;
-	continue;
-      }
-      return 0;
-    }
+{ wchar_t *data = buf->data.w;
+  wchar_t *e    = data+buf->size-1;
+  ichar *m      = map->from+map->len-1;
 
-    return data+buf->size-1-e;
-  } else
-  { wchar_t *data = buf->data.w;
-    wchar_t *e    = data+buf->size-1;
-    ichar *m      = map->from+map->len-1;
-  
-    while( m >= map->from )
-    { if ( e < data )
-	return 0;
-  
-      if ( *m == *e )
-      { m--;
-	e--;
-	continue;
-      }
-      if ( *m == CHR_DBLANK )
-      { if ( e>data && HasClass(dtd, *e, CH_WHITE) )
-	  e--;
-	else
-	  return FALSE;
-	goto wblank;
-      }
-      if ( *m == CHR_BLANK )
-      { wblank:
-	while( e>data && HasClass(dtd, *e, CH_WHITE) )
-	  e--;
-	m--;
-	continue;
-      }
+  while( m >= map->from )
+  { if ( e < data )
       return 0;
-    }
 
-    return data+buf->size-1-e;
+    if ( *m == *e )
+    { m--;
+      e--;
+      continue;
+    }
+    if ( *m == CHR_DBLANK )
+    { if ( e>data && HasClass(dtd, *e, CH_WHITE) )
+	e--;
+      else
+	return FALSE;
+      goto wblank;
+    }
+    if ( *m == CHR_BLANK )
+    { wblank:
+      while( e>data && HasClass(dtd, *e, CH_WHITE) )
+	e--;
+      m--;
+      continue;
+    }
+    return 0;
   }
+
+  return data+buf->size-1-e;
 }
 
 
@@ -1887,25 +1825,13 @@ match_shortref(dtd_parser *p)
 
       if ( p->cdata_must_be_empty )
       { int blank = TRUE;
+	const wchar_t *s;
 	int i;
 
-	if ( p->cdata->encoding == SGML_ENC_ISO )
-	{ const ichar *s;
-
-	  for(s = p->cdata->data.t, i=0; i++ < p->cdata->size; s++)
-	  { if ( !HasClass(p->dtd, *s, CH_BLANK) )
-	    { blank = FALSE;
-	      break;
-	    }
-	  }
-	} else
-	{ const wchar_t *s;
-
-	  for(s = p->cdata->data.w, i=0; i++ < p->cdata->size; s++)
-	  { if ( !iswspace(*s) )
-	    { blank = FALSE;
-	      break;
-	    }
+	for(s = p->cdata->data.w, i=0; i++ < p->cdata->size; s++)
+	{ if ( !iswspace(*s) )
+	  { blank = FALSE;
+	    break;
 	  }
 	}
 
@@ -2021,7 +1947,7 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
     decl = s;
   } else
   { if ( !(s=isee_func(dtd, decl, CF_GRPO)) )
-    { gripe(ERC_SYNTAX_ERROR, "Name group expected", decl);
+    { gripe(ERC_SYNTAX_ERROR, L"Name group expected", decl);
       free_model(m);
       return NULL;
     }
@@ -2049,7 +1975,7 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
       { decl = s;
 	break;
       } else
-      { gripe(ERC_SYNTAX_ERROR, "Connector ('|', ',' or '&') expected", decl);
+      { gripe(ERC_SYNTAX_ERROR, L"Connector ('|', ',' or '&') expected", decl);
 	free_model(m);
 	return NULL;
       }
@@ -2059,7 +1985,7 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
       { if ( !m->type )
 	  m->type = mt;
 	else
-	{ gripe(ERC_SYNTAX_ERROR, "Different connector types in model", decl);
+	{ gripe(ERC_SYNTAX_ERROR, L"Different connector types in model", decl);
 	  free_model(m);
 	  return NULL;
 	}
@@ -2176,7 +2102,7 @@ itake_namegroup(dtd *dtd, const ichar *decl,
 
     for(;;)
     { if ( !(decl=itake_name(dtd, s, &names[en++])) )
-      { gripe(ERC_SYNTAX_ERROR, "Name expected", s);
+      { gripe(ERC_SYNTAX_ERROR, L"Name expected", s);
 	return NULL;
       }
       if ( (s=isee_ngsep(dtd, decl, &ngs)) )
@@ -2188,7 +2114,7 @@ itake_namegroup(dtd *dtd, const ichar *decl,
         decl = s;
 	return iskip_layout(dtd, decl);
       }
-      gripe(ERC_SYNTAX_ERROR, "Bad name-group", decl);
+      gripe(ERC_SYNTAX_ERROR, L"Bad name-group", decl);
       return NULL;
     }
   }
@@ -2232,7 +2158,7 @@ itake_el_or_model_element_list(dtd *dtd, const ichar *decl, dtd_symbol **names, 
       return NULL;
   } else
   { if ( !(s = itake_name(dtd, decl, &names[0])) )
-    { gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
+    { gripe(ERC_SYNTAX_ERROR, L"Name expected", decl);
       return NULL;
     }
     *n = 1;
@@ -2264,12 +2190,13 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
   int i;
 
 					/* expand parameter entities */
-  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, ZERO_TERM_LEN,
+			 buf, sizeof(buf)/sizeof(ichar)) )
     return FALSE;
   decl = buf;
 
   if ( !(s=itake_el_or_model_element_list(dtd, decl, eid, &en)) )
-    return gripe(ERC_SYNTAX_ERROR, "Name or name-group expected", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"Name or name-group expected", decl);
   decl = s;
   if ( en == 0 )
     return TRUE;			/* 0 elements */
@@ -2297,7 +2224,7 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
     { for(i=0; i<en; i++)
 	def->omit_close = TRUE;
     } else
-      return gripe(ERC_SYNTAX_ERROR, "Bad omit-tag declaration", decl);
+      return gripe(ERC_SYNTAX_ERROR, L"Bad omit-tag declaration", decl);
 
     decl = s;
   }
@@ -2326,12 +2253,12 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
       for(i=0; i<ns; i++)
 	add_element_list(l, find_element(dtd, ng[i]));
     } else
-    { return gripe(ERC_SYNTAX_ERROR, "Name group expected", decl);
+    { return gripe(ERC_SYNTAX_ERROR, L"Name group expected", decl);
     }
   }
 
   if (*decl)
-    return gripe(ERC_SYNTAX_ERROR, "Unexpected end of declaration", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"Unexpected end of declaration", decl);
 
   return TRUE;
 }
@@ -2352,7 +2279,7 @@ add_name_list(dtd_name_list **nl, dtd_symbol *s)
 
 static void
 set_element_properties(dtd_element *e, dtd_attr *a)
-{ if ( istreq(a->name->name, "xml:space") )
+{ if ( istreq(a->name->name, L"xml:space") )
   { switch(a->def)
     { case AT_FIXED:
       case AT_DEFAULT:
@@ -2384,7 +2311,7 @@ add_attribute(dtd *dtd, dtd_element *e, dtd_attr *a)
 
   for(l = &e->attributes; *l; l = &(*l)->next)
   { if ( (*l)->attribute->name == a->name )
-    { gripe(ERC_REDEFINED, "attribute", a->name);
+    { gripe(ERC_REDEFINED, L"attribute", a->name);
       a->references++;			/* attempt to redefine attribute: */
       free_attribute(a);		/* first wins according to standard */
 
@@ -2410,7 +2337,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
   const ichar *s;
 
 					/* expand parameter entities */
-  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)/sizeof(ichar)) )
     return FALSE;
   decl = iskip_layout(dtd, buf);
   DEBUG(printf("Expanded to %s\n", decl));
@@ -2424,7 +2351,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 
 					/* name of attribute */
     if ( !(s = itake_name(dtd, decl, &at->name)) )
-      return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
+      return gripe(ERC_SYNTAX_ERROR, L"Name expected", decl);
     decl = s;
 
 					/* (name1|name2|...) type */
@@ -2438,7 +2365,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
       { dtd_symbol *nm;
 
 	if ( !(s = itake_nmtoken(dtd, decl, &nm)) )
-	  return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
+	  return gripe(ERC_SYNTAX_ERROR, L"Name expected", decl);
 	decl = s;
 	add_name_list(&at->typeex.nameof, nm);
 	if ( (s=isee_ngsep(dtd, decl, &ngs)) )
@@ -2450,7 +2377,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 	  decl = iskip_layout(dtd, decl);
 	  break;
 	}
-	return gripe(ERC_SYNTAX_ERROR, "Illegal name-group", decl);
+	return gripe(ERC_SYNTAX_ERROR, L"Illegal name-group", decl);
       }
     } else if ( (s=isee_identifier(dtd, decl, "cdata")) )
     { decl = s;
@@ -2512,9 +2439,9 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 	for(i=0; i<ns; i++)
 	  add_name_list(&at->typeex.nameof, ng[i]);
       } else
-	return gripe(ERC_SYNTAX_ERROR, "name-group expected", decl);
+	return gripe(ERC_SYNTAX_ERROR, L"name-group expected", decl);
     } else
-      return gripe(ERC_SYNTAX_ERROR, "Attribute-type expected", decl);
+      return gripe(ERC_SYNTAX_ERROR, L"Attribute-type expected", decl);
 
 					/* Attribute Defaults */
     if ( (s=isee_identifier(dtd, decl, "#fixed")) )
@@ -2541,12 +2468,12 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
       const ichar *end;
       
       if ( !(end=itake_string(dtd, decl, &start, &len)) )
-      { end=itake_nmtoken_chars(dtd, decl, buf, sizeof(buf));
+      { end=itake_nmtoken_chars(dtd, decl, buf, sizeof(buf)/sizeof(ichar));
 	start = buf;
-	len = strlen((char*)buf);
+	len = istrlen(buf);
       }
       if ( !end )
-	return gripe(ERC_SYNTAX_ERROR, "Bad attribute default", decl);
+	return gripe(ERC_SYNTAX_ERROR, L"Bad attribute default", decl);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note: itake_name(), etc. work on nul-terminated   strings. The result of
@@ -2565,26 +2492,26 @@ length of the parsed data to verify we parsed all of it.
 	case AT_NAME:
 	{ if ( !(s=itake_name(dtd, start, &at->att_def.name)) ||
 	       (s-start) != len )
-	    return gripe(ERC_DOMAIN, "name", decl);
+	    return gripe(ERC_DOMAIN, L"name", decl);
 	  break;
 	}
 	case AT_NMTOKEN:
 	case AT_NAMEOF:
 	{ if ( !(s=itake_nmtoken(dtd, start, &at->att_def.name)) ||
 	       (s-start) != len )
-	    return gripe(ERC_DOMAIN, "nmtoken", decl);
+	    return gripe(ERC_DOMAIN, L"nmtoken", decl);
 	  break;
 	}
 	case AT_NUTOKEN:
 	{ if ( !(s=itake_nutoken(dtd, start, &at->att_def.name)) ||
 	       (s-start) != len )
-	    return gripe(ERC_DOMAIN, "nutoken", decl);
+	    return gripe(ERC_DOMAIN, L"nutoken", decl);
 	  break;
 	}
 	case AT_NUMBER:
 	{ if ( !(s=itake_number(dtd, start, at)) ||
 	       (s-start) != len )
-	     return gripe(ERC_DOMAIN, "number", decl);
+	     return gripe(ERC_DOMAIN, L"number", decl);
 	  break;
 	}
 	case AT_NAMES:
@@ -2597,7 +2524,7 @@ length of the parsed data to verify we parsed all of it.
 	  break;
 	}
 	default:
-	  return gripe(ERC_REPRESENTATION, "No default for type");
+	  return gripe(ERC_REPRESENTATION, L"No default for type");
       }
 
       decl = end;
@@ -2665,15 +2592,10 @@ complete(sgml_environment *env)
 static void
 validate_completeness(sgml_environment *env)
 { if ( !complete(env) )
-  { char buf[256];
+  { wchar_t buf[MAXNMLEN+50];
 
-#ifdef HAVE_SNPRINTF
-    snprintf(buf, sizeof(buf), "Incomplete element: <%s>",
+    swprintf(buf, MAXNMLEN+50, L"Incomplete element: <%s>",
 	     env->element->name->name);
-#else
-    sprintf(buf, "Incomplete element: <%s>",
-	    env->element->name->name);
-#endif
 
     gripe(ERC_VALIDATE, buf);		/* TBD: expected */
   }
@@ -2860,11 +2782,11 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
 
 					/* no DTD available yet */
   if ( !p->environments && !p->dtd->doctype && e != CDATA_ELEMENT )
-  { const char *file;
+  { const ichar *file;
 
-    if ( (file=find_in_catalogue(CAT_DOCTYPE,
-				 (char*)e->name->name, NULL, NULL,
-				 p->dtd->dialect != DL_SGML)) )
+    file = find_in_catalogue(CAT_DOCTYPE, e->name->name, NULL, NULL,
+			     p->dtd->dialect != DL_SGML);
+    if ( file )
     { dtd_parser *clone = clone_dtd_parser(p);
 
       gripe(ERC_NO_DOCTYPE, e->name->name, file);
@@ -2872,7 +2794,7 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
       if ( load_dtd_from_file(clone, file) )
 	p->dtd->doctype = istrdup(e->name->name);
       else
-	gripe(ERC_EXISTENCE, "file", file);
+	gripe(ERC_EXISTENCE, L"file", file);
 
       free_dtd_parser(clone);
     }
@@ -2890,7 +2812,7 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
     if ( env->element->structure &&
 	 env->element->structure->type == C_ANY )
     { if ( e != CDATA_ELEMENT && e->undefined )
-	gripe(ERC_EXISTENCE, "Element", e->name->name);
+	gripe(ERC_EXISTENCE, L"Element", e->name->name);
       push_element(p, e, FALSE);
       return TRUE;
     }
@@ -2938,9 +2860,9 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
 
     if ( warn )
     { if ( e == CDATA_ELEMENT )
-	gripe(ERC_VALIDATE, "#PCDATA not allowed here");
+	gripe(ERC_VALIDATE, L"#PCDATA not allowed here");
       else if ( e->undefined )
-	gripe(ERC_EXISTENCE, "Element", e->name->name);
+	gripe(ERC_EXISTENCE, L"Element", e->name->name);
       else
 	gripe(ERC_NOT_ALLOWED, e->name->name);
     }
@@ -2999,7 +2921,7 @@ close_current_element(dtd_parser *p)
     return close_element(p, e, FALSE);
   }
 
-  return gripe(ERC_SYNTAX_ERROR, "No element to close", "");
+  return gripe(ERC_SYNTAX_ERROR, L"No element to close", "");
 }
 
 
@@ -3067,7 +2989,6 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
   }
   token = YET_EMPTY;
 
-  att->value.textA = NULL;		/* ansi text */
   att->value.textW = NULL;		/* UCS text */
   att->value.number = 0;
   att->flags = 0;
@@ -3084,20 +3005,13 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
     { malloc_ocharbuf(&out);
 
       att->value.number = out.size;
-      if ( out.encoding == SGML_ENC_ISO )
-	att->value.textA = out.data.t;
-      else
-	att->value.textW = out.data.w;
+      att->value.textW  = out.data.w;
 
       return end;
     } else
     { ichar *d;
 
-      if ( out.encoding == SGML_ENC_ISO )
-      {	buf = (ichar *) out.data.t;
-      } else
-      { gripe(ERC_SYNTAX_WARNING, "Illegal characters", decl);
-      }
+      buf = out.data.w;
 
       /* canonicalise blanks */
       s = buf;
@@ -3117,11 +3031,11 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
 	    *d++ = c;
 	  }
 	} else
-	{ *d++ = tolower(c);
+	{ *d++ = towlower(c);
 	  while ((c = *s++) != '\0' && !HasClass(dtd, c, CH_BLANK))
 	  { token |= HasClass(dtd, c, CH_DIGIT) ? 0
 	      : HasClass(dtd, c, CH_NAME) ? NAM_LATER : /* oops! */ ANY_OTHER;
-	    *d++ = tolower(c);
+	    *d++ = towlower(c);
 	  }
 	}
 	while (c != '\0' && HasClass(dtd, c, CH_BLANK))
@@ -3130,7 +3044,7 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
       *d = '\0';
     }
   } else
-  { end = itake_unquoted(dtd, decl, tmp, sizeof tmp);
+  { end = itake_unquoted(dtd, decl, tmp, sizeof(tmp)/sizeof(ichar));
     if (end == NULL)
       return NULL;
 
@@ -3145,7 +3059,7 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
       }
     }
     if ( token == YET_EMPTY || (token & ANY_OTHER) != 0)
-      gripe(ERC_SYNTAX_WARNING, "Attribute value requires quotes", buf);
+      gripe(ERC_SYNTAX_WARNING, L"Attribute value requires quotes", buf);
 
     if (!dtd->case_sensitive && att->definition->type != AT_CDATA)
       istrlower(buf);
@@ -3154,27 +3068,29 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
   switch (att->definition->type)
   { case AT_NUMBER:		/* number */
       if (token != DIG_FIRST)
-      { gripe(ERC_SYNTAX_WARNING, "NUMBER expected", decl);
+      { gripe(ERC_SYNTAX_WARNING, L"NUMBER expected", decl);
       } else if (dtd->number_mode == NU_INTEGER)
       { (void) istrtol(buf, &att->value.number);
       } else
-      { att->value.textA = istrdup(buf);
+      { att->value.textW  = istrdup(buf);
+	att->value.number = istrlen(buf);
       }
       return end;
     case AT_CDATA:		/* CDATA attribute */
-      att->value.textA = istrdup(buf);
+      att->value.textW  = istrdup(buf);
+      att->value.number = istrlen(buf);
       return end;
     case AT_ID:		/* identifier */
     case AT_IDREF:		/* identifier reference */
     case AT_NAME:		/* name token */
     case AT_NOTATION:		/* notation-name */
       if (token == YET_EMPTY || (token & (DIG_FIRST | ANY_OTHER)) != 0)
-	gripe(ERC_SYNTAX_WARNING, "NAME expected", decl);
+	gripe(ERC_SYNTAX_WARNING, L"NAME expected", decl);
       break;
     case AT_NAMEOF:		/* one of these names */
     case AT_NMTOKEN:		/* name-token */
       if (token == YET_EMPTY || (token & ANY_OTHER) != 0)
-	gripe(ERC_SYNTAX_WARNING, "NMTOKEN expected", decl);
+	gripe(ERC_SYNTAX_WARNING, L"NMTOKEN expected", decl);
       if ( att->definition->type == AT_NAMEOF )
       { dtd_name_list *nl;
 
@@ -3182,37 +3098,37 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
 	{ if ( istreq(nl->value->name, buf) )
 	    goto passed;
 	}
-	gripe(ERC_SYNTAX_WARNING, "unexpected value", decl);
+	gripe(ERC_SYNTAX_WARNING, L"unexpected value", decl);
       }
       break;
     case AT_NUTOKEN:		/* number token */
       if ((token & (NAM_FIRST | ANY_OTHER)) != 0)
-	gripe(ERC_SYNTAX_WARNING, "NUTOKEN expected", decl);
+	gripe(ERC_SYNTAX_WARNING, L"NUTOKEN expected", decl);
       break;
     case AT_ENTITY:		/* entity-name */
       if (token == YET_EMPTY || (token & (DIG_FIRST | ANY_OTHER)) != 0)
-	gripe(ERC_SYNTAX_WARNING, "entity NAME expected", decl);
+	gripe(ERC_SYNTAX_WARNING, L"entity NAME expected", decl);
       break;
     case AT_NAMES:		/* list of names */
     case AT_IDREFS:		/* list of identifier references */
       if (token == YET_EMPTY || (token & (DIG_FIRST | ANY_OTHER)) != 0)
-	gripe(ERC_SYNTAX_WARNING, "NAMES expected", decl);
+	gripe(ERC_SYNTAX_WARNING, L"NAMES expected", decl);
       break;
     case AT_ENTITIES:		/* entity-name list */
       if (token == YET_EMPTY || (token & (DIG_FIRST | ANY_OTHER)) != 0)
-	gripe(ERC_SYNTAX_WARNING, "entity NAMES expected", decl);
+	gripe(ERC_SYNTAX_WARNING, L"entity NAMES expected", decl);
       break;
     case AT_NMTOKENS:		/* name-token list */
       if (token == YET_EMPTY || (token & ANY_OTHER) != 0)
-	gripe(ERC_SYNTAX_WARNING, "NMTOKENS expected", decl);
+	gripe(ERC_SYNTAX_WARNING, L"NMTOKENS expected", decl);
       break;
     case AT_NUMBERS:		/* number list */
       if (token != DIG_FIRST)
-	gripe(ERC_SYNTAX_WARNING, "NUMBERS expected", decl);
+	gripe(ERC_SYNTAX_WARNING, L"NUMBERS expected", decl);
       break;
     case AT_NUTOKENS:
       if ((token & (NAM_FIRST | ANY_OTHER)) != 0)
-	gripe(ERC_SYNTAX_WARNING, "NUTOKENS expected", decl);
+	gripe(ERC_SYNTAX_WARNING, L"NUTOKENS expected", decl);
       break;
     default:
       assert(0);
@@ -3220,7 +3136,8 @@ get_attribute_value(dtd_parser *p, ichar const *decl, sgml_attribute *att)
   }
 
 passed:
-  att->value.textA = istrdup(buf);	/* TBD: more validation */
+  att->value.textW  = istrdup(buf);	/* TBD: more validation */
+  att->value.number = istrlen(buf); 
   return end;
 }
 
@@ -3257,8 +3174,8 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 
 	  if ( !e->undefined &&
 	       !(dtd->dialect != DL_SGML &&
-		 (istreq((ichar*)"xmlns", nm->name) ||
-		  istrprefix((ichar*)"xmlns:", nm->name))) )
+		 (istreq(L"xmlns", nm->name) ||
+		  istrprefix(L"xmlns:", nm->name))) )
 	    gripe(ERC_NO_ATTRIBUTE, e->name->name, nm->name);
 	}
 	atts[attn].definition = a;
@@ -3282,9 +3199,8 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 			"Value short-hand in XML mode", decl);
 		atts[attn].flags	= 0;
 		atts[attn].definition   = a;
-		atts[attn].value.textW  = NULL;
-		atts[attn].value.number = 0;
-		atts[attn].value.textA  = istrdup(nm->name);
+		atts[attn].value.textW  = istrdup(nm->name);
+		atts[attn].value.number = istrlen(nm->name);
 		attn++;
 		goto next;
 	      }
@@ -3294,7 +3210,7 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 	gripe(ERC_NO_ATTRIBUTE_VALUE, e->name->name, nm->name);
 	decl = s;
       } else
-      { gripe(ERC_SYNTAX_ERROR, "Bad attribute", decl);
+      { gripe(ERC_SYNTAX_ERROR, L"Bad attribute", decl);
 	decl = s;
       }
     } else
@@ -3349,26 +3265,30 @@ add_default_attributes(dtd_parser *p, dtd_element *e,
 	}
 
         ap->definition   = a;
-	ap->value.textA  = NULL;
 	ap->value.textW  = NULL;
 	ap->value.number = 0;
 	ap->flags        = SGML_AT_DEFAULT;
 
 	switch(a->type)
 	{ case AT_CDATA:
-	    ap->value.textA = a->att_def.cdata;
+	    ap->value.textW = a->att_def.cdata;
+	    ap->value.number = istrlen(ap->value.textW);
 	    break;
 	  case AT_NUMBER:
 	    if ( p->dtd->number_mode == NU_TOKEN )
-	      ap->value.textA = (ichar *)a->att_def.name->name;
-	    else
-	      ap->value.number = a->att_def.number;
+	    { ap->value.textW  = (ichar*)a->att_def.name->name;
+	      ap->value.number = istrlen(ap->value.textW);
+	    } else
+	    { ap->value.number = a->att_def.number;
+	    }
 	    break;
 	  default:
 	    if ( a->islist )
-	      ap->value.textA = a->att_def.list;
-	    else
-	      ap->value.textA = (ichar *)a->att_def.name->name;
+	    { ap->value.textW = a->att_def.list;
+	    } else
+	    { ap->value.textW = (ichar*)a->att_def.name->name;
+	    }
+	    ap->value.number = istrlen(ap->value.textW);
 	}
 
 	natts++;
@@ -3389,9 +3309,7 @@ free_attribute_values(int argc, sgml_attribute *argv)
   { if ( (argv->flags & SGML_AT_DEFAULT) )
       continue;				/* shared with the DTD */
 
-    if ( argv->value.textA )
-      sgml_free(argv->value.textA);
-    else if ( argv->value.textW )
+    if ( argv->value.textW )
       sgml_free(argv->value.textW);
   }
 }
@@ -3446,7 +3364,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
       }
     }
     if ( *decl )
-      gripe(ERC_SYNTAX_ERROR, "Bad attribute list", decl);
+      gripe(ERC_SYNTAX_ERROR, L"Bad attribute list", decl);
 
     if ( !(p->flags & SGML_PARSER_NODEFS) )
       natts = add_default_attributes(p, e, natts, atts);
@@ -3475,7 +3393,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     return TRUE;
   }
 
-  return gripe(ERC_SYNTAX_ERROR, "Bad open-element tag", decl);
+  return gripe(ERC_SYNTAX_ERROR, L"Bad open-element tag", decl);
 }
 
 
@@ -3492,7 +3410,7 @@ process_end_element(dtd_parser *p, const ichar *decl)
   if ( p->dtd->shorttag && *decl == '\0' ) /* </>: close current element */
     return close_current_element(p);
 
-  return gripe(ERC_SYNTAX_ERROR, "Bad close-element tag", decl);
+  return gripe(ERC_SYNTAX_ERROR, L"Bad close-element tag", decl);
 }
 
 
@@ -3542,7 +3460,7 @@ process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
   dtd_entity *et = NULL;
 
   if ( !(s=itake_name(dtd, decl, &id)) )
-    return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
+    return gripe(ERC_SYNTAX_ERROR, L"Name expected", decl);
   decl = s;
 
   if ( (s=isee_identifier(dtd, decl, "system")) )
@@ -3565,24 +3483,25 @@ process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
   }
 
   if ( !dtd->doctype )			/* i.e. anonymous DTD */
-  { const char *file;
+  { ichar *file;
     dtd_parser *clone;
 
     dtd->doctype = istrdup(id->name);	/* Fill it */
     if ( et )
       file = entity_file(dtd, et);
     else
-      file = find_in_catalogue(CAT_DOCTYPE,
-			       (char*)dtd->doctype, NULL, NULL,
-			       dtd->dialect != DL_SGML);
+      file = istrdup(find_in_catalogue(CAT_DOCTYPE,
+				       dtd->doctype, NULL, NULL,
+				       dtd->dialect != DL_SGML));
 
     if ( !file )
-    { gripe(ERC_EXISTENCE, "DTD", dtd->doctype);
+    { gripe(ERC_EXISTENCE, L"DTD", dtd->doctype);
     } else
     { clone = clone_dtd_parser(p);
       if ( !load_dtd_from_file(clone, file) )
-	gripe(ERC_EXISTENCE, "file", file);
+	gripe(ERC_EXISTENCE, L"file", file);
       free_dtd_parser(clone);
+      sgml_free(file);
     }
   }
 
@@ -3670,16 +3589,37 @@ init_decoding(dtd_parser *p)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+xml_set_encoding() is the public interface to   set the encoding for the
+parser.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int				/* strcasecmp() with C locale */
+posix_strcasecmp(const char *s1, const char *s2)
+{ for(; *s1 && *s2; s1++, s2++)
+  { int c1 = *s1&0xff;
+    int c2 = *s2&0xff;
+
+    if ( c1 >= 'A' && c1 <= 'Z' ) c1 += 'a'-'A';
+    if ( c2 >= 'A' && c2 <= 'Z' ) c2 += 'a'-'A';
+
+    if ( c1 != c2 )
+      return c1-c2;
+  }
+
+  return *s1 - *s2;
+}
+
+
 int
 xml_set_encoding(dtd_parser *p, const char *enc)
 { dtd *dtd = p->dtd;
-  const ichar *ienc = (const ichar*)enc;
 
-  if ( istrcaseeq(ienc, (ichar*)"iso-8859-1") )
+  if ( posix_strcasecmp(enc, "iso-8859-1") == 0 )
   { dtd->encoding = SGML_ENC_ISO_LATIN1;
-  } else if ( istrcaseeq(ienc, (ichar*)"us-ascii") )
+  } else if ( posix_strcasecmp(enc, "us-ascii") == 0 )
   { dtd->encoding = SGML_ENC_ISO_LATIN1; 	/* doesn't make a difference */
-  } else if ( istrcaseeq(ienc, (ichar*)"utf-8") )
+  } else if ( posix_strcasecmp(enc, "utf-8") == 0 )
   { dtd->encoding = SGML_ENC_UTF8;
   } else
     return FALSE;
@@ -3689,10 +3629,31 @@ xml_set_encoding(dtd_parser *p, const char *enc)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set_encoding() sets the encoding from the encoding="..." field of the
+XML header.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 set_encoding(dtd_parser *p, const ichar *enc)
-{ if ( !xml_set_encoding(p, (char*)enc) )
-    gripe(ERC_EXISTENCE, "character encoding", enc);
+{ char buf[32];
+  char *e = buf+sizeof(buf)-1;
+  char *o;
+  const ichar *i;
+
+  for(i=enc, o=buf; *i; )
+  { if ( *i < 128 && o < e )
+    { *o++ = (char)*i++;
+    } else
+    { goto error;
+    }    
+  }
+  *o = '\0';
+
+  if ( !xml_set_encoding(p, buf) )
+  { error:
+    gripe(ERC_EXISTENCE, L"character encoding", enc);
+  }
 }
 
 
@@ -3729,24 +3690,24 @@ process_pi(dtd_parser *p, const ichar *decl)
 	const ichar *end;
 
 	if ( !(end=itake_string(dtd, s, &start, &len)) )
-	{ end=itake_nmtoken_chars(dtd, s, buf, sizeof(buf));
+	{ end=itake_nmtoken_chars(dtd, s, buf, sizeof(buf)/sizeof(ichar));
 	  start = buf;
-	  len = strlen((char*)buf);
+	  len = istrlen(buf);
 	}
 
 	if ( end )
 	{ decl = end;
 
-	  if ( istrcaseeq(nm->name, (ichar*)"encoding") )
-	  { char tmp[256];
+	  if ( istrcaseeq(nm->name, L"encoding") )
+	  { ichar tmp[32];
 
-	    if ( len < sizeof(tmp)-1 )
-	    { strncpy(tmp, (char*)start, len);
-	      tmp[len] = '\0';
-	      
-	      set_encoding(p, (ichar*)tmp);
+	    if ( len < sizeof(tmp)/sizeof(ichar)-1 )
+	    { istrncpy(tmp, start, len);
+	      tmp[len] = 0;
+
+	      set_encoding(p, tmp);
 	    } else
-	    { gripe(ERC_SYNTAX_ERROR, "Unterminated encoding?", decl);
+	    { gripe(ERC_SYNTAX_ERROR, L"Unterminated encoding?", decl);
 	    }
 	  }
 
@@ -3756,7 +3717,7 @@ process_pi(dtd_parser *p, const ichar *decl)
 	}
       }
 
-      gripe(ERC_SYNTAX_ERROR, "Illegal XML parameter", decl);
+      gripe(ERC_SYNTAX_ERROR, L"Illegal XML parameter", decl);
       break;
     }
 
@@ -3772,7 +3733,7 @@ process_pi(dtd_parser *p, const ichar *decl)
 
 static int
 process_sgml_declaration(dtd_parser *p, const ichar *decl)
-{ return gripe(ERC_SYNTAX_WARNING, "Ignored <!SGML ...> declaration", NULL);
+{ return gripe(ERC_SYNTAX_WARNING, L"Ignored <!SGML ...> declaration", NULL);
 }
 
 
@@ -3816,13 +3777,13 @@ process_declaration(dtd_parser *p, const ichar *decl)
     { s = iskip_layout(dtd, decl);
   
       if ( *s )
-	gripe(ERC_SYNTAX_ERROR, "Invalid declaration", s);
+	gripe(ERC_SYNTAX_ERROR, L"Invalid declaration", s);
     }
 
     return TRUE;
   }
 
-  return gripe(ERC_SYNTAX_ERROR, "Invalid declaration", decl);
+  return gripe(ERC_SYNTAX_ERROR, L"Invalid declaration", decl);
 }
 
 		 /*******************************
@@ -3832,12 +3793,22 @@ process_declaration(dtd_parser *p, const ichar *decl)
 static dtd_parser *current_parser;	/* For gripes */
 
 void
-set_src_dtd_parser(dtd_parser *p, input_type type, const char *name)
-{ p->location.type    = type;
-  p->location.name    = name;
-  p->location.line    = 1;
-  p->location.linepos = 0;
-  p->location.charpos = 0;
+set_file_dtd_parser(dtd_parser *p, input_type type, const ichar *name)
+{ p->location.type      = type;
+  p->location.name.file = name;
+  p->location.line      = 1;
+  p->location.linepos   = 0;
+  p->location.charpos   = 0;
+}
+
+
+static void
+set_src_dtd_parser(dtd_parser *p, input_type type, const ichar *name)
+{ p->location.type        = type;
+  p->location.name.entity = name;
+  p->location.line        = 1;
+  p->location.linepos     = 0;
+  p->location.charpos     = 0;
 }
 
 
@@ -3908,7 +3879,7 @@ process_chars(dtd_parser *p, input_type in, const ichar *name, const ichar *s)
 { locbuf old;
   
   push_location(p, &old);
-  set_src_dtd_parser(p, in, (char *)name);
+  set_src_dtd_parser(p, in, name);
   empty_icharbuf(p->buffer);		/* dubious */
   for(; *s; s++)
     putchar_dtd_parser(p, *s);
@@ -3926,11 +3897,14 @@ process_include(dtd_parser *p, const ichar *entity_name)
 
   if ( (id=dtd_find_entity_symbol(dtd, entity_name)) &&
        (pe=find_pentity(p->dtd, id)) )
-  { const char *file;
+  { ichar *file;
 
     if ( (file = entity_file(dtd, pe)) )
-      return sgml_process_file(p, file, SGML_SUB_DOCUMENT);
-    else
+    { int rc = sgml_process_file(p, file, SGML_SUB_DOCUMENT);
+      sgml_free(file);
+
+      return rc;
+    } else
     { const ichar *text = entity_value(p, pe, NULL);
 
       if ( !text )
@@ -3940,7 +3914,7 @@ process_include(dtd_parser *p, const ichar *entity_name)
     }
   }
   
-  return gripe(ERC_EXISTENCE, "parameter entity", entity_name);
+  return gripe(ERC_EXISTENCE, L"parameter entity", entity_name);
 }
 
 
@@ -3962,7 +3936,7 @@ process_marked_section(dtd_parser *p)
 
   if ( (decl=isee_func(dtd, decl, CF_MDO2)) && /* ! */
        (decl=isee_func(dtd, decl, CF_DSO)) && /* [ */
-       expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)) )
+       expand_pentities(p, decl, ZERO_TERM_LEN, buf, sizeof(buf)/sizeof(ichar)) )
   { dtd_symbol *kwd;
 
     decl = buf;
@@ -3974,15 +3948,15 @@ process_marked_section(dtd_parser *p)
       m->parent = p->marked;
       p->marked = m;
 
-      if ( istrcaseeq(kwd->name, (ichar*)"IGNORE") )
+      if ( istrcaseeq(kwd->name, L"IGNORE") )
 	m->type = MS_IGNORE;
-      else if ( istrcaseeq(kwd->name, (ichar*)"INCLUDE") )
+      else if ( istrcaseeq(kwd->name, L"INCLUDE") )
 	m->type = MS_INCLUDE;
-      else if ( istrcaseeq(kwd->name, (ichar*)"TEMP") )
+      else if ( istrcaseeq(kwd->name, L"TEMP") )
 	m->type = MS_INCLUDE;
-      else if ( istrcaseeq(kwd->name, (ichar*)"CDATA") )
+      else if ( istrcaseeq(kwd->name, L"CDATA") )
 	m->type = MS_CDATA;
-      else if ( istrcaseeq(kwd->name, (ichar*)"RCDATA") )
+      else if ( istrcaseeq(kwd->name, L"RCDATA") )
 	m->type = MS_RCDATA;
       else
 	m->type = MS_INCLUDE;		/* default */
@@ -4026,13 +4000,13 @@ how spaces are handled in the CDATA output.
 
 static dtd_space_mode
 istr_to_space_mode(const ichar *val)
-{ if ( istreq(val, "default") )
+{ if ( istreq(val, L"default") )
     return SP_DEFAULT;
-  if ( istreq(val, "preserve") )
+  if ( istreq(val, L"preserve") )
     return SP_PRESERVE;
-  if ( istreq(val, "sgml") )
+  if ( istreq(val, L"sgml") )
     return SP_SGML;
-  if ( istreq(val, "remove") )
+  if ( istreq(val, L"remove") )
     return SP_REMOVE;
 
   return SP_INHERIT;			/* interpret as error */
@@ -4045,15 +4019,15 @@ update_space_mode(dtd_parser *p, dtd_element *e,
 { for( ; natts-- > 0; atts++ )
   { const ichar *name = atts->definition->name->name;
 
-    if ( istreq(name, "xml:space") &&
+    if ( istreq(name, L"xml:space") &&
 	 atts->definition->type == AT_CDATA &&
-	 atts->value.textA )
-    { dtd_space_mode m = istr_to_space_mode(atts->value.textA);
+	 atts->value.textW )
+    { dtd_space_mode m = istr_to_space_mode(atts->value.textW);
 
       if ( m != SP_INHERIT )
 	p->environments->space_mode = m;
       else
-	gripe(ERC_EXISTENCE, "xml:space-mode", atts->value.textA);
+	gripe(ERC_EXISTENCE, L"xml:space-mode", atts->value.textW);
 
       return;
     }
@@ -4076,11 +4050,8 @@ empty_cdata(dtd_parser *p)
 
 static void
 cb_cdata(dtd_parser *p, ocharbuf *buf, int offset, int size)
-{ if ( p->on_data && buf->encoding == SGML_ENC_ISO )
-  { (*p->on_data)(p, EC_CDATA, size, (char*)buf->data.t+offset);
-  } else if ( p->on_wdata && buf->encoding == SGML_ENC_UCS )
-  { (*p->on_wdata)(p, EC_CDATA, size, buf->data.w+offset);
-  }    
+{ if ( p->on_data )
+    (*p->on_data)(p, EC_CDATA, size, buf->data.w+offset);
 }
 
 
@@ -4096,8 +4067,8 @@ emit_cdata(dtd_parser *p, int last)
     return TRUE;			/* empty or done */
 
   push_location(p, &locsafe);
-  sgml_cplocation(&p->location, &p->startloc); 	/* start of markup */
-  sgml_cplocation(&p->startloc, &p->startcdata); 	/* real start of CDATA */
+  sgml_cplocation(&p->location, &p->startloc);   /* start of markup */
+  sgml_cplocation(&p->startloc, &p->startcdata); /* real start of CDATA */
 
   if ( p->environments )
   { switch(p->environments->space_mode)
@@ -4279,7 +4250,7 @@ prepare_cdata(dtd_parser *p)
       p->blank_cdata = blank;
       if ( !blank )
       { if ( p->dmode == DM_DTD )
-	  gripe(ERC_SYNTAX_ERROR, "CDATA in DTD", p->cdata->data);
+	  gripe(ERC_SYNTAX_ERROR, L"CDATA in DTD", p->cdata->data);
 	else
 	  open_element(p, CDATA_ELEMENT, TRUE);
       }
@@ -4306,7 +4277,7 @@ process_entity(dtd_parser *p, const ichar *name)
   { int v = char_entity_value(name);
 
     if ( v <= 0 )
-      return gripe(ERC_SYNTAX_ERROR, "Bad character entity", name);
+      return gripe(ERC_SYNTAX_ERROR, L"Bad character entity", name);
 
     add_ocharbuf(p->cdata, v);
   } else
@@ -4317,22 +4288,25 @@ process_entity(dtd_parser *p, const ichar *name)
     const ichar *text;
     const ichar *s;
     int   chr;
-    const char *file;
+    ichar *file;
 
     if ( !(id=dtd_find_entity_symbol(dtd, name)) ||
 	 !(e=id->entity) )
     { if ( dtd->default_entity )
 	e = dtd->default_entity;
       else
-	return gripe(ERC_EXISTENCE, "entity", name);
+	return gripe(ERC_EXISTENCE, L"entity", name);
     }
 
     if ( !e->value &&
 	 e->content == EC_SGML &&
 	 (file=entity_file(p->dtd, e)) )
-    { empty_icharbuf(p->buffer);		/* dubious */
+    { int rc;
 
-      return sgml_process_file(p, file, SGML_SUB_DOCUMENT);
+      empty_icharbuf(p->buffer);		/* dubious */
+      rc = sgml_process_file(p, file, SGML_SUB_DOCUMENT);
+      sgml_free(file);
+      return rc;
     }
 
     if ( !(text = entity_value(p, e, &len)) )
@@ -4343,7 +4317,7 @@ process_entity(dtd_parser *p, const ichar *name)
       case EC_CDATA:
 	if ( (s=isee_character_entity(dtd, text, &chr)) && *s == '\0' )
 	{ if ( chr == 0 )
-	    return gripe(ERC_SYNTAX_ERROR, "Illegal character entity", text);
+	    return gripe(ERC_SYNTAX_ERROR, L"Illegal character entity", text);
 
 	  if ( p->blank_cdata == TRUE &&
 	       !HasClass(dtd, (wint_t)chr, CH_BLANK) )
@@ -4356,22 +4330,25 @@ process_entity(dtd_parser *p, const ichar *name)
 	}
 	if ( e->content == EC_SGML )
 	{ locbuf oldloc;
+	  int decode = p->utf8_decode;
 
 	  push_location(p, &oldloc);
-	  set_src_dtd_parser(p, IN_ENTITY, (char*)e->name->name);
+	  p->utf8_decode = FALSE;
+	  set_src_dtd_parser(p, IN_ENTITY, e->name->name);
 	  empty_icharbuf(p->buffer);		/* dubious */
 	  for(s=text; *s; s++)
 	    putchar_dtd_parser(p, *s);
+	  p->utf8_decode = decode;
 	  pop_location(p, &oldloc);
 	} else if ( *text )
-	{ const ochar *o;
+	{ const ichar *o;
 
 	  if ( p->blank_cdata == TRUE )
 	  { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
 	    p->blank_cdata = FALSE;
 	  }
 
-	  for(o=(const ochar *)text; *o; o++)
+	  for(o=text; *o; o++)
 	    add_ocharbuf(p->cdata, *o);
 	}
 	break;
@@ -4379,7 +4356,7 @@ process_entity(dtd_parser *p, const ichar *name)
       case EC_NDATA:
 	process_cdata(p, FALSE);
 	if ( p->on_data )
-	  (*p->on_data)(p, e->content, len, (char*)text);
+	  (*p->on_data)(p, e->content, len, text);
 	break;
       case EC_PI:
 	process_cdata(p, FALSE);
@@ -4428,7 +4405,7 @@ end_document_dtd_parser_(dtd_parser *p)
     case S_DECLCMT:
     case S_DECLCMTE0:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   "Unexpected end-of-file in comment", "");
+		   L"Unexpected end-of-file in comment", "");
       break;
     case S_ECDATA1:
     case S_ECDATA2:
@@ -4444,28 +4421,28 @@ end_document_dtd_parser_(dtd_parser *p)
     case S_ENT:
     case S_ENT0:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   "Unexpected end-of-file", "");
+		   L"Unexpected end-of-file", "");
       break;
 #ifdef UTF8
     case S_UTF8:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   "Unexpected end-of-file in UTF-8 sequence", "");
+		   L"Unexpected end-of-file in UTF-8 sequence", "");
       break;
 #endif
     case S_MSCDATA:
     case S_EMSCDATA1:
     case S_EMSCDATA2:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   "Unexpected end-of-file in CDATA marked section", "");
+		   L"Unexpected end-of-file in CDATA marked section", "");
       break;
     case S_PI:
     case S_PI2:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   "Unexpected end-of-file in processing instruction", "");
+		   L"Unexpected end-of-file in processing instruction", "");
       break;
     default:
       rval = gripe(ERC_SYNTAX_ERROR,
-		   "Unexpected end-of-file in ???");
+		   L"Unexpected end-of-file in ???");
       break;
   }
 
@@ -4648,12 +4625,11 @@ add_verbatim_cdata(dtd_parser *p, int chr)
 static void
 recover_parser(dtd_parser *p)
 { const ichar *s;
-  dtd *dtd = p->dtd;
 
   terminate_icharbuf(p->buffer);
-  add_cdata(p, dtd->charmap->map[p->saved]);
+  add_cdata(p, p->saved);
   for(s=p->buffer->data; *s; s++)
-    add_cdata(p, dtd->charmap->map[*s]);
+    add_cdata(p, *s);
   p->state = S_PCDATA;
 }
 
@@ -4675,6 +4651,26 @@ putchar_dtd_parser(dtd_parser *p, int chr)
   int line = p->location.line;
   int lpos = p->location.linepos;
     
+  p->location.charpos++;		/* TBD: actually `bytepos' */
+
+#ifdef UTF8
+  if ( p->state == S_UTF8 )
+  { if ( (chr & 0xc0) != 0x80 )	/* TBD: recover */
+      gripe(ERC_SYNTAX_ERROR, L"Bad UTF-8 sequence", "");
+    p->utf8_char <<= 6;
+    p->utf8_char |= (chr & ~0xc0);
+    if ( --p->utf8_left == 0 )
+    { chr = p->utf8_char;
+      p->state = p->utf8_saved_state;
+    } else
+    { return;
+    }
+  } else if ( ISUTF8_MB(chr) && p->utf8_decode )
+  { process_utf8(p, chr);
+    return;
+  }
+#endif
+
   if ( f[CF_RS] == chr )
   { p->location.line++;
     p->location.linepos = 0;
@@ -4684,8 +4680,6 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     else
       p->location.linepos++;
   }
-
-  p->location.charpos++;
 
 reprocess:
   switch(p->state)
@@ -4723,17 +4717,10 @@ reprocess:
 		    process_net(p));
 	return;
       }
+
 					/* Real character data */
-#ifdef UTF8
-      if ( p->utf8_decode && ISUTF8_MB(chr) )
-      { process_utf8(p, chr);
-	return;
-      }
-#endif
       if ( p->cdata->size == 0 )
         setlocation(&p->startcdata, &p->location, line, lpos);
-      if ( chr <= 0xff )
-        chr = dtd->charmap->map[chr];
 
       add_cdata(p, chr);
       return;
@@ -4754,7 +4741,7 @@ reprocess:
 	empty_icharbuf(p->buffer);
 	p->cdata_state = p->state = S_PCDATA;
       } else
-      { add_verbatim_cdata(p, dtd->charmap->map[chr]);
+      { add_verbatim_cdata(p, chr);
 	if ( p->etaglen < p->buffer->size ||
 	     !HasClass(dtd, (wint_t)chr, CH_NAME))
 	{ empty_icharbuf(p->buffer);	/* mismatch */
@@ -4765,7 +4752,7 @@ reprocess:
       return;
     }
     case S_ECDATA1:			/* seen < in CDATA */
-    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
+    { add_verbatim_cdata(p, chr);
       if ( f[CF_ETAGO2] == chr )	/* / */
       { empty_icharbuf(p->buffer);
 	p->state = S_ECDATA2;
@@ -4782,7 +4769,7 @@ reprocess:
       /*FALLTHROUGH*/
     }
     case S_CDATA:
-    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
+    { add_verbatim_cdata(p, chr);
 
       if ( f[CF_MDO1] == chr )		/* < */
       { setlocation(&p->startloc, &p->location, line, lpos);
@@ -4808,13 +4795,13 @@ reprocess:
       return;
     }
     case S_MSCDATA:
-    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
+    { add_verbatim_cdata(p, chr);
       if ( f[CF_DSC] == chr )		/* ] */
         p->state = S_EMSCDATA1;
       return;
     }
     case S_EMSCDATA1:
-    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
+    { add_verbatim_cdata(p, chr);
       if ( f[CF_DSC] == chr )		/* ]] */
         p->state = S_EMSCDATA2;
       else
@@ -4822,7 +4809,7 @@ reprocess:
       return;
     }
     case S_EMSCDATA2:
-    { add_verbatim_cdata(p, dtd->charmap->map[chr]);
+    { add_verbatim_cdata(p, chr);
       if ( f[CF_MDC] == chr )		/* ]]> */
       { p->cdata->size -= 3;		/* Delete chars for ]] */
 	pop_marked_section(p);
@@ -4868,7 +4855,7 @@ reprocess:
       }
 
       terminate_icharbuf(p->buffer);
-      gripe(ERC_SYNTAX_ERROR, "Illegal parameter entity", p->buffer->data);
+      gripe(ERC_SYNTAX_ERROR, L"Illegal parameter entity", p->buffer->data);
       break;
     }
     case S_ENT0:			/* Seen & */
@@ -5094,15 +5081,7 @@ reprocess:
     }
 #ifdef UTF8
     case S_UTF8:
-      if ( (chr & 0xc0) != 0x80 )	/* TBD: recover */
-	gripe(ERC_SYNTAX_ERROR, "Bad UTF-8 sequence", "");
-      p->utf8_char <<= 6;
-      p->utf8_char |= (chr & ~0xc0);
-      if ( --p->utf8_left == 0 )
-      { add_cdata(p, p->utf8_char);	/* verbatim? */
-	p->state = p->utf8_saved_state;
-      }
-
+      assert(0);
       break;
 #endif
   }
@@ -5114,7 +5093,7 @@ reprocess:
 		 *******************************/
 
 int
-load_dtd_from_file(dtd_parser *p, const char *file)
+load_dtd_from_file(dtd_parser *p, const ichar *file)
 { FILE *fd;
   int rval;
   data_mode   oldmode  = p->dmode;
@@ -5125,9 +5104,9 @@ load_dtd_from_file(dtd_parser *p, const char *file)
   p->dmode = DM_DTD;
   p->state = S_PCDATA;
   empty_icharbuf(p->buffer);		/* dubious */
-  set_src_dtd_parser(p, IN_FILE, file);
+  set_file_dtd_parser(p, IN_FILE, file);
 
-  if ( (fd = fopen(file, "rb")) )
+  if ( (fd = wfopen(file, "rb")) )
   { int chr;
 
     while( (chr = getc(fd)) != EOF )
@@ -5149,8 +5128,8 @@ load_dtd_from_file(dtd_parser *p, const char *file)
 
 
 dtd *
-file_to_dtd(const char *file, const char *doctype, dtd_dialect dialect)
-{ dtd_parser *p = new_dtd_parser(new_dtd((ichar*)doctype));
+file_to_dtd(const ichar *file, const ichar *doctype, dtd_dialect dialect)
+{ dtd_parser *p = new_dtd_parser(new_dtd(doctype));
 
   set_dialect_dtd(p->dtd, dialect);
 
@@ -5214,17 +5193,17 @@ sgml_process_stream(dtd_parser *p, FILE *fd, unsigned flags)
 
 
 int
-sgml_process_file(dtd_parser *p, const char *file, unsigned flags)
+sgml_process_file(dtd_parser *p, const ichar *file, unsigned flags)
 { FILE *fd;
   int rval;
   locbuf oldloc;
 
   push_location(p, &oldloc);
-  set_src_dtd_parser(p, IN_FILE, file);
+  set_file_dtd_parser(p, IN_FILE, file);
   if ( !(flags & SGML_SUB_DOCUMENT) )
     set_mode_dtd_parser(p, DM_DATA);
 
-  if ( (fd = fopen(file, "rb")) )
+  if ( (fd = wfopen(file, "rb")) )
   { rval = sgml_process_stream(p, fd, flags);
     fclose(fd);
   } else
@@ -5241,8 +5220,8 @@ sgml_process_file(dtd_parser *p, const char *file, unsigned flags)
 		 *	       ERRORS		*
 		 *******************************/
 
-static char *
-format_location(char *s, dtd_srcloc *l)
+static wchar_t *
+format_location(wchar_t *s, size_t len, dtd_srcloc *l)
 { int first = TRUE;
 
   if ( !l || l->type == IN_NONE )
@@ -5251,29 +5230,29 @@ format_location(char *s, dtd_srcloc *l)
   for( ; l && l->type != IN_NONE;
          l = l->parent, first = FALSE )
   { if ( !first )
-    { sprintf(s, " (from ");
-      s += strlen(s);
+    { swprintf(s, len, L" (from ");
+      s += wcslen(s);
     }
 
     switch(l->type)
     { case IN_NONE:
 	assert(0);
       case IN_FILE:
-	sprintf(s, "%s:%d:%d", l->name, l->line, l->linepos);
+	swprintf(s, len, L"%ls:%d:%d", l->name.file, l->line, l->linepos);
         break;
       case IN_ENTITY:
-        sprintf(s, "&%s;%d:%d", l->name, l->line, l->linepos);
+        swprintf(s, len, L"&%ls;%d:%d", l->name.entity, l->line, l->linepos);
         break;
     }
 
-    s += strlen(s);
+    s += wcslen(s);
     if ( !first )
-    { *s++ = ')';
+    { *s++ = L')';
     }
   }
 
-  *s++ = ':';
-  *s++ = ' ';
+  *s++ = L':';
+  *s++ = L' ';
 
   return s;
 }
@@ -5281,46 +5260,48 @@ format_location(char *s, dtd_srcloc *l)
 
 static void
 format_message(dtd_error *e)
-{ char buf[1024];
-  char *s;
+{ wchar_t buf[1024];
+  wchar_t *s;
   int prefix_len;
+  int left;
 
   switch(e->severity)
   { case ERS_ERROR:
-      strcpy(buf, "Error: ");
+      wcscpy(buf, L"Error: ");
       break;
     case ERS_WARNING:
-      strcpy(buf, "Warning: ");
+      wcscpy(buf, L"Warning: ");
       break;
     default:
       buf[0] = '\0';
   }
-  s = buf+strlen(buf);
+  s = buf+wcslen(buf);
 
-  s = format_location(s, e->location);
+  s = format_location(s, 1024-(s-buf), e->location);
   prefix_len = s-buf;
+  left = 1024-prefix_len;
 
   switch(e->id)
   { case ERC_REPRESENTATION:
-      sprintf(s, "Cannot represent due to %s", e->argv[0]);
+      swprintf(s, left, L"Cannot represent due to %ls", e->argv[0]);
       break;
     case ERC_RESOURCE:
-      sprintf(s, "Insufficient %s resources", e->argv[0]);
+      swprintf(s, left, L"Insufficient %ls resources", e->argv[0]);
       break;
     case ERC_LIMIT:
-      sprintf(s, "%s limit exceeded", e->argv[0]);
+      swprintf(s, left, L"%ls limit exceeded", e->argv[0]);
       break;
     case ERC_VALIDATE:
-      sprintf(s, "%s", e->argv[0]);
+      swprintf(s, left, L"%ls", e->argv[0]);
       break;
     case ERC_SYNTAX_ERROR:
-      sprintf(s, "Syntax error: %s", e->argv[0]);
+      swprintf(s, left, L"Syntax error: %ls", e->argv[0]);
       break;
     case ERC_EXISTENCE:
-      sprintf(s, "%s \"%s\" does not exist", e->argv[0], e->argv[1]);
+      swprintf(s, left, L"%ls \"%ls\" does not exist", e->argv[0], e->argv[1]);
       break;
     case ERC_REDEFINED:
-      sprintf(s, "Redefined %s \"%s\"", e->argv[0], e->argv[1]);
+      swprintf(s, left, L"Redefined %ls \"%ls\"", e->argv[0], e->argv[1]);
       break;
     default:
       ;
@@ -5334,9 +5315,10 @@ format_message(dtd_error *e)
 int
 gripe(dtd_error_id e, ...)
 { va_list args;
-  char buf[1024];
+  wchar_t buf[1024];
   dtd_error error;
   int dtdmode = FALSE;
+  void *freeme = NULL;
 
   va_start(args, e);
 
@@ -5355,19 +5337,19 @@ gripe(dtd_error_id e, ...)
   { case ERC_REPRESENTATION:
     case ERC_RESOURCE:
       error.severity = ERS_ERROR;
-      error.argv[0]  = va_arg(args, char *);
+      error.argv[0]  = va_arg(args, wchar_t *);
       break;
     case ERC_LIMIT:
       error.severity = ERS_WARNING;
-      error.argv[0]  = va_arg(args, char *);
+      error.argv[0]  = va_arg(args, wchar_t *);
       break;
     case ERC_SYNTAX_ERROR:
     case ERC_SYNTAX_WARNING:
-    { char *m = va_arg(args, char *);
-      const char *s = va_arg(args, const char *);
+    { wchar_t *m       = va_arg(args, wchar_t *);
+      const wchar_t *s = va_arg(args, const wchar_t *);
 
       if ( s && *s )
-      { sprintf(buf, "%s, found \"%s\"", m, str_summary(s, 25));
+      { swprintf(buf, 1024, L"%ls, found \"%ls\"", m, str_summary(s, 25));
 	error.argv[0] = buf;
       } else
 	error.argv[0] = m;
@@ -5377,10 +5359,10 @@ gripe(dtd_error_id e, ...)
       break;
     }
     case ERC_DOMAIN:
-    { const char *expected = va_arg(args, const char *);
-      const char *found    = str_summary(va_arg(args, const char *), 25);
+    { const wchar_t *expected = va_arg(args, const wchar_t *);
+      const wchar_t *found    = str_summary(va_arg(args, const wchar_t *), 25);
 
-      sprintf(buf, "Expected type %s, found \"%s\"", expected, found);
+      swprintf(buf, 1024, L"Expected type %ls, found \"%ls\"", expected, found);
       error.argv[0] = buf;
       error.severity = ERS_ERROR;
       e = (dtdmode ? ERC_SYNTAX_ERROR : ERC_VALIDATE);
@@ -5388,73 +5370,76 @@ gripe(dtd_error_id e, ...)
     }
     case ERC_REDEFINED:
     { dtd_symbol *name;
-      error.argv[0] = va_arg(args, char *); /* type */
+      error.argv[0] = va_arg(args, wchar_t *); /* type */
       name = va_arg(args, dtd_symbol *); /* name */
-      error.argv[1] = (char *)name->name;
+      error.argv[1]  = (ichar*)name->name;
       error.severity = ERS_STYLE;
       break;
     }
     case ERC_EXISTENCE:
-    { error.argv[0] = va_arg(args, char *); /* type */
-      error.argv[1] = va_arg(args, char *); /* name */
+    { error.argv[0] = va_arg(args, wchar_t *); /* type */
+      error.argv[1] = va_arg(args, wchar_t *); /* name */
       error.severity = ERS_ERROR;
       break;
     }
     case ERC_VALIDATE:
-    { error.argv[0] = va_arg(args, char *); /* message */
+    { error.argv[0] = va_arg(args, wchar_t *); /* message */
       error.severity = ERS_WARNING;
       break;
     }
     case ERC_OMITTED_CLOSE:
-    { const char *element = va_arg(args, const char *); 
+    { const wchar_t *element = va_arg(args, const wchar_t *); 
 
-      sprintf(buf, "Inserted omitted end-tag for \"%s\"", element);
+      swprintf(buf, 1024, L"Inserted omitted end-tag for \"%ls\"", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
       break;
     }
     case ERC_OMITTED_OPEN:
-    { const char *element = va_arg(args, const char *); 
+    { const wchar_t *element = va_arg(args, const wchar_t *); 
 
-      sprintf(buf, "Inserted omitted start-tag for \"%s\"", element);
+      swprintf(buf, 1024, L"Inserted omitted start-tag for \"%ls\"", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
       break;
     }
     case ERC_NOT_OPEN:
-    { const char *element = va_arg(args, const char *); 
+    { const wchar_t *element = va_arg(args, const wchar_t *); 
 
-      sprintf(buf, "Ignored end-tag for \"%s\" which is not open", element);
+      swprintf(buf, 1024, L"Ignored end-tag for \"%ls\" which is not open",
+	       element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
       break;
     }
     case ERC_NOT_ALLOWED:
-    { const char *element = va_arg(args, const char *); 
+    { const wchar_t *element = va_arg(args, const wchar_t *); 
 
-      sprintf(buf, "Element \"%s\" not allowed here", element);
+      swprintf(buf, 1024, L"Element \"%ls\" not allowed here", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
       break;
     }
     case ERC_NOT_ALLOWED_PCDATA:
-    { const char *text = va_arg(args, const char *); 
+    { const ocharbuf *cdata = va_arg(args, const ocharbuf *); 
 
-      sprintf(buf, "#PCDATA (\"%s\") not allowed here", str_summary(text, 25));
+      swprintf(buf, 1024, L"#PCDATA (\"%ls\") not allowed here", 
+	       str_summary(cdata->data.w, 25));
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
       break;      
     }
     case ERC_NO_ATTRIBUTE:
-    { const char *elem = va_arg(args, char *); /* element */
-      const char *attr = va_arg(args, char *); /* attribute */
+    { const wchar_t *elem = va_arg(args, wchar_t *); /* element */
+      const wchar_t *attr = va_arg(args, wchar_t *); /* attribute */
 
-      sprintf(buf, "Element \"%s\" has no attribute \"%s\"", elem, attr);
+      swprintf(buf, 1024, L"Element \"%ls\" has no attribute \"%s\"",
+	       elem, attr);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
 
@@ -5462,11 +5447,11 @@ gripe(dtd_error_id e, ...)
       break;
     }
     case ERC_NO_ATTRIBUTE_VALUE:
-    { const char *elem  = va_arg(args, char *); /* element */
-      const char *value = va_arg(args, char *); /* attribute value */
+    { const wchar_t *elem  = va_arg(args, wchar_t *); /* element */
+      const wchar_t *value = va_arg(args, wchar_t *); /* attribute value */
 
-      sprintf(buf, "Element \"%s\" has no attribute with value \"%s\"",
-	      elem, value);
+      swprintf(buf, 1024, L"Element \"%ls\" has no attribute with value \"%ls\"",
+	       elem, value);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
 
@@ -5474,18 +5459,18 @@ gripe(dtd_error_id e, ...)
       break;
     }
     case ERC_NO_VALUE:
-    { error.argv[0] = "entity value";
-      error.argv[1] = va_arg(args, char *); /* entity */
+    { error.argv[0] = L"entity value";
+      error.argv[1] = va_arg(args, wchar_t *); /* entity */
 
       error.severity = ERS_ERROR;
       e = ERC_EXISTENCE;
       break;
     }
     case ERC_NO_DOCTYPE:
-    { const char *doctype = va_arg(args, char *); /* element */
-      const char *file    = va_arg(args, char *); /* DTD file */
+    { const wchar_t *doctype = va_arg(args, wchar_t *); /* element */
+      const wchar_t *file    = va_arg(args, wchar_t *); /* DTD file */
 
-      sprintf(buf, "No <!DOCTYPE ...>, assuming \"%s\" from DTD file \"%s\"",
+      swprintf(buf, 1024, L"No <!DOCTYPE ...>, assuming \"%ls\" from DTD file \"%s\"",
 	      doctype, file);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
@@ -5496,8 +5481,8 @@ gripe(dtd_error_id e, ...)
     case ERC_NO_CATALOGUE:
     { char *file = va_arg(args, char *); /* catalogue file */
 
-      error.argv[0] = "catalogue file";
-      error.argv[1] = file;
+      error.argv[0] = L"catalogue file";
+      freeme = error.argv[1] = utf8towcs(file);
       error.severity = ERS_WARNING;
       e = ERC_EXISTENCE;
 
@@ -5511,7 +5496,10 @@ gripe(dtd_error_id e, ...)
   if ( current_parser && current_parser->on_error )
     (*current_parser->on_error)(current_parser, &error);
   else
-    fprintf(stderr, "SGML: %s\n", error.message);
+    fwprintf(stderr, L"SGML: %ls\n", error.message);
+
+  if ( freeme )
+    sgml_free(freeme);
 
   va_end(args);
 

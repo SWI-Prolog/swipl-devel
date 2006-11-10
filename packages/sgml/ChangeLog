@@ -1,3 +1,8 @@
+Oct 27, 2006
+
+  * ENHANCEMENT: Started branch XML_UNICODE to provide support for Unicode
+    filenames, tags and elements.  
+
 Aug 28, 2006
 
   * DOCUMENTATION: Moved to sgml.doc, using the same system as the

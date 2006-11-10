@@ -50,9 +50,13 @@ fp(Dir) :-
 	    ml_file(Ext),
 	    file_base_name(File, Base),
 	    \+ blocked(Base),
-	    format(user_error, '~w ... (ISO Latin-1) ...', [Base]),
-	    fixed_point(File, iso_latin_1),
-	    format(user_error, ' (UTF-8) ...', []),
+	    format(user_error, '~w ... ', [Base]),
+	    (	\+ utf8(Base)
+	    ->  format(user_error, ' (ISO Latin-1) ... ', []),
+		fixed_point(File, iso_latin_1)
+	    ;	true
+	    ),
+	    format(user_error, ' (UTF-8) ... ', []),
 	    fixed_point(File, utf8),
 	    format(user_error, ' done~n', []),
 	    fail
@@ -63,7 +67,7 @@ ml_file(xml).
 ml_file(sgml).
 ml_file(html).
 
-%	blocked(+File)
+%%	blocked(+File)
 %	
 %	List of test-files that are blocked.  These are either negative
 %	tests or tests involving SDATA.
@@ -74,8 +78,19 @@ blocked('sdata.sgml').
 blocked('cent-nul.xml').
 blocked('defent.sgml').
 
-fixed_point(File) :-
-	fixed_point(File, iso_latin_1).
+
+%%	utf8(+File)
+%
+%	File requires UTF-8.  These are files that have UTF-8 characters
+%	in element or attribute names.
+
+utf8('utf8-ru.xml').
+
+
+%%	fixed_point(+File, +Encoding)
+%
+%	Perform write/read round-trip and  validate   the  data  has not
+%	changed.
 
 fixed_point(File, Encoding) :-
 	file_name_extension(_, xml, File), !,

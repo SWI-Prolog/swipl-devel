@@ -252,7 +252,10 @@ typedef enum
 
 typedef struct _dtd_srcloc
 { input_type  type;			/* type of input */
-  const char *name;			/* name of the file */
+  union
+  { const ichar *file;			/* name of the file */
+    const ichar *entity;		/* name of entity */
+  } name;
   int	      line;			/* 1-based Line no */
   int	      linepos;			/* 1-based char  */
   long	      charpos;			/* 0-based file char  */
@@ -265,10 +268,10 @@ typedef struct _dtd_error
   dtd_error_id minor;			/* Minor code */
   dtd_error_severity severity;		/* ERS_* severity */
   dtd_srcloc *location;			/* location of the error */
-  char *plain_message;			/* Clean message */
-  char *message;			/* complete message */
+  wchar_t *plain_message;		/* Clean message */
+  wchar_t *message;			/* complete message */
 					/* (Warning: file:line: <plain>) */
-  char *argv[2];			/* context arguments */
+  wchar_t *argv[2];			/* context arguments */
 } dtd_error;
 
 
@@ -334,7 +337,7 @@ typedef struct _dtd_attr
   { dtd_name_list *nameof;		/* (name1|name2|...) */
   } typeex;
   union
-  { ochar *cdata;			/* default for CDATA */
+  { ichar *cdata;			/* default for CDATA */
     ichar *list;			/* text for list-data */
     dtd_symbol *name;			/* AT_NAME or AT_NAMEOF */
     long number;			/* AT_NUMBER */
@@ -385,7 +388,7 @@ typedef struct _dtd_map
 typedef struct _dtd_shortref
 { dtd_symbol	*name;			/* name of SHORTREF map */
   dtd_map	*map;			/* implemented map */
-  char		ends[ICHARSET_SIZE];	/* ending-characters in map */
+  char		ends[SHORTMAP_SIZE];	/* ending-characters in map */
   int		defined;		/* has been defined */
   struct _dtd_shortref *next;		/* next declared shortref */
 } dtd_shortref;
@@ -400,11 +403,6 @@ typedef struct _dtd_element
   int		undefined;		/* Only implicitely defined */
   struct _dtd_element *next;		/* in DTD'e element list */
 } dtd_element;
-
-
-typedef struct _dtd_charmap
-{ ochar		map[INPUT_CHARSET_SIZE]; /* ichar --> ochar */
-} dtd_charmap;
 
 
 typedef struct _dtd_charclass
@@ -433,7 +431,6 @@ typedef struct _dtd
   dtd_element          *elements;	/* defined elements */
   dtd_charfunc	       *charfunc;	/* CF_ --> ichar */
   dtd_charclass	       *charclass;	/* ichar -> CH_-mask */
-  dtd_charmap	       *charmap;	/* ichar ->ochar */
   dtd_char_encoding	encoding;	/* document encoding */
   dtd_space_mode	space_mode;	/* Default for handling white-space */
   dtd_number_mode	number_mode;	/* How to treat number attributes */
@@ -443,7 +440,6 @@ typedef struct _dtd
 
 extern dtd_charfunc *new_charfunc(void);   /* default classification */
 extern dtd_charclass *new_charclass(void); /* default classification */
-extern dtd_charmap  *new_charmap(void);	   /* identity map */
 
 extern dtd_symbol*	dtd_find_symbol(dtd *dtd, const ichar *name);
 extern dtd_symbol*	dtd_add_symbol(dtd *dtd, const ichar *name);
@@ -455,17 +451,17 @@ extern dtd_symbol*	dtd_add_symbol(dtd *dtd, const ichar *name);
 
 #include "parser.h"
 
-dtd *		file_to_dtd(const char *file, const char *doctype,
+dtd *		file_to_dtd(const ichar *file, const ichar *doctype,
 			    dtd_dialect dialect);
 int		sgml_process_file(dtd_parser *p,
-				  const char *file, unsigned flags);
+				  const ichar *file, unsigned flags);
 int		sgml_process_stream(dtd_parser *p, FILE *in,
 				    unsigned flags);
 dtd_parser *	new_dtd_parser(dtd *dtd);
 void		free_dtd_parser(dtd_parser *p);
 
 void		free_dtd(dtd *dtd);
-int		load_dtd_from_file(dtd_parser *p, const char *file);
+int		load_dtd_from_file(dtd_parser *p, const ichar *file);
 dtd *		new_dtd(const ichar *doctype);
 int		set_dialect_dtd(dtd *dtd, dtd_dialect dialect);
 int		set_option_dtd(dtd *dtd, dtd_option option, int set);
@@ -474,8 +470,8 @@ void		putchar_dtd_parser(dtd_parser *p, int chr);
 int		begin_document_dtd_parser(dtd_parser *p);
 int		end_document_dtd_parser(dtd_parser *p);
 void		reset_document_dtd_parser(dtd_parser *p);
-void		set_src_dtd_parser(dtd_parser *p,
-				   input_type in, const char *file);
+void		set_file_dtd_parser(dtd_parser *p,
+				    input_type in, const ichar *file);
 void		set_mode_dtd_parser(dtd_parser *p, data_mode mode);
 void		sgml_cplocation(dtd_srcloc *dst, dtd_srcloc *src);
 int		xml_set_encoding(dtd_parser *p, const char *enc);

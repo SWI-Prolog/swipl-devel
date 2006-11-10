@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 #include "dtd.h"
 #include "prolog.h"
 
@@ -61,11 +62,21 @@ main(int argc, char **argv)
   }
 
   if ( argc == 1 )
-  { dtd *dtd = file_to_dtd(argv[0], "test", dialect);
+  { int wl = mbstowcs(NULL, argv[0], 0);
+    
+    if ( wl > 0 )
+    { wchar_t *ws = malloc((wl+1)*sizeof(wchar_t));
+      mbstowcs(ws, argv[0], wl+1);
 
-    if ( dtd )
-    { prolog_print_dtd(dtd, PL_PRINT_ALL & ~PL_PRINT_PENTITIES);
-      return 0;
+      dtd *dtd = file_to_dtd(ws, L"test", dialect);
+
+      if ( dtd )
+      { prolog_print_dtd(dtd, PL_PRINT_ALL & ~PL_PRINT_PENTITIES);
+	return 0;
+      }
+    } else
+    { perror("mbstowcs");
+      exit(1);
     }
   }
 

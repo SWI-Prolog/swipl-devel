@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker and Richard O'Keefe
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,14 +22,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define _ISOC99_SOURCE 1		/* fwprintf(), etc prototypes */
 #include "util.h"
 #include "catalog.h"
 #include <stdio.h>
-#include <ctype.h>
+#include <wctype.h>
 #include <string.h>
 #include <stdlib.h>
 #define DTD_MINOR_ERRORS 1
 #include <dtd.h>			/* error codes */
+
+#ifdef WIN32
+#define swprintf _snwprintf
+#endif
 
 #ifdef _REENTRANT
 #include <pthread.h>
@@ -56,23 +61,23 @@ static pthread_mutex_t catalog_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define FALSE 0
 #endif
 
-#define streq(s1, s2) strcmp(s1, s2) ==	0
-#define uc(p) (*(unsigned char const *)(p))
+#define streq(s1, s2) istreq(s1, s2)
+#define uc(p) (*(p))
 
 typedef struct catalogue_item *catalogue_item_ptr;
 struct catalogue_item
 { catalogue_item_ptr next;
   int kind;
-  char const *target;
-  char const *replacement;
+  ichar const *target;
+  ichar const *replacement;
 };
 
 static catalogue_item_ptr first_item = 0, last_item = 0;
 
 typedef struct _catalog_file
-{ char *file;
+{ ichar *file;
   struct _catalog_file *next;
-  int loaded;			/* did we parse this file? */
+  int loaded;				/* did we parse this file? */
   catalogue_item_ptr first_item;	/* List of items in the file */
   catalogue_item_ptr last_item;
 } catalog_file;
@@ -81,15 +86,15 @@ static catalog_file *catalog;
 
 #ifdef WIN32
 #define isDirSep(c) ((c) == '/' || (c) == '\\')
-#define DIRSEPSTR "\\"
+#define DIRSEPSTR L"\\"
 #else
 #define isDirSep(c) ((c) == '/')
-#define DIRSEPSTR "/"
+#define DIRSEPSTR L"/"
 #endif
 
-static char *
-DirName(const char *f, char *dir)
-{ const char *base, *p;
+static ichar *
+DirName(const ichar *f, ichar *dir)
+{ const ichar *base, *p;
 
   for (base = p = f; *p; p++)
   { if (isDirSep(*p) && p[1] != EOS)
@@ -97,11 +102,11 @@ DirName(const char *f, char *dir)
   }
   if (base == f)
   { if (isDirSep(*f))
-      strcpy(dir, DIRSEPSTR);
+      istrcpy(dir, DIRSEPSTR);
     else
-      strcpy(dir, ".");
+      istrcpy(dir, L".");
   } else
-  { strncpy(dir, f, base - f);
+  { istrncpy(dir, f, base - f);
     dir[base - f] = EOS;
   }
 
@@ -110,10 +115,10 @@ DirName(const char *f, char *dir)
 
 
 int
-is_absolute_path(const char *name)
+is_absolute_path(const ichar *name)
 { if (isDirSep(name[0])
 #ifdef WIN32
-      || (isalpha(uc(name)) && name[1] == ':')
+      || (iswalpha(uc(name)) && name[1] == ':')
 #endif
     )
     return TRUE;
@@ -121,20 +126,26 @@ is_absolute_path(const char *name)
   return FALSE;
 }
 
-char *
-localpath(const char *ref, const char *name)
-{ char *local;
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+localpath() creates an absolute  path  for   name  relative  to ref. The
+returned path must be freed using sgml_free() when done.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+ichar *
+localpath(const ichar *ref, const ichar *name)
+{ ichar *local;
 
   if (!ref || is_absolute_path(name))
-    local = strdup(name);
+    local = istrdup(name);
   else
-  { char buf[MAXPATHLEN];
+  { ichar buf[MAXPATHLEN];
 
     DirName(ref, buf);
-    strcat(buf, DIRSEPSTR);
-    strcat(buf, name);
+    istrcat(buf, DIRSEPSTR);
+    istrcat(buf, name);
 
-    local = strdup(buf);
+    local = istrdup(buf);
   }
 
   if (!local)
@@ -145,20 +156,20 @@ localpath(const char *ref, const char *name)
 
 
 int
-register_catalog_file_unlocked(const char *file, catalog_location where)
+register_catalog_file_unlocked(const ichar *file, catalog_location where)
 { catalog_file **f = &catalog;
   catalog_file *cf;
 
   for (; *f; f = &(*f)->next)
   { cf = *f;
 
-    if (streq(cf->file, file))
+    if (istreq(cf->file, file))
       return TRUE;		/* existing, move? */
   }
 
   cf = sgml_malloc(sizeof(*cf));
   memset(cf, 0, sizeof(*cf));
-  cf->file = strdup(file);
+  cf->file = istrdup(file);
   if (!cf->file)
     sgml_nomem();
 
@@ -174,13 +185,32 @@ register_catalog_file_unlocked(const char *file, catalog_location where)
 }
 
 
+static wchar_t *
+wgetenv(const char *name)
+{ const char *vs;
+
+  if ( (vs = getenv(name)) )
+  { int wl = mbstowcs(NULL, vs, 0);
+
+    if ( wl > 0 )
+    { wchar_t *ws = sgml_malloc((wl+1)*sizeof(wchar_t));
+      mbstowcs(ws, vs, wl+1);
+
+      return ws;
+    }
+  }
+
+  return NULL;
+}
+
+
 static void
 init_catalog()
 { static int done = FALSE;
 
   LOCK();
   if ( !done++ )
-  { char *path = getenv("SGML_CATALOG_FILES");
+  { ichar *path = wgetenv("SGML_CATALOG_FILES");
 
     if (!path)
     { UNLOCK();
@@ -188,11 +218,11 @@ init_catalog()
     }
 
     while (*path)
-    { char buf[MAXPATHLEN];
-      char *s;
+    { ichar buf[MAXPATHLEN];
+      ichar *s;
 
-      if ((s = strchr(path, ':')))
-      { strncpy(buf, path, s - path);
+      if ((s = istrchr(path, L':')))
+      { istrncpy(buf, path, s - path);
 	buf[s - path] = '\0';
 	path = s + 1;
 	if ( buf[0] )			/* skip empty entries */
@@ -209,7 +239,7 @@ init_catalog()
 
 
 int
-register_catalog_file(const char *file, catalog_location where)
+register_catalog_file(const ichar *file, catalog_location where)
 { int rc;
   
   init_catalog();
@@ -262,24 +292,15 @@ parser.
 /*  Keywords are matched ignoring case.  */
 
 static int
-ci_streql(char const *a, char const *b)
-{ unsigned char const *x = (unsigned char const *) a;
-  unsigned char const *y = (unsigned char const *) b;
-
-  for (;;)
-  { if (tolower(*x) != tolower(*y))
-      return 0;
-    if (*x == '\0')
-      return 1;
-    x++, y++;
-  }
+ci_streql(ichar const *a, ichar const *b)
+{ return istrcaseeq(a, b);
 }
 
-/*  Names may be matched heeding case in XML.  */
+/*  Names may be matched heading case in XML.  */
 
 static int
-cs_streql(char const *a, char const *b)
-{ return 0 == strcmp(a, b);
+cs_streql(ichar const *a, ichar const *b)
+{ return istreq(a, b);
 }
 
 /*  Any other word or any quoted string is reported as CAT_OTHER.
@@ -289,15 +310,15 @@ cs_streql(char const *a, char const *b)
 
 static int
 scan_overflow(size_t buflen)
-{ gripe(ERC_REPRESENTATION, "token length");
+{ gripe(ERC_REPRESENTATION, L"token length");
 
   return EOF;
 }
 
 static int
-scan(FILE * src, char *buffer, size_t buflen, int kw_expected)
+scan(FILE* src, ichar *buffer, size_t buflen, int kw_expected)
 { int c, q;
-  char *p = buffer, *e = p + buflen - 1;
+  ichar *p = buffer, *e = p + buflen - 1;
 
   for (;;)
   { c = getc(src);
@@ -357,17 +378,17 @@ scan(FILE * src, char *buffer, size_t buflen, int kw_expected)
   }
   *p = '\0';
   if (kw_expected)
-  { if (ci_streql(buffer, "public"))
+  { if (ci_streql(buffer, L"public"))
       return CAT_PUBLIC;
-    if (ci_streql(buffer, "system"))
+    if (ci_streql(buffer, L"system"))
       return CAT_SYSTEM;
-    if (ci_streql(buffer, "entity"))
+    if (ci_streql(buffer, L"entity"))
       return CAT_ENTITY;
-    if (ci_streql(buffer, "doctype"))
+    if (ci_streql(buffer, L"doctype"))
       return CAT_DOCTYPE;
-    if (ci_streql(buffer, "override"))
+    if (ci_streql(buffer, L"override"))
       return CAT_OVERRIDE;
-    if (ci_streql(buffer, "base"))
+    if (ci_streql(buffer, L"base"))
       return CAT_BASE;
   }
   return CAT_OTHER;
@@ -382,10 +403,10 @@ scan(FILE * src, char *buffer, size_t buflen, int kw_expected)
 */
 
 static void
-squish(char *pubid)
-{ unsigned char const *s = (unsigned char const *) pubid;
-  unsigned char *d = (unsigned char *) pubid;
-  unsigned char c;
+squish(ichar *pubid)
+{ ichar const *s = (ichar const *) pubid;
+  ichar *d = (ichar *) pubid;
+  ichar c;
   int w;
 
   w = 1;
@@ -397,7 +418,7 @@ squish(char *pubid)
     { *d++ = c, w = 0;
     }
   }
-  if (w && d != (unsigned char *) pubid)
+  if (w && d != (ichar *) pubid)
     d--;
   *d = '\0';
 }
@@ -409,10 +430,10 @@ squish(char *pubid)
 
 static void
 load_one_catalogue(catalog_file * file)
-{ FILE *src = fopen(file->file, "r");
-  char buffer[2 * FILENAME_MAX];
-  char base[2 * FILENAME_MAX];
-  char *p;
+{ FILE *src = wfopen(file->file, "r");
+  ichar buffer[2 * FILENAME_MAX];
+  ichar base[2 * FILENAME_MAX];
+  ichar *p;
   int t;
   catalogue_item_ptr this_item;
   int override = 0;
@@ -422,26 +443,26 @@ load_one_catalogue(catalog_file * file)
     return;
   }
 
-  (void) strcpy(base, file->file);
-  p = base + strlen(base);
+  (void) istrcpy(base, file->file);
+  p = base + istrlen(base);
   while (p != base && !isDirSep(p[-1]))
     p--;
 
   for (;;)
-  { t = scan(src, buffer, sizeof buffer, 1);
+  { t = scan(src, buffer, sizeof(buffer), 1);
     switch (t)
     { case CAT_BASE:
-	if (scan(src, buffer, sizeof buffer, 0) == EOF)
+	if (scan(src, buffer, sizeof(buffer), 0) == EOF)
 	  break;
-	(void) strcpy(base, buffer);
-	p = base + strlen(base);
+	(void) istrcpy(base, buffer);
+	p = base + istrlen(base);
 	if (p != base && !isDirSep(p[-1]))
 	  *p++ = '/';
 	continue;
       case CAT_OVERRIDE:
-	if (scan(src, buffer, sizeof buffer, 0) == EOF)
+	if (scan(src, buffer, sizeof(buffer), 0) == EOF)
 	  break;
-	override = tolower(buffer[0]) == 'y' ? CAT_OVERRIDE : 0;
+	override = towlower(buffer[0]) == 'y' ? CAT_OVERRIDE : 0;
 	continue;
       case CAT_PUBLIC:
       case CAT_SYSTEM:
@@ -454,16 +475,16 @@ load_one_catalogue(catalog_file * file)
 	  squish(buffer);
 	this_item->next = 0;
 	this_item->kind = t == CAT_SYSTEM ? t : t + override;
-	this_item->target = strdup(buffer);
+	this_item->target = istrdup(buffer);
 
 	if (scan(src, buffer, sizeof buffer, 0) == EOF)
 	  break;
 
 	if (is_absolute_path(buffer) || p == base)
-	{ this_item->replacement = strdup(buffer);
+	{ this_item->replacement = istrdup(buffer);
 	} else
-        { (void) strcpy(p, buffer);
-          this_item->replacement = strdup(base);
+        { (void) istrcpy(p, buffer);
+          this_item->replacement = istrdup(base);
         }
 
 	if (file->first_item == 0)
@@ -520,18 +541,19 @@ load_one_catalogue(catalog_file * file)
     kind is converted to CAT_OTHER.
 */
 
-char const *
+ichar const *
 find_in_catalogue(int kind,
-		  char const *name,
-		  char const *pubid, char const *sysid, int ci)
-{ char penname[FILENAME_MAX];
+		  ichar const *name,
+		  ichar const *pubid, ichar const *sysid, int ci)
+{ ichar penname[FILENAME_MAX];
+  const size_t penlen = sizeof(penname)/sizeof(ichar);
   catalogue_item_ptr item;
-  char const *result;
+  ichar const *result;
   catalog_file *catfile;
 
   init_catalog();
 
-  if (name == 0)
+  if ( name == 0 )
   { kind = CAT_OTHER;
   } else
   { switch (kind)
@@ -541,7 +563,7 @@ find_in_catalogue(int kind,
       case CAT_PENTITY:
 	if (name[0] != '%')
 	{ penname[0] = '%';
-	  (void) strcpy(penname + 1, name);
+	  (void) istrcpy(penname + 1, name);
 	  name = penname;
 	}
 	break;
@@ -612,32 +634,32 @@ find_in_catalogue(int kind,
   if ( kind == CAT_OTHER || kind == CAT_DOCTYPE )
     return 0;
 
-  if ( strlen(name)+4+1 > sizeof(penname) )
-  { gripe(ERC_REPRESENTATION, "entity name");
+  if ( istrlen(name)+4+1 > penlen )
+  { gripe(ERC_REPRESENTATION, L"entity name");
     return NULL;
   }
 
-  item = sgml_malloc(sizeof *item);
+  item = sgml_malloc(sizeof(*item));
   item->next = 0;
   item->kind = kind;
-  item->target = strdup(name);
+  item->target = istrdup(name);
 
   switch (kind)
   { case CAT_DOCTYPE:
-      (void) sprintf(penname, "%s.dtd", name);
+      (void) swprintf(penname, penlen, L"%ls.dtd", name);
       break;
     case CAT_PENTITY:
       item->kind = CAT_ENTITY;
-      (void) sprintf(penname, "%s.pen", name + 1);
+      (void) swprintf(penname, penlen, L"%ls.pen", name + 1);
       break;
     case CAT_ENTITY:
-      (void) sprintf(penname, "%s.ent", name);
+      (void) swprintf(penname, penlen, L"%ls.ent", name);
       break;
     default:
       abort();
   }
 
-  item->replacement = strdup(penname);
+  item->replacement = istrdup(penname);
   if (first_item == 0)
   { first_item = item;
   } else

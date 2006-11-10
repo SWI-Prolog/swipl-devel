@@ -102,16 +102,3 @@ new_charfunc()
 
   return f;
 }
-
-
-
-dtd_charmap *
-new_charmap()
-{ dtd_charmap *map = sgml_malloc(sizeof(*map));
-  int i;
-
-  for(i=0 ; i<INPUT_CHARSET_SIZE; i++)
-    map->map[i] = i;
-
-  return map;
-}

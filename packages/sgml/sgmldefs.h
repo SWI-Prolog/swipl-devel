@@ -41,14 +41,15 @@
 #define UTF8 1				/* Include UTF-8 decoding */
 #define XMLNS 1				/* support XML namespaces */
 
+#include <wchar.h>
+
 		 /*******************************
 		 *    INPUT/OUTPUT CHARACTERS	*
 		 *******************************/
 
-typedef unsigned char ochar;		/* output character */
-typedef unsigned char ichar;		/* input character */
+typedef wchar_t ichar;			/* input character */
 
-#define ICHARSET_SIZE (1<<(8*sizeof(ichar)))
+#define SHORTMAP_SIZE	256		/* shortmaps in 0..255 */
 
 #define USE_STRING_FUNCTIONS 1		/* use built-in str* functions */
 
@@ -57,8 +58,7 @@ typedef unsigned char ichar;		/* input character */
 		 *	       LIMITS		*
 		 *******************************/
 
-#define INPUT_CHARSET_SIZE	(1<<(sizeof(ichar)*8))
-#define OUTPUT_CHARSET_SIZE	(1<<(sizeof(ochar)*8))
+#define INPUT_CHARSET_SIZE	256	/* for now */
 #define SYMBOLHASHSIZE		256
 #define MAXSTRINGLEN	       2048
 #define MAXNMLEN		256

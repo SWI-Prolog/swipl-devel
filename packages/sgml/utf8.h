@@ -34,4 +34,12 @@
 extern char *sgml__utf8_get_char(const char *in, int *chr);
 #define utf8_get_uchar(in, chr) (unsigned char*)utf8_get_char((char*)(in), chr)
 
+extern char *sgml_utf8_put_char(char *out, int chr);
+#define utf8_put_char(out, chr) \
+	((chr) < 0x80 ? out[0]=(char)(chr), out+1 \
+		      : sgml_utf8_put_char(out, (chr)))
+
+extern size_t sgml_utf8_strlen(const char *s, size_t len);
+#define utf8_strlen sgml_utf8_strlen
+
 #endif /*UTF8_H_INCLUDED*/

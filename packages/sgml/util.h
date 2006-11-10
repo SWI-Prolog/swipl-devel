@@ -26,10 +26,11 @@
 #define DTD_UTIL_H_INCLUDED
 #include "sgmldefs.h"
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <wchar.h>
 
-#ifdef _WINDOWS		      /* get size_t */
+#ifdef _WINDOWS				/* get size_t */
 #include <malloc.h>
 #endif
 
@@ -43,20 +44,17 @@ typedef struct
 { int allocated;
   int size;
   union 
-  { unsigned char *t;			/* ISO-Latin-1 */
-    wchar_t *w;				/* UCS */
+  { wchar_t *w;				/* UCS */
   } data;
-  enum
-  { SGML_ENC_ISO = 0,			/* ISO-Latin-1 */
-    SGML_ENC_UCS			/* UCS */
-  } encoding;
-  unsigned char localbuf[256];			/* Initial local store */
+  wchar_t localbuf[256];		/* Initial local store */
 } ocharbuf;
 
-int		istrlen(const ichar *s);
+size_t		istrlen(const ichar *s);
 ichar *         istrdup(const ichar *s);
 ichar *         istrndup(const ichar *s, int len);
 ichar *		istrcpy(ichar *d, const ichar *s);
+ichar *		istrcat(ichar *d, const ichar *s);
+ichar *		istrncpy(ichar *d, const ichar *s, size_t len);
 ichar *		istrupper(ichar *s);
 ichar *		istrlower(ichar *s);
 int             istrprefix(const ichar *pref, const ichar *s);
@@ -74,7 +72,7 @@ void *		sgml_realloc(void *old, size_t size);
 void		sgml_nomem(void);
 
 #define add_icharbuf(buf, chr) \
-	do { if ( buf->size < buf->allocated ) \
+	do { if ( buf->size < buf->allocated && chr < 128 ) \
 	       buf->data[buf->size++] = chr; \
 	     else \
 	       __add_icharbuf(buf, chr); \
@@ -87,9 +85,6 @@ void		del_icharbuf(icharbuf *buf);
 void		terminate_icharbuf(icharbuf *buf);
 void		empty_icharbuf(icharbuf *buf);
 
-int		ostrlen(const ochar *s);
-ochar *         ostrdup(const ochar *s);
-
 ocharbuf *	init_ocharbuf(ocharbuf *buf);
 ocharbuf *	new_ocharbuf(void);
 void		free_ocharbuf(ocharbuf *buf);
@@ -98,26 +93,24 @@ void		add_ocharbuf(ocharbuf *buf, int chr);
 void		del_ocharbuf(ocharbuf *buf);
 void		terminate_ocharbuf(ocharbuf *buf);
 void		empty_ocharbuf(ocharbuf *buf);
-#define fetch_ocharbuf(buf, at) \
-	(buf->encoding == SGML_ENC_ISO ? (wint_t)buf->data.t[at] \
-				       : (wint_t)buf->data.w[at])
+#define fetch_ocharbuf(buf, at) ((wint_t)buf->data.w[at])
 #define poke_ocharbuf(buf, at, chr) \
-	{ if ( buf->encoding == SGML_ENC_ISO ) \
-	    buf->data.t[at] = (chr & 0xff); \
-	  else \
-	    buf->data.w[at] = chr; \
+	{ buf->data.w[at] = chr; \
 	}
 
-const char *	str_summary(const char *s, int len);
-char *		str2ring(const char *in);
-char *		ringallo(size_t);
-ichar *		load_sgml_file_to_charp(const char *file, int normalise_rsre,
+const wchar_t *	str_summary(const wchar_t *s, int len);
+wchar_t *	str2ring(const wchar_t *in);
+void *		ringallo(size_t);
+wchar_t * 	utf8towcs(const char *in);
+char *		wcstoutf8(const wchar_t *in);
+ichar *		load_sgml_file_to_charp(const ichar *file, int normalise_rsre,
 					int *len);
+FILE *		wfopen(const wchar_t *name, const char *mode);
 
 #if defined(USE_STRING_FUNCTIONS) && !defined(UTIL_H_IMPLEMENTATION)
 
-#define istrlen(s1) strlen((char const *)(s1))
-#define istreq(s1,s2) (strcmp((char const *)(s1),(char const *)(s2))==0)
+#define istrlen(s1)   wcslen((s1))
+#define istreq(s1,s2) (wcscmp((s1),(s2))==0)
 
 #endif
 

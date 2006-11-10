@@ -36,8 +36,7 @@
 
 typedef struct _sgml_attribute
 { struct				/* so we can free members */
-  { ichar *textA;			/* ANSI textual value */
-    wchar_t *textW;			/* UCS textual value */
+  { wchar_t *textW;			/* UCS textual value */
     long   number;			/* numeric value/length */
   } value;
   dtd_attr *definition;			/* DTD definition */
@@ -53,7 +52,7 @@ typedef int (*sgml_begin_element_f)(dtd_parser_p parser,
 typedef int (*sgml_end_element_f)(dtd_parser_p parser,
 				  dtd_element *e);
 typedef int (*sgml_data_f)(dtd_parser_p parser,
-			   data_type type, int len, const char *text);
+			   data_type type, int len, const wchar_t *text);
 typedef int (*sgml_wdata_f)(dtd_parser_p parser,
 			   data_type type, int len, const wchar_t *text);
 typedef int (*sgml_entity_f)(dtd_parser_p parser,
@@ -154,7 +153,7 @@ typedef struct _sgml_environment
   struct _xmlns *thisns;		/* Name space of element */
 #endif
 #ifdef XMLBASE
-  ochar *uri_base;			/* xml:base handling */
+  ichar *uri_base;			/* xml:base handling */
 #endif
   dtd_space_mode space_mode;		/* How to handle blanks */
   dtd_shortref *map;			/* SHORTREF map */
@@ -206,7 +205,6 @@ typedef struct _dtd_parser
   sgml_begin_element_f	on_begin_element; /* start an element */
   sgml_end_element_f	on_end_element;	/* end an element */
   sgml_data_f		on_data;	/* process cdata */
-  sgml_wdata_f		on_wdata;	/* process wide-character cdata */
   sgml_entity_f		on_entity;	/* unprocessed entity */
   sgml_pi_f		on_pi;		/* processing instruction */
   sgml_error_f		on_error;	/* handle error */

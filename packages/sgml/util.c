@@ -22,9 +22,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define _ISOC99_SOURCE 1		/* fwprintf(), etc prototypes */
+
 #define UTIL_H_IMPLEMENTATION
 #include "util.h"
 #include <ctype.h>
+#include <wctype.h>
 #include <stdlib.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
@@ -41,10 +44,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
+#include "utf8.h"
 
-int
+size_t
 istrlen(const ichar *s)
-{ int len =0;
+{ size_t len =0;
   
   while(*s++)
     len++;
@@ -55,14 +59,18 @@ istrlen(const ichar *s)
 
 ichar *
 istrdup(const ichar *s)
-{ ichar *dup = sgml_malloc((istrlen(s)+1)*sizeof(ichar));
-  ichar *d = dup;
+{ if ( s )
+  { ichar *dup = sgml_malloc((istrlen(s)+1)*sizeof(ichar));
+    ichar *d = dup;
 
-  while(*s)
-    *d++ = *s++;
-  *d = 0;
-
-  return dup;
+    while(*s)
+      *d++ = *s++;
+    *d = 0;
+    
+    return dup;
+  } else
+  { return NULL;
+  }
 }
 
 
@@ -91,12 +99,35 @@ istrcpy(ichar *d, const ichar *s)
 }
 
 
+ichar *
+istrcat(ichar *d, const ichar *s)
+{ ichar *r = d;
+
+  d += istrlen(d);
+  istrcpy(d, s);
+
+  return r;
+}
+
+
+ichar *
+istrncpy(ichar *d, const ichar *s, size_t len)
+{ ichar *r = d;
+
+  while(*s && len-- > 0)
+    *d++ = *s++;
+
+  return r;
+}
+
+
+
 int
 istrcaseeq(const ichar *s1, const ichar *s2)
 { ichar c;
 
   while ((c = *s1++) != '\0')
-  { if (tolower(*(ichar const *)s2++) != tolower(c))
+  { if (towlower(*s2++) != towlower(c))
       return FALSE;
   }
 
@@ -118,7 +149,7 @@ istreq(const ichar *s1, const ichar *s2)
 
 int
 istrncaseeq(const ichar *s1, const ichar *s2, int len)
-{ while(--len >= 0 && tolower(*s1) == tolower(*s2))
+{ while(--len >= 0 && towlower(*s1) == towlower(*s2))
     s1++, s2++;
   
   if ( len < 0 )
@@ -167,7 +198,7 @@ istrlower(ichar *s)
 { ichar *r = s;
 
   for( ; *s; s++)
-    *s = tolower(*s);
+    *s = towlower(*s);
 
   return r;
 }
@@ -198,7 +229,7 @@ istrcasehash(const ichar *t, int tsize)
   unsigned int shift = 5;
 
   while(*t)
-  { unsigned int c = tolower(*t++);	/* case insensitive */
+  { unsigned int c = towlower(*t++);	/* case insensitive */
     
     c -= 'a';
     value ^= c << (shift & 0xf);
@@ -214,10 +245,10 @@ istrcasehash(const ichar *t, int tsize)
 int
 istrtol(const ichar *s, long *val)
 { long v;
-  char *e;
+  ichar *e;
 
   if ( *s )
-  { v = strtol((const char *)s, &e, 10);
+  { v = wcstol(s, &e, 10);
     if ( !e[0] && errno != ERANGE )
     { *val = v;
       return TRUE;
@@ -232,6 +263,11 @@ istrtol(const ichar *s, long *val)
 		 /*******************************
 		 *    INPUT CHARACTER BUFFER	*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Input character buffer is used to collect data between SGML markup, such
+as <...>
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 icharbuf *
 new_icharbuf()
@@ -260,9 +296,9 @@ __add_icharbuf(icharbuf *buf, int chr)
   { buf->allocated = (buf->allocated ? buf->allocated*2 : 128);
 
     if ( buf->data )
-      buf->data = sgml_realloc(buf->data, buf->allocated);
+      buf->data = sgml_realloc(buf->data, buf->allocated*sizeof(ichar));
     else
-      buf->data = sgml_malloc(buf->allocated);
+      buf->data = sgml_malloc(buf->allocated*sizeof(ichar));
   }
   
   buf->data[buf->size++] = chr;
@@ -290,34 +326,6 @@ empty_icharbuf(icharbuf *buf)
 
 
 		 /*******************************
-		 *	OUTPUT CHARACTERS	*
-		 *******************************/
-
-int
-ostrlen(const ochar *s)
-{ int len =0;
-  
-  while(*s++)
-    len++;
-
-  return len;
-}
-
-
-ochar *
-ostrdup(const ochar *s)
-{ ochar *dup = sgml_malloc((ostrlen(s)+1)*sizeof(ochar));
-  ochar *d = dup;
-
-  while(*s)
-    *d++ = *s++;
-  *d = 0;
-
-  return dup;
-}
-
-
-		 /*******************************
 		 *    OUTPUT CHARACTER BUFFER	*
 		 *******************************/
 
@@ -329,10 +337,9 @@ character that doesn't fit ISO Latin-1 is added to the buffer.
 
 ocharbuf *
 init_ocharbuf(ocharbuf *buf)
-{ buf->size = 0;
-  buf->allocated = sizeof(buf->localbuf);
-  buf->data.t = buf->localbuf;
-  buf->encoding = SGML_ENC_ISO;
+{ buf->size      = 0;
+  buf->allocated = sizeof(buf->localbuf)/sizeof(wchar_t);
+  buf->data.w    = buf->localbuf;
 
   return buf;
 }
@@ -348,23 +355,10 @@ new_ocharbuf()
 
 void
 free_ocharbuf(ocharbuf *buf)
-{ if ( buf->data.t && buf->data.t != buf->localbuf )
-    sgml_free(buf->data.t);
+{ if ( buf->data.w && buf->data.w != buf->localbuf )
+    sgml_free(buf->data.w);
 
   sgml_free(buf);
-}
-
-
-static long
-nextsize(long n)
-{ long m = 256;
-
-  assert(n >= 0);
-
-  while(m<n)
-    m *= 2;
-
-  return m;
 }
 
 
@@ -374,18 +368,12 @@ Make sure the data of the buffer is malloc'ed and nul-terminated.
 
 ocharbuf *
 malloc_ocharbuf(ocharbuf *buf)
-{ if ( buf->data.t == buf->localbuf )
-  { int bytes = buf->size + 1;
+{ if ( buf->data.w == buf->localbuf )
+  { int bytes = (buf->size+1) * sizeof(wchar_t);
 
-    if ( buf->encoding == SGML_ENC_UCS )
-      bytes *= sizeof(wchar_t);
-
-    buf->data.t = sgml_malloc(bytes);
-    memcpy(buf->data.t, buf->localbuf, bytes);
-    if ( buf->encoding == SGML_ENC_ISO )
-      buf->data.t[buf->size] = 0;
-    else
-      buf->data.w[buf->size] = 0;
+    buf->data.w = sgml_malloc(bytes);
+    memcpy(buf->data.w, buf->localbuf, bytes);
+    buf->data.w[buf->size] = 0;
   } else
     terminate_ocharbuf(buf);
 
@@ -393,64 +381,9 @@ malloc_ocharbuf(ocharbuf *buf)
 }
 
 
-static void
-promote_ocharbuf(ocharbuf *buf)
-{ if ( buf->data.t == buf->localbuf &&
-       buf->size * sizeof(wchar_t) < sizeof(buf->localbuf) )
-  { unsigned char tmp[sizeof(buf->localbuf)];
-    unsigned char *f = tmp;
-    unsigned char *e = &tmp[buf->size];
-    wchar_t *t = (wchar_t*)buf->localbuf;
-
-    memcpy(tmp, buf->data.t, buf->size*sizeof(char));
-    while(f<e)
-      *t++ = *f++;
-    buf->data.w = (wchar_t*)buf->localbuf;
-    buf->encoding = SGML_ENC_UCS;
-    buf->allocated /= sizeof(wchar_t);
-  } else
-  { wchar_t *new;
-    const unsigned char *f = buf->data.t;
-    const unsigned char *e = &f[buf->size];
-    wchar_t *t;
-
-    buf->allocated = nextsize(buf->size);
-    t = new = sgml_malloc(buf->allocated*sizeof(wchar_t));
-
-    while(f<e)
-      *t++ = *f++;
-
-    if ( buf->data.t != buf->localbuf )
-      sgml_free(buf->data.t);
-
-    buf->data.w = new;
-    buf->encoding = SGML_ENC_UCS;
-  }
-}
-
-
 void
 add_ocharbuf(ocharbuf *buf, int chr)
-{ if ( buf->encoding == SGML_ENC_ISO && chr <= 0xff )
-  { if ( buf->size == buf->allocated )
-    { buf->allocated *= 2;
-
-      if ( buf->data.t != buf->localbuf )
-      { buf->data.t = sgml_realloc(buf->data.t, buf->allocated);
-      } else
-      { buf->data.t = sgml_malloc(buf->allocated);
-	memcpy(buf->data.t, buf->localbuf, sizeof(buf->localbuf));
-      }
-    }
-    buf->data.t[buf->size++] = chr;
-  
-    return;
-  }
-  
-  if ( buf->encoding != SGML_ENC_UCS )
-    promote_ocharbuf(buf);
-  
-  if ( buf->size == buf->allocated )
+{ if ( buf->size == buf->allocated )
   { buf->allocated *= 2;
 
     if ( buf->data.w != (wchar_t*)buf->localbuf )
@@ -480,8 +413,7 @@ terminate_ocharbuf(ocharbuf *buf)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 empty_ocharbuf() frees the associated buffer after   a big lump has been
-in it. Otherwise it simply sets  the  size   to  0.  It  always sets the
-encoding to ISO Latin-1.
+in it. Otherwise it simply sets  the  size   to  0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -489,15 +421,11 @@ empty_ocharbuf(ocharbuf *buf)
 { buf->size = 0;
 
   if ( buf->allocated > 8192 )
-  { assert(buf->data.t != buf->localbuf);
-    sgml_free(buf->data.t);
+  { assert(buf->data.w != buf->localbuf);
+    sgml_free(buf->data.w);
 
-    buf->encoding = SGML_ENC_ISO;
-    buf->allocated = sizeof(buf->localbuf);
-    buf->data.t = buf->localbuf;
-  } else if ( buf->encoding == SGML_ENC_UCS )
-  { buf->encoding = SGML_ENC_ISO;
-    buf->allocated *= sizeof(wchar_t);
+    buf->allocated = sizeof(buf->localbuf)/sizeof(wchar_t);
+    buf->data.w = buf->localbuf;
   }
 }
 
@@ -507,30 +435,34 @@ empty_ocharbuf(ocharbuf *buf)
 		 *******************************/
 
 #define RINGSIZE 16
-static char *ring[RINGSIZE];
+static void *ring[RINGSIZE];
 static int  ringp;
 
-char *
-str2ring(const char *in)
-{ char *copy = strdup(in);
+wchar_t *
+str2ring(const wchar_t *in)
+{ wchar_t *copy = sgml_malloc((wcslen(in)+1)*sizeof(wchar_t));
 
+  if ( !copy )
+  { sgml_nomem();
+    return NULL;
+  }
+
+  wcscpy(copy, in);
   if ( ring[ringp] )
     sgml_free(ring[ringp]);
   ring[ringp++] = copy;
   if ( ringp == RINGSIZE )
     ringp = 0;
 
-  if ( !copy )
-    sgml_nomem();
-
   return copy;
 }
 
 
-char *ringallo(size_t size)
-{ char *result = malloc(size);
+void *
+ringallo(size_t size)
+{ char *result = sgml_malloc(size);
     
-  if ( ring[ringp] != 0 )
+  if ( ring[ringp] )
     sgml_free(ring[ringp]);
   ring[ringp++] = result;
   if ( ringp == RINGSIZE )
@@ -544,21 +476,67 @@ char *ringallo(size_t size)
                *              MISC            *
                *******************************/
 
-char const *
-str_summary(char const *s, int len)
-{ char *buf;
-  size_t l = strlen(s);
+wchar_t const *
+str_summary(wchar_t const *s, int len)
+{ wchar_t *buf;
+  size_t l = wcslen(s);
 
   if ( l < (size_t)len )
     return s;
-  buf = ringallo(len + 10);
-  strncpy(buf, s, len-5);
-  strcpy(&buf[len-5], " ... ");
-  strcpy(&buf[len], &s[l-5]);
+  buf = ringallo((len + 10)*sizeof(wchar_t));
+  wcsncpy(buf, s, len-5);
+  wcscpy(&buf[len-5], L" ... ");
+  wcscpy(&buf[len], &s[l-5]);
 
   return buf;
 }
 
+
+wchar_t *
+utf8towcs(const char *in)
+{ int sl = strlen(in);
+  size_t len = utf8_strlen(in, sl);
+  wchar_t *buf = sgml_malloc((len + 1)*sizeof(wchar_t));
+  const char *e = in+sl;
+  int i;
+
+  for(i=0; in < e;)
+  { int chr;
+
+    in = utf8_get_char(in, &chr);
+    buf[i++] = chr;
+  }
+
+  buf[i] = 0;
+  return buf;
+}
+
+
+char *
+wcstoutf8(const wchar_t *in)
+{ int size = 0;
+  const wchar_t *s;
+  char *rc, *o;
+
+  for(s=in; *s; s++)
+  { char buf[6];
+
+    if ( *s >= 0x80 )
+    { char *o2 = utf8_put_char(buf, *s);
+      size += o2-buf;
+    } else
+    { size++;
+    }
+  }
+  
+  rc = sgml_malloc(size+1);
+  for(o=rc, s=in; *s; s++)
+  { o = utf8_put_char(o, *s);
+  }
+  *o = '\0';
+
+  return rc;
+}
 
 
 		 /*******************************
@@ -575,11 +553,49 @@ and end.
 #define O_BINARY 0
 #endif
 
+FILE *
+wfopen(const wchar_t *name, const char *mode)
+{ int mbl = wcstombs(NULL, name, 0);
+
+  if ( mbl > 0 )
+  { char *mbs = sgml_malloc(mbl+1);
+    FILE *f;
+
+    wcstombs(mbs, name, mbl+1);
+    f = fopen(mbs, mode);
+    sgml_free(mbs);
+
+    return f;
+  }
+
+  return NULL;
+}
+
+
+static int
+wopen(const wchar_t *name, int flags)
+{ int mbl = wcstombs(NULL, name, 0);
+
+  if ( mbl > 0 )
+  { char *mbs = sgml_malloc(mbl+1);
+    int fd;
+
+    wcstombs(mbs, name, mbl+1);
+    fd = open(mbs, flags);
+    sgml_free(mbs);
+
+    return fd;
+  }
+
+  return -1;
+}
+
+
 ichar *
-load_sgml_file_to_charp(const char *file, int normalise_rsre, int *length)
+load_sgml_file_to_charp(const ichar *file, int normalise_rsre, int *length)
 { int fd;
 
-  if ( (fd = open(file, O_RDONLY|O_BINARY)) >= 0 )
+  if ( (fd = wopen(file, O_RDONLY|O_BINARY)) >= 0 )
   { struct stat buf;
 
     if ( fstat(fd, &buf) == 0 )
@@ -606,43 +622,41 @@ load_sgml_file_to_charp(const char *file, int normalise_rsre, int *length)
 	*s = '\0';			/* ensure closing EOS */
 	close(fd);
 
-	if ( normalise_rsre )
 	{ int nl;
 	  int last_is_lf;
+	  ichar *r2, *t;
 
-	  last_is_lf = (len > 0 && s[-1] == '\n');
-
-	  for(s=r, nl=0; *s; s++)
-	  { if ( *s == '\n' && s>r && s[-1] != '\r' )
-	      nl++;
-	  }
-
-	  if ( nl > 0 )
-	  { char *r2 = sgml_malloc(len+nl+1);
-	    char *t;
-
-	    for(s=r, t=r2; *s; s++)
-	    { if ( *s == '\n' )
-	      { if ( s>r && s[-1] != '\r' )
-		  *t++ = CR;
-		*t++ = LF;
-	      } else
-		*t++ = *s;
+	  if ( normalise_rsre )
+	  { last_is_lf = (len > 0 && s[-1] == '\n');
+	    for(s=r, nl=0; *s; s++)
+	    { if ( *s == '\n' && s>r && s[-1] != '\r' )
+		nl++;
 	    }
-            len = t-r2;
-	    *t = '\0';
-	    sgml_free(r);
-	    r = r2;
+	  } else
+	  { nl = 0;
+	    last_is_lf = 0;
 	  }
+
+	  r2 = sgml_malloc((len+nl+1)*sizeof(ichar));
+	  for(s=r, t=r2; *s; s++)
+	  { if ( *s == '\n' )
+	    { if ( s>r && s[-1] != '\r' )
+		*t++ = CR;
+	      *t++ = LF;
+	    } else
+	      *t++ = *s;
+	  }
+	  len = t-r2;
+	  *t = '\0';
 
 	  if ( last_is_lf )
-	    r[--len] = '\0';		/* delete last LF */
+	    r2[--len] = '\0';		/* delete last LF */
+	  
+	  if ( length )
+	    *length = len;
+	  sgml_free(r);
+	  return r2;
 	}
-	
-	if ( length )
-	  *length = len;
-
-	return (ichar *)r;
       }
     }
   }
@@ -719,4 +733,14 @@ void
 sgml_free(void *mem)
 { if ( mem )
     free(mem);
+}
+
+
+		 /*******************************
+		 *	       DEBUG		*
+		 *******************************/
+
+void
+wputs(ichar *s)
+{ fwprintf(stderr, L"%ls", s);
 }

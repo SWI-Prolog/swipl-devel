@@ -13,7 +13,7 @@ PLHOME=..\..
 PKGDLL=sgml2pl
 
 LIBOBJ=		parser.obj util.obj charmap.obj catalog.obj \
-		model.obj xmlns.obj utf8.obj
+		model.obj xmlns.obj utf8.obj xml_unicode.obj
 OBJ=		$(LIBOBJ) sgml2pl.obj error.obj quote.obj
 SGMLOBJ=	$(LIBOBJ) sgml.obj
 DTDFILES=	HTML4.dcl HTML4.dtd HTML4.soc \

@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,14 +22,16 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define _ISOC99_SOURCE 1		/* fwprintf(), etc prototypes */
 #include <stdio.h>
 #include "dtd.h"
 #include "util.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <ctype.h>
+#include <wctype.h>
 #include <wchar.h>
+#include <locale.h>
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
@@ -51,77 +53,62 @@ usage(void)
 }
 
 
-static void
-print_word(dtd_parser * p, char c,	/* preceding character */
-	   ichar const *s,		/* where to start */
-	   ichar const *e		/* where to end (at NUL if e is NULL) */
-  )
-{ register FILE *f = stdout;
-  ichar x;
+static int
+wputc(int c, FILE *f)
+{ char buf[MB_CUR_MAX];
+  int i, len = wctomb(buf, c);
 
-  putc(c, f);
-  if (p->dtd->case_sensitive)
-  { if (e != 0)
-      while (s != e)
-	putc(*s++, f);
-    else
-      while ((x = *s++) != (ichar) 0)
-	putc(x, f);
-  } else
-  { if (e != 0)
-      while (s != e)
-	putc(toupper(*s++), f);
-    else
-      while ((x = *s++) != (ichar) 0)
-	putc(toupper(x), f);
-  }
+  for(i=0; i<len; i++)
+    putc(buf[i], f);
+
+  return c;
 }
 
 
-static void
-print_escaped(char c, ochar const *s)
-{ register FILE *f = stdout;
-  ochar x;
 
-  putc(c, f);
-  while ((x = *s++) != (ochar) 0)
-  { if (x >= ' ')
-    { if (x == '\\')
-	putc(x, f);
-      putc(x, f);
-    } else if (x == '\t')
-    { putc(x, f);
-    } else if (x == '\n')
-    { printf("\\n");
-    } else
-    { printf("\\%03o", x);
-    }
+static void
+print_word(dtd_parser * p, char c,     /* preceding character */
+	   ichar const *s,	       /* where to start */
+	   ichar const *e)	       /* where to end (at NUL if e is NULL) */
+{ FILE *f = stdout;
+  ichar x;
+
+  wputc(c, f);
+  if (p->dtd->case_sensitive)
+  { if (e != 0)
+      while (s != e)
+	wputc(*s++, f);
+    else
+      while ((x = *s++) != (ichar) 0)
+	wputc(x, f);
+  } else
+  { if (e != 0)
+      while (s != e)
+	wputc(towupper((wint_t)*s++), f);
+    else
+      while ((x = *s++) != (ichar) 0)
+	wputc(towupper(x), f);
   }
-  putc('\n', f);
 }
 
 
 static void
 wprint_escaped(FILE *f, const wchar_t *s, int len)
 { const wchar_t *e = &s[len];
-
+  
   while ( s < e )
   { wint_t x = *s++;
       
-    if ( x > 0xffff )
-    { printf("\\U%08x", x);		/* \UXXXXXXXX */
-    } else if ( x > 0xff )
-    { printf("\\u%04x", x);		/* \uXXXX */
-    } else if (x >= ' ')
-    { if (x == '\\')
-	putc(x, f);
-      putc(x, f);
+    if (x >= ' ')
+    { if (x == '\\')			/* \ --> \\ */
+	wputc(x, f);
+      wputc(x, f);
     } else if (x == '\t')
-    { putc(x, f);
+    { wputc(x, f);			/* \t */
     } else if (x == '\n')
-    { printf("\\n");
+    { fprintf(f, "\\n");		/* \n */
     } else
-    { printf("\\%03o", x);
+    { fprintf(f, "\\%03o", x);
     }
   }
 }
@@ -129,13 +116,9 @@ wprint_escaped(FILE *f, const wchar_t *s, int len)
 
 static void
 print_cdata(char c, sgml_attribute *a)
-{ if ( a->value.textA )
-  { print_escaped(c, a->value.textA);
-  } else
-  { putc(c, stdout);
-    wprint_escaped(stdout, a->value.textW, a->value.number);
-    putc('\n', stdout);
-  }
+{ wputc(c, stdout);
+  wprint_escaped(stdout, a->value.textW, a->value.number);
+  wputc('\n', stdout);
 }
 
 
@@ -155,21 +138,21 @@ typedef struct atdef
 } atdef;
 
 static atdef attrs[] = {
-  {AT_CDATA,	"cdata",    FALSE},
-  {AT_ENTITY,	"entity",   FALSE},
-  {AT_ENTITIES,	"entity",   TRUE},
-  {AT_ID,	"id",	    FALSE},
-  {AT_IDREF,	"idref",    FALSE},
-  {AT_IDREFS,	"idref",    TRUE},
-  {AT_NAME,	"name",	    FALSE},
-  {AT_NAMES,	"name",	    TRUE},
-  {AT_NMTOKEN,	"nmtoken",  FALSE},
-  {AT_NMTOKENS,	"nmtoken",  TRUE},
-  {AT_NUMBER,	"number",   FALSE},
-  {AT_NUMBERS,	"number",   TRUE},
-  {AT_NUTOKEN,	"nutoken",  FALSE},
-  {AT_NUTOKENS,	"nutoken",  TRUE},
-  {AT_NOTATION,	"notation", FALSE},
+  {AT_CDATA,	"CDATA",    FALSE},
+  {AT_ENTITY,	"ENTITY",   FALSE},
+  {AT_ENTITIES,	"ENTITY",   TRUE},
+  {AT_ID,	"ID",	    FALSE},
+  {AT_IDREF,	"IDREF",    FALSE},
+  {AT_IDREFS,	"IDREF",    TRUE},
+  {AT_NAME,	"NAME",	    FALSE},
+  {AT_NAMES,	"NAME",	    TRUE},
+  {AT_NMTOKEN,	"NMTOKEN",  FALSE},
+  {AT_NMTOKENS,	"NMTOKEN",  TRUE},
+  {AT_NUMBER,	"NUMBER",   FALSE},
+  {AT_NUMBERS,	"NUMBER",   TRUE},
+  {AT_NUTOKEN,	"NUTOKEN",  FALSE},
+  {AT_NUTOKENS,	"NUTOKEN",  TRUE},
+  {AT_NOTATION,	"NOTATION", FALSE},
 
   {AT_CDATA,	(char *) 0, FALSE}
 };
@@ -191,7 +174,7 @@ find_attrdef(attrtype type)
 static ichar *
 istrblank(ichar const *s)
 { for (; *s; s++)
-  { if (isspace(*s))
+  { if (iswspace(*s))
       return (ichar *) s;
   }
   return (ichar *) 0;
@@ -211,20 +194,20 @@ print_open(dtd_parser * p, dtd_element * e, int argc, sgml_attribute *argv)
 	continue;		/* so we don't get two line breaks */
       case AT_NUMBER:
 	printf(" NUMBER ");
-	if (argv[i].value.textA)
-	  printf("%s", argv[i].value.textA);
+	if (argv[i].value.textW)
+	  print_word(p, ' ', argv[i].value.textW, 0);
 	else
 	  printf("%ld", argv[i].value.number);
 	break;
       case AT_NAMEOF:
 	printf(" NAME");
-	print_word(p, ' ', argv[i].value.textA, 0);
+	print_word(p, ' ', argv[i].value.textW, 0);
 	break;
       default:
       { atdef *ad = find_attrdef(argv[i].definition->type);
-	ichar const *val = argv[i].value.textA;
+	ichar const *val = argv[i].value.textW;
 
-	print_word(p, ' ', (ichar const *) ad->name, 0);
+	printf(" %s", ad->name);
 	if (ad->islist)
 	{ ichar const *n;
 
@@ -247,7 +230,7 @@ print_open(dtd_parser * p, dtd_element * e, int argc, sgml_attribute *argv)
 
 
 static int
-print_data(dtd_parser * p, data_type type, int len, const char *data)
+print_data(dtd_parser * p, data_type type, int len, const wchar_t *data)
 { char c;
 
   switch (type)
@@ -263,54 +246,33 @@ print_data(dtd_parser * p, data_type type, int len, const char *data)
     default:
       assert(0);
   }
-  print_escaped(c, (ichar*)data);
-  return TRUE;
-}
-
-
-static int
-print_wdata(dtd_parser * p, data_type type, int len, const wchar_t *data)
-{ char c;
-
-  switch (type)
-  { case EC_CDATA:
-      c = '-';
-      break;
-    case EC_NDATA:
-      c = 'N';
-      break;
-    case EC_SDATA:
-      c = 'S';
-      break;
-    default:
-      assert(0);
-  }
-  putc(c, stdout);
+  wputc(c, stdout);
   wprint_escaped(stdout, data, len);
-  putc('\n', stdout);
+  wputc('\n', stdout);
   return TRUE;
 }
 
 
 static int
-on_entity(dtd_parser * p, dtd_entity * e, int chr)
+on_entity(dtd_parser *p, dtd_entity *e, int chr)
 { if (e == 0)
     printf("&#%d;\n", chr);
   else
-    printf("&%s;\n", e->name->name);
+    wprintf(L"&%s;\n", e->name->name);
   return TRUE;
 }
 
 
 static int
-on_pi(dtd_parser * p, ichar const *pi)
-{ print_escaped('?', (ochar const *) pi);
+on_pi(dtd_parser *p, ichar const *pi)
+{ wputc('?', stdout);
+  wprint_escaped(stdout, pi, wcslen(pi));
   return TRUE;
 }
 
 
 static dtd_srcloc *
-file_location(dtd_srcloc * l)
+file_location(dtd_srcloc *l)
 { while (l->parent && l->type != IN_FILE)
     l = l->parent;
   return l;
@@ -352,10 +314,16 @@ on_error(dtd_parser * p, dtd_error * error)
       break;
   }
 
-  fprintf(stderr, "%s: (%s mode) %s: %s:%d:%d %s\n",
-	  program, dialect, severity,
-	  l->name ? l->name : "[]", l->line, l->linepos,
-	  error->plain_message);
+  if ( l->name.file )
+  { fwprintf(stderr, L"%s: (%s mode) %s: %ls:%d:%d %ls\n",
+	     program, dialect, severity,
+	     l->name.entity, l->line, l->linepos,
+	     error->plain_message);
+  } else
+  { fwprintf(stderr, L"%s: (%s mode) %s: %d:%d %ls\n",
+	       program, dialect, severity,
+	       error->plain_message);
+  }
 
   return TRUE;
 }
@@ -367,12 +335,28 @@ set_functions(dtd_parser * p, int output)
   { p->on_end_element = print_close;
     p->on_begin_element = print_open;
     p->on_data = print_data;
-    p->on_wdata = print_wdata;
     p->on_entity = on_entity;
     p->on_pi = on_pi;
   }
   p->on_error = on_error;
 }
+
+
+static wchar_t *
+mb2wc(const char *s)
+{ int wl = mbstowcs(NULL, s, 0);
+
+  if ( wl > 0 )
+  { wchar_t *ws = malloc((wl+1)*sizeof(wchar_t));
+    mbstowcs(ws, s, wl+1);
+
+    return ws;
+  }
+  
+  perror("mbstowcs");
+  exit(1);
+}
+
 
 #define shift (argc--, argv++)
 
@@ -387,6 +371,8 @@ main(int argc, char **argv)
   int xml = FALSE;
   int output = TRUE;
   int nodefs = FALSE;		/* include defaulted attributes */
+
+  setlocale(LC_CTYPE, "");
 
   s = strchr(argv[0], '/');
   program = s == NULL ? argv[0] : s + 1;
@@ -421,12 +407,12 @@ main(int argc, char **argv)
       strncpy(doctype, argv[0], ext - argv[0]);
       doctype[ext - argv[0]] = '\0';
 
-      p = new_dtd_parser(new_dtd((ichar const *) doctype));
-      load_dtd_from_file(p, argv[0]);
+      p = new_dtd_parser(new_dtd(mb2wc(doctype)));
+      load_dtd_from_file(p, mb2wc(argv[0]));
       shift;
     } else if (strcaseeq(ext, ".html") || strcaseeq(ext, ".htm"))
     { p = new_dtd_parser(new_dtd((ichar const *) "html"));
-      load_dtd_from_file(p, "html.dtd");
+      load_dtd_from_file(p, L"html.dtd");
     } else if (xml || strcaseeq(ext, ".xml"))
     { dtd *dtd = new_dtd(no_dtd);
 
@@ -445,7 +431,7 @@ main(int argc, char **argv)
   switch (argc)
   { case 1:
     { set_functions(p, output);
-      sgml_process_file(p, argv[0], 0);
+      sgml_process_file(p, mb2wc(argv[0]), 0);
       free_dtd_parser(p);
       if (output && nerrors == 0)
 	printf("C\n");
@@ -453,7 +439,7 @@ main(int argc, char **argv)
     }
     case 0:
     { set_functions(p, output);
-      set_src_dtd_parser(p, IN_FILE, "stdin");
+      set_file_dtd_parser(p, IN_FILE, L"stdin");
       set_mode_dtd_parser(p, DM_DATA);
       sgml_process_stream(p, stdin, 0);
       free_dtd_parser(p);

@@ -24,6 +24,7 @@
 
 #ifndef CATALOG_H_INCLUDED
 #define CATALOG_H_INCLUDED
+#include "util.h"
 
 /*  When we look for a token, we skip layout characters and comments.
     There there is nothing left, we return EOF.
@@ -49,14 +50,14 @@ typedef enum
   CTL_END
 } catalog_location;
 
-int	register_catalog_file(const char *file, catalog_location where);
-int	is_absolute_path(const char *name);
-char   *localpath(const char *ref, const char *name);
-char const *find_in_catalogue(
+int	register_catalog_file(const ichar *file, catalog_location where);
+int	is_absolute_path(const ichar *iname);
+ichar   *localpath(const ichar *ref, const ichar *name);
+ichar const *find_in_catalogue(
     int         kind,
-    char const *name,
-    char const *pubid,
-    char const *sysid,
+    ichar const *name,
+    ichar const *pubid,
+    ichar const *sysid,
     int         ci
 );
 
