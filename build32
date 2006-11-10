@@ -20,13 +20,32 @@
 PREFIX=$HOME/i386
 
 V=`cat VERSION`
-makeonly=false
+config=true
+make=true
+install=true
+done=false
 
+while test "$done" = false; do
 case "$1" in
-   --make)	makeonly=true
+   --config)	make=false
+		install=false
+		shift
 		;;
-   *)		;;
+   --make)	config=false
+		install=false
+		shift
+		;;
+   --install)	config=false
+		make=false
+		shift
+		;;
+   --prefix=)   PREFIX=`echo "$1" | sed 's/--prefix=//'`
+   		shift
+		;;
+   *)		done=true
+		;;
 esac
+done
 
 # get 32-bit java
 export JAVA_HOME=/usr/lib/jvm/java-1.4.2-sun
@@ -36,7 +55,6 @@ export JAVALIBS="-L$JAVA_LIB/client -L$JAVA_LIB -ljava -lverify -ljvm"
 
 PATH=$PREFIX/bin:$JAVA_HOME/bin:$PATH
 
-if [ "$makeonly" = false ]; then
 # [EDIT] Compiler options.
 #	COFLAGS: Flags for the optimizer such as "-O3" or "-g"
 # 	CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
@@ -53,9 +71,15 @@ if [ "$makeonly" = false ]; then
 
 # [EDIT] Packages to configure.  Leaving it blank compiles all packages.
 # export PKG=
+
+if [ "$config" = "true" ]; then
   ./configure --prefix=$PREFIX --with-world $CONFIGOPTS 2>&1 | tee configure.out
 fi
 
-make 2>&1 | tee make.out
-make install 2>&1 | tee make-install.out
+if [ "$make" = "true" ]; then
+  make 2>&1 | tee make.out
+fi
 
+if [ "$install" = "true" ]; then
+  make install 2>&1 | tee make-install.out
+fi
