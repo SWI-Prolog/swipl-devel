@@ -57,19 +57,26 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.22 Patches relative to 5.6.21
+Version 5.6.23 Patches relative to 5.6.22
 =========================================
+
+Primary development platform switched to 64-bit Linux.
 
 Prolog
 
-  * Bug reading large negative non-decimal integers.
-  * Several Unicode issues: handling shared objects (all platforms),
-    environment (Windows).  Long names of dynamic predicates.
+  * Various installation issues in mixed 32/64 bit systems when not installing
+    for the platform default.
+  * Locale based comparison
+  * Moved predsort and friends to new library(sort)
+  * Multi-threaded recompilation crash.
   * Minor stuff.
 							    
 Packages
 
-  * CLIB: Added library(random).  Yap and SICStus compatible random number
-    library.
-  * PlUnit: Added SICStus portability.  Enhanced message for tests that
-    succeed but are defined to fail.
+  * SemWeb: Two bugs in rdf_has/3, memory leak searching for literals.
+  * JPL: Some fixes for 64-bit platforms.  Compiles, but runs unstable.
+    Working on it with Paul Singleton.
+  * HTTP: Documentation and minor stuff
+  * PlDoc: failed on trailing whitespace in comments.  Allow changing
+    URL locations.
+  * PlUnit: Allow tracing body of tests.
