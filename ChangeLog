@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Allow building 32-bit version on 64-bits Linux.
+
   * PORT: By default build shared object on x86_64-linux platforms.  Needed
     for embedding in Java and unlike IA32, creating a shared object does not
     affect performance.

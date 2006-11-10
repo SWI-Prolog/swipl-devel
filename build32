@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# Build 32-bit SWI-Prolog on 64-bit SuSE Linux.
+#
+# This is the script we use to build SWI-Prolog and all its packages for
+# 32-bit on a 64-bit SuSE Linux  installation.   Edit  to suit the local
+# installation requirements and run it. Once correct, upgrading to a new
+# release is now limited to getting the new sources and run ./build32.
+
+# Make sure you have the 32-bit   development libraries for all required
+# libraries. We found all of them, except for a missing link for libgmp.
+# This can be fixed using "cd /usr/lib && ln -s libgmp.so.3 libgmp.so"
+
+# [EDIT] Prefix location of the installation. It is _not_ adviced to use
+# a    versioned    prefix.    The    system      will     install    in
+# $PREFIX/lib/pl-<version> and create symlinks from  $PREFIX/bin for the
+# main  programs.  Users  can  always  use  older  versions  by  running
+# $PREFIX/lib/pl-<version>/bin/<arch>/pl
+
+PREFIX=$HOME/i386
+
+V=`cat VERSION`
+makeonly=false
+
+case "$1" in
+   --make)	makeonly=true
+		;;
+   *)		;;
+esac
+
+# get 32-bit java
+export JAVA_HOME=/usr/lib/jvm/java-1.4.2-sun
+export JAVA_LIB=$JAVA_HOME/jre/lib/i386
+export LD_LIBRARY_PATH=$JAVA_LIB/client:$JAVA_LIB:$LD_LIBRARY_PATH
+export JAVALIBS="-L$JAVA_LIB/client -L$JAVA_LIB -ljava -lverify -ljvm"
+
+PATH=$PREFIX/bin:$JAVA_HOME/bin:$PATH
+
+if [ "$makeonly" = false ]; then
+# [EDIT] Compiler options.
+#	COFLAGS: Flags for the optimizer such as "-O3" or "-g"
+# 	CMFLAGS: Machine flags such as "-m64" (64-bits on gcc)
+# 	CIFLAGS: Include-path such as "-I/opt/include"
+# 	LDFLAGS: Link flags such as "-L/opt/lib"
+
+# export COFLAGS=
+  export CMFLAGS=-m32
+# export CIFLAGS=
+  export LDFLAGS=-m32
+  export CFLAGS=$CMFLAGS $CIFLAGS
+  export ARCH=i386-linux
+  export CONFIG="--x-libraries=/usr/X11/lib"
+
+# [EDIT] Packages to configure.  Leaving it blank compiles all packages.
+# export PKG=
+  ./configure --prefix=$PREFIX --with-world $CONFIG 2>&1 | tee configure.out
+fi
+
+make 2>&1 | tee make.out
+make install 2>&1 | tee make-install.out
+

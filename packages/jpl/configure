@@ -3088,18 +3088,19 @@ else
     CWFLAGS=
 fi
 
-case "$PLARCH" in
-   *darwin*)
-	JAVALIBS="-Wl,-framework,JavaVM"
-	;;
-   *powerpc-linux*)
-	JAVALIBS="-ljava -ljvm"
-	;;
-   *)
-	JAVALIBS="-ljava -lverify -ljvm"
-	;;
-esac
-
+if test "x$JAVALIBS" = "x"; then
+  case "$PLARCH" in
+     *darwin*)
+	  JAVALIBS="-Wl,-framework,JavaVM"
+	  ;;
+     *powerpc-linux*)
+	  JAVALIBS="-ljava -ljvm"
+	  ;;
+     *)
+	  JAVALIBS="-ljava -lverify -ljvm"
+	  ;;
+  esac
+fi
 
 
 # Make sure we can run config.sub.
@@ -3288,7 +3289,7 @@ else
 JAVA_TEST=Test.java
 CLASS_TEST=Test.class
 cat << \EOF > $JAVA_TEST
-/* #line 3291 "configure" */
+/* #line 3292 "configure" */
 public class Test {
 }
 EOF

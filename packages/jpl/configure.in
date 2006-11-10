@@ -82,18 +82,19 @@ else
     CWFLAGS=
 fi
 
-case "$PLARCH" in
-   *darwin*)
-	JAVALIBS="-Wl,-framework,JavaVM"
-	;;
-   *powerpc-linux*)
-	JAVALIBS="-ljava -ljvm"
-	;;
-   *)
-	JAVALIBS="-ljava -lverify -ljvm"
-	;;
-esac
-
+if test "x$JAVALIBS" = "x"; then
+  case "$PLARCH" in
+     *darwin*)
+	  JAVALIBS="-Wl,-framework,JavaVM"
+	  ;;
+     *powerpc-linux*)
+	  JAVALIBS="-ljava -ljvm"
+	  ;;
+     *)
+	  JAVALIBS="-ljava -lverify -ljvm"
+	  ;;
+  esac
+fi
 
 dnl ================================================================
 dnl Java stuff
