@@ -74,6 +74,7 @@ Prolog
 Packages
 
   * SemWeb: Two bugs in rdf_has/3, memory leak searching for literals.
+  * Sgml2pl: Support UNICODE in XML tags and attribute names.
   * JPL: Some fixes for 64-bit platforms.  Compiles, but runs unstable.
     Working on it with Paul Singleton.
   * HTTP: Documentation and minor stuff
