@@ -1,9 +1,14 @@
 			   XPCE ChangeLog
 			   ==============
 
-* Class textbuffer: crash in Windows on <-scan.  Jacco van Ossenbruggen.
+VERSION 6.6.23, distributed with SWI-Prolog 5.6.23
+==================================================
 
-* PceEmacs: Avoid loading DDE interface on Unix.
+* PORT: Include LDFLAGS making xpce-client.
+
+* FIXED: Class textbuffer: crash in Windows on <-scan.  Jacco van Ossenbruggen.
+
+* FIXED: PceEmacs: Avoid loading DDE interface on Unix.
 
 VERSION 6.6.21, distributed with SWI-Prolog 5.6.21
 ==================================================

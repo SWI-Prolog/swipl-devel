@@ -583,7 +583,7 @@ $(srcdir)/unx/proto.h:	$(UNXSRC)
 
 xpce-client:	unx/client.c
 		$(CC) -c $(CFLAGS) $< -o client.o
-		$(CC) $(COFLAGS) $(CIFLAGS) -o $@ client.o $(NETLIBS)
+		$(CC) $(COFLAGS) $(CIFLAGS) $(LDFLAGS) -o $@ client.o $(NETLIBS)
 		rm -f client.o
 
 
