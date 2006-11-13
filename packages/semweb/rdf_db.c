@@ -945,9 +945,8 @@ organise_predicates(rdf_db *db)
 	    { Sdprintf("Root of %s = %s\n", pname(p), pname(p->root));
 	    })
 
-      if ( p == p->root )
-      { create_reachability_matrix(p);
-      }
+      if ( !p->root->reachable )
+	create_reachability_matrix(p->root);
     }
   }
 
@@ -988,7 +987,7 @@ Reachability matrix.
 static bitmatrix *
 alloc_bitmatrix(int w, int h)
 { int wsize = ((w*h)+WSIZE-1)/WSIZE;
-  int size = (int)&((bitmatrix*)NULL)->bits[wsize];
+  int size = (int)(long)&((bitmatrix*)NULL)->bits[wsize];
   bitmatrix *m = PL_malloc(size);
 
   memset(m, 0, size);
@@ -1063,19 +1062,13 @@ create_reachability_matrix(predicate *root)
   bitmatrix *m = alloc_bitmatrix(n, n);
 
   fill_reachable_hierarchy(m, root);
-  Sdprintf("Created reachability matrix for root %s\n", pname(root));
   root->reachable = m;
 }
 
 
 static int
 isSubPropertyOf(predicate *sub, predicate *p)
-{ DEBUG(2, Sdprintf("isSubPropertyOf(%s, %s)\n", pname(sub), pname(p)));
-
-  if ( sub->root == p )
-    return TRUE;
-
-  return testbit(sub->root->reachable, sub->label, p->label);
+{ return testbit(sub->root->reachable, sub->label, p->label);
 }
 
 
@@ -2236,9 +2229,10 @@ Match triple t to pattern p.  Erased triples are always skipped.
 
 static int
 match_triples(triple *t, triple *p, unsigned flags)
-{ DEBUG(3, Sdprintf("match_triple(");
+{ /* DEBUG(3, Sdprintf("match_triple(");
 	   print_triple(t, 0);
 	   Sdprintf(")\n"));
+  */
 
   if ( t->erased )
     return FALSE;
