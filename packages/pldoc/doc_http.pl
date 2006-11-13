@@ -145,7 +145,8 @@ doc_browser(Spec) :-
 	format(string(URL), 'http://localhost:~w~w', [Port, Request]),
 	www_open_url(URL).
 
-browser_url([], '') :- !.
+browser_url([], Root) :- !,
+	doc_server_root(Root).
 browser_url(Name/Arity, URL) :- !,
 	doc_server_root(Root),
 	format(string(S), '~q/~w', [Name, Arity]),
