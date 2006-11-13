@@ -3,9 +3,9 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -82,6 +82,13 @@ typedef struct list
 } list;
 
 
+typedef struct bitmatrix
+{ int width;
+  int heigth;
+  int bits[1];
+} bitmatrix;
+
+
 #define DISTINCT_DIRECT 0		/* for ->distinct_subjects, etc */
 #define DISTINCT_SUB    1
 
@@ -92,6 +99,8 @@ typedef struct predicate
   struct predicate *root;		/* Root of property tree */
   struct predicate *next;		/* next in hash-table */
   struct predicate *oldroot;		/* from previous run */
+  bitmatrix	   *reachable;		/* Reachability matrix on root */
+  int		    label;		/* Numeric label */
   int		    visited;		/* loop detection */
   struct predicate *inverse_of;		/* my inverse predicate */
   unsigned 	    transitive : 1;	/* P(a,b)&P(b,c) --> P(a,c) */

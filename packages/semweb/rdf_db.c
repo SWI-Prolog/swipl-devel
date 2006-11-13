@@ -251,6 +251,7 @@ static void	record_transaction(rdf_db *db,
 				   tr_type type, triple *t);
 static void	record_md5_transaction(rdf_db *db,
 				       source *src, md5_byte_t *digest);
+static void	create_reachability_matrix(predicate *root);
 
 
 		 /*******************************
@@ -888,6 +889,11 @@ organise_predicates(rdf_db *db)
     for( p = *ht; p; p = p->next )
     { seen++;
       p->visited = FALSE;
+      p->label = 0;
+      if ( p->reachable )
+      { PL_free(p->reachable);
+	p->reachable = NULL;
+      }
       p->oldroot = p->root;
       if ( is_dummy_root(p->root) )
 	free_list(db, &p->oldroot->siblings);
@@ -938,6 +944,10 @@ organise_predicates(rdf_db *db)
 	    if ( p->root != p )
 	    { Sdprintf("Root of %s = %s\n", pname(p), pname(p->root));
 	    })
+
+      if ( p == p->root )
+      { create_reachability_matrix(p);
+      }
     }
   }
 
@@ -970,47 +980,102 @@ delSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-See whether sub is p or a subproperty of p.
+Reachability matrix.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define WSIZE sizeof(int)
+
+static bitmatrix *
+alloc_bitmatrix(int w, int h)
+{ int wsize = ((w*h)+WSIZE-1)/WSIZE;
+  int size = (int)&((bitmatrix*)NULL)->bits[wsize];
+  bitmatrix *m = PL_malloc(size);
+
+  memset(m, 0, size);
+  m->width = w;
+  m->heigth = h;
+
+  return m;
+}
+
+
+static void
+setbit(bitmatrix *m, int i, int j)
+{ int ij = m->width*i+j;
+  int word = ij/WSIZE;
+  int bit  = ij%WSIZE;
+
+  m->bits[word] |= 1<<(bit-1);
+}
+
+
 static int
-is_sub_property_of(predicate *sub, predicate *p, atomset *seen)
-{ for(;;)
+testbit(bitmatrix *m, int i, int j)
+{ int ij = m->width*i+j;
+  int word = ij/WSIZE;
+  int bit  = ij%WSIZE;
+
+  return ((m->bits[word] & (1<<(bit-1))) != 0);
+}
+
+
+static int
+number_predicate_hierachy(predicate *p, int i)
+{ if ( !p->label )
   { cell *c;
 
-    DEBUG(3, Sdprintf("\ttry %s\n", pname(sub)));
-
-    if ( sub == p )
-      return TRUE;
-    if ( !add_atomset(seen, sub->name) )
-      return FALSE;
-
-    for(c=sub->subPropertyOf.head; c && c->next; c=c->next)
-    { if ( is_sub_property_of(c->value, p, seen) )
-	return TRUE;
-    }
-    if ( c )
-    { sub = c->value;
-    }
+    p->label = i++;
+    for(c = p->siblings.head; c; c = c->next)
+      i = number_predicate_hierachy(c->value, i);
   }
+
+  return i;
+}
+
+
+static void
+fill_reachable(bitmatrix *bm, predicate *p0, predicate *p)
+{ if ( !testbit(bm, p0->label, p->label) )
+  { cell *c;
+
+    setbit(bm, p0->label, p->label);
+    for(c = p->subPropertyOf.head; c; c=c->next)
+      fill_reachable(bm, p0, c->value);
+  }
+}
+
+
+static void
+fill_reachable_hierarchy(bitmatrix *bm, predicate *p)
+{ if ( !testbit(bm, p->label, p->label) )
+  { cell *c;
+
+    fill_reachable(bm, p, p);
+    for(c = p->siblings.head; c; c = c->next)
+      fill_reachable_hierarchy(bm, c->value);
+  }
+}
+
+
+static void
+create_reachability_matrix(predicate *root)
+{ int n = number_predicate_hierachy(root, 1);
+  bitmatrix *m = alloc_bitmatrix(n, n);
+
+  fill_reachable_hierarchy(m, root);
+  Sdprintf("Created reachability matrix for root %s\n", pname(root));
+  root->reachable = m;
 }
 
 
 static int
 isSubPropertyOf(predicate *sub, predicate *p)
-{ atomset seen;
-  int rc;
-
-  DEBUG(2, Sdprintf("isSubPropertyOf(%s, %s)\n", pname(sub), pname(p)));
+{ DEBUG(2, Sdprintf("isSubPropertyOf(%s, %s)\n", pname(sub), pname(p)));
 
   if ( sub->root == p )
     return TRUE;
 
-  init_atomset(&seen);			/* TBD: can we use a flag? */
-  rc = is_sub_property_of(sub, p, &seen);
-  destroy_atomset(&seen);
-
-  return rc;
+  return testbit(sub->root->reachable, sub->label, p->label);
 }
 
 
