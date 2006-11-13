@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: 64-bit issue in XPCE stream class (also affecting socket and
+  process).
+
 VERSION 6.6.23, distributed with SWI-Prolog 5.6.23
 ==================================================
 

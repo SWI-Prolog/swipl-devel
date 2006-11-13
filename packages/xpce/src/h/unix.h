@@ -77,13 +77,13 @@
 #define ABSTRACT_STREAM \
   Code		input_message;		/* Message forwarded on input */ \
   Any		record_separator;	/* Separate input records */ \
-  int		wrfd;			/* FD to write to process */ \
-  int		rdfd;			/* FD to read from process */ \
+  long		wrfd;			/* FD to write to process */ \
+  long		rdfd;			/* FD to read from process */ \
   FILE *	rdstream;		/* Stream to read from process */ \
   WsRef		ws_ref;			/* Window System Handle */ \
   unsigned char * input_buffer;		/* Input buffer */ \
-  int		input_allocated;	/* Allocated size of buffer */ \
-  int		input_p;		/* Pointer into input buffer */
+  long		input_allocated;	/* Allocated size of buffer */ \
+  long		input_p;		/* Pointer into input buffer */
 
 
 NewClass(fileobj)
