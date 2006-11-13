@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug in srcsink<-contents, showing up after 64-bit fix below.
+
 * FIXED: 64-bit issue in XPCE stream class (also affecting socket and
   process).
 

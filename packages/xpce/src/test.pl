@@ -223,14 +223,15 @@ file(exists-1) :-
 	       )).
 file(utf8-1) :-
 	foreign(Name),
+	Text = 'Hello world\n',
 	new(F, file(Name)),
 	send(F, open, write),
-	send(F, append, 'Hello world\n'),
+	send(F, append, Text),
 	send(F, close),
 	new(F2, file(Name)),
 	exists_file(Name),
 	send(F2, exists),
-	get(F2, contents, string('Hello world\n')),
+	get(F2, contents, string(Text)),
 	send(F2, remove).
 file(backup-1) :-
 	foreign(Name),

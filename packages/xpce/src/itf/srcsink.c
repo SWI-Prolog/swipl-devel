@@ -169,7 +169,7 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
 
       setStreamEncodingSourceSink(ss, fd);
 
-      while( n < valInt(len) && (c=Sgetcode(fd)) != EOF )
+      while( n < size && (c=Sgetcode(fd)) != EOF )
       { if ( c > 0xff && !s.iswide )
 	{ charW *w = pceMalloc(s.size*sizeof(charW));
 	  charW *t = w;
