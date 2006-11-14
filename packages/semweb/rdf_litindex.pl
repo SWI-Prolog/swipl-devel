@@ -58,7 +58,7 @@ being flexible to ordering of tokens.
 	exclude_from_index/2.		% +Which, +Token
 
 
-setting(verbose(true)).
+setting(verbose(true)).			% print progress messages
 
 %%	rdf_set_literal_index_option(+Options:list)
 %
@@ -77,7 +77,7 @@ set_option(Term) :-
 	functor(Term, Name, Arity),
 	functor(General, Name, Arity),
 	(   retract(setting(General))
-	->  assert(Term)
+	->  assert(setting(Term))
 	;   throw(error(domain_error(Term, rdf_index_option), _))
 	).
 
