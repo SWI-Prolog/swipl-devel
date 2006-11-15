@@ -1336,7 +1336,7 @@ on_pi(dtd_parser *p, const ichar *pi)
 
     PL_unify_term(h,
 		  PL_FUNCTOR, FUNCTOR_pi1,
-		  PL_CHARS, pi);
+		  PL_NWCHARS, wcslen(pi), pi);
 			 
     PL_reset_term_refs(h);
   }
