@@ -1817,6 +1817,7 @@ callEventHook(int ev, ...)
 		           PL_TERM, ref);
 	break;
       }
+#ifdef O_PLMT
       case PL_EV_THREADFINISHED:
       { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);
 	term_t id = PL_new_term_ref();
@@ -1826,6 +1827,7 @@ callEventHook(int ev, ...)
 		             PL_TERM, id);
 	break;
       }
+#endif
       default:
 	warning("callEventHook(): unknown event: %d", ev);
         goto out;

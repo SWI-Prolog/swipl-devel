@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#233 Compilation error in single-threaded mode.  Keri Harris.
+
 ==================================
 VERSION 5.6.23 (November 10, 2006)
 ==================================
