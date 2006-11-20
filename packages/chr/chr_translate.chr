@@ -182,7 +182,9 @@
 :- chr_type pragma_type	---> 	passive(id) 
 			; 	already_in_heads 
 			; 	already_in_heads(id) 
-			; 	no_history.
+			; 	no_history
+			;	history(history_name,list(id)).
+:- chr_type history_name==	any.
 
 :- chr_type rule_name	==   	any.
 :- chr_type rule_nb	==   	natural.
@@ -437,8 +439,8 @@ occurrence(C,ON,Rule,ID,_) \ get_occurrence(C,ON,QRule,QID)
 get_occurrence(C,O,_,_)
 	<=> chr_error(internal,'get_occurrence: missing occurrence ~w:~w\n',[C,O]).
 
-occurrence(C,ON,Rule,ID,_) \ get_occurrence_from_id(C,QON,Rule,ID)
-	<=> QON = ON.
+occurrence(C,ON,Rule,ID,_) \ get_occurrence_from_id(QC,QON,Rule,ID)
+	<=> QC = C, QON = ON.
 get_occurrence_from_id(C,O,_,_)
 	<=> chr_error(internal,'get_occurrence_from_id: missing occurrence ~w:~w\n',[]).
 
@@ -1094,9 +1096,22 @@ check_pragma(Pragma, PragmaRule) :-
 	PragmaRule = pragma(_,_,_,_,N),
 	no_history(N).
 
+check_pragma(Pragma, PragmaRule) :-
+	Pragma = history(HistoryName,IDs),
+	!,
+	chr_warning(experimental,'Experimental pragma ~w. Use with care!\n',[Pragma]),
+	( IDs == [] ->
+		chr_error(syntax(Pragma),'Invalid empty history.\n',[])
+	;
+		true
+	),
+	PragmaRule = pragma(_,_,_,_,RuleNb),
+	history(RuleNb,HistoryName,IDs).
+
 check_pragma(Pragma,PragmaRule) :-
 	chr_error(syntax(Pragma),'Unknown pragma ~w in ~@.\n', [Pragma,format_rule(PragmaRule)]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%	no_history(+RuleNb) is det.
 :- chr_constraint no_history/1.
 :- chr_option(mode,no_history(+)).
@@ -1109,6 +1124,18 @@ check_pragma(Pragma,PragmaRule) :-
 
 no_history(RuleNb) \ has_no_history(RuleNb) <=> true.
 has_no_history(_) <=> fail.
+
+:- chr_constraint history/3.
+:- chr_option(mode,history(+,+,+)).
+
+:- chr_constraint named_history/3.
+
+history(RuleNb,Name,IDs) \ named_history(RuleNb,QName,QIDs) <=> QName = Name, QIDs = IDs.
+
+named_history(_,_,_) <=> fail.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 format_rule(PragmaRule) :-
 	PragmaRule = pragma(_,_,_,MaybeName,N),
@@ -6499,10 +6526,16 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
 		use_auxiliary_predicate(novel_production),
 		use_auxiliary_predicate(extend_history),
 		does_use_history(F/A,O),
-		NovelProduction = '$novel_production'(Susp,RuleNb),	% optimisation of t(RuleNb,Susp)
-		ExtendHistory   = '$extend_history'(Susp,RuleNb),
-
 		gen_occ_allocation(F/A,O,Vars,Susp,Allocation),
+
+		( named_history(RuleNb,HistoryName,HistoryIDs) ->
+			Tuple =.. [t,HistoryName,Susp] 
+		;
+			Tuple = RuleNb
+		),
+
+		NovelProduction = '$novel_production'(Susp,Tuple),
+		ExtendHistory   = '$extend_history'(Susp,Tuple),
 
 		( Body \== true, is_observed(F/A,O) ->
 		    	gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
@@ -6511,6 +6544,7 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
 			Attachment = true,
 		    	ConditionalRecursiveCall = RecursiveCall
 		)
+
    	;
 		NovelProduction = true,
 		ExtendHistory   = true,
@@ -6658,23 +6692,30 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	( (is_least_occurrence(RuleNb) ; has_no_history(RuleNb)) ->
 		NovelProduction = true,
 		ExtendHistory   = true
-	;	  
+	; \+ may_trigger(F/A), forall(member(SomeID,RestIDs),(chr_translate:is_passive(RuleNb,SomeID))) -> 
+		NovelProduction = true,
+		ExtendHistory   = true
+	;
 		get_occurrence(F/A,O,_,ID),
-		history_susps(RestIDs,[OtherSusp|RestSusps],Susp,ID,HistorySusps),
-   		Tuple =.. [t,RuleNb|HistorySusps],
-		findall(Functor/Arity,(member(H,H2),functor(H,Functor,Arity)),ConstraintSymbols),	
-		sort([ID|RestIDs],HistoryIDs),
-		( \+ may_trigger(F/A), forall(member(SomeID,RestIDs),(chr_translate:is_passive(RuleNb,SomeID))) -> 
-			NovelProduction = true,
-			ExtendHistory   = true
+		use_auxiliary_predicate(novel_production),
+		use_auxiliary_predicate(extend_history),
+		does_use_history(F/A,O),
+		( named_history(RuleNb,HistoryName,HistoryIDs) ->
+			named_history_susps(HistoryIDs,[ID|RestIDs],[Susp,OtherSusp|RestSusps],HistorySusps),
+			findall(ConstraintSymbol,(member(SomeID,HistoryIDs),get_occurrence_from_id(ConstraintSymbol,_,RuleNb,SomeID)),ConstraintSymbols),
+			Tuple =.. [t,HistoryName|HistorySusps],
+			HistorySusps = [HistorySusp|_],
+			ExtendHistory = '$extend_history'(HistorySusp,TupleVar)
 		;
-			use_auxiliary_predicate(novel_production),
-			use_auxiliary_predicate(extend_history),
-			does_use_history(F/A,O),
-			novel_production_calls(ConstraintSymbols,HistoryIDs,HistorySusps,RuleNb,TupleVar,NovelProductions),
-			NovelProduction = ( TupleVar = Tuple, NovelProductions),
-			ExtendHistory   = '$extend_history'(Susp,TupleVar)
-		)
+			findall(Functor/Arity,(member(H,H2),functor(H,Functor,Arity)),ConstraintSymbols),	
+			sort([ID|RestIDs],HistoryIDs),
+			history_susps(RestIDs,[OtherSusp|RestSusps],Susp,ID,HistorySusps),
+			Tuple =.. [t,RuleNb|HistorySusps],
+			ExtendHistory = '$extend_history'(Susp,TupleVar)
+		),
+	
+		novel_production_calls(ConstraintSymbols,HistoryIDs,HistorySusps,RuleNb,TupleVar,NovelProductions),
+		NovelProduction = ( TupleVar = Tuple, NovelProductions)
 	),
 
 
@@ -6717,6 +6758,12 @@ novel_production_calls([ConstraintSymbol|ConstraintSymbols],[ID|IDs],[Suspension
 history_susps(RestIDs,ReversedRestSusps,Susp,ID,HistorySusps) :-
 	reverse(ReversedRestSusps,RestSusps),
 	sort_by_key([Susp|RestSusps],[ID|RestIDs],HistorySusps).
+
+named_history_susps([],_,_,[]).
+named_history_susps([HistoryID|HistoryIDs],IDs,Susps,[HistorySusp|HistorySusps]) :-
+	select2(HistoryID,HistorySusp,IDs,Susps,RestIDs,RestSusps), !,
+	named_history_susps(HistoryIDs,RestIDs,RestSusps,HistorySusps).
+
 
 
 gen_var_susp_list_for([Head],Terms,VarDict,HeadVars,VarsSusp,Susp) :-
