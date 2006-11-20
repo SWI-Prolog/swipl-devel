@@ -180,6 +180,7 @@
 :- chr_type idspair	---> 	ids(list(id),list(id)).
 
 :- chr_type pragma_type	---> 	passive(id) 
+			; 	mpassive(list(id))
 			; 	already_in_heads 
 			; 	already_in_heads(id) 
 			; 	no_history
@@ -1078,6 +1079,12 @@ check_pragma(passive(ID), PragmaRule) :-
 		chr_error(syntax(ID),'Invalid identifier ~w in pragma passive in ~@.\n', [ID,format_rule(PragmaRule)])
 	),
 	passive(RuleNb,ID).
+
+check_pragma(mpassive(IDs), PragmaRule) :-
+	!,
+	PragmaRule = pragma(_,_,_,_,RuleNb),
+	chr_warning(experimental,'Experimental pragma ~w. Use with care!\n',[mpassive(IDs)]),
+	maplist(passive(RuleNb),IDs).
 
 check_pragma(Pragma, PragmaRule) :-
 	Pragma = already_in_heads,
