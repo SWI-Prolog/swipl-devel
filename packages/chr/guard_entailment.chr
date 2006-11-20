@@ -393,12 +393,21 @@ variables(E), 'known/1_1_$special_functor/3'(A, B, C)<=>var(A), ground(B), groun
 'known/1_1_$special_;/2'(\+functor(A, B, C), _)<=>nonvar(A), \+functor(A, B, C)|true.
 'test/1_1_$special_;/2'(fail, A)<=>test(A).
 'test/1_1_$special_;/2'(A, fail)<=>test(A).
-'test/1_1_$special_=/2'(A, B)<=>A=B|A=B.
+% 'test/1_1_$special_=/2'(A, B)<=>A=B|A=B.
 'test/1_1_$special_=/2'(A, B)<=>ground(A), ground(B)|A=B.
-'test/1_1_$special_=/2'(A, B)<=>nonvar(A), var(B)|test(B=A).
-variables(F)\'test/1_1_$special_=/2'(A, B)<=>var(A), nonvar(B), functor(B, D, C), C>0, B=..[D|E], \+all_unique_vars(E, F)|G= (functor(A, D, C), A=B), test(G).
-'test/1_1_$special_=/2'(A, B)<=>var(A), nonvar(B), functor(B, C, D), B=..[C|_]|E=functor(A, C, D), test(E).
-'test/1_1_$special_=/2'(A, B)<=>nonvar(A), nonvar(B), functor(B, C, D), B=..[C|F]|functor(A, C, D), A=..[C|E], add_args_unif(E, F, G), test(G).
+% 'test/1_1_$special_=/2'(A, B)<=>nonvar(A), var(B)|test(B=A).
+% variables(F)\'test/1_1_$special_=/2'(A, B)<=>var(A), nonvar(B), functor(B, D, C), C>0, B=..[D|E], \+all_unique_vars(E, F)|G= (functor(A, D, C), A=B), test(G).
+
+% variables(F) \ 'test/1_1_$special_=/2'(A, B) <=> 
+% 		var(A), 
+% 		nonvar(B), 
+% 		\+ memberchk_eq(A,F),
+% 		functor(B, C, D), 
+% 		B=..[C|_]
+% 	|
+% 		E=functor(A, C, D), 
+% 		test(E).
+% 'test/1_1_$special_=/2'(A, B)<=>nonvar(A), nonvar(B), functor(B, C, D), B=..[C|F]|functor(A, C, D), A=..[C|E], add_args_unif(E, F, G), test(G).
 variables(D)\'test/1_1_$special_functor/3'(A, B, C)<=>var(A), ground(B), ground(C), \+memberchk_eq(A, D)|functor(A, B, C).
 'test/1_1_$special_true/0'<=>true.
 'test/1_1_$special_==/2'(A, B)<=>A==B|true.

@@ -654,7 +654,11 @@ type_indexed_identifier_structure(IndexType,Structure) :-
 	get_type_indexed_identifier_size(IndexType,Arity),
 	functor(Structure,Functor,Arity).	
 type_indexed_identifier_name(IndexType,Prefix,Name) :-
-	term_to_atom(IndexType,IndexTypeName),
+	( atom(IndexType) ->
+		IndexTypeName = IndexType
+	;
+		term_to_atom(IndexType,IndexTypeName)
+	),
 	atom_concat_list([Prefix,'_',IndexTypeName],Name).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2982,13 +2986,26 @@ generate_attach_code(identifier_store(Index),C,L,T) :-
 generate_attach_code(type_indexed_identifier_store(Index,IndexType),C,L,T) :-
 	get_type_indexed_identifier_index(IndexType,C,Index,IIndex),
 	( IIndex == 2 ->
+		identifier_store_initialization(IndexType,L,L1),
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 		get_type_indexed_identifier_size(IndexType,ISize),
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 		type_indexed_identifier_structure(IndexType,Struct),
 		Struct =.. [_,Label|Stores],
 		set_elems(Stores,[]),
 		type_indexed_identifier_name(IndexType,new_identifier,Name1),
 		Clause1 =.. [Name1,Label,Struct],
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		Goal1 =.. [Name1,Label1b,S1b],
+		type_indexed_identifier_structure(IndexType,Struct1b),
+		Struct1b =.. [_,Label1b|Stores1b],
+		set_elems(Stores1b,[]),
+		Expansion1 = (S1b = Struct1b),
+		Clause1b = user:goal_expansion(Goal1,Expansion1),
+		writeln(Clause1-Clause1b),
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 		type_indexed_identifier_structure(IndexType,Struct2),
 		arg(1,Struct2,Label2),
@@ -2999,15 +3016,47 @@ generate_attach_code(type_indexed_identifier_store(Index,IndexType),C,L,T) :-
 			write('>')
 		),
 		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 		type_indexed_identifier_structure(IndexType,Struct3),
 		arg(1,Struct3,Label3),
 		type_indexed_identifier_name(IndexType,identifier_label,Name3),
 		Clause3 =.. [Name3,Struct3,Label3],
 		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-		L = [Clause1,Clause2,Clause3|T]
+		Goal3b =.. [Name3,S3b,L3b],
+		type_indexed_identifier_structure(IndexType,Struct3b),
+		arg(1,Struct3b,L3b),
+		Expansion3b = (S3 = Struct3b),
+		Clause3b = ( user:goal_expansion(Goal3b,Expansion3b) :- writeln(expanding)),
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		identifier_store_name(IndexType,GlobalVariable),
+		lookup_identifier_atom(IndexType,X,IX,LookupAtom),
+		type_indexed_identifier_name(IndexType,new_identifier,NewIdentifierFunctor),
+		NewIdentifierGoal =.. [NewIdentifierFunctor,X,IX],
+		Clause4 = 
+			( LookupAtom :-
+				nb_getval(GlobalVariable,HT),
+				( lookup_ht(HT,X,[IX]) ->
+					true
+				;
+					NewIdentifierGoal,
+					insert_ht(HT,X,IX)
+				)				
+			),
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+		L1 = [(:- multifile goal_expansion/2),(:- dynamic goal_expansion/2),Clause1,Clause1b,Clause2,Clause3,Clause3b,Clause4|T]
 	;
 		L = T
 	).
+
+lookup_identifier_atom(Key,X,IX,Atom) :-
+	atom_concat('lookup_identifier_',Key,LookupFunctor),
+	Atom =.. [LookupFunctor,X,IX].
+
+identifier_label_atom(IndexType,IX,X,Atom) :-
+	type_indexed_identifier_name(IndexType,identifier_label,Name),
+	Atom =.. [Name,IX,X].
 
 multi_store_generate_attach_code([],_,L,L).
 multi_store_generate_attach_code([ST|STs],C,L,T) :-
@@ -3054,6 +3103,14 @@ global_singleton_store_initialisation(C,L,T) :-
 	make_init_store_goal(StoreName,[],InitStoreGoal),
 	module_initializer(InitStoreGoal),
 	L = T.
+identifier_store_initialization(IndexType,L,T) :-
+	use_auxiliary_module(chr_hashtable_store),
+	identifier_store_name(IndexType,StoreName),
+	prolog_global_variable(StoreName),
+	make_init_store_goal(StoreName,HT,InitStoreGoal),
+	module_initializer((new_ht(HT),InitStoreGoal)),
+	L = T.
+	
 
 multi_inthash_via_lookups([],_,L,L).
 multi_inthash_via_lookups([Index|Indexes],C,L,T) :-
@@ -3187,6 +3244,10 @@ global_singleton_store_name(F/A,Name) :-
 	get_target_module(Mod),		
 	atom_concat_list(['$chr_store_global_singleton_',Mod,(:),F,(/),A],Name).
 
+identifier_store_name(TypeName,Name) :-
+	get_target_module(Mod),		
+	atom_concat_list(['$chr_identifier_lookup_',Mod,(:),TypeName],Name).
+	
 :- chr_constraint prolog_global_variable/1.
 :- chr_option(mode,prolog_global_variable(+)).
 
@@ -5500,7 +5561,7 @@ check_unique_constraints(C1,C2,G,RuleNb,List) :-
 	negate_b(G,NotG),
 	once(entails_b(NotG,OtherG)).
 
-	% checks for rules of the shape ...,C1,C2... (<|=)==> ...
+	% checks for rules of the shape ...,C1,C2... (<|=)=> ...
 	% where C1 and C2 are symmteric constraints
 symmetry_analysis(Rules) :-
 	( chr_pp_flag(check_unnecessary_active,off) ->
@@ -5513,17 +5574,30 @@ symmetry_analysis_main([]).
 symmetry_analysis_main([R|Rs]) :-
 	R = pragma(Rule,ids(IDs1,IDs2),_,_,RuleNb),
 	Rule = rule(H1,H2,_,_),
-	( ( \+ chr_pp_flag(check_unnecessary_active,simplification)
-	  ; H2 == [] ), H1 \== [] ->
-		symmetry_analysis_heads(H1,IDs1,[],[],Rule,RuleNb),
-		symmetry_analysis_heads(H2,IDs2,[],[],Rule,RuleNb)
+	( ( \+ chr_pp_flag(check_unnecessary_active,simplification) ; H2 == [] ), H1 \== [] ->
+		symmetry_analysis_heads_simplification(H1,IDs1,[],[],Rule,RuleNb),
+		symmetry_analysis_heads_propagation(H2,IDs2,[],[],Rule,RuleNb)
 	;
 		true
 	),	 
 	symmetry_analysis_main(Rs).
 
-symmetry_analysis_heads([],[],_,_,_,_).
-symmetry_analysis_heads([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
+symmetry_analysis_heads_simplification([],[],_,_,_,_).
+symmetry_analysis_heads_simplification([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
+	( \+ is_passive(RuleNb,ID),
+	  member2(PreHs,PreIDs,PreH-PreID),
+	  \+ is_passive(RuleNb,PreID),
+	  variable_replacement(PreH,H,List),
+	  copy_with_variable_replacement(Rule,Rule2,List),
+	  identical_guarded_rules(Rule,Rule2) ->
+		passive(RuleNb,ID)
+	;
+		true
+	),
+	symmetry_analysis_heads_simplification(Hs,IDs,[H|PreHs],[ID|PreIDs],Rule,RuleNb).
+
+symmetry_analysis_heads_propagation([],[],_,_,_,_).
+symmetry_analysis_heads_propagation([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
 	( \+ is_passive(RuleNb,ID),
 	  member2(PreHs,PreIDs,PreH-PreID),
 	  \+ is_passive(RuleNb,PreID),
@@ -5534,7 +5608,7 @@ symmetry_analysis_heads([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
 	;
 		true
 	),
-	symmetry_analysis_heads(Hs,IDs,[H|PreHs],[ID|PreIDs],Rule,RuleNb).
+	symmetry_analysis_heads_propagation(Hs,IDs,[H|PreHs],[ID|PreIDs],Rule,RuleNb).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5628,6 +5702,13 @@ head_arg_matches_([Arg-Var| Rest],[Mode|Modes],VarDict,GroundVars,GoalList,NVarD
 	    	),
 	    	Pairs = Rest,
 	    	RestModes = Modes	
+	; ground(Arg), Arg = '$chr_identifier_match'(ActualArg,IndexType) ->
+	    identifier_label_atom(IndexType,Var,ActualArg,Goal),
+	    GoalList = [Goal|RestGoalList],
+	    VarDict = VarDict1,
+	    GroundVars1 = GroundVars,
+	    Pairs = Rest,
+	    RestModes = Modes
 	; atomic(Arg) ->
 	    ( Mode = (+) ->
 	            GoalList = [ Var = Arg | RestGoalList]	
@@ -6995,9 +7076,15 @@ lookup_passive_head(identifier_store(Index),Head,PreJoin,VarDict,GroundVars,Goal
 lookup_passive_head(type_indexed_identifier_store(Index,IndexType),Head,PreJoin,VarDict,GroundVars,Goal,AllSusps) :-
 	functor(Head,F,A),
 	arg(Index,Head,Var),
-	translate([Var],VarDict,[KeyVar]),
+	( var(Var) ->
+		translate([Var],VarDict,[KeyVar]),
+		Goal = StructGoal
+	; ground(Var), Var = '$chr_identifier_match'(ActualVar,_) ->
+		lookup_identifier_atom(IndexType,ActualVar,KeyVar,LookupGoal),
+		Goal = (LookupGoal,StructGoal)
+	),
 	delay_phase_end(validate_store_type_assumptions,
-		type_indexed_identifier_lookup(F/A,Index,IndexType,AllSusps,KeyVar,Goal)
+		type_indexed_identifier_lookup(F/A,Index,IndexType,AllSusps,KeyVar,StructGoal)
 	),
 	update_store_type(F/A,type_indexed_identifier_store(Index,IndexType)),
 	get_type_indexed_identifier_index(IndexType,F/A,Index,_).
@@ -7289,6 +7376,16 @@ partition_indexes([Index|Indexes],Types,HashIndexes,IntHashIndexes,IdentifierInd
 	  unalias_type(Type,UnAliasedType),
 	  UnAliasedType == dense_int ->
 		IntHashIndexes = [Index|RIntHashIndexes],
+		HashIndexes = RHashIndexes,
+		IdentifierIndexes = RIdentifierIndexes,
+		CompoundIdentifierIndexes = RCompoundIdentifierIndexes
+	; member(I,Index),
+	  nth(I,Types,Type),
+	  unalias_type(Type,UnAliasedType),
+	  nonvar(UnAliasedType),
+	  UnAliasedType = chr_identifier(_) ->
+		% don't use chr_identifiers in hash indexes
+		IntHashIndexes = RIntHashIndexes,
 		HashIndexes = RHashIndexes,
 		IdentifierIndexes = RIdentifierIndexes,
 		CompoundIdentifierIndexes = RCompoundIdentifierIndexes

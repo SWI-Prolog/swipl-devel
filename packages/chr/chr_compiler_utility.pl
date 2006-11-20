@@ -40,6 +40,7 @@
 	, variable_replacement/3
 	, variable_replacement/4
 	, identical_rules/2
+	, identical_guarded_rules/2
 	, copy_with_variable_replacement/3
 	, my_term_copy/3
 	, my_term_copy/4
@@ -88,7 +89,13 @@ is_variant2([X|Xs]) :-
 % 	call(Goal),
 % 	statistics(runtime,[T2|_]),
 % 	T is T2 - T1,
-% 	format('    ~w:\t\t~w ms\n',[Phase,T]).
+% 	format('    ~w ~46t ~D~80| ms\n',[Phase,T]),
+% 	deterministic(Det),
+% 	( Det == true ->
+% 		true
+% 	;
+% 		format('\t\tNOT DETERMINISTIC!\n',[])
+% 	).
 time(_,Goal) :- call(Goal).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -153,6 +160,13 @@ list2disj([G|Gs],C) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % check wether two rules are identical
+
+identical_guarded_rules(rule(H11,H21,G1,_),rule(H12,H22,G2,_)) :-
+   G1 == G2,
+   permutation(H11,P1),
+   P1 == H12,
+   permutation(H21,P2),
+   P2 == H22.
 
 identical_rules(rule(H11,H21,G1,B1),rule(H12,H22,G2,B2)) :-
    G1 == G2,

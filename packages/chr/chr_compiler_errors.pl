@@ -125,10 +125,10 @@ print_chr_error(syntax(Term),Message,Params) :- !,
 
 print_chr_error(internal,Message,Params) :- !,
 	long_line_with_equality_signs,
-	format(user_error,'CHR compiler ERROR: something unexpected happened in the CHR compiler.\n'),	
+	format(user_error,'CHR compiler ERROR: something unexpected happened in the CHR compiler.\n',[]),	
 	format(user_error,'    `--> ',[]),
 	format(user_error,Message,Params),
-        format(user_error,'    Please contact tom.schrijvers@cs.kuleuven.be.\n'),
+        format(user_error,'    Please contact tom.schrijvers@cs.kuleuven.be.\n',[]),
 	long_line_with_equality_signs.
 
 print_chr_error(cyclic_alias(Alias),_Message,_Params) :- !,
