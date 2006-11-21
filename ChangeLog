@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Instantiation error on :- [X].  Bart Demoen.
+
   * FIXED: Possible crash in file-name canonisation.  Roberto Bagnara.
     SECURITY: This is used by absolute_file_name/[2,3], which is adviced
     for path-name validation in web-servers.  Makes DoS attacks possible.

@@ -873,6 +873,9 @@ load_files(Files, Options) :-
 	->  '$load_file'(Id, Module, Options)
 	;   throw(error(type_error(atom, Id), _))
 	).
+'$load_files'(X, _, _) :-
+	var(X), !,
+	throw(error(instantiation_error, _)).
 '$load_files'([], _, _) :- !.
 '$load_files'([H|T], Module, Options) :- !,
 	'$load_files'(H, Module, Options),
