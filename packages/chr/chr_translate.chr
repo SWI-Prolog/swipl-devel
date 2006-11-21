@@ -184,7 +184,8 @@
 			; 	already_in_heads 
 			; 	already_in_heads(id) 
 			; 	no_history
-			;	history(history_name,list(id)).
+			;	history(history_name,list(id))
+			;	active_in_guard(id).
 :- chr_type history_name==	any.
 
 :- chr_type rule_name	==   	any.
@@ -1115,6 +1116,12 @@ check_pragma(Pragma, PragmaRule) :-
 	PragmaRule = pragma(_,_,_,_,RuleNb),
 	history(RuleNb,HistoryName,IDs).
 
+check_pragma(active_in_guard(ID), PragmaRule) :-
+	!,
+	PragmaRule = pragma(_,_,_,_,RuleNb),
+	chr_warning(experimental,'Experimental pragma ~w. Use with care!\n',[active_in_guard(ID)]),
+	active_in_guard(RuleNb,ID).
+
 check_pragma(Pragma,PragmaRule) :-
 	chr_error(syntax(Pragma),'Unknown pragma ~w in ~@.\n', [Pragma,format_rule(PragmaRule)]).
 
@@ -1140,6 +1147,15 @@ has_no_history(_) <=> fail.
 history(RuleNb,Name,IDs) \ named_history(RuleNb,QName,QIDs) <=> QName = Name, QIDs = IDs.
 
 named_history(_,_,_) <=> fail.
+
+:- chr_constraint active_in_guard/2.
+:- chr_option(mode,active_in_guard(+,+)).
+
+:- chr_constraint is_active_in_guard/2.
+:- chr_option(mode,is_active_in_guard(+,+)).
+
+active_in_guard(RuleNb,ID) \ is_active_in_guard(RuleNb,ID) <=> true.
+is_active_in_guard(RuleNb,ID) <=> fail.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5275,7 +5291,7 @@ head2_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) :-
 		reorder_heads(RuleNb,Head,OtherHeads,OtherIDs,NOtherHeads,NOtherIDs),
 		propagation_code(Head,ID,NOtherHeads,NOtherIDs,Rule,RuleNb,FA,O,Id,L,T)
 	;
-		simpagation_head2_code(Head,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) 
+		simpagation_head2_code(Head,ID,OtherHeads,OtherIDs,PragmaRule,FA,O,Id,L,T) 
 	).
 
 gen_alloc_inc_clause(F/A,O,Id,L,T) :-
@@ -5655,18 +5671,38 @@ symmetry_analysis_heads_propagation([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
 %%                   |_| 
 
 simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
-	PragmaRule = pragma(Rule,_,Pragmas,_,_RuleNb),
+	PragmaRule = pragma(Rule,_,Pragmas,_,RuleNb),
 	head_info(Head,A,_Vars,Susp,HeadVars,HeadPairs),
 	build_head(F,A,Id,HeadVars,ClauseHead),
 	get_constraint_mode(F/A,Mode),
 	head_arg_matches(HeadPairs,Mode,[],FirstMatching,VarDict1,[],GroundVars),
+
 	
-	guard_splitting(Rule,GuardList),
+	guard_splitting(Rule,GuardList0),
+	( is_active_in_guard(RuleNb,ID) ->
+		append([Hole1|GuardList0],[Hole2],GuardList),
+		writeln(GuardList) 
+	;
+		GuardList = GuardList0
+	),
 	guard_via_reschedule_new(RestHeads,GuardList,Head,GuardCopyList,GetRestHeads,RescheduledTest),	
 
 	rest_heads_retrieval_and_matching(RestHeads,RestIDs,Head,GetRestHeads,Susps,VarDict1,VarDict,[],[],[],GroundVars,_),
-	
+
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
+
+	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
+		writeln(GuardCopyList),
+		once(append([Hole1Copy|_],[Hole2Copy],GuardCopyList)),
+		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
+		Hole1Copy = (GetOldState,Before),
+		Hole2Copy = After
+	;
+		true
+	),
+	
 
 	partner_constraint_detachments(Susps,RestHeads,VarDict,SuspsDetachments),
 	active_constraint_detachment(Id,Susp,Head,VarDict,SuspDetachment),
@@ -6193,7 +6229,7 @@ gen_uncond_susp_detachment(Head,Susp,Role,VarDict,SuspDetachment) :-
 %%                   |_|          |___/
 
 simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
-   	PragmaRule = pragma(Rule,ids(_,Heads2IDs),Pragmas,_Name,_RuleNb),
+   	PragmaRule = pragma(Rule,ids(_,Heads2IDs),Pragmas,_Name,RuleNb),
    	Rule = rule(_Heads,Heads2,Guard,Body),
 
    	head_info(Head,A,_Vars,Susp,HeadVars,HeadPairs),
@@ -6206,13 +6242,31 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
    	append(OtherIDs,Heads2IDs,IDs),
    	reorder_heads(RuleNb,Head,Heads,IDs,NHeads,NIDs),
    
-	guard_splitting(Rule,GuardList),
+	guard_splitting(Rule,GuardList0),
+	( is_active_in_guard(RuleNb,ID) ->
+		append([Hole1|GuardList0],[Hole2],GuardList),
+		writeln(GuardList) 
+	;
+		GuardList = GuardList0
+	),
 	guard_via_reschedule_new(NHeads,GuardList,Head,GuardCopyList,GetRestHeads,RescheduledTest),	
 
 	rest_heads_retrieval_and_matching(NHeads,NIDs,Head,GetRestHeads,Susps,VarDict1,VarDict,[],[],[],GroundVars,_),
 	split_by_ids(NIDs,Susps,OtherIDs,Susps1,Susps1IDs,Susps2,Susps2IDs), 
 
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
+
+	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
+		writeln(GuardCopyList),
+		once(append([Hole1Copy|_],[Hole2Copy],GuardCopyList)),
+		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
+		Hole1Copy = (GetOldState,Before),
+		Hole2Copy = After
+	;
+		true
+	),
 
 	sort_by_key(Susps1,Susps1IDs,SortedSusps1),
 	partner_constraint_detachments(SortedSusps1,RestHeads,VarDict,SuspsDetachments),
@@ -6278,7 +6332,7 @@ split_by_ids([I|Is],[S|Ss],I1s,S1s,SI1s,S2s,SI2s) :-
 %% Genereate prelude + worker predicate
 %% prelude calls worker
 %% worker iterates over one type of removed constraints
-simpagation_head2_code(Head2,RestHeads2,RestIDs,PragmaRule,FA,O,Id,L,T) :-
+simpagation_head2_code(Head2,ID,RestHeads2,RestIDs,PragmaRule,FA,O,Id,L,T) :-
    PragmaRule = pragma(Rule,ids(IDs1,IDs2),Pragmas,_Name,RuleNb),
    Rule = rule(Heads1,_,Guard,Body),
    append(Heads1,RestHeads2,Heads),
@@ -6292,7 +6346,7 @@ simpagation_head2_code(Head2,RestHeads2,RestIDs,PragmaRule,FA,O,Id,L,T) :-
 	L1 = L2, Id1 = Id2,NextHeads = NHeads, PreHeads = [NHead,Head2], NextIDs = NIDs
    ),
    universal_search_iterator_end(PreHeads,NextHeads,Rule,FA,Id2,L2,L3),
-   simpagation_head2_worker(PreHeads,NextHeads,NextIDs,PragmaRule,FA,O,Id2,L3,T).
+   simpagation_head2_worker(PreHeads,NextHeads,NextIDs,ID,PragmaRule,FA,O,Id2,L3,T).
 
 simpagation_universal_searches([],[],_,PreHeads,_,_,[],PreHeads,[],Id,Id,L,L).
 simpagation_universal_searches(Heads,[ID|IDs],IDs2,PreHeads,Rule,C,OutHeads,OutPreHeads,OutIDs,Id,NId,L,T) :-
@@ -6349,7 +6403,7 @@ delegate_variables(Term,Terms,VarDict,PrevVars,Vars) :-
 	
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule,F/A,O,Id,L,T) :-
+simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,F/A,O,Id,L,T) :-
 	PragmaRule = pragma(Rule,ids(IDs1,_),Pragmas,_,RuleNb), 
 	Rule = rule(_,_,Guard,Body),
 	get_prop_inner_loop_vars(PreHeads,[CurrentHead,NextHeads,Guard,Body],PreVarsAndSusps,VarDict,Susp,Vars,PreSusps),
@@ -6381,7 +6435,13 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule,F/A
 	ClauseVars = [[OtherSusp|OtherSusps]|PreVarsAndSusps],
 	build_head(F,A,Id,ClauseVars,ClauseHead),
 	
-	guard_splitting(Rule,GuardList),
+	guard_splitting(Rule,GuardList0),
+	( is_active_in_guard(RuleNb,ID) ->
+		append([Hole1|GuardList0],[Hole2],GuardList),
+		writeln(GuardList) 
+	;
+		GuardList = GuardList0
+	),
 	guard_via_reschedule_new(NextHeads,GuardList,[CurrentHead|PreHeads],GuardCopyList,RestSuspsRetrieval,RescheduledTest),	
 
 	rest_heads_retrieval_and_matching(NextHeads,NextIDs,[CurrentHead|PreHeads],RestSuspsRetrieval,Susps,VarDict1,VarDict2,[CurrentHead|PreHeads],[OtherSusp|PreSusps],[]),
@@ -6396,6 +6456,17 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,PragmaRule,F/A
 	build_head(F,A,Id,RecursiveVars2,RecursiveCall2),
 	
 	guard_body_copies3(Rule,GuardList,VarDict2,GuardCopyList,BodyCopy),
+	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
+		writeln(GuardCopyList),
+		once(append([Hole1Copy|_],[Hole2Copy],GuardCopyList)),
+		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
+		Hole1Copy = (GetOldState,Before),
+		Hole2Copy = After
+	;
+		true
+	),
 	(   BodyCopy \== true, is_observed(F/A,O) ->
 	    gen_uncond_attach_goal(F/A,Susp,Vars,Attachment,Generation),
 	    gen_state_cond_call(Susp,F/A,RecursiveCall,Generation,ConditionalRecursiveCall),
@@ -6493,14 +6564,14 @@ gen_state_cond_call(Susp,FA,Call,Generation,ConditionalCall) :-
 
 propagation_code(Head,ID,RestHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,T) :-
 	( RestHeads == [] ->
-		propagation_single_headed(Head,Rule,RuleNb,FA,O,Id,L,T)
+		propagation_single_headed(Head,ID,Rule,RuleNb,FA,O,Id,L,T)
 	;   
 		propagation_multi_headed(Head,RestHeads,RestIDs,Rule,RuleNb,FA,O,Id,L,T)
 	).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Single headed propagation
 %% everything in a single clause
-propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
+propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
 	head_info(Head,A,Vars,Susp,VarsSusp,HeadPairs),
 	build_head(F,A,Id,VarsSusp,ClauseHead),
 	
@@ -6509,7 +6580,15 @@ propagation_single_headed(Head,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) :-
 	
 	get_constraint_mode(F/A,Mode),
 	head_arg_matches(HeadPairs,Mode,[],HeadMatching,VarDict,[],GroundVars),
-	guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
+	guard_body_copies(Rule,VarDict,GuardCopy0,BodyCopy),
+	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
+		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
+		GuardCopy = (GetOldState,Before,GuardCopy0,After)
+	;
+		GuardCopy = GuardCopy0
+	),
 	
 	% - recursive call -
 	RecursiveCall = NextHead,
@@ -6687,7 +6766,16 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	head_arg_matches(OtherPairs,Mode,VarDict1,Matching,VarDict),
 	
 	different_from_other_susps(CurrentHead,OtherSusp,PreHeads,RestSusps,DiffSuspGoals), 
-	guard_body_copies(Rule,VarDict,GuardCopy,BodyCopy),
+	guard_body_copies(Rule,VarDict,GuardCopy0,BodyCopy),
+	get_occurrence(F/A,O,_,ID),
+	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
+		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
+		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
+		GuardCopy = (GetOldState,Before,GuardCopy0,After)
+	;
+		GuardCopy = GuardCopy0
+	),
 	
 	(   BodyCopy \== true, is_observed(F/A,O) ->
 	    init(FirstVarsSusp,FirstVars),
