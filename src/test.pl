@@ -2024,6 +2024,18 @@ timeout(pipe-1) :-
 	prolog_load_context(file, File),
 	assert(testfile(File)).
 
+file(canonise-1) :-
+	absolute_file_name('/foo/..', X),
+	X == (/).
+file(canonise-2) :-
+	absolute_file_name('/foo/../..', X),
+	X == (/).
+file(canonise-3) :-
+	absolute_file_name('/foo/../../..', X),
+	X == (/).
+file(canonise-4) :-
+	absolute_file_name('/foo/../../../', X),
+	X == (/).
 file(exists-1) :-
 	\+ exists_file(foobar26).
 file(exists-2) :-

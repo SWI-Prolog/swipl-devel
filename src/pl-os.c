@@ -1298,15 +1298,19 @@ canoniseFileName(char *path)
 	  { *out = EOS;
 	    return path;
 	  }
-	  if ( in[2] == '.' &&		/* delete /foo/../ */
-	       (in[3] == '/' || in[3] == EOS) && osavep > 0 )
-	  { out = osave[--osavep];
-	    in += 3;
-	    if ( in[0] == EOS && out > path )
-	    { out[-1] = EOS;		/* delete trailing / */
-	      return path;
+	  if ( in[2] == '.' && (in[3] == '/' || in[3] == EOS) )
+	  { if ( osavep > 0 )		/* delete /foo/../ */
+	    { out = osave[--osavep];
+	      in += 3;
+	      if ( in[0] == EOS && out > path+1 )
+	      { out[-1] = EOS;		/* delete trailing / */
+		return path;
+	      }
+	      goto again;
+	    } else if (	path[0] == '/' && out == path+1 )
+	    { in += 3;
+	      goto again;
 	    }
-	    goto again;
 	  }
 	}
       }
