@@ -43,7 +43,7 @@ suggest predicates from a keyword.
 \oppredsummary{\==}{2}{xfx}{700}{Not identical}
 \oppredsummary{\=@=}{2}{xfx}{700}{Not structural identical}
 \oppredsummary{^}{2}{xfy}{200}{Existential quantification (bagof/3, setof/3)}
-\oppredsummary{|}{2}{xfy}{1100}{Disjunction of goals. Same as \predref{;}{2}}
+\oppredsummary{|}{2}{xfy}{1105}{Disjunction of goals. Same as \predref{;}{2}}
 \predicatesummary{abolish}{1}{Remove predicate definition from the database}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
 \predicatesummary{abort}{0}{Abort execution, return to top level}
@@ -710,7 +710,7 @@ suggest predicates from a keyword.
 \opsummary{1050}{xfy}{->}{Predicate}
 \opsummary{1050}{xfy}{*->}{Predicate}
 \opsummary{1100}{xfy}{;}{Predicate}
-\opsummary{1100}{xfy}{|}{Predicate}
+\opsummary{1105}{xfy}{|}{Predicate}
 \opsummary{1150}{fx}{discontiguous}{Predicate}
 \opsummary{1150}{fx}{dynamic}{Predicate}
 \opsummary{1150}{fx}{module_transparent}{Predicate}
