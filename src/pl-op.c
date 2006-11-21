@@ -525,7 +525,7 @@ static const opdef operators[] = {
   OP(ATOM_prove,	OP_FX,	       1200),	/* :- */
   OP(ATOM_prove,	OP_XFX,	       1200),
   OP(ATOM_semicolon,	OP_XFY,	       1100),	/* ; */
-  OP(ATOM_bar,		OP_XFY,	       1100),	/* | */
+  OP(ATOM_bar,		OP_XFY,	       1105),	/* | */
   OP(ATOM_smaller,	OP_XFX,		700),	/* < */
   OP(ATOM_lshift,	OP_YFX,		400),	/* << */
   OP(ATOM_equals,	OP_XFX,		700),	/* = */

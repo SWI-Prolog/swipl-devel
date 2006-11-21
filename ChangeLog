@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: raised priority of | to 1105 to facilitate CHR.  Unlikely
+    to cause problems.  If it does adjust code or use :- op(1100, xfy, (|)).
+    Jon Sneyers.
+
   * FIXED: Instantiation error on :- [X].  Bart Demoen.
 
   * FIXED: Possible crash in file-name canonisation.  Roberto Bagnara.
