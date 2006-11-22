@@ -5680,8 +5680,7 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 	
 	guard_splitting(Rule,GuardList0),
 	( is_active_in_guard(RuleNb,ID) ->
-		append([Hole1|GuardList0],[Hole2],GuardList),
-		writeln(GuardList) 
+		append([Hole1|GuardList0],[Hole2],GuardList)
 	;
 		GuardList = GuardList0
 	),
@@ -5691,8 +5690,7 @@ simplification_code(Head,ID,RestHeads,RestIDs,PragmaRule,F/A,O,Id,L,T) :-
 
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
-	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
-		writeln(GuardCopyList),
+	( is_active_in_guard(RuleNb,ID) ->
 		once(append([Hole1Copy|_],[Hole2Copy],GuardCopyList)),
 		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
 		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
@@ -6244,8 +6242,7 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
    
 	guard_splitting(Rule,GuardList0),
 	( is_active_in_guard(RuleNb,ID) ->
-		append([Hole1|GuardList0],[Hole2],GuardList),
-		writeln(GuardList) 
+		append([Hole1|GuardList0],[Hole2],GuardList)
 	;
 		GuardList = GuardList0
 	),
@@ -6256,8 +6253,7 @@ simpagation_head1_code(Head,ID,RestHeads,OtherIDs,PragmaRule,F/A,Id,L,T) :-
 
 	guard_body_copies3(Rule,GuardList,VarDict,GuardCopyList,BodyCopy),
 
-	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
-		writeln(GuardCopyList),
+	( is_active_in_guard(RuleNb,ID) ->
 		once(append([Hole1Copy|_],[Hole2Copy],GuardCopyList)),
 		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
 		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
@@ -6437,8 +6433,7 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,
 	
 	guard_splitting(Rule,GuardList0),
 	( is_active_in_guard(RuleNb,ID) ->
-		append([Hole1|GuardList0],[Hole2],GuardList),
-		writeln(GuardList) 
+		append([Hole1|GuardList0],[Hole2],GuardList)
 	;
 		GuardList = GuardList0
 	),
@@ -6456,8 +6451,7 @@ simpagation_head2_worker([CurrentHead|PreHeads],NextHeads,NextIDs,ID,PragmaRule,
 	build_head(F,A,Id,RecursiveVars2,RecursiveCall2),
 	
 	guard_body_copies3(Rule,GuardList,VarDict2,GuardCopyList,BodyCopy),
-	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
-		writeln(GuardCopyList),
+	( is_active_in_guard(RuleNb,ID) ->
 		once(append([Hole1Copy|_],[Hole2Copy],GuardCopyList)),
 		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
 		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
@@ -6581,7 +6575,7 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 	get_constraint_mode(F/A,Mode),
 	head_arg_matches(HeadPairs,Mode,[],HeadMatching,VarDict,[],GroundVars),
 	guard_body_copies(Rule,VarDict,GuardCopy0,BodyCopy),
-	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
+	( is_active_in_guard(RuleNb,ID) ->
 		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
 		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
 		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
@@ -6768,7 +6762,7 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 	different_from_other_susps(CurrentHead,OtherSusp,PreHeads,RestSusps,DiffSuspGoals), 
 	guard_body_copies(Rule,VarDict,GuardCopy0,BodyCopy),
 	get_occurrence(F/A,O,_,ID),
-	( is_active_in_guard(RuleNb,ID), writeln(is_active_in_guard(RuleNb,ID)) ->
+	( is_active_in_guard(RuleNb,ID) ->
 		delay_phase_end(validate_store_type_assumptions,get_dynamic_suspension_term_field(state,F/A,Susp,OldState,GetOldState)),
 		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,active,Before)),
 		delay_phase_end(validate_store_type_assumptions,set_dynamic_suspension_term_field(state,F/A,Susp,OldState,After)),
