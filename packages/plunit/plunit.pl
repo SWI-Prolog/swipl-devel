@@ -352,6 +352,7 @@ run_unit(Spec) :-
 		    matching_test(Name, Tests)),
 		   run_test(Unit, Name, Line, Options, Body)),
 	    print_message(informational, plunit(end(Spec))),
+	    format(user_error, '~N', []),
 	    cleanup(Module, UnitOptions)
 	;   true
 	).
