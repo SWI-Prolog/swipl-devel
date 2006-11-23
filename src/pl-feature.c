@@ -678,6 +678,10 @@ pl_feature5(term_t key, term_t value,
       { UNLOCK();
 	ForeignRedoPtr(e);
       }
+      if ( exception_term )
+      { exception_term = 0;
+	setVar(*valTermRef(exception_bin));
+      }
       Undo(m);
     }
 
