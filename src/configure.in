@@ -1404,7 +1404,9 @@ dnl		  [Arguments to pass to sprintf() to create SO_LDFLAGS])
 esac
 
 AC_DEFINE_UNQUOTED(SO_EXT,     "$SO_EXT",
-		   [Define to the extension of shared objects (.so normally)])
+		   [Define to the extension of shared objects (often .so)])
+AC_DEFINE_UNQUOTED(SO_PATH,	"$DLLIBVAR",
+		   [Search path for shared objects (often LD_LIBRARY_PATH)])
 AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD")
 AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS",
 		   [Flags to use for linking shared objects])

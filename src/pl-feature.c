@@ -714,6 +714,9 @@ pl_feature(term_t name, term_t value, control_t h)
 #ifndef SO_EXT
 #define SO_EXT "so"
 #endif
+#ifndef SO_PATH
+#define SO_PATH "LD_LIBRARY_PATH"
+#endif
 
 void
 initFeatureTable()
@@ -764,8 +767,9 @@ initFeatures()
   defFeature("agc_margin",FT_INTEGER,	       GD->atoms.margin);
 #endif
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
-  defFeature("open_shared_object",	FT_BOOL|FF_READONLY, TRUE, 0);
-  defFeature("shared_object_extension",	FT_ATOM|FF_READONLY, SO_EXT);
+  defFeature("open_shared_object",	  FT_BOOL|FF_READONLY, TRUE, 0);
+  defFeature("shared_object_extension",	  FT_ATOM|FF_READONLY, SO_EXT);
+  defFeature("shared_object_search_path", FT_ATOM|FF_READONLY, SO_PATH);
 #endif
 #if O_DYNAMIC_STACKS
   defFeature("dynamic_stacks",	FT_BOOL|FF_READONLY, TRUE, 0);

@@ -598,7 +598,7 @@
 /* The size of a `long long', as computed by sizeof. */
 #undef SIZEOF_LONG_LONG
 
-/* Define to the extension of shared objects (.so normally) */
+/* Define to the extension of shared objects (often .so) */
 #undef SO_EXT
 
 /* Program to use for linking shared objects */
@@ -606,6 +606,9 @@
 
 /* Flags to use for linking shared objects */
 #undef SO_LDFLAGS
+
+/* Search path for shared objects (often LD_LIBRARY_PATH) */
+#undef SO_PATH
 
 /* Flags for compiling position-independent BIG object */
 #undef SO_PIC

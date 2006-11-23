@@ -14938,6 +14938,11 @@ cat >>confdefs.h <<_ACEOF
 #define SO_EXT "$SO_EXT"
 _ACEOF
 
+
+cat >>confdefs.h <<_ACEOF
+#define SO_PATH "$DLLIBVAR"
+_ACEOF
+
 cat >>confdefs.h <<_ACEOF
 #define SO_LD "$SO_LD"
 _ACEOF

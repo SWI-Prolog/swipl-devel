@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Flag shared_object_search_path holding variable name for the
+    searching .so/.dll files.
+
   * FIXED: Possible crash in current_prolog_flag(-, +).
 
   * MODIFIED: raised priority of | to 1105 to facilitate CHR.  Unlikely

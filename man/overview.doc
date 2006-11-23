@@ -1236,6 +1236,10 @@ for most Unix systems and \fileext{dll} for Windows.  Used for locating
 files using the \const{file_type} \const{executable}.  See also
 absolute_file_name/3.
 
+    \prologflagitem{shared_object_search_path}{atom}{r}
+Name of the environment variable used by the system to search for shared
+objects.
+
     \prologflagitem{signals}{bool}{r}
 Determine whether Prolog is handling signals (software interrupts). This
 flag is \const{false} if the hosting OS does not support signal handling
