@@ -896,7 +896,16 @@ organise_predicates(rdf_db *db)
       }
       p->oldroot = p->root;
       if ( is_dummy_root(p->root) )
+      { predicate *dummy = p->oldroot;
+
+	dummy->visited = FALSE;		/* restore virgin status of dummy */
+	dummy->label = 0;
+	if ( dummy->reachable )
+	{ PL_free(dummy->reachable);
+	  dummy->reachable = NULL;
+	}
 	free_list(db, &p->oldroot->siblings);
+      }
       p->root = NULL;
     }
   }
@@ -949,6 +958,18 @@ organise_predicates(rdf_db *db)
 	create_reachability_matrix(p->root);
     }
   }
+
+
+  DEBUG(0,
+	for(i=0,ht = db->pred_table; i<db->pred_table_size; i++, ht++)
+	{ predicate *p;
+	  
+	  for( p = *ht; p; p = p->next )
+	  { if ( !p->label )
+	    { Sdprintf("ERROR: %s->label = 0 (root = %s)\n", pname(p), pname(p->root));
+	    }
+	  }
+	});
 
   return changed;
 }
@@ -1037,6 +1058,7 @@ fill_reachable(bitmatrix *bm, predicate *p0, predicate *p)
 { if ( !testbit(bm, p0->label, p->label) )
   { cell *c;
 
+    DEBUG(1, Sdprintf(" [%s (%d)]", pname(p), p->label));
     setbit(bm, p0->label, p->label);
     for(c = p->subPropertyOf.head; c; c=c->next)
       fill_reachable(bm, p0, c->value);
@@ -1049,7 +1071,9 @@ fill_reachable_hierarchy(bitmatrix *bm, predicate *p)
 { if ( !testbit(bm, p->label, p->label) )
   { cell *c;
 
+    DEBUG(1, Sdprintf("Reachability for %s (%d): ", pname(p), p->label));
     fill_reachable(bm, p, p);
+    DEBUG(1, Sdprintf("\n"));
     for(c = p->siblings.head; c; c = c->next)
       fill_reachable_hierarchy(bm, c->value);
   }
@@ -3637,7 +3661,7 @@ update_duplicates_add(rdf_db *db, triple *t)
 
       d->duplicates++;
 
-      DEBUG(1,
+      DEBUG(2,
 	    print_triple(t, PRT_SRC);
 	    Sdprintf(" %p: %d-th duplicate: ", t, d->duplicates);
 	    Sdprintf("Principal: %p at", d);
@@ -3661,7 +3685,7 @@ update_duplicates_del(rdf_db *db, triple *t)
   if ( t->duplicates )			/* I am the principal one */
   { triple *d;
       
-    DEBUG(1,
+    DEBUG(2,
 	  print_triple(t, PRT_SRC);
 	  Sdprintf(": DEL principal %p, %d duplicates: ", t, t->duplicates));
 
@@ -3672,7 +3696,7 @@ update_duplicates_del(rdf_db *db, triple *t)
       { assert(d->is_duplicate);
 	d->is_duplicate = FALSE;
 	d->duplicates = t->duplicates-1;
-	DEBUG(1,
+	DEBUG(2,
 	      Sdprintf("New principal: %p at", d);
 	      print_src(d);
 	      Sdprintf("\n"));
@@ -3684,7 +3708,7 @@ update_duplicates_del(rdf_db *db, triple *t)
   } else if ( t->is_duplicate )		/* I am a duplicate */
   { triple *d;
       
-    DEBUG(1,
+    DEBUG(2,
 	  print_triple(t, PRT_SRC);
 	  Sdprintf(": DEL: is a duplicate: "));
 
@@ -3694,7 +3718,7 @@ update_duplicates_del(rdf_db *db, triple *t)
     { if ( d != t && match_triples(d, t, MATCH_DUPLICATE) )
       { if ( d->duplicates )
 	{ d->duplicates--;
-	  DEBUG(1,
+	  DEBUG(2,
 		Sdprintf("Principal %p at ", d);
 		print_src(d);
 		Sdprintf(" has %d duplicates\n", d->duplicates));
