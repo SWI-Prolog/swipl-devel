@@ -5250,7 +5250,14 @@ occurrences_code(C,O,Id,NId,L,T)
 :- chr_option(mode,occurrence_code(+,+,+,+,+,+)).
 %-------------------------------------------------------------------------------
 occurrence(C,O,RuleNb,ID,_), passive(RuleNb,ID) \ occurrence_code(C,O,Id,NId,L,T) 
-	<=> 	NId = Id, L = T.
+	<=> 	
+		( named_history(RuleNb,_,_) ->
+			does_use_history(C,O)
+		;
+			true
+		),
+		NId = Id, 
+		L = T.
 occurrence(C,O,RuleNb,ID,_), rule(RuleNb,PragmaRule) \ occurrence_code(C,O,Id,NId,L,T)
 	<=>	true |  
 		PragmaRule = pragma(rule(Heads1,Heads2,_,_),ids(IDs1,IDs2),_,_,_),	
