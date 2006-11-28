@@ -2024,18 +2024,25 @@ timeout(pipe-1) :-
 	prolog_load_context(file, File),
 	assert(testfile(File)).
 
+root(Root) :-
+	(   current_prolog_flag(windows, true)
+	->  atom_concat(L, ':/', Root),
+	    char_type(L, alpha)
+	;   Root == (/)
+	).
+
 file(canonise-1) :-
 	absolute_file_name('/foo/..', X),
-	X == (/).
+	root(X).
 file(canonise-2) :-
 	absolute_file_name('/foo/../..', X),
-	X == (/).
+	root(X).
 file(canonise-3) :-
 	absolute_file_name('/foo/../../..', X),
-	X == (/).
+	root(X).
 file(canonise-4) :-
 	absolute_file_name('/foo/../../../', X),
-	X == (/).
+	root(X).
 file(exists-1) :-
 	\+ exists_file(foobar26).
 file(exists-2) :-

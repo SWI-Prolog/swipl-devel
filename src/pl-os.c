@@ -1275,7 +1275,7 @@ canoniseFileName(char *path)
   char *osave[100];
   int  osavep = 0;
 
-#ifdef O_HASDRIVES
+#ifdef O_HASDRIVES			/* C: */
   if ( in[1] == ':' && isLetter(in[0]) )
   { in += 2;
 
@@ -1328,7 +1328,7 @@ canoniseFileName(char *path)
 		return path;
 	      }
 	      goto again;
-	    } else if (	path[0] == '/' && out == start+1 )
+	    } else if (	start[0] == '/' && out == start+1 )
 	    { in += 3;
 	      goto again;
 	    }
