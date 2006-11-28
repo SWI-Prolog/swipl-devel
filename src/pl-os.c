@@ -1271,9 +1271,29 @@ cleanupExpand(void)
 
 static char *
 canoniseFileName(char *path)
-{ char *out = path, *in = path;
+{ char *out = path, *in = path, *start = path;
   char *osave[100];
   int  osavep = 0;
+
+#ifdef O_HASDRIVES
+  if ( in[1] == ':' && isLetter(in[0]) )
+  { in += 2;
+
+    out = start = in;
+  }
+#endif
+#ifdef O_HASSHARES			/* //host/ */
+  if ( in[0] == '/' && in[1] == '/' && isAlpha(in[2]) )
+  { char *s;
+
+    for(s = in+3; *s && isAlpha(*s); s++)
+      ;
+    if ( *s == '/' )
+    { in = out = s+1;
+      start = in-1; 
+    }
+  }
+#endif
 
   while( in[0] == '/' && in[1] == '.' && in[2] == '.' && in[3] == '/' )
     in += 3;
@@ -1281,12 +1301,6 @@ canoniseFileName(char *path)
     in += 2;
   if ( in[0] == '/' )
     *out++ = '/';
-#ifdef O_HASSHARES
-  if ( in[1] == '/' )
-  { in++;
-    *out++ = '/';
-  }
-#endif
   osave[osavep++] = out;
 
   while(*in)
@@ -1309,12 +1323,12 @@ canoniseFileName(char *path)
 	  { if ( osavep > 0 )		/* delete /foo/../ */
 	    { out = osave[--osavep];
 	      in += 3;
-	      if ( in[0] == EOS && out > path+1 )
+	      if ( in[0] == EOS && out > start+1 )
 	      { out[-1] = EOS;		/* delete trailing / */
 		return path;
 	      }
 	      goto again;
-	    } else if (	path[0] == '/' && out == path+1 )
+	    } else if (	path[0] == '/' && out == start+1 )
 	    { in += 3;
 	      goto again;
 	    }
