@@ -461,6 +461,11 @@ pl_close_dde_conversation(term_t handle)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+NOTE: Windows-XP gives the wrong value for valuelen below. Hence we will
+use nul-terminated strings.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 word
 pl_dde_request(term_t handle, term_t item,
 	       term_t value, term_t timeout)
@@ -493,14 +498,15 @@ pl_dde_request(term_t handle, term_t item,
   DdeFreeStringHandle(ddeInst, Hitem);
 
   if ( Hvalue)
-  { char * valuedata;
+  { char *valuedata;
+
     valuedata = DdeAccessData(Hvalue, &valuelen);
-    DEBUG(0, Sdprintf("valuelen = %ld\n", valuelen));
+    DEBUG(0, Sdprintf("valuelen = %ld; format = %d\n", valuelen, fmti));
     if ( fmt[fmti] == CF_TEXT )
-      rval = PL_unify_string_nchars(value, valuelen-1, valuedata);
-    else
-      rval = PL_unify_wchars(value, PL_STRING,
-			     valuelen/sizeof(wchar_t)-1, (wchar_t*)valuedata);
+    { DEBUG(0, Sdprintf("ANSI text\n"));
+      rval = PL_unify_string_chars(value, valuedata);
+    } else
+      rval = PL_unify_wchars(value, PL_STRING, -1, (wchar_t*)valuedata);
     DdeUnaccessData(Hvalue);
     return rval;
   } else
