@@ -26,6 +26,8 @@
 //*****************************************************************************/
 package jpl.fli;
 
+import jpl.JPLException;
+
 //----------------------------------------------------------------------/
 // Prolog
 /**
@@ -79,6 +81,11 @@ package jpl.fli;
 public final class Prolog {
 	static {
 		System.loadLibrary("jpl");
+		//		try {
+		//			System.loadLibrary("jpl");
+		//		} catch (UnsatisfiedLinkError e) {
+		//			throw new JPLException();			
+		//		}
 	}
 
 	/* term types */
@@ -128,87 +135,89 @@ public final class Prolog {
 	public static native term_t new_term_ref();
 	public static native term_t new_term_refs(int n);
 	public static native term_t copy_term_ref(term_t from);
-	public static native void reset_term_refs(term_t r);
+	// public static native void reset_term_refs(term_t r);
 
 	/* Constants */
 	public static native atom_t new_atom(String s);
 	public static native String atom_chars(atom_t a);
 	public static native functor_t new_functor(atom_t f, int a);
-	public static native atom_t functor_name(functor_t f);
-	public static native int functor_arity(functor_t f);
+	// public static native atom_t functor_name(functor_t f);
+	// public static native int functor_arity(functor_t f);
 
 	public static native void unregister_atom(atom_t a); // called from atom_t's finalize()
 
 	/* Get Java-values from Prolog terms */
-	public static native boolean get_atom(term_t t, atom_t a);
+	// public static native boolean get_atom(term_t t, atom_t a);
 	public static native boolean get_atom_chars(term_t t, StringHolder a);
 	public static native boolean get_string_chars(term_t t, StringHolder s);
-	public static native boolean get_integer(term_t t, IntHolder i);
-	public static native boolean get_pointer(term_t t, PointerHolder ptr);
+	public static native boolean get_integer(term_t t, Int64Holder i);
+	// public static native boolean get_pointer(term_t t, PointerHolder ptr);
 	public static native boolean get_float(term_t t, DoubleHolder d);
-	public static native boolean get_functor(term_t t, functor_t f);
+	// public static native boolean get_functor(term_t t, functor_t f);
 	public static native boolean get_name_arity(term_t t, StringHolder name, IntHolder arity);
-	public static native boolean get_module(term_t t, module_t module);
+	// public static native boolean get_module(term_t t, module_t module);
 	public static native boolean get_arg(int index, term_t t, term_t a);
 
-	public static native boolean get_jref(term_t t, ObjectHolder obj);
-	public static native boolean get_jboolean(term_t t, BooleanHolder b);
+	// public static native boolean get_jref(term_t t, ObjectHolder obj);
+	// public static native boolean get_jboolean(term_t t, BooleanHolder b);
+	// public static native boolean get_jpl_term(term_t t, ObjectHolder obj); // withdrawn 17/Oct/2004
+	public static native String object_to_tag(Object obj);
 
 	/* Verify types */
 	public static native int term_type(term_t t);
-	public static native boolean is_variable(term_t t);
-	public static native boolean is_atom(term_t t);
-	public static native boolean is_integer(term_t t);
-	public static native boolean is_float(term_t t);
-	public static native boolean is_compound(term_t t);
-	public static native boolean is_functor(term_t t, functor_t f);
-	public static native boolean is_atomic(term_t t);
-	public static native boolean is_number(term_t t);
+	// public static native boolean is_variable(term_t t);
+	// public static native boolean is_atom(term_t t);
+	// public static native boolean is_integer(term_t t);
+	// public static native boolean is_float(term_t t);
+	// public static native boolean is_compound(term_t t);
+	// public static native boolean is_functor(term_t t, functor_t f);
+	// public static native boolean is_atomic(term_t t);
+	// public static native boolean is_number(term_t t);
 
 	/* Assign to term-references */
 	public static native void put_variable(term_t t);
-	public static native void put_atom(term_t t, atom_t a);
+	// public static native void put_atom(term_t t, atom_t a);
 	public static native void put_integer(term_t t, long i);
-	public static native void put_pointer(term_t t, PointerHolder ptr);
+	// public static native void put_pointer(term_t t, PointerHolder ptr);
 	public static native void put_float(term_t t, double f);
-	public static native void put_functor(term_t t, functor_t functor);
+	// public static native void put_functor(term_t t, functor_t functor);
 	public static native void put_term(term_t t1, term_t t2);
-	public static native void put_jref(term_t t, Object ref);
-	public static native void put_jboolean(term_t t, boolean b);
-	public static native void put_jvoid(term_t t);
+	// public static native void put_jref(term_t t, Object ref);
+	// public static native void put_jboolean(term_t t, boolean b);
+	// public static native void put_jvoid(term_t t);
 
 	/* ... */
 	public static native void cons_functor_v(term_t h, functor_t fd, term_t a0);
-	public static native void cons_list(term_t l, term_t h, term_t t);
+	// public static native void cons_list(term_t l, term_t h, term_t t);
 
 	// unification:
 	// public static native int unify(term_t t1, term_t t2);
 
 	// predicates:
-	public static native predicate_t pred(functor_t f, module_t m);
+	// public static native predicate_t pred(functor_t f, module_t m);
 	public static native predicate_t predicate(String name, int arity, String module);
-	public static native int predicate_info(predicate_t pred, atom_t name, IntHolder arity, module_t module);
+	// public static native int predicate_info(predicate_t pred, atom_t name, IntHolder arity, module_t module);
 
 	// querying (general):
 	public static native qid_t open_query(module_t m, int flags, predicate_t pred, term_t t0);
 	public static native boolean next_solution(qid_t qid);
 	public static native void close_query(qid_t qid);
-	public static native void cut_query(qid_t qid);
+	// public static native void cut_query(qid_t qid);
 
 	// querying (simplified):
-	public static native boolean call(term_t t, module_t m);
-	public static native boolean call_predicate(module_t m, int debug, predicate_t pred, term_t t0);
+	// public static native boolean call(term_t t, module_t m);
+	// public static native boolean call_predicate(module_t m, int debug, predicate_t pred, term_t t0);
 
 	// foreign frames:
 	public static native fid_t open_foreign_frame();
-	public static native void close_foreign_frame(fid_t cid);
+	// public static native void close_foreign_frame(fid_t cid);
 	public static native void discard_foreign_frame(fid_t cid);
 
 	// modules:
-	public static native module_t context();
-	public static native atom_t module_name(module_t module);
+	// public static native module_t context();
+	// public static native atom_t module_name(module_t module);
 	public static native module_t new_module(atom_t name);
-	public static native int strip_module(term_t in, module_t m, term_t out);
+	// public static native int strip_module(term_t in, module_t m, term_t out);
 
 	//	not yet mapped:					 raise_exception()
 	//	not yet mapped:					 throw()
@@ -233,7 +242,7 @@ public final class Prolog {
 	
 	public static native int action_abort();
 	public static native int attach_engine(engine_t e);
-	public static native int pool_engine_id(engine_t e);
+	// public static native int pool_engine_id(engine_t e);
 
 }
 

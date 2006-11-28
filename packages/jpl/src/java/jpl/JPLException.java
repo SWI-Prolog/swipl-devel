@@ -51,6 +51,8 @@ package jpl;
  * @version $Revision$
  */
 public class JPLException extends RuntimeException {
+	private static final long	serialVersionUID	= 1L;
+
 	public JPLException() {
 		super();
 	}

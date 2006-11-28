@@ -29,7 +29,6 @@ package jpl;
 
 import java.util.Iterator;
 import java.util.Map;
-
 import jpl.fli.Prolog;
 import jpl.fli.term_t;
 
@@ -64,22 +63,16 @@ import jpl.fli.term_t;
 // 
 //----------------------------------------------------------------------/
 public class Variable extends Term {
-
 	//==================================================================/
 	//  Attributes
 	//==================================================================/
-
 	private static long n = 0; // the integral part of the next automatic variable name to be allocated
-
 	public final String name; // the name of this Variable
-
 	protected transient term_t term_ = null; // defined between Query.open() and Query.get2()
 	protected transient int index; // only used by (redundant?) 
-
 	//==================================================================/
 	//  Constructors
 	//==================================================================/
-
 	/**
 	 * Create a new Variable with 'name' (which must not be null or ""),
 	 * and may one day be constrained to comply with traditional Prolog syntax.
@@ -95,24 +88,25 @@ public class Variable extends Term {
 		}
 		this.name = name;
 	}
-
-	//==================================================================/
-	//  Constructors (deprecated)
-	//==================================================================/
-
 	/**
 	 * Create a new Variable with new sequential name of the form "_261".
 	 * 
-	 * @deprecated	use Variable(String name) instead
 	 */
 	public Variable() {
 		this.name = "_" + Long.toString(n++); // e.g. _0, _1 etc.
 	}
-
 	//==================================================================/
 	//  Methods (common)
 	//==================================================================/
-
+	/**
+	 * The (nonexistent) args of this Variable
+	 * @throws JPLException
+	 * 
+	 * @return the (nonexistent) args of this Variable (never)
+	 */
+	public Term[] args() {
+		throw new JPLException("jpl.Variable#args(): call is improper");
+	}
 	/**
 	 * returns the lexical name of this Variable
 	 * 
@@ -121,7 +115,22 @@ public class Variable extends Term {
 	public final String name() {
 		return this.name;
 	}
-
+	/**
+	 * returns the type of this subclass of Term, i.e. Prolog.VARIABLE
+	 * 
+	 * @return  the type of this subclass of Term, i.e. Prolog.VARIABLE
+	 */
+	public final int type() {
+		return Prolog.VARIABLE;
+	}
+	/**
+	 * returns the typeName of this subclass of Term, i.e. "Variable"
+	 * 
+	 * @return  the typeName of this subclass of Term, i.e. "Variable"
+	 */
+	public String typeName() {
+		return "Variable";
+	}
 	/**
 	 * Returns a Prolog source text representation of this Variable
 	 * 
@@ -130,7 +139,6 @@ public class Variable extends Term {
 	public String toString() {
 		return this.name;
 	}
-
 	/**
 	 * A Variable is equal to another if their names are the same and they are not anonymous.
 	 * 
@@ -140,19 +148,9 @@ public class Variable extends Term {
 	public final boolean equals(Object obj) {
 		return obj instanceof Variable && !this.name.equals("_") && this.name.equals(((Variable) obj).name);
 	}
-
-	public final int type() {
-		return Prolog.VARIABLE;
-	}
-
-	public String typeName() {
-		return "Variable";
-	}
-
 	//==================================================================/
 	//  Methods (private)
 	//==================================================================/
-
 	/**
 	 * Tests the lexical validity of s as a variable's name
 	 * 
@@ -179,22 +177,9 @@ public class Variable extends Term {
 		}
 		return true;
 	}
-
 	//==================================================================/
 	//  Methods (deprecated)
 	//==================================================================/
-
-	/**
-	 * The (nonexistent) args of this Variable
-	 * 
-	 * @return the (nonexistent) args of this Variable
-	 * @deprecated
-	 */
-	public Term[] args() {
-		return new Term[] {
-		};
-	}
-
 	/**
 	 * Returns a debug-friendly String representation of an Atom.
 	 * 
@@ -204,11 +189,9 @@ public class Variable extends Term {
 	public String debugString() {
 		return "(Variable " + toString() + ")";
 	}
-
 	//==================================================================/
 	//  Converting JPL Terms to Prolog terms
 	//==================================================================/
-
 	/**
 	 * To put a Variable, we must check whether a (non-anonymous) variable with the same name
 	 * has already been put in the Term.  If one has, then the corresponding Prolog variable has
@@ -238,11 +221,9 @@ public class Variable extends Term {
 			Prolog.put_term(term, var);
 		}
 	}
-
 	//==================================================================/
 	//  Converting Prolog terms to JPL Terms
 	//==================================================================/
-
 	/**
 	 * Converts a term_t (known to refer to a Prolog variable) to a Variable.
 	 * If the variable has already been seen (and hence converted),
@@ -254,8 +235,7 @@ public class Variable extends Term {
 	 * @param   var               The term_t (known to be a variable) to convert
 	 * @return                    A new or reused Variable
 	 */
-	protected static Term getTerm(Map vars_to_Vars, term_t var) {
-
+	protected static Term getTerm1(Map vars_to_Vars, term_t var) {
 		for (Iterator i = vars_to_Vars.keySet().iterator(); i.hasNext();) {
 			term_t varX = (term_t) i.next(); // a previously seen Prolog variable
 			if (Prolog.compare(varX, var) == 0) { // identical Prolog variables?
@@ -268,11 +248,9 @@ public class Variable extends Term {
 		vars_to_Vars.put(var, Var); // use Hashtable(var,null), but only need set(var)
 		return Var;
 	}
-
 	//==================================================================/
 	//  Computing Substitutions
 	//==================================================================/
-
 	/**
 	 * If this Variable instance is not an anonymous or (in dont-tell-me mode) a dont-tell-me variable, and its binding is not already in the varnames_to_Terms Map,
 	 * put the result of converting the term_t to which this variable
@@ -288,7 +266,6 @@ public class Variable extends Term {
 			varnames_to_Terms.put(this.name, Term.getTerm(vars_to_Vars, this.term_));
 		}
 	}
-
 	// whether, according to prevailing policy and theis Variable's name,
 	// any binding should be returned
 	// (yes, unless it's anonymous or we're in dont-tell-me mode and its a dont-tell-me variable)
@@ -297,5 +274,4 @@ public class Variable extends Term {
 		// return !this.name.equals("_");
 	}
 }
-
 //345678901234567890123456789012346578901234567890123456789012345678901234567890

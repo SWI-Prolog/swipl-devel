@@ -1,3 +1,8 @@
+Nov 23, 2006
+
+  * NEW: Integrated Paul Singletons changes.  Added test-cases, cleanup
+    of installation, etc.  Joint effort of Paul Singleton and Jan Wielemaker.
+
 Nov 8, 2006
 
   * PORT: Started work on support for 64-bit linux.  Jan Wielemaker.

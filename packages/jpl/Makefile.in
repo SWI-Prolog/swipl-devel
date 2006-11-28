@@ -33,6 +33,8 @@ NETLIBS=@NETLIBS@
 
 JAVA_HOME=@JAVA_HOME@
 JAVAC=@JAVAC@
+JAVA=@JAVA@
+JUNIT=@JUNIT@
 JAVALIBS=@JAVALIBS@
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
@@ -59,6 +61,9 @@ all:		$(TARGETS) jpl.jar exjava-compile
 
 libjpl.@SO@:	$(OBJ)
 		$(LD) $(LDFLAGS) -o $@ $(OBJ) $(JAVALIBS)
+		if [ -r libjpl.dylib ]; then \
+		  rm -f libjpl.jnilib && ln -s libjpl.dylib libjpl.jnilib ; \
+		fi
 
 jpl.jar::
 		(cd src/java && $(MAKE) all)
@@ -67,11 +72,12 @@ jpl.jar::
 # Verify the package
 ################################################################
 
-check::		TestJPL.class
-		$(PL) -q -f check.pl -g test,halt -t 'halt(1)'
+check:		check_pl check_java
 
-TestJPL.class:	TestJPL.java
-		$(JAVAC) -classpath jpl.jar TestJPL.java
+check_pl::		
+		$(PL) -q -f test_jpl.pl -g run_tests,halt -t 'halt(1)'
+check_java::
+		CLASSPATH=$(JUNIT):jpl.jar:jpltest.jar $(JAVA) junit.textui.TestRunner jpl.test.TestJUnit
 
 ################################################################
 # Installation
@@ -211,4 +217,5 @@ distclean:	clean
 		rm -f $(TARGETS) config.cache config.h config.status Makefile
 		rm -f $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc
 		rm -rf html
+		(cd src/java && $(MAKE) distclean)
 

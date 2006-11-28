@@ -10,6 +10,7 @@
 
 PLHOME=..\..
 !include ..\..\src\rules.mk
+JAVA="$(JAVA_HOME)\bin\java"
 
 PKGDLL=jpl
 
@@ -90,11 +91,29 @@ uninstall::
 		del "$(PLBASE)\lib\jpl.jar"
 		$(MAKEINDEX)
 
+################################################################
+# Verify the package
+################################################################
+
+check:		check_pl check_java
+
+check_pl::		
+		"$(PLCON)" -q -f test_jpl.pl -g run_tests,halt -t 'halt(1)'
+check_java::
+		set CLASSPATH=$(JUNIT);jpl.jar;jpltest.jar
+		$(JAVA) junit.textui.TestRunner jpl.test.TestJUnit
+
+################################################################
+# Cleanup
+################################################################
+
 clean::
 		if exist $(OBJ) del $(OBJ)
 		if exist *.obj del *.obj
 		if exist *~ del *~
+		chdir src\java & $(MAKE) clean
 
 distclean:	clean
 		-DEL *.dll *.lib *.exp *.pdb *.ilk 2>nul
+		chdir src\java & $(MAKE) distclean
 

@@ -27,10 +27,14 @@
 //*****************************************************************************/
 package jpl;
 
+import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
-
+import jpl.fli.DoubleHolder;
+import jpl.fli.Int64Holder;
 import jpl.fli.IntHolder;
 import jpl.fli.Prolog;
+import jpl.fli.StringHolder;
 import jpl.fli.term_t;
 
 //----------------------------------------------------------------------/
@@ -89,6 +93,15 @@ public abstract class Term {
 	public Term arg(int ano) {
 		throw new JPLException("jpl." + this.typeName() + ".arg() is undefined");
 	};
+
+	/**
+	 * returns, as a Term[], the arguments of a Compound
+	 * returns an empty Term[] from an Atom, Integer or Float
+	 * throws a JPLException from a Variable 
+	 * 
+	 * @return the arguments of a Compound as a Term[
+	 */
+	public abstract Term[] args();
 
 	/**
 	 * Tests whether this Term's functor has (String) 'name' and 'arity'
@@ -233,39 +246,66 @@ public abstract class Term {
 	}
 
 	/**
-	 * whether this Term is a JBoolean
-	 * 
-	 * @return whether this Term is a JBoolean
-	 */
-	public boolean isJBoolean() {
-		return this instanceof JBoolean;
-	}
-
-	/**
-	 * whether this Term is a JRef
-	 * 
-	 * @return whether this Term is a JRef
-	 */
-	public boolean isJRef() {
-		return this instanceof JRef;
-	}
-
-	/**
-	 * whether this Term is a JVoid
-	 * 
-	 * @return whether this Term is a JVoid
-	 */
-	public boolean isJVoid() {
-		return this instanceof JVoid;
-	}
-
-	/**
 	 * whether this Term is a variable
 	 * 
 	 * @return whether this Term is a variable
 	 */
 	public boolean isVariable() {
 		return this instanceof Variable;
+	}
+
+	/**
+	 * whether this Term is a 'jfalse' structure, i.e. @(false)
+	 * 
+	 * @return whether this Term is a 'jfalse' structure, i.e. @(false)
+	 */
+	public boolean isJFalse() {
+		return false; // overridden in Compound, where it might sometimes be true
+	}
+
+	/**
+	 * whether this Term is a 'jtrue' structure, i.e. @(true)
+	 * 
+	 * @return whether this Term is a 'jtrue' structure, i.e. @(true)
+	 */
+	public boolean isJTrue() {
+		return false; // overridden in Compound, where it might sometimes be true
+	}
+
+	/**
+	 * whether this Term is a 'jnull' structure, i.e. @(null)
+	 * 
+	 * @return whether this Term is a 'jnull' structure, i.e. @(null)
+	 */
+	public boolean isJNull() {
+		return false; // overridden in Compound, where it might sometimes be true
+	}
+
+	/**
+	 * whether this Term is a 'jvoid' structure, i.e. @(void)
+	 * 
+	 * @return whether this Term is a 'jvoid' structure, i.e. @(void)
+	 */
+	public boolean isJVoid() {
+		return false; // overridden in Compound, where it might sometimes be true
+	}
+
+	/**
+	 * whether this Term is a 'jobject' structure, i.e. @(Tag)
+	 * 
+	 * @return whether this Term is a 'jobject' structure, i.e. @(Tag)
+	 */
+	public boolean isJObject() {
+		return false; // overridden in Compound, where it might sometimes be true
+	}
+
+	/**
+	 * whether this Term is a 'jref' structure, i.e. @(Tag) or @(null)
+	 * 
+	 * @return whether this Term is a 'jref' structure, i.e. @(Tag) or @(null)
+	 */
+	public boolean isJRef() {
+		return false; // overridden in Compound, where it might sometimes be true
 	}
 
 	public Term putParams(Term[] ps) {
@@ -352,16 +392,6 @@ public abstract class Term {
 	//==================================================================/
 
 	/**
-	 * returns, as a Term[], the arguments of a Compound
-	 * returns an empty Term[] from an Atom, Integer or Float
-	 * throws a JPLException from a Variable 
-	 * 
-	 * @return the arguments of a Compound as a Term[
-	 * @deprecated
-	 */
-	public abstract Term[] args();
-
-	/**
 	 * Returns a debug-friendly representation of a Term
 	 * 
 	 * @return  a debug-friendly representation of a Term
@@ -412,6 +442,9 @@ public abstract class Term {
 	//   instances, keyed on Variable instances.
 	//==================================================================/
 
+	public void put( term_t term){
+		put( new Hashtable(), term);
+	}
 	/**
 	 * Cache the reference to the Prolog term_t here.
 	 * 
@@ -455,6 +488,15 @@ public abstract class Term {
 		}
 
 		return term0;
+	}
+
+	// experiment: for jni_jobject_to_term_byval/2 in jpl.c
+	public static void putTerm( Object obj, term_t termref){
+		if (obj instanceof Term){
+			((Term)obj).put(termref);
+		} else {
+			throw new JPLException("not a Term");
+		}
 	}
 
 	//==================================================================/
@@ -543,7 +585,7 @@ public abstract class Term {
 	 * @param   term  The Prolog term (in a term_t holder) to convert
 	 * @return        The converted Term subtype instance.
 	 */
-	protected static Term getTerm(Map vars_to_Vars, term_t term) {
+	protected static Term getTerm1(Map vars_to_Vars, term_t term) {
 		int type = Prolog.term_type(term);
 
 		switch (type) {
@@ -563,6 +605,62 @@ public abstract class Term {
 				// should never happen...
 				throw new JPLException("Term.from_term_t: unknown term type=" + type);
 		}
+	}
+
+	protected static Term getTerm(Map vars_to_Vars, term_t term) {
+		StringHolder hString;
+		IntHolder hInt;
+		Int64Holder hInt64;
+		// int type = Prolog.term_type(term);
+		switch (Prolog.term_type(term)) {
+		case Prolog.VARIABLE:
+			for (Iterator i = vars_to_Vars.keySet().iterator(); i.hasNext();) {
+				term_t varX = (term_t) i.next(); // a previously seen Prolog variable
+				if (Prolog.compare(varX, term) == 0) { // identical Prolog variables?
+					return (Term) vars_to_Vars.get(varX); // return the associated JPL Variable
+				}
+			}
+			// otherwise, the Prolog variable in term has not been seen before
+			Variable Var = new Variable(); // allocate a new (sequentially named) Variable to represent it
+			Var.term_ = term; // this should become redundant...
+			vars_to_Vars.put(term, Var); // use Hashtable(var,null), but only need set(var)
+			return Var;
+		case Prolog.ATOM: // return Atom.getTerm(vars_to_Vars, term);
+			hString = new StringHolder();
+			Prolog.get_atom_chars(term, hString); // ignore return val; assume success...
+			return new Atom(hString.value);
+		case Prolog.STRING: // return Atom.getString(vars_to_Vars, term);
+			hString = new StringHolder();
+			Prolog.get_string_chars(term, hString); // ignore return val; assume success...
+			return new Atom(hString.value);
+		case Prolog.INTEGER: // return Integer.getTerm(vars_to_Vars, term);
+			hInt64 = new Int64Holder();
+			Prolog.get_integer(term, hInt64); // assume it succeeds...
+			return new jpl.Integer(hInt64.value);
+		case Prolog.FLOAT: // return Float.getTerm(vars_to_Vars, term);
+			DoubleHolder hFloatValue = new DoubleHolder();
+			Prolog.get_float(term, hFloatValue); // assume it succeeds...
+			return new jpl.Float(hFloatValue.value);
+		case Prolog.COMPOUND: // return Compound.getTerm(vars_to_Vars, term);
+			hString = new StringHolder();
+			hInt = new IntHolder();
+			Prolog.get_name_arity(term, hString, hInt); // assume it succeeds
+			Term args[] = new Term[hInt.value];
+			// term_t term1 = Prolog.new_term_refs(hArity.value);
+			for (int i = 1; i <= hInt.value; i++) {
+				term_t termi = Prolog.new_term_ref();
+				Prolog.get_arg(i, term, termi);
+				args[i - 1] = Term.getTerm(vars_to_Vars, termi);
+			}
+			return new Compound(hString.value, args);
+		default:
+			// should never happen...
+			throw new JPLException("Term.from_term_t: unknown term type=" + Prolog.term_type(term));
+		}
+	}
+	
+	protected static Term getTerm( term_t term){
+		return getTerm( new Hashtable(), term);
 	}
 
 	//==================================================================/
@@ -643,6 +741,20 @@ public abstract class Term {
 			}
 		}
 		return true;
+	}
+
+	// newJRef
+	/**
+	 * This method is used (by Compound.equals) to determine the Terms in two Term arrays
+	 * are pairwise equal, where two Terms are equal if they satisfy
+	 * the equals predicate (defined differently in each Term subclass).
+	 * 
+	 * @param   t1  an array of Terms
+	 * @param   t2  another array of Terms
+	 * @return  true if all of the Terms in the (same-length) arrays are pairwise equal
+	 */
+	protected static Term newJRef(Object obj) {
+		return JPL.JNULL; // not yet implemented
 	}
 
 	//------------------------------------------------------------------/

@@ -28,8 +28,7 @@
 package jpl;
 
 import java.util.Map;
-
-import jpl.fli.IntHolder;
+import jpl.fli.Int64Holder;
 import jpl.fli.Prolog;
 import jpl.fli.term_t;
 
@@ -85,19 +84,22 @@ public class Integer extends Term {
 		this.value = value;
 	}
 
-	/**
-	 * @param   value  This Integer's (int) value
-	 */
-	public Integer(int value) {
-		this.value = value;
-	}
-
 	//==================================================================/
 	//  Methods (common)
 	//==================================================================/
 
 	/**
-	 * Tests whether this Integer's functor has (int) 'name' and 'arity'
+	 * The (nonexistent) args of this Integer
+	 * 
+	 * @return the (nonexistent) args of this Integer
+	 */
+	public Term[] args() {
+		return new Term[] {
+		};
+	}
+
+	/**
+	 * Tests whether this Integer's functor has (int) 'name' and 'arity' (c.f. functor/3)
 	 * 
 	 * @return whether this Integer's functor has (int) 'name' and 'arity'
 	 */
@@ -106,7 +108,16 @@ public class Integer extends Term {
 	}
 
 	/**
-	 * Returns the arity (0) of this jpl.Integer
+	 * throws a JPLException (name() is defined only for Compound, Atom and Variable)
+	 * 
+	 * @return the name of this Integer (never)
+	 */
+	public final String name() {
+		throw new JPLException("jpl.Integer#name() is undefined");
+	}
+
+	/**
+	 * Returns the arity (0) of this jpl.Integer (c.f. functor/3)
 	 * 
 	 * @return the arity (0) of this jpl.Integer
 	 */
@@ -115,9 +126,10 @@ public class Integer extends Term {
 	}
 
 	/**
-	 * Returns the value of this Integer as an int if possible, else throws exception
+	 * Returns the value of this Integer as an int if possible, else throws a JPLException
 	 * 
-	 * @return the int value of this Integer (if representable)
+	 * @throws JPLException if the value of this Integer is too great to be represented as a Java int
+	 * @return the int value of this Integer
 	 */
 	public final int intValue() {
 		if (value < java.lang.Integer.MIN_VALUE || value > java.lang.Integer.MAX_VALUE) {
@@ -128,12 +140,12 @@ public class Integer extends Term {
 	}
 
 	/**
-	 * Returns the value of this Integer converted to a long
+	 * Returns the value of this Integer as a long
 	 * 
-	 * @return the value of this Integer converted to a long
+	 * @return the value of this Integer as a long
 	 */
 	public final long longValue() {
-		return (new java.lang.Long(value)).longValue(); // safe but inefficient...
+		return value;
 	}
 
 	/**
@@ -154,17 +166,23 @@ public class Integer extends Term {
 		return (new java.lang.Long(value)).doubleValue(); // safe but inefficient...
 	}
 
+	public final int type() {
+		return Prolog.INTEGER;
+	}
+
+	public String typeName(){
+		return "Integer";
+	}
+	
 	/**
 	 * Returns a Prolog source text representation of this Integer's value
 	 * 
 	 * @return  a Prolog source text representation of this Integer's value
 	 */
 	public String toString() {
-		return "" + value + ""; // hopefully invokes Integer.toString() or equivalent
+		return "" + value; // hopefully invokes Integer.toString() or equivalent
 	}
 
-	//------------------------------------------------------------------/
-	// equals
 	/**
 	 * Two Integer instances are equal if they are the same object, or if their values are equal
 	 * 
@@ -175,14 +193,6 @@ public class Integer extends Term {
 		return this == obj || (obj instanceof Integer && value == ((Integer) obj).value);
 	}
 
-	public final int type() {
-		return Prolog.INTEGER;
-	}
-
-	public String typeName(){
-		return "Integer";
-	}
-	
 	//==================================================================/
 	//  Methods (deprecated)
 	//==================================================================/
@@ -195,17 +205,6 @@ public class Integer extends Term {
 	 */
 	public final int value() {
 		return (int) value;
-	}
-
-	/**
-	 * The (nonexistent) args of this Integer
-	 * 
-	 * @return the (nonexistent) args of this Integer
-	 * @deprecated
-	 */
-	public Term[] args() {
-		return new Term[] {
-		};
 	}
 
 	/**
@@ -244,11 +243,11 @@ public class Integer extends Term {
 	 * @param   term          The Prolog term (an integer) which is to be converted
 	 * @return                A new Integer instance
 	 */
-	protected static Term getTerm(Map vars_to_Vars, term_t term) {
-		IntHolder int_holder = new IntHolder();
+	protected static Term getTerm1(Map vars_to_Vars, term_t term) {
+		Int64Holder int64_holder = new Int64Holder();
 
-		Prolog.get_integer(term, int_holder); // assume it succeeds...
-		return new jpl.Integer(int_holder.value);
+		Prolog.get_integer(term, int64_holder); // assume it succeeds...
+		return new jpl.Integer(int64_holder.value);
 	}
 
 	//==================================================================/

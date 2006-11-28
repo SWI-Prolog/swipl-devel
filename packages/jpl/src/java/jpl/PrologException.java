@@ -57,6 +57,7 @@ package jpl;
  * @version $Revision$
  */
 public final class PrologException extends JPLException {
+	private static final long	serialVersionUID	= 1L;
 	private Term term_ = null;
 
 	protected PrologException(Term term) {

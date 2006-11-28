@@ -98,7 +98,16 @@ public class Float extends Term {
 	 * @return the ith argument (counting from 1) of this Float (never)
 	 */
 	public final Term arg(int i) {
-		throw new JPLException("jpl.Float.arg(int) is undefined");
+		throw new JPLException("jpl.Float#arg(int) is undefined");
+	}
+
+	/**
+	 * The (nonexistent) args of this Float
+	 * 
+	 * @return the (nonexistent) args of this Float
+	 */
+	public Term[] args() {
+		return new Term[] {};
 	}
 
 	/**
@@ -134,7 +143,7 @@ public class Float extends Term {
 	 * @return the name of this Float (never)
 	 */
 	public final String name() {
-		throw new JPLException("jpl.Float.name() is undefined");
+		throw new JPLException("jpl.Float#name() is undefined");
 	}
 
 	/**
@@ -182,6 +191,14 @@ public class Float extends Term {
 		return this.value;
 	}
 
+	public final int type() {
+		return Prolog.FLOAT;
+	}
+	
+	public String typeName(){
+		return "Float";
+	}
+	
 	/**
 	 * Returns a Prolog source text representation of this Float
 	 * 
@@ -201,28 +218,10 @@ public class Float extends Term {
 		return this == obj || (obj instanceof Float && value == ((Float) obj).value);
 	}
 	
-	public final int type() {
-		return Prolog.FLOAT;
-	}
-	
-	public String typeName(){
-		return "Float";
-	}
-	
 	//==================================================================/
 	//  Methods (deprecated)
 	//==================================================================/
 
-	/**
-	 * The (nonexistent) args of this Float
-	 * 
-	 * @return the (nonexistent) args of this Float
-	 * @deprecated
-	 */
-	public Term[] args() {
-		return new Term[] {};
-	}
-	
 	/**
 	 * The immutable value of this jpl.Float object, as a Java double
 	 * 
@@ -270,7 +269,7 @@ public class Float extends Term {
 	 * @param   term             The Prolog term (a float) to convert
 	 * @return                   A new Float instance
 	 */
-	protected static Term getTerm(Map vars_to_Vars, term_t term) {
+	protected static Term getTerm1(Map vars_to_Vars, term_t term) {
 		DoubleHolder double_holder = new DoubleHolder();
 
 		Prolog.get_float(term, double_holder); // assume it succeeds...

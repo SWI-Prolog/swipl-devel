@@ -4,6 +4,7 @@ classes
 jpl.dll
 jpl.so
 jpl.jar
+jpltest.jar
 config.h
 config.log
 Makefile

@@ -60,10 +60,14 @@ import jpl.fli.Prolog;
  */
 public class JPL {
 	protected static final boolean DEBUG = false;
+	//
+	public static final Term JFALSE = new Compound("@", new Term[] {new Atom("false")});
+	public static final Term JTRUE = new Compound("@", new Term[] {new Atom("true")});
+	public static final Term JNULL = new Compound("@", new Term[] {new Atom("null")});
+	public static final Term JVOID = new Compound("@", new Term[] {new Atom("void")});
 	
 	protected static boolean modeDontTellMe = true;
 
-	//------------------------------------------------------------------/
 	// setDTMMode
 	/**
 	 * Sets the global "dont-tell-me" mode (default value: true).
@@ -83,7 +87,6 @@ public class JPL {
 		modeDontTellMe = dtm;
 	}
 	
-	//------------------------------------------------------------------/
 	// getDefaultInitArgs
 	/**
 	 * Returns, in an array of String, the sequence of command-line
@@ -98,7 +101,6 @@ public class JPL {
 		return Prolog.get_default_init_args();
 	}
 
-	//------------------------------------------------------------------/
 	// setDefaultInitArgs
 	/**
 	 * Specifies, in an array of String, the sequence of command-line
@@ -110,7 +112,6 @@ public class JPL {
 		Prolog.set_default_init_args(args);
 	}
 
-	//------------------------------------------------------------------/
 	// getActualInitArgs
 	/**
 	 * Returns, in an array of String, the sequence of command-line
@@ -125,7 +126,6 @@ public class JPL {
 		return Prolog.get_actual_init_args();
 	}
 
-	//------------------------------------------------------------------/
 	// init
 	/**
 	 * Initializes the Prolog engine, using the String argument
@@ -145,7 +145,6 @@ public class JPL {
 		return Prolog.set_default_init_args(args) && init();
 	}
 
-	//------------------------------------------------------------------/
 	// init
 	/**
 	 * Initialises the Prolog engine using the current default initialisation parameters,
@@ -155,7 +154,22 @@ public class JPL {
 		return Prolog.initialise();
 	}
 
-	//------------------------------------------------------------------/
+	// isTag(String)
+	/**
+	 * whether the String arg is a plausible tag, e.g. "J#0123456789".
+	 */
+	public static boolean isTag(String s) {
+		return s.length()==12 && s.charAt(0)=='J' && s.charAt(1)=='#' && Character.isDigit(s.charAt(2)) && Character.isDigit(s.charAt(3)) && Character.isDigit(s.charAt(4)) && Character.isDigit(s.charAt(5)) && Character.isDigit(s.charAt(6)) && Character.isDigit(s.charAt(7)) && Character.isDigit(s.charAt(8)) && Character.isDigit(s.charAt(9)) && Character.isDigit(s.charAt(10)) && Character.isDigit(s.charAt(11));
+	}
+
+	// newJRef(Object)
+	/**
+	 * returns a new Term instance which represents the given object
+	 */
+	public static Term newJRef(Object obj) {
+		return new Compound( "@", new Term[]{new Atom(Prolog.object_to_tag(obj))});
+	}
+
 	// halt
 	/**
 	 * Terminates the Prolog session.<p>
@@ -171,7 +185,6 @@ public class JPL {
 	// a static reference to the current Version
 	private static final Version version_ = new Version();
 
-	//------------------------------------------------------------------/
 	// version
 	/**
 	 * Returns (as a Version) an identification of this version of JPL.
@@ -181,7 +194,6 @@ public class JPL {
 		return version_;
 	}
 
-	//------------------------------------------------------------------/
 	// version_string
 	/**
 	 * Returns a String (eg "3.0.0-alpha") identifying this version of JPL.
