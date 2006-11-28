@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#236: setenv/2 error reporting.  Keri Harris.
+
   * ADDED: Flag shared_object_search_path holding variable name for the
     searching .so/.dll files.
 

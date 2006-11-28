@@ -2179,19 +2179,19 @@ PopTty(IOSTREAM *s, ttybuf *buf)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Simple  library  to  manipulate  the  Unix  environment.   The  modified
-environment  will  be  passed  to  child  processes  and the can also be
-requested via getenv/2 from Prolog.  Functions
+Simple  library  to  manipulate  the    OS   environment.  The  modified
+environment will be passed to  child  processes   and  the  can  also be
+requested via getenv/2 from Prolog. Functions
 
-    char *Setenv(name, value)
+    int Setenv(name, value)
          char *name, *value;
 	
-    Set the Unix environment variable with name `name'.   If  it  exists
+    Set the OS environment variable with name `name'.   If  it  exists
     its  value  is  changed, otherwise a new entry in the environment is
     created.  The return value is a pointer to the old value, or NULL if
     the variable is new.
 
-    char *Unsetenv(name)
+    int Unsetenv(name)
          char *name;
 
     Delete a variable from the environment.  Return  value  is  the  old

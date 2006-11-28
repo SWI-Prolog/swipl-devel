@@ -81,9 +81,7 @@ pl_setenv(term_t var, term_t value)
 
   if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN|BUF_RING) &&
        PL_get_chars_ex(value, &v, CVT_ALL|REP_FN) )
-  { Setenv(n, v);
-    succeed;
-  }
+    return Setenv(n, v);
 
   fail;
 }
