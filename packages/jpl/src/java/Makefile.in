@@ -47,7 +47,6 @@ TEST=	jpl/test/Family.java \
 	jpl/test/Ga2.java \
 	jpl/test/Ga.java \
 	jpl/test/Garbo.java \
-	jpl/test/JPLTest.java \
 	jpl/test/Masstest.java \
 	jpl/test/MaxObjects.java \
 	jpl/test/ShadowA.java \
