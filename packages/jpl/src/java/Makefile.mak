@@ -65,7 +65,7 @@ $(JPLJAR):	$(JPLJAVA)
 		$(JAR) cf $(JPLJAR) $(JPLJAVA:.java=.class)
 
 $(TSTJAR):	$(JPLJAR) $(TSTJAVA) 
-		$(JAVAC) -classpath $(JPLJAR);$(JUNIT) $(TSTJAVA)
+		$(JAVAC) -classpath "$(JPLJAR);$(JUNIT)" $(TSTJAVA)
 		$(JAR) cf $(TSTJAR) $(TSTJAVA:.java=.class)
 
 clean::

@@ -4405,7 +4405,9 @@ user:file_search_path(jar, swi(lib)).
 
 %%	add_search_path(+Var, +Value) is det.
 %
-%	Add value to search-path Var.  Value is normally a directory.
+%	Add value to the end of  search-path   Var.  Value is normally a
+%	directory. Does not change the environment  if Dir is already in
+%	Var.
 %	
 %	@param Value	Path to add in OS notation.
 
@@ -4415,8 +4417,12 @@ add_search_path(Path, Dir) :-
 	    ->	Sep = (;)
 	    ;	Sep = (:)
 	    ),
-	    concat_atom([Old, Sep, Dir], New),
-	    setenv(Path, New)
+	    (	concat_atom(Current, Sep, Old),
+		memberchk(Dir, Current)
+	    ->	true			% already present
+	    ;	concat_atom([Old, Sep, Dir], New),
+		setenv(Path, New)
+	    )
 	;   setenv(Path, Dir)
 	).
 
