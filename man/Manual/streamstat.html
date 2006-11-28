@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section 4.17</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.23 Reference Manual: Section 4.17</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="IO.html">
@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -100,7 +104,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -208,9 +212,9 @@ Define error behaviour on errors when opening a file for reading or
 writing. Valid values are the atoms <CODE>on</CODE> (default) and <CODE>off</CODE>. 
 First <VAR>Old</VAR> is unified with the current value. Then the new 
 value is set to <VAR>New</VAR>.<SUP class="fn">40<SPAN class="fn-text">Note 
-that Edinburgh Prolog defines <A NAME="idx:fileerrors0:704"></A><B>fileerrors/0</B> 
-and <A NAME="idx:nofileerrors0:705"></A><B>nofileerrors/0</B>. As this 
-does not allow you to switch back to the old mode I think this 
+that Edinburgh Prolog defines <A NAME="idx:fileerrors0:704"></A><SPAN class="pred-ext">fileerrors/0</SPAN> 
+and <A NAME="idx:nofileerrors0:705"></A><SPAN class="pred-ext">nofileerrors/0</SPAN>. 
+As this does not allow you to switch back to the old mode I think this 
 definition is better.</SPAN></SUP>
 
 <P>With the introduction of exception-handling, it is advised to use

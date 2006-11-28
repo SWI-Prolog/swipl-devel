@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.6.24, distributed with SWI-Prolog 5.6.24
+==================================================
+
 * FIXED: Bug in srcsink<-contents, showing up after 64-bit fix below.
 
 * FIXED: 64-bit issue in XPCE stream class (also affecting socket and

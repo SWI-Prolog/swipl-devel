@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section 4.22</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.23 Reference Manual: Section 4.22</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="manipatom.html">
@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -100,7 +104,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -333,9 +337,9 @@ unreadable string.</DD>
 -Sorted</VAR>)</A></DT>
 <DD class="defbody">
 Sort a list of atoms using the current locale. <VAR>List</VAR> is a list 
-of atoms or string objects (see <B>section ??</B>). <VAR>Sorted</VAR> is 
-unified with a list containing all atoms of <VAR>List</VAR>, sorted to 
-the rules of the current locale. See also <A NAME="idx:collationkey2:877"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
+of atoms or string objects (see <A class="sec" href="strings.html">section 
+4.23</A>). <VAR>Sorted</VAR> is unified with a list containing all atoms 
+of <VAR>List</VAR>, sorted to the rules of the current locale. See also <A NAME="idx:collationkey2:877"></A><A class="pred" href="chartype.html#collation_key/2">collation_key/2</A> 
 and
 <A NAME="idx:setlocale3:878"></A><A class="pred" href="system.html#setlocale/3">setlocale/3</A>.
 </DD>

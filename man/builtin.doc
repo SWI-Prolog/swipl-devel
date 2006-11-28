@@ -3684,7 +3684,7 @@ string.
 
     \predicate{locale_sort}{2}{+List, -Sorted}
 Sort a list of atoms using the current locale.  \arg{List} is a list
-of atoms or string objects (see \secref{string}).  \arg{Sorted} is
+of atoms or string objects (see \secref{strings}).  \arg{Sorted} is
 unified with a list containing all atoms of \arg{List}, sorted to
 the rules of the current locale.  See also collation_key/2 and
 setlocale/3.

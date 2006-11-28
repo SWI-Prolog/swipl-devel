@@ -12,7 +12,7 @@
                          SSWWII--PPrroolloogg 55..66
 
                         RReeffeerreennccee MMaannuuaall
-           _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._2_3_, _N_o_v_e_m_b_e_r _2_0_0_6
+           _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._6_._2_4_, _N_o_v_e_m_b_e_r _2_0_0_6
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                     wielemak@science.uva.nl
@@ -1848,6 +1848,10 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          .so for  most Unix  systems and  .dll for  Windows.   Used  for
          locating  files using  the  file_type  executable.    See  also
          absolute_file_name/3.
+
+    sshhaarreedd__oobbjjeecctt__sseeaarrcchh__ppaatthh _(_a_t_o_m_)
+         Name of the environment  variable used by the system  to search
+         for shared objects.
 
     ssiiggnnaallss _(_b_o_o_l_)
          Determine  whether   Prolog  is   handling  signals   (software
@@ -7127,7 +7131,7 @@ ccoollllaattiioonn__kkeeyy((_+_A_t_o_m_, _-_K_e_y))
 
 llooccaallee__ssoorrtt((_+_L_i_s_t_, _-_S_o_r_t_e_d))
     Sort  a list of atoms using the current  locale.  _L_i_s_t is a  list of
-    atoms  or string objects (see section  ????).  _S_o_r_t_e_d is unified  with
+    atoms or string objects  (see section 4.23).  _S_o_r_t_e_d is unified with
     a  list containing all  atoms of  _L_i_s_t, sorted to  the rules of  the
     current locale.  See also collation_key/2 and setlocale/3.
 

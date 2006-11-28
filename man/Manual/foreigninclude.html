@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section 9.6</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.23 Reference Manual: Section 9.6</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="foreigntypes.html">
@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -100,7 +104,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -863,7 +867,7 @@ example: defining write/1 in C</SPAN></A></H4>
 <P><A class="fig" href="foreigninclude.html#fig:pl-display">Figure 9</A> 
 shows a simplified definition of <A NAME="idx:write1:1284"></A><A class="pred" href="termrw.html#write/1">write/1</A> 
 to illustrate the described functions. This simplified version does not 
-deal with operators. It is called <A NAME="idx:display1:1285"></A><B>display/1</B>, 
+deal with operators. It is called <A NAME="idx:display1:1285"></A><SPAN class="pred-ext">display/1</SPAN>, 
 because it mimics closely the behaviour of this Edinburgh predicate.
 
 <PRE class="code">
@@ -907,7 +911,7 @@ pl_display(term_t t)
 </PRE>
 
 <TABLE ALIGN=center WIDTH="75%"><TR><TD>
-<B>Figure 9 : </B>A Foreign definition of <A NAME="idx:display1:1286"></A><B>display/1</B></TABLE>
+<B>Figure 9 : </B>A Foreign definition of <A NAME="idx:display1:1286"></A><SPAN class="pred-ext">display/1</SPAN></TABLE>
 
 <A NAME="fig:pl-display"></A>
 

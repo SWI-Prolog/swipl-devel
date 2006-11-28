@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.22 Reference Manual: Section 4.10</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.23 Reference Manual: Section 4.10</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="exception.html">
@@ -93,6 +93,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -100,7 +104,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -195,7 +199,7 @@ install()
 <P>Next, we can define the Prolog below. This will run <VAR>Goal</VAR> 
 just as <A NAME="idx:once1:519"></A><A class="pred" href="metacall.html#once/1">once/1</A>, 
 throwing the exception <CODE>error(signal(alrm, _), _)</CODE> if a 
-timeout occurs.<SUP class="fn">28<SPAN class="fn-text">Note that <A NAME="idx:callwithtimelimit2:520"></A><B>call_with_time_limit/2</B> 
+timeout occurs.<SUP class="fn">28<SPAN class="fn-text">Note that <A NAME="idx:callwithtimelimit2:520"></A><SPAN class="pred-ext">call_with_time_limit/2</SPAN> 
 is defined in <CODE>library(time)</CODE>, part of the `clib' package. 
 The version provided in the library runs on POSIX systems as well as 
 MS-Windows and can schedule multiple concurrent alarms.</SPAN></SUP>

@@ -57,29 +57,18 @@ full  thread-safety,  transaction  support  and   triggers  in  the  RDF
 store.
 
 
-Version 5.6.23 Patches relative to 5.6.22
+Version 5.6.24 Patches relative to 5.6.23
 =========================================
-
-Primary development platform switched to 64-bit Linux.
 
 Prolog
 
-  * Various installation issues in mixed 32/64 bit systems when not installing
-    for the platform default.
-  * Locale based comparison
-  * Moved predsort and friends to new library(sort)
-  * Multi-threaded recompilation crash.
-  * Minor stuff.
+  * Crash in file-name canonisation.
+  * Various minor issues, many related to portability.
 							    
 Packages
 
-  * SemWeb: Two bugs in rdf_has/3, memory leak searching for literals.
-  * Sgml2pl: Support UNICODE in XML tags and attribute names.
-  * JPL: Some fixes for 64-bit platforms.  Compiles, but runs unstable.
-    Working on it with Paul Singleton.
-  * HTTP: Documentation and minor stuff
-  * PlDoc: failed on trailing whitespace in comments.  Allow changing
-    URL locations.
-  * PlUnit: Allow tracing body of tests.
-  * XPCE: (Windows version) Possible crash in pce-emacs on unicode files.
-  * GUI Tracer: properly support multiple threads, now also on Windows.
+  * Sgml2pl: Fixed handling of <?pi> (broken in 5.6.23)
+  * SemWeb: Fixed error in rdf_has.
+  * XPCE: Fixed stream handling on 64-bit platforms.
+  * JPL: Moved to version 3.1.  Highlights: Unicode support, 64-bit
+    integers, support for 64-bit versions of Prolog and JVM.
