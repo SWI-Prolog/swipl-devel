@@ -4817,7 +4817,7 @@ JNIEXPORT jobject JNICALL
 
 	if ( jobj!=NULL && jni_object_to_iref(jobj,&iref) ) {
 		// Sdprintf("jni_object_to_iref() done\n");
-		sprintf( abuf, "J#%010lu", iref);	// oughta encapsulate this mapping...
+		sprintf( abuf, "J#%020lu", iref);	// oughta encapsulate this mapping...
 		// Sdprintf("sprintf() done\n");
 		return (*env)->NewStringUTF(env,abuf); // a tag is always Latin-1
 	} else {
