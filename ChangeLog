@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Bug#237: Use clock_gettime() for get_time/1 if provided.
+    Keri Harris.
+
   * FIXED: Bug#236: setenv/2 error reporting.  Keri Harris.
 
   * ADDED: Flag shared_object_search_path holding variable name for the

@@ -301,6 +301,12 @@ double
 WallTime(void)
 { double stime;
 
+#if HAVE_CLOCK_GETTIME
+  struct timespec tp;
+
+  clock_gettime(CLOCK_REALTIME, &tp);
+  stime = (double)tp.tv_sec + (double)tp.tv_nsec/1000000000.0;
+#else
 #ifdef HAVE_GETTIMEOFDAY
   struct timeval tp;
 
@@ -314,6 +320,7 @@ WallTime(void)
   stime = (double)tb.time + (double)tb.millitm/1000.0;
 #else
   stime = (double)time((time_t *)NULL);
+#endif
 #endif
 #endif
 
@@ -2894,7 +2901,11 @@ Pause(real t)
 
 int
 Pause(real t)
-{ usleep((unsigned long)(t * 1000000.0));
+{
+  if ( t <= 0.0 )
+    return;
+
+  usleep((unsigned long)(t * 1000000.0));
 
   return TRUE;
 }
