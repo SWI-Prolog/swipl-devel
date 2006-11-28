@@ -11,6 +11,9 @@
 VERSION 5.6.24 (November 28, 2006)
 ==================================
 
+  * FIXED: dde_request to progman returning nul-characters at the end.
+    Windows XP/SP2 returns wrong length for the CF_TEXT result.
+
   * PORT: Bug#237: Use clock_gettime() for get_time/1 if provided.
     Keri Harris.
 
