@@ -6616,7 +6616,8 @@ propagation_single_headed(Head,ID,Rule,RuleNb,F/A,O,Id,ProgramList,ProgramTail) 
 		gen_occ_allocation(F/A,O,Vars,Susp,Allocation),
 
 		( named_history(RuleNb,HistoryName,HistoryIDs) ->
-			Tuple =.. [t,HistoryName,Susp] 
+			% Tuple =.. [t,HistoryName,Susp] 
+			Tuple = HistoryName
 		;
 			Tuple = RuleNb
 		),
@@ -6797,21 +6798,32 @@ propagation_body(CurrentHead,PreHeads,RestIDs,Rule,RuleNb,F/A,O,Id,L,T) :-
 		use_auxiliary_predicate(extend_history),
 		does_use_history(F/A,O),
 		( named_history(RuleNb,HistoryName,HistoryIDs) ->
-			named_history_susps(HistoryIDs,[ID|RestIDs],[Susp,OtherSusp|RestSusps],HistorySusps),
-			findall(ConstraintSymbol,(member(SomeID,HistoryIDs),get_occurrence_from_id(ConstraintSymbol,_,RuleNb,SomeID)),ConstraintSymbols),
-			Tuple =.. [t,HistoryName|HistorySusps],
+			reverse([OtherSusp|RestSusps],NamedSusps),
+			named_history_susps(HistoryIDs,[ID|RestIDs],[Susp|NamedSusps],HistorySusps),
 			HistorySusps = [HistorySusp|_],
-			ExtendHistory = '$extend_history'(HistorySusp,TupleVar)
+			
+			( length(HistoryIDs, 1) ->
+				ExtendHistory = '$extend_history'(HistorySusp,HistoryName),
+				NovelProduction = '$novel_production'(HistorySusp,HistoryName)
+			;
+				findall(ConstraintSymbol,(member(SomeID,HistoryIDs),get_occurrence_from_id(ConstraintSymbol,_,RuleNb,SomeID)),ConstraintSymbols),
+				Tuple =.. [t,HistoryName|HistorySusps]
+			)
 		;
-			findall(Functor/Arity,(member(H,H2),functor(H,Functor,Arity)),ConstraintSymbols),	
+			HistorySusp = Susp,
+			findall(Functor/Arity,(member(H,H2),functor(H,Functor,Arity)),ConstraintSymbols),
 			sort([ID|RestIDs],HistoryIDs),
 			history_susps(RestIDs,[OtherSusp|RestSusps],Susp,ID,HistorySusps),
-			Tuple =.. [t,RuleNb|HistorySusps],
-			ExtendHistory = '$extend_history'(Susp,TupleVar)
+			Tuple =.. [t,RuleNb|HistorySusps]
 		),
 	
-		novel_production_calls(ConstraintSymbols,HistoryIDs,HistorySusps,RuleNb,TupleVar,NovelProductions),
-		NovelProduction = ( TupleVar = Tuple, NovelProductions)
+		( var(NovelProduction) ->
+			novel_production_calls(ConstraintSymbols,HistoryIDs,HistorySusps,RuleNb,TupleVar,NovelProductions),
+			ExtendHistory = '$extend_history'(HistorySusp,TupleVar),
+			NovelProduction = ( TupleVar = Tuple, NovelProductions)
+		;
+			true
+		)
 	),
 
 
