@@ -84,7 +84,7 @@ else
 fi
 
 AC_CHECK_HEADERS(zlib.h)
-AC_CHECK_LIB(zlib, zlibVersion)
+AC_CHECK_LIB(z, zlibVersion)
 PLTARGETS=zlib
 
 AC_OUTPUT(Makefile)

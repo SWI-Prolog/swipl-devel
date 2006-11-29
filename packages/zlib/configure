@@ -3933,13 +3933,13 @@ fi
 done
 
 
-echo "$as_me:$LINENO: checking for zlibVersion in -lzlib" >&5
-echo $ECHO_N "checking for zlibVersion in -lzlib... $ECHO_C" >&6
-if test "${ac_cv_lib_zlib_zlibVersion+set}" = set; then
+echo "$as_me:$LINENO: checking for zlibVersion in -lz" >&5
+echo $ECHO_N "checking for zlibVersion in -lz... $ECHO_C" >&6
+if test "${ac_cv_lib_z_zlibVersion+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lzlib  $LIBS"
+LIBS="-lz  $LIBS"
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -3984,25 +3984,25 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_lib_zlib_zlibVersion=yes
+  ac_cv_lib_z_zlibVersion=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_lib_zlib_zlibVersion=no
+ac_cv_lib_z_zlibVersion=no
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_zlib_zlibVersion" >&5
-echo "${ECHO_T}$ac_cv_lib_zlib_zlibVersion" >&6
-if test $ac_cv_lib_zlib_zlibVersion = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_lib_z_zlibVersion" >&5
+echo "${ECHO_T}$ac_cv_lib_z_zlibVersion" >&6
+if test $ac_cv_lib_z_zlibVersion = yes; then
   cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBZLIB 1
+#define HAVE_LIBZ 1
 _ACEOF
 
-  LIBS="-lzlib $LIBS"
+  LIBS="-lz $LIBS"
 
 fi
 

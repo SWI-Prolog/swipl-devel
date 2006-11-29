@@ -50,7 +50,7 @@ ZOBJ=		zlib4pl.o
 all:		$(TARGETS)
 
 zlib4pl.@SO@:	$(ZOBJ)
-		$(LD) $(LDFLAGS) -o $@ $(ZOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(ZOBJ) $(LIBS)
 
 install:	$(TARGETS) $(LIBPL)
 		mkdir -p $(DESTDIR)$(PLBASE)/lib/$(PLARCH)
