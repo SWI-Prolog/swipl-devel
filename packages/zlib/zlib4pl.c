@@ -28,10 +28,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 #include <zlib.h>
+#include <zutil.h>
 
 static functor_t FUNCTOR_error2;	/* error(Formal, Context) */
 static functor_t FUNCTOR_type_error2;	/* type_error(Term, Expected) */
+static functor_t FUNCTOR_domain_error2;	/* domain_error(Term, Expected) */
+static functor_t FUNCTOR_format1;	/* format(Format) */
+static functor_t FUNCTOR_level1;	/* level(Int) */
+static atom_t	 ATOM_gzip;
+static atom_t	 ATOM_zlib;
 static int debuglevel = 0;
 
 #ifdef O_DEBUG
@@ -58,6 +65,37 @@ type_error(term_t actual, const char *expected)
 }
 
 
+static int
+domain_error(term_t actual, const char *domain)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_domain_error2,
+		        PL_CHARS, domain,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
+static int
+get_atom_ex(term_t t, atom_t *a)
+{ if ( PL_get_atom(t, a) )
+    return TRUE;
+
+  return type_error(t, "atom");
+}
+
+static int
+get_int_ex(term_t t, int *i)
+{ if ( PL_get_integer(t, i) )
+    return TRUE;
+
+  return type_error(t, "integer");
+}
+
+
 		 /*******************************
 		 *	       TYPES		*
 		 *******************************/
@@ -67,7 +105,7 @@ type_error(term_t actual, const char *expected)
 typedef enum
 { F_UNKNOWN = 0,
   F_GZIP,				/* gzip output */
-  F_INFLATE				/* zlib data */
+  F_ZLIB				/* zlib data */
 } zformat;
 
 typedef struct z_context
@@ -75,6 +113,7 @@ typedef struct z_context
   void	           *wrapped_handle;	/* saved handle of stream */
   IOFUNCTIONS      *wrapped_functions;	/* saved IO functions */
   zformat	    format;		/* current format */
+  uLong		    crc;		/* CRC check */
   z_stream	    zstate;		/* Zlib state */
   Bytef		    buffer[BUFSIZE];	/* Raw data buffer */
 } z_context;
@@ -88,14 +127,37 @@ alloc_zcontext(IOSTREAM *s)
   ctx->stream            = s;
   ctx->wrapped_handle    = s->handle;
   ctx->wrapped_functions = s->functions;
+  ctx->crc		 = crc32(0L, Z_NULL, 0);
 
   return ctx;
+}
+
+
+static int
+write_wrapped(z_context *ctx, char *buf, int size)
+{ char *from = buf;
+  int left = size;
+
+  while(left>0)
+  { int n;
+
+    if ( (n=(*ctx->wrapped_functions->write)(ctx->wrapped_handle, from, left)) < 0 )
+      return -1;
+    from += n;
+    left -= n;
+  }
+
+  return size;
 }
 
 
 		 /*******************************
 		 *	     GZIP HEADER	*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Code based on gzio.c from the zlib source distribution.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
 
@@ -176,6 +238,55 @@ gz_skip_header(z_context *ctx, Bytef *in, int avail)
 
   return in;
 }
+
+
+static Bytef *
+add_ulong_lsb(Bytef *out, unsigned long x)
+{ *out++ = (x)    &0xff;
+  *out++ = (x>>8) &0xff;
+  *out++ = (x>>16)&0xff;
+  *out++ = (x>>24)&0xff;
+
+  return out;
+}
+
+
+static int
+write_gzip_header(z_context *ctx)
+{ Bytef *out = ctx->buffer;
+  time_t stamp = time(NULL);
+
+  *out++ = gz_magic[0];
+  *out++ = gz_magic[1];
+  *out++ = Z_DEFLATED;			/* method */
+  *out++ = 0;				/* flags */
+  out = add_ulong_lsb(out, stamp);
+  *out++ = 0;				/* xflags */
+  *out++ = OS_CODE;
+
+  Sfwrite(ctx->buffer, 1, out - ctx->buffer, ctx->stream);
+  if ( Sflush(ctx->stream) < 0 )
+    return FALSE;			/* TBD: error? */
+  
+  return TRUE;
+}
+
+
+static int
+write_gzip_footer(z_context *ctx)
+{ Bytef *out = ctx->buffer;
+
+  out = add_ulong_lsb(out, ctx->crc);	/* CRC32 */
+  out = add_ulong_lsb(out, ctx->zstate.total_in);	/* Total length */
+
+  if ( write_wrapped(ctx, (char*)ctx->buffer, out - ctx->buffer) < 0 )
+    return -1;
+
+  return 0;
+}
+
+
+
 
 
 		 /*******************************
@@ -283,6 +394,7 @@ zwrite(void *handle, char *buf, int size)
 
   ctx->zstate.next_in = (Bytef*)buf;
   ctx->zstate.avail_in = size;
+  ctx->crc = crc32(ctx->crc, ctx->zstate.next_in, ctx->zstate.avail_in);
 
   do
   { int rc;
@@ -294,20 +406,13 @@ zwrite(void *handle, char *buf, int size)
     { case Z_OK:
       case Z_STREAM_END:
       { int n = sizeof(ctx->buffer) - ctx->zstate.avail_out;
-	char *from = (char*)ctx->buffer;
 
 	DEBUG(1, Sdprintf("Compressed (%s) to %d bytes; left %d\n",
 			  rc == Z_OK ? "Z_OK" : "Z_STREAM_END",
 			  n, ctx->zstate.avail_in));
 
-	while(n>0)
-	{ int done;
-
-	  if ( (done=(*ctx->wrapped_functions->write)(ctx->wrapped_handle, from, n)) < 0 )
-	    return -1;
-	  from += done;
-	  n -= done;
-	}
+	if ( write_wrapped(ctx, (char*)ctx->buffer, n) < 0 )
+	  return -1;
 
 	break;
       }
@@ -350,11 +455,13 @@ zclose(void *handle)
   if ( (ctx->stream->flags & SIO_INPUT) )
   { rc = inflateEnd(&ctx->zstate);
   } else
-  { if ( zwrite(handle, NULL, 0) < 0 )	/* flush */
-    { deflateEnd(&ctx->zstate);
-      rc = -1;
-    } else
+  { rc = zwrite(handle, NULL, 0);	/* flush */
+    if ( rc == 0 && ctx->format == F_GZIP )
+      rc = write_gzip_footer(ctx);
+    if ( rc == 0 )
       rc = deflateEnd(&ctx->zstate);
+    else
+      deflateEnd(&ctx->zstate);
   }
 
   switch(rc)
@@ -422,20 +529,54 @@ enable_compressed_output(IOSTREAM *s, term_t opt)
 { z_context *ctx = alloc_zcontext(s);
   term_t tail = PL_copy_term_ref(opt);
   term_t head = PL_new_term_ref();
+  int level = Z_DEFAULT_COMPRESSION;
+  int rc;
 
   while(PL_get_list(tail, head, tail))
-  {
+  { if ( PL_is_functor(head, FUNCTOR_format1) )
+    { term_t arg = PL_new_term_ref();
+      atom_t a;
+      
+      PL_get_arg(1, head, arg);
+      if ( !get_atom_ex(arg, &a) )
+	goto error;
+      if ( a == ATOM_gzip )
+	ctx->format = F_GZIP;
+      else if ( a == ATOM_zlib )
+	ctx->format = F_ZLIB;
+      else
+	return domain_error(arg, "compression_format");
+    } else if ( PL_is_functor(head, FUNCTOR_level1) )
+    { term_t arg = PL_new_term_ref();
+      
+      PL_get_arg(1, head, arg);
+      if ( !get_int_ex(arg, &level) )
+	goto error;
+      if ( level < 0 || level > 9 )
+      { domain_error(arg, "compression_level");
+	goto error;
+      }
+    }
   }
   if ( !PL_get_nil(tail) )
-  { PL_free(s);
-    return type_error(tail, "list");
+  { type_error(tail, "list");
+  error:
+    PL_free(s);
+    return FALSE;
   }
 
-  s->functions = &zfunctions;
-  s->handle    = ctx;
+  if ( ctx->format == F_GZIP )
+  { if ( !write_gzip_header(ctx) )
+      return FALSE;
+    rc = deflateInit2(&ctx->zstate, level, Z_DEFLATED, -MAX_WBITS, DEF_MEM_LEVEL, 0);
+  } else
+  { rc = deflateInit(&ctx->zstate, level);
+  }
 
-  switch(deflateInit(&ctx->zstate, Z_DEFAULT_COMPRESSION))
+  switch( rc )
   { case Z_OK:
+      s->functions = &zfunctions;
+      s->handle    = ctx;
       return TRUE;
     case Z_MEM_ERROR:			/* no memory */
     case Z_STREAM_ERROR:		/* bad compression level */
@@ -477,8 +618,13 @@ zdebug(term_t level)
 
 install_t
 install_zlib4pl()
-{ FUNCTOR_error2		 = MKFUNCTOR("error", 2);
-  FUNCTOR_type_error2		 = MKFUNCTOR("type_error", 2);
+{ FUNCTOR_error2        = MKFUNCTOR("error", 2);
+  FUNCTOR_type_error2   = MKFUNCTOR("type_error", 2);
+  FUNCTOR_domain_error2 = MKFUNCTOR("domain_error", 2);
+  FUNCTOR_format1       = MKFUNCTOR("format", 1);
+  FUNCTOR_level1        = MKFUNCTOR("level", 1);
+  ATOM_gzip	        = PL_new_atom("gzip");
+  ATOM_zlib	        = PL_new_atom("zlib");
 
   PL_register_foreign("zset",   2, zset,   0);
 #ifdef O_DEBUG
