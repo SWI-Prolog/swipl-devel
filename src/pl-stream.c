@@ -2378,6 +2378,7 @@ Scontrol_file(void *handle, int action, void *arg)
       return -1;
     }
     case SIO_SETENCODING:
+    case SIO_FLUSH:
       return 0;
     default:
       return -1;
