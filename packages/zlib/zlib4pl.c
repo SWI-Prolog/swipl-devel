@@ -64,11 +64,17 @@ type_error(term_t actual, const char *expected)
 
 #define BUFSIZE SIO_BUFSIZE		/* raw I/O buffer */
 
+typedef enum
+{ F_UNKNOWN = 0,
+  F_GZIP,				/* gzip output */
+  F_INFLATE				/* zlib data */
+} zformat;
+
 typedef struct z_context
 { IOSTREAM	   *stream;		/* modified stream */
   void	           *wrapped_handle;	/* saved handle of stream */
   IOFUNCTIONS      *wrapped_functions;	/* saved IO functions */
-  int		    header_done;	/* have we seen the header? */
+  zformat	    format;		/* current format */
   z_stream	    zstate;		/* Zlib state */
   Bytef		    buffer[BUFSIZE];	/* Raw data buffer */
 } z_context;
@@ -101,6 +107,16 @@ static int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
 #define COMMENT      0x10 /* bit 4 set: file comment present */
 #define RESERVED     0xE0 /* bits 5..7: reserved */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+gz_skip_header() parses the gzip file-header.  return
+
+	* If ok: pointer to first byte following header
+	* If not a gzip file: NULL
+	* If still ok, but incomplete: GZHDR_SHORT
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define HDR_SHORT ((Bytef*)-1)		/* Header is incomplete */
+
 static Bytef *
 gz_skip_header(z_context *ctx, Bytef *in, int avail)
 { int method; /* method byte */
@@ -108,7 +124,7 @@ gz_skip_header(z_context *ctx, Bytef *in, int avail)
   uInt len;
 
   if ( avail < 10 )			/* 2-byte magic, method, flags, */
-    return NULL;			/* time, xflags and OS code */
+    return HDR_SHORT;			/* time, xflags and OS code */
 
   if ( in[0] != gz_magic[0] &&
        in[1] != gz_magic[1] )
@@ -132,7 +148,7 @@ gz_skip_header(z_context *ctx, Bytef *in, int avail)
     { in += len;
       avail -= len;
     } else
-    { avail = 0;
+    { return HDR_SHORT;
     }
   }
   if ((flags & ORIG_NAME) != 0)
@@ -152,7 +168,7 @@ gz_skip_header(z_context *ctx, Bytef *in, int avail)
   }
 
   if ( avail <= 0 )
-    return NULL;
+    return HDR_SHORT;
 
   return in;
 }
@@ -186,24 +202,55 @@ zread(void *handle, char *buf, int size)
   { DEBUG(1, Sdprintf("Processing %d bytes\n", ctx->zstate.avail_in));
   }
 
-  if ( !ctx->header_done )
+  ctx->zstate.next_out  = (Bytef*)buf;
+  ctx->zstate.avail_out = size;
+  
+  if ( ctx->format == F_UNKNOWN )
   { Bytef *p;
 
     DEBUG(1, Sdprintf("Trying gzip header\n"));
-    if ( (p = gz_skip_header(ctx, ctx->zstate.next_in, ctx->zstate.avail_in)) )
-    { int m = p-ctx->zstate.next_in;
+    while( (p = gz_skip_header(ctx, ctx->zstate.next_in,
+			       ctx->zstate.avail_in)) == HDR_SHORT )
+    {					/* TBD: read more */
+    }
 
+    if ( p )
+    { int m = p - ctx->zstate.next_in;
+
+      ctx->format = F_GZIP;
       DEBUG(1, Sdprintf("Skipped gzip header (%d bytes)\n", m));
       ctx->zstate.next_in = p;
       ctx->zstate.avail_in -= m;
       
-      ctx->header_done = TRUE;
+					/* init without header */
+      switch(inflateInit2(&ctx->zstate, -MAX_WBITS))
+      { case Z_OK:
+	  DEBUG(1, Sdprintf("inflateInit2(): Z_OK\n"));
+	  break;
+	case Z_MEM_ERROR:			/* no memory */
+        case Z_VERSION_ERROR:		/* bad library version */
+	  PL_warning("ERROR: TBD");
+	  return -1;
+	default:
+	  assert(0);
+	  return -1;
+      }
+    } else
+    { switch(inflateInit(&ctx->zstate))
+      { case Z_OK:
+	  DEBUG(1, Sdprintf("inflateInit(): Z_OK\n"));
+	  break;
+	case Z_MEM_ERROR:		/* no memory */
+        case Z_VERSION_ERROR:		/* bad library version */
+	  PL_warning("ERROR: TBD");
+	  return -1;
+	default:
+	  assert(0);
+	  return -1;
+      }
     }
   }
 
-  ctx->zstate.next_out  = (Bytef*)buf;
-  ctx->zstate.avail_out = size;
-  
   switch((rc=inflate(&ctx->zstate, Z_NO_FLUSH)))
   { case Z_OK:
     case Z_STREAM_END:
@@ -299,6 +346,7 @@ enable_compressed_input(IOSTREAM *s, term_t opt)
   term_t tail = PL_copy_term_ref(opt);
   term_t head = PL_new_term_ref();
 
+					/* option processing */
   while(PL_get_list(tail, head, tail))
   {
   }
@@ -321,17 +369,7 @@ enable_compressed_input(IOSTREAM *s, term_t opt)
     s->bufp = s->limitp = s->buffer;
   }
 
-  switch(inflateInit2(&ctx->zstate, -MAX_WBITS))
-  { case Z_OK:
-      DEBUG(1, Sdprintf("inflateInit(): Z_OK\n"));
-      return TRUE;
-    case Z_MEM_ERROR:			/* no memory */
-    case Z_VERSION_ERROR:		/* bad library version */
-      return PL_warning("ERROR: TBD");
-    default:
-      assert(0);
-      return FALSE;
-  }
+  return TRUE;
 }
 
 
