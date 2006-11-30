@@ -220,7 +220,7 @@ setupGNUEmacsInferiorMode()
   char *s;
   int val;
 
-  if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && streq(s, "t")) ||
+  if ( ((s = Getenv("EMACS", envbuf, sizeof(envbuf))) && s[0]) ||
        ((s = Getenv("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
   { clearFeatureMask(TTY_CONTROL_FEATURE);
     val = TRUE;

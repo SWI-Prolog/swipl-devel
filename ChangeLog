@@ -7,6 +7,10 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Deal with new definition of variable EMACS after a mail from
+    the Emacs developers.  Now EMACS inferior mode is implied if $EMACS
+    is defined and non-empty.
+
 ==================================
 VERSION 5.6.24 (November 28, 2006)
 ==================================
