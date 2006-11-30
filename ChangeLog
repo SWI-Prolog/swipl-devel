@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: SIO_FLUSH to control-functions to allow flushing compressed
+    streams.
+
   * FIXED: Deal with new definition of variable EMACS after a mail from
     the Emacs developers.  Now EMACS inferior mode is implied if $EMACS
     is defined and non-empty.

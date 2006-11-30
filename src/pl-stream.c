@@ -1336,6 +1336,9 @@ Sflush(IOSTREAM *s)
 { if ( s->buffer && (s->flags & SIO_OUTPUT) )
   { if ( S__flushbuf(s) < 0 )
       return -1;
+    if ( s->functions->control &&
+	 (*s->functions->control)(s->handle, SIO_FLUSH, NULL) < 0 )
+      return -1;
   }
 
   return 0;

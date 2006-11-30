@@ -241,6 +241,7 @@ PL_EXPORT_DATA(IOSTREAM)    S__iob[3];		/* Libs standard streams */
 #define SIO_GETSIZE	(1)		/* get size of underlying object */
 #define SIO_GETFILENO	(2)		/* get underlying file (if any) */
 #define SIO_SETENCODING	(3)		/* modify encoding of stream */
+#define SIO_FLUSH	(4)		/* flush output */
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
