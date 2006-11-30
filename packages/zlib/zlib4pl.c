@@ -116,6 +116,12 @@ gz_skip_header() parses the gzip file-header.  return
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define HDR_SHORT ((Bytef*)-1)		/* Header is incomplete */
+#define SKIP_STRING \
+	{ while ( *in && avail > 0 ) \
+	    in++, avail--; \
+	  if ( avail > 0 ) \
+	    in++, avail--; \
+	}
 
 static Bytef *
 gz_skip_header(z_context *ctx, Bytef *in, int avail)
@@ -153,13 +159,11 @@ gz_skip_header(z_context *ctx, Bytef *in, int avail)
   }
   if ((flags & ORIG_NAME) != 0)
   { /* skip the original file name */
-    while ( *in && avail > 0 )
-      in++, avail--;
+    SKIP_STRING
   }
   if ((flags & COMMENT) != 0)
   {   /* skip the .gz file comment */
-    while ( *in && avail > 0 )
-      in++, avail--;
+    SKIP_STRING
   }
   if ((flags & HEAD_CRC) != 0)
   {  /* skip the header crc */
@@ -274,32 +278,65 @@ zread(void *handle, char *buf, int size)
 
 static int				/* deflate */
 zwrite(void *handle, char *buf, int size)
-{ //z_context *ctx = handle;
+{ z_context *ctx = handle;
+  int flush = (size == 0 ? Z_FINISH : Z_NO_FLUSH);
 
-#if 0
-  if ( ctx->zstate.in_avail == 0 )
-  { int n;
+  ctx->zstate.next_in = (Bytef*)buf;
+  ctx->zstate.avail_in = size;
 
-    n = (*ctx->wrapped_functions->read)(ctx->handle, ctx->buffer, BUFSIZE);
-    if ( n < 0 )
-    { return -1;
-    } else if ( n == 0 )		/* end-of-file */
-    {
-    } else
-    { ctx->state.next_in = ctx->buffer;
-      ctx->state.avail_in = n;
+  do
+  { int rc;
+
+    DEBUG(1, Sdprintf("Compressing %d bytes\n", ctx->zstate.avail_in));
+    ctx->zstate.next_out  = ctx->buffer;
+    ctx->zstate.avail_out = sizeof(ctx->buffer);
+    switch( (rc = deflate(&ctx->zstate, flush)) )
+    { case Z_OK:
+      case Z_STREAM_END:
+      { int n = sizeof(ctx->buffer) - ctx->zstate.avail_out;
+	char *from = (char*)ctx->buffer;
+
+	DEBUG(1, Sdprintf("Compressed (%s) to %d bytes; left %d\n",
+			  rc == Z_OK ? "Z_OK" : "Z_STREAM_END",
+			  n, ctx->zstate.avail_in));
+
+	while(n>0)
+	{ int done;
+
+	  if ( (done=(*ctx->wrapped_functions->write)(ctx->wrapped_handle, from, n)) < 0 )
+	    return -1;
+	  from += done;
+	  n -= done;
+	}
+
+	break;
+      }
+      case Z_STREAM_ERROR:
+      case Z_BUF_ERROR:
+      default:
+	Sdprintf("zwrite(): %s\n", ctx->zstate.msg);
+        return -1;
     }
-  }
+  } while( ctx->zstate.avail_in > 0 );
 
-  ctx->state.next_out = buf;
-  ctx->state.avail_out = size;
-  
-  switch(deflate(&ctx->state, Z_NO_FLUSH))
-  {
-  }
-#endif
+  return size;
+}
 
-  return -1;
+
+static int
+zcontrol(void *handle, int op, void *data)
+{ z_context *ctx = handle;
+
+  switch(op)
+  { case SIO_FLUSH:
+      return zwrite(handle, NULL, 0);
+    case SIO_SETENCODING:
+      return 0;				/* allow switching encoding */
+    default:
+      if ( ctx->wrapped_functions->control )
+	return (*ctx->wrapped_functions->control)(ctx->wrapped_handle, op, data);
+      return -1;
+  }
 }
 
 
@@ -308,10 +345,17 @@ zclose(void *handle)
 { z_context *ctx = handle;
   int rc;
 
+  DEBUG(1, Sdprintf("zclose() ...\n"));
+
   if ( (ctx->stream->flags & SIO_INPUT) )
-    rc = inflateEnd(&ctx->zstate);
-  else
-    rc = deflateEnd(&ctx->zstate);
+  { rc = inflateEnd(&ctx->zstate);
+  } else
+  { if ( zwrite(handle, NULL, 0) < 0 )	/* flush */
+    { deflateEnd(&ctx->zstate);
+      rc = -1;
+    } else
+      rc = deflateEnd(&ctx->zstate);
+  }
 
   switch(rc)
   { case Z_OK:
@@ -330,7 +374,7 @@ static IOFUNCTIONS zfunctions =
   zwrite,
   NULL,					/* seek */
   zclose,
-  NULL,					/* zcontrol */
+  zcontrol,				/* zcontrol */
   NULL,					/* seek64 */
 };
 
@@ -364,7 +408,7 @@ enable_compressed_input(IOSTREAM *s, term_t opt)
     memcpy(ctx->buffer, s->bufp, n);
     ctx->zstate.avail_in = n;
     ctx->zstate.next_in  = ctx->buffer;
-    DEBUG(1, Sdprintf("--> compressed: copied %d unprocessed bytes\n", n));
+    DEBUG(1, Sdprintf("--> uncompress: copied %d unprocessed bytes\n", n));
 
     s->bufp = s->limitp = s->buffer;
   }
@@ -376,6 +420,16 @@ enable_compressed_input(IOSTREAM *s, term_t opt)
 static int
 enable_compressed_output(IOSTREAM *s, term_t opt)
 { z_context *ctx = alloc_zcontext(s);
+  term_t tail = PL_copy_term_ref(opt);
+  term_t head = PL_new_term_ref();
+
+  while(PL_get_list(tail, head, tail))
+  {
+  }
+  if ( !PL_get_nil(tail) )
+  { PL_free(s);
+    return type_error(tail, "list");
+  }
 
   s->functions = &zfunctions;
   s->handle    = ctx;
