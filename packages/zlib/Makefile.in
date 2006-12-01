@@ -29,7 +29,7 @@ LIBS=@LIBS@
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
-DOC=nlp
+DOC=zlib
 TEX=$(DOC).tex
 DVI=$(DOC).dvi
 PDF=$(DOC).pdf

@@ -38,7 +38,7 @@ static functor_t FUNCTOR_domain_error2;	/* domain_error(Term, Expected) */
 static functor_t FUNCTOR_format1;	/* format(Format) */
 static functor_t FUNCTOR_level1;	/* level(Int) */
 static atom_t	 ATOM_gzip;
-static atom_t	 ATOM_zlib;
+static atom_t	 ATOM_deflate;
 static int debuglevel = 0;
 
 #ifdef O_DEBUG
@@ -621,8 +621,8 @@ enable_compressed_output(IOSTREAM *s, term_t opt)
 	goto error;
       if ( a == ATOM_gzip )
 	ctx->format = F_GZIP;
-      else if ( a == ATOM_zlib )
-	ctx->format = F_ZLIB;
+ <     else if ( a == ATOM_deflate )
+	ctx->format = F_DEFLATE;
       else
 	return domain_error(arg, "compression_format");
     } else if ( PL_is_functor(head, FUNCTOR_level1) )
@@ -670,7 +670,7 @@ enable_compressed_output(IOSTREAM *s, term_t opt)
 
 
 static foreign_t
-zset(term_t stream, term_t opt)
+zset_stream(term_t stream, term_t opt)
 { IOSTREAM *s;
 
   if ( !PL_get_stream_handle(stream, &s) )
@@ -704,9 +704,9 @@ install_zlib4pl()
   FUNCTOR_format1       = MKFUNCTOR("format", 1);
   FUNCTOR_level1        = MKFUNCTOR("level", 1);
   ATOM_gzip	        = PL_new_atom("gzip");
-  ATOM_zlib	        = PL_new_atom("zlib");
+  ATOM_deflate	        = PL_new_atom("define");
 
-  PL_register_foreign("zset",   2, zset,   0);
+  PL_register_foreign("zset_stream", 2, zset_stream, 0);
 #ifdef O_DEBUG
   PL_register_foreign("zdebug", 1, zdebug, 0);
 #endif

@@ -1,0 +1,112 @@
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{html}
+\sloppy
+\makeindex
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog binding to zlib}
+
+\begin{document}
+
+\title{SWI-Prolog binding to zlib}
+\author{Jan Wielemaker \\
+	HCS, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{wielemak@science.uva.nl}}
+
+\maketitle
+
+\begin{abstract}
+The library \pllib{zlib} provides a binding to the
+\url[zlib]{http://www.zlib.net/} general purpose compression library.
+The prolog library aims as seamlessly reading and writing files
+compatible to the \program{gzip} program as well as compressed (network)
+communication.
+\end{abstract}
+
+\pagebreak
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+\section{Zlib}
+
+Zlib is a widespread library implementing the RFC1950 (zlib wrapper),
+RFC1951 (deflate stream) and 1952 (gzip wrapper) compression standards. 
+The SWI-Prolog binding is a foreign library that adds a wrapper to the
+low-level I/O of a Prolog stream.  Implemented this way, it can perform
+a wide variety of tasks:
+
+\begin{itemize}
+    \item Read/write gzip compatible files
+    \item Setup standard compressed stream communication
+    \item Realise in-memory compression or decompression
+    \item Deal with streams holding embedded compressed objects
+\end{itemize}
+
+The core predicate of the library is zset_stream/2. The remainder of the
+functionality of \pllib{zlib} is defined in Prolog.
+
+\section{Predicate reference}
+
+\begin{description}
+    \predicate{zset_stream}{2}{+Stream, +Options}
+Enable a stream for compressed I/O.  If an input stream is enabled, it
+recognises a gzip or deflate header, inflate the data on subsequent read
+and restore the old status of the stream after reading the end of the
+compressed input.  Streams can be switched to compressed mode at any
+time.
+
+If an output stream is enabled, \arg{Options} define the desired 
+wrapper and compression level.  Defined options are:
+
+    \begin{description}
+	\termitem{format}{+Format}
+Either \const{deflate} (default) or \const{gzip}. The \const{deflate}
+envelope is simple and short and is typically used for compressed
+(network) communication.  The \const{gzip} envelope is compatible to
+the \program{gzip} program and intended to read/write compressed files.
+	
+	\termitem{level}{+Level}
+Number between 0 and 9, specifying the compression level, Higher levels
+use more resources. Default is 6, generally believed to be a good
+compromise between speed, memory requirement and compression.
+    \end{description}
+\end{description}
+
+
+\section{Installation}
+
+\subsection{Unix systems}
+
+Installation on Unix system uses the commonly found {\em configure},
+{\em make} and {\em make install} sequence. SWI-Prolog should be
+installed before building this package. If SWI-Prolog is not installed
+as \program{pl}, the environment variable \env{PL} must be set to the
+name of the SWI-Prolog executable. Installation is now accomplished
+using:
+
+\begin{code}
+% ./configure
+% make
+% make install
+\end{code}
+
+This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
+the Prolog library files in \file{$PLBASE/library}, where
+\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+\printindex
+
+\end{document}
+
