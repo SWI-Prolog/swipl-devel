@@ -105,6 +105,7 @@ get_int_ex(term_t t, int *i)
 typedef enum
 { F_UNKNOWN = 0,
   F_GZIP,				/* gzip output */
+  F_GZIP_CRC,				/* end of gzip output */
   F_DEFLATE				/* zlib data */
 } zformat;
 
@@ -288,46 +289,56 @@ write_gzip_footer(z_context *ctx)
 }
 
 
-static uLong
-read_lsb_ulong(IOSTREAM *s)
-{ uLong v;
+static Bytef *
+get_ulong_lsb(const Bytef *in, uLong *v)
+{ *v = (in[0] |
+	in[1] << 8 |
+	in[2] << 16 |
+	in[3] << 24);
 
-  v = ((unsigned)Sgetc(s) |
-       ((unsigned)Sgetc(s) << 8) |
-       ((unsigned)Sgetc(s) << 16) |
-       ((unsigned)Sgetc(s) << 24));
-
-  return v;				/* we do not care about errors; */
-					/* they will mismatch anyway */
+  return (Bytef*)in+4;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	0: ok
+       -1: CRC/size error
+       -2: not enough data
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 static int
-finish_gzip_input(z_context *ctx)
-{ IOSTREAM *s = ctx->stream;
-  uLong crc  = ctx->crc;
-  uLong size = ctx->zstate.total_out;
-  uLong got;
+gz_skip_footer(z_context *ctx)
+{ if ( ctx->zstate.avail_in >= 8 )
+  { uLong crc, size;
+    Bytef *in = ctx->zstate.next_in;
 
-  unwrap_stream(ctx);
-  if ( (got=read_lsb_ulong(s)) != crc )
-  { char msg[256];
+    in = get_ulong_lsb(in, &crc);
+    in = get_ulong_lsb(in, &size);
 
-    Ssprintf(msg, "CRC error (%08lx != %08lx)", got, crc);
-    Sseterr(s, SIO_FERR, msg);
-    return -1;
+    ctx->zstate.next_in = in;
+    ctx->zstate.avail_in -= 8;
+
+    if ( crc != ctx->crc )
+    { char msg[256];
+
+      Ssprintf(msg, "CRC error (%08lx != %08lx)", crc, ctx->crc);
+      Sseterr(ctx->stream, SIO_FERR, msg);
+      return -1;
+    }
+    if ( size != ctx->zstate.total_out )
+    { char msg[256];
+      
+      Ssprintf(msg, "Size mismatch (%ld != %ld)", size, ctx->zstate.total_out);
+      Sseterr(ctx->stream, SIO_FERR, msg);
+      return -1;
+    }
+
+    return 0;
   }
-  if ( (got=read_lsb_ulong(s)) != size )
-  { char msg[256];
 
-    Ssprintf(msg, "Size mismatch (%ld != %ld)", got, size);
-    Sseterr(s, SIO_FERR, msg);
-    return -1;
-  }
-
-  return 0;
+  return -2;
 }
-
 
 
 		 /*******************************
@@ -384,7 +395,7 @@ zread(void *handle, char *buf, int size)
 	  ctx->crc = crc32(0L, Z_NULL, 0);
 	  DEBUG(1, Sdprintf("inflateInit2(): Z_OK\n"));
 	  break;
-	case Z_MEM_ERROR:			/* no memory */
+	case Z_MEM_ERROR:		/* no memory */
         case Z_VERSION_ERROR:		/* bad library version */
 	  PL_warning("ERROR: TBD");
 	  return -1;
@@ -407,6 +418,28 @@ zread(void *handle, char *buf, int size)
 	  return -1;
       }
     }
+  } else if ( ctx->format == F_GZIP_CRC )
+  { int rc;
+
+    while( (rc=gz_skip_footer(ctx)) == -2 )
+    {					/* TBD: read more */
+    }
+
+    if ( rc == 0 )
+    { if ( ctx->zstate.avail_in )
+      { int avail = ctx->zstate.avail_in;
+
+	memcpy(buf, ctx->zstate.next_in, avail);
+	unwrap_stream(ctx);
+	return avail;
+      } else
+      { IOSTREAM *s = unwrap_stream(ctx);
+
+	return (*s->functions->read)(s->handle, buf, size);
+      }
+    } else
+    { return -1;
+    }
   }
 
   switch((rc=inflate(&ctx->zstate, Z_NO_FLUSH)))
@@ -414,15 +447,14 @@ zread(void *handle, char *buf, int size)
     case Z_STREAM_END:
     { int n = size - ctx->zstate.avail_out;
       
-      if ( ctx->format == F_GZIP  && n > 0 )
+      if ( ctx->format == F_GZIP && n > 0 )
 	ctx->crc = crc32(ctx->crc, (Bytef*)buf, n);
 
       if ( rc == Z_STREAM_END )
       { DEBUG(1, Sdprintf("Z_STREAM_END: %d bytes\n", n));
 
-	if ( ctx->format == F_GZIP &&
-	     finish_gzip_input(ctx) < 0 ) /* TBD: Cannot do this!!! */
-	  return -1;
+	if ( ctx->format == F_GZIP )
+	  ctx->format = F_GZIP_CRC;
       } else
       { DEBUG(1, Sdprintf("Z_OK: %d bytes\n"));
       }
@@ -555,15 +587,7 @@ unwrap_stream(z_context *ctx)
   s->functions = ctx->wrapped_functions;
 
   if ( (s->flags & SIO_INPUT) )
-  { if ( ctx->zstate.avail_in > 0 )
-    { DEBUG(1, Sdprintf("unwrap: move back %d unprocessed bytes\n", ctx->zstate.avail_in));
-
-      memmove(s->buffer, ctx->zstate.next_in, ctx->zstate.avail_in);
-      s->bufp = s->buffer;
-      s->limitp = &s->bufp[ctx->zstate.avail_in];
-    }
-
-    inflateEnd(&ctx->zstate);
+  { inflateEnd(&ctx->zstate);
   } else
   { deflateEnd(&ctx->zstate);
   }

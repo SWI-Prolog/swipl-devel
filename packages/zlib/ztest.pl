@@ -17,7 +17,6 @@ test(gunzip,
      ]) :-
 	gzopen('plunit-tmp.gz', read, ZIn),
 	call_cleanup(read_stream_to_codes(ZIn, Codes0), close(ZIn)),
-	format('~s', [Codes0]),
 	open('ztest.pl', read, In),
 	call_cleanup(read_stream_to_codes(In, Codes1), close(In)),
 	Codes0 == Codes1.
