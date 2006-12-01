@@ -297,7 +297,8 @@ read_lsb_ulong(IOSTREAM *s)
        ((unsigned)Sgetc(s) << 16) |
        ((unsigned)Sgetc(s) << 24));
 
-  return v;		/* we do not care about errors; they will mismatch anyway */
+  return v;				/* we do not care about errors; */
+					/* they will mismatch anyway */
 }
 
 
@@ -419,8 +420,9 @@ zread(void *handle, char *buf, int size)
       if ( rc == Z_STREAM_END )
       { DEBUG(1, Sdprintf("Z_STREAM_END: %d bytes\n", n));
 
-	if ( ctx->format == F_GZIP )
-	  return finish_gzip_input(ctx);
+	if ( ctx->format == F_GZIP &&
+	     finish_gzip_input(ctx) < 0 ) /* TBD: Cannot do this!!! */
+	  return -1;
       } else
       { DEBUG(1, Sdprintf("Z_OK: %d bytes\n"));
       }

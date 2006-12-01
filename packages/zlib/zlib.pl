@@ -30,12 +30,46 @@
 */
 
 :- module(zlib,
-	  [ zset/2			% +Stream, +Option
+	  [ zset_stream/2,		% +Stream, +Option
+	    gzopen/3,			% +File, +Mode, -Stream
+	    gzopen/4			% +File, +Mode, -Stream, +Options
 	  ]).
+
+/** <module> Zlib wrapper for SWI-Prolog
+
+For details, see http://www.swi-prolog.org/packages/zlib.html
+
+@author Jan Wielemaker
+*/
+
+%%	zset_stream(+Stream, +Option) is det.
+%
+%	Prepare compressed I/O on Stream.
 
 :- initialization
    load_foreign_library(foreign(zlib4pl)).
 
-%%	zset(+Stream, +Option) is det.
+%%	gzopen(+File, +Mode, -Stream) is det.
+%%	gzopen(+File, +Mode, -Stream, +Options) is det.
 %
-%	Prepare compressed I/O on Stream.
+%	Open a file compatible with the  gzip   program.  Note that if a
+%	file is opened in =append= mode,  a   second  gzip image will be
+%	added to the end of the file.
+
+gzopen(File, Mode, Stream) :-
+	gzopen(File, Mode, Stream, []).
+
+gzopen(File, Mode, Stream, Options) :-
+	zoptions(Options, ZOptions, OpenOptions),
+	open(File, Mode, Stream, OpenOptions),
+	zset_stream(Stream, [format(gzip)|ZOptions]).
+
+zoptions([], [], []).
+zoptions([H|T], [H|TZ], TO) :-
+	zoption(H), !,
+	zoptions(T, TZ, TO).
+zoptions([H|T], TZ, [H|TO]) :-
+	zoptions(T, TZ, TO).
+
+zoption(format(_)).
+zoption(level(_)).

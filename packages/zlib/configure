@@ -4006,7 +4006,7 @@ _ACEOF
 
 fi
 
-PLTARGETS=zlib
+PLTARGETS=zlib.pl
 
           ac_config_files="$ac_config_files Makefile"
 cat >confcache <<\_ACEOF
@@ -5142,12 +5142,4 @@ if test "$no_create" != yes; then
   # would make configure fail if this is the last instruction.
   $ac_cs_success || { (exit 1); exit 1; }
 fi
-
-
-
-
-
-
-
-
 
