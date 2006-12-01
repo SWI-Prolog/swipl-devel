@@ -92,10 +92,7 @@ pl_unsetenv(term_t var)
 { char *n;
 
   if ( PL_get_chars_ex(var, &n, CVT_ALL|REP_FN) )
-  { Unsetenv(n);
-
-    succeed;
-  }
+    return Unsetenv(n);
 
   fail;
 }

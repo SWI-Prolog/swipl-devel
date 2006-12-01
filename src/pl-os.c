@@ -2260,17 +2260,24 @@ Setenv(char *name, char *value)
 { 
 #ifdef HAVE_SETENV
   if ( setenv(name, value, TRUE) != 0 )
-    return PL_error("setenv", 2, NULL, ERR_NOMEM);
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setenv");
 #else
-  char *buf = alloca(strlen(name) + strlen(value) + 2);
+  char *buf;
+
+  if ( *name == '\0' || strchr(name, '=') != NULL )
+  { errno = EINVAL
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setenv");
+  }
+
+  buf = alloca(strlen(name) + strlen(value) + 2);
 
   if ( buf )
   { Ssprintf(buf, "%s=%s", name, value);
 
     if ( putenv(store_string(buf)) < 0 )
-      return PL_error("setenv", 2, NULL, ERR_NOMEM);
+      return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setenv");
   } else
-    return PL_error("setenv", 2, NULL, ERR_NOMEM);
+    return PL_error(NULL, 0, NULL, ERR_NOMEM);
 #endif
   succeed;
 }
@@ -2279,7 +2286,8 @@ int
 Unsetenv(char *name)
 {
 #ifdef HAVE_UNSETENV
-  unsetenv(name);
+  if ( unsetenv(name) < 0 )
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "unsetenv");
 
   succeed;
 #else

@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#236: error-handling on illegal setenv calls.  Keri Harris.
+
   * ADDED: SIO_FLUSH to control-functions to allow flushing compressed
     streams.
 

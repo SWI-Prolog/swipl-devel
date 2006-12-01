@@ -195,6 +195,9 @@ swi_message(goal_failed(Goal)) -->
 	[ 'goal (~p) failed'-[Goal] ].
 swi_message(shared_object(_Action, Message)) --> % Message = dlerror() 
 	[ '~w'-[Message] ].
+swi_message(system_error(Error)) -->
+	[ 'error in system call: ~w'-[Error]
+	].
 swi_message(system_error) -->
 	[ 'error in system call'
 	].
