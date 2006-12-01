@@ -105,7 +105,7 @@ get_int_ex(term_t t, int *i)
 typedef enum
 { F_UNKNOWN = 0,
   F_GZIP,				/* gzip output */
-  F_ZLIB				/* zlib data */
+  F_DEFLATE				/* zlib data */
 } zformat;
 
 typedef struct z_context
@@ -394,6 +394,7 @@ zread(void *handle, char *buf, int size)
     } else
     { switch(inflateInit(&ctx->zstate))
       { case Z_OK:
+	  ctx->format = F_DEFLATE;
 	  DEBUG(1, Sdprintf("inflateInit(): Z_OK\n"));
 	  break;
 	case Z_MEM_ERROR:		/* no memory */
@@ -621,7 +622,7 @@ enable_compressed_output(IOSTREAM *s, term_t opt)
 	goto error;
       if ( a == ATOM_gzip )
 	ctx->format = F_GZIP;
- <     else if ( a == ATOM_deflate )
+      else if ( a == ATOM_deflate )
 	ctx->format = F_DEFLATE;
       else
 	return domain_error(arg, "compression_format");
