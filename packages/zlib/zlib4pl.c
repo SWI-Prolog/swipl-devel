@@ -119,6 +119,9 @@ typedef struct z_context
 } z_context;
 
 
+static IOSTREAM *unwrap_stream(z_context *ctx);
+
+
 static z_context*
 alloc_zcontext(IOSTREAM *s)
 { z_context *ctx = PL_malloc(sizeof(*ctx));
@@ -275,7 +278,7 @@ static int
 write_gzip_footer(z_context *ctx)
 { Bytef *out = ctx->buffer;
 
-  out = add_ulong_lsb(out, ctx->crc);	/* CRC32 */
+  out = add_ulong_lsb(out, ctx->crc);			/* CRC32 */
   out = add_ulong_lsb(out, ctx->zstate.total_in);	/* Total length */
 
   if ( write_wrapped(ctx, (char*)ctx->buffer, out - ctx->buffer) < 0 )
@@ -285,6 +288,44 @@ write_gzip_footer(z_context *ctx)
 }
 
 
+static uLong
+read_lsb_ulong(IOSTREAM *s)
+{ uLong v;
+
+  v = ((unsigned)Sgetc(s) |
+       ((unsigned)Sgetc(s) << 8) |
+       ((unsigned)Sgetc(s) << 16) |
+       ((unsigned)Sgetc(s) << 24));
+
+  return v;		/* we do not care about errors; they will mismatch anyway */
+}
+
+
+static int
+finish_gzip_input(z_context *ctx)
+{ IOSTREAM *s = ctx->stream;
+  uLong crc  = ctx->crc;
+  uLong size = ctx->zstate.total_out;
+  uLong got;
+
+  unwrap_stream(ctx);
+  if ( (got=read_lsb_ulong(s)) != crc )
+  { char msg[256];
+
+    Ssprintf(msg, "CRC error (%08lx != %08lx)", got, crc);
+    Sseterr(s, SIO_FERR, msg);
+    return -1;
+  }
+  if ( (got=read_lsb_ulong(s)) != size )
+  { char msg[256];
+
+    Ssprintf(msg, "Size mismatch (%ld != %ld)", got, size);
+    Sseterr(s, SIO_FERR, msg);
+    return -1;
+  }
+
+  return 0;
+}
 
 
 
@@ -339,6 +380,7 @@ zread(void *handle, char *buf, int size)
 					/* init without header */
       switch(inflateInit2(&ctx->zstate, -MAX_WBITS))
       { case Z_OK:
+	  ctx->crc = crc32(0L, Z_NULL, 0);
 	  DEBUG(1, Sdprintf("inflateInit2(): Z_OK\n"));
 	  break;
 	case Z_MEM_ERROR:			/* no memory */
@@ -369,8 +411,19 @@ zread(void *handle, char *buf, int size)
   { case Z_OK:
     case Z_STREAM_END:
     { int n = size - ctx->zstate.avail_out;
-      DEBUG(1, Sdprintf("%s: %d bytes\n", 
-			rc == Z_OK ? "Z_OK" : "Z_STREAM_END", n));
+      
+      if ( ctx->format == F_GZIP  && n > 0 )
+	ctx->crc = crc32(ctx->crc, (Bytef*)buf, n);
+
+      if ( rc == Z_STREAM_END )
+      { DEBUG(1, Sdprintf("Z_STREAM_END: %d bytes\n", n));
+
+	if ( ctx->format == F_GZIP )
+	  return finish_gzip_input(ctx);
+      } else
+      { DEBUG(1, Sdprintf("Z_OK: %d bytes\n"));
+      }
+
       return n;
     }
     case Z_NEED_DICT:
@@ -489,6 +542,32 @@ static IOFUNCTIONS zfunctions =
 		 /*******************************
 		 *	 PROLOG CONNECTION	*
 		 *******************************/
+
+
+static IOSTREAM *
+unwrap_stream(z_context *ctx)
+{ IOSTREAM *s = ctx->stream;
+
+  s->handle    = ctx->wrapped_handle;
+  s->functions = ctx->wrapped_functions;
+
+  if ( (s->flags & SIO_INPUT) )
+  { if ( ctx->zstate.avail_in > 0 )
+    { DEBUG(1, Sdprintf("unwrap: move back %d unprocessed bytes\n", ctx->zstate.avail_in));
+
+      memmove(s->buffer, ctx->zstate.next_in, ctx->zstate.avail_in);
+      s->bufp = s->buffer;
+      s->limitp = &s->bufp[ctx->zstate.avail_in];
+    }
+
+    inflateEnd(&ctx->zstate);
+  } else
+  { deflateEnd(&ctx->zstate);
+  }
+  PL_free(ctx);
+
+  return s;
+}
 
 
 static int
