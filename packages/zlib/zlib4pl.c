@@ -127,7 +127,6 @@ alloc_zcontext(IOSTREAM *s)
   ctx->stream            = s;
   ctx->wrapped_handle    = s->handle;
   ctx->wrapped_functions = s->functions;
-  ctx->crc		 = crc32(0L, Z_NULL, 0);
 
   return ctx;
 }
@@ -394,7 +393,8 @@ zwrite(void *handle, char *buf, int size)
 
   ctx->zstate.next_in = (Bytef*)buf;
   ctx->zstate.avail_in = size;
-  ctx->crc = crc32(ctx->crc, ctx->zstate.next_in, ctx->zstate.avail_in);
+  if ( ctx->format == F_GZIP && size > 0 )
+    ctx->crc = crc32(ctx->crc, ctx->zstate.next_in, ctx->zstate.avail_in);
 
   do
   { int rc;
@@ -569,6 +569,7 @@ enable_compressed_output(IOSTREAM *s, term_t opt)
   { if ( !write_gzip_header(ctx) )
       return FALSE;
     rc = deflateInit2(&ctx->zstate, level, Z_DEFLATED, -MAX_WBITS, DEF_MEM_LEVEL, 0);
+    ctx->crc = crc32(0L, Z_NULL, 0);
   } else
   { rc = deflateInit(&ctx->zstate, level);
   }
