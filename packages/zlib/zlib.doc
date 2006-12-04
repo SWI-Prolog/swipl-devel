@@ -42,10 +42,10 @@ communication.
 \section{Zlib}
 
 Zlib is a widespread library implementing the RFC1950 (zlib wrapper),
-RFC1951 (deflate stream) and 1952 (gzip wrapper) compression standards. 
-The SWI-Prolog binding is a foreign library that adds a wrapper to the
-low-level I/O of a Prolog stream.  Implemented this way, it can perform
-a wide variety of tasks:
+RFC1951 (deflate stream) and RFC1952 (gzip wrapper) compression
+standards. The SWI-Prolog binding is a foreign library that creates a
+compressed stream as a wrapper around a normal stream. Implemented this
+way, it can perform a wide variety of tasks:
 
 \begin{itemize}
     \item Read/write gzip compatible files
@@ -54,21 +54,18 @@ a wide variety of tasks:
     \item Deal with streams holding embedded compressed objects
 \end{itemize}
 
-The core predicate of the library is zset_stream/2. The remainder of the
-functionality of \pllib{zlib} is defined in Prolog.
+The core predicate of the library is zopen/3. The remainder of
+the functionality of \pllib{zlib} is defined in Prolog.
 
 \section{Predicate reference}
 
 \begin{description}
-    \predicate{zset_stream}{2}{+Stream, +Options}
-Enable a stream for compressed I/O.  If an input stream is enabled, it
-recognises a gzip or deflate header, inflate the data on subsequent read
-and restore the old status of the stream after reading the end of the
-compressed input.  Streams can be switched to compressed mode at any
-time.
+    \predicate{zopen}{3}{+Stream, -ZStream, +Options}
+Creates \arg{ZStream}, providing compressed access to \arg{Stream}. If
+an input stream is wrapped, it recognises a gzip or deflate header.
 
-If an output stream is enabled, \arg{Options} define the desired 
-wrapper and compression level.  Defined options are:
+If an output stream is enabled, \arg{Options} define the desired wrapper
+and compression level. Defined options on output streams are:
 
     \begin{description}
 	\termitem{format}{+Format}
@@ -82,6 +79,22 @@ Number between 0 and 9, specifying the compression level, Higher levels
 use more resources. Default is 6, generally believed to be a good
 compromise between speed, memory requirement and compression.
     \end{description}
+
+Generic options are:
+
+    \begin{description}
+	\termitem{close_parent}{Bool}
+If \const{true} (default), closing the compressed stream also closes
+(and thus invalidates) the wrapped stream. If \const{false}, the wrapped
+stream is \emph{not} closed. This can be used to read/write a compressed
+ndata block as partial input/output on a stream.
+    \end{description}
+
+    \predicate{gzopen}{3}{+File, +Mode, -Stream}
+Same as \exam{gzopen}{File, Mode, Stream, []}.
+
+    \predicate{gzopen}{4}{+File, +Mode, -Stream, +Options}
+Open \program{gzip} compatible \arg{File} for reading or writing.
 \end{description}
 
 

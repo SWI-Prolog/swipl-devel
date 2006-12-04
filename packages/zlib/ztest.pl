@@ -34,4 +34,18 @@ test(gzip,
 	read_file_to_codes(pipe('gunzip < plunit-tmp.gz'), Codes1),
 	Codes == Codes1.
 
+test(deflate,
+     [ cleanup(delete_file('plunit-tmp.z'))
+     ]) :-
+	read_file_to_codes('ztest.pl', Codes),
+	open('plunit-tmp.z', write, Out),
+	zopen(Out, ZOut, []),
+	format(ZOut, '~s', [Codes]),
+	close(ZOut),
+	open('plunit-tmp.z', read, In),
+	zopen(In, ZIn, []),
+	read_stream_to_codes(ZIn, Codes1),
+	close(ZIn),
+	Codes == Codes1.
+
 :- end_tests(zlib).

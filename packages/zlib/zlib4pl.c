@@ -35,10 +35,12 @@
 static functor_t FUNCTOR_error2;	/* error(Formal, Context) */
 static functor_t FUNCTOR_type_error2;	/* type_error(Term, Expected) */
 static functor_t FUNCTOR_domain_error2;	/* domain_error(Term, Expected) */
-static functor_t FUNCTOR_format1;	/* format(Format) */
-static functor_t FUNCTOR_level1;	/* level(Int) */
-static atom_t	 ATOM_gzip;
-static atom_t	 ATOM_deflate;
+
+static atom_t ATOM_format;		/* format(Format) */
+static atom_t ATOM_level;		/* level(Int) */
+static atom_t ATOM_close_parent;	/* close_parent(Bool) */
+static atom_t ATOM_gzip;
+static atom_t ATOM_deflate;
 static int debuglevel = 0;
 
 #ifdef O_DEBUG
@@ -95,6 +97,14 @@ get_int_ex(term_t t, int *i)
   return type_error(t, "integer");
 }
 
+static int
+get_bool_ex(term_t t, int *i)
+{ if ( PL_get_bool(t, i) )
+    return TRUE;
+
+  return type_error(t, "boolean");
+}
+
 
 		 /*******************************
 		 *	       TYPES		*
@@ -110,17 +120,13 @@ typedef enum
 } zformat;
 
 typedef struct z_context
-{ IOSTREAM	   *stream;		/* modified stream */
-  void	           *wrapped_handle;	/* saved handle of stream */
-  IOFUNCTIONS      *wrapped_functions;	/* saved IO functions */
+{ IOSTREAM	   *stream;		/* Original stream */
+  IOSTREAM	   *zstream;		/* Compressed stream (I'm handle of) */
+  int		    close_parent;	/* close parent on close */
   zformat	    format;		/* current format */
   uLong		    crc;		/* CRC check */
   z_stream	    zstate;		/* Zlib state */
-  Bytef		    buffer[BUFSIZE];	/* Raw data buffer */
 } z_context;
-
-
-static IOSTREAM *unwrap_stream(z_context *ctx);
 
 
 static z_context*
@@ -128,29 +134,17 @@ alloc_zcontext(IOSTREAM *s)
 { z_context *ctx = PL_malloc(sizeof(*ctx));
 
   memset(ctx, 0, sizeof(*ctx));
-  ctx->stream            = s;
-  ctx->wrapped_handle    = s->handle;
-  ctx->wrapped_functions = s->functions;
+  ctx->stream       = s;
+  ctx->close_parent = TRUE;
 
   return ctx;
 }
 
 
-static int
-write_wrapped(z_context *ctx, char *buf, int size)
-{ char *from = buf;
-  int left = size;
-
-  while(left>0)
-  { int n;
-
-    if ( (n=(*ctx->wrapped_functions->write)(ctx->wrapped_handle, from, left)) < 0 )
-      return -1;
-    from += n;
-    left -= n;
-  }
-
-  return size;
+static void
+free_zcontext(z_context *ctx)
+{ PL_release_stream(ctx->stream);
+  PL_free(ctx);
 }
 
 
@@ -243,49 +237,42 @@ gz_skip_header(z_context *ctx, Bytef *in, int avail)
 }
 
 
-static Bytef *
-add_ulong_lsb(Bytef *out, unsigned long x)
-{ *out++ = (x)    &0xff;
-  *out++ = (x>>8) &0xff;
-  *out++ = (x>>16)&0xff;
-  *out++ = (x>>24)&0xff;
+static int
+write_ulong_lsb(IOSTREAM *s, unsigned long x)
+{ Sputc((x)    &0xff, s);
+  Sputc((x>>8) &0xff, s);
+  Sputc((x>>16)&0xff, s);
+  Sputc((x>>24)&0xff, s);
 
-  return out;
+  return Sferror(s) ? -1 : 0;
 }
 
 
 static int
 write_gzip_header(z_context *ctx)
-{ Bytef *out = ctx->buffer;
+{ IOSTREAM *s = ctx->stream;
   time_t stamp = time(NULL);
 
-  *out++ = gz_magic[0];
-  *out++ = gz_magic[1];
-  *out++ = Z_DEFLATED;			/* method */
-  *out++ = 0;				/* flags */
-  out = add_ulong_lsb(out, stamp);
-  *out++ = 0;				/* xflags */
-  *out++ = OS_CODE;
+  Sputc(gz_magic[0], s);
+  Sputc(gz_magic[1], s);
+  Sputc(Z_DEFLATED, s);			/* method */
+  Sputc(0, s);				/* flags */
+  write_ulong_lsb(s, stamp);		/* time stamp */
+  Sputc(0, s);				/* xflags */
+  Sputc(OS_CODE, s);			/* OS identifier */
 
-  Sfwrite(ctx->buffer, 1, out - ctx->buffer, ctx->stream);
-  if ( Sflush(ctx->stream) < 0 )
-    return FALSE;			/* TBD: error? */
-  
-  return TRUE;
+  return Sferror(s) ? FALSE : TRUE;	/* TBD: Error */
 }
 
 
 static int
 write_gzip_footer(z_context *ctx)
-{ Bytef *out = ctx->buffer;
+{ IOSTREAM *s = ctx->stream;
 
-  out = add_ulong_lsb(out, ctx->crc);			/* CRC32 */
-  out = add_ulong_lsb(out, ctx->zstate.total_in);	/* Total length */
+  write_ulong_lsb(s, ctx->crc);		/* CRC32 */
+  write_ulong_lsb(s, ctx->zstate.total_in);	/* Total length */
 
-  if ( write_wrapped(ctx, (char*)ctx->buffer, out - ctx->buffer) < 0 )
-    return -1;
-
-  return 0;
+  return Sferror(s) ? -1 : 0;
 }
 
 
@@ -294,7 +281,7 @@ get_ulong_lsb(const Bytef *in, uLong *v)
 { *v = (in[0] |
 	in[1] << 8 |
 	in[2] << 16 |
-	in[3] << 24);
+	in[3] << 24) & 0xffffffff;
 
   return (Bytef*)in+4;
 }
@@ -323,14 +310,14 @@ gz_skip_footer(z_context *ctx)
     { char msg[256];
 
       Ssprintf(msg, "CRC error (%08lx != %08lx)", crc, ctx->crc);
-      Sseterr(ctx->stream, SIO_FERR, msg);
+      Sseterr(ctx->zstream, SIO_FERR, msg);
       return -1;
     }
     if ( size != ctx->zstate.total_out )
     { char msg[256];
       
       Ssprintf(msg, "Size mismatch (%ld != %ld)", size, ctx->zstate.total_out);
-      Sseterr(ctx->stream, SIO_FERR, msg);
+      Sseterr(ctx->zstream, SIO_FERR, msg);
       return -1;
     }
 
@@ -352,18 +339,11 @@ zread(void *handle, char *buf, int size)
   int rc;
 
   if ( ctx->zstate.avail_in == 0 )
-  { int n;
-
-    n = (*ctx->wrapped_functions->read)(ctx->wrapped_handle, 
-					(char*)ctx->buffer, BUFSIZE);
-    DEBUG(1, Sdprintf("Read %d bytes from %p\n", n, ctx->wrapped_handle));
-    if ( n < 0 )
-    { return -1;
-    } else if ( n == 0 )		/* end-of-file */
+  { if ( Sfeof(ctx->stream) )
     { flush = Z_FINISH;
     } else
-    { ctx->zstate.next_in  = ctx->buffer;
-      ctx->zstate.avail_in = n;
+    { ctx->zstate.next_in  = (Bytef*)ctx->stream->bufp;
+      ctx->zstate.avail_in = ctx->stream->limitp - ctx->stream->bufp;
     }
   } else
   { DEBUG(1, Sdprintf("Processing %d bytes\n", ctx->zstate.avail_in));
@@ -426,19 +406,18 @@ zread(void *handle, char *buf, int size)
     }
 
     if ( rc == 0 )
-    { if ( ctx->zstate.avail_in )
-      { int avail = ctx->zstate.avail_in;
+    { int avail = ctx->zstate.avail_in;
 
-	memcpy(buf, ctx->zstate.next_in, avail);
-	unwrap_stream(ctx);
-	return avail;
-      } else
-      { IOSTREAM *s = unwrap_stream(ctx);
-
-	return (*s->functions->read)(s->handle, buf, size);
-      }
+					/* copy back unprocessed bytes */
+      DEBUG(1, Sdprintf("GZIP footer ok; copying %d bytes back\n", avail));
+      memmove(ctx->stream->buffer, ctx->zstate.next_in, avail);
+      ctx->stream->bufp   = ctx->stream->buffer;
+      ctx->stream->limitp = ctx->stream->bufp + avail;
+      
+      return 0;			/* EOF */
     } else
-    { return -1;
+    { DEBUG(1, Sdprintf("GZIP CRC/length error\n"));
+      return -1;
     }
   }
 
@@ -478,39 +457,37 @@ static int				/* deflate */
 zwrite(void *handle, char *buf, int size)
 { z_context *ctx = handle;
   int flush = (size == 0 ? Z_FINISH : Z_NO_FLUSH);
+  Bytef buffer[SIO_BUFSIZE];
+  int rc;
 
   ctx->zstate.next_in = (Bytef*)buf;
   ctx->zstate.avail_in = size;
   if ( ctx->format == F_GZIP && size > 0 )
     ctx->crc = crc32(ctx->crc, ctx->zstate.next_in, ctx->zstate.avail_in);
 
-  do
-  { int rc;
+  DEBUG(1, Sdprintf("Compressing %d bytes\n", ctx->zstate.avail_in));
+  ctx->zstate.next_out  = buffer;
+  ctx->zstate.avail_out = sizeof(buffer);
+  switch( (rc = deflate(&ctx->zstate, flush)) )
+  { case Z_OK:
+    case Z_STREAM_END:
+    { int n = sizeof(buffer) - ctx->zstate.avail_out;
 
-    DEBUG(1, Sdprintf("Compressing %d bytes\n", ctx->zstate.avail_in));
-    ctx->zstate.next_out  = ctx->buffer;
-    ctx->zstate.avail_out = sizeof(ctx->buffer);
-    switch( (rc = deflate(&ctx->zstate, flush)) )
-    { case Z_OK:
-      case Z_STREAM_END:
-      { int n = sizeof(ctx->buffer) - ctx->zstate.avail_out;
+      DEBUG(1, Sdprintf("Compressed (%s) to %d bytes; left %d\n",
+			rc == Z_OK ? "Z_OK" : "Z_STREAM_END",
+			n, ctx->zstate.avail_in));
 
-	DEBUG(1, Sdprintf("Compressed (%s) to %d bytes; left %d\n",
-			  rc == Z_OK ? "Z_OK" : "Z_STREAM_END",
-			  n, ctx->zstate.avail_in));
+      if ( Sfwrite(buffer, 1, n, ctx->stream) < 0 )
+	return -1;
 
-	if ( write_wrapped(ctx, (char*)ctx->buffer, n) < 0 )
-	  return -1;
-
-	break;
-      }
-      case Z_STREAM_ERROR:
-      case Z_BUF_ERROR:
-      default:
-	Sdprintf("zwrite(): %s\n", ctx->zstate.msg);
-        return -1;
+      break;
     }
-  } while( ctx->zstate.avail_in > 0 );
+    case Z_STREAM_ERROR:
+    case Z_BUF_ERROR:
+    default:
+      Sdprintf("zwrite(): %s\n", ctx->zstate.msg);
+      return -1;
+  }
 
   return size;
 }
@@ -526,8 +503,8 @@ zcontrol(void *handle, int op, void *data)
     case SIO_SETENCODING:
       return 0;				/* allow switching encoding */
     default:
-      if ( ctx->wrapped_functions->control )
-	return (*ctx->wrapped_functions->control)(ctx->wrapped_handle, op, data);
+      if ( ctx->stream->functions->control )
+	return (*ctx->stream->functions->control)(ctx->stream->handle, op, data);
       return -1;
   }
 }
@@ -554,11 +531,24 @@ zclose(void *handle)
 
   switch(rc)
   { case Z_OK:
-      return (*ctx->wrapped_functions->close)(ctx->wrapped_handle);
+      if ( ctx->close_parent )
+      { IOSTREAM *parent = ctx->stream;
+	free_zcontext(ctx);
+	return Sclose(parent);
+      } else
+      { free_zcontext(ctx);
+	return 0;
+      } 
     case Z_STREAM_ERROR:		/* inconsistent state */
     case Z_DATA_ERROR:			/* premature end */
     default:
-      (void)(*ctx->wrapped_functions->close)(ctx->wrapped_handle);
+      if ( ctx->close_parent )
+      { IOSTREAM *parent = ctx->stream;
+	free_zcontext(ctx);
+	Sclose(parent);
+      }
+
+      free_zcontext(ctx);
       return -1;
   }
 }
@@ -578,135 +568,90 @@ static IOFUNCTIONS zfunctions =
 		 *	 PROLOG CONNECTION	*
 		 *******************************/
 
+#define COPY_FLAGS (SIO_INPUT|SIO_OUTPUT| \
+		    SIO_TEXT| \
+		    SIO_REPXML|SIO_REPPL|\
+		    SIO_RECORDPOS)
 
-static IOSTREAM *
-unwrap_stream(z_context *ctx)
-{ IOSTREAM *s = ctx->stream;
-
-  s->handle    = ctx->wrapped_handle;
-  s->functions = ctx->wrapped_functions;
-
-  if ( (s->flags & SIO_INPUT) )
-  { inflateEnd(&ctx->zstate);
-  } else
-  { deflateEnd(&ctx->zstate);
-  }
-  PL_free(ctx);
-
-  return s;
-}
-
-
-static int
-enable_compressed_input(IOSTREAM *s, term_t opt)
-{ z_context *ctx = alloc_zcontext(s);
-  term_t tail = PL_copy_term_ref(opt);
+static foreign_t
+zopen(term_t org, term_t new, term_t options)
+{ term_t tail = PL_copy_term_ref(options);
   term_t head = PL_new_term_ref();
-
-					/* option processing */
-  while(PL_get_list(tail, head, tail))
-  {
-  }
-  if ( !PL_get_nil(tail) )
-  { PL_free(s);
-    return type_error(tail, "list");
-  }
-
-  s->functions = &zfunctions;
-  s->handle    = ctx;
-
-  if ( s->bufp < s->limitp )		/* copy unprocessed data */
-  { int n = s->limitp - s->bufp;
-
-    memcpy(ctx->buffer, s->bufp, n);
-    ctx->zstate.avail_in = n;
-    ctx->zstate.next_in  = ctx->buffer;
-    DEBUG(1, Sdprintf("--> uncompress: copied %d unprocessed bytes\n", n));
-
-    s->bufp = s->limitp = s->buffer;
-  }
-
-  return TRUE;
-}
-
-
-static int
-enable_compressed_output(IOSTREAM *s, term_t opt)
-{ z_context *ctx = alloc_zcontext(s);
-  term_t tail = PL_copy_term_ref(opt);
-  term_t head = PL_new_term_ref();
+  z_context *ctx;
+  zformat fmt = F_UNKNOWN;
   int level = Z_DEFAULT_COMPRESSION;
-  int rc;
+  IOSTREAM *s, *s2;
+  int close_parent = TRUE;
 
   while(PL_get_list(tail, head, tail))
-  { if ( PL_is_functor(head, FUNCTOR_format1) )
-    { term_t arg = PL_new_term_ref();
-      atom_t a;
+  { atom_t name;
+    int arity;
+    term_t arg = PL_new_term_ref();
+
+    if ( !PL_get_name_arity(head, &name, &arity) || arity != 1 )
+      return type_error(head, "option");
+    PL_get_arg(1, head, arg);
+
+    if ( name == ATOM_format )
+    { atom_t a;
       
-      PL_get_arg(1, head, arg);
       if ( !get_atom_ex(arg, &a) )
-	goto error;
+	return FALSE;
       if ( a == ATOM_gzip )
-	ctx->format = F_GZIP;
+	fmt = F_GZIP;
       else if ( a == ATOM_deflate )
-	ctx->format = F_DEFLATE;
+	fmt = F_DEFLATE;
       else
 	return domain_error(arg, "compression_format");
-    } else if ( PL_is_functor(head, FUNCTOR_level1) )
-    { term_t arg = PL_new_term_ref();
-      
-      PL_get_arg(1, head, arg);
-      if ( !get_int_ex(arg, &level) )
-	goto error;
+    } else if ( name == ATOM_level )
+    { if ( !get_int_ex(arg, &level) )
+	return FALSE;
       if ( level < 0 || level > 9 )
-      { domain_error(arg, "compression_level");
-	goto error;
-      }
+	return domain_error(arg, "compression_level");
+    } else if ( name == ATOM_close_parent )
+    { if ( !get_bool_ex(arg, &close_parent) )
+	return FALSE;
     }
   }
   if ( !PL_get_nil(tail) )
-  { type_error(tail, "list");
-  error:
-    PL_free(s);
+    return type_error(tail, "list");
+
+  if ( !PL_get_stream_handle(org, &s) )
+    return FALSE;			/* Error */
+  ctx = alloc_zcontext(s);
+  ctx->close_parent = close_parent;
+  if ( (s->flags & SIO_OUTPUT) )
+  { int rc;
+
+    ctx->format = fmt;
+    if ( fmt == F_GZIP )
+    { if ( write_gzip_header(ctx) < 0 )
+      { free_zcontext(ctx);
+	return FALSE;
+      }
+      rc = deflateInit2(&ctx->zstate, level, Z_DEFLATED, -MAX_WBITS, DEF_MEM_LEVEL, 0);
+    } else
+    { rc = deflateInit(&ctx->zstate, level);
+    }
+
+    if ( rc != Z_OK )
+    { free_zcontext(ctx);
+      return FALSE;			/* TBD: Error */
+    }
+  }
+
+  
+
+  if ( !(s2 = Snew(ctx,
+		   (s->flags&COPY_FLAGS)|SIO_FBUF,
+		   &zfunctions))	)
+  { free_zcontext(ctx);			/* no memory */
+
     return FALSE;
   }
 
-  if ( ctx->format == F_GZIP )
-  { if ( !write_gzip_header(ctx) )
-      return FALSE;
-    rc = deflateInit2(&ctx->zstate, level, Z_DEFLATED, -MAX_WBITS, DEF_MEM_LEVEL, 0);
-    ctx->crc = crc32(0L, Z_NULL, 0);
-  } else
-  { rc = deflateInit(&ctx->zstate, level);
-  }
-
-  switch( rc )
-  { case Z_OK:
-      s->functions = &zfunctions;
-      s->handle    = ctx;
-      return TRUE;
-    case Z_MEM_ERROR:			/* no memory */
-    case Z_STREAM_ERROR:		/* bad compression level */
-    case Z_VERSION_ERROR:		/* bad library version */
-      return PL_warning("ERROR: TBD");
-    default:
-      assert(0);
-      return FALSE;
-  }
-}
-
-
-static foreign_t
-zset_stream(term_t stream, term_t opt)
-{ IOSTREAM *s;
-
-  if ( !PL_get_stream_handle(stream, &s) )
-    return type_error(stream, "stream");
-
-  if ( (s->flags & SIO_INPUT) )
-    return enable_compressed_input(s, opt);
-  else
-    return enable_compressed_output(s, opt);
+  ctx->zstream = s2;
+  return PL_unify_stream(new, s2);
 }
 
 
@@ -728,12 +673,14 @@ install_zlib4pl()
 { FUNCTOR_error2        = MKFUNCTOR("error", 2);
   FUNCTOR_type_error2   = MKFUNCTOR("type_error", 2);
   FUNCTOR_domain_error2 = MKFUNCTOR("domain_error", 2);
-  FUNCTOR_format1       = MKFUNCTOR("format", 1);
-  FUNCTOR_level1        = MKFUNCTOR("level", 1);
-  ATOM_gzip	        = PL_new_atom("gzip");
-  ATOM_deflate	        = PL_new_atom("define");
 
-  PL_register_foreign("zset_stream", 2, zset_stream, 0);
+  ATOM_format       = PL_new_atom("format");
+  ATOM_level        = PL_new_atom("level");
+  ATOM_close_parent = PL_new_atom("close_parent");
+  ATOM_gzip	    = PL_new_atom("gzip");
+  ATOM_deflate	    = PL_new_atom("define");
+
+  PL_register_foreign("zopen",  3, zopen,  0);
 #ifdef O_DEBUG
   PL_register_foreign("zdebug", 1, zdebug, 0);
 #endif

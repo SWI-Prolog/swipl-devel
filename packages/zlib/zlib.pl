@@ -30,7 +30,7 @@
 */
 
 :- module(zlib,
-	  [ zset_stream/2,		% +Stream, +Option
+	  [ zopen/3,			% +Stream, -ZStream, +Option
 	    gzopen/3,			% +File, +Mode, -Stream
 	    gzopen/4			% +File, +Mode, -Stream, +Options
 	  ]).
@@ -61,8 +61,12 @@ gzopen(File, Mode, Stream) :-
 
 gzopen(File, Mode, Stream, Options) :-
 	zoptions(Options, ZOptions, OpenOptions),
-	open(File, Mode, Stream, OpenOptions),
-	zset_stream(Stream, [format(gzip)|ZOptions]).
+	open(File, Mode, Stream0, OpenOptions),
+	zopen(Stream0, Stream,
+	      [ format(gzip),
+		close_parent(true)
+	      | ZOptions
+	      ]).
 
 zoptions([], [], []).
 zoptions([H|T], [H|TZ], TO) :-
