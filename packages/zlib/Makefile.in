@@ -49,6 +49,9 @@ ZOBJ=		zlib4pl.o
 
 all:		$(TARGETS)
 
+nolib::
+		@echo "WARNING: Could not find zlib library; skipped"
+
 zlib4pl.@SO@:	$(ZOBJ)
 		$(LD) $(LDFLAGS) -o $@ $(ZOBJ) $(LIBS)
 

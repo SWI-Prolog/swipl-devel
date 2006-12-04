@@ -1450,8 +1450,6 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="zlib4pl.$SO"
-
 for ac_prog in gmake make
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -3932,7 +3930,6 @@ fi
 
 done
 
-
 echo "$as_me:$LINENO: checking for zlibVersion in -lz" >&5
 echo $ECHO_N "checking for zlibVersion in -lz... $ECHO_C" >&6
 if test "${ac_cv_lib_z_zlibVersion+set}" = set; then
@@ -3998,15 +3995,27 @@ fi
 echo "$as_me:$LINENO: result: $ac_cv_lib_z_zlibVersion" >&5
 echo "${ECHO_T}$ac_cv_lib_z_zlibVersion" >&6
 if test $ac_cv_lib_z_zlibVersion = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBZ 1
-_ACEOF
-
-  LIBS="-lz $LIBS"
-
+  LIBS="$LIBS -lz"
+	     ZLIB=yes
+else
+  ZLIB=no
 fi
 
-PLTARGETS=zlib.pl
+
+if test "$ZLIB" = yes; then
+  TARGETS="zlib4pl.$SO"
+  PLTARGETS=zlib.pl
+else
+  TARGETS=nolib
+  cat << EOF
+##################################################################
+# ERROR: Could not find library zlib (-lz).  Dropped library(zlib)
+# Library zlib is available from http://www.zlib.net/
+# Most Unix/Linux distributions are shipped with binaries.  Make
+# sure to have the development library installed.
+##################################################################
+EOF
+fi
 
           ac_config_files="$ac_config_files Makefile"
 cat >confcache <<\_ACEOF

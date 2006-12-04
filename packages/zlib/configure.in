@@ -64,8 +64,6 @@ CMFLAGS=-fpic
 
 SO="$PLSOEXT"
 
-TARGETS="zlib4pl.$SO"
-
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_PROG_INSTALL
@@ -84,7 +82,24 @@ else
 fi
 
 AC_CHECK_HEADERS(zlib.h)
-AC_CHECK_LIB(z, zlibVersion)
-PLTARGETS=zlib.pl
+AC_CHECK_LIB(z, zlibVersion,
+	     LIBS="$LIBS -lz"
+	     ZLIB=yes,
+	     ZLIB=no)
+
+if test "$ZLIB" = yes; then
+  TARGETS="zlib4pl.$SO"
+  PLTARGETS=zlib.pl
+else
+  TARGETS=nolib
+  cat << EOF
+##################################################################
+# ERROR: Could not find library zlib (-lz).  Dropped library(zlib)
+# Library zlib is available from http://www.zlib.net/
+# Most Unix/Linux distributions are shipped with binaries.  Make
+# sure to have the development library installed.
+##################################################################
+EOF
+fi
 
 AC_OUTPUT(Makefile)
