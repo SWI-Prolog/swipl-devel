@@ -681,6 +681,7 @@ show_bindings(Frame, Attributes) :-
 	    catch(pce_clause_info(ClauseRef, _, _, VarNames), E,
 		  (print_message(error, E), fail)),
 	    in_debug_thread(GUI, frame_bindings(Frame, VarNames, Bindings)),
+	    debug('(bindings ~p) ', [Bindings]),
 	    send(Browser, bindings, Bindings),
 	    debug('(ok) ', [])
 	).
