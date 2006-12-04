@@ -554,6 +554,7 @@ zclose(void *handle)
       { IOSTREAM *parent = ctx->stream;
 	free_zcontext(ctx);
 	Sclose(parent);
+	return -1;
       }
 
       free_zcontext(ctx);
