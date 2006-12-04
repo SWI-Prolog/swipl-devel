@@ -345,11 +345,11 @@ zread(void *handle, char *buf, int size)
     } else
     { ctx->zstate.next_in  = (Bytef*)ctx->stream->bufp;
       ctx->zstate.avail_in = ctx->stream->limitp - ctx->stream->bufp;
+      ctx->stream->bufp    = ctx->stream->limitp; /* empty buffer */
     }
-  } else
-  { DEBUG(1, Sdprintf("Processing %d bytes\n", ctx->zstate.avail_in));
   }
 
+  DEBUG(1, Sdprintf("Processing %d bytes\n", ctx->zstate.avail_in));
   ctx->zstate.next_out  = (Bytef*)buf;
   ctx->zstate.avail_out = size;
   
@@ -436,7 +436,7 @@ zread(void *handle, char *buf, int size)
 	if ( ctx->format == F_GZIP )
 	  ctx->format = F_GZIP_CRC;
       } else
-      { DEBUG(1, Sdprintf("Z_OK: %d bytes\n"));
+      { DEBUG(1, Sdprintf("Z_OK: %d bytes\n", n));
       }
 
       return n;
@@ -448,16 +448,15 @@ zread(void *handle, char *buf, int size)
     case Z_BUF_ERROR:
     default:
       if ( ctx->zstate.msg )
-	Sdprintf("ERROR: %s\n", ctx->zstate.msg);
+	Sdprintf("ERROR: zread(): %s\n", ctx->zstate.msg);
       return -1;
   }
 }
 
 
 static int				/* deflate */
-zwrite(void *handle, char *buf, int size)
+zwrite4(void *handle, char *buf, int size, int flush)
 { z_context *ctx = handle;
-  int flush = (size == 0 ? Z_FINISH : Z_NO_FLUSH);
   Bytef buffer[SIO_BUFSIZE];
   int rc;
 
@@ -480,17 +479,25 @@ zwrite(void *handle, char *buf, int size)
 
       if ( Sfwrite(buffer, 1, n, ctx->stream) < 0 )
 	return -1;
+      if ( size == 0 && Sflush(ctx->stream) < 0 )
+	return -1;
 
       break;
     }
     case Z_STREAM_ERROR:
     case Z_BUF_ERROR:
     default:
-      Sdprintf("zwrite(): %s\n", ctx->zstate.msg);
+      Sdprintf("ERROR: zwrite(): %s\n", ctx->zstate.msg);
       return -1;
   }
 
   return size;
+}
+
+
+static int				/* deflate */
+zwrite(void *handle, char *buf, int size)
+{ return zwrite4(handle, buf, size, Z_NO_FLUSH);
 }
 
 
@@ -500,7 +507,7 @@ zcontrol(void *handle, int op, void *data)
 
   switch(op)
   { case SIO_FLUSH:
-      return zwrite(handle, NULL, 0);
+      return zwrite4(handle, NULL, 0, Z_SYNC_FLUSH);
     case SIO_SETENCODING:
       return 0;				/* allow switching encoding */
     default:
@@ -521,7 +528,7 @@ zclose(void *handle)
   if ( (ctx->stream->flags & SIO_INPUT) )
   { rc = inflateEnd(&ctx->zstate);
   } else
-  { rc = zwrite(handle, NULL, 0);	/* flush */
+  { rc = zwrite4(handle, NULL, 0, Z_FINISH);	/* flush */
     if ( rc == 0 && ctx->format == F_GZIP )
       rc = write_gzip_footer(ctx);
     if ( rc == 0 )
