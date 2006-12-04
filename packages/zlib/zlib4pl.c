@@ -186,7 +186,7 @@ static Bytef *
 gz_skip_header(z_context *ctx, Bytef *in, int avail)
 { int method; /* method byte */
   int flags;  /* flags byte */
-  uInt len;
+  int len;
 
   if ( avail < 10 )			/* 2-byte magic, method, flags, */
     return HDR_SHORT;			/* time, xflags and OS code */
@@ -208,6 +208,7 @@ gz_skip_header(z_context *ctx, Bytef *in, int avail)
   { /* skip the extra field */
     len  =  *in++;
     len += (*in++)<<8;
+    len &= 0xffff;
 
     if ( avail > len )
     { in += len;

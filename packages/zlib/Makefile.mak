@@ -16,8 +16,8 @@ OBJ=		zlib4pl.obj
 
 all:		zlib4pl.dll
 
-zlib4pl0.dll:	$(OBJ)
-		$(LD) /dll /out:$@ $(LDFLAGS) $(ZOBJ) libz.lib $(PLLIB)
+zlib4pl.dll:	$(OBJ)
+		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) zlib1.lib $(PLLIB)
 
 !IF "$(CFG)" == "rt"
 install:	idll
