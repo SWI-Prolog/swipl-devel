@@ -15,6 +15,8 @@ read_file_to_codes(File, Codes) :-
 
 :- begin_tests(zlib).
 
+%	gunzip: can we read a file compressed with gzip
+
 test(gunzip,
      [ setup(shell('gzip < ztest.pl > plunit-tmp.gz')),
        cleanup(delete_file('plunit-tmp.gz'))
@@ -24,6 +26,8 @@ test(gunzip,
 	read_file_to_codes('ztest.pl', Codes1),
 	Codes0 == Codes1.
 	
+%	gzip: Can gunzip read our compressed file
+
 test(gzip,
      [ cleanup(delete_file('plunit-tmp.gz'))
      ]) :-
@@ -33,6 +37,8 @@ test(gzip,
 	close(ZOut),
 	read_file_to_codes(pipe('gunzip < plunit-tmp.gz'), Codes1),
 	Codes == Codes1.
+
+%	deflate: test read/write of deflate format
 
 test(deflate,
      [ cleanup(delete_file('plunit-tmp.z'))
@@ -47,5 +53,67 @@ test(deflate,
 	read_stream_to_codes(ZIn, Codes1),
 	close(ZIn),
 	Codes == Codes1.
+
+%	zstream: test compressed stream flushing and processing
+
+test(zstream) :-
+	server(Port),
+	debug(server, 'Server at ~w~n', [Port]),
+	client(Port),
+	thread_join(server, Exit),
+	Exit == true.
+
+server(Port) :-
+	tcp_socket(S),
+	tcp_bind(S, Port),
+	tcp_listen(S, 5),
+	tcp_open_socket(S, AcceptFd, _),
+	thread_create(process(AcceptFd), _, [alias(server)]).
+
+process(AcceptFd) :-
+	tcp_accept(AcceptFd, S2, _Peer),
+	tcp_open_socket(S2, ZIn, ZOut),
+	zopen(ZIn, In, []),
+	zopen(ZOut, Out, []),
+	loop(In, Out),
+	close(Out), close(In).
+
+loop(In, Out) :-
+	read(In, Term),
+	debug(server, 'Read ~w', [Term]),
+	format(Out, '~q.~n', [Term]),
+	flush_output(Out),
+	debug(server, 'Replied', [Term]),
+	(   Term == quit
+	->  true
+	;   loop(In, Out)
+	).
+
+client(Port) :-
+	integer(Port), !,
+	client(localhost:Port).
+client(Address) :-
+	tcp_socket(S),
+	tcp_connect(S, Address),
+	tcp_open_socket(S, ZIn, ZOut),
+	zopen(ZIn, In, []),
+	zopen(ZOut, Out, []),
+	process_client(In, Out),
+	close(Out),
+	close(In).
+
+process_client(In, Out) :-
+	forall(between(0, 50, X),
+	       (   format(Out, '~q.~n', [X]),
+		   flush_output(Out),
+		   read(In, Term),
+		   %put(user_error, .),
+		   (   X == Term
+		   ->  true
+		   ;   format('Wrong reply~n'),
+		       fail
+		   )
+	       )),
+	format(Out, 'quit.~n', []).
 
 :- end_tests(zlib).

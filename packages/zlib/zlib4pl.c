@@ -484,8 +484,12 @@ zwrite4(void *handle, char *buf, int size, int flush)
 
       break;
     }
-    case Z_STREAM_ERROR:
     case Z_BUF_ERROR:
+      if ( ctx->zstate.avail_in == 0 && ctx->zstate.avail_out > 0 )
+	return size;			/* nothing to progress: not an error */
+					/* i.e. flush twice.  Better check? */
+      /*FALLTHROUGH*/
+    case Z_STREAM_ERROR:
     default:
       Sdprintf("ERROR: zwrite(): %s\n", ctx->zstate.msg);
       return -1;
