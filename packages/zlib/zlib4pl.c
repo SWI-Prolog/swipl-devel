@@ -359,7 +359,7 @@ zread(void *handle, char *buf, int size)
     DEBUG(1, Sdprintf("Trying gzip header\n"));
     while( (p = gz_skip_header(ctx, ctx->zstate.next_in,
 			       ctx->zstate.avail_in)) == HDR_SHORT )
-    {					/* TBD: read more */
+    { 					/* TBD: read more */
     }
 
     if ( p )
