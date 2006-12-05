@@ -6,8 +6,10 @@
 
 JAVAC="$(JAVA_HOME)\bin\javac"
 JAR="$(JAVA_HOME)\bin\jar"
+JAVADOC="$(JAVA_HOME)\bin\javadoc"
 JPLJAR=..\..\jpl.jar
 TSTJAR=..\..\jpltest.jar
+JPLDOC=..\..\docs\java_api\javadoc
 
 CLS=	jpl\Atom.java \
 	jpl\Compound.java \
@@ -58,7 +60,7 @@ TEST=	jpl\test\Family.java \
 JPLJAVA=$(CLS) $(FLI)
 TSTJAVA=$(TEST)
 
-all:	$(JPLJAR) $(TSTJAR)
+all:	$(JPLJAR) $(TSTJAR) $(JPLDOC)
 
 $(JPLJAR):	$(JPLJAVA)
 		$(JAVAC) $(JPLJAVA)
@@ -67,6 +69,9 @@ $(JPLJAR):	$(JPLJAVA)
 $(TSTJAR):	$(JPLJAR) $(TSTJAVA) 
 		$(JAVAC) -classpath "$(JPLJAR);$(JUNIT)" $(TSTJAVA)
 		$(JAR) cf $(TSTJAR) $(TSTJAVA:.java=.class)
+
+$(JPLDOC):	$(JPLJAVA)
+		$(JAVADOC) -public -d $(JPLDOC) $(JPLJAVA)
 
 clean::
 	if exist jpl\*.class del jpl\*.class
@@ -78,3 +83,6 @@ clean::
 distclean:	clean
 	if exist $(JPLJAR) del $(JPLJAR)
 	if exist $(TSTJAR) del $(TSTJAR)
+	if exist $(JPLDOC) rmdir /s /q $(JPLDOC)
+
+

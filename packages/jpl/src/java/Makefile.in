@@ -7,8 +7,10 @@
 JAVAC=@JAVAC@
 JAR=@JAR@
 JUNIT=@JUNIT@
+JAVADOC=@JAVA_HOME@/bin/javadoc
 JPLJAR=../../jpl.jar
 TSTJAR=../../jpltest.jar
+JPLDOC=../../docs/java_api/javadoc
 
 CLS=	jpl/Atom.java \
 	jpl/Compound.java \
@@ -59,7 +61,7 @@ TEST=	jpl/test/Family.java \
 JPLJAVA=$(CLS) $(FLI)
 TSTJAVA=$(TEST)
 
-all:	$(JPLJAR) $(TSTJAR)
+all:	$(JPLJAR) $(TSTJAR) $(JPLDOC)
 
 $(JPLJAR):	$(JPLJAVA)
 		$(JAVAC) $(JPLJAVA)
@@ -69,8 +71,13 @@ $(TSTJAR):	$(JPLJAR) $(TSTJAVA)
 		$(JAVAC) -classpath $(JPLJAR):$(JUNIT) $(TSTJAVA)
 		$(JAR) cf $(TSTJAR) $(TSTJAVA:.java=.class)
 
+$(JPLDOC):	$(JPLJAVA)
+		$(JAVADOC) -public -d $(JPLDOC) $(JPLJAVA)
+
 clean::
 	rm -f *~ $(JPLJAVA:.java=.class) $(TSTJAVA:.java=.class)
 
 distclean: clean
 	rm -f $(JPLJAR) $(TSTJAR) 
+	rm -rf $(JPLDOC)
+
