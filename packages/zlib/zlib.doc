@@ -39,7 +39,7 @@ communication.
 
 \newpage
 
-\section{Zlib}
+\section{Zlib and compression}
 
 Zlib is a widespread library implementing the RFC1950 (zlib wrapper),
 RFC1951 (deflate stream) and RFC1952 (gzip wrapper) compression
@@ -54,8 +54,37 @@ way, it can perform a wide variety of tasks:
     \item Deal with streams holding embedded compressed objects
 \end{itemize}
 
-The core predicate of the library is zopen/3. The remainder of
-the functionality of \pllib{zlib} is defined in Prolog.
+The core predicate of the library is zopen/3. The remainder of the
+functionality of \pllib{zlib} is defined in Prolog and can be used as a
+starting point for other high-level primitives. See also \file{ztest.pl}
+providing test and demo code. This file is part of the source
+distribution.
+
+Part of the functionality of this library can also be realised using
+the pipe interface and the \program{gzip} program.  For example, a
+gziped file can also be opened in Prolog using the code below.
+
+\begin{code}
+	...
+	open(pipe('gunzip < file.gz'), read, In),
+	...
+\end{code}
+
+The advantage of this library for such tasks is enhanced platform
+independence and reduced time to open a file. Platform independence is
+improved as we do not have to worry about availability of the
+\program{gunzip} utility and we do not have to worry about shell and
+filename quoting issues. While the above works well on most modern Unix
+systems, it only works with special precautions on Windows.%
+	\footnote{Install gunzip, deal with Windows path-names, the
+		  windows shell and quoting.}
+
+The library becomes really valuable if we consider compressed network
+communication. Here we get the stream from tcp_open_socket/3. The
+library provides efficient creation of a compressed stream, as well as
+support for flushing output through the standard Prolog flush_output/1
+call.
+
 
 \section{Predicate reference}
 
@@ -96,6 +125,17 @@ Same as \exam{gzopen}{File, Mode, Stream, []}.
     \predicate{gzopen}{4}{+File, +Mode, -Stream, +Options}
 Open \program{gzip} compatible \arg{File} for reading or writing.
 \end{description}
+
+\section{Interaction with Prolog stream predicates}
+
+Using flush_output/1 on a compressed stream causes a
+\const{Z_SYNC_FLUSH} on the stream.  Using close/1 on a compressed
+stream causes a \const{Z_FINISH} on the stream.  If the stream uses
+the \const{gzip} format, a \program{gzip} compatible footer is
+written to the stream.  If \const{close_parent} is set (default)
+the underlying stream is closed too.  Otherwise it remains open
+and the user can continue communication in non-compressed format
+or reopen the stream for compression using zopen/3.
 
 
 \section{Installation}
