@@ -32,7 +32,8 @@
 :- module(swi_option,
 	  [ option/2,			% +Term, +List
 	    option/3,			% +Term, +List, +Default
-	    select_option/3		% +Term, +Options, -RestOptions
+	    select_option/3,		% +Term, +Options, -RestOpts
+	    select_option/4		% +Term, +Options, -RestOpts, +Default
 	  ]).
 
 %%	option(?Option, +OptionList, +Default)
@@ -103,3 +104,13 @@ get_option(Opt, Options0, Options) :-
 	functor(Opt, OptName, 1),
 	arg(1, Opt, OptVal),
 	select(OptName=OptVal, Options0, Options), !.
+
+%%	select_option(?Option, +Options, -RestOptions, +Default) is det.
+%
+%	As select_option/3, but if Option is   not in Options, its value
+%	is unified with Default and RestOptions with Options.
+
+select_option(Option, Options, RestOptions, _Default) :-
+	select_option(Option, Options, RestOptions), !.
+select_option(Option, Options, Options, Default) :-
+	arg(1, Option, Default).
