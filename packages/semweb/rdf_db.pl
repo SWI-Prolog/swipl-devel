@@ -664,9 +664,17 @@ rdf_load_db(File) :-
 %	Currently defined options are:
 %	
 %	    * result(-Action, -Triples, -MD5)
-%	    	Return action taken (load, reload, none) and number
-%	    	of triples loaded from the file as well as the MD5
-%	    	digest.
+%	    Return action taken (load, reload, none) and number
+%	    of triples loaded from the file as well as the MD5
+%	    digest.
+%	    
+%	    * blank_nodes(+ShareMode)
+%	    How to handle equivalent blank nodes.  If =share= (default),
+%	    equivalent blank nodes are shared in the same resource.
+%	    
+%	    * base_uri(+URI)
+%	    URI that is used for rdf:about="" and other RDF constructs
+%	    that are relative to the base uri.
 %	    	
 %	Other options are forwarded to process_rdf/3.
 
@@ -683,7 +691,7 @@ rdf_load(Spec, Options0) :-
 	->  true
 	;   Options1 = Options0
 	),
-	(   memberchk(blank_nodes(_), Options1)
+	(   option(blank_nodes(_), Options1)
 	->  Options2 = Options1
 	;   Options2 = [ blank_nodes(share)|Options1 ]
 	),
@@ -691,7 +699,7 @@ rdf_load(Spec, Options0) :-
 	    ->	In = Spec
 	    ;	Spec = stream(In)
 	    )
-	->  (   memberchk(base_uri(BaseURI), Options2)
+	->  (   option(base_uri(BaseURI), Options2)
 	    ->	Options = Options2
 	    ;	gensym('stream://', BaseURI),
 		Options = [base_uri(BaseURI)|Options2]
