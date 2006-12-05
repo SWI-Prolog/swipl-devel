@@ -366,6 +366,17 @@ Section "NLP package"
   File pl\doc\packages\nlp.html
 SectionEnd
 
+Section "ZLIB package"
+  SectionIn 1 3
+  SetOutPath $INSTDIR\bin
+  File pl\bin\zlib4pl.dll
+  File pl\bin\zlib1.dll
+  SetOutPath $INSTDIR\library
+  File pl\library\zlib.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\zlib.html
+SectionEnd
+
 Section "Unit test package"
   SectionIn 1 3
   SetOutPath $INSTDIR\library
