@@ -3057,7 +3057,8 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
       
 	  clause = ptr;
 	  if ( !isClause(clause) )
-	    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
+	    return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+			    ATOM_clause_reference, ref);
 	      
 	  decompile(clause, term, bindings);
 	  proc = clause->procedure;
