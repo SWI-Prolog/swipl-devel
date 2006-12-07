@@ -15,7 +15,7 @@ LIBDIR=		$(PLBASE)\library\semweb
 PKGDLL=rdf_db
 
 LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl rdf_litindex.pl \
-		rdf_persistency.pl
+		rdf_persistency.pl rdf_turtle.pl
 DATA=		rdfs.rdfs dc.rdfs eor.rdfs owl.owl
 OBJ=		rdf_db.obj md5.obj avl.obj atom_map.obj atom.obj \
 		lock.obj debug.obj
