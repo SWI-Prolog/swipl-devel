@@ -525,15 +525,13 @@ for portable RDF load and save.
 
 \begin{description}
     \predicate{rdf_load}{1}{+InOrList}
-Load triples from \arg{In}, which is either a stream opened for
-reading, an atom specifying a filename or a list of valid inputs. This
+Load triples from \arg{In}, which is either a stream opened for reading,
+an atom specifying a filename, a URL or a list of valid inputs. This
 predicate calls process_rdf/3 to read the source one description at a
-time, avoiding limits to the size of the input. If \arg{In} is a file,
-rdf_load/1 provides for caching the results for quick-load using
-rdf_load_db/1 described below. Caching is activated by creating a
-directory \file{.cache} (or \file{_cache} on Windows) in the directory
-holding the \fileext{rdf} files. Cached RDF files are loaded at approx.\
-25 times the speed of RDF-XML files.
+time, avoiding limits to the size of the input. By default, this
+predicate provides for caching the results for quick-load using
+rdf_load_db/1 described below.   Caching strategy and options are
+description in \secref{rdfcache}.
 
     \predicate{rdf_load}{2}{+FileOrList, +Options}
 As rdf_load/1, providing additional options.  The options are handed
@@ -541,7 +539,24 @@ to the RDF parser and implemented by process_rdf/3.  In addition, the
 following options are provided:
 
 \begin{description}
-    \termitem{silent}{Bool}
+    \termitem{cache}{+Bool}
+If \const{true} (default), try to use cached data or create a cache
+file.  Otherwise load the source.
+
+    \termitem{format}{+Format}
+Specify the source format explicitly.  Normally this is deduced from
+the filename extension or the mime-type.  The core library understands
+the formats \const{xml} (RDF/XML) and \const{triples} (internal quick
+load and cache format).
+
+    \termitem{if}{+Condition}
+Condition under which to load the source. \arg{Condition} is the same as
+for the Prolog load_files/2 predicate: \const{changed} (default) load
+the source if it was not loaded before or has changed; \const{true}
+(re-)loads the source unconditionally and \const{not_loaded} loads the
+source if it was not loaded, but does not check for modifications.
+
+    \termitem{silent}{+Bool}
 If \arg{Bool} is \const{true}, the message reporting completion is
 printed using level \const{silent}. Otherwise the level is
 \const{informational}.  See also print_message/2.
