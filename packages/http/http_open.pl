@@ -37,6 +37,7 @@
 :- use_module(library(readutil)).
 :- use_module(library(socket)).
 :- use_module(library(lists)).
+:- use_module(library(option)).
 
 user_agent('SWI-Prolog (http://www.swi-prolog.org)').
 
@@ -64,6 +65,8 @@ client support is provided by http_client.pl
 %		  User agent for identifying
 %		* request_header(Name=Value)
 %		  Extra header field
+%		* method(+Method)
+%		  One of =get= (default) or =head=
 %	
 %	@error	existence_error(url, Id)
 
@@ -74,14 +77,15 @@ http_open(Url, Stream, Options) :-
 http_open(Parts, Stream, Options) :-
 	memberchk(proxy(Host, Port), Options), !,
 	user_agent(Agent, Options),
+	method(Options, MNAME),
 	parse_url(URL, Parts),
 	open_socket(Host:Port, In, Out, Options),
 	format(Out,
-	       'GET ~w HTTP/1.0\r\n\
+	       '~w ~w HTTP/1.0\r\n\
 	       Host: ~w\r\n\
 	       User-Agent: ~w\r\n\
 	       Connection: close\r\n',
-	       [URL, Host, Agent]),
+	       [MNAME, URL, Host, Agent]),
 	x_headers(Options, Out, Options1),
 	format(Out, '\r\n', []),
 	close(Out),
@@ -93,13 +97,14 @@ http_open(Parts, Stream, Options) :-
 	option(port(Port), Parts, 80),
 	http_location(Parts, Location),
 	user_agent(Agent, Options),
+	method(Options, MNAME),
 	open_socket(Host:Port, In, Out, Options),
 	format(Out,
-	       'GET ~w HTTP/1.0\r\n\
+	       '~w ~w HTTP/1.0\r\n\
 	       Host: ~w\r\n\
 	       User-Agent: ~w\r\n\
 	       Connection: close\r\n',
-	       [Location, Host, Agent]),
+	       [MNAME, Location, Host, Agent]),
 	x_headers(Options, Out, Options1),
 	format(Out, '\r\n', []),
 	close(Out),
@@ -107,6 +112,13 @@ http_open(Parts, Stream, Options) :-
 	read_header(In, Code, Comment, Lines),
 	do_open(Code, Comment, Lines, Options1, Parts, In, Stream).
 
+method(Options, MNAME) :-
+	option(method(M), Options, get),
+	must_be(oneof([get,head]), M),
+	(   M == get
+	->  MNAME = 'GET'
+	;   MNAME = 'HEAD'
+	).
 
 x_headers(Options0, Out, Options) :-
 	select(request_header(Name=Value), Options0, Options1), !,
@@ -115,14 +127,8 @@ x_headers(Options0, Out, Options) :-
 x_headers(Options, _, Options).
 
 
-option(Option, List, Default) :-
-	(   memberchk(Option, List)
-	->  true
-	;   arg(1, Option, Default)
-	).
-
 user_agent(Agent, Options) :-
-	(   memberchk(user_agent(Agent), Options)
+	(   option(user_agent(Agent), Options)
 	->  true
 	;   user_agent(Agent)
 	).

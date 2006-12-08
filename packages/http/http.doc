@@ -134,6 +134,12 @@ Default is \const{SWI-Prolog (http://www.swi-prolog.org)}.
 	\termitem{request_header}{+Name = +Value}
 Additional name-value parts are added in the order of appearance to
 the HTTP request header.  No interpretation is done.
+
+	\termitem{method}{Method}
+One of \const{get} (default) or \const{head}.  The \const{head} message
+can be used in combination with the \term{header}{Name, Value} option
+to access information on the resource without actually fetching the
+resource itself.  The returned stream must be closed immediately.
     \end{description}
 
 Here is a simple example:
@@ -150,6 +156,25 @@ Here is a simple example:
 </HEAD>
 ...
 \end{code}
+
+The example below fetches the modification time of a web-page. Note that
+\arg{Modified} is \verb$''$ if the web-server does not provide a
+time-stamp for the resource. See also parse_time/2.
+
+\begin{code}
+modified(URL, Stamp) :-
+	http_open(URL, In,
+		  [ method(head),
+		    header(last_modified, Modified)
+		  ]),
+	close(In),
+	Modified \== '',
+	parse_time(Modified, Stamp).
+close(In).
+\end{code}
+
+
+
 \end{description}
 
 
