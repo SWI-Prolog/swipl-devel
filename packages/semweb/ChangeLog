@@ -1,3 +1,10 @@
+Dec 8, 2006
+
+  * ENHANCED: rdf_load/2 to load plugins dealing with different formats,
+    compression and sources such as HTTP.
+
+  * ADDED: rdf_turtle.pl to load Turtle files.
+
 Nov 24, 2006
 
   * FIXED: subPropertyOf issue.  Michiel Hildebrand.

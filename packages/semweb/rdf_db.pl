@@ -121,6 +121,8 @@
 :- use_module(library(sgml_write)).
 :- use_module(library(option)).
 :- use_module(library(nb_set)).
+:- use_module(library(error)).
+:- use_module(rdf_cache).
 
 :- initialization
    load_foreign_library(foreign(rdf_db)).
@@ -184,7 +186,7 @@ rdf_register_ns(Alias, URI, _) :-
 	assert(ns(Alias, URI)).
 
 
-%%	rdf_global_id(?Id, ?GlobalId)
+%%	rdf_global_id(?Id, ?GlobalId) is det.
 %
 %	Convert between NS:Local and global atomic identifier.
 %	To be completed.
@@ -194,7 +196,7 @@ rdf_global_id(NS:Local, Global) :-
 rdf_global_id(Global, Global).
 
 
-%%	rdf_global_object(?Object, ?GlobalObject)
+%%	rdf_global_object(?Object, ?GlobalObject) is det.
 %	
 %	Same as rdf_global_id/2,  but  intended   for  dealing  with the
 %	object part of a  triple,  in   particular  the  type  for typed
@@ -220,7 +222,7 @@ global(NS, Local, Global) :-
 
 
 
-%%	rdf_global_term(+TermIn, -GlobalTerm)
+%%	rdf_global_term(+TermIn, -GlobalTerm) is det.
 %	
 %	Does rdf_global_id/2 on all terms NS:Local by recursively analysing
 %	the term.
@@ -410,16 +412,12 @@ rdf_member_property(P, N) :-
 
 %%	rdf_node(-Id)
 %
-%	Generate a unique identifier for a subject.  Obsolete.  New
-%	code should use rdf_bnode/1.
+%	Generate a unique blank node identifier for a subject.
+%	
+%	@depricated	New code should use rdf_bnode/1.
 
-rdf_node(Value) :-
-	repeat,
-	gensym('_:', Value),
-	\+ rdf_subject(Value),
-	\+ rdf(_, _, Value),
-	\+ rdf(_, Value, _), !.
-
+rdf_node(Resource) :-
+	rdf_bnode(Resource).
 
 %%	rdf_bnode(-Id)
 %
@@ -437,6 +435,8 @@ rdf_bnode(Value) :-
 %	
 %	Tests if a resource is a blank node (i.e. is an anonymous
 %	resource).
+%	
+%	@see rdf_bnode/1.
 
 rdf_is_bnode(Id) :-
 	atom(Id),
@@ -657,6 +657,13 @@ rdf_load_db(File) :-
 		 *	    LOADING RDF		*
 		 *******************************/
 
+:- multifile
+	rdf_open_hook/3,
+	rdf_load_stream/3,
+	rdf_input_info/3,
+	rdf_file_type/2,
+	url_protocol/1.
+
 %%	rdf_load(+FileOrList) is det.
 %%	rdf_load(+FileOrList, +Options) is det.
 %
@@ -675,7 +682,14 @@ rdf_load_db(File) :-
 %	    * base_uri(+URI)
 %	    URI that is used for rdf:about="" and other RDF constructs
 %	    that are relative to the base uri.
-%	    	
+%	    
+%	    * if(Condition)
+%	    When to load the file. One of =true=, =changed= (default) or
+%	    =not_loaded=.
+%	    
+%	    * cache(Bool)
+%	    If =false=, do not use or create a cache file.
+%	    
 %	Other options are forwarded to process_rdf/3.
 
 rdf_load(Spec) :-
@@ -685,107 +699,203 @@ rdf_load([], _) :- !.
 rdf_load([H|T], Options) :- !,
 	rdf_load(H, Options),
 	rdf_load(T, Options).
-rdf_load(Spec, Options0) :-
-	statistics(cputime, CpuOld),
-	(   select(result(Action, Triples, MD5), Options0, Options1)
+rdf_load(Spec, Options) :-
+	statistics(cputime, T0),
+	(   select(result(Action, Triples, MD5), Options, Options1)
 	->  true
-	;   Options1 = Options0
+	;   Options1 = Options
 	),
-	(   option(blank_nodes(_), Options1)
-	->  Options2 = Options1
-	;   Options2 = [ blank_nodes(share)|Options1 ]
+	rdf_input(Spec, Input, DefBaseURI),
+	(   rdf_input_info(Input, Modified, DefFormat)
+	->  true
+	;   Modified = 0,
+	    DefFormat = xml
 	),
-	(   (   is_stream(Spec)
-	    ->	In = Spec
-	    ;	Spec = stream(In)
-	    )
-	->  (   option(base_uri(BaseURI), Options2)
-	    ->	Options = Options2
-	    ;	gensym('stream://', BaseURI),
-		Options = [base_uri(BaseURI)|Options2]
+	select_option(base_uri(BaseURI), Options1, Options2, DefBaseURI),
+	select_option(format(Format), Options2, Options3, DefFormat),
+	select_option(blank_nodes(ShareMode), Options3, Options4, share),
+	select_option(cache(Cache), Options4, Options5, true),
+	select_option(if(If), Options5, RDFOptions, changed),
+	(   must_load(If, BaseURI, Modified)
+	->  do_unload(BaseURI),		% unload old
+	    (   Cache == true,
+		read_cache(BaseURI, Modified, CacheFile),
+	        catch(rdf_load_db_no_admin(CacheFile, cache(BaseURI)), _, fail)
+	    ->	Action = load
+	    ;   rdf_input_open(Input, Stream, Format),
+		must_be(ground, Format),
+		call_cleanup(rdf_load_stream(Format, Stream,
+					     [ base_uri(BaseURI),
+					       blank_nodes(ShareMode)
+					     | RDFOptions
+					     ]),
+			     close(Stream)), !,
+		(   Cache == true,
+		    rdf_cache_file(BaseURI, write, CacheFile)
+		->  catch(save_cache(BaseURI, CacheFile), E,
+			  print_message(warning, E))
+		;   true
+		),
+		(   Format = triples
+		->  Action = load
+		;   Action = parsed
+		)
 	    ),
-	    process_rdf(In, assert_triples, Options),
 	    rdf_statistics_(triples(BaseURI, Triples)),
 	    rdf_md5(BaseURI, MD5),
-	    assert(rdf_source(BaseURI, Modified, Triples, MD5)),
-	    Source = BaseURI,
-	    Load = parsed(ParseTime),
-	    Action = load
-	;   Source = Spec,
-	    absolute_file_name(Spec,
-			       [ access(read),
-				 extensions([rdf,rdfs,owl,''])
-			       ], File),
-	    time_file(File, Modified),
-	    (	rdf_source(File, WhenLoaded, _, _)
-	    ->	(   Modified > WhenLoaded
-		->  do_unload(File),
-		    Action = reload
-		;   Action = none
-		)
-	    ;	Action = load
-	    ),
-	    (	Action \== none
-	    ->  add_base_url(Options2, File, Options),
-		retractall(rdf_source(File, _, _, _)),
-		(   cache_file(File, Cache)
-		->  (   time_file(Cache, CacheTime),
-		        time_file(File, FileTime),
-			CacheTime >= FileTime,
-			catch(rdf_load_db_no_admin(Cache, cache(File)),
-			      _, fail),
-			ignore(memberchk(namespaces([]), Options)) % TBD
-		    ->  Load = cache(ParseTime)
-		    ;   parse_rdf_file(File, Options),
-			Load = parsed(ParseTime),
-			save_cache(File, Cache)
-		    )
-		;   parse_rdf_file(File, Options),
-		    Load = parsed(ParseTime)
-		),
-		rdf_statistics_(triples(File, Triples)),
-		rdf_md5(File, MD5),
-		assert(rdf_source(File, Modified, Triples, MD5))
-	    ;	rdf_source(File, _Modified, Triples, MD5)
-	    )
+	    assert(rdf_source(BaseURI, Modified, Triples, MD5))
+	;   Action = none,
+	    rdf_source(BaseURI, _, Triples, MD5)
 	),
-	(   Action \== none
-	->  statistics(cputime, CpuLoaded),
-	    ParseTime is CpuLoaded - CpuOld,
-	    (	memberchk(silent(true), Options)
-	    ->	Level = silent
-	    ;	Level = informational
-	    ),
-	    print_message(Level,
-			  rdf(loaded(Source, Triples, Load)))
-	;   true
+	report_loaded(Action, Spec, BaseURI, Triples, T0, Options).
+
+
+%%	rdf_input(+Term, -Input, -BaseURI)
+%
+%	Resolve input description Term.  Unify   Input  with a canonical
+%	description of the input, which is one of:
+%	
+%	  * stream(Stream)
+%	  * file(AbsolutePath)
+%	  * url(Protocol, URL)
+%	
+%	BaseURI is unified with a default base   URI. Note that this may
+%	be overruled from the options of rdf_load/2.
+
+rdf_input(stream(Stream), stream(Stream), BaseURI) :- !,
+	(   stream_property(Stream, file_name(File))
+	->  absolute_file_name(File, Path),
+	    atom_concat('file://', Path, BaseURI)
+	;   gensym('stream://', BaseURI)
+	).
+rdf_input(Stream, stream(Stream), BaseURI) :-
+	is_stream(Stream), !,
+	rdf_input(stream(Stream), _, BaseURI).
+rdf_input(FileURL, file(File), FileURL) :-
+	atom(FileURL),
+	atom_concat('file://', File, FileURL), !.
+rdf_input(URL, url(Protocol, URL), URL) :-
+	is_url(URL, Protocol), !.
+rdf_input(Spec, file(Path), BaseURI) :-
+	findall(Ext, (rdf_file_type(Ext, _);Ext=''), Exts),
+	absolute_file_name(Spec, Path,
+			   [ access(read),
+			     extensions(Exts)
+			   ]),
+	atom_concat('file://', Path, BaseURI).
+	
+%%	is_url(+Term, -Protocol) is semidet.
+%
+%	True if Term is an atom denoting a URL of the given Protocol.
+%	We only support a limited set of protocols as defined by the
+%	extensible predicate url_protocol/1.
+
+is_url(URL, Protocol) :-
+	atom(URL),
+	sub_atom(URL, B, _, _, :), !,
+	sub_atom(URL, 0, B, _, RawProtocol),
+	downcase_atom(RawProtocol, Protocol),
+	url_protocol(Protocol).
+
+%%	url_protocol(+Protocol) is det.
+%
+%	True  if  Protocol  is  the  (lowercase)  name  of  a  supported
+%	protocol.  New  protocols  can  be    added  to  this  multifile
+%	predicate. In addition the plugin must define rdf_open_hook/3 to
+%	create a stream from the added protocol.
+
+url_protocol(http).
+url_protocol(https).
+url_protocol(ftp).
+	
+
+%%	rdf_input_info(+Input, -Modified, -Format) is semidet.
+%
+%	Return the last modification  time  of   Input  as  a POSIX time
+%	stamp as well as the format of the input.
+
+rdf_input_info(file(File), Modified, Format) :-
+	time_file(File, Modified),
+	file_name_extension(_, Ext, File),
+	(   rdf_file_type(Ext, Format)
+	->  true
+	;   Format = xml
 	).
 
+%%	rdf_input_open(+Input, -Stream, ?Format) is det.
+%
+%	Open given input as a stream.
 
-parse_rdf_file(File, Options) :-
-	source_descr(File, Id),
-	rdf_transaction(process_rdf(File, assert_triples, Options),
-			parse(Id)).
-
-source_descr(File, file(File)) :-
-	atom(File), !.
-source_descr(Stream, stream(Stream)) :-
-	is_stream(Stream), !.
-source_descr(Descr, Descr).
+rdf_input_open(Input, Stream, Format) :-
+	rdf_open_hook(Input, Stream, Format), !.
+rdf_input_open(stream(Stream), Stream, _) :- !.
+rdf_input_open(file(File), Stream, _) :-
+	open(File, read, Stream, [type(binary)]).
 
 
-%%	add_base_url(+Options0, +File, -Options)
+%%	rdf_file_type(+Extension, -Format) is semidet.
+%
+%	True if Format  is  the  format   belonging  to  the  given file
+%	extension.  This predicate is multifile and can thus be extended
+%	by plugins.
+
+rdf_file_type(rdf,  xml).
+rdf_file_type(rdfs, xml).
+rdf_file_type(owl,  xml).
+rdf_file_type(trp,  triples).
+
+
+%%	rdf_load_stream(+Format, +Stream, +Options)
+%
+%	Load RDF data from Stream.
 %	
-%	Add base_uri(file://File) to the options if  this is not already
-%	there. A base URI is needed  to   avoid  the  case where loading
-%	multiple  files  independently  cause    clashes   of  generated
-%	descriptions.
+%	@tbd	Handle mime-types?
 
-add_base_url(Options, _File, Options) :-
-	option(base_uri(Base), Options, Var),
-	Base \== Var, !.
-add_base_url(Options, File, [base_uri(Base)|Options]) :-
-	atom_concat('file://', File, Base).
+rdf_load_stream(xml, Stream, Options) :- !,
+	process_rdf(Stream, assert_triples, Options).
+rdf_load_stream(triples, Stream, Options) :- !,
+	option(base_uri(Id), Options),
+	rdf_load_db_(Stream, Id).
+
+%%	read_cache(+BaseURI, +SourceModified, -CacheFile) is semidet.
+%
+%	True if CacheFile is a cache-file modified after SourceModified.
+
+read_cache(BaseURI, Modified, CacheFile) :-
+	rdf_cache_file(BaseURI, read, CacheFile),
+	time_file(CacheFile, CacheModified),
+	CacheModified >= Modified.
+
+
+%%	must_load(+Condition, +BaseURI, +ModifiedSrc)
+%
+%	True if source must be reloaded.
+
+must_load(true, _, _) :- !.
+must_load(changed, BaseURI, ModifiedSrc) :- !,
+	(   rdf_source(BaseURI, ModifiedLoaded, _, _)
+	->  ModifiedSrc > ModifiedLoaded
+	;   true
+	).
+must_load(not_loaded, BaseURI, _) :- !,
+	\+ rdf_source(BaseURI, _, _, _).
+must_load(Cond, _, _) :-
+	throw(eror(domain_error(condition, Cond), _)).
+
+
+% %	report_loaded(+Action, +Source, +BaseURI, +Triples, +StartCPU, +Options)
+
+report_loaded(none, _, _, _, _, _) :- !.
+report_loaded(Action, Source, BaseURI, Triples, T0, Options) :-
+	statistics(cputime, T1),
+	Time is T1 - T0,
+	(   option(silent(true), Options)
+	->  Level = silent
+	;   Level = informational
+	),
+	print_message(Level,
+		      rdf(loaded(Action, Source, BaseURI, Triples, Time))).
+
 
 
 %%	rdf_unload(+Spec)
@@ -793,26 +903,17 @@ add_base_url(Options, File, [base_uri(Base)|Options]) :-
 %	Remove the triples loaded from the specified source and remove
 %	the source from the database.
 
+rdf_unload(DB) :-
+	atom(DB),
+	rdf_statistics_(triples(DB, _)),
+	(   rdf(_,_,_,DB)
+	;   rdf(_,_,_,DB:_)
+	), !,
+	do_unload(DB).
 rdf_unload(Spec) :-
-	(   (   is_stream(Spec)
-	    ;   Spec = stream(_)
-	    )
-	->  throw(error(permission_error(rdf_db, unload, Spec), _))
-	;   atom(Spec),
-	    rdf_statistics_(triples(Spec, _)),
-	    (	rdf(_,_,_,Spec)
-	    ;   rdf(_,_,_,Spec:_)
-	    )
-	->  do_unload(Spec)
-	;   absolute_file_name(Spec,
-			       [ access(read),
-				 extensions([rdf,rdfs,owl,'']),
-				 file_errors(fail)
-			       ], File)
-	->  do_unload(File)
-	;   true
-	).
-	
+	rdf_input(Spec, _, BaseURI),
+	do_unload(BaseURI).
+
 do_unload(Spec) :-
 	retractall(rdf_source(Spec, _, _, _)),
 	rdf_transaction((rdf_retractall(_,_,_,Spec:_),
@@ -843,31 +944,14 @@ rdf_make :-
 		Time \== 0),
 	       catch(rdf_load(File), _, true)).
 
+%%	save_cache(+DB, +Cache) is det.
+%
+%	Save triples belonging to DB in the file Cache.
 
-%%	cache_file(+Base, -CacheFile)
-%	
-%	Deduce the name of the file used to cache the triples.
-
-cache_dir(CacheDir) :-
-	(   current_prolog_flag(windows, true)
-	->  CacheDir = '_cache'
-	;   CacheDir = '.cache'
-	).
-
-cache_file(Base, Cache) :-
-	file_directory_name(Base, BaseDir),
-	file_base_name(Base, File),
-	cache_dir(Dir),
-	concat_atom([BaseDir, /, Dir], CacheDir),
-	exists_directory(CacheDir),
-	concat_atom([CacheDir, /, File, '.trp'], Cache).
-
-%%	save_cache(+File, +Cache)
-
-save_cache(File, Cache) :-
+save_cache(DB, Cache) :-
 	catch(open(Cache, write, CacheStream, [type(binary)]), _, fail), !,
-	rdf_save_db_(CacheStream, File),
-	close(CacheStream).
+	call_cleanup(rdf_save_db_(CacheStream, DB),
+		     close(CacheStream)).
 
 %%	assert_triples(+Triples, +Source)
 %
@@ -1538,18 +1622,11 @@ rdf_value(V, _, Q, Encoding) :-
 :- multifile
 	prolog:message/3.
 
-prolog:message(rdf(loaded(Spec, Triples, parsed(ParseTime)))) -->
-	[ 'Parsed' ],
-	source(Spec),
-	in_time(Triples, ParseTime).
-prolog:message(rdf(loaded(Spec, Triples, cache(ParseTime)))) -->
-	[ 'Loaded' ],
-	source(Spec),
-	in_time(Triples, ParseTime).
-prolog:message(rdf(loaded(Spec, Triples, snapshot(ParseTime)))) -->
-	[ 'Loaded snapshot' ],
-	source(Spec),
-	in_time(Triples, ParseTime).
+prolog:message(rdf(loaded(How, What, BaseURI, Triples, Time))) -->
+	how(How),
+	source(What),
+	into(What, BaseURI),
+	in_time(Triples, Time).
 prolog:message(rdf(save_removed_duplicates(N, Subject))) -->
 	[ 'Removed ~d duplicate triples about "~p"'-[N,Subject] ].
 prolog:message(rdf(saved(File, SavedSubjects, SavedTriples))) -->
@@ -1558,6 +1635,9 @@ prolog:message(rdf(saved(File, SavedSubjects, SavedTriples))) -->
 	].
 prolog:message(rdf(using_namespace(Id, NS))) -->
 	[ 'Using namespace id ~w for ~w'-[Id, NS] ].
+
+how(load)   --> [ 'Loaded' ].
+how(parsed) --> [ 'Parsed' ].
 
 source(Spec) -->
 	{ atom(Spec),
@@ -1569,6 +1649,8 @@ source(Spec) -->
 	[ ' "~w"'-[Base] ].
 source(Spec) -->
 	[ ' "~p"'-[Spec] ].
+
+into(_, _) --> [].			% TBD
 
 in_time(Triples, ParseTime) -->
 	[ ' in ~2f sec; ~D triples'-[ParseTime, Triples]

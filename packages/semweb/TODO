@@ -3,15 +3,7 @@
 
 * Add indexing for rdf(+,+,+)?  Might speedup loading (duplicate adiminstration).
 
-* Hookable rdf_load/2:
-
-	- By identifier
-	- By format
-
-  Using multifile predicate:
-
-	rdf_open_hook(+Term, -Modified, -Stream, -Format, -DefBaseURI)
-	rdf_cache_file(+Term, -File)
+* Document hookable rdf_load/2
 
 	
 

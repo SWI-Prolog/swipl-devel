@@ -114,6 +114,8 @@ process_stream(State, In, OnObject) :-
 
 
 open_input(stream(Stream), Stream) :- !.
+open_input(Stream, Stream) :-
+	is_stream(Stream), !.
 open_input(File, Stream) :-
 	absolute_file_name(File, Path,
 			   [ access(read),
@@ -683,12 +685,15 @@ syntax_error(Stream, Which) :-
 		 *******************************/
 
 :- multifile
-	rdf_db:rdf_load_stream/3.
+	rdf_db:rdf_load_stream/3,
+	rdf_db:rdf_file_type/2.
 
 rdf_db:rdf_load_stream(turtle, Stream, Options) :-
-	process_turtle(Stream, assert_triples, Options).
+	rdf_process_turtle(Stream, assert_triples, Options).
 
 assert_triples([], _).
 assert_triples([rdf(S,P,O)|T], Location) :-
 	rdf_assert(S,P,O,Location),
 	assert_triples(T, Location).
+
+rdf_db:rdf_file_type(ttl, turtle).
