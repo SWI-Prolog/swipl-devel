@@ -78,15 +78,16 @@ instantiation_error(_Term) :-
 %%	must_be(+Type, +Term) is det.
 %
 %	True if Term satisfies the type   constraints  for Type. Defined
-%	types are =atom=,  =atomic=,   =between=,  =callable=,  =chars=,
-%	=codes=, =text=, =compound=,  =constant=,   =float=,  =integer=,
-%	=nonneg=, =nonvar=, =number=, =oneof=,  =proper_list=, =symbol=,
-%	=var=, =rational= and =string=.
+%	types are =atom=, =atomic=,   =between=,  =boolean=, =callable=,
+%	=chars=,  =codes=,  =text=,  =compound=,   =constant=,  =float=,
+%	=integer=, =nonneg=, =nonvar=, =number=, =oneof=, =proper_list=,
+%	=symbol=, =var=, =rational= and =string=.
 %	
 %	Most of these types are defined by an arity-1 built-in predicate
 %	of the same name. Below  is  a   brief  definition  of the other
 %	types.
 %	
+%	| boolean | one of =true= or =false= |
 %	| chars | Proper list of 1-character atoms |
 %	| codes | Proper list of Unicode character codes |
 %	| text | One of =atom=, =string=, =chars= or =codes= |
@@ -109,6 +110,7 @@ must_be(Type, X) :-
 has_type(atom, X)	  :- atom(X).
 has_type(atomic, X)	  :- atomic(X).
 has_type(between(L,U), X) :- integer(X), between(L,U,X).
+has_type(boolean, X) 	  :- (X==true;X==false), !.
 has_type(callable, X)	  :- callable(X).
 has_type(chars,	X)	  :- chars(X).
 has_type(codes,	X)	  :- codes(X).
