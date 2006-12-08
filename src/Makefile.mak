@@ -73,7 +73,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 PLWINLIBS=	wise.pl dde.pl progman.pl registry.pl
 PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	qsave.pl shlib.pl statistics.pl system.pl \
-	backcomp.pl gensym.pl listing.pl debug.pl \
+	backcomp.pl gensym.pl listing.pl debug.pl error.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl ugraphs.pl \
 	tty.pl readln.pl readutil.pl make.pl option.pl date.pl \

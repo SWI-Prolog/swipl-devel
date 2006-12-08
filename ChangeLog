@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: library(error), providing must_be/2, type_error/2, etc.
+    After discussion on mailinglist.
+
   * FIXED: Bug#239: crash on illegal call to clause/3.  Keri Harris.
 
   * FIXED: Bug#236: error-handling on illegal setenv calls.  Keri Harris.
