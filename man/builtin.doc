@@ -5306,6 +5306,20 @@ The date and time in date(1) format.
     \fmtchar{\%}
 A literal `\%' character.
 \end{itemize}
+
+    \predicate{parse_time}{2}{+Text, -Stamp}
+Parse a textual time representation, producing a time-stamp.  Supported
+formats for \arg{Text} are:
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\bf Name & \bf Example \\
+\hline
+RFC 1123 & \tt Fri, 08 Dec 2006 15:29:44 GMT \\
+\hline
+\end{tabular}
+\end{center}
 \end{description}
 
 
