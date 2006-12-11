@@ -1604,17 +1604,21 @@ ExpandOneFile(const char *spec, char *file)
 
 #ifdef O_HASDRIVES
 
+#define IS_DIR_SEPARATOR(c) ((c) == '/' || (c) == '\\')
+
 int
-IsAbsolutePath(const char *p)		/* /d:/ or d:/ */
+IsAbsolutePath(const char *p)				/* /d:/ */
 { if ( p[0] == '/' && p[2] == ':' && isLetter(p[1]) &&
        (p[3] == '/' || p[3] == '\0') )
     succeed;
 
-  if ( p[1] == ':' && isLetter(p[0]) && (p[2] == '/' || p[2] == '\0') )
+  if ( p[1] == ':' && isLetter(p[0]) &&			/* d:/ or d:\ */
+       (IS_DIR_SEPARATOR(p[2]) || p[2] == '\0') )
     succeed;
 
 #ifdef O_HASSHARES
-  if ( p[0] == '/' && p[1] == '/' )	/* //host/share */
+  if ( (p[0] == '/' && p[1] == '/') ||	/* //host/share */
+       (p[0] == '\\' && p[1] == '\\') )	/* \\host\share */
     succeed;
 #endif
 
@@ -1624,7 +1628,7 @@ IsAbsolutePath(const char *p)		/* /d:/ or d:/ */
 
 static inline int
 isDriveRelativePath(const char *p)	/* '/...' */
-{ return p[0] == '/' && !IsAbsolutePath(p);
+{ return IS_DIR_SEPARATOR(p[0]) && !IsAbsolutePath(p);
 }
 
 #ifdef __WIN32__
@@ -2246,7 +2250,7 @@ char *
 Getenv(const char *name, char *buf, unsigned int len)
 { int l = getenv3(name, buf, len);
 
-  if ( l >= 0 && l < len )
+  if ( l >= 0 && l < (int)len )
     return buf;
 
   return NULL;
