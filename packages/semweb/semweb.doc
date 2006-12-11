@@ -1586,7 +1586,7 @@ the RDF/XML syntax.
 
 This module acts as a \jargon{plugin} to \pllib{rdf_db.pl}, enabling
 load_rdf/2 to load Turtle data transparently.  The default extension
-for a turtle file is \fileext{.ttl}.
+for a turtle file is \fileext{ttl}.
 
 \begin{description}
     \predicate{rdf_load_turtle}{3}{+Input, -Triples, +Options}
