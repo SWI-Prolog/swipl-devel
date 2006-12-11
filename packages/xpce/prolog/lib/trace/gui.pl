@@ -528,6 +528,8 @@ return(Frame, Result:any) :->
 		),
 		thread_send_message(Thread, '$trace'(action(Result)))
 	    )
+	;   get(Frame, quitted, @on)
+	->  send(Frame, destroy)
 	;   send(Frame, report, warning, 'Not waiting')
 	).
 
