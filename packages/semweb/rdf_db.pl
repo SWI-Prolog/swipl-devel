@@ -811,10 +811,7 @@ is_url(URL, Protocol) :-
 %	predicate. In addition the plugin must define rdf_open_hook/3 to
 %	create a stream from the added protocol.
 
-url_protocol(http).
-url_protocol(https).
-url_protocol(ftp).
-	
+%	(no default clauses)
 
 %%	rdf_input_info(+Input, -Modified, -Format) is semidet.
 %

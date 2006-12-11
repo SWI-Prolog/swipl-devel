@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog/XPCE Semantic Web Library</TITLE><STYLE type="text/css">
+<TITLE>SWI-Prolog Semantic Web Library</TITLE><STYLE type="text/css">
 /* Style sheet for SWI-Prolog latex2html
 */
 
@@ -88,6 +88,10 @@ span.sec-title
 { margin-left: 0.5em;
 }
 
+span.pred-ext
+{ font-weight: bold;
+}
+
 /* Footnotes */
 
 sup.fn { color: blue; text-decoration: underline; }
@@ -95,7 +99,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -106,7 +110,7 @@ font-size: smaller;
 <BODY BGCOLOR="white"> 
 
 <P>
-<DIV class="title">SWI-Prolog/XPCE Semantic Web Library</DIV>
+<DIV class="title">SWI-Prolog Semantic Web Library</DIV>
 <DIV class="author">Jan Wielemaker <BR>
 HCS, <BR>
 University of Amsterdam <BR>
@@ -132,7 +136,7 @@ scalability is limited by memory only. The library can be used both on
 <DIV class="toc-h2"><A class="sec" href="#sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Modules</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Module 
-rdf_db</SPAN></A></DIV>
+semweb/rdf_db</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Query 
 the RDF database</SPAN></A></DIV>
 <DIV class="toc-h4"><A class="sec" href="#sec:3.1.1"><SPAN class="sec-nr">3.1.1</SPAN><SPAN class="sec-title">Literal 
@@ -146,11 +150,13 @@ predicates</SPAN></A></DIV>
 <DIV class="toc-h4"><A class="sec" href="#sec:3.3.2"><SPAN class="sec-nr">3.3.2</SPAN><SPAN class="sec-title">Transactions</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:3.4"><SPAN class="sec-nr">3.4</SPAN><SPAN class="sec-title">Loading 
 and saving to file</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:3.4.1"><SPAN class="sec-nr">3.4.1</SPAN><SPAN class="sec-title">Partial 
+<DIV class="toc-h4"><A class="sec" href="#sec:3.4.1"><SPAN class="sec-nr">3.4.1</SPAN><SPAN class="sec-title">Caching 
+triples</SPAN></A></DIV>
+<DIV class="toc-h4"><A class="sec" href="#sec:3.4.2"><SPAN class="sec-nr">3.4.2</SPAN><SPAN class="sec-title">Partial 
 save</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:3.4.2"><SPAN class="sec-nr">3.4.2</SPAN><SPAN class="sec-title">Fast 
+<DIV class="toc-h4"><A class="sec" href="#sec:3.4.3"><SPAN class="sec-nr">3.4.3</SPAN><SPAN class="sec-title">Fast 
 loading and saving</SPAN></A></DIV>
-<DIV class="toc-h4"><A class="sec" href="#sec:3.4.3"><SPAN class="sec-nr">3.4.3</SPAN><SPAN class="sec-title">MD5 
+<DIV class="toc-h4"><A class="sec" href="#sec:3.4.4"><SPAN class="sec-nr">3.4.4</SPAN><SPAN class="sec-title">MD5 
 digests</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:3.5"><SPAN class="sec-nr">3.5</SPAN><SPAN class="sec-title">Namespace 
 Handling</SPAN></A></DIV>
@@ -160,26 +166,35 @@ handling for custom predicates</SPAN></A></DIV>
 the database</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:3.7"><SPAN class="sec-nr">3.7</SPAN><SPAN class="sec-title">Miscellaneous 
 predicates</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.8"><SPAN class="sec-nr">3.8</SPAN><SPAN class="sec-title">Library 
-rdf_litindex: Indexing words in literals</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.9"><SPAN class="sec-nr">3.9</SPAN><SPAN class="sec-title">Literal 
-maps: Creating additional indices on literals</SPAN></A></DIV>
-<DIV class="toc-h3"><A class="sec" href="#sec:3.10"><SPAN class="sec-nr">3.10</SPAN><SPAN class="sec-title">Issues 
+<DIV class="toc-h3"><A class="sec" href="#sec:3.8"><SPAN class="sec-nr">3.8</SPAN><SPAN class="sec-title">Issues 
 with rdf_db</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Module 
-rdf_persistency</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Plugin 
+modules for rdf_db</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.1"><SPAN class="sec-nr">4.1</SPAN><SPAN class="sec-title">Hooks 
+into the RDF library</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.2"><SPAN class="sec-nr">4.2</SPAN><SPAN class="sec-title">Library 
+semweb/rdf_zlib_plugin</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.3"><SPAN class="sec-nr">4.3</SPAN><SPAN class="sec-title">Library 
+semweb/rdf_http_plugin</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.4"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">Library 
+semweb/rdf_litindex: Indexing words in literals</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.5"><SPAN class="sec-nr">4.5</SPAN><SPAN class="sec-title">Literal 
+maps: Creating additional indices on literals</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.6"><SPAN class="sec-nr">4.6</SPAN><SPAN class="sec-title">Module 
+semweb/rdf_persistency</SPAN></A></DIV>
+<DIV class="toc-h3"><A class="sec" href="#sec:4.7"><SPAN class="sec-nr">4.7</SPAN><SPAN class="sec-title">Module 
+semweb/rdf_turtle</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Module 
-rdfs</SPAN></A></DIV>
+semweb/rdfs</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:5.1"><SPAN class="sec-nr">5.1</SPAN><SPAN class="sec-title">Hierarchy 
 and class-individual relations</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:5.2"><SPAN class="sec-nr">5.2</SPAN><SPAN class="sec-title">Collections 
 and Containers</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:5.3"><SPAN class="sec-nr">5.3</SPAN><SPAN class="sec-title">Labels 
 and textual search</SPAN></A></DIV>
-<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Module 
-owl</SPAN></A></DIV>
+<DIV class="toc-h2"><A class="sec" href="#sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">OWL</SPAN></A></DIV>
 <DIV class="toc-h2"><A class="sec" href="#sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Module 
-rdf_edit</SPAN></A></DIV>
+semweb/rdf_edit</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:7.1"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Transaction 
 management</SPAN></A></DIV>
 <DIV class="toc-h3"><A class="sec" href="#sec:7.2"><SPAN class="sec-nr">7.2</SPAN><SPAN class="sec-title">File 
@@ -225,7 +240,7 @@ of XPCE modules visualise and edit the database. Figure <A class="fig" href="#fi
 <B>Figure 1 : </B>Modules for the Semantic Web library</TABLE>
 
 <H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Module 
-rdf_db</SPAN></A></H2>
+semweb/rdf_db</SPAN></A></H2>
 
 <P>The central module is called <CODE>rdf_db</CODE>. It provides storage 
 and indexed querying of RDF triples. Triples are stored as a quintuple. 
@@ -271,11 +286,11 @@ are atoms representing the fully qualified URL of the resource. <VAR>Object</VAR
 is either an atom representing a resource or <CODE>literal(Value)</CODE> 
 if the object is a literal value. If a value of the form
 <CODE>NameSpaceID : LocalName</CODE> is provided it is expanded to a 
-ground atom using <A NAME="idx:expandgoal2:3"></A><B>expand_goal/2</B>. 
+ground atom using <A NAME="idx:expandgoal2:3"></A><SPAN class="pred-ext">expand_goal/2</SPAN>. 
 This implies you can use this construct in compiled code without paying 
 a performance penalty. See also
-<A class="sec" href="#sec:rdfns">section 3.5</A>. Literal values take 
-one of the following forms:
+<A class="sec" href="#sec:3.5">section 3.5</A>. Literal values take one 
+of the following forms:
 
 <DL>
 <DT><STRONG>Atom</STRONG></DT>
@@ -302,7 +317,7 @@ record.
 <P>For string querying purposes, <VAR>Object</VAR> can be of the form
 <CODE>literal(+Query, -Value)</CODE>, where <VAR>Query</VAR> is one of 
 the terms below. Details of literal matching and indexing are described 
-in <A class="sec" href="#sec:litindex">section 3.1.1</A>.
+in <A class="sec" href="#sec:3.1.1">section 3.1.1</A>.
 
 <DL>
 <DT><STRONG>exact</STRONG>(<VAR>+Text</VAR>)</DT>
@@ -580,7 +595,7 @@ using <VAR>SourceRef</VAR> <CODE>user</CODE>. <VAR>Subject</VAR> and
 <VAR>Predicate</VAR> are resources. <VAR>Object</VAR> is either a 
 resource or a term <CODE>literal(Value)</CODE>. See <A NAME="idx:rdf3:17"></A><A class="pred" href="#rdf/3">rdf/3</A> 
 for an explanation of <VAR>Value</VAR> for typed and language qualified 
-literals. All arguments are subject to name-space expansion (see <A class="sec" href="#sec:rdfns">section 
+literals. All arguments are subject to name-space expansion (see <A class="sec" href="#sec:3.5">section 
 3.5</A>).</DD>
 <DT class="pubdef"><A NAME="rdf_assert/4"><STRONG>rdf_assert</STRONG>(<VAR>+Subject, 
 +Predicate, +Object, +SourceRef</VAR>)</A></DT>
@@ -595,8 +610,8 @@ starts.</DD>
 ?Predicate, ?Object</VAR>)</A></DT>
 <DD class="defbody">
 Removes all matching triples from the database. Previous Prolog 
-implementations also provided a backtracking <B>rdf_retract/3</B>, but 
-this proved to be rarely used and could always be replaced with
+implementations also provided a backtracking <SPAN class="pred-ext">rdf_retract/3</SPAN>, 
+but this proved to be rarely used and could always be replaced with
 <A NAME="idx:rdfretractall3:19"></A><A class="pred" href="#rdf_retractall/3">rdf_retractall/3</A>. 
 As <A NAME="idx:rdfretractall4:20"></A><A class="pred" href="#rdf_retractall/4">rdf_retractall/4</A> 
 using an unbound <VAR>SourceRef</VAR>.</DD>
@@ -648,7 +663,7 @@ but allows for specifying the source.
 
 <A NAME="transactions"></A>
 
-<P><A NAME="idx:transaction:24"></A>The predicates from <A class="sec" href="#sec:modpreds">section 
+<P><A NAME="idx:transaction:24"></A>The predicates from <A class="sec" href="#sec:3.3.1">section 
 3.3.1</A> perform immediate and atomic modifications to the database. 
 There are two cases where this is not desirable:
 
@@ -686,7 +701,7 @@ there are active read operations in other threads or from choicepoints
 that can be in the same thread. For this reason we added
 <A NAME="idx:rdftransaction2:26"></A><A class="pred" href="#rdf_transaction/2">rdf_transaction/2</A>. 
 Note that, like the predicates from
-<A class="sec" href="#sec:modpreds">section 3.3.1</A>, <A NAME="idx:rdftransaction2:27"></A><A class="pred" href="#rdf_transaction/2">rdf_transaction/2</A> 
+<A class="sec" href="#sec:3.3.1">section 3.3.1</A>, <A NAME="idx:rdftransaction2:27"></A><A class="pred" href="#rdf_transaction/2">rdf_transaction/2</A> 
 raises a permission error exception if the calling thread has active 
 choicepoints on the database. The problem is illustrated below. The <A NAME="idx:rdf3:28"></A><A class="pred" href="#rdf/3">rdf/3</A> 
 call leaves a choicepoint and as the read lock originates from the 
@@ -716,7 +731,7 @@ Same as </DD>
 <DT class="pubdef"><A NAME="rdf_transaction/2"><STRONG>rdf_transaction</STRONG>(<VAR>:Goal, 
 +Id</VAR>)</A></DT>
 <DD class="defbody">
-After starting a transaction, all predicates from <A class="sec" href="#sec:modpreds">section 
+After starting a transaction, all predicates from <A class="sec" href="#sec:3.3.1">section 
 3.3.1</A> append their operation to the <EM>transaction</EM> instead of 
 modifying the database. If <VAR>Goal</VAR> succeeds rdf_transaction cuts 
 all choicepoints in <VAR>Goal</VAR> and executes all recorded 
@@ -748,39 +763,54 @@ and saving to file</SPAN></A></H3>
 
 <P>The <CODE>rdf_db</CODE> module can read and write RDF-XML for import 
 and export as well as a binary format built for quick load and save 
-described in <A class="sec" href="#sec:rdffastfile">section 3.4.2</A>. 
-Here are the predicates for portable RDF load and save.
+described in <A class="sec" href="#sec:3.4.3">section 3.4.3</A>. Here 
+are the predicates for portable RDF load and save.
 
 <DL>
 <DT class="pubdef"><A NAME="rdf_load/1"><STRONG>rdf_load</STRONG>(<VAR>+InOrList</VAR>)</A></DT>
 <DD class="defbody">
 Load triples from <VAR>In</VAR>, which is either a stream opened for 
-reading, an atom specifying a filename or a list of valid inputs. This 
-predicate calls <A NAME="idx:processrdf3:33"></A><B>process_rdf/3</B> to 
-read the source one description at a time, avoiding limits to the size 
-of the input. If <VAR>In</VAR> is a file,
-<A NAME="idx:rdfload1:34"></A><A class="pred" href="#rdf_load/1">rdf_load/1</A> 
-provides for caching the results for quick-load using
-<A NAME="idx:rdfloaddb1:35"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A> 
-described below. Caching is activated by creating a directory <CODE>.cache</CODE> 
-(or <CODE>_cache</CODE> on Windows) in the directory holding the <CODE>.rdf</CODE> 
-files. Cached RDF files are loaded at approx. 25 times the speed of 
-RDF-XML files.</DD>
+reading, an atom specifying a filename, a URL or a list of valid inputs. 
+This predicate calls <A NAME="idx:processrdf3:33"></A><SPAN class="pred-ext">process_rdf/3</SPAN> 
+to read the source one description at a time, avoiding limits to the 
+size of the input. By default, this predicate provides for caching the 
+results for quick-load using
+<A NAME="idx:rdfloaddb1:34"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A> 
+described below. Caching strategy and options are description in <A class="sec" href="#sec:3.4.1">section 
+3.4.1</A>.</DD>
 <DT class="pubdef"><A NAME="rdf_load/2"><STRONG>rdf_load</STRONG>(<VAR>+FileOrList, 
 +Options</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:rdfload1:36"></A><A class="pred" href="#rdf_load/1">rdf_load/1</A>, 
+As <A NAME="idx:rdfload1:35"></A><A class="pred" href="#rdf_load/1">rdf_load/1</A>, 
 providing additional options. The options are handed to the RDF parser 
-and implemented by <A NAME="idx:processrdf3:37"></A><B>process_rdf/3</B>. 
+and implemented by <A NAME="idx:processrdf3:36"></A><SPAN class="pred-ext">process_rdf/3</SPAN>. 
 In addition, the following options are provided:
 
 <DL>
-<DT><STRONG>silent</STRONG>(<VAR>Bool</VAR>)</DT>
+<DT><STRONG>cache</STRONG>(<VAR>+Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE> (default), try to use cached data or create a cache 
+file. Otherwise load the source.</DD>
+<DT><STRONG>format</STRONG>(<VAR>+Format</VAR>)</DT>
+<DD class="defbody">
+Specify the source format explicitly. Normally this is deduced from the 
+filename extension or the mime-type. The core library understands the 
+formats <CODE>xml</CODE> (RDF/XML) and <CODE>triples</CODE> (internal 
+quick load and cache format).</DD>
+<DT><STRONG>if</STRONG>(<VAR>+Condition</VAR>)</DT>
+<DD class="defbody">
+Condition under which to load the source. <VAR>Condition</VAR> is the 
+same as for the Prolog <A NAME="idx:loadfiles2:37"></A><SPAN class="pred-ext">load_files/2</SPAN> 
+predicate: <CODE>changed</CODE> (default) load the source if it was not 
+loaded before or has changed; <CODE>true</CODE> (re-)loads the source 
+unconditionally and <CODE>not_loaded</CODE> loads the source if it was 
+not loaded, but does not check for modifications.</DD>
+<DT><STRONG>silent</STRONG>(<VAR>+Bool</VAR>)</DT>
 <DD class="defbody">
 If <VAR>Bool</VAR> is <CODE>true</CODE>, the message reporting 
 completion is printed using level <CODE>silent</CODE>. Otherwise the 
 level is
-<CODE>informational</CODE>. See also <A NAME="idx:printmessage2:38"></A><B>print_message/2</B>.
+<CODE>informational</CODE>. See also <A NAME="idx:printmessage2:38"></A><SPAN class="pred-ext">print_message/2</SPAN>.
 </DD>
 </DL>
 
@@ -806,8 +836,8 @@ Save with options. Provided options are:
 <DD class="defbody">
 Save all triples whose file-part of their <VAR>SourceRef</VAR> matches
 <VAR>FileRef</VAR> to the given <VAR>File</VAR>. Saving arbitrary 
-selections is possible using predicates from <A class="sec" href="#sec:partsave">section 
-3.4.1</A>.</DD>
+selections is possible using predicates from <A class="sec" href="#sec:3.4.2">section 
+3.4.2</A>.</DD>
 <DT><STRONG>anon</STRONG>(<VAR>+Bool</VAR>)</DT>
 <DD class="defbody">
 if <CODE>anon(false)</CODE> is provided anonymous resources are only 
@@ -881,7 +911,61 @@ changing the order of (conflicting) triples.
 </DD>
 </DL>
 
-<H4><A NAME="sec:3.4.1"><SPAN class="sec-nr">3.4.1</SPAN><SPAN class="sec-title">Partial 
+<H4><A NAME="sec:3.4.1"><SPAN class="sec-nr">3.4.1</SPAN><SPAN class="sec-title">Caching 
+triples</SPAN></A></H4>
+
+<A NAME="sec:rdfcache"></A>
+
+<P>The library <CODE>library(semweb/rdf_cache)</CODE> defines the 
+caching strategy for triples sources. When using large RDF sources, 
+caching triples greatly speedup loading RDF documents. The cache library 
+implements two caching strategies that are controlled by <A NAME="idx:rdfsetcacheoptions1:43"></A><A class="pred" href="#rdf_set_cache_options/1">rdf_set_cache_options/1</A>.
+
+<P><B>Local caching</B> This approach applies to files only. Triples are 
+cached in a sub-directory of the directory holding the source. This 
+directory is called <CODE>.cache</CODE> (<CODE>_cache</CODE> on 
+Windows). If the cache option <CODE>create_local_directory</CODE> is <CODE>true</CODE>, 
+a cache directory is created if posible.
+
+<P><B>Global caching</B> This approach applies to all sources, except 
+for unnamed streams. Triples are cached in directory defined by the 
+cache option <CODE>global_directory</CODE>.
+
+<P>When loading an RDF file, the system scans the configured cache files 
+unless <CODE>cache(false)</CODE> is specified as option to <A NAME="idx:rdfload2:44"></A><A class="pred" href="#rdf_load/2">rdf_load/2</A> 
+or caching is disabled. If caching is enabled but no cache exists, the 
+system will try to create a cache file. First it will try to do this 
+locally. On failure it will try to configured global cache.
+
+<DL>
+<DT class="pubdef"><A NAME="rdf_set_cache_options/1"><STRONG>rdf_set_cache_options</STRONG>(<VAR>+Options</VAR>)</A></DT>
+<DD class="defbody">
+Set cache options. Defined options are:
+
+<DL>
+<DT><STRONG>enabled</STRONG>(<VAR>Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE> (default), caching is enabled.</DD>
+<DT><STRONG>local_directory</STRONG>(<VAR>Atom</VAR>)</DT>
+<DD class="defbody">
+Local directory to use for caching. Default <CODE>.cache</CODE> 
+(Windows: <CODE>_cache</CODE>).</DD>
+<DT><STRONG>create_local_directory</STRONG>(<VAR>Bool</VAR>)</DT>
+<DD class="defbody">
+If <CODE>true</CODE> (default <CODE>false</CODE>), create a local cache 
+directory if none exists and the directory can be created.</DD>
+<DT><STRONG>global_directory</STRONG>(<VAR>Atom</VAR>)</DT>
+<DD class="defbody">
+Must point to a writeable directory. Sub-directories are created to 
+speedup indexing on filesystems that perform poorly on directories with 
+large numbers of files. Initially not defined.
+</DD>
+</DL>
+
+</DD>
+</DL>
+
+<H4><A NAME="sec:3.4.2"><SPAN class="sec-nr">3.4.2</SPAN><SPAN class="sec-title">Partial 
 save</SPAN></A></H4>
 
 <A NAME="sec:partsave"></A>
@@ -899,7 +983,7 @@ providing support for
 <DD class="defbody">
 Save an RDF header, with the XML header, <CODE>DOCTYPE</CODE>,
 <CODE>ENTITY</CODE> and opening the <CODE>rdf:RDF</CODE> element with 
-appropriate namespace declarations. It uses the primitives from <A class="sec" href="#sec:rdfns">section 
+appropriate namespace declarations. It uses the primitives from <A class="sec" href="#sec:3.5">section 
 3.5</A> to generate the required namespaces and desired short-name. <VAR>Options</VAR> 
 is one of:
 
@@ -910,7 +994,7 @@ Only search for namespaces used in triples labeled with <VAR>FileRef</VAR>.</DD>
 <DT><STRONG>namespaces</STRONG>(<VAR>+List</VAR>)</DT>
 <DD class="defbody">
 Where <VAR>List</VAR> is a list of namespace abbreviations (see
-<A class="sec" href="#sec:rdfns">section 3.5</A>). With this option, the 
+<A class="sec" href="#sec:3.5">section 3.5</A>). With this option, the 
 expensive search for all namespaces that may be used by your data is 
 omitted. The namespaces <CODE>rdf</CODE> and <CODE>rdfs</CODE> are added 
 to the provided
@@ -922,7 +1006,7 @@ in non-abreviated form.
 </DD>
 <DT class="pubdef"><A NAME="rdf_save_footer/1"><STRONG>rdf_save_footer</STRONG>(<VAR>+Stream</VAR>)</A></DT>
 <DD class="defbody">
-Close the work opened with <A NAME="idx:rdfsaveheader2:43"></A><A class="pred" href="#rdf_save_header/2">rdf_save_header/2</A>.</DD>
+Close the work opened with <A NAME="idx:rdfsaveheader2:45"></A><A class="pred" href="#rdf_save_header/2">rdf_save_header/2</A>.</DD>
 <DT class="pubdef"><A NAME="rdf_save_subject/3"><STRONG>rdf_save_subject</STRONG>(<VAR>+Stream, 
 +Subject, +FileRef</VAR>)</A></DT>
 <DD class="defbody">
@@ -937,7 +1021,7 @@ and then the unsafe characters are mapped to be represented as US-ASCII.
 </DD>
 </DL>
 
-<H4><A NAME="sec:3.4.2"><SPAN class="sec-nr">3.4.2</SPAN><SPAN class="sec-title">Fast 
+<H4><A NAME="sec:3.4.3"><SPAN class="sec-nr">3.4.3</SPAN><SPAN class="sec-title">Fast 
 loading and saving</SPAN></A></H4>
 
 <A NAME="sec:rdffastfile"></A>
@@ -947,7 +1031,7 @@ designed a binary format that is more compact, avoids the complications
 of the RDF parser and avoids repetitive lookup of (URL) identifiers. 
 Especially the speed improvement of about 25 times is worth-while when 
 loading large databases. These predicates are used for caching by
-<A NAME="idx:rdfload12:44"></A><A class="pred" href="#rdf_load/1">rdf_load/[1,2]</A> 
+<A NAME="idx:rdfload12:46"></A><A class="pred" href="#rdf_load/1">rdf_load/[1,2]</A> 
 under certain conditions.
 
 <DL>
@@ -961,7 +1045,7 @@ the
 <DD class="defbody">
 Save all triples with <VAR>SourceRef</VAR> <VAR>FileRef</VAR>, 
 regardless of the line-number. For example, using <CODE>user</CODE> all 
-information added using <A NAME="idx:rdfassert3:45"></A><A class="pred" href="#rdf_assert/3">rdf_assert/3</A> 
+information added using <A NAME="idx:rdfassert3:47"></A><A class="pred" href="#rdf_assert/3">rdf_assert/3</A> 
 is stored in the database.</DD>
 <DT class="pubdef"><A NAME="rdf_load_db/1"><STRONG>rdf_load_db</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">
@@ -969,7 +1053,7 @@ Load triples from <VAR>File</VAR>.
 </DD>
 </DL>
 
-<H4><A NAME="sec:3.4.3"><SPAN class="sec-nr">3.4.3</SPAN><SPAN class="sec-title">MD5 
+<H4><A NAME="sec:3.4.4"><SPAN class="sec-nr">3.4.4</SPAN><SPAN class="sec-title">MD5 
 digests</SPAN></A></H4>
 
 <P>The <CODE>rdf_db</CODE> library provides for <EM>MD5 digests</EM>. An 
@@ -990,9 +1074,9 @@ versioned ontology files.
 Return the MD5 digest for all triples in the database associated to
 <VAR>Source</VAR>. The <VAR>MD5</VAR> digest itself is represented as an 
 atom holding a 32-character hexadecimal string. The library maintains 
-the digest incrementally on <A NAME="idx:rdfload12:46"></A><A class="pred" href="#rdf_load/1">rdf_load/[1,2]</A>, <A NAME="idx:rdfloaddb1:47"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A>, <A NAME="idx:rdfassert34:48"></A><A class="pred" href="#rdf_assert/3">rdf_assert/[3,4]</A> 
-and <A NAME="idx:rdfretractall34:49"></A><A class="pred" href="#rdf_retractall/3">rdf_retractall/[3,4]</A>. 
-Checking whether the digest has changed since the last <A NAME="idx:rdfload12:50"></A><A class="pred" href="#rdf_load/1">rdf_load/[1,2]</A> 
+the digest incrementally on <A NAME="idx:rdfload12:48"></A><A class="pred" href="#rdf_load/1">rdf_load/[1,2]</A>, <A NAME="idx:rdfloaddb1:49"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A>, <A NAME="idx:rdfassert34:50"></A><A class="pred" href="#rdf_assert/3">rdf_assert/[3,4]</A> 
+and <A NAME="idx:rdfretractall34:51"></A><A class="pred" href="#rdf_retractall/3">rdf_retractall/[3,4]</A>. 
+Checking whether the digest has changed since the last <A NAME="idx:rdfload12:52"></A><A class="pred" href="#rdf_load/1">rdf_load/[1,2]</A> 
 call provides a practical means for checking whether the file needs to 
 be saved.</DD>
 <DT class="pubdef"><A NAME="rdf_atom_md5/3"><STRONG>rdf_atom_md5</STRONG>(<VAR>+Text, 
@@ -1038,7 +1122,7 @@ ns(dc,   'http://purl.org/dc/elements/1.1/').
 ns(eor,  'http://dublincore.org/2000/03/13/eor#').
 </PRE>
 
-<P>All predicates for the semweb libraries use <A NAME="idx:goalexpansion2:51"></A><B>goal_expansion/2</B> 
+<P>All predicates for the semweb libraries use <A NAME="idx:goalexpansion2:53"></A><SPAN class="pred-ext">goal_expansion/2</SPAN> 
 rules to make the SWI-Prolog compiler rewrite terms of the form
 <CODE>Id : Local</CODE> into the fully qualified URL. In addition, the 
 following predicates are supplied:
@@ -1067,7 +1151,7 @@ Same as <CODE>rdf_register_ns(Alias, URL,[])</CODE>.</DD>
 <DD class="defbody">
 Register <VAR>Alias</VAR> as a shorthand for <VAR>URL</VAR>. Note that 
 the registration must be done before loading any files using them as 
-namespace aliases are handled at compiletime through <A NAME="idx:goalexpansion2:52"></A><B>goal_expansion/2</B>. 
+namespace aliases are handled at compiletime through <A NAME="idx:goalexpansion2:54"></A><SPAN class="pred-ext">goal_expansion/2</SPAN>. 
 If <VAR>Alias</VAR> already exists the default is to raise a permission 
 error. If the option <CODE>force(true)</CODE> is provided, the alias is 
 silently modified. Rebinding an alias must be done <EM>before</EM> any 
@@ -1083,10 +1167,10 @@ predicate is often used to turn a global URL into a more readable term.</DD>
 <DT class="pubdef"><A NAME="rdf_global_object/2"><STRONG>rdf_global_object</STRONG>(<VAR>?Object, 
 ?NameExpandedObject</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:rdfglobalid2:53"></A><A class="pred" href="#rdf_global_id/2">rdf_global_id/2</A>, 
+As <A NAME="idx:rdfglobalid2:55"></A><A class="pred" href="#rdf_global_id/2">rdf_global_id/2</A>, 
 but also expands the type field if the object is of the form <CODE>literal(<CODE>type(Type, 
 Value)</CODE>)</CODE>. This predicate is used for goal expansion of the 
-object fields in <A NAME="idx:rdf3:54"></A><A class="pred" href="#rdf/3">rdf/3</A> 
+object fields in <A NAME="idx:rdf3:56"></A><A class="pred" href="#rdf/3">rdf/3</A> 
 and similar goals.</DD>
 <DT class="pubdef"><A NAME="rdf_global_term/2"><STRONG>rdf_global_term</STRONG>(<VAR>+Term0, 
 -Term</VAR>)</A></DT>
@@ -1098,9 +1182,9 @@ expansion of namespace identifiers.</DD>
 ?Local, ?URL</VAR>)</A></DT>
 <DD class="defbody">
 Split a URL into a prefix and local part if used in mode -,-,+ or simply 
-behave as <A NAME="idx:atomconcat3:55"></A><B>atom_concat/3</B> in other 
-modes. The <VAR>URL</VAR> is split on the last <CODE>#</CODE> or <CODE>/</CODE> 
-character.
+behave as <A NAME="idx:atomconcat3:57"></A><SPAN class="pred-ext">atom_concat/3</SPAN> 
+in other modes. The <VAR>URL</VAR> is split on the last <CODE>#</CODE> 
+or <CODE>/</CODE> character.
 </DD>
 </DL>
 
@@ -1120,7 +1204,7 @@ cardinality(S, P, C) :-
         ).
 </PRE>
 
-<P>Now assume we want to write <A NAME="idx:labels2:56"></A><B>labels/2</B> 
+<P>Now assume we want to write <A NAME="idx:labels2:58"></A><SPAN class="pred-ext">labels/2</SPAN> 
 that returns the number of distict labels of a resource:
 
 <PRE class="code">
@@ -1129,7 +1213,7 @@ labels(S, C) :-
 </PRE>
 
 <P>This code will <EM>not work</EM> as <CODE>rdfs:label</CODE> is not 
-expanded at compile time. To make this work, we need to add an <A NAME="idx:rdfmeta1:57"></A><A class="pred" href="#rdf_meta/1">rdf_meta/1</A> 
+expanded at compile time. To make this work, we need to add an <A NAME="idx:rdfmeta1:59"></A><A class="pred" href="#rdf_meta/1">rdf_meta/1</A> 
 declaration.
 
 <PRE class="code">
@@ -1148,7 +1232,7 @@ argument properties are:
 <DL>
 <DT><STRONG>:</STRONG></DT>
 <DD class="defbody">
-Argument is a goal. The goal is processed using <A NAME="idx:expandgoal2:58"></A><B>expand_goal/2</B>, 
+Argument is a goal. The goal is processed using <A NAME="idx:expandgoal2:60"></A><SPAN class="pred-ext">expand_goal/2</SPAN>, 
 recursively applying goal transformation on the argument.
 </DD>
 <DT><STRONG>+</STRONG></DT>
@@ -1184,14 +1268,14 @@ appearing anywhere in the term.
 </DD>
 </DL>
 
-<P>As it is subject to <A NAME="idx:termexpansion2:59"></A><B>term_expansion/2</B>, 
-the <A NAME="idx:rdfmeta1:60"></A><A class="pred" href="#rdf_meta/1">rdf_meta/1</A> 
+<P>As it is subject to <A NAME="idx:termexpansion2:61"></A><SPAN class="pred-ext">term_expansion/2</SPAN>, 
+the <A NAME="idx:rdfmeta1:62"></A><A class="pred" href="#rdf_meta/1">rdf_meta/1</A> 
 declaration can only be used as a <EM>directive</EM>. The directive must 
 be processed before the definition of the predicates as well as before 
 compiling code that uses the rdf meta-predicates. The atom <CODE>rdf_meta</CODE> 
 is declared as an operator exported from library <CODE>rdf_db.pl</CODE>. 
 Files using
-<A NAME="idx:rdfmeta1:61"></A><A class="pred" href="#rdf_meta/1">rdf_meta/1</A> <EM>must</EM> 
+<A NAME="idx:rdfmeta1:63"></A><A class="pred" href="#rdf_meta/1">rdf_meta/1</A> <EM>must</EM> 
 explicitely load <CODE>rdf_db.pl</CODE>.
 
 <P>Below are some examples from
@@ -1213,13 +1297,17 @@ the database</SPAN></A></H3>
 <A NAME="sec:rdfmonitor"></A>
 
 <P>Considering performance and modularity, we are working on a 
-replacement of the <CODE>rdf_edit</CODE> (see <A class="sec" href="#sec:rdfedit">section 
+replacement of the <CODE>rdf_edit</CODE> (see <A class="sec" href="#sec:7">section 
 7</A>) layered design to deal with updates, journalling, transactions, 
 etc. Where the rdf_edit approach creates a single layer on top of rdf_db 
 and code using the RDF database must select whether to use rdf_db.pl or 
 rdf_edit.pl, the new approach allows to register <EM>monitors</EM>. This 
 allows multiple modules to provide additional services, while these 
 services will be used regardless of how the database is modified.
+
+<P>Monitors are used by the persistency library (<A class="sec" href="#sec:4.6">section 
+4.6</A>) and the literal indexing library (<A class="sec" href="#sec:4.4">section 
+4.4</A>).
 
 <DL>
 <DT class="pubdef"><A NAME="rdf_monitor/2"><STRONG>rdf_monitor</STRONG>(<VAR>:Goal, 
@@ -1255,32 +1343,32 @@ The literal <VAR>Literal</VAR> is no longer used by any triple.
 <DT><STRONG>transaction</STRONG>(<VAR>+BeginOrEnd, +Id</VAR>)</DT>
 <DD class="defbody">
 Mark begin or end of the <EM>commit</EM> of a toplevel transaction 
-started by <A NAME="idx:rdftransaction2:62"></A><A class="pred" href="#rdf_transaction/2">rdf_transaction/2</A>. <VAR>BeginOrEnd</VAR> 
+started by <A NAME="idx:rdftransaction2:64"></A><A class="pred" href="#rdf_transaction/2">rdf_transaction/2</A>. <VAR>BeginOrEnd</VAR> 
 is <CODE>begin</CODE> or <CODE>end</CODE>.
-<VAR>Id</VAR> is the second argument of <A NAME="idx:rdftransaction2:63"></A><A class="pred" href="#rdf_transaction/2">rdf_transaction/2</A>. 
+<VAR>Id</VAR> is the second argument of <A NAME="idx:rdftransaction2:65"></A><A class="pred" href="#rdf_transaction/2">rdf_transaction/2</A>. 
 The following transaction Ids are pre-defined by the library:
 
 <DL>
 <DT><STRONG>parse</STRONG>(<VAR>Id</VAR>)</DT>
 <DD class="defbody">
-A file is loaded using <A NAME="idx:rdfload2:64"></A><A class="pred" href="#rdf_load/2">rdf_load/2</A>. <VAR>Id</VAR> 
+A file is loaded using <A NAME="idx:rdfload2:66"></A><A class="pred" href="#rdf_load/2">rdf_load/2</A>. <VAR>Id</VAR> 
 is one of <CODE>file(Path)</CODE> or <CODE>stream(Stream)</CODE>.
 </DD>
 <DT><STRONG>unload</STRONG>(<VAR>DB</VAR>)</DT>
 <DD class="defbody">
-All triples with source <VAR>DB</VAR> are being unloaded using <A NAME="idx:rdfunload1:65"></A><A class="pred" href="#rdf_unload/1">rdf_unload/1</A>.
+All triples with source <VAR>DB</VAR> are being unloaded using <A NAME="idx:rdfunload1:67"></A><A class="pred" href="#rdf_unload/1">rdf_unload/1</A>.
 </DD>
 <DT><STRONG>reset</STRONG></DT>
 <DD class="defbody">
-Issued by <A NAME="idx:rdfresetdb0:66"></A><A class="pred" href="#rdf_reset_db/0">rdf_reset_db/0</A>.
+Issued by <A NAME="idx:rdfresetdb0:68"></A><A class="pred" href="#rdf_reset_db/0">rdf_reset_db/0</A>.
 </DD>
 </DL>
 
 </DD>
 <DT><STRONG>load</STRONG>(<VAR>+BeginOrEnd, +Spec</VAR>)</DT>
 <DD class="defbody">
-Mark begin or end of <A NAME="idx:rdfloaddb1:67"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A> 
-or load through <A NAME="idx:rdfload2:68"></A><A class="pred" href="#rdf_load/2">rdf_load/2</A> 
+Mark begin or end of <A NAME="idx:rdfloaddb1:69"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A> 
+or load through <A NAME="idx:rdfload2:70"></A><A class="pred" href="#rdf_load/2">rdf_load/2</A> 
 from a cached file. <VAR>Spec</VAR> is currently defined as <CODE>file(Path)</CODE>.
 </DD>
 <DT><STRONG>rehash</STRONG>(<VAR>+BeginOrEnd</VAR>)</DT>
@@ -1296,8 +1384,8 @@ of the form +Event or -Event to include or exclude monitoring for
 certain events. The event-names are the functor names of the events 
 described above. The special name <CODE>all</CODE> refers to all events 
 and
-<CODE>assert(load)</CODE> to assert events originating from <A NAME="idx:rdfloaddb1:69"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A>. 
-As loading triples using <A NAME="idx:rdfloaddb1:70"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A> 
+<CODE>assert(load)</CODE> to assert events originating from <A NAME="idx:rdfloaddb1:71"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A>. 
+As loading triples using <A NAME="idx:rdfloaddb1:72"></A><A class="pred" href="#rdf_load_db/1">rdf_load_db/1</A> 
 is very fast, monitoring this at the triple level may seriously harm 
 performance.
 
@@ -1359,11 +1447,11 @@ results may be.</DD>
 <DD class="defbody">
 eturn the number of alternatives as indicated by the database internal 
 hashed indexing. This is a rough measure for the number of alternatives 
-we can expect for an <A NAME="idx:rdfhas3:71"></A><A class="pred" href="#rdf_has/3">rdf_has/3</A> 
+we can expect for an <A NAME="idx:rdfhas3:73"></A><A class="pred" href="#rdf_has/3">rdf_has/3</A> 
 call using the given three arguments. When called with three variables, 
 the total number of triples is returned. This estimate is used in query 
-optimisation. See also <A NAME="idx:rdfpredicateproperty2:72"></A><A class="pred" href="#rdf_predicate_property/2">rdf_predicate_property/2</A> 
-and <A NAME="idx:rdfstatistics1:73"></A><A class="pred" href="#rdf_statistics/1">rdf_statistics/1</A> 
+optimisation. See also <A NAME="idx:rdfpredicateproperty2:74"></A><A class="pred" href="#rdf_predicate_property/2">rdf_predicate_property/2</A> 
+and <A NAME="idx:rdfstatistics1:75"></A><A class="pred" href="#rdf_statistics/1">rdf_statistics/1</A> 
 for additional information to help optimisers.</DD>
 <DT class="pubdef"><A NAME="rdf_statistics/1"><STRONG>rdf_statistics</STRONG>(<VAR>?Statistics</VAR>)</A></DT>
 <DD class="defbody">
@@ -1383,14 +1471,14 @@ unbound.</DD>
 Number of unique values for the second field of the triple set.</DD>
 <DT><STRONG>sources</STRONG>(<VAR>-Count</VAR>)</DT>
 <DD class="defbody">
-Number of files loaded through <A NAME="idx:rdfload1:74"></A><A class="pred" href="#rdf_load/1">rdf_load/1</A>.</DD>
+Number of files loaded through <A NAME="idx:rdfload1:76"></A><A class="pred" href="#rdf_load/1">rdf_load/1</A>.</DD>
 <DT><STRONG>subjects</STRONG>(<VAR>-Count</VAR>)</DT>
 <DD class="defbody">
 Number of unique values for the first field of the triple set.</DD>
 <DT><STRONG>literals</STRONG>(<VAR>-Count</VAR>)</DT>
 <DD class="defbody">
 Total number of unique literal values in the database. See also
-<A class="sec" href="#sec:litindex">section 3.1.1</A>.</DD>
+<A class="sec" href="#sec:3.1.1">section 3.1.1</A>.</DD>
 <DT><STRONG>triples</STRONG>(<VAR>-Count</VAR>)</DT>
 <DD class="defbody">
 Total number of triples in the database.</DD>
@@ -1399,7 +1487,7 @@ Total number of triples in the database.</DD>
 Enumerate the number of triples associated to each file.</DD>
 <DT><STRONG>searched_nodes</STRONG>(<VAR>-Count</VAR>)</DT>
 <DD class="defbody">
-Number of nodes explored in <A NAME="idx:rdfreachable3:75"></A><A class="pred" href="#rdf_reachable/3">rdf_reachable/3</A>.</DD>
+Number of nodes explored in <A NAME="idx:rdfreachable3:77"></A><A class="pred" href="#rdf_reachable/3">rdf_reachable/3</A>.</DD>
 <DT><STRONG>gc</STRONG>(<VAR>-Count, -Time</VAR>)</DT>
 <DD class="defbody">
 Number of garbage collections and time spent in seconds represented as a 
@@ -1460,16 +1548,150 @@ Major + 100 &times; Minor + Patch</VAR>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:3.8"><SPAN class="sec-nr">3.8</SPAN><SPAN class="sec-title">Library 
-rdf_litindex: Indexing words in literals</SPAN></A></H3>
+<H3><A NAME="sec:3.8"><SPAN class="sec-nr">3.8</SPAN><SPAN class="sec-title">Issues 
+with rdf_db</SPAN></A></H3>
+
+<A NAME="sec:rdfissues"></A>
+
+<P>This RDF low-level module has been created after two year 
+experimenting with a plain Prolog based module and a brief evaluation of 
+a second generation pure Prolog implementation. The aim was to be able 
+to handle upto about 5 million triples on standard (notebook) hardware 
+and deal efficiently with <CODE>subPropertyOf</CODE> which was 
+identified as a crucial feature of RDFS to realise fusion of different 
+data-sets.
+
+<P>The following issues are identified and not solved in suitable 
+manner.
+
+<DL>
+<DT><B><CODE>subPropertyOf</CODE> of <CODE>subPropertyOf</CODE></B></DT>
+<DD>
+is not supported.</DD>
+<DT><B>Equivalence</B></DT>
+<DD>
+Similar to <CODE>subPropertyOf</CODE>, it is likely to be profitable to 
+handle resource identity efficient. The current system has no support 
+for it.
+</DD>
+</DL>
+
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Plugin 
+modules for rdf_db</SPAN></A></H2>
+
+<A NAME="sec:plugin"></A>
+
+<P>The <CODE>library(rdf_db)</CODE> module provides several hooks for 
+extending its functionality. Database updates can be monitored and acted 
+upon through the features described in <A class="sec" href="#sec:3.6">section 
+3.6</A>. The predicate <A NAME="idx:rdfload2:78"></A><A class="pred" href="#rdf_load/2">rdf_load/2</A> 
+can be hooked to deal with different formats such as <EM>turtle</EM>, 
+different input sources (e.g. http) and different strategies for caching 
+results.
+
+<H3><A NAME="sec:4.1"><SPAN class="sec-nr">4.1</SPAN><SPAN class="sec-title">Hooks 
+into the RDF library</SPAN></A></H3>
+
+<A NAME="sec:hooks"></A>
+
+<P>The hooks below are used to add new RDF file formats and sources from 
+which to load data to the library. They are used by the modules 
+described below and distributed with the package. Please examine the 
+source-code if you want to add new formats or locations.
+
+<DL>
+<DT><B><CODE>rdf_turtle.pl</CODE></B></DT>
+<DD>
+Load files in the Turtle format. See <A class="sec" href="#sec:4.7">section 
+4.7</A>.
+</DD>
+<DT><B><CODE>rdf_zlib_plugin.pl</CODE></B></DT>
+<DD>
+Load <B>gzip</B> compressed files transparently. See <A class="sec" href="#sec:4.2">section 
+4.2</A>.
+</DD>
+<DT><B><CODE>rdf_http_plugin.pl</CODE></B></DT>
+<DD>
+Load RDF documents from HTTP servers. See <A class="sec" href="#sec:4.3">section 
+4.3</A>.
+</DD>
+</DL>
+
+<DL>
+<DT class="pubdef"><A NAME="rdf_db:rdf_open_hook/3"><STRONG>rdf_db:rdf_open_hook</STRONG>(<VAR>+Input, 
+-Stream, -Format</VAR>)</A></DT>
+<DD class="defbody">
+Open an input. <VAR>Input</VAR> is one of <CODE>file(+Name)</CODE>,
+<CODE>stream(+Stream)</CODE> or <CODE>url(Protocol, URL)</CODE>. If this 
+hook succeeds, the RDF will be read from Stream using <A NAME="idx:rdfloadstream3:79"></A><SPAN class="pred-ext">rdf_load_stream/3</SPAN>. 
+Otherwise the default open functionality for file and stream are used.</DD>
+<DT class="pubdef"><A NAME="rdf_db:rdf_load_stream/3"><STRONG>rdf_db:rdf_load_stream</STRONG>(<VAR>+Format, 
++Stream, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Actually load the RDF from <VAR>Stream</VAR> into the RDF database.
+<VAR>Format</VAR> describes the format and is produced either by
+<A NAME="idx:rdfinputinfo3:80"></A><SPAN class="pred-ext">rdf_input_info/3</SPAN> 
+or <A NAME="idx:rdffiletype2:81"></A><SPAN class="pred-ext">rdf_file_type/2</SPAN>.</DD>
+<DT class="pubdef"><A NAME="rdf_db:rdf_input_info/3"><STRONG>rdf_db:rdf_input_info</STRONG>(<VAR>+Input, 
+-Modified, -Format</VAR>)</A></DT>
+<DD class="defbody">
+Gather information on <VAR>Input</VAR>. <VAR>Modified</VAR> is the last 
+modification time of the source as a POSIX time-stamp (see <A NAME="idx:timefile2:82"></A><SPAN class="pred-ext">time_file/2</SPAN>).
+<VAR>Format</VAR> is the RDF format of the file. See <A NAME="idx:rdffiletype2:83"></A><SPAN class="pred-ext">rdf_file_type/2</SPAN> 
+for details. It is allowed to leave the output variables unbound. 
+Ultimately the default modified time is `0' and the format is assumed to 
+be
+<CODE>xml</CODE>.</DD>
+<DT class="pubdef"><A NAME="rdf_db:rdf_file_type/2"><STRONG>rdf_db:rdf_file_type</STRONG>(<VAR>?Extension, 
+?Format</VAR>)</A></DT>
+<DD class="defbody">
+True if <VAR>Format</VAR> is the default RDF file format for files with 
+the given extension. <VAR>Extension</VAR> is lowercase and without a 
+'.'. E.g. <CODE>owl</CODE>. <VAR>Format</VAR> is either a built-in 
+format (<CODE>xml</CODE> or <CODE>triples</CODE>) or a format understood 
+by the <A NAME="idx:rdfloadstream3:84"></A><SPAN class="pred-ext">rdf_load_stream/3</SPAN> 
+hook.</DD>
+<DT class="pubdef"><A NAME="rdf_db:url_protocol/1"><STRONG>rdf_db:url_protocol</STRONG>(<VAR>?Protocol</VAR>)</A></DT>
+<DD class="defbody">
+True if <VAR>Protocol</VAR> is a URL protocol recognised by <A NAME="idx:rdfload2:85"></A><A class="pred" href="#rdf_load/2">rdf_load/2</A>.
+</DD>
+</DL>
+
+<H3><A NAME="sec:4.2"><SPAN class="sec-nr">4.2</SPAN><SPAN class="sec-title">Library 
+semweb/rdf_zlib_plugin</SPAN></A></H3>
+
+<A NAME="sec:zlib"></A>
+
+<P><A NAME="idx:gzformat:86"></A><A NAME="idx:gzip:87"></A><A NAME="idx:compresseddata:88"></A>This 
+module uses the <CODE>library(zlib)</CODE> library to load compressed 
+files on the fly. The extension of the file must be <CODE>.gz</CODE>. 
+The file format is deduced by the extension after stripping the <CODE>.gz</CODE> 
+extension. E.g. <CODE>rdf_load('file.rdf.gz')</CODE>.
+
+<H3><A NAME="sec:4.3"><SPAN class="sec-nr">4.3</SPAN><SPAN class="sec-title">Library 
+semweb/rdf_http_plugin</SPAN></A></H3>
+
+<A NAME="sec:http"></A>
+
+<P>This module allows for <CODE>rdf_load('http://...')</CODE>. It 
+exploits the library <CODE>library(http/http_open.pl)</CODE>. The format 
+of the URL is determined from the mime-type returned by the server if 
+this is one of
+<CODE>text/rdf+xml</CODE>, <CODE>application/x-turtle</CODE> or
+<CODE>application/turtle</CODE>. As RDF mime-types are not yet widely 
+supported, the plugin uses the extension of the URL if the claimed 
+mime-type is not one of the above.
+
+<H3><A NAME="sec:4.4"><SPAN class="sec-nr">4.4</SPAN><SPAN class="sec-title">Library 
+semweb/rdf_litindex: Indexing words in literals</SPAN></A></H3>
 
 <A NAME="sec:rdflitindex"></A>
 
 <P>The library <CODE>library(semweb/rdf_litindex.pl)</CODE> exploits the 
-primitives of <A class="sec" href="#sec:rdflitmap">section 3.9</A> and 
-the NLP package to provide indexing on words inside literal constants. 
-It also allows for fuzzy matching using stemming and `sounds-like' based 
-on the <EM>double metaphone</EM> algorithm of the NLP package.
+primitives of <A class="sec" href="#sec:4.5">section 4.5</A> and the NLP 
+package to provide indexing on words inside literal constants. It also 
+allows for fuzzy matching using stemming and `sounds-like' based on the <EM>double 
+metaphone</EM> algorithm of the NLP package.
 
 <DL>
 <DT class="pubdef"><A NAME="rdf_find_literals/2"><STRONG>rdf_find_literals</STRONG>(<VAR>+Spec, 
@@ -1477,7 +1699,7 @@ on the <EM>double metaphone</EM> algorithm of the NLP package.
 <DD class="defbody">
 Find literals (without type or language specification) that satisfy
 <VAR>Spec</VAR>. The required indices are created as needed and kept 
-up-to-date using hooks registered with <A NAME="idx:rdfmonitor2:76"></A><A class="pred" href="#rdf_monitor/2">rdf_monitor/2</A>. 
+up-to-date using hooks registered with <A NAME="idx:rdfmonitor2:89"></A><A class="pred" href="#rdf_monitor/2">rdf_monitor/2</A>. 
 Numerical indexing is currently limited to integers in the range <VAR>&#177;2^30</VAR> 
 (<VAR>&#177;2^62 on 64-bit platforms</VAR>). <VAR>Spec</VAR> is defined 
 as:
@@ -1527,7 +1749,7 @@ Matches all literals containing an integer token with value
 <VAR>High</VAR> or lower.</DD>
 <DT><STRONG>Token</STRONG></DT>
 <DD class="defbody">
-Matches all literals containing the given token. See <A NAME="idx:tokenizeatom2:77"></A><B>tokenize_atom/2</B> 
+Matches all literals containing the given token. See <A NAME="idx:tokenizeatom2:90"></A><SPAN class="pred-ext">tokenize_atom/2</SPAN> 
 of the NLP package for details.
 </DD>
 </DL>
@@ -1536,10 +1758,10 @@ of the NLP package for details.
 <DT class="pubdef"><A NAME="rdf_token_expansions/2"><STRONG>rdf_token_expansions</STRONG>(<VAR>+Spec, 
 -Expansions</VAR>)</A></DT>
 <DD class="defbody">
-Uses the same database as <A NAME="idx:rdffindliterals2:78"></A><A class="pred" href="#rdf_find_literals/2">rdf_find_literals/2</A> 
+Uses the same database as <A NAME="idx:rdffindliterals2:91"></A><A class="pred" href="#rdf_find_literals/2">rdf_find_literals/2</A> 
 to find possible expansions of <VAR>Spec</VAR>, i.e. which words `sound 
 like', `have prefix', etc. <VAR>Spec</VAR> is a compound expression as 
-in <A NAME="idx:rdffindliterals2:79"></A><A class="pred" href="#rdf_find_literals/2">rdf_find_literals/2</A>.
+in <A NAME="idx:rdffindliterals2:92"></A><A class="pred" href="#rdf_find_literals/2">rdf_find_literals/2</A>.
 <VAR>Expansions</VAR> is unified to a list of terms <CODE>sounds(Like, 
 Words)</CODE>, <CODE>stem(Like, Words)</CODE> or <CODE>prefix(Prefix, 
 Words)</CODE>. On compound expressions, only combinations that provide 
@@ -1575,9 +1797,9 @@ Tokenize a literal, returning a list of atoms and integers in the range
 <VAR>-1073741824 ... 1073741823</VAR>. As tokenization is in general 
 domain and task-dependent this predicate first calls the hook
 <CODE>rdf_litindex:tokenization(Literal, -Tokens)</CODE>. On failure it 
-calls <A NAME="idx:tokenizeatom2:80"></A><B>tokenize_atom/2</B> from the 
-NLP package and deletes the following: atoms of length 1, floats, 
-integers that are out of range and the english words <CODE>and</CODE>, <CODE>an</CODE>, <CODE>or</CODE>, <CODE>of</CODE>,
+calls <A NAME="idx:tokenizeatom2:93"></A><SPAN class="pred-ext">tokenize_atom/2</SPAN> 
+from the NLP package and deletes the following: atoms of length 1, 
+floats, integers that are out of range and the english words <CODE>and</CODE>, <CODE>an</CODE>, <CODE>or</CODE>, <CODE>of</CODE>,
 <CODE>on</CODE>, <CODE>in</CODE>, <CODE>this</CODE> and <CODE>the</CODE>. 
 Deletion first calls the hook <CODE>rdf_litindex:exclude_from_index(token, 
 X)</CODE>. This hook is called as follows:
@@ -1592,7 +1814,7 @@ no_index_token(X) :-
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:3.9"><SPAN class="sec-nr">3.9</SPAN><SPAN class="sec-title">Literal 
+<H3><A NAME="sec:4.5"><SPAN class="sec-nr">4.5</SPAN><SPAN class="sec-title">Literal 
 maps: Creating additional indices on literals</SPAN></A></H3>
 
 <A NAME="sec:rdflitmap"></A>
@@ -1601,12 +1823,12 @@ maps: Creating additional indices on literals</SPAN></A></H3>
 create additional indexes on literals. The current implementation can 
 only deal with integers and atoms (string literals). A literal map 
 maintains an ordered set of <EM>keys</EM>. The ordering uses the same 
-rules as described in <A class="sec" href="#sec:litindex">section 3.1.1</A>. 
+rules as described in <A class="sec" href="#sec:3.1.1">section 3.1.1</A>. 
 Each key is associated with an ordered set of <EM>values</EM>. Literal 
 map objects can be shared between threads, using a locking strategy that 
 allows for multiple concurrent readers.
 
-<P>Typically, this module is used together with <A NAME="idx:rdfmonitor2:81"></A><A class="pred" href="#rdf_monitor/2">rdf_monitor/2</A> 
+<P>Typically, this module is used together with <A NAME="idx:rdfmonitor2:94"></A><A class="pred" href="#rdf_monitor/2">rdf_monitor/2</A> 
 on the channals <CODE>new_literal</CODE> and <CODE>old_literal</CODE> to 
 maintain an index of words that appear in a literal. Further abstraction 
 using Porter stemming or Metaphone can be used to create additional 
@@ -1624,7 +1846,7 @@ Create a new literal map, returning an opaque handle.</DD>
 Destroy a literal map. After this call, further use of the <VAR>Map</VAR> 
 handle is illegal. Additional synchronisation is needed if maps that are 
 shared between threads are destroyed to guarantee the handle is no 
-longer used. In some scenarios <A NAME="idx:rdfresetliteralmap1:82"></A><A class="pred" href="#rdf_reset_literal_map/1">rdf_reset_literal_map/1</A> 
+longer used. In some scenarios <A NAME="idx:rdfresetliteralmap1:95"></A><A class="pred" href="#rdf_reset_literal_map/1">rdf_reset_literal_map/1</A> 
 provides a safe alternative.</DD>
 <DT class="pubdef"><A NAME="rdf_reset_literal_map/1"><STRONG>rdf_reset_literal_map</STRONG>(<VAR>+Map</VAR>)</A></DT>
 <DD class="defbody">
@@ -1665,12 +1887,12 @@ Unify <VAR>Answer</VAR> with an ordered list of all keys.</DD>
 Succeeds if <VAR>Key</VAR> is a key in the map and unify <VAR>Answer</VAR> 
 with the number of values associated with the key. This provides a fast 
 test of existence without fetching the possibly large associated value 
-set as with <A NAME="idx:rdffindliteralmap3:83"></A><A class="pred" href="#rdf_find_literal_map/3">rdf_find_literal_map/3</A>.</DD>
+set as with <A NAME="idx:rdffindliteralmap3:96"></A><A class="pred" href="#rdf_find_literal_map/3">rdf_find_literal_map/3</A>.</DD>
 <DT><STRONG>prefix</STRONG>(<VAR>+Prefix</VAR>)</DT>
 <DD class="defbody">
 Unify <VAR>Answer</VAR> with an ordered set of all keys that have the 
-given prefix. See <A class="sec" href="#sec:rdfquery">section 3.1</A> 
-for details on prefix matching.
+given prefix. See <A class="sec" href="#sec:3.1">section 3.1</A> for 
+details on prefix matching.
 <VAR>Prefix</VAR> must be an atom. This call is intended for 
 auto-completion in user interfaces.</DD>
 <DT><STRONG>ge</STRONG>(<VAR>+Min</VAR>)</DT>
@@ -1706,44 +1928,16 @@ count.
 </DD>
 </DL>
 
-<H3><A NAME="sec:3.10"><SPAN class="sec-nr">3.10</SPAN><SPAN class="sec-title">Issues 
-with rdf_db</SPAN></A></H3>
-
-<A NAME="sec:rdfissues"></A>
-
-<P>This RDF low-level module has been created after two year 
-experimenting with a plain Prolog based module and a brief evaluation of 
-a second generation pure Prolog implementation. The aim was to be able 
-to handle upto about 5 million triples on standard (notebook) hardware 
-and deal efficiently with <CODE>subPropertyOf</CODE> which was 
-identified as a crucial feature of RDFS to realise fusion of different 
-data-sets.
-
-<P>The following issues are identified and not solved in suitable 
-manner.
-
-<DL>
-<DT><B><CODE>subPropertyOf</CODE> of <CODE>subPropertyOf</CODE></B></DT>
-<DD>
-is not supported.</DD>
-<DT><B>Equivalence</B></DT>
-<DD>
-Similar to <CODE>subPropertyOf</CODE>, it is likely to be profitable to 
-handle resource identity efficient. The current system has no support 
-for it.
-</DD>
-</DL>
-
-<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Module 
-rdf_persistency</SPAN></A></H2>
+<H3><A NAME="sec:4.6"><SPAN class="sec-nr">4.6</SPAN><SPAN class="sec-title">Module 
+semweb/rdf_persistency</SPAN></A></H3>
 
 <A NAME="sec:persistency"></A>
 
-<P><A NAME="idx:Persistentstore:84"></A>The <CODE>library(semweb/rdf_persistency)</CODE> 
-provides reliable persistent storage for the RDF data. The store uses a 
-directory with files for each source (see <A NAME="idx:rdfsource1:85"></A><A class="pred" href="#rdf_source/1">rdf_source/1</A>) 
+<P><A NAME="idx:Persistentstore:97"></A>reliable persistent storage for 
+the RDF data. The store uses a directory with files for each source (see <A NAME="idx:rdfsource1:98"></A><A class="pred" href="#rdf_source/1">rdf_source/1</A>) 
 present in the database. Each source is represented by two files, one in 
-binary format (see <A NAME="idx:rdfsavedb2:86"></A><B>rdf_save_db/2</B>) 
+binary format (see
+<A NAME="idx:rdfsavedb2:99"></A><SPAN class="pred-ext">rdf_save_db/2</SPAN>) 
 representing the base state and one represented as Prolog terms 
 representing the changes made since the base state. The latter is called 
 the <EM>journal</EM>.
@@ -1776,7 +1970,7 @@ no persistent database is attached.</DD>
 <DT class="pubdef"><A NAME="rdf_persistency/2"><STRONG>rdf_persistency</STRONG>(<VAR>+DB, 
 +Bool</VAR>)</A></DT>
 <DD class="defbody">
-Change presistency of named database (4th argument of <A NAME="idx:rdf4:87"></A><A class="pred" href="#rdf/4">rdf/4</A>). 
+Change presistency of named database (4th argument of <A NAME="idx:rdf4:100"></A><A class="pred" href="#rdf/4">rdf/4</A>). 
 By default all databases are presistent. Using <CODE>false</CODE>, the 
 journal and snapshot for the database are deleted and further changes to 
 triples associated with <VAR>DB</VAR> are not recorded. If <VAR>Bool</VAR> 
@@ -1820,26 +2014,79 @@ undocumented. Being Prolog terms they are mostly self-explaining.</DD>
 <DT class="pubdef"><A NAME="rdf_db_to_file/2"><STRONG>rdf_db_to_file</STRONG>(<VAR>?DB, 
 ?FileBase</VAR>)</A></DT>
 <DD class="defbody">
-Convert between <VAR>DB</VAR> (see <A NAME="idx:rdfsource1:88"></A><A class="pred" href="#rdf_source/1">rdf_source/1</A>) 
+Convert between <VAR>DB</VAR> (see <A NAME="idx:rdfsource1:101"></A><A class="pred" href="#rdf_source/1">rdf_source/1</A>) 
 and file base-file used for storing information on this database. The 
-full file is located in the directory described by <A NAME="idx:rdfcurrentdb1:89"></A><A class="pred" href="#rdf_current_db/1">rdf_current_db/1</A> 
+full file is located in the directory described by <A NAME="idx:rdfcurrentdb1:102"></A><A class="pred" href="#rdf_current_db/1">rdf_current_db/1</A> 
 and has the extension
 <CODE>.trp</CODE> for the base state and <CODE>.jrn</CODE> for the 
 journal.
 </DD>
 </DL>
 
+<H3><A NAME="sec:4.7"><SPAN class="sec-nr">4.7</SPAN><SPAN class="sec-title">Module 
+semweb/rdf_turtle</SPAN></A></H3>
+
+<A NAME="sec:turtle"></A>
+
+<P><A NAME="idx:turtle:103"></A>The module <CODE>library(semweb/rdf_turtle)</CODE> 
+provides a parser for the alternative RDF Turtle syntax.<SUP class="fn">7<SPAN class="fn-text"><A class="url" href="http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/">http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/</A></SPAN></SUP> 
+The Turtle syntax is the basis for the SPARQL query language and much 
+easier to read and write by humans<SUP class="fn">8<SPAN class="fn-text">And 
+computers ...</SPAN></SUP> than the RDF/XML syntax.
+
+<P>This module acts as a <EM>plugin</EM> to <CODE>library(rdf_db.pl)</CODE>, 
+enabling
+<A NAME="idx:loadrdf2:104"></A><SPAN class="pred-ext">load_rdf/2</SPAN> 
+to load Turtle data transparently. The default extension for a turtle 
+file is <CODE>..ttl</CODE>.
+
+<DL>
+<DT class="pubdef"><A NAME="rdf_load_turtle/3"><STRONG>rdf_load_turtle</STRONG>(<VAR>+Input, 
+-Triples, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Parse Turtle data from Input, returning a list of <CODE>rdf(S,P,O)</CODE> 
+triples. Input is either a term <CODE>stream(Stream)</CODE> or a 
+specification for <A NAME="idx:absolutefilename3:105"></A><SPAN class="pred-ext">absolute_file_name/3</SPAN>. 
+Processed options are:
+
+<DL>
+<DT><STRONG>base_url</STRONG>(<VAR>+BaseURI</VAR>)</DT>
+<DD class="defbody">
+Define the base URI. When processing a file the default is constructed 
+from <CODE>file://</CODE> and the filename.</DD>
+<DT><STRONG>anon_prefix</STRONG>(<VAR>+Prefix</VAR>)</DT>
+<DD class="defbody">
+Prefix used for blank notes. Must start with <CODE>__</CODE>. Default is 
+constructed from the base URI.
+</DD>
+</DL>
+
+</DD>
+<DT class="pubdef"><A NAME="rdf_process_turtle/3"><STRONG>rdf_process_turtle</STRONG>(<VAR>+Input, 
+:OnTriples, +Options</VAR>)</A></DT>
+<DD class="defbody">
+Similar to <A NAME="idx:rdfloadturtle3:106"></A><A class="pred" href="#rdf_load_turtle/3">rdf_load_turtle/3</A>, 
+but processes the file in call-back mode. See also <A NAME="idx:processrdf3:107"></A><SPAN class="pred-ext">process_rdf/3</SPAN>. <VAR>OnTriples</VAR> 
+is called with two arguments. The first argument is a non-empty list of 
+triples and the second is a term &lt;<VAR>DB</VAR>&gt;:&lt;<VAR>Line</VAR>&gt;, 
+indicating the source location of the triples. In addition to the 
+options described with <A NAME="idx:rdfloadturtle3:108"></A><A class="pred" href="#rdf_load_turtle/3">rdf_load_turtle/3</A> 
+it accepts the option <CODE>db(DB)</CODE>, specifying the named graph. 
+Default is the base URI.
+</DD>
+</DL>
+
 <H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Module 
-rdfs</SPAN></A></H2>
+semweb/rdfs</SPAN></A></H2>
 
 <A NAME="sec:rdfs"></A>
 
-<P><A NAME="idx:RDFSchema:90"></A>The <CODE>library(rdfs)</CODE> library 
-adds interpretation of the triple store in terms of concepts from 
-RDF-Schema (RDFS). There are two ways to provide support for more high 
-level languages in RDF. One is to view such languages as a set of <EM>entailment 
-rules</EM>. In this model the rdfs library would provide a predicate <B>rdfs/3</B> 
-providing the same functionality as <A NAME="idx:rdf3:91"></A><A class="pred" href="#rdf/3">rdf/3</A> 
+<P><A NAME="idx:RDFSchema:109"></A>The <CODE>library(rdfs)</CODE> 
+library adds interpretation of the triple store in terms of concepts 
+from RDF-Schema (RDFS). There are two ways to provide support for more 
+high level languages in RDF. One is to view such languages as a set of <EM>entailment 
+rules</EM>. In this model the rdfs library would provide a predicate <SPAN class="pred-ext">rdfs/3</SPAN> 
+providing the same functionality as <A NAME="idx:rdf3:110"></A><A class="pred" href="#rdf/3">rdf/3</A> 
 on union of the raw graph and triples that can be derived by applying 
 the RDFS entailment rules.
 
@@ -1847,7 +2094,7 @@ the RDFS entailment rules.
 individuals, classes, properties, etc., and we can provide predicates 
 that query the database with this view in mind. This is the approach 
 taken in the <CODE>library(rdfs.pl)</CODE> library, providing calls like
-<CODE>rdfs_individual_of(?Resource, ?Class)</CODE>.<SUP class="fn">7<SPAN class="fn-text">The 
+<CODE>rdfs_individual_of(?Resource, ?Class)</CODE>.<SUP class="fn">9<SPAN class="fn-text">The 
 SeRQL language is based on querying the deductive closure of the triple 
 set. The SWI-Prolog SeRQL library provides <EM>entailment modules</EM> 
 that take the approach outlined above.</SPAN></SUP>
@@ -1858,7 +2105,7 @@ and class-individual relations</SPAN></A></H3>
 <P>The predicates in this section explore the <CODE>rdfs:subPropertyOf</CODE>,
 <CODE>rdfs:subClassOf</CODE> and <CODE>rdf:type</CODE> relations. Note 
 that the most fundamental of these, <CODE>rdfs:subPropertyOf</CODE>, is 
-also used by <A NAME="idx:rdfhas34:92"></A><A class="pred" href="#rdf_has/3">rdf_has/[3,4]</A>.
+also used by <A NAME="idx:rdfhas34:111"></A><A class="pred" href="#rdf_has/3">rdf_has/[3,4]</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="rdfs_subproperty_of/2"><STRONG>rdfs_subproperty_of</STRONG>(<VAR>?SubProperty, 
@@ -1868,7 +2115,7 @@ True if <VAR>SubProperty</VAR> is equal to <VAR>Property</VAR> or <VAR>Property<
 can be reached from <VAR>SubProperty</VAR> following the
 <CODE>rdfs:subPropertyOf</CODE> relation. It can be used to test as well 
 as generate sub-properties or super-properties. Note that the commonly 
-used semantics of this predicate is wired into <A NAME="idx:rdfhas34:93"></A><A class="pred" href="#rdf_has/3">rdf_has/[3,4]</A>.<SUP class="fn">bug<SPAN class="fn-text">The 
+used semantics of this predicate is wired into <A NAME="idx:rdfhas34:112"></A><A class="pred" href="#rdf_has/3">rdf_has/[3,4]</A>.<SUP class="fn">bug<SPAN class="fn-text">The 
 current implementation cannot deal with cycles</SPAN></SUP>.<SUP class="fn">bug<SPAN class="fn-text">The 
 current implementation cannot deal with predicates that are an <CODE>rdfs:subPropertyOf</CODE> 
 of <CODE>rdfs:subPropertyOf</CODE>, such as <CODE>owl:samePropertyAs</CODE>.</SPAN></SUP></DD>
@@ -1900,7 +2147,7 @@ by <VAR>Class</VAR>.
 <H3><A NAME="sec:5.2"><SPAN class="sec-nr">5.2</SPAN><SPAN class="sec-title">Collections 
 and Containers</SPAN></A></H3>
 
-<P><A NAME="idx:parseTypeCollection:94"></A><A NAME="idx:CollectionparseType:95"></A>The 
+<P><A NAME="idx:parseTypeCollection:113"></A><A NAME="idx:CollectionparseType:114"></A>The 
 RDF construct <CODE>rdf:parseType</CODE>=<CODE>Collection</CODE> 
 constructs a list using the <CODE>rdf:first</CODE> and <CODE>rdf:next</CODE> 
 relations.
@@ -1919,14 +2166,14 @@ into a Prolog list of objects.</DD>
 <DT class="pubdef"><A NAME="rdfs_assert_list/2"><STRONG>rdfs_assert_list</STRONG>(<VAR>+List, 
 -Resource</VAR>)</A></DT>
 <DD class="defbody">
-Equivalent to <A NAME="idx:rdfsassertlist3:96"></A><A class="pred" href="#rdfs_assert_list/3">rdfs_assert_list/3</A> 
+Equivalent to <A NAME="idx:rdfsassertlist3:115"></A><A class="pred" href="#rdfs_assert_list/3">rdfs_assert_list/3</A> 
 using <VAR>DB</VAR> = <CODE>user</CODE>.</DD>
 <DT class="pubdef"><A NAME="rdfs_assert_list/3"><STRONG>rdfs_assert_list</STRONG>(<VAR>+List, 
 -Resource, +DB</VAR>)</A></DT>
 <DD class="defbody">
 If <VAR>List</VAR> is a list of resources, create an RDF list <VAR>Resource</VAR> 
 that reflects these resources. <VAR>Resource</VAR> and the sublist 
-resources are generated with <A NAME="idx:rdfbnode1:97"></A><A class="pred" href="#rdf_bnode/1">rdf_bnode/1</A>. 
+resources are generated with <A NAME="idx:rdfbnode1:116"></A><A class="pred" href="#rdf_bnode/1">rdf_bnode/1</A>. 
 The new triples are associated with the database <VAR>DB</VAR>.
 </DD>
 </DL>
@@ -1946,7 +2193,7 @@ commonly used case-insensitive search.
 Extract the label from <VAR>Resource</VAR> or generate all resources 
 with the given <VAR>Label</VAR>. The label is either associated using a 
 sub-property of <CODE>rdfs:label</CODE> or it is extracted from the URL 
-using <A NAME="idx:rdfspliturl3:98"></A><A class="pred" href="#rdf_split_url/3">rdf_split_url/3</A>. <VAR>Language</VAR> 
+using <A NAME="idx:rdfspliturl3:117"></A><A class="pred" href="#rdf_split_url/3">rdf_split_url/3</A>. <VAR>Language</VAR> 
 is unified to the value of the <CODE>xml:lang</CODE> attribute of the 
 label or a variable if the label has no language specified.</DD>
 <DT class="pubdef"><A NAME="rdfs_label/2"><STRONG>rdfs_label</STRONG>(<VAR>?Resource, 
@@ -1956,8 +2203,8 @@ Defined as <CODE>rdfs_label(Resource, _, Label)</CODE>.</DD>
 <DT class="pubdef"><A NAME="rdfs_ns_label/3"><STRONG>rdfs_ns_label</STRONG>(<VAR>?Resource, 
 ?Language, ?Label</VAR>)</A></DT>
 <DD class="defbody">
-Similar to <A NAME="idx:rdfslabel2:99"></A><A class="pred" href="#rdfs_label/2">rdfs_label/2</A>, 
-but prefixes the result using the declared namespace alias (see <A class="sec" href="#sec:rdfns">section 
+Similar to <A NAME="idx:rdfslabel2:118"></A><A class="pred" href="#rdfs_label/2">rdfs_label/2</A>, 
+but prefixes the result using the declared namespace alias (see <A class="sec" href="#sec:3.5">section 
 3.5</A>) to facilitate user-friendly labels in applications using 
 multiple namespaces that may lead to confusion.</DD>
 <DT class="pubdef"><A NAME="rdfs_ns_label/2"><STRONG>rdfs_ns_label</STRONG>(<VAR>?Resource, 
@@ -1967,14 +2214,14 @@ Defined as <CODE>rdfs_ns_label(Resource, _, Label)</CODE>.</DD>
 <DT class="pubdef"><A NAME="rdfs_find/5"><STRONG>rdfs_find</STRONG>(<VAR>+String, 
 +Description, ?Properties, +Method, -Subject</VAR>)</A></DT>
 <DD class="defbody">
-<A NAME="idx:search:100"></A>Find (on backtracking) <VAR>Subject</VAR>s 
+<A NAME="idx:search:119"></A>Find (on backtracking) <VAR>Subject</VAR>s 
 that satisfy a search specification for textual attributes. <VAR>String</VAR> 
 is the string searched for. <VAR>Description</VAR> is an OWL description 
-(see <A class="sec" href="#sec:owl">section 6</A>) specifying candidate 
+(see <A class="sec" href="#sec:6">section 6</A>) specifying candidate 
 resources. <VAR>Properties</VAR> is a list of properties to search for 
 literal objects, <VAR>Method</VAR> defines the textual matching 
 algorithm. All textual mapping is performed case-insensitive. The 
-matching-methods are described with <A NAME="idx:rdfmatchlabel3:101"></A><A class="pred" href="#rdf_match_label/3">rdf_match_label/3</A>. 
+matching-methods are described with <A NAME="idx:rdfmatchlabel3:120"></A><A class="pred" href="#rdf_match_label/3">rdf_match_label/3</A>. 
 If
 <VAR>Properties</VAR> is unbound, the search is performed in any 
 property and
@@ -1983,33 +2230,32 @@ which the match was found.
 </DD>
 </DL>
 
-<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">Module 
-owl</SPAN></A></H2>
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">OWL</SPAN></A></H2>
 
 <A NAME="sec:owl"></A>
 
-<P><A NAME="idx:OWL:102"></A>The current SemWeb library distributed with 
+<P><A NAME="idx:OWL:121"></A>The current SemWeb library distributed with 
 SWI-Prolog does not yet contain an OWL module. A module <CODE>owl.pl</CODE> 
 is part of the
 <A class="url" href="http://www.swi-prolog.org/packages/Triple20/">Triple20</A> 
 triple browser and editor provides limited support for OWL reasoning.
 
 <H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Module 
-rdf_edit</SPAN></A></H2>
+semweb/rdf_edit</SPAN></A></H2>
 
 <A NAME="sec:rdfedit"></A>
 <BLOCKQUOTE><EM>It is anticipated that this library will eventually be 
-superseeded by facilities running on top of the native <A NAME="idx:rdftransaction2:103"></A><A class="pred" href="#rdf_transaction/2">rdf_transaction/2</A> 
+superseeded by facilities running on top of the native <A NAME="idx:rdftransaction2:122"></A><A class="pred" href="#rdf_transaction/2">rdf_transaction/2</A> 
 and
-<A NAME="idx:rdfmonitor2:104"></A><A class="pred" href="#rdf_monitor/2">rdf_monitor/2</A> 
-facilities. See <A class="sec" href="#sec:rdfmonitor">section 3.6</A>.
+<A NAME="idx:rdfmonitor2:123"></A><A class="pred" href="#rdf_monitor/2">rdf_monitor/2</A> 
+facilities. See <A class="sec" href="#sec:3.6">section 3.6</A>.
 </EM></BLOCKQUOTE>
 
-<P><A NAME="idx:undo:105"></A><A NAME="idx:journal:106"></A><A NAME="idx:transactions:107"></A>The 
+<P><A NAME="idx:undo:124"></A><A NAME="idx:journal:125"></A><A NAME="idx:transactions:126"></A>The 
 module <CODE>rdf_edit.pl</CODE> is a layer than encasulates the 
-modification predicates from <A class="sec" href="#sec:rdfmodify">section 
-3.3</A> for use from a (graphical) editor of the triple store. It adds 
-the following features:
+modification predicates from <A class="sec" href="#sec:3.3">section 3.3</A> 
+for use from a (graphical) editor of the triple store. It adds the 
+following features:
 
 <P>
 <UL>
@@ -2038,8 +2284,8 @@ management</SPAN></A></H3>
 <DT class="pubdef"><A NAME="rdfe_transaction/1"><STRONG>rdfe_transaction</STRONG>(<VAR>:Goal</VAR>)</A></DT>
 <DD class="defbody">
 Run <VAR>Goal</VAR>, recording all modifications to the triple store 
-made through <A class="sec" href="#sec:rdfeencap">section 7.3</A>. 
-Execution is performed as in <A NAME="idx:once1:108"></A><B>once/1</B>. 
+made through <A class="sec" href="#sec:7.3">section 7.3</A>. Execution 
+is performed as in <A NAME="idx:once1:127"></A><SPAN class="pred-ext">once/1</SPAN>. 
 If
 <VAR>Goal</VAR> succeeds the changes are committed. If <VAR>Goal</VAR> 
 fails or throws an exception the changes are reverted.
@@ -2049,20 +2295,20 @@ the actions performed inside the nested transaction. If the outer
 transaction succeeds it is committed normally. Contrary, if the outer 
 transaction fails, comitted nested transactions are reverted as well. If 
 any of the modifications inside the transaction modifies a protected 
-file (see <A NAME="idx:rdfesetfileproperty2:109"></A><A class="pred" href="#rdfe_set_file_property/2">rdfe_set_file_property/2</A>) 
-the transaction is reverted and <A NAME="idx:rdfetransaction1:110"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A> 
+file (see <A NAME="idx:rdfesetfileproperty2:128"></A><A class="pred" href="#rdfe_set_file_property/2">rdfe_set_file_property/2</A>) 
+the transaction is reverted and <A NAME="idx:rdfetransaction1:129"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A> 
 throws a permission error.
 
 <P>A successful outer transaction (`level-0') may be undone using
-<A NAME="idx:rdfeundo0:111"></A><A class="pred" href="#rdfe_undo/0">rdfe_undo/0</A>.</DD>
+<A NAME="idx:rdfeundo0:130"></A><A class="pred" href="#rdfe_undo/0">rdfe_undo/0</A>.</DD>
 <DT class="pubdef"><A NAME="rdfe_transaction/2"><STRONG>rdfe_transaction</STRONG>(<VAR>:Goal, 
 +Name</VAR>)</A></DT>
 <DD class="defbody">
-As <A NAME="idx:rdfetransaction1:112"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A>, 
+As <A NAME="idx:rdfetransaction1:131"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A>, 
 naming the transaction <VAR>Name</VAR>. Transaction naming is intended 
-for the GUI to give the user an idea of the next undo action. See also <A NAME="idx:rdfesettransactionname1:113"></A><A class="pred" href="#rdfe_set_transaction_name/1">rdfe_set_transaction_name/1</A> 
+for the GUI to give the user an idea of the next undo action. See also <A NAME="idx:rdfesettransactionname1:132"></A><A class="pred" href="#rdfe_set_transaction_name/1">rdfe_set_transaction_name/1</A> 
 and
-<A NAME="idx:rdfetransactionname2:114"></A><A class="pred" href="#rdfe_transaction_name/2">rdfe_transaction_name/2</A>.</DD>
+<A NAME="idx:rdfetransactionname2:133"></A><A class="pred" href="#rdfe_transaction_name/2">rdfe_transaction_name/2</A>.</DD>
 <DT class="pubdef"><A NAME="rdfe_set_transaction_name/1"><STRONG>rdfe_set_transaction_name</STRONG>(<VAR>+Name</VAR>)</A></DT>
 <DD class="defbody">
 Set the `name' of the current transaction to <VAR>Name</VAR>.</DD>
@@ -2107,13 +2353,13 @@ management</SPAN></A></H3>
 <DT class="pubdef"><A NAME="rdfe_is_modified/1"><STRONG>rdfe_is_modified</STRONG>(<VAR>?File</VAR>)</A></DT>
 <DD class="defbody">
 Enumerate/test whether <VAR>File</VAR> is modified sinds it was loaded 
-or sinds the last call to <A NAME="idx:rdfeclearmodified1:115"></A><A class="pred" href="#rdfe_clear_modified/1">rdfe_clear_modified/1</A>. 
+or sinds the last call to <A NAME="idx:rdfeclearmodified1:134"></A><A class="pred" href="#rdfe_clear_modified/1">rdfe_clear_modified/1</A>. 
 Whether or not a file is modified is determined by the MD5 checksum of 
 all triples belonging to the file.</DD>
 <DT class="pubdef"><A NAME="rdfe_clear_modified/1"><STRONG>rdfe_clear_modified</STRONG>(<VAR>+File</VAR>)</A></DT>
 <DD class="defbody">
 Set the <EM>unmodified-MD5</EM> to the current MD5 checksum. See also
-<A NAME="idx:rdfeismodified1:116"></A><A class="pred" href="#rdfe_is_modified/1">rdfe_is_modified/1</A>.</DD>
+<A NAME="idx:rdfeismodified1:135"></A><A class="pred" href="#rdfe_is_modified/1">rdfe_is_modified/1</A>.</DD>
 <DT class="pubdef"><A NAME="rdfe_set_file_property/2"><STRONG>rdfe_set_file_property</STRONG>(<VAR>+File, 
 +Property</VAR>)</A></DT>
 <DD class="defbody">
@@ -2125,7 +2371,7 @@ Control access right and default destination of new triples.
 <DD class="defbody">
 Where access is one of <CODE>ro</CODE> or <CODE>rw</CODE>. Access <CODE>ro</CODE> 
 is default when a file is loaded for which the user has no write access. 
-If a transaction (see <A NAME="idx:rdfetransaction1:117"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A>) 
+If a transaction (see <A NAME="idx:rdfetransaction1:136"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A>) 
 modifies a file with access <CODE>ro</CODE> the transaction is reversed.</DD>
 <DT><STRONG>default</STRONG>(<VAR>+Default</VAR>)</DT>
 <DD class="defbody">
@@ -2140,7 +2386,7 @@ all new triples are added to this file.
 <DT class="pubdef"><A NAME="rdfe_get_file_property/2"><STRONG>rdfe_get_file_property</STRONG>(<VAR>?File, 
 ?Property</VAR>)</A></DT>
 <DD class="defbody">
-Query properties set with <A NAME="idx:rdfesetfileproperty2:118"></A><A class="pred" href="#rdfe_set_file_property/2">rdfe_set_file_property/2</A>.
+Query properties set with <A NAME="idx:rdfesetfileproperty2:137"></A><A class="pred" href="#rdfe_set_file_property/2">rdfe_set_file_property/2</A>.
 </DD>
 </DL>
 
@@ -2151,31 +2397,31 @@ predicates</SPAN></A></H3>
 
 <P>The following predicates encapsulate predicates from the <CODE>rdf_db</CODE> 
 module that modify the triple store. These predicates can only be called 
-when inside a <EM>transaction</EM>. See <A NAME="idx:rdfetransaction1:119"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A>.
+when inside a <EM>transaction</EM>. See <A NAME="idx:rdfetransaction1:138"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A>.
 
 <DL>
 <DT class="pubdef"><A NAME="rdfe_assert/3"><STRONG>rdfe_assert</STRONG>(<VAR>+Subject, 
 +Predicate, +Object</VAR>)</A></DT>
 <DD class="defbody">
-Encapsulates <A NAME="idx:rdfassert3:120"></A><A class="pred" href="#rdf_assert/3">rdf_assert/3</A>.
+Encapsulates <A NAME="idx:rdfassert3:139"></A><A class="pred" href="#rdf_assert/3">rdf_assert/3</A>.
 </DD>
 <DT class="pubdef"><A NAME="rdfe_retractall/3"><STRONG>rdfe_retractall</STRONG>(<VAR>?Subject, 
 ?Predicate, ?Object</VAR>)</A></DT>
 <DD class="defbody">
-Encapsulates <A NAME="idx:rdfretractall3:121"></A><A class="pred" href="#rdf_retractall/3">rdf_retractall/3</A>.
+Encapsulates <A NAME="idx:rdfretractall3:140"></A><A class="pred" href="#rdf_retractall/3">rdf_retractall/3</A>.
 </DD>
 <DT class="pubdef"><A NAME="rdfe_update/4"><STRONG>rdfe_update</STRONG>(<VAR>+Subject, 
 +Predicate, +Object, +Action</VAR>)</A></DT>
 <DD class="defbody">
-Encapsulates <A NAME="idx:rdfupdate4:122"></A><A class="pred" href="#rdf_update/4">rdf_update/4</A>.
+Encapsulates <A NAME="idx:rdfupdate4:141"></A><A class="pred" href="#rdf_update/4">rdf_update/4</A>.
 </DD>
 <DT class="pubdef"><A NAME="rdfe_load/1"><STRONG>rdfe_load</STRONG>(<VAR>+In</VAR>)</A></DT>
 <DD class="defbody">
-Encapsulates <A NAME="idx:rdfload1:123"></A><A class="pred" href="#rdf_load/1">rdf_load/1</A>.
+Encapsulates <A NAME="idx:rdfload1:142"></A><A class="pred" href="#rdf_load/1">rdf_load/1</A>.
 </DD>
 <DT class="pubdef"><A NAME="rdfe_unload/1"><STRONG>rdfe_unload</STRONG>(<VAR>+In</VAR>)</A></DT>
 <DD class="defbody">
-Encapsulates <A NAME="idx:rdfunload1:124"></A><A class="pred" href="#rdf_unload/1">rdf_unload/1</A>.
+Encapsulates <A NAME="idx:rdfunload1:143"></A><A class="pred" href="#rdf_unload/1">rdf_unload/1</A>.
 </DD>
 </DL>
 
@@ -2199,20 +2445,20 @@ Delete all traces of <VAR>resource</VAR>. This implies all triples where
 
 <H3><A NAME="sec:7.5"><SPAN class="sec-nr">7.5</SPAN><SPAN class="sec-title">Undo</SPAN></A></H3>
 
-<P><A NAME="idx:undo:125"></A>Undo aims at user-level undo operations 
+<P><A NAME="idx:undo:144"></A>Undo aims at user-level undo operations 
 from a (graphical) editor.
 
 <DL>
 <DT class="pubdef"><A NAME="rdfe_undo/0"><STRONG>rdfe_undo</STRONG></A></DT>
 <DD class="defbody">
 Revert the last outermost (`level 0') transaction (see
-<A NAME="idx:rdfetransaction1:126"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A>). 
+<A NAME="idx:rdfetransaction1:145"></A><A class="pred" href="#rdfe_transaction/1">rdfe_transaction/1</A>). 
 Successive calls go further back in history. Fails if there is no more 
 undo information.</DD>
 <DT class="pubdef"><A NAME="rdfe_redo/0"><STRONG>rdfe_redo</STRONG></A></DT>
 <DD class="defbody">
-Revert the last <A NAME="idx:rdfeundo0:127"></A><A class="pred" href="#rdfe_undo/0">rdfe_undo/0</A>. 
-Successive calls revert more <A NAME="idx:rdfeundo0:128"></A><A class="pred" href="#rdfe_undo/0">rdfe_undo/0</A> 
+Revert the last <A NAME="idx:rdfeundo0:146"></A><A class="pred" href="#rdfe_undo/0">rdfe_undo/0</A>. 
+Successive calls revert more <A NAME="idx:rdfeundo0:147"></A><A class="pred" href="#rdfe_undo/0">rdfe_undo/0</A> 
 operations. Fails if there is no more redo information.</DD>
 <DT class="pubdef"><A NAME="rdfe_can_undo/1"><STRONG>rdfe_can_undo</STRONG>(<VAR>-TID</VAR>)</A></DT>
 <DD class="defbody">
@@ -2229,7 +2475,7 @@ transaction id of the action that will be reverted.
 
 <H3><A NAME="sec:7.6"><SPAN class="sec-nr">7.6</SPAN><SPAN class="sec-title">Journalling</SPAN></A></H3>
 
-<P><A NAME="idx:journal:129"></A>Optionally, every action through this 
+<P><A NAME="idx:journal:148"></A>Optionally, every action through this 
 module is immediately send to a
 <EM>journal-file</EM>. The journal provides a full log of all actions 
 with a time-stamp that may be used for inspection of behaviour, version 
@@ -2241,7 +2487,7 @@ management, crash-recovery or an alternative to regular save operations.
 <DD class="defbody">
 Open a existing or new journal. If <VAR>Mode</VAR> equala <CODE>append</CODE> 
 and <VAR>File</VAR> exists, the journal is first replayed. See
-<A NAME="idx:rdfereplayjournal1:130"></A><A class="pred" href="#rdfe_replay_journal/1">rdfe_replay_journal/1</A>. 
+<A NAME="idx:rdfereplayjournal1:149"></A><A class="pred" href="#rdfe_replay_journal/1">rdfe_replay_journal/1</A>. 
 If <VAR>Mode</VAR> is <CODE>write</CODE> the journal is truncated if it 
 exists.</DD>
 <DT class="pubdef"><A NAME="rdfe_close_journal/0"><STRONG>rdfe_close_journal</STRONG></A></DT>
@@ -2260,14 +2506,14 @@ or not closed at all due to a crash the actions inside the journal are
 discarded. Using this predicate only makes sense to inspect the state at 
 the end of a journal without modifying the journal. Normally a journal 
 is replayed using the
-<CODE>append</CODE> mode of <A NAME="idx:rdfeopenjournal2:131"></A><A class="pred" href="#rdfe_open_journal/2">rdfe_open_journal/2</A>.
+<CODE>append</CODE> mode of <A NAME="idx:rdfeopenjournal2:150"></A><A class="pred" href="#rdfe_open_journal/2">rdfe_open_journal/2</A>.
 </DD>
 </DL>
 
 <H3><A NAME="sec:7.7"><SPAN class="sec-nr">7.7</SPAN><SPAN class="sec-title">Broadcasting 
 change events</SPAN></A></H3>
 
-<P><A NAME="idx:event:132"></A><A NAME="idx:broadcast:133"></A>To 
+<P><A NAME="idx:event:151"></A><A NAME="idx:broadcast:152"></A>To 
 realise a modular graphical interface for editing the triple store, the 
 system must use some sort of <EM>event</EM> mechanism. This is 
 implemented by the XPCE library <CODE>library(broadcast)</CODE> which is 
@@ -2289,8 +2535,8 @@ this possibility itself and other components are not affected as the
 triple store is not changed.</DD>
 <DT><STRONG>rdf_undo</STRONG>(<VAR>+Type, +Id</VAR>)</DT>
 <DD class="defbody">
-This event is broadcasted after an <A NAME="idx:rdfeundo0:134"></A><A class="pred" href="#rdfe_undo/0">rdfe_undo/0</A> 
-or <A NAME="idx:rdferedo0:135"></A><A class="pred" href="#rdfe_redo/0">rdfe_redo/0</A>.
+This event is broadcasted after an <A NAME="idx:rdfeundo0:153"></A><A class="pred" href="#rdfe_undo/0">rdfe_undo/0</A> 
+or <A NAME="idx:rdferedo0:154"></A><A class="pred" href="#rdfe_redo/0">rdfe_redo/0</A>.
 <VAR>Type</VAR> is one of <CODE>undo</CODE> or <CODE>redo</CODE> and <VAR>Id</VAR> 
 identifies the transaction as above.
 </DD>
@@ -2299,12 +2545,12 @@ identifies the transaction as above.
 <H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Related 
 packages and issues</SPAN></A></H2>
 
-<P><A NAME="idx:Sesame:136"></A><A NAME="idx:SeRQL:137"></A>The 
+<P><A NAME="idx:Sesame:155"></A><A NAME="idx:SeRQL:156"></A>The 
 SWI-Prolog SemWeb package is designed to provide access to the Semantic 
 Web languages from Prolog. It consists of the low level
 <CODE>rdf_db.pl</CODE> store with layers such as <CODE>rdfs.pl</CODE> to 
 provide more high level querying of a triple set with relations such as
-<A NAME="idx:rdfsindividualof2:138"></A><A class="pred" href="#rdfs_individual_of/2">rdfs_individual_of/2</A>, <A NAME="idx:rdfssubclassof2:139"></A><A class="pred" href="#rdfs_subclass_of/2">rdfs_subclass_of/2</A>, 
+<A NAME="idx:rdfsindividualof2:157"></A><A class="pred" href="#rdfs_individual_of/2">rdfs_individual_of/2</A>, <A NAME="idx:rdfssubclassof2:158"></A><A class="pred" href="#rdfs_subclass_of/2">rdfs_subclass_of/2</A>, 
 etc.
 <A class="url" href="http://www.openrdf.org">SeRQL</A> is a semantic web 
 query language taking another route. Instead of providing alternative 
@@ -2314,10 +2560,10 @@ rules this makes the query <CODE>rdf(S, rdf:type, Class)</CODE>
 equivalent to
 <CODE>rdfs_individual_of(S, Class)</CODE>.
 
-<P><A NAME="idx:optimisingquery:140"></A>We developed a parser for SeRQL 
+<P><A NAME="idx:optimisingquery:159"></A>We developed a parser for SeRQL 
 which compiles SeRQL path expressions into Prolog conjunctions of <CODE>rdf(Subject, 
 Predicate, Object)</CODE> calls. <EM>Entailment modules</EM> realise a 
-fully logical implementation of <A NAME="idx:rdf3:141"></A><A class="pred" href="#rdf/3">rdf/3</A> 
+fully logical implementation of <A NAME="idx:rdf3:160"></A><A class="pred" href="#rdf/3">rdf/3</A> 
 including the entailment reasoning required to deal with a Semantic Web 
 language or application specific reasoning. The infra structure is 
 completed with a query optimiser and an HTTP server compliant to the <A class="url" href="http://www.openrdf.org">Sesame</A> 
@@ -2343,93 +2589,111 @@ See the source file <CODE>avl.c</CODE> for details.
 <DT><STRONG>A</STRONG></DT>
 <DD>
 </DD>
+<DT>absolute_file_name/3</DT>
+<DD>
+<A class="idx" href="#idx:absolutefilename3:105">4.7</A></DD>
 <DT>atom_concat/3</DT>
 <DD>
-<A class="idx" href="#idx:atomconcat3:55">3.5</A></DD>
+<A class="idx" href="#idx:atomconcat3:57">3.5</A></DD>
 <DT><STRONG>B</STRONG></DT>
 <DD>
 </DD>
 <DT>broadcast</DT>
 <DD>
-<A class="idx" href="#idx:broadcast:133">7.7</A></DD>
+<A class="idx" href="#idx:broadcast:152">7.7</A></DD>
 <DT><STRONG>C</STRONG></DT>
 <DD>
 </DD>
 <DT>Collection,parseType</DT>
 <DD>
-<A class="idx" href="#idx:CollectionparseType:95">5.2</A></DD>
+<A class="idx" href="#idx:CollectionparseType:114">5.2</A></DD>
+<DT>compressed data</DT>
+<DD>
+<A class="idx" href="#idx:compresseddata:88">4.2</A></DD>
 <DT><STRONG>E</STRONG></DT>
 <DD>
 </DD>
 <DT>event</DT>
 <DD>
-<A class="idx" href="#idx:event:132">7.7</A></DD>
+<A class="idx" href="#idx:event:151">7.7</A></DD>
 <DT>expand_goal/2</DT>
 <DD>
-<A class="idx" href="#idx:expandgoal2:3">3.1</A> <A class="idx" href="#idx:expandgoal2:58">3.5.1</A></DD>
+<A class="idx" href="#idx:expandgoal2:3">3.1</A> <A class="idx" href="#idx:expandgoal2:60">3.5.1</A></DD>
 <DT><STRONG>G</STRONG></DT>
 <DD>
 </DD>
 <DT>goal_expansion/2</DT>
 <DD>
-<A class="idx" href="#idx:goalexpansion2:51">3.5</A> <A class="idx" href="#idx:goalexpansion2:52">3.5</A></DD>
+<A class="idx" href="#idx:goalexpansion2:53">3.5</A> <A class="idx" href="#idx:goalexpansion2:54">3.5</A></DD>
+<DT>gz, format</DT>
+<DD>
+<A class="idx" href="#idx:gzformat:86">4.2</A></DD>
+<DT>gzip</DT>
+<DD>
+<A class="idx" href="#idx:gzip:87">4.2</A></DD>
 <DT><STRONG>J</STRONG></DT>
 <DD>
 </DD>
 <DT>journal</DT>
 <DD>
-<A class="idx" href="#idx:journal:106">7</A> <A class="idx" href="#idx:journal:129">7.6</A></DD>
+<A class="idx" href="#idx:journal:125">7</A> <A class="idx" href="#idx:journal:148">7.6</A></DD>
 <DT><STRONG>L</STRONG></DT>
 <DD>
 </DD>
 <DT>labels/2</DT>
 <DD>
-<A class="idx" href="#idx:labels2:56">3.5.1</A></DD>
+<A class="idx" href="#idx:labels2:58">3.5.1</A></DD>
+<DT>load_files/2</DT>
+<DD>
+<A class="idx" href="#idx:loadfiles2:37">3.4</A></DD>
+<DT>load_rdf/2</DT>
+<DD>
+<A class="idx" href="#idx:loadrdf2:104">4.7</A></DD>
 <DT><STRONG>O</STRONG></DT>
 <DD>
 </DD>
 <DT>once/1</DT>
 <DD>
-<A class="idx" href="#idx:once1:108">7.1</A></DD>
+<A class="idx" href="#idx:once1:127">7.1</A></DD>
 <DT>optimising,query</DT>
 <DD>
-<A class="idx" href="#idx:optimisingquery:140">8</A></DD>
+<A class="idx" href="#idx:optimisingquery:159">8</A></DD>
 <DT>OWL</DT>
 <DD>
-<A class="idx" href="#idx:OWL:102">6</A></DD>
+<A class="idx" href="#idx:OWL:121">6</A></DD>
 <DT><STRONG>P</STRONG></DT>
 <DD>
 </DD>
 <DT>parseType,Collection</DT>
 <DD>
-<A class="idx" href="#idx:parseTypeCollection:94">5.2</A></DD>
+<A class="idx" href="#idx:parseTypeCollection:113">5.2</A></DD>
 <DT>Persistent store</DT>
 <DD>
-<A class="idx" href="#idx:Persistentstore:84">4</A></DD>
+<A class="idx" href="#idx:Persistentstore:97">4.6</A></DD>
 <DT>print_message/2</DT>
 <DD>
 <A class="idx" href="#idx:printmessage2:38">3.4</A></DD>
 <DT>process_rdf/3</DT>
 <DD>
-<A class="idx" href="#idx:processrdf3:33">3.4</A> <A class="idx" href="#idx:processrdf3:37">3.4</A></DD>
+<A class="idx" href="#idx:processrdf3:33">3.4</A> <A class="idx" href="#idx:processrdf3:36">3.4</A> <A class="idx" href="#idx:processrdf3:107">4.7</A></DD>
 <DT><STRONG>R</STRONG></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdf/3">rdf/3</A></DT>
 <DD>
-<A class="idx" href="#idx:rdf3:2">3</A> <A class="idx" href="#idx:rdf3:5">3.1</A> <A class="idx" href="#idx:rdf3:6">3.1</A> <A class="idx" href="#idx:rdf3:7">3.1</A> <A class="idx" href="#idx:rdf3:8">3.1</A> <A class="idx" href="#idx:rdf3:13">3.2</A> <A class="idx" href="#idx:rdf3:17">3.3.1</A> <A class="idx" href="#idx:rdf3:28">3.3.2</A> <A class="idx" href="#idx:rdf3:54">3.5</A> <A class="idx" href="#idx:rdf3:91">5</A> <A class="idx" href="#idx:rdf3:141">8</A></DD>
+<A class="idx" href="#idx:rdf3:2">3</A> <A class="idx" href="#idx:rdf3:5">3.1</A> <A class="idx" href="#idx:rdf3:6">3.1</A> <A class="idx" href="#idx:rdf3:7">3.1</A> <A class="idx" href="#idx:rdf3:8">3.1</A> <A class="idx" href="#idx:rdf3:13">3.2</A> <A class="idx" href="#idx:rdf3:17">3.3.1</A> <A class="idx" href="#idx:rdf3:28">3.3.2</A> <A class="idx" href="#idx:rdf3:56">3.5</A> <A class="idx" href="#idx:rdf3:110">5</A> <A class="idx" href="#idx:rdf3:160">8</A></DD>
 <DT><A class="idx" href="#rdf/4">rdf/4</A></DT>
 <DD>
-<A class="idx" href="#idx:rdf4:4">3.1</A> <A class="idx" href="#idx:rdf4:40">3.4</A> <A class="idx" href="#idx:rdf4:87">4</A></DD>
+<A class="idx" href="#idx:rdf4:4">3.1</A> <A class="idx" href="#idx:rdf4:40">3.4</A> <A class="idx" href="#idx:rdf4:100">4.6</A></DD>
 <DT><A class="idx" href="#rdf_assert/3">rdf_assert/3</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfassert3:18">3.3.1</A> <A class="idx" href="#idx:rdfassert3:25">3.3.2</A> <A class="idx" href="#idx:rdfassert3:45">3.4.2</A> <A class="idx" href="#idx:rdfassert3:120">7.3</A></DD>
+<A class="idx" href="#idx:rdfassert3:18">3.3.1</A> <A class="idx" href="#idx:rdfassert3:25">3.3.2</A> <A class="idx" href="#idx:rdfassert3:47">3.4.3</A> <A class="idx" href="#idx:rdfassert3:139">7.3</A></DD>
 <DT><A class="idx" href="#rdf_assert/4">rdf_assert/4</A></DT>
 <DD>
 <A class="idx" href="#idx:rdfassert4:16">3.3.1</A></DD>
 <DT>rdf_assert/[3,4]</DT>
 <DD>
-<A class="idx" href="#idx:rdfassert34:48">3.4.3</A></DD>
+<A class="idx" href="#idx:rdfassert34:50">3.4.4</A></DD>
 <DT><A class="idx" href="#rdf_atom_md5/3">rdf_atom_md5/3</A></DT>
 <DD>
 </DD>
@@ -2438,14 +2702,29 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdf_bnode/1">rdf_bnode/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfbnode1:97">5.2</A></DD>
+<A class="idx" href="#idx:rdfbnode1:116">5.2</A></DD>
 <DT><A class="idx" href="#rdf_current_db/1">rdf_current_db/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfcurrentdb1:89">4</A></DD>
+<A class="idx" href="#idx:rdfcurrentdb1:102">4.6</A></DD>
 <DT><A class="idx" href="#rdf_current_predicate/1">rdf_current_predicate/1</A></DT>
 <DD>
 </DD>
+<DT><A class="idx" href="#rdf_db:rdf_file_type/2">rdf_db:rdf_file_type/2</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#rdf_db:rdf_input_info/3">rdf_db:rdf_input_info/3</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#rdf_db:rdf_load_stream/3">rdf_db:rdf_load_stream/3</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#rdf_db:rdf_open_hook/3">rdf_db:rdf_open_hook/3</A></DT>
+<DD>
+</DD>
 <DT><A class="idx" href="#rdf_db_to_file/2">rdf_db_to_file/2</A></DT>
+<DD>
+</DD>
+<DT><A class="idx" href="#rdf_db:url_protocol/1">rdf_db:url_protocol/1</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdf_delete_literal_map/2">rdf_delete_literal_map/2</A></DT>
@@ -2468,7 +2747,7 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdfe_clear_modified/1">rdfe_clear_modified/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfeclearmodified1:115">7.2</A></DD>
+<A class="idx" href="#idx:rdfeclearmodified1:134">7.2</A></DD>
 <DT><A class="idx" href="#rdfe_close_journal/0">rdfe_close_journal/0</A></DT>
 <DD>
 </DD>
@@ -2483,38 +2762,38 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdfe_is_modified/1">rdfe_is_modified/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfeismodified1:116">7.2</A></DD>
+<A class="idx" href="#idx:rdfeismodified1:135">7.2</A></DD>
 <DT><A class="idx" href="#rdfe_load/1">rdfe_load/1</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdfe_open_journal/2">rdfe_open_journal/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfeopenjournal2:131">7.6</A></DD>
+<A class="idx" href="#idx:rdfeopenjournal2:150">7.6</A></DD>
 <DT><A class="idx" href="#rdf_equal/2">rdf_equal/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdfe_redo/0">rdfe_redo/0</A></DT>
 <DD>
-<A class="idx" href="#idx:rdferedo0:135">7.7</A></DD>
+<A class="idx" href="#idx:rdferedo0:154">7.7</A></DD>
 <DT><A class="idx" href="#rdfe_replay_journal/1">rdfe_replay_journal/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfereplayjournal1:130">7.6</A></DD>
+<A class="idx" href="#idx:rdfereplayjournal1:149">7.6</A></DD>
 <DT><A class="idx" href="#rdfe_retractall/3">rdfe_retractall/3</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdfe_set_file_property/2">rdfe_set_file_property/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfesetfileproperty2:109">7.1</A> <A class="idx" href="#idx:rdfesetfileproperty2:118">7.2</A></DD>
+<A class="idx" href="#idx:rdfesetfileproperty2:128">7.1</A> <A class="idx" href="#idx:rdfesetfileproperty2:137">7.2</A></DD>
 <DT><A class="idx" href="#rdfe_set_transaction_name/1">rdfe_set_transaction_name/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfesettransactionname1:113">7.1</A></DD>
+<A class="idx" href="#idx:rdfesettransactionname1:132">7.1</A></DD>
 <DT><A class="idx" href="#rdf_estimate_complexity/?Subject, ?Predicate, ?Object, -Complexity">rdf_estimate_complexity/?Subject, 
 ?Predicate, ?Object, -Complexity</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdfe_transaction/1">rdfe_transaction/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfetransaction1:110">7.1</A> <A class="idx" href="#idx:rdfetransaction1:112">7.1</A> <A class="idx" href="#idx:rdfetransaction1:117">7.2</A> <A class="idx" href="#idx:rdfetransaction1:119">7.3</A> <A class="idx" href="#idx:rdfetransaction1:126">7.5</A></DD>
+<A class="idx" href="#idx:rdfetransaction1:129">7.1</A> <A class="idx" href="#idx:rdfetransaction1:131">7.1</A> <A class="idx" href="#idx:rdfetransaction1:136">7.2</A> <A class="idx" href="#idx:rdfetransaction1:138">7.3</A> <A class="idx" href="#idx:rdfetransaction1:145">7.5</A></DD>
 <DT><A class="idx" href="#rdfe_transaction/2">rdfe_transaction/2</A></DT>
 <DD>
 </DD>
@@ -2523,22 +2802,25 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdfe_transaction_name/2">rdfe_transaction_name/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfetransactionname2:114">7.1</A></DD>
+<A class="idx" href="#idx:rdfetransactionname2:133">7.1</A></DD>
 <DT><A class="idx" href="#rdfe_undo/0">rdfe_undo/0</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfeundo0:111">7.1</A> <A class="idx" href="#idx:rdfeundo0:127">7.5</A> <A class="idx" href="#idx:rdfeundo0:128">7.5</A> <A class="idx" href="#idx:rdfeundo0:134">7.7</A></DD>
+<A class="idx" href="#idx:rdfeundo0:130">7.1</A> <A class="idx" href="#idx:rdfeundo0:146">7.5</A> <A class="idx" href="#idx:rdfeundo0:147">7.5</A> <A class="idx" href="#idx:rdfeundo0:153">7.7</A></DD>
 <DT><A class="idx" href="#rdfe_unload/1">rdfe_unload/1</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdfe_update/4">rdfe_update/4</A></DT>
 <DD>
 </DD>
+<DT>rdf_file_type/2</DT>
+<DD>
+<A class="idx" href="#idx:rdffiletype2:81">4.1</A> <A class="idx" href="#idx:rdffiletype2:83">4.1</A></DD>
 <DT><A class="idx" href="#rdf_find_literal_map/3">rdf_find_literal_map/3</A></DT>
 <DD>
-<A class="idx" href="#idx:rdffindliteralmap3:83">3.9</A></DD>
+<A class="idx" href="#idx:rdffindliteralmap3:96">4.5</A></DD>
 <DT><A class="idx" href="#rdf_find_literals/2">rdf_find_literals/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdffindliterals2:78">3.8</A> <A class="idx" href="#idx:rdffindliterals2:79">3.8</A></DD>
+<A class="idx" href="#idx:rdffindliterals2:91">4.4</A> <A class="idx" href="#idx:rdffindliterals2:92">4.4</A></DD>
 <DT><A class="idx" href="#rdf_flush_journals/1">rdf_flush_journals/1</A></DT>
 <DD>
 </DD>
@@ -2547,7 +2829,7 @@ See the source file <CODE>avl.c</CODE> for details.
 <A class="idx" href="#idx:rdfgeneration1:22">3.3.1</A></DD>
 <DT><A class="idx" href="#rdf_global_id/2">rdf_global_id/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfglobalid2:53">3.5</A></DD>
+<A class="idx" href="#idx:rdfglobalid2:55">3.5</A></DD>
 <DT><A class="idx" href="#rdf_global_object/2">rdf_global_object/2</A></DT>
 <DD>
 </DD>
@@ -2556,13 +2838,16 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdf_has/3">rdf_has/3</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfhas3:10">3.1</A> <A class="idx" href="#idx:rdfhas3:14">3.2</A> <A class="idx" href="#idx:rdfhas3:15">3.2</A> <A class="idx" href="#idx:rdfhas3:71">3.7</A></DD>
+<A class="idx" href="#idx:rdfhas3:10">3.1</A> <A class="idx" href="#idx:rdfhas3:14">3.2</A> <A class="idx" href="#idx:rdfhas3:15">3.2</A> <A class="idx" href="#idx:rdfhas3:73">3.7</A></DD>
 <DT><A class="idx" href="#rdf_has/4">rdf_has/4</A></DT>
 <DD>
 <A class="idx" href="#idx:rdfhas4:1">3</A> <A class="idx" href="#idx:rdfhas4:9">3.1</A></DD>
 <DT>rdf_has/[3,4]</DT>
 <DD>
-<A class="idx" href="#idx:rdfhas34:92">5.1</A> <A class="idx" href="#idx:rdfhas34:93">5.1</A></DD>
+<A class="idx" href="#idx:rdfhas34:111">5.1</A> <A class="idx" href="#idx:rdfhas34:112">5.1</A></DD>
+<DT>rdf_input_info/3</DT>
+<DD>
+<A class="idx" href="#idx:rdfinputinfo3:80">4.1</A></DD>
 <DT><A class="idx" href="#rdf_insert_literal_map/3">rdf_insert_literal_map/3</A></DT>
 <DD>
 </DD>
@@ -2577,31 +2862,37 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdf_load/1">rdf_load/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfload1:34">3.4</A> <A class="idx" href="#idx:rdfload1:36">3.4</A> <A class="idx" href="#idx:rdfload1:41">3.4</A> <A class="idx" href="#idx:rdfload1:74">3.7</A> <A class="idx" href="#idx:rdfload1:123">7.3</A></DD>
+<A class="idx" href="#idx:rdfload1:35">3.4</A> <A class="idx" href="#idx:rdfload1:41">3.4</A> <A class="idx" href="#idx:rdfload1:76">3.7</A> <A class="idx" href="#idx:rdfload1:142">7.3</A></DD>
 <DT><A class="idx" href="#rdf_load/2">rdf_load/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfload2:64">3.6</A> <A class="idx" href="#idx:rdfload2:68">3.6</A></DD>
+<A class="idx" href="#idx:rdfload2:44">3.4.1</A> <A class="idx" href="#idx:rdfload2:66">3.6</A> <A class="idx" href="#idx:rdfload2:70">3.6</A> <A class="idx" href="#idx:rdfload2:78">4</A> <A class="idx" href="#idx:rdfload2:85">4.1</A></DD>
 <DT>rdf_load/[1,2]</DT>
 <DD>
-<A class="idx" href="#idx:rdfload12:44">3.4.2</A> <A class="idx" href="#idx:rdfload12:46">3.4.3</A> <A class="idx" href="#idx:rdfload12:50">3.4.3</A></DD>
+<A class="idx" href="#idx:rdfload12:46">3.4.3</A> <A class="idx" href="#idx:rdfload12:48">3.4.4</A> <A class="idx" href="#idx:rdfload12:52">3.4.4</A></DD>
 <DT><A class="idx" href="#rdf_load_db/1">rdf_load_db/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfloaddb1:35">3.4</A> <A class="idx" href="#idx:rdfloaddb1:47">3.4.3</A> <A class="idx" href="#idx:rdfloaddb1:67">3.6</A> <A class="idx" href="#idx:rdfloaddb1:69">3.6</A> <A class="idx" href="#idx:rdfloaddb1:70">3.6</A></DD>
+<A class="idx" href="#idx:rdfloaddb1:34">3.4</A> <A class="idx" href="#idx:rdfloaddb1:49">3.4.4</A> <A class="idx" href="#idx:rdfloaddb1:69">3.6</A> <A class="idx" href="#idx:rdfloaddb1:71">3.6</A> <A class="idx" href="#idx:rdfloaddb1:72">3.6</A></DD>
+<DT>rdf_load_stream/3</DT>
+<DD>
+<A class="idx" href="#idx:rdfloadstream3:79">4.1</A> <A class="idx" href="#idx:rdfloadstream3:84">4.1</A></DD>
+<DT><A class="idx" href="#rdf_load_turtle/3">rdf_load_turtle/3</A></DT>
+<DD>
+<A class="idx" href="#idx:rdfloadturtle3:106">4.7</A> <A class="idx" href="#idx:rdfloadturtle3:108">4.7</A></DD>
 <DT><A class="idx" href="#rdf_make/0">rdf_make/0</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdf_match_label/3">rdf_match_label/3</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfmatchlabel3:101">5.3</A></DD>
+<A class="idx" href="#idx:rdfmatchlabel3:120">5.3</A></DD>
 <DT><A class="idx" href="#rdf_md5/2">rdf_md5/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdf_meta/1">rdf_meta/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfmeta1:57">3.5.1</A> <A class="idx" href="#idx:rdfmeta1:60">3.5.1</A> <A class="idx" href="#idx:rdfmeta1:61">3.5.1</A></DD>
+<A class="idx" href="#idx:rdfmeta1:59">3.5.1</A> <A class="idx" href="#idx:rdfmeta1:62">3.5.1</A> <A class="idx" href="#idx:rdfmeta1:63">3.5.1</A></DD>
 <DT><A class="idx" href="#rdf_monitor/2">rdf_monitor/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfmonitor2:11">3.1.1</A> <A class="idx" href="#idx:rdfmonitor2:32">3.3.2</A> <A class="idx" href="#idx:rdfmonitor2:76">3.8</A> <A class="idx" href="#idx:rdfmonitor2:81">3.9</A> <A class="idx" href="#idx:rdfmonitor2:104">7</A></DD>
+<A class="idx" href="#idx:rdfmonitor2:11">3.1.1</A> <A class="idx" href="#idx:rdfmonitor2:32">3.3.2</A> <A class="idx" href="#idx:rdfmonitor2:89">4.4</A> <A class="idx" href="#idx:rdfmonitor2:94">4.5</A> <A class="idx" href="#idx:rdfmonitor2:123">7</A></DD>
 <DT><A class="idx" href="#rdf_new_literal_map/1">rdf_new_literal_map/1</A></DT>
 <DD>
 </DD>
@@ -2613,38 +2904,41 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdf_predicate_property/2">rdf_predicate_property/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfpredicateproperty2:12">3.2</A> <A class="idx" href="#idx:rdfpredicateproperty2:72">3.7</A></DD>
+<A class="idx" href="#idx:rdfpredicateproperty2:12">3.2</A> <A class="idx" href="#idx:rdfpredicateproperty2:74">3.7</A></DD>
+<DT><A class="idx" href="#rdf_process_turtle/3">rdf_process_turtle/3</A></DT>
+<DD>
+</DD>
 <DT><A class="idx" href="#rdf_quote_uri/+URI, -Quoted">rdf_quote_uri/+URI, 
 -Quoted</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdf_reachable/3">rdf_reachable/3</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfreachable3:75">3.7</A></DD>
+<A class="idx" href="#idx:rdfreachable3:77">3.7</A></DD>
 <DT><A class="idx" href="#rdf_register_ns/2">rdf_register_ns/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdf_reset_db/0">rdf_reset_db/0</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfresetdb0:66">3.6</A></DD>
+<A class="idx" href="#idx:rdfresetdb0:68">3.6</A></DD>
 <DT><A class="idx" href="#rdf_reset_literal_map/1">rdf_reset_literal_map/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfresetliteralmap1:82">3.9</A></DD>
+<A class="idx" href="#idx:rdfresetliteralmap1:95">4.5</A></DD>
 <DT><A class="idx" href="#rdf_retractall/3">rdf_retractall/3</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfretractall3:19">3.3.1</A> <A class="idx" href="#idx:rdfretractall3:121">7.3</A></DD>
+<A class="idx" href="#idx:rdfretractall3:19">3.3.1</A> <A class="idx" href="#idx:rdfretractall3:140">7.3</A></DD>
 <DT><A class="idx" href="#rdf_retractall/4">rdf_retractall/4</A></DT>
 <DD>
 <A class="idx" href="#idx:rdfretractall4:20">3.3.1</A> <A class="idx" href="#idx:rdfretractall4:21">3.3.1</A></DD>
 <DT>rdf_retractall/[3,4]</DT>
 <DD>
-<A class="idx" href="#idx:rdfretractall34:49">3.4.3</A></DD>
+<A class="idx" href="#idx:rdfretractall34:51">3.4.4</A></DD>
 <DT><A class="idx" href="#rdfs_assert_list/2">rdfs_assert_list/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdfs_assert_list/3">rdfs_assert_list/3</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfsassertlist3:96">5.2</A></DD>
+<A class="idx" href="#idx:rdfsassertlist3:115">5.2</A></DD>
 <DT><A class="idx" href="#rdf_save/1">rdf_save/1</A></DT>
 <DD>
 </DD>
@@ -2656,22 +2950,25 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT>rdf_save_db/2</DT>
 <DD>
-<A class="idx" href="#idx:rdfsavedb2:86">4</A></DD>
+<A class="idx" href="#idx:rdfsavedb2:99">4.6</A></DD>
 <DT><A class="idx" href="#rdf_save_footer/1">rdf_save_footer/1</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdf_save_header/2">rdf_save_header/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfsaveheader2:43">3.4.1</A></DD>
+<A class="idx" href="#idx:rdfsaveheader2:45">3.4.2</A></DD>
 <DT><A class="idx" href="#rdf_save_subject/3">rdf_save_subject/3</A></DT>
 <DD>
 </DD>
 <DT>RDF-Schema</DT>
 <DD>
-<A class="idx" href="#idx:RDFSchema:90">5</A></DD>
+<A class="idx" href="#idx:RDFSchema:109">5</A></DD>
 <DT><A class="idx" href="#rdfs_class_property/2">rdfs_class_property/2</A></DT>
 <DD>
 </DD>
+<DT><A class="idx" href="#rdf_set_cache_options/1">rdf_set_cache_options/1</A></DT>
+<DD>
+<A class="idx" href="#idx:rdfsetcacheoptions1:43">3.4.1</A></DD>
 <DT><A class="idx" href="#rdf_set_predicate/2">rdf_set_predicate/2</A></DT>
 <DD>
 </DD>
@@ -2680,10 +2977,10 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdfs_individual_of/2">rdfs_individual_of/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfsindividualof2:138">8</A></DD>
+<A class="idx" href="#idx:rdfsindividualof2:157">8</A></DD>
 <DT><A class="idx" href="#rdfs_label/2">rdfs_label/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfslabel2:99">5.3</A></DD>
+<A class="idx" href="#idx:rdfslabel2:118">5.3</A></DD>
 <DT><A class="idx" href="#rdfs_label/3">rdfs_label/3</A></DT>
 <DD>
 </DD>
@@ -2701,22 +2998,22 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT><A class="idx" href="#rdf_source/1">rdf_source/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfsource1:39">3.4</A> <A class="idx" href="#idx:rdfsource1:42">3.4</A> <A class="idx" href="#idx:rdfsource1:85">4</A> <A class="idx" href="#idx:rdfsource1:88">4</A></DD>
+<A class="idx" href="#idx:rdfsource1:39">3.4</A> <A class="idx" href="#idx:rdfsource1:42">3.4</A> <A class="idx" href="#idx:rdfsource1:98">4.6</A> <A class="idx" href="#idx:rdfsource1:101">4.6</A></DD>
 <DT><A class="idx" href="#rdf_source_location/2">rdf_source_location/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdf_split_url/3">rdf_split_url/3</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfspliturl3:98">5.3</A></DD>
+<A class="idx" href="#idx:rdfspliturl3:117">5.3</A></DD>
 <DT><A class="idx" href="#rdfs_subclass_of/2">rdfs_subclass_of/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfssubclassof2:139">8</A></DD>
+<A class="idx" href="#idx:rdfssubclassof2:158">8</A></DD>
 <DT><A class="idx" href="#rdfs_subproperty_of/2">rdfs_subproperty_of/2</A></DT>
 <DD>
 </DD>
 <DT><A class="idx" href="#rdf_statistics/1">rdf_statistics/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfstatistics1:73">3.7</A></DD>
+<A class="idx" href="#idx:rdfstatistics1:75">3.7</A></DD>
 <DT><A class="idx" href="#rdf_statistics_literal_map/2">rdf_statistics_literal_map/2</A></DT>
 <DD>
 </DD>
@@ -2734,13 +3031,13 @@ See the source file <CODE>avl.c</CODE> for details.
 <A class="idx" href="#idx:rdftransaction1:29">3.3.2</A> <A class="idx" href="#idx:rdftransaction1:30">3.3.2</A> <A class="idx" href="#idx:rdftransaction1:31">3.3.2</A></DD>
 <DT><A class="idx" href="#rdf_transaction/2">rdf_transaction/2</A></DT>
 <DD>
-<A class="idx" href="#idx:rdftransaction2:26">3.3.2</A> <A class="idx" href="#idx:rdftransaction2:27">3.3.2</A> <A class="idx" href="#idx:rdftransaction2:62">3.6</A> <A class="idx" href="#idx:rdftransaction2:63">3.6</A> <A class="idx" href="#idx:rdftransaction2:103">7</A></DD>
+<A class="idx" href="#idx:rdftransaction2:26">3.3.2</A> <A class="idx" href="#idx:rdftransaction2:27">3.3.2</A> <A class="idx" href="#idx:rdftransaction2:64">3.6</A> <A class="idx" href="#idx:rdftransaction2:65">3.6</A> <A class="idx" href="#idx:rdftransaction2:122">7</A></DD>
 <DT><A class="idx" href="#rdf_unload/1">rdf_unload/1</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfunload1:65">3.6</A> <A class="idx" href="#idx:rdfunload1:124">7.3</A></DD>
+<A class="idx" href="#idx:rdfunload1:67">3.6</A> <A class="idx" href="#idx:rdfunload1:143">7.3</A></DD>
 <DT><A class="idx" href="#rdf_update/4">rdf_update/4</A></DT>
 <DD>
-<A class="idx" href="#idx:rdfupdate4:23">3.3.1</A> <A class="idx" href="#idx:rdfupdate4:122">7.3</A></DD>
+<A class="idx" href="#idx:rdfupdate4:23">3.3.1</A> <A class="idx" href="#idx:rdfupdate4:141">7.3</A></DD>
 <DT><A class="idx" href="#rdf_update/5">rdf_update/5</A></DT>
 <DD>
 </DD>
@@ -2752,34 +3049,40 @@ See the source file <CODE>avl.c</CODE> for details.
 </DD>
 <DT>search</DT>
 <DD>
-<A class="idx" href="#idx:search:100">5.3</A></DD>
+<A class="idx" href="#idx:search:119">5.3</A></DD>
 <DT>SeRQL</DT>
 <DD>
-<A class="idx" href="#idx:SeRQL:137">8</A></DD>
+<A class="idx" href="#idx:SeRQL:156">8</A></DD>
 <DT>Sesame</DT>
 <DD>
-<A class="idx" href="#idx:Sesame:136">8</A></DD>
+<A class="idx" href="#idx:Sesame:155">8</A></DD>
 <DT><STRONG>T</STRONG></DT>
 <DD>
 </DD>
 <DT>term_expansion/2</DT>
 <DD>
-<A class="idx" href="#idx:termexpansion2:59">3.5.1</A></DD>
+<A class="idx" href="#idx:termexpansion2:61">3.5.1</A></DD>
+<DT>time_file/2</DT>
+<DD>
+<A class="idx" href="#idx:timefile2:82">4.1</A></DD>
 <DT>tokenize_atom/2</DT>
 <DD>
-<A class="idx" href="#idx:tokenizeatom2:77">3.8</A> <A class="idx" href="#idx:tokenizeatom2:80">3.8</A></DD>
+<A class="idx" href="#idx:tokenizeatom2:90">4.4</A> <A class="idx" href="#idx:tokenizeatom2:93">4.4</A></DD>
 <DT>transaction</DT>
 <DD>
 <A class="idx" href="#idx:transaction:24">3.3.2</A></DD>
 <DT>transactions</DT>
 <DD>
-<A class="idx" href="#idx:transactions:107">7</A></DD>
+<A class="idx" href="#idx:transactions:126">7</A></DD>
+<DT>turtle</DT>
+<DD>
+<A class="idx" href="#idx:turtle:103">4.7</A></DD>
 <DT><STRONG>U</STRONG></DT>
 <DD>
 </DD>
 <DT>undo</DT>
 <DD>
-<A class="idx" href="#idx:undo:105">7</A> <A class="idx" href="#idx:undo:125">7.5</A></DD>
+<A class="idx" href="#idx:undo:124">7</A> <A class="idx" href="#idx:undo:144">7.5</A></DD>
 </DL>
 
 </BODY></HTML>

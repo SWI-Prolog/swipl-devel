@@ -12,13 +12,13 @@
 \htmlmainfile{semweb}		% Main document file
 \bodycolor{white}		% Page colour
 
-\renewcommand{\runningtitle}{SWI-Prolog/XPCE Semantic Web Library}
+\renewcommand{\runningtitle}{SWI-Prolog Semantic Web Library}
 
 \newcommand{\elem}[1]{{\tt\string<#1\string>}}
 
 \begin{document}
 
-\title{SWI-Prolog/XPCE Semantic Web Library}
+\title{SWI-Prolog Semantic Web Library}
 \author{Jan Wielemaker \\
 	HCS, \\
 	University of Amsterdam \\
@@ -78,7 +78,7 @@ design.
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-\section{Module rdf_db}
+\section{Module semweb/rdf_db}
 
 The central module is called \file{rdf_db}.  It provides storage and
 indexed querying of RDF triples.  Triples are stored as a quintuple.
@@ -644,6 +644,54 @@ are added at the end of the database, possibly changing the order of
 (conflicting) triples.
 \end{description}
 
+\subsubsection{Caching triples}
+\label{sec:rdfcache}
+
+The library \pllib{semweb/rdf_cache} defines the caching strategy for
+triples sources. When using large RDF sources, caching triples greatly
+speedup loading RDF documents. The cache library implements two caching
+strategies that are controlled by rdf_set_cache_options/1.
+
+\paragraph{Local caching} This approach applies to files only. Triples
+are cached in a sub-directory of the directory holding the source.  This
+directory is called \file{.cache} (\file{_cache} on Windows).  If the
+cache option \const{create_local_directory} is \const{true}, a cache
+directory is created if posible.
+
+\paragraph{Global caching} This approach applies to all sources, except
+for unnamed streams.  Triples are cached in directory defined by the
+cache option \const{global_directory}.
+
+When loading an RDF file, the system scans the configured cache files
+unless \term{cache}{false} is specified as option to rdf_load/2 or
+caching is disabled. If caching is enabled but no cache exists, the
+system will try to create a cache file.  First it will try to do this
+locally.  On failure it will try to configured global cache.
+
+\begin{description}
+    \predicate{rdf_set_cache_options}{1}{+Options}
+Set cache options.  Defined options are:
+
+    \begin{description}
+	\termitem{enabled}{Bool}
+If \const{true} (default), caching is enabled.
+
+	\termitem{local_directory}{Atom}
+Local directory to use for caching.  Default \const{.cache}
+(Windows: \const{_cache}).
+
+	\termitem{create_local_directory}{Bool}
+If \const{true} (default \const{false}), create a local cache
+directory if none exists and the directory can be created.
+
+	\termitem{global_directory}{Atom}
+Must point to a writeable directory.  Sub-directories are created
+to speedup indexing on filesystems that perform poorly on directories
+with large numbers of files.  Initially not defined.
+    \end{description}
+\end{description}
+
+
 \subsubsection{Partial save}			\label{sec:partsave}
 
 Sometimes it is necessary to make more arbitrary selections of material
@@ -917,6 +965,10 @@ new approach allows to register \jargon{monitors}.  This allows multiple
 modules to provide additional services, while these services will be
 used regardless of how the database is modified.
 
+Monitors are used by the persistency library (\secref{persistency})
+and the literal indexing library (\secref{rdflitindex}).
+
+
 \begin{description}
     \predicate{rdf_monitor}{2}{:Goal, +Mask}
 \arg{Goal} is called for modifications of the database. It is called
@@ -1105,7 +1157,119 @@ Major + 100 \times Minor + Patch$.
 \end{description}
 
 
-\subsection{Library rdf_litindex: Indexing words in literals}
+\subsection{Issues with rdf_db}				\label{sec:rdfissues}
+
+This RDF low-level module has been created after two year experimenting
+with a plain Prolog based module and a brief evaluation of a second
+generation pure Prolog implementation. The aim was to be able to handle
+upto about 5 million triples on standard (notebook) hardware and deal
+efficiently with \const{subPropertyOf} which was identified as a crucial
+feature of RDFS to realise fusion of different data-sets.
+
+The following issues are identified and not solved in suitable manner.
+
+\begin{description}
+    \item [\const{subPropertyOf} of \const{subPropertyOf}] is not
+supported.
+
+    \item [Equivalence]
+Similar to \const{subPropertyOf}, it is likely to be profitable to
+handle resource identity efficient.  The current system has no support
+for it.
+\end{description}
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	     PLUGIN		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Plugin modules for rdf_db}
+\label{sec:plugin}
+
+The \pllib{rdf_db} module provides several hooks for extending its
+functionality. Database updates can be monitored and acted upon through
+the features described in \secref{rdfmonitor}. The predicate rdf_load/2
+can be hooked to deal with different formats such as \jargon{turtle},
+different input sources (e.g.\ http) and different strategies for
+caching results.
+
+\subsection{Hooks into the RDF library}
+\label{sec:hooks}
+
+The hooks below are used to add new RDF file formats and sources from
+which to load data to the library. They are used by the modules
+described below and distributed with the package.  Please examine the
+source-code if you want to add new formats or locations.
+
+\begin{description}
+    \item[\file{rdf_turtle.pl}]
+Load files in the Turtle format.  See \secref{turtle}.
+    \item[\file{rdf_zlib_plugin.pl}]
+Load \program{gzip} compressed files transparently.  See \secref{zlib}.
+    \item[\file{rdf_http_plugin.pl}]
+Load RDF documents from HTTP servers.  See \secref{http}.
+\end{description}
+
+\begin{description}
+    \predicate{rdf_db:rdf_open_hook}{3}{+Input, -Stream, -Format}
+Open an input. \arg{Input} is one of \term{file}{+Name},
+\term{stream}{+Stream} or \term{url}{Protocol, URL}.  If this hook
+succeeds, the RDF will be read from Stream using rdf_load_stream/3.
+Otherwise the default open functionality for file and stream are
+used.
+
+    \predicate{rdf_db:rdf_load_stream}{3}{+Format, +Stream, +Options}
+Actually load the RDF from \arg{Stream} into the RDF database.
+\arg{Format} describes the format and is produced either by
+rdf_input_info/3 or rdf_file_type/2.
+
+    \predicate{rdf_db:rdf_input_info}{3}{+Input, -Modified, -Format}
+Gather information on \arg{Input}. \arg{Modified} is the last
+modification time of the source as a POSIX time-stamp (see time_file/2).
+\arg{Format} is the RDF format of the file.  See rdf_file_type/2 for
+details. It is allowed to leave the output variables unbound. Ultimately
+the default modified time is `0' and the format is assumed to be
+\const{xml}.
+
+    \predicate{rdf_db:rdf_file_type}{2}{?Extension, ?Format}
+True if \arg{Format} is the default RDF file format for files
+with the given extension.  \arg{Extension} is lowercase and 
+without a '.'.  E.g.\ \const{owl}.  \arg{Format} is either a
+built-in format (\const{xml} or \const{triples}) or a format
+understood by the rdf_load_stream/3 hook.
+
+    \predicate{rdf_db:url_protocol}{1}{?Protocol}
+True if \arg{Protocol} is a URL protocol recognised by rdf_load/2.
+\end{description}
+
+
+\subsection{Library semweb/rdf_zlib_plugin}
+\label{sec:zlib}
+
+\index{gz, format}\index{gzip}\index{compressed data}%
+This module uses the \pllib{zlib} library to load compressed files
+on the fly.  The extension of the file must be \fileext{gz}.  The
+file format is deduced by the extension after stripping the \fileext{gz}
+extension.  E.g.\ \exam{rdf_load('file.rdf.gz')}.
+
+
+\subsection{Library semweb/rdf_http_plugin}
+\label{sec:http}
+
+This module allows for \exam{rdf_load('http://...')}. It exploits the
+library \pllib{http/http_open.pl}. The format of the URL is determined
+from the mime-type returned by the server if this is one of
+\const{text/rdf+xml}, \const{application/x-turtle} or
+\const{application/turtle}. As RDF mime-types are not yet widely
+supported, the plugin uses the extension of the URL if the claimed
+mime-type is not one of the above.
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	     LITINDEX		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Library semweb/rdf_litindex: Indexing words in literals}
 \label{sec:rdflitindex}
 
 The library \pllib{semweb/rdf_litindex.pl} exploits the primitives
@@ -1317,41 +1481,20 @@ Unify \arg{Keys} with the total key-count of the index and
 \end{description}
 
 
-\subsection{Issues with rdf_db}				\label{sec:rdfissues}
-
-This RDF low-level module has been created after two year experimenting
-with a plain Prolog based module and a brief evaluation of a second
-generation pure Prolog implementation. The aim was to be able to handle
-upto about 5 million triples on standard (notebook) hardware and deal
-efficiently with \const{subPropertyOf} which was identified as a crucial
-feature of RDFS to realise fusion of different data-sets.
-
-The following issues are identified and not solved in suitable manner.
-
-\begin{description}
-    \item [\const{subPropertyOf} of \const{subPropertyOf}] is not
-supported.
-
-    \item [Equivalence]
-Similar to \const{subPropertyOf}, it is likely to be profitable to
-handle resource identity efficient.  The current system has no support
-for it.
-\end{description}
-
-
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		 %	    PERSISTENCY		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Module rdf_persistency}		\label{sec:persistency}
+\subsection{Module semweb/rdf_persistency}
+\label{sec:persistency}
 
-\index{Persistent store}%
-The \pllib{semweb/rdf_persistency} provides reliable persistent storage
-for the RDF data.  The store uses a directory with files for each source
-(see rdf_source/1) present in the database.  Each source is represented
-by two files, one in binary format (see rdf_save_db/2) representing the
-base state and one represented as Prolog terms representing the changes
-made since the base state.  The latter is called the \jargon{journal}.
+\index{Persistent store}% The \pllib{semweb/rdf_persistency} provides
+reliable persistent storage for the RDF data. The store uses a directory
+with files for each source (see rdf_source/1) present in the database.
+Each source is represented by two files, one in binary format (see
+rdf_save_db/2) representing the base state and one represented as Prolog
+terms representing the changes made since the base state. The latter is
+called the \jargon{journal}.
 
 
 \begin{description}
@@ -1427,10 +1570,57 @@ in the directory described by rdf_current_db/1 and has the extension
 
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	      TURTLE		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Module semweb/rdf_turtle}
+\label{sec:turtle}
+
+\index{turtle}
+The module \pllib{semweb/rdf_turtle} provides a parser for the
+alternative RDF Turtle
+syntax.\footnote{\url{http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/}}
+The Turtle syntax is the basis for the SPARQL query language and much
+easier to read and write by humans\footnote{And computers \ldots} than
+the RDF/XML syntax.
+
+This module acts as a \jargon{plugin} to \pllib{rdf_db.pl}, enabling
+load_rdf/2 to load Turtle data transparently.  The default extension
+for a turtle file is \fileext{.ttl}.
+
+\begin{description}
+    \predicate{rdf_load_turtle}{3}{+Input, -Triples, +Options}
+Parse Turtle data from Input, returning a list of \term{rdf}{S,P,O}
+triples. Input is either a term \term{stream}{Stream} or a specification
+for absolute_file_name/3.   Processed options are:
+
+    \begin{description}
+	\termitem{base_url}{+BaseURI}
+Define the base URI.  When processing a file the default is constructed
+from \const{file://} and the filename.
+
+	\termitem{anon_prefix}{+Prefix}
+Prefix used for blank notes.  Must start with \const{__}.  Default
+is constructed from the base URI.
+    \end{description}
+
+    \predicate{rdf_process_turtle}{3}{+Input, :OnTriples, +Options}
+Similar to rdf_load_turtle/3, but processes the file in call-back mode.
+See also process_rdf/3.  \arg{OnTriples} is called with two arguments.
+The first argument is a non-empty list of triples and the second is
+a term <DB>:<Line>, indicating the source location of the triples.
+In addition to the options described with rdf_load_turtle/3 it accepts
+the option \term{db}{DB}, specifying the named graph.  Default is the
+base URI.
+\end{description}
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		 %	       RDFS		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Module rdfs}				\label{sec:rdfs}
+\section{Module semweb/rdfs}
+\label{sec:rdfs}
 
 \index{RDF-Schema}%
 The \pllib{rdfs} library adds interpretation of the triple store in
@@ -1565,7 +1755,7 @@ the match was found.
 		 %	       OWL		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Module owl}				\label{sec:owl}
+\section{OWL}				\label{sec:owl}
 
 \index{OWL}%
 The current SemWeb library distributed with SWI-Prolog does not yet
@@ -1580,12 +1770,12 @@ reasoning.
 		 %	     RDF-EDIT		%
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Module rdf_edit}			\label{sec:rdfedit}
+\section{Module semweb/rdf_edit}			\label{sec:rdfedit}
 
 \begin{quote}\em
-It is anticipated that this library will eventually be superseeded
-by facilities running on top of the native rdf_transaction/2 and
-rdf_monitor/2 facilities.  See \secref{rdfmonitor}.
+It is anticipated that this library will eventually be superseeded by
+facilities running on top of the native rdf_transaction/2 and
+rdf_monitor/2 facilities. See \secref{rdfmonitor}.
 \end{quote}
 
 \index{undo}\index{journal}\index{transactions}
@@ -1812,49 +2002,6 @@ This event is broadcasted after an rdfe_undo/0 or rdfe_redo/0.
 \arg{Type} is one of \const{undo} or \const{redo} and \arg{Id}
 identifies the transaction as above.
 \end{description}
-
-
-\section{Module rdf_turtle}
-\label{sec:turtle}
-
-\index{turtle}
-The module \pllib{semweb/rdf_turtle} provides a parser for the
-alternative RDF Turtle
-syntax.\footnote{\url{http://www.ilrt.bris.ac.uk/discovery/2004/01/turtle/}}
-The Turtle syntax is the basis for the SPARQL query language and much
-easier to read and write by humans\footnote{And computers \ldots} than
-the RDF/XML syntax.
-
-This module acts as a \jargon{plugin} to \pllib{rdf_db.pl}, enabling
-load_rdf/2 to load Turtle data transparently.  The default extension
-for a turtle file is \fileext{.ttl}.
-
-\begin{description}
-    \predicate{rdf_load_turtle}{3}{+Input, -Triples, +Options}
-Parse Turtle data from Input, returning a list of \term{rdf}{S,P,O}
-triples. Input is either a term \term{stream}{Stream} or a specification
-for absolute_file_name/3.   Processed options are:
-
-    \begin{description}
-	\termitem{base_url}{+BaseURI}
-Define the base URI.  When processing a file the default is constructed
-from \const{file://} and the filename.
-
-	\termitem{anon_prefix}{+Prefix}
-Prefix used for blank notes.  Must start with \const{__}.  Default
-is constructed from the base URI.
-    \end{description}
-
-    \predicate{rdf_process_turtle}{3}{+Input, :OnTriples, +Options}
-Similar to rdf_load_turtle/3, but processes the file in call-back mode.
-See also process_rdf/3.  \arg{OnTriples} is called with two arguments.
-The first argument is a non-empty list of triples and the second is
-a term <DB>:<Line>, indicating the source location of the triples.
-In addition to the options described with rdf_load_turtle/3 it accepts
-the option \term{db}{DB}, specifying the named graph.  Default is the
-base URI.
-\end{description}
-
 
 \section{Related packages and issues}
 

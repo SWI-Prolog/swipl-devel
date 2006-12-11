@@ -43,7 +43,8 @@ from an HTTP server.
 
 :- multifile
 	rdf_db:rdf_open_hook/3,
-	rdf_db:rdf_input_info/3.
+	rdf_db:rdf_input_info/3,
+	rdf_db:url_protocol/1.
 
 rdf_db:rdf_open_hook(url(http, URL), Stream, Format) :-
 	http_open(URL, Stream,
@@ -76,3 +77,5 @@ rdf_db:rdf_input_info(url(http, URL), Modified, Format) :-
 	Date \== '',
 	guess_format(Type, URL, Format),
 	parse_time(Date, Modified).
+
+rdf_db:url_protocol(http).
