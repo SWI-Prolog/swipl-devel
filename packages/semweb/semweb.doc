@@ -490,7 +490,7 @@ ERROR: No permission to write rdf_db `default' (Operation would deadlock)
 
 \begin{description}
     \predicate{rdf_transaction}{1}{:Goal}
-Same as \termitem{rdf_transaction}{Goal, \const{user}}.
+Same as \term{rdf_transaction}{Goal, \const{user}}.
 
     \predicate{rdf_transaction}{2}{:Goal, +Id}
 After starting a transaction, all predicates from \secref{modpreds}
