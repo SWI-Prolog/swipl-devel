@@ -729,7 +729,7 @@ rdf_load(Spec, Options) :-
 					       blank_nodes(ShareMode)
 					     | RDFOptions
 					     ]),
-			     close(Stream)), !,
+			     close_input(Input, Stream)), !,
 		(   Cache == true,
 		    rdf_cache_file(BaseURI, write, CacheFile)
 		->  catch(save_cache(BaseURI, CacheFile), E,
@@ -747,8 +747,15 @@ rdf_load(Spec, Options) :-
 	;   Action = none,
 	    rdf_source(BaseURI, _, Triples, MD5)
 	),
-	report_loaded(Action, Spec, BaseURI, Triples, T0, Options).
+	report_loaded(Action, Input, BaseURI, Triples, T0, Options).
 
+%%	close_input(+Input, +Stream) is det.
+%
+%	Close input if it was not specified as a stream.
+
+close_input(stream(_), _) :- !.
+close_input(_, Stream) :-
+	close(Stream).
 
 %%	rdf_input(+Term, -Input, -BaseURI)
 %
@@ -1639,14 +1646,18 @@ prolog:message(rdf(using_namespace(Id, NS))) -->
 how(load)   --> [ 'Loaded' ].
 how(parsed) --> [ 'Parsed' ].
 
-source(Spec) -->
-	{ atom(Spec),
-	  (   sub_atom(Spec, 0, _, _, 'stream://')
-	  ->  Base = Spec
-	  ;   file_base_name(Spec, Base)
-	  )
+source(stream(Stream)) -->
+	{ stream_property(Stream, file_name(Path)), !,
+	  file_base_name(Path, Base)
 	},
 	[ ' "~w"'-[Base] ].
+source(file(Path)) -->
+	{ atom(Path), !,
+	  file_base_name(Path, Base)
+	},
+	[ ' "~w"'-[Base] ].
+source(url(_Protocol, URL)) -->
+	[ ' "~w"'-[URL] ].
 source(Spec) -->
 	[ ' "~p"'-[Spec] ].
 
