@@ -510,7 +510,7 @@ zcontrol(void *handle, int op, void *data)
 { z_context *ctx = handle;
 
   switch(op)
-  { case SIO_FLUSH:
+  { case SIO_FLUSHOUTPUT:
       return zwrite4(handle, NULL, 0, Z_SYNC_FLUSH);
     case SIO_SETENCODING:
       return 0;				/* allow switching encoding */

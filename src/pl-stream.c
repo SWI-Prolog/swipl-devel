@@ -1337,7 +1337,7 @@ Sflush(IOSTREAM *s)
   { if ( S__flushbuf(s) < 0 )
       return -1;
     if ( s->functions->control &&
-	 (*s->functions->control)(s->handle, SIO_FLUSH, NULL) < 0 )
+	 (*s->functions->control)(s->handle, SIO_FLUSHOUTPUT, NULL) < 0 )
       return -1;
   }
 
@@ -2378,7 +2378,7 @@ Scontrol_file(void *handle, int action, void *arg)
       return -1;
     }
     case SIO_SETENCODING:
-    case SIO_FLUSH:
+    case SIO_FLUSHOUTPUT:
       return 0;
     default:
       return -1;

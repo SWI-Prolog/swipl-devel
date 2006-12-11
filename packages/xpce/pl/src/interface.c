@@ -2592,7 +2592,7 @@ Sclose_pce(void *handle)
 static int
 Scontrol_pce(void *handle, int cmd, void *closure)
 { switch(cmd)
-  { case SIO_FLUSH:
+  { case SIO_FLUSHOUTPUT:
       return 0;
     case SIO_SETENCODING:
       return pceControl(fdFromHandle(handle), PCE_SETENCODING, closure);
