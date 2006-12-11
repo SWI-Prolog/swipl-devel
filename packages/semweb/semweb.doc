@@ -729,7 +729,7 @@ Save everything known about \arg{Subject} that matches \arg{FileRef}.
 Using an variable for \arg{FileRef} saves all triples with
 \arg{Subject}.
 
-    \predicate{rdf_quote_uri}{+URI, -Quoted}
+    \predicate{rdf_quote_uri}{2}{+URI, -Quoted}
 Quote a UNICODE \arg{URI}.  First the Unicode is represented as UTF-8
 and then the unsafe characters are mapped to %XX.  Quotes can always
 be represented as US-ASCII.
