@@ -38,6 +38,7 @@
 :- use_module(library(socket)).
 :- use_module(library(lists)).
 :- use_module(library(option)).
+:- use_module(library(error)).
 
 user_agent('SWI-Prolog (http://www.swi-prolog.org)').
 
