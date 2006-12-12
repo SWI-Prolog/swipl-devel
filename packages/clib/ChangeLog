@@ -1,3 +1,8 @@
+Dec 12, 2006
+
+  * FIXED: Error handling in read_line_to_codes/[2,3] and
+    read_stream_to_codes/[2,3].
+
 Nov 8, 2006
 
   * CLEANUP: GCC warnings

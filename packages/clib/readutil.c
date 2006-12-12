@@ -63,7 +63,10 @@ read_line_to_codes3(term_t stream, term_t codes, term_t tail)
   { int	c = Sgetcode(s);
 
     if ( c == EOF )
-    { if ( tail == 0 && o == buf )
+    { if ( !PL_release_stream(s) )
+	return FALSE;			/* error */
+
+      if ( tail == 0 && o == buf )
 	return PL_unify_atom(codes, ATOM_end_of_file);
       if ( PL_unify_wchars(cl, PL_CODE_LIST, o-buf, buf) &&
            (tail == 0 || PL_unify_nil(tail)) )
@@ -74,7 +77,9 @@ read_line_to_codes3(term_t stream, term_t codes, term_t tail)
 
     if ( o == e )
     { if ( !PL_unify_wchars_diff(cl, cl, PL_CODE_LIST, o-buf, buf) )
+      { PL_release_stream(s);
 	return FALSE;
+      }
       o = buf;
     }
 
@@ -91,6 +96,7 @@ read_line_to_codes3(term_t stream, term_t codes, term_t tail)
 	return PL_unify_wchars(cl, PL_CODE_LIST, o-buf, buf);
       }
 
+      PL_release_stream(s);
       return FALSE;
     }
   }
@@ -117,7 +123,10 @@ read_stream_to_codes3(term_t stream, term_t codes, term_t tail)
   { int	c = Sgetcode(s);
 
     if ( c == EOF )
-    { if ( tail )
+    { if ( !PL_release_stream(s) )
+	return FALSE;			/* error */
+
+      if ( tail )
       { if ( PL_unify_wchars_diff(cl, cl, PL_CODE_LIST, o-buf, buf) &&
 	     PL_unify(cl, tail) )
 	  return TRUE;
@@ -129,7 +138,9 @@ read_stream_to_codes3(term_t stream, term_t codes, term_t tail)
 
     if ( o == e )
     { if ( !PL_unify_wchars_diff(cl, cl, PL_CODE_LIST, o-buf, buf) )
+      { PL_release_stream(s);
 	return FALSE;
+      }
       o = buf;
     }
 
