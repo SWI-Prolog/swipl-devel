@@ -84,7 +84,7 @@ find_source(Predicate, File, Line) :-
 	predicate_property(Predicate, file(File)),
 	predicate_property(Predicate, line_count(Line)), !.
 find_source(Predicate, File, 1) :-
-	debug('No source for ~p~n', Predicate),
+	debug('No source for ~p~n', [Predicate]),
 	File = @dynamic_source_buffer,
 	send(File, clear),
 	pce_open(File, write, Fd),
@@ -158,5 +158,10 @@ canonical_source_file(Source, File) :-
 
 debug(Fmt, Args) :-
 	setting(verbose, true), !,
-	format(Fmt, Args).
+	thread_self(Me),
+	(   Me == main
+	->  format(user_error, Fmt, Args)
+	;   atom_concat('[~w] ', Fmt, Format),
+	    format(user_error, Format, [Me|Args])
+	).
 debug(_, _).

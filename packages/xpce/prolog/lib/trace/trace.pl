@@ -502,7 +502,9 @@ action(Action) :-
 action(Action) :-
 	send_tracer(prepare_action),
 	repeat,
+	debug(' ---> action: wait', []),
 	thread_get_message('$trace'(Result)),
+	debug(' ---> action: result = ~p~n', [Result]),
 	(   Result = call(Goal, GVars, Caller)
 	->  run_in_debug_thread(Goal, GVars, Caller),
 	    fail
@@ -519,6 +521,7 @@ run_in_debug_thread(Goal, GVars, Caller) :-
 	    )
 	;   Result = false
 	),
+	debug(' ---> run_in_debug_thread: send ~p~n', [Result]),
 	thread_send_message(Caller, '$trace'(Result)).
 
 action(break, Action) :- !,

@@ -187,6 +187,7 @@ send_pce(Goal) :-
 	in_pce_thread(run_pce(M:G, GVars, Self)),
 	repeat,
 	thread_get_message('$trace'(Result)),
+	debug(' ---> send_pce: result = ~p~n', [Result]),
 	(   Result = error(E)
 	->  throw(E)
 	;   Result = call(CallBack, CBVars, Caller)
@@ -232,7 +233,7 @@ in_debug_thread(Thread, Goal) :-
 	term_variables(G, GVars),
 	thread_send_message(Thread, '$trace'(call(M:G, GVars, Self))),
 	thread_get_message('$trace'(Result)),
-	debug(' ---> Result = ~p~n', [Result]),
+	debug(' ---> in_debug_thread: result = ~p~n', [Result]),
 	(   Result = error(E)
 	->  throw(E)
 	;   Result = true(BGVars)
@@ -526,6 +527,7 @@ return(Frame, Result:any) :->
 		->  send(Frame, destroy)
 		;   true
 		),
+		debug(' ---> frame: result = ~p', [Result]),
 		thread_send_message(Thread, '$trace'(action(Result)))
 	    )
 	;   get(Frame, quitted, @on)
