@@ -384,9 +384,13 @@ releaseStream(IOSTREAM *s)
 
 #endif /*O_PLMT*/
 
-void
+int
 PL_release_stream(IOSTREAM *s)
-{ releaseStream(s);
+{ if ( Sferror(s) )
+    return streamStatus(s);
+
+  releaseStream(s);
+  return TRUE;
 }
 
 

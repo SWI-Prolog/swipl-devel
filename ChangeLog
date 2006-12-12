@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: PL_release_stream() nos checks for errors and returns
+    FALSE if the stream is in an error state.
+
   * FIXED: Accept c:\\ as absolute path in Windows (Paulo Moura).
 
   * ADDED: library(error), providing must_be/2, type_error/2, etc.

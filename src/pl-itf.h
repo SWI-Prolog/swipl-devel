@@ -678,7 +678,7 @@ UNICODE file functions.
 PL_EXPORT(int)  	PL_open_stream(term_t t, IOSTREAM *s); /* compat */
 PL_EXPORT(int)  	PL_unify_stream(term_t t, IOSTREAM *s);
 PL_EXPORT(int)  	PL_get_stream_handle(term_t t, IOSTREAM **s);
-PL_EXPORT(void) 	PL_release_stream(IOSTREAM *s);
+PL_EXPORT(int) 		PL_release_stream(IOSTREAM *s);
 PL_EXPORT(IOSTREAM *)	PL_open_resource(module_t m,
 					 const char *name,
 					 const char *rc_class,
