@@ -77,29 +77,38 @@ http_open(Url, Stream, Options) :-
 	http_open(Parts, Stream, Options).
 http_open(Parts, Stream, Options) :-
 	memberchk(proxy(Host, Port), Options), !,
-	user_agent(Agent, Options),
-	method(Options, MNAME),
-	parse_url(URL, Parts),
+	parse_url(Location, Parts),
 	open_socket(Host:Port, In, Out, Options),
-	format(Out,
-	       '~w ~w HTTP/1.0\r\n\
-	       Host: ~w\r\n\
-	       User-Agent: ~w\r\n\
-	       Connection: close\r\n',
-	       [MNAME, URL, Host, Agent]),
-	x_headers(Options, Out, Options1),
-	format(Out, '\r\n', []),
-	close(Out),
-					% read the reply header
-	read_header(In, Code, Comment, Lines),
-	do_open(Code, Comment, Lines, Options1, Parts, In, Stream).
+	send_rec_header(Out, In, Stream, Host, Location, Parts, Options).
 http_open(Parts, Stream, Options) :-
 	memberchk(host(Host), Parts),
 	option(port(Port), Parts, 80),
 	http_location(Parts, Location),
+	open_socket(Host:Port, In, Out, Options),
+	send_rec_header(Out, In, Stream, Host, Location, Parts, Options).
+
+%%	send_rec_header(+Out, +In, -InStream,
+%%			+Host, +Location, +Parts, +Options) is det.
+%
+%	Send header to Out and process reply.  If there is an error or
+%	failure, close In and Out and return the error or failure.
+
+send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
+	(   catch(guarded_send_rec_header(Out, In, Stream,
+					  Host, Location, Parts, Options),
+		  E, true)
+	->  (   var(E)
+	    ->	close(Out)
+	    ;	force_close(In, Out),
+		throw(E)
+	    )
+	;   force_close(In, Out),
+	    fail
+	).
+
+guarded_send_rec_header(Out, In, Stream, Host, Location, Parts, Options) :-
 	user_agent(Agent, Options),
 	method(Options, MNAME),
-	open_socket(Host:Port, In, Out, Options),
 	format(Out,
 	       '~w ~w HTTP/1.0\r\n\
 	       Host: ~w\r\n\
@@ -108,10 +117,14 @@ http_open(Parts, Stream, Options) :-
 	       [MNAME, Location, Host, Agent]),
 	x_headers(Options, Out, Options1),
 	format(Out, '\r\n', []),
-	close(Out),
+	flush_output(Out),
 					% read the reply header
 	read_header(In, Code, Comment, Lines),
 	do_open(Code, Comment, Lines, Options1, Parts, In, Stream).
+
+force_close(S1, S2) :-
+	close(S1, [force(true)]),
+	close(S2, [force(true)]).
 
 method(Options, MNAME) :-
 	option(method(M), Options, get),
@@ -243,6 +256,9 @@ skip_blanks -->
 skip_blanks -->
 	[].
 
+%%	integer(-Int)//
+%
+%	Read 1 or more digits and return as integer.
 
 integer(Code) -->
 	digit(D0),
@@ -250,12 +266,10 @@ integer(Code) -->
 	{ number_codes(Code, [D0|D])
 	}.
 
-
 digit(C) -->
 	[C],
 	{ code_type(C, digit)
 	}.
-
 
 digits([D0|D]) -->
 	digit(D0), !,
@@ -263,6 +277,9 @@ digits([D0|D]) -->
 digits([]) -->
 	[].
 
+%%	rest(-Atom)//
+%
+%	Get rest of input as an atom.
 
 rest(A,L,[]) :-
 	atom_codes(A, L).
