@@ -385,7 +385,7 @@ prolog_show_frame(Frame, Attributes) :-
 show_source(Frame, Attributes) :-
 	attribute(Attributes, source), !,
 	tracer_gui(Attributes, GUI),
-	debug('source for #~w: ', [Frame]),
+	debug('source for #~w~n: ', [Frame]),
 	(   attribute(Attributes, pc(PC)),
 	    attribute(Attributes, port(Port), call),
 	    attribute(Attributes, style(Style), Port),
@@ -502,8 +502,13 @@ action(Action) :-
 action(Action) :-
 	send_tracer(prepare_action),
 	repeat,
-	debug(' ---> action: wait', []),
-	thread_get_message('$trace'(Result)),
+	debug(' ---> action: wait~n', []),
+	(   repeat,
+	    catch(thread_get_message('$trace'(Result)), E, wait_error(E))
+	->  true
+	;   debug('thread_get_message() failed; retrying ...~n'),
+	    fail
+	),
 	debug(' ---> action: result = ~p~n', [Result]),
 	(   Result = call(Goal, GVars, Caller)
 	->  run_in_debug_thread(Goal, GVars, Caller),
@@ -512,6 +517,25 @@ action(Action) :-
 	->  !
 	;   assertion(fail)
 	).
+
+%%	wait_error(+ErrorTerm)
+%
+%	thread_get_message/1 can only fail due   to  signals throwing an
+%	exception. For example,  if  the  traced   goal  is  guarded  by
+%	call_with_time_limit/2. Here we  print  the   message  and  keep
+%	waiting. Note that this causes the  system   to  be lost for the
+%	application.
+%	
+%	@tbd	Allow passing the error to the application
+%	@tbd	Deal with similar signals in other part of the tracing
+%		code.
+
+wait_error(E) :-
+	message_to_string(E, Message),
+	format(user_error, 'Error while waiting for for user: ~w~n\
+			   Retrying~n', [Message]),
+	fail.
+
 
 run_in_debug_thread(Goal, GVars, Caller) :-
 	(   catch(Goal, Error, true)

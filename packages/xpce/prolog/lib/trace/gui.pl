@@ -527,7 +527,7 @@ return(Frame, Result:any) :->
 		->  send(Frame, destroy)
 		;   true
 		),
-		debug(' ---> frame: result = ~p', [Result]),
+		debug(' ---> frame: result = ~p~n', [Result]),
 		thread_send_message(Thread, '$trace'(action(Result)))
 	    )
 	;   get(Frame, quitted, @on)
