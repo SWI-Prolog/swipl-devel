@@ -186,11 +186,11 @@ http_read_reply(In, Data, Options) :-
 	(   memberchk(status(302, _), Fields),
 	    memberchk(location(Location), Fields)
 	->  Data = redirect(Location)
-	;   (   memberchk(reply_header(Fields), Options)
+	;   (   select(reply_header(Fields), Options, ReadOptions)
 	    ->  true
-	    ;   true
+	    ;   ReadOptions = Options
 	    ),
-	    http_read_data(In, Fields, Data, Options)
+	    http_read_data(In, Fields, Data, ReadOptions)
 	),
 	(   memberchk(connection(Connection), Fields),
 	    downcase_atom(Connection, 'keep-alive')

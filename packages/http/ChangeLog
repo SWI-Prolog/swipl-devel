@@ -1,3 +1,8 @@
+Dec 13, 2006
+
+  * FIXED: avoid passing reply_header option to convert hooks (conflict
+    with SGML plugin).
+
 Dec 12, 2006
 
   * FIXED: Properly close sockets on errors in http_open/3.
