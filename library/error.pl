@@ -91,9 +91,10 @@ instantiation_error(_Term) :-
 %	| chars | Proper list of 1-character atoms |
 %	| codes | Proper list of Unicode character codes |
 %	| text | One of =atom=, =string=, =chars= or =codes= |
-%	| between(L,U) | Integer between L and U (including L and U) |
+%	| between(L,U) | Number between L and U (including L and U) |
 %	| nonneg | Non-negative integer |
 %	| oneof(L) | Ground term that is member of L |
+%	| list(Type) | Proper list with elements of Type |
 %
 %	@error Throws instantiation_error if Term is
 %	insufficiently instantiated and type_error(Type, Term) if Term
@@ -109,7 +110,10 @@ must_be(Type, X) :-
 
 has_type(atom, X)	  :- atom(X).
 has_type(atomic, X)	  :- atomic(X).
-has_type(between(L,U), X) :- integer(X), between(L,U,X).
+has_type(between(L,U), X) :- (   integer(L) 
+			     ->  integer(X), between(L,U,X)
+			     ;   number(X), X >= L, X =< U
+			     ).
 has_type(boolean, X) 	  :- (X==true;X==false), !.
 has_type(callable, X)	  :- callable(X).
 has_type(chars,	X)	  :- chars(X).
@@ -130,6 +134,7 @@ has_type(var, X)	  :- var(X).
 has_type(rational, X)	  :- rational(X).
 has_type(string, X)	  :- string(X).
 has_type(stream, X)	  :- is_stream(X).
+has_type(list(Type), X)	  :- element_types(X, Type).
 
 chars(0) :- !, fail.
 chars([]).
@@ -149,3 +154,11 @@ text(X) :-
 	;   chars(X)
 	;   codes(X)
 	), !.
+
+element_types(X, _) :-
+	var(X),
+	instantiation_error(X).
+element_types([], _).
+element_types([H|T], Type) :-
+	must_be(Type, H),
+	element_types(T, Type).
