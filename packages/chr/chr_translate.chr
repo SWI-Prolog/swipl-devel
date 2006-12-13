@@ -4718,7 +4718,7 @@ type_alias(A,B), dynamic_type_check
 
 dynamic_type_check <=> 
 	findall(
-			('$dynamic_type_check'(Type,Term) :- !, Goal),
+			('$dynamic_type_check'(Type,Term) :- Goal),
 			( atomic_builtin_type(Type,Term,Goal) ; compound_builtin_type(Type,Term,Goal) ), 
 			BuiltinChecks
 	),
@@ -4733,24 +4733,25 @@ dynamic_type_check_clause(T,DC,Clause) :-
 	maplist(dynamic_type_check_call,DCArgs,TermArgs,RecursiveCallList),
 	list2conj(RecursiveCallList,RecursiveCalls),
 	Clause = (
-			'$dynamic_type_check'(Type,Term) :- !,
+			'$dynamic_type_check'(Type,Term) :- 
 				RecursiveCalls	
 	).
 
 dynamic_type_check_alias_clause(Alias,Body,Clause) :-
 	Clause = (
-			'$dynamic_type_check'(Alias,Term) :- !,
+			'$dynamic_type_check'(Alias,Term) :-
 				'$dynamic_type_check'(Body,Term)
 	).
 
 dynamic_type_check_call(Type,Term,Call) :-
-	( nonvar(Type), atomic_builtin_type(Type,Term,Goal) ->
-		Call = when(nonvar(Term),Goal)
-	; nonvar(Type), compound_builtin_type(Type,Term,Goal) ->
-		Call = when(nonvar(Term),Goal)
-	;
+	% ( nonvar(Type), atomic_builtin_type(Type,Term,Goal) ->
+	%	Call = when(nonvar(Term),Goal)
+	% ; nonvar(Type), compound_builtin_type(Type,Term,Goal) ->
+	%	Call = when(nonvar(Term),Goal)
+	% ;
 		Call = when(nonvar(Term),'$dynamic_type_check'(Type,Term))
-	).
+	% )
+	.
 
 dynamic_type_check_clauses(C1), dynamic_type_check_clauses(C2) 
 	<=>
