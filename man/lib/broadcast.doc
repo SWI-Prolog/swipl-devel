@@ -1,5 +1,4 @@
-\section{Library ``broadcast'' for all your deliveries}
-\label{sec:libbroadcast}
+\libdoc{broadcast}{Broadcast and receive event notifications}
 
 \index{broadcast}\index{message,service}\index{blackboard}%
 \index{agent}\index{daemon}% The \pllib{broadcast} library was invented
@@ -7,8 +6,8 @@ to realise GUI applications consisting of stand-alone components that
 use the Prolog database for storing the application data.
 \Figref{broadcast} illustrates the flow of information using this design
 
-\postscriptfig[width=\linewidth]{broadcast}{Information-flow using
-					    broadcasting service}
+\postscriptfig[width=0.8\linewidth]{broadcast}{Information-flow using
+					       broadcasting service}
 
 The broadcasting service provides two services. Using the `shout'
 service, an unknown number of agents may listen to the message and
@@ -55,7 +54,7 @@ traps all broadcasted messages as a variable unifies to any message.
 It is commonly used to debug usage of the library.
 
 \begin{code}
-?- listen(Term, write_ln(Term)).
+?- listen(Term, (writeln(Term),fail)).
 ?- broadcast(hello(world)).
 hello(world)
 
@@ -69,7 +68,7 @@ channel.  This is commonly used if an object is listening to broadcast
 messages.  In the example below we define a `name-item' displaying the
 name of an identifier represented by the predicate name_of/2.
 
-\begin{pcecode}
+\begin{code}
 :- pce_begin_class(name_item, text_item).
 
 variable(id,	any,	get, "Id visualised").
@@ -93,7 +92,7 @@ set_name(NI, Name:name) :->
 	broadcast(name_of(Id, Name)).
 
 :- pce_end_class.
-\end{pcecode}
+\end{code}
 
     \predicate{unlisten}{1}{+Listener}
 Deregister all entries created with listen/3 whose \arg{Listener}

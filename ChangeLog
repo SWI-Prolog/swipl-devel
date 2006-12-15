@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Moved library(broadcast) from XPCE libraries to Prolog library.
+
   * MODIFIED: PL_release_stream() nos checks for errors and returns
     FALSE if the stream is in an error state.
 

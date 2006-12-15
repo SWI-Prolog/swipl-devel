@@ -97,6 +97,7 @@ Section "Base system (required)"
   File pl\library\nb_set.pl
   File pl\library\operators.pl
   File pl\library\heaps.pl
+  File pl\library\broadcast.pl
 
 ; WINDOWS
   File pl\library\dde.pl

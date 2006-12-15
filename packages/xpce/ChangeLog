@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: Moved library(broadcast) to general SWI-Prolog library.  Should
+  not affect code that load this library on demand or using the recommended
+  :- use_module(liberary(broadcast)).
+
 VERSION 6.6.24, distributed with SWI-Prolog 5.6.24
 ==================================================
 

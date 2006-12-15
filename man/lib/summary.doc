@@ -187,3 +187,15 @@ This library is only available on Windows systems.
 \predicatesummary{xref_source}{1}{Cross-reference analysis of source}
 \end{summarylist}
 
+\subsection{\pllib{broadcast}}
+
+\begin{summarylist}{ll}
+\predicatesummary{broadcast}{1}{Send event notification}
+\predicatesummary{broadcast_request}{1}{Request all agents}
+\predicatesummary{listen}{2}{Listen to event notifications}
+\predicatesummary{listen}{3}{Listen to event notifications}
+\predicatesummary{unlisten}{1}{Stop listening to event notifications}
+\predicatesummary{unlisten}{2}{Stop listening to event notifications}
+\predicatesummary{unlisten}{3}{Stop listening to event notifications}
+\predicatesummary{listening}{3}{Who is listening to event notifications?}
+\end{summarylist}

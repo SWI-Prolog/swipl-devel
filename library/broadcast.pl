@@ -1,11 +1,11 @@
 /*  $Id$
 
-    Part of XPCE --- The SWI-Prolog GUI toolkit
+    Part of SWI-Prolog
 
-    Author:        Jan Wielemaker and Anjo Anjewierden
-    E-mail:        jan@swi.psy.uva.nl
-    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
-    Copyright (C): 1985-2002, University of Amsterdam
+    Author:        Jan Wielemaker
+    E-mail:        wielemak@science.uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1985-2006, University of Amsterdam
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -17,7 +17,7 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
+    You should have received a copy of the GNU General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
@@ -44,10 +44,6 @@
 	listen(+, +, :),
 	unlisten(+, +, :).
 
-:- use_module(library(pce)).		% actually, only for require/1
-:- require([ strip_module/3
-	   ]).
-
 :- dynamic
 	listener/4.
 
@@ -58,9 +54,20 @@ broadcast(+Templ). All registered  `listeners'  will   have  their  goal
 called. Success or failure of this is ignored. The listener can not bind
 arguments.
 
-@bug	Part of XPCE libraries.  Although primarily useful for graphics,
-	we have encountered various other applications that do not use XPCE
-	but can profit from using this library.
+This library is particulary  useful  for   disconnecting  modules  in an
+application. Modules can broadcast events  such as changes, anticipating
+other modules need to react on   such  changes. For example, settings.pl
+broadcasts changes to settings, allowing dependent   modules to react on
+changes:
+
+==
+:- listing(setting(changed(http:workers, New)),
+	   change_workers(New)).
+
+change_workers(New) :-
+	setting(http:port, Port),
+	http_workers(Port, New).
+==
 */
 
 %%	listen(+Listener, +Templ, :Goal) is det.

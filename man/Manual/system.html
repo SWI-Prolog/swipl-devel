@@ -2,7 +2,7 @@
 
 <HTML>
 <HEAD>
-<TITLE>SWI-Prolog 5.6.23 Reference Manual: Section 4.34</TITLE><LINK REL=home HREF="index.html">
+<TITLE>SWI-Prolog 5.6.24 Reference Manual: Section 4.34</TITLE><LINK REL=home HREF="index.html">
 <LINK REL=contents HREF="Contents.html">
 <LINK REL=index HREF="DocIndex.html">
 <LINK REL=previous HREF="tty.html">
@@ -588,6 +588,22 @@ The date and time in date(1) format.
 <LI><CODE>%</CODE><BR>
 A literal `%' character.
 </UL>
+</DD>
+<DT class="pubdef"><A NAME="parse_time/2"><STRONG>parse_time</STRONG>(<VAR>+Text, 
+-Stamp</VAR>)</A></DT>
+<DD class="defbody">
+Parse a textual time representation, producing a time-stamp. Supported 
+formats for <VAR>Text</VAR> are:
+
+<P>
+<CENTER>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD><B>Name</B></TD><TD><B>Example </B></TD></TR>
+<TBODY>
+<TR VALIGN=top><TD>RFC 1123</TD><TD><TT>Fri, 08 Dec 2006 15:29:44 GMT </TT></TD></TR>
+</TABLE>
+
+</CENTER>
 </DD>
 </DL>
 

@@ -43,3 +43,4 @@ documented at all.
 \input{clpdistinct}
 \input{simplex}
 \input{prologxref}
+\input{broadcast}
