@@ -2292,13 +2292,36 @@ ar_truncate(Number n1, Number r)
 
 static int
 ar_random(Number n1, Number r)
-{ if ( !toIntegerNumber(n1) )
+{ uint64_t bound;
+
+  if ( !toIntegerNumber(n1) )
     return PL_error("random", 1, NULL, ERR_AR_TYPE, ATOM_integer, n1);
 
-  if ( n1->value.i < 1 )
-    return mustBePositive("random", 1, n1);
+  switch(n1->type)
+  {
+#ifdef O_GMP
+    case V_MPZ:
+    { int64_t i;
 
-  r->value.i = (uint64_t)_PL_Random() % (uint64_t)n1->value.i;
+      if ( !mpz_to_int64(n1->value.mpz, &i) )
+	return PL_error("random", 1, NULL, ERR_REPRESENTATION, ATOM_integer);
+      if ( i < 1 )
+	return mustBePositive("random", 1, n1);
+      bound = (uint64_t)i;
+      break;
+    }
+#endif
+    case V_INTEGER:
+      if ( n1->value.i < 1 )
+	return mustBePositive("random", 1, n1);
+      bound = (uint64_t)n1->value.i;
+      break;
+    default:
+      assert(0);
+      fail;
+  }
+
+  r->value.i = _PL_Random() % bound;
   r->type = V_INTEGER;
 
   succeed;

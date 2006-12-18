@@ -38,6 +38,7 @@ COMMON(void)	clearNumber(Number n);
 COMMON(void)	addMPZToBuffer(Buffer b, mpz_t mpz);
 COMMON(char *)	loadMPZFromCharp(const char *data, Word r, Word *store);
 COMMON(char *)	skipMPZOnCharp(const char *data);
+COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 #else /*O_GMP*/
 
 #define get_integer(w, n) \

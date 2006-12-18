@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: random/1 to handle large integers more elegantly.
+    Roberto Bagnara.
+
   * DELETED: random/3 from library(quintus).  library(random) provides a
     more portable alternative.  Roberto Bagnara.
 

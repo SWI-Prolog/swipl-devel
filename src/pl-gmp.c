@@ -382,6 +382,24 @@ initGMP()
 		 *	   NUMBER HANDLING      *
 		 *******************************/
 
+int
+mpz_to_int64(mpz_t mpz, int64_t *i)
+{ if ( mpz_cmp(mpz, MPZ_MIN_INT) >= 0 &&
+       mpz_cmp(mpz, MPZ_MAX_INT) <= 0 )
+  { int64_t v;
+
+    mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
+    if ( mpz_sgn(mpz) < 0 )
+      v = -v;
+
+    *i = v;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 put_number() transforms a number into a Prolog  term. Note that this may
 allocate on the global stack. Please note   that  this function uses the
@@ -391,19 +409,15 @@ without any knowledge of the represented data.
 
 static word
 put_mpz(mpz_t mpz)
-{ if ( mpz_cmp(mpz, MPZ_MIN_TAGGED) >= 0 &&
+{ int64_t v;
+
+  if ( mpz_cmp(mpz, MPZ_MIN_TAGGED) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_TAGGED) <= 0 )
   { long v = mpz_get_si(mpz);
 
     return consInt(v);
-  } else if ( mpz_cmp(mpz, MPZ_MIN_INT) >= 0 &&
-	      mpz_cmp(mpz, MPZ_MAX_INT) <= 0 )
+  } else if ( mpz_to_int64(mpz, &v) )
   { GET_LD
-    int64_t v;
-
-    mpz_export(&v, NULL, ORDER, sizeof(v), 0, 0, mpz);
-    if ( mpz_sgn(mpz) < 0 )
-      v = -v;
     
     return globalLong(v PASS_LD);
   } else

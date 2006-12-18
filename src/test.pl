@@ -657,6 +657,9 @@ gmp(fmtf-1) :-
 gmp(idiv-1) :-
 	Qi is idiv(3 rdiv 2,2 rdiv 5),
 	Qi == 3.
+gmp(random) :-
+	A is random((1<<200)-((1<<200)-20)),
+	A < 20.
 
 :- endif.
 
