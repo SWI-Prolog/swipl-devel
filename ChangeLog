@@ -7,9 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * DELETED: random/3 from library(quintus).  library(random) provides a
+    more portable alternative.  Roberto Bagnara.
+
   * ADDED: Moved library(broadcast) from XPCE libraries to Prolog library.
 
-  * MODIFIED: PL_release_stream() nos checks for errors and returns
+  * MODIFIED: PL_release_stream() now checks for errors and returns
     FALSE if the stream is in an error state.
 
   * FIXED: Accept c:\\ as absolute path in Windows (Paulo Moura).

@@ -49,7 +49,6 @@
 	  atan2/3,
 	  sign/2,
 	  sqrt/2,
-	  random/3,
 
 	  genarg/3,
 
@@ -176,13 +175,6 @@ atan(X, V) :-	  V is atan(X).
 atan2(Y, X, V) :- V is atan(Y, X).
 sign(X, V) :-	  V is sign(X).
 
-%%	random(+Min, +Max, -Value)
-%
-%	Value is a random integer with Min <= Value < Max.  Note that
-%	Quintus random/3 also deals with floats.  This one doesn't.
-
-random(Min, Max, Value) :-
-	Value is Min + random(Max-Min).
 
 		 /*******************************
 		 *	TERM MANIPULATION	*
