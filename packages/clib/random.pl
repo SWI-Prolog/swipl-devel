@@ -66,7 +66,7 @@ translation of a C-version for YAP based on the orginal source.
 %
 %	Binds R to a new random number in [0.0,1.0).
 %	
-%	@see setrand/3, getrand/3.
+%	@see setrand/1, getrand/1.
 
 %%	setrand(+State:state(A,B,C)) is det.
 %%	getrand(+State:state(A,B,C)) is det.
