@@ -1718,39 +1718,6 @@ jni_stash_buffer_value_plc(
 
 //=== JVM initialisation, startup etc. =============================================================
 
-// this isn't much use; it can't discover JDK 1.2 support...
-static bool
-jni_supported_jvm_version(
-    int		    major,
-    int		    minor
-    )
-    {
-    JDK1_1InitArgs  vm_args;
-	int 			r;
-
-	if ( major==1 && minor==1 )
-		{
-		vm_args.version = JNI_VERSION_1_1;
-		}
-	else if ( major==1 && minor==2 )
-		{
-		vm_args.version = JNI_VERSION_1_2;
-		}
-	else if ( major==1 && minor==4 )
-		{
-		vm_args.version = JNI_VERSION_1_4;
-		}
-	else
-		{
-		return FALSE;
-		}
-	r = JNI_GetDefaultJavaVMInitArgs(&vm_args);
-	DEBUG(1, Sdprintf( "JNI_GetDefaultJavaVMInitArgs() returns %d\n", r));
-	DEBUG(1, Sdprintf( "JNI_GetDefaultJavaVMInitArgs() sets vm_args.version to %d.%d\n", vm_args.version>>16, vm_args.version&0xFFFF));
-	return r==0;
-    }
-
-
 static int
 jni_get_created_jvm_count()
     {
@@ -1849,22 +1816,6 @@ jni_create_jvm_c(
 
 
 static foreign_t
-jni_supported_jvm_version_plc(	    // not as useful as I'd hoped...
-    term_t	t1,
-    term_t	t2
-    )
-    {
-    int		major;
-    int		minor;
-
-    return  PL_get_integer(t1,&major)
-	&&  PL_get_integer(t2,&minor)
-	&&  jni_supported_jvm_version(major,minor)
-	;
-    }
-
-
-static foreign_t
 jni_get_created_jvm_count_plc(
     term_t	t1
     )
@@ -1897,20 +1848,6 @@ jni_create_jvm(
 	    )
 	  )
 	);
-    }
-
-
-// is this useful? dangerous? redundant?
-static foreign_t
-jni_create_jvm_plc(	// maps jni_create_jvm() into Prolog
-	term_t	a1,	// +atom: classpath
-	term_t	a2	// -integer: returned value from jni_create_jvm()
-    )
-    {
-    char	*classpath;
-
-    return  PL_get_atom_chars( a1, &classpath)
-	&&  PL_unify_integer(a2,jni_create_jvm(classpath));
     }
 
 
@@ -5517,9 +5454,7 @@ static foreign_t
 
 static
  PL_extension predspecs[] =
-	{ { "jni_create_jvm",				 2, jni_create_jvm_plc, 			   0 },
-	  { "jni_supported_jvm_version",	 2, jni_supported_jvm_version_plc,	   0 },
-	  { "jni_get_created_jvm_count",	 1, jni_get_created_jvm_count_plc,	   0 },
+	{ { "jni_get_created_jvm_count",	 1, jni_get_created_jvm_count_plc,	   0 },
 	  { "jni_ensure_jvm",				 0, jni_ensure_jvm_plc, 			   0 },
 	  { "jni_tag_to_iref",				 2, jni_tag_to_iref_plc,			   0 },
 	  { "jni_hr_info",					 4, jni_hr_info_plc,				   0 },

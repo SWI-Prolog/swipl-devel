@@ -101,17 +101,6 @@ jpl_get_actual_jvm_opts( Opts) :-
 
 %------------------------------------------------------------------------------
 
-jpl_supported_jni_version( 1, Minor) :-
-	(   Minor = 4,
-	jni_supported_jvm_version( 1, Minor)
-	;   Minor = 2,
-	jni_supported_jvm_version( 1, Minor)
-	;   Minor = 1,
-	jni_supported_jvm_version( 1, Minor)
-	).
-
-%------------------------------------------------------------------------------
-
 jpl_assert( Fact) :-
 	(   jpl_assert_policy( Fact, yes)
 	->  assert( Fact)

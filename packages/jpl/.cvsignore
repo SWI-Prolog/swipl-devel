@@ -8,3 +8,5 @@ jpltest.jar
 config.h
 config.log
 Makefile
+build_PAUL.bat
+test_jpl.bat
