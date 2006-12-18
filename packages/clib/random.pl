@@ -88,6 +88,10 @@ translation of a C-version for YAP based on the orginal source.
 %	Binds R to a random integer in [L,U).  When L and U are integers
 %	(note that U will *never* be generated), or to a random floating
 %	number in [L,U) otherwise.
+%	
+%	@bug	The state is only 48-bits.  This is insufficient for
+%		generating uniformely distributed integers in a very
+%		large domain.
 
 random(L, U, R) :-
 	integer(L), integer(U), !,
