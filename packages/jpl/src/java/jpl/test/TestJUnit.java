@@ -182,7 +182,6 @@ public class TestJUnit extends TestCase {
 		try {
 			new Query("p(]"); // writes junk to stderr and enters debugger unless flag debug_on_error = false
 		} catch (PrologException e) {
-			// System.err.println("p(] ->" + e.toString());
 			assertTrue("new Query(\"p(]\") throws a PrologException " + e.toString(), true);
 			return;
 		}
@@ -244,19 +243,41 @@ public class TestJUnit extends TestCase {
 		Term t = (Term) (new Query("X = _")).oneSolution().get("X");
 		assertFalse("_ . isJNull() fails", t.isJNull());
 	}
+	public void testIsJNull4() {
+		Term t = (Term) (new Query("X = @(true)")).oneSolution().get("X");
+		assertFalse("@(true) . isJNull() fails", t.isJNull());
+	}
+	public void testIsJNull5() {
+		Term t = (Term) (new Query("X = @(false)")).oneSolution().get("X");
+		assertFalse("@(false) . isJNull() fails", t.isJNull());
+	}
 	public void testIsJTrue1() {
-		assertTrue("@(true) . isJTrue()", ((Term) Query.oneSolution("X = @(true)").get("X")).isJTrue());
-//		System.err.println("the type of @(true) is " + t1a.typeName());
-//		Term t1b = (Term) ((new Query("X = @(false)")).oneSolution().get("X"));
-//		System.err.println("the type of @(false) is " + t1b.typeName());
-//		Term t1c = (Term) ((new Query("X = @(null)")).oneSolution().get("X"));
-//		System.err.println("the type of @(null) is " + t1c.typeName());
-//		Term t1d = (Term) ((new Query("X = @(gaga)")).oneSolution().get("X"));
-//		System.err.println("the type of @(gaga) is " + t1d.typeName());
-//		Term t1e = (Term) ((new Query("X = @(77)")).oneSolution().get("X"));
-//		System.err.println("the type of @(77) is " + t1e.typeName());
-		// Term t2 = (Term) ((new Query("jpl_new('java.util.Date',[],Y)")).oneSolution().get("Y"));
-		// System.err.println("the type of Y where jpl_new('java.util.Date',[],Y) is " + t2.typeName());
+		Term t = (Term) (new Query("X = @(true)")).oneSolution().get("X");
+		assertTrue("@(true) . isJTrue() succeeds", t.isJTrue());
+	}
+	public void testIsJTrue2() {
+		Term t = (Term) (new Query("X = @(3)")).oneSolution().get("X");
+		assertFalse("@(3) . isJTrue() fails", t.isJTrue());
+	}
+	public void testIsJTrue3() {
+		Term t = (Term) (new Query("X = _")).oneSolution().get("X");
+		assertFalse("_ . isJTrue() fails", t.isJTrue());
+	}
+	public void testIsJTrue4() {
+		Term t = (Term) (new Query("X = @(false)")).oneSolution().get("X");
+		assertFalse("@(false) . isJTrue() fails", t.isJTrue());
+	}
+	public void testIsJVoid1() {
+		Term t = (Term) (new Query("X = @(void)")).oneSolution().get("X");
+		assertTrue("@(void) . isJVoid() succeeds", t.isJVoid());
+	}
+	public void testIsJVoid2() {
+		Term t = (Term) (new Query("X = @(3)")).oneSolution().get("X");
+		assertFalse("@(3) . isJVoid() fails", t.isJVoid());
+	}
+	public void testIsJVoid3() {
+		Term t = (Term) (new Query("X = _")).oneSolution().get("X");
+		assertFalse("_ . isJVoid() fails", t.isJVoid());
 	}
 	public void testTypeName1() {
 		assertEquals("Y = foo binds Y to an Atom", ((Term) Query.oneSolution("Y = foo").get("Y")).typeName(), "Atom");
@@ -476,5 +497,17 @@ public class TestJUnit extends TestCase {
 		String goal = "memberchk(23, [?,?,?])";
 		Term[] params = new Term[] {new Integer(12), new Integer(13), new Integer(14)};
 		assertFalse(Query.hasSolution(goal, params));
+	}
+	public void testUtilListToTermArray1() {
+		String goal = "T = [a,b,c]";
+		Term list = (Term) Query.oneSolution(goal).get("T");
+		Term[] array = Util.listToTermArray(list);
+		assertTrue(array[2].isAtom() && array[2].name().equals("c"));
+	}
+	public void testTermToTermArray1() {
+		String goal = "T = [a,b,c]";
+		Term list = (Term) Query.oneSolution(goal).get("T");
+		Term[] array = list.toTermArray();
+		assertTrue(array[2].isAtom() && array[2].name().equals("c"));
 	}
 }
