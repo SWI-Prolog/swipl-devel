@@ -237,6 +237,26 @@ public final class Util {
 		}
 		return (head.hasFunctor("[]", 0) ? length : -1);
 	}
+	/** converts a proper list to an array of terms, else throws an exception
+	 * 
+	 * @throws JPLException
+	 * @return an array of terms whose successive elements are the corresponding members of the list (if it is a list)
+	 */
+	public static Term[] listToTermArray(Term t) {
+		try {
+			int len = t.listLength();
+			Term[] ts = new Term[len];
+
+			for (int i = 0; i < len; i++) {
+				ts[i] = t.arg(1);
+				t = t.arg(2);
+			}
+			return ts;
+		} catch (JPLException e) {
+			throw new JPLException("Util.listToTermArray: term is not a proper list");
+		}
+	}
+
 	public static String[] atomListToStringArray( Term t){
 		int n = listToLength(t);
 		String[] a;
