@@ -144,7 +144,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl sort.pl \
 	threadutil.pl qpforeign.pl dif.pl when.pl ugraphs.pl \
 	checklast.pl checkselect.pl operators.pl date.pl \
 	prolog_stack.pl prolog_clause.pl prolog_xref.pl prolog_source.pl \
-	broadcast.pl
+	broadcast.pl pairs.pl
 CLP=	bounds.pl clp_events.pl clp_distinct.pl simplex.pl
 UNICODE=blocks.pl unicode_data.pl
 PLWIN=	wise.pl dde.pl progman.pl registry.pl

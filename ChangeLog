@@ -7,6 +7,8 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: library(pairs).  With help from Richard O'Keefe.
+
   * FIXED: random/1 to handle large integers more elegantly.
     Roberto Bagnara.
 

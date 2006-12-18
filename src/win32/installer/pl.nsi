@@ -98,6 +98,7 @@ Section "Base system (required)"
   File pl\library\operators.pl
   File pl\library\heaps.pl
   File pl\library\broadcast.pl
+  File pl\library\pairs.pl
 
 ; WINDOWS
   File pl\library\dde.pl
