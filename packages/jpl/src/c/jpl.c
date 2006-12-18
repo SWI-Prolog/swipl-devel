@@ -970,7 +970,7 @@ jni_atom_freed(
 
     if ( jni_tag_to_iref( a, &iref) )	// check format and convert digits to int if ok
         {
-        sprintf( cs, "%010lu", iref);	// reconstruct digits part of tag in cs
+        sprintf( cs, "%020lu", iref);	// reconstruct digits part of tag in cs
         if ( strcmp(&cp[2],cs) != 0 )	// original digits != reconstructed digits?
             {
 	      DEBUG(0, Sdprintf( "[JPL: garbage-collected tag '%s'=%u is bogus (not canonical)]\n", cp, iref));
