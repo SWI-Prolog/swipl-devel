@@ -4749,7 +4749,7 @@ dynamic_type_check_call(Type,Term,Call) :-
 	% ; nonvar(Type), compound_builtin_type(Type,Term,Goal) ->
 	%	Call = when(nonvar(Term),Goal)
 	% ;
-		Call = when(nonvar(Term),'$dynamic_type_check'(Type,Term))
+		Call = when(nonvar(Term),once('$dynamic_type_check'(Type,Term)))
 	% )
 	.
 
