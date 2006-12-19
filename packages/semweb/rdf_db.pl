@@ -158,12 +158,20 @@ ns(serql,'http://www.openrdf.org/schema/serql#').
 %%	rdf_register_ns(+Alias, +URI) is det.
 %%	rdf_register_ns(+Alias, +URI, +Options) is det.
 %
-%	Register a namespace. If force(true) is   provided as an option,
-%	the  existing  namespace  alias  is   replaced.  Otherwise  this
-%	predicate raises a permission error.  Please note that replacing
-%	a namespace is dangerous  as   namespaces  affect preprocessing.
-%	Make sure all code that depends on a namespace is compiled after
-%	changing the registration.
+%	Register Alias as an abbreviateion for URI. Options:
+%	
+%		* force(Boolean)
+%		If =true=, Replace existing namespace alias. Please note
+%		that replacing a namespace is dangerous as namespaces
+%		affect preprocessing. Make sure all code that depends on
+%		a namespace is compiled after changing the registration.
+%		
+%		* keep(Boolean)
+%		If =true= and Alias is already defined, keep the
+%		original message and succeed silently.
+%		
+%	Without options, an attempt  to  redefine   an  alias  raises  a
+%	permission error.
 
 rdf_register_ns(Alias, URI) :-
 	rdf_register_ns(Alias, URI, []).
