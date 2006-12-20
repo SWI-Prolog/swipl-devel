@@ -1499,7 +1499,7 @@ translate_section(Level, -, TeXTitle,
 	  Tell,
 	  Header,
 	  #h(Level, #label(RefName,
-			   [ #span('sec-nr', Tag),
+			   [ #span('sec-nr', Tag), ' ',
 			     #span('sec-title', Title)
 			   ]))
 	], NodeFile) :- !,

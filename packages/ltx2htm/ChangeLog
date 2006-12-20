@@ -1,3 +1,7 @@
+Dec 20, 2006
+
+* ENHANCED: layout for non-css browsers.
+
 Aug 22, 2006
 
 * ADDED: Some hacky logic to get properly closed DT and DD environments to
