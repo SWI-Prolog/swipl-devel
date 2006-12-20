@@ -1,3 +1,7 @@
+Dec 20, 2006
+
+  * ENHANCED: slightly better messages from rdf_turtle.pl
+
 Dec 8, 2006
 
   * ENHANCED: rdf_load/2 to load plugins dealing with different formats,

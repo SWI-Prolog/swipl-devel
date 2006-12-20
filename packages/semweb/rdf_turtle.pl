@@ -75,9 +75,9 @@ by the above document at october 17, 2004.
 %		If Prefix is not an atom blank nodes are generated as
 %		node(1), node(2), ...
 
-rdf_load_turtle(In, Triples, Options) :- !,
-	init_state(In, Options, State),
+rdf_load_turtle(In, Triples, Options) :-
 	open_input(In, Stream),
+	init_state(In, Stream, Options, State),
 	call_cleanup(phrase(turtle_file(State, Stream), Triples),
 		     close(Stream)).
 
@@ -89,16 +89,17 @@ rdf_load_turtle(In, Triples, Options) :- !,
 
 rdf_process_turtle(In, OnObject, Options) :-
 	strip_module(OnObject, M, G),
-	init_state(In, Options, State),
 	open_input(In, Stream),
+	init_state(In, Stream, Options, State),
 	process_stream(State, Stream, M:G).
 
 
 process_stream(State, In, OnObject) :-
 	line_count(In, LineNo),
+	nb_setarg(8, State, LineNo),
 	(   turtle_tokens(In, Tokens)
 	->  debug(turtle, 'Tokens: ~w~n', [Tokens])
-	;   syntax_error(In, illegal_token)
+	;   syntax_error(In, LineNo, illegal_token)
 	),
 	(   Tokens == end_of_file
 	->  true
@@ -109,7 +110,7 @@ process_stream(State, In, OnObject) :-
 		call(OnObject, Triples, DB:LineNo)
 	    ),
 	    process_stream(State, In, OnObject)
-	;   syntax_error(In, cannot_parse)
+	;   syntax_error(In, LineNo, cannot_parse)
 	).
 
 
@@ -128,18 +129,19 @@ The parser is a two-stage processor. The  first reads the raw file input
 and generates a list of tokens, stripping   comments and white space. It
 is defined to read a single  statement   upto  its  terminating '.'. The
 second stage is a traditional DCG parser  generating the triples for the
-statement.
+statement. State:
 
-State:
-	arg(1)	BaseURI
-	arg(2)  Prefix --> URI map
-	arg(3)  NodeID --> URI map
-	arg(4)  AnonPrefix
-	arg(5)  AnonCount
-	arg(6)  DB
+	| arg(1) | -BaseURI		|
+	| arg(2) | Prefix --> URI map	|
+	| arg(3) | NodeID --> URI map	|
+	| arg(4) | AnonPrefix		|
+	| arg(5) | AnonCount		|
+	| arg(6) | DB			|
+	| arg(7) | Input		|
+	| arg(8) | StartLine		|
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-init_state(In, Options, State) :-
+init_state(In, Stream, Options, State) :-
 	(   option(base_uri(BaseURI), Options)
 	->  true
 	;   In = stream(_)
@@ -156,13 +158,15 @@ init_state(In, Options, State) :-
 	option(db(DB), Options, BaseURI),
 	empty_assoc(Map),
 	empty_assoc(NodeMap),
-	State = state(BaseURI, Map, NodeMap, Prefix, 1, DB).
+	State = state(BaseURI, Map, NodeMap, Prefix, 1, DB, Stream, 0).
 
 
 turtle_file(State, In) -->
-	{ (   turtle_tokens(In, Tokens)
+	{ line_count(In, LineNo),
+	  nb_setarg(8, State, LineNo),
+	  (   turtle_tokens(In, Tokens)
 	  ->  debug(turtle, 'Tokens: ~w~n', [Tokens])
-	  ;   syntax_error(In, illegal_token)
+	  ;   syntax_error(In, LineNo, illegal_token)
 	  )
 	},
 	(   { Tokens == end_of_file }
@@ -170,7 +174,7 @@ turtle_file(State, In) -->
 	;   { phrase(triples(State, Triples), Tokens) }
 	->  Triples,
 	    turtle_file(State, In)
-	;   { syntax_error(In, cannot_parse)
+	;   { syntax_error(In, LineNo, cannot_parse)
 	    }
 	).
 
@@ -197,7 +201,9 @@ triples(State, Triples) -->
 subject(State, Subject, T, T) -->
 	resource(State, Subject), !.
 subject(State, Subject, T0, T) -->
-	blank(State, Subject, T0, T).
+	blank(State, Subject, T0, T), !.
+subject(State, _, _, _) -->
+	syntax_error(State, subject_expected).
 
 predicate_object_list(State, Subject, Triples, Tail) -->
 	verb(State, Predicate),
@@ -240,13 +246,8 @@ object(State, Object, T, T) -->
 	resource(State, Object), !.
 object(State, Object, T0, T) -->
 	blank(State, Object, T0, T), !.
-object(_, _, _, _) -->
-	rest(Tokens),
-	{ format(user_error, 'Expected object, found: ~p~n', [Tokens]),
-	  fail
-	}.
-
-rest(Rest, Rest, []).
+object(State, _, _, _) -->
+	syntax_error(State, expected_object).
 
 term_expansion(numeric_url(I, Local),
 	       numeric_url(I, URI)) :-
@@ -364,6 +365,17 @@ mk_object(type(:(Name), Value), State, literal(type(Type, Value))) :- !,
 	  atom_concat(Base, Name, Type).
 mk_object(Value, _State, literal(Value)).
 
+syntax_error(State, Error) -->
+	[ Before ],
+	{ arg(7, State, Stream),
+	  stream_property(Stream, file_name(File)),
+	  arg(8, State, LineNo),
+	  format(string(Msg), '~w:~d (before ~w)',
+		 [File, LineNo, Before]),
+	  throw(error(syntax_error(Error),
+		      context(_, Msg)))
+	}.
+
 
 		 /*******************************
 		 *	     TOKENISER		*
@@ -386,12 +398,12 @@ turtle_tokens(In, List) :-
 turtle_tokens(C0, In, List) :-
 	(   turtle_token(C0, In, C1, H)
 	->  debug(turtle(token), 'Token: ~q', [H])
-	;   syntax_error(In, illegal_token)
+	;   syntax_error(In, -1, illegal_token)
 	),
 	(   H == '.'
 	->  List = []
 	;   H == end_of_file
-	->  syntax_error(In, unexpected_end_of_input)
+	->  syntax_error(In, -1, unexpected_end_of_input)
 	;   List = [H|T],
 	    turtle_tokens(C1, In, T)
 	).
@@ -514,7 +526,7 @@ sign(0'+).
 
 					% string
 turtle_string(-1, In, _, []) :- !,
-	syntax_error(In, unexpected_end_of_input).
+	syntax_error(In, -1, unexpected_end_of_input).
 turtle_string(0'", In, C, []) :- !,
 	get_code(In, C).
 turtle_string(0'\\, In, C, [H|T]) :- !,
@@ -672,7 +684,7 @@ turtle_ws(0xA).
 turtle_ws(0xD).
 turtle_ws(0x20).
 
-syntax_error(Stream, Which) :-
+syntax_error(Stream, _StartLine, Which) :-
 	stream_property(Stream, file_name(File)),
 	line_count(Stream, LineNo),
 	line_position(Stream, LinePos),
