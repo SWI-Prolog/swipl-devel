@@ -90,7 +90,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -120,19 +120,19 @@ font-size: smaller;
 <A class="nav" href="debugging.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:7.3"><SPAN class="sec-nr">7.3</SPAN><SPAN class="sec-title">CHR 
+<H2><A NAME="sec:7.3"><SPAN class="sec-nr">7.3</SPAN> <SPAN class="sec-title">CHR 
 in SWI-Prolog Programs</SPAN></A></H2>
 
 <A NAME="sec:practical"></A>
 
-<H3><A NAME="sec:7.3.1"><SPAN class="sec-nr">7.3.1</SPAN><SPAN class="sec-title">Embedding 
+<H3><A NAME="sec:7.3.1"><SPAN class="sec-nr">7.3.1</SPAN> <SPAN class="sec-title">Embedding 
 in Prolog Programs</SPAN></A></H3>
 
 <P>The CHR constraints defined in a <CODE>.pl</CODE> file are associated 
 with a module. The default module is <CODE>user</CODE>. One should never 
 load different <CODE>.pl</CODE> files with the same CHR module name.
 
-<H3><A NAME="sec:7.3.2"><SPAN class="sec-nr">7.3.2</SPAN><SPAN class="sec-title">Constraint 
+<H3><A NAME="sec:7.3.2"><SPAN class="sec-nr">7.3.2</SPAN> <SPAN class="sec-title">Constraint 
 declaration</SPAN></A></H3>
 
 <DL>
@@ -374,7 +374,7 @@ tracks types throughout the whole program.
 runtime overhead.
 </OL>
 
-<H3><A NAME="sec:7.3.3"><SPAN class="sec-nr">7.3.3</SPAN><SPAN class="sec-title">Compilation</SPAN></A></H3>
+<H3><A NAME="sec:7.3.3"><SPAN class="sec-nr">7.3.3</SPAN> <SPAN class="sec-title">Compilation</SPAN></A></H3>
 
 The SWI-Prolog CHR compiler exploits <A NAME="idx:termexpansion2:1169"></A><A class="pred" href="consulting.html#term_expansion/2">term_expansion/2</A> 
 rules to translate the constraint handling rules to plain Prolog. These 

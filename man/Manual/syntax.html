@@ -90,7 +90,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -120,7 +120,7 @@ font-size: smaller;
 <A class="nav" href="cyclic.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:2.15"><SPAN class="sec-nr">2.15</SPAN><SPAN class="sec-title">Syntax 
+<H2><A NAME="sec:2.15"><SPAN class="sec-nr">2.15</SPAN> <SPAN class="sec-title">Syntax 
 Notes</SPAN></A></H2>
 
 <A NAME="sec:syntax"></A>
@@ -150,14 +150,14 @@ useful if some code with <CODE>/* ... */</CODE> comment statements in it
 should be commented out.
 </UL>
 
-<H3><A NAME="sec:2.15.1"><SPAN class="sec-nr">2.15.1</SPAN><SPAN class="sec-title">ISO 
+<H3><A NAME="sec:2.15.1"><SPAN class="sec-nr">2.15.1</SPAN> <SPAN class="sec-title">ISO 
 Syntax Support</SPAN></A></H3>
 
 <A NAME="sec:isosyntax"></A>
 
 <P>SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
 
-<H4><A NAME="sec:2.15.1.1"><SPAN class="sec-nr">2.15.1.1</SPAN><SPAN class="sec-title">Processor 
+<H4><A NAME="sec:2.15.1.1"><SPAN class="sec-nr">2.15.1.1</SPAN> <SPAN class="sec-title">Processor 
 Character Set</SPAN></A></H4>
 
 <A NAME="sec:processorcharset"></A>
@@ -168,7 +168,7 @@ parsing Prolog source text. Character classification is fixed to use
 UCS/Unicode as provided by the C-library <CODE>wchar_t</CODE> based 
 primitives. See also <A class="sec" href="widechars.html">section 2.17</A>.
 
-<H4><A NAME="sec:2.15.1.2"><SPAN class="sec-nr">2.15.1.2</SPAN><SPAN class="sec-title">Character 
+<H4><A NAME="sec:2.15.1.2"><SPAN class="sec-nr">2.15.1.2</SPAN> <SPAN class="sec-title">Character 
 Escape Syntax</SPAN></A></H4>
 
 <A NAME="sec:charescapes"></A>
@@ -278,7 +278,7 @@ predicate instead. If you insist upon using <A NAME="idx:writef2:205"></A><A cla
 either switch <CODE>character_escapes</CODE> to
 <CODE>false</CODE>, or use double <CODE>\\</CODE>, as in <CODE>writef('\\l')</CODE>.
 
-<H4><A NAME="sec:2.15.1.3"><SPAN class="sec-nr">2.15.1.3</SPAN><SPAN class="sec-title">Syntax 
+<H4><A NAME="sec:2.15.1.3"><SPAN class="sec-nr">2.15.1.3</SPAN> <SPAN class="sec-title">Syntax 
 for non-decimal numbers</SPAN></A></H4>
 
 <A NAME="sec:nondecsyntax"></A>
@@ -291,7 +291,7 @@ binary, octal and hexadecimal numbers using
 <CODE>0<EM>[bxo]</EM>&lt;<VAR>number</VAR>&gt;</CODE>. For example: <CODE>A is 0b100 \/ 0xf00</CODE> 
 is a valid expression. Such numbers are always unsigned.
 
-<H4><A NAME="sec:2.15.1.4"><SPAN class="sec-nr">2.15.1.4</SPAN><SPAN class="sec-title">Unicode 
+<H4><A NAME="sec:2.15.1.4"><SPAN class="sec-nr">2.15.1.4</SPAN> <SPAN class="sec-title">Unicode 
 Prolog source</SPAN></A></H4>
 
 <A NAME="sec:unicodesyntax"></A>
@@ -342,7 +342,7 @@ more appropriate distinction between what is known to Prolog as `solo'
 characters and `singleton' characters.
 </UL>
 
-<H4><A NAME="sec:2.15.1.5"><SPAN class="sec-nr">2.15.1.5</SPAN><SPAN class="sec-title">Singleton 
+<H4><A NAME="sec:2.15.1.5"><SPAN class="sec-nr">2.15.1.5</SPAN> <SPAN class="sec-title">Singleton 
 variable checking</SPAN></A></H4>
 
 <A NAME="sec:singleton"></A>

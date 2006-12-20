@@ -90,7 +90,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -120,12 +120,12 @@ font-size: smaller;
 <A class="nav" href="runtime.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:9.10"><SPAN class="sec-nr">9.10</SPAN><SPAN class="sec-title">Notes 
+<H2><A NAME="sec:9.10"><SPAN class="sec-nr">9.10</SPAN> <SPAN class="sec-title">Notes 
 on Using Foreign Code</SPAN></A></H2>
 
 <A NAME="sec:foreignnotes"></A>
 
-<H3><A NAME="sec:9.10.1"><SPAN class="sec-nr">9.10.1</SPAN><SPAN class="sec-title">Memory 
+<H3><A NAME="sec:9.10.1"><SPAN class="sec-nr">9.10.1</SPAN> <SPAN class="sec-title">Memory 
 Allocation</SPAN></A></H3>
 
 <P>SWI-Prolog's heap memory allocation is based on the <STRONG>malloc</STRONG>(3) 
@@ -166,7 +166,7 @@ previous PL_malloc() or PL_realloc() call.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.10.2"><SPAN class="sec-nr">9.10.2</SPAN><SPAN class="sec-title">Compatibility 
+<H3><A NAME="sec:9.10.2"><SPAN class="sec-nr">9.10.2</SPAN> <SPAN class="sec-title">Compatibility 
 between Prolog versions</SPAN></A></H3>
 
 <P>Great care is taken to ensure binary compatibility of foreign 
@@ -180,7 +180,7 @@ to find the version of
 <CODE>PL_QUERY_VERSION</CODE> to find the version of the attached Prolog 
 system. Both follow the same numbering schema explained with PL_query().
 
-<H3><A NAME="sec:9.10.3"><SPAN class="sec-nr">9.10.3</SPAN><SPAN class="sec-title">Debugging 
+<H3><A NAME="sec:9.10.3"><SPAN class="sec-nr">9.10.3</SPAN> <SPAN class="sec-title">Debugging 
 Foreign Code</SPAN></A></H3>
 
 <P>Statically linked foreign code or embedded systems can be debugged 
@@ -207,7 +207,7 @@ For help, use ?- help(Topic). or ?- apropos(Word).
 ?- lowercase('HELLO', X).
 </PRE>
 
-<H3><A NAME="sec:9.10.4"><SPAN class="sec-nr">9.10.4</SPAN><SPAN class="sec-title">Name 
+<H3><A NAME="sec:9.10.4"><SPAN class="sec-nr">9.10.4</SPAN> <SPAN class="sec-title">Name 
 Conflicts in C modules</SPAN></A></H3>
 
 <P>In the current version of the system all public C functions of 
@@ -227,7 +227,7 @@ following macro should fix the problem.
 library loader will only look for symbols in the main executable for 
 symbols that are not defined in the library itself.
 
-<H3><A NAME="sec:9.10.5"><SPAN class="sec-nr">9.10.5</SPAN><SPAN class="sec-title">Compatibility 
+<H3><A NAME="sec:9.10.5"><SPAN class="sec-nr">9.10.5</SPAN> <SPAN class="sec-title">Compatibility 
 of the Foreign Interface</SPAN></A></H3>
 
 <P>The term-reference mechanism was first used by Quintus Prolog version 

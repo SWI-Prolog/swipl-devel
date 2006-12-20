@@ -90,7 +90,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -120,12 +120,12 @@ font-size: smaller;
 <A class="nav" href="plld.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:9.6"><SPAN class="sec-nr">9.6</SPAN><SPAN class="sec-title">The 
+<H2><A NAME="sec:9.6"><SPAN class="sec-nr">9.6</SPAN> <SPAN class="sec-title">The 
 Foreign Include File</SPAN></A></H2>
 
 <A NAME="sec:foreigninclude"></A>
 
-<H3><A NAME="sec:9.6.1"><SPAN class="sec-nr">9.6.1</SPAN><SPAN class="sec-title">Argument 
+<H3><A NAME="sec:9.6.1"><SPAN class="sec-nr">9.6.1</SPAN> <SPAN class="sec-title">Argument 
 Passing and Control</SPAN></A></H3>
 
 <P>If Prolog encounters a foreign predicate at run time it will call a 
@@ -148,7 +148,7 @@ Fail and start Prolog backtracking. PL_fail is defined as <CODE>return <CODE>FAL
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.1.1"><SPAN class="sec-nr">9.6.1.1</SPAN><SPAN class="sec-title">Non-deterministic 
+<H4><A NAME="sec:9.6.1.1"><SPAN class="sec-nr">9.6.1.1</SPAN> <SPAN class="sec-title">Non-deterministic 
 Foreign Predicates</SPAN></A></H4>
 
 <A NAME="sec:foreignnondet"></A>
@@ -276,7 +276,7 @@ my_function(term_t a0, term_t a1, control_t handle)
 
 <A NAME="fig:nondetermf"></A>
 
-<H3><A NAME="sec:9.6.2"><SPAN class="sec-nr">9.6.2</SPAN><SPAN class="sec-title">Atoms 
+<H3><A NAME="sec:9.6.2"><SPAN class="sec-nr">9.6.2</SPAN> <SPAN class="sec-title">Atoms 
 and functors</SPAN></A></H3>
 
 <P>The following functions provide for communication using atoms and 
@@ -318,7 +318,7 @@ Return the arity of the given functor.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.2.1"><SPAN class="sec-nr">9.6.2.1</SPAN><SPAN class="sec-title">Atoms 
+<H4><A NAME="sec:9.6.2.1"><SPAN class="sec-nr">9.6.2.1</SPAN> <SPAN class="sec-title">Atoms 
 and atom-garbage collection</SPAN></A></H4>
 
 <A NAME="sec:atomgc"></A>
@@ -362,7 +362,7 @@ which effectively ensures the atom will never be collected. It is
 advised to use the *_chars() or *_nchars() functions whenever 
 applicable.
 
-<H3><A NAME="sec:9.6.3"><SPAN class="sec-nr">9.6.3</SPAN><SPAN class="sec-title">Analysing 
+<H3><A NAME="sec:9.6.3"><SPAN class="sec-nr">9.6.3</SPAN> <SPAN class="sec-title">Analysing 
 Terms via the Foreign Interface</SPAN></A></H3>
 
 <P>Each argument of a foreign function (except for the control argument) 
@@ -375,7 +375,7 @@ and a pointer to the appropriate C-type and return <CODE>TRUE</CODE> or
 <CODE>FALSE</CODE> depending on successful or unsuccessful translation. 
 If the translation fails, the pointed-to data is never modified.
 
-<H4><A NAME="sec:9.6.3.1"><SPAN class="sec-nr">9.6.3.1</SPAN><SPAN class="sec-title">Testing 
+<H4><A NAME="sec:9.6.3.1"><SPAN class="sec-nr">9.6.3.1</SPAN> <SPAN class="sec-title">Testing 
 the type of a term</SPAN></A></H4>
 
 <DL>
@@ -482,7 +482,7 @@ Returns non-zero if <VAR>term</VAR> is an integer or float.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.2"><SPAN class="sec-nr">9.6.3.2</SPAN><SPAN class="sec-title">Reading 
+<H4><A NAME="sec:9.6.3.2"><SPAN class="sec-nr">9.6.3.2</SPAN> <SPAN class="sec-title">Reading 
 data from a term</SPAN></A></H4>
 
 <P>The functions <TT>PL_get_*()</TT> read information from a Prolog 
@@ -669,7 +669,7 @@ argument-index.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.3"><SPAN class="sec-nr">9.6.3.3</SPAN><SPAN class="sec-title">Exchanging 
+<H4><A NAME="sec:9.6.3.3"><SPAN class="sec-nr">9.6.3.3</SPAN> <SPAN class="sec-title">Exchanging 
 text using length and string</SPAN></A></H4>
 
 <P>All internal text-representation of SWI-Prolog is represented using
@@ -753,7 +753,7 @@ Extract text and length of an atom.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.4"><SPAN class="sec-nr">9.6.3.4</SPAN><SPAN class="sec-title">Wide 
+<H4><A NAME="sec:9.6.3.4"><SPAN class="sec-nr">9.6.3.4</SPAN> <SPAN class="sec-title">Wide 
 character versions</SPAN></A></H4>
 
 <P>Support for exchange of wide character strings is still under 
@@ -809,7 +809,7 @@ from the source distribution.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.5"><SPAN class="sec-nr">9.6.3.5</SPAN><SPAN class="sec-title">Reading 
+<H4><A NAME="sec:9.6.3.5"><SPAN class="sec-nr">9.6.3.5</SPAN> <SPAN class="sec-title">Reading 
 a list</SPAN></A></H4>
 
 <P>The functions from this section are intended to read a Prolog list 
@@ -861,7 +861,7 @@ Succeeds if <EM></EM> represents the atom <CODE>[]</CODE>.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.3.6"><SPAN class="sec-nr">9.6.3.6</SPAN><SPAN class="sec-title">An 
+<H4><A NAME="sec:9.6.3.6"><SPAN class="sec-nr">9.6.3.6</SPAN> <SPAN class="sec-title">An 
 example: defining write/1 in C</SPAN></A></H4>
 
 <P><A class="fig" href="foreigninclude.html#fig:pl-display">Figure 9</A> 
@@ -915,7 +915,7 @@ pl_display(term_t t)
 
 <A NAME="fig:pl-display"></A>
 
-<H3><A NAME="sec:9.6.4"><SPAN class="sec-nr">9.6.4</SPAN><SPAN class="sec-title">Constructing 
+<H3><A NAME="sec:9.6.4"><SPAN class="sec-nr">9.6.4</SPAN> <SPAN class="sec-title">Constructing 
 Terms</SPAN></A></H3>
 
 <P>Terms can be constructed using functions from the <TT>PL_put_*()</TT> 
@@ -1076,7 +1076,7 @@ before its new value is set.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.5"><SPAN class="sec-nr">9.6.5</SPAN><SPAN class="sec-title">Unifying 
+<H3><A NAME="sec:9.6.5"><SPAN class="sec-nr">9.6.5</SPAN> <SPAN class="sec-title">Unifying 
 data</SPAN></A></H3>
 
 <P>The functions of this sections <EM>unify</EM> terms with other terms 
@@ -1470,7 +1470,7 @@ prolog-flag. See <A NAME="idx:currentprologflag2:1288"></A><A class="pred" href=
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.6"><SPAN class="sec-nr">9.6.6</SPAN><SPAN class="sec-title">BLOBS: 
+<H3><A NAME="sec:9.6.6"><SPAN class="sec-nr">9.6.6</SPAN> <SPAN class="sec-title">BLOBS: 
 Using atoms to store arbitrary binary data</SPAN></A></H3>
 
 <A NAME="sec:blob"></A>
@@ -1495,7 +1495,7 @@ rank number of the type and then on the result of the
 <A class="" href="foreigninclude.html#compare()">compare()</A> function. 
 Rank numbers are assigned when the type is registered.
 
-<H4><A NAME="sec:9.6.6.1"><SPAN class="sec-nr">9.6.6.1</SPAN><SPAN class="sec-title">Defining 
+<H4><A NAME="sec:9.6.6.1"><SPAN class="sec-nr">9.6.6.1</SPAN> <SPAN class="sec-title">Defining 
 a BLOB type</SPAN></A></H4>
 
 <A NAME="sec:blobtype"></A>
@@ -1602,7 +1602,7 @@ references to the module.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.6.2"><SPAN class="sec-nr">9.6.6.2</SPAN><SPAN class="sec-title">Accessing 
+<H4><A NAME="sec:9.6.6.2"><SPAN class="sec-nr">9.6.6.2</SPAN> <SPAN class="sec-title">Accessing 
 blobs</SPAN></A></H4>
 
 <A NAME="sec:blobaccess"></A>
@@ -1649,7 +1649,7 @@ from the callback functions described in <A class="sec" href="foreigninclude.htm
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.7"><SPAN class="sec-nr">9.6.7</SPAN><SPAN class="sec-title">Exchanging 
+<H3><A NAME="sec:9.6.7"><SPAN class="sec-nr">9.6.7</SPAN> <SPAN class="sec-title">Exchanging 
 GMP numbers</SPAN></A></H3>
 
 <A NAME="sec:gmpforeign"></A>
@@ -1723,7 +1723,7 @@ changed.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.8"><SPAN class="sec-nr">9.6.8</SPAN><SPAN class="sec-title">Calling 
+<H3><A NAME="sec:9.6.8"><SPAN class="sec-nr">9.6.8</SPAN> <SPAN class="sec-title">Calling 
 Prolog from C</SPAN></A></H3>
 
 <P>The Prolog engine can be called from C. There are two interfaces for 
@@ -1736,7 +1736,7 @@ predicate. The other interface is based on PL_open_query(),
 PL_next_solution() and PL_cut_query() or PL_close_query(). This 
 mechanism is more powerful, but also more complicated to use.
 
-<H4><A NAME="sec:9.6.8.1"><SPAN class="sec-nr">9.6.8.1</SPAN><SPAN class="sec-title">Predicate 
+<H4><A NAME="sec:9.6.8.1"><SPAN class="sec-nr">9.6.8.1</SPAN> <SPAN class="sec-title">Predicate 
 references</SPAN></A></H4>
 
 <P>This section discusses the functions used to communicate about 
@@ -1769,7 +1769,7 @@ where the predicate is defined.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.8.2"><SPAN class="sec-nr">9.6.8.2</SPAN><SPAN class="sec-title">Initiating 
+<H4><A NAME="sec:9.6.8.2"><SPAN class="sec-nr">9.6.8.2</SPAN> <SPAN class="sec-title">Initiating 
 a query from C</SPAN></A></H4>
 
 <P>This section discusses the functions for creating and manipulating 
@@ -1891,7 +1891,7 @@ omitted to improve readability.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.9"><SPAN class="sec-nr">9.6.9</SPAN><SPAN class="sec-title">Discarding 
+<H3><A NAME="sec:9.6.9"><SPAN class="sec-nr">9.6.9</SPAN> <SPAN class="sec-title">Discarding 
 Data</SPAN></A></H3>
 
 <P>The Prolog data created and term-references needed to setup the call 
@@ -1960,7 +1960,7 @@ count_atoms()
 
 <A NAME="fig:calling"></A>
 
-<H3><A NAME="sec:9.6.10"><SPAN class="sec-nr">9.6.10</SPAN><SPAN class="sec-title">Foreign 
+<H3><A NAME="sec:9.6.10"><SPAN class="sec-nr">9.6.10</SPAN> <SPAN class="sec-title">Foreign 
 Code and Modules</SPAN></A></H3>
 
 <P>Modules are identified via a unique handle. The following functions 
@@ -2008,7 +2008,7 @@ Find an existing or create a new module with name specified by the atom
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.11"><SPAN class="sec-nr">9.6.11</SPAN><SPAN class="sec-title">Prolog 
+<H3><A NAME="sec:9.6.11"><SPAN class="sec-nr">9.6.11</SPAN> <SPAN class="sec-title">Prolog 
 exceptions in foreign code</SPAN></A></H3>
 
 <P>This section discusses PL_exception(), PL_throw() and 
@@ -2131,7 +2131,7 @@ to the query is required</SPAN></SUP>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.12"><SPAN class="sec-nr">9.6.12</SPAN><SPAN class="sec-title">Catching 
+<H3><A NAME="sec:9.6.12"><SPAN class="sec-nr">9.6.12</SPAN> <SPAN class="sec-title">Catching 
 Signals (Software Interrupts)</SPAN></A></H3>
 
 <A NAME="sec:csignal"></A>
@@ -2206,9 +2206,9 @@ as possible.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.13"><SPAN class="sec-nr">9.6.13</SPAN><SPAN class="sec-title">Miscellaneous</SPAN></A></H3>
+<H3><A NAME="sec:9.6.13"><SPAN class="sec-nr">9.6.13</SPAN> <SPAN class="sec-title">Miscellaneous</SPAN></A></H3>
 
-<H4><A NAME="sec:9.6.13.1"><SPAN class="sec-nr">9.6.13.1</SPAN><SPAN class="sec-title">Term 
+<H4><A NAME="sec:9.6.13.1"><SPAN class="sec-nr">9.6.13.1</SPAN> <SPAN class="sec-title">Term 
 Comparison</SPAN></A></H4>
 
 <DL>
@@ -2226,7 +2226,7 @@ physically the same compound term and <CODE>FALSE</CODE> otherwise.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.13.2"><SPAN class="sec-nr">9.6.13.2</SPAN><SPAN class="sec-title">Recorded 
+<H4><A NAME="sec:9.6.13.2"><SPAN class="sec-nr">9.6.13.2</SPAN> <SPAN class="sec-title">Recorded 
 database</SPAN></A></H4>
 
 <P>In some applications it is useful to store and retrieve Prolog terms 
@@ -2328,7 +2328,7 @@ associated memory resources.
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.13.3"><SPAN class="sec-nr">9.6.13.3</SPAN><SPAN class="sec-title">Getting 
+<H4><A NAME="sec:9.6.13.3"><SPAN class="sec-nr">9.6.13.3</SPAN> <SPAN class="sec-title">Getting 
 file names</SPAN></A></H4>
 
 <A NAME="sec:cfilenames"></A>
@@ -2391,7 +2391,7 @@ Do not raise any exceptions.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.14"><SPAN class="sec-nr">9.6.14</SPAN><SPAN class="sec-title">Errors 
+<H3><A NAME="sec:9.6.14"><SPAN class="sec-nr">9.6.14</SPAN> <SPAN class="sec-title">Errors 
 and warnings</SPAN></A></H3>
 
 <P>PL_warning() prints a standard Prolog warning message to the standard 
@@ -2410,7 +2410,7 @@ the same as for <STRONG>printf</STRONG>(2). Always returns <CODE>FALSE</CODE>.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.15"><SPAN class="sec-nr">9.6.15</SPAN><SPAN class="sec-title">Environment 
+<H3><A NAME="sec:9.6.15"><SPAN class="sec-nr">9.6.15</SPAN> <SPAN class="sec-title">Environment 
 Control from Foreign Code</SPAN></A></H3>
 
 <DL>
@@ -2464,7 +2464,7 @@ a console to a thread if it does not have one. See <A NAME="idx:attachconsole0:1
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.16"><SPAN class="sec-nr">9.6.16</SPAN><SPAN class="sec-title">Querying 
+<H3><A NAME="sec:9.6.16"><SPAN class="sec-nr">9.6.16</SPAN> <SPAN class="sec-title">Querying 
 Prolog</SPAN></A></H3>
 
 <DL>
@@ -2511,7 +2511,7 @@ user CPU time of the process in milliseconds. </TD></TR>
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.17"><SPAN class="sec-nr">9.6.17</SPAN><SPAN class="sec-title">Registering 
+<H3><A NAME="sec:9.6.17"><SPAN class="sec-nr">9.6.17</SPAN> <SPAN class="sec-title">Registering 
 Foreign Predicates</SPAN></A></H3>
 
 <DL>
@@ -2639,7 +2639,7 @@ the <VAR>module</VAR> argument.
 </DD>
 </DL>
 
-<H3><A NAME="sec:9.6.18"><SPAN class="sec-nr">9.6.18</SPAN><SPAN class="sec-title">Foreign 
+<H3><A NAME="sec:9.6.18"><SPAN class="sec-nr">9.6.18</SPAN> <SPAN class="sec-title">Foreign 
 Code Hooks</SPAN></A></H3>
 
 <P>For various specific applications some hooks re provided.
@@ -2730,7 +2730,7 @@ uninstall()
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:9.6.19"><SPAN class="sec-nr">9.6.19</SPAN><SPAN class="sec-title">Storing 
+<H3><A NAME="sec:9.6.19"><SPAN class="sec-nr">9.6.19</SPAN> <SPAN class="sec-title">Storing 
 foreign data</SPAN></A></H3>
 
 <A NAME="sec:foreigndata"></A>
@@ -2795,7 +2795,7 @@ malloc() and a pointer may be passed. See <A class="sec" href="foreigninclude.ht
 </OL>
 </UL>
 
-<H4><A NAME="sec:9.6.19.1"><SPAN class="sec-nr">9.6.19.1</SPAN><SPAN class="sec-title">Examples 
+<H4><A NAME="sec:9.6.19.1"><SPAN class="sec-nr">9.6.19.1</SPAN> <SPAN class="sec-title">Examples 
 for storing foreign data</SPAN></A></H4>
 
 <P>In this section, we will outline some examples, covering typical 
@@ -2917,7 +2917,7 @@ index in this array. This provides better protection. Especially for
 debugging purposes, wrapping the handle in a compound is a good 
 suggestion.
 
-<H3><A NAME="sec:9.6.20"><SPAN class="sec-nr">9.6.20</SPAN><SPAN class="sec-title">Embedding 
+<H3><A NAME="sec:9.6.20"><SPAN class="sec-nr">9.6.20</SPAN> <SPAN class="sec-title">Embedding 
 SWI-Prolog in other applications</SPAN></A></H3>
 
 <A NAME="sec:embedded"></A>
@@ -3062,7 +3062,7 @@ it may become possible to call PL_halt() from any thread.</SPAN></SUP>
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.6.20.1"><SPAN class="sec-nr">9.6.20.1</SPAN><SPAN class="sec-title">Threading, 
+<H4><A NAME="sec:9.6.20.1"><SPAN class="sec-nr">9.6.20.1</SPAN> <SPAN class="sec-title">Threading, 
 Signals and embedded Prolog</SPAN></A></H4>
 
 <A NAME="sec:sigembedded"></A>

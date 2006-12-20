@@ -90,7 +90,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -120,12 +120,12 @@ font-size: smaller;
 <A class="nav" href="foreigninclude.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:9.5"><SPAN class="sec-nr">9.5</SPAN><SPAN class="sec-title">Interface 
+<H2><A NAME="sec:9.5"><SPAN class="sec-nr">9.5</SPAN> <SPAN class="sec-title">Interface 
 Data types</SPAN></A></H2>
 
 <A NAME="sec:foreigntypes"></A>
 
-<H3><A NAME="sec:9.5.1"><SPAN class="sec-nr">9.5.1</SPAN><SPAN class="sec-title">Type <CODE>term_t</CODE>: 
+<H3><A NAME="sec:9.5.1"><SPAN class="sec-nr">9.5.1</SPAN> <SPAN class="sec-title">Type <CODE>term_t</CODE>: 
 a reference to a Prolog term</SPAN></A></H3>
 
 <P>The principal data-type is <CODE>term_t</CODE>. Type <CODE>term_t</CODE> 
@@ -242,7 +242,7 @@ PL_discard_foreign_frame().
 </DD>
 </DL>
 
-<H4><A NAME="sec:9.5.1.1"><SPAN class="sec-nr">9.5.1.1</SPAN><SPAN class="sec-title">Interaction 
+<H4><A NAME="sec:9.5.1.1"><SPAN class="sec-nr">9.5.1.1</SPAN> <SPAN class="sec-title">Interaction 
 with the garbage collector and stack-shifter</SPAN></A></H4>
 
 <P>Prolog implements two mechanisms for avoiding stack overflow: garbage 
@@ -255,7 +255,7 @@ referenced through term references (<CODE>term_t</CODE>), Prolog has all
 information necessary to perform its memory management without special 
 precautions from the C-programmer.
 
-<H3><A NAME="sec:9.5.2"><SPAN class="sec-nr">9.5.2</SPAN><SPAN class="sec-title">Other 
+<H3><A NAME="sec:9.5.2"><SPAN class="sec-nr">9.5.2</SPAN> <SPAN class="sec-title">Other 
 foreign interface types</SPAN></A></H3>
 
 <DL>

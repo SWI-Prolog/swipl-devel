@@ -90,7 +90,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -120,12 +120,12 @@ font-size: smaller;
 <A class="nav" href="threadsync.html"><IMG SRC="next.gif" BORDER=0 ALT="Next"></A>
 </DIV>
 
-<H2><A NAME="sec:8.3"><SPAN class="sec-nr">8.3</SPAN><SPAN class="sec-title">Thread 
+<H2><A NAME="sec:8.3"><SPAN class="sec-nr">8.3</SPAN> <SPAN class="sec-title">Thread 
 communication</SPAN></A></H2>
 
 <A NAME="sec:threadcom"></A>
 
-<H3><A NAME="sec:8.3.1"><SPAN class="sec-nr">8.3.1</SPAN><SPAN class="sec-title">Message 
+<H3><A NAME="sec:8.3.1"><SPAN class="sec-nr">8.3.1</SPAN> <SPAN class="sec-title">Message 
 queues</SPAN></A></H3>
 
 <A NAME="sec:msgqueue"></A>
@@ -263,7 +263,7 @@ work(Id, Goal) :-
         thread_send_message(Id, Goal).
 </PRE>
 
-<H3><A NAME="sec:8.3.2"><SPAN class="sec-nr">8.3.2</SPAN><SPAN class="sec-title">Signalling 
+<H3><A NAME="sec:8.3.2"><SPAN class="sec-nr">8.3.2</SPAN> <SPAN class="sec-title">Signalling 
 threads</SPAN></A></H3>
 
 <P>These predicates provide a mechanism to make another thread execute 
@@ -301,7 +301,7 @@ happens of the thread is waiting for (user-)input.
 </DD>
 </DL>
 
-<H3><A NAME="sec:8.3.3"><SPAN class="sec-nr">8.3.3</SPAN><SPAN class="sec-title">Threads 
+<H3><A NAME="sec:8.3.3"><SPAN class="sec-nr">8.3.3</SPAN> <SPAN class="sec-title">Threads 
 and dynamic predicates</SPAN></A></H3>
 
 <A NAME="sec:threadlocal"></A>
