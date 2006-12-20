@@ -7,6 +7,9 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: length/2: length(-List, +Bignum) and speed of non-determinism
+    of length(-,-).  Ulrich Neumerkel.
+
   * ADDED: library(pairs).  With help from Richard O'Keefe.
 
   * FIXED: random/1 to handle large integers more elegantly.

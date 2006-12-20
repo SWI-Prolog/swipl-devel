@@ -64,6 +64,10 @@ pl_length(term_t list, term_t l)
     fail;			/* both variables: generate in Prolog */
   }
   
+				/* large integer; we cannot represent anyway */
+  if ( PL_is_integer(l) )
+    return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+
   return PL_error("length", 2, NULL, ERR_TYPE, ATOM_integer, l);
 }  
 

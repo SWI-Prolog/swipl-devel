@@ -784,19 +784,20 @@ default_module(Me, Super) :-
 		 *	 LIST MANIPULATION	*
 		 *******************************/
 
-%	length(?List, ?N)
+%%	length(?List, ?N)
+%
 %	Is true when N is the length of List.
 
 length(List, Length) :-
 	$length(List, Length), !.		% written in C
 length(List, Length) :-
 	var(Length),
-	length2(List, Length).
+        length3(List, Length, 0).
 
-length2([], 0).
-length2([_|List], N) :-
-	length2(List, M), 
-	succ(M, N).
+length3([], N, N).
+length3([_|List], N, N0) :-
+        succ(N0, N1),
+        length3(List, N, N1).
 
 
 		 /*******************************

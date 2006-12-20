@@ -660,6 +660,10 @@ gmp(idiv-1) :-
 gmp(random) :-
 	A is random((1<<200)-((1<<200)-20)),
 	A < 20.
+gmp(length) :-
+	N is 1<<66,
+	catch(length(_L, N), Error, true),
+	Error = error(resource_error(stack), global).
 
 :- endif.
 
