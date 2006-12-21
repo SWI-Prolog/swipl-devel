@@ -7,7 +7,7 @@
 JAVAC=@JAVAC@
 JAR=@JAR@
 JUNIT=@JUNIT@
-JAVADOC=@JAVA_HOME@/bin/javadoc
+JAVADOC=@JAVADOC@
 JPLJAR=../../jpl.jar
 TSTJAR=../../jpltest.jar
 JPLDOC=../../docs/java_api/javadoc

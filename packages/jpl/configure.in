@@ -107,6 +107,7 @@ m4_include([ac/ac_prog_java.m4])
 m4_include([ac/ac_prog_java_works.m4])
 m4_include([ac/ac_prog_javac.m4])
 m4_include([ac/ac_prog_javac_works.m4])
+m4_include([ac/ac_prog_javadoc.m4])
 m4_include([ac/ac_jni_include_dirs.m4])
 m4_include([ac/ac_prog_jar.m4])
 
@@ -130,6 +131,7 @@ fi
 AC_PROG_JAVAC(javac)
 AC_PROG_JAVA(java)
 AC_PROG_JAR(jar)
+AC_PROG_JAVADOC(javadoc)
 
 AC_JNI_INCLUDE_DIR
 for d in $JNI_INCLUDE_DIRS; do
