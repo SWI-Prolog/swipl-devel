@@ -7,6 +7,12 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+==================================
+VERSION 5.6.25 (December 21, 2006)
+==================================
+
+  * FIXED: nth0(nth0(2, [a,b,c|_], x).  Ryszard Szopa.
+
   * FIXED: length/2: length(-List, +Bignum) and speed of non-determinism
     of length(-,-).  Ulrich Neumerkel.
 

@@ -128,6 +128,7 @@ nth0_det(4, [_,_,_,_,Elem|_], Elem) :- !.
 nth0_det(5, [_,_,_,_,_,Elem|_], Elem) :- !.
 nth0_det(N, [_,_,_,_,_,_   |Tail], Elem) :-
         M is N - 6,
+	M >= 0,
         nth0_det(M, Tail, Elem).
 
 nth_gen([Elem|_], Elem, Base, Base).
