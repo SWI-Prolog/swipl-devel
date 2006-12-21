@@ -36,13 +36,13 @@ check::
 ################################################################
 
 idll::
+		copy "$(WINDLLDIR)\zlib1.dll" "$(BINDIR)"
 		copy zlib4pl.dll "$(BINDIR)"
 !IF "$(PDB)" == "true"
 		copy zlib4pl.pdb "$(BINDIR)"
 !ENDIF
 
 ilib::
-		$(INSTALL_PROGRAM) "$(WINDLLDIR)\zlib1.dll" "$(BINDIR)"
 		copy zlib.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
