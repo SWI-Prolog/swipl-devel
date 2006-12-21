@@ -1,10 +1,11 @@
 \libdoc{broadcast}{Broadcast and receive event notifications}
 
 \index{broadcast}\index{message,service}\index{blackboard}%
-\index{agent}\index{daemon}% The \pllib{broadcast} library was invented
-to realise GUI applications consisting of stand-alone components that
-use the Prolog database for storing the application data.
-\Figref{broadcast} illustrates the flow of information using this design
+\index{agent}\index{daemon}%
+The \pllib{broadcast} library was invented to realise GUI applications
+consisting of stand-alone components that use the Prolog database for
+storing the application data. \Figref{broadcast} illustrates the flow of
+information using this design
 
 \postscriptfig[width=0.8\linewidth]{broadcast}{Information-flow using
 					       broadcasting service}
