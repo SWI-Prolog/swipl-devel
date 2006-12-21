@@ -42,6 +42,7 @@ idll::
 !ENDIF
 
 ilib::
+		$(INSTALL_PROGRAM) "$(WINDLLDIR)\zlib1.dll" "$(BINDIR)"
 		copy zlib.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
