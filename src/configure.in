@@ -565,7 +565,10 @@ AC_FUNC_VFORK
 
 if test "x$ac_cv_func_unsetenv" = "xyes"; then
   AC_MSG_CHECKING("whether unsetenv is void")
-  AC_TRY_COMPILE([],
+  AC_TRY_COMPILE(
+[
+#include <stdlib.h>
+],
 		 [ int i = unsetenv("test");
 		 ],
 		 AC_MSG_RESULT(no),
