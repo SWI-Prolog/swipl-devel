@@ -98,6 +98,7 @@ Section "Base system (required)"
   File pl\library\operators.pl
   File pl\library\heaps.pl
   File pl\library\broadcast.pl
+  File pl\library\error.pl
   File pl\library\pairs.pl
 
 ; WINDOWS
@@ -422,6 +423,7 @@ Section "C Debugging Symbols (.pdb files)"
   File pl\bin\time.pdb
   File pl\bin\readutil.pdb
   File pl\bin\ssl4pl.pdb
+  File pl\bin\zlib4pl.pdb
 SectionEnd
 
 Section "Sources for system predicates"
