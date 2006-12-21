@@ -81,7 +81,7 @@ else
     CWFLAGS=
 fi
 
-AC_CHECK_HEADERS(zlib.h)
+AC_CHECK_HEADERS(zlib.h zutil.h)
 AC_CHECK_LIB(z, zlibVersion,
 	     LIBS="$LIBS -lz"
 	     ZLIB=yes,

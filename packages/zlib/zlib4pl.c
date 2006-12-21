@@ -30,7 +30,12 @@
 #include <assert.h>
 #include <time.h>
 #include <zlib.h>
+/* Some distributions do not include this ... */
+#ifdef HAVE_ZUTIL_H
 #include <zutil.h>
+#else
+#include "zutil.h"
+#endif
 
 static functor_t FUNCTOR_error2;	/* error(Formal, Context) */
 static functor_t FUNCTOR_type_error2;	/* type_error(Term, Expected) */
@@ -587,7 +592,7 @@ static IOFUNCTIONS zfunctions =
 		    SIO_RECORDPOS)
 
 static foreign_t
-zopen(term_t org, term_t new, term_t options)
+pl_zopen(term_t org, term_t new, term_t options)
 { term_t tail = PL_copy_term_ref(options);
   term_t head = PL_new_term_ref();
   z_context *ctx;
@@ -693,7 +698,7 @@ install_zlib4pl()
   ATOM_gzip	    = PL_new_atom("gzip");
   ATOM_deflate	    = PL_new_atom("define");
 
-  PL_register_foreign("zopen",  3, zopen,  0);
+  PL_register_foreign("zopen",  3, pl_zopen,  0);
 #ifdef O_DEBUG
   PL_register_foreign("zdebug", 1, zdebug, 0);
 #endif
