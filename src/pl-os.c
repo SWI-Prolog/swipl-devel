@@ -2290,8 +2290,12 @@ int
 Unsetenv(char *name)
 {
 #ifdef HAVE_UNSETENV
+#ifdef VOID_UNSETENV
+  unsetenv(name);
+#else
   if ( unsetenv(name) < 0 )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "unsetenv");
+#endif
 
   succeed;
 #else

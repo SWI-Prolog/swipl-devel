@@ -642,6 +642,9 @@
 /* Define if signal handler works compliant to POSIX.1b */
 #undef USE_SIGINFO
 
+/* Define if unsetenv() is void */
+#undef VOID_UNSETENV
+
 /* Define to 1 if your processor stores words with the most significant byte
    first (like Motorola and SPARC, unlike Intel and VAX). */
 #undef WORDS_BIGENDIAN

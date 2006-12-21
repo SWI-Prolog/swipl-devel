@@ -563,6 +563,17 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
 
+if test "x$ac_cv_func_unsetenv" = "xyes"; then
+  AC_MSG_CHECKING("whether unsetenv is void")
+  AC_TRY_COMPILE([],
+		 [ int i = unsetenv("test");
+		 ],
+		 AC_MSG_RESULT(no),
+		 AC_DEFINE(VOID_UNSETENV, 1,
+			   [Define if unsetenv() is void])
+		 AC_MSG_RESULT(yes))
+fi
+
 AC_MSG_CHECKING("linux gettid")
 AC_TRY_COMPILE(
 [
