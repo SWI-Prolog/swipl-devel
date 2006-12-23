@@ -2269,7 +2269,7 @@ Setenv(char *name, char *value)
   char *buf;
 
   if ( *name == '\0' || strchr(name, '=') != NULL )
-  { errno = EINVAL
+  { errno = EINVAL;
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setenv");
   }
 
@@ -3052,3 +3052,4 @@ Pause(real t)
 { return notImplemented("sleep", 1);
 }
 #endif
+
