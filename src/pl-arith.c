@@ -2209,8 +2209,9 @@ ar_float_fractional_part(Number n1, Number r)
 #ifdef O_GMP
     case V_MPZ:
 #endif
-      cpNumber(r, n1);
-      break;
+      r->value.i = 0;
+      r->type = V_INTEGER;
+      succeed;
 #ifdef O_GMP
     case V_MPQ:
       r->type = V_MPQ;

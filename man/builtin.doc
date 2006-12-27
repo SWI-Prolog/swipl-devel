@@ -4137,11 +4137,11 @@ behaviour with negative values is illustrated in the table below.
 
     \infixop{rem}{+IntExpr1}{+IntExpr2}
 Remainder of division:
-\mbox{\arg{Result} = float_fractional_part(\arg{IntExpr1}/\arg{IntExpr2})}
+\mbox{\arg{Result} is float_fractional_part(\arg{IntExpr1}/\arg{IntExpr2})}
 
     \infixop{//}{+IntExpr1}{+IntExpr2}
 Integer division:
-\mbox{\arg{Result} = truncate(\arg{Expr1}/\arg{Expr2})}
+\mbox{\arg{Result} is truncate(\arg{Expr1}/\arg{Expr2})}
 
     \infixop{rdiv}{+RatExpr}{+RatExpr}
 Rational number division. This function is only available if
@@ -4230,7 +4230,7 @@ A = 1 rdiv 10
 Fractional part of a floating-point number.  Negative if \arg{Expr} is
 negative, rational if \arg{Expr} is rational and 0 if \arg{Expr} is
 integer.  The following relation is always true:
-$X = float_fractional_part(X) + float_integer_part(X)$.
+$X is float_fractional_part(X) + float_integer_part(X)$.
 
     \predicate{float_integer_part}{1}{+Expr}
 Integer part of floating-point number. Negative if \arg{Expr} is
