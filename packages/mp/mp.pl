@@ -617,8 +617,8 @@ mp_exp(N, Exp) :-
 	mp_re(N, R),
 	mp_im(N, I),
 	mp_exp(R, E),
-	mp_sin(I, S),
-	mp_cos(I, C),
+	mp_cos(I, S),			% Bug#243
+	mp_sin(I, C),
 	mp_mul(E, S, ES),
 	mp_mul(E, C, EC),
 	mp_c(complex(ES, EC), Exp).
