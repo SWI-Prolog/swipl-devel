@@ -1,2 +1,0 @@
-rdf(id1, rdf:type, 'http://www.swi.psy.uva.nl/test#test').
-rdf(id1, 'http://www.swi.psy.uva.nl/test#':int, literal(type('http://www.w3.org/2000/10/XMLSchema#int', '42'))).

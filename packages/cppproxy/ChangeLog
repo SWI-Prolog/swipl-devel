@@ -1,7 +1,0 @@
-Jan 25, 2006
-
-  * Replaced FILE based basic I/O with <iostream>
-
-Jan 24, 2006
-
-  * Initial version

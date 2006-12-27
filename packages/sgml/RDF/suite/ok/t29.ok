@@ -1,3 +1,0 @@
-rdf('__Description1', rdf:value, literal('200')).
-rdf('__Description1', 'http://www.nist.gov/units/':units, 'http://www.nist.gov/units/Pounds').
-rdf('John_Smith', 'http://www.nist.gov/units/':weight, '__Description1').

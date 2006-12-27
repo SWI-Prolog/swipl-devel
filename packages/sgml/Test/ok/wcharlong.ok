@@ -1,2 +1,0 @@
-[element(test, [], ['\n', element(p, [], ['\nThis is a long test holding, with the intention to switch to wide character\nencoding from the local buffer to malloc\'ed buffer.  This (✌) is a\npiece symbol.\n']), '\n', element(p, [], ['\nThis is a long test holding, with the intention to switch to wide character\nencoding after the output buffer has been switched to malloc\'ed mode.  For this\nreason, our buffer should should hold more than 256 character, as defined in\nutil.h in the structure ocharbuf.  This (➽) is a fat arrow.\n']), '\n'])].
-[].

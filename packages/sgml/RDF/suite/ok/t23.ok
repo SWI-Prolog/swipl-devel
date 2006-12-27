@@ -1,1 +1,0 @@
-rdf(prefix('http://foo.org/doc'), 'http://description.org/schema/Copyright', literal('© 1998, The Foo Organization')).

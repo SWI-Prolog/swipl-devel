@@ -1,2 +1,0 @@
-Experimental interface to zlib, providing on-the-fly compression
-in Prolog streams.   Very incomplete.
