@@ -303,7 +303,7 @@ arithmetic(arith-9) :-
 arithmetic(arith-10) :-
 	-4000 =:= integer(10000 * float_fractional_part(-1e10 - 0.4)).
 arithmetic(float_fractional_part-1) :-
-	0 =:= float_fractional_part(4).
+	0.0 is float_fractional_part(4).
 arithmetic(arith-11) :-
 	1.0 is sin(pi/2),
 	\+ 1 is sin(pi/2).
