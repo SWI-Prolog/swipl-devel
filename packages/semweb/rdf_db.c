@@ -1003,11 +1003,11 @@ delSubPropertyOf(rdf_db *db, predicate *sub, predicate *super)
 Reachability matrix.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define WSIZE sizeof(int)
+#define WBITSIZE (sizeof(int)*8)
 
 static bitmatrix *
 alloc_bitmatrix(int w, int h)
-{ int wsize = ((w*h)+WSIZE-1)/WSIZE;
+{ int wsize = ((w*h)+WBITSIZE-1)/WBITSIZE;
   int size = (int)(long)&((bitmatrix*)NULL)->bits[wsize];
   bitmatrix *m = PL_malloc(size);
 
@@ -1022,8 +1022,8 @@ alloc_bitmatrix(int w, int h)
 static void
 setbit(bitmatrix *m, int i, int j)
 { int ij = m->width*i+j;
-  int word = ij/WSIZE;
-  int bit  = ij%WSIZE;
+  int word = ij/WBITSIZE;
+  int bit  = ij%WBITSIZE;
 
   m->bits[word] |= 1<<(bit-1);
 }
@@ -1032,8 +1032,8 @@ setbit(bitmatrix *m, int i, int j)
 static int
 testbit(bitmatrix *m, int i, int j)
 { int ij = m->width*i+j;
-  int word = ij/WSIZE;
-  int bit  = ij%WSIZE;
+  int word = ij/WBITSIZE;
+  int bit  = ij%WBITSIZE;
 
   return ((m->bits[word] & (1<<(bit-1))) != 0);
 }
