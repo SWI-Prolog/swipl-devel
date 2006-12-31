@@ -144,10 +144,10 @@ are based on load_structure/3.
 
 \begin{description}
     \predicate{load_sgml_file}{2}{+File, -ListOfContent}
-Same as <term>load_structure(File, ListOfContent, [dialect(sgml)])</term>.
+Same as \term{load_structure}{File, ListOfContent, [dialect(sgml)]}.
 
     \predicate{load_xml_file}{2}{+File, -ListOfContent}
-Same as <term>load_structure(File, ListOfContent, [dialect(xml)])</term>.
+Same as \term{load_structure(File, ListOfContent, [dialect(xml)]}.
 
     \predicate{load_html_file}{2}{+File, -Content}
 Load \arg{File} and parse as HTML. Implemented as below. Note that
@@ -837,10 +837,10 @@ only parts of a file.
 Default.  Parse everything upto the end of the input.
 
 	\termitem{element}{}
-The parser stops after reading the first element. Using <term>
-source(Stream)</term>, this implies reading is stopped as soon as the
-element is complete, and another call may be issued on the same stream
-to read the next element. 
+The parser stops after reading the first element. Using
+\term{source}{Stream}, this implies reading is stopped as soon
+as the element is complete, and another call may be issued on the same
+stream to read the next element. 
 
 	\termitem{content}{}
 The value \const{content} is like \const{element} but assumes the
@@ -1170,7 +1170,7 @@ you get \verb$<foo>$ (if foo is declared to be \const{EMPTY} in the DTD),
 \verb$<foo></foo>$ (default, \term{net}{false}) or
 \verb$<foo//$ (\term{net}{true}).  In SGML code, short character
 content not containing <c>/</c> can be emitted as \verb$<b>xxx</b>$
-(default, <term>net(false) or \verb$<b/xxx/$ (\term{net}{true})
+(default, \term{net}{false} or \verb$<b/xxx/$ (\term{net}{true})
 \end{description}
 
     \predicate{sgml_write}{3}{+Stream, +Term, +Options}

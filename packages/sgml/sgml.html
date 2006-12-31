@@ -85,7 +85,7 @@ span.sec-nr
 }
 
 span.sec-title
-{ margin-left: 0.5em;
+{ 
 }
 
 span.pred-ext
@@ -99,7 +99,7 @@ span.fn-text: { display: none; }
 sup.fn span {display: none;}
 sup:hover span 
 { display: block !important;
-position: absolute; top: auto; left: auto; width: 250px;
+position: absolute; top: auto; left: auto; width: 80%;
 color: #000; background: white;
 border: 2px solid;
 padding: 5px; margin: 10px; z-index: 100;
@@ -177,7 +177,7 @@ systems</SPAN></A></DIV>
 
 <P>
 
-<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN><SPAN class="sec-title">Introduction</SPAN></A></H2>
+<H2><A NAME="sec:1"><SPAN class="sec-nr">1</SPAN> <SPAN class="sec-title">Introduction</SPAN></A></H2>
 
 <P>Markup languages have recently regained popularity for two reasons. 
 One is document exchange, which is largely based on HTML, an instance of 
@@ -200,7 +200,7 @@ provides access to the DTD, and provides flexible input handling.
 <P>The document output is equal to the output produced by <EM>xml2pl</EM>, 
 an SP interface to SWI-Prolog written by Anjo Anjewierden.
 
-<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN><SPAN class="sec-title">Bluffer's 
+<H2><A NAME="sec:2"><SPAN class="sec-nr">2</SPAN> <SPAN class="sec-title">Bluffer's 
 Guide</SPAN></A></H2>
 
 <P>This package allows you to parse SGML, XML and HTML data into a 
@@ -275,7 +275,7 @@ did not fit in the Prolog characters set were emitted as a term <CODE>number(+Co
 With the introduction of wide characters in the 5.5 branch this is no 
 longer needed.</SPAN></SUP>
 
-<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN><SPAN class="sec-title">`Goodies' 
+<H3><A NAME="sec:2.1"><SPAN class="sec-nr">2.1</SPAN> <SPAN class="sec-title">`Goodies' 
 Predicates</SPAN></A></H3>
 
 <P>These predicates are for basic use of the library, converting entire 
@@ -286,13 +286,12 @@ They are based on <A NAME="idx:loadstructure3:1"></A><A class="pred" href="#load
 <DT class="pubdef"><A NAME="load_sgml_file/2"><STRONG>load_sgml_file</STRONG>(<VAR>+File, 
 -ListOfContent</VAR>)</A></DT>
 <DD class="defbody">
-Same as &lt;<VAR>term</VAR>&gt;load_structure(File, ListOfContent, 
-[dialect(sgml)])&lt;/term&gt;.</DD>
+Same as <CODE>load_structure(File, ListOfContent, [dialect(sgml)])</CODE>.</DD>
 <DT class="pubdef"><A NAME="load_xml_file/2"><STRONG>load_xml_file</STRONG>(<VAR>+File, 
 -ListOfContent</VAR>)</A></DT>
 <DD class="defbody">
-Same as &lt;<VAR>term</VAR>&gt;load_structure(File, ListOfContent, 
-[dialect(xml)])&lt;/term&gt;.</DD>
+Same as <CODE>load_structure(File, ListOfContent, [dialect(xml)](load_structure(File, 
+ListOfContent, [dialect(xml)])</CODE></DD>
 <DT class="pubdef"><A NAME="load_html_file/2"><STRONG>load_html_file</STRONG>(<VAR>+File, 
 -Content</VAR>)</A></DT>
 <DD class="defbody">
@@ -316,10 +315,10 @@ load_html_file(File, Term) :-
 <P></DD>
 </DL>
 
-<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN><SPAN class="sec-title">Predicate 
+<H2><A NAME="sec:3"><SPAN class="sec-nr">3</SPAN> <SPAN class="sec-title">Predicate 
 Reference</SPAN></A></H2>
 
-<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN><SPAN class="sec-title">Loading 
+<H3><A NAME="sec:3.1"><SPAN class="sec-nr">3.1</SPAN> <SPAN class="sec-title">Loading 
 Structured Documents</SPAN></A></H3>
 
 <P>SGML or XML files are loaded through the common predicate
@@ -459,7 +458,7 @@ exception of the format below is raised. The default is 50.
 </DD>
 </DL>
 
-<H3><A NAME="sec:3.2"><SPAN class="sec-nr">3.2</SPAN><SPAN class="sec-title">Handling 
+<H3><A NAME="sec:3.2"><SPAN class="sec-nr">3.2</SPAN> <SPAN class="sec-title">Handling 
 white-space</SPAN></A></H3>
 
 <A NAME="sec:space"></A>
@@ -507,7 +506,7 @@ Consider adjacent &lt;b&gt;bold&lt;/b&gt; &lt;ul&gt;and&lt;/ul&gt; &lt;it&gt;ita
 <P></DD>
 </DL>
 
-<H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN><SPAN class="sec-title">XML 
+<H3><A NAME="sec:3.3"><SPAN class="sec-nr">3.3</SPAN> <SPAN class="sec-title">XML 
 documents</SPAN></A></H3>
 
 <A NAME="sec:xml"></A>
@@ -562,7 +561,7 @@ default processing mode.
 <P>
 </UL>
 
-<H4><A NAME="sec:3.3.1"><SPAN class="sec-nr">3.3.1</SPAN><SPAN class="sec-title">XML 
+<H4><A NAME="sec:3.3.1"><SPAN class="sec-nr">3.3.1</SPAN> <SPAN class="sec-title">XML 
 Namespaces</SPAN></A></H4>
 
 <A NAME="sec:xmlns"></A>
@@ -618,7 +617,7 @@ load_rdf_xml(File, Term) :-
                        ]).
 </PRE>
 
-<H3><A NAME="sec:3.4"><SPAN class="sec-nr">3.4</SPAN><SPAN class="sec-title">DTD-Handling</SPAN></A></H3>
+<H3><A NAME="sec:3.4"><SPAN class="sec-nr">3.4</SPAN> <SPAN class="sec-title">DTD-Handling</SPAN></A></H3>
 
 <P>The DTD (<B>D</B>ocument <B>T</B>ype <B>D</B>efinition) is a separate 
 entity in sgml2pl, that can be created, freed, defined and inspected. 
@@ -810,7 +809,7 @@ Unify <VAR>Decl</VAR> with a list if <CODE>system(+File)</CODE> and/or
 </DD>
 </DL>
 
-<H4><A NAME="sec:3.4.1"><SPAN class="sec-nr">3.4.1</SPAN><SPAN class="sec-title">The 
+<H4><A NAME="sec:3.4.1"><SPAN class="sec-nr">3.4.1</SPAN> <SPAN class="sec-title">The 
 DOCTYPE declaration</SPAN></A></H4>
 
 <P>As this parser allows for processing partial documents and process 
@@ -821,7 +820,7 @@ holding all elements and CDATA found. If the document has a DOCTYPE
 declaraction, the parser will open the element defined in the DOCTYPE as 
 soon as the first real data is encountered.
 
-<H3><A NAME="sec:3.5"><SPAN class="sec-nr">3.5</SPAN><SPAN class="sec-title">Extracting 
+<H3><A NAME="sec:3.5"><SPAN class="sec-nr">3.5</SPAN> <SPAN class="sec-title">Extracting 
 a DTD</SPAN></A></H3>
 
 <A NAME="sec:implicitdtd"></A>
@@ -855,7 +854,7 @@ elements_in_xml_document(File, Elements) :-
         free_dtd(DTD).
 </PRE>
 
-<H3><A NAME="sec:3.6"><SPAN class="sec-nr">3.6</SPAN><SPAN class="sec-title">Parsing 
+<H3><A NAME="sec:3.6"><SPAN class="sec-nr">3.6</SPAN> <SPAN class="sec-title">Parsing 
 Primitives</SPAN></A></H3>
 
 <DL>
@@ -1114,8 +1113,8 @@ only parts of a file.
 Default. Parse everything upto the end of the input.</DD>
 <DT><STRONG>element</STRONG></DT>
 <DD class="defbody">
-The parser stops after reading the first element. Using &lt;<VAR>term</VAR>&gt; 
-source(Stream)&lt;/term&gt;, this implies reading is stopped as soon as 
+The parser stops after reading the first element. Using
+<CODE>source(Stream)</CODE>, this implies reading is stopped as soon as 
 the element is complete, and another call may be issued on the same 
 stream to read the next element.</DD>
 <DT><STRONG>content</STRONG></DT>
@@ -1241,7 +1240,7 @@ for details.
 </DD>
 </DL>
 
-<H4><A NAME="sec:3.6.1"><SPAN class="sec-nr">3.6.1</SPAN><SPAN class="sec-title">Partial 
+<H4><A NAME="sec:3.6.1"><SPAN class="sec-nr">3.6.1</SPAN> <SPAN class="sec-title">Partial 
 Parsing</SPAN></A></H4>
 
 <P>In some cases, part of a document needs to be parsed. One option is 
@@ -1290,7 +1289,7 @@ on_begin(Tag, Attr, Parser) :-
         process_rdf_description(element(Tag, Attr, Content)).
 </PRE>
 
-<H3><A NAME="sec:3.7"><SPAN class="sec-nr">3.7</SPAN><SPAN class="sec-title">Type 
+<H3><A NAME="sec:3.7"><SPAN class="sec-nr">3.7</SPAN> <SPAN class="sec-title">Type 
 checking</SPAN></A></H3>
 
 <DL>
@@ -1302,7 +1301,7 @@ and friends.
 </DD>
 </DL>
 
-<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN><SPAN class="sec-title">Stream 
+<H2><A NAME="sec:4"><SPAN class="sec-nr">4</SPAN> <SPAN class="sec-title">Stream 
 encoding issues</SPAN></A></H2>
 
 <A NAME="sec:encoding"></A>
@@ -1319,7 +1318,7 @@ positions reported by the parser are octet offsets in the stream. In
 other cases, the Prolog stream decoder is used and offsets are character 
 code counts.
 
-<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN><SPAN class="sec-title">Processing 
+<H2><A NAME="sec:5"><SPAN class="sec-nr">5</SPAN> <SPAN class="sec-title">Processing 
 Indexed Files</SPAN></A></H2>
 
 <A NAME="sec:indexaccess"></A>
@@ -1380,7 +1379,7 @@ rdf_element(Id, Term) :-
                        ]).
 </PRE>
 
-<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN><SPAN class="sec-title">External 
+<H2><A NAME="sec:6"><SPAN class="sec-nr">6</SPAN> <SPAN class="sec-title">External 
 entities</SPAN></A></H2>
 
 <P>While processing an SGML document the document may refer to external 
@@ -1433,10 +1432,10 @@ UNIX and Windows.
 processing external entities, so Prolog-based file-location and Prolog 
 resources can be used to store external entities.
 
-<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN><SPAN class="sec-title">Writing 
+<H2><A NAME="sec:7"><SPAN class="sec-nr">7</SPAN> <SPAN class="sec-title">Writing 
 markup</SPAN></A></H2>
 
-<H3><A NAME="sec:7.1"><SPAN class="sec-nr">7.1</SPAN><SPAN class="sec-title">Writing 
+<H3><A NAME="sec:7.1"><SPAN class="sec-nr">7.1</SPAN> <SPAN class="sec-title">Writing 
 documents</SPAN></A></H3>
 
 <P>The library <CODE>library(sgml_write)</CODE> provides the inverse of 
@@ -1516,7 +1515,7 @@ For SGML, this applies to empty elements, so you get <CODE>\bnfmeta{foo}</CODE>
 or
 <CODE>&lt;foo//</CODE> (<CODE>net(true)</CODE>). In SGML code, short 
 character content not containing &lt;<VAR>c</VAR>&gt;/&lt;/c&gt; can be 
-emitted as <CODE>\bnfmeta{b}xxx&lt;/b&gt;</CODE> (default, &lt;<VAR>term</VAR>&gt;net(false) 
+emitted as <CODE>\bnfmeta{b}xxx&lt;/b&gt;</CODE> (default, <CODE>net(false)</CODE> 
 or <CODE>&lt;b/xxx/</CODE> (<CODE>net(true)</CODE>)
 </DD>
 </DL>
@@ -1538,7 +1537,7 @@ The <VAR>Options</VAR> are described with
 </DD>
 </DL>
 
-<H3><A NAME="sec:7.2"><SPAN class="sec-nr">7.2</SPAN><SPAN class="sec-title">Simplify 
+<H3><A NAME="sec:7.2"><SPAN class="sec-nr">7.2</SPAN> <SPAN class="sec-title">Simplify 
 quoting</SPAN></A></H3>
 
 <P>The <CODE>library(sgml)</CODE> package is a parser. Output is 
@@ -1593,7 +1592,7 @@ Assumes <CODE>ascii</CODE> encoding.
 </DD>
 </DL>
 
-<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN><SPAN class="sec-title">Unsupported 
+<H2><A NAME="sec:8"><SPAN class="sec-nr">8</SPAN> <SPAN class="sec-title">Unsupported 
 features</SPAN></A></H2>
 
 <P>The current parser is rather limited. While it is able to deal with 
@@ -1647,9 +1646,9 @@ realised. In particular, XInclude is not implemented because the
 designers of XInclude can't make up their minds whether to base it on 
 elements or attributes yet, let alone details.
 
-<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN><SPAN class="sec-title">Installation</SPAN></A></H2>
+<H2><A NAME="sec:9"><SPAN class="sec-nr">9</SPAN> <SPAN class="sec-title">Installation</SPAN></A></H2>
 
-<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN><SPAN class="sec-title">Unix 
+<H3><A NAME="sec:9.1"><SPAN class="sec-nr">9.1</SPAN> <SPAN class="sec-title">Unix 
 systems</SPAN></A></H3>
 
 <P>Installation on Unix system uses the commonly found <B>configure</B>, 
@@ -1669,7 +1668,7 @@ using:
 and the Prolog library files in <CODE>$PLBASE/library</CODE>, where <CODE>$PLBASE</CODE> 
 refers to the SWI-Prolog `home-directory'.
 
-<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN><SPAN class="sec-title">Acknowledgements</SPAN></A></H2>
+<H2><A NAME="sec:10"><SPAN class="sec-nr">10</SPAN> <SPAN class="sec-title">Acknowledgements</SPAN></A></H2>
 
 <P>The Prolog representation for parsed documents is based on the 
 SWI-Prolog interface to SP by Anjo Anjewierden.
