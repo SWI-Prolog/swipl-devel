@@ -146,9 +146,15 @@ if test "$java_abs_paths" = yes; then
   JAVA_CC="$JAVA_BINDIR/$JAVA_CC"
 fi
 
-if test "x$JUNIT" = "x"; then
-   JUNIT=/usr/share/java/junit.jar
-fi
+AC_ARG_WITH(junit, [  --with-junit=PATH	  Specify location of the junit JAR file],
+	    [case "$withval" in
+		 yes) JUNIT=/usr/share/java/junit.jar
+			;;
+		 no) JUNIT=""
+			;;
+		 *) JUNIT="$withval"
+			;;
+	     esac])
 
 AC_CHECK_HEADERS(wchar.h)
 AC_CHECK_SIZEOF(wchar_t, 4)

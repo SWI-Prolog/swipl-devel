@@ -72,9 +72,13 @@ $(JPLJAR):	$(JPLJAVA)
 		$(JAVAC) $(JPLJAVA)
 		$(JAR) cf $(JPLJAR) $(JPLJAVA:.java=.class)
 
-$(TSTJAR):	$(JPLJAR) $(TSTJAVA) 
+ifneq ($(JUNIT),)
+$(TSTJAR):	$(JPLJAR) $(TSTJAVA)
 		$(JAVAC) -classpath $(JPLJAR):$(JUNIT) $(TSTJAVA)
 		$(JAR) cf $(TSTJAR) $(TSTJAVA:.java=.class)
+else
+$(TSTJAR)::
+endif
 
 $(JPLDOC):	$(JPLJAVA)
 		$(JAVADOC) -public -d $(JPLDOC) $(JPLJAVA)

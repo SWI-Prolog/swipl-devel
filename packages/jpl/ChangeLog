@@ -1,5 +1,9 @@
 [May 21 2008]
 
+  * Enhanced: Bug#247: build test only conditionally.  Keri Harris.
+
+Nov 28, 2006
+
  * PORT: Bug#357: Updated config.{guess,sub}, needed for development version of FC.
    Mary Ellen Foster.
    
