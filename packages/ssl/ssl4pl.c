@@ -540,6 +540,8 @@ pl_ssl_control(PL_SSL_INSTANCE *instance, int action, void *data)
       *p = instance->sock;
       return 0;
     }
+    case SIO_FLUSHOUTPUT:
+      return 0;
     default:
       return -1;
   }
