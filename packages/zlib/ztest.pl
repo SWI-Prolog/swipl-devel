@@ -2,12 +2,15 @@
 	  [
 	  ]).
 :- asserta(user:file_search_path(foreign, '.')).
+:- asserta(user:file_search_path(foreign, '../clib')).
 :- asserta(user:file_search_path(library, '.')).
 :- asserta(user:file_search_path(library, '../plunit')).
+:- asserta(user:file_search_path(library, '../clib')).
 
 :- use_module(user:library(zlib)).
 :- use_module(user:library(plunit)).
 :- use_module(user:library(readutil)).
+:- use_module(user:library(socket)).
 
 read_file_to_codes(File, Codes) :-
 	open(File, read, In),
