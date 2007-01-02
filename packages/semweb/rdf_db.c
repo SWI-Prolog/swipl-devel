@@ -1025,7 +1025,7 @@ setbit(bitmatrix *m, int i, int j)
   int word = ij/WBITSIZE;
   int bit  = ij%WBITSIZE;
 
-  m->bits[word] |= 1<<(bit-1);
+  m->bits[word] |= 1<<bit;
 }
 
 
@@ -1035,7 +1035,7 @@ testbit(bitmatrix *m, int i, int j)
   int word = ij/WBITSIZE;
   int bit  = ij%WBITSIZE;
 
-  return ((m->bits[word] & (1<<(bit-1))) != 0);
+  return ((m->bits[word] & (1<<bit)) != 0);
 }
 
 

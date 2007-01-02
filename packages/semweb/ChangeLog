@@ -1,3 +1,7 @@
+Jan 2, 2007
+
+  * FIXED: Bug#248: bit-matrix handling.  Keri Harris.
+
 Dec 20, 2006
 
   * ENHANCED: slightly better messages from rdf_turtle.pl
