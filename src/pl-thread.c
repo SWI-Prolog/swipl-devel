@@ -3228,7 +3228,7 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
   if ( (e=get_procps_entry(info->pid)) )
   { char buffer[1000];
     char *s;
-    long long ticks;
+    int64_t ticks;
     int i, n, nth = 10;			/* user time */
 
     if ( which == CPU_SYSTEM )
