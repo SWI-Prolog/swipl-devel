@@ -49,8 +49,6 @@
 
 		* Limit to a directory
 		* Whole-word search
-		* *and*, *or*, *not*, etc advanced syntax
-		* Specified fields: =name=, =summary=, =description=
 */
 
 %%	search_form(+Options)//

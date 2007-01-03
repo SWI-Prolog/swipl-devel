@@ -202,14 +202,13 @@ index_on_begin(H, _, Parser) :-		% TBD: add class for document title.
 %	information from latex2html, emitting sections as:
 %	
 %	==
-%	<HN> <A name="sec:nr"><span class='sec-nr'>NR</span>
+%	<HN> <A name="sec:nr"><span class='sec-nr'>NR</span>|_|
 %			      <span class='sec-title'>Title</span>
 %	==
 
 dom_section(DOM, Nr, Title) :-
-	sub_term([ element(span, A1, [Nr]),
-		   element(span, A2, TitleDOM)
-		 ], DOM),
+	sub_term([ element(span, A1, [Nr]) | Rest ], DOM),
+	append(_Sep, [element(span, A2, TitleDOM)], Rest),
 	memberchk(class='sec-nr', A1),
 	memberchk(class='sec-title', A2), !,
 	dom_to_text(TitleDOM, Title).
