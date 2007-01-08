@@ -429,11 +429,11 @@ negative values is illustrated in the table below.
 <DT class="pubdef"><A NAME="rem/2"><VAR>+IntExpr1</VAR> <STRONG>rem</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
 Remainder of division:
-<VAR>Result</VAR> = float_fractional_part(<VAR>IntExpr1</VAR>/<VAR>IntExpr2</VAR>)</DD>
+<VAR>Result</VAR> is float_fractional_part(<VAR>IntExpr1</VAR>/<VAR>IntExpr2</VAR>)</DD>
 <DT class="pubdef"><A NAME="///2"><VAR>+IntExpr1</VAR> <STRONG>//</STRONG> <VAR>+IntExpr2</VAR></A></DT>
 <DD class="defbody">
 Integer division:
-<VAR>Result</VAR> = truncate(<VAR>Expr1</VAR>/<VAR>Expr2</VAR>)</DD>
+<VAR>Result</VAR> is truncate(<VAR>Expr1</VAR>/<VAR>Expr2</VAR>)</DD>
 <DT class="pubdef"><A NAME="rdiv/2"><VAR>+RatExpr</VAR> <STRONG>rdiv</STRONG> <VAR>+RatExpr</VAR></A></DT>
 <DD class="defbody">
 Rational number division. This function is only available if SWI-Prolog 
@@ -534,7 +534,7 @@ A = 1 rdiv 10
 Fractional part of a floating-point number. Negative if <VAR>Expr</VAR> 
 is negative, rational if <VAR>Expr</VAR> is rational and 0 if <VAR>Expr</VAR> 
 is integer. The following relation is always true:
-<VAR>X = float_fractional_part(X) + float_integer_part(X)</VAR>.</DD>
+<VAR>X is float_fractional_part(X) + float_integer_part(X)</VAR>.</DD>
 <DT class="pubdef"><A NAME="float_integer_part/1"><STRONG>float_integer_part</STRONG>(<VAR>+Expr</VAR>)</A></DT>
 <DD class="defbody">
 Integer part of floating-point number. Negative if <VAR>Expr</VAR> is 
