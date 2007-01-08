@@ -40,6 +40,11 @@
 #endif
 
 #include <signal.h>
+#include <stddef.h>
+#if (_MSC_VER < 1300)
+typedef long intptr_t;
+typedef unsigned long uintptr_t;
+#endif
 
 #define RLC_APPTIMER_ID	100		/* >=100: application timer */
 
@@ -202,7 +207,7 @@ typedef struct _complete_data
   TCHAR		buf_handle[COMPLETE_MAX_WORD_LEN];
   RlcCompleteFunc function;		/* function for continuation */
   void	       *ptr_handle;		/* pointer handle for client */
-  intptr_t		num_handle;		/* numeric handle for client */
+  intptr_t	num_handle;		/* numeric handle for client */
 } rlc_complete_data, *RlcCompleteData;
 
 _export RlcCompleteFunc rlc_complete_hook(RlcCompleteFunc func);
