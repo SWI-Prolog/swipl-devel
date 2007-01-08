@@ -28,7 +28,7 @@
 #include <stdarg.h>
 #include <stdlib.h>			/* get size_t */
 #include <stddef.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 #if (_MSC_VER < 1300)
@@ -80,11 +80,8 @@ duplicated this stuff.
 
 #ifndef _PL_EXPORT_DONE
 #define _PL_EXPORT_DONE
-#if defined(WIN32) && !defined(__WIN32__)
-#define __WIN32__
-#endif
 
-#if (defined(__WIN32__) || defined(__CYGWIN__)) && !defined(__LCC__)
+#if (defined(_MSC_VER) || defined(__CYGWIN__)) && !defined(__LCC__)
 #define HAVE_DECLSPEC
 #endif
 
@@ -668,7 +665,7 @@ UNICODE file functions.
 #define REP_ISO_LATIN_1 0x0000		/* output representation */
 #define REP_UTF8 	0x1000
 #define REP_MB		0x2000
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define REP_FN		REP_UTF8
 #else
 #define REP_FN		REP_MB

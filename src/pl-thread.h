@@ -41,7 +41,7 @@ typedef enum
   LDATA_ANSWERED
 } ldata_status_t;
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 enum
 { SIGNAL     = 0,
   BROADCAST  = 1,
@@ -68,7 +68,7 @@ typedef struct _PL_thread_info_t
 #ifdef __linux__
   pid_t		    pid;		/* for identifying */
 #endif
-#ifdef WIN32
+#ifdef __WINDOWS__
   uintptr_t	    w32id;		/* Win32 thread HANDLE */
 #endif
   struct PL_local_data  *thread_data;	/* The thread-local data  */
@@ -81,7 +81,7 @@ typedef struct _PL_thread_info_t
 
 typedef struct message_queue
 { simpleMutex	       mutex;		/* Message queue mutex */
-#ifdef WIN32
+#ifdef __WINDOWS__
   win32_cond_t	       cond_var;
 #else
   pthread_cond_t       cond_var;	/* condition variable of queue */
@@ -241,7 +241,7 @@ may wish to write:
 		 *   NATIVE THREAD-LOCAL DATA	*
 		 *******************************/
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 typedef DWORD	TLD_KEY;
 
 #define TLD_alloc(p)	(*(p) = TlsAlloc())

@@ -114,7 +114,7 @@ pl_sleep(term_t time)
   fail;
 }
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #include <process.h>
 #endif
 

@@ -43,7 +43,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "morecore.c"
 #endif
 
-#if defined(_DEBUG) && defined(WIN32)
+#if defined(_DEBUG) && defined(__WINDOWS__)
 #include <crtdbg.h>
 #endif
 
@@ -248,7 +248,7 @@ initPaths()
   
     systemDefaults.home	       = findHome(symbols);
   
-#ifdef __WIN32__			/* we want no module but the .EXE */
+#ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string(symbols);
     symbols = findExecutable(NULL, plp);
     DEBUG(2, Sdprintf("Executable: %s\n", symbols));
@@ -258,7 +258,7 @@ initPaths()
   } else
   { systemDefaults.home	       = findHome(NULL);
     GD->options.systemInitFile = store_string("none");
-#ifdef __WIN32__			/* we want no module but the .EXE */
+#ifdef __WINDOWS__			/* we want no module but the .EXE */
     GD->paths.module	       = store_string("libpl.dll");
 #endif
   }
@@ -287,7 +287,7 @@ initDefaults()
   systemDefaults.toplevel    = "prolog";
   systemDefaults.notty       = NOTTYCONTROL;
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   getDefaultsFromRegistry();
 #endif
 
@@ -530,7 +530,7 @@ openResourceDB(int argc, char **argv)
 
   if ( !GD->bootsession )
   { 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
     if ( GD->paths.module &&
 	 !streq(GD->paths.module, GD->paths.executable) &&
 	 (rc = rc_open_archive(GD->paths.module, flags)) )
@@ -695,7 +695,7 @@ script_argv(int argc, char **argv)
     char *av[MAXARGV];
     int  an = 0;
 
-#ifdef WIN32
+#ifdef __WINDOWS__
     if ( argc == 2 )
     { char tmp[MAXPATHLEN];
       char dir[MAXPATHLEN];
@@ -779,7 +779,7 @@ PL_initialise(int argc, char **argv)
   bool compile = FALSE;
   const char *rcpath = "<none>";
 
-#if defined(_DEBUG) && defined(WIN32) && 0
+#if defined(_DEBUG) && defined(__WINDOWS__) && 0
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
 		 _CRTDBG_CHECK_CRT_DF|
 		 //_CRTDBG_CHECK_ALWAYS_DF| 	/* very expensive */
@@ -899,7 +899,7 @@ properly on Linux. Don't bother with it.
     }
     if ( Sclose(s) != 0 || !rc_save_archive(GD->resourceDB, NULL) )
     { 
-#if defined(__WINDOWS__) || defined(__WIN32__)
+#ifdef __WINDOWS__
       PlMessage("Failed to save system resources: %s", rc_strerror(rc_errno));
 #else
       Sfprintf(Serror,
@@ -908,7 +908,7 @@ properly on Linux. Don't bother with it.
 #endif
       PL_halt(1);
     }
-#if defined(__WINDOWS__) || defined(__WIN32__)
+#ifdef __WINDOWS__
     PlMessage("Boot compilation has created %s", rcpathcopy);
 #else
     Sfprintf(Serror,
@@ -1175,7 +1175,7 @@ PL_cleanup(int rval)
   for(h = GD->os.on_halt_list; h; h = h->next)
     (*h->function)(rval, h->argument);
 
-#if defined(__WINDOWS__) || defined(__WIN32__)
+#ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
     PlMessage("Exit status is %d", rval);
 #endif
@@ -1329,7 +1329,7 @@ action:
 void
 vfatalError(const char *fm, va_list args)
 {
-#if defined(__WINDOWS__) || defined(__WIN32__)
+#ifdef __WINDOWS__
   char msg[500];
   Ssprintf(msg, "[FATAL ERROR:\n\t");
   Svsprintf(&msg[strlen(msg)], fm, args);

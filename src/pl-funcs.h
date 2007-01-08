@@ -327,7 +327,7 @@ COMMON(word) 		pl_file_dir_name(term_t f, term_t b);
 COMMON(word) 		pl_file_name_extension(term_t base, term_t ext, term_t full);
 COMMON(word) 		pl_prolog_to_os_filename(term_t pl, term_t os);
 COMMON(foreign_t) 	pl_mark_executable(term_t path);
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 COMMON(word) 		pl_make_fat_filemap(term_t dir);
 #endif
 COMMON(word) 		pl_copy_stream_data3(term_t in, term_t out, term_t len);

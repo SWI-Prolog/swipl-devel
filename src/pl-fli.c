@@ -3507,9 +3507,9 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 }
 
 
-#if defined(HAVE_SELECT) && !defined(WIN32)
+#if defined(HAVE_SELECT) && !defined(__WINDOWS__)
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <winsock2.h>
 #endif
 

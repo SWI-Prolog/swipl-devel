@@ -46,7 +46,7 @@ day.
 #include "pl-incl.h"
 #ifdef HAVE_FLOAT_H
 #include <float.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define isnan(x) _isnan(x)
 #endif
 #endif
@@ -68,7 +68,7 @@ day.
 #define M_E (2.7182818284590452354)
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define LL(x) x ## i64
 #else
 #define LL(x) x ## LL

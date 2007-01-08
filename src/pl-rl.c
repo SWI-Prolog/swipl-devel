@@ -32,7 +32,7 @@ SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-stream.h).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-#ifndef __WIN32__
+#ifndef __WINDOWS__
 #include "pl-incl.h"
 #endif
 #include <string.h>
@@ -40,7 +40,7 @@ SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-stream.h).
 #include "pl-stream.h"
 #include "pl-itf.h"
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #include "config/win32.h"
 #else
 #include <config.h>
@@ -57,7 +57,7 @@ SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-stream.h).
 #ifdef HAVE_CLOCK
 #include <time.h>
 #endif
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #include <io.h>
 #endif
 #ifdef O_RLC
@@ -492,7 +492,7 @@ prolog_completion(const char *text, int start, int end)
 install_t
 PL_install_readline()
 { 
-#ifndef __WIN32__
+#ifndef __WINDOWS__
   if ( !trueFeature(TTY_CONTROL_FEATURE) || !isatty(0) )
     return;
 #endif
@@ -500,7 +500,7 @@ PL_install_readline()
   rl_catch_signals = 0;
   rl_readline_name = "Prolog";
   rl_attempted_completion_function = prolog_completion;
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!,|%&?";
 #else
   rl_basic_word_break_characters = ":\t\n\"\\'`@$><= [](){}+*!,|%&?";

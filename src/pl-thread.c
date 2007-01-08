@@ -107,7 +107,7 @@ static sem_t sem_canceled;		/* used on halt */
 #define sem_canceled_ptr (&sem_canceled)
 #endif
 
-#ifndef WIN32
+#ifndef __WINDOWS__
 #include <signal.h>
 
 #ifdef USE_SEM_OPEN
@@ -166,7 +166,7 @@ static sem_t sem_mark;			/* used for atom-gc */
 #define SIG_FORALL SIGHUP
 #endif
 #define SIG_RESUME SIG_FORALL
-#endif /*!WIN32*/
+#endif /*!__WINDOWS__*/
 
 
 		 /*******************************
@@ -192,7 +192,7 @@ Some remarks:
 	General-purpose mutex.  Should only be used for simple, very
 	local tasks and may not be used to lock anything significant.
 
-    WIN32
+    __WINDOWS__
 	We use native windows CRITICAL_SECTIONS for mutexes here to
 	get the best performance, notably on single-processor hardware.
 	This is selected in pl-mutex.h based on the macro
@@ -527,7 +527,7 @@ initPrologThreads()
   info->status = PL_THREAD_RUNNING;
   PL_local_data.thread.info = info;
   PL_local_data.thread.magic = PL_THREAD_MAGIC;
-#ifdef WIN32
+#ifdef __WINDOWS__
   info->w32id = GetCurrentThreadId();
 #endif
   set_system_thread_id(info);
@@ -600,7 +600,7 @@ exitPrologThreads()
 	      break;			/* done so */
 	  }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   	  t->thread_data->exit_requested = TRUE;
 	  t->thread_data->pending_signals |= (1L << (SIGINT-1));
 	  PostThreadMessage(t->w32id, WM_QUIT, 0, 0);
@@ -737,7 +737,7 @@ PL_thread_self()
 }
 
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_w32thread_raise(DWORD id, int sig)
@@ -758,7 +758,7 @@ PL_w32thread_raise(DWORD id, int sig)
   for(i = 0, info = threads; i < MAX_THREADS; i++, info++)
   { if ( info->w32id == id && info->thread_data )
     { info->thread_data->pending_signals |= (1L << (sig-1));
-#ifdef WIN32
+#ifdef __WINDOWS__
       if ( info->w32id )
 	PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
 #endif
@@ -772,7 +772,7 @@ PL_w32thread_raise(DWORD id, int sig)
   return FALSE;				/* can't find thread */
 }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PL_thread_raise() is used  for  re-routing   interrupts  in  the Windows
@@ -795,7 +795,7 @@ PL_thread_raise(int tid, int sig)
     goto error;
 
   info->thread_data->pending_signals |= (1L << (sig-1));
-#ifdef WIN32
+#ifdef __WINDOWS__
   if ( info->w32id )
     PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
 #endif
@@ -836,7 +836,7 @@ system_thread_id(PL_thread_info_t *info)
 #ifdef __linux__
   return info->pid;
 #else
-#ifdef WIN32
+#ifdef __WINDOWS__
   return info->w32id;
 #else
   return (intptr_t)info->tid;
@@ -850,7 +850,7 @@ set_system_thread_id(PL_thread_info_t *info)
 #ifdef HAVE_GETTID
   info->pid = gettid();
 #else
-#ifdef WIN32
+#ifdef __WINDOWS__
   info->w32id = GetCurrentThreadId();
 #endif
 #endif
@@ -1527,7 +1527,7 @@ pl_thread_signal(term_t thread, term_t goal)
   }
   ld->pending_signals |= (1L << (SIG_THREAD_SIGNAL-1));
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   if ( ld->thread.info->w32id )
     PostThreadMessage(ld->thread.info->w32id, WM_SIGNALLED, 0, 0L);
 #endif
@@ -1597,7 +1597,7 @@ freeThreadSignals(PL_local_data_t *ld)
 		 *	  MESSAGE QUEUES	*
 		 *******************************/
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Earlier implementations used pthread-win32 condition   variables.  As we
 need to dispatch messages while waiting for a condition variable we need
@@ -1715,12 +1715,12 @@ win32_cond_broadcast(win32_cond_t *cv)	/* must be holding associated mutex */
 #define cv_signal    	win32_cond_signal
 #define cv_init(cv,p)	win32_cond_init(cv)
 #define cv_destroy	win32_cond_destroy
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 #define cv_broadcast	pthread_cond_broadcast
 #define cv_signal	pthread_cond_signal
 #define cv_init(cv,p)	pthread_cond_init(cv, p)
 #define cv_destroy	pthread_cond_destroy
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This code deals with telling other threads something.  The interface:
@@ -1796,14 +1796,14 @@ cleanup_get_message(void *context)
   simpleMutexUnlock(&ctx->queue->mutex);
 }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 static int
 dispatch_cond_wait(message_queue *queue)
 { return win32_cond_wait(&queue->cond_var, &queue->mutex);
 }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 #if 0
 
@@ -1872,7 +1872,7 @@ dispatch_cond_wait(message_queue *queue)
 #endif
 
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 static int
 get_message(message_queue *queue, term_t msg)
@@ -2893,7 +2893,7 @@ detach_engine(PL_engine_t e)
 #ifdef __linux__
   info->pid = -1;
 #endif
-#ifdef WIN32
+#ifdef __WINDOWS__
   info->w32id = 0;
 #endif
   info->tid = 0L;
@@ -3035,7 +3035,7 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 }
 
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 /* How to make the memory visible?
 */
@@ -3068,7 +3068,7 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
   return 0.0;
 }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 #define timespec_to_double(ts) \
 	(double)ts.tv_sec + (double)ts.tv_nsec/1000000000ull
@@ -3311,7 +3311,7 @@ ThreadCPUTime(PL_thread_info_t *info, int which)
 #endif /*LINUX_PROCFS*/
 #endif /*LINUX_CPUCLOCKS*/
 #endif /*PTHREAD_CPUCLOCKS*/
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 
 		 /*******************************
@@ -3345,14 +3345,14 @@ refer to new atoms by creating them, in which case the thread will block
 or by executing an instruction that refers to the atom. In this case the
 atom is locked by the instruction anyway.
 
-[WIN32]  The  windows  case  is  entirely    different  as  we  have  no
+[__WINDOWS__]  The  windows  case  is  entirely    different  as  we  have  no
 asynchronous signals. Fortunately we  can   suspend  and resume threads.
 This makes the code a lot easier as   you can see below. Problem is that
 only one processor is doing the  job,   where  atom-gc  is a distributed
 activity in the POSIX based code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 
 void					/* For comments, see above */
 forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
@@ -3396,7 +3396,7 @@ resumeThreads(void)
   }
 }
 
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 
 static void (*ldata_function)(PL_local_data_t *data);
 
@@ -3601,7 +3601,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   ldata_function = NULL;
 }
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 		 /*******************************
 		 *	    PREDICATES		*
@@ -3762,7 +3762,7 @@ PL_thread_destroy_engine()
 { return FALSE;
 }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 int
 PL_w32thread_raise(DWORD id, int sig)
 { return PL_raise(sig);

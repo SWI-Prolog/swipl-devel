@@ -84,7 +84,7 @@ activateProfiler(int active ARG_LD)
 }
 
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 MS-Windows version
@@ -192,7 +192,7 @@ stopItimer(void)
   }
 }
 
-#else /*__WIN32__*/
+#else /*__WINDOWS__*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 POSIX version
@@ -245,7 +245,7 @@ stopItimer(void)
   }
 }
 
-#endif /*__WIN32__*/
+#endif /*__WINDOWS__*/
 
 static bool
 stopProfiler(void)
@@ -255,7 +255,7 @@ stopProfiler(void)
 
   stopItimer();
   activateProfiler(FALSE PASS_LD);
-#ifndef __WIN32__
+#ifndef __WINDOWS__
   set_sighandler(SIGPROF, SIG_IGN);
 #endif
 
@@ -777,10 +777,10 @@ clear the flags again.
 #define LD LOCAL_LD
 
 static void
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 profile(intptr_t count, PL_local_data_t *__PL_ld)
 { 
-#else /*__WIN32__*/
+#else /*__WINDOWS__*/
 profile(int sig)
 { GET_LD
 
@@ -795,7 +795,7 @@ profile(int sig)
   signal(SIGPROF, profile);
 #endif
 
-#endif /*__WIN32__*/
+#endif /*__WINDOWS__*/
   LD->profile.ticks += count;
   
   if ( accounting )

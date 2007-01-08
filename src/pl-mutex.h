@@ -55,7 +55,7 @@ controlled using the following macros:
 
 #ifdef O_PLMT
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #define USE_CRITICAL_SECTIONS 1
 #endif
 

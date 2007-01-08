@@ -629,7 +629,7 @@ that ignores the error. This might get hairy if the user is playing with
 these streams too.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 static int
 isConsoleStream(IOSTREAM *s)
 { int i = standardStreamIndexFromStream(s);
@@ -1532,7 +1532,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
     e->next   = map;
     map       = e;
 
-#ifdef WIN32
+#ifdef __WINDOWS__
     FD_SET((SOCKET)fd, &fds);
 #else
     FD_SET(fd, &fds);
@@ -1591,7 +1591,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
     FD_ZERO(&fds);			/* EINTR may leave fds undefined */
     for(e=map; e; e=e->next)		/* so we rebuild it to be safe */
     {
-#ifdef WIN32
+#ifdef __WINDOWS__
       FD_SET((SOCKET)e->fd, &fds);
 #else
       FD_SET(e->fd, &fds);

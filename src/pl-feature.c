@@ -26,7 +26,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include <ctype.h>
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #include <process.h>			/* getpid() */
 #endif
 
@@ -732,7 +732,7 @@ void
 initFeatures()
 { defFeature("iso",  FT_BOOL, FALSE, ISO_FEATURE);
   defFeature("arch", FT_ATOM|FF_READONLY, ARCH);
-#if __WIN32__
+#if __WINDOWS__
   defFeature("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
 #endif
   defFeature("version",	FT_INTEGER|FF_READONLY, PLVERSION);
@@ -849,7 +849,7 @@ initFeatures()
 	     trueFeature(SIGNALS_FEATURE), SIGNALS_FEATURE);
   defFeature("readline", FT_BOOL/*|FF_READONLY*/, FALSE, 0);
 
-#if defined(__WIN32__) && defined(_DEBUG)
+#if defined(__WINDOWS__) && defined(_DEBUG)
   defFeature("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");
 #endif
 

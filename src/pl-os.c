@@ -75,7 +75,7 @@
 #include <dos.h>
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define STAT_TYPE struct _stat
 #else
 #define STAT_TYPE struct stat
@@ -133,7 +133,7 @@ initOs(void)
   DEBUG(1, Sdprintf("OS:initEnviron() ...\n"));
   initEnviron();
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   set(&features, FILE_CASE_PRESERVING_FEATURE);
 #else
   set(&features, FILE_CASE_FEATURE);
@@ -179,7 +179,7 @@ char *
 OsError(void)
 {
 #ifdef HAVE_STRERROR
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   return strerror(_xos_errno());
 #else
   return strerror(errno);
@@ -218,7 +218,7 @@ static char errmsg[64];
     consult a file or to execute a query.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef __WIN32__			/* defined in pl-nt.c */
+#ifndef __WINDOWS__			/* defined in pl-nt.c */
 
 #ifdef HAVE_TIMES
 #include <sys/times.h>
@@ -286,7 +286,7 @@ CpuTime(cputime_kind which)
 #endif
 }
 
-#endif /*__WIN32__*/
+#endif /*__WINDOWS__*/
 
 void
 PL_clock_wait_ticks(intptr_t waited)
@@ -373,7 +373,7 @@ FreeMemory(void)
     uint64_t _PL_Random()
 
     Return a random number. Used for arithmetic only. More trouble. On
-    some systems (WIN32) the seed of rand() is thread-local, while on
+    some systems (__WINDOWS__) the seed of rand() is thread-local, while on
     others it is global.  We appear to have the choice between
 
     	# srand()/rand()
@@ -391,7 +391,7 @@ static void
 initRandom(void)
 { intptr_t init;
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   init = GetTickCount();
 #else
 #ifdef HAVE_GETTIMEOFDAY
@@ -479,7 +479,7 @@ struct tempfile
 #define tmpfile_tail (GD->os._tmpfile_tail)
 
 #ifndef DEFTMPDIR
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #define DEFTMPDIR "c:/tmp"
 #else
 #define DEFTMPDIR "/tmp"
@@ -505,7 +505,7 @@ TemporaryFile(const char *id)
 }
 #endif
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 { char *tmp;
   static int temp_counter = 0;
 
@@ -1631,7 +1631,7 @@ isDriveRelativePath(const char *p)	/* '/...' */
 { return IS_DIR_SEPARATOR(p[0]) && !IsAbsolutePath(p);
 }
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #undef mkdir
 #include <direct.h>
 #define mkdir _xos_mkdir
@@ -1643,7 +1643,7 @@ GetCurrentDriveLetter()
 #ifdef OS2
   return _getdrive();
 #endif
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   return _getdrive() + 'a' - 1;
 #endif
 #ifdef __WATCOMC__
@@ -2706,7 +2706,7 @@ System(char *command)
 #endif
 
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #define SPECIFIC_SYSTEM 1
 
 					/* definition in pl-nt.c */
@@ -2732,7 +2732,7 @@ char *command;
     Return the path name of the executable of SWI-Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef __WIN32__			/* Win32 version in pl-nt.c */
+#ifndef __WINDOWS__			/* Win32 version in pl-nt.c */
 
 char *
 findExecutable(const char *av0, char *buffer)
@@ -2776,7 +2776,7 @@ findExecutable(const char *av0, char *buffer)
 
   return strcpy(buffer, file ? file : buf);
 }
-#endif /*__WIN32__*/
+#endif /*__WINDOWS__*/
 
 
 #ifdef __unix__
@@ -2799,7 +2799,7 @@ okToExec(const char *s)
 #define PATHSEP ','
 #endif
 
-#if defined(OS2) || defined(__DOS__) || defined(__WINDOWS__) || defined(__WIN32__)
+#if defined(OS2) || defined(__DOS__) || defined(__WINDOWS__)
 #define EXEC_EXTENSIONS { ".exe", ".com", ".bat", ".cmd", NULL }
 #define PATHSEP ';'
 #endif
@@ -2895,7 +2895,7 @@ Which(const char *program, char *fullname)
     point,  expressing  the  time  to sleep in seconds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #define PAUSE_DONE 1			/* see pl-nt.c */
 #endif
 

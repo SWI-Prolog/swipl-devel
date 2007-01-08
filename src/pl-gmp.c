@@ -60,7 +60,7 @@ free(void *ptr, size_t size)
 }
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #undef isascii
 int
 isascii(int c)				/* missing from gmp.lib */

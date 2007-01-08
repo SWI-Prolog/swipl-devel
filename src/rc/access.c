@@ -242,7 +242,7 @@ register_header(RcArchive rca, rc_size hdrlen)
   hdr.encoding  = strdup("none");
   hdr.modified  = time(NULL);
   hdr.size      = hdrlen;
-  hdr.offset    = -(long)hdrlen;
+  hdr.offset    = -(intptr_t)hdrlen;
 
   rc_register_member(rca, &hdr);
 
@@ -253,7 +253,7 @@ register_header(RcArchive rca, rc_size hdrlen)
 static rc_size
 contentlength(const char *tag)
 { htmltagdef def[2];
-  long len = 0;
+  intptr_t len = 0;
 
   def[0].tag     = "contentlength";
   def[0].convert = html_cvt_long;

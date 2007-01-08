@@ -29,7 +29,7 @@ See pl-mswchar.cpp for  the  motivation  for   this  nonsense.  Used  in
 pl-fli.c and pl-text.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define wcrtomb(s, wc, ps)	ms_wcrtomb(s, wc, ps)
 #define mbrtowc(pwc, s, n, ps)	ms_mbrtowc(pwc, s, n, ps)
 

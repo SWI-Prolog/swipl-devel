@@ -303,7 +303,7 @@ pl_tty_size(term_t r, term_t c)
 
 #else /* ~TGETENT */
 
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 
 static void *
 getModuleFunction(const char *module, const char *name)
@@ -337,7 +337,7 @@ pl_tty_size(term_t r, term_t c)
 
 #define HAVE_PL_TTY_SIZE 1
 
-#endif /*__WIN32__*/
+#endif /*__WINDOWS__*/
 
 void resetTerm()
 {

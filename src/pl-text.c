@@ -26,7 +26,7 @@
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include <stdio.h>
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #include "pl-mswchar.h"			/* Terrible hack */
 #endif
 

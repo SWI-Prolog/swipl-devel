@@ -22,11 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#if defined(WIN32) && !defined(__WIN32__)
-#define __WIN32__ 1
-#endif
-
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #include <uxnt.h>
 #define MD "config/win32.h"
 #include <winsock2.h>
@@ -386,7 +382,7 @@ S__fillbuf(IOSTREAM *s)
       time.tv_sec  = s->timeout / 1000;
       time.tv_usec = (s->timeout % 1000) * 1000;
       FD_ZERO(&wait);
-#ifdef WIN32
+#ifdef __WINDOWS__
       FD_SET((SOCKET)fd, &wait);
 #else
       FD_SET(fd, &wait);
@@ -496,7 +492,7 @@ update_linepos(IOSTREAM *s, int c)
       p->lineno++;
       p->linepos = 0;
       s->flags &= ~SIO_NOLINEPOS;
-#ifdef __WIN32__
+#ifdef __WINDOWS__
       if ( s->flags & O_TEXT )
 	p->charno++;			/* writes one extra! */
 #endif
@@ -1557,7 +1553,7 @@ Sclose(IOSTREAM *s)
     free(s->mbstate);
 
   s->flags |= SIO_CLOSING;
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   if ( (s->flags & SIO_ADVLOCK) )
   { OVERLAPPED ov;
     HANDLE h = (HANDLE)_get_osfhandle((int)s->handle);
@@ -1819,7 +1815,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      sprintf(fs, fmbuf, v);
 	    } else
 	    {
-#ifdef WIN32
+#ifdef __WINDOWS__
 	      strcat(fp-1, "I64");	/* Synchronise with INT64_FORMAT! */
 	      fp += strlen(fp);
 #else
@@ -1984,7 +1980,7 @@ Svdprintf(const char *fm, va_list args)
 
   SLOCK(s);
   rval = Svfprintf(s, fm, args);
-#if defined(_DEBUG) && defined(WIN32)
+#if defined(_DEBUG) && defined(__WINDOWS__)
   Sputc('\0', s);
   s->bufp--;				/* `Unput' */
   OutputDebugString(s->buffer);
@@ -2533,7 +2529,7 @@ Sopen_file(const char *path, const char *how)
       return NULL;
     }
 #else					/* we don't have locking */
-#if __WIN32__
+#if __WINDOWS__
     HANDLE h = (HANDLE)_get_osfhandle(fd);
     OVERLAPPED ov;
 
@@ -2674,7 +2670,7 @@ S__getiob()
 		 *******************************/
 
 #ifdef HAVE_POPEN
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include "popen.c"
 
 #define popen(cmd, how) pt_popen(cmd, how)

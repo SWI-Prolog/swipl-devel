@@ -1015,9 +1015,9 @@ todays Unix systems or VirtualAlloc() and friends in Win32.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
-#ifndef WIN32
+#ifndef __WINDOWS__
 extern int errno;
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 static int size_alignment;	/* Stack sizes must be aligned to this */
 

@@ -36,10 +36,15 @@
 #  else
      typedef void *WIN_HANDLE;
 #  endif
+#if (_MSC_VER < 1300)
+typedef long intptr_t;
+typedef unsigned long uintptr_t;
+#endif
 #else
 #  if defined(HAVE_CONFIG_H) || defined(RC_KERNEL)
 #    include <config.h>
 #  endif
+#include <inttypes.h>			/* more portable than stdint.h */
 #endif
 
 #ifdef HAVE_DMALLOC_H
@@ -80,8 +85,8 @@
 extern int	rc_errno;
 const char *rc_strerror(int e);
 
-typedef unsigned long rc_size;		/* size of resource objects */
-typedef unsigned long rc_offset;	/* offset in the archive */
+typedef uintptr_t rc_size;		/* size of resource objects */
+typedef uintptr_t rc_offset;		/* offset in the archive */
 
 typedef struct _rc_member
 { char	       *name;			/* name of the member */

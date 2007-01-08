@@ -25,11 +25,7 @@
 #ifndef _PL_INCLUDE_H
 #define _PL_INCLUDE_H
 
-#if defined(WIN32) && !defined(__WIN32__)
-#define __WIN32__ 1
-#endif
-
-#ifdef __WIN32__
+#ifdef __WINDOWS__
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/Program Files/pl"
 #define DEFSTARTUP   "pl.ini"
@@ -258,7 +254,7 @@ void *alloca ();
 #include <uxnt.h>
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #include <winsock2.h>
 #endif
 #include "pl-mutex.h"

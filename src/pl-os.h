@@ -161,7 +161,7 @@ extern uintptr_t	FreeMemory(void);
 		*       IOSTREAM DESCR. SETS	*
 		********************************/
 
-#if !defined(FD_ZERO) && !defined(WIN32)
+#if !defined(FD_ZERO) && !defined(__WINDOWS__)
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #else

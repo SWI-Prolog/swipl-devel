@@ -103,7 +103,7 @@ static const PL_extension foreigns[] = {
   FRG("file_name_extension",	3, pl_file_name_extension,	0),
   FRG("prolog_to_os_filename",	2, pl_prolog_to_os_filename,	0),
   FRG("$mark_executable",	1, pl_mark_executable,		0),
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   FRG("win_exec",		2, pl_win_exec,			0),
   FRG("win_module_file",	2, pl_win_module_file,		0),
 #endif
@@ -590,7 +590,7 @@ initBuildIns(void)
 #ifdef O_GVAR
   REG_PLIST(gvar);
 #endif
-#ifdef __WIN32__
+#ifdef __WINDOWS__
   REG_PLIST(win);
 #endif
 

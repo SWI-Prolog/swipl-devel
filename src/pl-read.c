@@ -1200,7 +1200,7 @@ SkipIdCont(unsigned char *in)
 static real
 uint64_to_real(uint64_t i)
 {
-#ifdef WIN32
+#ifdef __WINDOWS__
   int64_t s = (int64_t)i;
   if ( s >= 0 )
     return (real)s;

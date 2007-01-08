@@ -12,7 +12,7 @@
   replace conditional at line 47 with:
 
   #ifndef USE_POPEN
-  #ifdef WIN32
+  #ifdef __WINDOWS__
   #define USE_POPEN 1
   FILE* pt_popen(const char *cmd, const char*mode);
   int pt_pclose(FILE *file);
@@ -121,7 +121,7 @@ my_pipe(HANDLE *readwrite)
 }
 
 /*------------------------------------------------------------------------------
-  Replacement for 'popen()' under WIN32.
+  Replacement for 'popen()' under __WINDOWS__.
   NOTE: if cmd contains '2>&1', we connect the standard error file handle
     to the standard output file handle.
 ------------------------------------------------------------------------------*/
@@ -229,7 +229,7 @@ finito:
 }
 
 /*------------------------------------------------------------------------------
-  Replacement for 'pclose()' under WIN32
+  Replacement for 'pclose()' under __WINDOWS__
 ------------------------------------------------------------------------------*/
 int
 pt_pclose(FILE *fle)

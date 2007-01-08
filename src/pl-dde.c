@@ -23,7 +23,7 @@
 */
 
 /*#define O_DEBUG 1*/
-#if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
+#ifdef __WINDOWS__
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Extension of SWI-Prolog:

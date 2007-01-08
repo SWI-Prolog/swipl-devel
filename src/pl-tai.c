@@ -37,7 +37,7 @@ is supposed to give the POSIX standard one.
 #include "libtai/caltime.h"
 #include <stdio.h>
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define timezone _timezone
 #define HAVE_VAR_TIMEZONE
 #else

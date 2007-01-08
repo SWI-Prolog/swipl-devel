@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#if defined(__WINDOWS__) || defined(__WIN32__) || defined(WIN32)
+#ifdef __WINDOWS__
 #define _WIN32_WINNT 0x0400
 #if (_MSC_VER >= 1300)
 #include <winsock2.h>			/* Needed on VC8 */

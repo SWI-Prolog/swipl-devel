@@ -99,7 +99,7 @@ typedef struct
 
   struct
   { char *	executable;		/* Running executable */
-#ifdef __WIN32__
+#ifdef __WINDOWS__
     char *	module;			/* argv[0] module passed */
 #endif
   } paths;
@@ -271,7 +271,7 @@ typedef struct
     Table		mutexTable;	/* Name --> mutex table */
     int			mutex_next_id;	/* next id for anonymous mutexes */
     struct pl_mutex*	MUTEX_load;	/* The $load mutex */
-#ifdef WIN32
+#ifdef __WINDOWS__
     HINSTANCE	    	instance;	/* Win32 process instance */
 #endif
     counting_mutex     *mutexes;	/* Registered mutexes */

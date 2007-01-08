@@ -28,7 +28,7 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <stddef.h>
-#ifdef WIN32
+#ifdef __WINDOWS__
 typedef __int64 int64_t;
 #if (_MSC_VER < 1300)
 typedef long intptr_t;
@@ -53,11 +53,8 @@ stuff.
 
 #ifndef _PL_EXPORT_DONE
 #define _PL_EXPORT_DONE
-#if defined(WIN32) && !defined(__WIN32__)
-#define __WIN32__
-#endif
 
-#if (defined(__WIN32__) || defined(__CYGWIN__)) && !defined(__LCC__)
+#if (defined(__WINDOWS__) || defined(__CYGWIN__)) && !defined(__LCC__)
 #define HAVE_DECLSPEC
 #endif
 
@@ -95,7 +92,7 @@ stuff.
 #define NULL ((void *)0)
 #endif
 
-#if defined(__WIN32__) && !defined(EWOULDBLOCK)
+#if defined(__WINDOWS__) && !defined(EWOULDBLOCK)
 #define EWOULDBLOCK	1000		/* Needed for socket handling */
 #endif
 #define EPLEXCEPTION	1001		/* errno: pending Prolog exception */

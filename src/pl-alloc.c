@@ -29,7 +29,7 @@
 #endif
 
 #ifndef ALLOC_DEBUG
-#if defined(_DEBUG) && defined(WIN32)
+#if defined(_DEBUG) && defined(__WINDOWS__)
 #define ALLOC_DEBUG 1
 #else
 #define ALLOC_DEBUG 0

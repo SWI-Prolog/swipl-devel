@@ -34,7 +34,7 @@ embedded application.
 
 #define UNQUOTED_PREFIX "\1"
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 #if (_MSC_VER >= 1400)			/* VC8 */
 #include <config/win32.h>
 #endif
@@ -68,7 +68,7 @@ typedef unsigned long uintptr_t;
 #define LIB_PL_DEBUG "libplD.lib"
 #define EXT_OBJ "obj"
 #define OPT_DEBUG "/DEBUG"
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 #include "pl-incl.h"
 
 #ifndef PROG_PL
@@ -84,7 +84,7 @@ typedef unsigned long uintptr_t;
 #define SO_LDFLAGS "-shared"
 #endif
 
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,7 +129,7 @@ typedef unsigned long uintptr_t;
 #define streq(s, q)     (strcmp((s), (q)) == 0)
 #endif
 #define strprefix(s, p) (strncmp((s), (p), strlen(p)) == 0)
-#ifdef WIN32
+#ifdef __WINDOWS__
 #define strfeq(s, q)	(stricmp((s), (q)) == 0)
 #else
 #define strfeq(s, q)	streq(s, q)
@@ -516,7 +516,7 @@ typedef struct
 
 static extdef extdefs[] =
 { { EXT_OBJ,	&ofiles },
-#ifdef WIN32
+#ifdef __WINDOWS__
   { "lib",	&libs },
 #else
   { "a",	&libs },
@@ -525,7 +525,7 @@ static extdef extdefs[] =
   { "cpp",	&cppfiles },
   { "cxx",	&cppfiles },
   { "cc",	&cppfiles },
-#ifndef WIN32
+#ifndef __WINDOWS__
   { "C",	&cppfiles },
 #endif
   { "pl",	&plfiles },
@@ -581,7 +581,7 @@ usage()
 	  "usage: %s -help\n"
 	  "       %s [options] inputfile ...\n"
 	  "       %s -shared -o out inputfile ...\n"
-#ifdef WIN32
+#ifdef __WINDOWS__
 	  "       %s -dll -o out inputfile ...\n"
 #endif
 	  "       %s -E cppargument ...\n"
@@ -603,7 +603,7 @@ usage()
 	  "       -nostate         just relink the kernel\n"
 	  "       -shared          create target for load_foreign_library/2\n"
 	  "       -embed-shared    embed Prolog in a shared object/DLL\n"
-#ifdef WIN32
+#ifdef __WINDOWS__
 	  "       -dll             synonym for -embed-shared\n"
 #endif
 	  "       -fpic            compile small position-independent code\n"
@@ -657,14 +657,14 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-g") )		/* -g */
     { appendArgList(&coptions, OPT_DEBUG);
       appendArgList(&cppoptions, OPT_DEBUG);
-#ifdef WIN32					/* MSVC DEBUG OPTIONS */
+#ifdef __WINDOWS__					/* MSVC DEBUG OPTIONS */
       appendArgList(&coptions, "/ZI");
       appendArgList(&coptions, "/Od");
       appendArgList(&cppoptions, "/ZI");
       appendArgList(&cppoptions, "/Od");
 #endif
       appendArgList(&ldoptions, OPT_DEBUG);
-#ifdef WIN32
+#ifdef __WINDOWS__
       pllib = LIB_PL_DEBUG;
 #endif
     } else if ( strprefix(opt, "-O") )		/* -O* */
@@ -680,7 +680,7 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-dll") ||		/* -dll */
 		streq(opt, "-embed-shared") )   /* -embed-shared */
     { embed_shared = TRUE;
-#ifdef WIN32
+#ifdef __WINDOWS__
       appendArgList(&ldoptions, "/DLL");
 #else
 #ifdef SO_pic
@@ -869,7 +869,7 @@ fillDefaultOptions()
       ld = cxx;
   }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   if ( strcmp(LIB_PL_DEBUG,pllib) == 0 )
     ensureOption(&coptions, "/MDd");
   else ensureOption(&coptions, "/MD");
@@ -886,7 +886,7 @@ fillDefaultOptions()
   free(ctmp);
   ctmp = strdup(tmp);
 #endif
-#if defined(WIN32) || defined(__CYGWIN__)
+#if defined(__WINDOWS__) || defined(__CYGWIN__)
 /* Saved states have the .exe extension under Windows */
   replaceExtension(pltmp, embed_shared ? "dll" : "exe", tmp);
   free(pltmp);
@@ -911,7 +911,7 @@ fillDefaultOptions()
   defaultProgram(&plinitfile, "none");
   defaultProgram(&plsysinit,  "none");
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   sprintf(tmp, "%s/lib", plbase);
 #else
   sprintf(tmp, "%s/lib/%s", plbase, plarch);
@@ -993,7 +993,7 @@ getPrologOptions()
 
     pclose(fd);
 
-#ifdef WIN32
+#ifdef __WINDOWS__
     sprintf(buf, "%s/bin/%s", plbase, PROG_PL);
 #else
     sprintf(buf, "%s/bin/%s/%s", plbase, plarch, PROG_PL);
@@ -1086,7 +1086,7 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
     strcpy(ext, EXT_OBJ);
 
   prependArgList(args, "-c");
-#ifdef WIN32
+#ifdef __WINDOWS__
   appendArgList(args, "-DWIN32");
   appendArgList(args, "-D_WINDOWS");
 #endif
@@ -1117,7 +1117,7 @@ compileObjectFiles()
     compileFile(cxx, &cppoptions, cppfiles.list[n]);
 }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 char *
 os_path(char *out, const char *in)
 { for(; *in; in++)
@@ -1158,14 +1158,14 @@ void
 linkBaseExecutable()
 { char *cout = out;
 
-#ifndef WIN32				/* bit of a hack ... */
+#ifndef __WINDOWS__				/* bit of a hack ... */
   if ( embed_shared )
   { linkSharedObject();
     return;
   } 
 #endif
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 { char tmp[MAXPATHLEN];
   sprintf(tmp, "/out:%s", cout);
   prependArgList(&ldoptions, tmp);
@@ -1175,7 +1175,7 @@ linkBaseExecutable()
   appendArgList(&ldoptions, pllib);		/* -lpl */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
-#else /*WIN32*/
+#else /*__WINDOWS__*/
   prependArgList(&ldoptions, cout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
@@ -1187,7 +1187,7 @@ linkBaseExecutable()
 
   if ( !nostate )
   { 
-#ifdef WIN32
+#ifdef __WINDOWS__
     if ( !embed_shared )
     { char buf[MAXPATHLEN];
       appendArgList(&tmpfiles, replaceExtension(cout, "exp", buf));
@@ -1214,7 +1214,7 @@ linkSharedObject()
   { soout = replaceExtension(out, soext, soname);
   }
 
-#ifdef WIN32
+#ifdef __WINDOWS__
   prependArgList(&ldoptions, "/dll");
 { char tmp[MAXPATHLEN];
   sprintf(tmp, "/out:%s", soout);
@@ -1225,7 +1225,7 @@ linkSharedObject()
   appendArgList(&ldoptions, pllib);		/* libpl.lib */
   concatArgList(&ldoptions, "", &libs);		/* libraries */
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
-#else /*WIN32*/
+#else /*__WINDOWS__*/
 #ifdef __CYGWIN__
   prependArgList(&ldoptions, SO_LDFLAGS);
   prependArgList(&ldoptions, soout);
@@ -1260,7 +1260,7 @@ linkSharedObject()
   appendArgList(&ldoptions, plexe);		/* last is executable */
 #endif
 #endif /*__CYGWIN__*/
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
   callprog(ld, &ldoptions);
 }
@@ -1379,7 +1379,7 @@ copy_fd(int i, int o)
 }
 
 
-#ifdef WIN32
+#ifdef __WINDOWS__
 void
 saveExportLib()
 { char ibuf[MAXPATHLEN];
@@ -1401,7 +1401,7 @@ saveExportLib()
     }
   }
 }
-#endif /*WIN32*/
+#endif /*__WINDOWS__*/
 
 
 void
@@ -1410,7 +1410,7 @@ createOutput()
 
   if ( verbose )
   {
-#ifdef WIN32
+#ifdef __WINDOWS__
     printf("\tcopy /b %s+%s %s\n", out, pltmp, out);
 #else
     printf("\tcat %s >> %s\n", pltmp, out);

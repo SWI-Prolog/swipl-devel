@@ -277,11 +277,11 @@ int
 html_cvt_long(const char *data, int len, void *dst, void *closure)
 { if ( data )
   { char *e;
-    long val;
+    intptr_t val;
 
     val = strtol(data, &e, 0);
     if ( data+len == e )
-    { long *d = dst;
+    { intptr_t *d = dst;
 
       *d = val;
 
