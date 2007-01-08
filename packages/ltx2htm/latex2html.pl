@@ -1603,7 +1603,7 @@ tableofcontents(TagPrefix, #div(toc, Sections)) :-
 
 section_html(TagPrefix,
 	     [ #div(Class, #lref(sec, Ref,
-				 [ #span('sec-nr', Tag),
+				 [ #span('sec-nr', Tag), ' ',
 				   #span('sec-title', Title)
 				 ]))
 	     ]) :-
