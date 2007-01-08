@@ -146,7 +146,6 @@ typedef enum
 
 extern double	  CpuTime(cputime_kind);
 extern double	  WallTime(void);
-extern struct tm *LocalTime(intptr_t *, struct tm *r);
 
 
 		 /*******************************
