@@ -1,0 +1,27 @@
+TODO list porting SWI-Prolog to WIN64 (x86 or amd86)
+====================================================
+
+* Compiler: Visual studio Express edition + 64-bit SDK
+
+* Undefined symbols: add bufferoverflowu.lib
+
+* sizeof(long) = 4!?
+
+	>Yup, Win64. A ptr_type would be the easiest way out. FYI, VC++
+	>defines intptr_t and uintptr_t in stddef.h.
+
+	For gcc and Unix platforms we need either unistd.h or inttypes.h.
+	For compatibility with MSVC6 we need #if (_MSC_VER < 1300)
+	
+* GMP:
+	http://www.swox.com/list-archives/gmp-discuss/2006-March/002212.html
+	http://fp.gladman.plus.com/computing/gmp4win.htm
+
+* Pthread:
+	http://sourceware.org/ml/pthreads-win32/2006/msg00002.html
+
+* OpenSSL:
+	Many hits google for "openssl windows 64"
+
+* XPM:
+* JPEG:
