@@ -25,3 +25,11 @@ TODO list porting SWI-Prolog to WIN64 (x86 or amd86)
 
 * XPM:
 * JPEG:
+
+================================================================
+Reworking the sources:
+
+* Replace unsigned long with uintptr_t and long with intptr_t
+	- Done for src, src/src and src/win32/console
+* Make Windows code depend on __WINDOWS__
+	- Done for src
