@@ -111,7 +111,7 @@ TERMLIB=$(PLHOME)\lib\plterm.lib
 UXLIB=$(PLHOME)\lib\uxnt.lib
 
 !IF "$(DBG)" == "false"
-CFLAGS=/MD /W3 /O2 $(SYMOPT) /GX /DNDEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
+CFLAGS=/MD /W3 /O2 $(SYMOPT) /GX /DNDEBUG /D__WINDOWS__ /DWIN32 $(CMFLAGS) /nologo /c
 !IF "$(PDB)" == "true"
 LDFLAGS=/DEBUG /OPT:REF
 !ELSE
