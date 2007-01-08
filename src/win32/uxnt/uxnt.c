@@ -844,7 +844,7 @@ _xos_getenv(const char *name, char *buf, int buflen)
   { int rc;
 
     if ( size >= PATH_MAX )
-    { if ( (valp = malloc(size+1)) == NULL )
+    { if ( (valp = malloc((size+1)*sizeof(TCHAR))) == NULL )
 	return -1;
       size = GetEnvironmentVariable(nm, valp, size+1);
     }
