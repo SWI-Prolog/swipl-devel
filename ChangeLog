@@ -7,6 +7,11 @@
 					http://gollem.science.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Add ',' between lines in answer substitution.  Ulrigh Neumerkel.
+
+  * ADDED: option priority(P) to write_term/3.  Use this in writing
+    answer substitutions.  Ulrigh Neumerkel.
+
   * FIXED: Overflow issues in arithmetic left shift (<<).  Ulrigh Neumerkel.
 
   * FIXED: float_fractional_part function for integers.  See mailinglist.

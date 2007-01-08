@@ -561,3 +561,4 @@
 #define ATOM_yfy          MK_ATOM(560)
 #define ATOM_zero_divisor MK_ATOM(561)
 #define ATOM_comments     MK_ATOM(562)
+#define ATOM_priority     MK_ATOM(563)

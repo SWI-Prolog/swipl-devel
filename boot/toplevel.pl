@@ -649,12 +649,14 @@ answer_respons(Char, again) :-
 	print_message(query, no_action(Char)).
 
 print_predicate(0'w, [write], [ quoted(true),
-				attributes(write)
+				attributes(write),
+				priority(699)
 			      ]).
 print_predicate(0'p, [print], [ quoted(true),
 				portray(true),
 				attributes(portray),
-				max_depth(10)
+				max_depth(10),
+				priority(699)
 			      ]).
 
 

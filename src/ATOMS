@@ -575,6 +575,7 @@ A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
 A comments		"comments"
+A priority		"priority"
 
 F abs			1
 F access		1

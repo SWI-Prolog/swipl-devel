@@ -3007,6 +3007,16 @@ that is not a variable.  If portray/1 succeeds, the term is considered
 printed.  See also print/1.  The default is \const{false}.  This option
 is an extension to the ISO write_term options.
 
+    \termitem{priority}{Integer}
+An integer between 0 and 1200 represeting the `context priority'.
+Default is 1200.  Can be used to write partial terms appearing as
+the argument to an operator.  For example:
+
+\begin{code}
+	format('~w = ', [VarName]),
+	write_term(Value, [quoted(true), priority(699)])
+\end{code}
+
     \termitem{quoted}{Bool}
 If \const{true}, atoms and functors that needs quotes will be quoted.
 The default is \const{false}.

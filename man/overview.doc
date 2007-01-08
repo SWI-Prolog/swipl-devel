@@ -630,7 +630,7 @@ Continue execution, stop at next spy point.}
 Continue execution in `no debug' mode.} 
     \traceoption{p}{Print}{
 Set the prolog-flag \const{debugger_print_options} to
-\texttt{[quoted(true), portray(true), max_depth(10)]}. This is the
+\texttt{[quoted(true), portray(true), max_depth(10), priority(699)]}. This is the
 default.}
     \traceoption{r}{Retry}{
 Undo all actions (except for database and i/o actions) back to the call
@@ -644,7 +644,7 @@ skipping this goal and all calls to children of this goal). This option
 is useful to stop tracing a failure driven loop.} 
     \traceoption{w}{Write}{
 Set the prolog-flag \const{debugger_print_options} to
-\exam{[quoted(true)]}, bypassing portray/1, etc.}
+\exam{[quoted(true), attributes(write), priority(699)]}, bypassing portray/1, etc.}
 \end{description}
 
 The ideal 4 port model as described in many Prolog books

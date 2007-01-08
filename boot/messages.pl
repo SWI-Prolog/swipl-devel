@@ -505,9 +505,13 @@ prolog_message(query(eof)) -->
 bindings([]) -->
 	[].
 bindings([Name = Value|T]) -->
-	{ current_prolog_flag(toplevel_print_options, Options)
+	{ current_prolog_flag(toplevel_print_options, Options),
+	  (   T == []
+	  ->  Cont = ''
+	  ;   Cont = (,)
+	  )
 	},
-	[ nl, '~w = ~W'-[Name, Value, Options] ],
+	[ nl, '~w = ~W~w'-[Name, Value, Options, Cont] ],
 	bindings(T).
 
 prolog_message(query(help)) -->
