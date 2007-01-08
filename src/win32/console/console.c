@@ -350,7 +350,7 @@ rlc_window_class(HICON icon)
     wndClass.style		= CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS;
     wndClass.lpfnWndProc	= (LPVOID) rlc_wnd_proc;
     wndClass.cbClsExtra		= 0;
-    wndClass.cbWndExtra		= sizeof(long);
+    wndClass.cbWndExtra		= sizeof(intptr_t);
     wndClass.hInstance		= instance;
     if ( icon )
       wndClass.hIcon		= icon;
@@ -374,7 +374,7 @@ also available through GetCommandLine(), which  does include the command
 itself and returns LPTSTR (Unicode/ANSI). We assume the latter.
 
 Nevertheless, for backward compatibility as well  as easy to extract the
-full pathname of the  executable,  we   replace  argv[0]  with  the long
+full pathname of the  executable,  we   replace  argv[0]  with  the intptr_t
 filename version of the current module, so argv[0] is guaranteed to be a
 full path refering to the .exe file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3285,7 +3285,7 @@ free_rlc_data(RlcData b)
 rlc_close() tries to gracefully get rid of   the console thread. It does
 so by posting WM_RLC_CLOSEWIN and then waiting for a WM_RLC_READY reply.
 It waits for a maximum of  1.5  second,   which  should  be  fine as the
-console thread should not have long-lasting activities.
+console thread should not have intptr_t-lasting activities.
 
 If the timeout expires it hopes for the best. This was the old situation
 and proved to be sound on Windows-NT, but not on 95 and '98.
@@ -3490,7 +3490,7 @@ rlc_message_hook(RlcMessageHook new)
 
 
 int
-rlc_set(rlc_console c, int what, unsigned long data, RlcFreeDataHook hook)
+rlc_set(rlc_console c, int what, uintptr_t data, RlcFreeDataHook hook)
 { RlcData b = rlc_get_data(c);
 
   switch(what)
@@ -3507,7 +3507,7 @@ rlc_set(rlc_console c, int what, unsigned long data, RlcFreeDataHook hook)
 
 
 int
-rlc_get(rlc_console c, int what, unsigned long *data)
+rlc_get(rlc_console c, int what, uintptr_t *data)
 { RlcData b = (RlcData)c;
 
   if ( !b )
@@ -3515,10 +3515,10 @@ rlc_get(rlc_console c, int what, unsigned long *data)
 
   switch(what)
   { case RLC_APPLICATION_THREAD:
-      *data = (unsigned long)b->application_thread;
+      *data = (uintptr_t)b->application_thread;
       return TRUE;
     case RLC_APPLICATION_THREAD_ID:
-      *data = (unsigned long)b->application_thread_id;
+      *data = (uintptr_t)b->application_thread_id;
       return TRUE;
     default:
       if ( what >= RLC_VALUE(0) &&
@@ -3540,7 +3540,7 @@ free_user_data(RlcData b)
   { RlcFreeDataHook hook;
 
     if ( (hook=d->hook) )
-    { unsigned long data = d->data;
+    { uintptr_t data = d->data;
       d->hook = NULL;
       d->data = 0L;
       (*hook)(data);

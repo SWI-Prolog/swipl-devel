@@ -83,7 +83,7 @@ typedef int	(*RlcMain)(rlc_console c, int, TCHAR**); /* main() */
 typedef void	(*RlcInterruptHook)(rlc_console, int); /* Hook for Control-C */
 typedef void	(*RlcResizeHook)(int, int); /* Hook for window change */
 typedef void	(*RlcMenuHook)(rlc_console, const TCHAR *id); /* Hook for menu-selection */
-typedef void	(*RlcFreeDataHook)(unsigned long data); /* release data */
+typedef void	(*RlcFreeDataHook)(uintptr_t data); /* release data */
 
 #ifdef _WINDOWS_			/* <windows.h> is included */
 					/* rlc_color(which, ...) */
@@ -161,9 +161,9 @@ _export int		rlc_insert_menu(rlc_console c,
 #define RLC_VALUE(N)			(1000+(N))
 
 _export int		rlc_get(rlc_console c, int what,
-				unsigned long *val);
+				uintptr_t *val);
 _export int		rlc_set(rlc_console c, int what,
-				unsigned long val,
+				uintptr_t val,
 				RlcFreeDataHook hook);
 
 
@@ -202,7 +202,7 @@ typedef struct _complete_data
   TCHAR		buf_handle[COMPLETE_MAX_WORD_LEN];
   RlcCompleteFunc function;		/* function for continuation */
   void	       *ptr_handle;		/* pointer handle for client */
-  long		num_handle;		/* numeric handle for client */
+  intptr_t		num_handle;		/* numeric handle for client */
 } rlc_complete_data, *RlcCompleteData;
 
 _export RlcCompleteFunc rlc_complete_hook(RlcCompleteFunc func);

@@ -62,7 +62,7 @@ typedef struct
 } text_line, *TextLine;
 
 typedef struct
-{ unsigned long	data;			/* the data itself */
+{ uintptr_t	data;			/* the data itself */
   RlcFreeDataHook hook;			/* call when destroying console */
 } user_data;
 
