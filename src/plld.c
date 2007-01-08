@@ -38,6 +38,12 @@ embedded application.
 #if (_MSC_VER >= 1400)			/* VC8 */
 #include <config/win32.h>
 #endif
+
+#if (_MSC_VER < 1300)			/* <= VC6 */
+typedef long intptr_t;
+typedef unsigned long uintptr_t;
+#endif
+
 #include <process.h>
 #include <io.h>
 #define off_t intptr_t
