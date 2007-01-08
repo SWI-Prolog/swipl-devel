@@ -753,32 +753,32 @@ predicate(xref_exported, 2, 'Examine exported predicates', 832463, 832628).
 predicate(xref_module, 2, 'Module defined by source', 832631, 832784).
 predicate(xref_built_in, 1, 'Examine defined built-ins', 832787, 833109).
 predicate(called_by, 2, 'Hook (prolog) Extend cross-referencer', 833320, 834132).
-predicate(broadcast, 1, 'Send event notification', 835168, 835563).
-predicate(broadcast_request, 1, 'Request all agents', 835566, 836212).
-predicate(listen, 2, 'Listen to event notifications', 836215, 836692).
-predicate(listen, 3, 'Listen to event notifications', 836695, 837873).
-predicate(unlisten, 1, 'Stop listening to event notifications', 837876, 838021).
-predicate(unlisten, 2, 'Stop listening to event notifications', 838024, 838238).
-predicate(unlisten, 3, 'Stop listening to event notifications', 838241, 838491).
-predicate(listening, 3, 'Who is listening to event notifications?', 838494, 838702).
-predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 839303, 839712).
-predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 839715, 843372).
-predicate(prolog_choice_attribute, 3, 'Examine the choice-point stack', 843375, 844424).
-predicate(deterministic, 1, 'Test deterministicy of current clause', 844427, 844816).
-predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 844901, 848438).
-predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 848441, 849101).
-predicate(prolog_exception_hook, 4, 'Rewrite exceptions', 849542, 851826).
-predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 852474, 854054).
-predicate(prolog_list_goal, 1, 'Hook (user) Intercept tracer ''L'' command', 854543, 854962).
-predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 854965, 856208).
-predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 856211, 856867).
-predicate(prolog_load_file, 2, 'Hook (user) Program load_files/2', 857162, 857638).
-predicate(comment_hook, 3, 'Hook (prolog) handle comments in sources', 857641, 858364).
-predicate(rl_read_init_file, 1, 'Read readline(3) init file', 858674, 858928).
-predicate(rl_add_history, 1, 'Add line to readline(3) history', 858931, 859090).
-predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 877290, 877669).
-predicate(license, 2, 'Define license for named module', 877672, 880872).
-predicate(license, 1, 'Define license for current file', 880875, 881048).
+predicate(broadcast, 1, 'Send event notification', 835217, 835612).
+predicate(broadcast_request, 1, 'Request all agents', 835615, 836261).
+predicate(listen, 2, 'Listen to event notifications', 836264, 836741).
+predicate(listen, 3, 'Listen to event notifications', 836744, 837922).
+predicate(unlisten, 1, 'Stop listening to event notifications', 837925, 838070).
+predicate(unlisten, 2, 'Stop listening to event notifications', 838073, 838287).
+predicate(unlisten, 3, 'Stop listening to event notifications', 838290, 838540).
+predicate(listening, 3, 'Who is listening to event notifications?', 838543, 838751).
+predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 839352, 839761).
+predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 839764, 843421).
+predicate(prolog_choice_attribute, 3, 'Examine the choice-point stack', 843424, 844473).
+predicate(deterministic, 1, 'Test deterministicy of current clause', 844476, 844865).
+predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 844950, 848487).
+predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 848490, 849150).
+predicate(prolog_exception_hook, 4, 'Rewrite exceptions', 849591, 851875).
+predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 852523, 854103).
+predicate(prolog_list_goal, 1, 'Hook (user) Intercept tracer ''L'' command', 854592, 855011).
+predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 855014, 856257).
+predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 856260, 856916).
+predicate(prolog_load_file, 2, 'Hook (user) Program load_files/2', 857211, 857687).
+predicate(comment_hook, 3, 'Hook (prolog) handle comments in sources', 857690, 858413).
+predicate(rl_read_init_file, 1, 'Read readline(3) init file', 858723, 858977).
+predicate(rl_add_history, 1, 'Add line to readline(3) history', 858980, 859139).
+predicate(eval_license, 0, 'Evaluate licenses of loaded modules', 877339, 877718).
+predicate(license, 2, 'Define license for named module', 877721, 880921).
+predicate(license, 1, 'Define license for current file', 880924, 881097).
 
 
 %   Predicate section/4
@@ -1088,7 +1088,7 @@ section([10, 4], 'Finding Application files', 750051, 751917).
 section([10, 4, 1], 'Passing a path to the application', 751331, 751917).
 section([10, 5], 'The Runtime Environment', 751919, 754566).
 section([10, 5, 1], 'The Runtime Emulator', 752001, 754566).
-section([11], 'THE SWI-PROLOG LIBRARY', 754568, 838703).
+section([11], 'THE SWI-PROLOG LIBRARY', 754568, 838752).
 section([11, 1], 'lists:  List Manipulation', 756025, 761327).
 section([11, 1, 1], 'Set Manipulation', 759604, 761327).
 section([11, 2], 'ordsets:  Ordered Set Manipulation', 761329, 764650).
@@ -1123,37 +1123,37 @@ section([11, 16, 2], 'Example 2', 826427, 828040).
 section([11, 16, 3], 'Example 3', 828042, 829006).
 section([11, 17], 'prologxref:  Cross-reference data collection library', 829008, 834133).
 section([11, 17, 1], 'Extending the library', 833112, 834133).
-section([11, 18], 'broadcast:  Broadcast and receive event notifications', 834135, 838703).
-section([12], 'HACKERS CORNER', 838705, 859091).
-section([12, 1], 'Examining the Environment Stack', 839199, 844817).
-section([12, 2], 'Intercepting the Tracer', 844819, 849102).
-section([12, 3], 'Adding context to errors:  prolog_exception_hook', 849104, 851827).
-section([12, 4], 'Hooks using the exception predicate', 851829, 854055).
-section([12, 5], 'Hooks for integrating libraries', 854057, 856868).
-section([12, 6], 'Hooks for loading files', 856870, 858365).
-section([12, 7], 'Readline Interaction', 858367, 859091).
-section([13], 'GLOSSARY OF TERMS', 859093, 872064).
-section([14], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 872066, 888123).
-section([14, 1], 'The SWI-Prolog kernel and foreign libraries', 873554, 876054).
-section([14, 1, 1], 'The SWI-Prolog Prolog libraries', 874373, 876054).
-section([14, 2], 'Contributing to the SWI-Prolog project', 876056, 876622).
-section([14, 3], 'Software support to keep track of license conditions', 876624, 881342).
-section([14, 4], 'Library predicates', 881344, 888123).
-section([14, 4, 1], check, 881413, 881648).
-section([14, 4, 2], lists, 881650, 882524).
-section([14, 4, 3], ordsets, 882526, 883104).
-section([14, 4, 4], ugraphs, 883106, 883984).
-section([14, 4, 5], www_browser, 883986, 884064).
-section([14, 4, 6], readutil, 884066, 884391).
-section([14, 4, 7], registry, 884393, 884871).
-section([14, 4, 8], url, 884873, 885139).
-section([14, 4, 9], 'clp/bounds', 885141, 885901).
-section([14, 4, 10], 'clp/clp_distinct', 885903, 886088).
-section([14, 4, 11], 'clp/simplex', 886090, 886682).
-section([14, 4, 12], clpqr, 886684, 887158).
-section([14, 4, 13], prologxref, 887160, 887660).
-section([14, 4, 14], broadcast, 887662, 888123).
-section([15], 'Bibliography', 888125, 923217).
+section([11, 18], 'broadcast:  Broadcast and receive event notifications', 834135, 838752).
+section([12], 'HACKERS CORNER', 838754, 859140).
+section([12, 1], 'Examining the Environment Stack', 839248, 844866).
+section([12, 2], 'Intercepting the Tracer', 844868, 849151).
+section([12, 3], 'Adding context to errors:  prolog_exception_hook', 849153, 851876).
+section([12, 4], 'Hooks using the exception predicate', 851878, 854104).
+section([12, 5], 'Hooks for integrating libraries', 854106, 856917).
+section([12, 6], 'Hooks for loading files', 856919, 858414).
+section([12, 7], 'Readline Interaction', 858416, 859140).
+section([13], 'GLOSSARY OF TERMS', 859142, 872113).
+section([14], 'SWI-PROLOG LICENSE CONDITIONS AND TOOLS', 872115, 888172).
+section([14, 1], 'The SWI-Prolog kernel and foreign libraries', 873603, 876103).
+section([14, 1, 1], 'The SWI-Prolog Prolog libraries', 874422, 876103).
+section([14, 2], 'Contributing to the SWI-Prolog project', 876105, 876671).
+section([14, 3], 'Software support to keep track of license conditions', 876673, 881391).
+section([14, 4], 'Library predicates', 881393, 888172).
+section([14, 4, 1], check, 881462, 881697).
+section([14, 4, 2], lists, 881699, 882573).
+section([14, 4, 3], ordsets, 882575, 883153).
+section([14, 4, 4], ugraphs, 883155, 884033).
+section([14, 4, 5], www_browser, 884035, 884113).
+section([14, 4, 6], readutil, 884115, 884440).
+section([14, 4, 7], registry, 884442, 884920).
+section([14, 4, 8], url, 884922, 885188).
+section([14, 4, 9], 'clp/bounds', 885190, 885950).
+section([14, 4, 10], 'clp/clp_distinct', 885952, 886137).
+section([14, 4, 11], 'clp/simplex', 886139, 886731).
+section([14, 4, 12], clpqr, 886733, 887207).
+section([14, 4, 13], prologxref, 887209, 887709).
+section([14, 4, 14], broadcast, 887711, 888172).
+section([15], 'Bibliography', 888174, 923266).
 
 
 %   Predicate function/3
@@ -1331,6 +1331,6 @@ function('PL_halt', 715713, 716026).
 function('PL_malloc', 729295, 729634).
 function('PL_realloc', 729637, 729912).
 function('PL_free', 729915, 730086).
-function('PL_license', 881051, 881341).
+function('PL_license', 881100, 881390).
 
 

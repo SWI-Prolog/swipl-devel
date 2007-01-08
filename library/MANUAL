@@ -18050,9 +18050,10 @@ pprroolloogg::ccaalllleedd__bbyy((_+_G_o_a_l_, _-_C_a_
 
 1111..1188 broadcast::  BBrrooaaddccaasstt aanndd rreecceeiivvee eevveenntt nnoottiiffiiccaattiioonnss
 
-to realise  GUI applications consisting  of stand-alone components  that
-use the  Prolog database for  storing the application data.   Figure  ????
-illustrates the flow of information using this design
+The  broadcast  library   was  invented  to  realise  GUI   applications
+consisting of  stand-alone components that use  the Prolog database  for
+storing  the application  data.    Figure  ????  illustrates the  flow  of
+information using this design
 
 The  broadcasting service  provides two  services.    Using the  `shout'
 service, an unknown number of agents may listen to  the message and act.

@@ -534,6 +534,10 @@ gmp(shift-1) :-
 gmp(shift-2) :-
 	A is 1<<55, B is A<<8,
 	B =:= 9223372036854775808.
+gmp(shift-3) :-
+	var(A),
+	forall(between(1, 100, X),
+	       catch(A is 1<<(1<<X), error(resource_error(stack), _), true)).
 gmp(fac-1) :-
 	fac(25, X),
 	X == 15511210043330985984000000. % computed with bc

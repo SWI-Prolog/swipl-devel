@@ -1050,7 +1050,8 @@ msb64(int64_t i)
 
 static int
 ar_shift(Number n1, Number n2, Number r, int dir) 
-{ long shift;
+{ GET_LD
+  long shift;
   const char *plop = (dir < 0 ? "<<" : ">>");
 
   if ( !toIntegerNumber(n1) ) 
@@ -1058,11 +1059,16 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   if ( !toIntegerNumber(n2) ) 
     return PL_error(plop, 2, NULL, ERR_AR_TYPE, ATOM_integer, n2); 
 
+  if ( ar_sign_i(n1) == 0 )		/* shift of 0 is always 0 */
+  { r->value.i = 0;
+    r->type = V_INTEGER;
+  }
+
   switch(n2->type)
   { case V_INTEGER:
       if ( n2->value.i < LONG_MIN  ||
 	   n2->value.i > LONG_MAX )
-	return PL_error(plop, 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+	return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
       else
 	shift = (long)n2->value.i;
       break;
@@ -1070,7 +1076,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     case V_MPZ:
       if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
 	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	return PL_error(plop, 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+	return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
       else
 	shift = mpz_get_si(n2->value.mpz);
       break;
@@ -1108,8 +1114,13 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       r->type = V_MPZ; 
       mpz_init(r->value.mpz); 
       if ( dir < 0 )
+      { long msb = (mpz_sizeinbase(n1->value.mpz, 2)-1+shift);
+
+	if ( spaceStack(global)-1024 < msb/8 )
+	  return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+	
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift); 
-      else
+      } else
 	mpz_fdiv_q_2exp(r->value.mpz, n1->value.mpz, shift); 
       succeed; 
 #endif
